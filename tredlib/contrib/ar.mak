@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2003-11-05 12:30:15 pajas>
+## Time-stamp: <2004-12-17 16:13:17 pajas>
 ## $Id$
 
 #encoding iso-8859-2
@@ -9,6 +9,63 @@
 package Analytic;
 use base qw(TredMacro);
 import TredMacro;
+
+sub status_line_doubleclick_hook { 
+  # status-line field double clicked
+  # there is also status_line_click_hook for single clicks
+
+  # @_ contains a list of style names associated with the clicked
+  # field. Style names may obey arbitrary user-defined convention.
+
+  foreach (@_) {
+    if (/^\{(.*)}$/) {
+      if ($1 eq 'FRAME') {
+	ChooseFrame();
+	last;
+      } else {
+	if (main::doEditAttr($grp,$this,$1)) {
+	  ChangingFile(1);
+	}
+	last;
+      }
+    }
+  }
+}
+
+sub get_status_line_hook {
+  # get_status_line_hook may either return a string
+  # or a pair [ field-definitions, field-styles ]
+  return [
+	  # status line field definitions ( field-text => [ field-styles ] )
+	  [
+	   "form: " => [qw(label)],
+	   $this->{form} => [qw({form} value)],
+	   "     afun: " => [qw(label)],
+	   $this->{afun} => [qw({afun} value)],
+	   "     tag: " => [qw(label)],
+	   $this->{tag} => [qw({tag} value)],
+	   "     lemma: " => [qw(label)],
+	   $this->{lemma} => [qw({lemma} value)],
+	   "     AID: " => [qw(label)],
+	   $this->{AID} => [qw({AID} value)],
+	   ($this->{commentA} ne "" ?
+	    ("     [" => [qw()],
+	     $this->{commentA} => [qw({commentA})],
+	     "]" => [qw()]
+	    ) : ())
+	  ],
+
+	  # field styles
+	  [
+	   "label" => [-foreground => 'black' ],
+	   "value" => [-underline => 1 ],
+	   "{commentA}" => [ -foreground => 'red' ],
+	   "bg_white" => [ -background => 'white' ],
+	  ]
+
+	 ];
+}
+
 
 
 # converted from Graph macros with graph2tred to Perl.
