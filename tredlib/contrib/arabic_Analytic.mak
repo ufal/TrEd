@@ -1,9 +1,14 @@
-# -*- cperl -*-
+# ########################################################################## Otakar Smrz, 2004/03/05
+#
+# Arabic Analytic Context for TrEd by Petr Pajas ###################################################
+
+# $Id$
 
 #include <tred.mac>
 
-#binding-context TredMacro;
 package TredMacro;
+
+#binding-context TredMacro;
 
 sub file_opened_hook {
 
@@ -12,63 +17,92 @@ sub file_opened_hook {
 
 #include <contrib/arabic_common.mak>
 
-#binding-context Analytic
 package Analytic;
 
-sub AfunAssign {
-  my $fullafun=$_[0] || $sPar1;
-  my ($afun,$parallel,$paren)=($fullafun=~/^([^_]*)(?:_(Ap|Co|no-parallel))?(?:_(Pa|no-paren))?/);
-  if ($this->{'afun'} ne 'AuxS') {
-    if ($this->{'afun'} ne '???') {
-      $this->{'afunprev'} = $this->{'afun'};
-    }
-    $this->{'afun'} = $afun;
-    $this->{'parallel'} = $parallel;
-    $this->{'paren'} = $paren;
+use 5.008;
 
-    $iPrevAfunAssigned = $this->{'ord'};
-    $this=$this->following;
-  }
+our $VERSION = do { my @r = q$Revision$ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+#binding-context Analytic
+
+our ($hooks_request_mode);
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+sub AfunAssign {
+
+    my $fullafun = $_[0] || $sPar1;
+    my ($afun, $parallel, $paren) = ($fullafun =~ /^([^_]*)(?:_(Ap|Co|no-parallel))?(?:_(Pa|no-paren))?/);
+
+    if ($this->{'afun'} eq 'AuxS') {
+
+        $Redraw = 'none';
+        ChangingFile(0);
+    }
+    else {
+
+        $this->{'afunaux'} = $this->{'afun'} unless $this->{'afun'} eq '???';
+
+        $this->{'afun'} = $afun;
+        $this->{'parallel'} = $parallel;
+        $this->{'paren'} = $paren;
+
+        $this->{'afunaux'} = '' if $this->{'afun'} eq '???';
+
+        $iPrevAfunAssigned = $this->{'ord'};
+        $this = $this->following();
+
+        $Redraw = 'tree';
+    }
 }
 
-#bind afun_unset to question menu Arabic: Assign afun ???
-sub afun_unset {AfunAssign('???');}
-
 #bind afun_auxM to m menu Arabic: Assign afun AuxM
-sub afun_auxM {AfunAssign('AuxM');}
+sub afun_auxM { AfunAssign('AuxM') }
 #bind afun_auxM_Co to Ctrl+m
-sub afun_auxM_Co {AfunAssign('AuxM_Co');}
+sub afun_auxM_Co { AfunAssign('AuxM_Co') }
 #bind afun_auxM_Ap to M
-sub afun_auxM_Ap { AfunAssign('AuxM_Ap');}
+sub afun_auxM_Ap { AfunAssign('AuxM_Ap') }
 #bind afun_auxM_Pa to Ctrl+M
-sub afun_auxM_Pa { AfunAssign('AuxM_Pa'); }
+sub afun_auxM_Pa { AfunAssign('AuxM_Pa') }
 
 #bind afun_auxE to f menu Arabic: Assign afun AuxE
-sub afun_auxE {AfunAssign('AuxE')}
+sub afun_auxE { AfunAssign('AuxE') }
 #bind afun_auxE_Co to Ctrl+f
-sub afun_auxE_Co {AfunAssign('AuxE_Co')}
+sub afun_auxE_Co { AfunAssign('AuxE_Co') }
 #bind afun_auxE_Ap to F
-sub afun_auxE_Ap {AfunAssign('AuxE_Ap')}
+sub afun_auxE_Ap { AfunAssign('AuxE_Ap') }
 #bind afun_auxE_Pa to Ctrl+F
-sub afun_auxE_Pa {AfunAssign('AuxE_Pa')}
+sub afun_auxE_Pa { AfunAssign('AuxE_Pa') }
 
 #bind afun_Ref to r menu Arabic: Assign afun Ref
-sub afun_Ref {AfunAssign('Ref')}
+sub afun_Ref { AfunAssign('Ref') }
 #bind afun_Ref_Co to Ctrl+r
-sub afun_Ref_Co {AfunAssign('Ref_Co')}
+sub afun_Ref_Co { AfunAssign('Ref_Co') }
 #bind afun_Ref_Ap to R
-sub afun_Ref_Ap {AfunAssign('Ref_Ap')}
+sub afun_Ref_Ap { AfunAssign('Ref_Ap') }
 #bind afun_Ref_Pa to Ctrl+R
-sub afun_Ref_Pa {AfunAssign('Ref_Pa')}
+sub afun_Ref_Pa { AfunAssign('Ref_Pa') }
 
 #bind afun_Ante to t menu Arabic: Assign afun Ante
-sub afun_Ante {AfunAssign('Ante')}
+sub afun_Ante { AfunAssign('Ante') }
 #bind afun_Ante_Co to Ctrl+t
-sub afun_Ante_Co {AfunAssign('Ante_Co')}
+sub afun_Ante_Co { AfunAssign('Ante_Co') }
 #bind afun_Ante_Ap to T
-sub afun_Ante_Ap {AfunAssign('Ante_Ap')}
+sub afun_Ante_Ap { AfunAssign('Ante_Ap') }
 #bind afun_Ante_Pa to Ctrl+T
-sub afun_Ante_Pa {AfunAssign('Ante_Pa')}
+sub afun_Ante_Pa { AfunAssign('Ante_Pa') }
+
+#bind assign_parallel to key 1 menu Arabic: Suffix Parallel
+sub assign_parallel {
+  $this->{parallel}||='no-parallel';
+  EditAttribute($this,'parallel');
+}
 
 #bind assign_paren to key 2 menu Arabic: Suffix Paren
 sub assign_paren {
@@ -110,39 +144,99 @@ sub assign_arabclause {
 #remove-menu Assign Slovene afun
 #remove-menu Auto-assign analytical functions to tree
 
+sub get_auto_afun {
+
+    require Assign_arab_afun;
+
+    my ($ra, $rb, $rc) = Assign_arab_afun::afun($_[0]);
+
+    print STDERR "$node->{lemma} ($ra,$rb,$rc)\n";
+
+    return $ra =~ /^\s*$/ ? '' : $ra;
+}
+
 ### rebind PDT bindings used for Czech with Arabic ones
-#bind assign_afun_auto Ctrl+Shift+F9 menu Arabic: Auto-assign analytical function to node
-sub assign_afun_auto {
-  shift if (@_ and !ref($_[0]));
-  my $node = $_[0] || $this;
-  return unless ($node && $node->parent() &&
-         ($node->{func} eq '???' or
-          $node->{func} eq ''));
+#bind request_auto_afun_node Ctrl+Shift+F9 menu Arabic: Request auto afun for node
+sub request_auto_afun_node {
 
+    my $node = $_[0] eq __PACKAGE__ ? $this : $_[0];
 
-  require Assign_arab_afun;
+    unless ($node and $node->parent() and ($node->{'afun'} eq '???' or $node->{'afun'} eq '')) {
 
-  my ($ra,$rb,$rc)=Assign_arab_afun::afun($node);
-  $node->{afun}=$ra;
-  print STDERR "$node->{lemma} ($ra,$rb,$rc)\n";
+        $Redraw = 'none';
+        ChangingFile(0);
+    }
+    else {
+
+        $node->{'afun'} = '???';    # it might have been empty
+        $node->{'afunaux'} = get_auto_afun($node);
+
+        $Redraw = 'tree';
+    }
+}
+
+#bind request_auto_afun_subtree to Ctrl+Shift+F10 menu Arabic: Request auto afun for subtree
+sub request_auto_afun_subtree {
+
+    my $node = $this;
+
+    request_auto_afun_node($node);      # more strict checks
+
+    while ($node = $node->following($this)) {
+
+        if ($node->{'afun'} eq '???' or $node->{'afun'} eq '') {
+
+            $node->{'afun'} = '???';    # it might have been empty
+            $node->{'afunaux'} = get_auto_afun($node);
+        }
+    }
+
+    $Redraw = 'tree';
+}
+
+#bind hooks_request_mode Ctrl+Shift+F8 menu Arabic: Toggle hooks request mode for auto afuns
+sub hooks_request_mode {
+
+    $hooks_request_mode = not $hooks_request_mode;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+sub node_release_hook {
+
+    return unless $hooks_request_mode;
+
+    my ($node, $done) = @_;
+
+    my @line;
+
+    while ($done->{'afun'} eq '???' and $done->{'afunaux'} eq '') {
+
+        unshift @line, $done;
+
+        $done = $done->parent();
+    }
+
+    request_auto_afun_node($_) foreach @line, $node;
 }
 
 sub node_moved_hook {
-  #my ($node)=@_;
-  #assign_afun_auto($node);
-}
 
-#bind assign_all_afun_auto to Ctrl+Shift+F10 menu Arabic: Auto-assign analytical functions to tree
-sub assign_all_afun_auto {
-  shift if (@_ and !ref($_[0]));
-  my $top = $_[0] || $root;
-  require Assign_arab_afun;
+    return unless $hooks_request_mode;
 
-  my $node = $top;
-  while ($node) {
-    assign_afun_auto($node);
-    $node = NextVisibleNode($node,$top);
-  }
+    my (undef, $done) = @_;
+
+    my @line;
+
+    while ($done->{'afun'} eq '???' and $done->{'afunaux'} eq '') {
+
+        unshift @line, $done;
+
+        $done = $done->parent();
+    }
+
+    request_auto_afun_node($_) foreach @line;
 }
 
 # bind padt_auto_parse_tree to Ctrl+Shift+F2 menu Arabic: Parse the current sentence and build a tree
@@ -159,51 +253,69 @@ sub root_style_hook {
 
 # node styles to draw extra arrows
 sub node_style_hook {
-  my ($node,$styles)=@_;
 
-  # Ref
-  if ($node->{arabspec} eq 'Ref') {
-      my $T;
+    my ($node, $styles) = @_;
 
-      $T=<<'TARGET';
+    if ($node->{'arabspec'} eq 'Ref') {
+
+        my $T = << 'TARGET';
 [!
-    my($ante,$refer);
-    my($head)=$this;
+    my ($head, $attr, $ante);
 
-    # search for the head of the clause
-    until ( (not $head) or ($head->{afun} eq 'Atr' and ($head->{arabclause}!~/^no-|^$/ or $head->{tag}=~/VERB/))
-                        or ($head->{afun}=~/^(?:Pred|Pnom)/) ) {
-      $head=$head->parent;
-      $refer=$head if (not defined $refer and $head->{afun} eq 'Atr'); # attributive pseudo-clause
+    $head = $this->parent;
+
+    until ( (not $head) or ($head->{afun} =~ /^(?:Atr|Atv)$/ and ($head->{arabclause} !~ /^no-|^$/ or $head->{tag} =~ /^V/))
+                        or ($head->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/)
+                        or ($head->{afun} =~ /^(?:Coord|Apos)$/ and grep {
+
+                            $_->{parallel} =~ /^(?:Co|Ap)$/
+
+                            and (  ($_->{afun} =~ /^(?:Atr|Atv)$/ and ($_->{arabclause} !~ /^no-|^$/ or $_->{tag} =~ /^V/))
+                                or ($_->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/) )
+
+                            } $head->children) ) {
+
+        $head = $head->parent;
+        $attr = $head if not defined $attr and $head->{afun} eq 'Atr';  # attributive pseudo-clause .. approximation only
     }
 
-    # search for an Ante in the subtree, or point to the parent of the $refer or $head
     if ($head) {
-      $ante=$head;
-      $ante=$ante->following($head) until (not($ante) or $ante->{afun} eq 'Ante');
 
-      $ante or (defined $refer ? $refer->parent : $head->parent);
+        $ante = $head;
+        $ante = $ante->following($head) until not $ante or $ante->{afun} eq 'Ante';
+
+        return $ante if $ante;
+
+        if (defined $attr) {
+
+            $head = $attr;
+        }
+        else {
+
+            $attr = $head;
+        }
+
+        $head = $head->parent while $head->{parallel} =~ /^(?:Co|Ap)$/;
+
+        $head = $head->parent;
+
+        return $head;
     }
-    else { defined $refer ? $refer->parent : undef; }
+    else {
+
+        return defined $attr ? $attr->parent : undef;
+    }
 !]
 TARGET
 
-
-    # Instructions for TrEd on how to compute a simple 3-point
-    # multiline starting at the current node and ending at the node
-    # given by $T with middle point just between those two plus 40
-    # points either in the horizontal or vertical direction (depending
-    # on the direction of a greater distance)
-    my $coords=<<COORDS;
+        my $coords = << "COORDS";
 n,n,
-n + (x$T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
-n + (y$T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
+(n + x$T) / 2 + (abs(xn - x$T) > abs(yn - y$T) ? 0 : -40),
+(n + y$T) / 2 + (abs(yn - y$T) > abs(xn - x$T) ? 0 :  40),
 x$T,y$T
 COORDS
 
-    # the ampersand & separates settings for the default line
-    # to the parent node and our line
-    AddStyle($styles,'Line',
+    AddStyle($styles, 'Line',
              -coords => 'n,n,p,p&'. # coords for the default edge to parent
                         $coords,    # coords for our line
              -arrow => '&last',
@@ -212,43 +324,31 @@ COORDS
              -fill => '&#C000D0',   # color
              -smooth => '&1'        # approximate our line with a smooth curve
             );
-
   }
 
 
-  # Msd
   if ($node->{arabspec} eq 'Msd') {
-      my $T;
 
-      $T=<<'TARGET';
+      my $T = << 'TARGET';
 [!
-    my $head=$this->parent; # start one node above (the masdar itself might feature the critical tags)
-    if ($this->{afun} eq 'Atr') { $head=$head->parent; } # constructs like <_hAfa 'a^sadda _hawfiN>
+    my $head = $this->parent;                                   # the masdar itself might feature the critical tags
 
-    # search for the verb, governing masdar or participle
-    $head=$head->parent
-      until ( (not $head) or ($head->{tag}=~/VERB|NOUN|ADJ/) );
+    $head = $head->parent if $this->{afun} eq 'Atr';                    # constructs like <_hAfa 'a^sadda _hawfiN>
 
-    $head;
+    $head = $head->parent until not $head or $head->{tag} =~ /^[VNA]/;  # the verb, governing masdar or participle
+
+    return $head;
 !]
 TARGET
 
-
-    # Instructions for TrEd on how to compute a simple 3-point
-    # multiline starting at the current node and ending at the node
-    # given by $T with middle point just between those two plus 40
-    # points either in the horizontal or vertical direction (depending
-    # on the direction of a greater distance)
-    my $coords=<<COORDS;
+        my $coords = << "COORDS";
 n,n,
-n + (x$T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
-n + (y$T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
+(n + x$T) / 2 + (abs(xn - x$T) > abs(yn - y$T) ? 0 : -40),
+(n + y$T) / 2 + (abs(yn - y$T) > abs(xn - x$T) ? 0 :  40),
 x$T,y$T
 COORDS
 
-    # the ampersand & separates settings for the default line
-    # to the parent node and our line
-    AddStyle($styles,'Line',
+    AddStyle($styles, 'Line',
              -coords => 'n,n,p,p&'. # coords for the default edge to parent
                         $coords,    # coords for our line
              -arrow => '&last',
@@ -257,7 +357,6 @@ COORDS
              -fill => '&#FFA000',   # color
              -smooth => '&1'        # approximate our line with a smooth curve
             );
-
   }
 }
 
@@ -271,8 +370,11 @@ sub enable_attr_hook {
 }
 
 #remove-menu Edit annotator's comment
-#bind edit_commentA to exclam menu Arabic: Edit Annotator's Comment
+#bind edit_commentA to exclam menu Arabic: Edit annotator's comment
 sub edit_commentA {
+
+    $Redraw = 'none';
+    ChangingFile(0);
 
     my $comment = $grp->{FSFile}->FS->exists('comment') ? 'comment' : $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
 
@@ -280,12 +382,11 @@ sub edit_commentA {
 
         ToplevelFrame()->messageBox (
             -icon => 'warning',
-            -message => 'Sorry, no attribute for annotator\'s comment in this file',
+            -message => "No attribute for annotator's comment in this file",
             -title => 'Sorry',
-            -type => 'OK'
+            -type => 'OK',
         );
 
-        $FileNotSaved = 0;
         return;
     }
 
@@ -293,11 +394,17 @@ sub edit_commentA {
 
     $value = main::QueryString($grp->{framegroup}, "Enter comment", $comment, $value);
 
-    $this->{$comment} = $value if defined $value;
+    if (defined $value) {
+
+        $this->{$comment} = $value;
+
+        $Redraw = 'tree';
+        ChangingFile(1);
+    }
 }
 
 #remove-menu Display default attributes
-#bind default_ar_attrs to F8 menu Arabic: Show / Hide Morphological Tags
+#bind default_ar_attrs to F8 menu Arabic: Show / hide morphological tags
 sub default_ar_attrs {
 
     return unless $grp->{FSFile};
@@ -315,7 +422,7 @@ sub default_ar_attrs {
     return 1;
 }
 
-#bind invoke_undo BackSpace menu Arabic: Undo Annotation
+#bind invoke_undo BackSpace menu Arabic: Undo annotation
 sub invoke_undo {
 
     warn 'Undoooooing ;)';
@@ -326,7 +433,7 @@ sub invoke_undo {
     ChangingFile(0);
 }
 
-#bind annotate_following space menu Arabic: Move to Following ???
+#bind annotate_following space menu Arabic: Move to following ???
 sub annotate_following {
 
     my $node = $this;
@@ -335,10 +442,11 @@ sub annotate_following {
 
     $this = $node unless $this->{afun} eq '???';
 
+    $Redraw = 'none';
     ChangingFile(0);
 }
 
-#bind annotate_previous Shift+space menu Arabic: Move to Previous ???
+#bind annotate_previous Shift+space menu Arabic: Move to previous ???
 sub annotate_previous {
 
     my $node = $this;
@@ -347,5 +455,59 @@ sub annotate_previous {
 
     $this = $node unless $this->{afun} eq '???';
 
+    $Redraw = 'none';
     ChangingFile(0);
+}
+
+#bind accept_auto_afun Ctrl+space menu Arabic: Accept auto-assigned annotation
+sub accept_auto_afun {
+
+    my $node = $this;
+
+    unless ($this->{'afun'} eq '???' and $this->{'afunaux'} ne '') {
+
+        $Redraw = 'none';
+        ChangingFile(0);
+    }
+    else {
+
+        $this->{'afun'} = $this->{'afunaux'};
+        $this->{'afunaux'} = '';
+
+        $Redraw = 'tree';
+    }
+}
+
+#bind unset_afun to question menu Arabic: Unset afun to ???
+sub unset_afun {
+
+    if ($this->{'afun'} eq 'AuxS') {
+
+        $Redraw = 'none';
+        ChangingFile(0);
+    }
+    else {
+
+        $this->{'afun'} = '???';
+        $this->{'afunaux'} = '';
+
+        $Redraw = 'tree';
+    }
+}
+
+#bind unset_request_afun to Ctrl+question menu Arabic: Unset and request auto afun
+sub unset_request_afun {
+
+    if ($this->{'afun'} eq 'AuxS') {
+
+        $Redraw = 'none';
+        ChangingFile(0);
+    }
+    else {
+
+        $this->{'afun'} = '???';
+        $this->{'afunaux'} = get_auto_afun($this);
+
+        $Redraw = 'tree';
+    }
 }

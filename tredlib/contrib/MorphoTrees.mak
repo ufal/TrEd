@@ -93,10 +93,11 @@ sub get_nodelist_hook {
 sub get_value_line_hook {
 
     my ($fsfile, $tree_no) = @_;
-    my ($tree) = $fsfile->tree($tree_no);
     my ($nodes, $words, $home, $end, $par, $rel);
 
     my $style = "-foreground => black, -background => yellow, -underline => 0";
+
+    my $tree = $fsfile->tree($tree_no);
 
     if ($tree->{'type'} eq 'paragraph') {
 
@@ -130,7 +131,7 @@ sub get_value_line_hook {
 
         $words = [ [ $tree->{'id'} . " " . $tree->{'input'}, '#' . $home, '-foreground => purple' ],
                    map { [ " " ],
-                         [ $_->{'input'}, '#' . ($home + ++$rel), $_ == $this ? $style : () ],
+                         [ $_->{'input'}, '#' . ($home + ++$rel), $_ == $this ? ($_, $style) : () ],
 
                         } grep { $_->{'type'} eq 'entity' } @{$nodes} ];
     }
@@ -142,25 +143,57 @@ sub get_value_line_hook {
 
 sub value_line_doubleclick_hook {
 
-    return if $root->{'type'} eq 'paragraph';
+    return if $grp->{root}->{'type'} eq 'paragraph';
 
     GotoTree(map { $_ =~ /^#([0-9]+)/ ? $1 : () } @_);
     Redraw();
+    main::centerTo($grp, $grp->{currentNode});
 
     return 'stop';
 }
 
 sub node_doubleclick_hook {
 
-    $this = $_[0];
+    $grp->{currentNode} = $_[0];
 
-    apply_morphology();
+    if ($_[1] eq 'Shift') {
+
+        main::doEvalMacro($grp, __PACKAGE__ . '->switch_either_context');
+    }
+    else {
+
+        main::doEvalMacro($grp, __PACKAGE__ . '->annotate_morphology');
+    }
 
     return 'stop';
 }
 
+sub node_click_hook {
+
+    $grp->{currentNode} = $_[0];
+
+    if ($_[1] eq 'Shift') {
+
+        main::doEvalMacro($grp, __PACKAGE__ . '->switch_either_context');
+    }
+    else {
+
+        main::doEvalMacro($grp, __PACKAGE__ . '->annotate_morphology_click');
+    }
+
+    return 'stop';
+}
+
+#bind annotate_morphology_click to Ctrl+space menu Annotate as if by Clicking
+sub annotate_morphology_click {
+
+    annotate_morphology('click');
+}
+
 #bind switch_either_context Shift+space menu Switch Either Context
 sub switch_either_context {
+
+    $Redraw = 'win' if $_[0] eq __PACKAGE__;
 
     my $quick = shift;
     my @refs;
@@ -209,8 +242,8 @@ sub switch_either_context {
         }
     }
 
-    # ChangingFile(0);
-    # $Redraw = 0;
+    $Redraw = 'win';
+    ChangingFile(0);
 }
 
 #bind move_to_next_paragraph Shift+Next menu Move to Next Paragraph
@@ -222,6 +255,9 @@ sub move_to_next_paragraph {
     }
 
     GotoTree((split /[^0-9]+/, $root->{'par'})[1]);
+
+    $Redraw = 'win';
+    ChangingFile(0);
 }
 
 #bind move_to_prev_paragraph Shift+Prior menu Move to Prev Paragraph
@@ -233,6 +269,9 @@ sub move_to_prev_paragraph {
     }
 
     GotoTree((split /[^0-9]+/, $root->{'par'})[0]);
+
+    $Redraw = 'win';
+    ChangingFile(0);
 }
 
 #bind move_word_home Home menu Move to First Word
@@ -240,14 +279,20 @@ sub move_word_home {
 
     if ($root->{'type'} eq 'paragraph') {
 
-        $this = ($root->visible_children($grp->{FSFile}->FS()))[0];
+        $this = (grep { $_->{'hide'} ne 'hide' } $root->children())[0];
+
+        $Redraw = 'none';
     }
     else {
 
         switch_either_context('quick');
         $this = ($root->children())[0];
         switch_either_context();
+
+        $Redraw = 'win';
     }
+
+    ChangingFile(0);
 }
 
 #bind move_word_end End menu Move to Last Word
@@ -255,20 +300,29 @@ sub move_word_end {
 
     if ($root->{'type'} eq 'paragraph') {
 
-        $this = ($root->visible_children($grp->{FSFile}->FS()))[-1];
+        $this = (grep { $_->{'hide'} ne 'hide' } $root->children())[-1];
+
+        $Redraw = 'none';
     }
     else {
 
         switch_either_context('quick');
         $this = ($root->children())[-1];
         switch_either_context();
+
+        $Redraw = 'win';
     }
+
+    ChangingFile(0);
 }
 
 #bind move_par_home Shift+Home menu Move to First Paragraph
 sub move_par_home {
 
     GotoTree(1);
+
+    $Redraw = 'win';
+    ChangingFile(0);
 }
 
 #bind move_par_end Shift+End menu Move to Last Paragraph
@@ -277,6 +331,9 @@ sub move_par_end {
     GotoTree($grp->{FSFile}->lastTreeNo + 1);
     switch_either_context('quick');
     $this = $root;
+
+    $Redraw = 'win';
+    ChangingFile(0);
 }
 
 #bind tree_hide_mode Ctrl+h menu Toggle Tree Hide Mode
@@ -290,12 +347,17 @@ sub tree_hide_mode {
 
         $entity_hide_mode = $entity_hide_mode eq 'hidden' ? '' : 'hidden';
     }
+
+    ChangingFile(0);
 }
 
 #bind move_to_root Shift+Up menu Move Up to Root
 sub move_to_root {
 
     $this = $root unless $root == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
 }
 
 #bind move_to_fork Shift+Down menu Move Down to Fork
@@ -314,10 +376,16 @@ sub move_to_fork {
     }
 
     $this = $node unless $node == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
 }
 
 #bind follow_apply_m_up Ctrl+Up menu Follow Annotation Up
 sub follow_apply_m_up {
+
+    $Redraw = 'none';
+    ChangingFile(0);
 
     my $node = $this->parent();
 
@@ -326,6 +394,7 @@ sub follow_apply_m_up {
     if ($node->{'apply_m'} > 0) {
 
         $this = $node;
+
         return;
     }
 
@@ -381,6 +450,9 @@ sub follow_apply_m_down {
     $node = $children[0] if @children;
 
     $this = $node unless $node == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
 }
 
 #bind follow_apply_m_right Ctrl+Right menu Follow Annotation Right
@@ -389,6 +461,9 @@ sub follow_apply_m_right {
     $main::treeViewOpts->{reverseNodeOrder} ?
         ctrl_currentLeftWholeLevel($grp) :
         ctrl_currentRightWholeLevel($grp);
+
+    $Redraw = 'none';
+    ChangingFile(0);
 }
 
 #bind follow_apply_m_left Ctrl+Left menu Follow Annotation Left
@@ -397,6 +472,9 @@ sub follow_apply_m_left {
     $main::treeViewOpts->{reverseNodeOrder} ?
         ctrl_currentRightWholeLevel($grp) :
         ctrl_currentLeftWholeLevel($grp);
+
+    $Redraw = 'none';
+    ChangingFile(0);
 }
 
 sub ctrl_currentRightWholeLevel {    # modified copy of main::currentRightWholeLevel
@@ -411,6 +489,8 @@ sub ctrl_currentRightWholeLevel {    # modified copy of main::currentRightWholeL
     until not $node or $level == $node->level() and $node->{'apply_m'} > 0;
 
     $this = $node if $node;
+
+    ChangingFile(0);
 }
 
 sub ctrl_currentLeftWholeLevel {     # modified copy of main::currentLeftWholeLevel
@@ -425,9 +505,11 @@ sub ctrl_currentLeftWholeLevel {     # modified copy of main::currentLeftWholeLe
     until not $node or $level == $node->level() and $node->{'apply_m'} > 0;
 
     $this = $node if $node;
+
+    ChangingFile(0);
 }
 
-#bind invoke_undo BackSpace menu Undo for Apply / Restrict
+#bind invoke_undo BackSpace menu Undo Annotate / Restrict
 sub invoke_undo {
 
     warn 'Undoooooing ;)';
@@ -438,12 +520,61 @@ sub invoke_undo {
     ChangingFile(0);
 }
 
+#bind invoke_redo Shift+BackSpace menu Redo Annotate / Restrict
+sub invoke_redo {
+
+    warn 'Redoooooing ;)';
+
+    main::re_do($grp);
+    $this = $grp->{currentNode};
+
+    ChangingFile(0);
+}
+
+#bind edit_comment to exclam menu Edit Annotation Comment
+sub edit_comment {
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    my $comment = $grp->{FSFile}->FS->exists('comment') ? 'comment' : undef;
+
+    unless (defined $comment) {
+
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "No 'comment' attribute in this file",
+            -title => 'Sorry',
+            -type => 'OK',
+        );
+
+        return;
+    }
+
+    my $value = $this->{$comment};
+
+    $value = main::QueryString($grp->{framegroup}, "Enter comment", $comment, $value);
+
+    if (defined $value) {
+
+        $this->{$comment} = $value;
+
+        $Redraw = 'tree';
+        ChangingFile(1);
+    }
+}
+
 # ##################################################################################################
 #
 # ##################################################################################################
 
-#bind apply_morphology to space menu Apply Morphology
-sub apply_morphology {
+#bind annotate_morphology to space menu Annotate Morphology
+sub annotate_morphology {
+
+    $Redraw = 'none' if $_[0] eq __PACKAGE__;
+    ChangingFile(0);
+
+    # indicated below when the file or the redraw mode actually change
 
     if ($root->{'type'} eq 'paragraph') {
 
@@ -456,14 +587,15 @@ sub apply_morphology {
             switch_either_context();
         }
 
+        $Redraw = 'win';
+
         return;
     }
 
-    # might have used # $node->visible_children($grp->{FSFile}->FS()) # ^^
-
-    my @tips = @_;
-    my $node = $this;
+    my ($quick, @tips) = @_;
     my (@children, $diff, $reflect);
+
+    my $node = $this;
 
     while (@children = $node->children()) {
 
@@ -480,9 +612,15 @@ sub apply_morphology {
 
             $diff = $node->{'apply_m'} == 0 ? 1 : $node == $this ? -1 : 0;
 
-            $node->{'apply_m'} += $diff;
+            unless ($diff == 0) {
 
-            $reflect = reflect_choice($node, $diff) unless $diff == 0;
+                $node->{'apply_m'} += $diff;
+
+                $reflect = reflect_choice($node, $diff);
+
+                $Redraw = 'file';
+                ChangingFile(1);
+            }
 
             if ($diff == -1) {
 
@@ -524,8 +662,16 @@ sub apply_morphology {
 
                     $this = defined $tips[0] && ( grep { $tips[0] == $_ } @children ) ? $tips[0] : $children[0];
 
-                    remove_inherited_restrict() if defined $this->{'tips'} and $this->{'tips'} == 0;
-                    apply_morphology();
+                    if (defined $this->{'tips'} and $this->{'tips'} == 0) {
+
+                        my $myRedraw = $Redraw;
+
+                        remove_inherited_restrict();
+
+                        $Redraw = $myRedraw if $myRedraw eq 'file';
+                    }
+
+                    annotate_morphology($quick eq 'click' ? $quick : undef);
                 }
                 else {
 
@@ -535,7 +681,12 @@ sub apply_morphology {
                         $reflect->{'hide'} = $paragraph_hide_mode eq 'hidden' && $reflect->{'apply_m'} > 0 ? 'hide' : '';
                     }
 
-                    NextTree();
+                    unless (defined $quick and $quick eq 'click') {
+
+                        NextTree();
+
+                        $Redraw = 'win' if $Redraw eq 'none';
+                    }
                 }
             }
         }
@@ -554,6 +705,8 @@ sub reflect_choice {
 
     switch_either_context('quick');
 
+    main::save_undo($grp, main::prepare_undo($grp));
+
     my $reflect = $this;
     my $twig = $leaf->parent();
 
@@ -561,8 +714,18 @@ sub reflect_choice {
 
     if ($diff == -1) {
 
-        CutNode(get_the_node($node, $leaf->{'ord'}));
-        CutNode($node) unless $node->children();
+        my $clip = get_the_node($node, $leaf->{'ord'});
+
+        CutNode($clip);
+        CutNode($node) and $diff-- unless $node->children();
+
+        $node = $root;
+
+        do {
+
+            $node->{'ord'} += $diff if $node->{'ord'} > $clip->{'ord'};
+        }
+        while $node = $node->following();
     }
     else {
 
@@ -653,7 +816,12 @@ sub restrict {
 
 sub restrict_hide {
 
+    ChangingFile(0);
+
     return unless $root->{'type'} eq 'entity';
+
+    $Redraw = 'tree';   # be careful in annotate_morphology()
+    ChangingFile(1);
 
     my ($restrict, $context) = @_;
 
@@ -761,7 +929,7 @@ sub restrict_hide {
 
     ($this, @tips) = ($roof, $this);
 
-    apply_morphology(@tips) if $this->{'tips'} > 0 and not defined $context;
+    annotate_morphology(undef, @tips) if $this->{'tips'} > 0 and not defined $context;
 }
 
 
