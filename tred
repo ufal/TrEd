@@ -771,6 +771,7 @@ sub closeFile {
 
   my $fsfile=$win->{FSFile};
   if ($fsfile) {
+    doEvalHook($win,"file_close_hook");
     $fsfile->currentTreeNo($win->{treeNo});
     $fsfile->currentNode($win->{currentNode});
   }
