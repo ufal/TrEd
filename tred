@@ -1800,8 +1800,8 @@ sub printDialog {
   my $imageMagick=$grp->{printImageMagick};
   my $imageMagickResolution=$grp->{printImageMagickResolution} || 80;
 #  my $useType1Font=$grp->{printUseType1Font};
-  my $printRange=$grp->{printRange};
-  $printRange=$grp->{focusedWindow}->{treeNo}+1 unless $printRange ne "";
+#  my $printRange=$grp->{printRange};
+  my $printRange=$grp->{focusedWindow}->{treeNo}+1;# unless $printRange ne "";
   my $snt=$grp->{printSentenceInfo};
   my $noRotate=$grp->{printNoRotate};
 
