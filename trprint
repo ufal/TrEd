@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2002-09-30 17:15:10 pajas>";
+$timestamp="Time-stamp: <2002-10-01 16:33:31 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -303,7 +303,7 @@ sub startMain {
 	$ofile_counter++ unless $opt_N;
 	$outfile= $opt_N ?
 	  $ofile_base."$u$_.$ofile_suffix" :
-	  $ofile_base."$u$ofile_counter.$ofile_suffix";
+	  $ofile_base."$u".sprintf('%03d',$ofile_counter).".".$ofile_suffix;
 	if (defined($opt_p)) {
 	  print "Sending $_ of $file to $opt_p\n";
 	} else {
