@@ -56,8 +56,8 @@ sub read {
 sub xml_quote {
   local $_=$_[0];
   s/&/&amp;/g;
-  s/'/&apos;/g;
-  s/"/&quot;/g;
+  s/\'/&apos;/g;
+  s/\"/&quot;/g;
   s/>/&gt;/g;
   s/</&lt;/g;
   return $_;

@@ -264,16 +264,16 @@ sub up_or_down {
 				   ($where > 0 ? 'next' : 'prev'));
   print "THIS: $path, OTHER: $other, PARENT: $parent\n";
   return unless ($other ne "" and $other ne $path and $hlist->info('parent',$other) eq $parent);
-  my $mtype = $hlist->info(data => $parent)->{type};
-  my $seq_no = $hlist->info(data => $path)->{name};
-  $seq_no =~ s/^S-//;
+  my $mtype =
+    $hlist->info(data => $parent)->{compressed_type} ||
+    $hlist->info(data => $parent)->{type};
+  my ($seq_no) = $hlist->info(data => $path)->{name} =~ /\[(\d+)\]/;
   my $val = {};
 
   $hlist->select_entry($path);
   $hlist->update;
 
   $hlist->dump_child($path, $val, 1);
-  print Dumper($val),"\n";
   $hlist->delete('entry',$path);
 
   $hlist->add_seq_member($parent,$mtype,(values %$val)[0],
@@ -289,8 +289,11 @@ sub add_to_seq {
   my $data = $hlist->info(data => $path);
   $data->{seq_no}++;
   $hlist->select_entry(
-	       $hlist->add_seq_member($path, $data->{type},
+	       $hlist->add_seq_member($path,
+				      $data->{compressed_type} ||
+				      $data->{type},
 			      undef,$data->{seq_no},0,[-at => 0]));
+  $hlist->configure(-height => 0);
 }
 
 sub add_to_alt {
@@ -319,6 +322,19 @@ sub add_to_alt {
     print "new $new_path\n";
     $hlist->select_entry($new_path);
   }
+#   print "$hlist\n";
+#   $hlist->Tk::bind('Freeze','<Map>',undef);
+#   $hlist->bindtags([grep { $_ ne 'Freeze'} $hlist->bindtags]);
+#   if ($hlist->cget('-height')<2) {
+#     $hlist->configure(-height => 0);#$hlist->cget('-height')+3)
+#   } else {
+#     $hlist->configure(-height => $hlist->cget('-height')+2)
+#   }
+
+#  print $hlist->height,"\n";
+#  print $hlist->reqheight,"\n";
+#  $hlist->parent->parent->configure(-height => $hlist->reqheight);
+  print $hlist->cget('-height'),"\n";
 }
 
 sub remove_alt_member {
@@ -352,10 +368,12 @@ sub new_seq_member {
   my $pdata = $hlist->info(data => $parent);
   $pdata->{seq_no}++;
   my $new = 
-    $hlist->add_seq_member($parent, $pdata->{type},
+    $hlist->add_seq_member($parent,
+			   ($pdata->{compressed_type} || $pdata->{type}),
 		   undef,$pdata->{seq_no},0,
 		   [-after => $path]);
   $hlist->select_entry($new);
+  $hlist->configure(-height => 0);
 }
 
 sub remove_seq_member {
@@ -383,22 +401,30 @@ sub add_buttons {
 		     -widget => $f,
 		     -style => $hlist->{my_itemstyles}{buttons}
 		    );
-  if (ref($mtype)) {
-    if ($mtype->{seq}) {
-      # add seq buttons
-      $hlist->mini_button($f,'plus',$path,
-	    -background => $colors{seq},
-	    -command => [$hlist,'add_to_seq',$path]
-	   )->pack();
-    } elsif ($mtype->{alt}) {
-      # add alt buttons
-      $hlist->mini_button($f,'star',$path,
-	    -background => $colors{alt},
-	    -command => [$hlist,'add_to_alt',$path]
-	   )->pack(-side => 'top');
+  my $ctype = $hlist->info(data => $path)->{compressed_type};
+
+  for my $type ($mtype, $ctype) {
+    if (ref($type)) {
+      if ($type->{seq}) {
+	# add seq buttons
+	$hlist->mini_button($f,'plus',$path,
+			    -background => $colors{seq},
+			    -command => [$hlist,'add_to_seq',$path]
+			   )->pack();
+      } elsif ($type->{alt}) {
+	# add alt buttons
+	$hlist->mini_button($f,'star',$path,
+			    -background => $colors{alt},
+			    -command => [$hlist,'add_to_alt',$path]
+			   )->pack(-side => 'top');
+      }
     }
   }
 
+
+  if ($parent ne "") {
+    $ptype = (($hlist->info(data => $parent)->{compressed_type}) || $ptype)
+  }
 #  return; # unless ref $ptype;
   if ($ptype and $ptype->{seq}) {
     # add seq member buttons
@@ -435,12 +461,12 @@ sub add_buttons {
 sub add_alt_member {
   my ($hlist,$path,$mtype,$val,$alt_no,$allow_empty,$entry_opts)=@_;
   return $hlist->add_member($path."/",$mtype->{alt},
-			    $val,'A-'.$alt_no,$allow_empty,$entry_opts);
+			    $val,'['.$alt_no.']',$allow_empty,$entry_opts);
 }
 
 sub add_seq_member {
   my ($hlist,$path,$mtype,$val,$seq_no,$allow_empty,$entry_opts)=@_;
-  return $hlist->add_member($path."/",$mtype->{seq},$val,'S-'.$seq_no,$allow_empty,$entry_opts);
+  return $hlist->add_member($path."/",$mtype->{seq},$val,'['.$seq_no.']',$allow_empty,$entry_opts);
 }
 
 sub next_sibling {
@@ -460,17 +486,13 @@ sub next_sibling {
   return $next;
 }
 
-sub resolve_type {
-  my ($types,$member)=@_;
-  $member->{type} ?
-    ($types->{$member->{type}} || $member->{type})
-      : $member;
-}
-
 sub add_member {
   my ($hlist,$base_path,$member,$attr_val,
       $attr_name,$allow_empty,$entry_opts)=@_;
-  my $mtype = resolve_type($hlist->types,$member);
+  my $mtype = $hlist->schema->resolve_type($member);
+  if (ref($mtype) and $mtype->{knit}) {
+    $mtype = $hlist->schema->resolve_type($mtype->{knit});
+  }
   return if ref($mtype) and $mtype->{role} eq '#CHILDNODES';
   my $path = $base_path.$attr_name;
   my $data = {type => $mtype,
@@ -479,11 +501,11 @@ sub add_member {
   $hlist->add($path,-data => $data, $entry_opts ? @$entry_opts : ());
   $hlist->itemCreate($path,0,-itemtype => 'text',
 		     -text => 
-		       ($attr_name =~ /^[AS]-/) ? ' ' : "  ".$attr_name,
+		       ($attr_name =~ /^\[\d+\]$/) ? ' ' : "  ".$attr_name,
 		     -style => $hlist->{my_itemstyles}{default}
 		    );
   if (!ref($mtype)) {
-    my $w = $hlist->Frame(-background => 'gray',
+    my $w = $hlist->Frame(-background => 'white', #'gray',
 			  -borderwidth => 1
 			 );
     $data->{value} = $attr_val;
@@ -619,13 +641,13 @@ sub add_members {
   }
 }
 
-sub types {
-  $_[0]->{my_types}
+sub schema {
+  $_[0]->{my_schema}
 }
 
-sub define_types {
-  my ($hlist,$types)=@_;
-  $hlist->{my_types}=$types;
+sub set_schema {
+  my ($hlist,$schema)=@_;
+  $hlist->{my_schema}=$schema;
 }
 
 sub adjust_size {
