@@ -22,6 +22,7 @@ BEGIN {
     &newNode
     &pruneNode
     &setCurrent
+    &errorMessage
   );
   use strict;
 }
@@ -146,5 +147,19 @@ sub setCurrent {
   &$on_current_change($win,$node,$prev,'setCurrent') if $on_current_change;
 }
 
+sub errorMessage {
+  my ($win,$msg)=@_;
+  if (exists($win->{framegroup}) and
+      ref($win->{framegroup}) and
+      exists($win->{framegroup}{top}) and
+      ref($win->{framegroup}{top})) {
+    $win->{framegroup}->{top}->toplevel->
+      messageBox(-icon=> 'error',
+		 -message=> $msg,
+		 -title=> 'Error', -type=> 'ok');
+  } else {
+    print STDERR "$msg\n";
+  }
+}
 1;
 
