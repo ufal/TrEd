@@ -239,10 +239,8 @@ sub findPreviousSibling {
   return $n;
 }
 
-
-sub isTextNode {
-  return $_[0]->getType == XML::LibXML::XML_TEXT_NODE;
-}
+sub isTextNode { $_[0]->getType == XML::LibXML::XML_TEXT_NODE }
+sub isElementNode { $_[0]->getType == XML::LibXML::XML_ELEMENT_NODE }
 
 package XML::LibXML::Element;
 
