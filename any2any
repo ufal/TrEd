@@ -81,7 +81,7 @@ our $inputenc='iso-8859-2';
 	fs => 'FSBackend',
 	csts => 'CSTS_SGML_SP_Backend',
 	trxml => 'TrXMLBackend',
-	tei => 'TEIXMLBackend'
+	teixml => 'TEIXMLBackend'
 );
 
 $fileno=0;
