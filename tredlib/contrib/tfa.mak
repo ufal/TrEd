@@ -1,8 +1,6 @@
 # -*- cperl -*-
 package TFA;
-@ISA=qw(Tectogrammatic);
-import main;
-import TredMacro;
+use base qw(Tectogrammatic);
 import Tectogrammatic;
 
 

@@ -1,13 +1,11 @@
 ## This is macro file for Tred                             -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2001-07-27 18:53:49 pajas>
+## Time-stamp: <2001-07-31 18:22:24 pajas>
 
 package Analytic_Correction;
-@ISA=qw(Analytic TredMacro main);
+use base qw(Analytic);
 import Analytic;
-import TredMacro;
-import main;
 
 # permitting all attributes modification
 sub enable_attr_hook {
