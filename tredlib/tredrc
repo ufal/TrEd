@@ -129,18 +129,3 @@ SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive r
 ; CstsToFs="2804.x"		;; give a csts (or any other format) to fs convertor here
 ; FsToCsts="2804.x -oformat=csts"	;; give a fs to csts (or any other format) convertor here
 
-LastAction	=	/home/pajas/pub/ln01tr.fs##8.0
-Geometry	=	680x450+72+91
-CanvasHeight	=	326
-CanvasWidth	=	661
-RecentFile0	=	/home/pajas/pub/ln01tr.fs
-RecentFile1	=	/home/pajas/pub/ln01trz.fs
-RecentFile2	=	/export/homelin/pajas/tmp/xmlparse/ln.fs
-RecentFile3	=	/export/homelin/pajas/tmp/xmlparse/ln.xml.gz
-RecentFile4	=	/export/homelin/pajas/tmp/xmlparse/ln.fs.gz
-RecentFile5	=	/export/homelin/pajas/tmp/xmlparse/ca01am.gz
-RecentFile6	=	/export/homelin/pajas/tmp/xmlparse/ca01.am
-RecentFile7	=	/export/homelin/pajas/tmp/xmlparse/lnxx.xml
-RecentFile8	=	/export/homelin/pajas/tmp/xmlparse/ln.xml
-RecentFile9	=	/mnt/h/treebank/FS-REV/testovaci/ln2/ln39tra.fs
-filelist0	=	/home/paja/.tred_bookmarks
