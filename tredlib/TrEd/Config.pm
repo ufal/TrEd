@@ -267,16 +267,14 @@ sub set_config {
   $treeViewOpts->{showHidden} = val_or_def($confs,"showhiddne",0);;
 
   $TrEd::Convert::inputenc = val_or_def($confs,"defaultfileencoding",$TrEd::Convert::inputenc);
-  print STDERR "Setting INPUTENC $TrEd::Convert::inputenc\n";
   $TrEd::Convert::outputenc = val_or_def($confs,"defaultdisplayencoding",$TrEd::Convert::outputenc);
   $TrEd::Convert::lefttoright = val_or_def($confs,"displaynonasciilefttoright",$TrEd::Convert::lefttoright);
 
-  my $fontenc=$TrEd::Convert::outputenc 
+  my $fontenc=$TrEd::Convert::outputenc
     || ($Tk::VERSION >= 804 and "iso-10646-1")  || "iso-8859-2";
   $fontenc=~s/^iso-/iso/;
 
-  print STDERR "FONTENC: $fontenc\n";
-  if (exists $config->{font}) {
+  if (exists $confs->{font}) {
     $font=$confs->{font};
   } else {
     if ($^O=~/^MS/) { $font='family:Arial,size:10' }
