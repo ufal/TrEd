@@ -236,7 +236,7 @@ sub initialize_macros {
       $result=
 	$safeCompartment
 	  ->reval($macros);
-#     print "running:\n",substr($macros,0,1000),"\n";
+#     print STDERR "running:\n",substr($macros,0,1000),"\n";
     } else {
       $TredMacro::grp=$win;
       $result=eval (join("",@macros)."\n; return 1;");
