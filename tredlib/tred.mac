@@ -147,6 +147,9 @@ sub FirstTree {
 # binding-context Tectogrammatic
 # include contrib/tr.mak
 
+# binding-context TFA
+# include contrib/tfa.mak
+
 # binding-context Analytic
 # include contrib/ar.mak
 
