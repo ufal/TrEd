@@ -16,7 +16,7 @@ use Getopt::Std;
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-getopts('qQDx:p:r:s:a:f:c:i:m:e:t:huNHSTR');
+getopts('qQDx:p:r:s:a:f:c:i:m:e:t:huNHSTRW');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u || $opt_h) {
@@ -25,7 +25,7 @@ Usage:
   btred [-c config-file] [-m macro-file] [-e script]
         [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
         [-f out-fmt]  [-x extra_attribs]
-        [-i init-script] [-t context] [-q|-Q] [-D] [-N|-H]
+        [-i init-script] [-t context] [-W] [-q|-Q] [-D] [-N|-H]
         [-S] [-T] [-o script options -- ] files...
 or
   btred -u          to show usage
@@ -68,6 +68,7 @@ extra_attribs - comma separated list of non-CSTS attributes to preserve when
 -q            - quiet
 -Q            - by *very* quiet
 -D            - enable debugging messages on stderr
+-W            - do not die on errors (warn only)
 
 Flags -N and -H may not be combined. If both are used, -N has the
 precedence. However, both -N and -H may be used together with -T.
@@ -270,7 +271,6 @@ exit;
 ############################
 ############################
 ############################
-
 sub startMain {
   my $grp={
 	   treeNo => 0,
@@ -302,8 +302,8 @@ $post
 $opt_i;
 EOL
 
-  doEvalMacro($grp,$premacro);
   print STDERR "<script>\n$premacro;\n</script>\n" unless $opt_q;
+  doEvalMacro($grp,$premacro);
   exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
   openFile($grp,$files[$fileNo]);
   do {
@@ -437,6 +437,7 @@ sub doEvalHook {
   $TredMacro::forceFileSaved=0;
 
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
+  exit 1 if ($@ and !$opt_W);
   if ($group->{FSFile}) {
     $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
   }
@@ -460,6 +461,7 @@ sub doEvalMacro {
   $TredMacro::forceFileSaved=0;
 
   my $result=do_eval_macro($group,$macro);
+  exit 1 if ($@ and !$opt_W);
 
   if ($group->{FSFile}) {
 #    $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
@@ -475,6 +477,8 @@ sub doEvalMacro {
   $TredMacro::grp=undef;
   return $result;
 }
+
+sub switchContext {}
 
 ### Local Variables:
 ### mode: cperl
