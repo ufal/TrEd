@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-06-26 16:54:07 pajas>
+## Time-stamp: <2003-06-26 17:14:44 pajas>
 
 package TredMacro;
 
@@ -525,13 +525,17 @@ sub NewTreeAfter {
 }
 
 
-=item Open
+=item Open ($filename)
 
 Open given file.
 
 =cut
 sub Open {
-  main::openFile($grp,$_[0]);
+  if (exists($grp->{framegroup})) {
+    main::openFile($grp->{framegroup},$_[0]);
+  } else {
+    main::openFile($grp,$_[0]);
+  }
 }
 
 =item Save
@@ -543,6 +547,40 @@ sub Save {
   main::saveFile($grp);
   $forceFileSaved=1;
   $FileNotSaved=0 if ($FileNotSaved eq '?');;
+}
+
+=item GotoFileNo ($n)
+
+Goto n'th file in the current filelist.
+
+=cut
+
+sub GotoFileNo {
+  if (exists($grp->{framegroup})) {
+    main::gotoFile($grp->{framegroup},$_[0]);
+  } else {
+    main::gotoFile($grp,$_[0]);
+  }
+}
+
+=item LastFileNo
+
+Return the index of the last file in the current filelist.
+
+=cut
+
+sub LastFileNo {
+  main::lastFileNo($grp);
+}
+
+=item CurrentFileNo
+
+Return the index of the current file in the current filelist.
+
+=cut
+
+sub CurrentFileNo {
+  main::currentFileNo($grp);
 }
 
 =item SaveAndNextFile

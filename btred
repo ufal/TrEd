@@ -331,8 +331,8 @@ EOL
   doEvalMacro($grp,$premacro);
   exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
   preloadFiles($grp,\@files) if $opt_P;
-  doEvalHook($grp,"preload_hook") if $opt_P; # run start_hook
-  openFile($grp,$files[$fileNo]);
+  exit if $opt_P and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
+  openFile($grp,$files[$fileNo]) if $fileNo <= $#files;
   do {
     print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $opt_Q;
     doEvalMacro($grp,"$context->_btred_eval_();");
@@ -342,6 +342,24 @@ EOL
     saveFile($grp) if ($grp->{FSFile}->notSaved or $opt_S);
   } while (nextFile($grp));
   doEvalHook($grp,"exit_hook");
+}
+
+
+sub lastFileNo {
+  return $#files;
+}
+
+sub currentFileNo {
+  return $fileNo;
+}
+
+sub gotoFile {
+  my ($grp,$fn)=@_;
+  return 0 if doEvalHook($grp,"goto_file_hook") eq 'stop';
+  return 0 if ($fn>=$#files or $fn<0);
+  $fileNo=$fn;
+  openFile($grp,$files[$fileNo]);
+  return 1;
 }
 
 sub nextFile {
