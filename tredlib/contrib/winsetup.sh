@@ -216,8 +216,8 @@ fi
 #        ( echo "Chyba pri instalaci Tk knihovny"; exit 1 )
 #    fi
 
-#  upgrade_package XML::Parser
-  upgrade_packages Tk XML::DOM Text::Iconv XML::LibXML
+#  upgrade_package XML::Parser XML::DOM
+  upgrade_packages Tk Text::Iconv XML::LibXML Tie::IxHash
 
 #else
 #  if [ "${TKTEST}" != "1" ]; then
