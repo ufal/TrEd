@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-18 10:10:24 pajas>
+# Time-stamp: <2002-04-18 14:49:16 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -725,7 +725,7 @@ FSNode - Simple OO interface to tree structures of Fslib.pm
 =item new
 
 Create a new FSNode object. FSNode is basicly a hash reference, which
-means that you may simply acces node's attributes as C<$node->{attribute}>
+means that you may simply acces node's attributes as C<$node->>C<{attribute}>
 
 =cut
 
