@@ -2,7 +2,7 @@ package TrEd::Convert;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-07-27 15:22:40 pajas>
+# Time-stamp: <2001-08-01 12:40:28 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -13,6 +13,7 @@ use strict;
 BEGIN {
   use Exporter  ();
   use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc $outputenc $Ds);
+  use TrEd::MinMax;
   @ISA=qw(Exporter);
   $VERSION = "0.1";
 
@@ -56,13 +57,23 @@ sub decode {
 }
 
 sub dirname {
-  my $a=shift;  
-  return (index($a,$Ds)>=0)? substr($a,0,rindex($a,$Ds)+1) : ".$Ds";
+  my $a=shift;
+  # this is for the sh*tty winz where
+  # both slash and backslash may be uzed
+  # (i'd sure use File::Spec::Functions had it support
+  # for this also in 5.005 perl distro).
+  return (index($a,$Ds)+index($a,'/')>=0)? substr($a,0,
+				    max(rindex($a,$Ds),
+					rindex($a,'/'))+1) : ".$Ds";
 }
 
 sub filename {
   my $a=shift;
-  return (index($a,$Ds)>=0)? substr($a,rindex($a,$Ds)+1) : $a;
+  # this is for the sh*tty winz where
+  # both slash and backslash may be uzed
+  return (index($a,$Ds)+index($a,'/')>=0)? 
+    substr($a,max(rindex($a,$Ds),
+		  rindex($a,'/'))+1) : $a;
 }
 
 1;
