@@ -801,7 +801,6 @@ sub redraw {
   #}
   #------------------------------------------------------------
 
-  $self->canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
   $self->canvas->configure(-background => $self->get_backgroundColor) if (defined $self->get_backgroundColor);
   $self->canvas->addtag('delete','all');
   if ($self->canvas->find('withtag','bgimage')) {
@@ -818,40 +817,67 @@ sub redraw {
     my $fontHeight=$self->getFontHeight();
     $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
 
+    my ($ftext,$vtext);
     if ($valtext=~/^(.*)\/([^:]*):\s*(.*)/) {
-      my $ftext="File: $currentfile, tree $1 of $2";
-      my $vtext=$3;
-      $self->apply_style_opts(
-			      $self->canvas->
-			      createText(0,
-					 $self->{canvasHeight},
-					 -font => $self->get_font,
-					 -text => $ftext,
-					 -justify => 'left', -anchor => 'nw'),
-			      @{$Opts{SentenceText}});
-      $self->{canvasHeight}+=$fontHeight;
-      $self->{canvasWidth}=max($self->{canvasWidth},$self->getTextWidth($ftext));
-      $self->apply_style_opts(
-			      $self->canvas->
-			      createLine(0,$self->{canvasHeight},
-					 $self->getTextWidth($ftext),
-					 $self->{canvasHeight}),
-			      @{$Opts{SentenceLine}});
-      $self->{canvasHeight}+=$fontHeight;
-      foreach ($self->wrapLines($vtext,$self->{canvasWidth})) {
+      $ftext="File: $currentfile, tree $1 of $2";
+      $vtext=$3;
+    } else {
+      $ftext="";
+      $vtext=$valtext;
+    }
+    $self->apply_style_opts(
+			    $self->canvas->
+			    createText(0,
+				       $self->{canvasHeight},
+				       -font => $self->get_font,
+				       -text => $ftext,
+				       -justify => 'left', -anchor => 'nw'),
+			    @{$Opts{SentenceText}});
+    $self->{canvasHeight}+=$fontHeight;
+    $self->{canvasWidth}=max($self->{canvasWidth},$self->getTextWidth($ftext));
+    $self->apply_style_opts(
+			    $self->canvas->
+			    createLine(0,$self->{canvasHeight},
+				       $self->getTextWidth($ftext),
+				       $self->{canvasHeight}),
+			    @{$Opts{SentenceLine}});
+    $self->{canvasHeight}+=$fontHeight;
+    my $i=1;
+    my @lines=$self->wrapLines($vtext,$self->{canvasWidth});
+    @lines=reverse @lines if ($self->{reverseNodeOrder});
+    foreach (@lines) {
+      if ($self->{reverseNodeOrder}) {
+	$self->apply_style_opts(
+				$self->canvas->
+				createText($self->{canvasWidth},
+					   $self->{canvasHeight},
+					   -font => $self->get_font,
+					   -tags => 'vline',
+					   -text => $_,
+					   -justify => 'right',
+					   -anchor => 'ne'),
+				@{$Opts{SentenceFileInfo}});
+      } else {
 	$self->apply_style_opts(
 				$self->canvas->
 				createText(0,$self->{canvasHeight},
 					   -font => $self->get_font,
+					   -tags => 'vline',
 					   -text => $_,
 					   -justify => 'left',
 					   -anchor => 'nw'),
-				@{$Opts{SentenceFileInfo}});
-	$self->{canvasHeight}+=$fontHeight;
+			@{$Opts{SentenceFileInfo}});
       }
-
+      $self->{canvasHeight}+=$fontHeight;
     }
+
+#    $self->canvas->createRectangle(0,0, $self->{canvasWidth},$self->{canvasHeight},
+#			      -outline => 'black',
+#			      -fill => undef,
+#				   -tags => 'vline'
+#			     );
   }
+  $self->canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
 
   my $lineHeight=$self->getFontHeight();
   my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
@@ -1202,7 +1228,10 @@ sub redraw {
     }
     $self->realcanvas->lower('bgimage','all')  if ($self->canvas->find('withtag','bgimage'));
   }
-
+  eval {
+    $self->realcanvas->raise('text','TextBg');
+    $self->realcanvas->raise('plaintext','TextBg');
+  };
 }
 
 
