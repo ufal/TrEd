@@ -139,10 +139,10 @@ sub read_macros {
 	  $defines{$1}=$2;	# there is no use for $2 so far
 	} elsif (/^\#undefine\s+(\S*)/) {
 	  delete $defines{$1};
-	} elsif (/^\#[ \t]*binding-context[ \t]+(.*)/) {
-	  @contexts=(split /[ \t]+/,$1) if $ifok;
-	} elsif (/^\#[ \t]*key-binding-adopt[ \t]+(.*)/) {
-	  my @toadopt=(split /[ \t]+/,$1);
+	} elsif (/^\#\s*binding-context\s+(.*)/) {
+	  @contexts=(split /\s+/,$1) if $ifok;
+	} elsif (/^\#\s*key-binding-adopt\s+(.*)/) {
+	  my @toadopt=(split /\s+/,$1);
 	  my $context;
 	  my $toadopt;
 	  foreach $context (@contexts) {
@@ -153,8 +153,8 @@ sub read_macros {
 	      }
 	    }
 	  }
-	} elsif (/^\#[ \t]*menu-binding-adopt[ \t]+(.*)/) {
-	  my @toadopt=(split /[ \t]+/,$1);
+	} elsif (/^\#\s*menu-binding-adopt\s+(.*)/) {
+	  my @toadopt=(split /\s+/,$1);
 	  my $context;
 	  my $toadopt;
 	  foreach $context (@contexts) {
