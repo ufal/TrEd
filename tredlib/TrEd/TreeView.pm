@@ -960,7 +960,7 @@ sub redraw {
     my %nopts=();
     foreach $style (@style_patterns) {
       foreach ($self->interpolate_text_field($node,$style)=~/\#${block}/g) {
-	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+):(.+)$/) {
+	if (/^(CurrentOval|Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+):(.+)$/) {
 	  if (exists $nopts{"$1$2"}) {
 	    push @{$nopts{"$1$2"}},$3=>$4;
 	  } else {
@@ -1155,7 +1155,9 @@ sub redraw {
 			 );
     $self->store_id_pinfo($o,$oval);
     $self->apply_style_opts($oval,@{$Opts{Oval}},
-			    $self->get_node_style($node,"Oval"));
+			    $self->get_node_style($node,"Oval"),
+			    ($node eq $currentNode ? $self->get_node_style($node,"CurrentOval") : ())
+			   );
     $self->store_node_pinfo($node,"Oval",$oval);
     $self->store_obj_pinfo($oval,$node);
 
