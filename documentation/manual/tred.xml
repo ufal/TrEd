@@ -4180,6 +4180,12 @@ sub MakeSentence {
 	      </entry>
 	    </row>
 	    <row>
+	      <entry><literal>Hide(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>Hide the given node. Return true if the function
+		is successfull.
+	      </entry>
+	    </row>
+	    <row>
 	      <entry><literal>GetNodes(<replaceable>top</replaceable>?)</literal></entry>
 	      <entry>Return the list of all nodes
 		in the subtree of the given
