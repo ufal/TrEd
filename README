@@ -36,7 +36,7 @@ This means that Tred may run on following platforms:
          and perlTk should be abailable for them;
 	 AFAIK there is perl5 and perlTk on MacOS too)
 
-Pleas NOTE that this program was tested and developed under Linux, so
+Please NOTE that this program was tested and developed under Linux, so
 all other platform support is moreless experimental or even
 theoretical.
 
