@@ -1640,6 +1640,24 @@ sub FileName {
   return $grp->{FSFile}->filename if $grp->{FSFile};
 }
 
+=item FileMetaData(key,value)
+
+Get or set meta data associated with the current FSFile.  Key is the
+meta data key. If value is omitted, current value associated with the
+key is returned. Otherwise, the given value is associated with the
+key, overwritting any previous value.
+
+=cut
+
+sub FileMetaData {
+  my ($name,$value)=@_;
+  if (@_<=1) {
+    $grp->{FSFile}->metaData($name);
+  } else {
+    $grp->{FSFile}->changeMetaData($name,$value);
+  }
+}
+
 =item CurrentTreeNumber
 
 Return current tree number.
