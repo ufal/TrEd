@@ -1,7 +1,9 @@
 # -*- cperl -*-
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
+unshift @INC,"$libDir/contrib/PADT" unless (grep($_ eq "$libDir/contrib/PADT", @INC));
 require ArabicRemix;
 no integer;
+
 
 $support_unicode=($Tk::VERSION gt 804.00);
 
@@ -132,6 +134,47 @@ sub afun_Ante_Co {AfunAssign('Ante_Co')}
 sub afun_Ante_Ap {AfunAssign('Ante_Ap')}
 #bind afun_Ante_Pa to Ctrl+T
 sub afun_Ante_Pa {AfunAssign('Ante_Pa')}
+
+
+### remove old PDT bindings used for Czech
+#unbind-key Ctrl+Shift+F1
+#remove-menu Automatically assign afun to subtree
+
+### rebind PDT bindings used for Czech with Arabic ones
+#bind assign_afun_auto Ctrl+Shift+F9 menu Auto-assign analytical function to node
+sub assign_afun_auto {
+  shift if (@_ and !ref($_[0]));
+  my $node = $_[0] || $this;
+  return unless ($node && $node->parent() &&
+		 ($node->{func} eq '???' or
+		  $node->{func} eq ''));
+
+
+  require Assign_arab_afun;
+
+  my ($ra,$rb,$rc)=Assign_arab_afun::afun($node);
+  $node->{afun}=$ra;
+#  print STDERR "$node->{lemma} ($ra,$rb,$rc)\n";
+}
+
+#bind assign_all_afun_auto to Ctrl+Shift+F10 menu Auto-assign analytical functions to tree
+sub assign_all_afun_auto {
+  shift if (@_ and !ref($_[0]));
+  my $top = $_[0] || $root;
+  require Assign_arab_afun;
+
+  my $node = $top;
+  while ($node) {
+    assign_afun_auto($node);
+    $node = NextVisibleNode($node,$top);
+  }
+}
+
+# bind padt_auto_parse_tree to Ctrl+Shift+F2 menu Parse the current sentence and build a tree
+sub padt_auto_parse_tree {
+  require Arab_parser;
+  Arab_parser::parse_sentence($grp,$root);
+}
 
 
 sub AfunAssign {
