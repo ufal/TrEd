@@ -220,35 +220,38 @@ sub readConfig {
   # Simple configuration file handling
   #
   my %confs;
-  my $key;
+  my $key, $f;
   local *F;
+  my $openOk=0;
 
   # open first existing file in config-file list
-  while ($_=shift @configFileSearchList) {
-    if (open(F,"<$_")) {
-      print "Using resource file $_\n";
+  print "\n\n",join(":",@configFileSearchList),"\n\n";
+  foreach $f (@configFileSearchList) {
+    if (open(F,"<$f")) {
+      print "Using resource file $f\n";
+      while (<F>) {
+	unless (/^[;#]/ or /^$/) {
+	  chomp;
+	  if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
+	    $confs{$1}=$2;
+	    $key=$1;
+	    $confs{$key}=~s/\\//g;
+	    $confs{$key}=$1 if ($confs{$key}=~/^'(.*)'$/ or $confs{$key}=~/^"(.*)"$/);
+	    #print "$key=$confs{$key};\n";
+	  }
+	}
+      }
+      close F;
+      $openOk=1;
       last;
     }
   }
-  if (defined($_)) {
-    while (<F>) {
-      unless (/^[;#]/ or /^$/) {
-	chomp;
-	if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
-	  $confs{$1}=$2;
-	  $key=$1;
-	  $confs{$key}=~s/\\//g;
-	  $confs{$key}=$1 if ($confs{$key}=~/^'(.*)'$/ or $confs{$key}=~/^"(.*)"$/);
-	  #print "$key=$confs{$key};\n";
-	}
-      }
-    }
-    close F;
-  } else {
+  unless ($openOk) {
     print 
       "Warning: Cannot open any file in:\n",join(":",@configFileSearchList),"\n" .
       "         Using configuration defaults!\n";
   }
+  print "\n\n",join(":",@configFileSearchList),"\n\n";
   $appName=(exists $confs{AppName}) ? $confs{AppName} : "Tred ver. 0.3";
   $baseXPos=(exists $confs{BaseXPos}) ? $confs{BaseXPos} : 15;
   $baseYPos=(exists $confs{BaseYPos}) ? $confs{BaseYPos} : 15;
@@ -275,9 +278,10 @@ sub readConfig {
   $boxColor=(exists $confs{BoxColor}) ? $confs{BoxColor} : 'wheat';
   $currentBoxColor=(exists $confs{CurrentBoxColor}) ? $confs{CurrentBoxColor} : 'white';
   $backgroundColor=(exists $confs{BackgroundColor}) ? $confs{BackgroundColor} : undef;
-  $font=(exists $confs{Font}) ? $confs{Font} : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-*-2';
-  # $font=(exists $confs{Font}) ? $confs{Font} : '-misc-fixed-*-*-*-*-15-*-2';
-  $type1font=(exists $confs{Type1Font}) ? $confs{Type1Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
+  $font=(exists $confs{Font}) ? $confs{Font} : 
+    (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-*-2');
+  $type1font=(exists $confs{Type1Font}) ? $confs{Type1Font} :
+    (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2');
   $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : $libDir;
   $appIcon=(exists $confs{AppIcon}) ? <$confs{AppIcon}> : "$libDir/tred.xpm";
   $psFontFile=(exists $confs{PsFontFile}) ? 
@@ -408,7 +412,7 @@ sub openFile {
 
   if ($f=~/(##?[0-9A-Z]+)$/) {
     $f=~s/(##?[0-9A-Z]+)$//;
-    $goto=$1;
+      $goto=$1
   }
 
   # opening file
@@ -660,10 +664,11 @@ sub printThis {
     return;
   }
 
+  $backgroundColor=$grp->{canvas}->cget('-background');
   {
     local $outputenc='iso-88859-2';
     local $lineColor='black';
-    local $nodeColor='black';
+    local $nodeColor='white';
     local $backgroundColor='white';
     local $currentBoxColor='white';
     local $boxColor='white';
@@ -676,8 +681,6 @@ sub printThis {
     local $activeTextColor='black';
     local $lineWidth=1;
     local $font=$savefont;
-    print "$font\n";
-    
 
     my $pbeg;
     my $pend;
@@ -957,6 +960,11 @@ sub startMain {
 #	 [Button => 'Setup ...',   -command => [\&menus_error2, 'Setup']],
 	 [Button => 'Print ...',   -command => [\&printThis,\%group]],
 	 [Separator => ''],
+	 [Button => 'Reload config ...',   -command => [sub { 
+							  readConfig(); 
+							  redraw_tree(shift);
+							},\%group]],
+	 [Separator => ''],
 	 [Button => 'Quit',        -command => [$group{top} => 'destroy']],
 	])->pack(qw/-side left/);
 
@@ -1036,6 +1044,22 @@ sub startMain {
 			   -borderwidth 2 -scrollbars se -scrollregion/ =>
 				       [qw/0c 0c 100c 100c/], 
 				       $backgroundColor ? (-background => $backgroundColor) : ());
+  if ($font!~/^-/) {
+    my @a=split(/\s*,\s*/,$font);
+    my $option,$value;
+    my @b;
+    foreach (@a) {
+      ($option, $value) = split(/\s*:\s*/, $_, 2);
+      push @b, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
+    }
+    $group{top}->fontCreate('C_normal',@b);
+    $font='C_normal';
+  } else {
+    $group{top}->fontCreate('C_normal',$group{top}->fontActual($font));
+    $font='C_normal';
+  }
+
+
   $group{'valueLine'}=$group{'top'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $font,-textvariable => \$valueLine);
   $group{'canvas'}=$canvas;
@@ -1600,6 +1624,7 @@ sub redraw_tree {
   recalculate_positions($grp);
   #print $grp->{'canvasWidth'},'x',$grp->{'canvasHeight'},"\n";
   $grp->{'canvas'}->configure(-scrollregion =>['0c', '0c', $grp->{canvasWidth}, $grp->{canvasHeight}]);
+  $grp->{'canvas'}->configure(-background => $backgroundColor) if (defined $backgroundColor);
   $grp->{'canvas'}->addtag('delete','all');
   $grp->{'canvas'}->delete('delete');
 
@@ -1630,7 +1655,7 @@ sub redraw_tree {
   foreach $node (@nodes) {    
     $$node{"_tkOval_"}=$grp->{'canvas'}->createOval($$node{"_tkXPOS_"},$$node{"_tkYPOS_"},
 					   $$node{"_tkXPOS_"}+$nodeWidth,
-					   $$node{"_tkYPOS_"}+$nodeWidth, 
+					   $$node{"_tkYPOS_"}+$nodeHeight, 
 						    -fill => 
 						    ($grp->{'currentNode'} eq $node) ?
 						    $currentNodeColor : $nodeColor);
