@@ -4134,6 +4134,11 @@ sub startMain {
 	  -command=> [\&About,\%group]
 	 ],
 	 [
+	  Button=> 'Examine bindings',
+	  -underline=> 8,
+	  -command=> [\&examineBindingsDialog,\%group]
+	 ],
+	 [
 	  Cascade=> 'Debugging messages',
 	  -underline => 0,
 	  -menuitems => [
@@ -4704,7 +4709,7 @@ sub startMain {
     closeAllFiles(\%group);
     print STDERR "Good bye!\n";
     $group{top}->destroy;
-    exit 1;
+    POSIX::_exit 1;
   };
 
   selectFilelist(\%group,'Default');
@@ -6505,7 +6510,7 @@ sub node_doubleclick_modif {
   my $win=findCanvasWindow($grp,$w);
   my $tv=$win->{treeView};
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
-  doEvalHook($win,"node_doubleclick_hook",$node,$mod, $w->XEvent);
+  doEvalHookWithUndo($win,"node_doubleclick_hook",$node,$mod, $w->XEvent);
 }
 
 sub node_click_modif {
@@ -6513,7 +6518,7 @@ sub node_click_modif {
   my $win=findCanvasWindow($grp,$w);
   my $tv=$win->{treeView};
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
-  doEvalHook($win,"node_click_hook",$node,$mod, $w->XEvent);
+  doEvalHookWithUndo($win,"node_click_hook",$node,$mod, $w->XEvent);
 }
 
 sub node_motion_modif {
@@ -6521,7 +6526,7 @@ sub node_motion_modif {
   my $win=findCanvasWindow($grp,$w);
   my $tv=$win->{treeView};
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
-  doEvalHook($win,"node_motion_hook",$node,$mod, $w->XEvent);
+  doEvalHookWithUndo($win,"node_motion_hook",$node,$mod, $w->XEvent);
 }
 
 sub text_doubleclick_modif {
@@ -6538,7 +6543,7 @@ sub text_doubleclick_modif {
   setCurrent($win,$node);
   $attr=$tv->get_gen_pinfo("attr:$t");
 
-  doEvalHook($win,"text_doubleclick_hook",$node,$attr,$mod, $w->XEvent);
+  doEvalHookWithUndo($win,"text_doubleclick_hook",$node,$attr,$mod, $w->XEvent);
 }
 
 sub text_doubleclick_modif {
@@ -6555,7 +6560,7 @@ sub text_doubleclick_modif {
   setCurrent($win,$node);
   $attr=$tv->get_gen_pinfo("attr:$t");
 
-  doEvalHook($win,"text_click_hook",$node,$attr,$mod, $w->XEvent);
+  doEvalHookWithUndo($win,"text_click_hook",$node,$attr,$mod, $w->XEvent);
 }
 
 sub editAttrs {
@@ -6989,6 +6994,51 @@ sub centerTo {
 	     $tv->get_node_pinfo($node,"YPOS"));
 }
 
+sub doEvalHookWithUndo {
+  my ($win,$hook)=(shift,shift);
+
+  return unless $hook; # and $win->{currentNode};
+  my $bookmark=bookmarkThis($win->{framegroup});
+  # Save current position (as last action position)
+  my $undo=prepare_undo($win,"Hook $context"."->".$hook) if ($win and $win->{FSFile});
+
+  local $insideEval=1;
+  my $oldgrp=${"TredMacro::grp"};
+  my $oldthis=${"TredMacro::this"};
+  my $oldroot=${"TredMacro::root"};
+  my $context='TredMacro';
+  ${"TredMacro::FileNotSaved"}='?';
+  if ($win) {
+    ${"TredMacro::this"}=$win->{currentNode};
+    ${"TredMacro::root"}=$win->{root};
+    $context=$win->{macroContext} || 'TredMacro';
+  }
+  ${"TredMacro::libDir"}=$libDir;
+  ${"TredMacro::forceFileSaved"}=0;
+  my $result=do_eval_hook($win,$context,$hook,@_);
+  warn "$@\n" if $@;
+  my $file_changed=${"TredMacro::FileNotSaved"};
+
+  if ($win) {
+    if ($win->{FSFile}) {
+      if ($file_changed ne '?' and $file_changed) {
+	save_undo($win,$undo);
+	lastActionBookmark($win->{framegroup},$bookmark);
+	$win->{FSFile}->notSaved(1);
+      }
+    }
+    saveFileStateUpdate($win);
+  }
+
+  ${"TredMacro::this"}=$oldthis;
+  ${"TredMacro::root"}=$oldroot;
+  ${"TredMacro::grp"}=$oldgrp;
+
+  print STDERR "Hook $hook resulted with $result\n" if $hookDebug;
+  return $result;
+}
+
+
 sub doEvalHook {
   my ($win,$hook)=(shift,shift);
 
@@ -7031,6 +7081,82 @@ sub doEvalHook {
   return $result;
 }
 
+
+sub examineEvent {
+  my $w = shift;
+  my $bindings = shift;
+  my ($macro,$eA,$eK) = resolveEvent($w,@_);
+  my $key= ($eA eq $eK) ? $eK : $eA." [$eK]";
+  if (defined($macro)) {
+    $$bindings = "$key is bound to: ".findMacroDescription($macro);
+  } else {
+    $$bindings = "$key is not bound\n";
+  }
+  print $$bindings."\n";
+  Tk->break;
+}
+
+sub examineBindingsDialog {
+  my ($grp)=@_;
+  my $bindings='None';
+  my $d = $grp->{top}->DialogBox(-title=> "Examine key bindings",
+				 -buttons=> ["Close"]);
+  $d->Label(-text=> $attr,
+		    -anchor=> 'e',
+		    -justify=> 'right')->pack(-side=>'left');
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Close'; },$d]);
+
+  $d->Label(qw/-wraplength 6i -justify left -text/,
+	    "Press any key to see it's binding in the current context.")->
+	      pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
+  my $t=$d->Label(-textvariable => \$bindings)->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
+
+  $d->bind('<KeyPress>'=> [\&examineEvent, \$bindings, $grp, '' ]);
+
+  foreach my $prefix ('Alt','Meta') {
+    $d->bind("<$prefix-KeyPress>"=> [\&examineEvent, \$bindings, $grp, uc($prefix).'+' ]);
+  }
+  foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
+              Control-Meta Alt-Shift Meta-Shift)) {
+    foreach my $event (qw(KeyPress Right Left Up Down
+                          Return comma period Next Prior greater less)) {
+      $d->bind("<$_-$event>"=> [\&examineEvent, \$bindings, $grp, keyBind($_)."+"])
+	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress")
+      }
+  }
+
+  $d->bind('<Tab>'		  => [ sub { $bindings='builtin - select next node'; Tk->break; }]);
+  $d->bind('<Shift-ISO_Left_Tab>' => [ sub { $bindings='builtin - select previous node'; Tk->break; }]);
+  $d->bind('<Shift-Tab>'	  => [ sub { $bindings='builtin - select previous node'; Tk->break; }]);
+  $d->bind('<period>'		  => [ sub { $bindings='builtin - go to next tree'; Tk->break; }]);
+  $d->bind('<comma>'		  => [ sub { $bindings='builtin - go to previous tree'; Tk->break; }]);
+  $d->bind('<Next>'		  => [ sub { $bindings='builtin - go to next tree'; Tk->break; }]);
+  $d->bind('<Prior>'		  => [ sub { $bindings='builtin - go to previous tree'; Tk->break; }]);
+  $d->bind('<greater>'		  => [ sub { $bindings='builtin - go to last tree in file'; Tk->break; }]);
+  $d->bind('<less>'		  => [ sub { $bindings='builtin - go to first tree in file'; Tk->break; }]);
+  $d->bind('<KeyPress-Return>'	  => [ sub { $bindings='builtin - view/edit attributes'; Tk->break; }]);
+  $d->bind('<KeyPress-Left>'	  => [ sub { $bindings='builtin - select left sibling'; Tk->break; }]);
+  $d->bind('<Shift-Left>'	  => [ sub { $bindings='builtin - select node on the left'; Tk->break; }]);
+  $d->bind('<KeyPress-Right>'	  => [ sub { $bindings='builtin - select right sibling'; Tk->break; }]);
+  $d->bind('<Shift-Right>'	  => [ sub { $bindings='builtin - select node on the right'; Tk->break; }]);
+  $d->bind('<KeyPress-Up>'	  => [ sub { $bindings='builtin - select parent node'; Tk->break; }]);
+  $d->bind('<KeyPress-Down>'	  => [ sub { $bindings='builtin - select first child-node'; Tk->break; }]);
+
+  ShowDialog($d,$e,$grp->{top});
+  $d->destroy;
+  undef $d;
+}
+
+sub findMacroDescription {
+  my ($macro)=@_;
+  if ($macro =~ /^(.*)->/) {
+    my $b = $menuBindings{$1};
+    my ($desc) = grep { ref($b->{$_}) and $b->{$_}[0] eq $macro } keys %$b;
+    return "$desc ($macro)" if $desc ne "";
+  }
+  return "macro $macro";
+}
+
 sub doEvalMacro {
   my ($win,$macro)=(shift,shift);
   return unless $macro;# and $win->{currentNode};
@@ -7045,7 +7171,9 @@ sub doEvalMacro {
   ${"TredMacro::FileNotSaved"}='?';
   ${"TredMacro::forceFileSaved"}=0;
   ${"TredMacro::Redraw"}='file';
-  my $undo=prepare_undo($win,"Macro $macro");
+
+
+  my $undo=prepare_undo($win,findMacroDescription($macro));
   my $result=do_eval_macro($win,$macro);
   my $current=${"TredMacro::this"};
   my $file_not_saved=${"TredMacro::FileNotSaved"};
@@ -7130,9 +7258,8 @@ sub resolveKey {
   return undef;
 }
 
-sub evalMacro {
+sub resolveEvent {
   my ($w,$grp,$prefix)=@_;
-  my $win=$grp->{focusedWindow};
   my $key;
   my $e= $w->XEvent;
   my $A= $e->A;
@@ -7154,6 +7281,14 @@ sub evalMacro {
   push @possib, ($prefix.$A,$prefix.$K);
 
   $macro=resolveKey($grp,@possib);
+  return ($macro,$prefix.$A,$prefix.$K);
+}
+
+sub evalMacro {
+  my ($w,$grp,$prefix)=@_;
+  my $win=$grp->{focusedWindow};
+
+  my ($macro)=resolveEvent($w,$grp,$prefix);
   if (defined $macro) {
     $grp->{statusLineText}="$prefix$A" if $tredDebug;
     $grp->{statusLineText}.=", $macro" if $tredDebug;
@@ -7377,7 +7512,7 @@ sub node_release_modif {
       $parent=$tv->get_obj_pinfo($p);
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
-      doEvalHook($win,"node_release_hook",$node,$parent,$mod,$e);
+      doEvalHookWithUndo($win,"node_release_hook",$node,$parent,$mod,$e);
     }
     # returning node to its position
     $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
