@@ -39,7 +39,6 @@ $lbrother="_L_";
 $rbrother="_R_";
 $FSTestListValidity=0;
 
-
 sub NewNode ($) {
   my $node = shift;
   
@@ -330,14 +329,14 @@ sub ReadAttribs  {
 sub ParseNode ($$$) {
   my ($lr,$ord,$attr) = @_;
   my $n = 0;
-  my %node;
+  my $node;
   my $pos = 1;
   my $a=0;
   my $v=0;
   my $tmp;
   my @lv;
 
-  NewNode(\%node);
+  $node=FSNode->new();
   if ($ {$lr}=~/\G\[/gsco) {
     while ($ {$lr} !~ /\G\]/gsco) {
       $n++,next if ($ {$lr}=~/\G\,/gsco);
@@ -355,7 +354,7 @@ sub ParseNode ($$$) {
 	$a=$ord->[$n];
 
       } 
-      $v=~s/\\([,=\[\]\\])/$1/go;
+      $v=~s/\\([,=\[\]\\])/\1/go;
       if ($FSTestListValidity) {
 	if (IsList($a,$attr)) {
 	  @lv=ListValues($a,$attr);
@@ -364,18 +363,18 @@ sub ParseNode ($$$) {
 	      unless (defined(Index(\@lv,$tmp))); 
 	    #(0<grep($_ eq $tmp, @lv)); # this seems to be slower
 	  }
-	}    
-      }  
-      $node{$a}=$v;
+	}
+      }
+      $node->{$a}=$v;
     }
   } else { croak $ {$lr}," not node!\n"; }
-  return { %node };
+  return $node;
 }
 
 sub ParseNode2 ($$$) {
   my ($lr,$ord,$attr) = @_;
   my $n = 0;
-  my %node;
+  my $node;
   my @ats=();
   my $pos = 1;
   my $a=0;
@@ -386,7 +385,7 @@ sub ParseNode2 ($$$) {
   my $i;
   my $w;
 
-  NewNode(\%node);
+  $node = FSNode->new();
   if ($ {$lr}=~/^\[/) {
     chomp $$lr;
     $i=index($$lr,']');
@@ -426,10 +425,10 @@ sub ParseNode2 ($$$) {
       $v=~s/&rsqb;/]/g;
       $v=~s/&backslash;/\\/g;
       $v=~s/&eq;/=/g;
-      $node{$a}=$v;
+      $node->{$a}=$v;
     }
   } else { croak $ {$lr}," not node!\n"; }
-  return { %node };
+  return $node;
 }
 
 
@@ -649,7 +648,410 @@ sub PrintFS ($$$$$) {
   }
 }
 
+############################################################
+############################################################
+
+
+####################
+# OO API to FS Lib #
+####################
+
+
+############################################################
+#
+# FS Node
+# =========
+#
+#
+
+
+package FSNode;
+
+sub new {
+  my $self = shift;
+  my $class = ref($self) || $self;
+  my $new = {};
+  bless $new, $class;
+  $new->initialize();
+  return $new;
+}
+
+sub initialize {
+  my $self = shift;
+  return undef unless ref($self);
+  Fslib::NewNode($self);
+  return $new;
+}
+
+sub DESTROY {
+  my $self = shift;
+  return undef unless ref($self);
+  return Fslib::DeleteLeaf($self);
+}
+
+sub parent {
+  my $self = shift;
+  return ref($self) ? Fslib::Parent($self) : undef;
+}
+
+sub lbrother {
+  my $self = shift;
+  return ref($self) ? Fslib::LBrother($self) : undef;
+}
+
+sub rbrother {
+  my $self = shift;
+  return ref($self) ? Fslib::RBrother($self) : undef;
+}
+
+sub firstson {
+  my $self = shift;
+  return ref($self) ? Fslib::FirstSon($self) : undef;
+}
+
+sub following {
+  my $self = shift;
+  return ref($self) ? Fslib::Next($self) : undef;
+}
+
+sub previous {
+  my $self = shift;
+  return ref($self) ? Fslib::Prev($self) : undef;
+}
+
+
+############################################################
+#
+# FS Format
+# =========
+#
+#
+
+package FSFormat;
+
+%Specials = (sentord => 'W', order => 'N', value => 'V', hide => 'H');
+
+sub AUTOLOAD {
+  my ($self)=shift;
+  return undef unless ref($self);
+  my $sub = $AUTOLOAD;
+  $sub =~ s/.*:://;
+  if (exists($FSFormat::Specials{$sub})) {
+    return $self->special($FSFormat::Specials{$sub});
+  } else {
+    return undef;
+  }
+}
+
+sub DESTROY {
+  my $self = shift;
+  return undef unless ref($self);
+  $self->[0]=undef;
+  $self->[1]=undef;
+  $self->[2]=undef;
+}
+
+
+sub new {
+  my $self = shift;
+  my $class = ref($self) || $self;
+  my $new = [];
+  bless $new, $class;
+  $new->initialize(@_);
+  return $new;
+}
+
+sub initialize {
+  my $self = shift;
+  return undef unless ref($self);
+
+  $self->[0] = ref($_[0]) ? $_[0] : { }; # attribs  (hash)
+  $self->[1] = ref($_[1]) ? $_[1] : [ ]; # atord    (sorted array)
+  $self->[2] = ref($_[2]) ? $_[2] : [ ]; # unparsed (sorted array)
+  return $self;
+}
+
+sub readFrom {
+  my ($self,$handle,$out) = @_;
+  return undef unless ref($self);
+
+  my %result;
+  my $count=0;
+
+  while ($_=Fslib::ReadTree($handle)) {
+    s/\r$//o;
+    if (ref($out)) {
+      print $out $_;
+    } else {
+      push @{$self->unparsed}, $_;
+    }
+    if (/^\@([KPOVNWLH])([A-Z0-9])* ([A-Za-z0-9]+)(?:\|(.*))?/o) {
+      $self->list->[$count++]=$3 if (!defined($self->defs->{$3}));
+      if ($4) {
+	$self->defs->{$3}.=" $1=$4"; # so we create a list of defchars separated by spaces
+      } else {                 # a value-list may follow the equation mark
+	$self->defs->{$3}.=" $1";
+      }
+      if ($2) {
+	$self->defs->{$3}.=" $2"; # we add a special defchar being the color
+      }
+      next;
+    }
+    last if (/^\r*$/o);
+  }
+  return 1;
+}
+
+sub parseFSTree {
+  my ($self,$line)=@_;
+  return undef unless ref($self);
+  Fslib::GetTree2($line,$self->list,$self->defs);
+}
+
+sub defs {
+  my $self = shift;
+  return ref($self) ? $self->[0] : undef;
+}
+
+sub list {
+  my $self = shift;
+  return ref($self) ? $self->[1] : undef;
+}
+
+sub unparsed {
+  my $self = shift;
+  return ref($self) ? $self->[2] : undef;
+}
+
+sub attributes {
+  my $self = shift;
+  return ref($self) ? @{$self->list} : ();
+}
+
+sub atno {
+  my ($self,$index) = shift;
+  return ref($self) ? $self->list->[$index] : undef;
+}
+
+sub atdef {
+  my ($self,$name) = shift;
+  return ref($self) ? $self->defs->{$name} : undef;
+}
+
+sub count {
+  my ($self) = shift;
+  return ref($self) ? $#{$self->list}+1 : undef;
+}
+
+sub isList {
+  my ($self,$attrib)=@_;
+  return ref($self) ? Fslib::IsList($attrib,$self->defs) : undef;
+}
+
+sub listValues {
+  my ($self,$attrib)=@_;
+  return ref($self) ? Fslib::ListValues($attrib,$self->defs) : undef;
+}
+
+sub color {
+  my ($self,$arg) = @_;
+  return undef unless ref($self);
+
+  if (index($self->defs->{$arg}," 1")>=0) {
+    return "Shadow";
+  } elsif (index($self->defs->{$arg}," 2")>=0) {
+    return "Hilite";
+  } elsif (index($self->defs->{$arg}," 3")>=0) {
+    return "XHilite";
+  } else {
+    return "normal";
+  }
+}
+
+sub special {
+  my ($self,$defchar)=@_;
+  return 
+    ref($self) ? Fslib::ASpecial($self->defs,$defchar) : undef;
+}
+
+sub indexOf {
+  my ($self,$arg)=@_;
+  return 
+    ref($self) ? Fslib::Index($self->list,$arg) : undef;
+}
+
+############################################################
+#
+# FS File
+# =========
+#
+#
+
+package FSFile;
+
+sub new {
+  my $self = shift;
+  my $class = ref($self) || $self;
+  my $new = [];
+  bless $new, $class;
+  $new->initialize(@_);
+  return $new;
+}
+
+sub initialize {
+  my $self = shift;
+  # what will we do here ?
+
+  $self->[0] = $_[0];  # file name   (scalar)
+  $self->[1] = $_[1];  # file format (scalar)
+  $self->[2] = ref($_[2]) ? $_[2] : FSFormat->new(); # FS format (FSFormat object)
+  $self->[3] = $_[3];  # hint pattern
+  $self->[4] = ref($_[4]) eq 'ARRAY' ? $_[4] : []; # list of attribute patterns
+  $self->[5] = ref($_[5]) eq 'ARRAY' ? $_[5] : []; # unparsed rest of a file
+  $self->[6] = ref($_[6]) eq 'ARRAY' ? $_[6] : []; # trees
+
+  return ref($self) ? $self : undef;
+}
+
+sub readFrom {
+  my ($self,$fileref) = @_;
+  return unless ref($self);
+
+  $self->changeFS(  FSFormat->new()->readFrom($fileref) );
+  return undef unless $self->FS;
+
+  my ($root,$l,@rest);
+  $self->changeTrees();
+  while ($l=Fslib::ReadTree($fileref)) {
+    if (/^\[/) {
+      $root=$self->FS->parseFSTree($l);
+      push @{$self->treeList}, $root if $root;
+    } else { push @rest, $l; }
+  }
+  $self->changeTail(@rest);
+}
+
+sub newFSFile {
+  my ($self,$fileref) = @_;
+
+  my $new=$self->new();
+  $new->readFrom($fileref);
+  return $new;
+}
+
+sub filename {
+  my $self = shift;
+  return ref($self) ? $self->[0] : undef;
+}
+
+sub changeFilename {
+  my ($self,$val) = @_;
+  return unless ref($self);
+  return $self->[0]=$val;
+}
+
+# file format identifyer (i.e. 
+#  FS format
+#  gzipped FS format
+#  any non-specific format
+#
+# etc. 
+# This is used only by TrEd yet
+
+sub fileFormat {
+  my $self = shift;
+  return ref($self) ? $self->[1] : undef;
+}
+
+sub changeFileFormat {
+  my ($self,$val) = @_;
+  return unless ref($self);
+  return $self->[1]=$val;
+}
+
+# reference to FSFormat object
+sub FS {
+  my $self = shift;
+  return ref($self) ? $self->[2] : undef;
+}
+
+sub changeFS {
+  my ($self,$val) = @_;
+  return unless ref($self);
+  return $self->[2]=$val;
+}
+
+# Tred's Hint Info
+sub hint {
+  my $self = shift;
+  return ref($self) ? $self->[3] : undef;
+}
+
+sub changeHint {
+  my ($self,$val) = @_;
+  return unless ref($self);
+  return $self->[3]=$val;
+}
+
+# Display Attribs (TrEd)
+sub patterns {
+  my $self = shift;
+  return ref($self) ? @{$self->[4]} : undef;
+}
+
+sub changePatterns {
+  my $self = shift;
+  return unless ref($self);
+  return @{$self->[4]}=@_;
+}
+
+# unparsed rest of the file
+sub tail {
+  my $self = shift;
+  return ref($self) ? @{$self->[5]} : undef;
+}
+
+sub changeTail {
+  my $self = shift;
+  return unless ref($self);
+  return @{$self->[5]}=@_;
+}
+
+## Two methods to work with trees
+## (for convenience)
+
+sub trees {
+  my $self = shift;
+  return ref($self) ? @{$self->treeList} : undef;
+}
+
+sub changeTrees {
+  my $self = shift;
+  return unless ref($self);
+  return @{$self->treeList}=@_;
+}
+
+# parsed trees may be stored here
+# returns a reference!!!
+sub treeList {
+  my $self = shift;
+  return ref($self) ? $self->[6] : undef;
+}
+
+sub changeTreeList {
+  my ($self,$val) = @_;
+  return unless ref($self);
+  return $self->[6]=$val;
+}
+
+
 1;
+
+
+
+############################################################
+############################################################
+############################################################
 
 __END__
 
