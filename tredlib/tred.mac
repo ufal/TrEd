@@ -232,3 +232,5 @@ sub FirstTree {
 # binding-context Corref
 # include contrib/tr_corref_common.mak
 
+# binding-context PDT
+# include contrib/pdt.mak
