@@ -124,7 +124,8 @@ sub create_widget {
   $w->configure(@conf) if (@conf);
   $common_style=[] unless (ref($common_style) eq "ARRAY");
   $w->BindMouseWheelVert() if $w->can('BindMouseWheelVert');
-  $w->headerCreate(0,-itemtype=>'text', -text=>'Elements');
+  $w->headerCreate(0,-itemtype=>'text', -text=>'Elements', -underline => 0);
+  $top->toplevel->bind('<Alt-e>',sub { $w->focus() });
   return $w, {
 	      obsolete => $w->ItemStyle("imagetext", -foreground => '#707070',
 					-background => 'white', @$common_style),
@@ -328,7 +329,7 @@ sub create_widget {
 
   my $frame = $top->Frame(-takefocus => 0);
   my $ef = $frame->Frame(-takefocus => 0)->pack(qw/-pady 5 -side top -fill x/);
-  my $l = $ef->Label(-text => "Search: ")->pack(qw/-side left/);
+  my $l = $ef->Label(-text => "Search: ",-underline => 3)->pack(qw/-side left/);
   my $posfilter='*';
   my $pose = $ef->Entry(qw/-background white -width 2/,
 			-textvariable => \$posfilter,
@@ -336,7 +337,7 @@ sub create_widget {
   my $e = $ef->Entry(qw/-background white -validate key/,
 		     -validatecommand => [\&quick_search,$self]
 		    )->pack(qw/-expand yes -fill x/);
-
+  $top->toplevel->bind('<Alt-r>',sub { print STDERR "Alt-r\n"; $e->focus() });
 
   ## Word List
   my $w = $frame->Scrolled(qw/HList -columns 3 -background white
