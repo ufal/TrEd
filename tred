@@ -434,12 +434,13 @@ sub nextOrPrevFile {
   my $result=gotoFile($grp,$win->{currentFileNo}+$delta,$no_recent);
   my $quiet=0;
   my $response;
-  while ( $filename ne "" or !$win->{FSFile} or $win->{FSFile}->lastTreeNo<0) {
+  while ( $filename eq "" or !$win->{FSFile} or $win->{FSFile}->lastTreeNo<0) {
     unless ($quiet) {
       my $f="$filename: empty or corrupt file!";
-      $response=userQuery($grp,"Error",
+      $response=userQuery($win,
 			  $f,
-			  "Try next","Skip to next correct file","Cancel");
+			  -title => "Error",
+			  -buttons => ["Try next","Skip to next correct file","Cancel"]);
       last if ($response eq "Cancel");
       $quiet=1 if ($response eq "Skip to next correct file");
     }
@@ -533,15 +534,21 @@ sub ErrorMessage {
 }
 
 sub userQuery {
-  my ($grp,$title, $message,@buttons) = @_;
+  my ($win, $message, %opts) = @_;
 
-  my $d = $grp->{top}->DialogBox(-title => $title,
-				 -buttons => [@buttons]
+  my $d = $win->toplevel->Dialog(
+				 %opts
 				);
   $d->add('Label', -text => $message,
-	  -wraplength => 200)->pack();
+	  -wraplength => 300)->pack();
   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
 			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  if (exists($opts->{-buttons}) and 
+      grep { $_ eq 'Cancel' } @{$opts->{-buttons}}) {
+    $d->bind('<Escape>', sub { my $w=shift;
+			       $w->{selected_button}= "Cancel";
+			     } );
+  }
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   return $d->Show;
 }
@@ -2784,8 +2791,14 @@ sub startMain {
 
   $group{top}->bind('all','<Tab>',undef);
 
+  # New Busy window bindings
   $group{frame}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
   $group{top}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+  $group{top}->Tk::bind('Busy','<Any-KeyPress>',[\&Tk::Widget::_busy => 1]);
+  $group{top}->Tk::bind('Busy','<Any-KeyRelease>',[\&Tk::Widget::_busy => 0]);
+  $group{top}->Tk::bind('Busy','<Any-ButtonPress>',[\&Tk::Widget::_busy => 1]);
+  $group{top}->Tk::bind('Busy','<Any-ButtonRelease>',[\&Tk::Widget::_busy => 0]);
+  $group{top}->Tk::bind('Busy','<Any-Motion>',[\&Tk::Widget::_busy => 0]);
 
   $group{top}->bind('my', '<Tab>'=>
 		    [sub { currentNext($_[1]->{focusedWindow});
@@ -3083,16 +3096,12 @@ sub askSaveFile {
   return 0 unless
     ref($win->{FSFile}) and
       $win->{FSFile}->notSaved;
-
-  my $d=$win->toplevel->Dialog(-text=> 
-			       $win->{FSFile}->filename().
-			       "\n\nFile may be changed!\nDo you want to save it?",
-			       -bitmap=> 'question', 
-			       -title=> 'Save File Dialog',
-			       -buttons=> ['Yes','No', $keep ? 'Keep' : ()]);
-  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
-			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
-  my $answer=$d->Show();
+  my $answer=userQuery($win,
+			$win->{FSFile}->filename().
+			"\n\nFile may be changed!\nDo you want to save it?",
+			-bitmap=> 'question',
+			-title => "Should I save the file?",
+			-buttons => ['Yes', 'No', $keep ? 'Keep' : ()]);
   if ($answer eq 'Yes') {
     saveFile($win);
     return 0;
@@ -4475,9 +4484,8 @@ sub doEvalMacro {
   my ($win,$macro)=(shift,shift);
   return unless $macro and $win->{currentNode};
 
-  $win->toplevel->Busy(-recurse=> 1);
   my $bookmark=bookmarkThis($win->{framegroup});
-
+  $win->toplevel->Busy(-recurse=> 1);
   $insideEval=1;
 
   $TredMacro::this=$win->{currentNode};
@@ -4486,10 +4494,8 @@ sub doEvalMacro {
   $TredMacro::FileNotSaved=1;
   $TredMacro::forceFileSaved=0;
   $TredMacro::Redraw='file';
-
   my $result=do_eval_macro($win,$macro);
   my $current=$TredMacro::this;
-
   unless ($TredMacro::forceFileSaved) {
     print STDERR "Macro claims file untouched\n"
       unless ($TredMacro::FileNotSaved);
