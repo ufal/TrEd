@@ -42,7 +42,7 @@ my $conv= TrEd::CPConvert->new("utf-8",
 			       "iso-8859-2");
 my $data=TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv);
 
-my $font = "-adobe-helvetica-medium-r-*-*-14-*-*-*-*-*-iso8859-2";
+my $font = "-adobe-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-2";
 my $fc=[-font => $font];
 my $fe_conf={ elements => $fc,
 	      example => $fc,
@@ -63,7 +63,7 @@ my $top=Tk::MainWindow->new();
 my $top_frame = $top->Frame()->pack(qw/-expand yes -fill both -side top/);
 
 
-my $vallex= TrEd::ValLex::Editor->new($data, $data->doc(),$top_frame,0,
+my $vallex= TrEd::ValLex::Editor->new($data, undef,$top_frame,0,
 				      $fc, # wordlist items
 				      $fc, # framelist items
 				      $fe_conf);
@@ -78,20 +78,30 @@ my $button_bar = $top->Frame()->pack(qw/ -expand no -side left/);;
 if ($double) {
   my $adjuster = $top_frame->Adjuster();
   $adjuster->packAfter($vallex->frame(), -side => 'left');
-  my $vallex2= TrEd::ValLex::Editor->new($data, $data->doc(),$top_frame,1);
+  my $vallex2= TrEd::ValLex::Editor->new($data, undef,$top_frame,1);
   $vallex2->pack(qw/-expand yes -fill both -side left/);
 }
 
 
 my $bottom_frame = $top->Frame()->pack(qw/-expand yes -fill both -side bottom/);
 
-my $save_button=$bottom_frame->Button(-text => "Reload",
-			     -command => sub {
-			       $top->Busy(-recurse=> 1);
-			       $vallex->data()->reload();
-			       $vallex->fetch_data();
-			       $top->Unbusy(-recurse=> 1);
-			     })->pack(qw/-side right -pady 10 -padx 10/);
+my $save_button=
+  $bottom_frame->Button(-text => "Reload",
+			-command =>
+			[sub {
+			   my ($d,$f)=@_;
+			   $d->Busy(-recurse=> 1);
+			   my $field=$f->subwidget("wordlist")->focused_word();
+			   $f->data()->reload();
+			   $f->fetch_data();
+			   if ($field) {
+			     my $word=$f->data()->findWordAndPOS(@{$field});
+			     $f->wordlist_item_changed($f->subwidget("wordlist")->focus($word));
+
+			   }
+			   $d->Unbusy(-recurse=> 1);
+			 },$top,$vallex]
+		       )->pack(qw/-side right -pady 10 -padx 10/);
 
 
 my $save_button=$bottom_frame->Button(-text => "Save",

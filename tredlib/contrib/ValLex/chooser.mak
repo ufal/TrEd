@@ -15,11 +15,13 @@ sub InfoDialog {
 		 )->pack();
   $t->overrideredirect(1);
   $t->Popup();
+  $top->idletasks();
   return $t;
 
 }
 
 sub ChooseFrame {
+  print "macro started\n";
   my $top=ToplevelFrame();
 
   require ValLex::Data;
@@ -35,15 +37,17 @@ sub ChooseFrame {
   if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
     $lemma=~s/^ne//;
   }
+  print "lemma $lemma\n";
   return unless $tag=~/^([VNA])/;
   my $pos=$1;
   $lemma=~s/_/ /g;
   $top->Busy(-recurse=>1);
-  my $conv= TrEd::CPConvert->new("utf-8",
-				 ($^O eq "MSWin32") ?
-				 "windows-1250":
-				 "iso-8859-2");
+  print "busy\n";
   unless ($FrameData) {
+    my $conv= TrEd::CPConvert->new("utf-8",
+				   ($^O eq "MSWin32") ?
+				   "windows-1250":
+				   "iso-8859-2");
     my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
     if ($^O eq "MSWin32") {
       $FrameData=
@@ -57,19 +61,24 @@ sub ChooseFrame {
     $info->destroy();
   }
   my $new_word=0;
-  my $word=$FrameData->findWord($lemma);
-  $top->Unbusy(-recurse=>1);
-  unless ($word) {
-    if (questionQuery("Word does not exist",
-		      "Do you want to add this word to the lexicon?",
-		      "Yes", "No") eq "Yes") {
-      $word=$FrameData->addWord($lemma,$pos);
-      $new_word=1;
-    } else {
-      return;
+  {
+    print "find word $FrameData\n";
+    my $word=$FrameData->findWordAndPOS($lemma,$pos);
+    $top->Unbusy(-recurse=>1);
+    unless ($word) {
+      if (questionQuery("Word does not exist",
+			"Do you want to add this word to the lexicon?",
+			"Yes", "No") eq "Yes") {
+	$word=$FrameData->addWord($lemma,$pos);
+	$new_word=1;
+      } else {
+	return;
+      }
     }
+    print "undefining $word\n";
+#    undef $word;
   }
-
+  print "ok\n";
   my $font = $main::font;
   my $fc=[-font => $font];
   my $fe_conf={ elements => $fc,
@@ -91,6 +100,7 @@ sub ChooseFrame {
 		      framelist => $fc
 		     };
 
+  print "displaying choser\n";
   my ($frame,$real)=TrEd::ValLex::Chooser::show_dialog($lemma,$top,
 					       $chooser_conf,
 					       $fc,
@@ -99,8 +109,9 @@ sub ChooseFrame {
 					       $fc,
 					       $fe_conf,
 					       $FrameData,
-					       $word,
-					       [split "|",$this->{$frameid_attr}],
+					       [$lemma,$pos],
+					       [split /\|/,
+						$this->{$frameid_attr}],
 					       $new_word);
   if ($frame) {
     my $fmt=$grp->{FSFile}->FS();

@@ -1,87 +1,25 @@
-# we have to add some missing features to standard XML modules :(
-package XML::Handler::Composer;
-
-sub Comment
-{
-    my ($self, $event) = @_;
-#    my $str = "<!-- " . $event->{Data} . " -->\n";
-#    $self->print ($str);
-}
-
-sub comment
-{
-    my ($self, $event) = @_;
-#    my $str = "<!-- " . $event->{Data} . " -->\n";
-#    $self->print ($str);
-}
-
-
-package XML::Filter::Reindent;
-
-sub Comment {
-  my ($self,$event)=@_;
-#  $self->push_event('comment',$event);
-}
-
-sub comment {
-  my ($self,$event)=@_;
-#  $self->push_event('comment',$event);
-}
-
+##############################################
+# TrEd::ValLex::Data
+##############################################
 
 package TrEd::ValLex::Data;
 use strict;
-use XML::DOM;
-
-use IO;
-use IO::Zlib;
 
 sub new {
   my ($self, $file, $cpconvert)=@_;
   my $class = ref($self) || $self;
-  my $parser;
-  if ($^O eq "MSWin32") {
-    # why even simple things must this damned hacked
-    # in that system, huh?
-    my ($filename_base)= $file=~/^(.*[\/\\])[^\/\\]*$/;
-    $parser = 
-      new XML::DOM::Parser(ParseParamEnt => 1,
-			   NoLWP =>1,
-			   Handlers =>{ExternEnt =>
-				       sub {
-					 my ($exp, $base, $sys, $pub) = @_;
-					 if ($base eq "" and
-					     $sys!~/^(\/)/ and
-					     $sys!~/^\w+:/) {
-					   $base="file:$filename_base";
-					 }
-					 return XML::Parser::file_ext_ent_handler($exp,$base,$sys,$pub);
-				       }
-				      }
-			  );
-  } else {
-    $parser = new XML::DOM::Parser(ParseParamEnt => 1, NoLWP =>1);
-  }
-  my $doc;
-  if ($file=~/.gz$/) {
-    my $fh;
-    if (eval {
-      $fh = new IO::Pipe();
-      $fh && $fh->reader("$ZBackend::zcat < \"$file\"");
-    }) {
-      $doc = $parser->parse ($fh);
-      $fh->close();
-    }
-  } else {
-    $doc = $parser->parsefile ($file);
-  }
-  my $new = bless [$parser,$doc,$file, undef, undef, 0, $cpconvert], $class;
+  my $new = bless [$class->parser_start($file),
+		   $file, undef, undef, 0, $cpconvert, []], $class;
   $new->loadListOfUsers();
   return $new;
 }
 
 sub conv {
   return $_[0]->[6];
+}
+
+sub clients {
+  return $_[0]->[7];
 }
 
 sub changed {
@@ -96,97 +34,27 @@ sub set_change_status {
   $self->[5]=$status;
 }
 
-sub test_internal {
-  my ($self,$doctype)=@_;
-  if ($doctype->can('getInternal')) {
-    return $doctype->getInternal();
-  } else {
-    return $doctype->{Internal};
-  }
+sub dispose_node {
 }
 
 sub save {
-  my ($self, $no_backup,$indent)=@_;
-  my $file=$self->file();
-  return unless ref($self);
-  my $backup=$file;
-  if ($^O eq "MSWin32") {
-    $backup=~s/(\.xml)?$/.bak/i;
-  } else {
-    $backup.="~";
-  }
+}
 
-  unless ($no_backup || rename $file, $backup) {
-    warn "Couldn't create backup file, aborting save!\n";
-    return 0;
-  }
-  my $output;
-  if ($file=~/.gz$/) {
-    eval {
-      $output = new IO::Pipe();
-      $output && $output->writer("$ZBackend::gzip > \"$file\"");
-    };
-  } else {
-    $output = new IO::File(">$file");
-  }
-  unless ($output) {
-    print STDERR "ERROR: cannot write to file $file\n";
-    return 0;
-  }
-  if ($indent) {
-    require XML::Handler::Composer;
-    require XML::Filter::Reindent;
+sub doc_reload {
+}
 
-
-    $self->doc()->getXMLDecl()->setEncoding('utf-8');
-    $self->doc()->getXMLDecl()->print($output);
-    $output->print("\n");
-    my $writer = new XML::Handler::Composer (Print => sub {
-					       $output->print(@_);
-					     });
-    my $filter = new XML::Filter::Reindent (Handler => $writer);
-    $self->doc()->to_sax(Handler => $filter);
-  } else {
-    my $doctype=$self->doc()->getDoctype;
-    if ($doctype and !$self->test_internal($doctype)) {
-      $self->doc()->getXMLDecl->print($output);
-      $output->print("\n");
-      my $doctype=$self->doc()->getDoctype;
-      if ($doctype) {
-	my $name  = $doctype->getName;
-	my $sysId = $doctype->getSysId;
-	my $pubId = $doctype->getPubId;
-	$output->print ("<!DOCTYPE $name");
-	if (defined $pubId)
-	  {
-	    $output->print (" PUBLIC \"$pubId\" \"$sysId\"");
-	  }
-	elsif (defined $sysId)
-	  {
-	    $output->print (" SYSTEM \"$sysId\"");
-	  }
-	# if no internal subset exists, do not print anything
-	$output->print (">\x0A");
-      }
-      $self->doc()->getDocumentElement->print($output);
-    } else {
-      # If there is an internal subset, dump whole document including
-      # doctype (which may result in the external subset included too :((
-      # I don't know yet how to handle this using XML::Parser.
-      $self->doc()->print($output);
-    }
-  }
-  $output->close();
-  $self->set_change_status(0);
-  return 1;
+sub doc_free {
+  my ($self)=@_;
+  $self->make_clients_forget_data_pointers();
+  $self->dispose_node($self->doc());
+  $self->set_doc(undef);
 }
 
 sub reload {
   my ($self)=@_;
   return unless $self->parser();
-  $self->doc()->dispose();
-  $self->set_doc(undef);
-  $self->set_doc($self->parser()->parsefile($self->file));
+  $self->doc_free();
+  $self->doc_reload();
   $self->loadListOfUsers();
   $self->set_change_status(0);
 }
@@ -260,11 +128,11 @@ sub loadListOfUsers {
   my $users = {};
   return undef unless ref($self);
   my $doc=$self->doc();
-  my $heads=$doc->getDocumentElement()->getElementsByTagName("head",0);
-  if ($heads and $heads->item(0)) {
-    my $lists=$heads->item(0)->getElementsByTagName("list_of_users",0);
-    if ($lists and $lists->item(0)) {
-      foreach my $user ($lists->item(0)->getElementsByTagName("user",0)) {
+  my ($head)=$doc->getDocumentElement()->getChildElementsByTagName("head");
+  if ($head) {
+    my ($list)=$head->getChildElementsByTagName("list_of_users");
+    if ($list) {
+      foreach my $user ($list->getChildElementsByTagName("user")) {
 	$users->{$user->getAttribute("user_ID")} =
 	  [
 	   $user->getAttribute("name"),
@@ -282,10 +150,8 @@ sub getWordList {
   my $doc=$self->doc();
   return unless $doc;
   my @words=();
-  my $words = $doc->getElementsByTagName ("word");
-  my $n = $words->getLength;
-  for (my $i = 0; $i < $n; $i++) {
-    my $word = $words->item($i);
+  my $docel=$doc->getDocumentElement();
+  foreach my $word ($docel->getDescendantElementsByTagName ("word")) {
     my $id = $word->getAttribute ("word_ID");
     my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
     my $pos = $word->getAttribute ("POS");
@@ -298,15 +164,14 @@ sub getFrameList {
   my ($self,$word)=@_;
   return unless $word;
   my @frames=();
-  my $frames = $word->getElementsByTagName("frame");
-  my $n = $frames->getLength;
-  for (my $i = 0; $i < $n; $i++) {
-    my $frame = $frames->item($i);
+  foreach my $frame ($word->getDescendantElementsByTagName("frame")) {
     my $id = $frame->getAttribute ("frame_ID");
     my $status = $frame->getAttribute ("status");
     my $elements = $self->getFrameElementString($frame);
     my $example=$self->getFrameExample($frame);
-    my $auth=$self->conv->decode($frame->getElementsByTagName("local_event")->item(0)->getAttribute("author"));
+    my ($local_event)=$frame->getDescendantElementsByTagName("local_event");
+    my $auth="NA";
+    $auth=$self->conv->decode($local_event->getAttribute("author")) if ($local_event);
     push @frames, [$frame,$id,$elements,$status,$example,$auth];
   }
   return @frames;
@@ -316,10 +181,7 @@ sub getFrameElementString {
   my ($self,$frame)=@_;
   return unless $frame;
   my @elements;
-  my $elements = $frame->getElementsByTagName("element");
-  my $n = $elements->getLength;
-  for (my $i = 0; $i < $n; $i++) {
-    my $element = $elements->item($i);
+  foreach my $element ($frame->getDescendantElementsByTagName("element")) {
     my $functor = $element->getAttribute ("functor");
     my $type = $element->getAttribute("type");
     my $forms = $self->getFrameElementFormsString($element);
@@ -332,10 +194,7 @@ sub getFrameElementFormsString {
   my ($self,$element)=@_;
   return unless $element;
   my @forms;
-  my $forms = $element->getElementsByTagName("form",0);
-  my $n = $forms->getLength;
-  for (my $i = 0; $i < $n; $i++) {
-    my $form = $forms->item($i);
+  foreach my $form ($element->getChildElementsByTagName("form")) {
     my $abbrev = $self->conv->decode($form->getAttribute ("abbrev"));
     push @forms,"$abbrev";
   }
@@ -345,14 +204,17 @@ sub getFrameElementFormsString {
 sub getFrameExample {
   my ($self,$frame)=@_;
   return unless $frame;
-  $frame->normalize();
-  my $text=$frame->getElementsByTagName("example",0)->item(0)->getFirstChild;
-  if ($text and $text->getNodeType == TEXT_NODE) {
-    my $data=$text->getData();
-    $data=~s/^\s+//;
-    $data=~s/;\s+/\n/g;
-    $data=~s/[\s\n]+$//g;
-    return $self->conv->decode($data);
+  $self->normalize_ws($frame);
+  my ($example)=$frame->getChildElementsByTagName("example");
+  if ($example) {
+    my $text=$example->getFirstChild;
+    if ($text and $text->isTextNode) {
+      my $data=$text->getData();
+      $data=~s/^\s+//;
+      $data=~s/;\s+/\n/g;
+      $data=~s/[\s\n]+$//g;
+      return $self->conv->decode($data);
+    }
   }
   return "";
 }
@@ -360,9 +222,9 @@ sub getFrameExample {
 sub getElementText {
   my ($self,$element)=@_;
   return unless $element;
-  $element->normalize();
+  $self->normalize_ws($element);
   my $text=$element->getFirstChild;
-  if ($text and $text->getNodeType == TEXT_NODE) {
+  if ($text and $text->isTextNode) {
     my $data=$text->getData();
     $data=~s/^\s+//;
     $data=~s/[\s\n]+$//g;
@@ -374,11 +236,11 @@ sub getElementText {
 sub getSubElementNote {
   my ($self,$elem)=@_;
   return unless $elem;
-  $elem->normalize();
-  my $note=$elem->getElementsByTagName("note",0)->item(0);
+  $self->normalize_ws($elem);
+  my ($note)=$elem->getChildElementsByTagName("note");
   return "" unless $note;
   my $text=$note->getFirstChild;
-  if ($text and $text->getNodeType == TEXT_NODE) {
+  if ($text and $text->isTextNode) {
     my $data=$text->getData();
     $data=~s/^\s+//;
     $data=~s/;\s+/\n/g;
@@ -392,12 +254,9 @@ sub getSubElementProblemsList {
   my ($self,$elem)=@_;
   return unless $elem;
   my @problems=();
-  my $problems_e=$elem->getElementsByTagName("problems",0)->item(0);
+  my ($problems_e)=$elem->getChildElementsByTagName("problems");
   return "" unless $problems_e;
-  my $problems = $problems_e->getElementsByTagName ("problem",0);
-  my $n = $problems->getLength;
-  for (my $i = 0; $i < $n; $i++) {
-    my $problem = $problems->item($i);
+  foreach my $problem ($problems_e->getChildElementsByTagName("problem")) {
     my $author = $self->conv->decode($problem->getAttribute ("author"));
     my $solved = $problem->getAttribute ("solved");
     my $text = $self->getElementText($problem);
@@ -408,14 +267,28 @@ sub getSubElementProblemsList {
 
 sub findWord {
   my ($self,$find,$nearest)=@_;
+  print "find $find $nearest\n";
+  my $doc=$self->doc();
+  print "find $find $nearest\n";
+  return unless $doc;
+  my $docel=$doc->getDocumentElement();
+  foreach my $word ($docel->getDescendantElementsByTagName("word")) {
+    my $lemma = $self->conv->decode($word->getAttribute("lemma"));
+    print "found $lemma\n";
+    return $word if (($nearest and index($lemma,$find)==0) or $lemma eq $find);
+  }
+  return undef;
+}
+
+sub findWordAndPOS {
+  my ($self,$find,$pos)=@_;
   my $doc=$self->doc();
   return unless $doc;
-  my $words = $doc->getElementsByTagName ("word");
-  my $n = $words->getLength;
-  for (my $i = 0; $i < $n; $i++) {
-    my $word = $words->item($i);
-    my $lemma = $self->conv->decode($word->getAttribute ("lemma"));
-    return $word if ($nearest and index($lemma,$find)==0 or $lemma eq $find);
+  my $docel=$doc->getDocumentElement();
+  foreach my $word ($docel->getDescendantElementsByTagName("word")) {
+    my $lemma = $self->conv->decode($word->getAttribute("lemma"));
+    my $POS = $self->conv->decode($word->getAttribute ("POS"));
+    return $word if ($lemma eq $find and $POS eq $pos);
   }
   return undef;
 }
@@ -441,7 +314,7 @@ sub addWord {
 
   my $doc=$self->doc();
   my $root=$doc->getDocumentElement();
-  my ($body)=$root->getElementsByTagName("body",0);
+  my ($body)=$root->getChildElementsByTagName("body");
   return unless $body;
   my $word=$doc->createElement("word");
   $word->setAttribute("lemma",$self->conv->encode($lemma));
@@ -460,7 +333,7 @@ sub addFrameLocalHistory {
   return unless $frame;
   my $doc=$self->doc();
 
-  my $local_history=$frame->getElementsByTagName("local_history",0)->item(0);
+  my ($local_history)=$frame->getChildElementsByTagName("local_history");
   unless ($local_history) {
     $local_history=$doc->createElement("local_history");
     $frame->appendChild($local_history);
@@ -544,15 +417,17 @@ sub addFrame {
   my ($self,$before,$word,$elements,$note,$example,$problem,$author)=@_;
   return unless $word and $elements ne "";
   my $new_id = $self->generateNewFrameId($word);
-
   my $doc=$self->doc();
-  my ($valency_frames)=$word->getElementsByTagName("valency_frames",0);
+  my ($valency_frames)=$word->getChildElementsByTagName("valency_frames");
   return unless $valency_frames;
   my $frame=$doc->createElement("frame");
   $frame->setAttribute("frame_ID",$new_id);
   $frame->setAttribute("status","active");
-  $valency_frames->insertBefore($frame,$before);
-
+  if (ref($before)) {
+    $valency_frames->insertBefore($frame,$before);
+  } else {
+    $valency_frames->appendChild($frame);
+  }
   my $ex=$doc->createElement("example");
   $ex->addText($self->conv->encode($example));
   $frame->appendChild($ex);
@@ -587,30 +462,42 @@ sub modifyFrame {
   return unless $frame and $elements ne "";
 
   my $doc=$self->doc();
-  my ($old_ex)=$frame->getElementsByTagName("example",0);
+  my ($old_ex)=$frame->getChildElementsByTagName("example");
   my $ex=$doc->createElement("example");
   $ex->addText($self->conv->encode($example));
-  $frame->replaceChild($ex,$old_ex);
-  $old_ex->dispose();
+  if ($old_ex) {
+    $frame->replaceChild($ex,$old_ex);
+    $self->dispose_node($old_ex);
+  } else {
+    $frame->insertBefore($ex,undef);
+  }
   undef $old_ex;
 
-  my ($old_note)=$frame->getElementsByTagName("note",0);
+  my ($old_note)=$frame->getChildElementsByTagName("note");
   if ($note ne "") {
     my $not=$doc->createElement("note");
     $not->addText($self->conv->encode($note));
-    print "replacing\n";
-    $frame->replaceChild($not,$old_note);
-  } else {
+    if ($old_note) {
+      $frame->replaceChild($not,$old_note);
+      $self->dispose_node($old_note);
+    } else {
+      $frame->insertAfter($not,$ex);
+    }
+  } elsif ($old_note) {
     $frame->removeChild($old_note);
+    $self->dispose_node($old_note);
   }
-  $old_note->dispose();
   undef $old_note;
-  my ($old_elems)=$frame->getElementsByTagName("frame_elements",0);
-  my ($problems)=$frame->getElementsByTagName("problems",0);
+  my ($old_elems)=$frame->getChildElementsByTagName("frame_elements");
+  my ($problems)=$frame->getChildElementsByTagName("problems");
   if ($problem ne "") {
     unless ($problems) {
       $problems=$doc->createElement("problems");
-      $frame->insertBefore($problems,$old_elems);
+      if ($old_elems) {
+	$frame->insertBefore($problems,$old_elems);
+      } else {
+	$frame->appendChild($problems);
+      }
     }
     my $probl=$doc->createElement("problem");
     $probl->addText($self->conv->encode($problem));
@@ -620,7 +507,7 @@ sub modifyFrame {
 
   my $elems=$doc->createElement("frame_elements");
   $frame->replaceChild($elems,$old_elems);
-  $old_elems->dispose();
+  $self->dispose_node($old_elems);
   undef $old_elems;
 
   $self->addFrameElements($elems,$elements);
@@ -659,6 +546,71 @@ sub getFrameStatus {
 sub isEqual {
   my ($self,$a,$b)=@_;
   return $a == $b;
+}
+
+sub normalize_ws {
+}
+
+sub register_client {
+  my ($self,$client)=@_;
+  my $clients=$self->clients();
+  unless (grep {$_ == $client} @$clients) {
+    push @$clients,$client;
+  }
+}
+
+sub unregister_client {
+  my ($self,$client)=@_;
+  my $clients=$self->clients();
+  @$clients=grep {$_ != $client} @$clients;
+}
+
+sub make_clients_forget_data_pointers {
+  my ($self)=@_;
+  my $clients=$self->clients();
+  foreach my $client (@$clients) {
+    $client->forget_data_pointers();
+  }
+}
+
+sub DESTROY {
+  my ($self)=@_;
+  $self->make_clients_forget_data_pointers();
+}
+
+##############################################
+# TrEd::ValLex::Data
+##############################################
+#
+# Any object storing pointers to data elements
+# must implement this interface for proper
+# deallocation
+#
+##############################################
+
+package TrEd::ValLex::DataClient;
+
+sub data {
+}
+
+sub register_as_data_client {
+  if ($_[0]->data()) {
+    $_[0]->data()->register_client($_[0]);
+  }
+}
+
+sub unregister_data_client {
+  if ($_[0]->data()) {
+    $_[0]->data()->unregister_client($_[0]);
+  }
+}
+
+sub forget_data_pointers {
+}
+
+sub destroy {
+  my ($self)=@_;
+  $_[0]->unregister_data_client();
 }
 
 1;

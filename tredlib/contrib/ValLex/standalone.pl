@@ -29,6 +29,7 @@ package main;
 use strict;
 use Tk::Adjuster;
 use Data;
+use XML_DOM_Data;
 use Widgets;
 use Editor;
 use TrEd::CPConvert;
@@ -39,9 +40,9 @@ my $conv= TrEd::CPConvert->new("utf-8",
 			       ($^O eq "MSWin32") ?
 			       "windows-1250" :
 			       "iso-8859-2");
-my $data=TrEd::ValLex::Data->new("vallex.xml",$conv);
+my $data=TrEd::ValLex::XML_DOM_Data->new("vallex.xml",$conv);
 
-my $font = "-adobe-helvetica-medium-r-*-*-14-*-*-*-*-*-iso8859-2";
+my $font = "-adobe-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-2";
 my $fc=[-font => $font];
 my $fe_conf={ elements => $fc,
 	      example => $fc,
@@ -84,13 +85,24 @@ if ($double) {
 
 my $bottom_frame = $top->Frame()->pack(qw/-expand yes -fill both -side bottom/);
 
-my $save_button=$bottom_frame->Button(-text => "Reload",
-			     -command => sub {
-			       $top->Busy(-recurse=> 1);
-			       $vallex->data()->reload();
-			       $vallex->fetch_data();
-			       $top->Unbusy(-recurse=> 1);
-			     })->pack(qw/-side right -pady 10 -padx 10/);
+my $save_button=
+  $bottom_frame->Button(-text => "Reload",
+			-command =>
+			[sub {
+			   my ($d,$f)=@_;
+			   $d->Busy(-recurse=> 1);
+			   my $field=$f->subwidget("wordlist")->focused_word();
+			   $f->data()->reload();
+			   $f->fetch_data();
+			   if ($field) {
+			     my $word=$f->data()->findWordAndPOS(@{$field});
+			     $f->wordlist_item_changed($f->subwidget("wordlist")->focus($word));
+
+			   }
+			   $d->Unbusy(-recurse=> 1);
+			 }, $top, $vallex
+			]
+		       )->pack(qw/-side right -pady 10 -padx 10/);
 
 
 my $save_button=$bottom_frame->Button(-text => "Save",
