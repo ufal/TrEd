@@ -6,37 +6,37 @@ package TrEd::ValLex::Data;
 use strict;
 use utf8;
 
-my %abbrev_forms = (
-'do+2' => 'do-1[.2]',
-'k+3' => 'k-1[.3]',
-'mezi+4' => 'mezi-1[.4]',
-'mezi+7' => 'mezi-1[.7]',
-'místo+2' => 'místo-2[.2]',
-'nad+7' => 'nad-1[.7]',
-'na+4' => 'na-1[.4]',
-'na+6' => 'na-1[.6]',
-'od+2' => 'od-1[.2]',
-'okolo+2' => 'okolo-1[.2]',
-'o+4' => 'o-1[.4]',
-'o+6' => 'o-1[.6]',
-'podle+2' => 'podle-2[.2]',
-'pod+4' => 'pod-1[.4]',
-'pod+7' => 'pod-1[.7]',
-'po+6' => 'po-1[.6]',
-'proti+3' => 'proti-1[.3]',
-'pro+4' => 'pro-1[.4]',
-'před+7' => 'před-1[.7]',
-'přes+4' => 'přes-1[.4]',
-'při+6' => 'při[.6]',
-'s+7' => 's-1[.7]',
-'u+2' => 'u-1[.2]',
-'včetně+2' => 'včetně-2[.2]',
-'vůči+3' => 'vůči[.3]',
-'v+4' => 'v-1[.4]',
-'v+6' => 'v-1[.6]',
-'za+4' => 'za-1[.4]',
-'za+7' => 'za-1[.7]',
-'z+2' => 'z-1[.2]'
+my @abbrev_forms = (
+['do+2' => 'do-1[.2]'],
+['k+3' => 'k-1[.3]'],
+['mezi+4' => 'mezi-1[.4]'],
+['mezi+7' => 'mezi-1[.7]'],
+['místo+2' => 'místo-2[.2]'],
+['nad+7' => 'nad-1[.7]'],
+['na+4' => 'na-1[.4]'],
+['na+6' => 'na-1[.6]'],
+['od+2' => 'od-1[.2]'],
+['okolo+2' => 'okolo-1[.2]'],
+['o+4' => 'o-1[.4]'],
+['o+6' => 'o-1[.6]'],
+['podle+2' => 'podle-2[.2]'],
+['pod+4' => 'pod-1[.4]'],
+['pod+7' => 'pod-1[.7]'],
+['po+6' => 'po-1[.6]'],
+['proti+3' => 'proti-1[.3]'],
+['pro+4' => 'pro-1[.4]'],
+['před+7' => 'před-1[.7]'],
+['přes+4' => 'přes-1[.4]'],
+['při+6' => 'při[.6]'],
+['s+7' => 's-1[.7]'],
+['u+2' => 'u-1[.2]'],
+['včetně+2' => 'včetně-2[.2]'],
+['vůči+3' => 'vůči[.3]'],
+['v+4' => 'v-1[.4]'],
+['v+6' => 'v-1[.6]'],
+['za+4' => 'za-1[.4]'],
+['za+7' => 'za-1[.7]'],
+['z+2' => 'z-1[.2]']
 );
 
 sub new {
@@ -485,8 +485,8 @@ sub serializeForm {
 
 sub applyFormAbbrevs {
   my ($form) = @_;
-  foreach my $k (keys(%abbrev_forms)) {
-    my $v = $abbrev_forms{$k};
+  foreach (@abbrev_forms) {
+    my ($k,$v) = @$_;
     $form =~ s/\b\Q$v\E/$k/g;
   }
   return $form;
@@ -494,8 +494,9 @@ sub applyFormAbbrevs {
 
 sub expandFormAbbrevs {
   my ($form) = @_;
-  foreach my $k (keys(%abbrev_forms)) {
-    $form =~ s/\b\Q$k\E/$abbrev_forms{$k}/g;
+  foreach (@abbrev_forms) {
+    my ($k,$v) = @$_;
+    $form =~ s/\b\Q$k\E/$v/g;
   }
   return $form;
 }
@@ -571,7 +572,7 @@ sub parseFormPart {
 
 sub parseSerializedFrame {
   my ($self, $elements, $dom)=@_;
-  $elements = expandFormAbbrevs($elements);
+  $elements = expandFormAbbrevs($self->conv->encode($elements));
   return 1 if ($elements=~/^\s*EMPTY\s*$/);
   my $func = 'ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|AUTH|ATT|BEN|CAUS|CNCS|COMPL|COND|CONJ|CONFR|CONTRA|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|CPHR|DPHR|ETHD|EXT|FPHR|GRAD|HER|ID|INTF|INTT|LOC|MANN|MAT|MEANS|MOD|NA|NORM|OPER|PAR|PARTL|PN|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT';
   my @members = grep { $_ ne "" } split /\s+/,$elements;
