@@ -1254,6 +1254,9 @@ root# <userinput>make install</userinput>
 	      <literal>$n</literal> is referred to as to
 	      <literal>FirstSon($n)</literal> or
 	      <literal>$n->firstson</literal>.
+	      The root of the tree containing node
+	      <literal>$n</literal>
+	      can be reached with <literal>$n->root</literal>.
 	      A perl list of all child-nodes of <literal>$n</literal>
 	      may be obtained by <literal>$n->children</literal> method.
 	      If no such nodes exist,
@@ -2040,8 +2043,8 @@ root# <userinput>make install</userinput>
 			Sometimes it is not necessary to
 			go through the whole tree to find the desired
 			node. In such a case, the user may provide
-			a code to use to search for the node
-			and return the code.
+			a code that finds the node
+			and returns it.
 			This type of query has the form
 			<literal>x[! code !]</literal> or
 			<literal>y[! code !]</literal>,
