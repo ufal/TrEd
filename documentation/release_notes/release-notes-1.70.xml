@@ -66,7 +66,7 @@
 	      <guimenu>Bookmarks</guimenu> <guimenu>Add to
 		bookmarks</guimenu> </menuchoice>. Zálo¾ky se
 	    ukládají, tak¾e jsou zachovány i pøi novém spu¹tìní
-	    <application>TrEdu</application>. Speciání zálo¾ka
+	    <application>TrEdu</application>. Speciální zálo¾ka
 	    <guimenu>Last action</guimenu> odkazuje k místu, kde byla
 	    provedena poslední zmìna (akce). I tato zálo¾ka se
 	    uchovává, tak¾e její aktivací se lze ihned po spu¹tìní
@@ -77,7 +77,7 @@
 	</listitem>
 	<listitem>
 	  <para>
-	    Dialogova okna obsahujici atributu zobrazuji nejprve
+	    Dialogová okna zobrazují nejprve
 	    atributy
 	    <literal>func</literal>, <literal>trlemma</literal>,
 	    <literal>form</literal>, <literal>afun</literal>, 
@@ -103,14 +103,14 @@
 	Jan Hajiè).
       </para>
       <para>
-	Nazvy maker byly upraveny, aktualizovany seznam je 
+	Názvy maker byly upraveny, aktualizovaný seznam je 
 	k dispozici v souboru
 	<filename>tred/tredlib/contrib/tr_makra.txt</filename>.
-	Formát souboru odpovídá pøibli¾nì schématu:
+	Formát souboru odpovídá pøibli¾nì schématu
       </para>
       <literallayout>&lt;<replaceable>název makra</replaceable>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<replaceable>klávesová zkratka</replaceable>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&lt;<replaceable>polo¾ka menu/komentáø</replaceable>&gt;</literallayout>
       <para>
-	Sloupce jsou oddìleny dvìma tabulátory.
+	pøièem¾ sloupce jsou oddìleny dvìma tabulátory.
       </para>
     </section>    
   </section>
