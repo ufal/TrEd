@@ -69,7 +69,7 @@ function (attribute C<afun>)
 =cut
 sub is_apos {
   my ($node)=@_;
-  return $node->{afun} eq '^Apos';
+  return $node->{afun} =~ /^Apos/;
 }
 
 =item PDT::is_apos_TR(node)
