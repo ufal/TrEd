@@ -1,0 +1,59 @@
+tkfs ver. 0.1 beta
+==================
+by Petr Pajas, 2000
+
+You only need perl5 and working Perl/Tk to run tkfs.
+This means that tkfs may run on following platforms:
+
+  Windows 9x,NT (download perl and perlTk from ActivePerl)
+  Linux (with glibc2 = libc.6, otherwise you will probably 
+         not be able to run Perl/Tk:( )
+  Possibly other platforms (other UN*X platforms as Perl5
+         and perlTk should be abailable for them;
+	 AFAIK there is perl5 and perlTk on MacOS too)
+
+
+	 
+Please make sure you have installed:
+-------------------------------------
+
+- Tkfs.pm into some directory of perl includes (theese you may 
+set by PERLLIB or PERL5LIB variable)
+
+- tkdisplaytree.pl (and optionaly tkfs as a link or copy/rename of it) to
+your prefered bin directory
+
+- make copy of tkfsrc named .tkfsrc in you home directory
+(under Windows you may either set the HOME variable or
+change its default location in tkdisplaytree.pl manually).
+
+Also note that:
+---------------
+- .tkfsrc is your configuration file, it is text-based so that you may edit it 
+
+- you may print either to file or using a command. In both cases
+tkdisplaytree.fs (aka tkfs) generates postscript. On Windows desktop
+you will probably have to use ghostview to print obtained file (unless
+you have installed st. like lpr i.e. from cygwins).
+
+- printing uses postscript font (arial by default) but expects it has
+the same metrics as the display font
+
+- you may define macros and bind them to keyboard events. This is done
+preferably in tkfs.mac file, but you may use also tkfs.def which should
+however contain moreless st. like preliminary definitions. Let the files
+included with this distributions serve you as examples (the macro language
+is perl, it is evaled directly form tkdisplaytree.pl, so you may use
+its variables). The active node is pointed to by variable $this. To change
+active node simply assign this variable. Root of the current tree is 
+$root. You may (as in Fslib.pm)
+change or refer to node's attribute values by either
+  $$node{'atrname'}
+or (by more readable but one-char longer)
+  $node->{'atrname'}
+To rearange nodes in the tree you may use macros CutNode/Cut and PasteNode
+(Paste is more low-level and you should *not* therfore use it). 
+Also, you may find useful macros NextTree,PrevTree,GotoTree to move
+between trees and Next/Prev macros to trace along the current tree.
+
+For more info on macros see Fslib man-page/documentation.

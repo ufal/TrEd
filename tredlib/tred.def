@@ -1,0 +1,13 @@
+## This is macro file for tkdisplaytree                      -*-perl-*-
+## author: Petr Pajas
+## created: Fri Mar 17 14:48:42 CET 2000
+
+# Default macro definitions to make
+# calls to global subroutines less humble
+
+sub GotoTree { my $result=gotoTree(shift,$grp); $this=$root; return $result; }
+sub NextTree { my $result=nextTree($grp); $this=$root; return $result; }
+sub PrevTree { my $result=prevTree($grp); $this=$root; return $result; }
+sub GetOrd { return Ord(@_,\%attribs); }
+sub PasteNode { return Paste(shift,shift,\%attribs); }
+sub CutNode { return Cut(@_); }
