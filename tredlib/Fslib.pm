@@ -1,5 +1,8 @@
 package Fslib;
-
+#
+# Revision: $Revision$
+# Checked-in: $Date$
+# Time-stamp: <2001-03-15 17:21:02 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -12,7 +15,7 @@ package Fslib;
 
 use Exporter;
 @ISA=(Exporter);
-$VERSION = "0.91";
+$VERSION = "1.2";
 @EXPORT = qw(&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode &PrintTree &PrintFS &NewNode 
 	     &Parent &LBrother &RBrother &FirstSon &Next &Prev &DeleteTree &DeleteLeaf
 	     &Cut &Paste &Set &Get &DrawTree &IsList &ListValues);
@@ -25,13 +28,6 @@ use vars qw(
 	    );
 
 
-# Author: Petr Pajas
-# E-mail: pajas@ufal.mff.cuni.cz
-#
-# Description:
-# Several Perl Routines to parse treebank files in FS format
-#
-
 $field='(?:\\\\[\\]\\,]|[^\\,\\]])*';
 $parent="_P_";
 $firstson="_S_";
@@ -42,75 +38,75 @@ $FSTestListValidity=0;
 sub NewNode ($) {
   my $node = shift;
   
-  $ {$node}{$firstson}=0;
-  $ {$node}{$lbrother}=0;
-  $ {$node}{$rbrother}=0;
-  $ {$node}{$parent}=0;
+  $node->{$firstson}=0;
+  $node->{$lbrother}=0;
+  $node->{$rbrother}=0;
+  $node->{$parent}=0;
   return $node;
 }
 
 sub Set ($$$) {
   my ($node,$atribute,$value)=(shift,shift,shift);
-  $$node{$atribute}=$value;
+  $node->{$atribute}=$value;
 }
 
 sub Get ($$) {
   my ($node,$atribute)=(shift,shift);
-  return $$node{$atribute};
+  return $node->{$atribute};
 }
 
 sub Parent ($) {
   my $node = shift;
-  return $ {$node}{$parent};
+  return $node->{$parent};
 }
 
 sub SetParent ($$) {
   my ($node,$p) = @_;
-  $ {$node}{$parent}=$p if ($node);
+  $node->{$parent}=$p if ($node);
 }
 
 sub LBrother ($) {
   my $node = shift;
-  return $ {$node}{$lbrother};
+  return $node->{$lbrother};
 }
 
 sub SetLBrother ($$) {
   my ($node,$p) = @_;
-  $ {$node}{$lbrother}=$p if ($node);
+  $node->{$lbrother}=$p if ($node);
 }
 
 
 sub RBrother ($) {
   my $node = shift;
-  return $ {$node}{$rbrother};
+  return $node->{$rbrother};
 }
 
 sub SetRBrother ($$) {
   my ($node,$p) = @_;
-  $ {$node}{$rbrother}=$p if ($node);
+  $node->{$rbrother}=$p if ($node);
 }
 
 sub FirstSon ($) {
   my $node = shift;
-  return $ {$node}{$firstson};
+  return $node->{$firstson};
 }
 
 sub SetFirstSon ($$) {
   my ($node,$p) = @_;
-  $ {$node}{$firstson}=$p if ($node);
+  $node->{$firstson}=$p if ($node);
 }
 
 sub Next {
   my ($node,$top) = (shift, shift);
   $top=0 if !$top;
 
-  if (FirstSon($node)) {
-    return FirstSon($node);
+  if ($node->{$firstson}) {
+    return $node->{$firstson};
   }
   while ($node) {
-    return 0 if ($node==$top or !Parent($node));
-    return RBrother($node) if (RBrother($node));
-    $node = Parent($node);
+    return 0 if ($node==$top or !$node->{$parent});
+    return $node->{$rbrother} if $node->{$rbrother};
+    $node = $node->{$parent};
   }
   return 0;
 }
@@ -119,25 +115,25 @@ sub Prev {
   my ($node,$top) = (shift, shift);
   $top=0 if !$top;
   
-  if (LBrother($node)) {
-    $node = LBrother($node);
-  DIGDOWN: while (FirstSon($node)) {
-      $node = FirstSon($node);
-    LASTBROTHER: while (RBrother($node)) {
-    	$node = RBrother($node);
+  if ($node->{$lbrother}) {
+    $node = $node->{$lbrother};
+  DIGDOWN: while ($node->{$firstson}) {
+      $node = $node->{$firstson};
+    LASTBROTHER: while ($node->{$rbrother}) {
+    	$node = $node->{$rbrother};
         next LASTBROTHER;
       }
       next DIGDOWN;
     }
     return $node;
   }
-  return 0 if ($node == $top or !Parent($node));
-  return Parent($node);
+  return 0 if ($node == $top or !$node->{$parent});
+  return $node->{$parent};
 }
 
 sub IsList ($$) {
   my ($attrib, $href)=@_;
-  return (index($$href{$attrib}," L")>=0);
+  return (index($href->{$attrib}," L")>=0);
 }
 
 sub ListValues ($$) {
@@ -145,17 +141,17 @@ sub ListValues ($$) {
 
 # pokus o zrychleni
     my $I,$b,$e;
-    $b=index($$href{$attrib}," L=");
+    $b=index($href->{$attrib}," L=");
     if ($b>=0) {
-      $e=index($$href{$attrib}," ",$b+1);
+      $e=index($href->{$attrib}," ",$b+1);
       if ($e>=0) {
-        return split /\|/,substr($$href{$attrib},$b+3,$e-$b-3);
+        return split /\|/,substr($href->{$attrib},$b+3,$e-$b-3);
       } else {
-        return split /\|/,substr($$href{$attrib},$b+3);
+	return split /\|/,substr($href->{$attrib},$b+3);
       }
     } else { return (); }
 
-#  if ($$href{$attrib}=~/ L=([^ ]+)/) { # only lists may have preset values
+#  if ($href->{$attrib}=~/ L=([^ ]+)/) { # only lists may have preset values
 #    return split /\|/,$1;
 #  } else { return (); }
 }
@@ -165,7 +161,7 @@ sub Special ($$$) {
 
   if ($node and $href) {
     foreach (keys(%$href)) {
-      return $$node{$_} if (index($$href{$_}," $defchar")>=0);
+      return $node->{$_} if (index($href->{$_}," $defchar")>=0);
     }
   }
   return undef;
@@ -176,7 +172,7 @@ sub ASpecial ($$) {
 
   if ($href) {
     foreach (keys(%$href)) {
-      return $_ if (index($$href{$_}," $defchar")>=0);
+      return $_ if (index($href->{$_}," $defchar")>=0);
     }
   }
   return undef;
@@ -220,34 +216,35 @@ sub Cut ($) {
   my $node=shift;
   return $node if (! $node);
   
-  if ($$node{$parent} and $node==$ {$$node{$parent}}{$firstson}) {
-    $ {$$node{$parent}}{$firstson}=$$node{$rbrother};    
+  if ($node->{$parent} and $node==$node->{$parent}->{$firstson}) {
+    $node->{$parent}->{$firstson}=$node->{$rbrother};    
   }
-  $ {$$node{$lbrother}}{$rbrother}=$$node{$rbrother} if ($$node{$lbrother}); 
-  $ {$$node{$rbrother}}{$lbrother}=$$node{$lbrother} if ($$node{$rbrother}); 
+  $node->{$lbrother}->{$rbrother}=$node->{$rbrother} if ($node->{$lbrother}); 
+  $node->{$rbrother}->{$lbrother}=$node->{$lbrother} if ($node->{$rbrother}); 
   
-  $$node{$parent}=$$node{$lbrother}=$$node{$rbrother}=0;
+  $node->{$parent}=$node->{$lbrother}=$node->{$rbrother}=0;
   return $node;
 }
 
 sub Paste ($$$) {
   my ($node,$p,$href)=(shift,shift,shift);
-  my $ordnum = Ord($node,$href);
+  my $aord=AOrd($href);
+  my $ordnum = $node->{$aord};
 
-  $b=$$p{$firstson};
-  if ($b and $ordnum>Ord($b,$href)) {
-    $b=$$b{$rbrother} while ($$b{$rbrother} and $ordnum>Ord($$b{$rbrother},$href));
-    $$node{$rbrother}=$$b{$rbrother};
-    $ {$$b{$rbrother}}{$lbrother}=$node if ($$b{$rbrother});
-    $$b{$rbrother}=$node;
-    $$node{$lbrother}=$b;
+  $b=$p->{$firstson};
+  if ($b and $ordnum>$b->{$aord}) {
+    $b=$b->{$rbrother} while ($b->{$rbrother} and $ordnum>$b->{$rbrother}->{$aord});
+    $node->{$rbrother}=$b->{$rbrother};
+    $b->{$rbrother}->{$lbrother}=$node if ($b->{$rbrother});
+    $b->{$rbrother}=$node;
+    $node->{$lbrother}=$b;
   } else {
-    $$node{$rbrother}=$b;
-    $$p{$firstson}=$node;
-    $$node{$lbrother}=0;
-    $$b{$lbrother}=$node if ($b);
+    $node->{$rbrother}=$b;
+    $p->{$firstson}=$node;
+    $node->{$lbrother}=0;
+    $b->{$lbrother}=$node if ($b);
   }
-  $$node{$parent}=$p;
+  $node->{$parent}=$p;
 }
 
 sub DeleteTree ($) {
@@ -255,10 +252,10 @@ sub DeleteTree ($) {
   $top=$node=shift;
   while ($node) {
     if ($node!=$top
-	and !$$node{$firstson}
-	and !$$node{$lbrother}
-	and !$$node{$rbrother}) {
-      $next=$$node{$parent};
+	and !$node->{$firstson}
+	and !$node->{$lbrother}
+	and !$node->{$rbrother}) {
+      $next=$node->{$parent};
     } else {
       $next=Next($node,$top);
     }
@@ -270,15 +267,15 @@ sub DeleteTree ($) {
 sub DeleteLeaf ($) {
 #  print "Deleting";
   $node=shift;
-  if (!$$node{$firstson}) {
-    $ {$$node{$rbrother}}{$lbrother}=$$node{$lbrother} if ($$node{$rbrother});
+  if (!$node->{$firstson}) {
+    $node->{$rbrother}->{$lbrother}=$node->{$lbrother} if ($node->{$rbrother});
 
-    if ($$node{$lbrother}) {
-      $ {$$node{$lbrother}}{$rbrother}=$$node{$rbrother};
+    if ($node->{$lbrother}) {
+      $node->{$lbrother}->{$rbrother}=$node->{$rbrother};
     } else {
-      $ {$$node{$parent}}{$firstson}=$$node{$rbrother} if $$node{$parent};
+      $node->{$parent}->{$firstson}=$node->{$rbrother} if $node->{$parent};
     }
-#    print " leaf ",$$node{"form"},"\n";
+#    print " leaf ",$node->{"form"},"\n";
     undef %$node;
     undef $node;
     return 1;
@@ -310,7 +307,7 @@ sub ReadAttribs  {
     print $outfile $_ if $DO_PRINT==1;
     push @$out, $_ if $DO_PRINT==2; 
     if (/^\@([KPOVNWLH])([A-Z0-9])* ([A-Za-z0-9]+)(?:\|(.*))?/o) {
-      $ {$order}[$count++]=$3 if (!defined($result{$3}));
+      $order->[$count++]=$3 if (!defined($result{$3}));
       if ($4) {
 	$result{$3}.=" $1=$4"; # so we create a list of defchars separated by spaces
       } else {                 # a value-list may follow the equation mark
@@ -337,15 +334,15 @@ sub ParseNode ($$$) {
   my @lv;
 
   $node=FSNode->new();
-  if ($ {$lr}=~/\G\[/gsco) {
-    while ($ {$lr} !~ /\G\]/gsco) {
-      $n++,next if ($ {$lr}=~/\G\,/gsco);
-      if ($ {$lr}=~/\G([A-Za-z0-9]+)=($field)/gsco) {
+  if ($$lr=~/\G\[/gsco) {
+    while ($$lr !~ /\G\]/gsco) {
+      $n++,next if ($$lr=~/\G\,/gsco);
+      if ($$lr=~/\G([A-Za-z0-9]+)=($field)/gsco) {
 	$a=$1;
 	$v=$2;
 	$tmp=Index($ord,$a);
 	$n = $tmp if (defined($tmp));
-      } elsif ($ {$lr}=~/\G($field)/gsco) {
+      } elsif ($$lr=~/\G($field)/gsco) {
 	$v=$1;
         $n++ while ( $n<=$#$ord and $attr->{$ord->[$n]}!~/ [PNW]/);
 	if ($n>$#$ord) {
@@ -367,7 +364,7 @@ sub ParseNode ($$$) {
       }
       $node->{$a}=$v;
     }
-  } else { croak $ {$lr}," not node!\n"; }
+  } else { croak $$lr," not node!\n"; }
   return $node;
 }
 
@@ -386,7 +383,7 @@ sub ParseNode2 ($$$) {
   my $w;
 
   $node = FSNode->new();
-  if ($ {$lr}=~/^\[/) {
+  if ($$lr=~/^\[/) {
     chomp $$lr;
     $i=index($$lr,']');
     $nd=substr($$lr,1,$i-1);
@@ -427,7 +424,7 @@ sub ParseNode2 ($$$) {
       $v=~s/&eq;/=/g;
       $node->{$a}=$v;
     }
-  } else { croak $ {$lr}," not node!\n"; }
+  } else { croak $$lr," not node!\n"; }
   return $node;
 }
 
@@ -473,21 +470,21 @@ sub GetTree2 ($$$) {
       $c = substr($l,0,1);
       $l = substr($l,1);
       if ( $c eq '(' ) { # Create son (go down)
-	$ {$curr}{$firstson} = ParseNode2(\$l,$ord,$atr);
-	$ { $ {$curr}{ $firstson }}{$parent}=$curr; 
-	$curr=$ {$curr}{$firstson};
+	$curr->{$firstson} = ParseNode2(\$l,$ord,$atr);
+	$curr->{$firstson}->{$parent}=$curr; 
+	$curr=$curr->{$firstson};
 	next;
       }
       if ( $c eq ')' ) { # Return to parent (go up)
 	croak "Error paring tree" if ($curr eq $root);
-	$curr=$ {$curr}{$parent};
+	$curr=$curr->{$parent};
 	next;
       }
       if ( $c eq ',' ) { # Create right brother (go right);
-	$ {$curr}{$rbrother} = ParseNode2(\$l,$ord,$atr);
-	$ {$ {$curr}{$rbrother}}{$lbrother}=$curr;
-	$ {$ {$curr}{$rbrother}}{$parent}=$ {$curr}{$parent}; 
-	$curr=$ {$curr}{$rbrother};
+	$curr->{$rbrother} = ParseNode2(\$l,$ord,$atr);
+	$curr->{$rbrother}->{$lbrother}=$curr;
+	$curr->{$rbrother}->{$parent}=$curr->{$parent}; 
+	$curr=$curr->{$rbrother};
 	next;
       }
       croak "Unexpected token... `$c'!\n";
@@ -509,21 +506,21 @@ sub GetTree ($$$) {
 
     while ($l !~ /\G\r*$/gsco) {
       if ( $l=~/\G\(/gsco ) { # Create son (go down)
-	$ {$curr}{$firstson} = ParseNode(\$l,$ord,$atr);
-	$ { $ {$curr}{ $firstson }}{$parent}=$curr; 
-	$curr=$ {$curr}{$firstson};
+	$curr->{$firstson} = ParseNode(\$l,$ord,$atr);
+	$curr->{$firstson}->{$parent}=$curr; 
+	$curr=$curr->{$firstson};
 	next;
       }
       if ( $l=~/\G\)/gsco ) { # Return to parent (go up)
 	croak "Error paring tree" if ($curr eq $root);
-	$curr=$ {$curr}{$parent};
+	$curr=$curr->{$parent};
 	next;
       }
       if ( $l=~/\G,/gsco ) { # Create right brother (go right);
-	$ {$curr}{$rbrother} = ParseNode(\$l,$ord,$atr);
-	$ {$ {$curr}{$rbrother}}{$lbrother}=$curr;
-	$ {$ {$curr}{$rbrother}}{$parent}=$ {$curr}{$parent}; 
-	$curr=$ {$curr}{$rbrother};
+	$curr->{$rbrother} = ParseNode(\$l,$ord,$atr);
+	$curr->{$rbrother}->{$lbrother}=$curr;
+	$curr->{$rbrother}->{$parent}=$curr->{$parent};
+	$curr=$curr->{$rbrother};
 	next;
       }
       $l=~/\G(.)/gsco;
@@ -547,7 +544,7 @@ sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
   if ($node) {
     print $output "[";
     for (my $n=0; $n<=$#$ord; $n++) {
-      $v=$ {$node}{$ord->[$n]};
+      $v=$node->{$ord->[$n]};
       $v=~s/[,\[\]=\\]/\\$&/go if (defined($v));      
       if (index($atr->{$ord->[$n]}, " O")>=0) {
 	print $output "," if $n;
@@ -583,21 +580,21 @@ sub PrintTree {
   $output=\*STDOUT unless $output;
   while ($curr) {
     PrintNode($curr,$rord,$ratr,$output);
-    if ($ {$curr}{$firstson}) {
+    if ($curr->{$firstson}) {
 #      print $output "\\\n(";
       print $output "(";
-      $curr = $ {$curr}{$firstson};
+      $curr = $curr->{$firstson};
       redo;
     }
-    while ($curr && $curr != $root && !($ {$curr}{$rbrother})) {
+    while ($curr && $curr != $root && !($curr->{$rbrother})) {
       print $output ")"; 
-      $curr = $ {$curr}{$parent};
+      $curr = $curr->{$parent};
     }
     croak "Error: NULL-node within the tree while printing\n" if !$curr;
     last if ($curr == $root || !$curr);
 #    print $output ",\\\n";
     print $output ",";
-    $curr = $ {$curr}{$rbrother};
+    $curr = $curr->{$rbrother};
     redo;
   }
   print $output "\n";
@@ -610,7 +607,7 @@ sub DrawTree ($@){
   my $l;
   my @attrs=@_;
   return unless $top;  
-  print "(",$$top{"form"},")\n";
+  print "(",$top->{"form"},")\n";
   $node=FirstSon($top);
   while ($node) {
     $l='';
@@ -632,7 +629,7 @@ sub DrawTree ($@){
       $l.="`-[ ";
     }
     print $l;
-    print map $$node{$_}." ",@attrs ;
+    print map $node->{$_}." ",@attrs ;
     print "]\n";
     $node=Next($node,$top);
   }   
@@ -656,7 +653,6 @@ sub PrintFS ($$$$$) {
 # OO API to FS Lib #
 ####################
 
-
 ############################################################
 #
 # FS Node
@@ -664,8 +660,29 @@ sub PrintFS ($$$$$) {
 #
 #
 
-
 package FSNode;
+
+=pod
+
+=head1 FSNode
+
+
+FSNode - Simple OO interface to tree structures of Fslib.pm
+
+=head2 REFERENCE
+
+=over 4
+
+=cut
+
+=pod
+
+=item new
+
+Create a new FSNode object. FSNode is basicly a hash reference, which
+means that you may simply acces node's attributes as C<$node->{attribute}>
+
+=cut
 
 sub new {
   my $self = shift;
@@ -675,6 +692,14 @@ sub new {
   $new->initialize();
   return $new;
 }
+
+=pod
+
+=item initialize
+
+This function inicializes FSNode. It is called by the constructor new.
+
+=cut
 
 sub initialize {
   my $self = shift;
@@ -690,36 +715,97 @@ sub DESTROY {
     return 1;
 }
 
+=pod
+
+=item parent
+
+Return node's parent node (C<undef> if none).
+
+=cut
+
 sub parent {
   my $self = shift;
   return ref($self) ? Fslib::Parent($self) : undef;
 }
+
+=pod
+
+=item lbrother
+
+Return node's left brother node (C<undef> if none).
+
+=cut
 
 sub lbrother {
   my $self = shift;
   return ref($self) ? Fslib::LBrother($self) : undef;
 }
 
+=pod
+
+=item rbrother
+
+Return node's right brother node (C<undef> if none).
+
+=cut
+
+
 sub rbrother {
   my $self = shift;
   return ref($self) ? Fslib::RBrother($self) : undef;
 }
+
+=pod
+
+=item firstson
+
+Return node's first dependent node (C<undef> if none).
+
+=cut
 
 sub firstson {
   my $self = shift;
   return ref($self) ? Fslib::FirstSon($self) : undef;
 }
 
+=pod
+
+=item following (top?)
+
+Return the next node of the subtree in the order given by structure
+(C<undef> if none). If any descendant exists, the first one is
+returned. Otherwise, right brother is returned, if any.  If the given
+node has neither a descendant nor a right brother, the right brother
+of the first (lowest) ancestor for which right brother exists, is
+returned.
+
+=cut
+
 sub following {
-  my $self = shift;
-  return ref($self) ? Fslib::Next($self) : undef;
+  my ($self,$top) = @_;
+  return ref($self) ? Fslib::Next($self,$top) : undef;
 }
+
+=pod
+
+=item previous (top?)
+
+Return the previous node of the subtree in the order given by
+structure (C<undef> if none). The way of searching described in
+C<following> is used here in reversed order.
+
+=cut
 
 sub previous {
-  my $self = shift;
-  return ref($self) ? Fslib::Prev($self) : undef;
+  my ($self,$top) = @_;
+  return ref($self) ? Fslib::Prev($self,$top) : undef;
 }
 
+=pod
+
+=back
+
+=cut
 
 ############################################################
 #
@@ -730,39 +816,27 @@ sub previous {
 
 package FSFormat;
 
-%Specials = (sentord => 'W', order => 'N', value => 'V', hide => 'H');
-
-sub AUTOLOAD {
-  my ($self)=@_;
-  return undef unless ref($self);
-  my $sub = $AUTOLOAD;
-  $sub =~ s/.*:://;
-  if (exists($FSFormat::Specials{$sub})) {
-    return $self->special($FSFormat::Specials{$sub});
-  } else {
-    return undef;
-  }
-}
-
-sub DESTROY {
-  my $self = shift;
-  return undef unless ref($self);
-  $self->[0]=undef;
-  $self->[1]=undef;
-  $self->[2]=undef;
-  $self=undef;
-}
+=pod
 
 
-sub isHidden {
-  # Tests if given FSNode node is hidden or not
-  # Returns the ancesor that hides it or undef
-  my ($self,$node)=@_;
-  return unless (ref($self) and ref($node));
-  $node=$node->parent while ($node and ($node->{$self->hide} ne 'hide'));
-  return ($node ? $node : undef);
-}
+=head1 FSFormat
 
+FSFormat - Simple OO interface for FS instance of Fslib.pm
+
+=head2 REFERENCE
+
+=over 4
+
+=cut
+
+=pod
+
+=item new (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)
+
+Create a new FS format instance object and C<initialize> it with the
+optional values.
+
+=cut
 
 sub new {
   my $self = shift;
@@ -773,6 +847,15 @@ sub new {
   return $new;
 }
 
+=pod
+
+=item initialize (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)
+
+Initialize a new FS format instance with given values. See L<"Fslib">
+for more information about attribute hash, ordered names list and unparsed headers.
+
+=cut
+
 sub initialize {
   my $self = shift;
   return undef unless ref($self);
@@ -782,6 +865,17 @@ sub initialize {
   $self->[2] = ref($_[2]) ? $_[2] : [ ]; # unparsed (sorted array)
   return $self;
 }
+
+=pod
+
+=item readFrom (source,output?)
+
+Reads FS format instance definition from given source, optionally
+echoing the unparsed input on the given output. The obligatory
+argument C<source> must be either a GLOB or list reference.
+Argument C<output> is optional and if given, it must be a GLOB reference.
+
+=cut
 
 sub readFrom {
   my ($self,$handle,$out) = @_;
@@ -814,56 +908,203 @@ sub readFrom {
   return 1;
 }
 
+=pod
+
+=item sentord, order, value, hide
+
+Return names of special attributes declared in FS format as @W, @N,
+@V, @H respectively.
+
+=cut
+
+
+%Specials = (sentord => 'W', order => 'N', value => 'V', hide => 'H');
+
+sub AUTOLOAD {
+  my ($self)=@_;
+  return undef unless ref($self);
+  my $sub = $AUTOLOAD;
+  $sub =~ s/.*:://;
+  if (exists($FSFormat::Specials{$sub})) {
+    return $self->special($FSFormat::Specials{$sub});
+  } else {
+    return undef;
+  }
+}
+
+sub DESTROY {
+  my $self = shift;
+  return undef unless ref($self);
+  $self->[0]=undef;
+  $self->[1]=undef;
+  $self->[2]=undef;
+  $self=undef;
+}
+
+=pod
+
+=item isHidden (node)
+
+Return the lowest ancestor-or-self of the given node marked by
+C<'hide'> in the FS attribute declared as @H. Return undef, if no such
+node exists.
+
+=cut
+
+sub isHidden {
+  # Tests if given FSNode node is hidden or not
+  # Returns the ancesor that hides it or undef
+  my ($self,$node)=@_;
+  return unless (ref($self) and ref($node));
+  $node=$node->parent while ($node and ($node->{$self->hide} ne 'hide'));
+  return ($node ? $node : undef);
+}
+
+=pod
+
+=item parseFSTree (line)
+
+Parse a given line in FS format (using C<Fslib::GetTree2>) and return
+the root of the resulting FS tree as an FSNode object.
+
+=cut
+
 sub parseFSTree {
   my ($self,$line)=@_;
   return undef unless ref($self);
-  Fslib::GetTree2($line,$self->list,$self->defs);
+  return Fslib::GetTree2($line,$self->list,$self->defs);
 }
+
+=pod
+
+=item defs
+
+Return a reference to the internally stored attribute hash.
+
+=cut
 
 sub defs {
   my $self = shift;
   return ref($self) ? $self->[0] : undef;
 }
 
+=pod
+
+=item list
+
+Return a reference to the internally stored attribute names list.
+
+=cut
+
 sub list {
   my $self = shift;
   return ref($self) ? $self->[1] : undef;
 }
+
+=pod
+
+=item unparsed
+
+Return a reference to the internally stored unparsed FS header. Note,
+that this header must B<not> correspond to the defs and attributes if
+any changes are made to the definitions or names at run-time by hand.
+
+=cut
 
 sub unparsed {
   my $self = shift;
   return ref($self) ? $self->[2] : undef;
 }
 
+=pod
+
+=item attributes
+
+Return a list of all attribute names (in the order given by FS
+instance declaration).
+
+=cut
+
 sub attributes {
   my $self = shift;
   return ref($self) ? @{$self->list} : ();
 }
+
+=pod
+
+=item atno (n)
+
+Return the n'th attribute name (in the order given by FS
+instance declaration).
+
+=cut
 
 sub atno {
   my ($self,$index) = @_;
   return ref($self) ? $self->list->[$index] : undef;
 }
 
+=pod
+
+=item atno (attribute_name)
+
+Return the definition string for the given attribute.
+
+=cut
+
 sub atdef {
   my ($self,$name) = @_;
   return ref($self) ? $self->defs->{$name} : undef;
 }
+
+=pod
+
+=item count
+
+Return the number of declared attributes.
+
+=cut
 
 sub count {
   my ($self) = @_;
   return ref($self) ? $#{$self->list}+1 : undef;
 }
 
+=pod
+
+=item isList (attribute_name)
+
+Return true if given attribute is assigned a list of all possible
+values.
+
+=cut
+
 sub isList {
   my ($self,$attrib)=@_;
   return ref($self) ? Fslib::IsList($attrib,$self->defs) : undef;
 }
 
+=pod
+
+=item listValues (attribute_name)
+
+Return the list of all possible values for the given attribute.
+
+=cut
+
 sub listValues {
   my ($self,$attrib)=@_;
   return ref($self) ? Fslib::ListValues($attrib,$self->defs) : undef;
 }
+
+=pod
+
+=item color (attribute_name)
+
+Return one of C<Shadow>, C<Hilite> and C<XHilite> depending on the
+color assigned to the given attribute in the FS format instance.
+
+=cut
 
 sub color {
   my ($self,$arg) = @_;
@@ -880,17 +1121,57 @@ sub color {
   }
 }
 
+=pod
+
+=item special (letter)
+
+Return name of a special attribute declared in FS definition with a
+given letter. See also L<sentord, order, value, hide>.
+
+=cut
+
 sub special {
   my ($self,$defchar)=@_;
   return 
     ref($self) ? Fslib::ASpecial($self->defs,$defchar) : undef;
 }
 
+=pod
+
+=item indexOf (attribute_name)
+
+Return index of the given attribute (in the order given by FS
+instance declaration).
+
+=cut
+
 sub indexOf {
   my ($self,$arg)=@_;
   return 
     ref($self) ? Fslib::Index($self->list,$arg) : undef;
 }
+
+=item exists (attribute_name)
+
+Return index of the given attribute (in the order given by FS
+instance declaration).
+
+=cut
+
+sub exists {
+  my ($self,$arg)=@_;
+  return 
+    ref($self) ? defined($self->defs->{$arg}) : undef;
+}
+
+
+=pod
+
+=back
+
+=cut
+
+
 
 ############################################################
 #
@@ -900,6 +1181,49 @@ sub indexOf {
 #
 
 package FSFile;
+
+=pod
+
+=head1 FSFile
+
+FSFile - Simple OO interface for FS files.
+
+=head2 SYNOPSIS
+
+  use Fslib;
+
+  open (F,"<trees.fs") ||
+    die "Cannot open trees.fs: $!\n";
+  my $fs = FSFile->newFSFile(\*F);
+  close (F);
+
+  die "File is empty or corrupted!\n" 
+    if ($fs->{FSFile}->lastTreeNo<0);
+
+  foreach my $tree ($fs->trees) {
+
+    ...    # do something on the trees
+
+  }
+
+  open (F,">trees_out.fs") 
+    || die "Cannot open trees.fs: $!\n";
+  $fs->writeTo(\*F);
+  close (F);
+
+=head2 REFERENCE
+
+=over 4
+
+=cut
+
+=pod
+
+=item new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?)
+
+Create a new FS file object and C<initialize> it with the optional values.
+
+=cut
 
 sub new {
   my $self = shift;
@@ -913,7 +1237,8 @@ sub new {
 sub DESTROY {
   my $self = shift;
   return undef unless ref($self);
-  foreach ($self->FS->trees) {
+  $self->[9]=undef;
+  foreach ($self->trees) {
     Fslib::DeleteTree($_);
   }
   $self->[0]=undef;
@@ -923,7 +1248,54 @@ sub DESTROY {
   $self->[4]=undef;
   $self->[5]=undef;
   $self->[6]=undef;
+  $self->[7]=undef;
+  $self->[8]=undef;
 }
+
+=pod
+
+=item initialize (name?,format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?)
+
+Initialize a FS file object. Argument description:
+
+=over 4
+
+=item name (scalar)
+
+File name 
+
+=item format (scalar)
+
+File format indentifier (user-defined string). TrEd, for example, uses
+C<FS format>, C<gzipped FS format> and C<any non-specific format> strings as identifiers.
+
+=item FS (FSFormat)
+
+FSFormat object associated with the file
+
+=item hint_pattern (scalar)
+
+TrEd's hint pattern definition
+
+=item attribs_patterns (list reference)
+
+TrEd's display attributes pattern definition
+
+=item unparsed_tail (list reference)
+
+The rest of the file, which is not parsed by Fslib, i.e. Graph's embedded macros
+
+=item trees (list reference)
+
+List of FSNode objects representing root nodes of all trees in the FSFiled.
+
+=item save_status (scalar)
+
+File save status indicator, 0=file is saved, 1=file is not saved (TrEd uses this field).
+
+=back
+
+=cut
 
 sub initialize {
   my $self = shift;
@@ -936,10 +1308,21 @@ sub initialize {
   $self->[4] = ref($_[4]) eq 'ARRAY' ? $_[4] : []; # list of attribute patterns
   $self->[5] = ref($_[5]) eq 'ARRAY' ? $_[5] : []; # unparsed rest of a file
   $self->[6] = ref($_[6]) eq 'ARRAY' ? $_[6] : []; # trees
-  $self->[7] = $_[7] ? $_[7] : 0; # trees
+  $self->[7] = $_[7] ? $_[7] : 0; # notsaved
+  $self->[8] = undef; # storage for current tree number
+  $self->[9] = undef; # storage fro current node
 
   return ref($self) ? $self : undef;
 }
+
+=pod
+
+=item readFrom (glob_ref)
+
+Read FS declaration and trees from a given file (file handle open for
+reading must be passed as a GLOB reference). Sets noSaved to zero.
+
+=cut
 
 sub readFrom {
   my ($self,$fileref) = @_;
@@ -959,7 +1342,58 @@ sub readFrom {
     } else { push @rest, $l; }
   }
   $self->changeTail(@rest);
+
+  #parse Rest
+  $self->changePatterns( map { /^\/\/Tred:Custom-Attribute:(.*)$/ ? $1 : () } $self->tail);
+  unless ($self->patterns) {
+    my ($peep)=$self->tail;
+    $self->changePatterns( map { "\$\{".$self->FS->atno($_)."\}" } 
+		    ($peep=~/[,\(]([0-9]+)/g));
+  }
+  $self->changeHint(join "\n",
+		    map { /^\/\/Tred:Balloon-Pattern:(.*)$/ ? $1 : () } $self->tail);
+
+  $self->notSaved(0);
 }
+
+=pod
+
+=item writeTo (glob_ref)
+
+Write FS declaration, trees and unparsed tail to a given file (file handle open for
+reading must be passed as a GLOB reference). Sets noSaved to zero.
+
+=cut
+
+sub writeTo {
+  my ($self,$fileref) = @_;
+  return unless ref($self);
+
+  print $fileref @{$self->FS->unparsed};
+  Fslib::PrintFS($fileref,$self->FS->unparsed,
+		 $self->treeList,
+		 $self->FS->list,
+		 $self->FS->defs);
+
+  ## Tredish custom attributes:
+  $self->changeTail(
+		    (grep { $_!~/\/\/Tred:(?:Custom-Attribute|Balloon-Pattern):/ } $self->tail),
+		    (map {"//Tred:Custom-Attribute:$_\n"} $self->patterns),
+		    (map {"//Tred:Balloon-Pattern:$_\n"}
+		     split /\n/,$self->hint)
+		   );
+  print $fileref $self->tail;
+  $self->notSaved(0);
+}
+
+=pod
+
+=item newFSFile (glob_ref)
+
+Create a new FSFile object based on the content of a given file (file
+handle open for reading must be passed as a GLOB reference).
+
+=cut
 
 sub newFSFile {
   my ($self,$fileref) = @_;
@@ -969,10 +1403,26 @@ sub newFSFile {
   return $new;
 }
 
+=pod
+
+=item filename
+
+Return the FS file's file name.
+
+=cut
+
 sub filename {
   my $self = shift;
   return ref($self) ? $self->[0] : undef;
 }
+
+=pod
+
+=item changeFilename (new_filename)
+
+Change the FS file's file name.
+
+=cut
 
 sub changeFilename {
   my ($self,$val) = @_;
@@ -980,18 +1430,28 @@ sub changeFilename {
   return $self->[0]=$val;
 }
 
-# file format identifyer (i.e. 
-#  FS format
-#  gzipped FS format
-#  any non-specific format
-#
-# etc. 
-# This is used only by TrEd yet
+=pod
+
+=item fileFormat
+
+Return file format indentifier (user-defined string). TrEd, for
+example, uses C<FS format>, C<gzipped FS format> and C<any
+non-specific format> strings as identifiers.
+
+=cut
 
 sub fileFormat {
   my $self = shift;
   return ref($self) ? $self->[1] : undef;
 }
+
+=pod
+
+=item changeFileFormat
+
+Change file format indentifier.
+
+=cut
 
 sub changeFileFormat {
   my ($self,$val) = @_;
@@ -999,11 +1459,26 @@ sub changeFileFormat {
   return $self->[1]=$val;
 }
 
-# reference to FSFormat object
+=pod
+
+=item FS
+
+Return a reference to the associated FSFormat object.
+
+=cut
+
 sub FS {
   my $self = shift;
   return ref($self) ? $self->[2] : undef;
 }
+
+=pod
+
+=item changeFS
+
+Associate FS file with a new FSFormat object.
+
+=cut
 
 sub changeFS {
   my ($self,$val) = @_;
@@ -1012,11 +1487,27 @@ sub changeFS {
   return $self->[2];
 }
 
-# Tred's Hint Info
+=pod
+
+=item hint
+
+Return the Tred's hint pattern declared in the FSFile.
+
+=cut
+
+
 sub hint {
   my $self = shift;
   return ref($self) ? $self->[3] : undef;
 }
+
+=pod
+
+=item changeHint
+
+Change the Tred's hint pattern associated with this FSFile.
+
+=cut
 
 sub changeHint {
   my ($self,$val) = @_;
@@ -1024,11 +1515,48 @@ sub changeHint {
   return $self->[3]=$val;
 }
 
-# Display Attribs (TrEd)
+=pod
+
+=item pattern_count
+
+Return the number of display attribute patterns associated with this FSFile.
+
+=cut
+
+sub pattern_count {
+  my $self = shift;
+  return ref($self) ? scalar(@{ $self->[4] }) : undef;
+}
+
+=item pattern (n)
+
+Return n'th the display pattern associated with this FSFile.
+
+=cut
+
+sub pattern {
+  my ($self,$index) = @_;
+  return ref($self) ? $self->[4]->[$index] : undef;
+}
+
+=item patterns
+
+Return a list of display attribute patterns associated with this FSFile.
+
+=cut
+
 sub patterns {
   my $self = shift;
   return ref($self) ? @{$self->[4]} : undef;
 }
+
+=pod
+
+=item changePatterns
+
+Change the list of display attribute patterns associated with this FSFile.
+
+=cut
 
 sub changePatterns {
   my $self = shift;
@@ -1036,11 +1564,26 @@ sub changePatterns {
   return @{$self->[4]}=@_;
 }
 
-# unparsed rest of the file
+=pod
+
+=item tail
+
+Return the unparsed tail of the FS file (i.e. Graph's embedded macros). 
+
+=cut
+
 sub tail {
   my $self = shift;
   return ref($self) ? @{$self->[5]} : undef;
 }
+
+=pod
+
+=item tail
+
+Modify the unparsed tail of the FS file (i.e. Graph's embedded macros). 
+
+=cut
 
 sub changeTail {
   my $self = shift;
@@ -1048,13 +1591,27 @@ sub changeTail {
   return @{$self->[5]}=@_;
 }
 
-## Two methods to work with trees
-## (for convenience)
+=pod
 
+=item trees
+
+Return a list of all trees (e.g. their roots represented by FSNode objects).
+
+=cut
+
+## Two methods to work with trees (for convenience)
 sub trees {
   my $self = shift;
   return ref($self) ? @{$self->treeList} : undef;
 }
+
+=pod
+
+=item trees
+
+Assign a new list of trees.
+
+=cut
 
 sub changeTrees {
   my $self = shift;
@@ -1062,12 +1619,30 @@ sub changeTrees {
   return @{$self->treeList}=@_;
 }
 
-# parsed trees may be stored here
+=pod
+
+=item treeList
+
+Return a reference to the internal array of all trees (e.g. their
+roots represented by FSNode objects).
+
+=cut
+
 # returns a reference!!!
 sub treeList {
   my $self = shift;
   return ref($self) ? $self->[6] : undef;
 }
+
+=pod
+
+=item changeTreeList (new_trees)
+
+Associate a new reference to a list of trees with the this FSFile.
+The referenced array must be a list of FSNode objects representing all
+the new trees.
+
+=cut
 
 sub changeTreeList {
   my ($self,$val) = @_;
@@ -1075,10 +1650,26 @@ sub changeTreeList {
   return $self->[6]=$val;
 }
 
+=pod
+
+=item lastTreeNo
+
+Return number of associated trees minus one.
+
+=cut
+
 sub lastTreeNo {
   my $self = shift;
   return ref($self) ? $#{$self->treeList} : undef;
 }
+
+=pod
+
+=item notSaved (value?)
+
+Return/assign file saving status (this is completely user-driven).
+
+=cut
 
 sub notSaved {
   my ($self,$val) = @_;
@@ -1087,6 +1678,40 @@ sub notSaved {
   return $self->[7]=$val if (defined $val);
   return $self->[7];
 }
+
+=item currentTreeNo (value?)
+
+Return/assign index of current tree (this is completely user-driven).
+
+=cut
+
+sub currentTreeNo {
+  my ($self,$val) = @_;
+
+  return undef unless ref($self);
+  return $self->[8]=$val if (defined $val);
+  return $self->[8];
+}
+
+=item currentNode (value?)
+
+Return/assign current node (this is completely user-driven).
+
+=cut
+
+sub currentNode {
+  my ($self,$val) = @_;
+
+  return undef unless ref($self);
+  return $self->[9]=$val if (defined $val);
+  return $self->[9];
+}
+
+=pod
+
+=back
+
+=cut
 
 1;
 
@@ -1098,11 +1723,13 @@ sub notSaved {
 
 __END__
 
-=head1 NAME
+=head1 Fslib
 
-Fslib.pm - Simple API for treebank files in .fs format 
+Fslib.pm - Simple low-level API for treebank files in .fs format.  See
+L<"FSFile">, L<"FSFormat"> and L<"FSNode"> for an object-oriented
+abstraction over this module.
 
-=head1 SYNOPSIS
+=head2 SYNOPSIS
 
   use Fslib;
   use locale;
@@ -1143,7 +1770,7 @@ Fslib.pm - Simple API for treebank files in .fs format
   undef @header;
 
 
-=head1 DESCRIPTION
+=head2 DESCRIPTION
 
 This package has the ambition to be a simple and usable perl API for manipulating the
 treebank files in the .fs format (which was designed by Michal Kren
@@ -1160,7 +1787,7 @@ hash structures, manipulate the values of node attributes (either
 of the trees (via B<Cut>, B<Paste> and B<DeleteTree> functions or "directly").
 
 
-=head1 USAGE
+=head2 USAGE
 
 There are many ways to benefit from this package, I note here the most
 typical one. 
@@ -1222,7 +1849,7 @@ node. So whole trees are represented by their roots. TNS is actualy
 just a reference to a hash. The keys of the hashes may be either some
 of attribute names or some `special' keys, serving to hold the tree
 structure. Suppose $node is a TNS and `lemma' is an attribute defined
-in the appropriate .fs file. Than $$node{"lemma"} is value of the
+in the appropriate .fs file. Than $node->{"lemma"} is value of the
 attribute for the node represented by TNS $node. You may obtain this
 value also as B<Get>($node,"lemma"). From the $node TNS you may
 obtain also the node's parent, sons and brothers (both left and
@@ -1255,7 +1882,7 @@ Fslib::$rbrother
 them once the trees are read may lead to problems:-)
 
 So, to obtain $node's parent's TNS you may use either
-$$node{$parent} or B<Get>($node,$parent) or even special
+$node->{$parent} or B<Get>($node,$parent) or even special
 function B<Parent>($node). The same holds for the first son, left and right
 brothers while you may also prefere to use the B<FirstSon()>, B<LBrother()> and
 B<RBrother()> functions respectively. If the node's relative (say
@@ -1266,7 +1893,7 @@ To create a new node, you usually create a new hash and call
 B<NewNode()> passing it a reference to the new hash as a parameter.
 
 To modify a node's value for a certain attribute (say 'lemma'), you
-symply type C<$$node{"lemma"}="bar"> (supposed you want the value to
+symply type C<$node->{"lemma"}="bar"> (supposed you want the value to
 become 'bar') or use the B<Set()> function like
 B<Set>C<($node,"bar");>.
 
@@ -1288,13 +1915,13 @@ header. Because this may slow the process of parsing significantly
 (especially when there is a lot of list attributes) the default value
 is 0 (no check is performed).
 
-=head1 REFERENCE
+=head2 REFERENCE
 
 =over 4
 
 =item ReadAttribs (FILE,$aref[,$DO_PRINT[,OUTFILE]])
 
- Params:
+ Params
 
    FILE      - file handle reference, like \*STDIN
    $aref     - reference to array
@@ -1481,7 +2108,7 @@ is 0 (no check is performed).
 
    Name of the first attribute of type matching $defchar pattern
 
-==item AOrd, ASentOrd, AValue, AHide ($href)
+=item AOrd, ASentOrd, AValue, AHide ($href)
 
  Exported wiht EXPORT_OK
 
@@ -1596,7 +2223,7 @@ is 0 (no check is performed).
 
  Description:
 
-   Does the same as $$node{$attribute}=$value
+   Does the same as $node->{$attribute}=$value
 
 
 =item Get($node,$attribute)
@@ -1608,7 +2235,7 @@ is 0 (no check is performed).
 
  Return:
 
-   Returns $$node{$attribute}
+   Returns $node->{$attribute}
 
 =item DrawTree($node,@attrs)
 
