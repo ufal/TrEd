@@ -181,7 +181,7 @@ sub Special ($$$) {
 sub ASpecial ($$) {
   my ($href,$defchar)=@_;
   # use cache if possible
-  if (!exists($href->{$special}->{$defchar})) {
+  if (exists($href->{$special}->{$defchar})) {
     return $href->{$special}->{$defchar};
   } else {
     return $href->{$special}->{$defchar} = FindSpecialDef($href,$defchar);
