@@ -970,7 +970,7 @@ sub ARstruct {
   foreach my $root ($grp->{FSFile}->trees) {
     # build the parallel structure,
     # unless already built
-    next if exists($root->{_AS_});
+    last if exists($root->{_AP_});
     my @nodes = $root->descendants;
     # hash parents
     my %p = map { $_->{ord} => $_ } ($root,@nodes);
