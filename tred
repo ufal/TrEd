@@ -2466,8 +2466,78 @@ sub initTTFonts {
   my ($grp)=@_;
   print STDERR "Collecting TTF fonts\n";# if $tredDebug;
   $grp->{ttfonts}=TrEd::Print::get_ttf_fonts(map TrEd::Config::tilde_expand($_),
-					     split /,/,$ttFontPath)
-    unless $grp->{ttfonts};
+					     split /,/,$ttFontPath);
+}
+
+sub updatePrintDialogState {
+  my ($grp,$w, $s, $extension)=@_; # widgets, state
+  my %t=map { $_ => 1} keys %$w; # toggle
+  my @disable;
+  if ($s->{printTo} eq 'printer') {
+    @disable = qw(resolution file format_PDF);
+  } elsif ($s->{printTo} eq 'file') {
+    @disable = qw(resolution command);
+  } elsif ($s->{printTo} eq 'convert') {
+    @disable = qw(command psMedia prtFmtWidth prtFmtHeight prtVMargin prtHMargin);
+  }
+  if ($s->{psMedia} ne 'User') {
+    push @disable, qw(prtFmtWidth prtFmtHeight);
+  }
+
+  if ($s->{format} eq 'EPS') {
+    push @disable,qw(font printRange psMedia prtFmtWidth prtFmtHeight prtVMargin prtHMargin);
+  } elsif ($s->{format} eq 'PS') {
+    push @disable,qw(font);
+  } elsif ($s->{format} eq 'PDF') {
+    push @disable,qw(printTo_printer);
+    unless ($grp->{ttfonts}) {
+      $w->{font}->toplevel->Busy(-recurse => 1);
+      initTTFonts($grp);
+      foreach (sort {$a cmp $b} keys %{$grp->{ttfonts}}) {
+	$w->{font}->insert('end',$_);
+      }
+      if (exists($grp->{ttfonts}->{$initTTFont})) {
+	$s->{ttFont} = $s->{initTTFont};
+      } else {
+	$s->{ttFont} = '';
+      }
+      $w->{font}->toplevel->Unbusy();
+    }
+  }
+  $t{$_}=0 for (@disable);
+  $s->{file}=~s/\.[^.]*$/.$extension/ if defined($extension) and
+    not($s->{printTo} eq 'convert' and $extension =~ /^(?:pdf|e?ps)$/);
+
+  if ($s->{psMedia} eq 'BBox') {
+    $s->{prtFmtWidth} = '';
+    $s->{prtFmtHeight} = '';
+  } elsif ($s->{psMedia} eq 'User') {
+    $s->{prtFmtWidth} = $s->{defaultPrtFmtWidth};
+    $s->{prtFmtHeight} = $s->{defaultPrtFmtHeight};
+  } else {
+    $s->{prtFmtWidth} = $TrEd::Print::media{$s->{psMedia}}[0];
+    $s->{prtFmtHeight} = $TrEd::Print::media{$s->{psMedia}}[1];
+  }
+  foreach my $widget (keys %t) {
+    if ($t{$widget}) {
+      print "On: $widget: $w->{$widget}\n";
+      $w->{$widget}->configure(-state => 'normal',
+			       ($w->{$widget}->isa('Tk::Entry') or
+			       $w->{$widget}->isa('Tk::BrowseEntry'))
+			       ?
+			       (-background => $s->{defaultBg}) : ()
+			      );
+    } else {
+      print "Off: $widget: $w->{$widget}\n";
+      $w->{$widget}->configure(-state=> 'disabled',
+			       ($w->{$widget}->isa('Tk::Entry') or
+				$w->{$widget}->isa('Tk::BrowseEntry'))
+			       ?
+			       (-background => $s->{disabledBg}) : ()
+			      );
+    }
+    print "---\n";
+  }
 }
 
 sub printDialog {
@@ -2476,28 +2546,36 @@ sub printDialog {
   return unless $win->{FSFile};
   my ($Entry,@Entry) = get_entry_type();
   my $e_hist;
-  my $com=$grp->{printCommand};
-  my $fil=$grp->{printPsFile};
-  $fil =doEvalHook($win,"print_tree_filename_hook");
-  $fil=$win->{FSFile}->filename if $fil eq "";
-  my $printFileExtension=$grp->{printFileExtension} || "ps";
-  $fil=~s/\.[^.]*$/.$printFileExtension/;
-  my $toFile=$grp->{printToFile};
-  my $format=$grp->{printFormat};
-  my $imageMagickResolution=$grp->{printImageMagickResolution} || 80;
-#  my $useType1Font=$grp->{printUseType1Font};
-#  my $printRange=$grp->{printRange};
-  my $printRange=$win->{treeNo}+1;# unless $printRange ne "";
-  my $snt=$grp->{printSentenceInfo};
-  my $noRotate=$grp->{printNoRotate};
-  my $defaultPrtFmtWidth=$prtFmtWidth;
-  my $defaultPrtFmtHeight=$prtFmtHeight;
 
-  my $initTTFont = $ttFont;
-  $ttFont = '' unless ($grp->{ttfonts} and exists($grp->{ttfonts}->{$ttFont}));
+  my (%w,%s); # widgets, state
+  $s{command}=$grp->{printCommand} || 'lpr';
+  $s{file}=$grp->{printPsFile};
+  $s{file} =doEvalHook($win,"print_tree_filename_hook");
+  $s{file}=$win->{FSFile}->filename if $s{file} eq "";
+  $grp->{printFileExtension} ||= "ps";
+  $s{file}=~s/\.[^.]*$/.$grp->{printFileExtension}/;
+  $s{printTo}=$grp->{printToFile} || 'printer';
+  $s{format}=$grp->{printFormat} || 'PS';
+  $s{resolution}=$grp->{printImageMagickResolution} || 80;
+  $s{printRange}=$win->{treeNo}+1;# unless $printRange ne "";
+  $s{printSentence}=$grp->{printSentenceInfo};
+  $s{noRotate}=$grp->{printNoRotate};
+  $s{printColors}=$grp->{printColors};
+  $s{defaultPrtFmtWidth}=$prtFmtWidth;
+  $s{defaultPrtFmtHeight}=$prtFmtHeight;
+  $s{prtFmtWidth}=$prtFmtWidth;
+  $s{prtFmtHeight}=$prtFmtHeight;
+  $s{prtHMargin}=$prtHMargin;
+  $s{prtVMargin}=$prtVMargin;
+  $s{psMedia}=$psMedia;
+  $s{initTTFont} = $ttFont;
+  if ($grp->{ttfonts} and exists($grp->{ttfonts}->{$ttFont})) {
+    $s{ttFont} = $ttFont;
+  } else {
+    $s{ttFont} = '';
+  }
 
-  print STDERR "done.\n" if $tredDebug;
-
+  # Dialog
   my $d= $grp->{top}->DialogBox(-title=> "Print",
 				-buttons=> ["OK", "Cancel"]);
   $d->resizable(0,0);
@@ -2508,422 +2586,298 @@ sub printDialog {
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
-  my $cf= $d->Frame();
-  my $cl= $cf->Label(-text=> 'Print command:',
-		     -anchor=> 'w',
-		     -justify=> 'right')->pack(-side=> 'left');
 
-  my $ce= $cf->$Entry(@Entry,
-		      -relief=> 'sunken',
-		     -width=> 20,
-		     -font=> $font,
-		     -textvariable=> \$com)->pack(qw/-padx 10 -side left -expand yes -fill x/);
-  set_grp_history($grp, $ce, 'printCommand', $e_hist);
-  my $defaultBg=$ce->cget('-background');
-  my $disabledBg=$d->cget('-background');
+  # Command Entry
+  my $cf= $d->Frame()->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
+  $w{command_label}= $cf->Label(-text=> 'Print command:',
+				-anchor=> 'w',
+				-justify=> 'right')->pack(-side=> 'left');
+  $w{command}= $cf->$Entry(@Entry,
+			   -relief=> 'sunken',
+			   -width=> 20,
+			   -font=> $font,
+			   -textvariable=> \$s{command})
+    ->pack(qw/-padx 10 -side left -expand yes -fill x/);
+  set_grp_history($grp, $w{command}, 'printCommand', $e_hist);
+  $s{defaultBg}=$w{command}->cget('-background');
+  $s{disabledBg}=$d->cget('-background');
 
-  $ce->configure($toFile
-		? (-state=> 'disabled',-background=> $disabledBg)
-		: (-state=> 'normal', -background=> $defaultBg));
-  $cf->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
-
+  # Page format selection
   my $mf = $d->Frame()->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
   $mf->Label(-text=> 'Media:',
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
 
-  my $mex = $mf->$Entry(@Entry,
-			-textvariable => \$prtFmtWidth,
-		       -width => 5,
-		       -validate => 'key',
-		       -validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
-  set_grp_history($grp, $mex, 'printFmtWidth',$e_hist);
-  my $mey = $mf->$Entry(@Entry,
-			-textvariable => \$prtFmtHeight,
-		       -width => 5,
-		       -validate => 'key',
-		       -validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
-  set_grp_history($grp, $mey, 'printFmtHeight',$e_hist);
-  for ($mey,$mex) {
-    $_->configure(($format eq 'ImageMagick' || $psMedia ne 'User')
-		  ? (-state=> 'disabled',-background=> $disabledBg)
-		  : (-state=> 'normal', -background=> $defaultBg));
-  }
-  print STDERR "PSMEDIA: $psMedia\n";
-  my $ml=$mf->Optionmenu(
-			 -state => $format =~ /ImageMagick|EPS/ ? 'disabled' : 'normal',
-			 -relief => $buttonsRelief,
-			 -options => ['BBox', 'User', sort {$a cmp $b} grep !/\d+x\d+|^ISO/, 
-				      keys %TrEd::Print::media ],
-			 -font => ref($font) ? $font->Clone(-size => 8) :
-			 $d->Font(-family => 'sans', -size => 8),
-			 -textvariable => \$psMedia, # global variable in TrEd::Config
-			 -command => [sub {
-					my ($x,$y,$dfw,$dfh)=@_;
-					for ($x,$y) {
-					  $_->configure($psMedia ne 'User'
-							? (-state=> 'disabled',-background=> $disabledBg)
-							: (-state=> 'normal', -background=> $defaultBg));
-					}
-					if ($psMedia eq 'BBox') {
-					  $prtFmtWidth = $dfw;
-					  $prtFmtHeight = $dfh;
-					} elsif ($psMedia ne 'User') {
-					  $prtFmtWidth = $TrEd::Print::media{$psMedia}[0];
-					  $prtFmtHeight = $TrEd::Print::media{$psMedia}[1];
-					}
-				      },$mex,$mey,$defaultPrtFmtWidth,$defaultPrtFmtHeight]
+  $w{prtFmtWidth} = $mf->$Entry(@Entry,
+				-textvariable => \$s{prtFmtWidth},
+				-width => 5,
+				-validate => 'key',
+				-validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
+  set_grp_history($grp, $w{prtFmtWidth}, 'printFmtWidth',$e_hist);
+  $w{prtFmtHeight} = $mf->$Entry(@Entry,
+				 -textvariable => \$s{prtFmtHeight},
+				 -width => 5,
+				 -validate => 'key',
+				 -validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
+  set_grp_history($grp, $w{prtFmtWidth}, 'printFmtHeight',$e_hist);
+
+  # Page media
+  $w{psMedia}=$mf->Optionmenu(
+			      -relief => $buttonsRelief,
+			      -options => ['BBox', 'User', sort {$a cmp $b} grep !/\d+x\d+|^ISO/, 
+					   keys %TrEd::Print::media ],
+			      -font => ref($font) ? $font->Clone(-size => 8) :
+			      $d->Font(-family => 'sans', -size => 8),
+			      -textvariable => \$s{psMedia}, # global variable in TrEd::Config
+			      -command => [\&updatePrintDialogState,$grp,\%w,\%s]
 			)->pack(-side=> 'left');
-  $mey->raise($ml);
-  $mex->raise($ml);
+  $w{prtFmtHeight}->raise($w{psMedia});
+  $w{prtFmtWidth}->raise($w{psMedia});
   $mf->Label(-text=> 'Width:',
 	     -padx => 10,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-  $mex->pack(-side=> 'left');
+  $w{prtFmtHeight}->pack(-side=> 'left');
   $mf->Label(-text=> 'Height:',
 	     -padx => 10,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-  $mey->pack(-side=> 'left');
+  $w{prtFmtWidth}->pack(-side=> 'left');
+
+  # Page Margins
   $mf->Label(-text=> 'X margin:',
 	     -padx => 10,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-  my $ehm = $mf->$Entry(@Entry,
-			-textvariable => \$prtHMargin,
-			-width => 5,
-			-validate => 'key',
-			-validatecommand => 
-			sub { shift =~ /^\s*\d*[cimp]?\s*$/ });
-  set_grp_history($grp, $ehm, 'printHMargin',$e_hist);
-  $ehm->pack(-side=> 'left');
+  $w{prtHMargin} = $mf->$Entry(@Entry,
+			       -textvariable => \$s{prtHMargin},
+			       -width => 5,
+			       -validate => 'key',
+			       -validatecommand => 
+			       sub { shift =~ /^\s*\d*[cimp]?\s*$/ })->pack(-side=> 'left');
+  set_grp_history($grp, $w{prtHMargin}, 'printHMargin',$e_hist);
   $mf->Label(-text=> 'Y margin:',
 	     -padx => 10,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-  my $evm=$mf->$Entry(@Entry,
-		      -textvariable => \$prtVMargin,
-		      -width => 5,
-		      -validate => 'key',
-		      -validatecommand => 
-		      sub { shift =~ /^\s*\d*[cimp]?\s*$/ });
-  set_grp_history($grp, $evm, 'printVMargin',$e_hist);
-  $evm->pack(-side=> 'left');
-  my $ff=$d->Frame();
-  my $fl= $ff->Label(-text=> 'File name:',
-		     -anchor=> 'w',
-		     -justify=> 'right')->pack(-side=> 'left');
+  $w{prtVMargin}=$mf->$Entry(@Entry,
+			     -textvariable => \$s{prtVMargin},
+			     -width => 5,
+			     -validate => 'key',
+			     -validatecommand => 
+			     sub { shift =~ /^\s*\d*[cimp]?\s*$/ })->pack(-side=> 'left');
+  set_grp_history($grp, $w{prtVMargin}, 'printVMargin',$e_hist);
 
-  my $fe= $ff->$Entry(@Entry,
-		      -relief=> 'sunken',
-		      -width=> 50,
-		      -font=> $font,
-		      -textvariable=> \$fil)
+
+  # Output filename
+  my $ff=$d->Frame();
+  $w{file_label}= $ff->Label(-text=> 'File name:',
+			     -anchor=> 'w',
+			     -justify=> 'right')->pack(-side=> 'left');
+  $w{file}= $ff->$Entry(@Entry,
+			-relief=> 'sunken',
+			-width=> 50,
+			-font=> $font,
+			-textvariable=> \$s{file})
     ->pack(qw/-padx 10 -side left -expand yes -fill x/);
-  set_grp_history($grp, $fe, 'printFile',$e_hist);
-  if ($fil ne "") {
+  set_grp_history($grp, $w{file}, 'printFile',$e_hist);
+  if ($s{file} ne "") {
     my $start = rindex($fil,"/")+1;
     my $end = rindex($fil,".");
     if ($start<$end) {
-      $fe->selectionClear();
-      $fe->selectionRange($start,$end);
-      $fe->icursor($start);
+      $w{file}->selectionClear();
+      $w{file}->selectionRange($start,$end);
+      $w{file}->icursor($start);
     }
   }
+
+  # Print range
   my $sf= $d->Frame();
-  my $re=$sf->$Entry(@Entry,
-		     -relief=> 'sunken',
-		     -width=> 20,
-		     -font=> $font,
-		     -textvariable=> \$printRange);
-  set_grp_history($grp, $re, 'printRange',$e_hist);
-  my $fb= $ff->Button(-text => '...',
+  $w{printRange}=$sf->$Entry(@Entry,
+			     -relief=> 'sunken',
+			     -width=> 20,
+			     -font=> $font,
+			     -textvariable=> \$s{printRange});
+  set_grp_history($grp, $w{printRange}, 'printRange',$e_hist);
+  $w{findFile} = $ff->Button(-text => '...',
 		      -command =>
 		      [sub {
-			 my ($d,$rfil)=@_;
-			 my $initdir=dirname($$rfil);
+			 my ($d,$s)=@_;
+			 my $initdir=dirname($s->{file});
 			 $initdir=cwd() if ($initdir eq './');
 			 $initdir=~s!${TrEd::Convert::Ds}$!!m;
 			 my $file=
 			   get_save_filename($d,-title => "Print To File ...",
-					   $^O eq 'MSWin32' ? () :
-					   (-initialfile=> filename($$rfil)),
-					   -d $initdir ? (-initialdir=> $initdir) : (),
-					   -filetypes=>
-					   [
-					    ["PostScript files", [qw/.ps .eps .PS .EPS/]],
-					    ["All files", '*']
-					   ]
-					  );
-			 $$rfil=$file if (defined $file and $file ne '');
-		       },$d,\$fil])->pack(qw/-padx 10 -side left/);
+					     $^O eq 'MSWin32' ? () :
+					     (-initialfile=> filename($s->{file})),
+					     -d $initdir ? (-initialdir=> $initdir) : (),
+					     -filetypes=>
+					     [
+					      ["PostScript files", [qw/.ps .eps .PS .EPS/]],
+					      ["All files", '*']
+					     ]
+					    );
+			 $s{file}=$file if (defined $file and $file ne '');
+		       },$d,$s])->pack(qw/-padx 10 -side left/);
 
+  # TrueType font
   my $of=$d->Frame();
   my $bf=$of->Frame();
 
   my %fmtbut;
   my $pbf = $bf->Frame();
-  my $pfl=$pbf->Label(-text=> 'Font (TTF):',
-		 -anchor=> 'sw',
-		 -justify=> 'right');
-#   my $pe=$pbf->Entry(-relief=> 'sunken',
-# 		     -width=> 50,
-# 		     -font=> $font,
-# 		     ($format eq 'PDF') ?
-# 		     (-state => 'normal', -background=> $defaultBg ) :
-# 		     (-state => 'disabled', -background=> $disabledBg),
-# 		     -textvariable=> \$ttFontFile);
-  my $pfbe=$pbf->BrowseEntry(
-			     -relief=> 'sunken',
-			     -width=> 30,
-			     ($toFile and $format eq 'PDF') ?
-			     (-state => 'readonly', -background=> $defaultBg ) :
-			     (-state => 'disabled', -background=> $disabledBg),
-			     -variable => \$ttFont,
-#			     -autolimitheight => 'yes',
-#			     -listheight => 10,
-#			     -style => 'MSWin32',
-			     -choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()]
-			    );
-  $pfbe->Subwidget('slistbox')->BindMouseWheelVert();
-#   my $pfb= $pbf->Button(-text => '...',
-# 			-state => $format eq 'PDF' ? 'normal' : 'disabled',
-# 		       -command =>
-# 		       [sub {
-# 			  my ($d,$rfil)=@_;
-# 			  my $initdir=dirname($$rfil);
-# 			  $initdir=cwd() if ($initdir eq './');
-# 			  $initdir=~s!${TrEd::Convert::Ds}$!!m;
-# 			  my $file=
-# 			    get_open_filename($d,-title => "TrueType Font ...",
-# 					    $^O eq 'MSWin32' ? () :
-# 					    (-initialfile=> filename($$rfil)),
-# 					    -d $initdir ? (-initialdir=> $initdir) : (),
-# 					    -filetypes=>
-# 					    [
-# 					     ["TrueType Font files", [qw/.ttf .TTF .tt2 .TT2/]],
-# 					     ["All files", '*']
-# 					    ]
-# 					   );
-# 			  $$rfil=$file if (defined $file and $file ne '');
-# 			},$d,\$ttFontFile]);
+  $w{font_label}=$pbf->Label(-text=> 'Font (TTF):',
+			       -anchor=> 'sw',
+			       -justify=> 'right');
+  $w{font}=$pbf->BrowseEntry(
+				-relief=> 'sunken',
+				-width=> 30,
+				-variable => \$s{ttFont},
+				-choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()]
+			       );
+  $w{font}->Subwidget('slistbox')->BindMouseWheelVert();
+
+  # Bitmap Resolutions
   my $imf=$bf->Frame();
-  my $imr=$imf->Optionmenu(
-			   -state => $format eq 'ImageMagick' ? 'normal' : 'disabled',
-			   -relief => $buttonsRelief,
-			   -options => ['75','80','90','100','120','135','150','160','180',
-					'200','225','240','260','300','360','600','720'],
-			   -variable => \$imageMagickResolution
-		   );
+  $w{resolution}=$imf->Optionmenu(
+				  -relief => $buttonsRelief,
+				  -options => ['75','80','90','100','120','135','150','160','180',
+					       '200','225','240','260','300','360','600','720'],
+				  -variable => \$s{resolution}
+				 );
 
-  my $bfb=$bf->Checkbutton(-text    => 'Print to file',
-		   -variable=> \$toFile,
-		   -command => [sub {
-				  my ($t,$fmtbut,$fmt,$c,$f,$b,$r,$e)=@_;
-				  if ($$t) {
-				    $f->focus;
-				    $c->configure(-state=> 'disabled',
-						  -background=> $disabledBg);
-				    $f->configure(-state=> 'normal',
-						  -background=> $defaultBg);
-				    $b->configure(-state=> 'normal');
-				    $c->configure(-state=> 'disabled',
-						  -background=> $disabledBg);
-#				    $r->configure(-state=> 'disabled',
-#						  -background=> $disabledBg);
-				    if ($$fmt eq 'PDF') {
-				      $e->configure(-state=> 'readonly',
-						    -background=> $defaultBg);
-				    }
-				    foreach (keys %$fmtbut) {
-				      $fmtbut->{$_}->configure(-state=> 'normal');
-#				      unless ($_ eq 'PDF' and !$ttFontFile);
-				    }
-				  } else {
-				    $c->focus;
-				    $f->configure(-state=> 'disabled',
-						  -background=> $disabledBg);
-				    $b->configure(-state=> 'disabled');
-				    $c->configure(-state=> 'normal',
-						  -background=> $defaultBg);
-#				    $r->configure(-state=> 'normal',
-#						  -background=> $defaultBg);
-				    $e->configure(-state=> 'disabled',
-						  -background=> $disabledBg);
-				    foreach (keys %$fmtbut) {
-				      $fmtbut->{$_}->configure(-state=> 'disabled');
-				    }
-				  }
-				},\$toFile,\%fmtbut,\$format,$ce,$fe,$fb,$re,$pfbe],
-		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+  my %printbuttons = ( printer => [$bf,'Send to printer',undef],
+		       file =>[$bf,'Print to file','eps'],
+		       convert =>[$imf,'Convert to bitmap format (ImageMagick)','png']
+		     );
 
-  my %fmtbuttons = ( PS => [$bf,'Create PostScript','ps'],
-		     EPS =>[$bf,'Create EPS','eps'],
-		     PDF =>[$pbf,'Create PDF','pdf'],
-		     ImageMagick => [$imf,'Convert according to file extension (ImageMagick)','png']
-		   );
-  foreach (qw(PS EPS PDF ImageMagick)) {
-    $fmtbut{$_} = $fmtbuttons{$_}[0]->
-      Radiobutton(-text    => $fmtbuttons{$_}[1],
+  # print To buttons
+  foreach (qw(printer file convert)) {
+    $w{"printTo_$_"} = $printbuttons{$_}[0]->
+      Radiobutton(-text    => $printbuttons{$_}[1],
 		  -value   => $_,
-		  -variable=> \$format,
+		  -variable=> \$s{printTo},
 		  -relief  => 'flat',
 		  -command =>
-		  [sub { my ($f,$l,$ext,$I,$M,$P)=@_;
-			 local $_=$$l;
-			 s/\.[^.]+$/.$ext/; 
-			 $$l=$_;
-			 if ($f eq 'PDF' and !$grp->{ttFonts}) {
-			   $win->toplevel->Busy(-recurse=> 1);
-			   initTTFonts($grp);
-			   $win->toplevel->Unbusy();
-			   foreach (sort {$a cmp $b} keys %{$grp->{ttfonts}}) {
-			     $P->insert('end',$_);
-			   }
-			   if (exists($grp->{ttfonts}->{$initTTFont})) {
-			      $ttFont = $initTTFont;
-			   } else {
-			     $ttFont = '';
-			   }
-			 }
-
-			 $I->configure(-state => 
-				       $f eq 'ImageMagick' ?
-					'normal' : 'disabled');
-			 $M->configure(-state =>
-				       $f !~ /ImageMagick|EPS/ ?
-					'normal' : 'disabled');
-			 $P->configure( $f eq 'PDF' ?
-					(-state=> 'readonly',
-					 -background=> $defaultBg) :
-					(-state=> 'disabled',
-					 -background=> $disabledBg) );
-		       },$_,\$fil,$fmtbuttons{$_}[2],$imr,$ml,$pfbe]
+		  [\&updatePrintDialogState,$grp,\%w,\%s,$printbuttons{$_}[2]]
 		 );
   }
-  $imr->raise($fmtbut{ImageMagick});
-
-  foreach (qw(PS EPS)) {
-    $fmtbut{$_}->pack(qw/-fill y -anchor nw/);
+  foreach (qw(printer file)) {
+    $w{"printTo_$_"}->pack(qw/-fill y -anchor nw/);
   }
-  $fmtbut{PDF}->pack(qw/-anchor w -side left -fill y -expand 1/);
-  $pfl->pack(qw/-padx 10 -side left/);
-#  $pe->pack(qw/-padx 10 -side left/);
-#  $pfb->pack(qw/-padx 10 -side left/);
-  $pfbe->pack(qw/-padx 10 -side left/);
-  $pbf->raise($fmtbut{EPS});
-  $imf->raise($pbf);
-  $fmtbut{ImageMagick}->pack(qw/-anchor w -side left -fill y -expand 1/);
-  $fe->configure($toFile 
-		? (-state=> 'normal', -background=> $defaultBg)
-		: (-state=> 'disabled',-background=> $disabledBg));
-
-  $fb->configure($toFile
-		? (-state=> 'normal')
-		: (-state=> 'disabled'));
-  $re->configure($format eq 'ImageMagick'
-		? (-state=> 'disabled',-background=> $disabledBg)
-		: (-state=> 'normal', -background=> $defaultBg));
-
+  $w{printTo_convert}->pack(qw/-anchor w -side left -fill y -expand 1/);
   $imf->Label(-text => "Resolution")->pack(qw/-padx 10 -side left/);
-  $imr->pack(qw/-padx 10 -side left/);
-  $pbf->pack(qw/-fill x -expand yes -anchor nw/);
   $imf->pack(qw/-fill x -expand yes -anchor nw/);
 
-#    $bf->Checkbutton(-text    => 'Use Type1 Postscript Font',
-#  			  -state=> $type1font ? 'normal' : 'disabled' ,
-#  			  -variable=> \$useType1Font,
-#  			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+  $bf->Frame()->pack(qw/-pady 5/);
 
-  $bf->Checkbutton(-text=> 'Use colors',
-		   -variable=> \$printColors,
-		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-  $bf->Checkbutton(-text=> 'Print sentence',
-		   -variable=> \$snt,
-		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+  # output format buttons
+  my %fmtbuttons = ( PS => [$bf,'Create PostScript','ps'],
+		     EPS =>[$bf,'Create EPS','eps'],
+		     PDF =>[$pbf,'Create PDF','pdf']
+		   );
+  foreach (qw(PS EPS PDF)) {
+    $w{"format_$_"} = $fmtbuttons{$_}[0]->
+      Radiobutton(-text    => $fmtbuttons{$_}[1],
+		  -value   => $_,
+		  -variable=> \$s{format},
+		  -relief  => 'flat',
+		  -command =>
+		  [\&updatePrintDialogState,$grp,\%w,\%s,$fmtbuttons{$_}[2]]
+		 );
+  }
+  foreach (qw(PS EPS)) {
+    $w{"format_$_"}->pack(qw/-fill y -anchor nw/);
+  }
+  $w{format_PDF}->pack(qw/-anchor w -side left -fill y -expand 1/);
+  $w{font_label}->pack(qw/-padx 10 -side left/);
+  $w{font}->pack(qw/-padx 10 -side left/);
+  $pbf->raise($w{format_EPS});
+  $w{resolution}->pack(qw/-padx 10 -side left/);
+  $pbf->pack(qw/-fill x -expand yes -anchor nw/);
 
-  my $dlb=
+  $bf->Frame()->pack(qw/-pady 5/);
+
+  # print options
+  $w{printColors}=$bf->Checkbutton(-text=> 'Use colors',
+			       -variable=> \$s{printColors},
+			       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+  $w{printSentence}=$bf->Checkbutton(-text=> 'Print sentence',
+				 -variable=> \$s{printSentence},
+				 -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+
+  $w{noRotate}=
     $bf->Checkbutton(-text    => 'Disable landscape rotation of wide trees',
-		     -variable=> \$noRotate,
+		     -variable=> \$s{noRotate},
 		     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-
   $bf->pack(-side=> 'left');
   $of->pack(qw/-padx 10 -pady 10 -side top -expand yes -fill x/);
   $sf->Label(-text=> 'Page range:',
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-
-  $re->pack(qw/-side left -padx 10 -fill x -expand yes/);
+  $w{printRange}->pack(qw/-side left -padx 10 -fill x -expand yes/);
 
   for ($sf,$ff) {
     $_->raise($of);
   }
 
+  # fill range buttons
   $sf->Button(-image=> $grp->{top}->Pixmap(-file=>
 					   "$libDir/left.xpm"),
 	      -command =>
 	      [sub {
-		 my ($grp,$rng)=@_;
-		 $$rng=sentViewGetSelection($grp,$grp->{sentDialogSelection});
-	       },$grp,\$printRange])->pack(qw/-padx 10 -side left/);
+		 my ($grp,$w)=@_;
+		 $w->{printRange}=sentViewGetSelection($grp,$grp->{sentDialogSelection});
+	       },$grp,\%w])->pack(qw/-padx 10 -side left/);
   $sf->Button(-image=> $grp->{top}->Pixmap(-file=>
 					   "$libDir/view_sent.xpm"),
 	      -command=> [sub {
-			    my ($grp,$win,$d,$rng)=@_;
+			    my ($grp,$win,$d,$w)=@_;
 			    my $list=[];
 			    foreach (TrEd::Print::parse_print_list(
 					  $win->{FSFile},
-					   $$rng)) {
+					   $w->{printRange})) {
 			      $list->[$_-1]=1;
 			    }
-			    $$rng=
+			    $w->{printRange}=
 			      sentViewGetSelection($grp,
 				 viewSentencesDialog($grp,$d,
 				 $win->{FSFile},
 				 $list));
-			  },$grp,$win,$d,\$printRange ])->pack(qw/-padx 10 -side left/);
+			  },$grp,$win,$d,\%w ])->pack(qw/-padx 10 -side left/);
 
   $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
   $ff->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
 
-  foreach (qw(PS EPS PDF ImageMagick)) {
-    if ($toFile) {
-      $fmtbut{$_}->configure(-state=> 'normal');
-#      unless ($_ eq 'PDF' and !$ttFontFile);
-    } else {
-      $fmtbut{$_}->configure(-state=> 'disabled');
-    }
-  }
-
-
+  updatePrintDialogState($grp,\%w,\%s, $grp->{printFileExtension});
 #  $toFile ? $fe->focus : $ce->focus;
-  my $result= ShowDialog($d,$toFile ? $fe : $ce,$grp->{top});
-  $grp->{printRange}=$printRange;
-#  $grp->{printSelection}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
-  $grp->{printToFile}=$toFile;
-  $grp->{printFormat}=$format;
-  $grp->{printPsFile}=$fil;
-  ($grp->{printFileExtension})=$fil=~m!\.([^.\\/]+)$!;
-  $grp->{printSentenceInfo}=$snt;
-  $grp->{printCommand}=$com;
-  $grp->{printImageMagickResolution}=$imageMagickResolution;
-  if ($toFile and $format eq 'imageMagick') {
-    $com="$imageMagickConvert -density $imageMagickResolution - $fil"
-  }
-#  $grp->{printUseType1Font}=$useType1Font;
-  $grp->{printNoRotate}=$noRotate;
+  my $result= ShowDialog($d,$s{printTo} eq "command" ? $w{command} : $w{file},$grp->{top});
+  $grp->{printRange}=$s{printRange};
+  $grp->{printToFile}=$s{printTo};
+  $grp->{printFormat}=$s{format};
+  $grp->{printPsFile}=$s{file};
+  $psMedia=$s{psMedia};
+  ($grp->{printFileExtension})=$s{file}=~m!\.([^.\\/]+)$!;
+  $grp->{printSentenceInfo}=$s{printSentence};
+  $grp->{printCommand}=$s{command};
+  $grp->{printImageMagickResolution}=$s{resolution};
+  $grp->{printNoRotate}=$s{noRotate};
+  $grp->{printColors}=$s{printColors};
+  $ttFont=$s{ttFont};
+  $prtHMargin=$s{prtHMargin};
+  $prtVMargin=$s{prtVMargin};
   get_grp_histories($grp,$e_hist) if ($result =~ /OK/);
   $d->destroy;
   undef $d;
   if ($result=~ /OK/) {
-    return ($printRange,
-	    ($toFile and $format ne 'imageMagick') ? 1 : 0,
-	    $format =~ /ImageMagick|EPS/ ? 1 : 0,
-	    ($toFile and $format eq 'PDF') ? 1 : 0,
-	    $fil,$snt,$com,
-	    #$useType1Font,
-	    $printColors,$noRotate);
+    return ($s{printRange},
+	    ($s{printTo} ne 'convert') ? 1 : 0,
+	    ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
+	    ($s{format} eq 'PDF') ? 1 : 0,
+	    $s{file},$s{printSentence},
+	    (($s{printTo} eq 'convert') ?
+	     "$imageMagickConvert -density $s{resolution} - $s{file}" : $com),
+	    $s{printColors},$s{noRotate});
   } else {
     return ();
   }
