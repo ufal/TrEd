@@ -758,7 +758,7 @@ sub GetChildren_TR { # node filter
 } # GetChildren_TR
 
 
-=item GetDescendants_TR
+=item PDT::GetDescendants_TR
 
 Return a list of all nodes linguistically subordinated to a given node
 (not including the node itself).
@@ -768,13 +768,8 @@ Return a list of all nodes linguistically subordinated to a given node
 sub GetDescendants_TR {
   my ($node)=@_;
   return () unless ($node and !is_coord_TR($node));
-  my @descendants;
-  @descendants = (map { $_, GetDescendants_TR($_,1) } GetChildren_TR($node));
-  my %uniq; # nodes can appear more than once
-  @uniq{@descendants}=@descendants; #uniqify them
-  return values %uniq
+  return uniq map { $_, GetDescendants_TR($_) } GetChildren_TR($node);
 }
-
 
 
 =item PDT::GetFather_TR ($node)
@@ -798,6 +793,18 @@ sub GetFather_TR {
 } # GetFather
 
 
+=item PDT::GetAncestors_TR
+
+Return a list of all nodes linguistically superordinated to (ie governing)a given node
+(not including the node itself).
+
+=cut
+
+sub GetAncestors_TR {
+  my ($node)=@_;
+  return () unless ($node and !is_coord_TR($node));
+  return uniq map { $_, GetAncestors_TR($_,1) } GetFather_TR($node);
+}
 
 
 =item PDT::is_member_TR ($node?)
