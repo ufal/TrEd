@@ -2299,7 +2299,7 @@ root# <userinput>make install</userinput>
       </variablelist>
     </sect2>
     <sect2>
-      <title>Tree displaying options</title>
+      <title>Other options affecting tree appearence</title>
       <variablelist>
 	<varlistentry id="highlightwindowwidth">
 	  <term><literal>HighlightWindowWidth</literal></term>
@@ -2417,6 +2417,16 @@ root# <userinput>make install</userinput>
 		<guimenu>View</guimenu>
 		<guimenuitem>Highlight Attributes</guimenuitem>
 	      </menuchoice> menu item checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>ClearBackground</literal></term>
+	  <listitem>
+	    <para>
+	      Choose if invisible rectangles should be drawn beneath
+	      text labels to clear the background for the text.
+	      Possible values are <literal>0</literal> and <literal>1</literal>.
 	    </para>
 	  </listitem>
 	</varlistentry>
