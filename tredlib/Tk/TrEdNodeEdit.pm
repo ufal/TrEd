@@ -533,7 +533,12 @@ sub add_member {
 		       -relief => 'flat',
 		       -borderwidth => 1,
 		       -foreground => 'black',
-		       -highlightcolor => 'black')
+		       -highlightcolor => 'black',
+		       ($mtype eq 'nonNegativeInteger' ?
+		       (-validate => 'all',
+			-validatecommand => sub { $_[0]=~/^\d+$/ ? 1 : 0 }) :
+		       ())
+		      )
       ->pack(qw(-fill both -expand yes));
     $e->bind('<FocusIn>',[sub { select_entry($_[1],$_[2]) },$hlist,$path]);
     $e->bind('<Up>',[sub {
@@ -660,7 +665,7 @@ sub add_members {
     my $member = $attributes->{$attr} || $members->{$attr};
     if (ref($member) and $member->{role} eq '#KNIT') {
       if (exists($node->{$attr})) {
-	$member='REF'
+	$member='PMLREF'
       } else {
 	$attr=~s/\.rf$//;
       }
