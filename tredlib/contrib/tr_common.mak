@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-03-11 09:25:12 pajas>
+## Time-stamp: <2002-03-22 14:17:43 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -295,7 +295,7 @@ sub add_new_node {
 
   $pPar1 = $this;
 
-  NewSon();
+  TredMacro::NewSon();
   $this=$pReturn;
   unless (QueryTrlemma($this,1)) {
     DeleteCurrentNode();
@@ -308,7 +308,7 @@ sub AddNewLoc {
 
   $pPar1 = $this;
 
-  NewSon();
+  TredMacro::NewSon();
   $this=$pReturn;
   $this->{trlemma}='tady';
   unless (QuerySemtam($this)) {
@@ -322,7 +322,7 @@ sub AddNewTime {
 
   $pPar1 = $this;
 
-  NewSon();
+  TredMacro::NewSon();
   $this=$pReturn;
   $this->{trlemma}='kdy';
   unless (QueryKdy($this)) {
@@ -468,7 +468,7 @@ sub NewVerb {
 
   if ($son) {
     $this=$son;
-    NewLBrother();
+    TredMacro::NewLBrother();
     $pNew=$this;
     $pNew->{sentord}=$son->{sentord}-1;
 
@@ -479,14 +479,14 @@ sub NewVerb {
       $son=$rb;
     }
   } else {
-    NewSon();
+    TredMacro::NewSon();
     $pNew=$this;
     $pNew->{sentord}=$pT->{sentord};
   }
 
   GetNewOrd();
   $sNum = $sPar2;
-
+  $pNew->{'TR'}='';
   $pNew->{'lemma'} = '-';
   $pNew->{'tag'} = '-';
   $pNew->{'form'} = '-';
