@@ -3694,23 +3694,84 @@ root# <userinput>make install</userinput>
       </para>
       <para>
 	When an interactively invoked macro returns,
-	<application>TrEd</application> automatically redraws the tree
-	and activates the node referenced by variable <literal>$this</literal>.
-	Moreover, the file is also considered modified which may
-	toggle the state of the <inlinegraphic fileref="pics/filefloppy"/>
-	button. This may be an unwanted behaviour for macros which
-	do not change the structure of the trees nor attribute
-	values. To prevent <application>TrEd</application> from
-	considering the file modified by the macro, the macro must explicitly
-	set the special variable named
-	<literal>$FileNotSaved</literal> to zero.
+	<application>TrEd</application> automatically activates the
+	node referenced by variable <literal>$this</literal>, redraws
+	displayed tress according to the value of the
+	<literal>$Redraw</literal> variable changes file status to
+	<literal>modified</literal> (as indicated by the state of the
+	<inlinegraphic fileref="pics/filefloppy"/> button) unless
+	variable <literal>$FileChanged</literal> is altered in the
+	way described bellow (both variables are definded in
+	<filename>tred.def</filename>, see <xref
+	linkend="defaultmacros"/>).
+      </para>
+      <para>
+	The <literal>$Redraw</literal> variable may has the following
+	values:
+	<variablelist>
+	  <varlistentry>
+	    <term><literal>file</literal> (the default)</term>
+	    <listitem>
+	      <para>redraw all windows displaying current file</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><literal>tree</literal></term>
+	    <listitem>
+	      <para>redraw all windows displaying current tree</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><literal>win</literal></term>
+	    <listitem>
+	      <para>redraw current window</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><literal>all</literal></term>
+	    <listitem>
+	      <para>redraw all windows</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><literal>tie</literal></term>
+	    <listitem>
+	      <para>redraw all windows if TrEd windows are tied
+		otherwise redraw only the current one</para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </para>
+      <para>
+	To prevent <application>TrEd</application> from considering
+	the file modified by a specific macro, the macro must
+	explicitly set a special variable named
+	<literal>$FileChanged</literal> to zero.
+      </para>
+      <para>
+	To make things even more complicated,
+	<application>btred</application>, the off-line variant of
+	TrEd, never saves any processed file unless the variable
+	<literal>$FileChanged</literal> has been explicitely set to
+	<literal>1</literal> or <literal>-S</literal> command-line
+	switch is used.
       </para>
       <note>
 	<para>If the state of the file was considered
 	  <emphasis>modified and not saved</emphasis> when a
 	  macro was interactively invoked, any changes to
-	  the <literal>$FileNotSaved</literal> variable made
-	  by the macro are ignored.
+	  the <literal>$FileChanged</literal> variable made
+	  by the macro are ignored. Macro may force the
+	  file status to <emphasis>saved</emphasis>
+	  by setting <literal>$forceFileSaved</literal>
+	  variable to <literal>1</literal>.
+	</para>
+      </note>
+      <note>
+	<para>For historical reasons, there exists an alias for
+	  <literal>$FileChanged</literal> named
+	  <literal>$FileNotSaved</literal>. These variables are
+	  identical.
 	</para>
       </note>
     </sect2>
@@ -4722,7 +4783,7 @@ sub MakeSentence {
 	    <para>
 	      Unlike macros, hooks are not expected to modify
 	      the tree unless they explicitly state that by setting the
-	      <literal>$FileNotSaved</literal> to <literal>1</literal>.
+	      <literal>$FileChanged</literal> to <literal>1</literal>.
 	    </para>
 	  </listitem>
 	</orderedlist>
