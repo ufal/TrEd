@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2002-01-10 13:30:04 pajas>
+## Time-stamp: <2002-02-19 09:48:03 pajas>
 
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require AFA;
@@ -151,7 +151,7 @@ sub assign_all_func_auto {
   my $class=$_[0];
   my $node=$root;
   while ($node) {
-    assign_func_auto($class,$node);
+    assign_func_auto($class,$node) if ($node->{func} eq '???');
     $node=NextVisibleNode($node);
   }
 }
