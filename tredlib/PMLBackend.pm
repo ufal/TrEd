@@ -388,7 +388,7 @@ sub read_trees {
 	      $fsfile->metaData('ref-index')->{$refid}=index_by_id($ref_data);
 	      _debug("Stored meta 'ref' -> '$reference->{name}' = $ref_data");
 	    } else {
-	      warn "Couldn't open '".$href."': $!\n";
+	      die "Couldn't open '".$href."': $!\n";
 	    }
 	  }
 	} elsif ($href) {
