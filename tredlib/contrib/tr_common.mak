@@ -23,6 +23,11 @@
 #bind choose_frame_or_advfunc to Ctrl+Return menu Vyber ramec pro sloveso, funktor pro adverbium
 #bind choose_frame_or_advfunc to F1 menu Vyber ramec pro sloveso, funktor pro adverbium
 
+#bind prev_file_choose_frame to Ctrl+KP_Subtract
+#bind prev_file_choose_frame to Ctrl+minus Prejdi na predchozi soubor a obnov vyber ramce
+#bind next_file_choose_frame to Ctrl+KP_Add
+#bind next_file_choose_frame to Ctrl+plus Prejdi na dalsi soubor a obnov vyber ramce
+
 sub choose_frame_or_advfunc {
   my $tag;
   foreach (qw(tag tagMD_a tagMD_b)) {
@@ -36,6 +41,28 @@ sub choose_frame_or_advfunc {
     ChooseFrame();
   } else {
     ChooseAdverbFunc();
+  }
+}
+
+sub prev_file_choose_frame {
+  PrevFile();
+  if ($this->{rframeid} ne "") {
+    local $frameid_attr="rframeid";
+    local $framere_attr="rframere";
+    ChooseFrame() if ($this->{tag}=~/^[VAN]/);
+  } else {
+    ChooseFrame() if ($this->{tag}=~/^[VAN]/);
+  }
+}
+
+sub next_file_choose_frame {
+  NextFile();
+  if ($this->{rframeid} ne "") {
+    local $frameid_attr="rframeid";
+    local $framere_attr="rframere";
+    ChooseFrame() if ($this->{tag}=~/^[VAN]/);
+  } else {
+    ChooseFrame() if ($this->{tag}=~/^[VAN]/);
   }
 }
 
@@ -290,7 +317,7 @@ sub do_edit_attr_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:func|coref|commentA|reltype|memberof|operand|aspect|tfa|err1|parenthesis)$/) {
+  if ($atr!~/^(?:func|commentA|reltype|memberof|operand|aspect|err1|parenthesis)$/) {
     return "stop";
   }
 }
