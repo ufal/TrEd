@@ -57,8 +57,6 @@ BEGIN {
   $imageMagickConvert
   $cstsToFs
   $fsToCsts
-  $gzip
-  $zcat
   $sgmls
   $sgmlsopts
   $cstsdoctype
@@ -95,12 +93,17 @@ BEGIN {
   $saveFilenameCommand
   $NoConvertWarning
   $lockFiles
+  $noLockProto
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
   use strict;
 
   @config_file_search_list=();
+}
+
+sub find_exe {
+  local $_ = `/usr/bin/which $_[0]`; chomp; /\S/ ? $_ : undef
 }
 
 sub set_default_config_file_search_list {
@@ -412,21 +415,35 @@ sub set_config {
   $imageMagickConvert = val_or_def($confs,"imagemagickconvert",'convert');
   $NoConvertWarning = val_or_def($confs,"noconvertwarning",0);
 
-  $gzip=val_or_def($confs,"gzip",(-x "/bin/gzip" ? "/bin/gzip -c" :
-				  (-x "$libDir/../gzip" ? 
-				   "$libDir/../bin/gzip -c" : undef)));
-  $zcat=val_or_def($confs,"zcat",(-x "/bin/zcat" ? "/bin/zcat" :
-				  (-x "$libDir/../gzip" ?
-				   "$libDir/../bin/gzip -c" : "$gzip -d")));
+  $IOBackend::reject_proto = val_or_def($confs,'rejectprotocols','^(pop3?s?|imaps?)\$');
+  $IOBackend::gzip = val_or_def($confs,"gzip",find_exe("gzip"));
+  if (!$IOBackend::gzip and -x "$libDir/../gzip") {
+    $IOBackend::gzip = "$libDir/../bin/gzip";
+  }
+  $IOBackend::gzip_opts = val_or_def($confs,"gzipopts", "-c");
+  $IOBackend::zcat = val_or_def($confs,"zcat", find_exe("zcat"));
+  $IOBackend::zcat_opts = val_or_def($confs,"zcatopts", undef);
+  $IOBackend::ssh = val_or_def($confs,"ssh", undef);
+  $IOBackend::ssh_opts = val_or_def($confs,"sshopts", undef);
+  $IOBackend::kioclient = val_or_def($confs,"kioclient", undef);
+  $IOBackend::kioclient_opts = val_or_def($confs,"kioclientopts", undef);
+  $IOBackend::curl = val_or_def($confs,"curl", undef);
+  $IOBackend::curl_opts = val_or_def($confs,"curlopts", undef);
 
-  $ZBackend::gzip = $gzip;
-  $ZBackend::zcat = $zcat;
+  if (!$IOBackend::zcat) {
+    if ($IOBackend::gzip) {
+      $IOBackend::zcat=$IOBackend::gzip;
+      $IOBackend::zcat_opts='-d';
+    } elsif (-x "$libDir/../zcat") {
+      $IOBackend::zcat = "$libDir/../bin/zcat";
+    }
+  }
 
   $cstsToFs = val_or_def($confs,"cststofs",undef);
   $fsToCsts = val_or_def($confs,"fstocsts",undef);
 
-  $CSTSBackend::gzip = $gzip;
-  $CSTSBackend::zcat = $zcat;
+  $CSTSBackend::gzip = $IOBackend::gzip;
+  $CSTSBackend::zcat = $IOBackend::zcat;
   $CSTSBackend::csts2fs=$cstsToFs;
   $CSTSBackend::fs2csts=$fsToCsts;
 
@@ -434,15 +451,11 @@ sub set_config {
   $sgmlsopts   = val_or_def($confs,"sgmlsopts","-i preserve.gen.entities");
   $cstsdoctype = val_or_def($confs,"cstsdoctype","$libDir/csts.doctype");
   $cstsparsecommand = val_or_def($confs,"cstsparsercommand","\%s \%o \%d \%f");
-  $cstsparsezcommand = val_or_def($confs,"cstsparserzcommand","\%z < \%f | \%s \%o \%d -");
 
-  $CSTS_SGML_SP_Backend::gzip=$gzip;
-  $CSTS_SGML_SP_Backend::zcat=$zcat;
   $CSTS_SGML_SP_Backend::sgmls=$sgmls;
   $CSTS_SGML_SP_Backend::sgmlsopts=$sgmlsopts;
   $CSTS_SGML_SP_Backend::doctype=$cstsdoctype;
   $CSTS_SGML_SP_Backend::sgmls_command=$cstsparsecommand;
-  $CSTS_SGML_SP_Backend::z_sgmls_command=$cstsparsezcommand;
 
   $keyboardDebug	      =	val_or_def($confs,"keyboarddebug",0);
   $hookDebug		      =	val_or_def($confs,"hookdebug",0);
@@ -465,7 +478,8 @@ sub set_config {
   $displayStatusLine          =	val_or_def($confs,"displaystatusline",0);
   $openFilenameCommand        =	val_or_def($confs,"openfilenamecommand",undef);
   $saveFilenameCommand        =	val_or_def($confs,"savefilenamecommand",undef);
-  $lockFiles                 =	val_or_def($confs,"lockfiles",1);
+  $lockFiles                  =	val_or_def($confs,"lockfiles",1);
+  $noLockProto                =	val_or_def($confs,"nolockprotocols",'^(https?|zip|tar)\$');
 }
 
 1;
