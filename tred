@@ -2462,7 +2462,9 @@ sub filelistDialog {
 			      $initdir=cwd if ($initdir eq './');
 			      $initdir=~s!${TrEd::Convert::Ds}$!!m;
 			      $file= get_save_filename($d,-filetypes=> 
-								 [["Filelists",           ['.fl']]],
+								 [["Filelists",           ['.fl']],
+								  ["All files",           ['*','*.*']]
+								 ],
 								 -title=> "Save filelist as ...",
 								 -initialdir=> $initdir,
 								 -initialfile=> filename($file));
@@ -2481,7 +2483,9 @@ sub filelistDialog {
 	     -command=> [sub {
 			    my ($grp,$d,$filelistref)=@_;
 			    my $file= get_open_filename($d,-filetypes=> 
-						      [["Filelists",           ['.fl']]],
+						      [["Filelists",           ['.fl']],
+						       ["All files",           ['*','*.*']]
+						      ],
 						      -title=> "Load filelist ...");
 			    $d->deiconify;
 			    $d->focus;
