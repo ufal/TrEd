@@ -88,6 +88,8 @@ CurrentNodeHeight	= 9          		;; height of the oval
 
 ;; maxUndo= 30                          ;; maximal number of undo levels
 
+;; autoSave= 5                          ;; auto-saving interval (in minutes)
+
 ;; reloadPreservesPatterns= 1           ;; when reloading a file, do not
                                         ;; reload attribute patterns and
                                         ;; but rather keep their current setting

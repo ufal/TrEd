@@ -236,7 +236,7 @@ unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
 require Fslib;
 import Fslib;
-import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
+import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index $FSError);
 
 $Fslib::Debug=1 if $opt_D;
 
@@ -482,6 +482,8 @@ sub ApplyGlobalConfig {
       $_->{treeView}->canvas->configure(-background=> $treeViewOpts->{backgroundColor});
     }
   }
+  $grp->{top}->afterCancel($grp->{autoSaveCallback});
+  $grp->{autoSaveCallback}=$grp->{top}->repeat($autoSave*60000, [\&autoSaveAll,$grp]) if $autoSave>0;
 }
 
 # TrEd::Window ? should openFile in focusedWindow
@@ -611,6 +613,7 @@ sub closeFile {
     if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
       print STDERR "Removing ".$fsfile->filename()." from list of open files\n"  if $tredDebug;
       @openfiles=grep { $_ ne $fsfile } @openfiles;
+      unlink autosave_filename($fsfile->filename());
       undef $fsfile;
     }
   }
@@ -902,6 +905,7 @@ sub openFile {
   my ($grp,$f,%opts)= @_;
   my $win=$grp->{focusedWindow};
   my $goto= undef;
+  my $no_err = $grp->{noOpenFileError};
 
   if ($f=~/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$/) {
     $f=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$//;
@@ -941,11 +945,48 @@ sub openFile {
   closeFile($win,-no_update =>1 , -keep_postponed => $opts{-keep});
 
   print STDERR "TrEd::Convert::inputenc $TrEd::Convert::inputenc\n";
-  $win->{FSFile}= FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
-  $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
+  my $recover='No';
+  if (not $no_err and -r autosave_filename($f)) {
+    $recover=
+      userQuery($win,
+		"File seems to have an auto-saved recovery file from a previous session.\n".
+		"Shell I try to use the recovery file?",
+		-bitmap=> 'question',
+		-title => "Recover file?",
+		-buttons => ['Yes', 'No', 'No, delete recovery file']);
+  }
+  if ($recover eq 'Yes') {
+    $win->{FSFile} = FSFile->newFSFile(autosave_filename($f),$TrEd::Convert::inputenc,@backends);
+    if ($win->{FSFile}->lastTreeNo>=0 and $FSError==0) {
+      $win->{FSFile}->changeFilename($f);
+      $win->{FSFile}->notSaved(2);
+    } else {
+      my $trees=$win->{FSFile}->lastTreeNo+1;
+      if (userQuery($win,
+		    "\nRecovery file is corrupted ($trees trees read)!\n\nFall back to the original file\n'$f' ?",
+		    -bitmap=> 'question',
+		    -title => "Recovery error!",
+		    -buttons => ['Yes', 'No']) eq 'Yes') {
+	closeFile($win,-no_update => 1);
+	$win->{FSFile}= FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+      } else {
+	closeFile($win,-no_update => 1) unless $win->{FSFile}->lastTreeNo>=0;
+	$no_err=1;
+      }
+    }
+  } else {
+    if ($recover eq 'No, delete recovery file') {
+      unlink autosave_filename($f);
+    }
+    $win->{FSFile}= FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+  }
+  if ($win->{FSFile}) {
+    $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
+  }
 
-  unless ($grp->{noOpenFileError} or $win->{FSFile}->lastTreeNo>=0) {
-    errorMessage($win,"$f: empty or corrupt file!");
+  unless ($no_err or ($win->{FSFile}->lastTreeNo>=0 and $FSError==0)) {
+    my $trees=$win->{FSFile}->lastTreeNo+1;
+    errorMessage($win,"$f: empty or corrupted file ($trees trees read)!");
     closeFile($win,-no_update => 1);
   }
 
@@ -1016,6 +1057,33 @@ sub applyFileSuffix {
   # hey, caller, you should redraw after this!
 }
 
+sub autosave_filename {
+  my ($f)=@_;
+  my $base=filename($f);
+  $f =~ s/${base}$/#$base#.#tred#/;
+  return $f;
+}
+
+sub autoSaveAll {
+  my ($grp)=@_;
+  my $top=$grp->{top};
+  my @files=grep { $_->notSaved == 1 } @openfiles;
+  return unless @files;
+$top->title("Autosaving...");
+  $top->Busy(-recurse=> 1) if (!$insideEval);
+  foreach my $fsfile (@files) {
+    my $f=autosave_filename($fsfile->filename);
+    print STDERR "auto-saving recovery file ".$fsfile->filename." to '$f'\n" if $tredDebug;
+    unless ($fsfile->writeFile($f)) {
+      print STDERR "Error auto-saving file to '$f'\n($!)\n";
+      next;
+    }
+    $fsfile->notSaved(2);
+  }
+  updateTitle($grp);
+  $top->Unbusy() unless $insideEval;
+}
+
 sub saveFile {
   my ($win)=@_;
   return unless $win->{FSFile};
@@ -1040,6 +1108,7 @@ sub saveFile {
   }
   $win->toplevel->Unbusy() unless $insideEval;
   saveFileStateUpdate($win);
+  unlink autosave_filename($f);
 }
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
@@ -2613,6 +2682,9 @@ sub startMain {
   } else {
     $group{top}=MainWindow->new();
   }
+
+  $group{autoSaveCallback}=$group{top}->repeat($autoSave*60000,
+					       [\&autoSaveAll,\%group]) if $autoSave>0;
 
   $group{folderImage}= $group{top}->Pixmap(-file=> Tk->findINC('folder.xpm'));
   $group{fileImage}  = $group{top}->Pixmap(-file=> Tk->findINC('file.xpm'));
@@ -5474,10 +5546,10 @@ sub doEvalHook {
 
   if ($win) {
     if ($win->{FSFile}) {
-      $file_changed=$win->{FSFile}->notSaved if $file_changed eq '?';
-      lastActionBookmark($win->{framegroup},$bookmark)
-	if $file_changed and !$win->{FSFile}->notSaved;
-      $win->{FSFile}->notSaved($win->{FSFile}->notSaved || $file_changed);
+      if ($file_changed ne '?' and $file_changed) {
+	lastActionBookmark($win->{framegroup},$bookmark);
+	$win->{FSFile}->notSaved(1);
+      }
     }
     saveFileStateUpdate($win);
   }
@@ -5507,18 +5579,20 @@ sub doEvalMacro {
   my $undo=prepare_undo($win);
   my $result=do_eval_macro($win,$macro);
   my $current=$TredMacro::this;
-  unless ($TredMacro::forceFileSaved) {
-    if ($TredMacro::FileNotSaved) {
+  my $file_not_saved=$TredMacro::FileNotSaved;
+  $file_not_saved=1 if $file_not_saved eq '?';
+  if ($TredMacro::forceFileSaved) {
+    print STDERR "Macro forsly claims file saved.\n";
+    $win->{FSFile}->notSaved($file_not_saved ? 1 : 0);
+    lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
+  } else {
+    if ($file_not_saved) {
       save_undo($win,$undo);
+      $win->{FSFile}->notSaved(1);
+      lastActionBookmark($win->{framegroup},$bookmark);
     } else {
       print STDERR "Macro claims file untouched\n"
     }
-    $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $TredMacro::FileNotSaved);
-    lastActionBookmark($win->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
-  } else {
-    print STDERR "Macro forsly claims file saved.\n";
-    $win->{FSFile}->notSaved($TredMacro::FileNotSaved);
-    lastActionBookmark($win->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
   }
   $insideEval=0;
   #------------------------------------------------------------
