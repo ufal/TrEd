@@ -343,7 +343,7 @@ sub position {
   return undef unless ref($self);
   $fsfile=$self->current() unless defined($fsfile);
   my $files=$self->files_ref;
-  my $fname=ref($fsfile) ? $fsfile->name() : $fsfile;
+  my $fname=ref($fsfile) ? $fsfile->filename() : $fsfile;
   my $basedir=$self->dirname();
   my $relfname=$fname;
   if (index($fname,$basedir)==0) {
