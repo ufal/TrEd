@@ -1,7 +1,7 @@
 # -*- cperl -*-
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 unshift @INC,"$libDir/contrib/PADT" unless (grep($_ eq "$libDir/contrib/PADT", @INC));
-require ArabicRemix;
+#require ArabicRemix;
 no integer;
 
 
