@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-08-11 09:50:52 paja>
+# Time-stamp: <2001-08-28 17:23:53 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -29,9 +29,9 @@ $VERSION = "1.2";
                 &SetRBrother &SetFirstSon/;
 
 use Carp;
-use vars qw/$VERSION @EXPORT @EXPORT_OK $field $parent $firstson $lbrother $FSTestListValidity/;
+use vars qw/$VERSION @EXPORT @EXPORT_OK $field $parent $firstson $lbrother $FSTestListValidity $Debug/;
 
-
+$Debug=0;
 $field='(?:\\\\[\\]\\,]|[^\\,\\]])*';
 $parent="_P_";
 $firstson="_S_";
@@ -1543,7 +1543,7 @@ sub readFile {
 
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
-    print STDERR "Trying backend $backend: ";
+    print STDERR "Trying backend $backend: " if $Fslib::Debug;
     if ($ret =
 	eval {
 	  return $backend->can('test')
@@ -1553,7 +1553,7 @@ sub readFile {
 	}) {
       $self->changeBackend($backend);
       $self->changeFilename($filename);
-      print STDERR "success\n";
+      print STDERR "success\n" if $Fslib::Debug;
       eval {
 	my $fh;
 	$fh = &{"${backend}::open_backend"}($filename,"r");
@@ -1564,7 +1564,7 @@ sub readFile {
       $self->notSaved(0);
       last;
     }
-    print STDERR "fail\n";
+    print STDERR "fail\n" if $Fslib::Debug;
     print STDERR "$@\n" if $@;
   }
   return $ret;
@@ -1606,7 +1606,7 @@ sub writeFile {
   $filename = $self->filename unless (defined($filename) and $filename ne "");
 
   my $backend=$self->backend || 'FSBackend';
-  print STDERR "Writing to $filename using backend $backend\n";
+  print STDERR "Writing to $filename using backend $backend\n" if $Fslib::Debug;
   my $ret=eval {
 #    require $backend;
     my $fh;
@@ -1637,7 +1637,7 @@ sub writeTo {
   return unless ref($self);
 
   my $backend=$self->backend || 'FSBackend';
-  print STDERR "Writing using backend $backend\n";
+  print STDERR "Writing using backend $backend\n" if $Fslib::Debug;
   my $ret=eval {
 #    require $backend;
     return $backend->can('write')  && &{"${backend}::write"}($fileref,$self);

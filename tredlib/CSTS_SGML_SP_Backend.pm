@@ -32,7 +32,7 @@ sub open_backend {
 	  $fh = new IO::Pipe();
 	  $fh && $fh->writer("$gzip > $filename");
 	} || return undef;
-	print STDERR "[w $cmd]\n";
+	print STDERR "[w $cmd]\n" if $Fslib::Debug;
       } else {
 	eval { $fh = new IO::File(); } || return undef;
 	$fh->open($filename,$mode) || return undef;
@@ -43,7 +43,7 @@ sub open_backend {
       } else {
 	$cmd="$sgmls $sgmlsopts $doctype $filename";
       }
-      print STDERR "[r $cmd]\n";
+      print STDERR "[r $cmd]\n" if $Fslib::Debug;
       eval {
 	if ($^O eq 'MSWin32') {
           $fh = new IO::File();

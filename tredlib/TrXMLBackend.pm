@@ -1,25 +1,34 @@
 ## This is a XML backend for FSLib                           -*-cperl-*-
 ## author: Petr Pajas
-# Time-stamp: <2001-05-29 17:46:30 pajas>
+# Time-stamp: <2001-08-27 16:20:46 pajas>
 
 #############################################################
 
 package TrXMLParser;
 
 use Unicode::MapUTF8 qw(from_utf8);
+use XML::LibXML;
+use vars qw($state %defs @attlist @trees $node $attr $parent);
 
-$TrXMLParser::state=0;
-%TrXMLParser::defs=();
-@TrXMLParser::attlist=();
-@TrXMLParser::trees=();
-$TrXMLParser::node=undef;
-$TrXMLParser::attr=undef;
-$TrXMLParser::parent=undef;
+$state=0;
+%defs=();
+@attlist=();
+@trees=();
+$node=undef;
+$attr=undef;
+$parent=undef;
 
 sub StartDocument {
 }
 
 sub EndDocument {
+}
+
+sub Attlist {
+  my ($parser,$el,$at,$type,$def,$fixed)=@_;
+  if ($el eq 'nd') {
+    push @attlist,$at;
+  }
 }
 
 sub StartTag {
@@ -39,30 +48,34 @@ sub StartTag {
   if ($TrXMLParser::state==3) {
     push @TrXMLParser::attlist,$_{n};
     if ($elem eq 't') {
-      if ($_{pos}) {
-	$TrXMLParser::defs{$_{n}}.=' P';
-      }
-      if ($_{obl}) {
-	$TrXMLParser::defs{$_{n}}.=' O';
-      }
-      if ($_{val}) {
-	$TrXMLParser::defs{$_{n}}.=' V';
-      }
-      if ($_{ordw}) {
-	$TrXMLParser::defs{$_{n}}.=' W';
-      }
-      $TrXMLParser::defs{$_{n}}=' K' unless $TrXMLParser::defs{$_{n}};
-    } elsif ($elem eq 'l') {
-      if ($_{pos}) {
-	$TrXMLParser::defs{$_{n}}.=' P';
-      }
-      if ($_{obl}) {
-	$TrXMLParser::defs{$_{n}}.=' O';
-      }
-      if ($_{v}) {
+#        if ($_{pos}) {
+#  	$TrXMLParser::defs{$_{n}}.=' P';
+#        }
+#        if ($_{obl}) {
+#  	$TrXMLParser::defs{$_{n}}.=' O';
+#        }
+#        if ($_{val}) {
+#  	$TrXMLParser::defs{$_{n}}.=' V';
+#        }
+#        if ($_{ordw}) {
+#  	$TrXMLParser::defs{$_{n}}.=' W';
+#        }
+#      $TrXMLParser::defs{$_{n}}=' K' unless $TrXMLParser::defs{$_{n}};
+#    } elsif ($elem eq 'l') {
+#      if ($_{pos}) {
+#  	$TrXMLParser::defs{$_{n}}.=' P';
+#        }
+#        if ($_{obl}) {
+#  	$TrXMLParser::defs{$_{n}}.=' O';
+#        }
+#        if ($_{v}) {
+#  	$TrXMLParser::defs{$_{n}}.=' L='.from_utf8({-string => $_{v}, -charset => 'ISO-8859-2'});
+#        }
+#        $TrXMLParser::defs{$_{n}}=' K' unless $TrXMLParser::defs{$_{n}};
+      $TrXMLParser::defs{$_{n}}.=' P';
+      if ($_{v} ne "") {
 	$TrXMLParser::defs{$_{n}}.=' L='.from_utf8({-string => $_{v}, -charset => 'ISO-8859-2'});
       }
-      $TrXMLParser::defs{$_{n}}=' K' unless $TrXMLParser::defs{$_{n}};
     }
   }
   if ($TrXMLParser::state==1 || $TrXMLParser::state==4 and $elem eq 'nd') {
@@ -83,18 +96,13 @@ sub StartTag {
     }
     $TrXMLParser::node=$new;
     $TrXMLParser::node->{ORD}=$_{n};
-    $TrXMLParser::node->{HIDE}='hide'x$_{hide};
+    $TrXMLParser::node->{HIDE}='hide'x$_{h};
     $TrXMLParser::node->{ID}=$_{id};
+    foreach (keys(%_)) {
+      $node->{$_}=from_utf8({-string => $_{$_}, -charset => 'ISO-8859-2'})
+	unless ($_ eq "h" or $_ eq "id" or $_ eq "n");
+    }
     $TrXMLParser::state=4;	# in nd
-    return;
-  }
-  if ($TrXMLParser::state==4 or $TrXMLParser::state==1 and $elem eq 'att') {
-    $TrXMLParser::state=5;	# in att
-    return;
-  }
-  if ($TrXMLParser::state==5 and $elem eq 'a') {
-    $TrXMLParser::state=6;	# in a
-    $TrXMLParser::attr=$_{n};
     return;
   }
 }
@@ -116,14 +124,6 @@ sub EndTag {
     $TrXMLParser::defs{ORD}.=' N';
     return;
   }
-  if ($TrXMLParser::state==5 and $elem eq 'att') {
-      $TrXMLParser::state=4;	# end of att
-    return;
-  }
-  if ($TrXMLParser::state==6 and $elem eq 'a') {
-      $TrXMLParser::state=5;	# end of a
-    return;
-  }
   if ($TrXMLParser::state==4 and $elem eq 'nd') {
     $TrXMLParser::node=$TrXMLParser::node->parent
       if ($TrXMLParser::node);
@@ -132,13 +132,11 @@ sub EndTag {
 }
 
 sub Text {
-  my ($parser)=(shift,shift);
-  if ($TrXMLParser::state==6 and $TrXMLParser::node) {
-    $TrXMLParser::node->{$TrXMLParser::attr}=from_utf8({-string => $_, -charset => 'ISO-8859-2'});
-  }
 }
 
-sub PI {
+sub pi {
+  # process tred's specific instructions, like attribute patterns,
+  # which attributes are used as @W and @V etc.
 }
 
 
@@ -167,8 +165,28 @@ sub write {
   return 0 unless ref($fileref) and ref($fs);
 
   my $writer = new XML::Writer(OUTPUT => $fileref, DATA_MODE => 1, DATA_INDENT => 1);
+  $writer->{DOCTYPE} = sub {
+    my ($name, $publicId, $systemId, $localDTD) = (@_);
+    $fileref->print("<!DOCTYPE $name");
+    if ($publicId) {
+      $fileref->print(" PUBLIC \"$publicId\" \"$systemId\"");
+    } elsif ($systemId) {
+      $fileref->print(" SYSTEM \"$systemId\"");
+    }
+    if ($localDTD) {
+      $fileref->print(" [\n$localDTD\n]");
+    }
+    $fileref->print(">\n");
+  };
+
   $writer->xmlDecl('iso-8859-2');
-  $writer->doctype("trees");
+  $writer->doctype("trees",
+		   "-//CKL.MFF.UK//DTD TrXML V1.0//EN",
+		   "http://ufal.mff.cuni.cz/~pajas/tred.dtd",
+                   "<!ENTITY % trxml.attributes \"".
+		   join("\n",map { "  $_ CDATA #IMPLIED" }
+			$fs->FS->attributes).
+		   "\">");
   $writer->comment("Time-stamp: <".localtime()." TrXMLBackend>");
   $writer->startTag("trees");
   XMLPrintTypes($fs->FS->list, $fs->FS->defs,$writer);
@@ -188,21 +206,21 @@ sub XMLPrintTypes {
 
   my $list;
   my $atrs;
-  $output->startTag('types');
+  $output->startTag('types','full'=>1);
   foreach (@$ord) {
     %atrs=();
     $list=Fslib::IsList($_,$atr);
     $atrs{n}=$_;
-    $atrs{obl}=1 if (index($atr->{$_}," O")>=0);
-    $atrs{pos}=1 if (index($atr->{$_}," P")>=0);
+#    $atrs{obl}=1 if (index($atr->{$_}," O")>=0);
+#    $atrs{pos}=1 if (index($atr->{$_}," P")>=0);
     if ($list) {
       $atrs{v}=join"|",Fslib::ListValues($_,$atr);
-      $output->emptyTag('l',%atrs);
-    } else {
-      $atrs{val}=1 if (index($atr->{$_}," V")>=0);
-      $atrs{ordw}=1 if (index($atr->{$_}," W")>=0);
-      $output->emptyTag('t',%atrs);
-    }
+    } #else {
+# implement as TrEd's processing instructions?
+#      $atrs{val}=1 if (index($atr->{$_}," V")>=0);
+#      $atrs{ordw}=1 if (index($atr->{$_}," W")>=0);
+#    }
+    $output->emptyTag('t',%atrs);
   }
   $output->endTag('types');
 }
@@ -228,7 +246,7 @@ sub XMLPrintNode {
       if (defined($v)) {
 	$output->startTag('a',n => $ord->[$n]);
 	$output->characters($v);
-	$output->endTag();
+	$output->endTag('a');
       }
     }
     $output->endTag('att');
@@ -246,13 +264,15 @@ sub XMLPrintTree {
   return unless $output;
   my $root=$curr;
   while ($curr) {
+    # id should be processed here
     $output->startTag('nd',
 		      defined($curr->{$natr}) ?
 		      ('n' => $curr->{$natr}) : (),
 		      $curr->{$hatr} eq 'hide' ?
-		      ('hide' => 1) : ()
+		      ('h' => 1) : (),
+                      map { ($curr->{$_} eq "") ? () : ($_ => $curr->{$_}) } @$rord
 		     );
-    XMLPrintNode($curr,$rord,$ratr,$output);
+#    XMLPrintNode($curr,$rord,$ratr,$output);
     if ($curr->firstson) {
       $curr = $curr->firstson;
       redo;
@@ -281,7 +301,7 @@ sub read {
   return unless ref($fsfile);
 
 
-  my $parser=new XML::Parser(Style=>'Stream', Pkg => 'TrXMLParser');
+  my $parser=new XML::Parser(Style=>'Stream', Pkg => 'TrXMLParser',ProtocolEncoding=>'iso-8859-2');
   $parser->parse(*$fileref);
 
   $fsformat = new FSFormat({%TrXMLParser::defs},
