@@ -474,8 +474,10 @@ sub prevFile {
 # TrEd::Window ?
 sub resumeFile {
   my ($win,$fsfile,$keep)=@_;
+  $keep||=$win->{framegroup}->{keepopen};
   return unless ref($win) and ref($fsfile);
   print "Resuming file ".$fsfile->filename."\n"  if $tredDebug;
+
   closeFile($win,0,$keep);
 
   $win->{FSFile}=$fsfile;
@@ -664,10 +666,13 @@ sub updatePostponed {
     print STDERR "Updating session menu\n"  if $tredDebug;
     my $menu= $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
+
     $grp->{PostponedFileMenu}->command(-label=> 'Open files',
 				       -state=> 'disabled',
 				       -background=> '#444444'
 				      );
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Don\'t close on open',
+	  -variable=> \$grp->{keepfiles});
     my $i=0;
     foreach (@openfiles) {
       $grp->{PostponedFileMenu}->command(-label => "$i.  ".$_->filename(),
@@ -710,6 +715,7 @@ sub updateTitle {
 
 sub newFileFromCurrent {
   my ($grp,$keep)=@_;
+  $keep||=$grp->{keepopen};
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
@@ -757,9 +763,10 @@ sub openFile {
       $goto=$1;
     print "Goto suffix is $goto\n" if $tredDebug;
   }
-
-  $keep = askSaveFile($win,1)
-    unless ($keep or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f);
+  unless ($keep or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f) {
+    $keep = askSaveFile($win,1);
+    $keep ||= $grp->{keepfiles};
+  }
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   unless ($just_header) {
@@ -767,7 +774,6 @@ sub openFile {
       if (ref($_) and $_->filename() eq $f) {
 	print "Opening postponed file\n" if $tredDebug;
 	resumeFile($win,$_,$keep);
-	
 	$win->{currentFileNo} =
 	  max(0,$win->{currentFileNo});
 	insertToFilelist($grp,$grp->{currentFilelist},
@@ -792,8 +798,10 @@ sub openFile {
   $win->{FSFile}= FSFile->newFSFile($f,@backends);
   $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
 
-  ErrorMessage($grp,"$f: empty or corrupt file!")
-    unless ($grp->{noOpenFileError} or $win->{FSFile}->lastTreeNo>=0);
+  unless ($grp->{noOpenFileError} or $win->{FSFile}->lastTreeNo>=0) {
+    ErrorMessage($grp,"$f: empty or corrupt file!");
+    closeFile($win,1);
+  }
 
   $win->{treeNo}=0;
 
@@ -806,11 +814,12 @@ sub openFile {
       $win->{FSFile}->notSaved(1);
     }
     push @openfiles, $win->{FSFile};
-    updatePostponed($grp);
   }
+
+  updatePostponed($grp);
   # add file to filelist
   $win->{currentFileNo}= max(0,$win->{currentFileNo});
-  unless ($win->{FSFile}->lastTreeNo>=0) {
+  if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0) {
     insertToFilelist($grp,$grp->{currentFilelist},$win->{currentFileNo},$f.$goto);
   }
   updateTitle($grp);
@@ -818,7 +827,7 @@ sub openFile {
   applyFileSuffix($win,$goto);
 
   get_nodes_win($win);
-  doEvalHook($win,"file_opened_hook");
+  doEvalHook($win,"file_opened_hook") if ($win->{FSFile});
   redraw_win($win);
   if ($win->{currentNode}) {
     centerToXY($win,0,0);
@@ -1547,7 +1556,7 @@ sub macrolistCreateItems {
 }
 
 sub macrolistDialog {
-  my $grp=shift;
+  my ($grp)=@_;
   my $context=$grp->{focusedWindow}->{macroContext};
   if ($grp->{Macrolist}) {
     $grp->{Macrolist}->deiconify;
@@ -1760,7 +1769,7 @@ sub printThis {
 
 
 sub printDialog {
-  my $grp=shift;
+  my ($grp)=@_;
 
   return unless $grp->{focusedWindow}->{FSFile};
 
@@ -2098,7 +2107,7 @@ sub prepareFont {
 }
 
 sub prepareFonts {
-  my $grp=shift;
+  my ($grp)=@_;
   prepareFont($grp,\$font,'C_normal');
   $treeViewOpts->{font}=$font;
   prepareFont($grp,\$vLineFont,'C_vline');
@@ -3201,7 +3210,7 @@ sub onIdlePrevTree {
     $win->{framegroup}->{valueLine}->idletasks();
     $myIdle=
       $win->toplevel->afterIdle([ sub {
-				    my $win=shift;
+				    my ($win)=@_;
 				    my $no=$win->{treeNo};
 				    # this is to force getNodes & redraw
 				    $win->{treeNo}=-1;
@@ -3339,7 +3348,7 @@ sub askSaveFile {
 }
 
 sub saveConfig {
- my $grp=shift;
+ my ($grp)=@_;
 
  if (open(F,">$configFile")) {
    print F @_;
@@ -3375,7 +3384,7 @@ sub saveConfig {
 }
 
 sub editConfig {
-  my $grp=shift;
+  my ($grp)=@_;
   return unless $grp;
   if ($grp->{configDialog}) {
     $grp->{configDialog}->deiconify;
@@ -3414,8 +3423,8 @@ sub editConfig {
       ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "  Apply  ",
 		  -command=> [sub {
-				 my $grp=shift;
-				 apply_config(split(/\n/,shift->get("0.0","end")));
+				 my ($grp,$w)=@_;
+				 apply_config(split(/\n/,$w->get("0.0","end")));
 				 addToRecent($grp);
 				 prepareFonts($grp);
 				 updateTitle($grp);
@@ -4185,7 +4194,7 @@ sub _search_busy {
 # the search process
 #####################################
 sub _quick_update {
-  my $grp=shift;
+  my $grp=$_[0];
   $grp->{top}->Unbusy();
   $grp->{top}->update();
   $grp->{top}->Busy(-recurse=> 1);
@@ -4671,7 +4680,7 @@ sub currentUnhiden {
 }
 
 sub currentLeft {
-  my $grp=shift;
+  my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
   if ($win->{treeView}->{showHidden}) {
@@ -4692,7 +4701,7 @@ sub currentLeft {
 }
 
 sub currentRight {
-  my $grp=shift;
+  my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
   if ($win->{treeView}->{showHidden}) {
@@ -4713,7 +4722,7 @@ sub currentRight {
 }
 
 sub currentDown {
-  my $grp=shift;
+  my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
   if ($win->{treeView}->{showHidden}) {
@@ -4733,7 +4742,7 @@ sub currentDown {
 }
 
 sub currentUp {
-  my $grp=shift;
+  my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   if ($win->{currentNode}->parent) {
     setCurrent($win,$win->{currentNode}->parent);
@@ -4877,7 +4886,7 @@ sub doEvalMacro {
 }
 
 sub resolveKey {
-  my $grp=shift;
+  my $grp=$_[0];
  context:
   foreach my $context ($grp->{focusedWindow}->{macroContext},$grp->{focusedWindow}->{macroContext} eq "TredMacro" ? () : "TredMacro") {
     foreach $key (@_) {
