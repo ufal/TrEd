@@ -72,7 +72,7 @@ require Fslib;
 import Fslib;
 
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw(NTREDBackend AG2FS TrXMLBackend TEIXMLBackend CSTS_SGML_SP_Backend StorableBackend)));
+@backends=('FSBackend',ImportBackends(qw(NTREDBackend SSHBackend AG2FS TrXMLBackend TEIXMLBackend CSTS_SGML_SP_Backend StorableBackend)));
 
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
