@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2004-01-27 23:06:40 pajas>
+## Time-stamp: <2004-04-07 16:31:55 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -362,7 +362,7 @@ Display the n'th tree in the current file.
 
 =cut
 sub GotoTree {
-  $FileNotSaved=0 if ($FileNotSaved eq '?');
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');
   my $to=shift()-1;
   $_NoSuchTree=($to != main::max(0,min($to,$#trees)));
   my $result=main::gotoTree($grp,$to);
@@ -377,7 +377,7 @@ Go to n'th tree in all tied windows.
 
 =cut
 sub TieGotoTree {
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $to=shift()-1;
   my $result=main::tieGotoTree($grp->{framegroup},$to);
   $root=$grp->{root};
@@ -393,7 +393,7 @@ Display the next tree in all tied windows.
 
 =cut
 sub TieNextTree {
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $result=main::tieNextTree($grp->{framegroup});
   $root=$grp->{root};
   $this=$root;
@@ -407,7 +407,7 @@ Display the previous tree in all tied windows.
 
 =cut
 sub TiePrevTree {
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $result=main::tiePrevTree($grp->{framegroup});
   $root=$grp->{root};
   $this=$root;
@@ -421,7 +421,7 @@ Display the next tree in the current file.
 
 =cut
 sub NextTree {
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $result=main::nextTree($grp);
   $root=$grp->{root};
   $this=$root;
@@ -435,7 +435,7 @@ Display the previous tree in the current file.
 
 =cut
 sub PrevTree { 
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $result=main::prevTree($grp);
   $root=$grp->{root};
   $this=$root;
@@ -683,7 +683,7 @@ Open the Find Node by Attributes GUI dialog.
 sub Find {
   $grp->{framegroup}->{findButton}->invoke();
   $this=$grp->{currentNode};
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item FindNext
@@ -695,7 +695,7 @@ of the Find... menu command or FindNode macro usage.
 sub FindNext {
   $grp->{framegroup}->{findNextButton}->invoke();
   $this=$grp->{currentNode};
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item FindPrev
@@ -707,7 +707,7 @@ use of the Find... menu command or FindNode macro usage.
 sub FindPrev {
   $grp->{framegroup}->{findPrevButton}->invoke();
   $this=$grp->{currentNode};
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item ToplevelFrame
@@ -904,7 +904,7 @@ sub CopyValues {
   undef %ValuesClipboard;
   %ValuesClipboard = map { $_ => $this->{$_} } $grp->{FSFile}->FS->attributes;
   delete $ValuesClipboard{$grp->{FSFile}->FS->order}; # we do not copy this
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item PasteValues
