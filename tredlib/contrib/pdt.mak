@@ -343,7 +343,7 @@ sub RestoreSavedAttributes {
   my $node=$top;
   while ($node) {
     foreach (@$attrs) {
-      $node->{$prefix.$_}=$node->{$_};
+      $node->{$_}=$node->{$prefix.$_};
     }
     $node=$node->following($top);
   }
