@@ -285,7 +285,11 @@ _msg("Reading macros from $macroFile...\n") unless $quiet;
 read_macros($macroFile,$libDir);	# read macros
 _msg("done.\n") unless $quiet;
 
-@files=@ARGV;
+if ($^O eq 'Win32') {
+  @files=map glob @ARGV;
+} else {
+  @files=@ARGV;
+}
 @ARGV=@TredMacro::ARGV;
 
 
