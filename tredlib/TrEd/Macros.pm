@@ -4,7 +4,7 @@ BEGIN {
   use Fslib;
   use TrEd::Config;
   use TrEd::Basics;
-  import TrEd::Config qw($defaultMacroFile $macroDebug $hookDebug);
+  import TrEd::Config qw($defaultMacroFile $defaultMacroEncoding $macroDebug $hookDebug);
 
   use TrEd::Convert;
   use Exporter  ();
@@ -59,6 +59,7 @@ sub read_macros {
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
     print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
       unless open(F,"<$defaultMacroFile");
+    set_encoding(\*F,$defaultMacroEncoding);
     push @macros, <F>;
     close F;
   }
@@ -66,6 +67,7 @@ sub read_macros {
   open(F,"<$file")
     || (!$keep && ($file="$libDir/$file") && open(F,"<$file")) ||
       die "ERROR: Cannot open macros: $file ($!)!\n";
+  set_encoding(\*F,$defaultMacroEncoding);
 
 #
 # new "pragmas":
@@ -233,6 +235,8 @@ sub read_macros {
 		  "file not found!\n";
 	    }
 	  }
+	} elsif (/^\#\s*encoding\s+(\S+)\s*$/) {
+	  set_encoding(\*F,$1);
 	}
       } else {
 	# $ifok == 0
@@ -245,6 +249,22 @@ sub read_macros {
   return 1;
 }
 
+sub set_encoding {
+  my $fh = shift;
+  my $enc = shift || $defaultMacroEncoding;
+  if ($enc and $]>=5.008) {
+    eval {
+      $fh->flush();
+      binmode $fh;  # first get rid of all I/O layers
+      if (lc($enc) =~ /^utf-?8$/) {
+	binmode $fh,":utf8";
+      } else {
+	binmode $fh,":encoding($enc)";
+      }
+    };
+    print STDERR $@ if $@;
+  }
+}
 
 #
 # The $win parameter to the following two routines should be
@@ -273,10 +293,11 @@ sub initialize_macros {
                         # which should in this way be made visible
                         # to macros
   my $result = 2;
+  my $utf = ($]>=5.008) ? "use utf8;\n" : "";
   unless ($macrosEvaluated) {
+    my $macros=$utf.join("",@macros)."\n return 1;";
     if (defined($safeCompartment)) {
       ${macro_variable('TredMacro::grp')}=$win;
-      my $macros=join("",@macros)."\n return 1;";
       my %packages;
       # dirty hack to support ->isa in safe compartment
       $macros=~s/\n\s*package\s+(\S+?)\s*;/exists($packages{$1}) ? $1 : $&.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'/ge;
@@ -286,7 +307,7 @@ sub initialize_macros {
       print STDERR $@ if $@;
     } else {
       ${macro_variable('TredMacro::grp')}=$win;
-      $result=eval (join("",@macros)."\n; return 1;");
+      $result=eval ($macros);
     }
     $macrosEvaluated=1;
     print STDERR "FirstEvaluation of macros\n" if $macroDebug;
@@ -310,16 +331,16 @@ sub do_eval_macro {
   my ($win,$macro)=@_;		# $win is a reference
 				# which should in this way be made visible
 				# to macros
-
   return 0,0,$TredMacro::this unless $macro;
+  my $utf = ($]>=5.008) ? "use utf8;\n" : "";
   my $result;
   initialize_macros($win);
   print STDERR "Running $macro\n" if $macroDebug;
   if (defined($safeCompartment)) {
     ${macro_variable('TredMacro::grp')}=$win;
-    $result = $safeCompartment->reval("$macro");
+    $result = $safeCompartment->reval($utf.$macro);
   } else {
-    $result = eval("$macro");
+    $result = eval($utf.$macro);
   }
   TrEd::Basics::errorMessage($win,$@) if ($@);
   print STDERR "Had run: ",$macro,"\n" if $macroDebug;
@@ -330,7 +351,7 @@ sub do_eval_macro {
 sub context_can {
   my ($context,$sub)=@_;
   if (defined($safeCompartment)) {
-    return $safeCompartment->reval("\${'${context}::'}{'$sub'}");
+    return $safeCompartment->reval($utf."\${'${context}::'}{'$sub'}");
   } else {
     return $context->can($sub);
   }
@@ -342,22 +363,23 @@ sub do_eval_hook {
 				# to hooks
   print STDERR "about to run the hook: '$hook' (in $context context)\n" if $hookDebug;
   return undef unless $hook; # and $TredMacro::this;
+  my $utf = ($]>=5.008) ? "use utf8;\n" : "";
   initialize_macros($win);
   my $result=undef;
 
   if (context_can($context,$hook)) {
     print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
     if (defined($safeCompartment)) {
-      $safeCompartment->reval("\&$context\:\:$hook(\@_)");
+      $safeCompartment->reval($utf."\&$context\:\:$hook(\@_)");
     } else {
-      $result=eval { return &{"$context\:\:$hook"}(@_); };
+      $result=eval($utf."\&$context\:\:$hook(\@_)");
     }
   } elsif ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
     print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
     if (defined($safeCompartment)) {
-      $safeCompartment->reval("\&TredMacro\:\:$hook(\@_)");
+      $safeCompartment->reval($utf."\&TredMacro\:\:$hook(\@_)");
     } else {
-      $result=eval { return &{"TredMacro\:\:$hook"}(@_); };
+      $result=eval($utf."\&TredMacro\:\:$hook(\@_)");
     }
   }
 
