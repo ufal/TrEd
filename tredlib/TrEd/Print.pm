@@ -50,6 +50,7 @@ sub print_trees {
       $cmd,			# lpr command
       $useType1Font,		# boolean: use Type1 font
       $printColors,		# boolean: produce color output
+      $noRotate,                # boolean: disable tree rotation
       $show_hidden,		# boolean: print hidden nodes too
       $psFontFile,		# postscript font
       $type1font,		# Type1 font
@@ -130,7 +131,7 @@ sub print_trees {
       $treeView->redraw($fsfile,undef,$nodes,$valtext);
     };
 
-    my $rotate = ( ! $toEPS 
+    my $rotate = ( ! $toEPS and ! $noRotate
 		   and $treeView->get_canvasHeight < $treeView->get_canvasWidth);
     #      print $treeView->get_canvasHeight,"x",$treeView->get_canvasWidth," $rotate\n";
     if (not $rotate) {
@@ -186,6 +187,7 @@ sub print_trees {
     } else {
       $i=0;
       unless ($toEPS) {
+	$ps[0]=~s/ EPSF-3.0//;
 	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BoundingBox:/);
 	print O $ps[$i++],"\n";
 	print O $psMedia,"\n";
@@ -204,7 +206,7 @@ sub print_trees {
     }
     while ($i<=$#ps && $ps[$i]!~/^%\%Trailer\w*$/) {
       $ps[$i]=~s/ISOEncode //g;
-      print O $ps[$i]."\n" unless (@printList==1 and
+      print O $ps[$i]."\n" unless ($toEPS and
 				   $ps[$i] =~/^restore showpage/);
       $i++
     }
