@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-01-27 14:17:53 pajas>
+## Time-stamp: <2003-04-09 16:03:39 pajas>
 
 package Coref;
 
@@ -11,7 +11,7 @@ import TredMacro;
 sub default_tr_attrs {
   if ($grp->{FSFile}) {
     SetDisplayAttrs('mode:Coref',
-		    '<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+		    '<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? " #{red}(\${corinfo})" if $${corinfo} =~/\S/ ?>',
                     '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
 		    'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
 		    'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>'
@@ -39,17 +39,17 @@ __BALLOON__
 
 sub sort_attrs_hook {
   my ($ar)=@_;
-  @$ar = (grep($grp->{FSFile}->FS->exists($_),
+  @$ar = ((grep {FS()->exists($_)}
 	       'trlemma','func','form','coref','cortype','corlemma','gender','number',
-	       'memberof','aspect','commentA'),
+	       'memberof','aspect','commentA','corinfo'),
 	  sort {uc($a) cmp uc($b)}
-	  grep(!/^(?:trlemma|func|form|coref|cortype|corlemma|gender|number|commentA|memberof|aspect)$/,@$ar));
+	  grep(!/^(?:trlemma|func|form|coref|cortype|corlemma|corinfo|gender|number|commentA|memberof|aspect)$/,@$ar));
   return 1;
 }
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:trlemma|corlemma|gender|number)$/) {
+  if ($atr!~/^(?:trlemma|corlemma|corinfo|gender|number)$/) {
     return "stop";
   }
 }
@@ -64,7 +64,7 @@ sub about_file_hook {
 #bind edit_commentA to exclam menu Edit annotator's comment
 #bind edit_commentA to exclam
 sub edit_commentA {
-  if (not $grp->{FSFile}->FS->exists('commentA')) {
+  if (not FS()->exists('commentA')) {
     $ToplevelFrame->messageBox
       (
        -icon => 'warning',
@@ -81,6 +81,27 @@ sub edit_commentA {
     $this->{commentA}=$value;
   }
 }
+
+#bind edit_corinfo to + menu Edit corinfo
+sub edit_corinfo {
+  if (not FS()->exists('corinfo')) {
+    $ToplevelFrame->messageBox
+      (
+       -icon => 'warning',
+       -message => 'Sorry, no attribute for corinfo in this file',
+       -title => 'Sorry',
+       -type => 'OK'
+      );
+    $FileNotSaved=0;
+    return;
+  }
+  my $value=$this->{corinfo};
+  $value=main::QueryString($grp->{framegroup},"Enter corinfo","corinfo",$value);
+  if (defined($value)) {
+    $this->{corinfo}=$value;
+  }
+}
+
 
 #bind fill_empty_attrs to Space
 sub fill_empty_attrs {

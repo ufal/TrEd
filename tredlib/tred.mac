@@ -237,15 +237,12 @@ sub file_opened_hook {
     return SwitchContext($mode);
   } elsif (exists($grp->{FSFile}->FS->defs->{x_TNT})
      and $grp->{FSFile}->FS->hide eq 'X_hide') {
-#    print STDERR "file_open_hook: Switching context to Transfer\n";
     return SwitchContext('Transfer');
   } elsif ($grp->{FSFile}->FS->hide eq 'TR') {
-#    print STDERR "file_open_hook: Switching context to Tectogrammatic\n";
     return SwitchContext('Tectogrammatic') 
       unless (CurrentContext eq 'TR_Correction' or
 	      CurrentContext eq 'TFA');
   } else {
-#    print STDERR "file_open_hook: Cannot guess context, using Analytic\n";
     return SwitchContext('Analytic') unless CurrentContext eq 'Analytic_Correction';
   }
 }
@@ -281,6 +278,9 @@ sub file_opened_hook {
 
 #binding-context TREdit
 #include <contrib/edit.mak>
+
+#binding-context TR_Grammatemes
+#include <contrib/grammatemes.mak>
 
 package TredMacro;
 

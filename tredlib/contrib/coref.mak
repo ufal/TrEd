@@ -36,20 +36,30 @@ $referent=""; # stores ID of the marked node (Cut-and-Paste style)
 sub update_coref_file {
   Tectogrammatic->upgrade_file_to_tid_aidrefs();
   # no need for upgrade if cortype is declared with the $cortypes values
-  return if (exists(FS()->defs->{cortype})
-	     and join('|',FS()->listValues('cortype')) eq $cortypes.'|---');
+  unless  (FS()->exists('cortype')
+	   and join('|',FS()->listValues('cortype')) eq $cortypes.'|---') {
 
   # otherwise, let the use decide
-  if (!GUI() || questionQuery('Automatic file update',
-			      "This file's declaration of coreference attributes is not up to date.\n\n".
-			      "Should this declaration be added and the obsolete coreference attributes\n".
-			      "'cornum', 'corsnt' and 'antec' removed (recommended)?\n\n",
-			      qw{Yes No}) eq 'Yes') {
-    AppendFSHeader('@P cortype',
-			'@L cortype|'.$cortypes.'|---',
-			'@P corlemma'
-		       );
-    UndeclareAttributes(qw(cornum corsnt antec));
+    if (!GUI() || questionQuery('Automatic file update',
+				"This file's declaration of coreference attributes is not up to date.\n\n".
+				"Should this declaration be added and the obsolete coreference attributes\n".
+				"'cornum', 'corsnt' and 'antec' removed (recommended)?\n\n",
+				qw{Yes No}) eq 'Yes') {
+      AppendFSHeader('@P cortype',
+		     '@L cortype|'.$cortypes.'|---',
+		     '@P corlemma',
+		     '@P corinfo',
+		    );
+      UndeclareAttributes(qw(cornum corsnt antec));
+    }
+  }
+  unless  (FS()->exists('corinfo')) {
+    if (!GUI() || questionQuery('Automatic file update',
+				"This file's declaration of coreference attributes is not up to date.\n\n".
+				"Should the declaration be updated?\n\n",
+				qw{Yes No}) eq 'Yes') {
+      AppendFSHeader('@P corinfo');
+    }
   }
 }
 
