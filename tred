@@ -294,7 +294,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 #load back-ends
 #require CSTS_SGML_SP_Backend;
 @backends=('FSBackend',ImportBackends(split(/,/,$opt_B),
-				      qw/NTREDBackend AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend/
+				      qw/NTREDBackend SSHBackend AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend/
 				     ));
 # CSTSBackend not used any more
 #$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
@@ -4534,8 +4534,13 @@ sub fileDialog {
 
 sub urlDialog {
   my ($grp,$header_only)= @_;
-  my $file = QueryString($grp,"Enter URL", "URL: ");
+  if (not(defined $grp->{lastURL}) and
+      defined($grp->{focusedWindow}->{FSFile})) {
+    $grp->{lastURL} = $grp->{focusedWindow}->{FSFile}->filename();
+  }
+  my $file = QueryString($grp,"Enter URL", "URL: ",$grp->{lastURL});
   if (defined $file and $file ne '') {
+    $grp->{lastURL} = $file;
     return openFile($grp,$file,-justheader => $header_only);
   }
   return 0;
