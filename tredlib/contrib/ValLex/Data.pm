@@ -52,7 +52,6 @@ sub doc_free {
 
 sub reload {
   my ($self)=@_;
-  return unless $self->parser();
   $self->doc_free();
   $self->doc_reload();
   $self->loadListOfUsers();
@@ -77,7 +76,7 @@ sub file {
 sub user {
   my ($self)=@_;
   return undef unless ref($self);
-  return $self->doc()->getDocumentElement->getAttribute("owner");
+  return $self->doc()->documentElement->getAttribute("owner");
 }
 
 sub set_file {
@@ -88,7 +87,7 @@ sub set_file {
 sub set_user {
   my ($self,$user)=@_;
   return undef unless ref($self);
-  return $self->doc()->getDocumentElement->setAttribute("owner",$user);
+  return $self->doc()->documentElement->setAttribute("owner",$user);
 }
 
 sub set_doc {
@@ -129,7 +128,7 @@ sub loadListOfUsers {
   my $users = {};
   return undef unless ref($self);
   my $doc=$self->doc();
-  my ($head)=$doc->getDocumentElement()->getChildElementsByTagName("head");
+  my ($head)=$doc->documentElement()->getChildElementsByTagName("head");
   if ($head) {
     my ($list)=$head->getChildElementsByTagName("list_of_users");
     if ($list) {
@@ -150,7 +149,7 @@ sub getWordNodes {
   my ($self)=@_;
   my $doc=$self->doc();
   return unless $doc;
-  my ($body)=$doc->getDocumentElement()->getChildElementsByTagName ("body");
+  my ($body)=$doc->documentElement()->getChildElementsByTagName ("body");
   return unless $body;
   return $body->getChildElementsByTagName("word");
 }
@@ -171,23 +170,111 @@ sub getFrameElementNodes {
   return $fe->getChildElementsByTagName ("element");
 }
 
+=item getWordNodes
+  return $slen words before and after given word
+  suppose the lexicon is sorted alphabetically
+=cut
+
+sub getWordSubList {
+  my ($self,$item,$slen,$posfilter)=@_;
+  use locale;
+  my $doc=$self->doc();
+  return unless $doc;
+  my @words=();
+  my $docel=$doc->documentElement();
+  my ($milestone,$after,$before,$i);
+  if (ref($item)) {
+    $milestone = $item;
+    $before = $slen;
+    $after = $slen;
+  } elsif ($item eq "") {
+    $milestone = $self->getFirstWordNode();
+    $after = 2*$slen;
+    $before = 0;
+  } else {
+    # search by lemma
+    my $word = $self->getFirstWordNode();
+    my $i=0;
+    WORD: while ($word) {
+      last if ($i++ % $slen == 0 &&
+	       $item le $self->conv()->decode($word->getAttribute ("lemma")));
+      $word = $word->nextSibling() || last;
+      while ($word) {
+	last if ($word->nodeName() eq 'word');
+	$word = $word->nextSibling() || last;
+      }
+    }
+    $milestone = $word;
+    $before = $slen + $slen/2;
+    $after = $slen/2;
+  }
+
+  # get before list
+  $i=0;
+  my $word = $milestone;
+  ($posfilter) = $posfilter=~/^\s*([a-z])/i;
+  while ($word and $i<$before) {
+    my $pos = $self->conv()->decode($word->getAttribute ("POS"));
+    if ($posfilter eq '' or $pos eq uc($posfilter)) {
+      my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
+      my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
+      unshift @words, [$word,$id,$lemma,$pos];
+      $i++;
+    }
+    $word=$word->previousSibling();
+    while ($word) {
+      last if ($word->nodeName() eq 'word');
+      $word=$word->previousSibling();
+    }
+  }
+
+  # get after list
+  $i=0;
+  $word=$milestone->nextSibling();
+  while ($word and $word->nodeName eq 'word' and $i<$after) {
+    my $pos = $self->conv()->decode($word->getAttribute ("POS"));
+    if ($posfilter eq '' or $pos eq uc($posfilter)) {
+      my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
+      my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
+      push @words, [$word,$id,$lemma,$pos];
+      $i++;
+    }
+    $word=$word->nextSibling();
+    while ($word) {
+      last if ($word->nodeName() eq 'word');
+      $word=$word->nextSibling();
+    }
+  }
+  return			# sort { $a->[2] cmp $b->[2] }
+    @words;
+}
+
+
 sub getWordList {
   my ($self)=@_;
   my $doc=$self->doc();
   return unless $doc;
   my @words=();
-  my $docel=$doc->getDocumentElement();
-  foreach my $word ($self->getWordNodes()) {
+  my $docel=$doc->documentElement();
+  my $word = $self->getFirstWordNode();
+  while ($word) {
     my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
     my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
     push @words, [$word,$id,$lemma,$pos];
+    $word=$word->nextSibling();
+    while ($word) {
+      last if ($word->nodeName() eq 'word');
+      $word=$word->nextSibling();
+    }
   }
-  return @words;
+  return # sort { $a->[2] cmp $b->[2] }
+    @words;
 }
 
 sub getFrame {
   my ($self,$frame)=@_;
+
   my $id = $self->conv->decode($frame->getAttribute("frame_ID"));
   my $status = $self->conv->decode($frame->getAttribute("status"));
   my $elements = $self->getFrameElementString($frame);
@@ -298,6 +385,38 @@ sub getFrameElementString {
   }
 }
 
+sub getNextWordNode {
+  my ($self,$n)=@_;
+
+  $n=$n->nextSibling();
+  while ($n) {
+    last if ($n and $n->nodeName() eq 'word');
+    $n=$n->nextSibling();
+  }
+  return $n;
+}
+
+sub getFirstWordNode {
+  my ($self)=@_;
+  my $doc=$self->doc();
+  return unless $doc;
+  my $docel=$doc->documentElement();
+  my $body=$docel->firstChild();
+  while ($body) {
+    last if ($body->nodeName() eq 'body');
+    $body=$body->nextSibling();
+  }
+  die "didn't find vallency_lexicon body?" unless $body;
+  my @w;
+  my $n=$body->firstChild();
+  while ($n) {
+    last if ($n->nodeName() eq 'word');
+    $n=$n->nextSibling();
+  }
+  return $n;
+}
+
+
 sub getFrameElementFormsString {
   my ($self,$element)=@_;
   return unless $element;
@@ -315,7 +434,7 @@ sub getFrameExample {
   $self->normalize_ws($frame);
   my ($example)=$frame->getChildElementsByTagName("example");
   if ($example) {
-    my $text=$example->getFirstChild;
+    my $text=$example->firstChild;
     if ($text and $text->isTextNode) {
       my $data=$text->getData();
       $data=~s/^\s+//;
@@ -332,7 +451,7 @@ sub getElementText {
   my ($self,$element)=@_;
   return unless $element;
   $self->normalize_ws($element);
-  my $text=$element->getFirstChild;
+  my $text=$element->firstChild;
   if ($text and $text->isTextNode) {
     my $data=$text->getData();
     $data=~s/^\s+//;
@@ -348,7 +467,7 @@ sub getSubElementNote {
   $self->normalize_ws($elem);
   my ($note)=$elem->getChildElementsByTagName("note");
   return "" unless $note;
-  my $text=$note->getFirstChild;
+  my $text=$note->firstChild;
   if ($text and $text->isTextNode) {
     my $data=$text->getData();
     $data=~s/^\s+//;
@@ -378,7 +497,7 @@ sub findWord {
   my ($self,$find,$nearest)=@_;
   my $doc=$self->doc();
   return unless $doc;
-  my $docel=$doc->getDocumentElement();
+  my $docel=$doc->documentElement();
   foreach my $word ($self->getWordNodes()) {
     my $lemma = $self->conv->decode($word->getAttribute("lemma"));
     return $word if (($nearest and index($lemma,$find)==0) or $lemma eq $find);
@@ -390,7 +509,7 @@ sub findWordAndPOS {
   my ($self,$find,$pos)=@_;
   my $doc=$self->doc();
   return unless $doc;
-  my $docel=$doc->getDocumentElement();
+  my $docel=$doc->documentElement();
   foreach my $word ($self->getWordNodes()) {
     my $lemma = $self->conv->decode($word->getAttribute("lemma"));
     my $POS = $self->conv->decode($word->getAttribute ("POS"));
@@ -403,7 +522,7 @@ sub getForbiddenIds {
   my ($self)=@_;
   my $doc=$self->doc();
   return {} unless $doc;
-  my $docel=$doc->getDocumentElement();
+  my $docel=$doc->documentElement();
   my ($tail)=$docel->getChildElementsByTagName("tail");
   return {} unless $tail;
   my %ids;
@@ -436,14 +555,32 @@ sub addWord {
   return unless defined($new_id);
 
   my $doc=$self->doc();
-  my $root=$doc->getDocumentElement();
+  my $root=$doc->documentElement();
   my ($body)=$root->getChildElementsByTagName("body");
   return unless $body;
+  # find alphabetic position
+  my $n=$self->getFirstWordNode();
+  use locale;
+
+  while ($n) {
+    last if $lemma le $self->conv->decode($n->getAttribute("lemma"));
+    # don't allow more then 1 lemma/pos pair
+    $n=$n->nextSibling();
+    while ($n && $n->nodeName ne 'word') {
+      $n=$n->nextSibling();
+    }
+  }
   my $word=$doc->createElement("word");
+  if ($n) {
+    print "insert before\n";
+    $body->insertBefore($word,$n);
+  } else {
+    print "append\n";
+    $body->appendChild($word);
+  }
   $word->setAttribute("lemma",$self->conv->encode($lemma));
   $word->setAttribute("POS",$pos);
   $word->setAttribute("word_ID",$new_id);
-  $body->appendChild($word);
 
   my $valency_frames=$doc->createElement("valency_frames");
   $word->appendChild($valency_frames);
@@ -458,6 +595,12 @@ sub getPOS {
   return $self->conv->decode($word->getAttribute("POS"));
 }
 
+sub getLemma {
+  my ($self,$word)=@_;
+  return unless ref($word);
+  return $self->conv->decode($word->getAttribute("lemma"));
+}
+
 sub addFrameLocalHistory {
   my ($self,$frame,$type)=@_;
   return unless $frame;
@@ -470,12 +613,12 @@ sub addFrameLocalHistory {
   }
 
   my $local_event=$doc->createElement("local_event");
+  $local_history->appendChild($local_event);
   my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
   $local_event->setAttribute("time_stamp",sprintf('%d.%d.%d %02d:%02d:%02d',
 						 $mday,$mon+1,1900+$year,$hour,$min,$sec));
   $local_event->setAttribute("type_of_event",$type);
   $local_event->setAttribute("author",$self->user());
-  $local_history->appendChild($local_event);
   $self->set_change_status(1);
   return $local_event;
 }
@@ -526,8 +669,8 @@ sub addForms {
     $f=~s/^\s+//;
     if ($f ne "") {
       my $form=$doc->createElement("form");
-      $form->setAttribute("abbrev",$f);
       $elem->appendChild($form);
+      $form->setAttribute("abbrev",$f);
     }
   }
   $self->set_change_status(1);
@@ -541,10 +684,10 @@ sub addFrameElements {
     foreach (@elements) {
       if (/^\s*([A-Z0-9]+)([[(])?([^])]*)[])]?$/) {
 	my $elem=$doc->createElement("element");
+	$elems->appendChild($elem);
 	$elem->setAttribute("functor",$self->conv->encode($1));
 	$elem->setAttribute("type", ($2 eq '(') ? "oblig" : "non-oblig");
 	$self->addForms($elem,$self->conv->encode($3));
-	$elems->appendChild($elem);
       }
     }
   }
@@ -554,42 +697,42 @@ sub addFrameElements {
 sub addFrame {
   my ($self,$before,$word,$elements,$note,$example,$problem,$author)=@_;
   return unless $word and $elements;
+
   my $new_id = $self->generateNewFrameId($word);
   my $doc=$self->doc();
   my ($valency_frames)=$word->getChildElementsByTagName("valency_frames");
   return unless $valency_frames;
   my $frame=$doc->createElement("frame");
-  $frame->setAttribute("frame_ID",$new_id);
-  $frame->setAttribute("status","active");
+
   if (ref($before)) {
     $valency_frames->insertBefore($frame,$before);
   } else {
     $valency_frames->appendChild($frame);
   }
+  $frame->setAttribute("frame_ID",$new_id);
+  $frame->setAttribute("status","active");
+
   my $ex=$doc->createElement("example");
-  $ex->addText($self->conv->encode($example));
   $frame->appendChild($ex);
+  $ex->addText($self->conv->encode($example));
 
   if ($note ne "") {
     my $not=$doc->createElement("note");
-    $not->addText($self->conv->encode($note));
     $frame->appendChild($not);
+    $not->addText($self->conv->encode($note));
   }
-
   if ($problem ne "") {
     my $problems=$doc->createElement("problems");
     $frame->appendChild($problems);
 
     my $probl=$doc->createElement("problem");
+    $problems->appendChild($probl);
     $probl->addText($self->conv->encode($problem));
     $probl->setAttribute("author",$author);
-    $problems->appendChild($probl);
   }
-
   my $elems=$doc->createElement("frame_elements");
-  $self->addFrameElements($elems,$elements);
-
   $frame->appendChild($elems);
+  $self->addFrameElements($elems,$elements);
   $self->addFrameLocalHistory($frame,"create");
   $self->set_change_status(1);
   return $frame;
@@ -602,25 +745,25 @@ sub modifyFrame {
   my $doc=$self->doc();
   my ($old_ex)=$frame->getChildElementsByTagName("example");
   my $ex=$doc->createElement("example");
-  $ex->addText($self->conv->encode($example));
   if ($old_ex) {
     $frame->replaceChild($ex,$old_ex);
     $self->dispose_node($old_ex);
   } else {
     $frame->insertBefore($ex,undef);
   }
+  $ex->addText($self->conv->encode($example));
   undef $old_ex;
 
   my ($old_note)=$frame->getChildElementsByTagName("note");
   if ($note ne "") {
     my $not=$doc->createElement("note");
-    $not->addText($self->conv->encode($note));
     if ($old_note) {
       $frame->replaceChild($not,$old_note);
       $self->dispose_node($old_note);
     } else {
       $frame->insertAfter($not,$ex);
     }
+    $not->addText($self->conv->encode($note));
   } elsif ($old_note) {
     $frame->removeChild($old_note);
     $self->dispose_node($old_note);
@@ -638,9 +781,9 @@ sub modifyFrame {
       }
     }
     my $probl=$doc->createElement("problem");
+    $problems->appendChild($probl);
     $probl->addText($self->conv->encode($problem));
     $probl->setAttribute("author",$author);
-    $problems->appendChild($probl);
   }
 
   my $elems=$doc->createElement("frame_elements");
