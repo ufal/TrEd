@@ -19,7 +19,7 @@ if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n\n";
 }
 
-use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
+use vars qw($version $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
 	    $opt_n $opt_D $opt_v $opt_H
             $libDir
@@ -38,13 +38,12 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 	    $no_secondary
            );
 
-$version='$Revision$ ';
-$timestamp="Time-stamp: <2001-07-27 14:45:25 pajas>";
+$version='$Id$';
 $about=
   "Copyright (c) 2000-2003 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
-$lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
+
 
 # Get user's login name
 ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
@@ -150,7 +149,7 @@ $no_secondary = $opt_Y;
 if ($opt_v) {
   my $ver=$version;
   $ver=~s/\$//g;
-  print "TrEd $ver\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\nLast update: $lastupdate","\n";
+  print "TrEd $ver\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
   exit;
 }
 
@@ -3475,12 +3474,14 @@ sub printDialog {
 					     -d $initdir ? (-initialdir=> $initdir) : (),
 					     -filetypes=>
 					     [
-					      ["PostScript files", [qw/.ps .eps .PS .EPS/]],
+					      ($s->{format} eq 'PDF' ?
+					      ["PDF files", [qw/.pdf .PDF/]] :
+					      ["PostScript files", [qw/.ps .eps .PS .EPS/]]),
 					      ["All files", '*']
 					     ]
 					    );
-			 $s{file}=$file if (defined $file and $file ne '');
-		       },$d,$s])->pack(qw/-padx 10 -side left/);
+			 $s->{file}=$file if (defined $file and $file ne '');
+		       },$d,\%s])->pack(qw/-padx 10 -side left/);
 
   # TrueType font
   my $of=$d->Frame();
@@ -3682,6 +3683,9 @@ sub printThis {
   if ($stylesheet ne STYLESHEET_FROM_FILE()) {
     $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
   }
+  $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
+  $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
+
   TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
 			   $grp->{top},
 			   $canvas,
@@ -3702,6 +3706,10 @@ sub printThis {
 			   $treeViewOpts,
 			   $ss
 			  );
+
+  $TrEd::TreeView::on_get_root_style = undef;
+  $TrEd::TreeView::on_get_node_style = undef;
+
 
 ## uncomment to get preview (see also above)
 #  $canvas->pack();
@@ -4030,7 +4038,7 @@ sub About {
     messageBox(-icon=> 'info',
 			  -type=> 'ok',
 			  -message=>
-			  "TrEd $ver\nTk $Tk::VERSION\n\n$fileinfo$contextinfo$colinf$message\n$about\n\nLast update: $lastupdate",
+			  "TrEd $ver\nTk $Tk::VERSION\n\n$fileinfo$contextinfo$colinf$message\n$about\n",
 			  -title=> 'About');
 }
 
@@ -6358,6 +6366,7 @@ sub closeSimpleHtml {
 sub dumpSentView {
   my ($grp, $fsfile, $t, $create_images, $selref)=@_;
 
+  my $win = $grp->{framegroup};
   return if ($create_images and warnWin32PrintConvert($t) eq 'Cancel');
 
   my $file=$fsfile->filename;
@@ -6419,6 +6428,10 @@ sub dumpSentView {
 	  if ($stylesheet ne STYLESHEET_FROM_FILE()) {
 	    $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
 	  }
+
+	  $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
+	  $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
+
 	  TrEd::Print::print_trees
 	      ($fsfile,$grp->{top},$canvas,
 	       $no,0,1,0,$img_file,0,
@@ -6432,6 +6445,10 @@ sub dumpSentView {
 		 'Size' => $psFontSize,
 	       },
 	       0,0,0,0,0,'BBox',$treeViewOpts,$ss);
+
+	  $TrEd::TreeView::on_get_root_style = undef;
+	  $TrEd::TreeView::on_get_node_style = undef;
+
 	  $canvas->destroy();
 	  $img=0;
 	}
@@ -6775,6 +6792,7 @@ sub editAttrsDialog_schema {
   $d->destroy;
 ## for persistent dialog
 ##  $d->Popup;
+  return ($result=~ /OK/) ? 1 : 0;
 }
 
 sub editAttrsDialog {
@@ -6904,6 +6922,7 @@ sub editAttrsDialog {
 
   undef %e;
   $d->destroy;
+  return ($result =~ /OK/) ? 1 : 0;
 }
 
 sub disable_scrollbar_focus {
