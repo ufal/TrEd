@@ -473,10 +473,10 @@ sub substituteFrame {
 sub generateNewFrameId {
   my ($self,$word)=@_;
   my $i=0;
-  my $w=0;
+#  my $w=0;
   my $wid=$word->getAttribute("word_ID");
   my $forbidden=$self->getForbiddenIds();
-  $w=$1 if ($wid=~/^.-(.+)/);
+#  $w=$1 if ($wid=~/^.-(.+)/);
   foreach ($self->getFrameList($word)) {
     if ($_->[1]=~/-(\d+)\D*$/ and $i<$1) {
       $i=$1;
