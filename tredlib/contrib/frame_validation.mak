@@ -103,6 +103,9 @@ sub has_auxR {
     [[ 'ACT(.1)', 'ADDR(.4)' ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.4)', '+ADDR(.1)' ]],
     # /6 frame test
+    [[ 'ACT(.1)', 'ADDR(.2)' ] =>
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.2)', '+ADDR(.1)' ]],
+    # /7 frame test
     [[ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ] ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
       ['EFF',
