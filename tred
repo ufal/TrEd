@@ -576,7 +576,6 @@ sub __debug {
   print STDERR @_,"\n" if $tredDebug;
 }
 
-
 sub get_open_filename {
   my $w = shift;
   my %opts=@_;
