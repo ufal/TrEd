@@ -1256,12 +1256,12 @@ root# <userinput>make install</userinput>
     </sect2>
     <sect2>
       <title>Keyboard Shortcuts</title>
-      <para>Cursor keys may be used to activate another node in the
-	structure. Use <keycap>left</keycap>/<keycap>right</keycap>
-	to activate the nearest left/right brother-node of
-	the active node and <keycap>up</keycap>/<keycap>down</keycap> to activate the active node's
-	ancestor (parent)/its leftmost son.
-      </para>    
+      <para>Cursor keys may be used
+      to activate another node in the structure. Use
+      <keycap>left</keycap>/<keycap>right</keycap> to activate the
+      nearest left/right brother-node of the active node and
+      <keycap>up</keycap>/<keycap>down</keycap> to activate the active
+      node's ancestor (parent)/its leftmost son.  </para>
       <para>
 	<keycap>Tab</keycap> and
 	<keycombo action="simul">
@@ -2705,7 +2705,7 @@ root# <userinput>make install</userinput>
 	button. This may be an unwanted behaviour for macros which
 	do not change the structure of the trees nor attribute
 	values. To prevent <application>TrEd</application> from
-	considering the file modifyed by the macro, the macro must explicitly
+	considering the file modified by the macro, the macro must explicitly
 	set the special variable named
 	<literal>$FileNotSaved</literal> to zero.
       </para>
@@ -2903,7 +2903,7 @@ root# <userinput>make install</userinput>
 	  members of the <quote>Grouping</quote> structure are
 	  guaranteed to stay present or unchanged in this structure in
 	  the future versions of <application>TrEd</application> we
-	  will pay our attention to only a few of the most important.
+	  will pay our attention only to a few of the most important.
 	</para>
 	<para>
 	  The current file is accessed using the
@@ -3060,7 +3060,7 @@ root# <userinput>make install</userinput>
 		<entry>color(<replaceable>attr</replaceable>)</entry>
 		<entry>
 		  Return one of the <literal>Shadow</literal>,
-		  <literal>Hilite</literal> and
+		  <literal>Hilite</literal>,
 		  <literal>XHilite</literal> and
 		  <literal>normal</literal>
 		  values, depending on the
@@ -3082,14 +3082,14 @@ root# <userinput>make install</userinput>
 	      <row>
 		<entry>indexOf(<replaceable>attr</replaceable>)</entry>
 		<entry>Return index of the attribute named 
-		  <replaceable>attr</replaceable>, corresponding
+		  <replaceable>attr</replaceable>, according
 		  to the order in which attributes are defined in the
 		  FS file.
 		</entry>
 	      </row>
 	      <row>
 		<entry>count</entry>
-		<entry>Return number of attributes defined in the FS file.</entry>
+		<entry>Return the number of attributes defined in the FS file.</entry>
 	      </row>
 	      <row>
 		<entry>exists(<replaceable>attr</replaceable>)</entry>
@@ -3172,8 +3172,8 @@ sub MakeSentence {
     $node = $node->following($top);
   }
 
-  # Transiation of the following mighty Perl construct to English:
-  # 1. sort the collected nodes comparint their values for attribute $ord
+  # Translation of the following mighty Perl construct to English:
+  # 1. sort the collected nodes comparing their values for attribute $ord
   # 2. get their values using a "map" which maps element $_ to $_->{$value}
   # 3. join the values separating the fields with $separator
   # 4. and finally return the string.
@@ -3222,8 +3222,8 @@ sub MakeSentence {
 	      <entry>Force <application>TrEd</application> to redraw
 		the current tree immediately. Hence
 		<application>TrEd</application> redraws the tree
-		right after an interactively invoked macro finishes
-		the <literal>Redraw</literal> macro is needed only under
+		right after an interactively invoked macro finishes.
+		The <literal>Redraw</literal> macro is needed only under
 		certain circumstances.
 	      </entry>
 	    </row>
@@ -3247,14 +3247,14 @@ sub MakeSentence {
 	      <entry><literal>SwitchContext(<replaceable>context_name</replaceable>)</literal></entry>
 	      <entry>
 		Switch to a different macro context. See
-		<xref linkend="contexts"/> for more detail about contexts.
+		<xref linkend="contexts"/> for more details about contexts.
 	      </entry>
 	    </row>
 	    <row>
 	      <entry><literal>CurrentContext</literal></entry>
 	      <entry>
 		Return the name of the current macro context.  See
-		<xref linkend="contexts"/> for more detail about contexts.
+		<xref linkend="contexts"/> for more details about contexts.
 	      </entry>
 	    </row>
 	    <row>
@@ -3309,7 +3309,7 @@ sub MakeSentence {
 	    </row>
 	    <row>
 	      <entry><literal>NewTreeAfter</literal></entry>
-	      <entry>Create a new tree <emphasis>before</emphasis> the current tree.
+	      <entry>Create a new tree <emphasis>after</emphasis> the current tree.
 		The new tree consists of exactly one node.
 		This node is activated and a reference to its
 		<classname>FSNode</classname> object is returned.</entry>
@@ -3341,9 +3341,8 @@ sub MakeSentence {
 	      <entry><literal>FindNext</literal></entry>
 	      <entry>
 		Searches for the first node matching the criteria of the
-		previous use of the <guimenuitem>Find
-		  ...</guimenuitem> menu command or
-		<literal>FindNode</literal>
+		previous use of the <guimenuitem>Find...</guimenuitem>
+		menu command or <literal>FindNode</literal>
 		macro usage.
 	      </entry>
 	    </row>
@@ -3351,15 +3350,14 @@ sub MakeSentence {
 	      <entry><literal>FindPrev</literal></entry>
 	      <entry>
 		Searches for the previous node matching the criteria of the
-		previous use of the <guimenuitem>Find
-		  ...</guimenuitem> menu command  or
-		<literal>FindNode</literal>
+		previous use of the <guimenuitem>Find...</guimenuitem>
+		menu command or <literal>FindNode</literal>
 		macro usage.
 	      </entry>
 	    </row>
 	    <row>
 	      <entry><literal>PlainNewSon(<replaceable>parent</replaceable>)</literal></entry>
-	      <entry>Add new child node to the given
+	      <entry>Add a new child node to the given
 		<replaceable>parent</replaceable>.
 	      </entry>
 	    </row>
@@ -3408,14 +3406,14 @@ sub MakeSentence {
 		recalculate the special FS numbering attribute values
 		in the whole tree so that there is
 		no gap in the numbering. If the current
-		node is not a leaf or if it is a root of the current
+		node is not a leaf or if it is the root of the current
 		tree, this macro does nothing.
 	      </entry>
 	    </row>
 	    <row>
 	      <entry><literal>CopyValues</literal></entry> 
 	      <entry>
-		Copy values of all the attributes except the special
+		Copy the values of all the attributes except the special
 		FS numbering attribute of the current node to a global
 		hash variable named
 		<literal>%ValuesClipboard</literal>.
@@ -3424,8 +3422,8 @@ sub MakeSentence {
 	    <row>
 	      <entry><literal>PasteValues</literal></entry>
 	      <entry>
-		Replace values of the current node's attributes
-		by those stored in a global hash variable
+		Replace the values of the current node's attributes
+		by those stored in the global hash variable
 		named <literal>%ValuesClipboard</literal>.
 	      </entry>
 	    </row>
@@ -3495,7 +3493,7 @@ sub MakeSentence {
 	    </row>
 	    <row>
 	      <entry><literal>GetNodes(<replaceable>top</replaceable>?)</literal></entry>
-	      <entry>Return a list of all nodes
+	      <entry>Return the list of all nodes
 		in the subtree of the given
 		<replaceable>top</replaceable>
 		node (or the whole current tree if no <replaceable>top</replaceable>
@@ -3504,8 +3502,8 @@ sub MakeSentence {
 	      </entry>
 	    </row>
 	    <row>
-	      <entry><literal>GetVisibleNodes</literal></entry>
-	      <entry>Return a list of all visible nodes
+	      <entry><literal>GetVisibleNodes(<replaceable>top</replaceable>?)</literal></entry>
+	      <entry>Return the list of all visible nodes
 		in the subtree of the given
 		<replaceable>top</replaceable>
 		node (or the whole current tree if no <replaceable>top</replaceable>
@@ -3518,7 +3516,7 @@ sub MakeSentence {
 	      <entry><literal>NormalizeOrds(<replaceable>listref</replaceable>)</literal></entry>
 	      <entry>
 		Adjusts the special FS numbering attribute of 
-		every node of a list referenced by the 
+		every node of the list referenced by the 
 		<replaceable>listref</replaceable> argument so that
 		the value for the attribute corresponds to the
 		order of the node in the list.
@@ -3589,7 +3587,7 @@ sub MakeSentence {
 	    </row>
 	    <row>
 	      <entry><literal>ValNo(<replaceable>n</replaceable>,<replaceable>string</replaceable>)</literal></entry>
-	      <entry>Return <replaceable>n</replaceable>'th field
+	      <entry>Return the <replaceable>n</replaceable>'th field
 		of the given <replaceable>string</replaceable> where
 		individual fields are separated by <quote><literal>|</literal></quote>.
 	      </entry>
@@ -3653,8 +3651,8 @@ sub MakeSentence {
     <sect2 id="hooks">
       <title>Hooks: automatically executed macros</title>
       <para>
-	There is a special set of macros that was not yet
-	mentioned. These macros, called hooks, are automatically
+	There is a special set of macros that was not
+	mentioned yet. These macros, called hooks, are automatically
 	executed by <application>TrEd</application> on certain
 	occasions. By defining such macros a little more of the
 	<application>TrEd</application>'s implicit behaviour may be
@@ -3675,15 +3673,15 @@ sub MakeSentence {
 	  </listitem>
 	  <listitem>
 	    <para>No modifications of the tree or current node
-	      are reflected after the hook returns. Tree is not
+	      are reflected after the hook returns, i.e. the tree is not
 	      redrawn, changes to <literal>$this</literal> variable
-	      are not reflected. If necessary, hook must provide this
-	      functionality by itself.
+	      are not reflected. If necessary, a hook must provide this
+	      functionality itself.
 	    </para>
 	  </listitem>
 	  <listitem>
 	    <para>
-	      Unlike the macros, hooks are not expected to modify
+	      Unlike macros, hooks are not expected to modify
 	      the tree unless they explicitly state that by setting the
 	      <literal>$FileNotSaved</literal> to <literal>1</literal>.
 	    </para>
@@ -3725,13 +3723,13 @@ sub MakeSentence {
 	      <entry>no</entry>
 	      <entry>Executed when the main window
 		of <application>TrEd</application> is destroyed,
-		before the user is prompted to save the modifyed files.
+		before the user is prompted to save the modified files.
 	      </entry>
 	    </row>
 	    <row>
 	      <entry><literal>do_edit_attrs_hook(<replaceable>attr</replaceable>,<replaceable>node</replaceable>)</literal></entry>
 	      <entry>yes</entry>
-	      <entry>Executed before a dialog window for editing
+	      <entry>Executed before a dialog window for editing an
 		attribute value is displayed (usually when the 
 		user double-clicks the displayed attribute value).</entry>
 	    </row>
@@ -3740,19 +3738,16 @@ sub MakeSentence {
 		  <replaceable>type</replaceable>)</literal></entry>
 	      <entry>yes</entry>
 	      <entry>
-		Executed when a decision is to be made whether
-		an <replaceable>attr</replaceable>
-		attribute field in the <guilabel>Edit Node
-		Attributes</guilabel>
-		dialog or when individual value is edited
-		(usually when the 
-		user double-clicks the displayed attribute value).
-		If the hook returns
+		Executed before any text field for an attribute value
+		modification or list of possible values
+		is created. If the hook returns
 		<quote><literal>stop</literal></quote>,
 		the field or list is made read-only. The
 		<replaceable>type</replaceable>
 		argument may have one of the following values:
-		<literal>ambiguous</literal> or
+		<literal>ambiguous</literal> (in case
+		of multiple values or an attribute with
+		a given list of possible values) or
 		<literal>normal</literal>.
 	      </entry>
 	    </row>
@@ -3760,7 +3755,7 @@ sub MakeSentence {
 	      <entry>goto_file_hook</entry>
 	      <entry>yes</entry>
 	      <entry>
-		Executed before next or previous file in the current
+		Executed before the next or previous file in the current
 		file-list is opened.
 	      </entry>
 	    </row>
@@ -3768,7 +3763,7 @@ sub MakeSentence {
 	      <entry>goto_tree_hook</entry>
 	      <entry>yes</entry>
 	      <entry>
-		Executed before different tree is displayed.
+		Executed before a different tree is displayed.
 	      </entry>
 	    </row -->
 	    <row>
@@ -3822,7 +3817,7 @@ sub MakeSentence {
 		<replaceable>attribsref</replaceable>
 		parameter passed to the hook is a reference pointing
 		to a list variable. The list is populated with all
-		attribue names and the hook may modify the list by
+		attribute names and the hook may modify the list by
 		changing the order of its elements
 		or by removing certain elements from the list.
 		If then non-zero value is returned by the hook,
@@ -3833,11 +3828,11 @@ sub MakeSentence {
 	    <row>
 	      <entry>after_edit_node_hook(<replaceable>node</replaceable>,<replaceable>result</replaceable>)</entry>
 	      <entry>no</entry>
-	      <entry>Executed after node attribute values were edited
+	      <entry>Executed after a node's attribute values were edited
 		in the <guilabel>Edit Node Attributes</guilabel>
 		dialog window. The <replaceable>result</replaceable>
 		argument contains <literal>1</literal> if the user pressed
-		<guibutton>Ok</guibutton> button to close the dialog
+		<guibutton>Ok</guibutton> button to close the dialog,
 		and it contains <literal>0</literal> if the user
 		closed the dialog with the
 	      <guibutton>Close</guibutton> button.
@@ -3846,11 +3841,11 @@ sub MakeSentence {
 	    <row>
 	      <entry>after_edit_attr_hook</entry>
 	      <entry>no</entry>
-	      <entry>Executed after a node attribute was edited
+	      <entry>Executed after a node's attribute was edited
 		in the <guilabel>Edit Attribute</guilabel>
 		dialog window. The <replaceable>result</replaceable>
 		argument contains <literal>1</literal> if the user pressed
-		<guibutton>Ok</guibutton> button to close the dialog
+		<guibutton>Ok</guibutton> button to close the dialog,
 		and it contains <literal>0</literal> if the user
 		closed the dialog with the
 	      <guibutton>Close</guibutton> button.
@@ -3861,14 +3856,14 @@ sub MakeSentence {
       </table>
     </sect2>
     <sect2 id="contexts">
-      <title>Using different sets macros in different situations</title>
+      <title>Using different sets of macros in different situations</title>
       <subtitle>Name-spaces, contexts and binding contexts</subtitle>
       <para>
 	<application>TrEd</application> adopts mechanisms similar
 	e.g. to <application>Emacs</application> major-modes which
 	allow the user to safely create several sets of macros with possibly
 	coliding key and menu bindings as well as macro names.
-	These mechanisms are called <emphasis>cotexts</emphasis>, or
+	These mechanisms are called <emphasis>contexts</emphasis>, or
 	more specifically: name-spaces and binding contexts.
       </para>
       <para>
@@ -3960,22 +3955,22 @@ MyPackage::my_macro();   # call to a macro defined in MyPackage
 	If the search
 	fails, no action is taken. The same holds for hooks as well.
       </para>
-      <para>The following example show, how to create a set of macros
+      <para>The following example shows how to create a set of macros
 	which enable <application>TrEd</application> to automatically
-	decide which context to use, when a file is opened. It is
+	decide which context to use when a file is opened. It is
 	quite similar to the <application>Emacs</application> concept
 	of <quote>auto-modes</quote>, except that content of the file
 	is considered here, not the file-name extension. In the
-	example, existence of a certain attribute is chosen as a way
+	example, existence of a certain attribute is used
 	to decide which context to use. The example is extracted form
-	the set of macros written for annotation of the
+	the set of macros written for the annotation of the
 	<application>Prague Dependency Treebank</application>.
-	There are two contexts for annotation on the
-	<quote>Annalytic</quote>
+	There are two contexts for annotation: for the
+	<quote>Analytic</quote>
 	and <quote>Tectogrammatic</quote> layers. The
 	<quote>tectogrammatic</quote>
 	trees may be easily distinguished from the
-	<quote>analytical</quote> ones as (among others)
+	<quote>analytical</quote> ones because (among others)
 	a special attribute named <literal>TR</literal> is defined for
 	them.
       </para>
