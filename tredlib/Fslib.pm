@@ -1799,7 +1799,6 @@ Note: this function sets noSaved to zero.
 sub readFile {
   my ($self,$filename) = (shift,shift);
   return unless ref($self);
-  print STDERR "FSFile->encoding: ",$self->encoding,"\n";
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
@@ -2600,7 +2599,6 @@ sub open_backend {
     }
   }
   no integer;
-  print STDERR "ENCODING: $mode $encoding\n";
   if ($]>=5.008 and defined $encoding) {
     eval {
       print STDERR "USING PERL IO ENCODING: $encoding\n";
