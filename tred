@@ -288,6 +288,8 @@ use Exporter;
    ["All files",        '*']
   );
 
+ApplyGlobalConfig();
+
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
 # work, so I recommend not to use czech locales there, unless you
 # really want the decimal points to be replaced by commas in
@@ -331,10 +333,6 @@ sub bookmarkFilelist {
     addNewFilelist(undef,$bookmarks);
   }
 }
-
-@normal_win_opts = qw/-relief flat -borderwidth 0/;
-@focused_win_opts = qw/-relief solid -borderwidth 3/;
-
 
 $insideEval=0;
 
@@ -390,6 +388,22 @@ sub setConfig {
 #    $CSTSBackend::fs2csts=$fsToCsts;
 
   print STDERR "Applying configuration.\n" if $tredDebug;
+}
+
+sub ApplyGlobalConfig {
+  my ($grp)=@_;
+
+  @normal_win_opts = qw/-relief flat -borderwidth 0 -highlightthickness 0/;
+  @focused_win_opts = (qw/-relief flat/,
+		       -highlightthickness  => $highlightWindowWidth,
+		       -highlightbackground => $highlightWindowColor);
+  return unless $grp;
+
+  foreach (@{$grp->{treeWindows}}) {
+    if ($_->{treeView} and $treeViewOpts->{backgroundColor}) {
+      $_->{treeView}->canvas->configure(-background=> $treeViewOpts->{backgroundColor});
+    }
+  }
 }
 
 # TrEd::Window ? should openFile in focusedWindow
@@ -2998,6 +3012,7 @@ sub editConfig {
 			  foreach (@{$grp->{treeWindows}}) {
 			    $_->apply_options($treeViewOpts);
 			  }
+			  ApplyGlobalConfig($grp);
 			  redraw_all($grp);
 #			  $d->destroy;
 			},$grp,$d,$t])
@@ -3013,6 +3028,7 @@ sub editConfig {
 				 foreach (@{$grp->{treeWindows}}) {
 				   $_->apply_options($treeViewOpts);
 				 }
+				 ApplyGlobalConfig($grp);
 				 redraw_all($grp);
 			       },$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
