@@ -770,7 +770,7 @@ sub init_safe_mode {
 #			       :base_io :base_orig :filesys_read :filesys_open
 #			       :filesys_write
   $compartment->permit_only(qw(:base_core :base_mem :base_loop :base_math :base_orig
-			       entereval caller do
+			       entereval caller dofile
 			       print entertry leavetry tie untie bless
 			       sprintf localtime gmtime sort require));
   $compartment->deny(qw(getppid getpgrp setpgrp getpriority setpriority
