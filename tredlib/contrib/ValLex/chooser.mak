@@ -248,7 +248,7 @@ sub ChooseFrame {
     $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
     $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
     $this->{$frameid_attr}=$frame;
-    $this->{$framere_attr}=$real;
+    $this->{$framere_attr}=TrEd::Convert::decode($real);
   } else {
     $FileNotSaved=0;
   }
