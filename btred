@@ -23,16 +23,16 @@ if ($^V lt v5.6.0) {
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-getopts('qQDx:p:r:s:a:f:c:i:m:e:t:huNHSTX:RW');
+getopts('qQDx:p:r:s:a:f:c:i:m:e:t:huNHSTX:RWV');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u || $opt_h) {
   print <<EOH;
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script]
+  btred [-c config-file] [-m macro-file] [-e code]
         [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
         [-f out-fmt]  [-x extra_attribs]
-        [-i init-script] [-t context] [-W] [-q|-Q] [-D] [-N|-H]
+        [-i init-code] [-t context] [-W] [-q|-Q] [-D] [-N|-H] [-V]
         [-S] [-T] [-o script options -- ] files...
 or
   btred -u          to show usage
@@ -48,11 +48,11 @@ Parameters:
 
 config-file   - TrEd configuration file
 macro-file    - file with macro definitions
-script        - any script (may use macros); typically script is just
+code          - any code (may use macros); typically, code is just
                 name of the macro to be run
 context       - start in the given macro context (package).
                 TredMacro is the default context.
-init-script   - any script to be run only once, before any input
+init-code     - any code to be run only once, before any input
                 file is loaded.
 
 format        - output format; one of: fs, csts, trxml. Default is csts.
@@ -66,10 +66,10 @@ extra_attribs - comma separated list of non-CSTS attributes to preserve when
 
 
 -N            - wrap 'while ($this) { ...; $this=$this->following; }
-                around the script
+                around the code
 -H            - same as -N but use following_visible instead, skipping
                 hidden nodes
--T            - wrap 'do { ... } while NextTree();' around the script
+-T            - wrap 'do { ... } while NextTree();' around the code
 -S            - always save file
 -R            - build tectogrammatic trees from CSTS files
 -X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
@@ -78,17 +78,17 @@ extra_attribs - comma separated list of non-CSTS attributes to preserve when
 -Q            - by *very* quiet
 -D            - enable debugging messages on stderr
 -W            - do not die on errors (warn only)
+-V            - force Fslib to test validity of values of list attributes in FS
 
 Flags -N and -H may not be combined. If both are used, -N has the
 precedence. However, both -N and -H may be used together with -T.
 
 If no macro-file is given, standard macro file (see TrEd
-documentation) is searched and used if found. If no script is
-specified, call to function autostart in the context is performed
-in expectation that such a function is defined in the macro-file.
+documentation) is searched and used if found. If no code is specified
+via -e, call to function autostart in the context is performed in
+expectation that such a function is defined in the macro-file.
 
-As in TrEd, the following variables may be used in the macros and
-scripts:
+As in TrEd, the following variables may be used in the macros:
 
 $grp->{FSFile}       - current FSFile object (see section on FSFile in 
                        Fslib documentation)
@@ -208,7 +208,7 @@ require TrEd::Basics;
 import TrEd::Basics;
 
 #load back-ends
-@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend)));
+@backends=('FSBackend',ImportBackends(qw(AG2FS TrXMLBackend CSTS_SGML_SP_Backend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 use Exporter;
@@ -261,6 +261,8 @@ print STDERR "done.\n" unless $opt_q;
 	csts => 'CSTS_SGML_SP_Backend',
 	trxml => 'TrXMLBackend'
        );
+
+$Fslib::FSTestListValidity=$opt_V;
 
 $opt_R && Csts2fs::setupTR();
 if ($opt_X ne "") {
@@ -445,12 +447,14 @@ sub doEvalHook {
   $TredMacro::this=$group->{currentNode};
   $TredMacro::root=$group->{root};
   $TredMacro::libDir=$libDir;
-  $TredMacro::FileNotSaved=$group->{FSFile}->notSaved if $group->{FSFile};
-  $TredMacro::forceFileSaved=0;
-
+  $TredMacro::FileNotSaved='?';
+  $TredMacro::forceFileSaved=0;  
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
   exit 1 if ($@ and !$opt_W);
   if ($group->{FSFile}) {
+    if ($TredMacro::FileNotSaved eq '?') {
+      $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
+    }
     $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
   }
 
@@ -469,14 +473,14 @@ sub doEvalMacro {
   $TredMacro::this=$group->{currentNode};
   $TredMacro::root=$group->{root};
   $TredMacro::libDir=$libDir;
-  $TredMacro::FileNotSaved=0;
+  $TredMacro::FileNotSaved='?';
   $TredMacro::forceFileSaved=0;
 
   my $result=do_eval_macro($group,$macro);
   exit 1 if ($@ and !$opt_W);
 
   if ($group->{FSFile}) {
-#    $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
+    $TredMacro::FileNotSaved=0 if $TredMacro::FileNotSaved eq '?';
     if ($TredMacro::forceFileSaved) {
       $group->{FSFile}->notSaved($TredMacro::FileNotSaved);
     } else {
