@@ -25,7 +25,7 @@
 	of trees annotated on the Tectogrammatical Layer of the Prague
 	Dependency Treebank.
       </title>
-      <graphic fileref="pics/treddiff"/>
+      <graphic fileref="pics/treddiff.png"/>
     </figure>
     <para><application moreinfo="none">TrEd</application> may be extended by <emphasis>user-defined
       macros</emphasis>, which are basically functions written in
@@ -73,13 +73,12 @@
       <title>Windows</title>
       <para>
 	There is a windows-specific installation package available on
-	<ulink
-	url="http://pajas.matfyz.cz/tred"><application>TrEd</application>'s
+	<ulink url="http://pajas.matfyz.cz/tred"><application moreinfo="none">TrEd</application>'s
 	homepage</ulink>. The package contains
-	<application>ActiveState Perl</application>,
-	<application>Perl-Tk</application>,
-	<application>TrEd</application>, and a setup script called
-	<literal>setup.bat</literal> for easy installation of
+	<application moreinfo="none">ActiveState Perl</application>,
+	<application moreinfo="none">Perl-Tk</application>,
+	<application moreinfo="none">TrEd</application>, and a setup script called
+	<literal moreinfo="none">setup.bat</literal> for easy installation of
 	all of them (<emphasis>RECOMMENDED!</emphasis>).
       </para>
       <para>
@@ -93,8 +92,7 @@
 	  It is therefore recommended that you install ActiveState
 	  Perl, even if you already have Perl from CygWin.
 	  If you still want to try TrEd with CygWin Perl,
-	  follow the instructions for setup on <link
-	  linkend="install-unix">UNIX-like systems</link>.
+	  follow the instructions for setup on <link linkend="install-unix">UNIX-like systems</link>.
 	</para>
       </note>
       <orderedlist continuation="restarts" inheritnum="ignore">
@@ -111,9 +109,9 @@
 	  <para>
 	    In this step you add <application moreinfo="none">Tk library</application>
 	    to <application moreinfo="none">Perl</application>.  
-	    If you have installed <application>ActiveState
+	    If you have installed <application moreinfo="none">ActiveState
 	    Perl</application> 5.8 or higher, you may skip this step
-	    since <application>Tk</application> is already included.
+	    since <application moreinfo="none">Tk</application> is already included.
 	    If you use an older version, and
 	    you're connected to the Internet, you may install the latest
 	    <application moreinfo="none">Tk</application> toolkit from
@@ -144,7 +142,7 @@
 	  </orderedlist>
 	  <para>
 	    If you do <emphasis>not</emphasis> have
-	    <application>ActiveState Perl</application> 5.8 or higher
+	    <application moreinfo="none">ActiveState Perl</application> 5.8 or higher
 	    and you're <emphasis>not</emphasis> connected
 	    to the Internet, but you do have 
 	    <productname class="trade">Prague Dependency
@@ -157,7 +155,7 @@
 		<application moreinfo="none">Windows 9x/ME</application>)</para>
 	    </listitem> 
 	    <listitem>
-	      <para>Unzip the Windows <application>TrEd</application>
+	      <para>Unzip the Windows <application moreinfo="none">TrEd</application>
 		distribution package and change to the
 		<filename moreinfo="none">packages</filename> directory.
 	      </para>
@@ -176,30 +174,30 @@
 	    <application moreinfo="none">TrEd</application> itself. 
 	    It is done by
 		copying the whole <filename moreinfo="none">tred</filename> 
-	    folder from the <application>TrEd</application>
+	    folder from the <application moreinfo="none">TrEd</application>
 	    distribution anywhere you like on your
 	    hard-disk, e.g. to folder <filename moreinfo="none">C:\Program
 	      Files</filename>.</para>
 	  <para>
-	    To be able to run <application>TrEd</application>
+	    To be able to run <application moreinfo="none">TrEd</application>
 	    with just a double-click, you have to
-	    <orderedlist>
+	    <orderedlist inheritnum="ignore" continuation="restarts">
 	      <listitem>
-		<para>either rename the <filename>tred</filename> program
-		  to <filename>tred.pl</filename> and
-		  associate the <filename>.pl</filename> file-name extension
-		  with <application>Perl</application>, or
+		<para>either rename the <filename moreinfo="none">tred</filename> program
+		  to <filename moreinfo="none">tred.pl</filename> and
+		  associate the <filename moreinfo="none">.pl</filename> file-name extension
+		  with <application moreinfo="none">Perl</application>, or
 		</para>
 	      </listitem>
 	      <listitem>
 		<para>
-		  assuming you have installed <application>Perl</application>
-		      to <filename>c:\perl</filename> and
-		  <application>TrEd</application> to
-		  <filename>c:\Program Files</filename>,
+		  assuming you have installed <application moreinfo="none">Perl</application>
+		      to <filename moreinfo="none">c:\perl</filename> and
+		  <application moreinfo="none">TrEd</application> to
+		  <filename moreinfo="none">c:\Program Files</filename>,
 		  create a shortcut on your Desktop or in
 		  the Start menu for the following command
-		  <literallayout>c:\perl\bin\perl.exe "c:\Program Files\tred\tred"</literallayout>
+		  <literallayout format="linespecific" class="normal">c:\perl\bin\perl.exe "c:\Program Files\tred\tred"</literallayout>
 		</para>
 	      </listitem>
 	    </orderedlist>
@@ -223,19 +221,16 @@
     <orderedlist continuation="restarts" inheritnum="ignore">
       <listitem>
 	  <para>
-	    To install <application
-	      moreinfo="none">PerlTk</application> 
+	    To install <application moreinfo="none">PerlTk</application> 
 	    toolkit, fetch the latest version of Perl-Tk library from 
-	    <ulink
-	      url="http://search.cpan.org/modlist/User_Interfaces/Tk">CPAN</ulink>, and extract the archive to some temporary directory, e.g
+	    <ulink url="http://search.cpan.org/modlist/User_Interfaces/Tk">CPAN</ulink>, and extract the archive to some temporary directory, e.g
 	    using the following command (substituting 804.025 with your Tk version 
 	    number):
 	    <literallayout class="normal" format="linespecific">
 	      $ <userinput moreinfo="none">gunzip -c Tk-804.025.tar.gz | tar -x</userinput>
 	    </literallayout>
 	    
-	    and issue the following commands (see file <filename
-	    moreinfo="none">INSTALL</filename> file in the
+	    and issue the following commands (see file <filename moreinfo="none">INSTALL</filename> file in the
 	    <filename moreinfo="none">Tk</filename> distribution directory for details):
 	    <literallayout class="normal" format="linespecific">bash$ <userinput moreinfo="none">cd Tk804.025</userinput>
 bash$ <userinput moreinfo="none">perl Makefile.PL XFT=1</userinput><co id="co-makefilepl"/>
@@ -247,7 +242,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <calloutlist>
 	      <callout arearefs="co-makefilepl">
 		<para>the XFT=1 option turns on support for FreeType anti-aliasing.
-		  If this step fails, restart without <literal>XFT=1</literal>.
+		  If this step fails, restart without <literal moreinfo="none">XFT=1</literal>.
 		</para>
 	      </callout>
 	      <callout arearefs="co-test">
@@ -262,10 +257,9 @@ root# <userinput moreinfo="none">make install</userinput>
 
  	<listitem>
  	  <para>
- 	    To install <application
- 	    moreinfo="none">TrEd</application>, simply
-	    untar/ungzip the <filename>tred</filename> directory
-	    from the <application>TrEd</application>
+ 	    To install <application moreinfo="none">TrEd</application>, simply
+	    untar/ungzip the <filename moreinfo="none">tred</filename> directory
+	    from the <application moreinfo="none">TrEd</application>
  	    installation package to any directory 
 	    you like
 	    (e.g. to your home directory or,
@@ -277,14 +271,13 @@ root# <userinput moreinfo="none">make install</userinput>
  	      You may also wish to symling the <command moreinfo="none">tred</command>
  	      executable to some directory on your
  	      <varname>PATH</varname>. Assuming you
-	      have extracted the <application>TrEd</application>
-	      distribution to <filename>/opt</filename> directory,
+	      have extracted the <application moreinfo="none">TrEd</application>
+	      distribution to <filename moreinfo="none">/opt</filename> directory,
 	      you can achieve this with the following command:
-	      <literallayout>root# ln -s /opt/tred/tred /usr/local/bin</literallayout>.
-	    Use similar commands for <command
- 	    moreinfo="none">btred</command> 
+	      <literallayout format="linespecific" class="normal">root# ln -s /opt/tred/tred /usr/local/bin</literallayout>.
+	    Use similar commands for <command moreinfo="none">btred</command> 
 	    and other tools included with
- 	    <application>TrEd</application> distribution you
+ 	    <application moreinfo="none">TrEd</application> distribution you
 	      wish to use.
  	    </para>
  	  </note>
@@ -292,8 +285,7 @@ root# <userinput moreinfo="none">make install</userinput>
  	<listitem>
  	  <para>
  	    Run <application moreinfo="none">TrEd</application> by issuing the command
- 	    <command moreinfo="none">tred</command>. (See <xref
- 	    linkend="commandline"/>.)
+ 	    <command moreinfo="none">tred</command>. (See <xref linkend="commandline"/>.)
  	  </para>
 	  <note>
 	    <para>Ifthe <command moreinfo="none">tred</command>
@@ -497,7 +489,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <figure float="0">
 	      <title>Print dialog
 	      </title>
-	      <graphic fileref="pics/tredprint"/>
+	      <graphic fileref="pics/tredprint.png"/>
 	    </figure>
 	    <para>
 	      Encapsulated PostScript files (<literal moreinfo="none">EPS</literal>)
@@ -616,14 +608,14 @@ root# <userinput moreinfo="none">make install</userinput>
 		  tree numbers or ranges of tree numbers, that correspond to the
 		  desired trees in the active file, must be entered
 		  into the <guilabel moreinfo="none">Page range</guilabel> field.  The
-		  <inlinegraphic fileref="pics/left"/> button may be
+		  <inlinegraphic fileref="pics/left.png"/> button may be
 		  used to automatically insert a page range
 		  corresponding to sentences selected via <link linkend="list_of_sentences"><menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">List of
 		  sentences...</guimenuitem> </menuchoice></link>. A
 		  different selection based on
 		  <quote>sentences</quote> can be made by pressing the
-		  <inlinegraphic fileref="pics/view_sent"/> button.
+		  <inlinegraphic fileref="pics/view_sent.png"/> button.
 		</para>
 	      </listitem>
 	      <listitem>
@@ -817,25 +809,25 @@ root# <userinput moreinfo="none">make install</userinput>
 	      (i.e. <literal moreinfo="none">@V</literal> attributes in FS format) of
 	      all nodes in the tree.
 	    </para>
-	    <para>The <inlinegraphic fileref="pics/right"/>
+	    <para>The <inlinegraphic fileref="pics/right.png"/>
 	      button may be used to display the corresponding sentence
 	      in the current TrEd window.</para> <para>The
-	      <inlinegraphic fileref="pics/gray_belly3"/>
+	      <inlinegraphic fileref="pics/gray_belly3.png"/>
 	      button may be used to select the current sentence.
 	      Selected sentences may be later inserted to the tree
 	      selection field in the <link linkend="print_command">Print dialog</link> as well as
 	      in the <link linkend="copytrees_command">Copy trees
-	      dialog</link> by pressing the <inlinegraphic fileref="pics/left"/> button.
+	      dialog</link> by pressing the <inlinegraphic fileref="pics/left.png"/> button.
 	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><guimenuitem moreinfo="none">Customize attributes</guimenuitem></term>
+	  <term><guimenuitem moreinfo="none">Customize tree appearance</guimenuitem></term>
 	  <listitem>
 	    <para>
 	      Open a dialog box in which the user can select the
 	      attributes that should be displayed and modify the way
-	      the attributes are presented. See <xref linkend="attributes"/> for more detail.
+	      the tree is presented. See <xref linkend="attributes"/> for more detail.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1057,7 +1049,7 @@ root# <userinput moreinfo="none">make install</userinput>
 		If this option is checked, current attribute pattern setting is not
 		replaced with the one from the file when current file
 		is reloaded with by pressing the
-		<inlinegraphic fileref="pics/reload"/>
+		<inlinegraphic fileref="pics/reload.png"/>
 		(see also the <xref linkend="reloadpreservespatterns"/>
 		configuration option).
 	      </para>
@@ -1102,9 +1094,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	<para>
 	  If current file-list contains more than one file, user may use
 	  <menuchoice moreinfo="none"> <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Previous
-	      File</guimenuitem> </menuchoice> (or press <inlinegraphic fileref="pics/start"/>) and <menuchoice moreinfo="none">
+	      File</guimenuitem> </menuchoice> (or press <inlinegraphic fileref="pics/start.png"/>) and <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Next File</guimenuitem>
-	  </menuchoice> (or press <inlinegraphic fileref="pics/finish"/>) to open previous or
+	  </menuchoice> (or press <inlinegraphic fileref="pics/finish.png"/>) to open previous or
 	  next file in the file-list.
 	</para>
       </sect3>
@@ -1428,97 +1420,97 @@ root# <userinput moreinfo="none">make install</userinput>
 	<tgroup cols="2">
 	  <tbody>
 	    <row>
-	      <entry><graphic fileref="pics/fileopen"/></entry><entry><menuchoice moreinfo="none">
+	      <entry><graphic fileref="pics/fileopen.png"/></entry><entry><menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">File</guimenu>
 		  <guimenuitem moreinfo="none">Open ...</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/filefloppy"/></entry>
+	      <entry><graphic fileref="pics/filefloppy.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Save</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/reload"/></entry>
+	      <entry><graphic fileref="pics/reload.png"/></entry>
 	      <entry><para>Reload current file from disk.</para></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/redo"/></entry>
+	      <entry><graphic fileref="pics/redo.png"/></entry>
 	      <entry><para>Redo last undone operation on the current tree.</para></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/undo"/></entry>
+	      <entry><graphic fileref="pics/undo.png"/></entry>
 	      <entry><para>Undo last operation on the current
 		  tree. (See also <xref linkend="maxundo"/>
 	      configuration option.)</para></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/findprev"/></entry>
+	      <entry><graphic fileref="pics/findprev.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find Previous</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/start"/></entry>
+	      <entry><graphic fileref="pics/start.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Previous File</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/fileprint"/></entry>
+	      <entry><graphic fileref="pics/fileprint.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Print ...</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/find"/></entry>
+	      <entry><graphic fileref="pics/find.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find ...</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/findnext"/></entry>
+	      <entry><graphic fileref="pics/findnext.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find Next</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/finish"/></entry>
+	      <entry><graphic fileref="pics/finish.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Next File</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/left"/></entry>
+	      <entry><graphic fileref="pics/left.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Previous Tree</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/right"/></entry>
+	      <entry><graphic fileref="pics/right.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Next Tree</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/tick"/></entry>
+	      <entry><graphic fileref="pics/tick.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Customize
-		    Attributes...</guimenuitem>
+		    Tree...</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/view_sent"/></entry>
+	      <entry><graphic fileref="pics/view_sent.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">List
 	      of sentences...</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/hsplit"/></entry>
+	      <entry><graphic fileref="pics/hsplit.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Split view horizontally</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/vsplit"/></entry>
+	      <entry><graphic fileref="pics/vsplit.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Split view vertically</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/rmsplit"/></entry>
+	      <entry><graphic fileref="pics/rmsplit.png"/></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Close current view</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/tiewins"/></entry>
+	      <entry><graphic fileref="pics/tiewins.png"/></entry>
 	      <entry>This may have two states. If pressed,
 		all displayed views are tied together, so that
-		pressing <inlinegraphic fileref="pics/left"/> or
-		<inlinegraphic fileref="pics/right"/> buttons
+		pressing <inlinegraphic fileref="pics/left.png"/> or
+		<inlinegraphic fileref="pics/right.png"/> buttons
 		as well as invoking
 		<menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">View</guimenu>
@@ -1615,7 +1607,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>Displayes the previous tree in the current file.
 	      Note, that this shorcuts operates on the focused
-	      view only, even if button <inlinegraphic fileref="pics/tiewins"/> is pressed and all views are tied.
+	      view only, even if button <inlinegraphic fileref="pics/tiewins.png"/> is pressed and all views are tied.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1627,7 +1619,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>Displayes the next tree in the current file.
 	      Note, that this shorcuts operates on the focused
-	      view only, even if button <inlinegraphic fileref="pics/tiewins"/> is pressed and all views are tied.
+	      view only, even if button <inlinegraphic fileref="pics/tiewins.png"/> is pressed and all views are tied.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1635,12 +1627,19 @@ root# <userinput moreinfo="none">make install</userinput>
     </sect2>
   </sect1>
   <sect1 id="attributes">
-    <title>Customizing Visible Attributes</title>
+    <title>Customizing Tree Appearance</title>
+    <para>
+      <application moreinfo="none">TrEd</application> allows for customizing
+      the appearance of the tree, esp. the content and appearance
+      of node and edge labels, node coloring, edge appearance,
+      and content of the hint displayed when mouse pointer lingers
+      over a node.
+    </para>
     <para>
       The text of node labels (usually consisting of node attribute
       values) displayed below each node (and/or on tree edges) as well as
       other properties of the visual appearance of the displayed tree
-      can be specified using so called <emphasis>patterns</emphasis>.
+      can be specified using so called styling <emphasis>patterns</emphasis>.
     </para>
     <para>
       <emphasis>Patterns</emphasis> are generally templates for one
@@ -1650,32 +1649,31 @@ root# <userinput moreinfo="none">make install</userinput>
       other parts of the displayed tree.
     </para>
     <para>
-      Patterns are usually stored directly in FS files which makes
-      their setting specific to a file. Because this is not very
+      Patterns may be stored directly in FS files which makes their
+      setting specific to a file. Because this is not usually very
       convenient, TrEd introduces another way to store and orgainze
-      pattern sets. In fact, the user may create many different
-      pattern set (configurations). These pattern setting can be given
-      a name and swithched between using a pattern-set list shown on
-      the picture below which can be found on the right side of
-      toolbar next to the <inlinegraphic fileref="pics/tick"/>
-      button. A pattern set specific for a file is indicated by
-      <guilabel moreinfo="none">&lt;From File&gt;</guilabel> item of the pattern-set
-      list.
+      pattern sets, called <literal moreinfo="none">stylesheets</literal>. In fact,
+      the user may create many different stylesheets. Pattern
+      stylesheets can be given a name and swithched between using a
+      stylesheet list shown on the picture below. It can be found on
+      the right side of toolbar next to the <inlinegraphic fileref="pics/tick.png"/> button. A stylesheet specific for a
+      file is represented by <guilabel moreinfo="none">&lt;From
+      File&gt;</guilabel> item of the stylesheet list.
     </para>
     <para>
-      To create a new named pattern-set (based on current pattern
+      To create a new named stylesheet (based on the current pattern
       settings), select an item labeled <guilabel moreinfo="none">&lt;New From
-      Current&gt;</guilabel> from the pattern-set list and fill a name
-      into the displayed dialog entry. The new pattern-set
+      Current&gt;</guilabel> from the stylesheet list and fill a name
+      into the displayed dialog entry. The new stylesheet
       immediatelly appears as the selected item in the list.
     </para>
     <figure float="0">
-      <title>Switching pattern set</title>
-      <graphic fileref="pics/patternset"/>
+      <title>Switching stylesheets</title>
+      <graphic fileref="pics/patternset.png"/>
     </figure>
     <para>
-      While file-specific pattern-sets are stored directly in the FS
-      files, named pattern-sets are saved in a file called
+      While file-specific patterns are stored directly in the FS
+      files, named stylesheets are saved in a file called
       <filename moreinfo="none">.tred-stylesheets</filename> in user's home directory.
       This file is updated every time a pattern-set is modified.
       Currently selected named pattern set can be completely removed
@@ -1684,19 +1682,20 @@ root# <userinput moreinfo="none">make install</userinput>
     </para>
     <para>
       Selected pattern set can be populated with patterns and modified in
-      a configuration dialog which is displayed on pressing <inlinegraphic fileref="pics/tick"/> button or <menuchoice moreinfo="none">
+      a configuration dialog which is displayed on pressing <inlinegraphic fileref="pics/tick.png"/> button or <menuchoice moreinfo="none">
       <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">Customize
-      Attributes...</guimenuitem></menuchoice> menu command.
+      Tree...</guimenuitem></menuchoice> menu command.
     </para>
     <figure float="0">
-      <title>Customizing Visible Attributes dialog</title>
-      <graphic fileref="pics/customatt"/>
+      <title>Customizing Tree Appearance dialog</title>
+      <graphic fileref="pics/customatt.png"/>
     </figure>
     <para>
-      The dialog window contains four main elemens: 
-      an editor of individual patterns,
-      an attribute list,
-      a pattern list and a hint pattern editor.
+      The dialog window contains four main elemens: an editor of
+      individual patterns, an attribute list, a pattern list and a
+      hint pattern editor. Double-clicking an attribute
+      insert attribute reference into current cursor position
+      in the pattern editor or hint pattern editor, whichever is focused.
     </para>
     <para>
       While literal text occuring within a pattern is copied into the
@@ -1708,8 +1707,12 @@ root# <userinput moreinfo="none">make install</userinput>
 	<term><literal moreinfo="none">${<replaceable>attr</replaceable>}</literal></term>
 	<listitem>
 	  <para>
-	    Any occurence of this substring is replaced by current
-	    node's value of attribute named <replaceable>attr</replaceable>.
+	    Attribute reference. Any occurence of this substring is
+	    replaced by current node's value of attribute named
+	    <replaceable>attr</replaceable>. This reference is
+	    actually linked with the attribute, so double-clicking the
+	    displayed value in the tree shows a dialog where the
+	    attribute value can be changed.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -1736,15 +1739,14 @@ root# <userinput moreinfo="none">make install</userinput>
 	<listitem>
 	  <para>
 	    This sequence may encapsulate any Perl code. The code
-	    is interpreted in time of evaluation of the pattern
+	    is interpreted in the time of evaluation of the pattern
 	    (i.e. just before the line is actually to be displayed)
-	    and the result returned by the code is inserted in
-	    the place of the sequence.	    
+	    and the result returned by the code replaces
+	    the code sequence in the pattern.
 	  </para>
 	  <para>
-	    Note that the returned value may also contain any other
-	    special sequences, except for another
-	    <literal moreinfo="none">&lt;?<replaceable>...</replaceable>?&gt;</literal>
+	    Note that the returned value may contain other special
+	    sequences, except for another <literal moreinfo="none">&lt;?<replaceable>...</replaceable>?&gt;</literal>
 	    sequence.
 	  </para>
 	  <para>Within the <replaceable>code</replaceable>, 
@@ -1766,9 +1768,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	<listitem>
 	  <para>If this string appears at the very beginning of a
 	    pattern, the pattern may be treated specially.  There are
-	    only four pattern labels used by TrEd itself. These are
-	    <literal moreinfo="none">node</literal>, <literal moreinfo="none">edge</literal>,
-	    <literal moreinfo="none">style</literal> and <literal moreinfo="none">rootstyle</literal>.
+	    only five pattern labels used by TrEd itself. These are
+	    <literal moreinfo="none">node</literal>, <literal moreinfo="none">edge</literal>, <literal emoreinfo="none" moreinfo="none">style</literal>, <literal moreinfo="none">text</literal>
+	    and <literal moreinfo="none">rootstyle</literal>.
 	    Patterns labeled with any other label are ignored by TrEd
 	    but may be queried and used by macros.
 	  </para>
@@ -1789,6 +1791,10 @@ root# <userinput moreinfo="none">make install</userinput>
 	    tree styling instructions described below that may
 	    dynamically alter the appearens of the nodes, edges and
 	    text labels of the displayed trees.
+	  </para>
+	  <para>Patterns labeled as <literal moreinfo="none">text</literal> 
+	    may be used to specify string to be displayed for given
+	    node in the text field above the tree.
 	  </para>
 	  <para>
 	    Patterns labeled as <literal moreinfo="none">rootstyle</literal>
@@ -2336,15 +2342,15 @@ root# <userinput moreinfo="none">make install</userinput>
       <application moreinfo="none">TrEd</application>'s window.
       If current file-list contains more than one file, 
       the command <menuchoice moreinfo="none"> <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Previous
-	  File</guimenuitem> </menuchoice> (or <inlinegraphic fileref="pics/start"/> button) and  <menuchoice moreinfo="none">
+	  File</guimenuitem> </menuchoice> (or <inlinegraphic fileref="pics/start.png"/> button) and  <menuchoice moreinfo="none">
 	<guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Next File</guimenuitem>
     </menuchoice>
-      (or <inlinegraphic fileref="pics/finish"/> button)
+      (or <inlinegraphic fileref="pics/finish.png"/> button)
       may be used to open previous or next file in the file-list.
     </para>
     <figure float="0">
       <title>Creating file-lists</title>
-      <graphic fileref="pics/filelist"/>
+      <graphic fileref="pics/filelist.png"/>
     </figure>
     <para>
       There are two default file-lists always present:
@@ -2513,7 +2519,7 @@ root# <userinput moreinfo="none">make install</userinput>
       value but they must be both on the same line. Any characters
       folowing a semi-colon (<literal moreinfo="none">;</literal>) to the end of line 
       are considered as comment and are ignored. You may also need to
-      quote the value using either double-quotes (<literal moreinfo="none">&quot;value&quot;</literal>) or
+      quote the value using either double-quotes (<literal moreinfo="none">"value"</literal>) or
       simple quotes (<literal moreinfo="none">'value'</literal>) to preserve white-space or semi-colons.
       The option names are case-insensitive.
     </para>    
@@ -3512,9 +3518,10 @@ root# <userinput moreinfo="none">make install</userinput>
     </sect2>
   </sect1>
   <sect1 id="commandline">
-    <title>Starting <application moreinfo="none">TrEd</application> from command-line</title>
+    <title><application moreinfo="none">TrEd</application>'s command-line options</title>
     <para>
-      If running <application moreinfo="none">TrEd</application> from command-line you may use several
+      If running <application moreinfo="none">TrEd</application> from
+      the command-line you may use several
       command-line options and also give <application moreinfo="none">TrEd</application> one or more files to
       open. Each file-name may be also appended number of tree to
       be displayed by <application moreinfo="none">TrEd</application> when the file is opened.      
@@ -3780,7 +3787,7 @@ root# <userinput moreinfo="none">make install</userinput>
       </para>
       <variablelist>
 	<varlistentry>
-	  <term><literal moreinfo="none">#include &quot;<replaceable>filename</replaceable>&quot;</literal></term>
+	  <term><literal moreinfo="none">#include "<replaceable>filename</replaceable>"</literal></term>
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must be
 	      relative to the directory of the file to which it is
@@ -4011,7 +4018,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	displayed tress according to the value of the
 	<literal moreinfo="none">$Redraw</literal> variable changes file status to
 	<literal moreinfo="none">modified</literal> (as indicated by the state of the
-	<inlinegraphic fileref="pics/filefloppy"/> button) unless
+	<inlinegraphic fileref="pics/filefloppy.png"/> button) unless
 	variable <literal moreinfo="none">$FileChanged</literal> is altered in the
 	way described below (both variables are definded in
 	<filename moreinfo="none">tred.def</filename>, see <xref linkend="defaultmacros"/>).
@@ -4556,7 +4563,7 @@ sub MakeSentence {
 
   # Translation of the following mighty Perl construct to English:
   # 1. sort the collected nodes comparing their values for attribute $ord
-  # 2. get their values using a &quot;map&quot; which maps element $_ to $_-&gt;{$value}
+  # 2. get their values using a "map" which maps element $_ to $_-&gt;{$value}
   # 3. join the values separating the fields with $separator
   # 4. and finally return the string.
 
@@ -5294,6 +5301,13 @@ sub MakeSentence {
 		of the corresponding part of the text displayed on the
 		value-line. All other strings are ignored.
 	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal moreinfo="none">highlight_value_line_tag_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry>Invoked every time a node is selected. The hook should
+		return a tag associated with some text in the value
+		line. The text is then highlighted in the value line.</entry>
 	    </row>
 	    <row>
 	      <entry>get_nodelist_hook
