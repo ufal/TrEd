@@ -16,6 +16,7 @@ sub node_release_hook {
     $node->{Arrow}.="\&last";
     $node->{Smooth}.="\&1";
     TredMacro::Redraw_FSFile_Tree();
+    FileNotSaved=1;
   }
 }
 
