@@ -47,11 +47,13 @@ sub switch_context_hook {
   }
 }
 
+#ifdef TRED
 sub file_opened_hook {
   if ($grp->{FSFile} and GetSpecialPattern('patterns') ne 'force') {
     set_default_attrs();
   }
 }
+#endif
 
 sub set_default_attrs {
  SetDisplayAttrs(

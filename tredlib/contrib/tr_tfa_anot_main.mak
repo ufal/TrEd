@@ -1,9 +1,10 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-04 09:42:20 pajas>
+## Time-stamp: <2004-01-14 17:54:34 pajas>
 
 #include <contrib/tred_mac_common.mak>
 
+#ifdef TRED
 sub file_opened_hook {
 
   # if this file has no balloon pattern, I understand it as a reason to override
@@ -27,16 +28,18 @@ sub file_opened_hook {
   SwitchContext('TFA');
   $FileChanged=0;
 }
+#endif
 
 #binding-context Tectogrammatic
 #include <contrib/tr.mak>
 
+#ifdef TRED
 sub switch_context_hook {
   default_tr_attrs();
   $FileChanged=0;
   return "1";
 }
-
+#endif
 
 #binding-context TFA
 #include <contrib/tfa.mak>

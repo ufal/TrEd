@@ -1,7 +1,7 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
 ## $Id$
-## Time-stamp: <2003-08-28 10:30:17 pajas>
+## Time-stamp: <2004-01-14 17:53:04 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -29,8 +29,8 @@ sub exit_hook {
     stderr($@) if $@;
   }
 }
- 
 
+#ifdef TRED
 sub file_opened_hook {
 
   # if this file has no balloon pattern, I understand it as a reason to override
@@ -54,10 +54,13 @@ sub file_opened_hook {
   SwitchContext('Tectogrammatic');
   $FileNotSaved=0;
 }
+#endif
 
+#ifdef TRED
 sub file_resumed_hook {
   SwitchContext('Tectogrammatic');
 }
+#endif
 
 #include <contrib/tred_mac_common.mak>
 

@@ -887,8 +887,7 @@ sub openFile {
   $grp->{treeNo}=0;
   $grp->{currentNode}=undef;
   applyFileSuffix($grp,$goto);
-
-  doEvalHook($grp,"file_opened_hook") unless ($opts{-justpreloaded} or $start_server);
+  doEvalHook($grp,"file_opened_hook") unless ($opts{-justpreloaded});
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
