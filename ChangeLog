@@ -1,3 +1,470 @@
+2002-12-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/winsetup.sh, tredlib/contrib/winsetup_en.sh:
+	install nsgmls et al into tred/bin
+
+	* tredlib/contrib/winsetup.sh, tredlib/contrib/winsetup_en.sh:
+	use , instead of ! in sed
+
+	* tred:
+	debug prints removed, filelist field update in filelist dialog on load
+
+	* tredlib/Filelist.pm: fix basedir stripping
+
+	* tredlib/Filelist.pm, tred:
+	handle relative filenames in file lists correctly
+
+2002-11-27  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/tredrc, documentation/manual/tred.xml: update
+
+	* documentation/pics/redo.gif, documentation/pics/redo.png, documentation/pics/reload.gif, documentation/pics/reload.png, documentation/pics/undo.gif, documentation/pics/undo.png:
+	initial commit
+
+	* tredlib/contrib/tredtr.mak: temporarily fixed few my statements
+
+	* tredlib/contrib/tfa_common.mak:
+	new subtree moving and projectivising macros by JHav
+
+	* tredlib/contrib/tfa.mak: - new bindings by JHav
+
+	* tredlib/Fslib.pm:
+	- added FSNode->level function which calculates node level
+
+	* tredlib/Filelist.pm:
+	- file_pattern_index returns -1 if the list is empty
+
+	* tred: - shift+left/right traverse through a tree level
+	- fix opening file-list dialog when no file is open
+	- removed one duplicate copy of printThis
+
+2002-11-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/winsetup.sh, tredlib/contrib/winsetup_en.sh:
+	use dos line endings in bat files
+
+	* tredlib/contrib/winsetup.sh, tredlib/contrib/winsetup_en.sh:
+	substitute dos-like path for _TREDDIR_
+
+	* tredlib/TrEd/Config.pm: on win32 use prfile32 to print
+
+2002-11-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/winsetup_en.sh, tredlib/contrib/winsetup.sh:
+	install prfile32.exe on win32
+
+	* tredlib/TrEd/Config.pm:
+	use prfile32.exe as a default spool command on win32
+
+	* tredlib/contrib/arabic_common.mak: update by Ota Smrz
+
+	* tredlib/tred.mac: nextFile/prevFile macro binding
+
+	* tredlib/tred.def: nextFile/prevFile macro
+
+	* tredlib/Csts2fs.pm: use $this instead of $node in PADT patterns
+
+2002-11-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tfa.mak, tredlib/contrib/tr_common.mak, tredlib/contrib/tr_coref_common.mak:
+	red trlemma indicates non-empty commentA
+
+2002-11-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Csts2fs.pm: added functor CONTRA
+
+	* tredlib/contrib/tredtr.mak: fix SplitJoined for verb_si
+
+	* tredlib/contrib/trdiff.mak:
+	make no difference between ???, --- and ""
+
+	* tredlib/contrib/tr_opravy.mak:
+	- some new shortcuts for fixing AID and ords
+
+	* tredlib/contrib/tr_common.mak:
+	- decide between verb and adverb according to tag and tagMD_?
+	- bugfix
+	- added new functor CONTRA
+
+	* tredlib/tred.mac:
+	added All/None buttons to list dialog macro for multiselect listboxes
+
+	* tredlib/csts.doctype: wsd fixes+docu, id attributes now really ID
+
+	* tredlib/Fs2csts.pm: fixes quot and framere
+
+	* tredlib/Csts2fs.pm: fixes sentord and some ommitions
+
+	* tred: fixed quick search for multiselect list items
+
+	* any2any: improved status prints
+
+2002-11-13  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* any2any: help fix
+
+	* tredlib/contrib/tred_mac_common.mak:
+	disable Ctrl+Insert and Shift+Insert (sorry guys!)
+
+	* tredlib/contrib/trdiff.mak: - fix comparizon of top-level added nodes
+	- center other windows on movement
+
+	* tredlib/contrib/tr_tfa_only_anot_main.mak:
+	removed dependency on Tectogrammatic
+
+	* tredlib/contrib/tr_common.mak:
+	Ctrl+Enter decides between vallex and adverb lexicon using both tag and tagMD_a/tagMD_b
+
+	* tredlib/contrib/tfa_common.mak, tredlib/contrib/tfa.mak:
+	removed dependency on Tectogrammatic
+
+	* tredlib/tred.def: centering other win
+
+	* any2any: don't set patterns
+
+	* tred: added undo for (some) Node menu functions
+
+2002-11-12  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/arabic_common.mak:
+	new arrow drawing algos by Ota Smrz
+
+2002-11-11  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak: some strong ID checking macros added
+
+	* tredlib/Csts2fs.pm: fix <f/d gen> handling
+
+2002-11-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: fixed one link
+
+2002-11-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_tfa_only_anot_main.mak:
+	- disable all tree modifications
+
+	* tredlib/contrib/tr_common.mak: - diff all windows
+
+	* tredlib/contrib/tfa.mak: - enable commentA, disable err1
+
+	* tredlib/tred.def: - SwitchContextForWindow
+
+	* tredlib/csts.doctype: - upgrade
+
+	* examples/corefdiff.pl: - list trees with errors
+
+	* any2any: - help typo fix
+
+	* tredlib/contrib/tredtr.mak: F10 binding removed
+
+2002-11-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Csts2fs.pm: - bug fix
+	- wsd markup support added
+
+	* tredlib/Fs2csts.pm: added wsd markup
+
+	* tredlib/contrib/tr_common.mak: added stejný
+
+	* tredlib/contrib/ValLex/vallex.dtd: added hereditary_used
+
+	* tredlib/contrib/ValLex/Widgets.pm, tredlib/contrib/ValLex/Data.pm:
+	displayed information about how the frame is used
+
+	* tredlib/contrib/tredtr.mak: some more cleanup
+
+	* tredlib/contrib/tr_tfa_anot_main.mak:
+	now contains both full Tectogrammatic and TFA contexts
+
+	* tredlib/contrib/tr_common.mak: reorder_dords (Alt+r) added
+
+	* tredlib/contrib/tfa.mak: editCommentA added
+
+	* tredlib/Fslib.pm: minor change
+
+	* tredlib/Csts2fs.pm, tredlib/Fs2csts.pm: TID/AID fixes
+
+	* examples/corefdiff.pl: some more statistics
+
+2002-10-30  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: two -expand typos fixed
+
+2002-10-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Convert.pm: removed timestamp
+
+	* tredlib/contrib/ValLex/Chooser.pm: wider chooser
+
+	* tredlib/contrib/tr_coref_anot_main.mak: update_coref_file on load
+
+	* tredlib/contrib/tr_common.mak:
+	new btred oriented function reorder_dords
+
+	* tredlib/contrib/coref.mak: fix cortype attribute valuelist check
+
+	* tredlib/TrEd/Convert.pm: better support for perl 5.8
+
+	* examples/corefdiff.pl: don't fatal err on different attributes
+
+2002-10-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: isearch capabilities added to various lists in various dialogs
+
+	* tred: option -q added (quiet)
+
+2002-10-21  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tred_mac_common.mak: QueryString added
+
+	* tredlib/contrib/coref.mak: minor change
+
+	* tredlib/contrib/tr_coref_anot_main.mak: switch to tred_mac_common
+
+	* tredlib/contrib/tr_common.mak:
+	fixed AID and TID assignment: ensure uniqueness
+
+	* tred: FileNotSaved fixed in hooks
+
+2002-10-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak:
+	ensure that AID is unique (within a file)
+
+	* tredlib/contrib/coref.mak:
+	disable tree modification using a mouse with
+
+	* examples/fsdiff.pl: removed redundant open
+
+	* examples/corefdiff.pl: opt_t,opt_n
+
+2002-10-14  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* examples/corefdiff.pl: initial commit
+
+	* documentation/manual/tred.xml: docu fixes
+
+2002-10-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: always keep when using "New from Current"
+
+	* tredlib/TrEd/Convert.pm:
+	change test on perl 5.8 to test on Tk with UNICODE support
+
+	* tredlib/contrib/tr_common.mak: reflect tred.def macro names changes
+
+	* tredlib/contrib/coref.mak:
+	use AppendStyle from tred.def, reflect tred.def macro names changes
+
+	* tredlib/contrib/arabic_common.mak:
+	draw arrows between _Ref their targets
+
+	* tredlib/TrEd/TreeView.pm:
+	allow newlines in [! !] and [? ?] coord constructs
+
+	* tredlib/tred.def:
+	make macro names consistantly start with uppercase letters
+
+2002-10-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_tfa_only_anot_main.mak, tredlib/contrib/tfa.mak:
+	update
+
+	* tredlib/TrEd/TreeView.pm: coord fallback
+
+2002-10-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/coref.mak: - allow removing relations with Ctrl+j
+	- removing documented
+
+	* tredlib/contrib/ValLex/adverb.mak: display adverbs by Mr. S in gray
+
+	* tredlib/contrib/ValLex/adverb.mak: added support for adverb's author
+
+	* tredlib/contrib/pdt.mak: no change
+
+	* tredlib/contrib/transf.mak: updates
+
+	* tredlib/contrib/tr_common.mak: use QueryString
+
+	* tredlib/contrib/coref.mak: - fixes and updates
+
+	* tredlib/contrib/ar.mak: - added menu bindings
+
+	* tredlib/TrEd/TreeView.pm: - interpolation uses $this instead of $node
+	- added new [! !] Line-coord construction
+	- fixes in [ ... ] and [? ?] Line-coord constructions,
+	- all bracket Line-coord constructions requre explicit axis
+	  specification
+
+	* tredlib/tred.mac: QueryString macro added, minor fixes
+
+	* tredlib/redo.xpm, tredlib/undo.xpm: compatibility format fix
+
+	* tredlib/Fslib.pm: added method FSNode->root
+
+	* documentation/manual/tred.xml: update
+
+	* documentation/Fslib.html: regenerated
+
+	* tred: - bugfixes
+
+2002-10-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: - new order of widgets in the Customize Patterns dialog
+
+	* tredlib/contrib/coref.mak: - fixed misused $defs
+
+	* tredlib/TrEd/Config.pm: - reloadPreservesPatterns added
+
+	* tredlib/tredrc: - templates for reloadPreservesPatterns and maxUndo
+
+	* tredlib/csts.doctype:
+	- coref handling fixed (in sync with official CSTS DTD)
+
+	* documentation/manual/tred.xml:
+	- documented reloadPreservesPatterns and maxUndo options
+
+	* tred: added reloadPreservesPatterns flag
+
+	* tredlib/contrib/ar.mak:
+	do not set default patterns when file forces its own
+
+2002-10-01  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* trprint: - pad numbers with zeros in generated filenames
+
+	* tredlib/contrib/coref.mak: - documentation fix
+
+	* tredlib/contrib/coref.mak: documentation update
+
+	* tredlib/contrib/coref.mak: - POD fix
+
+	* tredlib/contrib/coref.mak: - docu update
+
+	* tredlib/contrib/tr_common.mak:
+	- use fs-header macros from tred.def rather than PDT
+
+	* tredlib/tred.def: - adopted FS Header macros from pdt.mak
+
+	* tredlib/contrib/coref.mak: - spellcheck
+
+	* tredlib/tred.mac: - applied new naming of coreference modules
+
+	* tredlib/contrib/tr_coref_common.mak, tredlib/contrib/tr_coref_anot_main.mak:
+	- replaces tr_corref_anot_main.mak
+
+	* tredlib/contrib/tr_common.mak:
+	- check for GUI before issuing questionQuery
+
+	* tredlib/contrib/pdt.mak: - new "undeclareAttributes" function
+
+	* tredlib/contrib/README: some files renamed
+
+	* tredlib/TrEd/TreeView.pm: - report errors in evaluated parts
+	- raise last drawn line above all other lines
+
+	* tredlib/tred.def: - GUI() function to check for GUI
+
+	* tredlib/csts.doctype: - new coreference handling
+	- merged with cstscomm.dtd
+
+	* tredlib/Fs2csts.pm, tredlib/Csts2fs.pm:
+	- reflect coreference changes in csts DTD
+
+	* trprint: - -D parameter added
+	- bugfix: apply new Fslib API
+
+	* tredlib/contrib/coref.mak: - documentation
+	- jump_to_referent
+	- some minor improvements
+
+2002-09-30  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tredtr.mak: - new TID/AID/AIDREFS handling
+
+	* tredlib/contrib/trdiff.mak: - diff whole files
+
+	* tredlib/contrib/tr_common.mak:
+	- connectID/disconnectID replaced with connect/disconnect(AIDREFS|FW)
+	- update_file calls
+
+	* tredlib/contrib/tr_anot_main.mak: call upgrade_file
+
+	* tredlib/contrib/coref.mak: colors etc.
+
+	* tredlib/TrEd/Macros.pm: fixed menu bindings with no key binding
+
+	* tredlib/TrEd/Config.pm: no change
+
+	* tred: reload macros function added (does not work anyway:)
+
+2002-09-23  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: some silly old debug prints removed
+
+2002-09-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ChangeLog: *** empty log message ***
+
+	* tredlib/contrib/tredtr.mak: 2x fix ConnetID to ConnectID
+
+	* tredlib/contrib/tred_mac_common.mak:
+	some new functions for moving in the tree
+
+	* tredlib/contrib/coref.mak, tredlib/contrib/README: initial commit
+
+	* tredlib/contrib/tr_corref_common.mak:
+	- default attributes now on F8 (not F1) (as in other contexts)
+	- include coref.mak
+
+	* tredlib/contrib/tr_corr_anot_main.mak: no change
+
+	* tredlib/contrib/tr_common.mak:
+	new TID and AID handling support and upgrade added
+
+	* tredlib/contrib/tr_anot_main.mak, tredlib/contrib/tr.mak:
+	support for patterns:force special pattern
+
+	* tredlib/contrib/arabic_common.mak:
+	- reread config (so that -*-* fontspec might be replaced with iso8859-6)
+
+	* tredlib/TrEd/TreeView.pm:
+	- strange line-messing bug fixed/work-arounded
+	- added support for embedded perl node-test expressions [? ?] in
+	  coords
+
+	* tredlib/TrEd/Macros.pm:
+	allow incomplete path to macros from command-line
+
+	* tredlib/TrEd/Config.pm: - automatically fill -*-* in fontspec
+
+	* tredlib/tred.mac: support for mode:<context> special pattern
+
+	* tredlib/tred.def: - new FileNotSaved support
+	- new functions: GetSpecialPattern, SetFileSaveStatus,
+	  GetFileSaveStatus, GetNodeIndexGetNodeIndex, CurrentTreeNumber,
+	  FileName, GetTrees
+
+	* tredlib/csts.doctype: Top, fadd/@id added
+
+	* tredlib/Fslib.pm: minor change
+
+	* tredlib/Csts2fs.pm, tredlib/Fs2csts.pm: - oper (Top) support
+	- TID, AID, AIDREFS support
+
+	* tredlib/AG2FS.pm: initial commit
+
+	* tred: - added AG2FS support
+	- new FileNotSaved handling
+	- minor fix in suffix ## handling
+	- new reconfigure function, complete reconfiguration on Reload config...
+
+	* btred: validation and AG2FS support, new FileNotSaved handling
+
+	* any2any: PADT and AG2FS support
+
 2002-09-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* tredlib/contrib/tredtr.mak: 2x fix ConnetID to ConnectID
