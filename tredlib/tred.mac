@@ -84,7 +84,7 @@ sub editQuery {
   $d->bind(ref($ed->Subwidget('scrolled')),'<Control-Return>' => sub {1;});
   $d->bind('<Return>' => sub {Tk->break;});
   $d->bind('<Control-Return>' => sub { shift->toplevel->{default_button}->Invoke; Tk->break;});
-  $d->bind('<Escape>', sub { my $w=shift; $w->{selected_button}= 'Cancel'; } );
+  $d->bind($d,'<Escape>', [sub { shift; shift->{selected_button}= 'Cancel'; },$d] );
   $d->bind(ref($ed->Subwidget('scrolled')),'<Escape>', [sub { shift; my $w=shift; $w->{selected_button}= 'Cancel'; },$d] );
   $ed->focus;
   if (main::ShowDialog($d) =~ /OK/) {
@@ -108,13 +108,12 @@ sub questionQuery {
   my ($title, $message,@buttons) = @_;
 
   my $d = ToplevelFrame()->DialogBox(-title => $title,
-				       -buttons => [@buttons]
-				      );
+				     -buttons => [@buttons]);
   $d->add('Label', -text => $message, -font => StandardTredFont(), -wraplength => 200)->pack;
   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
 			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
-  $d->bind('<Escape>', sub { my $w=shift; $wr->{selected_button}= 'Cancel'; } )
-    if grep { $_ eq 'Cancel' } @buttons;
+  $d->bind($d,'<Escape>', [sub { shift; shift->toplevel->{selected_button}= 'Cancel' },$d] );
+#    if grep { $_ eq 'Cancel' } @buttons;
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   return $d->Show;
 }
