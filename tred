@@ -71,7 +71,7 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('m:c:l:t:hu');
+getopts('m:c:l:t:huW:G');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
@@ -2001,19 +2001,28 @@ sub startMain {
   my $node;
   my $parent;
   my %group;
-
-  $group{top}=MainWindow->new;
+  if ($opt_W) {
+    $group{top}=MainWindow->new(-use => $opt_W);
+  } else {
+    $group{top}=MainWindow->new();
+  }
 
   $group{folderImage}= $group{top}->Pixmap(-file=> Tk->findINC('folder.xpm'));
   $group{fileImage}  = $group{top}->Pixmap(-file=> Tk->findINC('file.xpm'));
   $group{lastActionBookmark}= $lastAction;
 
-  if (defined($geometry)) {
+  if (not $opt_G and defined($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
         $geometry
 	 = "$1x$2+".min($3,$group{top}->vrootwidth-$1).
 	    "+".min($4,$group{top}->vrootheight-$2);
     }
+    $group{top}->geometry($geometry);
+  }
+  if ($opt_W) {
+
+    $geometry = "600x400";
+    $group{top}->sizefrom('program');
     $group{top}->geometry($geometry);
   }
   prepareFonts(\%group);
