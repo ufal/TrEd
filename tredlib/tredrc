@@ -76,10 +76,13 @@ CurrentNodeHeight	= 9          		;; height of the oval
 ;; Miscelaneous Options
 ;; ------------------------------------------------------------
 
-maxDisplayedValues= 25			;; maximum number of rows in a dialog
+;; maxDisplayedValues= 25	        ;; maximum number of rows in a dialog
 					;; for selecting attribute values
 
-HintWait	 	= 1000	        ;; interval in ms before floating hint
+;; maxDisplayedAttributes= 20	        ;; maximum number of rows in a dialog
+					;; displaying node attributes
+
+;; HintWait	 	= 1000	        ;; interval in ms before floating hint
 					;; is displayed on a given node
 
 ;; ------------------------------------------------------------
@@ -146,20 +149,20 @@ HintWait	 	= 1000	        ;; interval in ms before floating hint
 
 ; ImageMagickConvert = 'convert' ;; path to ImageMagick convert program
 
-PrintColors = 0			;; 1 if you want to print in colors by default
+; PrintColors = 0	  	 ;; 1 if you want to print in colors by default
 
-SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive regexp
+
+;; ---------- Other Options -------------
+SearchMethod = R		 ;; R=Regular Expression, W=Wildcards,
+                                 ;; L=Literal E=Exhaustive regexp
 
 
 ; LibDir	 	= "/usr/local/lib/tred" 
 ; UseCzechLocales	= 1
 
 
-; ZCat = "/bin/zcat"			;; this value is default
-; GZip = "/bin/gzip -c"			;; -- " --
-
-; CstsToFs="2804.x"		   	;; obsolete: old csts2fs convertor
-; FsToCsts="2804.x -oformat=csts"    	;; obsolete: old fs2csts convertor
+; ZCat = "/bin/zcat"			        ;; program that gunzips stdin to stdout
+; GZip = "/bin/gzip -c"			        ;; program that gzips stdin to stdout
 
 ;; Options for new CSTS SGML backend
 ;
