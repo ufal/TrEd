@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-06 10:53:22 pajas>
+# Time-stamp: <2001-02-06 17:25:20 pajas>
 #
 # TrEd ver. 0.5 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -383,6 +383,7 @@ sub setConfig {
   $textColorShadow=(exists $confs->{textcolorshadow}) ? $confs->{textcolorshadow} : 'darkgrey';
   $textColorHilite=(exists $confs->{textcolorhilite}) ? $confs->{textcolorhilite} : 'darkgreen';
   $textColorXHilite=(exists $confs->{textcolorxhilite}) ? $confs->{textcolorxhilite} : 'darkred';
+  $canvasBalloonInitWait=(exists $confs->{hintwait}) ? $confs->{hintwait} : 1000;
   $activeTextColor=(exists $confs->{activetextcolor}) ? $confs->{activetextcolor} : 'blue';
   $boxColor=(exists $confs->{boxcolor}) ? $confs->{boxcolor} : 'wheat';
   $currentBoxColor=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'white';
@@ -1206,7 +1207,7 @@ sub nextTree {
 
 sub prevTree {
   return 0 if ($treeNo <= 0);
-  gotoTree($treeNo+1,shift);
+  gotoTree($treeNo-1,shift);
   return 1;
 }
 
@@ -1364,11 +1365,13 @@ sub startMain {
 
   print STDERR "Asking wm for exit-hook.\n";
 
-  $group{top}->protocol('WM_DELETE_WINDOW' => [sub { $grp=shift;
-						       doEvalHook(\%group,"exit_hook");
-						                          # run user's exit_hook
-						       askSaveFile($grp);
-						       $grp->{'top'}->destroy; },\%group]);
+  $group{top}->
+    protocol('WM_DELETE_WINDOW' => 
+	     [sub { $grp=shift;
+		    doEvalHook(\%group,"exit_hook");
+		    # run user's exit_hook
+		    askSaveFile($grp);
+		    $grp->{'top'}->destroy; },\%group]);
 
 
   print STDERR "Exit hook created.\n";
@@ -1545,8 +1548,6 @@ sub startMain {
 
   $group{'canvas'}=$canvas;
   addBindTags($canvas,'my');
-
-
 
 
   print STDERR "Creating buttons.\n";
@@ -2245,16 +2246,33 @@ sub customAttrsDialog {
                      -exportselection 0/);
   $al->pack(qw/-padx 5 -side left -expand yes -fill both/);
   $al->insert('end',@atord);
-  my $bf = $f->Frame();
-  my $cl = $f->Scrolled(qw/Listbox -relief sunken 
+  my $cf = $f->Frame();
+  my $cl =
+    $cf->Scrolled(qw/Listbox -relief sunken
                      -borderwidth 2 -setgrid true
-		     -height 15 -scrollbars se
+		     -scrollbars se
                      -selectmode extended
-                     -exportselection 0/);
+                     -exportselection 0/
+		 )->pack(qw/-side top -expand yes
+                            -fill both
+                            -padx 3 -pady 3/);
   $cl->insert('end','   ');
+  my $t =
+    $cf->Scrolled(qw/Text -relief sunken
+                     -borderwidth 2 -setgrid true
+		     -height 4 -scrollbars se
+                     -width 10
+                     -exportselection 1
+                     -wrap none/
+		 )->pack(qw/-side top -expand yes
+                            -fill both
+                            -padx 3 -pady 3/);
+  $t->insert('0.0',$grp->{BalloonPattern});
+
   my $e = $d->Entry(qw/-relief sunken
                        -borderwidth 2/);
 
+  my $bf = $f->Frame();
   $bf->Button(-text => "Add",
 	      -command =>
 	      sub {
@@ -2278,8 +2296,20 @@ sub customAttrsDialog {
 	      }
 	     )->pack(-side => top, expand => yes, -padx => 3, -pady => 3);
 
+  $bf->Button(-text => "Add as hint",
+	      -command =>
+	      sub {
+		if ($e->get ne "") {
+		  Tk::catch { $t->delete('sel.first','sel.last') };
+		  $t->insert('insert',$e->get);
+		}
+	      }
+	     )->pack(-side => top, -expand => yes, -padx => 3, -pady => 3);
+
+
   $bf->pack(qw/-padx 5 -side left -expand yes -fill both/);
-  $cl->pack(qw/-padx 5 -side left -expand yes -fill both/);
+  $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
+
 
   $f->pack(qw/-side top -expand yes -fill x/);
   $e->pack(qw/-side bottom -expand yes -fill x/);
@@ -2304,16 +2334,17 @@ sub customAttrsDialog {
 	     $e->insert('insert',$cl->get('active'));
 	   }
 	  );
-
+  $d->bind('<Return>' => [sub {1;}]);
   $d->resizable(0,0);
   $grp->{'top'}->Unbusy();
 
   my $result = ShowDialog($d,$e,$grp->{top});
 
   if ($result =~ /OK/) {
+    $grp->{BalloonPattern}=$t->get('0.0','end - 1 chars');
 #    $FileNotSaved=1;
 #    getNodes($grp);
-#    redraw_tree($grp);
+    redraw_tree($grp);
   }
   $d->destroy;
   undef $d;
@@ -2585,6 +2616,7 @@ sub redraw_tree {
 
   return if $insideEval;
   recalculate_positions($grp);
+  $grp->{CanvasBalloon}->destroy() if $grp->{CanvasBalloon};
   #print $grp->{'canvasWidth'},'x',$grp->{'canvasHeight'},"\n";
   $grp->{'canvas'}->configure(-scrollregion =>['0c', '0c', $grp->{canvasWidth}, $grp->{canvasHeight}]);
   $grp->{'canvas'}->configure(-background => $backgroundColor) if (defined $backgroundColor);
@@ -2664,6 +2696,27 @@ sub redraw_tree {
     $grp->{'pinfo'}{$$node{"_tkTextBox_"}}=$node
       if exists $$node{"_tkTextBox_"};
   }
+
+  my %msghash=map
+    {
+     if (defined($_)) {
+       my $msg=$grp->{'BalloonPattern'};
+       $msg=~s/\${([^}]+)}/$grp->{'pinfo'}{$_}->{$1}/eg;
+       $_ => $msg;
+     }
+    }
+      $grp->{'canvas'}->find('withtag','point');
+
+  
+  $grp->{CanvasBalloon}=$grp->{top}->Balloon(-initwait => $canvasBalloonInitWait,
+				-state => 'balloon',
+				-background => '#fff3b0');
+  $grp->{CanvasBalloon}->Subwidget('message')->configure(qw/-justify left/);
+  $grp->{CanvasBalloon}->attach($grp->{'canvas'}->Subwidget('scrolled'),
+				-balloonposition => 'mouse',
+				-msg => \%msghash
+			     );
+
 
 #  $grp->{'canvas'}->bind('point', '<Any-Enter>' => [sub{shift->itemconfigure(@_)},
 #				      'current', -fill => $activeNodeColor]);
