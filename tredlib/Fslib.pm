@@ -2033,45 +2033,21 @@ Note: this function sets noSaved to zero.
 =cut
 
 sub readFile {
-  my ($self,$filename) = (shift,shift);
-  my $url=$filename;
+  my ($self,$url) = (shift,shift);
   my $ret = 1;
   return unless ref($self);
-  my $remove_filename = 0;
-  if ($filename=~m(^\s*(?:https?|ftp|gopher|news|file):)) {
-    eval('require LWP::Simple;
-          require POSIX;
-          $filename=POSIX::tmpnam();
-          LWP::Simple::is_success(LWP::Simple::getstore($url,$filename)) ||
-          die "Error occured while fetching URL $url\n";
-          $remove_filename = 1;
-          ');
-    warn $@ if $@;
-  }
+  $url =~ s/^\s*|\s*$//g;
+  my ($file,$remove_file) = IOBackend::fetch_file($url);
 
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
     if (eval {
  	  no strict 'refs';
-          $backend->can('test') &&
-          $backend->can('protocol_filter') &&
-          &{"${backend}::test"}($filename,$self->encoding);
-	}) {
-      eval {
-	$filename = $backend->protocol_filter($filename,'r');
-      };
-      if ($@) {
-	print STDERR "Error occured while filtering protocol '$filename':\n";
-      }
-      redo;
-    }
-    if (eval {
- 	  no strict 'refs';
 	  $backend->can('test')
 	  && $backend->can('read')
 	  && $backend->can('open_backend')
-	  && &{"${backend}::test"}($filename,$self->encoding);
+	  && &{"${backend}::test"}($file,$self->encoding);
 	}) {
       $self->changeBackend($backend);
       $self->changeFilename($url);
@@ -2079,12 +2055,13 @@ sub readFile {
       eval {
 	no strict 'refs';
 	my $fh;
-	$fh = &{"${backend}::open_backend"}($filename,"r",$self->encoding);
+	print STDERR "calling ${backend}::open_backend\n" if $Fslib::Debug;
+	$fh = &{"${backend}::open_backend"}($file,"r",$self->encoding);
 	&{"${backend}::read"}($fh,$self);
 	&{"${backend}::close_backend"}($fh);
       };
       if ($@) {
-	print STDERR "Error occured while reading '$filename':\n";
+	print STDERR "Error occured while reading '$file':\n";
 	print STDERR "$@\n";
 	$ret = -1;
       } else {
@@ -2096,8 +2073,8 @@ sub readFile {
     print STDERR "fail\n" if $Fslib::Debug;
     print STDERR "$@\n" if $@;
   }
-  if ($url ne $filename and $remove_filename) {
-    unlink $filename || warn "couldn't unlink tmp file $filename\n";
+  if ($url ne $file and $remove_file) {
+    unlink $file || warn "couldn't unlink tmp file $file\n";
   }
   return $ret;
 }
@@ -2136,21 +2113,11 @@ sub writeFile {
   return unless ref($self);
 
   $filename = $self->filename unless (defined($filename) and $filename ne "");
-
-  if ($filename=~m(^\s*(?:https?|ftp|gopher|news):)) {
-#    $!="Cannot write to URL $filename";
-    print STDERR "Cannot write to URL $filename\n";
-    return 0;
-  } elsif ($filename=~m(^\s*(?:file):)) {
-    $filename =~ s{^\s*(?:file):/+?}{/};
-  }
-
   my $backend=$self->backend || 'FSBackend';
   print STDERR "Writing to $filename using backend $backend\n" if $Fslib::Debug;
   my $ret;
   eval {
     no strict 'refs';
-#    require "$backend.pm";
     my $fh;
     $ret=( $backend->can('write')
        and $backend->can('open_backend')
@@ -2838,174 +2805,6 @@ sub destroy_tree {
 
 =cut
 
-############################################################
-#
-# ZBackend
-# =========
-#
-#
-
-package ZBackend;
-use strict;
-use Exporter;
-use vars qw(@ISA $VERSION @EXPORT @EXPORT_OK);
-@ISA=qw(Exporter);
-$VERSION = "0.1";
-@EXPORT = qw(&open_backend &close_backend);
-@EXPORT_OK = qw($gzip $zcat);
-
-eval('require IO;');
-eval('require IO::File;');
-
-=pod
-
-=head1 ZBackend
-
-ZBackend - generic IO backend for reading/writing gz-compressed files
-using either IO::Zlib module or external zcat utility.  Only
-open_backend and close_backend functions are implemented as this
-backend is meant to be base-class for all other backends which wish to
-open gz-compressed files.
-
-=head2 REFERENCE
-
-=over 4
-
-=cut
-
-=pod
-
-=item $ZBackend::zcat
-
-This variable may be used to set-up the zcat external utility. This
-utility must be able to compress standard input to standard output. If
-empty, this backend tries to open the given file using the IO::Zlib
-module.
-
-=item $ZBackend::gzip
-
-This variable may be used to set-up the gzip external utility. This
-utility must be able to compress standard input to standard output.
-If empty, this backend tries to open the given file using the IO::Zlib
-module.
-
-=cut
-
-
-$ZBackend::zcat = "/bin/zcat" unless $ZBackend::zcat;
-$ZBackend::gzip = "/usr/bin/gzip" unless $ZBackend::gzip;
-
-=pod
-
-=item open_backend (filename,mode,encoding?)
-
-Open given file for reading or writing (depending on mode which may be
-one of "r" or "w"); Return the corresponding object based on
-File::Handle class. Only files the filename of which ends with `.gz'
-are considered to be gz-commpressed. All other files are opened using
-IO::File.
-
-Optionally, in perl ver. >= 5.8, you may also specify file character
-encoding.
-
-=cut
-
-sub open_backend {
-  my ($filename, $mode,$encoding)=@_;
-  my $fh = undef;
-  if ($filename) {
-    if ($filename=~/.gz~?$/) {
-      if ($^O ne 'MSWin32' and -x $ZBackend::zcat) {
-	if ($mode =~/[w\>]/) {
-	  eval {
-	    $fh = new IO::Pipe();
-	    $fh && $fh->writer("$ZBackend::gzip > \"$filename\"");
-	  } || return undef;
-	} else {
-	  eval {
-	    $fh = new IO::Pipe();
-	    $fh && $fh->reader("$ZBackend::zcat < \"$filename\"");
-	  } || return undef;
-	}
-      } else {
-	if ($^O eq 'MSWin32') {
-	  eval {
-	    require File::Temp;
-	    $fh = new File::Temp(UNLINK => 1);
-	  } && $fh || return undef;
-	  if ($mode =~ /[w\>]/) {
-	    print "Storing ZIPTOFILE: $mode\n";
-	    ${*$fh}{'ZIPTOFILE'}=$filename;
-	  } else {
-	    my $tmp;
-	    eval {
-	      require IO::Zlib;
-	      $tmp = new IO::Zlib();
-	    } && $tmp || return undef;
-	    $tmp->open($filename,"rb") || return undef;
-	    $fh->print($_) while <$tmp>;
-	    $tmp->close();
-	    seek($fh,0,'SEEK_SET');
-	  }
-        } else {
-	  eval {
-	    require IO::Zlib;
-	    $fh = new IO::Zlib();
-	  } && $fh || return undef;
-	  $fh->open($filename,$mode."b") || return undef;
-	}
-      }
-      # Win32 needs this hack - somebody pls kill Bill !!
-    } else {
-      eval { $fh = new IO::File(); } || return undef;
-      $fh->open($filename,$mode) || return undef;
-    }
-  }
-  no integer;
-  if ($]>=5.008 and defined $encoding) {
-    eval {
-      print STDERR "USING PERL IO ENCODING: $encoding FOR MODE $mode\n" if $Fslib::Debug;
-      binmode($fh,":encoding($encoding)");
-    };
-    print STDERR $@ if $@;
-  }
-  return $fh;
-}
-
-=pod
-
-=item close_backend (filehandle)
-
-Close given filehandle opened by previous call to C<open_backend>
-
-=cut
-
-sub close_backend {
-  my ($fh)=@_;
-  # Win32 hack:
-  if (ref($fh) eq 'File::Temp') {
-    my $filename = ${*$fh}{'ZIPTOFILE'};
-    if ($filename ne "") {
-      print "Doing the real save to $filename\n";
-      seek($fh,0,'SEEK_SET');
-      require IO::Zlib;
-      my $tmp = new IO::Zlib();
-      $tmp->open($filename,"wb") || die "Cannot write to $filename: $!\n";
-      # binmode $tmp;
-      binmode $fh;
-      $tmp->print(<$fh>);
-      $tmp->close;
-    }
-  }
-  return ref($fh) && $fh->close();
-}
-
-=pod
-
-=back
-
-=cut
-
 
 ############################################################
 #
@@ -3016,9 +2815,7 @@ sub close_backend {
 
 package FSBackend;
 use strict;
-use vars qw(@ISA);
-@ISA=qw(ZBackend);
-import ZBackend;
+use IOBackend qw(open_backend close_backend);
 
 =pod
 
@@ -3052,7 +2849,10 @@ sub test {
   if (ref($f) eq 'ARRAY') {
     return $f->[0]=~/^@/; 
   } elsif (ref($f)) {
-    return $f->getline()=~/^@/;
+    print STDERR "TESTING\n";
+    my $test = ($f->getline()=~/^@/);
+    print STDERR "TEST: $test\n";
+    return $test;
   } else {
     my $fh = open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
