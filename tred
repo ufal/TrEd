@@ -415,7 +415,7 @@ use POSIX qw(locale_h);
     }
     my $lc_ctype=setlocale(LC_CTYPE);
     $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
-    setlocale(LC_CTYPE,$lc_collate);
+    setlocale(LC_CTYPE,$lc_ctype);
   }
   setlocale(LC_NUMERIC,"C");
 };
