@@ -112,6 +112,14 @@ sub has_auxR {
     [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)', '+ADDR(.1)' ],
    ],
    # 2.
+   [# case: "mrizka/mrizku=PAT(.4,.1) nejde udelat"
+    # adds PAT(.1)
+    sub { my ($node) = @_;
+	  ($node->{tag}=~/^Vf/ and first { $_->{lemma} eq 'jít' } PDT::GetFather_TR($node)) ? 1:0;
+	} =>
+    [ 'PAT(.4)' ] => [ '+PAT(.1)' ],
+   ],
+   # 3.
    [# verb test: passive verb
     # applies to "problem je vyresen nekym", but not to "nekdo ma problem vyresen",
     # but should still apply to "problem ma byt vyresen"
@@ -126,9 +134,9 @@ sub has_auxR {
     # frame test
     [ 'ACT(.1)' ] =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.7)' ],
+    [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])'],
    ],
-   # 3.
+   # 4.
    [# dispmod
     sub { $_[0]->{dispmod} eq "DISPMOD" } =>
     # frame transformation rules:
@@ -140,7 +148,7 @@ sub has_auxR {
     # form transformation rules:
     [ '-ACT(.1)', '+ACT(.3)', '+(.[se])', '+MANN(*)' ]
    ],
-   # 4.
+   # 5.
    [ # chce se mu riskovat
     sub {
       my ($node,$aids) = @_;
@@ -156,7 +164,7 @@ sub has_auxR {
     [ 'ACT(.1)' ] =>
     [ '-ACT(.1)', '+ACT(.3)' ]
    ],
-   # 5.
+   # 6.
    [# verb test: verb treated as passive due to "se".AuxR
     sub {
       my ($node,$aids) = @_;
@@ -167,7 +175,7 @@ sub has_auxR {
     =>
     @fv_passivization_rules
    ],
-   # 6.
+   # 7.
    [ # nechat si/dat si udelat neco udelat od nekoho/nekym
     sub {
       my ($node,$aids) = @_;
@@ -183,8 +191,23 @@ sub has_auxR {
     [ 'ACT(.1)' ] =>
     [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ]
    ],
+   # 8. imperative
+   [
+    sub { $_[0]->{tag}=~/^Vi/ ? 1 : 0 } =>
+    [ 'ACT(.1)' ] => [ '+ACT(.5)' ]
+   ]
   );
 
+%lemma_normalization =
+  qw(
+     li jestli
+    );
+
+sub match_lemma {
+  my ($l1,$l2)=@_;
+  return ($l1 eq $l2 or
+	  exists ($lemma_normalization{$l1}) and $lemma_normalization{$l1} eq $l2) ? 1 : 0;
+}
 
 sub match_node_coord {
   my ($node, $fn,$aids,$loose_lemma) = @_;
@@ -210,7 +233,7 @@ sub get_aidrefs_nodes {
 
 sub is_numeric_expression {
   my ($node)=@_;
-  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
+  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|trochu|plno|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
 }
 
 sub climb_auxcp {
@@ -260,13 +283,13 @@ sub check_node_case {
   return 1 if $node->{tag}=~/^[NCPA]...X/ or $node->{tag}=~/^X...-/;
   print "   CASE: Checking lemmas w/o case\n"  if $V_verbose;
   # special lemmas without case:
-  return 1 if $node->{lemma} =~ /^(?:&percnt;|hodnì|málo-3|dost)(?:\`|$|_)/;
+  return 1 if $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|málo-3|dost)(?:\`|$|_)/;
   print "   CASE: Checking simple number w/o case\n"  if $V_verbose;
   # simple number without case: e.g. 3
   return 1 if ($node->{tag}=~/^C=..\D/);
   print "   CASE: Checking 'kolem|okolo'+Num\n"  if $V_verbose;
   # kolem milionu (lidí)
-  return 1 if $node->{lemma} =~ /^kolem-1|okolo-1$/ and $node->{afun}=~/^AuxP/ and
+  return 1 if $node->{lemma} =~ /^(?:do1|kolem-1|okolo-1)$/ and $node->{afun}=~/^AuxP/ and
     first { $_->{tag}=~/^....2/ and is_numeric_expression($_) } get_chilren_include_auxcp($node);
   print "   CASE: Checking 'pres|na'+Num\n"  if $V_verbose;
   # pøes milion (lidí)
@@ -286,7 +309,7 @@ sub check_node_case {
 		    ) or
 		    ($_->{tag}=~/^....2/ and
 		     first {
-		       $_->{lemma} =~ /^kolem-1|okolo-1$/ and $_->{afun}=~/^AuxP/ }
+		       $_->{lemma} =~ /^(do-1|kolem-1|okolo-1)$/ and $_->{afun}=~/^AuxP/ }
 		     with_AR { PDT::GetFather_AR($_,sub{0}) }
 		    ))
 	       } with_AR { PDT::GetFather_AR($node,sub{0}) });
@@ -316,9 +339,9 @@ sub match_node {
       my $list = $1;
       my @l = split /,/,$list;
       return 0 unless (first { (!$loose_lemma and $_ eq '...')
-			       or $_ eq $l } @l)
+			       or $_ eq $l or match_lemma($l,$_) } @l)
     } else {
-      return 0 unless $lemma eq $l;
+      return 0 unless $lemma eq $l or match_lemma($l,$lemma);
     }
   }
   if ($agreement) {
@@ -368,7 +391,7 @@ sub match_node {
     }
   } elsif (!$no_case and $case ne '') { # assume $tag =~ /^[CNP]/
     unless ($node->{tag}=~/^[CNPAX]/ or
-	    $node->{lemma} =~ /^(?:&percnt;|hodnì|málo-3|dost|kolem-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
+	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|málo-3|dost|do-1|kolem-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
       return 0;
     }
@@ -378,13 +401,13 @@ sub match_node {
 				      $case==4 and $node->{tag}=~/^Vs..4/))
       or check_node_case($node,$case);
 #     return 0 if ((($node->{tag}=~/^[NCPA]...(\d)/ and $case ne $1) or
-# 		  ($node->{tag}!~/^[NCPAX]/ and $node->{lemma} !~ /^(?:&percnt;|hodnì|málo-3|dost)(?:\`|$|_)/))
+# 		  ($node->{tag}!~/^[NCPAX]/ and $node->{lemma} !~ /^(?:&percnt;|trochu|plno|hodnì|málo-3|dost)(?:\`|$|_)/))
 # 		 and
 # 		 not ($node->{tag}=~/^C...\D/ and not get_chilren_include_auxcp($node) and
 # 		 not ($node->{tag}=~/^....2/ and
 # 		      (print("CASE2: $node->{lemma}\n"),1) and
 # 		      first {
-# 			($_->{tag} =~ /^C/ or $_->{lemma} =~ /^(?:dost|málo-3|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda)(?:\`|$|_)/) and
+# 			($_->{tag} =~ /^C/ or $_->{lemma} =~ /^(?:dost|málo-3|trochu|plno|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda)(?:\`|$|_)/) and
 #              		(print("CASE3: $node->{lemma}\n"),1) and
 # 			($_->{tag}!~/^....(\d)/ or $case eq $1 or
 # 			 ($1 eq '4' and first { $_->{lemma} eq 'pøes-1' } get_aidrefs_nodes($aids,$_) or
