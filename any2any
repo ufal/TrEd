@@ -41,13 +41,13 @@ Parameters:
                      (starting from one).
 
   -T                 if converting from csts, build tectogrammatical tree structure
-  -A                 when converting from csts, use header for Arabic PADT treebank
   -R                 same as -T (for compatibility with TrEd/bTrEd)
+  -A                 when converting from csts, use header for Arabic PADT treebank
   -N                 if empty, initialize ordering attribute with sentence ordering
   -G                 do not save dependency on the root of the tree in csts format
   -C                 convert to CSTS in mode quite compatible with Dan Zemans cstsfs
-  -E                 convert to CSTS save err1 attribute to (non-CSTS) <err> element
-  -D                 print some debugging information
+  -E                 when converting to CSTS, save err1 attribute to (non-CSTS) <err> element
+  -D                 print various debugging information
 EOF
   }
   exit 0;
