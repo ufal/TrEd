@@ -386,7 +386,7 @@ sub set_config {
   $defCWidth		      =	val_or_def($confs,"canvaswidth",'18c');
   $defCHeight		      =	val_or_def($confs,"canvasheight",'12c');
   $geometry		      =	val_or_def($confs,"geometry",undef);
-  $maxDisplayedValues	      =	val_or_def($confs,"maxdisplayedvalues",30);
+  $maxDisplayedValues	      =	val_or_def($confs,"maxdisplayedvalues",25);
   $maxDisplayedAttributes     =	val_or_def($confs,"maxdisplayedattributes",20);
   $lastAction		      =	val_or_def($confs,"lastaction",undef);
 
