@@ -542,8 +542,7 @@ APPINFO    NONE
 >
 
 <!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
-                    TRg? & corl? & corT? & corr? &
-                    cors? )
+                    TRg? & coref* )
                 -- tectogrammatical lemma id. 
                 --
 >
@@ -556,8 +555,7 @@ APPINFO    NONE
 >
 
 <!ELEMENT TRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
-                    TRg? & corl? & corT? & corr? &
-                    cors? )
+                    TRg? & coref* )
                 -- tectogrammatical lemma id. 
                 --
 >
