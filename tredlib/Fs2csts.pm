@@ -312,7 +312,7 @@ sub write {
       if ($node->{dsp}=~/(DSPP|DSPI|DSP)/) {
 	$quot=" ".lc($1);
       }
-      if ($node->{quot} eq 'QUOT') {
+      if ($node->{quoted} eq 'QUOT') {
 	$quot.= $quot ? ".quot" : " quot";
       }
 
@@ -355,7 +355,7 @@ sub write {
 	  print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
 	  print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
 	  print $fileref "<Tframeid>",$node->{frameid} if ($node->{frameid} ne "");
-	  print $fileref "<Tframere>",translate_to_entities($node->{frameire}) 
+	  print $fileref "<Tframere>",translate_to_entities($node->{framere}) 
 	    if ($node->{framere} ne "");
 	  if ($fsfile->FS->order eq 'dord') {
 	    print $fileref "<TRg>",$node->parent->{ord};
