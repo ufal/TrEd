@@ -45,11 +45,11 @@
     <orderedlist continuation="restarts" inheritnum="ignore">
       <listitem>
 	<para><productname class="trade">Windows 95/98/ME</productname> or
-	<productname class="trade">Windows NT/2000</productname></para></listitem>
+	<productname class="trade">Windows NT/2000/XP</productname></para></listitem>
       <listitem>
-	<para><productname class="trade">Linux</productname> (with <filename moreinfo="none">libc.6</filename>)</para></listitem>
+	<para><productname class="trade">Linux</productname></para></listitem>
       <listitem>
-	<para><productname class="trade">UNIX</productname>, <productname class="trade">Solaris</productname>
+	<para><productname class="trade">BSD</productname>, <productname class="trade">UNIX</productname>, <productname class="trade">Solaris</productname>
 	  and other UNIX-based systems</para>
       </listitem>
     </orderedlist>
@@ -57,10 +57,13 @@
   <sect1 id="chap1">
     <title>Installation and start up instructions</title>    
     <para>
-      On all supported platforms <application moreinfo="none">TrEd</application> requires Perl to be installed and
-      Tk toolkit (a library of GUI functions). Installation of these
-      tools is different on all supported platforms. Installation of
-      <application moreinfo="none">TrEd</application> itself is platform-independent.
+      On all supported platforms, 
+      <application moreinfo="none">TrEd</application> requires 
+      Perl interpreter and Perl-Tk toolkit (a GUI library for Perl). 
+      Installation of these tools is different on Unix-like
+      and Windows platforms. 
+      Installation of <application moreinfo="none">TrEd</application> itself,
+      though, is platform-independent.
     </para>
     <para>
       To install Perl/Tk on your system follow instructions for your
@@ -68,7 +71,22 @@
     </para>
     <sect2 id="install-windows">
       <title>Windows</title>
-    <orderedlist continuation="restarts" inheritnum="ignore">
+      <para>
+	There is a windows-specific installation package available on
+	<ulink
+	url="http://pajas.matfyz.cz/tred"><application>TrEd</application>'s
+	homepage</ulink>. The package contains
+	<application>ActiveState Perl</application>,
+	<application>Perl-Tk</application>,
+	<application>TrEd</application>, and a setup script called
+	<literal>setup.bat</literal> for easy installation of
+	all of them.
+      </para>
+      <para>
+	If for some reason, you don't want to use the Windows installation
+	package, you may try the manual installation described below.
+      </para>
+      <orderedlist continuation="restarts" inheritnum="ignore">
       <listitem>
 	  <para>
 	    Windows users first have to download and install <ulink url="http://www.activestate.com/Products/Download/Get.plex?id=ActivePerl">ActivePerl</ulink>
@@ -81,7 +99,12 @@
 	<listitem>
 	  <para>
 	    In this step you add <application moreinfo="none">Tk library</application>
-	    to <application moreinfo="none">Perl</application>.  If you have on-line
+	    to <application moreinfo="none">Perl</application>.  
+	    If you have installed <application>ActiveState
+	    Perl</application> 5.8 or higher, you may skip this step
+	    since <application>Tk</application> is already included.
+	    If you used older version, and
+	    you have on-line
 	    connection to the Internet you may install the latest
 	    <application moreinfo="none">Tk</application> toolkit from
 	    ActiveState's site in the following steps:
@@ -109,13 +132,18 @@
 	      <para>Close the command prompt</para></listitem>
 	</orderedlist>
 	  <para>
-	    If you do <emphasis>not</emphasis> have on-line connection to the Internet,
-	    please, follow these steps:
+	    If you do <emphasis>not</emphasis> have
+	    <application>ActiveState Perl</application> 5.8 or higher,
+	    and you don't have on-line connection
+	    to the Internet, but you do have 
+	    <productname class="trade">Prague Dependency
+	    Treebank</productname>
+	    CD-ROM, please, follow these steps:
 	  </para>
 	<orderedlist continuation="restarts" inheritnum="ignore">
 	  <listitem>
 	      <para>Open a command prompt (<application moreinfo="none">MS-DOS prompt</application> in
-		<application moreinfo="none">Windows†9x/ME</application>)</para>
+		<application moreinfo="none">WindowsÅ†9x/ME</application>)</para>
 	    </listitem> 
 	  <listitem>
 	      <para>Change directory to <filename moreinfo="none">Tools\Tree_Editors\Tred\PerlTk</filename> on
@@ -125,7 +153,7 @@
 		type		
 		<literallayout class="normal" format="linespecific"><userinput moreinfo="none">D:</userinput>
 		  <userinput moreinfo="none">cd D:\Tools\Tree_Editors\Tred\PerlTk</userinput></literallayout>
-		Under Windows†9x you may rather need to use command	    
+		Under WindowsÅ†9x you may rather need to use command	    
 		<literallayout class="normal" format="linespecific"><userinput moreinfo="none">cd D:\Tools\Tree_~1\Tred\PerlTk</userinput></literallayout>
 	      </para>
 	  </listitem>
@@ -152,73 +180,11 @@
       </listitem>
     </orderedlist>
     </sect2>
-    <sect2 id="install-linux">
-      <title>Linux</title> 
-      <para>
-	This instructions apply only to <application moreinfo="none">RedHat Linux
-	  6.x</application> or derived distributions. If you use other
-	distribution, follow the general
-	<application moreinfo="none">UNIX</application> instructions below.
-      </para>
-      <para>
-	<application moreinfo="none">RedHat Linux 6.x</application> contains
-	<application moreinfo="none">Perl 5.005_03</application>,
-	<application moreinfo="none">RedHat Linux 7.x</application> contains
-	<application moreinfo="none">Perl 5.6</application>
-	in default
-	installation. Make sure, that you have correctly installed
-	<application moreinfo="none">Perl</application> RPM packages. If so, you may now
-	install <application moreinfo="none">PerlTk</application> toolkit and <application moreinfo="none">TrEd</application>:
-      </para>
-      <orderedlist continuation="restarts" inheritnum="ignore">
-	<listitem>
-	  <para>
-	    To install <application moreinfo="none">PerlTk</application>, as a
-	    <literal moreinfo="none">root</literal> issue the following command from the
-	    <filename moreinfo="none">Tools/Tree_Editors/Tred/PerlTk</filename> directory on the CD:
-	    <literallayout class="normal" format="linespecific">root# <userinput moreinfo="none">rpm -i perl-Tk-800.018-1.i386.rpm</userinput></literallayout>
-	    in case you are using <application moreinfo="none">RedHat Linux 6.x</application>
-	    distributions
-	    or
-	    <literallayout class="normal" format="linespecific">root# <userinput moreinfo="none">rpm -i perl-Tk-800.022-11.i386.rpm</userinput></literallayout>
-	    in case of <application moreinfo="none">RedHat Linux 7.x</application>.
-	  </para>
-	</listitem>
-	<listitem>
-	  <para>
-	    To install <application moreinfo="none">TrEd</application>,
-	    the whole <filename moreinfo="none">Tred</filename> folder from the CD
-	    (<filename moreinfo="none">Tools/Tree_Editors/Tred/Tred</filename>) somewhere on your
-	    file-system, e.g. to your home directory or <filename moreinfo="none">/opt</filename>
-	    directory. 
-	  </para>
-	  <note>
-	    <para>
-	      You may also wish to install the <command moreinfo="none">tred</command>
-	      executable to some directory on your <varname>PATH</varname>. In that
-	      case you only have to provide a way for <application moreinfo="none">TrEd</application> to find its
-	      library files. It can be achieved either by setting the
-	      <varname>TREDHOME</varname> variable to point to the location where
-	      you have made a copy of the <filename moreinfo="none">Tred/Tredlib</filename> directory, or
-	      by copying the <command moreinfo="none">tred</command> executable and the
-	      <filename moreinfo="none">tredlib</filename> directory into the directories
-	      <filename moreinfo="none">bin</filename> and <filename moreinfo="none">lib</filename> respectively, on the same
-	      level of the directory structure.
-	    </para>
-	  </note>
-	</listitem>
-	<listitem>
-	  <para>
-	    Run <application moreinfo="none">TrEd</application> by issuing the command
-	    <command moreinfo="none">tred</command>. (See <xref linkend="commandline"/>.)
-	  </para>
-	</listitem>
-      </orderedlist>
-    </sect2>
     <sect2 id="install-unix">
-      <title>UNIX based systems</title>
+      <title>Linux and UNIX-based systems</title>
       <para>
-	Almost every <application moreinfo="none">UNIX/Linux</application> system
+	Almost every modern 
+	<application moreinfo="none">UNIX/Linux</application> system
 	contains <application moreinfo="none">Perl</application> in default
 	installation, so we may expect that you have already
 	<application moreinfo="none">Perl</application> installed on your box and you
@@ -228,86 +194,89 @@
     <orderedlist continuation="restarts" inheritnum="ignore">
       <listitem>
 	  <para>
-	    To install <application moreinfo="none">PerlTk</application> toolkit,
-	    untar the <ulink url="http://ckl.ms.mff.cuni.cz/~pajas/tred/Tk800.024.tar.gz"><filename moreinfo="none">Tk800.022.tar.gz</filename></ulink>
+	    To install <application
+	      moreinfo="none">PerlTk</application> 
+	    toolkit, fetch the latest version of Perl-Tk library from 
+	    <ulink url="http://search.cpan.org/modlist/User_Interfaces/Tk">CPAN</ulink>, 
 	    archive to some temporary directory, e.g. with the
-	    following command:
+	    following command (substituting your Tk version number):
 	    <literallayout class="normal" format="linespecific">
-	      $ <userinput moreinfo="none">gunzip†-c†Tk800.024.tar.gz†|†tar†-x</userinput>
+	      $ <userinput moreinfo="none">gunzipÅ†-cÅ†Tk-804.025.tar.gzÅ†|Å†tarÅ†-x</userinput>
 	    </literallayout>
-	    and issue the following commands (see file <filename moreinfo="none">INSTALL</filename> in
-	    the <filename moreinfo="none">Tk800.024</filename> directory for details):
-	    <literallayout class="normal" format="linespecific">bash$ <userinput moreinfo="none">cd Tk800.024</userinput>
-bash$ <userinput moreinfo="none">perl Makefile.PL</userinput>
+	    
+	    and issue the following commands (see file <filename
+	    moreinfo="none">INSTALL</filename> file in the
+	    <filename moreinfo="none">Tk</filename> distribution directory for details):
+	    <literallayout class="normal" format="linespecific">bash$ <userinput moreinfo="none">cd Tk804.025</userinput>
+bash$ <userinput moreinfo="none">perl Makefile.PL XFT=1</userinput><co id="co-makefilepl"/>
 bash$ <userinput moreinfo="none">make</userinput>
 bash$ <userinput moreinfo="none">make test</userinput><co id="co-test"/>
 bash$ <userinput moreinfo="none">su</userinput><co id="co-su"/>
 root# <userinput moreinfo="none">make install</userinput>
-	    </literallayout>	
+	    </literallayout>
 	    <calloutlist>
+	      <callout arearefs="co-makefilepl">
+		<para>the XFT=1 option turns on support for FreeType anti-aliasing.
+		  If this step fails, restart without <literal>XFT=1</literal>
+		</para>
+	      </callout>
 	      <callout arearefs="co-test">
-		<para>this is only to test the compilation, you may
-		skip it</para></callout>
+		<para>this is only to test the result of the compilation, you may
+		skip it, if you like</para></callout>
 	      <callout arearefs="co-su">
 		<para>gain <literal moreinfo="none">root</literal>'s privileges</para>
 	      </callout>
 	    </calloutlist>
 	  </para>
 	</listitem>
-	<listitem>
-	  <para>
-	    Installation of <application moreinfo="none">TrEd</application> on a
-	    <application moreinfo="none">UNIX</application> box is same as on
-	    <application moreinfo="none">Linux</application>.  To install
-	    <application moreinfo="none">TrEd</application>, the whole
-	    <filename moreinfo="none">Tred</filename> folder from the CD
-	    (<filename moreinfo="none">Tools/Tree_Editors/Tred/Tred</filename>)
-	    somewhere on your file-system, e.g. to your home directory
-	    or <filename moreinfo="none">/opt</filename> directory.
-	  </para>
+
+ 	<listitem>
+ 	  <para>
+ 	    To install <application
+ 	    moreinfo="none">TrEd</application>, simply
+	    untar/ungzip the <filename>tred</filename> directory
+	    from the <application>TrEd</application>
+ 	    installation package to any directory you like
+	    (e.g. to your home directory or <filename moreinfo="none">/opt</filename>
+ 	    directory).
+ 	  </para>
+ 	  <note>
+ 	    <para>
+ 	      You may also wish to install the <command moreinfo="none">tred</command>
+ 	      executable to some directory on your
+ 	      <varname>PATH</varname>. The simpliest way to do so is to make a
+ 	      symbolic link in <filename>/usr/bin/tred</filename>
+	      to <filename>/opt/tred/tred</filename> (supposing you have unpacked the
+ 	      <application>TrEd</application> distribution to
+ 	      <filename>/opt</filename>).
+ 	    </para>
+ 	  </note>
+ 	</listitem>
+ 	<listitem>
+ 	  <para>
+ 	    Run <application moreinfo="none">TrEd</application> by issuing the command
+ 	    <command moreinfo="none">tred</command>. (See <xref
+ 	    linkend="commandline"/>.)
+	    The same holds for the <command
+ 	    moreinfo="none">btred</command> executable
+	    and other tools included with
+ 	    <application>TrEd</application> distribution.
+ 	  </para>
 	  <note>
-	  <para>
-	    You may also wish to install the <command moreinfo="none">tred</command>
-	    executable to some directory in your
-	    <varname>PATH</varname>. In that case you have to
-	    provide a way for <application moreinfo="none">TrEd</application> to find
-	    its library files. It can be achieved either by setting the
-	    <varname>TREDHOME</varname> variable to point to the
-	    location where you have made a copy of the
-	    <filename moreinfo="none">Tred/Tredlib</filename> directory, or by copying
-	    the <command moreinfo="none">tred</command> executable and the
-	    <filename moreinfo="none">Tredlib</filename> directory into the
-	    directories <filename moreinfo="none">bin</filename> and
-	    <filename moreinfo="none">lib</filename> respectively, on the same level
-	    of directory structure.
-	    (The same holds for the <command moreinfo="none">btred</command> executable.)
-	  </para>
-	</note>
-      </listitem>
-      <listitem>
-	  <para>
-	    <application moreinfo="none">TrEd</application> is ran by executing the
-	    <command moreinfo="none">tred</command> executable or typing <command moreinfo="none">perl
-	    <parameter moreinfo="none">tred</parameter></command> (in the later case full-path to
-	    <parameter moreinfo="none">tred</parameter> should be specified). See
-	    details
-	    in <xref linkend="commandline"/>.</para>
-	  <para>
-	    <note>
-	      <para>If executing of the <command moreinfo="none">tred</command>
-		executable fails, try to change the first
-		(<command moreinfo="none">#!/usr/bin/perl</command>) line to point to your
-		Perl executable. If you find <application moreinfo="none">TrEd</application> halting immediately,
-		complaining about <filename moreinfo="none">Tk.pm</filename> module, check
-		<application moreinfo="none">PerlTk</application> installation path. You
-		may need to setup <varname>PERLLIB</varname> variable to point to
-		the <filename moreinfo="none">site_perl</filename> directory on your system to which
-		the <filename moreinfo="none">Tk.pm</filename> module was installed.
-	      </para>
-	    </note>
-	  </para>
-      </listitem>
-    </orderedlist>
+	    <para>Ifthe <command moreinfo="none">tred</command>
+	      executable fails to start, try to changing the first line
+	      (<command moreinfo="none">#!/usr/bin/perl</command>) so
+	      that it points to your Perl executable. 
+	      If you find <application moreinfo="none">TrEd</application> halting immediately,
+	      complaining about <filename moreinfo="none">Tk.pm</filename> module, check
+	      <application moreinfo="none">PerlTk</application> installation path. You
+	      may need to setup <varname>PERLLIB</varname> variable to point to
+	      the <filename moreinfo="none">site_perl</filename> directory on your system to which
+	      the <filename moreinfo="none">Tk.pm</filename> module was installed.
+	    </para>
+	  </note>
+	</listitem>
+      </orderedlist>
     </sect2>
   </sect1>
   <sect1 id="chap2">
@@ -315,7 +284,7 @@ root# <userinput moreinfo="none">make install</userinput>
     <para>
       The following paragraphs describe menu commands. Each submenu in
       <application moreinfo="none">TrEd</application> has as its first item a tear-off
-      line (<guimenuitem moreinfo="none">-†-†-†-†-</guimenuitem>)
+      line (<guimenuitem moreinfo="none">-Å†-Å†-Å†-Å†-</guimenuitem>)
       which can be used to tear the menu off and place it as a
       separate window anywhere on your desktop.
     </para>
@@ -3771,7 +3740,7 @@ root# <userinput moreinfo="none">make install</userinput>
       </para>
       <variablelist>
 	<varlistentry>
-	  <term><literal moreinfo="none">#include†&quot;<replaceable>filename</replaceable>&quot;</literal></term>
+	  <term><literal moreinfo="none">#includeÅ†&quot;<replaceable>filename</replaceable>&quot;</literal></term>
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must be
 	      relative to the directory of the file to which it is
@@ -3779,14 +3748,14 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal moreinfo="none">#include†&lt;<replaceable>filename</replaceable>&gt;</literal></term>
+	  <term><literal moreinfo="none">#includeÅ†&lt;<replaceable>filename</replaceable>&gt;</literal></term>
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must
 	      be relative to the TrEd's library directory.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal moreinfo="none">#include†<replaceable>filename</replaceable></literal></term>
+	  <term><literal moreinfo="none">#includeÅ†<replaceable>filename</replaceable></literal></term>
 	  <listitem>
 	    <para>
 	      The <replaceable>filename</replaceable> may be
