@@ -421,7 +421,7 @@ sub gotoFile {
     $grp->{Filelist}->selectionClear();
     $grp->{Filelist}->selectionSet($path);
   }
-  return 1;
+  return $grp->{focusedWindow}->{FSFile}->lastTreeNo>=0;
 }
 
 sub nextFile {
@@ -696,7 +696,7 @@ sub openFile {
 
   $win->{FSFile}= FSFile->newFSFile($f,@backends);
   $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
-  ErrorMessage($grp,"empty or corrupt file!")
+  ErrorMessage($grp,"$f: empty or corrupt file!")
     if ($win->{FSFile}->lastTreeNo<0);
 
   $win->{treeNo}=0;
@@ -4387,11 +4387,12 @@ sub centerToXY {
 
   my $shiftx=($bx-$ax)/2;
   my $shifty=($by-$ay)/2;
-
-  $win->{treeView}->canvas->xview(moveto=> min(max(0,$x/$win->{treeView}->{canvasWidth}-$shiftx),1))
-    if ($win->{treeView}->{canvasWidth}-$shiftx);
-  $win->{treeView}->canvas->yview(moveto=> min(max(0,$y/$win->{treeView}->{canvasHeight}-$shifty),1))
-    if ($y/$win->{treeView}->{canvasHeight}-$shifty);
+  eval {
+    $win->{treeView}->canvas->xview(moveto=> min(max(0,$x/$win->{treeView}->{canvasWidth}-$shiftx),1))
+      if ($win->{treeView}->{canvasWidth}-$shiftx);
+    $win->{treeView}->canvas->yview(moveto=> min(max(0,$y/$win->{treeView}->{canvasHeight}-$shifty),1))
+      if ($y/$win->{treeView}->{canvasHeight}-$shifty);
+  }
 }
 
 sub centerTo {
