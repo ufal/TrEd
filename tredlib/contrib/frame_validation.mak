@@ -411,13 +411,13 @@ sub check_node_case {
 
   # simple case
   print "   CASE: Checking simple case\n" if $V_verbose;
-  return 1 if $node->{tag}=~/^[NCPA]...(\d)/ and $case eq $1;
+  return 1 if $node->{tag}=~/^[FNCPA]...(\d)/ and $case eq $1;
   print "   CASE: Checking case N..XX\n" if $V_verbose;
   return 1 if $node->{tag}=~/^N..XX/;
   print "   CASE: Checking AC..- tag ('vinen', etc.)\n" if $V_verbose;
   return 1 if $node->{tag}=~/^AC..-/ and $case=~/[14]/;#
   print "   CASE: Checking case X\n" if $V_verbose;
-  return 1 if $node->{tag}=~/^[NCPA]...X/ or $node->{tag}=~/^X...-/;
+  return 1 if $node->{tag}=~/^[FNCPA]...X/ or $node->{tag}=~/^X...-/;
   print "   CASE: Checking lemmas w/o case\n"  if $V_verbose;
   # special lemmas without case:
   return 1 if $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|málo-3|dost)(?:\`|$|_)/;
@@ -430,7 +430,7 @@ sub check_node_case {
     first { $_->{tag}=~/^C=/ or $_->{tag}=~/^....2/ and is_numeric_expression($_) } get_children_include_auxcp($node);
   print "   CASE: Checking 'pres|na'+Num\n"  if $V_verbose;
   # pøes milion (lidí)
-  return 1 if $node->{lemma} =~ /^(pøes-1|na-1)$/ and $node->{afun}=~/^AuxP/ and
+  return 1 if $node->{lemma} =~ /^(pøes-1|na-1|pod-1)$/ and $node->{afun}=~/^AuxP/ and
     first { $_->{tag}=~/^C=/ or $_->{tag}=~/^....4/ and is_numeric_expression($_) } get_children_include_auxcp($node);
   print "   CASE: Checking num+2 construct\n"  if $V_verbose;
   # a number has the right case (or no case at all) and is analytically governing the node
@@ -441,7 +441,7 @@ sub check_node_case {
 		 ($V_verbose && print("     CASE: parent is numeric: $_->{form}\n"),1) and
 		   (($_->{tag}!~/^....(\d)/) or ($case == $1) or
 		    ($_->{tag}=~/^....4/ and
-		     grep { $_->{lemma} =~ /^(pøes-1|na-1)$/ and $_->{afun}=~/^AuxP/ }
+		     grep { $_->{lemma} =~ /^(pøes-1|na-1|pod-1)$/ and $_->{afun}=~/^AuxP/ }
 		     with_AR { PDT::GetFather_AR($_,sub{0}) }
 		    ) or
 		    ($_->{tag}=~/^....2/ and
@@ -639,9 +639,9 @@ sub match_node {
     }
   } elsif (#!$no_case and  # BYT_CHANGE
 	   $case ne '') { # assume $tag =~ /^[CNP]/
-    unless ($kdo or $node->{tag}=~/^[CNPX]/ or (!$flags->{strict_adjectives} and $node->{tag}=~/^A/) or
+    unless ($kdo or $node->{tag}=~/^[CNFPX]/ or (!$flags->{strict_adjectives} and $node->{tag}=~/^A/) or
 	    ($node->{lemma}=~ /(ano|ne|pro-1|proti-1)/ and $node->{afun}=~/^(ExD|Adv|Obj|Sb)_.*$/) or
-	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|nemálo-1|málo-3|dost|do-1|mezi-1|kolem-1|po-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
+	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|nemálo-1|málo-3|dost|do-1|mezi-1|kolem-1|po-1|okolo-1|pøes-1|na-1|pod-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
       return 0;
     }
