@@ -364,6 +364,31 @@ root# <userinput>make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><menuchoice>
+	      <guimenuitem>New</guimenuitem>
+	      <guimenuitem>From Template</guimenuitem>
+	    </menuchoice></term>
+	  <listitem>
+	    <para>
+	      Creates a new empty file with the same header as
+	      the file that the user chooses in the
+	      <guilabel>Open</guilabel> dialog box.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><menuchoice>
+	      <guimenuitem>New</guimenuitem>
+	      <guimenuitem>From Current</guimenuitem>
+	    </menuchoice></term>
+	  <listitem>
+	    <para>
+	      Creates a new empty file with the same header as
+	      the current open file. If no file is open, does nothing.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><guimenuitem>Close</guimenuitem></term>
 	  <listitem>
 	    <para>Closes current file. If the file is modified but not
@@ -429,7 +454,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="print_command">
 	  <term><guimenuitem>Print ...</guimenuitem></term>
 	  <listitem>
 	    <para>
@@ -460,6 +485,21 @@ root# <userinput>make install</userinput>
 		  If <guilabel>Create EPS</guilabel> is checked, Encapsulated
 		  Postcript is created with the tightiest possible
 		  bounding box.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>If <ulink
+		url="http://www.imagemagick.org">ImageMagick</ulink>
+		utilities are installed on the system running TrEd,
+		automatic conversion to many graphics file formats may
+		be performed directly from the TrEd. To use it, first
+		check the <guilabel>Convert according to file
+		extension</guilabel> button, then select a desired pixel
+		resolution for conversion to bitmap, and finally
+		edit the filename giving it the usual extension of the
+		desired output file-format; for example
+		  <filename>.jpg</filename> or
+		<filename>.png</filename>.
 		</para>
 	      </listitem>
 	      <listitem>
@@ -500,17 +540,33 @@ root# <userinput>make install</userinput>
 		  comma-separated list of
 		  numbers or ranges of numbers, that correspond to the
 		  desired trees or tree-ranges in the active file, to
-		  the <guilabel>Page range</guilabel> field. First
-		  tree in the file has number 1, second has number 2,
+		  the <guilabel>Page range</guilabel> field.
+		  The <inlinegraphic
+		    fileref="pics/left"/> button may be used to
+		  automatically insert a page range corresponding to
+		  sentences selected via <link
+		  linkend="list_of_sentences"><menuchoice>
+		    <guimenu>View</guimenu>
+		    <guimenuitem>List of sentences...</guimenuitem>
+		  </menuchoice></link>. A different selection based on
+		  <quote>sentences</quote> can be made by pressing the
+		  <inlinegraphic fileref="pics/view_sent"/> button.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para id="page_range">
+		  If entered manually, the page range must be
+		  specified according to following rules:  First tree
+		  in the file has number 1, second has number 2,
 		  etc. Ranges are pairs of numbers like
-		  <quote><literal>3-20</literal></quote> which covers all trees starting
-		  from the tree no. 3 to no. 20.  If the first number
-		  in the range is omitted, 1 is assumed. If the second
-		  number in the range is ommited, the number of the
-		  last tree in the active file is assumed.
-		  The order of the trees given in the list is
-		  preserved and also, one tree may be printed more
-		  than once.
+		  <quote><literal>3-20</literal></quote> which covers
+		  all trees starting from the tree no. 3 to no. 20.
+		  If the first number in the range is omitted, 1 is
+		  assumed. If the second number in the range is
+		  ommited, the number of the last tree in the active
+		  file is assumed.  The order of the trees given in
+		  the list is preserved and also, one tree may be
+		  printed more than once.
 		  <note>
 		    <title>Example:</title>
 		    <para>
@@ -523,6 +579,16 @@ root# <userinput>make install</userinput>
 		      </simplelist>
 		    </para>
 		  </note>
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  When printing multiple trees,
+		  <application>TrEd</application> tries to perform the
+		  minimal scaling possible and rotates the tree by 90
+		  degrees if necessary. To avoid this check
+		  <guilabel>Disable landscape rotation of wide
+		  trees</guilabel> may be checked.
 		</para>
 	      </listitem>
 	    </itemizedlist>
@@ -678,7 +744,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="list_of_sentences">
 	  <term><guimenuitem>List of sentences ...</guimenuitem></term>
 	  <listitem>
 	    <para>
@@ -688,6 +754,16 @@ root# <userinput>make install</userinput>
 	      consisting of values of the value-attributes
 	      (i.e. <literal>@V</literal> attributes in FS format) of
 	      all nodes in the tree.
+	    </para>
+	    <para>The <inlinegraphic fileref="pics/right" scale="70"/>
+	      button may be used to display the corresponding sentence
+	      in the current TrEd window.</para>
+	    <para>The <inlinegraphic fileref="pics/gray_belly3" scale="70"/>
+	      button may be used to select the current sentence.
+	      Selected sentences may be later inserted into the range
+	      selection in the <link linkend="print_command">Print
+		dialog</link> using the <inlinegraphic
+	      fileref="pics/left"/> button.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -770,6 +846,18 @@ root# <userinput>make install</userinput>
 	      Removes the current tree from the file and displays the
 	      following tree (or the preceding tree, in case the
 	      current tree was the last one in the file).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenu>Copy Trees</guimenu></term>
+	  <listitem>
+	    <para>
+	      Displays a dialog allowing user to copy trees from the
+	      current file into another file currently opened in TrEd.
+	      The trees are selected by a comma separated list of
+	      ranges. The format of the list is the same as in the
+	      <link linkend="print_command">Print dialog</link>.
 	    </para>
 	  </listitem>
 	</varlistentry>
