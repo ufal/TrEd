@@ -28,6 +28,7 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName %menuBindings %keyBindings
             $savedSavePixmap $normalSavePixmap $NewFileNo $stderr $stdout
+	    $userlogin
 	    %save_types %backend_map $debug @normal_win_opts @focused_win_opts
 	    $normalUndoPixmap
 	    $normalRedoPixmap
@@ -42,6 +43,10 @@ $about=
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
+
+# Get user's login name
+my ($userlogin) = getpwuid($<);
+($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
 
 use Tk;
 use Tk::Config ();
@@ -991,7 +996,7 @@ sub setLock {
   };
   chmod 644, $lock if $proto eq 'file';
   my $mtime = [stat($f)]->[9];
-  my $lockinfo = "by user ".getlogin().'@'.$ENV{HOSTNAME}." pid ".$$." at ".localtime()." mtime: $mtime";
+  my $lockinfo = "by user ".$userlogin.'@'.$ENV{HOSTNAME}." pid ".$$." at ".localtime()." mtime: $mtime";
   $lock->print($lockinfo)."\n";
   IOBackend::close_backend($lock);
   return $lockinfo;
@@ -3707,7 +3712,8 @@ sub onCurrentChange {
   update_value_line_current($win,$node);
   foreach $n ($node,$prev) {
     $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"Oval"),
-			       nodeOptions($win,$n));
+			       nodeOptions($win,$n)
+			      );
     if ($tv->get_node_pinfo($n,"NodeHasBox")) {
       $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"TextBox"),
 				 nodeBoxOptions($win,$n,0));
@@ -3719,6 +3725,7 @@ sub onCurrentChange {
     $tv->canvas->coords($tv->get_node_pinfo($n,"Oval"),
 			$tv->node_coords($n,$win->{currentNode}));
   }
+  $tv->apply_stored_style_opts("CurrentOval",$node);
   unless ($prev eq $node) {
     $tv->apply_stored_style_opts("Oval",$prev);
     $tv->apply_stored_style_opts("TextBox",$prev);
