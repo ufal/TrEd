@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-07-02 19:16:58 pajas>
+## Time-stamp: <2002-07-11 21:57:50 pajas>
 
 package TredMacro;
 
@@ -181,7 +181,8 @@ from a hook).
 sub Redraw {
   my $ie=$main::insideEval;
   $main::insideEval=0;
-  &main::get_nodes_win($win);
+  &main::get_nodes_win($grp);
+  print STDERR "WIN: $grp\n";
   &main::redraw_win($grp);
   $main::insideEval=$ie;
 }
@@ -521,6 +522,16 @@ sub SaveAndPrevFile {
   Save();
   main::prevFile($grp);
   $root=$grp->{root};
+}
+
+=item EditAttribute (node, attribute)
+
+Open edit attribute GUI.
+
+=cut
+
+sub EditAttribute {
+  main::doEditAttr($grp,@_);
 }
 
 =item Find
