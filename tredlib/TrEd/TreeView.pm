@@ -9,7 +9,7 @@ import TrEd::MinMax;
 use TrEd::Convert;
 import TrEd::Convert;
 
-use vars qw($AUTOLOAD @Options $on_get_root_style $on_get_node_style);
+use vars qw($AUTOLOAD @Options %DefaultNodeStyle $on_get_root_style $on_get_node_style);
 
 use strict;
 
@@ -26,7 +26,7 @@ use strict;
   currentNodeColor textColorShadow textColorHilite textColorXHilite
   useAdditionalEdgeLabelSkip reverseNodeOrder);
 
-my %DefaultNodeStyle = (
+%DefaultNodeStyle = (
 	      Oval            =>  [],
 	      TextBox         =>  [],
 	      EdgeTextBox     =>  [],
@@ -153,26 +153,30 @@ sub options {
 }
 
 sub value_line {
-  my ($self,$fsfile,$tree_no,$no_numbers)=@_;
+  my ($self,$fsfile,$tree_no,$no_numbers,$tags)=@_;
   return unless $fsfile;
-  return $fsfile->value_line($tree_no,$no_numbers);
-
-#   my $node=$fsfile->treeList->[$tree_no];
-#   my @sent=();
-
-#   my $attr=$fsfile->FS->sentord;
-#   $attr=$fsfile->FS->order unless (defined($attr));
-#   while ($node) {
-#     push @sent,$node unless $node->getAttribute($attr)>=999; # this is TR specific
-#     $node=Next($node);
-#   }
-#   @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
-
-#   $attr=$fsfile->FS->value;
-#   my $line = $no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ";
-#   $line.=encode(join(" ", map { $_->getAttribute($attr) } @sent));
-#   undef @sent;
-#   return $line;
+  my $prfx=($no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ");
+  if ($tags) {
+    if ($self->{reverseNodeOrder}) {
+      return [[$prfx,'prefix'],
+	      map { $_->[0]=encode($_->[0]); $_ } reverse
+	      $fsfile->value_line_list($tree_no,$no_numbers,1)];
+    } else {
+      return [[$prfx,'prefix'],
+	      map { $_->[0]=encode($_->[0]); $_ }
+	      $fsfile->value_line_list($tree_no,$no_numbers,1)];
+    }
+  } else {
+    if ($self->{reverseNodeOrder}) {
+      return $prfx.join " ",
+	map { encode($_) } reverse
+	  $fsfile->value_line_list($tree_no,$no_numbers);
+    } else {
+      return $prfx.join " ",
+	map { encode($_) }
+	  $fsfile->value_line_list($tree_no,$no_numbers);
+    }
+  }
 }
 
 
@@ -918,7 +922,7 @@ sub redraw {
     my ($pat_class,$pat);
     for (my $i=0;$i<=$#patterns;$i++) {
       ($pat_class,$pat)=$self->parse_pattern($patterns[$i]);
-      $msg=encode($self->interpolate_text_field($node,$pat));
+      $msg=$self->interpolate_text_field($node,$pat);
       if ($pat_class eq "edge") {
 	if ($node->parent) {
 	  $msg =~ s!/!!g;		# should be done in interpolate_text_field
@@ -986,14 +990,28 @@ sub draw_text_line {
       $lineHeight,$x,$y,$clear,$Opts)=@_;
 
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
+
+  my $align=$self->get_style_opt($node,"Node","-textalign",$Opts);
+  my $textdelta;
+  if ($align eq 'left') {
+    $textdelta=0;
+  } elsif ($align eq 'right') {
+    $textdelta=
+      $self->get_node_pinfo($node,"NodeLabelWidth")-
+	$self->get_node_pinfo($node,"X[$i]");
+  } elsif ($align eq 'center') {
+    $textdelta=
+      ($self->get_node_pinfo($node,"NodeLabelWidth")-
+       $self->get_node_pinfo($node,"X[$i]"))/2;
+  }
   
   ## Clear background
   if ($self->get_clearTextBackground and
       $clear and $self->get_node_pinfo($node,"X[$i]")>0) {
     my $bg=
       $self->canvas->
-	createRectangle($x,$y,
-			$x+$self->get_node_pinfo($node,"X[$i]")+1,
+	createRectangle($x+$textdelta,$y,
+			$x+$textdelta+$self->get_node_pinfo($node,"X[$i]")+1,
 			$y+$lineHeight,
 			-fill => $self->canvas->cget('-background'),
 			-outline => undef);
@@ -1028,13 +1046,14 @@ sub draw_text_line {
   my $at_text;
   my $j=0;
   my $color=undef;
+
   foreach (split(m'([#$]{[^}]+})',$msg)) {
     if (/^\${([^}]+)}$/) {
       $j++;
       $at_text=$self->prepare_text_field($node,$1);
       next if ($at_text) eq "";
       $txt=$self->canvas->
-	createText($x+$xskip, $y,
+	createText($x+$xskip+$textdelta, $y,
 		   -anchor => 'nw',
 		   -text => $at_text,
 		   -fill =>
@@ -1074,9 +1093,9 @@ sub draw_text_line {
     } else {
       if ($_ ne "") {
 	$txt=$self->canvas->
-	  createText($x+$xskip,
+	  createText($x+$xskip+$textdelta,
 		     $y,
-		     -text => $_,
+		     -text => encode($_),
 		     -font => $self->get_font);
 	$self->apply_style_opts($txt,
 				-anchor => 'nw',
