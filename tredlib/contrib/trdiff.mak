@@ -46,6 +46,7 @@ sub switch_context_hook {
   return unless $grp->{FSFile};
   remove_diff_patterns();
   add_diff_patterns();
+  Redraw_FSFile();
   return;
 }
 
@@ -109,6 +110,32 @@ sub find_next_difference {
   $this=$node if ($node);
   $FileChanged=0;
   $Redraw='none'
+}
+
+
+#bind find_next_difference_in_file to Alt+space menu Goto next difference in file
+sub find_next_difference_in_file {
+  my $node;
+  my $next = 1;
+  LOOP:
+  while ($next) {
+    $node=$this->following;
+    while ($node) {
+      last LOOP if ($node->{_diff_dep_} or
+		    $node->{_diff_attrs_} or
+		    $node->{_diff_in_});
+      $node=$node->following;
+    }
+    $next = TieNextTree();
+  }
+  if ($node) {
+    $this=$node;
+    $grp->{treeView}->set_showHidden(1) if IsHidden($node);
+    $Redraw='tie';
+  } else {
+    $Redraw='tie'
+  }
+  $FileChanged=0;
 }
 
 
@@ -192,7 +219,7 @@ sub diff_trees {
 
   my %G=();
   foreach my $f (sort @names) {
-    print "Crating groups for $f\n";
+    print "Creating groups for $f\n";
     # create groups of corresponding old nodes, i.e. nodes not created
     # by anotators
     if ($T{$f}) {
