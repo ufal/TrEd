@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-2"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "file:///home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
-<article>
+<article lang="cs">
   <title>Tree Editor TrEd</title>
   <section><title>Revize 1.64</title>
     <section>
@@ -98,11 +98,6 @@
 	spojení na portu <literal>2345</literal>. Jakmile naváže
 	spojení s klientem, předává mu veškerý svůj standardní vstup.
       </para>
-      <figure>
-	<title>Připojení k ovládacímu serveru</title>
-	<graphic fileref="remote_control.eps" format="eps"
-	align="center" scale="50"/>
-      </figure>
       <para>
 	V <application>TrEdu</application> přibylo makro
 	<literal>Connect to Remote Control</literal>, které se po
@@ -111,7 +106,7 @@
 	serveru. Je-li spojení realizováno, reaguje
 	<application>TrEd</application> na každý řádek textu, zaslaný serverem,
 	voláním makra, jehož název byl na přijatém řádku uveden.
-      </para>
+      </para>      
       <note>
 	<orderedlist>
 	  <listitem>
@@ -134,6 +129,8 @@
 	</orderedlist>
       </note>
       <para>
+	<graphic fileref="remote_control.eps" format="eps"
+	align="center" scale="45"/>
 	K opětovnému odpojení od serveru slouží makro
 	<literal>Disconnect from Remote Control</literal>.
 	<emphasis>Žádné z uvedených maker nemá zatím přiřazenu klávesovou zkratku.</emphasis>
