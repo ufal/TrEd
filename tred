@@ -977,6 +977,15 @@ sub fsfileDisplayingWindows {
     } @{$grp->{treeWindows}};
 }
 
+sub stylesheetUsingWindows {
+  my ($grp,$stylesheet)=@_;
+  return 
+    grep {
+      $_->{stylesheet} eq $stylesheet
+    } @{$grp->{treeWindows}};
+}
+
+
 sub isFocused {
   my ($win)=@_;
   return $win eq $win->{framegroup}->{focusedWindow} ? 1 : 0;
@@ -6905,7 +6914,11 @@ EOF
     setWindowHint($win,$t->get('0.0','end - 1 chars'));
     saveStyleSheets($grp) unless $win->{stylesheet} eq STYLESHEET_FROM_FILE();
     update_value_line($grp);
-    redraw_fsfile($grp,$win->{FSFile});
+    if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
+      redraw_fsfile($grp,$win->{FSFile});
+    } else {
+      redraw_stylesheet($grp,$win->{stylesheet});
+    }
   }
   $d->destroy;
   undef $d;
@@ -7498,6 +7511,16 @@ sub redraw_fsfile {
   }
   return;
 }
+
+sub redraw_stylesheet {
+  my ($grp,$stylesheet)=@_;
+  return if $insideEval or !$fsfile;
+  foreach (stylesheetUsingWindows($grp,$stylesheet)) {
+    redraw_win($_);
+  }
+  return;
+}
+
 
 sub redraw_fsfile_tree {
   my ($grp,$fsfile,$tree_no)=@_;
