@@ -3863,6 +3863,47 @@ root# <userinput>make install</userinput>
       </variablelist>
     </sect2>
     <sect2>
+      <title>Writing macros in various character encodings</title>
+      <note>
+	<para>This section applies only to <application>TrEd</application>/<application>bTrEd</application> running under Perl 5.8
+	and higher.</para>
+      </note>
+      <para>
+	If non-ASCII characters should occur in macro code, it is
+	necessary to indicate the character encoding used.  Otherwise
+	<application>TrEd</application> wouldn't be able to translate the non-ASCII characters
+	into an internal Unicode representation.  Failing to indicate
+	charset used in macro code can therefore lead to unexpected
+	behaviour of the code and/or fatal run-time errors.
+      </para>
+      <para>
+	By default, <application>TrEd</application> expects UTF-8 encoded macro code.
+	Any other character encoding must be indicated using
+	<literal>#encoding</literal> pragma, followed by name of
+	the encoding, such as <literal>utf-8</literal>,
+	<literal>iso-8859-1</literal>, <literal>windows-1256</literal>,
+	etc. The encoding indicated by an <literal>#encoding</literal>
+	pragma applies on the macro file strating from the line following the pragma
+	to the end of the file or to another <literal>#encoding</literal>
+	pragma occurence, whichever happens first. Encoding pragma does not
+	apply to included macro files.
+      </para>
+      <example>
+	<title>Indicating macro character encoding</title>
+	<programlisting>
+  (UTF-8 encoded macro code)
+
+#encoding iso-8859-2
+  
+  (latin-2 encoded macro code)
+
+#encoding utf-8
+
+  (UTF-8 encoded macro code continues)
+	</programlisting>
+      </example>
+    </sect2>
+    <sect2>
       <title>Conditional macro code</title>
       <para>
 	If macro code is spanned across	several files or is shared
