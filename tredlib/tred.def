@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-06-25 14:46:51 pajas>
+## Time-stamp: <2002-07-02 19:16:58 pajas>
 
 package TredMacro;
 
@@ -181,6 +181,7 @@ from a hook).
 sub Redraw {
   my $ie=$main::insideEval;
   $main::insideEval=0;
+  &main::get_nodes_win($win);
   &main::redraw_win($grp);
   $main::insideEval=$ie;
 }
@@ -194,6 +195,7 @@ file.
 sub Redraw_FSFile {
   my $ie=$main::insideEval;
   $main::insideEval=0;
+  &main::get_nodes_fsfile($grp->{framegroup},$grp->{FSFile});
   &main::redraw_fsfile($grp->{framegroup},$grp->{FSFile});
   $main::insideEval=$ie;
 }
@@ -207,7 +209,8 @@ tree.
 sub Redraw_FSFile_Tree {
   my $ie=$main::insideEval;
   $main::insideEval=0;
-  &main::redraw_fsfile($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
+  &main::get_nodes_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
+  &main::redraw_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
   $main::insideEval=$ie;
 }
 
@@ -219,6 +222,7 @@ Force TrEd to immediately redraw all windows.
 sub Redraw_All {
   my $ie=$main::insideEval;
   $main::insideEval=0;
+  &main::get_nodes_all($grp->{framegroup});
   &main::redraw_all($grp->{framegroup});
   $main::insideEval=$ie;
 }
@@ -1314,6 +1318,16 @@ sub NextNodeLinear {
   return $best;
 }
 
+
+=item FS
+
+Return FSFormat object associated with the current FSFile.
+
+=cut
+
+sub FS {
+  return $grp->{FSFile}->FS;
+}
 
 =back
 
