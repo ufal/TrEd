@@ -3535,10 +3535,11 @@ sub startMain {
 			    -underline=> 0,
 			    -command=> [ sub {
 					    my ($grp)=@_;
+					    my $lr = $grp->{focusedWindow}->{currentFilelist}->list_ref;
 					    removeFromFilelist($grp,
 							       undef,
 							       undef,
-							       $grp->{focusedWindow}->{currentFilelist}->list_ref->[$grp->{focusedWindow}->{currentFileNo}]);
+							       $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
 					    askSaveFile($grp->{focusedWindow},0);
 					    closeFile($grp->{focusedWindow},-all_windows => 1);
 					  }
