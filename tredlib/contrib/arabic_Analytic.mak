@@ -1,8 +1,6 @@
-########################################################################### 
-# Otakar Smrz, 2004/03/05
+# ########################################################################## Otakar Smrz, 2004/03/05
 #
-# Arabic Analytic Context for TrEd by Petr Pajas 
-###################################################
+# Arabic Analytic Context for TrEd by Petr Pajas ###################################################
 
 # $Id$
 
@@ -203,6 +201,26 @@ sub hooks_request_mode {
 
     $Redraw = 'none';
     ChangingFile(0);
+}
+
+sub get_value_line_hook {
+
+    my ($fsfile, $tree_no) = @_;
+    my ($nodes, $words);
+
+    my $style = "-foreground => black, -background => yellow, -underline => 0";
+
+    ($nodes, undef) = $fsfile->nodes($tree_no, $this, 1);
+
+    $words = [ [ $nodes->[0]->{'origf'}, $nodes->[0], '-foreground => darkmagenta' ],
+               map { [ " " ],
+                     [ $_->{'origf'}, $_, $_ == $this ? $style : () ]
+               }
+               grep { defined $_->{'origf'} and $_->{'origf'} ne '' } @{$nodes}[1 .. $#{$nodes}] ];
+
+    @{$words} = reverse @{$words} if $main::treeViewOpts->{reverseNodeOrder};
+
+    return $words;
 }
 
 sub node_release_hook {
