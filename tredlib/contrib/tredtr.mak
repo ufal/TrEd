@@ -7250,6 +7250,7 @@ sub NewSubject {
 
   $pD = PasteNode($NodeClipboard,$pT);
 
+  return $pD;
 }
 
 
@@ -7492,6 +7493,7 @@ sub NewSon {
 
   $pReturn = PasteNode($NodeClipboard,$pT);
 
+  return $pReturn;
 }
 
 

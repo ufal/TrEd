@@ -28,6 +28,8 @@
 #bind next_file_choose_frame to Ctrl+KP_Add
 #bind next_file_choose_frame to Ctrl+plus Prejdi na dalsi soubor a obnov vyber ramce
 
+sub first (&@);
+
 @special_trlemmas=
     #disp  trlemma gender number
     #
@@ -386,6 +388,14 @@ sub memberof_pa_to_parenthesis {
 ################################################
 ## Overriding definitions of contrib/tredtr.mak
 
+sub toggle_hide_subtree {
+  if ($this->{TR} eq 'hide') {
+    set_parenthesis($this);
+  }
+  HideSubtree();
+}
+
+
 sub DeleteCurrentNode {
   shift unless ref($_[0]);
   my $node = ref($_[0]) ? $_[0] : $this;
@@ -422,6 +432,7 @@ sub AddNewLoc {
 
   NewSon();
   $this=$pReturn;
+  set_parenthesis($this);
   $this->{trlemma}='tady';
   unless (QuerySemtam($this)) {
    DeleteCurrentNode();
@@ -436,6 +447,7 @@ sub AddNewTime {
 
   NewSon();
   $this=$pReturn;
+  set_parenthesis($this);
   $this->{trlemma}='kdy';
   unless (QueryKdy($this)) {
    DeleteCurrentNode();
@@ -517,6 +529,18 @@ sub add_questionmarks_func {
   FuncAssign();
 }
 
+sub set_parenthesis {
+  my ($node)=@_;
+  if ($node and $node->parent and $node->parent->{parenthesis} eq 'PA') {
+    if (first { $_->{parenthesis} ne 'PA' }
+	grep {$_ != $node} $node->parent->visible_children(FS())) {
+      EditAttribute($node,'parenthesis');
+    } else {
+      $node->{parenthesis}='PA';
+    }
+  }
+}
+
 #######################################################
 # Node shifting
 
@@ -524,6 +548,41 @@ sub add_questionmarks_func {
 #bind ShiftLeft to Q menu posun uzel doleva
 #bind ShiftRight to Ctrl+Right menu posun uzel doprava
 #bind ShiftRight to U menu posun uzel doprava
+
+sub add_Gen_ACT {
+  $sPar1 = '&Gen;';
+  $sPar2 = 'ACT';
+  set_parenthesis( NewSubject() );
+}
+sub add_Cor_ACT {
+  $sPar1 = '&Cor;';
+  $sPar2 = 'ACT';
+  set_parenthesis( NewSubject() );
+}
+sub add_on_ACT {
+  $sPar1 = 'on';
+  $sPar2 = 'ANIM';
+  set_parenthesis( NewSubject() );
+}
+sub add_Neg_RHEM {
+  $sPar1 = '&Neg;';
+  $sPar2 = 'RHEM';
+  set_parenthesis( NewSubject() );
+}
+sub add_Forn_ACT {
+  $sPar1 = '&Forn;';
+  $sPar2 = 'ACT';
+  set_parenthesis( NewSubject() );
+}
+sub add_new_node {
+  $pPar1 = $this;
+  set_parenthesis( NewSon() );
+}
+sub add_EV {
+  set_parenthesis( NewVerb() );
+}
+
+
 
 sub ShiftLeft {
   return unless (GetOrd($this)>1);
@@ -546,6 +605,7 @@ sub ShiftRight {
 #bind add_EN to Ctrl+V menu Doplnit prazdne substantivum EmpNoun pod akt. vrchol
 sub add_EN {
   NewVerb();
+  set_parenthesis($this);
   $this->{'trlemma'} = '&EmpNoun;';
   $this->{'func'}='???';
 }
@@ -637,6 +697,7 @@ sub NewVerb {
   $pNew->{'trneg'} = 'NA';
   $pNew->{sentord}='999';
   $this=$pNew;
+  return $pNew;
 }
 
 sub getAIDREF {
