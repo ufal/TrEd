@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+#                                                          -*- cperl -*-
 
 use Getopt::Std;
 getopts('p:r:s:a:f:hu');
@@ -36,7 +37,9 @@ unshift @INC,"$libDir";
 require Fslib;
 import Fslib;
 
-@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend)));
+@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend)));
+
+$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 %bkmap=(
 	fs => 'FSBackend',
