@@ -14,6 +14,7 @@ my $iPar1;			# used as type "string"
 my $iPar2;			# used as type "string"
 my $iPar3;			# used as type "string"
 my $iReturn;			# used as type "string"
+my $sPasteNow;			# used as type "string"
 my $lPar1;			# used as type "list"
 my $lPar2;			# used as type "list"
 my $lPar3;			# used as type "list"
@@ -2230,6 +2231,8 @@ sub TFAAssign {
     $this = $pReturn;
   }
 
+  $sPasteNow = '';
+
 }
 
 
@@ -2241,6 +2244,11 @@ sub FuncAssign {
   if (Interjection($t->{'afun'},'AuxS') ne 'AuxS') {
 
     $t->{'func'} = $sPar1;
+
+    if ($sPar1 eq 'PAR') {
+
+      $t->{'memberof'} = 'PA';
+    }
 
     if (FirstSon($t)) {
 
@@ -2276,6 +2284,8 @@ sub FuncAssign {
 
     $this = $n;
   }
+
+  $sPasteNow = '';
 
 }
 
@@ -2482,6 +2492,8 @@ sub add_Gen_ACT {
 
   $sPar1 = '&Gen;';
 
+  $sPar2 = '';
+
   NewSubject();
 
 }
@@ -2491,6 +2503,8 @@ sub add_Gen_ACT {
 sub add_Cor_ACT {
 
   $sPar1 = '&Cor;';
+
+  $sPar2 = '';
 
   NewSubject();
 
@@ -2502,6 +2516,8 @@ sub add_on_ACT {
 
   $sPar1 = 'on';
 
+  $sPar2 = 'ANIM';
+
   NewSubject();
 
 }
@@ -2511,6 +2527,8 @@ sub add_on_ACT {
 sub add_Forn_ACT {
 
   $sPar1 = '&Forn;';
+
+  $sPar2 = '';
 
   NewSubject();
 
@@ -3343,6 +3361,22 @@ sub sign_IK {
 }
 
 
+#bind _key_Ctrl_B to Ctrl+b menu copy node
+sub _key_Ctrl_B {
+
+  FCopy();
+
+}
+
+
+#bind _key_Ctrl_Shift_F1 to Ctrl+Shift+F1 menu paste node
+sub _key_Ctrl_Shift_F1 {
+
+  FPaste();
+
+}
+
+
 #bind tree_to_tr to Ctrl+Shift+F2
 sub tree_to_tr {
 
@@ -3364,6 +3398,8 @@ sub TreeToTR {
   my $pNext;			# used as type "pointer"
   my $pThis;			# used as type "pointer"
   my $pRoot;			# used as type "pointer"
+
+  $sPasteNow = '';
 
   ThisRoot();
 
@@ -3402,6 +3438,8 @@ sub TreeToTR {
 
   Conjunctions();
 
+  Prec();
+
   Sentmod();
 
   TRVerbs();
@@ -3418,6 +3456,8 @@ sub TreeToTR {
 sub InitFileTR {
   my $pRoot;			# used as type "pointer"
   my $iStart;			# used as type "string"
+
+  $sPasteNow = '';
 
   ThisRoot();
 
@@ -3607,6 +3647,8 @@ sub MorphGram {
   my $sGender;			# used as type "string"
   my $sNumber;			# used as type "string"
   my $sN;			# used as type "string"
+
+  $sPasteNow = '';
 
   ThisRoot();
 
@@ -5949,6 +5991,8 @@ sub HideSubtree {
   my $pT;			# used as type "pointer"
   my $pRoot;			# used as type "pointer"
 
+  $sPasteNow = '';
+
   ThisRoot();
 
   $pRoot = $pReturn;
@@ -5980,6 +6024,8 @@ sub JoinSubtree {
   my $sJLema;			# used as type "string"
   my $sActLema;			# used as type "string"
   my $sPriznak;			# used as type "string"
+
+  $sPasteNow = '';
 
   $sPriznak = $sPar1;
 
@@ -6064,6 +6110,8 @@ sub JoinSubtree {
 
 sub ifmodal {
 
+  $sPasteNow = '';
+
   $sPar1 = ValNo(0,$pPar1->{'lemma'});
 
   GetAfunSuffix();
@@ -6082,8 +6130,8 @@ sub ifmodal {
 
   if ($sPar2 eq 'moci' ||
       $sPar2 eq 'dát_se' ||
-      $sPar2 eq 'dát_by_se' ||
-      $sPar2 eq 'by_se_dát') {
+      $sPar2 eq 'dát' ||
+      $sPar2 eq 'se_dát') {
 
     $sPar3 = 'POSS';
   }
@@ -6094,7 +6142,8 @@ sub ifmodal {
   }
 
   if ($sPar2 eq 'umìt' ||
-      $sPar2 eq 'dovést') {
+      $sPar2 eq 'dovést' ||
+      $sPar2 eq 'dokázat') {
 
     $sPar3 = 'FAC';
   }
@@ -6120,6 +6169,8 @@ sub JoinNegation {
   my $sSonLema;			# used as type "string"
   my $sParLema;			# used as type "string"
   my $sFinLema;			# used as type "string"
+
+  $sPasteNow = '';
 
   ThisRoot();
 
@@ -6210,6 +6261,8 @@ sub joinfw {
   my $pParentW;			# used as type "pointer"
   my $pRoot;			# used as type "pointer"
 
+  $sPasteNow = '';
+
   ThisRoot();
 
   $pRoot = $pReturn;
@@ -6254,6 +6307,8 @@ sub splitfw {
   my $pSon;			# used as type "pointer"
   my $sWLemma;			# used as type "string"
   my $pRoot;			# used as type "pointer"
+
+  $sPasteNow = '';
 
   ThisRoot();
 
@@ -6315,6 +6370,8 @@ sub SplitJoined {
   my $sRestOfTrLemma;		# used as type "string"
   my $pRoot;			# used as type "pointer"
 
+  $sPasteNow = '';
+
   ThisRoot();
 
   $pRoot = $pReturn;
@@ -6356,6 +6413,15 @@ sub SplitJoined {
     $pAct->{'AID'} = $sReturn;
 
     $pSon->{'TR'} = '';
+
+    $pPar1 = $pSon;
+
+    ifmodal();
+
+    if ($sPar3 ne '') {
+
+      $pAct->{'deontmod'} = '';
+    }
   } else {
 
     $pSon = RBrother($pSon);
@@ -6380,6 +6446,7 @@ sub FillEmpty {
   my $pT;			# used as type "pointer"
   my $pT1;			# used as type "pointer"
   my $pRoot;			# used as type "pointer"
+  my $pSon;			# used as type "pointer"
   my $pVerb;			# used as type "pointer"
   my $pCand1;			# used as type "pointer"
   my $pCand2;			# used as type "pointer"
@@ -6395,6 +6462,8 @@ sub FillEmpty {
   my $sAfunc;			# used as type "string"
   my $sForma;			# used as type "string"
   my $sNegace;			# used as type "string"
+
+  $sPasteNow = '';
 
   ThisRoot();
 
@@ -6587,22 +6656,6 @@ sub FillEmpty {
     $pAct->{'trneg'} = 'NA';
   }
 
-  if ($sForma eq 'apod' ||
-      $sForma eq 'atd') {
-
-    $pPar1 = $pAct;
-
-    NewSon();
-
-    $pNew = $pReturn;
-
-    $pNew->{'trlemma'} = $sForma;
-
-    $pAct->{'trlemma'} = 'a';
-
-    $pAct->{'func'} = 'CONJ';
-  }
-
   if (Interjection($pAct->{'func'},'') eq '') {
 
     $pAct->{'func'} = '???';
@@ -6616,6 +6669,96 @@ sub FillEmpty {
   $pAct->{'tfa'} = 'T';
 
   goto PruchodStromemDoHloubky;
+
+}
+
+
+sub Prec {
+  my $pAct;			# used as type "pointer"
+  my $pNext;			# used as type "pointer"
+  my $pRoot;			# used as type "pointer"
+  my $pTest;			# used as type "pointer"
+  my $pSon;			# used as type "pointer"
+  my $pD;			# used as type "pointer"
+
+  $sPasteNow = '';
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  $pAct = $pRoot;
+ PruchodStromemDoHloubky:
+  $pNext = FirstSon($pAct);
+
+  if (!($pNext)) {
+
+    $pNext = RBrother($pAct);
+  }
+ LevelUp:
+  if (!($pNext)) {
+
+    $pNext = Parent($pAct);
+
+    if (!($pNext)) {
+
+      return;
+    } else {
+
+      $pAct = $pNext;
+
+      $pNext = RBrother($pNext);
+
+      goto LevelUp;
+    }
+
+  }
+
+  $pAct = $pNext;
+
+  if (Interjection($pAct->{'afun'},'Coord') eq 'Coord') {
+
+    $pTest = Parent($pAct);
+
+    $pSon = FirstSon($pAct);
+
+    if (Interjection($pTest->{'afun'},'AuxS') eq 'AuxS') {
+
+      if (!(RBrother($pSon))) {
+
+	if (Interjection($pSon->{'ordorig'},'') eq '') {
+
+	  $pSon->{'ordorig'} = Parent($pSon)->{'ord'};
+	}
+
+	$NodeClipboard=CutNode($pSon);
+
+	$pD = PasteNode($NodeClipboard,$pTest);
+
+	$pSon = $pD;
+
+	$pAct->{'func'} = 'PREC';
+
+	if (Interjection($pAct->{'ordorig'},'') eq '') {
+
+	  $pAct->{'ordorig'} = Parent($pAct)->{'ord'};
+	}
+
+	$NodeClipboard=CutNode($pAct);
+
+	$pD = PasteNode($NodeClipboard,$pSon);
+
+	if (Interjection($pSon->{'memberof'},'CO') eq 'CO') {
+
+	  $pSon->{'memberof'} = '';
+	}
+
+	$pAct = $pSon;
+      }
+    }
+
+    goto PruchodStromemDoHloubky;
+  }
 
 }
 
@@ -6796,6 +6939,8 @@ sub NewSubject {
   my $sDord;			# used as type "string"
   my $sLemma;			# used as type "string"
 
+  $sPasteNow = '';
+
   $sLemma = $sPar1;
 
   UnGap();
@@ -6950,9 +7095,18 @@ sub NewSubject {
 
   $pNew->{'dord'} = $sDord;
 
-  $pNew->{'gender'} = '???';
+  if ($sPar2 eq 'ANIM') {
 
-  $pNew->{'number'} = '???';
+    $pNew->{'gender'} = 'ANIM';
+
+    $pNew->{'number'} = 'SG';
+  } else {
+
+    $pNew->{'gender'} = '???';
+
+    $pNew->{'number'} = '???';
+  }
+
 
   $pNew->{'degcmp'} = '???';
 
@@ -7040,6 +7194,8 @@ sub NewSon {
   my $pRoot;			# used as type "pointer"
   my $sNum;			# used as type "string"
   my $sDord;			# used as type "string"
+
+  $sPasteNow = '';
 
   $pT = $pPar1;
 
@@ -7275,6 +7431,8 @@ sub NewVerb {
   my $pRoot;			# used as type "pointer"
   my $sNum;			# used as type "string"
   my $sDord;			# used as type "string"
+
+  $sPasteNow = '';
 
   UnGap();
 
@@ -7568,6 +7726,8 @@ sub TRLemaForm {
   my $sTag;			# used as type "string"
   my $sVTagBeg;			# used as type "string"
 
+  $sPasteNow = '';
+
   ThisRoot();
 
   $pRoot = $pReturn;
@@ -7611,6 +7771,8 @@ sub TRLemaForm {
 sub trtolemma {
   my $pRoot;			# used as type "pointer"
 
+  $sPasteNow = '';
+
   ThisRoot();
 
   $pRoot = $pReturn;
@@ -7627,6 +7789,8 @@ sub trtolemma {
 
 sub SignatureAssign {
   my $pT;			# used as type "pointer"
+
+  $sPasteNow = '';
  SignatureNext:
   ThisRoot();
 
@@ -7658,6 +7822,8 @@ sub SignatureAssign {
 sub CutAllSubtrees {
   my $pCut;			# used as type "pointer"
   my $pD;			# used as type "pointer"
+
+  $sPasteNow = '';
 
   if (!($pPar1)) {
 
@@ -7695,6 +7861,8 @@ sub CutAllSubtrees {
 
 sub ConnectID {
 
+  $sPasteNow = '';
+
   $sReturn = (ValNo(0,$sPar1).ValNo(0,'\|'));
 
   $sReturn = (ValNo(0,$sReturn).ValNo(0,$sPar2));
@@ -7707,6 +7875,8 @@ sub DisconnectID {
   my $i;			# used as type "string"
   my $j;			# used as type "string"
   my $k;			# used as type "string"
+
+  $sPasteNow = '';
 
   $i = "0";
 
@@ -7878,6 +8048,8 @@ sub MoveNode {
   my $pRoot;			# used as type "pointer"
   my $sDir;			# used as type "string"
 
+  $sPasteNow = '';
+
   $sDir = $sPar1;
 
   UnGap();
@@ -7961,6 +8133,8 @@ sub DeleteCurrentNode {
   my $pParent;			# used as type "pointer"
   my $sDord;			# used as type "string"
 
+  $sPasteNow = '';
+
   $pAct = $this;
 
   $pParent = Parent($pAct);
@@ -7998,6 +8172,8 @@ sub cut_paste_all {
 sub CutPasteAll {
   my $pAct;			# used as type "pointer"
   my $pParent;			# used as type "pointer"
+
+  $sPasteNow = '';
 
   ThisRoot();
 
@@ -8039,6 +8215,8 @@ sub UnGap {
   my $lEmpty;			# used as type "list"
   my $sMaxDord;			# used as type "string"
   my $sShift;			# used as type "string"
+
+  $sPasteNow = '';
 
   $sShift = "0";
 
@@ -8758,5 +8936,71 @@ sub Pnoms {
   }
 
   goto PruchodStromemDoHloubky;
+
+}
+
+
+sub FCopy {
+  my $pThis;			# used as type "pointer"
+  my $pParent;			# used as type "pointer"
+
+  $pThis = $this;
+
+  $pParent = Parent($pThis);
+
+  if (Interjection($pThis->{'del'},'ELID') ne 'ELID') {
+
+    $NodeClipboard=CutNode($pThis);
+
+    $pDummy = PasteNode($NodeClipboard,$pParent);
+
+    $sPasteNow = 'yes';
+  }
+
+}
+
+
+sub FPaste {
+  my $pThis;			# used as type "pointer"
+  my $pPasted;			# used as type "pointer"
+  my $sDord;			# used as type "string"
+  my $pCut;			# used as type "pointer"
+
+  if ($sPasteNow eq 'yes') {
+
+    $pThis = $this;
+
+    $sDord = ValNo(0,$pThis->{'dord'});
+
+    $pPasted = PasteNode($NodeClipboard,$pThis);
+
+    $pCut = FirstSon($pPasted);
+
+    if ($pCut) {
+    CutAllSubtrees:
+      if ($pCut) {
+
+	$NodeClipboard=CutNode($pCut);
+
+	$pCut = FirstSon($pPasted);
+
+	goto CutAllSubtrees;
+      }
+    }
+
+    $pPasted->{'dord'} = "-1";
+
+    $pPasted->{'del'} = 'ELID';
+
+    $sPar1 = $sDord;
+
+    $sPar2 = "1";
+
+    ShiftDords();
+
+    $pPasted->{'dord'} = $sDord;
+  }
+
+  $sPasteNow = '';
 
 }
