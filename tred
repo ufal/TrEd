@@ -6410,7 +6410,7 @@ B<Features:>
   C<NodeLabel-dodrawbox >- force drawing a box around labels: yes/no
   C<NodeLabel-nodrawbox >- force disabling a box around node label: yes/no
   C<EdgeLabel-yadj      >- adjust vertical position of edge labels by given amount
-  C<EdgeLabel-coords    >- force specific position of an edge label (default n,n,p,p)
+  C<EdgeLabel-coords    >- custom edge label position. Default: (n+p)/2,(n+p)/2
   C<EdgeLabel-halign    >- values: right, center, left
   C<EdgeLabel-valign    >- values: top, center, bottom
   C<EdgeLabel-dodrawbox >- force drawing a box around edge labels: yes/no
