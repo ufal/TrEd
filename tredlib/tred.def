@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-04-24 18:15:26 pajas>
+## Time-stamp: <2003-04-30 12:30:26 pajas>
 
 package TredMacro;
 
@@ -1126,7 +1126,7 @@ sub ListAssign {
   my @a=ListSplit(shift);
   my ($n,$value)=(shift,shift);
 
-  @a[$n]=ValNo(0,$value);
+  $a[$n]=ValNo(0,$value);
   return join '|',@a;
 }
 
