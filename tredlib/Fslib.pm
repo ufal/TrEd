@@ -2139,6 +2139,20 @@ sub changeMetaData {
   return $self->[13]->{$name}=$val;
 }
 
+=pod
+
+=item listMetaData(name)
+
+Return meta-data keys (in array context) or meta-data hash reference
+(in scalar context).
+
+=cut
+
+sub listMetaData {
+  my ($self) = @_;
+  return unless ref($self);
+  return wantarray ? keys(%{$self->[13]}) : $self->[13];
+}
 
 =pod
 
