@@ -345,7 +345,9 @@ sub validate { # print STDERR "SUB: validate\n";
 ## JComboBox - Public methods   
 #######################################################
 
-sub addItem { # print STDERR "SUB: addItem\n"; shift->insertItemAt('end', @_) };
+sub addItem { # print STDERR "SUB: addItem\n";
+  shift->insertItemAt('end', @_) 
+};
 
 sub clearSelection { # print STDERR "SUB: clearSelection\n";
   my $cw = shift;
@@ -388,7 +390,9 @@ sub getItemIndex { # print STDERR "SUB: getItemIndex\n";
   return undef;
 }
 
-sub getItemCount { # print STDERR "SUB: getItemCount\n"; return scalar(@{$_[0]->{_list}}) }
+sub getItemCount { # print STDERR "SUB: getItemCount\n"; 
+  return scalar(@{$_[0]->{_list}}) 
+}
 
 sub getSelectedIndex { # print STDERR "SUB: getSelectedIndex\n"; 
    my $cw = shift;
