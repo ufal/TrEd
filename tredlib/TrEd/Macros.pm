@@ -79,7 +79,9 @@ sub read_macros {
 #
 
   push @macros,"\n#line 1 \"$file\"\n";
+  my $line;
   while (<F>) {
+    $line++;
     push @macros,$_;
     if (/^\#[ \t]*binding-context[ \t]+(.*)/) {
       @contexts=(split /[ \t]+/,$1);
@@ -134,6 +136,7 @@ sub read_macros {
 	my $mf="$libDir/$1";
 	if (-f $mf) {
 	  read_macros($mf,$libDir,1,@contexts);
+	  push @macros,"\n#line $line \"$file\"\n";
 	} else {
 	  die 
 	    "Error including macros $mf\n from $file: ",
@@ -142,7 +145,8 @@ sub read_macros {
       } elsif (/^\#\s*include\s+"(.+\S)"\s*$/) {
 	$mf=dirname($file).$mf;
 	if (-f $mf) {
-	  return read_macros($mf,$libDir,1,@contexts);
+	  read_macros($mf,$libDir,1,@contexts);
+	  push @macros,"\n#line $line \"$file\"\n";
 	} else {
 	  die
 	    "Error including macros $mf\n from $file: ",
@@ -151,24 +155,27 @@ sub read_macros {
       } elsif (/^\#\s*include\s+(.+\S)\s*$/) {
 	my $f=$1;
 	if ($f=~m%^/%) {
-	  return read_macros($f,$libDir,1,@contexts);
-	}
-	my $mf=$f;
-	print STDERR "including $mf\n" if $macroDebug;
-	unless (-f $mf) {
-	  $mf=dirname($file).$mf;
-	  print STDERR "trying $mf\n" if $macroDebug;
-	  unless (-f $mf) {
-	    $mf="$libDir/$f";
-	    print STDERR "not found, trying $mf\n" if $macroDebug;
-	  }
-	}
-	if (-f $mf) {
-	  read_macros($mf,$libDir,1,@contexts);
+	  read_macros($f,$libDir,1,@contexts);
+	  push @macros,"\n#line $line \"$file\"\n";
 	} else {
-	  die
-	    "Error including macros $mf\n from $file: ",
-	    "file not found!\n";
+	  my $mf=$f;
+	  print STDERR "including $mf\n" if $macroDebug;
+	  unless (-f $mf) {
+	    $mf=dirname($file).$mf;
+	    print STDERR "trying $mf\n" if $macroDebug;
+	    unless (-f $mf) {
+	      $mf="$libDir/$f";
+	    print STDERR "not found, trying $mf\n" if $macroDebug;
+	    }
+	  }
+	  if (-f $mf) {
+	    read_macros($mf,$libDir,1,@contexts);
+	    push @macros,"\n#line $line \"$file\"\n";
+	  } else {
+	    die
+	      "Error including macros $mf\n from $file: ",
+		"file not found!\n";
+	  }
 	}
       }
   }
