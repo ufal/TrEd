@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-08-15 14:12:35 pajas>
+## Time-stamp: <2003-09-05 15:05:08 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -549,8 +549,8 @@ Save the current file.
 =cut
 sub Save {
   main::saveFile($grp);
-  $forceFileSaved=1;
-  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+  $forceFileSaved=!GetFileSaveStatus();
+  $FileNotSaved=0;
 }
 
 =item GotoFileNo ($n)
@@ -561,6 +561,9 @@ Goto n'th file in the current filelist.
 
 sub GotoFileNo {
   my $result;
+  if ($FileNotSaved ne '?' and $FileNotSaved) {
+    SetFileSaveStatus(1);
+  }
   if (exists($grp->{framegroup})) {
     $result=main::gotoFile($grp->{framegroup},$_[0]);
   } else {
@@ -597,10 +600,8 @@ Save the current file and open the next file in the current file-list.
 
 =cut
 sub SaveAndNextFile {
-  Save();
-  my $result = main::nextFile($grp);
-  $root=$grp->{root};
-  return $result;
+  Save() if GetFileSaveStatus() || $FileNotSaved;
+  NextFile();
 }
 
 =item NextFile
@@ -609,8 +610,18 @@ Goto next file in the file-list.
 
 =cut
 sub NextFile {
-  my $result = main::nextFile($grp);
-  $root=$grp->{root};
+  my $result;
+  my $GRP=exists($grp->{framegroup}) ? $grp->{framegroup} : $grp;
+  if ($FileNotSaved ne '?' and $FileNotSaved) {
+    SetFileSaveStatus(1);
+  }
+  if ($result=main::nextFile($GRP)) {
+    $root=$grp->{root};
+    $this=$grp->{currentNode} || $root;
+    $FileNotSaved=GetFileSaveStatus();
+  } else {
+    $FileNotSaved=0 if $FileNotSaved eq '?';
+  }
   return $result;
 }
 
@@ -622,10 +633,8 @@ file-list.
 
 =cut
 sub SaveAndPrevFile {
-  Save();
-  my $result = main::prevFile($grp);
-  $root=$grp->{root};
-  return $result;
+  Save() if GetFileSaveStatus() || $FileNotSaved;
+  PrevFile();
 }
 
 =item PrevFile
@@ -634,8 +643,18 @@ Goto previous file in the file-list.
 
 =cut
 sub PrevFile {
-  my $result = main::prevFile($grp);
-  $root=$grp->{root};
+  my $result;
+  my $GRP=exists($grp->{framegroup}) ? $grp->{framegroup} : $grp;
+  if ($FileNotSaved ne '?' and $FileNotSaved) {
+    SetFileSaveStatus(1);
+  }
+  if ($result=main::prevFile($GRP)) {
+    $root=$grp->{root};
+    $this=$grp->{currentNode} || $root;
+    $FileNotSaved=GetFileSaveStatus();
+  } else {
+    $FileNotSaved=0 if $FileNotSaved eq '?';
+  }
   return $result;
 }
 
