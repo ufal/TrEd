@@ -586,6 +586,111 @@ sub InitTROrderingAttributes {
   }
 }
 
+sub _expand_coord_apos_GetFather_AR { # node through
+  my ($node,$through)=@_;
+  my @toCheck = $node->children;
+  my @checked;
+  while (@toCheck) {
+    @toCheck=map {
+      if (&$through($_)) { $_->children() }
+      elsif($_->{afun}=~/(?:Coord|Apos)_[CA]/){ _expand_coord_apos_GetFather_AR($_,$through) }
+      elsif($_->{afun}=~/_[CA]/){ push @checked,$_;() }
+      else{()}
+    }@toCheck;
+  }
+  return @checked;
+}
+
+=item PDT::GetFather_AR(top?)
+
+Return linguistic parent of a given node as appears in an annalytic
+tree.
+
+=cut
+
+sub GetFather_AR { # node through
+  my ($node,$through)=@_;
+  if ($node->{afun}=~/_[CA]/) { # go to coordination head
+    while ($node->{afun}!~/(?:Coord|Apos)(?:$|_P)|AuxS/) {
+      $node=$node->parent;
+      if ($node->{afun}eq'AuxS') {
+	print STDERR
+	  "GetFather: Error - no coordination head ".ThisAddress()."\n";
+      }
+    }
+  }
+  if (&$through($node->parent)) { # skip 'through' nodes
+    while (&$through($node->parent)) {
+      $node=$node->parent;
+    }
+  }
+  $node=$node->parent;
+  return $node if $node->{afun}!~/Coord|Apos/;
+  _expand_coord_apos_GetFather_AR($node,$through);
+} # GetFather_AR
+
+sub FilterSons_AR{ # node filter dive suff from
+  my ($node,$filter,$dive,$suff,$from)=@_;
+  my @sons;
+  $node=$node->firstson;
+  while ($node) {
+#    return @sons if $suff && @sons; # comment this line to get all members
+    unless ($node==$from){ # on the way up do not go back down again
+
+      if (!$suff&&$node->{afun}=~/Coord$|Apos$|Coord_P|Apos_P/
+	  or$suff&&$node->{afun}=~/(Coord|Apos)_[CA]/) {
+	push @sons,FilterSons_AR($node,$filter,$dive,1,0)
+      } elsif (&$dive($node) and $node->firstson){
+	push @sons,FilterSons_AR($node,$filter,$dive,$suff,0);
+      } elsif(($suff&&$node->{afun}=~/_[CA]/)
+	      ||(!$suff&&$node->{afun}!~/_[CA]/)){ # this we are looking for
+	push @sons,$node if !$suff or $suff && &$filter($node);
+      }
+    } # unless node == from
+    $node=$node->rbrother;
+  }
+  @sons;
+} # FilterSons_AR
+
+=item PDT::GetChildren_AR ($node, $filter, $dive)
+
+Return a list of nodes linguistically dependant on a given node. The
+list may be filtered by a given subroutine specified in C<$filter>.  A
+fitler obtains one argument - the child node to be filtered - and
+should return either true (the child node is permitted to the result
+list) or false (the child node is filtered out). C<$dive> is a
+function which is called to test whether a given node should be used
+as a terminal node (in which case it should return false) or whether it
+should be skipped and its children processed instead (in which case it
+should return true). Most usual case is to provide function returning 1
+for nodes with afun AuxC and AuxP. If C<$dive> is skipped, a function
+returning 0 for all arguments is used.
+
+=cut
+
+sub GetChildren_AR{ # node filter dive
+  my ($node,$filter,$dive)=@_;
+  my @sons;
+  my $from;
+  $filter = sub { 1 } unless defined($filter);
+  $dive = sub { 0 } unless defined($dive);
+  push @sons,FilterSons_AR($node,$filter,$dive,0,0);
+  if($node->{afun}=~/_Co|_Ap/){
+    my @oldsons=@sons;
+    while($node->{afun}!~/Coord$|Coord_P|Apos$|Apos_P|AuxS/){
+      $from=$node;$node=$node->parent;
+      push @sons,FilterSons_AR($node,$filter,$dive,0,$from);
+    }
+    if ($node->{afun}eq'AuxS'){
+      print STDERR "Error: Missing Coord/Apos: ".ThisAddress($node)."\n";
+      @sons=@oldsons;
+    }
+  }
+  grep &$filter($_),@sons;
+} # GetChildren_AR
+
+
+
 #####include /home/stepanek/objsearch/tgsearch.btred
 
 sub FilterSons_TR { # node filter suff from
@@ -665,6 +770,8 @@ sub GetFather_TR {
   return ($node) if !is_coord_TR($node);
   return (expand_coord_apos_TR($node));
 } # GetFather
+
+
 
 
 =item PDT::is_member_TR ($node?)
@@ -941,7 +1048,7 @@ sub ClearARstruct {
   }
 }
 
-=item PDT::SetHidden ()
+=item PDT::SetHidden ($node?)
 
 If current node is hidden, set the hide flag on it.  Calling this on
 all trees may speedup the identification of hidden nodes.
@@ -949,8 +1056,9 @@ all trees may speedup the identification of hidden nodes.
 =cut
 
 sub SetHidden {
+  my $node=$_[0] || $this;
   my $hid=FS()->hide;
-  $this->{$hid} = 'hide' if IsHidden($this);
+  $node->{$hid} = 'hide' if IsHidden($node);
 }
 
 
