@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-06-04 16:52:17 pajas>
+# Time-stamp: <2001-06-07 20:51:54 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -147,7 +147,7 @@ sub ListValues ($$) {
   my ($attrib, $href)=@_;
 
 # pokus o zrychleni
-    my $I,$b,$e;
+    my ($I,$b,$e);
     $b=index($href->{$attrib}," L=");
     if ($b>=0) {
       $e=index($href->{$attrib}," ",$b+1);
@@ -360,7 +360,7 @@ sub ParseNode ($$$) {
 	$a=$ord->[$n];
 
       } 
-      $v=~s/\\([,=\[\]\\])/\1/go;
+      $v=~s/\\([,=\[\]\\])/$1/go;
       if ($FSTestListValidity) {
 	if (IsList($a,$attr)) {
 	  @lv=ListValues($a,$attr);
@@ -679,7 +679,8 @@ sub PrintFS ($$$$$) {
   my ($FS,$header,$trees,$atord,$attribs)=@_;
   my $t;
 
-  print FO @$header;
+  $FS=\*STDOUT unless $FS;
+  print $FS @$header if defined($header);
   foreach $t (@$trees) {
     PrintTree($t,$atord,$attribs,$FS);
   }
@@ -1470,7 +1471,7 @@ sub readFile {
 
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
-    print "Trying backend $backend: ";
+    print STDERR "Trying backend $backend: ";
     if ($ret =
 	eval {
 	  return $backend->can('test')
@@ -1480,7 +1481,7 @@ sub readFile {
 	}) {
       $self->changeBackend($backend);
       $self->changeFilename($filename);
-      print "success\n";
+      print STDER "success\n";
       eval {
 	my $fh;
 	$fh = &{"${backend}::open_backend"}($filename,"r");
@@ -1491,7 +1492,7 @@ sub readFile {
       $self->notSaved(0);
       last;
     }
-    print "fail\n";
+    print STDERR "fail\n";
     print STDERR "$@\n" if $@;
   }
   return $ret;
@@ -1924,6 +1925,87 @@ sub currentNode {
 
 =pod
 
+=item nodes (tree_no, prev_current, include_hidden)
+
+Get list of nodes for given tree. Returns two value list ($nodes,$current),
+where $nodes is a reference to a list of nodes for the tree and
+current is either root of the tree or the same node as prev_current if
+prev_current belongs to the tree. The list is sorted according to
+the FS->order attribute and inclusion of hidden nodes depends on the
+boolean value of include_hidden.
+
+=cut
+
+sub nodes {
+# prepare value line and node list with deleted/saved hidden
+# and ordered by real Ord
+
+  my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
+  my $nodes=[];
+  return $nodes unless ref($fsfile);
+
+  my @unsorted=();
+  $tree_no=0 if ($tree_no<0);
+  $tree_no=$fsfile->lastTreeNo() if ($tree_no>$fsfile->lastTreeNo());
+
+  my $root=$fsfile->treeList->[$tree_no];
+  my $node=$root;
+  my $current=$root;
+
+  while($node)
+  {
+    push @unsorted, $node;
+    $current=$node if ($prevcurrent eq $node);
+    $node=$show_hidden ? $node->following() : $node->following_visible($fsfile->FS);
+  }
+
+  my $ord=$fsfile->FS->order();
+  @{$nodes}=
+    sort { $a->{$ord} <=> $b->{$ord} }
+      @unsorted;
+
+  # just for sure
+  undef @unsorted;
+  # this is actually a workaround for TR, where two different nodes
+  # may have the same Ord
+  return $nodes,$current;
+}
+
+=pod
+
+=item value_line (tree_no)
+
+Return a sentence string for the given tree. Sentence string is a
+string of chained value attributes (FS->value) ordered according to
+the FS->sentord or FS->order if FS->sentord attribute is not defined.
+
+=cut
+
+sub value_line {
+  my ($fsfile,$tree_no)=@_;
+  return unless $fsfile;
+
+  my $node=$fsfile->treeList->[$tree_no];
+  my @sent=();
+
+  my $attr=$fsfile->FS->sentord();
+  $attr=$fsfile->FS->order() unless (defined($attr));
+  while ($node) {
+    push @sent,$node unless $node->{$attr}>=999; # this is TR specific
+    $node=$node->following();
+  }
+  @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
+
+  $attr=$fsfile->FS->value();
+  my $line =
+    ($tree_no+1)."/".($fsfile->lastTreeNo()+1).": ".
+    join(" ", map { $_->{$attr} } @sent);
+  undef @sent;
+  return $line;
+}
+
+=pod
+
 =back
 
 =cut
@@ -2151,7 +2233,7 @@ sub write {
 
 #  print $fileref @{$fsfile->FS->unparsed};
   $fsfile->FS->writeTo($fileref);
-  Fslib::PrintFS($fileref,$fsfile->FS->unparsed,
+  Fslib::PrintFS($fileref,undef,
 		 $fsfile->treeList,
 		 $fsfile->FS->list,
 		 $fsfile->FS->defs);

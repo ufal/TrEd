@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-05-25 13:28:49 pajas>
+## Time-stamp: <2001-06-07 20:49:43 pajas>
 
 package TredMacro;
 @ISA=qw(main);

@@ -2,12 +2,11 @@
 ## author: Petr Pajas
 ## created: Wed Mar 15 14:50:16 CET 2000
 
-
 sub file_opened_hook {
   if (exists $grp->{FSFile}->FS->defs->{TR}) {
-    SwitchContext('Tectogrammatic');
+    return SwitchContext('Tectogrammatic');
   } else {
-    SwitchContext('Analytic') unless CurrentContext eq 'Analytic_Correction';
+    return SwitchContext('Analytic') unless CurrentContext eq 'Analytic_Correction';
   }
 }
 

@@ -1,11 +1,12 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-06-05 13:08:21 pajas>
+## Time-stamp: <2001-06-07 20:34:01 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
 import TredMacro;
 import main;
+
 
 #include contrib/AFA.mak
 
