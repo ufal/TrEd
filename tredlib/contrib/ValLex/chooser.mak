@@ -8,7 +8,7 @@ $frameid_attr="frameid";
 $framere_attr="framere";
 $vallexEditor=undef;
 $vallex_validate = 0;
-$vallex_file = "$libDir/contrib/ValLex/vallex.xml";
+$vallex_file = $ENV{VALLEX} || "$libDir/contrib/ValLex/vallex.xml";
 
 $chooserDialog=undef;
 
