@@ -485,12 +485,10 @@ sub serializeForm {
 
 sub applyFormAbbrevs {
   my ($form) = @_;
-  print "PRE: $form\n";
   foreach my $k (keys(%abbrev_forms)) {
     my $v = $abbrev_forms{$k};
     $form =~ s/\b\Q$v\E/$k/g;
   }
-  print "POST: $form\n";
   return $form;
 }
 
