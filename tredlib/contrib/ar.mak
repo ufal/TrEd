@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2002-04-24 09:24:00 pajas>
+## Time-stamp: <2002-07-04 11:16:08 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -9,6 +9,15 @@ import TredMacro;
 
 
 #include <contrib/AutoAfun.mak>
+
+#bind default_ar_attrs to F8 menu Display default attributes
+sub default_ar_attrs {
+  return unless $grp->{FSFile};
+  SetDisplayAttrs('${form}', '${afun}');
+  SetBalloonPattern("tag:\t".'${tag}');
+  return 1;
+}
+
 
 sub switch_context_hook {
   if ($grp->{FSFile} and !$grp->{FSFile}->hint()) {
