@@ -75,9 +75,9 @@ This variable contains a path to TrEd library directory.
 =item C<$grp>
 
 This variable is a hash reference which stores the fundamental piece
-of information about current file, current context etc. B<DO NOT
-CHANGE IT>. You may (and in some situations must), however, use this
-variable to access that information.
+of information about the current file, context etc. B<DO
+NOT CHANGE IT>. You may, however, use 
+this variable to access that information:
 
 =over 5
 
@@ -107,645 +107,13 @@ import main;
 
 ## =head2 FUNCTION REFERENCE
 
-=head2 Helper macros for attributes with list or alternative of values
-
-=over 4
-
-=cut
-
-=item C<IsList(value)>
-
-Check that a given value is a list, i.e. Fslib::List object.
-
-=cut
-
-sub IsList {
-  return 1 if ref($_[0]) eq 'Fslib::List';
-}
-
-=item C<IsAlt(value)>
-
-Check that a given value is an alternative, i.e. Fslib::Alt object.
-
-=cut
-
-sub IsAlt {
-  return 1 if ref($_[0]) eq 'Fslib::Alt';
-}
-
-=item C<List(value,value,...)>
-
-Return a new list (Fslib::List object) populated with given values.
-
-=cut
-
-sub List {
-  Fslib::List->new(@_);
-}
-
-=item C<Alt(value,value,...)>
-
-Return a new alternative (Fslib::Alt object) populated with given values.
-
-=cut
-
-sub Alt {
-  Fslib::Alt->new(@_);
-}
-
-=item C<AltV(value)>
-
-If the value is an alternative (i.e. a Fslib::Alt object), return
-all its values. Otherwise return value.
-
-=cut
-
-sub AltV {
-  ref($_[0]) eq 'Fslib::Alt' ? @{$_[0]} : $_[0]
-}
-
-=item C<ListV(value)>
-
-If the value is a list (i.e. a Fslib::List object), return
-all its values. Otherwise return empty (Perl) list.
-
-=cut
-
-sub ListV {
-  ref($_[0]) eq 'Fslib::List' ? @{$_[0]} : ()
-}
-
-=item C<AddToAlt(node,attr,value,value...)>
-
-Add given values as alternatives to the current value of
-C<$node-E<gt>{$attr}>.  If only one value is given and C<$node-E<gt>{$attr}> is
-empty or same as value, the given value is simply assigned to it. If
-C<$node-E<gt>{$attr}> is a C<Fslib::Alt> object, the new values are simply added
-to it. Otherwise, if C<$node-E<gt>{$attr}> is a simple value, C<$node-E<gt>{$attr}>
-is set to a new C<Fslib::Alt> object containing the original value as
-well as the given values.
-
-=cut
-
-sub AddToAlt {
-  my ($node,$attr)=(shift,shift);
-  if ($node->{$attr} eq "") {
-    if (@_>1) {
-      $node->{$attr}=Fslib::Alt->new(uniq(@_));
-    } else {
-      $node->{$attr}=$_[0];
-    }
-  } elsif (IsAlt($node->{$attr})) {
-    @{$node->{$attr}} = uniq(@{$node->{$attr}},@_);
-  } else {
-    @{$node->{$attr}} = Fslib::Alt->new($node->{$attr},@_);
-  }
-}
-
-=item C<AddToList(node,attr,value,value,...)>
-
-Add values to a given attribute. If C<$node-E<gt>{$attr}> is not defined or
-empty, a new C<Fslib::List> containing given values is created. If
-C<$node-E<gt>{$attr}> is a C<Fslib::List> object, given values are simply added
-to it. Error is issued if C<$node-E<gt>{$attr}> is defined, non-empty, yet not
-a C<Fslib::List> object.
-
-=cut
-
-sub AddToList {
-  my ($node,$attr)=(shift,shift);
-  my $val = $node->attr($attr);
-  if (IsList($val)) {
-    push @$val,@_;
-  } elsif ($val eq "") {
-    $val = Fslib::List->new(@_);
-    $node->set_attr($attr,$val,1);
-  } else {
-    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$value'!\n"
-  }
-}
-
-
-=back
-
-=head2 General-purpose list functions
-
-=over 4
-
-=cut
-
-sub uniq { my %a; grep { !($a{$_}++) } @_ }
-
-=item C<Index(array-ref,item)>
-
-A helper function which returns the first occurence of the item in the
-array.
-
-=cut
-
-# imported from Fslib
-
-=item C<ListIntersect(array-ref,array-ref,...)>
-
-Compute intersection of given lists. In scalar context returns an
-array-ref, in list context returns a list. All duplicities are
-removed.
-
-=cut
-
-sub ListIntersect {
-  my %counts;
-  my $first = shift;
-  $counts{$_}++ for (map { @$_ } @_);
-  my $count  = scalar(@_);
-  my @res = uniq grep { $counts{$_}==$count } @{$first};
-  return wantarray ? @res : List(@res);
-}
-
-=item C<ListSubtract(array-ref, array-ref)>
-
-Return elements occuring in the first list but not in the second list.
-In scalar context returns a Fslib::List object (array-ref), in list
-context returns a list. All duplicities are removed.
-
-=cut
-
-sub ListSubtract($$) {
-  my %a; @a{ @{$_[1]} }=();
-  my @res = grep { !exists($a{$_}) ? $a{$_}=1 : 0 } @{$_[0]};
-  return wantarray ? @res : List(@res);
-}
-
-
-=item C<ListUnion(array-ref, array-ref, ...)>
-
-Return union of given lists. In scalar context returns an array-ref,
-in list context returns a Fslib::List object (array-ref). All
-duplicities are removed.
-
-=cut
-
-sub ListUnion {
-  my @res = uniq map @$_,@_;
-  return wantarray ? @res : List(@res);
-}
-
-
-=item C<ListRegroupElements(array-ref, array-ref, ...)>
-
-This is rotate-matrix like operation. The input is a list of
-rows (array-refs each representing a row in a matrix); the output
-is a list of columns in the matrix (a list of array-refs, each
-representing a column in the matrix).
-
-=cut
-
-sub ListRegroupElements {
-  my @r;
-  for (my $row=0; $row<@_;$row++) {
-    for (my $col=0; $col<@{$_[$row]}; $col++) {
-      $r[$col][$row] = $_[$row][$col];
-    }
-  }
-  return wantarray ? @r : List(@r);
-}
-
-=back
-
-=cut
-
-###########################################################
-# Default macro definitions to make
-# calls to global subroutines less humble
-
-=head2 Forcing redraw
-
-=over 4
-
-=item C<Redraw()>
-
-Force TrEd to immediately redraw the current window. Hence TrEd
-redraws the tree right after an interactively invoked macro finishes,
-explicit calls to Redraw macro are needed rather rearly (for example
-from a hook).
-
-=cut
-
-sub Redraw {
-  my $ie=$main::insideEval;
-  $main::insideEval=0;
-  &main::setCurrent($grp,$this) if ($this);
-  &main::get_nodes_win($grp);
-  &main::redraw_win($grp);
-  $main::insideEval=$ie;
-}
-
-=item C<Redraw_FSFile()>
-
-Force TrEd to immediately redraw all windows displaying current
-file.
-
-=cut
-
-sub Redraw_FSFile {
-  my $ie=$main::insideEval;
-  $main::insideEval=0;
-  &main::setCurrent($grp,$this) if ($this);
-  &main::get_nodes_fsfile($grp->{framegroup},$grp->{FSFile});
-  &main::redraw_fsfile($grp->{framegroup},$grp->{FSFile});
-  $main::insideEval=$ie;
-}
-
-=item C<Redraw_FSFile_Tree()>
-
-Force TrEd to immediately redraw all windows displaying current
-tree.
-
-=cut
-
-sub Redraw_FSFile_Tree {
-  my $ie=$main::insideEval;
-  $main::insideEval=0;
-  &main::setCurrent($grp,$this) if ($this);
-  &main::get_nodes_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
-  &main::redraw_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
-  $main::insideEval=$ie;
-}
-
-=item C<Redraw_All()>
-
-Force TrEd to immediately redraw all windows.
-
-=cut
-
-sub Redraw_All {
-  my $ie=$main::insideEval;
-  $main::insideEval=0;
-  &main::setCurrent($grp,$this) if ($this);
-  &main::get_nodes_all($grp->{framegroup});
-  &main::redraw_all($grp->{framegroup});
-  $main::insideEval=$ie;
-}
-
-=item C<RedrawStatusLine()>
-
-Force TrEd to immediately redraw status line.
-
-=cut
-
-sub RedrawStatusLine {
-  local $main::insideEval=0;
-  &main::setCurrent($grp,$this) if ($this);
-  &main::updateStatusLine($grp);
-}
-
-=back
-
-=cut
-
-=head2 Macros related to TrEd GUI
-
-=over 4
-
-=item C<StandardTredFont()>
-
-Return a string or Tk::Font object representation of the font used in
-TrEd to label tree-nodes.
-
-=cut
-
-sub StandardTredFont {
-  return $main::font;
-}
-
-=item C<StandardTredValueLineFont()>
-
-Return a string or Tk::Font object representation of the font used in
-TrEd to display the "sentence" above the tree.
-
-=cut
-
-sub StandardTredValueLineFont {
-  return $main::vLineFont;
-}
-
-=item C<SetCurrentNodeInOtherWin(win,node)>
-
-Set active node for a given window.
-
-=cut
-
-sub SetCurrentNodeInOtherWin {
-  my ($win,$node)=@_;
-  TrEd::Basics::setCurrent($win,$node);
-}
-
-=item C<CenterOtherWinTo(win,node)>
-
-Center given window to a given node.
-
-=cut
-
-sub CenterOtherWinTo {
-  my ($win,$node)=@_;
-  main::centerTo($win,$node);
-}
-
-
-=item C<HiddenVisible()>
-
-Return true if TrEd presently displays hidden nodes.
-
-=cut
-
-sub HiddenVisible {
-  return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
-}
-
-=back
-
-=cut
-
 ###########################################################
 
-=head2 Stylesheet API
-
-=over 4
-
-=item C<STYLESHEET_FROM_FILE()>
-
-This function returns a symbolic name for a virtual stylesheet that is
-constructed from the patterns and hint specified in the currently
-displayed file.
-
-=cut
-
-sub STYLESHEET_FROM_FILE { &main::STYLESHEET_FROM_FILE }
-
-=item C<SetStylesheetPatterns(patterns,stylesheet,create)>
-
-Set TrEd's display patterns for a given stylesheet. If stylesheet is
-undefined, then the stylesheet currently selected for the active view
-is used. The patterns argument should either be a string or an array
-reference.  If it is a string, then it should provide all the
-patterns, each pattern starting on a new line (but possibly spanning
-across several lines) which starts with a pattern prefix of the form
-"something:", where "something" is hint for the hint pattern, or
-"node" for the node pattern, etc.
-
-Patterns can also be provided as an array reference containing two
-elements: the first one being a hint text and the second one an array
-reference whose each element is the text of an individual pattern.
-
-The create flag can be set to 1 in order to create a new stylesheet in
-case that no stylesheet with the given exists.
-
-This function returns 1 if success, 0 if failed (i.e. when create is
-not set and a given stylesheet is not found).
-
-=cut
-
-sub SetStylesheetPatterns {
-  my ($patterns,$stylesheet,$create) = @_;
-  main::setStylesheetPatterns($grp,$patterns,$stylesheet,$create);
-}
-
-=item C<DeleteStylesheet(stylesheet)>
-
-Delete given stylesheet. All windows using that stylesheet are
-switched to the pattern and hint specified in the respective files
-they display.
-
-=cut
-
-sub DeleteStylesheet {
-  my ($stylesheet) = @_;
-  main::deleteStylesheet($grp->{framegroup},$stylesheet) unless GUI();
-}
-
-=item C<SaveStylesheets()>
-
-Save all TrEd's stylesheets (to ~/.tred-stylesheets).
-
-=cut
-
-sub SaveStylesheets {
-  my ($patterns,$stylesheet) = @_;
-  main::saveStyleSheets($grp->{framegroup}) unless GUI();
-}
-
-=item C<ReloadStyleseets(filename?)>
-
-Reload stylesheets from a given file. If no filename is specified, the
-default path "~/.tred-stylesheets" is used.
-
-=cut
-
-sub ReloadStylesheets {
-  my ($filename) = @_;
-   main::readStyleSheets($grp->{framegroup},$filename) unless GUI();
-}
-
-=item C<GetStylesheetPatterns(stylesheet)>
-
-For a given stylesheet, return it's patterns. In a scalar context,
-returns a string consisting of all patterns, including the hint.  In
-the array context returns two scalars: the first one containing the
-text of the hint pattern and the other a reference to a list
-containing the stylesheet patterns. Returns empty list if fail.
-
-=cut
-
-sub GetStylesheetPatterns {
-  my ($stylesheet)=@_;
-  return main::getStylesheetPatterns($grp,$stylesheet);
-}
-
-=item C<GetPatternsByPrefix(prefix,stylesheet?)>
-
-Return all patterns of a given stylesheet starting with a given prefix.
-If no stylesheet name is given, a current stylesheet is used.
-
-=cut
-
-sub GetPatternsByPrefix {
-  my ($prefix,$stylesheet)=@_;
-  my ($hint,$patterns) = main::getStylesheetPatterns($grp,$stylesheet);
-  if ($prefix eq 'hint') {
-    return $hint;
-  } else {
-    return map { /^\Q$prefix\E:\s*((?:.|\n)*?)\s*$/ ? $1 : () } @$patterns;
-  }
-}
-
-=item C<StylesheetExists(stylesheet)>
-
-Returns true if stylesheet with a given name exists.
-
-=cut
-
-sub StylesheetExists {
-  if (GUI()) {
-    return 1 if exists ($grp->{framegroup}{stylesheets})
-      and exists ($grp->{framegroup}{stylesheets}{$_[0]})
-  }
-}
-
-=item C<Stylesheets()>
-
-Returns a list of TrEd's stylesheet names.
-
-=cut
-
-sub Stylesheets {
-  if (GUI()) {
-    return (keys(%{$grp->{framegroup}{stylesheets}}));
-  }
-}
-
-=item C<SetCurrentStylesheet()>
-
-Set stylesheet for the active window.
-
-=cut
-
-sub SetCurrentStylesheet {
-  if (GUI()) {
-    if (StylesheetExists($_[0])) {
-      $grp->{framegroup}{selectedStylesheet} = $_[0];
-      return main::switchStylesheet($grp->{framegroup},$_[0]);
-    }
-  }
-  return -1;
-}
-
-=item C<GetCurrentStylesheet()>
-
-Returns name of the stylesheet currently selected for the active
-window.
-
-=cut
-
-sub GetCurrentStylesheet {
-  if (GUI()) {
-    return $grp->{stylesheet};
-  }
-}
-
-=item C<GetSpecialPattern(prefix)> - OBSOLETE!!
-
-This macro is obsoleted by GetPatternsByPrefix.
-
-=cut
-
-sub GetSpecialPattern {
-  my ($patname)=@_;
-  return unless $grp->{FSFile};
-  warn "GetSpecialPattern is obsolete: use GetPatternsByPrefix('$patname',STYLESHEET_FROM_FILE()) instead\n";
-  my ($pat) = GetPatternsByPrefix($patname,STYLESHEET_FROM_FILE());
-  return $pat;
-}
-
-=item C<SetDisplayAttrs(pattern,...)> - OBSOLETE!!
-
-Setup given patterns as a stylesheet of
-the currently displayed FSFile. This doesn't include
-a hint pattern.
-
-=cut
-
-sub SetDisplayAttrs {
-  return unless $grp->{FSFile};
-  warn "SetDisplayAttrs is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead\n";
-  $grp->{FSFile}->changePatterns(@_);
-}
-
-=item C<SetBalloonPattern(string,...)> - OBSOLETE!!
-
-Use given strings as a C<hint:> pattern for
-the currently displayed FSFile.
-
-=cut
-
-sub SetBalloonPattern {
-  return unless $grp->{FSFile};
-  $grp->{FSFile}->changeHint(join "\n",@_);
-  warn "SetBalloonPattern is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead\n";
-}
-
-=item C<GetDisplayAttrs()> - OBSOLETE!!
-
-Get patterns of the currently displayed FSFile's stylesheet, except
-for a C<hint:> pattern.
-
-=cut
-
-sub GetDisplayAttrs {
-  return unless $grp->{FSFile};
-  warn "GetDisplayAttrs is obsolete: use GetStylesheetPatterns(STYLESHEET_FROM_FILE()) instead\n";
-  return $grp->{FSFile}->patterns();
-}
-
-=item C<GetBalloonPattern()> - OBSOLETE!!
-
-Get a C<hint:> pattern of the currently displayed
-FSFile's stylesheet.
-
-=cut
-
-sub GetBalloonPattern {
-  return unless $grp->{FSFile};
-  warn "GetBalloonPattern is obsolete: use (\$hint)=GetPatternsByPrefix('hint',STYLESHEET_FROM_FILE()) instead\n";
-  return $grp->{FSFile}->hint();
-}
-
-=back
-
-=cut
-
-###########################################################
-
-=head2 Context API
-
-=over 4
-
-=item C<SwitchContext()>
-
-Switch to given macro context.
-
-=cut
-
-sub SwitchContext {
-  main::switchContext($grp,shift);
-}
-
-=item C<SwitchContextForWindow()>
-
-Switch given window to given macro context.
-
-=cut
-
-sub SwitchContextForWindow {
-  main::switchContext(@_);
-}
-
-=item C<CurrentContext()>
-
-Return the name of the current macro context.
-
-=cut
-
-sub CurrentContext {
-  return $grp->{macroContext};
-}
-
-=back
-
-=cut
-
-###########################################################
-
-=head2 API for switching to another tree
+=head2 Navigation
+
+Methods of FSNode objects should be used for basic navigation within
+trees. Here are described means to navigate from one tree to another
+and a few extra macros for specific navigation in trees.
 
 =over 4
 
@@ -854,100 +222,284 @@ sub GetTrees {
   return $grp->{FSFile}->trees;
 }
 
-=back
+=item C<NextNode(node,top?)>
+
+Return the first displayed node following the given node in the
+subtree of top. This function behaves in the same manner as the
+node->following(top) method, except it works only on the nodes which
+are actually visible according to the state of the View->Show Hidden
+Nodes menu item.
 
 =cut
 
-###########################################################
+sub NextNode {
+  my ($node,$top)=@_;
+  return $node ? main::NextDisplayed($grp,$node,$top) : undef;
+}
 
-=head2 FSFormat API
+=item C<PrevNode(node,top?)>
 
-=over 4
-
-=item C<GetOrd(node)>
-
-Return value of the special numbering FS attribute. This macro
-actually returns the same value as
-C<$node-E<gt>{$grp-E<gt>{FSFile}-E<gt>FS-E<gt>order()}>
-
-=cut
-
-sub GetOrd { return $_[0]->{$grp->{FSFile}->FS->order}; }
-
-
-=item C<Attributes()>
-
-Return a list of names of all attributes declared in the header of the
-current FS file.
+Return the first displayed node preceding the given node in the
+subtree of top. This function behaves in the same manner as the
+node->previous(top) method, except it works only on the nodes which
+are actually visible according to the state of the View->Show Hidden
+Nodes menu item.
 
 =cut
 
-sub Attributes {
-  if (ref($grp->{FSFile}->metaData('schema'))) {
-    return $grp->{FSFile}->metaData('schema')->attributes()
+sub PrevNode {
+  my ($node,$top)=@_;
+  return $node ? main::PrevDisplayed($grp,$node,$top) : undef;
+}
+
+=item C<NextVisibleNode(node,top?)>
+
+Return the first visible node following the given node in the subtree
+of top. This function behaves in the same manner as the
+C<$node-E<gt>following($top)> method, except that nodes of hidden subtrees
+are skipped.
+
+=cut
+
+sub NextVisibleNode {
+  my ($node,$top)=@_;
+  $node=$node->following($top);
+  my $fs=$grp->{FSFile}->FS;
+  while ($node) {
+    return $node unless ($fs->isHidden($node));
+    $node=$node->following($top);
+  }
+  return 0;
+}
+
+=item C<PrevVisibleNode(node,top?)>
+
+Return the first visible node preceding the given node in the subtree
+of top. This function behaves in the same manner as the
+C<$node-E<gt>previous($top)> method, except that nodes of hidden subtrees
+are skipped.
+
+=cut
+
+sub PrevVisibleNode {
+  my ($node,$top)=@_;
+  $node=$node->previous($top);
+  my $fs=$grp->{FSFile}->FS;
+  while ($node) {
+    return $node unless ($fs->isHidden($node));
+    $node=$node->previous($top);
+  }
+  return 0;
+}
+
+=item C<IsHidden(node)>
+
+Return true if the given node is member of a hidden subtree. This
+macro is only an abbreviation for
+C<$grp-E<gt>{FSFile}-E<gt>FS-E<gt>isHidden(node)>
+
+=cut
+
+sub IsHidden {
+  my ($node)=@_;
+  return $grp->{FSFile}->FS->isHidden($node);
+}
+
+=item C<Hide(node)>
+
+Hide the given node.
+
+=cut
+
+sub Hide {
+  my ($node)=@_;
+  my $hide=$grp->{FSFile}->FS->hide();
+  if ($node and $hide ne "") {
+    $node->{$hide}='hide';
+    return 1;
+  }
+  return 0;
+}
+
+=item C<GetNodes(top?)>
+
+Get a list of all nodes in the current tree of (if top is given) in
+the subtree of top (the root of the tree is icluded as well). The list
+returned is ordered in the natural structure ordering.
+(This function automatically returns array reference in scalar context.)
+
+=cut
+
+sub GetNodes {
+  my $top = defined($_[0]) ? $_[0] : $root;
+  my $node=$top;
+  my @n;
+  while ($node) {
+    push @n,$node;
+    $node=$node->following($top);
+  }
+  return wantarray ? @n : \@n;
+}
+
+=item C<GetVisibleNodes(top?)>
+
+Return the list of all visible nodes in the subtree of the given top
+node (or the whole current tree if no top is given). The list returned
+is ordered in the natural structure ordering and all members of hidden
+subtrees are skipped.
+
+=cut
+
+sub GetVisibleNodes {
+  my $top = defined($_[0]) ? $_[0] : $root;
+  my $node=$top;
+  my @n;
+  while ($node) {
+    push @n,$node;
+    $node=$node->following_visible($top);
+  }
+  return @n;
+}
+
+=item C<PrevNodeLinear(node,attribute,top?)>
+
+Returns nearest node in the tree preceding the given node in linear
+ordering provided by the given attribute. If top node is present, only
+a subtree of top is examined.
+
+=cut
+
+sub PrevNodeLinear {
+  my ($node, $attr, $top) = @_;
+
+  return undef unless $node;
+
+  my $v=$node->{$attr};
+  my $best;
+  my $best_v;
+
+  my $nv;
+  $node=$top || $root; # reusing variable $node
+  while ($node) {
+    $nv=$node->{$attr};
+    if ($nv < $v and
+	(!$best or $nv > $best_v)) {
+      $best_v=$nv;
+      $best=$node;
+    }
+    $node=$node->following($top);
+  }
+  return $best;
+}
+
+=item C<NextNodeLinear(node,attribute,top?)>
+
+Returns nearest node in the tree following the given node in linear
+ordering provided by the given attribute. If top node is present, only
+a subtree of top is examined.
+
+=cut
+
+sub NextNodeLinear {
+  my ($node, $attr, $top) = @_;
+
+  return undef unless $node;
+
+  my $v=$node->{$attr};
+  my $best;
+  my $best_v;
+
+  my $nv;
+  $node=$top || $root; # reusing the variable
+  while ($node) {
+    $nv=$node->{$attr};
+    if ($nv > $v and
+	(!$best or $nv < $best_v)) {
+      $best_v=$nv;
+      $best=$node;
+    }
+    $node=$node->following($top);
+  }
+  return $best;
+}
+
+=item C<CurrentTreeNumber()>
+
+Return current tree number.
+
+=cut
+
+sub CurrentTreeNumber {
+  return $grp->{treeNo};
+}
+
+=item C<GetNodeIndex()>
+
+Return given node's position in the deep-first tree ordering.
+
+=cut
+
+sub GetNodeIndex {
+  my $node = ref($_[0]) ? $_[0] : $this;
+  my $i=-1;
+  while ($node) {
+    $node=$node->previous();
+    $i++;
+  }
+  return $i;
+}
+
+=item C<LocateNode(node)>
+
+Return current filename, index of a tree (starting from 1) in the file
+to which the node belongs (0 if not found) and node's position in the tree
+in the deep-first tee ordering.
+
+=cut
+
+sub LocateNode {
+  my $node = ref($_[0]) ? $_[0] : $this;
+  if ($tree eq $root) {
+    return (FileName(),CurrentTreeNumber()+1,GetNodeIndex($node));
   } else {
-    return $grp->{FSFile}->FS->attributes;
+    my $tree = $node->root;
+    my $i = 1;
+    foreach my $t (GetTrees()) {
+      if ($t == $tree) {
+	return (FileName(),$i,GetNodeIndex($node));
+	return FileName().'@'.$i.'##1.'.GetNodeIndex($node);
+      }
+      $i++;
+    }
+    return (FileName(),0,GetNodeIndex($node));
   }
 }
 
-=item C<FS()>
+=item C<ThisAddress()>
 
-Return FSFormat object associated with the current FSFile.
+Return current node's address string in a form of filename#tree_no.index
+(tree_no starts from 1 to reflect TrEd's UI convention).
 
 =cut
 
-sub FS {
-  return $grp->{FSFile}->FS;
+
+sub ThisAddress {
+  my ($f,$i,$n)=&LocateNode;
+  return $f.'##'.$i.'.'.$n;
 }
 
-=item C<SubstituteFSHeader(declarations)>
+=item C<ThisAddressNTRED()>
 
-Substitute a new FS header for current document. A list of valid FS
-declarations must be passed to this function.
-
-=cut
-
-sub SubstituteFSHeader {
-  $grp->{FSFile}->changeFS(FS()->create(@_));
-}
-
-
-=item C<AppendFSHeader(declarations)>
-
-Merge given FS header declarations with the present header
-of the current document.
+Return current node's address string in a form of
+ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
+TrEd's UI convention). This address may be opened in TrEd to examine
+the tree in memory of a remote btred server.
 
 =cut
 
-sub AppendFSHeader {
-  my $new=FS()->create(@_);
-  my $newdefs=$new->defs();
-  my $fs=$grp->{FSFile}->FS;
-  my $defs=$grp->{FSFile}->FS->defs();
-  my $list=$grp->{FSFile}->FS->list();
-  foreach ($new->attributes()) {
-    push @$list, $_ unless ($fs->exists($_));
-    $defs->{$_}=$newdefs->{$_};
-  }
-  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
-}
-
-=item C<UndeclareAttributes(attribute,...)>
-
-Remove declarations of given attributes from the FS header
-
-=cut
-
-sub UndeclareAttributes {
-  my $fs=$grp->{FSFile}->FS;
-  my $defs=$grp->{FSFile}->FS->defs();
-  my $list=$grp->{FSFile}->FS->list();
-  delete @{$defs}{@_};
-
-  @$list=grep { exists($defs->{$_}) } @$list;
-  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
-    @{$fs->unparsed} if $fs->unparsed;
-
+sub ThisAddressNTRED {
+  my ($f,$i,$n)=&LocateNode;
+  return 'ntred://'.$f.'@'.$i.'##1.'.$n;
 }
 
 =back
@@ -1351,6 +903,1049 @@ sub PlainDeleteSubtree {
   return 1;
 }
 
+=item C<NormalizeOrds(listref)>
+
+Adjusts the special FS numbering attribute of every node of the list
+referenced by the listref argument so that the value for the attribute
+corresponds to the order of the node in the list.
+
+=cut
+
+sub NormalizeOrds {
+  my ($nodesref)=@_;
+
+  my $ord=$grp->{FSFile}->FS->order;
+  for (my $i=0;$i<=$#$nodesref;$i++) {
+    $nodesref->[$i]->{$ord}=$i;
+  }
+  for (my $i=0;$i<=$#$nodesref;$i++) {
+    RepasteNode($nodesref->[$i]);
+  }
+}
+
+=item C<SortByOrd(listref)>
+
+Sort the list of nodes referenced by the listref argumnt according to
+the values of the special FS numbering attribute.
+
+=cut
+
+sub SortByOrd {
+  my ($nodesref)=@_;
+  my $ord=$grp->{FSFile}->FS->order;
+  local ($a,$b);
+  @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
+  return $nodesref;
+}
+
+=item C<RepasteNode(node)>
+
+Cut the given node and paste it immediately on the same parent so that
+its structural position between its parent children is brought to
+correspondence with the values of the special FS numbering attribute.
+
+=cut
+
+sub RepasteNode {
+  my ($node)=@_;
+  my $parent=$node->parent;
+  return unless $parent;
+  CutPaste($node,$parent);
+}
+
+=item C<ShiftNodeRightSkipHidden(node)>
+
+Shift the current node in the tree to the right leaping over all
+hidden subtress by modifying the tree structure and value of the
+special FS numbering attribute appropriately.
+
+=cut
+
+sub ShiftNodeRightSkipHidden {
+  my ($node)=@_;
+  my $ord=$grp->{FSFile}->FS->order;
+  return unless $node;
+  my @all=GetNodes();
+  SortByOrd(\@all);
+
+  # This is sideeffect, but
+  # whe want to do this anyway
+  NormalizeOrds(\@all);
+  #
+  #
+  my $n=$node->{$ord};
+  return $n if ($n == $#all);
+
+  my @vis=GetVisibleNodes();
+  SortByOrd(\@vis);
+  my $m=Index(\@vis,$node);
+  return undef unless (defined($m) and $m<$#vis);
+  my $x=min(Index(\@all,$vis[$m+1]),$#all);
+  for (my $i=$n+1;$i<=$x;$i++) { $all[$i]->{$ord}--; }
+  $node->{$ord}=$x;
+  RepasteNode($node);
+}
+
+=item C<ShiftNodeLeftSkipHidden(node,min?)>
+
+Shift the current node in the tree to the left leaping over all hidden
+subtress by modifying the tree structure and value of the special FS
+numbering attribute appropriately. The optional argument min may be
+used to specify the minimum left boundary for the value of the
+ordering attribute of node.
+
+=cut
+
+sub ShiftNodeLeftSkipHidden {
+  my ($node,$min)=@_;          # min sets the minimum left...
+  my $ord=$grp->{FSFile}->FS->order;     # ... boundary for Ord
+  return unless $node;
+  my @all=GetNodes();
+  SortByOrd(\@all);
+
+  # This is sideeffect, but
+  # whe want to do this anyway
+  NormalizeOrds(\@all);
+  #
+  #
+  my $n=$node->{$ord};
+  return $n if ($n == 0);
+
+  my @vis=GetVisibleNodes();
+  SortByOrd(\@vis);
+  my $m=Index(\@vis,$node);
+  return undef unless (defined($m) and !defined($min) || $m>$min);
+  my $x=max(Index(\@all,$vis[$m-1]),0);
+  for (my $i=$n-1;$i>=$x;$i--) { $all[$i]->{$ord}++; }
+  $node->{$ord}=$x;
+  RepasteNode($node);
+}
+
+=item C<ShiftNodeRight(node)>
+
+Shift the current node in the tree to the right by modifying the tree
+structure and value of the special FS numbering attribute
+appropriately.
+
+=cut
+
+sub ShiftNodeRight {
+  my ($node)=@_;
+  my $ord=$grp->{FSFile}->FS->order;
+  return unless $node;
+  my @all=GetNodes();
+  SortByOrd(\@all);
+
+  # This is sideeffect, but
+  # whe want to do this anyway
+  NormalizeOrds(\@all);
+  #
+  #
+
+  my $n=$node->{$ord};
+  return $n if ($n == $#all);
+
+  $all[$n+1]->{$ord}=$n;
+  $node->{$ord}=$n+1;
+  RepasteNode($node);
+}
+
+=item C<ShiftNodeLeft(node)>
+
+Shift the current node in the tree to the right by modifying the tree
+structure and value of the special FS numbering attribute
+appropriately.
+
+=cut
+
+sub ShiftNodeLeft {
+  my ($node)=@_;
+  my $ord=$grp->{FSFile}->FS->order;
+  return unless $node;
+  my @all=GetNodes();
+  SortByOrd(\@all);
+
+  # This is sideeffect, but
+  # whe want to do this anyway
+  NormalizeOrds(\@all);
+  #
+  #
+
+  my $n=$node->{$ord};
+  return $n if ($n == 0);
+
+  $all[$n-1]->{$ord}=$n;
+  $node->{$ord}=$n-1;
+  RepasteNode($node);
+}
+
+=back
+
+=cut
+
+###########################################################
+
+=head2 Helper macros for attributes with list or alternatives of values
+
+=over 4
+
+=cut
+
+=item C<IsList(value)>
+
+Check that a given value is a list, i.e. Fslib::List object.
+
+=cut
+
+sub IsList {
+  return 1 if ref($_[0]) eq 'Fslib::List';
+}
+
+=item C<IsAlt(value)>
+
+Check that a given value is an alternative, i.e. Fslib::Alt object.
+
+=cut
+
+sub IsAlt {
+  return 1 if ref($_[0]) eq 'Fslib::Alt';
+}
+
+=item C<List(value,value,...)>
+
+Return a new list (Fslib::List object) populated with given values.
+
+=cut
+
+sub List {
+  Fslib::List->new(@_);
+}
+
+=item C<Alt(value,value,...)>
+
+Return a new alternative (Fslib::Alt object) populated with given values.
+
+=cut
+
+sub Alt {
+  Fslib::Alt->new(@_);
+}
+
+=item C<AltV(value)>
+
+If the value is an alternative (i.e. a Fslib::Alt object), return
+all its values. Otherwise return value.
+
+=cut
+
+sub AltV {
+  ref($_[0]) eq 'Fslib::Alt' ? @{$_[0]} : $_[0]
+}
+
+=item C<ListV(value)>
+
+If the value is a list (i.e. a Fslib::List object), return
+all its values. Otherwise return empty (Perl) list.
+
+=cut
+
+sub ListV {
+  ref($_[0]) eq 'Fslib::List' ? @{$_[0]} : ()
+}
+
+=item C<AddToAlt(node,attr,value,value...)>
+
+Add given values as alternatives to the current value of
+C<$node-E<gt>{$attr}>.  If only one value is given and C<$node-E<gt>{$attr}> is
+empty or same as value, the given value is simply assigned to it. If
+C<$node-E<gt>{$attr}> is a C<Fslib::Alt> object, the new values are simply added
+to it. Otherwise, if C<$node-E<gt>{$attr}> is a simple value, C<$node-E<gt>{$attr}>
+is set to a new C<Fslib::Alt> object containing the original value as
+well as the given values.
+
+=cut
+
+sub AddToAlt {
+  my ($node,$attr)=(shift,shift);
+  if ($node->{$attr} eq "") {
+    if (@_>1) {
+      $node->{$attr}=Fslib::Alt->new(uniq(@_));
+    } else {
+      $node->{$attr}=$_[0];
+    }
+  } elsif (IsAlt($node->{$attr})) {
+    @{$node->{$attr}} = uniq(@{$node->{$attr}},@_);
+  } else {
+    @{$node->{$attr}} = Fslib::Alt->new($node->{$attr},@_);
+  }
+}
+
+=item C<AddToList(node,attr,value,value,...)>
+
+Add values to a given attribute. If C<$node-E<gt>{$attr}> is not defined or
+empty, a new C<Fslib::List> containing given values is created. If
+C<$node-E<gt>{$attr}> is a C<Fslib::List> object, given values are simply added
+to it. Error is issued if C<$node-E<gt>{$attr}> is defined, non-empty, yet not
+a C<Fslib::List> object.
+
+=cut
+
+sub AddToList {
+  my ($node,$attr)=(shift,shift);
+  my $val = $node->attr($attr);
+  if (IsList($val)) {
+    push @$val,@_;
+  } elsif ($val eq "") {
+    $val = Fslib::List->new(@_);
+    $node->set_attr($attr,$val,1);
+  } else {
+    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$value'!\n"
+  }
+}
+
+
+=back
+
+=head2 General-purpose list functions
+
+=over 4
+
+=cut
+
+sub uniq { my %a; grep { !($a{$_}++) } @_ }
+
+=item C<Index(array-ref,item)>
+
+A helper function which returns the first occurence of the item in the
+array.
+
+=cut
+
+# imported from Fslib
+
+=item C<ListIntersect(array-ref,array-ref,...)>
+
+Compute intersection of given lists. In scalar context returns an
+array-ref, in list context returns a list. All duplicities are
+removed.
+
+=cut
+
+sub ListIntersect {
+  my %counts;
+  my $first = shift;
+  $counts{$_}++ for (map { @$_ } @_);
+  my $count  = scalar(@_);
+  my @res = uniq grep { $counts{$_}==$count } @{$first};
+  return wantarray ? @res : List(@res);
+}
+
+=item C<ListSubtract(array-ref, array-ref)>
+
+Return elements occuring in the first list but not in the second list.
+In scalar context returns a Fslib::List object (array-ref), in list
+context returns a list. All duplicities are removed.
+
+=cut
+
+sub ListSubtract($$) {
+  my %a; @a{ @{$_[1]} }=();
+  my @res = grep { !exists($a{$_}) ? $a{$_}=1 : 0 } @{$_[0]};
+  return wantarray ? @res : List(@res);
+}
+
+
+=item C<ListUnion(array-ref, array-ref, ...)>
+
+Return union of given lists. In scalar context returns an array-ref,
+in list context returns a Fslib::List object (array-ref). All
+duplicities are removed.
+
+=cut
+
+sub ListUnion {
+  my @res = uniq map @$_,@_;
+  return wantarray ? @res : List(@res);
+}
+
+
+=item C<ListRegroupElements(array-ref, array-ref, ...)>
+
+This is rotate-matrix like operation. The input is a list of
+rows (array-refs each representing a row in a matrix); the output
+is a list of columns in the matrix (a list of array-refs, each
+representing a column in the matrix).
+
+=cut
+
+sub ListRegroupElements {
+  my @r;
+  for (my $row=0; $row<@_;$row++) {
+    for (my $col=0; $col<@{$_[$row]}; $col++) {
+      $r[$col][$row] = $_[$row][$col];
+    }
+  }
+  return wantarray ? @r : List(@r);
+}
+
+=back
+
+=cut
+
+=head2 GUI-related macros
+
+=over 4
+
+=item C<GUI()>
+
+Return 1 if running from TrEd, i.e., GUI is available.
+
+=cut
+
+
+sub GUI {
+  return (ref($grp) eq 'TrEd::Window');
+}
+
+=item C<Redraw()>
+
+Force TrEd to immediately redraw the current window. Hence TrEd
+redraws the tree right after an interactively invoked macro finishes,
+explicit calls to Redraw macro are needed rather rearly (for example
+from a hook).
+
+=cut
+
+sub Redraw {
+  my $ie=$main::insideEval;
+  $main::insideEval=0;
+  &main::setCurrent($grp,$this) if ($this);
+  &main::get_nodes_win($grp);
+  &main::redraw_win($grp);
+  $main::insideEval=$ie;
+}
+
+=item C<Redraw_FSFile()>
+
+Force TrEd to immediately redraw all windows displaying current
+file.
+
+=cut
+
+sub Redraw_FSFile {
+  my $ie=$main::insideEval;
+  $main::insideEval=0;
+  &main::setCurrent($grp,$this) if ($this);
+  &main::get_nodes_fsfile($grp->{framegroup},$grp->{FSFile});
+  &main::redraw_fsfile($grp->{framegroup},$grp->{FSFile});
+  $main::insideEval=$ie;
+}
+
+=item C<Redraw_FSFile_Tree()>
+
+Force TrEd to immediately redraw all windows displaying current
+tree.
+
+=cut
+
+sub Redraw_FSFile_Tree {
+  my $ie=$main::insideEval;
+  $main::insideEval=0;
+  &main::setCurrent($grp,$this) if ($this);
+  &main::get_nodes_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
+  &main::redraw_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
+  $main::insideEval=$ie;
+}
+
+=item C<Redraw_All()>
+
+Force TrEd to immediately redraw all windows.
+
+=cut
+
+sub Redraw_All {
+  my $ie=$main::insideEval;
+  $main::insideEval=0;
+  &main::setCurrent($grp,$this) if ($this);
+  &main::get_nodes_all($grp->{framegroup});
+  &main::redraw_all($grp->{framegroup});
+  $main::insideEval=$ie;
+}
+
+=item C<RedrawStatusLine()>
+
+Force TrEd to immediately redraw status line.
+
+=cut
+
+sub RedrawStatusLine {
+  local $main::insideEval=0;
+  &main::setCurrent($grp,$this) if ($this);
+  &main::updateStatusLine($grp);
+}
+
+
+=item C<EditAttribute(node,attribute)>
+
+Open edit attribute GUI.
+
+=cut
+
+sub EditAttribute {
+  main::doEditAttr($grp,@_);
+}
+
+=item C<Find()>
+
+Open the Find Node by Attributes GUI dialog.
+
+=cut
+
+sub Find {
+  $grp->{framegroup}->{findButton}->invoke();
+  $this=$grp->{currentNode};
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+}
+
+=item C<FindNext()>
+
+Searches for the first node matching the criteria of the previous use
+of the Find... menu command or FindNode macro usage.
+
+=cut
+
+sub FindNext {
+  $grp->{framegroup}->{findNextButton}->invoke();
+  $this=$grp->{currentNode};
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+}
+
+=item C<FindPrev()>
+
+Searches for the previous node matching the criteria of the previous
+use of the Find... menu command or FindNode macro usage.
+
+=cut
+
+sub FindPrev {
+  $grp->{framegroup}->{findPrevButton}->invoke();
+  $this=$grp->{currentNode};
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+}
+
+=item C<ToplevelFrame()>
+
+Returns the Tk::Toplevel object containing the current window.
+
+=cut
+
+sub ToplevelFrame {
+  return $grp->toplevel();
+}
+
+=item C<PrintDialog(...)>
+
+See the description in the L<Printing trees> section.
+
+=cut
+
+
+=item C<ErrorMessage(message)>
+
+In TrEd, show a dialog box containing the given error-message.
+In BTrEd print the error message on standard output.
+
+=cut
+
+sub ErrorMessage {
+  TrEd::Basics::errorMessage($grp,join("",@_));
+}
+
+=item C<StandardTredFont()>
+
+Return a string or Tk::Font object representation of the font used in
+TrEd to label tree-nodes.
+
+=cut
+
+sub StandardTredFont {
+  return $main::font;
+}
+
+=item C<StandardTredValueLineFont()>
+
+Return a string or Tk::Font object representation of the font used in
+TrEd to display the "sentence" above the tree.
+
+=cut
+
+sub StandardTredValueLineFont {
+  return $main::vLineFont;
+}
+
+=item C<SetCurrentNodeInOtherWin(win,node)>
+
+Set active node for a given window.
+
+=cut
+
+sub SetCurrentNodeInOtherWin {
+  my ($win,$node)=@_;
+  TrEd::Basics::setCurrent($win,$node);
+}
+
+=item C<CenterOtherWinTo(win,node)>
+
+Center given window to a given node.
+
+=cut
+
+sub CenterOtherWinTo {
+  my ($win,$node)=@_;
+  main::centerTo($win,$node);
+}
+
+
+=item C<HiddenVisible()>
+
+Return true if TrEd presently displays hidden nodes.
+
+=cut
+
+sub HiddenVisible {
+  return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
+}
+
+=back
+
+=cut
+
+###########################################################
+
+=head2 Stylesheet API
+
+=over 4
+
+=item C<STYLESHEET_FROM_FILE()>
+
+This function returns a symbolic name for a virtual stylesheet that is
+constructed from the patterns and hint specified in the currently
+displayed file.
+
+=cut
+
+sub STYLESHEET_FROM_FILE { &main::STYLESHEET_FROM_FILE }
+
+=item C<SetStylesheetPatterns(patterns,stylesheet,create)>
+
+Set TrEd's display patterns for a given stylesheet. If stylesheet is
+undefined, then the stylesheet currently selected for the active view
+is used. The patterns argument should either be a string or an array
+reference.  If it is a string, then it should provide all the
+patterns, each pattern starting on a new line (but possibly spanning
+across several lines) which starts with a pattern prefix of the form
+"something:", where "something" is hint for the hint pattern, or
+"node" for the node pattern, etc.
+
+Patterns can also be provided as an array reference containing two
+elements: the first one being a hint text and the second one an array
+reference whose each element is the text of an individual pattern.
+
+The create flag can be set to 1 in order to create a new stylesheet in
+case that no stylesheet with the given exists.
+
+This function returns 1 if success, 0 if failed (i.e. when create is
+not set and a given stylesheet is not found).
+
+=cut
+
+sub SetStylesheetPatterns {
+  my ($patterns,$stylesheet,$create) = @_;
+  main::setStylesheetPatterns($grp,$patterns,$stylesheet,$create);
+}
+
+=item C<DeleteStylesheet(stylesheet)>
+
+Delete given stylesheet. All windows using that stylesheet are
+switched to the pattern and hint specified in the respective files
+they display.
+
+=cut
+
+sub DeleteStylesheet {
+  my ($stylesheet) = @_;
+  main::deleteStylesheet($grp->{framegroup},$stylesheet) unless GUI();
+}
+
+=item C<SaveStylesheets()>
+
+Save all TrEd's stylesheets (to ~/.tred-stylesheets).
+
+=cut
+
+sub SaveStylesheets {
+  my ($patterns,$stylesheet) = @_;
+  main::saveStyleSheets($grp->{framegroup}) unless GUI();
+}
+
+=item C<ReloadStyleseets(filename?)>
+
+Reload stylesheets from a given file. If no filename is specified, the
+default path "~/.tred-stylesheets" is used.
+
+=cut
+
+sub ReloadStylesheets {
+  my ($filename) = @_;
+   main::readStyleSheets($grp->{framegroup},$filename) unless GUI();
+}
+
+=item C<GetStylesheetPatterns(stylesheet)>
+
+For a given stylesheet, return it's patterns. In a scalar context,
+returns a string consisting of all patterns, including the hint.  In
+the array context returns two scalars: the first one containing the
+text of the hint pattern and the other a reference to a list
+containing the stylesheet patterns. Returns empty list if fail.
+
+=cut
+
+sub GetStylesheetPatterns {
+  my ($stylesheet)=@_;
+  return main::getStylesheetPatterns($grp,$stylesheet);
+}
+
+=item C<GetPatternsByPrefix(prefix,stylesheet?)>
+
+Return all patterns of a given stylesheet starting with a given prefix.
+If no stylesheet name is given, a current stylesheet is used.
+
+=cut
+
+sub GetPatternsByPrefix {
+  my ($prefix,$stylesheet)=@_;
+  my ($hint,$patterns) = main::getStylesheetPatterns($grp,$stylesheet);
+  if ($prefix eq 'hint') {
+    return $hint;
+  } else {
+    return map { /^\Q$prefix\E:\s*((?:.|\n)*?)\s*$/ ? $1 : () } @$patterns;
+  }
+}
+
+=item C<StylesheetExists(stylesheet)>
+
+Returns true if stylesheet with a given name exists.
+
+=cut
+
+sub StylesheetExists {
+  if (GUI()) {
+    return 1 if exists ($grp->{framegroup}{stylesheets})
+      and exists ($grp->{framegroup}{stylesheets}{$_[0]})
+  }
+}
+
+=item C<Stylesheets()>
+
+Returns a list of TrEd's stylesheet names.
+
+=cut
+
+sub Stylesheets {
+  if (GUI()) {
+    return (keys(%{$grp->{framegroup}{stylesheets}}));
+  }
+}
+
+=item C<SetCurrentStylesheet()>
+
+Set stylesheet for the active window.
+
+=cut
+
+sub SetCurrentStylesheet {
+  if (GUI()) {
+    if (StylesheetExists($_[0])) {
+      $grp->{framegroup}{selectedStylesheet} = $_[0];
+      return main::switchStylesheet($grp->{framegroup},$_[0]);
+    }
+  }
+  return -1;
+}
+
+=item C<GetCurrentStylesheet()>
+
+Returns name of the stylesheet currently selected for the active
+window.
+
+=cut
+
+sub GetCurrentStylesheet {
+  if (GUI()) {
+    return $grp->{stylesheet};
+  }
+}
+
+=item C<GetSpecialPattern(prefix)> - OBSOLETE!!
+
+This macro is obsoleted by GetPatternsByPrefix.
+
+=cut
+
+sub GetSpecialPattern {
+  my ($patname)=@_;
+  return unless $grp->{FSFile};
+  warn "GetSpecialPattern is obsolete: use GetPatternsByPrefix('$patname',STYLESHEET_FROM_FILE()) instead\n";
+  my ($pat) = GetPatternsByPrefix($patname,STYLESHEET_FROM_FILE());
+  return $pat;
+}
+
+=item C<SetDisplayAttrs(pattern,...)> - OBSOLETE!!
+
+Setup given patterns as a stylesheet of
+the currently displayed FSFile. This doesn't include
+a hint pattern.
+
+=cut
+
+sub SetDisplayAttrs {
+  return unless $grp->{FSFile};
+  warn "SetDisplayAttrs is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead\n";
+  $grp->{FSFile}->changePatterns(@_);
+}
+
+=item C<SetBalloonPattern(string,...)> - OBSOLETE!!
+
+Use given strings as a C<hint:> pattern for
+the currently displayed FSFile.
+
+=cut
+
+sub SetBalloonPattern {
+  return unless $grp->{FSFile};
+  $grp->{FSFile}->changeHint(join "\n",@_);
+  warn "SetBalloonPattern is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead\n";
+}
+
+=item C<GetDisplayAttrs()> - OBSOLETE!!
+
+Get patterns of the currently displayed FSFile's stylesheet, except
+for a C<hint:> pattern.
+
+=cut
+
+sub GetDisplayAttrs {
+  return unless $grp->{FSFile};
+  warn "GetDisplayAttrs is obsolete: use GetStylesheetPatterns(STYLESHEET_FROM_FILE()) instead\n";
+  return $grp->{FSFile}->patterns();
+}
+
+=item C<GetBalloonPattern()> - OBSOLETE!!
+
+Get a C<hint:> pattern of the currently displayed
+FSFile's stylesheet.
+
+=cut
+
+sub GetBalloonPattern {
+  return unless $grp->{FSFile};
+  warn "GetBalloonPattern is obsolete: use (\$hint)=GetPatternsByPrefix('hint',STYLESHEET_FROM_FILE()) instead\n";
+  return $grp->{FSFile}->hint();
+}
+
+
+=item C<CustomColor(name,new-value?)>
+
+Get or set user defined custom color.
+
+=cut
+
+
+sub CustomColor {
+  my ($color,$value)=@_;
+#ifdef TRED
+  if (defined($value)) {
+    $TrEd::Config::treeViewOpts->{customColors}->{$color}=$value;
+  } else {
+    $val = $TrEd::Config::treeViewOpts->{customColors}->{$color};
+    return $val;
+  }
+#endif TRED
+}
+
+=item C<UserConf(name,new-value?)>
+
+Get or set value of a user defined configuration option.
+
+=cut
+
+sub UserConf {
+  my ($name,$value)=@_;
+  if (@_>=1) {
+    $TrEd::Config::userConf->{$name}=$value;
+  } else {
+    $TrEd::Config::userConf->{$name};
+  }
+}
+
+
+=item C<AddStyle(styles,object,key =E<gt> value,...)>
+
+Auxiliary funcion: add styles for an object to a given
+style-hash (can be used e.g. from node_style_hook).
+
+=cut
+
+sub AddStyle {
+  my $styles=shift;
+  my $style=shift;
+  if (exists($styles->{$style})) {
+    push @{$styles->{$style}},@_
+  } else {
+    $styles->{$style}=[@_];
+  }
+}
+
+=back
+
+=cut
+
+###########################################################
+
+=head2 Context API
+
+=over 4
+
+=item C<SwitchContext()>
+
+Switch to given macro context.
+
+=cut
+
+sub SwitchContext {
+  main::switchContext($grp,shift);
+}
+
+=item C<SwitchContextForWindow()>
+
+Switch given window to given macro context.
+
+=cut
+
+sub SwitchContextForWindow {
+  main::switchContext(@_);
+}
+
+=item C<CurrentContext()>
+
+Return the name of the current macro context.
+
+=cut
+
+sub CurrentContext {
+  return $grp->{macroContext};
+}
+
+=back
+
+=cut
+
+
+###########################################################
+
+=head2 FSFormat API
+
+Here are described for working with FSFormat objects. Beside these
+macros, FSFormat object methods can be used.
+
+=over 4
+
+=item C<FS()>
+
+Return FSFormat object associated with the current FSFile.
+
+=cut
+
+sub FS {
+  return $grp->{FSFile}->FS;
+}
+
+=item C<GetOrd(node)>
+
+Return value of the special numbering FS attribute. This macro
+actually returns the same value as
+C<$node-E<gt>{$grp-E<gt>{FSFile}-E<gt>FS-E<gt>order()}>
+
+=cut
+
+sub GetOrd { return $_[0]->{$grp->{FSFile}->FS->order}; }
+
+
+=item C<Attributes()>
+
+Return a list of names of all attributes declared in the header of the
+current FS file.
+
+=cut
+
+sub Attributes {
+  if (ref($grp->{FSFile}->metaData('schema'))) {
+    return $grp->{FSFile}->metaData('schema')->attributes()
+  } else {
+    return $grp->{FSFile}->FS->attributes;
+  }
+}
+
+=item C<SubstituteFSHeader(declarations)>
+
+Substitute a new FS header for current document. A list of valid FS
+declarations must be passed to this function.
+
+=cut
+
+sub SubstituteFSHeader {
+  $grp->{FSFile}->changeFS(FS()->create(@_));
+}
+
+
+=item C<AppendFSHeader(declarations)>
+
+Merge given FS header declarations with the present header
+of the current document.
+
+=cut
+
+sub AppendFSHeader {
+  my $new=FS()->create(@_);
+  my $newdefs=$new->defs();
+  my $fs=$grp->{FSFile}->FS;
+  my $defs=$grp->{FSFile}->FS->defs();
+  my $list=$grp->{FSFile}->FS->list();
+  foreach ($new->attributes()) {
+    push @$list, $_ unless ($fs->exists($_));
+    $defs->{$_}=$newdefs->{$_};
+  }
+  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
+}
+
+=item C<UndeclareAttributes(attribute,...)>
+
+Remove declarations of given attributes from the FS header
+
+=cut
+
+sub UndeclareAttributes {
+  my $fs=$grp->{FSFile}->FS;
+  my $defs=$grp->{FSFile}->FS->defs();
+  my $list=$grp->{FSFile}->FS->list();
+  delete @{$defs}{@_};
+
+  @$list=grep { exists($defs->{$_}) } @$list;
+  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
+    @{$fs->unparsed} if $fs->unparsed;
+
+}
+
 =back
 
 =cut
@@ -1358,6 +1953,8 @@ sub PlainDeleteSubtree {
 ###########################################################
 
 =head2 FSFile I/O API
+
+See also FSFile object methods defined in L<Fslib>.
 
 =over 4
 
@@ -1700,311 +2297,105 @@ sub tmpFileName {
 
 =cut
 
-###########################################################
+#######################################################
 
-=head2 GUI and common dialogs
-
-=over 4
-
-=item C<GUI()>
-
-Return 1 if running from TrEd, i.e., GUI is available.
-
-=cut
-
-
-sub GUI {
-  return (ref($grp) eq 'TrEd::Window');
-}
-
-
-=item C<EditAttribute(node,attribute)>
-
-Open edit attribute GUI.
-
-=cut
-
-sub EditAttribute {
-  main::doEditAttr($grp,@_);
-}
-
-=item C<Find()>
-
-Open the Find Node by Attributes GUI dialog.
-
-=cut
-
-sub Find {
-  $grp->{framegroup}->{findButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-}
-
-=item C<FindNext()>
-
-Searches for the first node matching the criteria of the previous use
-of the Find... menu command or FindNode macro usage.
-
-=cut
-
-sub FindNext {
-  $grp->{framegroup}->{findNextButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-}
-
-=item C<FindPrev()>
-
-Searches for the previous node matching the criteria of the previous
-use of the Find... menu command or FindNode macro usage.
-
-=cut
-
-sub FindPrev {
-  $grp->{framegroup}->{findPrevButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-}
-
-=item C<ToplevelFrame()>
-
-Returns the Tk::Toplevel object containing the current window.
-
-=cut
-
-sub ToplevelFrame {
-  return $grp->toplevel();
-}
-
-=item C<PrintDialog(...)>
-
-See the description in the L<Printing trees> section.
-
-=cut
-
-
-=item C<ErrorMessage(message)>
-
-In TrEd, show a dialog box containing the given error-message.
-In BTrEd print the error message on standard output.
-
-=cut
-
-sub ErrorMessage {
-  TrEd::Basics::errorMessage($grp,join("",@_));
-}
-
-=back
-
-=cut
-
-###########################################################
-
-=head2 Tree navigation API
+=head2 Printing trees
 
 =over 4
 
-=item C<NextNode(node,top?)>
+=item C<PrintDialog(-option =E<gt> value,...)>
 
-Return the first displayed node following the given node in the
-subtree of top. This function behaves in the same manner as the
-node->following(top) method, except it works only on the nodes which
-are actually visible according to the state of the View->Show Hidden
-Nodes menu item.
+Display TrEd's standard print dialog. Possible options are:
 
-=cut
-
-sub NextNode {
-  my ($node,$top)=@_;
-  return $node ? main::NextDisplayed($grp,$node,$top) : undef;
-}
-
-=item C<PrevNode(node,top?)>
-
-Return the first displayed node preceding the given node in the
-subtree of top. This function behaves in the same manner as the
-node->previous(top) method, except it works only on the nodes which
-are actually visible according to the state of the View->Show Hidden
-Nodes menu item.
+-command -psFile -toFile -format -imageMagickResolution
+-fileExtension -useType1Font -sentenceInfo -noRotate -colors
 
 =cut
 
-sub PrevNode {
-  my ($node,$top)=@_;
-  return $node ? main::PrevDisplayed($grp,$node,$top) : undef;
-}
+sub PrintDialog {
+  my (%opts)=@_;
+  if (GUI()) {
+    local $main::insideEval = 0;
 
-=item C<NextVisibleNode(node,top?)>
-
-Return the first visible node following the given node in the subtree
-of top. This function behaves in the same manner as the
-C<$node-E<gt>following($top)> method, except that nodes of hidden subtrees
-are skipped.
-
-=cut
-
-sub NextVisibleNode {
-  my ($node,$top)=@_;
-  $node=$node->following($top);
-  my $fs=$grp->{FSFile}->FS;
-  while ($node) {
-    return $node unless ($fs->isHidden($node));
-    $node=$node->following($top);
-  }
-  return 0;
-}
-
-=item C<PrevVisibleNode(node,top?)>
-
-Return the first visible node preceding the given node in the subtree
-of top. This function behaves in the same manner as the
-C<$node-E<gt>previous($top)> method, except that nodes of hidden subtrees
-are skipped.
-
-=cut
-
-sub PrevVisibleNode {
-  my ($node,$top)=@_;
-  $node=$node->previous($top);
-  my $fs=$grp->{FSFile}->FS;
-  while ($node) {
-    return $node unless ($fs->isHidden($node));
-    $node=$node->previous($top);
-  }
-  return 0;
-}
-
-=item C<IsHidden(node)>
-
-Return true if the given node is member of a hidden subtree. This
-macro is only an abbreviation for
-C<$grp-E<gt>{FSFile}-E<gt>FS-E<gt>isHidden(node)>
-
-=cut
-
-sub IsHidden {
-  my ($node)=@_;
-  return $grp->{FSFile}->FS->isHidden($node);
-}
-
-=item C<Hide(node)>
-
-Hide the given node.
-
-=cut
-
-sub Hide {
-  my ($node)=@_;
-  my $hide=$grp->{FSFile}->FS->hide();
-  if ($node and $hide ne "") {
-    $node->{$hide}='hide';
-    return 1;
-  }
-  return 0;
-}
-
-=item C<GetNodes(top?)>
-
-Get a list of all nodes in the current tree of (if top is given) in
-the subtree of top (the root of the tree is icluded as well). The list
-returned is ordered in the natural structure ordering.
-(This function automatically returns array reference in scalar context.)
-
-=cut
-
-sub GetNodes {
-  my $top = defined($_[0]) ? $_[0] : $root;
-  my $node=$top;
-  my @n;
-  while ($node) {
-    push @n,$node;
-    $node=$node->following($top);
-  }
-  return wantarray ? @n : \@n;
-}
-
-=item C<GetVisibleNodes(top?)>
-
-Return the list of all visible nodes in the subtree of the given top
-node (or the whole current tree if no top is given). The list returned
-is ordered in the natural structure ordering and all members of hidden
-subtrees are skipped.
-
-=cut
-
-sub GetVisibleNodes {
-  my $top = defined($_[0]) ? $_[0] : $root;
-  my $node=$top;
-  my @n;
-  while ($node) {
-    push @n,$node;
-    $node=$node->following_visible($top);
-  }
-  return @n;
-}
-
-=item C<PrevNodeLinear(node,attribute,top?)>
-
-Returns nearest node in the tree preceding the given node in linear
-ordering provided by the given attribute. If top node is present, only
-a subtree of top is examined.
-
-=cut
-
-sub PrevNodeLinear {
-  my ($node, $attr, $top) = @_;
-
-  return undef unless $node;
-
-  my $v=$node->{$attr};
-  my $best;
-  my $best_v;
-
-  my $nv;
-  $node=$top || $root; # reusing variable $node
-  while ($node) {
-    $nv=$node->{$attr};
-    if ($nv < $v and
-	(!$best or $nv > $best_v)) {
-      $best_v=$nv;
-      $best=$node;
+    foreach (qw(-command -psFile -toFile -format -noRotate -sentenceInfo
+                -imageMagickResolution -fileExtension -colors)) {
+      if (exists($opts{$_})) {
+	my $o=$_; $o=~s/^-//;
+	$grp->{framegroup}->{"print".lcfirst($o)} = $opts{$_}
+      }
+      main::printDialog($grp->{framegroup});
     }
-    $node=$node->following($top);
+  } else {
+    die "Cannot call PrintDialog from non-GUI version TrEd\n";
   }
-  return $best;
+  return 1;
 }
 
-=item C<NextNodeLinear(node,attribute,top?)>
+=item C<Print(-option =E<gt> value,...)>
 
-Returns nearest node in the tree following the given node in linear
-ordering provided by the given attribute. If top node is present, only
-a subtree of top is examined.
+Print trees given from current file according to given printing options:
+
+C<-command>, C<-toFile>, C<-filename>, C<-format>, C<-noRotate>, C<-sentenceInfo> C<-imageMagickResolution>, C<-colors>, C<-hidden>, C<-psFontFile>, C<-psFontAFMFile>, C<-ttFont>, C<-fontSize>,
+C<-fmtWidth>, C<-hMargin>, C<-fmtHeight>, C<-vMargin>, C<-maximize>, C<-psMedia>
 
 =cut
 
-sub NextNodeLinear {
-  my ($node, $attr, $top) = @_;
+sub Print {
+  my (%opts)=@_;
 
-  return undef unless $node;
+  if (GUI()) {
+    my $group=$grp->{framegroup};
+    local $main::insideEval = 0;
+    my $canvas=ToplevelFrame()->Canvas();
+    $opts{-range}=CurrentTreeNumber()+1 if ($opts{-range} eq "");
 
-  my $v=$node->{$attr};
-  my $best;
-  my $best_v;
-
-  my $nv;
-  $node=$top || $root; # reusing the variable
-  while ($node) {
-    $nv=$node->{$attr};
-    if ($nv > $v and
-	(!$best or $nv < $best_v)) {
-      $best_v=$nv;
-      $best=$node;
+    foreach (qw(-command -toFile -format -noRotate -sentenceInfo
+                -imageMagickResolution -colors)) {
+      unless (exists($opts{$_})) {
+	my $o=$_; $o=~s/^-//;
+	$opts{$_} = $group->{"print".lcfirst($o)};
+      }
     }
-    $node=$node->following($top);
+    unless ($opts{-ttFont}) {
+      main::initTTFonts($group);
+    }
+    TrEd::Print::print_trees
+	($grp->{FSFile},
+	 ToplevelFrame(),
+	 $canvas,
+	 $opts{-range},
+	 ($opts{-toFile} and $opts{-format} ne 'imageMagick') ? 1 : 0,
+	 $opts{-format} =~ /ImageMagick|EPS/ ? 1 : 0,
+	 ($opts{-toFile} and $opts{-format} eq 'PDF') ? 1 : 0,
+	 $opts{-filename},
+	 $opts{-sentenceInfo},
+	 $opts{-command},
+	 $opts{-colors},
+	 $opts{-noRotate},
+	 $opts{-hidden},
+	 {
+	  'PS' => exists($opts{-psFontFile}) ? $opts{-psFontFile} :
+	  $main::psFontFile,
+	  'AFM' => exists($opts{-psFontAFMFile}) ? $opts{-psFontAFMFile} :
+	  $main::psFontAFMFile,
+	  'TTF' => exists($opts{-ttFont}) ? $opts{-ttFont} :
+	  $group->{ttfonts}->{$main::ttFont},
+	  'Size' => exists($opts{-fontSize}) ? $opts{-fontSize} :
+	  $main::psFontSize,
+	 },
+	 exists($opts{-fmtWidth}) ? $opts{-fmtWidth} : $main::prtFmtWidth,
+	 exists($opts{-hMargin}) ? $opts{-hMargin} : $main::prtHMargin,
+	 exists($opts{-fmtHeight}) ? $opts{-fmtHeight} : $main::prtFmtHeight,
+	 exists($opts{-vMargin}) ? $opts{-vMargin} : $main::prtVMargin,
+	 exists($opts{-maximize}) ? $opts{-maximize} : $main::maximizePrintSize,
+	 exists($opts{-psMedia}) ? $opts{-psMedia} : $main::psMedia,
+	 $main::treeViewOpts
+	);
+    $canvas->destroy();
+  } else {
+    die "Cannot call PrintDialog from non-GUI version TrEd\n";
   }
-  return $best;
 }
-
 
 =back
 
@@ -2013,7 +2404,7 @@ sub NextNodeLinear {
 ###########################################################
 # Macros for backward compatibility with Graph
 
-=head2 Macros used by Graph2Tred macro convertor
+=head2 Compatibility macros used by the Graph2Tred macro convertor
 
 =over 4
 
@@ -2193,436 +2584,9 @@ sub SubStr {
 
 =back
 
-=head2 Node shifting macros
-
-=over 4
-
-=item C<NormalizeOrds(listref)>
-
-Adjusts the special FS numbering attribute of every node of the list
-referenced by the listref argument so that the value for the attribute
-corresponds to the order of the node in the list.
-
 =cut
 
-sub NormalizeOrds {
-  my ($nodesref)=@_;
-
-  my $ord=$grp->{FSFile}->FS->order;
-  for (my $i=0;$i<=$#$nodesref;$i++) {
-    $nodesref->[$i]->{$ord}=$i;
-  }
-  for (my $i=0;$i<=$#$nodesref;$i++) {
-    RepasteNode($nodesref->[$i]);
-  }
-}
-
-=item C<SortByOrd(listref)>
-
-Sort the list of nodes referenced by the listref argumnt according to
-the values of the special FS numbering attribute.
-
-=cut
-
-sub SortByOrd {
-  my ($nodesref)=@_;
-  my $ord=$grp->{FSFile}->FS->order;
-  local ($a,$b);
-  @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
-  return $nodesref;
-}
-
-=item C<RepasteNode(node)>
-
-Cut the given node and paste it immediately on the same parent so that
-its structural position between its parent children is brought to
-correspondence with the values of the special FS numbering attribute.
-
-=cut
-
-sub RepasteNode {
-  my ($node)=@_;
-  my $parent=$node->parent;
-  return unless $parent;
-  CutPaste($node,$parent);
-}
-
-=item C<ShiftNodeRightSkipHidden(node)>
-
-Shift the current node in the tree to the right leaping over all
-hidden subtress by modifying the tree structure and value of the
-special FS numbering attribute appropriately.
-
-=cut
-
-sub ShiftNodeRightSkipHidden {
-  my ($node)=@_;
-  my $ord=$grp->{FSFile}->FS->order;
-  return unless $node;
-  my @all=GetNodes();
-  SortByOrd(\@all);
-
-  # This is sideeffect, but
-  # whe want to do this anyway
-  NormalizeOrds(\@all);
-  #
-  #
-  my $n=$node->{$ord};
-  return $n if ($n == $#all);
-
-  my @vis=GetVisibleNodes();
-  SortByOrd(\@vis);
-  my $m=Index(\@vis,$node);
-  return undef unless (defined($m) and $m<$#vis);
-  my $x=min(Index(\@all,$vis[$m+1]),$#all);
-  for (my $i=$n+1;$i<=$x;$i++) { $all[$i]->{$ord}--; }
-  $node->{$ord}=$x;
-  RepasteNode($node);
-}
-
-=item C<ShiftNodeLeftSkipHidden(node,min?)>
-
-Shift the current node in the tree to the left leaping over all hidden
-subtress by modifying the tree structure and value of the special FS
-numbering attribute appropriately. The optional argument min may be
-used to specify the minimum left boundary for the value of the
-ordering attribute of node.
-
-=cut
-
-sub ShiftNodeLeftSkipHidden {
-  my ($node,$min)=@_;          # min sets the minimum left...
-  my $ord=$grp->{FSFile}->FS->order;     # ... boundary for Ord
-  return unless $node;
-  my @all=GetNodes();
-  SortByOrd(\@all);
-
-  # This is sideeffect, but
-  # whe want to do this anyway
-  NormalizeOrds(\@all);
-  #
-  #
-  my $n=$node->{$ord};
-  return $n if ($n == 0);
-
-  my @vis=GetVisibleNodes();
-  SortByOrd(\@vis);
-  my $m=Index(\@vis,$node);
-  return undef unless (defined($m) and !defined($min) || $m>$min);
-  my $x=max(Index(\@all,$vis[$m-1]),0);
-  for (my $i=$n-1;$i>=$x;$i--) { $all[$i]->{$ord}++; }
-  $node->{$ord}=$x;
-  RepasteNode($node);
-}
-
-=item C<ShiftNodeRight(node)>
-
-Shift the current node in the tree to the right by modifying the tree
-structure and value of the special FS numbering attribute
-appropriately.
-
-=cut
-
-sub ShiftNodeRight {
-  my ($node)=@_;
-  my $ord=$grp->{FSFile}->FS->order;
-  return unless $node;
-  my @all=GetNodes();
-  SortByOrd(\@all);
-
-  # This is sideeffect, but
-  # whe want to do this anyway
-  NormalizeOrds(\@all);
-  #
-  #
-
-  my $n=$node->{$ord};
-  return $n if ($n == $#all);
-
-  $all[$n+1]->{$ord}=$n;
-  $node->{$ord}=$n+1;
-  RepasteNode($node);
-}
-
-=item C<ShiftNodeLeft(node)>
-
-Shift the current node in the tree to the right by modifying the tree
-structure and value of the special FS numbering attribute
-appropriately.
-
-=cut
-
-sub ShiftNodeLeft {
-  my ($node)=@_;
-  my $ord=$grp->{FSFile}->FS->order;
-  return unless $node;
-  my @all=GetNodes();
-  SortByOrd(\@all);
-
-  # This is sideeffect, but
-  # whe want to do this anyway
-  NormalizeOrds(\@all);
-  #
-  #
-
-  my $n=$node->{$ord};
-  return $n if ($n == 0);
-
-  $all[$n-1]->{$ord}=$n;
-  $node->{$ord}=$n-1;
-  RepasteNode($node);
-}
-
-
-=back
-
-=cut
-
-###################################################
-
-=head2 Locating nodes and trees
-
-=over 4
-
-=item C<CurrentTreeNumber()>
-
-Return current tree number.
-
-=cut
-
-sub CurrentTreeNumber {
-  return $grp->{treeNo};
-}
-
-=item C<GetNodeIndex()>
-
-Return given node's position in the deep-first tree ordering.
-
-=cut
-
-sub GetNodeIndex {
-  my $node = ref($_[0]) ? $_[0] : $this;
-  my $i=-1;
-  while ($node) {
-    $node=$node->previous();
-    $i++;
-  }
-  return $i;
-}
-
-=item C<LocateNode(node)>
-
-Return current filename, index of a tree (starting from 1) in the file
-to which the node belongs (0 if not found) and node's position in the tree
-in the deep-first tee ordering.
-
-=cut
-
-sub LocateNode {
-  my $node = ref($_[0]) ? $_[0] : $this;
-  if ($tree eq $root) {
-    return (FileName(),CurrentTreeNumber()+1,GetNodeIndex($node));
-  } else {
-    my $tree = $node->root;
-    my $i = 1;
-    foreach my $t (GetTrees()) {
-      if ($t == $tree) {
-	return (FileName(),$i,GetNodeIndex($node));
-	return FileName().'@'.$i.'##1.'.GetNodeIndex($node);
-      }
-      $i++;
-    }
-    return (FileName(),0,GetNodeIndex($node));
-  }
-}
-
-=item C<ThisAddress()>
-
-Return current node's address string in a form of filename#tree_no.index
-(tree_no starts from 1 to reflect TrEd's UI convention).
-
-=cut
-
-
-sub ThisAddress {
-  my ($f,$i,$n)=&LocateNode;
-  return $f.'##'.$i.'.'.$n;
-}
-
-=item C<ThisAddressNTRED()>
-
-Return current node's address string in a form of
-ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
-TrEd's UI convention). This address may be opened in TrEd to examine
-the tree in memory of a remote btred server.
-
-=cut
-
-sub ThisAddressNTRED {
-  my ($f,$i,$n)=&LocateNode;
-  return 'ntred://'.$f.'@'.$i.'##1.'.$n;
-}
-
-=back
-
-=head2 Styling helper functions
-
-=over 4
-
-=item C<CustomColor(name,new-value?)>
-
-Get or set user defined custom color.
-
-=cut
-
-
-sub CustomColor {
-  my ($color,$value)=@_;
-#ifdef TRED
-  if (defined($value)) {
-    $TrEd::Config::treeViewOpts->{customColors}->{$color}=$value;
-  } else {
-    $val = $TrEd::Config::treeViewOpts->{customColors}->{$color};
-    return $val;
-  }
-#endif TRED
-}
-
-=item C<UserConf(name,new-value?)>
-
-Get or set value of a user defined configuration option.
-
-=cut
-
-sub UserConf {
-  my ($name,$value)=@_;
-  if (@_>=1) {
-    $TrEd::Config::userConf->{$name}=$value;
-  } else {
-    $TrEd::Config::userConf->{$name};
-  }
-}
-
-
-=item C<AddStyle(styles,object,key =E<gt> value,...)>
-
-Auxiliary funcion: add styles for an object to given style-sheet (can
-be used e.g. from node_style_hook).
-
-=cut
-
-sub AddStyle {
-  my $styles=shift;
-  my $style=shift;
-  if (exists($styles->{$style})) {
-    push @{$styles->{$style}},@_
-  } else {
-    $styles->{$style}=[@_];
-  }
-}
-
-
-=back
-
-=head2 Printing trees
-
-=over 4
-
-=item C<PrintDialog(-option =E<gt> value,...)>
-
-Display TrEd's standard print dialog. Possible options are:
-
--command -psFile -toFile -format -imageMagickResolution
--fileExtension -useType1Font -sentenceInfo -noRotate -colors
-
-=cut
-
-sub PrintDialog {
-  my (%opts)=@_;
-  if (GUI()) {
-    local $main::insideEval = 0;
-
-    foreach (qw(-command -psFile -toFile -format -noRotate -sentenceInfo
-                -imageMagickResolution -fileExtension -colors)) {
-      if (exists($opts{$_})) {
-	my $o=$_; $o=~s/^-//;
-	$grp->{framegroup}->{"print".lcfirst($o)} = $opts{$_}
-      }
-      main::printDialog($grp->{framegroup});
-    }
-  } else {
-    die "Cannot call PrintDialog from non-GUI version TrEd\n";
-  }
-  return 1;
-}
-
-=item C<Print(-option =E<gt> value,...)>
-
-Print trees given from current file according to given printing options:
-
-C<-command>, C<-toFile>, C<-filename>, C<-format>, C<-noRotate>, C<-sentenceInfo> C<-imageMagickResolution>, C<-colors>, C<-hidden>, C<-psFontFile>, C<-psFontAFMFile>, C<-ttFont>, C<-fontSize>,
-C<-fmtWidth>, C<-hMargin>, C<-fmtHeight>, C<-vMargin>, C<-maximize>, C<-psMedia>
-
-=cut
-
-sub Print {
-  my (%opts)=@_;
-
-  if (GUI()) {
-    my $group=$grp->{framegroup};
-    local $main::insideEval = 0;
-    my $canvas=ToplevelFrame()->Canvas();
-    $opts{-range}=CurrentTreeNumber()+1 if ($opts{-range} eq "");
-
-    foreach (qw(-command -toFile -format -noRotate -sentenceInfo
-                -imageMagickResolution -colors)) {
-      unless (exists($opts{$_})) {
-	my $o=$_; $o=~s/^-//;
-	$opts{$_} = $group->{"print".lcfirst($o)};
-      }
-    }
-    unless ($opts{-ttFont}) {
-      main::initTTFonts($group);
-    }
-    TrEd::Print::print_trees
-	($grp->{FSFile},
-	 ToplevelFrame(),
-	 $canvas,
-	 $opts{-range},
-	 ($opts{-toFile} and $opts{-format} ne 'imageMagick') ? 1 : 0,
-	 $opts{-format} =~ /ImageMagick|EPS/ ? 1 : 0,
-	 ($opts{-toFile} and $opts{-format} eq 'PDF') ? 1 : 0,
-	 $opts{-filename},
-	 $opts{-sentenceInfo},
-	 $opts{-command},
-	 $opts{-colors},
-	 $opts{-noRotate},
-	 $opts{-hidden},
-	 {
-	  'PS' => exists($opts{-psFontFile}) ? $opts{-psFontFile} :
-	  $main::psFontFile,
-	  'AFM' => exists($opts{-psFontAFMFile}) ? $opts{-psFontAFMFile} :
-	  $main::psFontAFMFile,
-	  'TTF' => exists($opts{-ttFont}) ? $opts{-ttFont} :
-	  $group->{ttfonts}->{$main::ttFont},
-	  'Size' => exists($opts{-fontSize}) ? $opts{-fontSize} :
-	  $main::psFontSize,
-	 },
-	 exists($opts{-fmtWidth}) ? $opts{-fmtWidth} : $main::prtFmtWidth,
-	 exists($opts{-hMargin}) ? $opts{-hMargin} : $main::prtHMargin,
-	 exists($opts{-fmtHeight}) ? $opts{-fmtHeight} : $main::prtFmtHeight,
-	 exists($opts{-vMargin}) ? $opts{-vMargin} : $main::prtVMargin,
-	 exists($opts{-maximize}) ? $opts{-maximize} : $main::maximizePrintSize,
-	 exists($opts{-psMedia}) ? $opts{-psMedia} : $main::psMedia,
-	 $main::treeViewOpts
-	);
-    $canvas->destroy();
-  } else {
-    die "Cannot call PrintDialog from non-GUI version TrEd\n";
-  }
-}
-
-=back
+##########################################
 
 =head2 Implementation of TredMacro::import
 
@@ -2681,6 +2645,8 @@ sub import {
 =back
 
 =cut
+
+############################################
 
 =head2 XPath extension (slow)
 
