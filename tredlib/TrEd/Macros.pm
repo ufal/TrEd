@@ -76,6 +76,8 @@ sub read_macros {
 # include "file"  ... relative to dir of the current macro file
 # include file    ... absolute or relative to current dir or one of the above
 #
+# ifinclude       ... as include but without producing an error if file doesn't exist
+#
 # binding-context <context> [<context> [...]]
 #
 # key-binding-adopt <contexts>
@@ -190,32 +192,32 @@ sub read_macros {
 	    next unless exists($menuBindings{$_});
 	    delete $menuBindings{$_}{$menu};
 	  }
-	} elsif (/^\#\s*include\s+\<(.+\S)\>\s*$/) {
-	  my $mf="$libDir/$1";
+	} elsif (/^\#\s*(if)?include\s+\<(.+\S)\>\s*$/) {
+	  my $mf="$libDir/$2";
 	  if (-f $mf) {
 	    read_macros($mf,$libDir,1,@contexts);
 	    push @macros,"\n#line $line \"$file\"\n";
-	  } else {
-	    die 
-	      "Error including macros $mf\n from $file: ",
-		"file not found!\n";
-	  }
-	} elsif (/^\#\s*include\s+"(.+\S)"\s*$/) {
-	  $mf=dirname($file).$1;
-	  if (-f $mf) {
-	    read_macros($mf,$libDir,1,@contexts);
-	    push @macros,"\n#line $line \"$file\"\n";
-	  } else {
+	  } elsif ($1 ne 'if') {
 	    die
 	      "Error including macros $mf\n from $file: ",
 		"file not found!\n";
 	  }
-	} elsif (/^\#\s*include\s+(.+\S)\s*$/) {
-	  my $f=$1;
+	} elsif (/^\#\s*(if)?include\s+"(.+\S)"\s*$/) {
+	  $mf=dirname($file).$2;
+	  if (-f $mf) {
+	    read_macros($mf,$libDir,1,@contexts);
+	    push @macros,"\n#line $line \"$file\"\n";
+	  } elsif ($1 ne 'if') {
+	    die
+	      "Error including macros $mf\n from $file: ",
+		"file not found!\n";
+	  }
+	} elsif (/^\#\s*(if)?include\s+(.+\S)\s*$/) {
+	  my $f=$2;
 	  if ($f=~m%^/%) {
 	    read_macros($f,$libDir,1,@contexts);
 	    push @macros,"\n#line $line \"$file\"\n";
-	  } else {
+	  } elsif ($1 ne 'if') {
 	    my $mf=$f;
 	    print STDERR "including $mf\n" if $macroDebug;
 	    unless (-f $mf) {
