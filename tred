@@ -1689,7 +1689,6 @@ sub switchContext {
 
 sub onTreeChange {
   my ($win)=@_;
-  print "redrawing tree\n";
   get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
   if ($win->{currentNode}) {
     centerToXY($win,0,0);
@@ -2355,9 +2354,26 @@ sub startMain {
 
   $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -underline 0 -menuitems/=>
 	[
-	 [Button=> 'About',
+	 [
+	  Button=> 'About',
 	  -underline=> 0,
-	  -command=> [\&About,\%group]]])->pack(qw/-side left/);
+	  -command=> [\&About,\%group]
+	 ],
+	 [
+	  Cascade=> 'Debugging messages',
+	  -underline => 0,
+	  -menuitems => [
+			 [Checkbutton => 'tred', -underline => 0,
+			  -variable => \$tredDebug],
+			 [Checkbutton => 'macros', -underline => 0,
+			  -variable => \$macroDebug],
+			 [Checkbutton => 'hooks', -underline => 0,
+			  -variable => \$hookDebug],
+			 [Checkbutton => 'keyboard', -underline => 0,
+			  -variable => \$keyboardDebug],
+			]
+	 ]
+	])->pack(qw/-side left/);
 
 
   $group{vLineFrame}=$group{top}->Frame();
