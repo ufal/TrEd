@@ -214,7 +214,8 @@ sub do_eval_macro {
     $macrosEvaluated=1;
     if ($result or $@) {
       print STDERR "FirstEvaluation of macros\n" if $macroDebug;
-      print STDERR "Returned with: $result\n$@\n" if $macroDebug;
+      print STDERR "Returned with: $result\n\n" if $macroDebug;
+      print STDERR $@ if $@;
     }
   }
   print STDERR "Running $macro\n" if $macroDebug;
@@ -238,7 +239,8 @@ sub do_eval_hook {
     $macrosEvaluated=1;
     if ($result or $@) {
       print STDERR "FirstEvaluation of macros\n" if $macroDebug;
-      print STDERR "Returned with: $result\n$@\n" if $macroDebug;
+      print STDERR "Returned with: $result\n" if $macroDebug;
+      print STDERR $@ if $@;
     }
   }
 
