@@ -5189,25 +5189,20 @@ sub NewVerb {
   $pTatka = PasteNode($NodeClipboard,$pT);
 
   $pCut = RBrother($pTatka);
- CutAllSubtrees:
-  if ($pCut) {
+   CutAllSubtrees:
+    if ($pCut) {
 
-    if (Interjection($pCut->{'afun'},'ExD') eq 'ExD') {
-
-      if (Interjection($pCut->{'ordorig'},'') eq '') {
-
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+      if (Interjection($pCut->{'afun'},'ExD') eq 'ExD') {
+        if (Interjection($pCut->{'ordorig'},'') eq '') {
+  	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+        }
+        $NodeClipboard=CutNode($pCut);
+        $pD = PasteNode($NodeClipboard,$pTatka);
       }
 
-      $NodeClipboard=CutNode($pCut);
-
-      $pD = PasteNode($NodeClipboard,$pTatka);
+      $pCut = RBrother($pTatka);
+      goto CutAllSubtrees;
     }
-
-    $pCut = RBrother($pTatka);
-
-    goto CutAllSubtrees;
-  }
 
 }
 

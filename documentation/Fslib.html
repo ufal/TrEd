@@ -1,7 +1,7 @@
 <HTML>
 <HEAD>
-<TITLE>Fslib.pm - Simple API for treebank files in .fs format</TITLE>
-<LINK REV="made" HREF="mailto:root@porky.redhat.com">
+<TITLE>../tredlib/Fslib.pm</TITLE>
+<LINK REV="made" HREF="mailto:root@porky.devel.redhat.com">
 </HEAD>
 
 <BODY>
@@ -10,30 +10,374 @@
 
 <UL>
 
-	<LI><A HREF="#NAME">NAME</A>
-	<LI><A HREF="#SYNOPSIS">SYNOPSIS</A>
-	<LI><A HREF="#DESCRIPTION">DESCRIPTION</A>
-	<LI><A HREF="#USAGE">USAGE</A>
+	<LI><A HREF="#FSNode">FSNode</A>
 	<UL>
 
-		<LI><A HREF="#PARSING_FS_FILES">PARSING FS FILES</A>
-		<LI><A HREF="#MODIFYING_OR_EXAMINING_TREES">MODIFYING OR EXAMINING TREES</A>
+		<LI><A HREF="#REFERENCE">REFERENCE</A>
 	</UL>
 
-	<LI><A HREF="#REFERENCE">REFERENCE</A>
+	<LI><A HREF="#FSFormat">FSFormat</A>
+	<UL>
+
+		<LI><A HREF="#REFERENCE">REFERENCE</A>
+	</UL>
+
+	<LI><A HREF="#FSFile">FSFile</A>
+	<UL>
+
+		<LI><A HREF="#SYNOPSIS">SYNOPSIS</A>
+		<LI><A HREF="#REFERENCE">REFERENCE</A>
+	</UL>
+
+	<LI><A HREF="#Fslib">Fslib</A>
+	<UL>
+
+		<LI><A HREF="#SYNOPSIS">SYNOPSIS</A>
+		<LI><A HREF="#DESCRIPTION">DESCRIPTION</A>
+		<LI><A HREF="#USAGE">USAGE</A>
+		<LI><A HREF="#PARSING_FS_FILES">PARSING FS FILES</A>
+		<LI><A HREF="#MODIFYING_OR_EXAMINING_TREES">MODIFYING OR EXAMINING TREES</A>
+		<LI><A HREF="#REFERENCE">REFERENCE</A>
+	</UL>
+
 	<LI><A HREF="#SEE_ALSO">SEE ALSO</A>
 </UL>
 <!-- INDEX END -->
 
 <HR>
 <P>
-<H1><A NAME="NAME">NAME</A></H1>
+<HR>
+<H1><A NAME="FSNode">FSNode</A></H1>
 <P>
-Fslib.pm - Simple API for treebank files in .fs format 
+FSNode - Simple OO interface to tree structures of Fslib.pm
 
 <P>
 <HR>
-<H1><A NAME="SYNOPSIS">SYNOPSIS</A></H1>
+<H2><A NAME="REFERENCE">REFERENCE</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_new">new</A></STRONG><DD>
+<P>
+Create a new FSNode object. FSNode is basicly a hash reference, which means
+that you may simply acces node's attributes as <CODE>$node-</CODE>{attribute}&gt;
+
+<DT><STRONG><A NAME="item_initialize">initialize</A></STRONG><DD>
+<P>
+This function inicializes FSNode. It is called by the constructor new.
+
+<DT><STRONG><A NAME="item_parent">parent</A></STRONG><DD>
+<P>
+Return node's parent node (<CODE>undef</CODE> if none).
+
+<DT><STRONG><A NAME="item_lbrother">lbrother</A></STRONG><DD>
+<P>
+Return node's left brother node (<CODE>undef</CODE> if none).
+
+<DT><STRONG><A NAME="item_rbrother">rbrother</A></STRONG><DD>
+<P>
+Return node's right brother node (<CODE>undef</CODE> if none).
+
+<DT><STRONG><A NAME="item_firstson">firstson</A></STRONG><DD>
+<P>
+Return node's first dependent node (<CODE>undef</CODE> if none).
+
+<DT><STRONG><A NAME="item_following">following (top?)</A></STRONG><DD>
+<P>
+Return the next node of the subtree in the order given by structure (<CODE>undef</CODE> if none). If any descendant exists, the first one is returned. Otherwise,
+right brother is returned, if any. If the given node has neither a
+descendant nor a right brother, the right brother of the first (lowest)
+ancestor for which right brother exists, is returned.
+
+<DT><STRONG><A NAME="item_previous">previous (top?)</A></STRONG><DD>
+<P>
+Return the previous node of the subtree in the order given by structure (<CODE>undef</CODE> if none). The way of searching described in
+<A HREF="#item_following">following</A> is used here in reversed order.
+
+</DL>
+<P>
+<HR>
+<H1><A NAME="FSFormat">FSFormat</A></H1>
+<P>
+FSFormat - Simple OO interface for FS instance of Fslib.pm
+
+<P>
+<HR>
+<H2><A NAME="REFERENCE">REFERENCE</A></H2>
+<DL>
+<DT><STRONG>new (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)</STRONG><DD>
+<P>
+Create a new FS format instance object and <A HREF="#item_initialize">initialize</A> it with the optional values.
+
+<DT><STRONG>initialize (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)</STRONG><DD>
+<P>
+Initialize a new FS format instance with given values. See <A HREF="#Fslib">Fslib</A>
+for more information about attribute hash, ordered names list and unparsed
+headers.
+
+<DT><STRONG><A NAME="item_readFrom">readFrom (source,output?)</A></STRONG><DD>
+<P>
+Reads FS format instance definition from given source, optionally echoing
+the unparsed input on the given output. The obligatory argument <CODE>source</CODE> must be either a GLOB or list reference. Argument <CODE>output</CODE> is optional and if given, it must be a GLOB reference.
+
+<DT><STRONG><A NAME="item_sentord">sentord, order, value, hide</A></STRONG><DD>
+<P>
+Return names of special attributes declared in FS format as @W, @N, @V,
+<CODE>@H</CODE> respectively.
+
+<DT><STRONG><A NAME="item_isHidden">isHidden (node)</A></STRONG><DD>
+<P>
+Return the lowest ancestor-or-self of the given node marked by
+<CODE>'hide'</CODE> in the FS attribute declared as @H. Return undef, if no such node exists.
+
+<DT><STRONG><A NAME="item_parseFSTree">parseFSTree (line)</A></STRONG><DD>
+<P>
+Parse a given line in FS format (using <CODE>Fslib::GetTree2</CODE>) and return the root of the resulting FS tree as an FSNode object.
+
+<DT><STRONG><A NAME="item_defs">defs</A></STRONG><DD>
+<P>
+Return a reference to the internally stored attribute hash.
+
+<DT><STRONG><A NAME="item_list">list</A></STRONG><DD>
+<P>
+Return a reference to the internally stored attribute names list.
+
+<DT><STRONG><A NAME="item_unparsed">unparsed</A></STRONG><DD>
+<P>
+Return a reference to the internally stored unparsed FS header. Note, that
+this header must <STRONG>not</STRONG> correspond to the defs and attributes if any changes are made to the
+definitions or names at run-time by hand.
+
+<DT><STRONG><A NAME="item_attributes">attributes</A></STRONG><DD>
+<P>
+Return a list of all attribute names (in the order given by FS instance
+declaration).
+
+<DT><STRONG><A NAME="item_atno">atno (n)</A></STRONG><DD>
+<P>
+Return the n'th attribute name (in the order given by FS instance
+declaration).
+
+<DT><STRONG>atno (attribute_name)</STRONG><DD>
+<P>
+Return the definition string for the given attribute.
+
+<DT><STRONG><A NAME="item_count">count</A></STRONG><DD>
+<P>
+Return the number of declared attributes.
+
+<DT><STRONG><A NAME="item_isList">isList (attribute_name)</A></STRONG><DD>
+<P>
+Return true if given attribute is assigned a list of all possible values.
+
+<DT><STRONG><A NAME="item_listValues">listValues (attribute_name)</A></STRONG><DD>
+<P>
+Return the list of all possible values for the given attribute.
+
+<DT><STRONG><A NAME="item_color">color (attribute_name)</A></STRONG><DD>
+<P>
+Return one of <CODE>Shadow</CODE>, <CODE>Hilite</CODE> and <CODE>XHilite</CODE> depending on the color assigned to the given attribute in the FS format
+instance.
+
+<DT><STRONG><A NAME="item_special">special (letter)</A></STRONG><DD>
+<P>
+Return name of a special attribute declared in FS definition with a given
+letter. See also <A HREF="#sentord_order_value_hide">sentord, order, value, hide</A>.
+
+<DT><STRONG><A NAME="item_indexOf">indexOf (attribute_name)</A></STRONG><DD>
+<P>
+Return index of the given attribute (in the order given by FS instance
+declaration).
+
+</DL>
+<P>
+<HR>
+<H1><A NAME="FSFile">FSFile</A></H1>
+<P>
+FSFile - Simple OO interface for FS files.
+
+<P>
+<HR>
+<H2><A NAME="SYNOPSIS">SYNOPSIS</A></H2>
+<P>
+<PRE>  use Fslib;
+</PRE>
+<P>
+<PRE>  open (F,&quot;&lt;trees.fs&quot;) ||
+    die &quot;Cannot open trees.fs: $!\n&quot;;
+  my $fs = FSFile-&gt;newFSFile(\*F);
+  close (F);
+</PRE>
+<P>
+<PRE>  die &quot;File is empty or corrupted!\n&quot; 
+    if ($fs-&gt;{FSFile}-&gt;lastTreeNo&lt;0);
+</PRE>
+<P>
+<PRE>  foreach my $tree ($fs-&gt;trees) {
+</PRE>
+<P>
+<PRE>    ...    # do something on the trees
+</PRE>
+<P>
+<PRE>  }
+</PRE>
+<P>
+<PRE>  open (F,&quot;&gt;trees_out.fs&quot;) 
+    || die &quot;Cannot open trees.fs: $!\n&quot;;
+  $fs-&gt;writeTo(\*F);
+  close (F);
+</PRE>
+<P>
+<HR>
+<H2><A NAME="REFERENCE">REFERENCE</A></H2>
+<DL>
+<DT><STRONG>new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?)</STRONG><DD>
+<P>
+Create a new FS file object and <A HREF="#item_initialize">initialize</A> it with the optional values.
+
+<DT><STRONG>initialize (name?,format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?)</STRONG><DD>
+<P>
+Initialize a FS file object. Argument description:
+
+<DL>
+<DT><STRONG><A NAME="item_name">name (scalar)</A></STRONG><DD>
+<P>
+File name 
+
+<DT><STRONG><A NAME="item_format">format (scalar)</A></STRONG><DD>
+<P>
+File format indentifier (user-defined string). TrEd, for example, uses
+<CODE>FS format</CODE>, <CODE>gzipped FS format</CODE> and <CODE>any non-specific format</CODE> strings as identifiers.
+
+<DT><STRONG><A NAME="item_FS">FS (FSFormat)</A></STRONG><DD>
+<P>
+FSFormat object associated with the file
+
+<DT><STRONG><A NAME="item_hint_pattern">hint_pattern (scalar)</A></STRONG><DD>
+<P>
+TrEd's hint pattern definition
+
+<DT><STRONG><A NAME="item_attribs_patterns">attribs_patterns (list reference)</A></STRONG><DD>
+<P>
+TrEd's display attributes pattern definition
+
+<DT><STRONG><A NAME="item_unparsed_tail">unparsed_tail (list reference)</A></STRONG><DD>
+<P>
+The rest of the file, which is not parsed by Fslib, i.e. Graph's embedded
+macros
+
+<DT><STRONG><A NAME="item_trees">trees (list reference)</A></STRONG><DD>
+<P>
+List of FSNode objects representing root nodes of all trees in the FSFiled.
+
+<DT><STRONG><A NAME="item_save_status">save_status (scalar)</A></STRONG><DD>
+<P>
+File save status indicator, 0=file is saved, 1=file is not saved (TrEd uses
+this field).
+
+</DL>
+<DT><STRONG>readFrom (glob_ref)</STRONG><DD>
+<P>
+Read FS declaration and trees from a given file (file handle open for
+reading must be passed as a GLOB reference).
+
+<DT><STRONG><A NAME="item_writeTo">writeTo (glob_ref)</A></STRONG><DD>
+<P>
+Write FS declaration, trees and unparsed tail to a given file (file handle
+open for reading must be passed as a GLOB reference).
+
+<DT><STRONG><A NAME="item_newFSFile">newFSFile (glob_ref)</A></STRONG><DD>
+<P>
+Create a new FSFile object based on the content of a given file (file
+handle open for reading must be passed as a GLOB reference).
+
+<DT><STRONG><A NAME="item_filename">filename</A></STRONG><DD>
+<P>
+Return the FS file's file name.
+
+<DT><STRONG><A NAME="item_changeFilename">changeFilename (new_filename)</A></STRONG><DD>
+<P>
+Change the FS file's file name.
+
+<DT><STRONG><A NAME="item_fileFormat">fileFormat</A></STRONG><DD>
+<P>
+Return file format indentifier (user-defined string). TrEd, for example,
+uses <CODE>FS format</CODE>, <CODE>gzipped FS format</CODE> and <CODE>any
+non-specific format</CODE> strings as identifiers.
+
+<DT><STRONG><A NAME="item_changeFileFormat">changeFileFormat</A></STRONG><DD>
+<P>
+Change file format indentifier.
+
+<DT><STRONG>FS</STRONG><DD>
+<P>
+Return a reference to the associated FSFormat object.
+
+<DT><STRONG><A NAME="item_changeFS">changeFS</A></STRONG><DD>
+<P>
+Associate FS file with a new FSFormat object.
+
+<DT><STRONG><A NAME="item_hint">hint</A></STRONG><DD>
+<P>
+Return the Tred's hint pattern declared in the FSFile.
+
+<DT><STRONG><A NAME="item_changeHint">changeHint</A></STRONG><DD>
+<P>
+Change the Tred's hint pattern associated with this FSFile.
+
+<DT><STRONG><A NAME="item_patterns">patterns</A></STRONG><DD>
+<P>
+Return a list of display attribute patterns associated with this FSFile.
+
+<DT><STRONG><A NAME="item_changePatterns">changePatterns</A></STRONG><DD>
+<P>
+Change the list of display attribute patterns associated with this FSFile.
+
+<DT><STRONG><A NAME="item_tail">tail</A></STRONG><DD>
+<P>
+Return the unparsed tail of the FS file (i.e. Graph's embedded macros). 
+
+<DT><STRONG>tail</STRONG><DD>
+<P>
+Modify the unparsed tail of the FS file (i.e. Graph's embedded macros). 
+
+<DT><STRONG>trees</STRONG><DD>
+<P>
+Return a list of all trees (e.g. their roots represented by FSNode
+objects).
+
+<DT><STRONG>trees</STRONG><DD>
+<P>
+Assign a new list of trees.
+
+<DT><STRONG>trees</STRONG><DD>
+<P>
+Return a reference to the internal array of all trees (e.g. their roots
+represented by FSNode objects).
+
+<DT><STRONG><A NAME="item_changeTreeList">changeTreeList (new_trees)</A></STRONG><DD>
+<P>
+Associate a new reference to a list of trees with the this FSFile. The
+referenced array must be a list of FSNode objects representing all the new
+trees.
+
+<DT><STRONG><A NAME="item_lastTreeNo">lastTreeNo</A></STRONG><DD>
+<P>
+Return number of associated trees minus one.
+
+<DT><STRONG><A NAME="item_notSaved">notSaved (value?)</A></STRONG><DD>
+<P>
+Return/assign file saving status (this is completely user-driven).
+
+</DL>
+<P>
+<HR>
+<H1><A NAME="Fslib">Fslib</A></H1>
+<P>
+Fslib.pm - Simple low-level API for treebank files in .fs format. See
+<A HREF="#FSFile">FSFile</A>, <A HREF="#FSFormat">FSFormat</A> and <A HREF="#FSNode">FSNode</A> for an object-oriented abstraction over this module.
+
+<P>
+<HR>
+<H2><A NAME="SYNOPSIS">SYNOPSIS</A></H2>
 <P>
 <PRE>  use Fslib;
   use locale;
@@ -82,7 +426,7 @@ Fslib.pm - Simple API for treebank files in .fs format
 </PRE>
 <P>
 <HR>
-<H1><A NAME="DESCRIPTION">DESCRIPTION</A></H1>
+<H2><A NAME="DESCRIPTION">DESCRIPTION</A></H2>
 <P>
 This package has the ambition to be a simple and usable perl API for
 manipulating the treebank files in the .fs format (which was designed by
@@ -104,7 +448,7 @@ or via <STRONG>Get</STRONG> and <STRONG>Set</STRONG> functions) and even modify 
 
 <P>
 <HR>
-<H1><A NAME="USAGE">USAGE</A></H1>
+<H2><A NAME="USAGE">USAGE</A></H2>
 <P>
 There are many ways to benefit from this package, I note here the most
 typical one. Assume, you want to read the .fs file from the STDIN (or
@@ -167,8 +511,8 @@ So whole trees are represented by their roots. TNS is actualy just a
 reference to a hash. The keys of the hashes may be either some of attribute
 names or some `special' keys, serving to hold the tree structure. Suppose
 <CODE>$node</CODE> is a TNS and `lemma' is an attribute defined in the
-appropriate .fs file. Than $$node{``lemma''} is value of the attribute for
-the node represented by TNS $node. You may obtain this value also as <STRONG>Get</STRONG>($node,``lemma''). From the <CODE>$node</CODE> TNS you may obtain also the
+appropriate .fs file. Than $node-&gt;{``lemma''} is value of the attribute
+for the node represented by TNS $node. You may obtain this value also as <STRONG>Get</STRONG>($node,``lemma''). From the <CODE>$node</CODE> TNS you may obtain also the
 node's parent, sons and brothers (both left and right). This may be done in
 several equivalent ways. TNS's of a nodes relatives are stored under values
 of those `special' keys mentioned above. These keys are chosen in such a
@@ -178,19 +522,19 @@ following scalar variables:
 <UL>
 <LI>
 <P>
-<CODE>$parent</CODE>
+Fslib::$parent
 
 <LI>
 <P>
-<CODE>$firstson</CODE>
+Fslib::$firstson
 
 <LI>
 <P>
-<CODE>$lbrother</CODE>
+Fslib::$lbrother
 
 <LI>
 <P>
-<CODE>$rbrother</CODE>
+Fslib::$rbrother
 
 </UL>
 <P>
@@ -198,7 +542,8 @@ following scalar variables:
 once the trees are read may lead to problems:-)
 
 <P>
-So, to obtain $node's parent's TNS you may use either $$node{$parent} or <STRONG>Get</STRONG>($node,$parent) or even special function <STRONG>Parent</STRONG>($node). The same holds for the first son, left and right brothers while
+So, to obtain $node's parent's TNS you may use either $node-&gt;{$parent}
+or <STRONG>Get</STRONG>($node,$parent) or even special function <STRONG>Parent</STRONG>($node). The same holds for the first son, left and right brothers while
 you may also prefere to use the <STRONG>FirstSon()</STRONG>, <STRONG>LBrother()</STRONG> and
 <STRONG>RBrother()</STRONG> functions respectively. If the node's relative (say first son) does not
 exist, the value obtained in either of the mentioned ways <EM>is</EM> still <EM>defined but zero</EM>.
@@ -209,7 +554,8 @@ To create a new node, you usually create a new hash and call
 
 <P>
 To modify a node's value for a certain attribute (say 'lemma'), you symply
-type <CODE>$$node{&quot;lemma&quot;}=&quot;bar&quot;</CODE> (supposed you want the value to become 'bar') or use the <STRONG>Set()</STRONG> function like
+type <CODE>$node-</CODE>{``lemma''}=``bar''&gt; (supposed you want the value to become 'bar') or
+use the <STRONG>Set()</STRONG> function like
 <STRONG>Set</STRONG><CODE>($node,&quot;bar&quot;);</CODE>.
 
 <P>
@@ -225,12 +571,20 @@ Note, that Cut function also deletes a subree from the tree but keeps the
 TNS in memory and returns a reference to it.
 
 <P>
+There is also a global variable Fslib::$FSTestListValidity, which may be
+set to 1 to make Fslib::ParseNode check if value assigned to a list
+attribute is one of the possible values declared in FS file header. Because
+this may slow the process of parsing significantly (especially when there
+is a lot of list attributes) the default value is 0 (no check is
+performed).
+
+<P>
 <HR>
-<H1><A NAME="REFERENCE">REFERENCE</A></H1>
+<H2><A NAME="REFERENCE">REFERENCE</A></H2>
 <DL>
 <DT><STRONG><A NAME="item_ReadAttribs">ReadAttribs (FILE,$aref[,$DO_PRINT[,OUTFILE]])</A></STRONG><DD>
 <P>
-<PRE> Params:
+<PRE> Params
 </PRE>
 <P>
 <PRE>   FILE      - file handle reference, like \*STDIN
@@ -408,8 +762,9 @@ TNS in memory and returns a reference to it.
    with its new brothers, placing it to position
    corresponding to its numerical-argument value
    obtained via call to an Ord function.  
-                
- Returns $node
+</PRE>
+<P>
+<PRE> Returns $node
 </PRE>
 <DT><STRONG><A NAME="item_Special">Special($node,$href,$defchar)</A></STRONG><DD>
 <P>
@@ -429,7 +784,43 @@ TNS in memory and returns a reference to it.
 </PRE>
 <P>
 <PRE>   Value of the first $node attribute of type matching $defchar pattern
-   
+</PRE>
+<DT><STRONG><A NAME="item_ASpecial">ASpecial($href,$defchar)</A></STRONG><DD>
+<P>
+<PRE> Exported with EXPORT_OK
+</PRE>
+<P>
+<PRE> Params: 
+</PRE>
+<P>
+<PRE>   $href    - a reference to a hash, containing attributes as keys
+              and corresponding type strigs as values
+   $defchar - a type string pattern
+</PRE>
+<P>
+<PRE> Returns:
+</PRE>
+<P>
+<PRE>   Name of the first attribute of type matching $defchar pattern
+</PRE>
+<DT><STRONG><A NAME="item_AOrd">AOrd, ASentOrd, AValue, AHide ($href)</A></STRONG><DD>
+<P>
+<PRE> Exported wiht EXPORT_OK
+</PRE>
+<P>
+<PRE> Params:
+</PRE>
+<P>
+<PRE>   $href    - a reference to a hash, containing attributes as keys
+              and corresponding type strigs as values
+</PRE>
+<P>
+<PRE> Description:
+</PRE>
+<P>
+<PRE> Are all like Ord, SentOrd, Value, Hide only except for
+ they do not get $node as parameter and return attribute
+ name rather than its value.
 </PRE>
 <DT><STRONG><A NAME="item_Ord">Ord($node,$href)</A></STRONG><DD>
 <P>
@@ -554,7 +945,7 @@ TNS in memory and returns a reference to it.
 <PRE> Description:
 </PRE>
 <P>
-<PRE>   Does the same as $$node{$attribute}=$value
+<PRE>   Does the same as $node-&gt;{$attribute}=$value
 </PRE>
 <DT><STRONG><A NAME="item_Get">Get($node,$attribute)</A></STRONG><DD>
 <P>
@@ -568,7 +959,7 @@ TNS in memory and returns a reference to it.
 <PRE> Return:
 </PRE>
 <P>
-<PRE>   Returns $$node{$attribute}
+<PRE>   Returns $node-&gt;{$attribute}
 </PRE>
 <DT><STRONG><A NAME="item_DrawTree">DrawTree($node,@attrs)</A></STRONG><DD>
 <P>
@@ -585,7 +976,7 @@ TNS in memory and returns a reference to it.
 <PRE>   Draws a tree on standard output using character graphics. (May be
    particulary useful on systems with no GUI - for real graphical
    representation of FS trees look for Michal Kren's GRAPH.EXE or
-   Perl/Tk based program &quot;tkfs&quot; by Petr Pajas.
+   Perl/Tk based program &quot;tred&quot; by Petr Pajas.
 </PRE>
 <DT><STRONG><A NAME="item_THE">THE TREE NODE-STRUCTURE (TNS)</A></STRONG><DD>
 <P>

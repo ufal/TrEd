@@ -16,7 +16,15 @@ if [ ! -f ${TREDLIB}/indentperl.el ]; then
 
       TREDLIB=`dirname $0`/../lib/tred
       echo trying $TREDLIB
+
+      if  [ ! -f ${TREDLIB}/indentperl.el ]; then
+
+	TREDLIB=`dirname $0`/tredlib
+	echo trying $TREDLIB
+      fi
+
     fi
+
 
   fi
 

@@ -71,11 +71,11 @@ sub Redraw {
 }
 
 sub SetDisplayAttrs {
-  @main::displayAttrs=@_;
+  $grp->{FSFile}->changePatterns(@_);
 }
 
 sub SetBalloonPattern {
-  $grp->{BalloonPattern}=join "\n",@_;
+  $grp->{FSFile}->changeHint(join "\n",@_);
 }
 
 sub SwitchContext {
@@ -143,13 +143,20 @@ sub SaveAndPrevFile {
 sub Find {
   $grp->{findButton}->invoke();
   $this=$grp->{currentNode};
+  $FileNotSaved=0;
 }
 
 sub FindNext {
   $grp->{findNextButton}->invoke();
   $this=$grp->{currentNode};
+  $FileNotSaved=0;
 }
 
+sub FindPrev {
+  $grp->{findPrevButton}->invoke();
+  $this=$grp->{currentNode};
+  $FileNotSaved=0;
+}
 
 ###########################################################
 # Macros used by Graph2Tred macro convertor
@@ -294,14 +301,31 @@ sub NewRBrother {
 ## ords of the other nodes appropriately
   return unless ($this and Parent($this));
   my $nd=FSNode->new();
-  $nd->{$grp->{FSFile}->FS->order}=$this->{$grp->{FSFile}->FS->order}+1;
+  my $ord=$grp->{FSFile}->FS->order;
+  $nd->{$ord}=$this->{$ord}+1;
   my $node=$root;
   while ($node) {
-    $node->{$grp->{FSFile}->FS->order}++ if ($node->{$grp->{FSFile}->FS->order}>$this->{$grp->{FSFile}->FS->order});
+    $node->{$ord}++ if ($node ne $nd and $node->{$ord}>$this->{$ord});
     $node=Next($node);
   }
   PasteNode($nd,Parent($this));
-  $this=$nd;
+  return $this=$nd;
+}
+
+sub NewLBrother {
+## Adds new RLrother to current node and shifts
+## ords of the other nodes appropriately
+  return unless ($this and Parent($this));
+  my $nd=FSNode->new();
+  my $ord=$grp->{FSFile}->FS->order;
+  $nd->{$ord}=$this->{$ord};
+  my $node=$root;
+  while ($node) {
+    $node->{$ord}++ if ($node ne $nd and $node->{$ord}>=$this->{$ord});
+    $node=Next($node);
+  }
+  PasteNode($nd,Parent($this));
+  return $this=$nd;
 }
 
 sub NewSon {
@@ -309,15 +333,16 @@ sub NewSon {
 ## ords of the other nodes appropriately
   return unless ($this);
   my $nd=FSNode->new();
-  $nd->{$grp->{FSFile}->FS->order}=$this->{$grp->{FSFile}->FS->order}+1;
+  my $ord=$grp->{FSFile}->FS->order;
+  $nd->{$ord}=$this->{$ord}+1;
 
   my $node=$root;
   while ($node) {
-    $node->{$grp->{FSFile}->FS->order}++ if ($node->{$grp->{FSFile}->FS->order}>$this->{$grp->{FSFile}->FS->order});
+    $node->{$ord}++ if ($node->{$ord}>$this->{$ord});
     $node=Next($node);
   }
   PasteNode($nd,$this);
-  $this=$nd;
+  return $this=$nd;
 }
 
 sub DeleteThisNode {
@@ -330,11 +355,13 @@ sub DeleteThisNode {
     return;
   }
   my $parent=Parent($this);
-  my $ord=$this->{$grp->{FSFile}->FS->order};
+  my $ord=$grp->{FSFile}->FS->order;
+  my $order=$this->{$ord};
+
   if (DeleteLeaf($this)) {
     my $node=$root;
     while ($node) {
-      $node->{$grp->{FSFile}->FS->order}-- if ($node->{$grp->{FSFile}->FS->order}>$ord);
+      $node->{$ord}-- if ($node->{$ord}>$order);
       $node=Next($node);
     }
     $this=$parent;
@@ -367,8 +394,9 @@ sub PrevNode {
 sub NextVisibleNode {
   my ($node,$top)=@_;
   $node=Next($node,$top);
+  my $fs=$grp->{FSFile}->FS;
   while ($node) {
-    return $node unless ($grp->{FSFile}->FS->isHidden($node));
+    return $node unless ($fs->isHidden($node));
     $node=Next($node,$top);
   }
   return 0;
@@ -377,8 +405,9 @@ sub NextVisibleNode {
 sub PrevVisibleNode {
   my ($node,$top)=@_;
   $node=Prev($node,$top);
+  my $fs=$grp->{FSFile}->FS;
   while ($node) {
-    return $node unless ($grp->{FSFile}->FS->isHidden($node));
+    return $node unless ($fs->isHidden($node));
     $node=Prev($node,$top);
   }
   return 0;
