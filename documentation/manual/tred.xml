@@ -3764,13 +3764,13 @@ sub MakeSentence {
 		file-list is opened.
 	      </entry>
 	    </row>
-	    <row>
+	    <!-- row>
 	      <entry>goto_tree_hook</entry>
 	      <entry>yes</entry>
 	      <entry>
 		Executed before different tree is displayed.
 	      </entry>
-	    </row>
+	    </row -->
 	    <row>
 	      <entry>file_opened_hook</entry>
 	      <entry>no</entry>
