@@ -601,7 +601,7 @@ sub get_status_line_hook {
 	 ];
 }
 
-=item goto_tree
+=item goto_tree()
 
 Ask user for sentence identificator (number or id) and go to the
 sentence.
@@ -624,7 +624,7 @@ sub goto_tree {
   ChangingFile(0);
 }#goto_tree
 
-=item is_coord_T(node)
+=item is_coord_T($node?)
 
 Check if the given node is a coordination according to its TGTS
 functor (attribute C<functor>)
@@ -637,7 +637,7 @@ sub is_coord_T {
   return $node->{functor} =~ /CONJ|CONFR|DISJ|GRAD|ADVS|CSQ|REAS|CONTRA|APPS|OPER/;
 }
 
-=item expand_coord_A(node,keep?)
+=item expand_coord_A($node,$keep?)
 
 If the given node is coordination or aposition (according to its
 Analytical function - attribute C<afun>) expand it to a list of
@@ -659,7 +659,7 @@ sub expand_coord_A {
   }
 } #expand_coord_T
 
-=item expand_coord_T(node,keep?)
+=item expand_coord_T($node,$keep?)
 
 If the given node is coordination or aposition (according to its TGTS
 functor - attribute C<functor>) expand it to a list of coordinated
@@ -680,7 +680,7 @@ sub expand_coord_T {
   }
 } #expand_coord_T
 
-=item get_sentence_string_A
+=item get_sentence_string_A($tree?)
 
 Return string representation of the given tree (suitable for
 Analytical trees).
@@ -700,7 +700,7 @@ sub get_sentence_string_A {
   } sort { $a->{ord} <=> $b->{ord} } @sent);
 }#get_sentence_string_A
 
-=item get_sentence_string_T
+=item get_sentence_string_T($tree?)
 
 Return string representation of the given tree (suitable for
 Tectogrammatical trees).
@@ -778,14 +778,14 @@ sub GetFathers_A { # node through
   _expand_coord_GetFathers_A($node,$through);
 } # GetFathers_A
 
-=item GetFathers_T ($node)
+=item GetFathers_T($node)
 
 Return linguistic parents of a given node as appear in a TG tree.
 
 =cut
 
 sub GetFathers_T {
-  my ($node)=@_;
+  my $node = $_[0] || $;
   if ($node and $node->{is_member}) {
     while ($node and (!is_coord_T($node) or $node->{is_member})) {
       $node=$node->parent;
@@ -798,7 +798,7 @@ sub GetFathers_T {
   return (expand_coord_T($node));
 } # GetFathers_T
 
-=item GetChildren_A ($node, $dive)
+=item GetChildren_A($node, $dive)
 
 Return a list of nodes linguistically dependant on a given
 node. C<$dive> is a function which is called to test whether a given
@@ -853,7 +853,7 @@ sub GetChildren_A{ # node dive
 } # GetChildren_A
 
 
-=item GetChildren_T ($node)
+=item GetChildren_T($node?)
 
 Return a list of nodes linguistically dependant on a given node.
 
@@ -884,7 +884,7 @@ sub FilterSons_T { # node suff from
 } # FilterSons_T
 
 sub GetChildren_T { # node
-  my $node=shift;
+  my $node=$_[0]||$this;
   return () if is_coord_T($node);
   my @sons;
   my $init_node=$node;# for error message
@@ -932,7 +932,7 @@ sub GetAncestors_T {
 }
 
 
-=item GetTrueSiblings_T ($node?)
+=item GetTrueSiblings_T($node?)
 
 Return linguistic siblings of a given node as appears in a
 tectogrammatic tree. This doesn't include the node itself, neither
@@ -966,7 +966,7 @@ sub GetNearestNonMember_T {
  return $node;
 }
 
-=item isFiniteVerb_T ($node?)
+=item isFiniteVerb_T($node?)
 
 If the node is the head of a finite complex verb form (based on
 C<a.rf> information and m/tag of the corresponding analytical nodes),
@@ -979,7 +979,7 @@ sub isFiniteVerb_T {
   return (first { $_->{'m'}{tag}=~/^V[^sf]/ } getANodes($node)) ? 1 : 0;
 }#isFiniteVerb_T
 
-=item isPassive_T ($node?)
+=item isPassive_T($node?)
 
 If the node is the head of a passive-only verb form, (based on
 C<a.rf> information), return 1, else return 0.
@@ -992,7 +992,7 @@ sub isPassive_T {
   return( @anodes == 1 and $anodes[0]->{'m'}{tag} =~ /^Vs/)
 }#isPassive_T
 
-=item isInfinitive_T ($node?)
+=item isInfinitive_T($node?)
 
 If the node is the head of an infinitive complex verb form, (based on
 C<a.rf> information), return 1, else return 0.
@@ -1006,7 +1006,7 @@ sub isInfinitive_T {
 }#isInfinitive_T
 
 
-=item modal_verb_lemma ($lemma)
+=item modal_verb_lemma($lemma)
 
 Return 1 if trlemma is a member of the list of all possible modal verb
 lemmas (morfological lemma suffixes (/[-`_].*/) are ignored).
