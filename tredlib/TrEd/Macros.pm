@@ -98,6 +98,19 @@ sub read_macros {
       } else {
 	die "unmatched #endif in \"$file\" line $line\n";
       }
+    } elsif (/^\#elseif\s*$|^\#elseif\s+(\S*)$/) {
+      if (@conditions) {
+	if (defined($1)) {
+	  $conditions[$#conditions]=
+	    !$conditions[$#conditions] &&
+	    (exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
+	} else {
+	  $conditions[$#conditions]=!$conditions[$#conditions];
+	}
+	$ifok = $conditions[$#conditions];
+      } else {
+	die "unmatched #elseif in \"$file\" line $line\n";
+      }
     } else {
       if ($ifok) {
 	push @macros,$_;
