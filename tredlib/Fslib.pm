@@ -701,7 +701,10 @@ sub ImportBackends {
   foreach my $backend (@_) {
     if (eval { require $backend.".pm"; } ) {
       push @backends,$backend;
+    } else {
+      print STDERR "FAILED TO LOAD $backend\n" if $Fslib::Debug;
     }
+    print STDERR $@ if ($@ and $Fslib::Debug);
   }
   return @backends;
 }
