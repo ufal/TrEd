@@ -670,7 +670,8 @@ sub saveStyleSheets {
     print $f "#"x 50,"\n";
     print $f "stylesheet: $stylesheet\n";
     for ($grp->{stylesheets}->{$stylesheet}) {
-      print $f map { local $_=$_; tr/\n/\013/; $_."\n" } @{$_->{patterns}};
+      print $f map { local $_=$_; tr/\n/\013/; $_."\n" } 
+	map { /^#/ ? 'node:'.$_ : $_ } @{$_->{patterns}};
       print $f map { "hint: ".$_."\n" } split /\n/, $_->{hint};
     }
     print $f "\n\n";
@@ -3702,11 +3703,13 @@ sub update_value_line_current {
       $vl->tagRemove('sel','0.0','end');
       my $tag = doEvalHook($win,"highlight_value_line_tag_hook",$node);
       $tag = "$node" unless defined $tag;
-      if ($vl->tagNextrange("$tag",'0.0') ne "") {
+      my ($first,$last)=('0.0','0.0');
+      while (($first,$last)=$vl->tagNextrange("$tag",$last)) {
  	$vl->tagAdd('current',
- 		    $tag.".first",
- 		    $tag.".last",
-		   );
+		    $first,$last);
+# 		    $tag.".first",
+# 		    $tag.".last",
+#	   );
  	$vl->see('current.first');
       }
     };
