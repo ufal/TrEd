@@ -1829,7 +1829,13 @@ sub check_verb_frames {
   return 1;
 }
 
-
+sub _assign_frames {
+  my ($node,@possible_frames)=@_;
+  print "FIXED\t";
+  $node->{frameid}=join "|",map { $V->frame_id($_) } @possible_frames;
+  $node->{framere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+  ChangingFile(1);
+}
 
 sub check_nounadj_frames {
   my ($node,$aids,$frameid,$pj4,$flags)=@_;
@@ -1881,8 +1887,10 @@ sub check_nounadj_frames {
 	      my @els = $V->all_elements($possible_frames[0]);
 	      if (@els == 0) {
 		print "10 unresloved frame, but word has only EMPTY frame, which matches: $fi\t";
+		_assign_frames($node,@possible_frames) if $flags->{assign_10};
 	      } else {
 		print "11 unresloved frame, but word has only one frame, which matches: $fi\t";
+		_assign_frames($node,@possible_frames) if $flags->{assign_11};
 	      }
 	    } elsif (@possible_frames==1) {
 	      if (1 == grep { $V->getFrameElementString($_)!~/EMPTY/ } @word_frames) {
@@ -1892,6 +1900,7 @@ sub check_nounadj_frames {
 	      } else {
 		print "12 no frame assigned, one frame matches, but other frames with actants exist: $fi\t";
 	      }
+	      _assign_frames($node,@possible_frames) if $flags->{assign_12};
 	    } elsif (@possible_frames>1) {
 	      print "13 unresloved frame, but more matching frames: $fi\t";
 	    } elsif (@word_frames==0) {
@@ -1939,8 +1948,10 @@ sub check_nounadj_frames {
 	  my @els = $V->all_elements($possible_frames[0]);
 	  if (@els == 0) {
 	    print "16 no frame assigned, but word has only EMPTY frame, which matches:\t";
+	    _assign_frames($node,@possible_frames) if $flags->{assign_16};
 	  } else {
 	    print "17 no frame assigned, but word has only one frame, which matches:\t";
+	    _assign_frames($node,@possible_frames) if $flags->{assign_17};
 	  }
 	} elsif (@possible_frames==1) {
 	  if (1 == grep { $V->getFrameElementString($_)!~/EMPTY/ } @word_frames) {
@@ -1950,6 +1961,7 @@ sub check_nounadj_frames {
 	  } else {
 	    print "18 no frame assigned, one frame matches, but other frames with actants exist:\t";
 	  }
+	  _assign_frames($node,@possible_frames) if $flags->{assign_18};
 	} elsif (@possible_frames>1) {
 	  print "19 no frame assigned, but more matching frames:\t";
 	} elsif (@word_frames==0) {
