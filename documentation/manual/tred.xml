@@ -726,7 +726,7 @@ root# <userinput>make install</userinput>
 	      may be customized, see
 	      <link linkend="highlightwindowcolor"><varname>HighlightWindowColor</varname></link>
 	      and <link linkend="highlightwindowwidth"><varname>HighlightWindowWidth</varname></link>
-	      configuration options described bellow).
+	      configuration options described below).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1327,7 +1327,7 @@ root# <userinput>make install</userinput>
       cut or paste subtrees and nodes (i.e modify the structure)
       and to open the dialog where attributes for the active node can
       be edited. Trees can also be easily modified by clicking and
-      drag-and-drop. Both of these approaches are described bellow:
+      drag-and-drop. Both of these approaches are described below:
     </para>
     <sect2>
     <title>Mouse Control</title>
@@ -1635,8 +1635,8 @@ root# <userinput>make install</userinput>
 	    <literal>custom1</literal> to <literal>custom9</literal>.
 	    In the later case, the resulting color depends on current
 	    settings of the
-	    <link linkend="customcolor"><literal>CustomColor<replaceable>n</replaceable></literal></link>
-	    configuration options (where <replaceable>n</replaceable>
+	    <link linkend="customcolor"><literal>CustomColor<replaceable>#</replaceable></literal></link>
+	    configuration options (where <replaceable>#</replaceable>
 	    is one of <literal>0...9</literal>).	    
 	  </para>
 	</listitem>
@@ -1694,7 +1694,7 @@ root# <userinput>make install</userinput>
 	  <para>Patterns labeled as <literal>style</literal> do not
 	    result in any text visible on the screen but are also
 	    interpolated and the result is scanned for the special
-	    tree styling instructions described bellow that may
+	    tree styling instructions described below that may
 	    dynamically alter the appearens of the nodes, edges and
 	    text labels of the displayed trees.
 	  </para>
@@ -1804,7 +1804,7 @@ root# <userinput>make install</userinput>
 		node labels should be placed towards the node. 
 		If <quote><literal>top</literal></quote> is selected
 		(which is the default value), node labels appear
-		bellow the node. If
+		below the node. If
 		<quote><literal>bottom</literal></quote>
 		is selected, node labels are displayed
 		above the node.	If the value of
@@ -1980,7 +1980,7 @@ root# <userinput>make install</userinput>
 		node and leading to its parent is drawn.
 	      </para>
 	      <para>
-		This option may consist of one of more 
+		This option may consist of one or more 
 		tuples of coordinates separated with
 		<literal>&amp;</literal>
 		of the form <literal>x1, y1..., xn, yn</literal>,
@@ -1994,15 +1994,14 @@ root# <userinput>make install</userinput>
 		the node, its parent, or if necessary to any node in
 		the tree. In fact, usual arithmetic expressions may be
 		used to compute coordinates. Use letter
-		<literal>n</literal>
-		to refer to the coordinate of the current node on the
-		current axes and letter <literal>p</literal> to refer to
-		the coordinate of the parent node of the current node.
-		Use
-		<literal>xn</literal>
-		and <literal>yn</literal>, or <literal>xp</literal>
-		and <literal>yp</literal> to refer to an explicit axis
-		of the current node or its parent respectively.
+		<literal>n</literal> to refer to the coordinate of the
+		current node on the current axes and letter
+		<literal>p</literal> to refer to the coordinate of the
+		parent node of the current node.  Use
+		<literal>xn</literal> and <literal>yn</literal>, or
+		<literal>xp</literal> and <literal>yp</literal> to
+		refer to a coordinate of the current node or its
+		parent (resp.) on an explicit axis.
 		</para>
 	      <para>		
 		Coordinates of other nodes may be queried
@@ -2036,7 +2035,8 @@ root# <userinput>make install</userinput>
 			coordinate 			
 			of the first node for which the
 			given Perl code returns non-zero
-			defined value. Within the code use 
+			defined value. Within the code,
+			use 
 			<literal>$this</literal> to refer
 			to the current node and
 			<literal>$node</literal>
@@ -2059,7 +2059,7 @@ root# <userinput>make install</userinput>
 			where <literal>code</literal>
 			is the user's custom node search algorithm
 			written in Perl.
-			Within the code use 
+			Within the code, use 
 			<literal>$this</literal> to refer
 			to the current node.
 		      </para>
@@ -3358,7 +3358,9 @@ root# <userinput>make install</userinput>
 	<arg choice="opt">-t <replaceable>context</replaceable></arg>
 	<arg choice="opt">-l
 	<replaceable>file-list</replaceable></arg>
-	<arg choice="opt">-W <replaceable>window-id</replaceable></arg>
+	<arg choice="opt">-W
+	<replaceable>window-id</replaceable></arg>
+	<arg choice="opt">-B <replaceable>backends</replaceable></arg>
 	<arg rep="repeat">file<group>
 	    <arg>##<replaceable>N</replaceable></arg>
 	    <arg>#<replaceable>N</replaceable></arg>
@@ -3421,6 +3423,15 @@ root# <userinput>make install</userinput>
 	<listitem>
 	  <para>Under X Window System, embed TrEd's main window into 
 	    the window with given <replaceable>window-id</replaceable>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-B</parameter></term>
+	<listitem>
+	  <para>Comma separated list of additional 
+	    input/output <replaceable>backends</replaceable> to
+	    import.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -3584,42 +3595,54 @@ root# <userinput>make install</userinput>
       <para>
 	Other macro files may be included into any
 	<filename>tred.mac</filename> file using one of the following
-	directives:
+	directives where
+	<replaceable>filename</replaceable> is supposed to provide
+	a relative or absolute path to the macro file, under the
+	terms described below each item:
       </para>
-      <literallayout>#include&nbsp;"<replaceable>filename</replaceable>"
-#include&nbsp;&lt;<replaceable>filename</replaceable>&gt;
-#include&nbsp;<replaceable>filename</replaceable></literallayout>
-      <para>
-	The <replaceable>filename</replaceable> should provide
-	absolute or relative path to the macro file, under the
-	following terms: In the first case, the path to the macro file
-	must be relative to the file from which it is included.  In
-	the second case, the <replaceable>filename</replaceable> must
-	be a relative path to the TrEd's library directory.  In the
-	third case, the <replaceable>filename</replaceable> may be
-	both absolute or relative. In the latter case the directories are
-	searched in the following order:
-	<orderedlist>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>#include&nbsp;"<replaceable>filename</replaceable>"</literal></term>
 	  <listitem>
-	    <para>Current directory is searched.</para>
+	    <para>The <replaceable>filename</replaceable> must be
+	      relative to the directory of the file to which it is
+	      included.</para>
 	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>#include&nbsp;&lt;<replaceable>filename</replaceable>&gt;</literal></term>
 	  <listitem>
-	    <para>The directory of the file where the
-	      <literal>#include</literal> directive occured
-	      is searched.
+	    <para>The <replaceable>filename</replaceable> must
+	      be relative to the TrEd's library directory.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>#include&nbsp;<replaceable>filename</replaceable></literal></term>
+	  <listitem>
+	    <para>
+	      The <replaceable>filename</replaceable> may be
+	      both absolute or relative. In the latter case the directories are
+	      searched in the following order:
+	      <orderedlist>
+		<listitem>
+		  <para>Current directory is searched.</para>
+		</listitem>
+		<listitem>
+		  <para>The directory of the file where the
+		    <literal>#include</literal> directive occured
+		    is searched.
+		  </para>
+		</listitem>
+		<listitem>
+		  <para><application>TrEd</application>'s library directory
+		    is searched.
+		  </para>
+		</listitem>
+	      </orderedlist>
 	    </para>
 	  </listitem>
-	  <listitem>
-	    <para><application>TrEd</application>'s library directory
-	      is searched.
-	    </para>
-	  </listitem>
-	</orderedlist>
-	The first found occurrence of
-	<replaceable>filename</replaceable> is used as if the content
-	of the file was actually included in place of the
-	<literal>#include</literal> directive.
-      </para>
+	</varlistentry>
+      </variablelist>
     </sect2>
     <sect2>
       <title>Adding macros to menu, assigning shortcuts</title>
@@ -3709,7 +3732,7 @@ root# <userinput>make install</userinput>
 	<literal>modified</literal> (as indicated by the state of the
 	<inlinegraphic fileref="pics/filefloppy"/> button) unless
 	variable <literal>$FileChanged</literal> is altered in the
-	way described bellow (both variables are definded in
+	way described below (both variables are definded in
 	<filename>tred.def</filename>, see <xref
 	linkend="defaultmacros"/>).
       </para>
