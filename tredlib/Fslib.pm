@@ -733,7 +733,7 @@ package FSFormat;
 %Specials = (sentord => 'W', order => 'N', value => 'V', hide => 'H');
 
 sub AUTOLOAD {
-  my ($self)=shift;
+  my ($self)=@_;
   return undef unless ref($self);
   my $sub = $AUTOLOAD;
   $sub =~ s/.*:://;
@@ -841,17 +841,17 @@ sub attributes {
 }
 
 sub atno {
-  my ($self,$index) = shift;
+  my ($self,$index) = @_;
   return ref($self) ? $self->list->[$index] : undef;
 }
 
 sub atdef {
-  my ($self,$name) = shift;
+  my ($self,$name) = @_;
   return ref($self) ? $self->defs->{$name} : undef;
 }
 
 sub count {
-  my ($self) = shift;
+  my ($self) = @_;
   return ref($self) ? $#{$self->list}+1 : undef;
 }
 
@@ -936,6 +936,7 @@ sub initialize {
   $self->[4] = ref($_[4]) eq 'ARRAY' ? $_[4] : []; # list of attribute patterns
   $self->[5] = ref($_[5]) eq 'ARRAY' ? $_[5] : []; # unparsed rest of a file
   $self->[6] = ref($_[6]) eq 'ARRAY' ? $_[6] : []; # trees
+  $self->[7] = $_[7] ? $_[7] : 0; # trees
 
   return ref($self) ? $self : undef;
 }
@@ -952,7 +953,7 @@ sub readFrom {
   my ($root,$l,@rest);
   $self->changeTrees();
   while ($l=Fslib::ReadTree($fileref)) {
-    if (/^\[/) {
+    if ($l=~/^\[/) {
       $root=$self->FS->parseFSTree($l);
       push @{$self->treeList}, $root if $root;
     } else { push @rest, $l; }
@@ -1077,6 +1078,14 @@ sub changeTreeList {
 sub lastTreeNo {
   my $self = shift;
   return ref($self) ? $#{$self->treeList} : undef;
+}
+
+sub notSaved {
+  my ($self,$val) = @_;
+
+  return undef unless ref($self);
+  return $self->[7]=$val if (defined $val);
+  return $self->[7];
 }
 
 1;
