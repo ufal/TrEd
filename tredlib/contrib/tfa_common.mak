@@ -14,6 +14,7 @@ sub tfa_NA {
 
 sub ProjectivizeSubTree {
 # projectivizes the subtree of a given node (within the whole tree)
+# if it succeeds, it returns 1, undef otherwise
 
   my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node whose subtree is to be projectivized
 
@@ -35,7 +36,7 @@ sub ProjectivizeSubTree {
   SortByOrd(\@all);   # the array @all is ordered according to the appropriate ordering attribute
   splice @all,Index(\@all,$top),1, @subtree;   # the projectivized subtree is spliced at the right place
   NormalizeOrds(\@all);  # the ordering attributes are modified accordingly
-
+  return 1
 }
 
 
@@ -94,14 +95,14 @@ sub Projectivize {
 
 sub AskCzEn ($$$$) {
 # asks a question in Czech and English, returns 1 if the answer is positive, 0 otherwise
-# if the locale language setting is Czech, it asks in Czech, English is used otherwise
+# if the locale language setting is Czech, it asks in Czech, otherwise English is used
 
   my ($titleCz, $messageCz, $titleEn, $messageEn) = @_;
   my ($title, $message, $yes, $no);
 
   use POSIX qw(locale_h);
 
-  print setlocale(LC_MESSAGES);
+#  print setlocale(LC_MESSAGES);
   if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech$/) {
     ($yes, $no, $title, $message) = ("Ano", "Ne", $titleCz, $messageCz);
   } else {
@@ -122,6 +123,29 @@ sub AskCzEn ($$$$) {
   } else {
     return 0
   };
+}
+
+sub MessageCzEn ($$) {
+# displays a message in Czech or in English
+  my ($messageCz, $messageEn) = @_;
+
+  my ($title, $message);
+
+  use POSIX qw(locale_h);
+
+  if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech$/) {
+    ($title, $message) = ("Zpráva", $messageCz);
+  } else {
+    ($title, $message) = ("Message", $messageEn);
+  }
+  my $d = ToplevelFrame()->DialogBox(-title => $title,
+				       -buttons => ["OK"]
+				      );
+  $d->add(Label, -text => $message, -font => StandardTredFont(), -wraplength => 200)->pack;
+  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
+			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  $d->Show;
+  return 1
 }
 
 
@@ -167,97 +191,128 @@ sub ContinueProjectivizing {
 }
 
 
+sub NotOrderableByTFA {
+# displays a message box
+  MessageCzEn("Podstrom nebyl uspoøádán podle atributu tfa.",
+	      "The subtree has not been ordered according to the tfa attribute.")
+}
+
+
 sub OrderByTFA {
 # orders the current subtree according to the value of the tfa attribute
 # and returns an ordered array containing the subtree
 # checks for projectivity, then accordingly orders the subtrees of the top node
 # it only shuffles the whole sons' subtrees !!!
 
-  my $top = @_;  # the reference to the node whose subtree is to be ordered according to tfa
+  my $top=$_[0];  # the reference to the node whose subtree is to be ordered according to tfa
 
   return undef unless ref($top);  # no valid reference parameter was passed
 
-  return undef if IsHidden($top);  # does not do anything on hidden nodes
+  my $value=$top->{tfa};  # the tfa value for the top node
 
-  my (@subtree, @sons_C, @sons_T, @sons_F, @sons_NA, @sons_hidden);
-  my $ord=$grp->{FSFile}->FS->order;
+#  print $top->{tfa}."\n\n";
 
-  my $node=$top;
-  my $value=$node->{tfa};  # the tfa value for the node
-  if ($value eq 'C') {
-    push @sons_C , $node
-  } elsif ($value eq 'T') {
-    push @sons_T , $node
-  } elsif ($value eq 'F') {
-    push @sons_F , $node
-  } elsif ($value eq 'NA') { # if NA is set for the top node, place it between nodes with C and T on the one hand, and nodes with F on the other
-    push @sons_NA , $node
-  } else {
-    return undef;  # return if the top node is visible and doesn't have tfa value
+  if ((IsHidden($top)) or ($value eq "") or ($value eq "NA")) {
+    # does not do anything on hidden nodes and on nodes with NA or no tfa value
+    NotOrderableByTFA;
+    return undef
   }
 
-  $node=$top->firstson;
+  my (@subtree, @sons_C, @sons_T, @sons_F, @sons_hidden);
+  my $ord=$grp->{FSFile}->FS->order;  # the ordering attribute
+
+  # place the top node appropriately among its sons
+  if (($value eq 'C') or ($value eq 'T')) {
+    push @sons_T, $top
+  } elsif ($value eq 'F') {
+    push @sons_F, $top
+  } else {  # return if the top node's tfa value is not acceptable
+    NotOrderableByTFA;
+    return undef
+  }
+
+  my $node=$top->firstson;
+
   while ($node) {
-    if (IsHidden($node)) {
-      push @sons_hidden, $node
-    } else {
-      my $value=$node->{tfa};  # the tfa value for the node
-      if ($value eq 'C') {
-	push @sons_C , $node
-      } elsif ($value eq 'T') {
-	push @sons_T , $node
-      } elsif ($value eq 'F') {
-	push @sons_F , $node
-      } elsif ($value eq 'NA') {
-	push @sons_NA , $node
-      } else {
-	return undef; # return if there is a node that is visible and doesn't have tfa value
+
+    if (IsHidden($node)) {push @sons_hidden, $node}  # the node is hidden
+    else {  # decide according to the tfa value of the node
+      $value=$node->{tfa};  # the tfa value of the node
+
+      if ($value eq 'C') {push @sons_C, $node}
+      elsif ($value eq 'T') {push @sons_T, $node}
+      elsif ($value eq 'F') {push @sons_F, $node}
+      elsif ($value eq 'NA') {
+	# in this case decide according to the tfa value of depending nodes
+	my $nodes=GetNodes($node);
+	my ($hasTorC, $hasF);
+	while ($nodes) {  # checks whether at least some depending node has tfa value
+	  my $value=unshift(@nodes);
+	  if (($value eq 'C') or ($value eq 'T')) {$hasTorC=1}
+	  elsif ($value eq 'F') {$hasF=1}
+	}
+	if ($hasF or $hasTorC) {  # there is a depending node with tfa value
+	  if ($hasF) {push @sons_F, $node}
+	  else {push @sons_T, $node}
+	} else {  # no depending node has a tfa value, therefore return
+	  NotOrderableByTFA;
+	  return undef
+	}
+      } else {  # return if there is a node that is visible and doesn't have tfa value
+	NotOrderableByTFA;
+	return undef
       }
     }
     $node=$node->rbrother;
   }
 
+  @sons_C= sort {$a->{$ord} <=> $b->{$ord}} @sons_C;
+  @sons_T= sort {$a->{$ord} <=> $b->{$ord}} @sons_T;
+  @sons_F= sort {$a->{$ord} <=> $b->{$ord}} @sons_F;
+  @sons_hidden= sort {$a->{$ord} <=> $b->{$ord}} @sons_hidden;
 
-
-#  }
-
-  push @subtree, [$top,1] unless ($onlyvisible and IsHidden($top));
-                           # an ordered array of the projectivized subtree is being created
-                           # it contains pairs consisting of a reference to a node
-                           # and an indicator saying whether its sons have already been processed
-
-  while ($i<=$#subtree) {  # the subtree is being traversed and projectivized at the same time
-                           # the array @subtree grows only to the right of the current index
-    if ($subtree[$i]->[1] == 1) { # this node's sons have not been processed yet
-        undef(@sons_left);
-    	undef(@sons_right);
-	$node=$subtree[$i]->[0]->firstson;
-	  while ($node) {  # the sons are being traversed and
-                           # divided into those on the left and those on the right from the given node
-	    next if ($onlyvisible and IsHidden($node));
-	    if ($node->{$ord} < $subtree[$i]->[0]->{$ord}) {
-	      push @sons_left, [$node,1];
-	    }
-	    else {
-	      push @sons_right, [$node,1];
-	    }
-	  }
-	continue {
-	  $node=$node->rbrother;
-	}
-        $subtree[$i]->[1]=0;  # the processed noded is marked as such
-	# the left and right sons are spliced at appropriate places in the array
-        splice @subtree,$i+1,0,(sort {$a->[0]->{$ord} <=> $b->[0]->{$ord}} @sons_right);
-        splice @subtree,$i,0,(sort {$a->[0]->{$ord} <=> $b->[0]->{$ord}} @sons_left);
-      }
-      else {
-	$i++;  # increase the current index by one if the sons of the current node have already been processed
-      }
+  foreach $node ((@sons_C, @sons_T, @sons_F, @sons_hidden)) {
+    # creates an ordered array with the subtree ordered according to tfa
+    if ($node eq $top) {
+      push @subtree, $node  # only the top node
+    } else {
+      push @subtree, SortByOrd([GetNodes($node)])  # push a son's subtree
+    }
   }
+#  print (join " ",map{$_->{form}} @subtree)."\n\n";
+  return @subtree
+}
 
-  return map {$_->[0]} @subtree;  # an ordered array containing only the references
 
+sub OrderSTByTFA {
 
+  my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node whos
+e subtree is to be projectivized
+
+  return undef unless ProjectivizeSubTree($top);
+
+#  print "============ prosel pres projektivizovani\n\n";
+
+  my @subtree=OrderByTFA($top);
+  return undef unless @subtree;
+
+#  print "============ prosel serazovanim podle tfa\n\n";
+
+  my @all;
+
+  my $node=$root;
+  while ($node) {
+    push @all, $node;      # @all is filled with the nodes of the whole tree
+    if ($node eq $top) {   # except for the nodes depending on the given node
+      $node=$node->following_right_or_up;
+    }
+    else {
+      $node=$node->following;
+    }
+  }
+  SortByOrd(\@all);   # the array @all is ordered according to the appropriate ordering attribute
+  splice @all,Index(\@all,$top),1, @subtree;   # the subtree is spliced at the right place
+  NormalizeOrds(\@all);  # the ordering attributes are modified accordingly
 }
 
 

@@ -13,6 +13,8 @@ import Tectogrammatic;
 #bind ProjectivizeSubTree to P menu Projectivize subtree
 #bind ShiftSTLeft to Alt+Left menu Shift subtree to the left
 #bind ShiftSTRight to Alt+Right menu Shift subtree to the right
+#bind OrderSTByTFA to O menu Order subtree by TFA
+
 
 sub switch_context_hook {
 
@@ -34,4 +36,12 @@ sub enable_attr_hook {
   }
 }
 
-#import tfa_common.mak
+#include tfa_common.mak
+
+
+
+
+
+
+
+
