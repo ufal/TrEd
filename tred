@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-02 09:36:14 pajas>";
+$timestamp="Time-stamp: <2001-04-12 18:10:09 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -212,7 +212,7 @@ use Tk::DialogBox;
 use Tk::Tiler;
 use Tk::BrowseEntry;
 
-push @INC,$libDir unless (grep($_ eq $libDir, @INC));
+unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
@@ -222,7 +222,9 @@ require Filelist;
 require Tk::MyFileSelect;
 
 use Exporter;
-use File::Spec;
+require File::Spec;
+require File::Spec::Functions;
+import File::Spec::Functions qw(rel2abs);
 
 # This is default export to macros
 @EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
@@ -288,7 +290,6 @@ sub bookmarkFilelist {
   }
   push(@files, @ARGV);
 
-  use File::Spec::Functions (rel2abs);
   @files = map { rel2abs($_) } @files;
 
   $default->add(0,@files);
@@ -915,7 +916,8 @@ sub openFile {
 
   if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
     $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
-      $goto=$1
+      $goto=$1;
+    print "Goto suffix is $goto\n";
   }
 
   askSaveFile($grp,1)
@@ -1016,7 +1018,6 @@ sub openFile {
 sub applyFileSuffix {
   my ($grp,$goto) = @_;
   return unless ref($grp) and defined($goto) and $goto ne "";
-
   # -- smells like PDT-specific code, at least the second case
   # but we want it, dont we:)
 
@@ -1024,7 +1025,7 @@ sub applyFileSuffix {
     $grp->{treeNo}=min(max(0,$1-1),$grp->{FSFile}->lastTreeNo);
   } elsif ($goto=~/^#([0-9]+)/) {
     for (my $i=0;$i<=$grp->{FSFile}->lastTreeNo;$i++) {
-      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq $1);
+      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq "#$1");
     }
   }
   # new: we're the dot in .[0-9]+ (TM)
@@ -1163,6 +1164,7 @@ sub getNodes {
   $grp->{treeNo}=0 if ($grp->{treeNo}<0);
   $grp->{treeNo}=$grp->{FSFile}->lastTreeNo if ($grp->{treeNo}>$grp->{FSFile}->lastTreeNo);
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+
   my $node=$grp->{root};
   my $current=$grp->{root};
   my $prevcurrent=$grp->{currentNode};
@@ -2951,7 +2953,7 @@ sub startMain {
   # Save configuration
   print STDERR "Saving some configuration options.\n" if $tredDebug;
   my @conf;
-  my $ommit="canvasheight|canvaswidth|recentfile[0-9]+|geometry|filelist[0-9]+";
+  my $ommit="canvasheight|canvaswidth|recentfile[0-9]+|geometry|lastaction|filelist[0-9]+";
   if (open(F,"<$configFile")) {
     @conf= grep { !/^\s*(?:$ommit)\s*=/i } <F>;
     close(F);
@@ -3426,6 +3428,7 @@ sub editAttrsDialog {
   return unless $grp->{'FSFile'};
   my @vals;
   my @r=();
+  my %e=();
   my @atord=$grp->{FSFile}->FS->attributes;
   if ($sortAttrs) {
     @atord=sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes
@@ -3445,7 +3448,8 @@ sub editAttrsDialog {
 		       -relief => 'groove',
 		       -scrollbars => 'e');
 
-  sub focusxDn {
+  sub focusxAtrEditDn {
+    print STDERR "TAB dn\n";
     my ($w,$i,$e,$f,$rows,$cnt)=@_;
     if ($i+1>$#atord) {
       $w->focusNext if ($cnt);
@@ -3457,7 +3461,8 @@ sub editAttrsDialog {
     }
     Tk->break;
   };
-  sub focusxUp {
+  sub focusxAtrEditUp {
+    print STDERR "TAB up\n";
     my ($w,$i,$e,$f,$cnt)=@_;
     if ($i<=0) {
       $w->focusPrev if ($cnt);
@@ -3470,8 +3475,9 @@ sub editAttrsDialog {
     Tk->break;
   };
 
-  $f->bind($f,'<Tab>',[sub {
+  $f->bind($f,'<Tab>',[sub { print "TAB\n";
 			     if ($e{$atord[0]}) {
+			       print  "moving TAB\n";
 			       $e{$atord[0]}->focus;
 			       $f->moveto(0);
 			     } else {
@@ -3521,10 +3527,10 @@ sub editAttrsDialog {
       push @r, $e{$_};
     }
 
-    $e{$_}->bind($e{$_},'<Tab>',[\&focusxDn,$i,\%e,$f,$rows,1]);
-    $e{$_}->bind($e{$_},'<Down>',[\&focusxDn,$i,\%e,$f,$rows]);
-    $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxUp,$i,\%e,$f,1]);
-    $e{$_}->bind($e{$_},'<Up>',[\&focusxUp,$i,\%e,$f]);
+    $f->bind($e{$_},'<Tab>',[\&focusxAtrEditDn,$i,\%e,$f,$rows,1]);
+    $f->bind($e{$_},'<Down>',[\&focusxAtrEditDn,$i,\%e,$f,$rows]);
+    $f->bind($e{$_},'<Shift-Tab>',[\&focusxAtrEditUp,$i,\%e,$f,1]);
+    $f->bind($e{$_},'<Up>',[\&focusxAtrEditUp,$i,\%e,$f]);
   }
   $f->Manage(@r);
   $f->pack();
@@ -3740,7 +3746,7 @@ sub findNodeDialog {
 		       -rows =>$rows,
 		       -relief => 'groove',
 		       -scrollbars => 'e');
-  sub focusxDn {
+  sub focusxFindDn {
     my ($w,$i,$e,$f,$rows,$cnt)=@_;
     if ($i+1>$#atord) {
       $w->focusNext if ($cnt);
@@ -3753,7 +3759,7 @@ sub findNodeDialog {
     Tk->break;
   }
   ;
-  sub focusxUp {
+  sub focusxFindUp {
     my ($w,$i,$e,$f,$cnt)=@_;
     if ($i<=0) {
       $w->focusPrev if ($cnt);
@@ -3787,10 +3793,10 @@ sub findNodeDialog {
     $e{$_}->insert(0,encode($template->{$_}));
     push @r, $e{$_};
 
-    $e{$_}->bind($e{$_},'<Tab>',[\&focusxDn,$i,\%e,$f,$rows,1]);
-    $e{$_}->bind($e{$_},'<Down>',[\&focusxDn,$i,\%e,$f,$rows]);
-    $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxUp,$i,\%e,$f,1]);
-    $e{$_}->bind($e{$_},'<Up>',[\&focusxUp,$i,\%e,$f]);
+    $e{$_}->bind($e{$_},'<Tab>',[\&focusxFindDn,$i,\%e,$f,$rows,1]);
+    $e{$_}->bind($e{$_},'<Down>',[\&focusxFindDn,$i,\%e,$f,$rows]);
+    $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxFindUp,$i,\%e,$f,1]);
+    $e{$_}->bind($e{$_},'<Up>',[\&focusxFindUp,$i,\%e,$f]);
   }
   $f->Manage(@r);
   $f->pack();  # or shoud it be pack(qw/-expand yes -fill x/)?
@@ -3807,15 +3813,15 @@ sub findNodeDialog {
 
   my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
   $of->Label(-text => 'Search file-list: ')->pack(qw/-side left/);
-  my $om=$of->Optionmenu(-textvariable => \$grp->{searchFilelist},
-		  -options => [ '<<Current file only>>', 
-				map { $_->name } @filelists ])->pack(qw/-side left/);
+  my $om=$of->Optionmenu(-textvariable => \$grp->{searchFilelist})->pack(qw/-side left/);
+
+  $om->options(['<<Current file only>>', map { $_->name } @filelists]);
 
   $of->Button(-text => 'Edit',
 	      -command => [ sub {
 			      my ($grp)=@_;
 			      my $name=filelistDialog($grp,1);
-			      $om->options([map { $_->name } @filelists]);
+			      $om->options(['<<Current file only>>',map { $_->name } @filelists]);
 			      $grp->{searchFilelist}=$name if (ref(findFilelist($name)));
 			    },$grp,$om])->pack(qw/-side left/);
   $grp->{'top'}->Unbusy();

@@ -82,16 +82,22 @@ sub SwitchContext {
   main::switchContext($grp,shift);
 }
 
+sub CurrentContext {
+  return $grp->{macroContext};
+}
+
 sub GotoTree {
   my $to=shift()-1;
   $_NoSuchTree=($to != main::max(0,min($to,$#trees)));
   my $result=main::gotoTree($grp,$to);
+  $root=$grp->{root};
   $this=$root;
   return $result;
 }
 
 sub NextTree {
   my $result=main::nextTree($grp);
+  $root=$grp->{root};
   $this=$root;
   $_NoSuchTree=!$result; # for compatibility with Graph2Tred
   return $result;
@@ -99,6 +105,7 @@ sub NextTree {
 
 sub PrevTree { 
   my $result=main::prevTree($grp);
+  $root=$grp->{root};
   $this=$root; 
   $_NoSuchTree=!$result; # for compatibility with Graph2Tred
   return $result;
@@ -116,11 +123,13 @@ sub CutNode {
 
 sub NewTree {
   main::newTree($grp);
+  $root=$grp->{root};
   $this=$root;
 }
 
 sub NewTreeAfter {
   main::newTreeAfter($grp);
+  $root=$grp->{root};
   $this=$root;
 }
 
@@ -133,11 +142,13 @@ sub Save {
 sub SaveAndNextFile {
   Save();
   main::nextFile($grp);
+  $root=$grp->{root};
 }
 
 sub SaveAndPrevFile {
   Save();
   main::prevFile($grp);
+  $root=$grp->{root};
 }
 
 sub Find {
