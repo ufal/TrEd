@@ -594,7 +594,7 @@ sub ShiftLeft {
 }
 
 sub ShiftRight {
-  return unless (Parent($this) or $this->{func} ne 'SENT');
+  return unless ($this->parent or $this->{func} ne 'SENT');
   if (HiddenVisible()) {
     ShiftNodeRight($this);
   } else {
@@ -645,7 +645,7 @@ sub NewVerb {
     $son=$pT->firstson();
     while ($son) {
       $rb=$son->rbrother();
-      PasteNode(CutNode($son),$pNew) if ($son->{afun}=~/ExD/ and $son ne $pNew);
+      CutPaste($son,$pNew) if ($son->{afun}=~/ExD/ and $son ne $pNew);
       $son=$rb;
     }
   } else {
@@ -814,7 +814,7 @@ sub FPaste {
       $pPasted->{'AIDREFS'} = $pPasted->{'AID'};
     }
     $pPasted->{'AID'} = '';
-    $this=PasteNode(CutNode($pPasted),$pThis); # repaste to get structure order right
+    $this=CutPaste($pPasted,$pThis); # repaste to get structure order right
     set_parenthesis( $this );
   }
   $sPasteNow = '';
@@ -890,7 +890,7 @@ sub JoinSubtree {
 
   # move children to parent
   while ($node->firstson()) {
-    PasteNode(CutNode($node->firstson),$parent)
+    CutPaste($node->firstson,$parent)
   }
 
   # hide

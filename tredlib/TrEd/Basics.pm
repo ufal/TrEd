@@ -114,7 +114,7 @@ sub newNode {
 
   my $nd=$parent->new();
   my $ord=$win->{FSFile}->FS->order;
-  Paste($nd,$parent,$win->{FSFile}->FS->defs);
+  Fslib::Paste($nd,$parent,$win->{FSFile}->FS);
   $nd->setAttribute($order,$parent->getAttribute($order));
 
   setCurrent($win,$nd);
@@ -130,7 +130,7 @@ sub pruneNode {
   my $t;
   return undef unless ($win->{FSFile} and $node and $node->parent);
 
-  Paste(Cut($t),$node->parent,$win->{FSFile}->FS->defs)
+  Fslib::Paste(Cut($t),$node->parent,$win->{FSFile}->FS)
     while ($t=$node->firstson);
 
   setCurrent($win,$node->parent) if ($node == $win->{currentNode});

@@ -487,7 +487,7 @@ sub clean_fw_join_to_parent {
   $node->parent->{fw}='';
   $node->parent->{AIDREFS}='';
   foreach ($node->children) {
-    PasteNode(CutNode($_),$node->parent);
+    CutPaste($_,$node->parent);
   }
   { local $this=$node; joinfw(); };
 }
@@ -514,30 +514,30 @@ sub join_AIDREFS {
 sub rehang_right {
   return unless ($this and $this->rbrother);
   my $b=$this->rbrother;
-  $this=PasteNode(CutNode($this),$b);
+  $this=CutPaste($this,$b);
 }
 #bind rehang_left to Ctrl+Shift+Left menu Rehang to left brother
 sub rehang_left {
   return unless ($this and $this->lbrother);
   my $b=$this->lbrother;
-  $this=PasteNode(CutNode($this),$b);
+  $this=CutPaste($this,$b);
 }
 #bind rehang_down to Ctrl+Shift+Down menu Rehang to first son
 sub rehang_down {
   return unless ($this and $this->firstson and $this->parent);
   my $p=$this->parent;
   my $b=CutNode($this->firstson);
-  $this=PasteNode(CutNode($this),$b);
+  $this=CutPaste($this,$b);
   $b=PasteNode($b,$p);
   foreach ($this->children) {
-    PasteNode(CutNode($_),$b);
+    CutPaste($_,$b);
   }
 }
 #bind rehang_up to Ctrl+Shift+Up menu Rehang to parent
 sub rehang_up {
   return unless ($this and $this->parent and $this->parent->parent);
   my $p=$this->parent->parent;
-  $this=PasteNode(CutNode($this),$p);
+  $this=CutPaste($this,$p);
 }
 
 #bind SwapNodes to Ctrl+9 menu Swap nodes
@@ -550,11 +550,11 @@ sub SwapToParent {
   return unless ($this and $this->parent and $this->parent->parent);
   my $parent = $this->parent;
   my $granny=$parent->parent;
-  $this=PasteNode(CutNode($this),$granny);
+  $this=CutPaste($this,$granny);
   foreach ($parent->children) {
-      PasteNode(CutNode($_),$this);
+      CutPaste($_,$this);
   }
-  PasteNode(CutNode($parent),$this);
+  CutPaste($parent,$this);
 
   for (qw(func memberof operand parenthesis TR tfa dord)) {
     ($this->{$_}, $parent->{$_})=($parent->{$_}, $this->{$_});
@@ -892,7 +892,7 @@ sub make_lighten_be_aidrefs {
     if ($node->{_light} eq '_LIGHT_') {
       ConnectAID($node,$this);
       if ($rehang) {
-	PasteNode(Cut($this),$node);
+	CutPaste($this,$node);
 	$rehang = 0;
       }
     } else {
@@ -916,7 +916,7 @@ sub make_lighten_be_children {
 
       $node->{TR} = 'hide';
       ConnectAID($this,$node);
-      PasteNode(Cut($node),$this);
+      CutPaste($node,$this);
       delete $node->{_light};
       ChangingFile(1);
     }

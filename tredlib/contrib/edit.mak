@@ -120,9 +120,9 @@ sub copy_to_clipboad {
 
 #bind cut_to_clipboad to Shift+Delete menu Cut subtree
 sub cut_to_clipboad {
-  return unless ($this and Parent($this));
+  return unless ($this and $this->parent);
   $nodeClipboard=$this;
-  $this=RBrother($this) ? RBrother($this) : Parent($this);
+  $this=$this->rbrother ? $this->rbrother : $this->parent;
   CutNode($nodeClipboard);
 
   my $nodesref=GetNodes();

@@ -209,8 +209,7 @@ my %applied_rules;
 sub attach ($$$) { # 'hanging' a child node below its parent
   my ($childnode,$parentnode,$rulename)=@_;
 #  print "Attach node '$childnode->{effform}' below '$parentnode->{effform}'\n";
-  Cut($childnode);
-  Paste($childnode,$parentnode,$grp->{FSFile}->FS->defs());
+  CutPaste($childnode,$parentnode);
 #  print "Hotovo\n";
   $childnode->{attached}=1;
   $applied_rules{$rulename}++;
@@ -373,8 +372,7 @@ sub run_parser ($$) {
 
   foreach my $node ($root->descendants()) { # flattening the original structure, if any
       $node->{attached}=0;
-      Cut($node);
-      Paste($node,$root,$grp->{FSFile}->FS->defs());
+      CutPaste($node,$root);
       foreach my $attr ('tag','lemma','form') {
 	  $node->{"eff$attr"}=$node->{$attr};
       }

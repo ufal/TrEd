@@ -202,69 +202,69 @@ sub assign_arabclause {
 
 #bind thisToParent to Alt+Up menu Annotate: Current node up one level to grandparent
 sub thisToParent {
-  return unless Parent($this) and Parent(Parent($this));
+  return unless $this->parent and $this->parent->parent;
   my $act=$this;
-  my $p=Parent(Parent($act));
-  PasteNode(Cut($act),$p);
+  my $p=$act->parent->parent;
+  CutPaste($act,$p);
   $this=$act;
 }
 
 #bind thisToRBrother to Alt+Left menu Annotate: Current node to brother on the left
 sub thisToRBrother {
-  return unless RBrother($this);
+  return unless $this->rbrother;
   my $act=$this;
-  my $p=RBrother($this);
-  PasteNode(Cut($act),$p);
+  my $p=$this->rbrother;
+  CutPaste($act,$p);
   $this=$act;
 }
 
 #bind thisToLBrother to Alt+Right menu Annotate: Current node to brother on the right
 sub thisToLBrother {
-  return unless LBrother($this);
+  return unless $this->lbrother;
   my $act=$this;
-  my $p=LBrother($this);
-  PasteNode(Cut($act),$p);
+  my $p=$this->lbrother;
+  CutPaste($act,$p);
   $this=$act;
 }
 
 #bind thisToParentRBrother to Alt+Shift+Left menu Annotate: Current node to uncle on the left
 sub thisToParentRBrother {
-  return unless Parent($this) and RBrother(Parent($this));
+  return unless $this->parent and $this->parent->rbrother;
   my $act=$this;
-  my $p=RBrother(Parent($this));
-  PasteNode(Cut($act),$p);
+  my $p=$this->parent->rbrother;
+  CutPaste($act,$p);
   $this=$act;
 }
 
 #bind thisToParentLBrother to Alt+Shift+Right menu Annotate: Current node to uncle on the right
 sub thisToParentLBrother {
-  return unless Parent($this) and LBrother(Parent($this));
+  return unless $this->parent and $this->parent->lbrother;
   my $act=$this;
-  my $p=LBrother(Parent($this));
-  PasteNode(Cut($act),$p);
+  my $p=$this->parent->lbrother;
+  CutPaste($act,$p);
   $this=$act;
 }
 
 #bind thisToEitherBrother to Alt+Down menu Annotate: Current node to either side brother if unique
 sub thisToEitherBrother {
-  my $lb = LBrother($this);
-  my $rb = RBrother($this);
+  my $lb = $this->lbrother;
+  my $rb = $this->rbrother;
   return unless $lb xor $rb;
   my $act=$this;
   my $p = $lb || $rb;
-  PasteNode(Cut($act),$p);
+  CutPaste($act,$p);
   $this=$act;
 }
 
 #bind SwapNodesUp to Alt+Shift+Up menu Annotate: Current node exchanged with parent
 sub SwapNodesUp {
   return unless $this;
-  my $parent=Parent($this);
+  my $parent=$this->parent;
   return unless $parent;
-  my $grandParent=Parent($parent);
+  my $grandParent=$parent->parent;
   return unless $grandParent;
-  PasteNode(Cut($this),$grandParent);
-  PasteNode(Cut($parent),$this);
+  CutPaste($this,$grandParent);
+  CutPaste($parent,$this);
   $this=$parent;
 }
 
@@ -272,10 +272,10 @@ sub SwapNodesUp {
 sub SwapNodesDown {
   return unless $this;
   my @childs = $this->children();
-  my $parent = Parent($this);
+  my $parent = $this->parent;
   return unless @childs == 1 and $parent;
-  PasteNode(Cut($childs[0]),$parent);
-  PasteNode(Cut($this),$childs[0]);
+  CutPaste($childs[0],$parent);
+  CutPaste($this,$childs[0]);
   $this=$childs[0];
 }
 

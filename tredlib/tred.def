@@ -527,7 +527,7 @@ the numbering attribute.
 =cut
 sub PasteNode {
   my ($node,$p)=@_; 
-  Fslib::Paste($node,$p,$grp->{FSFile}->FS->defs); 
+  Fslib::Paste($node,$p,$grp->{FSFile}->FS);
   return $node;
 }
 
@@ -586,7 +586,7 @@ attach it to some node again.
 =cut
 sub CutNode {
   my $node=shift;
-  my $parent=Fslib::Parent($node);
+  my $parent=$node->parent;
   $result=Fslib::Cut($node);
   $this=$parent if ($result and $this==$node);
   return $result;
@@ -836,16 +836,16 @@ sub NewRBrother {
 ## ords of the other nodes appropriately
   my $ref=ref($_[0]) ? $_[0] : $this;
 
-  return unless ($ref and Parent($ref));
+  return unless ($ref and $ref->parent);
   my $nd=FSNode->new();
   my $ord=$grp->{FSFile}->FS->order;
   $nd->{$ord}=$ref->{$ord}+1;
   my $node=$root;
   while ($node) {
     $node->{$ord}++ if ($node ne $nd and $node->{$ord}>$ref->{$ord});
-    $node=Next($node);
+    $node=$node->following;
   }
-  PasteNode($nd,Parent($ref));
+  PasteNode($nd,$ref->parent);
   $this=$nd unless ref($_[0]);
   return $nd;
 }
@@ -865,16 +865,16 @@ sub NewLBrother {
 ## Adds new RLrother to current node and shifts
 ## ords of the other nodes appropriately
   my $ref=ref($_[0]) ? $_[0] : $this;
-  return unless ($ref and Parent($ref));
+  return unless ($ref and $ref->parent);
   my $nd=FSNode->new();
   my $ord=$grp->{FSFile}->FS->order;
   $nd->{$ord}=$ref->{$ord};
   my $node=$root;
   while ($node) {
     $node->{$ord}++ if ($node ne $nd and $node->{$ord}>=$ref->{$ord});
-    $node=Next($node);
+    $node=$node->following;
   }
-  PasteNode($nd,Parent($ref));
+  PasteNode($nd,$ref->parent);
   $this=$nd unless ref($_[0]);
   return $nd;
 }
@@ -902,7 +902,7 @@ sub NewSon {
   my $node=$root;
   while ($node) {
     $node->{$ord}++ if ($node->{$ord}>$ref->{$ord});
-    $node=Next($node);
+    $node=$node->following;
   }
   PasteNode($nd,$ref);
   $this=$nd unless ref($_[0]);
@@ -929,7 +929,7 @@ sub NewParent {
   my $node=$root;
   while ($node) {
     $node->{$ord}++ if ($node->{$ord}>=$ref->{$ord});
-    $node=Next($node);
+    $node=$node->following;
   }
   if ($ref->parent) {
     PasteNode($nd,$ref->parent);
@@ -964,8 +964,8 @@ root of the current tree, this macro does nothing.
 sub DeleteThisNode {
 ## Deletes current node and shifts
 ## ords of the other nodes appropriately
-  return unless ($this and Parent($this));
-  my $parent=Parent($this);
+  return unless ($this and $this->parent);
+  my $parent=$this->parent;
   my $ord=$grp->{FSFile}->FS->order;
   my $order=$this->{$ord};
 
@@ -973,7 +973,7 @@ sub DeleteThisNode {
     my $node=$root;
     while ($node) {
       $node->{$ord}-- if ($node->{$ord}>$order);
-      $node=Next($node);
+      $node=$node->following;
     }
     $this=$parent;
   }
@@ -1016,7 +1016,7 @@ Nodes menu item.
 =cut
 sub NextNode {
   my ($node,$top)=@_;
-  return $node ? main::HNext($grp,$node,$top) : undef;
+  return $node ? main::NextDisplayed($grp,$node,$top) : undef;
 }
 
 =item PrevNode (node,top?)
@@ -1030,7 +1030,7 @@ Nodes menu item.
 =cut
 sub PrevNode {
   my ($node,$top)=@_;
-  return $node ? main::HPrev($grp,$node,$top) : undef;
+  return $node ? main::PrevDisplayed($grp,$node,$top) : undef;
 }
 
 =item NextVisibleNode (node,top?)
@@ -1043,11 +1043,11 @@ are skipped.
 =cut
 sub NextVisibleNode {
   my ($node,$top)=@_;
-  $node=Next($node,$top);
+  $node=$node->following($top);
   my $fs=$grp->{FSFile}->FS;
   while ($node) {
     return $node unless ($fs->isHidden($node));
-    $node=Next($node,$top);
+    $node=$node->following($top);
   }
   return 0;
 }
@@ -1062,11 +1062,11 @@ are skipped.
 =cut
 sub PrevVisibleNode {
   my ($node,$top)=@_;
-  $node=Prev($node,$top);
+  $node=$node->previous($top);
   my $fs=$grp->{FSFile}->FS;
   while ($node) {
     return $node unless ($fs->isHidden($node));
-    $node=Prev($node,$top);
+    $node=$node->previous($top);
   }
   return 0;
 }
@@ -1134,9 +1134,9 @@ tree).
 sub PlainDeleteNode {
 ## Deletes given node
   my $node=shift;
-  return undef unless ($node and Parent($node));
+  return undef unless ($node and $node->parent);
 
-  $this=Parent($this) if ($node == $this);
+  $this=$this->parent if ($node == $this);
   return DeleteLeaf($node);
 }
 
@@ -1354,7 +1354,7 @@ sub GetVisibleNodes {
   my @n;
   while ($node) {
     push @n,$node;
-    $node=NextVisibleNode($node,$top);
+    $node=$node->following_visible($top);
   }
   return @n;
 }
@@ -1401,9 +1401,9 @@ correspondence with the values of the special FS numbering attribute.
 =cut
 sub RepasteNode {
   my ($node)=@_;
-  my $parent=Parent($node);
+  my $parent=$node->parent;
   return unless $parent;
-  Fslib::Paste(Fslib::Cut($node),$parent,$grp->{FSFile}->FS->defs);
+  CutPaste($node,$parent);
 }
 
 =item ShiftNodeRightSkipHidden (node)
@@ -1886,10 +1886,7 @@ sub DumpFS {
   return 0 unless ref($fsfile);
 
   $fsfile->FS->writeTo($fh);
-  Fslib::PrintFS($fh,undef,
-		 $treelist,
-		 $fsfile->FS->list,
-		 $fsfile->FS->defs);
+  FSBackend::PrintFSFile($fh,$fsfile->FS,$treelist);
   $fh->print($fsfile->tail);
   return 1;
 }

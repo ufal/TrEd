@@ -261,7 +261,7 @@ unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
 require Fslib;
 import Fslib;
-import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index $FSError);
+import Fslib qw(&Index $FSError);
 
 $tredDebug=1 if $opt_D;
 $TrEd::TreeView::Debug=1 if $opt_D;
@@ -4821,9 +4821,15 @@ sub startMain {
 				my $win=$grp->{focusedWindow};
 				my (@tags)=
 				  $w->tagNames($w->index($Ev->xy));
-				if (doEvalHook($win,
-					       "value_line_doubleclick_hook",
-					       @tags) ne 'stop') {
+				my $ret;
+				$ret = doEvalHook($win,"value_line_doubleclick_hook", @tags);
+				if (ref($ret) and ref($ret) =~ /^FSNode/) {
+				  setCurrent($win,$ret);
+				  ensureCurrentIsDisplayed($win);
+				  centerTo($win,$ret);
+				  Tk->break;
+				  return;
+				} elsif ($ret ne 'stop') {
 				  my $node=$win->{root};
 				  while ($node) {
 				    if (index(join("",@tags),${node})>=0) {
@@ -8140,7 +8146,7 @@ sub doEvalHook {
 sub examineEvent {
   my $w = shift;
   my $bindings = shift;
-  my ($macro,$key,$eA,$eK) = resolveEvent($w,@_);
+  my ($macro,$key,$eA,$eK,$by_event_hook) = resolveEvent($w,@_);
   if ($eA eq $eK) {
     $key .= " [$eA]" if ($eA ne $key);
   } else {
@@ -8152,10 +8158,18 @@ sub examineEvent {
       $key .= " [$eA = $eK]";
     }
   }
-  if (defined($macro)) {
-    $$bindings = "$key is bound to: ".findMacroDescription($macro);
+  if ($by_event_hook) {
+    if (defined($macro)) {
+      $$bindings = "$key bound by event_hook to: ".findMacroDescription($macro);
+    } else {
+      $$bindings = "$key is blocked by event_hook\n";
+    }
   } else {
-    $$bindings = "$key is not bound\n";
+    if (defined($macro)) {
+      $$bindings = "$key is bound to: ".findMacroDescription($macro);
+    } else {
+      $$bindings = "$key is not bound\n";
+    }
   }
   print $$bindings."\n";
   Tk->break;
@@ -8345,8 +8359,19 @@ sub resolveEvent {
   }
   push @possib, ($prefix.$A,$prefix.$K);
 
-  ($macro,$key)=resolveKey($grp,@possib);
-  return ($macro,$key,$prefix.$A,$prefix.$K);
+  $macro = doEvalHook($grp->{focusedWindow},"event_hook",$e,$w,@possib);
+  if (defined($macro)) {
+    if ($macro eq 'stop') {
+      print STDERR "Event blocked by event_hook\n" if $macroDebug || $keyboardDebug;
+      return (undef,undef,$prefix.$A,$prefix.$K,1);
+    } else {
+      print STDERR "Event translated by event_hook to '$macro'\n" if $macroDebug || $keyboardDebug;
+      return ($macro,$key,$prefix.$A,$prefix.$K,1);
+    }
+  } else {
+    ($macro,$key)=resolveKey($grp,@possib);
+    return ($macro,$key,$prefix.$A,$prefix.$K);
+  }
 }
 
 sub evalMacro {
@@ -8578,7 +8603,7 @@ sub node_release {
 	  my $oldparent=$node->parent;
 	  Paste(Cut($node),
 		$tv->get_obj_pinfo($p),
-		$win->{FSFile}->FS->defs);
+		$win->{FSFile}->FS);
 	  $win->{FSFile}->notSaved(1);
           doEvalHook($win,"node_moved_hook",$node,$oldparent);
 	  lastActionBookmark($grp);
@@ -8629,19 +8654,10 @@ sub prepare_undo {
   eval { require Storable; };
   if ($@) {
     return undef;
-#    undef $@;
-#    Fslib::PrintTree($win->{root},
-#		     $fsfile->FS->list,
-#		     $fsfile->FS->defs,
-#		     \$tree);
-#    return ['FS',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
   } else {
     $tree = Storable::freeze($win->{root});
     return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
   }
-#  local $Data::Dump::Purity = 1;
-#  return Data::Dumper->Dump([$win->{treeNo},$win->{root},$win->{currentNode}],
-#			    [qw(treeNo root currentNode)]);
 }
 
 sub save_undo {
@@ -8693,10 +8709,7 @@ sub undo {
     my $treeNo=$undo->[1];
     my $tree=$undo->[2];
     if ($type eq 'FS') {
-      $fsfile->treeList->[$treeNo]=
-	GetTree2($tree,
-		 $fsfile->FS->list,
-		 $fsfile->FS->defs);
+      $fsfile->treeList->[$treeNo]=$fsfile->FS->parseFSTree($tree);
     } elsif ($type eq 'Storable') {
       $fsfile->treeList->[$treeNo]=Storable::thaw($tree);
     }

@@ -224,7 +224,7 @@ use Benchmark;
 
 require Fslib;
 import Fslib;
-import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index &ImportBackends);
+import Fslib qw(&Index &ImportBackends);
 $Fslib::Debug=1 if $debug;
 
 # import min and max functions
@@ -346,7 +346,7 @@ s/\s+$// for @files;
 	storable => 'StorableBackend'
        );
 
-$Fslib::FSTestListValidity=$validate_fs;
+$FSBackend::CheckListValidity=$validate_fs;
 
 $csts_tecto && Csts2fs::setupTR();
 if ($csts_tree_attrs ne "") {
@@ -786,11 +786,9 @@ sub startMain {
 	    for my $fsfile ($grp->{FSFile}) {
 	      _set_encoding($hub,$fsfile->encoding(),undef);
 	      $fsfile->FS->writeTo($hub);
-	      Fslib::PrintFS($hub,undef,
-			     $f=_has_suffix($f) ? [$grp->{root}] :
-			     $fsfile->treeList,
-			     $fsfile->FS->list,
-			     $fsfile->FS->defs);
+	      FSBackend::PrintFSFile($hub,
+				     $fsfile->FS,
+				     $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList);
 	      ## Tredish custom attributes:
 	      $fsfile->changeTail(
 				  (grep { $_!~/\/\/Tred:(?:Custom-Attribute(?:Cont)?|Balloon-Pattern):/ } $fsfile->tail),

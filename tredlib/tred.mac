@@ -39,9 +39,9 @@ sub TieNextTree_nochange { TieNextTree(@_); ChangingFile(0); }
 
 #bind CutToClipboard to Ctrl+Insert menu Cut Subtree
 sub CutToClipboard {
-  return unless ($this and Parent($this));
+  return unless ($this and $this->parent);
   $nodeClipboard=$this;
-  $this=RBrother($this) ? RBrother($this) : Parent($this);
+  $this=$this->rbrother ? $this->rbrother : $this->parent;
   CutNode($nodeClipboard);
 }
 
@@ -230,7 +230,7 @@ sub TieGotoTreeAsk {
 #bind PerlSearchNext to Alt+H menu Perl-Search Next
 sub PerlSearchNext {
   if ($TrEd::MacroStorage::macPerlSearchScript) {
-    while ($this=Next($this) or NextTree()) {
+    while ($this=$this->following or NextTree()) {
       last if eval($TrEd::MacroStorage::macPerlSearchScript);
     }
   } else {

@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2004-12-17 16:13:17 pajas>
+## Time-stamp: <2005-03-15 18:21:49 pajas>
 ## $Id$
 
 #encoding iso-8859-2
@@ -180,7 +180,7 @@ sub thisAfunNoNext {
 
 sub thisAfun {
   thisAfunNoNext(@_);
-  $this=Next($this) if Next($this);
+  $this=$this->following if $this->following;
 }
 
 sub thisRoot {
@@ -191,10 +191,10 @@ sub thisChildrensAfun {
   my $suff=shift;
   my $chid;
   my $t=$this;
-  $child=FirstSon($t);
+  $child=$t->firstson;
   while ($child) {
     $$child{'afun'}=~s/_Co|_Ap/$suff/;
-    $child=RBrother($child);
+    $child=$child->rbrother;
   }
 }
 
@@ -241,7 +241,7 @@ sub ThisRoot {
 
     $pPrev = $pT;
 
-    $pT = Parent($pT);
+    $pT = $pT->parent;
 
     goto Cont1;
   }
@@ -351,9 +351,9 @@ sub SubtreeAfunAssign {
 
   $pParent = $pThis;
 
-  if (!(Parent($pThis))) {
+  if (!($pThis->parent)) {
 
-    $pAct = FirstSon($pThis);
+    $pAct = $pThis->firstson;
   } else {
 
     $pAct = $pThis;
@@ -415,7 +415,7 @@ sub SubtreeAfunAssign {
 
   $sPOS = substr($sTag,0,1);
 
-  $pParAct = Parent($pAct);
+  $pParAct = $pAct->parent;
  GoUp:
   $lPar1 = $pParAct->{'tag'};
 
@@ -452,7 +452,7 @@ sub SubtreeAfunAssign {
   if ($sParAfun eq 'Coord' ||
       $sParAfun eq 'Apos') {
 
-    $pParAct = Parent($pParAct);
+    $pParAct = $pParAct->parent;
 
     if (!($pParAct)) {
 
@@ -494,7 +494,7 @@ sub SubtreeAfunAssign {
  ExitLoop5:
   $sParLemma = substr($sLemmaFull,0,$i);
 
-  $pParParAct = Parent($pParAct);
+  $pParParAct = $pParAct->parent;
  GoUpPar2:
   if ($pParParAct) {
 
@@ -538,7 +538,7 @@ sub SubtreeAfunAssign {
     if ($sParParAfun eq 'Coord' ||
 	$sParParAfun eq 'Apos') {
 
-      $pParParAct = Parent($pParParAct);
+      $pParParAct = $pParParAct->parent;
 
       if (!($pParParAct)) {
 
@@ -684,7 +684,7 @@ sub SubtreeAfunAssign {
 
   if (Interjection($lTag,'JE') eq 'JE') {
 
-    if (FirstSon($pAct)) {
+    if ($pAct->firstson) {
 
       $sAfun = 'Coord';
 
@@ -716,7 +716,7 @@ sub SubtreeAfunAssign {
 
   if (Interjection($pAct->{'form'},'se') eq 'se') {
 
-    if (!(FirstSon($pAct))) {
+    if (!($pAct->firstson)) {
 
       $pAct->{'afun'} = 'AuxT';
 
@@ -739,7 +739,7 @@ sub SubtreeAfunAssign {
 
   if ($sLemma eq ',') {
 
-    if (!(FirstSon($pAct))) {
+    if (!($pAct->firstson)) {
 
       $pAct->{'afun'} = 'AuxX';
 
@@ -781,7 +781,7 @@ sub SubtreeAfunAssign {
 
   if (Interjection($lTag,'JS') eq 'JS') {
 
-    if (FirstSon($pAct)) {
+    if ($pAct->firstson) {
 
       $sAfun = 'AuxC';
 
@@ -830,7 +830,7 @@ sub SubtreeAfunAssign {
 
   $fObject = "0";
 
-  $pT = LBrother($pAct);
+  $pT = $pAct->lbrother;
  ContLoop3:
   if (!($pT)) {
 
@@ -847,7 +847,7 @@ sub SubtreeAfunAssign {
     $fObject = "1";
   }
 
-  $pT = LBrother($pT);
+  $pT = $pT->lbrother;
 
   goto ContLoop3;
  ExitLoop3:
@@ -1247,7 +1247,7 @@ sub SubtreeAfunAssign {
 
     if (Interjection($lLemma,'být') eq 'být') {
 
-      if (!(FirstSon($pAct))) {
+      if (!($pAct->firstson)) {
 
 	$pAct->{'afunprev'} = $pAct->{'afun'};
 
@@ -1339,11 +1339,11 @@ sub SubtreeAfunAssign {
  aa:
   $pAct->{'afun'} = (ValNo(0,$sAfun).ValNo(0,$sSuffAct));
  ex:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1351,14 +1351,14 @@ sub SubtreeAfunAssign {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1408,14 +1408,14 @@ sub _key_F1 {
   my $a10;			# used as type "list"
   my $a11;			# used as type "list"
 
-  $par = Parent($this);
+  $par = $this->parent;
 
   if (!($par)) {
 
     return;
   }
 
-  $parpar = Parent($par);
+  $parpar = $par->parent;
 
   if (!($parpar)) {
 
@@ -1446,18 +1446,18 @@ sub _key_F1 {
 
   $a11 = $this->{AtrNo(11)};
 
-  if (FirstSon($this)) {
+  if ($this->firstson) {
 
     return;
   }
 
-  $thisLeft = LBrother($this);
+  $thisLeft = $this->lbrother;
 
-  $thisRight = RBrother($this);
+  $thisRight = $this->rbrother;
 
-  $parLeft = LBrother($par);
+  $parLeft = $par->lbrother;
 
-  $parRight = RBrother($par);
+  $parRight = $par->rbrother;
 
   $fThisOK = "1";
 
@@ -1557,7 +1557,7 @@ sub _key_Shift_F7 {
 
   $pParent = $this;
 
-  $pAct = FirstSon($pParent);
+  $pAct = $pParent->firstson;
 
   if (!($pAct)) {
 
@@ -1577,11 +1577,11 @@ sub _key_Shift_F7 {
     $pAct->{'afun'} = 'Atr';
   }
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1589,14 +1589,14 @@ sub _key_Shift_F7 {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1640,7 +1640,7 @@ sub _key_Ctrl_Shift_F12 {
 
   $pParent = $this;
 
-  $pAct = FirstSon($pParent);
+  $pAct = $pParent->firstson;
 
   if (!($pAct)) {
 
@@ -1662,11 +1662,11 @@ sub _key_Ctrl_Shift_F12 {
     $pAct->{'afunprev'} = $sT;
   }
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1674,14 +1674,14 @@ sub _key_Ctrl_Shift_F12 {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1717,7 +1717,7 @@ sub _key_Shift_0 {
   my $pNext;			# used as type "pointer"
   my $sT;			# used as type "string"
 
-  $pAct = FirstSon($this);
+  $pAct = $this->firstson;
 
   if (!($pAct)) {
 
@@ -1734,7 +1734,7 @@ sub _key_Shift_0 {
     $pAct->{'afunprev'} = $sT;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   $pAct = $pNext;
 
@@ -1756,7 +1756,7 @@ sub SubtreeUndefAfun {
 
   $pParent = $pPar1;
 
-  $pAct = FirstSon($pParent);
+  $pAct = $pParent->firstson;
 
   if (!($pAct)) {
 
@@ -1773,11 +1773,11 @@ sub SubtreeUndefAfun {
     $pAct->{'afunprev'} = $sT;
   }
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1785,14 +1785,14 @@ sub SubtreeUndefAfun {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1849,11 +1849,11 @@ sub _key_1 {
   }
 
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1861,14 +1861,14 @@ sub _key_1 {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1900,11 +1900,11 @@ sub _key_Shift_1 {
  ContLoop1:
   $pAct->{'afun'} = $pAct->{'afunman'};
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1912,14 +1912,14 @@ sub _key_Shift_1 {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1950,11 +1950,11 @@ sub _key_Ctrl_1 {
  ContLoop1:
   $pAct->{'afunman'} = $pAct->{'afun'};
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1962,14 +1962,14 @@ sub _key_Ctrl_1 {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -2000,11 +2000,11 @@ sub _key_Ctrl_Shift_1 {
  ContLoop1:
   $pAct->{'gap2'} = '';
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -2012,14 +2012,14 @@ sub _key_Ctrl_Shift_1 {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -2060,11 +2060,11 @@ sub _key_Backspace {
       goto ExitLoop1;
     }
 
-    $pNext = FirstSon($pAct);
+    $pNext = $pAct->firstson;
 
     if (!($pNext)) {
 
-      $pNext = RBrother($pAct);
+      $pNext = $pAct->rbrother;
     }
   ContLoop2:
     if ($pNext) {
@@ -2072,14 +2072,14 @@ sub _key_Backspace {
       goto ExitLoop2;
     }
 
-    $pAct = Parent($pAct);
+    $pAct = $pAct->parent;
 
     if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
       goto ExitLoop1;
     }
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
 
     goto ContLoop2;
   ExitLoop2:

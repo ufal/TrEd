@@ -109,10 +109,10 @@ sub sentord_to_ord {
 sub gotoNextFound {
   my $node;
   $FileNotSaved=0;
-  $node=Next($this);
+  $node=$this->following();
   do {
     while ($node and $$node{"err2"} ne "Found") {
-      $node=Next($node);
+      $node=$node->following();
       # print STDERR $$node{"form"},"\n";
     }
     $this=$node,return if ($node);
@@ -122,9 +122,9 @@ sub gotoNextFound {
 #bind skipNextAuxK to Alt+k
 sub skipNextAuxK {
   my $node;
-  $node=FirstSon($root);
-  $node=RBrother($node) while ($node and $node->{afun} ne 'AuxK');
-  $node=RBrother($node) if ($node);
+  $node=$root->firstson;
+  $node=$node->rbrother while ($node and $node->{afun} ne 'AuxK');
+  $node=$node->rbrother if ($node);
   $this=$node if ($node);
 }
 
@@ -138,9 +138,9 @@ sub splitAfterNextAuxK {
 
 sub LastNode {
   my $node=$root;
-  while ($node and FirstSon($node)) {
-    $node=FirstSon($node);
-    $node=RBrother($node) while (RBrother($node));
+  while ($node and $node->firstson) {
+    $node=$node->firstson;
+    $node=$node->rbrother while ($node->rbrother);
   }
   return $node;
   $FileNotSaved=0;
@@ -149,10 +149,10 @@ sub LastNode {
 #bind gotoPrevFound to Alt+p
 sub gotoPrevFound {
   my $node;
-  $node=Prev($this);
+  $node=$this->previous();
   do {
     while ($node and $$node{"err2"} ne "Found") {
-      $node=Prev($node);
+      $node=$node->previous();
       # print STDERR $$node{"form"},"\n";
     }
       $this=$node,return if ($node);
@@ -171,9 +171,9 @@ sub SwapNodes {
 ## Swaps the current node with the one above
 
   return unless ($this);
-  my $parent=Parent($this);
+  my $parent=$this->parent;
   return unless ($parent);
-  my $oldParent=Parent($parent);
+  my $oldParent=$parent->parent;
   return unless ($oldParent);
   Cut($this);
   PasteNode($this,$oldParent);
@@ -188,7 +188,7 @@ sub SwapNodesValues {
 ## (actually swaps only attribute all values)
 
   return unless ($this);
-  my $parent=Parent($this);
+  my $parent=$this->parent;
   return unless ($parent);
 
   my @parentAttrs=@{$parent}{@atord};
@@ -203,7 +203,7 @@ sub SwapNodesValuesButAfun {
 ## (actually swaps only attribute all values but the one of afun)
 
   return unless ($this);
-  my $parent=Parent($this);
+  my $parent=$this->parent;
   return unless ($parent);
 
   my $oldparentAfun=$parent->{'afun'};
@@ -221,13 +221,13 @@ sub InsertSubtreeAsNewTreeAfter {
 # current subtree under its root.
 
   my $currTree=$this;
-  my $br = RBrother($currTree);
+  my $br = $currTree->rbrother;
   my @brothers=();
   while ($br) {
     CutNode($br);
     PasteNode($br,$currTree);
     push @brothers, $br;
-    $br=RBrother($currTree);
+    $br=$currTree->rbrother;
   }
 
   NewTreeAfter();
@@ -266,10 +266,10 @@ sub ReorderChildren {
   my $node,$i;
 
   return unless $top;
-  $node=FirstSon($top);
+  $node=$top->firstson;
   while ($node) {
     push @childs,$node;
-    $node=RBrother($node);
+    $node=$node->rbrother;
   }
 
   foreach $node (@childs) {
@@ -308,28 +308,28 @@ loop:
 
 #bind thisToParent to Alt+u menu Hang current node up one level
 sub thisToParent {
-  return unless Parent($this) and Parent(Parent($this));
+  return unless $this->parent and $this->parent->parent;
   my $act=$this;
-  my $p=Parent(Parent($act));
-  PasteNode(CutNode($act),$p);
+  my $p=$act->parent->parent;
+  CutPaste($act,$p);
   $this=$act;
 }
 
 #bind thisToRBrother to Alt+r menu Hang current node to RBrother
 sub thisToRBrother {
-  return unless RBrother($this);
+  return unless $this->rbrother;
   my $act=$this;
-  my $p=RBrother($this);
-  PasteNode(CutNode($act),$p);
+  my $p=$this->rbrother;
+  CutPaste($act,$p);
   $this=$act;
 }
 
 #bind thisToLBrother to Alt+l menu Hang current node to LBrother
 sub thisToLBrother {
-  return unless LBrother($this);
+  return unless $this->lbrother;
   my $act=$this;
-  my $p=LBrother($this);
-  PasteNode(CutNode($act),$p);
+  my $p=$this->lbrother;
+  CutPaste($act,$p);
   $this=$act;
 }
 
@@ -401,7 +401,7 @@ sub _key_Shift_F6 {
 
     $pAct->{'gap2'} = 'I was here and I am Atr.';
 
-    $pActG1 = Parent($pAct);
+    $pActG1 = $pAct->parent;
 
     if (!($pActG1)) {
 
@@ -412,14 +412,14 @@ sub _key_Shift_F6 {
 
       $pActG1->{'gap2'} = 'I was here and I am AuxP and down there is an Atr.';
 
-      $pActG2 = Parent($pActG1);
+      $pActG2 = $pActG1->parent;
 
       if (!($pActG2)) {
 
 	goto F6NF;
       }
 
-      $pActG3 = Parent($pActG2);
+      $pActG3 = $pActG2->parent;
 
       if (!($pActG3)) {
 
@@ -441,11 +441,11 @@ sub _key_Shift_F6 {
     }
   }
  F6NF:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  F6ContLoop2:
   if ($pNext) {
@@ -453,14 +453,14 @@ sub _key_Shift_F6 {
     goto F6ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto F6ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto F6ContLoop2;
  F6ExitLoop2:
@@ -485,7 +485,7 @@ sub _key_Ctrl_Shift_F7 {
     return;
   }
  CSF10ContLoop:
-  $pParent = Parent($pAct);
+  $pParent = $pAct->parent;
 
   if (!($pParent)) {
 
@@ -513,29 +513,29 @@ sub GoNext {
 
   $pAct = $pPar1;
 
-  if (FirstSon($pAct)) {
+  if ($pAct->firstson) {
 
-    $pReturn = FirstSon($pAct);
+    $pReturn = $pAct->firstson;
 
     return;
   }
  loopGoNext:
   if ($pAct eq $pPar2 ||
-      !(Parent($pAct))) {
+      !($pAct->parent)) {
 
     $pReturn = undef;
 
     return;
   }
 
-  if (RBrother($pAct)) {
+  if ($pAct->rbrother) {
 
-    $pReturn = RBrother($pAct);
+    $pReturn = $pAct->rbrother;
 
     return;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   goto loopGoNext;
 
@@ -547,22 +547,22 @@ sub GoPrev {
 
   $pAct = $pPar1;
 
-  if (LBrother($pAct)) {
+  if ($pAct->lbrother) {
 
-    $pAct = LBrother($pAct);
+    $pAct = $pAct->lbrother;
 
-    if (FirstSon($pAct)) {
+    if ($pAct->firstson) {
     loopDigDown:
-      $pAct = FirstSon($pAct);
+      $pAct = $pAct->firstson;
     loopLastBrother:
-      if (RBrother($pAct)) {
+      if ($pAct->rbrother) {
 
-	$pAct = RBrother($pAct);
+	$pAct = $pAct->rbrother;
 
 	goto loopLastBrother;
       }
 
-      if (FirstSon($pAct)) {
+      if ($pAct->firstson) {
 
 	goto loopDigDown;
       }
@@ -578,14 +578,14 @@ sub GoPrev {
   }
 
   if ($pAct eq $pPar2 ||
-      !(Parent($pAct))) {
+      !($pAct->parent)) {
 
     $pReturn = undef;
 
     return;
   }
 
-  $pReturn = Parent($pAct);
+  $pReturn = $pAct->parent;
 
   return;
 
@@ -623,12 +623,12 @@ sub _key_Tab {
 sub SearchSonsErr1 {
   my $pToSearch;		# used as type "pointer"
 
-  $pToSearch = FirstSon($pPar1);
+  $pToSearch = $pPar1->firstson;
  loopSSErr1:
   if ($pToSearch &&
       Interjection($pToSearch->{'err1'},$sPar1) ne $sPar1) {
 
-    $pToSearch = RBrother($pToSearch);
+    $pToSearch = $pToSearch->rbrother;
 
     goto loopSSErr1;
   }
@@ -652,14 +652,14 @@ sub SearchSonsErr1 {
 #      return;
 #    }
 
-#    $pParent = Parent($pAct);
+#    $pParent = $pAct->parent;
 
 #    if (!($pParent)) {
 
 #      return;
 #    }
 
-#    $pOldParent = Parent($pParent);
+#    $pOldParent = $pParent->parent;
 
 #    if (!($pOldParent)) {
 
@@ -836,7 +836,7 @@ sub MakeRootsAuxS {
 
   if (Interjection($this->{'lemma'},'#') ne '#' ||
       ( Interjection($this->{'afun'},'---') eq '---' &&
-	FirstSon($this) ) ||
+	$this->firstson ) ||
       ( Interjection($this->{'afun'},'---') ne '---' &&
 	Interjection($this->{'afun'},'AuxS') ne 'AuxS' )) {
 
@@ -986,9 +986,9 @@ sub MoveTree {
 
   $pAct = $pReturn;
 
-  if (FirstSon($pAct)) {
+  if ($pAct->firstson) {
 
-    $NodeClipboard=CutNode(FirstSon($pAct));
+    $NodeClipboard=CutNode($pAct->firstson);
 
     PrevTree();
 
@@ -1047,7 +1047,7 @@ sub _key_Ctrl_2 {
   my $OrdMax;			# used as type "string"
   my $pAct;			# used as type "pointer"
 
-  if (!(Parent($this))) {
+  if (!($this->parent)) {
 
     PrevTree();
 
@@ -1118,7 +1118,7 @@ sub _key_Ctrl_3 {
   my $OrdMax;			# used as type "string"
   my $OrdMin;			# used as type "string"
 
-  if (!(Parent($this))) {
+  if (!($this->parent)) {
 
     _key_Ctrl_4();
 
@@ -1561,7 +1561,7 @@ sub TestOrdConsistance {
 sub RepairRootZeros {
  loopRRZero:
   if (Interjection($this->{'ord'},"0") ne "0" &&
-      !(FirstSon($this))) {
+      !($this->firstson)) {
 
     $this->{'err1'} = '';
 
@@ -1811,7 +1811,7 @@ sub _key_Ctrl_Shift_8 {
 
   $pAct = $this;
 
-  $pParent = Parent($this);
+  $pParent = $this->parent;
 
   if (!($pParent)) {
 
@@ -1827,9 +1827,9 @@ sub _key_Ctrl_Shift_8 {
 
   $pParent->{'reserve1'} = (ValNo(0,$pParent->{'reserve1'}).'J;');
  moveSubTrees:
-  if (FirstSon($pAct)) {
+  if ($pAct->firstson) {
 
-    $NodeClipboard=CutNode(FirstSon($pAct));
+    $NodeClipboard=CutNode($pAct->firstson);
 
     $_pDummy = PasteNode($NodeClipboard,$pParent);
 
@@ -1941,16 +1941,16 @@ sub _key_Ctrl_Shift_4 {
 
   $pAct = $this;
 
-  $pParent = Parent($this);
+  $pParent = $this->parent;
 
   if (!($pParent)) {
 
     return;
   }
  moveSubTrees:
-  if (FirstSon($pAct)) {
+  if ($pAct->firstson) {
 
-    $NodeClipboard=CutNode(FirstSon($pAct));
+    $NodeClipboard=CutNode($pAct->firstson);
 
     $_pDummy = PasteNode($NodeClipboard,$pParent);
 
@@ -1978,7 +1978,7 @@ sub MarkAtv {
 
   if (Interjection($pPar1->{'afun'},'Atv') eq 'Atv') {
 
-    $tags = Parent($pPar1)->{'tag'};
+    $tags = $pPar1->parent->{'tag'};
 
     $tagnum = scalar(split /\|/,$tags);
 
@@ -2001,7 +2001,7 @@ sub MarkAtv {
 
     if (Interjection($pPar1->{'afun'},'AtvV') eq 'AtvV') {
 
-      $tags = Parent($pPar1)->{'tag'};
+      $tags = $pPar1->parent->{'tag'};
 
       $tagnum = scalar(split /\|/,$tags);
 
@@ -2033,9 +2033,9 @@ sub _key_Ctrl_Shift_3 {
   my $pAct;			# used as type "pointer"
   my $pThis;			# used as type "pointer"
 
-  if (!(Parent($this))) {
+  if (!($this->parent)) {
   forallrootsons:
-    $pAct = FirstSon($this);
+    $pAct = $this->firstson;
 
     if ($pAct) {
 
@@ -2049,13 +2049,13 @@ sub _key_Ctrl_Shift_3 {
 
     $pThis = $this;
   forallthissons:
-    $pAct = FirstSon($pThis);
+    $pAct = $pThis->firstson;
 
     if ($pAct) {
     moveSubTrees:
-      if (FirstSon($pAct)) {
+      if ($pAct->firstson) {
 
-	$NodeClipboard=CutNode(FirstSon($pAct));
+	$NodeClipboard=CutNode($pAct->firstson);
 
 	$_pDummy = PasteNode($NodeClipboard,$pThis);
 
@@ -2073,7 +2073,7 @@ sub _key_Ctrl_Shift_3 {
       goto forallthissons;
     }
 
-    Parent($pThis)->{'reserve1'} = (ValNo(0,Parent($pThis)->{'reserve1'}).'R;');
+    $pThis->parent->{'reserve1'} = (ValNo(0,$pThis->parent->{'reserve1'}).'R;');
 
     $sPar1 = ValNo(0,$pThis->{'ord'});
 
@@ -2098,7 +2098,7 @@ sub MarkPnomObj {
 
   if (Interjection($pPar1->{'afun'},'Obj') eq 'Obj') {
 
-    $lemmas = Parent($pPar1)->{'lemma'};
+    $lemmas = $pPar1->parent->{'lemma'};
 
     $lemnum = scalar(split /\|/,$lemmas);
 
@@ -2121,7 +2121,7 @@ sub MarkPnomObj {
 
     if (Interjection($pPar1->{'afun'},'Pnom') eq 'Pnom') {
 
-      $lemmas = Parent($pPar1)->{'lemma'};
+      $lemmas = $pPar1->parent->{'lemma'};
 
       $lemnum = scalar(split /\|/,$lemmas);
 
@@ -2209,7 +2209,7 @@ sub MarkWrongAfunPosition {
 
   if (Interjection($pPar1->{'lemma'},'#') eq '#') {
 
-    $pAct = FirstSon($pPar1);
+    $pAct = $pPar1->firstson;
   forallsons:
     if ($pAct) {
 
@@ -2228,7 +2228,7 @@ sub MarkWrongAfunPosition {
       }
 
 
-      $pAct = RBrother($pAct);
+      $pAct = $pAct->rbrother;
 
       goto forallsons;
     }
@@ -2236,7 +2236,7 @@ sub MarkWrongAfunPosition {
 
     if (substr(ValNo(0,$pPar1->{'afun'}),0,4) eq 'AuxZ') {
 
-      $pAct = FirstSon($pPar1);
+      $pAct = $pPar1->firstson;
     forallAuxZsons:
       if ($pAct) {
 
@@ -2249,7 +2249,7 @@ sub MarkWrongAfunPosition {
 	}
 
 
-	$pAct = RBrother($pAct);
+	$pAct = $pAct->rbrother;
 
 	goto forallAuxZsons;
       }
@@ -2259,7 +2259,7 @@ sub MarkWrongAfunPosition {
 
       $pPar1->{'err2'} = '';
 
-      if (FirstSon($pPar1) &&
+      if ($pPar1->firstson &&
 	  ( $Afun eq 'AuxV' ||
 	    $Afun eq 'AuxG' ||
 	    $Afun eq 'AuxR' ||
@@ -2273,7 +2273,7 @@ sub MarkWrongAfunPosition {
       } else {
 
 	if (Interjection($pPar1->{'afun'},'Pred') eq 'Pred' &&
-	    Interjection(Parent($pPar1)->{'lemma'},'#') ne '#') {
+	    Interjection($pPar1->parent->{'lemma'},'#') ne '#') {
 
 	  $pPar1->{'err2'} = 'Found';
 	} else {
@@ -2284,17 +2284,17 @@ sub MarkWrongAfunPosition {
 
 	  StrPos();
 
-	  $pAct = Parent($pPar1);
+	  $pAct = $pPar1->parent;
 
 	  if ($sReturn>"-1") {
 
 	    if (substr(ValNo(0,$pAct->{'afun'}),0,5) ne 'Coord') {
 
-	      if (Parent($pAct)) {
+	      if ($pAct->parent) {
 
 		if (( Interjection($pAct->{'afun'},'AuxP') ne 'AuxP' &&
 		      Interjection($pAct->{'afun'},'AuxC') ne 'AuxC' ) ||
-		    ( substr(ValNo(0,Parent($pAct)->{'afun'}),0,5) ne 'Coord' )) {
+		    ( substr(ValNo(0,$pAct->parent->{'afun'}),0,5) ne 'Coord' )) {
 
 		  $pPar1->{'err2'} = 'Found';
 		}
@@ -2312,17 +2312,17 @@ sub MarkWrongAfunPosition {
 
 	    StrPos();
 
-	    $pAct = Parent($pPar1);
+	    $pAct = $pPar1->parent;
 
 	    if ($sReturn>"-1") {
 
 	      if (substr(ValNo(0,$pAct->{'afun'}),0,4) ne 'Apos') {
 
-		if (Parent($pAct)) {
+		if ($pAct->parent) {
 
 		  if (( Interjection($pAct->{'afun'},'AuxP') ne 'AuxP' &&
 			Interjection($pAct->{'afun'},'AuxC') ne 'AuxC' ) ||
-		      ( substr(ValNo(0,Parent($pAct)->{'afun'}),0,4) ne 'Apos' )) {
+		      ( substr(ValNo(0,$pAct->parent->{'afun'}),0,4) ne 'Apos' )) {
 
 		    $pPar1->{'err2'} = 'Found';
 		  }
@@ -2415,10 +2415,10 @@ sub MarkWrongCoord {
       if (Interjection($pPar1->{'lemma'},',') eq ',') {
 
 	if (( Interjection($pPar1->{'afun'},'AuxX') eq 'AuxX' &&
-	      FirstSon($pPar1) ) ||
+	      $pPar1->firstson ) ||
 	    ( ( substr(ValNo(0,$pPar1->{'afun'}),0,5) eq 'Coord' ||
 		substr(ValNo(0,$pPar1->{'afun'}),0,4) eq 'Apos' ) &&
-	      !(FirstSon($pPar1)) ) ||
+	      !($pPar1->firstson) ) ||
 	    ( substr(ValNo(0,$pPar1->{'afun'}),0,5) ne 'Coord' &&
 	      substr(ValNo(0,$pPar1->{'afun'}),0,4) ne 'Apos' &&
 	      Interjection($pPar1->{'afun'},'AuxX') ne 'AuxX' &&
@@ -2471,7 +2471,7 @@ sub CorrectUv {
 #bind _key_Shift_F2 to Shift+F2
 sub _key_Shift_F2 {
 
-  if (Parent($this)) {
+  if ($this->parent) {
 
     $this->{'mstag'} = $this->{'origap'};
 
@@ -2510,7 +2510,7 @@ sub VerbsWithSe {
 
       if ($some=="0") {
 
-	$sPar1 = ValNo(0,Parent($pPar1)->{'lemma'});
+	$sPar1 = ValNo(0,$pPar1->parent->{'lemma'});
 
 	$sPar2 = '_';
 
@@ -2518,10 +2518,10 @@ sub VerbsWithSe {
 
 	if ($sReturn>"0") {
 
-	  PrintToFile($LogFile, map { ValNo(0,$_) } (substr(ValNo(0,Parent($pPar1)->{'lemma'}),0,$sReturn)));
+	  PrintToFile($LogFile, map { ValNo(0,$_) } (substr(ValNo(0,$pPar1->parent->{'lemma'}),0,$sReturn)));
 	} else {
 
-	  PrintToFile($LogFile, map { ValNo(0,$_) } (ValNo(0,Parent($pPar1)->{'lemma'})));
+	  PrintToFile($LogFile, map { ValNo(0,$_) } (ValNo(0,$pPar1->parent->{'lemma'})));
 	}
 
 
@@ -2576,7 +2576,7 @@ sub ListZUQ1 {
 
   $pA1 = $pPar1;
 
-  $pA2 = Parent($pPar1);
+  $pA2 = $pPar1->parent;
 
   if ($pA2 &&
       Interjection($pA1->{'afun'},'AuxY') eq 'AuxY') {
@@ -2692,12 +2692,12 @@ sub _key_Ctrl_7 {
 sub AuxZAuxZ {
   my $parent;			# used as type "pointer"
 
-  if (!(Parent($pPar1))) {
+  if (!($pPar1->parent)) {
 
     return;
   }
 
-  $parent = Parent($pPar1);
+  $parent = $pPar1->parent;
 
   if (Interjection($pPar1->{'afun'},'AuxZ') eq 'AuxZ' &&
       Interjection($parent->{'afun'},'AuxZ') eq 'AuxZ') {
@@ -2783,7 +2783,7 @@ sub PrintJako {
       Interjection($pAct->{'form'},'JAKO') eq 'JAKO' ||
       Interjection($pAct->{'form'},'Jako') eq 'Jako') {
 
-    $pSon = FirstSon($pAct);
+    $pSon = $pAct->firstson;
   loopSons:
     if ($pSon) {
 
@@ -2804,7 +2804,7 @@ sub PrintJako {
 	goto contTrees;
       }
 
-      $pSon = RBrother($pSon);
+      $pSon = $pSon->rbrother;
 
       goto loopSons;
     }
@@ -2859,16 +2859,16 @@ sub ToLine {
   my $pPrince;			# used as type "pointer"
   my $pInLaw;			# used as type "pointer"
 
-  if (Parent($this)) {
+  if ($this->parent) {
 
-    $pKing = Parent($this);
+    $pKing = $this->parent;
 
     $pPrince = $this;
   } else {
 
     $pKing = $this;
 
-    $pPrince = FirstSon($pKing);
+    $pPrince = $pKing->firstson;
 
     goto whileHasBrothers;
   }
@@ -2904,11 +2904,11 @@ sub ToLine {
 
     $_pDummy = PasteNode($NodeClipboard,$pKing);
 
-    $pInLaw = FirstSon($pKing);
+    $pInLaw = $pKing->firstson;
   whileNotInLaw:
     if (Interjection($pInLaw->{'warning'},'InLaw') ne 'InLaw') {
 
-      $pInLaw = RBrother($pInLaw);
+      $pInLaw = $pInLaw->rbrother;
 
       goto whileNotInLaw;
     }
@@ -2924,16 +2924,16 @@ sub ToLine {
 
   $pKing = $pPrince;
 
-  if (!(FirstSon($pKing))) {
+  if (!($pKing->firstson)) {
 
     return;
   }
 
-  $pPrince = FirstSon($pKing);
+  $pPrince = $pKing->firstson;
  whileHasBrothers:
-  if (RBrother($pPrince)) {
+  if ($pPrince->rbrother) {
 
-    $NodeClipboard=CutNode(RBrother($pPrince));
+    $NodeClipboard=CutNode($pPrince->rbrother);
 
     $_pDummy = PasteNode($NodeClipboard,$pPrince);
 
@@ -2961,19 +2961,19 @@ sub _key_3 {
 
   $pAct = $this;
 
-  if (!(Parent($pAct))) {
+  if (!($pAct->parent)) {
 
     return;
   }
 
-  if (Parent(Parent($pAct))) {
+  if ($pAct->parent->parent) {
 
-    $pNewPapa = Parent(Parent($pAct));
+    $pNewPapa = $pAct->parent->parent;
   } else {
 
-    if (LBrother($pAct)) {
+    if ($pAct->lbrother) {
 
-      $pNewPapa = LBrother($pAct);
+      $pNewPapa = $pAct->lbrother;
     } else {
 
       return;
@@ -3024,7 +3024,7 @@ sub MarkCoordNotCo {
 
   $test = "0";
 
-  $pPar1 = FirstSon($pAct);
+  $pPar1 = $pAct->firstson;
  loop:
   $pPar2 = $pAct;
 
@@ -3040,7 +3040,7 @@ sub MarkCoordNotCo {
 
       $pAux = $pPar1;
     parent:
-      $pAux = Parent($pAux);
+      $pAux = $pAux->parent;
 
       if ($pAux eq $pAct) {
 
@@ -3161,7 +3161,7 @@ sub HasSubItem {
 
 sub FindParent {
 
-  $pReturn = Parent($pPar1);
+  $pReturn = $pPar1->parent;
  loop:
   if (!($pReturn) ||
       ( substr(ValNo(0,$pReturn->{'afun'}),0,5) ne 'Coord' &&
@@ -3170,7 +3170,7 @@ sub FindParent {
     return;
   }
 
-  $pReturn = Parent($pReturn);
+  $pReturn = $pReturn->parent;
 
   goto loop;
 
@@ -3183,7 +3183,7 @@ sub TestInfinitives {
 
   $pAct = $pPar1;
 
-  if (!(FirstSon($pAct)) &&
+  if (!($pAct->firstson) &&
       Interjection($pAct->{'afun'},'AuxV') ne 'AuxV') {
 
     $sPar1 = 'VU';
@@ -3292,7 +3292,7 @@ sub TestAuxV {
 
     if (( $sReturn!="1" &&
 	  Interjection($pAct->{'lemma'},'by') ne 'by' ) ||
-	FirstSon($pAct)) {
+	$pAct->firstson) {
 
       $pAct->{'err2'} = 'Found';
 
@@ -3300,7 +3300,7 @@ sub TestAuxV {
     }
   } else {
 
-    if (!(FirstSon($pAct))) {
+    if (!($pAct->firstson)) {
 
       $sPar1 = 'být';
 
@@ -3337,7 +3337,7 @@ sub TestVsakAle {
       Interjection($pPar1->{'lemma'},'ale') eq 'ale') {
 
     if (substr(ValNo(0,$pPar1->{'afun'}),0,5) ne 'Coord' ||
-	!(FirstSon($pPar1))) {
+	!($pPar1->firstson)) {
 
       $pPar1->{'err2'} = 'Found';
 
@@ -3376,7 +3376,7 @@ sub OneSb {
 
   if (substr(ValNo(0,$pPar1->{'afun'}),0,2) eq 'Sb') {
 
-    $pBrother = RBrother($pPar1);
+    $pBrother = $pPar1->rbrother;
   rb:
     if ($pBrother) {
 
@@ -3403,7 +3403,7 @@ sub OneSb {
 
       } else {
 
-	$pBrother = RBrother($pBrother);
+	$pBrother = $pBrother->rbrother;
 
 	goto rb;
       }
@@ -3432,9 +3432,9 @@ sub ProtoCoord {
   if (Interjection($pPar1->{'lemma'},'proto') eq 'proto') {
 
     if (( substr(ValNo(0,$pPar1->{'afun'}),0,3) ne 'Adv' ||
-	  FirstSon($pPar1) ) &&
+	  $pPar1->firstson ) &&
 	( substr(ValNo(0,$pPar1->{'afun'}),0,4) ne 'AuxY' ||
-	  substr(ValNo(0,Parent($pPar1)->{'afun'}),0,5) ne 'Coord' ) &&
+	  substr(ValNo(0,$pPar1->parent->{'afun'}),0,5) ne 'Coord' ) &&
 	substr(ValNo(0,$pPar1->{'afun'}),0,5) ne 'Coord' &&
 	substr(ValNo(0,$pPar1->{'afun'}),0,3) ne 'ExD') {
 
@@ -3523,7 +3523,7 @@ sub TestAccomp {
       return;
     }
 
-    $pParent = Parent($pPar1);
+    $pParent = $pPar1->parent;
   lp:
     if (!($pParent)) {
 
@@ -3535,7 +3535,7 @@ sub TestAccomp {
     if (substr(ValNo(0,$pParent->{'afun'}),0,5) eq 'Coord' ||
 	substr(ValNo(0,$pParent->{'afun'}),0,4) eq 'Apos') {
 
-      $pParent = Parent($pParent);
+      $pParent = $pParent->parent;
 
       goto lp;
     }
@@ -3602,7 +3602,7 @@ sub TestAccomp2 {
       return;
     }
 
-    $pParent = Parent($pPar1);
+    $pParent = $pPar1->parent;
   lp:
     if (!($pParent)) {
 
@@ -3614,7 +3614,7 @@ sub TestAccomp2 {
     if (substr(ValNo(0,$pParent->{'afun'}),0,5) eq 'Coord' ||
 	substr(ValNo(0,$pParent->{'afun'}),0,4) eq 'Apos') {
 
-      $pParent = Parent($pParent);
+      $pParent = $pParent->parent;
 
       goto lp;
     }
