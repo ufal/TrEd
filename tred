@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-12 18:10:09 pajas>";
+$timestamp="Time-stamp: <2001-04-19 09:35:23 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -338,6 +338,12 @@ sub filename {
   return (index($a,$Ds)>=0)? substr($a,rindex($a,$Ds)+1) : $a;
 }
 
+sub tilde_expand {
+  my $a=shift;
+  $a=~s/$~/$ENV{HOME}/;
+  $a=~s/([^\\])~/\1$ENV{HOME}/g;
+  return $a;
+}
 
 ##################### character encoding functions ########################
 
@@ -495,28 +501,28 @@ sub setConfig {
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
     (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2');
 
-  ($libDir)=<$$confs{libdir}>
+  $libDir=tilde_expand($confs->{libdir})
     if (exists $confs->{libdir});
   unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
-  if (exists $$confs{psfontfile}) {
-    ($psFontFile)=<$$confs{psfontfile}>;
+  if (exists $confs->{psfontfile}) {
+    $psFontFile=tilde_expand($confs->{psfontfile});
     $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
 					   "$libDir/".$psFontFile);
   } else {
     $psFontFile="$libDir/csarialm.pfa";
   }
-  ($appIcon)=(exists $confs->{appicon}) ? <$$confs{appicon}> : ("$libDir/tred.xpm");
-  $sortAttrs=(exists $$confs{sortAttributes}) ? $$confs{sortAttributes} : 1;
-  $psFontName=(exists $$confs{psfontname}) ? $$confs{psfontname} : "Arial-Medium";
-  $psFontSize=(exists $$confs{psfontsize}) ? $$confs{psfontsize} : "12";
-  ($macroFile)=<$$confs{macrofile}> if (exists $$confs{macrofile});
-  ($defaultMacroFile)=(exists $confs->{defaultmacrofile}) ? <$$confs{defaultmacrofile}> : ("$libDir/tred.def");
+  $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
+  $sortAttrs=(exists $confs->{sortAttributes}) ? $confs->{sortAttributes} : 1;
+  $psFontName=(exists $confs->{psfontname}) ? $confs->{psfontname} : "Arial-Medium";
+  $psFontSize=(exists $confs->{psfontsize}) ? $confs->{psfontsize} : "12";
+  $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
+  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile} : "$libDir/tred.def";
   $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '21c';
   $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '297m';
   $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
   $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '1c';
   $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
-  ($psFile)=(exists $confs->{psfile}) ? <$$confs{psfile}> : ('tred.ps');
+  $psFile=(exists $confs->{psfile}) ? tilde_expand($confs->{psfile}) : 'tred.ps';
   $drawBoxes=(exists $confs->{drawboxes}) ? $confs->{drawboxes} : 0;
   $highlightAttributes=(exists $confs->{highlightattributes}) ? $confs->{highlightattributes} : 1;
   $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
