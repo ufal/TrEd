@@ -11,6 +11,18 @@
 #binding-context PMLTectogrammatic
 #include <contrib/pml.mak>
 
+#binding-context PML_A_View
+#include <contrib/PML_A_View.mak>
+
+#binding-context PML_A_Edit
+#include <contrib/PML_A_Edit.mak>
+
+#binding-context PML_T_View
+#include <contrib/PML_T_View.mak>
+
+#binding-context PML_T_Edit
+#include <contrib/PML_T_Edit.mak>
+
 #binding-context TFA
 #include <contrib/tfa.mak>
 
