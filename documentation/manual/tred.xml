@@ -2969,7 +2969,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry id="cstcdoctype">
+	<varlistentry id="cstsdoctype">
 	  <term><literal>CSTSDoctype</literal></term>
 	  <listitem>
 	    <para>
