@@ -1572,7 +1572,7 @@ sub interpolate_text_field {
   my ($self,$this,$text)=@_;
   # make root visible for the evaluated expression
   my $root=$this; $root=$root->parent while ($root->parent);
-  $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval $self->interpolate_refs($this,$1)/eg;
+  $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval "package TredMacro;\n".$self->interpolate_refs($this,$1)/eg;
   return $text;
 }
 
