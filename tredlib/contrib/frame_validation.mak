@@ -245,6 +245,23 @@ sub has_auxR {
    [
     sub { $_[0]->{tag}=~/^Vi/ ? 1 : 0 } =>
     [[ 'ACT(.1)' ] => [ '+ACT(.5)' ]]
+   ],
+   # 9. agreement between EFF and PAT in "mit tisic aut koupenych"
+   [
+    sub {
+      my ($node,$aids)=@_;
+      $node->{trlemma} eq "mít"
+      and
+      first { $_->{func} eq "PAT" and
+	      ( # "nema pranic spolecneho"
+		$_->{lemma}=~/^(nic|pranic|málo-2|pramálo|nìco|co-1)$/ or
+		# "s Petrem ma 5/mnoho vlastnosti spolecnych"
+		$_->{tag}=~/^....2/ or is_numeric_expression($_) or
+		# "s Petrem ma spolecneho, ze ..."
+		$_->{tag}=~/^V/ and first { $_->{lemma} eq "¾e" } get_aidrefs_nodes($aids,$_))
+	      } PDT::GetChildren_TR($node)
+	} =>
+    [[ 'PAT(.4)','EFF(.4)' ] => [ '+EFF(.a2)' ]]
    ]
   );
 
@@ -287,16 +304,16 @@ sub match_lemma {
 }
 
 sub match_node_coord {
-  my ($node, $fn,$aids,$no_case,$flags) = @_;
+  my ($node, $tnode, $fn,$aids,$no_case,$flags) = @_;
   $flags = {} unless defined($flags);
-  my $res = match_node($node,$fn,$aids,$no_case,$flags);
+  my $res = match_node($node, $tnode, $fn,$aids,$no_case,$flags);
   if (!$res and $node->{afun} =~ /^Coord|^Apos/) {
     foreach (grep { $node->{lemma} !~ /^a-1$|^nebo$/ or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ or
 		      ((first { $_->{lemma} =~ /^tak-3(_|$)/ } get_aidrefs_nodes($aids,$_)) and
 		       (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$_)))
 		  }
 	     with_AR{PDT::expand_coord_apos($node)}) {
-      return 0 unless match_node($_,$fn,$aids,$no_case,$flags);
+      return 0 unless match_node($_,$tnode,$fn,$aids,$no_case,$flags);
     }
     return 1;
   } else {
@@ -349,9 +366,26 @@ sub get_children_include_auxcp {
   }
 }
 
+sub same_clause_below {
+  my ($node)=@_;
+  return 0 if $node->{trlemma} eq "&Emp;";
+  return 1 if $node->{tag}!~/^V/;
+  my @c= PDT::GetFather_TR($node);
+  if ($node->{tag}=~/^Vf/ and
+      first { $_->{lemma} =~ /^(dokázat|lze|schopný)$/ } @c
+      or
+      $node->{tag}=~/^Vs/ and
+      first { $_->{lemma} =~ /^být|bývat|mít$/ } @c) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 sub is_direct_subclause {
   my ($node)=@_;
-  my $obj_pronoun=qr/^(?:co-1|jak-3|jaký|kdo|kolik|proè|kde|jak-2|co-4|kdy|kam|který|co¾-1|nakolik|odkud|èí)$/;
+  # |co¾-1
+  my $obj_pronoun=qr/^(?:co-1|co-4|jak-3|jaký|kdo|kudy|kolik|proè|kde|kde¾e|jak-2|co-4|kdy|kam|který|nakolik|odkud|èí)$/;
   # TODO: try finite verb
   if ($node->{__no_fake}) {
     $node=$node->{__no_fake};
@@ -360,19 +394,13 @@ sub is_direct_subclause {
     print "subclause trying:",join(", ",map{$_->{trlemma}} $node),"\n" if $V_verbose;
     my @c= PDT::GetChildren_TR($node);
     print "1st level:",join(", ",map{$_->{trlemma}} @c),"\n" if $V_verbose;
-    @c = grep { ($_->{tag}!~/^V/ or
-		 $_->{tag}=~/^Vf/ and
-		 first { $_->{lemma} =~ /^(dokázat|lze)$/ } PDT::GetFather_TR($_)
-		) and $_->{trlemma} ne "&Emp;" } @c;
+    @c = grep { same_clause_below($_) } @c;
     while (@c) {
       print "subclause trying:",join(", ",map{$_->{trlemma}} @c),"\n" if $V_verbose;
       return 1 if (first { $_->{lemma} =~ $obj_pronoun } @c);
       @c = uniq map {
-	grep { ($_->{tag}!~/^V/ or
-		 $_->{tag}=~/^Vf/ and
-		 first { $_->{lemma} =~ /^(dokázat|lze)$/ } PDT::GetFather_TR($_)
-		) and $_->{trlemma} ne "&Emp;" }
-	  PDT::GetChildren_TR($_)} @c;
+	grep { same_clause_below($_) } PDT::GetChildren_TR($_)
+      } @c;
     }
   }
   return 0;
@@ -455,7 +483,7 @@ sub match_gender {
 
 
 sub match_node {
-  my ($node, $fn, $aids,$no_case,$flags,$toplevel) = @_;
+  my ($node, $tnode, $fn, $aids,$no_case,$flags,$toplevel) = @_;
 
   print "match_node_FLAGS: ",join(" ",%$flags),"\n" if $V_verbose;
 
@@ -580,10 +608,11 @@ sub match_node {
       if ($flags->{loose_dsp}) {
 	return 0 unless $node->{tag}=~/^V/;
       } else {
-	unless ($node->{dsp_root}==1) {
+	my $p = $tnode || $node;
+	unless ($p->{dsp_root}==1) {
 	  my $dsp = 0;
-	  if (PDT::is_member_TR($node)) {
-	    my $p = $node->parent;
+	  if (PDT::is_member_TR($p)) {
+	    $p = $p->parent;
 	    while ($p and PDT::is_coord_TR($p)) {
 	      if ($p->{dsp_root}) {
 		$dsp=1;
@@ -600,7 +629,7 @@ sub match_node {
       # this should be more strict, for ex. we should probably require IsFiniteVerb or something
       if ($flags->{strict_subclause}) {
 	print "trying STRICT subclause\n" if $V_verbose;
-	return 0 unless is_direct_subclause($node);
+	return 0 unless is_direct_subclause($tnode || $node);
       } else {
 	return 0 unless $node->{tag}=~/^V/;
       }
@@ -611,6 +640,7 @@ sub match_node {
   } elsif (#!$no_case and  # BYT_CHANGE
 	   $case ne '') { # assume $tag =~ /^[CNP]/
     unless ($kdo or $node->{tag}=~/^[CNPX]/ or (!$flags->{strict_adjectives} and $node->{tag}=~/^A/) or
+	    ($node->{lemma}=~ /(ano|ne|pro-1|proti-1)/ and $node->{afun}=~/^(ExD|Adv|Obj|Sb)_.*$/) or
 	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|nemálo-1|málo-3|dost|do-1|mezi-1|kolem-1|po-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
       return 0;
@@ -648,7 +678,7 @@ sub match_node {
     }
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
-    unless (first { match_node_coord($_,$ffn,$aids,$no_case,$flags) } get_children_include_auxcp($node)) {
+    unless (first { match_node_coord($_,undef,$ffn,$aids,$no_case,$flags) } get_children_include_auxcp($node)) {
       my @nc = with_AR {
 	PDT::GetChildren_AR($node,
 			    sub{1},
@@ -850,7 +880,7 @@ sub match_form {
     my ($pnode) = $parent->getChildrenByTagName('node') if $parent;
     if ($pnode) {
       foreach my $p (PDT::GetFather_TR($node)) {
-	unless (match_node($p,$pnode,$aids,0,$flags,1)) {
+	unless (match_node($p,$p,$pnode,$aids,0,$flags,1)) {
 	  print "PARENT-CONSTRAINT MISMATCH: [$p->{lemma} $p->{form} $p->{tag}] ==> ",$V->serialize_form($pnode),"\n" if $V_verbose;
 	  return 0;
 	}
@@ -859,7 +889,7 @@ sub match_form {
     my @form_nodes = $form->getChildrenByTagName('node');
     if (@form_nodes) {
       foreach my $fn (@form_nodes) {
-	unless (first { match_node($_,$fn,$aids,$no_case,$flags,1) } @ok_a) {
+	unless (first { match_node($_,$node,$fn,$aids,$no_case,$flags,1) } @ok_a) {
 	  print "MISMATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$V->serialize_form($fn),"\n"
 	    if $V_verbose;
 	  return 0;
@@ -1433,9 +1463,13 @@ sub validate_frame_no_transform {
 	  }
 	  my $fail=0;
 	  foreach my $c (@{$c{$alt_func}}) {
-	    unless (match_element($V,$c,$alt_e,$node,$aids,$flags,$quiet)) {
+	    unless (match_element($V,$c,$alt_e,$node,$aids,$flags,1) ) {
 	      $fail=1;
-	      print "ALTERNATIVE $alt_func FAIL\n" if (!$quiet and $V_verbose);
+	      if (!$quiet and $V_verbose) {
+		# once more for the show
+		match_element($V,$c,$alt_e,$node,$aids,$flags,0);
+		print "ALTERNATIVE $alt_func FAIL\n";
+	      }
 	      last;
 	    }
 	  }
@@ -1446,6 +1480,12 @@ sub validate_frame_no_transform {
 	  }
 	}
 	unless ($success) {
+	  if ($V_verbose) {
+	    print "\nA0 no alternative matches: $o\n";
+	  } elsif (!$quiet) {
+	    print "A0 no alternative matches: $o\t";
+	    Position($node);
+	  }
 	  print "NO MATCH FOR ALTERNATION: ",$V->serialize_element($e)."\n" if (!$quiet and $V_verbose);
 	  return 0;
 	}
