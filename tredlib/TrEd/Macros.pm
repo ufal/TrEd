@@ -53,20 +53,19 @@ sub read_macros {
     %menuBindings=();
     @macros=();
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
-    print "ERROR: Cannot open macros: $defaultMacroFile!\n", return
+    print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
       unless open(F,"<$defaultMacroFile");
     push @macros, <F>;
     close F;
   }
-
-  print "ERROR: Cannot open macros: $file!\n", return
-    unless open(F,"<$file");
+  open(F,"<$file") || die "ERROR: Cannot open macros: $file!\n";
 
 #
 # new "pragmas":
 #
-# include <file>
-# include "file"
+# include <file>  ... relative to tred's libdir
+# include "file"  ... relative to dir of the current macro file
+# include file    ... absolute or relative to current dir or one of the above
 #
 # binding-context <context> [<context> [...]]
 #
@@ -81,9 +80,9 @@ sub read_macros {
   push @macros,"\n#line 1 \"$file\"\n";
   while (<F>) {
     push @macros,$_;
-    if (/\#[ \t]*binding-context[ \t]+(.*)/) {
+    if (/^\#[ \t]*binding-context[ \t]+(.*)/) {
       @contexts=(split /[ \t]+/,$1);
-    } elsif (/\#[ \t]*key-binding-adopt[ \t]+(.*)/) {
+    } elsif (/^\#[ \t]*key-binding-adopt[ \t]+(.*)/) {
       my @toadopt=(split /[ \t]+/,$1);
       my $context;
       my $toadopt;
@@ -95,7 +94,7 @@ sub read_macros {
 	  }
 	}
       }
-    } elsif (/\#[ \t]*menu-binding-adopt[ \t]+(.*)/) {
+    } elsif (/^\#[ \t]*menu-binding-adopt[ \t]+(.*)/) {
       my @toadopt=(split /[ \t]+/,$1);
       my $context;
       my $toadopt;
@@ -107,7 +106,7 @@ sub read_macros {
 	  }
 	}
       }
-    } elsif (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/)
+    } elsif (/^\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/)
       {
 	$macro=$1;
 	$key=$2;
@@ -123,32 +122,57 @@ sub read_macros {
 	    $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
 	  }
 	}
-      } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
+      } elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
 	$macro=$1;
 	$menu=TrEd::Convert::encode($2);
 	foreach (@contexts) {
 	  $menuBindings{$_}={} unless exists($menuBindings{$_});
 	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
 	}
-      } elsif (/\#[[ \t]*include[ \t]+(.+\S)\s*/) {
-	my $mf=$1;
-#	print STDERR "including $mf\n";
+      } elsif (/^\#\s*include\s+\<(.+\S)\>\s*$/) {
+	my $mf="$libDir/$1";
+	if (-f $mf) {
+	  read_macros($mf,$libDir,1,@contexts);
+	} else {
+	  die 
+	    "Error including macros $mf\n from $file: ",
+	    "file not found!\n";
+	}
+      } elsif (/^\#\s*include\s+"(.+\S)"\s*$/) {
+	$mf=dirname($file).$mf;
+	if (-f $mf) {
+	  return read_macros($mf,$libDir,1,@contexts);
+	} else {
+	  die
+	    "Error including macros $mf\n from $file: ",
+	    "file not found!\n";
+	}
+      } elsif (/^\#\s*include\s+(.+\S)\s*$/) {
+	my $f=$1;
+	if ($f=~m%^/%) {
+	  return read_macros($f,$libDir,1,@contexts);
+	}
+	my $mf=$f;
+	print STDERR "including $mf\n" if $macroDebug;
 	unless (-f $mf) {
 	  $mf=dirname($file).$mf;
-#	  print STDERR "trying $mf\n";
+	  print STDERR "trying $mf\n" if $macroDebug;
 	  unless (-f $mf) {
-	    $mf="$libDir/$1";
-#	    print STDERR "not found, trying $mf\n";
+	    $mf="$libDir/$f";
+	    print STDERR "not found, trying $mf\n" if $macroDebug;
 	  }
 	}
 	if (-f $mf) {
 	  read_macros($mf,$libDir,1,@contexts);
 	} else {
-	  print STDERR "Cannot include macros\n$mf\n to $file: file not found!\n";
+	  die
+	    "Error including macros $mf\n from $file: ",
+	    "file not found!\n";
 	}
       }
   }
   close(F);
+  return 1;
 }
 
 
