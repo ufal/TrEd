@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-16 12:14:10 pajas>
+## Time-stamp: <2002-10-25 11:17:17 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -707,5 +707,23 @@ sub upgrade_file_to_tid_aidrefs {
 			      qw{Ano Ne}) eq 'Ano') {
     generate_tids_whole_file();
     move_aid_to_aidrefs();
+  }
+}
+
+sub reorder_dords {
+  my $nodesref=[ GetNodes() ];
+  SortByOrd($nodesref);
+  $nodesref = [$root, grep {$_ != $root} @$nodesref];
+  my $ord=$grp->{FSFile}->FS->order;
+  for (my $i=0;$i<=$#$nodesref; $i++) {
+    if ($nodesref->[$i]->{$ord}!=$i) {
+      print FileName()."##".(CurrentTreeNumber()+1).".".GetNodeIndex($nodesref->[$i]).": ",
+	$nodesref->[$i]->{$ord}," --> $i\n";
+      $nodesref->[$i]->{$ord}=$i;
+      $FileChanged=1;
+    }
+  }
+  for (my $i=0;$i<=$#$nodesref;$i++) {
+    RepasteNode($nodesref->[$i]);
   }
 }
