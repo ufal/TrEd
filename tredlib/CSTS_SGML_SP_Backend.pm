@@ -1,15 +1,12 @@
 package CSTS_SGML_SP_Backend;
 
-use IOBackend qw(handle_protocol set_encoding);
+use IOBackend qw(set_encoding);
 use Csts2fs;
 use Fs2csts;
 
-use vars qw($zcat $gzip $sgmls $sgmlsopts $doctype);
+use vars qw($sgmls $sgmlsopts $doctype);
 
 sub default_settings {
-  $zcat = "/bin/zcat" unless $zcat;
-  $gzip = "/usr/bin/gzip" unless $gzip;
-
   $sgmls = "nsgmls" unless $sgmls;
   $sgmlsopts = "-i preserve.gen.entities" unless $sgmlsopts;
   $doctype = "csts.doctype" unless $doctype;
@@ -43,7 +40,7 @@ sub open_backend {
     $cmd=~s/\%f/-/g;
     print STDERR "[r $cmd]\n"; # if $Fslib::Debug;
     no integer;
-    $fh = set_encoding(IOBackend::get_store_fh($filename,$cmd),$encoding);
+    $fh = set_encoding(IOBackend::open_pipe($filename,'r',$cmd),$encoding);
   } else {
     die "unknown mode $mode\n";
   }
