@@ -1695,10 +1695,12 @@ sub filelistDialog {
 
   if ($grp->{focusedWindow}->{currentFileNo}) {
     my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{focusedWindow}->{currentFileNo});
-    $t->anchorSet($path);
     $t->selectionClear();
-    $t->selectionSet($path);
-    $t->see($path);
+    if ($path ne "") {
+      $t->anchorSet($path);
+      $t->selectionSet($path);
+      $t->see($path);
+    }
   }
   $t->focus;
   if ($modal) {
@@ -1933,34 +1935,6 @@ sub copyTreesDialog {
   }
 }
 
-sub printThis {
-  my ($grp)=@_;
-  return unless $grp->{focusedWindow}->{FSFile};
-  my $canvas=$grp->{top}->Canvas();
-  my @print_opts=printDialog($grp);
-  return unless scalar(@print_opts)>2;
-  $print_opts[0]=$grp->{focusedWindow}->{treeNo}+1
-    if (!defined($print_opts[0]) or $print_opts[0] eq "");
-  TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
-			   $grp->{top},
-			   $canvas,
-			   @print_opts,
-			   $grp->{focusedWindow}->{treeView}->get_showHidden(),
-			   $psFontFile,
-			   $psFontAFMFile,
-#			   $type1font,
-			   $prtFmtWidth,
-			   $prtHMargin,
-			   $prtFmtHeight,
-			   $prtVMargin,
-			   $psFontName,
-			   $psFontSize,
-			   $maximizePrintSize,
-			   $psMedia,
-			   $treeViewOpts
-			  );
-  $canvas->destroy();
-}
 
 
 
@@ -3321,6 +3295,7 @@ sub startMain {
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
   $group{Menubar}->bind('Menubutton','<Escape>', [sub { shift->Leave(); }] );
+
   foreach my $prefix ('Alt','Meta') {
     $group{frame}->
       bind('my',"<$prefix-KeyPress>"=>
@@ -3428,11 +3403,25 @@ sub startMain {
 			 currentLeft($_[1]);
 			 Tk->break;
 		       },\%group]);
+  $group{frame}->bind('my','<Shift-Left>'=>
+		      [sub {
+			 $treeViewOpts->{reverseNodeOrder} ?
+			 currentRightWholeLevel($_[1]) :
+			 currentLeftWholeLevel($_[1]);
+			 Tk->break;
+		       },\%group]);
   $group{frame}->bind('my','<KeyPress-Right>'=>
 		      [sub {
 			 $treeViewOpts->{reverseNodeOrder} ?
 			 currentLeft($_[1]) :
 			 currentRight($_[1]);
+			 Tk->break;
+		       },\%group]);
+  $group{frame}->bind('my','<Shift-Right>'=>
+		      [sub {
+			 $treeViewOpts->{reverseNodeOrder} ?
+			 currentLeftWholeLevel($_[1]) :
+			 currentRightWholeLevel($_[1]);
 			 Tk->break;
 		       },\%group]);
   $group{frame}->bind('my','<KeyPress-Up>'=>
@@ -4252,8 +4241,7 @@ sub editAttrsDialog {
  				       $e->configure(-state=> 'disabled');
  				     }
 				   },$e{$_},$win,$node,$_,$d]
-		     )
-	  ->pack(qw/-side right/);
+		     )->pack(qw/-side right/);
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
       $e{$_}->insert(0,encode($node->getAttribute($_)));
@@ -5213,6 +5201,38 @@ sub currentRight {
       setCurrent($win,$n);
       centerTo($win,$win->{currentNode});
     }
+  }
+}
+
+sub currentRightWholeLevel {
+  my $grp=$_[0];
+  my $win=$grp->{focusedWindow};
+  return unless $win->{FSFile};
+  my $node = $win->{currentNode};
+  return unless $node;
+  my $level=$node->level;
+  do {
+    $node=HNext($win,$node);
+  } while ($node and $level!=$node->level);
+  if ($node) {
+    setCurrent($win,$node);
+    centerTo($win,$win->{currentNode});
+  }
+}
+
+sub currentLeftWholeLevel {
+  my $grp=$_[0];
+  my $win=$grp->{focusedWindow};
+  return unless $win->{FSFile};
+  my $node = $win->{currentNode};
+  return unless $node;
+  my $level=$node->level;
+  do {
+    $node=HPrev($win,$node);
+  } while ($node and $level!=$node->level);
+  if ($node) {
+    setCurrent($win,$node);
+    centerTo($win,$win->{currentNode});
   }
 }
 
