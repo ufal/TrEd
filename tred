@@ -2987,18 +2987,18 @@ sub editConfig {
     $grp->{configDialog}->raise;
     return;
   }
-  $grp->{configDialog}= $grp->{top}->Toplevel(-title=> "Edit Resource File ($configFile)" , 
-						   -width=> "10c");
+  $grp->{configDialog}= 
+    $grp->{top}->Toplevel(-title=> "Edit Resource File ($configFile)" , 
+			  -width=> "10c");
   my $d=$grp->{configDialog};
   $d->withdraw;
-#  $d->resizable(0,0);
   $d->bind('<Return>'=> [sub {1;}]);
   my $t= $d->
-    Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
-		     -height 30 -scrollbars oe/);
-  $t->pack(qw/-expand yes -fill both/);
+    Scrolled(qw/Text -relief sunken -borderwidth 2
+		     -height 20 -scrollbars oe/);
+  $t->pack(qw/-side top -expand yes -fill both/);
   $t->BindMouseWheelVert();
-  my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
+  my $bottom=$d->Frame()->pack(qw/-side bottom -fill x/);
   $bottom->
     Button(-text=> "  Save and Apply  ",
 	   -command=> [sub {
@@ -3010,11 +3010,10 @@ sub editConfig {
 			  updateTitle($grp);
 			  $grp->{valueLine}->configure(-font=> $vLineFont);
 			  foreach (@{$grp->{treeWindows}}) {
-			    $_->apply_options($treeViewOpts);
+			    $_->treeView->apply_options($treeViewOpts);
 			  }
 			  ApplyGlobalConfig($grp);
 			  redraw_all($grp);
-#			  $d->destroy;
 			},$grp,$d,$t])
       ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "  Apply  ",
@@ -3026,7 +3025,7 @@ sub editConfig {
 				 updateTitle($grp);
 				 $grp->{valueLine}->configure(-font=> $vLineFont);
 				 foreach (@{$grp->{treeWindows}}) {
-				   $_->apply_options($treeViewOpts);
+				   $_->treeView->apply_options($treeViewOpts);
 				 }
 				 ApplyGlobalConfig($grp);
 				 redraw_all($grp);
