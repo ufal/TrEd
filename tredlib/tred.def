@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-01 11:48:36 pajas>
+## Time-stamp: <2002-10-01 12:44:21 pajas>
 
 package TredMacro;
 
@@ -1442,6 +1442,58 @@ Return 1 if running from TrEd, i.e., GUI is available.
 sub GUI {
   return (ref($grp) eq 'TrEd::Window');
 }
+
+
+=item substituteFSHeader(declarations)
+
+Substitute a new FS header for current document. A list of valid FS
+declarations must be passed to this function.
+
+=cut
+
+sub substituteFSHeader {
+  $grp->{FSFile}->changeFS(FSFormat->create(@_));
+}
+
+
+=item appendFSHeader(declarations)
+
+Merge given FS header declarations with the present header
+of the current document.
+
+=cut
+sub appendFSHeader {
+  my $new=FSFormat->create(@_);
+  my $newdefs=$new->defs();
+  my $fs=$grp->{FSFile}->FS;
+  my $defs=$grp->{FSFile}->FS->defs();
+  my $list=$grp->{FSFile}->FS->list();
+  foreach ($new->attributes()) {
+    push @$list, $_ unless ($fs->exists($_));
+    $defs->{$_}=$newdefs->{$_};
+  }
+  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
+}
+
+=item undeclareAttributes(@attributes)
+
+Remove declarations of given attributes from the FS header
+
+=cut
+
+sub undeclareAttributes {
+  my $fs=$grp->{FSFile}->FS;
+  my $defs=$grp->{FSFile}->FS->defs();
+  my $list=$grp->{FSFile}->FS->list();
+  delete @{$defs}{@_};
+
+  @$list=grep { exists($defs->{$_}) } @$list;
+  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
+    @{$fs->unparsed} if $fs->unparsed;
+
+}
+
+
 
 
 =back
