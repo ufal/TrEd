@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-09-17 15:40:30 pajas>
+## Time-stamp: <2001-10-20 22:32:21 paja>
 
 package TredMacro;
 
@@ -92,6 +92,15 @@ sub Redraw_All {
   $main::insideEval=0;
   &main::redraw_all($grp->{framegroup});
   $main::insideEval=$ie;
+}
+
+
+sub StandardTredFont {
+  return $main::font;
+}
+
+sub StandardTredValueLineFont {
+  return $main::vLineFont;
 }
 
 sub SetCurrentNodeInOtherWin {
