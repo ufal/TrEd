@@ -14,4 +14,5 @@
 #bind ProjectivizeSubTree to Alt+P menu Projectivize subtree
 #bind ShiftSTLeft to Alt+Left menu Shift subtree to the left
 #bind ShiftSTRight to Alt+Right menu Shift subtree to the right
+#bind OrderSTByTFA to Alt+U menu Order subtree by TFA
 
