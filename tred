@@ -444,7 +444,7 @@ if ($opt_l) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
     if (open(F,"<$l")) {
       my @f=<F>;
-      chomp @f;
+      s/\s+$// for @f;
       push @fl_files,\@f;
       close(F);
     } else {
@@ -571,7 +571,7 @@ sub get_open_filename {
     $c=~s/\%m/"$types"/g;
     $c=~s/\%d/"$initialdir"/g;
     my $ret = `$c`;
-    chomp $ret;
+    s/\s+$// for $ret;
     return $ret;
   } else {
     $w->getOpenFile(%opts);
@@ -593,7 +593,7 @@ sub get_save_filename {
     $c=~s/\%d/"$initialdir"/g;
     $c=~s/\%f/"$initialfile"/g;
     my $ret = `$c`;
-    chomp $ret;
+    s/\s+$// for $ret;
     return $ret;
   } else {
     $w->getSaveFile(%opts);
@@ -680,7 +680,7 @@ sub readStyleSheets {
   my $stylesheet="Default";
   $grp->{stylesheets}={};
   while (<$f>) {
-    chomp;
+    s/\s+$//;
     next unless /\S/;
     next if /^#/;
     if (/^stylesheet:\s*(.*)/) {
@@ -1012,7 +1012,7 @@ sub readLock {
     $lockinfo = $lock->getline();
     $lock->close();
     unlink $file if $remove_file;
-    chomp $lockinfo;
+    $lockinfo =~ s/[\n\r]+$//;
   };
   print $@ if $@;
   print STDERR "Fetched lock $lockinfo\n" if $lockinfo and $tredDebug;
@@ -1788,7 +1788,10 @@ sub saveFile {
     }
   }
 
-  rename $f,$f."~" if (-f $f);
+  eval {
+    IOBackend::rename_uri($f,$f."~"); # if (-f $f);
+  };
+  print STDERR $@;
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   if (doEvalHook($win,"file_save_hook",$f) eq 'stop') {
     $win->toplevel->Unbusy() unless $insideEval;
