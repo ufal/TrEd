@@ -542,6 +542,7 @@ sub setSelected {
 sub setSelectedIndex { 
   my ($cw, $index) = @_;
 
+  return if ($cw->cget('-state') =~ /disabled/);
   my $lb = $cw->Subwidget('Listbox');
   $index = $cw->index($index);
   return if (!defined($index));  
@@ -704,7 +705,7 @@ sub AutoScan {
 sub ButtonDown {
   my ($cw) = shift;
 
-  return if ($cw->cget('-state') =~ /disabled/);
+#  return if ($cw->cget('-state') =~ /disabled/);
 
   my $button;
   my $mode = $cw->cget('-mode');
@@ -723,7 +724,7 @@ sub ButtonDown {
     $cw->hidePopup;
     $index = $cw->getSelectedIndex;
     if (defined($index)) {
-      $cw->setSelectedIndex($index);  
+      $cw->setSelectedIndex($index);
     }
   } else {
     $cw->showPopup;
@@ -848,12 +849,26 @@ sub EntryUpDown {
   $lb->selectionSet('active');
   $lb->see($index+$modifier);
 }
-  
+
 sub SetFocus {
   my $cw = shift;
   if ($cw->cget('-mode') eq 'editable') {
     $cw->Subwidget('ED_Entry')->focus;
   }
+}
+
+sub CurSelection {
+  my $cw = shift;
+  my $lb = $cw->Subwidget('Listbox');
+  my $sel = $lb->curselection;
+  if (ref($sel) and $sel->[0]) {
+    return $sel->[0];
+  } elsif ($cw->cget('-mode') eq 'editable') {
+    my $str =  $cw->Subwidget('ED_Entry')->get;
+    return $cw->getItemIndex($str);
+  } else {
+    return undef;
+  } 
 }
 
 1;
