@@ -213,7 +213,8 @@ sub getWordSubList {
     if ($posfilter eq '' or $pos eq uc($posfilter)) {
       my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
       my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
-      unshift @words, [$word,$id,$lemma,$pos];
+      my $reviewed = $self->wordReviewed($word);
+      unshift @words, [$word,$id,$lemma,$pos,$reviewed];
       $i++;
     }
     $word=$word->findPreviousSibling('word');
@@ -227,7 +228,8 @@ sub getWordSubList {
     if ($posfilter eq '' or $pos eq uc($posfilter)) {
       my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
       my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
-      push @words, [$word,$id,$lemma,$pos];
+      my $reviewed = $self->wordReviewed($word);
+      push @words, [$word,$id,$lemma,$pos,$reviewed];
       $i++;
     }
     $word=$word->findNextSibling('word');
@@ -236,6 +238,11 @@ sub getWordSubList {
     @words;
 }
 
+sub wordReviewed {
+  my ($self, $word)=@_;
+  return (grep { $_->getAttribute('status') eq 'active' }
+    $self->getFrameNodes($word))==0;
+}
 
 sub getWordList {
   my ($self)=@_;
@@ -248,7 +255,8 @@ sub getWordList {
     my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
     my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
-    push @words, [$word,$id,$lemma,$pos];
+    my $reviewed = $self->wordReviewed($word);
+    push @words, [$word,$id,$lemma,$pos,$reviewed];
     $word=$word->nextSibling();
     while ($word) {
       last if ($word->nodeName() eq 'word');
