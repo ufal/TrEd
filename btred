@@ -23,7 +23,7 @@ if ($^V lt v5.6.0) {
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-getopts('qQDx:p:r:s:a:f:c:i:m:e:t:huNHSTX:RWV');
+getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:huNHSTX:RWV');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u || $opt_h) {
@@ -31,7 +31,7 @@ if ($opt_u || $opt_h) {
 Usage:
   btred [-c config-file] [-m macro-file] [-e code]
         [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
-        [-f out-fmt]  [-x extra_attribs]
+        [-f out-fmt]  [-x extra_attribs] [-n encoding]
         [-i init-code] [-t context] [-W] [-q|-Q] [-D] [-N|-H] [-V]
         [-S] [-T] [-o script options -- ] files...
 or
@@ -63,7 +63,8 @@ prefix_regexp - remove strings matching given regexp from
 prepend       - prepend filenames with the given prefix
 extra_attribs - comma separated list of non-CSTS attributes to preserve when
                 converting to CSTS
-
+encoding      - allows to specify the default charset for FS files (useful
+                with perl >= 5.7)
 
 -N            - wrap 'while ($this) { ...; $this=$this->following; }
                 around the code
@@ -364,6 +365,7 @@ sub openFile {
 # saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
   closeFile($grp);
 
+  $TrEd::Convert::inputenc=$opt_n if $opt_n;
   $grp->{'FSFile'} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
   $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
   print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
