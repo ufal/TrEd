@@ -253,8 +253,11 @@ sub create_default_subst_frame {
   my $word=$wl->infoData($item);
   print "word $word\n";
   return unless $word;
-
-  my $new=$data->addFrame(undef,$word,"ACT(p,2,7) PAT(2)","","","",$data->user());
+  my $pos=$data->getPOS($word);
+  my $new=$data->addFrame(undef,$word,
+			  ($pos eq 'V') ? 'ACT(1) PAT(4)' :
+			  ($pos eq 'A') ? 'ACT(7) PAT(2)' : 'ACT(2,p,7) PAT(2)',
+			  ,"","","",$data->user());
   print "new $new\n";
   $editor->subwidget('framelist')->fetch_data($word);
   $editor->wordlist_item_changed($editor->subwidget('wordlist')->focus($word));

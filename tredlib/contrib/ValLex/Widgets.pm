@@ -635,35 +635,39 @@ sub create_widget {
 			     -relief => 'raised'
 			    );
 
-  my $label=$frame->Label(-text => "Frame Elements",
+  my $label=$frame->Label(-text => "Frame Elements", -underline => 0,
 			  qw/-anchor nw -justify left/)
     ->pack(qw/-expand yes -fill x -padx 6/);
   my $w=$frame->Entry(qw/-background white/,
 		      -validate => 'all',
 		      -vcmd => [\&edit_validate,$self],
 		     );
+  $w->toplevel->bind('<Alt-f>',sub { $w->focus() });
   $w->configure(-invcmd => [\&bell,$self]);
   $w->pack(qw/-padx 6 -fill x -expand yes/);
   $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
-  my $ex_label=$frame->Label(qw/-text Example -anchor nw -justify left/)
+  my $ex_label=$frame->Label(qw/-text Example -underline 0 -anchor nw -justify left/)
     ->pack(qw/-expand yes -fill x -padx 6/);
   my $example=$frame->Text(qw/-width 40 -height 5 -background white/);
+  $example->toplevel->bind('<Alt-e>',sub { $example->focus() });
   $example->pack(qw/-padx 6 -expand yes -fill both/);
   $example->bind($example,'<Tab>',[sub { shift->focusNext; Tk->break;}]);
   $example->bind($example,'<Return>',[sub { shift->insert('insert',"\n"); Tk->break;}]);
   $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
 
-  my $note_label=$frame->Label(qw/-text Note -anchor nw -justify left/)
+  my $note_label=$frame->Label(qw/-text Note -underline 0 -anchor nw -justify left/)
     ->pack(qw/-expand yes -fill x -padx 6/);
   my $note=$frame->Text(qw/-width 40 -height 5 -background white/);
+  $note->toplevel->bind('<Alt-n>',sub { $note->focus() });
   $note->pack(qw/-padx 6 -expand yes -fill both/);
   $note->bind($note,'<Tab>',[sub { shift->focusNext; Tk->break;}]);
   $note->bind($note,'<Return>',[sub { shift->insert('insert',"\n"); Tk->break;}]);
   $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
 
-  my $problem_label=$frame->Label(qw/-text Problem -anchor nw -justify left/)
+  my $problem_label=$frame->Label(qw/-text Problem -underline 0 -anchor nw -justify left/)
     ->pack(qw/-expand yes -fill x -padx 6/);
   my $problem=$frame->Entry(qw/-background white/);
+  $note->toplevel->bind('<Alt-p>',sub { $problem->focus() });
   $problem->pack(qw/-padx 6 -expand yes -fill x/);
 
   foreach my $b ($w, $example, $note, $problem) {
