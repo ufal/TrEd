@@ -1,7 +1,7 @@
 package StorableBackend;
 use Fslib;
 use Storable qw(nstore_fd fd_retrieve);
-use IOBackend qw(open_backend close_backend);
+use IOBackend qw( close_backend);
 use strict;
 
 
@@ -33,6 +33,10 @@ sub test {
     close_backend($fh);
     return $test;
   }
+}
+
+sub open_backend {
+  IOBackend::open_backend(@_[0,1]);
 }
 
 =pod
