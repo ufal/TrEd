@@ -2002,7 +2002,7 @@ sub startMain {
     }
     $group{top}->geometry($geometry);
   }
-
+  prepareFonts(\%group);
   $group{treeWindows}=[];
   $group{focusedWindow}=newTrEdWindow(\%group);
   my $canvas = $group{focusedWindow}->canvas();
@@ -2333,9 +2333,6 @@ sub startMain {
 	  -underline=> 0,
 	  -command=> [\&About,\%group]]])->pack(qw/-side left/);
 
-  prepareFonts(\%group);
-
-  print STDERR "Creating canvas.\n" if $tredDebug;
 
   $group{vLineFrame}=$group{top}->Frame();
   $group{valueLine}=$group{vLineFrame}->Scrolled(qw/Entry -state disabled -relief sunken
@@ -2999,7 +2996,6 @@ sub editConfig {
 			  updateTitle($grp);
 			  $grp->{valueLine}->configure(-font=> $vLineFont);
 			  foreach (@{$grp->{treeWindows}}) {
-			    print "Applying for $_\n";
 			    $_->apply_options($treeViewOpts);
 			  }
 			  redraw_all($grp);
@@ -3015,7 +3011,6 @@ sub editConfig {
 				 updateTitle($grp);
 				 $grp->{valueLine}->configure(-font=> $vLineFont);
 				 foreach (@{$grp->{treeWindows}}) {
-				   print "Applying for $_\n";
 				   $_->apply_options($treeViewOpts);
 				 }
 				 redraw_all($grp);
