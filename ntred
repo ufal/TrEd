@@ -503,7 +503,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	  push @files, $_;
 	}
       }
-      if (md5_sign($server_key,join "\n",@files) eq $md5) {
+      if (sign_md5($server_key,join "\n",@files) eq $md5) {
 	shift @files; pop @files; # get rid of the controls
 	if ($olddist) {
 	  distribute_files($control,\@running,\@files,0,$server_key);
@@ -671,10 +671,10 @@ if (defined($init) || defined($kill) || defined($break)) {
     my @files =  get_files();
     $request="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding,$code))."\n";
     $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
-    $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
+    $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
     $request.="$control STATE=MACRO\n".
       _enc2bytes("utf8",join("",@TrEd::Macros::macros));
-    $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding,join("\n",@ARGV)))."\n" if ($listedfiles || @files);
+    $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding,join("\n",@ARGV)))."\n" unless ($listedfiles || @files);
     msg "Code: $code\n\n";
   }
 
