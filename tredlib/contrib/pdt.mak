@@ -310,7 +310,7 @@ For the whole tree (or the subtree of optional top-node), copy values
 of given attributes into new set of attributes with the original names
 prefixed with the given save_prefix.
 
-Thus, e.g., C<PDT->SaveAttributes('x_save_',[qw(afun lemma tag)])>
+Thus, e.g., C<PDT-E<gt>SaveAttributes('x_save_',[qw(afun lemma tag)])>
 stores afun to x_save_afun, lemma to x_save_lemma and tag to x_save_tag
 for every node in the current tree.
 
@@ -331,7 +331,7 @@ sub SaveAttributes {
 =item PDT->RestoreSavedAttributes(save_prefix,\@attributes,top?)
 
 Same as SaveAttributes but other way round.
-Thus, e.g., C<PDT->RestoreSavedAttributes('x_save_',[qw(afun lemma tag)])>
+Thus, e.g., C<PDT-E<gt>RestoreSavedAttributes('x_save_',[qw(afun lemma tag)])>
 copies value of afun from x_save_afun, lemma from x_save_lemma and
 tag from x_save_tag for every node in the current tree.
 
@@ -399,7 +399,7 @@ Run Zdenek Zabokrtsky's automatical C<afun> assignment on the current
 tree.  Run Alena Bohmova's ATS to TGTS transformation procedure.  Run
 Zdenek Zabokrtsky's automatical functor assignment on the current
 tree. The source argument may be used to specify C<lemma> and C<tag>
-source (see MD2TagLemma).
+source (see C<PDT-E<gt>MD2TagLemma()>).
 
 =cut
 sub MR2TR {
@@ -424,7 +424,7 @@ sub MR2TR {
 
 Run Zdenek Zabokrtsky's automatical C<afun> assignment on the current
 tree. The source argument may be used to specify C<lemma> and C<tag>
-source (see MD2TagLemma).
+source (see C<PDT-E<gt>MD2TagLemma()>).
 
 =cut
 sub tree2AR {
@@ -443,8 +443,8 @@ sub tree2AR {
 =item PDT->AR2TRtree(source?)
 
 Run Alena Bohmova's ATS to TGTS transformation procedure. The source
-argument may be used to specify C<lemma> and C<tag> source (see
-MD2TagLemma).
+argument may be used to specify C<lemma> and C<tag> source
+(see C<PDT-E<gt>MD2TagLemma()>).
 
 =cut
 sub AR2TRtree {
@@ -467,7 +467,7 @@ sub AR2TRtree {
 
 Run Zdenek Zabokrtsky's automatical functor assignment on the current
 tree.  The source argument may be used to specify C<lemma> and C<tag>
-source (see MD2TagLemma).
+source (see C<PDT-E<gt>MD2TagLemma()>).
 
 =cut
 sub TRAssignFunc {
@@ -487,8 +487,8 @@ sub TRAssignFunc {
 
 Run Alena Bohmova's ATS to TGTS transformation procedure.  Run Zdenek
 Zabokrtsky's automatical functor assignment on the current tree.  The
-source argument may be used to specify C<lemma> and C<tag> source (see
-MD2TagLemma).
+source argument may be used to specify C<lemma> and C<tag> source 
+(see C<PDT-E<gt>MD2TagLemma()>).
 
 =cut
 sub AR2TR {
