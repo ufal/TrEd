@@ -35,7 +35,7 @@ $sentord="sentord";
 $normal_gap='gappost';
 $no_node_gap='gappre';
 
-$fill_empty_dord=0;
+$fill_empty_ord=0;
 
 %composed_attrs=();
 

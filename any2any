@@ -53,7 +53,7 @@ if ($opt_T) {
 }
 
 if ($opt_N) {
-  $Csts2fs::fill_empty_dord = 1;
+  $Csts2fs::fill_empty_ord = 1;
 }
 
 if ($opt_G) {
