@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-01-14 17:15:26 pajas>
+## Time-stamp: <2004-01-14 17:20:45 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -255,6 +255,7 @@ sub transform_to_analytic {
       } else {
 	Paste($node,$root,$defs);
       }
+      $node->{ARhide}=''; # don't hide them
     }
 
     # connect TR-added nodes
