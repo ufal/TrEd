@@ -1,7 +1,7 @@
 <!SGML "ISO 8879:1986"
   -- ...................................................................... --
-  -- CSTS SGML declaration V0.91 .......................................... --
-  -- file a0023.dcl .,,.................................................... --
+  -- CSTS SGML declaration V0.92 .......................................... --
+  -- file csts.dcl ........................................................ --
 
 CHARSET
 BASESET "ISO 646-1983//CHARSET International Reference Version
@@ -56,16 +56,20 @@ LINK       SIMPLE    NO   IMPLICIT   NO           EXPLICIT   NO
 OTHER      CONCUR    NO   SUBDOC     YES 99999999 FORMAL     YES
 APPINFO    NONE
 
-  -- End of CSTS SGML declaration V0.91 ................................... --
+  -- End of CSTS SGML declaration ......................................... --
   -- ...................................................................... --
 
 >
 <!DOCTYPE csts [
 <!-- ...................................................................... -->
-<!-- CSTS DTD V1.02 ....................................................... -->
+<!-- CSTS DTD V1.03 ....................................................... -->
 <!-- File csts.dtd ........................................................ -->
 
 <!-- ChangeLog: -->
+<!-- ver 1.03 (Sep 30,2002) by Petr Pajas                      -->
+<!--        - added PADT (arabic) specific attributes          -->
+<!--        - added Top                                        -->
+<!--        - revised coreference markup                       -->
 <!-- ver 1.02 (Apr 3,2002) by Petr Pajas                       -->
 <!--        - added TR-specific entitites                      -->
 <!--        - added status attribute to (M)TRl                 -->
@@ -141,6 +145,7 @@ APPINFO    NONE
         arabspec  (Ref|Msd|no-spec)  'no-spec'
         arabclause (Pred|PredC|PredE|PredP|Pnom|no-clause) 'no-clause'"
 >
+
 
 <!ELEMENT csts - - (h?, doc*)
 -- el csts end --
@@ -511,10 +516,6 @@ APPINFO    NONE
                     at fairway.ms.mf.cuni.cz / Projects / Treebank / guide
                     --
 >
-<!ATTLIST A
-	         -- special attributes used in Arabic Treebank PADT --
-        %A.attr.PADT;
->
 <!ELEMENT MDA - O (#PCDATA)
                  -- analytical (syntactic) function(s) as assigned by machine,
                     disambiguated, possibly with weight; if more than 1: n-best
@@ -523,7 +524,7 @@ APPINFO    NONE
 <!ATTLIST MDA
           w       NUTOKEN #IMPLIED -- weight / probability  --
           src     CDATA   #IMPLIED -- syntactical tagger id --
-        %A.attr.PADT;
+          %A.attr.PADT;
 >
 
 <!-- ============================================================= -->
@@ -537,7 +538,8 @@ APPINFO    NONE
 >
 <!ATTLIST fadd
           del  (elid|elex|expn|transf) elid 
-          id    CDATA   #IMPLIED>
+          id    CDATA   #IMPLIED 
+>
 
 <!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
                     TRg? & corl? & corT? & corr? &
@@ -607,7 +609,9 @@ APPINFO    NONE
 
 <!ELEMENT Top - O (#PCDATA)
                 -- operand --
+
 >
+
 
 <!ELEMENT TRt - O (#PCDATA)
                 -- tectogrammatical tag;
@@ -658,23 +662,14 @@ APPINFO    NONE
                 -- phraseme id;
                 --
 >
-<!ELEMENT corl  - O (#PCDATA)
+
+
+<!ELEMENT coref  - O (#PCDATA)
 >
-<!ELEMENT corT  - O (#PCDATA)
->
-<!ELEMENT corr  - O (#PCDATA)
->
-<!ELEMENT cors  - O (#PCDATA)
-                -- cors should be empty or contain a sentence id;
-                   cors is a coreference to a sentence id;
-                   if empty, current sentence should be assumed.
-                   Attribute rel can be used to specify
-                   a relative `distance' of the coreferenced sentence
-                   from the sentence referenced by id;
-                --
->
-<!ATTLIST cors
-          rel NUMBER #IMPLIED 
+
+<!ATTLIST coref
+          ref     CDATA   #IMPLIED -- ID's of coreferenced node --
+          type    CDATA   #REQUIRED -- coreference type --
 >
 
 <!-- ============================================================= -->
@@ -799,8 +794,3 @@ APPINFO    NONE
 <!ENTITY Idph CDATA "Idph" -- "Idph" -->
 <!ENTITY Hyphen CDATA "-" -- "Hyphen" -->
 ]>
-
-
-
-
-
