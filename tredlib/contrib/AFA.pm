@@ -16,7 +16,6 @@ use vars qw($VERSION @EXPORT);
 # hlavicka funkce
 
 sub AutoFunctor($$$$$) {
-print join("\n",@_),"\n";
  my $tag_gov   = shift; # pozicni morfologicka znacka ridiciho uzlu 
                        # (nebo uzlu nad souradici spojkou)
  my $tag_dep   = shift; # poz. morf. znacka uzlu, jehoz funktor se hleda
