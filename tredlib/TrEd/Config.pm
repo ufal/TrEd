@@ -345,7 +345,7 @@ sub set_config {
   $Tk::strictMotif    =	 val_or_def($confs,"strictmotif",0);
   $printColors	      =	 val_or_def($confs,"printcolors",0);
   $defaultPrintCommand = val_or_def($confs,"defaultprintcommand",
-				    ($^O eq 'MSWin32') ? 'prprint32.exe /-' : 'lpr'
+				    ($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr'
 				    
 				   );
   $imageMagickConvert = val_or_def($confs,"imagemagickconvert",'convert');
