@@ -146,6 +146,9 @@ sub show_adverbs_dialog {
 
   $hlist->delete('all');
   my ($e,$f);
+
+  my %styles=(EB => $hlist->ItemStyle('text',-foreground => 'black', -background => 'white'),
+	      S => $hlist->ItemStyle('text',-foreground => '#707070', -background => 'white'));
   foreach my $adv (get_adverbs($data,$conv)) {
     my $lemma=shift @$adv;
     my $author=shift @$adv;
@@ -154,14 +157,16 @@ sub show_adverbs_dialog {
     $e=$hlist->addchild("", -data => $lemma);
     my $i=$hlist->itemCreate($e, 0,
 			     -itemtype => 'text',
-			     -text => "$lemma ($author)"
+			     -text => "$lemma ($author)",
+			     exists($styles{$author}) ? (-style => $styles{$author}) : ()
 			    );
     while (@$adv) {
       my ($fn,$example)=(shift @$adv, shift @$adv);
       $f = $hlist->addchild("$e",-data => $fn);
       $i = $hlist->itemCreate($f, 0,
 			      -itemtype => 'text',
-			      -text => "$fn\n$example"
+			      -text => "$fn\n$example",
+			      exists($styles{$author}) ? (-style => $styles{$author}) : ()
 			     );
     }
   }
