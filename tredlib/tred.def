@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2004-05-06 16:15:58 pajas>
+## Time-stamp: <2004-06-06 11:54:25 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1935,6 +1935,69 @@ sub Print {
   } else {
     die "Cannot call PrintDialog from non-GUI version TrEd\n";
   }
+}
+
+=item XPathObj ($node,
+                [ id         => \&find_node_by_id,
+                  pos        => \&node_position,
+                  attributes => \&node_attributes_hashref,
+                  name       => \&node_name,
+                  value      => \&node_value,
+                  children   => \&node_children,
+                  parent     => \&node_parent,
+                  lbrother   => \&node_left_sibling,
+                  rbrother   => \&node_right_sibling,
+                ])
+
+This macro requires XML::XPath module to be installed.  It returns a
+new object based on $node that allows for XPath searches relative to
+$node or any other node within the same tree.  Caller may optionally
+specify functions to override some of the methods used for XPath
+queries. By defalut, 'id' is defined to return nothing, 'pos' returns
+nodes sentence-ordering position (or tree-ordering position if sentord
+attribute isn't defined), 'attributes' returs a hashref of node's
+attributes (actually a FSNode itself), 'name' returns "node", 'value'
+returns node's @V FS-attribute value, and 'children', 'parent',
+'lbrother', and 'rbrother' all default to the respective FSNode
+method.
+
+Usage example:
+
+$xp_node = XPathObj($root, id    => sub { $hashed_ids{ $_[0] } },
+                           name  => sub { $_[0]->{func} },
+                           value => sub { $_[0]->{trlemma} });
+
+foreach ($xp_node->findnodes(q{
+     //ACT/PAT[starts-with(@tag,"N") or .="cedule"]
+   })) {
+  # process matching nodes
+}
+
+=cut
+
+sub XPathObj {
+  my $node = shift || $this;
+  my %handlers = @_;
+  require Object::XPath;
+
+  $handlers{id} = sub {} unless exists $handlers{id};
+  unless (exists $handlers{pos}) {
+    my $attr=FS()->sentord() || FS()->order();
+    $handlers{pos} = sub { $_[0]->{$attr} } ;
+  }
+  $handlers{attributes} = sub { $_[0] } unless exists $handlers{attributes};
+  $handlers{name} = sub { "node" } unless exists $handlers{name};
+  unless (exists $handlers{value}) {
+    my $val=FS()->value();
+    $handlers{value} = sub { $_[0]->{$val} } ;
+  }
+  $handlers{parent} = \&FSNode::parent unless exists $handlers{parent};
+  $handlers{children} = \&FSNode::children unless exists $handlers{children};
+  $handlers{lbrother} = \&FSNode::lbrother unless exists $handlers{lbrother};
+  $handlers{rbrother} = \&FSNode::rbrother unless exists $handlers{rbrother};
+  return Object::XPath->new($node,
+			    $node->root,
+			    \%handlers);
 }
 
 =back
