@@ -520,8 +520,7 @@ sub next_sibling {
 }
 
 sub add_member {
-  my ($hlist,$base_path,$member,$attr_val,
-      $attr_name,$allow_empty,$entry_opts)=@_;
+  my ($hlist,$base_path,$member,$attr_val,$attr_name,$allow_empty,$entry_opts)=@_;
   my $mtype;
   if (!ref($member) and $member =~ /^#/) {
     $mtype = $member;
@@ -539,6 +538,11 @@ sub add_member {
 		       ($attr_name =~ /^\[\d+\]$/) ? ' ' : "  ".$attr_name,
 		     -style => $hlist->{my_itemstyles}{default}
 		    );
+  my $enabled = 1;
+  if (ref($hlist->{my_enable_callback})) {
+    $enabled = $hlist->enable_callback($path);
+  }
+
   if ($mtype eq '#type') {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{text});
     $hlist->itemCreate($path,1,-itemtype => 'text',
@@ -553,6 +557,7 @@ sub add_member {
 		       -textvariable => \$data->{value},#$attr_val,
 		       -relief => 'flat',
 		       -borderwidth => 1,
+		       -state => ($enabled ? 'normal' : 'disabled'),
 		       -foreground => 'black',
 		       -highlightcolor => 'black',
 		       ($mtype eq 'nonNegativeInteger' ?
@@ -561,14 +566,14 @@ sub add_member {
 		       ())
 		      )
       ->pack(qw(-fill both -expand yes));
-    $e->bind('<FocusIn>',[sub { select_entry($_[1],$_[2]) },$hlist,$path]);
+    $e->bind('<FocusIn>',[sub { $_[1]->select_entry($_[2]) },$hlist,$path]);
     $e->bind('<Up>',[sub {
 		       $_[1]->focus;
 		       $_[1]->UpDown('prev')},$hlist]);
     $e->bind('<Down>',[sub {
 		       $_[1]->focus;
 		       $_[1]->UpDown('next')},$hlist]);
-    $e->bind($e,$_,[sub { $_[1]->focus; select_entry($_[1],$_[2]); Tk->break; },$hlist,$path])
+    $e->bind($e,$_,[sub { $_[1]->focus; $_[1]->select_entry($_[2]); Tk->break; },$hlist,$path])
       for qw(<Escape> <Return>);
     $hlist->itemCreate($path,1,
 		       -itemtype => 'window',
@@ -581,7 +586,6 @@ sub add_member {
 
       -mode => 'editable',
       -validate => 'match',
-
       -takefocus => 1,
       -borderwidth => 0,
       -highlightcolor => 'black',
@@ -598,21 +602,31 @@ sub add_member {
       -buttonrelief => 'ridge',
       -buttonbitmap => 'combo'
      );#->pack(qw(-expand 1 -fill both));
-    $w->bind('<FocusIn>',[sub { select_entry($_[1],$_[2]) },$hlist,$path]);
+    $w->bind('<FocusIn>',[sub {
+			    if (not defined($_[0]->{index_on_focus})) {
+			      $_[0]->{index_on_focus} = $_[0]->CurSelection;
+			    }
+			    $_[1]->select_entry($_[2]);
+			  },$hlist,$path]);
     $w->bind('<FocusOut>',[sub { #$_[1]->hidePopup;
 				 $_[1]->EntryEnter;
+				 $_[1]->{index_on_focus} = undef;
 #				 $_[1]->MakeValid;
 			       },$w]);
+    $w->configure(-state => $enabled ? 'normal' : 'disabled');
     for my $subw ($w->Subwidget('ED_Entry'),$w->Subwidget('Popup'),
 	 $w->Subwidget('Listbox')) {
-      $subw->bind($subw,$_,[sub {
+      $subw->bind($subw,"<$_>",[sub {
 			      $_[1]->hidePopup;
-			      $_[1]->EntryEnter;
+			      if ($_[4] eq 'Escape') {
+				$_[1]->setSelectedIndex($_[1]->{index_on_focus});
+			      } else {
+				$_[1]->EntryEnter;
+			      }
 			      $_[2]->focus;
-			      select_entry($_[2],$_[3]);
+			      $_[2]->select_entry($_[3]);
 			      Tk->break;
-			    },$w,$hlist,$path])
-	for qw(<Escape> <Return>);
+			    },$w,$hlist,$path,$_]) for qw(Escape Return);
     }
     #$w->setSelected($attr_val);
     $hlist->itemCreate($path,1,-itemtype => 'window',
@@ -694,7 +708,7 @@ sub add_member {
     }
     $data->{alt_no}=$alt_no;
   }
-  $hlist->add_buttons($path);
+  $hlist->add_buttons($path) if $enabled;
   $hlist->setmode($path);
 
   return $path;
@@ -740,6 +754,23 @@ sub schema {
 sub set_schema {
   my ($hlist,$schema)=@_;
   $hlist->{my_schema}=$schema;
+}
+
+sub set_enable_callback {
+  my ($hlist,$callback)=@_;
+  $hlist->{my_enable_callback}=$callback;
+}
+
+sub enable_callback {
+  my ($hlist,$path)=@_;
+  my $cb = $hlist->{my_enable_callback};
+  if (ref($cb) eq 'CODE') {
+    $cb->($path)
+  } elsif (ref($cb) eq 'ARRAY') {
+    my ($func,@args) = @$cb;
+    $func->(@args,$path);
+  }
+
 }
 
 sub adjust_size {
@@ -865,11 +896,14 @@ sub entry_insert {
 	($w) = $w->children;
       }
       if ($w) {
-	$w->focus;
 	if ($w->isa('Tk::JComboBox_0_02')) {
+	  $w->{index_on_focus} = $w->CurSelection;
 	  $w->showPopup unless $w->popupIsVisible;
 	  $w = $w->Subwidget('ED_Entry');
 	}
+	$w->selectionClear;
+	$w->selectionRange(0,'end');
+	$w->focus;
 	if ($what =~ /[^[:cntrl:]]/ and $w->can('Insert')) {
 	  $w->Insert($what);
 	}
