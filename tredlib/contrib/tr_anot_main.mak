@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-24 09:24:20 pajas>
+## Time-stamp: <2002-09-02 14:17:53 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -13,7 +13,7 @@ sub file_opened_hook {
   # its display settings!
 
   if ($grp->{FSFile} and !$grp->{FSFile}->hint()) {
-    default_tr_attrs();
+    Tectogrammatic->default_tr_attrs();
   }
 
   foreach ("New Node","Remove Active Node","Insert New Tree",
@@ -38,3 +38,5 @@ sub file_resumed_hook {
 
 #binding-context TR_Diff
 #include <contrib/trdiff.mak>
+
+#include <contrib/pdt.mak>
