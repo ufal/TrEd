@@ -124,8 +124,13 @@ SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive r
 
 
 ; ZCat = "/bin/zcat"			;; this value is default
-; GZip = "/bin/gzip -c"		;; -- " --
+; GZip = "/bin/gzip -c"			;; -- " --
 
-; CstsToFs="2804.x"		;; give a csts (or any other format) to fs convertor here
-; FsToCsts="2804.x -oformat=csts"	;; give a fs to csts (or any other format) convertor here
+; CstsToFs="2804.x"		   	;; obsolete: old csts2fs convertor
+; FsToCsts="2804.x -oformat=csts"    	;; obsolete: old fs2csts convertor
 
+;; Options for new CSTS SGML backend
+; sgmls       = "nsgmls"                	;; path to nsgmls SGML parser
+; sgmlsopts   = "-i preserve.gen.entities"      ;; other options to sgml parser
+; cstsdoctype = ""                              ;; path to csts.doctype (default is
+                                                ;; $libDir/csts.doctype)
