@@ -7,6 +7,11 @@
 <xsl:param name="default.encoding" select="'iso-8859-2'"/>
 <xsl:param name="navig.graphics" select="0"/>
 <xsl:param name="navig.showtitles" select="1"/>
+<xsl:param name="generate.section.toc.level" select="2"/>
+<xsl:param name="toc.section.depth" select="3"/>
+<xsl:param name="chunk.tocs.and.lots" select="1"/>
+
+
 <xsl:output method="html" encoding="iso-8859-2" indent="yes"/>  
 
 <xsl:param name="section.autolabel" select="1"/>
