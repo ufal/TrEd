@@ -218,6 +218,7 @@ use Tk::DialogBox;
 use Tk::Tiler;
 use Tk::BrowseEntry;
 use Tk::Pane;
+use Tk::Dialog;
 
 unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
@@ -3469,7 +3470,7 @@ sub saveConfig {
    close(F);
  } else {
    my $lasterr=$!;
-   my ($trc)=<'~/.tredrc'>;
+   my ($trc)=TrEd::Config::tilde_expand('~/.tredrc');
    my ($dc,$ic)=stat($configFile);
    my ($dh,$ih)=stat($trc);
    if ($configFile ne $trc and ($dc != $dh or $ic != $ih) and
