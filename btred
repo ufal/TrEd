@@ -626,41 +626,45 @@ sub startMain {
 	  my $time;
 	  $hub->print("$control SERVER_RESPONSE_STDERR\n");
 	  $hub->print("$@\n") if $@;
-	  if (!$@ and keys(%{$grp->{preloaded}}) and
-	      doEvalHook($grp,"start_hook") ne 'stop' and
-	      doEvalHook($grp,"preload_hook") ne 'stop') { # for compatibility
-	    _msg "RUNNING CODE: $request{CODE}\n";
-	    gotoFile($grp,0);
-	    my $t0 = new Benchmark;
-	    if (exists $request{FILELIST}) {
-	      my @fl = split /\n/,$request{FILELIST};
-	      foreach my $file (@fl) {
-		# normalize urls
-		my $goto;
-		$goto=$1 if $file=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
-		if (exists $grp->{preloaded}{$file}) {
-		  openFile($grp,$file.$goto);
-		  doEvalMacro($grp,"package $context;".$request{CODE});
-		  last if $@;
+	  if (!$@ and keys(%{$grp->{preloaded}})) {
+	    my $stop = doEvalHook($grp,"start_hook");
+	    $stop = doEvalHook($grp,"preload_hook") if (!$@ and $stop ne 'stop');
+	    $hub->print("$@\n") if $@;
+	    if (!$@ and $stop ne 'stop') {
+	      _msg "RUNNING CODE: $request{CODE}\n";
+	      gotoFile($grp,0);
+	      my $t0 = new Benchmark;
+	      if (exists $request{FILELIST}) {
+		my @fl = split /\n/,$request{FILELIST};
+		foreach my $file (@fl) {
+		  # normalize urls
+		  my $goto;
+		  $goto=$1 if $file=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
+		  if (exists $grp->{preloaded}{$file}) {
+		    openFile($grp,$file.$goto);
+		    last if $@;
+		    doEvalMacro($grp,"package $context;".$request{CODE});
+		    last if $@;
+		  }
 		}
+	      } else {
+		do {
+		  doEvalMacro($grp,"package $context;".$request{CODE});
+		} while (!$@ and nextFile($grp) and !$@);
 	      }
-	    } else {
-	      do {
-		doEvalMacro($grp,"package $context;".$request{CODE});
-	      } while (!$@ and nextFile($grp));
+	      $hub->print("$@\n") if $@;
+	      _msg($@) if $@; undef $@;
+	      closeFile($grp);
+	      $hub->print("$@\n") if $@;
+	      _msg($@) if $@; undef $@;
+	      doEvalHook($grp,"exit_hook");
+	      $hub->print("$@\n") if $@;
+	      _msg($@) if $@;undef $@;
+	      my $t1 = new Benchmark;
+	      $time = timediff($t1, $t0) if ($t1 and $t0);
+	      $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "" and not $request{QUIET};
+	      _msg("Total Time: ",timestr($time),"\n");
 	    }
-	    $hub->print("$@\n") if $@;
-	    _msg($@) if $@; undef $@;
-	    closeFile($grp);
-	    $hub->print("$@\n") if $@;
-	    _msg($@) if $@; undef $@;
-	    doEvalHook($grp,"exit_hook");
-	    $hub->print("$@\n") if $@;
-	    _msg($@) if $@;undef $@;
-	    my $t1 = new Benchmark;
-	    $time = timediff($t1, $t0) if ($t1 and $t0);
-	    $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "" and not $request{QUIET};
-	    _msg("Total Time: ",timestr($time),"\n");
 	  }
 	  $SIG{USR1} = sub { };
 	  $hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
@@ -1237,7 +1241,6 @@ sub doEvalMacro {
   ${macro_variable('TredMacro::forceFileSaved')}=0;
 
   my $result=do_eval_macro($group,$macro);
- 
   exit 1 if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
