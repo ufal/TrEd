@@ -328,7 +328,7 @@ sub set_config {
     # use fontconfig here?
     if (open my $fc,'/etc/fonts/fonts.conf') {
       while (<$fc>) {
-	push @fontpath,$1 if m{<dir>([^<]*)</dir>} and -d $1;
+	push @fontpath,tilde_expand($1) if m{<dir>([^<]*)</dir>} and -d tilde_expand($1);
         # naive, should subst. entities, etc.
       }
     }
