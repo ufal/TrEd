@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
-"file:/home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
+"/home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
 <article lang="en">
   <articleinfo>
     <title>Tree Editor Manual</title>
@@ -332,20 +332,23 @@ root# <userinput>make install</userinput>
 	<varlistentry>
 	  <term><guimenuitem>Open ...</guimenuitem></term>
 	  <listitem>
-	    <para>Opens an existing file that the user chooses in the
+	    <para>
+	      Opens an existing file that the user chooses in the
 	      <guilabel>Open</guilabel> dialog box. The file may be
 	      either in the <ulink
 	      url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
 	      (usually a file with a <filename>.fs</filename>
 	      extension) or a file in the <ulink
 	      url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
-	      SGML format. In the later case a conversion filter from
-	      CSTS to FS format (e.g.  <ulink
-	      url="../../../../Utilities/cstsfs/index.html"><command>cstsfs</command></ulink>)
-	      must be properly installed on your system and TrEd's
-	      configuration option <link linkend="cststofs"><literal>CstsToFs</literal></link> set to
-	      point to it (see <xref linkend="configuration"/>
-	      bellow).
+	      SGML format. In the later case, 
+	      James Clark's <ulink
+	      url="../../Support/nsgmls/index.html">SGML parser
+	      <application>SP</application></ulink> must be installed and
+	      the <link
+	      linkend="sgmls"><literal>sgmls</literal></link>
+	      configuration option must point to its binary
+	      executable <command>nsgmls</command>, unless it can be found
+	      in <varname>PATH</varname>.
 	    </para>
 	    <para>
 	      <application>TrEd</application> expects files in the
@@ -380,12 +383,7 @@ root# <userinput>make install</userinput>
 	    <para>
 	      Saves the active file to the disk. A backup file is
 	      created by appending a tilde `~' to the filename (which
-	      is a UNIX convention for naming backups). If the file
-	      was originally in <ulink
-	      url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
-	      SGML format, a conversion tool specified in the
-	      <link linkend="fstocsts"><literal>FsToCsts</literal></link> configuration
-	      option is used for conversion.
+	      is a UNIX convention for naming backups).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -2318,40 +2316,50 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry id="cststofs">
-	  <term><literal>CstsToFs</literal></term>
+	<varlistentry id="sgmls">
+	  <term><literal>Sgmls</literal></term>
 	  <listitem>
 	    <para>
-	      If this option is set it should provide a path to a program to
-	      be used as an import filter. If <application>TrEd</application> does not recognize a
-	      desired file to be in
-	      <ulink
-		url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
-	      it runs this program passing the file-name to it as a
-	      command-line parameter and waits for the program's
-	      standard-output. If this output is in
-	      <ulink url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
-	      the trees are displayed. This option was added to <application>TrEd</application> to
-	      give it a way to open files in different formats,
-	      especially in the SGML
-	      <ulink url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink> format, where the
-	      existing conversion program
-	      <ulink url="../../../../Utilities/cstsfs/index.html">cstsfs</ulink>
-		may be used as the import filter.
+	      This option may be used to provide a path to an
+	      SGML parser with support for ESIS output, such as
+	      James Clark's <ulink
+	      url="../../Support/nsgmls/index.html">SGML parser
+		<command>nsgmls</command></ulink>.
+	      <application>TrEd</application> may then use this
+	      parser to read SGML <ulink
+	      url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
+	      files (used e.g. in the
+	      Prague Dependency Treebank 1.0).
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry id="fstocsts">
-	  <term><literal>FsToCsts</literal></term>
+	<varlistentry id="sgmlsopts">
+	  <term><literal>SgmlsOpts</literal></term>
 	  <listitem>
 	    <para>
-	      If this option is set it should provide a path to a program to
-	      be used as an import filter. <application>TrEd</application> uses command defined
-	      here to export files in other than FS format, i.e.
-	      files open via <link linkend="cststofs">CstsToFs</link>
-	      import filter or files explicitely 
-	      <ulink url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
-	      saved in CSTS format.
+	      This option may be used to provide additional parameters
+	      to the SGML parser declared in <link
+	      linkend="sgmls">Sgmls</link> option. By default,
+	      this option is set to <literal>-i preserve.gen.entities</literal>.
+	      These parameters forces James Clark's
+	      <command>nsgmls</command> parser to include a part of
+	      CSTS DTD where all global entities are re-declared in such a
+	      way that they expand to themselves literally and thus
+	      are preserved (as if no expansion was done).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="sgmlsopts">
+	  <term><literal>CSTSDoctype</literal></term>
+	  <listitem>
+	    <para>
+	      This option should point to a file containing CSTS
+	      doctype declaration combining both the SGML subset
+	      declaration as well as the CSTS DTD. This file
+	      is included in the distribution of TrEd and is by default stored
+	      in TrEd's library directory as
+	      <filename>csts.doctype</filename>.
+	      Setting this option overrides this default.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -2730,10 +2738,12 @@ root# <userinput>make install</userinput>
 	the tree.
       </para>
       <para>The macro invoked by user action (e.g. pressing the
-	keyboard shortcut assigned to the macro) may use the
-	following variables to refer to the active node and to
-	the root of the active tree (how to access any tree in the
-	file will be told later):
+	keyboard shortcut assigned to the macro) may use the following
+	global variables (declared within the <literal>TredMacro</literal>
+	namespace, but exported by default to other derived
+	contexts) to refer to the active node and to the root of the
+	active tree (how to access any tree in the file will be told
+	later):
       </para>
       <variablelist>
 	<varlistentry>
@@ -2901,12 +2911,12 @@ root# <userinput>make install</userinput>
 	  is really a lot of things that can be achieved by using this
 	  variable in a proper way, but since actually not many
 	  members of the <quote>Grouping</quote> structure are
-	  guaranteed to stay present or unchanged in this structure in
-	  the future versions of <application>TrEd</application> we
-	  will pay our attention only to a few of the most important.
+	  guaranteed to be present or unchanged in the future versions
+	  of <application>TrEd</application>, here we pay our
+	  attention only to a few of the most important.
 	</para>
 	<para>
-	  The current file is accessed using the
+	  The current file is accessed via the
 	  <literal>$grp->{FSFile}</literal> reference. This reference
 	  is a pointer to an object of the <classname>FSFile</classname>
 	  class. The following methods are provided for the class:
@@ -4011,7 +4021,6 @@ sub ReorderTree {
 
 #binding-context Tectogrammatic
 package Tectogrammatic;
-import TredMacro;
 import Analytic;   # all macros of the Analytic package (eg. ReorderTree) 
 	           # will now be available here directly
 
