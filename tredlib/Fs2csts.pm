@@ -2,6 +2,8 @@ package Fs2csts;
 
 use Fslib;
 
+$export_dependency=1;
+
 %TRt = (
 	gender_ANIM => 'M',
 	gender_INAN => 'I',
@@ -79,7 +81,7 @@ sub print_split_attr_with_num_attr {
   my ($fileref,$node,$attr,$num,$tag,$at)=@_;
   return if $node->{$attr} eq "";
 
-  my @t=split(/\|/,$node->{$attr});
+  my @t=split(/\|/,translate_to_entities($node->{$attr}));
   my @tw=split(/\|/,$node->{$num});
   for (my $i=0;$i<=$#t;$i++) {
     if ($tw[$i]=~/(\d+)/) {
@@ -88,6 +90,19 @@ sub print_split_attr_with_num_attr {
       print $fileref "<$tag>",$t[$i];
     }
   }
+}
+
+sub translate_to_entities {
+  my ($t)=@_;
+  $t=~s/\</&lt;/g;
+  $t=~s/\>/&gt;/g;
+  if (length($t)==1) {
+    $t=~s/\[/&lsqb;/g;
+    $t=~s/\]/&rsqb;/g;
+    $t=~s/\\\|/&verbar;/g;
+    $t=~s/\$/&dollar;/g;
+  }
+  return $t;
 }
 
 sub write {
@@ -135,7 +150,7 @@ sub write {
 	  print $fileref "</doc>\n";
 	}
 	print $fileref "<doc file=\"",$root->{doc},"\" id=\"",
-	  int($root->{docid}),"\">\n";
+	  ($root->{docid}=~/^\d+$/ ? $root->{docid} : "0"),"\">\n";
 	print $fileref "<a>\n";
 	if ($root->{docmarkup} ne "") {
 	  print $fileref "<markup>\n";
@@ -175,7 +190,7 @@ sub write {
 			$1 : $opus,"\n";
 	print $fileref "<id>";
 	print $fileref $root->{docprolog} =~ /\<id\>([^\<*]*)/ ?
-			$1 : $id,"\n";
+			"$1\n" : "$id\n";
 	print $fileref "</a>\n";
       }
       if ($treeNo==1 or $root->{chap}) {
@@ -199,7 +214,7 @@ sub write {
     foreach $node (@nodes) {
       print $fileref make_gap($node->{gappre});
       if ($node->{origf} ne $node->{form} or $node->{origfkind} and $node->{origfkind} ne 'same') {
-	my @w=split(/\|/,$node->{origf});
+	my @w=split(/\|/,translate_to_entities($node->{origf}));
 	my @k=split(/\|/,$node->{origfkind});
 	my $count=$#w > $#k ? $#w : $#k;
 	for (my $i=0; $i<=$count; $i++ ) {
@@ -219,19 +234,23 @@ sub write {
       } else {
 	if ($node->{form}=~/^([][!"'()+,-.\/:;=\?`]|&(?:amp|ast|bsol|circ|commat|dollar|gt|lcub|lowbar|lsqb|lt|macron|num|percnt|rcub|rsqb|verbar);)$/) {
 	  my $case = $node->{formtype} eq 'gen' ? " ".$node->{formtype} : "";
-	  print $fileref "<d$case>",$node->{form};
+	  print $fileref "<d$case>",translate_to_entities($node->{form});
 	} else {
 	  my $case = $node->{formtype} =~m/^(?:cap|upper|mixed|gen|num|num.gen|gen.phrase|cap.gen.phrase|abbr|cap.abbr|cap.gen|upper.abbr|upper.gen|mixed.abbr)/ ? " ".$node->{formtype} : "";
 	  print $fileref "<f$case>",$node->{form};
 	}
 	print_split_attr($fileref,$node->{punct},'P');
 	print $fileref "<Ct>",$node->{alltags} if ($node->{alltags} ne "");
-	print_split_attr($fileref,$node->{lemma},'l');
-	print $fileref "<R>",$node->{root} if ($node->{root} ne "");
-	print $fileref "<E>",$node->{ending} if ($node->{root} ne ""); # this is not a mistake
+	if (($node->{lemma} ne '' || $node->{tag} ne '')
+	    && !($node->{lemma} eq '-' && $node->{tag} eq '-')
+	    || $node->{root} ne '' || $node->{ending} ne ''
+	   ) {
+	  print_split_attr($fileref,translate_to_entities($node->{lemma}),'l');
+	  print $fileref "<R>",$node->{root} if ($node->{root} ne "");
+	  print $fileref "<E>",$node->{ending} if ($node->{root} ne ""); # this is not a mistake
 
-	print_split_attr_with_num_attr($fileref,$node,'tag','wt','t','w');
-
+	  print_split_attr_with_num_attr($fileref,$node,'tag','wt','t','w');
+	}
 	foreach (grep(/lemmaMM_/,$fsfile->FS->attributes)) {
 	  /lemmaMM_(.*)$/;
 	  my $suf=$1;
@@ -250,7 +269,9 @@ sub write {
 	  print $fileref "<E>",$node->{"endingMD_$suf"} if ($node->{"rootMD_$suf"} ne "");
 	  print_split_attr_with_num_attr($fileref,$node,"tagMD_$suf","wMDt_$suf","MDt src=\"$suf\"",'w');
 	}
-	print_split_attr($fileref,$node->{afun},'A');
+	if ($node->{afun} and $node->{afun} ne "???") {
+	  print_split_attr($fileref,$node->{afun},'A');
+	}
 	foreach (grep(/MDA_/,$fsfile->FS->attributes)) {
 	  /afunMD_(.*)$/;
 	  print_split_attr_with_num_attr($fileref,$node,"afunMD_$1","wMDA_$1","MDA src=\"$1\"",'w');
@@ -264,7 +285,7 @@ sub write {
 	$quot.= $quot ? ".quot" : " quot";
       }
       if (exists($node->{trlemma}) and $node->{trlemma} ne "") {
-	print $fileref "<TRl$quot>",$node->{trlemma};
+	print $fileref "<TRl$quot>",translate_to_entities($node->{trlemma});
 	print $fileref "<T>",$node->{func} if ($node->{func} ne "");
 	print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
 	my $TRt=make_TRt($node,0);
@@ -289,11 +310,11 @@ sub write {
 	# actually, all the set of MTRl subelements should be
 	# treated the same
       }
-      print $fileref "<r>",$node->{ord};
+      print $fileref "<r>",$node->{ord} if ($node->{ord} ne "");
       if ($fsfile->FS->order eq 'dord') {
-	print $fileref "<g>",$node->{ordorig};
+	print $fileref "<g>",$node->{ordorig} if $node->{ordorig} ne "";
       } else {
-	print $fileref "<g>",int($node->parent->{ord});
+	print $fileref "<g>",int($node->parent->{ord}) if (($export_dependency || $node->parent->{ord} ne "0") and $node->parent->{ord} ne "");
       }
       unless (index($node->{ord},'.')>=$[) {
 	#not allowed in DTD for some reason
