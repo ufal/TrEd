@@ -58,7 +58,7 @@ if (exists $ENV{TREDHOME}) {
 } elsif (-d "$rb/../lib/tred") {
   $libDir="$rb/../lib/tred";
 }
-print STDERR "Trying $libDir\n" if ($libDir);
+print STDERR "Trying $libDir\n" if ($libDir and !$opt_q);
 unshift @INC,"$libDir";
 
 use Fslib;
@@ -245,12 +245,12 @@ do {
       print STDERR "Creating groups for tree # $n (starting at $f)\n" unless ($opt_q);
       $node=Next($T{$f}); 
       while ($node) {
-	if ($$node{"ord"}!~/\./) {
-	  if (! exists $G{$$node{"ord"}}) { 
-	    $G{$$node{"ord"}} = { };	# structure: $G{ ord }->{ file } == node_from_file_at_ord
+	if ($node->{"ord"}!~/\./) {
+	  if (! exists $G{$node->{"ord"}}) { 
+	    $G{$node->{"ord"}} = { };	# structure: $G{ ord }->{ file } == node_from_file_at_ord
 	  }
-	  $G{$$node{"ord"}}->{$f}=$node;
-	  $$node{"_group_"}=$$node{"ord"};
+	  $G{$node->{"ord"}}->{$f}=$node;
+	  $node->{"_group_"}=$node->{"ord"};
 	}
 	$node=Next($node);
       }
@@ -270,7 +270,7 @@ do {
       if ($T{$names[$i]}) {
 	$node=Next($T{$names[$i]});
 	while ($node) {
-	  if (! exists $$node{"_group_"}) {
+	  if (! exists $node->{"_group_"}) {
 	    $grp="N$grpid";
 	    $grpid++;
 
@@ -278,14 +278,14 @@ do {
 	      $G{$grp} = { };	
 	    }
 	    $G{$grp}->{$names[$i]}=$node;
-	    $$node{"_group_"}=$grp;
+	    $node->{"_group_"}=$grp;
 	    $parent_grp= Get(Parent($node),"_group_");
 	    for ($j=$i+1; $j < @names; $j++) {
 	      if (exists ($G{$parent_grp}->{$names[$j]})) {
 		$son=FirstSon($G{$parent_grp}->{$names[$j]});
 		SON: while ($son) {
-		  if ((! exists $$son{"_group_"}) and ($$son{"func"} eq $$node{"func"})) {
-		    $$son{"_group_"}=$grp;
+		  if ((! exists $son->{"_group_"}) and ($son->{"func"} eq $node->{"func"})) {
+		    $son->{"_group_"}=$grp;
 		    $G{$grp}->{$names[$j]}=$son;
 		    last SON;
 		  }
@@ -318,8 +318,8 @@ do {
       unless ($opt_l or $opt_d) {
 	# check if all files have node in this group
 	@grps=keys(%$Gr);
-	$rep=$grps[0]."[".$$Gr{$grps[0]}->{"ord"}."]: ".
-	  $$Gr{$grps[0]}->{"trlemma"}.".".$$Gr{$grps[0]}->{"func"};
+	$rep=$grps[0]."[".$Gr->{$grps[0]}->{"ord"}."]: ".
+	  $Gr->{$grps[0]}->{"trlemma"}.".".$Gr->{$grps[0]}->{"func"};
 	if (@grps != @names) {		
 	  print "== $grp =============\n$rep\n" unless ($opt_Q or $diffs);
 	  $diffs++;
@@ -331,7 +331,7 @@ do {
 	  } else {
 	    print "  not in:" unless ($opt_Q);
 	    foreach $f (@names) {
-	      print " $f" unless ($opt_Q or exists $$Gr{$f} );
+	      print " $f" unless ($opt_Q or exists $Gr->{$f} );
 	    }
 	    print "\n" unless ($opt_Q);
 	  }
@@ -344,10 +344,10 @@ do {
 	undef %valhash;
 	$diff_them=0;
 	foreach $f (keys %$Gr) {
-	  if (Parent($$Gr{$f})) {
-#	    print "$grp ",Get($$Gr{$f},"form"),"<-",Get(Parent($$Gr{$f}),"form")," $f\n";
-	    $valhash{Get(Parent($$Gr{$f}),"_group_")}.=" $f";
-	    $diff_them++ if (keys(% {$G{Get(Parent($$Gr{$f}),"_group_")}})>1);
+	  if (Parent($Gr->{$f})) {
+#	    print "$grp ",Get($Gr->{$f},"form"),"<-",Get(Parent($Gr->{$f}),"form")," $f\n";
+	    $valhash{Get(Parent($Gr->{$f}),"_group_")}.=" $f";
+	    $diff_them++ if (keys(% {$G{Get(Parent($Gr->{$f}),"_group_")}})>1);
 	  } else {
 	    $valhash{"none"}.=" $f";
 	  }
@@ -391,13 +391,13 @@ do {
 	  $total_cmp_attrs++;
 	  undef %valhash;
 	  foreach $f (keys %$Gr) {
-	    $valhash{$$Gr{$f}->{$attr}}.=" $f";
+	    $valhash{$Gr->{$f}->{$attr}}.=" $f";
 	  }
 	  if (keys (%valhash) > 1) {
 	    $value{Max( map { scalar(split " ",$valhash{$_}) } %valhash)}++;
 	    print "== $grp =============\n$rep\n" unless ($opt_Q or $diffs);
 	    if ($opt_w) {
-	      my $child=$$Gr{$grps[0]};
+	      my $child=$Gr->{$grps[0]};
 	      print
 		("> ",join(" ",map { ($_->{fw},$_->{form}.".".$_->{func}) }
 			   sort {$a->{ord} <=> $b->{ord}}
