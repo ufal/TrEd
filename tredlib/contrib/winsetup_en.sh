@@ -272,4 +272,5 @@ else
   echo
   echo "Unexpected error occurred during installation."
   echo
+  read -e -n1 -r -p "Press any key to exit..."
 fi
