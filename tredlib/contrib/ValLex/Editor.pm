@@ -5,6 +5,7 @@
 package TrEd::ValLex::Editor;
 use strict;
 use base qw(TrEd::ValLex::FramedWidget);
+use vars qw($reviewer_can_delete $reviewer_can_modify);
 
 require Tk::LabFrame;
 require Tk::DialogBox;
@@ -195,10 +196,12 @@ sub create_widget {
   }
 
   if ($self->data()->user_is_reviewer()) {
-    my $deleteframe_button=$fbutton_frame->Button(-text => 'Delete',
-						   -command => [\&delete_button_pressed,
-								$self]);
-    $deleteframe_button->pack(qw/-padx 5 -side left/);
+    if ($reviewer_can_delete) {
+      my $deleteframe_button=$fbutton_frame->Button(-text => 'Delete',
+						    -command => [\&delete_button_pressed,
+								 $self]);
+      $deleteframe_button->pack(qw/-padx 5 -side left/);
+    }
 
     my $confirmframe_button=$fbutton_frame->Button(-text => 'Confirm',
 						   -command => [\&confirm_button_pressed,
@@ -206,10 +209,12 @@ sub create_widget {
 						  );
     $confirmframe_button->pack(qw/-padx 5 -side left/);
 
-    my $modifyframe_button=$fbutton_frame->Button(-text => 'Modify',
-						   -command => [\&modify_button_pressed,
-								$self]);
-    $modifyframe_button->pack(qw/-padx 5 -side left/);
+    if ($reviewer_can_modify) {
+      my $modifyframe_button=$fbutton_frame->Button(-text => 'Modify',
+						    -command => [\&modify_button_pressed,
+								 $self]);
+      $modifyframe_button->pack(qw/-padx 5 -side left/);
+    }
 
     my $show_deleted=
       $fbutton_frame->
@@ -598,7 +603,11 @@ sub confirm_button_pressed {
   return if $item eq "";
   my $frame=$fl->infoData($item);
   return unless ref($frame);
-  $self->data()->changeFrameStatus($frame,'reviewed','review');
+  if ($self->data()->getFrameStatus($frame) eq 'reviewed') {
+    $self->data()->changeFrameStatus($frame,'active','review');
+  } else {
+    $self->data()->changeFrameStatus($frame,'reviewed','review');
+  }
   $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
   $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
 }
