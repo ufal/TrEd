@@ -1,0 +1,268 @@
+## This is macro file for tkdisplaytree                      -*-cperl-*-
+## author: Petr Pajas
+## created: Wed Mar 15 14:50:16 CET 2000
+
+sub thisAfunNoNext {
+  $this->{'afunprev'}=$this->{'afun'};
+  $this->{'afun'}=shift;
+}
+
+sub thisAfun {
+  thisAfunNoNext(@_);
+  $this=Next($this) if Next($this);
+}
+
+sub thisRoot {
+  $this=$root;
+}
+
+sub thisChildrensAfun {
+  my $suff=shift;
+  my $chid;
+  my $t=$this;
+  $child=FirstSon($t);
+  while ($child) {
+    $$child{'afun'}=~s/_Co|_Ap/$suff/;
+    $child=RBrother($child);
+  }
+}
+
+# bind gotoNextFound to key Alt+N
+sub gotoNextFound {
+  my $node;
+  $node=Next($this);
+  do {
+    while ($node and $$node{"err2"} ne "Found") {
+      $node=Next($node);
+      # print STDERR $$node{"form"},"\n";
+    }
+    $this=$node,return if ($node);
+  } while (NextTree and $node=$root);
+}
+
+sub LastNode {
+  my $node=$root;
+  while ($node and FirstSon($node)) {
+    $node=FirstSon($node);
+    $node=RBrother($node) while (RBrother($node));
+  }
+  return $node;
+}
+
+# bind gotoPrevFound to key Alt+P
+sub gotoPrevFound {
+  my $node;
+  $node=Prev($this);
+  do {
+    while ($node and $$node{"err2"} ne "Found") {
+      $node=Prev($node);
+      # print STDERR $$node{"form"},"\n";
+    }
+      $this=$node,return if ($node);
+  } while (PrevTree and ($node=LastNode));
+}
+
+sub editQuery {
+  ## draws a dialog box with one Text widget and Ok/Cancel buttons
+  ## expects dialog title and default text
+  ## returns text of the Text widget
+  my $d;
+  my $ed;
+
+  $d=$grp->{'top'}->DialogBox(-title => shift,
+			   -buttons => ["OK","Cancel"]);
+  addBindTags($d,'dialog');
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
+  my $var=shift;
+  $ed=$d->Scrolled(qw/Text -height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $font);
+  $ed->insert('0.0',$var);
+  $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
+  $ed->focusForce;
+  if ($d->Show =~ /OK/) {
+    $var=$ed->get('0.0','end');
+    return $var;
+  } else {
+    return undef;
+  }
+}
+
+#bind PerlSearch to key Alt+H
+sub PerlSearch {
+  my $script = editQuery("Search: insert perl expression:",$macPerlSearchScript);
+  return unless $script;
+  $macPerlSearchScript=$script;
+  while ($this=Next($this) or NextTree()) {
+#    print $this->{'form'},"\n";
+    last if eval($script);
+  };
+}
+
+#bind PerlSearchNext to key Alt+Shift+H
+sub PerlSearchNext {
+  if ($macPerlSearchScript) {
+    while ($this=Next($this) or NextTree()) {
+#      print $this->{'form'},"\n";
+      last if eval($macPerlSearchScript);
+    }
+  } else {
+    PerlSearch();
+  }
+}
+
+#bind LastTree to key Shift+greater
+sub LastTree {
+  GotoTree($#trees);
+}
+
+# bind FirstTree to key Shift+less
+sub FirstTree {
+  GotoTree(0);
+}
+
+# bind PrevTree to key comma
+# bind NextTree to key period
+
+# bind UnsetFound to key minus
+sub UnsetFound { $this->{'err2'}=''; }
+# bind SetFound to key Shift+plus
+# bind SetFound to key plus
+sub SetFound { $this->{'err2'}='Found'; }
+
+
+#bind SwapNodes to key Ctrl+9
+sub SwapNodes {
+## Swaps the current node with the one above
+
+  return unless ($this);
+  my $parent=Parent($this);
+  return unless ($parent);
+  my $oldParent=Parent($parent);
+  return unless ($oldParent);
+  Cut($this);
+  PasteNode($this,$oldParent);
+  Cut($parent);
+  PasteNode($parent,$this);
+}
+
+
+## Automatically generated key bindings to set 'afun'
+## generator: Emacs :)
+
+sub  Pred { thisAfun 'Pred'; } # bind Pred q
+sub  Pred_Co { thisAfun 'Pred_Co'; } # bind Pred_Co Ctrl+q
+sub  Pred_Pa { thisAfun 'Pred_Pa'; } # bind Pred_Pa Ctrl+Shift+Q
+sub  Pred_Ap { thisAfun 'Pred_Ap'; } # bind Pred_Ap Shift+Q
+
+sub  trieeMinuses { thisAfun '---'; } # bind trieeMinuses Ctrl+minus
+
+sub  Pnom  { thisAfun 'Pnom'; } # bind Pnom n
+sub  Pnom_Co  { thisAfun 'Pnom_Co'; } # bind Pnom_Co Ctrl+n
+sub  Pnom_Pa  { thisAfun 'Pnom_Pa'; } # bind Pnom_Pa Ctrl+Shift+N
+sub  Pnom_Ap  { thisAfun 'Pnom_Ap'; } # bind Pnom_Ap Shift+N
+
+sub  AuxV { thisAfun 'AuxV'; } # bind AuxV v
+sub  AuxV_Co { thisAfun 'AuxV_Co'; } # bind AuxV_Co Ctrl+v
+sub  AuxV_Pa { thisAfun 'AuxV_Pa'; } # bind AuxV_Pa Ctrl+Shift+V
+sub  AuxV_Ap { thisAfun 'AuxV_Ap'; } # bind AuxV_Ap Shift+V
+
+sub  Sb { thisAfun 'Sb'; } # bind Sb s
+sub  Sb_Co { thisAfun 'Sb_Co'; } # bind Sb_Co Ctrl+s
+sub  Sb_Pa { thisAfun 'Sb_Pa'; } # bind Sb_Pa Ctrl+Shift+S
+sub  Sb_Ap { thisAfun 'Sb_Ap'; } # bind Sb_Ap Shift+S
+
+sub  Obj { thisAfun 'Obj'; } # bind Obj b
+sub  Obj_Co { thisAfun 'Obj_Co'; } # bind Obj_Co Ctrl+b
+sub  Obj_Pa { thisAfun 'Obj_Pa'; } # bind Obj_Pa Ctrl+Shift+B
+sub  Obj_Ap { thisAfun 'Obj_Ap'; } # bind Obj_Ap Shift+B
+
+sub  Atr { thisAfun 'Atr'; } # bind Atr a
+sub  Atr_Co { thisAfun 'Atr_Co'; } # bind Atr_Co Ctrl+a
+sub  Atr_Pa { thisAfun 'Atr_Pa'; } # bind Atr_Pa Ctrl+Shift+A
+sub  Atr_Ap { thisAfun 'Atr_Ap'; } # bind Atr_Ap Shift+A
+
+sub  Adv { thisAfun 'Adv'; } # bind Adv d
+sub  Adv_Co { thisAfun 'Adv_Co'; } # bind Adv_Co Ctrl+d
+sub  Adv_Pa { thisAfun 'Adv_Pa'; } # bind Adv_Pa Ctrl+Shift+D
+sub  Adv_Ap { thisAfun 'Adv_Ap'; } # bind Adv_Ap Shift+D
+
+sub  Coord { thisAfunNoNext 'Coord'; thisChildrensAfun '_Co'; } # bind Coord i
+sub  Coord_Co { thisAfunNoNext 'Coord_Co'; thisChildrensAfun '_Co'; } # bind Coord_Co Ctrl+i
+sub  Coord_Pa { thisAfunNoNext 'Coord_Pa'; thisChildrensAfun '_Co'; } # bind Coord_Pa Ctrl+Shift+I
+sub  Coord_Ap { thisAfunNoNext 'Coord_Ap'; thisChildrensAfun '_Co'; } # bind Coord_Ap Shift+I
+
+sub  AuxT { thisAfun 'AuxT'; } # bind AuxT t
+sub  AuxT_Co { thisAfun 'AuxT_Co'; } # bind AuxT_Co Ctrl+t
+sub  AuxT_Pa { thisAfun 'AuxT_Pa'; } # bind AuxT_Pa Ctrl+Shift+T
+sub  AuxT_Ap { thisAfun 'AuxT_Ap'; } # bind AuxT_Ap Shift+T
+
+sub  AuxR { thisAfun 'AuxR'; } # bind AuxR r
+sub  AuxR_Co { thisAfun 'AuxR_Co'; } # bind AuxR_Co Ctrl+r
+sub  AuxR_Pa { thisAfun 'AuxR_Pa'; } # bind AuxR_Pa Ctrl+Shift+R
+sub  AuxR_Ap { thisAfun 'AuxR_Ap'; } # bind AuxR_Ap Shift+R
+
+sub  AuxP { thisAfun 'AuxP'; } # bind AuxP p
+sub  AuxP_Co { thisAfun 'AuxP_Co'; } # bind AuxP_Co Ctrl+p
+sub  AuxP_Pa { thisAfun 'AuxP_Pa'; } # bind AuxP_Pa Ctrl+Shift+P
+sub  AuxP_Ap { thisAfun 'AuxP_Ap'; } # bind AuxP_Ap Shift+P
+
+sub  Apos { thisAfunNoNext 'Apos'; thisChildrensAfun '_Ap'; } # bind Apos u
+sub  Apos_Co { thisAfunNoNext 'Apos_Co'; thisChildrensAfun '_Ap'; } # bind Apos_Co Ctrl+u
+sub  Apos_Pa { thisAfunNoNext 'Apos_Pa'; thisChildrensAfun '_Ap'; } # bind Apos_Pa Ctrl+Shift+u
+sub  Apos_Ap { thisAfunNoNext 'Apos_Ap'; thisChildrensAfun '_Ap'; } # bind Apos_Ap Shift+u
+
+sub  ExD { thisAfun 'ExD'; } # bind ExD e
+sub  ExD_Co { thisAfun 'ExD_Co'; } # bind ExD_Co Ctrl+e
+sub  ExD_Pa { thisAfun 'ExD_Pa'; } # bind ExD_Pa Ctrl+Shift+E
+sub  ExD_Ap { thisAfun 'ExD_Ap'; } # bind ExD_Ap Shift+E
+
+sub  AuxC { thisAfun 'AuxC'; } # bind AuxC c
+sub  AuxC_Co { thisAfun 'AuxC_Co'; } # bind AuxC_Co Ctrl+c
+sub  AuxC_Pa { thisAfun 'AuxC_Pa'; } # bind AuxC_Pa Ctrl+Shift+C
+sub  AuxC_Ap { thisAfun 'AuxC_Ap'; } # bind AuxC_Ap Shift+C
+
+sub  Atv { thisAfun 'Atv'; } # bind Atv h
+sub  Atv_Co { thisAfun 'Atv_Co'; } # bind Atv_Co Ctrl+h
+sub  Atv_Pa { thisAfun 'Atv_Pa'; } # bind Atv_Pa Ctrl+Shift+H
+sub  Atv_Ap { thisAfun 'Atv_Ap'; } # bind Atv_Ap Shift+H
+
+sub  AtvV { thisAfun 'AtvV'; } # bind AtvV j
+sub  AtvV_Co { thisAfun 'AtvV_Co'; } # bind AtvV_Co Ctrl+j
+sub  AtvV_Pa { thisAfun 'AtvV_Pa'; } # bind AtvV_Pa Ctrl+Shift+J
+sub  AtvV_Ap { thisAfun 'AtvV_Ap'; } # bind AtvV_Ap Shift+J
+
+sub  AuxO { thisAfun 'AuxO'; } # bind AuxO o
+sub  AuxO_Co { thisAfun 'AuxO_Co'; } # bind AuxO_Co Ctrl+o
+sub  AuxO_Pa { thisAfun 'AuxO_Pa'; } # bind AuxO_Pa Ctrl+Shift+O
+sub  AuxO_Ap { thisAfun 'AuxO_Ap'; } # bind AuxO_Ap Shift+O
+
+sub  AuxZ { thisAfun 'AuxZ'; } # bind AuxZ z
+sub  AuxZ_Co { thisAfun 'AuxZ_Co'; } # bind AuxZ_Co Ctrl+z
+sub  AuxZ_Pa { thisAfun 'AuxZ_Pa'; } # bind AuxZ_Pa Ctrl+Shift+Z
+sub  AuxZ_Ap { thisAfun 'AuxZ_Ap'; } # bind AuxZ_Ap Shift+Z
+
+sub  AuxY { thisAfun 'AuxY'; } # bind AuxY y
+sub  AuxY_Co { thisAfun 'AuxY_Co'; } # bind AuxY_Co Ctrl+y
+sub  AuxY_Pa { thisAfun 'AuxY_Pa'; } # bind AuxY_Pa Ctrl+Shift+Y
+sub  AuxY_Ap { thisAfun 'AuxY_Ap'; } # bind AuxY_Ap Shift+Y
+
+sub  AuxG { thisAfun 'AuxG'; } # bind AuxG g
+sub  AuxG_Co { thisAfun 'AuxG_Co'; } # bind AuxG_Co Ctrl+g
+sub  AuxG_Pa { thisAfun 'AuxG_Pa'; } # bind AuxG_Pa Ctrl+Shift+G
+sub  AuxG_Ap { thisAfun 'AuxG_Ap'; } # bind AuxG_Ap Shift+G
+
+sub  AuxK { thisAfun 'AuxK'; } # bind AuxK k
+sub  AuxK_Co { thisAfun 'AuxK_Co'; } # bind AuxK_Co Ctrl+k
+sub  AuxK_Pa { thisAfun 'AuxK_Pa'; } # bind AuxK_Pa Ctrl+Shift+K
+sub  AuxK_Ap { thisAfun 'AuxK_Ap'; } # bind AuxK_Ap Shift+K
+
+sub  AuxX { thisAfun 'AuxX'; } # bind AuxX x
+sub  AuxX_Co { thisAfun 'AuxX_Co'; } # bind AuxX_Co Ctrl+x
+sub  AuxX_Pa { thisAfun 'AuxX_Pa'; } # bind AuxX_Pa Ctrl+Shift+X
+sub  AuxX_Ap { thisAfun 'AuxX_Ap'; } # bind AuxX_Ap Shift+X
+
+##
+## end of semi-automatically generated key bindings
+
+
+
