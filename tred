@@ -753,9 +753,16 @@ sub reloadFile {
   my ($win)=@_;
   if (ref($win->{FSFile}) and $win->{FSFile}->filename()) {
     my $f=$win->{FSFile}->filename();
+    $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
+    my $no=$win->{treeNo};
+    my $nodeidx=0;
+    do {			# $node is undefined after this block
+      my $node=$win->{currentNode};
+      while ($node) { $nodeidx++; $node=$node->previous() };
+    };
     askSaveFile($win);
     closeFile($win);
-    openFile($win->{framegroup},$f);
+    openFile($win->{framegroup},"$f##$no.$nodeidx");
   }
 }
 
@@ -4957,6 +4964,17 @@ sub evalMacro {
     return 1;
   }
   return undef;
+}
+
+sub tieGotoTree {
+  my ($grp,$no)=@_;
+  if ($grp->{tieWindows}) {
+    foreach (@{$grp->{treeWindows}}) {
+      gotoTree($_,$no) if ($_->{FSFile});
+    }
+  } else {
+    gotoTree($grp->{focusedWindow}) if ($grp->{focusedWindow}->{FSFile});
+  }
 }
 
 sub tieNextTree {
