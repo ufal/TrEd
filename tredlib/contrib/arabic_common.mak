@@ -3,6 +3,10 @@
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require ArabicRemix;
 
+$TrEd::TreeView::DefaultNodeStyle{NodeLabel}=
+  [-valign => 'top', -halign => 'right'];
+
+
 sub get_value_line_hook {
   my ($fsfile,$treeNo)=@_;
   print "Using remix\n";
