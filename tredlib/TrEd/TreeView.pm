@@ -9,7 +9,7 @@ import TrEd::MinMax;
 use TrEd::Convert;
 import TrEd::Convert;
 
-use vars qw($AUTOLOAD @Options);
+use vars qw($AUTOLOAD @Options $on_get_root_style $on_get_node_style);
 
 use strict;
 
@@ -24,7 +24,22 @@ use strict;
   edgeLabelSkipBelow pinfo textColor xmargin
   nodeOutlineColor nodeColor hiddenNodeColor nearestNodeColor ymargin
   currentNodeColor textColorShadow textColorHilite textColorXHilite
-  useAdditionalEdgeLabelSkip);
+  useAdditionalEdgeLabelSkip reverseNodeOrder);
+
+my %DefaultNodeStyle = (
+	      Oval            =>  [],
+	      TextBox         =>  [],
+	      EdgeTextBox     =>  [],
+	      Line            =>  [ -coords => "n,n,p,p" ],
+	      SentenceText    =>  [],
+	      SentenceLine    =>  [],
+	      SentenceFileInfo=>  [],
+	      Text            =>  [],
+	      TextBg          =>  [],
+	      Node            =>  [-shape => 'oval'],
+	      NodeLabel       =>  [-valign => 'top', -halign => 'left'],
+	      EdgeLabel       =>  [-halign => 'center', -valign => 'top']
+	     );
 
 sub new {
   my $self = shift;
@@ -163,7 +178,11 @@ sub value_line {
 
 sub nodes {
   my ($self,$fsfile,$tree_no,$prevcurrent)=@_;
-  return ($fsfile->nodes($tree_no,$prevcurrent,$self->get_showHidden()));
+  my ($nodes,$current)=$fsfile->nodes($tree_no,$prevcurrent,$self->get_showHidden());
+  if ($self->{reverseNodeOrder}) {
+    return ([reverse @$nodes],$current);
+  }
+  return ($nodes,$current);
 }
 
 sub getFontHeight {
@@ -235,13 +254,28 @@ sub recalculate_positions {
   my $valign_edge;
   my $edge_ypos;
   my ($pat_style,$pat);
+
+#   my %sameasparent;
+#   my %sameaschild;
+#   my $attr=$fsfile->FS->order;
+#   foreach my $node (@$nodes) {
+#     if ($node->parent and $node->{$attr} == $node->parent->{$attr}) {
+#       unless (exists($sameaschild{$node->parent})) {
+# 	$sameasparent{$node}=1;
+# 	$sameaschild{$node->parent}=$node;
+#       }
+#     }
+#   }
+
   foreach $node (@{$nodes}) {
     $level=0;
     $parent=$node->parent;
     while ($parent) {
       $level++;
+      $level+=$self->get_style_opt($parent,"Node","-rellevel",$Opts);
       $parent=$parent->parent;
     }
+    $level+=$self->get_style_opt($node,"Node","-rellevel",$Opts);
     $level+=$self->get_style_opt($node,"Node","-level",$Opts);
     $self->store_node_pinfo($node,"EdgeLabelHeight", $edge_label_height);
 
@@ -345,6 +379,26 @@ sub recalculate_positions {
       $minxpos=$baseXPos+$xSkipBefore;
     }
     $xpos=max($xpos,$minxpos)+$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
+
+#     my $child=$sameaschild{$node};
+#     $child=$node->parent if (!$child and $sameasparent{$node});
+#     print STDERR "$child\n";
+#     print STDERR "SAME: $node->{x_TNl}.$node->{x_TNT} - $child->{x_TNl}.$child->{x_TNT}\n" if $child;
+#     print STDERR $self->get_node_pinfo($child,'XPOS');
+#     undef $child if ($child and $self->get_node_pinfo($child,'XPOS') eq "");
+#     if ($child) {
+#       print STDERR "USING SAMEASCHILD/SAMEASPARENT\n";
+#       my $cxpos=$self->get_node_pinfo($child,'XPOS');
+#       if ($xpos>$cxpos) {
+# 	$self->store_node_pinfo($child,"NodeLabel_XPOS",
+# 				$self->get_node_pinfo($child,'NodeLabel_XPOS')+
+# 				$xpos-$cxpos);
+# 	$self->store_node_pinfo($child,"XPOS",$xpos);
+#       } else {
+# 	$xpos=$self->get_node_pinfo($child,'XPOS');
+#       }
+#     }
+
     $self->store_node_pinfo($node,"XPOS",$xpos);
     $self->store_node_pinfo($node,"NodeLabel_XPOS",$xpos+$nodeLabelXShift);
 
@@ -397,20 +451,26 @@ sub node_box_options {
 
 sub node_coords {
   my ($self,$node,$currentNode)=@_;
-  my $Opts=$self->get_gen_pinfo("Opts");
-  my ($nw,$nh)=
-    (($currentNode eq $node) ? $self->get_currentNodeWidth : $self->get_nodeWidth,
-     ($currentNode eq $node) ? $self->get_currentNodeHeight : $self->get_nodeHeight);
-  $nw+=$self->get_style_opt($node,"Node","-addwidth",$Opts);
-  $nh+=$self->get_style_opt($node,"Node","-addheight",$Opts);
-  my $x=$self->get_node_pinfo($node,"XPOS");
-  my $y=$self->get_node_pinfo($node,"YPOS");
 
-  return ($x-$nw/2,
-	  $y-$nh/2,
-	  $x+$nh/2,
-	  $y+$nw/2);
+  my $x=$self->get_node_pinfo($node,'XPOS');
+  my $y=$self->get_node_pinfo($node,'YPOS');
 
+  if ($self->get_style_opt($node,'Node','-shape') ne 'polygon') {
+    my $Opts=$self->get_gen_pinfo('Opts');
+    my ($nw,$nh)=
+      (($currentNode eq $node) ? $self->get_currentNodeWidth : $self->get_nodeWidth,
+       ($currentNode eq $node) ? $self->get_currentNodeHeight : $self->get_nodeHeight);
+    $nw+=$self->get_style_opt($node,'Node','-addwidth',$Opts);
+    $nh+=$self->get_style_opt($node,'Node','-addheight',$Opts);
+    return ($x-$nw/2,
+	    $y-$nh/2,
+	    $x+$nh/2,
+	    $y+$nw/2);
+  } else {
+    my $horiz=0;
+    return map { $horiz=!$horiz; $_+($horiz ? $x : $y) } 
+      split(',',$self->get_style_opt($node,'Node','-polygon'))
+  }
 }
 
 sub node_options {
@@ -514,23 +574,11 @@ sub redraw {
 
   my (@node_patterns,@edge_patterns,@style_patterns,@patterns);
 
-  my %Opts = (
-	      Oval            =>  [],
-	      TextBox         =>  [],
-	      EdgeTextBox     =>  [],
-	      Line            =>  [
-				   -coords => "0,0,p,p"
-				  ],
-	      SentenceText    =>  [],
-	      SentenceLine    =>  [],
-	      SentenceFileInfo=>  [],
-	      Text            =>  [],
-	      TextBg          =>  [],
-	      Node            =>  [],
-	      NodeLabel       =>  [-valign => 'top', -halign => 'left'],
-	      EdgeLabel       =>  [-halign => 'center', -valign => 'top']
-	     );
-
+  my %Opts=();
+  foreach (keys %DefaultNodeStyle) {
+    $Opts{$_}=[@{$DefaultNodeStyle{$_}}];
+  }
+  
   if (ref($fsfile)) {
     @node_patterns=$self->get_label_patterns($fsfile,"node");
     @edge_patterns=$self->get_label_patterns($fsfile,"edge");
@@ -547,10 +595,10 @@ sub redraw {
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
-
   my $pstyle;
   $node=$nodes->[0];
   if ($node) {
+    $node=$node->parent() while ($node->parent());
     # only for root node if any
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
       foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
@@ -563,25 +611,39 @@ sub redraw {
 	}
       }
     }
+    # root styling hook
+    if (ref($on_get_root_style) eq 'ARRAY') {
+      &{$on_get_root_style->[0]}($self,$node,\%Opts,@{$on_get_root_style}[1..$#$on_get_root_style]);
+    } elsif (ref($on_get_root_style) eq 'CODE') {
+      &$on_get_root_style($self,$node,\%Opts);
+    }
   }
+
   # styling patterns should be interpolated here for each node and
   # the results stored within node_pinfo
-
-  foreach $style (@style_patterns) {
-    foreach $node (@{$nodes}) {
+  foreach $node (@{$nodes}) {
+    my %nopts=();
+    foreach $style (@style_patterns) {
       foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
-	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):(.+)$/) {
-	  $pstyle=$self->get_node_pinfo($node,"style-$1$2");
-	  if ($pstyle) {
-	    push @$pstyle,$3=>$4; # making it unique would certainly slow it down
+	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+):(.+)$/) {
+	  if (exists $nopts{"$1$2"}) {
+	    push @{$nopts{"$1$2"}},$3=>$4;
 	  } else {
-	    $self->store_node_pinfo($node,"style-$1$2",[$3 => $4]);
+	    $nopts{"$1$2"}=[$3=>$4];
 	  }
 	}
       }
     }
+    # external styling hook
+    if (ref($on_get_node_style) eq 'ARRAY') {
+      &{$on_get_node_style->[0]}($self,$node,\%nopts,@{$on_get_node_style}[1..$#$on_get_node_style]);
+    } elsif (ref($on_get_node_style) eq 'CODE') {
+      &$on_get_node_style($self,$node,\%nopts);
+    }
+    foreach (keys %nopts) {
+      $self->store_node_pinfo($node,"style-$_",$nopts{$_});
+    }
   }
-
   #------------------------------------------------------------
   #}
   #my $t1= new Benchmark;
@@ -597,7 +659,6 @@ sub redraw {
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
-
   recalculate_positions($self,$fsfile,$nodes,\%Opts);
 
   #------------------------------------------------------------
@@ -618,8 +679,6 @@ sub redraw {
 
   $self->store_gen_pinfo('lastX' => 0);
   $self->store_gen_pinfo('lastY' => 0);
-
-  # Something like redraw_hook should be called here
 
   if ($self->get_drawSentenceInfo) {
     return unless $fsfile;
@@ -666,7 +725,6 @@ sub redraw {
   my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
   my $can_dash=($Tk::VERSION=~/\.([0-9]+)$/ and $1>=22);
   foreach $node (@{$nodes}) {
-    # Something like draw_node_hook should be called here
     $parent=$node->parent;
     use integer;
     my @coords=split '&',$self->get_style_opt($node,"Line","-coords",\%Opts);
@@ -674,43 +732,85 @@ sub redraw {
     my @fill=split '&',$self->get_style_opt($node,"Line","-fill",\%Opts);
     my @width=split '&',$self->get_style_opt($node,"Line","-width",\%Opts);
     my @dash=split '&',$self->get_style_opt($node,"Line","-dash",\%Opts);
-    my $lin="";
+    my @smooth=split '&',$self->get_style_opt($node,"Line","-smooth",\%Opts);
+    my $lin=0;
+    my %nodehash;
     foreach my $coords (@coords) {
       my @c=split ',',$coords;
       my $x=1;
-      next if (!$parent and $coords=~/p/);
-      foreach (@c) {
-	if (/^p((?:[+-][0-9]*)?)/) {
-	  $_=$1+
-	    $self->get_node_pinfo($parent,$x ? "XPOS" : "YPOS");
-	} elsif (/^w((?:[+-][0-9]*)?)/) {
-	  $_=$1;
-	} elsif (/^n?((?:[+-][0-9]*)?)/) {
-	  $_=$1+
-	    $self->get_node_pinfo($node,$x ? "XPOS" : "YPOS");
+      my $err=0;
+      COORD: foreach (@c) {
+	s{([xy]?)\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\]}{
+	  my $i=0;
+	  if (exists($nodehash{$2,$3})) {
+	    $i=$nodehash{$2,$3}
+	  } else {
+	    $i++ while ($i<@$nodes and
+			!(exists($nodes->[$i]{$2}) and $nodes->[$i]{$2} eq $3));
+	    $nodehash{$2,$3}=$i;
+	  }
+	  if ($i<@$nodes) { 
+	    $self->get_node_pinfo($nodes->[$i],(($x and ($1 ne 'y')) or $1 eq 'x') ?
+				  "XPOS" : "YPOS")
+	  } else {
+	    $err=1; 0 
+	  }
+	}ge;
+	last COORD if $err;
+	s{([xy]?)p}{
+	  if ($parent) {
+	    $self->get_node_pinfo($parent,(($x and ($1 ne 'y')) or $1 eq 'x') ?
+				  "XPOS" : "YPOS")
+	  } else {
+	    $err=1;
+	    0
+	  }
+	}ge;
+	last COORD if $err;
+	s{([xy]?)n}{
+	  $self->get_node_pinfo($node,(($x and ($1 ne 'y')) or $1 eq 'x') ?
+				"XPOS" : "YPOS")
+	 }ge;
+	if (/^([- +\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
+	  $_=eval $_;
+	} else {
+	  $err=1;
+	  print STDERR "BAD: $_\n";
+	  $_="";
+	  last COORD;
 	}
 	$x=!$x;
       }
-      my $line=$self->canvas->createLine(@c,
-					 '-arrow' =>  shift @arrow || $self->get_lineArrow,
-					 '-width' =>  shift @width || $self->get_lineWidth,
-					 '-fill'  =>  shift @fill || $self->get_lineColor,
-					  $can_dash ? ('-dash'  =>  shift @dash || $self->get_lineDash)
-					            : ());
-      $self->store_node_pinfo($node,"Line$lin",$line);
-      $self->store_obj_pinfo($line,$node);
-      $self->realcanvas->lower($line,'all');
+      unless ($err) {
+	my $line;
+	eval {
+	  $line=$self->canvas->createLine(@c,
+					  '-arrow' =>  $arrow[$lin] || $self->get_lineArrow,
+					  '-width' =>  $width[$lin] || $self->get_lineWidth,
+					  '-fill'  =>  $fill[$lin] || $self->get_lineColor,
+					  '-smooth'  =>  $smooth[$lin] || 0,
+					  $can_dash ? ('-dash'  =>  $dash[$lin] || $self->get_lineDash)
+					  : ());
+	};
+	$self->store_node_pinfo($node,"Line$lin",$line);
+	$self->store_obj_pinfo($line,$node);
+	$self->realcanvas->lower($line,'all');
+      }
       $lin++;
     }
+    undef %nodehash;
 
 #    $self->apply_style_opts($line,@{$Opts{Line}},
 #			    $self->get_node_style($node,"Line"));
 
     ## The Nodes ##
-    my $oval=$self->canvas->createOval($self->node_coords($node,$currentNode),
-				       $self->node_options($node,
-							   $fsfile->FS,
-							   $currentNode));
+    my $shape=lc($self->get_style_opt($node,'Node','-shape',\%Opts));
+    $shape='oval' unless ($shape =~ /^(?:rectangle|polygon)$/o);
+    my $oval=$self->canvas->create($shape,
+				   $self->node_coords($node,$currentNode),
+				   $self->node_options($node,
+						       $fsfile->FS,
+						       $currentNode));
     $self->apply_style_opts($oval,@{$Opts{Oval}},
 				       $self->get_node_style($node,"Oval"));
     $self->canvas->addtag('point', 'withtag', $oval);
