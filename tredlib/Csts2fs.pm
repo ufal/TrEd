@@ -180,7 +180,8 @@ my %start_tag = (
 			   if ($s->{node}) {
 			     $s->{node}->{nospace}=1;
 			   } else {
-			     $s->{following}->{$gappre}="<D>";
+			     copy_tag_to(@_,'','<','!GAP');
+#			     $s->{following}->{$no_node_gap}.="<D>";
 			   }
 			 }],
 
@@ -696,7 +697,6 @@ sub read {
     if ($event->type eq 'start_element') {
       my $e=$event->data;
       my $n=$e->name;
-
       if (exists($start_tag{$n})) {
 	my ($cb,@args)=@{ $start_tag{$n} };
 	&$cb($state,$n,@args);
