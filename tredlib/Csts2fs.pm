@@ -35,6 +35,8 @@ $sentord="sentord";
 $normal_gap='gappost';
 $no_node_gap='gappre';
 
+$fill_empty_dord=0;
+
 %composed_attrs=();
 
 sub assign_TRt {
@@ -167,25 +169,25 @@ my %start_tag = (
 		 'mauth' => [sub {
 		   my ($s)=@_;
 		   if ($s->{parser}->element->parent->in('h')) {
-		     copy_tag_to(@_,'','<','cstsmarkup');
+		     copy_tag_to_following_root(@_,'','<','cstsmarkup');
 		   } else {
-		     copy_tag_to(@_,'','<','docmarkup');
+		     copy_tag_to_following_root(@_,'','<','docmarkup');
 		   }
 		 }],
 		 'mdate' => [sub {
 		   my ($s)=@_;
 		   if ($s->{parser}->element->parent->in('h')) {
-		     copy_tag_to(@_,'','<','cstsmarkup');
+		     copy_tag_to_following_root(@_,'','<','cstsmarkup');
 		   } else {
-		     copy_tag_to(@_,'','<','docmarkup');
+		     copy_tag_to_following_root(@_,'','<','docmarkup');
 		   }
 		 }],
 		 'mdesc' => [sub {
 		   my ($s)=@_;
 		   if ($s->{parser}->element->parent->in('h')) {
-		     copy_tag_to(@_,'','<','cstsmarkup');
+		     copy_tag_to_following_root(@_,'','<','cstsmarkup');
 		   } else {
-		     copy_tag_to(@_,'','<','docmarkup');
+		     copy_tag_to_following_root(@_,'','<','docmarkup');
 		   }
 		 }],
 		 'doc' => [sub {
@@ -194,24 +196,24 @@ my %start_tag = (
 			   $s->{following_root}->{doc}=$e->attribute('file')->value;
 			   $s->{following_root}->{docid}=$e->attribute('id')->value;
 			 }],
-		 'mod' => [\&copy_tag_to,'','<','docprolog'],
-		 'txtype' => [\&copy_tag_to,'','<','docprolog'],
-		 'genre' => [\&copy_tag_to,'','<','docprolog'],
+		 'mod' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'txtype' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'genre' => [\&copy_tag_to_following_root,'','<','docprolog'],
 		 'c' => [sub {
 			   shift->{following_root}->{chap}='1';
 			 }],
-		 'verse' => [\&copy_tag_to,'','<','docprolog'],
-		 'med' => [\&copy_tag_to,'','<','docprolog'],
-		 'authsex' => [\&copy_tag_to,'','<','docprolog'],
-		 'lang' => [\&copy_tag_to,'','<','docprolog'],
-		 'transsex' => [\&copy_tag_to,'','<','docprolog'],
-		 'srclang' => [\&copy_tag_to,'','<','docprolog'],
-		 'temp' => [\&copy_tag_to,'','<','docprolog'],
-		 'firsted' => [\&copy_tag_to,'','<','docprolog'],
-		 'authname' => [\&copy_tag_to,'','<','docprolog'],
-		 'transname' => [\&copy_tag_to,'','<','docprolog'],
-		 'opus' => [\&copy_tag_to,'','<','docprolog'],
-		 'id' => [\&copy_tag_to,'','<','docprolog'],
+		 'verse' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'med' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'authsex' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'lang' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'transsex' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'srclang' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'temp' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'firsted' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'authname' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'transname' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'opus' => [\&copy_tag_to_following_root,'','<','docprolog'],
+		 'id' => [\&copy_tag_to_following_root,'','<','docprolog'],
 		 'i' => [\&copy_tag_to,'','<','!GAP'],
 		 'idioms' => [\&copy_tag_to,'','<','!GAP'],
 		 'idiom' => [\&copy_tag_to,'','<','!GAP'],
@@ -247,42 +249,42 @@ my %pcdata = (
 	      'mauth' => [sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
-		  to_node_attr(@_,'','cstsmarkup');
+		  to_attr(@_,'following_root','','cstsmarkup');
 		} else {
-		  to_node_attr(@_,'','docmarkup');
+		  to_attr(@_,'following_root','','docmarkup');
 		}
 	      }],
 	      'mdate' => [sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
-		  to_node_attr(@_,'','cstsmarkup');
+		  to_attr(@_,'following_root','','cstsmarkup');
 		} else {
-		  to_node_attr(@_,'','docmarkup');
+		  to_attr(@_,'following_root','','docmarkup');
 		}
 	      }],
 	      'mdesc' => [sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
-		  to_node_attr(@_,'','cstsmarkup');
+		  to_attr(@_,'following_root','','cstsmarkup');
 		} else {
-		  to_node_attr(@_,'','docmarkup');
+		  to_attr(@_,'following_root','','docmarkup');
 		}
 	      }],
-	      'mod' => [\&to_node_attr,'','docprolog'],
-	      'txtype' => [\&to_node_attr,'','docprolog'],
-	      'genre' => [\&to_node_attr,'','docprolog'],
-	      'verse' => [\&to_node_attr,'','docprolog'],
-	      'med' => [\&to_node_attr,'','docprolog'],
-	      'authsex' => [\&to_node_attr,'','docprolog'],
-	      'lang' => [\&to_node_attr,'','docprolog'],
-	      'transsex' => [\&to_node_attr,'','docprolog'],
-	      'srclang' => [\&to_node_attr,'','docprolog'],
-	      'temp' => [\&to_node_attr,'','docprolog'],
-	      'firsted' => [\&to_node_attr,'','docprolog'],
-	      'authname' => [\&to_node_attr,'','docprolog'],
-	      'transname' => [\&to_node_attr,'','docprolog'],
-	      'opus' => [\&to_node_attr,'','docprolog'],
-	      'id' => [\&to_node_attr,'','docprolog'],
+	      'mod' => [\&to_attr,'following_root','','docprolog'],
+	      'txtype' => [\&to_attr,'following_root','','docprolog'],
+	      'genre' => [\&to_attr,'following_root','','docprolog'],
+	      'verse' => [\&to_attr,'following_root','','docprolog'],
+	      'med' => [\&to_attr,'following_root','','docprolog'],
+	      'authsex' => [\&to_attr,'following_root','','docprolog'],
+	      'lang' => [\&to_attr,'following_root','','docprolog'],
+	      'transsex' => [\&to_attr,'following_root','','docprolog'],
+	      'srclang' => [\&to_attr,'following_root','','docprolog'],
+	      'temp' => [\&to_attr,'following_root','','docprolog'],
+	      'firsted' => [\&to_attr,'following_root','','docprolog'],
+	      'authname' => [\&to_attr,'following_root','','docprolog'],
+	      'transname' => [\&to_attr,'following_root','','docprolog'],
+	      'opus' => [\&to_attr,'following_root','','docprolog'],
+	      'id' => [\&to_attr,'following_root','','docprolog'],
 	      'i' => [\&to_node_attr,'','!GAP'],
 	      'iref' => [\&to_node_attr,'','!GAP'],
 
@@ -510,9 +512,11 @@ sub build_tree {
       Paste($_,$root,{ $ord => ' N'}); # paste using $ord as the numbering attribute
     }
   }
-  foreach (@_) {
-    if ($_->{$ord} eq "") {
-      $_->{$ord}=$_->{$sentord};
+  if ($fill_empty_ord) {
+    foreach (@_) {
+      if ($_->{$ord} eq "") {
+	$_->{$ord}=$_->{$sentord};
+      }
     }
   }
   unless (ref($root)) {
@@ -545,7 +549,7 @@ sub to_attr {
 sub to_node_attr {
   my ($s,$data,$concat,$attr)=@_;
   $node = ref($s->{node}) ? 'node' : 'following';
-  to_attr($s,$data,ref($s->{node}) ? 'node' : 'following',$concat,$attr);
+  to_attr($s,$data,$node,$concat,$attr);
 }
 
 sub to_next_node_attr {
@@ -598,6 +602,16 @@ sub make_last_tree {
   print STDERR "Unstored data for following node\n" if (keys(%{$s->{following}}));
   print STDERR "Unstored data for following root\n" if (keys(%{$s->{following_root}}));
   @{$s->{nodes}}=();
+}
+
+sub copy_tag_to_following_root {
+  my ($s,$data,$concat,$tag,$attr)=@_;
+  if ($tag =~/\</) {
+    to_attr($s,convert_element_to_string($s->{parser}->element),"following_root",$concat,$attr);
+  }
+  if ($tag =~/\>/) {
+    to_attr($s,"</$data>","following_root",$concat,$attr);
+  }
 }
 
 sub copy_tag_to {
