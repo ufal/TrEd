@@ -1,12 +1,13 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2003-10-23 10:12:38 pajas>
+## Time-stamp: <2003-11-26 14:46:34 pajas>
 
 #encoding iso-8859-2
 
 unshift @INC,"$main::libDir/contrib" unless (grep($_ eq "$main::libDir/contrib", @INC));
 require AFA;
 
+my $init_AFA=0;
 my %advfunc;
 my %ntime;
 my %nplace;
@@ -34,7 +35,8 @@ my %ntprep = (
 	      'po4' => 'TFHL'
 	     );
 
-do {
+sub init_AFA {
+  $init_AFA=1;
   my $f;
   open $f,"<$libDir/contrib/adverb2functor.lex" || warn "cannot open $libDir/contrib/adverb2functor.lex: $!";
   my ($key,$func,$num,$of);
@@ -58,7 +60,7 @@ do {
     $nplace{$_}=1;
   }
   close $f;
-};
+}
 
 sub after_edit_attr_hook {
   my ($node,$attr,$result)=@_;
@@ -83,6 +85,8 @@ sub clear_funcaux {
 #bind assign_func_auto to F9 menu Auto-assign functor to node
 sub assign_func_auto {
   my $node=$_[1] || $this;
+
+  init_AFA() unless $init_AFA;
   foreach (qw/funcauto funcprec funcaux/) {
     $node->{$_}='';
   }
@@ -119,7 +123,7 @@ sub assign_func_auto {
   $pa=~s/_.*//g;
   my $prec;
   $node->{funcauto}="???";
-  
+
   if ($node->{tag}=~/^D/ and exists($advfunc{$node->{trlemma}})) {
     my $af=$advfunc{$node->{trlemma}};
     $node->{funcauto}=$af->[0];
