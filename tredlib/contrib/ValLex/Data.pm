@@ -657,6 +657,16 @@ sub getFrameStatus {
   return $self->conv->decode($frame->getAttribute("status"));
 }
 
+sub getFrameUsed {
+  my ($self,$frame)=@_;
+  return $self->conv->decode($frame->getAttribute("used"));
+}
+
+sub getFrameHereditaryUsed {
+  my ($self,$frame)=@_;
+  return $self->conv->decode($frame->getAttribute("hereditary_used"));
+}
+
 sub isEqual {
   my ($self,$a,$b)=@_;
   return $a == $b;
