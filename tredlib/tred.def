@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-11 11:54:55 paja>
+## Time-stamp: <2001-09-17 15:39:21 pajas>
 
 package TredMacro;
 
@@ -630,5 +630,7 @@ sub ShiftNodeLeft {
 }
 
 sub HiddenVisible {
-  return ref($grp->{treeView}) and $grp->{treeView}->get_showHidden();
+  print ref($grp->{treeView}),"\n";
+  print $grp->{treeView}->get_showHidden(),"\n";
+  return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
 }
