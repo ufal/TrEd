@@ -11,7 +11,7 @@ use XML::LibXML;
 sub parser_start {
   my ($self, $file)=@_;
   my $parser;
-  if ($^O eq 'MSWin32' and $ENV{OS} ne "Windows_NT") {
+  if ($^O eq 'MSWin32') {
     $parser=XML::LibXML->new(
 			     ext_ent_handler => sub {
 			       my $f=$file;
