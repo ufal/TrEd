@@ -43,7 +43,7 @@ sub show_dialog {
 			       undef, 1,-width => '25c');
   $chooser->subwidget_configure($confs) if ($confs);
   ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
-  $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
+  $chooser->widget()->bind('<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
   if (ref($field) eq "ARRAY") {
     foreach my $fl (@{$chooser->subwidget('framelists')}) {
