@@ -67,14 +67,21 @@ $Fs2csts::preserve_err1 = 1 if $opt_E;
 );
 
 $fileno=0;
-$filecount=scalar(@ARGV);
+
+my @files;
+if ($^O eq 'MSWin32') {
+  @files=map glob, @ARGV;
+} else {
+  @files = @ARGV;
+}
+$filecount=scalar(@files);
 
 $format=defined($opt_f) ? lc($opt_f) : "csts";
 unless (  $backend = $bkmap{$format} ) {
   die "Unknown format $format. Use -f [fs|csts|trxml]\n";
 }
 
-foreach $f (@ARGV) {
+foreach $f (@files) {
   $fileno++;
   print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
   $fs = FSFile->newFSFile($f,@backends);
