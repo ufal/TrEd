@@ -12,30 +12,59 @@ sub tfa_NA {
 }
 
 
+sub GetNodesExceptST {
+# returns the reference to an array ordered according to the ordering attribute
+# containing the whole tree except the nodes depending on the given node
+# the array contains all nodes or only visible nodes depending on the second parameter
+
+  my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node
+
+  my @all;
+
+  my $node=$root;
+
+  if ($_[1]) {
+    while ($node) {
+      push @all, $node;
+      if ($node eq $top) {
+	$node=$node->following_right_or_up;
+	$node=$node->following_visible($grp->{FSFile}->FS) if IsHidden($node);
+      } else {
+	$node=$node->following_visible($grp->{FSFile}->FS);
+      }
+    }
+  } else {
+    while ($node) {
+      push @all, $node;      # @all is filled with the nodes of the whole tree
+      if ($node eq $top) {   # except for the nodes depending on the given node
+	$node=$node->following_right_or_up;
+      }
+      else {
+	$node=$node->following;
+      }
+    }
+  }
+
+  SortByOrd(\@all);
+  return \@all;
+}
+
+
 sub ProjectivizeSubTree {
 # projectivizes the subtree of a given node (within the whole tree)
 # if it succeeds, it returns 1, undef otherwise
 
   my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node whose subtree is to be projectivized
 
-  my @subtree=ContinueProjectivizing($top); # the ordered array of the projectivized subtree, or undef
-  return undef unless @subtree;
+  my $subtree=ContinueProjectivizing($top); # the ordered array of the projectivized subtree, or undef
+  return undef unless @$subtree;
 
-  my @all;
+  my $all=GetNodesExceptST($top);
 
-  my $node=$root;
-  while ($node) {
-    push @all, $node;      # @all is filled with the nodes of the whole tree
-    if ($node eq $top) {   # except for the nodes depending on the given node
-      $node=$node->following_right_or_up;
-    }
-    else {
-      $node=$node->following;
-    }
-  }
-  SortByOrd(\@all);   # the array @all is ordered according to the appropriate ordering attribute
-  splice @all,Index(\@all,$top),1, @subtree;   # the projectivized subtree is spliced at the right place
-  NormalizeOrds(\@all);  # the ordering attributes are modified accordingly
+  splice @$all,Index($all,$top),1, @$subtree;   # the projectivized subtree is spliced at the right place
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+
   return 1
 }
 
@@ -88,7 +117,7 @@ sub Projectivize {
       }
   }
 
-  return map {$_->[0]} @subtree;  # an ordered array containing only the references
+  return [map {$_->[0]} @subtree];  # an ordered array containing only the references
                                   # to the nodes of the projectivized subtree is returned
 }
 
@@ -102,7 +131,7 @@ sub AskCzEn ($$$$) {
 
   use POSIX qw(locale_h);
 
-  if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech$/) {
+  if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech/i) {
     ($yes, $no, $title, $message) = ("Ano", "Ne", $titleCz, $messageCz);
   } else {
     ($yes, $no, $title, $message) = ("Yes", "No", $titleEn, $messageEn);
@@ -132,7 +161,7 @@ sub MessageCzEn ($$) {
 
   use POSIX qw(locale_h);
 
-  if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech$/) {
+  if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech/i) {
     ($title, $message) = ("Zpráva", $messageCz);
   } else {
     ($title, $message) = ("Message", $messageEn);
@@ -157,10 +186,11 @@ sub ContinueProjectivizing {
   my $top=ref($_[0]) ? $_[0] : $root;
   # $top contains the reference to the node whose subtree is to be checked for projectivity
 
-  my @ProjectivizedSubTree=Projectivize($top,not(IsHidden($top)));  # projectivized subtree
-  my @SubTree = IsHidden($top) ? SortByOrd([GetNodes($top)]) : SortByOrd([GetVisibleNodes($top)]);
+  my $ProjectivizedSubTree=Projectivize($top,not(IsHidden($top)));  # projectivized subtree
+  my $SubTree = IsHidden($top) ? [GetNodes($top)] : [GetVisibleNodes($top)] ;
+  SortByOrd($SubTree);
      # subtree ordered according to the ordering attribute
-  my ($proj, $sub) = ($#ProjectivizedSubTree, $#SubTree);
+  my ($proj, $sub) = ($#$ProjectivizedSubTree, $#$SubTree);
   my $differ = 0;  # suppose they do not differ
 
   if ($proj != $sub) {  # compares the actual subtree with the projectivized one
@@ -168,7 +198,7 @@ sub ContinueProjectivizing {
   }
   else {
     for (my $i=0; $i<=$proj; $i++) {
-      if ($ProjectivizedSubTree[$i] != $SubTree[$i]) {
+      if ($$ProjectivizedSubTree[$i] != $$SubTree[$i]) {
 	$differ=1;  # they differ
 	last;
       }
@@ -279,7 +309,7 @@ sub OrderByTFA {
       push @subtree, SortByOrd([GetNodes($node)])  # push a son's subtree
     }
   }
-  return @subtree
+  return \@subtree
 }
 
 
@@ -291,24 +321,33 @@ e subtree is to be projectivized
 
   return unless ProjectivizeSubTree($top);
 
-  my @subtree=OrderByTFA($top);
-  return unless @subtree;
+  my $subtree=OrderByTFA($top);
+  return unless $subtree;
 
-  my @all;
+  my $all=GetNodesExceptST($top);
 
-  my $node=$root;
-  while ($node) {
-    push @all, $node;      # @all is filled with the nodes of the whole tree
-    if ($node eq $top) {   # except for the nodes depending on the given node
-      $node=$node->following_right_or_up;
-    }
-    else {
-      $node=$node->following;
-    }
-  }
-  SortByOrd(\@all);   # the array @all is ordered according to the appropriate ordering attribute
-  splice @all,Index(\@all,$top),1, @subtree;   # the subtree is spliced at the right place
-  NormalizeOrds(\@all);  # the ordering attributes are modified accordingly
+  splice @$all,Index($all,$top),1, @$subtree;   # the subtree is spliced at the right place
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+}
+
+sub MoveST {
+# move the subtree specified by the first parameter right after the node specified in the second parameter
+
+  my $top=$_[0];
+  return unless $top;
+
+  return unless my $subtree=ContinueProjectivizing($top);
+
+  my $after = ref($_[1]) ? $_[1] : $root;
+
+  my $all=GetNodesExceptST($top);
+
+  splice @$all,Index($all,$top),1;   # the top node is cut off from the array
+  splice @$all,Index($all,$after)+1,0,@$subtree;   # the subtree is spliced after the appropriate node
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+
 }
 
 
@@ -342,33 +381,21 @@ sub ShiftSubTreeLeft {
   my $top=ref($_[0]) ? $_[0] : $this;  # if no parameter is passed,
                                        # take $this to be the reference to the node to be processed
 
-  return unless my @subtree=ContinueProjectivizing($top);
+  return unless my $subtree=ContinueProjectivizing($top);
 
-  my @all;
+  my $all=GetNodesExceptST($top);
 
-  my $node=$root;  # put all nodes of the whole tree except the nodes depending on the given node into @all
-  while ($node) {
-    push @all, $node;
-    if ($node eq $top) {
-      $node=$node->following_right_or_up;
-    }
-    else {
-      $node=$node->following;
-    }
-  }
-  SortByOrd(\@all);  # sort them according to the ordering attribute
-
-  my $i=Index(\@all,$top);  # locate the given node in the array @all
+  my $i=Index($all,$top);  # locate the given node in the array @all
   if ($i>1) {  # check if there is place where to move (the root is always number zero)
-    splice @all,$i,1;  # cut out the given node
-    splice @all,$i-1,0, @subtree;  # splice the projectivized subtree at the right (ie left ;-) place
+    splice @$all,$i,1;  # cut out the given node
+    splice @$all,$i-1,0, @$subtree;  # splice the projectivized subtree at the right (ie left ;-) place
   }
   else {
-    splice @all,$i,1, @subtree;  # if there is no room where to move, just splice the proj. subtree
+    splice @$all,$i,1, @$subtree;  # if there is no room where to move, just splice the proj. subtree
                                  # instead of the given node - thus the subtree gets projectivized
   }
 
-  NormalizeOrds(\@all);  # the ordering attributes are modified accordingly
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
 
 }
 
@@ -379,31 +406,20 @@ sub ShiftSubTreeRight {
 
   my $top=ref($_[0]) ? $_[0] : $this;
 
-  return unless my @subtree=ContinueProjectivizing($top);
+  return unless my $subtree=ContinueProjectivizing($top);
 
-  my @all;
+  my $all=GetNodesExceptST($top);
 
-  my $node=$root;
-  while ($node) {
-    push @all, $node;
-    if ($node eq $top) {
-      $node=$node->following_right_or_up;
-    }
-    else {
-      $node=$node->following;
-    }
-  }
-  SortByOrd(\@all);
-
-  my $i=Index(\@all,$top);
-  if ($i<$#all) {
-    splice @all,$i,1;
-    splice @all,$i+1,0, @subtree;
+  my $i=Index($all,$top);
+  if ($i<$#$all) {
+    splice @$all,$i,1;
+    splice @$all,$i+1,0, @$subtree;
   }
   else {
-    splice @all,$i,1, @subtree;
+    splice @$all,$i,1, @$subtree;
   }
-  NormalizeOrds(\@all);
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
 
 }
 
@@ -414,47 +430,23 @@ sub ShiftSubTreeLeftSkipHidden {
   my $top=ref($_[0]) ? $_[0] : $this;  # if no parameter is passed,
                                        # take $this to be the reference to the node to be processed
 
-  return unless my @subtree=ContinueProjectivizing($top);  # the projectivized subtree
+  return unless my $subtree=ContinueProjectivizing($top);  # the projectivized subtree
 
-  my @all;    # all nodes except the nodes depending on the given node
-  my @allvis; # all visible (ie non-hidden) nodes except the nodes depending on the given node
+  my $all=GetNodesExceptST($top);  # all nodes except the nodes depending on the given node
 
-  my $node=$root;
-  while ($node) {
-    push @all, $node;
-    if ($node eq $top) {
-      $node=$node->following_right_or_up;
-    }
-    else {
-      $node=$node->following;
-    }
-  }
-  SortByOrd(\@all);
+  my $allvis=GetNodesExceptST($top,1); # all visible (ie non-hidden) nodes except the nodes depending on the given node
 
-  my $node=$root;
-  while ($node) {
-    push @allvis, $node;
-    if ($node eq $top) {
-      $node=$node->following_right_or_up;
-      $node=$node->following_visible($grp->{FSFile}->FS) if IsHidden($node);
-    }
-    else {
-      $node=$node->following_visible($grp->{FSFile}->FS);
-    }
-  }
-  SortByOrd(\@allvis);
-
-  my $i=Index(\@allvis,$top);  # locate the given node within the array @allvis
+  my $i=Index($allvis,$top);  # locate the given node within the array @allvis
   if ($i>1) {  # if there is room where to move
-    splice @all,Index(\@all,$top),1;  # cut the given node
-    splice @all,Index(\@all,$allvis[$i-1]),0, @subtree;  # locate the first visible node to the left
+    splice @$all,Index($all,$top),1;  # cut the given node
+    splice @$all,Index($all,$$allvis[$i-1]),0, @$subtree;  # locate the first visible node to the left
                                                     # and splice the projectivized subtree accordingly
   }
   else {  # nowhere to move, the subtree of the given node gets projectivized
-    splice @all,Index(\@all,$top),1, @subtree;
+    splice @$all,Index($all,$top),1, @$subtree;
   }
 
-  NormalizeOrds(\@all);
+  NormalizeOrds($all);
 
 }
 
@@ -465,46 +457,22 @@ sub ShiftSubTreeRightSkipHidden {
 
   my $top=ref($_[0]) ? $_[0] : $this;
 
-  return unless my @subtree=ContinueProjectivizing($top);
+  return unless my $subtree=ContinueProjectivizing($top);
 
-  my @all;
-  my @allvis;
+  my $all=GetNodesExceptST($top);
 
-  my $node=$root;
-  while ($node) {
-    push @all, $node;
-    if ($node eq $top) {
-      $node=$node->following_right_or_up;
-    }
-    else {
-      $node=$node->following;
-    }
-  }
-  SortByOrd(\@all);
+  my $allvis=GetNodesExceptST($top,1);
 
-  my $node=$root;
-  while ($node) {
-    push @allvis, $node;
-    if ($node eq $top) {
-      $node=$node->following_right_or_up;
-      $node=$node->following_visible($grp->{FSFile}->FS) if IsHidden($node);
-    }
-    else {
-      $node=$node->following_visible($grp->{FSFile}->FS);
-    }
-  }
-  SortByOrd(\@allvis);
-
-  my $i=Index(\@allvis,$top);
-  if ($i<$#allvis) {
-    splice @all,Index(\@all,$top),1;
-    splice @all,Index(\@all,$allvis[$i+1])+1,0, @subtree;
+  my $i=Index($allvis,$top);
+  if ($i<$#$allvis) {
+    splice @$all,Index($all,$top),1;
+    splice @$all,Index($all,$$allvis[$i+1])+1,0, @$subtree;
   }
   else {
-    splice @all,Index(\@all,$top),1, @subtree;
+    splice @$all,Index($all,$top),1, @$subtree;
   }
 
-  NormalizeOrds(\@all);
+  NormalizeOrds($all);
 
 }
 
