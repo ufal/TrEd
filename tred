@@ -749,6 +749,8 @@ sub updatePostponed {
 							  }
 							},$grp]
 					  );
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Preserve patterns on reload',
+	  -variable=> \$reloadKeepsPatterns);
     $grp->{PostponedFileMenu}->command(-label=> 'Open files',
 				       -state=> 'disabled',
 				       -background=> '#444444'
@@ -848,7 +850,7 @@ sub reloadFile {
     closeFile($win,-all_windows => 1);
     openFile($win->{framegroup},"$f##$no.$nodeidx",
 	     -noredraw => 1, -nohook=>1);
-    if ($win->{FSFile}) {
+    if ($win->{FSFile} and $reloadKeepsPatterns) {
       $win->{FSFile}->changePatterns(@patterns);
       $win->{FSFile}->changeHint($hint);
     }
