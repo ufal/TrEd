@@ -32,7 +32,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $all_nodes $all_nonhidden_nodes $file_encoding
 	    $term_encoding $save $safe_mode $csts_tree_attrs
 	    $csts_tecto $preload $warn_only $validate_fs $allow_host
-	    $start_server $help $usage $manpage
+	    $start_server $help $usage $manpage $obey_locks
 	    $NO_HOOKS
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
@@ -73,6 +73,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "save|S" => \$save,
 	    "no-save" => \$nosave,
 	    "safe-mode|F" => \$safe_mode,
+	    "obey-locks|O" => \$obey_locks,
 	    "csts-tree-attributes|X" => \$csts_tree_attrs,
 	    "tectogrammatical-trees|R" => \$csts_tecto,
 	    "preload-files|P" => \$preload,
@@ -799,11 +800,11 @@ sub startMain {
 		next unless ($request{REQUEST_TYPE} eq 'SAVE'
 			     or $grp->{FSFile}->notSaved());
 		if (!$listed or $fl{ $grp->{'FSFile'}->filename }) {
-		  my $out = saveFile($grp);
-		  if (defined($out)) {
+		  my ($out,$error) = saveFile($grp);
+		  if (!defined($error)) {
 		    $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
 		  } else {
-		    $macro_stdout->print("Error saving ",$grp->{'FSFile'}->filename,": $!\n");
+		    $macro_stdout->print("ERROR SAVING",$grp->{'FSFile'}->filename,": $error\n");
 		  }
 		}
 		die $@ if $@;
@@ -906,7 +907,8 @@ EOL
 	STDOUT->flush();
 	STDERR->flush();
 	_msg "Done.\n" unless $quiet;
-	saveFile($grp) if ($grp->{FSFile}->notSaved or $save);
+	my ($out, $error) = saveFile($grp) if ($grp->{FSFile}->notSaved or $save);
+        _msg($error) if defined $error;
       }} while (nextFile($grp));
     } else {
       _msg "No files to process!\n" unless $Quiet;
@@ -987,7 +989,6 @@ sub openFile {
     _msg "Goto suffix is $goto\n" if $tredDebug;
   }
 
-# saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
   closeFile($grp);
 
   if (exists($grp->{preloaded}) and
@@ -1051,12 +1052,27 @@ sub applyFileSuffix {
   }
 }
 
+sub checkLock {
+  my ($f) = @_; # filename
+  return "none" if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
+  my $lockinfo = "none";
+  if (-f $f.".lock") {
+    eval { open my $l, $f.".lock"; $lockinfo = <$l>; chomp $lockinfo; close $l; };
+  }
+  return $lockinfo;
+}
+
 sub saveFile {
   my $grp=shift;
   return if $nosave;
   return unless $grp->{'FSFile'};
   my $f=$grp->{'FSFile'}->filename;
-
+  if ($obey_locks) {
+    my $lockinfo = checkLock($f);
+    if ($lockinfo ne 'none') {
+      return (undef,"file locked $lockinfo\n");
+    }
+  }
   $grp->{FSFile}->changeBackend($backend) if ($backend);
   my $out=$f;
   $out=~s/$strip_suffix$/$append_suffix/ if ($strip_suffix ne "" or $append_suffix ne "");
@@ -1067,17 +1083,15 @@ sub saveFile {
   }
 
   if (doEvalHook($grp,"file_save_hook",$out) eq 'stop') {
-    _msg "Saving of $f stopped by file_save_hook\n" unless $Quiet;
-    return undef;
+    return (undef,"Saving of $f stopped by file_save_hook\n");
   } else {
     _msg "Saving $f as $out\n" unless $Quiet;
   }
   unless ($grp->{FSFile}->writeFile($out)) {
-    _msg "Error saving file to '$out'\n($!)\n";
-    return undef;
+    return (undef,"Error saving file to '$out'\n");
   }
   $grp->{FSFile}->notSaved(0);
-  return $out;
+  return ($out, undef);
 }
 
 sub closeFile {

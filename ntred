@@ -350,7 +350,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       # btred executable
       $btred ||= "$FindBin::RealBin/btred";
 
-      my $cmd = "$ssh $_->{host} '$btred -P ".
+      my $cmd = "$ssh $_->{host} '$btred -O -P ".
 	($safe_mode ? "-F " : "").
 	($server_debug ? "-D " : "").
 	(join "",map { "-M $_ " } @preload_modules).
