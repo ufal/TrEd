@@ -45,33 +45,39 @@ BEGIN {
 }
 
 sub encode {
-  local $_=join '',@_;
-  $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
+
+  local $_ = join '', @_;
+
   no integer;
+
   if ($support_unicode) { # we've got support for UNICODE in
     # perl5.8/Tk8004
     if ($inputenc eq 'iso-8859-6' or $inputenc =~ /^utf-?8$/i or $inputenc eq 'windows-1256') {
       require TrEd::ConvertArab;
       require TrEd::ArabicRemix;
-      eval "use Encode (); \$_=Encode::decode('utf8',\$_) unless Encode::is_utf8(\$_);";
-      s{((?:\p{Arabic}|\p{InArabic}|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB}|\s)+)}{ TrEd::ConvertArab::arabjoin($1)}eg;
+      eval "use Encode (); \$_=Encode::decode('utf8',\$_) unless Encode::is_utf8(\$_);".
+           "s{((?:\\p{Arabic}|\\p{InArabic}|\\p{InArabicPresentationFormsA}|\\p{InArabicPresentationFormsB}|\\s)+)}{ TrEd::ConvertArab::arabjoin($1)}eg;";
       $_ = TrEd::ArabicRemix::remix($_);
     }
-    return $_;
   } elsif ($]>=5.008) {
     eval "use Encode (); \$_=Encode::encode(\$outputenc,\$_);";
-    return $_;
   } else {
-    return $_ if ($inputenc eq $outputenc);
-    eval " tr/$encodings{$inputenc}/$encodings{$outputenc}/";
-    return $_;
+    eval "tr/$encodings{$inputenc}/$encodings{$outputenc}/" unless ($inputenc eq $outputenc);
   }
+
+  $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
+
+  return $_;
 }
 
 sub decode {
-  local $_=join '',@_;
+
+  local $_ = join '', @_;
+
   $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
+
   no integer;
+
   if ($support_unicode) {
     return $_;
   } elsif ($]>=5.008) {
@@ -81,8 +87,8 @@ sub decode {
     return $_;
   } else {
     eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
+    return $_;
   }
-  return $_;
 }
 
 sub dirname {
