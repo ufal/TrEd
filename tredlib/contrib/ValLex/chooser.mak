@@ -55,19 +55,21 @@ sub InitFrameData {
 				   ($^O eq "MSWin32") ?
 				   "windows-1250":
 				   "iso-8859-2");
-
-#### we may leave this commented out since 1. LibXML is fast enough and
-#### 2. it does not work always well under windows
-#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
     eval {
       if ($^O eq "MSWin32") {
+	#### we may leave this commented out since 1. LibXML is fast enough and
+	#### 2. it does not work always well under windows
+	#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
+
 	$FrameData=
 	  TrEd::ValLex::LibXMLData->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv);
       } else {
+	my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 	$FrameData=
 	  TrEd::ValLex::LibXMLData->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
 					"$libDir/contrib/ValLex/vallex.xml.gz" :
 					"$libDir/contrib/ValLex/vallex.xml",$conv);
+	$info->destroy();
       }
     };
     if ($@ or !$FrameData->doc()) {

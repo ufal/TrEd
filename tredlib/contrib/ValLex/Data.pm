@@ -153,9 +153,9 @@ sub getWordList {
   my @words=();
   my $docel=$doc->getDocumentElement();
   foreach my $word ($docel->getDescendantElementsByTagName ("word")) {
-    my $id = $word->getAttribute ("word_ID");
+    my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
     my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
-    my $pos = $word->getAttribute ("POS");
+    my $pos = $self->conv()->decode($word->getAttribute ("POS"));
     push @words, [$word,$id,$lemma,$pos];
   }
   return @words;
@@ -163,8 +163,8 @@ sub getWordList {
 
 sub getFrame {
   my ($self,$frame)=@_;
-  my $id = $frame->getAttribute("frame_ID");
-  my $status = $frame->getAttribute("status");
+  my $id = $self->conv->decode($frame->getAttribute("frame_ID"));
+  my $status = $self->conv->decode($frame->getAttribute("status"));
   my $elements = $self->getFrameElementString($frame);
   my $example=$self->getFrameExample($frame);
   my $note=$self->getSubElementNote($frame);
@@ -172,6 +172,7 @@ sub getFrame {
   my ($local_event)=$frame->getDescendantElementsByTagName("local_event");
   my $auth="NA";
   $auth=$self->conv->decode($local_event->getAttribute("author")) if ($local_event);
+  
   return [$frame,$id,$elements,$status,$example,$auth,$note];
 }
 
@@ -240,8 +241,8 @@ sub getFrameList {
 sub getOneFrameElementString {
   my ($self,$element)=@_;
 
-  my $functor = $element->getAttribute ("functor");
-  my $type = $element->getAttribute("type");
+  my $functor = $self->conv->decode($element->getAttribute ("functor"));
+  my $type = $self->conv->decode($element->getAttribute("type"));
   my $forms = $self->getFrameElementFormsString($element);
   return $functor.($type eq "oblig" ? "($forms)" : "[$forms]");
 }
@@ -267,7 +268,7 @@ sub getFrameElementString {
     push @elements,$self->getOneFrameElementString($element);
   }
   if (@elements) {
-    return join "  ", @elements;
+    return join("  ", @elements);
   } else {
     return "EMPTY";
   }
@@ -296,7 +297,8 @@ sub getFrameExample {
       $data=~s/^\s+//;
       $data=~s/\s*;\s*/\n/g;
       $data=~s/[\s\n]+$//g;
-      return $self->conv->decode($data);
+      $data=$self->conv->decode($data);
+      return $data;
     }
   }
   return "";
@@ -341,7 +343,7 @@ sub getSubElementProblemsList {
   return "" unless $problems_e;
   foreach my $problem ($problems_e->getChildElementsByTagName("problem")) {
     my $author = $self->conv->decode($problem->getAttribute ("author"));
-    my $solved = $problem->getAttribute ("solved");
+    my $solved = $self->conv->decode($problem->getAttribute ("solved"));
     my $text = $self->getElementText($problem);
     push @problems, [$problem,$text,$author,$solved];
   }
@@ -382,7 +384,7 @@ sub getForbiddenIds {
   return {} unless $tail;
   my %ids;
   foreach my $ignore ($tail->getChildElementsByTagName("forbid")) {
-    $ids{$ignore->getAttribute("forbidden_ID")}=1;
+    $ids{$self->conv->decode($ignore->getAttribute("forbidden_ID"))}=1;
   }
   return \%ids;
 }
@@ -427,8 +429,9 @@ sub addWord {
 }
 
 sub getPOS {
-  return unless ref($_[1]);
-  return $_[1]->getAttribute("POS");
+  my ($self,$word)=@_;
+  return unless ref($word);
+  return $self->conv->decode($word->getAttribute("POS"));
 }
 
 sub addFrameLocalHistory {
@@ -632,23 +635,23 @@ sub getWordForFrame {
 sub getFrameId {
   my ($self,$frame)=@_;
   return undef unless $frame;
-  return $frame->getAttribute("frame_ID");
+  return $self->conv->decode($frame->getAttribute("frame_ID"));
 }
 
 sub getWordId {
   my ($self,$word)=@_;
   return undef unless $word;
-  return $word->getAttribute("word_ID");
+  return $self->conv->decode($word->getAttribute("word_ID"));
 }
 
 sub getSubstitutingFrame {
   my ($self,$frame)=@_;
-  return $frame->getAttribute("substituted_with");
+  return $self->conv->decode($frame->getAttribute("substituted_with"));
 }
 
 sub getFrameStatus {
   my ($self,$frame)=@_;
-  return $frame->getAttribute("status");
+  return $self->conv->decode($frame->getAttribute("status"));
 }
 
 sub isEqual {
