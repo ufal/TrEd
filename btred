@@ -320,7 +320,7 @@ exit;
 sub _msg { print STDERR "BTRED: ",@_; }
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
 sub _benchmark () {
-  my $number_of_iters=50000;
+  my $number_of_iters=10000;
   my $i;
   my %a;
   my $benchmark_code='$a{$i++}=(join("",map uc,split "(..)","afa${i}sd ${i}fsd1f2 asf${i}1sdfdsf fsasf")=~/\s+\d+/);';
@@ -347,8 +347,6 @@ sub startMain {
   my $filecount=@files;
   #  eval (join("",@macros)."\n return 1;");
   my $context = $grp->{macroContext};
-
-  # initialize Safe compartment
 
   if ($opt_L) {
     require TrEd::Cipher;
@@ -438,6 +436,8 @@ sub startMain {
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'EVAL_CODE') {
 	_msg("Initializing safe compartment...\n") if $safe;
+
+	# initialize Safe compartment
 	init_safe_mode($grp) if $safe;
 	gotoFile($grp,0); # neither goto_file_hook nor file_open_hook in server-mode
 
@@ -452,22 +452,23 @@ sub startMain {
 	doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
 	# execute hooks and the code of the query
 	my $time;
+	$hub->print("$control SERVER_RESPONSE_STDERR\n");
 	if (!$@ and keys(%{$grp->{preloaded}}) and
 	    doEvalHook($grp,"start_hook") ne 'stop' and
 	    doEvalHook($grp,"preload_hook") ne 'stop') { # for compatibility
 	  _msg "RUNNING CODE: $request{CODE}\n";
 	  my $t0 = new Benchmark;
 	  do {
-	    print STDERR $grp->{currentNode}->{form},"\n";
 	    doEvalMacro($grp,"package $context;".$request{CODE});
 	  } while (!$@ and nextFile($grp));
+	  $hub->print("$@\n") if $@;
+	  _msg($@) if $@;
+	  doEvalHook($grp,"exit_hook");
+	  $hub->print("$@\n") if $@;
+	  _msg($@) if $@;
 	  my $t1 = new Benchmark;
 	  $time = timediff($t1, $t0) if ($t1 and $t0);
-	  doEvalHook($grp,"exit_hook") unless $@;
 	}
-	$hub->print("$control SERVER_RESPONSE_STDERR\n");
-	$hub->print("$@\n") if $@;
-	_msg($@) if $@;
 	$hub->print("Total Time: ",timestr($time),"\n") if $time ne "";
 	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
@@ -751,7 +752,7 @@ sub doEvalMacro {
 sub init_safe_mode {
   my ($grp)=@_;
   require Safe;
-  $macrosEvaluated=0;
+  $TrEd::Macros::macrosEvaluated=0;
   $TrEd::Macros::safeCompartment=undef;
   my $compartment;
 
