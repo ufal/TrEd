@@ -2849,9 +2849,7 @@ sub test {
   if (ref($f) eq 'ARRAY') {
     return $f->[0]=~/^@/; 
   } elsif (ref($f)) {
-    print STDERR "TESTING\n";
     my $test = ($f->getline()=~/^@/);
-    print STDERR "TEST: $test\n";
     return $test;
   } else {
     my $fh = open_backend($f,"r",$encoding);
