@@ -39,12 +39,12 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules
-	    $_ERR
+	    $_ERR %optmap
 	   );
 
 #getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:NHSTFX:RPWVL:b:');
 my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
-$optparser->getoptions(
+%optmap =  (
 	    "quiet|q" => \$quiet,
 	    "very-quiet|Q" => \$Quiet,
 	    "debugging|D" => \$debug,
@@ -77,8 +77,9 @@ $optparser->getoptions(
 	    "help|h" => \$help,
 	    "usage|u"        => \$usage,
 	    "man"            => \$manpage,
-	    "preload-module|M=s" => \@preload_modules
-	   ) or $usage=1;
+	    "preload-module|M=s" => \@preload_modules);
+
+$optparser->getoptions(%optmap) or $usage=1;
 
 $quiet=1 if $Quiet;
 
@@ -99,8 +100,6 @@ if ($help) {
 if ($manpage) {
   pod2usage(-exitstatus => 0, -verbose => 2);
 }
-
-$code||="autostart()"; # this is the default macro name
 
 _set_encoding(\*STDERR,$term_encoding,"STDERR");
 _set_encoding(\*STDOUT,$term_encoding,"STDOUT");
@@ -211,7 +210,7 @@ require TrEd::Basics;
 import TrEd::Basics;
 
 #load back-ends
-@backends=('FSBackend',ImportBackends(qw(AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend)));
+@backends=('FSBackend',ImportBackends(qw(NTREDBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 # these are for macros
@@ -639,13 +638,17 @@ sub startMain {
 	      # change only one tree
 	      $grp->{FSFile}->treeList()->[$grp->{treeNo}]=$fsfile->treeList()->[0];
 	      $fsfile->changeTreeList([]);
+	      $grp->{FSFile}->notSaved(1);
 	      closeFile($grp);
+	      # $fsfile is garbage collected
 	    } else {
 	      _msg "Updated whole file ($f)\n";
 	      # change the whole file
 	      $grp->{FSFile}->changeTreeList($fsfile->treeList());
 	      $fsfile->changeTreeList([]);
+	      $grp->{FSFile}->notSaved(1);
 	      closeFile($grp);
+	      # $fsfile is garbage collected
 	    }
 	  } else {
 	    _msg "read failed\n";
@@ -706,6 +709,22 @@ sub startMain {
     # ----------------------------------------
     # INTERACTIVE MODE
     # ----------------------------------------
+
+    if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
+      local @ARGV=split /\s+/,$1;
+      print STDERR "Applying macro options: @ARGV\n";
+      GetOptions (map {$_ => $optmap{$_}}
+		  "all-trees|T",
+		  "all-nodes|N",
+		  "all-nonhidden-nodes|H",
+		  "safe-mode|F",
+		  $initial_code ? () : ("initial-code|i=s"),
+		  $code ? () : ("execute|e=s"),
+		  $start_context ? () : ("context|t=s"));
+      $grp->{macroContext} = defined($start_context) ? $start_context : 'TredMacro';
+    }
+
+    $code||="autostart()"; # this is the default macro name
     init_safe_mode($grp) if $safe;
     my $pre='';
     $pre .= "do { " if ($all_trees);
