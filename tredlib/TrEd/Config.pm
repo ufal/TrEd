@@ -331,9 +331,22 @@ sub set_config {
       unshift @INC,$perllib unless (grep($_ eq $perllib, @INC));
     }
   }
-  $libDir=tilde_expand($confs->{libdir})
-    if (exists $confs->{libdir});
+  $Fslib::resourcePath=tilde_expand($confs->{resourcepath}) if (exists $confs->{libdir});
+  $libDir=tilde_expand($confs->{libdir}) if (exists $confs->{libdir});
   unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+
+  unless (defined $Fslib::resourcePath) {
+    $Fslib::resourcePath=$libDir;
+    if ($^O eq 'Win32') {
+      $Fslib::resourcePath=~s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
+      $Fslib::resourcePath.="\\resources";
+    } else {
+      $Fslib::resourcePath=~s/\/(?:lib\/tred|tredlib)$//;
+      $Fslib::resourcePath.="/resources";
+
+    }
+  }
+
   if (exists $confs->{psfontfile}) {
     $psFontFile=tilde_expand($confs->{psfontfile});
     $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
