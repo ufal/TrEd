@@ -3732,6 +3732,8 @@ sub startMain {
 	  -command=> [\&viewSentences,\%group]],
 	 [Button=> 'Select context ...', -underline=> 12,
 	  -command=> [\&selectContext,\%group]],
+	 [Button=> 'Select stylesheet ...', -underline=> 9,
+	  -command=> [\&selectStylesheet,\%group]],
 	 [Separator=> ''],
 	 [Button=> 'Customize Attributes ...', -underline=> 0,
 	  -command=> [\&customAttrsDialog,\%group]],
@@ -5031,6 +5033,19 @@ sub selectContext {
 	    $selection) || return;
   if (@$selection) {
     switchContext($grp->{focusedWindow},$selection->[0]);
+  }
+}
+
+sub selectStylesheet {
+  my ($grp_or_win)=@_;
+  my $grp = cast_to_grp($grp_or_win);
+  my $win = cast_to_grp($grp_or_win);
+  my $selection = [$grp->{selectedStylesheet}];
+  ListQuery($grp->{top},'Select Context','browse',
+	    getStylesheetMenuList($grp),
+	    $selection) || return;
+  if (@$selection) {
+    switchStylesheet($grp,$selection->[0]);
   }
 }
 
