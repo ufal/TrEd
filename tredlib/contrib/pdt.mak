@@ -973,13 +973,14 @@ tectogrammatical structure.
 =cut
 
 sub ARstruct {
-  foreach my $root ($grp->{FSFile}->trees) {
+  my ($single)=@_;
+  foreach my $r ($single ? $root : $grp->{FSFile}->trees) {
     # build the parallel structure,
     # unless already built
-    next if exists($root->{_AP_});
-    my @nodes = $root->descendants;
+    next if exists($r->{_AP_});
+    my @nodes = $r->descendants;
     # hash parents
-    my %p = map { $_->{ord} => $_ } ($root,@nodes);
+    my %p = map { $_->{ord} => $_ } ($r,@nodes);
     my %c;
     # create children lists
     for my $node (@nodes) {
@@ -988,7 +989,7 @@ sub ARstruct {
       }
     }
     # build the structure
-    foreach my $node ($root,@nodes) {
+    foreach my $node ($r,@nodes) {
       if ($node->{ord}!~/\./) {
 	$node->{_AP_} = $p{$node->{ordorig}};
 	my @ch = sort { $a->{ord} <=> $b->{ord} } @{ $c{ $node->{ord} } };
@@ -1009,7 +1010,11 @@ sub ARstruct {
     }
   }
   # mend file header
-  PDT->appendFSHeader('@N ord','@P dord','@P TR');
+  my $defs = FS()->defs;
+  $defs->{ord}  = ' N';
+  $defs->{dord} = ' P';
+  $defs->{TR}   = ' P';
+  #  PDT->appendFSHeader('@N ord','@P dord','@P TR');
   # configure Fslib
   $Fslib::parent="_AP_";
   $Fslib::firstson="_AS_";
@@ -1026,7 +1031,12 @@ Setup Fslib to use default (tectogrammatical) tree structure
 
 sub TRstruct {
   # fix file header
-  PDT->appendFSHeader('@P ord','@N dord','@H TR');
+#  PDT->appendFSHeader('@P ord','@N dord','@H TR');
+  my $defs = FS()->defs;
+  $defs->{ord}  = ' P';
+  $defs->{dord} = ' N';
+  $defs->{TR}   = ' H';
+
   # configure Fslib
   $Fslib::parent="_P_";
   $Fslib::firstson="_S_";
