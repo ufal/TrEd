@@ -151,7 +151,7 @@ sub _messageBox {
   my ($top,$title,$msg)=@_;
   my $d= $top->DialogBox(-title=> $title,
 		      -buttons=> ['OK']);
-  $d->Label(-text => "ERROR:",
+  $d->Label(-text => "ERROR",
 	    -justify => 'left',
 	    -foreground => 'red'
 	   )
