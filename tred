@@ -5,7 +5,7 @@
 #use strict;
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
-	    $opt_t $opt_W $opt_G
+	    $opt_t $opt_W $opt_G $opt_R
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
@@ -666,18 +666,33 @@ sub updatePostponed {
     print STDERR "Updating session menu\n"  if $tredDebug;
     my $menu= $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
-
-    $grp->{PostponedFileMenu}->command(-label=> 'Open files',
+    $grp->{PostponedFileMenu}->command(-label=> 'Options',
 				       -state=> 'disabled',
 				       -background=> '#444444'
 				      );
     $grp->{PostponedFileMenu}->checkbutton(-label => 'Don\'t close on open',
 	  -variable=> \$grp->{keepfiles});
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Build TGTS from CSTS',
+					   -variable=> \$grp->{buildTGTSfromCSTS},
+					   -command => [sub {
+							  my ($grp)=@_;
+							  if ($grp->{buildTGTSfromCSTS}) {
+							    Csts2fs::setupTR();
+							  } else {
+							    Csts2fs::setupAR();
+							  }
+							},$grp]
+					  );
+    $grp->{PostponedFileMenu}->command(-label=> 'Open files',
+				       -state=> 'disabled',
+				       -background=> '#444444'
+				      );
     my $i=0;
     foreach (@openfiles) {
       $grp->{PostponedFileMenu}->command(-label => "$i.  ".$_->filename(),
 				      -underline=> 0,
-				      -command=> [\&openFile,$grp,$_->filename(),-keep => 1]);
+				      -command=> [\&openFile,$grp,
+						  $_->filename(),-keep => 1]);
       $i++;
     }
     $grp->{PostponedFileMenu}->command(-label=> 'none',
@@ -2402,6 +2417,7 @@ sub startMain {
   $group{fileImage}  = $group{top}->Pixmap(-file=> Tk->findINC('file.xpm'));
   $group{lastActionBookmark}= $lastAction;
   $group{selectedContext}=$opt_t;
+  $group{buildTGTSfromCSTS}=$opt_R;
 
   if (not $opt_G and defined($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
