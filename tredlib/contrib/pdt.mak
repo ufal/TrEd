@@ -601,7 +601,7 @@ sub FilterSons_TR { # node filter suff from
 	 ||(!$suff&&!is_valid_member_TR($node))){ # this we are looking for
 	push @sons,$node if !$suff or $suff && &$filter($node);
       }
-      push @sons,FilterSons($node,$filter,1,0)
+      push @sons,FilterSons_TR($node,$filter,1,0)
 	if (!$suff
 	    &&is_coord_TR($node)
 	    &&!is_valid_member_TR($node))
@@ -623,13 +623,13 @@ sub GetChildren_TR { # node filter
   my @sons;
   my $a=$node;
   my $from;
-  push @sons,FilterSons($node,$filter,0,0);
+  push @sons,FilterSons_TR($node,$filter,0,0);
   if(is_valid_member_TR($node)){
     my @oldsons=@sons;
     while($a and $a->{func}ne'SENT'
 	  and (is_valid_member_TR($a) || !is_coord_TR($a))){
       $from=$a;$a=$a->parent;
-      push @sons,FilterSons($a,$filter,0,$from) if $a;
+      push @sons,FilterSons_TR($a,$filter,0,$from) if $a;
     }
     if ($a->{func}eq'SENT'){
       stderr("Error: Missing coordination head: ",ThisAddressNTRED($node),"\n");
