@@ -132,14 +132,16 @@ sub real_parent {
 
 =item get_subsentence_string_TR
 
-Return string representation of current node and the first level of
+Return string representation of the given node and the first level of
 tree-structure under it (coordinated substructures are expanded and
 prepositions and other words stored in fw attributes are included in
 the resulting string).
 
 =cut
+
 sub get_subsentence_string_TR {
-  my ($node)=@_;
+  shift @_ unless ref($_[0]);
+  my $node=$_[0] || $this;
   return
     join(" ",map { ($_->{fw},$_->{form}.".".$_->{func}) }
 	 sort {$a->{ord} <=> $b->{ord}}
@@ -147,6 +149,23 @@ sub get_subsentence_string_TR {
 	 map { expand_coord_apos($_,1) } $node->children());
 }
 
+=item get_sentence_string_TR
+
+Return string representation of the given subtree.
+
+=cut
+
+ sub get_sentence_string_TR {
+   shift @_ unless ref($_[0]);
+   my $top= $_[0]||$root;
+   return undef unless $top;
+   my $sent=join("",
+		 map { $_->{origf}.($_->{nospace} ? "" : " ") }
+		 sort { $a->{sentord} <=> $b->{sentord} }
+		 grep { $_->{origf} ne '???' and $_->{sentord}<999 } GetNodes($top));
+   $sent=~s/^ //;
+   return $sent;
+}
 
 =item PDT::expand_coord_apos_TR(node,keep?)
 
@@ -156,6 +175,7 @@ nodes. If the argument C<keep> is true, include the
 coordination/aposition node in the list as well.
 
 =cut
+
 sub expand_coord_apos_TR {
   my ($node,$keep)=@_;
   if (is_coord_TR($node)) {
