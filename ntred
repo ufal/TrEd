@@ -394,7 +394,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 						Reuse => 1,
 					       );
   die $! unless $listening_socket;
-  msg "Waiting for client requests on $hubname:$hubport\n\n";
+  msg "Ready for client requests on $hubname:$hubport\n\n";
 
   # -------------------------------------------------------------------
   # ------- main cycle: processing requests from clients --------------
@@ -658,6 +658,7 @@ sub distribute_files {
       send_request($control,$server->{socket},'QUIT',@f);
     }
   }
+  msg "Please wait ...\n";
   # get responses
   foreach my $server (@$servers) {
     my $response;
