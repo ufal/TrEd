@@ -3281,7 +3281,7 @@ sub func_NA {
 }
 
 
-#bind func_questionmarks to Ctrl+y menu ???
+#bind func_questionmarks to Ctrl+y menu func = ???
 sub func_questionmarks {
 
   $sPar1 = '???';
