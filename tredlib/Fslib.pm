@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-01-16 09:40:16 pajas>
+# Time-stamp: <2002-03-22 10:09:12 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1691,14 +1691,16 @@ sub writeFile {
 
   my $backend=$self->backend || 'FSBackend';
   print STDERR "Writing to $filename using backend $backend\n" if $Fslib::Debug;
-  my $ret=eval {
-#    require $backend;
+  my $ret;
+  eval {
+#    require "$backend.pm";
     my $fh;
-    return( $backend->can('write')
+    $ret=( $backend->can('write')
        and $backend->can('open_backend')
        and ($fh=&{"${backend}::open_backend"}($filename,"w"))
        and &{"${backend}::write"}($fh,$self)
        and &{"${backend}::close_backend"}($fh));
+    print STDERR "Status: $ret\n" if $Fslib::Debug;
   };
   if ($@) {
     print STDERR "Error: $@\n";
@@ -1722,9 +1724,10 @@ sub writeTo {
 
   my $backend=$self->backend || 'FSBackend';
   print STDERR "Writing using backend $backend\n" if $Fslib::Debug;
-  my $ret=eval {
+  my $ret;
+  eval {
 #    require $backend;
-    return $backend->can('write')  && &{"${backend}::write"}($fileref,$self);
+    $ret=$backend->can('write')  && &{"${backend}::write"}($fileref,$self);
   };
   print STDERR "$@\n" if $@;
   return $ret;
