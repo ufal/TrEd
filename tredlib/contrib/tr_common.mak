@@ -149,7 +149,7 @@ sub QueryKdy {
     (
      ['kdy', 'kdy', 'TWHEN'],
      ['odkdy', 'kdy', 'TSIN'],
-     ['dokdy', 'kdy', 'TTIL'],
+     ['dokdy', 'kdy', 'TTILL'],
      ['jak dlouho', 'kdy', 'THL'],
      ['na jak dlouho', 'kdy','TFHL'],
      ['jak èasto', 'kdy', 'THO'],
