@@ -768,7 +768,7 @@ sub redraw {
 
     # perl inline search
     $coords =~
-      s{([xy])\[\?(.*?)\?\]}{
+      s{([xy])\[\?((?:.|\n)*?)\?\]}{
 	my $i=0;
 	my $key="[?${2}?]";
 	my $xy=$1;
@@ -800,7 +800,7 @@ sub redraw {
 	}
       }ge;
     $coords=~
-      s{([xy])\[!(.*?)!\]}{
+      s{([xy])\[!((?:.|\n)*?)!\]}{
 	my $i=0;
 	my $key="[!${2}!]";
 	my $xy=$1;
