@@ -18,7 +18,7 @@ use vars qw(@ISA $VERSION @EXPORT @EXPORT_OK
 $VERSION = "0.1";
 
 sub _find_exe {
-  local $_ = `/usr/bin/which $_[0]`; chomp; /\S/ ? $_ : undef
+  local $_ = `/usr/bin/which $_[0] 2>/dev/null`; chomp; /\S/ ? $_ : undef
 }
 
 BEGIN {
