@@ -4444,7 +4444,9 @@ sub doEvalMacro {
   $TredMacro::FileNotSaved=1;
   $TredMacro::forceFileSaved=0;
   $TredMacro::Redraw='file';
+
   my $result=do_eval_macro($win,$macro);
+  my $current=$TredMacro::this;
 
   unless ($TredMacro::forceFileSaved) {
     print STDERR "Macro claims file untouched\n"
@@ -4457,7 +4459,6 @@ sub doEvalMacro {
     lastActionBookmark($win->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
   }
   $insideEval=0;
-
   #------------------------------------------------------------
   #use Benchmark;
   #my $t0= new Benchmark;
@@ -4496,7 +4497,7 @@ sub doEvalMacro {
 
   # the rest of this routine is:
   # memory ok, speed ok
-  setCurrent($win,$TredMacro::this) if ($TredMacro::this);
+  setCurrent($win,$current) if ($current);
   currentUnhiden($win);
 
   $TredMacro::this=undef;
