@@ -1861,7 +1861,9 @@ sub readFile {
     eval('require LWP::Simple;
           require POSIX;
           $filename=POSIX::tmpnam();
-          LWP::Simple::getstore($url,$filename);');
+          LWP::Simple::is_success(LWP::Simple::getstore($url,$filename)) ||
+          die "Error occured while fetching URL $url\n";');
+    warn $@ if $@;
   }
 
   @_=qw/FSBackend/ unless @_;
