@@ -175,12 +175,8 @@ require TrEd::Basics;
 import TrEd::Basics;
 
 #load back-ends
-
-@backends=('FSBackend');
-foreach (qw(TrXMLBackend CSTSBackend)) {
-  push @backends,$_ if eval { require $_; };
-}
-
+@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend)));
+$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 use Exporter;
 @ISA=qw(Exporter);
@@ -264,20 +260,22 @@ EOL
     doEvalMacro($grp,"$context->_btred_eval_();");
     print STDERR "Done";
     saveFile($grp) if ($FileNotSaved or $opt_S);
-  } while (nextFile());
+  } while (nextFile($grp));
 }
 
 sub nextFile {
+  my ($grp)=@_;
   return 0 if ($fileNo >= $#files);
   $fileNo++;
-  openFile($files[$fileNo]);
+  openFile($grp,$files[$fileNo]);
   return 1;
 }
 
 sub prevFile {
+  my ($grp)=@_;
   return 0 unless ($fileNo > 0);
   $fileNo--;
-  openFile($files[$fileNo]);
+  openFile($grp,$files[$fileNo]);
   return 1;
 }
 
@@ -295,7 +293,7 @@ sub openFile {
     print STDERR "Goto suffix is $goto\n" if $tredDebug;
   }
 
-  saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
+#  saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
   closeFile($grp);
 
   $grp->{'FSFile'} = FSFile->newFSFile($f,@backends);
