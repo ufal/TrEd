@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-11-07 16:36:01 pajas>
+# Time-stamp: <2001-11-16 16:36:05 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -227,7 +227,6 @@ sub set_config {
   $fontenc=~s/^iso-/iso/;
   $font=(exists $confs->{font}) ? $confs->{font} :
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc);
-  print "using font $font\n";
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
