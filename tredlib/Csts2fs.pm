@@ -455,6 +455,29 @@ my %pcdata = (
  @misc
 );
 
+%initial_node_values = {
+  'afun' => '???',
+  'gender' => '???',
+  'number' => '???',
+  'degcmp' => '???',
+  'tense' => '???',
+  'aspect' => '???',
+  'iterativeness' => '???',
+  'verbmod' => '???',
+  'deontmod' => '???',
+  'sentmod' => '???',
+  'tfa' => '???',
+  'func' => '???',
+  'gram' => '???',
+  'memberof' => '???',
+  'del' => '???',
+  'quoted' => '???',
+  'dsp' => '???',
+  'corsnt' => '???',
+  'antec' => '???',
+  'parenthesis' => '???'
+};
+
 $header=\@ARheader;
 
 
@@ -543,6 +566,9 @@ sub make_new_node {
   push @{$s->{nodes}},$s->{node} if ref($s->{node});
   my $sentord=ref($s->{node}) ? $s->{node}->{sentord}+1 : 0;
   $s->{node} = FSNode->new();
+  foreach (keys %initial_node_values) {
+    $s->{node}->{$_} = $initial_node_values{$_};
+  }
   $s->{node}->{sentord}=$sentord;
   foreach (keys %{$s->{following}}) {
     $s->{node}->{$_} = $s->{following}->{$_};
@@ -644,6 +670,7 @@ sub read {
   $fsformat = new FSFormat({%defs},
 			   [@attlist], undef);
   $fsfile->changeFS($fsformat);
+  $fsfile->changeTail("(2,3)\n");
   $fsfile->changeTrees(@{$state->{trees}});
   $fsfile->changePatterns('${form}', '${afun}');
   $fsfile->changeHint("tag:\t".'${tag}');
