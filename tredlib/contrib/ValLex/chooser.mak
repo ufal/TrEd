@@ -79,15 +79,23 @@ sub ChooseFrame {
 #### we may leave this commented out since 1. LibXML is fast enough and
 #### 2. it does not work always well under windows
 #    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
-
-    if ($^O eq "MSWin32") {
-      $FrameData=
-	TrEd::ValLex::LibXMLData->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv);
-    } else {
-      $FrameData=
-	TrEd::ValLex::LibXMLData->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
-				      "$libDir/contrib/ValLex/vallex.xml.gz" :
-				      "$libDir/contrib/ValLex/vallex.xml",$conv);
+    eval {
+      if ($^O eq "MSWin32") {
+	$FrameData=
+	  TrEd::ValLex::LibXMLData->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv);
+      } else {
+	$FrameData=
+	  TrEd::ValLex::LibXMLData->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
+					"$libDir/contrib/ValLex/vallex.xml.gz" :
+					"$libDir/contrib/ValLex/vallex.xml",$conv);
+      }
+    };
+    if ($@ or !$FrameData->doc()) {
+      print STDERR "$@\n";
+      $top->Unbusy(-recurse=>1);
+      $FileNotSaved=0;
+      questionQuery("Valency lexicon not found.","Valency lexicon not found.\nPlease install!","Ok");
+      return;
     }
 #    $info->destroy();
   }
