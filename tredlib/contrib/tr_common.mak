@@ -13,9 +13,9 @@
 
 #encoding iso-8859-2
 
+import VallexGUI;
 #include <contrib/AFA.mak>
 
-#include <contrib/ValLex/chooser.mak>
 #include <contrib/ValLex/adverb.mak>
 
 #bind OpenEditor to Ctrl+Shift+Return menu Zobraz valenèní slovník
