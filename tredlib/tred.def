@@ -354,6 +354,107 @@ sub CenterOtherWinTo {
   main::centerTo($win,$node);
 }
 
+=item STYLESHEET_FROM_FILE
+
+This constant returns a symbolic name for a virtual stylesheet that is
+constructed from the patterns and hint specified in the currently
+displayed file.
+
+=cut
+
+sub STYLESHEET_FROM_FILE { &main::STYLESHEET_FROM_FILE }
+
+=item SetStylesheetPatterns (patterns,stylesheet,create)
+
+Set TrEd's display patterns for a given stylesheet. If stylesheet is
+undefined, then the stylesheet currently selected for the active view
+is used. The patterns argument should either be a string or an array
+reference.  If it is a string, then it should provide all the
+patterns, each pattern starting on a new line (but possibly spanning
+across several lines) which starts with a pattern prefix of the form
+"something:", where "something" is hint for the hint pattern, or
+"node" for the node pattern, etc.
+
+Patterns can also be provided as an array reference containing two
+elements: the first one being a hint text and the second one an array
+reference whose each element is the text of an individual pattern.
+
+The create flag can be set to 1 in order to create a new stylesheet in
+case that no stylesheet with the given exists.
+
+This function returns 1 if success, 0 if failed (i.e. when create is
+not set and a given stylesheet is not found).
+
+=cut
+
+sub SetStylesheetPatterns {
+  my ($patterns,$stylesheet,$create) = @_;
+  main::setStylesheetPatterns($grp,$patterns,$stylesheet,$create);
+}
+
+=item DeleteStylesheet (stylesheet)
+
+Delete given stylesheet. All windows using that stylesheet are
+switched to the pattern and hint specified in the respective files
+they display.
+
+=cut
+
+sub DeleteStylesheet {
+  my ($stylesheet) = @_;
+  main::deleteStylesheet($grp->{framegroup},$stylesheet) unless GUI();
+}
+
+=item SaveStylesheets ()
+
+Save all TrEd's stylesheets (to ~/.tred-stylesheets).
+
+=cut
+
+sub SaveStylesheets {
+  my ($patterns,$stylesheet) = @_;
+  main::saveStyleSheets($grp->{framegroup}) unless GUI();
+}
+
+=item ReloadStyleseets (filename?)
+
+Reload stylesheets from a given file. If no filename is specified, the
+default path "~/.tred-stylesheets" is used.
+
+=cut
+
+sub ReloadStylesheets {
+  my ($filename) = @_;
+  main::readStyleSheets($grp->{framegroup},$filename) unless GUI();
+}
+
+=item GetStylesheetPatterns ($stylesheet)
+
+For a given stylesheet, return it's patterns. In a scalar context,
+returns a string consisting of all patterns, including the hint.  In
+the array context returns two scalars: the first one containing the
+text of the hint pattern and the other a reference to a list
+containing the stylesheet patterns. Returns empty list if fail.
+
+=cut
+
+sub GetStylesheetsPatterns {
+  my ($stylesheet)=@_;
+  return main::getStylesheetPatterns($grp,$stylesheet);
+}
+
+=item Stylesheets ()
+
+Returns a list of TrEd's stylesheet names.
+
+=cut
+
+sub Stylesheets {
+  unless (GUI()) {
+    return keys (%{$grp->{framegroup}{stylesheets}})
+  }
+}
+
 =item SetDisplayAttrs
 
 Use the given list of TrEd's patterns for displaying attributes.
