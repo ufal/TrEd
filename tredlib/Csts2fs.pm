@@ -251,7 +251,9 @@ my %att = (
 	   'salt id' => [\&to_attr,'root','|','ID1'],
 	   'csts lang' => [\&to_node_attr,'|','cstslang'],
 	   'f case' => [\&to_node_attr,'|','formtype'],
+	   'f id' => [\&to_node_attr,'','AID'],
 	   'd type' => [\&to_node_attr,'|','formtype'],
+	   'd id' => [\&to_node_attr,'|','AID'],
 	   'w kind' => [\&to_next_node_attr,'|','origfkind'],
 	   't w'=> [\&to_node_attr,'|','wt'],
 	   'fadd del' => [sub {
@@ -407,6 +409,7 @@ my %pcdata = (
 '@P semPOS',
 '@P tagauto',
 '@P lemauto',
+'@P AID',
 );
 
 @minTRheader = (
