@@ -167,10 +167,12 @@ sub getFrame {
   my $status = $frame->getAttribute("status");
   my $elements = $self->getFrameElementString($frame);
   my $example=$self->getFrameExample($frame);
+  my $note=$self->getSubElementNote($frame);
+  $note=~s/\n/;/g;
   my ($local_event)=$frame->getDescendantElementsByTagName("local_event");
   my $auth="NA";
   $auth=$self->conv->decode($local_event->getAttribute("author")) if ($local_event);
-  return [$frame,$id,$elements,$status,$example,$auth];
+  return [$frame,$id,$elements,$status,$example,$auth,$note];
 }
 
 sub getSuperFrameList {
@@ -345,9 +347,24 @@ sub findWordAndPOS {
   return undef;
 }
 
+sub getForbiddenIds {
+  my ($self)=@_;
+  my $doc=$self->doc();
+  return {} unless $doc;
+  my $docel=$doc->getDocumentElement();
+  my ($tail)=$docel->getChildElementsByTagName("tail");
+  return {} unless $tail;
+  my %ids;
+  foreach my $ignore ($tail->getChildElementsByTagName("forbid")) {
+    $ids{$ignore->getAttribute("forbidden_ID")}=1;
+  }
+  return \%ids;
+}
+
 sub generateNewWordId {
   my ($self,$lemma,$pos)=@_;
   my $i=0;
+  my $forbidden=$self->getForbiddenIds();
   foreach ($self->getWordList) {
     return undef if ($_->[2] eq $lemma and $_->[3] eq $pos);
     if ($_->[1]=~/^w-([0-9]+)/ and $i<$1) {
@@ -355,7 +372,10 @@ sub generateNewWordId {
     }
   }
   $i++;
-  return "w-$i-".$self->user;
+  my $user=$self->user;
+  $i++ while ($forbidden->{"w-$i-$user"});
+  print "ID: w-$i-$user\n";
+  return "w-$i-$user";
 }
 
 sub addWord {
@@ -377,6 +397,7 @@ sub addWord {
   my $valency_frames=$doc->createElement("valency_frames");
   $word->appendChild($valency_frames);
   $self->set_change_status(1);
+  print "Added $word\n";
   return $word;
 }
 
@@ -427,6 +448,7 @@ sub generateNewFrameId {
   my $i=0;
   my $w=0;
   my $wid=$word->getAttribute("word_ID");
+  my $forbidden=$self->getForbiddenIds();
   $w=$1 if ($wid=~/^w-([0-9]+)/);
   foreach ($self->getFrameList($word)) {
     if ($_->[1]=~/^f-$w-([0-9]+)/ and $i<$1) {
@@ -434,7 +456,9 @@ sub generateNewFrameId {
     }
   }
   $i++;
-  return "f-$w-$i-".$self->user;
+  my $user=$self->user;
+  $i++ while ($forbidden->{"f-$w-$i-$user"});
+  return "f-$w-$i-$user";
 }
 
 sub addForms {
