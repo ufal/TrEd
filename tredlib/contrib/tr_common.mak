@@ -377,6 +377,7 @@ sub memberof_pa_to_parenthesis {
   if ($this->{memberof} eq 'PA') {
     $this->{memberof}='???';
     $this->{parenthesis}='PA';
+    ChangingFile(1);
   }
 }
 
