@@ -2,6 +2,17 @@
 
 package TrEd::ValLex::Extended;
 
+sub user_cache {
+  $self->[10] = {} unless defined($self->[10]);
+  return $self->[10];
+}
+
+sub doc_free {
+  my ($self)=@_;
+  %{$self->user_cache}=();
+  $self->TrEd::ValLex::Data::doc_free;
+}
+
 sub _index_by_id {
   my ($self)=@_;
   my $word = $self->getFirstWordNode();
