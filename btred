@@ -1305,7 +1305,7 @@ btred - non-interactive scriptable version of the tree editor TrEd
 
   btred [-c config-file]
         [-t context] [-m macro-file] [-e code] [-i init-code]
-        [-N|-H] [-T] [-S] [-P] [-F]
+        [-N|-H] [-T] [-S | --no-save] [-P] [-F]
         [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
         [-f out-fmt] [-n file-encoding] [-d terminal-encoding]
         [-W] [-q|-Q] [-D] [-V] [-L port] [-b hub]
