@@ -23,7 +23,7 @@ $V_backend = 'JHXML';
 #$V_backend = 'LibXML';
 
 $V_module = 'ValLex::Extended'.$V_backend;
-*V = \$Tectogrammatic::ValencyLexicon;
+*V = \$VallexGUI::ValencyLexicon;
 
 sub init_vallex {
   $TrEd::ValLex::Editor::reviewer_can_modify=1;
@@ -34,15 +34,15 @@ sub init_vallex {
     eval "require ${V_module}"; die $@ if $@;
 #ifdef TRED
     require TrEd::CPConvert;
-#    $Tectogrammatic::vallex_file = $V_vallex;
-    $Tectogrammatic::vallex_validate = 1;
-    $Tectogrammatic::XMLDataClass = $tredmodule;
-    $Tectogrammatic::frameid_attr="frameid";
-    $Tectogrammatic::framere_attr="framere";
+#    $VallexGUI::vallex_file = $V_vallex;
+    $VallexGUI::vallex_validate = 1;
+    $VallexGUI::XMLDataClass = $tredmodule;
+    $VallexGUI::frameid_attr="frameid";
+    $VallexGUI::framere_attr="framere";
 
-    Tectogrammatic::init_XMLDataClass();
-    Tectogrammatic::InitValencyLexicon() || return;
-#    $V=$Tectogrammatic::ValencyLexicon;
+    VallexGUI::init_XMLDataClass();
+    VallexGUI::InitValencyLexicon() || return;
+#    $V=$VallexGUI::ValencyLexicon;
 #else
     my $V_vallex = "$libDir/contrib/ValLex/vallex.xml";
     require ValLex::DummyConv;
