@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-18 16:49:37 pajas>
+## Time-stamp: <2002-09-30 10:20:34 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -11,6 +11,8 @@ sub file_opened_hook {
 
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
+
+  Tectogrammatic->upgrade_file();
 
   if ($grp->{FSFile} and
       GetSpecialPattern('patterns') ne 'force' and
