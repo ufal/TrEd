@@ -1028,7 +1028,7 @@ sub getAttribute {
 
 =pod
 
-=item setAttribute (name)
+=item setAttribute (name,value)
 
 Set value of the given attribute.
 
