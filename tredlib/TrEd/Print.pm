@@ -184,6 +184,7 @@ sub print_trees {
     $pagewidth=$prtFmtWidth-2*$hMargin;
     $pageheight=$prtFmtHeight-2*$vMargin;
     $P = Tk::Canvas::PDF->new(
+			      -unicode => $]>=5.008 ? 1 : 0,
 			      -encoding => $TrEd::Convert::support_unicode ? 
 			      'utf8' : $TrEd::Convert::outputenc,
 			      -ttfont => $fontSpec->{TTF},
