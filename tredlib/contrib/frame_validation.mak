@@ -270,15 +270,16 @@ sub match_lemma {
 }
 
 sub match_node_coord {
-  my ($node, $fn,$aids,$no_case,$loose_lemma) = @_;
-  my $res = match_node($node,$fn,$aids,$no_case,$loose_lemma);
+  my ($node, $fn,$aids,$no_case,$flags) = @_;
+  $flags ||= {};
+  my $res = match_node($node,$fn,$aids,$no_case,$flags);
   if (!$res and $node->{afun} =~ /^Coord|^Apos/) {
     foreach (grep { $node->{lemma} !~ /^a-1$|^nebo$/ or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ or
 		      ((first { $_->{lemma} =~ /^tak-3(_|$)/ } get_aidrefs_nodes($aids,$_)) and
 		       (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$_)))
 		  }
 	     with_AR{PDT::expand_coord_apos($node)}) {
-      return 0 unless match_node($_,$fn,$aids,$no_case,$loose_lemma);
+      return 0 unless match_node($_,$fn,$aids,$no_case,$flags);
     }
     return 1;
   } else {
@@ -339,8 +340,8 @@ sub check_node_case {
   return 1 if $node->{tag}=~/^[NCPA]...(\d)/ and $case eq $1;
   print "   CASE: Checking case N..XX\n" if $V_verbose;
   return 1 if $node->{tag}=~/^N..XX/;
-  print "   CASE: Checking AC..- tag ('vinen', etc.)\n" if $V_verbose;
-  return 1 if $node->{tag}=~/^AC..-/;
+#  print "   CASE: Checking AC..- tag ('vinen', etc.)\n" if $V_verbose;
+#  return 1 if $node->{tag}=~/^AC..-/;#
   print "   CASE: Checking case X\n" if $V_verbose;
   return 1 if $node->{tag}=~/^[NCPA]...X/ or $node->{tag}=~/^X...-/;
   print "   CASE: Checking lemmas w/o case\n"  if $V_verbose;
@@ -398,7 +399,10 @@ sub check_node_case {
 }
 
 sub match_node {
-  my ($node, $fn, $aids,$no_case,$loose_lemma,$toplevel) = @_;
+  my ($node, $fn, $aids,$no_case,$flags,$toplevel) = @_;
+
+  print "match_node_FLAGS: ",join(" ",%$flags),"\n" if $V_verbose;
+
   my ($lemma,$form,$pos,$case,$gen,$num,$deg,$neg,$agreement,$afun)=map {$fn->getAttribute($_)} qw(lemma form pos case gen num deg neg agreement afun);
 
   my $l = $node->{lemma};
@@ -446,7 +450,7 @@ sub match_node {
     if ($lemma=~/^\{(.*)\}$/) {
       my $list = $1;
       my @l = split /,/,$list;
-      return 0 unless (first { ($loose_lemma and $_ eq '...')
+      return 0 unless (first { ($flags->{loose_lemma} and $_ eq '...')
 			       or $_ eq $l or match_lemma($l,$_) } @l)
     } else {
       return 0 unless $lemma eq $l or match_lemma($l,$lemma);
@@ -507,15 +511,16 @@ sub match_node {
       $pos = uc($pos);
       return 0 if $node->{tag}!~/^$pos/;
     } elsif ($pos eq 'f') {
-      return 0 unless $node->{tag}=~/^Vf/;
+      return 0 unless $node->{tag}=~/^Vf/ or ($node->{TID} ne "" and $node->{trlemma} eq '&Emp;');
     } elsif ($pos eq 'u') {
       return 0 unless $node->{tag}=~/^AU|^PS|^P8/;
     } else {
       # TODO: c s
       return 0 unless $node->{tag}=~/^V/;
     }
-  } elsif (!$no_case and $case ne '') { # assume $tag =~ /^[CNP]/
-    unless ($kdo or $node->{tag}=~/^[CNPAX]/ or
+  } elsif (#!$no_case and  # BYT_CHANGE
+	   $case ne '') { # assume $tag =~ /^[CNP]/
+    unless ($kdo or $node->{tag}=~/^[CNPX]/ or (!$flags->{strict_adjectives} and $node->{tag}=~/^A/) or
 	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|nemálo-1|málo-3|dost|do-1|mezi-1|kolem-1|po-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
       return 0;
@@ -553,7 +558,7 @@ sub match_node {
     }
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
-    unless (first { match_node_coord($_,$ffn,$aids,$no_case,$loose_lemma) } get_children_include_auxcp($node)) {
+    unless (first { match_node_coord($_,$ffn,$aids,$no_case,$flags) } get_children_include_auxcp($node)) {
       my @nc = with_AR {
 	PDT::GetChildren_AR($node,
 			    sub{1},
@@ -574,13 +579,13 @@ sub match_node {
 
 
 sub match_text_form {
-  my ($node,$serialized_form,$aids,$loose_lemma,$no_ignore)=@_;
+  my ($node,$serialized_form,$aids,$flags,$no_ignore)=@_;
   $aids ||= TR_Correction::hash_AIDs_file();
   my $formdom = $V->doc()->createElement('form');
   $V->doc()->getDocumentElement()->appendChild($formdom);
 
   $V->parseFormPart($serialized_form,0,$formdom);
-  my $ret = match_form($node, $formdom, $aids, $loose_lemma,$no_ignore);
+  my $ret = match_form($node, $formdom, $aids, $flags,$no_ignore);
 
   $formdom->parentNode->removeChild($formdom);
   $V->dispose_node($formdom);
@@ -588,16 +593,92 @@ sub match_text_form {
 }
 
 sub match_form {
-  my ($node, $form, $aids, $loose_lemma,$no_ignore) = @_;
+  my ($node, $form, $aids, $flags,$no_ignore) = @_;
+  print "match_node_FLAGS: ",join(" ",%$flags),"\n" if $V_verbose;
   print "\nFORM: ".$V->serialize_form($form)." ==> $node->{lemma}, $node->{tag}\n" if $V_verbose;
   my @a = get_aidrefs_nodes($aids,$node);
   my $no_case=0;
-  if ($node->{TID} ne "") {
+
+  # try to fake AIDREFs for certain added nodes
+  if ($node->{TID} ne '' and !@a) {
+    # &PersPron;
+    my $fake_node = FSNode->new();
+    # if node is 1st/2nd person and the verb is in 1st/2nd person,
+    # we may suppose 1st case (.1)
+
+    print "ADDED NODE: '$node->{trlemma}'\n" if $V_verbose;
+    my ($pos,$case,$gen,$num,$person,$tag,$lemma,$form)=('XX','-','-','-','-');
+    if ($node->{trlemma} =~ /^(já|my)$/) {
+      print "ADDED JA/MY: '$node->{trlemma}'\n" if $V_verbose;
+      print "VERB-PERSONS:",join("\t",map { $_->{form}." ".verb_person($aids,$_) } PDT::GetFather_TR($node)),"\n"
+	if $V_verbose;
+
+      if (first { verb_person($aids,$_) eq '1' } PDT::GetFather_TR($node)) {
+	$lemma = 'já';
+	if ($form eq 'já') {
+	  $tag='PP-S1--1-------';
+	} else {
+	  $tag='PP-P1--1-------';
+	}
+	push @a,$fake_node;
+      } 
+    } elsif ($node->{trlemma} =~ /^(ty|vy)$/) {
+      if (first { verb_person($aids,$_) eq '2' } PDT::GetFather_TR($node)) {
+	$lemma = 'ty';
+	if ($form eq 'ty') {
+	  $tag='PP-S1--2-------';
+	} else {
+	  $tag='PP-P1--2-------';
+	}
+	push @a,$fake_node;
+      }
+    } elsif ($node->{trlemma} eq 'v¹echen') {
+      $tag = 'PLYSX----------';
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} eq 'stejnì') {
+      $lemma = 'stejnì_^(*1ý)';
+      $tag = 'Dg-------1A----';
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} eq 'stejný') {
+      $tag = 'AAXXX----1A----';
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} eq 'tak') {
+      $lemma = 'tak-3';
+      $tag = 'Db-------------';
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} eq 'takový') {
+      $tag = 'AAXXX----------';
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} eq '&EmpNoun;' or $node->{trlemma} eq '&Idph;') {
+      $pos='NX';
+      $no_case=2 if $node->{trlemma} eq '&Idph;';
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} eq '&Emp;') {
+      $pos='VX';
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} eq 'ten') {
+      $tag='PDXSX----------';
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} eq 'on') {
+      my $gender = ($node->{gender} eq 'ANIM' ? 'M' : substr($node->{gender},0,1));
+      $tag='PP'.$gender.substr($node->{number},0,1).'X--3-------';
+      push @a,$fake_node;
+    }
+    if (@a) {
+      $tag = $pos.$gen.$num.$case.'--'.$person.'-------'     unless defined($tag);
+      $fake_node->{tag}=$tag;
+      $fake_node->{lemma} = $lemma || $node->{trlemma};
+      $fake_node->{form} = $form || $node->{trlemma};
+      $fake_node->{trlemma} = $node->{trlemma};
+      $fake_node->{TID} = $node->{TID};
+      print "Creating FAKE node [form=$fake_node->{form},lemma=$fake_node->{lemma},tag=$fake_node->{tag}\n" if $V_verbose;
+    } else {
+      $no_case=1;
+    }
+  } elsif ($node->{TID} ne '') {
     $no_case=1;
   }
-  if ($node->{trlemma} eq '&Idph') {
-    $no_case=2;
-  }
+
   if (@a) {
     my @ok_a;
     my $node_aidrefs = getAIDREFsHash($node);
@@ -615,7 +696,7 @@ sub match_form {
     my ($pnode) = $parent->getChildrenByTagName('node') if $parent;
     if ($pnode) {
       foreach my $p (PDT::GetFather_TR($node)) {
-	unless (match_node($p,$pnode,$aids,0,$loose_lemma,1)) {
+	unless (match_node($p,$pnode,$aids,0,$flags,1)) {
 	  print "PARENT-CONSTRAINT MISMATCH: [$p->{lemma} $p->{form} $p->{tag}] ==> ",$V->serialize_form($pnode),"\n" if $V_verbose;
 	  return 0;
 	}
@@ -624,7 +705,7 @@ sub match_form {
     my @form_nodes = $form->getChildrenByTagName('node');
     if (@form_nodes) {
       foreach my $fn (@form_nodes) {
-	unless (first { match_node($_,$fn,$aids,$no_case,$loose_lemma,1) } @ok_a) {
+	unless (first { match_node($_,$fn,$aids,$no_case,$flags,1) } @ok_a) {
 	  print "MISMATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$V->serialize_form($fn),"\n"
 	    if $V_verbose;
 	  return 0;
@@ -667,6 +748,15 @@ sub match_form {
   return 0;
 }
 
+
+sub verb_person {
+  my ($aids,$node)=@_;
+  return '-' unless $node->{tag}=~/^V/;
+  foreach (get_aidrefs_nodes($aids,$node)) {
+    return $1 if $_->{tag}=~/^V......(\d)/;
+  }
+  return 'X';
+}
 sub get_func { join '|',grep {$_ ne '???'} split /\|/, $_[0]->{func} };
 
 sub frame_matches_rule ($$$) {
@@ -865,8 +955,8 @@ sub _has_parent_coord_a {
 }
 
 
-sub match_element ($$$$$$) {
-  my ($V,$c,$e,$node,$aids,$quiet) = @_;
+sub match_element ($$$$$$$) {
+  my ($V,$c,$e,$node,$aids,$flags,$quiet) = @_;
   print $V->func($e)." $c->{tag} $c->{lemma}\n"     if (!$quiet and $V_verbose);
 
   my @forms = $V->forms($e);
@@ -876,7 +966,7 @@ sub match_element ($$$$$$) {
     print "ELEMENT: ",$V->serialize_element($e)."\n";
   }
   if (@forms) {
-    unless (first { match_form($c,$_,$aids) } @forms) {
+    unless (first { match_form($c,$_,$aids,$flags,$quiet) } @forms) {
       if ($V_verbose) {
 	print "\n09 no form matches: $c->{func},$c->{lemma},$c->{tag}\n";
       } elsif (!$quiet) {
@@ -890,15 +980,14 @@ sub match_element ($$$$$$) {
   return 1;
 }
 
-
 sub validate_frame {
-  my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet) = @_;
+  my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet,$flags) = @_;
   my @transformed = do_transform_frame($V,$trans_rules,$node, $frame,$aids,$quiet);
   if (@transformed>1) {
     print "TRANSFORMATION RETURNED ".scalar(@transformed)." FRAMES, WILL CHECK ALL\n" if (!$quiet and $V_verbose);
     my @ok_frames = grep {
       local $V_verbose=0;
-      validate_frame_no_transform($V, $node, $_, $aids, $pj4, 1)
+      validate_frame_no_transform($V, $node, $_, $aids, $pj4, 1, $flags)
     } @transformed;
     unless ($quiet) {
       # once more for the show
@@ -907,24 +996,25 @@ sub validate_frame {
 	return 1 unless $V_verbose;
 	foreach (@ok_frames) {
 	  print "FRAME ".$V->frame_id($_)."\n" if (!$quiet and $V_verbose);
-	  validate_frame_no_transform($V, $node, $_, $aids, $pj4, 0);
+	  validate_frame_no_transform($V, $node, $_, $aids, $pj4, 0, $flags);
 	}
 	return 1;
       } else {
 	foreach (@transformed) {
 	  print "FRAME ".$V->frame_id($_)."\n" if (!$quiet and $V_verbose);
-	  validate_frame_no_transform($V, $node, $_, $aids, $pj4, 0);
+	  validate_frame_no_transform($V, $node, $_, $aids, $pj4, 0, $flags);
 	}
 	return 0;
       }
     }
   } else {
-    validate_frame_no_transform($V, $node, $transformed[0], $aids, $pj4, $quiet);
+    validate_frame_no_transform($V, $node, $transformed[0], $aids, $pj4, $quiet, $flags);
   }
 }
 
 sub validate_frame_no_transform {
-  my ($V,$node, $frame,$aids,$pj4,$quiet) = @_;
+  my ($V,$node, $frame,$aids,$pj4,$quiet, $flags) = @_;
+  $flags ||= {};
   my %all_elements;
   # check over-all validity of the frame itself
   {
@@ -961,7 +1051,7 @@ sub validate_frame_no_transform {
     my @forms = $V->forms($word_form);
     print "WORD FORM: ",$V->serialize_element($word_form)."\n" if (!$quiet and $V_verbose);
     if (@forms) {
-      unless (grep { match_form($node,$_,$aids,0,1) } @forms) {
+      unless (grep { match_form($node,$_,$aids,$flags,1) } @forms) {
 	unless ($quiet) {
 	  print "11 no word form matches: $node->{lemma},$node->{tag}\t";
 	  Position($node);
@@ -1041,119 +1131,197 @@ sub validate_frame_no_transform {
   my %oblig = map { $V->func($_) => $_ } $V->oblig($frame);
   my %nonoblig = map { $V->func($_) => $_ } $V->nonoblig($frame);
 
-  # check, that all obligatory elements are present
-  foreach my $o (keys %oblig) {
-    # at least one of alternations must match
-    unless (grep exists($c{$_}), split /\|/,$o) {
-      unless ($quiet) {
-	print "06 missing obligatory element: '$o'\t";
-	Position($node);
-	print "FRAME: ",$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
-      }
-      return 0;
-    }
-  }
+  # IN THIS SECTION I'LL ATTEMPT TO IMPLEMENT MATCH MODULO FUNCTORS
+  if ($flags->{fuzzy}) {
 
-  # check, that all actants present in data are in the vallex
-  # check, multiplicity
-  foreach my $ac (@actants) {
-    if (exists($c{$ac}) and !exists($all_elements{$ac})) {
-      unless ($quiet) {
-	print "07 actant present in data but not in vallex: $ac\t";
-	Position($node);
-      }
-      return 0;
-    } elsif (exists $c{$ac}) {
-      if (@{$c{$ac}} > 1) {
-	my @ancestors = uniq map { _highest_coord($_) } @{$c{$ac}};
-	if (@ancestors > 1) {
-	  unless ($quiet) {
-	    print "08 multiple actants: $ac\t";
-	    Position($node);
+    # group children by coordination
+    my %groups;
+    my %cgroups;
+    my %element_matches;
+    my %group_matches;
+    for my $child (@c) { 
+      my $coord = _highest_coord($child);
+      push @{ $groups{ $coord->{AID}.$coord->{TID} } }, $child;
+      $cgroups{$child} = $coord->{AID}.$coord->{TID};
+    }
+    print "FUZZY MATCHING: ",$V->serialize_frame($frame)."\n" if $V_verbose;
+    foreach my $o (keys %oblig) {
+      my $e = $oblig{$o};
+      if ($V->is_alternation($e)) {
+	# TODO
+	return 0;
+      } else {
+	# try to match each obligatory element to as many children as possible
+	print "ELEMENT: ",$V->serialize_element($e)."\n" if $V_verbose;
+	foreach my $g (keys %groups) {
+	  # $quiet
+	  print "NODES: ",join(";",(map {$_->{form}."[$_->{tag}]".".".$_->{func}} @{ $groups{$g} })),"\n" if $V_verbose;
+	  if (! first { local $V_verbose = 0; !match_element($V,$_,$e,$node,$aids,$flags,1) } @{ $groups{$g} }) {
+	    push @{ $element_matches{$o} }, $g;
+	    push @{ $group_matches{$g} }, $o;
+	    print "YES\n" if $V_verbose;
+	  } else {
+	    print "NO\n" if $V_verbose;
 	  }
-	  return 0;
 	}
       }
     }
-  }
-
-  # check realizations of obligatory elements
-  foreach my $o (keys %oblig) {
-    my $e = $oblig{$o};
-    # 1) alternations
-    if ($V->is_alternation($e)) {
-      # for at least one functor in the alternations,
-      # all nodes with this functor must match
-      if (!$quiet and $V_verbose) {
-	print "****\n";
-	print "ALTERNATION: ",$V->serialize_element($e)."\n";
-      }
-      my $success = 0;
-      foreach my $alt_e ($V->alternation_elements($e)) {
-	my $alt_func = $V->func($alt_e);
-	unless (ref($c{$alt_func})) {
-	  print "ALTERNATIVE $alt_func NO NODES\n" if (!$quiet and $V_verbose);
-	  next;
+    if ($V_verbose) {
+      print "FUZZY FRAME: ",$V->serialize_frame($frame)."\n" if $V_verbose;
+      print "ELEMENT RESULTS: ";
+      print "$_: ",(exists($element_matches{$_}) ? scalar(@{$element_matches{$_}}) : "0")."\t" for (keys %oblig);
+      print "\n";
+      print "CHILD RESULTS: ";
+	print join(";",(map {$_->{form}.".".$_->{func}} @{ $groups{$_} })).": ".
+	  ($group_matches{$_} ? join(",",@{$group_matches{$_}}) : "")."\t" for (keys %groups);
+      print "\n";
+    }
+    if ((!first { @{$group_matches{$_}} > 1 } keys %group_matches) and
+	(!first { !exists $element_matches{$_} or 
+		  @{$element_matches{$_}} != 1 } keys %oblig)) {
+      # compute match cost (penalty):
+      # functors changed:
+      my $functors_changed = 0;
+      foreach my $o (%oblig) {
+	foreach my $g (@{$element_matches{$o}}) {
+	  foreach my $c (grep { $_->{func}!~/^$o$/} @{$groups{$g}}) {
+	    $functors_changed ++;
+	  }
 	}
-	my $fail=0;
-	foreach my $c (@{$c{$alt_func}}) {
-	  unless (match_element($V,$c,$alt_e,$node,$aids,$quiet)) {
-	    $fail=1;
-	    print "ALTERNATIVE $alt_func FAIL\n" if (!$quiet and $V_verbose);
+      }
+      # functors deleted:
+      my $functors_to_delete = 0;
+      foreach my $c (
+	grep { exists($group_matches{ $cgroups{$_} }) }
+	  grep { $_->{func}=~/^(?:ACT|PAT|EFF|ADDR|ORIG|DPHR|CPHR)$/ } @c) {
+	$functors_to_delete ++;
+      }
+      my $children = @c;
+      my $actants = grep { $_->{func}=~/^(?:ACT|PAT|EFF|ADDR|ORIG|DPHR|CPHR)$/ } @c;
+      my $elements = scalar(keys(%oblig));
+      print "FUZZY-MATCH (frame-elements: $elements, func-changes: $functors_changed/$children, func-deletions: $functors_to_delete/$actants)\n" if $V_verbose;
+      return [$V->frame_id($frame),$elements,$children,$actants,$functors_changed,$functors_to_delete];
+    } else {
+      print "FUZZY-MISMATCH\n" if $V_verbose;
+      return 0;
+    }
+  } else {
+  # IN THIS THE USUAL FRAME MATCHING ROUTINE
+
+    # check, that all obligatory elements are present
+    foreach my $o (keys %oblig) {
+      # at least one of alternations must match
+      unless (grep exists($c{$_}), split /\|/,$o) {
+	unless ($quiet) {
+	  print "06 missing obligatory element: '$o'\t";
+	  Position($node);
+	  print "FRAME: ",$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
+	}
+	return 0;
+      }
+    }
+
+    # check, that all actants present in data are in the vallex
+    # check, multiplicity
+    foreach my $ac (@actants) {
+      if (exists($c{$ac}) and !exists($all_elements{$ac})) {
+	unless ($quiet) {
+	  print "07 actant present in data but not in vallex: $ac\t";
+	  Position($node);
+	}
+	return 0;
+      } elsif (exists $c{$ac}) {
+	if (@{$c{$ac}} > 1) {
+	  my @ancestors = uniq map { _highest_coord($_) } @{$c{$ac}};
+	  if (@ancestors > 1) {
+	    unless ($quiet) {
+	      print "08 multiple actants: $ac\t";
+	      Position($node);
+	    }
+	    return 0;
+	  }
+	}
+      }
+    }
+
+    # check realizations of obligatory elements
+    foreach my $o (keys %oblig) {
+      my $e = $oblig{$o};
+      # 1) alternations
+      if ($V->is_alternation($e)) {
+	# for at least one functor in the alternations,
+	# all nodes with this functor must match
+	if (!$quiet and $V_verbose) {
+	  print "****\n";
+	  print "ALTERNATION: ",$V->serialize_element($e)."\n";
+	}
+	my $success = 0;
+	foreach my $alt_e ($V->alternation_elements($e)) {
+	  my $alt_func = $V->func($alt_e);
+	  unless (ref($c{$alt_func})) {
+	    print "ALTERNATIVE $alt_func NO NODES\n" if (!$quiet and $V_verbose);
+	    next;
+	  }
+	  my $fail=0;
+	  foreach my $c (@{$c{$alt_func}}) {
+	    unless (match_element($V,$c,$alt_e,$node,$aids,$flags,$quiet)) {
+	      $fail=1;
+	      print "ALTERNATIVE $alt_func FAIL\n" if (!$quiet and $V_verbose);
+	      last;
+	    }
+	  }
+	  unless ($fail) {
+	    $success = 1;
+	    print "ALTERNATIVE $alt_func SUCCESS\n" if (!$quiet and $V_verbose);
 	    last;
 	  }
 	}
-	unless ($fail) {
-	  $success = 1;
-	  print "ALTERNATIVE $alt_func SUCCESS\n" if (!$quiet and $V_verbose);
-	  last;
-	}
-      }
-      unless ($success) {
-	print "NO MATCH FOR ALTERNATION: ",$V->serialize_element($e)."\n" if (!$quiet and $V_verbose);
-	return 0;
-      }
-      print "****\n" if (!$quiet and $V_verbose);
-    } else {
-      # 2) check obligatory frame slots
-      if ($V_verbose) {
-	unless (first { local $V_verbose = 0;
-			match_element($V,$_,$e,$node,$aids,1);
-		      } @{$c{$o}}) {
-	  match_element($V,$_,$e,$node,$aids,$quiet) for @{$c{$o}};
+	unless ($success) {
+	  print "NO MATCH FOR ALTERNATION: ",$V->serialize_element($e)."\n" if (!$quiet and $V_verbose);
 	  return 0;
 	}
+	print "****\n" if (!$quiet and $V_verbose);
       } else {
-	return 0 unless (first { match_element($V,$_,$e,$node,$aids,$quiet) } @{$c{$o}});
+	# 2) check obligatory frame slots
+	if ($V_verbose) {
+	  unless (first { #local $V_verbose = $V_very_verbose;
+			  match_element($V,$_,$e,$node,$aids,$flags,0); # $V_very_verbose
+			} @{$c{$o}}) {
+	    #match_element($V,$_,$e,$node,$aids,$flags,$quiet) for @{$c{$o}};
+	    return 0;
+	  }
+	} else {
+	  return 0 unless (first { match_element($V,$_,$e,$node,$aids,$flags,$quiet) } @{$c{$o}});
+	}
       }
     }
-  }
 
-  # check realizations of non-obligatory elements
-  foreach my $c (@c) {
-    my $e = $nonoblig{get_func($c)};
-    next unless ($e);
-    return 0 unless match_element($V,$c,$e,$node,$aids,$quiet);
-  }
-
-  # warn about nodes possibly added for no reason ...
-  foreach my $c (@c) {
-    if ($c->{TID} ne "" and $nonoblig{get_func($c)} and
-	$c->{coref} eq "" and
-	$c->{trlemma} ne "&Rcp;" and
-	!first { $_->{AID} ne "" } $c->visible_descendants(FS())
-       ) {
-      print "0X Possibly redundant added node: ",get_func($c)."\t";
-      Position($c);
-    } elsif ($c->{trlemma} eq '&Rcp;' and !$oblig{get_func($c)} and
-	     !first { $_->{tag}=~/^V/ and first { $_->{trlemma} eq "se" } $_->children } get_aidrefs_nodes($aids,$node)
-	    ) {
-      print "0Y Possibly redundant Rcp: ",get_func($c)."\t";
-      Position($c);
+    # check realizations of non-obligatory elements
+    foreach my $c (@c) {
+      my $e = $nonoblig{get_func($c)};
+      next unless ($e);
+      return 0 unless match_element($V,$c,$e,$node,$aids,$flags,$quiet);
     }
-  }
 
-  print "\nOK - frame matches!\n" if ($V_verbose and !$quiet);
+    # warn about nodes possibly added for no reason ...
+    foreach my $c (@c) {
+      if ($c->{TID} ne "" and $nonoblig{get_func($c)} and
+	    $c->{coref} eq "" and
+	      $c->{trlemma} ne "&Rcp;" and
+		!first { $_->{AID} ne "" } $c->visible_descendants(FS())
+	       ) {
+	print "0X Possibly redundant added node: ",get_func($c)."\t";
+	Position($c);
+      } elsif ($c->{trlemma} eq '&Rcp;' and !$oblig{get_func($c)} and
+		 !first { $_->{tag}=~/^V/ and first { $_->{trlemma} eq "se" } $_->children } get_aidrefs_nodes($aids,$node)
+		) {
+	print "0Y Possibly redundant Rcp: ",get_func($c)."\t";
+	Position($c);
+      }
+    }
+
+    print "\nOK - frame matches!\n" if ($V_verbose and !$quiet);
+  }
   return 1;
 }
 
@@ -1193,7 +1361,8 @@ sub hash_pj4 {
 }
 
 sub check_verb_frames {
-  my ($node,$aids,$frameid,$fix)=@_;
+  my ($node,$aids,$frameid,$fix,$flags)=@_;
+  my $flags ||= {};
   my $func = get_func($node);
   return -1 if
     $node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/ or
@@ -1228,14 +1397,17 @@ sub check_verb_frames {
 	    # frame not resolved
 	    if ($V->user_cache->{$lemma}) {
 	      my @possible_frames =
-		grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,[],1) } $V->valid_frames($V->user_cache->{$lemma});
+		grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,[],1,{%$flags, strict_adjectives => 1}) }
+		  $V->valid_frames($V->user_cache->{$lemma});
 	      $node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
 	      $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 
 	      if (@possible_frames==1) {
 		print "12 unresloved frame, but one matching frame: $fi\t";
+		print join("|",sort map { $V->frame_id($_) } @possible_frames)."\t";
 	      } elsif (@possible_frames>1) {
 		print "13 unresloved frame, but more matching frames: $fi\t";
+		print join("|",sort map { $V->frame_id($_) } @possible_frames)."\t";
 	      } else {
 		print "14 unresloved frame, but no matching frame: $fi\t";
 	      }
@@ -1258,7 +1430,7 @@ sub check_verb_frames {
 	  ChangingFile(1);
 	}
 	foreach my $frame (@frames) {
-	  return 0 unless validate_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,[],0);
+	  return 0 unless validate_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,[],0,$flags);
 	}
 	# process frames
       } else {
@@ -1267,7 +1439,49 @@ sub check_verb_frames {
 	return 0;
       }
     } else {
-      print "04 no frame assigned: $lemma\t";
+      if ($V->user_cache->{$lemma}) {
+	my @word_frames = $V->valid_frames($V->user_cache->{$lemma});
+	my @possible_frames = 
+	  grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,[],1,
+				{%$flags, strict_adjectives => 1}) }
+	    @word_frames;
+	#$node->{$frameid} = join "|", map { $V->frame_id($_) } @possible_frames;
+	#$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+	if (@possible_frames == 1 and
+	    @word_frames == 1) {
+	  my @els = $V->all_elements($possible_frames[0]);
+	  if (@els == 0) {
+	    print "16 no frame assigned, but word has only EMPTY frame, which matches:\t";
+	  } else {
+	    print "17 no frame assigned, but word has only one frame, which matches:\t";
+	  }
+	} elsif (@possible_frames==1) {
+	  print "18 no frame assigned, but one matching frame:\t";
+	  print join (",",map { $V->frame_id($_) } @possible_frames)."\t";
+	} elsif (@possible_frames>1) {
+	  print "19 no frame assigned, but more matching frames:\t";
+	  print join("|",sort map { $V->frame_id($_) } @possible_frames)."\t";
+	} elsif (@word_frames==0) {
+	  print "21 no frames:\t";
+	} else {
+	  my @fuzzy_frames =
+	    grep { ref($_) }
+	    map { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,[],1,{ %$flags, fuzzy => 1}) }
+	      @word_frames;
+	  if (@fuzzy_frames >= 1) {
+	    my $fuzzy = scalar(@fuzzy_frames);
+	    print "2A no frame assigned, no match, but $fuzzy match(es) modulo functors:\t";
+	    print join("|",map { $_->[0].
+				   sprintf("(%.2f)",($_->[4]+$_->[5]/$_->[1]))
+				   ."[elems:$_->[1],nodes:$_->[2],actants:$_->[3],ch:$_->[4],del:$_->[5]]"
+			       } @fuzzy_frames)."\t";
+	  } else {
+	    print "20 no frame assigned, but no matching frame:\t";
+	  }
+	}
+      } else {
+	print "04 no frame assigned: $lemma\t";
+      }
       Position($node);
       return 0;
     }
@@ -1282,8 +1496,8 @@ sub check_verb_frames {
 
 
 sub check_nounadj_frames {
-  my ($node,$aids,$frameid,$pj4)=@_;
-
+  my ($node,$aids,$frameid,$pj4,$flags)=@_;
+  my $flags ||= {};
 #  if (@$pj4) {
 #    Position($pj4->[0]);
 #  }
@@ -1317,7 +1531,7 @@ sub check_nounadj_frames {
 	    # frame not resolved
 	    my @word_frames = $V->valid_frames($V->user_cache->{$lemma});
 	    my @possible_frames = 
-	      grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1) }
+	      grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1,$flags) }
 		@word_frames;
 	    $node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
 	    $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
@@ -1351,7 +1565,7 @@ sub check_nounadj_frames {
 	$node->{$frameid}=join "|",map { $V->frame_id($_) } @frames;
 	$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @frames;
 	foreach my $frame (@frames) {
-	  return 0 unless validate_frame($V,\@fv_trans_rules_N,$node,$frame,$aids,$pj4,0);
+	  return 0 unless validate_frame($V,\@fv_trans_rules_N,$node,$frame,$aids,$pj4,0,$flags);
 	}
 	# process frames
       } else {
@@ -1363,7 +1577,7 @@ sub check_nounadj_frames {
       if ($V->user_cache->{$lemma}) {
 	my @word_frames = $V->valid_frames($V->user_cache->{$lemma});
 	my @possible_frames = 
-	  grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1) }
+	  grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1,$flags) }
 	    @word_frames;
 	$node->{$frameid} = join "|", map { $V->frame_id($_) } @possible_frames;
 	$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
