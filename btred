@@ -188,7 +188,7 @@ if (defined $config_file) {
 if ($quiet) {
   $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
 } elsif ($debug) {
-  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
+  $IOBackend::Debug=$tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
 }
 
 my $configFile=read_config();
