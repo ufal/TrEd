@@ -4,12 +4,12 @@
 
 sub file_opened_hook {
   if (exists $grp->{FSFile}->FS->defs->{TR}) {
-    print "TECTOGRAMMATIC\n";
+    print STDERR "file_open_hook: Switching context to Tectogrammatic\n";
     return SwitchContext('Tectogrammatic') 
       unless (CurrentContext eq 'TR_Correction' or
 	      CurrentContext eq 'TFA');
   } else {
-    print STDERR "Cannot guess context, using Analytic\n";
+    print STDERR "file_open_hook: Cannot guess context, using Analytic\n";
     return SwitchContext('Analytic') unless CurrentContext eq 'Analytic_Correction';
   }
 }
@@ -162,10 +162,12 @@ sub PerlSearch {
   }
   $macPerlSearchScript=$script;
   while ($this=NextNode($this) or NextTree()) {
-#    print $this->{'form'},"\n";
     last if eval($script);
+    if ($@) {
+      ErrorMessage($@);
+      last;
+    }
   };
-  print $this->{'form'},"\n";
 }
 
 #bind GotoTreeAsk to Alt+g menu Go to...
@@ -189,7 +191,6 @@ sub GotoTreeAsk {
 sub PerlSearchNext {
   if ($macPerlSearchScript) {
     while ($this=Next($this) or NextTree()) {
-#      print $this->{'form'},"\n";
       last if eval($macPerlSearchScript);
     }
   } else {
