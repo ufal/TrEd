@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-04-29 13:22:04 pajas>
+## Time-stamp: <2004-05-10 12:20:17 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -13,6 +13,7 @@ import Tectogrammatic;
 sub file_close_hook {
   if (which_struct() eq 'AR') {
     PDT::TRstruct();
+    Redraw();
   }
 }
 
