@@ -369,6 +369,7 @@ sub switch_context_hook {
     markPossibleCorefStarts($tree);
     auto_coref($tree);
   }
+  Redraw_FSFile();
 }
 
 #bind markPossibleCorefStarts to Ctrl+m menu Mark possible coreference start nodes
