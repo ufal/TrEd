@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-30 19:32:23 pajas>
+## Time-stamp: <2002-11-20 14:05:31 pajas>
 
 package Coref;
 
@@ -11,7 +11,7 @@ import TredMacro;
 sub default_tr_attrs {
   if ($grp->{FSFile}) {
     SetDisplayAttrs('mode:Coref',
-		    '${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+		    '<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
 		   );
 

@@ -21,7 +21,7 @@ import TredMacro;
 #bind default_tfa_attrs to F8 menu Display default attributes
 sub default_tfa_attrs {
   return unless $grp->{FSFile};
-  SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+  SetDisplayAttrs('<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
 		  '<? $this->parent ? "#{custom4}\${tfa}#{default}_" : "" ?>'.
 		  '${func}<? "_#{custom2}\${reltype}" if $${reltype} =~ /CO|PA/ ?>'.
 		  '<? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>'

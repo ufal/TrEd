@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-18 10:55:21 pajas>
+## Time-stamp: <2002-11-20 15:37:11 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -63,7 +63,7 @@ sub upgrade_file {
 sub default_tr_attrs {
   return unless $grp->{FSFile};
   print "Using standard patterns\n";
-    SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+    SetDisplayAttrs('<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
