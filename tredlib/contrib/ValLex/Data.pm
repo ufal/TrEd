@@ -500,6 +500,10 @@ sub serializeForm {
 	$morph.="\$$_\<${tag}\>";
       }
     }
+    my $afun = $node->getAttribute('afun');
+    if ($afun ne "" and $afun ne "unspecified") {
+      $ret.="/".$afun;
+    }
     my $inherits = $node->getAttribute('inherits');
     $ret.=($inherits==1 ? '.' : ':').$morph if ($inherits==1 or $morph ne "");
     if ($node->getChildElementsByTagName('node')) {
@@ -536,23 +540,24 @@ sub parseFormPart {
   if ($form =~
       m{^(\^? #1
 	  ( "$lem" | $lem | (?:{ $lem (?: , $lem )* (?: , ...)?}) )? # $2: lemma
-	  (                  # $3
-            ([.:])           # $4
-	    (~)?             # $5
- 	    ([adinjvufsc])?   # $6 pos
-	    ([FMIN])?        # $7 gen
-            ([PS])?          # $8 num
-            ([1-7])?         # $9 case
-            (?: @([1-3]))?   # $10 deg
-            (\#)?            # $11
-	    ((?: \$ (?:\d|1[01234]) [<]  (?:[^][>()\{\};,]|\\[,;*!%=~\#])+  [>]  )*) # $12
+	    (?:/(Pred|Pnom|AuxV|Sb|Obj|Atr|Adv|AtrAdv|AdvAtr|Coord|AtrObj|ObjAtr|AtrAtr|AuxT|AuxR|AuxP|Apos|ExD|AuxC|Atv|AtvV|AuxO|AuxZ|AuxY|AuxG|AuxK|AuxX|AuxS))?                          # $3
+	  (                  # $4
+            ([.:])           # $5
+	    (~)?             # $6
+ 	    ([adinjvufsc])?   # $7 pos
+	    ([FMIN])?        # $8 gen
+            ([PS])?          # $9 num
+            ([1-7])?         # $10 case
+            (?: @([1-3]))?   # $11 deg
+            (\#)?            # $12
+	    ((?: \$ (?:\d|1[01234]) [<]  (?:[^][>()\{\};,]|\\[,;*!%=~\#])+  [>]  )*) # $13
           )?                 #
-          | ([*!%=])         # $13 typical,elided,recip,state
+          | ([*!%=])         # $14 typical,elided,recip,state
          )                   #
-         ( [][&,;].* | $ ) # $14 <3> tokens to parse
-      }x and $1 ne "" and $1 ne "^" and $3 ne ":") {
-    my ($match,$lemma,$sep,$neg,$pos,$gen,$num,$case,$deg,$agreement,$tagpos,$special,$next) =
-       ($1,    $2,    $4,  $5,  $6,  $7,  $8,  $9,   $10, $11,      ,$12    ,$13,     $14);
+         ( [][&,;].* | $ ) # $15 <3> tokens to parse
+      }x and $1 ne "" and $1 ne "^" and $4 ne ":" and not( $3 ne "" and $14 ne "")) {
+    my ($match,$lemma,$afun,$sep,$neg,$pos,$gen,$num,$case,$deg,$agreement,$tagpos,$special,$next) =
+       ($1,    $2,  $3,  $5,  $6,  $7,  $8,  $9,  $10,   $11, $12,      ,$13    ,$14,     $15);
     if ($special ne "") {
       if ($next=~/^\[/) {
 	die "Can't use [ ] after '$special'\n";
@@ -579,6 +584,7 @@ sub parseFormPart {
       } elsif ($lemma ne "") {
 	$node->setAttribute('lemma',$lemma);
       }
+      $node->setAttribute('afun',$afun) if $afun ne "";
       $node->setAttribute('neg','negative') if $neg ne "";
       $node->setAttribute('pos',$pos) if $pos ne "";
       $node->setAttribute('gen',$gen) if $gen ne "";
