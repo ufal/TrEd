@@ -1471,18 +1471,8 @@ sub evalMacro {
 
   my $e = $w->XEvent;
   my $A = uc($e->A);
-  
+
   #print STDERR "Pressed: ($A), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
-
-  #$A=chr(ord($A)+ord('A')-1) if (ord($A)<32 and $prefix=~/CTRL/);
-
-#  unless ($macrosEvaluated) {
-#    $grp->{'top'}->Busy(-recurse => 1);
-#    eval "\nreturn 1;@macros\n";
-#    print STDERR "Pre-compiling macros: returned with: $@\n" if ($@);
-#    $macrosEvaluated=1;
-#    $grp->{'top'}->Unbusy;
-#  }
 
   if (defined $keyBindings{$prefix.$A}) {
     $key=$prefix.$A;
@@ -1505,12 +1495,13 @@ sub evalMacro {
     $insideEval=0;
     $grp->{'top'}->Unbusy;
     setCurrent($grp,$this);
+    getNodes($grp);
     redraw_tree($grp);
     centerTo($grp,$this);
   }
 }
 
-sub currentNext {						      
+sub currentNext {
   my ($w,$grp)=@_; 
   if (Next($grp->{'currentNode'})) {
     setCurrent($grp,Next($grp->{'currentNode'}));
