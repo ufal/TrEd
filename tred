@@ -358,21 +358,21 @@ sub setConfig {
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
     (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2');
-  $libDir=(exists $confs->{libdir}) ? <$$confs{LibDir}> : $libDir;
-  $appIcon=(exists $confs->{appicon}) ? <$$confs{AppIcon}> : "$libDir/tred.xpm";
-  $psFontFile=(exists $$confs{PsFontFile}) ?
-    ((-d <$$confs{PsFontFile}>) ? <$$confs{PsFontFile}> : "$libDir/".$$confs{PsFontFile}) :
+  $libDir=(exists $confs->{libdir}) ? <$$confs{libdir}> : $libDir;
+  $appIcon=(exists $confs->{appicon}) ? <$$confs{appicon}> : "$libDir/tred.xpm";
+  $psFontFile=(exists $$confs{psfontfile}) ?
+    ((-d <$$confs{psfontfile}>) ? <$$confs{psfontfile}> : "$libDir/".$$confs{psfontfile}) :
       "$libDir/csarialm.pfa";
-  $psFontName=(exists $$confs{PsFontName}) ? <$$confs{PsFontName}> : "Arial-Medium";
-  $psFontSize=(exists $$confs{PsFontSize}) ? <$$confs{PsFontSize}> : "12";
-  $macroFile=(exists $$confs{MacroFile}) ? <$$confs{MacroFile}> : $macroFile;
-  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? <$$confs{DefaultMacroFile}> : "$libDir/tred.def";
+  $psFontName=(exists $$confs{psfontname}) ? <$$confs{psfontname}> : "Arial-Medium";
+  $psFontSize=(exists $$confs{psfontsize}) ? <$$confs{psfontsize}> : "12";
+  $macroFile=(exists $$confs{macrofile}) ? <$$confs{macrofile}> : $macroFile;
+  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? <$$confs{defaultmacrofile}> : "$libDir/tred.def";
   $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '21c';
   $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '297m';
   $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
   $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '1c';
   $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
-  $psFile=(exists $confs->{psfile}) ? <$$confs{PsFile}> : 'tred.ps';
+  $psFile=(exists $confs->{psfile}) ? <$$confs{psfile}> : 'tred.ps';
   $drawBoxes=(exists $confs->{drawboxes}) ? $confs->{drawboxes} : 0;
   $highlightAttributes=(exists $confs->{highlightattributes}) ? $confs->{highlightattributes} : 1;
   $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
