@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-09-09 10:59:20 pajas>
+## Time-stamp: <2004-09-21 16:06:23 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -415,8 +415,8 @@ sub light_ar_children {
   ChangingFile(0);
 }
 
-#bind light_ar_children to Ctrl+i menu Mark true analytic parent(s) of current node with _light = _LIGHT_
-sub light_ar_children {
+#bind light_ar_parent to Ctrl+i menu Mark true analytic parent(s) of current node with _light = _LIGHT_
+sub light_ar_parent {
   my $node = $root;
   while ($node) {
     delete $node->{_light};
@@ -830,6 +830,23 @@ sub join_with_mother {
   ChangingFile(1);
 }#join_with_mother
 
+#include <contrib/pdt_tags.mak>
+#bind show_tag to Alt+T
+sub show_tag {
+  describe_tag($this->{tag});
+}
+
+#bind show_x_origa to Alt+o
+sub show_x_origa {
+  describe_x_origa($this->{x_origa}) if $this->{x_origa} ne "";
+  ChangingFile(0);
+}
+
+#bind show_x_origt to Alt+t
+sub show_x_origt {
+  describe_x_origa($this->{x_origt}) if $this->{x_origt} ne "";
+  ChangingFile(0);
+}
 
 
 ############# XPath #############

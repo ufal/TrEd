@@ -25,7 +25,7 @@ sub clone_frame {
 sub addWord {
   print "Called extended addWord\n";
   my $self = shift;
-  my $word = $self->NEXT::addWord(@_);
+  my $word = $self->SUPER::addWord(@_);
   if ($word) {
     $self->[8]->{ $word->getAttribute('word_ID') } = $word if ref($self->[8]);
     $self->[9]->{ $word->getAttribute('lemma') } = $word if ref($self->[9]);

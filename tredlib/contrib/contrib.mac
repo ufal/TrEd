@@ -26,6 +26,7 @@
 #key-binding-adopt TR_Correction
 #include <contrib/tr_frame_validation.mak>
 
+
 #binding-context TR_Diff
 #include <contrib/trdiff.mak>
 
@@ -49,6 +50,11 @@
 
 #binding-context TR_Grammatemes
 #include <contrib/grammatemes.mak>
+
+#binding-context TR_CPHR
+#key-binding-adopt Tectogrammatic
+#key-binding-adopt Coref
+#include <contrib/tr_cphr.mak>
 
 package TredMacro;
 
