@@ -27,14 +27,27 @@
       <application>TrEd</application> distribution, so if
       <application>Perl</application> and <application>TrEd</application>
       are installed properly <command>any2any</command> should work
-      fine. There is also a stand-alone distribution of
+      fine. There is also a <ulink url="any2any">stand-alone</ulink> distribution of
       <command>any2any</command>
       for those who do not wish to install
       <application>TrEd</application>.
       To install the stand-alone distribution, simply copy the whole
-      <filename>any2any</filename> directory to any location you want
+      <ulink url="any2any"><filename>any2any</filename></ulink>
+      directory to any location you want
       and run <command>any2any</command> from that location. Make sure,
-      that <application>Perl 5</application> is installed on your system.
+      that <application>Perl 5</application> is installed on your
+      system
+      (Windows(TM)
+      version from <ulink
+	url="http://www.activestate.com">ActiveState</ulink>
+      may be found <ulink
+	url="../../Tools/Tree_Editors/Tred/PerlTk/APi522e.exe">here</ulink>).
+      James Clark's <ulink href="../../Support/nsgmls/index.html">SGML
+    parser <application>nsgmls</application></ulink> is required
+      for conversion from CSTS SGML format. Make sure, that this tool is
+      installed on your system and that the path to the
+      <command>nsgmls</command> binary executable is in your
+      <varname>PATH</varname>.      
     </para>
   </sect1>
   <sect1>
