@@ -346,7 +346,9 @@ sub position {
   my $fname=ref($fsfile) ? $fsfile->name() : $fsfile;
   my $basedir=$self->dirname();
   my $relfname=$fname;
-  $relfname=~s/^$basedir//;
+  if (index($fname,$basedir)==0) {
+    $relfname=substr($fname,length($basedir));
+  }
   for (my $i=0; $i < $self->file_count; $i++) {
     return $i if ($fname eq $files->[$i]->[0]
 		  or
