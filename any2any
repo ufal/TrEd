@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #                                                          -*- cperl -*-
 use Getopt::Std;
-getopts('p:r:s:a:f:x:CETDNGhu');
+getopts('p:r:s:a:f:x:CETDRNGhu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
   print <<EOF;
@@ -23,6 +23,7 @@ Parameters:
                      converting to CSTS
 
   -T                 if converting from csts, build tectogrammatical tree structure
+  -R                 same as -T (for compatibility with TrEd/bTrEd)
   -N                 if empty, initialize ordering attribute with sentence ordering
   -G                 do not save dependency on the root of the tree in csts format
   -C                 convert to CSTS in mode quite compatible with Dan Zemans cstsfs
@@ -55,15 +56,11 @@ import Fslib;
 
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
-if ($opt_T) {
-  $Csts2fs::gov = "govTR";
-  $Csts2fs::header = \@Csts2fs::TRheader;
-  $Csts2fs::initial_node_values{TR}='hide';
-}
+($opt_T || $opt_R) && Csts2fs::setupTR();
 
 @Fs2csts::extra_attributes=split /,/,$opt_x;
 
-$Fslib::Debug=1 if $opt_D;  
+$Fslib::Debug=1 if $opt_D;
 $Csts2fs::fill_empty_ord = 1 if $opt_N;
 $Fs2csts::export_dependency = 0 if $opt_G;
 $Fs2csts::compatibility_mode = 1 if $opt_C;
@@ -108,7 +105,7 @@ foreach $f (@files) {
     rename $f, "$f~" || die "Cannot create backup file named $f~ for $f\n";
   }
 
-  if ($opt_T) {
+  if ($opt_T || $opt_R) {
     $fs->changePatterns('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     $fs->changeHint('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".

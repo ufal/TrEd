@@ -359,11 +359,7 @@ my %searchTemplate;
 			   bar=> 'backslash', asciitilde=> 'grave'
 			  );
 
-if ($opt_R) {
-  $Csts2fs::gov = "govTR";
-  $Csts2fs::header = \@Csts2fs::TRheader;
-  $Csts2fs::initial_node_values{TR}='hide';
-}
+$opt_R && Csts2fs::setupTR();
 
 print STDERR "Reading macros from $macroFile...\n";
 read_macros($macroFile,$libDir);		# read macros

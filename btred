@@ -248,11 +248,7 @@ if ($opt_q) {
 	trxml => 'TrXMLBackend'
        );
 
-if ($opt_R) {
-  $Csts2fs::gov = "govTR";
-  $Csts2fs::header = \@Csts2fs::TRheader;
-  $Csts2fs::initial_node_values{TR}='hide';
-}
+$opt_R && Csts2fs::setupTR();
 
 @Fs2csts::extra_attributes=split /,/,$opt_x;
 
