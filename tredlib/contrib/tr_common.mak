@@ -187,7 +187,7 @@ sub upgrade_file {
 }
 
 #bind default_tr_attrs to F8 menu Display default attributes
-sub default_tr_attrs {
+sub default_tr_attrs { # cperl-mode _ _
   return unless $grp->{FSFile};
   stdout("Using standard patterns\n");
   SetDisplayAttrs('<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? "$${_light}"if$${_light}and$${_light}ne"_LIGHT_" ?>',
