@@ -12,7 +12,33 @@ import TrEd::MinMax;
 
 use strict;
 
-sub printTrees {
+sub parse_print_list {
+  my ($fsfile,$printRange)=@_;
+  my $pbeg;
+  my $pend;
+  my @printList;
+  return unless ref($fsfile);
+  foreach (split /,/,$printRange) {
+    print "Parsing $_\n";
+    if (/^\s*([0-9]+)\s*$/ and $1<=$fsfile->lastTreeNo) {
+      print "Prepairing $1\n";
+      push @printList,$1;
+      next;
+    }
+    if (/^\s*([0-9]*)\s*-\s*([0-9]*)\s*$/) {
+      print "Prepairing $1-$2\n";
+      ($pbeg,$pend)=($1,$2);
+      $pend=$fsfile->lastTreeNo+1 if ($pend eq '');
+      $pbeg=1 if ($pbeg eq '');
+      $pend=min($fsfile->lastTreeNo+1,$pend);
+      next unless ($pbeg<=$pend);
+      push @printList,$pbeg..$pend;
+    }
+  }
+  return @printList;
+}
+
+sub print_trees {
   my ($fsfile,			# FSFile object
       $toplevel,		# Tk window to make busy when printing output
       $c,			# Tk::Canvas object
@@ -45,7 +71,6 @@ sub printTrees {
   my $pagewidth;
   my $pageheight;
   my $printMultiple;
-  my @printList=();
   my %pso;
 
   $treeView->apply_options($canvas_opts);
@@ -71,27 +96,9 @@ sub printTrees {
 			  drawSentenceInfo => $snt
 			 });
 
-  local $TrEd::Charsets::outputenc='iso-88859-2';
+  local $TrEd::Convert::outputenc='iso-88859-2';
 
-  my $pbeg;
-  my $pend;
-  foreach (split /,/,$printRange) {
-    print "Parsing $_\n";
-    if (/^\s*([0-9]+)\s*$/ and $1<=$fsfile->lastTreeNo) {
-      print "Prepairing $1\n";
-      push @printList,$1;
-      next;
-    }
-    if (/^\s*([0-9]*)\s*-\s*([0-9]*)\s*$/) {
-      print "Prepairing $1-$2\n";
-      ($pbeg,$pend)=($1,$2);
-      $pend=$fsfile->lastTreeNo+1 if ($pend eq '');
-      $pbeg=1 if ($pbeg eq '');
-      $pend=min($fsfile->lastTreeNo+1,$pend);
-      next unless ($pbeg<=$pend);
-      push @printList,$pbeg..$pend;
-    }
-  }
+  my @printList=parse_print_list($fsfile,$printRange);
 
 #### this must be done by TrEd somewhere ###############
 #  push @printList,$grp->{treeNo}+1 unless (@printList);
@@ -114,17 +121,12 @@ sub printTrees {
   }
 
   $toplevel->Busy(-recurse => 1) if ($toplevel);
-  print "@printList\n";
-  print "$treeView->get_font()\n";
-  print "$type1font $useType1Font $psFontFile\n$psFontName $psFontSize\n";
   for (my $t=0;$t<=$#printList;$t++) {
     print "Printing $printList[$t]\n";
     $treeView->set_font($type1font) if ($useType1Font);
-    print "FONT:: $treeView->get_font()\n";
     do {
       my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef,$show_hidden);
       my ($valtext) = $treeView->value_line($fsfile,$printList[$t]-1);
-      print "TreeView canvas: $treeView\n";
       $treeView->redraw($fsfile,undef,$nodes,$valtext);
     };
 
@@ -169,40 +171,37 @@ sub printTrees {
     $i=0;
     if ($t>0) {
       $i++  while ($i<=$#ps and $ps[$i]!~/^%%Page:/);
-      print "FOUND: $ps[$i]\n";
       print O '%%Page: ',$t+1," ",$t+1,"\n";
        my $now=localtime;
-      unless ($toEPS) {
-	print O	       "gsave\n",
-		       "/Arial-Medium findfont 8 scalefont setfont\n",
-		       "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
-		       "40 40 [\n",
-		       "(".
-		       "Printed by TrEd on $now.)\n",
-		       "] 13 -0 0 0 false DrawText\ngrestore\n";
-      }
+#        unless ($toEPS) {
+#  	print O	       "gsave\n",
+#  		       "/Arial-Medium findfont 8 scalefont setfont\n",
+#  		       "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
+#  		       "40 40 [\n",
+#  		       "(".
+#  		       "Printed by TrEd on $now.)\n",
+#  		       "] 13 -0 0 0 false DrawText\ngrestore\n";
+#        }
       $i++;
     } else {
       $i=0;
-      print "Lines:",$#ps,"\n";
       unless ($toEPS) {
-       print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BoundingBox:/);
-       print O $ps[$i++],"\n";
-       print O $psMedia,"\n";
-       print O '%%Pages: ',$#printList+1,"\n";
-      $i++;
-    }
-       print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%\%DocumentNeededResources: font Arial-Medium/);
-       print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BeginProlog/);
-       print O $ps[$i++],"\n";
-       print O '%%BeginFont arialm',"\n";
-       print O <F>;
-       print O '%%EndFont',"\n\n";
+	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BoundingBox:/);
+	print O $ps[$i++],"\n";
+	print O $psMedia,"\n";
+	print O '%%Pages: ',$#printList+1,"\n";
+	$i++;
+      }
+      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%\%DocumentNeededResources: font Arial-Medium/);
+      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BeginProlog/);
+      print O $ps[$i++],"\n";
+      print O '%%BeginFont arialm',"\n";
+      print O <F>;
+      print O '%%EndFont',"\n\n";
       $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
-       print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font Arial-Medium/);
+      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font Arial-Medium/);
       $i++;
     }
-
     while ($i<=$#ps && $ps[$i]!~/^%\%Trailer\w*$/) {
       $ps[$i]=~s/ISOEncode //g;
        print O $ps[$i++],"\n";
@@ -213,7 +212,6 @@ sub printTrees {
   close (O);
 
   $toplevel->Unbusy() if ($toplevel);
-
   return 1;
 }
 
