@@ -99,7 +99,7 @@ sub show_dialog {
     $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
     $chooser->destroy();
     $d->destroy();
-    return (join("|",map { $_->getAttribute('frame_ID') } @frames),$real);
+    return ($chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames)),$real);
   } else {
     $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
     $chooser->destroy();
