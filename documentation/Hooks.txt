@@ -1,0 +1,39 @@
+User definable hooks in TrEd
+============================
+
+Before and sometimes after some action is performed, TrEd tries to
+call a user defined hook function. These function may be used to alter
+TeEd's default behaviour or even to prevent the execution of the
+planned action. If the later is the case, the hook function must
+return a scalar value of "stop". Here is the list of defined hook
+functions with a description of the parameters passed to them by TrEd.
+
+
+hook	       parameters	       stop   description
+----------------------------------------------------------------------
+
+start_hook	none			yes	executed before the
+						MainLoop is entered
+
+exit_hook	none			no	executed when
+						top-level window is
+						destroyed, before
+						askSaveFile is executed
+do_edit_attrs_hook
+
+enable_attr_hook                                
+
+edit_attr_hook	attr,type		yes	executed before
+						attribute "attr" is edited by
+						user in a GUI. Type "type"
+						may be one of "ambiguous","normal"
+
+
+
+
+
+NOTE:
+Unlike other macros, hooks are expected not to modify the file. If the
+file is modified, the hook-function should set the $FileNotSaved
+variable to 1. Also no getNodes or setCurrent or redraw_tree or
+centerTo is performed when a hook is called!

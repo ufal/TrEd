@@ -2,9 +2,9 @@
 # -*- cperl -*-
 #
 $version="1.48";
-$timestamp="Time-stamp: <2001-03-05 10:25:12 pajas>";
+$timestamp="Time-stamp: <2001-03-05 14:35:25 pajas>";
 $about=
-  "Copyright (C) 2001 by Petr Pajas\n".
+  "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 $lastupdate=$1 if ($timestamp=~/<([0-9-: ]+) /);
@@ -1664,6 +1664,38 @@ sub saveFileStateUpdate {
 }
 
 
+sub About {
+  my ($grp)=@_;
+  my $message="";
+  my $fileinfo="";
+  my $colinf="";
+  if (defined($grp->{currentFile})) {
+    $fileinfo=
+      "Current file:\n".
+	"$grp->{currentFile}\n".
+	  "Format: $grp->{currentFileFormat}, $#trees trees\n";
+    my @colinf=([],[],[]);
+    foreach my $atr (@atord) {
+      foreach (1,2,3) {
+	if (index($attribs{$atr}," $_")>=0) {
+	  $colinf[$_-1]=[@{$colinf[$_-1]},$atr];
+	  last;
+	}
+      }
+    }
+    $colinf="Coloured attributes:\n    Highlited: ".join(",",@{$colinf[1]}).
+      "\n    XHighlited: ".join(",",@{$colinf[2]}).
+	"\n    Shadow: ".join(",",@{$colinf[0]})."\n";
+  }
+
+  doEvalHook($grp,"about_file_hook",\$message);
+  $grp->{top}->messageBox(-icon => 'info',
+			  -type => 'ok',
+			  -message =>
+			  "TrEd version $version\n\n$fileinfo$colinf$message\n$about\n\nLast update: $lastupdate",
+			  -title => 'About');
+}
+
 sub startMain {
   my $firstFile=shift;
   my $node;
@@ -1919,15 +1951,7 @@ sub startMain {
 
   $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -menuitems/ =>
 	[
-	 [Button => 'About', -command => [sub {
-					    my ($grp)=@_;
-					    $grp->{top}->
-					      messageBox(-icon => 'info',
-							 -message => 
-							 "TrEd version $version\n\n".
-							 "$about\n\n$lastupdate",
-							 -title => 'About', -buttons => qw/OK/);
-					  },\%group]]])->pack(qw/-side left/);
+	 [Button => 'About', -command => [\&About,\%group]]])->pack(qw/-side left/);
 
   addBindTags($canvas->Subwidget('scrolled'),'canvas');
   prepareFonts(\%group);

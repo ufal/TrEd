@@ -291,11 +291,10 @@ sub DeleteLeaf ($) {
 
 sub Index ($$) {
   my ($ar,$i) = @_;
-  my $result=undef;
   for (my $n=0;$n<=$#$ar;$n++) {
-    $result=$n, last if ($ar->[$n] eq $i);
+    return $n if ($ar->[$n] eq $i);
   }
-  return $result;
+  return undef;
 }
 
 sub ReadAttribs  {

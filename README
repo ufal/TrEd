@@ -1,4 +1,4 @@
-Tred ver. 0.3
+Tred ver. 0.5
 =============
 
 author:
@@ -11,7 +11,7 @@ Tred stands for "Tree Editor". It is a Perl/Tk-based graphical
 editor for tree structures in the Fs format (for description see
 http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html) used for
 working with syntactical and tectogramatical trees in The Prague
-Dependency Treebang. Because the format is a bit more general, this
+Dependency Treebank. Because the format is a bit more general, this
 program may also find some other applications. You may extend the editor
 by writing your own macros (in Perl using functions functions defined
 in tred.def standard definition file and functions defined in Fslib library

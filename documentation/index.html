@@ -1,0 +1,1278 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+  <head>
+    <title>Tree Editor Manual</title>
+    <meta http-equiv="content-type"
+    content="text/html;charset=iso-8859-1">
+  </head>
+  <body>
+    <center><h1>Tree Editor TrEd&nbsp;<img src="pics/tred.png"></h1></center>
+
+    <center><hr width="80%"></center>     
+    <h2>Contents</h2>
+    <ul>
+      <li><a href="#intro">Introduction</a></li>
+      <li><a href="#chap1">Installation and start up instructions</a></li>
+      <li><a href="#chap2">Menu commands</a></li>
+      <li><a href="#chap3">Viewing and editing the tree structure and
+      attributes</a></li>
+      <li> <a href="#configuration">Configuring and customizing TrEd</a></li>
+      <li><a href="#macros">Defining macros</a></li>
+      <li><a href="#chap4">How to ...</a></li>
+    </ul>
+    <!-- -------------------------------------------------------- -->
+
+    <a name="intro"></a><h2>Introduction</h2> 
+    <p>TrEd is a graphical editor and viewer of tree structures (look at a screenshot
+    <a href="pics/tred1.png">here</a>). It works with
+      files in so called <a
+    href="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</a> developed by
+      M. Kren (the same file format is used also in editor 
+      <a href="../Graph/index.html">Graph</a>) and used for syntactical and
+      tectogrammatical trees in The Prague Dependency Treebank.  Since
+      Fs-format is a bit more general, TrEd may also find some
+      other applications.
+    </p>
+    <p>TrEd may be extended by <b>user-defined macros</b> written in Perl with
+      many pre-defined functions for handling Fs-trees. Macros may be assigned
+      keyboard shortcuts or may be inserted to user-defined menu.
+    </p>
+    <p>There is also an non-graphical (off-line) variant of TrEd called
+      btred - "Batch-mode Tree Editor" - which allows user to run macros on
+      trees without having to enter the graphical interface.
+    </p>
+    <p>
+      TrEd runs on the following platforms (see <a href="#chap1">installation
+      instructions</a> for details):
+    </p>
+    <ul>
+      <li>Windows 95/98/ME or Windows NT/2000 (TM)</li>
+      <li>Linux (with <tt>libc.6</tt>)</li>
+      <li>UNIX, Solaris (TM) and other UNIX-based systems</li>
+    </ul>
+
+    <p></p>
+    <font size="-1"><a href="#chap1">Installation and start up
+	instructions</a> | <a href="#chap2">Menu commands</a> | 
+      <a href="#chap3">Viewing and editing the tree structure and
+	attributes</a> | <a href="#configuration">Configuring and
+	customizing TrEd</a> |
+      <a href="#commandline">Starting TrEd from command-line</a> |
+      <a href="#macros">Defining macros</a> | 
+      <a href="#chap4">How to ...</a><br>
+    </font>
+    <center><hr width="80%"></center>
+    <!-- -------------------------------------------------------- -->
+
+    <a name="chap1"></a><h2>Installation and start up instructions</h2>
+
+    <p>
+      On all supported platforms TrEd requires Perl to be installed and
+      Tk toolkit (a library of GUI functions). Installation of these
+      tools is different on all supported platforms. Installation of
+      TrEd itself is platform-independent.
+    </p>
+    <p>
+      To install Perl/Tk on your system follow instructions for your
+      platform below:
+    </p>
+
+    <h3>Windows</h3>
+    <ol>
+      <li>
+	Start with installing Perl support to Windows from
+	<a href="http://www.activestate.com">ActiveState</a>. 
+	This is done by running the installation program
+	<a href="..\PerlTk\APi522e.exe"><tt>APi522e.exe</tt></a> from the
+	<tt>Tools\Tree_Editors\Tred\PerlTk</tt> 
+	directory on this CD. Follow the instructions
+	of the installation program. (When the installation is done, you may
+	need to restart Windows, so that all the changes take
+	effect.)
+      </li>
+      <li>
+	In this step you add Tk toolkit to Perl.
+	If you have on-line connection to the Internet you may
+	install the latest Tk toolkit from ActiveState's site
+	in the following steps:
+	<ol>
+	  <li>Open a command prompt (MS-DOS prompt in Windows
+	  9x/ME)</li> 
+	  <li>Type <tt>ppm</tt> (press <b>Enter</b>)</li>
+	  <li>Type <tt>install Tk</tt> (press <b>Enter</b>)</li>
+	  <li>When the installation of Tk toolkit is finished, type
+	    <tt>exit</tt> (press <b>Enter</b>)</li>
+	  <li>Close the command prompt</li>
+	</ol>
+	If you do <b>not</b> have on-line connection to the Internet,
+	follow these steps:
+	<ol>
+	  <li>Open a command prompt (MS-DOS prompt in Windows&nbsp;9x/ME)</li> 
+	  <li>Change directory to <tt>Tools\Tree_Editors\Tred\PerlTk</tt> on
+	    the CD, i.e. if your CD-ROM drive is <tt>D:</tt>, type
+	    <blockquote><tt>cd D:\Tools\Tree_Editors\Tred\PerlTk</tt></blockquote>
+	    Under Windows&nbsp;9x you may rather need to use command	    
+	    <blockquote><tt>cd D:\Tools\Tree_~1\Tred\PerlTk</tt></blockquote>
+	  </li>
+	  <li>Type <tt>ppm install Tk.ppd</tt> (press <b>Enter</b>)</li>
+	  <li>Close the command prompt when the installation of Tk
+	    toolkit is finished.</li>
+	</ol>
+      </li>
+      <li>
+	In this step you install TrEd itself. It is done by copying
+	the whole <tt>Tred</tt> folder from the CD
+	(<tt>Tools\Tree_Editors\Tred\Tred</tt>) somewhere on your
+	hard-disk, i.e. to folder <tt>C:\Program Files</tt>.
+	To run TrEd double-click the <tt>tred.pl</tt> icon in the
+	<tt>Tred</tt> folder on your hard-disk. (You may also want to
+	create a short-cut on your desktop).
+      </li>
+    </ol>
+    <h3>Linux</h3> 
+    <p>
+      This instructions apply only to RedHat Linux or derived
+      distributions. If you use other distribution, follow the general
+      UNIX instructions below.
+    </p>
+    <p>
+      RedHat Linux contains Perl in
+      default installation, so we may expect that you have
+      already Perl installed. You only have to install PerlTk
+      toolkit and TrEd:      
+    </p>
+    <ol>
+      <li>
+	To install PerlTk, as a <tt>root</tt> issue the following
+	command from the <tt>Tools/Tree_Editors/Tred/PerlTk</tt>
+	directory on the CD:
+	<blockquote><tt>root# <b>rpm -i perl-Tk-800.018-1.i386.rpm</b></tt></blockquote>
+      </li>
+      <li>
+	<p>
+	  To install TrEd,
+	  the whole <tt>Tred</tt> folder from the CD
+	  (<tt>Tools/Tree_Editors/Tred/Tred</tt>) somewhere on your
+	  hard-disk, i.e. to your home directory or <tt>/opt</tt>
+	  directory. 
+	</p>
+	<p>
+	  <small>
+	    You may also wish to install the <tt>tred</tt>
+	    executable to some directory on your <tt>PATH</tt>. In that
+	    case you only have to provide a way for Tred to find its
+	    library files. It can be done either by setting the
+	    <tt>TREDHOME</tt> variable to point to the location where
+	    you have made a copy of the <tt>Tred/Tredlib</tt> directory, or
+	    by copying the <tt>tred</tt> executable and the
+	    <tt>Tredlib</tt> directory into the directories
+	    <tt>bin</tt> and <tt>lib</tt> respectively, on the same
+	    level of directory structure.
+	  </small>
+	</p>
+	<p>
+	  The same that holds for the <tt>tred</tt> executable should
+	  be used for the <tt>btred</tt> executable as well.
+	</p>
+      </li>
+      <li>
+	TrEd is ran by executing the <tt>tred</tt> executable. (See
+	details on command-line arguments below.)
+      </li>
+    </ol>
+
+    <h3>UNIX based systems</h3>
+    <p>
+      Almost every UNIX/Linux system contains Perl in default
+      installation, so we may expect that you have already Perl
+      installed on your box and you only need to install PerlTk
+      toolkit and TrEd:
+    </p>
+    <ol>
+      <li>
+	To install PerlTk toolkit, 
+	un-tar the
+	<a href="../Tk800.022.tar.gz"><tt>Tk800.022.tar.gz</tt></a> archive
+	to some temporary directory, e.g. with the following command:
+	<blockquote><tt>bash$ <b>gunzip&nbsp;-c Tk800.022.tar.gz | tar&nbsp;-x</b></tt></blockquote>
+	and issue the following commands (see file <tt>INSTALL</tt> in
+	the <tt>Tk800.022</tt> directory for details):
+	<blockquote>
+	  <tt>bash$ <b>cd Tk800.022</b><br>
+	    bash$ <b>perl Makefile.PL</b><br>
+	    bash$ <b>make</b><br>
+	    bash$ <b>make test</b></tt>&nbsp;&nbsp;&nbsp;(this is
+	  only to test the compilation, you may skip it)<br>
+	  <tt>bash$ <b>su</b></tt>&nbsp;&nbsp;&nbsp;(make yourself
+	    root)<br>
+	  <tt>root# <b>make install</b></tt>
+	</blockquote>	
+      </li>
+      <li>
+	<p>
+	  Installation of TrEd on a UNIX box is same as on Linux.
+	  To install TrEd,
+	  the whole <tt>Tred</tt> folder from the CD
+	  (<tt>Tools/Tree_Editors/Tred/Tred</tt>) somewhere on your
+	  hard-disk, i.e. to your home directory or <tt>/opt</tt>
+	  directory. 
+	</p>
+	<p>
+	  <small>
+	    You may also wish to install the <tt>tred</tt>
+	    executable to some directory on your <tt>PATH</tt>. In that
+	    case you only have to provide a way for Tred to find its
+	    library files. It can be done either by setting the
+	    <tt>TREDHOME</tt> variable to point to the location where
+	    you have made a copy of the <tt>Tred/Tredlib</tt> directory, or
+	    by copying the <tt>tred</tt> executable and the
+	    <tt>Tredlib</tt> directory into the directories
+	    <tt>bin</tt> and <tt>lib</tt> respectively, on the same
+	    level of directory structure.
+	  </small>
+	</p>
+	<p>
+	  The same that holds for the <tt>tred</tt> executable should
+	  be used for the <tt>btred</tt> executable as well.
+	</p>
+      </li>
+      <li>
+	TrEd is ran by executing the <tt>tred</tt> executable or
+	typing <tt>perl <i>tred</i></tt> (in the later case full-path to
+	<tt><i>tred</i></tt> should be specified). See
+	details on command-line arguments below.<br>
+	<small>If executing of the <tt>tred</tt> executable fails,
+	  change the first (<tt>#!/usr/bin/perl</tt>) line to point to
+	your Perl executable. If you find Tred
+	halting immediately, complaining about <tt>Tk.pm</tt> module,
+	check PerlTk installation path. You may need to
+	setup <tt>PERLLIB</tt> variable to point to the
+	<tt>site_perl</tt> directory on your system to which the
+	<tt>Tk.pm</tt> module was installed.</small>
+      </li>
+    </ol>
+    <p></p>
+    <font size="-1">
+      <a href="#intro">Introduction</a> | 
+      <a href="#chap2">Menu commands</a> | 
+      <a href="#chap3">Viewing and editing the tree structure and attributes</a> | 
+      <a href="#configuration">Configuring and customizing TrEd</a> | 
+      <a href="#commandline">Starting TrEd from command-line</a> |
+      <a href="#macros">Defining macros</a> | 
+      <a href="#chap4">How to ...</a><br>
+    </font>
+    <center><hr width="80%"></center>
+    <!-- -------------------------------------------------------- -->
+    <a name="chap2"></a><h2>Menu commands</h2>
+    
+    <p>
+      The following paragraphs describe menu commands. Each submenu in
+      TrEd has as its first item a tear-off line
+      (<tt>-&nbsp;-&nbsp;-&nbsp;-&nbsp;-</tt>)
+      which can be used to tear the menu off and place it 
+      as a separate window beside the TrEd's main window.
+    </p>    
+    <a name="file"></a>
+    <h3><img src="pics/blue.gif"> File</h3>
+    <b>Open ...</b><br>
+    <p>Opens an existing file that the user
+      chooses in the <b>Open</b> dialog box. The file may be either
+      in the
+      <a href="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</a>
+      (usually a file with a <tt>.fs</tt> extension)
+      or a file in the
+      <a href="../../../../Corpora/PDT_1.0/Doc/csts.dtd">CSTS</a> SGML
+      format. In the later case a conversion filter from CSTS to FS
+      format (e.g.
+      <a href="../../../../Utilities/cstsfs/index.html"><tt>2804</tt></a>)
+      must be properly installed on your system and TrEd's
+      configuration option <tt>CstsToFs</tt> set to point to it (see
+      section on <a href="#configuration">configuration</a> bellow).
+      Hence current version of TrEd allowes saving a file only in
+      FS-format, the <tt>.fs</tt> extension is appended to names
+      of all files converted from CSTS format.
+    </p>
+    <p>
+      TrEd expects files in the ISO-8859-2 (ISO Latin 2) encoding
+      (which  by TrEd is transparently translated to
+      and fro to codepage 1250 on Microsoft Windows Systems).
+    </p>
+    <b>Save</b><br>
+    <p>
+      Saves the active file to the disk. A backup file is created by
+      appending a tilde `~' to the filename (which is a UNIX convention
+      for naming backups).
+    </p>
+    <b>Save As ...</b><br>
+    <p>
+      Prompts user for a new name of the file using a standard file
+      dialog and then performs the <b>Save</b> command.
+    </p>
+    <b>Previous File</b><br>
+    <p>
+      Closes the active file (asking user to
+      save it if modified) and opens the previous file given to TrEd
+      as an argumet on the command-line (see section on starting TrEd
+      from command-line <a href="#commandline">below</a>).
+    </p>
+    <b>Next File</b><br>
+    <p>
+      Closes the active file (asking user to
+      save it if modified) and opens the next file given to TrEd
+      as an argumet on the command-line (see section on starting TrEd
+      from command-line <a href="#commandline">below</a>).
+    </p>
+    <b>Print ...</b><br>
+    <p>
+      Opens a Print Dialog. TrEd can only print to PostScript or
+      Encapsulated PostScript which works fine on Unix/Linux systems
+      (using standard <tt>lpr</tt> command). On a Windows System user
+      may choose printing to file and then use a PostScript
+      interpreter (e.g. <a href="http://www.cs.wisc.edu/~ghost/">GhostView</a>) 
+      to print the file. EPS files may be used for preparation of
+      other printed materials i.e. PDF of LaTeX documents.
+    </p>
+    <small></small>
+    <ul>
+      <li>
+	In the <b>Print</b> dialog you can specify a printing command to
+	be used or (if Print to file is checked) a filename of the
+	destination file.</li>
+      <li>
+	If <b>Create EPS</b> is checked, Encapsulated
+	Postcript is created with the tightiest possible bounding box.
+      </li>
+      <li>When printing, TrEd always uses a PostSript (Type1) font from a
+	file given by the <tt>PsFontFile</tt>
+	<a href="#configuration">configuration</a> option.  I
+	TrEd cannot, however, calculate the proper dimensions and kerning of
+	the tree from the font file, so it expects the font to have the
+	same or very similar metrics as the current font used on
+	display. If it is not the case, you may specify another display
+	font TrEd should get the metrics from, by setting the <tt>PsFontName</tt>
+	option. The <b>Use Type1 Postsrcipt Font</b> button in the
+      <b>Print</b> dialog must be checked to use this feature.
+      </li>
+      <li>
+	By checking the <b>Use colors</b> button you force TrEd to use
+	the colours used on display also for printing (except for
+	background which is always white on the printer). If this button
+	is not checked, black and white printing is used.
+      </li>
+      <li>
+	It is possible to print more than one tree within one command. 
+	This is realized by entering a list of numbers or ranges of
+	numbers, that correspond to the desired trees or
+	tree-ranges in the active file, to the 
+	<b>Page range</b> field. First tree in the file has
+	number 1, second has number 2, etc. Ranges are pairs of numbers like `3-20'
+	which covers all trees starting from the tree no. 3 to no. 20.
+	If the first number in the range is omitted, 1 is assumed. If the second
+	number in the range is ommited, the number of the last tree in
+	the active file is assumed.
+	Multiple ranges and tree-numbers are be separated by a comma.
+	The order of the trees given in the list is preserved and also,
+	one tree may be printed more than once.
+	<blockquote>
+	  <b>Example:</b><br>
+	  To print trees from 1 to 5, then trees no. 7, 11, 12 and 5
+	  again, use e.g. one of the following lists:<br>
+	  <tt>1-5,7,11,12,5</tt><br>
+	  <tt>1-5,7,11-12,5</tt><br>
+	  <tt>-5,7,11-12,5</tt>
+	</blockquote>
+      </li>
+    </ul></small>
+    <b>Edit config ...</b><br>
+    <p>
+      Opens a small configuration file editor
+      (see <a href="#configuration">here</a> the details about
+      configuration options). To apply the new configuration, save
+      the configuration file to disk and leave the editor press the <b>Save and Apply</b>
+      button. To apply changes without saving them and leaving the
+      editor, press <b>Apply</b>. The <b>Cancel</b> button closes the
+      editor without making any changes to the present configuration.      
+    </p>
+    <p>
+      <b>NOTE:</b>
+      Some configuration options even if applyed take effect only
+      after restarting TrEd.
+    </p>
+    <b>Reload config ...</b><br>
+    <p>
+      Use this command to reload the configuration file from disk and
+      apply the new options. This command is useful if you have
+      changed the configuration file in some other editor or in an
+      another running instance of TrEd. As above, note, that some
+      configuration changes still take effect only after restarting TrEd.
+    </p>
+    <b>Quit</b><br>
+    <p>Exits the editor and in case that active file is modified and
+    not yet saved, prompts user to save it.</p>
+
+    <a name="view"></a>
+    <h3><img src="pics/blue.gif">View</h3>
+    <b>View->Previous Tree</b><br>
+    <p>
+      Display previous tree in the current file.
+    </p>    
+    <b>View->Next Tree</b><br>
+    <p>
+      Display next tree in the current file.
+    </p>
+    <b>Draw Boxes</b><br>
+    <p>If this item is checked, square boxes are drawn under all nodes
+    and their attributes.</p>
+    <b>Show Hidden Nodes</b><br>
+    <p>
+      Toggle displaying the hidden subtrees of the tree.
+      If this item is checked, nodes makred as hidden using a special
+      attribute (see 
+      <a href="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format description</a>
+      for details) and all their subtrees are also displayed.
+    </p>
+    <b>Highlight Attributes</b>
+    <p>
+      Toggle highlighting certain attributes with user-defined
+      colors. See section on <a href="#configuration">configuration</a> for details on
+      customizing colors and <a
+      href="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+      description</a> to learn about how to specify which attributes
+      are highlighted.
+    </p>
+    <b>Visible attributes</b>
+    <p>
+      Opens a list box in which the user can select the
+      attributes that should be displayed. Click the attribute name to
+      select/deselect it. 
+    </p>
+
+
+    <a name="node"></a>
+    <h3><img src="pics/blue.gif">Node</h3>
+    <b>New Node</b><br>
+    <p>
+      Creates a new node and connects it as a child of the
+      active node. All the attribute values of this node are left
+      empty.
+    </p>
+    <b>Remove Active Node</b><br>
+    <p>
+      Passes all the children of the active node to its parent and
+      deletes the active node. Does nothing if the active node is
+      the root of the tree.
+    </p>
+    <b>Insert New Tree</b><br>
+    <p>
+      Inserts new tree <i>before</i> the current tree. The new tree consists
+      of one empty node (its root) only.      
+    </p>
+    <b>Insert New Tree After</b><br>
+    <p>
+      Inserts new tree <i>after</i> the current tree. The new tree consists
+      of one empty node (its root) only.      
+    </p>
+    <b>Remove Whole Current Tree</b><br>
+    <p>
+      Removes the current tree from the file and displays the
+      following tree (or the preceding tree, in case the current tree
+      was the last one in the file).
+    </p>    
+    <b>Edit Attributes</b><br>
+    <p>
+      Displays the <b>Edit Node Attributes</b> 
+      dialog box with the list of all attributes defined
+      for the file and the values assigned to them in the active node.
+      There are two types of attributes and therefore two ways to edit
+      them:
+    </p>
+    <ol>
+      <li>
+	In case of an attribute where <i>no</i> fixed set of possible
+	values is given
+	(see <a href="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+	  description</a> for details about types of attributes)
+	the values of the attributes are displayed in a editable
+	line and user may change simply edit them. The usual
+	keyboard-shortcuts for Cut (<tt>Ctrl+X</tt>), 
+	Copy (<tt>Ctrl+C</tt>) and Paste (<tt>Ctrl+V</tt>)
+	operations may be used during the editing of the values.
+      </li>
+      <li>
+	In case of attribute where a fixed set of possible values
+	<i>is</i> given, user cannot simply edit the value entry, but
+	to change it he/she must press the button <tt>[...]</tt> on the
+	right of the value entry.
+	A dialog box displays where user may select one or more
+	(depending on the status of the <b>multiple select</b>
+	check-box) values for the given attribute within the list of
+	values from the predefined set.      
+      </li>
+    </ol>
+    <b>Find ...</b><br>
+    <p>
+      This command displays a dialog box in which user may specify a
+      search criterion for a node search based on regular expressions
+      to match the desired nodes values. There is an entry for each
+      defined attribute in which user may enter a
+      <a href="regexps.html">regular expression</a>. When user presses
+      <b>Find</b>, TrEd searches for the first node in the current
+      file all the attributes of which match the given regular
+      expressions. (If no regular expression is given for an
+      attribute, this attribute always matches).  If a matching node
+      is found, this node is made active.
+    </p>
+    <b>Find Next ...</b>
+    <p>
+      Searches for the first node matching a criteron given in a
+      previous use of the <b>Find ...</b> command.
+    </p>
+
+    <a name="userdefined"></a>
+    <h3><img src="pics/blue.gif">User-defined</h3>
+    <a name="usercommands"></a>
+    <p>
+      This menu is devoted for user-defined commands. The new commands
+      may be defined in the macro file. See sections on macros below
+      for details. Here is a brief description of the few default
+      macros defined by author of TrEd. On the right of all commands
+      is a default keyboard shortcut which can be used to invoke the
+      command. The shortcuts are also assigned to the command in the
+      macro file. (There are no keyboards shotrcuts assigned to the
+      standard menu commands. The aim of this is not to block any
+      possible shortcuts form the user, so that as many of them as
+      possible remain availeble and user may use them
+      for his/her own commands; there is also a possibility to define
+      bindings for many of the standard menu commands within the macro
+      file.)
+    </p>
+    <b>Copy Values</b> (<tt>F5</tt>)<br>
+    <p>
+      Copies all values of the active node to an internal
+      clipboard. These values may be pasted to any other node using
+      the <b>Paste Values</b> command.
+    </p>    
+    <b>Cut Subtree</b> (<tt>Ctrl+Insert</tt>)<br>
+    <p>      
+      Cuts the whole subtree of the active node and stores it in an
+      iternal clipboard. It may be then pasted as a subtree of any
+      of the remaining nodes with the <b>Paste Subtree</b> command.
+    </p>    
+    <b>Delete Node</b> (<tt>F8</tt>)<br>
+    <p>
+      Deletes active node. The node must be a leaf and must not be the
+      root of the tree, otherwise this
+      command is ignored.
+    </p>
+    <b>Goto to first tree</b> (<tt>Shift+&lt;</tt>)<br>
+    <p>
+      Displays the first tree in the file.
+    </p>
+    <b>Goto to last tree</b>  (<tt>Shift+></tt>)<br>
+    <p>
+      Displays the last tree in the file.
+    </p>
+    <b>Go to...</b> (<tt>Alt+G</tt>)<br>
+    <p>
+      Promts user to enter an ordinal number of a tree and displays it.
+    </p>
+    <b>New Node (r-brother)</b> (<tt>F7</tt>)<br>
+    <p>
+      Creates new node as a right brother of the active node (does
+      nothing if the active node is root).      
+    </p>
+    <b>New Node (son)</b> (<tt>Shift+F7</tt>)<br>
+    <p>
+      Creates new node as a son of the active node.
+    </p>
+    <b>Paste Subtree</b> (<tt>Shift+Insert</tt>)<br>
+    <p>
+      Pastes the tree saved in an internal clipboard during the last
+      call of the <b>Cut Subtree</b> command as a subtree of the
+      active node.      
+    </p>
+    <b>Paste Values</b> (<tt>F8</tt>)<br>
+    <p>
+      Assignes the active nodes attribute values stored in an internal
+      clipboard during the last call of the <b>Copy Values</b> command.
+    </p>
+    <b>Perl-Search</b> (<tt>Alt+H</tt>)<br>
+    <p>
+      Allows user enter any Perl expression and evaluates it along
+      a way around the tree structure as long as the expression holds
+      (results in non-zero defined value) for some node. The node is
+      then made active.
+      User may use the <tt>$node</tt> variable to refer to the
+      current node and  <tt>$root</tt> variable to refer to
+      the root of the tree.
+      If <tt>$n</tt> refers to some node, then <tt>$n->{attr}</tt>
+      is value of <tt>attr</tt> attribute for the node <tt>$n</tt>.
+      The governor of a node <tt>$n</tt> is refered to as
+      to <tt>Parent($n)</tt>, nearest left brother of <tt>$n</tt>
+      in the tree structure is <tt>LBrother($n)</tt>;
+      the right brother of <tt>$n</tt> is <tt>RBrother($n)</tt>.
+      The first son of <tt>$n</tt> is referred to as to
+      <tt>FirstSon($n)</tt>. If no such node exists, all these functions
+      return zero `0'.
+      Moreover, all the nodes of the tree are
+      elements of the <tt>@nodes</tt> array (list)
+      with the same order as they are displayed on the screen
+      from left to right.<br>
+      <b>NOTE:</b> <tt>LBrother($n)</tt> and <tt>RBrother($n)</tt>
+      are not necesserilly displayed on left of <tt>$n</tt>.
+    </p>
+    <b>Perl-Search Next</b> (<tt>Alt+Shift+H</tt>)<br>
+    <p>
+      Searches for the next node for which the Perl-expression
+      given during the last call of <b>Perl-Search</b> command
+      results in non-zero defined value.
+    </p>
+    <b>Swap nodes (values only)</b> (<tt>Ctrl+PageUp</tt>)
+    <p>
+      Makes the active node exchange all attribute values with its
+      governing node.
+    </p>
+    <p></p>
+    <font size="-1"><a href="#intro">Introduction</a> |
+      <a href="#chap1">Installation and start up instructions</a> |
+      <a href="#chap3">Viewing and editing the tree structure and
+	attributes</a> | 
+      <a href="#configuration">Configuring and customizing TrEd</a> | 
+      <a href="#commandline">Starting TrEd from command-line</a> | 
+      <a href="#macros">Defining macros</a> | 
+      <a href="#chap4">How to ...</a><br>
+    </font>
+    <center><hr width="80%"></center>    
+    <!-- -------------------------------------------------------- -->
+
+    <a name="chap3"></a><h2>Viewing and editing the tree structure and attributes</h2>
+
+    <p>
+      TrEd can be controlled either by keyboard or mouse.
+      There are several pre-defined keyboard hotkeys
+      to move the active-node (cursor) along the tree, to
+      cut or paste subtrees and nodes (i.e modify the structure)
+      and to open the dialog where attributes for the active node can
+      be edited. Trees can also be easily modified by clicking and
+      drag-and-drop. Both of these approaches are described bellow:
+    </p>
+    
+    <b>I. MOUSE CONTROL</b>
+    <p></p>
+    <ul>
+      <li>Clicking left or right mouse button on a node activates it.</li>
+      <li>Double clicking left mouse button on a node invokes
+	<B>Node->Edit Attribues</B> command.</li>
+      <li>Double clicking left mouse button on the text of 
+	a node's attribute opens a prompt for editing the value of
+	this attribute.
+      </li>
+      <li>
+	Dragging active node with left mouse button moves that node with
+	its subtree to the new location. If user releases the button near
+	another node, the active node becomes son of that node.	
+      </li>
+      <li>
+	Dragging active node with right mouse button has the same
+	effect but if the tree is too large to fit the window, the
+	window "scrolls forward" as user gets near its edges.
+      </li>
+      <li>
+	Dragging mouse with the middle mouse button pressed has the
+	same "scrolling effect" described above, but no node is moved.
+      </li>
+    </ul>
+
+    <b>II. Toolbar buttons</b>
+    <p>
+      The following toolbar-buttons provide mouse-oriented shortcuts
+      for standard menu-commands:
+    </p>
+    <p>
+      <img src="pics/fileopen.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>File->Open ...</b><br>
+      <img src="pics/filefloppy.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>File->Save</b><br>
+      <img src="pics/fileprint.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>File->Print ...</b><br>
+      <img src="pics/find.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>Node->Find ...</b><br>
+      <img src="pics/findnext.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>Node->Find Next</b><br>
+      <img src="pics/start.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>File->Previous File</b><br>
+      <img src="pics/finish.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>File->Next File</b><br>
+      <img src="pics/left.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>View->Previous Tree</b><br>
+      <img src="pics/right.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>View->Next Tree</b><br>
+      <img src="pics/tick.png">&nbsp;&nbsp;&nbsp;&nbsp;<b>View->Visible Attributes</b><br>
+    </p>
+    <p></p>
+    <b>III. KEYBOARD SHORTCUTS</b>
+    <p>Cursor keys may be used to activate another node in the
+      structure. Use <tt>left</tt>/<tt>right</tt>
+      to activate the nearest left/right brother-node of
+      the active node and <tt>up</tt>/<tt>down</tt> to activate the active node's
+      ancestor (parent)/its leftmost son.
+    </p>    
+    <p>
+      <tt>Tab</tt> and <tt>Shift+Tab</tt> keys activate the
+      next/previous node on the way along the tree structure.
+    </p>
+    <p>
+      <tt>Enter</tt> runs the <b>Node->Edit Attributes</b> command.
+    </p>
+    <p>
+      To edit the tree structure with keyboard only, use the shortcuts
+      bound to the <a href="#usercommands">User-defined menu
+      commands</a>. Most important of those are:
+    </p>
+    <dl>
+      <dt><tt>Ctrl+Insert</tt> (<b>Cut Subtree</b>)<br></dt>
+      <dd>      
+	Cuts the whole subtree of the active node and stores it in an
+	iternal clipboard. It may be then pasted as a subtree of any
+	of the remaining nodes with the <b>Paste Subtree</b>
+	command.
+      </dd>    
+      <dd>&nbsp;</dd>
+      <dt><tt>Shift+Insert</tt> (<b>Paste Subtree</b>)</dt>
+      <dd>
+	Pastes the tree saved in an internal clipboard during the last
+	call of the <b>Cut Subtree</b> command as a subtree of the
+	active node.
+      </dd>
+      <dd>&nbsp;</dd>
+      <dt><tt>Alt+G</tt> (<b>Go to...</b>)</dt>
+      <dd>
+	Promts user to enter an ordinal number of a tree and displays
+	it.
+      </dd>
+      <dd>&nbsp;</dd>
+      <dt><tt>,</tt> comma (<b>View->Previous Tree</b>)</dt>
+      <dd>
+	Display previous tree in the current file.
+      </dd>
+      <dd>&nbsp;</dd>
+      <dt><tt>.</tt> dot (<b>View->Next Tree</b>)</dt>
+      <dd>
+	Display next tree in the current file.
+      </dd>
+    </dl>
+    <p></p>
+    <font size="-1"><a href="#intro">Introduction</a> | 
+      <a href="#chap1">Installation and start up instructions</a> | 
+      <a href="#chap2">Menu commands</a> | 
+      <a href="#configuration">Configuring and customizing TrEd</a> | 
+      <a href="#commandline">Starting TrEd from command-line</a> | 
+      <a href="#macros">Defining macros</a> | 
+      <a href="#chap4">How to ...</a><br>
+    </font>
+    <center><hr width="80%"></center>    
+    <!-- -------------------------------------------------------- -->
+
+    <a name="configuration"></a><h2>Configuring and customizing TrEd</h2>
+
+    The configuration and customizing of TrEd is possible through the
+    configuration file. When started TrEd tries to search for its
+    configuration file on several places and uses the first
+    configuraton file found:
+
+    <ol>
+      <li>
+	First TrEd looks for a file given with a command-line parameter
+	<tt>-c</tt> (see section on <a href="#commandline">Starting TrEd from
+	command-line</a> for details).
+      </li>
+      <li>    
+	If the <tt>HOME</tt> system variable is set (on UNIX/Linux this
+	variable points to user's home directory) TrEd searches for
+	<tt>.tredrc</tt> (mind the dot here) file in that directory. 	
+      </li>
+      <li>
+	If the <tt>TREDHOME</tt> system variable is set TrEd searches for
+	<tt>tredrc</tt> file in that directory. 	
+      </li>
+      <li>
+	TrEd looks for a <tt>tredrc</tt> file in 
+	the directory where the program file of TrEd itself is located.
+      </li>
+      <li>
+	TrEd looks for a <tt>tredrc</tt> file in 
+	directories <tt>../lib/tred</tt>, <tt>../lib/tredlib</tt>
+	and <tt>./tredlib/tredrc</tt> respectively,	
+	relatvely to the directory where the program file of TrEd
+	itself is located.
+      </li>
+      <li>
+	TrEd looks for a <tt>tredrc</tt> file in 
+	the <tt>/usr/share/config/</tt> directory.
+      </li>
+    </ol>
+
+    If none of these files is found, default values for configuration
+    options are used.
+
+    TrEd's configuration file is a plain text file with a very simple
+    structure. It can be edited not only in any editor (like vi, Emacs
+    or Notepad) and also directly from TrEd when the <b>File->Edit
+    Config</b> menu command is issued. In both cases there is a way to
+    update the options used by a running session of TrEd:
+    
+    <ul>
+      <li>Use <b>File->Reload Config</b> menu command to make TrEd
+	re-read the configuration file from disk.</li>
+      <li>
+	In the TrEd's internal configuration editor use the <b>Save
+	and Apply</b> button to apply changes and save them or
+	<b>Apply</b> button to apply changes withought saving them.
+	The first command aslo quits the configuration editor.
+      </li>
+    </ul>
+    
+    <b>NOTE:</b>
+      Some configuration options even if applyed take effect only
+      after restarting TrEd.
+    </p>
+
+    The format of the configuration file is of this simple form:
+    <blockquote><tt>option_name = value</tt></blockquote>
+
+    There may be any amount of white-space between the option name and
+    value but they must be both on the same line. Any characters
+    folowing a semi-colon (<tt>;</tt>) to the end of line 
+    are considered as comment and are ignored. You may also need to
+    quote the value using either double-quotes (<tt>"value"</tt>) or
+    simple quotes (<tt>'value'</tt>) to preserve white-space or semi-colons.
+    The option names are case-insensitive.
+    
+    The available configuration options may be divided into several
+    categories:
+    <p></p>
+    <b>Colors</b><br>
+    <dl>
+      <dt><tt>BackgroundColor</tt></dt>
+      <dd>Background color of the tree-view canvas.</dd>
+      <dt><tt>CurrentNodeColor</tt></dt>
+      <dd>Color to draw the active node. Default is red.</dd>
+      <dt><tt>NearestNodeColor</tt></dt>
+      <dd>Color to highlight the nearest node to indicate the
+	destination of a possible drop when dragging a node.</dd>
+      <dt><tt>TextColor</tt></dt>
+      <dd>Color used to display text of normal tree attributes.</dd>
+      <dt><tt>TextColorShadow</tt></dt>
+      <dd>Color used to display text of shadowed tree attributes.</dd>
+      <dt><tt>TextColorHilite</tt></dt>
+      <dd>Color used to display text of highlighted tree
+	attributes.</dd>
+      <dt><tt>TextColorXHilite</tt></dt>
+      <dd>Color used to display text of extra-highlighted tree
+	attributes.
+	See <a href="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+	  description</a> to learn about how to specify which attributes
+	are shadowed, highlighted and extra-highlighted.
+      </dd>
+      <dt><tt>ActiveTextColor</tt></dt>
+      <dd>
+	Color used to flash the text of an attribute under the mouse-pointer.
+      </dd>
+      <dt><tt>BoxColor</tt></dt>
+      <dd>
+	Background color of a border drawn around the text of
+	attributes if the <b>View->Draw Boxes</b> item is checked.
+      </dd>
+      <dt><tt>CurrentBoxColor</tt></dt>
+      <dd>
+	Background color of a border drawn around the text of
+	the active node's attributes if the <b>View->Draw Boxes</b> item is checked.
+      </dd>
+      <dt><tt>HiddenBoxColor</tt></dt>
+      <dd>
+	Background color of a border drawn around the text of
+	a hidden node's attributes if the <b>View->Draw Boxes</b> and 
+	<b>View->Show Hidden</b>
+	items are checked.
+      </dd>
+      <dt><tt>LineColor</tt></dt>
+      <dd>Color used to draw the lines connecting dependent nodes in a
+	tree.
+	Default is black.
+      </dd>
+      <dt><tt>HiddenNodeColor</tt></dt>
+      <dd>Color used to draw nodes marked as hidden, if shown. Default
+      is black.</dd>
+    </dl>
+    <p></p>
+    <b>Tree displaying options</b><br>
+    <dl>
+      <dt><tt>LineWidth</tt></dt>
+      <dd>Width of the lines connecting dependent nodes in a tree.</dd>
+      <dt><tt>NodeWidth</tt></dt>
+      <dd>
+	The horizontal diameter of the elipsis representing a node in
+	a tree.
+      </dd>
+      <dt><tt>NodeHeight</tt></dt>
+      <dd>
+	The vertical diameter of the elipsis representing a node in
+	a tree.
+      </dd>
+      <dt><tt>CurrentNodeWidth</tt></dt>
+      <dd>
+	The horizontal diameter of the elipsis representing the active node in
+	a tree.
+      </dd>
+      <dt><tt>CurrentNodeHeight</tt></dt>
+      <dd>
+	The vertical diameter of the elipsis representing the active node in
+	a tree.
+      </dd>
+      <dt><tt>NodeXSkip</tt></dt>
+      <dd>The minimal horizontal distance between two nodes in a
+      tree.</dd>
+      <dt><tt>NodeYSkip</tt></dt>
+      <dd>The minimal vertical distance between two nodes in a
+      tree.</dd>
+      <dt><tt>XMargin</tt></dt>
+      <dd>Horizontal amount of space left around borders of the box
+	surrounding the text of displayed attributes of a node.
+      </dd>
+      <dt><tt>YMargin</tt></dt>
+      <dd>Horizontal amount of space left around borders of the box
+	surrounding the text of displayed attributes of a node.
+      </dd>
+      <dt><tt>BaseXPos</tt></dt>
+      <dd>
+	The horizontal distance of the tree root (zero's node)
+	from the right of the tree view.
+      </dd>
+      <dt><tt>BaseYPos</tt></dt>
+      <dd>
+	The vertical distance of the tree root (zero's node)
+	from the top of the tree view.
+      </dd>
+      <dt><tt>DrawBoxes</tt></dt>
+      <dd>
+	If this option is set, TrEd starts with the 
+	<b>View->DrawBoxes</b> menu item checked.
+      </dd>
+      <dt><tt>HighlightAttributes</tt></dt>
+      <dd>
+	If this option is set, TrEd starts with the 
+	<b>View->Highlight Attributes</b> menu item checked.
+      </dd>
+      <dt><tt>ShowHidden</tt></dt>
+      <dd>
+	If this option is set, TrEd starts with the 
+	<b>View->Show Hidden Nodes</b> menu item checked.
+      </dd>
+    </dl>
+    <p></p>    
+    <b>GUI options</b><br>
+    <dl>
+      <dt><tt>AppName</tt></dt>
+      <dd>The window title for the TrEd's main window.</dd>
+      <dt><tt>AppIcon</tt></dt>
+      <dd>TrEd's desktop and window icon (in xpm format).</dd>
+      <dt><tt>ButtonsRelief</tt></dt>
+      <dd>
+	Style of the relief of the GUI buttons. 
+	Possible values for this option are:
+	raised, sunken, flat, ridge, solid, and groove.
+	Default is 'raised'.
+      </dd>
+      <dt><tt>ButtonBorderWidth</tt></dt>
+      <dd>
+	Width of the borders of GUI buttons. Default is 2.
+      </dd>
+      <dt><tt>MenubarRelief</tt></dt>
+      <dd>
+	Style of the relief of the GUI menu-bar. Same values as for
+	ButtonsRelief option are possible. Default is 'raised'.
+      </dd>
+      <dt><tt>MaxMenuLines</tt></dt>
+      <dd>Maximal number of User-menu lines. If more lines in the menu
+	should appear, a submenu is created as a last item, in which the
+	menu continues.</dd>
+      <dt><tt>CreateMacroMenu</tt></dt>
+      <dd>
+	If this option is <tt>1</tt>, TrEd creates a special menu
+	<b>Key-macros</b> where all defined macros which are assigned
+	a key are presented also as menu functions.
+      </dd>
+      <dt><tt>StrictMotif</tt></dt>
+      <dd>
+	If this option is <tt>1</tt>, strict motifish look and feel is
+	used in TrEd's GUI.
+      </dd>
+    </dl>
+    <p></p>
+    <b>Fonts</b><br>
+    <dl>
+      <dt><tt>Font</tt></dt>
+      <dd>
+	Font used to display the text of attributes and also in
+	several other places of GUI where the text of attributes is
+	displayed or edited. There are two possible formats of values
+	for this option:
+	<ol>
+	  <li>Standard X font-spec, with possible wildcards, e.g.:
+	    <blockquote><tt>-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2</tt></blockquote>
+	  </li>
+	  <li>Font attribute-oriented format, which is a 
+	    comma-separated list of pairs of the form
+	    <tt>font-attribute:value</tt>. The attributes are:
+	    <tt>family, size, weight, slant, underline,
+	      overstrike</tt>. Family is a font-family name like
+	    <tt>Arial, Helvetica</tt> or <tt>Times New Roman</tt>.
+	    Size is a number providing the font-size in points
+	    (i.e. not pixels!). Possible values for <tt>bold</tt>
+	    are <tt>normal</tt> and <tt>bold</tt>, possible
+	    values for <tt>slant</tt> are <tt>roman</tt> and
+	    <tt>italics</tt>. The <tt>underline</tt> and 
+	    <tt>overstrike</tt> attributes take just boolean
+	    values of <tt>1</tt> and <tt>0</tt>.
+	    If a font, that would match the specified attributes 	    
+	    exactly, is not found, the most similar font is used.
+	    <br>
+	    Example:
+	    <blockquote><tt>Font = family:Arial,size:10,weight:bold</tt></blockquote>
+	  </li>
+	</ol>	
+      </dd>      
+      <dt><tt>VLineFont</tt></dt>
+      <dd>
+	Font used for displaying the text in the value line above
+	tree. The same formats as for Font are allowed for this
+	option. If not specified, Font is used. 
+      </dd>
+    </dl>
+    <p></p>
+    <b>Printing options</b><br>
+    <dl>
+      <dt><tt>PsFontFile</tt></dt>
+      <dd>
+	A pfa-file with a PostScript font to be used for printing.
+      </dd>
+      <dt><tt>PrintColor</tt></dt>
+      <dd>
+	If <tt>0</tt>, TrEd prints in black and white.
+	If <tt>1</tt>, TrEd uses the same colors for printing
+	as it does for displaying the tree on the screen.
+	This option may be overriden by the <b>Use Colors</b>
+	check-box in the <b>Print</b> dialog.
+      </dd>
+      <dt><tt>PsFontName</tt></dt>
+      <dd>
+	A Postscript font name to be substituted 
+	by the font given in PsFontFile in the final PosctScript.
+      </dd>
+      <dt><tt>PsFontSize</tt></dt>
+      <dd>Size of the Postscript font to be substituted 
+	by the font given in PsFontFile in the final PosctScript.
+      </dd>
+      <dt><tt>PrtFmtWidth</tt></dt>
+      <dd>
+	Width of the paper used for printing. Append one of the
+	characters <tt>i,c,m</tt> to the number to destinguish the
+	dimension (inches, centimeters, milimeters respectively).
+      </dd>
+      <dt><tt>PrtFmtHeight</tt></dt>
+      <dd>Width of the paper used for printing. Same format as PrtFmtWidth.</dd>
+      <dt><tt>PSMedia</tt></dt>
+      <dd>A PostScript document media-type identifier to be used in
+	the header of the printed PostScript. The default value is
+	<blockquote><tt>%%DocumentMedia: A4 595 842 white()</tt></blockquote>
+      </dd>
+      <dt><tt>PSFile</tt></dt>
+      <dd>
+	The default name of the output file when printed to file.
+	This name may be modified in the <b>Print</b> dialog.
+      </dd>
+      <dt><tt>MaximizePrintSize</tt></dt>
+      <dd>
+	If this option is on (i.e. <tt>1</tt>), TrEd tryes to draw the
+	tree as big as to fill the whole paper. Default is <tt>0</tt> here.
+      </dd>
+    </dl>
+    <p></p>
+    <b>Miscelaneous options</b><br>
+    <dl>
+      <dt><tt>LibDir</tt></dt>
+      <dd>
+	This option forces TrEd to search for its library
+	files in the specified directory.
+      </dd>
+      <dt><tt>MacroFile</tt></dt>
+      <dd>
+	Path to a file with macros for TrEd.
+      </dd>
+      <dt><tt>DefaultMacroFile</tt></dt>
+      <dd>
+	Path to a file with the default set of macros for TrEd.
+      </dd>
+      <dt><tt>UseCzechLocales</tt></dt>
+      <dd>
+	If <tt>1</tt> is set here, TrEd uses Czech locales for
+	handling text. This may be especially useful in macros.
+      </dd>
+      <dt><tt>CstsToFs</tt></dt>
+      <dd>
+	If this option is set it should provide a path to a program to
+	be used as an import filter. If TrEd does not recognize a
+	desired file to be in
+	<a
+	href="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</a>
+	it runs this program passing the file-name to it as a
+	command-line parameter and waits for the program's
+	standard-output. If this output is in
+	<a href="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</a>
+	the trees are displayed. This option was added to TrEd to
+	give it a way to open files in different formats,
+	especially in the SGML
+	<a href="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</a> format, where the
+	existing conversion program
+	<a href="../../../../Utilities/cstsfs/index.html">cstsfs</a>
+	may be used as the import filter.
+      </dd>
+    </dl>
+    <p></p>
+    <font size="-1"><a href="#intro">Introduction</a> | 
+      <a href="#chap1">Installation and start up instructions</a> | 
+      <a href="#chap2">Menu commands</a> | 
+      <a href="#chap3">Viewing and editing the tree structure and
+	attributes</a> | 
+      <a href="#commandline">Starting TrEd from command-line</a> | 
+      <a href="#macros">Defining macros</a> | 
+      <a href="#chap4">How to ...</a><br>
+    </font>
+    <center><hr width="80%"></center>
+    <!-- -------------------------------------------------------- -->
+
+    <a name="commandline"></a><h2>Starting TrEd from command-line</h2>
+    
+    <p>
+      If running TrEd from command-line you may use several
+      command-line options and also give TrEd one or more files to
+      open. Each file-name may be also appended number of tree to
+      be displayed by TrEd when the file is opened.      
+    </p>
+    <p>
+      <b>NOTE:</b> You may need to replace <tt>tred</tt> with
+      <tt>perl tred</tt> in the following usage examples in Windows
+      or UNIX, if you cannot set <tt>tred</tt> the execute permissions.
+    </p>
+    <p>
+      The general usage is:      
+    </p>
+    <blockquote>
+      <tt>tred [-c <i>config-file</i>] [-m <i>macro-file</i>] [-l <i>file-list</i>] <i>file1</i>[##<i>N</i>|#<i>N</i>] [<i>file2</i>[##<i>N</i>|#<i>N</i>] [...]]</tt>
+</blockquote>
+    or
+    <blockquote><tt>tred -u|-h</tt></blockquote>
+    to obtain short instructions on usage (<tt>-u</tt>)
+    or a brief help (<tt>-h</tt>).
+    <p>
+      The optional command-line parameters have the following meaning:
+    </p>
+    <dl>
+      <dt><tt>-m</tt></dt>
+      <dd>This parameter may be used to force TrEd to use a different 
+	macro file from that given in TrEd's configuration file.
+      </dd>
+      <dt><tt>-c</tt></dt>
+      <dd>This parameter may be used to force TrEd to use 
+	a certain configuration file.
+      </dd>
+      <dt><tt>-l</tt></dt>
+      <dd>Use this parameter to pass a file-list to TrEd. Each
+	file-name given in the file-list must be on a separate line.
+	This feature may be particulary useful under Windows, where
+	maximum length of the command-line is usually very limited.
+      </dd>
+      <dt><tt>-h</tt></dt>
+      <dd>Prints a brief help and exits.</dd>
+      <dt><tt>-u</tt></dt>
+      <dd>Prints a short help on usage and exits.</dd>
+    </dl>
+    <p>
+      All other arguments passed to TrEd on the command line
+      are considered file-names to open. (TrEd actually opens only one
+      file at a time, but user may go to the next/previous file
+      using the <b>File->Next File</b> and
+      <b>File->Previous File</b> menu commands.)
+    </p>
+    <p>
+      Every file-name either on the command-line or in a file-list
+      may be given a number suffix which makes TrEd open that file
+      on that tree. There are two possible formats for the suffices:
+    </p>
+    <dl>
+      <dt><tt>#N</tt></dt>
+      <dd>
+	where <tt>N</tt> is a number possibly followed by one or more
+	upper-case letters. In this case, <tt>#N</tt> TrEd searches
+	and displays the first tree in the file
+	the root of which is assigned "<tt>#N</tt>" as a value
+	of the attribute "form" (this feature works only for
+	FS-files of The Prague Dependency Treebank).
+      </dd>
+      <dt><tt>##N</tt></dt>
+      <dd>
+	where <tt>N</tt> is a number. This makes TrEd to display the <tt>N</tt>-th tree
+	when the given file is opened.
+      </dd>
+    </dl>
+    <p></p>
+    <font size="-1"><a href="#intro">Introduction</a> | 
+      <a href="#chap1">Installation and start up instructions</a> | 
+      <a href="#chap2">Menu commands</a> | 
+      <a href="#chap3">Viewing and editing the tree structure and
+	attributes</a> | 
+      <a href="#configuration">Configuring and customizing TrEd</a> | 
+      <a href="#macros">Defining macros</a> | 
+      <a href="#chap4">How to ...</a><br>
+    </font>
+    <center><hr width="80%"></center>
+    <!-- -------------------------------------------------------- -->
+
+    <a name="macros"></a><h2>Defining macros</h2>
+
+
+    <font size="-1"><a href="#intro">Introduction</a> | 
+      <a href="#chap1">Installation and start up instructions</a> | 
+      <a href="#chap2">Menu commands</a> | 
+      <a href="#chap3">Viewing and editing the tree structure and
+	attributes</a> | 
+      <a href="#configuration">Configuring and customizing TrEd</a> | 
+      <a href="#chap4">How to ...</a><br>
+    </font>
+    <center><hr width="80%"></center>
+    <!-- -------------------------------------------------------- -->
+
+    <a name="chap4"></a><h2>How to...</h2>
+    <font size="-1"><a href="#intro">Introduction</a> | 
+      <a href="#chap1">Installation and start up instructions</a> |
+      <a href="#chap2">Menu commands</a> | 
+      <a href="#chap3">Viewing and editing the tree structure and
+	attributes</a> | 
+      <a href="#configuration">Configuring and customizing TrEd</a> | 
+      <a href="#commandline">Starting TrEd from command-line</a> |
+      <a href="#macros">Defining macros</a><br></font>
+
+</body>
+</html>
+
+
+
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:t
+sgml-shorttag:t
+sgml-namecase-general:t
+sgml-general-insert-case:lower
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:("/home/pajas/lib/sgml-tools/dtd/catalog" "/home/pajas/lib/sgml/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/docbook/3.1/docbook.cat /home/pajas/share/sgml/stylesheets/docbook/catalog /home/pajas/share/sgml/entities/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/jade/dsssl.cat /home/pajas/share/sgml/stylesheets/sgmltools/sgmltools.cat /home/pajas/share/sgml/dtd/sgmltools/catalog")
+sgml-local-ecat-files:nil
+End:
+-->
