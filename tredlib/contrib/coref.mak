@@ -79,7 +79,6 @@ sub jump_to_referent { # modified by Zdenek Zabokrtsky, Jan 2003
   $id1=~s/:/-/g;
   my $coref;
   my @coref_list=split /\|/,$this->{coref};
-  print STDERR "Ahoj: @coref_list == $this->{coref} nazdar\n";
   if (@coref_list>1) {
     my $selection=[$coref_list[0]];
     listQuery("Multiple coreference",'single',
@@ -191,7 +190,7 @@ sub node_release_hook {
 #bind remember_this_node to Ctrl+q menu Remeber current node for coreference
 sub remember_this_node {
   $referent = get_ID_for_coref($this);
-  print STDERR "Remember:$referent $this->{AID}\n";
+  #print STDERR "Remember:$referent $this->{AID}\n";
 }
 
 #bind set_referent_to_coref to Ctrl+s menu Set coreference to previously marked node
@@ -234,7 +233,7 @@ sub node_style_hook {
   foreach my $coref (split /\|/,$node->{coref}) {
     my $cortype=shift @cortypes;
     if (index($coref,$id1)==0) {
-      print STDERR "Same sentence\n";
+      #print STDERR "Same sentence\n";
       # same sentence
       my $T="[?\$node->{AID} eq '$coref' or \$node->{TID} eq '$coref'?]";
       push @colors,$cortype_colors{$cortype};
@@ -253,33 +252,33 @@ COORDS
 	my ($d,$p,$s)=($id1=~/^(.*?)-p(\d+)s([0-9A-Z]+)$/);
 	my ($cd,$cp,$cs)=($coref=~/^(.*?)-p(\d+)s([0-9A-Z]+).\d+/);
 	if ($d eq $cd) {
-	  print STDERR "Same document\n";
+	  #print STDERR "Same document\n";
 	  # same document
 	  if ($cp<$p || $cp==$p && $cs<$s) {
 	    # preceding sentence
-	    print STDERR "Preceding sentence\n";
+	    #print STDERR "Preceding sentence\n";
 	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
 	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
 	    $rotate_prv_snt+=10;
 	  } else {
 	    # following sentence
-	    print STDERR "Following sentence\n";
+	    #print STDERR "Following sentence\n";
 	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
 	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
 	    $rotate_nxt_snt+=10;
 	  }
 	} else {
 	  # different document
-	  print STDERR "Different document?\n";
+	  #print STDERR "Different document?\n";
 	  push @colors,$cortype_colors{$cortype}; #'&#c53c00'
 	  push @coords,"&n,n,n+$rotate_dfr_doc,n-30";
 	  $rotate_dfr_doc+=10;
-	  print STDERR "Different document sentence\n";
+	  #print STDERR "Different document sentence\n";
 	}
       }
   }
   if ($node->{corlemma} eq "sg") { # pointer to an unspecified segment of preceeding sentences
-    print STDERR "Segment - unaimed arrow\n";
+    #print STDERR "Segment - unaimed arrow\n";
     push @colors,$cortype_colors{segment};
     push @coords,"&n,n,n-25,n";
   }
