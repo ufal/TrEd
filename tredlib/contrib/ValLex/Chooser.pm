@@ -76,10 +76,7 @@ sub show_dialog {
 
   if ($d->Show() eq 'Choose') {
     my @frames=$chooser->get_selected_frames();
-    my $real="";
-    if ($#frames==0) {
-      $real=$chooser->data()->getFrameElementString($frames[0]);
-    }
+    my $real=$chooser->get_selected_element_string();
     $chooser->destroy();
     $d->destroy();
     return (join("|",map { $_->getAttribute('frame_ID') } @frames),$real);
@@ -230,14 +227,42 @@ sub callback {
   }
 }
 
+sub get_selected_element_string {
+  my ($self)=@_;
+  my $f=${$self->subwidget('focused_framelist')};
+  return "" unless ref($f);
+  my $fl=$f->widget();
+  my @selection=$fl->infoSelection();
+  if ($#selection==0) {
+    my $data=$fl->infoData($selection[0]);
+    if (ref($data)) {
+      return $self->data()->getFrameElementString($data);
+    } else {
+      my $text=$fl->itemCget($selection[0],0,'-text');
+      ($text) = $text=~/^(.*)/;
+      return $text;
+    }
+  } else {
+    return "";			# if multiple frames are selected return nothing
+  }
+}
+
 sub get_selected_frames {
   my ($self)=@_;
   my @frames;
   my $f=${$self->subwidget('focused_framelist')};
   return () unless ref($f);
   my $fl=$f->widget();
-  foreach ($fl->infoSelection()) {
-    push @frames,$fl->infoData($_);
+  my $data;
+  foreach my $item ($fl->infoSelection()) {
+    $data=$fl->infoData($item);
+    if (ref($data)) {
+      push @frames,$fl->infoData($item);
+    } else {
+      foreach my $kid ($fl->infoChildren($item)) {
+	push @frames,$fl->infoData($kid);
+      }
+    }
   }
   return @frames;
 }
