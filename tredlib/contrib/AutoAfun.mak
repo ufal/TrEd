@@ -1,9 +1,8 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2002-03-26 15:49:09 pajas>
+## Time-stamp: <2002-03-28 09:43:36 pajas>
 
 unshift @INC,"$libDir/contrib/AutoAfun" unless (grep($_ eq "$libDir/contrib/AutoAfun", @INC));
-require Assign_afun;
 
 %LcAfuns = map { lc($_)=>$_ }
   qw(--- Pred Pnom AuxV Sb Obj Atr Adv AtrAdv AdvAtr Coord AtrObj
@@ -48,6 +47,8 @@ sub normalize_afun {
 #bind assign_afun_auto Ctrl+Shift+F9 menu Auto-assign analytical function to node
 sub assign_afun_auto {
   my $node=$_[1] || $this;
+
+  require Assign_afun;
   if (!$node->parent and 
       $node->{lemma} eq '#') {
     $node->{$AutoAfunAtr}='AuxS';
