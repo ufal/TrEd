@@ -10,12 +10,12 @@
 package main;
 
 use Getopt::Std;
-getopts('c:m:e:t:huNHT');
+getopts('c:m:e:t:huNHST');
 
 if ($opt_u) {
   print <<EOH;
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-N|-T] files...
+  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-H|-N] [-S] [-T] files...
 or
   btred -u          to show usage
 or
@@ -27,7 +27,7 @@ EOH
 if ($opt_h) {
   print <<EOF;
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-N|-H] [-T] files...
+  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-N|-H] [-S] [-T] files...
 or
   btred -u          to show usage
 or
@@ -44,11 +44,12 @@ script        - any script (may use macros); typically script is just
 context       - start in the given macro context (package).
                 TredMacro is the default context.
 
--N            - wrap 'while ($this) { ...; $this=$this->following; }
+-N            - wrap 'while ($this) { ...; \$this=\$this->following; }
                 around the script
 -H            - same as -N but use following_visible instead, skipping
                 hidden nodes
 -T            - wrap 'do { ... } while NextTree();' around the script
+-S            - always save file
 
 Flags -N and -H may not be combined. If both are used, -N has the
 precedence. However, both -N and -H may be used together with -T.
@@ -256,13 +257,13 @@ $post
 EOL
 
   doEvalMacro($grp,$premacro);
-
+  print "Running $premacro;\n";
   openFile($grp,$files[$fileNo]);
   do {
     print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n";
     doEvalMacro($grp,"$context->_btred_eval_();");
-    print STDERR "Done\n";
-    saveFile() if $FileNotSaved;
+    print STDERR "Done";
+    saveFile($grp) if ($FileNotSaved or $opt_S);
   } while (nextFile());
 }
 
