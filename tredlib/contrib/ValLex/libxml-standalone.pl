@@ -40,7 +40,7 @@ my $conv= TrEd::CPConvert->new("utf-8",
 			       ($^O eq "MSWin32") ?
 			       "windows-1250" :
 			       "iso-8859-2");
-my $data=TrEd::ValLex::LibXMLData->new("vallex.xml",$conv);
+my $data=TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv);
 
 my $font = "-adobe-helvetica-medium-r-*-*-14-*-*-*-*-*-iso8859-2";
 my $fc=[-font => $font];
@@ -109,7 +109,6 @@ $top->protocol('WM_DELETE_WINDOW'=>
 		  },$vallex,$top]);
 
 
-exit 0;
 MainLoop;
 
 1;
