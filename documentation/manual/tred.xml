@@ -1488,11 +1488,19 @@ root# <userinput>make install</userinput>
     <sect2>
       <title>Keyboard Shortcuts</title>
       <para>Cursor keys may be used
-      to activate another node in the structure. Use
-      <keycap>left</keycap>/<keycap>right</keycap> to activate the
-      nearest left/right brother-node of the active node and
-      <keycap>up</keycap>/<keycap>down</keycap> to activate the active
-      node's ancestor (parent)/its leftmost son.  </para>
+	to activate another node in the structure. Use
+	<keycap>left</keycap>/<keycap>right</keycap> to activate the
+	nearest left/right brother-node of the active node and
+	<keycap>up</keycap>/<keycap>down</keycap> to activate the active
+	node's ancestor (parent)/its leftmost son.  
+      </para>
+      <para>
+	Use <keycombo action="simul"> <keycap>Shift</keycap>
+	  <keycap>left</keycap> </keycombo>/<keycombo action="simul">
+	  <keycap>Shift</keycap> <keycap>right</keycap> </keycombo> to
+	  activate the nearest node on the left/right of the active
+	  node within the active node's level.
+      </para>
       <para>
 	<keycap>Tab</keycap> and
 	<keycombo action="simul">
