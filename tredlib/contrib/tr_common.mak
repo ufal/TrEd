@@ -1040,3 +1040,50 @@ sub tr_vallex_transform {
   }
   TRValLexTransform::DoTransformTree();
 }
+
+sub status_line_doubleclick {
+  foreach (@_) {
+    if (/^\{(.*)}$/) {
+      if ($1 eq 'FRAME') {
+	ChooseFrame();
+	last;
+      } else {
+	main::doEditAttr($grp,$this,$1);
+	last;
+      }
+    }
+  }
+}
+
+sub get_status_line_hook {
+  return [
+	  [
+	   "form: " => [qw(label)],
+	   $this->{form} => [qw({form} value)],
+	   "     afun: " => [qw(label)],
+	   $this->{afun} => [qw({afun} value)],
+	   "     tag: " => [qw(label)],
+	   $this->{tag} => [qw({tag} value)],
+	   ($this->{fw} ne "" ?
+	    ("     fw: " => [qw(label)],
+	     $this->{fw} => [qw({fw} value)]) : ()),
+
+	   ($this->{framere} ne "" ?
+	    ("     frame: " => [qw(label)],
+	     $this->{framere} => [qw({FRAME} value)],
+	     "     {".$this->{frameid}."}" => [qw({FRAME} value)],
+	   ) : ()),
+	   ($this->{commentA} ne "" ?
+	    ("     [" => [qw()],
+	     $this->{commentA} => [qw({commentA})],
+	     "]" => [qw()]
+	    ) : ())
+	  ],
+	  [
+	   "label" => [-foreground => 'black' ],
+	   "value" => [-underline => 1 ],
+	   "{commentA}" => [ -foreground => 'red' ],
+	   "bg_white" => [ -background => 'white' ],
+	  ]
+	 ];
+}
