@@ -28,9 +28,8 @@ function mkplbat {
 function findperlbin {
   PERLBIN=`which perl 2>/dev/null`
   if [ ! -z $PERLBIN ]; then
-      if $PERLBIN -v | grep -q 'MSWin32'; then
-      ;
-      else
+      $PERLBIN -v | grep -q 'MSWin32';
+      if [ $? != 0 ]; then
 	  PERLBIN=""
       fi
   fi
