@@ -93,8 +93,6 @@ sub show_dialog {
 		 }
 		 $d->Unbusy(-recurse=> 1);
 	       },$d,$vallex]);
-  print "Show!\n";
-
   $d->Show();
   if ($vallex->data()->changed()) {
     if ($autosave) {
