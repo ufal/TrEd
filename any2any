@@ -2,7 +2,7 @@
 #                                                          -*- cperl -*-
 
 use Getopt::Std;
-getopts('p:r:s:a:f:hu');
+getopts('p:T:r:s:a:f:hu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
   print "Usage: $0 [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] file [file ...]\n";
@@ -15,6 +15,8 @@ Parameters:
   -a append          append given suffix to the filenames
   -p prefix_regexp   remove strings matching given regexp from the beginning of filenames
   -r prepend         prepend filenames with the given prefix
+
+  -T                 if converting from csts, build tectogrammatical tree structure
 EOF
   }
   exit 0;
@@ -40,6 +42,12 @@ import Fslib;
 @backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend)));
 
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
+
+if ($opt_T) {
+  $Csts2fs::gov = "govTR";
+  $Csts2fs::header = \@Csts2fs::TRheader;
+}
+
 
 %bkmap=(
 	fs => 'FSBackend',
