@@ -10,28 +10,32 @@ sub new {
 
 sub find {
     my $node = shift;
-    my ($path) = @_;
+    my ($path,$node2) = @_;
+    local $_; # XML::XPath isn't $_-safe
     my $xp = XML::XPath->new(); # new is v. lightweight
-    return $xp->find($path, $node);
+    return $xp->find($path, $node2 || $node);
 }
 
 sub findvalue {
     my $node = shift;
-    my ($path) = @_;
+    my ($path,$node2) = @_;
+    local $_; # XML::XPath isn't $_-safe
     my $xp = XML::XPath->new();
-    return $xp->findvalue($path, $node);
+    return $xp->findvalue($path, $node2 || $node);
 }
 
 sub findnodes {
     my $node = shift;
-    my ($path) = @_;
+    my ($path,$node2) = @_;
+    local $_; # XML::XPath isn't $_-safe
     my $xp = XML::XPath->new();
-    return map $_->object, $xp->findnodes($path, $node);
+    return map $_->object, $xp->findnodes($path, $node2 || $node);
 }
 
 sub matches {
     my $node = shift;
     my ($path, $context) = @_;
+    local $_; # XML::XPath isn't $_-safe
     my $xp = XML::XPath->new();
     return $xp->matches($node, $path, $context);
 }
@@ -40,15 +44,10 @@ sub object {
   return $_[0][2]
 }
 
-sub _wrap {
+sub wrap {
   my ($self, $object)=@_;
   return () unless $_[1];
   $self->new($self->[1],$object,$self->[0]);
-}
-
-sub getElementById {
-  my ($self,$id)=@_;
-  &{$self->[0]{id}}($self->[1],$id);
 }
 
 sub getLocalName {
@@ -68,21 +67,26 @@ sub string_value {
 
 *getValue = *string_value;
 
+sub getElementById {
+  my ($self,$id)=@_;
+  $self->wrap(&{$self->[0]{id}}($self->[1],$id));
+}
+
 sub getRootNode {
   my ($self)=@_;
-  $self->_wrap($self->[1]);
+  $self->wrap($self->[1]);
 }
 
 sub getParentNode {
   my ($self)=@_;
-  $self->_wrap(&{$self->[0]{parent}}($self->object));
+  $self->wrap(&{$self->[0]{parent}}($self->object));
 }
 
 sub getAttributes {
   my ($self) = @_;
-  my %attribs = &{$self->[0]{attributes}}($self->object);
-  my @attribs = map { Object::XPath::Attribute->new($self,$_,$attribs{$_}) }
-    keys %attribs;
+  my $attribs = &{$self->[0]{attributes}}($self->object);
+  my @attribs = map { Object::XPath::Attribute->new($self,$_,$attribs->{$_}) }
+    keys %$attribs;
   return wantarray ? @attribs : \@attribs;
 }
 
@@ -94,19 +98,19 @@ sub get_global_pos {
 sub getChildNodes {
   my ($self)=@_;
   my @children =
-    map $self->_wrap($_), &{$self->[0]{children}}($self->object);
+    map $self->wrap($_), &{$self->[0]{children}}($self->object);
   wantarray ? @children : \@children;
 }
 
 
 sub getNextSibling {
   my ($self)=@_;
-  $self->_wrap(&{$self->[0]{rbrother}}($self->object));
+  $self->wrap(&{$self->[0]{rbrother}}($self->object));
 }
 
 sub getPreviousSibling {
   my ($self)=@_;
-  $self->_wrap(&{$self->[0]{lbrother}}($self->object));
+  $self->wrap(&{$self->[0]{lbrother}}($self->object));
 }
 
 sub isElementNode {
