@@ -2220,9 +2220,8 @@ sub startMain {
   my $parent;
   my %group;
 
-
   $group{top}=MainWindow->new;
-
+			
   $group{folderImage} = $group{top}->Pixmap(-file => Tk->findINC('folder.xpm'));
   $group{fileImage}   = $group{top}->Pixmap(-file => Tk->findINC('file.xpm'));
 
@@ -2235,7 +2234,6 @@ sub startMain {
     }
     $group{top}->geometry($geometry);
   }
-
 
   $group{macroContext}='TredMacro';
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
@@ -2255,7 +2253,7 @@ sub startMain {
   $group{top}->
     protocol('WM_DELETE_WINDOW' => 
 	     [sub { $grp=shift;
-		    doEvalHook(\%group,"exit_hook");
+		    doEvalHook($grp,"exit_hook");
 		    # run user's exit_hook
 		    askSaveFiles($grp);
 		    closeFile($grp);
@@ -4545,7 +4543,7 @@ sub doEvalMacro {
     eval ("@macros\n return 1;");
     $macrosEvaluated=1;
     if ($result or $@) {
-      print STDERR "FirstEvaluation of macros\n";# if $macroDebug;
+      print STDERR "FirstEvaluation of macros\n" if $macroDebug;
       print STDERR "Returned with: $result\n$@\n" if $macroDebug;
     }
   }
