@@ -1298,7 +1298,7 @@ root# <userinput>make install</userinput>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/vsplit"/></entry>
+	      <entry><graphic fileref="pics/rmsplit"/></entry>
 	      <entry><menuchoice><guimenu>View</guimenu>
 		  <guimenuitem>Close current view</guimenuitem>
 		</menuchoice></entry>
