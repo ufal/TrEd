@@ -279,7 +279,6 @@ sub select_frames {
     $id = $data->getFrameId($h->infoData($t));
     if (index($frames," $id ")>=0) {
       unless ($have) {
-	print "$id\n";
 	$h->anchorSet($t);
 	$h->see($t);
       }
