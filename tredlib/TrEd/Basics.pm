@@ -13,6 +13,7 @@ BEGIN {
     $on_tree_change
     $on_node_change
     $on_current_change
+    $on_error
     &gotoTree
     &nextTree
     &prevTree
@@ -148,16 +149,20 @@ sub setCurrent {
 
 sub errorMessage {
   my ($win,$msg)=@_;
-  if (exists($win->{framegroup}) and
-      ref($win->{framegroup}) and
-      exists($win->{framegroup}{top}) and
-      ref($win->{framegroup}{top})) {
-    $win->{framegroup}->{top}->toplevel->
-      messageBox(-icon=> 'error',
-		 -message=> $msg,
-		 -title=> 'Error', -type=> 'ok');
+  if ($on_error) {
+    &$on_error(@_);
   } else {
-    print STDERR "$msg\n";
+    if (exists($win->{framegroup}) and
+	ref($win->{framegroup}) and
+      exists($win->{framegroup}{top}) and
+	ref($win->{framegroup}{top})) {
+      $win->{framegroup}->{top}->toplevel->
+	messageBox(-icon=> 'error',
+		 -message=> $msg,
+		   -title=> 'Error', -type=> 'ok');
+    } else {
+      print STDERR "$msg\n";
+    }
   }
 }
 1;
