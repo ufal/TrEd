@@ -17,7 +17,7 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $code $hubname $hubport $init $nocheck $noservers $nohub
 	    $client_key_file $verbose $srvlist $kill $filelist
 	    $srvlistfile $request_quit $request_dump $request_upload
-	    $safe_mode $help $usage $manpage $ssh $server_debug
+	    $safe_mode $help $usage $manpage $ssh $run_local $server_debug
 	    $maxservers $request_reload $request_reload_changed
 	    $request_load $request_close
 	    $request_list $request_list_changed $request_save
@@ -51,6 +51,7 @@ Getopt::Long::Configure ("bundling");
 	 "port=i"         => \$hubport,
 	 "init|i"           => \$init,
 	 "ssh=s"           => \$ssh,
+	 "local"           => \$run_local,
 	 "btred=s"           => \$btred,
 	 "kill|k"           => \$kill,
 	 "break"           => \$break,
@@ -261,6 +262,13 @@ if (defined($init) || defined($kill) || defined($break)) {
       close $f;
     }
   }
+
+  # --local implies we only want local servers
+  if ($run_local) {
+    chomp (my $host=`/bin/hostname`);
+    @servers = grep { $_ =~ /^\s*\Q$host\E:\d+\s*$/ } @servers;
+    @servers=($host) unless (@servers);
+  }
   make_uniq(\@servers);
 
   die "No servers given!\n" unless @servers;
@@ -278,8 +286,9 @@ if (defined($init) || defined($kill) || defined($break)) {
       next if $servers{$machine};
       $servers{$machine}=1;
       $btred ||= 'btred';
-      msg "$ssh $machine killall $signal $btred\n";
-      system("$ssh $machine killall $signal $btred");   #'$btred'
+      my $sh = $run_local ? "" : "$ssh '$machine'";
+      msg "$sh killall $signal $btred\n";
+      system("$sh killall $signal $btred");   #'$btred'
     }
     msg "Killing hub\n";
     local $SIG{TERM}=sub {}; # protecting myself :-)
@@ -305,8 +314,8 @@ if (defined($init) || defined($kill) || defined($break)) {
     unless ($servers{$server}) {
       $servers{$server}=1;
       $port ||= 1600;
-      msg "checking $server\n";
-      unless ($nocheck) {
+      unless ($nocheck or $run_local) {
+	msg "checking $server\n";
 	my $cmd = "$ssh $server 'sh -c \"echo -n RUNNING 2>/dev/null\"'";
 	msg "$cmd\n";
 	my $result=`$cmd`;
@@ -349,24 +358,25 @@ if (defined($init) || defined($kill) || defined($break)) {
 
       # btred executable
       $btred ||= "$FindBin::RealBin/btred";
-
-      my $cmd = "$ssh $_->{host} '$btred -O -P ".
-	($safe_mode ? "-F " : "").
-	($server_debug ? "-D " : "").
-	(join "",map { "-M $_ " } @preload_modules).
-	($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
-	($term_encoding ? "-d $term_encoding " : "").
-	"-L $_->{port} ".
-	"' 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
+      my $cmd = "$btred -O -P ".
+   	  ($safe_mode ? "-F " : "").
+	  ($server_debug ? "-D " : "").
+	  (join "",map { "-M $_ " } @preload_modules).
+	  ($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
+	  ($term_encoding ? "-d $term_encoding " : "").
+	  "-L $_->{port}";
+      if ($run_local) {
+	$cmd = "$cmd 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
+      } else {
+	$cmd = "$ssh '$_->{host}' '$cmd' 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
+      }
       msg "$cmd\n";
       if (open ($_->{ssh},"| ".$cmd)) {
 	$_->{ssh}->autoflush(1);
 	STDERR->autoflush(1);
-	#	  print "@@@ SESSION-KEY=".block_to_hex($server_key)."\n";
 	msg "sending session key\n";
 	$_->{ssh}->print("@@@ SESSION-KEY=".block_to_hex($server_key)."\n");
 	$_->{ssh}->flush;
-	#	  $_->{ssh}->close;
 	msg "sent session key\n";
 	$_->{running}=1;
       } else {
@@ -922,7 +932,9 @@ To start remote servers and a hub:
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--server-debug] [-m macro-file] [-M module]
+           [--old-dist-method] [--safe-mode] [--server-debug]
+           [-m macro-file] [-M module] [--btred path-to-btred]
+           [--ssh ssh-command] [--local]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 To close all remote servers and a hub:
@@ -1058,7 +1070,8 @@ necessary for the authentication to the running hub. This defaults to
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--old-dist-method] [--safe-mode] [--server-debug]
-           [-m macro-file] [-M module]
+           [-m macro-file] [-M module] [--btred path-to-btred]
+           [--ssh ssh-command] [--local]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 =over 8
@@ -1369,6 +1382,13 @@ Redirect all std error output to /dev/null.
 
 This option may be used to specify the ssh/rsh command to use to
 connect to remote servers. Default value is `ssh'.
+
+=item B<--local>
+
+Run btred servers locally. It ignores all non-local entries in the
+.ntred_serverlist (i.e. entries not matching local machine's
+hostname). There still may be more BTrEd instances, provided they use
+different ports.  In this case, SSH is not used.
 
 =item B<--btred> command
 
