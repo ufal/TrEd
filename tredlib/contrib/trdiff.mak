@@ -392,7 +392,7 @@ sub diff_trees {
 #bind DiffTRFiles_with_summary to Ctrl+plus menu Compare trees with summary
 
 sub DiffTRFiles_select_attrs {
-  listQuery("multiple",$grp->{FSFile}->FS->list,\@standard_check_list);
+  listQuery("Select attributes to compare","multiple",$grp->{FSFile}->FS->list,\@standard_check_list);
   $FileChanged=0;
   $Redraw='none';
 }

@@ -151,7 +151,7 @@ sub node_release_hook {
     $type='textual';
   } elsif ($mod eq 'Alt') {
     my $selection=['textual'];
-    listQuery('single',[qw(textual grammatical)],$selection) || return;
+    listQuery("Select cortype",'single',[qw(textual grammatical)],$selection) || return;
     $type=$selection->[0];
   } elsif ($mod eq '') {
     # no cutting/pasting in Coref mode
@@ -175,7 +175,7 @@ sub remember_this_node {
 sub set_referent_to_coref {
   return if $referent eq "";
   my $selection=['textual'];
-  listQuery('single',[qw(textual grammatical)],$selection) || return;
+  listQuery('Select cortype','single',[qw(textual grammatical)],$selection) || return;
   assign_coref($this,$referent,$selection->[0]);
 }
 
@@ -265,8 +265,8 @@ COORDS
     AddStyle($styles,'Line',
 	      -coords => 'n,n,p,p'.join("",@coords),
 	      -arrow => '&last' x @coords,
-	      -dash => '&9,3' x @coords,
-	      -width => '&2' x @coords,
+	      -dash => '&_' x @coords,
+	      -width => '&1' x @coords,
 	      -fill => join("&","",@colors),
 	      -smooth => '&1' x @coords);
   }
