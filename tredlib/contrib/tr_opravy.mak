@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-10-03 16:58:05 pajas>
+## Time-stamp: <2003-10-29 11:08:04 pajas>
 
 
 package TR_Correction;
@@ -178,3 +178,9 @@ sub UnhideNode {
   }
 }
 
+#bind AssignTrLemma to Ctrl+L
+sub AssignTrLemma {
+  my $lemma = $this->{lemma};
+  $lemma =~ s/[-_`&].*$//;
+  $this->{trlemma}=$lemma;
+}
