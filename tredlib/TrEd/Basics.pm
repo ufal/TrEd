@@ -212,17 +212,8 @@ sub errorMessage {
   }
 }
 
-sub absolutize_path ($$) {
-  my ($orig, $href)=@_;
-  if ($href !~ m{^[[:alnum:]]+:|^/}) {
-    if ($orig =~ m{^(.*\/)}) {
-      return $1.$href;
-    } else {
-      return $href;
-    }
-  } else {
-    return $href;
-  }
+sub absolutize_path {
+  &Fslib::ResolvePath;
 }
 
 sub absolutize {
