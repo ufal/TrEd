@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-05-31 10:09:18 pajas>
+## Time-stamp: <2001-07-02 09:59:09 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -160,6 +160,7 @@ sub do_edit_attr_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
+  print "@_\n";
   if ($atr!~/^(?:func|coref|commentA|reltype|memberof|aspect|tfa|err1)$/) {
     return "stop";
   }

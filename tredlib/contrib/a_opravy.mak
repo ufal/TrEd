@@ -1,7 +1,7 @@
 ## This is macro file for Tred                             -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2001-04-26 08:48:40 pajas>
+## Time-stamp: <2001-07-02 12:35:38 pajas>
 
 package Analytic_Correction;
 @ISA=qw(Analytic TredMacro main);
@@ -13,6 +13,35 @@ import main;
 sub enable_attr_hook {
   return;
 }
+
+# bind insert_node_to_pos to key Alt+Shift+I
+
+sub insert_node_to_pos {
+  # get nodes
+  # ask for ordinal number
+  # splice given node to that position
+  # reorder nodes
+  my $value=main::QueryString($grp,"Enter new ord","ord",$value);
+  return unless defined $value;
+  my @nodes=GetNodes();
+  splice @nodes,Index(\@nodes,$this),1;
+  SortByOrd(\@nodes);
+  splice @nodes,$value,0,$this;
+  NormalizeOrds(\@nodes);
+}
+
+# bind sentord_to_ord to key Alt+Shift+O
+
+sub sentord_to_ord {
+  my @nodes=GetNodes();
+  foreach (@nodes) {
+    $_->{ord}=$_->{sentord};
+  }
+  SortByOrd(\@nodes);
+  NormalizeOrds(\@nodes);
+}
+
+
 
 # bind gotoNextFound to key Alt+N
 sub gotoNextFound {
@@ -249,30 +278,20 @@ sub InsertSubtreeAsNewTreeAfter {
 #bind ReDord to key Alt+Shift+R menu Reorder
 
 sub ReDord {
-  my $i=0;
-  my $node;
-  my $aord=AOrd(\%attribs);
-  my @nodes;
-  $node=$root;
-  while ($node) {
-    push @nodes,$node;
-    $node=Next($node);
-  }
-  my @snodes = sort { Ord($a,\%attribs) <=> Ord($b,\%attribs) } @nodes;
-  foreach $node (@snodes) {
-    $node->{$aord}=$i++;
-  }
+  my @nodes=GetNodes();
+  SortByOrd(\@nodes);
+  NormalizeOrds(\@nodes);
 }
 
 #bind ReorderStructure to key Alt+Shift+S menu Reorder structure
 
 sub ReorderStructure {
   ReDord();
-  my $node=$root;
-  while ($node) {
-    ReorderChildren($node);
-    $node=Next($node);
-  }
+#    my $node=$root;
+#    while ($node) {
+#      ReorderChildren($node);
+#      $node=Next($node);
+#    }
 }
 
 sub ReorderChildren {
