@@ -35,8 +35,6 @@ use XML::DOM;
 use vars qw($toil2 $fromil2);
 
 use IO;
-use XML::Handler::Composer;
-use XML::Filter::Reindent;
 
 if (eval { require Text::Iconv; }) {
   $toil2 = Text::Iconv->new("utf-8", "iso-8859-2");
@@ -90,6 +88,10 @@ sub save {
   }
   my $output = new IO::File(">$file");
   if ($indent) {
+    require XML::Handler::Composer;
+    require XML::Filter::Reindent;
+
+
     $self->doc()->getXMLDecl()->setEncoding('utf-8');
     $self->doc()->getXMLDecl()->print($output);
     $output->print("\n");
