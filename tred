@@ -5,7 +5,7 @@
 #use strict;
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
-	    $opt_t $opt_W $opt_G $opt_R
+	    $opt_t $opt_W $opt_G $opt_R $opt_X
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
@@ -72,7 +72,7 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('m:c:l:t:huW:GR');
+getopts('m:c:l:t:huW:GRX:');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
@@ -114,6 +114,8 @@ Each filename may be followed by suffixes of the following forms:
 Other options:
 
 -R              build tectogrammatic trees from CSTS files
+-X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
+                and <ord> to order nodes
 -G              Do not initially resize window to its last geomtery.
 -W <window_id>  Embed main window into the given window 
 
@@ -215,6 +217,7 @@ use Tk::Balloon;
 use Tk::DialogBox;
 use Tk::Tiler;
 use Tk::BrowseEntry;
+use Tk::Pane;
 
 unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
@@ -377,6 +380,9 @@ my %searchTemplate;
 			  );
 
 $opt_R && Csts2fs::setupTR();
+if ($opt_X ne "") {
+  Csts2fs::setupSpec(split ',',$opt_X);
+}
 
 print STDERR "Reading macros from $macroFile...\n";
 read_macros($macroFile,$libDir);		# read macros
@@ -2098,6 +2104,15 @@ sub switchContext {
   redraw_win($win);		# something should be done with display attrs vs windows maybe
 }
 
+sub onGetNodeStyle {
+  my ($treeview,$node,$styles,$win)=@_;
+  doEvalHook($win,"node_style_hook",$node,$styles);
+}
+sub onGetRootStyle {
+  my ($treeview,$node,$styles,$win)=@_;
+  doEvalHook($win,"root_style_hook",$node,$styles);
+}
+
 sub onTreeChange {
   my ($win)=@_;
   get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
@@ -2406,6 +2421,9 @@ sub createCanvasBindings {
   $canvas->bind('point', '<B1-Motion>'=> [sub {node_move(@_)},$grp]);
   $canvas->bind('point','<3>'=> [sub {node_down(@_)},$grp,1]);
   $canvas->bind('point', '<ButtonRelease-3>'=> [sub {node_release(@_)},$grp]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-ButtonRelease-1>"=> [sub {node_release_modif(@_)},$grp,$_]);
+  }
   $canvas->bind('point','<B3-Motion>'=> [sub {node_move(@_)},$grp,1]);
   $canvas->CanvasBind('<2>'=> [sub {follow_mouse_press(@_)},$grp]);
   $canvas->CanvasBind('<B2-Motion>'=> [sub {follow_mouse(@_)},$grp]);
@@ -2429,7 +2447,7 @@ sub startMain {
   $group{folderImage}= $group{top}->Pixmap(-file=> Tk->findINC('folder.xpm'));
   $group{fileImage}  = $group{top}->Pixmap(-file=> Tk->findINC('file.xpm'));
   $group{lastActionBookmark}= $lastAction;
-  $group{selectedContext}=$opt_t;
+  $group{selectedContext}=$opt_t || 'TredMacro';
   $group{buildTGTSfromCSTS}=$opt_R;
 
   if (not $opt_G and defined($geometry)) {
@@ -2449,7 +2467,6 @@ sub startMain {
   prepareFonts(\%group);
   $group{treeWindows}=[];
   $group{focusedWindow}=newTrEdWindow(\%group);
-  print "FOCUSING FIRST WINDOW ",$group{focusedWindow},"\n";
   my $canvas = $group{focusedWindow}->canvas();
   $canvas->configure(@focused_win_opts);
 
@@ -2705,13 +2722,13 @@ sub startMain {
   updateBookmarks(\%group);
 
   $group{ContextsMenu}=$group{Menubar}->
-    Optionmenu(-textvariable=> \$group{selectedContext},
+    Optionmenu(-options=> [sort(keys(%keyBindings))],
+	       -textvariable=> \$group{selectedContext},
 	       -command=> [sub { my ($grp,$context) = @_;
 				 switchContext($grp->{focusedWindow}, $context);
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
-	       -borderwidth=> 2,
-	       -options=> [sort(keys(%keyBindings))])->pack(qw/-side right/);
+	       -borderwidth=> 2)->pack(qw/-side right/);
   my $cM=[];
   if ($createMacroMenu) {
     push @$cM, 
@@ -3160,11 +3177,15 @@ sub startMain {
 		       },\%group]);
   $group{frame}->bind('my','<KeyPress-Left>'=>
 		      [sub {
+			 $treeViewOpts->{reverseNodeOrder} ?
+			 currentRight($_[1]) :
 			 currentLeft($_[1]);
 			 Tk->break;
 		       },\%group]);
   $group{frame}->bind('my','<KeyPress-Right>'=>
 		      [sub {
+			 $treeViewOpts->{reverseNodeOrder} ?
+			 currentLeft($_[1]) :
 			 currentRight($_[1]);
 			 Tk->break;
 		       },\%group]);
@@ -3192,7 +3213,7 @@ sub startMain {
 			  shift;
 			  my $grp=shift;
 			  $geometry=$group{top}->geometry();
-			  print "geometry is $geometry\n";
+			  print "geometry is $geometry\n" if $tredDebug;
 			  if ($^O eq "MSWin32" and $group{top}->state() eq 'zoomed') {
 			    $geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
 			  }
@@ -3401,7 +3422,6 @@ sub askSaveFiles {
   unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
   my $win;
   foreach $win (@{ $grp->{treeWindows} }) {
-    print $win,"\n";
     if ($win->{FSFile}) {
       focusCanvas($win->canvas(),$win->{framegroup});
       askSaveFile($win);
@@ -4632,12 +4652,18 @@ sub redraw_win {
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
+  $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
+  $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
 
   $win->{treeView}->
       redraw($win->{FSFile},
 	     $win->{currentNode},
 	     $win->{Nodes},
 	     $valueLine);	# CHANGE THIS (this is just for printing)
+
+  $TrEd::TreeView::on_tree_redraw= undef; #forget the reference on $win
+  $TrEd::TreeView::on_node_redraw= undef;
+
   #------------------------------------------------------------
   #}
   #my $t1= new Benchmark;
@@ -5041,10 +5067,8 @@ sub tieGotoTree {
 sub tieNextTree {
   my ($grp)=@_;
   if ($grp->{tieWindows}) {
-    print "Shifting to tie next\n";
     foreach (@{$grp->{treeWindows}}) {
       nextTree($_) if ($_->{FSFile});
-      print "$_ has now ", $_->{treeNo},"\n";
     }
   } else {
     nextTree($grp->{focusedWindow}) if ($grp->{focusedWindow}->{FSFile});
@@ -5179,21 +5203,50 @@ sub node_release {
       $parent=$tv->get_obj_pinfo($p);
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
-      while ($parent) {
-	$p=0, last if ($node eq $parent);
-	$parent=$parent->parent;
+      if (doEvalHook($win,"node_release_hook",$node,$parent,"") ne 'stop') {
+	while ($parent) {
+	  $p=0, last if ($node eq $parent);
+	  $parent=$parent->parent;
+	}
+	if ($p and $tv->get_obj_pinfo($p) 
+	    and $node->parent!=$tv->get_obj_pinfo($p)) {
+	  Paste(Cut($node),
+		$tv->get_obj_pinfo($p),
+		$win->{FSFile}->FS->defs);
+	  $win->{FSFile}->notSaved(1);
+	  lastActionBookmark($grp);
+	  redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
+	  centerTo($win,$win->{currentNode});
+	  return;
+	}
       }
-      if ($p and $tv->get_obj_pinfo($p) 
-	  and $node->parent!=$tv->get_obj_pinfo($p)) {
-	Paste(Cut($node),
-	      $tv->get_obj_pinfo($p),
-	      $win->{FSFile}->FS->defs);
-	$win->{FSFile}->notSaved(1);
-	lastActionBookmark($grp);
-	redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
-	centerTo($win,$win->{currentNode});
-	return;
-      }
+    }
+    # returning node to its position
+    $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
+  } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
+}
+
+sub node_release_modif {
+  my($w,$grp,$mod)= @_;
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
+  return unless $win->{FSFile};
+  my $e= $w->XEvent;
+  my($x, $y)= ($e->x, $e->y);
+  my $parent;
+  my $node;
+  my $center=0;
+  my $sel=$w->find('withtag','selected');
+  $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
+
+  if ($node) {
+    $p=$w->find('withtag','nearest');
+    $w->dtag('selected');
+    if (defined $p) {
+      $parent=$tv->get_obj_pinfo($p);
+      $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
+			  nodeOptions($win,$parent));
+      doEvalHook($win,"node_release_hook",$node,$parent,$mod);
     }
     # returning node to its position
     $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
