@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# -*- cperl -*-
 #
 # BTred ver. 0.1 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -9,7 +10,9 @@
 
 package main;
 
-use Getopt::Std;
+use Getopt::Long;
+use Pod::Usage;
+#use Getopt::Std;
 
 if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n";
@@ -23,105 +26,74 @@ if ($^V lt v5.6.0) {
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:ENHSTFX:RPWVL:b:');
-$opt_q=1 if $opt_Q;
+use strict;
+use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
+	    $strip_suffix $append_suffix $output_format $config_file
+	    $initial_code $macro $code $start_context $all_trees
+	    $all_nodes $all_nonhidden_nodes $file_encoding
+	    $term_encoding $save $safe_mode $csts_tree_attrs
+	    $csts_tecto $preload $warn_only $validate_fs $allow_host
+	    $start_server $help $usage $manpage
+	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
+	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
+	    @files $backend
+	   );
 
-if ($opt_u || $opt_h) {
-  print <<EOH;
-Usage:
-  btred [-c config-file] [-m macro-file] [-e code]
-        [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
-        [-f out-fmt]  [-x extra_attribs] [-n encoding]
-        [-i init-code] [-t context] [-W] [-q|-Q] [-D] [-N|-H] [-V]
-        [-S] [-T] [-P] [-F] [-L port] [-b hub] [-o script options -- ] files...
-or
-  btred -u          to show usage
-or
-  btred -h          to show help
-EOH
-  if ($opt_h) {
-    print <<'EOF';
+#getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:NHSTFX:RPWVL:b:');
+Getopt::Long::Configure ("bundling");
+GetOptions ("quiet|q" => \$quiet,
+	    "very-quiet|Q" => \$Quiet,
+	    "debugging|D" => \$debug,
+	    "fs2csts-attributes|x=s" => \$csts_xargs,
+	    "strip-prefix|p=s" => \$strip_prefix,
+	    "add-prefix|r=s" => \$add_prefix,
+	    "strip-suffix|s=s" => \$strip_suffix,
+	    "append-suffix|a=s" => \$append_suffix,
+	    "output-format|f=s" => \$output_format,
+	    "config-file|c=s" => \$config_file,
+	    "initial-code|i=s" => \$initial_code,
+	    "macro-file|m=s" => \$macro,
+	    "execute|e=s"    => \$code,
+	    "context|t=s" => \$start_context,
+	    "all-trees|T"    => \$all_trees,
+	    "all-nodes|N"    => \$all_nodes,
+	    "all-nonhidden-nodes|H"  => \$all_nonhidden_nodes,
+	    "file-encoding|n=s" => \$file_encoding,
+	    "terminal-encoding|d=s" => \$term_encoding,
+	    "save|S" => \$save,
+	    "safe-mode|F" => \$safe_mode,
+	    "csts-tree-attributes|X" => \$csts_tree_attrs,
+	    "tectogrammatical-trees|R" => \$csts_tecto,
+	    "preload-files|P" => \$preload,
+	    "warn-only|W" => \$warn_only,
+	    "validate-fs|V" => \$validate_fs,
+	    "allow-host|b=s" => \$allow_host,
+	    "server-port|L=i"  => \$start_server,
+	    "help|h" => \$help,
+	    "usage|u"        => \$usage,
+	    "man"            => \$manpage);
 
-This is a "batch mode" version of tree editor TrEd.
-BTrEd runs the given script or macro on each file in given context.
-Parameters:
+$quiet=1 if $Quiet;
 
-config-file   - TrEd configuration file
-macro-file    - file with macro definitions
-code          - any code (may use macros); typically, code is just
-                name of the macro to be run
-context       - start in the given macro context (package).
-                TredMacro is the default context.
-init-code     - any code to be run only once, before any input
-                file is loaded.
-
-format        - output format; one of: fs, csts, trxml. Default is csts.
-suffix_regexp - strip strings matching given regexp from the end of filenames
-append        - append given suffix to the filenames
-prefix_regexp - remove strings matching given regexp from
-                the beginning of filenames
-prepend       - prepend filenames with the given prefix
-extra_attribs - comma separated list of non-CSTS attributes to preserve when
-                converting to CSTS
-encoding      - allows to specify the default charset for FS files (useful
-                with perl >= 5.7)
-
--N            - wrap 'while ($this) { ...; $this=$this->following; }
-                around the code
--H            - same as -N but use following_visible instead, skipping
-                hidden nodes
--T            - wrap 'do { ... } while NextTree();' around the code
--S            - always save file
--P            - preload all given files into memory
--R            - build tectogrammatic trees from CSTS files
--X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
-                and <ord> to order nodes
--q            - quiet
--Q            - by *very* quiet
--D            - enable debugging messages on stderr
--W            - do not die on errors (warn only)
--V            - force Fslib to test validity of values of list attributes in FS
--F            - run macros in safe compartment
--L <port>     - start btred server, listening on given port; implies -P
--b <host>     - make btred server allow only connections from <host>
--d <encoding> - convert stdout and stderr into given encoding (only Perl >= 5.8)
-
-Flags -N and -H may not be combined. If both are used, -N has the
-precedence. However, both -N and -H may be used together with -T.
-
-If no macro-file is given, standard macro file (see TrEd
-documentation) is searched and used if found. If no code is specified
-via -e, call to function autostart in the context is performed in
-expectation that such a function is defined in the macro-file.
-
-As in TrEd, the following variables may be used in the macros:
-
-$grp->{FSFile}       - current FSFile object (see section on FSFile in 
-                       Fslib documentation)
-$grp->{treeNo}       - current tree number
-$grp->{macroContext} - current macro context
-$this                - current node (root of the first tree at the beginning)
-$root                - root node of current tree
-$FileNotSaved        - change this to 1 if you want the file to be saved at the end
-
-Also all functions defined in default macro file tred.def
-as well as any function from Fslib (see Fslib documentation).
-EOF
-  }
-  exit;
+# Help and usage
+if ($usage) {
+  pod2usage(-msg => 'ntred - controller/hub/client for remote btred servers');
+#  exit 0;
+}
+if ($help) {
+  pod2usage(-exitstatus => 0, -verbose => 1);
+}
+if ($manpage) {
+  pod2usage(-exitstatus => 0, -verbose => 2);
 }
 
-if (defined $opt_e) {
-  $script=$opt_e;
-} else {
-  $script="autostart()"; # this is the default macro name
-}
+$code||="autostart()"; # this is the default macro name
 
-if (defined($opt_d) and $]>=5.008) {
+if (defined($term_encoding) and $]>=5.008) {
   eval {
-    _msg("forcing encoding $opt_d for STDERR and STDOUT\n") if $opt_D;
-    binmode STDERR,":encoding($opt_d)";
-    binmode STDOUT,":encoding($opt_d)";
+    _msg("forcing encoding $term_encoding for STDERR and STDOUT\n") if $debug;
+    binmode STDERR,":encoding($term_encoding)";
+    binmode STDOUT,":encoding($term_encoding)";
   };
   _msg $@ if $@;
 }
@@ -153,7 +125,7 @@ if (exists $ENV{TREDHOME}) {
 } elsif (-d "$FindBin::RealBin/../lib/tred") {
   $libDir="$FindBin::RealBin/../lib/tred";
 }
-_msg("Trying $libDir\n") if ($libDir and !$opt_q);
+_msg("Trying $libDir\n") if ($libDir and !$quiet);
 
 $macroFile=undef;
 
@@ -169,20 +141,21 @@ do {
   $libDir=$ld;
 };
 
-$TrEd::Config::quiet=$opt_q;
+$TrEd::Config::quiet=$quiet;
 
-if (defined $opt_c) {
-  @config_file_search_list=($opt_c); # override any other possible config files
+if (defined $config_file) {
+  @TrEd::Config::config_file_search_list=($config_file); 
+  # override any other possible config files
 } else {
   set_default_config_file_search_list();
 }
 
 my $configFile=read_config();
-my $safe=$opt_F; # so that it cannot be changed from outside
+my $safe=$safe_mode; # so that it cannot be changed from outside
 
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
-if (defined $opt_m) {
-  $macroFile=$opt_m;
+if (defined $macro) {
+  $macroFile=$macro;
 }
 ####################################
 
@@ -247,7 +220,8 @@ use Exporter;
   setlocale(LC_NUMERIC,"C");
 };
 
-if ($useCzechLocales) {
+if ($TrEd::Config::useCzechLocales) {
+  no strict;
   use locale;
   use POSIX qw(locale_h);
   setlocale(LC_COLLATE,"cs_CZ");
@@ -256,13 +230,13 @@ if ($useCzechLocales) {
 }
 
 # These are used only in macros and hooks!!!
-$root=undef;
-$this=undef;
+$TredMacro::root=undef;
+$TredMacro::this=undef;
 $TrEd::Macros::FileNotSaved=0;
-$forceFileSaved=0;
+$TredMacro::forceFileSaved=0;
 
-$_NoSuchTree=0; # for compatibility with Graph2Tred
-$NodeClipboard=undef;
+$TredMacro::_NoSuchTree=0; # for compatibility with Graph2Tred
+$TredMacro::NodeClipboard=undef;
 
 $fileNo=0;
 
@@ -270,45 +244,46 @@ $fileNo=0;
 #$TrEd::Basics::on_node_change= \&updateTredMacroGlobals;
 #$TrEd::Basics::on_current_change= \&updateTredMacroGlobals;
 
-$Fslib::Debug=$opt_D;
-if ($opt_q) {
+$Fslib::Debug=$debug;
+if ($quiet) {
   $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
-} elsif ($opt_D) {
+} elsif ($debug) {
   $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
 }
 
-_msg("Reading macros from $macroFile...\n") unless $opt_q;
+_msg("Reading macros from $macroFile...\n") unless $quiet;
 read_macros($macroFile,$libDir);	# read macros
-_msg("done.\n") unless $opt_q;
+_msg("done.\n") unless $quiet;
 
 @files=@ARGV;
 @ARGV=@TredMacro::ARGV;
 
 
 
-%bkmap=(
+my %bkmap=(
 	fs => 'FSBackend',
 	csts => 'CSTS_SGML_SP_Backend',
-	trxml => 'TrXMLBackend'
+	trxml => 'TrXMLBackend',
+	tei => 'TEIXMLBackend'
        );
 
-$Fslib::FSTestListValidity=$opt_V;
+$Fslib::FSTestListValidity=$validate_fs;
 
-$opt_R && Csts2fs::setupTR();
-if ($opt_X ne "") {
-  Csts2fs::setupSpec(split ',',$opt_X);
+$csts_tecto && Csts2fs::setupTR();
+if ($csts_tree_attrs ne "") {
+  Csts2fs::setupSpec(split ',',$csts_tree_attrs);
 }
 
-@Fs2csts::extra_attributes=split /,/,$opt_x;
+@Fs2csts::extra_attributes=split /,/,$csts_xargs;
 
-if ($opt_f) {
-  my $format=$opt_f ? lc($opt_f) : "";
+if ($output_format) {
+  my $format=$output_format ? lc($output_format) : "";
   unless ( $backend=$bkmap{$format} ) {
     die "Unknown format $format. Use -f [fs|csts|trxml]\n";
   }
 }
 
-$TrEd::Convert::inputenc=$opt_n if $opt_n;
+$TrEd::Convert::inputenc=$file_encoding if $file_encoding;
 
 startMain();
 
@@ -340,7 +315,7 @@ sub startMain {
   my $grp={
 	   treeNo => 0,
 	   FSFile => undef,
-	   macroContext =>  defined($opt_t) ? $opt_t : 'TredMacro',
+	   macroContext =>  defined($start_context) ? $start_context : 'TredMacro',
 	   currentNode => undef,
 	   root => undef
 	  };
@@ -348,7 +323,7 @@ sub startMain {
   #  eval (join("",@macros)."\n return 1;");
   my $context = $grp->{macroContext};
 
-  if ($opt_L) {
+  if ($start_server) {
     require TrEd::Cipher;
     # Start btred server
     preloadFiles($grp,\@files);
@@ -364,7 +339,7 @@ sub startMain {
       die "Was expecting the session key!\n";
     }
 
-    my $port=$opt_L;
+    my $port=$start_server;
     chomp (my $host=`/bin/hostname`); #$ENV{HOSTNAME};
     my $server = new IO::Socket::INET (LocalHost => $host,
 				       LocalPort => $port,
@@ -374,17 +349,17 @@ sub startMain {
 					     );
     die "Cannot open socket at $host:$port!\n" unless $server;
     _msg("Waiting for hub on $host:$port\n");
-    $opt_b=~s/\s//g;
+    $allow_host=~s/\s//g;
     # resolve peer IP
-    if ($opt_b) {
-      ($opt_b) = (`LC_ALL=C host "$opt_b"` =~ / has address (.*)$/) if ($opt_b =~/[^:.0-9]/);
-      _msg("Awaiting connection from $opt_b\n");
+    if ($allow_host) {
+      ($allow_host) = (`LC_ALL=C host "$allow_host"` =~ / has address (.*)$/) if ($allow_host =~/[^:.0-9]/);
+      _msg("Awaiting connection from $allow_host\n");
     }
     my ($hub,$peer);
     do {
       $hub = $server->accept();
       $peer=$hub->peerhost();
-      if ($hub and $opt_b and $peer ne $opt_b) {
+      if ($hub and $allow_host and $peer ne $allow_host) {
 	_msg("Denying connection to peer $peer!\n");
 	$hub->close();
 	undef $hub;
@@ -486,7 +461,7 @@ sub startMain {
 	#open STDOUT, ">&OLDSTDOUT" or die "Can't dup OLDSTDOUT: $!";
 
 	_end_response($control,$hub);
-	_msg("The processing of request $request_number completely finished.\n");
+	_msg("The processing of request $request_no completely finished.\n");
       } elsif ($request{REQUEST_TYPE} eq 'QUIT') {
 	_msg "Quitting on client's request\n";
 	$hub->print("OK\n");
@@ -498,7 +473,10 @@ sub startMain {
 	preloadFiles($grp,\@files);
 	$hub->print("OK\n");
 	_end_response($control,$hub);
-	exit 0;
+      } elsif ($request{REQUEST_TYPE} eq 'LIST') {
+	_msg "Listing all open files at client's request\n";
+	$hub->print(join("\n",@files),"\n");
+	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
 	_msg "Reloading all open files at client's request\n";
 	closeFile($grp);
@@ -506,7 +484,6 @@ sub startMain {
 	@files=();
 	$hub->print("OK\n");
 	_end_response($control,$hub);
-	exit 0;
       } else {
 	$hub->print("ERROR: UNKNOWN REQUEST TYPE $request{REQUEST_TYPE}\n");
 	_end_response($control,$hub);
@@ -516,42 +493,42 @@ sub startMain {
   } else {
     init_safe_mode($grp) if $safe;
     my $pre='';
-    $pre .= "do { " if ($opt_T);
-    $pre .= "while (\$this) {" if ($opt_N or $opt_H);
-    $post.= "\$this=\$this->following; \n}" if ($opt_N);
+    $pre .= "do { " if ($all_trees);
+    $pre .= "while (\$this) {" if ($all_nodes or $all_nonhidden_nodes);
+    my $post.= "\$this=\$this->following; \n}" if ($all_nodes);
     $post.= "\$this=\$this->following_visible(\$grp->{FSFile}->FS); \n}"
-      if (not $opt_N and $opt_H);
-    $post.= " } while NextTree();" if ($opt_T);
-    $premacro= <<EOL;
+      if (not $all_nodes and $all_nonhidden_nodes);
+    $post.= " } while NextTree();" if ($all_trees);
+    my $premacro= <<EOL;
 package $context;
 sub _btred_eval_ {
 $pre
-$script;
+$code;
 $post
 }
 
-$opt_i;
+$initial_code;
 EOL
 
-    _msg "<script>\n$premacro;\n</script>\n" unless $opt_q;
+    _msg "<script>\n$premacro;\n</script>\n" unless $quiet;
     doEvalMacro($grp,$premacro);
 
     exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
-    preloadFiles($grp,\@files) if $opt_P; # -P : load all files into memory
+    preloadFiles($grp,\@files) if $preload; # -P : load all files into memory
 
-    exit if $opt_P and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
+    exit if $preload and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
     openFile($grp,$files[$fileNo]) if $fileNo <= $#files; # goto first file
     if (@files) {
       do {
-	_msg "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $opt_Q;
+	_msg "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $Quiet;
 	doEvalMacro($grp,"$context->_btred_eval_();");
 	STDOUT->flush();
 	STDERR->flush();
-	_msg "Done.\n" unless $opt_q;
-	saveFile($grp) if ($grp->{FSFile}->notSaved or $opt_S);
+	_msg "Done.\n" unless $quiet;
+	saveFile($grp) if ($grp->{FSFile}->notSaved or $save);
       } while (nextFile($grp));
     } else {
-      _msg "No files to process!\n" unless $opt_Q;
+      _msg "No files to process!\n" unless $Quiet;
     }
     doEvalHook($grp,"exit_hook");
   }
@@ -568,7 +545,7 @@ sub currentFileNo {
 
 sub gotoFile {
   my ($grp,$fn)=@_;
-  return 0 unless $opt_L or doEvalHook($grp,"goto_file_hook") ne 'stop';
+  return 0 unless $start_server or doEvalHook($grp,"goto_file_hook") ne 'stop';
   return 0 if ($fn>$#files or $fn<0);
   $fileNo=$fn;
   openFile($grp,$files[$fileNo]);
@@ -601,7 +578,7 @@ sub preloadFiles {
       $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
     }
     next if exists($grp->{preloaded}->{$f});
-    _msg "Preloading: $f (",$fno++,"/$filecount)\n" unless $opt_Q;
+    _msg "Preloading: $f (",$fno++,"/$filecount)\n" unless $Quiet;
     my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f} = $fsfile;
@@ -639,7 +616,7 @@ sub openFile {
   $grp->{currentNode}=undef;
   applyFileSuffix($grp,$goto);
 
-  doEvalHook($grp,"file_opened_hook") unless $opt_L;
+  doEvalHook($grp,"file_opened_hook") unless $start_server;
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
@@ -681,14 +658,14 @@ sub saveFile {
 
   $grp->{FSFile}->changeBackend($backend) if ($backend);
   my $out=$f;
-  $out=~s/$opt_s$/$opt_a/ if ($opt_s or $opt_a);
-  $out=~s/^$opt_p/$opt_r/ if ($opt_p or $opt_r);
+  $out=~s/$strip_suffix$/$append_suffix/ if ($strip_suffix or $append_suffix);
+  $out=~s/^$strip_prefix/$add_prefix/ if ($strip_prefix or $add_prefix);
   if ($f eq $out) {
     unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
     rename $f, "$f~" if (-f $f);
   }
 
-  _msg "Saving $f as $out\n" unless $opt_Q;
+  _msg "Saving $f as $out\n" unless $Quiet;
 
 
   unless ($grp->{FSFile}->writeFile($out)) {
@@ -700,7 +677,7 @@ sub saveFile {
 sub closeFile {
   my ($grp)=@_;
 
-  undef $NodeClipboard;
+  undef $TredMacro::NodeClipboard;
   $grp->{root}=undef;
   $grp->{FSFile}=undef;
   $grp->{treeNo}=undef;
@@ -718,7 +695,7 @@ sub doEvalHook {
   $TredMacro::forceFileSaved=0;
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
   _msg "$@" if $@;
-  exit 1 if ($@ and !$opt_W and !$opt_L);
+  exit 1 if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
     if ($TredMacro::FileNotSaved eq '?') {
@@ -748,7 +725,7 @@ sub doEvalMacro {
   my $result=do_eval_macro($group,$macro);
 
   _msg "$@" if $@;
-  exit 1 if ($@ and !$opt_W and !$opt_L);
+  exit 1 if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
     $TredMacro::FileNotSaved=0 if $TredMacro::FileNotSaved eq '?';
@@ -805,7 +782,222 @@ sub updateTredMacroGlobals {
   print "updateTredMacroGlobals: $TredMacro::root->{form}\n";
 }
 
+__END__
 
-### Local Variables:
-### mode: cperl
+=head1 ntred
+
+btred - non-interactive scriptable version of the tree editor TrEd
+
+=head1 SYNOPSIS
+
+  btred [-c config-file]
+        [-t context] [-m macro-file] [-e code] [-i init-code]
+        [-N|-H] [-T] [-S] [-P] [-F]
+        [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
+        [-f out-fmt] [-n file-encoding] [-d terminal-encoding]
+        [-W] [-q|-Q] [-D] [-V] [-L port] [-b hub]
+        [-x extra_attribs] [-X gov,ord] [-R]
+        [-o script options -- ] files...
+or
+  btred -u          to show usage
+  btred -h          to show help
+  btred --man       to show manual page
+
+=head1 DESCRIPTION
+
+BTrEd loads given macro-file and executes given code for each file.
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--macro-file|-m> filename
+
+File with macro definitions to load.  If no macro-file is given,
+standard macro file (see TrEd documentation) is used.
+
+=item B<--execute|-e> code
+
+Macro code to apply to given files. If no code is specified, btred
+expects a function called `autostart' to be defined in the used
+context and defaults to `autostart()' as the macro code.
+
+The macro code may use all functions defined in the given macro file,
+the default macro file tred.def, plus all functions and methods from
+Fslib (see Fslib documentation).
+
+Note, that a lot of information on the current node, file etc. can be
+obtained using some pre-defined macro from `tred.def'. The
+documentation for `tred.def' is a highly recommended reading for btred
+macro coder and macros defined there in should be prefered in all
+applicable situations.
+
+As in TrEd, the following variables may be used in the macros:
+
+$this - the current node (the root of the first tree in a file at the
+beginning)
+
+$root - the root node of the current tree
+
+$grp->{FSFile} - current FSFile object (see section on FSFile in Fslib
+documentation)
+
+$grp->{treeNo}       - current tree number
+
+$grp->{macroContext} - current macro context
+
+$FileChanged ($TredMacro::FileChanged) - macro may change this to 1 to
+indicate that the file should be saved at the end of the
+pocessing. This variable is called $FileNotSaved in older
+documentation. Both names are equally usable.
+
+=item B<--initial-code|-i> code
+
+Code to be evaluated before any file is open.
+
+=item B<--context|-t>
+
+Start in the given macro context (Perl package).
+The default context is `TredMacro'.
+
+=item B<--strip-prefix|-p> regexp
+
+Remove strings matching given regexp from the beginning of filenames
+before saving.
+
+=item B<--add-prefix|-r> prefix
+
+Prepend output filenames with the given prefix.
+
+=item B<--strip-suffix|-s> regexp
+
+Strip strings matching given regexp from the end of filenames.
+
+=item B<--append-suffix|-a> suffix
+
+Append given suffix to the filenames.
+
+=item B<--output-format|-f> [fs|csts|trxml|tei]
+
+Format to use for files being saved.
+
+=item B<--config-file|-c> filename
+
+TrEd configuration file.
+
+=item B<--all-trees|-T>
+
+Apply the macro code to all trees (wrapping the code into a
+C<do { CODE } while NextTree()> loop).
+
+=item B<--all-nodes|-N>
+
+Apply the macro code tn all nodes (you still must use --all-trees or
+-T to aplly to all trees in a file) (wrapping the code into a C<while
+($this) { CODE ; $this=$this->following }";> loop).
+
+=item B<--all-nonhidden-nodes|-H>
+
+Apply the macro code to all nodes except the hidden ones (you still
+must use --all-trees or -T to process all trees in a file). This
+option wraps the code into a C<while ($this) { CODE ;
+$this=$this->following_visible(FS()) }";> loop).
+
+=item B<--file-encoding|-n> encoding
+
+Allows to specify character encoding of input files (does not apply to
+XML files) and is probably only useful with Perl >= 5.8.
+
+=item B<--terminal-encoding|-d> encoding
+
+Automatically apllies given character encoding to all stdout and
+stderr output operations. Works only with Perl >= 5.8.
+
+=item B<--save|-S>
+
+Unconditionally save files after macro code was applied.  By default,
+files are saved only if the C<$FileChanged> variable has been set to 1
+within the macro code.
+
+=item B<--safe-mode|-F>
+
+Run macro code in a safe compartment restricting some operations that
+could be used by a malicious code writer to explore and compromise the
+user's environment and potentially the entire system. Most notably,
+this blocks most IO operations. NO WARRANTY! If unsure, don't run the
+macro code at all.
+
+=item B<--csts-tree-attributes|-X> gov,ord
+
+Allows provide comma separated list consisting of two names for CSTS
+elements that contain the necessary information to build a tree out of
+a CSTS file. The first one shoud contain the index of the governing
+node and the second one the topological order of the node in the tree.
+
+=item B<--tectogrammatical-trees|-R>
+
+Build tectogrammatic trees from CSTS files.
+
+=item B<--fs2csts-attributes|-x> list
+
+Comma separated list of FS attribute names that
+should be preserved as <x> elements when saving to CSTS.
+
+=item B<--confing-file|-c> filename
+
+Use given TrEd configuration file.
+
+=item B<--preload-files|-P>
+
+Preload all given files into memory before applying the macros.
+
+=item B<--warn-only|-W>
+
+Do not stop (die) on errors, just warn.
+
+=item B<--validate-fs|-V>
+
+Force Fslib to test validity of values assigned to @L (list)
+attributes in FS files.
+
+=item B<--quiet|-q>
+
+Print only general processing information on stderr.
+
+=item B<--very-quiet|-Q>
+
+Don't print anything to stderr at all (except for fatal errors).
+
+=item B<--debugging|-D>
+
+Print a lot of debugging information on the stderr.
+
+=item B<--server-port|-L> port
+
+Start btred server, listening on given port; implies -P. Use a
+suitable client such as B<ntred> to apply a macro code on the files
+possesed by the server.
+
+=item B<--allow-host|-b> hostname
+
+Accept only connections from given host when operating in the
+server-mode.
+
+=item B<--usage|-u>
+
+Print a brief help message on usage and exits.
+
+=item B<--help|-h>
+
+Prints the help page and exits.
+
+=item B<--man>
+
+Displays the help as manual page.
+
+=head1 AUTHOR
+
+Petr Pajas <pajas@matfyz.cz>
+
+Copyright 2000-2003 Petr Pajas, All rights reserved.
 
