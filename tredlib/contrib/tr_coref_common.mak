@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-04-09 16:03:39 pajas>
+## Time-stamp: <2003-04-17 12:26:10 pajas>
 
 package Coref;
 
@@ -45,6 +45,10 @@ sub sort_attrs_hook {
 	  sort {uc($a) cmp uc($b)}
 	  grep(!/^(?:trlemma|func|form|coref|cortype|corlemma|corinfo|gender|number|commentA|memberof|aspect)$/,@$ar));
   return 1;
+}
+
+sub do_edit_attr_hook {
+  Tectogrammatic::do_edit_attr_hook(@_);
 }
 
 sub enable_attr_hook {
