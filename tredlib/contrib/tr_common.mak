@@ -120,16 +120,18 @@ sub upgrade_file {
 sub default_tr_attrs {
   return unless $grp->{FSFile};
   stdout("Using standard patterns\n");
-    SetDisplayAttrs('<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
-		    'text:<? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}#{-tag:LEMMA_".$${trlemma}."}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
-		    'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
-		    'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>');
-    SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
-		      "afun:\t\${afun}\ntag:\t\${tag}".
-		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
-		      '<?"\nframe:\t\${framere}" if $${framere} ne "" ?>'.
-		      '<?"\nframe_id:\t\${frameid}" if $${frameid} ne "" ?>');
+  SetDisplayAttrs('<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? "$${_light}"if$${_light}and$${_light}ne"_LIGHT_" ?>',
+		  '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
+		  'text:<? "#{-background:cyan}" if $${_light}eq"_LIGHT_" ?><? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}#{-tag:LEMMA_".$${trlemma}."}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
+		  'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
+                  'style:<? "#{Node-addwidth:7}#{Node-addheight:7}#{Oval-fill:cyan}" if $${_light}eq"_LIGHT_" ?>',
+		  'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>'
+		 );
+  SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
+		    "afun:\t\${afun}\ntag:\t\${tag}".
+		    '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
+		    '<?"\nframe:\t\${framere}" if $${framere} ne "" ?>'.
+		    '<?"\nframe_id:\t\${frameid}" if $${frameid} ne "" ?>');
   upgrade_file();
   return 1;
 }
