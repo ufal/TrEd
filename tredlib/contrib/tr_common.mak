@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-05 11:18:18 pajas>
+## Time-stamp: <2001-11-19 11:04:14 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -78,9 +78,9 @@ sub QueryTrlemma {
     #
     # Predelat na entity: &Comma; &Colon; atd.
     #
-    (['Comma','&Comma;','???','???','Coord'],
-     ['Colon','&Colon;','???','???','Coord'],
-     ['Dash','&Dash;','???','???','Coord'],
+    (['Comma','&Comma;','???','???','CONJ'],
+     ['Colon','&Colon;','???','???','CONJ'],
+     ['Dash','&Dash;','???','???','CONJ'],
      ['Lpar','&Lpar;','???','???'],
      ['Forn','&Forn;','???','???'],
      ['Rcp','&Rcp;','???','???','PAT'],
@@ -103,6 +103,7 @@ sub QueryTrlemma {
      ['ony-¾en.','on','FEM','PL'],
      ['ona-pl-neut.','on','NEUT','PL'],
      ['ten','ten','???','???'],
+     ['tak','tak','???','???','EXT'],
     );
   my @selected=grep { 
     $node->{trlemma} eq $_->[1] and 
