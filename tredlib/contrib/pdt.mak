@@ -788,6 +788,7 @@ sub GetFather_TR {
   }
   return () unless $node;
   $node=$node->parent;
+  return () unless $node;
   return ($node) if !is_coord_TR($node);
   return (expand_coord_apos_TR($node));
 } # GetFather
