@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-25 20:32:58 pajas>
+## Time-stamp: <2004-11-29 18:37:30 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -981,8 +981,132 @@ sub delete_analytical_node_from_all_layers {
   ChangingFile(1);
 }#join_with_mother
 
+#bind SplitTreeHere to backslash menu Start New Tree Here
+
+=item SplitTreeHere
+
+Creates a new tree after the current one and moves the part of the
+sentence starting at current node to it. The current node must be AID
+node. All ord-like attributes are correctly normalized.
+
+=cut
+
+sub _STHe{
+  print@_,"\n"if@_;
+  $_->{_light}=''foreach$root->descendants;
+}#_STHe
+sub SplitTreeHere {
+  my(@tomove,@tostay);
+  _STHe("Cannot split on this node."),return unless$this->{AID};
+  foreach my$node($root->descendants){
+    $node->{_light}='';
+    push@tomove,$node if$node->{AID}and$node->{ord}>=$this->{ord};
+    push@tostay,$node if$node->{AID}and$node->{ord}<$this->{ord};
+  }
+  $_->{_light}='_LIGHT_magenta'foreach(@tomove);
+  $_->{_light}='_LIGHT_blue'foreach(@tostay);
+  my@problematic=grep{$_->{TID}}$root->children;
+  foreach my$prb(@problematic){
+    my@aidch=grep{$_->{AID}}$prb->children;
+    if(grep{$_->{_light}eq'_LIGHT_magenta'}@aidch and
+       not grep{$_->{_light}eq'_LIGHT_blue'}@aidch){
+      push@tomove,$prb;
+      $prb->{_light}='_LIGHT_magenta';
+    }elsif(not grep{$_->{_light}eq'_LIGHT_magenta'}@aidch and
+           grep{$_->{_light}eq'_LIGHT_blue'}@aidch){
+      push@tostay,$prb;
+      $prb->{_light}='_LIGHT_blue';
+    }else{
+      _STHe("Cannot decide $prb->{trlemma}."),return;
+    }
+  }
+
+  # Create new tree root:
+  my($osuf,$nsuf)=('A','B');# to be computed!
+  my$oldsent=$root;
+  my$newsent=NewTreeAfter();
+  $newsent->{func}='SENT';
+  $newsent->{trlemma}=$oldsent->{trlemma}.$nsuf;
+  $newsent->{form}=$newsent->{trlemma};
+  $newsent->{origf}=$newsent->{trlemma};
+  $newsent->{afun}='AuxS';
+  $newsent->{dord}=0;
+  $newsent->{ord}=0;
+  $newsent->{sentord}=0;
+  $newsent->{ID1}=$oldsent->{ID1}.$nsuf;
+  $newsent->{lemma}='#';
+  $newsent->{tag}='Z#-------------';
+  $newsent->{para}=$oldsent->{para};
+  $newsent->{reserve1}='TR_TREE';
+  $oldsent->{trlemma}.='A';
+  $oldsent->{form}.=$osuf;
+  $oldsent->{origf}.=$osuf;
+  $oldsent->{ID1}.=$osuf;
+
+  # Rehang:
+  with_AR{
+    foreach my$node(@tomove){
+      if($node->{AID}and$node->parent->{_light}ne$node->{_light}){
+        CutPaste($node,$newsent);
+      }
+    }
+    foreach my$node(@tostay){
+      if($node->{AID}and$node->parent->{_light}ne$node->{_light}){
+        CutPaste($node,$oldsent);
+      }
+    }
+  };
+  foreach my$node(@tomove){
+    print$node,"\n";
+    print$node->{trlemma},"\n";
+    if($node->parent->{_light}ne$node->{_light}){
+      CutPaste($node,$newsent);
+    }
+  }
+  foreach my$node(@tostay){
+    if($node->parent->{_light}ne$node->{_light}){
+      CutPaste($node,$oldsent);
+    }
+  }
+
+  # ords
+  with_AR{
+    NormalizeOrds(SortByOrd(scalar GetNodes()));
+    my$node=$root->firstson;
+    while($node){
+      $node->{ordorig}=$node->parent->{ord};
+      $node=$node->following();
+    }
+  };
+  NormalizeOrds(SortByOrd(scalar GetNodes()));
+  _STHe();
+  PrevTree();
+  with_AR{
+    NormalizeOrds(SortByOrd(scalar GetNodes()));
+    my$node=$root->firstson;
+    while($node){
+      $node->{ordorig}=$node->parent->{ord};
+      $node=$node->following();
+    }
+  };
+  NormalizeOrds(SortByOrd(scalar GetNodes()));
+  $_->{sentord}=($_->{AID}?$_->{ord}:999)
+    foreach(($newsent->descendants,$oldsent->descendants));
+  _STHe('Done.');
+}# SplitTreeHere
+
+
+
+#### TFA
+
+#bind edit_tfa to Alt+t menu Edit TFA attribute
+sub edit_tfa {
+  EditAttribute($this,'tfa');
+}
+
+
 #ifinclude <contrib/pdt_tags.mak>
-#bind show_tag to Alt+T
+#bind show_tag to Alt+T menu Show detailed morphological tag description
 sub show_tag {
   describe_tag($this->{tag});
 }
