@@ -18,7 +18,6 @@ sub test {
     my $line2=$f->getline();
     return ($line1 =~ /^\s*<\?xml / and ($line2 =~ /^\s*<p[\s>]/
 	   or $line2 =~ /^\s*<text>/ or $line2 =~/^<!DOCTYPE text /));
-    
   } else {
     my $fh = ZBackend::open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
