@@ -451,8 +451,9 @@ sub addForms {
 sub addFrameElements {
   my ($self,$elems,$elements)=@_;
   my $doc=$self->doc();
-  foreach (split /\s+/,$elements) {
-    if (/^([A-Z0-9]+)([[(])?([^])]*)[])]?/) {
+  my @elements=$elements=~/(?:^\s*|\s+)[A-Z0-9]+(?:[[(][^])]*[])])?/g;
+  foreach (@elements) {
+    if (/^\s*([A-Z0-9]+)([[(])?([^])]*)[])]?$/) {
       my $elem=$doc->createElement("element");
       $elem->setAttribute("functor",$self->conv->encode($1));
       if ($2 eq '(') {
