@@ -3,8 +3,18 @@
 #insert connectToRemoteControl as menu Connect to Remote Control
 #insert disconnectFromRemoteControl as menu Disconnect from Remote Control
 
+###
+## This macro realises a communication with a remote control. It can be any
+## server accepting tcp communication and sending to its client (TrEd) commands. 
+## Command is simply a name of TrEd's macro to be executed. Each command must be
+## on one line, the usual socket end-of-line (\015\012) is expected (i.e. each
+## line of input is chopped twice).
+###
+
 $default_remote_addr='localhost';
 $default_remote_port='2345';
+$remote_control_socket=undef;
+$remote_control_notify=undef;
 
 sub resolveRemoteCommand {
   my ($grp,$macro)=@_;
@@ -18,78 +28,97 @@ sub resolveRemoteCommand {
   return undef;
 }
 
-sub onRemoteCommand {
+sub runCommand {
+  my ($grp,$command)=@_;
 
+  print STDERR "Got $command command from remote control server\n";
+  chop $command; chop $command;
+  my $macro=resolveRemoteCommand($grp,$command);
+  if (defined($macro)) {
+    main::doEvalMacro($grp,$macro);
+  } else {
+    print STDERR "Remote command $command not recognized!\n";
+  }  
+}
+
+sub onRemoteCommand {
+  my $grp=shift;
+  print "$remote_control_socket\n";
   print STDERR "reading from socket REMOTE_CONTROL\n";
   if (eof($remote_control_socket)) {
-    $grp->{top}->fileevent(REMOTE_CONTROL,"readable",undef);
-    print STDERR "Disconnected from remote control by server!\n";
-    close $remote_control_socket || die "close: $!";
+    disconnectFromRemoteControl("Disconnected from remote control server!");
     return;
   }
-  if ($_=<$remote_control_socket>) {
-    chomp $_;
-    print STDERR "Got $_ command from remote control server\n";
-    my $macro=resolveRemoteCommand($grp,$_);
-    if (defined($macro)) {
-      main::doEvalMacro($grp,$macro);
-    } else {
-      print STDERR "Remote command $_ not recognized!\n";
-    }
+  if (defined($_=<$remote_control_socket>)) {
+    runCommand($grp,$_);
   } else {
-    $grp->{top}->fileevent($remote_control_socket,"readable",undef);
-    print STDERR "Error reading from socket, aborting communication!\n";
-    close $remote_control_socket || die "close: $!";
+    disconnectFromRemoteControl("Error reading from socket!\nDisconnecting remote control server!\n");
     return;
   }
 }
 
+sub periodicSocketCanReadCheck {
+  my $grp=shift;
+  my @can_read;
+  if (@can_read=$remote_control_socket_sel->can_read(0)) {
+    foreach (@can_read) {
+      onRemoteCommand($grp) if ($_ == $remote_control_socket);
+    }
+  }
+}
 
 sub connectToRemoteControl {
 
   use IO::Socket;
+  use IO::Select;
 
   disconnectFromRemoteControl();
-
+  print "Macro connectToRemoteControl is here!\n";
 
   my ($peer_addr,$peer_port)=askRemoteControlInfo();
   return unless defined($peer_addr) and defined($peer_port);
 
-  print STDERR "Connecting to $remote on port $port\n";
+  print STDERR "Connecting to $peer_addr on port $peer_port\n";
+
+  $remote_control_socket
+    = new IO::Socket::INET( PeerAddr => $peer_addr,
+			    PeerPort => $peer_port,
+			    Proto => 'tcp' );
+  die "Couldn't open socket: $!\n"
+    unless ($remote_control_socket);
 
   if ($^O eq "MSWin32") {
-    print STDERR "$^X $libDir/contrib/stupid_echoing_client.pl $peer_addr $peer_port |";
-    local *INPUT;
-    open INPUT,"$^X $libDir/contrib/stupid_echoing_client.pl $peer_addr $peer_port |" 
-      || die "cannot init echoing client\n";
-    $remote_control_socket=\*INPUT;
-    $grp->{top}->fileevent($remote_control_socket,'readable',\&onRemoteCommand);
+    print STDERR "MSWin32 platform detected.\n";
+    $remote_control_socket_sel = new IO::Select( $remote_control_socket );
+    $remote_control_notify=$grp->{top}->
+      repeat(100,[\&periodicSocketCanReadCheck, $grp ]);  
   } else {
-    $remote_control_socket
-      = new IO::Socket::INET( PeerAddr => $peer_addr,
-			      PeerPort => $peer_port,
-			      Proto => 'tcp' );
-    unless ($remote_control_socket) {
-      print STDERR "Couldn't open socket: $!\n";
-      return;
-    }
-
-    $grp->{top}->fileevent($remote_control_socket,'readable',\&onRemoteCommand);
+    print STDERR "Non-MS platform: good choice!\n";
+    $grp->{top}->fileevent($remote_control_socket,'readable',[\&onRemoteCommand,$grp]);
   }
 }
 
+sub exit_hook {
+  disconnectFromRemoteControl();
+}
 
 sub disconnectFromRemoteControl {
+  my $message=shift || "Disconnecting from remote control.";
   if (defined($remote_control_socket)) {
-    $grp->{top}->fileevent($remote_control_socket,'readable',undef);
+    if ($^O eq "MSWin32") {
+      $grp->{top}->afterCancel($remote_control_notify);
+      $remote_control_socket_sel->remove($remote_control_socket) if ($^O eq 'MSWin32');
+      undef $remote_control_socket_sel;
+    } else {
+      $grp->{top}->fileevent($remote_control_socket,'readable',undef);
+    }
     close $remote_control_socket;
     undef $remote_control_socket;
-    print STDERR "Disconnecting from remote control.\n";
+    print STDERR "$message\n";
     $grp->{top}->toplevel->
       messageBox(-icon => 'info',
-		 -message => "Disconnecting from remote control.",
+		 -message => $message,
 		 -title => 'Remote control', -type => 'ok');
-
   }
 }
 
