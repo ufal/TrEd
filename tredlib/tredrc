@@ -41,8 +41,11 @@ ActiveTextColor	= blue			;; when mouse is over
 DrawBoxes 	= 0          		;; default value for the View option
 ShowHidden 	= 0          		;; default value for the View option
 
-LineWidth	 	= 2
-LineColor	 	= gray
+LineWidth	 	= 2             ;; TrEd's default is 1
+LineColor	 	= gray          ;; TrEd's default is black
+HiddenLineColor	 	= lightgray     ;; TrEd's default is gray
+DashHiddenLines         = 0             ;; style for edges of hidden nodes: 1=dashed/0=solid
+
 NodeWidth	= 7          		;; width of the oval
 NodeHeight	= 7          		;; height of the oval
 CurrentNodeWidth	= 9          		;; width of the oval

@@ -232,6 +232,8 @@ sub set_config {
   $treeViewOpts->{ymargin}	      =	 val_or_def($confs,"ymargin",2);
   $treeViewOpts->{lineWidth}	      =	 val_or_def($confs,"linewidth",1);
   $treeViewOpts->{lineColor}	      =	 val_or_def($confs,"linecolor",'black');
+  $treeViewOpts->{hiddenLineColor}    =	 val_or_def($confs,"hiddenlinecolor",'gray');
+  $treeViewOpts->{dashHiddenLines}    =	 val_or_def($confs,"dashhiddenlines",0);
   $treeViewOpts->{lineArrow}	      =	 val_or_def($confs,"linearrow",'none');
   $treeViewOpts->{nodeColor}	      =	 val_or_def($confs,"nodecolor",'yellow');
   $TrEd::Print::bwModeNodeColor	      =	 val_or_def($confs,"bwprintnodecolor",'white');

@@ -2,7 +2,7 @@
 # -*- cperl -*-
 #
 ################################################################################
-#use strict;
+#use strict qw(vars);
 
 if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n";
@@ -12,12 +12,13 @@ if ($^V lt v5.6.0) {
 }
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
-	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_n
+	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_n $opt_D
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName %menuBindings %keyBindings
-            $savedSavePixmap $normalSavePixmap $NewFileNo
+            $savedSavePixmap $normalSavePixmap $NewFileNo $stderr $stdout
+	    %save_types %backend_map $debug @normal_win_opts @focused_win_opts
 	    $normalUndoPixmap
 	    $normalRedoPixmap
 	    $normalNextPixmap
@@ -313,6 +314,11 @@ if (not File::Spec->can('rel2abs')) {
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
 
+sub STYLESHEET_FROM_FILE { "<From File>" };
+sub NEW_STYLESHEET { "<New From Current>" };
+sub DELETE_STYLESHEET { "<Delete Current>" };
+
+
 use Exporter;
 @ISA=qw(Exporter);
 
@@ -382,6 +388,51 @@ ApplyGlobalConfig();
 #  $ENV{LC_ALL}=undef;
 #  setlocale(LC_ALL,undef);
 };
+
+sub saveStyleSheets {
+  my ($grp)=@_;
+  open my $f, '>'.$ENV{HOME}."/.tred-stylesheets" || do {
+    print STDERR "can't write to stylesheet file: $ENV{HOME}/.tred-stylesheets\n" if $debug;
+    return 0;
+  };
+  foreach my $stylesheet (keys (%{$grp->{stylesheets}})) {
+    next if $stylesheet eq STYLESHEET_FROM_FILE();
+    print $f "#"x 50,"\n";
+    print $f "stylesheet: $stylesheet\n";
+    for ($grp->{stylesheets}->{$stylesheet}) {
+      print $f map { local $_=$_; tr/\n/\013/; $_."\n" } @{$_->{patterns}};
+      print $f map { "hint: ".$_."\n" } split /\n/, $_->{hint};
+    }
+    print $f "\n\n";
+  }
+  close $f;
+}
+
+sub readStyleSheets {
+  my ($grp)=@_;
+  open my $f, $ENV{HOME}."/.tred-stylesheets" || do {
+    print STDERR "no stylesheet file: $ENV{HOME}/.tred-stylesheets\n" if $debug;
+    return 0;
+  };
+  my $stylesheet="Default";
+  $grp->{stylesheets}={};
+  while (<$f>) {
+    chomp;
+    next unless /\S/;
+    next if /^#/;
+    if (/^stylesheet:\s*(.*)/) {
+      $stylesheet = $1;
+    } elsif (/^hint:\s*(.*)/) {
+      $grp->{stylesheets}->{$stylesheet}->{hint}.="\n" if
+	$grp->{stylesheets}->{$stylesheet}->{hint} ne "";
+      $grp->{stylesheets}->{$stylesheet}->{hint}.=$1;
+    } else {
+      tr/\013/\n/;
+      push @{$grp->{stylesheets}->{$stylesheet}->{patterns}},$_;
+    }
+  }
+  close $f;
+}
 
 sub bookmarkFilelist {
   foreach (@filelists) {
@@ -644,7 +695,8 @@ sub closeFile {
     if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
       print STDERR "Removing ".$fsfile->filename()." from list of open files\n"  if $tredDebug;
       @openfiles=grep { $_ ne $fsfile } @openfiles;
-      unlink autosave_filename($fsfile->filename());
+      my $autosave = autosave_filename($fsfile->filename());
+      unlink $autosave if defined $autosave;
       undef $fsfile;
     }
   }
@@ -875,7 +927,7 @@ sub newFileFromCurrent {
   return unless $win->{FSFile};
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   my $cur=$win->{FSFile};
-  $new=FSFile->new('unnamed'.sprintf('%03d',$NewFileNo++).'.fs',
+  my $new=FSFile->new('unnamed'.sprintf('%03d',$NewFileNo++).'.fs',
 			     'FSBackend',
 			     $cur->FS->clone(),
 			     $cur->hint(),
@@ -901,7 +953,7 @@ sub newFileFromCurrent {
   centerTo($win,$win->{currentNode});
   $win->toplevel->Unbusy() unless $insideEval;
 
-  addToRecent($grp,$f);
+#  addToRecent($grp,$new->filename);
   return 1;
 }
 
@@ -992,7 +1044,8 @@ sub openFile {
 
   print STDERR "TrEd::Convert::inputenc $TrEd::Convert::inputenc\n";
   my $recover='No';
-  if (not $no_err and -r autosave_filename($f)) {
+  my $autosave=autosave_filename($f);
+  if (not $no_err and defined($autosave) and -r $autosave) {
     $recover=
       userQuery($win,
 		"File seems to have an auto-saved recovery file from a previous session.\n".
@@ -1002,7 +1055,7 @@ sub openFile {
 		-buttons => ['Yes', 'No', 'No, delete recovery file']);
   }
   if ($recover eq 'Yes') {
-    $win->{FSFile} = FSFile->newFSFile(autosave_filename($f),$TrEd::Convert::inputenc,@backends);
+    $win->{FSFile} = FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,@backends);
     if ($win->{FSFile}->lastTreeNo>=0 and $FSError==0) {
       $win->{FSFile}->changeFilename($f);
       $win->{FSFile}->notSaved(2);
@@ -1022,7 +1075,7 @@ sub openFile {
     }
   } else {
     if ($recover eq 'No, delete recovery file') {
-      unlink autosave_filename($f);
+      unlink $autosave;
     }
     $win->{FSFile}= FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
   }
@@ -1098,7 +1151,14 @@ sub applyFileSuffix {
   # new: we're the dot in .[0-9]+ (TM)
   if ($goto=~/\.([0-9]+)$/) {
     my $root=getNodeByNo($win,$1);
-    $win->{currentNode}=$root if ($root);
+    if ($root) {
+      $win->{currentNode}=$root;
+      unless (isShown($win,$root)) {
+	$win->{treeView}->set_showHidden(1);
+	print STDERR "SHOW HIDDEN\n";
+      }
+
+    }
   }
   # hey, caller, you should redraw after this!
 }
@@ -1154,7 +1214,8 @@ sub saveFile {
   }
   $win->toplevel->Unbusy() unless $insideEval;
   saveFileStateUpdate($win);
-  unlink autosave_filename($f);
+  my $autosave=autosave_filename($f);
+  unlink $autosave if defined($autosave);
 }
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
@@ -2429,6 +2490,132 @@ sub printThis {
   $canvas->destroy();
 }
 
+sub getWindowPatterns {
+  my ($win)=@_;
+  if ($win->treeView->patterns()) {
+    return @{$win->treeView->patterns()}
+  } elsif ($win->{FSFile}) {
+    return $win->{FSFile}->patterns();
+  } else {
+    return ();
+  }
+}
+
+sub getWindowHint {
+  my ($win)=@_;
+  if (defined($win->treeView->hint)) {
+    return ${$win->treeView->hint()};
+  } elsif ($win->{FSFile}) {
+    return $win->{FSFile}->hint();
+  } else {
+    return undef;
+  }
+}
+
+sub setWindowPatterns {
+  my $win=shift;
+  if ($win->treeView->patterns()) {
+    @{$win->treeView->patterns()}=@_;
+  } elsif ($win->{FSFile}) {
+    $win->{FSFile}->changePatterns(@_);
+  }
+}
+
+sub setWindowHint {
+  my ($win,$hint)=@_;
+  if ($win->treeView->hint()) {
+    ${$win->treeView->hint()}=$hint;
+  } elsif ($win->{FSFile}) {
+    $win->{FSFile}->changeHint($hint);
+  }
+}
+
+sub applyWindowStylesheet {
+  my ($win,$stylesheet)=@_;
+  my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
+  if ($win) {
+    if ($stylesheet eq STYLESHEET_FROM_FILE()) {
+      $win->treeView()->set_patterns(undef);
+      $win->treeView()->set_hint(undef);
+    } else {
+      $win->treeView()->set_patterns($s->{patterns});
+      $win->treeView()->set_hint(\$s->{hint});
+    }
+  }
+  $win->{stylesheet}=$stylesheet;
+}
+
+sub getStylesheetMenuList {
+  my ($grp)=@_;
+  [STYLESHEET_FROM_FILE(),NEW_STYLESHEET(),DELETE_STYLESHEET(),
+   sort keys %{$grp->{stylesheets}}];
+}
+
+sub switchStylesheet {
+  my ($grp,$stylesheet)=@_;
+  my $win=$grp->{focusedWindow};
+  return unless ref($win);
+  my $prevstylesheet=$win->{stylesheet};
+  return if $prevstylesheet eq $stylesheet;
+  if ($stylesheet eq NEW_STYLESHEET()) {
+    $stylesheet=QueryString($grp,"Stylesheet name", "Name: ");
+    if (!defined($stylesheet)) {
+      $stylesheet=$prevstylesheet;
+    } elsif (exists($grp->{stylesheets}->{$stylesheet})) {
+      errorMessage($win,
+		   "Stylesheet named '$stylesheet' already exists!\n");
+      $stylesheet=$prevstylesheet;
+    } else {
+      $grp->{stylesheets}->{$stylesheet}->{patterns}=[getWindowPatterns($win)];
+      $grp->{stylesheets}->{$stylesheet}->{hint}=getWindowHint($win);
+      $grp->{StylesheetMenu}->configure(-options =>
+					getStylesheetMenuList($grp));
+      # $grp->{StylesheetMenu}->addOptions($stylesheet);
+    }
+    applyWindowStylesheet($win,$stylesheet);
+    $grp->{selectedStylesheet} = $stylesheet;
+  } elsif ($stylesheet eq DELETE_STYLESHEET()) {
+    if ($prevstylesheet eq STYLESHEET_FROM_FILE()) {
+      $grp->{selectedStylesheet} = $prevstylesheet;
+      return 0;
+    }
+    $stylesheet=$prevstylesheet;
+    my $answer=userQuery($win,
+			 "Really delete stylesheet '$stylesheet'?",
+			 -bitmap=> 'question',
+			 -title => "Delete stylesheet?",
+			 -buttons => ['Yes', 'No']);
+    if ($answer eq 'Yes') {
+      delete $grp->{stylesheets}->{$stylesheet};
+      $grp->{StylesheetMenu}->configure(-options =>
+					getStylesheetMenuList($grp));
+      foreach $w (@{ $grp->{treeWindows} }) {
+	if ($w->{stylesheet} eq $stylesheet) {
+	  applyWindowStylesheet($win,STYLESHEET_FROM_FILE());
+	  if ($win->{FSFile}) {
+	    get_nodes_win($win);
+	    redraw_win($win);
+	  }
+	}
+      }
+      $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
+    } else {
+      $grp->{selectedStylesheet} = $stylesheet;
+      return 0;
+    }
+  } else {
+    return 0 if (doEvalHook($win,"pre_switch_stylesheet_hook",
+			    $prevstylesheet,$stylesheet) eq 'stop');
+    applyWindowStylesheet($win,$stylesheet);
+    doEvalHook($win,"switch_stylesheet_hook",$prevstylesheet,$stylesheet);
+    if ($win->{FSFile}) {
+      get_nodes_win($win);
+      redraw_win($win);
+    }
+  }
+  return 1;
+}
+
 sub switchContext {
   my ($win,$context)=@_;
   my $prevcontext=$win->{macroContext};
@@ -2614,6 +2801,7 @@ sub newTrEdWindow {
   my $win= new TrEd::Window(newTreeView($grp),framegroup=>$grp);
   $win->{macroContext}= $opt_t && exists($keyBindings{$opt_t}) 
     ? $opt_t : 'TredMacro';
+  $win->{stylesheet} = STYLESHEET_FROM_FILE();
   push @{$grp->{treeWindows}}, $win;
   return $win;
 }
@@ -2669,6 +2857,7 @@ sub focusCanvas {
   my $newfocus=findCanvasWindow($grp,$c);
   if ($newfocus) {
     $grp->{selectedContext}=$newfocus->{macroContext};
+    $grp->{selectedStylesheet}=$newfocus->{stylesheet};
     $treeViewOpts->{drawBoxes}=$newfocus->{treeView}->get_drawBoxes();
     $treeViewOpts->{drawEdgeBoxes}=$newfocus->{treeView}->get_drawEdgeBoxes();
     $treeViewOpts->{showHidden}=$newfocus->{treeView}->get_showHidden();
@@ -2693,6 +2882,7 @@ sub splitWindow {
   foreach (qw(FSFile treeNo currentNode currentFileNo macroContext)) {
     $twin->{$_}=$grp->{focusedWindow}->{$_};
   }
+  applyWindowStylesheet($twin,$grp->{selectedStylesheet});
   get_nodes_win($twin);
   redraw_win($twin);
   focusCanvas($canvas,$grp);
@@ -2802,6 +2992,8 @@ sub startMain {
   } else {
     $group{top}=MainWindow->new();
   }
+
+  readStyleSheets(\%group);
 
   $group{autoSaveCallback}=$group{top}->repeat($autoSave*60000,
 					       [\&autoSaveAll,\%group]) if $autoSave>0;
@@ -3110,7 +3302,8 @@ sub startMain {
 				 switchContext($grp->{focusedWindow}, $context);
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
-	       -borderwidth=> 2)->pack(qw/-side right/);
+	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
+
   my $cM=[];
   if ($createMacroMenu) {
     push @$cM, 
@@ -3482,7 +3675,6 @@ sub startMain {
   $group{prevButton}->pack(-side=> 'left', -padx=>'1');
   $group{nextButton}->pack(-side=> 'left', -padx=> '1');
 
-
   $group{attrButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Attributes",
 			  -relief=> $buttonsRelief,
@@ -3493,6 +3685,15 @@ sub startMain {
 										    -padx=>'1');
   $group{Balloon}->attach($group{attrButton},
 			  -balloonmsg=> "select visible attributes");
+
+  $group{StylesheetMenu}=$group{frame}->
+    Optionmenu(-options => getStylesheetMenuList(\%group),
+	       -textvariable=> \$group{selectedStylesheet},
+	       -command=> [sub { my ($grp,$stylesheet) = @_;
+				 switchStylesheet($grp, $stylesheet);
+			       },\%group],
+	       -relief=> 'groove', #$menubarRelief,
+	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
 
   $group{tieWinddowsButton}=
     $group{frame}->Checkbutton(-takefocus=>0,
@@ -3736,7 +3937,8 @@ sub startMain {
 			},\%group ]);
 
   print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
-
+  $group{selectedStylesheet}=STYLESHEET_FROM_FILE();
+  applyWindowStylesheet($group{focusedWindow},STYLESHEET_FROM_FILE());
   selectFilelist(\%group,'Default');
 #    $group{currentFilelist}=$filelists[0];
 #    if ($group{currentFilelist}->file_at(0)) {
@@ -4844,7 +5046,7 @@ sub customAttrsDialog {
                             -padx 3 -pady 3/);
   disable_scrollbar_focus($cl);
   $cl->BindMouseWheelVert();
-  $cl->insert('end',$win->{FSFile}->patterns,'   ');
+  $cl->insert('end',getWindowPatterns($win),'   ');
   $cl->activate('end');
   $cl->selectionSet('end');
   $cf->Frame(qw/-height 6 -takefocus 0/)->pack();
@@ -4861,7 +5063,7 @@ sub customAttrsDialog {
                             -fill both
                             -padx 3 -pady 3/);
   disable_scrollbar_focus($t);
-  $t->insert('0.0',$win->{FSFile}->hint);
+  $t->insert('0.0',getWindowHint($win));
   $t->BindMouseWheelVert();
 
   # Frame with buttons
@@ -4992,8 +5194,9 @@ sub customAttrsDialog {
   my $result= ShowDialog($d,$e,$grp->{top});
 
   if ($result=~ /OK/) {
-    $win->{FSFile}->changeHint($t->get('0.0','end - 1 chars'));
-    $win->{FSFile}->changePatterns($cl->get(0,$cl->index('end')-2));
+    setWindowPatterns($win,$cl->get(0,$cl->index('end')-2));
+    setWindowHint($win,$t->get('0.0','end - 1 chars'));
+    saveStyleSheets($grp) unless $win->{stylesheet} eq STYLESHEET_FROM_FILE();
     update_value_line($grp);
     redraw_fsfile($grp,$win->{FSFile});
   }

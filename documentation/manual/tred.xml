@@ -2580,6 +2580,23 @@ root# <userinput>make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal>HiddenLineColor</literal></term>
+	  <listitem>
+	    <para>Color used to draw the lines connecting hidden
+	      nodes with their parents. Default is gray.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>dashHiddenLines</literal></term>
+	  <listitem>
+	    <para>Controls is lines connecting hidden nodes with
+             their parents are dashed or solid. Allowed values are 0
+             (solid) or 1 (dashed). Default is 0.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal>NodeColor</literal></term>
 	  <listitem>
 	    <para>Color used to fill an ordinary node of the tree.
