@@ -6,20 +6,21 @@ $frameid_attr="frameid";
 $framere_attr="framere";
 $vallexEditor=undef;
 
-eval { require XML::JHXML; };
-if ($@) {
-  print STDERR "Using LibXML\n" if $::tredDebug;
-  require XML::LibXML;
-  $XMLDataClass="TrEd::ValLex::LibXMLData";
-} else {
-  print STDERR "Using JHXML\n" if $::tredDebug;
-  $XMLDataClass="TrEd::ValLex::JHXMLData";
-}
-
 #$XMLDataClass="TrEd::ValLex::JHXMLData";
 #$XMLDataClass="TrEd::ValLex::LibXMLData";
 
 sub init_XMLDataClass {
+  eval { require XML::JHXML; };
+  if ($@) {
+    print STDERR "Using LibXML\n" if $::tredDebug;
+    eval { require XML::LibXML; };
+    die $@ if $@;
+    $XMLDataClass="TrEd::ValLex::LibXMLData";
+  } else {
+    print STDERR "Using JHXML\n" if $::tredDebug;
+    $XMLDataClass="TrEd::ValLex::JHXMLData";
+  }
+
   if ($XMLDataClass eq "TrEd::ValLex::JHXMLData") {
     require ValLex::JHXMLData;
   } elsif ($XMLDataClass eq "TrEd::ValLex::LibXMLData") {
