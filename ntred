@@ -572,7 +572,7 @@ To kill all remote servers and a hub:
 
 To start remote servers and a hub:
 
-  ntred -i [--servers server[,server,...]] [--server-list server-list]
+  ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--file-list file-list]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--unrestricted]
@@ -660,7 +660,7 @@ necessary for the authentication to the running hub. This defaults to
 
 =head2 HUB/SERVER MODE (-i or --init) OPTIONS
 
-  ntred -i [--servers server[,server,...]] [--server-list server-list]
+  ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--file-list file-list]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--unrestricted]
@@ -673,13 +673,13 @@ necessary for the authentication to the running hub. This defaults to
 A comma separated list of hosts to run btred servers. The hostname may
 be optionally followed by a comma and a port number thus making it
 possible to run several btred servers on one host. If the port number
-is omitted, it defaults to 1600. See also L<--server-list>
+is omitted, it defaults to 1600. See also L<--serverlist>
 
 =item B<--serverlist> filename
 
 This provides more convenient way to specify servers by providing a
 file containing a list of servers, one per line. If neither
-L<--servers> nor L<--server-list> is provided, then the list of
+L<--servers> nor L<--serverlist> is provided, then the list of
 servers is read from ~/.ntred_serverlist.
 
 =item B<--filelist> filename
