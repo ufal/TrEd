@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-10 12:30:59 pajas>
+# Time-stamp: <2001-02-10 13:21:47 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -504,12 +504,9 @@ sub readMacros {
       my $context;
       my $toadopt;
       foreach $context (@contexts) {
-	print "\nFor $context\n";
 	$keyBindings{$context}={} unless exists($keyBindings{$context});
 	foreach $toadopt (@toadopt) {
-	  print "\tAdopting from $toadopt\n";
 	  foreach (keys %{$keyBindings{$toadopt}}) {
-	    print "\t\tkeybinding of $_ to ",$keyBindings{$toadopt}->{$_},"\n";
 	    $keyBindings{$context}->{$_}=$keyBindings{$toadopt}->{$_};
 	  }
 	}
@@ -1580,22 +1577,10 @@ sub startMain {
       Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
 		 $cM)->pack(qw/-side left/);
   }
-  
-#    $group{ContextsMenu}=$group{Menubar}->
-#      Menubutton(qw/-underline 0 
-#                 -indicatoron 1/,
-#  	       -textvariable => \$group{macroContext},
-#                 -menuitems =>
-#  	       cascadeMenus(map (
-#  		       [Button => $_,
-#  			#-command => [sub { #$macroContext=shift;
-#  			#		 },$_],
-#  		       ], sort(keys(%keyBindings)))))->pack(qw/-side right/);
 
   $group{ContextsMenu}=$group{Menubar}->
     Optionmenu(-textvariable => \$group{macroContext},
 	       -command => [sub { my $grp=shift;
-				  print "---",$grp->{macroContext},"\n";
 				  switchContext($grp,$grp->{macroContext}); },\%group],
 	       -underline => 0,
 	       -relief => $menubarRelief,
