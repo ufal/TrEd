@@ -24,7 +24,7 @@ $check_presence=1;
 $check_dependency=1;
 $check_attributes=1;
 @standard_check_list=		# list of attributes to check
-  qw(func form trlemma lemma origf del gram sentmod deontmod TR);
+  qw(func form trlemma lemma origf del memberof gram sentmod deontmod TR);
 
 $id="ord";			# (numeric) attribute which identifies
                                 # elements to compare
@@ -44,7 +44,7 @@ sub pre_switch_context_hook {
   return;
 }
 
-# bind remove_diff_patterns to key space menu Add diff patterns
+# insert remove_diff_patterns as menu Add diff patterns
 sub add_diff_patterns {
   my @pat=GetDisplayAttrs();
   my $hint=GetBalloonPattern();
@@ -61,7 +61,7 @@ sub add_diff_patterns {
 		   );
 }
 
-# bind remove_diff_patterns to key space menu Remove diff patterns
+# insert remove_diff_patterns as menu Remove diff patterns
 sub remove_diff_patterns {
   my $hint=GetBalloonPattern();
   $hint=~s/\n.*_diff_.*(?:\n|$)//g;
