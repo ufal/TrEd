@@ -138,7 +138,7 @@ sub node_style_hook {
 	     );
   }
 
-  draw_coref_arrows($node,$styles,
+  draw_coref_arrows($node,$styles,{},
 		    [split /\|/,$node->{coref}],
 		    [split /\|/,$node->{cortype}],
 		    \%cortype_colors
@@ -150,7 +150,7 @@ sub node_style_hook {
 ########################## Macros ###########################
 
 sub draw_coref_arrows {
-  my ($node,$styles,$corefs,$cortypes,$cortype_colors)=@_;
+  my ($node,$styles,$line,$corefs,$cortypes,$cortype_colors)=@_;
   my $id1=$root->{ID1};
   $id1=~s/:/-/g;
   my (@coords,@colors);
@@ -239,14 +239,15 @@ COORDS
 	      -addwidth => '5'
 	     );
   }
+  $line->{-coords} ||= 'n,n,p,p';
   if (@coords) {
     AddStyle($styles,'Line',
-	      -coords => 'n,n,p,p'.join("",@coords),
-	      -arrow => '&last' x @coords,
-#	      -dash => '&_' x @coords,
-	      -width => '&1' x @coords,
-	      -fill => join("&","",@colors),
-	      -smooth => '&1' x @coords);
+	     -coords => $line->{-coords}.join("",@coords),
+	     -arrow => $line->{-arrow}.('&last' x @coords),
+	     -dash => $line->{-dash},#.('&_' x @coords),
+	     -width => $line->{-width}.('&1' x @coords),
+	     -fill => $line->{-fill}.join("&","",@colors),
+	     -smooth => $line->{-smooth}.('&1' x @coords));
   }
 }
 
