@@ -28,7 +28,7 @@ BEGIN {
 		  $curl $curl_opts
 		  $gzip $gzip_opts
 		  $zcat $zcat_opts
-		  &handle_protocol &set_encoding
+		  &set_encoding
 		  &open_backend &close_backend
 		  &get_protocol &quote_filename);
 
@@ -100,7 +100,7 @@ sub open_pipe {
     if ($rw eq 'w') {
       open $fh, "| $pipe > ".quote_filename($file) || undef $fh;
     } else {
-      open $fh, "$pipe < ".quote_filename($file) || undef $fh;
+      open $fh, "$pipe < ".quote_filename($file)." |" || undef $fh;
     }
   }
   return $fh;
