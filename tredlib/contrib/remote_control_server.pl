@@ -6,6 +6,8 @@ use Socket;
 use IO::Socket;
 use Carp;
 
+my $EOL = "\015\012";
+
 my $port = shift || 2345;
 $port = $1 if $port =~ /(\d+)/; # untaint port number
 
@@ -28,18 +30,20 @@ my ($new_sock,$peer_addr);
 
 while (($new_sock,$peer_addr) = $sock->accept()) {
 
-  my($port,$iaddr) = sockaddr_in($peer_addr);
-  my $name = gethostbyaddr($iaddr,AF_INET);
+  my $name = $new_sock->peerhost();
 
-  logmsg "connection from $name [", inet_ntoa($iaddr), "] at port $port";
+  logmsg "connection from $name [", $new_sock->peerhost(), "] at port ".$new_sock->peerport();
 
   while (defined($_=<STDIN>) and not /disconnect_client/) {
-    print $new_sock $_;
+    chomp $_;
+    print $new_sock $_,$EOL;
+    print STDERR "Echo: $_\n";
     $new_sock->flush();
   }
-  logmsg "end of communication with $name [", inet_ntoa($iaddr), "] at port $port";
+  logmsg "end of communication with $name [", $new_sock->peerhost(), "] at port ".$new_sock->peerport();
 }
 
 close ($sock);
+
 
 
