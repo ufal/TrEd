@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-18 16:49:55 pajas>
+## Time-stamp: <2003-02-05 18:00:48 pajas>
 
 package Tectogrammatic;
 
@@ -23,3 +23,6 @@ sub switch_context_hook {
 }
 
 #include <contrib/tr_common.mak>
+
+#include <contrib/ValLex/tr_vallex_transform.mak>
+
