@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-15 12:02:29 pajas>";
+$timestamp="Time-stamp: <2001-03-16 15:07:24 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -345,6 +345,8 @@ print STDERR "done.\n";
 
 startMain();	# display first tree
 
+print STDERR "TrEd ended.\n";
+
 exit;
 
 ############################
@@ -510,7 +512,7 @@ sub setConfig {
   $defCHeight=(exists $confs->{canvasheight}) ? $confs->{canvasheight} : '12c';
 
   $geometry=(exists $confs->{geometry}) ? $confs->{geometry} : undef;
-  $maxDisplayedValues=(exists $confs->{maxDisplayedValues}) ? $confs->{maxDisplayedValues} : 30;
+  $maxDisplayedValues=(exists $confs->{maxdisplayedvalues}) ? $confs->{maxdisplayedvalues} : 30;
 
   foreach (0..9) {
     @recentFiles[$_]=$confs->{"recentfile$_"};
@@ -651,7 +653,8 @@ sub gotoFile {
 #  askSaveFile($grp);
   $grp->{currentFileNo}=$fn;
   openFile($grp,$grp->{currentFilelist}->file_at($grp->{currentFileNo}));
-  if ($grp->{Filelist}) {
+  if ($grp->{Filelist} and
+	$grp->{filelistCurrentFilelist} eq $filelist) {
     $grp->{Filelist}->activate($grp->{currentFileNo});
     $grp->{Filelist}->selectionClear(0,'end');
     $grp->{Filelist}->selectionSet($grp->{currentFileNo});
@@ -697,7 +700,6 @@ sub closeFile {
     updateTitle($grp);
     redraw_tree($grp);
   }
-#  foreach ($grp->{FSFile}->trees) { DeleteTree($_); }
 }
 
 sub ErrorMessage {
@@ -738,13 +740,32 @@ sub updatePostponed {
   my ($grp)=@_;
 
   if ($grp->{PostponedFileMenu}) {
-    my $menu = $grp->{PostponedFileMenu}->cget(-menu);
+    my $menu = $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
+    $grp->{PostponedFileMenu}->command(-label => 'Kept files',
+				       -state => 'disabled',
+				       -background => '#444444'
+				      );
     my $i=0;
     foreach (@openfiles) {
       $grp->{PostponedFileMenu}->command(-label  => "$i.  ".$_->filename(),
 				      -underline => 0,
 				      -command => [\&openFile,$grp,$_->filename()]);
+      $i++;
+    }
+    $grp->{PostponedFileMenu}->command(-label => 'none',
+				       -state => 'disabled'
+				      ) unless (@openfiles);
+    $grp->{PostponedFileMenu}->command(-label => 'File lists',
+				       -state => 'disabled',
+				       -background => '#444444'
+				      );
+
+    $i='A';
+    foreach (@filelists) { 
+      $grp->{PostponedFileMenu}->command(-label  => "$i.  ".$_->name(),
+					 -underline => 0,
+					 -command => [\&selectFilelist,$grp,$_->name()]);
       $i++;
     }
   }
@@ -778,7 +799,9 @@ sub openFile {
 	  any => 'any non-specific format (csts?), using CstsToFs');
 
   askSaveFile($grp,1);
-  $grp->{top}->Busy(-recurse => 1);
+  $grp->{top}->Busy(-recurse => 1) unless $insideEval;
+
+  # Ask reopen here if file is currently open
 
   foreach (@openfiles) {
     if (ref($_) and $_->filename() eq $f) {
@@ -795,7 +818,7 @@ sub openFile {
       }
       doEvalHook($grp,"file_resumed_hook");
       addToRecent($grp,$f);
-      $grp->{'top'}->Unbusy();
+      $grp->{'top'}->Unbusy() unless $insideEval;
       return 2;
     }
   }
@@ -808,6 +831,7 @@ sub openFile {
   #########################################
   # opening file to find out the file type
   #
+
   if ($f=~/\.f?gz$/i) {
     $gz='gzipped ';
     $in1="$zcat ";
@@ -815,16 +839,15 @@ sub openFile {
   }
   unless (open(F,"$in1$f$in2")) {
     ErrorMessage($grp, "Cannot read from $in1$f$in2\n($!)\n");
-    $grp->{top}->Unbusy();
+    $grp->{top}->Unbusy() unless $insideEval;
     return 0;
-  }
-   else {
+  } else {
     # peep on the first character
     $fs=($_=<F> and /^\@/) ? 'fs' : 'any';
   }
   close(F);
   #
-  #########################################
+  ##########################################
 
 
   print STDERR "File \'$f\' is in $gz", $fs{$fs},"\n" if $tredDebug;
@@ -841,17 +864,13 @@ sub openFile {
   # opening file again, know it is fs
   unless (open(F,"$in1$f$in2")) {
     ErrorMessage($grp,"Cannot read from $in1$f$in2\n($!)\n");
-    $grp->{top}->Unbusy();
+    $grp->{top}->Unbusy() unless $insideEval;
     return 0;
   }
 
   closeFile($grp,1);
 
   $grp->{'FSFile'} = FSFile->newFSFile(\*F);
-
-#  $grp->{'FSFile'} = FSFile->new();
-#  $grp->{'FSFile'}->read(\*F);
-
   $grp->{'FSFile'}->changeFilename($f);
   $grp->{'FSFile'}->changeFileFormat($gz.$fs);
   print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
@@ -882,7 +901,8 @@ sub openFile {
   getNodes($grp);
   doEvalHook($grp,"file_opened_hook");
   redraw_tree($grp);
-  $grp->{'top'}->Unbusy();
+  $grp->{'top'}->Unbusy() unless $insideEval;
+
 
   addToRecent($grp,$f);
   return 1;
@@ -1039,40 +1059,51 @@ sub getNodes {
   # may have the same Ord
 }
 
+############################################################
+############################################################
+############################################################
+# Filelists
+############################################################
+
 sub selectFilelist {
   my ($grp,$list_name)=@_;
   my $fl=switchFilelist($grp,$list_name);
+  print "Switching filelist to $list_name\n";
   return unless defined($fl);
 
-  print "Selecting filelist: ".$fl->name."\n";
   if ($fl ne $grp->{currentFilelist}) {
-    print ($grp->{FSFile}->filename()."\n",
-	   $grp->{currentFilelist}->position($grp->{FSFile}->filename()),"\n")
-      if (ref($grp->{FSFile}));
-    if (
-	ref($grp->{FSFile}) and
-	$grp->{currentFilelist}->position($grp->{FSFile}->filename())>=0
-       ) {
-      print "Found current file ".$$grp->{FSFile}->filename()." in current filelist ".
-	$grp->{currentFilelist}->name.", storing\n";
+    # save file position in the current file-list
+    # before switching
+    if (ref($grp->{FSFile}) and
+	$grp->{currentFilelist}->position($grp->{FSFile}->filename())>=0) {
       $grp->{currentFilelist}->set_current($grp->{FSFile}->filename());
     }
-    print "Setting current filelist to ".$fl->name();
     $grp->{currentFilelist}=$fl;
   }
-  my $pos=$fl->position();
-  print "Position of current file in the filelist is $pos\n";
-  $grp->{fileNo}=max(0,$pos);
-  print "Switching to file at $pos :".$fl->file_at($grp->{fileNo}).", current was ".$fl->current."\n";
-  if ($pos>=0) {
-    print "opening file\n";
-    openFile($grp,$fl->file_at($grp->{fileNo}));
+
+  # find current file
+  $grp->{currentFileNo}=max(0,$fl->position());
+  my $file=$fl->file_at($grp->{currentFileNo});
+
+  print "Setting up file $file, no. $grp->{currentFileNo}\n";
+
+  if (defined($file)) {
+    openFile($grp,$file);
   } else {
-    print "File not in the filelist, so I'm only closing current file\n";
     askSaveFile($grp,1);
     closeFile($grp);  #emtpy filelist
   }
 }
+
+# Find named filelist. Return undef if no such filelist exists
+sub findFilelist {
+  my ($name)=@_;
+  for (@filelists) {
+    return $_ if ($_->name eq $name);
+  }
+  return undef;
+}
+
 
 # this is only a local switch inside the file list dialog window,
 # but returns filelist of a given name as a by-product
@@ -1087,14 +1118,7 @@ sub switchFilelist {
   return $grp->{filelistCurrentFilelist} 
     if (ref($grp->{filelistCurrentFilelist}) and 
 	$list_name eq $grp->{filelistCurrentFilelist}->name);
-  unless ($fl) {
-    for (@filelists) {
-      if ($_->name eq $list_name) {
-	$fl=$_;
-	last;
-      }
-    }
-  }
+  $fl=findFilelist($list_name) unless ($fl);
   return undef unless $fl;
   if ($grp->{Filelist}) {
     $grp->{filelistCurrentFilelist}=$fl;
@@ -1109,6 +1133,7 @@ sub switchFilelist {
     $grp->{Filelist}->see('active');
     $grp->{Filelist}->selectionClear(0,'end');
     $grp->{Filelist}->selectionSet($activate);
+    $grp->{Filelist}->update();
   }
   return $fl;
 }
@@ -1147,19 +1172,23 @@ sub createFilelistBrowseEntry {
 	 } else {
 	   return unless $text ne "";
 	   print "Continuing...$text\n";
-	   my $answer=$w->toplevel->
+	   my $d=$w->toplevel->
 	     Dialog(-text => "File-list named $text does not exist.\n".
 		    "Do you want to create new filelist or rename current?",
-		    -bitmap => 'question', 
+		    -bitmap => 'question',
 		    -title => 'Create/Rename?',
-		    -default_button => 'Create', 
-		    -buttons => ['Create', 'Rename', 'Cancel'])->Show();
+		    -buttons => ['Create', 'Rename', 'Cancel']);
+	   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
+				      $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+	   my $answer=$d->Show();
 	   if ($answer eq 'Create') {
 	     push @filelists, Filelist->new($text);
 	     switchFilelist($grp,$text);
+	     updatePostponed($grp);
 	   } elsif ($answer eq 'Rename') {
 	     $grp->{filelistCurrentFilelist}->rename($text);
 	     $$fl=$text;
+	     updatePostponed($grp);
 	   } else {
 	     $$fl=$grp->{filelistCurrentFilelist}->name
 	       if ($grp->{filelistCurrentFilelist});
@@ -1202,9 +1231,7 @@ sub removeFromFilelist {
   $position=$grp->{currentFileNo} if not defined($position);
   return unless ref($filelist);
 
-  foreach (@_) {
-    $filelist->remove($_);
-  }
+  $filelist->remove(map { $filelist->list_ref->[$_] } @_);
   if ($filelist eq $grp->{currentFilelist}) {
     $grp->{currentFileNo} = min($grp->{currentFileNo},
 				$filelist->file_count-1);
@@ -1212,6 +1239,7 @@ sub removeFromFilelist {
 
   if ($grp->{Filelist} and 
       $grp->{filelistCurrentFilelist} eq $filelist) {
+    print "Da filelist window is visible and I am deleteing a file from it, oh yees!\n";
     $position=min($position,$filelist->file_count-1);
     $grp->{Filelist}->delete(0,'end');
     $grp->{Filelist}->insert('end',$filelist->files);
@@ -1226,11 +1254,15 @@ sub filelistDialog {
 
   use Tk::LabFrame;
 
-  my $grp=shift;
+  my ($grp,$modal)=@_;
   if (defined($grp->{Filelist})) {
-    $grp->{Filelist}->toplevel->deiconify;
-    $grp->{Filelist}->toplevel->focus;
-    $grp->{Filelist}->toplevel->raise;
+    if ($modal) {
+      ShowDialog($grp->{Filelist}->toplevel);
+    } else {
+      $grp->{Filelist}->toplevel->deiconify;
+      $grp->{Filelist}->toplevel->focus;
+      $grp->{Filelist}->toplevel->raise;
+    }
     return;
   }
   return if ($grp->{Filelist});
@@ -1291,28 +1323,29 @@ sub filelistDialog {
 				$t->see('active');
 			      },$grp,$t,$fl])->pack(-side => top);
 
-  $t->bind('<Return>' => [
-			  sub {
-			    my ($w,$grp)=@_;
-			    $grp->{filelistCurrentFilelist}->
-			      set_current($grp->{Filelist}->get('active'));
-			    selectFilelist($grp,$grp->{filelistCurrentFilelist});
-			  },$grp]);
-  $t->bind('<Double-1>' => [
+  unless ($modal) {
+    $t->bind('<Return>' => [
 			    sub {
 			      my ($w,$grp)=@_;
 			      $grp->{filelistCurrentFilelist}->
 				set_current($grp->{Filelist}->get('active'));
 			      selectFilelist($grp,$grp->{filelistCurrentFilelist});
-			    },$grp ]);
-
-  $d->Button(-text => 'Go',
+			    },$grp]);
+    $t->bind('<Double-1>' => [
+			      sub {
+				my ($w,$grp)=@_;
+				$grp->{filelistCurrentFilelist}->
+				set_current($grp->{Filelist}->get('active'));
+				selectFilelist($grp,$grp->{filelistCurrentFilelist});
+			      },$grp ]);
+    $d->Button(-text => 'Go',
 	     -command => [ sub {
-			    my ($grp)=@_;
-			    $grp->{filelistCurrentFilelist}->
-			      set_current($grp->{Filelist}->get('active'));
-			    selectFilelist($grp,$grp->{filelistCurrentFilelist});
-			  },$grp ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
+			     my ($grp)=@_;
+			     $grp->{filelistCurrentFilelist}->
+			       set_current($grp->{Filelist}->get('active'));
+			     selectFilelist($grp,$grp->{filelistCurrentFilelist});
+			   },$grp ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
+  }
   $d->bind('<Destroy>' => [sub { shift;
 				 my $grp=shift;
 				 $grp->{Filelist}=undef;
@@ -1322,7 +1355,11 @@ sub filelistDialog {
 	   [sub { shift; shift->destroy(); },$d ]);
 
   $d->Button(-text => 'Close',
-		     -command => [ sub { shift->destroy(); },$d ])
+	     -command => [sub {
+			    $modal ?
+			      shift->{'selected_button'} = "Cancel" :
+				shift->destroy();
+			  },$d ])
     ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
   if ($grp->{currentFileNo}) {
     $t->activate($grp->{currentFileNo});
@@ -1330,7 +1367,14 @@ sub filelistDialog {
     $t->see('active');
   }
   $t->focus;
-  $d->Popup;
+  if ($modal) {
+    ShowDialog($d);
+    $d->destroy();
+    return $filelist;
+  } else {
+    $d->Popup;
+    return $filelist;
+  }
 
 }
 
@@ -1666,7 +1710,7 @@ sub printThis {
       #print "Pipe successfully opend!\n";
     }
 
-#    $grp->{top}->Busy(-recurse => 1);
+    $grp->{top}->Busy(-recurse => 1);
 
     for (my $t=0;$t<=$#printList;$t++) {
       print "Printing $printList[$t]\n";
@@ -1783,7 +1827,6 @@ sub switchContext {
   return 0 if (doEvalHook($grp,"pre_switch_context_hook",$prevcontext,$context) eq 'stop');
   $grp->{macroContext}=$context;
   doEvalHook($grp,"switch_context_hook",$prevcontext,$context);
-  print "Inside eval: $insideEval\n";
   redraw_tree($grp);
 }
 
@@ -1962,7 +2005,6 @@ sub About {
   my $message="";
   my $fileinfo="";
   my $colinf="";
-  print STDERR "=" x 60,"\n",join("\n",keys(%$grp)),"=" x 60,"\n";
   if ($grp->{FSFile}) {
     $fileinfo=
       "Current file:\n".
@@ -1979,11 +2021,13 @@ sub About {
   }
 
   doEvalHook($grp,"about_file_hook",\$message);
+  my $ver=$version;
+  $ver=~s/\$//g;
   $grp->{top}->toplevel->
     messageBox(-icon => 'info',
 			  -type => 'ok',
 			  -message =>
-			  "TrEd version $version\n\n$fileinfo$colinf$message\n$about\n\nLast update: $lastupdate",
+			  "TrEd $ver\n\n$fileinfo$colinf$message\n$about\n\nLast update: $lastupdate",
 			  -title => 'About');
 }
 
@@ -2078,7 +2122,7 @@ sub startMain {
 				    -command => [\&openFile,\%group,$_]);
     $i++;
   }
-  $group{PostponedFileMenu}=$group{FileMenu}->cascade(-label => "Postponed Files", -underline => 0);
+#  $group{PostponedFileMenu}=$group{FileMenu}->cascade(-label => "Postponed Files", -underline => 0);
 
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label => 'Previous File', -underline => 3, -command => [\&prevFile,\%group]);
@@ -2162,27 +2206,23 @@ sub startMain {
 						if ($grp->{currentNode});
 					    },\%group,\%searchTemplate]],
 	 [Button => 'Find Next', -underline => 7,
-	  -command => [sub {
-			 my ($grp,$template)=@_;
-			 findFirstTemplated($grp,$template,1)
-			   if ($grp->{currentNode});
-		       },\%group,\%searchTemplate]],
+	  -command => [\&doFindFirstTemplated,\%group,\%searchTemplate,1]],
 	 [Button => 'Find Previous', -underline => 5,
-	  -command => [sub {
-			 my ($grp,$template)=@_;
-			 findPrevTemplated($grp,$template,1)
-			   if ($grp->{currentNode});
-		       },\%group,\%searchTemplate]]
+	  -command => [\&doFindPrevTemplated,\%group,\%searchTemplate,1]]
 
 	])->pack(qw/-side left/);
   print STDERR "Creating user menu.\n" if $tredDebug;
+
+
+  $group{PostponedFileMenu} = $group{Menubar}->Menubutton(qw/-text Session -underline 0/)
+    ->pack(qw/-side left/);
+  updatePostponed(\%group);
 
 
   $group{ContextsMenu}=$group{Menubar}->
     Optionmenu(-textvariable => \$group{macroContext},
 	       -command => [sub { my $grp=shift;
 				  switchContext($grp,$grp->{macroContext}); },\%group],
-	       -underline => 0,
 	       -relief => 'groove', #$menubarRelief,
 	       -borderwidth => 2,
 	       -options => [sort(keys(%keyBindings))])->pack(qw/-side right/);
@@ -2211,7 +2251,7 @@ sub startMain {
     }
 
     $group{MacroMenu}=$group{Menubar}->
-      Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
+      Menubutton(qw/-text Shortcuts -underline 0 -menuitems/ =>
 		 $cM)->pack(qw/-side left/);
   }
 
@@ -2252,9 +2292,9 @@ sub startMain {
 				       $backgroundColor ? (-background => $backgroundColor) : ());
 
 
-  $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -menuitems/ =>
+  $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -underline 0 -menuitems/ =>
 	[
-	 [Button => 'About', -command => [\&About,\%group]]])->pack(qw/-side left/);
+	 [Button => 'About', -underline => 0, -command => [\&About,\%group]]])->pack(qw/-side left/);
 
   addBindTags($canvas->Subwidget('scrolled'),'canvas');
   prepareFonts(\%group);
@@ -2377,18 +2417,8 @@ sub startMain {
 			    -image       => $group{top}->Pixmap(-file =>
 								"$libDir/findnext.xpm"),
 			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub {
-					   my ($grp,$template)=@_;
-					   if ($grp->{currentNode}) {
-					     $grp->{'top'}->toplevel->
-					       messageBox(-icon => 'warning',
-							  -message => "No matching node found!",
-							  -title => 'Find Next',
-							  -type => 'ok')
-						 unless( findFirstTemplated($grp,$template,1));
-					   }
-					 },\%group,\%searchTemplate])->pack(-side=>'left',
-									       -padx=>'1');
+			    -command => [\&doFindFirstTemplated,\%group,\%searchTemplate,1])
+      ->pack(-side=>'left', -padx=>'1');
   $group{Balloon}->attach($group{findNextButton},
 		 -balloonmsg => "Find next ...");
   addBindTags($group{'findNextButton'},'my');
@@ -2400,18 +2430,8 @@ sub startMain {
 			    -image => $group{top}->Pixmap(-file =>
 								"$libDir/findprev.xpm"),
 			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub {
-					   my ($grp,$template)=@_;
-					   if ($grp->{currentNode}) {
-					     $grp->{'top'}->toplevel->
-					       messageBox(-icon => 'warning',
-							  -message => "No matching node found!",
-							  -title => 'Find Next',
-							  -type => 'ok')
-						 unless( findPrevTemplated($grp,$template,1));
-					   }
-					 },\%group,\%searchTemplate])->pack(-side=>'left',
-									       -padx=>'1');
+			    -command => [\&doFindPrevTemplated,\%group,\%searchTemplate,1])
+      ->pack(-side=>'left', -padx=>'1');
   $group{Balloon}->attach($group{findPrevButton},
 		 -balloonmsg => "Find previous ...");
   addBindTags($group{'findPrevButton'},'my');
@@ -2488,7 +2508,10 @@ sub startMain {
   #  $group{'top'}->bind('dialog','<Shift-Tab>' => [sub { shift->focusPrev(); }] );
   #  $group{'frame'}->bind('all','<Shift-Tab>' => [sub {1;}]);
   #  $group{'frame'}->bind('all','<Control-Tab>' => [sub {1;}]);
-  
+
+  $group{'frame'}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+  $group{'top'}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+
   $group{'frame'}->bind('my','<Tab>' => [sub { shift; currentNext(@_); Tk->break; },\%group]);
   $group{'frame'}->bind('my','<Shift-ISO_Left_Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
   $group{'frame'}->bind('my','<Shift-Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
@@ -2682,8 +2705,7 @@ sub ShowDialog {
     $cw->grab;
   };
   $focus->focusForce if ($focus);
-  
-  $cw->Wait;
+  Tk::DialogBox::Wait($cw);
 
   eval {
     $oldFocus->focusForce;
@@ -2765,16 +2787,16 @@ sub askSaveFile {
   my ($grp,$keep)=@_;
   return unless ref($grp) and ref($grp->{FSFile}) and $grp->{FSFile}->notSaved;
 
-
-  my $answer=$grp->{top}->Dialog(-text => $grp->{FSFile}->filename()."\n\nFile may be changed!\nDo you want to save it?",
-		      -bitmap => 'question', 
-		      -title => 'Save File Dialog',
-		      -default_button => 'Yes', 
-		      -buttons => ['Yes', 'No', $keep ? 'Keep open' : () ])->Show();
-
+  my $d=$grp->{top}->Dialog(-text => $grp->{FSFile}->filename()."\n\nFile may be changed!\nDo you want to save it?",
+				 -bitmap => 'question', 
+				 -title => 'Save File Dialog',
+				 -buttons => ['Yes','No', $keep ? 'Keep' : ()]);
+  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
+			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  my $answer=$d->Show();
   if ($answer eq 'Yes') {
     saveFile($grp);
-  } elsif ($answer eq 'Keep open') {
+  } elsif ($answer eq 'Keep') {
     print STDERR "Postponing ".$grp->{FSFile}->filename()."\n";
     $grp->{FSFile}->currentTreeNo($grp->{treeNo});
     $grp->{FSFile}->currentNode($grp->{currentNode});
@@ -3034,9 +3056,9 @@ sub editAttrsDialog {
   return if (doEvalHook($grp,"do_edit_node_hook",$node) eq 'stop');
   return unless $grp->{'FSFile'};
   my @vals;
-  my $rows=min(10,$grp->{FSFile}->FS->count);
   my @r=();
   my @atord = $sortAttrs ? (sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes) : $grp->{FSFile}->FS->attributes;
+  my $rows=min($maxDisplayedValues,$#atord+1);
   my ($a,$b,$r);
 
   $grp->{'top'}->Busy(-recurse =>1);
@@ -3293,6 +3315,12 @@ sub customAttrsDialog {
 }
 
 
+#####################################################
+#####################################################
+#####################################################
+# Node searching
+#####################################################
+
 sub findNodeDialog {
   my ($grp,$template)=@_;
   return unless $grp->{'FSFile'};
@@ -3302,11 +3330,25 @@ sub findNodeDialog {
 
   my $b;
   my $a;
-  my $rows=min(10,$#atord+1);
+  my $rows=min($maxDisplayedValues,$#atord+1);
   my @r=();
+  my %e=();
   $grp->{'top'}->Busy(-recurse =>1);
   my $d=$grp->{'top'}->DialogBox(-title => "Find Node By Attributes", -width => '10c',
-				 -buttons => ["Find", "Cancel"]);
+				 -buttons => ["Find"]);
+  my $bcl=$d->Subwidget('bottom')->Button(-text => "Clear",
+				  -command => [sub { my $e=shift;
+						     foreach (keys %$e) {
+						       $e->{$_}->delete(0,'end');
+						     }
+						   },\%e] );
+  my $bca=$d->Subwidget('bottom')->Button(-text => "Cancel", 
+				  -command => [sub { shift->{'selected_button'} = "Cancel"},$d] );
+  foreach ($bcl,$bca) {
+    $_->configure(-width => 10, -pady => 0) if ($Tk::platform eq 'MSWin32');
+    $_->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+  }
+
   $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $d->resizable(0,0);
   my $f = $d->Scrolled('Tiler',
@@ -3367,33 +3409,52 @@ sub findNodeDialog {
     $e{$_}->bind($e{$_},'<Up>',[\&focusxUp,$i,\%e,$f]);
   }
   $f->Manage(@r);
-  $f->pack();
+  $f->pack();  # or shoud it be pack(qw/-expand yes -fill x/)?
+               # one may choose, but both have their plus and minus
 
-  foreach my $p ('Regular expression',
-		 'Exhaustive regular expression',
-		 'Wildcard pattern',
-		 'Literal') {
-    $d->Radiobutton(-anchor   => 'nw',
-		    -text     => $p,
-		    -variable => \$grp->{templateMatchMethod},
-		    -relief   => 'flat',
-		    -value    => substr($p,0,1),
-		   )->pack(-fill => 'x');
-  }
+  my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
+  $of->Label(-text => 'Search method: ')->pack(qw/-side left/);
 
+  $of->Optionmenu(-variable => \$grp->{templateMatchMethod},
+		  -options => ['Regular expression',
+			       'Exhaustive regular expression',
+			       'Wildcard pattern',
+			       'Literal'])->pack(qw/-side left/);
+
+  my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
+  $of->Label(-text => 'Search file-list: ')->pack(qw/-side left/);
+  my $om=$of->Optionmenu(-textvariable => \$grp->{searchFilelist},
+		  -options => [ '<<Current file only>>', 
+				map { $_->name } @filelists ])->pack(qw/-side left/);
+
+  $of->Button(-text => 'Edit',
+	      -command => [ sub {
+			      my ($grp)=@_;
+			      my $name=filelistDialog($grp,1);
+			      $om->options([map { $_->name } @filelists]);
+			      $grp->{searchFilelist}=$name if (ref(findFilelist($name)));
+			    },$grp,$om])->pack(qw/-side left/);
   $grp->{'top'}->Unbusy();
   my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result =~ /Find/) {
-    #    $grp->{FSFile}->notSaved(1);
     foreach $a (@atord) {
       $template->{$a}=decode($e{$a}->get);
     }
-    $grp->{'top'}->toplevel->
-      messageBox(-icon => 'warning',
-		 -message => "No matching node found!",
-		 -title => 'Find',
-		 -type => 'ok')
-	unless (findFirstTemplated($grp,$template,0));
+    # Clear all empty rules
+    foreach (keys %$template) {
+      delete $template->{$_} unless defined($template->{$_}) and $template->{$_} ne '';
+    }
+    if ($grp->{searchFilelist} ne '<<Current file only>>') {
+      my $fl=findFilelist($grp->{searchFilelist});
+      if (ref($fl) and $fl->file_count>0 ) {
+	local $insideEval=1;                 # no redraw
+	$fl->set_current($fl->file_at(0));
+	selectFilelist($grp,$fl);
+      }
+    } else { 
+      $grp->{searchFilelist}=undef;
+    }
+    doFindFirstTemplated($grp,$template,0);
     #    getNodes($grp);
     #    redraw_tree($grp);
   }
@@ -3401,12 +3462,83 @@ sub findNodeDialog {
   undef $d;
 }
 
+#####################################
+# bound to Escape for busy widgets
+#####################################
+sub _search_busy {
+  my ($w,$grp)=@_;
+  print STDERR $grp->{currentFileNo}."stopped by user\n" if ($tredDebug);
+  $grp->{stopSearch}=1;
+  Tk->break;
+}
+
+#####################################
+# called after file open to process
+# event queue and let user interrupt
+# the search process
+#####################################
+sub _quick_update {
+  my $grp=shift;
+  $grp->{top}->Unbusy();
+  $grp->{top}->update();
+  $grp->{top}->Busy(-recurse => 1);
+}
+
+######################################
+# start searching for a next node
+# and display result unless succeeded
+######################################
+sub doFindFirstTemplated {
+  my ($grp,$template,$cont)=@_;
+  return undef unless ($grp->{currentNode});
+  my $result;
+  $grp->{'top'}->Busy(-recurse => 1);
+
+  print "Starting search!\n";
+  unless ($result=findFirstTemplated($grp,$template,$cont)) {
+    $grp->{'top'}->toplevel->
+      messageBox(-icon => 'warning',
+		 -message => $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
+		 -title => 'Find',
+		 -type => 'ok');
+    redraw_tree($grp);
+  }
+  $grp->{'top'}->Unbusy();
+  return $result;
+}
+
+######################################
+# start searching for a prev node
+# and display result unless succeeded
+######################################
+sub doFindPrevTemplated {
+  my ($grp,$template,$cont)=@_;
+  return undef unless ($grp->{currentNode});
+  my $result;
+  $grp->{'top'}->Busy(-recurse => 1);
+
+  unless ($result=findPrevTemplated($grp,$template,$cont)) {
+    $grp->{'top'}->toplevel->
+      messageBox(-icon => 'warning',
+		 -message => $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
+		 -title => 'Find',
+		 -type => 'ok');
+    redraw_tree($grp);
+  }
+  $grp->{'top'}->Unbusy();
+  return $result;
+}
+
+######################################
+# compare nodes with template
+######################################
 sub cmpTemplateField {
   my ($grp,$val,$templ)=@_;
-  return $val =~ /^$templ$/ if ($grp->{templateMatchMethod} eq 'E');
-  return $val =~ /$templ/ if ($grp->{templateMatchMethod} eq 'R');
-  return $val eq $templ if ($grp->{templateMatchMethod} eq 'L');
-  if ($grp->{templateMatchMethod} eq 'W') {
+  my $method=substr($grp->{templateMatchMethod},0,1);
+  return $val =~ /^$templ$/ if ($method eq 'E');
+  return $val =~ /$templ/ if ($method eq 'R');
+  return $val eq $templ if ($method eq 'L');
+  if ($method eq 'W') {
     $templ=~s/[.^$(){}<>\\]/\\\&/g;
     $templ=~s/\*/.\*/g;
     $templ=~s/\?/./g;
@@ -3415,30 +3547,56 @@ sub cmpTemplateField {
   return $val eq $templ;
 }
 
+######################################
+# go to next node in searchlist
+######################################
+sub nextNodeInSearchFilelist {
+  my ($grp,$node,$tree)=@_;
+  $node=(HNext($grp,$node) || $grp->{FSFile}->treeList->[(++$$tree)]);
+  return $node if ($node or !defined($grp->{searchFilelist}));
+
+  # this realises filelist search
+  local $insideEval=1;
+  my $result=nextFile($grp);
+  $$tree=0;
+  # we especially wait for Escape
+  _quick_update($grp);
+  while (!$grp->{stopSearch} and $result and !$grp->{currentNode}) {
+    $result=nextFile($grp);
+    # we especially wait for Escape
+    _quick_update($grp);
+  }
+  return (!$grp->{stopSearch} and $result) ? $grp->{currentNode} : undef;
+}
+
+######################################
+# find next matching node
+######################################
 sub findFirstTemplated {
   my ($grp,$template,$skipfirst)=@_;
   return unless $grp->{'FSFile'};
   my $node=$grp->{'currentNode'};
   my $tree=$grp->{treeNo};
   my $a;
+  $grp->{stopSearch}=0;
 
-  $node=(HNext($grp,$node) || $grp->{FSFile}->treeList->[(++$tree)]) if ($skipfirst);
+  $node=nextNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
   while ($node) {
-    unless (grep ((exists($template->{$_}) and
-		   $template->{$_} ne '' and
-		   not cmpTemplateField($grp,$node->{$_},$template->{$_})
-		  ), $grp->{FSFile}->FS->attributes))
+    unless (grep (!cmpTemplateField($grp,$node->{$_},$template->{$_}), keys (%$template)))
       {
 	gotoTree($grp,$tree);
 	setCurrent($grp, $node);
 	centerTo($grp,$node);
 	return $node;
       }
-    $node=(HNext($grp,$node) || $grp->{FSFile}->treeList->[(++$tree)]);
+    $node=nextNodeInSearchFilelist($grp,$node,\$tree);
   }
   return undef;
 }
 
+######################################
+# go to the last node of a tree
+######################################
 sub lastSubtreeNode {
   my ($top)=@_;
   return undef unless $top;
@@ -3449,39 +3607,69 @@ sub lastSubtreeNode {
   return $top;
 }
 
+######################################
+# go to previous node in search list
+######################################
+sub prevNodeInSearchFilelist {
+  my ($grp,$node,$tree)=@_;
+  $node=HPrev($grp,$node);
+  unless ($node or $$tree==0) {
+    $node=lastSubtreeNode($grp->{FSFile}->treeList->[(--$$tree)]);
+    $node=HPrev($grp,$node) unless (isShown($grp,$node));
+  }
+  return $node if $node or !defined($grp->{searchFilelist});
+
+  # this realises filelist search
+  local $insideEval=1;
+  my $result=prevFile($grp);
+  # we especially wait for Escape
+  _quick_update($grp);
+  while ($result and !$grp->{stopSearch}
+	 and !$grp->{FSFile} || $grp->{FSFile}->lastTreeNo<0) {
+    $result=prevFile($grp);
+    # we especially wait for Escape
+    _quick_update($grp);
+  }
+  if ($result and !$grp->{stopSearch}) {
+    $$tree=$grp->{FSFile}->lastTreeNo;
+    $node=lastSubtreeNode($grp->{FSFile}->treeList->[$$tree]);
+    return $node;
+  }
+  return undef;
+}
+
+######################################
+# find previous matching node
+######################################
 sub findPrevTemplated {
   my ($grp,$template,$skipfirst)=@_;
   return unless $grp->{'FSFile'};
   my $node=$grp->{'currentNode'};
   my $tree=$grp->{treeNo};
   my $a;
+  $grp->{stopSearch}=0;
 
-  if ($skipfirst) {
-    $node=HPrev($grp,$node);
-    unless ($node or $tree==0) {
-      $node=lastSubtreeNode($grp->{FSFile}->treeList->[(--$tree)]);
-      $node=HPrev($grp,$node) unless (isShown($grp,$node));
-    }
-  }
+  $node=prevNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
+
   while ($node) {
-    unless (grep ((exists($template->{$_}) and
-		   $template->{$_} ne '' and
-		   not cmpTemplateField($grp,$node->{$_},$template->{$_})
-		  ), $grp->{FSFile}->FS->attributes))
+    unless (grep (!cmpTemplateField($grp,$node->{$_},$template->{$_}), keys (%$template)))
       {
 	gotoTree($grp, $tree);
 	setCurrent($grp, $node);
 	centerTo($grp,$node);
 	return $node;
       }
-    $node=HPrev($grp,$node);
-    unless ($node or $tree==0) {
-      $node=lastSubtreeNode($grp->{FSFile}->treeList->[(--$tree)]);
-      $node=HPrev($grp,$node) unless (isShown($grp,$node));
-    }
+    $node=prevNodeInSearchFilelist($grp,$node,\$tree);
   }
   return undef;
 }
+
+#############################################
+#End of Searching functions
+#############################################
+#############################################
+#############################################
+
 
 
 sub editAttrs {
