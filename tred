@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#
+#                                                      -*-cperl-*-
 # This is "Tred" - a simple viewer/editor of tree
 # graphs in fs file-format used in Graph - program developed by
 # M. Kren. It is written entirely in Perl and for graphical output it
@@ -95,7 +95,7 @@ $filecount=$#files+1;
 
 #
 sub dirname {
-  $_=@_;  
+  $_=shift;  
   return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : "./";
 }
 
