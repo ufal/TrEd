@@ -298,7 +298,7 @@ sub redraw {
       $self->canvas->createText(0,$self->{canvasHeight},-font => $self->get_font,-text => $vtext,
 				   -justify => 'left', -anchor => 'nw',
 				   -width => $self->{canvasWidth});
-      $self->{canvasHeight}+=$fontHeight*($self->wrappedLines($vtext,$self->{canvasWidth})+1);
+      $self->{canvasHeight}+=$fontHeight*($self->wrappedLines($vtext,$self->{canvasWidth})+2);
 #      $self->canvas->createLine(0,$self->{canvasHeight},$self->{canvasWidth},$self->{canvasHeight});
 
     }
