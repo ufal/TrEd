@@ -424,16 +424,18 @@ sub closeFile {
 
 sub doEvalHook {
   my ($group,$hook)=(shift,shift);
-  return unless $hook and $group->{'currentNode'};
+  return unless $hook;# and $group->{'currentNode'};
 
   $TredMacro::this=$group->{currentNode};
   $TredMacro::root=$group->{root};
   $TredMacro::libDir=$libDir;
-  $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
+  $TredMacro::FileNotSaved=$group->{FSFile}->notSaved if $group->{FSFile};
   $TredMacro::forceFileSaved=0;
 
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
-  $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
+  if ($group->{FSFile}) {
+    $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
+  }
 
   $TredMacro::this=undef;
   $TredMacro::root=undef;
