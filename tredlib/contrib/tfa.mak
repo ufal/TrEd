@@ -43,6 +43,7 @@ sub tfa_NA {
 }
 
 sub ShiftLeft {
+  return unless ($this->{dord}>0);
   if ($main::showHidden) {
     ShiftNodeLeft($this);
   } else {
