@@ -28,7 +28,7 @@ my $_pDummy;			# used as type "pointer"
 
 
 sub ThisRoot {
-  my $pT, $pPrev;		# used as type "pointer"
+  my ($pT, $pPrev);		# used as type "pointer"
 
   $pPrev = undef;
 
@@ -2165,7 +2165,7 @@ sub DepSuffix {
 
 
 sub AfunAssign {
-  my $t, $n;			# used as type "pointer"
+  my ($t, $n);			# used as type "pointer"
 
   $t = $this;
 
@@ -2237,7 +2237,7 @@ sub TFAAssign {
 
 
 sub FuncAssign {
-  my $t, $n;			# used as type "pointer"
+  my ($t, $n);			# used as type "pointer"
 
   $t = $this;
 
