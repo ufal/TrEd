@@ -9,7 +9,7 @@ sub setFontMetrics {
   $self->{psFontScale} = $fontscale ? $fontscale : 1000;
   $self->{textWidthHash}={};
   $self->{psFontMetrics} = new PostScript::FontMetrics($filename);
-  print STDERR "FONT SIZE: $self->{psFontSize}, $self->{psFontMetrics}\n";
+#  print STDERR "FONT SIZE: $self->{psFontSize}, $self->{psFontMetrics}\n";
   return $self->{psFontMetrics};
 }
 
@@ -18,7 +18,6 @@ sub getFontHeight {
   return 0 unless $self->{psFontMetrics};
   my $ascent=($self->{psFontSize}*$self->{psFontMetrics}->FontBBox->[3])/1000;
   my $descent=-($self->{psFontSize}*$self->{psFontMetrics}->FontBBox->[1])/1000;
-  print STDERR "FONT HEIGHT: ".($ascent+$descent)."\n";
   return sprintf("%.0f",$ascent+$descent);
 }
 
@@ -28,11 +27,9 @@ sub getTextWidth {
   my $width=$self->{textWidthHash}->{$text};
   if (!defined($width)) {
     $width=$self->{psFontMetrics}->stringwidth($text,$self->{psFontSize});
-    print STDERR "WIDTH: $width\n";
     $self->{textWidthHash}->{$text}=$width;
     $self->{textWidthHashMiss}++;
   } else {
-    print STDERR "HIT-WIDTH: $width\n";
     $self->{textWidthHashHit}++;
   }
   return $width;
@@ -80,7 +77,6 @@ sub getTextWidth {
   } else {
     $self->{textWidthHashHit}++;
   }
-#  print STDERR "Width: $text = $width ($self->{psFontSize})\n";
   return $width;
 }
 
@@ -88,7 +84,6 @@ sub getFontName {
   my ($self,$text)=@_;
   return 0 unless $self->{TTF};
   my $name= $self->{TTF}->name;
-  print STDERR "NAME: $name\n";
   return $name;
 }
 
