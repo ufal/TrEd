@@ -6,9 +6,9 @@ package TrEd::ValLex::Data;
 use strict;
 
 sub new {
-  my ($self, $file, $cpconvert)=@_;
+  my ($self, $file, $cpconvert,$novalidation)=@_;
   my $class = ref($self) || $self;
-  my $new = bless [$class->parser_start($file),
+  my $new = bless [$class->parser_start($file,$novalidation),
 		   $file, undef, undef, 0, $cpconvert, []], $class;
   $new->loadListOfUsers();
   return $new;

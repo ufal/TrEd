@@ -9,7 +9,7 @@ use IO;
 use XML::LibXML;
 
 sub parser_start {
-  my ($self, $file)=@_;
+  my ($self, $file, $novalidation)=@_;
   my $parser;
   if ($^O eq 'MSWin32') {
     $parser=XML::LibXML->new(
@@ -29,7 +29,7 @@ sub parser_start {
   }
   return () unless $parser;
   $parser->load_ext_dtd(1);
-  $parser->validation(1);
+  $parser->validation(!$novalidation);
   my $doc;
   $doc=$parser->parse_file($file);
   return ($parser,$doc);
