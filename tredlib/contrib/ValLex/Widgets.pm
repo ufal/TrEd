@@ -197,6 +197,7 @@ sub fetch_data {
   my ($e,$f,$i);
   my $style;
   $t->delete('all');
+  
 #  foreach my $entry ($self->data()->getFrameList($word)) {
 #    next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
 #    $e = $t->addchild("",-data => $entry->[0]);
