@@ -6,8 +6,9 @@ use Fs2csts;
 $CSTS_SGML_SP_Backend::zcat = "/bin/zcat";
 $CSTS_SGML_SP_Backend::gzip = "/usr/bin/gzip";
 
-$CSTS_SGML_SP_Backend::sgmls = "nsgmls -i preserve.gen.entities";
-$CSTS_SGML_SP_Backend::doctype = "csts/csts.doctype";
+$CSTS_SGML_SP_Backend::sgmls = "nsgmls";
+$CSTS_SGML_SP_Backend::sgmlsops = "-i preserve.gen.entities";
+$CSTS_SGML_SP_Backend::doctype = "csts.doctype";
 
 =item open_backend (filename,mode)
 
@@ -27,7 +28,7 @@ sub open_backend {
       if ($filename=~/.gz$/) {
 	eval {
 	  $fh = new IO::Pipe();
-	  $fh && $fh->writer("| $CSTS_SGML_SP_Backend::gzip > $filename");
+	  $fh && $fh->writer("$CSTS_SGML_SP_Backend::gzip > $filename");
 	} || return undef;
 	print STDERR "[w $cmd]\n";
       } else {
@@ -36,7 +37,7 @@ sub open_backend {
       }
     } else {
       if ($filename=~/.gz$/) {
-	$cmd = "$CSTS_SGML_SP_Backend::zcat < \"$filename\" | $CSTS_SGML_SP_Backend::sgmls $CSTS_SGML_SP_Backend::doctype";
+	$cmd = "$CSTS_SGML_SP_Backend::zcat < \"$filename\" | $CSTS_SGML_SP_Backend::sgmls $CSTS_SGML_SP_Backend::doctype -";
       } else {
 	$cmd="$CSTS_SGML_SP_Backend::sgmls $CSTS_SGML_SP_Backend::doctype $filename";
       }
