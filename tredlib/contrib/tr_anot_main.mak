@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-01 11:34:07 pajas>
+## Time-stamp: <2001-08-01 13:29:48 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -20,7 +20,7 @@ sub file_opened_hook {
   foreach ("New Node","Remove Active Node","Insert New Tree",
 	   "Insert New Tree After", "Remove Whole Current Tree") {
     $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'disabled');
-    $grp->{framegroup}->->{ContextsMenu}->configure(-state=>'disabled');
+    $grp->{framegroup}->{ContextsMenu}->configure(-state=>'disabled');
   }
   $FileNotSaved=0;
 }
