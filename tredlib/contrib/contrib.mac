@@ -56,6 +56,9 @@
 #key-binding-adopt Coref
 #include <contrib/tr_cphr.mak>
 
+#binding-context AcademicTreebank
+#include <contrib/cac_treebank.mak>
+
 package TredMacro;
 
 #binding-context TredMacro
