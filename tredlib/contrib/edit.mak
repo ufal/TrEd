@@ -29,7 +29,8 @@ sub pre_switch_context_hook {
   foreach ("New Node","Remove Active Node","Insert New Tree",
 	   "Insert New Tree After", "Remove Whole Current Tree",
 	   "Copy Trees ...") {
-    $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => $menu_prevstate{$_});
+    $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => $menu_prevstate{$_})
+      if defined $menu_prevstate{$_};
   }
 
 }
