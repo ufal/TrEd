@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-03-01 17:50:43 pajas>
+## Time-stamp: <2002-03-04 10:55:21 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -536,16 +536,19 @@ sub FPaste {
 
   $pThis=$this;
   if ($NodeClipboard and $sPasteNow eq 'yes') {
-    $sDord = ValNo(0,$pThis->{'dord'});
+    $sDord = $pThis->{'dord'};
     $pPasted=PasteNode($NodeClipboard,$pThis);
     $pPasted->{'dord'} = "-1";
     $pPasted->{'del'} = 'ELID';
-    $pPasted->{'form'} = '???';
+    $pPasted->{'origf'} = '???';
+    $pPasted->{'sentord'}=999;
+    $pPar2=$pThis;
+    $pPasted->{'ord'}=GetNewOrd();
     $sPar1 = $sDord;
     $sPar2 = "1";
     ShiftDords();
     $pPasted->{'dord'} = $sDord;
-    $this=$pPasted;
+    $this=PasteNode(CutNode($pPasted),$pThis); # repaste to get structure order right
   }
   $sPasteNow = '';
 }
