@@ -12,7 +12,7 @@
       </affiliation>
     </author>
   </articleinfo>
-  <sect1 id="intro">
+  <section id="intro">
     <title>Introduction</title>
     <para><application moreinfo="none">TrEd</application> is a graphical editor and
     viewer of tree structures. It works with files in so called <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
@@ -54,8 +54,8 @@
 	  and other UNIX-based systems</para>
       </listitem>
     </orderedlist>
-  </sect1>
-  <sect1 id="chap1">
+  </section>
+  <section id="chap1">
     <title>Installation and start up instructions</title>    
     <para>
       On all supported platforms, 
@@ -70,7 +70,7 @@
       To install Perl/Tk on your system follow instructions for your
       platform below:
     </para>
-    <sect2 id="install-windows">
+    <section id="install-windows">
       <title>Windows</title>
       <para>
 	There is a windows-specific installation package available on
@@ -207,8 +207,8 @@
 	  </para>
 	</listitem>
       </orderedlist>
-    </sect2>
-    <sect2 id="install-unix">
+    </section>
+    <section id="install-unix">
       <title>Linux and UNIX-based systems</title>
       <para>
 	Almost every modern 
@@ -303,9 +303,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </note>
 	</listitem>
       </orderedlist>
-    </sect2>
-  </sect1>
-  <sect1 id="chap2">
+    </section>
+  </section>
+  <section id="chap2">
     <title>Menu commands</title>    
     <para>
       The following paragraphs describe menu commands. Each submenu in
@@ -314,7 +314,7 @@ root# <userinput moreinfo="none">make install</userinput>
       which can be used to tear the menu off and place it as a
       separate window anywhere on your desktop.
     </para>
-    <sect2 id="file">
+    <section id="file">
       <title><guimenu moreinfo="none">File</guimenu></title>
       <variablelist>
 	<varlistentry>
@@ -694,8 +694,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2 id="view">
+    </section>
+    <section id="view">
       <title><guimenu moreinfo="none">View</guimenu></title>
       <variablelist>
 	<varlistentry>
@@ -849,8 +849,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2 id="node">
+    </section>
+    <section id="node">
       <title><guimenu moreinfo="none">Node</guimenu></title>
       <variablelist>
 	<varlistentry>
@@ -1015,14 +1015,14 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Session</title>
       <para>
 	This menu lets user switch between
 	currently open files, change current
 	file-list and setup file-related options.</para>
-      <sect3>
+      <section>
 	<title>Options</title>
 	<variablelist id="dontcloseonopen">
 	  <varlistentry>
@@ -1057,8 +1057,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </listitem>
 	  </varlistentry>
 	</variablelist>
-      </sect3>
-      <sect3>
+      </section>
+      <section>
 	<title>Open Files</title>
 	<para>
 	  <application moreinfo="none">TrEd</application> allows having multiple
@@ -1078,8 +1078,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  in the current window by choosing the corresponding item in the
 	  <guimenu moreinfo="none">Session</guimenu> menu.
 	</para>
-      </sect3>
-      <sect3>
+      </section>
+      <section>
 	<title>File Lists</title>
 	<para>
 	  The <guimenuitem moreinfo="none">File lists</guimenuitem> contains a list of
@@ -1100,9 +1100,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </menuchoice> (or press <inlinegraphic fileref="pics/finish.png"/>) to open previous or
 	  next file in the file-list.
 	</para>
-      </sect3>
-    </sect2>
-    <sect2>
+      </section>
+    </section>
+    <section>
       <title><guimenu moreinfo="none">Bookmarks</guimenu></title>
       <para>
 	This menu maintains user's bookmarks. Bookmarks are stored
@@ -1127,8 +1127,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	defined bookmarks. User may follow a bookmark by choosing the
 	corresponding item.
       </para>
-    </sect2>
-    <sect2 id="usercommands">
+    </section>
+    <section id="usercommands">
       <title><guimenu moreinfo="none">User-defined</guimenu></title>
       <para>
 	This menu contains user-defined commands. The new
@@ -1344,8 +1344,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title><guimenu moreinfo="none">Help</guimenu></title>
       <variablelist>
 	<varlistentry>
@@ -1359,9 +1359,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-  </sect1>
-  <sect1 id="chap3">
+    </section>
+  </section>
+  <section id="chap3">
     <title>Viewing and editing the tree structure and attributes</title>
     <para>
       <application moreinfo="none">TrEd</application> can be controlled either by keyboard or mouse.
@@ -1372,7 +1372,7 @@ root# <userinput moreinfo="none">make install</userinput>
       be edited. Trees can also be easily modified by clicking and
       drag-and-drop. Both of these approaches are described below:
     </para>
-    <sect2>
+    <section>
     <title>Mouse Control</title>
     <itemizedlist>
       <listitem>
@@ -1410,8 +1410,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </para>
 	</listitem>
       </itemizedlist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Toolbar buttons</title>
       <para>
 	The following toolbar-buttons provide mouse-oriented shortcuts
@@ -1527,8 +1527,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </tbody>
 	</tgroup>
       </informaltable>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Keyboard Shortcuts</title>
       <para>Cursor keys may be used
 	to activate another node in the structure. Use
@@ -1625,9 +1625,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-  </sect1>
-  <sect1 id="attributes">
+    </section>
+  </section>
+  <section id="attributes">
     <title>Customizing Tree Appearance: Stylesheets</title>
     <para>
       In <application moreinfo="none">TrEd</application>, the way a
@@ -1703,7 +1703,7 @@ root# <userinput moreinfo="none">make install</userinput>
       an attribute in the list inserts an attribute reference at the
       current cursor position in the pattern editor.
     </para>
-    <sect2 id="pattern_syntax">
+    <section id="pattern_syntax">
       <title>Stylesheet syntax: the styling patterns</title>
       <para>
 	A stylesheet consists of one or more styling patterns. A
@@ -2447,9 +2447,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	</tbody>
       </tgroup>
     </table>
-    </sect2>
-  </sect1>
-  <sect1 id="filelists">
+    </section>
+  </section>
+  <section id="filelists">
     <title>Using File-Lists</title>
     <para>
       File-list is simply a named list of file-name patterns or actual
@@ -2566,8 +2566,8 @@ root# <userinput moreinfo="none">make install</userinput>
       The <guilabel moreinfo="none">Close</guilabel> button only closes the
       <guilabel moreinfo="none">Filelist</guilabel> dialog window.
     </para>
-  </sect1>
-  <sect1 id="configuration">
+  </section>
+  <section id="configuration">
     <title>Configuration and customization</title>
     <para>
       The configuration and customizing of
@@ -2658,7 +2658,7 @@ root# <userinput moreinfo="none">make install</userinput>
       The available configuration options may be divided into several
       categories:
     </para>
-    <sect2>
+    <section>
     <title>Colors</title>
       <variablelist>
 	<varlistentry>
@@ -2923,8 +2923,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Other options affecting tree appearence</title>
       <variablelist>
 	<varlistentry id="balancetree">
@@ -3225,8 +3225,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>GUI options</title>
       <variablelist>
 	<varlistentry>
@@ -3455,8 +3455,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Fonts</title>
       <variablelist>
 	<varlistentry>
@@ -3552,8 +3552,8 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Printing options</title>
       <variablelist>
 	<varlistentry>
@@ -3731,8 +3731,8 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Miscelaneous options</title>
       <variablelist>
 	<varlistentry>
@@ -4065,8 +4065,8 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Debugging options</title>
       <variablelist>
 	<varlistentry>
@@ -4101,9 +4101,9 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
       </variablelist>
-    </sect2>
-  </sect1>
-  <sect1 id="commandline">
+    </section>
+  </section>
+  <section id="commandline">
     <title>Command-line options</title>
     <para>
       If running <application moreinfo="none">TrEd</application> from
@@ -4280,8 +4280,8 @@ Property        Type    Description
 	</listitem>
       </varlistentry>
     </variablelist>
-  </sect1>
-  <sect1 id="macros">
+  </section>
+  <section id="macros">
     <title>User Macros</title>
     <para>
       This section describes in detail
@@ -4300,7 +4300,7 @@ Property        Type    Description
       In this text, we concentrate on the 
       <application moreinfo="none">TrEd</application>'s macro specifics.
     </para>
-    <sect2>
+    <section>
       <title>What is a macro</title>
       <para>
 	A macro for <application moreinfo="none">TrEd</application> is simply any Perl
@@ -4333,8 +4333,8 @@ Property        Type    Description
 	must be told where to look for the file. This (and more) is
 	discussed in the following sections.
       </para>      
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Where does <application moreinfo="none">TrEd</application> look for
       macros</title>
       <para>
@@ -4423,8 +4423,8 @@ Property        Type    Description
 	<literal moreinfo="none">TrEd</literal> to continue (without error or warning)
 	even if the requested file was not found.
       </para>
-    </sect2>
-    <sect2 id="macroencodings">
+    </section>
+    <section id="macroencodings">
       <title>Writing macros in various character encodings</title>
       <note>
 	<para>This section applies only to <application moreinfo="none">TrEd</application>/<application moreinfo="none">bTrEd</application> running under Perl 5.8
@@ -4467,8 +4467,8 @@ Property        Type    Description
   (UTF-8 encoded macro code continues)
 	</programlisting>
       </example>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Conditional macro code</title>
       <para>
 	If macro code is spanned across	several files or is shared
@@ -4520,8 +4520,8 @@ Property        Type    Description
 	<application moreinfo="none">bTrEd</application> between these two
 	applications.
       </para>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Creating menu entries and keyboard shortcuts for user-defined macros</title>
       <para>
 	For convenience, two more directives are available for adding
@@ -4686,8 +4686,8 @@ Property        Type    Description
 	  identical.
 	</para>
       </note>
-    </sect2>
-    <sect2>
+    </section>
+    <section>
       <title>Accessing tree nodes</title>
       <para>In <application moreinfo="none">TrEd</application> macros as well as in 
 	<application moreinfo="none">TrEd</application> itself tree nodes are
@@ -4729,7 +4729,7 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
       </variablelist>
-      <sect3>
+      <section>
 	<title>Accessing node attributes</title>
 	<para>
 	  If
@@ -4744,8 +4744,8 @@ Property        Type    Description
 	  the following simple assignment may be used:
 	</para>
 	<literallayout class="normal" format="linespecific">$node-&gt;{<replaceable>attr</replaceable>}='val';</literallayout>
-      </sect3>
-      <sect3>
+      </section>
+      <section>
 	<title>Accessing node neighbors</title>
 	<para>
 	  There is a few methods provided by every
@@ -4863,8 +4863,8 @@ Property        Type    Description
 	    </tbody>
 	  </tgroup>
 	</table>
-      </sect3>
-      <sect3>
+      </section>
+      <section>
 	<title>Accessing other trees</title>
 	<para>
 	  To be able to describe a method to access any tree in a file
@@ -5169,494 +5169,26 @@ sub MakeSentence {
 	  <literal moreinfo="none">map</literal> function needs to compare or map
 	  nodes, the performance of the code would considerably decrease.
 	</para>
-      </sect3>
-    </sect2>
-    <sect2 id="defaultmacros">
-      <title>Pre-defined functions</title>
+      </section>
+    </section>
+    <section id="defaultmacros">
+      <title>Public API: pre-defined macros</title>
       <para>
-	The above mentioned <filename moreinfo="none">tred.def</filename> file
-	provides a set of pre-defined <application moreinfo="none">TrEd</application>
-	macros. Pre-defined macros may be freely used in all other
-	user-defined macros and are guaranteed to be updated and
-	shipped with every version of <application moreinfo="none">TrEd</application>
-	preserving their own API.  Most of the pre-defined macros
-	wrap the key <application moreinfo="none">TrEd</application>'s internal
-	function calls.  The following table briefly
-	describes each of them.
+	The role of a public API available to macros is played by a set of
+	macros defined in the <literal moreinfo="none">TredMacro</literal> package
+	in the file named <filename moreinfo="none">tred.def</filename>.
+	Most of these pre-defined macros are just safe wrappers for 
+	<application moreinfo="none">TrEd</application> internal function
+	calls. Pre-defined macros and object methods (namely those of
+	<literal moreinfo="none">FSNode</literal>, <literal moreinfo="none">FSFile</literal> and
+	<literal moreinfo="none">FSFormat</literal>) should be the only access points
+	used by a macro to interact with <application moreinfo="none">TrEd</application>. 
+	All other ways of creeping into <application moreinfo="none">TrEd</application>'s
+	internals are dangerous and should be avoided.
       </para>
-      <table>
-	<title><application moreinfo="none">TrEd</application>'s pre-defined
-	macros.</title>
-	<tgroup cols="2">
-	  <thead>
-	    <row>
-	      <entry>Macro name</entry>
-	      <entry>Description</entry>
-	    </row>
-	  </thead>
-	  <tbody>
-	    <row>
-	      <entry><literal moreinfo="none">Redraw</literal></entry>
-	      <entry>Force <application moreinfo="none">TrEd</application> to redraw
-		the current tree immediately. Hence
-		<application moreinfo="none">TrEd</application> redraws the tree
-		right after an interactively invoked macro finishes.
-		The <literal moreinfo="none">Redraw</literal> macro is needed only under
-		certain circumstances.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">SetDisplayAttrs(<replaceable>patterns</replaceable>)</literal></entry>
-	      <entry>
-		Use the given list of <application moreinfo="none">TrEd</application>'s 
-		patterns for displaying attributes. See also  
-		<xref linkend="attributes"/>.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">SetBalloonPattern(<replaceable>pattern</replaceable>)</literal></entry>
-	      <entry>
-		Use the given <replaceable>pattern</replaceable>
-		as a new hint pattern. See also  
-		<xref linkend="attributes"/>.
- 	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">SwitchContext(<replaceable>context_name</replaceable>)</literal></entry>
-	      <entry>
-		Switch to a different macro context. See
-		<xref linkend="contexts"/> for more details about contexts.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">CurrentContext</literal></entry>
-	      <entry>
-		Return the name of the current macro context.  See
-		<xref linkend="contexts"/> for more details about contexts.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">GotoTree(<replaceable>n</replaceable>)</literal></entry>
-	      <entry>Display the <replaceable>n</replaceable>'th
-		tree in the current file.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NextTree</literal></entry>
-	      <entry>Display the next tree in the current file.</entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">PrevTree</literal></entry>
-	      <entry>Display the previous tree in the current file.</entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">GetOrd(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>Return value of the special numbering FS
-		<link linkend="FS.order">attribute</link>. This macro actually returns the same value
-		as
-		<programlisting format="linespecific">$node-&gt;{ $grp-&gt;{FSFile}-&gt;FS-&gt;order }</programlisting>
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">CutNode(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>Cut the <replaceable>node</replaceable>'s subtree
-		off the tree and return it.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">PasteNode(<replaceable>node</replaceable>,<replaceable>parent</replaceable>)</literal></entry>
-	      <entry>
-		Paste the subtree of the node given by the
-		<replaceable>node</replaceable> argument under the
-		node given in the <replaceable>parent</replaceable>
-		argument. <application moreinfo="none">TrEd</application> tries to
-		place the top <replaceable>node</replaceable> of the
-		pasted subtree between the present children of
-		<replaceable>parent</replaceable> according to values
-		of the special FS numbering <link linkend="FS.order">attribute</link>.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NewTree</literal></entry>
-	      <entry>Create a new tree <emphasis>before</emphasis> the current tree.
-		The new tree consists of exactly one node.
-		This node is activated and a reference to its
-		<classname>FSNode</classname> object is returned.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NewTreeAfter</literal></entry>
-	      <entry>Create a new tree <emphasis>after</emphasis> the current tree.
-		The new tree consists of exactly one node.
-		This node is activated and a reference to its
-		<classname>FSNode</classname> object is returned.</entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">Save</literal></entry>
-	      <entry>Save the current file.</entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">SaveAndNextFile</literal></entry>
-	      <entry>Save the current file and open the next file
-		in the current file-list.</entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">SaveAndPrevFile</literal></entry>
-	      <entry>Save the current file and open the previous file
-		in the current file-list.</entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">Find</literal></entry>
-	      <entry>Open the <guilabel moreinfo="none">Find Node by
-		  Attributes</guilabel> GUI dialog.
-		See <link linkend="find"><guimenu moreinfo="none">Find...</guimenu></link> menu
-	      command for more detail.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">FindNext</literal></entry>
-	      <entry>
-		Searches for the first node matching the criteria of the
-		previous use of the <guimenuitem moreinfo="none">Find...</guimenuitem>
-		menu command or <literal moreinfo="none">FindNode</literal>
-		macro usage.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">FindPrev</literal></entry>
-	      <entry>
-		Searches for the previous node matching the criteria of the
-		previous use of the <guimenuitem moreinfo="none">Find...</guimenuitem>
-		menu command or <literal moreinfo="none">FindNode</literal>
-		macro usage.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">PlainNewSon(<replaceable>parent</replaceable>)</literal></entry>
-	      <entry>Add a new child node to the given
-	      <replaceable>parent</replaceable> and make it the
-	      current node (by setting <literal moreinfo="none">$this</literal> to point to it).
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">PlainDeleteNode(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>Delete the given <replaceable>node</replaceable>.
-		The node must be a leaf of the tree (may not have
-		any children) and must have a parent (may not be
-		the root of the tree).
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NewRBrother(<replaceable>node</replaceable>)</literal></entry>
-	      <entry><para>
-		  Create a new brother of the given
-		  <replaceable>node</replaceable> and recalculate the
-		  special FS numbering attribute values in the whole tree
-		  so that the new node is the first right sibling of the
-		  given <replaceable>node</replaceable>.
-		</para>
-		<para>
-		  If no node is given, this function operates on
-		  <literal moreinfo="none">$this</literal> and <emphasis>resets</emphasis>
-		  <literal moreinfo="none">$this</literal> to the newly created node. If some node is
-		  given the value of <literal moreinfo="none">$this</literal> is preserved.
-		</para>
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NewLBrother(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>
-		<para>
-		  Create a new brother of the given
-		  <replaceable>node</replaceable> and recalculate the
-		  special FS numbering attribute values in the whole
-		  tree so that the new node is the first left sibling
-		  of the given <replaceable>node</replaceable>.
-		</para>
-		<para>
-		  If no node is given, this function operates on
-		  <literal moreinfo="none">$this</literal> and <emphasis>resets</emphasis>
-		  <literal moreinfo="none">$this</literal> to the newly created node. If some node is
-		  given the value of <literal moreinfo="none">$this</literal> is preserved.
-		</para>
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NewSon(<replaceable>parent</replaceable>)</literal></entry>
-	      <entry>
-		<para>
-		  Create a new child of the given
-		  <replaceable>parent</replaceable> node and
-		  recalculate the special FS numbering attribute
-		  values in the whole tree so that the new node is the
-		  first node left to the given
-		  <replaceable>parent</replaceable>.
-		</para>
-		<para>
-		  If no parent node is given, this function operates
-		  on <literal moreinfo="none">$this</literal> and <emphasis>resets</emphasis>
-		  <literal moreinfo="none">$this</literal> to the newly created node. If a
-		  parent node is given the value of <literal moreinfo="none">$this</literal> is
-		  preserved.
-		</para>
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">DeleteThisNode</literal></entry>
-	      <entry>Delete the current node
-		 and
-		recalculate the special FS numbering attribute values
-		in the whole tree so that there is
-		no gap in the numbering. If the current
-		node is not a leaf or if it is the root of the current
-		tree, this macro does nothing.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">CopyValues</literal></entry> 
-	      <entry>
-		Copy the values of all the attributes except the special
-		FS numbering attribute of the current node to a global
-		hash variable named
-		<literal moreinfo="none">%ValuesClipboard</literal>.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">PasteValues</literal></entry>
-	      <entry>
-		Replace the values of the current node's attributes
-		by those stored in the global hash variable
-		named <literal moreinfo="none">%ValuesClipboard</literal>.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NextNode(<replaceable>node</replaceable>,<replaceable>top</replaceable>)</literal></entry>
-	      <entry>
-		Return the first displayed node following the given
-		<replaceable>node</replaceable>
-		in the subtree of <replaceable>top</replaceable>.
-		This function behaves in the same manner as the
-		<programlisting format="linespecific"><replaceable>node</replaceable>-&gt;following(<replaceable>top</replaceable>)</programlisting>
-		method, except it works only on the nodes which are
-		actually visible according to the state of the
-		<menuchoice moreinfo="none">
-		  <guimenu moreinfo="none">View</guimenu>
-		  <guimenuitem moreinfo="none">Show Hidden Nodes</guimenuitem>
-		</menuchoice> menu item.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">PrevNode(<replaceable>node</replaceable>,<replaceable>top</replaceable>)</literal></entry>
-	      <entry>
-		Return the first displayed node preceding the given
-		<replaceable>node</replaceable>
-		in the subtree of <replaceable>top</replaceable>.
-		This function behaves in the same manner as the
-		<programlisting format="linespecific"><replaceable>node</replaceable>-&gt;previous(<replaceable>top</replaceable>)</programlisting>
-		method, except it works only on the nodes which are
-		actually visible according to the state of the
-		<menuchoice moreinfo="none">
-		  <guimenu moreinfo="none">View</guimenu>
-		  <guimenuitem moreinfo="none">Show Hidden Nodes</guimenuitem>
-		</menuchoice> menu item.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NextVisibleNode(<replaceable>node</replaceable>,<replaceable>top</replaceable>)</literal></entry>
-	      <entry>
-		Return the first visible node following the given
-		<replaceable>node</replaceable>
-		in the subtree of <replaceable>top</replaceable>.
-		This function behaves in the same manner as the
-		<programlisting format="linespecific"><replaceable>node</replaceable>-&gt;following(<replaceable>top</replaceable>)</programlisting>
-		method, except that nodes of hidden subtrees are
-		skipped.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">PrevVisibleNode(<replaceable>node</replaceable>,<replaceable>top</replaceable>)</literal></entry>
-	      <entry>		
-		Return the first visible node preceding the given
-		<replaceable>node</replaceable>
-		in the subtree of <replaceable>top</replaceable>.
-		This function behaves in the same manner as the
-		<programlisting format="linespecific"><replaceable>node</replaceable>-&gt;previous(<replaceable>top</replaceable>)</programlisting>
-		method, except that nodes of hidden subtrees are
-		skipped.</entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">IsHidden(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>Return true if the given
-		<replaceable>node</replaceable>
-		is member of a hidden subtree. This macro is only
-		an abbreviation for
-		<programlisting format="linespecific">$grp-&gt;{FSFile}-&gt;FS-&gt;isHidden(<replaceable>node</replaceable>)</programlisting>
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">Hide(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>Hide the given node. Return true if the function
-		is successfull.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">GetNodes(<replaceable>top</replaceable>?)</literal></entry>
-	      <entry>Return the list of all nodes
-		in the subtree of the given
-		<replaceable>top</replaceable>
-		node (or the whole current tree if no <replaceable>top</replaceable>
-		is given). The list returned is ordered in
-		the natural structure ordering.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">GetVisibleNodes(<replaceable>top</replaceable>?)</literal></entry>
-	      <entry>Return the list of all visible nodes
-		in the subtree of the given
-		<replaceable>top</replaceable>
-		node (or the whole current tree if no <replaceable>top</replaceable>
-		is given). The list returned is ordered in
-		the natural structure ordering and
-		all members of hidden subtrees are skipped.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">NormalizeOrds(<replaceable>listref</replaceable>)</literal></entry>
-	      <entry>
-		Adjusts the special FS numbering attribute of 
-		every node of the list referenced by the 
-		<replaceable>listref</replaceable> argument so that
-		the value for the attribute corresponds to the
-		order of the node in the list.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">SortByOrd(<replaceable>listref</replaceable>)</literal></entry>
-	      <entry>
-		Sort the list of nodes referenced by the
-		<replaceable>listref</replaceable> argumnt according
-		to the values of the special FS numbering attribute.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">RepasteNode(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>
-		Cut the given <replaceable>node</replaceable> and 
-		paste it immediately on the same parent so that
-		its structural position between its parent children
-		is brought to correspondence
-		with the values of the special FS numbering attribute.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">ShiftNodeRightSkipHidden(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>
-		Shift the current node in the tree to the right
-		leaping over all hidden subtress by modifying
-		the tree structure and value of the special FS
-		numbering attribute appropriately. 
-	      </entry>
-	    </row>
-	    <row>	     
-	      <entry><literal moreinfo="none">ShiftNodeLeftSkipHidden</literal></entry>
-	      <entry>
-		Shift the current node in the tree to the left
-		leaping over all hidden subtress by modifying
-		the tree structure and value of the special FS
-		numbering attribute appropriately. 
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">ShiftNodeRight</literal></entry>
-	      <entry>
-		Shift the current node in the tree to the right
-		by modifying
-		the tree structure and value of the special FS
-		numbering attribute appropriately. 
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">ShiftNodeLeft</literal></entry>
-	      <entry>
-		Shift the current node in the tree to the right
-		by modifying
-		the tree structure and value of the special FS
-		numbering attribute appropriately. 
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">AtrNo(<replaceable>n</replaceable>)</literal></entry>
-	      <entry>Retrun name of the
-		<replaceable>n</replaceable>'th
-		attribute defined in the FS file. This macro only
-		abbreviates the following expression:
-		<programlisting format="linespecific">$grp-&gt;{FSFile}-&gt;FS-&gt;atno(<replaceable>n</replaceable>)</programlisting>
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">ValNo(<replaceable>n</replaceable>,<replaceable>string</replaceable>)</literal></entry>
-	      <entry>Return the <replaceable>n</replaceable>'th field
-		of the given <replaceable>string</replaceable> where
-		individual fields are separated by <quote><literal moreinfo="none">|</literal></quote>.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">Union(<replaceable>string-a</replaceable>,<replaceable>string-b</replaceable>)</literal></entry>
-	      <entry>Return a string consisting of
-		<literal moreinfo="none">|</literal>-separated fields
-		which form a pairwise disjoint set of the
-		<literal moreinfo="none">|</literal>-separated fields of
-		  the given strings
-	      <replaceable>string-a</replaceable>
-		  and <replaceable>string-b</replaceable>.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">Interjection</literal></entry>
-	      <entry>Return a string consisting of
-		<literal moreinfo="none">|</literal>-separated fields
-		which form the interjection of the sets of 
-		<literal moreinfo="none">|</literal>-separated fields of
-		  the given strings
-	      <replaceable>string_a</replaceable>
-		  and <replaceable>string_b</replaceable>.</entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">ListSplit(<replaceable>string</replaceable>)</literal></entry>
-	      <entry>Split the given string
-		of <literal moreinfo="none">|</literal>-separated fields
-		and return a list of the individual fields.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">ListJoin(<replaceable>fields</replaceable>)</literal></entry>
-	      <entry>Form a string of <literal moreinfo="none">|</literal>-separated
-		fields from the given list of fields.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">ListEq(<replaceable>string_a</replaceable>,<replaceable>string_b</replaceable>)</literal></entry>
-	      <entry>Compare the sets of
-		<literal moreinfo="none">|</literal>-separated 
-		fields of the two given strings. Return
-		true if the sets contain the same elements; return
-		false otherwise.
-	      </entry>
-	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">ListAssign(<replaceable>string</replaceable>,<replaceable>n</replaceable>,<replaceable>value</replaceable>)</literal></entry>
-	      <entry>Return the given string of	<literal moreinfo="none">|</literal>-separated 
-		fields, except that the
-		<replaceable>n</replaceable>'th
-		field in the <replaceable>string</replaceable> is
-		replaced by the given <replaceable>value</replaceable>.
-	      </entry>
-	    </row>
-	  </tbody>
-	</tgroup>
-      </table>
-    </sect2>
-    <sect2 id="hooks">
+      <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="tred_def.xml" xpointer="xpointer(/article/section/section)"/>
+    </section>
+    <section id="hooks">
       <title>Hooks: automatically executed macros</title>
       <para>
 	There is a special set of macros that was not
@@ -5757,7 +5289,7 @@ sub MakeSentence {
 	    <row id="event_hook">
 	      <entry><literal moreinfo="none">event_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>Tk-XEvent</replaceable>,<replaceable>Tk-win</replaceable>,<replaceable>shortcuts...</replaceable></literal></para><para>This is a very low-level hook, executed when a non-predefined keyboard shortcut
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>Tk-XEvent</replaceable>,<replaceable>Tk-win</replaceable>,<replaceable>shortcuts...</replaceable></literal></para><para>This is a very low-level hook, executed when a non-predefined keyboard shortcut
 		was issued. It can be used to block certain keyboard events
 		(in which case it should return <literal moreinfo="none">stop</literal>) or 
 		to provide <quote>on-the-fly</quote> bindings (by returning
@@ -5773,7 +5305,7 @@ sub MakeSentence {
 	    <row id="do_edit_node_hook">
 	      <entry><literal moreinfo="none">do_edit_node_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable></literal></para><para>Executed before the <guilabel moreinfo="none">Edit Node</guilabel>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable></literal></para><para>Executed before the <guilabel moreinfo="none">Edit Node</guilabel>
 		dialog is displayed, i.e. when the user
 		double-clicks a node, presses <keysym>Enter</keysym> in the
 		main window or issues <menuchoice moreinfo="none">
@@ -5785,7 +5317,7 @@ sub MakeSentence {
 	    <row id="enable_edit_node_hook">
 	      <entry><literal moreinfo="none">enable_edit_node_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable></literal></para><para>Executed before the <guilabel moreinfo="none">Edit Node</guilabel>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable></literal></para><para>Executed before the <guilabel moreinfo="none">Edit Node</guilabel>
 		dialog is displayed, i.e. when the user
 		double-clicks a node, presses <keysym>Enter</keysym> in the
 		main window or issues <menuchoice moreinfo="none">
@@ -5801,7 +5333,7 @@ sub MakeSentence {
 	    <row id="do_edit_attr_hook">
 	      <entry><literal moreinfo="none">do_edit_attr_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>attr</replaceable>,<replaceable>node</replaceable></literal></para><para>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>attr</replaceable>,<replaceable>node</replaceable></literal></para><para>
 		Executed before a dialog window for editing an
 		attribute value is displayed (usually when the 
 		user double-clicks the displayed attribute value).
@@ -5812,7 +5344,7 @@ sub MakeSentence {
 	    <row id="enable_attr_hook">
 	      <entry><literal moreinfo="none">enable_attr_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>attr</replaceable>,<replaceable>type</replaceable></literal></para><para>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>attr</replaceable>,<replaceable>type</replaceable></literal></para><para>
 		Executed before any text field for an attribute value
 		modification or list of possible values
 		is created. If the hook returns
@@ -5868,7 +5400,7 @@ sub MakeSentence {
 	    <row id="file_save_hook">
 	      <entry><literal moreinfo="none">file_save_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>output_filename</replaceable></literal></para><para>Executed before TrEd attempts to save a file.</para></entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>output_filename</replaceable></literal></para><para>Executed before TrEd attempts to save a file.</para></entry>
 	    </row>
 	    <row id="file_close_hook">
 	      <entry><literal moreinfo="none">file_close_hook</literal></entry>
@@ -5881,7 +5413,7 @@ sub MakeSentence {
 	    <row id="file_autosave_hook">
 	      <entry><literal moreinfo="none">file_autosave_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>fsfile</replaceable></literal></para><para>Executed before TrEd attempts to create an auto-save file
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable></literal></para><para>Executed before TrEd attempts to create an auto-save file
 		for the given<replaceable>fsfile</replaceable>. Note, that
 		this is not necessarily the file displayed in the
 		active view and accessible via the <literal moreinfo="none">$grp</literal> variable.
@@ -5890,7 +5422,7 @@ sub MakeSentence {
 	    <row id="get_backends_hook">
 	      <entry><literal moreinfo="none">get_backends_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>backends...</replaceable></literal></para><para>Executed before a new file is opened. It receives a list 
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>backends...</replaceable></literal></para><para>Executed before a new file is opened. It receives a list 
 		of available backends known by TrEd as arguments. It should
 		return a new array-ref consisting of backends that TrEd
 		should actually try to use. This may be used both to
@@ -5902,7 +5434,7 @@ sub MakeSentence {
 	    <row id="allow_switch_context_hook">
 	      <entry><literal moreinfo="none">allow_switch_context_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the new context, but before the macro 
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the new context, but before the macro 
 		context is actually changed (see <xref linkend="contexts"/>)
 		and before <literal moreinfo="none">pre_switch_context_hook</literal>
 		is called (in the old-context).
@@ -5915,7 +5447,7 @@ sub MakeSentence {
 	    <row id="pre_switch_context_hook">
 	      <entry><literal moreinfo="none">pre_switch_context_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the old context before the macro 
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the old context before the macro 
 		context is changed (see <xref linkend="contexts"/>).
 		The <replaceable>previous</replaceable> argument
 		contains the name of the
@@ -5927,7 +5459,7 @@ sub MakeSentence {
 	    <row id="switch_context_hook">
 	      <entry><literal moreinfo="none">switch_context_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>current</replaceable></literal></para><para>Executed just after a context is changed (see <xref linkend="contexts"/>).
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>previous</replaceable>,<replaceable>current</replaceable></literal></para><para>Executed just after a context is changed (see <xref linkend="contexts"/>).
 		The <replaceable>previous</replaceable> argument
 		contains the name of the previous context while
 		<replaceable>next</replaceable> contains the name of the
@@ -5937,7 +5469,7 @@ sub MakeSentence {
 	    <row id="pre_switch_stylesheet_hook">
 	      <entry><literal moreinfo="none">pre_switch_stylesheet_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed when user attempts to switch the current
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed when user attempts to switch the current
 		stylesheet from <replaceable>previous</replaceable> to
 		<literal moreinfo="none">next</literal>.
 	      </para></entry>
@@ -5945,7 +5477,7 @@ sub MakeSentence {
 	    <row id="switch_stylesheet_hook">
 	      <entry><literal moreinfo="none">switch_stylesheet_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>current</replaceable></literal></para><para>Executed after switching stylesheets.
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>previous</replaceable>,<replaceable>current</replaceable></literal></para><para>Executed after switching stylesheets.
 		The fist argument is the previous stylesheet.
 		The second argument is the newly selected current stylesheet.
 	      </para></entry>
@@ -5954,7 +5486,7 @@ sub MakeSentence {
 	    <row id="about_file_hook">
 	      <entry><literal moreinfo="none">about_file_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>stringref</replaceable></literal></para><para>This hook is executed before the
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>stringref</replaceable></literal></para><para>This hook is executed before the
 		<guilabel moreinfo="none">About</guilabel> window is displayed.
 		The hook takes one argument: a reference to a scalar
 		variable. The hook may populate the referenced
@@ -5972,7 +5504,7 @@ sub MakeSentence {
 	    <row id="sort_attrs_hook">
 	      <entry><literal moreinfo="none">sort_attrs_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>attibsref</replaceable></literal></para><para>Executed when attribute names are pre-sorted
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>attibsref</replaceable></literal></para><para>Executed when attribute names are pre-sorted
 		(see <literal moreinfo="none">SortAttributes</literal>
 		configuration options). The
 		<replaceable>attribsref</replaceable>
@@ -5989,7 +5521,7 @@ sub MakeSentence {
 	    <row id="after_edit_node_hook">
 	      <entry><literal moreinfo="none">after_edit_node_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>result</replaceable></literal></para><para>Executed after a node's attribute values were edited
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>result</replaceable></literal></para><para>Executed after a node's attribute values were edited
 		in the <guilabel moreinfo="none">Edit Node Attributes</guilabel>
 		dialog window. The <replaceable>result</replaceable>
 		argument contains <literal moreinfo="none">1</literal> if the user pressed
@@ -6015,7 +5547,7 @@ sub MakeSentence {
 	    <row id="get_value_line_hook">
 	      <entry><literal moreinfo="none">get_value_line_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable></literal></para><para>Supply custom value-line content based on given
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable></literal></para><para>Supply custom value-line content based on given
 		<replaceable>fsfile</replaceable> and
 		<replaceable>treeNo</replaceable>.
 		The value returned from the hook may be either 
@@ -6052,7 +5584,7 @@ sub MakeSentence {
 	    </row>
 	    <row id="get_nodelist_hook">
 	      <entry><literal moreinfo="none">get_nodelist_hook</literal></entry>
-	      <entry>no</entry> <entry><para>Arguments: <literal role="params"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replaceable>show_hidden</replaceable></literal></para><para>This hook may be used to supply
+	      <entry>no</entry> <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replaceable>show_hidden</replaceable></literal></para><para>This hook may be used to supply
 	      custom node ordering given a fsfile, treeNo and hidden
 	      node visibility state.  If used, it should return a
 	      two-element array reference with the first element being
@@ -6063,7 +5595,7 @@ sub MakeSentence {
 	    </row>
 	    <row id="node_release_hook">
 	      <entry><literal moreinfo="none">node_release_hook</literal></entry>
-		<entry>yes</entry> <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>target-node</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when a node is released
+		<entry>yes</entry> <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>target-node</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when a node is released
 		over another node after a mouse
 		drag. <replaceable>mod</replaceable> is a keyboard
 		modifier string, such as <literal moreinfo="none">Control</literal>,
@@ -6084,7 +5616,7 @@ sub MakeSentence {
 	    <row id="node_doubleclick_hook">
 	      <entry><literal moreinfo="none">node_doubleclick_hook</literal></entry>
 		<entry>no</entry> 
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when a node is double-clicked
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when a node is double-clicked
 		  while a modifier key was pressed.
 		  <replaceable>mod</replaceable> is a keyboard
 		modifier string, such as <literal moreinfo="none">Control</literal>,
@@ -6100,7 +5632,7 @@ sub MakeSentence {
 	    <row id="text_doubleclick_hook">
 	      <entry><literal moreinfo="none">text_doubleclick_hook</literal></entry>
 		<entry>no</entry> 
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>attr</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when an attribute in a displayed
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>attr</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when an attribute in a displayed
 		  node or edge label is double-clicked
 		  while a modifier key was pressed.
 		  <replaceable>mod</replaceable> is a keyboard
@@ -6121,12 +5653,12 @@ sub MakeSentence {
 	    <row id="node_moved_hook">
 	      <entry><literal moreinfo="none">node_moved_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>old-parent)</replaceable></literal></para><para>called after a node is moved using a mouse</para></entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>old-parent)</replaceable></literal></para><para>called after a node is moved using a mouse</para></entry>
 	    </row>
 	    <row id="current_node_change_hook">
 	      <entry><literal moreinfo="none">current_node_change_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>current_node</replaceable>,<replaceable>prev_current_node</replaceable></literal></para><para>executed when a new active node is selected.</para></entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>current_node</replaceable>,<replaceable>prev_current_node</replaceable></literal></para><para>executed when a new active node is selected.</para></entry>
 	    </row>
 	    <row id="get_status_line_hook">
 	      <entry>get_status_line_hook</entry>
@@ -6171,7 +5703,7 @@ sub MakeSentence {
 	    <row id="value_line_doubleclick_hook">
 	      <entry><literal moreinfo="none">value_line_doubleclick_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>tags...</replaceable></literal></para><para>Called when the user double-clicks the text
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>tags...</replaceable></literal></para><para>Called when the user double-clicks the text
 		in the value-line, i.e. text field displayed above the tree.
 		Arguments are the tags associated with
 		the clicked part of the text. Tag may be arbitrary
@@ -6190,7 +5722,7 @@ sub MakeSentence {
 	    <row id="status_line_doubleclick_hook">
 	      <entry><literal moreinfo="none">status_line_doubleclick_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>tags...</replaceable></literal></para><para>Called when the user double-clicks the status-line.
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>tags...</replaceable></literal></para><para>Called when the user double-clicks the status-line.
 		Arguments are the tags associated with
 		the clicked field (see above). Tag may be arbitrary
 		strings and it is up to user's will to
@@ -6201,7 +5733,7 @@ sub MakeSentence {
 	    <row id="status_line_click_hook">
 	      <entry><literal moreinfo="none">status_line_click_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>tags...</replaceable></literal></para><para>Called when the user clicks the status-line
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>tags...</replaceable></literal></para><para>Called when the user clicks the status-line
 		with the same arguments as
 		<literal moreinfo="none">status_line_doubleclick_hook</literal>
 		above.
@@ -6234,7 +5766,7 @@ sub MakeSentence {
 	    <row id="node_click_hook">
 	      <entry><literal moreinfo="none">node_click_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed when the user clicks on a node
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed when the user clicks on a node
 		with a mouse button while holding a keyboard modifier
 		(one of <keycap moreinfo="none">Shift</keycap>, <keycap moreinfo="none">Control</keycap>,
 		<keycap moreinfo="none">Alt</keycap>, <keycap moreinfo="none">Meta</keycap>).
@@ -6252,7 +5784,7 @@ sub MakeSentence {
 	    <row id="node_motion_hook">
 	      <entry><literal moreinfo="none">node_motion_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed repeatedly while the user drags 
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed repeatedly while the user drags 
 		a node while holding a keyboard modifier.
 		Arguments passed to this hook
 		are same as for the <literal moreinfo="none">node_click_hook</literal>.
@@ -6261,7 +5793,7 @@ sub MakeSentence {
 	    <row id="text_click_hook">
 	      <entry><literal moreinfo="none">text_click_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>attribute</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed when the user double-clicks on
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>attribute</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed when the user double-clicks on
 		a node label linked to a particular node attribute.
 		The <replaceable>modifier</replaceable> and 
 		<replaceable>Tk-Event</replaceable> arguments are 
@@ -6271,7 +5803,7 @@ sub MakeSentence {
 	    <row id="node_style_hook">
 	      <entry><literal moreinfo="none">node_style_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>syles</replaceable></literal></para><para>This hook is called for every node of a tree every time
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>syles</replaceable></literal></para><para>This hook is called for every node of a tree every time
 		the tree is being drawn. It may be used to provide
 		additional styling information on top of
 		the information provided by a current stylesheet.
@@ -6297,7 +5829,7 @@ sub MakeSentence {
 	    <row id="root_style_hook">
 	      <entry><literal moreinfo="none">root_style_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params"><replaceable>root-node</replaceable>,<replaceable>syles</replaceable></literal></para><para>This hook is executed once every time
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>root-node</replaceable>,<replaceable>syles</replaceable></literal></para><para>This hook is executed once every time
 		the tree is being drawn before
 		the content of a currently selected stylesheet
 		is applied and before <literal moreinfo="none">node_style_hook</literal>
@@ -6322,8 +5854,8 @@ sub MakeSentence {
 	  </tbody>
 	</tgroup>
       </table>
-    </sect2>
-    <sect2 id="contexts">
+    </section>
+    <section id="contexts">
       <title>Using different sets of macros in different situations</title>
       <subtitle>Name-spaces, contexts and binding contexts</subtitle>
       <para>
@@ -6509,8 +6041,8 @@ sub SubtreeFuncAssign {
 }
 </programlisting>
       </example>
-    </sect2>
-  </sect1>
+    </section>
+  </section>
 </article>
 <!-- Keep this comment at the end of the file
 Local variables:
