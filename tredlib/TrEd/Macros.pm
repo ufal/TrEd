@@ -52,6 +52,7 @@ sub read_macros {
     %keyBindings=();
     %menuBindings=();
     @macros=();
+    push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
     print "ERROR: Cannot open macros!\n", return
       unless open(F,"<$defaultMacroFile");
     push @macros, <F>;

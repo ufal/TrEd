@@ -657,6 +657,7 @@ sub redraw {
 
   my $lineHeight=$self->getFontHeight();
   my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
+  my $can_dash=($Tk::VERSION=~/\.([0-9]+)$/ and $1>=22);
   foreach $node (@{$nodes}) {
     # Something like draw_node_hook should be called here
     $parent=$node->parent;
@@ -687,7 +688,8 @@ sub redraw {
 					 '-arrow' =>  shift @arrow || $self->get_lineArrow,
 					 '-width' =>  shift @width || $self->get_lineWidth,
 					 '-fill'  =>  shift @fill || $self->get_lineColor,
-					 '-dash'  =>  shift @dash || $self->get_lineDash);
+					  $can_dash ? ('-dash'  =>  shift @dash || $self->get_lineDash)
+					            : ());
       $self->store_node_pinfo($node,"Line$lin",$line);
       $self->store_obj_pinfo($line,$node);
       $self->realcanvas->lower($line,'all');

@@ -48,6 +48,14 @@ sub PasteFromClipboard {
   $nodeClipboard=undef;
 }
 
+sub StandardTredFont {
+  return $main::font;
+}
+
+sub StandardTredValueLineFont {
+  return $main::vLineFont;
+}
+
 sub editQuery {
   ## draws a dialog box with one Text widget and Ok/Cancel buttons
   ## expects dialog title and default text

@@ -253,10 +253,12 @@ sub write {
 	  }
 	} elsif ($node->{form}=~/^([][!"'()+,-.\/:;=\?`]|&(?:amp|ast|bsol|circ|commat|dollar|gt|lcub|lowbar|lsqb|lt|macron|num|percnt|rcub|rsqb|verbar);)$/) {
 	  my $case = $node->{formtype} eq 'gen' ? " ".$node->{formtype} : "";
-	  print $fileref "<d$case>",translate_to_entities($node->{form});
+	  my $AID = $node->{AID} ne '' ? " id=\"$node->{AID}\"" : "";
+	  print $fileref "<d$case$AID>",translate_to_entities($node->{form});
 	} else {
 	  my $case = $node->{formtype} =~m/^(?:cap|upper|mixed|gen|num|num.gen|gen.phrase|cap.gen.phrase|abbr|cap.abbr|cap.gen|upper.abbr|upper.gen|mixed.abbr)/ ? " ".$node->{formtype} : "";
-	  print $fileref "<f$case>",$node->{form};
+	  my $AID = $node->{AID} ne '' ? " id=\"$node->{AID}\"" : "";
+	  print $fileref "<f$case$AID>",$node->{form};
 	}
 	print_split_attr($fileref,$node->{punct},'P');
 	print $fileref "<Ct>",$node->{alltags} if ($node->{alltags} ne "");
