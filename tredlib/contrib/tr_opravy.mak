@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-27 15:26:30 pajas>
+## Time-stamp: <2005-02-28 11:45:32 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -647,7 +647,7 @@ sub tectogrammatical_tree_store_AR {
   }
   PDT::TRstruct();
   PDT::ClearARstruct();
-  if (CurrentContext() =~ /^TR/) {
+  unless (CurrentContext() =~ /^TR/) {
     SwitchContext($contextBeforeSwitch);
   }
   undef $contextBeforeSwitch;
