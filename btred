@@ -36,7 +36,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $start_server $help $usage $manpage
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
-	    @files $backend
+	    @files $backend %bkmap
 	   );
 
 #getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:NHSTFX:RPWVL:b:');
@@ -48,7 +48,7 @@ GetOptions ("quiet|q" => \$quiet,
 	    "strip-prefix|p=s" => \$strip_prefix,
 	    "add-prefix|r=s" => \$add_prefix,
 	    "strip-suffix|s=s" => \$strip_suffix,
-	    "append-suffix|a=s" => \$append_suffix,
+	    "add-suffix|a=s" => \$append_suffix,
 	    "output-format|f=s" => \$output_format,
 	    "config-file|c=s" => \$config_file,
 	    "initial-code|i=s" => \$initial_code,
@@ -89,14 +89,8 @@ if ($manpage) {
 
 $code||="autostart()"; # this is the default macro name
 
-if (defined($term_encoding) and $]>=5.008) {
-  eval {
-    _msg("forcing encoding $term_encoding for STDERR and STDOUT\n") if $debug;
-    binmode STDERR,":encoding($term_encoding)";
-    binmode STDOUT,":encoding($term_encoding)";
-  };
-  _msg $@ if $@;
-}
+_set_encoding(\*STDERR,$term_encoding,"STDERR");
+_set_encoding(\*STDOUT,$term_encoding,"STDOUT");
 
 # in Windows, if HOME not defined, use user's AppData folder instaed
 if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
@@ -260,7 +254,7 @@ _msg("done.\n") unless $quiet;
 
 
 
-my %bkmap=(
+%bkmap=(
 	fs => 'FSBackend',
 	csts => 'CSTS_SGML_SP_Backend',
 	trxml => 'TrXMLBackend',
@@ -368,6 +362,7 @@ sub startMain {
 	undef $hub;
       }
     } while (!$hub);
+    _set_encoding($hub,$term_encoding,"socket to hub");
     _msg("Connection to the hub on $peer established.\n");
     my $request_no=0;
     _msg("Waiting for a request from the hub...\n\n");
@@ -418,9 +413,18 @@ sub startMain {
 
 	# create temporary file to store macro output
 	my $macro_stdout = IO::File->new_tmpfile();
+
 	*MOUT=*$macro_stdout;
 	#open OLDSTDOUT, ">&STDOUT" or die "Can't dup STDOUT: $!";
 	open(STDOUT, "+>&MOUT") or die "Can't redirect STDOUT: $!";
+
+	# script command-line arguments
+	if (exists($request{ARGS})) {
+	  @TredMacro::ARGV=split "\n",$request{ARGS};
+	} else {
+	  @TredMacro::ARGV=();
+	}
+
 	STDOUT->autoflush();
 	# load macro
 	_msg "COMPILING MACRO\n";
@@ -475,7 +479,32 @@ sub startMain {
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'LIST') {
 	_msg "Listing all open files at client's request\n";
+	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	$hub->print(join("\n",@files),"\n");
+	_end_response($control,$hub);
+      } elsif ($request{REQUEST_TYPE} eq 'SAVE') {
+	for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
+	  chomp($request{$_}) if exists $request{$_};
+	}
+	do {
+	  local $backend=$bkmap{$request{Format}} if exists $request{Format};
+	  local $strip_prefix=$request{"Strip-prefix"} if exists $request{"Strip-prefix"};
+	  local $strip_suffix=$request{"Strip-suffix"} if exists $request{"Strip-suffix"};
+	  local $add_prefix=$request{"Prefix"} if exists $request{"Prefix"};
+	  local $append_suffix=$request{"Suffix"} if exists $request{"Suffix"};
+	  eval {
+	    gotoFile($grp,0);
+	    die $@ if $@;
+	    do {
+	      next unless ref($grp->{FSFile});
+	      my $out = saveFile($grp);
+	      $hub->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+	      die $@ if $@;
+	    } while (nextFile($grp));
+	    die $@ if $@;
+	  };
+	};
+	$hub->print("$@\n") if $@;
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
 	_msg "Reloading all open files at client's request\n";
@@ -658,8 +687,8 @@ sub saveFile {
 
   $grp->{FSFile}->changeBackend($backend) if ($backend);
   my $out=$f;
-  $out=~s/$strip_suffix$/$append_suffix/ if ($strip_suffix or $append_suffix);
-  $out=~s/^$strip_prefix/$add_prefix/ if ($strip_prefix or $add_prefix);
+  $out=~s/$strip_suffix$/$append_suffix/ if ($strip_suffix ne "" or $append_suffix ne "");
+  $out=~s/^$strip_prefix/$add_prefix/ if ($strip_prefix ne "" or $add_prefix ne "");
   if ($f eq $out) {
     unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
     rename $f, "$f~" if (-f $f);
@@ -670,8 +699,9 @@ sub saveFile {
 
   unless ($grp->{FSFile}->writeFile($out)) {
     _msg "Error saving file to '$out'\n($!)\n";
-    return 0;
+    return undef;
   }
+  return $out;
 }
 
 sub closeFile {
@@ -782,6 +812,17 @@ sub updateTredMacroGlobals {
   print "updateTredMacroGlobals: $TredMacro::root->{form}\n";
 }
 
+sub _set_encoding {
+  my ($fh, $enc, $what)=@_;
+  if ($enc and $]>=5.008) {
+    eval {
+      _msg("forcing encoding $enc for $what\n") if $debug;
+      binmode $fh,":encoding($enc)";
+    };
+    _msg $@ if $@;
+  }
+}
+
 __END__
 
 =head1 ntred
@@ -873,7 +914,7 @@ Prepend output filenames with the given prefix.
 
 Strip strings matching given regexp from the end of filenames.
 
-=item B<--append-suffix|-a> suffix
+=item B<--add-suffix|-a> suffix
 
 Append given suffix to the filenames.
 
