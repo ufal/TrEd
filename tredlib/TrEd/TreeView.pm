@@ -17,6 +17,7 @@ use strict;
   currentBoxColor currentEdgeBoxColor currentNodeHeight
   currentNodeWidth customColors hiddenEdgeBoxColor edgeBoxColor
   clearTextBackground drawBoxes drawEdgeBoxes
+  backgroundImage backgroundImageX backgroundImageY
   drawSentenceInfo font hiddenBoxColor edgeLabelYSkip
   highlightAttributes showHidden lineArrow lineColor lineWidth noColor
   nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
@@ -497,6 +498,7 @@ sub redraw {
   my $parent;
   my $node_has_box;
   my $edge_has_box;
+  my $bg;
   my ($x_edge_delta,
       $x_edge_length,
       $y_edge_length,
@@ -606,6 +608,9 @@ sub redraw {
   $self->canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
   $self->canvas->configure(-background => $self->get_backgroundColor) if (defined $self->get_backgroundColor);
   $self->canvas->addtag('delete','all');
+  if ($self->canvas->find('withtag','bgimage')) {
+    $self->canvas->dtag('bgimage','delete');
+  }
   $self->canvas->delete('delete');
 
   $self->store_gen_pinfo('lastX' => 0);
@@ -852,6 +857,22 @@ sub redraw {
 	       });
     }
   }
+  if (defined $self->get_backgroundImage) {
+    unless ($self->canvas->find('withtag','bgimage')) {
+      my $img=$self->get_backgroundImage;
+      print STDERR "Loading background image from $img...";
+      eval {
+	$self->canvas->Photo("photo", -file => $img);
+	$self->canvas->createImage($self->get_backgroundImageX,
+				   $self->get_backgroundImageY,
+				   -image =>"photo",
+				   -anchor => 'nw', -tags=>'bgimage');
+      };
+      print STDERR $@ ? "failed.\n" : "ok.\n";
+    }
+    $self->realcanvas->lower('bgimage','all')  if ($self->canvas->find('withtag','bgimage'));
+  }
+
 }
 
 
@@ -864,7 +885,8 @@ sub draw_text_line {
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
   
   ## Clear background
-  if ($clear and $self->get_node_pinfo($node,"X[$i]")>0) {
+  if ($self->get_clearTextBackground and
+      $clear and $self->get_node_pinfo($node,"X[$i]")>0) {
     my $bg=
       $self->canvas->
 	createRectangle($x,$y,
