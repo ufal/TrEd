@@ -31,9 +31,10 @@ of Prague Dependency Treebank (PDT) 2.0.
 #key-binding-adopt PML_T_View
 #menu-binding-adopt PML_T_View
 
-=item add_coref
+=item add_coref (node, target, coref)
 
-TODO
+If the node does not refer to target by the coref of type C<$coref>,
+make the reference, else delete the reference.
 
 =cut
 
@@ -71,6 +72,39 @@ sub node_release_hook {
   $FileChanged=1;
 }#node_release_hook
 
+sub get_status_line_hook {
+  my $statusline=&PML_T::get_status_line_hook;
+  push @{$statusline->[0]},
+    ($PML_T_Edit::remember ?
+     ('   Remembered: ' => [qw(label)],
+      $PML_T_Edit::remember->{t_lemma} || $PML_T_Edit::remember->{id}=> [qw(status)]
+     ):'');
+  push @{$statusline->[1]},("status" => [ -foreground => CustomColor('status')]);
+  return $statusline;
+}#get_status_line_hook
+
+sub status_line_doubleclick_hook {
+  # status-line field double clicked
+
+  # @_ contains a list of style names associated with the clicked
+  # field. Style names may obey arbitrary user-defined convention.
+
+  foreach (@_) {
+    if (/^\{(.*)}$/) {
+      if ($1 eq 'FRAME') {
+        ChooseFrame(); #TODO
+        last;
+      } else {
+        if (main::doEditAttr($grp,$this,$1)) {
+          ChangingFile(1);
+          Redraw_FSFile();
+        }
+        last;
+      }
+    }
+  }
+}
+
 #bind edit_functor to f menu Edit Functor
 sub edit_functor{
   my$f=$this->{functor};
@@ -85,21 +119,83 @@ sub edit_tfa{
   ChangingFile($t ne$this->{tfa});
 }#edit_functor
 
+#bind edit_t_lemma to l menu Edit t_lemma
+sub edit_t_lemma{
+  my$l=$this->{t_lemma};
+  EditAttribute($this,'t_lemma');
+  ChangingFile($l ne$this->{t_lemma});
+}#edit_functor
+
+=item remember_node
+
+Remembers current node to be used later, e.g. with
+C<text_arrow_to_remembered>.
+
+=cut
+
 #bind remember_node to space menu Remember Node
 sub remember_node{
   $PML_T_Edit::remember=$this;
+  undef %PML_T::show;
+  $PML_T::show{$this->{id}}=1;
+  ChangingFile(0);
 }#remember_node
 
 #bind text_arow_to_remembered to Ctrl+space menu Make Textual Coreference Aroow to Remembered Node
 sub text_arow_to_remembered{
+  ChangingFile(0);
   if($PML_T_Edit::remember and $PML_T_Edit::remember->parent and $this->parent){
     add_coref($this,$PML_T_Edit::remember,'coref_text.rf');
-  } # TODO: mazat $PML_T::coreflemmas !!!!!!!!!!!!!!!!1
+    ChangingFile(1);
+  }
 }#text_arow_to_remembered
 
+#bind forget_remembered to Shift+space menu Forget Remembered Node
+sub forget_remembered {
+  undef $PML_T_Edit::remember;
+  ChangingFile(0);
+}#forget_remembered
+
+=item mark_for_arf
+
+Enter analytical layer with current node remembered. By calling
+C<add_this_to_arf> you can make links between the layers.
+
+=cut
+
+#bind mark_for_arf to + menu Mark Node for a.rf Changes
+sub mark_for_arf {
+  $PML::arf=$this;
+  ChangingFile(0);
+  analytical_tree();
+}#mark_for_arf
+
+#bind rotate_generated to g menu Change is_generated
+sub rotate_generated{
+  $this->{is_generated}=!$this->{is_generated};
+}#rotate_generated
+
+#bind annotate_segm to s menu Annotate Special Coreference - Segment
+sub annotate_segm{
+  if($this->{coref_special}eq'segm'){
+    $this->{coref_special}='';
+  }else{
+    $this->{coref_special}='segm';
+  }
+}#annotate_segm
+
+#bind annotate_exoph to e menu Annotate Special Coreference - Exophora
+sub annotate_exoph{
+  if($this->{coref_special}eq'exoph'){
+    $this->{coref_special}='';
+  }else{
+    $this->{coref_special}='exoph';
+  }
+}#annotate_exoph
 
 #bind delete_node to Delete menu Delete Node
 #bind delete_subtree to Ctrl+Delete menu Delete Subtree
+#bind new_node to Insert menu Insert New Node
 
 1;
 
