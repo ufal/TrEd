@@ -212,6 +212,7 @@ sub open_superframe {
 sub fetch_data {
   my ($self, $word)=@_;
 
+  
   my $t=$self->widget();
   my ($e,$f,$i);
   my $style;
@@ -336,8 +337,9 @@ sub create_widget {
 		     -validatecommand => [\&quick_search,$self]
 		    )->pack(qw/-expand yes -fill x/);
 
+
   ## Word List
-  my $w = $frame->Scrolled(qw/HList -columns 2 -background white
+  my $w = $frame->Scrolled(qw/HList -columns 3 -background white
                               -selectmode browse
                               -header 1
                               -relief sunken
@@ -377,6 +379,17 @@ sub create_widget {
 			    Tk->break;
 			  },$self
 			 ]);
+  $pose->bind('<Return>',[
+			  sub {
+			    my ($cw,$self)=@_;
+			    my $h=$self->subwidget('wordlist');
+			    my $word=$h->infoData($h->infoAnchor()) if ($h->infoAnchor());
+			    $self->fetch_data($word);
+			    $self->focus($word);
+			    Tk->break;
+			  },$self
+			 ]);
+
 
 
   $w->configure(@conf) if (@conf);
@@ -423,17 +436,22 @@ sub fetch_data {
   my $e;
   $t->delete('all');
   $t->headerCreate(0,-itemtype=>'text', -text=>'');
-  $t->headerCreate(1,-itemtype=>'text', -text=>'lemma');
+  $t->headerCreate(1,-itemtype=>'text', -text=>'');
+  $t->headerCreate(2,-itemtype=>'text', -text=>'lemma');
   $t->columnWidth(0,'');
   $t->columnWidth(1,'');
+  $t->columnWidth(2,'');
 
   foreach my $entry ($self->data()->getWordSubList
 		     ($word,$self->max_surrounding(),$self->pos_filter)) {
     $e= $t->addchild("",-data => $entry->[0]);
     $t->itemCreate($e, 0, -itemtype=>'text',
-		   -text=> $entry->[3],
+		   -text=> ($entry->[4] ? "*" : ""),
 		   -style => $self->style());
     $t->itemCreate($e, 1, -itemtype=>'text',
+		   -text=> $entry->[3],
+		   -style => $self->style());
+    $t->itemCreate($e, 2, -itemtype=>'text',
 		   -text=> $entry->[2],
 		   -style => $self->style());
   }
@@ -448,8 +466,8 @@ sub focus_by_text {
     # 2nd run asks Data server for more data
     $self->fetch_data($text) if $i;
     foreach my $t ($h->infoChildren()) {
-      if ((!$caseinsensitive and index($h->itemCget($t,1,'-text'),$text)==0 or
-	  $caseinsensitive and index(lc($h->itemCget($t,1,'-text')),lc($text))==0)
+      if ((!$caseinsensitive and index($h->itemCget($t,2,'-text'),$text)==0 or
+	  $caseinsensitive and index(lc($h->itemCget($t,2,'-text')),lc($text))==0)
 	  and
 	  ($pos eq "" || $pos eq $h->itemCget($t,0,'-text'))) {
 	$h->anchorSet($t);
@@ -501,7 +519,7 @@ sub focused_word {
   my $h=$self->widget();
   my $t=$h->infoAnchor();
   if (defined($t)) {
-    return [$h->itemCget($t,1,'-text'),$h->itemCget($t,0,'-text')]
+    return [$h->itemCget($t,2,'-text'),$h->itemCget($t,0,'-text')]
   }
   return undef;
 }
