@@ -1,0 +1,3 @@
+#!/bin/sh
+
+pod2xml tredlib/tred.def |xsltproc devel/pod2db.xsl - | devel/pod2db.xsh -P- > documentation/manual/tred_def.xml

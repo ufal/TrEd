@@ -1,0 +1,1169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<article xmlns:pod="http://axkit.org/ns/2000/pod2xml">
+
+	<title>TredMacro</title>
+
+<section>
+<title>TredMacro</title>
+<para>
+TredMacro (<filename>tred.def</filename>) - implements the public API for TrEd/bTred macros
+</para>
+<section>
+<title>Global variables</title>
+<variablelist>
+<varlistentry><term><literal>$FileChanged</literal> (alias <literal>$FileNotSaved</literal> - still valid but obsolete)</term><listitem>
+<para>
+If this variable is set to 1, TrEd/bTrEd considers the current file to
+be modified and in case of bTrEd makes the program to save it before
+it is closed (in case of TrEd, user is prompted before the file is
+closed). If the macro does not change this variable, bTrEd does not
+change the file status, while TrEd still assumes that the file <emphasis>was</emphasis>
+modified. In other words, set this variable to 1 in bTrEd if you want
+the file to be saved at last, and set this variable to 0 in TrEd if
+you are sure you did not make any change to the file that would be
+worth saving it. As there is a danger that calling one macro from
+another may result in a mess in the value of <literal>$FileChanged</literal> it is
+adviced to use the default macro <literal>ChangingFile()</literal> which tries to set
+the file status only if really intended (see below).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>$Redraw</literal></term><listitem>
+<para>
+This variable makes sense only in TrEd.  You may set it to one of
+<literal>file</literal>, <literal>tree</literal>, <literal>win</literal>, <literal>all</literal>, <literal>tie</literal> to alter the mechanism of redrawing the
+screen. The default value is <literal>file</literal> (redraw all windows displaying
+current file), while <literal>tree</literal> means redraw all windows displaying
+current tree, <literal>win</literal> means redraw only current window and <literal>tie</literal> means
+redraw all if windows are tied or (if not) redraw only current window.
+To disable redrawing set this variable to <literal>none</literal>.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>$forceFileSaved</literal></term><listitem>
+<para>
+In TrEd, you may wish to set this variable to 0 if you wish to change
+the status of the file to <literal>saved</literal> (e.g. after saving the file from
+your macro).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>$root</literal></term><listitem>
+<para>
+Root of the current tree. If possible, avoid changing this variable in
+your code, so that other macros you call may use it too.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>$this</literal></term><listitem>
+<para>
+Current node (i.e. the active node in TrEd and the node in turn if
+<literal>-N</literal> or <literal>-H</literal> flag was used in bTrEd). Assigning a different node
+from the current tree to this variable results in changing the active
+node in TrEd.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>$libDir</literal></term><listitem>
+<para>
+This variable contains a path to TrEd library directory.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>$grp</literal></term><listitem>
+<para>
+This variable is a hash reference which stores the fundamental piece
+of information about current file, current context etc. <emphasis>DO NOT
+CHANGE IT</emphasis>. You may (and in some situations must), however, use this
+variable to access that information.
+</para>
+</listitem></varlistentry>
+<variablelist>
+<varlistentry><term><literal>$grp-&gt;{FSFile}</literal></term><listitem>
+<para>
+This field stores the FSFile object of the current file.  See Fslib
+or manual to TrEd (section Accessing other trees) for more info.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>$grp-&gt;{treeNo}</literal></term><listitem>
+<para>
+This field contains index of the current tree.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>$grp-&gt;{macroContext}</literal></term><listitem>
+<para>
+This field contains the name of current macro context. To change
+current context use the pre-defined macro SwitchContext
+</para>
+</listitem></varlistentry>
+</variablelist>
+</variablelist>
+</section>
+<section>
+<title>Helper macros for attributes with list or alternative of values</title>
+<variablelist>
+<varlistentry><term><literal>IsList(value)</literal></term><listitem>
+<para>
+Check that a given value is a list, i.e. Fslib::List object.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>IsAlt(value)</literal></term><listitem>
+<para>
+Check that a given value is an alternative, i.e. Fslib::Alt object.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>List(value,value,...)</literal></term><listitem>
+<para>
+Return a new list (Fslib::List object) populated with given values.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Alt(value,value,...)</literal></term><listitem>
+<para>
+Return a new alternative (Fslib::Alt object) populated with given values.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>AltV(value)</literal></term><listitem>
+<para>
+If the value is an alternative (i.e. a Fslib::Alt object), return
+all its values. Otherwise return value.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListV(value)</literal></term><listitem>
+<para>
+If the value is a list (i.e. a Fslib::List object), return
+all its values. Otherwise return empty (Perl) list.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>AddToAlt(node,attr,value,value...)</literal></term><listitem>
+<para>
+Add given values as alternatives to the current value of
+<literal>$node-&gt;{$attr}</literal>.  If only one value is given and <literal>$node-&gt;{$attr}</literal> is
+empty or same as value, the given value is simply assigned to it. If
+<literal>$node-&gt;{$attr}</literal> is a <literal>Fslib::Alt</literal> object, the new values are simply added
+to it. Otherwise, if <literal>$node-&gt;{$attr}</literal> is a simple value, <literal>$node-&gt;{$attr}</literal>
+is set to a new <literal>Fslib::Alt</literal> object containing the original value as
+well as the given values.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>AddToList(node,attr,value,value,...)</literal></term><listitem>
+<para>
+Add values to a given attribute. If <literal>$node-&gt;{$attr}</literal> is not defined or
+empty, a new <literal>Fslib::List</literal> containing given values is created. If
+<literal>$node-&gt;{$attr}</literal> is a <literal>Fslib::List</literal> object, given values are simply added
+to it. Error is issued if <literal>$node-&gt;{$attr}</literal> is defined, non-empty, yet not
+a <literal>Fslib::List</literal> object.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>General-purpose list functions</title>
+<variablelist>
+<varlistentry><term><literal>Index(array-ref,item)</literal></term><listitem>
+<para>
+A helper function which returns the first occurence of the item in the
+array.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListIntersect(array-ref,array-ref,...)</literal></term><listitem>
+<para>
+Compute intersection of given lists. In scalar context returns an
+array-ref, in list context returns a list. All duplicities are
+removed.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListSubtract(array-ref, array-ref)</literal></term><listitem>
+<para>
+Return elements occuring in the first list but not in the second list.
+In scalar context returns a Fslib::List object (array-ref), in list
+context returns a list. All duplicities are removed.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListUnion(array-ref, array-ref, ...)</literal></term><listitem>
+<para>
+Return union of given lists. In scalar context returns an array-ref,
+in list context returns a Fslib::List object (array-ref). All
+duplicities are removed.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListRegroupElements(array-ref, array-ref, ...)</literal></term><listitem>
+<para>
+This is rotate-matrix like operation. The input is a list of
+rows (array-refs each representing a row in a matrix); the output
+is a list of columns in the matrix (a list of array-refs, each
+representing a column in the matrix).
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Forcing redraw</title>
+<variablelist>
+<varlistentry><term><literal>Redraw()</literal></term><listitem>
+<para>
+Force TrEd to immediately redraw the current window. Hence TrEd
+redraws the tree right after an interactively invoked macro finishes,
+explicit calls to Redraw macro are needed rather rearly (for example
+from a hook).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Redraw_FSFile()</literal></term><listitem>
+<para>
+Force TrEd to immediately redraw all windows displaying current
+file.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Redraw_FSFile_Tree()</literal></term><listitem>
+<para>
+Force TrEd to immediately redraw all windows displaying current
+tree.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Redraw_All()</literal></term><listitem>
+<para>
+Force TrEd to immediately redraw all windows.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>RedrawStatusLine()</literal></term><listitem>
+<para>
+Force TrEd to immediately redraw status line.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Macros related to TrEd GUI</title>
+<variablelist>
+<varlistentry><term><literal>StandardTredFont()</literal></term><listitem>
+<para>
+Return a string or Tk::Font object representation of the font used in
+TrEd to label tree-nodes.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>StandardTredValueLineFont()</literal></term><listitem>
+<para>
+Return a string or Tk::Font object representation of the font used in
+TrEd to display the "sentence" above the tree.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SetCurrentNodeInOtherWin(win,node)</literal></term><listitem>
+<para>
+Set active node for a given window.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>CenterOtherWinTo(win,node)</literal></term><listitem>
+<para>
+Center given window to a given node.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>HiddenVisible()</literal></term><listitem>
+<para>
+Return true if TrEd presently displays hidden nodes.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Stylesheet API</title>
+<variablelist>
+<varlistentry><term><literal>STYLESHEET_FROM_FILE()</literal></term><listitem>
+<para>
+This function returns a symbolic name for a virtual stylesheet that is
+constructed from the patterns and hint specified in the currently
+displayed file.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SetStylesheetPatterns(patterns,stylesheet,create)</literal></term><listitem>
+<para>
+Set TrEd's display patterns for a given stylesheet. If stylesheet is
+undefined, then the stylesheet currently selected for the active view
+is used. The patterns argument should either be a string or an array
+reference.  If it is a string, then it should provide all the
+patterns, each pattern starting on a new line (but possibly spanning
+across several lines) which starts with a pattern prefix of the form
+"something:", where "something" is hint for the hint pattern, or
+"node" for the node pattern, etc.
+</para>
+<para>
+Patterns can also be provided as an array reference containing two
+elements: the first one being a hint text and the second one an array
+reference whose each element is the text of an individual pattern.
+</para>
+<para>
+The create flag can be set to 1 in order to create a new stylesheet in
+case that no stylesheet with the given exists.
+</para>
+<para>
+This function returns 1 if success, 0 if failed (i.e. when create is
+not set and a given stylesheet is not found).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>DeleteStylesheet(stylesheet)</literal></term><listitem>
+<para>
+Delete given stylesheet. All windows using that stylesheet are
+switched to the pattern and hint specified in the respective files
+they display.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SaveStylesheets()</literal></term><listitem>
+<para>
+Save all TrEd's stylesheets (to ~/.tred-stylesheets).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ReloadStyleseets(filename?)</literal></term><listitem>
+<para>
+Reload stylesheets from a given file. If no filename is specified, the
+default path "~/.tred-stylesheets" is used.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetStylesheetPatterns(stylesheet)</literal></term><listitem>
+<para>
+For a given stylesheet, return it's patterns. In a scalar context,
+returns a string consisting of all patterns, including the hint.  In
+the array context returns two scalars: the first one containing the
+text of the hint pattern and the other a reference to a list
+containing the stylesheet patterns. Returns empty list if fail.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetPatternsByPrefix(prefix,stylesheet?)</literal></term><listitem>
+<para>
+Return all patterns of a given stylesheet starting with a given prefix.
+If no stylesheet name is given, a current stylesheet is used.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>StylesheetExists(stylesheet)</literal></term><listitem>
+<para>
+Returns true if stylesheet with a given name exists.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Stylesheets()</literal></term><listitem>
+<para>
+Returns a list of TrEd's stylesheet names.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SetCurrentStylesheet()</literal></term><listitem>
+<para>
+Set stylesheet for the active window.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetCurrentStylesheet()</literal></term><listitem>
+<para>
+Returns name of the stylesheet currently selected for the active
+window.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetSpecialPattern(prefix)</literal> - OBSOLETE!!</term><listitem>
+<para>
+This macro is obsoleted by GetPatternsByPrefix.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SetDisplayAttrs(pattern,...)</literal> - OBSOLETE!!</term><listitem>
+<para>
+Setup given patterns as a stylesheet of
+the currently displayed FSFile. This doesn't include
+a hint pattern.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SetBalloonPattern(string,...)</literal> - OBSOLETE!!</term><listitem>
+<para>
+Use given strings as a <literal>hint:</literal> pattern for
+the currently displayed FSFile.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetDisplayAttrs()</literal> - OBSOLETE!!</term><listitem>
+<para>
+Get patterns of the currently displayed FSFile's stylesheet, except
+for a <literal>hint:</literal> pattern.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetBalloonPattern()</literal> - OBSOLETE!!</term><listitem>
+<para>
+Get a <literal>hint:</literal> pattern of the currently displayed
+FSFile's stylesheet.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Context API</title>
+<variablelist>
+<varlistentry><term><literal>SwitchContext()</literal></term><listitem>
+<para>
+Switch to given macro context.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SwitchContextForWindow()</literal></term><listitem>
+<para>
+Switch given window to given macro context.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>CurrentContext()</literal></term><listitem>
+<para>
+Return the name of the current macro context.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>API for switching to another tree</title>
+<variablelist>
+<varlistentry><term><literal>GotoTree(n)</literal></term><listitem>
+<para>
+Display the n'th tree in the current file.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>TieGotoTree(n)</literal></term><listitem>
+<para>
+Go to n'th tree in all tied windows.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>TieNextTree()</literal></term><listitem>
+<para>
+Display the next tree in all tied windows.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>TiePrevTree()</literal></term><listitem>
+<para>
+Display the previous tree in all tied windows.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NextTree()</literal></term><listitem>
+<para>
+Display the next tree in the current file.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PrevTree()</literal></term><listitem>
+<para>
+Display the previous tree in the current file.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetTrees()</literal></term><listitem>
+<para>
+Return a list of trees in current FSFile. Equivallent to
+<literal>$grp-&gt;{FSFile}-&gt;trees</literal>.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>FSFormat API</title>
+<variablelist>
+<varlistentry><term><literal>GetOrd(node)</literal></term><listitem>
+<para>
+Return value of the special numbering FS attribute. This macro
+actually returns the same value as
+<literal>$node-&gt;{$grp-&gt;{FSFile}-&gt;FS-&gt;order()}</literal>
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Attributes()</literal></term><listitem>
+<para>
+Return a list of names of all attributes declared in the header of the
+current FS file.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>FS()</literal></term><listitem>
+<para>
+Return FSFormat object associated with the current FSFile.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SubstituteFSHeader(declarations)</literal></term><listitem>
+<para>
+Substitute a new FS header for current document. A list of valid FS
+declarations must be passed to this function.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>AppendFSHeader(declarations)</literal></term><listitem>
+<para>
+Merge given FS header declarations with the present header
+of the current document.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>UndeclareAttributes(attribute,...)</literal></term><listitem>
+<para>
+Remove declarations of given attributes from the FS header
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Tree editing API</title>
+<variablelist>
+<varlistentry><term><literal>CutPaste(node,new-parent)</literal></term><listitem>
+<para>
+Cut given node and paste it to a new parent. This macro is safer than
+PasteNode since it checks that new-parent isn't a descendant of node
+or node itself. This macro dies on error before any change is made.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PasteNode(node,new-parent)</literal></term><listitem>
+<para>
+Paste the subtree of the node under the new-parent.  The root of the
+subtree is placed among other children of new-parent with respect to
+the numbering attribute.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>CloneSubtree(node)</literal></term><listitem>
+<para>
+Return an identical copy (except that only declared attributes are
+preserved) of the given subtree.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>CopyNode(node)</literal></term><listitem>
+<para>
+Return an identical copy (except that only declared attributes are
+preserved) of the given node.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>CutNode(node)</literal></term><listitem>
+<para>
+Cut the node's subtree off the tree and return it. By cuttin a subtree
+we mean disconnecting it from the rest of the tree. Use PasteNode to
+attach it to some node again.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NewTree()</literal></term><listitem>
+<para>
+Create a new tree before the current tree. The new tree consists of
+exactly one node. This node is activated and a reference to its FSNode
+object is returned.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NewTreeAfter()</literal></term><listitem>
+<para>
+Create a new tree after the current tree. The new tree consists of
+exactly one node. This node is activated and a reference to its FSNode
+object is returned.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NewRBrother(node)</literal></term><listitem>
+<para>
+Create a new brother of the given node and recalculate the special FS
+numbering attribute values in the whole tree so that the new node is
+the first right sibling of the given node.
+</para>
+<para>
+If no node is given, this function operates on <literal>$this</literal> and <emphasis>resets</emphasis>
+<literal>$this</literal> to the newly created node. If some node is given the value
+of <literal>$this</literal> is preserved.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NewLBrother(node)</literal></term><listitem>
+<para>
+Create a new brother of the given node and recalculate the special FS
+numbering attribute values in the whole tree so that the new node is
+the first left sibling of the given node.
+</para>
+<para>
+If no node is given, this function operates on <literal>$this</literal> and <emphasis>resets</emphasis>
+<literal>$this</literal> to the newly created node. If some node is given the value
+of <literal>$this</literal> is preserved.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NewSon(parent)</literal></term><listitem>
+<para>
+Create a new child of the given parent node and recalculate the
+special FS numbering attribute values in the whole tree so that the
+new node is the first node left to the given parent.
+</para>
+<para>
+If no parent node is given, this function operates on <literal>$this</literal> and
+<emphasis>resets</emphasis> <literal>$this</literal> to the newly created node. If a parent node is
+given the value of <literal>$this</literal> is preserved.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NewParent(node)</literal></term><listitem>
+<para>
+Create a node between given node and its parent and recalculate the
+special FS numbering attribute values in the whole tree so that the
+new node is the first node left to the given node.
+</para>
+<para>
+If no node is given, this function operates on <literal>$this</literal> and
+<emphasis>resets</emphasis> <literal>$this</literal> to the newly created node. If a parent node is
+given the value of <literal>$this</literal> is preserved.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>DeleteThisNode()</literal></term><listitem>
+<para>
+Delete the current (<literal>$this</literal>) node and recalculate the special FS
+numbering attribute values in the whole tree so that there is no gap
+in the numbering. If the current node is not a leaf or if it is the
+root of the current tree, this macro does nothing.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>DeleteLeafNode(node)</literal></term><listitem>
+<para>
+Delete a leaf node and recalculate the special FS numbering attribute
+values in the whole tree so that there is no gap in the numbering. If
+a given node is not a leaf, this macro does nothing.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>DeleteSubtree(node)</literal></term><listitem>
+<para>
+Deletes a whole node's subtree and recalculate the special FS numbering attribute
+values in the whole tree so that there is no gap in the numbering. If
+a given node is not a leaf, this macro does nothing.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>CopyValues()</literal></term><listitem>
+<para>
+Copy the values of all the attributes except the special FS numbering
+attribute of the current node to a global hash variable named
+%ValuesClipboard.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PasteValues()</literal></term><listitem>
+<para>
+Replace the values of the current node's attributes by those stored in
+the global hash variable named %ValuesClipboard.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PlainNewSon(parent)</literal></term><listitem>
+<para>
+Add a new child node to the given parent and make it the current
+node (by setting <literal>$this</literal> to point to it).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PlainDeleteNode()</literal></term><listitem>
+<para>
+Delete the given node. The node must be a leaf of the tree (may not
+have any children) and must have a parent (may not be the root of the
+tree).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PlainDeleteSubtree(node)</literal></term><listitem>
+<para>
+Cut a the given node's subtree and destroy all its nodes.
+This macro doesn't recalculate ordering attributes.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>FSFile I/O API</title>
+<variablelist>
+<varlistentry><term><literal>ChangingFile(0|1)</literal></term><listitem>
+<para>
+If no argument given the default is 1. If <literal>$FileChanged</literal> is already
+set to 1 already 1, does nothing. If <literal>$FileChanged</literal> has not yet been
+assigned or is zero, sets it to the given value. Returns the resulting
+value. <literal>ChangingFile(1)</literal> also resets <literal>$forceFileSaved</literal> to 0.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Open(filename)</literal></term><listitem>
+<para>
+Open a given FSFile in TrEd.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Save()</literal></term><listitem>
+<para>
+Save the current FSFile.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetFileSaveStatus()</literal></term><listitem>
+<para>
+Return 1 if some file modification was noticed by TrEd untill last save
+or reload, 0 otherwise.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SetFileSaveStatus()</literal></term><listitem>
+<para>
+Use SetFileSaveStatus(1) to declare that some modification was made to
+the file. Use SetFileSaveStatus(0) after the file was saved from a
+macro (and TrEd/bTrEd would not notice that).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>DefaultInputEncoding()</literal></term><listitem>
+<para>
+Return's TrEd's/bTrEd's default IO encoding.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SetDefaultInputEncoding(encoding)</literal></term><listitem>
+<para>
+Set TrEd's/bTrEd's default IO encoding.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>DumpFS(treelist,fsfile,fh)</literal></term><listitem>
+<para>
+Dump given trees from the given FSFile in FS format to the given
+filehandle. If <literal>$treelist</literal> is undefined, all trees from the FSFile are
+dumped. If <literal>$fsfile</literal> is undefined, current file is used. If <literal>$fh</literal> is
+undefined, <literal>STDOUT</literal> is used.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>FileName()</literal></term><listitem>
+<para>
+Return current file's name.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>FileMetaData(key,value?)</literal></term><listitem>
+<para>
+Get or set meta data associated with the current FSFile.  Key is the
+meta data key. If value is omitted, current value associated with the
+key is returned. Otherwise, the given value is associated with the
+key, overwritting any previous value.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>FileUserData(key,value?)</literal></term><listitem>
+<para>
+Get or set user data associated with the current FSFile.  Key is the
+user data key. If value is omitted, current value associated with the
+key is returned. Otherwise, the given value is associated with the
+key, overwritting any previous value.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>FileAppData(key,value?)</literal></term><listitem>
+<para>
+Get or set application specific data associated with the current
+FSFile.  Key is the appData key. If value is omitted, current value
+associated with the key is returned. Otherwise, the given value is
+associated with the key, overwritting any previous value.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GotoFileNo(n)</literal></term><listitem>
+<para>
+Goto n'th file in the current filelist.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>LastFileNo()</literal></term><listitem>
+<para>
+Return the index of the last file in the current filelist.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>CurrentFileNo()</literal></term><listitem>
+<para>
+Return the index of the current file in the current filelist.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SaveAndNextFile()</literal></term><listitem>
+<para>
+Save the current file and open the next file in the current file-list.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NextFile()</literal></term><listitem>
+<para>
+Goto next file in the file-list.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SaveAndPrevFile()</literal></term><listitem>
+<para>
+Save the current file and open the previous file in the current
+file-list.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PrevFile()</literal></term><listitem>
+<para>
+Goto previous file in the file-list.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>General I/O macros</title>
+<variablelist>
+<varlistentry><term><literal>writeln(string?,...)</literal></term><listitem>
+<para>
+Print the arguments to standard output appending a new-line if missing.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>stdout(string?,...)</literal></term><listitem>
+<para>
+If called without arguments return current standard output filehandle.
+Otherwise call print the arguments to standard output.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>stderr(string?,...)</literal></term><listitem>
+<para>
+If called without arguments return current standard error output
+filehandle.  Otherwise call print the arguments to standard output.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>tmpFileName()</literal></term><listitem>
+<para>
+Returns a temporary filename..
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>GUI and common dialogs</title>
+<variablelist>
+<varlistentry><term><literal>GUI()</literal></term><listitem>
+<para>
+Return 1 if running from TrEd, i.e., GUI is available.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>EditAttribute(node,attribute)</literal></term><listitem>
+<para>
+Open edit attribute GUI.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Find()</literal></term><listitem>
+<para>
+Open the Find Node by Attributes GUI dialog.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>FindNext()</literal></term><listitem>
+<para>
+Searches for the first node matching the criteria of the previous use
+of the Find... menu command or FindNode macro usage.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>FindPrev()</literal></term><listitem>
+<para>
+Searches for the previous node matching the criteria of the previous
+use of the Find... menu command or FindNode macro usage.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ToplevelFrame()</literal></term><listitem>
+<para>
+Returns the Tk::Toplevel object containing the current window.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PrintDialog(...)</literal></term><listitem>
+<para>
+See the description in the <link linkend="sect-0">Printing trees</link> section.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ErrorMessage(message)</literal></term><listitem>
+<para>
+In TrEd, show a dialog box containing the given error-message.
+In BTrEd print the error message on standard output.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Tree navigation API</title>
+<variablelist>
+<varlistentry><term><literal>NextNode(node,top?)</literal></term><listitem>
+<para>
+Return the first displayed node following the given node in the
+subtree of top. This function behaves in the same manner as the
+node-&gt;following(top) method, except it works only on the nodes which
+are actually visible according to the state of the View-&gt;Show Hidden
+Nodes menu item.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PrevNode(node,top?)</literal></term><listitem>
+<para>
+Return the first displayed node preceding the given node in the
+subtree of top. This function behaves in the same manner as the
+node-&gt;previous(top) method, except it works only on the nodes which
+are actually visible according to the state of the View-&gt;Show Hidden
+Nodes menu item.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NextVisibleNode(node,top?)</literal></term><listitem>
+<para>
+Return the first visible node following the given node in the subtree
+of top. This function behaves in the same manner as the
+<literal>$node-&gt;following($top)</literal> method, except that nodes of hidden subtrees
+are skipped.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PrevVisibleNode(node,top?)</literal></term><listitem>
+<para>
+Return the first visible node preceding the given node in the subtree
+of top. This function behaves in the same manner as the
+<literal>$node-&gt;previous($top)</literal> method, except that nodes of hidden subtrees
+are skipped.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>IsHidden(node)</literal></term><listitem>
+<para>
+Return true if the given node is member of a hidden subtree. This
+macro is only an abbreviation for
+<literal>$grp-&gt;{FSFile}-&gt;FS-&gt;isHidden(node)</literal>
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Hide(node)</literal></term><listitem>
+<para>
+Hide the given node.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetNodes(top?)</literal></term><listitem>
+<para>
+Get a list of all nodes in the current tree of (if top is given) in
+the subtree of top (the root of the tree is icluded as well). The list
+returned is ordered in the natural structure ordering.
+(This function automatically returns array reference in scalar context.)
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetVisibleNodes(top?)</literal></term><listitem>
+<para>
+Return the list of all visible nodes in the subtree of the given top
+node (or the whole current tree if no top is given). The list returned
+is ordered in the natural structure ordering and all members of hidden
+subtrees are skipped.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>PrevNodeLinear(node,attribute,top?)</literal></term><listitem>
+<para>
+Returns nearest node in the tree preceding the given node in linear
+ordering provided by the given attribute. If top node is present, only
+a subtree of top is examined.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>NextNodeLinear(node,attribute,top?)</literal></term><listitem>
+<para>
+Returns nearest node in the tree following the given node in linear
+ordering provided by the given attribute. If top node is present, only
+a subtree of top is examined.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Macros used by Graph2Tred macro convertor</title>
+<variablelist>
+<varlistentry><term><literal>PrintToFile(filename,string,...)</literal></term><listitem>
+<para>
+Print given strings to the end of the given file.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ValNo(n,string)</literal></term><listitem>
+<para>
+Return the n'th field of the given string where individual fields are
+separated by "|".
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>AtrNo(n)</literal></term><listitem>
+<para>
+Retrun name of the n'th attribute defined in the FS file. This macro
+only abbreviates the following expression:
+<literal>$grp-&gt;{FSFile}-&gt;FS-&gt;atno(n)</literal>
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Union(string_a,string_b)</literal></term><listitem>
+<para>
+Return a string consisting of |-separated fields which form a pairwise
+disjoint set of the |-separated fields of the given strings string_a
+and string_b.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Interjection(string_a,string_b)</literal></term><listitem>
+<para>
+Return a string consisting of |-separated fields which form the
+interjection of the sets of |-separated fields of the given strings
+string_a and string_b.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListSplit(string)</literal></term><listitem>
+<para>
+Split the given string of |-separated fields and return a list of the
+individual fields.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListJoin(list)</literal></term><listitem>
+<para>
+Form a string of |-separated fields from the given list of fields.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListEq(string1, string2)</literal></term><listitem>
+<para>
+Compare the sets of |-separated fields of the two given
+strings. Return true if the sets contain the same elements; return
+false otherwise.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ListAssign(string,n,value)</literal></term><listitem>
+<para>
+Return the given string of |-separated fields, except that the n'th
+field in the string is replaced by the given value.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SubStr(string,position,length)</literal></term><listitem>
+<para>
+Simple substr wrapper which returns an empty string if the position is
+beyond the end of the string.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Node shifting macros</title>
+<variablelist>
+<varlistentry><term><literal>NormalizeOrds(listref)</literal></term><listitem>
+<para>
+Adjusts the special FS numbering attribute of every node of the list
+referenced by the listref argument so that the value for the attribute
+corresponds to the order of the node in the list.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>SortByOrd(listref)</literal></term><listitem>
+<para>
+Sort the list of nodes referenced by the listref argumnt according to
+the values of the special FS numbering attribute.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>RepasteNode(node)</literal></term><listitem>
+<para>
+Cut the given node and paste it immediately on the same parent so that
+its structural position between its parent children is brought to
+correspondence with the values of the special FS numbering attribute.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ShiftNodeRightSkipHidden(node)</literal></term><listitem>
+<para>
+Shift the current node in the tree to the right leaping over all
+hidden subtress by modifying the tree structure and value of the
+special FS numbering attribute appropriately.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ShiftNodeLeftSkipHidden(node,min?)</literal></term><listitem>
+<para>
+Shift the current node in the tree to the left leaping over all hidden
+subtress by modifying the tree structure and value of the special FS
+numbering attribute appropriately. The optional argument min may be
+used to specify the minimum left boundary for the value of the
+ordering attribute of node.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ShiftNodeRight(node)</literal></term><listitem>
+<para>
+Shift the current node in the tree to the right by modifying the tree
+structure and value of the special FS numbering attribute
+appropriately.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ShiftNodeLeft(node)</literal></term><listitem>
+<para>
+Shift the current node in the tree to the right by modifying the tree
+structure and value of the special FS numbering attribute
+appropriately.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Locating nodes and trees</title>
+<variablelist>
+<varlistentry><term><literal>CurrentTreeNumber()</literal></term><listitem>
+<para>
+Return current tree number.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>GetNodeIndex()</literal></term><listitem>
+<para>
+Return given node's position in the deep-first tree ordering.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>LocateNode(node)</literal></term><listitem>
+<para>
+Return current filename, index of a tree (starting from 1) in the file
+to which the node belongs (0 if not found) and node's position in the tree
+in the deep-first tee ordering.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ThisAddress()</literal></term><listitem>
+<para>
+Return current node's address string in a form of filename#tree_no.index
+(tree_no starts from 1 to reflect TrEd's UI convention).
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>ThisAddressNTRED()</literal></term><listitem>
+<para>
+Return current node's address string in a form of
+ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
+TrEd's UI convention). This address may be opened in TrEd to examine
+the tree in memory of a remote btred server.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Styling helper functions</title>
+<variablelist>
+<varlistentry><term><literal>CustomColor(name,new-value?)</literal></term><listitem>
+<para>
+Get or set user defined custom color.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>UserConf(name,new-value?)</literal></term><listitem>
+<para>
+Get or set value of a user defined configuration option.
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>AddStyle(styles,object,key =&gt; value,...)</literal></term><listitem>
+<para>
+Auxiliary funcion: add styles for an object to given style-sheet (can
+be used e.g. from node_style_hook).
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section id="sect-0">
+<title>Printing trees</title>
+<variablelist>
+<varlistentry><term><literal>PrintDialog(-option =&gt; value,...)</literal></term><listitem>
+<para>
+Display TrEd's standard print dialog. Possible options are:
+</para>
+<para>
+-command -psFile -toFile -format -imageMagickResolution
+-fileExtension -useType1Font -sentenceInfo -noRotate -colors
+</para>
+</listitem></varlistentry>
+<varlistentry><term><literal>Print(-option =&gt; value,...)</literal></term><listitem>
+<para>
+Print trees given from current file according to given printing options:
+</para>
+<para>
+<literal>-command</literal>, <literal>-toFile</literal>, <literal>-filename</literal>, <literal>-format</literal>, <literal>-noRotate</literal>, <literal>-sentenceInfo</literal> <literal>-imageMagickResolution</literal>, <literal>-colors</literal>, <literal>-hidden</literal>, <literal>-psFontFile</literal>, <literal>-psFontAFMFile</literal>, <literal>-ttFont</literal>, <literal>-fontSize</literal>,
+<literal>-fmtWidth</literal>, <literal>-hMargin</literal>, <literal>-fmtHeight</literal>, <literal>-vMargin</literal>, <literal>-maximize</literal>, <literal>-psMedia</literal>
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>Implementation of TredMacro::import</title>
+<variablelist>
+<varlistentry><term><literal>import(names?)</literal></term><listitem>
+<para>
+If specified without parameter, exports every symbol to the caller
+package (except for symbols already (re)defined in the caller
+packages). If parameters are given, exports only names specified by
+the parameters and the following few variables that every package
+derived from TredMacro (e.g. a context)  <emphasis>must</emphasis> share: <literal>$libDir</literal>,
+<literal>$grp</literal>, <literal>$root</literal>, <literal>$this</literal> <literal>$_NoSuchTree</literal> <literal>$Redraw</literal>,
+<literal>$forceFileSaved</literal>, <literal>$FileChanged</literal>, <literal>$FileNotSaved</literal>,
+<literal>$NodeClipboard</literal>.
+</para>
+</listitem></varlistentry>
+</variablelist>
+</section>
+<section>
+<title>XPath extension (slow)</title>
+<variablelist>
+<varlistentry><term><literal>SetupXPath(function-mapping...)</literal></term><listitem>
+<literallayout><literal>SetupXPath(
+            id         =&gt; \&amp;find_node_by_id,
+            pos        =&gt; \&amp;node_position,
+            attributes =&gt; \&amp;node_attributes_hashref,
+            name       =&gt; \&amp;node_name,
+            value      =&gt; \&amp;node_value,
+            children   =&gt; \&amp;node_children,
+            parent     =&gt; \&amp;node_parent,
+            lbrother   =&gt; \&amp;node_left_sibling,
+            rbrother   =&gt; \&amp;node_right_sibling,
+           )</literal></literallayout>
+<para>
+This macro requires <literal>XML::XPath</literal> module to be installed.  It adjusts
+FSNode API to match XPath model based on a given function mapping.  By
+defalut, 'id' is defined to return nothing, 'pos' returns nodes
+sentence-ordering position (or tree-ordering position if sentord
+attribute isn't defined), 'attributes' returs a hashref of node's
+attributes (actually a FSNode itself), 'name' returns "node", 'value'
+returns node's value of the special FS value attribute, and
+'children', 'parent', 'lbrother', and 'rbrother' all default to the
+respective FSNode methods.
+</para>
+<para>
+Usage example:
+</para>
+<literallayout><literal>SetupXPath(id    =&gt; sub { $hashed_ids{ $_[0] } },
+           name  =&gt; sub { $_[0]-&gt;{functor} }
+           value =&gt; sub { $_[0]-&gt;{t_lemma} });</literal></literallayout>
+<literallayout><literal>foreach ($node-&gt;findnodes(q{//ACT/PAT[starts-with(@tag,"N") or .="ano"]})) {
+    # process matching nodes
+}</literal></literallayout>
+</listitem></varlistentry>
+</variablelist>
+</section>
+</section>
+</article>
