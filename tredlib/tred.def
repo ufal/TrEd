@@ -1,8 +1,9 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-06-27 18:43:08 pajas>
+## Time-stamp: <2003-07-08 19:17:25 pajas>
 package TredMacro;
 use Exporter;
+use Fslib;
 use base qw(main Exporter);
 
 use vars qw(@FORCE_EXPORT);
@@ -1535,7 +1536,7 @@ Return given node's position in the deep-first tree ordering.
 =cut
 
 sub GetNodeIndex {
-  my $node = $_[0] || $this;
+  my $node = ref($_[0]) ? $_[0] : $this;
   my $i=-1;
   while ($node) {
     $node=$node->previous();
@@ -1552,10 +1553,23 @@ Return current node's address string in a form of filename#tree_no.index
 =cut
 
 sub ThisAddress {
-  my $node = $_[0] || $this;
+  my $node = ref($_[0]) ? $_[0] : $this;
   return FileName().'#'.(CurrentTreeNumber()+1).'.'.GetNodeIndex($node);
 }
 
+=item ThisAddressNTRED
+
+Return current node's address string in a form of
+ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
+TrEd's UI convention). This address may be opened in TrEd to examine
+the tree in memory of a remote btred server.
+
+=cut
+
+sub ThisAddressNTRED {
+  my $node = ref($_[0]) ? $_[0] : $this;
+  return "ntred://".FileName().'@'.(CurrentTreeNumber()+1).'##1.'.GetNodeIndex($node);
+}
 
 =item GetFileSaveStatus
 
@@ -1621,7 +1635,7 @@ declarations must be passed to this function.
 =cut
 
 sub SubstituteFSHeader {
-  $grp->{FSFile}->changeFS(FSFormat->create(@_));
+  $grp->{FSFile}->changeFS(FS()->create(@_));
 }
 
 
@@ -1632,7 +1646,7 @@ of the current document.
 
 =cut
 sub AppendFSHeader {
-  my $new=FSFormat->create(@_);
+  my $new=FS()->create(@_);
   my $newdefs=$new->defs();
   my $fs=$grp->{FSFile}->FS;
   my $defs=$grp->{FSFile}->FS->defs();
@@ -1713,6 +1727,16 @@ Return current standard error output filehandle
 
 =cut
 sub stderr { $::stderr }
+
+=item tmpFileName
+
+Returns a temporary filename..
+
+=cut
+sub tmpFileName {
+  require POSIX;
+  return POSIX::tmpnam();
+}
 
 
 =back
