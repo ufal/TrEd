@@ -59,12 +59,18 @@ sub elements {
 
 sub oblig {
   my ($self,$frame)=@_;
-  return $frame->findnodes(q{frame_elements/element[@type='oblig']})
+  return $frame->findnodes(q{frame_elements/element[@type='oblig' and @functor!='---']})
 }
 
 sub nonoblig {
   my ($self,$frame)=@_;
-  return $frame->findnodes(q{frame_elements/element[@type='non-oblig']})
+  return $frame->findnodes(q{frame_elements/element[@type='non-oblig' and @functor!='---']})
+}
+
+sub word_form {
+  my ($self,$frame)=@_;
+  my @wf = $frame->findnodes(q{frame_elements/element[@functor='---']});
+  return wantarray ? @wf : $wf[0];
 }
 
 sub func {
@@ -85,6 +91,37 @@ sub frame_word {
 sub word_lemma {
   my ($self,$word) = @_;
   return $word->getAttribute("lemma");
+}
+
+sub remove_node {
+  my ($self, $node) = @_;
+  $node->unbindNode();
+}
+
+sub split_serialized_forms {
+  my ($self,$forms)=@_;
+  return $forms =~ m/\G((?:\\.|[^\\;]+)+)(?:;|$)/g;
+}
+
+sub new_frame_element {
+  my ($self, $frame, $functor,$type) = @_;
+  my ($elems)=$frame->getChildElementsByTagName("frame_elements");
+  my $el = $self->doc()->createElement('element');
+  $elems->appendChild($el);
+  $el->setAttribute('functor',$functor);
+  $el->setAttribute('type',($type eq "?" or $type eq "non-oblig") ? 'non-oblig' : 'oblig');
+  return $el;
+}
+
+sub new_element_form {
+  my ($self, $eldom, $form)=@_;
+
+  $formdom = $self->doc()->createElement('form');
+  $eldom->appendChild($formdom);
+  do {{
+    $form = $self->parseFormPart($form,0,$formdom);
+  }} while ($form =~ s/^,//);
+  if ($form ne "") { die "Unexpected tokens near '$form'\n" }
 }
 
 
@@ -136,34 +173,7 @@ sub serialize_forms {
 
 sub serialize_form {
   my ($self,$node)=@_;
-  if ($node->nodeName() eq 'form') {
-    if ($node->findnodes('elided')) {
-      return "!";
-    } elsif ($node->findnodes('typical')) {
-      return "*";
-    } elsif ($node->findnodes('state')) {
-      return "=";
-    } elsif ($node->findnodes('recip')) {
-      return "%";
-    } else {
-      return join(",",map { $self->serialize_form($_) } grep { defined }
-		  $node->findnodes('parent'),$node->findnodes('node'));
-    }
-  } elsif ($node->nodeName() eq 'parent') {
-    return "^".join(",",map { $self->serialize_form($_) }
-		    $node->findnodes('node'));
-  } else {
-    my $ret = $node->getAttribute('lemma');
-    my $morph = join "",map { $node->getAttribute($_) } qw(pos gen num case);
-    $morph.='@'.$node->getAttribute('deg') if $node->getAttribute('deg') ne "";
-    $morph.='#' if $node->getAttribute('agreement') == 1;
-    my $inherits = $node->getAttribute('inherits');
-    $ret.=($inherits==1 ? '.' : ':').$morph if ($inherits==1 or $morph ne "");
-    if ($node->findnodes('node')) {
-      $ret.="[".join(",",map { $self->serialize_form($_) } $node->findnodes('node'))."]";
-    }
-    return $ret;
-  }
+  return TrEd::ValLex::Data::serializeForm($node);
 }
 
 1;
