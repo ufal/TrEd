@@ -94,11 +94,13 @@ EOF
 # this variable is used when searching for rc-file (i.e. the inicialisation file)
 my @configFileSearchList=($ENV{HOME}.'/.tredrc',
 			  (exists $ENV{TREDHOME}) ? $ENV{TREDHOME}.'/tredrc' : (),
-			  dirname(<$0>).'tredrc',
-			  dirname(<$0>).'../lib/tredlib/tredrc',
-			  dirname(<$0>).'tredlib/tredrc',
-			  dirname(<$0>).'../lib/tred/tredrc',
+			  dirname($0).'tredrc',
+			  dirname($0).'../lib/tredlib/tredrc',
+			  dirname($0).'tredlib/tredrc',
+			  dirname($0).'../lib/tred/tredrc',
 			  '/usr/X11R6/lib/X11/app-defaults');
+print STDERR "@configFileSearchList\n";
+
 my $configFile;
 # other configuration should be given in that file
 
@@ -274,8 +276,8 @@ sub parseConfigLine {
   unless (/^[;#]/ or /^$/) {
     chomp;
     if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
-      $confs->{$1}=$2;
-      $key=$1;
+      $key=lc($1);
+      $confs->{$key}=$2;
       $confs->{$key}=~s/\\//g;
       $confs->{$key}=$1 if ($confs->{$key}=~/^'(.*)'$/ or $confs->{$key}=~/^"(.*)"$/);
       #print "$key=$confs->{$key};\n";
@@ -324,64 +326,64 @@ sub applyConfig {
 sub setConfig {
   my $confs=shift;
 
-  $appName=(exists $confs->{AppName}) ? $confs->{AppName} : "Tred ver. 0.3";
-  $baseXPos=(exists $confs->{BaseXPos}) ? $confs->{BaseXPos} : 15;
-  $baseYPos=(exists $confs->{BaseYPos}) ? $confs->{BaseYPos} : 15;
-  $nodeWidth=(exists $confs->{NodeWidth}) ? $confs->{NodeWidth} : 5;
-  $nodeHeight=(exists $confs->{NodeHeight}) ? $confs->{NodeHeight} : 5;
-  $nodeXSkip=(exists $confs->{NodeXSkip}) ? $confs->{NodeXSkip} : 5;
-  $nodeYSkip=(exists $confs->{NodeYSkip}) ? $confs->{NodeYSkip} : 10;
-  $xmargin=(exists $confs->{Xmargin}) ? $confs->{Xmargin} : 2;
-  $ymargin=(exists $confs->{Ymargin}) ? $confs->{Ymargin} : 2;
-  $buttonsRelief=(exists $confs->{ButtonsRelief}) ? $confs->{ButtonsRelief} : 'raised';
-  $menubarRelief=(exists $confs->{MenubarRelief}) ? $confs->{MenubarRelief} : 'raised';
-  $buttonBorderWidth=(exists $confs->{ButtonsBorder}) ? $confs->{ButtonsBorder} : 2;
-  $lineWidth=(exists $confs->{LineWidth}) ? $confs->{LineWidth} : 1;
-  $lineColor=(exists $confs->{LineColor}) ? $confs->{LineColor} : 'black';
-  $lineArrow=(exists $confs->{LineArrow}) ? $confs->{LineArrow} : 'none';
-  $nodeColor=(exists $confs->{NodeColor}) ? $confs->{NodeColor} : 'yellow';
-  $hiddenNodeColor=(exists $confs->{HiddenNodeColor}) ? $confs->{HiddenNodeColor} : 'black';
-  # $activeNodeColor=(exists $confs->{ActiveNodeColor}) ? $confs->{ActiveNodeColor} : 'blue';
-  $currentNodeColor=(exists $confs->{CurrentNodeColor}) ? $confs->{CurrentNodeColor} : 'red';
-  $nearestNodeColor=(exists $confs->{NearestNodeColor}) ? $confs->{NearestNodeColor} : 'green';
-  $textColor=(exists $confs->{TextColor}) ? $confs->{TextColor} : 'black';
-  $textColorShadow=(exists $confs->{TextColorShadow}) ? $confs->{TextColorShadow} : 'darkgrey';
-  $textColorHilite=(exists $confs->{TextColorHilite}) ? $confs->{TextColorHilite} : 'darkgreen';
-  $textColorXHilite=(exists $confs->{TextColorXHilite}) ? $confs->{TextColorXHilite} : 'darkred';
-  $activeTextColor=(exists $confs->{ActiveTextColor}) ? $confs->{ActiveTextColor} : 'blue';
-  $boxColor=(exists $confs->{BoxColor}) ? $confs->{BoxColor} : 'wheat';
-  $currentBoxColor=(exists $confs->{CurrentBoxColor}) ? $confs->{CurrentBoxColor} : 'white';
-  $backgroundColor=(exists $confs->{BackgroundColor}) ? $confs->{BackgroundColor} : undef;
-  $font=(exists $confs->{Font}) ? $confs->{Font} :
-    (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-*-2');
-  $type1font=(exists $confs->{Type1Font}) ? $confs->{Type1Font} :
-    (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2');
-  $libDir=(exists $confs->{LibDir}) ? <$$confs{LibDir}> : $libDir;
-  $appIcon=(exists $confs->{AppIcon}) ? <$$confs{AppIcon}> : "$libDir/tred.xpm";
+  $appName=(exists $confs->{appname}) ? $confs->{appname} : "Tred ver. 0.3";
+  $baseXPos=(exists $confs->{basexpos}) ? $confs->{basexpos} : 15;
+  $baseYPos=(exists $confs->{baseypos}) ? $confs->{baseypos} : 15;
+  $nodeWidth=(exists $confs->{nodewidth}) ? $confs->{nodewidth} : 5;
+  $nodeHeight=(exists $confs->{nodeheight}) ? $confs->{nodeheight} : 5;
+  $nodeXSkip=(exists $confs->{nodexskip}) ? $confs->{nodexskip} : 5;
+  $nodeYSkip=(exists $confs->{nodeyskip}) ? $confs->{nodeyskip} : 10;
+  $xmargin=(exists $confs->{xmargin}) ? $confs->{xmargin} : 2;
+  $ymargin=(exists $confs->{ymargin}) ? $confs->{ymargin} : 2;
+  $buttonsRelief=(exists $confs->{buttonsrelief}) ? $confs->{buttonsrelief} : 'raised';
+  $menubarRelief=(exists $confs->{menubarrelief}) ? $confs->{menubarrelief} : 'raised';
+  $buttonBorderWidth=(exists $confs->{buttonsborder}) ? $confs->{buttonsborder} : 2;
+  $lineWidth=(exists $confs->{linewidth}) ? $confs->{linewidth} : 1;
+  $lineColor=(exists $confs->{linecolor}) ? $confs->{linecolor} : 'black';
+  $lineArrow=(exists $confs->{linearrow}) ? $confs->{linearrow} : 'none';
+  $nodeColor=(exists $confs->{nodecolor}) ? $confs->{nodecolor} : 'yellow';
+  $hiddenNodeColor=(exists $confs->{hiddennodecolor}) ? $confs->{hiddennodecolor} : 'black';
+  # $activeNodeColor=(exists $confs->{activenodecolor}) ? $confs->{activenodecolor} : 'blue';
+  $currentNodeColor=(exists $confs->{currentnodecolor}) ? $confs->{currentnodecolor} : 'red';
+  $nearestNodeColor=(exists $confs->{nearestnodecolor}) ? $confs->{nearestnodecolor} : 'green';
+  $textColor=(exists $confs->{textcolor}) ? $confs->{textcolor} : 'black';
+  $textColorShadow=(exists $confs->{textcolorshadow}) ? $confs->{textcolorshadow} : 'darkgrey';
+  $textColorHilite=(exists $confs->{textcolorhilite}) ? $confs->{textcolorhilite} : 'darkgreen';
+  $textColorXHilite=(exists $confs->{textcolorxhilite}) ? $confs->{textcolorxhilite} : 'darkred';
+  $activeTextColor=(exists $confs->{activetextcolor}) ? $confs->{activetextcolor} : 'blue';
+  $boxColor=(exists $confs->{boxcolor}) ? $confs->{boxcolor} : 'wheat';
+  $currentBoxColor=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'white';
+  $backgroundColor=(exists $confs->{backgroundcolor}) ? $confs->{backgroundcolor} : undef;
+  $font=(exists $confs->{font}) ? $confs->{font} :
+    (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
+  $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
+    (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2');
+  $libDir=(exists $confs->{libdir}) ? <$$confs{LibDir}> : $libDir;
+  $appIcon=(exists $confs->{appicon}) ? <$$confs{AppIcon}> : "$libDir/tred.xpm";
   $psFontFile=(exists $$confs{PsFontFile}) ?
     ((-d <$$confs{PsFontFile}>) ? <$$confs{PsFontFile}> : "$libDir/".$$confs{PsFontFile}) :
       "$libDir/csarialm.pfa";
   $psFontName=(exists $$confs{PsFontName}) ? <$$confs{PsFontName}> : "Arial-Medium";
   $psFontSize=(exists $$confs{PsFontSize}) ? <$$confs{PsFontSize}> : "12";
   $macroFile=(exists $$confs{MacroFile}) ? <$$confs{MacroFile}> : $macroFile;
-  $defaultMacroFile=(exists $confs->{DefaultMacroFile}) ? <$$confs{DefaultMacroFile}> : "$libDir/tred.def";
-  $prtFmtWidth=(exists $confs->{PrtFmtWidth}) ? $confs->{PrtFmtWidth} : '21c';
-  $prtFmtHeight=(exists $confs->{PrtFmtHeight}) ? $confs->{PrtFmtHeight} : '297m';
-  $prtVMargin=(exists $confs->{PrtVMargin}) ? $confs->{PrtVMargin} : '3c';
-  $prtHMargin=(exists $confs->{PrtHMargin}) ? $confs->{PrtHMargin} : '1c';
-  $psMedia=(exists $confs->{PsMedia}) ? $confs->{PsMedia} : '%%DocumentMedia: A4 595 842 white()';
-  $psFile=(exists $confs->{PsFile}) ? <$$confs{PsFile}> : 'tred.ps';
-  $drawBoxes=(exists $confs->{DrawBoxes}) ? $confs->{DrawBoxes} : 0;
-  $highlightAttributes=(exists $confs->{HighlightAttributes}) ? $confs->{HighlightAttributes} : 1;
-  $maximizePrintSize=(exists $confs->{MaximizePrintSize}) ? $confs->{MaximizePrintSize} : 0;
-  $showHidden=exists ($confs->{ShowHidden}) ? $confs->{ShowHidden} : 0;
-  $createMacroMenu=(exists $confs->{CreateMacroMenu}) ? $confs->{CreateMacroMenu} : 0;
-  $maxMenuLines=(exists $confs->{MaxMenuLines}) ? $confs->{MaxMenuLines} : 30;
-  $useCzechLocales=(exists $confs->{UseCzechLocales}) ? $confs->{UseCzechLocales} : 1;
-  $Tk::strictMotif=(exists $confs->{StrictMotif}) ? $confs->{StrictMotif} : 0;
-  $printColors=(exists $confs->{PrintColors}) ? $confs->{PrintColors} : 0;
-  $anyToFs=(exists $confs->{AnyToFs}) ? $confs->{AnyToFs} : undef;
-  print "finished reading ini-file\n";
+  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? <$$confs{DefaultMacroFile}> : "$libDir/tred.def";
+  $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '21c';
+  $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '297m';
+  $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
+  $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '1c';
+  $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
+  $psFile=(exists $confs->{psfile}) ? <$$confs{PsFile}> : 'tred.ps';
+  $drawBoxes=(exists $confs->{drawboxes}) ? $confs->{drawboxes} : 0;
+  $highlightAttributes=(exists $confs->{highlightattributes}) ? $confs->{highlightattributes} : 1;
+  $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
+  $showHidden=exists ($confs->{showhidden}) ? $confs->{showhidden} : 0;
+  $createMacroMenu=(exists $confs->{createmacromenu}) ? $confs->{createmacromenu} : 0;
+  $maxMenuLines=(exists $confs->{maxmenulines}) ? $confs->{maxmenulines} : 30;
+  $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : 1;
+  $Tk::strictMotif=(exists $confs->{strictmotif}) ? $confs->{strictmotif} : 0;
+  $printColors=(exists $confs->{printcolors}) ? $confs->{printcolors} : 0;
+  $anyToFs=(exists $confs->{anytofs}) ? $confs->{anytofs} : undef;
+  print STDERR "Applying configuration.\n";
 }
 
 
@@ -502,7 +504,7 @@ sub openFile {
   # peep on the first character
   $fs =($_=<F> and /^\@/); close(F);
 
-  print STDERR "file is fs: $fs\n";
+  print STDERR "File is fs: ", $fs ? "yes.\n":"no.\n";
 
   if ($fs) {
     # opening file again, know it is fs
@@ -519,7 +521,7 @@ sub openFile {
       return 0;
     }
   } elsif (defined($anyToFs) and -x $anyToFs) {
-    print STDERR "trying to run \`$anyToFs\'\n";
+    print STDERR "Starting input filter \`$anyToFs\'\n";
     unless (open(F,"$anyToFs $f |")) {
       print STDERR "ok.\n";
       if ($grp->{top}) {
@@ -1466,7 +1468,7 @@ sub fileDialog {
 #  print $FSref->Show;
   @types =
     (["Fs files",           [qw/.fs .FS .Fs/]],
-     ["CSTS files",           [qw/.am .cst .csts/]],
+     ["CSTS files",           [qw/.am .cst .csg .csts/]],
      ["Backup Fs files",           [qw/.fs~ .fb .FB .Fb/]],     
      ["All files",        '*']
     );
