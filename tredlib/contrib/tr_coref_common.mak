@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-07-09 11:15:37 pajas>
+## Time-stamp: <2004-09-02 12:41:44 pajas>
 
 package Coref;
 
@@ -119,5 +119,75 @@ sub fill_empty_attrs {
     $this->{$_} = '???' if ($this->{$_} eq "");
   }
 }
+
+sub status_line_doubleclick_hook { 
+  # status-line field double clicked
+  # there is also status_line_click_hook for single clicks
+
+  # @_ contains a list of style names associated with the clicked
+  # field. Style names may obey arbitrary user-defined convention.
+
+  foreach (@_) {
+    if (/^\{(.*)}$/) {
+      if ($1 eq 'FRAME') {
+	ChooseFrame();
+	last;
+      } else {
+	if (main::doEditAttr($grp,$this,$1)) {
+	  ChangingFile(1);
+	}
+	last;
+      }
+    }
+  }
+}
+
+sub get_status_line_hook {
+  # get_status_line_hook may either return a string
+  # or a pair [ field-definitions, field-styles ]
+  return [
+	  # status line field definitions ( field-text => [ field-styles ] )
+	  [
+	   "form: " => [qw(label)],
+	   $this->{form} => [qw({form} value)],
+	   "     afun: " => [qw(label)],
+	   $this->{afun} => [qw({afun} value)],
+	   "     tag: " => [qw(label)],
+	   $this->{tag} => [qw({tag} value)],
+	   "     lemma: " => [qw(label)],
+	   $this->{lemma} => [qw({lemma} value)],
+	   ($this->{fw} ne "" ?
+	    ("     fw: " => [qw(label)],
+	     $this->{fw} => [qw({fw} value)]) : ()),
+	   "     A/TID: " => [qw(label)],
+	   $this->{AID} => [qw({AID} value)],
+	   $this->{TID} => [qw({TID} value)],
+	   "     AIDREFS: " => [qw(label)],
+	   (join ", ",split /\|/,$this->{AIDREFS}) => [qw({AIDREFS} value)],
+	   ($this->{framere} ne "" ?
+	    ("     frame: " => [qw(label)],
+	     $this->{framere} => [qw({FRAME} value)],
+	     "     {".$this->{frameid}."}" => [qw({FRAME} value)],
+	   ) : ()),
+	   ($this->{commentA} ne "" ?
+	    ("     [" => [qw()],
+	     $this->{commentA} => [qw({commentA})],
+	     "]" => [qw()]
+	    ) : ())
+	  ],
+
+	  # field styles
+	  [
+	   "label" => [-foreground => 'black' ],
+	   "value" => [-underline => 1 ],
+	   "{commentA}" => [ -foreground => 'red' ],
+	   "bg_white" => [ -background => 'white' ],
+	  ]
+
+	 ];
+}
+
+#*get_status_line_hook = Tectogrammatic::get_status_line_hook;
+#*status_line_doubleclick_hook = Tectogrammatic::status_line_doubleclick_hook;
 
 #include "coref.mak"
