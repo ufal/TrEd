@@ -66,7 +66,7 @@ sub InfoDialog {
 
 sub parse_lemma {
   my ($trlemma,$lemma,$tag)=@_;
-  my @components=split /_[\^,:;']/,$lemma;
+  my @components=split /_[\^,:;\']/,$lemma;
   my $pure_lemma=shift @components;
   my $deriv;
   foreach (@components) {
@@ -456,8 +456,10 @@ sub ChooseFrame {
 					     $field,
 					     [split /\|/, $this->{$frameid_attr}],
 					     $new_word,
-					     ($no_assign ? undef :
-					      [\&frame_chosen, $grp->{framegroup}]),
+					     (ref($no_assign) ?
+					      [$no_assign, $grp->{framegroup}] :
+					      ($no_assign ? undef :
+					       [\&frame_chosen, $grp->{framegroup}])),
 					     sub {
 					       $chooserDialog->destroy_dialog();
 					       undef $chooserDialog;
