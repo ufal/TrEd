@@ -508,10 +508,12 @@ sub show_frame_editor_dialog {
   my $top=$self->widget()->toplevel;
   my $d=$top->DialogBox(-title => $title,
 				-buttons => ["OK","Cancel"]);
-  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
-			     $f->Invoke if ($f and $f->isa('Tk::Button'));
-			     Tk->break;
-			   } );
+  $d->bind($d,'<Return>', sub {
+	     my $w=shift;
+	     my $f=$w->focusCurrent;
+	     $f->Invoke if ($f and $f->isa('Tk::Button'));
+	     Tk->break;
+	   } );
   my $ed=TrEd::ValLex::FrameElementEditor->new($self->data(), undef, $d);
   $ed->subwidget_configure($confs) if ($confs);
   $ed->pack(qw/-expand yes -fill both/);
@@ -519,6 +521,8 @@ sub show_frame_editor_dialog {
   $ed->subwidget('note')->insert("0.0",$note) unless $note eq "";
   $ed->subwidget('example')->insert("0.0",$example) unless $example eq "";
   $ed->subwidget('problem')->insert("0",$problem) unless $problem eq "";
+  $d->bind($ed->subwidget('elements'),'<Return>', [sub { $_[1]->Subwidget('B_OK')->Invoke },$d]);
+  $d->bind($ed->subwidget('problem'),'<Return>', [sub { $_[1]->Subwidget('B_OK')->Invoke },$d]);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Escape>'=> [sub { shift;
