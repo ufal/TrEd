@@ -2224,19 +2224,30 @@ sub onNodeChange {
   redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
 }
 
+sub update_value_line_current {
+  my ($win,$node)=@_;
+  my $grp=$win->{framegroup};
+  my $vl=$grp->{valueLine};
+  if ($win == $grp->{focusedWindow}) {
+    eval {
+      $vl->tagRemove('current','0.0','end');
+      $vl->tagRemove('sel','0.0','end');
+      if ($vl->tagNextrange("$node",'0.0') ne "") {
+	$vl->tagAdd('current',
+		    $node.".first",
+		    $node.".last",
+				 );
+	$vl->see('current.first');
+      }
+    };
+  }
+}
+
 sub onCurrentChange {
   my ($win,$node,$prev)=@_;
   my $n;
   $tv=$win->{treeView};
-  eval {
-    $win->{framegroup}->{valueLine}->tagRemove('current','0.0','end');
-    $win->{framegroup}->{valueLine}->tagRemove('sel','0.0','end');
-    $win->{framegroup}->{valueLine}->tagAdd('current',
-					    $node.".first",
-					    $node.".last",
-					   );
-    $win->{framegroup}->{valueLine}->see('current.first');
-  };
+  update_value_line_current($win,$node);
   foreach $n ($node,$prev) {
     $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"Oval"),
 			       nodeOptions($win,$n));
@@ -2424,7 +2435,10 @@ sub focusCanvas {
     $treeViewOpts->{highlightAttributes}=$newfocus->{treeView}->get_highlightAttributes;
     $grp->{focusedWindow}=$newfocus;
     update_value_line($grp);
+    update_value_line_current($newfocus,$newfocus->{currentNode});
     updateTitle($grp);
+    resetUndoStatus($newfocus);
+    resetTreePosStatus($newfocus);
   } else {
     print STDERR "DID NOT FIND Window of $c\n";
   }
@@ -2960,7 +2974,6 @@ sub startMain {
 				my $node=$win->{root};
 				my (@tags)=
 				  $w->tagNames($w->index($Ev->xy));
-				print STDERR "DOUBLE-1 @tags\n";
 				while ($node) {
 				  if (index(join("",@tags),${node})>=0) {
 				    setCurrent($win,$node);
@@ -2984,29 +2997,36 @@ sub startMain {
 
   print STDERR "Creating buttons.\n" if $tredDebug;
 
+  $normalNextPixmap=$group{top}->Pixmap(-file=>"$libDir/right.xpm");
+  $disabledNextPixmap=$group{top}->Pixmap(-file=>"$libDir/noright.xpm");
+
   $group{nextButton}=
     $group{frame}->Button(-takefocus=>0,
 			  -text=> "Next",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/right.xpm"),
+			  -image=> $disabledNextPixmap,
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
 			  [sub { tieNextTree($_[0]) },\%group]);
   $group{Balloon}->attach($group{nextButton},
 		 -balloonmsg=> "see the next tree");
   addBindTags($group{nextButton},'my');
+
+  $normalPrevPixmap=$group{top}->Pixmap(-file=>"$libDir/left.xpm");
+  $disabledPrevPixmap=$group{top}->Pixmap(-file=>"$libDir/noleft.xpm");
+
   $group{prevButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Prev",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/left.xpm"),
+			  -image=> $disabledPrevPixmap,
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
 			  [sub { tiePrevTree($_[0]) },\%group]);
   $group{Balloon}->attach($group{prevButton},
 		 -balloonmsg=> "see the previous tree");
   addBindTags($group{prevButton},'my');
+
+
 
   $group{openButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Open",
@@ -4847,6 +4867,7 @@ sub redraw_win {
   return if $insideEval;
   saveFileStateUpdate($win);
   resetUndoStatus($win);
+  resetTreePosStatus($win);
   #------------------------------------------------------------
   #{
   #use Benchmark;
@@ -5515,7 +5536,7 @@ sub re_do {
   my ($win)=@_;
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
-  return unless $fsfile;
+  return unless $fsfile and ref($fsfile->userData());
   my $stack=$fsfile->userData()->{undostack};
   return unless (@$stack>$fsfile->userData->{undo}+2);
   print STDERR "Redo: ",$fsfile->userData->{undo}+2,"/$#$stack\n" if $tredDebug;
@@ -5527,7 +5548,7 @@ sub undo {
   my ($win,$redo)=@_;
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
-  return unless $fsfile;
+  return unless $fsfile and ref($fsfile->userData());
   my $stack=$fsfile->userData()->{undostack};
   my $stackpos=$fsfile->userData()->{undo};
   return unless (ref($stack) and (@$stack>0) and ($stackpos>=0) and ($stackpos <= $#$stack));
@@ -5604,6 +5625,36 @@ sub resetUndoStatus {
 	      )
 	      :
 	      (-image=> $disabledRedoPixmap,
+	       -state => 'disabled'
+	      )
+	     );
+}
+
+sub resetTreePosStatus {
+  my ($win)=@_;
+  my $fsfile=$win->{FSFile};
+
+  $prevstatus=ref($fsfile) && $fsfile->lastTreeNo>=0 && $win->{treeNo}>0;
+  $nextstatus=ref($fsfile) && $fsfile->lastTreeNo>$win->{treeNo};
+  $win->{framegroup}->{nextButton}->
+    configure(
+	      $nextstatus ?
+	      (-image => $normalNextPixmap,
+	       -state => 'normal'
+	      )
+	      :
+	      (-image=> $disabledNextPixmap,
+	       -state => 'disabled'
+	      )
+	     );
+  $win->{framegroup}->{prevButton}->
+    configure(
+	      $prevstatus ?
+	      (-image => $normalPrevPixmap,
+	       -state => 'normal'
+	      )
+	      :
+	      (-image=> $disabledPrevPixmap,
 	       -state => 'disabled'
 	      )
 	     );
