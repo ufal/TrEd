@@ -5,7 +5,7 @@ use Getopt::Std;
 getopts('p:T:r:s:a:f:hu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
-  print "Usage: $0 [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] file [file ...]\n";
+  print "Usage: $0 [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] [-T] file [file ...]\n";
   if ($opt_h) {
     print <<EOF;
 Open a file and save it in FS format
