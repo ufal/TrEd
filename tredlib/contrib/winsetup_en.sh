@@ -29,6 +29,7 @@ function findperlbin {
   PERLBIN=`which perl 2>/dev/null`
   if [ ! -z $PERLBIN ]; then
       if $PERLBIN -v | grep -q 'MSWin32'; then
+      ;
       else
 	  PERLBIN=""
       fi
