@@ -1,0 +1,50 @@
+file: AFA.mak
+description: automatic tectogrammatic functor assignment
+author: Zdenek Zabokrtsky
+defines packages: none
+binding-context(s): not-defined
+type: minor
+
+file: a_opravy.mak
+description: macros for correction of analytical PDT trees
+author: Petr Pajas
+defines packages: Analytic_Correction
+binding-context(s): not-defined
+type: major
+
+file: arabic_common.mak
+description: macros for annotation of arabic PADT trees
+author: Petr Pajas
+defines packages: none
+binding-context(s): not-defined
+type: minor
+
+file: arabic.mak
+description: mode for editing arabic PADT trees
+author: Petr Pajas
+defines packages: TredMacro
+binding-context(s): not-defined
+type: major
+includes: arabic_common.mak
+
+ar.mak
+AutoAfun.mak
+draw.mak
+pdt.mak
+remote_control.mak
+tfa_common.mak
+tfa.mak
+tr_anot_main.mak
+transf.mak
+tr_common.mak
+tr_corr_anot_main.mak
+tr_corref_common.mak
+trdiff.mak
+tred_arabic.mak
+tred_mac_common.mak
+tredtr.mak
+tr.mak
+tr_opravy.mak
+tr_tfa_anot_main.mak
+tr_tfa_only_anot_main.mak
+trvz_anot_main.mak
