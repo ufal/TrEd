@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-05-03 11:13:23 pajas>
+## Time-stamp: <2001-05-07 13:06:42 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -92,6 +92,8 @@ sub QueryTrlemma {
      ['Neg','Neg','???','???'],
      ['Emp','Emp','???','???'],
      ['Cor','Cor','???','???'],
+     ['Comma','Comma','???','???'],
+     ['Colon','Colon','???','???'],
      ['???','???','???','???'],
      ['Forn','Forn','???','???'],
      ['já','já','???','SG'],
@@ -105,7 +107,9 @@ sub QueryTrlemma {
      ['oni-¾iv.','on','ANIM','PL'],
      ['ony-ne¾iv','on','INAN','PL'],
      ['ony-¾en.','on','FEM','PL'],
-     ['ona-pl-neut.','on','NEUT','PL']);
+     ['ona-pl-neut.','on','NEUT','PL'],
+     ['ten','ten','???','???'],
+    );
   my @selected=grep { 
     $node->{trlemma} eq $_->[1] and 
       $node->{gender} eq $_->[2] and

@@ -2495,6 +2495,14 @@ sub memberof_co {
 
 }
 
+#bind memberof_ap to Shift+Y menu Pridat memberof=AP
+sub memberof_co {
+
+  $pPar1 = $this;
+
+  $pPar1->{'memberof'} = 'AP';
+
+}
 
 #bind split_fw to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
 sub split_fw {
