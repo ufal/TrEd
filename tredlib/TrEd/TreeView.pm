@@ -464,7 +464,10 @@ sub wrapLines {
 sub get_style_opt {
   my ($self,$node,$style,$opt,$opts)=@_;
   my $s=$self->get_node_pinfo($node,"style-$style");
-  my %h=(@{$opts->{$style}}, (ref($s) ? @$s : ()));
+  my %h=(
+	 (ref($opts->{$style}) ? @{$opts->{$style}} : ()),
+	 (ref($s) ? @$s : ())
+	);
   return $h{$opt};
 }
 
