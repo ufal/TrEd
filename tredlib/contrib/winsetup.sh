@@ -1,29 +1,37 @@
 #!/bin/bash
 
-if [ "x$1" = "xperl58" ]; then
+if [ "x$1" = "x" ]; then
+  echo Error: no language specified
+  echo "Usage: $0 en|cz [perl58]"
+fi
+
+INSTLANG=$1
+. "winsetup_${INSTLANG}.msg"
+
+if [ "x$2" = "xperl58" ]; then
   REQPERLVER=8
   REQPERLINSTDIR=win32_perl58
 else
   REQPERLVER="[68]"
-  REQPERLINSTDIR=win32_perl56
+  REQPERLINSTDIR=win32_perl
 fi
 
 PACKAGES56="Tk Text::Iconv XML::JHXML Tie::IxHash"
 PACKAGES58="Text::Iconv XML::JHXML Tie::IxHash"
 
 if [ "$OSTYPE" != "cygwin" ]; then 
-  echo "Tento program je urcen vyhradne pro instalaci tredu"
-  echo "v prostredi MS Windows, je mi lito!"
+  echo $MSG000
+  echo $MSG001
 fi
 
 PATH=.:`pwd`/bin:${PATH}
 
 function ask {
   answer=""
-  until [ "$answer" = 'a' -o "$answer" = 'n' ]; do       
-    read -e -n1 -r -p "$1 [a/n]?" answer 
+  until [ "$answer" = $MSGYES -o "$answer" = $MSGNO ]; do       
+    read -e -n1 -r -p "$1 [$MSGYES/$MSGNO]?" answer 
   done
-  if [ "$answer" = 'a' ]; then
+  if [ "$answer" = $MSGYES ]; then
     return 0
   else
     return 1  
@@ -102,18 +110,17 @@ function upgrade_packages {
   if $PERLBIN --version | grep -q 'This is perl.* v5\.6'; then
       for s in $PACKAGES56; do 
 	echo
-	echo Kontroluji verzi baliku $s
+	echo $MSG002 $s
 	QUERY=`$PPM query "^$s\$"`
 	if [ -n "$QUERY" ]; then
 	  $PPM verify --location=packages --upgrade "$s"
 	else
 	  install_packages $s
-	  echo $s installed.
 	  echo
 	fi
       done
   else
-      echo Docasne upravuji nastaveni nastroje PPM3 ...
+      echo $MSG003
       $PPM rep del tredsetup 2>/dev/null >/dev/null
       REPS="$($PPM rep | grep -E '^\[[0-9]+\]' | sed 's/^\[[0-9]*\] *//')"
       OLDIFS="$IFS";
@@ -124,16 +131,16 @@ function upgrade_packages {
       done
       IFS="$OLDIFS";
       $PPM rep add tredsetup packages-ap58 2>/dev/null >/dev/null
-      echo Hotovo.
+      echo $MSGDONE
       for s in $PACKAGES58; do 
 	echo
-        echo Zkousim aktualizovat balik $s
+        echo "$MSG004 $s"
 	ppd="${s//::/-}";
 	if ! $PPM install "$ppd" 2>/dev/null >/dev/null; then
           $PPM upgrade -install "$ppd"
         fi
       done
-      echo Obnovuji puvodni nastaveni nastroje PPM3 ...
+      echo $MSG005
       $PPM rep del tredsetup 2>/dev/null >/dev/null
       OLDIFS="$IFS";
       IFS=$'\n\t\n';
@@ -142,7 +149,7 @@ function upgrade_packages {
            $PPM rep on $rep 2>/dev/null >/dev/null
       done
       IFS="$OLDIFS";
-      echo Hotovo.
+      echo $MSGDONE
   fi
 }
 
@@ -153,26 +160,26 @@ function install_packages {
 function upgrade_perl {
   PERLINSTALLDIR=${PERLDIR%/BIN}
   PERLINSTALLDIR=${PERLINSTALLDIR%/bin}
-  if ask "Pozor: opravdu chcete smazat $PERLINSTALLDIR?"; then
+  if ask "$MSG007 $PERLINSTALLDIR?"; then
       $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat >/dev/null 2>/dev/null
       echo
-      echo "Hodlam smazat $PERLINSTALLDIR."
-      read -e -n1 -r -p "Stisknete libovolnou klavesu pro pokracovani..."
-      echo "Mazu $PERLINSTALLDIR..."
+      echo "$MSG006 $PERLINSTALLDIR"
+      read -e -n1 -r -p $MSG008
+      echo "$MSG009 $PERLINSTALLDIR..."
       rm -rf $PERLINSTALLDIR
-      echo "Hotovo."
+      echo $MSGDONE
   else
-      echo "Instalace prerusena."
-      read -e -n1 -r -p "Ukoncete proces stiskem klavesy... "
+      echo $MSG010
+      read -e -n1 -r -p $MSG011
       exit 1;
   fi
   echo 
-  echo "Puvodni verze perlu byla odinstalovana."
+  echo $MSG012
   install_perl
 }
 
 function get_perl_install_dir {
-  read -e -p "Zadejte cilovy adresar [c:/perl]: " PERLINSTALLDIR
+  read -e -p "$MSG036 c:/perl]: " PERLINSTALLDIR
   if [ -z $PERLINSTALLDIR ]; then
     PERLINSTALLDIR="c:/perl"
   fi
@@ -181,34 +188,34 @@ function get_perl_install_dir {
 function install_perl {
   test -d "$PERLINSTALLDIR" || mkdir "$PERLINSTALLDIR"
   DIR=$PWD
-  echo Rozbaluji instalacni balicek "$DIR/$REQPERLINSTDIR"/perl*.tgz
+  echo $MSG013 "$DIR/$REQPERLINSTDIR"/perl*.tgz
   (cd "$PERLINSTALLDIR" &&\
   tar -xzf "$DIR/$REQPERLINSTDIR/"perl*.tgz &&\
-  echo "Spoustim instalator programu ActiveState Perl"
+  echo $MSG014
   "$PERLINSTALLDIR/install.bat") || \
-  (echo; echo Nastala chyba pri instalaci perlu!; exit 1)
+  (echo; echo $MSG015; exit 1)
 }
 
 echo
 echo "-------------------------------------------------------------------------------"
 echo
-echo Toto je instalace programu TrEd
-ask "Chcete pokracovat" || exit 0
+echo $MSG016
+ask $MSG017 || exit 0
 
 echo
 findperlbin
-until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "Pouzit Perl z $PERLBIN"; do
-  echo "Na vasem pocitaci nebyla nalezena instalace perlu."
-  echo "Muzete pokracovat bud instalaci ActiveState perlu"
-  echo "nebo musite rucne zadat uplnou cestu k programu 'perl'"
+until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $PERLBIN"; do
+  echo $MSG019
+  echo $MSG020
+  echo $MSG021
   echo
-  if ask "Chcete nainstalovat ActiveState Perl"; then
+  if ask $MSG022; then
     get_perl_install_dir
     install_perl
 #    findperlbin
     PERLBIN="$PERLINSTALLDIR/bin/perl.exe"
   else  
-    read -e -p "Path to perl binary executable: " PERLBIN
+    read -e -p $MSG023 PERLBIN
   fi
 done
 
@@ -217,21 +224,21 @@ DOSPERLDIR=`dosdirname $PERLDIR`
 PPM="$PERLBIN $DOSPERLDIR/ppm.bat"
 
 
-echo Kontruluji verzi nainstalovaneho perlu.
+echo $MSG024
 
 if perl_version_current; then
-  echo Ok.
+  echo $MSGOK
 else 
   echo
-  echo "Tato instalace vyzaduje verzi 5.${REQPERLVER}"
-  if ask "Prejete si provest aktualizaci?"; then
+  echo "$MSG025 5.${REQPERLVER}"
+  if ask $MSG026; then
     upgrade_perl
     PERLBIN="$PERLINSTALLDIR/bin/perl.exe"
   else
-    if ask "Pokracovat v instalaci?"; then
+    if ask $MSG027; then
      echo 
-     echo "Pokracuji v instalaci."
-     echo "UPOZORNENI: Nektere soucasti nemusi po instalaci fungovat spravne!!"
+     echo $MSG028
+     echo $MSG029
     else 
      exit 1
     fi
@@ -244,10 +251,10 @@ findtreddir
 
 if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
   echo
-  echo "TrEd je jiz nainstalovan v adresari $TREDDIR"
-  if ask "Chcete provest upgrade v tomto adresari"; then
+  echo "$MSG030 $TREDDIR"
+  if ask $MSG031; then
     UPGRADE=1
-    if ask "Chcete zachovat stavajici konfiguracni soubor"; then
+    if ask $MSG032; then
       test -f "$TREDDIR/tredlib/tredrc" && \
         mv "$TREDDIR/tredlib/tredrc" "$TREDDIR/tredlib/tredrc.sav"
     else
@@ -255,24 +262,24 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
     fi  
   else
     echo
-    ask "Chcete nainstalovat TrEd do jineho adresare" || exit 0
+    ask $MSG033 || exit 0
     if [ "$OSTYPE" = "cygwin" ]; then
       TREDDIR="c:/tred"
     else 
       TREDDIR="$HOME/tred"
     fi    
-    read -e -p "Zadejte cilovy adresar [implicitne $TREDDIR]: " DIR
+    read -e -p "$MSG034 $TREDDIR]: " DIR
     test -z $DIR || TREDDIR=$DIR
   fi
 else 
   echo
-  ask "Chcete nainstalovat TrEd" || exit 0
+  ask $MSG035 || exit 0
   if [ "$OSTYPE" = "cygwin" ]; then
     TREDDIR="c:/tred"
   else 
     TREDDIR="$HOME/tred"
   fi    
-  read -e -p "Zadejte cilovy adresar [implicitne $TREDDIR]: " DIR
+  read -e -p "$MSG036 $TREDDIR]: " DIR
   test -z $DIR || TREDDIR=$DIR
 fi
 
@@ -283,7 +290,7 @@ else
 fi
 
 echo
-echo "Kopiruji TrEd do adresare $TREDDIR"
+echo "$MSG037 $TREDDIR"
 if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     cp -R tred/* "${TREDDIR}"             && \
     cp tred.mac "${TREDDIR}/tredlib"      && \
@@ -295,22 +302,22 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     if (test -d "${TREDDIR}/bin" || mkdir "${TREDDIR}/bin"); then
       cp -f bin/prfile32.exe nsgmls/* bin/prfile32.exe bin/*.dll bin/gunzip.exe bin/gzip.exe bin/zcat.exe "${TREDDIR}/bin"
     else 
-      echo "Nelze vytvorit adresar ${TREDDIR}/bin !"
+      echo "$MSG039 ${TREDDIR}/bin !"
     fi
     test "x$UPGRADE" = "x1" -a -f "${TREDDIR}/tredlib/tredrc.sav" && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
-    test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl
+    test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl $INSTLANG
 
-    echo "Upravuji polozku TrEdu v registrech Windows"
-    regtool add "\\machine\\Software\\TrEd"
-    regtool -s set "\\machine\\Software\\TrEd\\Dir" "$TREDDIR" 
+    echo $MSG038
+    regtool add "\\machine\\Software\\TrEd" >/dev/null 2>/dev/null
+    regtool -s set "\\machine\\Software\\TrEd\\Dir" "$TREDDIR" >/dev/null 2>/dev/null
     echo
-    echo "Instalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla"
-    echo "ikona s obrazkem sileneho zvirete"
+    echo $MSG040
+    echo $MSG041
     echo
 else
   echo
-  echo "Behem instalace doslo k neocekavane chybe."
+  echo $MSG042
   echo
-  read -e -n1 -r -p "Stisknete libovolnou klavesu, program se ukonci..."
+  read -e -n1 -r -p $MSG043
 fi
