@@ -580,7 +580,7 @@ sub NewVerb {
     $this=$son;
     TredMacro::NewLBrother();
     $pNew=$this;
-    $pNew->{sentord}=$son->{sentord}-1;
+#    $pNew->{sentord}='999'; $son->{sentord}-1;
 
     $son=$pT->firstson();
     while ($son) {
@@ -591,7 +591,7 @@ sub NewVerb {
   } else {
     TredMacro::NewSon();
     $pNew=$this;
-    $pNew->{sentord}=$pT->{sentord};
+#    $pNew->{sentord}=$pT->{sentord};
   }
 
   $sNum = GetNewOrd($pT);
@@ -635,7 +635,7 @@ sub NewVerb {
   $pNew->{'recip'} = '???';
   $pNew->{'dispmod'} = '???';
   $pNew->{'trneg'} = 'NA';
-
+  $pNew->{sentord}='999';
   $this=$pNew;
 }
 
