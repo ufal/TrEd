@@ -291,7 +291,7 @@ sub openFile {
     print STDERR "Goto suffix is $goto\n" if $tredDebug;
   }
 
-#  saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
+# saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
   closeFile($grp);
 
   $grp->{'FSFile'} = FSFile->newFSFile($f,@backends);
@@ -301,10 +301,11 @@ sub openFile {
   $grp->{treeNo}=0;
   $grp->{currentNode}=undef;
   applyFileSuffix($grp,$goto);
-  unless (!$grp->{FSFile} or defined $grp->{currentNode}) {
-    $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+  unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
   }
+
   return 1;
 }
 
@@ -383,8 +384,8 @@ sub doEvalMacro {
   my ($group,$macro)=(shift,shift);
   return unless $macro;
 
-  $TredMacro::this=$win->{currentNode};
-  $TredMacro::root=$win->{root};
+  $TredMacro::this=$group->{currentNode};
+  $TredMacro::root=$group->{root};
   $TredMacro::libDir=$libDir;
   $TredMacro::FileNotSaved=1;
   $TredMacro::forceFileSaved=0;
