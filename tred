@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-07 10:02:15 pajas>";
+$timestamp="Time-stamp: <2001-06-08 09:47:46 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -222,11 +222,22 @@ import TrEd::MinMax;
 require TrEd::Convert;
 import TrEd::Convert;
 
-# tree drawing module 
+# import read_macros etc.
+require TrEd::Macros;
+import TrEd::Macros;
+
+# tree drawing module
 require TrEd::TreeView;
 
 # tree printing module
 require TrEd::Print;
+
+# basic tree operations
+require TrEd::Basics;
+import TrEd::Basics;
+$on_tree_change = \&onTreeChange;
+$on_node_change = \&onNodeChange;
+$on_current_change = \&onCurrentChange;
 
 #load back-ends
 
@@ -239,7 +250,6 @@ require Filelist;
 
 require Tk::MyFileSelect;
 
-use Exporter;
 # different namespace only to load local rather than system files
 # (rel2abs is not supported in all instalations)
 use File::Spec;
@@ -255,12 +265,12 @@ if (not File::Spec->can(rel2abs)) {
   import File::Spec::Functions qw(rel2abs);
 }
 
+use Exporter;
+@ISA=qw(Exporter);
 # This is default export to macros
 @EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
 	     $forceFileSaved $insideEval $FileNotSaved $libDir
              @openfiles @filelists &min &max);
-
-my @macros=();
 
 @open_types =
   (["FS files",           [qw/.fs .FS .Fs/]],
@@ -345,7 +355,7 @@ my %searchTemplate;
 			  );
 
 print STDERR "Reading macros from $macroFile...\n";
-readMacros($macroFile);		# read macros
+read_macros($macroFile,$libDir);		# read macros
 print STDERR "done.\n";
 
 startMain();	# display first tree
@@ -380,130 +390,6 @@ sub setConfig {
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
 
-
-sub readMacros {
-  # This subroutine reads macro file. Macros are usual perl
-  # subroutines and may use this program's namespace. They are also
-  # provided some special names for certain variables which override
-  # the original namespace.
-
-  # Macros may be bound to a keysym with a special form of a comment.
-  # The synax is:
-  #
-  # # bind MacroName to key [[Modifyer+]*]KeySym
-  #
-  # which causes subroutine MacroName to be bound to keyboard event of
-  # simoultaneous pressing the optionally specified Modifyer(s) (which
-  # should be some of Shift, Ctrl and Alt) and the specified KeySym
-  # (this probabbly depends on platform too :( ).
-
-
-  my ($file,$keep)=(shift,shift);
-  my $macro;
-  my $key;
-  local *F;
-  my @contexts=@_;
-
-  @contexts=("TredMacro") unless (@contexts);
-  unless ($keep) {
-    %keyBindings=();
-    %menuBindings=();
-    @macros=();
-    print "ERROR: Cannot open macros!\n", return
-      unless open(F,"<$defaultMacroFile");
-    push @macros, <F>;
-  }
-  close F;
-
-  print "ERROR: Cannot open macros!\n", return
-    unless open(F,"<$file");
-
-#
-# new "pragmas":
-#
-# include <file>
-# include "file"
-#
-# binding-context <context> [<context> [...]]
-#
-# key-binding-adopt <contexts>
-# menu-binding-adopt <contexts>
-#
-# bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
-#
-# insert <method> [as] [menu] <menu>[/submenu[/...]]
-#
-
-
-  while (<F>) {
-    push @macros,$_;
-    if (/\#[ \t]*binding-context[ \t]+(.*)/) {
-      @contexts=(split /[ \t]+/,$1);
-    } elsif (/\#[ \t]*key-binding-adopt[ \t]+(.*)/) {
-      my @toadopt=(split /[ \t]+/,$1);
-      my $context;
-      my $toadopt;
-      foreach $context (@contexts) {
-	$keyBindings{$context}={} unless exists($keyBindings{$context});
-	foreach $toadopt (@toadopt) {
-	  foreach (keys %{$keyBindings{$toadopt}}) {
-	    $keyBindings{$context}->{$_}=$keyBindings{$toadopt}->{$_};
-	  }
-	}
-      }
-    } elsif (/\#[ \t]*menu-binding-adopt[ \t]+(.*)/) {
-      my @toadopt=(split /[ \t]+/,$1);
-      my $context;
-      my $toadopt;
-      foreach $context (@contexts) {
-	$menuBindings{$context}={} unless exists($menuBindings{$context});
-	foreach $toadopt (@toadopt) {
-	  foreach (keys %{$menuBindings{$toadopt}}) {
-	    $menuBindings{$context}->{$_}=$menuBindings{$toadopt}->{$_};
-	  }
-	}
-      }
-    } elsif (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/)
-      {
-	$macro=$1;
-	$key=uc($2);
-	$menu=encode($3);
-	#print "binding $key [$menu] => $macro\n";
-	foreach (@contexts) {
-	  $keyBindings{$_}={} unless exists($keyBindings{$_});
-	  $keyBindings{$_}->{$key}="$_"."->"."$macro";
-	  if ($menu) {
-	    $menuBindings{$_}={} unless exists($menuBindings{$_});
-	    $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
-	  }
-	}
-      } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
-	$macro=$1;
-	$menu=encode($2);
-	foreach (@contexts) {
-	  $menuBindings{$_}={} unless exists($menuBindings{$_});
-	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
-	}
-      } elsif (/\#[[ \t]*include[ \t]+(.+)/) {
-	my $mf=$1;
-	print STDERR "including $mf\n";
-	unless (-f $mf) {
-	  $mf=dirname($file).$mf;
-	  print STDERR "trying $mf\n";
-	  unless (-f $mf) {
-	    $mf="$libDir/$1";
-	    print STDERR "not found, trying $mf\n";
-	  }
-	}
-	if (-f $mf) {
-	  readMacros($mf,1,@contexts);
-	} else {
-	  print STDERR "Cannot include macros $1: file not found!\n";
-	}
-      }
-  }
-  close(F);
-}
 
 sub gotoFile {
   my ($grp,$fn,$no_recent)=@_;
@@ -721,12 +607,6 @@ sub updateTitle {
 sub openFile {
   my ($grp,$f,$no_recent) = @_;
   my $goto = undef;
-  my $fs;
-  my $fh;
-  my $gz='';
-  my $err;
-  my $in1='<';
-  my $in2='';
   my %fs=(fs => 'FS format',
 	  fgz => 'gzipped FS format',
 	  trxml => 'tree XML format',
@@ -822,9 +702,6 @@ sub saveFile {
   return unless $grp->{'FSFile'};
 
   my $f=$grp->{'FSFile'}->filename;
-  my $out="";
-  my $of;
-  my $gz;
 
   rename $f,$f."~" if (-f $f);
 
@@ -873,64 +750,20 @@ sub HPrev { # same as Next but obey $showHidden
 
 sub getValueLine {
   my ($grp)=@_;
-  $valueLine=$grp->{'treeView'}->value_line($grp->{FSFile}, $grp->{treeNo});
+  $valueLine=encode($grp->{FSFile}->value_line($grp->{treeNo}));
 }
 
 sub getNodes {
   my ($grp)=@_;
   if ($grp->{FSFile}) {
-    $grp->{root}=$grp->{FSFile}->treeList->[$tree_no];
+    $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   } else {
     $grp->{root}=undef;
   }
   getValueLine($grp);
-  ($grp->{Nodes},$grp->{currentNode}) = $grp->{'treeView'}->nodes($grp->{FSFile},
-								$grp->{treeNo},
-								$grp->{currentNode},
-								$showHidden);
-
-}
-
-
-sub getNodes {
-# prepare value line and @nodes list with deleted/saved hidden
-# and ordered by real Ord
-
-  my ($grp)=@_;
-  return unless $grp->{FSFile};
-  $grp->{Nodes}=[];
-  my @unsorted=();
-  $grp->{treeNo}=0 if ($grp->{treeNo}<0);
-  $grp->{treeNo}=$grp->{FSFile}->lastTreeNo if ($grp->{treeNo}>$grp->{FSFile}->lastTreeNo);
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
-
-  my $node=$grp->{root};
-  my $current=$grp->{root};
-  my $prevcurrent=$grp->{currentNode};
-
-#  use Benchmark;
-#  my $t=timeit(100, 'getValueLine($grp);');
-#  print "$count loops of getNodes took: ",timestr($t),"\n";
-  getValueLine($grp);
-
-  while($node)
-  {
-    push @unsorted, $node;
-    $current=$node if ($prevcurrent eq $node);
-    $node=HNext($grp,$node);  #skip also hidden subtrees unless showHidden
-
-  }
-  $grp->{'currentNode'}=$current;
-  my $ord=$grp->{FSFile}->FS->order;
-  @{$grp->{Nodes}}=
-    sort { $a->{$ord} <=> $b->{$ord} } 
-      @unsorted;
-
-  # just for sure
-  undef @unsorted;
-
-  # this is actually a workaround for TR, where two different nodes
-  # may have the same Ord
+  ($grp->{Nodes},$grp->{currentNode}) = $grp->{FSFile}->nodes($grp->{treeNo},
+							      $grp->{currentNode},
+							      $showHidden);
 }
 
 ############################################################
@@ -1749,111 +1582,29 @@ sub switchContext {
   redraw_tree($grp);
 }
 
-
-sub gotoTree {
-  my $grp=shift;
-  return unless $grp->{'FSFile'};
-  my $no = max(0,min(shift,$grp->{FSFile}->lastTreeNo));
-  return $grp->{treeNo} if doEvalHook($grp,"goto_tree_hook") eq 'stop';
-  return $no if ($no == $grp->{treeNo});
-  $grp->{treeNo}=$no;
+sub onTreeChange {
   getNodes($grp);
-  centerToXY($grp,0,0);
+  if ($grp->{currentNode}) {
+    centerToXY($grp,0,0);
+  }
   redraw_tree($grp);
-  return $no;
 }
 
-sub nextTree {
-  my ($grp)=@_;
-  return unless $grp->{'FSFile'};
-  return 0 if ($grp->{treeNo} >= $grp->{FSFile}->lastTreeNo);
-  gotoTree($grp,$grp->{treeNo}+1);
-  return 1;
-}
-
-sub prevTree {
-  my ($grp)=@_;
-  return 0 if ($grp->{treeNo} <= 0);
-  gotoTree($grp,$grp->{treeNo}-1);
-  return 1;
-}
-
-sub newTree {
-  my ($grp)=@_;
-  
-  my $nr=FSNode->new(); # blessing new root
-
-  splice(@{$grp->{FSFile}->treeList}, $grp->{treeNo}, 0, $nr);
-
-  getNodes($grp);
-  centerToXY($grp,0,0);
-  redraw_tree($grp);
-  return 1;
-}
-
-sub newTreeAfter {
-  my ($grp)=@_;
-
-  my $nr=FSNode->new(); # blessing new root
-
-  splice(@{$grp->{FSFile}->treeList}, ++$grp->{treeNo}, 0, $nr);
-
-  getNodes($grp);
-  centerToXY($grp,0,0);
-  redraw_tree($grp);
-  return 1;
-}
-
-sub pruneTree {
-  my ($grp)=@_;
-
-  return unless ($grp->{'FSFile'} and $grp->{FSFile}->treeList->[$grp->{treeNo}]);
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
-  splice(@{$grp->{FSFile}->treeList}, $grp->{treeNo}, 1);
-  DeleteTree($grp->{root});
-
-  $grp->{treeNo}=max(0,min($grp->{treeNo},$grp->{FSFile}->lastTreeNo));
-  $grp->{root} = undef;
-
-  getNodes($grp);
-  centerToXY($grp,0,0);
-  redraw_tree($grp);
-  return 1;
-}
-
-
-sub newNode {
-  ## Adds new son to current node
-  my ($grp)=@_;
-  my $parent=$grp->{currentNode};
-  return unless ($grp->{'FSFile'} and $parent);
-
-  my $nd=FSNode->new();
-
-  Paste($nd,$parent,$grp->{FSFile}->FS->defs);
-  $node->{$grp->{FSFile}->FS->order}=$parent->{$grp->{FSFile}->FS->order};
-  setCurrent($grp,$nd);
-
+sub onNodeChange {
   getNodes($grp);
   redraw_tree($grp);
-
-  return $nd;
 }
 
-sub pruneNode {
-  ## Deletes given node
-  my ($grp,$node)=@_;
-  my $t;
-  return undef unless ($grp->{'FSFile'} and $node and $node->parent);
-
-  Paste(Cut($t),$node->parent,$grp->{FSFile}->FS->defs)
-    while ($t=$node->firstson);
-
-  setCurrent($grp,$node->parent) if ($node == $grp->{currentNode});
-  $t=DeleteLeaf($node);
-  getNodes($grp);
-  redraw_tree($grp);
-  return $t;
+sub onCurrentChange {
+  my ($grp,$prev,$node)=@_;
+  my $n;
+  foreach $n ($prev,$node) { 
+    $grp->{'treeView'}->canvas->itemconfigure($n->{'_tkOval_'}, nodeOptions($grp,$n));
+    $grp->{'treeView'}->canvas->itemconfigure($n->{'_tkTextBox_'},nodeBoxOptions($grp,$n))
+      if ($grp->{'treeView'}->get_drawBoxes and exists($n->{'_tkTextBox_'}));
+    $grp->{'treeView'}->canvas->coords($n->{'_tkOval_'},
+				       $grp->{'treeView'}->node_coords($n,$grp->{currentNode}));
+  }
 }
 
 sub prepareFont {
@@ -2619,6 +2370,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
     }
   };
   chomp $conf[$#conf];
+  $group{top}=undef;
   saveConfig(\%group,@conf);
   print STDERR "Done.\n" if $tredDebug;
 }
@@ -2793,6 +2545,7 @@ sub saveConfig {
    my ($dc,$ic)=stat($configFile);
    my ($dh,$ih)=stat($trc);
    if ($configFile ne $trc and ($dc != $dh or $ic != $ih) and
+       (!defined($grp->{'top'}) or
        $grp->{'top'}->toplevel->
        messageBox(-icon => 'warning',
 		  -message => "Cannot write configuration to $configFile\n($lasterr)\n\n".
@@ -2800,26 +2553,18 @@ sub saveConfig {
 		  -title => 'Configuration cannot be saved',
 		  -type => 'YesNo',
 		  #			  -default => 'Yes' # problem: Windows 'yes', UNIX 'Yes'
-		 ) =~ /yes/i) {
+		 ) =~ /yes/i)) {
      if (open(F,">".$trc)) {
        print F @_;
        close(F);
+       $configFile=$trc;
      } else {
-       $grp->{'top'}->toplevel->
-	 messageBox(-icon => 'error',
-		    -message => 'Cannot write to "'.$trc.'"!'."\n($!)\n".
-		    "\nConfiguration could not be saved!\n",
-		    -title => 'Configuration cannot be saved',
-		    -type => 'Ok');
+       ErrorMessage($grp,'Cannot write to "'.$trc.'"!'."\n($!)\n".
+		    "\nConfiguration could not be saved!\n");
      }
    } else {
-     $grp->{'top'}->toplevel->
-       messageBox(-icon => 'error',
-		  -message => "Cannot write to \"$configFile\"!"."\n($lasterr)\n".
-		  "\nConfiguration could not be saved!",
-		     -title => 'Configuration cannot be saved',
-		  -type => 'Ok',
-		  -default => 'Ok');
+     ErrorMessage($grp,"Cannot write to \"$configFile\"!"."\n($lasterr)\n".
+		  "\nConfiguration could not be saved!");
    }
  }
 }
@@ -2876,7 +2621,7 @@ sub editConfig {
     ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
 
   $d->bind('<Destroy>' => [sub { shift; shift->{configDialog}=undef; },$grp ]);
-  $d->bind('all','<Escape>' => [sub { shift; shift->destroy(); },$d]);
+  $d->bind($d,'<Escape>' => [sub { shift; shift->destroy(); },$d]);
   if (open(F,"<$configFile")) {
     $t->insert('0.0',join "",<F>);
     close(F);
@@ -4027,27 +3772,11 @@ sub currentDown {
   }
 }
 
-
-
 sub currentUp {
   my $grp=shift;
   if ($grp->{'currentNode'}->parent) {
     setCurrent($grp,$grp->{'currentNode'}->parent);
     centerTo($grp,$grp->{'currentNode'});
-  }
-}
-
-sub setCurrent {
-  my ($grp,$node)=@_;
-  my $prev=$grp->{currentNode};
-  my $n;
-  $grp->{'currentNode'}=$node;
-  foreach $n ($prev,$node) { 
-    $grp->{'treeView'}->canvas->itemconfigure($n->{'_tkOval_'}, nodeOptions($grp,$n));
-    $grp->{'treeView'}->canvas->itemconfigure($n->{'_tkTextBox_'},nodeBoxOptions($grp,$n))
-      if ($grp->{'treeView'}->get_drawBoxes and exists($n->{'_tkTextBox_'}));
-    $grp->{'treeView'}->canvas->coords($n->{'_tkOval_'},
-				       $grp->{'treeView'}->node_coords($n,$grp->{currentNode}));
   }
 }
 
@@ -4072,44 +3801,21 @@ sub centerTo {
 
 sub doEvalHook {
   my ($grp,$hook)=(shift,shift);
-#  my $hookparams=join ",", map { "\"$_\"" } @_;
-  my $context=$grp->{macroContext};
-  return unless $hook;
+  return unless $hook and $grp->{'currentNode'};
+  my $bookmark=bookmarkThis($grp);        # Save current position (as last action position)
+
+  local $insideEval=1;
 
   $this=$grp->{'currentNode'};
-  return unless $this;
   $root=$grp->{'root'};
+  $FileNotSaved=$grp->{FSFile}->notSaved;
+  my $result=do_eval_hook($grp,$grp->{macroContext},$hook);
 
-  my $result;
-  $FileNotSaved=$grp->{FSFile}->notSaved; # Macro may want to override this :)
-  my $bookmark=bookmarkThis($grp);        # Save current position (as last action position)
-  local $insideEval=1;
-  unless ($macrosEvaluated) {
-    eval ("@macros\n return 1;");
-    $macrosEvaluated=1;
-    if ($result or $@) {
-      print STDERR "FirstEvaluation of macros\n" if $macroDebug;
-      print STDERR "Returned with: $result\n$@\n" if $macroDebug;
-    }
-  }
-  if ($context->can($hook)) {
-    print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
-    $result=eval { return &{"$context\:\:$hook"}(@_); };
-  } elsif ($context ne "TredMacro" and TredMacro->can($hook)) {
-    print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
-#    $result=eval("return TredMacro\:\:$hook($hookparams);\n");
-    $result=eval { return &{"TredMacro\:\:$hook"}(@_); };
-  } else {
-    return undef;
-  }
   print "$@\n" if $@;
   lastActionBookmark($grp,$bookmark) if $FileNotSaved and !$grp->{FSFile}->notSaved;
   $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
   saveFileStateUpdate($grp);
 
-  # This may be important
-  # (we do not want to leave references to non-existsing
-  #  objects later)
   $this=undef;
   $root=undef;
 
@@ -4117,38 +3823,22 @@ sub doEvalHook {
   return $result;
 }
 
-
 sub doEvalMacro {
   my ($grp,$macro)=(shift,shift);
-  return unless $macro;
+  return unless $macro and $grp->{'currentNode'};
 
-  $this=$grp->{'currentNode'};
-  return unless $this;
-  $root=$grp->{'root'};
-
-  my $result;
   $grp->{'top'}->Busy(-recurse => 1);
-  $FileNotSaved=1; #$grp->{FSFile}->notSaved;  # Macro may want to override this :)
-  $forceFileSaved=0; # Macro may want to override this :)
   my $bookmark=bookmarkThis($grp);
+
   $insideEval=1;
 
-  unless ($macrosEvaluated) {
-    eval ("@macros\n return 1;");
-    $macrosEvaluated=1;
-    if ($result or $@) {
-      print STDERR "FirstEvaluation of macros\n" if $macroDebug;
-      print STDERR "Returned with: $result\n$@\n" if $macroDebug;
-    }
-  }
-#  $result=eval("return ".$macro."();\n@macros\n");  # this consumes memory!!!!
-  print "Running $macro\n" if $macroDebug;
-  $result=eval("return $macro;\n");
+  $this=$grp->{'currentNode'};
+  $root=$grp->{'root'};
+  $FileNotSaved=1;
+  $forceFileSaved=0;
 
-  if ($result or $@) {
-    print STDERR "Had run: ",$macro,"\n" if $macroDebug;
-    print STDERR "Returned with: $result\n$@\n" if $macroDebug;
-  }
+  my $result=do_eval_macro($grp,$macro);
+
   unless ($forceFileSaved) {
     print STDERR "Macro claims file untouched\n"
       unless ($FileNotSaved);
@@ -4156,7 +3846,6 @@ sub doEvalMacro {
     lastActionBookmark($grp,$bookmark) if $FileNotSaved;
   } else {
     print STDERR "Macro forsly claims file saved.\n";
-    # using value of $FileNotSaved
     $grp->{FSFile}->notSaved($FileNotSaved);
     lastActionBookmark($grp,$bookmark) if $FileNotSaved;
   }
@@ -4164,15 +3853,12 @@ sub doEvalMacro {
 
   getNodes($grp);     # memory ok, speed ok
 
-
   #------------------------------------------------------------
   #use Benchmark;
   #my $t0 = new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
-
   redraw_tree($grp);  # ??? 4kb/50 runs memory leaks???, speed ok
- 
   #------------------------------------------------------------
   #}
   #my $t1 = new Benchmark;
@@ -4180,20 +3866,15 @@ sub doEvalMacro {
   #print "$FileNotSaved the code took:",timestr($td),"\n";
   #------------------------------------------------------------
 
-
   # the rest of this routine is:
   # memory ok, speed ok
   setCurrent($grp,$this) if ($this);
   currentUnhiden($grp);
 
-  # This may be important
-  # (we do not want to leave references to non-existsing
-  #  objects later)
   $this=undef;
   $root=undef;
 
   centerTo($grp,$grp->{currentNode});
-
 
   $grp->{'top'}->Unbusy;
   return $result;
