@@ -275,7 +275,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      have extracted the <application moreinfo="none">TrEd</application>
 	      distribution to <filename moreinfo="none">/opt</filename> directory,
 	      you can achieve this with the following command:
-	      <literallayout format="linespecific" class="normal">root# ln -s /opt/tred/tred /usr/local/bin</literallayout>.
+	      <literallayout format="linespecific" class="normal">root# ln -s /opt/tred/tred /usr/local/bin</literallayout>
 	    Use similar commands for <command moreinfo="none">btred</command> 
 	    and other tools included with
  	    <application moreinfo="none">TrEd</application> distribution you
