@@ -247,6 +247,8 @@ COORDS
 	     -width => $line->{-width}.('&1' x @coords),
 	     -fill => $line->{-fill}.join("&","",@colors),
 	     -smooth => $line->{-smooth}.('&1' x @coords));
+  } elsif (%$line) {
+    AddStyle($styles,'Line',%$line);
   }
 }
 
