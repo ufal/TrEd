@@ -204,11 +204,17 @@ sub write {
 	print $fileref "<p n=$n>\n";
       }
 #      print $fileref make_gap($root->{gappre});
-
-      if ($root->{form}=~/alt/) {
-	print $fileref "<salt id=\"$root->{ID1}\">\n";
+      my $id;
+      if ($compatibility_mode) {
+	$id=$root->{ID1}.$root->{lemid}.$root->{commentTR};
       } else {
-	print $fileref "<s id=\"$root->{ID1}\">\n";
+	$id=$root->{ID1};
+      }
+      
+      if ($root->{form}=~/alt/) {
+	print $fileref "<salt id=\"$id\">\n";
+      } else {
+	print $fileref "<s id=\"$id\">\n";
       }
       print $fileref make_gap($root->{gappost});
     }
@@ -238,6 +244,7 @@ sub write {
 	  if ($node->{gap1}) {
 	    my $tags=$node->{gap1};
 	    $tags=~s/\&nl;/\n/g;
+	    $tags.="\n<f>" unless $tags=~/\<f/;
 	    print $fileref $tags;
 	    print $fileref translate_to_entities($node->{form});
 	  } else {
@@ -311,7 +318,7 @@ sub write {
 	  print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
 	  print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
 	  if ($fsfile->FS->order eq 'dord') {
-	    print $fileref "<TRg>",int($node->parent->{ord});
+	    print $fileref "<TRg>",$node->parent->{ord};
 	  } else {
 	    print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
 	  }

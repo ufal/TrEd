@@ -71,11 +71,6 @@ APPINFO    NONE
 <!--          (by getdesc.pl) of the description file as       -->
 <!--          required by the dtd2html program                 -->
 <!--                                                           -->
-<!-- references to be replaced in the dtd2html stuff:          -->
-<!--          search for REF-                                  -->
-<!--                                                           -->
-<!--                                                           -->
-<!--                                                           -->
 <!--                                                           -->
 <!-- ver 0.96 (Jul 01, 2001) by Jan Hajic                      -->
 <!--        - upper.gen.phrase added to f*case                 -->
@@ -523,7 +518,7 @@ APPINFO    NONE
                 --
 >
 <!ATTLIST TRl
-          quot (quot|dsp|dsp.quot|dspp|dspp.quot) #IMPLIED 
+          quot (quot|dsp|dsp.quot|dspp|dspp.quot|dspi|dspi.quot) #IMPLIED 
 >
 
 <!ELEMENT TRg - O (#PCDATA)
@@ -605,14 +600,18 @@ APPINFO    NONE
                  --
 >
 
-<!ELEMENT fw  - O (#PCDATA)>
+<!ELEMENT fw  - O (#PCDATA)
+>
 <!ELEMENT phr - O (#PCDATA)
                 -- phraseme id;
                 --
 >
-<!ELEMENT corl  - O (#PCDATA)>
-<!ELEMENT corT  - O (#PCDATA)>
-<!ELEMENT corr  - O (#PCDATA)>
+<!ELEMENT corl  - O (#PCDATA)
+>
+<!ELEMENT corT  - O (#PCDATA)
+>
+<!ELEMENT corr  - O (#PCDATA)
+>
 <!ELEMENT cors  - O (#PCDATA)
                 -- cors should be empty or contain a sentence id;
                    cors is a correference to a sentence id;
@@ -623,7 +622,8 @@ APPINFO    NONE
                 --
 >
 <!ATTLIST cors
-          rel NUMBER #IMPLIED >
+          rel NUMBER #IMPLIED 
+>
 
 <!-- ============================================================= -->
 <!--                    end of tectogramatical elements            -->
@@ -710,4 +710,5 @@ APPINFO    NONE
 <!ENTITY macron CDATA "&#1;" -- "macron" -->
 
 <!ENTITY agrave CDATA "&#233;" -- "agrave" -->
+
 ]>

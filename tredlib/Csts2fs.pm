@@ -529,7 +529,6 @@ sub build_tree {
       Paste($_,$parent,{ $ord => ' N'}); # paste using $ord as the numbering attribute
     }
   }
-
   foreach (reverse @_) {
     if (ref($_) and ! $_->parent) {
       Paste($_,$root,{ $ord => ' N'}); # paste using $ord as the numbering attribute
