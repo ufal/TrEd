@@ -34,6 +34,7 @@ sub new_dialog_window {
 
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind($d,'<Return>',[sub {  }]);
+  $d->bind($d,'<KP_Enter>',[sub {  }]);
   my $button_frame=$d->Frame()->pack(qw(-fill x -side bottom));
 
   my $vallex= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,0,
@@ -127,6 +128,7 @@ sub show_dialog {
 
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind($d,'<Return>',[sub {  }]);
+  $d->bind($d,'<KP_Enter>',[sub {  }]);
   my $vallex= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,0,
 					$wordlist_item_style,
 					$framelist_item_style,
@@ -412,6 +414,10 @@ sub create_widget {
   $search_entry->bind('<Return>',[sub { my ($w,$self)=@_;
 					$self->quick_search($w->get);
 				      },$self]);
+  $search_entry->bind('<KP_Enter>',[sub { my ($w,$self)=@_;
+					  $self->quick_search($w->get);
+					},$self]);
+
 
   $fsearch_frame->pack(qw/-side top -pady 6 -fill x/);
 
@@ -569,6 +575,7 @@ sub ask_save_data {
 					-title=> 'Question',
 					-buttons=> ['Yes','No']);
   $d->bind('<Return>', \&TrEd::ValLex::Widget::dlgReturn);
+  $d->bind('<KP_Enter>', \&TrEd::ValLex::Widget::dlgReturn);
   my $answer=$d->Show();
   if ($answer eq 'Yes') {
     $self->save_data($top);
@@ -647,6 +654,7 @@ sub addword_button_pressed {
 				-buttons => ["OK","Cancel"]);
 
   $d->bind('<Return>',\&TrEd::ValLex::Widget::dlgReturn);
+  $d->bind('<KP_Enter>',\&TrEd::ValLex::Widget::dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
 
@@ -833,6 +841,7 @@ sub show_frame_search_dialog {
   my $d=$top->DialogBox(-title => "Full-text Frame Search",
 				-buttons => ["OK","Cancel"]);
   $d->bind($d,'<Return>', \&TrEd::ValLex::Widget::dlgReturn);
+  $d->bind($d,'<KP_Enter>', \&TrEd::ValLex::Widget::dlgReturn);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $regexp=0;
   my $beg=0;
@@ -890,6 +899,7 @@ sub show_frame_editor_dialog {
   my $d=$top->DialogBox(-title => $title,
 				-buttons => ["OK","Cancel"]);
   $d->bind($d,'<Return>', \&TrEd::ValLex::Widget::dlgReturn);
+  $d->bind($d,'<KP_Enter>', \&TrEd::ValLex::Widget::dlgReturn);
   my $ed=TrEd::ValLex::FrameElementEditor->new($self->data(), undef, $d);
   $ed->subwidget_configure($confs) if ($confs);
   $ed->pack(qw/-expand yes -fill both/);
@@ -898,7 +908,9 @@ sub show_frame_editor_dialog {
   $ed->subwidget('example')->insert("0.0",$example) unless $example eq "";
   $ed->subwidget('problem')->insert("0",$problem) unless $problem eq "";
   $d->bind($ed->subwidget('elements'),'<Return>', [sub { $_[1]->Subwidget('B_OK')->Invoke },$d]);
+  $d->bind($ed->subwidget('elements'),'<KP_Enter>', [sub { $_[1]->Subwidget('B_OK')->Invoke },$d]);
   $d->bind($ed->subwidget('problem'),'<Return>', [sub { $_[1]->Subwidget('B_OK')->Invoke },$d]);
+  $d->bind($ed->subwidget('problem'),'<KP_Enter>', [sub { $_[1]->Subwidget('B_OK')->Invoke },$d]);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Escape>'=> [sub { shift;
