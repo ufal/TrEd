@@ -9,11 +9,7 @@ package PMLTectogrammatic;
 import TredMacro;
 sub first (&@);
 
-%arrow_colors = (
-  textual => '#6a85cd',
-  grammatical => '#f6c27b',
-  segment => '#dd5555',
-  compl =>'#609060');
+my %arrow_colors;
 
 undef *sort_attrs_hook;
 
@@ -22,7 +18,6 @@ sub schema_name {
   return undef unless $grp->{FSFile} and $schema=$grp->{FSFile}->metaData('schema');
   return $schema->{root}->{name};
 }
-
 
 sub file_resumed_hook {
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
@@ -37,30 +32,39 @@ sub switch_context_hook {
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
   print "SCHEMA: ",schema_name(),"\n";
   default_pml_attrs();
+  my@CustomColors=qw/error red func darkgreen text darkblue gram orange segment gold compl green member darkmagenta member_line black normal_line yellow comm_line magenta cm_line gray/;
+  while(@CustomColors){
+    my$key=shift(@CustomColors);
+    my$val=shift(@CustomColors);
+    CustomColor($key,$val)unless CustomColor($key);
+  }
+  %arrow_colors = (
+                 #should be converted to CustomColors
+                 textual => CustomColor('text'),
+                 grammatical => CustomColor('gram'),
+                 segment => CustomColor('segment'),
+                 compl => CustomColor('comp'));
   Redraw_FSFile();
   return;
 }
 
 sub set_default_tdata_attrs {
-    SetDisplayAttrs(split /\n/,<<'EOF');
-<? "#{red}" if $${commentA} ne "" ?>${t_lemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? "$${_light}"if$${_light}and$${_light}ne"_LIGHT_" ?>${m/form}
-node:#{darkgreen}${functor}<? $${is_member} ? "_#{#4C9CCD}".($this->parent->{functor}=~/^(AP)PS|^(OP)ER/ ? "\${is_member=$1$2}" : "\${is_member=CO}") : "" ?><? "#{#4C9CCD}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${subfunctor}" if $${subfunctor} ne "???" and $${subfunctor} ne ""?>
-text:<? "#{-background:cyan}" if $${_light}eq"_LIGHT_" ?><? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}#{-tag:LEMMA_".$${trlemma}."}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${m/w/origf}
-style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>
-style:<? "#{Node-addwidth:7}#{Node-addheight:7}#{Oval-fill:cyan}" if $${_light}eq"_LIGHT_" ?>
-style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>
+  SetDisplayAttrs(split /\n/,<<'EOF');
+node:${t_lemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? '#{'.CustomColor('text')."}.$PMLTectogrammatic::coreflemmas{$${id}}" if $PMLTectogrammatic::coreflemmas{$${id}}ne'' ?>
+node:#{<? CustomColor('func') ?>}${functor}<? $${is_member} ? "_#{".CustomColor('member')."}".($this->parent->{functor}=~/^(AP)PS|^(OP)ER/ ? "\${is_member=$1$2}" : "\${is_member=CO}") : "" ?><? "#{#4C9CCD}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${subfunctor}" if $${subfunctor} ne "???" and $${subfunctor} ne ""?>
+style:<? "#{Oval-fill:".CustomColor('text')."}#{Node-shape:Rectangle}#{Node-addwidth:5}#{Node-addheight:5}"if(join '|',ListV($this->{coref_special}))=~/exoph/ ?>
 node:<? $${nodetype} ne 'complex' ? '#{darkblue}${nodetype}'  : ''?>#{darkred}<? local $_=$${gram/wordclass}; s/^sem([^.]+)(\..)?[^.]*(.*)$/$1$2$3/; '${gram/wordclass='.$_.'}' ?><? $${dsp_root} ? '#{black}.#{green}${dsp_root=DSP}' : '' ?><? $${quot_type} ne '' ? '.#{green}${quot_type}' : ''?>
-style:<? $${operand}.$${is_member} ? '#{Line-coords:n,n,n,n+(p-n)/3&n,n+(p-n)/3,p,p}' : '#{Line-coords:n,n,n,n}') ?>
-style:<? $${nodetype} eq 'coap' ? '#{Node-shape:rectangle}#{Node-currentwidth:7}#{Node-currentheight:7}#{CurrentOval-width:1}#{Node-width:0}#{Node-height:0}#{Oval-width:0}' : '' ?>
+style:<? '#{Oval-fill:'.CustomColor(($this->{is_member})?((PMLTectogrammatic::is_coord_TR($this->parent))?'member_line':'error'):(PMLTectogrammatic::is_coord_TR($this->parent)?(($this->{functor}=~/^(?:RHEM|CM|PREC)$/)?'cm_line':'comm_line'):'normal_line')).'}' ?>#{CurrentOval-fill:red} 
+style:<? $${nodetype} eq 'coap' ? '#{Node-shape:rectangle}#{Node-currentwidth:7}#{Node-currentheight:7}#{CurrentOval-width:1}#{Node-width:5}#{Node-height:5}#{Oval-width:0}#{Oval-fill:black}#{CurrentOval-fill:red}' : '' ?>
 EOF
-    SetBalloonPattern('');
+  SetBalloonPattern('');
 }
 
 sub set_default_adata_attrs {
     SetDisplayAttrs(split /\n/, <<'EOF');
 ${m/form}
 node:#{blue}${afun}<? if ($${is_member}) { my $p=$this->parent; $p=$p->parent while $p and $p->{afun}=~/^Aux[CP]$/; ($p and $p->{afun}=~/^(Ap)os|(Co)ord/ ? "_#{#4C9CCD}\${is_member=$1$2}" : "_#{red}\${is_member=ERR}")} else {""} ?>
-text:${m/w/origf}
+text:${m/w/token}
 EOF
 }
 
@@ -113,8 +117,6 @@ sub aids {
   }
   $fsfile->metaData('a-ids');
 }
-
-
 
 
 
@@ -252,10 +254,10 @@ sub get_value_line_hook {
   my @sent=();
   while ($node) {
     # this is TR specific stuff
-    push @sent,$node unless ($node->{m}{w}{origf} eq '');
+    push @sent,$node unless ($node->{m}{w}{token} eq '');
     $node=$node->following();
   }
-  @sent = map { [" ","space"],[$_->{m}{w}{origf},
+  @sent = map { [" ","space"],[$_->{m}{w}{token},
 		@{$refers_to{$_->{id}}}] }
     sort { $a->{ord} <=> $b->{ord} } @sent;
   return \@sent;
@@ -338,10 +340,10 @@ sub node_style_hook {
     $line{$_}=$my_line{$_} for keys %my_line;
   }
 
-  if  (!$ARstruct and ($node->{'coref_text.rf'} or $node->{'coref_gram.rf'} or $node->{'complref.rf'})) {
+  if  (!$ARstruct and ($node->{'coref_text.rf'} or $node->{'coref_gram.rf'} or $node->{'compl.rf'})) {
     my @gram = grep {$_ ne "" } ListV($node->{'coref_gram.rf'});
     my @text = grep {$_ ne "" } ListV($node->{'coref_text.rf'});
-    my @compl = grep {$_ ne "" } ListV($node->{'complref.rf'});
+    my @compl = grep {$_ ne "" } ListV($node->{'compl.rf'});
     draw_coref_arrows($node,$styles,\%line,
 		      [@gram,@text,@compl],
 		      [(map 'grammatical',@gram),
@@ -356,8 +358,8 @@ sub node_style_hook {
 
 sub draw_coref_arrows {
   my ($node,$styles,$line,$corefs,$cortypes,$cortype_colors)=@_;
-  my $id1=$root->{id};
-  $id1=~s/:/-/g;
+#  my $id1=$root->{id};
+#  $id1=~s/:/-/g;
 #  $id1=~s/-/:/;
   my (@coords,@colors);
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
@@ -365,7 +367,7 @@ sub draw_coref_arrows {
   my $nd = $root; while ($nd) { $ids->{$nd->{id}}=1 } continue { $nd=$nd->following };
   foreach my $coref (@$corefs) {
     my $cortype=shift @$cortypes;
-    next if (!$drawAutoCoref and $cortype =~ /auto/);
+#    next if (!$drawAutoCoref and $cortype =~ /auto/);
     if ($ids->{$coref}) { #index($coref,$id1)==0) {
       print STDERR "ref-arrows: Same sentence\n" if $main::macroDebug;
       # same sentence
@@ -401,51 +403,100 @@ COORDS
 #n + (x$T-n)/2, n,
 #n + (x$T-n)/2, y$T,
 #x$T,y$T
-      } else {
-	my ($d,$p,$s,$l)=($id1=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*)$/);
-	my ($cd,$cp,$cs,$cl)=($coref=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*).\d+/);
-	print STDERR "ref-arrows: $d,$p,$s,$l versus $cd,$cp,$cs,$cl\n" if $main::macroDebug;
-	if ($d eq $cd) {
-	  print STDERR "ref-arrows: Same document\n" if $main::macroDebug;
-	  # same document
-	  if ($cp<$p || $cp==$p && ($cs<$s or $cs == $s and $cl lt $l)) {
-	    # preceding sentence
-	    print STDERR "ref-arrows: Preceding sentence\n";
-	    push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
+      } else { # should be always the same document, if it exists at all
+        delete $coreflemmas{$node->{id}};
+        my($step_l,$step_r)=(1,1);
+        my $current=CurrentTreeNumber();
+        my $maxnum=scalar(GetTrees())-1;
+        my $orientation;
+
+        while($step_l!=0 or $step_r!=0){
+          if($step_l){
+            if (my$refed=first { $_->{id} eq $coref } (GetTrees())[$current-$step_l] -> descendants){
+              $orientation='left';
+              $coreflemmas{$node->{id}}=$refed->{t_lemma};
+              last;
+            }
+            $step_l=0 if ($current-(++$step_l))<0;
+          }
+          if($step_r){
+            if (my$refed=first { $_->{id} eq $coref } (GetTrees())[$current+$step_r] -> descendants){
+              $coreflemmas{$node->{id}}=$refed->{t_lemma};
+              $orientation='right';
+              last;
+            }
+            $step_r=0 if ($current+(++$step_r))>$maxnum;
+          }
+        }
+        if($orientation){
+          if($orientation eq'left'){
+	    print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
+	    push @colors,$cortype_colors->{$cortype};
 	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
 	    $rotate_prv_snt+=10;
-	  } else {
-	    # following sentence
+          }else{ #right
 	    print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
-	    push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
+	    push @colors,$cortype_colors->{$cortype};
 	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
 	    $rotate_nxt_snt+=10;
-	  }
-	} else {
-	  # different document
-	  print STDERR "ref-arrows: Different document?\n" if $main::macroDebug;
-	  push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
-	  push @coords,"&n,n,n+$rotate_dfr_doc,n-30";
+          }
+        }else{
+          print STDERR "ref-arrows: Not found!\n" if $main::macroDebug;
+          push @colors,CustomColor('error');
+	  push @coords,"&n,n,n+$rotate_dfr_doc,n-20";
 	  $rotate_dfr_doc+=10;
-	  print STDERR "ref-arrows: Different document sentence\n" if $main::macroDebug;
-	}
-      }
+        }
+
+# Old code:
+#
+# 	my ($d,$p,$s,$l)=($id1=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*)$/);
+# 	my ($cd,$cp,$cs,$cl)=($coref=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*).\d+/);
+# 	print STDERR "ref-arrows: $d,$p,$s,$l versus $cd,$cp,$cs,$cl\n" if $main::macroDebug;
+# 	if ($d eq $cd) {
+# 	  print STDERR "ref-arrows: Same document\n" if $main::macroDebug;
+# 	  # same document
+# 	  if ($cp<$p || $cp==$p && ($cs<$s or $cs == $s and $cl lt $l)) {
+# 	    # preceding sentence
+# 	    print STDERR "ref-arrows: Preceding sentence\n";
+# 	    push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
+# 	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
+# 	    $rotate_prv_snt+=10;
+# 	  } else {
+# 	    # following sentence
+# 	    print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
+# 	    push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
+# 	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
+# 	    $rotate_nxt_snt+=10;
+# 	  }
+# 	} else {
+# 	  # different document
+# 	  print STDERR "ref-arrows: Different document?\n" if $main::macroDebug;
+# 	  push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
+# 	  push @coords,"&n,n,n+$rotate_dfr_doc,n-30";
+# 	  $rotate_dfr_doc+=10;
+# 	  print STDERR "ref-arrows: Different document sentence\n" if $main::macroDebug;
+# 	}
+       }
   }
-  if ($node->{corlemma} eq "sg") { # pointer to an unspecified segment of preceeding sentences
+  if(join ('|',ListV($this->{coref_special}))=~ /sg/) { # pointer to an unspecified segment of preceeding sentences
     print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug;
     push @colors,$cortype_colors->{segment};
     push @coords,"&n,n,n-25,n";
+  }elsif(join ('|',ListV($this->{coref_special}))=~ /exoph/) {
+    print STDERR "ref-arrows: Exophora!\n" if $main::macroDebug;
+    push @colors,CustomColor('text');
+    push @coords,"&n,n,n+$rotate_dfr_doc,n-20";
+    $rotate_dfr_doc+=10;
   }
-  elsif ($node->{corlemma} ne "") {
-    AddStyle($styles,'Oval',
-	      -fill => $cortype_colors->{textual}
-	     );
-    AddStyle($styles,'Node',
-	      -shape => 'rectangle',
-	      -addheight => '5',
-	      -addwidth => '5'
-	     );
-  }
+#     AddStyle($styles,'Oval',
+# 	      -fill => $cortype_colors->{textual}
+# 	     );
+#     AddStyle($styles,'Node',
+# 	      -shape => 'rectangle',
+# 	      -addheight => '5',
+# 	      -addwidth => '5'
+# 	     );
+#   }
   $line->{-coords} ||= 'n,n,p,p';
 
   # make sure we don't alter any previous line
@@ -501,8 +552,18 @@ sub get_status_line_hook {
 	   "{commentA}" => [ -foreground => 'red' ],
 	   "bg_white" => [ -background => 'white' ],
 	  ]
-
 	 ];
 }
 
+=item PMLTectogrammatic::is_coord_TR(node)
 
+Check if the given node is a coordination according to its TGTS
+functor (attribute C<functor>)
+
+=cut
+
+sub is_coord_TR {
+  my $node=$_[0] || $this;
+  return 0 unless $node;
+  return $node->{functor} =~ /CONJ|CONFR|DISJ|GRAD|ADVS|CSQ|REAS|CONTRA|APPS|OPER/;
+}
