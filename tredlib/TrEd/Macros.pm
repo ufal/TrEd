@@ -3,6 +3,7 @@ package TrEd::Macros;
 BEGIN {
   use Fslib;
   use TrEd::Config;
+  use TrEd::Basics;
   import TrEd::Config qw($defaultMacroFile $macroDebug $hookDebug);
 
   use TrEd::Convert;
@@ -218,10 +219,9 @@ sub do_eval_macro {
   }
   print STDERR "Running $macro\n" if $macroDebug;
   my $result=eval("$macro");
-  if ($result or $@) {
-    print STDERR "Had run: ",$macro,"\n" if $macroDebug;
-    print STDERR "Returned with: $result\n$@\n" if $macroDebug;
-  }
+  TrEd::Basics::errorMessage($win,$@) if ($@);
+  print STDERR "Had run: ",$macro,"\n" if $macroDebug;
+  print STDERR "Returned with: $result\n" if $macroDebug;
   return $result;
 }
 
