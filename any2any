@@ -125,6 +125,7 @@ if ($opt_m) {
   foreach $f (@files) {
     $fileno++;
     print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
+    $f=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$//;
     $fs = FSFile->newFSFile($f,$inputenc,@backends);
     if ($fs->lastTreeNo<0) {
       print STDERR "$f: empty or corrupt file!\n";
