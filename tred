@@ -2679,7 +2679,7 @@ sub updatePrintDialogState {
   }
 
   if ($s->{format} eq 'EPS') {
-    push @disable,qw(font printRange psMedia prtFmtWidth prtFmtHeight prtVMargin prtHMargin);
+    push @disable,qw(font printRange psMedia prtFmtWidth prtFmtHeight);
   } elsif ($s->{format} eq 'PS') {
     push @disable,qw(font);
   } elsif ($s->{format} eq 'PDF') {
