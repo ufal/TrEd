@@ -18,20 +18,20 @@
 #key-binding-adopt Analytic
 #include <contrib/a_opravy.mak>
 
+#binding-context Coref
+#include <contrib/tr_coref_common.mak>
+
 #binding-context TR_Correction
-#key-binding-adopt Tectogrammatic
+#key-binding-adopt TFA Tectogrammatic
+#menu-binding-adopt Coref TFA Tectogrammatic
 #include <contrib/tr_opravy.mak>
 
 #binding-context TR_FrameValidation
 #key-binding-adopt TR_Correction
 #include <contrib/tr_frame_validation.mak>
 
-
 #binding-context TR_Diff
 #include <contrib/trdiff.mak>
-
-#binding-context Coref
-#include <contrib/tr_coref_common.mak>
 
 #binding-context Quotation
 #include <contrib/tr_quotation_common.mak>
