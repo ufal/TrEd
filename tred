@@ -252,7 +252,8 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 
 #load back-ends
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw/TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend/));
+@backends=('FSBackend',ImportBackends(qw/TrXMLBackend CSTS_SGML_SP_Backend/));
+# CSTSBackend not used any more
 #$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
 
 require Filelist;
@@ -417,13 +418,12 @@ sub ApplyGlobalConfig {
 sub gotoFile {
   my ($grp,$fn,$no_recent)=@_;
   return 0 if doEvalHook($grp->{focusedWindow},"goto_file_hook") eq 'stop';
-  return 0 if ($fn >= $grp->{currentFilelist}->file_count or $fn<0);
-
+  return 0 if ($fn>=$grp->{currentFilelist}->file_count() or $fn<0);
   $grp->{focusedWindow}->{currentFileNo}=$fn;
-  openFile($grp,$grp->{currentFilelist}->file_at($grp->{focusedWindow}->{currentFileNo}),$no_recent);
+  openFile($grp,$grp->{currentFilelist}->file_at($fn),$no_recent);
   if ($grp->{Filelist} and
 	$grp->{filelistCurrentFilelist} eq $grp->{currentFilelist}) {
-    my $path=filelistEntryPath($grp->{currentFilelist},$grp->{focusedWindow}->{currentFileNo});
+    my $path=filelistEntryPath($grp->{currentFilelist},$fn);
     $grp->{Filelist}->anchorSet($path);
     $grp->{Filelist}->selectionClear();
     $grp->{Filelist}->selectionSet($path);
@@ -434,6 +434,7 @@ sub gotoFile {
 sub nextOrPrevFile {
   my ($grp,$delta,$no_recent)=@_;
   return 0 if ($delta==0);
+
   my $win=$grp->{focusedWindow};
   my $op=$grp->{noOpenFileError};
   $grp->{noOpenFileError}=1;
@@ -441,17 +442,15 @@ sub nextOrPrevFile {
   my $result=gotoFile($grp,$win->{currentFileNo}+$delta,$no_recent);
   my $quiet=0;
   my $response;
-  while ( $filename eq "" or !$win->{FSFile} or $win->{FSFile}->lastTreeNo<0) {
+  while ($result and (!$win->{FSFile} or $win->{FSFile}->lastTreeNo<0)) {
     unless ($quiet) {
-      my $f="$filename: empty or corrupt file!";
-      $response=userQuery($win,
-			  $f,
+      my $f="File \"$filename\" is empty, corrupted or does not exist!";
+      $response=userQuery($win, $f,
 			  -title => "Error",
 			  -buttons => ["Try next","Skip to next correct file","Cancel"]);
       last if ($response eq "Cancel");
       $quiet=1 if ($response eq "Skip to next correct file");
     }
-    last unless $result;
     $result=gotoFile($grp,$win->{currentFileNo}+$delta,$no_recent);
   }
   $grp->{noOpenFileError}=$op;
@@ -763,7 +762,9 @@ sub openFile {
   }
   # add file to filelist
   $win->{currentFileNo}= max(0,$win->{currentFileNo});
-  insertToFilelist($grp,$grp->{currentFilelist},$win->{currentFileNo},$f.$goto);
+  unless ($win->{FSFile}->lastTreeNo>=0) {
+    insertToFilelist($grp,$grp->{currentFilelist},$win->{currentFileNo},$f.$goto);
+  }
   updateTitle($grp);
 
   applyFileSuffix($win,$goto);
@@ -874,7 +875,6 @@ sub update_value_line {
 sub get_nodes_win {
   my ($win)=@_;
 
-  print "Get nodes for win\n" if $tredDebug;
   if ($win->{FSFile}) {
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
     print "get_nodelist_hook\n" if $tredDebug;
@@ -951,16 +951,19 @@ sub selectFilelist {
   }
 
   # find current file
-  $grp->{focusedWindow}->{currentFileNo}=max(0,$fl->position());
-  my $file=$fl->file_at($grp->{focusedWindow}->{currentFileNo});
+  $grp->{focusedWindow}->{currentFileNo}=max(0,$fl->position())-1;
+  nextFile($grp);
+#  gotoFile($grp,$grp->{focusedWindow}->{currentFileNo});
 
-  print "Setting up file $file, no. $grp->{focusedWindow}->{currentFileNo}\n"  if $tredDebug;
-
-  if (defined($file)) {
-    openFile($grp,$file);
-  } else {
-    closeFile($grp->{focusedWindow},0,askSaveFile($grp->{focusedWindow},1));  #emtpy filelist
-  }
+#  my $file=$fl->file_at($grp->{focusedWindow}->{currenatFileNo});
+#
+#  print "Setting up file $file, no. $grp->{focusedWindow}->{currentFileNo}\n"  if $tredDebug;
+#
+#  if (defined($file)) {
+#    openFile($grp,$file);
+#  } else {
+#    closeFile($grp->{focusedWindow},0,askSaveFile($grp->{focusedWindow},1));  #emtpy filelist
+#  }
 }
 
 # Find named filelist. Return undef if no such filelist exists
