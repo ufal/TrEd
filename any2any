@@ -2,7 +2,7 @@
 #                                                          -*- cperl -*-
 
 use Getopt::Std;
-getopts('p:r:s:a:f:CTNGhu');
+getopts('p:r:s:a:f:CETNGhu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
   print "Usage: $0 [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] [-T] [-N] [-G] file [file ...]\n";
@@ -20,6 +20,7 @@ Parameters:
   -N                 if empty, initialize ordering attribute with sentence ordering
   -G                 do not save dependency on the root of the tree in csts format
   -C                 convert to CSTS in mode quite compatible with Dan Zemans cstsfs
+  -E                 convert to CSTS save err1 attribute to (non-CSTS) <err> element
 EOF
   }
   exit 0;
@@ -53,17 +54,10 @@ if ($opt_T) {
   $Csts2fs::initial_node_values{TR}='hide';
 }
 
-if ($opt_N) {
-  $Csts2fs::fill_empty_ord = 1;
-}
-
-if ($opt_G) {
-  $Fs2csts::export_dependency = 0;
-}
-
-if ($opt_C) {
-  $Fs2csts::compatibility_mode = 1;
-}
+$Csts2fs::fill_empty_ord = 1 if $opt_N;
+$Fs2csts::export_dependency = 0 if $opt_G;
+$Fs2csts::compatibility_mode = 1 if $opt_C;
+$Fs2csts::preserve_err1 = 1 if $opt_E;
 
 %bkmap=(
 	fs => 'FSBackend',
