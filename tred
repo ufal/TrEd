@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-07-23 12:51:49 pajas>";
+$timestamp="Time-stamp: <2001-07-24 16:22:33 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -245,8 +245,8 @@ $on_current_change = \&onCurrentChange;
 
 #load back-ends
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend)));
-$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
+@backends=('FSBackend',ImportBackends(qw/TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend/));
+#$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 require Filelist;
 
@@ -389,8 +389,8 @@ sub setConfig {
     addNewFilelist(undef,$fl);
   }
 
-  $CSTSBackend::csts2fs=$cstsToFs;
-  $CSTSBackend::fs2csts=$fsToCsts;
+#    $CSTSBackend::csts2fs=$cstsToFs;
+#    $CSTSBackend::fs2csts=$fsToCsts;
 
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
