@@ -8,8 +8,8 @@ BEGIN {
   use TrEd::Convert;
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK 
-              $macrosEvaluated $FileNotSaved $forceFileSaved
-              $root $this);
+              $macrosEvaluated);
+
   @ISA=qw(Exporter);
   $VERSION = "0.1";
   @EXPORT = qw(
@@ -20,10 +20,6 @@ BEGIN {
     %menuBindings
     @macros
     $macrosEvaluated
-    $FileNotSaved
-    $forceFileSaved
-    $root
-    $this
   );
   use strict;
 }
@@ -154,20 +150,36 @@ sub read_macros {
 
 
 #
-# The $grp parameter to the following two routines should be
+# The $win parameter to the following two routines should be
 # a hash reference, having at least the following keys:
 #
 # FSFile       => FSFile blessed reference of the current FSFile
 # treeNo       => number of the current tree in the file
 # macroContext => current context under which macros are run 
 #
+# the $win itself is passed to the macro in the $grp variable
+#
+# Macros expect the following (minimally) variables set:
+# $TredMacro::root    ... root of the current tree
+# $TredMacro::this    ... current node
+# $TredMacro::libDir  ... path to TrEd's library directory
+#
+# Macros signal the results of their operation using the following
+# variables
+#
+# $TredMacro::FileNotSaved   ... if 0, macro claims it has done no no changes
+#                                that would need saving
+# $TredMacos::forceFileSaved ... if 1, macro claims it saved the file itself
+
+
 
 sub do_eval_macro {
-  my ($grp,$macro)=@_;		# $grp is a reference
+  my ($win,$macro)=@_;		# $win is a reference
 				# which should in this way be made visible
 				# to macros
 
-  return 0,0,$this unless $macro;
+  $TredMacro::grp=$win;
+  return 0,0,$TredMacro::this unless $macro;
 
   unless ($macrosEvaluated) {
     eval (join("",@macros)."\n return 1;");
@@ -187,10 +199,12 @@ sub do_eval_macro {
 }
 
 sub do_eval_hook {
-  my ($grp,$context,$hook)=(shift,shift,shift);  # $grp is a reference
+  my ($win,$context,$hook)=(shift,shift,shift);  # $win is a reference
 				# which should in this way be made visible
 				# to hooks
-  return undef unless $hook and $this;
+
+  $TredMacro::grp=$win;
+  return undef unless $hook and $TredMacro::this;
 
   unless ($macrosEvaluated) {
     eval (join("",@macros)."\n return 1;");

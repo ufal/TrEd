@@ -3,11 +3,17 @@
 ## created: Wed Mar 15 14:50:16 CET 2000
 
 sub file_opened_hook {
+  if (!$grp->{FSFile}) {
+    warn "Cannot access FSFile through $grp $TredMacro::grp, ", keys %{$grp},"\n";
+    return;
+  }
   if (exists $grp->{FSFile}->FS->defs->{TR}) {
+    print "Switching to some Tecto-mode\n";
     return SwitchContext('Tectogrammatic') 
       unless (CurrentContext eq 'TR_Correction' or
 	      CurrentContext eq 'TFA');
   } else {
+    print "Switching to some Analytic\n";
     return SwitchContext('Analytic') unless CurrentContext eq 'Analytic_Correction';
   }
 }
