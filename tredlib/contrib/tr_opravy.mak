@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-13 17:52:32 pajas>
+## Time-stamp: <2003-07-08 20:31:48 pajas>
 
 
 package TR_Correction;
@@ -37,6 +37,26 @@ sub try_fix_AID {
 	$this->{AID}=~s/w\d+$/w$this->{ord}/;
       }
     }
+  }
+}
+
+#bind reorder_sentord to key Alt+j menu Reorder sentord
+sub reorder_sentord {
+  my @nodes=grep {$_->{ord} !~ /\./} GetNodes();
+  @nodes = sort {$a->{sentord} <=> $b->{sentord}} @nodes;
+  my $sentord=0;
+  foreach (@nodes) {
+    $_->{sentord}=$sentord++;
+  }
+}
+
+#bind reorder_ord to key Alt+k menu Reorder ord
+sub reorder_ord {
+  my @nodes=grep {$_->{ord} !~ /\./} GetNodes();
+  @nodes = sort {$a->{sentord} <=> $b->{sentord}} @nodes;
+  my $sentord=0;
+  foreach (@nodes) {
+    $_->{ord}=$sentord++;
   }
 }
 
