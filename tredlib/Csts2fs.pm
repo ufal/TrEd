@@ -255,9 +255,19 @@ my %att = (
 	   'p n' => [sub { my($s,$data)=@_;
 			   $s->{following_root}->{para}=$data;
 			 }],
+	   'A parallel' => [\&to_node_attr,'|','parallel'],
+	   'A paren' => [\&to_node_attr,'|','paren'],
+	   'A arabfa' => [\&to_node_attr,'|','arabfa'],
+	   'A arabspec' => [\&to_node_attr,'|','arabspec'],
+	   'A arabclause' => [\&to_node_attr,'|','arabclause'],
 	   'MDt w' => [\&to_composed_node_attr,'_','|','src','wMDt'],
 	   'MDl w' => [\&to_composed_node_attr,'_','|','src','wMDl'],
 	   'MDA w' => [\&to_composed_node_attr,'_','|','src','wMDA'],
+	   'MDA parallel' => [\&to_composed_node_attr,'_','|','src','parallelMD'],
+	   'MDA paren' => [\&to_composed_node_attr,'_','|','src','parenMD'],
+	   'MDA arabfa' => [\&to_composed_node_attr,'_','|','src','arabfaMD'],
+	   'MDA arabspec' => [\&to_composed_node_attr,'_','|','src','arabspecMD'],	   
+	   'MDA arabclause' => [\&to_composed_node_attr,'_','|','src','arabclauseMD'],
 	   'MDg w' => [\&to_composed_node_attr,'_','|','src','wMDg'],
 	   's id' => [\&to_attr,'root','|','ID1'],
 	   'salt id' => [\&to_attr,'root','|','ID1'],
@@ -349,7 +359,10 @@ my %pcdata = (
 		      my ($s,$data)=@_;
 		      &to_node_attr(@_,'|','form');
 		      $s->{node}->{origf}=$data
-			unless (exists($s->{node}->{origf}));
+			unless (exists($s->{node}->{origf})
+				or
+				$s->{node}->{formtype} =~ /^gen$/
+			       );
 		    }],
 	      w => [\&to_next_node_attr,'|','origf'],
 	      d => [sub {
@@ -499,17 +512,43 @@ my %pcdata = (
 '@P funcaux',
 );
 
-@ARheader = (
- @minARheader,
+@ARspecial = (
 '@N ord',
 '@P dord',
 '@W sentord',
 '@P govTR',
 '@H ARhide',
+);
+
+@ARheader = (
+ @minARheader,
+ @ARspecial,
  @minTRheader,
  @csts,
  @misc
 );
+
+@PADTattributes = (
+  '@P parallel',
+  '@L parallel|Co|Ap|no-parallel',
+  '@P paren',
+  '@L paren|Pa|no-paren',
+  '@P arabfa',
+  '@L arabfa|Ca|Exp|Fi|no-fa',
+  '@P arabspec',
+  '@L arabspec|Ref|Msd|no-spec',
+  '@P arabclause',
+  '@L arabclause|Pred|PredC|PredE|PredP|Pnom|no-claus'
+);
+
+@PADTARheader= (
+		(map { my $x=$_; $x=~s/^(\@L[0-9]?\s*afun\|)(.*)$/$1---|Pred|Pnom|Sb|Obj|Atr|Adv|AtrAdv|AdvAtr|Coord|Ref|AtrObj|ObjAtr|AtrAtr|AuxP|Apos|ExD|Atv|Ante|AuxC|AuxO|AuxE|AuxY|AuxM|AuxG|AuxK|AuxX|AuxS|Generated|NA|???/; $x } @minARheader),
+		@ARspecial,
+		@PADTattributes,
+		@minTRheader,
+		@csts,
+		@misc
+	       );
 
 @TRheader = (
  @minARheader,
@@ -552,6 +591,26 @@ my %pcdata = (
 $header=\@ARheader;
 
 
+sub paste_node ($$$) {
+  my ($node,$p)=@_;
+  my $ordnum = $node->{$ord};
+  my $b=$p->{$firstson};
+  if ($b and $ordnum>$b->{$ord}) {
+    $b=$b->{$Fslib::rbrother} while ($b->{$Fslib::rbrother} and $ordnum>$b->{$Fslib::rbrother}->{$ord});
+    $node->{$Fslib::rbrother}=$b->{$Fslib::rbrother};
+    $b->{$Fslib::rbrother}->{$Fslib::lbrother}=$node if ($b->{$Fslib::rbrother});
+    $b->{$Fslib::rbrother}=$node;
+    $node->{$Fslib::lbrother}=$b;
+  } else {
+    $node->{$Fslib::rbrother}=$b;
+    $p->{$firstson}=$node;
+    $node->{$Fslib::lbrother}=0;
+    $b->{$Fslib::lbrother}=$node if ($b);
+  }
+  $node->{$parent}=$p;
+}
+
+
 sub build_tree {
   my $root = shift;
 
@@ -570,12 +629,12 @@ sub build_tree {
     next unless $_;
     if ($_->{$gov} ne "" and exists($ordered{$_->{$gov}})) {
       my $parent=$ordered{$_->{$gov}};
-      Paste($_,$parent,{ $ord => ' N'}); # paste using $ord as the numbering attribute
+      paste_node($_,$parent,{ $ord => ' N'}); # paste using $ord as the numbering attribute
     }
   }
   foreach (reverse @_) {
     if (ref($_) and ! $_->parent) {
-      Paste($_,$root,{ $ord => ' N'}); # paste using $ord as the numbering attribute
+      paste_node($_,$root,{ $ord => ' N'}); # paste using $ord as the numbering attribute
     }
   }
   if ($fill_empty_ord) {
@@ -709,7 +768,7 @@ sub read {
 	      };
 
   while ($event = $parser->next_event) {
-    $state->{event} = $event;
+     $state->{event} = $event;
     if ($event->type eq 'start_element') {
       my $e=$event->data;
       my $n=$e->name;
@@ -772,9 +831,20 @@ sub setupAR {
   delete $initial_node_values{TR};
   delete $initial_root_values{reserve1};
   $fs_tail='(2,3)';
-  @fs_patterns='${form}', '${afun}';
-  $fs_hint="tag:\t".'${tag}';
+  @fs_patterns=('${form}', '${afun}');
+  $fs_hint="tag:\t\${tag}\nlemma:\t\${lemma}";
 }
+
+sub setupPADTAR {
+  setupAR();
+  $header = \@PADTARheader;
+  @fs_patterns=('${form}',
+		'#{custom1}<? join "_", map { "\${$_}" }
+                    grep { $node->{$_}=~/./ && $node->{$_}!~/^no-/ }
+	            qw(afun parallel paren arabfa arabspec arabclause) ?>');
+  $fs_hint="tag:\t\${tag}\nlemma:\t\${lemma}\ngloss:\t\${x_gloss}\ncommentA: \${commentA}";
+}
+
 
 sub setupSpec {
   $gov = $_[0];
