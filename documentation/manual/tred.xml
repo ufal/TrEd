@@ -1,0 +1,4050 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+"file:///home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
+<article lang="en">
+  <articleinfo>
+    <title>Tree Editor Manual</title>
+    <author>
+      <firstname>Petr</firstname>
+      <surname>Pajas</surname>
+      <affiliation>
+	<address><email>pajas@ckl.mff.cuni.cz</email></address>
+      </affiliation>
+    </author>
+  </articleinfo>
+  <sect1 id="intro">
+    <title>Introduction</title>
+    <para><application>TrEd</application> is a graphical editor and
+    viewer of tree structures. It works with files in so called <ulink
+    url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+    developed by M. Kren (as a native format for his editor
+    Graph) and used for syntactical and tectogrammatical trees in The
+    Prague Dependency Treebank.  Since FS-format is a bit more
+      general, <application>TrEd</application> may surely find other applications as well.
+    </para>
+    <figure>
+      <title>TrEd's main window</title>
+      <graphic fileref="pics/tred1"/>
+    </figure>
+    <para><application>TrEd</application> may be extended by <emphasis>user-defined
+      macros</emphasis>, which are basically functions written in
+      <application>Perl</application> language, with many pre-defined
+      functions for handling FS-trees. Keyboard
+      shortcuts or user-defined menu items may be used to invoke macros.
+    </para>
+    <para>There is also an non-graphical (off-line) variant of TrEd
+      called <command>btred</command> &mdash; which stands for
+      <quote>Batch-mode Tree Editor</quote> &mdash; which allows user
+      to run macros on trees without having to enter the graphical
+      interface. However, the current version of
+      <command>btred</command> is a little obsolete.
+    </para>
+    <para>
+      <application>TrEd</application> runs on the following platforms (see <xref linkend="chap1"/> for details):
+    </para>
+    <orderedlist>
+      <listitem>
+	<para><productname>Windows 95/98/ME</productname> or
+	<productname>Windows NT/2000</productname></para></listitem>
+      <listitem>
+	<para><productname>Linux</productname> (with <filename>libc.6</filename>)</para></listitem>
+      <listitem>
+	<para><productname>UNIX</productname>, <productname>Solaris</productname>
+	  and other UNIX-based systems</para>
+      </listitem>
+    </orderedlist>
+  </sect1>
+  <sect1 id="chap1">
+    <title>Installation and start up instructions</title>    
+    <para>
+      On all supported platforms <application>TrEd</application> requires Perl to be installed and
+      Tk toolkit (a library of GUI functions). Installation of these
+      tools is different on all supported platforms. Installation of
+      <application>TrEd</application> itself is platform-independent.
+    </para>
+    <para>
+      To install Perl/Tk on your system follow instructions for your
+      platform below:
+    </para>
+    <sect2 id="install-windows">
+      <title>Windows</title>
+    <orderedlist>
+      <listitem>
+	  <para>
+	    Start with installing Perl support to Windows from <ulink
+	      url="http://www.activestate.com">ActiveState</ulink>.
+	    This is done by running the installation program <ulink
+	      url="../PerlTk/APi522e.exe"><literal>APi522e.exe</literal></ulink>.
+	    You can find it in the
+	    <filename>Tools\Tree_Editors\Tred\PerlTk</filename>
+	    directory on the <productname>Prague Dependency Trebank
+	      CD-ROM</productname> or download it directly from <ulink
+	      url="http://www.activestate.com">ActiveState</ulink>.
+	    Follow the instructions of the installation program.
+	    (When the installation is done, you may need to restart
+	    <application>Windows</application>, so that all the
+	    changes take effect.)</para>
+	</listitem>
+	<listitem>
+	  <para>
+	    In this step you add <application>Tk library</application>
+	    to <application>Perl</application>.  If you have on-line
+	    connection to the Internet you may install the latest
+	    <application>Tk</application> toolkit from
+	    ActiveState's site in the following steps:
+	  </para>
+	<orderedlist>
+	  <listitem>
+	      <para>Open a command prompt
+		(<application>MS-DOS
+		  prompt</application> in <application>Windows
+		9x/ME</application>)
+	      </para>
+	    </listitem> 
+	    <listitem>
+	      <para>Type <command>ppm</command> (press <keycap>Enter</keycap>)</para></listitem>
+	  <listitem>
+	      <para>Type <command>install Tk</command> (press
+	      <keycap>Enter</keycap>)</para>
+	    </listitem>
+	  <listitem>
+	      <para>When the installation of <application>Tk library</application> is finished, type
+	    <command>exit</command> (press
+	    <keycap>Enter</keycap>)</para>
+	    </listitem>
+	  <listitem>
+	      <para>Close the command prompt</para></listitem>
+	</orderedlist>
+	  <para>
+	    If you do <emphasis>not</emphasis> have on-line connection to the Internet,
+	    please, follow these steps:
+	  </para>
+	<orderedlist>
+	  <listitem>
+	      <para>Open a command prompt (<application>MS-DOS prompt</application> in
+		<application>Windows&nbsp;9x/ME</application>)</para>
+	    </listitem> 
+	  <listitem>
+	      <para>Change directory to <filename>Tools\Tree_Editors\Tred\PerlTk</filename> on
+		the <productname>Prague Dependency Treebank
+		CD</productname>,
+		i.e. if your CD-ROM drive is <filename>D:</filename>,
+		type		
+		<literallayout>cd D:\Tools\Tree_Editors\Tred\PerlTk</literallayout>
+		Under Windows&nbsp;9x you may rather need to use command	    
+		<literallayout>cd D:\Tools\Tree_~1\Tred\PerlTk</literallayout>
+	      </para>
+	  </listitem>
+	  <listitem>
+	      <para>Type <literal>ppm install Tk.ppd</literal> (press
+	      <keycap>Enter</keycap>)</para>
+	    </listitem>
+	  <listitem>
+	      <para>Close the command prompt when the installation of
+		<application>Tk library</application> is finished.
+	      </para></listitem>
+	</orderedlist>
+      </listitem>
+      <listitem>
+	  <para>In this step you install <application>TrEd</application> itself. It is done by
+	    copying the whole <filename>Tred</filename> folder from
+	    the <productname>Prague Dependency Treebank CD</productname>
+	    (<filename>Tools\Tree_Editors\Tred\Tred</filename>) somewhere on your
+	    hard-disk, e.g. to folder <filename>C:\Program Files</filename>.  To
+	    run <application>TrEd</application> double-click the <filename>tred.pl</filename> icon in the
+	    <filename>Tred</filename> folder on your hard-disk. (You may also want
+	    to create a shortcut on your desktop).
+	  </para>
+      </listitem>
+    </orderedlist>
+    </sect2>
+    <sect2 id="install-linux">
+      <title>Linux</title> 
+      <para>
+	This instructions apply only to <application>RedHat Linux
+	  6.x</application> or derived distributions. If you use other
+	distribution, follow the general
+	<application>UNIX</application> instructions below.
+      </para>
+      <para>
+	<application>RedHat Linux 6.x</application> contains
+	<application>Perl 5.005_03</application>,
+	<application>RedHat Linux 7.x</application> contains
+	<application>Perl 5.6</application>
+	in default
+	installation. Make sure, that you have correctly installed
+	<application>Perl</application> RPM packages. If so, you may now
+	install <application>PerlTk</application> toolkit and <application>TrEd</application>:
+      </para>
+      <orderedlist>
+	<listitem>
+	  <para>
+	    To install <application>PerlTk</application>, as a
+	    <literal>root</literal> issue the following command from the
+	    <filename>Tools/Tree_Editors/Tred/PerlTk</filename> directory on the CD:
+	    <literallayout>root# <userinput>rpm -i perl-Tk-800.018-1.i386.rpm</userinput></literallayout>
+	    in case you are using <application>RedHat Linux 6.x</application>
+	    distributions
+	    or
+	    <literallayout>root# <userinput>rpm -i perl-Tk-800.022-11.i386.rpm</userinput></literallayout>
+	    in case of <application>RedHat Linux 7.x</application>.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    To install <application>TrEd</application>,
+	    the whole <filename>Tred</filename> folder from the CD
+	    (<filename>Tools/Tree_Editors/Tred/Tred</filename>) somewhere on your
+	    file-system, e.g. to your home directory or <filename>/opt</filename>
+	    directory. 
+	  </para>
+	  <note>
+	    <para>
+	      You may also wish to install the <command>tred</command>
+	      executable to some directory on your <varname>PATH</varname>. In that
+	      case you only have to provide a way for <application>TrEd</application> to find its
+	      library files. It can be done either by setting the
+	      <varname>TREDHOME</varname> variable to point to the location where
+	      you have made a copy of the <filename>Tred/Tredlib</filename> directory, or
+	      by copying the <command>tred</command> executable and the
+	      <filename>tredlib</filename> directory into the directories
+	      <filename>bin</filename> and <filename>lib</filename> respectively, on the same
+	      level of the directory structure.
+	    </para>
+	  </note>
+	</listitem>
+	<listitem>
+	  <para>
+	    Run <application>TrEd</application> by issuing the command
+	    <command>tred</command>. (See <xref linkend="commandline"/>.)
+	  </para>
+	</listitem>
+      </orderedlist>
+    </sect2>
+    <sect2 id="install-unix">
+      <title>UNIX based systems</title>
+      <para>
+	Almost every <application>UNIX/Linux</application> system
+	contains <application>Perl</application> in default
+	installation, so we may expect that you have already
+	<application>Perl</application> installed on your box and you
+	only need to install <application>PerlTk</application> toolkit
+	and <application>TrEd</application>:
+    </para>
+    <orderedlist>
+      <listitem>
+	  <para>
+	    To install <application>PerlTk</application> toolkit,
+	    untar the <ulink
+	    url="../Tk800.022.tar.gz"><filename>Tk800.022.tar.gz</filename></ulink>
+	    archive to some temporary directory, e.g. with the
+	    following command:
+	    <literallayout>
+	      $ <userinput>gunzip&nbsp;-c&nbsp;Tk800.022.tar.gz&nbsp;|&nbsp;tar&nbsp;-x</userinput>
+	    </literallayout>
+	    and issue the following commands (see file <filename>INSTALL</filename> in
+	    the <filename>Tk800.022</filename> directory for details):
+	    <literallayout>bash$ <userinput>cd Tk800.022</userinput>
+bash$ <userinput>perl Makefile.PL</userinput>
+bash$ <userinput>make</userinput>
+bash$ <userinput>make test</userinput><co id="co-test"/>
+bash$ <userinput>su</userinput><co id="co-su"/>
+root# <userinput>make install</userinput>
+	    </literallayout>	
+	    <calloutlist>
+	      <callout arearefs="co-test">
+		<para>this is only to test the compilation, you may
+		skip it</para></callout>
+	      <callout arearefs="co-su">
+		<para>gain <literal>root</literal>'s privileges</para>
+	      </callout>
+	    </calloutlist>
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Installation of <application>TrEd</application> on a
+	    <application>UNIX</application> box is same as on
+	    <application>Linux</application>.  To install
+	    <application>TrEd</application>, the whole
+	    <filename>Tred</filename> folder from the CD
+	    (<filename>Tools/Tree_Editors/Tred/Tred</filename>)
+	    somewhere on your file-system, e.g. to your home directory
+	    or <filename>/opt</filename> directory.
+	  </para>
+	  <note>
+	  <para>
+	    You may also wish to install the <command>tred</command>
+	    executable to some directory in your
+	    <varname>PATH</varname>. In that case you have to
+	    provide a way for <application>TrEd</application> to find
+	    its library files. It can be achieved either by setting the
+	    <varname>TREDHOME</varname> variable to point to the
+	    location where you have made a copy of the
+	    <filename>Tred/Tredlib</filename> directory, or by copying
+	    the <command>tred</command> executable and the
+	    <filename>Tredlib</filename> directory into the
+	    directories <filename>bin</filename> and
+	    <filename>lib</filename> respectively, on the same level
+	    of directory structure.
+	    (The same holds for the <command>btred</command> executable.)
+	  </para>
+	</note>
+      </listitem>
+      <listitem>
+	  <para>
+	    <application>TrEd</application> is ran by executing the
+	    <command>tred</command> executable or typing <command>perl
+	    <parameter>tred</parameter></command> (in the later case full-path to
+	    <parameter>tred</parameter> should be specified). See
+	    details
+	    in <xref linkend="commandline"/>.</para>
+	  <para>
+	    <note>
+	      <para>If executing of the <command>tred</command>
+		executable fails, try to change the first
+		(<command>#!/usr/bin/perl</command>) line to point to your
+		Perl executable. If you find <application>TrEd</application> halting immediately,
+		complaining about <filename>Tk.pm</filename> module, check
+		<application>PerlTk</application> installation path. You
+		may need to setup <varname>PERLLIB</varname> variable to point to
+		the <filename>site_perl</filename> directory on your system to which
+		the <filename>Tk.pm</filename> module was installed.
+	      </para>
+	    </note>
+	  </para>
+      </listitem>
+    </orderedlist>
+    </sect2>
+  </sect1>
+  <sect1 id="chap2">
+    <title>Menu commands</title>    
+    <para>
+      The following paragraphs describe menu commands. Each submenu in
+      <application>TrEd</application> has as its first item a tear-off
+      line (<guimenuitem>-&nbsp;-&nbsp;-&nbsp;-&nbsp;-</guimenuitem>)
+      which can be used to tear the menu off and place it as a
+      separate window anywhere on your desktop.
+    </para>
+    <sect2 id="file">
+      <title><guimenu>File</guimenu></title>
+      <variablelist>
+	<varlistentry>
+	  <term><guimenuitem>Open ...</guimenuitem></term>
+	  <listitem>
+	    <para>Opens an existing file that the user chooses in the
+	      <guilabel>Open</guilabel> dialog box. The file may be
+	      either in the <ulink
+	      url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+	      (usually a file with a <filename>.fs</filename>
+	      extension) or a file in the <ulink
+	      url="../../../../Corpora/PDT_1.0/Doc/csts.dtd">CSTS</ulink>
+	      SGML format. In the later case a conversion filter from
+	      CSTS to FS format (e.g.  <ulink
+	      url="../../../../Utilities/cstsfs/index.html"><command>cstsfs</command></ulink>)
+	      must be properly installed on your system and TrEd's
+	      configuration option <link linkend="cststofs"><literal>CstsToFs</literal></link> set to
+	      point to it (see <xref linkend="configuration"/>
+	      bellow).
+	    </para>
+	    <para>
+	      <application>TrEd</application> expects files in the
+	      <literal>ISO-8859-2</literal> (ISO Latin 2) encoding
+	      (which by <application>TrEd</application> is
+	      transparently translated to Windows 1250 encoding and
+	      back on <productname>Microsoft Windows</productname> systems).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Close</guimenuitem></term>
+	  <listitem>
+	    <para>Closes current file. If the file is modified but not
+	      saved, user is prompted to save it.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Filelist</guimenuitem></term>
+	  <listitem>
+	    <para>Opens a <guilabel>Filelist</guilabel> dialog window
+	      which allows user to create, load, modify and save lists 
+	      of files for browsing, editing or searching pruposes.
+	      See more detail in <xref linkend="filelists"/>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Save</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Saves the active file to the disk. A backup file is
+	      created by appending a tilde `~' to the filename (which
+	      is a UNIX convention for naming backups). If the file
+	      was originally in <ulink
+	      url="../../../../Corpora/PDT_1.0/Doc/csts.dtd">CSTS</ulink>
+	      SGML format, a conversion tool specified in the
+	      <link linkend="fstocsts"><literal>FsToCsts</literal></link> configuration
+	      option is used for conversion.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Save As ...</guimenuitem></term>
+	    <listitem>
+	    <para>Prompts user for a new name of the file using a standard file
+	      dialog and then performs the <guimenuitem>Save</guimenuitem> command.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Recent Files</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      This submenu displays ten most recently opened
+	      files. User may quickly reopen any of them by clicking
+	      on the corresponding item.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Previous File</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Closes the active file (asking user to
+	      save it if modified) and opens the previous file in
+	      the current filelist (see <xref linkend="filelists"/>).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Next File</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Closes the active file (asking user to
+	      save it if modified) and opens the next file in
+	      the current filelist (see <xref linkend="filelists"/>).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Print ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Opens a Print Dialog. <application>TrEd</application> can only print to PostScript
+	      or Encapsulated PostScript which works fine on
+	      Unix/Linux systems (using standard
+	      <command>lpr</command> command). Windows users may print
+	      by printing to file and then opening the file in a
+	      PostScript interpreter (e.g. <ulink
+	      url="http://www.cs.wisc.edu/~ghost/">GhostView</ulink>).
+	    </para>
+	    <para>
+	      Encapsulated PostScript files (<literal>EPS</literal>)
+	      may be created here and used for preparation of other printed
+	      materials e.g. <application>PDF</application> of
+	      <application>LaTeX</application> documents.
+	    </para>
+	  <itemizedlist>
+	    <listitem>
+		<para>
+		  In the <guilabel>Print</guilabel> dialog you can specify a printing command to
+		  be used or (if <guilabel>Print to file</guilabel> is checked) a filename of the
+		  destination file.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  If <guilabel>Create EPS</guilabel> is checked, Encapsulated
+		  Postcript is created with the tightiest possible
+		  bounding box.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>When printing, <application>TrEd</application>
+		  always uses a <application>PostSript</application>
+		  (Type1) font from a file given by the
+		  <literal>PsFontFile</literal> <link
+		  linkend="configuration">configuration</link>
+		  option. <application>TrEd</application> cannot,
+		  however, calculate the proper dimensions and kerning
+		  of the tree from the font file, so the given font is
+		  expected to have the same or very similar metrics as
+		  the current font used on display. If it is not the
+		  case, you may specify another display font
+		  <application>TrEd</application> should get the
+		  metrics from, by setting the <literal>PsFontName</literal>
+		  option. The <guilabel>Use Type1 Postsrcipt Font</guilabel> button
+		  in the <guilabel>Print</guilabel> dialog must be checked to use
+		  this feature.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  To print the <quote>sentence</quote> together with
+		  the tree, check the <guilabel>Print
+		  sentence</guilabel> button. A
+		  <quote>sentence</quote> is actually a chain
+		  consisting of
+		  values of the value-attributes
+		  (i.e. <literal>@V</literal> attributes in FS format)
+		  of all nodes in the tree.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  It is possible to print more than one tree within
+		  one command.  This is realized by entering a list of
+		  numbers or ranges of numbers, that correspond to the
+		  desired trees or tree-ranges in the active file, to
+		  the <guilabel>Page range</guilabel> field. First
+		  tree in the file has number 1, second has number 2,
+		  etc. Ranges are pairs of numbers like
+		  <quote><literal>3-20</literal></quote> which covers all trees starting
+		  from the tree no. 3 to no. 20.  If the first number
+		  in the range is omitted, 1 is assumed. If the second
+		  number in the range is ommited, the number of the
+		  last tree in the active file is assumed.  Multiple
+		  ranges and tree-numbers are be separated by a comma.
+		  The order of the trees given in the list is
+		  preserved and also, one tree may be printed more
+		  than once.
+		  <note>
+		    <title>Example:</title>
+		    <para>
+		      To print trees from 1 to 5, then trees no. 7, 11, 12 and 5
+		      again, use e.g. one of the following lists:
+		      <simplelist type="vert">
+			<member><literal>1-5,7,11,12,5</literal></member>
+			<member><literal>1-5,7,11-12,5</literal></member>
+			<member><literal>-5,7,11-12,5</literal></member>
+		      </simplelist>
+		    </para>
+		  </note>
+		</para>
+	      </listitem>
+	    </itemizedlist>
+	  </listitem>
+	  </varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Edit config ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Opens a small configuration file editor
+	      (see <xref linkend="configuration"/> for the details about
+	      configuration options). To apply the new configuration, save
+	      the configuration file to disk and leave the editor
+	      press the <guibutton>Save and Apply</guibutton>
+	      button. To apply changes without saving them, press <guibutton>Apply</guibutton>. The
+	      <guibutton>Close</guibutton> button closes the
+	      editor without making any changes to the present configuration.      
+	    </para>
+	    <note>
+	      <para>
+		Some configuration options even if applied take effect only
+		after restarting <application>TrEd</application>.
+	      </para>
+	    </note>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Reload config ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Use this command to reload the configuration file from
+	      disk and apply the new options. This command is useful
+	      if you have changed the configuration file in some other
+	      editor or in an another running instance of
+	      <application>TrEd</application>. As above, note, that
+	      some configuration changes still take effect only after
+	      restarting <application>TrEd</application>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Quit</guimenuitem></term>
+	  <listitem>
+	    <para>Exits the editor and in case that active file is modified and
+	      not yet saved, prompts the user to save it.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2 id="view">
+      <title><guimenu>View</guimenu></title>
+      <variablelist>
+	<varlistentry>
+	  <term><guisubmenu>Previous Tree</guisubmenu></term>
+	  <listitem>
+	    <para>Display previous tree in the current file.
+	    </para>    
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Next Tree</guimenuitem></term>
+	  <listitem>
+	    <para>Display next tree in the current file.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Draw Boxes</guimenuitem></term>
+	  <listitem>
+	    <para>If this item is checked, square boxes are drawn under all nodes
+	      and their attributes.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Show Hidden Nodes</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Toggle displaying the hidden subtrees of the tree.
+	      If this item is checked, nodes makred as hidden using a special
+	      attribute (see 
+	      <ulink url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format description</ulink>
+	      for details) and all their subtrees are also displayed.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Highlight Attributes</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Toggle highlighting certain attributes with user-defined
+	      colors. See <xref linkend="configuration"/> for details on
+	      customizing colors and <ulink
+		url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+		description</ulink> to learn about how to specify which attributes
+		are highlighted.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Sort Attributes in Dialogs</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Toggle sorting attributes by name in all dialog
+	      windows displaying any form of a list of attributes
+	      or attribute values.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>List of sentences ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Display a window containing a list of all
+	      <quote>sentences</quote> based on all trees in the
+	      current file. A <quote>sentence</quote> is a chain
+	      consisting of values of the value-attributes
+	      (i.e. <literal>@V</literal> attributes in FS format) of
+	      all nodes in the tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Customize attributes</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Open a dialog box in which the user can select the
+	      attributes that should be displayed and modify the way
+	      the attributes are presented. See <xref
+	      linkend="attributes"/> for more detail.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>List of Named Macros...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Display a window containing a list of all user-defined
+	      macros in current context and the corresponding
+	      keyboard shortcuts.  User may immediately run a macro
+	      by double-clicking a corresponding item in the list, or
+	      by pressing the <guibutton>Run and Close</guibutton>
+	      button. In the latter case, the window is closed.  The
+	      <guilabel>Sort by name</guilabel> and <guilabel>Sort by
+	      keyboard shortcuts</guilabel> radio-buttons let user to
+	      switch between the two modes of ordering the list.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2 id="node">
+      <title><guimenu>Node</guimenu></title>
+      <variablelist>
+	<varlistentry>
+	  <term><guimenuitem>New Node</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Creates a new node and connects it as a child of the
+	      active node. All the attribute values of this node are left
+	      empty.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Remove Active Node</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Passes all the children of the active node to its parent and
+	      deletes the active node. Does nothing if the active node is
+	      the root of the tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Insert New Tree</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Inserts new tree <emphasis>before</emphasis> the current
+	      tree. The new tree consists of one empty node (its root)
+	      only.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Insert New Tree After</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Inserts new tree <emphasis>after</emphasis> the current
+	      tree. The new tree consists of one empty node (its root)
+	      only.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Remove Whole Current Tree</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Removes the current tree from the file and displays the
+	      following tree (or the preceding tree, in case the
+	      current tree was the last one in the file).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Edit Attributes</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Displays the <guilabel>Edit Node Attributes</guilabel> 
+	      dialog box with the list of all attributes defined
+	      for the file and the values assigned to them in the active node.
+	      There are two types of attributes and therefore two ways to edit
+	      them:
+	    </para>
+	    <orderedlist>
+	      <listitem>
+		<para>
+		  In case of an attribute where
+		  <emphasis>no</emphasis> fixed set of possible values
+		  is given (see <ulink
+		  url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+		  description</ulink> for details about types of
+		  attributes) the values of the attributes are
+		  displayed in a editable line and user may change
+		  simply edit them. The usual keyboard-shortcuts for
+		  <guimenuitem>Cut</guimenuitem> (<keycombo
+		  action="simul"><keycap>Ctrl</keycap><keycap>X</keycap></keycombo>),
+		  <guimenuitem>Copy</guimenuitem> (<keycombo action="simul">
+		    <keycap>Ctrl</keycap><keycap>C</keycap></keycombo>)
+		  and <guimenuitem>Paste</guimenuitem> (<keycombo
+		  action="simul"><keycap>Ctrl</keycap><keycap>V</keycap></keycombo>)
+		  operations may be used during the editing of the
+		  values.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  In case of attribute where a fixed set of possible values
+		  <emphasis>is</emphasis> given, user cannot simply edit the value entry, but
+		  to change it he/she must press the button <literal>[...]</literal> on the
+		  right of the value entry.
+		  A dialog box displays where user may select one or more
+		  (depending on the status of the <guilabel>multiple select</guilabel>
+		  check-box) values for the given attribute within the list of
+		  values from the predefined set.      
+		</para>
+	      </listitem>
+	    </orderedlist>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="find">
+	  <term><guimenuitem>Find ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      This command displays a dialog box in which user may
+	      specify a search criterion for a node search. The search
+	      is based on regular expressions, wild-card patterns or
+	      literal strings matching the desired nodes values. In
+	      the dialog, there is an entry for each defined attribute
+	      into which user may enter a <ulink
+	      url="regexps.html">regular expression</ulink>,
+	      exhaustive regular expression (i.e. the pattern must
+	      match the whole value being searched), wild-card pattern
+	      (where <literal>?</literal> matches any character and
+	      <literal>*</literal> matches any number of any
+	      characters) or a literal string (depending on the value
+	      of the <guilabel>Search method</guilabel>
+	      option-menu).</para>
+	    <para>
+	      In the <guilabel>Search file-list</guilabel> option-menu, 
+	      the user may choose a file-list to search through.	      
+	    </para>
+	    <para>
+	      When user presses <guibutton>Find</guibutton> button,
+	      <application>TrEd</application> searches for the first
+	      matching node in the selected file-list (or current file
+	      in case the <guilabel>[Current file only]</guilabel>
+	      option was selected from the <guilabel>Search
+	      file-list</guilabel> menu). A node matches if and only
+	      if all its attributes match the given patterns.
+	      (If no pattern is given for a certain
+	      attributes, these attributes are always considered to
+	      match). 
+	      If a matching node is found, this node is displayed
+	      and made active.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Find Next ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Searches for the first node matching the criteria of the
+	      previous use of the <guimenuitem>Find ...</guimenuitem> command.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Find Previous ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Searches for the first preceding node matching the
+	      criterion given in a previous use of the
+	      <guimenuitem>Find ...</guimenuitem> command.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2>
+      <title>Session</title>
+      <para>
+	This menu lets user switch between
+	currently open files and change current
+	file-list.</para>
+      <para>
+	<application>TrEd</application> lets user to have multiple
+	files open in case the user tries to open a new file while
+	modified and not saved file is present in
+	<application>TrEd</application>. In this situation
+	<application>TrEd</application> offers the user to save all
+	changes in the current file and close it, close it withought
+	saving or to <emphasis>keep</emphasis> the file open. In the
+	latter case, the file is not closed nor any changes are
+	discarded but the file is placed into the
+	<guimenu>Session</guimenu> menu under the <guimenuitem>Kept
+	files</guimenuitem> label. Any number of files can be kept
+	simultaneously open in this way. User may resume a kept file
+	by choosing the corresponding item in the
+	<guimenu>Session</guimenu> menu.
+      </para>
+      <note>
+	<para>The currently open file is not considered postponed or kept
+	  and therefore is not displayed in the
+	  <guimenu>Session</guimenu> menu.
+	</para>
+      </note>
+      <para>
+	The <guimenuitem>File lists</guimenuitem> contains a list of
+	currently present file-lists. User may switch to another
+	file-list by choosing the corresponding item. The lastly open
+	file of the selected file-list is then re-opened and
+	displayed. To edit an existing file-list, remove it or create
+	new file-lists, user must use <menuchoice>
+	  <guimenu>File</guimenu>
+	  <guimenuitem>File List ...</guimenuitem>
+	</menuchoice>.
+      </para>
+      <para>
+	If current file-list contains more than one file, user may use
+	<menuchoice> <guimenu>File</guimenu> <guimenuitem>Previous
+	File</guimenuitem> </menuchoice> (or press <inlinegraphic
+	fileref="pics/start.png" scale="70"/>) and <menuchoice>
+	<guimenu>File</guimenu> <guimenuitem>Next File</guimenuitem>
+	</menuchoice> (or press <inlinegraphic
+	fileref="pics/finish.png" scale="70"/>) to open previous or
+	next file in the file-list.
+      </para>
+    </sect2>
+    <sect2>
+      <title><guimenu>Bookmarks</guimenu></title>
+      <para>
+	This menu maintains user's bookmarks. Bookmarks are stored
+	in an ordinary file-list named <literal>Bookmarks</literal>
+	and consist of a file name, tree number suffix and node position.	
+      </para>
+      <para>
+	<guimenuitem>Add Bookmars</guimenuitem> menu command
+	is used to bookmark the current position in the file and tree.
+      </para>
+      <para>
+	The <guimenuitem>Last action</guimenuitem> menu command
+	automatically opens and displayes the place where user made
+	last change to the tree structure or a node attribute. This is
+  	special feature is realized by a special hidden bookmark
+	which is maintained by <application>TrEd</application> and
+	does not appear in the bookmark list or
+	<literal>Bookmark</literal> file-list.
+      </para>
+      <para>
+	The rest of the <guimenu>Bookmarks</guimenu> menu lists all
+	defined bookmarks. User may follow a bookmark by choosing the
+	corresponding item.
+      </para>
+    </sect2>
+    <sect2 id="usercommands">
+      <title><guimenu>User-defined</guimenu></title>
+      <para>
+	This menu is devoted for user-defined commands. The new
+	commands may be defined in the macro file. <!-- See sections on
+	macros below for details. --> Here is a brief description of the
+	few default macros defined by author of
+	<application>TrEd</application>. These macros may be used in
+	any context based on the default <literal>TredMacro</literal>
+	context.
+      </para>
+      <para>
+	In the menu, there is the default keyboard shortcut displayed
+	on the right of each command. The shortcut can be used to
+	invoke the corresponding macro command. 
+	The mapping of the shortcuts and macros is defined 
+	in the macro file.
+      </para>
+      <note>
+	<para>
+	  Note that, there are no keyboards shotrcuts assigned to the
+	  standard (non-macro) menu commands, except only a few. The
+	  aim of this is to give user maximum freedom of choice of
+	  shortcuts for his/her own macro commands. There is a
+	  possibility to define bindings for many of the standard menu
+	  commands within the macro file.
+	</para>
+      </note>
+      <variablelist>
+	<varlistentry>
+	  <term><guimenuitem>Copy Values</guimenuitem>
+	  (<keycap>F5</keycap>)</term> 
+	  <listitem>
+	    <para>
+	      Copies all values of the active node to an internal
+	      clipboard. These values may be pasted to any other node using
+	      the <guimenuitem>Paste Values</guimenuitem> command.
+	    </para>    
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Cut Subtree</guimenuitem> (<keycombo
+	  action="simul"><keycap>Ctrl</keycap><keycap>Insert</keycap></keycombo>)</term>
+	  <listitem>
+	    <para>Cuts the whole subtree of the active node and
+	      stores it in an iternal clipboard. It may be then pasted
+	      as a subtree of any of the remaining nodes with the
+	      <guimenuitem>Paste Subtree</guimenuitem> command.
+	      </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Delete Node</guimenuitem>
+	  (<keycap>F8</keycap>)</term> 
+	  <listitem>
+	    <para>
+	      Deletes active node. The node must be a leaf and must
+	      not be the root of the tree, otherwise this command is
+	      ignored.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Goto to first tree</guimenuitem>
+	    (<keycombo action="simul">
+	      <keycap>Shift</keycap>
+	      <keycap>&lt;</keycap></keycombo>)</term> 
+	  <listitem>
+	    <para>
+	      Displays the first tree in the file.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Goto to last tree</guimenuitem>
+	    (<keycombo action="simul">
+	      <keycap>Shift</keycap>
+	      <keycap>></keycap></keycombo>)</term>  
+	  <listitem>
+	    <para>
+	      Displays the last tree in the file.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Go to...</guimenuitem> (<keycombo
+	      action="simul">
+	      <keycap>Alt</keycap>
+	      <keycap>G</keycap></keycombo>)</term> 
+	  <listitem>
+	    <para>
+	      Promts user to enter an ordinal number of a tree and displays it.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>New Node (r-brother)</guimenuitem>
+	  (<keycap>F7</keycap>)</term> 
+	  <listitem>
+	    <para>
+	      Creates new node as a right brother of the active node (does
+	      nothing if the active node is root).      
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>New Node (son)</guimenuitem> (<keycombo
+	      action="simul">
+	      <keycap>Shift</keycap>
+	      <keycap>F7</keycap></keycombo>)</term>
+	  <listitem>
+	    <para>
+	      Creates new node as a son of the active node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Paste Subtree</guimenuitem>
+	    (<keycombo action="simul">
+	      <keycap>Shift</keycap>
+	      <keycap>Insert</keycap></keycombo>)</term>
+	  <listitem>
+	    <para>
+	      Pastes the tree saved in an internal clipboard during the last
+	      call of the <guimenuitem>Cut Subtree</guimenuitem> command as a subtree of the
+	      active node.      
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Paste Values</guimenuitem>
+	  (<keycap>F8</keycap>)</term>
+	  <listitem>
+	    <para>
+	      Assignes the active nodes attribute values stored in an internal
+	      clipboard during the last call of the <guimenuitem>Copy Values</guimenuitem> command.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Perl-Search</guimenuitem> (<keycombo
+	      action="simul">
+	      <keycap>Alt</keycap>
+	      <keycap>H</keycap></keycombo>)</term>
+	  <listitem>
+	    <para>
+	      When invoked, displays a window with a small editor for
+	      Perl code. The Perl code entered by user is then
+	      evaluated for every node of the tree in the natural
+	      ordering starting from the current node.  The evaluation
+	      stops on the first node for which the Perl code
+	      returns with true (i.e. a defined non-zero value).
+	      The node is then made active.
+	    </para>
+	    <para>
+	      In the Perl code, the <literal>$this</literal> variable
+	      may be used to refer to the current node and
+	      <literal>$root</literal> variable may be used as a
+	      reference to the root of the tree.  If
+	      <literal>$n</literal> refers to some node, then
+	      <literal>$n->{attr}</literal> is value of
+	      <literal>attr</literal> attribute for the node
+	      <literal>$n</literal>.  The governor of a node
+	      <literal>$n</literal> is refered to as to
+	      <literal>Parent($n)</literal> or
+	      <literal>$n->parent</literal>, nearest left brother of
+	      <literal>$n</literal> in the tree structure is
+	      <literal>LBrother($n)</literal> or
+	      <literal>$n->lbrother</literal>; the right brother of
+	      <literal>$n</literal> is <literal>RBrother($n)</literal>
+	      or <literal>$n->rbrother</literal>.  The first son of
+	      <literal>$n</literal> is referred to as to
+	      <literal>FirstSon($n)</literal> or
+	      <literal>$n->firstson</literal>. If no such node exists,
+	      all these functions return zero `0'.  Moreover, all the
+	      nodes of the tree are elements of the
+	      <literal>@nodes</literal> array (list) with the same
+	      order as they are displayed on the screen from left to
+	      right.</para>
+	    <note>
+	      <para>
+		<literal>$n->lbrother</literal> and
+		<literal>$n->rbrother</literal> are not necesserilly
+		displayed on left of <literal>$n</literal>.
+	      </para>
+	    </note>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Perl-Search Next</guimenuitem> (<keycombo
+	      action="simul">
+	      <keycap>Alt</keycap>
+	      <keycap>Shift</keycap>
+	      <keycap>H</keycap></keycombo>)</term>
+	  <listitem>
+	    <para>
+	      Searches for the next node for which the Perl-expression
+	      given during the last call of <guimenuitem>Perl-Search</guimenuitem> command
+	      results in non-zero defined value.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Swap nodes (values only)</guimenuitem>
+	      (<keycombo action="simul">
+	      <keycap>Ctrl</keycap>
+	      <keycap>PageUp</keycap></keycombo>)</term> 
+	  <listitem>
+	    <para>
+	      Makes the active node exchange all attribute values with its
+	      governing node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2>
+      <title><guimenu>Help</guimenu></title>
+      <variablelist>
+	<varlistentry>
+	  <term><guimenuitem>About</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Displays the <guimenuitem>About</guimenuitem> dialog
+	      where the information about version, current file name
+	      and format, number of trees, and more is given.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+  </sect1>
+  <sect1 id="chap3">
+    <title>Viewing and editing the tree structure and attributes</title>
+    <para>
+      <application>TrEd</application> can be controlled either by keyboard or mouse.
+      There are several pre-defined keyboard hotkeys
+      to move the active-node (cursor) along the tree, to
+      cut or paste subtrees and nodes (i.e modify the structure)
+      and to open the dialog where attributes for the active node can
+      be edited. Trees can also be easily modified by clicking and
+      drag-and-drop. Both of these approaches are described bellow:
+    </para>
+    <sect2>
+    <title>Mouse Control</title>
+    <itemizedlist>
+      <listitem>
+	  <para>Clicking left or right mouse button on a node activates it.</para></listitem>
+      <listitem>
+	  <para>Double clicking left mouse button on a node invokes
+	    <menuchoice>
+	    <guimenu>Node</guimenu>
+	    <guimenuitem>Edit Attribues</guimenuitem></menuchoice> command.</para></listitem>
+	<listitem>
+	  <para>Double clicking left mouse button on the text of 
+	    a node's attribute opens a prompt for editing the value of
+	    this attribute.
+	  </para>
+      </listitem>
+      <listitem>
+	  <para>
+	    Dragging active node with left mouse button moves that node with
+	    its subtree to the new location. If user releases the button near
+	    another node, the active node becomes son of that node.	
+	  </para>
+      </listitem>
+      <listitem>
+	  <para>
+	    Dragging active node with right mouse button has the same
+	    effect but if the tree is too large to fit the window, the
+	    window <quote>scrolls forward</quote> as user gets near its edges.
+	  </para>
+      </listitem>
+      <listitem>
+	  <para>
+	    Dragging mouse with the middle mouse button pressed has the
+	    same <quote>scrolling effect</quote> described above, but no node is
+	    moved.
+	  </para>
+	</listitem>
+      </itemizedlist>
+    </sect2>
+    <sect2>
+      <title>Toolbar buttons</title>
+      <para>
+	The following toolbar-buttons provide mouse-oriented shortcuts
+	for standard menu-commands:
+      </para>
+      <informaltable>
+	<tgroup cols="2">
+	  <tbody>
+	    <row>
+	      <entry><graphic fileref="pics/fileopen.png"/></entry><entry><menuchoice>
+		  <guimenu>File</guimenu>
+		  <guimenuitem>Open ...</guimenuitem>
+		</menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/filefloppy.png"/></entry>
+	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Save</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/fileprint.png"/></entry>
+	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Print ...</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/find.png"/></entry>
+	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find ...</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/findnext.png"/></entry>
+	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find Next</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/findprev.png"/></entry>
+	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find Previous</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/start.png"/></entry>
+	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Previous File</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/finish.png"/></entry>
+	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Next File</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/left.png"/></entry>
+	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>Previous Tree</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/right.png"/></entry>
+	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>Next Tree</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/tick.png"/></entry>
+	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>Customize
+		    Attributes...</guimenuitem>
+		</menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/view_sent.png"/></entry>
+	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>List
+	      of sentences...</guimenuitem>
+		</menuchoice></entry>
+	    </row>
+	  </tbody>
+	</tgroup>
+      </informaltable>
+    </sect2>
+    <sect2>
+      <title>Keyboard Shortcuts</title>
+      <para>Cursor keys may be used to activate another node in the
+	structure. Use <keycap>left</keycap>/<keycap>right</keycap>
+	to activate the nearest left/right brother-node of
+	the active node and <keycap>up</keycap>/<keycap>down</keycap> to activate the active node's
+	ancestor (parent)/its leftmost son.
+      </para>    
+      <para>
+	<keycap>Tab</keycap> and
+	<keycombo action="simul">
+	  <keycap>Shift</keycap>
+	  <keycap>Tab</keycap>
+	</keycombo> keys activate the
+	next/previous node on the way along the tree structure.
+      </para>
+      <para>
+      <keycap>Enter</keycap> runs the <menuchoice>
+	  <guimenu>Node</guimenu>
+	  <guimenuitem>Edit Attributes</guimenuitem></menuchoice> command.
+    </para>
+    <para>
+      To edit the tree structure with keyboard only, use the shortcuts
+      bound to the <link linkend="usercommands">User-defined menu
+      commands</link>. Most important of those are:
+      </para>
+      <variablelist>
+	<varlistentry>
+	<term><keycombo action="simul">
+	    <keycap>Ctrl</keycap>
+	    <keycap>Insert</keycap>
+	    </keycombo> (<guimenuitem>Cut Subtree</guimenuitem>)</term>
+	  <listitem>
+	    <para>      
+	      Cuts the whole subtree of the active node and stores it in an
+	      iternal clipboard. It may be then pasted as a subtree of any
+	      of the remaining nodes with the <guimenuitem>Paste Subtree</guimenuitem>
+	      command.
+	    </para>    
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>
+	    <keycombo action="simul">
+	      <keycap>Shift</keycap>
+	      <keycap>Insert</keycap>
+	    </keycombo> (<guimenuitem>Paste Subtree</guimenuitem>)</term>
+	  <listitem>
+	    <para>
+	    Pastes the tree saved in an internal clipboard during the
+	    last call of the <guimenuitem>Cut Subtree</guimenuitem>
+	    command as a subtree of the active node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><keycombo action="simul">
+	      <keycap>Alt</keycap>
+	      <keycap>G</keycap></keycombo> (<guimenuitem>Go to...</guimenuitem>)</term>
+	  <listitem>
+	    <para>Promts user to enter an ordinal number of a tree and displays
+	      the tree.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><keycap>,</keycap> <quote>comma</quote> (<menuchoice>
+	      <guimenu>View</guimenu>
+	      <guimenuitem>Previous Tree</guimenuitem>
+	    </menuchoice>)</term>
+	  <listitem>
+	    <para>Displayes the previous tree in the current file.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><keycap>.</keycap> <quote>dot</quote> (<menuchoice>
+	      <guimenu>View</guimenu>
+	      <guimenuitem>Next Tree</guimenuitem>
+	    </menuchoice>)</term>
+	  <listitem>
+	    <para>Displayes the next tree in the current file.</para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+  </sect1>
+  <sect1 id="attributes">
+    <title>Customizing Visible Attributes</title>
+    <para>
+      When user presses button <inlinegraphic
+      fileref="pics/tick.png"/>
+      or issues the <menuchoice>
+	<guimenu>View</guimenu>
+	<guimenuitem>Customize Attributes...</guimenuitem>
+      </menuchoice> menu command, a special dialog for customizing
+      visible attributes is shown.
+    </para>
+    <figure>
+      <title>Customizing visible attributes</title>
+      <graphic fileref="pics/customatt.gif"/>
+    </figure>
+    <para>
+      The dialog window contains four elemens: the attribute list,
+      the pattern list, hint pattern editor and input line for
+      editing a single pattern.
+    </para>
+    <para>
+      A pattern here means a template for one line of text to be
+      displayed under each node in the <application>TrEd</application>'s
+      main window. A pattern may contain any text, but some special
+      substrings have special meaning:      
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term><literal>${<replaceable>attr</replaceable>}</literal></term>
+	<listitem>
+	  <para>
+	    Any occurence of this substring is replaced by current
+	    node's value of attribute named <replaceable>attr</replaceable>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><literal>#{<replaceable>color</replaceable>}</literal></term>
+	<listitem>
+	  <para>
+	    This sequence of characters may be used to change the
+	    color of any following text generated by the pattern.
+	    The <replaceable>color</replaceable> may be either a name
+	    of a color, e.g. <literal>black</literal>,
+	    <literal>red</literal> or <literal>darkblue</literal>,
+	    or one of ten symbolic names <literal>custom0</literal>,
+	    <literal>custom1</literal> to <literal>custom9</literal>.
+	    In the later case, the resulting color depends on current
+	    settings of the
+	    <link linkend="customcolor"><literal>CustomColor<replaceable>n</replaceable></literal></link>
+	    configuration options (where <replaceable>n</replaceable>
+	    is one of <literal>0...9</literal>).	    
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><literal>&lt;?<replaceable>code</replaceable>?&gt;</literal></term>
+	<listitem>
+	  <para>
+	    This sequence may encapsulate any Perl code. The code
+	    is interpreted in time of evaluation of the pattern
+	    (i.e. just before the line is actually to be displayed)
+	    and the result returned by the code is inserted in
+	    the place of the sequence.	    
+	  </para>
+	  <para>
+	    Note that the returned value may also contain any of
+	    the sequences above, except the
+	    <literal>&lt;?<replaceable>...</replaceable>?&gt;</literal>
+	    sequence.
+	  </para>
+	  <para>In the <replaceable>code</replaceable>, the 
+	    value of a certain attribute
+	    <replaceable>attr</replaceable> for the current node may
+	    be referred to as
+	    <literal>$${<replaceable>attr</replaceable>}</literal>.
+	    The current node itself may be referrenced as
+	    <literal>$this</literal> (so it is for example possible to
+	    access current node's	    
+	    parent by <literal>$this->parent</literal>).
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+    <para>
+      The same syntax applies also to the hint pattern. This
+      pattern is interpolated and displayed in a floating
+      <quote>tool-tip</quote> like frame whenever user positions
+      the mouse cursor above a node and waits for a while.
+      (The lenght of this time interval may be customized
+      by setting the <link linkend="hintwait"><literal>HintWait</literal></link>
+      option to the desired number of milliseconds).
+    </para>
+    <para>
+      A pattern may be added to the pattern list by typing the
+      pattern
+      to the input entry in the bottom of the window and pressing
+      the <guibutton>Add/Paste</guibutton> button.
+      The pattern is inserted just before the pattern currently
+      selected in the list (or to the end of the list if no pattern is
+      selected).
+    </para>
+    <para>
+      To remove a pattern from the pattern list, either the
+      <guibutton>Delete</guibutton> or <guibutton>Cut</guibutton>
+      button may be used. In the latter case,
+      the pattern is copied to the input entry first.
+    </para>
+    <para>
+      The list of attributes provides a shortcut for inserting
+      <literal>${<replaceable>attr</replaceable>}</literal>
+      sequences into the input entry as well as for inserting
+      simple patterns of the form 
+      <literal>${<replaceable>attr</replaceable>}</literal> to 
+      the pattern list.
+    </para>
+    <para>
+      To insert a simple
+      <literal>${<replaceable>attr</replaceable>}</literal>
+      pattern to the pattern list, select
+      <replaceable>attr</replaceable>
+      from the <guilabel>Attributes</guilabel> list
+      and press the <guibutton>Add/Place</guibutton> button.
+      If you press the <guibutton>Add as hint</guibutton>
+      button, the pattern is inserted to the current cursor's position
+      in the hint pattern editor.
+    </para>
+    <para>To insert the above sequence to the current cursor's
+      position on the entry line, double-click the
+      <replaceable>attr</replaceable>
+      item in the <guilabel>Attributes</guilabel> list.
+    </para>
+    <note>
+      <para>Note that patterns are stored in the FS files as a special
+	sequence at the end of the file ignored by other FS-format tools (e.g. Michal Kren's
+	<application>Graph</application>). If you wish to use the same
+	pattern settings for all the files you open, you 
+	should either write a macro providing this feature, or manually
+	append the sequence to all the FS files you use.
+      </para>
+    </note>
+  </sect1>
+  <sect1 id="filelists">
+    <title>Using File-Lists</title>
+    <para>
+      File-list is simply a named list of file-name patterns or actual
+      file names (with an obligatory suffixes specifying a tree number
+      and possibly also a position in the tree). File-lists can be
+      created, modified, saved or deleted using a specialized dialog
+      displayed whe the <menuchoice>
+	<guimenu>File</guimenu>
+	<guimenuitem>File List...</guimenuitem>
+      </menuchoice> menu-command is issued.
+    </para>
+    <para>
+      File-lists may be used for many purposes, the most common of
+      which are searching and comfortable editing of a series of
+      files. There is always one file-list active. We call that 
+      file-list the current file-list. Name of the current-filelist
+      is displayed at the title of the main
+      <application>TrEd</application>'s window.
+      If current file-list contains more than one file, 
+      the command <menuchoice> <guimenu>File</guimenu> <guimenuitem>Previous
+	  File</guimenuitem> </menuchoice> (or <inlinegraphic
+	fileref="pics/start.png" scale="70"/> button) and  <menuchoice>
+	<guimenu>File</guimenu> <guimenuitem>Next File</guimenuitem>
+    </menuchoice>
+      (or <inlinegraphic fileref="pics/finish.png" scale="70"/> button)
+      may be used to open previous or next file in the file-list.
+    </para>
+    <figure>
+      <title>Creating file-lists</title>
+      <graphic fileref="pics/filelist.gif"/>
+    </figure>
+    <para>
+      There are two default file-lists always present:
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term><literal>Default</literal></term>
+	<listitem>
+	  <para>
+	    This file-list contains all the files specified on the
+	    command-line. All files opened while
+	    <literal>Default</literal>
+	    is the current file-list are inserted to the file-list.	    
+	  </para>
+	</listitem>	
+      </varlistentry>
+      <varlistentry>
+	<term><literal>Bookmarks</literal></term>
+	<listitem>
+	  <para>
+	    The <literal>Bookmarks</literal> file-list
+	    conains all bookmarks.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+    <para>
+      User may then create any number of his/her own file-list.  To do
+      so, open the <guilabel>Filelist</guilabel> dialog, Type a name
+      of the file-list into the <guilabel>File lists</guilabel> field
+      (on the top right side) and press <keycap>Enter</keycap> and
+      confirm the creation by pressing the
+      <guibutton>Create</guibutton> button in the window that appears.      
+    </para>
+    <para>
+      To modify an existing file-list, first choose it from the menu
+      that appears when the button on the right of the <guilabel>File
+      lists</guilabel> entry is pressed.  To add some files to the
+      chosen file-list, first browse the files in the list on the left
+      of the <guilabel>Filelist</guilabel> dialog. Then select the
+      desired files in this list and finally press the
+      <guibutton>Add--></guibutton>.  If the selection contains a
+      directory, user is prompted for a wild-card pattern and all
+      files from the directory matching the pattern are added to the
+      file-list. This is a very convenient way for adding all files in
+      a directory. This has also the advantage that any change made in
+      the content of the directory automatically leads to the
+      corresponding effect in the file-list.
+    </para>
+    <para>
+      To remove files from the file-list, select the files and
+      press the <guibutton>Remove</guibutton> button.
+    </para>
+    <para>
+      To make the chosen file-list the current file-list for
+      <application>TrEd</application> double-click on any file in the
+      file-list or just select the file and press the
+      <guibutton>Go</guibutton> button. The selected files is opend
+      and the file-list is made current. (You may of course switch between
+      file-lists also by selecting a file-list in the
+      <guimenu>Session</guimenu> menu.)      
+    </para>
+    <para>
+      The <guibutton>Delete</guibutton> button may be used to delete
+      the complete file-list.
+    </para>
+    <para>
+      The <guibutton>Save</guibutton> button may be used to save the chosen
+      file-list to a file, so that it may be either automatically or
+      manually opened in the next <application>TrEd</application>'s
+      session. Note that saving a file-list and then deleting it does
+      not delete the file. Also note that the
+      <literal>Bookmark</literal> file-list is saved automatically
+      when user leaves <application>TrEd</application>.
+    </para>
+    <para>The <guibutton>Load</guibutton> button may be used to load
+      a previously saved file-list. Note that all saved file-list that
+      are present when user leaves <application>TrEd</application> are
+      automatically loaded on the next <application>TrEd</application>'s startup.
+    </para>
+    <para>
+      The <guilabel>Close</guilabel> button only closes the
+      <guilabel>Filelist</guilabel> dialog window.
+    </para>
+  </sect1>
+  <sect1 id="configuration">
+    <title>Configuring and customizing <application>TrEd</application></title>
+    <para>
+      The configuration and customizing of
+      <application>TrEd</application> is possible through the
+      configuration file. When started <application>TrEd</application>
+      tries to search for its configuration file on several places and
+      uses the first configuraton file found:
+    </para>
+    <orderedlist>
+      <listitem>
+	<para>
+	  First <application>TrEd</application> looks for a file given with a command-line parameter
+	  <parameter>-c</parameter> (see <xref linkend="commandline"/> for details).
+	</para>
+      </listitem>
+      <listitem><para>    
+	If the <varname>HOME</varname> system variable is set (on UNIX/Linux this
+	  variable points to user's home directory) <application>TrEd</application> searches for
+	<filename>.tredrc</filename> (mind the dot here) file in that directory. 	
+      </para></listitem>
+      <listitem><para>
+	  If the <varname>TREDHOME</varname> system variable is set <application>TrEd</application> searches for
+	<filename>tredrc</filename> file in that directory. 	
+      </para></listitem>
+      <listitem><para>
+	  <application>TrEd</application> looks for a <filename>tredrc</filename> file in 
+	  the directory where the program file of <application>TrEd</application> itself is located.
+      </para></listitem>
+      <listitem>
+	<para>
+	  <application>TrEd</application> looks for a
+	  <filename>tredrc</filename> file in directories
+	  <filename>../lib/tred</filename>, <filename>../lib/tredlib</filename> and
+	  <filename>./tredlib/tredrc</filename> respectively, relatvely to the
+	  directory where the program file of <application>TrEd</application> itself is located.
+	</para>
+      </listitem>
+      <listitem><para>
+	  <application>TrEd</application> looks for a <filename>tredrc</filename> file in 
+	  the <filename>/usr/share/config/</filename> directory.
+	</para></listitem>
+    </orderedlist>
+    <para>
+      If none of these files is found, default values for configuration
+      options are used.
+    </para>
+    <para>
+      <application>TrEd</application>'s configuration file is a plain
+      text file with a very simple structure. It can be edited not
+      only in any editor (like <application>vi</application>,
+      <application>Emacs</application> or
+      <application>Notepad</application>) and also directly from TrEd
+      when the <menuchoice> <guimenu>File</guimenu> <guimenuitem>Edit
+      Config</guimenuitem></menuchoice> menu command is issued. In
+      both cases there is a way to update the options used by a
+      running session of <application>TrEd</application>: </para>
+    <itemizedlist>
+      <listitem><para>Use <menuchoice>
+	    <guimenu>File</guimenu>
+	    <guimenuitem>Reload Config</guimenuitem></menuchoice> menu command to make TrEd
+	re-read the configuration file from disk.</para></listitem>
+      <listitem><para>
+	  In the <application>TrEd</application>'s internal
+	    configuration editor use the
+	  <guibutton>Save and Apply</guibutton> button to apply changes and save them or
+	  <guibutton>Apply</guibutton> button to apply changes withought saving them.
+	  The first command aslo quits the configuration editor.
+	</para></listitem>
+    </itemizedlist>
+    <note>
+      <para>
+	Some configuration options even if applyed take effect only
+	after restarting <application>TrEd</application>.
+      </para>
+    </note>
+    <para>The format of the configuration file is of this simple form:</para>
+    <literallayout><replaceable>option_name</replaceable> = <replaceable>value</replaceable></literallayout>
+    <para>
+      There may be any amount of white-space between the option name and
+      value but they must be both on the same line. Any characters
+      folowing a semi-colon (<literal>;</literal>) to the end of line 
+      are considered as comment and are ignored. You may also need to
+      quote the value using either double-quotes (<literal>"value"</literal>) or
+      simple quotes (<literal>'value'</literal>) to preserve white-space or semi-colons.
+      The option names are case-insensitive.
+    </para>    
+    <para>
+      The available configuration options may be divided into several
+      categories:
+    </para>
+    <sect2>
+    <title>Colors</title>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>BackgroundColor</literal></term>
+	  <listitem>
+	    <para>Background color of the tree-view canvas.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>CurrentNodeColor</literal></term>
+	  <listitem>
+	    <para>Color to draw the active node. Default is red.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>NearestNodeColor</literal></term>
+	  <listitem>
+	    <para>Color to highlight the nearest node to indicate the
+	      destination of a possible drop when dragging a node.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>TextColor</literal></term>
+	  <listitem>
+	    <para>Color used to display text of normal tree attributes.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>TextColorShadow</literal></term>
+	  <listitem>
+	    <para>Color used to display text of shadowed tree attributes.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>TextColorHilite</literal></term>
+	  <listitem>
+	    <para>Color used to display text of highlighted tree
+	      attributes.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>TextColorXHilite</literal></term>
+	  <listitem>
+	    <para>Color used to display text of extra-highlighted tree
+	      attributes.
+	      See <ulink url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+		description</ulink> to learn about how to specify which attributes
+	      are shadowed, highlighted and extra-highlighted.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="customcolor">
+	  <term><literal>CustomColor<replaceable>n</replaceable></literal></term>
+	  <listitem>
+	    <para>
+	      Here <replaceable>n</replaceable> stands for any number
+	      between <literal>0..9</literal>.  These options define
+	      ten custom colors which may be symbolically refered to
+	      and used in the attribute patterns.  To refer to the
+	      <replaceable>n</replaceable>'th custom color use
+	      the sequence
+	      <literal>#{custom<replaceable>n</replaceable>}</literal>
+	      in the pattern. For more information see <xref
+	      linkend="attributes"/>.
+	      See also the <link linkend="allowcustomcolors"><literal>AllowCustomColors</literal></link>
+	      option which can be used to enable or disable the actual
+	      use of the custom colors.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>ActiveTextColor</literal></term>
+	  <listitem>
+	    <para>
+	      Color used to flash the text of an attribute under the mouse-pointer.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>BoxColor</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of a border drawn around the text of
+	      attributes if the <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>Draw Boxes</guimenuitem>
+	      </menuchoice> item is checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>CurrentBoxColor</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of a border drawn around the text of
+	      the active node's attributes if the <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>Draw Boxes</guimenuitem></menuchoice> item is checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>HiddenBoxColor</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of a border drawn around the text of
+	      a hidden node's attributes if the <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>Draw Boxes</guimenuitem></menuchoice> and 
+	      <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>Show Hidden
+		</guimenuitem></menuchoice>
+	      items are checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>LineColor</literal></term>
+	  <listitem>
+	    <para>Color used to draw the lines connecting dependent nodes in a
+	      tree.
+	      Default is black.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>NodeColor</literal></term>
+	  <listitem>
+	    <para>Color used to fill an ordinary node of the tree.
+	      Default is yellow.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>NodeOutlineColor</literal></term>
+	  <listitem>
+	    <para>Color used to draw the outline of an ordinary node.
+	      Default is black.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>HiddenNodeColor</literal></term>
+	  <listitem>
+	    <para>Color used to draw nodes marked as hidden, if shown. Default
+	      is black.</para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2>
+      <title>Tree displaying options</title>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>LineWidth</literal></term>
+	  <listitem>
+	    <para>Width of the lines connecting dependent nodes in a tree.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>NodeWidth</literal></term>
+	  <listitem>
+	    <para>
+	      The horizontal diameter of the elipsis representing a node in
+	      a tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>NodeHeight</literal></term>
+	  <listitem>
+	    <para>
+	      The vertical diameter of the elipsis representing a node in
+	      a tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>CurrentNodeWidth</literal></term>
+	  <listitem>
+	    <para>
+	      The horizontal diameter of the elipsis representing the active node in
+	      a tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>CurrentNodeHeight</literal></term>
+	  <listitem>
+	    <para>
+	      The vertical diameter of the elipsis representing the active node in
+	      a tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>NodeXSkip</literal></term>
+	  <listitem>
+	    <para>The minimal horizontal distance between two nodes in a
+	      tree.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>NodeYSkip</literal></term>
+	  <listitem>
+	    <para>The minimal vertical distance between two nodes in a
+	      tree.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>XMargin</literal></term>
+	  <listitem>
+	    <para>Horizontal amount of space left around borders of the box
+	      surrounding the text of displayed attributes of a node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>YMargin</literal></term>
+	  <listitem>
+	    <para>Horizontal amount of space left around borders of the box
+	      surrounding the text of displayed attributes of a node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>BaseXPos</literal></term>
+	  <listitem>
+	    <para>
+	      The horizontal distance of the tree root (zero's node)
+	      from the right of the tree view.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>BaseYPos</literal></term>
+	  <listitem>
+	    <para>
+	      The vertical distance of the tree root (zero's node)
+	      from the top of the tree view.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>DrawBoxes</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is set, <application>TrEd</application> starts with the 
+	      <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>DrawBoxes</guimenuitem></menuchoice> menu item checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>HighlightAttributes</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is set, <application>TrEd</application> starts with the 
+	      <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>Highlight Attributes</guimenuitem>
+	      </menuchoice> menu item checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="allowcustomcolors">
+	  <term>AllowCustomColors</term>
+	  <listitem>
+	    <para>
+	      This option takes one of the values <literal>0</literal>
+	      and <literal>1</literal>.
+	      If set to <literal>0</literal>, all references to
+	      custom colors in attribute patterns are ignored. 
+	      It is also the default value.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>ShowHidden</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is set, <application>TrEd</application> starts with the 
+	      <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>Show Hidden Nodes</guimenuitem>
+	      </menuchoice> menu item checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="hintwait">
+	  <term>HintWait</term>
+	  <listitem>
+	    <para>
+	      This option controls the length of the time interval
+	      between user points a node with a cursor mouse and to
+	      when <application>TrEd</application> displayes the
+	      floating hint for the node. The value is to be given in
+	      milliseconds.  See <xref linkend="attributes"/> for more
+	      information about defining the content of the hints.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>SearchMethod</term>
+	  <listitem>
+	    <para>
+	      This option lets you define the default method used when
+	      searching with the <menuchoice>
+		<guimenu>Node</guimenu>
+		<guimenuitem>Find</guimenuitem>
+	      </menuchoice> command. The default value is
+	      <literal>Exhaustive regular expression</literal>
+	      but user may use any of the following values (actually
+	      only the first letter suffices):
+	      <simplelist type="vert">
+		<member><literal>Regular Expression</literal></member>
+		<member><literal>Wildcards</literal></member>
+		<member><literal>Literal</literal></member>
+		<member><literal>Exhaustive regular expression</literal></member>
+	      </simplelist>
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>MacroListOrder</term>
+	  <listitem>
+	    <para>This option defines the default ordering of macros
+	      when <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>List of Named Macros...</guimenuitem>
+	      </menuchoice>
+	      menu command is used. Possible values are letters
+	      <literal>M</literal> (sort by macro menu label)
+	      and <literal>K</literal> (sort by keyboard shortcuts
+	      assigned to macros). Default value is <literal>M</literal>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>MaxDisplayedValues</term>
+	  <listitem>
+	    <para>
+	      This option may be used to tell
+	      <application>TrEd</application>
+	      how many fields should fit in one screen of a
+	      list when a dialog
+	      displaying possible (or already assigned)
+	      values for a certain attribute is displayed.
+	      (The greater the number is, the taller
+	      the dialog grows).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>MaxDisplayedAttributes</term>
+	  <listitem>
+	    <para>
+	      This option may be used to tell
+	      <application>TrEd</application>
+	      how many fields should fit in one screen of the
+	      <guilabel>Edit Node Attributes</guilabel>
+	      and
+	      <guilabel>Find Node by Attributes</guilabel>
+	      dialog windows. (The greater the number, the taller
+	      the dialogs).
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2>
+      <title>GUI options</title>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>AppName</literal></term>
+	  <listitem>
+	    <para>The window title for the <application>TrEd</application>'s main window.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>AppIcon</literal></term>
+	  <listitem>
+	    <para><application>TrEd</application>'s desktop and window
+	      icon (in <literal>XPM</literal> format).</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>ButtonsRelief</literal></term>
+	  <listitem>
+	    <para>
+	      Style of the relief of the GUI buttons. 
+	      Possible values for this option are:
+	      raised, sunken, flat, ridge, solid, and groove.
+	      Default is 'raised'.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>ButtonBorderWidth</literal></term>
+	  <listitem>
+	    <para>
+	      Width of the borders of GUI buttons. Default is 2.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>MenubarRelief</literal></term>
+	  <listitem>
+	    <para>
+	      Style of the relief of the GUI menu-bar. Same values as for
+	      ButtonsRelief option are possible. Default is 'raised'.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>MaxMenuLines</literal></term>
+	  <listitem>
+	    <para>Maximal number of User-menu lines. If more lines in the menu
+	      should appear, a submenu is created as a last item, in which the
+	      menu continues.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>SortAttributes</term>
+	  <listitem>
+	    <para>If <literal>1</literal>, all lists where attribute names
+	      or values are displayed are sorted
+	      alphabetically. Otherwise the order given in the FS-file
+	      header is preserved. Default value for this option is <literal>1</literal>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>CreateMacroMenu</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is <literal>1</literal>, <application>TrEd</application> creates a special menu
+	      <guimenu>Key-macros</guimenu> where all defined macros which are assigned
+	      a key are presented also as menu functions.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>StrictMotif</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is <literal>1</literal>, strict motifish look and feel is
+	      used in TrEd's GUI.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2>
+      <title>Fonts</title>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>Font</literal></term>
+	  <listitem>
+	    <para>
+	      Font used to display the text of attributes and also in
+	      several other places of GUI where the text of attributes is
+	      displayed or edited. There are two possible formats of values
+	      for this option:
+	      <orderedlist>
+		<listitem><para>Standard X font-spec, with possible wildcards, e.g.:
+		    <literal>-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2</literal>
+		  </para></listitem>
+		<listitem><para>Font attribute-oriented format, which is a 
+		    comma-separated list of pairs of the form
+		    <literal>font-attribute:value</literal>. The attributes are:
+		    <literal>family, size, weight, slant, underline,
+		      overstrike</literal>. Family is a font-family name like
+		    <literal>Arial, Helvetica</literal> or <literal>Times New Roman</literal>.
+		    Size is a number providing the font-size in points
+		    (i.e. not pixels!). Possible values for <literal>bold</literal>
+		    are <literal>normal</literal> and <literal>bold</literal>, possible
+		    values for <literal>slant</literal> are <literal>roman</literal> and
+		    <literal>italics</literal>. The <literal>underline</literal> and 
+		    <literal>overstrike</literal> attributes take just boolean
+		    values of <literal>1</literal> and <literal>0</literal>.
+		    If a font, that would match the specified attributes 	    
+		    exactly, is not found, the most similar font is used.
+		  </para>
+		  <note>
+		    <title>Example</title>		 
+		    <literallayout>Font = family:Arial,size:10,weight:bold</literallayout>
+		  </note>
+		</listitem>
+	      </orderedlist>	
+	    </para>
+	  </listitem>
+	</varlistentry>      
+	<varlistentry>
+	  <term><literal>VLineFont</literal></term>
+	  <listitem>
+	    <para>
+	      Font used for displaying the text in the value line above
+	      tree. The same formats as for Font are allowed for this
+	      option. If not specified, Font is used. 
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2>
+      <title>Printing options</title>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>PsFontFile</literal></term>
+	  <listitem>
+	    <para>
+	      A pfa-file with a PostScript font to be used for printing.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>PrintColors</literal></term>
+	  <listitem>
+	    <para>
+	      If <literal>0</literal>, <application>TrEd</application> prints in black and white.
+	      If <literal>1</literal>, <application>TrEd</application> uses the same colors for printing
+	      as it does for displaying the tree on the screen.
+	      This option may be overriden by the <guilabel>Use Colors</guilabel>
+	      check-box in the <guilabel>Print</guilabel> dialog.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>PsFontName</literal></term>
+	  <listitem>
+	    <para>
+	      A Postscript font name to be substituted 
+	      by the font given in PsFontFile in the final PosctScript.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>PsFontSize</literal></term>
+	  <listitem>
+	    <para>Size of the Postscript font to be substituted 
+	      by the font given in PsFontFile in the final PosctScript.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>PrtFmtWidth</literal></term>
+	  <listitem>
+	    <para>
+	      Width of the paper used for printing. Append one of the
+	      characters <literal>i,c,m</literal> to the number to destinguish the
+	      dimension (inches, centimeters, milimeters respectively).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>PrtFmtHeight</literal></term>
+	  <listitem>
+	    <para>Width of the paper used for printing. Same format as PrtFmtWidth.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>PSMedia</literal></term>
+	  <listitem>
+	    <para>A PostScript document media-type identifier to be used in
+	      the header of the printed PostScript. The default value is
+	      <literal>%%DocumentMedia: A4 595 842 white()</literal>
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>PSFile</literal></term>
+	  <listitem>
+	    <para>
+	      The default name of the output file when printed to file.
+	      This name may be modified in the <guilabel>Print</guilabel> dialog.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>MaximizePrintSize</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is on (i.e. <literal>1</literal>), <application>TrEd</application> tryes to draw the
+	      tree as big as to fill the whole paper. Default is <literal>0</literal> here.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2>
+      <title>Miscelaneous options</title>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>LibDir</literal></term>
+	  <listitem>
+	    <para>
+	      This option forces <application>TrEd</application> to search for its library
+	      files in the specified directory.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>MacroFile</literal></term>
+	  <listitem>
+	    <para>
+	      Path to a file with macros for TrEd.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>DefaultMacroFile</literal></term>
+	  <listitem>
+	    <para>
+	      Path to a file with the default set of macros for TrEd.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>UseCzechLocales</literal></term>
+	  <listitem>
+	    <para>
+	      If <literal>1</literal> is set here, <application>TrEd</application> uses Czech locales for
+	      handling text. This may be especially useful in macros.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="cststofs">
+	  <term><literal>CstsToFs</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is set it should provide a path to a program to
+	      be used as an import filter. If <application>TrEd</application> does not recognize a
+	      desired file to be in
+	      <ulink
+		url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+	      it runs this program passing the file-name to it as a
+	      command-line parameter and waits for the program's
+	      standard-output. If this output is in
+	      <ulink url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+	      the trees are displayed. This option was added to <application>TrEd</application> to
+	      give it a way to open files in different formats,
+	      especially in the SGML
+	      <ulink url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink> format, where the
+	      existing conversion program
+	      <ulink url="../../../../Utilities/cstsfs/index.html">cstsfs</ulink>
+		may be used as the import filter.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="fstocsts">
+	  <term><literal>FsToCsts</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is set it should provide a path to a program to
+	      be used as an import filter. <application>TrEd</application> uses command defined
+	      here to export files in other than FS format, i.e.
+	      files open via <link linkend="cststofs">CstsToFs</link>
+	      import filter or files explicitely 
+	      <ulink url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
+	      saved in CSTS format.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>gzip</term>
+	  <listitem>
+	    <para>This option may be used to point
+	      <application>TrEd</application> to a
+	      GNU <command>gzip</command>
+	      command, which may be used for transparent
+	      saving files commpressed by GNU <command>gzip</command>.
+	      The default value is <literal>/bin/gzip -c</literal>
+	      if <filename>/bin/gzip</filename> exists and is
+	      executable. Otherwise the value is undefined and
+	      <application>TrEd</application> does not support
+	      transparent saving GNU-zipped files.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>zcat</term>
+	  <listitem>
+	    <para>This option may be used to point
+	      <application>TrEd</application> to a
+	      GNU <command>zcat</command>	      
+	      command, which may be used for transparent opening
+	      files commpressed by GNU <command>gzip</command>.
+	      (These files are recognized by the
+	      <filename>.gz</filename>
+	      suffix.) The default value is <literal>/bin/zcat</literal>
+	      if <filename>/bin/zcat</filename> exists and is
+	      executable. Otherwise the value of
+	      <literal>gzip</literal> option is used.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+  </sect1>
+  <sect1 id="commandline">
+    <title>Starting <application>TrEd</application> from command-line</title>
+    <para>
+      If running <application>TrEd</application> from command-line you may use several
+      command-line options and also give <application>TrEd</application> one or more files to
+      open. Each file-name may be also appended number of tree to
+      be displayed by <application>TrEd</application> when the file is opened.      
+    </para>
+    <note>
+      <para>
+	You may need to replace <command>tred</command> with
+	<command>perl tred</command> in the following usage examples in Windows
+	or UNIX, if you cannot set <command>tred</command> the execute permissions.
+      </para>
+    </note>
+    <para>
+      The general usage is:      
+      <cmdsynopsis>
+	<command>tred</command>
+	<arg>-c <replaceable>config-file</replaceable></arg>
+	<arg>-m <replaceable>macro-file</replaceable></arg>
+	<arg>-l <replaceable>file-list</replaceable></arg>
+	<arg rep="repeat">file<group>
+	    <arg>##<replaceable>N</replaceable></arg>
+	    <arg>#<replaceable>N</replaceable></arg>
+	  </group>
+	</arg>
+      </cmdsynopsis>
+      or
+      <cmdsynopsis>
+	<command>tred</command>
+	<group>
+	  <arg>-u</arg>
+	  <arg>-h</arg>
+	</group>
+      </cmdsynopsis>
+      to obtain short instructions on usage (<parameter>-u</parameter>)
+      or a brief help (<parameter>-h</parameter>).
+    </para>
+    <para>
+      The optional command-line parameters have the following meaning:
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term><parameter>-m</parameter></term>
+	<listitem>
+	  <para>This parameter may be used to force <application>TrEd</application> to use a different 
+	    macro file from that given in TrEd's configuration file.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-c</parameter></term>
+	<listitem>
+	  <para>This parameter may be used to force <application>TrEd</application> to use 
+	    a certain configuration file.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-l</parameter></term>
+	<listitem>
+	  <para>Use this parameter to pass a file-list to TrEd. Each
+	    file-name given in the file-list must be on a separate line.
+	    This feature may be particulary useful under Windows, where
+	    maximum length of the command-line is usually very limited.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-h</parameter></term>
+	<listitem>
+	  <para>Prints a brief help and exits.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-u</parameter></term>
+	<listitem>
+	  <para>Prints a short help on usage and exits.</para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+    <para>
+      All other arguments passed to <application>TrEd</application> on the command line
+      are considered file-names to open. (<application>TrEd</application> actually opens only one
+      file at a time, but user may go to the next/previous file
+      using the <menuchoice>
+	<guimenu>File</guimenu>
+	<guimenuitem>Next File</guimenuitem>
+      </menuchoice> and
+      <menuchoice>
+	<guimenu>File</guimenu>
+	<guimenuitem>Previous File</guimenuitem></menuchoice> menu commands.)
+    </para>
+    <para>
+      Every file-name either on the command-line or in a file-list
+      may be given a number suffix which makes <application>TrEd</application> open that file
+      on that tree. There are two possible formats for the suffices:
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term><literal>#N</literal></term>
+	<listitem>
+	  <para>
+	    where <literal>N</literal> is a number possibly followed by one or more
+	    upper-case letters. In this case, <literal>#N</literal> <application>TrEd</application> searches
+	    and displays the first tree in the file
+	    the root of which is assigned <literal>#N</literal> as a value
+	    of the attribute <literal>form</literal> (this feature works only for
+	    FS-files of <productname>The Prague Dependency Treebank</productname>).
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><literal>##N</literal></term>
+	<listitem>
+	  <para>
+	    where <literal>N</literal> is a number. This makes <application>TrEd</application> to
+	    display the <literal>N</literal>'th tree when the given
+	    file is opened.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </sect1>
+  <sect1 id="macros">
+    <title>User Macros</title>
+    <para>
+      This section describes in detail
+      <application>TrEd</application>'s support for user macros. It is
+      devoted mainly to programmers.
+    </para>
+    <para>
+      As was already mentioned, <application>TrEd</application> is
+      itself written in Perl and therefore it is natural that also
+      user macros are written in Perl language. The details of the
+      Perl language syntax are not described here. You may find
+      them in the literature on programming in Perl as well as in
+      manual pages of Perl language. A large volume of documentation
+      on Perl and many specific Perl modules is collected for example
+      by <ulink
+      url="http://www.activestate.com/ASPN/Reference">ActiveState</ulink>.
+      In this text, we concentrate on the 
+      <application>TrEd</application>'s macro specifics.
+    </para>
+    <sect2>
+      <title>What is a macro</title>
+      <para>
+	A macro for <application>TrEd</application> is simply any Perl
+	routine defined using the <literal>sub { ... }</literal>
+	construct:	
+      </para>
+      <programlisting>sub my_first_macro {
+	# any Perl code may come here
+}</programlisting>
+      <para>
+	Macros may be called from other macros in the same way as
+	any other sub-routines in Perl, for example:
+      </para>
+      <programlisting>sub my_first_macro {
+	my_second_macro();  # call another macro
+}</programlisting>
+      <para>
+	In this case, macros may use the usual Perl mechanisms
+	to pass the called macro any number of argumens.
+      </para>
+      <para>
+	To make the macro accessible from
+	<application>TrEd</application>, two more things should be
+	done. First, a special <quote>pragmas</quote> should be added,
+	so that the macro appears in the
+	<guimenu>User-defined</guimenu> menu and thus may be
+	called interactively, second the macro
+	must be stored in some file and
+	<application>TrEd</application>
+	must be told where to look for the file. This (and more) is
+	discussed in the following sections.
+      </para>      
+    </sect2>
+    <sect2>
+      <title>Where does <application>TrEd</application> look for
+      macros</title>
+      <para>
+	On startup, <application>TrEd</application>
+	looks for two files with macros.
+	<orderedlist>
+	  <listitem>
+	    <para>The default set of macros (described in more detail
+	      in <xref linkend="defaultmacros"/>)
+	      <filename>tred.def</filename>
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>The user set of macros <filename>tred.mac</filename>
+	      or any other file given after the
+	      <parameter>-m</parameter> parameter on the command line 
+	      or a file specified in the
+	      <application>TrEd</application>'s configuration
+	      option <literal>MacroFile</literal>.	      
+	    </para>
+	  </listitem>
+	</orderedlist>
+	Macro programmers are supposed to keep the
+	<filename>tred.def</filename> file unchanged, but are
+	encouraged to modify or append the
+	<filename>tred.mac</filename> macro file according to their
+	needs. 
+      </para>
+      <para>
+	Other macro files may be included into any
+	<filename>tred.mac</filename> file by using the following
+	directive:
+      </para>
+	<literallayout>#include&nbsp;<replaceable>filename</replaceable></literallayout>
+      <para>
+	If the <replaceable>filename</replaceable> provides only a
+	relative path, then directories are searched in the following
+	way and order:
+	<orderedlist>
+	  <listitem>
+	    <para>Current directory is searched.</para>
+	  </listitem>
+	  <listitem>
+	    <para>The directory of the file where the
+	      <literal>#include</literal> directive occured
+	      is searched.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para><application>TrEd</application>'s library directory
+	      is searched.
+	    </para>
+	  </listitem>
+	</orderedlist>
+	The first found occurrence of
+	<replaceable>filename</replaceable> is used as if the content
+	of the file was actually included in place of the
+	<literal>#include</literal> directive.
+      </para>
+    </sect2>
+    <sect2>
+      <title>Adding macros to menu, assigning shortcuts</title>
+      <para>
+	For convenience, two more directives are available for adding
+	a macro to <application>TrEd</application>'s
+	<guimenu>User-defined</guimenu> menu and for assigning a
+	keyboard shortcut to macro.	
+      </para>
+      <para>
+	To connect the <literal>my_first_macro</literal> with a 
+	new menu item labeled <guimenuitem>My First
+	Macro</guimenuitem>
+	under the <guimenu>User-defined</guimenu> menu,
+	the following directive should appear in some macro
+	file read by <application>TrEd</application>:
+      </para>
+      <literallayout>#insert my_first_macro as menu My First Macro</literallayout>
+      <para>
+	Actually the words <literal>as</literal> and
+	<literal>menu</literal> may be omitted, so it is
+	possible to write the above directive also as:
+      </para>
+      <literallayout>#insert my_first_macro as My First Macro</literallayout>
+      <para>or even</para>
+      <literallayout>#insert my_first_macro My First Macro</literallayout>
+      <para>
+	To make the macro accessible via a keyboard shortcut,
+	the <literal>#bind</literal> directive may be used.
+	Thus, to <quote>bind</quote> the
+	<literal>my_first_macro</literal> macro to say
+	<keycombo action="simul">
+	  <keycap>Ctrl</keycap>
+	  <keycap>Alt</keycap>
+	  <keycap>Del</keycap>
+	</keycombo>
+	keyboard shortcut, the following line should appear somewhere
+	in the macro file:
+      </para>
+	<literallayout>#bind my_first_macro to key Ctrl+Alt+Del</literallayout>
+      <para>
+	Again, the <literal>to</literal> and
+	<literal>key</literal> words may be omitted.	
+      </para>
+      <warning>
+	<para>
+	  Using the shortcut selected here as an example is probbably
+	  not a good idea, as it is a shortcut that restarts the
+	  system on many computers.  Remember, that only shortcuts
+	  which are not interpreted by the operating system or desktop
+	  environment may be assigned to
+	  <application>TrEd</application>'s macros and work correctly.
+	</para>
+      </warning>
+      <para>If both the menu item and keyboard shortcut are needed for
+	a macro, the following abbreviated form can be used:
+      </para>
+      <literallayout>#bind my_first_macro to key Ctrl+Alt+Del menu My First Macro</literallayout>
+      <para>
+	If more than one keyboard shortcuts or menu items are
+	connected with the same macro, any of them may be used to invoke the
+	macro. If more than one macro was assigned the same keyboard
+	shortcut, the latest binding appearing in the macro files
+	is used. Also, if two or more macros with the same name
+	appear in the loaded macro files, the last one is used.
+      </para>
+      <para>
+	When an interactively invoked macro returns,
+	<application>TrEd</application> automatically redraws the tree
+	and activates the node referenced by variable <literal>$this</literal>.
+	Moreover, the file is also considered modifyed which may
+	toggle the state of the <inlinegraphic fileref="pics/filefloppy.png"/>
+	button. This may be an unwanted behaviour for macros which
+	do not change the structure of the trees nor attribute
+	values. To prevent <application>TrEd</application> from
+	considering the file modifyed by the macro, the macro must explicitly
+	set the special variable named
+	<literal>$FileNotSaved</literal> to zero.
+      </para>
+      <note>
+	<para>If the state of the file was considered
+	  <emphasis>modified and not saved</emphasis> when a
+	  macro was interactively invoked, any changes to
+	  the <literal>$FileNotSaved</literal> variable made
+	  by the macro are ignored.
+	</para>
+      </note>
+    </sect2>
+    <sect2>
+      <title>Accessing tree nodes</title>
+      <para>In <application>TrEd</application> macros as well as in 
+	<application>TrEd</application> itself tree nodes are
+	represented by <classname>FSNode</classname> objects. They are
+	basically only references to hash tables where
+	the attribute-name/attribute-value information is stored
+	as a key/value pair. Moreover, the <classname>FSNode</classname>
+	object provide a few methods to access the node's neighbors in
+	the tree.
+      </para>
+      <para>The macro invoked by user action (e.g. pressing the
+	keyboard shortcut assigned to the macro) is may use the
+	following variables to refer to the active node and to
+	the root of the active tree (how to access any tree in the
+	file will be told later):
+      </para>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>$this</literal></term>
+	  <listitem>
+	    <para>Points to the active node in the current tree.
+	      Macros may use this variable to access the active node as
+	      well as to make other node active (by assigning a
+	      different node reference to it).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>$root</literal></term>
+	  <listitem>
+	    <para>Points to the root of the current tree.
+	      Macros may use this variable to access the root of
+	      the tree and (consequently) to access the whole tree.
+	      However, all assignments to this variable are ignored by
+	      <application>TrEd</application>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+      <sect3>
+	<title>Accessing node attributes</title>
+	<para>
+	  If
+	  <literal>$node</literal> is a <classname>FSNode</classname> object
+	  reference, the value of the attribute
+	  <literal><replaceable>attr</replaceable></literal> is
+	  returned by the
+	  <literal>$node->{<replaceable>attr</replaceable>}</literal>
+	  expression. To give the node's
+	  <literal><replaceable>attr</replaceable></literal>
+	  attribute new value, say <replaceable>val</replaceable>,
+	  the following simple assignment may be used:
+	</para>
+	<literallayout>$node->{<replaceable>attr</replaceable>}='val';</literallayout>
+      </sect3>
+      <sect3>
+	<title>Accessing node neighbors</title>
+	<para>
+	  There is a few methods provided by every
+	  <classname>FSNode</classname> reference that can be used
+	  to access other nodes in the tree. Each of the methods
+	  return either a <classname>FSNode</classname> reference
+	  pointing to the requested node, or zero if 
+	  the requested node does not exist. For example, the
+	  following code may be used to make the active node's
+	  parent node active:
+	</para>
+	<programlisting>$this = $this->parent if ($this->parent);</programlisting>
+	<para>
+	  The above code states: activate the parent node of the
+	  currently active node in case the currently active node
+	  has a parent.
+	</para>
+	<para>
+	  The following table describes all available
+	  <classname>FSNode</classname> methods:
+	</para>
+	<table>
+	  <title><classname>FSNode</classname> methods</title>
+	  <tgroup cols="2">
+	    <thead>
+	      <row>
+		<entry>Method name</entry>
+		<entry>Description</entry>
+	      </row>
+	    </thead>
+	    <tbody>
+	      <row>
+		<entry><literal>parent</literal></entry>
+		<entry>Return node's parent node.</entry>
+	      </row>
+	      <row>
+		<entry><literal>firstson</literal></entry>
+		<entry>Return the first child node of the given node
+		  (the first node depending on the given node).</entry>
+	      </row>
+	      <row>
+		<entry><literal>rbrother</literal></entry>
+		<entry>
+		  Return the right
+		  brother of the given node. However, hence the nodes
+		  may be displayed in the order given by the special
+		  FS-format numbering attribute <literal>@N</literal>,
+		  the returned node must not necessarily be displayed on
+		  the right of the given node. This is because the
+		  ordering of provided by the special numbering attribute
+		  does not have to correspond to the natural structure
+		  ordering of the tree.
+		</entry>
+	      </row>
+	      <row>
+		<entry><literal>lbrother</literal></entry>
+		<entry>
+		  Return the left
+		  brother of the given node. However, as for the 
+		  right brother, hence the nodes
+		  may be displayed in the order given by the special
+		  FS-format numbering attribute <literal>@N</literal>,
+		  the returned node must not necessarily be displayed on
+		  the left of the given node. This is because the
+		  ordering of provided by the special numbering attribute
+		  does not have to correspond to the natural structure
+		  ordering of the tree.
+		</entry>
+	      </row>
+	      <row>
+		<entry><literal>following(<replaceable>top</replaceable>?)</literal></entry>
+		<entry>
+		  Return the next node of the given node in the
+		  natural ordering of the tree provided by the
+		  tree structure. E.g. if the given node has a child,
+		  this child is returned. If the node has no childs
+		  but does have a right brother,
+		  <classname>FSNode</classname>
+		  reference to the right brother is returned.
+		  If no child and no right brother exists for the
+		  given node, the method looks for a right brother
+		  of its nearest ancestor, etc. Starting from the root
+		  of the tree and calling this method repeatedly
+		  on for the returned node ensures that all the nodes
+		  in the trees are accessed during the procedure.
+		  If the optional argument <replaceable>top</replaceable>
+		  contains a <classname>FSNode</classname> reference,
+		  the searching is limited to the subtree governed by 
+		  the node of <replaceable>top</replaceable>.
+		</entry>
+	      </row>
+	      <row>
+		<entry><literal>previous(<replaceable>top</replaceable>?)</literal></entry>
+		<entry>
+		  Return the previous node of the given node in the
+		  natural ordering of the tree provided by the tree
+		  structure (see the above description of the
+		  <literal>following</literal>
+		  method for more detail on the ordering).
+		  If the optional argument <replaceable>top</replaceable>
+		  contains a <classname>FSNode</classname> reference,
+		  the searching is limited to the subtree governed by 
+		  the node of <replaceable>top</replaceable>.
+		</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </sect3>
+      <sect3>
+	<title>Accessing other trees</title>
+	<para>
+	  To be able to describe a method to access any tree in a file
+	  opened by <application>TrEd</application> from macros we
+	  must first take a more detailed look on the
+	  <application>TrEd</application>'s internal structures and
+	  classes.
+	</para>
+	<para>
+	  Macros have actually access to one of the most fundamental
+	  structure of <application>TrEd</application>: the so called
+	  <quote>Grouping</quote> structure. This structure may be
+	  accessed using the <literal>$grp</literal> variable.  There
+	  is really a lot of things that can be achieved by using this
+	  variable in a proper way, but since actually not many
+	  members of the <quote>Grouping</quote> structure are
+	  guaranteed to stay present or unchanged in this structure in
+	  the future versions of <application>TrEd</application> we
+	  will pay our attention to only a few of the most important.
+	</para>
+	<para>
+	  The current file is accessed using the
+	  <literal>$grp->{FSFile}</literal> reference. This reference
+	  is a pointer to an object of the <classname>FSFile</classname>
+	  class. The following methods are provided for the class:
+	</para>
+	<table>
+	  <title><classname>FSFile</classname> class methods</title>
+	  <tgroup cols="2">
+	    <thead>
+	      <row>
+		<entry>Method name</entry>
+		<entry>Description</entry>
+	      </row>
+	    </thead>
+	    <tbody>
+	      <row>
+		<entry><literal>filename</literal></entry>
+		<entry>Returns current file's name.</entry>
+	      </row>
+	      <row>
+		<entry><literal>changeFilename(<replaceable>name</replaceable>)</literal></entry>
+		<entry>Change current file's name.</entry>
+	      </row>
+	      <row>
+		<entry><literal>FS</literal></entry>
+		<entry>Return a reference to an associated
+		  <classname>FSFormat</classname> object.
+		</entry>
+	      </row>
+	      <row>
+		<entry><literal>trees</literal></entry>
+		<entry>Return a list of all trees (i.e.
+		  a list of <classname>FSNode</classname>
+		  object references pointing to the roots
+		  of the trees).
+		</entry>
+	      </row>
+	      <row>
+		<entry><literal>hint</literal></entry>
+		<entry>Return the <application>TrEd</application>'s
+		hint pattern associated with the file.</entry>
+	      </row>
+	      <row>
+		<entry><literal>changeHint(<replaceable>pattern</replaceable>)</literal></entry>
+		<entry>Change the <application>TrEd</application>'s
+		  hint pattern associated with the file.
+		</entry>
+	      </row>
+	      <row>
+		<entry><literal>pattern(<replaceable>n</replaceable>)</literal></entry>
+		<entry>Return the <replaceable>n</replaceable>'th 
+		  attribute pattern associated with the file.</entry>
+	      </row>
+	      <row>
+		<entry><literal>patterns</literal></entry>
+		<entry>Return a list of all attribute patterns
+		associated with the file.</entry>
+	      </row>
+	      <row>
+		<entry><literal>pattern_count</literal></entry>
+		<entry>Return the number of display attribute patterns
+		associated with the file.</entry>
+	      </row>
+	      <row>
+		<entry><literal>changePatterns(<replaceable>patterns</replaceable>)</literal></entry>
+		<entry>Change the list of  attribute patterns
+		  associated with the file.</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+	<para>
+	  Actually, some other <classname>FSFile</classname> methods
+	  exist, but as they are not intended to be used from the
+	  macros directly, there is no reason to describe them here.
+	</para>
+	<para>
+	  The most important of the methods above is the
+	  <literal>FS</literal> method which may be used to access the
+	  <classname>FSFormat</classname> class object associated with
+	  the given file. Similarly as in the case of
+	  <classname>FSFile</classname> class, only the most importand
+	  methods of the <classname>FSFormat</classname> class are
+	  described here.
+	</para>
+	<table>
+	  <title><classname>FSFormat</classname> class methods</title>
+	  <tgroup cols="2">
+	    <thead>
+	      <row>
+		<entry>Method name</entry>
+		<entry>Description</entry>
+	      </row>
+	    </thead>
+	    <tbody>
+	      <row id="FS.order">
+		<entry>order</entry>
+		<entry>Return the name of the special numerical FS attribute
+		  responsible for providing the tree order. This
+		  attribute is declared in the FS file as <literal>@N</literal>.
+		</entry>
+	      </row>
+	      <row id="FS.sentord">
+		<entry>sentord</entry>
+		<entry>Return the name of the special numerical FS attribute
+		  responsible for providing the order of the values
+		  to form a <quote>sentence</quote>. This
+		  attribute is declared in the FS file as
+		  <literal>@W</literal>.
+		</entry>
+	      </row>
+	      <row id="FS.value">
+		<entry>value</entry>
+		<entry>Return the name of the special FS attribute
+		  providing a descriptive value of the node used when
+		  forming a <quote>sentence</quote>. This
+		  attribute is declared in the FS file as
+		  <literal>@V</literal>.</entry>
+	      </row>
+	      <row>
+		<entry>hide</entry>
+		<entry>Return the name of the special FS attribute
+		  which can be used to hide several subtrees. This
+		  attribute is declared in the FS file as
+		  <literal>@H</literal>; a subtree is
+		  hidden if its governing node's value for this
+		  attribute is <literal>'hide'</literal>.</entry>
+	      </row>
+	      <row>
+		<entry>isHidden(<replaceable>node</replaceable>)</entry>
+		<entry>Return true if the given <classname>FSNode</classname>
+		<replaceable>node</replaceable> belongs to a hidden subtree.
+		</entry>
+	      </row>
+	      <row>
+		<entry>isList(<replaceable>attr</replaceable>)</entry>
+		<entry>Return true if the given attribute is of list
+		  type with a strictly defined set of possible
+		  values. This type of attributes is declared by
+		  the <literal>@L</literal> header in the FS format.
+		</entry>
+	      </row>
+	      <row>
+		<entry>listValues(<replaceable>attr</replaceable>)</entry>
+		<entry>Return a list of all possible values for the
+		given attribute <replaceable>attr</replaceable>. Empty
+		list is retured in case the attribute is not of the
+		list type.
+		</entry>
+	      </row>
+	      <row>
+		<entry>color(<replaceable>attr</replaceable>)</entry>
+		<entry>
+		  Return one of the <literal>Shadow</literal>,
+		  <literal>Hilite</literal> and
+		  <literal>XHilite</literal> and
+		  <literal>normal</literal>
+		  values, depending on the
+		  color specified in the FS file header.
+		</entry>
+	      </row>
+	      <row>
+		<entry>attributes</entry>
+		<entry>Return a list containing names of all the
+		attributes declared in the FS file header.</entry>
+	      </row>
+	      <row>
+		<entry>atno(<replaceable>n</replaceable>)</entry>
+		<entry>Return name of the
+		  <replaceable>n</replaceable>'th
+		  attribute.
+		</entry>
+	      </row>
+	      <row>
+		<entry>indexOf(<replaceable>attr</replaceable>)</entry>
+		<entry>Return index of the attribute named 
+		  <replaceable>attr</replaceable>, corresponding
+		  to the order in which attributes are defined in the
+		  FS file.
+		</entry>
+	      </row>
+	      <row>
+		<entry>count</entry>
+		<entry>Return number of attributes defined in the FS file.</entry>
+	      </row>
+	      <row>
+		<entry>exists(<replaceable>attr</replaceable>)</entry>
+		<entry>Return true if attribute named
+		  <replaceable>attr</replaceable> exists for the FS
+		  file. If it is not the case, false (i.e. zero) is returned.
+		</entry>
+	      </row>
+	      <row>
+		<entry>make_sentence(<replaceable>root_node</replaceable>)</entry>
+		<entry>Return a string forming a
+		  <quote>sentence</quote> for the given node's subtree. 
+		  The sentence is formed in the following way:
+		  <orderedlist>
+		    <listitem>
+		      <para>
+			All the nodes of the
+			<replaceable>root_node</replaceable> node's
+			subtree and ordered according to their values
+			for the special numerical FS sentence ordering
+			attribute (see method <link
+			linkend="FS.sentord"><literal>sentord</literal></link>
+			above). The special FS numbering attribute
+			(see method <link
+			linkend="FS.order"><literal>order</literal></link>
+			above) is used if no sentence ordering
+			attribute is declared in the FS file.
+		      </para>
+		    </listitem>
+		    <listitem>
+		      <para>
+			For every such node, its descriptive value
+			(see
+			method <link linkend="FS.order"><literal>value</literal></link>
+			above) is taken.
+		      </para>
+		    </listitem>
+		    <listitem>
+		      <para>
+			The values obtained in this way and order
+			are joined into a single string with fields
+			separated by the value of
+			<replaceable>separator</replaceable>.  </para>
+		    </listitem>
+		  </orderedlist>
+		</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+	<para>
+	  The methods <literal>sentord</literal>,
+	  <literal>order</literal>,
+	  <literal>value</literal>, and
+	  <literal>hide</literal> described above
+	  are useful especially in macros of
+	  general purposes, where names of the corresponding
+	  attributes are not known in advance. However, one should
+	  keep in mind, that calling these functions too often
+	  may result in considerably worse performence. 
+	  The following example which actually re-implements the
+	  <literal>make_sentence</literal> method shows usage
+	  of the <classname>FSFormat</classname> object member
+	  methods.	  
+	</para>
+	<informalexample>
+	  <programlisting>
+sub MakeSentence {
+  my ($top,$separator)=@_;   # two parameters
+
+  $separator = ' ' unless defined($separator);
+  my @nodes  = ();           # array to store the nodes in
+  my $ord    = $grp->{FSFile}->FS->sentord ||
+	       $grp->{FSFile}->FS->order;
+  my $value  = $grp->{FSFile}->FS->value;
+
+  my $node = $top;
+  while ($node) {
+    push @nodes, $node;      # collect all nodes in the nodes array
+    $node = $node->following($top);
+  }
+
+  # Transiation of the following mighty Perl construct to English:
+  # 1. sort the collected nodes comparint their values for attribute $ord
+  # 2. get their values using a "map" which maps element $_ to $_->{$value}
+  # 3. join the values separating the fields with $separator
+  # 4. and finally return the string.
+
+  return join( $separator,
+	       map { $_->{$value} }
+	       sort { $a->{$ord} &lt;=> $b->{$ord} } @nodes );
+}
+	  </programlisting>
+	</informalexample>
+	<para>
+	  If the values of <literal>value</literal>, <literal>sentord</literal> or
+	  possibly <literal>order</literal> were evaluated each
+	  time the Perl <literal>sort</literal> or
+	  <literal>map</literal> function needs to compare or map
+	  nodes, the performance of the code would considerably decrease.
+	</para>
+      </sect3>
+    </sect2>
+    <sect2 id="defaultmacros">
+      <title>Pre-defined functions</title>
+      <para>
+	The above mentioned <filename>tred.def</filename> file
+	provides a set of pre-defined <application>TrEd</application>
+	macros. Pre-defined macros may be freely used in all other
+	user-defined macros and are guaranteed to be updated and
+	shipped with every version of <application>TrEd</application>
+	preserving their own API.  Most of the pre-defined macros
+	wrap the key <application>TrEd</application>'s internal
+	function calls.  The following table briefly
+	describes each of them.
+      </para>
+      <table>
+	<title><application>TrEd</application>'s pre-defined
+	macros.</title>
+	<tgroup cols="2">
+	  <thead>
+	    <row>
+	      <entry>Macro name</entry>
+	      <entry>Description</entry>
+	    </row>
+	  </thead>
+	  <tbody>
+	    <row>
+	      <entry><literal>Redraw</literal></entry>
+	      <entry>Force <application>TrEd</application> to redraw
+		the current tree immediately. Hence
+		<application>TrEd</application> redraws the tree
+		right after an interactively invoked macro finishes
+		the <literal>Redraw</literal> macro is needed only under
+		certain circumstances.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>SetDisplayAttrs(<replaceable>patterns</replaceable>)</literal></entry>
+	      <entry>
+		Use the given list of <application>TrEd</application>'s 
+		patterns for displaying attributes. See also  
+		<xref linkend="attributes"/>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>SetBalloonPattern(<replaceable>pattern</replaceable>)</literal></entry>
+	      <entry>
+		Use the given <replaceable>pattern</replaceable>
+		as a new hint pattern. See also  
+		<xref linkend="attributes"/>.
+ 	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>SwitchContext(<replaceable>context_name</replaceable>)</literal></entry>
+	      <entry>
+		Switch to a different macro context. See
+		<xref linkend="contexts"/> for more detail about contexts.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>CurrentContext</literal></entry>
+	      <entry>
+		Return the name of the current macro context.  See
+		<xref linkend="contexts"/> for more detail about contexts.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>GotoTree(<replaceable>n</replaceable>)</literal></entry>
+	      <entry>Display the <replaceable>n</replaceable>'th
+		tree in the current file.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NextTree</literal></entry>
+	      <entry>Display the next tree in the current file.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>PrevTree</literal></entry>
+	      <entry>Display the previous tree in the current file.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>GetOrd(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>Return value of the special numbering FS
+		<link linkend="FS.order">attribute</link>. This macro actually returns the same value
+		as
+		<programlisting>$node->{ $grp->{FSFile}->FS->order }</programlisting>
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>CutNode(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>Cut the <replaceable>node</replaceable>'s subtree
+		off the tree and return it.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>PasteNode(<replaceable>node</replaceable>,<replaceable>parent</replaceable>)</literal></entry>
+	      <entry>
+		Paste the subtree of the node given by the
+		<replaceable>node</replaceable> argument under the
+		node given in the <replaceable>parent</replaceable>
+		argument. <application>TrEd</application> tries to
+		place the top <replaceable>node</replaceable> of the
+		pasted subtree between the present children of
+		<replaceable>parent</replaceable> according to values
+		of the special FS numbering <link
+		linkend="FS.order">attribute</link>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NewTree</literal></entry>
+	      <entry>Create a new tree <emphasis>before</emphasis> the current tree.
+		The new tree consists of exactly one node.
+		This node is activated and a reference to its
+		<classname>FSNode</classname> object is returned.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NewTreeAfter</literal></entry>
+	      <entry>Create a new tree <emphasis>before</emphasis> the current tree.
+		The new tree consists of exactly one node.
+		This node is activated and a reference to its
+		<classname>FSNode</classname> object is returned.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>Save</literal></entry>
+	      <entry>Save the current file.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>SaveAndNextFile</literal></entry>
+	      <entry>Save the current file and open the next file
+		in the current file-list.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>SaveAndPrevFile</literal></entry>
+	      <entry>Save the current file and open the previous file
+		in the current file-list.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>Find</literal></entry>
+	      <entry>Open the <guilabel>Find Node by
+		  Attributes</guilabel> GUI dialog.
+		See <link
+	      linkend="find"><guimenu>Find...</guimenu></link> menu
+	      command for more detail.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>FindNext</literal></entry>
+	      <entry>
+		Searches for the first node matching the criteria of the
+		previous use of the <guimenuitem>Find
+		  ...</guimenuitem> menu command or
+		<literal>FindNode</literal>
+		macro usage.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>FindPrev</literal></entry>
+	      <entry>
+		Searches for the previous node matching the criteria of the
+		previous use of the <guimenuitem>Find
+		  ...</guimenuitem> menu command  or
+		<literal>FindNode</literal>
+		macro usage.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>PlainNewSon(<replaceable>parent</replaceable>)</literal></entry>
+	      <entry>Add new child node to the given
+		<replaceable>parent</replaceable>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>PlainDeleteNode(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>Delete the given <replaceable>node</replaceable>.
+		The node must be a leaf of the tree (may not have
+		any children) and must have a parent (may not be
+		the root of the tree).
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NewRBrother(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>Create a new brother of the
+		given <replaceable>node</replaceable> and
+		recalculate the special FS numbering attribute values
+		in the whole tree so that the new node is
+		the first right sibling of the given
+		<replaceable>node</replaceable>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NewLBrother(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>Create a new brother of the
+		given <replaceable>node</replaceable> and
+		recalculate the special FS numbering attribute values
+		in the whole tree so that the new node is
+		the first left sibling of the given
+		<replaceable>node</replaceable>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NewSon(<replaceable>parent</replaceable>)</literal></entry>
+	      <entry>Create a new child of the
+		given <replaceable>parent</replaceable> node and
+		recalculate the special FS numbering attribute values
+		in the whole tree so that the new node is
+		the first node left to the given
+		<replaceable>parent</replaceable>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>DeleteThisNode</literal></entry>
+	      <entry>Delete the current node
+		 and
+		recalculate the special FS numbering attribute values
+		in the whole tree so that there is
+		no gap in the numbering. If the current
+		node is not a leaf or if it is a root of the current
+		tree, this macro does nothing.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>CopyValues</literal></entry> 
+	      <entry>
+		Copy values of all the attributes except the special
+		FS numbering attribute of the current node to a global
+		hash variable named
+		<literal>%ValuesClipboard</literal>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>PasteValues</literal></entry>
+	      <entry>
+		Replace values of the current node's attributes
+		by those stored in a global hash variable
+		named <literal>%ValuesClipboard</literal>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NextNode(<replaceable>node</replaceable>,<replaceable>top</replaceable>)</literal></entry>
+	      <entry>
+		Return the first displayed node following the given
+		<replaceable>node</replaceable>
+		in the subtree of <replaceable>top</replaceable>.
+		This function behaves in the same manner as the
+		<programlisting><replaceable>node</replaceable>->following(<replaceable>top</replaceable>)</programlisting>
+		method, except it works only on the nodes which are
+		actually visible according to the state of the
+		<menuchoice>
+		  <guimenu>View</guimenu>
+		  <guimenuitem>Show Hidden Nodes</guimenuitem>
+		</menuchoice> menu item.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>PrevNode(<replaceable>node</replaceable>,<replaceable>top</replaceable>)</literal></entry>
+	      <entry>
+		Return the first displayed node preceding the given
+		<replaceable>node</replaceable>
+		in the subtree of <replaceable>top</replaceable>.
+		This function behaves in the same manner as the
+		<programlisting><replaceable>node</replaceable>->previous(<replaceable>top</replaceable>)</programlisting>
+		method, except it works only on the nodes which are
+		actually visible according to the state of the
+		<menuchoice>
+		  <guimenu>View</guimenu>
+		  <guimenuitem>Show Hidden Nodes</guimenuitem>
+		</menuchoice> menu item.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NextVisibleNode(<replaceable>node</replaceable>,<replaceable>top</replaceable>)</literal></entry>
+	      <entry>
+		Return the first visible node following the given
+		<replaceable>node</replaceable>
+		in the subtree of <replaceable>top</replaceable>.
+		This function behaves in the same manner as the
+		<programlisting><replaceable>node</replaceable>->following(<replaceable>top</replaceable>)</programlisting>
+		method, except that nodes of hidden subtrees are
+		skipped.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>PrevVisibleNode(<replaceable>node</replaceable>,<replaceable>top</replaceable>)</literal></entry>
+	      <entry>		
+		Return the first visible node preceding the given
+		<replaceable>node</replaceable>
+		in the subtree of <replaceable>top</replaceable>.
+		This function behaves in the same manner as the
+		<programlisting><replaceable>node</replaceable>->previous(<replaceable>top</replaceable>)</programlisting>
+		method, except that nodes of hidden subtrees are
+		skipped.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>IsHidden(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>Return true if the given
+		<replaceable>node</replaceable>
+		is member of a hidden subtree. This macro is only
+		an abbreviation for
+		<programlisting>$grp->{FSFile}->FS->isHidden(<replaceable>node</replaceable>)</programlisting>
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>GetNodes(<replaceable>top</replaceable>?)</literal></entry>
+	      <entry>Return a list of all nodes
+		in the subtree of the given
+		<replaceable>top</replaceable>
+		node (or the whole current tree if no <replaceable>top</replaceable>
+		is given). The list returned is ordered in
+		the natural structure ordering.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>GetVisibleNodes</literal></entry>
+	      <entry>Return a list of all visible nodes
+		in the subtree of the given
+		<replaceable>top</replaceable>
+		node (or the whole current tree if no <replaceable>top</replaceable>
+		is given). The list returned is ordered in
+		the natural structure ordering and
+		all members of hidden subtrees are skipped.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>NormalizeOrds(<replaceable>listref</replaceable>)</literal></entry>
+	      <entry>
+		Adjusts the special FS numbering attribute of 
+		every node of a list referenced by the 
+		<replaceable>listref</replaceable> argument so that
+		the value for the attribute corresponds to the
+		order of the node in the list.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>SortByOrd(<replaceable>listref</replaceable>)</literal></entry>
+	      <entry>
+		Sort the list of nodes referenced by the
+		<replaceable>listref</replaceable> argumnt according
+		to the values of the special FS numbering attribute.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>RepasteNode(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>
+		Cut the given <replaceable>node</replaceable> and 
+		paste it immediately on the same parent so that
+		its structural position between its parent children
+		is brought to correspondence
+		with the values of the special FS numbering attribute.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>ShiftNodeRightSkipHidden(<replaceable>node</replaceable>)</literal></entry>
+	      <entry>
+		Shift the current node in the tree to the right
+		leaping over all hidden subtress by modifying
+		the tree structure and value of the special FS
+		numbering attribute appropriately. 
+	      </entry>
+	    </row>
+	    <row>	     
+	      <entry><literal>ShiftNodeLeftSkipHidden</literal></entry>
+	      <entry>
+		Shift the current node in the tree to the left
+		leaping over all hidden subtress by modifying
+		the tree structure and value of the special FS
+		numbering attribute appropriately. 
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>ShiftNodeRight</literal></entry>
+	      <entry>
+		Shift the current node in the tree to the right
+		by modifying
+		the tree structure and value of the special FS
+		numbering attribute appropriately. 
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>ShiftNodeLeft</literal></entry>
+	      <entry>
+		Shift the current node in the tree to the right
+		by modifying
+		the tree structure and value of the special FS
+		numbering attribute appropriately. 
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>AtrNo(<replaceable>n</replaceable>)</literal></entry>
+	      <entry>Retrun name of the
+		<replaceable>n</replaceable>'th
+		attribute defined in the FS file. This macro only
+		abbreviates the following expression:
+		<programlisting>$grp->{FSFile}->FS->atno(<replaceable>n</replaceable>)</programlisting>
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>ValNo(<replaceable>n</replaceable>,<replaceable>string</replaceable>)</literal></entry>
+	      <entry>Return <replaceable>n</replaceable>'th field
+		of the given <replaceable>string</replaceable> where
+		individual fields are separated by <quote><literal>|</literal></quote>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>Union(<replaceable>string-a</replaceable>,<replaceable>string-b</replaceable>)</literal></entry>
+	      <entry>Return a string consisting of
+		<literal>|</literal>-separated fields
+		which form a pairwise disjoint set of the
+		<literal>|</literal>-separated fields of
+		  the given strings
+	      <replaceable>string-a</replaceable>
+		  and <replaceable>string-b</replaceable>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>Interjection</literal></entry>
+	      <entry>Return a string consisting of
+		<literal>|</literal>-separated fields
+		which form the interjection of the sets of 
+		<literal>|</literal>-separated fields of
+		  the given strings
+	      <replaceable>string_a</replaceable>
+		  and <replaceable>string_b</replaceable>.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>ListSplit(<replaceable>string</replaceable>)</literal></entry>
+	      <entry>Split the given string
+		of <literal>|</literal>-separated fields
+		and return a list of the individual fields.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>ListJoin(<replaceable>fields</replaceable>)</literal></entry>
+	      <entry>Form a string of <literal>|</literal>-separated
+		fields from the given list of fields.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>ListEq(<replaceable>string_a</replaceable>,<replaceable>string_b</replaceable>)</literal></entry>
+	      <entry>Compare the sets of
+		<literal>|</literal>-separated 
+		fields of the two given strings. Return
+		true if the sets contain the same elements; return
+		false otherwise.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>ListAssign(<replaceable>string</replaceable>,<replaceable>n</replaceable>,<replaceable>value</replaceable>)</literal></entry>
+	      <entry>Return the given string of	<literal>|</literal>-separated 
+		fields, except that the
+		<replaceable>n</replaceable>'th
+		field in the <replaceable>string</replaceable> is
+		replaced by the given <replaceable>value</replaceable>.
+	      </entry>
+	    </row>
+	  </tbody>
+	</tgroup>
+      </table>
+    </sect2>
+    <sect2 id="hooks">
+      <title>Hooks: automatically executed macros</title>
+      <para>
+	There is a special set of macros that was not yet
+	mentioned. These macros, called hooks, are automatically
+	executed by <application>TrEd</application> on certain
+	occasions. By defining such macros a little more of the
+	<application>TrEd</application>'s implicit behaviour may be
+	influenced, for example the execution of a planned action may
+	be aborted.
+      </para>
+      <para>
+	Hooks differ from other macros in the following aspects:
+	<orderedlist>
+	  <listitem>
+	    <para>User cannot choose a name for a hook; on the
+	      contrary hook is recognized as a macro having a
+	      special name identifying it as being a certain hook.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>Sometimes parameters are passed to hooks.</para>
+	  </listitem>
+	  <listitem>
+	    <para>No modifications of the tree or current node
+	      are reflected after the hook returns. Tree is not
+	      redrawn, changes to <literal>$this</literal> variable
+	      are not reflected. If necessary, hook must provide this
+	      functionality by itself.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Unlike the macros, hooks are not expected to modify
+	      the tree unless they explicitly state that by setting the
+	      <literal>$FileNotSaved</literal> to <literal>1</literal>.
+	    </para>
+	  </listitem>
+	</orderedlist>
+      </para>
+      <para>
+	There is a special class of hooks that may be used to prevent
+	<application>TrEd</application> from finishing a planned
+	action, e.g. enabling the user to modify certain attribute
+	value etc. The value returned by a hook of this class is checked and
+	the action is aborted in case the value equals to
+	<quote><literal>stop</literal></quote>.
+      </para>
+      <para>In the following table the hooks which may be used to
+	prevent <application>TrEd</application> from executing a
+	certain action are marked by <literal>yes</literal> in the
+	column <quote>Stop</quote>.
+      </para>
+      <table>
+	<title>Hooks</title>
+	<tgroup cols="3">
+	  <thead>
+	    <row>
+	      <entry>Name</entry>
+	      <entry>Stop</entry>
+	      <entry>Hook event description</entry>
+	    </row>
+	  </thead>
+	  <tbody>
+	    <row>
+	      <entry><literal>start_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry>Executed on start-up, before the main event loop
+		is entered.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>exit_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry>Executed when the main window
+		of <application>TrEd</application> is destroyed,
+		before the user is prompted to save the modifyed files.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal>do_edit_attrs_hook(<replaceable>attr</replaceable>,<replaceable>node</replaceable>)</literal></entry>
+	      <entry>yes</entry>
+	      <entry>Executed before a dialog window for editing
+		attribute value is displayed (usually when the 
+		user double-clicks the displayed attribute value).</entry>
+	    </row>
+	    <row>
+	      <entry><literal>enable_attr_hook(<replaceable>attr</replaceable>,
+		  <replaceable>type</replaceable>)</literal></entry>
+	      <entry>yes</entry>
+	      <entry>
+		Executed when a decision is to be made whether
+		an <replaceable>attr</replaceable>
+		attribute field in the <guilabel>Edit Node
+		Attributes</guilabel>
+		dialog or when individual value is edited
+		(usually when the 
+		user double-clicks the displayed attribute value).
+		If the hook returns
+		<quote><literal>stop</literal></quote>,
+		the field or list is made read-only. The
+		<replaceable>type</replaceable>
+		argument may have one of the following values:
+		<literal>ambiguous</literal> or
+		<literal>normal</literal>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>goto_file_hook</entry>
+	      <entry>yes</entry>
+	      <entry>
+		Executed before next or previous file in the current
+		file-list is opened.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>goto_tree_hook</entry>
+	      <entry>yes</entry>
+	      <entry>
+		Executed before different tree is displayed.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>file_opened_hook</entry>
+	      <entry>no</entry>
+	      <entry>Executed after a file is opened but before the first
+		tree is displayed.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>file_resumed_hook</entry>
+	      <entry>no</entry>
+	      <entry>Executed after a postponed (kept) file is resumed.</entry>
+	    </row>
+	    <row>
+	      <entry>pre_switch_context_hook(<replaceable>previous</replaceable>,<replaceable>next</replaceable>)</entry>
+	      <entry>yes</entry>
+	      <entry>Executed before the macro 
+		context is changed (see <xref linkend="contexts"/>).
+		The <replaceable>previous</replaceable> argument
+		contains the name of the
+		current context while
+		<replaceable>next</replaceable> contains the name of the
+		future mode.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>about_file_hook(<replaceable>stringref</replaceable>)</entry>
+	      <entry>no</entry>
+	      <entry>This hook is executed before the
+		<guilabel>About</guilabel> window is displayed.
+		The hook takes one argument: a reference to a scalar
+		variable. The hook may populate the referenced
+		variable with any information which is then displayed
+		as a part of the <guilabel>About</guilabel> window message.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>customize_attrs_hook</entry>
+	      <entry>yes</entry>
+	      <entry>Executed before the dialog for customizing attribute
+		patterns is displayed.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>sort_attrs_hook(<replaceable>attibsref</replaceable>)</entry>
+	      <entry>no</entry>
+	      <entry>Executed when attribute names are pre-sorted
+		(see <literal>SortAttributes</literal>
+		configuration options). The
+		<replaceable>attribsref</replaceable>
+		parameter passed to the hook is a reference pointing
+		to a list variable. The list is populated with all
+		attribue names and the hook may modify the list by
+		changing the order of its elements
+		or by removing certain elements from the list.
+		If then non-zero value is returned by the hook,
+		the (possibly modified) list is used for displaying purposes 
+		without any further sorting.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>after_edit_node_hook(<replaceable>node</replaceable>,<replaceable>result</replaceable>)</entry>
+	      <entry>no</entry>
+	      <entry>Executed after node attribute values were edited
+		in the <guilabel>Edit Node Attributes</guilabel>
+		dialog window. The <replaceable>result</replaceable>
+		argument contains <literal>1</literal> if the user pressed
+		<guibutton>Ok</guibutton> button to close the dialog
+		and it contains <literal>0</literal> if the user
+		closed the dialog with the
+	      <guibutton>Close</guibutton> button.
+	      </entry> 
+	    </row>
+	    <row>
+	      <entry>after_edit_attr_hook</entry>
+	      <entry>no</entry>
+	      <entry>Executed after a node attribute was edited
+		in the <guilabel>Edit Attribute</guilabel>
+		dialog window. The <replaceable>result</replaceable>
+		argument contains <literal>1</literal> if the user pressed
+		<guibutton>Ok</guibutton> button to close the dialog
+		and it contains <literal>0</literal> if the user
+		closed the dialog with the
+	      <guibutton>Close</guibutton> button.
+	      </entry> 
+	    </row>
+	  </tbody>
+	</tgroup>
+      </table>
+    </sect2>
+    <sect2 id="contexts">
+      <title>Using different sets macros in different situations</title>
+      <subtitle>Name-spaces, contexts and binding contexts</subtitle>
+      <para>
+	<application>TrEd</application> adopts mechanisms similar
+	e.g. to <application>Emacs</application> major-modes which
+	allow the user to safely create several sets of macros with possibly
+	coliding key and menu bindings as well as macro names.
+	These mechanisms are called <emphasis>cotexts</emphasis>, or
+	more specifically: name-spaces and binding contexts.
+      </para>
+      <para>
+	To prevent macros from colliding or modifying the internal
+	<application>TrEd</application> variables or functions the
+	Perl concept of packages or namespaces is used.  Unless the
+	Perl <literal>package</literal> command is used, each macro
+	belongs to a default package (or name-space) called
+	<literal>TredMacro</literal>.  Beside the user-defined macros,
+	the pre-defined macros are defined within this package.
+      </para>
+      <para>
+	New package named say <replaceable>MyPackage</replaceable>
+	is created using the following command:
+	<literallayout>package <replaceable>MyPackage</replaceable>;</literallayout>
+	To be able to call macros defined in the
+	<literal>TredMacro</literal> package (e.g. the pre-defined
+	macros) without having to prefix their names with one of
+	<literal>TredMacro-></literal> or
+	<literal>TredMacro::</literal> prefixes the following command may
+	be used to import the <literal>TredMacro</literal> name-space
+	to the current package's name-space:
+	<literallayout>import TredMacro;</literallayout>
+	Now all the subsequent macro definitions (or global variable
+	declarations)
+	are created within
+	the <replaceable>MyPackage</replaceable> name-space unless
+	other <literal>package</literal> command occurs. 
+	Thus the following example defines a macro named
+	<replaceable>my_macro</replaceable> in a new name-space
+	of the <replaceable>MyPackage</replaceable> package:
+      </para>
+      <informalexample>
+	<programlisting>
+package MyPackage;
+import TredMacro;
+
+sub my_macro {
+  # macro code comes here 
+}
+</programlisting>
+      </informalexample>
+      <para>
+	To call the <replaceable>my_macro</replaceable>
+	of the previous example	from a different package
+	than <replaceable>MyPackage</replaceable>,  the full
+	package name must be given together with the name of the
+	macro:
+	<programlisting>
+MyPackage::my_macro();   # call to a macro defined in MyPackage
+</programlisting>
+      </para>
+      <para>
+	In the interactive work, name-space are combined with
+	a concept of <emphasis>binding-contexts</emphasis>.
+	Binding contexts usually correspond to the package names.
+	Analogously to the <literal>package</literal> command, a
+	special directive exists for creating or switching a binding
+	context, however in this case, more then one binding-contexts
+	may be used at once:
+	<literallayout>#binding-context <replaceable>context_name_1</replaceable> <replaceable>context_name_2</replaceable> ...</literallayout>
+	The default binding-context is again named
+	<literal>TredMacro</literal>. To switch to a new context,
+	say <literal>MyContext</literal>, the following directive
+	should be used:
+	<literallayout>#binding-context MyContext</literallayout>
+	Now, all the subsequent directives <literal>#bind</literal>
+	or <literal>#insert</literal> would apply to this context
+	and all the bound macros, when invoked, will be first searched
+	in the package named <literal>MyContext</literal>.
+      </para>
+      <para>
+	There is a separate submenu created for each binding-context
+	in the <guimenuitem>User-defined</guimenuitem> menu. In
+	<application>TrEd</application> there may be only one context
+	active at one time. The active context may be choosen from the
+	menu on the right end of the menu bar. If a keyboard shortcut
+	is pressed, <application>TrEd</application> first searches for a
+	macro bound to the shortcut within the active binding-context
+	and if such macro exists, <application>TrEd</application>
+	invokes it. In this case, the macro is supposed to be defined
+	or imported in a package of the same name as is the name of
+	the active context. If no macro is
+	bound to the shortcut within the active binding-context,
+	<application>TrEd</application> tries to find a binding in the
+	default <literal>TredMacro</literal> context. The macro
+	is then supposed to be defined within the
+	<literal>TredMacro</literal> package.
+	If the search
+	fails, no action is taken. The same holds for hooks as well.
+      </para>
+      <para>The following example show, how to create a set of macros
+	which enable <application>TrEd</application> to automatically
+	decide which context to use, when a file is opened. It is
+	quite similar to the <application>Emacs</application> concept
+	of <quote>auto-modes</quote>, except that content of the file
+	is considered here, not the file-name extension. In the
+	example, existence of a certain attribute is chosen as a way
+	to decide which context to use. The example is extracted form
+	the set of macros written for annotation of the
+	<application>Prague Dependency Treebank</application>.
+	There are two contexts for annotation on the
+	<quote>Annalytic</quote>
+	and <quote>Tectogrammatic</quote> layers. The
+	<quote>tectogrammatic</quote>
+	trees may be easily distinguished from the
+	<quote>analytical</quote> ones as (among others)
+	a special attribute named <literal>TR</literal> is defined for
+	them.
+      </para>
+      <example>
+	<title>Using contexts</title>
+	<programlisting>
+package TredMacro; # Ensure we are in the default package
+                   # (This may not be necessary.)
+
+# we use a hook to set the context
+sub file_opened_hook {
+  if ($grp->{FSFile}->FS->exists('TR')) {
+    SwitchContext('Tectogrammatic'); 
+  } else {
+    SwitchContext('Analytic');
+  }
+}
+
+#binding-context Analytic
+package Analytic;
+import TredMacro;
+
+
+#bind SubtreeAfunAssign to Ctrl+Shift+F1
+sub SubtreeAfunAssign {
+   # automatic assignment of some analytical attributes
+}
+
+sub ReorderTree {
+   # ...
+}
+
+
+# the following binding of ReorderTree will apply to both binding contexts
+
+#binding-context Analytic Tectogrammatic
+#bind ReorderTree to Ctrl+R
+
+#binding-context Tectogrammatic
+package Tectogrammatic;
+import TredMacro;
+import Analytic;   # all macros of the Analytic package (eg. ReorderTree) 
+	           # will now be available here directly
+
+#bind SubtreeAfunAssign to Ctrl+Shift+F1
+sub SubtreeFuncAssign {
+   # automatic assignment of some tectogrammatical attributes
+}
+</programlisting>
+      </example>
+    </sect2>
+  </sect1>
+</article>
+
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: xml
+sgml-omittag:no
+sgml-shorttag:yes
+sgml-namecase-general:nil
+sgml-general-insert-case:lower
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:("/home/pajas/lib/sgml-tools/dtd/catalog" "/home/pajas/lib/sgml/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/docbook/3.1/docbook.cat /home/pajas/share/sgml/stylesheets/docbook/catalog /home/pajas/share/sgml/entities/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/jade/dsssl.cat /home/pajas/share/sgml/stylesheets/sgmltools/sgmltools.cat /home/pajas/share/sgml/dtd/sgmltools/catalog")
+sgml-local-ecat-files:nil
+End:
+-->
