@@ -792,6 +792,18 @@ sub parent {
   return ref($self) ? Fslib::Parent($self) : undef;
 }
 
+=item root
+
+Find and return the root of the node's tree.
+
+=cut
+
+sub root {
+  my ($self) = @_;
+  my $root=$self; $root=Fslib::Parent($root) while ($root->parent);
+  return $root;
+}
+
 =pod
 
 =item lbrother
