@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-17 14:46:00 pajas>
+## Time-stamp: <2004-11-19 11:31:23 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -17,34 +17,67 @@ import Coref qw(switch_context_hook); # node_style_hook);
 
 sub node_style_hook {
   my ($node,$styles)=@_;
-  if ($Coref::drawAutoCoref and $node->{corefMark}==1 and
-      ($node->{coref} eq "" or $node->{cortype}=~/auto/)) {
+  my $ARstruct = (which_struct() !~ /AR/) ? 1 : 0;
+  my @aids = grep { $_ ne "" and $_ ne $node->{AID} } getAIDREFs($node);
+  my %line;
+  #'style:<? #diff ?><? "#{Line-fill:red}#{Line-dash:- -}" if $${_diff_dep_} ?>',
+  if ($node->{_diff_dep_}) {
+    $line{-fill}='red';
+    $line{-dash}='- -';
+  }
+  if ($node->{_diff_attrs_}) {
+    #'style:<? #diff ?><? "#{Oval-fill:darkorange}#{Node-addwidth:4}#{Node-addheight:4}" if $${_diff_attrs_} ?>',
+    AddStyle($styles,'Oval',
+	     -fill => 'darkorange');
+    AddStyle($styles,'Node',
+	     -addheight => 4,
+	     -addwidth => 4
+	    );
+    #'style:<? #diff ?><? join "",map{"#{Text[$_]-fill:orange}"} split  " ",$${_diff_attrs_} ?>',
+    AddStyle($styles,"Text[$_]", -fill => 'orange') for split " ",$node->{_diff_attrs_};
+    #'style:<? #diff ?><? "#{Line-fill:black}#{Line-dash:- -}" if $${_diff_attrs_}=~/ TR/ ?>',
+    if ($node->{_diff_attrs_}=~/ TR/) {
+      $line{-dash}='- -';
+      $line{-fill}='black';
+    }
+  } elsif ($node->{_diff_in_}) {
+    #'style:<? #diff ?><? "#{Oval-fill:cyan}#{Line-fill:cyan}#{Line-dash:- -}" if $${_diff_in_} ?>',
+    AddStyle($styles,'Oval',
+	     -fill => 'cyan');
+    AddStyle($styles,'Node',
+	     -addheight => 4,
+	     -addwidth => 4);
+
+  } elsif (!$ARstruct) {
+    if ($Coref::drawAutoCoref and $node->{corefMark}==1 and
+	  ($node->{coref} eq "" or $node->{cortype}=~/auto/)) {
       AddStyle($styles,'Node',
 	       -shape => 'rectangle',
-	       -addheight => '10',
-	       -addwidth => '10'
+	       -addheight => 10,
+	       -addwidth => 10
 	      );
       AddStyle($styles,'Oval',
 	       -fill => '#FF7D20');
+    }
+    if (($Coref::referent ne "") and
+	  (($node->{TID} eq $Coref::referent) or
+	     ($node->{AID} eq $Coref::referent))) {
+      AddStyle($styles,'Oval',
+	       -fill => $Coref::referent_color
+	      );
+      AddStyle($styles,'Node',
+	       -addheight => 6,
+	       -addwidth => 6
+	      );
+    }
   }
-
-  if (($Coref::referent ne "") and
-      (($node->{TID} eq $Coref::referent) or
-       ($node->{AID} eq $Coref::referent))) {
-    AddStyle($styles,'Oval',
-	     -fill => $Coref::referent_color
-	    );
-    AddStyle($styles,'Node',
-	     -addheight => '6',
-	     -addwidth => '6'
-	    );
+  if  ($ARstruct) {
+    Coref::draw_coref_arrows($node,$styles,\%line,
+			     [split(/\|/,$node->{coref}), @aids ],
+			     [split(/\|/,$node->{cortype}), map "AID",@aids ],
+			     \%arrow_colors
+			    );
   }
-  my @aids = grep { $_ ne "" and $_ ne $node->{AID} } getAIDREFs($node);
-  Coref::draw_coref_arrows($node,$styles,
-			   [split(/\|/,$node->{coref}), @aids ],
-			   [split(/\|/,$node->{cortype}), map "AID",@aids ],
-			   \%arrow_colors
-			  );
   1;
 }
 
@@ -942,9 +975,27 @@ sub show_tag {
   describe_tag($this->{tag});
 }
 
-############# Coreference #############
+############# TR_Diff #############
 
+#bind DiffTRFiles              to equal      menu Compare trees
+#bind DiffWholeTRFiles         to Alt+equal  menu Compare files
+#bind DiffTRFiles_with_summary to Ctrl+plus  menu Compare trees with summary
+#bind TR_Diff->DiffTRFiles_select_attrs to Ctrl+equal menu Choose attributes to compare
 
+sub DiffTRFiles {
+  local $TR_Diff::compare_all = 1;
+  TR_Diff->DiffTRFiles;
+}
+
+sub DiffWholeTRFiles {
+  local $TR_Diff::compare_all = 1;
+  TR_Diff->DiffWholeTRFiles;
+}
+
+sub DiffTRFiles_with_summary {
+  local $TR_Diff::compare_all = 1;
+  TR_Diff->DiffTRFiles_with_summary;
+}
 
 ############# XPath #############
 sub TRXPath {
