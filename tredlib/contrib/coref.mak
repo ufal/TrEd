@@ -35,11 +35,10 @@ $referent=""; # stores ID of the marked node (Cut-and-Paste style)
 #bind update_coref_file to F7 menu Update coref attributes
 sub update_coref_file {
   Tectogrammatic->upgrade_file_to_tid_aidrefs();
-  my $defs=$grp->{FSFile}->FS->defs;
-
+  my $fs=$grp->{FSFile}->FS;
   # no need for upgrade if cortype is declared with the $cortypes values
-  return if (exists($defs->{cortype})
-	     and join('|',$defs->listValue('cortype')) eq $cortypes);
+  return if (exists($fs->defs->{cortype})
+	     and join('|',$fs->listValue('cortype')) eq $cortypes);
 
   # otherwise, let the use decide
   if (!GUI() || questionQuery('Automatic file update',
