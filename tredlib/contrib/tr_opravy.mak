@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-03 14:03:05 pajas>
+## Time-stamp: <2005-02-03 14:48:16 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -367,7 +367,7 @@ sub hash_AIDs_file {
   return \%aids;
 }
 
-=item hash_AIDs_file
+=item hash_AIDs
 
 Returns hash-ref of all nodes in the current tree, nodes' AIDs or TIDs
 being the keys and the nodes themselves being the values.
@@ -383,6 +383,64 @@ sub hash_AIDs {
   }
   return \%aids;
 }
+
+=item hash_copies
+
+Returns hash-ref in which keys are the nodes themselves and values references to
+arrays containing all nodes which are copies of the same tectogrammatical node
+(ie nodes that are copies of a node (and the node itself) point to one array
+containing all of them).
+
+=cut
+
+sub hash_copies {  # hash all copies of nodes for the whole file
+
+  my $aidsHash = hash_AIDs_file();
+  my %copies;
+
+  my %exceptions; # nodes having in AIDREFs nodes in different files
+  @exceptions{qw/cmpr9410-015-p11s9a0 cmpr9413-033-p30s2a1 cmpr9413-033-p30s2w1
+		 cmpr9413-033-p31s2a3 cmpr9413-033-p31s2w1 cmpr9413-033-p31s2w5/}=();
+
+  foreach my $tree (GetTrees()) {
+    my $node = $tree;
+    while ($node) {
+
+      next if exists $exceptions{$node->{AID}.$node->{TID}}; # reference in another file
+
+      foreach my $ref (grep {$_!=$node and !IsHidden($_) and defined($_)}
+		       map {$aidsHash->{$_}} grep {$_ ne ""} (split /\|/, $node->{AIDREFS})) {
+
+	if ($node->{trlemma} eq $ref->{trlemma}) { # we encountered a copy of $node
+	  if (not exists($copies{$ref}) and not exists($copies{$node})) { # create new class
+	    $copies{$node}=[$node,$ref];
+	    $copies{$ref}=$copies{$node};
+	    next;
+	  }
+	  if (not exists($copies{$ref}) and exists($copies{$node})) { # append to the class of $node
+	    push @{$copies{$node}}, $ref;
+	    $copies{$ref}=$copies{$node};
+	    next;
+	  }
+	  if (exists($copies{$ref}) and not exists($copies{$node})) { # append to the class of $ref
+	    push @{$copies{$ref}}, $node;
+	    $copies{$node}=$copies{$ref};
+	    next;
+	  }
+	}#if
+
+      }#foreach ref
+
+    }#while
+
+    continue {
+      $node=$node->following_visible(FS());
+    }#continue while
+
+  }#foreach tree
+  return \%copies;
+}
+
 
 sub uniq { my %a; @a{@_}=@_; values %a }
 
