@@ -8,7 +8,7 @@ my @rotate_colors = ('#CCFF99','#CCFFFF','#FFCCCC','#9999CC');
 my $last_color;
 my $quot_laststart; # posledni ouvozovkovany strom
 
-#bind initquot to Ctrl+i
+#bind initquot to Ctrl+i menu Initialize Quotation mode attributes
 sub initquot { # pridat atributy pro anotovani uvozovek a nastavit zobrazovaci styl
   print STDERR "initquot\n";
   AppendFSHeader(
@@ -26,7 +26,7 @@ sub initquot { # pridat atributy pro anotovani uvozovek a nastavit zobrazovaci s
 		 );
 }
 
-#bind newquot to Ctrl+n
+#bind newquot to Ctrl+n menu Create new quotation set at current subtree
 sub newquot { # nahodi a ouvozovkuje novy podstrom
   print STDERR "newquot\n";
   return unless $grp->{FSFile};
@@ -44,7 +44,7 @@ sub newquot { # nahodi a ouvozovkuje novy podstrom
   }
 }
 
-#bind joinquot to Ctrl+j
+#bind joinquot to Ctrl+j menu Exclude current subtree from the last quotation set
 sub joinquot { # ouvozovkuje podstrom a pripoji k poslednimu nahozenemu
   print STDERR "joinquot\n";
   return unless $grp->{FSFile};
@@ -57,7 +57,7 @@ sub joinquot { # ouvozovkuje podstrom a pripoji k poslednimu nahozenemu
   }
 }
 
-#bind remquot to Ctrl+r
+#bind remquot to Ctrl+r menu Unquote current subtree or it's part
 sub remquot { # oduvozovkuje cely ouvozovkovany podstrom, nebo jeho cast
   print STDERR "delquot\n";
   return unless $grp->{FSFile};
@@ -80,4 +80,19 @@ sub remquot { # oduvozovkuje cely ouvozovkovany podstrom, nebo jeho cast
   }
 }
 
-
+#bind getback to Ctrl+b menu Select quotation set of the current node as current
+sub getback { # umozni vratit se k ouvozovkovanemu stromu a neco dalsiho k nemu pripojit,
+  # i kdyz uz mezitim bylo pouzito Ctrl+n (tzn. nacucne se barva a quot_start)
+  print STDERR "Nacucavani\n";
+  if ($this->{quot_member}) {
+    $last_color=$this->{quot_color};
+    my $quot_root=$this;
+    $quot_root=$quot_root->parent while ($parent and not $quot_root->{quot_start});
+    if ($quot_root->{quot_start} eq "first") {
+      $quot_laststart=$this->{TID} || $this->{AID};
+    }
+    elsif ($quot_root->{quot_start}) {
+      $quot_laststart=$quot_root->{quot_start};
+    }
+  }
+}
