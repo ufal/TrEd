@@ -1565,8 +1565,10 @@ sub draw_text_line {
 
 sub parse_pattern {
   my ($self,$pattern)=@_;
-  if ($pattern=~/^([a-z]+):/) {
-    return lc($1),$';
+  if ($pattern=~s/^([a-z]+):\s*//) {
+    my $t=lc($1);
+    $pattern=~s/\s+$//;
+    return ($t,$pattern);
   } else {
     return "node",$pattern;
   }
