@@ -16,7 +16,7 @@
     <title>Introduction</title>
     <para><application>TrEd</application> is a graphical editor and
     viewer of tree structures. It works with files in so called <ulink
-    url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+    url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
     developed by M. Kren (as a native format for his editor
     Graph) and used for syntactical and tectogrammatical trees in The
     Prague Dependency Treebank.  Since FS-format is a bit more
@@ -73,15 +73,9 @@
     <orderedlist>
       <listitem>
 	  <para>
-	    Start with installing Perl support to Windows from <ulink
-	      url="http://www.activestate.com">ActiveState</ulink>.
-	    This is done by running the installation program <ulink
-	      url="../PerlTk/APi522e.exe"><literal>APi522e.exe</literal></ulink>.
-	    You can find it in the
-	    <filename>Tools\Tree_Editors\Tred\PerlTk</filename>
-	    directory on the <productname>Prague Dependency Trebank
-	      CD-ROM</productname> or download it directly from <ulink
-	      url="http://www.activestate.com">ActiveState</ulink>.
+	    Windows users first have to download and install <a
+	      href="http://www.activestate.com/Products/Download/Get.plex?id=ActivePerl">ActivePerl</a>
+	    by <a href="http://www.activestate.com">ActiveState</a>.
 	    Follow the instructions of the installation program.
 	    (When the installation is done, you may need to restart
 	    <application>Windows</application>, so that all the
@@ -239,15 +233,15 @@
 	  <para>
 	    To install <application>PerlTk</application> toolkit,
 	    untar the <ulink
-	    url="../PerlTk/Tk800.022.tar.gz"><filename>Tk800.022.tar.gz</filename></ulink>
+	    url="http://ckl.ms.mff.cuni.cz/~pajas/tred/Tk800.024.tar.gz"><filename>Tk800.022.tar.gz</filename></ulink>
 	    archive to some temporary directory, e.g. with the
 	    following command:
 	    <literallayout>
-	      $ <userinput>gunzip&nbsp;-c&nbsp;Tk800.022.tar.gz&nbsp;|&nbsp;tar&nbsp;-x</userinput>
+	      $ <userinput>gunzip&nbsp;-c&nbsp;Tk800.024.tar.gz&nbsp;|&nbsp;tar&nbsp;-x</userinput>
 	    </literallayout>
 	    and issue the following commands (see file <filename>INSTALL</filename> in
-	    the <filename>Tk800.022</filename> directory for details):
-	    <literallayout>bash$ <userinput>cd Tk800.022</userinput>
+	    the <filename>Tk800.024</filename> directory for details):
+	    <literallayout>bash$ <userinput>cd Tk800.024</userinput>
 bash$ <userinput>perl Makefile.PL</userinput>
 bash$ <userinput>make</userinput>
 bash$ <userinput>make test</userinput><co id="co-test"/>
@@ -339,13 +333,13 @@ root# <userinput>make install</userinput>
 	      Opens an existing file that the user chooses in the
 	      <guilabel>Open</guilabel> dialog box. The file may be
 	      either in the <ulink
-	      url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+	      url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
 	      (usually a file with a <filename>.fs</filename>
 	      extension) or a file in the <ulink
-	      url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
+	      url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
 	      SGML format. In the later case, 
 	      James Clark's <ulink
-	      url="../../../../Support/nsgmls/index.html">SGML parser
+	      url="http://quest.ms.mff.cuni.cz/pdt/Support/nsgmls/index.html">SGML parser
 	      <application>SP</application></ulink> must be installed and
 	      the <link
 	      linkend="sgmls"><literal>sgmls</literal></link>
@@ -354,11 +348,36 @@ root# <userinput>make install</userinput>
 	      in <varname>PATH</varname>.
 	    </para>
 	    <para>
-	      <application>TrEd</application> expects files in the
-	      <literal>ISO-8859-2</literal> (ISO Latin 2) encoding
-	      (which by <application>TrEd</application> is
+	      By default, <application>TrEd</application> expects
+	      files in the <literal>ISO-8859-2</literal> (ISO Latin 2)
+	      encoding (which by <application>TrEd</application> is
 	      transparently translated to Windows 1250 encoding and
-	      back on <productname>Microsoft Windows</productname> systems).
+	      back on <productname>Microsoft Windows</productname>
+	      systems). For other encodings, see 
+	      <link
+	      linkend="defaultfileencoding"><literal>defaultFileEncoding</literal></link>
+	      and <link
+	      linkend="defaultdisplayencoding"><literal>defaultDisplayEncoding</literal></link>
+	      configuration options.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Open URL ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Displays a dialog window with an entry into which the
+	      user can enter a URL or a filename. TrEd supports
+	      downloading and opening files using
+	      <literal>http</literal>, <literal>ftp</literal>, and
+	      (for compatibility) <literal>file</literal>
+	      protocols. The network protocols
+	      (<literal>http,ftp</literal>) are read-only. Moreover,
+	      TrEd supports a special protocol indicated by URLs
+	      starting with <literal>ntred://</literal> which allows
+	      to inspect and change trees stored in memory of btred
+	      servers (ntred and btred are shipped with TrEd but
+	      are not covered by this document).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -418,8 +437,11 @@ root# <userinput>make install</userinput>
 	<varlistentry>
 	  <term><guimenuitem>Save As ...</guimenuitem></term>
 	    <listitem>
-	    <para>Prompts user for a new name of the file using a standard file
-	      dialog and then performs the <guimenuitem>Save</guimenuitem> command.
+	    <para>This command first asks the user to choose a desired
+	      output format, then opens the standard file dialog where
+	      new name and location of the file can be specified and
+	      finally runs the <guimenuitem>Save</guimenuitem>
+	      command.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -457,21 +479,78 @@ root# <userinput>make install</userinput>
 	  <term><guimenuitem>Print ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Opens a Print Dialog. <application>TrEd</application> can only print to PostScript
-	      or Encapsulated PostScript which works fine on
-	      Unix/Linux systems (using standard
-	      <command>lpr</command> command). Windows users may print
-	      by printing to file and then opening the file in a
-	      PostScript interpreter (e.g. <ulink
+	      Opens a Print Dialog. <application>TrEd</application> is
+	      able to render trees containing iso-8859-2 (and
+	      windows-1250) characters only into PostScript,
+	      Encapsulated PostScript (EPS), and arbitrary trees
+	      (containing arbitrary Unicode characters) into Portable
+	      Document Format (PDF). If <ulink
+	      url="http://www.imagemagick.org">ImageMagick</ulink>
+	      toolkit is installed, TrEd can also automatically
+	      convert the result into one of many image formats.
+	      While PostScript is the default printing format on most
+	      Unix/Linux systems (and can be printed using the
+	      standard <command>lpr</command> command), Windows users
+	      may use for example <ulink
+	      url="http://www.adobe.com/products/acrobat/readermain.html">Adobe
+	      Acrobat Reader</ulink> to preview and print trees
+	      rendered into PDF. There are also some free PostScript
+	      interpreters for Windows (see <ulink
 	      url="http://www.cs.wisc.edu/~ghost/">GhostView</ulink>).
 	    </para>
+	    <figure>
+	      <title>Print dialog
+	      </title>
+	      <graphic fileref="pics/tredprint"/>
+	    </figure>
 	    <para>
 	      Encapsulated PostScript files (<literal>EPS</literal>)
-	      may be created here and used for preparation of other printed
+	      are especially useful for preparation of other printed
 	      materials e.g. <application>PDF</application> of
-	      <application>LaTeX</application> documents.
+	      <application>LaTeX</application> documents. Compared
+	      to bitmapped images, EPS images
+	      have the advantage of being scalable. EPS has limitted supported
+	      by most office suits (such as Microsoft Office and OpenOffice.org).
 	    </para>
-	  <itemizedlist>
+	    <note>
+	      <para>
+		TrEd's ability to render into PostScript
+		and EPS is limitted to Eastern European character sets.
+		For other charsets and unicode (especially when TrEd
+		runs on a unicode aware versions of
+		<literal>Perl</literal> and <literal>Tk</literal>,
+		i.e. at least <literal>Perl 5.8</literal> and
+		<literal>Tk804</literal>), PDF print format is recommended.
+	      </para>
+	    </note>
+	    <para>
+	      Printing into PDF requires a TrueType font containing at
+	      least the glyphs used in the tree.  For most languages,
+	      the usual fonts such as Arial
+	      (<literal>arial.ttf</literal>), Times New Roman
+	      (<literal>times.ttf</literal>) or Bitstream Vera
+	      (<literal>vera.ttf</literal>) are sufficient while other
+	      languages, such as Arabic, require a fully featured
+	      Unicode font such as Arial Unicode MS
+	      (<literal>arialuni.ttf</literal>).  A file with a
+	      TrueType font to use can be specified either directly
+	      from the Print dialog or by setting <link
+	      linkend="ttfontfile"><literal>TTFontFile</literal></link>
+	      configuration option. If <literal>TTFontFile</literal>
+	      is not given, TrEd searches several paths common on Unix
+	      and Windows systems for <literal>arial.ttf</literal>.
+	      If no usable font is found, PDF printing is disabled.
+	    </para>
+	    <para>
+	      For PostScript printing, <application>TrEd</application>
+	      uses a Type1 font.  The file containing the font may be
+	      specified using the <link
+	      linkend="psfontfile"><literal>PsFontFile</literal></link>
+	      (and optionally <link
+	      linkend="psfontafmfile"><literal>PsFontAFMFile</literal></link>)
+	      configuration option.
+	    </para>
+	    <itemizedlist>
 	    <listitem>
 		<para>
 		  In the <guilabel>Print</guilabel> dialog you can specify a printing command to
@@ -481,44 +560,45 @@ root# <userinput>make install</userinput>
 	      </listitem>
 	      <listitem>
 		<para>
-		  If <guilabel>Create EPS</guilabel> is checked, Encapsulated
-		  Postcript is created with the tightiest possible
-		  bounding box.
+		  You can also specify a media-type (paper format)
+		  (<guilabel>Media</guilabel> roll-out menu), page
+		  width and height (in case of <literal>User</literal>
+		  media-type), and horizontal and vertical margins.
+		  If the printed tree exceeds specified page
+		  boundaries, it is automatically shanked and/or
+		  (unless <guilabel>Disable landscape rotation of wide
+		  trees</guilabel> is selected) rotated to fit on the
+		  page. See <link
+		  linkend="psmedia"><literal>PSMedia</literal></link>
+		  configuration option for a list of supported media
+		  formats.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  The output format is specified by
+		  selecting one of <guilabel>Create PostScript</guilabel>,
+		  <guilabel>Create EPS</guilabel>, <guilabel>Create
+		  PDF</guilabel> and  <guilabel>Convert according to
+		  ImageMagick</guilabel> buttons.
 		</para>
 	      </listitem>
 	      <listitem>
 		<para>If <ulink
 		url="http://www.imagemagick.org">ImageMagick</ulink>
 		utilities are installed on the system running TrEd,
-		automatic conversion to one of many image formats may
-		be performed directly from
-		<application>TrEd</application>. To use it, first
-		check the <guilabel>Convert according to file
+		then automatic conversion to one of many image formats
+		is supported. To use it, first check the
+		<guilabel>Convert according to file
 		extension</guilabel> button, then select a desired
 		pixel resolution for conversion to bitmap, and finally
 		edit the filename giving it the usual extension of the
-		desired output file-format; for example
-		<filename>.jpg</filename> or
-		<filename>.png</filename>.
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>When printing, <application>TrEd</application>
-		  always uses a <application>PostSript</application>
-		  (Type1) font from a file given by the
-		  <literal>PsFontFile</literal> <link
-		  linkend="configuration">configuration</link>
-		  option. <application>TrEd</application> cannot,
-		  however, calculate the proper dimensions and kerning
-		  of the tree from the font file, so the given font is
-		  expected to have the same or very similar metrics as
-		  the current font used on display. If it is not the
-		  case, you may specify another display font
-		  <application>TrEd</application> should get the
-		  metrics from, by setting the <literal>PsFontName</literal>
-		  option. The <guilabel>Use Type1 Postsrcipt Font</guilabel> button
-		  in the <guilabel>Print</guilabel> dialog must be checked to use
-		  this feature.
+		desired output file-format such as
+		<filename>.png</filename> or
+		<filename>.jpg</filename>.  When converting to bitmap,
+		<guilabel>Resolution</guilabel> may be specified to
+		adjust the mapping between PostScript coordinate
+		system units (given in 1/72 inch) to raster pixels.
 		</para>
 	      </listitem>
 	      <listitem>
@@ -577,16 +657,6 @@ root# <userinput>make install</userinput>
 		      </simplelist>
 		    </para>
 		  </note>
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>
-		  When printing multiple trees,
-		  <application>TrEd</application> tries to perform the
-		  minimal scaling possible and rotates the tree by 90
-		  degrees if necessary. To avoid this check
-		  <guilabel>Disable landscape rotation of wide
-		  trees</guilabel> may be checked.
 		</para>
 	      </listitem>
 	    </itemizedlist>
@@ -674,7 +744,7 @@ root# <userinput>make install</userinput>
 	      Toggle displaying the hidden subtrees of the tree.
 	      If this item is checked, nodes makred as hidden using a special
 	      attribute (see 
-	      <ulink url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format description</ulink>
+	      <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format description</ulink>
 	      for details) and all their subtrees are also displayed.
 	    </para>
 	  </listitem>
@@ -686,7 +756,7 @@ root# <userinput>make install</userinput>
 	      Toggle highlighting certain attributes with user-defined
 	      colors. See <xref linkend="configuration"/> for details on
 	      customizing colors and <ulink
-		url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+		url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
 		description</ulink> to learn about how to specify which attributes
 		are highlighted.
 	    </para>
@@ -877,7 +947,7 @@ root# <userinput>make install</userinput>
 		  In case of an attribute where
 		  <emphasis>no</emphasis> fixed set of possible values
 		  is given (see <ulink
-		  url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+		  url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
 		  description</ulink> for details about types of
 		  attributes) the values of the attributes are
 		  displayed in a editable line and user may change
@@ -1589,28 +1659,72 @@ root# <userinput>make install</userinput>
   <sect1 id="attributes">
     <title>Customizing Visible Attributes</title>
     <para>
-      When user presses button <inlinegraphic
-      fileref="pics/tick"/>
-      or issues the <menuchoice>
-	<guimenu>View</guimenu>
-	<guimenuitem>Customize Attributes...</guimenuitem>
-      </menuchoice> menu command, a special dialog for customizing
-      visible attributes is shown.
+      The text of node labels (usually consisting of node attribute
+      values) displayed below each node (and/or on tree edges) as well as
+      other properties of the visual appearance of the displayed tree
+      can be specified using so called <emphasis>patterns</emphasis>.
+    </para>
+    <para>
+      <emphasis>Patterns</emphasis> are generally templates for one
+      line of text to be displayed under each node in the
+      <application>TrEd</application>'s main window, but some special
+      syntax may be used to specify visual appearance of
+      other parts of the displayed tree.
+    </para>
+    <para>
+      Patterns are usually stored directly in FS files which makes
+      their setting specific to a file. Because this is not very
+      convenient, TrEd introduces another way to store and orgainze
+      pattern sets. In fact, the user may create many different
+      pattern set (configurations). These pattern setting can be given
+      a name and swithched between using a pattern-set list shown on
+      the picture below which can be found on the right side of
+      toolbar next to the <inlinegraphic fileref="pics/tick"/>
+      button. A pattern set specific for a file is indicated by
+      <guilabel>&lt;From File&gt;</guilabel> item of the pattern-set
+      list.
+    </para>
+    <para>
+      To create a new named pattern-set (based on current pattern
+      settings), select an item labeled <guilabel>&lt;New From
+      Current&gt;</guilabel> from the pattern-set list and fill a name
+      into the displayed dialog entry. The new pattern-set
+      immediatelly appears as the selected item in the list.
     </para>
     <figure>
-      <title>Customizing visible attributes</title>
+      <title>Switching pattern set</title>
+      <graphic fileref="pics/patternset"/>
+    </figure>
+    <para>
+      While file-specific pattern-sets are stored directly in the FS
+      files, named pattern-sets are saved in a file called
+      <filename>.tred-stylesheets</filename> in user's home directory.
+      This file is updated every time a pattern-set is modified.
+      Currently selected named pattern set can be completely removed
+      from the list by selecting <guilabel>&lt;Delete
+      Current&gt;</guilabel> item from the pattern-set list.
+    </para>
+    <para>
+      Selected pattern set can be populated with patterns and modified in
+      a configuration dialog which is displayed on pressing <inlinegraphic
+      fileref="pics/tick"/> button or <menuchoice>
+      <guimenu>View</guimenu> <guimenuitem>Customize
+      Attributes...</guimenuitem></menuchoice> menu command.
+    </para>
+    <figure>
+      <title>Customizing Visible Attributes dialog</title>
       <graphic fileref="pics/customatt"/>
     </figure>
     <para>
-      The dialog window contains four elemens: the attribute list,
-      the pattern list, hint pattern editor and input line for
-      editing a single pattern.
+      The dialog window contains four main elemens: 
+      an editor of individual patterns,
+      an attribute list,
+      a pattern list and a hint pattern editor.
     </para>
     <para>
-      A pattern here means a template for one line of text to be
-      displayed under each node in the <application>TrEd</application>'s
-      main window. A pattern may contain any text, but some special
-      substrings have special meaning:      
+      While literal text occuring within a pattern is copied into the
+      tree (as a node label) without any change or evaluation, the
+      following substrings have special meaning:
     </para>
     <variablelist>
       <varlistentry>
@@ -1627,17 +1741,17 @@ root# <userinput>make install</userinput>
 	<listitem>
 	  <para>
 	    This sequence of characters may be used to change the
-	    color of any following text generated by the pattern.
-	    The <replaceable>color</replaceable> may be either a name
-	    of a color, e.g. <literal>black</literal>,
-	    <literal>red</literal> or <literal>darkblue</literal>,
-	    or one of ten symbolic names <literal>custom0</literal>,
-	    <literal>custom1</literal> to <literal>custom9</literal>.
-	    In the later case, the resulting color depends on current
-	    settings of the
-	    <link linkend="customcolor"><literal>CustomColor<replaceable>#</replaceable></literal></link>
+	    color of any possible following text generated by the
+	    pattern.  The <replaceable>color</replaceable> may be
+	    either an english name of a color,
+	    such as <literal>black</literal>, <literal>red</literal> or
+	    <literal>darkblue</literal>, or one of ten symbolic names
+	    <literal>custom0</literal>, <literal>custom1</literal> to
+	    <literal>custom9</literal>.  In the later case, the
+	    resulting color depends on current settings of the <link
+	    linkend="customcolor"><literal>CustomColor<replaceable>#</replaceable></literal></link>
 	    configuration options (where <replaceable>#</replaceable>
-	    is one of <literal>0...9</literal>).	    
+	    is one of <literal>0...9</literal>).
 	  </para>
 	</listitem>
       </varlistentry>
@@ -1652,20 +1766,22 @@ root# <userinput>make install</userinput>
 	    the place of the sequence.	    
 	  </para>
 	  <para>
-	    Note that the returned value may also contain any of
-	    the sequences above, except the
+	    Note that the returned value may also contain any other
+	    special sequences, except for another
 	    <literal>&lt;?<replaceable>...</replaceable>?&gt;</literal>
 	    sequence.
 	  </para>
-	  <para>In the <replaceable>code</replaceable>, the 
-	    value of a certain attribute
-	    <replaceable>attr</replaceable> for the current node may
-	    be referred to as
-	    <literal>$${<replaceable>attr</replaceable>}</literal>.
-	    The current node itself may be referrenced as
+	  <para>Within the <replaceable>code</replaceable>, 
+	    one may refer to any attribute value 
+	    of the current node with either
+	    <literal>$${<replaceable>attr</replaceable>}</literal>
+	    or
+	    <literal>$this->{<replaceable>attr</replaceable>}</literal>.
+	    
+	    The current node object itself may be referrenced as
 	    <literal>$this</literal> (so it is for example possible to
-	    access current node's	    
-	    parent by <literal>$this->parent</literal>).
+	    access current node's parent by
+	    <literal>$this->parent</literal>).
 	  </para>
 	</listitem>
       </varlistentry>
@@ -2185,12 +2301,12 @@ root# <userinput>make install</userinput>
       option to the desired number of milliseconds).
     </para>
     <para>
-      A pattern may be added to the pattern list by typing the
-      pattern
-      to the input entry in the bottom of the window and pressing
+      A new pattern may be added to the pattern list by typing the
+      pattern definition
+      into the pattern editor at the top of the dialog window and pressing
       the <guibutton>Add/Paste</guibutton> button.
       The pattern is inserted just before the pattern currently
-      selected in the list (or to the end of the list if no pattern is
+      selected in the pattern list (or to the end of the list if no pattern is
       selected).
     </para>
     <para>
@@ -2217,21 +2333,11 @@ root# <userinput>make install</userinput>
       If you press the <guibutton>Add as hint</guibutton>
       button, the pattern is inserted to the current cursor's position
       in the hint pattern editor.
-    </para>
-    <para>To insert the above sequence to the current cursor's
+      To insert the above sequence to the current cursor's
       position on the entry line, double-click the
       <replaceable>attr</replaceable>
       item in the <guilabel>Attributes</guilabel> list.
     </para>
-    <note>
-      <para>Note that patterns are stored in the FS files as a special
-	sequence at the end of the file ignored by other FS-format tools (e.g. Michal Kren's
-	<application>Graph</application>). If you wish to use the same
-	pattern settings for all the files you open, you 
-	should either write a macro providing this feature, or manually
-	append the sequence to all the FS files you use.
-      </para>
-    </note>
   </sect1>
   <sect1 id="filelists">
     <title>Using File-Lists</title>
@@ -2498,7 +2604,7 @@ root# <userinput>make install</userinput>
 	  <listitem>
 	    <para>Color used to display text of extra-highlighted tree
 	      attributes.
-	      See <ulink url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format
+	      See <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
 		description</ulink> to learn about how to specify which attributes
 	      are shadowed, highlighted and extra-highlighted.
 	    </para>
@@ -3073,11 +3179,34 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="ttfontfile">
+	  <term><literal>TTFontFile</literal></term>
+	  <listitem>
+	    <para>
+	      A file containing a TrueType font to be used
+	      when printing into Portable Document Format (PDF).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="psfontfile">
 	  <term><literal>PsFontFile</literal></term>
 	  <listitem>
 	    <para>
-	      A pfa-file with a PostScript font to be used for printing.
+	      A pfa-file with a Type1 PostScript font to be used for
+	      PostScript or EPS generation.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="psfontafmfile">
+	  <term><literal>PsFontAFMFile</literal></term>
+	  <listitem>
+	    <para>
+	      An afm-file containing the Type1 font metrics to be used for
+	      PostScript or EPS generation. It is not necessary to 
+	      specify this option if the metrics file name
+	      can be derived from the <link
+		linkend="psfontfile"><literal>PsFontFile</literal></link>
+	      by substitution the extension for <literal>.afm</literal>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -3116,22 +3245,43 @@ root# <userinput>make install</userinput>
 	    <para>
 	      Width of the paper used for printing. Append one of the
 	      characters <literal>i,c,m</literal> to the number to destinguish the
-	      dimension (inches, centimeters, milimeters respectively).
+	      dimension (inches, centimeters, milimeters
+	      respectively).
+	      This option only applies if <link linkend="psmedia"><literal>PSMedia</literal></link>
+	      is set to <literal>User</literal> (see below).
 	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><literal>PrtFmtHeight</literal></term>
 	  <listitem>
-	    <para>Width of the paper used for printing. Same format as PrtFmtWidth.</para>
+	    <para>Width of the paper used for printing. Same format as
+	    PrtFmtWidth.
+	      This option only applies if <link linkend="psmedia"><literal>PSMedia</literal></link>
+	      is set to <literal>User</literal> (see below).
+	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="psmedia">
 	  <term><literal>PSMedia</literal></term>
 	  <listitem>
-	    <para>A PostScript document media-type identifier to be used in
-	      the header of the printed PostScript. The default value is
-	      <literal>%%DocumentMedia: A4 595 842 white()</literal>
+	    <para>A PostScript or PDF document media-type used to
+	      calculate page width and height. The default value is
+	      <literal>A4</literal>. If this option is set to
+	      <literal>BBox</literal>, then the generated page has the
+	      dimensions of a minimal bounding box around the tree.
+	      If this options set to <literal>User</literal>, then
+	      the values of <literal>PrtFmtHeight</literal>
+	      and <literal>PrtFmtWidth</literal> described above
+	      are used. The supported media types beside
+	      <literal>User</literal>
+	      and <literal>BBox</literal> are:
+	      <literal>Letter, LetterSmall, Legal, Statement, Tabloid, Ledger,
+	Folio, Quarto, 7x9, 9x11, 9x12, 10x13, 10x14,
+	Executive, A0, A1, A2, A3, A4, A4Small, A5, A6, A7, A8, A9,
+	A10, B0, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, ISOB0,
+	ISOB1, ISOB2, ISOB3, ISOB4, ISOB5, ISOB6, ISOB7, ISOB8, ISOB9,
+	ISOB10, C0, C1, C2, C3, C4, C5, C6, C7</literal>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -3230,6 +3380,36 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="defaultfileencoding">
+	  <term><literal>defaultFileEncoding</literal></term>
+	  <listitem>
+	    <para>
+	      The encoding (charset) used for files opened in TrEd.
+	      If TrEd runs on <literal>Perl 5.8</literal> or higher
+	      with <literal>Tk804</literal> or higher with Unicode
+	      support, arbitrary encoding supported by Perl can be
+	      used. In all other cases, only 8-bit encodings are
+	      supported and it is necessary to setup the display font
+	      for correct displaying.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="defaultdisplayencoding">
+	  <term><literal>defaultDisplayEncoding</literal></term>
+	  <listitem>
+	    <para>This option may be used in TrEd running on
+	      non-unicode aware <literal>Perl</literal> and
+	      <literal>Tk</literal> (see above) if the file encoding
+	      differs from the encoding used by the display font. In
+	      such case, TrEd supports conversions between
+	      <literal>iso-8859-2</literal> and
+	      <literal>windows-1250</literal> for Eastern European languages
+	      and
+	      <literal>iso-8859-6</literal> and
+	      <literal>windows-1256</literal> for Arabic.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="sgmls">
 	  <term><literal>Sgmls</literal></term>
 	  <listitem>
@@ -3237,11 +3417,11 @@ root# <userinput>make install</userinput>
 	      This option may be used to provide a path to an
 	      SGML parser with support for ESIS output, such as
 	      James Clark's <ulink
-	      url="../../../../Support/nsgmls/index.html">SGML parser
+	      url="http://quest.ms.mff.cuni.cz/pdt/Support/nsgmls/index.html">SGML parser
 		<command>nsgmls</command></ulink>.
 	      <application>TrEd</application> may then use this
 	      parser to read SGML <ulink
-	      url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
+	      url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
 	      files (used e.g. in the
 	      Prague Dependency Treebank 1.0).
 	    </para>
@@ -3662,6 +3842,59 @@ root# <userinput>make install</userinput>
       </variablelist>
     </sect2>
     <sect2>
+      <title>Conditional macro code</title>
+      <para>
+	If macro code is spanned across	several files or is shared
+	between <application>TrEd</application> and
+	<application>bTrEd</application>, it may be useful
+	to make some parts of the macro code (such as an
+	<literal>#include</literal> directive) conditional.
+      </para>
+      <para>
+	For this purpose <application>TrEd</application>,
+	provides similar mechanisms as standard <literal>C</literal>
+	pre-processors using
+	<literal>#define</literal>,
+	<literal>#undefine</literal>,
+	<literal>#ifdef</literal>,
+	<literal>#ifndef</literal>, and
+	<literal>#endif</literal> directives.
+	These directives must appear on the very beginning of line.
+	Any code enclosed within
+	<literallayout>#ifdef	<replaceable>symbol-name</replaceable></literallayout> 
+	and <literallayout>#endif</literallayout> directives
+	is included if and only if
+	the symbol <literal><replaceable>symbol-name</replaceable></literal>
+	was previously defined using a <literal>#define
+	<replaceable>symbol-name</replaceable></literal>
+	directive. 
+	Any code enclosed within
+	<literallayout>#ifndef <replaceable>symbol-name</replaceable></literallayout> 
+	and <literallayout>#endif</literallayout> directives
+	is included if and only if
+	the symbol <literal><replaceable>symbol-name</replaceable></literal>
+	is not defined.
+	A defined
+	symbol can later be undefined 
+	with <literal>#undefine
+	<replaceable>symbol-name</replaceable></literal>.
+	Unlike <literal>C</literal> macros,
+	symbols in <application>TrEd</application> have no other
+	purpose than this.
+      </para>
+      <para>
+	Except for symbols defined by a <literal>#define</literal>
+	directive, symbol <literal>TRED</literal> is always initially
+	defined in <application>TrEd</application>, symbol
+	<literal>BTRED</literal> is always initially defined in
+	<application>bTrEd</application>. This may help to simplify
+	sharing macro code with specific parts for
+	<application>TrEd</application> and
+	<application>bTrEd</application> between these two
+	applications.
+      </para>
+    </sect2>
+    <sect2>
       <title>Adding macros to menu, assigning shortcuts</title>
       <para>
 	For convenience, two more directives are available for adding
@@ -3790,7 +4023,8 @@ root# <userinput>make install</userinput>
 	  </varlistentry>
 	  <varlistentry>
 	    <term><literal>none</literal></term>
-	    <listitem>disables redrawing</listitem>
+	    <listitem>
+	      <para>disables redrawing</para></listitem>
 	  </varlistentry>
 	</variablelist>
       </para>
@@ -5002,6 +5236,127 @@ sub MakeSentence {
 		closed the dialog with the
 	      <guibutton>Close</guibutton> button.
 	      </entry> 
+	    </row>
+	    <row>
+	      <entry>get_value_line_hook
+		(<replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>)</entry>
+	      <entry>no</entry>
+	      <entry>Supply custom value-line content based on given
+		<replaceable>fsfile</replaceable> and
+		<replaceable>treeNo</replaceable>.
+		The value returned from the hook may be either 
+		a string to appear in the value line on the top
+		of TrEd's main window or an array reference
+		consisting of a list of array references
+		representing individual nodes. In the later case,
+		the array references representing individual nodes
+		must be of the form
+		<literal>[<replaceable>text</replaceable>,
+		  <replaceable>node</replaceable>,<replaceable>options...</replaceable>]</literal>
+		where <replaceable>text</replaceable> is a text
+		to appear on the value-line,
+		<replaceable>node</replaceable>
+		is the node represented by the array reference
+		and <literal>options</literal> is arbitrary set 
+		of strings. If these strings are of the form
+		<literal>-option => value</literal>
+		where <literal>option</literal> is
+		one of <literal>foreground</literal>,
+		<literal>background</literal>,
+		<literal>underline</literal>,
+		they are used to alter visual appearance
+		of the corresponding part of the text displayed on the
+		value-line. All other strings are ignored.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>get_nodelist_hook
+	      (<replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replaceable>show_hidden</replaceable>)</entry>
+	      <entry>no</entry> <entry>This hook may be used to supply
+	      custom node ordering given a fsfile, treeNo and hidden
+	      node visibility state.  If used, it should return a
+	      two-element array reference with the first element being
+	      a array reference to a list of nodes to be displayed (in
+	      a left-to-right order) and the second element being a
+	      node to be set up as the initial active node.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>node_released_hook
+		(<replaceable>node</replaceable>,
+		<replaceable>target-node</replaceable>,
+		<replaceable>mod</replaceable>)</entry>
+		<entry>yes</entry> <entry>Called when node is released
+		over another node after a mouse
+		drag. <replaceable>mod</replaceable> is a keyboard
+		modifier string, such as <literal>Ctrl</literal>,
+		<literal>Meta</literal>. It can also be empty.  If
+		<literal>mod</literal> is empty, the hook should
+		either result 'stop', to disable rehanging
+		<replaceable>node</replaceable> on
+		<replaceable>target-node</replaceable> or 
+		take no action. In all other cases, the hook may
+		reorganize the tree in arbitrary way, but
+		it should call <literal>Redraw_FSFile_Tree()</literal>
+		and set <literal>$FileChanged=1</literal> if needed.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>node_moved_hook (<replaceable>node</replaceable>,
+		<replaceable>old-parent)</replaceable></entry>
+	      <entry>no</entry>
+	      <entry>called after a node is moved using a mouse</entry>
+	    </row>
+	    <row>
+	      <entry>get_status_line_hook</entry>
+	      <entry>no</entry>
+	      <entry>Supply status-line content.
+		Status line is an experimental feature which can be
+		enabled by setting
+		<literal>displayStatusLine</literal> configuration
+		option to <literal>1</literal>.
+		This hook is responsible for providing the content for
+		a status-line. The value returned from 
+		<literal>get_status_line_hook</literal> should
+		have the form 
+		<literal>[<replaceable>field-definitions</replaceable>,
+		  <replaceable>style-definitions</replaceable>,
+		  ]</literal>.
+		<replaceable>field-definitions</replaceable>
+		is an array reference of the form
+		<literal>[<replaceable>text1</replaceable>,<replaceable>tags1</replaceable>,
+		  <replaceable>text2</replaceable>,<replaceable>tags2</replaceable>,...
+		  ]</literal> specifying
+		one or more pieces of textual content of the
+		status-line. Each piece of text is followed
+		by another array reference, containing a list of
+		<literal>tags</literal> associated with the text.
+		Tags may be arbitrary strings.
+		<replaceable>style-definitions</replaceable> is 
+		an array reference which can map some tags
+		to visual appearance attributes. It has a form
+		<literal>[<replaceable>tag1</replaceable>,
+		  [<replaceable>option => value</replaceable>,
+	      <replaceable>option => value</replaceable>, ...],
+		  <replaceable>tag2</replaceable>,
+		  [<replaceable>option => value</replaceable>,
+		  <replaceable>option => value</replaceable>, ...], ...
+		  ]</literal>
+		where <replaceable>option</replaceable> may
+		be one of <literal>-foreground</literal>,
+		<literal>-background</literal> and <literal>-underline</literal>.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>status_line_doubleclick_hook <replaceable>tags...</replaceable></entry>
+	      <entry>no</entry>
+	      <entry>Called when users double-clicks the status-line.
+		Arguments are a list of tags associated with
+		the clicked field (see above). Tag may be arbitrary
+		strings and it is up to user's will to
+		set up some useful convention for tagging text of
+		the status-line.
+	      </entry>
 	    </row>
 	  </tbody>
 	</tgroup>
