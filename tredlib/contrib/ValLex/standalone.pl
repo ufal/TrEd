@@ -61,16 +61,16 @@ require ValLex::Data;
 $opt_m=lc($opt_m);
 $opt_m ||= 'jhxml';
 
-if ($opt_m eq "jhxml") {
+if ("$opt_m" eq "jhxml") {
   $XMLDataClass ="TrEd::ValLex::JHXMLData";
   require ValLex::JHXMLData;
-} elsif ($opt_m eq "libxml") {
+} elsif ("$opt_m" eq "libxml") {
   $XMLDataClass ="TrEd::ValLex::LibXMLData";
   require ValLex::LibXMLData;
-} elsif ($opt_m eq "gdome") {
+} elsif ("$opt_m" eq "gdome") {
   $XMLDataClass ="TrEd::ValLex::GDOMEData";
   require ValLex::GDOMEData;
-} elsif ($opt_m eq "dom") {
+} elsif ("$opt_m" eq "dom") {
   $XMLDataClass ="TrEd::ValLex::XML_DOM_Data";
   require ValLex::XML_DOM_Data;
 }
@@ -167,6 +167,17 @@ while ($opt_c--) {
 					  -command => sub {
 					    $vallex->save_data($top);
 					  })->pack(qw/-side right -pady 10 -padx 10/);
+
+
+    my $save_button=$bottom_frame->Button(-text => "Quit",
+                                          -command =>
+                                          [sub { my ($self,$top)=@_;
+			                         $self->ask_save_data($top)
+			                           if ($self->data()->changed());
+			                         $top->destroy();
+			                         undef $top;
+			                        },$vallex,$top]
+                     )->pack(qw/-side left -pady 10 -padx 10/);
 
 
     $top->protocol('WM_DELETE_WINDOW'=> 
