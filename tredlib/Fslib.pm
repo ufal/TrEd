@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-09-06 13:53:11 pajas>
+# Time-stamp: <2001-10-26 16:05:24 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1050,6 +1050,30 @@ sub initialize {
 
 =pod
 
+=item addNewAttribute (type, colour, name, list)
+
+Adds a new attribute definition to the FSFormat. Type must be one of
+the letters [KPOVNWLH], colour one of characters [A-Z0-9]. If the type
+is L, the fourth parameter is a string containing a list of possible
+values separated by |.
+
+=cut
+
+sub addNewAttribute {
+  my ($self,$type,$color,$name,$list)=@_;
+  $self->list->[$self->count()]=$name if (!defined($self->defs->{$name}));
+  if ($list) {
+    $self->defs->{$name}.=" $type=$list"; # so we create a list of defchars separated by spaces
+  } else {                 # a value-list may follow the equation mark
+    $self->defs->{$name}.=" $type";
+  }
+  if ($color) {
+    $self->defs->{$name}.=" $color"; # we add a special defchar for color
+  }
+}
+
+=pod
+
 =item readFrom (source,output?)
 
 Reads FS format instance definition from given source, optionally
@@ -1081,7 +1105,7 @@ sub readFrom {
 	$self->defs->{$3}.=" $1";
       }
       if ($2) {
-	$self->defs->{$3}.=" $2"; # we add a special defchar being the color
+	$self->defs->{$3}.=" $2"; # we add a special defchar for color
       }
       next;
     } elsif (/^\r*$/o) {
@@ -1482,7 +1506,7 @@ sub DESTROY {
 
 =pod
 
-=item initialize (name?,format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?)
+=item initialize (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?)
 
 Initialize a FS file object. Argument description:
 
@@ -1492,7 +1516,7 @@ Initialize a FS file object. Argument description:
 
 File name 
 
-=item format (scalar)
+=item file_format (scalar)
 
 File format indentifier (user-defined string). TrEd, for example, uses
 C<FS format>, C<gzipped FS format> and C<any non-specific format> strings as identifiers.
