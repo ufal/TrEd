@@ -18,14 +18,14 @@ use strict;
 @Options = qw(CanvasBalloon backgroundColor baseXPos baseYPos boxColor
   currentBoxColor currentEdgeBoxColor currentNodeHeight
   currentNodeWidth customColors hiddenEdgeBoxColor edgeBoxColor
-  clearTextBackground drawBoxes drawEdgeBoxes
-  backgroundImage backgroundImageX backgroundImageY
-  drawSentenceInfo font hiddenBoxColor edgeLabelYSkip
-  highlightAttributes showHidden lineArrow lineColor lineWidth noColor
-  nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
-  edgeLabelSkipBelow pinfo textColor xmargin
-  nodeOutlineColor nodeColor hiddenNodeColor nearestNodeColor ymargin
-  currentNodeColor textColorShadow textColorHilite textColorXHilite
+  clearTextBackground drawBoxes drawEdgeBoxes backgroundImage
+  backgroundImageX backgroundImageY drawSentenceInfo font
+  hiddenBoxColor edgeLabelYSkip highlightAttributes showHidden
+  lineArrow lineColor hiddenLineColor dashHiddenLines lineWidth
+  noColor nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
+  edgeLabelSkipBelow pinfo textColor xmargin nodeOutlineColor
+  nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
+  textColorShadow textColorHilite textColorXHilite
   useAdditionalEdgeLabelSkip reverseNodeOrder);
 
 %DefaultNodeStyle = (
@@ -47,7 +47,10 @@ sub new {
   my $self = shift;
   my $class = ref($self) || $self;
   my $new = { pinfo     => {},	# maps canvas objects to nodes
-	      canvas     => shift, @_ };
+	      canvas    => shift,
+	      patterns  => undef,
+	      hint      => undef,
+	      @_ };
 
   bless $new, $class;
   return $new;
@@ -69,6 +72,29 @@ sub AUTOLOAD {
 }
 
 sub DESTROY {
+}
+
+sub set_patterns {
+  my ($self,$patterns) = @_;
+  die "Patterns are not array-ref" if (defined($patterns) and !ref($patterns) eq 'ARRAY');
+  $self->{patterns}=$patterns;
+}
+
+sub patterns {
+  my $self = shift;
+  return undef unless ref($self);
+  return $self->{patterns};
+}
+
+sub set_hint {
+  my ($self,$hint) = @_;
+  die "Hint is not scalar-ref" if (defined($hint) and !ref($hint) eq 'SCALAR');
+  $self->{hint}=$hint;
+}
+
+sub hint {
+  my $self = shift;
+  return $self->{hint};
 }
 
 sub canvas {
@@ -305,8 +331,14 @@ sub recalculate_positions {
 
   my ($pattern_count,$node_pattern_count,$edge_pattern_count)=(0,0,0);
 				# May change with line attached labels
+  my @patterns;
+  if ($self->patterns) {
+    @patterns=@{$self->patterns};
+  } elsif (ref($fsfile)) {
+    @patterns=$fsfile->patterns();
+  }
   if (ref($fsfile)) {
-    $pattern_count=$fsfile->pattern_count;
+    $pattern_count=@patterns;
     $node_pattern_count=scalar($self->get_label_patterns($fsfile,"node"));
     $edge_pattern_count=scalar($self->get_label_patterns($fsfile,"edge"));
   }
@@ -406,7 +438,7 @@ sub recalculate_positions {
     $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
 
     for (my $i=0;$i<$pattern_count;$i++) {
-      ($pat_style,$pat)=$self->parse_pattern($fsfile->pattern($i));
+      ($pat_style,$pat)=$self->parse_pattern($patterns[$i]);
       if ($pat_style eq "edge") {
 	# this does not actually make
 	# the edge label not to overwrap, but helps a little
@@ -568,6 +600,21 @@ sub node_options {
 	 );
 }
 
+sub line_options {
+  my ($self,$node,$fs,$can_dash)=@_;
+  if ($fs->isHidden($node)) {
+    
+    return (-fill => $self->get_hiddenLineColor,
+	    ($can_dash ? 
+	    ($self->get_dashHiddenLines ? ('-dash' => '-') : (-dash => $self->get_lineDash)) : ())
+	   );
+  } else {
+    return (-fill => $self->get_lineColor, -dash => $self->get_lineDash);
+  }
+}
+
+
+
 sub wrappedLines {
   my ($self,$text,$width)=@_;
   use integer;
@@ -668,7 +715,7 @@ sub redraw {
     @node_patterns=$self->get_label_patterns($fsfile,"node");
     @edge_patterns=$self->get_label_patterns($fsfile,"edge");
     @style_patterns=$self->get_label_patterns($fsfile,"style");
-    @patterns=$fsfile->patterns();
+    @patterns=($self->patterns) ? @{$self->patterns} : $fsfile->patterns();
   }
 
   $self->clear_pinfo();
@@ -941,13 +988,14 @@ sub redraw {
       eval {
 	$l=$self->canvas->
 	  createLine(@c,
+		     $self->line_options($node,$fsfile->FS,$can_dash),
 		     -tags => [$line,'line'],
-		     '-arrow' =>  $arrow[$lin] || $self->get_lineArrow,
-		     '-width' =>  $width[$lin] || $self->get_lineWidth,
-		     '-fill'  =>  $fill[$lin] || $self->get_lineColor,
-		     '-smooth'  =>  $smooth[$lin] || 0,
-		     $can_dash ? ('-dash'  => $dash[$lin] || $self->get_lineDash)
-		     : ());
+		     -arrow =>  $arrow[$lin] || $self->get_lineArrow,
+		     -width =>  $width[$lin] || $self->get_lineWidth,
+		     ($fill[$lin] ? ('-fill'  => $fill[$lin]) : ()),
+		     (($dash[$lin] && $can_dash) ? ('-dash'  => $dash[$lin]) : ()),
+		     '-smooth'  =>  $smooth[$lin] || 0
+		    );
       };
       print STDERR $@ if $@ ne "";
       $self->store_id_pinfo($l,$line);
@@ -1112,7 +1160,7 @@ sub redraw {
 
   ## Canvas Custom Balloons ##
   if ($fsfile) {
-    my $hint=$fsfile->hint;
+    my $hint=defined($self->hint) ? ${$self->hint} : $fsfile->hint;
     if ($self->get_CanvasBalloon) {
 #DEBUG
 
@@ -1315,7 +1363,7 @@ sub get_label_patterns {
   return map {
     my ($a,$b)=$self->parse_pattern($_);
     $a eq $style ? $b : ()
-  } $fsfile->patterns();
+  } $self->patterns ? @{$self->patterns} : $fsfile->patterns();
 }
 
 
