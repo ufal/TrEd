@@ -1012,21 +1012,20 @@ sub isFocused {
   return $win eq $win->{framegroup}->{focusedWindow} ? 1 : 0;
 }
 
-sub initUserData {
+sub initAppData {
   my ($fsfile)=@_;
-  unless (ref($fsfile->userData)) {
-    $fsfile->changeUserData({});
+  unless (ref($fsfile->appData('undostack'))) {
+    $fsfile->changeAppData('undostack',[]);
+    $fsfile->changeAppData('undo',-1);
+    $fsfile->changeAppData('lockinfo',undef);
   }
-  unless (ref($fsfile->userData()->{undostack})) {
-    $fsfile->userData()->{undostack} = [];
-    $fsfile->userData()->{undo} = -1;
-  }
+  $fsfile->changeAppData('fs-part-of',[]) unless ref($fsfile->appData('fs-part-of'));
+  $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
 }
 
 sub setFSLockInfo {
   my ($fsfile,$lockinfo)=@_;
-  initUserData($fsfile);
-  $fsfile->userData->{lockinfo} = $lockinfo;
+  $fsfile->changeAppData('lockinfo',$lockinfo);
 }
 
 sub _clear_err {
@@ -1102,8 +1101,8 @@ sub checkLock {
   my $lockinfo = readLock($f);
   if ($lockinfo) {
     my ($user, $host, $pid) = $lockinfo =~ /^by user (.*?)@(.*?) pid (\d+)/;
-    if ($fsfile and $fsfile->userData() and $fsfile->userData()->{lockinfo}) {
-      my $ourlockinfo = $fsfile->userData()->{lockinfo};
+    if ($fsfile and $fsfile->appData('lockinfo')) {
+      my $ourlockinfo = $fsfile->appData('lockinfo');
       my ($mtime)= $ourlockinfo =~ / mtime: (\d+)$/;
       if ($ourlockinfo =~ /^locked (.*)/) {
 	if ($1 ne $lockinfo) {
@@ -1132,8 +1131,8 @@ sub checkLock {
     } else {
       return "locked ".$lockinfo;
     }
-  } elsif ($fsfile and $fsfile->userData() and $fsfile->userData()->{lockinfo}) {
-    my $ourlockinfo = $fsfile->userData()->{lockinfo};
+  } elsif ($fsfile and $fsfile->appData('lockinfo')) {
+    my $ourlockinfo = $fsfile->appData('lockinfo');
     my ($mtime)= $ourlockinfo =~ / mtime: (\d+)$/;
     if ($ourlockinfo =~ /^locked (.*)/) {
       if ($current_mtime != $mtime) {
@@ -1171,10 +1170,10 @@ sub closeFile {
     }
   }
   if (!$opts{-keep_postponed} and
-	$fsfile and ref($fsfile->userData()->{'fs-part-of'}) and
-	@{$fsfile->userData()->{'fs-part-of'}}) {
+	$fsfile and ref($fsfile->appData('fs-part-of')) and
+	@{$fsfile->appData('fs-part-of')}) {
     warn "Ignoring close to ".$fsfile->filename." - part of ".
-      $fsfile->userData()->{'fs-part-of'}->[0]->filename."\n";
+      $fsfile->appData('fs-part-of')->[0]->filename."\n";
     return;
   }
 
@@ -1210,10 +1209,11 @@ sub closeFile {
       my $requires = $fsfile->metaData('fs-require');
       if ($requires) {
 	foreach my $req (@$requires) {
-	  my $req_fs = $fsfile->userData->{'ref'}->{$req->[0]};
+	  my $req_fs = ref($fsfile->appData('ref')) ? $fsfile->appData('ref')->{$req->[0]} : undef;
 	  if (ref($req_fs) eq 'FSFile') {
-	    @{$req_fs->userData()->{'fs-part-of'}} =
-	      grep { $_ != $fsfile } @{$req_fs->userData()->{'fs-part-of'}};
+	    if (ref($req_fs->appData('fs-part-of'))) {
+	      @{$req_fs->appData('fs-part-of')} = grep { $_ != $fsfile } @{$req_fs->appData('fs-part-of')};
+	    }
 	    unless (fsfileDisplayingWindows($win->{framegroup},$req_fs)) {
 	      print STDERR "Attepmpting to close dependent ".$req_fs->filename."\n" if $tredDebug;
 	      closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0);
@@ -1730,6 +1730,7 @@ sub openFile {
     _clear_err();
     $fsfile =
       FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+    initAppData($fsfile) if ref($fsfile);
     $grp->{lastOpenError}=_last_err();
     if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
       # Success
@@ -1751,6 +1752,7 @@ sub openFile {
 	_clear_err();
 	$fsfile=
 	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+	initAppData($fsfile) if ref($fsfile);
 	$grp->{lastOpenError}=_last_err();
 	setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
       } elsif ($answer eq 'Ignore') {
@@ -1769,8 +1771,8 @@ sub openFile {
     }
     # Open requeseted file
     _clear_err();
-    $fsfile=
-      FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+    $fsfile= FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+    initAppData($fsfile) if ref($fsfile);
     $grp->{lastOpenError}=_last_err();
     setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
   }
@@ -1781,7 +1783,7 @@ sub openFile {
 
     unless ($no_secondary) {
     # if backend requested another FS-file, load it
-    # and store it in userData->{'ref'} hash table
+    # and store it in appData('ref') hash table
     #
     # mark this secondary FS-file as part of the original file
     # so that they can be closed together
@@ -1789,16 +1791,16 @@ sub openFile {
       if ($requires) {
 	for my $req (@$requires) {
 	  my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
-	  print STDERR "Pre-loading dependent $req_filename as userData()->{'ref'}->{$req->[0]}\n";
+	  print STDERR "Pre-loading dependent $req_filename as appData('ref')->{$req->[0]}\n";
 	  my $req_fs = openFile($win,$req_filename,-preload => 1);
 	  if (!(ref($req_fs) and $req_fs->lastTreeNo>=0 and $Fslib::FSError==0)) {
 	    undef $fsfile;
 	    closeFile($win, -fsfile => $req_fs, -no_update => 1);
 	    last;
 	  } else {
-	    push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
-	    __debug("Setting userData->{'ref'}->{$req->[0]} to $req_fs");
-	    $fsfile->userData->{'ref'}->{$req->[0]}=$req_fs;
+	    push @{ $req_fs->appData('fs-part-of') }, $fsfile; # is this a good idea?
+	    __debug("Setting appData('ref')->{$req->[0]} to $req_fs");
+	    $fsfile->appData('ref')->{$req->[0]}=$req_fs;
 	  }
 	}
       }
@@ -3018,7 +3020,6 @@ sub macrolistDialog {
   $f->Optionmenu(-options      => [sort(keys(%keyBindings))],
 		 -textvariable => \$context,
 		 -command      => [sub { my ($g,$list,$ctxt) = @_;
-					 print "$context ... $ctxt ... $list\n";
 					 macrolistCreateItems($g,$list,$ctxt);
 				       },$grp,$t],
 		 -relief       => 'groove', #$menubarRelief,
@@ -3830,8 +3831,15 @@ sub switchStylesheet {
 sub switchContext {
   my ($win,$context,$noredraw)=@_;
   my $prevcontext=$win->{macroContext};
-  return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context)
-	       eq 'stop');
+  $win->{macroContext}=$context;
+  my $ret = doEvalHook($win,"allow_switch_context_hook",$prevcontext,$context);
+  if ($ret eq 'stop') {
+    $win->{macroContext}=$prevcontext;
+    $win->{framegroup}{selectedContext}=$prevcontext if (isFocused($win));
+    return 0;
+  }
+  $win->{macroContext}=$prevcontext;
+  return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context) eq 'stop');
   $win->{macroContext}=$context;
   $win->{framegroup}{selectedContext}=$context if (isFocused($win));
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
@@ -4556,8 +4564,9 @@ sub startMain {
 			 my $win=$_[0]->{focusedWindow};
 			 $win->{treeView}->set_showHidden($treeViewOpts->{showHidden});
 			 get_nodes_win($win);
+			 redraw_win($win);
 			 ensureCurrentIsDisplayed($win);
-			 redraw_win($win) },\%group]],
+		       },\%group]],
 	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
 	  -variable=> \$treeViewOpts->{highlightAttributes},
 	  -command => [sub {
@@ -4583,7 +4592,7 @@ sub startMain {
 	  -command=> [\&selectStylesheet,\%group]],
 	 [Separator=> ''],
 	 [Button=> 'Edit stylesheet ...', -underline=> 0,
-	  -command=> [\&customAttrsDialog,\%group]],
+	  -command=> [\&editStylesheetDialog,\%group]],
 	 [Separator=> ''],
 	 [Button=> 'List of Named Macros ...', -underline=> 0,
 	  -command=> [\&macrolistDialog,\%group]]
@@ -5046,7 +5055,7 @@ sub startMain {
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"wizard"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub { customAttrsDialog(@_) },\%group])->pack(-side=>'right',
+			  -command=> [sub { editStylesheetDialog(@_) },\%group])->pack(-side=>'right',
 										    -padx=>'1');
   $group{Balloon}->attach($group{attrButton},
 			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
@@ -5688,8 +5697,8 @@ sub closeAllFiles {
 
    # to avoid infinite loop, first try closing all files this one is
    # part of
-   if ($fsfile and ref($fsfile->userData()->{'fs-part-of'})) {
-     foreach (@{$fsfile->userData()->{'fs-part-of'}}) {
+   if ($fsfile and ref($fsfile->appData('fs-part-of'))) {
+     foreach (@{$fsfile->appData('fs-part-of')}) {
        __debug("Closing all parts of ".$fsfile->filename);
        closeFile($grp->{focusedWindow},-fsfile => $_,
 		 -no_update => 1, -all_windows => 1);
@@ -6581,25 +6590,30 @@ sub editAttrsDialog_schema {
   require Tk::TrEdNodeEdit;
 
   use Data::Dumper;
-#  _debug "PATH: '$attr_path'\n";
+  __debug("PATH: '$attr_path'\n");
 
 
   my $schema = $node->type->schema;
+  my $enabled = 1;
   my $node_type;
-  if ($attr_path) {
-    $node_type = $node->type->find($attr_path);
-  } else {
-    $node_type = $node->type->type_struct;
-  }
 
   $win->toplevel->Busy(-recurse=>1);
 
- my $d=$win->toplevel->DialogBox(-title=> "Edit Node",
-				  -buttons=> [qw(OK Cancel)]
+  if ($attr_path) {
+    $node_type = $node->type->find($attr_path);
+    $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
+    print "$node_type\n";
+  } else {
+    $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
+    $node_type = $node->type->type_struct;
+  }
+  my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
+  my $d=$win->toplevel->DialogBox(-title=> "Edit Node",
+				  -buttons=> \@buttons
 				 );
  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
 
-## experiment with persistent node editor
+## experiment with a persistent node editor
 #   my $d=$grp->{attrsDialog}=
 #     $grp->{top}->Toplevel(-title=> "Node attributes",-background => 'white');
 #   $d->withdraw;
@@ -6616,10 +6630,19 @@ sub editAttrsDialog_schema {
   $edit->Tk::bind('Freeze','<Map>',undef);
   $edit->bindtags([grep { $_ ne 'Freeze'} $edit->bindtags]);
   $edit->set_schema($schema);
-  my $attr_name;
+  my $attr_name = $attr_path;
+  $attr_name =~ s{(.*/)}{};
+  my $base_path = $1;
+
+  $edit->set_enable_callback([
+    sub {
+      my ($win,$base_path,$path)=@_;
+      __debug("enable_attr_hook: $base_path, $path\n");
+      $path = $base_path.$path if $base_path ne "";
+      doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
+    }, $win,$base_path
+   ]);
   if ($attr_path) {
-    $attr_name = $attr_path;
-    $attr_name =~ s{.*/}{};
     $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
   } elsif (ref($node_type) and $node_type->{member}) {
     $edit->add_members('',$node_type,$node,1);
@@ -6683,11 +6706,13 @@ sub editAttrsDialog_schema {
   $edit->BindResize;
 
   $edit->focus;
-
+  if ($attr_path ne "") {
+    $edit->select_entry($attr_name);
+  }
   $d->bind('all','<Tab>','focusNext');
   $d->bind('all','<<LeftTab>>','focusPrev');
 
- for (qw(OK Cancel)) {
+ for (@buttons) {
    $d->Subwidget("B_$_")->configure(-underline => 0);
    $d->bind('all','<Alt-'.lc(substr($_,0,1)).'>'
 	       => [sub { $_[1]->{selected_button}=$_[2] },$d,$_ ]);
@@ -6740,9 +6765,11 @@ sub editAttrsDialog {
   my $rows=min($maxDisplayedAttributes,$#atord+1);
   my ($a,$b,$r);
 
+  my $enabled=(doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop') ? 0 : 1;
+  my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
   $win->toplevel->Busy(-recurse=>1);
   my $d=$win->toplevel->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
-				  -buttons=> ["OK", "Cancel"]
+				  -buttons=> \@buttons
 				 );
   $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Control-Return>',\&dlgReturn);
@@ -6939,6 +6966,7 @@ sub deleteStylesheet {
 
 sub setStylesheetPatterns {
   my ($win,$text,$stylesheet,$create)=@_;
+  my $grp = $win->{framegroup};
   my ($hint,$patterns);
   if (ref($text)) {
     ($hint,$patterns)=@$text;
@@ -6954,7 +6982,7 @@ sub setStylesheetPatterns {
       return 0;
     }
   } else {
-    my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
+    my $s=$grp->{stylesheets}->{$stylesheet};
     if (ref($s)) {
       @{$s->{patterns}} = @$patterns;
       $s->{hint} = $hint;
@@ -6972,7 +7000,7 @@ sub setStylesheetPatterns {
 sub getStylesheetPatterns {
   my ($win,$stylesheet)=@_;
   my ($hint,$patterns);
-  $patterns = {};
+  $patterns = [];
   $stylesheet = $win->{stylesheet} unless defined $stylesheet;
   if ($stylesheet eq STYLESHEET_FROM_FILE()) {
     if ($win->{FSFile}) {
@@ -6990,10 +7018,10 @@ sub getStylesheetPatterns {
       return ();
     }
   }
-  return wantarray ? ($hint,$patterns) : "hint:\n".$hint."\n".$patterns;
+  return wantarray ? ($hint,$patterns) : ("hint:\n".$hint."\n".$patterns);
 }
 
-sub customAttrsDialog {
+sub editStylesheetDialog {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
   return if (doEvalHook($win,"customize_attrs_hook") eq 'stop');
@@ -7001,14 +7029,15 @@ sub customAttrsDialog {
   return unless $win->treeView->patterns() or $win->{FSFile};
 
   $grp->{top}->Busy(-recurse=>1);
+  my @buttons = ("OK", "Preview",
+		 (($win->{FSFile} and $win->{stylesheet} ne STYLESHEET_FROM_FILE()) ? "Store to current file" : ()),
+		 "Cancel");
   my $d=$grp->{top}->
     DialogBox(-title=> "Stylesheet editor",
 	      -width=> '10c',
-	      -buttons=> ["OK",
-			  (($win->{FSFile} and $win->{stylesheet} ne STYLESHEET_FROM_FILE()) ?
-			     "Store to current file" : ()),
-			  "Cancel"]);
+	      -buttons=> \@buttons);
 
+  $d->Subwidget("B_$_")->configure(-underline => 0) for @buttons;
   $d->Subwidget('top')->configure(qw(-takefocus 0));
   $d->Subwidget('bottom')->configure(qw(-takefocus 0));
 
@@ -7028,7 +7057,7 @@ sub customAttrsDialog {
 B<Stylesheet quick help:>
 I<In this dialog you may edit the current display stylesheet. Stylesheets are sets of display PATTERNS (as described below) that influence the overall tree appearance as well as visual representation of individual nodes, edges and labels (including label content). Each pattern either represents one line of a label (node or edge), defines a per-node text to appear in the value line above the tree, and/or provides styling information for the node and its edges (such as node shape, color, line thickness, line style, etc.). See the User's manual for more details.>
 
-B<PATTERN:> C<[&lt;prefix&gt;:]&lt;rules&gt;>
+B<PATTERN:> C<&lt;prefix&gt;:&lt;rules&gt;>
 
 B<Default prefixes:>
   C<node>      	- define a node label (default if no prefix given)
@@ -7110,6 +7139,7 @@ B<Features:>
   C<EdgeTextBox-...     >- ditto
   C<                    >  (similar to Oval-... described above)
   C<Text[...]-..        >- see the documentation
+  C<TextBg[...]-..      >- ditto
 
 EOF
 
@@ -7133,6 +7163,23 @@ EOF
                               -relief sunken -borderwidth 2/);
   $e->Subwidget('scrolled')->menu->delete('File');
   disable_scrollbar_focus($e);
+
+  my $preview_applied;
+  # the preview command
+  $d->Subwidget('B_Preview')->configure(
+    -command => [sub {
+		   my ($win,$e,$p)=@_;
+		   $$p = 1;
+		   my ($hint,$patterns)=getStylesheetPatterns($win);
+		   setStylesheetPatterns($win,$e->get('0.0','end'));
+		   update_value_line($grp);
+		   if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
+		     redraw_fsfile($grp,$win->{FSFile});
+		   } else {
+		     redraw_stylesheet($grp,$win->{stylesheet});
+		   }
+		   setStylesheetPatterns($win,[$hint,$patterns]);
+		 },$win,$e,\$preview_applied]);
 
   # Frame with attribute selection
   my $af= $f->Frame(qw(-takefocus 0));
@@ -7230,6 +7277,12 @@ EOF
     setStylesheetPatterns($win,$e->get('0.0','end'));
     saveStyleSheets($grp) unless $win->{stylesheet} eq STYLESHEET_FROM_FILE();
     update_value_line($grp);
+    if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
+      redraw_fsfile($grp,$win->{FSFile});
+    } else {
+      redraw_stylesheet($grp,$win->{stylesheet});
+    }
+  } elsif ($preview_applied) {
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       redraw_fsfile($grp,$win->{FSFile});
     } else {
@@ -7509,7 +7562,6 @@ sub findFirstTemplated {
       {
 	gotoTree($win,$tree);
 	setCurrent($win, $node);
-	ensureCurrentIsDisplayed($win);
 	centerTo($win,$node);
 	return $node;
       }
@@ -7582,7 +7634,6 @@ sub findPrevTemplated {
       {
 	gotoTree($grp->{focusedWindow}, $tree);
 	setCurrent($grp->{focusedWindow}, $node);
-	ensureCurrentIsDisplayed($grp->{focusedWindow});
 	centerTo($grp->{focusedWindow},$node);
 	return $node;
       }
@@ -7827,8 +7878,8 @@ sub redraw_win {
     setCurrent($win,$win->{currentNode});
     ensureCurrentIsDisplayed($win);
   }
-  $TrEd::TreeView::on_tree_redraw= undef; #forget the reference on $win
-  $TrEd::TreeView::on_node_redraw= undef;
+  $TrEd::TreeView::on_get_root_style= undef; #forget the reference on $win
+  $TrEd::TreeView::on_get_node_style= undef;
 
   #------------------------------------------------------------
   #}
@@ -8630,9 +8681,9 @@ sub node_release {
   my $center=0;
   my ($sel)=$tv->find_item('withtag','selected');
   $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
-
   if ($node) {
     my ($p)=$tv->find_item('withtag','nearest');
+    $w->dtag('nearest');
     $w->dtag('selected');
     if (defined $p) {
       $parent=$tv->get_obj_pinfo($p);
@@ -8676,9 +8727,9 @@ sub node_release_modif {
   my $center=0;
   my ($sel)=$tv->find_item('withtag','selected');
   $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
-
   if ($node) {
     my ($p)=$tv->find_item('withtag','nearest');
+    $w->dtag('nearest');
     $w->dtag('selected');
     if (defined $p) {
       $parent=$tv->get_obj_pinfo($p);
@@ -8711,16 +8762,16 @@ sub save_undo {
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
   return unless ref($fsfile) and $undo;
-  initUserData($fsfile);
+  initAppData($fsfile);
 
-  my $stack=$fsfile->userData()->{undostack};
-  splice @$stack, $fsfile->userData->{undo}+1; # remove redo
+  my $stack=$fsfile->appData('undostack');
+  splice @$stack, $fsfile->appData('undo')+1; # remove redo
   push @$stack,$undo;
   if ($maxUndo>0 and @$stack>$maxUndo) {
     splice @$stack, 0, (@$stack-$maxUndo);
     print STDERR "Undo-stack: overflow, removing ",(@$stack-$maxUndo)," items\n" if $tredDebug;
   }
-  $fsfile->userData->{undo}=$#$stack;
+  $fsfile->changeAppData('undo',$#$stack);
   resetUndoStatus($win);
   print STDERR "Undo-stack: $#$stack items\n" if $tredDebug;
 }
@@ -8730,11 +8781,11 @@ sub re_do {
   my $win = cast_to_win($grp_or_win);
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
-  return unless $fsfile and ref($fsfile->userData());
-  my $stack=$fsfile->userData()->{undostack};
-  return unless (@$stack>$fsfile->userData->{undo}+2);
-  print STDERR "Redo: ",$fsfile->userData->{undo}+2,"/$#$stack\n" if $tredDebug;
-  $fsfile->userData()->{undo}+=2;
+  return unless $fsfile;
+  my $stack=$fsfile->appData('undostack');
+  return unless (@$stack>$fsfile->appData('undo')+2);
+  print STDERR "Redo: ",$fsfile->appData('undo')+2,"/$#$stack\n" if $tredDebug;
+  $fsfile->changeAppData('undo',$fsfile->appData('undo')+2);
   undo($win,1);
 }
 
@@ -8743,9 +8794,9 @@ sub undo {
   my $win = cast_to_win($grp_or_win);
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
-  return unless $fsfile and ref($fsfile->userData());
-  my $stack=$fsfile->userData()->{undostack};
-  my $stackpos=$fsfile->userData()->{undo};
+  return unless $fsfile;
+  my $stack=$fsfile->appData('undostack');
+  my $stackpos=$fsfile->appData('undo');
   return unless (ref($stack) and (@$stack>0) and ($stackpos>=0) and ($stackpos <= $#$stack));
   my $undo=$stack->[$stackpos];
   if ($undo) {
@@ -8769,7 +8820,7 @@ sub undo {
       }
     }
     print STDERR "Undo: ",$stackpos."/$#$stack\n" if $tredDebug;
-    $fsfile->userData->{undo}--;
+    $fsfile->changeAppData('undo',$fsfile->appData('undo')-1);
     resetUndoStatus($win);
     $fsfile->notSaved(1);
     $win->{treeNo}=$treeNo;
@@ -8788,9 +8839,9 @@ sub resetUndoStatus {
   my $grp = $win->{framegroup};
   my ($undostatus,$redostatus,$undomessage,$redomessage);
 
-  if ($maxUndo!=0 and ref($fsfile) and $fsfile->userData()) {
-    my $stack=$fsfile->userData()->{undostack};
-    my $stackpos=$fsfile->userData()->{undo};
+  if ($maxUndo!=0 and ref($fsfile)) {
+    my $stack=$fsfile->appData('undostack');
+    my $stackpos=$fsfile->appData('undo');
     print STDERR "STATUS: $stackpos/",$#$stack+1,"\n" if $tredDebug;
     $undostatus=(ref($stack) && (@$stack>0));
     $redostatus=($undostatus && (@$stack>$stackpos+2));
