@@ -17,20 +17,22 @@ use Data::Dumper;
 
 use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $field_re $attr_name_re
             $parent $firstson $lbrother $rbrother $type
-            $SpecialTypes $FSError $Debug );
+            $SpecialTypes $FSError $Debug $resourcePath $resourcePathSplit);
 
 use Exporter;
 @ISA=qw(Exporter);
 $VERSION = "1.5";
 
 @EXPORT = qw/&Next &Prev &DeleteTree &DeleteLeaf &Cut &ImportBackends/;
-@EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon/;
+@EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon FindInResources ResolvePath/;
 
 use Carp;
 #use vars qw/$VERSION @EXPORT @EXPORT_OK $field_re $parent $firstson $lbrother/;
 
 $Debug=0;
 $field_re='(?:\\\\[\\]\\,]|[^\\,\\]])*';
+
+$resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
 
 $attr_name_re='[^\\\\ \\n\\r\\t{}(),=|]+';
 $parent="_P_";
@@ -222,8 +224,31 @@ sub ReadEscapedLine {
   return $l;
 }
 
+sub FindInResources {
+  my ($filename)=@_;
+  unless ($filename =~ m(^\s*([[:alnum:]]+:)?(?:/|\Q${TrEd::Convert::Ds}\E))) {
+    for my $dir (split /\Q${Fslib::resourcePathSplit}\E/o,$resourcePath) {
+      my $f = "$dir${TrEd::Convert::Ds}$filename";
+      return $f if $f;
+    }
+  }
+  return $filename;
+}
 
-## End of Fs-format specific functions
+sub ResolvePath ($$;$) {
+  my ($orig, $href,$use_resources)=@_;
+  if ($href !~ m{^[[:alnum:]]+:|^/} and
+      !($^O eq 'MSWin32' and $href=~/^([[:alnum:]]+:)?\\/)) {
+    if ($orig =~ m{^(.*\/)}) {
+      if (-f $1.$href) {
+	return $1.$href;
+      }
+    }
+    return $use_resources ? FindInResources($href) : $href;
+  } else {
+    return $href;
+  }
+}
 
 sub ImportBackends {
   my @backends=();
@@ -3359,6 +3384,34 @@ of node attributes and modify the structure of the trees.
    obtained via $fsformat->order.
 
  Returns $node
+
+=item C<FindInResources($filename)>
+
+ Params:
+
+   $filename - a relative path to a file
+
+ Description:
+
+    If a given filename is a relative path of a file found in TrEd's
+    resource directory, return an absolute path for the
+    resource. Otherwise return filename.
+
+=item C<ResolvePath($ref_filename,$filename,$use_resources?)>
+
+ Params:
+
+   $ref_filename - a reference filename
+   $filename     - a relative path to a file
+   $use_resources - 0 or 1
+
+  Description:
+
+   If a given filename is a relative path, try to find the file in the
+   same directory as ref-filename. In case of success, return a path
+   based on the directory part of ref-filename and filename.  If the
+   file can't be located in this way and use_resources is true, return
+   the value of C<FindInResources(filename)>.
 
 =item ImportBackends(@backends)
 
