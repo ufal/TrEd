@@ -37,7 +37,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
-	    $version
+	    $version $lib
 	    $_ERR %optmap
 	   );
 
@@ -83,6 +83,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "help|h" => \$help,
 	    "usage|u"        => \$usage,
 	    "man"            => \$manpage,
+	    "lib"            => \$lib,
 	    "preload-module|M=s" => \@preload_modules,
 	    "version|v"        => \$print_version
 	   );
@@ -200,6 +201,11 @@ EOL
 
 use Cwd;
 unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+
+if ($lib) {
+  print $libDir,"\n";
+  exit;
+}
 
 use Benchmark;
 
@@ -1449,6 +1455,11 @@ possesed by the server.
 
 Accept only connections from a given host when operating in the
 server-mode.
+
+=item B<--lib>
+
+Prints path to module directory containing Fslib and other TrEd specific
+libraries and exit.
 
 =item B<--usage|-u>
 
