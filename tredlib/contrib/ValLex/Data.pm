@@ -502,14 +502,14 @@ sub expandFormAbbrevs {
 
 sub parseFormPart {
   my ($self,$form,$nested,$dom) = @_;
-  my $lem='([-[:alnum:]]|\\\\.)+';
+  my $lem='(?:[-[:alnum:]]|\\\\.)+';
   my $pos='';
   if ($form =~
-      m{^(\^?
+      m{^(\^? #1
 	  ( $lem | (?:{ $lem , $lem (?: , $lem )* (?: , ...)?}) )? # $2: lemma
 	  (                  # $3
             ([.:])           # $4
- 	    ([adinjvufs])?   # $5 pos
+ 	    ([adinjvufsc])?   # $5 pos
 	    ([FMIN])?        # $6 gen
             ([PS])?          # $7 num
             ([1-7])?         # $8 case
@@ -519,8 +519,9 @@ sub parseFormPart {
           | [*!%=]            # $1 typical,elided,recip,state
          )                   #
          ( [][,;].* | $ ) # $11 <3> tokens to parse
-      }x and $1 ne "" and $1 ne "^" and $3 ne "." and $3 ne ":") {
-    my ($match,$lemma,$sep,$pos,$gen,$num,$case,$deg,$agreement,$next) = ($1,$2,$4,$5,$6,$7,$8,$9,$10,$11);
+      }x and $1 ne "" and $1 ne "^" and $3 ne ":") {
+    my ($match,$lemma,$sep,$pos,$gen,$num,$case,$deg,$agreement,$next) =
+       ($1,    $2,    $4,  $5,  $6,  $7,  $8,   $9,  $10,       $11);
     if ($match =~ /^[*!%]$/) {
       if ($next=~/^\[/) {
 	die "Can't use [ ] after '$match'\n";
@@ -588,8 +589,8 @@ sub parseSerializedFrame {
 	$eldom->setAttribute('functor',$functor);
 	$eldom->setAttribute('type',$type eq "?" ? 'non-oblig' : 'oblig');
       }
-      my @forms = $forms=~m/\G((?:\\.|[^\\;]+)+)(?:;|^)/g;
-      return undef unless $forms ne join(";",@forms);
+      my @forms = $forms=~m/\G((?:\\.|[^\\;]+)+)(?:;|$)/g;
+      return undef unless $forms eq join(";",@forms);
       foreach my $form (@forms) {
 	if ($dom) {
 	  $formdom = $self->doc()->createElement('form');
