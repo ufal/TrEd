@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-13 11:13:30 pajas>
+## Time-stamp: <2003-04-09 15:21:29 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -41,9 +41,15 @@ sub CutToClipboard {}
 sub PasteFromClipboard {}
 
 
-sub node_release_hook { return 'stop'; }
+sub node_release_hook {
+  my ($node)=@_;
+  return 'stop' unless $node->{func} eq 'RHEM';
+}
 
 #binding-context TFA
 #include <contrib/tfa.mak>
 
-sub node_release_hook { return 'stop'; }
+sub node_release_hook {
+  my ($node)=@_;
+  return 'stop' unless $node->{func} eq 'RHEM';
+}

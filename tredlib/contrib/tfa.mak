@@ -63,6 +63,7 @@ sub switch_context_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
+  return if ($atr eq 'func' and $this->{func} eq 'RHEM');
   if ($atr!~/^(?:tfa|commentA)$/) {
     return "stop";
   }
