@@ -276,6 +276,7 @@ sub set_config {
 
   if (exists $confs->{font}) {
     $font=$confs->{font};
+    $font=~s/-\*-\*$/-$fontenc/;
   } else {
     if ($^O=~/^MS/) { $font='family:Arial,size:10' }
     elsif ($fontenc eq 'iso10646-1') {
@@ -284,6 +285,7 @@ sub set_config {
       $font='-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc;
     }
   }
+  
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
