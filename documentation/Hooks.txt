@@ -21,8 +21,6 @@ exit_hook	none			no	executed when
 						askSaveFile is
 						executed
 
-do_edit_attrs_hook
-
 enable_attr_hook	attr,type	yes	executed before
 						attribute "attr" is edited by
 						user in a GUI. Type "type"
