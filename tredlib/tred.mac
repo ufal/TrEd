@@ -135,11 +135,13 @@ sub PerlSearchNext {
 }
 
 #bind LastTree to key Shift+greater menu Go to last tree
+#bind LastTree to key Ctrl+Next
 sub LastTree {
   GotoTree($#trees);
 }
 
-# bind FirstTree to key Shift+less menu Go to first tree
+#bind FirstTree to key Shift+less menu Go to first tree
+#bind FirstTree to key Ctrl+Prior
 sub FirstTree {
   GotoTree(0);
 }
