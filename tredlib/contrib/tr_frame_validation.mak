@@ -2,6 +2,7 @@
 #encoding iso-8859-2
 
 package TR_FrameValidation;
+use vars qw($V_backend $V_module $V_verbose $V);
 @ISA=qw(TR_Correction);
 sub first (&@);
 sub with_AR (&);
@@ -52,6 +53,7 @@ sub init_vallex {
       die "No Vallex\n";
     }
   }
+  %{$V->user_cache}=() if defined($V) and defined($V->user_cache()); # clear cache
 }
 
 

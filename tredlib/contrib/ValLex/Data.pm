@@ -197,18 +197,67 @@ sub getFrameNodes {
   return $vf->getChildElementsByTagName ("frame");
 }
 
+=item getFrameElementNodes($frame)
+
+Return a list of element-nodes of a given frame node.
+Doesn't return element-alternations.
+
+=cut
+
 sub getFrameElementNodes {
   my ($self,$frame)=@_;
   return unless ref($frame);
   my ($fe)=$frame->getChildElementsByTagName ("frame_elements");
   return unless $fe;
-  return $fe->getChildElementsByTagName ("element");
+  return ($fe->getChildElementsByTagName ("element"));
 }
 
-=item getWordNodes
+=item getFrameAlternationNodes
 
-  return $slen words before and after given word
-  suppose the lexicon is sorted alphabetically
+Return a list of all element-alternation nodes of a given frame node.
+
+=cut
+
+sub getFrameAlternationNodes {
+  my ($self,$frame)=@_;
+  return unless ref($frame);
+  my ($fe)=$frame->getChildElementsByTagName ("frame_elements");
+  return unless $fe;
+  return ($fe->getChildElementsByTagName("element_alternation"));
+}
+
+=item getFrameElementAndAlternationNodes
+
+Return a list of element and element-alternation nodes of a given frame node.
+
+=cut
+
+sub getFrameElementAndAlternationNodes {
+  my ($self,$frame)=@_;
+  return unless ref($frame);
+  my ($fe)=$frame->getChildElementsByTagName ("frame_elements");
+  return unless $fe;
+  return ($fe->getChildElementsByTagName("element"), $fe->getChildElementsByTagName("element_alternation"));
+}
+
+=item getAlternationElementNodes($frame)
+
+Return list of element-nodes of a given element-alternation.
+
+=cut
+
+sub getAlternationElementNodes {
+  my ($self,$alt)=@_;
+  return unless $alt;
+  return ($alt->getChildElementsByTagName ("element"));
+}
+
+
+=item getWordNodes($item,$slen,$posfilter)
+
+Return $slen words before and after given $item.
+Suppose the lexicon is sorted alphabetically.
+Return only results whose POS matches $posfilter.
 
 =cut
 
@@ -316,8 +365,23 @@ sub getFrame {
   my ($local_event)=$frame->getDescendantElementsByTagName("local_event");
   my $auth="NA";
   $auth=$self->conv->decode($local_event->getAttribute("author")) if ($local_event);
-  
   return [$frame,$id,$elements,$status,$example,$auth,$note];
+}
+
+=item isOblig($element_or_alt)
+
+If the argument is a single frame element, return true if the element is obligatory.
+If the argument is an alternation, return true if some element in the alternation is obligatory.
+
+=cut
+
+sub isOblig {
+  my ($self,$element_or_alt) = @_;
+  if ($element_or_alt->nodeName eq 'element') {
+    return $element_or_alt->getAttribute('type') eq 'oblig' ? 1 : 0;
+  } elsif ($element_or_alt->nodeName eq 'element_alternation') {
+    return 1; # alternation are always obligatory (by definition!!!)
+  }
 }
 
 sub getSuperFrameList {
@@ -345,20 +409,15 @@ sub getSuperFrameList {
   }
   foreach my $frame (@active) {
     $base="";
+    # super frame-basis ignore alternations!
     my @element_nodes=$self->getFrameElementNodes($frame);
     foreach my $element (
-			 (
-			  grep { 
-			    $_->getAttribute('type') eq 'oblig'
-			  }
-			  @element_nodes),
-			 (grep {
-			   $_->getAttribute('type') ne 'oblig' and # but
-			     $_->getAttribute('functor') =~
-			       /^(?:---|ACT|PAT|EFF|ORIG|ADDR)$/
-			     } @element_nodes)
-			 # this is in two greps so that we
-			 # do not have to sort it
+			 (grep { $self->isOblig($_) } @element_nodes),
+			 (grep { !$self->isOblig($_) and
+				 $_->getAttribute('functor') =~ /^(?:---|ACT|PAT|EFF|ORIG|ADDR)$/
+			       } @element_nodes)
+			   # this is in two greps so that we
+			   # do not have to sort it
 			) {
       $base.=$self->getOneFrameElementString($element)." ";
     }
@@ -396,9 +455,9 @@ sub getNormalFrameList {
   return map { $self->getFrame($_) } @active,@obsolete;
 }
 
+
 sub getOneFrameElementString {
   my ($self,$element)=@_;
-
   my $functor = $self->conv->decode($element->getAttribute ("functor"));
   $functor = '' if $functor eq '---';
   my $type = $self->conv->decode($element->getAttribute("type"));
@@ -406,25 +465,28 @@ sub getOneFrameElementString {
   return ($type eq "oblig" ? "" : "?")."$functor($forms)";
 }
 
+sub getFrameElementAndAlternationString {
+  my ($self,$ealt)=@_;
+  if ($ealt->nodeName eq 'element') {
+    return $self->getOneFrameElementString($ealt);
+  } else {
+    return join "|", map {$self->getOneFrameElementString($_)}
+      $self->getAlternationElementNodes($ealt);
+  }
+}
+
 sub getFrameElementString {
   my ($self,$frame)=@_;
   return unless $frame;
   my @elements;
-  my @element_nodes=$self->getFrameElementNodes($frame);
+  my @element_nodes=$self->getFrameElementAndAlternationNodes($frame);
 
-  foreach my $element (
-		       (grep { $_->getAttribute('type') eq 'oblig' }
-			@element_nodes)
-		      ) {
-    push @elements,$self->getOneFrameElementString($element);
+  foreach my $element (grep { $self->isOblig($_) } @element_nodes) {
+    push @elements,$self->getFrameElementAndAlternationString($element);
   }
   push @elements, "  " if @elements;
-  foreach my $element (
-		       (grep { $_->getAttribute('type') eq 'non-oblig' }
-			@element_nodes
-		       )
-		      ) {
-    push @elements,$self->getOneFrameElementString($element);
+  foreach my $element (grep { !$self->isOblig($_) } @element_nodes) {
+    push @elements,$self->getFrameElementAndAlternationString($element);
   }
   if (@elements) {
     return join("  ", @elements);
@@ -512,6 +574,7 @@ sub serializeForm {
     }
     return $ret;
   } elsif ($node->nodeName() ne 'parentpos') {
+    print STDERR join(" ",caller($_))."\n" for 1..5;
     die "Can't serialize unknown node-type ",$node->nodeName(),"\n";
   }
 }
@@ -645,12 +708,36 @@ sub parseSerializedFrame {
   }
   my ($eldom,$formdom);
   foreach my $member (@members) {
-    if ($member =~ /^(\?)?($func)\(([^)]*)\)$/) {
-      my ($type,$functor,$forms) = ($1,$2,$3);
+    if ($member=~/^\||\|$/) {
+      warn "Invalid member alternation '$member'\n";
+      return undef;
+    }
+    my @alternations;
+    foreach (split /\|/,$member) {
+      if (/^(\?)?($func)\(([^)]*)\)$/) {
+	push @alternations,[$1,$2,$3];
+      } else {
+	warn "Invalid element '$_'\n";
+	return undef;
+      }
+    }
+    # don't allow alternating word-form () and FUNC()
+    # don't allow non-obligatory members in alternations
+    if (@alternations>1 and (grep { $_->[1] eq "" } @alternations or
+			     grep { $_->[0] eq "?" } @alternations)) {
+      warn "Invalid member alternation '$member'\n";
+    }
+    my $newdom = $dom;
+    if ($dom and (@alternations>1)) {
+      $newdom = $self->doc()->createElement('element_alternation');
+      $dom->appendChild($newdom);
+    }
+    foreach my $frame_element (@alternations) {
+      my ($type,$functor,$forms) = @$frame_element;
       $functor = '---' if $functor eq "";
       if ($dom) {
 	$eldom = $self->doc()->createElement('element');
-	$dom->appendChild($eldom);
+	$newdom->appendChild($eldom);
 	$eldom->setAttribute('functor',$functor);
 	$eldom->setAttribute('type',$type eq "?" ? 'non-oblig' : 'oblig');
       }
@@ -688,9 +775,6 @@ sub parseSerializedFrame {
 	  return undef;
 	}
       }
-    } else {
-      warn "Invalid element '$member'\n";
-      return undef;
     }
   }
   if ($dom) {

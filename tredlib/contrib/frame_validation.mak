@@ -35,7 +35,12 @@ ADDR(.1), etc)
 
 =cut
 
+{
+use strict;
+use vars qw(@actants $match_actants %lemma_normalization @fv_trans_rules_N @fv_trans_rules_V @fv_passivization_rules);
+
 @actants = qw(ACT PAT EFF ORIG ADDR);
+$match_actants = '(?:'.join('|',@actants).')';
 
 sub _highest_coord {
   my ($node)=@_;
@@ -567,7 +572,7 @@ sub frame_matches_rule ($$$) {
       my ($func, $regexp)=@$el;
       my $oblig = ($func=~s/^\?// ? 1 : 0);
       $func = '---' if $func eq "";
-      my ($element) = grep { $V->func($_) eq $func } $V->elements($frame);
+      my ($element) = grep { $V->func($_) eq $func } $V->all_elements($frame);
       if (!defined($element)) {
 	return 0 unless $oblig;
 	next;
@@ -576,7 +581,7 @@ sub frame_matches_rule ($$$) {
     } elsif ($el =~ /^([?!])?([[:upper:]]*)\((.*)\)$/) {
       my ($oblig, $func, $forms)=($1,$2,$3);
       $func = '---' if $func eq "";
-      my ($element) = grep { $V->func($_) eq $func } $V->elements($frame);
+      my ($element) = grep { $V->func($_) eq $func } $V->all_elements($frame);
       if (!defined($element)) {
 	return 1 if $oblig eq '!';
 	return 0 unless $oblig eq '?';
@@ -613,7 +618,7 @@ sub transform_frame {
 	next;
       }
 
-      my ($element) = grep { $V->func($_) eq $func } $V->elements($new);
+      my ($element) = grep { $V->func($_) eq $func } $V->all_elements($new);
       next unless $element; # nothing to do
       foreach my $form ($V->forms($element)) {
 	my $old_form = $V->serialize_form($form);
@@ -638,7 +643,7 @@ sub transform_frame {
 	next;
       }
 
-      my ($element) = grep { $V->func($_) eq $func } $V->elements($new);
+      my ($element) = grep { $V->func($_) eq $func } $V->all_elements($new);
       next unless $element or $add_or_remove eq "+"; # nothing to remove
 
       # remove the whole element if the deletion rule has no form-list
@@ -737,12 +742,65 @@ sub _has_parent_coord_a {
   return $res ? 1 :0
 }
 
+
+sub match_element ($$$$$$) {
+  my ($V,$c,$e,$node,$aids,$quiet) = @_;
+  my @forms = $V->forms($e);
+  if (!$quiet and $V_verbose) {
+    print "--------------------------\n";
+    print "NODE: $c->{func},$c->{lemma},$c->{tag}\n";
+    print "ELEMENT: ",$V->serialize_element($e)."\n";
+  }
+  if (@forms) {
+    unless (first { match_form($c,$_,$aids) } @forms) {
+      if ($V_verbose) {
+	print "\n09 no form matches: $c->{func},$c->{lemma},$c->{tag}\n";
+      } elsif (!$quiet) {
+	print "09 no form matches: $c->{func},$c->{lemma},$c->{tag}\t";
+	  Position($node);
+      }
+      $c->{_light}='_LIGHT_';
+      return 0;
+    }
+  }
+  return 1;
+}
+
+
 sub validate_frame {
   my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet) = @_;
   $frame = do_transform_frame($V,$trans_rules,$node, $frame,$aids,$quiet);
 
-  my %oblig = map { $V->func($_) => $_ } $V->oblig($frame);
-  my %nonoblig = map { $V->func($_) => $_ } $V->nonoblig($frame);
+  my %all_elements;
+  # check over-all validity of the frame itself
+  {
+    # verify, that no functors are repeated in the frame
+    foreach my $el ($V->all_elements($frame)) {
+      my $func = $V->func($el);
+      if (exists($all_elements{$func})) {
+	unless ($quiet) {
+	  print "EE invalid frame: repeated elements\t";
+	  Position($node);
+	}
+	$node->{_light}='_LIGHT_';
+	return 0;
+      }
+      $all_elements{$func} = $el;
+    }
+    # verify, that every alternation either consists entirely of obligatory elements
+    # or entirely consists of non-obligatory elements
+    foreach my $alt ($V->alternations($frame)) {
+      if (grep { !$V->isOblig($_) } $V->alternation_elements($alt)) {
+	unless ($quiet) {
+	  print "EE invalid frame: non-obligatory element in alternation\t";
+	  Position($node);
+	}
+	$node->{_light}='_LIGHT_';
+	return 0;
+      }
+    }
+  }
+
   my ($word_form) = $V->word_form($frame);
 
   if ($word_form) {
@@ -781,7 +839,7 @@ sub validate_frame {
 
   # ignore all coordinated members right of a "coz" on the level of "coz"'s parent
   my %ignore;
-  foreach $m (@c) {
+  foreach my $m (@c) {
     if (($m->{tag}=~/^V/ or $m->{trlemma} eq '&Emp;') 
 	and PDT::is_coord_TR($m->parent) and
 	first { $_->{trlemma} eq "co¾" } PDT::GetChildren_TR($m)) {
@@ -818,13 +876,20 @@ sub validate_frame {
        } @c;
 
 
+  # hash children by functor
   my %c;
   foreach (@c) {
     push @{$c{get_func($_)}}, $_;
   }
 
+  # alternations are included too, with |-concatenated functors
+  my %oblig = map { $V->func($_) => $_ } $V->oblig($frame);
+  my %nonoblig = map { $V->func($_) => $_ } $V->nonoblig($frame);
+
+  # check, that all obligatory elements are present
   foreach my $o (keys %oblig) {
-    unless (exists($c{$o})) {
+    # at least one of alternations must match
+    unless (grep exists($c{$_}), split /\|/,$o) {
       unless ($quiet) {
 	print "06 missing obligatory element: '$o'\t";
 	Position($node);
@@ -833,8 +898,11 @@ sub validate_frame {
       return 0;
     }
   }
+
+  # check, that all actants present in data are in the vallex
+  # check, multiplicity
   foreach my $ac (@actants) {
-    if (exists($c{$ac}) and not($oblig{$ac} or $nonoblig{$ac})) {
+    if (exists($c{$ac}) and !exists($all_elements{$ac})) {
       unless ($quiet) {
 	print "07 actant present in data but not in vallex: $ac\t";
 	Position($node);
@@ -853,28 +921,60 @@ sub validate_frame {
       }
     }
   }
-  foreach my $c (@c) {
-    my $e = $oblig{get_func($c)} || $nonoblig{get_func($c)};
-    next unless ($e);
-    my @forms = $V->forms($e);
-    if (!$quiet and $V_verbose) {
-      print "--------------------------\n";
-      print "NODE: $c->{func},$c->{lemma},$c->{tag}\n";
-      print "ELEMENT: ",$V->serialize_element($e)."\n";
-    }
-    if (@forms) {
-      unless (first { match_form($c,$_,$aids) } @forms) {
-	if ($V_verbose) {
-	  print "\n09 no form matches: $c->{func},$c->{lemma},$c->{tag}\n";
-	} elsif (!$quiet) {
-	  print "09 no form matches: $c->{func},$c->{lemma},$c->{tag}\t";
-	  Position($node);
+
+  # check realizations of obligatory elements
+  foreach my $o (keys %oblig) {
+    my $e = $oblig{$o};
+    # 1) alternations
+    if ($V->is_alternation($e)) {
+      # for at least one functor in the alternations,
+      # all nodes with this functor must match
+      if (!$quiet and $V_verbose) {
+	print "****\n";
+	print "ALTERNATION: ",$V->serialize_element($e)."\n";
+      }
+      my $success = 0;
+      foreach my $alt_e ($V->alternation_elements($e)) {
+	my $alt_func = $V->func($alt_e);
+	unless (ref($c{$alt_func})) {
+	  print "ALTERNATIVE $alt_func NO NODES\n" if (!$quiet and $V_verbose);
+	  next;
 	}
-	$c->{_light}='_LIGHT_';
+	my $fail=0;
+	foreach my $c (@{$c{$alt_func}}) {
+	  unless (match_element($V,$c,$alt_e,$node,$aids,$quiet)) {
+	    $fail=1;
+	    print "ALTERNATIVE $alt_func FAIL\n" if (!$quiet and $V_verbose);
+	    last;
+	  }
+	}
+	unless ($fail) {
+	  $success = 1;
+	  print "ALTERNATIVE $alt_func SUCCESS\n" if (!$quiet and $V_verbose);
+	  last;
+	}
+      }
+      unless ($success) {
+	print "NO MATCH FOR ALTERNATION: ",$V->serialize_element($e)."\n" if (!$quiet and $V_verbose);
 	return 0;
+      }
+      print "****\n" if (!$quiet and $V_verbose);
+    } else {
+      # 2) check obligatory frame slots
+      foreach my $c (@{$c{$o}}) {
+	return 0 unless match_element($V,$c,$e,$node,$aids,$quiet);
       }
     }
   }
+
+  # check realizations of non-obligatory elements
+  foreach my $c (@c) {
+    my $e = $nonoblig{get_func($c)};
+    next unless ($e);
+    return 0 unless match_element($V,$c,$e,$node,$aids,$quiet);
+  }
+
+  # warn about nodes possibly added for no reason ...
   foreach my $c (@c) {
     if ($c->{TID} ne "" and $nonoblig{get_func($c)} and
 	$c->{coref} eq "" and
@@ -882,6 +982,11 @@ sub validate_frame {
 	!first { $_->{AID} ne "" } $c->visible_descendants(FS())
        ) {
       print "0X Possibly redundant added node: ",get_func($c)."\t";
+      Position($c);
+    } elsif ($c->{trlemma} eq '&Rcp;' and !$oblig{get_func($c)} and
+	     !first { $_->{tag}=~/^V/ and first { $_->{trlemma} eq "se" } $_->children } get_aidrefs_nodes($aids,$node)
+	    ) {
+      print "0Y Possibly redundant Rcp: ",get_func($c)."\t";
       Position($c);
     }
   }
@@ -931,7 +1036,7 @@ sub check_verb_frames {
   return -1 if $node->{tag}!~/^V/ or $func =~ /[DF]PHR/
     or ($func eq 'APPS'and $node->{trlemma} eq 'tzn');
   #    return if $node->{tag}!~/^Vs/; # TODO: REMOVE ME!
-  my $lemma = $node->{trlemma};
+  my $lemma = lc($node->{trlemma});
   $lemma =~ s/_/ /g;
   $V->user_cache->{$lemma} = $V->word($lemma,'V') unless exists($V->user_cache->{$lemma});
   if ($V->user_cache->{$lemma}) {
@@ -946,10 +1051,11 @@ sub check_verb_frames {
 	      print "Valid frame: ",$V->frame_id($vframe),": ",
 		$V->serialize_frame($vframe),"\n" if $vframe and $V_verbose;
 	      if ($vframe) {
-		if ($V->word_lemma($V->frame_word($vframe)) eq $lemma) {
+		my $vlemma = $V->word_lemma($V->frame_word($vframe));
+		if ($vlemma eq $lemma) {
 		  push @frames, $vframe;
 		} else {
-		  print "00 invalid lemma for: ",$V->frame_id($vframe),"\t";
+		  print "00 invalid lemma for: ",$V->frame_id($vframe)," [$vlemma $lemma]\t";
 		  Position($node);
 		}
 	      }
@@ -983,8 +1089,8 @@ sub check_verb_frames {
       }
       if (@frames) {
 	if ($fix) {
-	  $node->{$frameid}=join "|",map { $V->frame_id($_) } @frames;
-	  $node->{$framere} = join " | ", map { $V->serialize_frame($_) } @frames;
+	  $node->{frameid}=join "|",map { $V->frame_id($_) } @frames;
+	  $node->{framere} = join " | ", map { $V->serialize_frame($_) } @frames;
 	  ChangingFile(1);
 	}
 	foreach my $frame (@frames) {
@@ -1021,7 +1127,7 @@ sub check_nounadj_frames {
   my $func = get_func($node);
   my $pos = substr($node->{tag},0,1);
   return if $pos!~/[NA]/ or $func =~ /[DF]PHR/;
-  my $lemma = $node->{trlemma};
+  my $lemma = lc($node->{trlemma});
   $lemma =~ s/_/ /g;
   $V->user_cache->{$lemma} = $V->word($lemma,$pos) unless exists($V->user_cache->{$lemma});
   if ($V->user_cache->{$lemma}) {
@@ -1033,10 +1139,11 @@ sub check_nounadj_frames {
 	  my @valid = $V->valid_frames_for($frame);
 	  if (@valid) {
 	    foreach my $frame (@valid) {
-	      if ($V->word_lemma($V->frame_word($frame)) eq $lemma) {
+	      my $vlemma = $V->word_lemma($V->frame_word($frame));
+	      if ($vlemma eq $lemma) {
 		push @frames, $frame;
 	      } else {
-		print "00 invalid lemma for: ",$V->frame_id($frame),"\t";
+		print "00 invalid lemma for: ",$V->frame_id($frame)," [$vlemma $lemma]\t";
 		Position($node);
 		return 0;
 	      }
@@ -1051,7 +1158,7 @@ sub check_nounadj_frames {
 	    $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 	    if (@possible_frames == 1 and
 		@word_frames == 1) {
-	      my @els = $V->elements($possible_frames[0]);
+	      my @els = $V->all_elements($possible_frames[0]);
 	      if (@els == 0) {
 		print "10 unresloved frame, but word has only EMPTY frame, which matches: $fi\t";
 	      } else {
@@ -1097,20 +1204,20 @@ sub check_nounadj_frames {
 	$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 	if (@possible_frames == 1 and
 	    @word_frames == 1) {
-	  my @els = $V->elements($possible_frames[0]);
+	  my @els = $V->all_elements($possible_frames[0]);
 	  if (@els == 0) {
-	    print "16 no frame assigned, but word has only EMPTY frame, which matches: $fi\t";
+	    print "16 no frame assigned, but word has only EMPTY frame, which matches:\t";
 	  } else {
-	    print "17 no frame assigned, but word has only one frame, which matches: $fi\t";
+	    print "17 no frame assigned, but word has only one frame, which matches:\t";
 	  }
 	} elsif (@possible_frames==1) {
-	  print "18 no frame assigned, but one matching frame: $fi\t";
+	  print "18 no frame assigned, but one matching frame:\t";
 	} elsif (@possible_frames>1) {
-	  print "19 no frame assigned, but more matching frames: $fi\t";
+	  print "19 no frame assigned, but more matching frames:\t";
 	} elsif (@word_frames==0) {
-	  print "21 no frames: $fi\t";
+	  print "21 no frames:\t";
 	} else {
-	  print "20 no frame assigned, but no matching frame: $fi\t";
+	  print "20 no frame assigned, but no matching frame:\t";
 	}
       } else {
 	print "04 no frame assigned: $lemma\t";
@@ -1127,4 +1234,5 @@ sub check_nounadj_frames {
     return 0;
   }
   return 1;
+}
 }

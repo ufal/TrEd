@@ -100,29 +100,36 @@ sub valid_frames_for {
   return grep { $self->is_valid_frame($_) } @frames;
 }
 
-sub elements {
-  my ($self,$frame)=@_;
-  my $fe = $frame->findFirstChild('frame_elements');
-  return unless $fe;
-  return $fe->getChildrenByTagName('element');
+*alternations = \&TrEd::ValLex::Data::getFrameAlternationNodes;
+*elements_and_alternations = \&TrEd::ValLex::Data::getFrameElementAndAlternationNodes;
+*elements = \&TrEd::ValLex::Data::getFrameElementNodes;
+*alternation_elements = \&TrEd::ValLex::Data::getAlternationElementNodes;
+
+sub is_alternation {
+  my ($self,$node)=@_;
+  return (ref($node) and $node->nodeName eq 'element_alternation') ? 1 : 0;
+}
+
+sub all_elements {
+  my ($self, $frame)=@_;
+  return map {
+    (ref($_) and $_->nodeName eq 'element_alternation') ?
+      $self->alternation_elements($_) : $_
+  } $self->elements_and_alternations($frame)
 }
 
 sub oblig {
   my ($self,$frame)=@_;
-  my $fe = $frame->findFirstChild('frame_elements');
-  return unless $fe;
-  return grep { $_->getAttribute('type') eq 'oblig' and
-		  $_->getAttribute('functor') ne '---'
-	      } $fe->getChildrenByTagName('element');
+  return grep { ($_->nodeName eq 'element_alternation' or
+                 $_->getAttribute('functor') ne '---') and
+		 $self->isOblig($_) } $self->elements_and_alternations($frame);
 }
 
 sub nonoblig {
   my ($self,$frame)=@_;
-  my $fe = $frame->findFirstChild('frame_elements');
-  return unless $fe;
-  return grep { $_->getAttribute('type') eq 'non-oblig' and
-		  $_->getAttribute('functor') ne '---'
-	      } $fe->getChildrenByTagName('element');
+  return grep { ($_->nodeName eq 'element_alternation' or
+		 $_->getAttribute('functor') ne '---') and
+		 not $self->isOblig($_) } $self->elements_and_alternations($frame);
 }
 
 sub word_form {
@@ -136,7 +143,11 @@ sub word_form {
 
 sub func {
   my ($self,$e)=@_;
-  return $e->getAttribute('functor');
+  if ($self->is_alternation($e)) {
+    return join "|", map { $_->getAttribute('functor') } $self->alternation_elements($e);
+  } else {
+    return $e->getAttribute('functor');
+  }
 }
 
 sub forms {
@@ -190,31 +201,28 @@ sub new_element_form {
 
 sub serialize_element {
   my ($self,$element)=@_;
-
-  my $functor = $element->getAttribute ("functor");
-  my $type = $element->getAttribute("type");
-  my $forms = $self->serialize_forms($element);
-  return ($type eq "oblig" ? "" : "?")."$functor($forms)";
+  if ($element->nodeName eq 'element') {
+    my $functor = $element->getAttribute ("functor");
+    my $type = $element->getAttribute("type");
+    my $forms = $self->serialize_forms($element);
+    return ($type eq "oblig" ? "" : "?")."$functor($forms)";
+  } elsif ($element->nodeName eq 'element_alternation') {
+    return join "|", map {$self->serialize_element($_)}
+      $self->getAlternationElementNodes($element);
+  }
 }
 
 sub serialize_frame {
   my ($self,$frame)=@_;
   return unless $frame;
   my @elements;
-  my @element_nodes=$self->elements($frame);
+  my @element_nodes=$self->elements_and_alternations($frame);
 
-  foreach my $element (
-		       (grep { $_->getAttribute('type') eq 'oblig' }
-			@element_nodes)
-		      ) {
+  foreach my $element (grep { $self->isOblig($_) } @element_nodes) {
     push @elements,$self->serialize_element($element);
   }
   push @elements, "  " if @elements;
-  foreach my $element (
-		       (grep { $_->getAttribute('type') eq 'non-oblig' }
-			@element_nodes
-		       )
-		      ) {
+  foreach my $element (grep { !$self->isOblig($_) } @element_nodes) {
     push @elements,$self->serialize_element($element);
   }
   if (@elements) {
