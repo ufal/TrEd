@@ -849,7 +849,6 @@ sub distribute_files2 {
   # Distribute files
   my @servers_to_respond;
   foreach my $server (@$servers) {
-    print "Now: $server->{fullname}\n";
     my @f=splice @totalfilelist,0,$files_per_request;
     if (@f) {
       push @servers_to_respond,$server;
@@ -864,6 +863,8 @@ sub distribute_files2 {
 	msg "Communication with $server->{fullname} seems broken\n";
       }
       msg "$server->{fullname} $response\n";
+    } else {
+      print "Noop: $server->{fullname}\n";
     }
   }
   @$servers = @servers_to_respond;
