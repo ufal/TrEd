@@ -87,7 +87,7 @@ EOF
       $_->bind('<B1-Motion>', ['Tk::HelpTiptool::Motion',$w]);
     }
     $ml->Subwidget('scrolled')->menu(undef);
-    $ml->Subwidget('yscrollbar')->configure(-width=>7);
+    $ml->Subwidget('yscrollbar')->configure(-width=>7) unless $^O eq 'MSWin32';
 
     # append to global list of balloons
     $w->{'popped'} = 0;
