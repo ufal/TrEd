@@ -656,7 +656,8 @@ if (defined($init) || defined($kill) || defined($break)) {
   } elsif ($request_dump) {
     $request_type="DUMP";
     msg "DUMP @ARGV\n";
-    $request=join("\n",@ARGV)."\n";
+    my @files = get_file_list();
+    $request=join("\n", @files)."\n";
   } elsif ($request_upload) {
     die "Too few parameters for --upload!" unless @ARGV;
     die "Too many parameters for --upload!" if @ARGV>1;
