@@ -575,6 +575,9 @@ sub add_member {
 		       $_[1]->UpDown('next')},$hlist]);
     $e->bind($e,$_,[sub { $_[1]->focus; $_[1]->select_entry($_[2]); Tk->break; },$hlist,$path])
       for qw(<Escape> <Return>);
+    $e->bind($e,$_,[sub { $_[1]->focus; $_[1]->select_entry($_[2]); },$hlist,$path])
+      for qw(<Control-Return>);
+
     $hlist->itemCreate($path,1,
 		       -itemtype => 'window',
 		       -widget => $w,
@@ -617,16 +620,18 @@ sub add_member {
     for my $subw ($w->Subwidget('ED_Entry'),$w->Subwidget('Popup'),
 	 $w->Subwidget('Listbox')) {
       $subw->bind($subw,"<$_>",[sub {
-			      $_[1]->hidePopup;
-			      if ($_[4] eq 'Escape') {
-				$_[1]->setSelectedIndex($_[1]->{index_on_focus});
+				  shift;
+				  my ($w,$hlist,$path,$key)=@_;
+			      $w->hidePopup;
+			      if ($key eq 'Escape') {
+				$w->setSelectedIndex($w->{index_on_focus});
 			      } else {
-				$_[1]->EntryEnter;
+				$w->EntryEnter;
 			      }
-			      $_[2]->focus;
-			      $_[2]->select_entry($_[3]);
-			      Tk->break;
-			    },$w,$hlist,$path,$_]) for qw(Escape Return);
+			      $hlist->focus;
+			      $hlist->select_entry($path);
+			      Tk->break unless $key eq 'Control-Return';
+			    },$w,$hlist,$path,$_]) for qw(Escape Return Control-Return);
     }
     #$w->setSelected($attr_val);
     $hlist->itemCreate($path,1,-itemtype => 'window',
