@@ -17,10 +17,16 @@ sub first (&@);
 
 undef *sort_attrs_hook;
 
+sub schema_name {
+  my $schema;
+  return undef unless $grp->{FSFile} and $schema=$grp->{FSFile}->metaData('schema');
+  return $schema->{root}->{name};
+}
+
 
 sub file_resumed_hook {
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
-  print "SCHEMA: ",$grp->{FSFile}->metaData('schema')->{name},"\n";
+  print "SCHEMA: ",schema_name(),"\n";
   default_pml_attrs();
   Redraw_FSFile();
   return;
@@ -29,7 +35,7 @@ sub file_resumed_hook {
 sub switch_context_hook {
   my ($precontext,$context)=@_;
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
-  print "SCHEMA: ",$grp->{FSFile}->metaData('schema')->{name},"\n";
+  print "SCHEMA: ",schema_name(),"\n";
   default_pml_attrs();
   Redraw_FSFile();
   return;
@@ -61,9 +67,9 @@ EOF
 #bind default_pml_attrs to F8 menu Display default attributes
 sub default_pml_attrs { # cperl-mode _ _
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
-  if ($grp->{FSFile}->metaData('schema')->{name} eq 'tdata') {
+  if (schema_name() eq 'tdata') {
     set_default_tdata_attrs()
-  } elsif ($grp->{FSFile}->metaData('schema')->{name} eq 'adata') {
+  } elsif (schema_name() eq 'adata') {
     set_default_adata_attrs();
   }
   return 1;
