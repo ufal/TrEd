@@ -1014,7 +1014,13 @@ sub isFocused {
 
 sub initUserData {
   my ($fsfile)=@_;
-  $fsfile->changeUserData({ undostack => [], undo => -1}) unless ref($fsfile->userData);
+  unless (ref($fsfile->userData)) {
+    $fsfile->changeUserData({});
+  }
+  unless (ref($fsfile->userData()->{undostack})) {
+    $fsfile->userData()->{undostack} = [];
+    $fsfile->userData()->{undo} = -1;
+  }
 }
 
 sub setFSLockInfo {
@@ -1204,8 +1210,7 @@ sub closeFile {
       my $requires = $fsfile->metaData('fs-require');
       if ($requires) {
 	foreach my $req (@$requires) {
-	  $fsfile->changeMetaData('ref',{}) unless ref($fsfile->metaData('ref'));
-	  my $req_fs = $fsfile->metaData('ref')->{$req->[0]};
+	  my $req_fs = $fsfile->userData->{'ref'}->{$req->[0]};
 	  if (ref($req_fs) eq 'FSFile') {
 	    @{$req_fs->userData()->{'fs-part-of'}} =
 	      grep { $_ != $fsfile } @{$req_fs->userData()->{'fs-part-of'}};
@@ -1776,7 +1781,7 @@ sub openFile {
 
     unless ($no_secondary) {
     # if backend requested another FS-file, load it
-    # and store it in metaData('ref') hash table
+    # and store it in userData->{'ref'} hash table
     #
     # mark this secondary FS-file as part of the original file
     # so that they can be closed together
@@ -1784,7 +1789,7 @@ sub openFile {
       if ($requires) {
 	for my $req (@$requires) {
 	  my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
-	  print STDERR "Pre-loading dependent $req_filename as metaData('ref')->{$req->[0]}\n";
+	  print STDERR "Pre-loading dependent $req_filename as userData()->{'ref'}->{$req->[0]}\n";
 	  my $req_fs = openFile($win,$req_filename,-preload => 1);
 	  if (!(ref($req_fs) and $req_fs->lastTreeNo>=0 and $Fslib::FSError==0)) {
 	    undef $fsfile;
@@ -1792,9 +1797,8 @@ sub openFile {
 	    last;
 	  } else {
 	    push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
-	    $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
-	    __debug("Setting metaData('ref')->{$req->[0]} to $req_fs");
-	    $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
+	    __debug("Setting userData->{'ref'}->{$req->[0]} to $req_fs");
+	    $fsfile->userData->{'ref'}->{$req->[0]}=$req_fs;
 	  }
 	}
       }
@@ -1964,7 +1968,7 @@ sub saveFile {
     return;
   }
   eval {
-    IOBackend::rename_uri($f,$f."~"); # if (-f $f);
+    IOBackend::rename_uri($f,$f."~") unless $f=~/^ntred:/
   };
   print STDERR $@;
   unless ($win->{FSFile}->writeFile($f)) {
@@ -1972,7 +1976,7 @@ sub saveFile {
     errorMessage($win,"Error while saving file to '$f': $!\nI'll try to recover the original from backup.\n".conv_from_locale($!)."\n");
     undef $!;
     eval {
-      IOBackend::rename_uri($f."~",$f); # if (-f $f);
+      IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
     };
     my $err = _last_err();
     errorMessage($win,"Error while renaming backup file $f~ back to $f.\n".$err) if $err;
@@ -6617,8 +6621,8 @@ sub editAttrsDialog_schema {
     $attr_name = $attr_path;
     $attr_name =~ s{.*/}{};
     $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
-  } elsif (ref($node_type) and $node_type->{structure}) {
-    $edit->add_members('',$node_type->{structure},$node,1);
+  } elsif (ref($node_type) and $node_type->{member}) {
+    $edit->add_members('',$node_type,$node,1);
   } else {
     $edit->add_xmlnode('',$node_type,$node);
   }
@@ -8750,6 +8754,8 @@ sub undo {
     my $type = $undo->[0];
     my $treeNo=$undo->[1];
     my $tree=$undo->[2];
+    my $prev = $fsfile->treeList->[$treeNo];
+    $prev->destroy if ref($prev);
     if ($type eq 'FS') {
       $fsfile->treeList->[$treeNo]=$fsfile->FS->parseFSTree($tree);
     } elsif ($type eq 'Storable') {
