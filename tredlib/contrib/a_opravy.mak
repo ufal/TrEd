@@ -1662,7 +1662,7 @@ sub CreateNode {
 }
 
 
-#bind _key_Ctrl_Shift_9 to Ctrl+parenleft
+#bind _key_Ctrl_Shift_9 to Ctrl+parenleft menu Create an identical copy of the current node
 sub _key_Ctrl_Shift_9 {
   my $pAct;			# used as type "pointer"
   my $pNew;			# used as type "pointer"
@@ -1700,7 +1700,7 @@ sub _key_Ctrl_Shift_9 {
 }
 
 
-#bind _key_Ctrl_Shift_Space to Ctrl+Shift+Space
+#bind _key_Ctrl_Shift_Space to Ctrl+Shift+Space menu Split current node on a dot
 sub _key_Ctrl_Shift_Space {
   my $pAct;			# used as type "pointer"
   my $pNum;			# used as type "pointer"
@@ -1841,7 +1841,7 @@ sub _key_Ctrl_Shift_7 {
 }
 
 
-#bind _key_Ctrl_Shift_6 to Ctrl+asciicircum
+#bind _key_Ctrl_Shift_6 to Ctrl+asciicircum menu Generate a new comma node
 sub _key_Ctrl_Shift_6 {
   my $pNew;			# used as type "pointer"
 
@@ -1863,7 +1863,7 @@ sub _key_Ctrl_Shift_6 {
 
   $pNew->{'mstag'} = '-';
 
-  $pNew->{'origf'} = ',';
+  $pNew->{'origf'} = '';
 
   $pNew->{'origap'} = '';
 
