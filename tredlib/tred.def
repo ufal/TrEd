@@ -1,4 +1,4 @@
-## This is macro file for tkdisplaytree                      -*-perl-*-
+## This is macro file for tkdisplaytree                      -*-cperl-*-
 ## author: Petr Pajas
 ## created: Fri Mar 17 14:48:42 CET 2000
 
@@ -11,3 +11,52 @@ sub PrevTree { my $result=prevTree($grp); $this=$root; return $result; }
 sub GetOrd { return Ord(@_,\%attribs); }
 sub PasteNode { return Paste(shift,shift,\%attribs); }
 sub CutNode { return Cut(@_); }
+
+# Common useful user-level subroutines 
+
+sub NewRBrother {
+## Adds New RBrother to current node and shifts
+## ords of the other nodes appropriately
+  return unless ($this and Parent($this));
+
+  my $nd={};
+  NewNode($nd); # blessing NewNode
+  Set($nd,AOrd(\%attribs),Ord($this,\%attribs)+1);
+  my $node=$root;
+  while ($node) {
+    $node->{AOrd(\%attribs)}++ if (Ord($node,\%attribs)>Ord($this,\%attribs));
+    $node=Next($node);
+  }
+  PasteNode($nd,$this);
+  $this=$nd;
+}
+
+sub DeleteThisNode {
+## Deletes current node and shifts
+## ords of the other nodes appropriately
+  return unless ($this and Parent($this));
+
+  my $parent=Parent($this);
+  my $ord=Ord($this,\%attribs);
+  if (DeleteLeaf($this)) {
+    my $node=$root;
+    while ($node) {
+      $node->{AOrd(\%attribs)}-- if (Ord($node,\%attribs)>$ord);
+      $node=Next($node);
+    }
+    $this=$parent;
+  }
+}
+
+sub CopyValues {
+  undef %ValuesClipboard;
+  %ValuesClipboard = map { $_ => $this->{$_} } keys(%attribs);
+  delete $ValuesClipboard{AOrd(\%attribs)}; # we do not copy this
+  $FileNotSaved=0;
+}
+
+sub PasteValues {
+  foreach $_ (keys(%ValuesClipboard)) {
+    $this->{$_}=$ValuesClipboard{$_};
+  }
+}

@@ -31,8 +31,8 @@
 
 # this variable is used when searching for rc-file (i.e. the inicialisation file)
 @configFileSearchList=($ENV{HOME}.'/.tkfsrc',$ENV{TKFSHOME}.'/tkfsrc',dirname($0).'tkfsrc',
-		       '/usr/X11R6/lib/X11/app-defaults','/usr/local/lib/tkfs/tkfsrc',
-		       '/usr/lib/tkfs/tkfsrc','/opt/tkfs');
+		       dirname($0).'../lib/tkfslib/tkfsrc',
+		       '/usr/X11R6/lib/X11/app-defaults');
 
 # other configuration should be given in that file
 
@@ -43,10 +43,22 @@
 if (exists $ENV{TKFSHOME}) {
   $libDir=$ENV{TKFSHOME};
 } else {
-  $libDir="/usr/local/lib/tkfs";
+  print "Trying ".dirname($0).'tkfslib',"\n";
+  $libDir=(-d dirname($0).'tkfslib') ?
+    dirname($0).'tkfslib': dirname($0).'../lib/tkfslib';
 }
 readConfig();
-push @INC,$libDir;
+
+unless (-d $libDir) {
+  print <<'EOL';
+ Tkfs couldn't find a tkfslib directory. You may need to point
+ to its location by the TKFSHOME variable or add a correct LibDir
+ field to your .tkfsrc.
+
+EOL
+    die "Error: Couldn't find lib-directory.";
+}
+
 use Tk;
 use Tk::LabFrame;
 use Tk::Listbox;
@@ -56,6 +68,7 @@ use POSIX qw(locale_h);
 
 Tk::CmdLine::SetArguments(); # handle standard arguments for X resources
 
+push @INC,$libDir;
 require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
@@ -82,8 +95,8 @@ $filecount=$#files+1;
 
 #
 sub dirname {
-  $_=@_;
-  return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : ".";
+  $_=@_;  
+  return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : "./";
 }
 
 #
@@ -231,7 +244,7 @@ sub readMacros {
       #print "binding $key [$menu] => $macro\n";
       $keyBindings{$key}=$macro;
       $menuBindings{$menu}=[$macro,$key] if ($menu);
-    } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:menu[ \t]+)?(.+)/) {
+    } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
       $macro=$1;
       $menu=$2;
       #print "binding [$menu] => $macro\n";
@@ -451,12 +464,6 @@ sub printDialog {
 		     -textvariable => \$fil)->pack(-side => left);
 
   my $of=$d->Frame();
-
-#  my $lt=$of->Scrolled(qw/Listbox -relief sunken -takefocus 1 -selectmode multiple -width 4 -height 5/,
-#		       -font => $font)->pack(-side => left, -padx => '1c');
-#  my $i=1;
-#  $lt->insert('end',map { $i++ } @trees);
-
   my $bf=$of->Frame();
   $bf->Checkbutton(-text     => 'Print to file',
 		   -variable => \$toFile,
@@ -497,7 +504,7 @@ sub printDialog {
   $ff->pack(-side => bottom, -pady => '5m');
 
   $toFile ? $fe->focus : $ce->focus;
-  my $result = $d->Show;
+  my $result = ShowDialog($d);
   $grp->{'printRange'}=$printRange;
 #  $grp->{'printSelection'}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
   $grp->{'printToFile'}=$toFile;
@@ -764,7 +771,7 @@ sub tkDrawTree {
 						       -command => [\&doEvalMacro,\%group,$menuBindings{$_}->[0]],
 						       ($menuBindings{$_}->[1]) ?
 						       (-accelerator => "(".$menuBindings{$_}->[1].")") : ()],
-						   keys(%menuBindings))
+						   sort(keys(%menuBindings)))
 					       ])->pack(qw/-side left/);
   $group{MacroMenu}=$group{Menubar}->Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
 					       [ map ([Button => $keyBindings{$_}, -accelerator => "($_)",
@@ -892,6 +899,30 @@ sub tkDrawTree {
   MainLoop;
 }
 
+
+# This patches $dialog->Show which implicitly focuses the default button;
+# here focus stays where it is.
+# Usage: my $dlg=DialogBox(); ...; ShowDialog($dlg);
+sub ShowDialog {
+    my ($cw, $grab) = @_;
+    my $old_focus = $cw->focusSave;
+    my $old_grab = $cw->grabSave;
+
+    $cw->Popup();
+
+    Tk::catch {
+    if (defined $grab && length $grab && ($grab =~ /global/)) {
+	$cw->grabGlobal;
+    } else {
+	$cw->grab;
+    }
+    };
+    $cw->Wait;
+    &$old_focus;
+    &$old_grab;
+    return $cw->{'selected_button'};
+}
+
 sub fileDialog {
   my $grp = shift;
   my $types;
@@ -1009,20 +1040,20 @@ sub QueryString {
   my ($grp, $title, $label)=@_;
 
   my $d=$grp->{'top'}->DialogBox(-title => $title,
-				-buttons => ["OK", "Cancel"]);
+				 -buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  my $e = $d->Entry(-relief => 'sunken',
+  my $e=$d->add(Entry,-relief => 'sunken',
 		    -width => 40, 
+		    -takefocus => 1,
 		    -font => $font, 
 		    -textvariable => \$newvalue);
   my $l = $d->Label(-text => $label,
 		    -anchor => 'e',
 		    -justify => 'right');
   $l->pack(-side=>'left');
-  $e->pack();
   $e->focus;
-  my $result = $d->Show;
+  my $result = ShowDialog($d);
   if ($result =~ /OK/) {
     return $newvalue;
   } else {
@@ -1110,7 +1141,7 @@ sub editAttrsDialog {
 		       -rows =>$rows,
 		       -relief => 'groove',
 		       -scrollbars => 'e');
-  sub focusxDn {  my ($w,$i)=@_; 
+  sub focusxDn {  my ($w,$i)=@_;#,$e,$f)=@_; 
 		if ($i+1>$#atord) {
 		  $w->focusNext;
 		} else {
@@ -1170,8 +1201,8 @@ sub editAttrsDialog {
       push @r, $e{$_};
     }
 
-    $e{$_}->bind($e{$_},'<Tab>',[\&focusxDn,$i]);
-    $e{$_}->bind($e{$_},'<Down>',[\&focusxDn,$i]);
+    $e{$_}->bind($e{$_},'<Tab>',[\&focusxDn,$i]);#,\%e,$f]);
+    $e{$_}->bind($e{$_},'<Down>',[\&focusxDn,$i]);#,\%e,$f]);
     $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxUp,$i]);
     $e{$_}->bind($e{$_},'<Up>',[\&focusxUp,$i]);
   }
@@ -1179,7 +1210,7 @@ sub editAttrsDialog {
   $f->Manage(@r);
   $f->pack();
   $grp->{'top'}->Unbusy();
-  my $result = $d->Show;
+  my $result = ShowDialog($d);
   $grp->{'top'}->Busy(-recurse =>1);
   if ($result =~ /OK/) {
     $FileNotSaved=1;
@@ -1246,19 +1277,18 @@ sub editAttr {
 				-buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  my $e = $d->Entry(-relief => 'sunken',
-		    -width => 40,
-		    -font => $font,
-		    -textvariable => \$newvalue);
   my $l = $d->Label(-text => $attr,
 		    -anchor => 'e',
-		    -justify => 'right');
-  $l->pack(-side=>'left');
-  $e->pack();
+		    -justify => 'right')->pack(-side=>'left');
+  my $e = $d->Entry(-relief => 'sunken',
+		    -width => 40,
+		    -takefocus => 1,
+		    -font => $font,
+		    -textvariable => \$newvalue)->pack();
+  $e->icursor('end');
   $e->focus;
-
   $grp->{'top'}->Unbusy();
-  my $result = $d->Show;
+  my $result = ShowDialog($d);
   $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
     $FileNotSaved=1;
