@@ -1,0 +1,326 @@
+#!/usr/bin/perl
+# -*- cperl -*-
+#
+################################################################################
+$version='$Revision$ ';
+$timestamp="Time-stamp: <2001-06-04 17:03:58 pajas>";
+$about=
+  "Copyright (c) 2001 by Petr Pajas\n".
+  "This software is distributed under GPL - The General Public Licence\n".
+  "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
+$lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
+################################################################################
+#
+# This is "TrPrint" - a simple printing utility for tree graphs in fs
+# file-format used in Graph - program developed by M. Kren. TrPrint is
+# written entirely in Perl and for graphical output it uses PerlTk
+# library as a frontend to Tk toolkit
+#
+
+# Once we got rid of them we call getopt to read all the other options
+use Tk;
+
+use Tk::Xrm;
+# process the standard arguments for X resources
+Tk::CmdLine::SetArguments();
+
+processParam() while ($ARGV[0]=~/^[\+\-][^\-]/);
+
+if ($opt_u) {
+  print <<EOH;
+Usage:
+$0 [-c config-file] [options] files [ [options] files ...]
+ or
+$0 -u          to show usage
+ or
+$0 -h          to show help
+EOH
+  exit;
+}
+
+if ($opt_h) {
+  print <<EOF;
+Usage:
+tred -u|-h    for usage/help
+
+ or
+
+$0 [-c config-file] [options/flags] files [ [options/flags] files ...]
+
+where:
+
+-c <file>  specifies a config-file to be used (overrides
+	   ~/.tredrc and all the other files TrEd would otherwise try to
+	   search for).
+
+Options:
+
+-o <file> Output file prefix (otherwise standard output or command is
+          used). If more than one output file is to be created, the
+          filename given is used as a filename prefix and numbers
+          starting from 1 are appended after optional underscore; thus
+          files named as <filename>_<number>.ps are created.
+
+-r <range> print trees in given range (if no range is given, all trees
+           in the files are printed)
+
+Flags: (each flag -<flag> has also the +<flag> variant whith opposite
+        meaning)
+
+-H         print hidden nodes
+
+-T         use Type1 (postscript) font (this is default)
+
+-M         maximize print size
+
+-S         print the `sentence' below the tree
+
+-C         create color output
+
+-E         create Encapsulated PostScript output (implies -1)
+
+-1         print each tree to a separate output file. (See -o option for
+           details on output files naming.)
+
+-N         use tree numbers as output file suffixes (implies -1)
+
+-U         insert underscore before output file number suffix
+EOF
+  exit;
+}
+
+# in Windows, if HOME not defined, use user's AppData folder instaed
+if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
+  require Win32::Registry;
+  my %shf;
+  my $ShellFolders;
+  my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
+  $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or die "Cannot read $shfolders $^E\n";
+  $ShellFolders->GetValues(\%shf);
+  $ENV{HOME} = $shf{AppData}[2];
+}
+
+# Default values of $libDir used to search for macro-file (tred.mac)
+# and default-macro file (tred.def) are specified here. They may be
+# overriden by value of LibDir in tred resource file (tredrc or ~/.tredrc - see above).
+# It is also used to find TrEd::Config.pm module.
+
+use FindBin;
+if (exists $ENV{TREDHOME}) {
+  $libDir=$ENV{TREDHOME};
+} elsif (-d "$FindBin::RealBin/tredlib") {
+  $libDir="$FindBin::RealBin/tredlib";
+} elsif (-d "$FindBin::RealBin/../lib/tredlib") {
+  $libDir="$FindBin::RealBin/../lib/tredlib";
+} elsif (-d "$FindBin::RealBin/../lib/tred") {
+  $libDir="$FindBin::RealBin/../lib/tred";
+}
+print "Trying $libDir\n" if ($libDir);
+
+if (defined $opt_c) {
+  @configFileSearchList=($opt_c); # override any other possible config files
+}
+
+$treeViewOpts={
+	       drawSentenceInfo  => 0,
+	       customColors	  => ['darkgreen','darkblue','darkmagenta',
+				      'orange','black','DodgerBlue4',
+				      'red','gold','cyan','midnightblue']
+	      };
+
+# We *must* at least find TrEd::Config module to learn the correct libDir!!.
+unshift @INC,$libDir if (-d $libDir);
+
+do {
+  my $ld=$libDir;
+  require TrEd::Config;
+  import TrEd::Config;
+  import TrEd::Config qw(&read_config &apply_config &set_default_config_file_search_list);
+  $libDir=$ld;
+};
+
+if (defined $opt_c) {
+  @config_file_search_list=($opt_c); # override any other possible config files
+} else {
+  set_default_config_file_search_list();
+}
+
+my $configFile=read_config();
+$opt_M=$maximizePrintSize;
+
+unless (-d $libDir) {
+  print <<'EOL';
+ TrEd couldn't find a tredlib directory. You may need to point
+ to its location by the TREDHOME variable or add a correct LibDir
+ field to your ~/.tredrc.
+
+EOL
+    die "Error: Couldn't find lib-directory.";
+}
+
+use Cwd;
+unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+
+require Fslib;
+import Fslib;
+import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
+
+# tree printing module
+require TrEd::Print;
+
+#load back-ends
+@backends=('FSBackend');
+foreach (qw(TrXMLBackend CSTSBackend)) {
+  push @backends,$_ if eval { require $_; };
+}
+
+if ($useCzechLocales) {
+  use locale;
+  use POSIX qw(locale_h);
+  setlocale(LC_COLLATE,"cs_CZ");
+  setlocale(LC_NUMERIC,"us_EN");
+  setlocale(LANG,"czech");
+}
+
+my %pp;				# print options
+
+startMain();	# print the trees
+
+print STDERR "TrPrint ended.\n";
+
+exit;
+
+############################
+############################
+############################
+
+sub prepareFont {
+  my ($grp,$font,$fn)=@_;
+  print STDERR "Preparing fonts.\n" if $tredDebug;
+
+  if ($$font!~/^-/) {
+    my @a=split(/\s*,\s*/,$$font);
+    my $option,$value;
+    my @b;
+    foreach (@a) {
+      ($option, $value) = split(/\s*:\s*/, $_, 2);
+      push @b, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
+    }
+    eval { $grp->{top}->fontDelete($fn) };
+    $grp->{top}->fontCreate($fn,@b);
+    $$font=$fn;
+  }
+}
+
+sub prepareFonts {
+  my $grp=shift;
+  prepareFont($grp,\$font,'C_normal');
+  $treeViewOpts->{font}=$font;
+  prepareFont($grp,\$vLineFont,'C_vline');
+}
+
+sub processParam {
+  my $arg;
+  my $n;
+  my $v;
+  $arg=shift @ARGV;
+  if ($arg =~ /^([\+\-])([huUNHTSME1C])/) {
+    ${"opt_$2"} = $1 eq '-';
+  } elsif ($arg =~ /^-([crope])(.*)$/) {
+    $n = $1;
+    $v = $2 ne "" ? $2 : shift @ARGV;
+    ${"opt_$n"}=$v;
+  }
+}
+
+sub startMain {
+  my $file;
+  my $outfile;
+  my $fsfile;
+  my @pl=();
+  my $ofile_counter=0;
+  my $prev_ofile_base=undef;
+  my $ofile_base="";
+  my $ofile_suffix;
+  my $u;
+
+  my $top = MainWindow->new;
+  $top->withdraw();
+  my $canvas = $top->Canvas();
+  $canvas->pack();
+
+  while (@ARGV) {
+    processParam while ($ARGV[0]=~/^[\+\-][^\-]/);
+    shift @ARGV if $ARGV[0]=~/^[\+\-]\-/;
+    $file=shift @ARGV;
+    print STDERR "Opening $file\n";
+    $opt_r='-' unless ($opt_r);
+
+    $fsfile = FSFile->newFSFile($file,@backends);
+    if ($fsfile->lastTreeNo<0) {
+      print STDERR "error: $file: empty or corrupt!\n";
+      undef $fsfile;
+      next;
+    }
+    $u = $opt_U ? "_" : "";
+    if ($opt_1 or $opt_E or $opt_N) {
+      @pl=TrEd::Print::parse_print_list($fsfile,$opt_r);
+      $ofile_base=$opt_o || $file;
+      $ofile_base=~s/\.([^.]*)$//;
+
+      $ofile_suffix= $1 ne "" && $opt_o ? $1 : "ps";
+      unless ($ofile_base eq $prev_ofile_base) {
+	$ofile_counter=0;
+	$prev_ofile_base=$ofile_base;
+      }
+      foreach (@pl) {
+	$ofile_counter++ unless $opt_N;
+	$outfile= $opt_N ?
+	  $ofile_base."$u$_.$ofile_suffix" :
+	  $ofile_base."$u$ofile_counter.$ofile_suffix";
+
+	print "Printing $range of $file to $outfile\n";
+	printThis($fsfile,$top,$canvas,$_,$outfile);
+      }
+    } else {
+      $ofile_base=$opt_o || $file;
+      $ofile_base=~s/\.([^.]*)$//;
+      $ofile_suffix= $1 ne "" && $opt_o ? $1 : "ps" ;
+      $outfile="$ofile_base.$ofile_suffix";
+      print "Printing $range of $file to $outfile\n";
+      printThis($fsfile,$top,$canvas,$opt_r,$outfile);
+    }
+    undef $fsfile;
+  }
+  $top->destroy;
+}
+
+sub printThis {
+  my ($fsfile,$top,$c,$range,$outfile)=@_;
+  TrEd::Print::print_trees($fsfile,
+			   $top,
+			   $c,
+			   $range,
+			   1,
+			   $opt_E,
+			   $outfile,
+			   $opt_S,
+			   $opt_p,
+			   $opt_T,
+			   $opt_C,
+			   $opt_H,
+			   $psFontFile,
+			   $type1font,
+			   $prtFmtWidth,
+			   $prtHMargin,
+			   $prtFmtHeight,
+			   $prtVMargin,
+			   $psFontName,
+			   $psFontSize,
+			   $opt_M,
+			   $psMedia,
+			   $treeViewOpts
+			  );
+}
+
+__END__
