@@ -1,3 +1,13 @@
+#$Id$
+#   Tk::Canvas to PDF convertor.
+#   Copyright (c) 2003 by Petr Pajas
+#
+#   This library is free software; you can use, modify, and
+#   redistribute it under the terms of GPL - The General Public
+#   Licence. Full text of the GPL can be found at
+#   http://www.gnu.org/copyleft/gpl.html
+#
+
 package Tk::Canvas::PDF;
 
 BEGIN {
