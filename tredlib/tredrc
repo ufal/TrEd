@@ -8,7 +8,7 @@ ActiveTextColor	 = blue
 BoxColor	 = wheat
 CurrentBoxColor	 = white
 Font		 = -*-helvetica-medium-r-normal--*-120-*-*-*-*-*-2
-LibDir		 = "/usr/local/lib/tkfs" 
+;; LibDir		 = "/usr/local/lib/tkfs" 
 DrawBoxes	 = 0
 ShowHidden	 = 0
 

@@ -2,6 +2,33 @@
 ## author: Petr Pajas
 ## created: Wed Mar 15 14:50:16 CET 2000
 
+
+
+## add few custom bindings to predefined subroutines
+
+# bind NewRBrother to F7 menu New Node (r-brother)
+# bind NewSon to Shift+F7 menu New Node (son)
+# bind DeleteThisNode to F8 menu Delete Node
+# bind CopyValues to F5 menu Copy Values
+# bind PasteValues to F6 menu Paste Values
+
+
+# bind CutToClipboard to Ctrl+Insert menu Cut Subtree
+sub CutToClipboard {
+  return unless ($this and Parent($this));
+  $nodeClipboard=$this;
+  $this=RBrother($this) ? RBrother($this) : Parent($this);
+  CutNode($nodeClipboard);
+}
+
+# bind PasteFromClipboard to Shift+Insert menu Paste Subtree
+sub PasteFromClipboard {
+  return unless ($this and $nodeClipboard);
+  PasteNode($nodeClipboard,$this);
+  $this=$nodeClipboard;
+  $nodeClipboard=undef;
+}
+
 sub thisAfunNoNext {
   $this->{'afunprev'}=$this->{'afun'};
   $this->{'afun'}=shift;
@@ -27,9 +54,29 @@ sub thisChildrensAfun {
   }
 }
 
+# bind gotoAmbiguousTag to key F1
+sub gotoAmbiguousTag {
+  my $node;
+  $FileNotSaved=0;
+  $node=Next($this);
+  do {
+    while ($node and $$node{"tag"} !~ /\|/) {
+      $node=Next($node);
+    }
+    $this=$node,return if ($node);
+  } while (NextTree and $node=$root);
+}
+
+# bind printGrpKeys to key F12
+sub printGrpKeys {
+  print join("\n",keys %$grp);
+}
+
+
 # bind gotoNextFound to key Alt+N
 sub gotoNextFound {
   my $node;
+  $FileNotSaved=0;
   $node=Next($this);
   do {
     while ($node and $$node{"err2"} ne "Found") {
@@ -47,6 +94,7 @@ sub LastNode {
     $node=RBrother($node) while (RBrother($node));
   }
   return $node;
+  $FileNotSaved=0;
 }
 
 # bind gotoPrevFound to key Alt+P
@@ -60,6 +108,7 @@ sub gotoPrevFound {
     }
       $this=$node,return if ($node);
   } while (PrevTree and ($node=LastNode));
+  $FileNotSaved=0;
 }
 
 sub editQuery {
@@ -75,11 +124,17 @@ sub editQuery {
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   my $var=shift;
+  my $hintText=shift;
+  if ($hintText) {
+    my $t=$d->add(qw/Label -wraplength 6i -justify left -text/,$hintText);
+    $t->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
+  }
   $ed=$d->Scrolled(qw/Text -height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $font);
   $ed->insert('0.0',$var);
   $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
-  $ed->focusForce;
-  if ($d->Show =~ /OK/) {
+  $d->bind('<Return>' => [sub {1;}]);
+  $ed->focus;
+  if (ShowDialog($d) =~ /OK/) {
     $var=$ed->get('0.0','end');
     return $var;
   } else {
@@ -87,18 +142,33 @@ sub editQuery {
   }
 }
 
-#bind PerlSearch to key Alt+H
+#bind PerlSearch to key Alt+H menu Perl-Search
 sub PerlSearch {
-  my $script = editQuery("Search: insert perl expression:",$macPerlSearchScript);
-  return unless $script;
+  my $label= "Any inserted perl code will be evaluated for each node from current ".
+  "as long as it ends with zero or undefined value; the first node for which ".
+  "the code succeedes (returns defined non-zero value) will be selected.";
+
+  my $script = editQuery("Search: insert perl expression:",$macPerlSearchScript,$label);
+  unless ($script) {
+    $FileNotSaved=0;
+    return;
+  }
   $macPerlSearchScript=$script;
   while ($this=Next($this) or NextTree()) {
 #    print $this->{'form'},"\n";
     last if eval($script);
   };
+  print $this->{'form'},"\n";
 }
 
-#bind PerlSearchNext to key Alt+Shift+H
+#bind GotoTreeAsk to key Alt+G to menu Go to...
+sub GotoTreeAsk {
+  my $to=QueryString($grp,"Give a Tree Number","Number");
+  GotoTree($to) if defined $to;
+  $FileNotSaved=0;
+}
+
+#bind PerlSearchNext to key Alt+Shift+H menu Perl-Search Next
 sub PerlSearchNext {
   if ($macPerlSearchScript) {
     while ($this=Next($this) or NextTree()) {
@@ -110,12 +180,12 @@ sub PerlSearchNext {
   }
 }
 
-#bind LastTree to key Shift+greater
+#bind LastTree to key Shift+greater menu Go to last tree
 sub LastTree {
   GotoTree($#trees);
 }
 
-# bind FirstTree to key Shift+less
+# bind FirstTree to key Shift+less menu Go to first tree
 sub FirstTree {
   GotoTree(0);
 }
@@ -131,6 +201,7 @@ sub SetFound { $this->{'err2'}='Found'; }
 
 
 #bind SwapNodes to key Ctrl+9
+#bind SwapNodes to key Ctrl+up menu Swap nodes
 sub SwapNodes {
 ## Swaps the current node with the one above
 
@@ -143,8 +214,8 @@ sub SwapNodes {
   PasteNode($this,$oldParent);
   Cut($parent);
   PasteNode($parent,$this);
+  $this=$parent;
 }
-
 
 ## Automatically generated key bindings to set 'afun'
 ## generator: Emacs :)
@@ -263,6 +334,3 @@ sub  AuxX_Ap { thisAfun 'AuxX_Ap'; } # bind AuxX_Ap Shift+X
 
 ##
 ## end of semi-automatically generated key bindings
-
-
-
