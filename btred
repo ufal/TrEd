@@ -645,7 +645,7 @@ sub startMain {
 	$f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
 	if ($] >= 5.008) {
 	  require Encode;
-	  $request{FSFile} = encode($TrEd::Convert::inputenc,$request{FSFile});
+	  $request{FSFile} = Encode::decode($TrEd::Convert::inputenc,$request{FSFile});
 	}
 	my @fs=map {$_."\n"} split /\n/,$request{FSFile};
 	if ($f and openFile($grp,$f,-justpreloaded => 1) and ref($grp->{FSFile})) {
