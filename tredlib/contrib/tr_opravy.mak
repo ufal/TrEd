@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-12-17 14:57:45 pajas>
+## Time-stamp: <2005-01-06 16:35:37 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -24,7 +24,7 @@ sub switch_context_hook {
 
 sub node_style_hook {
   my ($node,$styles)=@_;
-  my $ARstruct = (which_struct() !~ /AR/) ? 1 : 0;
+  my $ARstruct = (which_struct() =~ /AR/) ? 1 : 0;
   my @aids = grep { $_ ne "" and $_ ne $node->{AID} } getAIDREFs($node);
   my %line;
   #'style:<? #diff ?><? "#{Line-fill:red}#{Line-dash:- -}" if $${_diff_dep_} ?>',
@@ -49,6 +49,7 @@ sub node_style_hook {
     }
   } elsif ($node->{_diff_in_}) {
     #'style:<? #diff ?><? "#{Oval-fill:cyan}#{Line-fill:cyan}#{Line-dash:- -}" if $${_diff_in_} ?>',
+    $line{-fill}='cyan';
     AddStyle($styles,'Oval',
 	     -fill => 'cyan');
     AddStyle($styles,'Node',
@@ -78,7 +79,7 @@ sub node_style_hook {
 	      );
     }
   }
-  if  ($ARstruct) {
+  if  (!$ARstruct) {
     Coref::draw_coref_arrows($node,$styles,\%line,
 			     [split(/\|/,$node->{coref}), @aids ],
 			     [split(/\|/,$node->{cortype}), map "AID",@aids ],
@@ -338,6 +339,19 @@ sub prepend_commentA {
 }
 
 
+sub hash_AIDs_file {
+  my %aids;
+  foreach my $tree (GetTrees()) {
+    my $node=$tree;
+    while ($node) {
+      $aids{$node->{AID}.$node->{TID}} = $node;
+      $node=$node->following;
+    }
+  }
+  return \%aids;
+}
+
+
 sub hash_AIDs {
   my %aids;
   my $node=ref($_[0]) ? $_[0] : $root;
@@ -430,8 +444,20 @@ sub UnhideNode {
 #bind AssignTrLemma to Ctrl+L menu Regenerate trlemma from lemma
 sub AssignTrLemma {
   my $lemma = $this->{lemma};
-  $lemma = PDT::GetNewTrlemma();
-  $this->{trlemma}=$lemma;
+
+  if ($this->{TID} ne '' and $this->{lemma} eq '-') {
+    if ($this->{trlemma} =~ /^(tady|tam)$/ or
+	$this->{func} =~ /DIR[1-3]|LOC/) {
+      QuerySemtam($this);
+    } elsif ($this->{trlemma} eq 'kdy') {
+      QueryKdy($this);
+    } else {
+      QueryTrlemma($this);
+    }
+  } else {
+    $lemma = PDT::GetNewTrlemma();
+    $this->{trlemma}=$lemma;
+  }
 }
 
 #bind goto_father to Ctrl+F menu Go to real father
@@ -1246,6 +1272,8 @@ sub untouch {
 sub edit_tfa {
   EditAttribute($this,'tfa');
 }
+
+#bind TFA->ProjectivizeCurrentSubTree to Alt+p menu Projectivize subtree
 
 
 #ifinclude <contrib/pdt_tags.mak>
