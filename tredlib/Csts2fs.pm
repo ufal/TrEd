@@ -266,9 +266,13 @@ my %att = (
 	   'MDA parallel' => [\&to_composed_node_attr,'_','|','src','parallelMD'],
 	   'MDA paren' => [\&to_composed_node_attr,'_','|','src','parenMD'],
 	   'MDA arabfa' => [\&to_composed_node_attr,'_','|','src','arabfaMD'],
-	   'MDA arabspec' => [\&to_composed_node_attr,'_','|','src','arabspecMD'],	   
+	   'MDA arabspec' => [\&to_composed_node_attr,'_','|','src','arabspecMD'],
 	   'MDA arabclause' => [\&to_composed_node_attr,'_','|','src','arabclauseMD'],
 	   'MDg w' => [\&to_composed_node_attr,'_','|','src','wMDg'],
+	   'wsd s' => [\&to_node_attr,'|','wsds'],
+	   'wsd ewn' => [\&to_node_attr,'|','wsdewn'],
+	   'wsd ili' => [\&to_node_attr,'|','wsdili'],
+	   'wsd iliOffset' => [\&to_node_attr,'|','wsdiliOffset'],
 	   's id' => [\&to_attr,'root','|','ID1'],
 	   'salt id' => [\&to_attr,'root','|','ID1'],
 	   'csts lang' => [\&to_node_attr,'|','cstslang'],
@@ -302,7 +306,7 @@ my %att = (
 			      my ($s,$data)=@_;
 			      $data=~s/\s+/|/g;
 			      &to_node_attr($s,$data,'','AIDREFS');
-			    }];
+			    }],
 	   'MTRl origin' => [sub {
 			       my ($s,$data)=@_;
 			       $data=~s/\s+/|/g;
