@@ -211,9 +211,9 @@ file. If no file is given, the current file is assumed.
 
 sub AFile {
   my $fsfile = $_[0] || $grp->{FSFile};
-  return undef unless ref($fsfile->metaData('refnames')) and ref($fsfile->metaData('ref'));
+  return undef unless ref($fsfile->metaData('refnames')) and ref($fsfile->userData->{'ref'});
   my $refid = $fsfile->metaData('refnames')->{adata};
-  $fsfile->metaData('ref')->{$refid};
+  $fsfile->userData->{'ref'}->{$refid};
 }
 
 =item getANodes($node?)
@@ -231,7 +231,7 @@ sub getANodes {
 
 =item getANodeByID($id_or_ref)
 
-Looks up an analytical node by it's ID (or PMLREF - i.e. the ID
+Looks up an analytical node by its ID (or PMLREF - i.e. the ID
 preceded by a file prefix of the form C<a#>). This function only works
 if the current file is a tectogrammatical file and the requested node
 belongs to an analytical file associated with it.
@@ -242,6 +242,64 @@ sub getANodeByID {
   my ($arf)=@_;
   $arf =~ s/^.*#//;
   return getANodesHash()->{$arf};
+}
+
+=item getNodeByID($id_or_ref,$fsfile?)
+
+Looks up a node from the current file (or given fsfile) by its ID (or
+PMLREF - i.e. the ID preceded by a file prefix of the form C<xy#>).
+
+=cut
+
+sub getNodeByID {
+  my ($rf,$fsfile)=@_;
+  $fsfile = $grp->{FSFile} unless defined $fsfile;
+  $rf =~ s/^.*#//;
+  return getNodeHash($fsfile)->{$rf};
+}
+
+
+=item getNodeHash($fsfile?)
+
+Return a reference to a hash indexing nodes in a given file (or the
+current file if no argument is given). If such a hash was not yet
+created, it is built upon the first call to this function (or other
+functions calling it, such as C<getNodeByID>. Use C<clearNodeHash> to
+clear the hash.
+
+=cut
+
+sub getNodeHash {
+  shift unless ref($_[0]);
+  my $fsfile = $_[0] || $grp->{FSFile};
+  return {} unless ref($fsfile);
+  unless (ref($fsfile->userData->{'id-hash'})) {
+    my %ids;
+    my $trees = $fsfile->treeList;
+    for ($i=0;$i<=$#$trees;$i++) {
+      my $node = $trees->[$i];
+      while ($node) {
+	$ids{ $node->{id} } = $node;
+      } continue {
+	$node = $node->following;
+      }
+    }
+    $fsfile->userData->{'id-hash'}=\%ids;
+  }
+  $fsfile->userData->{'id-hash'};
+}
+
+=item clearNodesHash($fsfile?)
+
+Clear the internal hash indexing nodes of a given file (or the current
+file if called without an argument).
+
+=cut
+
+sub clearNodesHash {
+  shift unless ref($_[0]);
+  my $fsfile = $_[0] || $grp->{FSFile};
+  $fsfile->userData->{'id-hash'}=undef;
 }
 
 =item getANodesHash()
@@ -257,34 +315,16 @@ C<getANodeByID>.
 sub getANodesHash {
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
-
-  if ($fsfile and
-      $fsfile->metaData('struct') eq 'adata') {
-    $fsfile = $fsfile->metaData('tdata')
+  return {} unless ref($fsfile);
+  my $a_fs;
+  if ($fsfile->userData->{'struct'} eq 'adata') {
+    $a_fs = $fsfile;
+  } else {
+    $a_fs = AFile($fsfile);
+    return {} unless ref($a_fs);
   }
-  return {} unless $fsfile;
-  unless (ref($fsfile->metaData('a-ids'))) {
-    # hash a-ids
-    my %a_ids;
-    my $a_fs = AFile($fsfile);
-    unless ($a_fs) {
-      #print(join(",",caller($_))."\n") for (0..10);
-      return {};
-    }
-    my $trees = $a_fs->treeList;
-    for ($i=0;$i<=$#$trees;$i++) {
-      my $node = $trees->[$i];
-      while ($node) {
-	$a_ids{ $node->{id} } = $node;
-      } continue {
-	$node = $node->following;
-      }
-    }
-    $grp->{FSFile}->changeMetaData('a-ids',\%a_ids);
-  }
-  $fsfile->metaData('a-ids');
+  return getNodeHash($a_fs);
 }
-
 
 =item clearANodesHash()
 
@@ -294,7 +334,10 @@ file associated with the current tectogrammatical file.
 =cut
 
 sub clearANodesHash {
-  $grp->{FSFile}->changeMetaData('a-ids',undef);
+  shift unless ref($_[0]);
+  my $fsfile = $_[0] || $grp->{FSFile};
+  my $a_fs = AFile($fsfile);
+  $a_fs->userData->{'id-hash'}=undef if ref($a_fs);
 }
 
 
@@ -340,11 +383,11 @@ sub analytical_tree {
 }
 sub ARstruct {
   my $fsfile = $grp->{FSFile};
-  return 0 unless ($fsfile or $fsfile->metaData('struct') eq 'adata');
+  return 0 unless ($fsfile or $fsfile->userData->{'struct'} eq 'adata');
   my $ar_fs = AFile($fsfile);
   return 0 unless $ar_fs;
-  $ar_fs->changeMetaData('tdata',$fsfile);
-  $ar_fs->changeMetaData('struct','adata');
+  $ar_fs->userData->{'tdata'}=$fsfile;
+  $ar_fs->userData->{'struct'}='adata';
   $grp->{FSFile} = $ar_fs;
   return 1;
 }
@@ -398,8 +441,8 @@ sub tectogrammatical_tree {
 }
 sub TRstruct {
   my $fsfile = $grp->{FSFile};
-  return 0 unless $fsfile or $fsfile->metaData('struct') ne 'adata';
-  my $tr_fs = $fsfile->metaData('tdata');
+  return 0 unless $fsfile or $fsfile->userData->{'struct'} ne 'adata';
+  my $tr_fs = $fsfile->userData->{'tdata'};
   return 0 unless $tr_fs;
   $grp->{FSFile} = $tr_fs;
   return 1;
@@ -439,7 +482,7 @@ sub get_value_line_hook {
 
 sub which_struct {
   return unless ref($grp->{FSFile});
-  if ($grp->{FSFile}->metaData('struct') eq "adata") {
+  if ($grp->{FSFile}->userData->{'struct'} eq "adata") {
     return 'AR';
   }
   return 'TR';
@@ -510,12 +553,13 @@ COORDS
       delete $coreflemmas{$node->{id}};
       my($step_l,$step_r)=(1,1);
       my $current=CurrentTreeNumber();
-      my $maxnum=scalar(GetTrees())-1;
+      my @trees=GetTrees();
+      my $maxnum=$#trees;
       my $orientation;
 
       while($step_l!=0 or $step_r!=0){
         if($step_l){
-          if (my$refed=first { $_->{id} eq $coref } (GetTrees())[$current-$step_l] -> descendants){
+          if (my$refed=first { $_->{id} eq $coref } $trees[$current-$step_l] -> descendants){
             $orientation='left';
             $coreflemmas{$node->{id}}.=$refed->{t_lemma};
             last;
@@ -523,7 +567,7 @@ COORDS
           $step_l=0 if ($current-(++$step_l))<0;
         }
         if($step_r){
-          if (my$refed=first { $_->{id} eq $coref } (GetTrees())[$current+$step_r] -> descendants){
+          if (my$refed=first { $_->{id} eq $coref } $trees[$current+$step_r] -> descendants){
             $coreflemmas{$node->{id}}.=$refed->{t_lemma};
             $orientation='right';
             last;
@@ -623,11 +667,12 @@ sentence.
 #bind goto_tree to Alt+g menu Goto Tree
 sub goto_tree {
   my$to=QueryString("Give a Tree Number or ID","Tree Identificator");
+  my @trees = GetTrees();
   if($to =~ /^[0-9]+$/){ # number
-    GotoTree($to) if $to <= scalar GetTrees() and $to != 0;
+    GotoTree($to) if $to <= @trees and $to != 0;
   }else{ # id
-    for(my$i=0;$i<GetTrees();$i++){
-      if((GetTrees())[$i]->{id} =~ /\Q$to\E$/){
+    for(my$i=0;$i<@trees;$i++){
+      if($trees[$i]->{id} =~ /\Q$to\E$/){
         GotoTree($i+1);
         last;
       }
