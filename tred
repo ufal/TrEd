@@ -1410,11 +1410,12 @@ sub openFile {
 		-buttons => ['Yes', 'No', 'No, delete recovery file']);
   }
 
+  my $backends = doEvalHook($win,'get_backends_hook',@backends);
   # Autosave file requested
   if ($recover eq 'Yes') {
     # Open recovery file
     $win->{FSFile} =
-      FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,@backends);
+      FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
     if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and $Fslib::FSError==0) {
       # Success
       $win->{FSFile}->changeFilename($f);
@@ -1431,7 +1432,7 @@ sub openFile {
       if ($answer eq 'Yes') {
 	closeFile($win,-no_update => 1);
 	$win->{FSFile}=
-	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
 	setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
       } elsif ($answer eq 'Cancel') {
 	redraw_win($win) unless ($opts{-noredraw});
@@ -1448,7 +1449,7 @@ sub openFile {
     }
     # Open requeseted file
     $win->{FSFile}=
-      FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+      FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
     setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
   }
 
@@ -3730,6 +3731,7 @@ sub startMain {
     $group{top}=MainWindow->new();
   }
 
+
   for (qw(ROText Text Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $group{top}->option('add',"\*$_.background","white");
@@ -3809,7 +3811,6 @@ sub startMain {
   $group{Balloon}->Subwidget('message')->configure(-foreground=> $toolbarBalloonForeground);
   $group{Balloon}->Tk::Toplevel::configure(-background=> $toolbarBalloonBackground);
   $group{frame}=$group{top}->Frame;
-
 
   print STDERR "Creating menubar.\n" if $tredDebug;
 
@@ -3983,7 +3984,7 @@ sub startMain {
 	 [Button=> 'Select stylesheet ...', -underline=> 9,
 	  -command=> [\&selectStylesheet,\%group]],
 	 [Separator=> ''],
-	 [Button=> 'Customize Attributes ...', -underline=> 0,
+	 [Button=> 'Customize Tree ...', -underline=> 0,
 	  -command=> [\&customAttrsDialog,\%group]],
 	 [Separator=> ''],
 	 [Button=> 'List of Named Macros ...', -underline=> 0,
@@ -4727,7 +4728,8 @@ sub startMain {
   selectFilelist(\%group,'Default');
   if ($opt_p) {
     my $dir=$opt_p>0 ? 'vert' : 'horiz';
-    my $fl=($opt_l=~/,/g)+1;
+    my @fl = $opt_l=~/,/g;
+    my $fl=@fl+1;
     if ($fl>1) {
       $fl=min($opt_p,$fl);
       my $i;
@@ -4739,10 +4741,12 @@ sub startMain {
     } else {
       for (my $i=1;$i<$opt_p;$i++) {
 	focusCanvas($group{treeWindows}->[$i]->canvas,\%group);
+	$group{treeWindows}->[$i]->{currentFilelist} = $group{treeWindows}->[0]->{currentFilelist};
 	gotoFile($group{treeWindows}->[$i],$i);
       }
     }
     focusCanvas($group{treeWindows}->[0]->canvas,\%group);
+    $group{tieWindows}=1;
   }
 
   $group{noinsert} = ($group{focusedWindow}{currentFilelist}->count()>0);
@@ -5934,11 +5938,11 @@ sub customAttrsDialog {
   my $win=$grp->{focusedWindow};
   return if (doEvalHook($win,"customize_attrs_hook") eq 'stop');
 
-  return unless $win->{FSFile};
+  return unless $win->treeView->patterns() or $win->{FSFile};
 
   $grp->{top}->Busy(-recurse=>1);
   my $d=$grp->{top}->
-    DialogBox(-title=> "Customize Visible Attributes",
+    DialogBox(-title=> "Customize Tree Appearance",
 	      -width=> '10c',
 	      -buttons=> ["OK", "Cancel"]);
 
@@ -5977,9 +5981,9 @@ sub customAttrsDialog {
                      -exportselection 0/)->pack(qw/-pady 3 -expand yes -fill y/);
   disable_scrollbar_focus($al);
   $al->BindMouseWheelVert();
-  my @atord=$win->{FSFile}->FS->attributes;
+  my @atord=$win->{FSFile} ? $win->{FSFile}->FS->attributes : ();
   if ($sortAttrs) {
-    @atord=sort {uc($a) cmp uc($b)} $win->{FSFile}->FS->attributes
+    @atord=sort {uc($a) cmp uc($b)} @atord
       unless (doEvalHook($win,"sort_attrs_hook",\@atord));
   }
   $al->insert('end',@atord);
@@ -7326,34 +7330,70 @@ sub evalMacro {
 sub tieGotoTree {
   my ($grp,$no)=@_;
   if ($grp->{tieWindows}) {
-    foreach (@{$grp->{treeWindows}}) {
-      gotoTree($_,$no) if ($_->{FSFile});
+    my @tied = grep { $_->{FSFile} } @{$grp->{treeWindows}};
+    if (@tied) {
+      my $result = 1;
+      foreach (@tied) {
+	$result &&= gotoTree($_,$no);
+      }
+      return $result;
+    } else {
+      return 0
     }
   } else {
-    gotoTree($grp->{focusedWindow}) if ($grp->{focusedWindow}->{FSFile});
+    if ($grp->{focusedWindow}->{FSFile}) {
+      return gotoTree($grp->{focusedWindow},$no);
+    } else {
+      return 0;
+    }
   }
+  return $result;
 }
 
 sub tieNextTree {
   my ($grp)=@_;
   if ($grp->{tieWindows}) {
-    foreach (@{$grp->{treeWindows}}) {
-      nextTree($_) if ($_->{FSFile});
+    my @tied = grep { $_->{FSFile} } @{$grp->{treeWindows}};
+    if (@tied) {
+      my $result = 1;
+      foreach (@tied) {
+	$result &&= nextTree($_);
+      }
+      return $result;
+    } else {
+      return 0
     }
   } else {
-    nextTree($grp->{focusedWindow}) if ($grp->{focusedWindow}->{FSFile});
+    if ($grp->{focusedWindow}->{FSFile}) {
+      return nextTree($grp->{focusedWindow});
+    } else {
+      return 0;
+    }
   }
+  return $result;
 }
 
 sub tiePrevTree {
   my ($grp)=@_;
   if ($grp->{tieWindows}) {
-    foreach (@{$grp->{treeWindows}}) {
-      prevTree($_) if ($_->{FSFile});
+    my @tied = grep { $_->{FSFile} } @{$grp->{treeWindows}};
+    if (@tied) {
+      my $result = 1;
+      foreach (@tied) {
+	$result &&= prevTree($_);
+      }
+      return $result;
+    } else {
+      return 0
     }
   } else {
-    prevTree($grp->{focusedWindow}) if ($grp->{focusedWindow}->{FSFile});
+    if ($grp->{focusedWindow}->{FSFile}) {
+      return prevTree($grp->{focusedWindow});
+    } else {
+      return 0;
+    }
   }
+  return $result;
 }
 
 sub currentNext {
