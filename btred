@@ -829,11 +829,17 @@ sub openFile {
   } elsif ($opts{-justpreloaded}) {
     return 0;
   } else {
-    $grp->{'FSFile'} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
-    $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
-    $grp->{preloaded}->{$f}=$grp->{'FSFile'} if ($grp->{FSFile} and exists($grp->{preloaded}));
+    $grp->{FSFile} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+    $grp->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{FSFile}->backend);
+    $grp->{preloaded}->{$f}=$grp->{FSFile} if ($grp->{FSFile} and exists($grp->{preloaded}));
   }
   _msg "empty or corrupt file: $f!\n" if ($grp->{FSFile}->lastTreeNo<0);
+
+  my $encoding=$grp->{FSFile}->encoding;
+  if (!$term_encoding and $encoding ne "") {
+    _set_encoding(\*STDERR,$encoding,"STDERR");
+    _set_encoding(\*STDOUT,$encoding,"STDOUT");
+  }
 
   $grp->{treeNo}=0;
   $grp->{currentNode}=undef;
