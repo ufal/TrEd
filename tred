@@ -34,6 +34,7 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 	    $normalRedoPixmap
 	    $normalNextPixmap
 	    $normalPrevPixmap
+	    $locale_charset
            );
 
 $version='$Revision$ ';
@@ -307,7 +308,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 #load back-ends
 #require CSTS_SGML_SP_Backend;
 @backends=('FSBackend',ImportBackends(split(/,/,$opt_B),
-				      qw/NTREDBackend CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend AG2FS/
+				      qw/NTREDBackend PMLBackend CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend AG2FS/
 				     ));
 # CSTSBackend not used any more
 #$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
@@ -397,6 +398,23 @@ use Exporter;
 
 ApplyGlobalConfig();
 
+if ($]>=5.008) {
+  eval {
+    require I18N::Langinfo;
+    $locale_charset = I18N::Langinfo::langinfo(I18N::Langinfo::CODESET());
+  };
+}
+
+sub conv_from_locale {
+  my ($str)=@_;
+  if ($locale_charset and $TrEd::Convert::support_unicode) {
+    require Encode;
+    return Encode::decode($locale_charset,$str);
+  } else {
+    return $str;
+  }
+}
+
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
 # work, so I recommend not to use czech locales there, unless you
 # really want the decimal points to be replaced by commas in
@@ -455,7 +473,7 @@ if ($opt_l) {
       push @fl_files,\@f;
       close(F);
     } else {
-      print STDERR "Warning: Can't open filelist $l: $!\n";
+      print STDERR "Warning: Can't open filelist $l: ".conv_from_locale($!)."\n";
     }
   }
   # define filelists CmdLine-1, CmdLine-2, etc.
@@ -884,12 +902,19 @@ sub nextOrPrevFile {
   my $result=gotoFile($win,$pos,$no_recent);
   my $quiet=0;
   my $response;
-  while ($result and $result != -1 and (!$win->{FSFile} or $win->{FSFile}->lastTreeNo<0)) {
+  while (!(defined($result) and $result == 0) and $result != -1 and (!$win->{FSFile} or $win->{FSFile}->lastTreeNo<0)) {
+    my $trees = $win->{FSFile} ? $win->{FSFile}->lastTreeNo+1 : 0;
     unless ($quiet) {
-      my $f="File \"$filename\" is locked, empty, corrupted, or does not exist!";
-      $response=userQuery($win, $f,
-			  -title => "Error",
-			  -buttons => ["Try next","Skip to next correct file","Cancel"]);
+      my $f=filelistFullFileName($win,$pos);
+      $response=
+	errorDialog($win,
+		    "Error: open failed",
+		    "File is unreadable, empty, corrupted, or does not exist ($trees trees read)!"
+		      ."\nPossible problem was:",
+		    'Reading: '.$f."\n".
+		    $grp->{lastOpenError},
+		    -buttons => ["Try next","Skip to next correct file","Cancel"]
+		   );
       last if ($response eq "Cancel");
       $quiet=1 if ($response eq "Skip to next correct file");
     }
@@ -1009,7 +1034,7 @@ sub setLock {
   return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
   my $lock=eval { IOBackend::open_backend($f.".lock","w") };
   if ($@ or not ref($lock)) {
-    warn "Error creating lock-file: $@ $!\n";
+    warn "Error creating lock-file: $@ ".conv_from_locale($!)."\n";
     return undef;
   };
   chmod 644, $lock if $proto eq 'file';
@@ -1125,6 +1150,7 @@ sub closeFile {
   my $fsfile;
   if ($opts{-fsfile}) {
     $fsfile = $opts{-fsfile};
+    __debug("Closing ",$opts{-fsfile}->filename,"\n");
   } else {
     $fsfile = $win->{FSFile};
     if ($fsfile) {
@@ -1198,7 +1224,7 @@ sub closeFile {
   }
 }
 
-sub ErrorMessage {
+sub plainErrorMessage {
   my ($grp,$msg)=@_;
   my $top;
   if (ref($grp)=~/^Tk::/) {
@@ -1212,6 +1238,32 @@ sub ErrorMessage {
   $top->messageBox(-icon=> 'error',
 		   -message=> $msg,
 		   -title=> 'Error', -type=> 'ok');
+}
+
+sub errorDialog {
+  my ($grp_or_win,$title,$msg1,$msg2,%opts)=@_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  my $d= $grp->{top}->DialogBox(-title=> $title,
+				($opts->{-buttons} ? (-buttons=> ['OK']) : ()),
+				%opts
+			       );
+  $d->Label(-text => "ERROR",
+	    -justify => 'left',
+	    -foreground => 'red'
+	   )
+    ->pack(-pady => 5,-side => 'top', -fill => 'x');
+  $d->Label(-text => $msg1,
+	    -justify => 'left'
+	   )->pack(-pady => 10,-side => 'top', -fill => 'x');
+  my $t= $d->
+    Scrolled(qw/Text -relief sunken -borderwidth 2
+		-scrollbars oe/);
+  $t->Subwidget('scrolled')->menu->delete('File');
+  $t->pack(qw/-side top -expand yes -fill both/);
+#  disable_scrollbar_focus($t);
+  $t->BindMouseWheelVert();
+  $t->insert('0.0',$msg2);
+  $d->Show;
 }
 
 sub dlgReturn {
@@ -1556,6 +1608,8 @@ sub openFile {
   my ($grp,$win)=grp_win($grp_or_win);
   my $no_err = $grp->{noOpenFileError};
 
+  undef $grp->{lastOpenError};
+
   my ($f,$goto) = parse_suffix($fname);
   print "Goto suffix is $goto\n" if defined($goto) and $tredDebug;
 
@@ -1659,8 +1713,10 @@ sub openFile {
   # Autosave file requested
   if ($recover eq 'Yes') {
     # Open recovery file
+    undef $!; undef $@;
     $fsfile =
       FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+    $grp->{lastOpenError}="$@\n".conv_from_locale($!) if ($@.$! ne "");
     if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
       # Success
       $fsfile->changeFilename($f);
@@ -1668,18 +1724,22 @@ sub openFile {
       setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
     } else {
       # Recovery failed
-      my $trees=$fsfile->lastTreeNo+1;
-      my $answer = userQuery($win,
-		    "\nRecovery file is corrupted ($trees trees read)!\n\nFall back to the original file\n'$f' ?",
-		    -bitmap=> 'question',
-		    -title => "Recovery error!",
-		    -buttons => ['Yes', 'No', 'Cancel']);
-      if ($answer eq 'Yes') {
+      my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
+      my $answer =
+	errorDialog($win,
+		    "Error: recovery failed",
+		    "Recovery file is corrupted ($trees trees read)!".
+		    "\nPossible problem was:",
+		    $grp->{lastOpenError},
+		    -buttons => ['Open the original file', 'Ignore', 'Cancel']);
+      if ($answer eq 'Open the original file') {
 	closeFile($win,-no_update => 1) unless $opts{-preload};
+	undef $!; undef $@;
 	$fsfile=
 	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+	$grp->{lastOpenError}="$@\n".conv_from_locale($!) if ($@.$! ne "");
 	setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
-      } elsif ($answer eq 'Cancel') {
+      } elsif ($answer eq 'Ignore') {
 	redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
 	$win->toplevel->Unbusy() unless $insideEval;
 	return undef;
@@ -1694,8 +1754,10 @@ sub openFile {
       unlink $autosave;
     }
     # Open requeseted file
+    undef $!; undef $@;
     $fsfile=
       FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+    $grp->{lastOpenError}="$@\n".conv_from_locale($!) if ($@.$! ne "");
     setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
   }
 
@@ -1713,7 +1775,11 @@ sub openFile {
       for my $req (@$requires) {
 	print STDERR "Pre-loading dependent $req->[1] as metaData('ref')->{$req->[0]}\n";
 	my $req_fs = openFile($win,$req->[1],-preload => 1);
-	if (ref($req_fs)) {
+	if (!(ref($req_fs) and $req_fs->lastTreeNo>=0 and $Fslib::FSError==0)) {
+	  undef $fsfile;
+	  closeFile($win, -fsfile => $req_fs, -no_update => 1);
+	  last;
+	} else {
 	  print "Got: $req_fs\n";
 	  push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
 	  $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
@@ -1726,7 +1792,12 @@ sub openFile {
   unless ($fsfile and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
     unless ($no_err) {
       my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
-      errorMessage($win,"File '$f' is either empty, corrupted, or does not exist ($trees trees read)!");
+      errorDialog($win,
+		  "Error: open failed",
+		  "File '$f' is unreadable, empty, corrupted, or does not exist ($trees trees read)!"
+		  ."\nPossible problem was:",
+		  $grp->{lastOpenError});
+
     }
     closeFile($win,-no_update => 1) unless $opts{-preload};
   }
@@ -1831,7 +1902,7 @@ sub autoSaveAll {
     return if doEvalHook($win,"file_autosave_hook",$fsfile) eq 'stop';
 
     unless ($fsfile->writeFile($f)) {
-      print STDERR "Error auto-saving file to '$f'\n($!)\n";
+      print STDERR "Error auto-saving file to '$f'\n(".conv_from_locale($!)."\n";
       next;
     }
     $fsfile->notSaved(2);
@@ -1886,7 +1957,7 @@ sub saveFile {
   print STDERR $@;
   unless ($win->{FSFile}->writeFile($f)) {
     $win->toplevel->Unbusy() unless $insideEval;
-    errorMessage($win,"Error saving file to '$f', trying to recover the original from backup\n($!)\n");
+    errorMessage($win,"Error saving file to '$f', trying to recover the original from backup\n(".conv_from_locale($!)."\n");
     eval {
       IOBackend::rename_uri($f."~",$f); # if (-f $f);
     };
@@ -3562,7 +3633,7 @@ sub printThis {
     @print_opts=printDialog($grp);
     return unless scalar(@print_opts)>2;
     $err = ($print_opts[3] and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$ttFont}));
-    ErrorMessage($grp,"You must select TrueType font for PDF!") if $err;
+    plainErrorMessage($grp,"You must select TrueType font for PDF!") if $err;
   }} while ($err);
   $print_opts[0]=$grp->{focusedWindow}->{treeNo}+1
     if (!defined($print_opts[0]) or $print_opts[0] eq "");
@@ -5622,7 +5693,7 @@ sub saveConfig {
    print F @_;
    close(F);
  } else {
-   my $lasterr=$!;
+   my $lasterr=conv_from_locale($!);
    my ($trc)=TrEd::Config::tilde_expand('~/.tredrc');
    my ($dc,$ic)=stat($configFile);
    my ($dh,$ih)=stat($trc);
@@ -5642,7 +5713,7 @@ sub saveConfig {
        close(F);
        $configFile=$trc;
      } else {
-       errorMessage($grp->{focusedWindow},'Cannot write to "'.$trc.'"!'."\n($!)\n".
+       errorMessage($grp->{focusedWindow},'Cannot write to "'.$trc.'"!'."\n($lasterr)\n".
 		    "\nConfiguration could not be saved!\n");
      }
    } else {
@@ -6163,7 +6234,7 @@ sub openSimpleHtml {
 			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   if (defined($file) and $file ne "") {
     open my $html, ">$file" ||
-      errorMessage($top,"Cannot write to \"$file\"!"."\n($!)\n".
+      errorMessage($top,"Cannot write to \"$file\"!"."\n(".conv_from_locale($!)."\n".
 		     "\nSentences could not be saved!");
     my $encoding=$TrEd::Convert::outputenc;
     if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
@@ -6423,10 +6494,10 @@ sub editAttrsDialog_schema {
 
   require Tk::TrEdNodeEdit;
   my $schema = $win->{FSFile}->metaData('schema');
-  use Data::Dumper;
-  print "PATH: '$attr_path'\n";
+#  use Data::Dumper;
+#  print "PATH: '$attr_path'\n";
   my $node_type = $schema->find_type($attr_path);
-  print Dumper($node_type),"\n";
+#  print Dumper($node_type),"\n";
 
   $win->toplevel->Busy(-recurse=>1);
 
