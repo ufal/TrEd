@@ -19,6 +19,13 @@ sub show_x_origa {
   ChangingFile(0);
 }
 
+#bind show_x_origs to Alt+s menu Describe CAC clause tag
+sub show_x_origs {
+  describe_x_origs($this->{x_origs}) if $this->{x_origs} ne "";
+  ChangingFile(0);
+}
+
+
 #bind show_x_origt to Alt+m menu Describe CAC morphological tag
 sub show_x_origt {
   describe_x_origt($this->{x_origt}) if $this->{x_origt} ne "";
@@ -27,7 +34,9 @@ sub show_x_origt {
 
 #bind rebuild_cac_tree to Alt+r menu Rebuild CAC tree structure
 sub rebuild_cac_tree {
-  my @nodes = sort {$a->{ord} <=> $b->{ord}} $root->descendants;
+  my @nodes = sort {$a->{x_origr} <=> $b->{x_origr}} 
+    grep { $_->{x_origr} ne "" }
+    $root->descendants;
   for (my $i=0; $i<@nodes;$i++) {
     my $n = $nodes[$i];
     if ($n->{x_origa} ne "") {
@@ -75,6 +84,9 @@ sub do_edit_attr_hook {
     return 'stop';
   } elsif ($atr eq 'x_origt') {
     show_x_origt();
+    return 'stop';
+  } elsif ($atr eq 'x_origs') {
+    show_x_origs();
     return 'stop';
   } elsif ($atr eq 'tag') {
     show_tag();
@@ -150,6 +162,39 @@ sub describe_x_origt {
   ChangingFile(0);
   return;
 }
+
+sub describe_x_origs {
+  my ($tag) = @_;
+  my (@val,@sel);
+  return if $tag eq "";
+  my $num = substr($tag,0,2);
+  my $zacatek = "pokraèování";
+  if ($num =~ /^9\d$/) {
+    $zacatek = "zaèátek";
+    $num-=90;
+  }
+  my @val = (substr($tag,0,2)." = ".int($num).". vìta v souvìtí ($zacatek)",
+	     (map {
+	       if ( $_ <= length($tag) ) {
+		 my $v = substr($tag,$_-1,1);
+		 if (exists $ORIGS_INFO{"$_;$v"}) {
+		   "$v  = ".$ORIGS_INFO{"$_;$v"}
+		 } elsif ($v eq " ") {
+		   ()
+		 } else {
+		   "$v  = UNKNOWN"
+		 }
+	       } else { () }
+	     } 3..9)
+	    );
+  listQuery("$tag - detailed info",
+	    'browse',
+	    \@val,
+	    \@sel);
+  ChangingFile(0);
+  return;
+}
+
 
 %ORIGA_INFO = map { my ($pos, $val, $type, $desc) = split /\t/,$_,4;
 		    $val=$1 if ($val =~ /'(.)'/);
@@ -491,3 +536,37 @@ do {{
     }
   }
 }};
+
+%ORIGS_INFO = map { my ($pos, $val, $type, $desc) = split /\t/,$_,4;
+		    $val=$1 if ($val =~ /'(.)'/);
+		     ("$pos;$val" => $desc) } split /\n/, <<'EOF';
+1-2	èíslo	èíslo vìty	vìty uvnitø vìtného celku (poøadí vìty v souvìtí);(èísla vìty se zapisují do dvou sloupcù, 02, 10, 11) (tým¾ èíslem se znaèí i pokraèování vìty za vìtou vlo¾enou); zaèátek vìtného celku má v prvním sloupci 9 místo 0 (91)
+3	1	druh	jednoduchá
+3	2	druh	hlavní
+3	3	druh	vedlej¹í
+3	4	druh	???
+4	1	vìty	vìta subjektová
+4	2	vìty	vìta predikátová
+4	3	vìty	vìta atributivní
+4	4	vìty	vìta objektová
+4	5	vìty	vìta místní
+4	6	vìty	vìta èasová
+4	7	vìty	vìta zpùsobová
+4	8	vìty	vìta pøíèinná
+4	9	vìty	vìta doplòková
+5	!	èíslo øídícího jména vìty atributivní	nepravá vìta vzta¾ná
+5		èíslo øídícího jména vìty atributivní	9
+5	0	èíslo øídícího jména vìty atributivní	více ne¾ 9
+5	1	èíslo øídícího jména vìty atributivní	závislost na bezprostøednì pøedcházejícím jménu
+5	2	èíslo øídícího jména vìty atributivní	závislost na 2.,
+5	3	èíslo øídícího jména vìty atributivní	závislost na jménu pøed vzta¾nou vìtou
+8	!	vztahy mezi vìtami	chyba ve stavbì souvìtí
+8	1	vztahy mezi vìtami	koordinace
+8	2	vztahy mezi vìtami	parentéze
+8	3	vztahy mezi vìtami	pøímá øeè
+8	5	vztahy mezi vìtami	parentéze v pøímé øeèi
+8	6	vztahy mezi vìtami	uvozovací vìta
+8	7	vztahy mezi vìtami	???
+8	8	vztahy mezi vìtami	parentéze v uvoz. vìtì
+9	1	???	???
+EOF
