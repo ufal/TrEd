@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 #
-# This is "tkdisplaytree" AKA "tkfs" - a simple viewer/editor of tree
+# This is "Tred" - a simple viewer/editor of tree
 # graphs in fs file-format used in Graph - program developed by
 # M. Kren. It is written entirely in Perl and for graphical output it
 # uses PerlTk library as a frontend to Tk toolkit
 #
 # Usage:
-# tkfs file1[##N|#N] [file2[##N|#N] [...]]
+# tred file1[##N|#N] [file2[##N|#N] [...]]
 #
 # Files file1,etc. given on the command-line must be in fs-format (for
 # not a little bit obsolete description see:
@@ -19,41 +19,41 @@
 #      letters
 # ##N  where N is a number
 #
-# In the firstcase, #N tells tkfs to skip, after opening the file, to
+# In the firstcase, #N tells tred to skip, after opening the file, to
 # the first tree the root of which has #N as a value of attribute
 # called 'form' (this feature is optimized for specific instances of
 # fs-format used while working on The Prague Dependency Treebank)
 #
-# The later form '##N' simply makes tkfs to go to the N-th tree in the
+# The later form '##N' simply makes tred to go to the N-th tree in the
 # given file.
 #
 #
 
 # this variable is used when searching for rc-file (i.e. the inicialisation file)
-@configFileSearchList=($ENV{HOME}.'/.tkfsrc',$ENV{TKFSHOME}.'/tkfsrc',dirname($0).'tkfsrc',
-		       dirname($0).'../lib/tkfslib/tkfsrc',
+@configFileSearchList=($ENV{HOME}.'/.tredrc',$ENV{TREDHOME}.'/tredrc',dirname($0).'tredrc',
+		       dirname($0).'../lib/tredlib/tredrc',
 		       '/usr/X11R6/lib/X11/app-defaults');
 
 # other configuration should be given in that file
 
-# Default values of $libDir used to search for macro-file (tkfs.mac)
-# and default-macro file (tkfs.def) are specified here. They may be
-# overriden by value of LibDir in tkfs resource file (tkfsrc or ~/.tkfsrc - see above).
+# Default values of $libDir used to search for macro-file (tred.mac)
+# and default-macro file (tred.def) are specified here. They may be
+# overriden by value of LibDir in tred resource file (tredrc or ~/.tredrc - see above).
 
-if (exists $ENV{TKFSHOME}) {
-  $libDir=$ENV{TKFSHOME};
+if (exists $ENV{TREDHOME}) {
+  $libDir=$ENV{TREDHOME};
 } else {
-  print "Trying ".dirname($0).'tkfslib',"\n";
-  $libDir=(-d dirname($0).'tkfslib') ?
-    dirname($0).'tkfslib': dirname($0).'../lib/tkfslib';
+  print "Trying ".dirname($0).'tredlib',"\n";
+  $libDir=(-d dirname($0).'tredlib') ?
+    dirname($0).'tredlib': dirname($0).'../lib/tredlib';
 }
 readConfig();
 
 unless (-d $libDir) {
   print <<'EOL';
- Tkfs couldn't find a tkfslib directory. You may need to point
- to its location by the TKFSHOME variable or add a correct LibDir
- field to your .tkfsrc.
+ Tred couldn't find a tredlib directory. You may need to point
+ to its location by the TREDHOME variable or add a correct LibDir
+ field to your .tredrc.
 
 EOL
     die "Error: Couldn't find lib-directory.";
@@ -161,7 +161,7 @@ sub readConfig {
       "Warning: Cannot open $dotConfigFile nor $configFile,!\n" .
       "         Using configuration defaults!\n";
   }
-  $appName=(exists $confs{AppName}) ? $confs{AppName} : "Tkfs ver. 1.0";
+  $appName=(exists $confs{AppName}) ? $confs{AppName} : "Tred ver. 1.0";
   $baseXPos=(exists $confs{BaseXPos}) ? $confs{BaseXPos} : 15;
   $baseYPos=(exists $confs{BaseYPos}) ? $confs{BaseYPos} : 15;
   $nodeWidth=(exists $confs{NodeWidth}) ? $confs{NodeWidth} : 5;
@@ -183,14 +183,14 @@ sub readConfig {
   $type1font=(exists $confs{Type1Font}) ? $confs{Type1Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
   $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : $libDir;
   $psFontFile=(exists $confs{PsFontFile}) ? <$confs{PsFontFile}> : "$libDir/csarialm.pfa";
-  $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : "$libDir/tkfs.mac";
-  $defaultMacroFile=(exists $confs{DefaultMacroFile}) ? <$confs{DefaultMacroFile}> : "$libDir/tkfs.def";
+  $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : "$libDir/tred.mac";
+  $defaultMacroFile=(exists $confs{DefaultMacroFile}) ? <$confs{DefaultMacroFile}> : "$libDir/tred.def";
   $prtFmtWidth=(exists $confs{PrtFmtWidth}) ? $confs{PrtFmtWidth} : '21c';
   $prtFmtHeight=(exists $confs{PrtFmtHeight}) ? $confs{PrtFmtHeight} : '297m';
   $prtVMargin=(exists $confs{PrtVMargin}) ? $confs{PrtVMargin} : '1c';
   $prtHMargin=(exists $confs{PrtHMargin}) ? $confs{PrtHMargin} : '1c';
   $psMedia=(exists $confs{PsMedia}) ? $confs{PsMedia} : '%%DocumentMedia: A4 595 842 white()';
-  $psFile=(exists $confs{PsFile}) ? <$confs{PsFile}> : 'tkfs.ps';
+  $psFile=(exists $confs{PsFile}) ? <$confs{PsFile}> : 'tred.ps';
   $drawBoxes=(exists $confs{DrawBoxes}) ? $confs{DrawBoxes} : 0;
   $maximizePrintSize=(exists $confs{MaximizePrintSize}) ? $confs{MaximizePrintSize} : 0;
   $showHidden=(exists $confs{ShowHidden}) ? $confs{ShowHidden} : 0;
@@ -617,7 +617,7 @@ sub printThis {
 	  "/Arial-Medium findfont 12 scalefont setfont\n",
 	    "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
 	      "40 40 [\n",
-		"(File ",$grp->{currentFile},".    Printed by Tkfs on $now.)\n",
+		"(File ",$grp->{currentFile},".    Printed by Tred on $now.)\n",
 		  "] 13 -0 0 0 false DrawText\ngrestore\n";
       }
       $i++;

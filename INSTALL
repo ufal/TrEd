@@ -1,7 +1,7 @@
-Instalation of tkdisplaytree.pl aka tkfs ver. 0.2
-=================================================
+Instalation of Tred ver. 0.2
+============================
 
-This text describes installation of tkfs under Linux or any other
+This text describes installation of tred under Linux or any other
 UN*X-like system.
 
 
@@ -16,51 +16,50 @@ INSTALLATION
 
 Untar the distribution tarball using the following command:
 
-	tar -xzf tkfs-0.2.tgz 
+	tar -xzf tred-0.2.tgz 
 
-A distribution directory named tkfs-0.2 will be created.
+A distribution directory named tred-0.2 will be created.
 
 In this directory you will find the following files and directories:
 
 	README              (a readme file)
 	INSTALL             (this file)
-	tkfs                (a symlink to tkdisplaytree.pl)
-	tkdisplaytree.pl    (the program itself)
-	tkfslib/            (other files necessary for running tkfs)
-	tkfsrc              (configuration file)
+	tred                (the program itself)
+	tredlib/            (other files necessary for running tred)
+	tredrc              (configuration file)
 
 
-You may try to issue ./tkfs in this directory.
+You may try to issue ./tred in this directory.
 
 
 If you prefer having executable files in a different directory than
-the libraries (tkfslib), you may follow the following instructions.
+the libraries (tredlib), you may follow the following instructions.
 
 INSTALLING TO SEPARATE DIRECTORIES
 ----------------------------------
 
-You may wish to move the whole tkfslib/ directory to a location of
-your choice, move both tkfs and tkfsdisplaytree.pl files to some
-directory in your PATH and make a copy of tkfsrc named .tkfsrc in your
-home directory. To ensure that tkfs finds its lib-directory tkfslib
-you may either set TKFSHOME environment variable to the location of
-tkfslib or edit your .tkfsrc and add a line similar to the following:
+You may wish to move the whole tredlib/ directory to a location of
+your choice, move both tred and treddisplaytree.pl files to some
+directory in your PATH and make a copy of tredrc named .tredrc in your
+home directory. To ensure that tred finds its lib-directory tredlib
+you may either set TREDHOME environment variable to the location of
+tredlib or edit your .tredrc and add a line similar to the following:
 
-LibDir  = "/my/favoured/location/for/tkfslib"
+LibDir  = "/my/favoured/location/for/tredlib"
 
 
-CUSTOMIZING Tkfs
+CUSTOMIZING Tred
 ----------------
 
-Tkfs reads and uses a configuration file and macro-file (where user
+Tred reads and uses a configuration file and macro-file (where user
 may define his/her own macros (in Perl) and bind them easily to
-keystrokes or menus). Tkfs searches for the configuration file in in
+keystrokes or menus). Tred searches for the configuration file in in
 your home directory and also the directory from which it was
-started. To customize tkfs, you may wish to make a copy of the
-configuration file "tkfsrc" shipped with the distribution in your home
-directory. This copy must be named ".tkfsrc" (note the dot at the
-beginning). If you want Tkfs to read your own set of macro (instead
-the default sample set "tkfslib/tkfs.mac"), you should point to it by
-the option "macroFile" in your ".tkfsrc" like this:
+started. To customize tred, you may wish to make a copy of the
+configuration file "tredrc" shipped with the distribution in your home
+directory. This copy must be named ".tredrc" (note the dot at the
+beginning). If you want Tred to read your own set of macro (instead
+the default sample set "tredlib/tred.mac"), you should point to it by
+the option "macroFile" in your ".tredrc" like this:
 
 macroFile = "/my/favoured/macro.set"

@@ -1013,7 +1013,7 @@ keeps the TNS in memory and returns a reference to it.
    Draws a tree on standard output using character graphics. (May be
    particulary useful on systems with no GUI - for real graphical
    representation of FS trees look for Michal Kren's GRAPH.EXE or
-   Perl/Tk based program "tkfs" by Petr Pajas.
+   Perl/Tk based program "tred" by Petr Pajas.
 
 =item THE TREE NODE-STRUCTURE (TNS)
 

@@ -1,4 +1,4 @@
-AppName		 = Tkfs 1.0		;; know any other program that lets you set this? 
+AppName		 = Tred 0.2		;; know any other program that lets you set this? 
 NodeColor	 = yellow
 ActiveNodeColor	 = blue
 CurrentNodeColor = red
@@ -8,13 +8,13 @@ ActiveTextColor	 = blue
 BoxColor	 = wheat
 CurrentBoxColor	 = white
 Font		 = -*-helvetica-medium-r-normal--*-120-*-*-*-*-*-2
-;; LibDir		 = "/usr/local/lib/tkfs" 
+;; LibDir		 = "/usr/local/lib/tred" 
 DrawBoxes	 = 0
 ShowHidden	 = 0
 
 ;; The following file should contain pfa poscript
-;; which should be used by tkfs for printing
-;; Tkfs cannot use its metrics to draw the tree, so
+;; which should be used by tred for printing
+;; Tred cannot use its metrics to draw the tree, so
 ;; it should be the same as for display font or as similar as possible
 ;; For example, you may use postsript font for display too, which however
 ;; leads in low speed performance (reendering is slow)
@@ -22,4 +22,4 @@ ShowHidden	 = 0
 ;; (if you have it). Also some pairs of fonts like Arial/Helvetica have
 ;; so similar metrices that they can be used together.
 ;; The following is also default: 
-PsFontFile = /usr/local/lib/tkfs/csarialm.pfa
+PsFontFile = /usr/local/lib/tred/csarialm.pfa
