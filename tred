@@ -2999,6 +2999,7 @@ sub editConfig {
 			  updateTitle($grp);
 			  $grp->{valueLine}->configure(-font=> $vLineFont);
 			  foreach (@{$grp->{treeWindows}}) {
+			    print "Applying for $_\n";
 			    $_->apply_options($treeViewOpts);
 			  }
 			  redraw_all($grp);
@@ -3014,6 +3015,7 @@ sub editConfig {
 				 updateTitle($grp);
 				 $grp->{valueLine}->configure(-font=> $vLineFont);
 				 foreach (@{$grp->{treeWindows}}) {
+				   print "Applying for $_\n";
 				   $_->apply_options($treeViewOpts);
 				 }
 				 redraw_all($grp);

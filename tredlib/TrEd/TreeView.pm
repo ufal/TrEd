@@ -127,7 +127,7 @@ sub apply_options {
   foreach (@Options) {
     $self->{$_}=$opts->{$_} if (exists($opts->{$_}));
   }
-  print "FONT ======: $self->get_font\n";
+  print "FONT ======: ",$self->get_font,"\n";
   return;
 }
 
