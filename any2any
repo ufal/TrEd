@@ -21,7 +21,8 @@ EOF
     print <<EOF;
 Open a file and save it in FS format
 Parameters:
-  -f format          output format; one of: fs, csts, trxml, teixml. Default is csts.
+  -f format          output format; one of: fs, csts, trxml, teixml, and storable.
+                     Default is csts.
   -s suffix_regexp   strip strings matching given regexp from the end of filenames
   -a append          append given suffix to the filenames
   -p prefix_regexp   remove strings matching given regexp from the beginning of filenames
