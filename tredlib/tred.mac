@@ -6,6 +6,8 @@
 
 ## add few custom bindings to predefined subroutines
 
+# bind Save to F2
+
 # bind NewRBrother to F7 menu New Node (r-brother)
 # bind NewSon to Shift+F7 menu New Node (son)
 # bind DeleteThisNode to F8 menu Delete Node
@@ -81,7 +83,6 @@ sub gotoNextFound {
   do {
     while ($node and $$node{"err2"} ne "Found") {
       $node=Next($node);
-      # print STDERR $$node{"form"},"\n";
     }
     $this=$node,return if ($node);
   } while (NextTree and $node=$root);
@@ -201,7 +202,6 @@ sub SetFound { $this->{'err2'}='Found'; }
 
 
 #bind SwapNodes to key Ctrl+9
-#bind SwapNodes to key Ctrl+up menu Swap nodes
 sub SwapNodes {
 ## Swaps the current node with the one above
 
@@ -216,6 +216,41 @@ sub SwapNodes {
   PasteNode($parent,$this);
   $this=$parent;
 }
+
+#bind SwapNodesValues to key Ctrl+Prior menu Swap nodes (values only)
+sub SwapNodesValues {
+## Swaps the current node with the one above
+## (actually swaps only attribute all values)
+
+  return unless ($this);
+  my $parent=Parent($this);
+  return unless ($parent);
+
+  my @parentAttrs=@{$parent}{@atord};
+  @{$parent}{@atord}=@{$this}{@atord};
+  @{$this}{@atord}=@parentAttrs;  
+  $this=$parent;
+}
+
+#bind SwapNodesValuesButAfun to key Ctrl+Shift+Prior menu Swap nodes (values only but afun)
+sub SwapNodesValuesButAfun {
+## Swaps the current node with the one above
+## (actually swaps only attribute all values but the one of afun)
+
+  return unless ($this);
+  my $parent=Parent($this);
+  return unless ($parent);
+
+  my $oldparentAfun=$parent->{'afun'};
+  my @parentAttrs=@{$parent}{@atord};
+  @{$parent}{@atord}=@{$this}{@atord};
+  @{$this}{@atord}=@parentAttrs;
+  $this->{'afun'}=$parent->{'afun'};
+  $parent->{'afun'}=$oldparentAfun;
+  $this=$parent;
+}
+
+
 
 ## Automatically generated key bindings to set 'afun'
 ## generator: Emacs :)
@@ -334,3 +369,11 @@ sub  AuxX_Ap { thisAfun 'AuxX_Ap'; } # bind AuxX_Ap Shift+X
 
 ##
 ## end of semi-automatically generated key bindings
+
+# bind Noop to key F5
+
+$lastnoop=0;
+
+sub Noop {
+  print $lastnoop++, "Almost noop !\n";
+}

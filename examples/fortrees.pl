@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #
 # Usage: 
-# foreachnode.pl FILE1#N1 FILE2#N2 ...
+# fortrees.pl FILE1#N1 FILE2#N2 ...
 #
 # Rreads a perl script from stdin and evals it for tree Ni in file FILEi (for each i) 
 #
@@ -36,9 +36,11 @@ $SCRIPT.=$_ while <STDIN>;
 $filecount=$#files+1;
 
 foreach $f (@files) {
-  if ($f=~/^(.*)(\#[0-9]+)$/) {
+  if ($f=~/^([^\#]*)((?:\#[0-9]+)*)$/) {
     $f=$1;
     $select=$2;
+    $select=~ s/(.)\#/\1|#/g;    
+    print STDERR "Current selection: <$select>\n";
   } else {
     undef $select;
   }
@@ -58,7 +60,7 @@ foreach $f (@files) {
     if (/^\[/) {
       $root=GetTree($_,\@atord,\%attribs);
       push(@trees, $root) if $root;
-      if (not defined($select) or $$root{"form"} eq $select) {
+      if (not $select or $$root{"form"}=~/^(?:$select)$/) {
         #------------------------
 	$node=$root;
 	while($node)

@@ -25,20 +25,28 @@ $usenames=0;
 $hide=1;
 while (@ARGV>0 and $ARGV[0]=~/^-/) {
   $_=shift @ARGV;
-  if (/h/ && ! $helped) { 
+  if (/h/ && ! $helped) {
     print STDERR <<EOL;
-  
-  Find differences in fs-files from TR-level  
+
+  Find differences in fs-files from TR-level
   Usage: fsdiff.pl [-h] [-a] [-n] file1, file2, ...
 
   Options:
      -a   diff all nodes (i.e. hidden too)
      -n   guess and use names of anotators instead of filenames
-     -h   print this help screen 
+     -d   check dependency only
+     -l   check lemma only
+     -m   check missing only
+     -e   exclude differences in lemma
+     -h   print this help screen
 EOL
     exit 0;
   };
   $usenames=1 if (/n/);
+  $onlylemma=1 if (/l/);
+  $onlydep=1 if (/d/);
+  $onlymissing=1 if (/m/);
+  $excludelemma=1 if (/e/);
   $hide=0 if (/a/);
 }
 
@@ -124,9 +132,9 @@ do {
       print STDERR "Tree ",$n+1," has form ",$trees[$n]->{"form"},"\n";
       $any=1;
     }
-    
+
     # create groups of corresponding old nodes, i.e. nodes not created
-    # by anotators    
+    # by anotators
     if ($T{$f}) {
       print STDERR "Creating groups for tree # $n (starting at $f)\n"; 
       $node=Next($T{$f}); 
@@ -194,61 +202,79 @@ do {
 		  keys(%G)) {
       $Gr=$G{$grp};
       $diffs=0;
-      
-      # check if all files have node in this group
-      @grps=keys(%$Gr);
-      $rep=$grps[0]."[".$$Gr{$grps[0]}->{"ord"}."]: ".
-	$$Gr{$grps[0]}->{"trlemma"}.".".$$Gr{$grps[0]}->{"func"};
-      if (@grps != @names) {		
-	print "== $grp =============\n$rep\n" if (! $diffs);
-	$diffs++;
-	if (2*@grps<@names) {
-	  print "  only in:";
-	  foreach $f (keys %$Gr) {
-	    print " $f";
-	  }
-	  print "\n";
-	} else {
-	  print "  not in:";
-	  foreach $f (@names) {
+
+      unless ($onlylemma or $onlydep) {
+	# check if all files have node in this group
+	@grps=keys(%$Gr);
+	$rep=$grps[0]."[".$$Gr{$grps[0]}->{"ord"}."]: ".
+	  $$Gr{$grps[0]}->{"trlemma"}.".".$$Gr{$grps[0]}->{"func"};
+	if (@grps != @names) {		
+	  print "== $grp =============\n$rep\n" if (! $diffs);
+	  $diffs++;
+	  if (2*@grps<@names) {
+	    print "  only in:";
+	    foreach $f (keys %$Gr) {
+	      print " $f";
+	    }
+	    print "\n";
+	  } else {
+	    print "  not in:";
+	    foreach $f (@names) {
 	      print " $f" if (! exists $$Gr{$f} );
+	    }
+	    print "\n";
 	  }
-	  print "\n";
 	}
       }
 
       # check for (parent) structure differences but ignore changes,
       # if parents are alone, i.e. not associated in groups
-      undef %valhash;
-      $diff_them=0;
-      foreach $f (keys %$Gr) {
-	if (Parent($$Gr{$f})) {
-	  $valhash{Get(Parent($$Gr{$f}),"_group_")}.=" $f";
-	  $diff_them++ if (keys(% {$G{Get(Parent($$Gr{$f}),"_group_")}})>1);
-	} else {
-	  $valhash{"none"}.=" $f";
-	}
-      }
-      if ($diff_them and keys (%valhash) > 1) {
-	print "== $grp =============\n$rep\n" if (! $diffs);
-	$diffs++;
-	foreach $val (keys %valhash) {
-	  print "  depends on $val:$valhash{$val}\n";
-	} 
-      }
-
-      #check for value differences
-      foreach $attr ("func","form","trlemma","lemma","origf","del","gram","sentmod","deontmod") {
+      unless ($onlylemma or $onlymissing) {
 	undef %valhash;
+	$diff_them=0;
 	foreach $f (keys %$Gr) {
-	  $valhash{$$Gr{$f}->{$attr}}.=" $f";
+	  if (Parent($$Gr{$f})) {
+	    $valhash{Get(Parent($$Gr{$f}),"_group_")}.=" $f";
+	    $diff_them++ if (keys(% {$G{Get(Parent($$Gr{$f}),"_group_")}})>1);
+	  } else {
+	    $valhash{"none"}.=" $f";
+	  }
 	}
-	if (keys (%valhash) > 1) {
+	if ($diff_them and keys (%valhash) > 1) {
 	  print "== $grp =============\n$rep\n" if (! $diffs);
 	  $diffs++;
 	  foreach $val (keys %valhash) {
-	    print "  $attr=$val:$valhash{$val}\n";
-	  } 
+	    if ($val=~/N/) {
+	      @gval=keys(% {$G{$val}});
+	      $gval=$gval[0];
+	      print "  depends on $val($gval\[",$G{$val}->{$gval}->{ord},"] ",
+		$G{$val}->{$gval}->{trlemma},".",
+		$G{$val}->{$gval}->{func},
+		  "): $valhash{$val}\n";
+	    } else {
+	      print "  depends on $val:$valhash{$val}\n";
+	    }
+	  }
+	}
+      }
+
+      #check for value differences
+      unless($onlydep or $onlymissing) {
+	@atrchecklist=$onlylemma ? ("trlemma","lemma") : 
+	  ($excludelemma ? ("func","form","origf","del","gram","sentmod","deontmod") :
+	   ("func","form","trlemma","lemma","origf","del","gram","sentmod","deontmod"));
+	foreach $attr (@atrchecklist) {
+	  undef %valhash;
+	  foreach $f (keys %$Gr) {
+	    $valhash{$$Gr{$f}->{$attr}}.=" $f";
+	  }
+	  if (keys (%valhash) > 1) {
+	    print "== $grp =============\n$rep\n" if (! $diffs);
+	    $diffs++;
+	    foreach $val (keys %valhash) {
+	      print "  $attr=$val:$valhash{$val}\n";
+	    } 
+	  }
 	}
       }
       $alldiffs+=$diffs;

@@ -1,5 +1,11 @@
 #!/usr/bin/perl
 #
+# BTred ver. 0.1 - Copyright (C) 2000 by Petr Pajas
+# This software is covered by GPL - The General Public Licence
+# Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
+#
+# This program allows you run macros written for Tred in batch mode
+#
 # Usage: 
 # btred [-m macro-file] [-e script] files...
 #
@@ -60,7 +66,7 @@ for ($i=0;$i<=$#ARGV;$i++) {
   }
 }
 
-print @ARGV,"\n";
+# print @ARGV,"\n";
 
 readConfig();
 
@@ -151,6 +157,31 @@ sub prevTree {
   return 1;
 }
 
+sub newTree {
+  my ($grp)=@_;
+  my $nr={};
+  NewNode($nr); # blessing new root
+
+  splice(@trees, $treeNo, 0, $nr);
+
+  @nodes=();
+  getNodes($grp);
+  return 1;
+}
+
+sub newTreeAfter {
+  my ($grp)=@_;
+  my $nr={};
+  NewNode($nr); # blessing new root
+
+  splice(@trees, ++$treeNo, 0, $nr);
+
+  @nodes=();
+  getNodes($grp);
+  return 1;
+}
+
+
 sub nextFile {
   return 0 if ($fileNo >= $#files);
   $fileNo++;
@@ -184,7 +215,7 @@ sub openFile {
   # opening file
   die "cannot open $f!\n" unless open(F,"<$f");
 
-  print STDERR "Reading attribs\n";
+  print STDERR "Opening $f\n";
   #reading attribs
   %attribs=ReadAttribs(\*F,\@atord,2,\@header);
 
