@@ -213,18 +213,19 @@ sub value_line_list {
     }
     @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
     my @vl=();
+    my $block=qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
     foreach $node (@sent) {
       my %styles;
       foreach my $style (@patterns) {
 	my $msg=$self->interpolate_text_field($node,$style);
-	foreach (split(m'([#$]{[^}]+})',$msg)) {
-	  if (/^\${([^}]+)}$/) {
+	foreach (split(m'([#$]${block})',$msg)) {
+	  if (/^\$${block}$/) {
 	    #attr
 	    if (exists($node->{$1})) {
 	      push @vl,[$node->{$1},$node, map { encode("$_ => $styles{$_}") }
 			keys %styles];
 	    }
-	  } elsif (/^\#{([^}]+)}$/) {
+	  } elsif (/^\#${block}$/) {
 	    #attr
 	    my $style=$1;
 	    if ($style =~ /-tag:\s*(.*\S)\s*$/) {
@@ -1386,9 +1387,10 @@ sub draw_text_line {
   my $at_text;
   my $j=0;
   my $color=undef;
-
-  foreach (split(m'([#$]{[^}]+})',$msg)) {
-    if (/^\${([^}]+)}$/) {
+  my $bblock=qr/\{(?:(?> [^{}]* )|(??{ $bblock }))*\}/x;
+  my $block=qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
+  foreach (grep {$_ ne ""} split(m/([#\$]$bblock)/,$msg)) {
+    if (/^\$${block}$/) {
       $j++;
       $at_text=$self->prepare_text_field($node,$1);
       next if ($at_text) eq "";
@@ -1418,7 +1420,7 @@ sub draw_text_line {
       $self->store_obj_pinfo($txt,$node);
       $self->store_node_pinfo($node,"Text[$1][$i][$j]",$txt);
       $self->store_gen_pinfo("attr:$txt",$1);
-    } elsif (/^\#{([^}]+)}$/) {
+    } elsif (/^\#${block}$/) {
       unless ($self->get_noColor) {
 	my $c=$1;
 	if ($c=~m/^(.+)(-.+):(.+)$/) {
@@ -1497,8 +1499,9 @@ sub prepare_text {
   my ($self,$node,$pattern)=@_;
   return "" unless ref($node);
   my $msg=$self->interpolate_text_field($node,$pattern);
-  $msg=~s/\#{[^}]+}//g;
-  $msg=~s/\${([^}]+)}/$self->prepare_raw_text_field($node,$1)/eg;
+  my $block = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
+  $msg=~s/\#${block}//g;
+  $msg=~s/\$${block}/$self->prepare_raw_text_field($node,$1)/eg;
   return encode($msg);
 }
 
