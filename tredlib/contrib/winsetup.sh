@@ -172,7 +172,7 @@ if ((test $UPGRADE = 1 || mkdir "${TREDDIR}") && \
   regtool -s set '\machine\Software\TrEd\Dir' $TREDDIR 
   echo
   echo "Instalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla"
-  echo "ikona s obrazkem sileneho zvirete:)"
+  echo "ikona s obrazkem sileneho zvirete"
   echo
 
 else
