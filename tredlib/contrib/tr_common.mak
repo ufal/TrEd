@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-02-18 09:41:33 pajas>
+## Time-stamp: <2002-02-18 09:55:13 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -21,7 +21,7 @@
 #bind choose_frame_or_advfunc to F1 menu Vyber ramec pro sloveso, funktor pro adverbium
 
 sub choose_frame_or_advfunc {
-  if ($this->{tag}=~/^D/) {
+  if ($this->{tag}!~/^[VAN]/) {	# co neni sloveso, subst ni adj, je adv :))))
     ChooseAdverbFunc();
   } else {
     ChooseFrame();
