@@ -295,7 +295,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 #load back-ends
 #require CSTS_SGML_SP_Backend;
 @backends=('FSBackend',ImportBackends(split(/,/,$opt_B),
-				      qw/NTREDBackend AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend/
+				      qw/NTREDBackend AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend/
 				     ));
 # CSTSBackend not used any more
 #$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
@@ -337,16 +337,18 @@ use Exporter;
             @openfiles @filelists &min &max);
 
 %backend_map=(
-	   fs => 'FSBackend',
-	   csts => 'CSTS_SGML_SP_Backend',
-	   trxml => 'TrXMLBackend',
+	      fs => 'FSBackend',
+	      csts => 'CSTS_SGML_SP_Backend',
+	      trxml => 'TrXMLBackend',
 	      teixml => 'TEIXMLBackend',
-	      ntred => 'NTREDBackend'
+	      ntred => 'NTREDBackend',
+	      storable => 'SorableBackend'
 	 );
 
 @open_types=
   (["FS files",           [qw/.fs .FS .Fs/]],
    ["CSTS files",           [qw/.cst .csts/]],
+   ["Perl Storable files",  [qw/.pls .pls.gz/]],
    ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
    ["gzipped CSTS files",   [qw/.cst.gz .csts.gz/]],
    ["All files",        '*']
@@ -371,6 +373,10 @@ use Exporter;
 	     teixml =>
 	     [["TEIXML files",          [qw/.tei .xml/]],
 	      ["gzipped TEIXML files",   [qw/.tei.gz .xml.gz/]],
+	      ["All files",        '*']
+	     ],
+	     storable =>
+	     [["Perl Storable files",          [qw/.pls .pls.gz/]],
 	      ["All files",        '*']
 	     ]
 	    );
@@ -4321,7 +4327,7 @@ sub saveFileAs {
   my $response=userQuery($win, "\nPlease,\nchoose one of the following output formats.\n\n".
 			 "\nWARNING:\nsome formats may be incompatible with current file.\n",
 			 -title => "Save As ...",
-			 -buttons => ["FS","CSTS","TrXML","TEIXML","Cancel"]);
+			 -buttons => ["FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
   return if ($response eq "Cancel");
 
   $win->{FSFile}->changeBackend($backend_map{lc($response)});
@@ -4334,6 +4340,8 @@ sub saveFileAs {
     $file=~s/\.(?:csts|sgml|sgm|cst|fs|tei)/.trxml/i;
   } elsif ($response eq 'TEIXML') {
     $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx)/.xml/i;
+  } elsif ($response eq 'Storable') {
+    $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx|tei|xml)/.pls/i;
   }
   $file= $win->toplevel->getSaveFile(-filetypes=> $save_types{lc($response)},
 				     -title=> "Save As ...",

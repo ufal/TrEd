@@ -71,7 +71,7 @@ require Fslib;
 import Fslib;
 
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw(NTREDBackend AG2FS TrXMLBackend TEIXMLBackend CSTS_SGML_SP_Backend)));
+@backends=('FSBackend',ImportBackends(qw(NTREDBackend AG2FS TrXMLBackend TEIXMLBackend CSTS_SGML_SP_Backend StorableBackend)));
 
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
@@ -92,7 +92,8 @@ our $inputenc='iso-8859-2';
 	fs => 'FSBackend',
 	csts => 'CSTS_SGML_SP_Backend',
 	trxml => 'TrXMLBackend',
-	teixml => 'TEIXMLBackend'
+	teixml => 'TEIXMLBackend',
+	storable => 'StorableBackend'
 );
 
 $fileno=0;
