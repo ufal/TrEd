@@ -594,7 +594,7 @@ $header=\@ARheader;
 sub paste_node ($$$) {
   my ($node,$p)=@_;
   my $ordnum = $node->{$ord};
-  my $b=$p->{$firstson};
+  my $b=$p->{$Fslib::firstson};
   if ($b and $ordnum>$b->{$ord}) {
     $b=$b->{$Fslib::rbrother} while ($b->{$Fslib::rbrother} and $ordnum>$b->{$Fslib::rbrother}->{$ord});
     $node->{$Fslib::rbrother}=$b->{$Fslib::rbrother};
@@ -603,11 +603,11 @@ sub paste_node ($$$) {
     $node->{$Fslib::lbrother}=$b;
   } else {
     $node->{$Fslib::rbrother}=$b;
-    $p->{$firstson}=$node;
+    $p->{$Fslib::firstson}=$node;
     $node->{$Fslib::lbrother}=0;
     $b->{$Fslib::lbrother}=$node if ($b);
   }
-  $node->{$parent}=$p;
+  $node->{$Fslib::parent}=$p;
 }
 
 
