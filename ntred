@@ -828,6 +828,7 @@ sub distribute_files {
     }
     msg "$server->{fullname} $response\n";
   }
+  @$servers = @servers_to_respond;
 }
 
 
@@ -842,9 +843,12 @@ sub distribute_files2 {
   require IO::Select;
   my $select = IO::Select->new();
   # Distribute files
+  my @servers_to_respond;
   foreach my $server (@$servers) {
+    print "Now: $server->{fullname}\n";
     my @f=splice @totalfilelist,0,$files_per_request;
     if (@f) {
+      push @servers_to_respond,$server;
       msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
       send_request($control,$server->{socket},'LOAD_FILES',$key,@f);
       $select->add($server->{socket});
@@ -858,7 +862,7 @@ sub distribute_files2 {
       msg "$server->{fullname} $response\n";
     }
   }
-
+  @$servers = @servers_to_respond;
   msg "Please wait ...\n";
   # get responses
   my @can_read;
