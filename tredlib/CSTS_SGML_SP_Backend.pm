@@ -31,9 +31,8 @@ encoding.
 
 sub open_backend {
   my ($filename, $mode, $encoding)=@_;
-  print "CSTSBACKEND!!!yahoo!\n";
   if ($mode eq 'w') {
-    return IOBackend::open($filename,$mode,$encoding);
+    return IOBackend::open_backend($filename,$mode,$encoding);
   } elsif ($mode eq 'r') {
     my $fh = undef;
     my $cmd = $sgmls_command;
