@@ -142,6 +142,7 @@ sub get_ttf_fonts {
 	my $fs=$f->{name}->find_name(2);
 	$fn.=" ".$fs if $fs ne 'Regular';
 	$result{$fn} = $font unless exists $result{$fn};
+	$f->release;
       }
     }
   };
