@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-07-27 18:53:44 pajas>
+## Time-stamp: <2001-07-31 15:04:49 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
@@ -320,7 +320,7 @@ sub add_questionmarks_func {
 
 sub ShiftLeft {
   return unless ($this->{dord}>1);
-  if ($main::showHidden) {
+  if (HiddenVisible()) {
     ShiftNodeLeft($this);
   } else {
     ShiftNodeLeftSkipHidden($this,1);
@@ -329,7 +329,7 @@ sub ShiftLeft {
 
 sub ShiftRight {
   return unless (Parent($this));
-  if ($main::showHidden) {
+  if (HiddenVisible()) {
     ShiftNodeRight($this);
   } else {
     ShiftNodeRightSkipHidden($this);

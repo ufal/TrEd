@@ -114,7 +114,7 @@ sub Projectivize {
 
 sub ShiftSTLeft {
   return unless (GetOrd($this)>0);
-  if ($main::showHidden) {
+  if (HiddenVisible()) {
     ShiftSubTreeLeft($this);
   } else {
     ShiftSubTreeLeftSkipHidden($this);
@@ -123,7 +123,7 @@ sub ShiftSTLeft {
 
 sub ShiftSTRight {
   return unless (GetOrd($this)>0);
-  if ($main::showHidden) {
+  if (HiddenVisible()) {
     ShiftSubTreeRight($this);
   } else {
     ShiftSubTreeRightSkipHidden($this);
