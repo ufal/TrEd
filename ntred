@@ -17,7 +17,7 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $code $hubname $hubport $init $nocheck $noservers $nohub
 	    $client_key_file $verbose $srvlist $kill $filelist
 	    $srvlistfile $request_quit $request_dump $request_upload
-	    $unrestricted $help $usage $manpage $ssh $server_debug
+	    $safe_mode $help $usage $manpage $ssh $server_debug
 	    $maxservers $request_reload $request_load $request_close
 	    $request_list $request_list_changed $request_save
 	    $request_save_changed $strip_prefix $add_prefix
@@ -70,7 +70,7 @@ Getopt::Long::Configure ("bundling");
 	 "output-format|f=s" => \$output_format,
 	 "config-file|c=s" => \$config_file,
 	 "servers=s"    => \$srvlist,
-	 "unrestricted|U" => \$unrestricted,
+	 "safe-mode|F" => \$safe_mode,
 	 "serverlist=s"    => \$srvlistfile,
 	 "max-servers=i"    => \$maxservers,
 	 "filelist|l=s"    => \$filelist,
@@ -117,14 +117,21 @@ sub msg { print STDERR ($init ? "NTRED-HUB: " : "NTRED-CLIENT: "), @_ unless $qu
 # make given list (passes by reference) unique
 sub make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
 
+sub sign_md5 ($$) { TrEd::Cipher::block_md5(TrEd::Cipher::block_xor(@_)) }
+
 sub send_request {
-  my ($control, $server, $type)=(shift,shift,shift);
+  my ($control, $server, $type, $key)=(shift,shift,shift,shift);
+  my $request = "";
   return 0 unless $server;
   $server->print("$control REQUEST_TYPE=$type\n");
   $server->flush;
   foreach (@_) {
     chomp; print $server "$_\n";
+    $request.="$_\n" if defined $key;
     $server->flush;
+  }
+  if (defined($key)) {
+    $server->print("$control MD5_SIGNATURE ".sign_md5($key,$request)."\n");
   }
   $server->print("$control END_OF_REQUEST\n");
   $server->flush;
@@ -328,10 +335,10 @@ if (defined($init) || defined($kill) || defined($break)) {
       $btred ||= "$FindBin::RealBin/btred";
 
       my $cmd = "$ssh $_->{host} '$btred -P ".
-	($unrestricted ? "" : "-F ").
+	($safe_mode ? "-F " : "").
 	($server_debug ? "-D " : "").
 	(join "",map { "-M $_ " } @preload_modules).
-	($macro_file ? "-m \"".rel2abs($macro_file)."\"" : "").
+	($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
 	($term_encoding ? "-d $term_encoding " : "").
 	"-L $_->{port} ".
 	"' 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
@@ -382,7 +389,6 @@ if (defined($init) || defined($kill) || defined($break)) {
     $_->{socket} = $server;
     msg  " - connected to $_->{fullname}\n";
   }
-  undef $server_key;  # clean-up
   @running = grep $_->{socket},@running;
 
   msg "Connected to btred servers on the following hosts:\n";
@@ -392,7 +398,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 
   # Benchmark the servers
   foreach my $server (@running) {
-    send_request($control,$server->{socket},'BENCHMARK');
+    send_request($control,$server->{socket},'BENCHMARK',$server_key);
   }
   foreach my $server (@running) {
     my $response;
@@ -407,11 +413,10 @@ if (defined($init) || defined($kill) || defined($break)) {
 
   # --------------------------------------------------------------
   # --------------- optimal file distribution  -------------------
-  distribute_files($control,\@running,\@files);
+  distribute_files($control,\@running,\@files,0,$server_key);
 
-  # Generate client key
-  my $client_key = generate_random_block(1024);
-  save_block($client_key,$client_key_file);
+  # save client key
+  save_block($server_key,$client_key_file);
 
   # --------------------------------------------------------------
   # -------------- prepare socket for clients  -------------------
@@ -438,7 +443,7 @@ if (defined($init) || defined($kill) || defined($break)) {
   $SIG{PIPE} =\&sigpipe;
 
   while (my $client = $listening_socket->accept()) {
-    unless (Authentify($client_key,$client,$control)==1) {
+    unless (Authentify($server_key,$client,$control)==1) {
       $client->close();
       next;
     }
@@ -464,9 +469,21 @@ if (defined($init) || defined($kill) || defined($break)) {
     }
 
     if ($request_type eq 'HUB_DISTRIBUTE') {
-      @files = split /\n/,$request;
-      shift @files; pop @files; # get rid of the controls
-      distribute_files($control,\@running,\@files);
+      @files = ();
+      my $md5;
+      foreach (split /\n/,$request) {
+	if (/^$control MD5_SIGNATURE (.*)$/) {
+	  $md5 = $1;
+	} elsif (!/^$control /)  {
+	  push @files, $_;
+	}
+      }
+      if (md5_sign($server_key,join "\n",@files) eq $md5) {
+	shift @files; pop @files; # get rid of the controls
+	distribute_files($control,\@running,\@files,$server_key);
+      } else {
+	print $client "Request MD5 signature failed!\n";
+      }
       end_response($control,$client);
     } else {
     #print STDERR "Request: $request\n\n";
@@ -614,7 +631,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 
   # --------- sending the request to the hub ---------------
   msg "Sending the request to the hub...\n";
-  send_request($control,$hub,$request_type,split /\n/,$request);
+  send_request($control,$hub,$request_type,$key,split /\n/,$request);
   # --------- receiving the response from the hub -----------
   msg "Waiting for responses forwarded by the hub...\n";
   my $first=1;
@@ -666,7 +683,7 @@ sub _enc2bytes {
 }
 # --------------- optimal file distribution  -------------------
 sub distribute_files {
-  my ($control,$servers,$files,$close_empty) = @_;
+  my ($control,$servers,$files,$close_empty,$key) = @_;
   my @totalfilelist=@$files;
   my %benchmark_time;
   my %number_of_procs;
@@ -695,10 +712,10 @@ sub distribute_files {
     my @f=splice @totalfilelist,0,$filescnt{$server};
     if (@f) {
       msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
-      send_request($control,$server->{socket},'LOAD_FILES',@f);
+      send_request($control,$server->{socket},'LOAD_FILES',$key,@f);
     } elsif ($close_empty) {
       msg "No files for server $server->{fullname}, closing it.\n";
-      send_request($control,$server->{socket},'QUIT',@f);
+      send_request($control,$server->{socket},'QUIT',$key,@f);
     }
   }
   msg "Please wait ...\n";
@@ -749,7 +766,7 @@ To start remote servers and a hub:
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--unrestricted] [--server-debug] [-m macro-file] [-M module]
+           [--server-debug] [-m macro-file] [-M module]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 To close all remote servers and a hub:
@@ -866,7 +883,7 @@ necessary for the authentication to the running hub. This defaults to
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--unrestricted] [--server-debug] [-m macro-file] [-M module]
+           [--safe-mode] [--server-debug] [-m macro-file] [-M module]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 =over 8
@@ -912,15 +929,13 @@ Start servers on the remote hosts but don't start a hub. The server
 session key required for authentication to the servers will be
 printed on the standard output.
 
-=item B<--unrestricted|-U>
+=item B<--safe-mode|-F>
 
-Run unrestricted (unsafe) version of btred servers allowing user
-queries to execute arbitrary Perl code and thus have a full access to
-the hosts with the privileges of the user running the servers. In this
-mode it is also more likely that btred servers will suffer from memory
-leaks caused by improperly written macro or query code.
+Run btred servers in safe mode in which all macros are processed in a
+Safe compartment whith some security restrictions.  This mode seems to
+be likely to cause btred servers to suffer from memory leaks.
 
-In the restricted mode, only the following opcodes and opcode-sets are
+In the safe mode, only the following opcodes and opcode-sets are
 allowed (see L<Opcode>):
 
   :base_core :base_mem :base_loop :base_math
@@ -1179,30 +1194,26 @@ all parties.
 The following precautions have been taken to lower the potential
 security risks:
 
-1) In restricted mode (the default), some critical perl commands are
-   disabled on the servers by restricting the query code into a 'Safe'
-   compartment. In some cases, the restrictions may not be sufficient,
-   in other they may be too strict. See C<--unrestricted> above for
-   more discussion.
-
-2) Both btred servers and hub require an authorization based on
+1) Both btred servers and hub require an authorization based on
    verification of a MD5 signature of a random data block (generated
    by the server in case of the hub-to-btred-server communication and
    by the hub in case of the client-to-hub communication) xor-ed with
-   an authorization key known to both parties. The rest of a
-   successfully authorized connection is unencrypted. 
+   an authorization key known to both parties. Although the
+   communication is unencrypted, the client must together with each
+   request send an MD5 checksum of the request XORed with the secret
+   authorization key.  Only requests whose signature is verified
+   by the server, are responded.
 
-   There may be only one connection from a hub to server.  As soon as
+2) There may be only one connection from a hub to server.  As soon as
    it is closed, the server is terminated.
 
-   If the servers are started by the hub itself (using C<--init>) the
-   server-to-hub authorization key is created by the hub and is passed
-   to the btred server via a ssh encrypted pipe.
+3) If the servers are started by the hub itself (using C<--init>) the
+   authorization key is created by the hub and is passed to the btred
+   server via a ssh encrypted pipe.
 
-   The client-to-hub key is also generated by the hub and is stored
-   for cleint's disposal in
-   user's home directory as C<~/.ntred_session_key> with
-   permissions set to 700. This theoretically
+4) The authorization key is also stored in user's home directory as
+   C<~/.ntred_session_key> with permissions set to 600 for cleint's
+   disposal. This theoretically (depending on general system security)
    limits the access to the hub and thus to the servers to the user
    running the hub (and root). It may though obviously be abused by
    root who may run some perl code on all machines running btred
@@ -1210,7 +1221,13 @@ security risks:
    on a machine whose administrator would normaly have no user access
    to the machines running btred servers.
 
-3) unless C<--hub> option is used, the hub runs on localhost and as
+5) It is possible to limit perl code evaluated on the servers within a
+   safer compartment, where some critical perl commands are disabled.
+   In some cases, the restrictions may not be sufficient, in other
+   they may be too strict. Some memory leaks can appear when Safe
+   compartment is used. See C<--safe-mode> above for more discussion.
+
+6) Unless C<--hub> option is used, the hub runs on localhost and as
    such is not (under normal circumstances) open for connections from
    the outside world.
 
@@ -1231,6 +1248,3 @@ Zdenek Zabokrtsky <zabokrtsky@ckl.mff.cuni.cz>
 Copyright 2003 Petr Pajas and Zdenek Zabokrtsky, All rights reserved.
 
 =cut
-
-
-
