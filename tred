@@ -5,6 +5,7 @@
 #use strict;
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
+	    $opt_t $opt_W $opt_G
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
@@ -109,6 +110,11 @@ Each filename may be followed by suffixes of the following forms:
 -t      start in the given macro context (package). TredMacro is the
         default context, and it is used also when the given context
         is not found.
+
+Other options:
+
+-G              Do not initially resize window to its last geomtery.
+-W <window_id>  Embed main window into the given window 
 
 EOF
   exit;
@@ -387,6 +393,7 @@ sub setConfig {
 #    $CSTSBackend::csts2fs=$cstsToFs;
 #    $CSTSBackend::fs2csts=$fsToCsts;
 
+#  doEvalHook(undef,"apply_config_hook",$confs); # TrEd::Macro not imported yet :(
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
 
@@ -2415,7 +2422,7 @@ sub startMain {
   my $cM=[];
   if ($createMacroMenu) {
     push @$cM, 
-      @{cascadeMenus(map { $keyBindings{TredMacro}->{$_}=~/$context\-\>(.*)/;
+      @{cascadeMenus(map { $keyBindings{TredMacro}->{$_}=~/TredMacro\-\>(.*)/;
 			   [Button=> $1,
 			    -command=> [ sub {
 					   doEvalMacro($_[0]->{focusedWindow},
@@ -3575,7 +3582,7 @@ sub editAttrsDialog {
 sub customAttrsDialog {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
-  return if (doEvalHook($win,"customize_attrs_hook",$node) eq 'stop');
+  return if (doEvalHook($win,"customize_attrs_hook") eq 'stop');
 
   return unless $win->{FSFile};
 
@@ -4457,20 +4464,28 @@ sub centerTo {
 sub doEvalHook {
   my ($win,$hook)=(shift,shift);
   return unless $hook; # and $win->{currentNode};
-  my $bookmark=bookmarkThis($grp->{framegroup});  # Save current position (as last action position)
+  my $bookmark=bookmarkThis($win->{framegroup});  # Save current position (as last action position)
 
   local $insideEval=1;
-
-  $TredMacro::this=$win->{currentNode};
-  $TredMacro::root=$win->{root};
+  my $context='TredMacro';
+  if ($win) {
+    $TredMacro::this=$win->{currentNode};
+    $TredMacro::root=$win->{root};
+    $FileNotSaved=$win->{FSFile}->notSaved if $win->{FSFile};
+    $context=$win->{macroContext};
+  }
   $TredMacro::libDir=$libDir;
-  $FileNotSaved=$win->{FSFile}->notSaved if $win->{FSFile};
+
   $TredMacro::forceFileSaved=0;
-  my $result=do_eval_hook($win,$win->{macroContext},$hook,@_);
+
+  my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
-  lastActionBookmark($grp->{framegroup},$bookmark) if $FileNotSaved and !$win->{FSFile}->notSaved;
-  $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved) if $win->{FSFile};
-  saveFileStateUpdate($win);
+
+  if ($win) {
+    lastActionBookmark($win->{framegroup},$bookmark) if $FileNotSaved and !$win->{FSFile}->notSaved;
+    $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved) if $win->{FSFile};
+    saveFileStateUpdate($win);
+  }
 
   $TredMacro::this=undef;
   $TredMacro::root=undef;
