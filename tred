@@ -3186,13 +3186,15 @@ sub newTreeView {
   addBindTags($canvas,'my');
   addBindTags($canvas->Subwidget('scrolled'),'canvas');
 
-  my $baloon=$grp->{top}->Balloon(-initwait=> $canvasBalloonInitWait,
+  my $balloon=$grp->{top}->Balloon(-initwait=> $canvasBalloonInitWait,
 				  -state=> 'balloon',
-				  -background=> '#fff3b0'
+				  -background => $canvasBalloonBackground
 				 );
-  $baloon->Tk::Toplevel::configure(-background=> '#fff3b0');
-  $baloon->Subwidget('message')->configure(-justify=> 'left',-font=> $font);
-  my $treeView=new TrEd::TreeView($canvas,'CanvasBalloon'=> $baloon);
+  $balloon->Subwidget('message')->configure(-foreground=> $canvasBalloonForeground);
+
+  $balloon->Tk::Toplevel::configure(-background=> '#fff3b0');
+  $balloon->Subwidget('message')->configure(-justify=> 'left',-font=> $font);
+  my $treeView=new TrEd::TreeView($canvas,'CanvasBalloon'=> $balloon);
   $treeView->apply_options($treeViewOpts);
   return $treeView;
 }
@@ -3426,8 +3428,12 @@ sub startMain {
 
   print STDERR "Exit hook created.\n" if $tredDebug;
 
-  $group{Balloon}=$group{top}->Balloon(-initwait=> 450, -balloonposition=> 'mouse',
-					-state=> 'balloon', -background=> '#fff3b0');
+  $group{Balloon}=$group{top}->Balloon(-initwait=> $toolbarBalloonInitWait,
+				       -background=> $toolbarBalloonBackground,
+				       -balloonposition=> 'mouse',
+				       -state=> 'balloon',
+				      );
+  $group{Balloon}->Subwidget('message')->configure(-foreground=> $toolbarBalloonForeground);
   $group{frame}=$group{top}->Frame;
 
 
