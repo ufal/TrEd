@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2001-05-22 09:29:11 pajas>
+## Time-stamp: <2001-05-28 09:42:03 pajas>
 
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require AFA;
@@ -71,13 +71,13 @@ sub after_edit_node_hook {
   }
 }
 
-#bind clear_funcaux to key Space
+#bind clear_funcaux to key Space menu Clear functor color
 sub clear_funcaux {
   my $node=$_[1] || $this;
   $node->{funcaux}='';
 }
 
-#bind assign_func_auto to key F9
+#bind assign_func_auto to key F9 menu Auto-assign functor to node
 sub assign_func_auto {
   my $node=$_[1] || $this;
   foreach (qw/funcauto funcprec funcaux/) {
@@ -145,7 +145,7 @@ sub assign_func_auto {
   $node->{func}=$node->{funcauto} if ($node->{funcauto});
 }
 
-#bind assign_all_func_auto to key F10
+#bind assign_all_func_auto to key F10 menu Auto-assign functors to tree
 sub assign_all_func_auto {
   my $class=$_[0];
   my $node=$root;
