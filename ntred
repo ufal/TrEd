@@ -211,7 +211,7 @@ if (defined($init) || defined($kill)) {
     $port ||= 1600;
     msg "checking $server\n";
     unless ($nocheck) {
-      my $cmd = "$ssh $server 'echo -n running 2>/dev/null'";
+      my $cmd = "$ssh $server 'sh -c \"echo -n running 2>/dev/null\"'";
       msg "$cmd\n";
       msg "Server $server - ";
       my $result=`$cmd`;
@@ -778,6 +778,9 @@ C<~/.ntred_serverlist>  - default list of servers to use
 C<~/.ntred_filelist>    - default list of files to load on servers
 
 C<~/.ntred_session_key> - client/hub session key
+
+=head1 Author
+
 
 =cut
 
