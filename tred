@@ -64,7 +64,7 @@ sub Post
 package main;
 
 
-use Tk::Xrm;
+#use Tk::Xrm;
 # process the standard arguments for X resources
 Tk::CmdLine::SetArguments();
 
