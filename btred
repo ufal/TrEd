@@ -181,9 +181,7 @@ $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 use Exporter;
 @ISA=qw(Exporter);
 # This is default export to macros
-@EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
-	     $forceFileSaved $FileNotSaved $libDir
-             &min &max);
+@EXPORT = qw($libDir &min &max);
 
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
 # work, so I recommend not to use czech locales there, unless you
@@ -361,44 +359,50 @@ sub closeFile {
 }
 
 sub doEvalHook {
-  my ($grp,$hook)=(shift,shift);
-  return unless $hook and $grp->{'currentNode'};
+  my ($group,$hook)=(shift,shift);
+  return unless $hook and $group->{'currentNode'};
 
-  $this=$grp->{'currentNode'};
-  $root=$grp->{'root'};
-  $FileNotSaved=$grp->{FSFile}->notSaved;
-  my $result=do_eval_hook($grp,$grp->{macroContext},$hook);
-  $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
+  $TredMacro::this=$group->{currentNode};
+  $TredMacro::root=$group->{root};
+  $TredMacro::libDir=$libDir;
+  $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
+  $TredMacro::forceFileSaved=0;
 
-  $this=undef;
-  $root=undef;
+  my $result=do_eval_hook($group,$group->{macroContext},$hook);
+  $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
+
+  $TredMacro::this=undef;
+  $TredMacro::root=undef;
+  $TredMacro::grp=undef;
 
   print STDERR "Hook $hook resulted with $result\n" if $hookDebug;
   return $result;
 }
 
 sub doEvalMacro {
-  my ($grp,$macro)=(shift,shift);
+  my ($group,$macro)=(shift,shift);
   return unless $macro;
 
-  $this=$grp->{'currentNode'};
-  $root=$grp->{'root'};
-  $forceFileSaved=0;
+  $TredMacro::this=$win->{currentNode};
+  $TredMacro::root=$win->{root};
+  $TredMacro::libDir=$libDir;
+  $TredMacro::FileNotSaved=1;
+  $TredMacro::forceFileSaved=0;
 
-  my $result=do_eval_macro($grp,$macro);
+  my $result=do_eval_macro($group,$macro);
 
-  if ($grp->{FSFile}) {
-    $FileNotSaved=$grp->{FSFile}->notSaved;
-    if ($forceFileSaved) {
-      $grp->{FSFile}->notSaved($FileNotSaved);
+  if ($group->{FSFile}) {
+    $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
+    if ($TredMacro::forceFileSaved) {
+      $group->{FSFile}->notSaved($TredMacro::FileNotSaved);
     } else {
-      $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
+      $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
     }
-    setCurrent($grp,$this) if ($this);
+    setCurrent($group,$TredMacro::this) if ($TredMacro::this);
   }
-
-  $this=undef;
-  $root=undef;
+  $TredMacro::this=undef;
+  $TredMacro::root=undef;
+  $TredMacro::grp=undef;
   return $result;
 }
 

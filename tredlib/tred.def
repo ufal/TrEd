@@ -1,12 +1,21 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-07-31 15:04:18 pajas>
+## Time-stamp: <2001-08-01 10:57:23 pajas>
 
 package TredMacro;
-@ISA=qw(main);
 
-#use Exporter;
-#use vars qw(@ISA @EXPORT);
+use base qw(main);
+use vars qw(@FORCE_EXPORT);
+@FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree
+                   $forceFileSaved $FileNotSaved $NodeClipboard);
+use vars @FORCE_EXPORT;
+
+#  $_NoSuchTree=0;
+#  $grp=undef
+#  $root=undef;
+#  $NodeClipboard=undef;
+#  $forceFileSaved=0;
+#  $FileNotSaved=0;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
 import main;
@@ -15,33 +24,35 @@ sub import {
   # If specified without parameter, exports everything but
   # names already defined in caller package
   # If parameters are given, exports only names specified by the parameters
+  # and few variables that every TredMacro *must* share.
 
   my $pkg=shift;
-  my $caller = caller;
+  my $caller=caller;
   my %stash=%{"${pkg}::"};
   my ($type,$val);
   my @exports;
 
   @exports = $#_>=0 ? @_ : keys %stash;
+  push @exports,@FORCE_EXPORT;
   foreach my $k (@exports) {
     unless ($k =~ s/^(\W)//) {
-      *{"${caller}::$k"} = \&{"${pkg}::$k"}
-	unless defined (&{"${caller}::$k"});
+      *{"${caller}::$k"} = \&{"${pkg}::$k"} unless defined (&{"${caller}::$k"});
        next;
     }
     $type = $1;
     if ($type eq '&') {
-      *{"${caller}::$k"} = \&{"${pkg}::$k"} unless defined (&{"${caller}::$k"});
+      *{"${caller}::$k"} = \&{"${pkg}::$k"};
     } elsif ($type eq '$') {
-      *{"${caller}::$k"} = \${"${pkg}::$k"} unless defined (${"${caller}::$k"});
+      warn "EXPORTING $type $k of $pkg to $caller\n";
+      *{"${caller}::$k"} = \${"${pkg}::$k"};
     } elsif ($type eq '@') {
-      *{"${caller}::$k"} = \@{"${pkg}::$k"} unless defined (@{"${caller}::$k"});
+      *{"${caller}::$k"} = \@{"${pkg}::$k"};
     } elsif ($type eq '%') {
-      *{"${caller}::$k"} = \%{"${pkg}::$k"} unless defined (%{"${caller}::$k"});
+      *{"${caller}::$k"} = \%{"${pkg}::$k"};
     } elsif ($type eq '*') {
-      *{"${caller}::$k"} = \*{"${pkg}::$k"} unless defined (*{"${caller}::$k"});
+      *{"${caller}::$k"} = \*{"${pkg}::$k"};
     } else {
-      do { require Carp; Carp::croak("Can't export symbol: $type$sym") };
+      do { warn("Can't export symbol: $type$sym") };
     }
   }
 };

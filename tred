@@ -6,8 +6,7 @@
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
-            @backends @ISA @EXPORT @open_types @save_types $opt_l $root
-            $this $FileNotSaved $forceFileSaved $_NoSuchTree $NodeClipboard
+            @backends @ISA @EXPORT @open_types @save_types $opt_l
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName %menuBindings %keyBindings
             $savedSavePixmap $normalSavePixmap
@@ -267,6 +266,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 require Filelist;
 
 require Tk::MyFileSelect;
+require Tk::BindMouseWheel;
 
 # different namespace only to load local rather than system files
 # (rel2abs is not supported in all instalations)
@@ -285,10 +285,10 @@ if (not File::Spec->can(rel2abs)) {
 
 use Exporter;
 @ISA=qw(Exporter);
-# This is default export to macros
-@EXPORT= qw($root $this $_NoSuchTree $NodeClipboard
-	     $forceFileSaved $insideEval $FileNotSaved $libDir
-             @openfiles @filelists &min &max);
+
+@EXPORT= qw($insideEval
+            $libDir
+            @openfiles @filelists &min &max);
 
 @open_types=
   (["FS files",           [qw/.fs .FS .Fs/]],
@@ -349,14 +349,6 @@ sub bookmarkFilelist {
 @normal_win_opts = qw/-relief flat -borderwidth 0/;
 @focused_win_opts = qw/-relief solid -borderwidth 3/;
 
-# These are used only in macros and hooks!!!
-$root=undef;
-$this=undef;
-$FileNotSaved=0;
-$forceFileSaved=0;
-
-$_NoSuchTree=0; # for compatibility with Graph2Tred
-$NodeClipboard=0;
 
 $insideEval=0;
 
@@ -464,7 +456,7 @@ sub fsfileDisplayingWindows {
 
 sub isFocused {
   my ($win)=@_;
-  return $win eq $win->{framegroup}->{focusedWindow};
+  return $win eq $win->{framegroup}->{focusedWindow} ? 1 : 0;
 }
 
 
@@ -472,7 +464,7 @@ sub closeFile {
   my ($win,$no_update,$keep)=@_;
 
   $win->{Nodes}=undef;
-  undef $NodeClipboard;
+#  undef $NodeClipboard;
   $win->{root}=undef;
   my $fsfile=$win->{FSFile};
   if ($fsfile) {
@@ -720,6 +712,7 @@ sub openFile {
 
   applyFileSuffix($win,$goto);
   get_nodes_win($win);
+  print "running on $win, focused is $win->{framegroup}->{focusedWindow}\n";
   doEvalHook($win,"file_opened_hook");
   redraw_win($win);
   if ($win->{currentNode}) {
@@ -1686,8 +1679,13 @@ sub switchContext {
   my $prevcontext=$win->{macroContext};
   return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context)
 	       eq 'stop');
+  print "Switching to $context\n";
   $win->{macroContext}=$context;
+  print "$win $win->{framegroup}->{focusedWindow} ",isFocused($win),"\n";
+  $win->{framegroup}->{selectedContext}=$context if (isFocused($win));
+  print "Current context: $win->{macroContext}, $win->{framegroup}->{selectedContext}\n";
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
+  print "Current context: $win->{macroContext}, $win->{framegroup}->{selectedContext}\n";
   redraw_win($win);		# something should be done with display attrs vs windows maybe
 }
 
@@ -1892,6 +1890,7 @@ sub splitWindow {
   my $canvas=$twin->canvas();
   $canvas->configure(@normal_win_opts);
   $grp->{focusedWindow}->split_frame($canvas,$dir);
+  focusCanvas($canvas,$grp);
 }
 
 sub removeWindow {
@@ -1907,31 +1906,6 @@ sub removeWindow {
     undef $win;
   }
 }
-
-sub Tk::Widget::BindMouseWheelVert {
-    my($w,$modifier)= @_;
-    $modifier.="-" if ($modifier);
-    $w->bind("<$modifier"."MouseWheel>",
-              [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
-    if ($Tk::platform eq 'unix') {
-        $w->bind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units') unless $Tk::strictMotif; });
-        $w->bind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units') unless $Tk::strictMotif; });
-    }
-}
-
-sub Tk::Widget::BindMouseWheelHoriz {
-    my($w,$modifier)= @_;
-    $modifier.="-" if ($modifier);
-    $w->bind("<$modifier"."MouseWheel>",
-              [ sub { $_[0]->xview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
-    if ($Tk::platform eq 'unix') {
-        $w->bind("<$modifier"."4>", sub { $_[0]->xview('scroll', -3, 'units')
-				      unless $Tk::strictMotif; });
-        $w->bind("<$modifier"."5>", sub { $_[0]->xview('scroll', 3, 'units')
-				      unless $Tk::strictMotif; });
-    }
-}
-
 
 sub canvasBindMouseWheelVert {
     my($w,$modifier)= @_;
@@ -4252,9 +4226,11 @@ sub doEvalHook {
 
   local $insideEval=1;
 
-  $this=$win->{currentNode};
-  $root=$win->{root};
+  $TredMacro::this=$win->{currentNode};
+  $TredMacro::root=$win->{root};
+  $TredMacro::libDir=$libDir;
   $FileNotSaved=$win->{FSFile}->notSaved;
+  $TredMacro::forceFileSaved=0;
   my $result=do_eval_hook($win,$win->{macroContext},$hook,@_);
 
   print "$@\n" if $@;
@@ -4262,8 +4238,9 @@ sub doEvalHook {
   $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved);
   saveFileStateUpdate($win);
 
-  $this=undef;
-  $root=undef;
+  $TredMacro::this=undef;
+  $TredMacro::root=undef;
+  $TredMacro::grp=undef;
 
   print STDERR "Hook $hook resulted with $result\n" if $hookDebug;
   return $result;
@@ -4278,22 +4255,23 @@ sub doEvalMacro {
 
   $insideEval=1;
 
-  $this=$win->{currentNode};
-  $root=$win->{root};
-  $FileNotSaved=1;
-  $forceFileSaved=0;
+  $TredMacro::this=$win->{currentNode};
+  $TredMacro::root=$win->{root};
+  $TredMacro::libDir=$libDir;
+  $TredMacro::FileNotSaved=1;
+  $TredMacro::forceFileSaved=0;
 
   my $result=do_eval_macro($win,$macro);
 
-  unless ($forceFileSaved) {
+  unless ($TredMacro::forceFileSaved) {
     print STDERR "Macro claims file untouched\n"
-      unless ($FileNotSaved);
-    $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved);
-    lastActionBookmark($grp->{framegroup},$bookmark) if $FileNotSaved;
+      unless ($TredMacro::FileNotSaved);
+    $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $TredMacro::FileNotSaved);
+    lastActionBookmark($grp->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
   } else {
     print STDERR "Macro forsly claims file saved.\n";
-    $win->{FSFile}->notSaved($FileNotSaved);
-    lastActionBookmark($grp->{framegroup},$bookmark) if $FileNotSaved;
+    $win->{FSFile}->notSaved($TredMacro::FileNotSaved);
+    lastActionBookmark($grp->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
   }
   $insideEval=0;
 
@@ -4309,16 +4287,17 @@ sub doEvalMacro {
   #}
   #my $t1= new Benchmark;
   #my $td= timediff($t1, $t0);
-  #print "$FileNotSaved the code took:",timestr($td),"\n";
+  #print "$TredMacro::FileNotSaved the code took:",timestr($td),"\n";
   #------------------------------------------------------------
 
   # the rest of this routine is:
   # memory ok, speed ok
-  setCurrent($win,$this) if ($this);
+  setCurrent($win,$TredMacro::this) if ($TredMacro::this);
   currentUnhiden($win);
 
-  $this=undef;
-  $root=undef;
+  $TredMacro::this=undef;
+  $TredMacro::root=undef;
+  $TredMacro::grp=undef;
 
   centerTo($win,$win->{currentNode});
 
