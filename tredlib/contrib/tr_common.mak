@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-01-24 18:04:28 pajas>
+## Time-stamp: <2003-01-29 16:14:07 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -557,7 +557,8 @@ sub getAIDREF {
 }
 
 sub ConnectAIDREFS {
-  $pPar1->{AIDREFS}=getAIDREF($pPar1).'|'.getAIDREF($pPar2);
+  $pPar1->{AIDREFS}=getAIDREF($pPar1).'|'.getAIDREF($pPar2)
+    unless (getAIDREF($pPar2) eq '');
 }
 
 sub DisconnectAIDREFS {
@@ -618,9 +619,7 @@ sub split_node_and_lemma {
 
 sub SplitJoinedByAID {
   my $node = ref($_[0]) ? $_[0] : $this;
-  if (Interjection($node->root->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
-    return;
-  }
+  ($node->root->{'reserve1'} eq 'TR_TREE') || return;
   unless ($node->{AIDREFS}) {
     print STDERR "SplitJoinedByAID: nodes with empty AIDREFS can't be split!\n";
     return;
@@ -635,7 +634,7 @@ sub SplitJoinedByAID {
       if ($l eq 'se' and $node->{trlemma} !~ /^se_|_se_|_se$/) {
 	$l='si';
       }
-      if ($node->{trlemma} =~ s/^${l}_|_${l}_|_${l}$//) {
+      if ($node->{trlemma} =~ s/^${l}_|_${l}_|_${l}$//i) {
 	$child->{TR}='';
 	DisconnectAIDREFS($node,$child);
 
@@ -650,6 +649,63 @@ sub SplitJoinedByAID {
     }
   }
 }
+
+sub JoinSubtree {
+  my $node = ref($_[0]) ? $_[0] : $this;
+  my $parent = $node->parent;
+
+  ($node->root->{'reserve1'} eq 'TR_TREE') || return;
+  $parent || return;
+
+  my $modal = ($sPar1 eq '0'); # 0 means modal
+
+  $plemma = $parent->{'trlemma'};
+  $nlemma = $node->{'trlemma'};
+
+  # allows appending 'se' even if there was no node for it on ATS
+  if ($nlemma eq '&Gen;') {
+    $nlemma = 'se';
+  }
+
+  if ($nlemma eq 'se' && $node->{'form'} eq 'si') {
+    # se
+    $plemma.='_si';
+  } elsif ($nlemma eq 'se') {
+    # si
+    $plemma.='_se';
+  } elsif ($node->{sentord} < $parent->{sentord}) {
+    # prepend
+    $plemma="${nlemma}_$plemma";
+  } else {
+    # append
+    $plemma.="_$nlemma";
+  }
+
+  # move children to parent
+  while ($node->firstson()) {
+    PasteNode(CutNode($node->firstson),$parent)
+  }
+
+  # hide
+  $node->{'TR'} = 'hide';
+
+  # connect AIDREFS
+  $pPar1 = $parent;
+  $pPar2 = $node;
+  ConnectAIDREFS();
+
+  if ($modal) {
+    # don't join trlemma but rather adjust deontmod
+    $pPar1 = $node; $sPar3 = ''; ifmodal();
+    $parent->{'deontmod'} = $sPar3;
+  } else {
+    # join trlemma
+    $parent->{'trlemma'} = $plemma;
+  }
+
+  $this = $parent;
+}
+
 
 #bind operand_op to Ctrl+Y menu Pridat operand=OP
 sub operand_op {
