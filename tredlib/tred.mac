@@ -158,4 +158,12 @@ sub FirstTree {
 # key-binding-adopt Analytic
 # include contrib/a_opravy.mak
 
+# binding-context TR_Correction
+# key-binding-adopt Tectogrammatic
+# menu-binding-adopt Tectogrammatic
+# include contrib/tr_opravy.mak
+
+
+
+
 
