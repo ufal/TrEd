@@ -2700,7 +2700,7 @@ root# <userinput>make install</userinput>
 	When an interactively invoked macro returns,
 	<application>TrEd</application> automatically redraws the tree
 	and activates the node referenced by variable <literal>$this</literal>.
-	Moreover, the file is also considered modifyed which may
+	Moreover, the file is also considered modified which may
 	toggle the state of the <inlinegraphic fileref="pics/filefloppy"/>
 	button. This may be an unwanted behaviour for macros which
 	do not change the structure of the trees nor attribute
@@ -2730,7 +2730,7 @@ root# <userinput>make install</userinput>
 	the tree.
       </para>
       <para>The macro invoked by user action (e.g. pressing the
-	keyboard shortcut assigned to the macro) is may use the
+	keyboard shortcut assigned to the macro) may use the
 	following variables to refer to the active node and to
 	the root of the active tree (how to access any tree in the
 	file will be told later):
@@ -2780,7 +2780,7 @@ root# <userinput>make install</userinput>
 	  There is a few methods provided by every
 	  <classname>FSNode</classname> reference that can be used
 	  to access other nodes in the tree. Each of the methods
-	  return either a <classname>FSNode</classname> reference
+	  returns either a <classname>FSNode</classname> reference
 	  pointing to the requested node, or zero if 
 	  the requested node does not exist. For example, the
 	  following code may be used to make the active node's
@@ -2822,9 +2822,9 @@ root# <userinput>make install</userinput>
 		  brother of the given node. However, hence the nodes
 		  may be displayed in the order given by the special
 		  FS-format numbering attribute <literal>@N</literal>,
-		  the returned node must not necessarily be displayed on
+		  the returned node need not necessarily be displayed to
 		  the right of the given node. This is because the
-		  ordering of provided by the special numbering attribute
+		  ordering according to the special numbering attribute
 		  does not have to correspond to the natural structure
 		  ordering of the tree.
 		</entry>
@@ -2837,9 +2837,9 @@ root# <userinput>make install</userinput>
 		  right brother, hence the nodes
 		  may be displayed in the order given by the special
 		  FS-format numbering attribute <literal>@N</literal>,
-		  the returned node must not necessarily be displayed on
+		  the returned node need not necessarily be displayed to
 		  the left of the given node. This is because the
-		  ordering of provided by the special numbering attribute
+		  ordering according to the special numbering attribute
 		  does not have to correspond to the natural structure
 		  ordering of the tree.
 		</entry>
@@ -2858,7 +2858,7 @@ root# <userinput>make install</userinput>
 		  given node, the method looks for a right brother
 		  of its nearest ancestor, etc. Starting from the root
 		  of the tree and calling this method repeatedly
-		  on for the returned node ensures that all the nodes
+		  on the returned nodes ensures that all the nodes
 		  in the trees are accessed during the procedure.
 		  If the optional argument <replaceable>top</replaceable>
 		  contains a <classname>FSNode</classname> reference,
