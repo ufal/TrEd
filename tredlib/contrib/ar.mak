@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2003-07-03 15:31:20 pajas>
+## Time-stamp: <2003-07-21 14:11:05 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -56,7 +56,7 @@ sub default_ar_attrs {
 		  '#{custom1}<? join "_", map { "\${$_}" }
                     grep { $this->{$_}=~/./ && $this->{$_}!~/^no-/ }
 	            qw(afun parallel paren) ?>',
-		  'text:<? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
+		  'text:<? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}#{-tag:LEMMA_".$${lemma}."}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
 		  'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
 		  'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>');
   SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ncommentA: \${commentA}");
