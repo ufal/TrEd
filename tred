@@ -2334,6 +2334,8 @@ sub filelistDialog {
     return;
   }
   return if ($grp->{Filelist});
+
+  $grp->{top}->Busy(-recurse=>1);
   my $filelist;
   if (!ref($grp->{focusedWindow}->{currentFilelist})) {
     selectFilelist($grp,'Default');
@@ -2406,7 +2408,7 @@ sub filelistDialog {
 				    updateBookmarks($grp)
 				      if (ref($grp->{filelistCurrentFilelist}) and
 					  $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-				  },$grp,$t,$fl])->pack(qw/-expand yes -pady 0.2c -side top/);
+				  },$grp,$t,$fl])->pack(qw/-fill x -expand yes -pady 0.2c -side top/);
 
   $midframe->ImgButton(-text=> 'Remove',
 		       -image => icon($grp,"1leftarrow"),
@@ -2426,10 +2428,11 @@ sub filelistDialog {
 				 updateBookmarks($grp)
 				   if (ref($grp->{filelistCurrentFilelist}) and
 				       $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-			       },$grp,$t])->pack(qw/-expand yes -pady 0.2c -side top/);
+			       },$grp,$t])->pack(qw/-fill x -expand yes -pady 0.2c -side top/);
 
   unless ($modal) {
     $midframe->ImgButton(-text=> 'Show in TrEd',
+			 -image => icon($grp,"button_ok"),
 		      -balloon => $grp->{Balloon},
 		      -balloonmsg=> "Open the file-list on the selected position.",
 		      @pad,
@@ -2440,7 +2443,7 @@ sub filelistDialog {
 				       set_current($grp->{Filelist}->
 						   info('data',$grp->{Filelist}->info('anchor')));
 				     selectFilelist($grp,$grp->{filelistCurrentFilelist});
-				   },$grp ])->pack(qw/-expand yes -pady 0.2c -side top/);
+				   },$grp ])->pack(qw/-fill x -expand yes -pady 0.2c -side top/);
     $t->bind('<Return>'=> [
 			    sub {
 			      my ($w,$grp)=@_;
@@ -2495,6 +2498,7 @@ sub filelistDialog {
 		},$d ]);
 
   $botframe->ImgButton(-text => 'Close',
+	     -image => icon($grp,"button_cancel"),
 	     -balloon => $grp->{Balloon},
 	     -balloonmsg => "Close this window.",
 	     -underline=> 0,
@@ -2507,6 +2511,7 @@ sub filelistDialog {
     ->pack(@b_pack);
 
   $botframe->ImgButton(-text=> 'Delete',
+		-image=> icon($grp,"editdelete"),
 		-balloon => $grp->{Balloon},
 		-balloonmsg=> "Delete current file-list.",
 		@pad,
@@ -2618,6 +2623,7 @@ sub filelistDialog {
   }
   $t->focus;
   _bind_buttons($d,$d);
+  $grp->{top}->Unbusy();
   if ($modal) {
     ShowDialog($d);
     $d->destroy();
@@ -6156,6 +6162,31 @@ sub disable_scrollbar_focus {
   $scrolled->Subwidget('yscrollbar')->configure(qw(-takefocus 0));
 }
 
+sub format_tred_pod {
+  map {
+    if (/^([BICQ])<(.[^>]*)>/) {
+      my $style;
+      if ($1 eq 'B') {
+	$style = 'bold';
+      } elsif ($1 eq 'I') {
+	$style = 'italic';
+      } elsif ($1 eq 'C') {
+	$style = 'fixed';
+      } else {
+	$style = 'default';
+      }
+      my $l = $2;
+      $l=~s/&lt;/\</g;
+      $l=~s/&gt;/\>/g;
+      ($l,$style)
+    } else {
+      my $l=$_;
+      $l=~s/&lt;/\</g;
+      $l=~s/&gt;/\>/g;
+      ($l,'default')
+    }} split /([BICQ]<.[^>]*>)/,$_[0]
+}
+
 sub customAttrsDialog {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
@@ -6264,30 +6295,7 @@ EOF
   require Tk::HelpTiptool;
   my $help = $d->HelpTiptool(-background => '#ffffaa',
 			     -troughcolor => '#cccc99',
-			     -message=>[
-					map {
-					  if (/^([BICQ])<(.[^>]*)>/) {
-					    my $style;
-					    if ($1 eq 'B') {
-					      $style = 'bold';
-					    } elsif ($1 eq 'I') {
-					      $style = 'italic';
-					    } elsif ($1 eq 'C') {
-					      $style = 'fixed';
-					    } else {
-					      $style = 'default';
-					    }
-					    my $l = $2;
-					    $l=~s/&lt;/\</g;
-                                            $l=~s/&gt;/\>/g;
-					    ($l,$style)
-					  } else {
-					    my $l=$_;
-					    $l=~s/&lt;/\</g;
-					    $l=~s/&gt;/\>/g;
-					    ($l,'default')
-					  }} split /([BICQ]<.[^>]*>)/,$HELP
-				       ]
+			     -message=> format_tred_pod($HELP)
 			    );
   $help->Subwidget('text')->tag(qw(configure bold -font C_bold));
   $help->Subwidget('text')->tag(qw(configure fixed -font C_fixed));
