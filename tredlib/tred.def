@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-24 18:17:30 pajas>
+## Time-stamp: <2003-08-15 14:04:30 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1418,7 +1418,9 @@ sub ShiftNodeLeft {
   RepasteNode($node);
 }
 
-=head Miscelaneous macros
+=head3 Miscelaneous macros
+
+=over 4
 
 =cut
 
