@@ -330,7 +330,7 @@ sub write {
 	print $fileref " origin=\"".$node->{"AIDREFS"}."\"" if $node->{"AIDREFS"} ne "";
 	print $fileref ">",translate_to_entities($node->{trlemma});
 
-	if ($node->{func} ne "") {
+	if ($node->{func} ne "" or $node->{gram} ne "") {
 	  print $fileref "<T>",$node->{func};
 	  print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
 	}
