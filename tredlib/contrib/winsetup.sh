@@ -168,11 +168,11 @@ if ((test $UPGRADE = 1 || mkdir "${TREDDIR}") && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc"
     ) && \
     (test $UPGRADE = 1 || "$PERLBIN" trinstall.pl)); then
-  echo "Upravuji polozku TrEdu v registrech Windows
+  echo "Upravuji polozku TrEdu v registrech Windows"
   regtool -s set '\machine\Software\TrEd\Dir' $TREDDIR 
   echo
-  echo "Instalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla"
-  echo "ikona s obrazkem sileneho zvirete"
+  echo "nstalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla
+  echo ikona s obrazkem sileneho zvirete
   echo
 
 else
