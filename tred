@@ -3624,7 +3624,7 @@ sub findNodeDialog {
     $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
 			-font=> $font)->pack(qw/-side right -expand yes -fill both/);
     addBindTags($e{$_},"EditEntry");
-    $e{$_}->insert(0,encode($$node{$_}));
+    $e{$_}->insert(0,encode($template->{$_}));
     $height += $e{$_}->reqheight() if ($i<$rows);
     $f->bind($e{$_}, '<Tab>',       [\&focusxEditDn,$i,\%e,$f,\@atord]);
     $f->bind($e{$_}, '<Down>',      [\&focusxEditDn,$i,\%e,$f,\@atord]);
