@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-02-18 11:11:23 pajas>
+## Time-stamp: <2002-02-21 13:41:42 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -37,6 +37,12 @@ sub default_tr_attrs {
 		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
 		      '<?"\nframe:\t\${framere}" if $${framere} ne "" ?>'.
 		      '<?"\nframe_id:\t\${frameid}" if $${frameid} ne "" ?>');
+
+  # Add new functor OPER if not present in header
+  my $defs=$grp->{FSFile}->FS->defs;
+  if (exists($defs->{func}) and $defs->{func} !~ /OPER/) {
+    $fsfunc=$defs->{func}=~s/(NORM)/NORM|OPER/;
+  }
   return 1;
 }
 
@@ -354,6 +360,12 @@ sub AfunAssign {
 
 sub GoNextVisible {
   $pReturn = NextVisibleNode($pPar1,$pPar2);
+}
+
+sub func_PAR {
+  $this->{memberof}='PA';
+  $sPar1 = 'PAR';
+  FuncAssign();
 }
 
 sub TFAAssign {
