@@ -991,7 +991,7 @@ sub redraw {
 	my $xy=$1;
 	my $code=$2;
 	if (exists($nodehash{"$xy$key"})) {
-	  $nodehash{"$xy$key"}
+	  int($nodehash{"$xy$key"})
 	} else {
 	  while ($i<@$nodes) {
 	    my $c=$code;
@@ -1009,7 +1009,7 @@ sub redraw {
 	      $self->get_node_pinfo($nodes->[$i], "XPOS");
 	    $nodehash{"y$key"}=
 	      $self->get_node_pinfo($nodes->[$i], "YPOS");
-	    $nodehash{"$xy$key"};
+	    int($nodehash{"$xy$key"})
 	  } else {
 #	    print STDERR "NOT-FOUND $code\n";
 	    "ERR";
@@ -1023,7 +1023,7 @@ sub redraw {
 	my $xy=$1;
 	my $code=$2;
 	if (exists($nodehash{"$xy$key"})) {
-	  $nodehash{"$xy$key"}
+	  int($nodehash{"$xy$key"})
 	} else {
 	  my $c=$code;
 	  my $this=$node; # $this is the context node
@@ -1036,7 +1036,7 @@ sub redraw {
 	      $self->get_node_pinfo($that, "XPOS");
 	    $nodehash{"y$key"}=
 	      $self->get_node_pinfo($that, "YPOS");
-	    $nodehash{"$xy$key"};
+	    int($nodehash{"$xy$key"})
 	  } else {
 #	    print STDERR "NOT-FOUND $code\n";
 	    "ERR"
@@ -1049,14 +1049,14 @@ sub redraw {
       s{([xy])\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\]}{
 	my $i=0;
 	if (exists($nodehash{$&})) {
-	  $i=$nodehash{$&}
+	  $i=$nodehash{$&};
 	} else {
 	  $i++ while ($i<@$nodes and
 		      !(exists($nodes->[$i]{$2}) and $nodes->[$i]{$2} eq $3));
 	  $nodehash{$&}=$i;
 	}
 	if ($i<@$nodes) { 
-	  $self->get_node_pinfo($nodes->[$i],($1 eq 'x') ? "XPOS" : "YPOS")
+	  int($self->get_node_pinfo($nodes->[$i],($1 eq 'x') ? "XPOS" : "YPOS"))
 	} else {
 	  "ERR"
 	}
@@ -1069,16 +1069,16 @@ sub redraw {
       foreach (@c) {
 	s{([xy]?)p}{
 	  if ($parent) {
-	    $self->get_node_pinfo($parent,(($x and ($1 ne 'y')) or $1 eq 'x') ?
-				  "XPOS" : "YPOS")
+	    int($self->get_node_pinfo($parent,(($x and ($1 ne 'y')) or $1 eq 'x') ?
+				      "XPOS" : "YPOS"))
 	  } else {
 	    "NE"
 	  }
 	}ge;
 	s{([xy]?)n}{
-	  $self->get_node_pinfo($node,
-				(($x and ($1 ne 'y')) or $1 eq 'x') ?
-				"XPOS" : "YPOS")
+	  int($self->get_node_pinfo($node,
+				    (($x and ($1 ne 'y')) or $1 eq 'x') ?
+				    "XPOS" : "YPOS"))
 	}ge;
 	if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
 	  $_=eval $_;
