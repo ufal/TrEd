@@ -3703,7 +3703,7 @@ sub TestAuxZList {
       Interjection($pPar1->{'form'},'zhruba') eq 'zhruba' ||
       Interjection($pPar1->{'form'},'zrovna') eq 'zrovna' ||
       Interjection($pPar1->{'form'},'zøejmì') eq 'zøejmì' ||
-      Interjection($pPar1->{'form'},'zvlá¹') eq 'zvlá¹' ||
+      Interjection($pPar1->{'form'},'zvlá¹»') eq 'zvlá¹»' ||
       Interjection($pPar1->{'form'},'zvlá¹tì') eq 'zvlá¹tì' ||
       Interjection($pPar1->{'form'},'AKORÁT') eq 'AKORÁT' ||
       Interjection($pPar1->{'form'},'ALESPOÒ') eq 'ALESPOÒ' ||

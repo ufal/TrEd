@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-11-27 12:56:46 pajas>
+## Time-stamp: <2003-11-28 19:07:41 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -135,8 +135,9 @@ sub clean_fw_AIDREFS {
 sub join_AIDREFS {
   shift if @_ and not ref($_[0]);
   my $node = $_[0] || $this;
-  return unless $node->parent;
-  ConnectAIDREFS($node->parent,$node);
+  my $parent = $_[1] || $this->parent;
+  return unless $parent;
+  ConnectAIDREFS($parent,$node);
 }
 
 

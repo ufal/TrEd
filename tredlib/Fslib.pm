@@ -1697,7 +1697,7 @@ FSFile - Simple OO interface for FS files.
 
 =pod
 
-=item new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?)
+=item new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?,meta_data?)
 
 Create a new FS file object and C<initialize> it with the optional values.
 
@@ -1849,7 +1849,6 @@ about the file).
 sub initialize {
   my $self = shift;
   # what will we do here ?
-
   $self->[0] = $_[0];  # file name   (scalar)
   $self->[1] = $_[1];  # file format (scalar)
   $self->[2] = ref($_[2]) ? $_[2] : FSFormat->new(); # FS format (FSFormat object)
