@@ -1,0 +1,181 @@
+<?xml version="1.0"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "file:///home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
+<article>
+  <articleinfo>
+    <title>Converting between SGML and FS</title>
+    <author>
+      <firstname>Petr</firstname>
+      <surname>Pajas</surname>
+      <affiliation>
+	<address><email>pajas@ckl.mff.cuni.cz</email></address>
+      </affiliation>
+    </author>
+  </articleinfo>
+  <sect1>
+    <title>Introduction</title>
+    <para><command>any2any</command> is a command-line utility
+    for conversion between different file formats representing a tree
+      structure, including FS (<application>Graph</application>'s and
+      <application>TrEd</application>'s native format),
+      CSTS (PDT1.0 specific SGML format) and TrTree XML (which is a simple XML
+      variant of the general FS format).
+    </para>
+  </sect1>
+  <sect1>
+    <title>Installation</title>
+    <para><command>any2any</command> is a part of
+      <application>TrEd</application> distribution, so if
+      <application>Perl</application> and <application>TrEd</application>
+      are installed properly <command>any2any</command> should work
+      fine.      
+    </para>
+  </sect1>
+  <sect1>
+    <title>Usage</title>
+    <cmdsynopsis>
+	<command>any2any</command>
+	<arg choice="opt">-s <replaceable>suffix-pattern</replaceable></arg>
+	<arg choice="opt">-a <replaceable>suffix</replaceable></arg>
+	<arg choice="opt">-p <replaceable>prefix-pattern</replaceable></arg>
+	<arg choice="opt">-r <replaceable>prefix</replaceable></arg>
+	<arg choice="opt">-f <replaceable>output-format</replaceable></arg>
+	<group choice="opt">
+	  <arg>-T</arg>
+	</group>
+	<arg choice="plain"
+	  rep="repeat"><replaceable>input-file</replaceable></arg>
+      </cmdsynopsis>
+    <para>or</para>
+      <cmdsynopsis>
+	<command>any2any</command>
+	<group>
+	  <arg>-u</arg>
+	  <arg>-h</arg>
+	</group>
+      </cmdsynopsis>
+    
+    <para>
+      Each input file is opened and converted to the output format
+      specified in the <parameter>-f</parameter> parameter. File name of
+      the output file is made-up from the input file name in the
+      following way:
+    </para>
+    <para>
+      By default, output file name is the same as that of the input
+      file and backup file (with a tilde <literal>~</literal>
+      appended) is created to keep a copy of the original file.
+      If <parameter>-s</parameter> pattern is given, it is interpreted
+      as an regular expression and if a trailing part of the file name
+      matches the regular expression, it is deleted.
+      The value of <parameter>-a</parameter> parameter  (if any) is
+      appended to the end of the file name.
+      If <parameter>-p</parameter> pattern is given, it is interpreted
+      as an regular expression and the matching part of the beginning of the
+      file name (including extension) is deleted.
+      The filename is then prepended by the suffix given after
+      <parameter>-r</parameter> (if any).      
+    </para>
+    <formalpara>
+      <title>Parameters options</title>
+      <para>
+	<variablelist>
+	  <varlistentry>
+	    <term><parameter>-f</parameter></term>
+	    <listitem>
+	      <para>
+		Output format. The following output formats are
+		available: <literal>fs</literal>
+		(<application>TrEd</application>'s native file
+		format),
+		<literal>csts</literal> (PDT 1.0 specific SGML
+		format),
+		<literal>TrXML</literal> (XML variant of the
+		general FS format).		
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-s</parameter></term>
+	    <listitem>
+	      <para>
+		Regular expression that should match the trailing part
+		of the file name which is to be deleted.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-a</parameter></term>
+	    <listitem>
+	      <para>
+		Suffix to be appended to the output file name (after
+		the trailing part matched by <parameter>-s</parameter>
+		is deleted from it).
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-p</parameter></term>
+	    <listitem>
+	      <para>
+		Regular expression that should match the beginning
+		of the file name (including path) which is to be deleted.
+	      </para>
+	    </listitem>	    
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-r</parameter></term>
+	    <listitem>
+	      <para>
+		Prefix to be inserted to the beginning of the output file name (after
+		the part matched by <parameter>-p</parameter> is deleted from it).
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </para>
+    </formalpara>
+  </sect1>
+  <sect1>
+    <title>Expamles</title>
+    <para>
+      To convert all FS files <filename>*.fs</filename> in the
+      <filename>fs/</filename> subdirectory to CSTS SGML format,
+      storing the output files in <filename>sgml/</filename>
+      subdirectory with the <filename>.csts</filename> extensions, the
+      following command may be used:
+      <informalexample>
+	<blockquote><literal>any2any -s fs -a csts -p fs/ -r sgml/ -f csts fs/*.fs</literal></blockquote>
+      </informalexample>      
+    </para>
+    <para>
+      To do exactly the vice versa, converting CSTS files from
+      <filename>sgml/</filename> to FS files in
+      <filename>fs/</filename>, the following command may be used:
+      <informalexample>
+	<blockquote><literal>any2any -s csts -a fs -p sgml/ -r fs/ -f fs sgml/*.csts</literal></blockquote>
+      </informalexample>
+    </para>
+    <note>
+      <para>On some systems you may have to call
+	<command>any2any</command> as <command>perl any2any</command>.
+      </para>
+    </note>
+  </sect1>
+</article>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: xml
+sgml-omittag:nil
+sgml-shorttag:nil
+sgml-namecase-general:nil
+sgml-general-insert-case:lower
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:("/home/pajas/lib/sgml-tools/dtd/catalog" "/home/pajas/lib/sgml/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/docbook/3.1/docbook.cat /home/pajas/share/sgml/stylesheets/docbook/catalog /home/pajas/share/sgml/entities/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/jade/dsssl.cat /home/pajas/share/sgml/stylesheets/sgmltools/sgmltools.cat /home/pajas/share/sgml/dtd/sgmltools/catalog")
+sgml-local-ecat-files:nil
+End:
+-->
