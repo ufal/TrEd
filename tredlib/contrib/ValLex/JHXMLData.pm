@@ -16,7 +16,7 @@ sub parser_start {
   eval {
     $doc = $parser->parse_file($file);
   };
-  die $@ if $@;
+  die "$@\n" if $@;
   print STDERR "done\n";
   return ($parser,$doc);
 }
