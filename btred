@@ -68,7 +68,7 @@ scripts:
 \$grp->{macroContext} - current macro context
 \$this                - current node (root of the first tree at the beginning)
 \$root                - root node of current tree
-\$FileNotSaved        - change this to 1 if you need to save the file at the end
+\$FileNotSaved        - change this to 1 if you want the file to be saved at the end
 
 Also all functions defined in default macro file tred.def
 as well as any function from Fslib (see Fslib documentation).
