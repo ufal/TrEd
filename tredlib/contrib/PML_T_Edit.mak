@@ -92,6 +92,9 @@ sub status_line_doubleclick_hook {
   foreach (@_) {
     if (/^\{(.*)}$/) {
       if ($1 eq 'FRAME') {
+	$VallexGUI::frameid_attr="val_frame.rf";
+	$VallexGUI::lemma_attr="t_lemma";
+	$VallexGUI::framere_attr=undef;
         ChooseFrame(); #TODO
         last;
       } else {
