@@ -1162,9 +1162,8 @@ trlemmas.
 =cut
 
 sub modal_verb_trlemma ($) {
-  $_[0]=~/^(?:dát|dovést|hodlat|chtít|mít|moct|muset|smìt|umìt)$/;
+  $_[0]=~/^(?:dát|dovést|hodlat|chtít|mít|moci|mus[ei]t|smìt|umìt)$/;
 }#modal_verb_trlemmas
-
 
 1;
 
