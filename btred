@@ -602,7 +602,7 @@ sub startMain {
 	    _msg($@) if $@;undef $@;
 	    my $t1 = new Benchmark;
 	    $time = timediff($t1, $t0) if ($t1 and $t0);
-	    $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "";
+	    $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "" and not $request{QUIET}
 	  }
 	  $SIG{USR1} = sub { };
 	  $hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
