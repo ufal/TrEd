@@ -12,7 +12,7 @@ if ($^V lt v5.6.0) {
 }
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
-	    $opt_t $opt_W $opt_G $opt_R $opt_X
+	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
@@ -82,12 +82,13 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('m:c:l:t:huW:GRX:');
+getopts('qm:c:l:t:huW:GRX:');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
 Usage:
- tred [-c <config-file>] [-m <macro-file>] [-t context] [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
+ tred [-q] [-c <config-file>] [-m <macro-file>] [-t context]
+      [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
 or
  tred -u|-h    for usage/help
 
@@ -123,6 +124,7 @@ Each filename may be followed by suffixes of the following forms:
 
 Other options:
 
+-q              be quiet
 -R              build tectogrammatic trees from CSTS files
 -X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
                 and <ord> to order nodes
@@ -161,7 +163,7 @@ if (exists $ENV{TREDHOME}) {
 } elsif (-d "$FindBin::RealBin/../lib/tred") {
   $libDir="$FindBin::RealBin/../lib/tred";
 }
-print "Trying $libDir\n" if ($libDir);
+print "Trying $libDir\n" if ($libDir and !$opt_q);
 
 $macroFile=undef;
 
@@ -172,7 +174,7 @@ $macroFile=undef;
 
 
 # We *must* at least find TrEd::Config module to learn the correct libDir!!.
-print "First I'm trying $libDir\n";
+print "First I'm trying $libDir\n" unless $opt_q;
 unshift @INC,$libDir if (-d $libDir);
 
 do {
@@ -397,14 +399,14 @@ if ($opt_X ne "") {
   Csts2fs::setupSpec(split ',',$opt_X);
 }
 
-print STDERR "Reading macros from $macroFile...\n";
+print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
 read_macros($macroFile,$libDir);		# read macros
-print STDERR "done.\n";
+print STDERR "done.\n" unless $opt_q;
 
 
 startMain();	# display first tree
 
-print STDERR "TrEd ended.\n";
+print STDERR "TrEd ended.\n" unless $opt_q;
 
 exit;
 
