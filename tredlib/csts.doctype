@@ -70,7 +70,7 @@ APPINFO    NONE
 <!--          in a format suitable for generation              --> 
 <!--          (by getdesc.pl) of the description file as       -->
 <!--          required by the dtd2html program                 -->
-<!--                                                           -->
+<!--        - added pn element & description                   -->
 <!--                                                           -->
 <!-- ver 0.96 (Jul 01, 2001) by Jan Hajic                      -->
 <!--        - upper.gen.phrase added to f*case                 -->
@@ -171,7 +171,7 @@ APPINFO    NONE
          -- values: --
 
          -- x   undetermined --
-         -- y   undeterminable --
+         -- y   indeterminable --
          -- na  not applicable --
          -- mix mix of specific values, unspecified --
          -- alt other then specific values --
@@ -182,7 +182,7 @@ APPINFO    NONE
 <!ELEMENT mod - O (#PCDATA)
     -- mod possible contents:
                               s - synchronic? corpus
-                              d - diachronic conrpus
+                              d - diachronic corpus
                               o - oral (spoken) corpus --
 >
 <!ELEMENT txtype - O (#PCDATA)
@@ -260,7 +260,7 @@ APPINFO    NONE
                                 j - journal (periodic)
                                 scr - screenplay
                                 net - Internet
-                                oc - occassional --
+                                oc - occasional --
 >
 <!ELEMENT authsex - O (#PCDATA)
     -- authsex possible contents:  DEFAULT - y
@@ -294,7 +294,7 @@ APPINFO    NONE
                                 spa - Spanish
                                 rus - Russian
                                 slo - Slovak
-                                ... filled continously
+                                ... filled continuously
                              --
 >
 <!ELEMENT temp - O (#PCDATA)
@@ -382,7 +382,7 @@ APPINFO    NONE
           kind (same|ctcd|phrpart|del|spell|ins|num.orig)  same 
 		     -- original form from text if f tag differs;
 		     ctcd 	- original form is a contraction;
-                     phrpart 	- original form is splitted;
+                     phrpart 	- original form is split;
 		     del	- original form is removed;	
 		     spell 	- original form with spelling error; 
 		     ins 	- original form is missing;
@@ -437,6 +437,11 @@ APPINFO    NONE
           w       NUTOKEN #IMPLIED -- weight / probability --
           src     CDATA   #IMPLIED -- lemmatizer id        --
 >
+
+<!ELEMENT pn - O (#PCDATA)
+                 -- pattern name --
+>
+
 <!ELEMENT R - O (#PCDATA)
                  -- word root (stem) as defined by the morphology program --
 >
@@ -495,7 +500,7 @@ APPINFO    NONE
 <!-- ============================================================= -->
 
 <!ELEMENT fadd - O (TRl* & MTRl* & r? & g*)
-                 -- nodes added on the tectogramatical level;
+                 -- nodes added on the tectogrammatical level;
                  --
 >
 <!ATTLIST fadd
@@ -549,7 +554,7 @@ APPINFO    NONE
 >
 
 <!ELEMENT grm - O (#PCDATA)
-                 -- tectogrammatical grammatem;
+                 -- tectogrammatical grammateme;
                 --
 >
 
@@ -571,7 +576,7 @@ APPINFO    NONE
                    degree of comparison
                    tense          (S...SIM,  P...POST, A...ANT)
                    aspect         (P...PROC, C...CPL, R...RES)
-                   iterativness 
+                   iterativeness 
                    manner         (I...IND, M...IMP, C...CDN)
                    deontmod       (D...DECL, B...DEB, H...HRT, V...VOL,
                                    S...POSS, P...PERM, F...FAC)
@@ -614,10 +619,10 @@ APPINFO    NONE
 >
 <!ELEMENT cors  - O (#PCDATA)
                 -- cors should be empty or contain a sentence id;
-                   cors is a correference to a sentence id;
+                   cors is a coreference to a sentence id;
                    if empty, current sentence should be assumed.
                    Attribute rel can be used to specify
-                   a relative `distance' of the correferenced sentence
+                   a relative `distance' of the coreferenced sentence
                    from the sentence referenced by id;
                 --
 >
@@ -626,7 +631,7 @@ APPINFO    NONE
 >
 
 <!-- ============================================================= -->
-<!--                    end of tectogramatical elements            -->
+<!--                    end of tectogrammatical elements            -->
 <!-- ============================================================= -->
 
 
