@@ -154,7 +154,12 @@ sub assign_afun_auto {
 
   my ($ra,$rb,$rc)=Assign_arab_afun::afun($node);
   $node->{afun}=$ra;
-#  print STDERR "$node->{lemma} ($ra,$rb,$rc)\n";
+  print STDERR "$node->{lemma} ($ra,$rb,$rc)\n";
+}
+
+sub node_moved_hook {
+  my ($node)=@_;
+  assign_afun_auto($node);
 }
 
 #bind assign_all_afun_auto to Ctrl+Shift+F10 menu Auto-assign analytical functions to tree
