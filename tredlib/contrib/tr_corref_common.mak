@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-09-04 11:09:02 pajas>
+## Time-stamp: <2001-11-26 20:29:58 pajas>
 
 package Corref;
 
@@ -10,6 +10,7 @@ import TredMacro;
 #bind default_tr_attrs F1
 #insert default_tr_attrs as menu Display default attributes
 sub default_tr_attrs {
+  if ($grp->{FSFile}) {
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
 		    '${gender}.${number}',
@@ -19,6 +20,7 @@ sub default_tr_attrs {
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>'.
 		      "gender\t\${gender}\nnumber:\t\${number}");
+  }
 }
 
 sub sort_attrs_hook {

@@ -2461,7 +2461,7 @@ sub split_node_and_lemma {
 }
 
 
-#bind _key_Ctrl_Shift_Q to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
+#bind _key_Ctrl_Shift_Q to Ctrl+Shif+Q menu Odpojit pripojene fw od akt. vrcholu
 sub _key_Ctrl_Shift_Q {
 
   splitfw();

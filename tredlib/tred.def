@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-10-20 22:32:21 paja>
+## Time-stamp: <2001-11-26 20:31:14 pajas>
 
 package TredMacro;
 
@@ -109,18 +109,22 @@ sub SetCurrentNodeInOtherWin {
 }
 
 sub SetDisplayAttrs {
+  return unless $grp->{FSFile};
   $grp->{FSFile}->changePatterns(@_);
 }
 
 sub SetBalloonPattern {
+  return unless $grp->{FSFile};
   $grp->{FSFile}->changeHint(join "\n",@_);
 }
 
 sub GetDisplayAttrs {
+  return unless $grp->{FSFile};
   return $grp->{FSFile}->patterns();
 }
 
 sub GetBalloonPattern {
+  return unless $grp->{FSFile};
   return $grp->{FSFile}->hint();
 }
 
