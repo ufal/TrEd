@@ -16,6 +16,7 @@ sub show_dialog {
       $frame_browser_wordlist_item_style,
       $frame_browser_framelist_item_style,
       $frame_editor_styles,
+      $show_obsolete_ref,
       $data,
       $field,
       $select_frame,
@@ -38,12 +39,13 @@ sub show_dialog {
 			       $frame_editor_styles,
 			       undef, 1,-width => '15c');
   $chooser->subwidget_configure($confs) if ($confs);
+  ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
   $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
   $chooser->widget()->focus();
   if (ref($field) eq "ARRAY") {
     foreach my $fl (@{$chooser->subwidget('framelists')}) {
-      print "FL: ---- $fl\n";
+      $fl->show_obsolete(!$$show_obsolete_ref);
       $fl->fetch_data($chooser->data()->findWordAndPOS(@{$fl->field()}));
     }
   }
@@ -77,10 +79,12 @@ sub show_dialog {
   if ($d->Show() eq 'Choose') {
     my @frames=$chooser->get_selected_frames();
     my $real=$chooser->get_selected_element_string();
+    $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
     $chooser->destroy();
     $d->destroy();
     return (join("|",map { $_->getAttribute('frame_ID') } @frames),$real);
   } else {
+    $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
     $chooser->destroy();
     $d->destroy();
     return undef;
@@ -98,7 +102,6 @@ sub create_widget {
       $cb,
       $no_choose_button, @conf) = @_;
 
-  print "Count $count\n";
   my $frame = $top->Frame();
   $frame->configure(@conf) if (@conf);
 
@@ -129,10 +132,27 @@ sub create_widget {
 							   ]);
 
   $editframes_button->pack(qw/-padx 5 -side left/); 
-
+  my $hide_obsolete=0;
+  my $hide_obsolete_button=
+    $fbutton_frame->
+      Checkbutton(-text => 'Hide obsolete',
+		  -variable => \$hide_obsolete,
+		  -command =>
+		  [
+		   sub {
+		     my ($self)=@_;
+		     foreach my $fl (@{$self->subwidget('framelists')}) {
+		       $fl->show_obsolete(!${$self->subwidget('hide_obsolete')});
+		       $fl->fetch_data($self->data()->findWordAndPOS(@{$fl->field()}));
+		     }
+		   },
+		   $self
+		  ]);
+  $hide_obsolete_button->pack(qw/-padx 5 -side left/);
   my $multiselect_button=
     $fbutton_frame->
       Checkbutton(-text => 'Multiple select',
+
 		  -command =>
 		  [
 		   sub {
@@ -156,7 +176,6 @@ sub create_widget {
   my @lexframelistlabels=();
   my $focused_framelist;
   for (my $i=0; $i<$count; $i++) {
-    print "$i\n";
     # List of Frames
     $lexframe_frame->Frame(qw/-height 12/)->pack();
     my $lexframelistlab=$lexframe_frame->Label(-text => $self->field()->[2*$i],
@@ -190,7 +209,8 @@ sub create_widget {
 	     frame_frame  => $lexframe_frame,
 	     framelists    => \@lexframelists,
 	     framelist_labels    => \@lexframelistlabels,
-	     focused_framelist => \$focused_framelist
+	     focused_framelist => \$focused_framelist,
+	     hide_obsolete => \$hide_obsolete
 #	     framenote    => $lexframenote,
 #	     frameproblem => $lexframeproblem,
 	    }, {
@@ -319,15 +339,10 @@ sub edit_button_pressed {
   my $fl=$self->focused_framelist();
   return unless defined($fl);
   my $index=$self->find_framelist_index($fl);
-  print "focused is $fl, $index\n";
-  print "i.e. ",$fl->field()->[0],"\n";
+
   TrEd::ValLex::Editor::show_dialog($self->widget()->toplevel,
 				    $self->data(),
 				    $fl->field(),
-# 				    [
-# 				     $self->field()->[2*$index],
-# 				     $self->field()->[2*$index+1]
-# 				    ],
 				    1,
 				    $self->style('editor'),
 				    $self->style('editor_wordlist_items'),
@@ -339,15 +354,9 @@ sub edit_button_pressed {
   if (ref($self->field()) eq "ARRAY") {
     my $i=0;
     foreach my $f (@{$self->subwidget('framelists')}) {
-#      print "Fetching ",
-#	$self->field()->[$i],
-#	  ",",$self->field()->[$i+1],"\n";
       $f->fetch_data($self->data()->findWordAndPOS(
 						   @{$f->field()}
-						  # $self->field()->[$i],
-						  # $self->field()->[$i+1],
 						  ));
-#      $i+=2;
     }
   }
 }
