@@ -5,12 +5,7 @@ use Fslib;
 
 #
 # TODO:
-#
-# -preserve MD[tg] in (tag,gov)MM_<l/@src>_<MD[tg]/@src>
-#  so that it is possible to restore them under correct lemmas
 # -buid TR/AR-tree according to mdesc?
-#
-#
 #
 
 #
@@ -42,7 +37,13 @@ $fill_empty_ord=0;
 sub assign_TRt {
   my ($s,$data,$machine)=@_;
   $machine = $machine ? "M" : "";
-  if ($data=~/([MIFN-X])([SP-X])([123-X])([SPA-X])([PCR-X])([10-X])([IMC-X])([DBHVSPF-X])([.!DM?])/) {
+# hajic 2002/04/02
+#  - moved - to front of [] expressions
+#  - added X to last [] ($9)
+#  - swapped $2 and $3
+# (based on observations of data only!)
+
+  if ($data=~/([-MIFNX])([-123X])([-SPX])([-SPAX])([-PCRX])([-10X])([-IMCX])([-DBHVSPFX])([.!DM?X])/) {
     my $result;
     if ($1 eq 'M') { $result = 'ANIM' }
     elsif ($1 eq 'I') { $result = 'INAN' }
@@ -52,17 +53,19 @@ sub assign_TRt {
     elsif ($1 eq 'X') {  $result = '???' }
     to_node_attr($s,$result,'|','gender'.$machine);
 
-    if ($2 eq 'S') { $result = 'SG' }
-    elsif ($2 eq 'P') { $result = 'PL' }
-    elsif ($2 eq '-') {  $result = 'NA' }
-    elsif ($2 eq 'X') {  $result = '???' }
-    to_node_attr($s,$result,'|','number'.$machine);
-
-    if ($3 eq '1') { $result = 'POS' }
-    elsif ($3 eq '2') { $result = 'COMP' }
-    elsif ($3 eq '3') {  $result = 'SUP' }
+# hajic 2002/04/02
+#  - swapped $2 <-> $3 in teh following two switch sections:
+    if ($3 eq 'S') { $result = 'SG' }
+    elsif ($3 eq 'P') { $result = 'PL' }
     elsif ($3 eq '-') {  $result = 'NA' }
     elsif ($3 eq 'X') {  $result = '???' }
+    to_node_attr($s,$result,'|','number'.$machine);
+
+    if ($2 eq '1') { $result = 'POS' }
+    elsif ($2 eq '2') { $result = 'COMP' }
+    elsif ($2 eq '3') {  $result = 'SUP' }
+    elsif ($2 eq '-') {  $result = 'NA' }
+    elsif ($2 eq 'X') {  $result = '???' }
     to_node_attr($s,$result,'|','degcmp'.$machine);
 
     if ($4 eq 'S') { $result = 'SIM' }
@@ -232,7 +235,7 @@ my %start_tag = (
 		 'i' => [\&copy_tag_to,'','<','!GAP'],
 		 'idioms' => [\&copy_tag_to,'','<','!GAP'],
 		 'idiom' => [\&copy_tag_to,'','<','!GAP'],
-		 'iref' => [\&copy_tag_to,'','<','!GAP']
+		 'iref' => [\&copy_tag_to,'','<','!GAP'],
 		 );
 
 my %end_tag = (
@@ -260,8 +263,21 @@ my %att = (
 			    my ($s,$data)=@_;
 			    &to_node_attr($s,uc($data),'|','del')
 			  }],
+	   'MTRl quot' => [\&to_composed_node_attr,'_','|','src','quotMTRl'],
 	   'TRl quot' => [\&assign_quot_dsp],
-	   'cors rel' => [\&to_node_attr,'|','corsrel']
+	   'cors rel' => [\&to_node_attr,'|','corsrel'],
+	   'TRl status' => [sub {
+			    my ($s,$data)=@_;
+			    &to_node_attr($s,'hide','','TR')
+			      if ($data eq 'hidden');
+			  }],
+	   'MTRl status' => [sub {
+			       my ($s,$data)=@_;
+			       &to_composed_node_attr($s,'hide','_','|','src','MTR')
+				 if ($data eq 'hidden');
+			     }],
+	   'TRl origin' => [\&to_node_attr,'','AIDREFS'],
+	   'MTRl origin' => [\&to_composed_node_attr,'_','','src','MAIDREFS'],
 	  );
 
 my %pcdata = (
@@ -355,7 +371,11 @@ my %pcdata = (
 		      to_node_attr(@_);
 		      $s->{node}->{govTR}=$data if $s->{node}->{govTR} eq "";
 		    },'|','ordorig'],
-	      r => [\&to_node_attr,'|','ord']
+	      r => [\&to_node_attr,'|','ord'],
+	      x => [sub {
+		      my ($s,$data)=@_;
+		      to_composed_node_attr($s,$data,"","","name","");
+		    }],
 	     );
 
 @csts = (
@@ -411,6 +431,7 @@ my %pcdata = (
 '@P tagauto',
 '@P lemauto',
 '@P AID',
+'@P AIDREFS',
 );
 
 @minTRheader = (
@@ -703,15 +724,11 @@ sub read {
     }
   }
 
-  @attlist=();
   @header=@{$header};
   foreach (keys %composed_attrs) {
     push @header,"\@P $_";
   }
-  %defs=ReadAttribs(\@header,\@attlist);
-  $fsformat = new FSFormat({%defs},
-			   [@attlist], undef);
-  $fsfile->changeFS($fsformat);
+  $fsfile->changeFS(FSFormat->create(@header));
   $fsfile->changeTail("(2,3)\n");
   $fsfile->changeTrees(@{$state->{trees}});
   $fsfile->changePatterns('${form}', '${afun}');
