@@ -8,9 +8,15 @@ package TREdit;
 
 use base qw(Tectogrammatic);
 import Tectogrammatic;
-
+import Coref qw(switch_context_hook node_style_hook node_release_hook);
 
 my %menu_prevstate;
+
+sub FuncAssign {
+  $this->{'func'} = $sPar1;
+  clear_funcaux($this);
+  $this=NextVisibleNode($this);
+}
 
 sub switch_context_hook {
   my ($precontext,$context)=@_;
@@ -59,10 +65,34 @@ sub edit_attr_value {
   }
 }
 
+#bind edit_origf Alt+O menu Edit root's origf
+sub edit_origf {
+  {
+    local $this=$root;
+    edit_attr_value('origf');
+  }
+}
+
+
 #bind edit_trlemma Alt+L menu Edit trlemma
 sub edit_trlemma {
   edit_attr_value('trlemma');
 }
+
+#bind edit_ID1 Alt+I menu Edit ID1 add assign identifiers to all nodes
+sub edit_ID1 {
+  {
+    local $this=$root;
+    edit_attr_value('ID1');
+  }
+  my $id1 = $root->{ID1};
+  my $i = 0;
+  foreach my $node ($root,$root->descendants) {
+    $node->{TID}=$id1."-N".$i;
+    $i++;
+  }
+}
+
 
 #bind create_new_tree Alt+N menu New tree
 sub create_new_tree {
