@@ -11,6 +11,8 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName %menuBindings %keyBindings
             $savedSavePixmap $normalSavePixmap $NewFileNo
+	    $normalUndoPixmap $disabledUndoPixmap
+	    $normalRedoPixmap $disabledRedoPixmap
            );
 
 $version='$Revision$ ';
@@ -20,14 +22,13 @@ $about=
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
-################################################################################
+##############################################################################
 #
-# This is "TrEd" - a simple viewer/editor of tree graphs in fs
-# file-format used in Graph - program developed by M. Kren. TrEd is
-# written entirely in Perl and for graphical output it uses PerlTk
-# library as a frontend to Tk toolkit
+# This is "TrEd" - a viewer and editor of tree graphs, such as
+# dependency trees. TrEd is written entirely in Perl and for graphical
+# output it uses PerlTk library as a frontend to Tk toolkit
 #
-################################################################################
+##############################################################################
 #
 # Usage:
 # tred [-c <config-file>] [-m <macro-file>] [-l <filelist>] [-p printing-options]
@@ -434,7 +435,14 @@ sub ApplyGlobalConfig {
 		       -highlightthickness  => $highlightWindowWidth,
 		       -highlightbackground => $highlightWindowColor);
   return unless $grp;
-
+  Tk::catch {
+    $grp->{valueLine}->configure(-height => $valueLineHeight,
+				 ($valueLineReverseLines ? () :
+				  (-wrap => $valueLineWrap))
+				);
+  };
+  update_value_line($grp);
+  print STDERR $@ if $@;
   foreach (@{$grp->{treeWindows}}) {
     if ($_->{treeView} and $treeViewOpts->{backgroundColor}) {
       $_->{treeView}->canvas->configure(-background=> $treeViewOpts->{backgroundColor});
@@ -539,7 +547,7 @@ sub closeFile {
   $win->{treeNo}=undef;
   delete $win->{currentNode} if (exists $win->{currentNode});
   $win->{treeView}->clear_pinfo();
-  $valueLine="" if (isFocused($win));
+  set_value_line($win->{framegroup},"") if (isFocused($win));
   if ($keep and $fsfile) {
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
   } else {
@@ -613,20 +621,31 @@ sub addToRecent {
   }
 }
 
+sub getNodeNo {
+  my ($win,$node)=@_;
+  if ($node) {
+    my $root;
+    my $i=0;
+    $root=$win->{FSFile}->treeList->[$win->{treeNo}];
+    while ($root and $root ne $node) {
+      $i++;
+      $root=$root->following();
+    }
+    if ($root) {
+      return $i;
+    }
+  }
+}
+
 sub bookmarkThis {
   my ($grp)=@_;
   my $f=undef;
-  if (ref($grp->{focusedWindow}->{FSFile})) {
-    $f=$grp->{focusedWindow}->{FSFile}->filename()."##".($grp->{focusedWindow}->{treeNo}+1);
-    if ($grp->{focusedWindow}->{currentNode}) {
-      my $root;
-      my $i=0;
-      $root=$grp->{focusedWindow}->{FSFile}->treeList->[$grp->{focusedWindow}->{treeNo}];
-      while ($root and $root ne $grp->{focusedWindow}->{currentNode}) {
-	$i++;
-	$root=$root->following();
-      }
-      $f.=".$i" if ($root);
+  my $win=$grp->{focusedWindow};
+  if (ref($win->{FSFile})) {
+    $f=$win->{FSFile}->filename()."##".($win->{treeNo}+1);
+    my $nodeno=getNodeNo($win,$win->{currentNode});
+    if (defined($nodeno)) {
+      $f.=".$nodeno";
     }
   }
   return $f;
@@ -781,7 +800,7 @@ sub newFileFromCurrent {
   get_nodes_win($win);
   doEvalHook($win,"file_opened_hook");
   redraw_win($win);
-  if ($win->{currentNode}) { centerToXY($win,0,0); }
+  centerTo($win,$win->{currentNode});
   $win->toplevel->Unbusy() unless $insideEval;
 
   addToRecent($grp,$f);
@@ -811,9 +830,7 @@ sub reloadFile {
       $win->{FSFile}->changeHint($hint);
     }
     redraw_win($win);
-    if ($win->{currentNode}) {
-      centerToXY($win,0,0);
-    }
+    centerTo($win,$win->{currentNode});
   }
 }
 
@@ -849,9 +866,7 @@ sub openFile {
 	doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
 	unless ($opts{-noredraw}) {
 	  redraw_win($win);
-	  if ($win->{currentNode}) {
-	    centerToXY($win,0,0);
-	  }
+	  centerTo($win,$win->{currentNode});
 	}
 	addToRecent($grp,$f) unless $opts{-norecent};
 	$win->toplevel->Unbusy() unless $insideEval;
@@ -861,7 +876,8 @@ sub openFile {
   }
   closeFile($win,1,$opts{-keep});
 
-  $win->{FSFile}= FSFile->newFSFile($f,@backends);
+  print STDERR "TrEd::Convert::inputenc $TrEd::Convert::inputenc\n";
+  $win->{FSFile}= FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
   $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
 
   unless ($grp->{noOpenFileError} or $win->{FSFile}->lastTreeNo>=0) {
@@ -896,14 +912,23 @@ sub openFile {
   doEvalHook($win,"file_opened_hook") if ($win->{FSFile} and !$opts{-nohook});
   unless ($opts{-noredraw}) {
     redraw_win($win);
-    if ($win->{currentNode}) {
-      centerToXY($win,0,0);
-    }
+    centerTo($win,$win->{currentNode});
   }
   $win->toplevel->Unbusy() unless $insideEval;
 
   addToRecent($grp,$f);
   return 1;
+}
+
+sub getNodeByNo {
+  my ($win,$no)=@_;
+  my $root=$win->{FSFile}->treeList->[$win->{treeNo}];
+  my $i=$no;
+  while ($root and $i>0) {
+    $i--;
+    $root=$root->following();
+  }
+  return $root;
 }
 
 sub applyFileSuffix {
@@ -920,14 +945,8 @@ sub applyFileSuffix {
     }
   }
   # new: we're the dot in .[0-9]+ (TM)
-  my $root;
   if ($goto=~/\.([0-9]+)$/) {
-    $root=$win->{FSFile}->treeList->[$win->{treeNo}];
-    my $i=$1;
-    while ($root and $i>0) {
-      $i--;
-      $root=$root->following();
-    }
+    my $root=getNodeByNo($win,$1);
     $win->{currentNode}=$root if ($root);
   }
   # hey, caller, you should redraw after this!
@@ -983,23 +1002,101 @@ sub HPrev { # same as Next but obey $showHidden
   return 0;
 }
 
+sub get_value_line {
+  my ($win,$fsfile,$no,$no_numbers,$tags)=@_;
+  my $vl;
+  if ($fsfile) {
+    $vl=doEvalHook($win,"get_value_line_hook",$fsfile,$no);
+    if (defined($vl)) {
+      if (ref($vl)) {
+	$vl=map { $_->[0]=encode($_->[0]); $_ } @$vl;
+      } else {
+	$vl=encode($vl);
+      }
+    } else {
+      $vl=$win->{treeView}->value_line($fsfile,$no,$no_numbers,$tags);
+    }
+  } else {
+    $vl="";
+  }
+  return $vl;
+}
+
+sub reverseWrapLines {
+  my ($widget,$font,$text,$width)=@_;
+  use integer;
+  my @toks;
+  if (ref($text)) {
+    @toks = @$text;
+    print STDERR "TOKENS $#toks\n";
+  } else {
+    @toks = map { [$_,''] } split /\s+/, $text;
+  }
+  my @result;
+  my $wd=0;
+  my $w;
+  my $t=pop(@toks);
+  my @lines=();
+  while ($t) {
+    $w=$widget->fontMeasure($font," $t->[0]");
+    if (($wd+$w>=$width) && (@result>0)) {
+      push @lines, (@result,["\n",'space']);
+      @result=($t);
+      $wd=$widget->fontMeasure($font,$t->[0]);
+    } else {
+      $wd+=$w;
+      unshift @result, $t;
+    }
+    $t=pop(@toks);
+  }
+  push @lines,@result;
+  return \@lines;
+}
+
+sub set_value_line {
+  my ($grp,$v)=@_;
+  my $vl=$grp->{valueLine};
+  $vl->configure(qw(-state normal));
+  $vl->delete('0.0','end');
+#  print STDERR "VL: $TrEd::Config::valueLineReverseLines\n";
+#  print STDERR "VL2: $valueLineReverseLines\n";
+  if ($valueLineWrap eq 'word' and
+      $valueLineReverseLines) {
+    $vl->configure(qw(-wrap none));
+    print STDERR "Using reverse wrap-lines\n";
+    $v=reverseWrapLines($grp->{valueLine},$vLineFont,$v,
+			$grp->{valueLine}->width()-15);
+  }
+  if (ref($v)) {
+    foreach (@$v) {
+      $vl->insert('end', $_->[0],$_->[1]);
+      $vl->insert('end', ' ','space') unless $_->[0] eq "\n";
+    }
+  } else {
+    $vl->Subwidget('scrolled')->insert('0.0',$v);
+  }
+  $vl->tagAdd('all','0.0','end');
+  $vl->tagConfigure('all',-justify => $valueLineAlign);
+  $vl->configure(qw(-state disabled));
+  return $v;
+}
+
 sub update_value_line {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow}; # only focused window uses the value line
-  if ($win and $win->{FSFile}) {
-    my $vl=doEvalHook($win,"get_value_line_hook",$win->{FSFile},$win->{treeNo});
-    $valueLine=defined($vl) ? encode($vl) : encode($win->{FSFile}->value_line($win->{treeNo}));
+  if ($win->{FSFile}) {
+    $grp->{vLineNumLabel}->configure(-text => ($win->{treeNo}+1)."/".($win->{FSFile}->lastTreeNo+1));
   } else {
-    $valueLine="";
+    $grp->{vLineNumLabel}->configure(-text => "-/-");
   }
-  return $valueLine;
+  return set_value_line($grp,get_value_line($win,$win->{FSFile},
+					    $win->{treeNo},1,1));
 }
 
 ### Get Nodes
 
 sub get_nodes_win {
   my ($win)=@_;
-
   if ($win->{FSFile}) {
     $win->{treeNo}=0 if ($win->{treeNo}<0 and $win->{FSFile}->lastTreeNo>=0);
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
@@ -2117,10 +2214,8 @@ sub onGetRootStyle {
 sub onTreeChange {
   my ($win)=@_;
   get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-  if ($win->{currentNode}) {
-    centerToXY($win,0,0);
-  }
   redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+  centerTo($win,$win->{currentNode});
 }
 
 sub onNodeChange {
@@ -2133,6 +2228,15 @@ sub onCurrentChange {
   my ($win,$node,$prev)=@_;
   my $n;
   $tv=$win->{treeView};
+  eval {
+    $win->{framegroup}->{valueLine}->tagRemove('current','0.0','end');
+    $win->{framegroup}->{valueLine}->tagRemove('sel','0.0','end');
+    $win->{framegroup}->{valueLine}->tagAdd('current',
+					    $node.".first",
+					    $node.".last",
+					   );
+    $win->{framegroup}->{valueLine}->see('current.first');
+  };
   foreach $n ($node,$prev) {
     $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"Oval"),
 			       nodeOptions($win,$n));
@@ -2394,7 +2498,7 @@ sub createCanvasBindings {
 		'<Any-Enter>'
 		=> [sub{
 		      my ($c,$grp)=@_;
-		      my $t=$c->find('withtag','current');
+		      my ($t)=$c->find('withtag','current');
 		      my $win=findCanvasWindow($grp,$c);
 		      my $tv=$win->{treeView};
 		      my $node=$tv->get_obj_pinfo($t);
@@ -2407,7 +2511,7 @@ sub createCanvasBindings {
 		'<Any-Leave>'
 		=> [sub{
 		      my ($c,$grp)=@_;
-		      my $t=$c->find('withtag','current');
+		      my ($t)=$c->find('withtag','current');
 		      my $win=findCanvasWindow($grp,$c);
 		      my $tv=$win->{treeView};
 		      my $node=$tv->get_obj_pinfo($t);
@@ -2831,10 +2935,50 @@ sub startMain {
 	 ]
 	])->pack(qw/-side left/);
 
-
+  require Tk::Adjuster;
   $group{vLineFrame}=$group{top}->Frame();
-  $group{valueLine}=$group{vLineFrame}->Scrolled(qw/Entry -state disabled -relief sunken
-			   -borderwidth 2 -scrollbars s/, -font=> $vLineFont, -textvariable=> \$valueLine);
+  $group{valueLine}=
+    $group{vLineFrame}->
+      Scrolled(qw/ROText
+		  -takefocus 0
+		  -state disabled
+                  -relief sunken -borderwidth 2
+		  -scrollbars ose/,
+		  -font => $vLineFont,
+		  -height => $valueLineHeight,
+	          ($valueLineReverseLines ? () : (-wrap => $valueLineWrap))
+	      );
+  $group{valueLine}->tagConfigure('current',
+				  -background => $valueLineFocusBackground,
+				  -foreground => $valueLineFocusForeground,
+				 );
+  $group{valueLine}->bind('<Double-1>',
+			     [sub {
+				my ($w,$grp)=@_;
+				my $Ev=$w->XEvent;
+				my $win=$grp->{focusedWindow};
+				my $node=$win->{root};
+				my (@tags)=
+				  $w->tagNames($w->index($Ev->xy));
+				print STDERR "DOUBLE-1 @tags\n";
+				while ($node) {
+				  if (index(join("",@tags),${node})>=0) {
+				    setCurrent($win,$node);
+				    centerTo($win,$node);
+				    Tk->break;
+				    return;
+				  }
+				  $node=$node->following();
+				}
+				Tk->break;
+			      },\%group]
+			     );
+
+  $group{vLineSeparator}=$group{top}->Adjuster();
+  eval { # supported only on some platforms/version of Tk
+    $group{valueLine}->configure(-foreground => $valueLineForeground,
+                                 -background => $valueLineBackground);
+  };
   $group{valueLine}->BindMouseWheelHoriz();
 
 
@@ -2905,6 +3049,41 @@ sub startMain {
   $group{Balloon}->attach($group{reloadButton},
 			  -balloonmsg=> "reload current file");
   addBindTags($group{reloadButton},'my');
+
+  # Undo button
+  $normalUndoPixmap=$group{top}->Pixmap(-file=>"$libDir/undo.xpm");
+  $disabledUndoPixmap=$group{top}->Pixmap(-file=>"$libDir/noundo.xpm");
+
+  $group{undoButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Undo",
+			  -relief=> $buttonsRelief,
+			  -image=> $disabledUndoPixmap,
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub {
+					undo($_[0]->{focusedWindow})
+				      },\%group])->pack(-side=>'left',-padx=>'1');
+  $group{Balloon}->attach($group{undoButton},
+			  -balloonmsg=> "undo current file");
+  addBindTags($group{undoButton},'my');
+
+  # Redo button
+  $normalRedoPixmap=$group{top}->Pixmap(-file=>"$libDir/redo.xpm");
+  $disabledRedoPixmap=$group{top}->Pixmap(-file=>"$libDir/noredo.xpm");
+
+  $group{redoButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Redo",
+			  -relief=> $buttonsRelief,
+			  -image=> $disabledRedoPixmap,
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub {
+					re_do($_[0]->{focusedWindow})
+				      },\%group])->pack(-side=>'left',-padx=>'1');
+    
+  $group{Balloon}->attach($group{redoButton},
+			  -balloonmsg=> "redo current file");
+  addBindTags($group{redoButton},'my');
+
+
 
   $group{prevFileButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Prev file",
@@ -3055,21 +3234,22 @@ sub startMain {
 
   print STDERR "Packing widgets.\n" if $tredDebug;
 
-
   $group{frame}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
-
-
-  $group{valueLine}->pack(qw/-side left -fill x -expand yes/);
+  my $vlsubframe=$group{vLineFrame}->Frame();
+  $group{vLineNumLabel}=$vlsubframe->Label(-text => '-/-')->pack(qw/-side top -fill x/);
   $group{sentButton}=
-    $group{vLineFrame}->Button(-takefocus=>0, -text=> "Sentences",
-			    -relief=> $buttonsRelief,
-			    -image=> $group{top}->Pixmap(-file=>
-							  "$libDir/view_sent.xpm"),
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [\&viewSentences,\%group])
-      ->pack(qw/-side right -padx 1 -anchor n/);
+    $vlsubframe->Button(-takefocus=>0, -text=> "Sentences",
+			-relief=> $buttonsRelief,
+			-image=> $group{top}->Pixmap(-file=>
+						     "$libDir/view_sent.xpm"),
+			-borderwidth=> $buttonBorderWidth,
+			-command=> [\&viewSentences,\%group])
+      ->pack(qw/-side top -fill x/);
+  $vlsubframe->pack(qw/-fill x -side right -padx 1 -anchor n/);
+  $group{valueLine}->pack(qw/-side left -fill both -expand yes/);
   $group{vLineFrame}->pack(qw/-fill x -expand no/);
 
+  $group{vLineSeparator}->packAfter($group{vLineFrame},-side => 'top');
 
   # frame canvas here
   $group{focusedWindow}->frame_widget($canvas,[],
@@ -3435,9 +3615,7 @@ sub askSaveFiles {
     updateTitle($grp);
     get_nodes_win($grp->{focusedWindow});
     redraw_win($grp->{focusedWindow});
-    if ($grp->{focusedWindow}->{currentNode}) {
-      centerToXY($grp->{focusedWindow},0,0);
-    }
+    centerTo($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
     $grp->{top}->update();
     askSaveFile($grp->{focusedWindow},0);
   }
@@ -3466,6 +3644,7 @@ sub saveConfig {
  my ($grp)=shift;
 
  if (open(F,">$configFile")) {
+   print STDERR "SAVING CONFIG TO: $configFile\n";
    print F @_;
    close(F);
  } else {
@@ -3484,6 +3663,7 @@ sub saveConfig {
 		  #			  -default=> 'Yes' # problem: Windows 'yes', UNIX 'Yes'
 		 )=~ /yes/i)) {
      if (open(F,">".$trc)) {
+       print STDERR "SAVING CONFIG TO: $trc\n";
        print F @_;
        close(F);
        $configFile=$trc;
@@ -3744,8 +3924,8 @@ sub reloadSentenceView {
 			  -command => [\&openFile, $grp, "$filename##".($i+1)]
 			 ));
     $t->insert('end',"(".($i+1).") ".
-	       encode($grp->{focusedWindow}->treeView->
-		      value_line($grp->{focusedWindow}->{FSFile},$i,1)).
+	       get_value_line($grp->{focusedWindow},
+			      $grp->{focusedWindow}->{FSFile},$i,1).
 	       "\n",'line');
   }
 }
@@ -3830,8 +4010,10 @@ sub populateSentencesDialog {
   use Tk::ROText;
   my $t= $d->
     Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
-                     -spacing3 6 -wrap word -background white
-		     -height 20 -scrollbars oe/,-font=>$font);
+                     -spacing3 6 -background white
+		     -height 20 -scrollbars oe/,
+	     -font=>$font
+	    );
   $t->pack(qw/-expand yes -fill both/);
   $t->BindMouseWheelVert();
   $grp->{sentDialogText}=$t;
@@ -3987,6 +4169,7 @@ sub editAttrsDialog {
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$win->toplevel);
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
+    save_undo($win,prepare_undo($win));
     lastActionBookmark($win->{framegroup});
     foreach $a (@atord) {
       $node->setAttribute($a,decode($e{$a}->get));
@@ -4069,18 +4252,22 @@ sub customAttrsDialog {
                             -padx 3 -pady 3/);
   $t->insert('0.0',$win->{FSFile}->hint);
   $t->BindMouseWheelVert();
-  my $e= $d->Entry(qw/-relief sunken -borderwidth 2/);
+
+  my $e= $d->Scrolled(qw/Text -scrollbars osoe -height 4
+                              -relief sunken -borderwidth 2/);
 
   my $bf= $f->Frame();
   $bf->Button(-text=> "Add/Paste",
 	      -command=>
 	      sub {
-		if ($e->get ne "") {
-		  $cl->insert('active',$e->get);
+		my $txt=$e->get('0.0','end');
+		chomp $txt;
+		if ($txt ne "") {
+		  $cl->insert('active',$txt);
 		} elsif($al->selectionIncludes($al->index('active'))) {
 		  $cl->insert('active','${'.$al->get('active').'}');
 		}
-		$e->selectionRange(0,'end');
+		$e->tagAdd('sel','0.0','end');
 	      }
 	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
 
@@ -4090,7 +4277,7 @@ sub customAttrsDialog {
 		$cl->selectionClear($cl->index('end')-1)
 		  if ($cl->selectionIncludes($cl->index('end')-1));
 		while (defined(($cl->curselection)[0])) {
-		  $e->delete(0,'end');
+		  $e->delete('0.0','end');
 		  $e->insert('insert',$cl->get(($cl->curselection)[0]));
 		  $cl->delete(($cl->curselection)[0]);
 		}
@@ -4111,11 +4298,13 @@ sub customAttrsDialog {
   $bf->Button(-text=> "Add as hint",
 	      -command=>
 	      sub {
-		if ($e->get ne "") {
+		my $txt=$e->get('0.0','end');
+		chomp $txt;
+		if ($txt ne "") {
 		  Tk::catch { $t->delete('sel.first','sel.last') };
-		  $t->insert('insert',$e->get);
+		  $t->insert('insert',$txt);
 		}
-		$e->selectionRange(0,'end');
+		$e->tagAdd('sel','0.0','end');
 	      }
 	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
 
@@ -4139,8 +4328,8 @@ sub customAttrsDialog {
 		},$d ]);
   $al->bind('<Double-1>'=> 
 	   sub {
-	     $e->delete('sel.first','sel.last')
-	       if ($e->selectionPresent);
+	     $e->delete('sel.first','sel.last') 
+	       if ($e->tagNextrange('sel','0.0'));
 	     $e->insert('insert','${'.$al->get('active').'}');
 	     $e->focus();
 	   }
@@ -4148,7 +4337,7 @@ sub customAttrsDialog {
   $cl->bind('<Double-1>'=> 
 	   sub {
 	     return if ($cl->index('active')== $cl->index('end')-1);
-	     if ($e->selectionPresent) {
+	     if ($e->tagNextrange('sel','0.0')) {
 	       $e->delete('sel.first','sel.last')
 	     }
 	     $e->insert('insert',$cl->get('active'));
@@ -4527,12 +4716,20 @@ sub editAttr {
   my $attr;
   my $newvalue;
 
-  my $t=$w->find('withtag','current');
+  my ($t)=$w->find('withtag','current');
   my $tv=$win->{treeView};
   my $node=$tv->get_obj_pinfo($t);
   my $d;
   setCurrent($win,$node);
   $attr=$tv->get_gen_pinfo("attr:$t");
+
+  doEditAttr($win,$node,$attr);
+}
+
+
+sub doEditAttr {
+  my ($win,$node,$attr)=@_;
+  my $grp=$win->{framegroup};
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
@@ -4541,6 +4738,7 @@ sub editAttr {
     if (defined($newvalue)) {
       $win->toplevel->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
+      save_undo($win,prepare_undo($win));
       lastActionBookmark($grp);
       $node->setAttribute($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -4558,6 +4756,7 @@ sub editAttr {
     if (defined $newvalue) {
       $grp->{top}->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
+      save_undo($win,prepare_undo($win));
       lastActionBookmark($grp);
       $node->setAttribute($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -4593,6 +4792,7 @@ sub editAttr {
   $result= ShowDialog($d,$e,$grp->{top});
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
+    save_undo($win,prepare_undo($win));
     lastActionBookmark($grp);
     $node->setAttribute($attr,decode($newvalue));
     doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -4604,7 +4804,6 @@ sub editAttr {
   $d->destroy;
   undef $d;
 }
-
 
 #############################################
 # redraw tree etc.
@@ -4647,6 +4846,7 @@ sub redraw_win {
   my ($win)=@_;
   return if $insideEval;
   saveFileStateUpdate($win);
+  resetUndoStatus($win);
   #------------------------------------------------------------
   #{
   #use Benchmark;
@@ -4655,13 +4855,15 @@ sub redraw_win {
   #------------------------------------------------------------
   $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
-
+  my $vl=$win->{framegroup}->{valueLine};
   $win->{treeView}->
       redraw($win->{FSFile},
 	     $win->{currentNode},
 	     $win->{Nodes},
-	     $valueLine);	# CHANGE THIS (this is just for printing)
-
+	     # CHANGE THIS (this is just for printing) :
+	     ($vl ? $vl->get('0.0','end') : "")
+	    );
+  setCurrent($win,$win->{currentNode}) if $win->{FSFile};
   $TrEd::TreeView::on_tree_redraw= undef; #forget the reference on $win
   $TrEd::TreeView::on_node_redraw= undef;
 
@@ -4727,13 +4929,14 @@ sub follow_mouse_press {
 
 
 sub scrollCanvasToXY {
-  my ($w, $win, $x, $y)=@_;
+  my ($w, $win, $X, $Y)=@_;
   my ($ax,$bx)=$w->xview;
   my ($ay,$by)=$w->yview;
   my $canvasX;
   my $tv=$win->{treeView};
-
+  no integer;
   my $sizeX=$w->fpixels($tv->{canvasWidth})*($bx-$ax);
+  my $x=min($X,$sizeX);
   my $shiftX=($x-$tv->get_gen_pinfo("lastX"));
   if ($shiftX>0) {
     if ($tv->get_gen_pinfo("lastX")== $sizeX) {
@@ -4760,6 +4963,7 @@ sub scrollCanvasToXY {
 
   # the same for Y
   my $sizeY=$w->fpixels($tv->{canvasHeight})*($by-$ay);
+  my $y=min($Y,$sizeY);
   my $shiftY=($y-$tv->get_gen_pinfo("lastY"));
   if ($shiftY>0) {
     if ($tv->get_gen_pinfo("lastY")== $sizeY) {
@@ -4888,6 +5092,7 @@ sub centerToXY {
 
 sub centerTo {
   my ($win, $node)= @_;
+  return unless $node;
   my $tv=$win->{treeView};
   centerToXY($win,
 	     $tv->get_node_pinfo($node,"XPOS"),
@@ -4900,6 +5105,9 @@ sub doEvalHook {
   my $bookmark=bookmarkThis($win->{framegroup});  # Save current position (as last action position)
 
   local $insideEval=1;
+  my $oldgrp=$TredMacro::grp;
+  my $oldthis=$TredMacro::this;
+  my $oldroot=$TredMacro::root;
   my $context='TredMacro';
   if ($win) {
     $TredMacro::this=$win->{currentNode};
@@ -4920,9 +5128,9 @@ sub doEvalHook {
     saveFileStateUpdate($win);
   }
 
-  $TredMacro::this=undef;
-  $TredMacro::root=undef;
-  $TredMacro::grp=undef;
+  $TredMacro::this=$oldthis;
+  $TredMacro::root=$oldroot;
+  $TredMacro::grp=$oldgrp;
 
   print STDERR "Hook $hook resulted with $result\n" if $hookDebug;
   return $result;
@@ -4942,11 +5150,15 @@ sub doEvalMacro {
   $TredMacro::FileNotSaved=1;
   $TredMacro::forceFileSaved=0;
   $TredMacro::Redraw='file';
+  my $undo=prepare_undo($win);
   my $result=do_eval_macro($win,$macro);
   my $current=$TredMacro::this;
   unless ($TredMacro::forceFileSaved) {
-    print STDERR "Macro claims file untouched\n"
-      unless ($TredMacro::FileNotSaved);
+    if ($TredMacro::FileNotSaved) {
+      save_undo($win,$undo);
+    } else {
+      print STDERR "Macro claims file untouched\n"
+    }
     $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $TredMacro::FileNotSaved);
     lastActionBookmark($win->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
   } else {
@@ -5149,8 +5361,13 @@ sub node_move {
     $tv->store_gen_pinfo('lastCanvasX',$w->canvasx($x));
     $tv->store_gen_pinfo('lastCanvasY',$w->canvasy($y));
   }
-  my($cx, $cy)= ($w->canvasx($x),$w->canvasy($y));
-  $w->move('selected',  $cx-$lcx, $cy-$lcy);
+  my ($cx, $cy)= ($w->canvasx($x),$w->canvasy($y));
+  my $flop;
+  my ($nx,$ny) = $w->coords('selected');
+  my ($deltax,$deltay) = ($cx-$nx, $cy-$ny);
+  $w->coords('selected', map { ($flop++%2) ? $deltay+$_ : $deltax+$_ }
+	     $w->coords('selected'));
+#  $w->move('selected',  $cx-$lcx, $cy-$lcy);
   $w->itemconfigure('selected', -fill=> $ncolor, -outline=> $ocolor ) if $scroll;
   my $nearest=$tv->get_obj_pinfo($w->find('withtag','nearest'));
   if ($nearest) {
@@ -5194,11 +5411,11 @@ sub node_release {
   my $parent;
   my $node;
   my $center=0;
-  my $sel=$w->find('withtag','selected');
+  my ($sel)=$w->find('withtag','selected');
   $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
 
   if ($node) {
-    $p=$w->find('withtag','nearest');
+    my ($p)=$w->find('withtag','nearest');
     $w->dtag('selected');
     if (defined $p) {
       $parent=$tv->get_obj_pinfo($p);
@@ -5211,6 +5428,7 @@ sub node_release {
 	}
 	if ($p and $tv->get_obj_pinfo($p) 
 	    and $node->parent!=$tv->get_obj_pinfo($p)) {
+	  save_undo($win,prepare_undo($win));
 	  Paste(Cut($node),
 		$tv->get_obj_pinfo($p),
 		$win->{FSFile}->FS->defs);
@@ -5237,11 +5455,11 @@ sub node_release_modif {
   my $parent;
   my $node;
   my $center=0;
-  my $sel=$w->find('withtag','selected');
+  my ($sel)=$w->find('withtag','selected');
   $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
 
   if ($node) {
-    $p=$w->find('withtag','nearest');
+    my ($p)=$w->find('withtag','nearest');
     $w->dtag('selected');
     if (defined $p) {
       $parent=$tv->get_obj_pinfo($p);
@@ -5254,3 +5472,140 @@ sub node_release_modif {
   } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
 }
 
+sub prepare_undo {
+  my ($win)=@_;
+  return unless $maxUndo;
+  my $fsfile=$win->{FSFile};
+  return undef unless $fsfile;
+
+  my $tree;
+  require Data::Dumper;
+  Fslib::PrintTree($win->{root},
+	    $fsfile->FS->list,
+	    $fsfile->FS->defs,
+	    \$tree);
+  return [$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode})];
+#  local $Data::Dump::Purity = 1;
+#  return Data::Dumper->Dump([$win->{treeNo},$win->{root},$win->{currentNode}],
+#			    [qw(treeNo root currentNode)]);
+}
+
+sub save_undo {
+  my ($win,$undo)=@_;
+  return unless $maxUndo;
+  my $fsfile=$win->{FSFile};
+  return unless ref($fsfile) and $undo;
+  unless ($fsfile->userData) {
+    $fsfile->changeUserData({ undostack => [], undo => -1});
+  }
+
+  my $stack=$fsfile->userData()->{undostack};
+  splice @$stack, $fsfile->userData->{undo}+1; # remove redo
+  push @$stack,$undo;
+  if ($maxUndo>0 and @$stack>$maxUndo) {
+    splice @$stack, 0, (@$stack-$maxUndo);
+    print STDERR "Undo-stack: overflow, removing ",(@$stack-$maxUndo)," items\n" if $tredDebug;
+  }
+  $fsfile->userData->{undo}=$#$stack;
+  resetUndoStatus($win);
+  print STDERR "Undo-stack: $#$stack items\n" if $tredDebug;
+}
+
+sub re_do {
+  my ($win)=@_;
+  return unless $maxUndo;
+  my $fsfile=$win->{FSFile};
+  return unless $fsfile;
+  my $stack=$fsfile->userData()->{undostack};
+  return unless (@$stack>$fsfile->userData->{undo}+2);
+  print STDERR "Redo: ",$fsfile->userData->{undo}+2,"/$#$stack\n" if $tredDebug;
+  $fsfile->userData()->{undo}+=2;
+  undo($win,1);
+}
+
+sub undo {
+  my ($win,$redo)=@_;
+  return unless $maxUndo;
+  my $fsfile=$win->{FSFile};
+  return unless $fsfile;
+  my $stack=$fsfile->userData()->{undostack};
+  my $stackpos=$fsfile->userData()->{undo};
+  return unless (ref($stack) and (@$stack>0) and ($stackpos>=0) and ($stackpos <= $#$stack));
+  my $undo=$stack->[$stackpos];
+  if ($undo) {
+    my $new_undo;
+    $new_undo=prepare_undo($win) if (!$redo and $#$stack == $stackpos);
+    my $treeNo=$undo->[0];
+    my $tree=$undo->[1];
+    $fsfile->treeList->[$treeNo]=
+      GetTree2($tree,
+	       $fsfile->FS->list,
+	       $fsfile->FS->defs);
+    if ($#$stack == $stackpos) {
+      if ($redo) {
+	pop @$stack;
+      } else {
+	push @$stack, $new_undo;
+      }
+    }
+    print STDERR "Undo: ",$stackpos."/$#$stack\n" if $tredDebug;
+    $fsfile->userData->{undo}--;
+    resetUndoStatus($win);
+    $fsfile->notSaved(1);
+    $win->{treeNo}=$treeNo;
+    $win->{currentNode}=getNodeByNo($win,$undo->[2]);
+
+#    my ($treeNo,$root,$currentNode);
+#    print STDERR "$undo\n";
+#    eval $undo;
+#    $win->{treeNo}=$treeNo;
+#    $win->{root}=$root;
+#    $fsfile->treeList->[$treeNo]=$root;
+#    $win->{currentNode}=$currentNode;
+    get_nodes_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
+    redraw_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
+  } else {
+    errorMessage($win,"Corrupted undo stack!");
+  }
+}
+
+sub resetUndoStatus {
+  my ($win)=@_;
+  my $fsfile=$win->{FSFile};
+  my ($undostatus,$redostatus);
+
+  if ($maxUndo!=0 and $fsfile and $fsfile->userData()) {
+    my $stack=$fsfile->userData()->{undostack};
+    my $stackpos=$fsfile->userData()->{undo};
+    print STDERR "STATUS: $stackpos/",$#$stack+1,"\n" if $tredDebug;
+    $undostatus=(ref($stack) && (@$stack>0));
+    $redostatus=($undostatus && (@$stack>$stackpos+2));
+    $undostatus &&= (($stackpos>=0) && ($stackpos <= $#$stack));
+  } else {
+    $undostatus=0;
+    $redostatus=0;
+  }
+  print "FG: $win->{framegroup}, $fsfile, ",$fsfile->userData(),"\n";
+  $win->{framegroup}->{undoButton}->
+    configure(
+	      $undostatus ?
+	      (-image => $normalUndoPixmap,
+	       -state => 'normal'
+	      )
+	      :
+	      (-image=> $disabledUndoPixmap,
+	       -state => 'disabled'
+	      )
+	     );
+  $win->{framegroup}->{redoButton}->
+    configure(
+	      $redostatus ?
+	      (-image => $normalRedoPixmap,
+	       -state => 'normal'
+	      )
+	      :
+	      (-image=> $disabledRedoPixmap,
+	       -state => 'disabled'
+	      )
+	     );
+}
