@@ -618,9 +618,9 @@ sub startMain {
 	} elsif ($request{REQUEST_TYPE} eq 'LIST_CHANGED') {
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	  $hub->print(join("\n",grep { ref($grp->{preloaded}->{$_}) and
+	  $hub->print(map { $_."\n"} grep { ref($grp->{preloaded}->{$_}) and
 					 $grp->{preloaded}->{$_}->notSaved()
-				       } @files),"\n");
+				       } @files);
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'DUMP') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
