@@ -4117,7 +4117,11 @@ sub startMain {
 			 [Checkbutton => 'backend', -underline => 0,
 			  -variable => \$Fslib::Debug],
 			 [Button => 'Reload macros', -underline => 0,
-			  -command => sub { read_macros($macroFile,$libDir) }]
+			  -command => [sub {
+			    my ($grp)=@_;
+			    cleanup_tredmacro($grp);
+			    read_macros($macroFile,$libDir);
+			  },\%group]]
 			]
 	 ]
 	])->pack(qw/-side left/);
@@ -6962,21 +6966,21 @@ sub doEvalHook {
   # Save current position (as last action position)
 
   local $insideEval=1;
-  my $oldgrp=$TredMacro::grp;
-  my $oldthis=$TredMacro::this;
-  my $oldroot=$TredMacro::root;
+  my $oldgrp=${"TredMacro::grp"};
+  my $oldthis=${"TredMacro::this"};
+  my $oldroot=${"TredMacro::root"};
   my $context='TredMacro';
-  $TredMacro::FileNotSaved='?';
+  ${"TredMacro::FileNotSaved"}='?';
   if ($win) {
-    $TredMacro::this=$win->{currentNode};
-    $TredMacro::root=$win->{root};
+    ${"TredMacro::this"}=$win->{currentNode};
+    ${"TredMacro::root"}=$win->{root};
     $context=$win->{macroContext} || 'TredMacro';
   }
-  $TredMacro::libDir=$libDir;
-  $TredMacro::forceFileSaved=0;
+  ${"TredMacro::libDir"}=$libDir;
+  ${"TredMacro::forceFileSaved"}=0;
   my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
-  my $file_changed=$TredMacro::FileNotSaved;
+  my $file_changed=${"TredMacro::FileNotSaved"};
 
   if ($win) {
     if ($win->{FSFile}) {
@@ -6988,9 +6992,9 @@ sub doEvalHook {
     saveFileStateUpdate($win);
   }
 
-  $TredMacro::this=$oldthis;
-  $TredMacro::root=$oldroot;
-  $TredMacro::grp=$oldgrp;
+  ${"TredMacro::this"}=$oldthis;
+  ${"TredMacro::root"}=$oldroot;
+  ${"TredMacro::grp"}=$oldgrp;
 
   print STDERR "Hook $hook resulted with $result\n" if $hookDebug;
   return $result;
@@ -7004,19 +7008,19 @@ sub doEvalMacro {
   $win->toplevel->Busy(-recurse=> 1);
   $insideEval=1;
 
-  $TredMacro::this=$win->{currentNode};
-  $TredMacro::root=$win->{root};
-  $TredMacro::libDir=$libDir;
-  $TredMacro::FileNotSaved='?';
-  $TredMacro::forceFileSaved=0;
-  $TredMacro::Redraw='file';
+  ${"TredMacro::this"}=$win->{currentNode};
+  ${"TredMacro::root"}=$win->{root};
+  ${"TredMacro::libDir"}=$libDir;
+  ${"TredMacro::FileNotSaved"}='?';
+  ${"TredMacro::forceFileSaved"}=0;
+  ${"TredMacro::Redraw"}='file';
   my $undo=prepare_undo($win);
   my $result=do_eval_macro($win,$macro);
-  my $current=$TredMacro::this;
-  my $file_not_saved=$TredMacro::FileNotSaved;
+  my $current=${"TredMacro::this"};
+  my $file_not_saved=${"TredMacro::FileNotSaved"};
   $file_not_saved=1 if $file_not_saved eq '?';
   if ($win->{FSFile}) {
-    if ($TredMacro::forceFileSaved) {
+    if (${"TredMacro::forceFileSaved"}) {
       print STDERR "Macro forsly claims file saved.\n";
       $win->{FSFile}->notSaved($file_not_saved ? 1 : 0);
       lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
@@ -7037,16 +7041,16 @@ sub doEvalMacro {
   #for (my $i=0;$i<=50;$i++) {
   ### ??? 4kb/50 runs memory leaks in redraw (probably in Tk)
   #------------------------------------------------------------
-  if ($TredMacro::Redraw eq 'all') {
+  if (${"TredMacro::Redraw"} eq 'all') {
     redraw_all($win->{framegroup});
     get_nodes_all($win->{framegroup});
-  } elsif ($TredMacro::Redraw eq 'win') {
+  } elsif (${"TredMacro::Redraw"} eq 'win') {
     get_nodes_win($win);
     redraw_win($win);
-  } elsif ($TredMacro::Redraw eq 'tree') {
+  } elsif (${"TredMacro::Redraw"} eq 'tree') {
     get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-  } elsif ($TredMacro::Redraw eq 'tie') {
+  } elsif (${"TredMacro::Redraw"} eq 'tie') {
     if ($win->{framegroup}->{tieWindows}) {
       get_nodes_all($win->{framegroup});
       redraw_all($win->{framegroup});
@@ -7054,7 +7058,7 @@ sub doEvalMacro {
       get_nodes_win($win);
       redraw_win($win);
     }
-  } elsif ($TredMacro::Redraw eq 'none') {
+  } elsif (${"TredMacro::Redraw"} eq 'none') {
     # do nothing
   } else {
     get_nodes_fsfile($win->{framegroup},$win->{FSFile});
@@ -7064,7 +7068,7 @@ sub doEvalMacro {
   #}
   #my $t1= new Benchmark;
   #my $td= timediff($t1, $t0);
-  #print "$TredMacro::FileNotSaved the code took:",timestr($td),"\n";
+  #print "${TredMacro::FileNotSaved} the code took:",timestr($td),"\n";
   #------------------------------------------------------------
 
   # the rest of this routine is:
@@ -7072,9 +7076,9 @@ sub doEvalMacro {
   setCurrent($win,$current) if ($current);
   currentUnhiden($win);
 
-  $TredMacro::this=undef;
-  $TredMacro::root=undef;
-  $TredMacro::grp=undef;
+  ${"TredMacro::this"}=undef;
+  ${"TredMacro::root"}=undef;
+  ${"TredMacro::grp"}=undef;
 
   centerTo($win,$win->{currentNode});
 
@@ -7531,6 +7535,26 @@ sub _set_encoding {
 	binmode $fh,":encoding($enc)";
       }
     };
+    print STDERR $@ if $@;
+  }
+}
+
+sub cleanup_tredmacro {
+  my ($grp)=@_;
+  $TrEd::Macros::macrosEvaluated=0;
+  # cleanup
+
+  %TrEd::Macros::defines=(TRED => 1);
+  my %packages;
+  @packages { ('TredMacro',
+	       grep {/\S/} grep { !/^main$|^TrEd::/ }
+	       map  { (/^package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros))
+	    } = ();
+  foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
+    no strict qw(refs);
+    print STDERR ("Cleaning package $package\n") if $tredDebug;
+    %{$package."::"}=();
+    eval("package $package; use UNIVERSAL qw(isa can);");
     print STDERR $@ if $@;
   }
 }
