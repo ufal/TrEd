@@ -3198,13 +3198,15 @@ root# <userinput>make install</userinput>
 	<varlistentry  id="ttfontpath">
 	  <term>TTFontPath</term>
 	  <listitem>
-	    A comma-separated list of directories to look into
-	    for TrueType fonts.
-	    If this option is not explicitly
-	    specified, TrEd uses directories listed in 
-	    fontconfig library configuration file
-	    <literal>/etc/fonts/fonts.conf</literal> on Unix
-	    and Windows system font directory on Windows.
+	    <para>
+	      A comma-separated list of directories to look into
+	      for TrueType fonts.
+	      If this option is not explicitly
+	      specified, TrEd uses directories listed in 
+	      fontconfig library configuration file
+	      <literal>/etc/fonts/fonts.conf</literal> on Unix
+	      and Windows system font directory on Windows.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="psfontfile">
