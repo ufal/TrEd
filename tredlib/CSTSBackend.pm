@@ -31,8 +31,8 @@ utility must be able to compress standard input to standard output.
 
 =cut
 
-$CSTSBackend::zcat = "/bin/zcat";
-$CSTSBackend::gzip = "/usr/bin/gzip";
+$CSTSBackend::zcat = "/bin/zcat" unless $CSTSBackend::zcat;
+$CSTSBackend::gzip = "/usr/bin/gzip" unless $CSTSBackend::zcat;
 
 =pod
 
