@@ -294,6 +294,9 @@ sub set_config {
   $treeViewOpts->{drawEdgeBoxes}       = val_or_def($confs,"drawedgeboxes",0);
   $treeViewOpts->{highlightAttributes} = val_or_def($confs,"highlightattributes",1);
   $treeViewOpts->{showHidden} = val_or_def($confs,"showhidden",0);;
+  $treeViewOpts->{skipHiddenLevels} = val_or_def($confs,"skiphiddenlevels",0);
+  $treeViewOpts->{skipHiddenParents} = val_or_def($confs,"skiphiddenparents",0);
+
   $TrEd::Convert::inputenc = val_or_def($confs,"defaultfileencoding",$TrEd::Convert::inputenc);
   $TrEd::Convert::outputenc = val_or_def($confs,"defaultdisplayencoding",$TrEd::Convert::outputenc);
   $TrEd::Convert::lefttoright = val_or_def($confs,"displaynonasciilefttoright",$TrEd::Convert::lefttoright);
