@@ -102,9 +102,9 @@ foreach $f (@files) {
   my $out=$f;
 
   my $eval;
-  $eval.="s/$opt_s\$//;"  if ($opt_s);
+  $eval.="s%$opt_s\$%%;"  if ($opt_s);
   $eval.="\$_.=\"$opt_a\";" if ($opt_a);
-  $eval.="s/^$opt_p//;" if ($opt_p);
+  $eval.="s%^$opt_p%%;" if ($opt_p);
   $eval.="\$_=\"$opt_r\".\$_;" if ($opt_r);
   if ($eval) {
     use Safe;
