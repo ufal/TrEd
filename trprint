@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2003-10-01 18:05:32 pajas>";
+$timestamp="Time-stamp: <2005-03-15 17:53:55 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -182,7 +182,7 @@ unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
 require Fslib;
 import Fslib;
-import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
+import Fslib qw(&Index);
 
 # tree printing module
 require TrEd::Print;
