@@ -1,10 +1,13 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-04-23 18:25:44 pajas>
+## Time-stamp: <2004-04-28 15:23:48 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
 import Tectogrammatic;
+
+#bind _key_Ctrl_B to Ctrl+c menu copy node
+#bind _key_Ctrl_Shift_F1 to Ctrl+C menu paste node
 
 
 sub file_close_hook {
@@ -382,7 +385,7 @@ sub light_aidrefs_reverse_expand {
 }
 
 
-#bind light_ar_children to Ctrl+c menu Mark true analytic children of current node with _light = _LIGHT_
+#bind light_ar_children to Ctrl+h menu Mark true analytic children of current node with _light = _LIGHT_
 sub light_ar_children {
   my $node = $root;
   while ($node) {
