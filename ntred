@@ -35,7 +35,6 @@ $usage=1 unless @ARGV;
 $ssh='ssh';
 
 use POSIX qw(setlocale);
-$term_encoding = 'utf8' if setlocale('LC_CTYPE')=~/UTF-?8/i;
 
 ## Passing -o args... -- to TredMacro
 Getopt::Long::Configure ("bundling");
@@ -137,7 +136,14 @@ sub msg { print STDERR ($init ? "NTRED-HUB: " : "NTRED-CLIENT: "), @_ unless $qu
 # make given list (passes by reference) unique
 sub make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
 
-sub sign_md5 ($$) { TrEd::Cipher::block_md5(TrEd::Cipher::block_xor(@_)) }
+use Encode;
+
+sub sign_md5 ($$) {
+  my ($key,$message)=@_;
+  Encode::_utf8_off($key);
+  Encode::_utf8_off($message);
+  TrEd::Cipher::block_md5(TrEd::Cipher::block_xor($key,$message))
+}
 
 sub send_request {
   my ($control, $server, $type, $key)=(shift,shift,shift,shift);
@@ -558,6 +564,8 @@ if (defined($init) || defined($kill) || defined($break)) {
   # Operate as a client
   # ==================================================
 
+  $term_encoding = 'utf8' if !defined($term_encoding) and setlocale('LC_CTYPE')=~/UTF-?8/i;
+
   # Read the session key for authentification to hub
   my $key;
   do {
@@ -685,7 +693,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
     $request.="$control STATE=MACRO\n".
-      _enc2bytes("utf8",join("",@TrEd::Macros::macros));
+      _enc2bytes("utf8",join("",@TrEd::Macros::macros)."\n");
     $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',join("\n",@ARGV)))."\n" unless ($listedfiles || @files);
     msg "Code: $code\n\n";
   }
