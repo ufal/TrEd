@@ -56,7 +56,7 @@ sub parse_advxml {
 
 sub listAdverbs {
   my ($doc,$conv)=@_;
-  return map { $conv->decode($_->getAttribute("lemma")) }
+  return map { $conv->decode($_->getAttributeNode("lemma")->value()) }
     $doc->getDocumentElement()->findnodes("/adverbs/adverb");
 }
 
@@ -70,6 +70,7 @@ sub adverb_get_text {
     $data=~s/[\s\n]+$//g;
     return $data;
   }
+  return "";
 }
 
 sub get_adverbs {
@@ -77,8 +78,8 @@ sub get_adverbs {
   my @adverbs=();
   foreach my $adv ($doc->getDocumentElement()->findnodes("/adverbs/adverb")) {
     push @adverbs,[
-		   $conv->decode($adv->getAttribute("lemma")),
-		   map { $conv->decode($_->getAttribute("functor")),
+		   $conv->decode($adv->getAttributeNode("lemma")->value()),
+		   map { $conv->decode($_->getAttributeNode("functor")->value()),
 		         $conv->decode(adverb_get_text($_)),
 		       } $adv->findnodes("example")
 		  ];
