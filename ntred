@@ -687,6 +687,7 @@ if (defined($init) || defined($kill) || defined($break)) {
   } else {
     $request_type="EVAL_CODE";
     my @files =  get_files();
+    msg "ARGS: @ARGV\n";
     $request="$control STATE=ENCODING\n"._enc2bytes('utf8',$term_encoding)."\n" if $term_encoding;
     $request.="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',$code))."\n";
     $request.="$control STATE=QUIET\n1\n" if $quiet;
@@ -694,7 +695,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
     $request.="$control STATE=MACRO\n".
       _enc2bytes("utf8",join("",@TrEd::Macros::macros)."\n");
-    $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',join("\n",@ARGV)))."\n" unless ($listedfiles || @files);
+    $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',join("\n",@ARGV)))."\n";
     msg "Code: $code\n\n";
   }
 
@@ -917,7 +918,7 @@ sub get_files {
     local $_;
     while (@ARGV) {
       $_=shift @ARGV;
-      last if ($ARGV[0] eq '--');
+      last if ($_ eq '--');
       s{^ntred://}{};
       s{@(\d+)(?:##?1(\.\d+)?)?$}{##$1$2};
       push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
