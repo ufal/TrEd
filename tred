@@ -2672,7 +2672,7 @@ sub updatePrintDialogState {
   } elsif ($s->{printTo} eq 'file') {
     @disable = qw(resolution command);
   } elsif ($s->{printTo} eq 'convert') {
-    @disable = qw(command psMedia prtFmtWidth prtFmtHeight prtVMargin prtHMargin);
+    @disable = qw(command psMedia prtFmtWidth prtFmtHeight);
   }
   if ($s->{psMedia} ne 'User') {
     push @disable, qw(prtFmtWidth prtFmtHeight);
@@ -4143,6 +4143,7 @@ sub startMain {
 			 my ($grp)=@_;
 			 cleanup_tredmacro($grp);
 			 read_macros($macroFile,$libDir);
+			 redraw_all($grp);
 		       },\%group]],
 	 
 	 [
