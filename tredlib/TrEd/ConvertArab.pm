@@ -1,6 +1,5 @@
 package TrEd::ConvertArab;
 use bytes;
-#no encoding;
 use Encode;
 
 # arabjoin - a simple filter to render Arabic text
@@ -216,7 +215,7 @@ foreach $char (split (" ", "
 
 sub arabjoin {
 # Finally we can process our text:
-    $_=encode('utf8',$_[0]);
+    local $_=encode('utf8',$_[0]);
 
     s/\n$//; # chop off the end of the line so it won't jump upfront
 

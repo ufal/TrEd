@@ -50,10 +50,12 @@ sub encode {
   no integer;
   if ($support_unicode) { # we've got support for UNICODE in
     # perl5.8/Tk8004
-    if ($inputenc eq 'iso-8859-6' or $inputenc eq 'windows-1256') {
+    if ($inputenc eq 'iso-8859-6' or $inputenc =~ /^utf-?8$/i or $inputenc eq 'windows-1256') {
       require TrEd::ConvertArab;
+      require TrEd::ArabicRemix;
       eval "use Encode (); \$_=Encode::decode('utf8',\$_) unless Encode::is_utf8(\$_);";
-      s{([^[:ascii:]]+)}{TrEd::ConvertArab::arabjoin($1)}eg;
+      s{((?:\p{Arabic}|\p{InArabic}|\p{InArabicPresentationFormsA}|\p{InArabicPresentationFormsB}|\s)+)}{ TrEd::ConvertArab::arabjoin($1)}eg;
+      $_ = TrEd::ArabicRemix::remix($_);
     }
     return $_;
   } elsif ($]>=5.008) {
