@@ -164,10 +164,24 @@ sub print_trees {
       return 0;
     }
   }
+  my ($infot,$text);
+  if ($toplevel) {
+    $text="Printing";
+    $toplevel->Busy(-recurse => 1);
+    $infot=$toplevel->Toplevel();
+    my $f=$infot->Frame(qw/-relief raised -borderwidth 3/)->pack();
+    $f->Label(-textvariable => \$text,
+	      -wraplength => 200
+	     )->pack();
+    $infot->overrideredirect(1);
+    $infot->Popup();
+  }
 
-  $toplevel->Busy(-recurse => 1) if ($toplevel);
   for (my $t=0;$t<=$#printList;$t++) {
-    print STDERR "Printing $printList[$t]\n";
+    $text="Printing $printList[$t]";
+    $infot->idletasks() if ($infot);
+    print STDERR "$text\n";
+
 #    $treeView->set_font($type1font) if ($useType1Font);
     do {
       $treeView->set_showHidden($show_hidden);
@@ -260,7 +274,10 @@ sub print_trees {
   close (F);
   close (O);
 
-  $toplevel->Unbusy() if ($toplevel);
+  if ($toplevel) {
+    $infot->destroy();
+    $toplevel->Unbusy();
+  }
   return 1;
 }
 
