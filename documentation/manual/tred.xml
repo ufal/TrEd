@@ -5308,7 +5308,6 @@ sub MakeSentence {
 	      </entry>
 	    </row>
 	    <row>
-	    <row>
 	      <entry>node_release_hook
 		(<replaceable>node</replaceable>,
 		<replaceable>target-node</replaceable>,
