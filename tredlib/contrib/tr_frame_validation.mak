@@ -46,7 +46,6 @@ sub init_vallex {
     $V_vallex = "$libDir/contrib/ValLex/vallex.xml";
     require ValLex::DummyConv;
     $V = $tredmodule->new($V_vallex,TrEd::ValLex::DummyConv->new(),0);
-    %cache=();
 #endif
     unless ($V) {
       print "ERROR loading vallex\n";
@@ -139,8 +138,15 @@ sub validate_assigned_frames {
   print "\n\n==================================================\n";
   print $node->{trlemma}."\t".ThisAddress($node)."\n";
   print "==================================================\n";
-  if (check_verb_frames($node,$aids,'frameid',$fix)==0) {
-    $node->{_light}='_LIGHT_';
+  if ($node->{tag}=~/^[NA]/) {
+    my $pj4 = hash_pj4($node->root);
+    if (check_nounadj_frames($node,$aids,'frameid',$pj4)==0) {
+      $node->{_light}='_LIGHT_';
+    }
+  } else {
+    if (check_verb_frames($node,$aids,'frameid',$fix)==0) {
+      $node->{_light}='_LIGHT_';
+    }
   }
   ChangingFile(0);
 }
