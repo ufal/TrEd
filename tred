@@ -807,6 +807,19 @@ sub ErrorMessage {
   }
 }
 
+sub dlgReturn {
+  my ($w,$no_default)=@_;
+  my $f=$w->focusCurrent;
+  if ($f and $f->isa('Tk::Button')) {
+    $f->Invoke();
+  } elsif (!$no_default) {
+    $w->toplevel->{default_button}->Invoke
+      if $w->toplevel->{default_button};
+  }
+  Tk->break;
+}
+
+
 sub userQuery {
   my ($win, $message, %opts) = @_;
 
@@ -815,8 +828,7 @@ sub userQuery {
 				);
   $d->add('Label', -text => $message,
 	  -wraplength => 300)->pack();
-  $d->bind('<Return>', [sub { my $w=shift; my $f=$w->focusCurrent;
-			     $f->Invoke if ($f and $f->isa('Tk::Button')) }] );
+  $d->bind('<Return>', \&dlgReturn);
   if (exists($opts{-buttons}) and 
       grep { $_ eq 'Cancel' } @{$opts{-buttons}}) {
     $d->bind('<Escape>', [sub { my $w=shift;
@@ -1676,8 +1688,7 @@ sub createFilelistBrowseEntry {
 		    -bitmap=> 'question',
 		    -title=> 'Create/Rename?',
 		    -buttons=> ['Create', 'Rename', 'Cancel']);
-	   $d->bind('<Return>', [sub { my $w=shift; my $f=$w->focusCurrent;
-				      $f->Invoke if ($f and $f->isa('Tk::Button')) }] );
+	   $d->bind('<Return>', \&dlgReturn);
 	   my $answer=$d->Show();
 	   if ($answer eq 'Create') {
 	     addFilelist(Filelist->new($text));
@@ -2243,6 +2254,7 @@ sub copyTreesDialog {
   my $destination=$grp->{focusedWindow}->{FSFile};
   my $d= $grp->{top}->DialogBox(-title=> 'Copy Trees',
 				-buttons=> ['OK', 'Cancel']);
+  $d->bind('<Return>',\&dlgReturn);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
@@ -2361,6 +2373,7 @@ sub printDialog {
   addBindTags($d,'dialog');
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
@@ -4600,7 +4613,7 @@ sub editConfig {
 			  -width=> "10c");
   my $d=$grp->{configDialog};
   $d->withdraw;
-  $d->bind('<Return>'=> [sub {1;}]);
+  $d->bind('<Return>'=> [\&dlgReturn,1]);
   my $t= $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2
 		     -height 20 -scrollbars oe/);
@@ -4661,7 +4674,6 @@ sub editConfig {
   $d->Popup;
 }
 
-
 sub QueryString {
   my ($grp, $title, $label,$default_text)=@_;
   my $newvalue=encode($default_text);
@@ -4669,6 +4681,10 @@ sub QueryString {
 				 -buttons=> ["OK", "Cancel"]);
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  $d->bind('<Return>',\&dlgReturn);
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
+
   addBindTags($d,'dialog');
   my $e=$d->add('Entry',-relief=> 'sunken',
 		    -width=> 40,
@@ -4678,6 +4694,7 @@ sub QueryString {
   my $l= $d->Label(-text=> encode($label),
 		    -anchor=> 'e',
 		    -justify=> 'right');
+
   $l->pack(-side=>'left');
   $e->pack(-side=>'right');
   $d->resizable(0,0);
@@ -4697,6 +4714,7 @@ sub Query {
   my $newvalue=encode($default_text);
   my $d=$w->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
+  $d->bind('<Return>', \&dlgReturn );
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   addBindTags($d,'dialog');
   my $e=$d->add('Entry',-relief=> 'sunken',
@@ -4727,6 +4745,7 @@ sub ListQuery {
   my $d=$w->DialogBox(-title	  => $title,
 		      -width	  => '8c',
 		      -buttons  => ["OK", "Cancel"]);
+  $d->bind('<Return>', \&dlgReturn );
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub {
 				 shift;
@@ -4812,6 +4831,7 @@ sub selectValuesDialog {
  my $d=$top->DialogBox(-title=> ($enabled ? "$attr: select values" : "$attr: values"),
 		       -width=> '8c',
 		       -buttons=> ($enabled ? ["OK", "Cancel"] : ["Cancel"]));
+  $d->bind('<Return>', \&dlgReturn );
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
  $d->resizable(0,0);
@@ -4992,7 +5012,7 @@ sub viewSentences {
 			  $grp->{focusedWindow}->{FSFile}->filename(),
 			  -width=> "10c");
   $d->withdraw;
-  $d->bind('<Return>'=> [sub {1;}]);
+  $d->bind('<Return>'=> [\&dlgReturn,1]);
   $d->bind('all','<Escape>'=> [sub { $_[1]->destroy(); },$d]);
   $d->bind('<Destroy>'=> [sub { $_[1]->{sentDialog}=undef; },$grp ]);
   populateSentencesDialog($grp,$grp->{sentDialog},
@@ -5010,6 +5030,7 @@ sub viewSentencesDialog {
     $top->DialogBox(-title=> "List of sentences for ".
 		    $fsfile->filename(),
 		    -width=> "10c");
+  $d->bind('<Return>', \&dlgReturn );
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
   $selref||=[];
@@ -5193,7 +5214,8 @@ sub editAttrsDialog {
   my $d=$win->toplevel->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
 				  -buttons=> ["OK", "Cancel"]
 				 );
-
+  $d->bind('<Return>',\&dlgReturn);
+  $d->bind('<Control-Return>',\&dlgReturn);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
 
@@ -5242,6 +5264,7 @@ sub editAttrsDialog {
  				     }
 				   },$e{$_},$win,$node,$_,$d]
 		     )->pack(qw/-side right/);
+	$e{$_}->bind($e{$_},'<space>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
       $e{$_}->insert(0,encode($node->getAttribute($_)));
@@ -5518,7 +5541,7 @@ sub customAttrsDialog {
 	     $e->focus();
 	   }]
 	  );
-  $d->bind('<Return>'=> [sub {1;}]);
+  $d->bind('<Return>'=> [\&dlgReturn,1]);
   $e->focus();
 #  $d->resizable(0,0);
   $grp->{top}->Unbusy();
@@ -5572,6 +5595,7 @@ sub findNodeDialog {
     $_->configure(-width=> 10, -pady=> 0) if ($Tk::platform eq 'MSWin32');
     $_->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   }
+  $d->bind('<Return>', \&dlgReturn );
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $ff=$d->Frame(-relief=> 'groove',
@@ -5954,6 +5978,7 @@ sub doEditAttr {
   my $d= $grp->{top}->DialogBox(-title=> ($enabled ? "Edit Node Attribute" : "Disabled Node Attribute"),
 			     -buttons=> [($enabled ? ("OK", "Cancel") : "Cancel")]);
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+  $d->bind('<Return>', \&dlgReturn );
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
@@ -6865,6 +6890,8 @@ sub _set_encoding {
   if ($enc and $]>=5.008) {
     eval {
       print STDERR ("forcing encoding $enc for $what\n") if $debug;
+      $fh->flush();
+      binmode $fh; # first get rid of all I/O layers
       if ($enc =~ /^:/) {
 	binmode $fh,$enc;
       } else {
