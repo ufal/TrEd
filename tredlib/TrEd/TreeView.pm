@@ -870,7 +870,7 @@ sub eval_coords_spec {
 				(($x and ($1 ne 'y')) or $1 eq 'x') ?
 				  "XPOS" : "YPOS"))
     }ge;
-    if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
+    if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|sqrt\(|abs\()*$/) {
       $_=eval $_;
       print STDERR $@ if $@ ne "";
     } else { # catches ERR too
