@@ -18,6 +18,7 @@ $VERSION = "0.91";
 	     &Cut &Paste &Set &Get &DrawTree &IsList &ListValues);
 @EXPORT_OK = qw(&Index &ParseNode &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial);
 
+use Carp;
 use vars qw(
 	    $VERSION @EXPORT @EXPORT_OK
 	    $field
@@ -316,13 +317,24 @@ sub ParseNode ($$$) {
 	$tmp=Index($ordr,$a);
 	$n = $tmp if (defined($tmp));
       } elsif ($ {$lr}=~/\G($field)/gsco) {
-	$a=$ord[$n];
 	$v=$1;
+        $n++ while ( $n<=$#ord and $attr->{$ord[$n]}!~/ [PNW]/);
+	if ($n>$#ord) {
+	  croak "No more positional attribute for value $v at position ".pos($$lr)." in:\n".$$lr."\n";
+	}
+	$a=$ord[$n];
+
       } 
       $v=~s/\\([,=\[\]\\])/$1/go;
+      if (IsList($a,$attr)) {
+	foreach (split /\|/,$v) {
+	  carp("Invalid list value $v of atribute $a at position ".pos($$lr)." in:\n".$$lr."\n" )
+	    unless (defined(Index([ ListValues($a,$attr) ],$_)));
+	}
+      }      
       $node{$a}=$v;
     }
-  } else { die $ {$lr}," not node!\n"; }
+  } else { croak $ {$lr}," not node!\n"; }
   return { %node };
 
 }
@@ -356,7 +368,7 @@ sub GetTree ($$$) {
 	next;
       }
       if ( $l=~/\G\)/gsco ) { # Return to parent (go up)
-	die "Error paring tree" if ($curr eq $root);
+	croak "Error paring tree" if ($curr eq $root);
 	$curr=$ {$curr}{$parent};
 	next;
       }
@@ -368,12 +380,12 @@ sub GetTree ($$$) {
 	next;
       }
       $l=~/\G(.)/gsco;
-      die "Unexpected token `$1'!\n";
+      croak "Unexpected token `$1'!\n";
     }
-    die "Error: Closing parens do not lead to root of the tree." 
+    croak "Error: Closing parens do not lead to root of the tree." 
 	if ($curr != $root);
   }
-#    else { die "** $l\nTree does not begin with `['!\n"; }
+#    else { croak "** $l\nTree does not begin with `['!\n"; }
 #  reset;
   return $root;
 }
@@ -397,13 +409,15 @@ sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
       $v=~s/[,\[\]=\\]/\\$&/go if (defined($v));      
       if (index($atr{$ord[$n]}, " O")>=0) {
 	print $output "," if $n;
-	unless ($lastprinted) { print $output $ord[$n],"="; }
+	unless ($lastprinted && index($atr{$ord[$n]}," P")>=0) # N could match here too probably
+	  { print $output $ord[$n],"="; }
 	print $output $v;
 	$lastprinted=1;
       }
       elsif (defined($node->{$ord[$n]}) and $node->{$ord[$n]} ne '') {
 	print $output "," if $n;
-	unless ($lastprinted) { print $output $ord[$n],"="; }
+	unless ($lastprinted && index($atr{$ord[$n]}," P")>=0) # N could match here too probably
+	  { print $output $ord[$n],"="; }
 	print $output $v;
 	$lastprinted=1;
       } else {
@@ -436,7 +450,7 @@ sub PrintTree {
       print $output ")"; 
       $curr = $ {$curr}{$parent};
     }
-    die "Error: NULL-node within the tree while printing\n" if !$curr;
+    croak "Error: NULL-node within the tree while printing\n" if !$curr;
     last if ($curr == $root || !$curr);
 #    print $output ",\\\n";
     print $output ",";
