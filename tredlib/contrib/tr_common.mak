@@ -1,6 +1,9 @@
 ## -*- cperl -*-
-## author: Petr Pajas
-## Time-stamp: <2003-02-05 18:44:46 pajas>
+#
+# $Id$ '
+#
+# Copyright (c) 2001-2003 by Petr Pajas <pajas@matfyz.cz>
+#
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -52,10 +55,22 @@ sub upgrade_file {
   if (exists($defs->{gram}) and $defs->{gram} !~ /MULT\|RATIO/) {
     $defs->{gram}=~s/LESS/LESS|MULT|RATIO/;
   }
+  if (exists($defs->{gram}) and $defs->{gram} !~ /\|ADD\|SUBTR\|ORDER\|/) {
+    $fsfunc=$defs->{func}=~s/(\|NIL\|)/\|ADD\|SUBTR\|ORDER\|NIL\|/;
+  }
   unless (exists($defs->{operand})) {
     AppendFSHeader('@P operand',
 		   '@L operand|---|OP|NIL|???');
   }
+  unless (exists($defs->{argnum})) {
+    AppendFSHeader('@P argnum');
+  }
+  unless (exists($defs->{state})) {
+    AppendFSHeader('@P state',
+		   '@L state|---|NA|NIL|ST|???');
+  }
+
+
   upgrade_file_to_tid_aidrefs();
 }
 
@@ -172,6 +187,7 @@ sub QueryTrlemma {
     #
     # Predelat na entity: &Comma; &Colon; atd.
     #
+    #  display         trlemma      gender  number  func
     ([ 'Comma',        '&Comma;',   '???',  '???', 'CONJ'   ],
      [ 'Colon',        '&Colon;',   '???',  '???', 'CONJ'   ],
      [ 'Dash',         '&Dash;',    '???',  '???', 'CONJ'   ],
@@ -184,6 +200,7 @@ sub QueryTrlemma {
      [ 'EmpNoun',      '&EmpNoun;', '???',  '???', '???'    ],
      [ 'Gen',          '&Gen;',     '???',  '???', '???'    ],
      [ 'Idph',         '&Idph;',    '???',  '???', '???'    ],
+     [ 'Unsp',         '&Unsp;',    '???',  '???', '???'    ],
      [ 'stejnì',       'stejnì',    '???',  '???', 'MANN'   ],
      [ 'stejný',       'stejný',    '???',  '???', 'RSTR'   ],
      [ '???',          '???',       '???',  '???', '???'    ],
@@ -558,12 +575,15 @@ sub getAIDREF {
 }
 
 sub ConnectAIDREFS {
-  $pPar1->{AIDREFS}=getAIDREF($pPar1).'|'.getAIDREF($pPar2)
-    unless (getAIDREF($pPar2) eq '');
+  my $node = shift || $pPar1;
+  my $dnode = shift || $pPar2;
+
+  $node->{AIDREFS}=getAIDREF($node).'|'.getAIDREF($dnode)
+    unless (getAIDREF($dnode) eq '');
 }
 
 sub DisconnectAIDREFS {
-  my $node = shift || $pPar2;
+  my $node = shift || $pPar1;
   my $dnode = shift || $pPar2;
   my $aid=getAIDREF($dnode);
   $node->{AIDREFS} =~ s/(?:^|\|)$aid(?:\||$)//g;
