@@ -28,9 +28,58 @@ edit_attr_hook	attr,type		yes	executed before
 						user in a GUI. Type "type"
 						may be one of "ambiguous","normal"
 
+goto_file_hook				yes	executed before every
+						gotoFile command is executed
+
+goto_tree_hook				yes	executed before every
+						gotoTree command is executed
 
 
+file_opened_hook			no	executed after a file
+						is opened but before 
+						first tree is redrawed
 
+file_resumed_hook			no	executed after a
+						postponed file
+						is resumed
+
+pre_switch_context_hook			yes	executed before
+						context is
+						switched. Takes two
+						argumetns:
+						the name of the
+						current context and
+						the name of the new context.
+
+about_file_hook				no	executed before About
+						window is
+						displayed. Takes one
+						argument: a reference
+						to scalar
+						variable. Hook may
+						populate this scalar
+						with any information
+						it wants to be
+						displayed in the About
+						window.
+
+customize_attrs_hook			yes	executed before a
+						attribute
+						customization dialog
+						is displayed
+
+sort_attrs_hook				no	executed when
+						attribute names are
+						pre-sorted (see TrEd's
+						sortAttributes
+						option). It is given a
+						reference to an
+						unsorted list of attributes. If
+						non-zero value is retured,
+						the (possibly
+						modified by the hook)
+						list is used without
+						any further sorting.
 
 NOTE:
 Unlike other macros, hooks are expected not to modify the file. If the
