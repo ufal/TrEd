@@ -34,6 +34,8 @@ $version='$Revision$ ';
 $usage=1 unless @ARGV;
 $ssh='ssh';
 
+$term_encoding = 'utf8';
+
 ## Passing -o args... -- to TredMacro
 Getopt::Long::Configure ("bundling");
 %optmap=("all-trees|T"    => \$all_trees,
