@@ -103,19 +103,24 @@ sub subwidget_configure {
 package TrEd::ValLex::FrameList;
 use base qw(TrEd::ValLex::Widget);
 
+require Tk::Tree;
 require Tk::HList;
 require Tk::ItemStyle;
 
 sub create_widget {
   my ($self, $data, $field, $top, $common_style, @conf) = @_;
 
-  my $w = $top->Scrolled(qw/HList -columns 1
+  my $w = $top->Scrolled(qw/Tree -columns 1
+                              -indent 10
+                              -drawbranch 1
                               -background white
                               -selectmode browse
                               -header 1
                               -relief sunken
-                              -scrollbars osoe/
+                              -scrollbars osoe/,
 			  );
+  $w->configure(-opencmd => [\&open_superframe,$w],
+		-closecmd => [\&close_superframe,$w]);
   $w->configure(@conf) if (@conf);
   $common_style=[] unless (ref($common_style) eq "ARRAY");
   $w->BindMouseWheelVert() if $w->can('BindMouseWheelVert');
@@ -133,10 +138,10 @@ sub create_widget {
 				       -background => '#e0e0e0', @$common_style)
 	     },{
 		obsolete => $w->Pixmap(-file => Tk::findINC("ValLex/stop.xpm")),
-		substituted => $w->Pixmap(-file => Tk::findINC("ValLex/red.xpm")),
-		reviewed => $w->Pixmap(-file => Tk::findINC("ValLex/finished.xpm")),
-		active => $w->Pixmap(-file => Tk::findINC("ValLex/help.xpm")),
-		deleted => $w->Pixmap(-file => Tk::findINC("ValLex/error.xpm"))
+		substituted => $w->Pixmap(-file => Tk::findINC("ValLex/reload.xpm")),
+		reviewed => $w->Pixmap(-file => Tk::findINC("ValLex/ok.xpm")),
+		active => $w->Pixmap(-file => Tk::findINC("ValLex/filenew.xpm")),
+		deleted => $w->Pixmap(-file => Tk::findINC("ValLex/erase.xpm"))
 	       },0;
 }
 
@@ -166,22 +171,66 @@ sub forget_data_pointers {
   }
 }
 
+sub close_superframe {
+  my( $w, $ent ) = @_;
+  my $data=$w->infoData($ent);
+  $w->itemConfigure($ent,0,-text => $w->itemCget($ent,0,'-text').$data);
+  foreach my $kid ($w->infoChildren( $ent )) {
+    $w->hide( -entry => $kid );
+  }
+}
+
+sub open_superframe {
+  my( $w, $ent ) = @_;
+  my $text=$w->itemCget($ent,0,'-text');
+  ($text) = $text=~/^(.*)/;
+  $w->itemConfigure($ent,0,-text => $text);
+  foreach my $kid ($w->infoChildren( $ent )) {
+    $w->show( -entry => $kid );
+  }
+}
+
 sub fetch_data {
   my ($self, $word)=@_;
 
   my $t=$self->widget();
-  my ($e,$i);
+  my ($e,$f,$i);
   my $style;
   $t->delete('all');
-  foreach my $entry ($self->data()->getFrameList($word)) {
-    next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
-    $e = $t->addchild("",-data => $entry->[0]);
-    $i=$t->itemCreate($e, 0,
-		      -itemtype=>'imagetext',
-		      -image => $self->pixmap($entry->[3]),
-		      -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
-		      -style => $self->style($entry->[3]));
+#  foreach my $entry ($self->data()->getFrameList($word)) {
+#    next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
+#    $e = $t->addchild("",-data => $entry->[0]);
+#    $i=$t->itemCreate($e, 0,
+#		      -itemtype=>'imagetext',
+#		      -image => $self->pixmap($entry->[3]),
+#		      -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
+#		      -style => $self->style($entry->[3]));
+#    
+#  }
+  my $super=$self->data()->getSuperFrameList($word);
+  foreach my $sframe (keys %$super) {
+    if (@{$super->{$sframe}}>1) {
+      my $examples=join("",map { $_->[4] ? "\n$_->[4] ($_->[5])" : () } 
+					 @{$super->{$sframe}});
+      $e = $t->addchild("",-data => $examples);
+      $i=$t->itemCreate($e, 0,
+			-itemtype=>'imagetext',
+			-text => $sframe,
+			-style => $self->style('active')
+		       );
+    } else {
+      $e="";
+    }
+    foreach my $entry (@{$super->{$sframe}}) {
+      $f = $t->addchild("$e",-data => $entry->[0]);
+      $i=$t->itemCreate($f, 0,
+			-itemtype=>'imagetext',
+			-image => $self->pixmap($entry->[3]),
+			-text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
+			-style => $self->style($entry->[3]));
+    }
   }
+  $t->autosetmode();
 }
 
 sub focus {

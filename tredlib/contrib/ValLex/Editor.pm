@@ -364,6 +364,7 @@ sub framelist_item_changed {
   my $frame;
   my $e;
   $frame=$h->infoData($item) if $item;
+  $frame=undef unless ref($frame);
   $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
   $self->subwidget('frameproblem')->fetch_data($frame);
   $self->subwidget('infoline')->fetch_frame_data($frame);
