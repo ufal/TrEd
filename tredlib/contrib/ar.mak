@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2003-10-23 10:13:32 pajas>
+## Time-stamp: <2003-11-05 12:30:15 pajas>
 ## $Id$
 
 #encoding iso-8859-2
@@ -30,6 +30,36 @@ my $_pDummy;			# used as type "pointer"
 # =======================================================
 
 #include <contrib/AutoAfun.mak>
+
+sub cycle_combined {
+  my $suff=shift;
+  if($this->{afun}eq"AtrAdv$suff"){
+    $this->{afun}="AdvAtr$suff"
+  }elsif($this->{afun}eq"AdvAtr$suff"){
+    $this->{afun}="AtrObj$suff"
+  }elsif($this->{afun}eq"AtrObj$suff"){
+    $this->{afun}="ObjAtr$suff"
+  }elsif($this->{afun}eq"ObjAtr$suff"){
+    $this->{afun}="AtrAtr$suff"
+  }else{
+    $this->{afun}="AtrAdv$suff"
+  }
+} # cycle_combined
+
+#bind cycle_combined_no to w menu Cycle Combined Functions
+sub cycle_combined_no{
+  cycle_combined('');
+}
+
+#bind cycle_combined_Coord to Ctrl+w menu Cycle Combined Functions _Co
+sub cycle_combined_Coord{
+  cycle_combined('_Co');
+}
+
+#bind cycle_combined_Apos to W menu Cycle Combined Functions _Ap
+sub cycle_combined_Apos{
+  cycle_combined('_Ap');
+}
 
 #bind edit_commentA to exclam menu Edit annotator's comment
 sub edit_commentA {
