@@ -1,14 +1,16 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-10 17:43:22 pajas>
+## Time-stamp: <2001-08-11 11:54:55 paja>
 
 package TredMacro;
 
 use base qw(main);
 use vars qw(@FORCE_EXPORT);
 @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw
-                   $forceFileSaved $FileNotSaved $NodeClipboard);
+                   $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard);
 use vars @FORCE_EXPORT;
+
+*FileChanged=*FileNotSaved;	# alias
 
 # set $Redraw to one of "file|tree|win|all|tie"; file is default
 # tie means redraw all if windows are tied. Otherwise redraw only
@@ -90,6 +92,11 @@ sub Redraw_All {
   $main::insideEval=0;
   &main::redraw_all($grp->{framegroup});
   $main::insideEval=$ie;
+}
+
+sub SetCurrentNodeInOtherWin {
+  my ($win,$node)=@_;
+  TrEd::Basics::setCurrent($win,$node);
 }
 
 sub SetDisplayAttrs {
@@ -216,6 +223,10 @@ sub FindPrev {
   $grp->{framegroup}->{findPrevButton}->invoke();
   $this=$grp->{currentNode};
   $FileNotSaved=0;
+}
+
+sub ToplevelFrame {
+  return $grp->toplevel();
 }
 
 ###########################################################
