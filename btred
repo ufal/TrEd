@@ -712,7 +712,7 @@ sub startMain {
 
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
-      print STDERR "Applying macro options: @ARGV\n";
+      print STDERR "Applying macro options: @ARGV\n" unless $quiet;
       $optparser->getoptions(
 		  map {$_ => $optmap{$_}}
 		  (
