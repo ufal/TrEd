@@ -316,12 +316,12 @@ sub getFontHeight {
 
 sub getTextWidth {
   my ($self,$text)=@_;
-  return $self->canvas->fontMeasure($self->get_font,$text);
+  return max(map { $self->canvas->fontMeasure($self->get_font,$_) } split /\n/,$text);
 }
 
 sub balance_xfix_node {
-  my ($self, $xfix, $node, $visible) = @_;
-  my @c = grep { exists $visible->{$_} } $node->children;
+  my ($self, $xfix, $node) = @_;
+  my @c = grep { $self->get_node_pinfo($_,"E") } $node->children;
   $xfix += $self->get_node_pinfo($node,"XFIX");
   foreach my $c (@c) {
     $self->store_node_pinfo($c,"XPOS",
@@ -330,21 +330,21 @@ sub balance_xfix_node {
     $self->store_node_pinfo($c,"NodeLabel_XPOS",
 			    $self->get_node_pinfo($c,"NodeLabel_XPOS")+
 			    $xfix);
-    balance_xfix_node($self,$xfix,$c,$visible);
+    balance_xfix_node($self,$xfix,$c);
   }
 }
 
 # this routine computes node XPos in balanced mode
 sub balance_node {
-  my ($self, $baseX, $node, $visible, $balanceOpts) = @_;
+  my ($self, $baseX, $node, $balanceOpts) = @_;
   my $last_baseX = $baseX;
   my $xskip = $self->get_nodeXSkip;
   my $i=0;
   my $before = $self->get_node_pinfo($node,"Before");
 #  $last_baseX+=$self->get_node_pinfo($node,"Before");
-  my @c = grep { exists $visible->{$_} } $node->children;
+  my @c = grep { $self->get_node_pinfo($_,"E") } $node->children;
   foreach my $c (@c) {
-    $last_baseX = $self->balance_node($last_baseX,$c,$visible,$balanceOpts);
+    $last_baseX = $self->balance_node($last_baseX,$c,$balanceOpts);
     $last_baseX += $xskip;
   }
   $last_baseX -= $xskip if @c;
@@ -624,13 +624,12 @@ sub recalculate_positions {
   }
 
   if ($balance) {
-    my %nodes; @nodes{@$nodes}=();
     my $baseX = $baseXPos;
     foreach my $c (@zero_level) {
-      $baseX = $self->balance_node($baseX,$c,\%nodes,$balanceOpts);
+      $baseX = $self->balance_node($baseX,$c,$balanceOpts);
     }
     foreach my $c (@zero_level) {
-      $self->balance_xfix_node(0,$c,\%nodes);
+      $self->balance_xfix_node(0,$c);
     }
     $canvasWidth = $baseX;
   }
