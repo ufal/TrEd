@@ -81,10 +81,12 @@ require TrEd::CPConvert;
 
 my $double = 0;
 
+my $support_unicode = ($Tk::VERSION ge 804.00);
 my $conv= TrEd::CPConvert->new("utf-8",
-			       ($^O eq "MSWin32") ?
-			       "windows-1250" :
-			       "iso-8859-2");
+			       $support_unicode ? "utf-8" :
+			       (($^O eq "MSWin32") ?
+				"windows-1250" :
+				"iso-8859-2"));
 
 my $data_file=$ARGV[0] || "vallex.xml";
 
