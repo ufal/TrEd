@@ -1,12 +1,18 @@
 ## This is macro file for Tred                             -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2001-02-08 15:29:31 pajas>
+## Time-stamp: <2001-04-06 12:34:34 pajas>
 
 package Analytic_Correction;
-@ISA=qw(Analytic main);
+@ISA=qw(Analytic TredMacro main);
 import Analytic;
+import TredMacro;
 import main;
+
+# permitting all attributes modification
+sub enable_attr_hook {
+  return;
+}
 
 # bind gotoNextFound to key Alt+N
 sub gotoNextFound {
@@ -341,6 +347,41 @@ sub thisToLBrother {
   PasteNode(CutNode($act),$p);
   $this=$act;
 }
+
+
+#################### EJ
+
+#bind SetCase1 to key 1 menu Nominativ
+#bind SetCase2 to key 2 menu Genitiv
+#bind SetCase3 to key 3 menu Dativ
+#bind SetCase4 to key 4 menu Akuzativ
+#bind SetCase5 to key 5 menu Vokativ
+#bind SetCase6 to key 6 menu Lokal
+#bind SetCase7 to key 7 menu Instrumental
+
+sub SetCase { 
+  my $case=shift;
+  $this->{tag}=~s/^(....).(.*)$/$1$case$2/g;
+}
+
+sub SetCase1 { SetCase(1); }
+sub SetCase2 { SetCase(2); }
+sub SetCase3 { SetCase(3); }
+sub SetCase4 { SetCase(4); }
+sub SetCase5 { SetCase(5); }
+sub SetCase6 { SetCase(6); }
+sub SetCase7 { SetCase(7); }
+
+#bind SetNumS to key Shift+G menu Singular
+sub SetNumS {
+  $this->{tag}=~s/^(...).(.*)$/$1S$2/g;
+}
+#bind SetNumP to key Shift+L menu Plural
+sub SetNumP {
+  $this->{tag}=~s/^(...).(.*)$/$1P$2/g;
+}
+
+###################
 
 
 
@@ -2919,7 +2960,7 @@ sub ToLine {
 }
 
 
-#bind _key_2 to 2
+#bind _key_2 to Shift+2
 sub _key_2 {
 
   ToLine();
@@ -2927,7 +2968,7 @@ sub _key_2 {
 }
 
 
-#bind _key_3 to 3
+#bind _key_3 to Shift+3
 sub _key_3 {
   my $pNewPapa;			# used as type "pointer"
   my $pParent;			# used as type "pointer"
