@@ -39,7 +39,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
 	    $version $lib $extra_backends $file_list
-	    $_ERR %optmap $no_required
+	    $_ERR %optmap $no_secondary
 	   );
 
 $version='$Revision$ ';
@@ -78,7 +78,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "no-save" => \$nosave,
 	    "safe-mode|F" => \$safe_mode,
 	    "obey-locks|O" => \$obey_locks,
-	    "no-required|U" => \$no_required,
+	    "no-secondary|Y" => \$no_secondary,
 	    "csts-tree-attributes|X" => \$csts_tree_attrs,
 	    "tectogrammatical-trees|R" => \$csts_tecto,
 	    "preload-files|P" => \$preload,
@@ -521,7 +521,6 @@ sub startMain {
     while (1) {
       _set_encoding($hub,':utf8',"socket to hub");
       my $state='default';
-      my $signature;
       my $request;
       my %request;
       # --- reading request from hub ---
@@ -532,19 +531,18 @@ sub startMain {
 	  %request = (); # clear
 	  $request{REQUEST_TYPE}=$1;
 	  $request="";
-	  $signature="";
 	} elsif (/^\Q$control\E MD5_SIGNATURE (.*)$/) {
-	  $signature = $1;
+	  $request{SIGNATURE} = $1;
         } elsif (/^\Q$control\E STATE=(.*)/) {
 	  $state=$1;
 	  $request.=$_;
-	  $request{$state}.="";
+	  $request{"STATE_".$state}.="";
 	  if ($state eq 'FSFile' and $request{REQUEST_TYPE} eq 'UPLOAD') {
 	    _set_encoding($hub,undef,"socket to hub");
 	  }
         } elsif (!/^\Q$control\E/) {
 	  $request.=$_;
-	  $request{$state}.=$_;
+	  $request{"STATE_".$state}.=$_;
         } elsif (/\Q$control\E END_OF_REQUEST/) {
           $state='END_OF_REQUEST';
 	  last
@@ -554,17 +552,18 @@ sub startMain {
       _msg "Request received from the hub: $request{REQUEST_TYPE}\n";
 
       _msg("Verifying request signature...\n");
-      if ($signature ne sign_md5($key,$request)) {
+      if ($request{SIGNATURE} ne sign_md5($key,$request)) {
 	$hub->print("$control SERVER_RESPONSE_STDERR\n");
 	$hub->print("UNAUTHORIZED REQUEST: MD5 SIGNATURE FAILED\n");
-	$hub->print("Signatures:\n$signature\n".sign_md5($key,$request)."\n");
+	$hub->print("Signatures:\n$request{SIGNATURE}\n".sign_md5($key,$request)."\n");
 	_end_response($control,$hub);
       } else {
 	# --- performing the request on the trees ----
 	_msg("Performing the hub request...\n");
 	$NO_HOOKS=1;
 	if ($request{REQUEST_TYPE} eq 'LOAD_FILES') {
-	  my @new=split /\n/,$request{default};
+	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+	  my @new=split /\n/,$request{STATE_FILELIST};
 	  @files=(@files,@new);
 	  eval {
 	    preloadFiles($grp,[@new],$hub);
@@ -590,8 +589,8 @@ sub startMain {
 	  my $old_stdout = _redirect_stdout($macro_stdout);
 	  my $old_stderr = _redirect_stderr($macro_stderr);
 
-	  chomp $request{ENCODING};
-	  local $term_encoding=$request{ENCODING} if ($request{ENCODING});
+	  chomp $request{STATE_ENCODING};
+	  local $term_encoding=$request{STATE_ENCODING} if ($request{STATE_ENCODING});
 	  _set_encoding(\*STDOUT,$term_encoding);
 	  _set_encoding(\*STDERR,$term_encoding);
 
@@ -601,9 +600,9 @@ sub startMain {
 	  init_tredmacro($grp);
 
 	  # script command-line arguments
-	  if (exists($request{ARGS})) {
+	  if (exists($request{STATE_ARGS})) {
 	    no strict qw(refs);
-	    @{macro_variable('TredMacro::ARGV')}=split "\n",$request{ARGS};
+	    @{macro_variable('TredMacro::ARGV')}=split "\n",$request{STATE_ARGS};
 	    @{macro_variable('ARGV')}=@{macro_variable('TredMacro::ARGV')};
 	  } else {
 	    no strict qw(refs);
@@ -614,13 +613,13 @@ sub startMain {
 	  STDOUT->autoflush(1);
 	  # load macro
 	  _msg "COMPILING MACRO\n";
-	  chomp($request{CONTEXT});
-	  $context=$request{CONTEXT} || 'TredMacro';
+	  chomp($request{STATE_CONTEXT});
+	  $context=$request{STATE_CONTEXT} || 'TredMacro';
 	  $context='TredMacro' if $context eq 'main';
 	  $SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
 	  $grp->{macroContext} = $context;
 
-	  doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
+	  doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{STATE_MACRO});
 
 	  # execute hooks and the code of the query
 
@@ -632,11 +631,11 @@ sub startMain {
 	    $stop = doEvalHook($grp,"preload_hook") if (!$@ and $stop ne 'stop');
 	    $hub->print("$@\n") if $@;
 	    if (!$@ and $stop ne 'stop') {
-	      _msg "RUNNING CODE: $request{CODE}\n";
+	      _msg "RUNNING CODE: $request{STATE_CODE}\n";
 	      gotoFile($grp,0);
 	      my $t0 = new Benchmark;
-	      if (exists $request{FILELIST}) {
-		my @fl = split /\n/,$request{FILELIST};
+	      if (exists $request{STATE_FILELIST}) {
+		my @fl = split /\n/,$request{STATE_FILELIST};
 		foreach my $file (@fl) {
 		  # normalize urls
 		  my $goto;
@@ -644,13 +643,13 @@ sub startMain {
 		  if (exists $grp->{preloaded}{$file}) {
 		    openFile($grp,$file.$goto);
 		    last if $@;
-		    doEvalMacro($grp,"package $context;".$request{CODE});
+		    doEvalMacro($grp,"package $context;".$request{STATE_CODE});
 		    last if $@;
 		  }
 		}
 	      } else {
 		do {
-		  doEvalMacro($grp,"package $context;".$request{CODE});
+		  doEvalMacro($grp,"package $context;".$request{STATE_CODE});
 		} while (!$@ and nextFile($grp) and !$@);
 	      }
 	      $hub->print("$@\n") if $@;
@@ -663,13 +662,13 @@ sub startMain {
 	      _msg($@) if $@;undef $@;
 	      my $t1 = new Benchmark;
 	      $time = timediff($t1, $t0) if ($t1 and $t0);
-	      $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "" and not $request{QUIET};
+	      $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "" and not $request{STATE_QUIET};
 	      _msg("Total Time: ",timestr($time),"\n");
 	    }
 	  }
 	  $SIG{USR1} = sub { };
 	  $hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
-	  cleanup_tredmacro($grp,split(/\n/,"package $context;\n".$request{MACRO}."\n".$request{CODE}));
+	  cleanup_tredmacro($grp,split(/\n/,"package $context;\n".$request{STATE_MACRO}."\n".$request{STATE_CODE}));
 	  # send macro's error output from tmp file to client
 	  _revert_redirect_stderr($old_stderr);
 	  _set_encoding($macro_stderr,$term_encoding);
@@ -692,9 +691,10 @@ sub startMain {
 	  _end_response($control,$hub);
 	  exit 0;
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
-	  if (exists $request{FILELIST}) {
+	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+	  if (exists $request{STATE_FILELIST}) {
 	    _msg "Reloading files at client's request\n";
-	    my @fl = grep { ref($grp->{preloaded}->{$_}) } split /\n/,$request{FILELIST};
+	    my @fl = grep { ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	    foreach my $file (@fl) {
 	      closePreloadedFile($grp,$file);
 	    }
@@ -717,9 +717,10 @@ sub startMain {
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD_CHANGED') {
+	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
 	  _msg "Reloading changed files at client's request\n";
 	  my @changed = grep { ref($grp->{preloaded}->{$_}) and
-				 $grp->{preloaded}->{$_}->notSaved()
+				 fileOrSecondariesNotSaved($grp,$grp->{preloaded}->{$_})
 			       } @files;
 	  foreach my $file (@changed) {
 	    closePreloadedFile($grp,$file);
@@ -735,7 +736,7 @@ sub startMain {
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD_MACROS') {
-	  my $f=$request{Filename};
+	  my $f=$request{STATE_Filename};
 	  $f =~ s/[\n\r]+$//;
 	  # chomp $f;
 	  $macroFile = $f if $f;
@@ -757,10 +758,11 @@ sub startMain {
 	  $hub->print("$host:$port has ",scalar(@files)," files\n");
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST') {
+	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	  if (exists $request{FILELIST}) {
-	    my @f = grep { ref($grp->{preloaded}->{$_}) } split /\n/,$request{FILELIST};
+	  if (exists $request{STATE_FILELIST}) {
+	    my @f = grep { ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	    $hub->print(join("\n",@f),"\n") if @f;
 	  } else {
 	    $hub->print(join("\n",@files),"\n");
@@ -770,8 +772,8 @@ sub startMain {
 	  _msg "Listing secondary files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  if (ref($grp->{secondary})) { 
-	    if (exists $request{FILELIST}) {
-	      my @f = grep { ref($grp->{secondary}->{$_}) } split /\n/,$request{FILELIST};
+	    if (exists $request{STATE_FILELIST}) {
+	      my @f = grep { ref($grp->{secondary}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	      $hub->print(join("\n",@f),"\n") if @f;
 	    } else {
 	      $hub->print(join("\n",sort keys %{$grp->{secondary}}),"\n");
@@ -779,16 +781,17 @@ sub startMain {
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST_CHANGED') {
+	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  $hub->print(map { $_."\n"} grep { ref($grp->{preloaded}->{$_}) and
-					 $grp->{preloaded}->{$_}->notSaved()
+					    fileOrSecondariesNotSaved($grp,$grp->{preloaded}->{$_})
 				       } @files);
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'DUMP') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	  _msg "Dumping $request{default} at client's request\n";
-	  foreach my $f (grep /\S/,split /\n/,$request{default}) {
+	  _msg "Dumping $request{STATE_default} at client's request\n";
+	  foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
 	    next unless ($f);
 	    $f=~s{^ntred://}{};
 	    $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
@@ -819,7 +822,7 @@ sub startMain {
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	  my $f=$request{Filename};
+	  my $f=$request{STATE_Filename};
 	  # chomp $f;
 	  $f =~ s/[\n\r]+$//;
 	  _msg "Uploading $f at client's request\n";
@@ -827,9 +830,9 @@ sub startMain {
 	  $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
 	  if ($] >= 5.008) {
 	    require Encode;
-	    $request{FSFile} = Encode::decode($TrEd::Convert::inputenc,$request{FSFile});
+	    $request{STATE_FSFile} = Encode::decode($TrEd::Convert::inputenc,$request{STATE_FSFile});
 	  }
-	  my @fs=map {$_."\n"} split /\n/,$request{FSFile};
+	  my @fs=map {$_."\n"} split /\n/,$request{STATE_FSFile};
 	  if ($f and openFile($grp,$f,-justpreloaded => 1) and ref($grp->{FSFile})) {
 	    _msg "Uploading $f at client's request\n";
 	    my $fsfile=FSFile->new();
@@ -872,41 +875,56 @@ sub startMain {
 	} elsif ($request{REQUEST_TYPE} eq 'SAVE' or
 		 $request{REQUEST_TYPE} eq 'SAVE_CHANGED'
 		) {
+	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
 	  for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
-	    if (exists $request{$_}) {
-	      $request{$_} =~ s/[\n\r]+$//;
+	    if (exists $request{"STATE_".$_}) {
+	      $request{"STATE_".$_} =~ s/[\n\r]+$//;
 	    }
 	  }
 	  # create temporary file to store std output
 	  my $macro_stdout = IO::File->new_tmpfile();
 	  my $old_stdout = _redirect_stdout($macro_stdout);
 	  do {
-	    local $backend=$bkmap{$request{Format}} if exists $request{Format};
-	    local $strip_prefix=$request{"Strip-prefix"} if exists $request{"Strip-prefix"};
-	    local $strip_suffix=$request{"Strip-suffix"} if exists $request{"Strip-suffix"};
-	    local $add_prefix=$request{"Prefix"} if exists $request{"Prefix"};
-	    local $append_suffix=$request{"Suffix"} if exists $request{"Suffix"};
+	    local $backend=$bkmap{$request{STATE_Format}} if exists $request{STATE_Format};
+	    local $strip_prefix=$request{"STATE_Strip-prefix"} if exists $request{"STATE_Strip-prefix"};
+	    local $strip_suffix=$request{"STATE_Strip-suffix"} if exists $request{"STATE_Strip-suffix"};
+	    local $add_prefix=$request{"STATE_Prefix"} if exists $request{"STATE_Prefix"};
+	    local $append_suffix=$request{"STATE_Suffix"} if exists $request{"STATE_Suffix"};
 
 	    my %fl;
 	    my $listed = 0;
-	    if (exists $request{FILELIST}) {
+	    if (exists $request{STATE_FILELIST}) {
 	      $listed = 1;
 	      %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
-		split /\n/,$request{FILELIST};
+		split /\n/,$request{STATE_FILELIST};
 	    }
 	    eval {
 	      gotoFile($grp,0);
 	      die $@ if $@;
 	      do {{
 		next unless ref($grp->{FSFile});
-		next unless ($request{REQUEST_TYPE} eq 'SAVE'
-			     or $grp->{FSFile}->notSaved());
 		if (!$listed or $fl{ $grp->{'FSFile'}->filename }) {
-		  my ($out,$error) = saveFile($grp);
-		  if (!defined($error)) {
-		    $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
-		  } else {
-		    $macro_stdout->print("ERROR SAVING",$grp->{'FSFile'}->filename,": $error\n");
+		  if ($request{REQUEST_TYPE} eq 'SAVE' or $grp->{FSFile}->notSaved()) {
+		    my ($out,$error) = saveFile($grp);
+		    if (!defined($error)) {
+		      $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+		    } else {
+		      $macro_stdout->print("ERROR SAVING",$grp->{'FSFile'}->filename,": $error\n");
+		    }
+		  }
+		  unless ($no_secondary) {
+		    foreach my $secondary (secondaryFSFiles($grp,$grp->{FSFile})) {
+		      if ($request{REQUEST_TYPE} eq 'SAVE' or $secondary->notSaved()) {
+			# TODO: we should probably go recursion here...
+			# (secondary files of secondary files...)
+			my ($out,$error) = saveFile($grp,$secondary); 
+			if (!defined($error)) {
+			  $macro_stdout->print("Saved secondary file ",$secondary->filename," as $out\n");
+			} else {
+			  $macro_stdout->print("ERROR SAVING SECONDARY FILE ",$secondary->filename,": $error\n");
+			}
+		      }
+		    }
 		  }
 		}
 		die $@ if $@;
@@ -925,10 +943,10 @@ sub startMain {
 	  _msg "Closing all open files at client's request\n";
 	  my %fl;
 	  my $listed = 0;
-	  if (exists $request{FILELIST}) {
+	  if (exists $request{STATE_FILELIST}) {
 	    $listed = 1;
 	    %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
-	      split /\n/,$request{FILELIST};
+	      split /\n/,$request{STATE_FILELIST};
 	  }
 	  eval {
 	    gotoFile($grp,0);
@@ -996,8 +1014,8 @@ $post
 $initial_code;
 EOL
 
-    _msg "<script>\n$premacro;\n</script>\n" unless $quiet;
-    doEvalMacro($grp,$premacro);
+   _msg "<script>\n$premacro;\n</script>\n" unless $quiet;
+   doEvalMacro($grp,$premacro);
 
     exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
     preloadFiles($grp,\@files) if $preload; # -P : load all files into memory
@@ -1011,8 +1029,19 @@ EOL
 	STDOUT->flush();
 	STDERR->flush();
 	_msg "Done.\n" unless $quiet;
-	my ($out, $error) = saveFile($grp) if ($grp->{FSFile}->notSaved or $save);
+	my ($out, $error) = saveFile($grp) if ($grp->{FSFile}->notSaved() or $save);
         _msg($error) if defined $error;
+
+        unless ($no_secondary) {
+	  foreach my $secondary (secondaryFSFiles($grp,$grp->{FSFile})) {
+	    if ($save or $secondary->notSaved()) {
+	      # TODO: we should probably go recursion here...
+	      # (secondary files of secondary files...)
+	      my ($out,$error) = saveFile($grp,$secondary);
+	      _msg("Error Saving secondary file:",$error) if defined $error;
+	    }
+	  }
+	}
       }} while (nextFile($grp));
     } else {
       _msg "No files to process!\n" unless $Quiet;
@@ -1082,7 +1111,7 @@ sub preloadFiles {
 
 sub openSecondary {
   my ($grp,$fsfile)=@_;
-  unless ($no_required) {
+  unless ($no_secondary) {
     my $requires = $fsfile->metaData('fs-require');
     if ($requires) {
       for my $req (@$requires) {
@@ -1200,17 +1229,18 @@ sub checkLock {
 }
 
 sub saveFile {
-  my $grp=shift;
+  my ($grp,$fsfile)=@_;
   return if $nosave;
-  return unless $grp->{'FSFile'};
-  my $f=$grp->{'FSFile'}->filename;
+  $fsfile = $grp->{'FSFile'} unless defined $fsfile;
+  return unless $fsfile;
+  my $f=$fsfile->filename;
   if ($obey_locks) {
     my $lockinfo = checkLock($f);
     if ($lockinfo ne 'none') {
       return (undef,"file locked $lockinfo\n");
     }
   }
-  $grp->{FSFile}->changeBackend($backend) if ($backend);
+  $fsfile->changeBackend($backend) if ($backend);
   my $out=$f;
   $out=~s/$strip_suffix$// if ($strip_suffix ne "");
   $out.=$append_suffix;
@@ -1221,16 +1251,37 @@ sub saveFile {
     rename $f, "$f~" if (-f $f);
   }
 
-  if (doEvalHook($grp,"file_save_hook",$out) eq 'stop') {
-    return (undef,"Saving of $f stopped by file_save_hook\n");
+  if ($fsfile == $grp->{FSFile} and doEvalHook($grp,"file_save_hook",$out) eq 'stop') {
+    return ($out,"Saving of $f stopped by file_save_hook\n");
   } else {
     _msg "Saving $f as $out\n" unless $Quiet;
   }
-  unless ($grp->{FSFile}->writeFile($out)) {
-    return (undef,"Error saving file to '$out'\n");
+  unless ($fsfile->writeFile($out)) {
+    return ($out,"Error saving file to '$out'\n");
   }
-  $grp->{FSFile}->notSaved(0);
+  $fsfile->notSaved(0);
   return ($out, undef);
+}
+
+sub fileOrSecondariesNotSaved ($$) {
+  my ($grp,$fsfile)=@_;
+  return $fsfile->notSaved() or
+    (!$no_secondary and first { $_->notSaved() } secondaryFSFiles($grp,$fsfile));
+}
+
+sub secondaryFiles {
+  my ($fsfile)=@_;
+  my $requires = $fsfile->metaData('fs-require');
+  if ($requires) {
+    return map { $_->[1] } @$requires;
+  } else {
+    return ();
+  }
+}
+
+sub secondaryFSFiles ($$) {
+  my ($grp,$fsfile)=@_;
+  return grep { ref($_) } map { $grp->{secondary}->{$_} } secondaryFiles($fsfile);
 }
 
 sub closeFile {

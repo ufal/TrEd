@@ -27,7 +27,7 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
 	    $version $print_version $listedfiles $list_options
-            $olddist $count_files $logdir $userlogin
+            $olddist $count_files $logdir $userlogin $no_secondary
 	   );
 
 $version='$Revision$ ';
@@ -66,6 +66,7 @@ Getopt::Long::Configure ("bundling");
 	 "reload-macros"   => \$request_reload_macros,
 	 "close-files"     => \$request_close,
 	 "load-files"      => \$request_load,
+	 "no-secondary|Y" => \$no_secondary,
 	 "list-files"      => \$request_list,
 	 "list-secondary-files"      => \$request_list_secondary,
 	 "count-files"      => \$count_files,
@@ -380,6 +381,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       $btred ||= "$FindBin::RealBin/btred";
       my $cmd = "$btred -O -P ".
    	  ($safe_mode ? "-F " : "").
+	  ($no_secondary ? "-Y " : "").
 	  ($server_debug ? "-D " : "").
 	  (join "",map { "-M $_ " } @preload_modules).
 	  ($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
@@ -507,36 +509,49 @@ if (defined($init) || defined($kill) || defined($break)) {
     # ---------- reading the request ----------------
     msg "Receiving request $request_number from a client...\n";
     my $request;
-    my $request_type;
-    while (<$client>) {		#
+#     my $request_type;
+#     while (<$client>) {		#
+#       $request.=$_;
+#       if (/^\Q$control\E REQUEST_TYPE=(.*)/) {
+# 	$request_type=$1;
+#       } elsif (/^\Q$control\E END_OF_REQUEST/) {
+# 	last;
+#       }
+#     }
+
+    my %request;
+    my $state;
+    # --- reading request from hub ---
+    while (<$client>) {
       $request.=$_;
       if (/^\Q$control\E REQUEST_TYPE=(.*)/) {
-	$request_type=$1;
-      } elsif (/^\Q$control\E END_OF_REQUEST/) {
-	last;
+	%request = (); # clear
+	$request{REQUEST_TYPE}=$1;
+      } elsif (/^\Q$control\E MD5_SIGNATURE (.*)$/) {
+	$request{SIGNATURE} = $1;
+      } elsif (/^\Q$control\E STATE=(.*)/) {
+	$state=$1;
+	$request{"STATE_".$state}.="";
+      } elsif (!/^\Q$control\E/) {
+	$request{"STATE_".$state}.=$_;
+      } elsif (/\Q$control\E END_OF_REQUEST/) {
+	$state='END_OF_REQUEST';
+	last
       }
     }
 
-    if ($request_type eq 'QUIT') {
+    if ($request{REQUEST_TYPE} eq 'QUIT') {
       $SIG{PIPE} = sub {};
     }
 
-    if ($request_type eq 'HUB_DISTRIBUTE') {
-      @files = ();
-      my $md5;
-      foreach (split /\n/,$request) {
-	if (/^\Q$control\E MD5_SIGNATURE (.*)$/) {
-	  $md5 = $1;
-	} elsif (!/^\Q$control\E /)  {
-	  push @files, $_;
-	}
-      }
-      if (sign_md5($server_key,join "\n",@files) eq $md5) {
+    if ($request{REQUEST_TYPE} eq 'HUB_DISTRIBUTE') {
+      @files = split /\n/,$request{STATE_FILELIST};
+      if (sign_md5($server_key,join "\n",@files) eq $request{SIGNATURE}) {
 	shift @files; pop @files; # get rid of the controls
 	if ($olddist) {
-	  distribute_files($control,\@running,\@files,0,$server_key);
+	  distribute_files($control,\@running,\@files,0,$server_key,$request{STATE_NO_SECONDARY});
 	} else {
-	  distribute_files2($control,\@running,\@files,0,$server_key);
+	  distribute_files2($control,\@running,\@files,0,$server_key,$request{STATE_NO_SECONDARY});
 	}
       } else {
 	print $client "$control HUB_RESPONSE_STDERR\n";
@@ -569,7 +584,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       end_response($control,$client);
       msg "The processing of request $request_number completely finished.\n";
       msg "Waiting for a new client request.\n\n";
-      if ($request_type eq 'QUIT') {
+      if ($request{REQUEST_TYPE} eq 'QUIT') {
 	msg "Quitting on client's request.\n";
 	exit;
       }
@@ -633,6 +648,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request_type="QUIT";
   } elsif ($request_reload_changed) {
     $request_type="RELOAD_CHANGED";
+    $request="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
   } elsif ($request_reload) {
     $request_type="RELOAD";
     my @files =  get_files();
@@ -640,6 +656,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       die "Error: File name contains tree suffix: $_\n" if
 	/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
     }
+    $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
   } elsif ($request_reload_macros) {
     $request_type="RELOAD_MACROS";
@@ -662,6 +679,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request_type="LIST_SECONDARY";
   } elsif ($request_list_changed) {
     $request_type="LIST_CHANGED";
+    $request="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
   } elsif ($request_save || $request_save_changed) {
     $request_type= $request_save ? "SAVE" : "SAVE_CHANGED";
     $request="$control STATE=Format\n".($output_format || "fs")."\n" if ($output_format ne "");
@@ -669,6 +687,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.="$control STATE=Strip-suffix\n".$strip_suffix."\n" if ($strip_suffix ne "");
     $request.="$control STATE=Prefix\n".$add_prefix."\n" if ($add_prefix ne "");
     $request.="$control STATE=Suffix\n".$append_suffix."\n" if ($append_suffix ne "");
+    $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
     msg($request,"\n");
     if ($listedfiles) {
       my @files =  get_files();
@@ -690,6 +709,8 @@ if (defined($init) || defined($kill) || defined($break)) {
     }
   } elsif ($request_load) {
     $request_type="HUB_DISTRIBUTE";
+    $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
+    $request.="$control STATE=FILELIST\n";
     my @files = get_file_list();
     $request=join "\n", @files;
   } elsif ($request_dump) {
@@ -697,6 +718,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     msg "DUMP @ARGV\n";
     my @files = get_file_list();
     $request=join("\n", @files)."\n";
+    $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
   } elsif ($request_upload) {
     die "Too few parameters for --upload!" unless @ARGV;
     die "Too many parameters for --upload!" if @ARGV>1;
@@ -794,7 +816,7 @@ sub _enc2bytes {
 
 # --------------- optimal file distribution  -------------------
 sub distribute_files {
-  my ($control,$servers,$files,$close_empty,$key) = @_;
+  my ($control,$servers,$files,$close_empty,$key,$request_no_secondary) = @_;
   my @totalfilelist=@$files;
   my %benchmark_time;
   my %number_of_procs;
@@ -825,7 +847,9 @@ sub distribute_files {
     if (@f) {
       push @servers_to_respond,$server;
       msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
-      send_request($control,$server->{socket},'LOAD_FILES',$key,@f);
+      send_request($control,$server->{socket},'LOAD_FILES',$key,
+		   ($request_no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
+		   "$control STATE=FILELIST", @f);
     } elsif ($close_empty) {
       msg "No files for server $server->{fullname}, closing it.\n";
       send_request($control,$server->{socket},'QUIT',$key,@f);
@@ -845,7 +869,7 @@ sub distribute_files {
 
 
 sub distribute_files2 {
-  my ($control,$servers,$files,$close_empty,$key) = @_;
+  my ($control,$servers,$files,$close_empty,$key,$request_no_secondary) = @_;
   my @totalfilelist=@$files;
 
   my $files_per_request = 16;
@@ -861,7 +885,11 @@ sub distribute_files2 {
     if (@f) {
       push @servers_to_respond,$server;
       msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
-      send_request($control,$server->{socket},'LOAD_FILES',$key,@f);
+
+      send_request($control,$server->{socket},'LOAD_FILES',$key,
+		   ($request_no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
+		   "$control STATE=FILELIST", @f);
+
       $select->add($server->{socket});
     } elsif ($close_empty) {
       msg "No files for server $server->{fullname}, closing it.\n";
@@ -893,7 +921,11 @@ sub distribute_files2 {
       my @f=splice @totalfilelist,0,$files_per_request;
       if (@f) {
 	msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
-	send_request($control,$socket,'LOAD_FILES',$key,@f);
+	send_request($control,$server->{socket},'LOAD_FILES',$key,
+		     ($request_no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
+		     "$control STATE=FILELIST", @f);
+
+
       } else {
 	$select->remove($socket);
       }
