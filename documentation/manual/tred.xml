@@ -494,7 +494,8 @@ root# <userinput>make install</userinput>
 	      <listitem>
 		<para>
 		  It is possible to print more than one tree within
-		  one command.  This is realized by entering a list of
+		  one command.  This is realized by entering a
+		  comma-separated list of
 		  numbers or ranges of numbers, that correspond to the
 		  desired trees or tree-ranges in the active file, to
 		  the <guilabel>Page range</guilabel> field. First
@@ -504,8 +505,7 @@ root# <userinput>make install</userinput>
 		  from the tree no. 3 to no. 20.  If the first number
 		  in the range is omitted, 1 is assumed. If the second
 		  number in the range is ommited, the number of the
-		  last tree in the active file is assumed.  Multiple
-		  ranges and tree-numbers are be separated by a comma.
+		  last tree in the active file is assumed.
 		  The order of the trees given in the list is
 		  preserved and also, one tree may be printed more
 		  than once.
