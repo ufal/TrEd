@@ -308,15 +308,22 @@ sub write {
 	$quot.= $quot ? ".quot" : " quot";
       }
 
+      #
+      # TODO: we need a mechanism to find out when TR information
+      # is to be stored and when not
+      #
       # we print <TRl> if there is a trlemma or dord orders nodes or
-      # there is a non-empty govTR
+      # there is a non-empty govTR and it is different from <g>
       if (($fsfile->FS->exists('trlemma') and
 	   exists($node->{trlemma}) and
 	   $node->{trlemma} ne "") or 
-	  $fsfile->FS->order eq 'dord' or
-	  ($fsfile->FS->exists('govTR') and
-	   exists($node->{govTR}) and
-	   $node->{govTR} ne "")) {
+	  $fsfile->FS->order eq 'dord'
+#	  or
+#	  ($fsfile->FS->exists('govTR') and
+#	   exists($node->{govTR}) and
+#	   $node->{govTR} ne "" and
+#	   $node->{govTR} != $node->parent->{ord})
+	 ) {
 
 	print $fileref "<TRl$quot";
 	print $fileref " hidden" if ($node->{"TR"} eq "hide");
