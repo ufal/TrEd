@@ -157,11 +157,12 @@ sub show_adverbs_dialog {
   $hlist->Subwidget('yscrollbar')->configure(-takefocus=>0) if ($hlist->Subwidget('yscrollbar'));
   $hlist->Subwidget('corner')->configure(-takefocus=>0) if ($hlist->Subwidget('corner'));
 
-  my $e = $d->Entry(qw/-background white -validate key/,
+  my $entry = $d->Entry(qw/-background white -validate key/,
 		     -validatecommand => [\&adverb_quick_search,$hlist]
 		    )->pack(qw/-expand yes -fill x/);
   $hlist->pack(qw/-side top -expand yes -fill both/);
-
+  $entry->bind('<Down>'=> [sub { $_[1]->ShiftUpDown('next'); Tk->break; },$hlist ]);
+  $entry->bind('<Up>'=> [sub { $_[1]->ShiftUpDown('prev'); Tk->break; },$hlist ]);
 
   $hlist->BindMouseWheelVert() if $hlist->can('BindMouseWheelVert');
 
@@ -211,14 +212,14 @@ sub show_adverbs_dialog {
   }
   $hlist->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $hlist->bind('all','<space>'=> [sub { my ($w,$h)=@_;
-					my $e=$h->infoAnchor();
+					my $e=$h->Subwidget('scrolled')->infoAnchor();
 					if ($e ne "") {
 					  $h->getmode($e) eq "open" ? 
 					    $h->open($e) : $h->close($e);
 					}
 				      },$hlist ]);
-  $hlist->focus();
-  if ($d->Show() eq 'Choose') {
+
+  if (main::ShowDialog($d,$entry) eq 'Choose') {
     $func = join("|",
 		 map { $hlist->infoData($_) }
 		 grep { $hlist->infoParent($_) ne "" } $hlist->infoSelection()
