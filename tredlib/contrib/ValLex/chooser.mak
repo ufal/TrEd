@@ -187,7 +187,7 @@ sub ChooseFrame {
   my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
   my $field;
   my $title;
-  InitFrameData() || do { $FileNotSaved=0; return; }
+  InitFrameData() || do { $FileNotSaved=0; return; };
   my $new_word=0;
   {
     my $word=$FrameData->findWordAndPOS($lemma,$pos);
