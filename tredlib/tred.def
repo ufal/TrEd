@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-12 18:32:10 pajas>
+## Time-stamp: <2002-11-21 10:13:46 pajas>
 
 package TredMacro;
 
@@ -535,6 +535,17 @@ sub SaveAndNextFile {
   $root=$grp->{root};
 }
 
+=item NextFile
+
+Goto next file in the file-list.
+
+=cut
+sub NextFile {
+  main::nextFile($grp);
+  $root=$grp->{root};
+}
+
+
 =item SaveAndPrevFile
 
 Save the current file and open the previous file in the current
@@ -546,6 +557,17 @@ sub SaveAndPrevFile {
   main::prevFile($grp);
   $root=$grp->{root};
 }
+
+=item PrevFile
+
+Goto previous file in the file-list.
+
+=cut
+sub PrevFile {
+  main::prevFile($grp);
+  $root=$grp->{root};
+}
+
 
 =item EditAttribute (node, attribute)
 
