@@ -332,20 +332,6 @@ require Tk::ImgButton;
 require Tk::BindMouseWheel;
 require Tk::Balloon;
 
-# different namespace only to load local rather than system files
-# (rel2abs is not supported in all instalations)
-use File::Spec;
-if (not File::Spec->can('rel2abs')) {
-  print "Using TFile::Spec\n" if $tredDebug;
-  require TFile::Spec;
-  require TFile::Spec::Functions;
-  import TFile::Spec::Functions qw(rel2abs);
-} else {
-  print "Using File::Spec\n" if $tredDebug;
-  require File::Spec;
-  require File::Spec::Functions;
-  import File::Spec::Functions qw(rel2abs);
-}
 
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
@@ -591,19 +577,6 @@ sub __debug {
   print STDERR @_,"\n" if $tredDebug;
 }
 
-sub absolutize_path ($$) {
-  my ($orig, $href)=@_;
-  if ($href !~ m{^[[:alnum:]]+:|^/}) {
-    $orig =~ m{^(.*\/)};
-    return $1.$href;
-  } else {
-    return $href;
-  }
-}
-
-sub absolutize {
-  return map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
-}
 
 sub get_open_filename {
   my $w = shift;

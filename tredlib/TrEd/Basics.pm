@@ -24,8 +24,23 @@ BEGIN {
     &pruneNode
     &setCurrent
     &errorMessage
+    &absolutize
+    &absolutize_path
   );
   use strict;
+}
+
+# different namespace only to load local rather than system files
+# (rel2abs is not supported in all instalations)
+use File::Spec;
+if (not File::Spec->can('rel2abs')) {
+  require TFile::Spec;
+  require TFile::Spec::Functions;
+  import TFile::Spec::Functions qw(rel2abs);
+} else {
+  require File::Spec;
+  require File::Spec::Functions;
+  import File::Spec::Functions qw(rel2abs);
 }
 
 
@@ -196,5 +211,21 @@ sub errorMessage {
     }
   }
 }
+
+sub absolutize_path ($$) {
+  my ($orig, $href)=@_;
+  if ($href !~ m{^[[:alnum:]]+:|^/}) {
+    $orig =~ m{^(.*\/)};
+    return $1.$href;
+  } else {
+    return $href;
+  }
+}
+
+sub absolutize {
+  return map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
+}
+
+
 1;
 
