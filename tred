@@ -3160,7 +3160,7 @@ sub startMain {
 				my ($w,$grp)=@_;
 				my $Ev=$w->XEvent;
 				my $win=$grp->{focusedWindow};
-				doEvalHook($win,"status_line_click",
+				doEvalHook($win,"status_line_click_hook",
 					   $w->tagNames($w->index($Ev->xy)));
 				Tk->break;
 			      },\%group]
@@ -3170,7 +3170,7 @@ sub startMain {
 				my ($w,$grp)=@_;
 				my $Ev=$w->XEvent;
 				my $win=$grp->{focusedWindow};
-				doEvalHook($win,"status_line_doubleclick",
+				doEvalHook($win,"status_line_doubleclick_hook",
 					   $w->tagNames($w->index($Ev->xy)));
 				Tk->break;
 			      },\%group]
