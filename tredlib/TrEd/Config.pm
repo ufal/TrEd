@@ -259,7 +259,8 @@ sub set_config {
   # $activeNodeColor		      =	 val_or_def($confs,"activenodecolor",'blue');
   $treeViewOpts->{currentNodeColor}   =	 val_or_def($confs,"currentnodecolor",'red');
   $treeViewOpts->{nearestNodeColor}   =	 val_or_def($confs,"nearestnodecolor",'green');
-  $treeViewOpts->{ballanceTree}	      =	 val_or_def($confs,"ballancetree",0);
+  $treeViewOpts->{balanceTree}	      =	 val_or_def($confs,"balancetree",0) ||
+                                         val_or_def($confs,"ballancetree",0);
   $treeViewOpts->{textColor}	      =	 val_or_def($confs,"textcolor",'black');
   $treeViewOpts->{textColorShadow}    =	 val_or_def($confs,"textcolorshadow",'darkgrey');
   $treeViewOpts->{textColorHilite}    =	 val_or_def($confs,"textcolorhilite",'darkgreen');
@@ -334,38 +335,38 @@ sub set_config {
 #    $ttFontFile="$libDir/".$ttFontFile if (not -f $ttFontFile and -f "$libDir/".$ttFontFile);
 #  }
   $ttFont=val_or_def($confs,"ttfont","Arial");
-  my @fontpath;
-  if ($^O eq "MSWin32") {
-    require Win32::Registry;
-    my %shf;
-    my $ShellFolders;
-    my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
-    $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or warn "Cannot read $shfolders $^E\n";
-    $ShellFolders->GetValues(\%shf);
-    @fontpath = ($shf{Fonts}[2]);
-#		 qw(c:/windows/fonts/ c:/winnt/fonts/);
-  } else {
-    # use fontconfig here?
-    if (open my $fc,'/etc/fonts/fonts.conf') {
-      while (<$fc>) {
-	push @fontpath,tilde_expand($1) if m{<dir>([^<]*)</dir>} and -d tilde_expand($1);
-        # naive, should subst. entities, etc.
-      }
-    }
-    unless (@fontpath) {
-      @fontpath = ("$ENV{HOME}/.fonts/",
-		   qw(
-		      /usr/X11R6/lib/X11/fonts/TTF/
-		      /usr/X11R6/lib/X11/fonts/TrueType/
-		      /usr/share/fonts/default/TrueType/
-		      /usr/share/fonts/default/TTF/
-		     )
-		  );
-    }
-  }
   if (exists $confs->{ttfontpath}) {
     $ttFontPath=tilde_expand($confs->{ttfontpath});
   } else {
+    my @fontpath;
+    if ($^O eq "MSWin32") {
+      require Win32::Registry;
+      my %shf;
+      my $ShellFolders;
+      my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
+      $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or warn "Cannot read $shfolders $^E\n";
+      $ShellFolders->GetValues(\%shf);
+      @fontpath = ($shf{Fonts}[2]);
+      #		 qw(c:/windows/fonts/ c:/winnt/fonts/);
+    } else {
+      # use fontconfig here?
+      if (open my $fc,'/etc/fonts/fonts.conf') {
+	while (<$fc>) {
+	  push @fontpath,tilde_expand($1) if m{<dir>([^<]*)</dir>} and -d tilde_expand($1);
+	  # naive, should subst. entities, etc.
+	}
+      }
+      unless (@fontpath) {
+	@fontpath = ("$ENV{HOME}/.fonts/",
+		     qw(
+			/usr/X11R6/lib/X11/fonts/TTF/
+			/usr/X11R6/lib/X11/fonts/TrueType/
+			/usr/share/fonts/default/TrueType/
+			/usr/share/fonts/default/TTF/
+		       )
+		    );
+      }
+    }
     $ttFontPath = join ",",map tilde_expand($_),@fontpath;
   }
 
