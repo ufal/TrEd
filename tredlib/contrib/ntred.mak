@@ -7,7 +7,7 @@ sub Position { print ThisAddressNTRED(),"\n"; }
 sub ntred_query {
   my ($query,$T,$N,$args)=@_;
   $query=~s/\\/\\/g;
-  $query=~s/'/\'/g;
+  $query=~s/'/'"'"'/g;
 
   $cmd="ntred ".
     ($T ? '-T ' : '').
@@ -111,12 +111,15 @@ sub ntred_query_box_do_query {
     print FH $macro;
     close FH;
   };
-  $r->insert('end',
-	     ntred_query($t->get("0.0","end"),
+  my $result=ntred_query($t->get("0.0","end"),
 			 $NTredQueryDialogAllTrees,
 			 $NTredQueryDialogAllNodes,
 			 "-m $tmp_name "
-			));
+			);
+  $r->insert('end',$result);
+  my $title=$r->toplevel->title();
+  $title=~s/ \(\d+ lines of output\)//;
+  $r->toplevel->title($title." (".scalar(map $_,$result=~/\n/g)." lines of output)");
   unlink($tmp_name) or die "Couldn't unlink $tmp_name : $!";
 }
 
