@@ -54,7 +54,7 @@ sub has_auxR {
       $result ||= (first { $_->{afun} eq 'AuxR' and $_->{lemma}=~/^se_/ }
 		   PDT::GetChildren_AR($node,sub{1},sub{($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0})) ? 1 : 0;
       last if $result;
-      $node = PDT::GetFather_AR($node,sub{0});
+      $node = first { $_->{TR} eq 'hide' } PDT::GetFather_AR($node,sub{0});
     }
     if (!$result and $node and $node->{tag}=~/^V/) {
       $result = (first { $_->{afun} eq 'AuxR' and $_->{lemma}=~/^se_/ }
@@ -101,6 +101,7 @@ sub has_auxR {
     # transforms to: "nekdo2.ACT pronajmul auto nekomu1.ADDR"
     sub { my ($node,$aids) = @_;
 	  ($node->{tag}=~/^Vs/ and
+	   first { $_->{func} eq 'ACT' and $_->{tag}!~/^....1/ } PDT::GetChildren_TR($node) and
 	   (first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
 	    and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node))
 	  ) ? 1:0;
@@ -109,7 +110,7 @@ sub has_auxR {
     # frame test
     [ 'ACT(.1)', 'ADDR(.3)' ] =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)', '+ADDR(.1)' ],
+    [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)','-ADDR(pro-1[.4])', '+ADDR(.1)' ],
    ],
    # 2.
    [# case: "mrizka/mrizku=PAT(.4,.1) nejde udelat"
@@ -125,7 +126,9 @@ sub has_auxR {
     # but should still apply to "problem ma byt vyresen"
     sub { my ($node,$aids) = @_;
 	  ($node->{tag}=~/^Vs/ and
-	   not (first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
+	   not (
+		first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /Vc/ } get_aidrefs_nodes($aids,$node) and
+		first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
 		and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node))
 	  ) ? 1:0;
 	} =>
@@ -545,12 +548,13 @@ sub frame_matches_rule ($$$) {
 	next;
       }
       return 0 unless first { /$regexp/ } map { $V->serialize_form($_) } $V->forms($element);
-    } elsif ($el =~ /^(\?)?([[:upper:]]*)\((.*)\)$/) {
+    } elsif ($el =~ /^([?!])?([[:upper:]]*)\((.*)\)$/) {
       my ($oblig, $func, $forms)=($1,$2,$3);
       $func = '---' if $func eq "";
       my ($element) = grep { $V->func($_) eq $func } $V->elements($frame);
       if (!defined($element)) {
-	return 0 unless $oblig;
+	return 1 if $oblig eq '!';
+	return 0 unless $oblig eq '?';
 	next;
       }
       my @forms = $V->split_serialized_forms($forms);
@@ -558,7 +562,11 @@ sub frame_matches_rule ($$$) {
       my %forms = map { $V->serialize_form($_) => 1 } $V->forms($element);
       foreach my $form (@forms) {
 	$form = TrEd::ValLex::Data::expandFormAbbrevs($form);
-	return 0 unless $forms{$form};
+	if ($oblig eq '!') {
+	  return 0 if $forms{$form};
+	} else {
+	  return 0 unless $forms{$form};
+	}
       }
     } else {
       die "Can't parse frame rule element: $el\n";
