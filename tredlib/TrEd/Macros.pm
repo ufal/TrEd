@@ -143,7 +143,7 @@ sub read_macros {
 	    "file not found!\n";
 	}
       } elsif (/^\#\s*include\s+"(.+\S)"\s*$/) {
-	$mf=dirname($file).$mf;
+	$mf=dirname($file).$1;
 	if (-f $mf) {
 	  read_macros($mf,$libDir,1,@contexts);
 	  push @macros,"\n#line $line \"$file\"\n";
