@@ -517,7 +517,6 @@ sub redraw {
 	      SentenceFileInfo=>  [],
 	      Text            =>  [],
 	      TextBg          =>  [],
-	      EdgeTextBg      =>  [],
 	      Node            =>  [],
 	      NodeLabel       =>  [-valign => 'top', -halign => 'left'],
 	      EdgeLabel       =>  [-halign => 'center', -valign => 'top']
@@ -546,7 +545,7 @@ sub redraw {
     # only for root node if any
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
       foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
-  	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|EdgeTextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):'?(.+)'?$/) {
+  	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):'?(.+)'?$/) {
 	  if (exists $Opts{"$1$2"}) {
 	    push @{$Opts{"$1$2"}},$3=>$4;
 	  } else {
@@ -562,7 +561,7 @@ sub redraw {
   foreach $style (@style_patterns) {
     foreach $node (@{$nodes}) {
       foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
-	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|EdgeTextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):(.+)$/) {
+	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):(.+)$/) {
 	  $pstyle=$self->get_node_pinfo($node,"style-$1$2");
 	  if ($pstyle) {
 	    push @$pstyle,$3=>$4; # making it unique would certainly slow it down
@@ -845,10 +844,13 @@ sub draw_text_line {
 			$x+$self->get_node_pinfo($node,"X[$i]")+1,
 			$y+$lineHeight,
 			-fill => $self->canvas->cget('-background'),
-			-outline => undef,
-			$self->get_node_style($node,"TextBg"),
-			$self->get_node_style($node,"TextBg[$i]")
-		       );
+			-outline => undef);
+    $self->apply_style_opts($bg,
+			    @{$Opts->{TextBg}},
+			    @{$Opts->{"TextBg[$i]"}},
+			    $self->get_node_style($node,"TextBg"),
+			    $self->get_node_style($node,"TextBg[$i]")
+			   );
     $self->store_node_pinfo($node,"TextBg[$i]",$bg);
     $self->store_obj_pinfo($bg,$node);
     $self->canvas->addtag('textbg', 'withtag', $bg);
