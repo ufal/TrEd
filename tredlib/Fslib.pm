@@ -2483,6 +2483,21 @@ sub insert_tree {
 
 =pod
 
+=item set_tree (root,pos)
+
+Set tree at given position.
+
+=cut
+
+sub set_tree {
+  my ($self,$nr,$pos)=@_;
+  $self->treeList->[$pos]=$nr;
+  return $nr;
+}
+
+
+=pod
+
 =item new_tree (position)
 
 Create a new tree at given position and return pointer to its root.
