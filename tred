@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-19 11:28:23 pajas>";
+$timestamp="Time-stamp: <2001-04-25 11:54:46 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -1437,6 +1437,7 @@ sub removeFromFilelist {
 
 sub addNewFilelist {
   my ($grp,$fl)=@_;
+  return if not defined($fl) or $fl eq "";
   for (@filelists) {
     if ($_->name eq $fl->name) {
       print STDERR "Filelist ",$fl->name," already exists, replacing!\n"
@@ -1456,6 +1457,21 @@ sub addNewFilelist {
     switchFilelist($grp,$fl);
     updatePostponed($grp);
   }
+}
+
+sub deleteFilelist {
+  my ($grp,$fl)=@_;
+  print "Deleting filelist $fl,".$fl->name()."\n";
+  return if (!ref($fl) or $fl->name eq 'Default' or 
+		 $fl->name eq 'Bookmarks');
+  print "Allowed\n";
+  @filelists=grep($_ ne $fl, @filelists);
+  print join "\n","Filelists:",@filelists,"";
+  print scalar(@filelists),"\n";
+  $grp->{filelistCurrentFilelist}=undef;
+  undef $fl;
+  switchFilelist($grp,'Default');
+  updatePostponed($grp);
 }
 
 sub filelistEntryPath {
@@ -1517,7 +1533,10 @@ sub filelistDialog {
   }
   return if ($grp->{Filelist});
   my $filelist;
-  $grp->{filelistCurrentFilelist}=$filelist=$grp->{currentFilelist};
+  if (!ref($grp->{currentFilelist})) {
+    selectFilelist($grp,'Default');
+  }
+  $grp->{filelistCurrentFilelist}=$grp->{currentFilelist};
   $filelist=$grp->{filelistCurrentFilelist}->name;
   my $d = $grp->{'top'}->Toplevel(-title => "Filelist");
   $d->withdraw;
@@ -1687,6 +1706,13 @@ sub filelistDialog {
 			    return unless $fl;
 			    $fl->load();
 			    addNewFilelist($grp,$fl);
+			  },$grp,$d ])
+    ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
+
+  $d->Button(-text => 'Delete',
+	     -command => [sub {
+			    my ($grp,$d)=@_;
+			    deleteFilelist($grp,$grp->{filelistCurrentFilelist});
 			  },$grp,$d ])
     ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
 
@@ -2501,6 +2527,9 @@ sub startMain {
 	 [Checkbutton => 'Sort Attributes in Dialogs', -underline => 1,
 	  -variable => \$sortAttrs],
 	 [Separator => ''],
+	 [Button => 'List of sentences ...', -underline => 0,
+	  -command => [\&viewSentencesDialog,\%group]],
+	 [Separator => ''],
 	 [Button => 'Customize Attributes ...', -underline => 0,
 	  -command => [\&customAttrsDialog,\%group]],
 	 [Separator => ''],
@@ -2641,7 +2670,8 @@ sub startMain {
 
   print STDERR "Creating canvas.\n" if $tredDebug;
 
-  $group{'valueLine'}=$group{'top'}->Scrolled(qw/Entry -state disabled -relief sunken
+  $group{'vLineFrame'}=$group{'top'}->Frame();
+  $group{'valueLine'}=$group{'vLineFrame'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
 
   $group{'canvas'}=$canvas;
@@ -2799,7 +2829,18 @@ sub startMain {
 
 
   $group{'frame'}->pack(-fill => 'x', -padx => '1', -pady => 1);
-  $group{'valueLine'}->pack(qw/-fill x/);
+
+
+  $group{'valueLine'}->pack(qw/-side left -fill x -expand yes/);
+  $group{'sentButton'}=
+    $group{'vLineFrame'}->Button(-text => "Sentences",
+			    -relief => $buttonsRelief,
+			    -image => $group{top}->Pixmap(-file =>
+							  "$libDir/view_sent.xpm"),
+			    -borderwidth => $buttonBorderWidth,
+			    -command => [sub { viewSentencesDialog(@_) },\%group])
+      ->pack(qw/-side right -padx 1 -anchor n/);
+  $group{'vLineFrame'}->pack(qw/-fill x -expand yes/);
   $group{'canvas'}->pack(qw/-expand yes -fill both/);
   addBindTags($group{'canvas'},'my');
   #  $group{'contextLed'}->pack(-side => 'bottom');
@@ -3414,6 +3455,53 @@ sub selectValuesDialog {
  return 0;
 }
 
+sub viewSentencesDialog {
+  my $grp=shift;
+  return unless $grp and ref($grp->{FSFile});
+  if ($grp->{sentDialog}) {
+    $grp->{sentDialog}->deiconify;
+    $grp->{sentDialog}->focus;
+    $grp->{sentDialog}->raise;
+    return;
+  }
+  $grp->{sentDialog} = 
+    $grp->{'top'}->Toplevel(-title => "List of sentences for ".$grp->{FSFile}->filename(),
+			    -width => "10c");
+  my $d=$grp->{sentDialog};
+  $d->withdraw;
+#  $d->resizable(0,0);
+  $d->bind('<Return>' => [sub {1;}]);
+  use Tk::ROText;
+  my $t = $d->
+    Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
+                     -spacing3 6 -wrap word -background white
+		     -height 20 -scrollbars e/);
+  $t->pack(qw/-expand yes -fill both/);
+  my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
+
+  $bottom->Button(-text => "  Close  ", -command => [sub { shift->destroy; },$d])
+    ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+
+  $d->bind('<Destroy>' => [sub { shift; shift->{sentDialog}=undef; },$grp ]);
+  $d->bind('all','<Escape>' => [sub { shift; shift->destroy(); },$d]);
+
+  foreach my $r ($grp->{FSFile}->trees()) {
+    my @nodes=();
+    my $sentord = $grp->{FSFile}->FS->sentord || $grp->{FSFile}->FS->order;
+    my $value = $grp->{FSFile}->FS->value;
+    while ($r) {
+      push @nodes,$r;
+      $r=$r->following();
+    }
+    $t->insert('end',
+	       join (" ",
+	       map { $_->{$value} }
+	       sort { $a->{$sentord} <=> $b->{$sentord} } @nodes)."\n");
+  }
+  $d->Popup;
+}
+
+
 sub editListAttr {
   my ($grp, $value, $attr,$d) =@_;
   return unless $grp->{'FSFile'};
@@ -3634,6 +3722,8 @@ sub customAttrsDialog {
 	      sub {
 		if ($e->get ne "") {
 		  $cl->insert('active',$e->get);
+		} elsif($al->selectionIncludes($al->index('active'))) {
+		  $cl->insert('active','${'.$al->get('active').'}');
 		}
 		$e->selectionRange(0,'end');
 	      }
@@ -3823,6 +3913,7 @@ sub findNodeDialog {
   $of->Label(-text => 'Search method: ')->pack(qw/-side left/);
 
   $of->Optionmenu(-variable => \$grp->{templateMatchMethod},
+		  -textvariable => \$grp->{templateMatchMethod},
 		  -options => ['Regular expression',
 			       'Exhaustive regular expression',
 			       'Wildcard pattern',
