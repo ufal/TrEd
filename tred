@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-05-05 22:41:24 paja>";
+$timestamp="Time-stamp: <2001-05-22 10:17:55 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -1809,19 +1809,19 @@ sub macrolistDialog {
   $d->bind('<Return>' =>
 	   [
 	    sub {
-	      my ($w,$grp,$t)=@_;
+	      my ($w,$grp,$t,$context)=@_;
 	      doEvalMacro($grp,
 			  $menuBindings{$context}->
 			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
-	    },$grp,$t ]);
+	    },$grp,$t,$context ]);
   $d->bind('<Double-1>' => 
 	   [
 	    sub {
-	      my ($w,$grp,$t)=@_;
+	      my ($w,$grp,$t,$context)=@_;
 	      doEvalMacro($grp,
 			  $menuBindings{$context}->
 			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
-	    },$grp,$t ]);
+	    },$grp,$t,$context ]);
 
   my $f=$d->Frame()->pack();
   $f->Radiobutton( -anchor   => 'nw',
@@ -1847,13 +1847,15 @@ sub macrolistDialog {
 
   $d->Button(-text => 'Run and Close',
 	     -command => [ sub {
-			     my ($w,$grp,$t)=@_;
-			     doEvalMacro($grp,
-			       $menuBindings{$context}->
-				 {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
+			     my ($w,$grp,$t,$context)=@_;
+			     my $mac=$t->itemCget($t->info('anchor'),0,'-text');
 			     $w->destroy();
-			   },$d,$grp,$t ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
-  $d->bind('<Destroy>' => [sub { shift; shift->{Macrolist}=undef; },$grp ]);
+			     doEvalMacro($grp,$menuBindings{$context}->{$mac}->[0]);
+
+
+			   },$d,$grp,$t,$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
+  $d->bind($d,'<Destroy>' => [sub { shift; shift->{Macrolist}=undef;
+				 print "SD\n";},$grp ]);
   $d->bind('all','<Escape>' =>
 	   [sub {
 	      shift; shift->destroy();
@@ -1874,6 +1876,8 @@ sub printDialog {
 
   my $com=$grp->{'printCommand'};
   my $fil=$grp->{'printPsFile'};
+  $fil=$grp->{FSFile}->filename;
+  $fil=~s/\.[^.]*$/.ps/;
   my $toFile=$grp->{'printToFile'};
   my $toEPS=$grp->{'printToEPS'};
   my $useType1Font=$grp->{'printUseType1Font'};
@@ -1911,7 +1915,7 @@ sub printDialog {
 		     -justify => 'right')->pack(-side => 'left');
 
   my $fe = $ff->Entry(-relief => 'sunken',
-		     -width => 20,
+		     -width => 50,
 		     -font => $font,
 		     -textvariable => \$fil)->pack(-side => 'left');
 
@@ -1997,7 +2001,6 @@ sub printThis {
   my %pso;
 
   if (not printDialog($grp)) {
-    #print "Printing aborted!\n";
     return;
   }
 
@@ -2054,7 +2057,6 @@ sub printThis {
 	push @printList,$pbeg..$pend;
       }
     }
-    #  @printList=split ' ',$grp->{'printSelection'};
     push @printList,$grp->{treeNo}+1 unless (@printList);
 
     unless (open(F,"<$psFontFile")) {
@@ -2062,14 +2064,10 @@ sub printThis {
       return 0;
     }
     if ($grp->{'printToFile'}) {
-      #print "Trying to print to ",$grp->{'printPsFile'},"\n";
       return 0 unless open(O,">".$grp->{'printPsFile'});
-      #print "File successfully opend!\n";
     } else {
-      #print "Trying to print via command ",$grp->{'printCommand'},"\n";
       $SIG{'PIPE'} = sub {};
       return 0 unless open(O, "| ".$grp->{'printCommand'});
-      #print "Pipe successfully opend!\n";
     }
 
     $grp->{top}->Busy(-recurse => 1);
@@ -2097,30 +2095,23 @@ sub printThis {
 	      -rotate => $rotate);
 
       unless ($grp->{printToEPS}) {
-	#print "Maximizing: $maximizePrintSize\n";
 	if ($maximizePrintSize or $c->fpixels($grp->{canvasWidth})>$pagewidth or
 	    $c->fpixels($grp->{canvasHeight})>$pageheight) {
 	  print "Adjusting print size\n";
 	  if ($c->fpixels($grp->{canvasWidth})/$pagewidth*$pageheight>$c->fpixels($grp->{canvasHeight})) {
-	    #print "Applying width\n";
 	    $pso{-pagewidth} =
 	      $pagewidth;
 	    print "Scaling by tree width,\n";
 	    print "forcing box width to $pagewidth\n";
-	    #$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
 	  } else {
-	    #print "Applying height\n";
 	    $pso{-pageheight} =
 	      $pageheight;
 	    print "Scaling by tree height,\n";
 	    print "forcing box height to $pageheight\n";
-	    #$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
 	  }
 	}
       }
  
-#    $grp->{top}->Busy(-recurse => 1);
-
       my @ps = split /\n/,$c->postscript(%pso);
       $i=0;
       if ($t>0) {
@@ -2133,7 +2124,6 @@ sub printThis {
 	      "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
 		"40 40 [\n",
 		  "(".
-#		    "File ",$grp->{FSFile}->filename,".    ".
 		    "Printed by TrEd on $now.)\n",
 		    "] 13 -0 0 0 false DrawText\ngrestore\n";
 	}
@@ -2143,8 +2133,6 @@ sub printThis {
 	print "Lines:",$#ps,"\n";
 	unless ($grp->{printToEPS}) {
 	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BoundingBox:/);
-	  #	print "Bounding Box:\n";
-	  #	print $ps[$i],"\n";
 	  print O $ps[$i++],"\n";
 	  print O $psMedia,"\n";
 	  print O '%%Pages: ',$#printList+1,"\n";
@@ -2161,18 +2149,14 @@ sub printThis {
 	$i++;
       }
 
-      # replacing ISOEncode
       while ($i<=$#ps && $ps[$i]!~/^%%Trailer\w*$/) {
 	$ps[$i]=~s/ISOEncode //g;
 	print O $ps[$i++],"\n";
       }
     }
     print O '%%EOF',"\n";
-    #print "$i: Done.\n";
     close (F);
     close (O);
-
-    #print "$psFile written!\n";
   }
 
   if ($grp->{treeNo} eq $saveTreeNo) { redraw_tree($grp); }
@@ -2532,7 +2516,7 @@ sub startMain {
 	 [Checkbutton => 'Sort Attributes in Dialogs', -underline => 1,
 	  -variable => \$sortAttrs],
 	 [Separator => ''],
-	 [Button => 'List of sentences ...', -underline => 0,
+	 [Button => 'List of sentences ...', -underline => 1,
 	  -command => [\&viewSentencesDialog,\%group]],
 	 [Separator => ''],
 	 [Button => 'Customize Attributes ...', -underline => 0,
