@@ -3429,8 +3429,7 @@ sub customAttrsDialog {
                             -padx 3 -pady 3/);
   $t->insert('0.0',$win->{FSFile}->hint);
   $t->BindMouseWheelVert();
-  my $e= $d->Entry(qw/-relief sunken
-                       -borderwidth 2/);
+  my $e= $d->Entry(qw/-relief sunken -borderwidth 2/);
 
   my $bf= $f->Frame();
   $bf->Button(-text=> "Add/Paste",
@@ -3484,10 +3483,18 @@ sub customAttrsDialog {
   $bf->pack(qw/-padx 5 -side left -expand yes -fill both/);
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
-
   $f->pack(qw/-side top -expand yes -fill x/);
-  $e->pack(qw/-side bottom -expand yes -fill x/);
+  $d->Label(-text => "Node styling pattern", -anchor => 'nw', -justify => 'left')->pack(qw/-side top -expand yes -fill x/);
+  $d->Entry(qw/-relief sunken -borderwidth 2/)->pack(qw/-side top -expand yes -fill x/);
+  my $eff=$d->Frame(qw/-relief sunken -bd 1/)->
+    pack(qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
 
+  $d->Label(-text => "Edit attribute pattern",
+	    -anchor => 'nw', -justify => 'left')
+    ->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+
+  $e->pack(-in => $eff,qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+  $e->raise($eff);
   $d->bind('all','<Escape>'=>
 	   [sub { shift;
 		  shift->{selected_button}='Cancel';
