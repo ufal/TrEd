@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-10 13:21:47 pajas>
+# Time-stamp: <2001-02-16 16:38:13 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -44,9 +44,9 @@ if ($opt_u) {
 Usage:
   tred [-c config-file] [-m macro-file] [-l file-list] files...
 or
-  btred -u          to show usage
+  tred -u          to show usage
 or
-  btred -h          to show help
+  tred -h          to show help
 EOH
   exit;
 }
@@ -164,7 +164,7 @@ EOL
 ##################### character encoding functions ########################
 
 %encodings = (
-	      'iso-8859-2' => "ì¹èø¾ýáíéìúùóò»ïµà¶å¼æñÌ©ÈØ®ÝÁÍÉÌÚÙÓÒ«Ï¥À¦Å¬ÆÑ",
+    'iso-8859-2' => "ì¹èø¾ýáíéìúùóò»ïµà¶å¼æñÌ©ÈØ®ÝÁÍÉÌÚÙÓÒ«Ï¥À¦Å¬ÆÑ",
 	      'ascii' => "escrzyaieeuuontdlrslzcnESCRZYAIEEUUONTDLRSLZCN",
 	      'iso-8859-1' => "escrzýáíéeúuóntdlrslzcnESCRZÝÁÍÉEÚUÓNTDLRSLZCN",
 	      'windows-1250' => "ìšèøžýáíéìúùóòï¾àœåŸæñÌŠÈØŽÝÁÍÉÌÚÙÓÒÏ¼ÀŒÅÆÑ"
@@ -209,6 +209,11 @@ use Exporter;
              $fileNo $filecount %attribs @atord @files &min &max);
 
 my @macros=();
+
+# it seems, that under Windoze setting LC_NUMERIC back to us does not
+# work, so I recommend not to use czech locales there, unless you
+# really want the decimal points to be replaced by commas in
+# postscript:)
 
 if ($useCzechLocales) {
   use locale;
@@ -365,8 +370,8 @@ sub setConfig {
   $appName=(exists $confs->{appname}) ? $confs->{appname} : "TrEd ver. 0.5";
   $baseXPos=(exists $confs->{basexpos}) ? $confs->{basexpos} : 15;
   $baseYPos=(exists $confs->{baseypos}) ? $confs->{baseypos} : 15;
-  $nodeWidth=(exists $confs->{nodewidth}) ? $confs->{nodewidth} : 5;
-  $nodeHeight=(exists $confs->{nodeheight}) ? $confs->{nodeheight} : 5;
+  $nodeWidth=(exists $confs->{nodewidth}) ? $confs->{nodewidth} : 7;
+  $nodeHeight=(exists $confs->{nodeheight}) ? $confs->{nodeheight} : 7;
   $currentNodeWidth=(exists $confs->{currentnodewidth}) ? $confs->{currentnodewidth} : $nodeWidth;
   $currentNodeHeight=(exists $confs->{currentnodeheight}) ? $confs->{currentnodeheight} : $nodeHeight;
   $nodeXSkip=(exists $confs->{nodexskip}) ? $confs->{nodexskip} : 5;
@@ -380,6 +385,7 @@ sub setConfig {
   $lineColor=(exists $confs->{linecolor}) ? $confs->{linecolor} : 'black';
   $lineArrow=(exists $confs->{linearrow}) ? $confs->{linearrow} : 'none';
   $nodeColor=(exists $confs->{nodecolor}) ? $confs->{nodecolor} : 'yellow';
+  $nodeOutlineColor=(exists $confs->{nodeoutlinecolor}) ? $confs->{nodeoutlinecolor} : 'black';
   $hiddenNodeColor=(exists $confs->{hiddennodecolor}) ? $confs->{hiddennodecolor} : 'black';
   # $activeNodeColor=(exists $confs->{activenodecolor}) ? $confs->{activenodecolor} : 'blue';
   $currentNodeColor=(exists $confs->{currentnodecolor}) ? $confs->{currentnodecolor} : 'red';
@@ -411,6 +417,7 @@ sub setConfig {
     $psFontFile="$libDir/csarialm.pfa";
   }
   ($appIcon)=(exists $confs->{appicon}) ? <$$confs{appicon}> : ("$libDir/tred.xpm");
+  $sortAttrs=(exists $$confs{sortAttributes}) ? $$confs{sortAttributes} : 1;
   $psFontName=(exists $$confs{psfontname}) ? $$confs{psfontname} : "Arial-Medium";
   $psFontSize=(exists $$confs{psfontsize}) ? $$confs{psfontsize} : "12";
   ($macroFile)=<$$confs{macrofile}> if (exists $$confs{macrofile});
@@ -427,7 +434,7 @@ sub setConfig {
   $showHidden=exists ($confs->{showhidden}) ? $confs->{showhidden} : 0;
   $createMacroMenu=(exists $confs->{createmacromenu}) ? $confs->{createmacromenu} : 0;
   $maxMenuLines=(exists $confs->{maxmenulines}) ? $confs->{maxmenulines} : 20;
-  $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : 1;
+  $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : ($^O !~ /^MS/);
   $Tk::strictMotif=(exists $confs->{strictmotif}) ? $confs->{strictmotif} : 0;
   $printColors=(exists $confs->{printcolors}) ? $confs->{printcolors} : 0;
   $cstsToFs=(exists $confs->{cststofs}) ? $confs->{cststofs} : undef;
@@ -547,9 +554,11 @@ sub readMacros {
       } elsif (/\#[[ \t]*include[ \t]+(.+)/) {
 	my $mf=$1;
 	unless (-f $mf) {
-	  $mf=dirname($file).$mf;
+	  $mf=dirname($file).$m1;
+	  print STDERR "trying $mf\n";
 	  unless (-f $mf) {
-	    $mf="$libDir/$mf";
+	    $mf="$libDir/$1";
+	    print STDERR "not found, trying $mf\n";
 	  }
 	}
 	if (-f $mf) {
@@ -1479,6 +1488,8 @@ sub startMain {
 	 [Checkbutton => 'Highlight Attributes',
 	  -variable => \$highlightAttributes,
 	  -command  => [\&redraw_tree,\%group]],
+	 [Checkbutton => 'Sort Attributes in Dialogs',
+	  -variable => \$sortAttrs],
 	 [Separator => ''],
 	 [Button => 'Customize Attributes ...', -command => [\&customAttrsDialog,\%group]]
 	])->pack(qw/-side left/);
@@ -2087,12 +2098,11 @@ sub editAmbiguousAttr {
 sub editAttrsDialog {
   my ($grp,$node)=@_;
   return if (doEvalHook($grp,"do_edit_attrs_hook",$node) eq 'stop');
-  my $r;
-  my $b;
-  my $a;
   my @vals;
   my $rows=min(10,$#atord+1);
   my @r=();
+  local @atord = sort {uc($a) cmp uc($b)} @atord if $sortAttrs;
+  my ($a,$b,$r);
 
   $grp->{'top'}->Busy(-recurse =>1);
   my $d=$grp->{'top'}->DialogBox(-title => "Edit Node Attributes", -width => '10c',
@@ -2226,7 +2236,7 @@ sub customAttrsDialog {
 		     -height 15 -scrollbars e
                      -exportselection 0/);
   $al->pack(qw/-padx 5 -side left -expand yes -fill both/);
-  $al->insert('end',@atord);
+  $al->insert('end',$sortAttrs ? (sort {uc($a) cmp uc($b)} @atord) : @atord);
   my $cf = $f->Frame();
   my $cl =
     $cf->Scrolled(qw/Listbox -relief sunken
@@ -2559,7 +2569,8 @@ sub whichTextColor {
 
 sub nodeOptions {
   my ($grp,$node)=@_;
-  return (-fill =>
+  return (-outline => $nodeOutlineColor,
+	  -fill =>
 	  ($grp->{'currentNode'} eq $node) ?
 	  $currentNodeColor :
 	  (isShown($node,0) ?
@@ -2687,7 +2698,7 @@ sub redraw_tree {
       ##              ($${attribute} may be used inside the code and is expanded
       ##               to 'value'. \${attribute} is not interpolated before <?code?>,
       ##               but may be used in retur value and is interpolated later)
-      my $msg=InterpolateTextField($node,$displayAttrs[$i]);
+      my $msg=encode(InterpolateTextField($node,$displayAttrs[$i]));
       $msg=~s/([\$\#]{[^}]+})/\#\#\#\1\#\#\#/g;
       my $xskip=0;
       my $txt;
@@ -2735,7 +2746,7 @@ sub redraw_tree {
   $grp->{CanvasBalloon}=$grp->{top}->Balloon(-initwait => $canvasBalloonInitWait,
 				-state => 'balloon',
 				-background => '#fff3b0');
-  $grp->{CanvasBalloon}->Subwidget('message')->configure(qw/-justify left/);
+  $grp->{CanvasBalloon}->Subwidget('message')->configure(-justify => 'left',-font => $font);
   $grp->{CanvasBalloon}->attach($grp->{'canvas'}->Subwidget('scrolled'),
 				-balloonposition => 'mouse',
 				-msg => { map 
@@ -2744,7 +2755,7 @@ sub redraw_tree {
 					      my $msg=InterpolateTextField($grp->{'pinfo'}{$_},
 								      $grp->{'BalloonPattern'});
 					      $msg=~s/\${([^}]+)}/$grp->{'pinfo'}{$_}->{$1}/eg;
-					      $_ => $msg;
+					      $_ => encode($msg);
 					    }
 					  } $grp->{'canvas'}->find('withtag','point')
 					});
@@ -3265,8 +3276,15 @@ sub node_move {
 
     my $lcx=$grp->{'pinfo'}{'lastCanvasX'};
     my $lcy=$grp->{'pinfo'}{'lastCanvasY'};
+    my $ncolor,$ocolor;
 
     if ($scroll) {
+      $ncolor=$w->itemcget('selected','-fill');
+      $ocolor=$w->itemcget('selected','-outline');
+      $w->itemconfigure('selected',
+			-fill => $grp->{'canvas'}->cget('-background'),
+			-outline => $grp->{'canvas'}->cget('-background')
+		       );
       scrollCanvasToXY($w, $grp, $x, $y);
     } else {
       $grp->{'pinfo'}{'lastCanvasX'}=$w->canvasx($x);
@@ -3274,7 +3292,7 @@ sub node_move {
     }
     my($cx, $cy) = ($w->canvasx($x),$w->canvasy($y));
     $w->move('selected',  $cx-$lcx, $cy-$lcy);
-
+    $w->itemconfigure('selected', -fill => $ncolor, -outline => $ocolor ) if $scroll;
     $w->itemconfigure('nearest', -fill => (isShown($node,0) ?
 						     $nodeColor :
 						     $hiddenNodeColor));
