@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-05-31 11:09:46 pajas>
+# Time-stamp: <2001-05-31 11:14:05 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -494,7 +494,7 @@ sub GetTree2 ($$$) {
 	$curr=$curr->{$rbrother};
 	next;
       }
-      croak "Unexpected token... `$c'!\n";
+      croak "Unexpected token... `$c'!\n$l\n";
     }
     croak "Error: Closing parens do not lead to root of the tree." 
 	if ($curr != $root);
@@ -531,7 +531,7 @@ sub GetTree ($$$) {
 	next;
       }
       $l=~/\G(.)/gsco;
-      croak "Unexpected token `$1'!\n";
+      croak "Unexpected token `$1'!\n$l\n";
     }
     croak "Error: Closing parens do not lead to root of the tree." 
 	if ($curr != $root);
@@ -1496,7 +1496,7 @@ sub writeFile {
        and &{"${backend}::write"}($fh,$self)
        and &{"${backend}::close_backend"}($fh));
   };
-  if $@ {
+  if ($@) {
     print STDERR "Error: $@\n";
     return 0;
   }
