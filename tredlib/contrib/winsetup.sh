@@ -1,4 +1,16 @@
 #!/bin/bash
+
+if [ $1 = "perl58" ]; then
+  REQPERLVER=8
+  REQPERLINSTDIR=win32_perl58
+else
+  REQPERLVER="[68]"
+  REQPERLINSTDIR=win32_perl56
+fi
+
+PACKAGES56="Tk Text::Iconv XML::JHXML Tie::IxHash"
+PACKAGES58="Text::Iconv XML::JHXML Tie::IxHash"
+
 if [ "$OSTYPE" != "cygwin" ]; then 
   echo "Tento program je urcen vyhradne pro instalaci tredu"
   echo "v prostredi MS Windows, je mi lito!"
@@ -71,7 +83,7 @@ function findtreddir {
 function perl_version_current {
   INSTVER=`$PERLBIN --version | grep "This is perl."`
   echo $INSTVER
-  if $PERLBIN --version | grep -q 'This is perl.* v5\.[86]'; then
+  if $PERLBIN --version | grep -q 'This is perl.* v5\.'${REQPERLVER}; then
     return 0
   else 
     return 1
@@ -87,18 +99,27 @@ function get_version {
 }
 
 function upgrade_packages {
-  for s in $*; do 
-    echo
-    echo Kontroluji verzi baliku $s
-    QUERY=`$PPM query "^$s\$"`
-    if [ -n "$QUERY" ]; then
-      $PPM verify --location=packages --upgrade "$s"
-    else
-      install_packages $s
-      echo $s installed.
-      echo
-    fi
-  done
+  if $PERLBIN --version | grep -q 'This is perl.* v5\.6'; then
+      for s in $PACKAGES56; do 
+	echo
+	echo Kontroluji verzi baliku $s
+	QUERY=`$PPM query "^$s\$"`
+	if [ -n "$QUERY" ]; then
+	  $PPM verify --location=packages --upgrade "$s"
+	else
+	  install_packages $s
+	  echo $s installed.
+	  echo
+	fi
+      done
+  else
+      for s in $PACKAGES58; do 
+	echo
+	echo Kontroluji verzi baliku $s
+	ppd="packages-ap58/${s//::/-}.ppd";
+	$PPM install "$ppd"
+      done
+  fi
 }
 
 function install_packages {
@@ -109,9 +130,13 @@ function upgrade_perl {
   PERLINSTALLDIR=${PERLDIR%/BIN}
   PERLINSTALLDIR=${PERLINSTALLDIR%/bin}
   if ask "Pozor: opravdu chcete smazat $PERLINSTALLDIR?"; then
-      $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat
-      read -e -n1 -r -p "Hodlam smazat $PERLINSTALLDIR. Stisknete libovolnou klavesu pro pokracovani..."
+      $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat >/dev/null 2>/dev/null
+      echo
+      echo "Hodlam smazat $PERLINSTALLDIR."
+      read -e -n1 -r -p "Stisknete libovolnou klavesu pro pokracovani..."
+      echo "Mazu $PERLINSTALLDIR..."
       rm -rf $PERLINSTALLDIR
+      echo "Hotovo."
   else
       echo "Instalace prerusena."
       read -e -n1 -r -p "Ukoncete proces stiskem klavesy... "
@@ -130,16 +155,14 @@ function get_perl_install_dir {
 }
 
 function install_perl {
-#    APi522e.exe
   test -d "$PERLINSTALLDIR" || mkdir "$PERLINSTALLDIR"
   DIR=$PWD
-  echo Rozbaluji instalacni balicek "$DIR/win32_perl/perl561.tgz"
+  echo Rozbaluji instalacni balicek "$DIR/$REQPERLINSTDIR"/perl*.tgz
   (cd "$PERLINSTALLDIR" &&\
-  tar -xzf "$DIR/win32_perl/perl561.tgz" &&\
+  tar -xzf "$DIR/$REQPERLINSTDIR/"perl*.tgz &&\
   echo "Spoustim instalator programu ActiveState Perl"
   "$PERLINSTALLDIR/install.bat") || \
   (echo; echo Nastala chyba pri instalaci perlu!; exit 1)
-#  install_packages Tk XML::DOM Text::Iconv
 }
 
 echo
@@ -167,7 +190,7 @@ done
 
 PERLDIR=`dirname $PERLBIN 2>/dev/null`
 DOSPERLDIR=`dosdirname $PERLDIR`
-PPM="$PERLBIN $DOSPERLDIR/ppm"
+PPM="$PERLBIN $DOSPERLDIR/ppm.bat"
 
 
 echo Kontruluji verzi instalovaneho perlu.
@@ -176,7 +199,7 @@ if perl_version_current; then
   echo Ok.
 else 
   echo
-  echo Tato instalace vyzaduje jinou verzi perlu.
+  echo "Tato instalace vyzaduje verzi 5.${REQPERLVER}"
   if ask "Prejete si provest aktualizaci?"; then
     upgrade_perl
     PERLBIN="$PERLINSTALLDIR/bin/perl.exe"
@@ -191,12 +214,7 @@ else
   fi
 fi
 
-if $PERLBIN --version | grep -q 'This is perl.* v5\.6'; then
-upgrade_packages Tk Text::Iconv XML::JHXML Tie::IxHash
-# XML::SAX XML::LibXML  XML::LibXML::Iterator 
-else
-  echo U teto verze perlu preskakuji kontroly baliku.
-fi
+upgrade_packages
 
 findtreddir
 
@@ -264,7 +282,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     regtool -s set "\\machine\\Software\\TrEd\\Dir" "$TREDDIR" 
     echo
     echo "Instalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla"
-    echo "ikona s obrazkem sileneho zvirete:)"
+    echo "ikona s obrazkem sileneho zvirete"
     echo
 else
   echo
