@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-26 18:17:13 pajas>";
+$timestamp="Time-stamp: <2001-04-27 09:23:22 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -305,7 +305,7 @@ sub bookmarkFilelist {
 
   $default->add(0,@files);
   addNewFilelist(undef,$default);
-  unless (bookmarkFilelist) {
+  unless (bookmarkFilelist()) {
     print "Bookmarks: ".$ENV{HOME}.'/.tred_bookmarks'."\n";
     my $bookmarks = new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
     addNewFilelist(undef,$bookmarks);
@@ -779,10 +779,11 @@ sub ErrorMessage {
 
 sub addToRecent {
   my ($grp,$f)=@_;
+  $f=rel2abs($f);
 
   if ($f) {
     @recentFiles=grep { $_ ne $f } @recentFiles;
-    unshift @recentFiles,rel2abs($f);
+    unshift @recentFiles,$f;
   }
   @recentFiles=@recentFiles[0..min($#recentFiles,9)];
 
@@ -1451,6 +1452,10 @@ sub addNewFilelist {
       undef $fl;
       return;
     }
+  }
+  if (not defined($fl->name) or $fl->name eq "") {
+    undef $fl;
+    return;
   }
   push @filelists, $fl;
   if ($grp) {
@@ -3923,13 +3928,13 @@ sub findNodeDialog {
   $of->Label(-text => 'Search file-list: ')->pack(qw/-side left/);
   my $om=$of->Optionmenu(-textvariable => \$grp->{searchFilelist})->pack(qw/-side left/);
 
-  $om->options(['<<Current file only>>', map { $_->name } @filelists]);
+  $om->options(['[Current file only]', map { $_->name } @filelists]);
 
   $of->Button(-text => 'Edit',
 	      -command => [ sub {
 			      my ($grp)=@_;
 			      my $name=filelistDialog($grp,1);
-			      $om->options(['<<Current file only>>',map { $_->name } @filelists]);
+			      $om->options(['[Current file only]',map { $_->name } @filelists]);
 			      $grp->{searchFilelist}=$name if (ref(findFilelist($name)));
 			    },$grp,$om])->pack(qw/-side left/);
   $grp->{'top'}->Unbusy();
@@ -3942,7 +3947,7 @@ sub findNodeDialog {
     foreach (keys %$template) {
       delete $template->{$_} unless defined($template->{$_}) and $template->{$_} ne '';
     }
-    if ($grp->{searchFilelist} ne '<<Current file only>>') {
+    if ($grp->{searchFilelist} ne '[Current file only]') {
       my $fl=findFilelist($grp->{searchFilelist});
       if (ref($fl) and $fl->file_count>0 ) {
 	local $insideEval=1;                 # no redraw
@@ -4238,7 +4243,8 @@ sub editAttr {
 		    -justify => 'right')->pack(-side=>'left');
   my $e = $d->Entry(-relief => 'sunken',
 		    -width => 40,
-		    -state => (doEvalHook($grp,'enable_attr_hook',$_) eq 'stop') ? 'disabled' : 'normal',
+		    -state => (doEvalHook($grp,'enable_attr_hook',
+					  $attr,"normal") eq 'stop') ? 'disabled' : 'normal',
 		    -takefocus => 1,
 		    -font => $font,
 		    -textvariable => \$newvalue)->pack();
