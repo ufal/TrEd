@@ -200,7 +200,6 @@ sub value_line_list {
 	    #attr
 	    my $style=$1;
 	    if ($style =~ /-tag:\s*(.*\S)\s*$/) {
-	      print "Storing tag:$1\n";
 	      if ($styles{"tag"} ne "") {
 		$styles{"tag"}.=",$1";
 	      } else {

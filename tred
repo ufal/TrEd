@@ -1218,7 +1218,6 @@ sub set_value_line {
     my %tags;
     @tags{ map { @$_[1..$#$_] } @$v }=();
     foreach my $tag (keys(%tags)) {
-      print "setup: $tag\n";
       if ($tag=~/^\s*-/) {
 	eval {
 	  $vl->tagConfigure(
@@ -4467,7 +4466,6 @@ sub dumpSentView {
   while (@dump) {
     my ($K,$V,$I) = (shift @dump, shift @dump, shift @dump);
     if ($K eq 'tagon') {
-      print "export: $V\n";
       print $html "<p>" if $V eq 'treeno';
       print $html "<u>" if $t->tagCget($V,'-underline');
       print $html "<font color=\"".$t->tagCget($V,'-foreground')."\">" if $t->tagCget($V,'-foreground');
