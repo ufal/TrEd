@@ -376,7 +376,7 @@ sub same_clause_below {
   return 1 if $node->{tag}!~/^V/;
   my @c= PDT::GetFather_TR($node);
   if ($node->{tag}=~/^Vf/ and
-      first { $_->{lemma} =~ /^(dokázat|lze|schopný)$/ } @c
+      first { $_->{lemma} =~ /^(umìt|dokázat|lze|schopný)(|$)/ } @c
       or
       $node->{tag}=~/^Vs/ and
       first { $_->{lemma} =~ /^být|bývat|mít$/ } @c) {
@@ -612,7 +612,9 @@ sub match_node {
 
   if ($pos ne '') {
     if ($pos eq 'a' and ($case==1 and $node->{tag}=~/^Vs..[-1]/ or
-			 $case==4 and $node->{tag}=~/^Vs..4/)) {
+			 $case==4 and $node->{tag}=~/^Vs..4/ or
+			 $node->{tag}=~/^PD/
+			)) {
       # treat as ok
     } elsif ($pos =~ /^[adnijv]$/) {
       $pos = uc($pos);
@@ -644,7 +646,7 @@ sub match_node {
     } elsif ($pos eq 'c') {
       # TODO: c
       # this should be more strict, for ex. we should probably require IsFiniteVerb or something
-      if ($flags->{strict_subclause}) {
+      unless ($flags->{loose_subclause}) {
 	print "trying STRICT subclause\n" if $V_verbose;
 	return 0 unless is_direct_subclause($tnode || $node);
       } else {
@@ -656,14 +658,20 @@ sub match_node {
     }
   } elsif (#!$no_case and  # BYT_CHANGE
 	   $case ne '') { # assume $tag =~ /^[CNP]/
-    unless ($kdo or $node->{tag}=~/^[CNFPX]/ or (!$flags->{strict_adjectives} and $node->{tag}=~/^A/) or
-	    ($node->{lemma}=~ /^(ano|ne|pro-1|proti-1)$/ and $node->{afun}=~/^(ExD|Adv|Obj|Sb)(_|$)/) or
+    unless ($kdo or
+	    ($tnode and $tnode->{trlemma} eq "&Forn;") or
+	    $node->{tag}=~/^[CNFPX]/ or (!$flags->{strict_adjectives} and $node->{tag}=~/^A/) or
+	    ($node->{lemma}=~ /^(ano|ne|pro-1|proti-1|off-1)(?:\`|$|_)/ and $node->{afun}=~/^(ExD|Adv|Obj|Sb|Atr)(_|$)/) or
 	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|nemálo-1|málo-3|dost|do-1|mezi-1|kolem-1|po-1|okolo-1|pøes-1|na-1|pod-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
+      print "TNODE: trlemma=$tnode->{trlemma}, operand=$tnode->{operand}\n" if $tnode and $V_verbose;
       return 0;
     }
   }
-  if (!$kdo and !$no_case and $case ne '') {
+  if (!$kdo and !$no_case and $case ne '' and 
+      !($tnode and $tnode->{trlemma} eq "&Forn;") and
+      !($tnode and $tnode->{operand} eq "OP")
+     ) {
     return 0 unless ($pos eq 'a' and ($case==1 and $node->{tag}=~/^Vs..[-1]/ or
 				      $case==4 and $node->{tag}=~/^Vs..4/))
       or check_node_case($node,$case);
@@ -695,7 +703,7 @@ sub match_node {
     }
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
-    unless (first { match_node_coord($_,undef,$ffn,$aids,$no_case,$flags) } get_children_include_auxcp($node)) {
+    unless (first { match_node_coord($_,$tnode,$ffn,$aids,$no_case,$flags) } get_children_include_auxcp($node)) {
       my @nc = with_AR {
 	PDT::GetChildren_AR($node,
 			    sub{1},
@@ -773,6 +781,8 @@ sub match_form {
   print "\nFORM: ".$V->serialize_form($form)." ==> $node->{lemma}, $node->{tag}\n" if $V_verbose;
   my @a = get_aidrefs_nodes($aids,$node);
   my $no_case=0;
+  
+  @a = grep { $_->{trlemma} ne 'se' } @a if $node->{trlemma} eq "&Rcp;";
 
   # try to fake AIDREFs for certain added nodes
   if ($node->{TID} ne '' and !@a) {
@@ -1128,9 +1138,13 @@ sub _filter_OPER_AP_and_jako_APPS {
   my ($n)=@_;
   while (PDT::is_member_TR($n)) {
     return 1 if
-      ($n->parent and $n->parent->{func} eq "APPS" and
-       $n->parent->{trlemma} =~ /^(jako|&Colon;|&Hyphen;)$/ and
-       $n->{memberof} eq "AP" and
+      ($n->parent and
+       ($n->parent->{func} eq "APPS" and $n->{memberof} eq "AP" and
+	($n->parent->{trlemma} =~ /^(jako|&Colon;|&Hyphen;|&Lpar;)$/ 
+	 or first { $_->{func} eq "CM" and $_->{lemma} eq 'napøíklad' } PDT::GetChildren_TR($n))
+#	  or
+#	    $n->parent->{func} eq "OPER"
+      ) and
        (($n->{AID} ne "" and $n->parent->{AID} ne "" and
 	 $n->parent->{ord} < $n->{ord}) or
 	(($n->{AID} eq "" or $n->parent->{AID} eq "") and
@@ -1144,9 +1158,9 @@ sub _filter_OPER_AP_and_jako_APPS {
 	(($n->{AID} eq "" or $n->parent->{AID} eq "") and
 	 $n->parent->{dord} < $n->{dord})))
 	or
-	   (($n->{func} eq "OPER" and
-	     $n->parent and $n->parent->{func} eq "APPS" and
-	     $n->{memberof} eq "AP"));
+	  (($n->{func} eq "OPER" and
+	      $n->parent and $n->parent->{func} eq "APPS" and
+		$n->{memberof} eq "AP"));
     $n=$n->parent;
   }
   return 0;
@@ -1154,10 +1168,10 @@ sub _filter_OPER_AP_and_jako_APPS {
 
 
 sub _has_parent_coord_a {
-  my ($m) = @_;
+  my ($m,$nebo) = @_;
   my $res = with_AR {
     $m->parent and
-    $m->parent->{lemma} eq 'a-1' and 
+    ($m->parent->{lemma} eq 'a-1' or $nebo and $m->parent->{lemma} eq 'nebo') and 
     PDT::is_coord($m->parent) and $m->{afun}=~/_Co$/ and
     not first { $_->{ord} > $m->{ord} } PDT::expand_coord_apos($m->parent)
   };
@@ -1181,7 +1195,7 @@ sub match_element ($$$$$$$) {
 	print "\n09 no form matches: $c->{func},$c->{lemma},$c->{tag}\n";
       } elsif (!$quiet) {
 	print "09 no form matches: $c->{func},$c->{lemma},$c->{tag}\t";
-	  Position($node);
+	Position($node);
       }
       $c->{_light}='_LIGHT_' unless $quiet;
       return 0;
@@ -1277,7 +1291,7 @@ sub validate_frame_no_transform {
     }
   }
 
-  my @c = PDT::GetChildren_TR($node);
+  my @c = PDT::GetChildren_TR($node,sub { $_[0]->{func} !~/^(CM|RHEM|PREC)$/ });
 
   # we must include children of ktery/jaky/... in relative subclauses
   # co-referring to the current node
@@ -1290,8 +1304,8 @@ sub validate_frame_no_transform {
     #    }
     @d = map { PDT::GetChildren_TR($_) } @d;
     if (@d) {
-      print "22 found children of pz4:".scalar(@d)."\t";
-      Position($node);
+#      print "22 found children of pz4:".scalar(@d)."\t";
+#      Position($node);
     }
     push @c,@d;
   }
@@ -1318,10 +1332,10 @@ sub validate_frame_no_transform {
       print "WW should ignore node: '$m->{trlemma}'\n" if (!$quiet and $V_verbose);
     } elsif ($m->{AID} ne "" and
 	     (($m->{lemma}=~/^(podobnì|daleko-1|dal¹í)(_|$)/
-	       and _has_parent_coord_a($m))
-              or ($m->{lemma}=~/^(apod-1)(_|$)/)
-	      or ( (first { $_->{lemma} =~ /^tak-3(_|$)/  } get_aidrefs_nodes($aids,$m)) and
-		   (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$m)) and
+	       and _has_parent_coord_a($m,1))
+              or ($m->{lemma}=~/^(atd-1|aj-2|aj-1|apod-1)(_|$)/)
+	      or ( (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$m)) and
+		   first { $_->{lemma}=~/^tak-3(_|$)/ } (PDT::GetChildren_TR($m),get_aidrefs_nodes($aids,$m)) and
 		   (first { _has_parent_coord_a($_) } get_aidrefs_nodes($aids,$m))))) {
       $ignore{$m}=1;
       print "WW should ignore node: '$m->{trlemma}'\n" if (!$quiet and $V_verbose);
@@ -1509,15 +1523,39 @@ sub validate_frame_no_transform {
 	print "****\n" if (!$quiet and $V_verbose);
       } else {
 	# 2) check obligatory frame slots
-	if ($V_verbose) {
-	  unless (first { #local $V_verbose = $V_very_verbose;
-			  match_element($V,$_,$e,$node,$aids,$flags,0); # $V_very_verbose
-			} @{$c{$o}}) {
-	    #match_element($V,$_,$e,$node,$aids,$flags,$quiet) for @{$c{$o}};
-	    return 0;
+	if ($o =~ /^[CD]PHR$|^$match_actants$/) {
+	  # ACTANTS:
+	  # all nodes must match
+	  if ($V_verbose) {
+	    if (first { !match_element($V,$_,$e,$node,$aids,$flags,0) } @{$c{$o}}) {
+	      return 0;
+	    }
+	  } else {
+	    return 0 if (first { !match_element($V,$_,$e,$node,$aids,$flags,$quiet) } @{$c{$o}});
 	  }
 	} else {
-	  return 0 unless (first { match_element($V,$_,$e,$node,$aids,$flags,$quiet) } @{$c{$o}});
+	  # FREE MODIFIERS: some of the sibling nodes must match
+	  # (meaning that it matches and if coordinated, then all
+	  # other nodes with the same functor in the coordination
+	  # match too)
+	  my %match;
+	  for my $c ( @{$c{$o}} ) {
+	    my $match = match_element($V,$c,$e,$node,$aids,$flags,1);
+	    my $h = _highest_coord($c);
+	    if (exists $match{ $h }) {
+	      $match{ $h } &&= $match;
+	    } else {
+	      $match{ $h } = $match;
+	    }
+	  }
+	  unless (first { $_ } values %match) {
+	    # there was a problem, report first of the nodes that didn't match
+	    if ($V_verbose) {
+	      first { !match_element($V,$_,$e,$node,$aids,$flags,0) } @{$c{$o}};
+	    } else {
+	      first { !match_element($V,$_,$e,$node,$aids,$flags,$quiet) } @{$c{$o}};
+	    }
+	  }
 	}
       }
     }
@@ -1529,10 +1567,13 @@ sub validate_frame_no_transform {
       return 0 unless match_element($V,$c,$e,$node,$aids,$flags,$quiet);
     }
 
+    my %oblig_func = map {$_=>1} map { split /\|/,$_ } keys %oblig;
     # warn about nodes possibly added for no reason ...
     foreach my $c (@c) {
-      if ($c->{TID} ne "" and $nonoblig{get_func($c)} and
-	    $c->{coref} eq "" and
+      if ($c->{TID} ne "" and !$oblig_func{get_func($c)} and
+	    $c->{coref} eq "" and $c->{trlemma} ne "&Neg;" and
+#            ($c->{tag} !~ /..../ or 
+	       $c->{AIDREFS} eq "" and
 	      $c->{trlemma} ne "&Rcp;" and
 		!first { $_->{AID} ne "" } $c->visible_descendants(FS())
 	       ) {
@@ -1552,16 +1593,24 @@ sub validate_frame_no_transform {
 	    $n=$n->following_visible(FS());
 	  }
 	}
-	unless ($coref) {
-	  print "0X Possibly redundant added node: ",get_func($c)."\t";
-	  Position($c);
-	} else {
+	if (!$coref) {
+	  if ($flags->{delete_redundant_added_nodes}) {
+	    print "0D Deleted possibly redundant added node: ",get_func($c)."\t";
+	    Position($c);
+	    DeleteCurrentNode($c);
+	    ChangingFile(1);
+	  } else  {
+	    print "0X Possibly redundant added node: ",get_func($c)."\t";
+	    Position($c);
+	  }
+	} elsif (!$flags->{dont_report_redundant}) {
 	  print "0Z Possibly redundant added node, but coreference leads to it: ",get_func($c)."\t";
 	  Position($c);
 	}
-      } elsif ($c->{trlemma} eq '&Rcp;' and !$oblig{get_func($c)} and
-		 !first { $_->{tag}=~/^V/ and first { $_->{trlemma} eq "se" } $_->children } get_aidrefs_nodes($aids,$node)
-		) {
+      } elsif (!$flags->{dont_report_redundant} and
+	$c->{trlemma} eq '&Rcp;' and !$oblig_func{get_func($c)} and
+	  !first { $_->{tag}=~/^V/ and first { $_->{trlemma} eq "se" } $_->children } get_aidrefs_nodes($aids,$node)
+	 ) {
 	print "0Y Possibly redundant Rcp: ",get_func($c)."\t";
 	Position($c);
       }
@@ -1611,12 +1660,13 @@ sub check_verb_frames {
   my ($node,$aids,$frameid,$fix,$flags)=@_;
   $flags = {} unless defined($flags);
   my $func = get_func($node);
-  return -1 if
-    $node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/ or
-    $node->{tag}!~/^V/ or $func =~ /[DF]PHR/
-    or ($func eq 'APPS'and $node->{trlemma} eq 'tzn');
+#  return -1 if
+#    $node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/ or
+#    $node->{tag}!~/^V/ or $func =~ /[DF]PHR/
+#    or ($func eq 'APPS'and $node->{trlemma} eq 'tzn');
   #    return if $node->{tag}!~/^Vs/; # TODO: REMOVE ME!
-  my $lemma = lc($node->{trlemma});
+  return -1 unless $node->{g_wordclass} =~ /^semv/;
+  my $lemma = lc($node->{t_lemma});
   $lemma =~ s/_/ /g;
   $V->user_cache->{$lemma} = $V->word($lemma,'V') unless exists($V->user_cache->{$lemma});
   if ($V->user_cache->{$lemma}) {
@@ -1771,7 +1821,7 @@ sub check_verb_frames {
       return 0;
     }
   } else {
-    print "05 lemma not in vallex: $lemma\t";
+    print "05 lemma not in vallex: $lemma (V)\t";
     print $node->{AID}.$node->{TID}."\t";
     Position($node);
     return 0;
@@ -1789,14 +1839,15 @@ sub check_nounadj_frames {
 #  }
 
   my $func = get_func($node);
-  my $pos = substr($node->{tag},0,1);
-  $pos = 'A' if ($node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/);
-  return if $pos!~/[NA]/ or $func =~ /[DF]PHR/;
+  return unless ($node->{g_wordclass}=~/^(semn|semadj|semadv)/);
+  my $pos = ($node->{g_wordclass}=~/semn/ ? 'N' :
+	     $node->{g_wordclass}=~/semadj/ ? 'A' :
+	     $node->{g_wordclass}=~/semadv/ ? 'D' : 'X');
 
   local @actants = qw(ACT PAT EFF MAT ADDR) if ($pos eq 'N');
   local $match_actants = '(?:'.join('|',@actants).')' if ($pos eq 'N');
 
-  my $lemma = lc($node->{trlemma});
+  my $lemma = lc($node->{t_lemma});
   $lemma =~ s/_/ /g;
   $V->user_cache->{$lemma} = $V->word($lemma,$pos) unless exists($V->user_cache->{$lemma});
   if ($V->user_cache->{$lemma}) {
@@ -1915,7 +1966,7 @@ sub check_nounadj_frames {
   } else {
     # report problem only if this instance has DPHR, CPHR or actant
     if (grep { get_func($_) =~ /^[CD]PHR$|^$match_actants$/ } PDT::GetChildren_TR($node)) {
-      print "05 lemma not in vallex: $lemma\t";
+      print "05 lemma not in vallex: $lemma ($pos)\t";
       Position($node);
     }
     return 0;
