@@ -335,7 +335,7 @@ sub read_node ($$$;$) {
     my $hash;
     if ($type->{role} eq '#NODE' or $struct->{role} eq '#NODE') {
       $hash=FSNode->new();
-      $hash->set_type($fsfile->metaData('schema')->type($type));
+      $hash->set_type($fsfile->metaData('schema')->type($type->{structure}));
     } else {
       $hash={}
     }
@@ -383,10 +383,10 @@ sub read_node ($$$;$) {
 	    _debug("KNIT: name=$name, '$ref'");
 	    if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
 	      my ($reffile,$idref)=($1,$2);
-	      my $refdom = ($reffile ne "") ? $fsfile->metaData('ref')->{$reffile} : $child->ownerDocument;
+	      my $refdom = ($reffile ne "") ? $fsfile->userData->{ref}->{$reffile} : $child->ownerDocument;
 	      if (ref($refdom)) {
 		my $refnode =
-		  $fsfile->metaData('ref-index')->{$reffile}{$idref} ||
+		  $fsfile->userData->{'ref-index'}->{$reffile}{$idref} ||
 		    $refdom->getElementsById($idref);
 		if (ref($refnode)) {
 		  my $ret = read_node($refnode,$fsfile,$types,$member);
@@ -510,11 +510,8 @@ sub read_trees {
 	      $ref_data = $parser->parse_fh($ref_fh);
 	      $parser->process_xincludes($ref_data);
 	      close_backend($ref_fh);
-	      for (qw(ref ref-index)) {
-		$fsfile->changeMetaData($_,{}) unless $fsfile->metaData($_)
-	      }
-	      $fsfile->metaData('ref')->{$refid}=$ref_data;
-	      $fsfile->metaData('ref-index')->{$refid}=index_by_id($ref_data);
+	      $fsfile->userData->{'ref'}->{$refid}=$ref_data;
+	      $fsfile->userData->{'ref-index'}->{$refid}=index_by_id($ref_data);
 	      _debug("Stored meta 'ref' -> '$reference->{name}' = $ref_data");
 	    } else {
 	      die "Couldn't open '".$href."': $!\n";
@@ -663,8 +660,8 @@ sub write {
       if ($refid) {
 	my $href = $fsfile->metaData('references')->{$refid};
 	if ($href and $reference->{readas} eq 'dom' and
-	      ref($fsfile->metaData('ref'))) {
-	  my $dom = $fsfile->metaData('ref')->{$refid};
+	      ref($fsfile->userData->{'ref'})) {
+	  my $dom = $fsfile->userData->{'ref'}->{$refid};
 	  if ($dom) {
 	    my $ref_fh = IOBackend::open_backend($href,"w");
 	    binmode $ref_fh;
@@ -741,7 +738,7 @@ sub write_object ($$$$$$) {
 	      $xml->endTag($member);
 	      if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
 		my ($reffile,$idref)=($1,$2);
-		my $indeces = $fsfile->metaData('ref-index');
+		my $indeces = $fsfile->userData->{'ref-index'};
 		if ($indeces and $indeces->{$reffile}) {
 		  my $knit = $indeces->{$reffile}{$idref};
 		  if ($knit) {
