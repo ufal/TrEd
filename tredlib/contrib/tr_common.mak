@@ -28,6 +28,73 @@
 #bind next_file_choose_frame to Ctrl+KP_Add
 #bind next_file_choose_frame to Ctrl+plus Prejdi na dalsi soubor a obnov vyber ramce
 
+@special_trlemmas=
+    #disp  trlemma gender number
+    #
+    # Predelat na entity: &Comma; &Colon; atd.
+    #
+    #  display         trlemma      gender  number  func
+    ([ 'Comma',        '&Comma;',   '???',  '???', 'CONJ'   ],
+     [ 'Colon',        '&Colon;',   '???',  '???', 'CONJ'   ],
+     [ 'Dash',         '&Dash;',    '???',  '???', 'CONJ'   ],
+     [ 'Lpar',         '&Lpar;',    '???',  '???', '???'    ],
+     [ 'Forn',         '&Forn;',    '???',  '???', '???'    ],
+     [ 'Rcp',          '&Rcp;',     '???',  '???', 'PAT'    ],
+     [ 'Neg',          '&Neg;',     '???',  '???', '???'    ],
+     [ 'Cor',          '&Cor;',     '???',  '???', '???'    ],
+     [ 'Emp',          '&Emp;',     '???',  '???', '???'    ],
+     [ 'EmpNoun',      '&EmpNoun;', '???',  '???', '???'    ],
+     [ 'Gen',          '&Gen;',     '???',  '???', '???'    ],
+     [ 'Idph',         '&Idph;',    '???',  '???', '???'    ],
+     [ 'Unsp',         '&Unsp;',    '???',  '???', '???'    ],
+     [ 'QCor',         '&QCor;',    '???',  '???', 'ACT'    ],
+     [ 'v¹echen',       'v¹echen',    '???',  '???', 'ACT'   ],
+     [ 'stejnì',       'stejnì',    '???',  '???', 'MANN'   ],
+     [ 'stejný',       'stejný',    '???',  '???', 'RSTR'   ],
+     [ '???',          '???',       '???',  '???', '???'    ],
+     [ 'já',           'já',        '???',  'SG',  '???'    ],
+     [ 'ty',           'ty',        '???',  'SG',  '???'    ],
+     [ 'on-¾iv.',      'on',        'ANIM', 'SG',  '???'    ],
+     [ 'on-ne¾iv.',    'on',        'INAN', 'SG',  '???'    ],
+     [ 'ona',          'on',        'FEM',  'SG',  '???'    ],
+     [ 'ono',          'on',        'NEUT', 'SG',  '???'    ],
+     [ 'my',           'my',        '???',  'PL',  '???'    ],
+     [ 'vy',           'vy',        '???',  'PL',  '???'    ],
+     [ 'oni-¾iv.',     'on',        'ANIM', 'PL',  '???'    ],
+     [ 'ony-ne¾iv',    'on',        'INAN', 'PL',  '???'    ],
+     [ 'ony-¾en.',     'on',        'FEM',  'PL',  '???'    ],
+     [ 'ona-pl-neut.', 'on',        'NEUT', 'PL',  '???'    ],
+     [ 'ten',          'ten',       '???',  '???', '???'    ],
+     [ 'tak',          'tak',       '???',  '???', 'EXT'    ],
+     [ 'takový',       'takový',    '???',  '???', 'PAT'    ],
+    );
+
+@special_where=
+    (
+     ['tady', 'tady', 'LOC'],
+     ['odsud', 'tady', 'DIR1'],
+     ['tudy', 'tady', 'DIR2'],
+     ['sem', 'tady', 'DIR3'],
+     ['tam (kde?)', 'tam','LOC'],
+     ['odtamtud', 'tam', 'DIR1'],
+     ['tamtudy', 'tam', 'DIR2'],
+     ['tam (kam?)', 'tam', 'DIR3']
+    );
+
+@special_when=
+    (
+     ['kdy', 'kdy', 'TWHEN'],
+     ['odkdy', 'kdy', 'TSIN'],
+     ['dokdy', 'kdy', 'TTILL'],
+     ['jak dlouho', 'kdy', 'THL'],
+     ['na jak dlouho', 'kdy','TFHL'],
+     ['jak èasto', 'kdy', 'THO'],
+     ['bìhem', 'kdy', 'TPAR'],
+     ['ze kdy', 'kdy', 'TFRWH'],
+     ['na kdy', 'kdy', 'TOWH']
+    );
+
+
 sub choose_frame_or_advfunc {
   my $tag;
   foreach (qw(tag tagMD_a tagMD_b)) {
@@ -147,24 +214,14 @@ sub sort_attrs_hook {
 
 sub QuerySemtam {
   my $node=shift;
-  my @trs=
-    (
-     ['tady', 'tady', 'LOC'],
-     ['odsud', 'tady', 'DIR1'],
-     ['tudy', 'tady', 'DIR2'],
-     ['sem', 'tady', 'DIR3'],
-     ['tam (kde?)', 'tam','LOC'],
-     ['odtamtud', 'tam', 'DIR1'],
-     ['tamtudy', 'tam', 'DIR2'],
-     ['tam (kam?)', 'tam', 'DIR3']
-    );
+
   my @selected=grep { 
     $node->{trlemma} eq $_->[1] and 
       $node->{func} eq $_->[2]
-    }  @trs;
+    }  @special_where;
   @selected=grep { 
     $node->{trlemma} eq $_->[1]
-  }  @trs unless (@selected>0);
+  }  @special_where unless (@selected>0);
   if (@selected>0) {
     @selected=($selected[0]->[0]);
   }
@@ -172,10 +229,10 @@ sub QuerySemtam {
     @selected=($node->{trlemma});
   }
   if (main::selectValuesDialog($grp->{framegroup},$atr,
-			   [ map { $_->[0] } @trs ],
+			   [ map { $_->[0] } @special_where ],
 			       \@selected,0,undef,1)) {
 
-    my ($vals)=(grep { $_->[0] eq $selected[0] } @trs);
+    my ($vals)=(grep { $_->[0] eq $selected[0] } @special_where);
 
     $node->{trlemma}=$vals->[1];
     $node->{func}=$vals->[2];
@@ -186,24 +243,12 @@ sub QuerySemtam {
 
 sub QueryKdy {
   my $node=shift;
-  my @trs=
-    (
-     ['kdy', 'kdy', 'TWHEN'],
-     ['odkdy', 'kdy', 'TSIN'],
-     ['dokdy', 'kdy', 'TTILL'],
-     ['jak dlouho', 'kdy', 'THL'],
-     ['na jak dlouho', 'kdy','TFHL'],
-     ['jak èasto', 'kdy', 'THO'],
-     ['bìhem', 'kdy', 'TPAR'],
-     ['ze kdy', 'kdy', 'TFRWH'],
-     ['na kdy', 'kdy', 'TOWH']
-    );
   my @selected=grep { 
     $node->{trlemma} eq $_->[1] and $node->{func} eq $_->[2]
-    }  @trs;
+    }  @special_when;
   @selected=grep { 
     $node->{trlemma} eq $_->[1]
-  }  @trs unless (@selected>0);
+  }  @special_when unless (@selected>0);
   if (@selected>0) {
     @selected=($selected[0]->[0]);
   }
@@ -211,10 +256,10 @@ sub QueryKdy {
     @selected=($node->{trlemma});
   }
   if (main::selectValuesDialog($grp->{framegroup},$atr,
-			   [ map { $_->[0] } @trs ],
+			   [ map { $_->[0] } @special_when ],
 			       \@selected,0,undef,1)) {
 
-    my ($vals)=(grep { $_->[0] eq $selected[0] } @trs);
+    my ($vals)=(grep { $_->[0] eq $selected[0] } @special_when);
 
     $node->{trlemma}=$vals->[1];
     $node->{func}=$vals->[2];
@@ -226,56 +271,16 @@ sub QueryKdy {
 
 sub QueryTrlemma {
   my ($node,$assign_func)=@_;
-  my @trs=
-    #disp  trlemma gender number
-    #
-    # Predelat na entity: &Comma; &Colon; atd.
-    #
-    #  display         trlemma      gender  number  func
-    ([ 'Comma',        '&Comma;',   '???',  '???', 'CONJ'   ],
-     [ 'Colon',        '&Colon;',   '???',  '???', 'CONJ'   ],
-     [ 'Dash',         '&Dash;',    '???',  '???', 'CONJ'   ],
-     [ 'Lpar',         '&Lpar;',    '???',  '???', '???'    ],
-     [ 'Forn',         '&Forn;',    '???',  '???', '???'    ],
-     [ 'Rcp',          '&Rcp;',     '???',  '???', 'PAT'    ],
-     [ 'Neg',          '&Neg;',     '???',  '???', '???'    ],
-     [ 'Cor',          '&Cor;',     '???',  '???', '???'    ],
-     [ 'Emp',          '&Emp;',     '???',  '???', '???'    ],
-     [ 'EmpNoun',      '&EmpNoun;', '???',  '???', '???'    ],
-     [ 'Gen',          '&Gen;',     '???',  '???', '???'    ],
-     [ 'Idph',         '&Idph;',    '???',  '???', '???'    ],
-     [ 'Unsp',         '&Unsp;',    '???',  '???', '???'    ],
-     [ 'QCor',         '&QCor;',    '???',  '???', 'ACT'    ],
-     [ 'v¹echen',       'v¹echen',    '???',  '???', 'ACT'   ],
-     [ 'stejnì',       'stejnì',    '???',  '???', 'MANN'   ],
-     [ 'stejný',       'stejný',    '???',  '???', 'RSTR'   ],
-     [ '???',          '???',       '???',  '???', '???'    ],
-     [ 'já',           'já',        '???',  'SG',  '???'    ],
-     [ 'ty',           'ty',        '???',  'SG',  '???'    ],
-     [ 'on-¾iv.',      'on',        'ANIM', 'SG',  '???'    ],
-     [ 'on-ne¾iv.',    'on',        'INAN', 'SG',  '???'    ],
-     [ 'ona',          'on',        'FEM',  'SG',  '???'    ],
-     [ 'ono',          'on',        'NEUT', 'SG',  '???'    ],
-     [ 'my',           'my',        '???',  'PL',  '???'    ],
-     [ 'vy',           'vy',        '???',  'PL',  '???'    ],
-     [ 'oni-¾iv.',     'on',        'ANIM', 'PL',  '???'    ],
-     [ 'ony-ne¾iv',    'on',        'INAN', 'PL',  '???'    ],
-     [ 'ony-¾en.',     'on',        'FEM',  'PL',  '???'    ],
-     [ 'ona-pl-neut.', 'on',        'NEUT', 'PL',  '???'    ],
-     [ 'ten',          'ten',       '???',  '???', '???'    ],
-     [ 'tak',          'tak',       '???',  '???', 'EXT'    ],
-     [ 'takový',       'takový',    '???',  '???', 'PAT'    ],
-    );
   my @selected=grep { 
     $node->{trlemma} eq $_->[1] and 
       $node->{gender} eq $_->[2] and
 	$node->{number} eq $_->[3]
-      }  @trs;
+      }  @special_trlemmas;
   @selected=grep { 
     $node->{trlemma} eq $_->[1] and 
       ($node->{gender} eq $_->[2] or
        $node->{number} eq $_->[3])
-    }  @trs unless (@selected>0);
+    }  @special_trlemmas unless (@selected>0);
   if (@selected>0) {
     @selected=($selected[0]->[0]);
   }
@@ -283,10 +288,10 @@ sub QueryTrlemma {
     @selected=($node->{trlemma});
   }
   if (main::selectValuesDialog($grp->{framegroup},$atr,
-			   [ map { &main::encode($_->[0]) } @trs ],
+			   [ map { &main::encode($_->[0]) } @special_trlemmas ],
 			       \@selected,0,undef,1)) {
 
-    my ($vals)=(grep {$_->[0] eq &main::decode($selected[0])} @trs);
+    my ($vals)=(grep {$_->[0] eq &main::decode($selected[0])} @special_trlemmas);
 
     $node->{trlemma}=$vals->[1];
     $node->{gender}=$vals->[2];
