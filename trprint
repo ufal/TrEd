@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-12 14:50:55 pajas>";
+$timestamp="Time-stamp: <2001-07-23 12:52:02 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -79,6 +79,8 @@ Flags:     (each flag -<flag> has also the +<flag> variant whith opposite
 -M         maximize print size
 
 -S         print the `sentence' below the tree
+
+-R         disable landscape rotation of wide trees
 
 -C         create color output
 
@@ -174,10 +176,8 @@ import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index
 require TrEd::Print;
 
 #load back-ends
-@backends=('FSBackend');
-foreach (qw(TrXMLBackend CSTSBackend)) {
-  push @backends,$_ if eval { require $_; };
-}
+@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend)));
+$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 if ($useCzechLocales) {
   use locale;
@@ -237,7 +237,7 @@ sub processParam {
   my $n;
   my $v;
   $arg=shift @ARGV;
-  if ($arg =~ /^([\+\-])([huUNIHTSME1C]+)/) {
+  if ($arg =~ /^([\+\-])([huUNIHTRSME1C]+)/) {
     $v=$1;
     foreach (split //,$2) {
       ${"opt_$_"} = $v eq '-';
@@ -336,6 +336,7 @@ sub printThis {
 			   $opt_p : "$convert - $outfile",
 			   $opt_T,
 			   $opt_C,
+			   $opt_R,
 			   $opt_H,
 			   $psFontFile,
 			   $type1font,
