@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-12 11:53:29 pajas>";
+$timestamp="Time-stamp: <2001-06-12 14:00:13 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -245,12 +245,7 @@ $on_current_change = \&onCurrentChange;
 
 #load back-ends
 
-@backends=('FSBackend');
-foreach my $backend (qw(TrXMLBackend CSTSBackend)) {
-  if (eval { require $backend.".pm"; } ) {
-    push @backends,$backend;
-  }
-}
+@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTSBackend)));
 
 require Filelist;
 
@@ -2217,7 +2212,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
   $group{'frame'}->bind('my','<KeyPress>' =>
 			[sub { evalMacro(@_); Tk->break; }, \%group, '' ]);
 
-  foreach (qw(Shift Control Meta Control-Shift Control-Alt
+  foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
               Control-Meta Alt-Shift Meta-Shift)) {
     foreach my $event (qw(KeyPress Right Left Up Down Return comma period Next Prior greater less)) {
       $group{'frame'}->bind('my',"<$_-$event>" =>
