@@ -35,6 +35,7 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 	    $normalNextPixmap
 	    $normalPrevPixmap
 	    $locale_charset
+	    $no_required
            );
 
 $version='$Revision$ ';
@@ -78,7 +79,7 @@ Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
 use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GHDB:RX:s:');
+getopts('qm:c:l:t:n:p:vhuW:GHDUB:RX:s:');
 
 if ($opt_u || $opt_h) {
   print <<'EOH';
@@ -137,11 +138,14 @@ Other options:
 -H              Start with showing hidden nodes
 -G              Do not initially resize window to its last geomtery.
 -W <window_id>  Embed main window into the given window
+-U              Don't load secondary files
 -B <backends>   Comma separated list of additional backends to import
 
 EOF
   exit;
 }
+
+$no_required = $opt_U;
 
 if ($opt_v) {
   my $ver=$version;
@@ -1772,25 +1776,27 @@ sub openFile {
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
 
 
+    unless ($no_required) {
     # if backend requested another FS-file, load it
     # and store it in metaData('ref') hash table
     #
     # mark this secondary FS-file as part of the original file
     # so that they can be closed together
-    my $requires = $fsfile->metaData('fs-require');
-    if ($requires) {
-      for my $req (@$requires) {
-	print STDERR "Pre-loading dependent $req->[1] as metaData('ref')->{$req->[0]}\n";
-	my $req_fs = openFile($win,$req->[1],-preload => 1);
-	if (!(ref($req_fs) and $req_fs->lastTreeNo>=0 and $Fslib::FSError==0)) {
-	  undef $fsfile;
-	  closeFile($win, -fsfile => $req_fs, -no_update => 1);
-	  last;
-	} else {
-	  push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
-	  $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
-	  __debug("Setting metaData('ref')->{$req->[0]} to $req_fs");
-	  $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
+      my $requires = $fsfile->metaData('fs-require');
+      if ($requires) {
+	for my $req (@$requires) {
+	  print STDERR "Pre-loading dependent $req->[1] as metaData('ref')->{$req->[0]}\n";
+	  my $req_fs = openFile($win,$req->[1],-preload => 1);
+	  if (!(ref($req_fs) and $req_fs->lastTreeNo>=0 and $Fslib::FSError==0)) {
+	    undef $fsfile;
+	    closeFile($win, -fsfile => $req_fs, -no_update => 1);
+	    last;
+	  } else {
+	    push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
+	    $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
+	    __debug("Setting metaData('ref')->{$req->[0]} to $req_fs");
+	    $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
+	  }
 	}
       }
     }
@@ -1984,8 +1990,7 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
 
   return 0 unless ($node and $win->{FSFile});
   return 1 if $show or not defined($win->{FSFile}->FS->hide());
-  while ($node and ($node->getAttribute($win->{FSFile}->FS->hide())
-		      ne 'hide')) {
+  while ($node and ($node->getAttribute($win->{FSFile}->FS->hide()) eq 'hide')) {
     $node=$node->parent;
   }
   return ($node ? 0 : 1)
@@ -6538,11 +6543,18 @@ sub editAttrsDialog_schema {
 #   }
 
   require Tk::TrEdNodeEdit;
-  my $schema = $win->{FSFile}->metaData('schema');
-#  use Data::Dumper;
-#  print "PATH: '$attr_path'\n";
-  my $node_type = $schema->find_type($attr_path);
-#  print Dumper($node_type),"\n";
+
+  use Data::Dumper;
+  print "PATH: '$attr_path'\n";
+
+
+  my $schema = $node->type->schema;
+  my $node_type;
+  if ($attr_path) {
+    $node_type = $node->type->find($attr_path);
+  } else {
+    $node_type = $node->type->type_struct;
+  }
 
   $win->toplevel->Busy(-recurse=>1);
 
@@ -6573,8 +6585,12 @@ sub editAttrsDialog_schema {
     $attr_name = $attr_path;
     $attr_name =~ s{.*/}{};
     $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
+  } elsif (ref($node_type) and $node_type->{structure}) {
+    $edit->add_members('',$node_type->{structure},$node,1);
   } else {
-    $edit->add_members('',$node_type,$node);
+    print map { "$_ => $node->{$_}" } keys %$node;
+    print "\n";
+    $edit->add_xmlnode('',$node_type,$node);
   }
 
   if ($attr_path eq '') {
@@ -6679,7 +6695,7 @@ sub editAttrsDialog {
   my ($win,$node)=@_;
   return if (doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
   return unless $win->{FSFile};
-  return editAttrsDialog_schema($win,$node) if (ref($win->{FSFile}->metaData('schema')));
+  return editAttrsDialog_schema($win,$node) if (ref($node->type));
   my @vals;
   my %e=();
   my @atord=$win->{FSFile}->FS->attributes;
@@ -7655,8 +7671,7 @@ sub doEditAttr {
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
-  return editAttrsDialog_schema($win,$node,$attr) 
-    if (ref($win->{FSFile}->metaData('schema')));
+  return editAttrsDialog_schema($win,$node,$attr) if (ref($node->type));
 
   my ($Entry,@Eopts) = get_entry_type();
   my $newvalue;
