@@ -1944,7 +1944,7 @@ sub get_value_line {
 	$vl=encode($vl);
       }
     } else {
-      $vl=$win->{treeView}->value_line($fsfile,$no,$no_numbers,$tags);
+      $vl=$win->{treeView}->value_line($fsfile,$no,$no_numbers,$tags,$win);
     }
   } else {
     $vl="";
@@ -6796,6 +6796,8 @@ B<Colors:>
 B<Features:>
   C<Node-shape          >- oval, rectangle, polygon
   C<Node-polygon        >- relative coordinates of the poligon points
+  C<Node-addwidth       >- adjust shape width by given amount
+  C<Node-addheight      >- adjust shape height by given amount
   C<Node-rellevel       >- alter vertical leveling of the subtree
   C<Node-level          >- alter vertical leveling of a single node
   C<Node-addbeforeskip  >- skip before: 10, 2c, 12pt, etc.
@@ -7645,7 +7647,7 @@ sub redraw_win {
   $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
   my $vl;
   if ($win->{FSFile} and $win->{treeView}->get_drawSentenceInfo) {
-    $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,0);
+    $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
   }
   local $TredMacro::grp = $win;
   $win->{treeView}->
