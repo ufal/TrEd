@@ -119,7 +119,7 @@ sub questionQuery {
 }
 
 
-#bind PerlSearch to Alt+h menu Perl-Search
+#bind PerlSearch to Alt+H menu Perl-Search
 sub PerlSearch {
   my $label= "Any inserted perl code will be evaluated for each node from current ".
   "as long as it ends with zero or undefined value; the first node for which ".
@@ -227,7 +227,7 @@ sub TieGotoTreeAsk {
   ChangingFile(0);
 }
 
-#bind PerlSearchNext to Alt+H menu Perl-Search Next
+#bind PerlSearchNext to Ctrl+Alt+H menu Perl-Search Next
 sub PerlSearchNext {
   if ($TrEd::MacroStorage::macPerlSearchScript) {
     while ($this=$this->following or NextTree()) {
