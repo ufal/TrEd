@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-15 20:21:58 pajas>
+## Time-stamp: <2004-03-15 20:48:22 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -309,6 +309,21 @@ sub light_aidrefs {
 sub light_aidrefs_reverse {
   my $node = $root;
   while ($node) {
+    if ($node != $this and
+	getAIDREFsHash($node)->{$this->{AID}}) {
+      $node->{_light}='_LIGHT_';
+    } else {
+      delete $node->{_light};
+    }
+    $node=$node->following;
+  }
+  ChangingFile(0);
+}
+
+#bind light_aidrefs_reverse_expand to Ctrl+r menu Mark nodes pointing to current via AIDREFS with _light = _LIGHT_ expanding coords
+sub light_aidrefs_reverse_expand {
+  my $node = $root;
+  while ($node) {
     delete $node->{_light};
     $node=$node->following;
   }
@@ -325,6 +340,7 @@ sub light_aidrefs_reverse {
   }
   ChangingFile(0);
 }
+
 
 #bind light_ar_children to Ctrl+c menu Mark true analytic children of current node with _light = _LIGHT_
 sub light_ar_children {
