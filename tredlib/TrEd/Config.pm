@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-07-23 12:45:23 pajas>
+# Time-stamp: <2001-07-24 16:14:22 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -49,6 +49,9 @@ BEGIN {
   $fsToCsts
   $gzip
   $zcat
+  $sgmls
+  $sgmlsopts
+  $cstsdoctype
   $keyboardDebug
   $hookDebug
   $macroDebug
@@ -223,10 +226,31 @@ sub set_config {
   $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : ($^O !~ /^MS/);
   $Tk::strictMotif=(exists $confs->{strictmotif}) ? $confs->{strictmotif} : 0;
   $printColors=(exists $confs->{printcolors}) ? $confs->{printcolors} : 0;
-  $cstsToFs=(exists $confs->{cststofs}) ? $confs->{cststofs} : undef;
-  $fsToCsts=(exists $confs->{fstocsts}) ? $confs->{fstocsts} : undef;
+
   $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
   $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip);
+
+  $ZBackend::gzip = $gzip;
+  $ZBackend::zcat = $zcat;
+
+  $cstsToFs=(exists $confs->{cststofs}) ? $confs->{cststofs} : undef;
+  $fsToCsts=(exists $confs->{fstocsts}) ? $confs->{fstocsts} : undef;
+
+  $CSTSBackend::csts2fs=$cstsToFs;
+  $CSTSBackend::fs2csts=$fsToCsts;
+  $CSTSBackend::gzip = $gzip;
+  $CSTSBackend::zcat = $zcat;
+
+  $sgmls=(exists $confs->{sgmls}) ? $confs->{sgmls} : undef;
+  $sgmlsopts=(exists $confs->{sgmlsopts}) ? $confs->{sgmlsopts} : undef;
+  $cstsdoctype=(exists $confs->{cstsdoctype}) ? $confs->{cstsdoctype} : undef;
+
+  $CSTS_SGML_SP_Backend::gzip=$gzip;
+  $CSTS_SGML_SP_Backend::zcat=$zcat;
+  $CSTS_SGML_SP_Backend::sgmls=$sgmls;
+  $CSTS_SGML_SP_Backend::sgmlsopts=$sgmlsopts;
+  $CSTS_SGML_SP_Backend::doctype=$cstsdoctype;
+
   $keyboardDebug=(exists $confs->{keyboarddebug}) ? $confs->{keyboarddebug} : 0;
   $hookDebug=(exists $confs->{hookdebug}) ? $confs->{hookdebug} : 0;
   $macroDebug=(exists $confs->{macrodebug}) ? $confs->{macrodebug} : 0;
