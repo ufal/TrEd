@@ -6387,6 +6387,13 @@ B<Rules interpolation:>
 
   any other text - interpolates to itself
 
+B<RootStyles:>
+  C<balance             >- draw "balanced" Penn-treebank like tree, instead of
+  C<                    >  ordering nodes according to a dedicated attribute
+  C<                    >  (can only be used in a rootstyle pattern)
+  C<baseXPos            >- X-coordinate of the root node
+  C<baseYPos            >- Y-coordinate of the root node
+
 B<Styles:>
   C<#{object-feature:value}>
 
@@ -6395,9 +6402,6 @@ B<Colors:>
   by a hex RGB string of the form #RRGGBB.
 
 B<Features:>
-  C<balance             >- draw "balanced" Penn-treebank like tree, instead of
-  C<                    >  ordering nodes according to a dedicated attribute
-  C<                    >  (can only be used in a rootstyle pattern)
   C<Node-shape          >- oval, rectangle, polygon
   C<Node-polygon        >- relative coordinates of the poligon points
   C<Node-rellevel       >- alter vertical leveling of the subtree
@@ -6425,9 +6429,10 @@ B<Features:>
   C<Oval-activeoutline  >- color of the outline of the shape of the active node
   C<Oval-width          >- width of the outline of a node shape
   C<Oval-activewidth    >- width of the outline of an active node shape
-  C<Line-coords         >- coordinations of the edge(s) to be drawn. 
+  C<Line-coords         >- coordinations of the edge(s) to be drawn.
   C<                    >  Default: n,n,p,p. (See the documentation for more info.)
   C<Line-arrow          >- side of an edge to put an arrow on: first, both, last
+  C<Line-smooth         >- 1 if the line should be drawn as a curve, 0 otherwise.
   C<Line-...            >- ...=dash, activedash, dashoffset, fill, activefill,
   C<Line-...            >  width, activewidth
   C<TextBox-...         >- ...=dash, activedash, dashoffset, fill, activefill,
