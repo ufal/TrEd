@@ -1084,7 +1084,8 @@ sub set_value_line {
     $vl->tagDelete(@oldtags);
   }
   if (ref($v)) {
-    $vl->Subwidget('scrolled')->insert('end', map { ($_->[0], $_->[1], $_->[0] ne "\n" ? (' ','space') : ()) } @$v);
+    $vl->Subwidget('scrolled')->insert('end','',undef,
+				       map { ($_->[0], $_->[1], $_->[0] ne "\n" ? (' ','space') : ()) } @$v);
   } else {
     $vl->Subwidget('scrolled')->insert('0.0',$v);
   }
