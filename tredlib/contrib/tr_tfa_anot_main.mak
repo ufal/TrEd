@@ -3,6 +3,9 @@
 ## Time-stamp: <2001-10-19 17:35:34 pajas>
 
 #include contrib/tr_anot_main.mak
+
+package Tectogrammatic;
+#binding-context Tectogrammatic
 #include contrib/tfa_common.mak
 
 #bind ShiftLeft to Ctrl+Left menu posun uzel doleva

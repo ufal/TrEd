@@ -182,12 +182,5 @@ sub questionQuery {
 # binding-context Tectogrammatic
 # include contrib/tr.mak
 
-package Tectogrammatic;
-
-use base qw(TredMacro);
-import TredMacro;
-
-#include tr_common.mak
-
 # binding-context TR_Diff
 #include contrib/trdiff.mak
