@@ -61,10 +61,26 @@ APPINFO    NONE
 >
 <!DOCTYPE csts [
 <!-- ...................................................................... -->
-<!-- CSTS DTD V0.94 ....................................................... -->
-<!-- File a0023.dtd ....................................................... -->
+<!-- CSTS DTD V1.00 ....................................................... -->
+<!-- File csts.dtd ........................................................ -->
 
 <!-- ChangeLog: -->
+<!-- ver 1.00 (Aug 13, 2001) by Jan Hajic                      -->
+<!--        - documentation to all elements and attributes     -->
+<!--          in a format suitable for generation              --> 
+<!--          (by getdesc.pl) of the description file as       -->
+<!--          required by the dtd2html program                 -->
+<!--                                                           -->
+<!-- references to be replaced in the dtd2html stuff:          -->
+<!--          search for REF-                                  -->
+<!--                                                           -->
+<!--                                                           -->
+<!--                                                           -->
+<!--                                                           -->
+<!-- ver 0.96 (Jul 01, 2001) by Jan Hajic                      -->
+<!--        - upper.gen.phrase added to f*case                 -->
+<!--        - dtd2html "comments" (some) added for extraction  -->
+<!--          by the getdesc.pl program to be used by dtd2html -->
 <!--                                                           -->
 <!-- ver 0.95 (Jun 28, 2001) by Petr Pajas                     -->
 <!--        - obsolete reference to MTRt removed from TRl,MTRl -->
@@ -77,7 +93,7 @@ APPINFO    NONE
 <!-- ver 0.94 (May 23, 2001) by Petr Pajas                     -->
 <!--        - elements s and salt to allow any sequence        -->
 <!--          of i|w|f|d|D|fadd                                -->
-<!--        - agrave entity added                              -->                 
+<!--        - agrave entity added                              -->
 <!--        - cap.gen.phrase case added for elmnt f            -->
 <!--        - (mixed|upper).(del|spell) kinds added for elmnt w-->
 <!--                                                           -->
@@ -113,23 +129,43 @@ APPINFO    NONE
 <!--         doc id=path changed -->
 <!-- 1.11.97 spec -> verse -->
 
-<!ELEMENT csts - - (h?, doc*) >
+<!ELEMENT csts - - (h?, doc*)
+-- el csts end --
+>
 <!ATTLIST csts
-          lang          CDATA     #REQUIRED >
-<!ELEMENT h - - (source, markup*) >
-<!ELEMENT source - - (#PCDATA) >
-<!ELEMENT markup - - (mauth, mdate, mdesc+) >
-<!ELEMENT mauth - O (#PCDATA) >
-<!ELEMENT mdate - O (#PCDATA) -- /**/ format? -->
-<!ELEMENT mdesc - O (#PCDATA) >
-<!ELEMENT doc - - (a, c+) >
+          lang          CDATA     #REQUIRED
+
+>
+<!ELEMENT h - - (source, markup*)
+>
+
+<!ELEMENT source - - (#PCDATA) 
+>
+
+<!ELEMENT markup - - (mauth, mdate, mdesc+)
+>
+<!ELEMENT mauth - O (#PCDATA)
+>
+
+<!ELEMENT mdate - O (#PCDATA) -- /**/ format? --
+>
+
+<!ELEMENT mdesc - O (#PCDATA) 
+>
+<!ELEMENT doc - - (a, c+) 
+
+
+>
+
 <!ATTLIST doc
           file          CDATA      #REQUIRED
           id            NUMBER     #REQUIRED
    -- file repeats the file path from archive root --
    -- <mod>/<txtype>/<med>/<temp>/<opus> --
    -- example: S/Inf/J/1993/lnd93001 --
-   -- id is the document identification within the file -->
+   -- id is the document identification within the file --
+>
+
 <!ELEMENT a - - (markup*, mod, txtype, genre, verse?, med,
                  authsex?, lang?, transsex?,
                  srclang?, temp, firsted?,
@@ -145,18 +181,21 @@ APPINFO    NONE
          -- mix mix of specific values, unspecified --
          -- alt other then specific values --
 
-         -- document attributes included as SGML elements -->
+         -- document attributes included as SGML elements --
+>
 
 <!ELEMENT mod - O (#PCDATA)
     -- mod possible contents:
                               s - synchronic? corpus
                               d - diachronic conrpus
-                              o - oral (spoken) corpus -->
+                              o - oral (spoken) corpus --
+>
 <!ELEMENT txtype - O (#PCDATA)
     -- txtype possible contents:
                                  ima - imaginative
                                  inf - informative
-                                 mix - mix of text types -->
+                                 mix - mix of text types --
+>
 <!ELEMENT genre - O (#PCDATA)
     -- genre possible contents:
                 son   song lyrics
@@ -209,14 +248,16 @@ APPINFO    NONE
                 spo   sports
                 sct   society (manners, gossips)
                 amu   amusement, games
-                                          -->
+--
+>
 <!ELEMENT verse - O (#PCDATA)
     -- verse possible contents:  DEFAULT - alt
                                 txb - textbook
                                 enc - dictionary, encyclopedia
                                 pop - popular style
                                 cri - critique
-                                adv - advertisment -->
+                                adv - advertisement --
+>
 <!ELEMENT med - O (#PCDATA)
     -- med possible contents:
                                 b - book
@@ -224,12 +265,14 @@ APPINFO    NONE
                                 j - journal (periodic)
                                 scr - screenplay
                                 net - Internet
-                                oc - occassional -->
+                                oc - occassional --
+>
 <!ELEMENT authsex - O (#PCDATA)
     -- authsex possible contents:  DEFAULT - y
                                 m - male
                                 f - female
-                             -->
+                             --
+>
 <!ELEMENT lang - O (#PCDATA)
     -- lang possible contents:  DEFAULT - cze
                                 cze - Czech
@@ -239,12 +282,14 @@ APPINFO    NONE
                                 fre - French (France)
                                 spa - Spanish
                                 rus - Russian
-                             -->
+                             --
+>
 <!ELEMENT transsex - O (#PCDATA)
     -- transsex possible contents:  DEFAULT - na if srclang=no, x otherwise
                                 m - male
                                 f - female
-                             -->
+                             --
+>
 <!ELEMENT srclang - O (#PCDATA)
     -- srclang possible contents:  DEFAULT - no
                                 no  - not a translation (original)
@@ -255,51 +300,69 @@ APPINFO    NONE
                                 rus - Russian
                                 slo - Slovak
                                 ... filled continously
-                             -->
+                             --
+>
 <!ELEMENT temp - O (#PCDATA)
     -- temp possible contents:
-                                yyyy - year of publication only, 4 digits -->
+                                yyyy - year of publication only, 4 digits --
+>
 <!ELEMENT firsted - O (#PCDATA)
     -- lang possible contents:  DEFAULT - x
                                 yyyy - year of first publication
-                             -->
+                             --
+>
 <!ELEMENT authname - O (#PCDATA)
     -- authname possible contents:  DEFAULT - y
                                 author's name abbreviation according to
                                 name table, up to 8 chars long
-                             -->
+                             --
+>
 <!ELEMENT transname - O (#PCDATA)
     -- transname possible contents:  DEFAULT - na if srclang=no, x otherwise
                                 translator's name abbreviation according to
                                 name table, up to 8 chars long
-                             -->
+                             --
+>
 <!ELEMENT opus - O (#PCDATA)
       -- opus possible contents: file name (up to 8 chars long)
              ex.: Lidove noviny denik: lndyyxxx (yy = year, xxx = day)
                   Lidove noviny ned.pr. lnnpyyxx (yy = year, xx = week)
                   Mlada fronta denik: mfdxxxxxx (xxxxxx = full date)
                   Bloudeni (Durych): bloudeni
-             -->
+             --
+>
 <!ELEMENT id - O (#PCDATA)
-      -- identification within file (ie within opus), 3 digit number -->
-<!ELEMENT c - - (p+) -- Contents or Chapter -->
-<!ELEMENT p - O (s+) -- Paragraph -->
+      -- identification within file (ie within opus), 3 digit number --
+>
+<!ELEMENT c - - (p+) -- Contents or Chapter --
+>
+
+<!ELEMENT p - O (s+) -- Paragraph --
+>
+
 <!ATTLIST p
-          n   NUMBER   #REQUIRED >
-<!ELEMENT s - O (((w*,(f|d|fadd),D?)* & i*)*, idioms?, salt*) -- sentence -->
+          n   NUMBER   #REQUIRED 
+>
+
+
+<!ELEMENT s - O ((i|w|f|d|D|fadd)* , idioms?, salt*) -- sentence --
+>
 <!ATTLIST s
-          id   CDATA   #REQUIRED >
-<!ELEMENT salt - O (((w*,(f|d|fadd),D?)* & i*)*, idioms? )
+          id   CDATA   #REQUIRED
+>
+
+<!ELEMENT salt - O ((i|f|w|d|D|fadd)* & idioms? )
                  -- sentence with alternate annotation -->
 <!ATTLIST salt
-          id   CDATA   #REQUIRED >
+          id   CDATA   #REQUIRED 
+>
 <!ELEMENT i - O (#PCDATA) -- formatting from source -->
 <!ELEMENT f - O (#PCDATA & P* & Ct? & l* & MMl* & MDl* &
                  A* & MDA* & TRl* & MTRl* & r? & g* & MDg*)
                  -- word forms; text: form itself, rest: annotation -->
 <!ATTLIST f
           case  (lower|cap|upper|mixed|gen|num|num.gen
-                |gen.phrase|cap.gen.phrase
+                |gen.phrase|cap.gen.phrase|upper.gen.phrase
                 |abbr|cap.abbr|cap.gen
                 |upper.abbr|upper.gen|mixed.abbr) lower
                 -- gen	- In most of the cases the word-form is identical
@@ -330,19 +393,26 @@ APPINFO    NONE
 		     ins 	- original form is missing;
                      num.orig
 		     -->
+
 <!ELEMENT d - O (#PCDATA & P* & Ct? & l* & MMl* & MDl* &
                  A* & MDA* & TRl* & MTRl* & r? & g* & MDg*)
                  -- punctuation / delimiters;
-                    display "word-form-like" behavior -->
+                    display "word-form-like" behavior --
+>
 <!ATTLIST d
-	  type (std|gen) std>
+          type (std|gen) std
+            -- used for manual corrections if <w spell> used --
+>
 
-<!ELEMENT D - O EMPTY -- no space in original -->
+<!ELEMENT D - O EMPTY 
+                 -- no space in original -->
 <!ELEMENT P - O (#PCDATA)
-                 -- pronunciation hint (numbers, abbreviations) -->
+                 -- pronunciation hint (numbers, abbreviations) --
+>
 <!ELEMENT Ct - O (#PCDATA)
                  -- list of all tags assigned by morphology, regardless
-                    of lemma, i.e. union of all sets of tags of all lemmas -->
+                    of lemma, i.e. union of all sets of tags of all lemmas --
+>
 <!ELEMENT l - O (#PCDATA & R? & E? & t*)
                  -- lemma (base form) as defined by morphology, including
                     syntactic, semantic and style tags, derivation info,
@@ -351,61 +421,78 @@ APPINFO    NONE
                     format:
                     underline-separated parts, one-character 'tags' as
                     defined by the morphology program;
-                    derivation info: (*<cut#><add>)    -->
-<!ELEMENT MMl - O (#PCDATA & R? & E? & MMt*)
+                    derivation info: (*<cut#><add>)    --
+>
+<!ELEMENT MMl - O (#PCDATA & R? & E? & (pn? & MMt)*)
                  -- lemma (base form), description see the l tag;
                     machine assigned (by a morphological analysis program),
                     NOT disambiguated
-                    -->
+                    --
+>
 <!ATTLIST MMl
-          src     CDATA #IMPLIED -- morphological analyzer id -->
+          src     CDATA #IMPLIED -- morphological analyzer id --
+>
 <!ELEMENT MDl - O (#PCDATA & R? & E? & MDt*)
                  -- lemma (base form), description see the l tag;
                     machine assigned (by a tagger), disambiguated
                     if more than 1: n-best
-                    -->
+                    --
+>
 <!ATTLIST MDl
           w       NUTOKEN #IMPLIED -- weight / probability --
-          src     CDATA   #IMPLIED -- lemmatizer id        -->
+          src     CDATA   #IMPLIED -- lemmatizer id        --
+>
 <!ELEMENT R - O (#PCDATA)
-                 -- word root (stem) as defined by the morphology program -->
+                 -- word root (stem) as defined by the morphology program --
+>
 <!ELEMENT E - O (#PCDATA)
                  -- word ending (suffix) as defined by the morphology
                     program; concatenation of R and E gives f (contents-wise,
-                    of course) -->
+                    of course) --
+>
 <!ELEMENT t - O (#PCDATA)
                  -- morphological tag as assigned manually
-                    -->
+                    --
+>
 <!ATTLIST t
-          w  NUTOKEN #IMPLIED >
-
+          w  NUTOKEN #IMPLIED
+>
 <!ELEMENT MMt - O (#PCDATA)
                  -- morphological tag(s) as assigned by morphology,
                     NOT disambiguated
-                    -->
+                    --
+>
+
 <!ATTLIST MMt
-          src     CDATA #IMPLIED -- morphological analyzer id -->
+          src     CDATA #IMPLIED -- morphological analyzer id --
+>
 <!ELEMENT MDt - O (#PCDATA)
                  -- morphological tag(s) as assigned by machine, disambiguated,
                     possibly also with weight/prob; if more than 1: n-best
-                    -->
+                    --
+>
+
 <!ATTLIST MDt
           w       NUTOKEN #IMPLIED -- weight / probability --
-          src     CDATA   #IMPLIED -- tagger id            -->
+          src     CDATA   #IMPLIED -- tagger id            --
+>
 
 <!ELEMENT A - O (#PCDATA)
                  -- analytical (syntactic) function manually assigned
                     to the word form
                     in the f tag; for allowed list see annotator's guidelines
                     at fairway.ms.mf.cuni.cz / Projects / Treebank / guide
-                    -->
+                    --
+>
 <!ELEMENT MDA - O (#PCDATA)
                  -- analytical (syntactic) function(s) as assigned by machine,
                     disambiguated, possibly with weight; if more than 1: n-best
-                    -->
+                    --
+>
 <!ATTLIST MDA
           w       NUTOKEN #IMPLIED -- weight / probability  --
-          src     CDATA   #IMPLIED -- syntactical tagger id -->
+          src     CDATA   #IMPLIED -- syntactical tagger id --
+>
 
 <!-- ============================================================= -->
 <!--                    tectogrammatical elements                  -->
@@ -414,25 +501,30 @@ APPINFO    NONE
 
 <!ELEMENT fadd - O (TRl* & MTRl* & r? & g*)
                  -- nodes added on the tectogramatical level;
-                 -->
+                 --
+>
 <!ATTLIST fadd
-          del  (elid|elex|expn) elid >
+          del  (elid|elex|expn) elid 
+>
 
-<!ELEMENT MTRl - O (#PCDATA & T? & TRt? & tfa? & tfr? & fw? & phr? &
+<!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & TRt? & tfa? & tfr? & fw? & phr? &
                     TRg? & corl? & corT? & corr? &
                     cors? )
                 -- tectogrammatical lemma id. 
-                -->
+                --
+>
 <!ATTLIST MTRl
           src      CDATA #IMPLIED -- tectogrammatical lemmatizer id -->
 
-<!ELEMENT TRl - O (#PCDATA & T? & TRt? & tfa? & tfr? & fw? & phr? &
+<!ELEMENT TRl - O (#PCDATA & T? & Tmo? & TRt? & tfa? & tfr? & fw? & phr? &
                     TRg? & corl? & corT? & corr? &
                     cors? )
                 -- tectogrammatical lemma id. 
-                -->
+                --
+>
 <!ATTLIST TRl
-          quot (quot|dsp|dsp.quot|dspp|dspp.quot) #IMPLIED >
+          quot (quot|dsp|dsp.quot|dspp|dspp.quot) #IMPLIED 
+>
 
 <!ELEMENT TRg - O (#PCDATA)
                  -- governing node on the tectogrammatical level. For
@@ -443,7 +535,8 @@ APPINFO    NONE
                     the artificial root node added to each sentence
                     annotated on the analytical/tectogrammatical level.
                     This is the manually assigned gov. node.
-                    -->
+                    --
+>
 
 <!ELEMENT T - O (#PCDATA & grm?)
                  -- tectogrammatical functor;
@@ -457,11 +550,17 @@ APPINFO    NONE
                     REG RESL RESTR RHEM RSTR SUBS TFHL TFRWH THL 
                     THO TOWH TPAR TSIN TTILL TWHEN VOC VOCAT NA SENT           
 
-                 -->
+                 --
+>
 
 <!ELEMENT grm - O (#PCDATA)
                  -- tectogrammatical grammatem;
-                -->
+                --
+>
+
+<!ELEMENT Tmo - O (#PCDATA)
+                -- member of (coordination, apposition, parenthesis) --
+>
 
 <!ELEMENT TRt - O (#PCDATA)
                 -- tectogrammatical tag;
@@ -485,7 +584,8 @@ APPINFO    NONE
                                    M...IMPER, ?...INTER)
                    In all fields dash (-) means N/A, X means not
                    assigned.
-                -->
+                --
+>
 
 <!ELEMENT tfa - O (#PCDATA)
                 -- tfa possible contents:
@@ -495,18 +595,21 @@ APPINFO    NONE
                         -       N/A
                         X       not assigned (if tfa not present in
                                 TRl, this value should be assumed)
-                -->
+                --
+>
 
 <!ELEMENT tfr - O (#PCDATA)
                  -- used to assign a deep structure word order on the
                     tectogrammatical level. In general, f and fadd tags
                     are numbered
-                 -->
+                 --
+>
 
 <!ELEMENT fw  - O (#PCDATA)>
 <!ELEMENT phr - O (#PCDATA)
                 -- phraseme id;
-                -->
+                --
+>
 <!ELEMENT corl  - O (#PCDATA)>
 <!ELEMENT corT  - O (#PCDATA)>
 <!ELEMENT corr  - O (#PCDATA)>
@@ -517,7 +620,8 @@ APPINFO    NONE
                    Attribute rel can be used to specify
                    a relative `distance' of the correferenced sentence
                    from the sentence referenced by id;
-                -->
+                --
+>
 <!ATTLIST cors
           rel NUMBER #IMPLIED >
 
@@ -528,7 +632,8 @@ APPINFO    NONE
 
 <!ELEMENT r - O (#PCDATA)
                  -- word form id. In general, f tags are numbered 1..#of words
-                    -->
+                    --
+>
 <!ELEMENT g - O (#PCDATA)
                  -- governing node on the analytical level. For description
                     se also annotator's guidelines
@@ -538,19 +643,24 @@ APPINFO    NONE
                     the artificial root node added to each sentence
                     annotated on the analytical level.
                     This is the manually assigned gov. node.
-                    -->
+                    --
+>
 <!ELEMENT MDg - O (#PCDATA)
                  -- governing node as assigned by machine (parsing program)
-                    -->
+                    --
+>
 <!ATTLIST MDg
           w       NUTOKEN #IMPLIED -- weight / probability --
           src     CDATA   #IMPLIED -- parser id            -->
 <!ELEMENT idioms - O (idiom*)
-                 -- list of idioms by reference -->
+                 -- list of idioms by reference --
+>
 <!ELEMENT idiom - O (iref+)
-                 -- idiom is a nonempty list of references to idiom parts -->
+                 -- idiom is a nonempty list of references to idiom parts --
+>
 <!ELEMENT iref - O (#PCDATA)
-                 -- reference to idiom part, as defined by r tag within f -->
+                 -- reference to idiom part, as defined by r tag within f --
+>
 
 <!ENTITY % preserve.gen.entities "IGNORE">   
 
@@ -600,5 +710,4 @@ APPINFO    NONE
 <!ENTITY macron CDATA "&#1;" -- "macron" -->
 
 <!ENTITY agrave CDATA "&#233;" -- "agrave" -->
-
 ]>

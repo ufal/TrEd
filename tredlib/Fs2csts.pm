@@ -58,6 +58,7 @@ sub make_TRt {
        $result.="X";
      }
   }
+  return $result;
 }
 
 sub make_gap {
@@ -284,31 +285,40 @@ sub write {
       if ($node->{quot} eq 'QUOT') {
 	$quot.= $quot ? ".quot" : " quot";
       }
-      if (exists($node->{trlemma}) and $node->{trlemma} ne "") {
-	print $fileref "<TRl$quot>",translate_to_entities($node->{trlemma});
-	print $fileref "<T>",$node->{func} if ($node->{func} ne "");
-	print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
-	my $TRt=make_TRt($node,0);
-	print $fileref "<TRt>",$TRt if ($TRt !~/^X*$/);
-	print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<tfr>",$node->{dord} if ($node->{dord} ne "");
-	print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
-	print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
-	if ($fsfile->FS->order eq 'dord') {
-	  print $fileref "<TRg>",int($node->parent->{ord});
-	} else {
-	  print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
+      if ($node->{TR} ne "hide") {
+	if (exists($node->{trlemma}) and $node->{trlemma} ne "") {
+	  print $fileref "<TRl$quot>",translate_to_entities($node->{trlemma});
+	  print $fileref "<T>",$node->{func} if ($node->{func} ne "");
+	  print $fileref "<Tmo>",$node->{memberof} if ($node->{memberof} ne "" and
+						       $node->{memberof} ne "???");
+	  print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
+	  my $TRt=make_TRt($node,0);
+	  print $fileref "<TRt>",$TRt unless ($TRt=~/^X*$/);
+	  print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
+	  print $fileref "<tfr>",$node->{dord} if ($node->{dord} ne "");
+	  print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
+	  print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
+	  if ($fsfile->FS->order eq 'dord') {
+	    print $fileref "<TRg>",int($node->parent->{ord});
+	  } else {
+	    print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
+	  }
+	  print $fileref "<corl>",$node->{corl} if ($node->{corl} !~ /^(?:---|\?\?\?)?$/);
+	  print $fileref "<corT>",$node->{corT} if ($node->{corT} !~ /^(?:---|\?\?\?)?$/);
+	  print $fileref "<corr>",$node->{corr} if ($node->{corr} !~ /^(?:---|\?\?\?)?$/);
+	  print $fileref "<cors>",$node->{cors} if ($node->{cors} !~ /^(?:---|\?\?\?)?$/);
 	}
-	print $fileref "<corl>",$node->{corl} if ($node->{corl} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<corT>",$node->{corT} if ($node->{corT} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<corr>",$node->{corr} if ($node->{corr} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<cors>",$node->{cors} if ($node->{cors} !~ /^(?:---|\?\?\?)?$/);
       }
       foreach (grep(/trlemmaM_/,$fsfile->FS->attributes)) {
 	/trlemmaM_(.*)$/;
-	print $fileref "<MTRl src=\"$1\">",$node->{$_};
-	# actually, all the set of MTRl subelements should be
-	# treated the same
+	if ($node->{"MTR_$1"} ne "hide") {
+	  print $fileref "<MTRl src=\"$1\">",$node->{$_};
+	  # actually, all the set of MTRl subelements should be
+	  # treated the same
+	  #
+	  # TODO: IMPLEMENTATION MISSING
+	  #
+	}
       }
       print $fileref "<r>",$node->{ord} if ($node->{ord} ne "");
       if ($fsfile->FS->order eq 'dord') {
