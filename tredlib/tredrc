@@ -1,4 +1,4 @@
-AppName		 = Tred 0.2		;; know any other program that lets you set this? 
+AppName		 = "TRee EDitor" ;; know any other program that lets you set this? 
 NodeColor	 = yellow
 ActiveNodeColor	 = blue
 CurrentNodeColor = red
@@ -7,10 +7,23 @@ TextColor	 = black
 ActiveTextColor	 = blue
 BoxColor	 = wheat
 CurrentBoxColor	 = white
-Font		 = -*-helvetica-medium-r-normal--*-120-*-*-*-*-*-2
-;; LibDir		 = "/usr/local/lib/tred" 
+Font		 = -*-helvetica-medium-r-normal--12-*-*-*-*-*-*-2
+;; Type1Font	 = -ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2
+;; LibDir	 = "/usr/local/lib/tred" 
 DrawBoxes	 = 0
 ShowHidden	 = 0
+
+;; LineWidth	 = 2
+;; LineColor	 = gray
+;; BackgroundColor  = seashell1
+;; NodeWidth	 = 5
+;; NodeHeight	 = 5
+;; ButtonsRelief = groove
+;; MenubarRelief = groove
+
+
+;; UseCzechLocales  = 1
+
 
 ;; The following file should contain pfa poscript
 ;; which should be used by tred for printing
@@ -22,4 +35,6 @@ ShowHidden	 = 0
 ;; (if you have it). Also some pairs of fonts like Arial/Helvetica have
 ;; so similar metrices that they can be used together.
 ;; The following is also default: 
-PsFontFile = /usr/local/lib/tred/csarialm.pfa
+;; PsFontFile = csarialm.pfa
+;; PsFontName = Arial-Medium ;; this is used to force substitution of screenfont
+;; PsFontSize = 12           ;; -- " --
