@@ -180,8 +180,26 @@ sub getSuperFrameList {
   use Tie::IxHash;
   tie my %super, 'Tie::IxHash';
   return unless $word;
-  foreach my $frame ($word->getDescendantElementsByTagName("frame")) {
-    my $base="";
+  my $base;
+  my $nosuper=0;
+  my $pos=$self->getPOS($word);
+  my @frames=$word->getDescendantElementsByTagName("frame");
+  my (@active,@obsolete);
+  foreach (@frames) {
+    if ($self->getFrameStatus($_) =~ /substituted|obsolete|deleted/) {
+      push @obsolete,$_;
+    } else {
+      push @active,$_;
+    }
+  }
+  if ($pos eq 'N') {
+    foreach (@active,@obsolete) {
+      $super{$nosuper++}=[$self->getFrame($_)];
+    }
+    return \%super;
+  }
+  foreach my $frame (@active) {
+    $base="";
     my @element_nodes=$frame->getDescendantElementsByTagName("element");
     foreach my $element (
 			 (
@@ -189,11 +207,11 @@ sub getSuperFrameList {
 			    $_->getAttribute('type') eq 'oblig'
 			  }
 			  @element_nodes),
-			  (grep {
-			    $_->getAttribute('type') ne 'oblig' and # but
-			    $_->getAttribute('functor') =~
-			      /^(?:ACT|PAT|EFF|ORIG|ADDR)$/
-			  } @element_nodes)
+			 (grep {
+			   $_->getAttribute('type') ne 'oblig' and # but
+			     $_->getAttribute('functor') =~
+			       /^(?:ACT|PAT|EFF|ORIG|ADDR)$/
+			     } @element_nodes)
 			 # this is in two greps so that we
 			 # do not have to sort it
 			) {
@@ -205,6 +223,9 @@ sub getSuperFrameList {
     } else {
       $super{$base}=[$self->getFrame($frame)];
     }
+  }
+  foreach (@obsolete) {
+    $super{$nosuper++}=[$self->getFrame($_)];
   }
   return \%super;
 }
@@ -237,7 +258,7 @@ sub getFrameElementString {
 		      ) {
     push @elements,$self->getOneFrameElementString($element);
   }
-  push @elements, "  ";
+  push @elements, "  " if @elements;
   foreach my $element (
 		       (grep { $_->getAttribute('type') eq 'non-oblig' }
 			@element_nodes
@@ -245,7 +266,7 @@ sub getFrameElementString {
 		      ) {
     push @elements,$self->getOneFrameElementString($element);
   }
-  return join "  ",@elements;
+  return join "  ", @elements;
 }
 
 sub getFrameElementFormsString {
