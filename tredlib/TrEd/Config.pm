@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-06-04 14:58:08 pajas>
+# Time-stamp: <2001-06-05 14:02:38 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -207,7 +207,7 @@ sub set_config {
   $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
   $sortAttrs=(exists $confs->{sortattributes}) ? $confs->{sortattributes} : 1;
   $psFontName=(exists $confs->{psfontname}) ? $confs->{psfontname} : "Arial-Medium";
-  $psFontSize=(exists $confs->{psfontsize}) ? $confs->{psfontsize} : "12";
+  $psFontSize=(exists $confs->{psfontsize}) ? $confs->{psfontsize} : ($^O=~/^MS/) ? "14" : "12";
   $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
   $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '21c';

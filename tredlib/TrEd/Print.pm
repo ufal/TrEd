@@ -172,7 +172,7 @@ sub print_trees {
     if ($t>0) {
       $i++  while ($i<=$#ps and $ps[$i]!~/^%%Page:/);
       print O '%%Page: ',$t+1," ",$t+1,"\n";
-       my $now=localtime;
+#       my $now=localtime;
 #        unless ($toEPS) {
 #  	print O	       "gsave\n",
 #  		       "/Arial-Medium findfont 8 scalefont setfont\n",
@@ -204,7 +204,9 @@ sub print_trees {
     }
     while ($i<=$#ps && $ps[$i]!~/^%\%Trailer\w*$/) {
       $ps[$i]=~s/ISOEncode //g;
-       print O $ps[$i++],"\n";
+      print O $ps[$i]."\n" unless (@printList==1 and
+				   $ps[$i] =~/^restore showpage/);
+      $i++
     }
   }
   print O '%%EOF',"\n";
