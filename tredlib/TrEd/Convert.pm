@@ -2,7 +2,7 @@ package TrEd::Convert;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-06-01 19:24:08 pajas>
+# Time-stamp: <2001-07-27 15:22:40 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -38,6 +38,7 @@ BEGIN {
 }
 
 sub encode {
+  return "" unless (@_);
   return join("",@_) if ($inputenc eq $outputenc);
 
   local $_=join "",@_;
@@ -46,6 +47,7 @@ sub encode {
 }
 
 sub decode {
+  return "" unless (@_);
   return join("",@_) if ($inputenc eq $outputenc);
 
   local $_=join "",@_;

@@ -59,8 +59,8 @@ sub read_macros {
     print "ERROR: Cannot open macros!\n", return
       unless open(F,"<$defaultMacroFile");
     push @macros, <F>;
+    close F;
   }
-  close F;
 
   print "ERROR: Cannot open macros!\n", return
     unless open(F,"<$file");
