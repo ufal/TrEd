@@ -12,6 +12,7 @@ package main;
 
 use Getopt::Long;
 use Pod::Usage;
+use IO;
 #use Getopt::Std;
 
 if ($^V lt v5.6.0) {
@@ -36,7 +37,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $start_server $help $usage $manpage
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
-	    @files $backend %bkmap
+	    @files $backend %bkmap $nosave
 	   );
 
 #getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:NHSTFX:RPWVL:b:');
@@ -61,6 +62,7 @@ GetOptions ("quiet|q" => \$quiet,
 	    "file-encoding|n=s" => \$file_encoding,
 	    "terminal-encoding|d=s" => \$term_encoding,
 	    "save|S" => \$save,
+	    "no-save" => \$nosave,
 	    "safe-mode|F" => \$safe_mode,
 	    "csts-tree-attributes|X" => \$csts_tree_attrs,
 	    "tectogrammatical-trees|R" => \$csts_tecto,
@@ -318,6 +320,7 @@ sub startMain {
   my $context = $grp->{macroContext};
 
   if ($start_server) {
+    require IO::Socket::INET;
     require TrEd::Cipher;
     # Start btred server
     preloadFiles($grp,\@files);
@@ -423,14 +426,18 @@ sub startMain {
 
 	# script command-line arguments
 	if (exists($request{ARGS})) {
+	  no strict qw(refs);
 	  @{macro_variable('TredMacro::ARGV')}=split "\n",$request{ARGS};
 	} else {
+	  no strict qw(refs);
 	  @{macro_variable('TredMacro::ARGV')}=();
 	}
 
 	STDOUT->autoflush();
 	# load macro
 	_msg "COMPILING MACRO\n";
+	chomp($request{CONTEXT});
+	$context=$request{CONTEXT} || 'TredMacro';
 	doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
 	# execute hooks and the code of the query
 	my $time;
@@ -457,7 +464,7 @@ sub startMain {
 	# send macro's output from tmp file to client
 	$macro_stdout->flush();
 	seek($macro_stdout,0,0);
-	my $space;
+	my $space=1;
 	while (<$macro_stdout>) {
 	  $hub->print($_);
 	  $space=chomp;
@@ -492,6 +499,13 @@ sub startMain {
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	$hub->print(join("\n",@files),"\n");
 	_end_response($control,$hub);
+      } elsif ($request{REQUEST_TYPE} eq 'LIST_CHANGED') {
+	_msg "Listing all open files at client's request\n";
+	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	$hub->print(join("\n",grep { ref($grp->{preloaded}->{$_}) and
+				       $grp->{preloaded}->{$_}->notSaved()
+				   } @files),"\n");
+	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'DUMP') {
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	_msg "Request $request{default} at client's request\n";
@@ -506,8 +520,20 @@ sub startMain {
 			   $fsfile->treeList,
 			   $fsfile->FS->list,
 			   $fsfile->FS->defs);
+	    ## Tredish custom attributes:
+	    $fsfile->changeTail(
+				(grep { $_!~/\/\/Tred:(?:Custom-Attribute(?:Cont)?|Balloon-Pattern):/ } $fsfile->tail),
+				(map {"//Tred:Custom-Attribute:$_\n"}
+				 map {
+				   join "\n//Tred:Custom-AttributeCont:",
+				     split /\n/,$_
+				   } $fsfile->patterns),
+				(map {"//Tred:Balloon-Pattern:$_\n"}
+				 split /\n/,$fsfile->hint)
+			       );
+	    $hub->print($fsfile->tail());
+	    $hub->print("\n\n//FSEND\n\n");
 	  }
-	  $hub->print("(2,3)\n\n//FSEND\n\n");
 	}
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
@@ -540,7 +566,9 @@ sub startMain {
 	  }
 	}
 	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'SAVE') {
+      } elsif ($request{REQUEST_TYPE} eq 'SAVE' or
+	       $request{REQUEST_TYPE} eq 'SAVE_CHANGED'
+	      ) {
 	for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
 	  chomp($request{$_}) if exists $request{$_};
 	}
@@ -555,6 +583,8 @@ sub startMain {
 	    die $@ if $@;
 	    do {
 	      next unless ref($grp->{FSFile});
+	      next unless ($request{REQUEST_TYPE} eq 'SAVE'
+			   or $grp->{FSFile}->notSaved());
 	      my $out = saveFile($grp);
 	      $hub->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
 	      die $@ if $@;
@@ -754,6 +784,7 @@ sub applyFileSuffix {
 
 sub saveFile {
   my $grp=shift;
+  return if $nosave;
   return unless $grp->{'FSFile'};
   my $f=$grp->{'FSFile'}->filename;
 
@@ -773,12 +804,13 @@ sub saveFile {
     _msg "Error saving file to '$out'\n($!)\n";
     return undef;
   }
+  $grp->{FSFile}->notSaved(0);
   return $out;
 }
 
 sub closeFile {
   my ($grp)=@_;
-
+  no strict qw(refs);
   undef ${macro_variable('TredMacro::NodeClipboard')};
   $grp->{root}=undef;
   $grp->{FSFile}=undef;
@@ -855,7 +887,10 @@ sub init_safe_mode {
   $compartment->reval("package TredMacro;\n");
   $compartment->deny_only(qw()); # everything allowed for the first initialization
   $compartment->share(qw(&do_eval_macro &do_eval_hook &min &max @INC 
-                         &nextTree &prevTree &gotoTree &lastFileNo &currentFileNo $stderr $stdout));
+                         &nextTree &prevTree &gotoTree 
+			 &lastFileNo &currentFileNo $stderr $stdout
+			 &switchContext
+			));
   $compartment->share_from('TrEd::Config',[qw($libDir)]);
 
   $TrEd::Macros::safeCompartment=$compartment;
@@ -879,6 +914,7 @@ sub switchContext {}
 
 sub updateTredMacroGlobals {
   my ($grp)=@_;
+  no strict qw(refs);
   ${macro_variable('TredMacro::root')}=$grp->{root};
   ${macro_variable('TredMacro::this')}=$grp->{currentNode};
 }
@@ -1030,6 +1066,12 @@ stderr output operations. Works only with Perl >= 5.8.
 Unconditionally save files after macro code was applied.  By default,
 files are saved only if the C<$FileChanged> variable has been set to 1
 within the macro code.
+
+=item B<--no-save>
+
+Never ever save any files (this way you may protect your files from
+being saved even if applying a macro that modifies them and sets
+C<$TredMacro::FileChanged> to 1).
 
 =item B<--safe-mode|-F>
 
