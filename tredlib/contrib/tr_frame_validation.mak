@@ -93,9 +93,9 @@ sub choose_frame_or_advfunc_validate {
 sub assign_dispmod {
   unless (exists($defs->{dispmod})) {
     AppendFSHeader('@P dispmod',
-		   '@L dispmod|---|NA|NIL|DISPMOD|???');
+		   '@L dispmod|---|NA|NIL|DISP|???');
   }
-  $this->{dispmod}='DISPMOD';
+  $this->{dispmod}='DISP';
 }
 
 #bind assign_state to Ctrl+equal menu Assign state=ST
@@ -138,9 +138,10 @@ sub validate_assigned_frames {
   }; print STDERR $@ if $@;
   local $V_verbose = 1;
   print "\n\n==================================================\n";
-  print $node->{trlemma}."\t".ThisAddress($node)."\n";
+  print $node->{trlemma}."\t".$node->{frameid}."\t".ThisAddress($node)."\n";
   print "==================================================\n";
-  if ($node->{tag}=~/^[NA]/) {
+  if ($node->{tag}=~/^[NA]/
+      or ($node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/)) {
     my $pj4 = hash_pj4($node->root);
     if (check_nounadj_frames($node,$aids,'frameid',$pj4)==0) {
       $node->{_light}='_LIGHT_';
