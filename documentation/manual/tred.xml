@@ -589,10 +589,17 @@ root# <userinput>make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><guimenuitem>Draw Boxes</guimenuitem></term>
+	  <term><guimenuitem>Draw boxes around labels</guimenuitem></term>
 	  <listitem>
-	    <para>If this item is checked, square boxes are drawn under all nodes
-	      and their attributes.</para>
+	    <para>If this item is checked, square boxes are drawn
+	      around the group of node labels.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Draw boxes around edge labels</guimenuitem></term>
+	  <listitem>
+	    <para>If this item is checked, square boxes are drawn
+	      around the group of edge attributes.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -1572,157 +1579,308 @@ root# <userinput>make install</userinput>
 	<tbody>
 	  <row>
 	    <entry>Node-addbeforeskip</entry>
-            <entry><para></para></entry>
+            <entry><para>Additional horizontal space before node
+		in pixels<para></entry>
 	  </row>
 	  <row>
 	    <entry>Node-addafterskip</entry>
-	    <entry><para></para></entry>
+	    <entry><para>Additional horizontal space after node
+		in pixels</para></entry>
           </row>
 	  <row>
 	    <entry>Node-disableedgelabelspace</entry>
-	    <entry><para></para></entry>
+	    <entry><para>If set the value is <quote><literal>yes</literal></quote>
+		no additional horizontal skip for
+		edge labels is added during
+		positioning the node.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>NodeLabel-valign</entry>
-	    <entry><para></para></entry>
+	    <entry><para>This instruction
+		may be used only within <literal>root-style</literal>
+		patterns.
+		It takes one of the following
+		values: <quote><literal>top</literal></quote>,
+		<quote><literal>center</literal></quote>,
+		and <quote><literal>bottom</literal></quote>. 
+		This feature specifies which side of the group of
+		node labels should be placed towards the node. 
+		If <quote><literal>top</literal></quote> is selected
+		(which is the default value), node labels appear
+		bellow the node. If
+		<quote><literal>bottom</literal></quote>
+		is selected, node labels are displayed
+		above the node.	If the value of
+		<quote><literal>center</literal></quote>
+		is used, node labels are displayed
+		across the node.	
+	      </para></entry>
+          </row>
+	  <row>
+	    <entry>NodeLabel-halign</entry>
+	    <entry><para>One of the following values
+		may be used: <quote><literal>left</literal></quote>,
+		<quote><literal>center</literal></quote>,
+		and <quote><literal>right</literal></quote>. 
+		This feature specifies which side of the group of
+		node labels should be placed towards the node. 
+		E.g, if <quote><literal>right</literal></quote> is selected
+		(which is the default value), node labels appear
+		left of the node.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>NodeLabel-yadj</entry>
-	    <entry><para></para></entry>
+	    <entry><para>Adjust vertical position of node labels
+		by extra amount of pixels.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>NodeLabel-dodrawbox</entry>
-	    <entry><para></para></entry>
+	    <entry><para>If <menuchoice>
+		  <guimenu>View</guimenu>
+		  <guimenuitem>Draw boxes around labels</guimenuitem>
+		  is not selected and this instruction
+		is set to
+		<quote><literal>yes</literal></quote> for a given node ,
+		box is still drawn around the node's labels.
+	      </menuchoice>
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>NodeLabel-nodrawbox</entry>
-	    <entry><para></para></entry>
+	    <entry><para>
+		If <menuchoice>
+		  <guimenu>View</guimenu>
+		  <guimenuitem>Draw boxes around labels</guimenuitem>
+		is selected and this instruction
+		 is set to
+		<quote><literal>yes</literal></quote> for a given node,
+		no box is drawn around the node's labels.
+	      </menuchoice>
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>EdgeLabel-yadj</entry>
-	    <entry><para></para></entry>
+	    <entry><para>Adjust vertical position of edge labels
+		by extra amount of pixels.
+		The horizontal position is adjusted automatically.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>EdgeLabel-halign</entry>
-	    <entry><para></para></entry>
+	    <entry><para>One of 
+		the values <quote><literal>right</literal></quote>,
+		<quote><literal>center</literal></quote>,
+		and <quote><literal>left</literal></quote>
+		may be used to specify which side of the edge label
+		should be oriented towards the edge.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>EdgeLabel-valign</entry>
-	    <entry><para></para></entry>
+	    <entry><para>One of 
+		the values <quote><literal>top</literal></quote>,
+		<quote><literal>center</literal></quote>,
+		and <quote><literal>bottom</literal></quote>
+		may be used to specify which side of the edge label
+		should be oriented towards the edge.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>EdgeLabel-dodrawbox</entry>
-	    <entry><para></para></entry>
+	    <entry><para>If <menuchoice>
+		  <guimenu>View</guimenu>
+		  <guimenuitem>Draw boxes around edge labels</guimenuitem>
+		  is not selected and this instruction
+		is set to
+		<quote><literal>yes</literal></quote> for a given node ,
+		box is still drawn around the node's edge labels.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>EdgeLabel-nodrawbox</entry>
-	    <entry><para></para></entry>
+	    <entry><para>If <menuchoice>
+		  <guimenu>View</guimenu>
+		  <guimenuitem>Draw boxes around edge labels</guimenuitem>
+		is selected and this instruction
+		is set to
+		<quote><literal>yes</literal></quote> for a given node,
+		no box is drawn around the node's edge labels.</para></entry>
           </row>
 	  <row>
 	    <entry>Oval-dash</entry>
-	    <entry><para></para></entry>
+	    <entry><para>Dash pattern for the outline
+	      of the point representing the node of the tree.
+	      A dash pattern is a sequence of arbitrary
+		of the following characters <quote>.,-_</quote>.
+		Space can be used
+		to enlarge the space between other line elements, and can
+		not occur as the first position in the string.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>Oval-activedash</entry>
-	    <entry><para></para></entry>
+	    <entry><para>Dash pattern for the outline
+	      of the point when mouse is over the point. See
+	      description of <literal>Oval-dash</literal>
+		for more information on dash patterns.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>Oval-dashoffset</entry>
-	    <entry><para></para></entry>
+	    <entry><para>The starting offset (in pixels)
+		into the pattern provided by the
+		<literal>Oval-dash</literal> instruction.		
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>Oval-fill</entry>
-	    <entry><para></para></entry>
+	    <entry><para>The color that fills the
+		node.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>Oval-activefill</entry>
-	    <entry><para></para></entry>
+	    <entry><para>The color to fill the node
+	      when mouse is over it.</para></entry>
           </row>
 	  <row>
 	    <entry>Oval-outline</entry>
-	    <entry><para></para></entry>
+	    <entry><para>The color of the outline
+		of the node.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>Oval-activeoutline</entry>
-	    <entry><para></para></entry>
-          </row>
-	  <row>
-	    <entry>Oval-disabledoutline</entry>
-	    <entry><para></para></entry>
+	    <entry><para>The color of the outline
+		of the node when mouse is over it.
+	      </para>
+	    </entry>
           </row>
 	  <row>
 	    <entry>Oval-width</entry>
-	    <entry><para></para></entry>
+	    <entry><para>Width of the outline
+		of the node.</para></entry>
           </row>
 	  <row>
 	    <entry>Oval-activewidth</entry>
-	    <entry><para></para></entry>
+	    <entry><para>Width of the outline
+		of the node when mouse is over it.</para></entry>
           </row>
 	  <row>
 	    <entry>Line-arrow</entry>
-	    <entry><para></para></entry>
-          </row>
-	  <row>
-	    <entry>Line-capstyle</entry>
-	    <entry><para></para></entry>
+	    <entry><para>One of the values
+		<quote><literal>first</literal></quote>,
+		<quote><literal>both</literal></quote>,
+		<quote><literal>last</literal></quote>,
+		may be used to make arrow to be drawn
+		on one or both sides of the edge connecting
+		the given node with its parent.
+	      </para>
+	    </entry>
           </row>
 	  <row>
 	    <entry>Line-<replaceable>feature</replaceable></entry>
-	    <entry><para></para></entry>
+	    <entry><para>Features
+		<literal>dash</literal>,
+		<literal>activedash</literal>,
+		<literal>fill</literal>,
+		<literal>activefill</literal>,
+		<literal>width</literal>, and
+		<literal>activewidth</literal>
+		may be used to style the edge. Their values and
+		meaning is similar to those of <literal>Oval</literal>,
+		as described above.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>Text<replaceable>&lt;position&gt;</replaceable>-fill</entry>
-	    <entry><para></para></entry>
+	    <entry><para>
+		This feature may be used to set the color of a certain
+		text object. The object is determined by its
+		<replaceable>position</replaceable> which may have one
+		of the following forms:
+		<literal>[<replaceable>attribute-name</replaceable>]</literal>,
+		<literal>[<replaceable>attribute-name</replaceable>][<replaceable>n</replaceable>]</literal>,
+		or
+		<literal>[<replaceable>attribute-name</replaceable>][<replaceable>n</replaceable>][<replaceable>m</replaceable>]</literal>,
+		where <replaceable>attribute-name</replaceable>
+		is name of an attribute,
+		<replaceable>n</replaceable> is the ordinal number of
+		pattern which is the source of the text object
+		and <replaceable>m</replaceable> is ordinal number
+		of the attribute reference (<literal>${<replaceable>attribute-name</replaceable>}</literal>) within that pattern.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>Text<replaceable>&lt;position&gt;</replaceable>-activefill</entry>
-	    <entry><para></para></entry>
-          </row>
-	  <row>
-	    <entry>Text<replaceable>&lt;position&gt;</replaceable>-anchor</entry>
-	    <entry><para></para></entry>
-          </row>
-	  <row>
-	    <entry>Text<replaceable>&lt;position&gt;</replaceable>-<replaceable>anchor</replaceable></entry>
-	    <entry><para></para></entry>
+	    <entry><para>This feature may be used to set the color of a certain
+		text object when mouse is over it.
+		The syntax of <replaceable>position</replaceable>
+		is as above.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>TextBg<replaceable>&lt;position&gt;</replaceable>-<replaceable>feature</replaceable></entry>
-	    <entry><para></para></entry>
-          </row>
-	  <row>
-	    <entry>EdgeText<replaceable>&lt;position&gt;</replaceable>-fill</entry>
-	    <entry><para></para></entry>
-          </row>
-	  <row>
-	    <entry>EdgeText<replaceable>&lt;position&gt;</replaceable>-activefill</entry>
-	    <entry><para></para></entry>
-          </row>
-	  <row>
-	    <entry>EdgeText<replaceable>&lt;position&gt;</replaceable>-anchor</entry>
-	    <entry><para></para></entry>
-          </row>
-	  <row>
-	    <entry>EdgeTextBg-<replaceable>feature</replaceable></entry>
-	    <entry><para></para></entry>
+	    <entry><para>This instruction may be used to set features
+		of an underlying rectangle of certain
+		text object.
+		The syntax of <replaceable>position</replaceable>
+		is as above, except that only the first
+		two forms are accepted, because text objects
+		appearing on one line have common underlying rectangle.
+		The following features are supported:
+		<literal>dash</literal>,
+		<literal>activedash</literal>,
+		<literal>dashoffset</literal>,
+		<literal>fill</literal>,
+		<literal>activefill</literal>,
+		<literal>outline</literal>,
+		<literal>activeoutline</literal>,
+		<literal>width</literal>, and
+		<literal>activewidth</literal>.
+	      </para></entry>
           </row>
 	  <row>
 	    <entry>TextBox-<replaceable>feature</replaceable></entry>
-	    <entry><para></para></entry>
+	    <entry><para>This instruction may be used to set features
+		of the frame drawn around the group of node labels.
+		The following features are supported:
+		<literal>dash</literal>,
+		<literal>activedash</literal>,
+		<literal>dashoffset</literal>,
+		<literal>fill</literal>,
+		<literal>activefill</literal>,
+		<literal>outline</literal>,
+		<literal>activeoutline</literal>,
+		<literal>width</literal>, and
+		<literal>activewidth</literal>.
+	      </para>
+	    </entry>
           </row>
 	  <row>
 	    <entry>EdgeTextBox-<replaceable>feature</replaceable></entry>
-	    <entry><para></para></entry>
+	    <entry><para>This instruction may be used to set features
+		of the frame drawn around the group of node's edge
+		labels. The list of supported features is the same as
+		that of <literal>TextBox</literal>.
+	      </para>
+	    </entry>
           </row>
 	</tbody>
       </tgroup>
     </table>
     <para>
-      The same syntax applies also to the hint pattern. This
+      The same syntax that applies to patterns applies also to the
+      hint pattern, except that only attribute value and perl code
+      interpolations are accepted.
+      The hint
       pattern is interpolated and displayed in a floating
       <quote>tool-tip</quote> like frame whenever user positions
       the mouse cursor above a node and waits for a while.
-      (The lenght of this time interval may be customized
+      (The lenght of the time interval may be customized
       by setting the <link linkend="hintwait"><literal>HintWait</literal></link>
       option to the desired number of milliseconds).
     </para>
