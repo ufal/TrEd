@@ -162,7 +162,7 @@ sub node_release_hook {
   } 
   assign_coref($node,get_ID_for_coref($target),$type);
   TredMacro::Redraw_FSFile_Tree();
-  $FileNotSaved=1;
+  $FileChanged=1;
 }
 
 #bind remember_this_node to Ctrl+q menu Remeber current node for coreference
