@@ -1580,7 +1580,7 @@ root# <userinput>make install</userinput>
 	  <row>
 	    <entry>Node-addbeforeskip</entry>
             <entry><para>Additional horizontal space before node
-		in pixels<para></entry>
+		in pixels</para></entry>
 	  </row>
 	  <row>
 	    <entry>Node-addafterskip</entry>
@@ -1641,11 +1641,11 @@ root# <userinput>make install</userinput>
 	    <entry><para>If <menuchoice>
 		  <guimenu>View</guimenu>
 		  <guimenuitem>Draw boxes around labels</guimenuitem>
-		  is not selected and this instruction
+		</menuchoice>
+		is not selected and this instruction
 		is set to
 		<quote><literal>yes</literal></quote> for a given node ,
 		box is still drawn around the node's labels.
-	      </menuchoice>
 	      </para></entry>
           </row>
 	  <row>
@@ -1654,11 +1654,11 @@ root# <userinput>make install</userinput>
 		If <menuchoice>
 		  <guimenu>View</guimenu>
 		  <guimenuitem>Draw boxes around labels</guimenuitem>
+		</menuchoice>
 		is selected and this instruction
 		 is set to
 		<quote><literal>yes</literal></quote> for a given node,
 		no box is drawn around the node's labels.
-	      </menuchoice>
 	      </para></entry>
           </row>
 	  <row>
@@ -1692,7 +1692,9 @@ root# <userinput>make install</userinput>
 	    <entry>EdgeLabel-dodrawbox</entry>
 	    <entry><para>If <menuchoice>
 		  <guimenu>View</guimenu>
-		  <guimenuitem>Draw boxes around edge labels</guimenuitem>
+		  <guimenuitem>Draw boxes around edge
+		    labels</guimenuitem>
+		</menuchoice>
 		  is not selected and this instruction
 		is set to
 		<quote><literal>yes</literal></quote> for a given node ,
@@ -1703,7 +1705,9 @@ root# <userinput>make install</userinput>
 	    <entry>EdgeLabel-nodrawbox</entry>
 	    <entry><para>If <menuchoice>
 		  <guimenu>View</guimenu>
-		  <guimenuitem>Draw boxes around edge labels</guimenuitem>
+		  <guimenuitem>Draw boxes around edge
+		    labels</guimenuitem>
+		</menuchoice>
 		is selected and this instruction
 		is set to
 		<quote><literal>yes</literal></quote> for a given node,
