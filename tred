@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-03-01 15:44:47 pajas>
+# Time-stamp: <2001-03-01 16:29:23 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -477,6 +477,8 @@ sub setConfig {
   $hookDebug=(exists $confs->{hookdebug}) ? $confs->{hookdebug} : 0;
   $macroDebug=(exists $confs->{macrodebug}) ? $confs->{macrodebug} : 0;
   $tredDebug=(exists $confs->{treddebug}) ? $confs->{treddebug} : 0;
+  
+  $defaultTemplateMatchMethod=(exists $confs->{searchmethod}) ? $confs->{searchmethod} : 'E';
 
   $defCWidth=(exists $confs->{canvaswidth}) ? $confs->{canvaswidth} : '18c';
   $defCHeight=(exists $confs->{canvasheight}) ? $confs->{canvasheight} : '12c';
@@ -1584,6 +1586,7 @@ sub startMain {
 
   $group{top}=MainWindow->new;
   $group{macroContext}='TredMacro';
+  $group{templateMatchMethod}=$defaultTemplateMatchMethod;
   print STDERR "Main window created.\n" if $tredDebug;
 
   if (-f $appIcon) {
@@ -2759,9 +2762,11 @@ sub customAttrsDialog {
 sub findNodeDialog {
   my ($grp,$template)=@_;
   my $r;
+  my @vals;
+  local @atord = sort {uc($a) cmp uc($b)} @atord if $sortAttrs;
+
   my $b;
   my $a;
-  my @vals;
   my $rows=min(10,$#atord+1);
   my @r=();
   $grp->{'top'}->Busy(-recurse =>1);
@@ -2829,14 +2834,16 @@ sub findNodeDialog {
   $f->Manage(@r);
   $f->pack();
 
-  my $matchType='Regular expression';
-  foreach my $p ('Regular expression', 'Wildcard pattern', 'Literal') {
-    $d->Radiobutton(
-		       -text     => $p,
-		       -variable => \$matchType,
-		       -relief   => 'flat',
-		       -value    => $p,
-		      )->pack();
+  foreach my $p ('Regular expression',
+		 'Exhaustive regular expression',
+		 'Wildcard pattern',
+		 'Literal') {
+    $d->Radiobutton(-anchor   => 'nw',
+		    -text     => $p,
+		    -variable => \$grp->{templateMatchMethod},
+		    -relief   => 'flat',
+		    -value    => substr($p,0,1),
+		   )->pack(-fill => 'x');
   }
 
   $grp->{'top'}->Unbusy();
@@ -2859,6 +2866,20 @@ sub findNodeDialog {
   undef $d;
 }
 
+sub cmpTemplateField {
+  my ($grp,$val,$templ)=@_;
+  return $val =~ /^$templ$/ if ($grp->{templateMatchMethod} eq 'E');
+  return $val =~ /$templ/ if ($grp->{templateMatchMethod} eq 'R');
+  return $val eq $templ if ($grp->{templateMatchMethod} eq 'L');
+  if ($grp->{templateMatchMethod} eq 'W') {
+    $templ=~s/[.^$(){}<>\\]/\\\&/g;
+    $templ=~s/\*/.\*/g;
+    $templ=~s/\?/./g;
+    return $val =~ /^$templ$/;
+  }
+  return $val eq $templ;
+}
+
 sub findFirstTemplated {
   my ($grp,$template,$skipfirst)=@_;
   my $node=$grp->{'currentNode'};
@@ -2869,7 +2890,8 @@ sub findFirstTemplated {
   while ($node) {
     unless (grep ((exists($template->{$_}) and
 		   $template->{$_} ne '' and
-		   $node->{$_} !~ /$template->{$_}/ ), @atord))
+		   not cmpTemplateField($grp,$node->{$_},$template->{$_})
+		  ), @atord))
       {
 	gotoTree($tree, $grp);
 	setCurrent($grp, $node);
