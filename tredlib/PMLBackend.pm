@@ -11,7 +11,7 @@ use XML::Writer;
   use Data::Dumper;
 
 
-use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $pml_ns);
+use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $pml_ns $DEBUG);
 
 $pml_ns = "http://ufal.mff.cuni.cz/pdt/pml/";
 
@@ -27,7 +27,7 @@ $encoding='utf8';
 $pmlhint="";
 
 sub _debug {
-  print "PML2FS: ",@_,"\n";
+  print "PML2FS: ",@_,"\n" if $PML2FS::DEBUG;
 }
 
 
@@ -157,18 +157,18 @@ sub read_references {
   $fsfile->changeMetaData('refnames',\%named_references);
 }
 
-=item read_Seq($node)
+=item read_List($node)
 
-If given DOM node contains a pml:Seq, return a list of its members,
+If given DOM node contains a pml:List, return a list of its members,
 otherwise return the node itself.
 
 =cut
 
-sub read_Seq ($) {
+sub read_List ($) {
   my ($node)=@_;
   return unless $node;
-  my ($Seq) = $node->getChildrenByTagNameNS($pml_ns,'Seq');
-  return $Seq ? $Seq->getChildrenByTagNameNS($pml_ns,'M') : $node;
+  my $List = $node->getChildrenByTagNameNS($pml_ns,'S');
+  return @$List ? @$List : $node;
 }
 
 =item read_Alt($node)
@@ -181,8 +181,8 @@ otherwise return the node itself.
 sub read_Alt ($) {
   my ($node)=@_;
   return unless $node;
-  my ($Alt) = $node->getChildrenByTagNameNS($pml_ns,'Alt');
-  return $Alt ? $Alt->getChildrenByTagNameNS($pml_ns,'M') : $node;
+  my $Alt = $node->getChildrenByTagNameNS($pml_ns,'A');
+  return @$Alt ? @$Alt : $node;
 }
 
 
@@ -213,13 +213,13 @@ sub read_node ($$$;$) {
     die "Unknown node type: $type\n";
   }
 
-  if ($type->{seq}) {
+  if ($type->{list}) {
     return bless [
       map {
 	read_node($_,$fsfile,
-			      $types,resolve_type($types,$type->{seq}))
-      } read_Seq($node)
-    ], 'Fslib::Seq';
+		  $types,resolve_type($types,$type->{list}))
+      } read_List($node)
+    ], 'Fslib::List';
   } elsif ($type->{member} or $type->{attribute}) {
     # structure
     my $hash = ($type->{role} eq '#NODE') ? FSNode->new() : {};
@@ -247,10 +247,10 @@ sub read_node ($$$;$) {
 	  $role ||= $member->{role} if ref($member);
 	  if (ref($member) and $role eq '#CHILDNODES') {
 	    if (ref($hash) eq 'FSNode') {
-	      my $seq = read_node($child,$fsfile,$types,$member);
-	      $hash->{$Fslib::firstson} = $seq->[0];
+	      my $list = read_node($child,$fsfile,$types,$member);
+	      $hash->{$Fslib::firstson} = $list->[0];
 	      my $prev=0;
-	      foreach my $son (@{$seq}) {
+	      foreach my $son (@{$list}) {
 		unless (ref($son) eq 'FSNode') {
 		  die "non-#NODE child '$name' of '".$node->localname.
 		    "' at line ".$child->line_number."\n";
@@ -266,7 +266,7 @@ sub read_node ($$$;$) {
 	    }
 	  } elsif (ref($member) and $role eq '#KNIT') {
 	    my $ref = $child->textContent();
-	    # print "KNIT: name=$name, '$ref'\n";
+	    # _debug("KNIT: name=$name, '$ref');
 	    if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
 	      my ($reffile,$idref)=($1,$2);
 	      my $refdom = ($reffile ne "") ? $fsfile->metaData('ref')->{$reffile} : $child->ownerDocument;
@@ -275,9 +275,9 @@ sub read_node ($$$;$) {
 		  $fsfile->metaData('ref-index')->{$reffile}{$idref} ||
 		    $refdom->getElementsById($idref);
 		if (ref($refnode)) {
-		  #	  print "KNIT: $idref\n";
-		  #	  print "KNIT-TYPE: ",Dumper(resolve_type($types,$type->{knit})),"\n";
-		  #	  print $refnode->toString(1),"\n";
+		  #	  _debug("KNIT: $idref");
+		  #	  _debug("KNIT-TYPE: ",Dumper(resolve_type($types,$type->{knit})));
+		  #	  _debug($refnode->toString(1));
 		  my $ret = read_node($refnode,$fsfile,$types,$member);
 		  $name =~ s/\.rf$//;
 		  $hash->{$name} = $ret;
@@ -340,13 +340,13 @@ sub read_node ($$$;$) {
     return $data;
   } elsif ($type->{alt}) {
     # alt
-    my ($Alt) = $node->getChildrenByTagNameNS($pml_ns,'Alt');
-    if ($Alt) {
+    my $Alt = $node->getChildrenByTagNameNS($pml_ns,'A');
+    if (@$Alt) {
       return bless [
 	map {
 	  read_node($_,$fsfile,
 				$types,resolve_type($types,$type->{alt}))
-	} $Alt->getChildrenByTagNameNS($pml_ns,'M'),
+	} @$Alt,
        ], 'Fslib::Alt';
     } else {
       return read_node($node,$fsfile,
@@ -362,7 +362,7 @@ sub read_trees {
   my ($parser, $fsfile, $dom_root) = @_;
   my $references = $fsfile->metaData('schema')->{reference};
   if ($references) {
-    print Dumper($references),"\n";
+    _debug(Dumper($references));
     foreach my $reference (@$references) {
       my $refid = $fsfile->metaData('refnames')->{$reference->{name}};
       if ($refid) {
@@ -376,7 +376,7 @@ sub read_trees {
 	  } elsif ($reference->{readas} eq 'dom') {
 	    my $ref_data;
 	    my $ref_fh = open_backend($href,'r');
-	    print "$href $ref_fh\n";
+	    _debug("$href $ref_fh");
 	    if ($ref_fh){
 	      $ref_data = $parser->parse_fh($ref_fh);
 	      $parser->process_xincludes($ref_data);
@@ -386,7 +386,7 @@ sub read_trees {
 	      }
 	      $fsfile->metaData('ref')->{$refid}=$ref_data;
 	      $fsfile->metaData('ref-index')->{$refid}=index_by_id($ref_data);
-	      print "Stored meta 'ref' -> '$reference->{name}' = $ref_data\n";
+	      _debug("Stored meta 'ref' -> '$reference->{name}' = $ref_data");
 	    } else {
 	      warn "Couldn't open '".$href."': $!\n";
 	    }
@@ -405,7 +405,7 @@ sub read_trees {
   my $types = $fsfile->metaData('schema')->{type};
   my %roles;
   foreach my $t (keys %$types) {
-    print $t,"\n";
+    _debug($t);
     $roles{$types->{$t}->{role}}{$t}=1 if ($types->{$t}->{role});
   }
 
@@ -414,30 +414,30 @@ sub read_trees {
 	$child->namespaceURI eq $pml_ns and
 	$roles{'#TREES'}{$child->localname}) {
       my $type = $types->{$child->localname};
-      if ($type->{seq}) {
-	if ($type->{seq} and
-	    $roles{'#NODE'}{$type->{seq}{type}}) {
-# rework as: read Seq incl. the blessed object
+      if ($type->{list}) {
+	if ($type->{list} and
+	    $roles{'#NODE'}{$type->{list}{type}}) {
+# rework as: read List incl. the blessed object
 # and turn it into a simple list
 
 	  my $trees;
 	  $trees = read_node($child,$fsfile,$types,$type);
-	  if (ref($trees) eq 'Fslib::Seq') {
+	  if (ref($trees) eq 'Fslib::List') {
 	    @{$fsfile->treeList} = @$trees
 	  } else {
 	    @{$fsfile->treeList} = ($trees);
 	  }
-#	  print "ORDER: ",Fslib::ASpecial($fsfile->FS->defs,"N"),"\n";
+#	  _debug("ORDER: ",Fslib::ASpecial($fsfile->FS->defs,"N"));;
 #
-#	  foreach my $tree (read_Seq($child, $types)) {
+#	  foreach my $tree (read_List($child, $types)) {
 #	    push @{$fsfile->treeList}, read_node($tree,$fsfile,$types,$types->{});
 #	  }
 
 	} else {
-	  die "Expected 'seq' of #NODE types in role #TREES\n";
+	  die "Expected 'list' of #NODE types in role #TREES\n";
 	}
       } else {
-	die "Expected 'seq' in role #TREES\n";
+	die "Expected 'list' in role #TREES\n";
       }
     } else {
       # store ??
@@ -453,6 +453,8 @@ sub read_trees {
 
 sub write {
   my ($fh,$fsfile)=@_;
+  binmode $fh;
+  binmode $fh,":utf8";
   my $xml =  new XML::Writer(OUTPUT => $fh,
 			   DATA_MODE => 1,
 			   DATA_INDENT => 1);
@@ -462,7 +464,7 @@ sub write {
   my $types = $fsfile->metaData('schema')->{type};
   my %roles;
   foreach my $t (keys %$types) {
-    print $t,"\n";
+    _debug($t);
     $roles{$types->{$t}->{role}}{$t}=1 if ($types->{$t}->{role});
   }
   my ($data) = keys (%{$roles{'#DATA'}});
@@ -487,8 +489,8 @@ sub write {
   $xml->endTag('references');
   $xml->endTag('head');
   my ($trees) = keys (%{$roles{'#TREES'}});
-  my $tree_seq = bless [$fsfile->trees],'Fslib::Seq';
-  write_object($xml, $fsfile, $types,$types->{$trees},$trees,$tree_seq);
+  my $tree_list = bless [$fsfile->trees],'Fslib::List';
+  write_object($xml, $fsfile, $types,$types->{$trees},$trees,$tree_list);
   $xml->endTag($data);
   $xml->end;
 
@@ -547,19 +549,19 @@ sub write_object ($$$$) {
       $xml->startTag($tag,%attribs);
       if ($type->{member}) {
 	foreach my $member (sort keys %{$type->{member}}) {
-#	  print "Writing children to $member\n";
+#	  _debug("Writing children to $member");
 	  if ($type->{member}{$member}{role} eq '#CHILDNODES') {
 	    if (ref($object) eq 'FSNode') {
 	      if ($object->firstson or !$type->{member}{$member}{optional}) {
 		write_object($xml, $fsfile, $types,$type->{member}{$member},$member,
-			     bless([ $object->children ],'Fslib::Seq'));
+			     bless([ $object->children ],'Fslib::List'));
 	      }
 	    } else {
 	      warn "Found #CHILDNODES member '$tag/$member' on a non-node value: $object\n";
 	    }
 	  } elsif ($type->{member}{$member}{role} eq '#KNIT') {
 	    if ($object->{$member} ne "") {
-	      print "#KNIT.rf $member\n";
+	      _debug("#KNIT.rf $member");
 	      $xml->startTag($member);
 	      $xml->characters($object->{$member});
 	      $xml->startTag($member);
@@ -577,17 +579,17 @@ sub write_object ($$$$) {
 		  if ($indeces and $indeces->{$reffile}) {
 		    my $knit = $indeces->{$reffile}{$idref};
 		    if ($knit) {
-		      #print $knit->toString(1),"\n";
+		      #_debug($knit->toString(1));
 		      my $knit_tag = $name;
-		      $knit_tag = 'M' if ($knit->parentNode->nodeName =~ /^(Alt|Seq)$/ and
-				     $knit->parentNode->namespaceURI eq $pml_ns);
+#		      $knit_tag = 'S' if ($knit->nodeName =~ /^(Alt|List)$/ and
+#				     $knit->parentNode->namespaceURI eq $pml_ns);
 		      my $dom_writer = MyDOMWriter->new(REPLACE => $knit);
 		      write_object($dom_writer, $fsfile, $types,
 				   resolve_type($types,$type->{member}{$member}),
 				   $knit_tag, $object->{$name});
 		      my $new = $dom_writer->end;
 		      $new->setAttribute('id',$idref);
-		      #print $dom_writer->end->toString(1),"\n";
+		      #_debug $dom_writer->end->toString(1));
 		    } else {
 		      warn "Didn't find ID $idref in $reffile - can't knit back!\n";
 		    }
@@ -595,7 +597,7 @@ sub write_object ($$$$) {
 		    warn "Knit-file $reffile has no index - can't knit back!\n";
 		  }
 		} else {
-		  print "$object = {\n",(map {"  $_ => $object->{$name}{$_}\n"} keys %{$object->{$name}}),"}\n";
+		  _debug("$object = {\n",(map {"  $_ => $object->{$name}{$_}\n"} keys %{$object->{$name}}),"}");
 		  warn "Can't parse '$member' href '$ref' - can't knit back!\n";
 		}
 	      }# else {
@@ -612,23 +614,23 @@ sub write_object ($$$$) {
       # what do we do now?
       warn "Unexpected content structure '$tag': $object\n";
     }
-  } elsif ($type->{seq}) {
-    if ($object ne "" and ref($object) eq 'Fslib::Seq') {
+  } elsif ($type->{list}) {
+    if ($object ne "" and ref($object) eq 'Fslib::List') {
       if (@$object == 0) {
 	# what do we do now?
 #      } elsif (@$object == 1) {
-#	write_object($xml, $fsfile,  $types,$type->{seq},$tag,$object->[0]);
+#	write_object($xml, $fsfile,  $types,$type->{list},$tag,$object->[0]);
       } else {
 	$xml->startTag($tag);
-	$xml->startTag('Seq');
+#	$xml->startTag('List');
 	foreach my $member (@$object) {
-	  write_object($xml, $fsfile, $types,$type->{seq},'M',$member);
+	  write_object($xml, $fsfile, $types,$type->{list},'S',$member);
 	}
-	$xml->endTag('Seq');
+#	$xml->endTag('List');
 	$xml->endTag($tag);
       }
     } else {
-      warn "Unexpected content of Seq '$tag': $object\n";
+      warn "Unexpected content of List '$tag': $object\n";
     }
   } elsif ($type->{alt}) {
     if ($object ne "" and ref($object) eq 'Fslib::Alt') {
@@ -638,11 +640,11 @@ sub write_object ($$$$) {
 	write_object($xml, $fsfile, $types,$type->{alt},$tag,$object->[0]);
       } else {
 	$xml->startTag($tag);
-	$xml->startTag('Alt');
+#	$xml->startTag('Alt');
 	foreach my $member (@$object) {
-	  write_object($xml, $fsfile, $types,$type->{alt},'M',$member);
+	  write_object($xml, $fsfile, $types,$type->{alt},'A',$member);
 	}
-	$xml->endTag('Alt');
+#	$xml->endTag('Alt');
 	$xml->endTag($tag);
       }
     } else {
