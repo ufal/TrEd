@@ -81,7 +81,12 @@ require TrEd::CPConvert;
 
 my $double = 0;
 
+use POSIX qw(locale_h);
 my $support_unicode = ($Tk::VERSION ge 804.00);
+setlocale(LC_NUMERIC,"C");
+setlocale(LC_COLLATE,$support_unicode ? "cs_CZ.UTF8" : "cs_CZ");
+
+
 my $conv= TrEd::CPConvert->new("utf-8",
 			       $support_unicode ? "utf-8" :
 			       (($^O eq "MSWin32") ?
@@ -120,6 +125,8 @@ while ($opt_c--) {
 		      };
 
     $top=Tk::MainWindow->new();
+    $top->useinputmethods(1) if ($support_unicode);
+
     my $top_frame = $top->Frame()->pack(qw/-expand yes -fill both -side top/);
 
     print "initializing\n";
