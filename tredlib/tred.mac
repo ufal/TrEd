@@ -12,9 +12,11 @@ sub file_opened_hook {
 
 ## add few custom bindings to predefined subroutines
 
-# bind Save to F2
-# bind SaveAndPrevFile to F11
-# bind SaveAndNextFile to F12
+# bind Save to F2 menu Save File
+# bind SaveAndPrevFile to F11 menu Save and Go to Next File
+# bind SaveAndNextFile to F12 menu Save and Go to Next File
+# bind Find to F3 menu Find
+# bind FindNext to F4 menu Find Next
 
 # bind NewRBrother to F7 menu New Node (r-brother)
 # bind NewSon to Shift+F7 menu New Node (son)

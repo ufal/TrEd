@@ -8,7 +8,7 @@ package TredMacro;
 #use Exporter;
 #use vars qw(@ISA @EXPORT);
 import Fslib;
-import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
+import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
 import main;
 
 #@EXPORT = qw(new SwitchContext GotoTree NextTree PrevTree GetOrd
@@ -60,6 +60,13 @@ sub new {
 # Default macro definitions to make
 # calls to global subroutines less humble
 
+sub Redraw {
+  my $ie=$main::insideEval;
+  $main::insideEval=0;
+  &main::redraw_tree($grp);
+  $main::insideEval=$ie;
+}
+
 sub SetDisplayAttrs {
   @main::displayAttrs=@_;
 }
@@ -73,7 +80,7 @@ sub SwitchContext {
 }
 
 sub GotoTree {
-  my $to=shift;
+  my $to=shift()-1;
   $_NoSuchTree=($to != main::max(0,min($to,$#trees)));
   my $result=main::gotoTree($to,$grp);
   $this=$root;
@@ -129,6 +136,17 @@ sub SaveAndPrevFile {
   main::Save();
   main::prevFile($grp);
 }
+
+sub Find {
+  $grp->{findButton}->invoke();
+  $this=$grp->{currentNode};
+}
+
+sub FindNext {
+  $grp->{findNextButton}->invoke();
+  $this=$grp->{currentNode};
+}
+
 
 ###########################################################
 # Macros used by Graph2Tred macro convertor
@@ -336,3 +354,101 @@ sub PasteValues {
     $this->{$_}=$ValuesClipboard{$_};
   }
 }
+
+sub NextNode {
+  my ($node,$top)=@_;
+  return $node ? main::HNext($node,$top) : undef;
+}
+
+sub PrevNode {
+  my ($node,$top)=@_;
+  return $node ? main::HPrev($node,$top) : undef;
+}
+
+sub NextVisibleNode {
+  my ($node,$top)=@_;
+  $node=Next($node,$top);
+  while ($node) {
+    return $node unless (IsHidden($node));
+    $node=Next($node,$top);
+  }
+  return 0;
+}
+
+sub PrevVisibleNode {
+  my ($node,$top)=@_;
+  $node=Prev($node,$top);
+  while ($node) {
+    return $node unless (IsHidden($node));
+    $node=Prev($node,$top);
+  }
+  return 0;
+}
+
+## Node shifting macros
+
+# Get all nodes
+sub GetNodes {
+  my $top = defined($_[0]) ? $_[0] : $root;
+  my $node=$top;
+  my @n;
+  while ($node) {
+    push @n,$node;
+    $node=Next($node,$top);
+  }
+  return @n;
+}
+
+sub GetVisibleNodes {
+  my $top = defined($_[0]) ? $_[0] : $root;
+  my $node=$top;
+  my @n;
+  while ($node) {
+    push @n,$node;
+    $node=NextVisibleNode($node,$top);
+  }
+  return @n;
+}
+
+sub NormalizeOrds {
+  my ($nodesref)=@_;
+
+  my $ord=AOrd(\%attribs);
+  for (my $i=0;$i<=$#$nodesref;$i++) {
+    $nodesref->[$i]->{$ord}=$i;
+  }
+}
+
+sub SortByOrd {
+  my ($nodesref)=@_;
+  my $ord=AOrd(\%attribs);
+  @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
+}
+
+sub ShiftNodeRightSkipHidden {
+  my ($node)=@_;
+  my $ord=AOrd(\%attribs);
+  return unless $node;
+  my @all=GetNodes();
+  SortByOrd(\@all);
+
+  # This is sideeffect, but
+  # whe want to do this anyway
+  NormalizeOrds(\@all);
+  #
+  #
+
+  my $n=$node->{$ord};
+  return undef unless (defined($n));
+  return $n if ($n == $#all);
+
+  my @vis=GetVisibleNodes();
+  SortByOrd(\@vis);
+  my $m=Index(\@vis,$node);
+  my $x=min(Index(\@all,$vis[$m+1]),$#all);
+  for (my $i=$n+1;$i<=$x;$i++) { $all[$i]->{$ord}--; }
+  $node->{$ord}=$x;
+  my $parent=Parent($node);
+  Fslib::Paste(Fslib::Cut($node),$parent,\%attribs);
+}
+
