@@ -76,7 +76,7 @@ a je potreba ho nejak doresit-->
 <!ELEMENT example (#PCDATA)>   
 <!ELEMENT note (#PCDATA)>   
           
-<!ELEMENT frame_elements (element+)>  
+<!ELEMENT frame_elements (element*)>  
 
 <!ELEMENT element (form*)>  
 <!-- pokud neni vevnitr zadna forma, povazuje se realizace za arbitrary -->  

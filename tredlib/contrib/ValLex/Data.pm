@@ -266,7 +266,11 @@ sub getFrameElementString {
 		      ) {
     push @elements,$self->getOneFrameElementString($element);
   }
-  return join "  ", @elements;
+  if (@elements) {
+    return join "  ", @elements;
+  } else {
+    return "EMPTY";
+  }
 }
 
 sub getFrameElementFormsString {
@@ -459,8 +463,9 @@ sub changeFrameStatus {
 
 sub substituteFrame {
   my ($self,$word,$frame,$elements,$note,$example,$problem)=@_;
-  return unless $frame;
+  return unless ($frame);
   my $new=$self->addFrame($frame,$word,$elements,$note,$example,$problem,$self->user());
+  return unless $new;
   $self->changeFrameStatus($frame,"substituted","obsolete");
   my $subst=$frame->getAttribute("substituted_with");
   my $new_id=$new->getAttribute("frame_ID");
@@ -501,15 +506,17 @@ sub addForms {
 
 sub addFrameElements {
   my ($self,$elems,$elements)=@_;
-  my $doc=$self->doc();
-  my @elements=$elements=~/(?:^\s*|\s+)[A-Z0-9]+(?:[[(][^])]*[])])?/g;
-  foreach (@elements) {
-    if (/^\s*([A-Z0-9]+)([[(])?([^])]*)[])]?$/) {
-      my $elem=$doc->createElement("element");
-      $elem->setAttribute("functor",$self->conv->encode($1));
-      $elem->setAttribute("type", ($2 eq '(') ? "oblig" : "non-oblig");
-      $self->addForms($elem,$self->conv->encode($3));
-      $elems->appendChild($elem);
+  if ($elements=~/\S/ and $elements!~/EMPTY/) {
+    my $doc=$self->doc();
+    my @elements=$elements=~/(?:^\s*|\s+)[A-Z0-9]+(?:[[(][^])]*[])])?/g;
+    foreach (@elements) {
+      if (/^\s*([A-Z0-9]+)([[(])?([^])]*)[])]?$/) {
+	my $elem=$doc->createElement("element");
+	$elem->setAttribute("functor",$self->conv->encode($1));
+	$elem->setAttribute("type", ($2 eq '(') ? "oblig" : "non-oblig");
+	$self->addForms($elem,$self->conv->encode($3));
+	$elems->appendChild($elem);
+      }
     }
   }
   $self->set_change_status(1);

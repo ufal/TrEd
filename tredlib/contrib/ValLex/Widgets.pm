@@ -587,6 +587,7 @@ sub validate {
     $elements=$self->subwidget('elements')->get();
   }
   $elements=" $elements";
+  return 1 if ($elements=~/^\s*EMPTY\s*$/);
   return $elements=~m{^(?:\s+(ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|ATT|BEN|CAUS|CNCS|COMPL|COND|CONJ|CONFR|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|DPHR|ETHD|EXT|EV|GRAD|HER|INTF|INTT|ID|LOC|MANN|MAT|MEANS|MOD|NORM|PAR|PARTL|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT)(?:[[(][^])]*[])])?)+\s*$};
 }
 
