@@ -1066,7 +1066,7 @@ sub children {
     push @children, $child;
     $child=$child->rbrother;
   }
-  return wantarray ? @children : \@children;
+  return @children;
 }
 
 =pod
@@ -1133,7 +1133,7 @@ sub visible_descendants($$) {
 *getParentNode = *parent;
 *getNextSibling = *rbrother;
 *getPreviousSibling = *lbrother;
-*getChildNodes = *children;
+*getChildNodes = sub { wantarray ? $_[0]->children : [ $_[0]->children ] };
 
 sub getElementById { }
 sub isElementNode { 1 }
