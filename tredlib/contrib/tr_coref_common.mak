@@ -1,16 +1,16 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-09-02 12:41:44 pajas>
+## Time-stamp: <2004-11-17 12:47:00 pajas>
+
+#ifndef tr_coref_common
+#define tr_coref_common
 
 package Coref;
 
 use base qw(TredMacro);
 import TredMacro;
 
-sub OpenEditor { Tectogrammatic::OpenEditor(@_) }
-sub ChooseFrameNoAssign { Tectogrammatic::ChooseFrame(1) }
-#bind OpenEditor to Ctrl+Shift+Return menu Zobraz valencni ramce
-#bind ChooseFrameNoAssign to Ctrl+Return menu Zobraz valencni ramce pro sloveso
+########################## Default patterns ##########################
 
 #bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
@@ -43,6 +43,8 @@ __BALLOON__
   }
 }
 
+############################### Hooks ##################################
+
 sub sort_attrs_hook {
   my ($ar)=@_;
   @$ar = ((grep {FS()->exists($_)}
@@ -68,55 +70,6 @@ sub about_file_hook {
   my $msgref=shift;
   if ($root->{TR} and $root->{TR} ne 'hide') {
     $$msgref="Signed by $root->{TR}\n";
-  }
-}
-
-#bind edit_commentA to exclam menu Edit annotator's comment
-#bind edit_commentA to exclam
-sub edit_commentA {
-  if (not FS()->exists('commentA')) {
-    ToplevelFrame()->messageBox
-      (
-       -icon => 'warning',
-       -message => 'Sorry, no attribute for annotator\'s comment in this file',
-       -title => 'Sorry',
-       -type => 'OK'
-      );
-    $FileNotSaved=0;
-    return;
-  }
-  my $value=$this->{commentA};
-  $value=main::QueryString($grp->{framegroup},"Enter comment","commentA",$value);
-  if (defined($value)) {
-    $this->{commentA}=$value;
-  }
-}
-
-#bind edit_corinfo to + menu Edit corinfo
-sub edit_corinfo {
-  if (not FS()->exists('corinfo')) {
-    ToplevelFrame()->messageBox
-      (
-       -icon => 'warning',
-       -message => 'Sorry, no attribute for corinfo in this file',
-       -title => 'Sorry',
-       -type => 'OK'
-      );
-    $FileNotSaved=0;
-    return;
-  }
-  my $value=$this->{corinfo};
-  $value=main::QueryString($grp->{framegroup},"Enter corinfo","corinfo",$value);
-  if (defined($value)) {
-    $this->{corinfo}=$value;
-  }
-}
-
-
-#bind fill_empty_attrs to Space
-sub fill_empty_attrs {
-  foreach (qw/coref gender number corsnt/) {
-    $this->{$_} = '???' if ($this->{$_} eq "");
   }
 }
 
@@ -187,7 +140,66 @@ sub get_status_line_hook {
 	 ];
 }
 
+################################ Macros ################################
+
+sub OpenEditor { Tectogrammatic::OpenEditor(@_) }
+sub ChooseFrameNoAssign { Tectogrammatic::ChooseFrame(1) }
+#bind OpenEditor to Ctrl+Shift+Return menu Zobraz valencni ramce
+#bind ChooseFrameNoAssign to Ctrl+Return menu Zobraz valencni ramce pro sloveso
+
+
+#bind edit_commentA to exclam menu Edit annotator's comment
+#bind edit_commentA to exclam
+sub edit_commentA {
+  if (not FS()->exists('commentA')) {
+    ToplevelFrame()->messageBox
+      (
+       -icon => 'warning',
+       -message => 'Sorry, no attribute for annotator\'s comment in this file',
+       -title => 'Sorry',
+       -type => 'OK'
+      );
+    $FileNotSaved=0;
+    return;
+  }
+  my $value=$this->{commentA};
+  $value=main::QueryString($grp->{framegroup},"Enter comment","commentA",$value);
+  if (defined($value)) {
+    $this->{commentA}=$value;
+  }
+}
+
+#bind edit_corinfo to + menu Edit corinfo
+sub edit_corinfo {
+  if (not FS()->exists('corinfo')) {
+    ToplevelFrame()->messageBox
+      (
+       -icon => 'warning',
+       -message => 'Sorry, no attribute for corinfo in this file',
+       -title => 'Sorry',
+       -type => 'OK'
+      );
+    $FileNotSaved=0;
+    return;
+  }
+  my $value=$this->{corinfo};
+  $value=main::QueryString($grp->{framegroup},"Enter corinfo","corinfo",$value);
+  if (defined($value)) {
+    $this->{corinfo}=$value;
+  }
+}
+
+
+#bind fill_empty_attrs to Space
+sub fill_empty_attrs {
+  foreach (qw/coref gender number corsnt/) {
+    $this->{$_} = '???' if ($this->{$_} eq "");
+  }
+}
+
 #*get_status_line_hook = Tectogrammatic::get_status_line_hook;
 #*status_line_doubleclick_hook = Tectogrammatic::status_line_doubleclick_hook;
 
 #include "coref.mak"
+
+#endif tr_coref_common
