@@ -164,6 +164,24 @@ sub ListUnion {
 }
 
 
+=item ListRegroupElements (array-ref, array-ref, ...)
+
+This is rotate-matrix like operation. The input is a list of
+rows (array-refs each representing a row in a matrix); the output
+is a list of columns in the matrix (a list of array-refs, each
+representing a column in the matrix).
+
+=cut
+
+sub ListRegroupElements {
+  my @r;
+  for (my $row=0; $row<@_;$row++) {
+    for (my $col=0; $col<@{$_[$row]}; $col++) {
+      $r[$col][$row] = $_[$row][$col];
+    }
+  }
+  return wantarray ? @r : \@r;
+}
 
 =item import (names?)
 
