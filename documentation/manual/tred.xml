@@ -3195,7 +3195,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry  id="ttfontpath">
 	  <term>TTFontPath</term>
 	  <listitem>
 	    A comma-separated list of directories to look into
