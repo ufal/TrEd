@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-24 13:31:26 pajas>
+# Time-stamp: <2002-04-26 11:03:54 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1575,13 +1575,10 @@ FSFile - Simple OO interface for FS files.
 
   use Fslib;
 
-  open (F,"<trees.fs") ||
-    die "Cannot open trees.fs: $!\n";
-  my $fs = FSFile->newFSFile(\*F);
-  close (F);
+  my $file="trees.fs");
+  my $fs = FSFile->newFSFile($file);
 
-  die "File is empty or corrupted!\n" 
-    if ($fs->lastTreeNo<0);
+  ($fs->lastTreeNo<0) || die "File is empty or corrupted!\n"
 
   foreach my $tree ($fs->trees) {
 
@@ -1589,10 +1586,7 @@ FSFile - Simple OO interface for FS files.
 
   }
 
-  open (F,">trees_out.fs") 
-    || die "Cannot open trees.fs: $!\n";
-  $fs->writeTo(\*F);
-  close (F);
+  $fs->writeFile("$file.out");
 
 =head2 REFERENCE
 
