@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-07 17:37:55 pajas>
+# Time-stamp: <2001-02-10 12:30:59 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -202,6 +202,11 @@ require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 
+use Exporter;
+
+@EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
+	     $forceFileSaved $insideEval $FileNotSaved
+             $fileNo $filecount %attribs @atord @files &min &max);
 
 my @macros=();
 
@@ -213,9 +218,9 @@ if ($useCzechLocales) {
   setlocale(LANG,"czech");
 }
 
-my %attribs = ();
-my @atord = ();
-my @files=();
+%attribs = ();
+@atord = ();
+@files=();
 
 if ($opt_l and -f $opt_l) {
   if (open(F,"<$opt_l")) {
@@ -238,15 +243,16 @@ my @header=();
 my @nodes=();
 my @rest=();
 
-my $root, $this;
-my $_NoSuchTree; # for compatibility with Graph2Tred
-my $NodeClipboard;
+$root=undef;
+$this=undef;
+$_NoSuchTree; # for compatibility with Graph2Tred
+$NodeClipboard;
 
-
-my $insideEval=0;
-my $FileNotSaved=0;
-my $fileNo=0;
-my $filecount=$#files+1;
+$forceFileSaved=0;
+$insideEval=0;
+$FileNotSaved=0;
+$fileNo=0;
+$filecount=$#files+1;
 
 my %searchTemplate;
 
@@ -420,7 +426,7 @@ sub setConfig {
   $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
   $showHidden=exists ($confs->{showhidden}) ? $confs->{showhidden} : 0;
   $createMacroMenu=(exists $confs->{createmacromenu}) ? $confs->{createmacromenu} : 0;
-  $maxMenuLines=(exists $confs->{maxmenulines}) ? $confs->{maxmenulines} : 30;
+  $maxMenuLines=(exists $confs->{maxmenulines}) ? $confs->{maxmenulines} : 20;
   $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : 1;
   $Tk::strictMotif=(exists $confs->{strictmotif}) ? $confs->{strictmotif} : 0;
   $printColors=(exists $confs->{printcolors}) ? $confs->{printcolors} : 0;
@@ -453,13 +459,12 @@ sub readMacros {
 
 
   my ($file,$keep)=(shift,shift);
-  my $nextBind=undef;
   my $macro;
   my $key;
   local *F;
   my @contexts=@_;
 
-  @contexts=("default") unless (@contexts);
+  @contexts=("TredMacro") unless (@contexts);
   unless ($keep) {
     %keyBindings=();
     %menuBindings=();
@@ -481,6 +486,9 @@ sub readMacros {
 #
 # binding-context <context> [<context> [...]]
 #
+# key-binding-adopt <contexts>
+# menu-binding-adopt <contexts>
+#
 # bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
 #
 # insert <method> [as] [menu] <menu>[/submenu[/...]]
@@ -491,8 +499,34 @@ sub readMacros {
     push @macros,$_;
     if (/\#[ \t]*binding-context[ \t]+(.*)/) {
       @contexts=(split /[ \t]+/,$1);
-    }
-    elsif (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/)
+    } elsif (/\#[ \t]*key-binding-adopt[ \t]+(.*)/) {
+      my @toadopt=(split /[ \t]+/,$1);
+      my $context;
+      my $toadopt;
+      foreach $context (@contexts) {
+	print "\nFor $context\n";
+	$keyBindings{$context}={} unless exists($keyBindings{$context});
+	foreach $toadopt (@toadopt) {
+	  print "\tAdopting from $toadopt\n";
+	  foreach (keys %{$keyBindings{$toadopt}}) {
+	    print "\t\tkeybinding of $_ to ",$keyBindings{$toadopt}->{$_},"\n";
+	    $keyBindings{$context}->{$_}=$keyBindings{$toadopt}->{$_};
+	  }
+	}
+      }
+    } elsif (/\#[ \t]*menu-binding-adopt[ \t]+(.*)/) {
+      my @toadopt=(split /[ \t]+/,$1);
+      my $context;
+      my $toadopt;
+      foreach $context (@contexts) {
+	$menuBindings{$context}={} unless exists($menuBindings{$context});
+	foreach $toadopt (@toadopt) {
+	  foreach (keys %{$menuBindings{$toadopt}}) {
+	    $menuBindings{$context}->{$_}=$menuBindings{$toadopt}->{$_};
+	  }
+	}
+      }
+    } elsif (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/)
       {
 	$macro=$1;
 	$key=uc($2);
@@ -500,10 +534,10 @@ sub readMacros {
 	#print "binding $key [$menu] => $macro\n";
 	foreach (@contexts) {
 	  $keyBindings{$_}={} unless exists($keyBindings{$_});
-	  $keyBindings{$_}->{$key}=$macro;
+	  $keyBindings{$_}->{$key}="$_"."->"."$macro";
 	  if ($menu) {
 	    $menuBindings{$_}={} unless exists($menuBindings{$_});
-	    $menuBindings{$_}->{$menu}=[$macro,$key] if ($menu);
+	    $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
 	  }
 	}
       } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
@@ -511,7 +545,7 @@ sub readMacros {
 	$menu=$2;
 	foreach (@contexts) {
 	  $menuBindings{$_}={} unless exists($menuBindings{$_});
-	  $menuBindings{$_}->{$menu}=[$macro,$key] if ($menu);
+	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
 	}
       } elsif (/\#[[ \t]*include[ \t]+(.+)/) {
 	my $mf=$1;
@@ -695,8 +729,8 @@ sub openFile {
       centerToXY($grp,0,0);
     }
     getNodes($grp);
-    doEvalHook($grp,"file_opened_hook");
     $FileNotSaved=0;
+    doEvalHook($grp,"file_opened_hook");
     redraw_tree($grp);
     $grp->{'top'}->Unbusy();
   }
@@ -1195,7 +1229,11 @@ sub printThis {
 
 sub switchContext {
   my ($grp,$context)=@_;
+  my $prevcontext=$grp->{macroContext};
+  return 0 if (doEvalHook($grp,"pre_switch_context_hook",$prevcontext,$context) eq 'stop');
   $grp->{macroContext}=$context;
+  doEvalHook($grp,"switch_context_hook",$prevcontext,$context);
+  redraw_tree($grp);
 }
 
 
@@ -1365,7 +1403,7 @@ sub startMain {
   my %group;
 
   $group{top}=MainWindow->new;
-  $group{macroContext}='Default';
+  $group{macroContext}='TredMacro';
   print STDERR "Main window created.\n";
 
   if (-f $appIcon) {
@@ -1492,14 +1530,24 @@ sub startMain {
 
   my $cM=[];
   foreach my $context (sort(keys(%menuBindings))) {
-    push @$cM, 
-      [Cascade => $context,
-       -menuitems =>
-       cascadeMenus(map ([Button => $_,
-			  -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
-			  ($menuBindings{$context}->{$_}->[1]) ?
-			  (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
-			 sort(keys(%{$menuBindings{$context}}))))];
+   if ($context eq "TredMacro") { 
+     1;
+     push @$cM,
+       @{cascadeMenus(map ([Button => $_,
+			    -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
+			    ($menuBindings{$context}->{$_}->[1]) ?
+			    (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
+			   sort(keys(%{$menuBindings{$context}}))))};
+   } else {
+        push @$cM,
+  	[Cascade => $context,
+  	 -menuitems =>
+  	 cascadeMenus(map ([Button => $_,
+  			    -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
+  			    ($menuBindings{$context}->{$_}->[1]) ?
+  			    (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
+  			   sort(keys(%{$menuBindings{$context}}))))];
+      }
   }
   $group{UserMenu}=$group{Menubar}->
     Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
@@ -1507,14 +1555,26 @@ sub startMain {
   $cM=[];
   if ($createMacroMenu) {
     foreach my $context (sort(keys(%keyBindings))) {
-      push @$cM, 
-	[Cascade => $context,
-	 -menuitems =>
-	 cascadeMenus(map ( 
-			   [Button => $keyBindings{$context}->{$_},
-			    -command => [\&doEvalMacro,\%group,$keyBindings{$context}->{$_}],
-			    -accelerator => "($_)"
-			   ], sort(keys(%{$keyBindings{$context}}))))];
+      if ($context eq "TredMacro") {
+
+	push @$cM, 
+	  @{cascadeMenus(map { $keyBindings{$context}->{$_}=~/$context\-\>(.*)/;
+			       [Button => $1,
+				-command => [\&doEvalMacro,\%group,$keyBindings{$context}->{$_}],
+				-accelerator => "($_)"
+			       ]
+			     } sort(keys(%{$keyBindings{$context}})))};
+      } else {
+	push @$cM, 
+	  [Cascade => $context,
+	   -menuitems =>
+	   cascadeMenus(map { $keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
+			      [Button => $1,
+			       -command => [\&doEvalMacro,\%group,$keyBindings{$context}->{$_}],
+			       -accelerator => "($_)"
+			      ]
+			    } sort(keys(%{$keyBindings{$context}})))];
+      }
     }
     $group{MacroMenu}=$group{Menubar}->
       Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
@@ -1534,6 +1594,9 @@ sub startMain {
 
   $group{ContextsMenu}=$group{Menubar}->
     Optionmenu(-textvariable => \$group{macroContext},
+	       -command => [sub { my $grp=shift;
+				  print "---",$grp->{macroContext},"\n";
+				  switchContext($grp,$grp->{macroContext}); },\%group],
 	       -underline => 0,
 	       -relief => $menubarRelief,
 	       -borderwidth => 2,
@@ -3056,22 +3119,33 @@ sub centerTo {
 
 sub doEvalHook {
   my ($grp,$hook)=(shift,shift);
-  my $hookparams=join ",",@_;
+  my $hookparams=join ",", map { "\"$_\"" } @_;
+  my $context=$grp->{macroContext};
   return unless $hook;
-  local $this;
+#  local $this;
   $this=$grp->{'currentNode'};
   my $result;
   my $FileNotSavedOrig=$FileNotSaved;
 
   return unless $this;
-  $FileNotSaved=0; # Macro may want to override this :)
+  #$FileNotSaved=0; # Macro may want to override this :)
   $insideEval=1;
 
   unless ($macrosEvaluated) {
     eval ("@macros\n return 1;");
     $macrosEvaluated=1;
+    if ($result or $@) {
+      print STDERR "FirstEvaluation of macros\n";
+      print STDERR "Returned with: $result\n$@\n";
+    }
   }
-  $result=eval("return $hook($hookparams);\n");
+  if ($context->can($hook)) {
+    print "running hook $context\-\>$hook($hookparams);\n";
+    $result=eval("return $context\-\>$hook($hookparams);\n");
+  } elsif ($context ne "TredMacro" and TredMacro->can($hook)) {
+    print "running hook Tredmacro->$hook($hookparams);\n";
+    $result=eval("return TredMacro->$hook($hookparams);\n");
+  }
   $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
   $insideEval=0;
   return $result;
@@ -3080,10 +3154,9 @@ sub doEvalHook {
 
 sub doEvalMacro {
   my ($grp,$macro)=(shift,shift);
-  my $macroparams=join ",",@_;
   return unless $macro;
   print "$macro\n";
-  local $this;
+#  local $this;
   $this=$grp->{'currentNode'};
   my $result;
   my $FileNotSavedOrig=$FileNotSaved;
@@ -3097,10 +3170,15 @@ sub doEvalMacro {
   unless ($macrosEvaluated) {
     eval ("@macros\n return 1;");
     $macrosEvaluated=1;
+    if ($result or $@) {
+      print STDERR "FirstEvaluation of macros\n";
+      print STDERR "Returned with: $result\n$@\n";
+    }
   }
 #  $result=eval("return ".$macro."();\n@macros\n");  # this consumes memory!!!!
-    $result=eval("return $macro($macroparams);\n");
-  if (!$result or $@) {
+  print "Running $macro\n";
+  $result=eval("return $macro;\n");
+  if ($result or $@) {
     print STDERR "Had run: ",$macro,"\n";
     print STDERR "Returned with: $result\n$@\n";
   }
@@ -3126,24 +3204,31 @@ sub evalMacro {
   my $key;
   my $e = $w->XEvent;
   my $A = uc($e->A);
+  my @possib=();
+  my $context;
+  my $macro=undef;
 
   if ($keyboardDebug) {
     print STDERR "Pressed: (".ord($A)."), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
     print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
   }
 
-  if (defined $keyBindings{$grp->{macroContext}}->{$prefix.$A}) {
-    $key=$prefix.$A;
-  } elsif ($prefix =~/SHIFT/ and exists($pckey_shift_translates{$e->K})
-	  and defined $keyBindings{$grp->{macroContext}}->{$prefix.$pckey_shift_translates{$e->K}}) {
-    $key=$prefix.$pckey_shift_translates{$e->K};
-    print STDERR "Trying: ",$prefix.$pckey_shift_translates{$e->K},"\n";
-  } else {
-    $key=$prefix.uc($e->K);
+  push @possib,
+    ($prefix.$A,
+      ($prefix =~/SHIFT/ and exists($pckey_shift_translates{$e->K})) ?
+	$prefix.$pckey_shift_translates{$e->K} : ()),
+	$prefix.uc($e->K);
+ context:
+  foreach $context ($grp->{macroContext},$grp->{macroContext} eq "TredMacro" ? () : "TredMacro") {
+    foreach $key (@possib) {
+      if (exists ($keyBindings{$context}->{$key})) {
+	$macro=$keyBindings{$context}->{$key};
+	last context;
+      }
+    }
   }
-  #print "Got $prefix$A (",ord($e->A),",",ord($A),",",ord($e->B),") looking for macro\n";
-  if (defined $keyBindings{$grp->{macroContext}}->{$key}) {
-    doEvalMacro($grp,$keyBindings{$grp->{macroContext}}->{$key});
+  if (defined $macro) {
+    doEvalMacro($grp,$macro);
   }
 }
 
