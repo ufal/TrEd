@@ -18,17 +18,15 @@ sub Post
 
 package main;
 
-print "Start, finding modules\n";
-
 use strict;
 use Tk::Adjuster;
 use Data;
+use LibXMLData;
 use Widgets;
 use Editor;
 use Chooser;
 use TrEd::CPConvert;
 
-print "done\n";
 
 sub questionQuery {
   my ($top,$title, $message,@buttons) = @_;
@@ -43,18 +41,14 @@ sub questionQuery {
   return $d->Show;
 }
 
-print "Reading data\n";
 my $conv= TrEd::CPConvert->new("utf-8",
 			       ($^O eq "MSWin32") ?
 			       "windows-1250" :
 			       "iso-8859-2");
-print $conv->encoding_to()," encoding\n";
-print $conv->decoding_to()," decoding\n";
 
-my $data=TrEd::ValLex::Data->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv);
-#print $data->doc()->toString;
+my $data=TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv);
 
-my $font = "-adobe-helvetica-medium-r-*-*-14-*-*-*-*-*-iso8859-2";
+my $font = "-adobe-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-2";
 my $fc=[-font => $font];
 my $fe_conf={ elements => $fc,
 	      example => $fc,
@@ -71,15 +65,12 @@ my $vallex_conf = {
 		   infoline => { label => $fc }
 		  };
 
-print "Creating main window\n";
 my $top=Tk::MainWindow->new();
 my $find=$ARGV[0];
 $top->title("Choose frame: $find");
-print "Looking up word $find\n";
 my $word=$data->findWord($find);
 my $new_word=0;
 
-print "Checking $find\n";
 unless ($word) {
   if (questionQuery($top,"Word does not exist",
 		    "Do you want to add this word to the lexicon?",
@@ -91,7 +82,6 @@ unless ($word) {
     exit;
   }
 }
-print "Continuing\n";
 
 sub close_and_return {
   my ($chooser,@frames)=@_;
@@ -103,21 +93,23 @@ sub close_and_return {
 #TrEd::ValLex::Chooser::show_dialog($find, $top,$data,$word);
 
 #if ($word) {
-print "Creating chooser\n";
-my $chooser= TrEd::ValLex::Chooser->new($data, $word ,$top,
+my $chooser= TrEd::ValLex::Chooser->new($data, [$find,"V"], $top,
 					$fc,
 					$vallex_conf,
 					$fc,
 					$fc,
 					$fe_conf,
 					\&close_and_return,0);
+
 if ($new_word) {
   $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
+} else {
+  $chooser->subwidget("framelist")->fetch_data($word);
 }
-$chooser->pack(qw/-expand yes -fill both -side left/);
-$chooser->subwidget("framelist")->select_frames($ARGV[1]);
+undef $word;
 
-print "Starting mainloop\n";
+$chooser->pack(qw/-expand yes -fill both -side left/);
+$chooser->subwidget("framelist")->select_frames(split '\|',$ARGV[1]);
 
 #}
 

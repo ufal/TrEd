@@ -4,12 +4,14 @@
 
 package TrEd::ValLex::Widget;
 use locale;
+use base qw(TrEd::ValLex::DataClient);
 
 sub new {
   my ($self, $data, $field, @widget_options)= @_;
 
   $class = ref($self) || $self;
   my $new = bless [$data,$field],$class;
+  $new->register_as_data_client();
   my @new= $new->create_widget($data,$field,@widget_options);
   push @$new,@new;
   return $new;
@@ -146,7 +148,6 @@ sub pixmap {
 
 sub SHOW_DELETED { 5 }
 
-
 sub show_deleted {
   my ($self,$value)=@_;
   if (defined($value)) {
@@ -155,15 +156,22 @@ sub show_deleted {
   return $self->[SHOW_DELETED];
 }
 
+sub forget_data_pointers {
+  my ($self)=@_;
+  my $t=$self->widget();
+  if ($t) {
+    $t->delete('all');
+  }
+}
+
 sub fetch_data {
   my ($self, $word)=@_;
 
   my $t=$self->widget();
   my ($e,$i);
   my $style;
-
   $t->delete('all');
-  my $myfont=$t->cget(-font);
+  my $myfont=$t->cget('-font');
   foreach my $entry ($self->data()->getFrameList($word)) {
     next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
     $e = $t->addchild("",-data => $entry->[0]);
@@ -172,18 +180,14 @@ sub fetch_data {
 		      -image => $self->pixmap($entry->[3]),
 		      -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
 		      -style => $self->style($entry->[3]));
-    print "fetching $i: $entry->[0]\n";
   }
 }
 
 sub focus {
   my ($self,$frame)=@_;
-  print "Frame; $frame\n";
   my $h=$self->widget();
   foreach my $t ($h->infoChildren()) {
-    print "trying $t ",$h->infoData($t),"\n";
     if ($self->data()->isEqual($h->infoData($t),$frame)) {
-      print "got $t\n";
       $h->anchorSet($t);
       $h->selectionClear();
       $h->selectionSet($t);
@@ -271,6 +275,14 @@ sub quick_search {
   return defined($self->focus_by_text($value));
 }
 
+sub forget_data_pointers {
+  my ($self)=@_;
+  my $t=$self->widget();
+  if ($t) {
+    $t->delete('all');
+  }
+}
+
 sub fetch_data {
   my ($self)=@_;
   my $t=$self->widget();
@@ -310,11 +322,9 @@ sub focus_by_text {
 }
 sub focus {
   my ($self,$word)=@_;
-  print "Word: $word\n";
   my $h=$self->widget();
   foreach my $t ($h->infoChildren()) {
     if ($self->data()->isEqual($h->infoData($t),$word)) {
-      print "Have $t\n";
       $h->anchorSet($t);
       $h->selectionClear();
       $h->selectionSet($t);
@@ -322,6 +332,16 @@ sub focus {
       return $t;
     }
   }
+}
+
+sub focused_word {
+  my ($self)=@_;
+  my $h=$self->widget();
+  my $t=$h->infoAnchor();
+  if (defined($t)) {
+    return [$h->itemCget($t,1,'-text'),$h->itemCget($t,0,'-text')]
+  }
+  return undef;
 }
 
 #
@@ -356,6 +376,14 @@ sub create_widget {
 	      frame => $frame,
 	      label => $label
 	     };
+}
+
+sub forget_data_pointers {
+  my ($self)=@_;
+  my $t=$self->widget();
+  if ($t) {
+    $t->delete('all');
+  }
 }
 
 sub fetch_data {
@@ -429,10 +457,10 @@ sub create_widget {
 			  qw/-anchor nw -justify left/)
     ->pack(qw/-expand yes -fill x -padx 6/);
   my $w=$frame->Entry(qw/-background white/,
-		      -validate => 'focusout',
-#		      -vcmd => [\&validate,$self]
+		      -validate => 'all',
+		      -vcmd => [\&edit_validate,$self],
 		     );
-#  $w->configure(-invcmd => [\&bell,$self]);
+  $w->configure(-invcmd => [\&bell,$self]);
   $w->pack(qw/-padx 6 -fill x -expand yes/);
   $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
   my $ex_label=$frame->Label(qw/-text Example -anchor nw -justify left/)
@@ -470,21 +498,29 @@ sub create_widget {
 
 }
 
+sub edit_validate {
+  my ($self,$elements)=@_;
+  $valid=$self->validate($elements);
+  $self->widget()->configure(-foreground => $valid ? 'black' : 'red');
+  return 1;
+}
+
 sub validate {
   my ($self,$elements)=@_;
   if (!defined($elements)) {
     $elements=$self->subwidget('elements')->get();
   }
   $elements=" $elements";
-  return $elements=~m{^(?:\s+([A-Z][A-Z0-9]+)(?:[[(][^])]*[])])?)+\s*$};
+  return $elements=~m{^(?:\s+(ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|ATT|BEN|CAUS|CNCS|COMPL|COND|CONJ|CONFR|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|DPHR|ETHD|EXT|EV|GRAD|HER|INTF|INTT|ID|LOC|MANN|MAT|MEANS|MOD|NORM|PAR|PARTL|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT)(?:[[(][^])]*[])])?)+\s*$};
 }
 
 sub bell {
   my ($self)=@_;
-  $self->widget()->toplevel()->messageBox(-message => 'Invalid frame elements!',
-					  -title => 'Error',
-					  -type => 'OK');
-  $self->widget()->focus();
+#  $self->widget()->configure(-foreground => 'red');
+#  $self->widget()->toplevel()->messageBox(-message => 'Invalid frame elements!',
+#					  -title => 'Error',
+#					  -type => 'OK');
+#  $self->widget()->focus();
   return 0;
 }
 

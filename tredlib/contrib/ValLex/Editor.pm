@@ -1,8 +1,9 @@
-#
+
 # ValLex Editor widget (the main component)
 #
 
 package TrEd::ValLex::Editor;
+use strict;
 use base qw(TrEd::ValLex::FramedWidget);
 
 require Tk::LabFrame;
@@ -14,14 +15,14 @@ require Tk::Button;
 require Tk::Optionmenu;
 
 sub show_dialog {
-  my ($top,$data,$select_word,$autosave,$confs,
+  my ($top,$data,$select_field,$autosave,$confs,
       $wordlist_item_style,
       $framelist_item_style,
       $fe_confs)=@_;
 
   my $d = $top->DialogBox(-title => "Frame editor: ".
 			  $data->getUserName($data->user()),
-			  -buttons => ["Save & Close", "Save", "Reload"],
+			  -buttons => ["Save & Close", "Save", "Undo Changes"],
 			 );
 
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
@@ -32,9 +33,10 @@ sub show_dialog {
 					$fe_confs);
   $vallex->subwidget_configure($confs) if ($confs);
   $vallex->pack(qw/-expand yes -fill both -side left/);
-  $vallex->wordlist_item_changed($vallex->subwidget('wordlist')
-				 ->focus($select_word));
-
+  {
+    $vallex->wordlist_item_changed($vallex->subwidget('wordlist')
+				 ->focus($data->findWordAndPOS(@{$select_field})));
+  }
 
 #   my $adjuster = $d->Adjuster();
 #   my $vallex2= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,1,
@@ -60,7 +62,7 @@ sub show_dialog {
     configure(-command =>
 	      [sub {
 		 my ($d,$f)=@_;
-		 $d->{selected_button}='Save and Close';
+		 $d->{selected_button}='Save & Close';
 	       },$d,$vallex]);
 
   $d->Subwidget("B_Save")->
@@ -70,13 +72,19 @@ sub show_dialog {
 		 $f->save_data($d);
 	       },$d,$vallex]);
 
-  $d->Subwidget("B_Reload")->
+  $d->Subwidget("B_Undo Changes")->
     configure(-command =>
 	      [sub {
 		 my ($d,$f)=@_;
 		 $d->Busy(-recurse=> 1);
+		 my $field=$f->subwidget("wordlist")->focused_word();
 		 $f->data()->reload();
 		 $f->fetch_data();
+		 if ($field) {
+		   my $word=$f->data()->findWordAndPOS(@{$field});
+		   $f->wordlist_item_changed($f->subwidget("wordlist")->focus($word));
+
+		 }
 		 $d->Unbusy(-recurse=> 1);
 	       },$d,$vallex]);
 
@@ -88,7 +96,10 @@ sub show_dialog {
       $vallex->ask_save_data($top);
     }
   }
+  $vallex->destroy();
+  undef $vallex;
   $d->destroy();
+  undef $d;
 }
 
 sub create_widget {
@@ -139,7 +150,7 @@ sub create_widget {
 
   # List of Frames
   my $lexframelist =
-    TrEd::ValLex::FrameList->new($data, $field, $lexframe_frame,
+    TrEd::ValLex::FrameList->new($data, undef, $lexframe_frame,
 				 $framelist_item_style,
 				 qw/-height 10 -width 50/);
 
@@ -198,7 +209,7 @@ sub create_widget {
 
 
   ## Frame Note
-  my $lexframenote = TrEd::ValLex::TextView->new($data, $field, $lexframe_frame, "Note",
+  my $lexframenote = TrEd::ValLex::TextView->new($data, undef, $lexframe_frame, "Note",
 						qw/ -height 2
 						    -width 20
 						    -spacing3 5
@@ -207,7 +218,7 @@ sub create_widget {
   $lexframenote->pack(qw/-fill x/);
 
   # Frame Problems
-  my $lexframeproblem = TrEd::ValLex::FrameProblems->new($data, $field, $lexframe_frame,
+  my $lexframeproblem = TrEd::ValLex::FrameProblems->new($data, undef, $lexframe_frame,
 							 qw/-width 30 -height 3/);
   $lexframeproblem->pack(qw/-fill both/);
 
@@ -217,14 +228,14 @@ sub create_widget {
 					 ]);
 
   ## Word List
-  my $lexlist = TrEd::ValLex::WordList->new($data, $field, $lexlist_frame,
+  my $lexlist = TrEd::ValLex::WordList->new($data, undef, $lexlist_frame,
 					    $wordlist_item_style,
 					    qw/-height 10 -width 0/);
   $lexlist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
 
 
   ## Word Note
-  my $lexnote = TrEd::ValLex::TextView->new($data, $field, $lexlist_frame, "Note",
+  my $lexnote = TrEd::ValLex::TextView->new($data, undef, $lexlist_frame, "Note",
 						qw/ -height 2
 						    -width 20
 						    -spacing3 5
@@ -233,7 +244,7 @@ sub create_widget {
   $lexnote->pack(qw/-fill x/);
 
   # Word Problems
-  my $lexproblem = TrEd::ValLex::FrameProblems->new($data, $field, $lexlist_frame,
+  my $lexproblem = TrEd::ValLex::FrameProblems->new($data, undef, $lexlist_frame,
 						   qw/-width 20 -height 3/);
   $lexproblem->pack(qw/-fill both/);
 
@@ -258,7 +269,7 @@ sub create_widget {
   $lexlist->widget()->focus;
 
   # Status bar
-  my $info_line = TrEd::ValLex::InfoLine->new($data, $field, $frame, qw/-background white/);
+  my $info_line = TrEd::ValLex::InfoLine->new($data, undef, $frame, qw/-background white/);
   $info_line->pack(qw/-side bottom -fill x/);
 
   return $lexlist->widget(),{
@@ -274,6 +285,18 @@ sub create_widget {
 	     wordproblem  => $lexproblem,
 	     infoline     => $info_line
 	    },$fe_confs;
+}
+
+sub destroy {
+  my ($self)=@_;
+  $self->subwidget("framelist")->destroy();
+  $self->subwidget("framenote")->destroy();
+  $self->subwidget("frameproblem")->destroy();
+  $self->subwidget("wordlist")->destroy();
+  $self->subwidget("wordnote")->destroy();
+  $self->subwidget("wordproblem")->destroy();
+  $self->subwidget("infoline")->destroy();
+  $self->SUPER::destroy();
 }
 
 sub frame_editor_confs {
@@ -324,13 +347,15 @@ sub wordlist_item_changed {
   $self->subwidget('wordproblem')->fetch_data($word);
   $self->subwidget('framelist')->fetch_data($word);
   $self->subwidget('infoline')->fetch_word_data($word);
+  $self->framelist_item_changed();
 }
 
 sub framelist_item_changed {
   my ($self,$item)=@_;
   my $h=$self->subwidget('framelist')->widget();
-  my $frame=$h->infoData($item);
+  my $frame;
   my $e;
+  $frame=$h->infoData($item) if $item;
   $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
   $self->subwidget('frameproblem')->fetch_data($frame);
   $self->subwidget('infoline')->fetch_frame_data($frame);
@@ -391,8 +416,10 @@ sub addframe_button_pressed {
   my $top=$self->widget()->toplevel;
   my ($ok,$elements,$note,$example,$problem)=
     $self->show_frame_editor_dialog("Add frame for ".
-				    $wl->itemCget($item,0,'-text'),
-				    $self->frame_editor_confs);
+				    $wl->itemCget($item,1,'-text'),
+				    $self->frame_editor_confs,
+				    "ACT(1) "
+				   );
 
   if ($ok) {
     my $new=$self->data()->addFrame(undef,$word,$elements,$note,$example,$problem,$self->data()->user());
@@ -419,6 +446,7 @@ sub substitute_button_pressed {
   my $note=$self->data()->getSubElementNote($frame);
   my $example=$self->data()->getFrameExample($frame);
   my $problem="";
+  my $ok;
   ($ok,$elements,$note,$example,$problem)=
     $self->show_frame_editor_dialog("Substitute frame",
 				    $self->frame_editor_confs,
@@ -449,6 +477,7 @@ sub modify_button_pressed {
   my $note=$self->data()->getSubElementNote($frame);
   my $example=$self->data()->getFrameExample($frame);
   my $problem="";
+  my $ok;
   ($ok,$elements,$note,$example,$problem)=
     $self->show_frame_editor_dialog("Change frame",
 				    $self->frame_editor_confs,
@@ -472,15 +501,18 @@ sub show_frame_editor_dialog {
   my $top=$self->widget()->toplevel;
   my $d=$top->DialogBox(-title => $title,
 				-buttons => ["OK","Cancel"]);
-  my $ed=TrEd::ValLex::FrameElementEditor->new($self->data(), $self->field(), $d);
+  my $ed=TrEd::ValLex::FrameElementEditor->new($self->data(), undef, $d);
   $ed->subwidget_configure($confs) if ($confs);
   $ed->pack(qw/-expand yes -fill both/);
   $ed->subwidget('elements')->insert(0,$elements) unless $elements eq "";
   $ed->subwidget('note')->insert("0.0",$note) unless $note eq "";
   $ed->subwidget('example')->insert("0.0",$example) unless $example eq "";
-  $ed->subwidget('problem')->insert("0",$problem) unless $probelm eq "";
+  $ed->subwidget('problem')->insert("0",$problem) unless $problem eq "";
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
+  $d->bind('all','<Escape>'=> [sub { shift;
+				     shift->{selected_button}='Cancel'; 
+				   },$d ]);
   $d->Subwidget('B_OK')->configure(-command => [sub {
 						  my ($cw,$ed)=@_;
 						  if ($ed->validate()) {
@@ -498,8 +530,10 @@ sub show_frame_editor_dialog {
     $d->destroy();
     $note=~s/[\s\n]+$//g;
     $example=~s/[\s\n]+$//g;
+    $ed->destroy();
     return (1,$elements,$note,$example,$problem);
   } else {
+    $ed->destroy();
     $d->destroy();
     return (0);
   }
@@ -538,9 +572,11 @@ sub obsolete_button_pressed {
   my $item=$fl->infoAnchor();
   return if $item eq "";
   my $frame=$fl->infoData($item);
-  $self->data()->changeFrameStatus($frame,'obsolete','obsolete');
-  $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
-  $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
+  if ($self->data()->getFrameStatus($frame) eq "active") {
+    $self->data()->changeFrameStatus($frame,'obsolete','obsolete');
+    $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
+    $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
+  }
 }
 
 1;
