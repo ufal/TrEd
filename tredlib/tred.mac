@@ -284,3 +284,9 @@ sub file_opened_hook {
 
 package TredMacro;
 
+#binding-context TredMacro
+#include <contrib/ntred.mak>
+#bind ntred_query_box to key Shift+F10 menu Query BTrEd Servers
+
+
+
