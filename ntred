@@ -27,7 +27,7 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
 	    $version $print_version $listedfiles $list_options
-            $olddist $count_files $logdir
+            $olddist $count_files $logdir $userlogin
 	   );
 
 $version='$Revision$ ';
@@ -106,6 +106,9 @@ if ($print_version) {
   print "NTrEd $ver\nPerl: $]\nPlatform: $^O\n";
   exit;
 }
+
+($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
+($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
 
 $client_key_file ||= "$ENV{HOME}/.ntred_session_key";
 $hubport ||= 1500;

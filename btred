@@ -34,7 +34,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $term_encoding $save $safe_mode $csts_tree_attrs
 	    $csts_tecto $preload $warn_only $validate_fs $allow_host
 	    $start_server $help $usage $manpage $obey_locks
-	    $NO_HOOKS
+	    $NO_HOOKS $userlogin
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
@@ -102,6 +102,10 @@ if ($print_version) {
   print "BTrEd $ver\nPerl: $]\nPlatform: $^O\n";
   exit;
 }
+
+
+($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
+($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
 
 $quiet=1 if $Quiet;
 $NO_HOOKS = 0;
