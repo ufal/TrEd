@@ -103,7 +103,7 @@ sub read_macros {
       } else {
 	die "unmatched #endif in \"$file\" line $line\n";
       }
-    } elsif (/^\#elseif\s|^\#elseif\s+(\S*)$/) {
+    } elsif (/^\#elseif\s+(\S*)$|^\#else(?:if)?(?:\s|$)/) {
       if (@conditions) {
 	my $prev = ($#conditions>0) ? $conditions[$#conditions-1] : 1;
 	if (defined($1)) {
