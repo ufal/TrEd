@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-01-28 10:03:11 pajas>
+## Time-stamp: <2002-01-29 15:59:56 pajas>
 
 package TredMacro;
 
@@ -186,6 +186,15 @@ sub PasteNode {
   return $node;
 }
 
+sub CopyNode {
+  my $node=shift;
+  my $nd=FSNode->new();
+  foreach (Attributes()) {
+    $nd->{$_}=$node->{$_};
+  }
+  return $nd;
+}
+
 sub CutNode {
   my $node=shift;
   my $parent=Fslib::Parent($node);
@@ -289,6 +298,10 @@ sub ValNo {
   my $n=shift;
   my @val=ListSplit(shift);
   return $val[$n];
+}
+
+sub Attributes {
+  return $grp->{FSFile}->FS->attributes;
 }
 
 sub AtrNo {
