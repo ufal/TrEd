@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-06 17:25:20 pajas>
+# Time-stamp: <2001-02-07 16:37:04 pajas>
 #
 # TrEd ver. 0.5 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -40,7 +40,6 @@ use Getopt::Std;
 getopts('m:c:l:hu');
 
 if ($opt_u) {
-
   print <<EOH;
 Usage:
   tred [-c config-file] [-m macro-file] [-l file-list] files...
@@ -244,6 +243,7 @@ my $_NoSuchTree; # for compatibility with Graph2Tred
 my $NodeClipboard;
 
 
+my $classicalAttributes=0;
 my $insideEval=0;
 my $FileNotSaved=0;
 my $fileNo=0;
@@ -389,6 +389,7 @@ sub setConfig {
   $currentBoxColor=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'white';
   $hiddenBoxColor=(exists $confs->{hiddenboxcolor}) ? $confs->{hiddenboxcolor} : 'gray';
   $backgroundColor=(exists $confs->{backgroundcolor}) ? $confs->{backgroundcolor} : undef;
+  $noColor=(exists $confs->{allowecustomcolors}) ? $confs->{allowcustomcolors} : 0;
   $font=(exists $confs->{font}) ? $confs->{font} :
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
   $vLineFont=(exists $confs->{vlinefont}) ? $confs->{vlinefont} : $font;
@@ -598,7 +599,6 @@ sub openFile {
   my %fs=(fs => 'FS format', 
 	  fgz => 'gzipped FS format', 
 	  any => 'unspecific format (csts?), using CstsToFs');
-  my @d=();
 
   $grp->{top}->Busy(-recurse => 1) if ($grp->{top});
 
@@ -663,9 +663,15 @@ sub openFile {
 
   #parse Rest
   #print "@rest\n";
-  @d= $rest[0]=~/[,\(]([0-9]+)/g;
   #print "Displaying:\n@d\n";
-  @displayAttrs = map { $atord[$_] } @d;
+  @displayAttrs = map { /^\/\/Tred:Custom-Attribute:(.*)$/ ? $1 : () } @rest;
+  unless (@displayAttrs) {
+    @displayAttrs = map { "\$\{$atord[$_]\}" } ($rest[0]=~/[,\(]([0-9]+)/g);
+  }
+  if ($grp) {
+    $grp->{BalloonPattern}=join "\n", map { /^\/\/Tred:Balloon-Pattern:(.*)$/ ? $1 : () } @rest;
+  }
+
   #print "That is:\n@displayAttrs\n";
 
   print STDERR "empty file!\n" if ($#trees<0);
@@ -701,7 +707,6 @@ sub openFile {
 sub saveFile {
   my $grp=shift;
   my $f=$grp->{'currentFile'};
-  my @atrIds=();
   my $out="";
   my $of;
   my $gz;
@@ -741,16 +746,28 @@ sub saveFile {
   print STDERR "Writing to $out> $f\n";
   print FO @header;
   PrintFS(\*FO,\@header,\@trees,\@atord,\%attribs);
-  my $atrLine=shift @rest;
 
-  for (my $i=0;$i<=$#atord;$i++) {
-    push @atrIds, $i if (grep {$_ eq $atord[$i]} @displayAttrs);
-  }
-  print FO "(";
-  print FO join ",",@atrIds;
-  print FO ")\n";
+  ## Print classical attributes:
+  #my @atrIds
+  #my $atrLine=shift @rest;
+  #for (my $i=0;$i<=$#atord;$i++) {
+  #  push @atrIds, $i if (grep {$_ eq $atord[$i]} @displayAttrs);
+  #}
+  #print FO "(";
+  #print FO join ",",@atrIds;
+  #print FO ")\n";
+
+  ## Tredish custom attributes:
+
+  @rest=((grep { $_!~/\/\/Tred:(?:Custom-Attribute|Balloon-Pattern):/ } @rest),
+	 (map {"//Tred:Custom-Attribute:$_\n"} @displayAttrs),
+	 (map {"//Tred:Balloon-Pattern:$_\n"}
+	  split /\n/,$grp->{BalloonPattern})
+	);
+
   #print "Saving with", join ",",@atrIds;
   #print "\n";
+  
   print FO @rest;
   close(FO);
   $FileNotSaved=0;
@@ -1016,12 +1033,12 @@ sub printThis {
 	   $currentNodeColor, $currentNodeWidth, $currentNodeHeight,
 	   $nearestNodeColor,
 	   $textColor , $textColorShadow, $textColorHilite, 
-	   $textColorXHilite, $activeTextColor)=
+	   $textColorXHilite, $activeTextColor, $noColor)=
 	     ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
 	      $nodeColor, $nodeWidth, $currentNodeHeight,
 	      $nearestNodeColor,
 	      $textColor , $textColorShadow, $textColorHilite, 
-	      $textColorXHilite, $activeTextColor);
+	      $textColorXHilite, $activeTextColor,$noColor);
 
     unless ($printColors) {
       $lineColor='black';
@@ -1035,6 +1052,7 @@ sub printThis {
       $textColorHilite = 'black';
       $textColorXHilite = 'black';
       $activeTextColor='black';
+      $noColor=1;
     }
 
     local $backgroundColor='white';
@@ -1183,6 +1201,12 @@ sub printThis {
   $grp->{top}->Unbusy();
 
   return 1;
+}
+
+
+sub switchContext {
+  my ($grp,$context)=@_;
+  $grp->{macroContext}=$context;
 }
 
 
@@ -1969,6 +1993,7 @@ sub selectAttrs {
   my $result = ShowDialog($d, ($atord[0]) ? $e{$atord[0]}->focus : undef,$grp->{top});
 #  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
+    $classicalAttributes=1;
     @displayAttrs = grep { $datr{$_} } @atord;
     redraw_tree($grp);
   }
@@ -2256,7 +2281,7 @@ sub customAttrsDialog {
 		 )->pack(qw/-side top -expand yes
                             -fill both
                             -padx 3 -pady 3/);
-  $cl->insert('end','   ');
+  $cl->insert('end',@displayAttrs,'   ');
   my $t =
     $cf->Scrolled(qw/Text -relief sunken
                      -borderwidth 2 -setgrid true
@@ -2283,18 +2308,29 @@ sub customAttrsDialog {
 	      }
 	     )->pack(-side => top, -expand => yes, -padx => 3, -pady => 3);
 
-  $bf->Button(-text => "Remove",
+  $bf->Button(-text => "Cut",
 	      -command =>
 	      sub {
 		$cl->selectionClear($cl->index('end')-1)
 		  if ($cl->selectionIncludes($cl->index('end')-1));
-		while ($cl->curselection) {
+		while (defined(($cl->curselection)[0])) {
 		  $e->delete(0,'end');
 		  $e->insert('insert',$cl->get(($cl->curselection)[0]));
 		  $cl->delete(($cl->curselection)[0]);
 		}
 	      }
 	     )->pack(-side => top, expand => yes, -padx => 3, -pady => 3);
+  $bf->Button(-text => "Delete",
+	      -command =>
+	      sub {
+		$cl->selectionClear($cl->index('end')-1)
+		  if ($cl->selectionIncludes($cl->index('end')-1));
+		while (defined(($cl->curselection)[0])) {
+		  $cl->delete(($cl->curselection)[0]);
+		}
+	      }
+	     )->pack(-side => top, expand => yes, -padx => 3, -pady => 3);
+
 
   $bf->Button(-text => "Add as hint",
 	      -command =>
@@ -2303,6 +2339,7 @@ sub customAttrsDialog {
 		  Tk::catch { $t->delete('sel.first','sel.last') };
 		  $t->insert('insert',$e->get);
 		}
+		$e->selectionRange(0,'end');
 	      }
 	     )->pack(-side => top, -expand => yes, -padx => 3, -pady => 3);
 
@@ -2344,6 +2381,8 @@ sub customAttrsDialog {
     $grp->{BalloonPattern}=$t->get('0.0','end - 1 chars');
 #    $FileNotSaved=1;
 #    getNodes($grp);
+    $classicalAttributes=0;
+    @displayAttrs=$cl->get(0,$cl->index('end')-2);
     redraw_tree($grp);
   }
   $d->destroy;
@@ -2482,8 +2521,8 @@ sub editAttr {
   my $d;
   $attr= (grep {$$node{$_} eq $t} keys %$node)[0];
 
-  return unless ($attr=~/^_tkText(?:Bg)*(\d+)_$/ or $1>$#displayAttrs);
-  $attr=$displayAttrs[$1];
+  return unless ($attr=~/^_tkText\[([^]]+)\]/ or $1>$#displayAttrs);
+  $attr=$1;
 
   if (IsList($attr,\%attribs)) {
     $newvalue = editListAttr($grp,$$node{$attr},$attr,$grp->{top});
@@ -2549,25 +2588,16 @@ sub editAttr {
 
 
 
-sub PrepareText {
-  my ($node,$str)=@_;
-  $text=$node->{$str};
-  $text=$1."*" if ($text =~/^([^\|]*)\|/);
-
-  return encode($text);
-}
-
-
 sub whichTextColor {
-  my $i=shift;
+  my $arg=shift;
 
   return $textColor unless ($highlightAttributes);
 
-  if (index($attribs{$displayAttrs[$i]}," 1")>=0) {
+  if (index($attribs{$arg}," 1")>=0) {
     return $textColorShadow;
-  } elsif (index($attribs{$displayAttrs[$i]}," 2")>=0) {
+  } elsif (index($attribs{$arg}," 2")>=0) {
     return $textColorHilite;
-  } elsif (index($attribs{$displayAttrs[$i]}," 3")>=0) {
+  } elsif (index($attribs{$arg}," 3")>=0) {
     return $textColorXHilite;
   } else {
     return $textColor;
@@ -2646,7 +2676,8 @@ sub redraw_tree {
       $grp->{'pinfo'}{$$node{"_tkLine_"}}=$node;
     }
   }
-#  print "drawing ovals and texts...\n";
+
+  ## The Nodes ##
   foreach $node (@nodes) {
     $$node{"_tkOval_"}=$grp->{'canvas'}->createOval(nodeCoords($grp,$node),
 						    nodeOptions($grp,$node)
@@ -2655,75 +2686,143 @@ sub redraw_tree {
 
     my $lineHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
     my $textWidth=0;
+
+    ## measure maximum width
     my $i;
-    foreach (@displayAttrs) {
+    for (0..@displayAttrs) {
       $i=$grp->{'canvas'}->fontMeasure($font,PrepareText($node,$_));
       $textWidth=$i if ($i>$textWidth);
     }
-    if ($drawBoxes) {
-      $$node{"_tkTextBox_"}=$grp->{'canvas'}->createRectangle($$node{"_tkXPOS_"}-$xmargin,
-						     $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip-$ymargin,
-						     $$node{"_tkXPOS_"}+
-						     $textWidth+$xmargin,
-						     $$node{"_tkYPOS_"}+
-						     ($#displayAttrs+1)*$lineHeight+
-						     $nodeHeight+$nodeYSkip+$ymargin,
-						     nodeBoxOptions($grp,$node));
-    }
+
+    ## Boxes around attributes
+    $$node{"_tkTextBox_"}=
+      $grp->{'canvas'}->
+	createRectangle($$node{"_tkXPOS_"}-$xmargin,
+			$$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip-$ymargin,
+			$$node{"_tkXPOS_"}+
+			$textWidth+$xmargin,
+			$$node{"_tkYPOS_"}+
+			($#displayAttrs+1)*$lineHeight+
+			$nodeHeight+$nodeYSkip+$ymargin,
+			nodeBoxOptions($grp,$node))
+	  if ($drawBoxes);
+
+    ## Texts of attributes
     for ($i=0;$i<=$#displayAttrs;$i++) {
+
+      ## Clear background
       $$node{"_tkTextBg".$i."_"}=
-	$grp->{'canvas'}->createRectangle($$node{"_tkXPOS_"},
-				 $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+$i*$lineHeight,
-				 $$node{"_tkXPOS_"}+
-				 $grp->{'canvas'}->fontMeasure($font,PrepareText($node,$displayAttrs[$i]))+1,
-				 $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+($i+1)*$lineHeight,
-				 -fill => $grp->{'canvas'}->cget('-background'), -outline => undef)
-	unless ($drawBoxes);
+	$grp->{'canvas'}->
+	  createRectangle($$node{"_tkXPOS_"},
+			  $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+$i*$lineHeight,
+			  $$node{"_tkXPOS_"}+
+			  $grp->{'canvas'}->fontMeasure($font,PrepareText($node,$i))+1,
+			  $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+($i+1)*$lineHeight,
+			  -fill => $grp->{'canvas'}->cget('-background'), -outline => undef)
+	  unless ($drawBoxes);
       $grp->{'canvas'}->addtag('textbg', 'withtag', $$node{"_tkTextBg".$i."_"});
       $grp->{'pinfo'}{$$node{"_tkTextBg".$i."_"}}=$node;
-      $$node{"_tkText".$i."_"}=
-	$grp->{'canvas'}->createText($$node{"_tkXPOS_"},$$node{"_tkYPOS_"}+
-				     $nodeHeight+$nodeYSkip+$i*$lineHeight,
-				     -anchor => 'nw',
-				     -text => PrepareText($node,$displayAttrs[$i]),
-				     -fill => whichTextColor($i),
-				     -font => $font);
-      $grp->{'canvas'}->addtag('text', 'withtag', $$node{"_tkText".$i."_"});
-      $grp->{'pinfo'}{$$node{"_tkText".$i."_"}}=$node;
+
+      ## Draw attribute
+      #$classicalAttributes=0; ## The only implemented now
+      if ($classicalAttributes) {
+	## The classical (graph-like) version
+	my $key="_tkText\[$displayAttrs[$i]\]\[$i\]\[0\]_";
+	$$node{$key}=
+	  $grp->{'canvas'}->
+	    createText($$node{"_tkXPOS_"},$$node{"_tkYPOS_"}+
+		       $nodeHeight+$nodeYSkip+$i*$lineHeight,
+		       -anchor => 'nw',
+		       -text => PrepareText($node,$i),
+		       -fill => whichTextColor($displayAttrs[$i]),
+		       -font => $font);
+	$grp->{'canvas'}->addtag('text', 'withtag', $$node{$key});
+	$grp->{'pinfo'}{$$node{$key}}=$node;
+      } else {
+	## Custom version (the tredish)
+	##
+	## in this case we use the following syntax:
+	## #{color} changes color of all the following text
+	## ${attribute} is expanded to the value of attribute (and the
+	##              text is made active, so that modification is possible)
+	## <?code?>     expands to the return value of the imbedded perl-code
+	##              ($${attribute} may be used inside the code and is expanded
+	##               to 'value'. \${attribute} is not interpolated before <?code?>,
+        ##               but may be used in retur value and is interpolated later)
+
+	my $msg=InterpolateTextField($node,$displayAttrs[$i]);
+	$msg=~s/([\$\#]{[^}]+})/\#\#\#\1\#\#\#/g;
+	my $xskip=0;
+	my $txt;
+	my $j=0;
+	my $color=undef;
+	foreach (split(/\#\#\#/,$msg)) {
+	  if (/^\${([^}]+)}$/) {
+	    $j++;
+	    $txt=$grp->{'canvas'}->
+	      createText($$node{"_tkXPOS_"}+$xskip,
+			 $$node{"_tkYPOS_"}+
+			 $nodeHeight+$nodeYSkip+$i*$lineHeight,
+			 -anchor => 'nw',
+			 -text => PrepareTextField($node,$1),
+			 -fill => defined($color) ? $color : whichTextColor($1),
+			 -font => $font);
+	    $xskip+=$grp->{'canvas'}->fontMeasure($font,PrepareTextField($node,$1));
+	    $grp->{'canvas'}->addtag('text', 'withtag', $txt);
+	    $grp->{'pinfo'}{$txt}=$node;
+	    $$node{"_tkText[$1][$i][$j]_"}=$txt;
+	  } elsif (/^\#{([^}]+)}$/) {
+	    $color=$1 unless $noColor;
+	  } else {
+	    if ($_ ne "") {
+	      $txt=$grp->{'canvas'}->
+		createText($$node{"_tkXPOS_"}+$xskip,
+			   $$node{"_tkYPOS_"}+
+			   $nodeHeight+$nodeYSkip+$i*$lineHeight,
+			   -anchor => 'nw',
+			   -text => $_,
+			   -fill => defined($color) ? $color : $textColor,
+			   -font => $font);
+	      $xskip+=$grp->{'canvas'}->fontMeasure($font,$_);
+	    }
+	  }
+	}
+      }
     }
-#    print "done\n";
     $grp->{'pinfo'}{$$node{"_tkOval_"}}=$node;
     $grp->{'pinfo'}{$$node{"_tkTextBox_"}}=$node
       if exists $$node{"_tkTextBox_"};
   }
 
-  my %msghash=map
-    {
-     if (defined($_)) {
-       my $msg=$grp->{'BalloonPattern'};
-       $msg=~s/\${([^}]+)}/$grp->{'pinfo'}{$_}->{$1}/eg;
-       $_ => $msg;
-     }
-    }
-      $grp->{'canvas'}->find('withtag','point');
-
-  
+  ## Canvas Custom Balloons ##
   $grp->{CanvasBalloon}=$grp->{top}->Balloon(-initwait => $canvasBalloonInitWait,
 				-state => 'balloon',
 				-background => '#fff3b0');
   $grp->{CanvasBalloon}->Subwidget('message')->configure(qw/-justify left/);
   $grp->{CanvasBalloon}->attach($grp->{'canvas'}->Subwidget('scrolled'),
 				-balloonposition => 'mouse',
-				-msg => \%msghash
-			     );
+				-msg => { map 
+					  {
+					    if (defined($_)) {
+					      my $msg=$grp->{'BalloonPattern'};
+					      $msg=~s/\${([^}]+)}/$grp->{'pinfo'}{$_}->{$1}/eg;
+					      $_ => $msg;
+					    }
+					  } $grp->{'canvas'}->find('withtag','point')
+					});
 
+  ## Canvas bindings  
+  $grp->{'canvas'}->bind('text', '<Any-Enter>' => [sub{
+			       my $c=shift;
+			       my $grp=shift;
+			       my $t=$c->find('withtag','current');
+			       my $node=$grp->{'pinfo'}{$t};
+			       $node->{_tkSaveColor_}=$c->itemcget($t,'-fill');
+			       $c->itemconfigure($t,
+						 -fill => $activeTextColor);
 
-#  $grp->{'canvas'}->bind('point', '<Any-Enter>' => [sub{shift->itemconfigure(@_)},
-#				      'current', -fill => $activeNodeColor]);
-#  $grp->{'canvas'}->bind('point', '<Any-Leave>' => [sub{ shift->itemconfigure(@_)},
-#				      'current', -fill => $nodeColor]);
-  $grp->{'canvas'}->bind('text', '<Any-Enter>' => [sub{shift->itemconfigure(@_)},
-				      'current', -fill => $activeTextColor]);
+			     }, $grp]);
+
   $grp->{'canvas'}->bind('text',
 			 '<Any-Leave>'
 			 => [sub{
@@ -2731,12 +2830,8 @@ sub redraw_tree {
 			       my $grp=shift;
 			       my $t=$c->find('withtag','current');
 			       my $node=$grp->{'pinfo'}{$t};
-			       my $attr= (grep {$node->{$_} eq $t} keys %$node)[0];
-
-			       return unless ($attr=~/^_tkText(?:Bg)*(\d+)_$/
-					      or $1>$#displayAttrs);
 			       $c->itemconfigure('current',
-						 -fill => whichTextColor($1));
+						 -fill => $node->{_tkSaveColor_});
 			     }, $grp]);
 
   $grp->{'frame'}->bind('my','<KeyPress>' =>
@@ -2929,7 +3024,7 @@ sub recalculate_positions {
 
     my $textWidth=0;
     my $i;
-    foreach (@displayAttrs) {
+    for (0..@displayAttrs) {
       $i=$grp->{'canvas'}->fontMeasure($font,PrepareText($node,$_));
       $textWidth=max($i,$textWidth);
     }
@@ -3282,3 +3377,35 @@ sub node_release {
     $w->coords($sel, nodeCoords($grp,$node));
   } else { redraw_tree($grp); }
 }
+
+sub PrepareTextField {
+  my ($node,$atr)=@_;
+  $text=$node->{$atr};
+  $text=$1."*" if ($text =~/^([^\|]*)\|/);
+  return encode($text);
+}
+
+sub PrepareText {
+  my ($node,$str)=@_;
+  if ($classicalAttributes) {
+    return PrepareTextField($node,$displayAttrs[$str]);
+  } else {
+    my $msg=InterpolateTextField($node,$displayAttrs[$str]);
+    $msg=~s/\#{[^}]+}//g;
+    $msg=~s/\${([^}]+)}/PrepareTextField($node,$1)/eg;
+    return encode($msg);
+  }
+}
+
+sub InterpolateTextField {
+  my ($node,$text)=@_;
+  $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval InterpolateRefs($node,$1)/eg;
+  return $text;
+}
+
+sub InterpolateRefs {
+  my ($node,$text)=@_;
+  $text=~s/\$\${([^}]+)}/"'".$node->{$1}."'"/eg;
+  return $text;
+}
+
