@@ -720,8 +720,9 @@ sub saveStyleSheets {
 }
 
 sub readStyleSheets {
-  my ($grp)=@_;
-  open my $f, '<:utf8',$ENV{HOME}."/.tred-stylesheets" || do {
+  my ($grp,$filename)=@_;
+  $filename = $ENV{HOME}."/.tred-stylesheets" unless defined $filename;
+  open my $f, '<:utf8',$filename || do {
     print STDERR "no stylesheet file: $ENV{HOME}/.tred-stylesheets\n" if $debug;
     return 0;
   };
@@ -1300,11 +1301,15 @@ sub errorDialog {
 sub dlgReturn {
   my ($w,$no_default)=@_;
   my $f=$w->focusCurrent;
+  my $button;
   if ($f and $f->isa('Tk::Button')) {
-    $f->Invoke();
+    $button = $f;
   } elsif (!$no_default) {
-    $w->toplevel->{default_button}->Invoke
-      if $w->toplevel->{default_button};
+    $button = $w->toplevel->{default_button};
+  }
+  if ($button) {
+    $button->flash;
+    $button->invoke;
   }
   Tk->break;
 }
@@ -3826,19 +3831,7 @@ sub switchStylesheet {
 			 -title => "Delete stylesheet?",
 			 -buttons => ['Yes', 'No']);
     if ($answer eq 'Yes') {
-      delete $grp->{stylesheets}->{$stylesheet};
-      $grp->{StylesheetMenu}->configure(-options =>
-					getStylesheetMenuList($grp));
-      foreach my $w (@{ $grp->{treeWindows} }) {
-	if ($w->{stylesheet} eq $stylesheet) {
-	  applyWindowStylesheet($win,STYLESHEET_FROM_FILE());
-	  if ($win->{FSFile}) {
-	    get_nodes_win($win);
-	    redraw_win($win);
-	  }
-	}
-      }
-      $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
+      deleteStylesheet($grp,$stylesheet);
       saveStyleSheets($grp);
     } else {
       $grp->{selectedStylesheet} = $stylesheet;
@@ -4530,6 +4523,12 @@ sub startMain {
 					  reconfigure($_[0]);
 					  redraw_all($_[0]);
 					},\%group]);
+  $group{FileMenu}->command(-label=>'Reload stylesheets ...',
+			    -underline=> 3,
+			    -command=> [sub {
+					  readStyleSheets($_[0]);
+					  redraw_all($_[0]);
+					},\%group]);
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label=>'Quit',
 			    -underline=> 0,
@@ -4606,7 +4605,7 @@ sub startMain {
 	 [Button=> 'Select stylesheet ...', -underline=> 9,
 	  -command=> [\&selectStylesheet,\%group]],
 	 [Separator=> ''],
-	 [Button=> 'Customize tree (display patterns) ...', -underline=> 0,
+	 [Button=> 'Edit stylesheet ...', -underline=> 0,
 	  -command=> [\&customAttrsDialog,\%group]],
 	 [Separator=> ''],
 	 [Button=> 'List of Named Macros ...', -underline=> 0,
@@ -5811,6 +5810,39 @@ sub reconfigure {
   ApplyGlobalConfig($grp);
 }
 
+sub addTextSearchLine {
+  my ($parent,$text)=@_;
+  my $sf = $parent->Frame;
+  $sf->Label(-underline => 1,
+	     -text => 'Search:')->pack(qw(-side left));
+  my $qs = $sf->Entry(
+    -validate => 'key',
+    -validatecommand =>
+      [sub {
+	 my ($text,$value)=@_;
+	 return 1 if $value eq "";
+	 $text->tagRemove('sel','0.0','end');
+	 my $new = $text->search(qw(-forward -exact -nocase), $value, 'insert');
+	 if ($new) {
+	   $text->SetCursor($new);
+	   $text->tagAdd('sel',$new, $new.' + '.length($value).' chars');
+	   return 1;
+	 } else {
+	   return undef;
+	 }
+       },$text]
+     )->pack(qw(-side right -expand 1 -fill x));
+  $parent->toplevel->bind('all','<Alt-e>', [$qs,'focus']);
+  $parent->toplevel->bind('all','<F3>',
+			  [sub {
+			     my ($w,$text,$qs)=@_;
+			     $qs->focus;
+			     $text->FindNext(qw(-forward -exact -nocase), $qs->get());
+			  },$text,$qs]);
+  $qs->bind('<Return>',[$text,'focus']);
+  return $sf;
+}
+
 sub editConfig {
   my ($grp)=@_;
   return unless $grp;
@@ -5851,6 +5883,8 @@ sub editConfig {
 	     }
 	   });
   $t->pack(qw/-side top -expand yes -fill both/);
+  addTextSearchLine($d,$t)->pack(qw(-fill x));
+
   disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-side bottom -fill x/);
@@ -6877,6 +6911,111 @@ sub tred_pod_add_tags {
   $w->tag(qw(configure italic -font C_italic));
 }
 
+sub splitPatterns {
+  my ($text)=@_;
+  my @lines = split /(\n)/,$text;
+  my @result;
+  my $pattern = '';
+  while (@lines) {
+    my $line = shift @lines;
+    if ($line=~/^([a-z]+):/) {
+      if ($pattern =~ /\S/) {
+	chomp $pattern;
+	if ($pattern=~s/^hint:\s*//) {
+	  $hint = $pattern;
+	} else {
+	  push @result, $pattern;
+	}
+      }
+      $pattern = $line;
+    } else {
+      $pattern.=$line;
+    }
+  }
+  if ($pattern =~ /\S/) {
+    chomp $pattern;
+    if ($pattern=~s/^hint:\s*//) {
+      $hint = $pattern;
+    } else {
+      push @result, $pattern;
+    }
+
+  }
+  return $hint,\@result;
+}
+
+sub deleteStylesheet {
+  my ($grp,$stylesheet)=@_;
+  delete $grp->{stylesheets}->{$stylesheet};
+  $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
+  foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
+    if ($grp->{focusedWindow} == $win) {
+      $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
+    }
+    applyWindowStylesheet($win,STYLESHEET_FROM_FILE());
+    if ($win->{FSFile}) {
+      get_nodes_win($win);
+      redraw_win($win);
+    }
+  }
+}
+
+sub setStylesheetPatterns {
+  my ($win,$text,$stylesheet,$create)=@_;
+  my ($hint,$patterns);
+  if (ref($text)) {
+    ($hint,$patterns)=@$text;
+  } else {
+    ($hint,$patterns)=splitPatterns($text);
+  }
+  $stylesheet = $win->{stylesheet} unless defined $stylesheet;
+  if ($stylesheet eq STYLESHEET_FROM_FILE()) {
+    if ($win->{FSFile}) {
+      $win->{FSFile}->changeHint($hint);
+      $win->{FSFile}->changePatterns(@$patterns);
+    } else {
+      return 0;
+    }
+  } else {
+    my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
+    if (ref($s)) {
+      @{$s->{patterns}} = @$patterns;
+      $s->{hint} = $hint;
+    } elsif ($create) {
+      $grp->{stylesheets}->{$stylesheet}->{patterns}=[@$patterns];
+      $grp->{stylesheets}->{$stylesheet}->{hint}=$hint;
+      $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
+    } else {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+sub getStylesheetPatterns {
+  my ($win,$stylesheet)=@_;
+  my ($hint,$patterns);
+  $patterns = {};
+  $stylesheet = $win->{stylesheet} unless defined $stylesheet;
+  if ($stylesheet eq STYLESHEET_FROM_FILE()) {
+    if ($win->{FSFile}) {
+      $hint = $win->{FSFile}->hint();
+      @$patterns = $win->{FSFile}->patterns()
+    } else {
+      return ();
+    }
+  } else {
+    my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
+    if (ref($s)) {
+      $hint = $s->{hint};
+      @$patterns = @{$s->{patterns}};
+    } else {
+      return ();
+    }
+  }
+  return wantarray ? ($hint,$patterns) : "hint:\n".$hint."\n".$patterns;
+}
+
 sub customAttrsDialog {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
@@ -6886,7 +7025,7 @@ sub customAttrsDialog {
 
   $grp->{top}->Busy(-recurse=>1);
   my $d=$grp->{top}->
-    DialogBox(-title=> "Customize Tree Appearance",
+    DialogBox(-title=> "Stylesheet editor",
 	      -width=> '10c',
 	      -buttons=> ["OK",
 			  (($win->{FSFile} and $win->{stylesheet} ne STYLESHEET_FROM_FILE()) ?
@@ -6897,16 +7036,11 @@ sub customAttrsDialog {
   $d->Subwidget('bottom')->configure(qw(-takefocus 0));
 
   # Pattern Editor
-  my $e= $d->Scrolled(qw/Text -scrollbars osoe -height 4
-                              -relief sunken -borderwidth 2/);
-
-  $e->Subwidget('scrolled')->menu->delete('File');
-  disable_scrollbar_focus($e);
   my $eff=$d->Frame(qw/-relief sunken -bd 1 -takefocus 0/)->
     pack(qw/-padx 3 -pady 3 -side top -fill x/);
-  $eff->Frame(qw/-height 6 -takefocus 0/)->pack();
+#  $eff->Frame(qw/-height 6 -takefocus 0/)->pack();
   my $elabff=$d->Frame->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -fill x/);
-  $elabff->Label(-text => "Edit display pattern (press ^I to insert tab, ^L to clear)",
+  $elabff->Label(-text => "Here you can edit the current display stylesheet (press ^I to insert tab, ^L to clear)",
 		 -anchor => 'nw', -justify => 'left')->pack(qw/-side left/);
   my $helplabel = $elabff->Label(-text => "Help",
 			    -underline => 0,
@@ -6915,9 +7049,9 @@ sub customAttrsDialog {
 
   my $HELP = <<'EOF';
 B<Stylesheet quick help:>
-I<In this dialog you may edit the current stylesheet. Stylesheets are sets of patterns (as described below) that influence the overall tree appearance as well as visual representation of individual nodes, edges and labels (including label content). Each pattern either represents one line of a label (node or edge), defines a per-node text to appear in the value line above the tree, and/or provides styling information for the node and its edges (such as node shape, color, line thickness, line style, etc.). See the User's manual for more details.>
+I<In this dialog you may edit the current display stylesheet. Stylesheets are sets of display PATTERNS (as described below) that influence the overall tree appearance as well as visual representation of individual nodes, edges and labels (including label content). Each pattern either represents one line of a label (node or edge), defines a per-node text to appear in the value line above the tree, and/or provides styling information for the node and its edges (such as node shape, color, line thickness, line style, etc.). See the User's manual for more details.>
 
-B<Pattern:> C<[&lt;prefix&gt;:]&lt;rules&gt;>
+B<PATTERN:> C<[&lt;prefix&gt;:]&lt;rules&gt;>
 
 B<Default prefixes:>
   C<node>      	- define a node label (default if no prefix given)
@@ -6925,6 +7059,7 @@ B<Default prefixes:>
   C<style>     	- define node and edge appearance (for individual nodes)
   C<rootstyle> 	- define node and edge appearance globally
   C<text>      	- define per-node value-line text
+  C<hint>      	- renders to text displayed in a node's tooltip
 
 B<Rules interpolation:>
   C<${attribute}    >- interpolates to the attribute value
@@ -6956,8 +7091,12 @@ B<Colors:>
 B<Features:>
   C<Node-shape          >- oval, rectangle, polygon
   C<Node-polygon        >- relative coordinates of the poligon points
-  C<Node-addwidth       >- adjust shape width by given amount
-  C<Node-addheight      >- adjust shape height by given amount
+  C<Node-width          >- set shape width to the given amount
+  C<Node-height         >- set shape height to the given amount
+  C<Node-addwidth       >- add to shape width by given amount
+  C<Node-addheight      >- add to shape height by given amount
+  C<Node-currentwidth   >- set shape width for active node
+  C<Node-currentheight  >- set shape height for active node
   C<Node-rellevel       >- alter vertical leveling of the subtree
   C<Node-level          >- alter vertical leveling of a single node
   C<Node-addbeforeskip  >- skip before: 10, 2c, 12pt, etc.
@@ -7006,20 +7145,23 @@ EOF
 
   $d->bind('all','<Alt-h>', sub { $help->Toggle($helplabel); });
   $helplabel->bind('<Button>', sub { $help->Toggle($helplabel); });
-  $e->pack(-in => $eff,qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
-
-  $e->raise($eff);
-
 
   # All wrapping frame with attribute selection and buttons
   my $f= $d->Frame(qw/-relief sunken -bd 1 -takefocus 0/);
-  $f->Frame(qw/-height 6 -takefocus 0/)->pack(qw/-side bottom/);
+#  $f->Frame(qw/-height 6 -takefocus 0/)->pack(qw/-side bottom/);
+  # Frame with pattenrs listbox
+  my $cf= $f->Frame(qw(-takefocus 0));
+
+  my $e= $cf->Scrolled(qw/Text -scrollbars osoe -height 35
+                              -relief sunken -borderwidth 2/);
+  $e->Subwidget('scrolled')->menu->delete('File');
+  disable_scrollbar_focus($e);
 
   # Frame with attribute selection
   my $af= $f->Frame(qw(-takefocus 0));
-  $af->Frame(qw/-height 6 -takefocus 0/)->pack();
+#  $af->Frame(qw/-height 15 -takefocus 0/)->pack();
   # Attributes listbox
-  $af->Label(qw/-text Attributes -anchor nw -justify left/)->pack(qw/-fill both/);
+  $af->Label(qw/-text Attributes -underline 0 -anchor nw -justify left/)->pack(qw/-fill both/);
   my $al= $af->Scrolled(qw/Listbox
                      -bg white
                      -width 0
@@ -7027,6 +7169,7 @@ EOF
                      -borderwidth 2 -setgrid true
                      -scrollbars oe
                      -exportselection 0/)->pack(qw/-pady 3 -expand yes -fill y/);
+  $d->bind('all','<Alt-a>', [$al,'focus']);
   disable_scrollbar_focus($al);
   $al->BindMouseWheelVert();
   my @atord=();
@@ -7047,129 +7190,17 @@ EOF
     $al->selectionSet(0);
   }
 
-  # Frame with pattenrs listbox
-  my $cf= $f->Frame(qw(-takefocus 0));
-  $cf->Frame(qw/-height 6 -takefocus 0/)->pack();
-  $cf->Label(-text=> 'Display patterns',qw/-anchor nw -justify left/)->pack(qw/-fill x/);
-  my $cl=
-    $cf->Scrolled(qw/Listbox -relief sunken
-                     -bg white
-                     -borderwidth 2
-                     -setgrid true
-		     -scrollbars osoe
-                     -selectmode extended
-                     -exportselection 0/
-		 )->pack(qw/-side top -expand yes
-                            -fill both
-                            -padx 3 -pady 3/);
-  disable_scrollbar_focus($cl);
-  $cl->BindMouseWheelVert();
-  $cl->insert('end',getWindowPatterns($win),'   ');
-  $cl->activate('end');
-  $cl->selectionSet('end');
-  $cf->Frame(qw/-height 6 -takefocus 0/)->pack();
-  $cf->Label(-text=> 'Hint pattern',qw/-anchor nw -justify left/)->pack(qw/-fill x/);
-  # Hint box
-  my $t=
-    $cf->Scrolled(qw/Text -relief sunken
-                     -borderwidth 2 -setgrid true
-		     -height 4 -scrollbars osoe
-                     -width 50
-                     -exportselection 1
-                     -wrap none/
-		 )->pack(qw/-side top -expand yes
-                            -fill both
-                            -padx 3 -pady 3/);
-  $t->Subwidget('scrolled')->menu->delete('File');
-  disable_scrollbar_focus($t);
-  $t->insert('0.0',getWindowHint($win));
-  $t->BindMouseWheelVert();
+   $af->pack(qw/-padx 5 -side left -fill y/);
 
-  # Frame with buttons
-  my $bf= $f->Frame(qw(-takefocus 0));
-  $bf->Button(-text=> "Add/Paste",
-	      -underline => 0,
-	      -command=>
-	      sub {
-		my $txt=$e->get('0.0','end');
-		chomp $txt;
-		if ($txt ne "") {
-		  $cl->insert('active',$txt);
-		} elsif($al->selectionIncludes($al->index('active'))) {
-		  $cl->insert('active','${'.$al->get('active').'}');
-		}
-		$e->tagAdd('sel','0.0','end');
-	      }
-	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
+  # NEW:
+  $e->insert('0.0',join "\n",map { /^([a-z]+):/ ? $_ : "node:".$_ } getWindowPatterns($win),"hint:\n".getWindowHint($win));
+  $e->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
+  addTextSearchLine($cf,$e)->pack(qw(-fill x -side bottom));
 
-  $bf->Button(-text=> "Replace",
-	      -underline => 0,
-	      -command=>
-	      sub {
-		my $txt=$e->get('0.0','end');
-		chomp $txt;
-		if ($txt eq "") {
-		  $txt='${'.$al->get('active').'}';
-		}
-		my $index=$cl->index('active');
-		if ($index != $cl->index('end')-1) {
-		  $cl->delete($index);
-		  $cl->insert($index,$txt);
-		} else {
-		  $cl->insert($index,$txt);
-		  $cl->activate($index);
-		}
-	      }
-	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
-
-  $bf->Button(-text=> "Cut",
-	      -underline => 0,
-	      -command=>
-	      [sub {
-		$cl->selectionClear($cl->index('end')-1)
-		  if ($cl->selectionIncludes($cl->index('end')-1));
-		while (defined(($cl->curselection)[0])) {
-		  $e->delete('0.0','end');
-		  $e->insert('insert',$cl->get(($cl->curselection)[0]));
-		  $cl->delete(($cl->curselection)[0]);
-		}
-	      }]
-	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
-  $bf->Button(-text=> "Delete",
-	      -underline => 0,
-	      -command=>
-	      [sub {
-		$cl->selectionClear($cl->index('end')-1)
-		  if ($cl->selectionIncludes($cl->index('end')-1));
-		while (defined(($cl->curselection)[0])) {
-		  $cl->delete(($cl->curselection)[0]);
-		}
-	      }]
-	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
-
-
-  $bf->Button(-text=> "Add as hint",
-	      -underline => 7,
-	      -command=>
-	      [sub {
-		my $txt=$e->get('0.0','end');
-		chomp $txt;
-		if ($txt ne "") {
-		  Tk::catch { $t->delete('sel.first','sel.last') };
-		  $t->insert('insert',$txt);
-		  $t->see('end');
-		}
-		$e->tagAdd('sel','0.0','end');
-	      }]
-	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
-
-  $af->pack(qw/-padx 5 -side left -fill y/);
-  $bf->pack(qw/-padx 5 -side left -fill y/);
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
 
   $f->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
-  $d->Adjuster()->packAfter($eff,-side => 'top');
 
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $e->bind('Tk::Text','<Control-l>',[sub {shift; $e->delete('0.0','end') },$e]);
@@ -7177,6 +7208,8 @@ EOF
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+  $e->bind(ref($e->Subwidget('scrolled')),'<Control-Return>',\&dlgReturn);
+  $e->bind('<Return>',sub{ Tk->break; });
   $d->bind('all','<Escape>'=>
 	   [sub { shift;
 		  shift->{selected_button}='Cancel';
@@ -7202,22 +7235,11 @@ EOF
 	       if ($e->tagNextrange('sel','0.0'));
 	     $e->insert('insert','${'.$al->get('active').'}');
 	     $e->focus();
+	     Tk->break;
 	   }]
 	  );
-  $cl->bind('<Double-1>'=> 
-	   [sub {
-	     return if ($cl->index('active')== $cl->index('end')-1);
-	     if ($e->tagNextrange('sel','0.0')) {
-	       $e->delete('sel.first','sel.last')
-	     }
-	     $e->insert('insert',$cl->get('active'));
-	     $e->focus();
-	   }]
-	  );
-  $d->bind('<Return>'=> [\&dlgReturn,1]);
-  $d->bind('all','<Control-Return>',\&dlgReturn);
+
   $e->focus();
-#  $d->resizable(0,0);
   _bind_buttons($d,$d);
   $grp->{top}->Unbusy();
   my $result= ShowDialog($d,$e,$grp->{top});
@@ -7228,8 +7250,7 @@ EOF
     $result = 'OK';
   }
   if ($result=~ /OK/) {
-    setWindowPatterns($win,$cl->get(0,$cl->index('end')-2));
-    setWindowHint($win,$t->get('0.0','end - 1 chars'));
+    setStylesheetPatterns($win,$e->get('0.0','end'));
     saveStyleSheets($grp) unless $win->{stylesheet} eq STYLESHEET_FROM_FILE();
     update_value_line($grp);
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
