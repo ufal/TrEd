@@ -1,6 +1,8 @@
 # -*- cperl -*-
+
 #binding-context Draw
 package Draw; # simple drawing package
+import TredMacro;
 
 #bind F11 to node_release_hook menu "Node Release"
 sub node_release_hook {
@@ -16,7 +18,7 @@ sub node_release_hook {
     $node->{Arrow}.="\&last";
     $node->{Smooth}.="\&1";
     TredMacro::Redraw_FSFile_Tree();
-    FileNotSaved=1;
+    $FileNotSaved=1;
   }
 }
 
