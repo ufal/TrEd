@@ -26,6 +26,9 @@
 #binding-context Coref
 #include <contrib/tr_coref_common.mak>
 
+#binding-context Quotation
+#include <contrib/tr_quotation_common.mak>
+
 #binding-context PDT
 #include <contrib/pdt.mak>
 
