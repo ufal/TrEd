@@ -407,8 +407,9 @@ sub add {
   # and add each element once only
   @_=grep {defined($_) and $_ ne ""} @_;
   do {
-    my %saw=map { $_ => 1 } @{ $self->list_ref },map {$_->[0]} @{ $self->files_ref };
-    @_=grep(!$saw{$_}++,@_);
+    my %saw;
+    $saw{$_}=1 for (@{ $self->list_ref },(map {$_->[0]} @{ $self->files_ref }));
+    @_=grep{ !($saw{$_}++) } @_;
   };
   splice @{ $self->list_ref },$position,0,@_;
   $self->expand();
