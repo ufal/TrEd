@@ -2715,20 +2715,20 @@ sub updatePrintDialogState {
   foreach my $widget (keys %t) {
     if ($t{$widget}) {
       print "On: $widget: $w->{$widget}\n";
-      $w->{$widget}->configure(-state => 'normal',
-			       ($w->{$widget}->isa('Tk::Entry') or
-			       $w->{$widget}->isa('Tk::BrowseEntry'))
-			       ?
-			       (-background => $s->{defaultBg}) : ()
-			      );
+      eval { $w->{$widget}->configure(-state => 'normal') };
+      eval { $w->{$widget}->configure(($w->{$widget}->isa('Tk::Entry') or
+				       $w->{$widget}->isa('Tk::BrowseEntry'))
+				      ?
+				      (-background => $s->{defaultBg}) : ()
+				     ) };
     } else {
       print "Off: $widget: $w->{$widget}\n";
-      $w->{$widget}->configure(-state=> 'disabled',
-			       ($w->{$widget}->isa('Tk::Entry') or
-				$w->{$widget}->isa('Tk::BrowseEntry'))
-			       ?
-			       (-background => $s->{disabledBg}) : ()
-			      );
+      eval { $w->{$widget}->configure(-state=> 'disabled') };
+      eval { $w->{$widget}->configure(($w->{$widget}->isa('Tk::Entry') or
+				       $w->{$widget}->isa('Tk::BrowseEntry'))
+				      ?
+				      (-background => $s->{disabledBg}) : ()
+				     ) };
     }
     print "---\n";
   }
@@ -3094,6 +3094,11 @@ sub printThis {
   my $win = $grp->{focusedWindow};
   return unless $win->{FSFile};
 
+## uncomment to get preview (see also below)
+#  my $dlg = $grp->{top}->DialogBox(-title=> 'Print Preview',
+#				   -buttons=> ['Close']);
+#  my $canvas=$dlg->Scrolled('Canvas');
+
   my $canvas=$grp->{top}->Canvas();
   my @print_opts;
   my $err;
@@ -3131,6 +3136,11 @@ sub printThis {
 			   $treeViewOpts,
 			   $ss
 			  );
+
+## uncomment to get preview (see also above)
+#  $canvas->pack();
+#  ShowDialog($dlg);
+
   $canvas->destroy();
 }
 
