@@ -1,0 +1,130 @@
+#!/usr/bin/perl -P
+
+#define YYDEBUG 1
+package Parser;
+
+#include "graph2tred.tab.ph"
+#include "graph2tred.tab.pl"
+
+$keywords='function|comment|string|pointer|list|if|else|goto|return|call|Cut|Paste|NewNode|TreeNext|TreePrev|TreeGoTo|Print|Remove|this|null|substr|valnum|concat';
+$directions='lbrother|rbrother|parent|firstson';
+$operators='===|!=|==|=!=|\#==|\#!=|\#\<=|\#\<|\#\>=|\#\>|&&|\|\|';
+
+sub yyguard {
+  return 1;
+}
+
+sub yy_lookup_token {
+  my $i,$j=0;
+  my $token=shift;
+  for ($i=0; $i<=$#yytname; $i++) {
+    $j++ if ($yytname[$i]=~'^"');
+    last if ($yytname[$i] eq '"'.$token.'"');
+  }
+  return $j;
+}
+
+sub yylex {
+  if (defined ($yynext_yylval)) {
+    $yylval=$yynext_yylval;
+    $yynext_yylval=undef;
+    return $yynext_yylex;
+  }
+  while ($yyinput!~/\G$/gsco) {	
+    if ( $yyinput =~ /\G[\s\n]+/gsco ) { 
+#      print STDERR "==> $&\n";
+      next; 
+    }
+    elsif ($yyinput =~ /\G[0-9]+(?![a-z0-9A-Z_])/gsco ) {
+      $yylval=$&;
+      print STDERR "==> $yylval\n" if $yydebug;
+      return NUMBER;
+    }
+    elsif ($yyinput =~ /\G\"(\-?[0-9]+)\"/gsco ) {
+      $yylval=$&;
+      print STDERR "==> $yylval\n" if $yydebug;
+      return NUMBER;
+    }
+    elsif ($yyinput =~ /\G\"(?:[^\"]*|\\\")\"/gsco ) {
+      $yylval=$&;
+      print STDERR "==> $yylval\n" if $yydebug;
+      return STRING;
+    }
+    elsif ($yyinput =~ /\G(function)\s+([^\#])\s+/gsco) {
+      $yylval=$1;
+      $yynext_yylval=$2;
+      $yynext_yylex=KEYS;
+      return FUNCID+yy_lookup_token($yylval);
+    }
+    elsif ($yyinput =~ /\G(call)\s+([^\#])\s*(?=;)/gsco) {
+      $yylval=$1;
+      $yynext_yylval=$2;
+      $yynext_yylex=KEYS;
+      return FUNCID+yy_lookup_token($yylval);
+    }
+    elsif ($yyinput =~ /\G(-\>)($directions)/gsco) {
+      print STDERR "=direction=> $yylval\n" if $yydebug;
+      $yylval=$1;
+      $yynext_yylval=$2;
+      $yynext_yylex=FUNCID+yy_lookup_token($yynext_yylval);
+      return FUNCID+yy_lookup_token($yylval);
+    }
+    elsif ($yyinput =~ /\G(?:[][\+,.;)(}{]|$operators|(?:$keywords)(?![a-z0-9A-Z_])|&(?!&)|\-(?!\>)|=(?!=)|U(?![a-z0-9A-Z_]))/gsco ) {
+      $yylval=$&;
+      print STDERR "=keyword=> $yylval\n" if $yydebug;
+      if (length($yylval)==1) {
+	return ord($yylval);
+      } else {
+	return FUNCID+yy_lookup_token($yylval);
+      }
+    }
+    elsif ($yyinput =~ 
+ 	   /\G(?:Ctrl\+)?(?:Shift\+)?(?:[A-Z0-9]|F1[0-2]|F[1-9]|Space|Backspace|Tab)(?![a-z0-9A-Z_])/gsco ) {
+      $yylval=$&;
+      print STDERR "==> $yylval\n" if $yydebug;
+      return KEYS;
+    }
+    elsif ($yyinput =~ /\GEsc(?![a-z0-9A-Z_])/gsco ) {
+      $yylval="Escape";
+      print STDERR "==> $yylval\n" if $yydebug;
+      return KEYS;
+    }
+    elsif ($yyinput =~ /\G[a-zA-Z_]+[a-zA-Z0-9_]*/gsco ) {
+      $yylval=$&;
+      print STDERR "==> $yylval\n" if $yydebug;
+      return ID;
+    }
+    elsif ($yyinput =~ /\G:([a-zA-Z_]+[a-zA-Z0-9_]*):/gsco ) {
+      $yylval=$1;
+      print STDERR "label ==> $yylval\n" if $yydebug;
+      return LABELID;
+    }
+    elsif ($yyinput =~ /\G:([a-zA-Z_]+[a-zA-Z0-9_]*)(?![a-z0-9A-Z_:])/gsco ) {
+      $yylval=$1;
+      print STDERR "==> $yylval\n" if $yydebug;
+      return LABELREF;
+    }
+    elsif ($yyinput =~ /\G\#([a-zA-Z_]+[a-zA-Z0-9_])/gsco ) {
+      $yylval=$1;
+      print STDERR "==> $yylval\n" if $yydebug;
+      return FUNCID;
+    }
+    else {
+      $yyinput =~ /\G(..?.?.?.?.?.?.?.?.?.?)/gsco;
+      print STDERR "----",$1,"-----\n";
+      return 0;
+    }
+  }
+}
+sub yyerror { die (shift()."\n"); }
+
+while (<>) {
+  next if (1 .. /^[^(]/);
+  s!//.*$!!;
+  $yyinput.=$_." ";
+}
+#  print $yyinput;
+
+#$yydebug = 1;
+yyparse();
+
