@@ -52,7 +52,7 @@ if (exists $ENV{TREDHOME}) {
   $libDir=dirname($0).'tredlib';
 } elsif (-d dirname($0).'../lib/tredlib') {
   $libDir=dirname($0).'../lib/tredlib';
-} elsif (-d dirname($0).'../lib/tredlib') {
+} elsif (-d dirname($0).'../lib/tred') {
   $libDir=dirname($0).'../lib/tred';
 }
 
