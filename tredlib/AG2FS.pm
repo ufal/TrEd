@@ -107,15 +107,38 @@ sub detransliterate {
   my ($s)=@_;
   $s=~s/\(null\)//g;
   $s=~s/[auio~FKN]//g;
-  $s=~tr['|>&<}AbptvjHxd*rzs$SDTZEg_fqklmnhwYyFNKaui~o`{]
+  if ($]>=5.008) {
+    eval '
+  $s=decodeFromUTF8($encoding,$s);
+  $s=~tr[\'|>&<}AbptvjHxd*rzs\$SDTZEg_fqklmnhwYyFNKaui~o`{]
     [\xC1-\xD6\xD8-\xDF\xE1\xE3-\xE6\xEC\xED\xF0-\xF3\xF5\xF6\xF8\xFA\xF3\xC7];
-
-  return $s;
+  encodeToUTF8($encoding,$s);
+  ';
+  } else {
+  eval '
+  $s=~tr[\'|>&<}AbptvjHxd*rzs\$SDTZEg_fqklmnhwYyFNKaui~o`{]
+    [\xC1-\xD6\xD8-\xDF\xE1\xE3-\xE6\xEC\xED\xF0-\xF3\xF5\xF6\xF8\xFA\xF3\xC7];
+   $s;
+  ';
+  }
 }
 
 sub xp {
   my ($node,$xp)=@_;
-  return decodeFromUTF8($encoding,$node->findvalue($xp));
+  if ($]>=5.008) {
+    return $node->findvalue($xp);
+  } else {
+    return decodeFromUTF8($encoding,$node->findvalue($xp));
+  }
+}
+
+sub ag_decode {
+  if ($]>=5.008) { $_[0] } else { decodeFromUTF8($encoding,$_[0]) }
+}
+
+sub ag_attr {
+  my ($node,$name)=@_;
+  ag_decode($node->getAttributeNode($name)->getValue())
 }
 
 sub read {
@@ -123,6 +146,7 @@ sub read {
   die "Filename required, not a reference ($input)!" if ref($input);
   return unless ref($fsfile);
 
+  $fsfile->changeEncoding($encoding);
   $fsfile->changeFS(FSFormat->create(@agformat));
   $fsfile->changeTail("(1)\n");
   $fsfile->changePatterns(@agpatterns);
@@ -167,8 +191,11 @@ sub read {
     return 0;
   }
 
+  my %_id_hash = map { ag_attr($_,'id') => $_ }
+    $agdom->findnodes(q{ //ag:Anchor|//ag:Annotation });
+  
   foreach my $ag ($agdom->findnodes( q{ //ag:AG } )) {
-    my $agid=decodeFromUTF8($encoding,$ag->getAttributeNode('id')->getValue);
+    my $agid=ag_attr($ag,'id');
     my $tree=xp($ag,q{ string(descendant::ag:OtherMetadata[@name='treebanking']|
                               descendant::ag:MetadataElement[@name='treebanking']) });
     my $para=xp($ag,q{ string(descendant::ag:OtherMetadata[@name='paragraph']|
@@ -181,8 +208,9 @@ sub read {
     my @nodes;
 
     foreach my $annotation ($ag->findnodes( q{ descendant::ag:Annotation[@type='word'] } )) {
-      my $start=xp($annotation, q{ string(id(@start)/@offset) });
-      my $end=xp($annotation, q{ string(id(@end)/@offset) });
+      my $start=ag_attr($_id_hash{ag_attr($annotation,'start')},'offset');
+      my $end=ag_attr($_id_hash{ag_attr($annotation,'end')},'offset');
+
       $start=~s/\.(\d+)$//;
       $end=~s/\.(\d+)$//;
 
@@ -193,10 +221,11 @@ sub read {
       $node->{origf}=~s/\s+$//;
       $node->{lookup}=xp($annotation,q{ string(ag:Feature[@name='lookup-word']) });
       $node->{comment}=xp($annotation,q{ string(ag:Feature[@name='comment']) });
-      $node->{id}=decodeFromUTF8($encoding,$annotation->getAttributeNode('id')->getValue);
+      $node->{id}=ag_attr($annotation,'id');
 
+      my $selection_id=xp($annotation,q{ string(ag:Feature[@name='selection']) });
       my ($selection)=
-	$annotation->findnodes(q{ id(string(ag:Feature[@name='selection'])) });
+	$annotation->findnodes(qq{ (//ag:Annotation[\@id="$selection_id"]|id("$selection_id"))[1] });
       if ($selection) {
 	$node->{gloss}=xp($selection,q{ string(ag:Feature[@name='gloss']) });
 	$node->{solutionno}=xp($selection,q{ string(ag:Feature[@name='number']) });
