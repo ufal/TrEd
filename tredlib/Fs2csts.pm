@@ -240,7 +240,7 @@ sub write {
 
       # choosing between f d and fadd
       if (index($node->{ord},'.')>=$[) {
-	my $del=$node->{del}=~/^(?:ELID|ELEX|EXPN)/i ? " ".lc($node->{del}) : "";
+	my $del=$node->{del}=~/^(?:ELID|ELEX|EXPN|TRANSF)/i ? " ".lc($node->{del}) : "";
 	print $fileref "<fadd$del>";
       } else {
 	if ($compatibility_mode) {
@@ -314,43 +314,43 @@ sub write {
       #
       # we print <TRl> if there is a trlemma or dord orders nodes or
       # there is a non-empty govTR and it is different from <g>
-      if (($fsfile->FS->exists('trlemma') and
-	   exists($node->{trlemma}) and
-	   $node->{trlemma} ne "") or 
-	  $fsfile->FS->order eq 'dord'
-#	  or
-#	  ($fsfile->FS->exists('govTR') and
-#	   exists($node->{govTR}) and
-#	   $node->{govTR} ne "" and
-#	   $node->{govTR} != $node->parent->{ord})
-	 ) {
+      unless ($node->{del} eq 'TRANSF') {
+	if (($fsfile->FS->exists('trlemma') and exists($node->{trlemma}) and $node->{trlemma} ne "") or
+	    $fsfile->FS->order eq 'dord'
+	    #	  or
+	    #	  ($fsfile->FS->exists('govTR') and
+	    #	   exists($node->{govTR}) and
+	    #	   $node->{govTR} ne "" and
+	    #	   $node->{govTR} != $node->parent->{ord})
+	   ) {
 
-	print $fileref "<TRl$quot";
-	print $fileref " hidden" if ($node->{"TR"} eq "hide");
-	print $fileref " origin=\"".$node->{"AIDREFS"}."\"" if $node->{"AIDREFS"} ne "";
-	print $fileref ">",translate_to_entities($node->{trlemma});
+	  print $fileref "<TRl$quot";
+	  print $fileref " hidden" if ($node->{"TR"} eq "hide");
+	  print $fileref " origin=\"".$node->{"AIDREFS"}."\"" if $node->{"AIDREFS"} ne "";
+	  print $fileref ">",translate_to_entities($node->{trlemma});
 
-	if ($node->{func} ne "" or $node->{gram} ne "") {
-	  print $fileref "<T>",$node->{func};
-	  print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
+	  if ($node->{func} ne "" or $node->{gram} ne "") {
+	    print $fileref "<T>",$node->{func};
+	    print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
+	  }
+	  print $fileref "<Tmo>",$node->{memberof} if ($node->{memberof} ne "" and
+						       $node->{memberof} ne "???");
+	  my $TRt=make_TRt($node,0);
+	  print $fileref "<TRt>",$TRt unless ($TRt=~/^X*$/);
+	  print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
+	  print $fileref "<tfr>",$node->{dord} if ($node->{dord} ne "");
+	  print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
+	  print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
+	  if ($fsfile->FS->order eq 'dord') {
+	    print $fileref "<TRg>",$node->parent->{ord};
+	  } else {
+	    print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
+	  }
+	  print $fileref "<corl>",$node->{corl} if ($node->{corl} !~ /^(?:---|\?\?\?)?$/);
+	  print $fileref "<corT>",$node->{corT} if ($node->{corT} !~ /^(?:---|\?\?\?)?$/);
+	  print $fileref "<corr>",$node->{corr} if ($node->{corr} !~ /^(?:---|\?\?\?)?$/);
+	  print $fileref "<cors>",$node->{cors} if ($node->{cors} !~ /^(?:---|\?\?\?)?$/);
 	}
-	print $fileref "<Tmo>",$node->{memberof} if ($node->{memberof} ne "" and
-						     $node->{memberof} ne "???");
-	my $TRt=make_TRt($node,0);
-	print $fileref "<TRt>",$TRt unless ($TRt=~/^X*$/);
-	print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<tfr>",$node->{dord} if ($node->{dord} ne "");
-	print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
-	print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
-	if ($fsfile->FS->order eq 'dord') {
-	  print $fileref "<TRg>",$node->parent->{ord};
-	} else {
-	  print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
-	}
-	print $fileref "<corl>",$node->{corl} if ($node->{corl} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<corT>",$node->{corT} if ($node->{corT} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<corr>",$node->{corr} if ($node->{corr} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<cors>",$node->{cors} if ($node->{cors} !~ /^(?:---|\?\?\?)?$/);
       }
       foreach (grep(/^trlemmaM_/,$fsfile->FS->attributes)) {
 	/^trlemmaM_(.*)$/;
