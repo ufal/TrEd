@@ -1,8 +1,8 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2003-03-12 13:55:56 pajas>
+## Time-stamp: <2003-06-27 15:33:18 pajas>
 
-unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
+unshift @INC,"$main::libDir/contrib" unless (grep($_ eq "$main::libDir/contrib", @INC));
 require AFA;
 
 my %advfunc;
