@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2002-03-28 09:43:36 pajas>
+## Time-stamp: <2002-04-03 19:08:26 pajas>
 
 unshift @INC,"$libDir/contrib/AutoAfun" unless (grep($_ eq "$libDir/contrib/AutoAfun", @INC));
 
@@ -62,13 +62,23 @@ sub assign_afun_auto {
   $node->{$AutoAfunAtr}=normalize_afun($afun);
 }
 
-#bind assign_all_func_auto to Ctrl+Shift+F10 menu Auto-assign analytical functions to tree
-sub assign_all_func_auto {
+#bind assign_all_afun_auto to Ctrl+Shift+F10 menu Auto-assign analytical functions to tree
+sub assign_all_afun_auto {
   my $class=$_[0];
   my $node=$root;
   while ($node) {
     assign_afun_auto($class,$node) if ($node->{afun} eq '???');
     $node=$node->following();
+  }
+}
+
+sub assign_afun_auto_tree {
+  my ($class,$top)=@_;
+  my $top||=$root;
+  my $node=$top;
+  while ($node) {
+    assign_afun_auto($class,$node);
+    $node=$node->following($top);
   }
 }
 
