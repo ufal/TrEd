@@ -401,7 +401,7 @@ my %pcdata = (
 			$s->{node}->{origf}=$data;
 		      }
 		    }],
-	      P => [\&to_node_attr,'|','punct'],
+	      P => [\&to_node_attr,'|','pronunciation'],
 	      Ct => [\&to_node_attr,'|','alltags'],
 	      l => [\&to_node_attr,'|','lemma'],
 	      R => [\&to_node_attr,'|','root'],   # should be src-ed by n parent
@@ -440,7 +440,7 @@ my $headers = <<'EOF';
 '@P nospace',
 '@P root',
 '@P ending',
-'@P punct',
+'@P pronunciation',
 '@P alltags',
 '@P wt',
 '@P origfkind',
