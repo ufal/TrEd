@@ -588,7 +588,7 @@ sub read {
 
   my $parser=new SGMLS(*$fileref);
 
-  my (%defs,@attlist,$event,@trees);
+  my (%defs,@attlist,$event,@trees,@header);
   my $state = {
 	       parser => $parser,
 	       event => undef,
@@ -636,13 +636,11 @@ sub read {
   }
 
   @attlist=();
-
-  my @attlist=();
-  my @header=@{$header};
+  @header=@{$header};
   foreach (keys %composed_attrs) {
     push @header,"\@P $_";
   }
-  my %defs=ReadAttribs(\@header,\@attlist);
+  %defs=ReadAttribs(\@header,\@attlist);
   $fsformat = new FSFormat({%defs},
 			   [@attlist], undef);
   $fsfile->changeFS($fsformat);
