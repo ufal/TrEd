@@ -493,7 +493,7 @@ sub frame_chosen {
     my $node = $win->{currentNode};
     my $lemma = TrEd::Convert::encode($node->{trlemma}); $lemma=~s/_/ /g;
     my ($pos) = $node->{tag}=~/^(.)/;
-    if (ref($field) and $field->[0] eq $lemma and
+    if (ref($field) and ($field->[0] eq $lemma or $field->[0] eq lc($lemma)) and
 	$field->[1] eq $pos) {
       my @frames=$chooser->get_selected_frames();
       my $real=$chooser->get_selected_element_string();
