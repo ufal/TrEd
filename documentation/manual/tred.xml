@@ -133,13 +133,14 @@
 		CD</productname>,
 		i.e. if your CD-ROM drive is <filename>D:</filename>,
 		type		
-		<literallayout>cd D:\Tools\Tree_Editors\Tred\PerlTk</literallayout>
+		<literallayout><userinput>D:</userinput>
+		  <userinput>cd D:\Tools\Tree_Editors\Tred\PerlTk</userinput></literallayout>
 		Under Windows&nbsp;9x you may rather need to use command	    
-		<literallayout>cd D:\Tools\Tree_~1\Tred\PerlTk</literallayout>
+		<literallayout><userinput>cd D:\Tools\Tree_~1\Tred\PerlTk</userinput></literallayout>
 	      </para>
 	  </listitem>
 	  <listitem>
-	      <para>Type <literal>ppm install Tk.ppd</literal> (press
+	      <para>Type <literal><userinput>ppm install Tk.ppd</userinput></literal> (press
 	      <keycap>Enter</keycap>)</para>
 	    </listitem>
 	  <listitem>
