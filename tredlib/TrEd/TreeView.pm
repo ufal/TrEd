@@ -10,7 +10,7 @@ import TrEd::MinMax;
 use TrEd::Convert;
 import TrEd::Convert;
 
-use vars qw($AUTOLOAD @Options %DefaultNodeStyle $on_get_root_style $on_get_node_style);
+use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style);
 
 our $objectno;
 our ($block, $bblock);
@@ -874,7 +874,7 @@ sub eval_coords_spec {
       $_=eval $_;
       print STDERR $@ if $@ ne "";
     } else { # catches ERR too
-      if (/ERR/ or !/NE/) {
+      if ($Debug and (/ERR/ or !/NE/)) {
 	print STDERR "COORD: $coords\n";
 	print STDERR "BAD: $_\n";
 	  }
