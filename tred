@@ -3419,12 +3419,14 @@ sub update_value_line_current {
     eval {
       $vl->tagRemove('current','0.0','end');
       $vl->tagRemove('sel','0.0','end');
-      if ($vl->tagNextrange("$node",'0.0') ne "") {
-	$vl->tagAdd('current',
-		    $node.".first",
-		    $node.".last",
-				 );
-	$vl->see('current.first');
+      my $tag = doEvalHook($win,"highlight_value_line_tag_hook",$node);
+      $tag = "$node" unless defined $tag;
+      if ($vl->tagNextrange("$tag",'0.0') ne "") {
+ 	$vl->tagAdd('current',
+ 		    $tag.".first",
+ 		    $tag.".last",
+		   );
+ 	$vl->see('current.first');
       }
     };
   }

@@ -170,7 +170,11 @@ get_backends_hook      backend-list-ref no      gets list of IO backends, and
                                                 allows dynamically
                                                 add/block certain backends
 
-
+highlight_value_line_tag_hook node      no      invoked whenever a
+                                                node is
+                                                selected. Supposed to
+                                                return a tag to
+                                                highlight on the value line.
 
 NOTE:
 Unlike other macros, hooks are expected not to modify the file. If the
