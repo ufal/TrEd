@@ -12,14 +12,13 @@ sub default_tr_attrs {
   print "Using standard patterns\n";
     SetDisplayAttrs('${x_TNl}','#{blue}${trlemma}','${x_TNfunc}');
     SetBalloonPattern("TNT: \${x_TNT}\n".
+                      "TNfunc: \${x_TNfunc}\n".
                       "TNmg: \${x_TNmg}\n".
 		      '<? $node->parent->{x_TNT} eq "OR_node" ?
                           "czlemma: ".$node->parent->{trlemma}."\n".
-                          "TNfunc: ".$node->{x_TNfunc}."\n".
-                          "TNmg: ".$node->{x_TNmg}."\n".
-                          "afun: ".$node->parent->{afun}."\n".
-                          "tagMD: ".$node->parent->{tagMD_a} :
-		      $${afun}."\n".$${tagMD_a} ?>');
+                          "czafun: ".$node->parent->{afun}."\n".
+                          "cztagMD: ".$node->parent->{tagMD_a} :
+		      "czafun: ".$${afun}."\ncztagMD: ".$${tagMD_a} ?>');
   return 1;
 }
 
