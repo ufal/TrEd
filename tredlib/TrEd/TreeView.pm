@@ -17,11 +17,13 @@ use strict;
   currentBoxColor currentEdgeBoxColor currentNodeHeight
   currentNodeWidth customColors hiddenEdgeBoxColor edgeBoxColor
   clearTextBackground drawBoxes drawEdgeBoxes
-  drawSentenceInfo font hiddenBoxColor
+  drawSentenceInfo font hiddenBoxColor edgeLabelYSkip
   highlightAttributes showHidden lineArrow lineColor lineWidth noColor
-  nodeHeight nodeWidth nodeXSkip nodeYSkip pinfo textColor xmargin
+  nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
+  edgeLabelSkipBelow pinfo textColor xmargin
   nodeOutlineColor nodeColor hiddenNodeColor nearestNodeColor ymargin
-  currentNodeColor textColorShadow textColorHilite textColorXHilite);
+  currentNodeColor textColorShadow textColorHilite textColorXHilite
+  useAdditionalEdgeLabelSkip);
 
 sub new {
   my $self = shift;
@@ -42,7 +44,13 @@ sub AUTOLOAD {
     return $self->{$1};
   } elsif ($sub=~/^set_(.*)$/) {
     return $self->{$1}=shift;;
+  } else {
+    warn "Warning: $sub is not a method of TreeView\n";
+    warn join "\n",(caller(0))[0..4];
   }
+}
+
+sub DESTROY {
 }
 
 sub canvas {
@@ -170,10 +178,11 @@ sub getTextWidth {
 }
 
 sub recalculate_positions {
-  my ($self,$fsfile,$nodes)=@_;
+  my ($self,$fsfile,$nodes,$Opts)=@_;
   return unless ref($self);
 
-  my $xpos=$self->get_baseXPos;
+  my $baseXPos=$self->get_baseXPos;
+  my $xpos=$baseXPos;
   my $level;
 
   my $minxpos;			# used temporarily to place a node far
@@ -183,24 +192,49 @@ sub recalculate_positions {
                                 # this one's used for canvasHeight
   my $canvasWidth=0;
   my $node;
-  my $textWidth=0;
+  my $xSkipBefore=0;
+  my $xSkipAfter=0;
+  my $nodeLabelXShift=0;
   my $nodeLabelWidth=0;
   my $edgeLabelWidth=0;
+  my ($nodeWidth,$nodeHeight)=($self->get_nodeWidth,$self->get_nodeHeight);
+  my ($nodeXSkip,$nodeYSkip)=($self->get_nodeXSkip,$self->get_nodeYSkip);
   my $m;
 
   my ($pattern_count,$node_pattern_count,$edge_pattern_count)=(0,0,0);
 				# May change with line attached labels
   if (ref($fsfile)) {
     $pattern_count=$fsfile->pattern_count;
-    $node_pattern_count=scalar($self->get_node_label_patterns($fsfile));
-    $edge_pattern_count=$pattern_count-$node_pattern_count;
+    $node_pattern_count=scalar($self->get_label_patterns($fsfile,"node"));
+    $edge_pattern_count=scalar($self->get_label_patterns($fsfile,"edge"));
   }
 
   my $fontHeight=$self->getFontHeight();
-  my %prevnode=();
+  my $node_label_height=2*$self->get_ymargin + $node_pattern_count*$fontHeight;
+  my $edge_label_height=2*$self->get_ymargin + $edge_pattern_count*$fontHeight;
+  my $levelHeight=$nodeHeight;
+
+  if ($edge_pattern_count) {
+    $levelHeight +=
+	     $self->get_edgeLabelSkipAbove
+	  +  $self->get_edgeLabelSkipBelow
+	  +  $edge_label_height;
+  }
+  if ($node_pattern_count) {
+     $levelHeight += $nodeYSkip + $node_label_height;
+     $levelHeight += $nodeYSkip unless ($edge_pattern_count);
+  }
+
+  my @prevnode=();
   my $parent;
   my $ypos;
   $maxlevel=0;
+  my $valign_shift=0;
+  my $valign;
+  my $halign_node;
+  my $halign_edge;
+  my $valign_edge;
+  my $edge_ypos;
   foreach $node (@{$nodes}) {
     $level=0;
     $parent=$node->parent;
@@ -208,70 +242,122 @@ sub recalculate_positions {
       $level++;
       $parent=$parent->parent;
     }
-    $maxlevel=max($maxlevel,$level);
-    
-    if ($edge_pattern_count) {
-      $ypos = $self->get_baseYPos
-	+ $level*(2*$self->get_nodeYSkip
-		  + $self->get_nodeHeight)
-	  + 2*$level*(2*$self->get_ymargin
-		      + $node_pattern_count*$fontHeight)
-	    + $level*(2*$self->get_ymargin
-		      + $edge_pattern_count*$fontHeight);
-    } else {
-      $ypos = $self->get_baseYPos
-	+ $level*(2*($self->get_nodeYSkip
-		     + $self->get_ymargin)
-		  + $node_pattern_count*$fontHeight
-		  + $self->get_nodeHeight);
+    $self->store_node_pinfo($node,"EdgeLabelHeight", $edge_label_height);
 
+    $maxlevel=max($maxlevel,$level);
+    $ypos = $self->get_baseYPos + $level*$levelHeight;
+
+    $valign=$self->get_style_opt($node,"NodeLabel","-valign",$Opts);
+    if ($valign eq 'bottom') {
+      $valign_shift=-$nodeYSkip-$node_label_height;
+      $ypos+=$node_label_height;
+    } elsif ($valign eq 'center') {
+      $valign_shift=-$node_label_height/2;
+      $ypos+=$node_label_height/2;
+    } else {
+      $valign_shift=$nodeYSkip+$nodeHeight;
     }
+
+
+
     $self->store_node_pinfo($node,"YPOS", $ypos);
 
-    ($nodeLabelWidth,$edgeLabelWidth,$textWidth)=(0,0,0);
+    $self->store_node_pinfo($node,"NodeLabel_YPOS",
+			    $ypos
+			    +$self->get_style_opt($node,"NodeLabel","-yadj",$Opts)
+			    +$valign_shift);
+    if ($valign eq 'bottom') {
+      $edge_ypos=$ypos
+	+ $valign_shift
+	- $self->get_edgeLabelSkipBelow
+	- $edge_label_height;
+    } else {
+      $edge_ypos=$ypos
+	     + $valign_shift
+	     + $node_label_height
+	     + $self->get_edgeLabelSkipAbove
+	     - $levelHeight;
+    }
+    $edge_ypos+=$self->get_style_opt($node,"EdgeLabel","-yadj",$Opts);
+    $self->store_node_pinfo($node,"EdgeLabel_YPOS",$edge_ypos);
+
+    $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",$Opts);
+
+    ($nodeLabelWidth,$edgeLabelWidth)=(0,0);
+    $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
+    my ($pat_style,$pat);
     for (my $i=0;$i<$pattern_count;$i++) {
-      $m=$self->getTextWidth($self->prepare_text($fsfile,$node,$i));
-      $self->store_node_pinfo($node,"X[$i]",$m);
-      if ($self->is_edge_pattern($fsfile->pattern($i))) {
+      ($pat_style,$pat)=$self->parse_pattern($fsfile->pattern($i));
+      if ($pat_style eq "edge") {
+	# this does not actually make
+	# the edge label not to overwrap, but helps a little
+	$m=$self->getTextWidth($self->prepare_text($node,$pat));
+	$self->store_node_pinfo($node,"X[$i]",$m);
 	$edgeLabelWidth=$m if $m>$edgeLabelWidth;
-	$m*=2;
-      } else {
+      } elsif ($pat_style eq "node") {
+	$m=$self->getTextWidth($self->prepare_text($node,$pat));
+	$self->store_node_pinfo($node,"X[$i]",$m);
 	$nodeLabelWidth=$m if $m>$nodeLabelWidth;
       }
-      $textWidth=$m if $m>$textWidth;
     }
+
+    $xSkipBefore=$nodeWidth/2;
+    $xSkipAfter=$nodeWidth/2;
+    if ($halign_node eq 'right') {
+      $xSkipBefore=max($xSkipBefore,$nodeLabelWidth-$nodeWidth/2);
+      $nodeLabelXShift=-$nodeLabelWidth+$nodeWidth/2;
+    } elsif ($halign_node eq 'center') {
+      $xSkipBefore=max($xSkipBefore,$nodeLabelWidth/2);
+      $xSkipAfter=max($xSkipBefore,$nodeLabelWidth/2);
+      $nodeLabelXShift=-$nodeLabelWidth/2;
+    } else {
+      $xSkipAfter=max($xSkipAfter,$nodeLabelWidth-$nodeWidth/2);
+      $nodeLabelXShift=-$nodeWidth/2;
+    }
+
+    # Try to add reasonable skip so that the edge labels do
+    # not overlap. (this code however cannot ensure that!!)
+    if ($self->get_useAdditionalEdgeLabelSkip() and
+	$self->get_style_opt($node,"Node","-disableedgelabelspace",$Opts) ne "yes"
+       ) {
+      if ($halign_edge eq 'right') {
+	$xSkipBefore=max($xSkipBefore,2*$edgeLabelWidth);
+      } elsif ($halign_edge eq 'center') {
+	$xSkipBefore=max($xSkipBefore,$edgeLabelWidth);
+	$xSkipAfter=max($xSkipAfter,$edgeLabelWidth);
+      } else {
+	$xSkipAfter=max($xSkipAfter,2*$edgeLabelWidth);
+      }
+    }
+    $xSkipBefore+=$self->get_style_opt($node,"Node","-addbeforeskip",$Opts);
+    $xSkipAfter+=$self->get_style_opt($node,"Node","-addafterskip",$Opts);
+
     $self->store_node_pinfo($node,"NodeLabelWidth",$nodeLabelWidth);
     $self->store_node_pinfo($node,"EdgeLabelWidth",$edgeLabelWidth);
-    $self->store_node_pinfo($node,"Width",$textWidth);
-
+    $self->store_node_pinfo($node,"After",$xSkipAfter);
     $minxpos=0;
-    if ($prevnode{$level}) {
+    if ($prevnode[$level]) {
       $minxpos=
-	$self->get_node_pinfo($prevnode{$level},"XPOS")+
-	$self->get_node_pinfo($prevnode{$level},"Width")+
-	$self->get_nodeXSkip+$self->get_nodeWidth+2*$self->get_xmargin;
-      $minxpos+=2*$self->get_xmargin if ($edge_pattern_count);
+	$self->get_node_pinfo($prevnode[$level],"XPOS")+
+	$self->get_node_pinfo($prevnode[$level],"After")+$xSkipBefore;
+    } else {
+      $minxpos=$baseXPos+$xSkipBefore;
     }
-    $xpos=max($xpos,$minxpos);
+    $xpos=max($xpos,$minxpos)+$nodeXSkip;
     $self->store_node_pinfo($node,"XPOS",$xpos);
-    $xpos+=$self->get_nodeXSkip+$self->get_nodeWidth;
-    $canvasWidth = max($canvasWidth,
-		       $self->get_node_pinfo($node,"XPOS")
-		       + $self->get_node_pinfo($node,"Width")
-		       + $self->get_baseXPos
-		       + $self->get_nodeWidth
-		       + 2*$self->get_xmargin
-		       + $self->get_nodeXSkip);
+    $self->store_node_pinfo($node,"NodeLabel_XPOS",$xpos+$nodeLabelXShift);
 
-    $prevnode{$level}=$node;
+    $canvasWidth = max($canvasWidth,$xpos+$xSkipAfter+$nodeWidth+2*$self->get_xmargin+$baseXPos);
+
+    $prevnode[$level]=$node;
   }
 
   $self->{canvasWidth}=$canvasWidth;
   $self->{canvasHeight}=$self->get_baseYPos
-		     + ($maxlevel+1)*(2*($self->get_nodeYSkip +
+		     + ($maxlevel+1)*(2*($nodeYSkip +
 					 $self->get_ymargin)
 		     + $pattern_count*$fontHeight
-		     + $self->get_nodeHeight);
+		     + $nodeHeight);
 }
 
 sub which_text_color {
@@ -307,16 +393,24 @@ sub node_box_options {
 
 sub node_coords {
   my ($self,$node,$currentNode)=@_;
+  my $Opts=$self->get_gen_pinfo("Opts");
   my ($nw,$nh)=
     (($currentNode eq $node) ? $self->get_currentNodeWidth : $self->get_nodeWidth,
      ($currentNode eq $node) ? $self->get_currentNodeHeight : $self->get_nodeHeight);
+  $nw+=$self->get_style_opt($node,"Node","-addwidth",$Opts);
+  $nh+=$self->get_style_opt($node,"Node","-addheight",$Opts);
   my $x=$self->get_node_pinfo($node,"XPOS");
   my $y=$self->get_node_pinfo($node,"YPOS");
 
-  return ($x+($self->get_nodeWidth-$nw)/2,
-	  $y+($self->get_nodeHeight-$nh)/2,
-	  $x+$nh,
-	  $y+$nw);
+#    return ($x+($self->get_nodeWidth-$nw)/2,
+#  	  $y+($self->get_nodeHeight-$nh)/2,
+#  	  $x+$nh,
+#  	  $y+$nw);
+  return ($x-$nw/2,
+	  $y-$nh/2,
+	  $x+$nh/2,
+	  $y+$nw/2);
+
 }
 
 sub node_options {
@@ -367,10 +461,54 @@ sub wrapLines {
 }
 
 
+sub get_style_opt {
+  my ($self,$node,$style,$opt,$opts)=@_;
+  my $s=$self->get_node_pinfo($node,"style-$style");
+  my %h=(@{$opts->{$style}}, (ref($s) ? @$s : ()));
+  return $h{$opt};
+}
+
+sub apply_style_opts {
+  my ($self, $item)=(shift,shift);
+  eval { $self->canvas->itemconfigure($item,@_); };
+  return $@;
+}
+
+sub apply_stored_style_opts {
+  my ($self, $item, $node)=@_;
+  my $Opts=$self->get_gen_pinfo("Opts");
+  
+  eval { $self->canvas->
+	   itemconfigure($self->get_node_pinfo($node,"Oval"),
+			 @{$Opts->{$item}},
+			 $self->get_node_style($node,$item)); };
+  return $@;
+}
+
+sub get_node_style {
+  my ($self,$node,$style)=@_;
+  my $s=$self->get_node_pinfo($node,"style-$style");
+  return $s ? @{$s} : ();
+}
+
 sub redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext)=@_;
   my $node;
+  my $style;
   my $parent;
+  my $node_has_box;
+  my $edge_has_box;
+  my ($x_edge_delta,
+      $x_edge_length,
+      $y_edge_length,
+      $edgeLabelWidth,
+      $edgeLabelHeight,
+      $halign_edge,
+      $valign_edge
+     );
+
+
+  my (@node_patterns,@edge_patterns,@style_patterns,@patterns);
 
   my %Opts = (
 	      Oval            =>  [],
@@ -382,23 +520,57 @@ sub redraw {
 	      SentenceFileInfo=>  [],
 	      Text            =>  [],
 	      TextBg          =>  [],
-	      EdgeTextBg      =>  []
+	      EdgeTextBg      =>  [],
+	      Node            =>  [],
+	      NodeLabel       =>  [-valign => 'top', -halign => 'left'],
+	      EdgeLabel       =>  [-halign => 'center', -valign => 'top']
 	     );
 
-  my (@node_patterns,@edge_patterns,@patterns);
-
   if (ref($fsfile)) {
-    @node_patterns=$self->get_node_label_patterns($fsfile);
-    @edge_patterns=$self->get_edge_label_patterns($fsfile);
+    @node_patterns=$self->get_label_patterns($fsfile,"node");
+    @edge_patterns=$self->get_label_patterns($fsfile,"edge");
+    @style_patterns=$self->get_label_patterns($fsfile,"style");
     @patterns=$fsfile->patterns();
   }
 
   $self->clear_pinfo();
+  $self->store_gen_pinfo("Opts",\%Opts);
 
-  # node patterns should be interpolated here and
-  # stored within node_pinfo
+  my $pstyle;
+  $node=$nodes->[0];
+  if ($node) {
+    # only for root node if any
+    foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
+      foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
+  	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|EdgeTextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):'?(.+)'?$/) {
+	  if (exists $Opts{"$1$2"}) {
+	    push @{$Opts{"$1$2"}},$3=>$4;
+	  } else {
+	    $Opts{"$1$2"}=[$3=>$4];
+	  }
+	}
+      }
+    }
+  }
+  # styling patterns should be interpolated here for each node and
+  # the results stored within node_pinfo
 
-  recalculate_positions($self,$fsfile,$nodes);
+  foreach $node (@{$nodes}) {
+    foreach $style (@style_patterns) {
+      foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
+	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|EdgeTextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):(.+)$/) {
+	  $pstyle=$self->get_node_pinfo($node,"style-$1$2");
+	  if ($pstyle) {
+	    push @$pstyle,$3=>$4; # making it unique would certainly slow it down
+	  } else {
+	    $self->store_node_pinfo($node,"style-$1$2",[$3 => $4]);
+	  }
+	}
+      }
+    }
+  }
+
+  recalculate_positions($self,$fsfile,$nodes,\%Opts);
 
   $self->canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
   $self->canvas->configure(-background => $self->get_backgroundColor) if (defined $self->get_backgroundColor);
@@ -419,23 +591,32 @@ sub redraw {
     if ($valtext=~/^(.*)\/([^:]*):\s*(.*)/) {
       my $ftext="File: $currentfile, tree $1 of $2";
       my $vtext=$3;
-      $self->canvas->createText(0,$self->{canvasHeight},-font => $self->get_font,-text => $ftext,
-				   -justify => 'left', -anchor => 'nw',
-				@{$Opts{SentenceText}});
+      $self->apply_style_opts(
+			      $self->canvas->
+			      createText(0,
+					 $self->{canvasHeight},
+					 -font => $self->get_font,
+					 -text => $ftext,
+					 -justify => 'left', -anchor => 'nw'),
+			      @{$Opts{SentenceText}});
       $self->{canvasHeight}+=$fontHeight;
       $self->{canvasWidth}=max($self->{canvasWidth},$self->getTextWidth($ftext));
-      $self->canvas->createLine(0,$self->{canvasHeight},
-				   $self->getTextWidth($ftext),
-				   $self->{canvasHeight},
-				@{$Opts{SentenceLine}});
+      $self->apply_style_opts(
+			      $self->canvas->
+			      createLine(0,$self->{canvasHeight},
+					 $self->getTextWidth($ftext),
+					 $self->{canvasHeight}),
+			      @{$Opts{SentenceLine}});
       $self->{canvasHeight}+=$fontHeight;
       foreach ($self->wrapLines($vtext,$self->{canvasWidth})) {
-	$self->canvas->createText(0,$self->{canvasHeight},
-				  -font => $self->get_font,
-				  -text => $_,
-				  -justify => 'left',
-				  -anchor => 'nw',
-				 @{$Opts{SentenceFileInfo}});
+	$self->apply_style_opts(
+				$self->canvas->
+				createText(0,$self->{canvasHeight},
+					   -font => $self->get_font,
+					   -text => $_,
+					   -justify => 'left',
+					   -anchor => 'nw'),
+				@{$Opts{SentenceFileInfo}});
 	$self->{canvasHeight}+=$fontHeight;
       }
 
@@ -443,29 +624,22 @@ sub redraw {
   }
 
   my $lineHeight=$self->getFontHeight();
-  my $edge_label_yskip= (scalar(@node_patterns) ? $lineHeight : 0);
-
+  my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
   foreach $node (@{$nodes}) {
-    my %NodeOpts = {};
     # Something like draw_node_hook should be called here
     $parent=$node->parent;
     use integer;
     if ($parent) {
       my $line=
-	$self->canvas->createLine($self->get_node_pinfo($node,"XPOS")+
-				  $self->get_nodeWidth/2,
-				  $self->get_node_pinfo($node,"YPOS")+
-				  $self->get_nodeHeight/2,
-				  $self->get_node_pinfo($parent,"XPOS")+
-				  $self->get_nodeWidth/2,
-				  $self->get_node_pinfo($parent,"YPOS")+
-				  $self->get_nodeHeight/2,
+	$self->canvas->createLine($self->get_node_pinfo($node,"XPOS"),
+				  $self->get_node_pinfo($node,"YPOS"),
+				  $self->get_node_pinfo($parent,"XPOS"),
+				  $self->get_node_pinfo($parent,"YPOS"),
 				  '-arrow' =>  $self->get_lineArrow,
 				  '-width' =>  $self->get_lineWidth,
-				  '-fill' =>   $self->get_lineColor,
-				  @{$Opts{Line}},
-				  @{$NodeOpts{Line}}
-				 );
+				  '-fill' =>   $self->get_lineColor);
+      $self->apply_style_opts($line,@{$Opts{Line}},
+				  $self->get_node_style($node,"Line"));
       $self->store_node_pinfo($node,"Line",$line);
       $self->store_obj_pinfo($line,$node);
       $self->realcanvas->lower($line,'all');
@@ -475,80 +649,103 @@ sub redraw {
     my $oval=$self->canvas->createOval($self->node_coords($node,$currentNode),
 				       $self->node_options($node,
 							   $fsfile->FS,
-							   $currentNode),
-				       @{$Opts{Oval}},
-				       @{$NodeOpts{Oval}}
-				      );
+							   $currentNode));
+    $self->apply_style_opts($oval,@{$Opts{Oval}},
+				       $self->get_node_style($node,"Oval"));
     $self->canvas->addtag('point', 'withtag', $oval);
     $self->store_node_pinfo($node,"Oval",$oval);
     $self->store_obj_pinfo($oval,$node);
 
-    my ($x_edge_delta,$y_edge_delta)=(0,0);
-    
-    if (scalar(@edge_patterns) and $node->parent) {
-      $x_edge_delta=
-	($self->get_node_pinfo($node->parent, "XPOS")-
-	 $self->get_node_pinfo($node,"XPOS"))/2;
-      $y_edge_delta=
-	($self->get_node_pinfo($node->parent, "YPOS")-
-	 $self->get_node_pinfo($node,"YPOS"))/2;
-    }
 
+    if (scalar(@edge_patterns) and $node->parent) {
+      $y_edge_length=
+	($self->get_node_pinfo($node->parent, "YPOS")-
+	 $self->get_node_pinfo($node,"YPOS"));
+      $x_edge_length=
+	($self->get_node_pinfo($node->parent, "XPOS")-
+	 $self->get_node_pinfo($node,"XPOS"));
+      $x_edge_delta=(($self->get_node_pinfo($node, "EdgeLabel_YPOS")
+		      -$self->get_node_pinfo($node, "YPOS"))*$x_edge_length)/$y_edge_length;
+
+      # the reference point for edge label is now
+      # X: $self->get_node_pinfo($node,"XPOS")+$x_edge_delta
+      #	Y: $self->get_node_pinfo($node,"EdgeLabel_YPOS")
+
+      $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",\%Opts);
+      $valign_edge=$self->get_style_opt($node,"EdgeLabel","-valign",\%Opts);
+
+      $edgeLabelWidth=$self->get_node_pinfo($node,"EdgeLabelWidth");
+      $edgeLabelHeight=$self->get_node_pinfo($node,"EdgeLabelHeight");
+      if ($halign_edge eq "left") {
+	$x_edge_delta-=$edgeLabelWidth;
+      } elsif ($halign_edge eq "center") {
+	$x_edge_delta-=$edgeLabelWidth/2;
+      }
+      if ($valign_edge eq "bottom") {
+	$x_edge_delta+=($edgeLabelHeight*$x_edge_length)/$y_edge_length;
+      } elsif ($valign_edge eq "center") {
+	$x_edge_delta+=(($edgeLabelHeight*$x_edge_length)/$y_edge_length)/2;
+      }
+    }
+    $node_has_box=
+      $self->get_drawBoxes 
+      && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-nodrawbox",\%Opts) ne "yes")
+      || !$self->get_drawBoxes
+      && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-drawbox",\%Opts) eq "yes");
+    $self->store_node_pinfo($node,"NodeHasBox",$node_has_box);
     ## Boxes around attributes
-    if ($self->get_drawBoxes) {
+    if ($node_has_box) {
       ## get maximum width stored here by recalculate_positions
       my $textWidth=$self->get_node_pinfo($node,"NodeLabelWidth");
       my $box=
 	$self->canvas->
-	  createRectangle($self->get_node_pinfo($node,"XPOS")-
+	  createRectangle($self->get_node_pinfo($node,"NodeLabel_XPOS")-
 			  $self->get_xmargin,
-			  $self->get_node_pinfo($node,"YPOS")+
-			  $self->get_nodeHeight+
-			  $self->get_nodeYSkip-$self->get_ymargin,
-			  $self->get_node_pinfo($node,"XPOS")+
-			  $textWidth+$self->get_xmargin,
-			  $self->get_node_pinfo($node,"YPOS")+
-			  ($#node_patterns+1)*$lineHeight+
-			  $self->get_nodeHeight+$self->get_nodeYSkip+
+			  $self->get_node_pinfo($node,"NodeLabel_YPOS")-
 			  $self->get_ymargin,
-			  $self->node_box_options($node,$fsfile->FS,
-						  $currentNode,0),
-			  @{$Opts{TextBox}},
-			  @{$NodeOpts{TextBox}}
-			 );
+			  $self->get_node_pinfo($node,"NodeLabel_XPOS")+
+			  $textWidth+$self->get_xmargin,
+			  $self->get_node_pinfo($node,"NodeLabel_YPOS")+
+			  $self->get_ymargin+
+			  scalar(@node_patterns)*$lineHeight);
+      $self->apply_style_opts($box,
+			      $self->node_box_options($node,$fsfile->FS,
+						      $currentNode,0),
+			      @{$Opts{TextBox}},
+			      $self->get_node_style($node,"TextBox"));
       $self->store_node_pinfo($node,"TextBox",$box);
       $self->store_obj_pinfo($box,$node);
     }
-    if ($self->get_drawEdgeBoxes and scalar(@edge_patterns) and $node->parent) {
+    $edge_has_box=
+      scalar(@edge_patterns) && $node->parent &&
+	($self->get_drawEdgeBoxes &&
+	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-nodrawbox",\%Opts) ne "yes") ||
+	 !$self->get_drawEdgeBoxes &&
+	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-drawbox",\%Opts) eq "yes"));
+    $self->store_node_pinfo($node,"EdgeHasBox",$edge_has_box);
+    if ($edge_has_box) {
       ## get maximum width stored here by recalculate_positions
-      my $textWidth=$self->get_node_pinfo($node,"EdgeLabelWidth");
       my $box=
 	$self->canvas->
 	  createRectangle($self->get_node_pinfo($node,"XPOS")-
 			  $self->get_xmargin+$x_edge_delta,
-			  
-			  $self->get_node_pinfo($node,"YPOS")+
-			  $y_edge_delta+
-			  -$self->get_ymargin-
-			  (($#edge_patterns+1)*$lineHeight)/2+
-			  $edge_label_yskip,
-			  
+
+			  $self->get_node_pinfo($node,"EdgeLabel_YPOS")
+			  -$self->get_ymargin,
+
 			  $self->get_node_pinfo($node,"XPOS")+
-			  $self->get_xmargin+$x_edge_delta+$textWidth,
-			  
-			  $self->get_node_pinfo($node,"YPOS")+
-			  $y_edge_delta+
-			  (($#edge_patterns+1)*$lineHeight)/2+
-			  $edge_label_yskip+
-			  $self->get_ymargin,
-			  
-			  $self->node_box_options($node,
-						  $fsfile->FS,
-						  $currentNode,1),
-			  @{$Opts{EdgeTextBox}},
-			  @{$NodeOpts{EdgeTextBox}}
-			 );
-      
+			  $self->get_xmargin+$x_edge_delta+$edgeLabelWidth,
+
+			  $self->get_node_pinfo($node,"EdgeLabel_YPOS")
+			  +$self->get_ymargin
+			  +scalar(@edge_patterns)*$lineHeight);
+      $self->apply_style_opts($box,
+			      $self->node_box_options($node,
+						      $fsfile->FS,
+						      $currentNode,1),
+			      @{$Opts{EdgeTextBox}},
+			      $self->get_node_style($node,"EdgeTextBox"));
+
       $self->store_node_pinfo($node,"EdgeTextBox",$box);
       $self->store_obj_pinfo($box,$node);
     }
@@ -556,30 +753,24 @@ sub redraw {
     ## Texts of attributes
     my ($msg,$x,$y);
     my ($e_i,$n_i)=(0,0);
+    my ($pat_class,$pat);
     for (my $i=0;$i<=$#patterns;$i++) {
-      $msg=encode($self->interpolate_text_field($node,$patterns[$i]));
-      if ($self->is_edge_pattern($patterns[$i])) {
+      ($pat_class,$pat)=$self->parse_pattern($patterns[$i]);
+      $msg=encode($self->interpolate_text_field($node,$pat));
+      if ($pat_class eq "edge") {
 	if ($node->parent) {
 	  $msg =~ s!/!!g;		# should be done in interpolate_text_field
 	  $x=$self->get_node_pinfo($node,"XPOS")+$x_edge_delta;
-	  $y=$self->get_node_pinfo($node,"YPOS")+$y_edge_delta+
-	    -(($#edge_patterns+1)*$lineHeight)/2
-	      +$edge_label_yskip+$e_i*$lineHeight;
+	  $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
 	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
-				(!$self->get_drawEdgeBoxes &&
-				$self->get_clearTextBackground),
-				\%Opts,\%NodeOpts);
+				!$edge_has_box, \%Opts);
 	  $e_i++;
 	}
-      } else {
-	$x=$self->get_node_pinfo($node,"XPOS");
-	$y=$self->get_node_pinfo($node,"YPOS")+
-	  $self->get_nodeHeight+$self->get_nodeYSkip+
-	    $n_i*$lineHeight;
+      } elsif ($pat_class eq "node") {
+	$x=$self->get_node_pinfo($node,"NodeLabel_XPOS");
+	$y=$self->get_node_pinfo($node,"NodeLabel_YPOS")+$n_i*$lineHeight;
 	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
-			      (!$self->get_drawBoxes &&
-			      $self->get_clearTextBackground),
-			      \%Opts,\%NodeOpts);
+			      !$node_has_box, \%Opts);
 	$n_i++;
       }
     }
@@ -614,9 +805,9 @@ sub redraw {
 
 sub draw_text_line {
   my ($self,$fsfile,$node,$i,$msg,
-      $lineHeight,$x,$y,$clear,$Opts,$NodeOpts)=@_;
+      $lineHeight,$x,$y,$clear,$Opts)=@_;
 
-  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
+#  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
   
   ## Clear background
   if ($clear) {
@@ -627,10 +818,10 @@ sub draw_text_line {
 			$y+$lineHeight,
 			-fill => $self->canvas->cget('-background'),
 			-outline => undef,
-			@{$Opts->{TextBgBox}},
-			@{$Opts->{"TextBgBox_$i"}}
+			$self->get_node_style($node,"TextBg"),
+			$self->get_node_style($node,"TextBg[$i]")
 		       );
-    $self->store_node_pinfo($node,"TextBg_$i",$bg);
+    $self->store_node_pinfo($node,"TextBg[$i]",$bg);
     $self->store_obj_pinfo($bg,$node);
     $self->canvas->addtag('textbg', 'withtag', $bg);
   }
@@ -655,7 +846,7 @@ sub draw_text_line {
   my $at_text;
   my $j=0;
   my $color=undef;
-  foreach (split(/\#\#\#/,$msg)) {
+  foreach (split(m'([#$]{[^}]+})',$msg)) {
     if (/^\${([^}]+)}$/) {
       $j++;
       $at_text=$self->prepare_text_field($node,$1);
@@ -666,16 +857,16 @@ sub draw_text_line {
 		   -fill =>
 		   defined($color) ? $color :
 		   $self->which_text_color($fsfile,$1),
-		   -font => $self->get_font,
+		   -font => $self->get_font);
+      $self->apply_style_opts($txt,
 		   @{$Opts->{Text}},
 		   @{$Opts->{"Text[$1]"}},
 		   @{$Opts->{"Text[$1][$i]"}},
 		   @{$Opts->{"Text[$1][$i][$j]"}},
-		   @{$NodeOpts->{Text}},
-		   @{$NodeOpts->{"Text[$1]"}},
-		   @{$NodeOpts->{"Text[$1][$i]"}},
-		   @{$NodeOpts->{"Text[$1][$i][$j]"}}
-		  );
+		   $self->get_node_style($node,"Text"),
+		   $self->get_node_style($node,"Text[$1]"),
+		   $self->get_node_style($node,"Text[$1][$i]"),
+		   $self->get_node_style($node,"Text[$1][$i][$j]"));
       $xskip+=$self->getTextWidth($at_text);
       $self->canvas->addtag('text', 'withtag', $txt);
       $self->store_obj_pinfo($txt,$node);
@@ -686,9 +877,10 @@ sub draw_text_line {
       unless ($self->get_noColor) {
 	my $c=$1;
 	if ($c=~m/^(.+)(-.+):(.+)$/) {
+	  # Depreciated ! Use style pattern!
 	  eval {
 	    $self->canvas->
-	      itemconfigure($self->get_node_pinfo($node,$1),$2 => $3);				       
+	      itemconfigure($self->get_node_pinfo($node,$1),$2 => $3);
 	  };
 	  warn $@ if $@;
 	} else {
@@ -700,42 +892,51 @@ sub draw_text_line {
     } else {
       if ($_ ne "") {
 	$txt=$self->canvas->
-	  createText($self->get_node_pinfo($node,"XPOS")+$xskip,
-		     $self->get_node_pinfo($node,"YPOS")+
-		     $self->get_nodeHeight+$self->get_nodeYSkip+$i*$lineHeight,
-		     -anchor => 'nw',
+	  createText($x+$xskip,
+		     $y,
 		     -text => $_,
-		     -fill => defined($color) ? $color : $self->get_textColor,
-		     -font => $self->get_font,
-		     @{$Opts->{Text}},
-		     @{$NodeOpts->{Text}}
-		    );
+		     -font => $self->get_font);
+	$self->apply_style_opts($txt,
+				-anchor => 'nw',
+				-fill =>
+				defined($color) ? $color : $self->get_textColor,
+				@{$Opts->{Text}},
+				$self->get_node_style($node,"Text"));
 	$xskip+=$self->getTextWidth($_);
       }
     }
   }
 }
 
-sub is_edge_pattern {
+sub parse_pattern {
   my ($self,$pattern)=@_;
-  return substr($pattern,0,1) eq "/";
+  if ($pattern=~/^([a-z]+):/) {
+    return lc($1),$';
+  } else {
+    return "node",$pattern;
+  }
 }
 
-sub get_node_label_patterns {
-  my ($self,$fsfile)=@_;
-  return grep { !$self->is_edge_pattern($_) } $fsfile->patterns();
+sub is_pattern_of {
+  my ($self,$style,$pattern)=@_;
+  return ($self->parse_pattern($pattern))[0] eq lc($style);
 }
 
-sub get_edge_label_patterns {
-  my ($self,$fsfile)=@_;
-  return grep { $self->is_edge_pattern($_) } $fsfile->patterns();
+sub get_label_patterns {
+  my ($self,$fsfile,$style)=@_;
+  $style=lc($style);
+  return map {
+    my ($a,$b)=$self->parse_pattern($_);
+    $a eq $style ? $b : ()
+  } $fsfile->patterns();
 }
+
 
 =pod
 
-=item prepare_text (fsfile,node,n)
+=item prepare_text (fsfile,node,pattern)
 
-Interpolate the n'th fsfile's pattern for the given node,
+Interpolate given pattern for the given node,
 by evaluating all code (`<? code ?>') and 
 attribute (`${attribute}') fields, removing all
 formatting references of the form #{format}.
@@ -743,9 +944,9 @@ formatting references of the form #{format}.
 =cut
 
 sub prepare_text {
-  my ($self,$fsfile,$node,$index)=@_;
-  return unless ref($fsfile);
-  my $msg=$self->interpolate_text_field($node,$fsfile->pattern($index));
+  my ($self,$node,$pattern)=@_;
+  return "" unless ref($node);
+  my $msg=$self->interpolate_text_field($node,$pattern);
   $msg=~s/\#{[^}]+}//g;
   $msg=~s/\${([^}]+)}/$self->prepare_text_field($node,$1)/eg;
   return encode($msg);

@@ -77,7 +77,7 @@ sub read_macros {
 # insert <method> [as] [menu] <menu>[/submenu[/...]]
 #
 
-
+  push @macros,"\n#line 1 \"$file\"\n";
   while (<F>) {
     push @macros,$_;
     if (/\#[ \t]*binding-context[ \t]+(.*)/) {
