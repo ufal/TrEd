@@ -95,6 +95,7 @@ BEGIN {
   $lockFiles
   $noLockProto
   $stippleInactiveWindows
+  $userConf
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -270,8 +271,12 @@ sub set_config {
   $treeViewOpts->{textColorHilite}    =	 val_or_def($confs,"textcolorhilite",'darkgreen');
   $treeViewOpts->{textColorXHilite}   =	 val_or_def($confs,"textcolorxhilite",'darkred');
 
-  foreach (0..9) {
-    $treeViewOpts->{customColors}->[$_]=$confs->{"customcolor$_"} if $confs->{"customcolor$_"};
+  foreach (keys %$confs) {
+    if (/^customcolor(.*)$/) {
+      $treeViewOpts->{customColors}->{$1} = $confs->{$_};
+    } elsif (/^user(.*)$/) {
+      $userConf->{$1}=$confs->{$_};
+    }
   }
 
   $treeViewOpts->{boxColor}	       = val_or_def($confs,"boxcolor",'LightYellow');
