@@ -2806,6 +2806,8 @@ sub startMain {
 	 [Separator=> ''],
 	 [Button=> 'List of sentences ...', -underline=> 1,
 	  -command=> [\&viewSentences,\%group]],
+	 [Button=> 'Select context ...', -underline=> 12,
+	  -command=> [\&selectContext,\%group]],
 	 [Separator=> ''],
 	 [Button=> 'Customize Attributes ...', -underline=> 0,
 	  -command=> [\&customAttrsDialog,\%group]],
@@ -3895,6 +3897,80 @@ sub Query {
     return decode($newvalue);
   } else {
     return undef;
+  }
+}
+
+sub ListQuery {
+  my ($w,$title,$select_mode,$vals,$selected)=@_;
+
+  my $d=$w->DialogBox(-title	  => $title,
+		      -width	  => '8c',
+		      -buttons  => ["OK", "Cancel"]);
+  $d->bind('all','<Escape>'=> [sub {
+				 shift;
+				 shift->{selected_button}='Cancel';
+			       },$d ]);
+  my $l=$d->Scrolled(qw/Listbox -relief sunken
+                        -takefocus 1
+                        -scrollbars e/,
+		     -selectmode => $select_mode,
+		     -height=> min($maxDisplayedValues,scalar(@$vals))
+		    )->pack(qw/-expand yes -fill both/);
+  $l->insert('end',@$vals);
+  $l->BindMouseWheelVert();
+  if ($select_mode eq 'multiple') {
+    $f=$d->Frame()->pack(qw/-expand yes -fill both/);
+    $f->Button(-text => 'All',
+	       -command => [
+			    sub{
+			      my ($list)=@_;
+			      $list->selectionSet(0,'end');
+			    },
+			    $l
+			   ])->pack(-side => 'left');
+    $f->Button(-text => 'None',
+	       -command => [
+			    sub{
+			      my ($list)=@_;
+			      $list->selectionClear(0,'end');
+			    },
+			    $l
+			   ])->pack(-side => 'left');
+  }
+  my $act=0;
+  my %selected = map { $_ => 1 } @$selected;
+  for ($a=0;$a<@$vals;$a++)  {
+    if ($selected{$$vals[$a]}) {
+      $l->selectionSet($a);
+      if (not $act) {
+	$act=1;
+	$l->activate($a);
+	$l->see($a);
+      }
+    }
+  }
+ $l->focus;
+ my $result= &main::ShowDialog($d,$l,$top);
+
+ if ($result=~ /OK/) {
+   @$selected=();
+   foreach (0 .. $l->size-1) {
+     push @$selected, $$vals[$_] if $l->selectionIncludes($_);
+   }
+   $d->destroy;
+   return 1;
+ }
+ $d->destroy;
+ return 0;
+}
+
+sub selectContext {
+  my ($grp)=@_;
+  my $selection = [$grp->{focusedWindow}->{macroContext}];
+  ListQuery($grp->{top},'Select Context','browse',[sort(keys(%keyBindings))],
+	    $selection) || return;
+  if (@$selection) {
+    switchContext($grp->{focusedWindow},$selection->[0]);
   }
 }
 
