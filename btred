@@ -770,7 +770,7 @@ sub startMain {
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'DUMP') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	  _msg "Dumping $request{STATE_default} at client's request\n";
+	  _msg "Dump request for $request{STATE_default}\n";
 
 # 	  if ($request{STATE_format} =~ /^Data::Dumper\s*/) {
 # 	    use Data::Dumper;
@@ -804,8 +804,9 @@ sub startMain {
 	      $f=~s{^ntred://}{};
 	      $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
 	      next unless openFile($grp,$f,-justpreloaded => 1, -secondary => !$no_secondary);
-	      _msg "Dumping the tree $f at client's request\n";
 	      my $fsfile = $grp->{FSFile};
+	      next unless ref($fsfile);
+	      _msg "Dumping the tree $f at client's request ($fsfile)\n";
 	      my $req = $fsfile->metaData('fs-require');
 	      my @save_req;
 	      if (ref($req)) {
@@ -831,13 +832,15 @@ sub startMain {
 		}
 	      }
 	    }
-	    eval {
-	      $hub->print(encode_base64(Storable::nfreeze(\@dump)));
-	    };
-	    $hub->print("\n");
-	    if ($@) {
-	      $hub->print("$control SERVER_RESPONSE_STDERR\n");
-	      $hub->print("$@\n");
+	    if (@dump) {
+	      eval {
+		$hub->print(encode_base64(Storable::nfreeze(\@dump)));
+	      };
+	      $hub->print("\n");
+	      if ($@) {
+		$hub->print("$control SERVER_RESPONSE_STDERR\n");
+		$hub->print("$@\n");
+	      }
 	    }
 # 	  } else {
 # 	    # old-default was FS. We leave it here for backward compatibility
