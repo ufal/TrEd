@@ -103,19 +103,25 @@ sub read_macros {
       } else {
 	die "unmatched #endif in \"$file\" line $line\n";
       }
-    } elsif (/^\#elseif\s*$|^\#elseif\s+(\S*)$/) {
+    } elsif (/^\#elseif\s|^\#elseif\s+(\S*)$/) {
       if (@conditions) {
+	my $prev = ($#conditions>0) ? $conditions[$#conditions-1] : 1;
 	if (defined($1)) {
-	  $conditions[$#conditions]=
-	    !$conditions[$#conditions] &&
-	    (exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
+	  $conditions[$#conditions]= $prev &&
+	    !$conditions[$#conditions] && exists($defines{$1});
 	} else {
-	  $conditions[$#conditions]=!$conditions[$#conditions];
+	  $conditions[$#conditions]=$prev && !$conditions[$#conditions];
 	}
 	$ifok = $conditions[$#conditions];
       } else {
 	die "unmatched #elseif in \"$file\" line $line\n";
       }
+    } elsif (/^\#ifdef\s+(\S*)/) {
+      push @conditions, (exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
+      $ifok = $conditions[$#conditions];
+    } elsif (/^\#ifndef\s+(\S*)/) {
+      push @conditions, (!exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
+      $ifok = $conditions[$#conditions];
     } else {
       if ($ifok) {
 	push @macros,$_;
@@ -125,12 +131,6 @@ sub read_macros {
 	  $defines{$1}=$2;	# there is no use for $2 so far
 	} elsif (/^\#undefine\s+(\S*)/) {
 	  delete $defines{$1};
-	} elsif (/^\#ifdef\s+(\S*)/) {
-	  push @conditions, (exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
-	  $ifok = $conditions[$#conditions];
-	} elsif (/^\#ifndef\s+(\S*)/) {
-	  push @conditions, (!exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
-	  $ifok = $conditions[$#conditions];
 	} elsif (/^\#[ \t]*binding-context[ \t]+(.*)/) {
 	  @contexts=(split /[ \t]+/,$1) if $ifok;
 	} elsif (/^\#[ \t]*key-binding-adopt[ \t]+(.*)/) {
