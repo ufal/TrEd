@@ -5566,7 +5566,7 @@ sub closeAllFiles {
     }
   }
   while (@openfiles) {
-   my $fsfile = shift @openfiles;
+   my $fsfile = $openfiles[0];
 
    # to avoid infinite loop, first try closing all files this one is
    # part of
@@ -5580,6 +5580,11 @@ sub closeAllFiles {
 	     -fsfile => $fsfile,
 	     -no_update => 1,
 	     -all_windows => 1);
+   if (grep {$_==$fsfile} @openfiles) {
+     # still there?
+     shift @openfiles;
+     push @openfiles, $fsfile;
+   }
   }
 }
 
@@ -6740,12 +6745,13 @@ sub customAttrsDialog {
   # Pattern Editor
   my $e= $d->Scrolled(qw/Text -scrollbars osoe -height 4
                               -relief sunken -borderwidth 2/);
+
   $e->Subwidget('scrolled')->menu->delete('File');
   disable_scrollbar_focus($e);
   my $eff=$d->Frame(qw/-relief sunken -bd 1 -takefocus 0/)->
     pack(qw/-padx 3 -pady 3 -side top -fill x/);
   $eff->Frame(qw/-height 6 -takefocus 0/)->pack();
-  my $elabff=$d->Frame->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+  my $elabff=$d->Frame->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -fill x/);
   $elabff->Label(-text => "Edit display pattern (press ^I to insert tab, ^L to clear)",
 		 -anchor => 'nw', -justify => 'left')->pack(qw/-side left/);
   my $helplabel = $elabff->Label(-text => "Help",
@@ -6846,7 +6852,7 @@ EOF
 
   $d->bind('all','<Alt-h>', sub { $help->Toggle($helplabel); });
   $helplabel->bind('<Button>', sub { $help->Toggle($helplabel); });
-  $e->pack(-in => $eff,qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+  $e->pack(-in => $eff,qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
 
   $e->raise($eff);
 
@@ -7009,6 +7015,7 @@ EOF
 
 
   $f->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
+  $d->Adjuster()->packAfter($eff,-side => 'top');
 
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $e->bind('Tk::Text','<Control-l>',[sub {shift; $e->delete('0.0','end') },$e]);
