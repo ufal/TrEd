@@ -238,11 +238,11 @@ sub DeleteLeaf ($) {
   $node=shift;
   if (!$$node{$firstson}) {
     $ {$$node{$rbrother}}{$lbrother}=$$node{$lbrother} if ($$node{$rbrother});
-	
+
     if ($$node{$lbrother}) {
-      $ {$$node{$lbrother}}{$rbrother}=$$node{$rbrother};	
+      $ {$$node{$lbrother}}{$rbrother}=$$node{$rbrother};
     } else {
-      $ {$$node{$parent}}{$firstson}=$$node{$rbrother} if $$node{$parent};   
+      $ {$$node{$parent}}{$firstson}=$$node{$rbrother} if $$node{$parent};
     }
 #    print " leaf ",$$node{"form"},"\n";
     undef %$node;
@@ -378,7 +378,7 @@ sub GetTree ($$$) {
   return $root;
 }
 
-sub PrintNode($$$$) { # 1st scalar is a reference to the root-node 
+sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
                      # 2nd scalar is a reference to the ord-array
                      # 3rd scalar is a reference to the attribute-hash
   my $node=shift;
@@ -388,19 +388,26 @@ sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
   my @ord= @$rord;
   my %atr= %$ratr;
   my $v;
+  my $lastprinted=0;
 
   if ($node) {
     print $output "[";
     for (my $n=0; $n<=$#ord; $n++) {
       $v=$ {$node}{$ord[$n]};
       $v=~s/[,\[\]=\\]/\\$&/go;
-      if (index($atr{$ord[$n]}, "O")>=0) {
+      if (index($atr{$ord[$n]}, " O")>=0) {
 	print $output "," if $n;
-	print $output (defined($v) and $v ne '') ? $v : '-';
+	unless ($lastprinted) { print $output $ord[$n],"="; }
+	print $output $v;
+	$lastprinted=1;
       }
-      elsif (defined $ {$node}{$ord[$n]}) {
+      elsif (defined($node->{$ord[$n]}) and $node->{$ord[$n]} ne '') {
 	print $output "," if $n;
-	print $output $ord[$n],"=",$v;
+	unless ($lastprinted) { print $output $ord[$n],"="; }
+	print $output $v;
+	$lastprinted=1;
+      } else {
+	$lastprinted=0;
       }
     }
     print $output "]";
