@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-02-21 13:41:42 pajas>
+## Time-stamp: <2002-03-01 17:50:43 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -151,6 +151,7 @@ sub QueryTrlemma {
      ['Neg','&Neg;','???','???'],
      ['Cor','&Cor;','???','???'],
      ['Emp','&Emp;','???','???'],
+     ['EmpNoun','&EmpNoun;','???','???'],
      ['Gen','&Gen;','???','???'],
      ['Idph','&Idph;','???','???'],
      ['stejnì','stejnì','???','???'],
@@ -414,6 +415,13 @@ sub ShiftRight {
   } else {
     ShiftNodeRightSkipHidden($this);
   }
+}
+
+#bind add_EN to Ctrl+V menu Doplnit prazdne substantivum EmpNoun pod akt. vrchol
+sub add_EN {
+  NewVerb();
+  $this->{'trlemma'} = '&EmpNoun;';
+  $this->{'func'}='???';
 }
 
 sub NewVerb {
