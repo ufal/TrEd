@@ -2506,8 +2506,6 @@ sub destroy_tree {
   return 1;
 }
 
-
-
 =pod
 
 =back
