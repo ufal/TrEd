@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-13 20:28:07 pajas>
+## Time-stamp: <2005-02-16 12:36:17 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -47,7 +47,7 @@ sub node_style_hook {
   my ($node,$styles)=@_;
   my $ARstruct = (which_struct() =~ /AR/) ? 1 : 0;
   my @aids = grep { $_ ne "" and $_ ne $node->{AID} } getAIDREFs($node);
-  my %line;
+  my %line = ref($styles->{Line}) ? @{$styles->{Line}} : ();
   #'style:<? #diff ?><? "#{Line-fill:red}#{Line-dash:- -}" if $${_diff_dep_} ?>',
   if ($node->{_diff_dep_}) {
     $line{-fill}='red';
@@ -1400,6 +1400,16 @@ sub untouch {
     1;
   }
 }#untouch
+
+#bind change_parenthesis_of_node to Ctrl+Z menu Change PA of one node only
+sub change_parenthesis_of_node{
+  if($this->{parenthesis}eq'PA'){
+    $this->{parenthesis}='NIL';
+  }else{
+    $this->{parenthesis}='PA';
+  }
+}#change_parenthesis_of_node
+
 
 =item remove_func_questionmarks()
 
