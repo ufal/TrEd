@@ -91,8 +91,13 @@ sub Populate {
 			 -background => $colors{alt},
 			),
     buttons => $w->ItemStyle('window',
-			     -pady => 1
-			    )};
+			     -pady => 1, -padx => 0, -anchor => "nw"
+			    ),
+    entries => $w->ItemStyle('window',
+			     -pady => 0, -padx => 0, -anchor => "nw"
+			    )
+   };
+
 
   my %minib = qw(
     plus plus
@@ -394,12 +399,9 @@ sub add_buttons {
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
 
   return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt}) or ref($ptype) and ($ptype->{list} or $ptype->{alt}));
-
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
    );
-
-  $f->Frame(-height => '20',-borderwidth => 1,-relief=>'ridge')->pack(qw(-side left));
 
   $hlist->itemCreate($path,2,
 		     -itemtype => 'window',
@@ -545,7 +547,7 @@ sub add_member {
     $hlist->itemCreate($path,1,
 		       -itemtype => 'window',
 		       -widget => $w,
-		       -style => $hlist->{my_itemstyles}{buttons}
+		       -style => $hlist->{my_itemstyles}{entries}
 		      );
   } elsif ($mtype->{choice}) {
     $data->{value} = $attr_val;
@@ -562,17 +564,18 @@ sub add_member {
       -textvariable => \$data->{value},
       -background => 'gray',
 
-      -choices => $mtype->{choice},
+      -choices => ($mtype->{optional} ? ['',@{$mtype->{choice}}] : $mtype->{choice}),
       -popupbackground => 'black',
       -borderwidth => 1,
       -relief => 'flat',
 
       -buttonrelief => 'ridge',
       -buttonbitmap => 'combo'
-     )->pack(qw(-expand 1 -fill both));
+     );#->pack(qw(-expand 1 -fill both));
     $w->bind('<FocusIn>',[sub { select_entry($_[1],$_[2]) },$hlist,$path]);
     $w->bind('<FocusOut>',[sub { #$_[1]->hidePopup;
 				 $_[1]->EntryEnter;
+#				 $_[1]->MakeValid;
 			       },$w]);
     for my $subw ($w->Subwidget('ED_Entry'),$w->Subwidget('Popup'),
 	 $w->Subwidget('Listbox')) {
@@ -588,7 +591,7 @@ sub add_member {
     #$w->setSelected($attr_val);
     $hlist->itemCreate($path,1,-itemtype => 'window',
 		       -widget => $w,
-		       -style => $hlist->{my_itemstyles}{buttons}
+		       -style => $hlist->{my_itemstyles}{entries}
 		      );
   } elsif ($mtype->{member} or $mtype->{attribute}) {
 
@@ -831,5 +834,39 @@ sub entry_insert {
   }
   Tk->break;
 };
+
+
+*Tk::JComboBox_0_02::EntryEnter = sub {
+  my $cw = shift;
+  return unless $cw->cget('-validate') =~ /cs-match|match/;
+  my $lb = $cw->Subwidget('Listbox');
+  my $index = $lb->curselection;
+  $index = 0 unless defined($index);
+  $cw->setSelectedIndex($index);
+  $cw->hidePopup;
+};
+
+
+# *Tk::JComboBox_0_02::MakeValid = sub {
+#   my ($cw) = @_;
+#   my $mode = $cw->cget('-validate');
+#   print "MODE: $mode\n";
+#   return unless $mode=~/^(cs-match|match)$/;
+#   my $e = $cw->Subwidget('ED_Entry');
+#   my $str = $e->get();
+#   print "STR: '$str'\n";
+#   my $index = $cw->getItemIndex($str, 
+#       -mode=> ($mode eq 'match') ? 'ignorecase' : 'usecase');
+#   $index = 0 unless defined($index);
+#   print "INDEX: '$index'\n";
+#   $lb->selectionClear(0, 'end');
+#   $lb->selectionSet($index);
+#   if ($e) {
+#     $e->delete(0,'end');
+#     $e->insert(0,$lb->get('active'));
+#   }
+#   $lb->see($index);
+# };
+
 
 1;

@@ -7206,7 +7206,7 @@ sub findNodeDialog {
 						       $e->{$_}->delete(0,'end');
 						     }
 						   },\%e] );
-  my $bca=$d->Subwidget('bottom')->Button(-text=> "Cancel", 
+  my $bca=$d->Subwidget('bottom')->Button(-text=> "Cancel",
 				  -command=> [sub { shift->{selected_button}= "Cancel"},$d] );
   foreach ($bcl,$bca) {
     $_->configure(-width=> 10, -pady=> 0) if ($Tk::platform eq 'MSWin32');
@@ -7268,7 +7268,6 @@ sub findNodeDialog {
   $of->Label(-text=> 'Search file-list: ')->pack(qw/-side left/);
   my $om=$of->Optionmenu(-textvariable=> \$grp->{searchFilelist})->pack(qw/-side left/);
   $om->options(['[Current file only]', map { $_->name } @filelists]);
-  
   $of->Button(-text=> 'Edit',
 	      -command=> [ sub {
 			      my ($grp)=@_;
