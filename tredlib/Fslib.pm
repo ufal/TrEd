@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-08-29 14:52:26 pajas>
+# Time-stamp: <2001-09-06 13:53:11 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -49,13 +49,11 @@ sub NewNode ($) {
 }
 
 sub Set ($$$) {
-  my ($node,$atribute,$value)=(shift,shift,shift);
-  $node->{$atribute}=$value;
+  shift->setAttribute(shift,shift);
 }
 
 sub Get ($$) {
-  my ($node,$atribute)=(shift,shift);
-  return $node->{$atribute};
+  return shift->getAttribute(shift);
 }
 
 sub Parent {
@@ -164,7 +162,7 @@ sub Special ($$$) {
 
   if ($node and $href) {
     foreach (keys(%$href)) {
-      return $node->{$_} if (index($href->{$_}," $defchar")>=0);
+      return $node->getAttribute($_) if (index($href->{$_}," $defchar")>=0);
     }
   }
   return undef;
@@ -232,11 +230,11 @@ sub Cut ($) {
 sub Paste ($$$) {
   my ($node,$p,$href)=(shift,shift,shift);
   my $aord=AOrd($href);
-  my $ordnum = $node->{$aord};
+  my $ordnum = $node->getAttribute($aord);
 
   $b=$p->{$firstson};
-  if ($b and $ordnum>$b->{$aord}) {
-    $b=$b->{$rbrother} while ($b->{$rbrother} and $ordnum>$b->{$rbrother}->{$aord});
+  if ($b and $ordnum>$b->getAttribute($aord)) {
+    $b=$b->{$rbrother} while ($b->{$rbrother} and $ordnum>$b->{$rbrother}->getAttribute($aord));
     $node->{$rbrother}=$b->{$rbrother};
     $b->{$rbrother}->{$lbrother}=$node if ($b->{$rbrother});
     $b->{$rbrother}=$node;
@@ -278,7 +276,7 @@ sub DeleteLeaf ($) {
     } else {
       $node->{$parent}->{$firstson}=$node->{$rbrother} if $node->{$parent};
     }
-#    print " leaf ",$node->{"form"},"\n";
+#    print " leaf ",$node->getAttribute("form"),"\n";
     undef %$node;
     undef $node;
     return 1;
@@ -349,7 +347,7 @@ sub ParseNode ($$$) {
 	$n = $tmp if (defined($tmp));
       } elsif ($$lr=~/\G($field)/gsco) {
 	$v=$1;
-        $n++ while ( $n<=$#$ord and $attr->{$ord->[$n]}!~/ [PNW]/);
+        $n++ while ( $n<=$#$ord and $attr->getAttribute($ord->[$n])!~/ [PNW]/);
 	if ($n>$#$ord) {
 	  croak "No more positional attribute for value $v at position ".pos($$lr)." in:\n".$$lr."\n";
 	}
@@ -367,7 +365,7 @@ sub ParseNode ($$$) {
 	  }
 	}
       }
-      $node->{$a}=$v;
+      $node->setAttribute($a,$v);
     }
   } else { croak $$lr," not node!\n"; }
   return $node;
@@ -427,7 +425,7 @@ sub ParseNode2 ($$$) {
       $v=~s/&rsqb;/]/g;
       $v=~s/&backslash;/\\/g;
       $v=~s/&eq;/=/g;
-      $node->{$a}=$v;
+      $node->setAttribute($a,$v);
     }
   } else { croak $$lr," not node!\n"; }
   return $node;
@@ -549,7 +547,7 @@ sub PrintNode($$$$) {
   if ($node) {
     print $output "[";
     for (my $n=0; $n<=$#$ord; $n++) {
-      $v=$node->{$ord->[$n]};
+      $v=$node->getAttribute($ord->[$n]);
       $v=~s/[,\[\]=\\]/\\$&/go if (defined($v));
       if (index($atr->{$ord->[$n]}, " O")>=0) {
 	print $output "," if $n;
@@ -559,7 +557,7 @@ sub PrintNode($$$$) {
 	print $output $v;
 	$lastprinted=1;
       }
-      elsif (defined($node->{$ord->[$n]}) and $node->{$ord->[$n]} ne '') {
+      elsif (defined($node->getAttribute($ord->[$n])) and $node->getAttribute($ord->[$n]) ne '') {
 	print $output "," if $n;
 	unless ($lastprinted && index($atr->{$ord->[$n]}," P")>=0) # N could match here too probably
 	  { print $output $ord->[$n],"="; }
@@ -644,7 +642,7 @@ sub DrawTree ($@){
   my $l;
   my @attrs=@_;
   return unless $top;  
-  print "(",$top->{"form"},")\n";
+  print "(",$top->getAttribute("form"),")\n";
   $node=FirstSon($top);
   while ($node) {
     $l='';
@@ -665,7 +663,7 @@ sub DrawTree ($@){
       $l.="`-[ ";
     }
     print $l;
-    print map $node->{$_}." ",@attrs ;
+    print map $node->getAttribute($_)." ",@attrs ;
     print "]\n";
     $node=Next($node,$top);
   }
@@ -727,7 +725,7 @@ FSNode - Simple OO interface to tree structures of Fslib.pm
 =item new
 
 Create a new FSNode object. FSNode is basicly a hash reference, which
-means that you may simply acces node's attributes as C<$node->{attribute}>
+means that you may simply acces node's attributes as C<$node->getAttribute(attribute)>
 
 =cut
 
@@ -958,6 +956,32 @@ sub leftmost_descendant {
   return $node;
 }
 
+=pod
+
+=item getAttribute (name)
+
+Return value of the given attribute.
+
+=cut
+
+sub getAttribute {
+  my ($self,$name) = @_;
+  return $self->{$name};
+}
+
+=pod
+
+=item setAttribute (name)
+
+Set value of the given attribute.
+
+=cut
+
+sub setAttribute {
+  my ($self,$name,$value) = @_;
+  return $self->{$name}=$value;
+}
+
 
 =pod
 
@@ -1133,7 +1157,7 @@ sub isHidden {
   my ($self,$node)=@_;
   return unless ref($self) and ref($node);
   my $hid=$self->hide;
-  $node=$node->parent while (ref($node) and ($node->{$hid} ne 'hide'));
+  $node=$node->parent while (ref($node) and ($node->getAttribute($hid) ne 'hide'));
   return ($node ? $node : undef);
 }
 
@@ -1363,8 +1387,8 @@ sub make_sentence {
     $node=$node->following($root);
   }
   return join ($separator,
-	       map { $_->{$value} }
-	       sort { $a->{$sentord} <=> $b->{$sentord} } @nodes);
+	       map { $_->getAttribute($value) }
+	       sort { $a->getAttribute($sentord) <=> $b->getAttribute($sentord) } @nodes);
 }
 
 =pod
@@ -2050,7 +2074,7 @@ sub nodes {
 
   my $ord=$fsfile->FS->order();
   @{$nodes}=
-    sort { $a->{$ord} <=> $b->{$ord} }
+    sort { $a->getAttribute($ord) <=> $b->getAttribute($ord) }
       @unsorted;
 
   # just for sure
@@ -2081,19 +2105,64 @@ sub value_line {
   my $val=$fsfile->FS->value();
   $attr=$fsfile->FS->order() unless (defined($attr));
   while ($node) {
-    push @sent,$node unless ($node->{$val} eq '???' or
-			     $node->{$attr}>=999); # this is TR specific stuff
+    push @sent,$node unless ($node->getAttribute($val) eq '???' or
+			     $node->getAttribute($attr)>=999); # this is TR specific stuff
     $node=$node->following();
   }
-  @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
+  @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
 
 
   my $line =
     ($tree_no+1)."/".($fsfile->lastTreeNo()+1).": ".
-    join(" ", map { $_->{$val} } @sent);
+    join(" ", map { $_->getAttribute($val) } @sent);
   undef @sent;
   return $line;
 }
+
+=pod
+
+=item new_tree (position)
+
+Create a new tree at given position and return pointer to its root.
+
+=cut
+
+sub new_tree {
+  my ($self,$pos)=@_;
+
+  my $nr=FSNode->new(); # creating new root
+  splice(@{$self->treeList}, $pos, 0, $nr);
+  return $nr;
+
+}
+
+=item delete_tree (position)
+
+Delete the tree at given position and return pointer to its root.
+
+=cut
+
+sub delete_tree {
+  my ($self,$pos)=@_;
+  my ($root)=splice(@{$self->treeList}, $pos, 1);
+  return $root;
+}
+
+=item destroy_tree (position)
+
+Delete the tree at given position and return pointer to its root.
+
+=cut
+
+sub destroy_tree {
+  my ($self,$pos)=@_;
+  my $root=$self->delete_tree($pos);
+  return 0 unless $root;
+  Fslib::DeleteTree($root);
+  return 1;
+}
+
+
 
 =pod
 
@@ -2481,7 +2550,7 @@ node. So whole trees are represented by their roots. TNS is actualy
 just a reference to a hash. The keys of the hashes may be either some
 of attribute names or some `special' keys, serving to hold the tree
 structure. Suppose $node is a TNS and `lemma' is an attribute defined
-in the appropriate .fs file. Than $node->{"lemma"} is value of the
+in the appropriate .fs file. Than $node->getAttribute("lemma") is value of the
 attribute for the node represented by TNS $node. You may obtain this
 value also as B<Get>($node,"lemma"). From the $node TNS you may
 obtain also the node's parent, sons and brothers (both left and
@@ -2525,7 +2594,7 @@ To create a new node, you usually create a new hash and call
 B<NewNode()> passing it a reference to the new hash as a parameter.
 
 To modify a node's value for a certain attribute (say 'lemma'), you
-symply type C<$node->{"lemma"}="bar"> (supposed you want the value to
+symply type C<$node->setAttribute("lemma","bar")> (supposed you want the value to
 become 'bar') or use the B<Set()> function like
 B<Set>C<($node,"bar");>.
 
@@ -2855,7 +2924,7 @@ is 0 (no check is performed).
 
  Description:
 
-   Does the same as $node->{$attribute}=$value
+   Does the same as $node->setAttribute($attribute,$value)
 
 
 =item Get($node,$attribute)
@@ -2867,7 +2936,7 @@ is 0 (no check is performed).
 
  Return:
 
-   Returns $node->{$attribute}
+   Returns $node->getAttribute($attribute)
 
 =item DrawTree($node,@attrs)
 

@@ -4,6 +4,7 @@ use Fslib;
 
 $export_dependency=1;
 $compatibility_mode=0;
+$preserve_err1=0;
 
 %TRt = (
 	gender_ANIM => 'M',
@@ -351,6 +352,9 @@ sub write {
 	  /govMD_(.*)$/;
 	  print_split_attr_with_num_attr($fileref,$node,"govMD_$1","wMDg_$1","MDg src=\"$1\"",'w');
 	}
+      }
+      if ($preserve_err1 and $node->{err1} ne "") {
+	print $fileref "<err>",$node->{err1};
       }
       print $fileref "\n";
       print $fileref "<D>\n" if ($node->{nospace});
