@@ -8,8 +8,8 @@ BEGIN {
 
   use TrEd::Convert;
   use Exporter  ();
-  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK 
-              $macrosEvaluated $safeCompartment);
+  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK
+              $macrosEvaluated $safeCompartment %defines);
 
   @ISA=qw(Exporter);
   $VERSION = "0.1";
@@ -84,107 +84,105 @@ sub read_macros {
 
   push @macros,"\n#line 1 \"$file\"\n";
   my $line;
+  my @conditions;
+  my $ifok=1;
   while (<F>) {
     $line++;
-    push @macros,$_;
-    if (/^\#[ \t]*binding-context[ \t]+(.*)/) {
-      @contexts=(split /[ \t]+/,$1);
-    } elsif (/^\#[ \t]*key-binding-adopt[ \t]+(.*)/) {
-      my @toadopt=(split /[ \t]+/,$1);
-      my $context;
-      my $toadopt;
-      foreach $context (@contexts) {
-	$keyBindings{$context}={} unless exists($keyBindings{$context});
-	foreach $toadopt (@toadopt) {
-	  foreach (keys %{$keyBindings{$toadopt}}) {
-	    $keyBindings{$context}->{$_}=$keyBindings{$toadopt}->{$_};
-	  }
-	}
+    if (/^\#endif(?:$|\s)/) {
+      push @macros,$_;
+      if (@conditions) {
+	pop @conditions;
+	$ifok = (!@conditions || $conditions[$#conditions]);
+      } else {
+	die "unmatched #endif in \"$file\" line $line\n";
       }
-    } elsif (/^\#[ \t]*menu-binding-adopt[ \t]+(.*)/) {
-      my @toadopt=(split /[ \t]+/,$1);
-      my $context;
-      my $toadopt;
-      foreach $context (@contexts) {
-	$menuBindings{$context}={} unless exists($menuBindings{$context});
-	foreach $toadopt (@toadopt) {
-	  foreach (keys %{$menuBindings{$toadopt}}) {
-	    $menuBindings{$context}->{$_}=$menuBindings{$toadopt}->{$_};
-	  }
-	}
-      }
-    } elsif (/^\#[ \t]*unbind-key[ \t]([^ \t\r\n]+)?/) {
-      $key=$1;
-      $key=~s/\-/+/g;		     # convert ctrl-x to ctrl+x
-      $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
-      foreach (@contexts) {
-	next unless exists($keyBindings{$_});
-	delete $keyBindings{$_}{$key};
-      }
-    } elsif (/^\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
-	$macro=$1;
-	$key=$2;
-	$menu=TrEd::Convert::encode($3);
-	$key=~s/\-/+/g;		     # convert ctrl-x to ctrl+x
-	$key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
-	#print "binding $key [$menu] => $macro\n";
-	foreach (@contexts) {
-	  $keyBindings{$_}={} unless exists($keyBindings{$_});
-	  $keyBindings{$_}->{$key}="$_"."->"."$macro";
-	  if ($menu) {
-	    $menuBindings{$_}={} unless exists($menuBindings{$_});
-	    $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
-	  }
-	}
-      } elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
-	$macro=$1;
-	$menu=TrEd::Convert::encode($2);
-	foreach (@contexts) {
-	  $menuBindings{$_}={} unless exists($menuBindings{$_});
-	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",undef] if ($menu);
-	}
-      } elsif (/^\#\s*remove-menu[ \t]+(.+)/) {
-	$menu=TrEd::Convert::encode($1);
-	foreach (@contexts) {
-	  next unless exists($menuBindings{$_});
-	  delete $menuBindings{$_}{$menu};
-	}
-      } elsif (/^\#\s*include\s+\<(.+\S)\>\s*$/) {
-	my $mf="$libDir/$1";
-	if (-f $mf) {
-	  read_macros($mf,$libDir,1,@contexts);
-	  push @macros,"\n#line $line \"$file\"\n";
-	} else {
-	  die 
-	    "Error including macros $mf\n from $file: ",
-	    "file not found!\n";
-	}
-      } elsif (/^\#\s*include\s+"(.+\S)"\s*$/) {
-	$mf=dirname($file).$1;
-	if (-f $mf) {
-	  read_macros($mf,$libDir,1,@contexts);
-	  push @macros,"\n#line $line \"$file\"\n";
-	} else {
-	  die
-	    "Error including macros $mf\n from $file: ",
-	    "file not found!\n";
-	}
-      } elsif (/^\#\s*include\s+(.+\S)\s*$/) {
-	my $f=$1;
-	if ($f=~m%^/%) {
-	  read_macros($f,$libDir,1,@contexts);
-	  push @macros,"\n#line $line \"$file\"\n";
-	} else {
-	  my $mf=$f;
-	  print STDERR "including $mf\n" if $macroDebug;
-	  unless (-f $mf) {
-	    $mf=dirname($file).$mf;
-	    print STDERR "trying $mf\n" if $macroDebug;
-	    unless (-f $mf) {
-	      $mf="$libDir/$f";
-	    print STDERR "not found, trying $mf\n" if $macroDebug;
+    } else {
+      if ($ifok) {
+	push @macros,$_;
+	if (/^\#define\s+(\S*)(?:\s+(.*))?/) {
+	  $defines{$1}=$2;	# there is no use for $2 so far
+	} elsif (/^\#undefine\s+(\S*)/) {
+	  delete $defines{$1};
+	} elsif (/^\#ifdef\s+(\S*)/) {
+	  push @conditions, (exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
+	  $ifok = $conditions[$#conditions];
+	} elsif (/^\#ifndef\s+(\S*)/) {
+	  push @conditions, (!exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
+	  $ifok = $conditions[$#conditions];
+	} elsif (/^\#[ \t]*binding-context[ \t]+(.*)/) {
+	  @contexts=(split /[ \t]+/,$1) if $ifok;
+	} elsif (/^\#[ \t]*key-binding-adopt[ \t]+(.*)/) {
+	  my @toadopt=(split /[ \t]+/,$1);
+	  my $context;
+	  my $toadopt;
+	  foreach $context (@contexts) {
+	    $keyBindings{$context}={} unless exists($keyBindings{$context});
+	    foreach $toadopt (@toadopt) {
+	      foreach (keys %{$keyBindings{$toadopt}}) {
+		$keyBindings{$context}->{$_}=$keyBindings{$toadopt}->{$_};
+	      }
 	    }
 	  }
+	} elsif (/^\#[ \t]*menu-binding-adopt[ \t]+(.*)/) {
+	  my @toadopt=(split /[ \t]+/,$1);
+	  my $context;
+	  my $toadopt;
+	  foreach $context (@contexts) {
+	    $menuBindings{$context}={} unless exists($menuBindings{$context});
+	    foreach $toadopt (@toadopt) {
+	      foreach (keys %{$menuBindings{$toadopt}}) {
+		$menuBindings{$context}->{$_}=$menuBindings{$toadopt}->{$_};
+	      }
+	    }
+	  }
+	} elsif (/^\#[ \t]*unbind-key[ \t]([^ \t\r\n]+)?/) {
+	  $key=$1;
+	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
+	  $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
+	  foreach (@contexts) {
+	    next unless exists($keyBindings{$_});
+	    delete $keyBindings{$_}{$key};
+	  }
+	} elsif (/^\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
+	  $macro=$1;
+	  $key=$2;
+	  $menu=TrEd::Convert::encode($3);
+	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
+	  $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
+	  #print "binding $key [$menu] => $macro\n";
+	  foreach (@contexts) {
+	    $keyBindings{$_}={} unless exists($keyBindings{$_});
+	    $keyBindings{$_}->{$key}="$_"."->"."$macro";
+	    if ($menu) {
+	      $menuBindings{$_}={} unless exists($menuBindings{$_});
+	      $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
+	    }
+	  }
+	} elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
+	  $macro=$1;
+	  $menu=TrEd::Convert::encode($2);
+	  foreach (@contexts) {
+	    $menuBindings{$_}={} unless exists($menuBindings{$_});
+	    $menuBindings{$_}->{$menu}=["$_"."->"."$macro",undef] if ($menu);
+	  }
+	} elsif (/^\#\s*remove-menu[ \t]+(.+)/) {
+	  $menu=TrEd::Convert::encode($1);
+	  foreach (@contexts) {
+	    next unless exists($menuBindings{$_});
+	    delete $menuBindings{$_}{$menu};
+	  }
+	} elsif (/^\#\s*include\s+\<(.+\S)\>\s*$/) {
+	  my $mf="$libDir/$1";
+	  if (-f $mf) {
+	    read_macros($mf,$libDir,1,@contexts);
+	    push @macros,"\n#line $line \"$file\"\n";
+	  } else {
+	    die 
+	      "Error including macros $mf\n from $file: ",
+		"file not found!\n";
+	  }
+	} elsif (/^\#\s*include\s+"(.+\S)"\s*$/) {
+	  $mf=dirname($file).$1;
 	  if (-f $mf) {
 	    read_macros($mf,$libDir,1,@contexts);
 	    push @macros,"\n#line $line \"$file\"\n";
@@ -193,9 +191,39 @@ sub read_macros {
 	      "Error including macros $mf\n from $file: ",
 		"file not found!\n";
 	  }
+	} elsif (/^\#\s*include\s+(.+\S)\s*$/) {
+	  my $f=$1;
+	  if ($f=~m%^/%) {
+	    read_macros($f,$libDir,1,@contexts);
+	    push @macros,"\n#line $line \"$file\"\n";
+	  } else {
+	    my $mf=$f;
+	    print STDERR "including $mf\n" if $macroDebug;
+	    unless (-f $mf) {
+	      $mf=dirname($file).$mf;
+	      print STDERR "trying $mf\n" if $macroDebug;
+	      unless (-f $mf) {
+		$mf="$libDir/$f";
+		print STDERR "not found, trying $mf\n" if $macroDebug;
+	      }
+	    }
+	    if (-f $mf) {
+	      read_macros($mf,$libDir,1,@contexts);
+	      push @macros,"\n#line $line \"$file\"\n";
+	    } else {
+	      die
+		"Error including macros $mf\n from $file: ",
+		  "file not found!\n";
+	    }
+	  }
 	}
+      } else {
+	# $ifok == 0
+	push @macros,"\n"; # only for line numbering purposes
       }
+    }
   }
+  die "Missing #endif in $file (".scalar(@conditions)." unmatched #if-pragmas)\n" if (@conditions);
   close(F);
   return 1;
 }
