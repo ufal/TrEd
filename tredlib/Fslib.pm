@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-11-20 15:29:23 pajas>
+# Time-stamp: <2001-11-23 15:23:25 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -980,6 +980,26 @@ Set value of the given attribute.
 sub setAttribute {
   my ($self,$name,$value) = @_;
   return $self->{$name}=$value;
+}
+
+
+=pod
+
+=item children
+
+Return node's first dependent node (C<undef> if none).
+
+=cut
+
+sub children {
+  my $self = $_[0];
+  my @children=();
+  my $child=$self->firstson;
+  while ($child) {
+    push @children, $child;
+    $child=$child->rbrother;
+  }
+  return @children;
 }
 
 
