@@ -30,7 +30,7 @@ use strict;
   noColor nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
   edgeLabelSkipBelow pinfo textColor xmargin nodeOutlineColor
   nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
-  textColorShadow textColorHilite textColorXHilite
+  textColorShadow textColorHilite textColorXHilite skipHiddenLevels skipHiddenParents
   useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree);
 
 %DefaultNodeStyle = (
@@ -181,6 +181,12 @@ sub get_id_pinfo {
   return $self->{pinfo}->{"id:${obj}"};
 }
 
+sub node_is_displayed {
+  my ($self,$node)=@_;
+  my $pinfo = $self->{pinfo};
+  return $pinfo->{"node:${node};E"} ? 1 : 0;
+}
+
 sub find_item {
   my ($self,$which,$tag)=@_;
   return map { $self->get_id_pinfo($_) } $self->canvas()->find($which,$tag);
@@ -318,7 +324,7 @@ sub balance_xfix_node {
   my @c = grep { exists $visible->{$_} } $node->children;
   $xfix += $self->get_node_pinfo($node,"XFIX");
   foreach my $c (@c) {
-    $self->store_node_pinfo($c,"XOS",
+    $self->store_node_pinfo($c,"XPOS",
 			    $self->get_node_pinfo($c,"XPOS")+
 			    $xfix);
     $self->store_node_pinfo($c,"NodeLabel_XPOS",
@@ -469,16 +475,33 @@ sub recalculate_positions {
   my $balance= exists($Opts->{balance}) ? 
     $Opts->{balance} : $self->get_balanceTree;
 
+  my $skipHiddenLevels= exists($Opts->{skipHiddenLevels}) ? $Opts->{skipHiddenLevels} : $self->get_skipHiddenLevels;
+
   my $balanceOpts = [$balance =~ /^aboveMiddleChild(Odd$|$)/ ? 1 : 0,
 		      $balance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0];
 
   foreach $node (@{$nodes}) {
+    $self->store_node_pinfo($node,"E",1);
+  }
+  foreach $node (@{$nodes}) {
     $level=0;
-    $parent=$node->parent;
-    while ($parent) {
-      $level++;
-      $level+=$self->get_style_opt($parent,"Node","-rellevel",$Opts);
-      $parent=$parent->parent;
+    if ($skipHiddenLevels) {
+      $parent=$node->parent;
+      while ($parent) {
+	if ($self->get_node_pinfo($parent,"E")) {
+	  $level++;
+	  $level+=$self->get_style_opt($parent,"Node","-rellevel",$Opts);
+	}
+	$parent=$parent->parent;
+      }
+#      print "SKIPHIDDEN: $node->{trlemma} => level: $level\n";
+    } else {
+      $parent=$node->parent;
+      while ($parent) {
+	$level++;
+	$level+=$self->get_style_opt($parent,"Node","-rellevel",$Opts);
+	$parent=$parent->parent;
+      }
     }
     $level+=$self->get_style_opt($node,"Node","-rellevel",$Opts);
     $level+=$self->get_style_opt($node,"Node","-level",$Opts);
@@ -1103,8 +1126,16 @@ sub redraw {
   my $can_dash=($Tk::VERSION=~/\.([0-9]+)$/ and $1>=22);
   $objectno=0;
 
+  my $skipHiddenLevels = $Opts{skipHiddenLevels} || $self->get_skipHiddenLevels;
+  my $skipHiddenParents = $skipHiddenLevels || $Opts{skipHiddenParents} || $self->get_skipHiddenParents;
+
   foreach $node (@{$nodes}) {
-    $parent=$node->parent;
+    if ($skipHiddenParents) {
+      $parent = $node->parent;
+      $parent=$parent->parent while ($parent and !$self->get_node_pinfo($parent,"E"));
+    } else {
+      $parent=$node->parent;
+    }
     use integer;
 
     ## Lines ##
@@ -1178,7 +1209,7 @@ sub redraw {
     $self->store_obj_pinfo($oval,$node);
 
     # EdgeLabel
-    if (scalar(@edge_patterns) and $node->parent) {
+    if (scalar(@edge_patterns) and $parent) {
       my $coords = $self->get_style_opt($node,"EdgeLabel","-coords",\%Opts);
       $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",\%Opts);
       $valign_edge=$self->get_style_opt($node,"EdgeLabel","-valign",\%Opts);
@@ -1189,7 +1220,7 @@ sub redraw {
 	# edge label with explicit coords
 	$coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
 	my @c=split ',',$coords;
-	if ($self->eval_coords_spec($node,$node->parent,\@c,$coords)) {
+	if ($self->eval_coords_spec($node,$parent,\@c,$coords)) {
 	  if ($halign_edge eq "left") {
 	    $c[0]-=$edgeLabelWidth;
 	  } elsif ($halign_edge eq "center") {
@@ -1205,10 +1236,10 @@ sub redraw {
 	}
       } else {
 	$y_edge_length=
-	  ($self->get_node_pinfo($node->parent, "YPOS")-
+	  ($self->get_node_pinfo($parent, "YPOS")-
 	     $self->get_node_pinfo($node,"YPOS"));
 	$x_edge_length=
-	  ($self->get_node_pinfo($node->parent, "XPOS")-
+	  ($self->get_node_pinfo($parent, "XPOS")-
 	     $self->get_node_pinfo($node,"XPOS"));
 	$x_edge_delta=(($self->get_node_pinfo($node, "EdgeLabel_YPOS")
 			  -$self->get_node_pinfo($node, "YPOS"))*$x_edge_length)/$y_edge_length;
@@ -1267,7 +1298,7 @@ sub redraw {
       $self->store_obj_pinfo($box,$node);
     }
     $edge_has_box=
-      scalar(@edge_patterns) && $node->parent &&
+      scalar(@edge_patterns) && $parent &&
 	($self->get_drawEdgeBoxes &&
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-nodrawbox",\%Opts) ne "yes") ||
 	 !$self->get_drawEdgeBoxes &&
@@ -1310,7 +1341,7 @@ sub redraw {
       ($pat_class,$pat)=$self->parse_pattern($patterns[$i]);
       $msg=$self->interpolate_text_field($node,$pat,$grp);
       if ($pat_class eq "edge") {
-	if ($node->parent) {
+	if ($parent) {
 	  $msg =~ s!/!!g;		# should be done in interpolate_text_field
 	  $x=$self->get_node_pinfo($node,"EdgeLabel_XPOS");
 	  $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
@@ -1591,7 +1622,7 @@ sub interpolate_text_field {
   my ($self,$this,$text,$grp)=@_;
   # make root visible for the evaluated expression
   local $TredMacro::this = $this;
-  local $TredMacro::root = my $root = $this->root;
+  local $TredMacro::root = my $root = ($this ? $this->root : undef);
   local $TredMacro::grp = $grp;
   $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval "package TredMacro;\n".$self->interpolate_refs($this,$1)/eg;
   return $text;
