@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-10-20 22:33:07 paja>
+# Time-stamp: <2001-10-25 14:02:31 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -267,8 +267,12 @@ sub set_config {
   $Tk::strictMotif    =	 val_or_def($confs,"strictmotif",0);
   $printColors	      =	 val_or_def($confs,"printcolors",0);
 
-  $gzip=val_or_def($confs,"gzip",(-x "/bin/gzip" ? "/bin/gzip -c" : undef));
-  $zcat=val_or_def($confs,"zcat",(-x "/bin/zcat" ? "/bin/zcat" : $gzip));
+  $gzip=val_or_def($confs,"gzip",(-x "/bin/gzip" ? "/bin/gzip -c" :
+				  (-x "$libDir/../gzip" ? 
+				   "$libDir/../bin/gzip -c" : undef)));
+  $zcat=val_or_def($confs,"zcat",(-x "/bin/zcat" ? "/bin/zcat" :
+				  (-x "$libDir/../gzip" ?
+				   "$libDir/../bin/gzip -c" : "$gzip -d")));
 
   $ZBackend::gzip = $gzip;
   $ZBackend::zcat = $zcat;
