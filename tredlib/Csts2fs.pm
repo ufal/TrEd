@@ -278,6 +278,7 @@ my %att = (
 	   'd id' => [\&to_node_attr,'|','AID'],
 	   'w kind' => [\&to_next_node_attr,'|','origfkind'],
 	   't w'=> [\&to_node_attr,'|','wt'],
+	   'fadd id' => [\&to_node_attr,'','TID'],
 	   'fadd del' => [sub {
 			    my ($s,$data)=@_;
 			    &to_node_attr($s,$data,'|','del');
@@ -383,6 +384,7 @@ my %pcdata = (
 	      T => [\&to_node_attr,'|','func'],
 	      Tmo => [\&to_node_attr,'|','memberof'],
               Tpa => [\&to_node_attr,'|','parenthesis'],
+              Top => [\&to_node_attr,'|','operand'],
 	      grm => [\&to_node_attr,'|','gram'],
 	      TRt => [\&assign_TRt,0],
 	      tfa => [\&to_node_attr,'|','tfa'],
@@ -459,6 +461,7 @@ my %pcdata = (
 '@P lemauto',
 '@P AID',
 '@P AIDREFS',
+'@P TID',
 );
 
 @minTRheader = (
@@ -487,7 +490,7 @@ my %pcdata = (
 '@P func',
 '@L2 func|---|ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|ATT|BEN|CAUS|CNCS|COMPL|CONJ|CONFR|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|DPHR|ETHD|EXT|EV|FPHR|GRAD|HER|ID|INTF|INTT|LOC|MANN|MAT|MEANS|MOD|NA|NORM|OPER|PAR|PARTL|PN|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT|SENT|???',
 '@P gram',
-'@L gram|---|0|GNEG|DISTR|APPX|GPART|GMULT|VCT|PNREL|DFR|BEF|AFT|JBEF|INTV|WOUT|AGST|MORE|LESS|NIL|blízko|kolem|mezi.1|mezi.2|mimo|na|nad|naproti|pod|pøed|u|uprostøed|v|vedle|za|pøes|uvnitø|NA|???',
+'@L gram|---|0|GNEG|DISTR|APPX|GPART|GMULT|VCT|PNREL|DFR|BEF|AFT|JBEF|INTV|WOUT|AGST|MORE|LESS|MULT|RATIO|NIL|blízko|kolem|mezi.1|mezi.2|mimo|na|nad|naproti|pod|pøed|u|uprostøed|v|vedle|za|pøes|uvnitø|NA|???',
 '@P memberof',
 '@L memberof|---|CO|AP|NIL|???',
 '@P fw',
@@ -507,6 +510,8 @@ my %pcdata = (
 '@P commentA',
 '@P parenthesis',
 '@L parenthesis|---|PA|NIL|???',
+'@P operand',
+'@L operand|---|OP|NIL|???',
 '@P funcauto',
 '@P funcprec',
 '@P funcaux',
