@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-22 13:14:10 pajas>
+# Time-stamp: <2001-02-22 14:34:31 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -987,7 +987,9 @@ sub macrolistDialog {
   my $d = $grp->{'top'}->Toplevel(-title => "List of available named macros");
   $d->withdraw;
   $d->resizable(0,1);
-  my $t = $d->Scrolled(qw/HList -columns 2 -background white -height 25 -relief sunken -scrollbars e/);
+  my $t = $d->Scrolled(qw/HList -columns 2 -background white 
+           -selectmode browse
+           -height 25 -relief sunken -scrollbars e/);
   $grp->{Macrolist}=$d;
   my $e;
   my $maxw=0;
@@ -999,6 +1001,7 @@ sub macrolistDialog {
   }
   $t->columnWidth(0,'');
   $t->columnWidth(1,'');
+  $t->anchorSet('0');
 
   $t->configure(-width => 0);
   $t->pack(qw/-expand yes -fill both/);
@@ -1551,30 +1554,30 @@ sub startMain {
   addBindTags($group{Menubar},'my');
 
   $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0/);
-  $group{FileMenu}->command(-label=> 'Open ...',    -command => [\&fileDialog, \%group]);
-  $group{FileMenu}->command(-label => 'File List...',-command => [\&filelistDialog, \%group]);
+  $group{FileMenu}->command(-label=> 'Open ...', -underline => 0,   -command => [\&fileDialog, \%group]);
+  $group{FileMenu}->command(-label => 'File List...', -underline => 5, -command => [\&filelistDialog, \%group]);
 #	 [Button => 'New',         -command => [\&menus_error2, 'New']],
-  $group{FileMenu}->command(-label => 'Save',-command => [\&saveFile,\%group]);
-  $group{FileMenu}->command(-label => 'Save As ...', -command => [\&saveFileAs, \%group]);
+  $group{FileMenu}->command(-label => 'Save', -underline => 0, -command => [\&saveFile,\%group]);
+  $group{FileMenu}->command(-label => 'Save As ...', -underline => 5 ,-command => [\&saveFileAs, \%group]);
   $group{FileMenu}->separator();
-  $group{RecentFileMenu}=$group{FileMenu}->cascade(-label => "Recent Files");
+  $group{RecentFileMenu}=$group{FileMenu}->cascade(-label => "Recent Files", -underline => 0);
   foreach (@recentFiles) {
     $group{RecentFileMenu}->command(-label  => $_,
 				    -command => [\&openFile,$_,\%group]);
   }
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label => 'Previous File', -command => [\&prevFile,\%group]);
-  $group{FileMenu}->command(-label => 'Next File', -command => [\&nextFile,\%group]);
+  $group{FileMenu}->command(-label => 'Previous File', -underline => 3, -command => [\&prevFile,\%group]);
+  $group{FileMenu}->command(-label => 'Next File', -underline => 0, -command => [\&nextFile,\%group]);
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label => 'Print ...',   -command => [\&printThis,\%group]);
+  $group{FileMenu}->command(-label => 'Print ...', -underline => 0, -command => [\&printThis,\%group]);
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label =>'Edit config file ...',   -command => [\&editConfig,\%group]);
-  $group{FileMenu}->command(-label =>'Reload config ...',   -command => [sub {
+  $group{FileMenu}->command(-label =>'Edit config file ...', -underline => 0,  -command => [\&editConfig,\%group]);
+  $group{FileMenu}->command(-label =>'Reload config ...', -underline => 3, -command => [sub {
 							  readConfig();
 							  redraw_tree(shift);
 							},\%group]);
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label =>'Quit',        -command => [sub { $grp=shift;
+  $group{FileMenu}->command(-label =>'Quit', -underline => 0, -command => [sub { $grp=shift;
 						       askSaveFile($grp);
 						       $grp->{'top'}->destroy;
 						    },\%group]);
@@ -1583,62 +1586,67 @@ sub startMain {
 
   $group{ViewMenu}= $group{Menubar}->Menubutton(qw/-text View -underline 0 -menuitems/ =>
 	[
-	 [Button => 'Previous Tree', -command => [\&prevTree,\%group]],
-	 [Button => 'Next Tree', -command => [\&nextTree,\%group]],
+	 [Button => 'Previous Tree',
+	  -underline => 0,
+	  -command => [\&prevTree,\%group]],
+	 [Button => 'Next Tree', -underline => 0, -command => [\&nextTree,\%group]],
 	 [Separator => ''],
-	 [Checkbutton => 'Draw boxes',
+	 [Checkbutton => 'Draw boxes', -underline => 0,
 	   -variable => \$drawBoxes,
 	   -command  => [\&redraw_tree,\%group]],
-	 [Checkbutton => 'Show Hidden Nodes',
+	 [Checkbutton => 'Show Hidden Nodes', -underline => 0,
+	  -underline => 5,
 	  -variable => \$showHidden,
 	  -command  => [sub { getNodes(@_);
 			      currentUnhiden(@_);
 			      redraw_tree(@_) },\%group]],
-	 [Checkbutton => 'Highlight Attributes',
+	 [Checkbutton => 'Highlight Attributes', -underline => 1,
 	  -variable => \$highlightAttributes,
 	  -command  => [\&redraw_tree,\%group]],
-	 [Checkbutton => 'Sort Attributes in Dialogs',
+	 [Checkbutton => 'Sort Attributes in Dialogs', -underline => 1,
 	  -variable => \$sortAttrs],
 	 [Separator => ''],
-	 [Button => 'Customize Attributes ...', -command => [\&customAttrsDialog,\%group]],
+	 [Button => 'Customize Attributes ...', -underline => 0,
+	  -command => [\&customAttrsDialog,\%group]],
 	 [Separator => ''],
-	 [Button => 'List of Named Macros ...', -command => [\&macrolistDialog,\%group]]
+	 [Button => 'List of Named Macros ...', -underline => 0,
+	  -command => [\&macrolistDialog,\%group]]
 	])->pack(qw/-side left/);
   $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/ =>
 	[
-	 [Button => 'New Node', -command => [sub {
+	 [Button => 'New Node', -underline => 0, -command => [sub {
 					       my ($grp)=@_;
 					       newNode($grp);
 					     },\%group]],
-	 [Button => 'Remove Active Node', -command => [sub {
+	 [Button => 'Remove Active Node', -underline => 0, -command => [sub {
 					       my ($grp)=@_;
 					       pruneNode($grp,$grp->{currentNode});
 					     },\%group]],
-	 [Button => 'Insert New Tree', -command => [sub {
+	 [Button => 'Insert New Tree', -underline => 0, -command => [sub {
 						      my ($grp)=@_;
 						      newTree($grp);
 						    },\%group]],
-	 [Button => 'Insert New Tree After', -command => [sub {
+	 [Button => 'Insert New Tree After', -underline => 16, -command => [sub {
 						      my ($grp)=@_;
 						      newTreeAfter($grp);
 						    },\%group]],
-	 [Button => 'Remove Whole Current Tree', -command => [sub {
+	 [Button => 'Remove Whole Current Tree', -underline => 7, -command => [sub {
 						      my ($grp)=@_;
 						      pruneTree($grp);
 						    },\%group]],
 	 [Separator => ''],
-	 [Button => 'Edit Attributes ...', -command => [sub {
+	 [Button => 'Edit Attributes ...', -underline => 0, -command => [sub {
 						      my ($grp)=@_;
 						      editAttrsDialog($grp,$grp->{currentNode})
 							if ($grp->{currentNode});
 						    },\%group]],
 	 [Separator => ''],
-	 [Button => 'Find ...', -command => [sub {
+	 [Button => 'Find ...', -underline => 0,-command => [sub {
 					      my ($grp,$template)=@_;
 					      findNodeDialog($grp,$template)
 						if ($grp->{currentNode});
 					    },\%group,\%searchTemplate]],
-	 [Button => 'Find Next', 
+	 [Button => 'Find Next', -underline => 7,
 	  -command => [sub {
 			 my ($grp,$template)=@_;
 			 findFirstTemplated($grp,$template,1)
@@ -2947,7 +2955,7 @@ sub redraw_tree {
   $grp->{'frame'}->bind('my','<Control-KeyPress>' =>
 			[sub { evalMacro(@_); Tk->break; }, $grp,'CTRL+']);
   $grp->{'frame'}->bind('my','<Alt-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'ALT+']);
+			[sub { Tk->break if defined(evalMacro(@_)); }, $grp,'ALT+']);
   $grp->{'frame'}->bind('my','<Meta-KeyPress>' =>
 			[sub { evalMacro(@_); Tk->break; }, $grp,'META+']);
   $grp->{'frame'}->bind('my','<Control-Shift-KeyPress>' =>
@@ -3384,7 +3392,9 @@ sub evalMacro {
   }
   if (defined $macro) {
     doEvalMacro($grp,$macro);
+    return 1;
   }
+  return undef;
 }
 
 sub currentNext {
