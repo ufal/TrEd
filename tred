@@ -515,6 +515,7 @@ sub currentFileNo {
 # TrEd::Window ? should openFile in focusedWindow
 sub gotoFile {
   my ($grp,$fn,$no_recent,$no_redraw)=@_;
+  return unless $grp->{currentFilelist};
   return 0 if doEvalHook($grp->{focusedWindow},"goto_file_hook") eq 'stop';
   return 0 if ($fn>=$grp->{currentFilelist}->file_count() or $fn<0);
   $grp->{focusedWindow}->{currentFileNo}=$fn;
@@ -531,6 +532,7 @@ sub gotoFile {
 
 sub filelistFullFileName {
   my ($grp, $fn)=@_;
+  return undef unless $grp->{currentFilelist};
   my $filename=$grp->{currentFilelist}->file_at($fn);
 
   return $filename if $filename =~ m(^[[:alnum:]]+://) or $filename =~ m(^\s*\|);
@@ -5508,7 +5510,7 @@ sub redraw_win {
 
 sub redraw_fsfile {
   my ($grp,$fsfile)=@_;
-  return if $insideEval;
+  return if $insideEval or !$fsfile;
   foreach (fsfileDisplayingWindows($grp,$fsfile)) {
     redraw_win($_);
   }
@@ -5517,7 +5519,7 @@ sub redraw_fsfile {
 
 sub redraw_fsfile_tree {
   my ($grp,$fsfile,$tree_no)=@_;
-  return if $insideEval;
+  return if $insideEval or !$fsfile;
   foreach (grep {$_->{treeNo} == $tree_no}
 	   fsfileDisplayingWindows($grp,$fsfile)) {
     redraw_win($_);
@@ -5774,7 +5776,7 @@ sub doEvalHook {
   if ($win) {
     $TredMacro::this=$win->{currentNode};
     $TredMacro::root=$win->{root};
-    $context=$win->{macroContext};
+    $context=$win->{macroContext} || 'TredMacro';
   }
   $TredMacro::libDir=$libDir;
   $TredMacro::forceFileSaved=0;
@@ -5802,7 +5804,7 @@ sub doEvalHook {
 
 sub doEvalMacro {
   my ($win,$macro)=(shift,shift);
-  return unless $macro and $win->{currentNode};
+  return unless $macro;# and $win->{currentNode};
 
   my $bookmark=bookmarkThis($win->{framegroup});
   $win->toplevel->Busy(-recurse=> 1);
@@ -5819,17 +5821,19 @@ sub doEvalMacro {
   my $current=$TredMacro::this;
   my $file_not_saved=$TredMacro::FileNotSaved;
   $file_not_saved=1 if $file_not_saved eq '?';
-  if ($TredMacro::forceFileSaved) {
-    print STDERR "Macro forsly claims file saved.\n";
-    $win->{FSFile}->notSaved($file_not_saved ? 1 : 0);
-    lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
-  } else {
-    if ($file_not_saved) {
-      save_undo($win,$undo);
-      $win->{FSFile}->notSaved(1);
-      lastActionBookmark($win->{framegroup},$bookmark);
+  if ($win->{FSFile}) {
+    if ($TredMacro::forceFileSaved) {
+      print STDERR "Macro forsly claims file saved.\n";
+      $win->{FSFile}->notSaved($file_not_saved ? 1 : 0);
+      lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
     } else {
-      print STDERR "Macro claims file untouched\n"
+      if ($file_not_saved) {
+	save_undo($win,$undo);
+	$win->{FSFile}->notSaved(1);
+	lastActionBookmark($win->{framegroup},$bookmark);
+      } else {
+	print STDERR "Macro claims file untouched\n"
+      }
     }
   }
   $insideEval=0;
