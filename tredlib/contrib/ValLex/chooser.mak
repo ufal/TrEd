@@ -268,6 +268,7 @@ sub create_default_subst_frame {
 sub open_frame_instance_in_tred {
   my ($w,$group,$editor)=@_;
   my $top=$w->toplevel();
+  my $win=$group->{focusedWindow};
   print "open_frame_instance_in_tred $editor\n";
   my $data=$editor->data();
   my $fl=$editor->subwidget('framelist')->widget();
@@ -280,7 +281,7 @@ sub open_frame_instance_in_tred {
     my $f=$1;
     my $suffix=$2;
     print "file: $f\n";
-    my $fl=$group->{currentFilelist};
+    my $fl=$win->{currentFilelist};
     return unless ref($fl);
     my $files=$fl->files_ref;
     my $i;
@@ -288,7 +289,6 @@ sub open_frame_instance_in_tred {
       last if ($fl->file_at($i)=~/(?:^|\\|\/)([^\\\/]*)$/ and $1 eq $f);
     }
     if ($i<=$#$files) {
-      my $win=$group->{focusedWindow};
       print "index: $i\n";
       print "file: $files->[$i]\n";
       print "suffix: $suffix\n";
