@@ -970,45 +970,89 @@ root# <userinput>make install</userinput>
       <title>Session</title>
       <para>
 	This menu lets user switch between
-	currently open files and change current
-	file-list.</para>
-      <para>
-	<application>TrEd</application> allows having multiple
-	files open. In case the user tries to open a file 
-	while another file is already open, modified, and yet not saved,
-	<application>TrEd</application> offers the user to save
-	changes in the current file and close it, close it withought
-	saving or to <emphasis>keep</emphasis> the file open. In the
-	latter case, the file is not closed nor any changes are
-	discarded but the file stays open and remains in the
-	<guimenu>Session</guimenu> menu under the <guimenuitem>Open
-	files</guimenuitem> label. Any number of files can be
-	simultaneously open in this way. User may resume
-	any open file and display it
-	in the current window by choosing the corresponding item in the
-	<guimenu>Session</guimenu> menu.
-      </para>
-      <para>
-	The <guimenuitem>File lists</guimenuitem> contains a list of
-	currently present file-lists. User may switch to another
-	file-list by choosing the corresponding item. The lastly open
-	file of the selected file-list is then re-opened and
-	displayed. To edit an existing file-list, remove it or create
-	new file-lists, user must use <menuchoice>
-	  <guimenu>File</guimenu>
-	  <guimenuitem>File List ...</guimenuitem>
-	</menuchoice>.
-      </para>
-      <para>
-	If current file-list contains more than one file, user may use
-	<menuchoice> <guimenu>File</guimenu> <guimenuitem>Previous
-	File</guimenuitem> </menuchoice> (or press <inlinegraphic
-	fileref="pics/start"/>) and <menuchoice>
-	<guimenu>File</guimenu> <guimenuitem>Next File</guimenuitem>
-	</menuchoice> (or press <inlinegraphic
-	fileref="pics/finish"/>) to open previous or
-	next file in the file-list.
-      </para>
+	currently open files, change current
+	file-list and setup file-related options.</para>
+      <sect3>
+	<title>Options</title>
+	<variablelist id="dontcloseonopen">
+	  <varlistentry>
+	    <term><guimenuitem>Don't close on open</guimenuitem></term>
+	    <listitem>
+	      <para>
+		Do not close current file when opening a new one.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guimenuitem>Build TGTS from CSTS</guimenuitem></term>
+	    <listitem>
+	      <para>
+		This PDT-specific option allows to choose whether
+		the Analytic or the Tectogrammatic tree structure
+		is built when parsing a file in the CSTS SGML format.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><guimenuitem>Preserve patterns on reload</guimenuitem></term>
+	    <listitem>
+	      <para>
+		If this option is checked, current attribute pattern setting is not
+		replaced with the one from the file when current file
+		is reloaded with by pressing the
+		<inlinegraphic fileref="pics/reload"/>
+		(see also the <xref linkend="reloadpreservespatterns"/>
+		configuration option).
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </sect3>
+      <sect3>
+	<title>Open Files</title>
+	<para>
+	  <application>TrEd</application> allows having multiple
+	  files open. In case the user tries to open a file 
+	  while another file is already open, modified, and yet not
+	  saved
+	  (and the <xref linkend="dontcloseonopen"/> option is not checked)
+	  <application>TrEd</application> offers the user to save
+	  changes in the current file and close it, close it withought
+	  saving or to <emphasis>keep</emphasis> the file open. In the
+	  latter case, the file is not closed nor any changes are
+	  discarded but the file stays open and remains in the
+	  <guimenu>Session</guimenu> menu under the <guimenuitem>Open
+	    files</guimenuitem> label. Any number of files can be
+	  simultaneously open in this way. User may resume
+	  any open file and display it
+	  in the current window by choosing the corresponding item in the
+	  <guimenu>Session</guimenu> menu.
+	</para>
+      </sect3>
+      <sect3>
+	<title>File Lists</title>
+	<para>
+	  The <guimenuitem>File lists</guimenuitem> contains a list of
+	  currently present file-lists. User may switch to another
+	  file-list by choosing the corresponding item. The lastly open
+	  file of the selected file-list is then re-opened and
+	  displayed. To edit an existing file-list, remove it or create
+	  new file-lists, user must use <menuchoice>
+	    <guimenu>File</guimenu>
+	    <guimenuitem>File List ...</guimenuitem>
+	  </menuchoice>.
+	</para>
+	<para>
+	  If current file-list contains more than one file, user may use
+	  <menuchoice> <guimenu>File</guimenu> <guimenuitem>Previous
+	      File</guimenuitem> </menuchoice> (or press <inlinegraphic
+	    fileref="pics/start"/>) and <menuchoice>
+	    <guimenu>File</guimenu> <guimenuitem>Next File</guimenuitem>
+	  </menuchoice> (or press <inlinegraphic
+	    fileref="pics/finish"/>) to open previous or
+	  next file in the file-list.
+	</para>
+      </sect3>
     </sect2>
     <sect2>
       <title><guimenu>Bookmarks</guimenu></title>
@@ -1341,6 +1385,28 @@ root# <userinput>make install</userinput>
 	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Save</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
+	      <entry><graphic fileref="pics/reload"/></entry>
+	      <entry><para>Reload current file from disk.</para></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/redo"/></entry>
+	      <entry><para>Redo last undone operation on the current tree.</para></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/undo"/></entry>
+	      <entry><para>Undo last operation on the current
+		  tree. (See also <xref linkend="maxundo"/>
+	      configuration option.)</para></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/findprev"/></entry>
+	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find Previous</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/start"/></entry>
+	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Previous File</guimenuitem></menuchoice></entry>
+	    </row>
+	    <row>
 	      <entry><graphic fileref="pics/fileprint"/></entry>
 	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Print ...</guimenuitem></menuchoice></entry>
 	    </row>
@@ -1351,14 +1417,6 @@ root# <userinput>make install</userinput>
 	    <row>
 	      <entry><graphic fileref="pics/findnext"/></entry>
 	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find Next</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><graphic fileref="pics/findprev"/></entry>
-	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find Previous</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><graphic fileref="pics/start"/></entry>
-	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Previous File</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
 	      <entry><graphic fileref="pics/finish"/></entry>
@@ -1603,14 +1661,13 @@ root# <userinput>make install</userinput>
       <varlistentry>
 	<term><literal><replaceable>label</replaceable>:</literal></term>
 	<listitem>
-	  <para>If this string appears at the very beginning
-	    of a pattern, the pattern may be treated specially.
-	    There are only four pattern labels valid in current
-	    version of TrEd. These are <literal>node</literal>,
-	    <literal>edge</literal>,
-	    <literal>style</literal> and
-	    <literal>rootstyle</literal>.
-	    Patterns labeled with any other label are ignored.
+	  <para>If this string appears at the very beginning of a
+	    pattern, the pattern may be treated specially.  There are
+	    only four pattern labels used by TrEd itself. These are
+	    <literal>node</literal>, <literal>edge</literal>,
+	    <literal>style</literal> and <literal>rootstyle</literal>.
+	    Patterns labeled with any other label are ignored by TrEd
+	    but may be queried and used by macros.
 	  </para>
 	  <para>
 	    Patterns labeled as <literal>node</literal> are used to
@@ -1669,6 +1726,42 @@ root# <userinput>make install</userinput>
 	  </row>
 	</thead>
 	<tbody>
+	  <row>
+	    <entry>Node-shape</entry>
+	    <entry>
+	      <para>The shape of the point representing the node in
+		the tree. Possible values are <literal>oval</literal>,
+		<literal>rectangle</literal>, and
+		<literal>polygon</literal>
+		(see also <literal>Node-polygon</literal> below).
+	      </para>
+	    </entry>
+          </row>
+	  <row>
+	    <entry>Node-polygon</entry>
+	    <entry><para>
+		Specifies the relative coordinates for three or
+		more points that define a closed polygon. The
+		first and last points may be the same;  whether they are
+		or not, TrEd will draw the polygon as a closed polygon.
+	      </para></entry>
+	  </row>
+	  <row>
+	    <entry>Node-rellevel</entry> <entry><para> Allows altering
+		the default vertical position of a subtree. 
+		The values are multiples of one default level height.
+		Positive values move the subtree down, while negative values
+		move the subtree up. </para></entry>
+	  </row>
+	  <row>
+	    <entry>Node-level</entry> <entry>
+	      <para>
+		Very similar to <literal>Node-rellevel</literal>
+		above, except that this option affects one node only 
+		rather than the whole subtree.
+	      </para>
+	    </entry>
+	  </row>
 	  <row>
 	    <entry>Node-addbeforeskip</entry>
             <entry><para>Additional horizontal space before node
@@ -1809,11 +1902,13 @@ root# <userinput>make install</userinput>
 	    <entry>Oval-dash</entry>
 	    <entry><para>Dash pattern for the outline
 	      of the point representing the node of the tree.
-	      A dash pattern is a sequence of arbitrary
-		of the following characters <quote>.,-_</quote>.
-		Space can be used
+	      A dash pattern is either a sequence of arbitrary
+		of the following characters <quote>.,-_</quote>
+		where space can be used
 		to enlarge the space between other line elements, and can
-		not occur as the first position in the string.
+		not occur as the first position in the string, or
+		a comma-separated list of integer numbers
+		specifying the lengths of dashes and spaces between them. 
 	      </para></entry>
           </row>
 	  <row>
@@ -1864,6 +1959,104 @@ root# <userinput>make install</userinput>
 	    <entry>Oval-activewidth</entry>
 	    <entry><para>Width of the outline
 		of the node when mouse is over it.</para></entry>
+          </row>
+	  <row>
+	    <entry>Line-coords</entry>
+	    <entry><para>
+		This, very complex, option allows to setup
+		one or more lines leading from the node. Unless this
+		option is set, only a line (edge) starting at the
+		node and leading to its parent is drawn.
+	      </para>
+	      <para>
+		This option may consist of one of more 
+		tuples of coordinates separated with
+		<literal>&amp;</literal>
+		of the form <literal>x1, y1..., xn, yn</literal>,
+		where
+		x1 through yn give the coordinates for a
+		series of two or more points that describe a series of
+		connected line segments.
+	      </para>
+	      <para>
+		The coordinates may be either absolute or relative to
+		the node, its parent, or if necessary to any node in
+		the tree. In fact, usual arithmetic expressions may be
+		used to compute coordinates. Use letter
+		<literal>n</literal>
+		to refer to the coordinate of the current node on the
+		current axes and letter <literal>p</literal> to refer to
+		the coordinate of the parent node of the current node.
+		Use
+		<literal>xn</literal>
+		and <literal>yn</literal>, or <literal>xp</literal>
+		and <literal>yp</literal> to refer to an explicit axis
+		of the current node or its parent respectively.
+		</para>
+	      <para>		
+		Coordinates of other nodes may be queried
+		using the following constructions:
+		<variablelist>
+		  <varlistentry>
+		    <term>Simple search</term>
+		    <listitem>
+		      <para>
+			The construction of the form
+			<literal>x[attribute_name = value]</literal>
+			or
+			<literal>y[attribute_name = value]</literal>
+			may be used to query x-coordinate
+			or y-coordinate (respectively)
+			of the first node whose attribute
+			<literal>attribute_name</literal>
+			has the given <literal>value</literal>.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term>Simple perl search</term>
+		    <listitem>
+		      <para>
+			The construction of the form
+			<literal>x[? code ?]</literal>
+			or
+			<literal>y[? code ?]</literal>
+			may be used to query a
+			coordinate 			
+			of the first node for which the
+			given Perl code returns non-zero
+			defined value. Within the code use 
+			<literal>$this</literal> to refer
+			to the current node and
+			<literal>$node</literal>
+			to the node being tested.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		  <varlistentry>
+		    <term>Custom perl search</term>
+		    <listitem>
+		      <para>
+			Sometimes it is not necessary to
+			go through the whole tree to find the desired
+			node. In such a case, the user may provide
+			a code to use to search for the node
+			and return the code.
+			This type of query has the form
+			<literal>x[! code !]</literal> or
+			<literal>y[! code !]</literal>,
+			where <literal>code</literal>
+			is the user's custom node search algorithm
+			written in Perl.
+			Within the code use 
+			<literal>$this</literal> to refer
+			to the current node.
+		      </para>
+		    </listitem>
+		  </varlistentry>
+		</variablelist>
+	      </para>
+	    </entry>
           </row>
 	  <row>
 	    <entry>Line-arrow</entry>
@@ -2891,7 +3084,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="maxundo">
 	  <term><literal>MaxUndo</literal></term>
 	  <listitem>
 	    <para>
@@ -2899,7 +3092,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="reloadpreservespatterns">
 	  <term><literal>ReloadPreservesPatterns</literal></term>
 	  <listitem>
 	    <para>
