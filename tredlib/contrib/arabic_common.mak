@@ -3,8 +3,10 @@ unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require ArabicRemix;
 no integer;
 
+$support_unicode=($Tk::VERSION gt 804.00);
+
 # does the OS or TrEd+Tk support propper arabic rendering
-$ArabicRendering=($^O eq 'MSWin32' or 1000*$] >= 5008);
+$ArabicRendering=($^O eq 'MSWin32' or $support_unicode);
 
 # if not, at least reverse all non-asci strings
 unless ($ArabicRendering) {
@@ -26,6 +28,9 @@ foreach (@{$grp->{framegroup}->{treeWindows}}) {
 if ($^O eq 'MSWin32') {
   $TrEd::Convert::outputenc='windows-1256';
   print STDERR $TrEd::Convert::inputenc,"\n";
+} elsif ($support_unicode) {
+  $TrEd::Convert::outputenc='iso10646-1';
+  print STDERR $TrEd::Convert::outputenc,"\n";
 } else {
   $TrEd::Convert::outputenc='iso-8859-6';
   print STDERR $TrEd::Convert::outputenc,"\n";
@@ -180,8 +185,82 @@ sub default_ar_attrs {
   return unless $grp->{FSFile};
   SetDisplayAttrs('${form}',
 		'#{custom1}<? join "_", map { "\${$_}" }
-                    grep { $node->{$_}=~/./ && $node->{$_}!~/^no-/ }
+                    grep { $this->{$_}=~/./ && $this->{$_}!~/^no-/ }
 	            qw(afun parallel paren arabfa arabspec arabclause) ?>');
   SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ngloss:\t\${x_gloss}\ncommentA:\t\${commentA}");
   return 1;
+}
+
+
+my $ante;
+
+# root style hook
+# here used only to check if the sentence contains a node with afun=Ante
+sub root_style_hook {
+  my ($node,$styles)=@_;
+  $ante=0;
+  while ($node) {
+    if ($node->{afun} eq 'Ante') {
+      $ante=1;
+      last;
+    }
+    $node=$node->following;
+  }
+}
+
+
+# node styles to draw extra arrows
+sub node_style_hook {
+  my ($node,$styles)=@_;
+
+  # Ref
+  if ($node->{arabspec} eq 'Ref') {
+    my $T;
+
+    # root_style_hook sets $ante if there is a node afun=Ante
+    if ($ante) {
+      # target of the arrow is this ante
+      # let TrEd search for it (using [ ... ])
+      $T="[afun=Ante]"; # target's afun eq Antec
+    } else {
+      # target of the arrow is the nearest ancestor adjective or top
+      # of a clause with afun=Atr
+
+      # we look for it since we know where (using [! ... !])
+      $T=<<'TARGET';
+[!
+  $this=$this->parent
+    while $this and not($this->{afun} eq 'Atr' and
+              ($this->{arabclause}!~/^no-|^$/ or $this->{tag}=~/^ADJ/)
+          );
+  $this;
+!]
+TARGET
+    }
+
+    # Instructions for TrEd on how to compute a simple 3-point
+    # multiline starting at the current node and ending at the node
+    # given by $T with middle point just between those two plus 40
+    # points either in the horizontal or vertical direction (depending
+    # on the direction of a greater distance)
+    my $coords=<<COORDS;
+n,n,
+n + (x$T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
+n + (y$T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
+x$T,y$T
+COORDS
+
+    # the ampersand & separates settings for the default line
+    # to the parent node and our line
+    AddStyle($styles,'Line',
+	     -coords => 'n,n,p,p&'. # coords for the default edge to parent
+	                $coords,    # coords for our line
+	     -arrow => '&last',
+	     -dash => '&_',
+	     -width => '&1',
+	     -fill => '&#8080a0',   # color
+	     -smooth => '&1'        # approximate our line with a smooth curve
+	    );
+
+  }
 }
