@@ -1,4 +1,4 @@
-# -*- cperl -*-
+# -*- mode: cperl; coding: iso-8859-2; -*-
 #encoding iso-8859-2
 
 #########################
