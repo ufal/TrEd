@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-09-03 10:18:45 pajas>
+## Time-stamp: <2001-10-20 22:32:11 paja>
 
 #
 # This file defines default macros for TR annotators.
@@ -161,8 +161,23 @@ sub listQuery {
    return 1;
  }
  $d->destroy;
- return 0;  
+ return 0;
 }
+
+sub questionQuery {
+  my ($title, $message,@buttons) = @_;
+
+  my $d = ToplevelFrame()->DialogBox(-title => $title,
+				       -buttons => [@buttons]
+				      );
+  $d->add('Label', -text => $message, -font => StandardTredFont(), -wraplength => 200)->pack;
+  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
+			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  return $d->Show;
+}
+
+
 
 # binding-context Tectogrammatic
 # include contrib/tr.mak
