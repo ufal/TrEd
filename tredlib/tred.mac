@@ -18,9 +18,9 @@ sub Find_nochange { Find(@_); ChangingFile(0) }
 
 #bind FindNext_nochange to F4 menu Find Next
 sub FindNext_nochange { FindNext(@_); ChangingFile(0); }
-#bind NewRBrother_nochange to F7 menu New Node (r-brother)
-#bind NewSon_nochange to Shift+F7 menu New Node (son)
-#bind DeleteThisNode_nochange to F8 menu Delete Node
+#bind NewRBrother to F7 menu New Node (r-brother)
+#bind NewSon to Shift+F7 menu New Node (son)
+#bind DeleteThisNode to F8 menu Delete Node
 #bind CopyValues_nochange to F5 menu Copy Values
 sub CopyValues_nochange { CopyValues(@_); ChangingFile(0); }
 #bind PasteValues to F6 menu Paste Values
