@@ -1,5 +1,7 @@
 package NTREDBackend;
 use Fslib;
+use Storable qw(nfreeze thaw);
+use MIME::Base64;
 use IOBackend;
 use strict;
 
@@ -87,7 +89,18 @@ sub close_backend {
 =cut
 
 sub read {
-  FSBackend::read(@_);
+  my ($fd,$fs)=@_;
+  my $fs_files = Storable::thaw(decode_base64(join "",<$fd>));
+  my $restore = $fs_files->[0];
+  if (ref($restore)) {
+    $fs->changeFS($restore->[0]);
+    $fs->changeTrees(@{$restore->[1]});
+    $fs->changeTail(@{$restore->[2]});
+    $fs->[13]=$restore->[3];
+    $fs->changePatterns(@{$restore->[4]});
+    $fs->changeHint($restore->[5]);
+    $fs->FS->renew_specials();
+  }
 }
 
 
@@ -98,7 +111,17 @@ sub read {
 =cut
 
 sub write {
-  FSBackend::write(@_);
+  my ($fh,$fsfile)=@_;
+  my $dump= [$fsfile->FS,
+	     $fsfile->treeList,
+	     [$fsfile->tail],
+	     $fsfile->[13],
+	     [$fsfile->patterns],
+	     $fsfile->hint];
+  eval {
+    print $fh (encode_base64(Storable::nfreeze([$dump])));
+    print $fh ("\n");
+  };
 }
 
 
