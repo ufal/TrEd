@@ -10,7 +10,22 @@ use XML::LibXML;
 
 sub parser_start {
   my ($self, $file)=@_;
-  my $parser=XML::LibXML->new();
+  my $parser;
+  if ($^O eq 'MSWin32' and $ENV{OS} ne "Windows_NT") {
+    $parser=XML::LibXML->new(
+			     ext_ent_handler => sub {
+			       my $f=$file;
+			       $f=~s!([\\/])[^/\\]+$!$1!; 
+			       local *F;
+			       open F,"$f$_[0]";
+			       my @f=<F>;
+			       close F;
+			       return join "",@f;
+			     }
+			    );
+  } else {
+    $parser=XML::LibXML->new();
+  }
   XML::LibXML->load_ext_dtd(1);
   XML::LibXML->validation(1);
   my $doc;
