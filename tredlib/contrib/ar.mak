@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2003-03-25 10:10:42 pajas>
+## Time-stamp: <2003-03-25 10:15:28 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -119,7 +119,6 @@ sub AfunAssign {
       $this->{'parallel'} = $parallel;
       $this->{'paren'} = $paren;
     } else {
-      print STDERR "Assigning '$fullafun' : $sPar1 ($@)\n";
       $this->{'afun'} = $fullafun;
     }
     $iPrevAfunAssigned = $this->{'ord'};
