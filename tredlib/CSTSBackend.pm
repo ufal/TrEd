@@ -1,6 +1,8 @@
 package CSTSBackend;
 
 use Fslib;
+use IOBackend qw(handle_protocol set_encoding);
+use strict;
 
 =pod
 
@@ -31,9 +33,6 @@ utility must be able to compress standard input to standard output.
 
 =cut
 
-$CSTSBackend::zcat = "/bin/zcat" unless $CSTSBackend::zcat;
-$CSTSBackend::gzip = "/usr/bin/gzip" unless $CSTSBackend::zcat;
-
 =pod
 
 =item $CSTSBackend::csts2fs
@@ -61,38 +60,23 @@ $CSTSBackend::fs2csts = "/f/common/bin-linux-intel/cstsfs.x -oformat=csts -imh";
 
 Open given file for reading or writing (depending on mode which may be
 one of "r" or "w"); Return the corresponding object blessed to
-File::Pipe. Only files the filename of which ends with `.gz' are
+File::Pipe. Only files the filename of which ends with '.gz' are
 considered to be gz-commpressed.
 
 =cut
 
 sub open_backend {
-  my ($filename, $mode)=@_;
+  my ($filename, $mode,$encoding)=@_;
   my $fh = undef;
   my $cmd = "";
   if ($filename and -r $filename) {
-    if ($mode =~/[w\>]/) {
-      $cmd = "| $CSTSBackend::gzip" if ($filename=~/.gz$/);
-      $cmd="$CSTSBackend::fs2csts $cmd > \"$filename\"";
-      print STDERR "[w $cmd]\n" if $Fslib::Debug;
-      eval {
-	$fh = new IO::Pipe();
-	$fh && $fh->writer($cmd);
-      } || return undef;
+    if ($mode eq 'w') {
+      $fh = handle_protocol($filename,'w',$CSTSBackend::fs2csts);
     } else {
-      if ($filename=~/.gz$/) {
-	$cmd = "$CSTSBackend::zcat < \"$filename\" | $CSTSBackend::csts2fs";
-      } else {
-	$cmd="$CSTSBackend::csts2fs < \"$filename\"";
-      }
-      print STDERR "[r $cmd]\n" if $Fslib::Debug;
-      eval {
-	$fh = new IO::Pipe();
-	$fh && $fh->reader($cmd);
-      } || return undef;
+      $fh = handle_protocol($filename,'r',$CSTSBackend::csts2fs);
     }
   }
-  return $fh;
+  return set_encoding($fh,$encoding);
 }
 
 =pod

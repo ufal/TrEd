@@ -1,7 +1,6 @@
 package NTREDBackend;
 use Fslib;
-use IO::Pipe;
-
+use IOBackend;
 use strict;
 
 use vars qw($ntred);
@@ -58,30 +57,14 @@ sub open_backend {
     if ($mode =~/[w\>]/) {
       $cmd = "| $ntred --upload-file \"$filename\" 2>/dev/null";
       print STDERR "[w $cmd]\n" if $Fslib::Debug;
-      eval {
-#	$fh = new IO::Pipe();
-#	$fh && $fh->writer($cmd);
-	open $fh,"$cmd";
-      } || return undef;
+      eval { open $fh,"$cmd"; } || return undef;
     } else {
       $cmd = "$ntred --dump-files \"$filename\" 2>/dev/null |";
       print STDERR "[r $cmd]\n" if $Fslib::Debug;
-      eval {
-#	$fh = new IO::Pipe();
-#	$fh && $fh->reader($cmd);
-	open $fh,"$cmd";
-      } || return undef;
+      eval { open $fh,"$cmd"; } || return undef;
     }
   }
-  no integer;
-  if ($]>=5.008 and defined $encoding) {
-    eval {
-      print STDERR "USING PERL IO ENCODING: $encoding FOR MODE $mode\n" if $Fslib::Debug;
-      binmode $fh,":encoding($encoding)";
-    };
-    print STDERR $@ if $@;
-  }
-  return $fh;
+  return IOBackend::set_encoding($fh,$encoding);
 }
 
 =pod
