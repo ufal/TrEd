@@ -304,11 +304,14 @@ if (not File::Spec->can(rel2abs)) {
   import File::Spec::Functions qw(rel2abs);
 }
 
+$stdout=\*STDOUT;
+$stderr=\*STDERR;
+
 use Exporter;
 @ISA=qw(Exporter);
 
 @EXPORT= qw($insideEval
-            $libDir
+            $libDir $stderr $stdout
             @openfiles @filelists &min &max);
 
 %backend_map=(
