@@ -510,7 +510,7 @@ sub serializeForm {
       $ret.="[".join(",",map { serializeForm($_) } $node->getChildElementsByTagName('node'))."]";
     }
     return $ret;
-  } elsif (!$node->nodeName() eq 'parentpos') {
+  } elsif ($node->nodeName() ne 'parentpos') {
     die "Can't serialize unknown node-type ",$node->nodeName(),"\n";
   }
 }
