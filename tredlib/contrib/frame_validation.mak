@@ -469,7 +469,7 @@ sub match_node {
 }
 
 sub match_form {
-  my ($node, $form, $aids, $loose_lemma) = @_;
+  my ($node, $form, $aids, $loose_lemma,$no_ignore) = @_;
   print "\nFORM: ".$V->serialize_form($form)." ==> $node->{lemma}, $node->{tag}\n" if $V_verbose;
   my @a = get_aidrefs_nodes($aids,$node);
   my $no_case=0;
@@ -480,7 +480,7 @@ sub match_form {
     my @ok_a;
     my $node_aidrefs = getAIDREFsHash($node);
     foreach (@a) {
-      if (first { $_->{afun}=~/^Aux[CP]/
+      if (!$no_ignore and first { $_->{afun}=~/^Aux[CP]/
 		  and $_->{lemma} !~ /^místo-2_/ and $node_aidrefs->{$_->{AID}} } with_AR { PDT::GetFather_AR($_,sub{0}) }) {
 	print "Ignoring AIDREF to $_->{form}\n" if $V_verbose;
       } else {
@@ -747,9 +747,9 @@ sub validate_frame {
 
   if ($word_form) {
     my @forms = $V->forms($word_form);
-    print "WORD FORM: ",$V->serialize_form($word_form)."\n" if (!$quiet and $V_verbose);
+    print "WORD FORM: ",$V->serialize_element($word_form)."\n" if (!$quiet and $V_verbose);
     if (@forms) {
-      unless (grep { match_form($node,$_,$aids) } @forms) {
+      unless (grep { match_form($node,$_,$aids,0,1) } @forms) {
 	unless ($quiet) {
 	  print "11 no word form matches: $node->{lemma},$node->{tag}\t";
 	  Position($node);
@@ -879,7 +879,7 @@ sub validate_frame {
     if ($c->{TID} ne "" and $nonoblig{get_func($c)} and
 	$c->{coref} eq "" and
 	$c->{trlemma} ne "&Rcp;" and
-	!first { $_->{AID} ne "" } $c->visible_children(FS())
+	!first { $_->{AID} ne "" } $c->visible_descendants(FS())
        ) {
       print "0X Possibly redundant added node: ",get_func($c)."\t";
       Position($c);
