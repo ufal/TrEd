@@ -13,7 +13,7 @@ http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html) used for
 working with syntactical and tectogramatical trees in The Prague
 Dependency Treebank. Because the format is a bit more general, this
 program may also find some other applications. You may extend the editor
-by writing your own macros (in Perl using functions functions defined
+by writing your own macros (in Perl using functions defined
 in tred.def standard definition file and functions defined in Fslib library
 - see Fslib documentation for more detail).
 
