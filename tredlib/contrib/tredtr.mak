@@ -4971,6 +4971,7 @@ sub ModalVerbs {
   my $pModal;			# used as type "pointer"
   my $pKoord;			# used as type "pointer"
   my $pPossVerb;		# used as type "pointer"
+  my $pVerbRBrother;		# used as type "pointer"
   my $sLemma;			# used as type "string"
   my $sTag;			# used as type "string"
   my $sVTagBeg;			# used as type "string"
@@ -5178,6 +5179,8 @@ sub ModalVerbs {
  AllSonsObj:
   if ($pVerb) {
 
+    $pVerbRBrother = RBrother($pVerb);
+
     $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
 
     $sVerbAfun = ValNo(0,$pVerb->{'afun'});
@@ -5210,7 +5213,7 @@ sub ModalVerbs {
       }
     } else {
 
-      $pVerb = RBrother($pVerb);
+      $pVerb = $pVerbRBrother;
 
       goto AllSonsObj;
     }
@@ -5266,7 +5269,7 @@ sub ModalVerbs {
 
 	$sKoord = $sKoord+"1";
 
-	$pVerb = RBrother($pVerb);
+	$pVerb = $pVerbRBrother;
 
 	goto AllSonsObj;
       }
@@ -6791,8 +6794,9 @@ sub NewSubject {
   my $pPredch;			# used as type "pointer"
   my $sPoradi;			# used as type "string"
   my $sDord;			# used as type "string"
+  my $sLemma;			# used as type "string"
 
-  $trlemma = $sPar1;
+  $sLemma = $sPar1;
 
   UnGap();
 
@@ -6930,7 +6934,7 @@ sub NewSubject {
 
   $pNew->{'ordorig'} = '';
 
-  $pNew->{'trlemma'} = $trlemma;
+  $pNew->{'trlemma'} = $sLemma;
 
   $pNew->{'func'} = 'ACT';
 
@@ -7691,7 +7695,9 @@ sub CutAllSubtrees {
 
 sub ConnectID {
 
-  $sReturn = $sPar1.'|'.$sPar2;
+  $sReturn = (ValNo(0,$sPar1).ValNo(0,'\|'));
+
+  $sReturn = (ValNo(0,$sReturn).ValNo(0,$sPar2));
 
 }
 
@@ -7715,7 +7721,7 @@ sub DisconnectID {
     goto GASLoopEnd1;
   }
 
-  if ($sChar eq '|') {
+  if ($sChar eq '\|') {
 
     $k = $j-$i;
 
