@@ -358,10 +358,16 @@ sub write {
 	  } else {
 	    print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
 	  }
-	  print $fileref "<corl>",$node->{corl} if ($node->{corl} !~ /^(?:---|\?\?\?)?$/);
-	  print $fileref "<corT>",$node->{corT} if ($node->{corT} !~ /^(?:---|\?\?\?)?$/);
-	  print $fileref "<corr>",$node->{corr} if ($node->{corr} !~ /^(?:---|\?\?\?)?$/);
-	  print $fileref "<cors>",$node->{cors} if ($node->{cors} !~ /^(?:---|\?\?\?)?$/);
+	  do {
+	    my @corefs=split /\|/,$node->{coref};
+	    my @cortypes=split /\|/,$node->{cortype};
+	    foreach (@corefs) {
+	      print $fileref "<coref ref=\"$_\" type=\"".shift(@cortypes)."\">";
+	    }
+	    foreach (split /\|/,$node->{corlemma}) {
+	      print $fileref "<coref type=\"textual\">$_";
+	    }
+	  }
 	}
       }
       foreach (grep(/^trlemmaM_/,$fsfile->FS->attributes)) {
