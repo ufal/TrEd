@@ -690,7 +690,7 @@ sub startMain {
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	_copy_output($macro_stdout,$hub);
 	$macro_stdout->close;
-	_redirect_stdout($old_stdout);
+	_revert_redirect_stdout($old_stdout);
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
 	_msg "Reloading all open files at client's request\n";
