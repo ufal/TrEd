@@ -9,8 +9,13 @@ $peer_port='2345';
 
 
   use IO::Socket;
+  use Tk;
 
-  disconnectFromRemoteControl();
+sub respond {
+    print "Got: $_" if (defined($_=<$remote_control_socket>));
+}
+
+  $top=MainWindow->new;
 
 
   return unless defined($peer_addr) and defined($peer_port);
@@ -26,11 +31,13 @@ $peer_port='2345';
     return;
   }
 
-while (defined($_=<$remote_control_socket>)) {
-  print "Got: $_";
-}
+  $top->fileevent($remote_control_socket,"readable",&respond);
+
+  MainLoop;
+
+close $remote_control_socket;
 
 print "Disconnected.\n";
 
-close $remote_control_socket;
+
 
