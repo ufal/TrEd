@@ -2,67 +2,132 @@
 ## author: Petr Pajas
 ## created: Fri Mar 17 14:48:42 CET 2000
 
+package TredMacro;
+@ISA=qw(main);
+
+#use Exporter;
+#use vars qw(@ISA @EXPORT);
+import Fslib;
+import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
+import main;
+
+#@EXPORT = qw(new SwitchContext GotoTree NextTree PrevTree GetOrd
+#             PasteNode CutNode NewTree NewTreeAfter Save
+#             SaveAndNextFile SaveAndPrevFile PlainNewSon
+#             PlainDeleteNode PrintToFile ValNo AtrNo Union
+#             Interjection ListSplit ListJoin ListEq ListAssign SubStr
+#             NewRBrother NewSon DeleteThisNode CopyValues PasteValues);
+
+sub import {
+  # If specified without parameter, exports everything but
+  # names already defined in caller package
+  # If parameters are given, exports only names specified by the parameters
+
+  my $pkg=shift;
+  my $caller = caller;
+  my %stash=%{"${pkg}::"};
+  my ($type,$val);
+  my @exports;
+
+  @exports = $#_>=0 ? @_ : keys %stash;
+  foreach my $k (@exports) {
+    (*{"${caller}::$k"} = \&{"${pkg}::$k"}, next)
+      unless $k =~ s/^(\W)//;
+    $type = $1;
+    if ($type eq '&') {
+      *{"${caller}::$k"} = \&{"${pkg}::$k"} unless defined (&{"${caller}::$k"});
+    } elsif ($type eq '$') {
+      *{"${caller}::$k"} = \${"${pkg}::$k"} unless defined (${"${caller}::$k"});
+    } elsif ($type eq '@') {
+      *{"${caller}::$k"} = \@{"${pkg}::$k"} unless defined (@{"${caller}::$k"});
+    } elsif ($type eq '%') {
+      *{"${caller}::$k"} = \%{"${pkg}::$k"} unless defined (%{"${caller}::$k"});
+    } elsif ($type eq '*') {
+      *{"${caller}::$k"} = \*{"${pkg}::$k"} unless defined (*{"${caller}::$k"});
+    } else {
+      do { require Carp; Carp::croak("Can't export symbol: $type$sym") };
+    }
+  }
+};
+
+sub new {
+  my $type = shift;
+  my $self = [];
+  bless $self, $type;
+}
+
 ###########################################################
 # Default macro definitions to make
 # calls to global subroutines less humble
 
+sub SetDisplayAttrs {
+  @main::displayAttrs=@_;
+}
+
+sub SetBalloonPattern {
+  $grp->{BalloonPattern}=join "\n",@_;
+}
+
+sub SwitchContext {
+  main::switchContext($grp,shift);
+}
+
 sub GotoTree {
   my $to=shift;
-  $_NoSuchTree=($to != max(0,min($to,$#trees)));
-  my $result=gotoTree($to,$grp);
+  $_NoSuchTree=($to != main::max(0,min($to,$#trees)));
+  my $result=main::gotoTree($to,$grp);
   $this=$root;
   return $result;
 }
 
 sub NextTree {
-  my $result=nextTree($grp);
+  my $result=main::nextTree($grp);
   $this=$root;
   $_NoSuchTree=!$result; # for compatibility with Graph2Tred
   return $result;
 }
 
 sub PrevTree { 
-  my $result=prevTree($grp);
+  my $result=main::prevTree($grp);
   $this=$root; 
   $_NoSuchTree=!$result; # for compatibility with Graph2Tred
   return $result;
 }
 
-sub GetOrd { return Ord(shift,\%attribs); }
-sub PasteNode { my $node=shift; Paste($node,shift,\%attribs); return $node; }
+sub GetOrd { return Fslib::Ord(shift,\%attribs); }
+sub PasteNode { my $node=shift; Fslib::Paste($node,shift,\%attribs); return $node; }
 sub CutNode {
   my $node=shift;
-  my $parent=Parent($node);
-  $result=Cut($node);
+  my $parent=Fslib::Parent($node);
+  $result=Fslib::Cut($node);
   $this=$parent if ($result and $this==$node);
   return $result;
 }
 
 sub NewTree {
-  newTree($grp);
+  main::newTree($grp);
   $this=$root;
 }
 
 sub NewTreeAfter {
-  newTreeAfter($grp);
+  main::newTreeAfter($grp);
   $this=$root;
 }
 
 sub Save {
-  saveFile($grp);
+  main::saveFile($grp);
+  $forceFileSaved=1;
   $FileNotSaved=0;
 }
 
 sub SaveAndNextFile {
-  Save();
+  main::Save();
   nextFile($grp);
-  $FileNotSaved=0;
 }
 
 sub SaveAndPrevFile {
-  Save();
-  prevFile($grp);
-  $FileNotSaved=0;
+  main::Save();
+  main::prevFile($grp);
 }
 
 ###########################################################
@@ -241,8 +306,12 @@ sub NewSon {
 sub DeleteThisNode {
 ## Deletes current node and shifts
 ## ords of the other nodes appropriately
-  return unless ($this and Parent($this));
-
+  unless ($this and Parent($this)) {
+    print "This is $this\n";
+    print "Form is $this->{form}\n";
+    print "Parent is :",Parent($this),"\n";
+    return;
+  }
   my $parent=Parent($this);
   my $ord=Ord($this,\%attribs);
   if (DeleteLeaf($this)) {
