@@ -27,15 +27,6 @@ sub new {
   my $self = shift;
   my $class = ref($self) || $self;
   my $new = { pinfo     => {},	# maps canvas objects to nodes
-#  	      ypos_info  => {},	# maps nodes to y positions
-#  	      xpos_info  => {},	# maps nodes to x positions
-#  	      x_info     => {},	# maps node text to x positions
-#  	      wd_info    => {},	# maps nodes to widths
-#  	      txt_info   => {},	# maps nodes to text objects
-#  	      line_info  => {},	# maps nodes to line objects
-#  	      oval_info  => {},	# maps nodes to oval objects
-#  	      box_info   => {},	# maps nodes to box objects
-#  	      txtbg_info => {},	# maps nodes to box_backround objects
 	      canvas     => shift, @_ };
 
   bless $new, $class;
@@ -380,8 +371,8 @@ sub redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext)=@_;
   my $node;
   my $parent;
-  
-  my %Opts = (	      
+
+  my %Opts = (
 	      Oval            =>  [],
 	      TextBox         =>  [],
 	      EdgeTextBox     =>  [],
@@ -393,7 +384,6 @@ sub redraw {
 	      TextBg          =>  [],
 	      EdgeTextBg      =>  []
 	     );
-  
 
   my (@node_patterns,@edge_patterns,@patterns);
 
@@ -457,12 +447,11 @@ sub redraw {
 
   foreach $node (@{$nodes}) {
     my %NodeOpts = {};
-  # Something like draw_node_hook should be called here
-    
+    # Something like draw_node_hook should be called here
     $parent=$node->parent;
     use integer;
     if ($parent) {
-      my $line= 
+      my $line=
 	$self->canvas->createLine($self->get_node_pinfo($node,"XPOS")+
 				  $self->get_nodeWidth/2,
 				  $self->get_node_pinfo($node,"YPOS")+
@@ -774,6 +763,8 @@ text.
 
 sub interpolate_text_field {
   my ($self,$node,$text)=@_;
+  # make root visible for the evaluated expression
+  my $root=$node; $root=$root->parent while ($root->parent);
   $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval $self->interpolate_refs($node,$1)/eg;
   return $text;
 }
