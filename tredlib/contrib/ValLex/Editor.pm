@@ -14,6 +14,8 @@ require Tk::Checkbutton;
 require Tk::Button;
 require Tk::Optionmenu;
 
+sub limit { 100 }
+
 sub show_dialog {
   my ($top,$data,$select_field,$autosave,$confs,
       $wordlist_item_style,
@@ -84,11 +86,12 @@ sub show_dialog {
 		 $d->Busy(-recurse=> 1);
 		 my $field=$f->subwidget("wordlist")->focused_word();
 		 $f->data()->reload();
-		 $f->fetch_data();
 		 if ($field) {
 		   my $word=$f->data()->findWordAndPOS(@{$field});
 		   $f->wordlist_item_changed($f->subwidget("wordlist")->focus($word));
 
+		 } else {
+		   $f->subwidget("wordlist")->fetch_data();
 		 }
 		 $d->Unbusy(-recurse=> 1);
 	       },$d,$vallex]);
@@ -352,8 +355,8 @@ sub save_data {
 }
 
 sub fetch_data {
-  my ($self)=@_;
-  $self->subwidget("wordlist")->fetch_data();
+  my ($self,$word)=@_;
+  $self->subwidget("wordlist")->fetch_data($word);
   $self->wordlist_item_changed();
 }
 
@@ -362,7 +365,19 @@ sub wordlist_item_changed {
 
   my $h=$self->subwidget('wordlist')->widget();
   my $word;
-  $word=$h->infoData($item) if ($h->infoExists($item));
+
+#   print "$item ";
+   $word=$h->infoData($item) if ($h->infoExists($item));
+#   print $self->data->getLemma($word),"\n";
+#   $self->subwidget('wordlist')->fetch_data($word);
+#   $self->subwidget('wordlist')->focus($word);
+   $self->subwidget('wordlist')->focus_index($item);
+#   if ($h->infoAnchor()) {
+#     print "Anchor: ",$h->infoAnchor()," ";
+#     print $self->data->getLemma($h->infoData($h->infoAnchor())),"\n";
+#   }
+#   print "\n";
+
   $self->subwidget('wordnote')->set_data($self->data()->getSubElementNote($word));
   $self->subwidget('wordproblem')->fetch_data($word);
   $self->subwidget('framelist')->fetch_data($word);
@@ -401,7 +416,11 @@ sub addword_button_pressed {
   my $label=$d->add(qw/Label -wraplength 6i -justify left -text Lemma/);
   $label->pack(qw/-padx 5 -side left/);
 
-  my $ed=$d->Entry(qw/-width 50 -background white/);
+  my $ed=$d->Entry(qw/-width 50 -background white/,
+		   -font =>
+		   $self->subwidget('wordlist')->subwidget('wordlist')
+		   ->Subwidget('scrolled')->cget('-font')
+		  );
   $ed->pack(qw/-padx 5 -expand yes -fill x -side left/);
   $ed->focus;
 
@@ -412,7 +431,7 @@ sub addword_button_pressed {
 
     my $word=$self->data()->addWord($result,$POS);
     if ($word) {
-      $self->subwidget('wordlist')->fetch_data();
+      $self->subwidget('wordlist')->fetch_data($result);
       $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
     } else {
       $self->wordlist_item_changed($self->subwidget('wordlist')->focus_by_text($result,$POS));
