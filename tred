@@ -1039,6 +1039,15 @@ sub setFSLockInfo {
   $fsfile->userData->{lockinfo} = $lockinfo;
 }
 
+sub _clear_err {
+  undef $!; undef $@;
+}
+
+sub _last_err {
+  my ($ret) = grep { $_ ne "" } ($_[0], $@, conv_from_locale($!));
+  return $ret;
+}
+
 sub setLock {
   my ($f) = @_; # filename
   my $proto = IOBackend::get_protocol($f);
@@ -1046,7 +1055,7 @@ sub setLock {
   return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
   my $lock=eval { IOBackend::open_backend($f.".lock","w") };
   if ($@ or not ref($lock)) {
-    warn "Error creating lock-file: $@ ".conv_from_locale($!)."\n";
+    warn "Error creating lock-file: "._last_err()."\n";
     return undef;
   };
   chmod 644, $lock if $proto eq 'file';
@@ -1211,6 +1220,7 @@ sub closeFile {
       my $requires = $fsfile->metaData('fs-require');
       if ($requires) {
 	foreach my $req (@$requires) {
+	  $fsfile->changeMetaData('ref',{}) unless ref($fsfile->metaData('ref'));
 	  my $req_fs = $fsfile->metaData('ref')->{$req->[0]};
 	  if (ref($req_fs) eq 'FSFile') {
 	    @{$req_fs->userData()->{'fs-part-of'}} =
@@ -1724,10 +1734,10 @@ sub openFile {
   # Autosave file requested
   if ($recover eq 'Yes') {
     # Open recovery file
-    undef $!; undef $@;
+    _clear_err();
     $fsfile =
       FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
-    $grp->{lastOpenError}="$@\n".conv_from_locale($!) if ($@.$! ne "");
+    $grp->{lastOpenError}=_last_err();
     if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
       # Success
       $fsfile->changeFilename($f);
@@ -1745,10 +1755,10 @@ sub openFile {
 		    -buttons => ['Open the original file', 'Ignore', 'Cancel']);
       if ($answer eq 'Open the original file') {
 	closeFile($win,-no_update => 1) unless $opts{-preload};
-	undef $!; undef $@;
+	_clear_err();
 	$fsfile=
 	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
-	$grp->{lastOpenError}="$@\n".conv_from_locale($!) if ($@.$! ne "");
+	$grp->{lastOpenError}=_last_err();
 	setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
       } elsif ($answer eq 'Ignore') {
 	redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
@@ -1765,14 +1775,14 @@ sub openFile {
       unlink $autosave;
     }
     # Open requeseted file
-    undef $!; undef $@;
+    _clear_err();
     $fsfile=
       FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
-    $grp->{lastOpenError}="$@\n".conv_from_locale($!) if ($@.$! ne "");
+    $grp->{lastOpenError}=_last_err();
     setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
   }
 
-  if ($fsfile) {
+  if ($fsfile and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
 
 
@@ -1801,6 +1811,8 @@ sub openFile {
       }
     }
   }
+  # don't make this an else for the above if: something might have changed in
+  # the above block
   unless ($fsfile and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
     unless ($no_err) {
       my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
@@ -1973,7 +1985,8 @@ sub saveFile {
     eval {
       IOBackend::rename_uri($f."~",$f); # if (-f $f);
     };
-    errorMessage($win,"Error while renaming backup file $f~ back to $f.\n".$@."\n".conv_from_locale($!)) if $@ or $!;
+    my $err = _last_err();
+    errorMessage($win,"Error while renaming backup file $f~ back to $f.\n".$err) if $err;
     return -1;
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
