@@ -23,8 +23,11 @@
       general, <application>TrEd</application> may surely find other applications as well.
     </para>
     <figure>
-      <title>TrEd's main window</title>
-      <graphic fileref="pics/tred1"/>
+      <title>TrEd with two views customized by a set of macros for visual comparison
+	of trees annotated on the Tectogrammatical Layer of the Prague
+	Dependency Treebank.
+      </title>
+      <graphic fileref="pics/treddiff"/>
     </figure>
     <para><application>TrEd</application> may be extended by <emphasis>user-defined
       macros</emphasis>, which are basically functions written in
@@ -628,6 +631,46 @@ root# <userinput>make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><guimenuitem>Close current view</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Closes focused view if more than one views are present.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Split view horizontally</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Create and focus a new view by splitting the current
+	      view horizontally. Sizes of the new and old view
+	      may be adjusted by dragging the thin that separats them.
+	      User may switch between views by
+	      clicking into the view he or she wants to focus. All
+	      subsequent keyboard shorcuts as well as menu and button
+	      commands are applied to the focused view. The focused view
+	      is distinguished from other views by black border
+	      drawn around it (both color and width of this border
+	      may be customized, see
+	      <link linkend="highlightwindowcolor"><varname>HighlightWindowColor</varname></link>
+	      and <link linkend="highlightwindowwidth"><varname>HighlightWindowWidth</varname></link>
+	      configuration options described bellow).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem>Split view vertically</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Create and focus a new view by splitting the current
+	      view vertically. Sizes of the new and old view
+	      may be adjusted by dragging the thin that separats them.
+	      See also little more detailed description of 
+	      <guimenuitem>Split view horizontally</guimenuitem>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><guimenuitem>List of sentences ...</guimenuitem></term>
 	  <listitem>
 	    <para>
@@ -834,27 +877,21 @@ root# <userinput>make install</userinput>
 	currently open files and change current
 	file-list.</para>
       <para>
-	<application>TrEd</application> lets user to have multiple
-	files open in case the user tries to open a new file while
-	modified and not saved file is present in
-	<application>TrEd</application>. In this situation
-	<application>TrEd</application> offers the user to save all
+	<application>TrEd</application> allows having multiple
+	files open. In case the user tries to open a file 
+	while another file is already open, modified, and yet not saved,
+	<application>TrEd</application> offers the user to save
 	changes in the current file and close it, close it withought
 	saving or to <emphasis>keep</emphasis> the file open. In the
 	latter case, the file is not closed nor any changes are
-	discarded but the file is placed into the
-	<guimenu>Session</guimenu> menu under the <guimenuitem>Kept
-	files</guimenuitem> label. Any number of files can be kept
-	simultaneously open in this way. User may resume a kept file
-	by choosing the corresponding item in the
+	discarded but the file stays open and remains in the
+	<guimenu>Session</guimenu> menu under the <guimenuitem>Open
+	files</guimenuitem> label. Any number of files can be
+	simultaneously open in this way. User may resume
+	any open file and display it
+	in the current window by choosing the corresponding item in the
 	<guimenu>Session</guimenu> menu.
       </para>
-      <note>
-	<para>The currently open file is not considered postponed or kept
-	  and therefore is not displayed in the
-	  <guimenu>Session</guimenu> menu.
-	</para>
-      </note>
       <para>
 	The <guimenuitem>File lists</guimenuitem> contains a list of
 	currently present file-lists. User may switch to another
@@ -1247,6 +1284,42 @@ root# <userinput>make install</userinput>
 	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>List
 	      of sentences...</guimenuitem>
 		</menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/hsplit"/></entry>
+	      <entry><menuchoice><guimenu>View</guimenu>
+		  <guimenuitem>Split view horizontally</guimenuitem>
+		</menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/vsplit"/></entry>
+	      <entry><menuchoice><guimenu>View</guimenu>
+		  <guimenuitem>Split view vertically</guimenuitem>
+		</menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/vsplit"/></entry>
+	      <entry><menuchoice><guimenu>View</guimenu>
+		  <guimenuitem>Close current view</guimenuitem>
+		</menuchoice></entry>
+	    </row>
+	    <row>
+	      <entry><graphic fileref="pics/tiewins"/></entry>
+	      <entry>This may have two states. If pressed,
+		all displayed views are tied together, so that
+		pressing <inlinegraphic fileref="pics/left"/> or
+		<inlinegraphic fileref="pics/right"/> buttons
+		as well as invoking
+		<menuchoice>
+		  <guimenu>View</guimenu>
+		  <guisubmenu>Previous tree</guisubmenu>
+		</menuchoice> or
+		<menuchoice>
+		  <guimenu>View</guimenu>
+		  <guisubmenu>Next tree</guisubmenu>
+		</menuchoice>
+		applies to all displayed views.
+	      </entry>
 	    </row>
 	  </tbody>
 	</tgroup>
@@ -1695,6 +1768,12 @@ root# <userinput>make install</userinput>
 	    <para>Background color of the tree-view canvas.</para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="highlightwindowcolor">
+	  <term><literal>HighlightWindowColor</literal></term>
+	  <listitem>
+	    <para>Color of the frame drawn around the focused view.</para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry>
 	  <term><literal>CurrentNodeColor</literal></term>
 	  <listitem>
@@ -1841,6 +1920,12 @@ root# <userinput>make install</userinput>
     <sect2>
       <title>Tree displaying options</title>
       <variablelist>
+	<varlistentry id="highlightwindowwidth">
+	  <term><literal>HighlightWindowWidth</literal></term>
+	  <listitem>
+	    <para>Width of the frame drawn around the focused view.</para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry>
 	  <term><literal>LineWidth</literal></term>
 	  <listitem>
@@ -3786,7 +3871,7 @@ sub MakeSentence {
 	    <row>
 	      <entry>file_resumed_hook</entry>
 	      <entry>no</entry>
-	      <entry>Executed after a postponed (kept) file is resumed.</entry>
+	      <entry>Executed after an already open (kept) file is resumed.</entry>
 	    </row>
 	    <row>
 	      <entry>pre_switch_context_hook(<replaceable>previous</replaceable>,<replaceable>next</replaceable>)</entry>
