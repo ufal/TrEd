@@ -52,9 +52,12 @@ functor (attribute C<func>)
 
 =cut
 sub is_coord_TR {
-  my ($node)=@_;
-  return $node->{func} =~ /^(?:CONJ|DISJ|GRAD|ADVS|CSQ|REAS)$/;
+  my $node=$_[0] || $this;
+  return 0 unless $node;
+  return $node->{func} =~ qr/CONJ|CONFR|DISJ|GRAD|ADVS|CSQ|REAS|CONTRA|APPS|OPER/;
 }
+
+
 
 =item PDT::is_apos(node)
 
@@ -580,6 +583,120 @@ sub InitTROrderingAttributes {
     $node->{sentord}=$node->{ord} if $node->{sentord} eq "";
   }
 }
+
+#####include /home/stepanek/objsearch/tgsearch.btred
+
+=item PDT::FilterSons_TR
+
+=cut
+
+sub FilterSons_TR { # node filter suff from
+  my ($node,$filter,$suff,$from)=(shift,shift,shift,shift);
+  my @sons;
+  $node=$node->firstson;
+  while ($node) {
+    return @sons if $suff && @sons;
+    unless ($node==$from){ # on the way up do not go back down again
+      if(($suff&&is_valid_member_TR($node))
+	 ||(!$suff&&!is_valid_member_TR($node))){ # this we are looking for
+	push @sons,$node if !$suff or $suff && &$filter($node);
+      }
+      push @sons,FilterSons($node,$filter,1,0)
+	if (!$suff
+	    &&is_coord_TR($node)
+	    &&!is_valid_member_TR($node))
+	  or($suff
+	     &&is_coord_TR($node)
+	     &&is_valid_member_TR($node));
+    } # unless node == from
+    $node=$node->rbrother;
+  }
+  @sons;
+} # FilterSons_TR
+
+=item PDT::GetChildren_TR ($node, $filter)
+
+=cut
+
+sub GetChildren_TR { # node filter
+  my ($node,$filter)=(shift,shift);
+  my @sons;
+  my $a=$node;
+  my $from;
+  push @sons,FilterSons($node,$filter,0,0);
+  if(is_valid_member_TR($node)){
+    my @oldsons=@sons;
+    while($a and $a->{func}ne'SENT'
+	  and (is_valid_member_TR($a) || !is_coord_TR($a))){
+      $from=$a;$a=$a->parent;
+      push @sons,FilterSons($a,$filter,0,$from) if $a;
+    }
+    if ($a->{func}eq'SENT'){
+      stderr("Error: Missing coordination head: ",ThisAddressNTRED($node),"\n");
+      @sons=@oldsons;
+    }
+  }
+  grep &$filter($_),@sons;
+} # GetChildren_TR
+
+
+=item PDT::is_member_TR ($node?)
+
+Returns true if the given node is a member of a coordination,
+aposition or operation according to its memberof and/or operand
+attribute and its parent's functor.
+
+=cut
+
+# the given node is a member of coordination
+sub is_member_TR {
+  my $node=$_[0] || $this;
+  return 0 if !$node->parent or !is_coord_TR($node->parent);
+  return 1 if $node->parent->{func}=~/APPS/ and $node->{memberof} =~ /AP/;
+  return 1 if $node->parent->{func}=~/OPER/ and $node->{operand} =~ /OP/;
+  return 1 if $node->{memberof} =~ /CO/;
+}
+
+=item PDT::is_valid_member_TR ($node?)
+
+Similar to is_member_TR but also check for validity with
+valid_member_TR.
+
+=cut
+
+sub is_valid_member_TR {
+  my $node=$_[0] || $this;
+  is_member_TR($node) && valid_member_TR($node)
+}
+
+=item PDT::valid_member_TR ($node?)
+
+Check, that the possible memberof and operand attributes of the given
+node are in accord with its parent's functor. Return 0 if error is
+found, 1 if the settings seem correct. Note: returns 1 even if the
+given node has no memberof and operand at all.
+
+=cut
+
+sub valid_member_TR {
+  my $node=$_[0] || $this;
+  return 0 if (!$node->parent or !is_coord_TR($node->parent)) and
+    $node->{memberof} =~ /CO|AP/ and $node->{operand} =~ /OP/;
+  if ($node->parent) {
+    return 0 if $node->parent->{func}=~/APPS/ and
+      ($node->{memberof} =~ 'CO' or $node->{operand}=~ /OP/);
+    return 0 if $node->parent->{func}=~/OPER/ and
+      ($node->{memberof} =~ /CO|AP/);
+    return 0 if is_coord_TR($node->parent) and
+      $node->parent->{func}!~/APPS|OPER/ and
+      ($node->{operand} =~ /OP/ or $node->{memberof} =~ /AP/);
+  }
+  return 1;
+}
+
+
+
+
 
 1;
 
