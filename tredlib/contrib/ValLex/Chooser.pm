@@ -359,6 +359,39 @@ sub create_widget {
     $lexframelist->configure(-browsecmd => [\&framelist_item_changed,
 					    $self
 					   ]);
+
+    my $fsearch_frame=$lexframe_frame->Frame(-takefocus => 1);
+    $fsearch_frame->Label(-text => 'Search frame: ',-underline => 7)->pack(qw/-side left/);
+    $fsearch_frame->pack(qw/-side top -pady 6 -fill x/);
+    my $search_entry = $fsearch_frame->Entry(qw/-width 50 -background white -validate key/,
+					     -validatecommand => [\&quick_search,$self,$lexframelist])
+      ->pack(qw/-side left -fill both -expand yes/);
+    $top->toplevel->bind('<Alt-f>',sub { $search_entry->focus() }) if $i==0;
+    $search_entry->bind('<Up>',[$lexframelist->widget(),'UpDown', 'prev']);
+    $search_entry->bind('<Down>',[$lexframelist->widget(),'UpDown', 'next']);
+    $search_entry->bind('<F3>',[sub { my ($w,$self,$fl)=@_;
+				      my $h=$fl->widget();
+				      my $t = $h->infoAnchor();
+				      $h->UpDown('next');
+				      if ($t eq $h->infoAnchor()
+					  or
+					  !$self->quick_search($fl,$w->get)) {
+					($t) = $h->infoChildren("");
+					$h->anchorSet($t);
+					$h->selectionClear();
+					$h->selectionSet($t);
+					$h->see($t);
+					$self->quick_search($fl,$w->get);
+				      }
+				    },$self,$lexframelist]);
+
+    $search_entry->bind('<Return>',[sub { my ($w,$self,$fl)=@_;
+					  $self->quick_search($fl,$w->get);
+					},$self,$lexframelist]);
+    $search_entry->bind('<KP_Enter>',[sub { my ($w,$self,$fl)=@_;
+					    $self->quick_search($fl,$w->get);
+					  },$self,$lexframelist]);
+
   }
 
 #  my $lexframenote=TrEd::ValLex::TextView->new($data, undef, $lexframe_frame, "Note",
@@ -389,6 +422,37 @@ sub create_widget {
 		frame_editor => $frame_editor_styles
 	       };
 }
+
+sub quick_search {
+  my ($self,$fl,$value)=@_;
+  return defined($self->focus_by_text($value,$fl));
+}
+
+
+sub focus_by_text {
+  my ($self,$text,$fl,$caseinsensitive)=@_;
+  my $h=$fl->widget();
+#  use locale;
+  my $st = $h->infoAnchor();
+  my ($t) = ($st eq "") ? $h->infoChildren("") : $st;
+  while ($t ne "") {
+    my $item=$h->itemCget($t,0,'-text');
+    if (!$caseinsensitive and index($item,$text)>=0 or
+	$caseinsensitive and index(lc($item),lc($text))>=0) {
+      $h->anchorSet($t);
+      $h->selectionClear();
+      $h->selectionSet($t);
+      $h->see($t);
+      return $t;
+    }
+    $t=$h->infoNext($t);
+    last if $t eq $st;
+    ($t) = $h->infoChildren("") if ($t eq "" and $st);
+    last if $t eq $st;
+  }
+  return undef;
+}
+
 
 sub focus_framelist {
   my ($w,$self,$framelist);
