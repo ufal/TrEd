@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-07-02 09:59:09 pajas>
+## Time-stamp: <2001-07-31 12:27:01 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -21,8 +21,8 @@ sub file_opened_hook {
 
   foreach ("New Node","Remove Active Node","Insert New Tree",
 	   "Insert New Tree After", "Remove Whole Current Tree") {
-    $grp->{NodeMenu}->entryconfigure($_,-state => 'disabled');
-    $grp->{ContextsMenu}->configure(-state=>'disabled');
+    $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'disabled');
+    $grp->{framegroup}->->{ContextsMenu}->configure(-state=>'disabled');
   }
   $FileNotSaved=0;
 }
@@ -71,7 +71,7 @@ sub QuerySemtam {
   else {
     @selected=($node->{trlemma});
   }
-  if (main::selectValuesDialog($grp,$atr,
+  if (main::selectValuesDialog($grp->{framegroup},$atr,
 			   [ map { $_->[0] } @trs ],
 			       \@selected,0,undef,1)) {
 
@@ -127,7 +127,7 @@ sub QueryTrlemma {
   else {
     @selected=($node->{trlemma});
   }
-  if (main::selectValuesDialog($grp,$atr,
+  if (main::selectValuesDialog($grp->{framegroup},$atr,
 			   [ map { &main::encode($_->[0]) } @trs ],
 			       \@selected,0,undef,1)) {
 
@@ -190,7 +190,7 @@ sub rotate_func {
 # bind edit_commentA to key Shift+1
 sub edit_commentA {
   if (not $grp->{FSFile}->FS->exists('commentA')) {
-    $grp->{top}->toplevel->messageBox
+    $grp->toplevel->messageBox
       (
        -icon => 'warning',
        -message => 'Sorry, no attribute for annotator\'s comment in this file',
@@ -201,7 +201,7 @@ sub edit_commentA {
     return;
   }
   my $value=$this->{commentA};
-  $value=main::QueryString($grp,"Enter comment","commentA",$value);
+  $value=main::QueryString($grp->{framegroup},"Enter comment","commentA",$value);
   if (defined($value)) {
     $this->{commentA}=$value;
   }
@@ -245,7 +245,7 @@ sub PasteFromClipboard {
 
 #bind GotoTreeAsk to key Alt+G menu Go to...
 sub GotoTreeAsk {
-  my $to=main::QueryString($grp,"Give a Tree Number","Number");
+  my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
 
   $FileNotSaved=0;
   if ($to=~/#/) {

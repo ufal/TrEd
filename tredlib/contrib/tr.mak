@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-06-07 20:34:01 pajas>
+## Time-stamp: <2001-07-27 18:53:44 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
@@ -66,7 +66,7 @@ sub QuerySemtam {
   else {
     @selected=($node->{trlemma});
   }
-  if (main::selectValuesDialog($grp,$atr,
+  if (main::selectValuesDialog($grp->{framegroup},$atr,
 			   [ map { $_->[0] } @trs ],
 			       \@selected,0,undef,1)) {
 
@@ -121,7 +121,7 @@ sub QueryTrlemma {
   else {
     @selected=($node->{trlemma});
   }
-  if (main::selectValuesDialog($grp,$atr,
+  if (main::selectValuesDialog($grp->{framegroup},$atr,
 			   [ map { &main::encode($_->[0]) } @trs ],
 			       \@selected,0,undef,1)) {
 
@@ -183,7 +183,7 @@ sub rotate_func {
 # bind edit_commentA to key Shift+1
 sub edit_commentA {
   if (not $grp->{FSFile}->FS->exists('commentA')) {
-    $grp->{top}->toplevel->messageBox
+    $grp->toplevel->messageBox
       (
        -icon => 'warning',
        -message => 'Sorry, no attribute for annotator\'s comment in this file',
@@ -194,7 +194,7 @@ sub edit_commentA {
     return;
   }
   my $value=$this->{commentA};
-  $value=main::QueryString($grp,"Enter comment","commentA",$value);
+  $value=main::QueryString($grp->{framegroup},"Enter comment","commentA",$value);
   if (defined($value)) {
     $this->{commentA}=$value;
   }
