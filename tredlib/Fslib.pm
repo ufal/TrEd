@@ -1636,7 +1636,7 @@ FSFile - Simple OO interface for FS files.
   my $file="trees.fs");
   my $fs = FSFile->newFSFile($file);
 
-  ($fs->lastTreeNo<0) || die "File is empty or corrupted!\n"
+  if ($fs->lastTreeNo<0) { die "File is empty or corrupted!\n" }
 
   foreach my $tree ($fs->trees) {
 
