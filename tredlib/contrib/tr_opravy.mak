@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-25 11:04:16 pajas>
+## Time-stamp: <2004-04-08 15:35:21 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -58,8 +58,8 @@ sub with_AR (&) {
   } else {
     PDT::ARstruct();
     my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
-    die $@ if $@;
     PDT::TRstruct();
+    die $@ if $@;
     return wantarray ? @$ret : $ret;
   }
 }
@@ -69,8 +69,8 @@ sub with_TR (&) {
   if (which_struct() eq 'AR') {
     PDT::TRstruct();
     my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
-    die $@ if $@;
     PDT::ARstruct();
+    die $@ if $@;
     return wantarray ? @$ret : $ret;
   } else {
     my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
@@ -480,8 +480,11 @@ sub expand_coord_apos_auxcp {
 sub children_of_auxcp {
   my ($node) = @_;
   my @c = expand_auxcp($node);
+  @c = map { expand_coord_apos_auxcp($_) } @c;
   if (@c>1 and first { $_->{afun} !~ /ExD/ } @c) {
-    print "ERROR:\tAux[CP] with too many childnodes\t";
+    print "ERROR:\tAux[CP] with too many childnodes ";
+    print map {$_->{form}.".".$_->{afun}.".".$_->{AID}." "} @c;
+    print "\t";
     PDT::TRstruct();
     print ThisAddressNTRED($node);
     PDT::ARstruct();
@@ -491,7 +494,7 @@ sub children_of_auxcp {
     $af="/net/su/h/pdt2004/Corpora/PDT_1.0/Data/fs/$af";
     print "\t$af\n";
   }
-  return map { expand_coord_apos_auxcp($_) } @c;
+  return @c;
 }
 
 #bind light_auxcp_children to Ctrl+f menu Mark nodes expected to refer to current node
