@@ -262,7 +262,10 @@ sub GotoPrevNodeLin {
 ######## PDT specific stuff ########
 
 sub file_opened_hook {
-  if (exists $grp->{FSFile}->FS->defs->{TR}) {
+  if (exists $grp->{FSFile}->FS->defs->{x_TNT}) {
+    print STDERR "file_open_hook: Switching context to Transfer\n";
+    return SwitchContext('Transfer');
+  } if (exists $grp->{FSFile}->FS->defs->{TR}) {
     print STDERR "file_open_hook: Switching context to Tectogrammatic\n";
     return SwitchContext('Tectogrammatic') 
       unless (CurrentContext eq 'TR_Correction' or
@@ -298,6 +301,9 @@ sub file_opened_hook {
 
 #binding-context PDT
 #include <contrib/pdt.mak>
+
+#binding-context Transfer
+#include <contrib/transf.mak>
 
 package TredMacro;
 
