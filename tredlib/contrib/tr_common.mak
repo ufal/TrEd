@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-01 11:30:27 pajas>
+## Time-stamp: <2001-08-02 13:40:01 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -85,7 +85,7 @@ sub QueryTrlemma {
      ['on-ne¾iv.','on','INAN','SG'],
      ['ona','on','FEM','SG'],
      ['ono','on','NEUT','SG'],
-     ['my','my','???','PL'],
+     ['my','já','???','PL'],
      ['vy','ty','???','PL'],
      ['oni-¾iv.','on','ANIM','PL'],
      ['ony-ne¾iv','on','INAN','PL'],

@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-01 10:57:23 pajas>
+## Time-stamp: <2001-08-06 10:44:42 pajas>
 
 package TredMacro;
 
@@ -43,7 +43,6 @@ sub import {
     if ($type eq '&') {
       *{"${caller}::$k"} = \&{"${pkg}::$k"};
     } elsif ($type eq '$') {
-      warn "EXPORTING $type $k of $pkg to $caller\n";
       *{"${caller}::$k"} = \${"${pkg}::$k"};
     } elsif ($type eq '@') {
       *{"${caller}::$k"} = \@{"${pkg}::$k"};

@@ -59,7 +59,7 @@ ask "Chcete pokracovat" || exit 0
 
 echo
 findperlbin
-until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ]; do
+until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "Pouzit Perl z $PERLBIN"; do
   echo "Na vasem pocitaci nebyla nalezena instalace perlu."
   echo "Muzete pokracovat bud instalaci ActiveState perlu"
   echo "nebo musite rucne zadat uplnou cestu k programu 'perl'"
@@ -120,7 +120,7 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
   UPGRADE=1
   echo
   echo "TrEd je jiz nainstalovan v adresari $TREDDIR"
-  ask "Chcete provest upgrade" || exit 0
+  ask "Chcete provest upgrade v tomto adresari" || exit 0
   if ask "Chcete zachovat stavajici konfiguracni soubor"; then
     test -f "$TREDDIR/tredlib/tredrc" && \
       mv "$TREDDIR/tredlib/tredrc" "$TREDDIR/tredlib/tredrc.sav"

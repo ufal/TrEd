@@ -30,6 +30,7 @@ use Fslib;
 
 $gov="ordorig";
 $ord="ord";
+$sentord="sentord";
 
 $normal_gap='gappost';
 $no_node_gap='gappre';
@@ -455,7 +456,7 @@ my %pcdata = (
  @misc
 );
 
-%initial_node_values = {
+%initial_node_values = (
   'afun' => '???',
   'gender' => '???',
   'number' => '???',
@@ -476,7 +477,7 @@ my %pcdata = (
   'corsnt' => '???',
   'antec' => '???',
   'parenthesis' => '???'
-};
+);
 
 $header=\@ARheader;
 
@@ -502,15 +503,11 @@ sub build_tree {
   foreach (reverse @_) {
     if (ref($_) and ! $_->parent) {
       Paste($_,$root,{ $ord => ' N'}); # paste using $ord as the numbering attribute
-#        {
-#  	my $node=$root->firstson;
-#  	print STDERR $_->{form};
-#  	while ($node) {
-#  	  print STDERR "-+-",$node->{form};
-#  	  $node=$node->rbrother;
-#  	}
-#  	print STDERR "\n";
-#        }
+    }
+  }
+  foreach (@_) {
+    if ($_->{$ord} eq "") {
+      $_->{$ord}=$_->{$sentord};
     }
   }
   unless (ref($root)) {
