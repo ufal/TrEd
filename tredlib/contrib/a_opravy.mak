@@ -1,7 +1,7 @@
 ## This is macro file for Tred                             -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2001-07-02 12:35:38 pajas>
+## Time-stamp: <2001-07-27 18:53:49 pajas>
 
 package Analytic_Correction;
 @ISA=qw(Analytic TredMacro main);
@@ -21,7 +21,7 @@ sub insert_node_to_pos {
   # ask for ordinal number
   # splice given node to that position
   # reorder nodes
-  my $value=main::QueryString($grp,"Enter new ord","ord",$value);
+  my $value=main::QueryString($grp->{framegroup},"Enter new ord","ord",$value);
   return unless defined $value;
   my @nodes=GetNodes();
   splice @nodes,Index(\@nodes,$this),1;
@@ -105,7 +105,7 @@ sub editQuery {
   my $d;
   my $ed;
 
-  $d=$grp->{'top'}->DialogBox(-title => shift,
+  $d=$grp->level->DialogBox(-title => shift,
 			   -buttons => ["OK","Cancel"]);
   addBindTags($d,'dialog');
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
@@ -162,7 +162,7 @@ sub PerlSearch {
 
 #bind GotoTreeAsk to key Alt+G menu Go to...
 sub GotoTreeAsk {
-  my $to=QueryString($grp,"Give a Tree Number","Number");
+  my $to=QueryString($grp->{framegroup},"Give a Tree Number","Number");
   GotoTree($to+1) if defined $to;
   $FileNotSaved=0;
 }

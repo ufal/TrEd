@@ -90,11 +90,11 @@ sub connectToRemoteControl {
   if ($^O eq "MSWin32") {
     print STDERR "MSWin32 platform detected.\n";
     $remote_control_socket_sel = new IO::Select( $remote_control_socket );
-    $remote_control_notify=$grp->{top}->
+    $remote_control_notify=$grp->toplevel->
       repeat(100,[\&periodicSocketCanReadCheck, $grp ]);  
   } else {
     print STDERR "Non-MS platform: good choice!\n";
-    $grp->{top}->fileevent($remote_control_socket,'readable',[\&onRemoteCommand,$grp]);
+    $grp->toplevel->fileevent($remote_control_socket,'readable',[\&onRemoteCommand,$grp]);
   }
 }
 
@@ -106,16 +106,16 @@ sub disconnectFromRemoteControl {
   my $message=shift || "Disconnecting from remote control.";
   if (defined($remote_control_socket)) {
     if ($^O eq "MSWin32") {
-      $grp->{top}->afterCancel($remote_control_notify);
+      $grp->toplevel->afterCancel($remote_control_notify);
       $remote_control_socket_sel->remove($remote_control_socket) if ($^O eq 'MSWin32');
       undef $remote_control_socket_sel;
     } else {
-      $grp->{top}->fileevent($remote_control_socket,'readable',undef);
+      $grp->toplevel->fileevent($remote_control_socket,'readable',undef);
     }
     close $remote_control_socket;
     undef $remote_control_socket;
     print STDERR "$message\n";
-    $grp->{top}->toplevel->
+    $grp->toplevel->toplevel->
       messageBox(-icon => 'info',
 		 -message => $message,
 		 -title => 'Remote control', -type => 'ok');
@@ -127,7 +127,7 @@ sub askRemoteControlInfo {
   my $peer_port    = shift || $default_remote_port;
 
   print "creating dialog\n";
-  my $d=$grp->{top}->DialogBox(-title => "Connect to remote control",
+  my $d=$grp->toplevel->DialogBox(-title => "Connect to remote control",
 			       -buttons => ["Connect","Cancel"]);
   $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
 
@@ -148,7 +148,7 @@ sub askRemoteControlInfo {
   print "resizable 0,0\n";
   $d->resizable(0,0);
   print "Showing dialog\n";
-  $result = main::ShowDialog($d,$he,$grp->{top});
+  $result = main::ShowDialog($d,$he,$grp->toplevel);
   print "done\n";
   $d->destroy();
   undef $d;
