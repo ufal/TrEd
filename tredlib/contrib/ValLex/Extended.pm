@@ -10,8 +10,8 @@ sub by_id {
 }
 
 sub word {
-  my ($self,$lemma)=@_;
-  return $self->doc->findnodes(qq(/valency_lexicon/body/word[\@lemma="$lemma"]))->[0];
+  my ($self,$lemma,$pos)=@_;
+  return $self->doc->findnodes(qq(/valency_lexicon/body/word[\@lemma="$lemma" and \@POS="$pos"]))->[0];
 }
 
 sub frames {
