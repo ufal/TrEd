@@ -45,7 +45,7 @@ $about=
 $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
 
 # Get user's login name
-my ($userlogin) = getpwuid($<);
+my ($userlogin) = getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown';
 ($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
 
 use Tk;
@@ -1082,7 +1082,7 @@ sub checkLock {
       } else {
 	return "my"
       }
-    } elsif ($pid == $$ and $user eq getlogin() and $host eq $ENV{HOSTNAME}) {
+    } elsif ($pid == $$ and $user eq $userlogin and $host eq $ENV{HOSTNAME}) {
       return "my";
     } else {
       return "locked ".$lockinfo;
@@ -6315,7 +6315,7 @@ sub editAttrsDialog {
 				  -buttons=> ["OK", "Cancel"]
 				 );
   $d->bind('<Return>',\&dlgReturn);
-  $d->bind('<Control-Return>',\&dlgReturn);
+  $d->bind('all','<Control-Return>',\&dlgReturn);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
 
@@ -6367,6 +6367,7 @@ sub editAttrsDialog {
 		     )->pack(qw/-side right/);
 	$e{$_}->bind($e{$_},'<space>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
+	$e{$_}->bind($e{$_},'<Control-Return>',\&dlgReturn);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
       $e{$_}->insert(0,encode($node->getAttribute($_)));
       $e{$_}->configure(-state=> 'disabled');
