@@ -13,6 +13,12 @@ import Analytic;
 #bind TR_Correction->tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree (in a TR file)
 #bind TR_Correction->tectogrammatical_tree_store_AR to Ctrl+B menu Save ordorig of AR tree and display tectogrammatical tree
 
+#bind TR_Correction->rehang_right to Ctrl+Shift+Right menu Rehang to right brother
+#bind TR_Correction->rehang_left to Ctrl+Shift+Left menu Rehang to left brother
+#bind TR_Correction->rehang_down to Ctrl+Shift+Down menu Rehang to first son
+#bind TR_Correction->rehang_up to Ctrl+Shift+Up menu Rehang to parent
+
+
 *file_close_hook = \&TR_Correction::file_close_hook;
 *file_save_hook = \&TR_Correction::file_save_hook;
 
