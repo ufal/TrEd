@@ -164,30 +164,30 @@ my %start_tag = (
 			   }
 			 }],
 
-		 'mauth' => sub {
+		 'mauth' => [sub {
 		   my ($s)=@_;
 		   if ($s->{parser}->element->parent->in('h')) {
 		     copy_tag_to(@_,'','<','cstsmarkup');
 		   } else {
 		     copy_tag_to(@_,'','<','docmarkup');
 		   }
-		 },
-		 'mdate' => sub {
+		 }],
+		 'mdate' => [sub {
 		   my ($s)=@_;
 		   if ($s->{parser}->element->parent->in('h')) {
 		     copy_tag_to(@_,'','<','cstsmarkup');
 		   } else {
 		     copy_tag_to(@_,'','<','docmarkup');
 		   }
-		 },
-		 'mdesc' => sub {
+		 }],
+		 'mdesc' => [sub {
 		   my ($s)=@_;
 		   if ($s->{parser}->element->parent->in('h')) {
 		     copy_tag_to(@_,'','<','cstsmarkup');
 		   } else {
 		     copy_tag_to(@_,'','<','docmarkup');
 		   }
-		 },
+		 }],
 		 'doc' => [sub {
 			   my ($s)=@_;
 			   my $e=$s->{parser}->element;
@@ -244,30 +244,30 @@ my %att = (
 
 my %pcdata = (
 	      'source' => [\&to_node_attr,'','cstssource'],
-	      'mauth' => sub {
+	      'mauth' => [sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
 		  to_node_attr(@_,'','cstsmarkup');
 		} else {
 		  to_node_attr(@_,'','docmarkup');
 		}
-	      },
-	      'mdate' => sub {
+	      }],
+	      'mdate' => [sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
 		  to_node_attr(@_,'','cstsmarkup');
 		} else {
 		  to_node_attr(@_,'','docmarkup');
 		}
-	      },
-	      'mdesc' => sub {
+	      }],
+	      'mdesc' => [sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
 		  to_node_attr(@_,'','cstsmarkup');
 		} else {
 		  to_node_attr(@_,'','docmarkup');
 		}
-	      },
+	      }],
 	      'mod' => [\&to_node_attr,'','docprolog'],
 	      'txtype' => [\&to_node_attr,'','docprolog'],
 	      'genre' => [\&to_node_attr,'','docprolog'],
