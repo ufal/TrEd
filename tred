@@ -2438,7 +2438,7 @@ sub focusCanvas {
     update_value_line_current($newfocus,$newfocus->{currentNode});
     updateTitle($grp);
     resetUndoStatus($newfocus);
-    resetTreePosStatus($newfocus);
+    resetTreePosStatus($grp);
   } else {
     print STDERR "DID NOT FIND Window of $c\n";
   }
@@ -4867,7 +4867,7 @@ sub redraw_win {
   return if $insideEval;
   saveFileStateUpdate($win);
   resetUndoStatus($win);
-  resetTreePosStatus($win);
+  resetTreePosStatus($win->{framegroup});
   #------------------------------------------------------------
   #{
   #use Benchmark;
@@ -5631,7 +5631,8 @@ sub resetUndoStatus {
 }
 
 sub resetTreePosStatus {
-  my ($win)=@_;
+  my ($grp)=@_;
+  my $win=$grp->{focusedWindow};
   my $fsfile=$win->{FSFile};
 
   $prevstatus=ref($fsfile) && $fsfile->lastTreeNo>=0 && $win->{treeNo}>0;
