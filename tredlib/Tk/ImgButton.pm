@@ -7,8 +7,9 @@ package Tk::ImgButton;
 use vars qw($VERSION);
 $VERSION = '0.1'; # $Id$
 
+use strict;
 use base  qw(Tk::Button);
-use Tk::widgets qw(Frame Label Image);
+use Tk::widgets qw(Frame Compound);
 
 Construct Tk::Widget 'ImgButton';
 
@@ -18,29 +19,24 @@ sub InitObject
  # LabeledEntry constructor.
  #
  my($cw, $args) = @_;
- print "ImgButton\n";
- print join",",keys %$args,"\n";
- my $img  = delete $args->{-image};
- my $text = delete $args->{-text};
- my $pad = delete $args->{-pad};
- my $underline = delete $args->{-underline};
+ my %opts;
+ $opts{$_} = delete $args->{$_}
+   for grep { exists $args->{$_} }
+     qw(-image -text -padleft -padmiddle -padright
+	-balloon -balloonmsg -underline);
  $cw->SUPER::InitObject($args);
  # Advertised subwidgets:  entry.
- my $i = $cw->Label(-image => $img);
- my $t = $cw->Label(-text => $text, (defined($underline) ? (-underline => $underline) : ()) );
- $i->pack('-padx' => (defined($pad) ? $pad : 5), '-side' => 'left', '-expand' => 1, '-fill' => 'both');
- $t->pack('-side' => 'left', '-expand' => 1, '-fill' => 'both');
- $cw->ConfigSpecs('-image' => [$i]);
-
- for my $w ($i,$t) {
-   for (qw(ButtonPress Button
-	   ButtonRelease  FocusIn Motion
-	   FocusOut KeyPress Key
-	   KeyRelease Enter  Leave   Activate Deactivate)) {
-     $w->bind($_,sub{});
-   }
- }
-
+ my $c = $cw->Compound();
+ $c->Space(-width => $opts{-padleft}) if exists $opts{-padleft};
+ $c->Image(-image => $opts{-image}) if exists $opts{-image};
+ $c->Space(-width => $opts{-padmiddle}) if exists $opts{-image} and exists $opts{-padmiddle};
+ $c->Text(-text => $opts{-text},
+	   (exists($opts{-underline}) ? (-underline => $opts{-underline}) : ())
+	  ) if exists $opts{-text};
+ $c->Space(-width => $opts{-padright}) if exists $opts{-padright};
+ $cw->configure(-image => $c);
+ $opts{-balloon}->attach($cw,-balloonmsg=>
+			 $opts{-balloonmsg})  if (ref $opts{-balloon});
 }
 
 1;
