@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-28 11:45:32 pajas>
+## Time-stamp: <2005-03-09 22:38:53 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -117,11 +117,11 @@ sub node_style_hook {
     Coref::draw_coref_arrows(
       $node,$styles,\%line,
       [
-	(IsSeq($node->{coref}) ?
+	(IsList($node->{coref}) ?
 	 map {$_->{rf}} $node->{coref}->values :
 	   split(/\|/,$node->{coref})),
 	@aids ],
-      [ (IsSeq($node->{coref}) ?
+      [ (IsList($node->{coref}) ?
 	map {$_->{type}} $node->{coref}->values :
 	split(/\|/,$node->{cortype})),
 	map "AID",@aids ],

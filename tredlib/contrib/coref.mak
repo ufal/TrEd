@@ -137,7 +137,7 @@ sub node_style_hook {
 	     );
   }
 
-  if (IsSeq($node->{coref})) {
+  if (IsList($node->{coref})) {
     draw_coref_arrows($node,$styles,{},
 		      [map {$_->{rf}} $node->{coref}->values],
 		      [map {$_->{type}} $node->{coref}->values],
