@@ -6405,7 +6405,7 @@ sub SplitJoined {
     return;
   }
 
-  if ($sWLemma eq 'si') {
+  if ($sWLemma eq '_si') {
 
     $sCaseSi = "1";
   }
@@ -6414,13 +6414,11 @@ sub SplitJoined {
 
     if (Interjection($pSon->{'trlemma'},'se') eq 'se' &&
 	Interjection($pSon->{'form'},'si') eq 'si') {
-
-      $sWLemma = 'se';
+      $sWLemma = '_se';
     }
 
     $sCaseSi = "0";
   }
-
   if (substr(ValNo(0,$pSon->{'trlemma'}),0,3) eq substr($sWLemma,1,3)) {
 
     $pPar1 = $pAct;
