@@ -630,6 +630,8 @@ sub userQuery {
     $d->bind('<Escape>', [sub { my $w=shift;
 			       $w->{selected_button}= "Cancel";
 			     }] );
+    $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+
   }
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   return $d->Show;
@@ -999,6 +1001,14 @@ sub saveFile {
 
   my $f=$win->{FSFile}->filename;
 
+## you may have wr-perms on directory but not on the file
+##
+#   unless (-w $f) {
+#     return 0 unless userQuery($win,"You don't have writing permissions to file '$f'\n".
+# 			      "Do you still want to try to save it?\n",
+# 			      -title => "Error",
+# 			      -buttons => ["Try","Cancel"]) eq 'Try';
+#   }
   rename $f,$f."~" if (-f $f);
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
@@ -1848,10 +1858,7 @@ sub macrolistDialog {
 
 			   },$d,$grp,$t,$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'left');
   $d->bind($d,'<Destroy>'=> [sub { shift; shift->{Macrolist}=undef; },$grp ]);
-  $d->bind('all','<Escape>'=>
-	   [sub {
-	      shift; shift->destroy();
-	    },$d ]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->destroy(); },$d ]);
 
   $d->Button(-text=> 'Close',
 		     -command=> [ sub {
@@ -1873,6 +1880,7 @@ sub copyTreesDialog {
 				-buttons=> ['OK', 'Cancel']);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
@@ -1977,6 +1985,7 @@ sub printDialog {
 				-buttons=> ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
@@ -3847,6 +3856,7 @@ sub QueryString {
   my $newvalue=encode($default_text);
   my $d=$grp->{top}->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   addBindTags($d,'dialog');
   my $e=$d->add(Entry,-relief=> 'sunken',
@@ -3906,6 +3916,7 @@ sub ListQuery {
   my $d=$w->DialogBox(-title	  => $title,
 		      -width	  => '8c',
 		      -buttons  => ["OK", "Cancel"]);
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub {
 				 shift;
 				 shift->{selected_button}='Cancel';
@@ -3987,8 +3998,10 @@ sub selectValuesDialog {
 				   $attr,
 				   "ambiguous") ne 'stop');
 
- my $d=$top->DialogBox(-title=> "$attr: select values", -width=> '8c',
-		       -buttons=> $enabled ? ["OK", "Cancel"] : ["Cancel"]);
+ my $d=$top->DialogBox(-title=> ($enabled ? "$attr: select values" : "$attr: values"),
+		       -width=> '8c',
+		       -buttons=> ($enabled ? ["OK", "Cancel"] : ["Cancel"]));
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars oe/,
@@ -4165,6 +4178,7 @@ sub viewSentencesDialog {
     $top->DialogBox(-title=> "List of sentences for ".
 		    $fsfile->filename(),
 		    -width=> "10c");
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
   $selref||=[];
   populateSentencesDialog($grp,$d,$fsfile,$selref,0);
@@ -4287,7 +4301,10 @@ sub editAttrsDialog {
   my $d=$win->toplevel->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
 				  -buttons=> ["OK", "Cancel"]
 				 );
+
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+
   my $ff=$d->Frame(-relief=> 'groove',
 		   -bd => 1);
   my $f= $ff->Scrolled('Pane',
@@ -4571,6 +4588,7 @@ sub customAttrsDialog {
   $e->bind('Tk::Text','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=>
 	   [sub { shift;
 		  shift->{selected_button}='Cancel';
@@ -4660,7 +4678,7 @@ sub findNodeDialog {
     $_->configure(-width=> 10, -pady=> 0) if ($Tk::platform eq 'MSWin32');
     $_->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   }
-
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $ff=$d->Frame(-relief=> 'groove',
 		   -bd => 1);
@@ -5037,11 +5055,12 @@ sub doEditAttr {
   }
 
   $grp->{top}->Busy(-recurse=> 1);
-
+  $enabled=doEvalHook($win,'enable_attr_hook',$attr,"normal") ne 'stop';
   $newvalue=encode($node->getAttribute($attr));
-  $d= $grp->{top}->DialogBox(-title=> "Edit Node Attribute",
-				-buttons=> ["OK", "Cancel"]);
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  $d= $grp->{top}->DialogBox(-title=> ($enabled ? "Edit Node Attribute" : "Disabled Node Attribute"),
+			     -buttons=> [($enabled ? ("OK", "Cancel") : "Cancel")]);
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
   my $l= $d->Label(-text=> $attr,
@@ -5049,8 +5068,7 @@ sub doEditAttr {
 		    -justify=> 'right')->pack(-side=>'left');
   my $e= $d->Entry(-relief=> 'sunken',
 		    -width=> 40,
-		    -state=> (doEvalHook($win,'enable_attr_hook',
-					  $attr,"normal") eq 'stop') ? 'disabled' : 'normal',
+		    -state=> $enabled ? 'normal' : 'disabled',
 		    -takefocus=> 1,
 		    -font=> $font,
 		    -textvariable=> \$newvalue)->pack();
