@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-05-22 10:17:55 pajas>";
+$timestamp="Time-stamp: <2001-05-30 15:01:42 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -19,7 +19,8 @@ $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
 ################################################################################
 #
 # Usage:
-# tred [-c <config-file>] [-m <macro-file>] [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
+# tred [-c <config-file>] [-m <macro-file>] [-l <filelist>] [-p printing-options]
+#      ... file1[##N|#N] [file2[##N|#N] [...]]
 #
 # or
 #
@@ -105,12 +106,14 @@ forms:
 ##N     where N is a number. This makes TrEd to go to the N-th tree in
 	the given file after the file is opened.
 
--m      may be used to specify a macro file different from the one
-	given in ~/.tredrc (or whatsoever) configuration file
+-m      specifies a macro file different from the one given in ~/.tredrc
+	(or whatsoever) configuration file
 
--c      may be used to specify a config-file to be used (overrides
+-c      specifies a config-file to be used (overrides
 	~/.tredrc and all the other files TrEd would otherwise try to
 	search for).
+
+-l      specifies a file containing list of files to open
 
 EOF
   exit;
@@ -181,8 +184,8 @@ if (defined $opt_c) {
 @openfiles=();
 
 
-my @customColors=('darkgreen','darkblue','darkmagenta',,'orange','darkred','green1',
-		  'slategray1','gold','cyan','midnightblue');
+my @customColors=('darkgreen','darkblue','darkmagenta','orange','black','DodgerBlue4',
+		  'red','gold','cyan','midnightblue');
 
 my $configfile=readConfig();
 
@@ -221,6 +224,13 @@ require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
 
+#load back-ends
+
+@backends=('FSBackend');
+foreach (qw(TrXMLBackend CSTSBackend)) {
+  push @backends,$_ if eval { require $_; };
+}
+
 require Filelist;
 
 require Tk::MyFileSelect;
@@ -249,20 +259,14 @@ if (not File::Spec->can(rel2abs)) {
 my @macros=();
 
 @open_types =
-  (["Fs files",           [qw/.fs .FS .Fs/]],
-   ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
-   ["CSTS files",           [qw/.am .cst .csg .csts/]],
-   ["Gzipped CSTS files",           [qw/.am.gz .cst.gz .csg.gz .csts.gz/]],
-   ["Backup Fs files",           [qw/.fs~ .fb .FB .Fb/]],
-   ["Backup gzipped Fs files",           [qw/.fgz~ .fs.gz~ .FGZ~ .FS.gz~ .FS.GZ~/]],
+  (["FS files",           [qw/.fs .FS .Fs/]],
+   ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
    ["All files",        '*']
   );
 
 @save_types =
-  (["Fs files",           [qw/.fs .FS .Fs/]],
-   ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
-   ["CSTS files",           [qw/.cst .csts/]],
-   ["Gzipped CSTS files",           [qw/.cst.gz .csts.gz/]],
+  (["FS files",           [qw/.fs .FS .Fs/]],
+   ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
    ["All files",        '*']
   );
 
@@ -779,9 +783,9 @@ sub ErrorMessage {
 
 sub addToRecent {
   my ($grp,$f)=@_;
-  $f=rel2abs($f);
 
-  if ($f) {
+  if (defined($f)) {
+    $f=rel2abs($f);
     @recentFiles=grep { $_ ne $f } @recentFiles;
     unshift @recentFiles,$f;
   }
@@ -925,11 +929,14 @@ sub openFile {
   my ($grp,$f,$no_recent) = @_;
   my $goto = undef;
   my $fs;
+  my $fh;
   my $gz='';
+  my $err;
   my $in1='<';
   my $in2='';
-  my %fs=(fs => 'FS format', 
-	  fgz => 'gzipped FS format', 
+  my %fs=(fs => 'FS format',
+	  fgz => 'gzipped FS format',
+	  trxml => 'tree XML format',
 	  any => 'any non-specific format (csts?), using CstsToFs');
 
   if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
@@ -963,55 +970,11 @@ sub openFile {
     }
   }
 
-  #########################################
-  # opening file to find out the file type
-  #
-
-  if ($f=~/\.f?gz$/i) {
-    $gz='gzipped ';
-    $in1="$zcat ";
-    $in2=" |";
-  }
-  unless (open(F,"$in1$f$in2")) {
-    ErrorMessage($grp, "Cannot read from $in1$f$in2\n($!)\n");
-    $grp->{top}->Unbusy() unless $insideEval;
-    return 0;
-  } else {
-    # peep on the first character
-    $fs=($_=<F> and /^\@/) ? 'fs' : 'any';
-  }
-  close(F);
-  #
-  ##########################################
-
-
-  print STDERR "File \'$f\' is in $gz", $fs{$fs},"\n" if $tredDebug;
-
-  if ($fs eq 'any') {
-    if ($in1 eq '<') {
-      $in1=$cstsToFs." ";
-      $in2=" |";
-    } else {
-      $in2.=$cstsToFs." |";
-    }
-  }
-  print STDERR "Reading from $in1$f$in2\n" if $tredDebug;
-  # opening file again, know it is fs
-  unless (open(F,"$in1$f$in2")) {
-    ErrorMessage($grp,"Cannot read from $in1$f$in2\n($!)\n");
-    $grp->{top}->Unbusy() unless $insideEval;
-    return 0;
-  }
-
   closeFile($grp,1);
 
-  $grp->{'FSFile'} = FSFile->newFSFile(\*F);
-  $grp->{'FSFile'}->changeFilename($f);
-  $grp->{'FSFile'}->changeFileFormat($gz.$fs);
+  $grp->{'FSFile'} = FSFile->newFSFile($f,@backends);
+  $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
   print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
-
-
-  close (F);
 
   $grp->{treeNo}=0;
 
@@ -1072,41 +1035,15 @@ sub saveFile {
 
   rename $f,$f."~" if (-f $f);
 
-  if ($grp->{'FSFile'}->fileFormat =~/gzipped/ or $f=~/\.f?gz$/i) {
-    if ($gzip) {
-      $gz='gzipped ';
-      $out.="| $gzip ";
-    } else {
-      ErrorMessage($grp,"Cannot write gzipped file (No gzip utility defined)\n".
-		   "Use file name without the gz suffix to save the file\n".
-		   "in a non-gzipped format.\n"
-		  );
-      return 0;
-    }
-  }
-  if ($grp->{'FSFile'}->fileFormat =~/any/ or $f=~/csts?$|csts?.gz$/i) {
-    if ($fsToCsts) {
-      $out="| $fsToCsts ".$out;
-    } else {
-      ErrorMessage($grp,"Cannot export to CSTS file (No option FsToCsts defined)\n".
-		   "Use file name without the csts suffix to save the file\n".
-		   "in a FS or gzipped FS format.\n"
-		  );
-      return 0;
-    }
-  }
-  unless (open(FO,"$out> $f")) {
-    ErrorMessage($grp,"Cannot write to '$out > $f'\n($!)\n");
+  $grp->{top}->Busy(-recurse => 1) unless $insideEval;
+  unless ($grp->{FSFile}->writeFile($f)) {
+    $grp->{'top'}->Unbusy() unless $insideEval;
+    ErrorMessage($grp,"Error saving file to '$f'\n($!)\n");
     return 0;
   }
-
-  print STDERR "Writing to $out> $f\n" if $tredDebug;
-
-  $grp->{FSFile}->writeTo(\*FO);
-
-  close(FO);
+  $grp->{'top'}->Unbusy() unless $insideEval;
   saveFileStateUpdate($grp);
-  #print STDERR "wrote $f, $f~ is a backup.\n";
+
 }
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
@@ -1854,8 +1791,7 @@ sub macrolistDialog {
 
 
 			   },$d,$grp,$t,$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
-  $d->bind($d,'<Destroy>' => [sub { shift; shift->{Macrolist}=undef;
-				 print "SD\n";},$grp ]);
+  $d->bind($d,'<Destroy>' => [sub { shift; shift->{Macrolist}=undef; },$grp ]);
   $d->bind('all','<Escape>' =>
 	   [sub {
 	      shift; shift->destroy();
@@ -1985,11 +1921,21 @@ sub printDialog {
   $grp->{'printUseType1Font'}=$useType1Font;
   $d->destroy;
   undef $d;
+  if ($result =~ /OK/) {
+    return ($printRange,$toFile,$toEPS,$fil,$snt,$com,$useType1Font);
+  } else {
+    return ();
+  }
   return ($result =~ /OK/);
 }
 
 sub printThis {
   my ($grp)=@_;
+  printTrees($grp,printDialog($grp));
+}
+
+sub printTrees {
+  my ($grp,$printRange,$toFile,$toEPS,$fil,$snt,$com,$useType1Font)=@_;
   my $i;
   my $c=$grp->{'canvas'};
   my $saveTreeNo=$grp->{treeNo};
@@ -2036,11 +1982,11 @@ sub printThis {
     local $backgroundColor='white';
     local $lineWidth=1;
     local $font=$savefont;
-    local $drawSentenceInfo=$grp->{printSentenceInfo};
+    local $drawSentenceInfo=$snt;
 
     my $pbeg;
     my $pend;
-    foreach (split /,/,$grp->{'printRange'}) {
+    foreach (split /,/,$printRange) {
       print "Parsing $_\n";
       if (/^\s*([0-9]+)\s*$/ and $1<=$grp->{FSFile}->lastTreeNo) {
 	print "Prepairing $1\n";
@@ -2063,18 +2009,18 @@ sub printThis {
       print STDERR "Aborting: failed to open font file $psFontFile\n";
       return 0;
     }
-    if ($grp->{'printToFile'}) {
-      return 0 unless open(O,">".$grp->{'printPsFile'});
+    if ($toFile) {
+      return 0 unless open(O,">".$fil);
     } else {
       $SIG{'PIPE'} = sub {};
-      return 0 unless open(O, "| ".$grp->{'printCommand'});
+      return 0 unless open(O, "| ".$cmd);
     }
 
     $grp->{top}->Busy(-recurse => 1);
 
     for (my $t=0;$t<=$#printList;$t++) {
       print "Printing $printList[$t]\n";
-      $font=$type1font if ($grp->{printUseType1Font});      
+      $font=$type1font if ($useType1Font);      
       $printList[$t]!=$grp->{treeNo}+1 ? gotoTree($grp,$printList[$t]-1) : redraw_tree($grp);
       my $rotate = ( ! $grp->{printToEPS} 
 	and $grp->{canvasHeight}<$grp->{canvasWidth});
@@ -2094,7 +2040,7 @@ sub printThis {
 	      -height => $grp->{canvasHeight},
 	      -rotate => $rotate);
 
-      unless ($grp->{printToEPS}) {
+      unless ($toEPS) {
 	if ($maximizePrintSize or $c->fpixels($grp->{canvasWidth})>$pagewidth or
 	    $c->fpixels($grp->{canvasHeight})>$pageheight) {
 	  print "Adjusting print size\n";
@@ -2118,7 +2064,7 @@ sub printThis {
 	$i++  while ($i<=$#ps and $ps[$i]!~/^%%Page:/);
 	print O '%%Page: ',$t+1," ",$t+1,"\n";
 	my $now=localtime;
-	unless ($grp->{printToEPS}) {
+	unless ($toEPS) {
 	  print O "gsave\n",
 	    "/Arial-Medium findfont 8 scalefont setfont\n",
 	      "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
@@ -2131,7 +2077,7 @@ sub printThis {
       } else {
 	$i=0;
 	print "Lines:",$#ps,"\n";
-	unless ($grp->{printToEPS}) {
+	unless ($toEPS) {
 	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BoundingBox:/);
 	  print O $ps[$i++],"\n";
 	  print O $psMedia,"\n";
