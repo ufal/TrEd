@@ -1099,6 +1099,8 @@ sub get_status_line_hook {
 	   $this->{afun} => [qw({afun} value)],
 	   "     tag: " => [qw(label)],
 	   $this->{tag} => [qw({tag} value)],
+	   "     lemma: " => [qw(label)],
+	   $this->{lemma} => [qw({lemma} value)],
 	   ($this->{fw} ne "" ?
 	    ("     fw: " => [qw(label)],
 	     $this->{fw} => [qw({fw} value)]) : ()),
