@@ -15,6 +15,10 @@ use vars @FORCE_EXPORT;
 
 *FileChanged=*FileNotSaved;	# alias
 
+import Fslib;
+import Fslib qw(&Index &FindInResources &ResolvePath);
+import main;
+
 =pod
 
 =head1 TredMacro
@@ -101,9 +105,6 @@ current context use the pre-defined macro SwitchContext
 
 =cut
 
-import Fslib;
-import Fslib qw(&Index);
-import main;
 
 ## =head2 FUNCTION REFERENCE
 
@@ -2254,6 +2255,69 @@ sub PrevFile {
 =head2 General I/O macros
 
 =over 4
+
+=item C<ResourcePath()>
+
+Return a list of directories in a current resource path.
+
+=cut
+
+sub ResourcePath {
+  my $split = ($^O eq "MSWin32") ? ',' : ':';
+  return split /\Q${Fslib::resourcePathSplit}\E/, $Fslib::resourcePath;
+}
+
+=item C<AddToResourcePath(dirs)>
+
+Add given directories to the current resource path.
+
+=cut
+
+sub AddToResourcePath {
+  $Fslib::resourcePath.=$Fslib::resourcePathSplit.join $Fslib::resourcePathSplit,@_;
+}
+
+=item C<RemoveFromResourcePath(dirs)>
+
+Remove given directories from the current resource path (directory
+names must exactly match those listed in the resource path).
+
+=cut
+
+sub RemoveFromResourcePath {
+  my %x;@x{@_}=();
+  SetResourcePath(grep { !exists($x{$_}) } ResourcePath);
+}
+
+=item C<SetResourcePath(dirs)>
+
+Set given list of directories as a current resource path (discarding
+the existing values of ResourcePath).
+
+=cut
+
+sub SetResourcePath {
+  $Fslib::resourcePath=join $Fslib::resourcePathSplit,@_;
+}
+
+
+=item C<FindInResources(filename)>
+
+If a given filename is a relative path of a file found in TrEd's
+resource directory, return an absolute path for the
+resource. Otherwise return filename.
+
+=cut
+
+=item C<ResolvePath(ref-filename,filename,use_resources?)>
+
+If a given filename is a relative path, try to find the file in the
+same directory as ref-filename. In case of success, return a path
+based on the directory part of ref-filename and filename.  If the file
+can't be located in this way and use_resources is true, return the
+value of C<FindInResources(filename)>.
+
+=cut
 
 =item C<writeln(string?,...)>
 
