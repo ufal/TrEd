@@ -94,10 +94,10 @@ EOF
 # this variable is used when searching for rc-file (i.e. the inicialisation file)
 my @configFileSearchList=($ENV{HOME}.'/.tredrc',
 			  (exists $ENV{TREDHOME}) ? $ENV{TREDHOME}.'/tredrc' : (),
-			  dirname($0).'tredrc',
-			  dirname($0).'../lib/tredlib/tredrc',
-			  dirname($0).'tredlib/tredrc',
-			  dirname($0).'../lib/tred/tredrc',
+			  dirname(<$0>).'tredrc',
+			  dirname(<$0>).'../lib/tredlib/tredrc',
+			  dirname(<$0>).'tredlib/tredrc',
+			  dirname(<$0>).'../lib/tred/tredrc',
 			  '/usr/X11R6/lib/X11/app-defaults');
 my $configFile;
 # other configuration should be given in that file
@@ -228,10 +228,13 @@ my %searchTemplate;
 %pckey_shift_translates = (exclam => 1, at => 2, numbersign => 3,
 			   dollar => 4, percent => 5, asciicircum => 6,
 			   ampersand => 7, asterisk => 8, parenleft => 9,
-			   parenright => 0, plus => 'equal', underscore => 'minus',
-			   less => 'comma', greater => 'period', question => 'slash',
+			   parenright => 0, plus => 'equal',
+			   underscore => 'minus',
+			   less => 'comma', greater => 'period', 
+			   question => 'slash',
 			   colon => 'semicolon', quotedbl => 'apostroph',
-			   braceleft => 'bracketleft', braceright => 'bracketright',
+			   braceleft => 'bracketleft', 
+			   braceright => 'bracketright',
 			   bar => 'backslash', asciitilde => 'grave'
 			  );
 
@@ -240,8 +243,9 @@ sub dirname {
   return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : "./";
 }
 
-print STDERR "Reading macros from $macroFile\n";
+print STDERR "Reading macros from $macroFile...";
 readMacros($macroFile);		# read macros
+print STDERR "done.\n";
 startMain($files[$fileNo]);	# display first tree
 
 closeFile();
@@ -302,7 +306,8 @@ sub readConfig {
   }
   unless ($openOk) {
     print
-      "Warning: Cannot open any file in:\n",join(":",@configFileSearchList),"\n" .
+      "Warning: Cannot open any file in:\n",
+      join(":",@configFileSearchList),"\n" .
       "         Using configuration defaults!\n";
   }
   setConfig(\%confs);
@@ -495,22 +500,47 @@ sub openFile {
   }
 
   # peep on the first character
-  $fs=(<F> and /^@/); close (F);
+  $fs = $_=<F> and /^\@/; close(F);
 
   if ($fs) {
     # opening file again, know it is fs
     unless (open(F,"<$f")) {
-      print STDERR "cannot open $f!\n";
+      if ($grp->{top}) {
+	$grp->{top}->
+	  messageBox(-icon => 'error',
+		     -message => "Cannot open $f!\n",
+		     -title => 'Error', -type => 'Ok');
+      } else {
+	print STDERR "Error: cannot open $f!\n";
+      }
+      $grp->{'top'}->Unbusy();
       return 0;
     }
   } elsif (defined($anyToFs) and -x $anyToFs) {
     unless (open(F,"$anyToFs $f |")) {
-      print STDERR "cannot run $anyToFs on $f!\n";
+      if ($grp->{top}) {
+	$grp->{top}->
+	  messageBox(-icon => 'error',
+		     -message => "Cannot run filter \`$anyToFs\' on $f!\n",
+		     -title => 'Error', -type => 'Ok');
+      } else {
+	print STDERR "Error: cannot run $anyToFs on $f!\n";
+      }
+      $grp->{'top'}->Unbusy();
       return 0;
     }
     $f.=".fs";
   } else {   
-    print STDERR "cannot open $f (bad $anyToFs or unknown format?)!\n";
+    if ($grp->{top}) {
+      $grp->{top}->
+	messageBox(-icon => 'error',
+		   -message => 
+		   "Cannot open $f (bad $anyToFs or unknown format?)!\n",
+		   -title => 'Error', -type => 'Ok');
+    } else {
+      print STDERR "cannot open $f (bad $anyToFs or unknown format?)!\n";
+    }
+    $grp->{'top'}->Unbusy();
     return 0;
   }
 
@@ -740,6 +770,11 @@ sub printDialog {
 			  -variable => \$useType1Font,
 			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
 
+  $bf->Checkbutton(-text => 'Use colors',
+		   -variable => \$printColors,
+		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+  
+
   $bf->pack(-side => 'right');
   $of->pack(-fill => 'x',-padx=>'1c');
   my $sf = $d->Frame();
@@ -786,19 +821,27 @@ sub printThis {
   $backgroundColor=$grp->{canvas}->cget('-background');
   {
     local $outputenc='iso-88859-2';
+    local ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
+	   $currentNodeColor, $nearestNodeColor, 
+	   $textColor , $textColorShadow, $textColorHilite, 
+	   $textColorXHilite, $activeTextColor)=
+	     ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
+	      $currentNodeColor, $nearestNodeColor, 
+	      $textColor , $textColorShadow, $textColorHilite, 
+	      $textColorXHilite, $activeTextColor);
 
     unless ($printColors) {
-      local $lineColor='black';
-      local $nodeColor='white';
-      local $currentBoxColor='white';
-      local $boxColor='white';
-      local $currentNodeColor = 'white';
-      local $nearestNodeColor= 'white';
-      local $textColor = 'black';
-      local $textColorShadow = 'black';
-      local $textColorHilite = 'black';
-      local $textColorXHilite = 'black';
-      local $activeTextColor='black';
+      $lineColor='black';
+      $nodeColor='white';
+      $currentBoxColor='white';
+      $boxColor='white';
+      $currentNodeColor = 'white';
+      $nearestNodeColor= 'white';
+      $textColor = 'black';
+      $textColorShadow = 'black';
+      $textColorHilite = 'black';
+      $textColorXHilite = 'black';
+      $activeTextColor='black';
     }
 
     local $backgroundColor='white';
@@ -842,13 +885,13 @@ sub printThis {
       #print "Pipe successfully opend!\n";
     }
 
-#    $grp->{top}->Busy(-recurse => 1);
+    $grp->{top}->Busy(-recurse => 1);
 
     for (my $t=0;$t<=$#printList;$t++) {
       print "Printing $printList[$t]\n";
       $font=$type1font if ($grp->{printUseType1Font});
       $printList[$t]!=$treeNo+1 ? gotoTree($printList[$t]-1,$grp) : redraw_tree($grp);
-      my $rotate =  (!$grp->{printToEPS} and ($grp->{canvasHeight}<$grp->{canvasWidth}));
+      my $rotate =  !$grp->{printToEPS} and ($grp->{canvasHeight}<$grp->{canvasWidth});
       print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
       if (not $rotate) {
 	$pagewidth=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
@@ -858,8 +901,8 @@ sub printThis {
 	$pageheight=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
       }
 
-      %pso = (#-colormode => ($printColors ? 'color' : 'gray') ,
-	      qw/-x 0 -y 0/,
+      %pso = (-colormode => $printColors ? 'color' : 'gray',
+	      -x => 0, -y => 0,
 	      -fontmap => { $font => [$psFontName, $psFontSize] },
 	      -width => $grp->{canvasWidth},
 	      -height => $grp->{canvasHeight},
@@ -888,7 +931,7 @@ sub printThis {
 	}
       }
 
-    $grp->{top}->Busy(-recurse => 1);
+#    $grp->{top}->Busy(-recurse => 1);
 
       my @ps = split /\n/,$c->postscript(%pso);
       $i=0;
@@ -1054,16 +1097,25 @@ sub startMain {
   my %group;
 
   $group{top}=MainWindow->new;
+
+  print STDERR "Main window created.\n";
+
   if (-f $appIcon) {
+    print STDERR "adding icon-image.\n";
     $group{top}->iconimage($group{top}->Pixmap(-file => "$appIcon"));
+    print STDERR "done.\n";
   }
 
   addBindTags($group{'top'},'my');
+
+  print STDERR "Asking wm for exit-hook.\n";
 
   $group{top}->protocol('WM_DELETE_WINDOW' => [sub { $grp=shift;
 						       askSaveFile($grp);
 						       $grp->{'top'}->destroy; },\%group]);
 
+
+  print STDERR "Exit hook created.\n";
 
   $group{Balloon}=$group{'top'}->Balloon(-initwait => 450, -balloonposition => 'mouse',
 					-state => 'balloon', -background => '#fff3b0');
@@ -1071,11 +1123,13 @@ sub startMain {
 
 
 
+  print STDERR "Creating menubar.\n";
 
 
   $group{Menubar}=$group{top}->Frame(-relief => $menubarRelief, -borderwidth => 2);
   $group{Menubar}->pack(qw/-fill x/);
   addBindTags($group{Menubar},'my');
+
   $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0 -menuitems/ =>
 	[
 	 [Button => 'Open ...',    -command => [\&fileDialog, \%group]],
@@ -1151,6 +1205,7 @@ sub startMain {
 		       },\%group,\%searchTemplate]],
 	])->pack(qw/-side left/);
 
+  print STDERR "Creating user menubar.\n";
 
   my @umenus = map (
 		    [Button => $_,
@@ -1183,6 +1238,9 @@ sub startMain {
 			   -borderwidth 2 -scrollbars se -scrollregion/ =>
 				       [qw/0c 0c 100c 100c/],
 				       $backgroundColor ? (-background => $backgroundColor) : ());
+
+  print STDERR "Preparing fonts.\n";
+
   if ($font!~/^-/) {
     my @a=split(/\s*,\s*/,$font);
     my $option,$value;
@@ -1199,10 +1257,15 @@ sub startMain {
   }
 
 
+    print STDERR "Creating canvas.\n";
+
   $group{'valueLine'}=$group{'top'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $font,-textvariable => \$valueLine);
   $group{'canvas'}=$canvas;
   addBindTags($canvas,'my');
+
+  print STDERR "Creating buttons.\n";
+
   $group{'nextButton'}=$group{'frame'}->Button(-text => "Next",
 					       -relief => $buttonsRelief,
 					       -image => $group{top}->Pixmap(-file =>
@@ -1329,6 +1392,9 @@ sub startMain {
   $group{'nextButton'}->pack(-side => 'right', -padx => '1');
   $group{'prevButton'}->pack(-side => 'right', -padx =>'1');
 
+  print STDERR "Packing widgets.\n";
+
+
   $group{'frame'}->pack(-fill => 'x', -padx => '1', -pady => 1);
   $group{'valueLine'}->pack(qw/-fill x/);
   $group{'canvas'}->pack(qw/-expand yes -fill both/);
@@ -1340,10 +1406,16 @@ sub startMain {
   $group{'printCommand'}='lpr';
   $group{'printPsFile'}=$psFile;
 
+  print STDERR "GUI prepared.\nOpenning first file ....";
+
   if ($firstFile) {
     openFile($firstFile,\%group);
   }
+  
+  print STDERR "done.\nStarting main loop.\n";
+
   MainLoop;
+    
 }
 
 
@@ -1390,7 +1462,8 @@ sub fileDialog {
 #  print $FSref->Show;
   @types =
     (["Fs files",           [qw/.fs .FS .Fs/]],
-     ["Backup files",           [qw/.fb .FB .Fb/]],
+     ["CSTS files",           [qw/.am .cst .csts/]],
+     ["Backup Fs files",           [qw/.fs~ .fb .FB .Fb/]],     
      ["All files",        '*']
     );
   $file = $grp->{'top'}->getOpenFile(-filetypes => \@types);
@@ -2600,6 +2673,8 @@ sub node_move {
 
 sub node_release {
   my($w,$grp) = @_;
+  my $e = $w->XEvent;
+  my($x, $y) = ($e->x, $e->y);
   my $parent;
   my $node;
   my $center=0;
@@ -2614,16 +2689,22 @@ sub node_release {
       while ($parent) {
 	$p=0, last if ($node eq $parent);
 	$parent=Parent($parent);
-	}
-	if ($node and $p and $grp->{'pinfo'}{$p} and Parent($node)!=$grp->{'pinfo'}{$p}) {
+      }
+      if ($p and $grp->{'pinfo'}{$p} 
+	  and Parent($node)!=$grp->{'pinfo'}{$p}) {
 	Paste(Cut($node),$grp->{'pinfo'}{$p},\%attribs);
+	redraw_tree($grp);
+	centerTo($grp,$grp->{currentNode});
 	$FileNotSaved=1;
-       }
-     }
-   }
-   redraw_tree($grp);
-   centerTo($grp,$grp->{currentNode});
- }
+	return;
+      } 
+    }
+    # returning node to its position
+    $w->coords($sel, $node->{"_tkXPOS_"}, $node->{"_tkYPOS_"},
+	       $node->{"_tkXPOS_"}+$nodeWidth,
+	       $node->{"_tkYPOS_"}+$nodeHeight);
+  } else { redraw_tree($grp); }
+}
 
 ### Local Variables:
 ### mode:cperl
