@@ -1,6 +1,6 @@
-## -*- cperl -*-
+\## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-05-07 13:06:42 pajas>
+## Time-stamp: <2001-05-22 09:31:49 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -8,6 +8,7 @@
 #
 
 #include remote_control.mak
+#include AFA.mak
 
 sub file_opened_hook {
 
@@ -29,7 +30,7 @@ sub file_opened_hook {
 #insert default_tr_attrs as menu Display default attributes
 sub default_tr_attrs {
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
 		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');

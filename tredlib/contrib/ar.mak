@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2001-03-05 14:58:18 pajas>
+## Time-stamp: <2001-05-16 09:47:05 pajas>
 
 package Analytic;
 @ISA=qw(TredMacro main);
@@ -9,7 +9,7 @@ import TredMacro;
 import main;
 
 sub switch_context_hook {
-  unless ($grp->{BalloonPattern}) {
+  unless ($grp->{FSFile}->hint()) {
 #    SetDisplayAttrs('${form}', '${afun}');
     SetBalloonPattern("tag:\t".'${tag}');
   }

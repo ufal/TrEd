@@ -147,9 +147,6 @@ sub FirstTree {
   GotoTree(1);
 }
 
-### require "contrib/AFA.pm";
-unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
-
 # binding-context Tectogrammatic
 # include contrib/tr.mak
 
