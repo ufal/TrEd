@@ -113,6 +113,41 @@ sub expand_coord_apos {
   }
 }
 
+
+=item real_parent (node)
+
+Find the nearest autosemantic governor of the given node. By
+autosemantic we mean having the first letter of its morpholigical tag
+in [NVADPC].
+
+=cut
+sub real_parent {
+  my ($node)=@_;
+  do  {
+    $node=$node->parent();
+  } while ($node and $node->{tag}!~/^[NVADPC]/);
+  return $node;
+}
+
+
+=item get_subsentence_string_TR
+
+Return string representation of current node and the first level of
+tree-structure under it (coordinated substructures are expanded and
+prepositions and other words stored in fw attributes are included in
+the resulting string).
+
+=cut
+sub get_subsentence_string_TR {
+  my ($node)=@_;
+  return
+    join(" ",map { ($_->{fw},$_->{form}.".".$_->{func}) }
+	 sort {$a->{ord} <=> $b->{ord}}
+	 $node,
+	 map { expand_coord_apos($_,1) } $node->children());
+}
+
+
 =item PDT::expand_coord_apos_TR(node,keep?)
 
 If the given node is coordination or aposition (according to its TGTS
@@ -444,3 +479,7 @@ sub InitTROrderingAttributes {
 }
 
 1;
+
+=back
+
+=cut
