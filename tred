@@ -337,7 +337,7 @@ ApplyGlobalConfig();
 # work, so I recommend not to use czech locales there, unless you
 # really want the decimal points to be replaced by commas in
 # postscript:)
-($TrEd::Config::useLocales) || do {
+($TrEd::Config::useLocales) && do {
   use locale;
   use POSIX qw(locale_h);
   $ENV{LC_ALL}=undef;
@@ -345,14 +345,14 @@ ApplyGlobalConfig();
   setlocale(LC_NUMERIC,"C");
 };
 
-($TrEd::Config::useCzechLocales) || do {
+($TrEd::Config::useCzechLocales) && do {
   use locale;
   use POSIX qw(locale_h);
   setlocale(LC_NUMERIC,"C");
   setlocale(LC_COLLATE,"cs_CZ");
   setlocale(LANG,"cs_CZ");
-  $ENV{LC_ALL}=undef;
-  setlocale(LC_ALL,undef);
+#  $ENV{LC_ALL}=undef;
+#  setlocale(LC_ALL,undef);
 };
 
 sub bookmarkFilelist {
