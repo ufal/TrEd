@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-01-14 17:53:52 pajas>
+## Time-stamp: <2005-04-01 18:22:08 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -8,6 +8,10 @@
 #
 
 #ifdef TRED
+sub patterns_forced {
+  return (grep { $_ eq 'force' } GetPatternsByPrefix('patterns',STYLESHEET_FROM_FILE()) ? 1 : 0)
+}
+
 sub file_opened_hook {
 
   # if this file has no balloon pattern, I understand it as a reason to override
@@ -15,9 +19,7 @@ sub file_opened_hook {
 
   Tectogrammatic->upgrade_file();
 
-  if ($grp->{FSFile} and
-      GetSpecialPattern('patterns') ne 'force' and
-      !$grp->{FSFile}->hint()) {
+  if ($grp->{FSFile} and !patterns_forced() and !$grp->{FSFile}->hint()) {
     Tectogrammatic->default_tr_attrs();
   }
 
