@@ -537,18 +537,18 @@ sub icon {
 	my $file = "$dir/$name.$ext";
 	if (-f $file) {
 	  if ($ext eq 'xpm') {
-	    print "Loading pixmap icon $file\n" if $tredDebug;
+	    #print "Loading pixmap icon $file\n" if $tredDebug;
 	    $grp->{icon}{$name} = 
 	      $grp->{top}->Pixmap(-file => $file);
 	  } else {
 	    require Tk::PNG if $ext eq 'png';
-	    print "Loading photo icon $file\n" if $tredDebug;
+	    #print "Loading photo icon $file\n" if $tredDebug;
 	    $grp->{icon}{$name} = 
 	      $grp->{top}->Photo(-format => $ext, -file => $file);
 	  }
 	  last DIR;
 	} else {
-	  print "Icon not found $file\n" if $tredDebug;
+	  #print "Icon not found $file\n" if $tredDebug;
 	}
       }
     }
@@ -1122,20 +1122,36 @@ sub checkLock {
 sub closeFile {
   my ($win,%opts)=@_;
 
-  my $fsfile=$win->{FSFile};
-  if ($fsfile) {
-    doEvalHook($win,"file_close_hook");
-    $fsfile->currentTreeNo($win->{treeNo});
-    $fsfile->currentNode($win->{currentNode});
+  my $fsfile;
+  __debug(join " ",%opts,"\n");
+  if ($opts{-fsfile}) {
+    $fsfile = $opts{-fsfile};
+  } else {
+    $fsfile = $win->{FSFile};
+    if ($fsfile) {
+      doEvalHook($win,"file_close_hook");
+      $fsfile->currentTreeNo($win->{treeNo});
+      $fsfile->currentNode($win->{currentNode});
+    }
+  }
+  __debug("$fsfile\n");
+  __debug "Closing ".$fsfile->filename,"\n" if $fsfile;
+  if (!$opts{-keep_postponed} and
+	$fsfile and ref($fsfile->userData()->{'fs-part-of'}) and
+	@{$fsfile->userData()->{'fs-part-of'}}) {
+    warn "Ignoring close to ".$fsfile->filename." - part of ".
+      $fsfile->userData()->{'fs-part-of'}->[0]->filename."\n";
+    return;
   }
 
   my @wins;
   if ($opts{-all_windows} and $fsfile) {
     @wins=fsfileDisplayingWindows($win->{framegroup},$fsfile);
-  } else {
+  } elsif (!$opts{-fsfile}) {
     @wins=($win);
   }
 
+  __debug "Wins @wins\n";
   foreach my $w (@wins) {
     $w->{Nodes}=undef;
     #  undef $NodeClipboard;
@@ -1147,15 +1163,36 @@ sub closeFile {
     set_value_line($w->{framegroup},"") if (isFocused($w));
   }
   if ($opts{-keep_postponed} and $fsfile) {
+    __debug "Postponed\n";
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
   } else {
+    __debug "real close ",$fsfile->filename," ",
+      fsfileDisplayingWindows($win->{framegroup},$fsfile),"\n" if $fsfile;
     if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
       my $f = $fsfile->filename();
+      __debug "no windows are displaying $f\n";
       print STDERR "Removing $f from list of open files\n"  if $tredDebug;
       @openfiles=grep { $_ ne $fsfile } @openfiles;
       my $autosave = autosave_filename($f);
       unlink $autosave if defined $autosave;
       removeLock($fsfile,$f);
+
+      # remove dependency
+      my $requires = $fsfile->metaData('fs-require');
+      if ($requires) {
+	foreach my $req (@$requires) {
+	  my $req_fs = $fsfile->metaData('ref')->{$req->[0]};
+	  if (ref($req_fs) eq 'FSFile') {
+	    @{$req_fs->userData()->{'fs-part-of'}} =
+	      grep { $_ != $fsfile } @{$req_fs->userData()->{'fs-part-of'}};
+	    unless (fsfileDisplayingWindows($win->{framegroup},$req_fs)) {
+	      print STDERR "Trying to close dependent ".$req_fs->filename."\n";
+	      closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0);
+	      print STDERR "Done\n";
+	    }
+	  }
+	}
+      }
       undef $fsfile;
     }
   }
@@ -1536,49 +1573,54 @@ sub openFile {
 
   # File already open in current window? Simple!
   if ($win->{FSFile} and $win->{FSFile}->filename() eq $f) {
-    updateTitle($grp);
-    applyFileSuffix($win,$goto);
-    get_nodes_win($win, $opts{-noredraw});
-    doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
-    unless ($opts{-noredraw}) {
-      redraw_win($win);
-      centerTo($win,$win->{currentNode});
+    unless ($opts{-preload}) {
+      updateTitle($grp);
+      applyFileSuffix($win,$goto);
+      get_nodes_win($win, $opts{-noredraw});
+      doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
+      unless ($opts{-noredraw}) {
+	redraw_win($win);
+	centerTo($win,$win->{currentNode});
+      }
+      addToRecent($grp,$f) unless $opts{-norecent};
     }
-    addToRecent($grp,$f) unless $opts{-norecent};
     $win->toplevel->Unbusy() unless $insideEval;
-    return 2;
+    return $win->{FSFile};
   }
 
   # Shell we close current file?
-  unless ($opts{-keep} or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f) {
+  if ($opts{-preload} or !$opts{-keep}) {
     if (fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
       my $answer = askSaveFile($win,1,1);
       if ($answer == -1) {
 	$win->toplevel->Unbusy() unless $insideEval;
-	return -1;
+	return undef;
       }
       $opts{-keep} = $answer;
     }
   }
-  closeFile($win,-no_update =>1 , -keep_postponed => $opts{-keep});
+  closeFile($win,-no_update =>1 , -keep_postponed => $opts{-keep})
+    unless $opts{-preload};
 
   # Search open files for requested file, resume if available
   unless ($opts{-justheader}) {
     foreach my $of ($win->{FSFile},@openfiles) {
       if (ref($of) and $of->filename() eq $f) {
 	print "Opening postponed file\n" if $tredDebug;
-	resumeFile($win,$of,$opts{-keep});
-	updateTitle($grp);
-	applyFileSuffix($win,$goto);
-	get_nodes_win($win, $opts{-noredraw});
-	doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
-	unless ($opts{-noredraw}) {
-	  redraw_win($win);
-	  centerTo($win,$win->{currentNode});
+	unless ($opts{-preload}) {
+	  resumeFile($win,$of,$opts{-keep});
+	  updateTitle($grp);
+	  applyFileSuffix($win,$goto);
+	  get_nodes_win($win, $opts{-noredraw});
+	  doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
+	  unless ($opts{-noredraw}) {
+	    redraw_win($win);
+	    centerTo($win,$win->{currentNode});
+	  }
+	  addToRecent($grp,$f) unless $opts{-norecent};
 	}
-	addToRecent($grp,$f) unless $opts{-norecent};
 	$win->toplevel->Unbusy() unless $insideEval;
-	return 2;
+	return $of;
       }
     }
   }
@@ -1594,9 +1636,9 @@ sub openFile {
 			   -title => "Accessing locked file?",
 			   -buttons => ['Open anyway', 'Steal lock', 'Cancel']);
     if ($answer eq 'Cancel') {
-      redraw_win($win) unless ($opts{-noredraw});
+      redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
       $win->toplevel->Unbusy() unless $insideEval;
-      return -1;
+      return undef;
     } elsif ($answer eq 'Steal lock') {
       $lockinfo=setLock($f)
     } else {
@@ -1621,35 +1663,37 @@ sub openFile {
   }
 
   my $backends = doEvalHook($win,'get_backends_hook',@backends);
+  my $fsfile;
   # Autosave file requested
   if ($recover eq 'Yes') {
     # Open recovery file
-    $win->{FSFile} =
+    $fsfile =
       FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
-    if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and $Fslib::FSError==0) {
+    if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
       # Success
-      $win->{FSFile}->changeFilename($f);
-      $win->{FSFile}->notSaved(2);
-      setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
+      $fsfile->changeFilename($f);
+      $fsfile->notSaved(2);
+      setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
     } else {
       # Recovery failed
-      my $trees=$win->{FSFile}->lastTreeNo+1;
+      my $trees=$fsfile->lastTreeNo+1;
       my $answer = userQuery($win,
 		    "\nRecovery file is corrupted ($trees trees read)!\n\nFall back to the original file\n'$f' ?",
 		    -bitmap=> 'question',
 		    -title => "Recovery error!",
 		    -buttons => ['Yes', 'No', 'Cancel']);
       if ($answer eq 'Yes') {
-	closeFile($win,-no_update => 1);
-	$win->{FSFile}=
+	closeFile($win,-no_update => 1) unless $opts{-preload};
+	$fsfile=
 	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
-	setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
+	setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
       } elsif ($answer eq 'Cancel') {
-	redraw_win($win) unless ($opts{-noredraw});
+	redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
 	$win->toplevel->Unbusy() unless $insideEval;
-	return -1;
+	return undef;
       }	else {
-	closeFile($win,-no_update => 1) unless $win->{FSFile}->lastTreeNo>=0;
+	closeFile($win,-no_update => 1) unless
+	  $opts{-preload} or $fsfile->lastTreeNo>=0;
 	$no_err=1;
       }
     }
@@ -1658,55 +1702,77 @@ sub openFile {
       unlink $autosave;
     }
     # Open requeseted file
-    $win->{FSFile}=
+    $fsfile=
       FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
-    setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
+    setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
   }
 
-  if ($win->{FSFile}) {
-    $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
+  if ($fsfile) {
+    $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
+
+
+    # if backend requested another FS-file, load it
+    # and store it in metaData('ref') hash table
+    #
+    # mark this secondary FS-file as part of the original file
+    # so that they can be closed together
+    my $requires = $fsfile->metaData('fs-require');
+    if ($requires) {
+      for my $req (@$requires) {
+	print STDERR "Pre-loading dependent $req->[1] as metaData('ref')->{$req->[0]}\n";
+	my $req_fs = openFile($win,$req->[1],-preload => 1);
+	if (ref($req_fs)) {
+	  print "Got: $req_fs\n";
+	  push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
+	  $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
+	  print "Setting metaData('ref')->{$req->[0]} to $req_fs\n";
+	  $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
+	}
+      }
+    }
   }
-  unless ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and $Fslib::FSError==0) {
+  unless ($fsfile and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
     unless ($no_err) {
-      my $trees=$win->{FSFile} ? $win->{FSFile}->lastTreeNo+1 : 0;
+      my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
       errorMessage($win,"File '$f' is either empty, corrupted, or does not exist ($trees trees read)!");
     }
-    closeFile($win,-no_update => 1);
+    closeFile($win,-no_update => 1) unless $opts{-preload};
   }
 
+  $win->{FSFile}=$fsfile unless $opts{-preload};
   $win->{treeNo}=0;
-  if ($win->{FSFile}) {
+  if ($fsfile) {
     if ($opts{-justheader}) {
       $f=sprintf('%03d',$NewFileNo++)."_new_".filename($f);
-      $win->{FSFile}->changeFilename($f);
-      $win->{FSFile}->changeTrees();
-#      $win->{FSFile}->new_tree(0);
-      $win->{FSFile}->notSaved(1);
+      $fsfile->changeFilename($f);
+      $fsfile->changeTrees();
+#      $fsfile->new_tree(0);
+      $fsfile->notSaved(1);
     }
-    push @openfiles, $win->{FSFile};
+    push @openfiles, $fsfile;
   } else {
     removeLock(undef, $f) if $lockinfo and $lockinfo !~ /^locked/;
   }
   updatePostponed($grp);
   # add file to filelist
-  updateTitle($grp);
+  updateTitle($grp) unless $opts{-preload};
 
-  applyFileSuffix($win,$goto);
-  doEvalHook($win,"file_opened_hook") if ($win->{FSFile} and
-					  !$opts{-nohook});
-  switchContext($win,$opt_t,1)
-    if ($opt_t ne "" and
-	$win->{macroContext} ne $opt_t);
-
-  get_nodes_win($win,$opts{-noredraw});
-  unless ($opts{-noredraw}) {
-    redraw_win($win);
-    centerTo($win,$win->{currentNode});
+  applyFileSuffix($win,$goto) unless $opts{-preload};
+  doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
+  unless ($opts{-preload}) {
+    switchContext($win,$opt_t,1)
+      if ($opt_t ne "" and
+	    $win->{macroContext} ne $opt_t);
+    get_nodes_win($win,$opts{-noredraw});
+    unless ($opts{-noredraw}) {
+      redraw_win($win);
+      centerTo($win,$win->{currentNode});
+    }
   }
   $win->toplevel->Unbusy() unless $insideEval;
 
   addToRecent($grp,$f);
-  return 1;
+  return $fsfile;
 }
 
 sub getNodeByNo {
@@ -1847,7 +1913,8 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
 
   return 0 unless ($node and $win->{FSFile});
   return 1 if $show or not defined($win->{FSFile}->FS->hide());
-  while ($node and ($node->{$win->{FSFile}->FS->hide()} ne 'hide')) {
+  while ($node and ($node->getAttribute($win->{FSFile}->FS->hide())
+		      ne 'hide')) {
     $node=$node->parent;
   }
   return ($node ? 0 : 1)
@@ -3755,6 +3822,10 @@ sub onCurrentChange {
     $tv->apply_stored_style_opts("EdgeTextBox",$prev);
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
     update_status_line($win);
+## experiment with persistent node editor
+#    if ($win->{framegroup}->{attrsEditor}) {
+#      editAttrsDialog_schema($win,$node)
+#    }
   }
 }
 
@@ -4143,6 +4214,12 @@ sub startMain {
     $group{top}=MainWindow->new();
   }
 
+#  eval {
+#    require Tk::Stderr;
+#    $group{top}->InitStderr;
+#  } unless -t \*STDOUT;
+#  undef $@;
+
   for (qw(ROText Text Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $group{top}->option('add',"\*$_.background","white");
@@ -4261,7 +4338,7 @@ sub startMain {
 					  }
 					 , \%group]);
   $group{FileMenu}->command(-label=> 'Close in Window',
-			    -underline=> 9,
+			    -underline=> 7,
 			    -command=> [ sub {
 					    my ($grp)=@_;
 					    my $keep;
@@ -5496,8 +5573,20 @@ sub closeAllFiles {
     }
   }
   while (@openfiles) {
-    resumeFile($grp->{focusedWindow},shift @openfiles);
-    closeFile($grp->{focusedWindow},-no_update => 1, -all_windows => 1);
+   my $fsfile = shift @openfiles;
+
+   # to avoid infinite loop, first try closing all files this one is
+   # part of
+   if ($fsfile and ref($fsfile->userData()->{'fs-part-of'})) {
+     foreach (@{$fsfile->userData()->{'fs-part-of'}}) {
+       closeFile($grp->{focusedWindow},-fsfile => $_,
+		 -no_update => 1, -all_windows => 1);
+     }
+   }
+   closeFile($grp->{focusedWindow},
+	     -fsfile => $fsfile,
+	     -no_update => 1,
+	     -all_windows => 1);
   }
 }
 
@@ -6306,33 +6395,127 @@ sub focusxFind {
   }
 }
 
+# sub updateAttrDialog {
+#   my ($grp) = @_;
+#   if ($grp->{updateAttrDialog} and $grp->{attrsEditor}) {
+#     $grp->{attrsEditor}->delete('all');
+#     $grp->{attrsEditor}->add_members(@{$grp->{updateAttrDialog}});
+#     $grp->{attrsEditor}->update();
+#     delete $grp->{updateAttrDialog};
+#   }
+# }
 
 sub editAttrsDialog_schema {
-  my ($win,$node)=@_;
+  my ($win,$node,$attr_path)=@_;
+  my $grp = $win->{framegroup};
+#   if ($grp->{attrsDialog}) {
+#     my $d=$grp->{attrsDialog};
+#     my $edit = $grp->{attrsEditor};
+#     my $schema = $win->{FSFile}->metaData('schema');
+#     my $node_type = $schema->find_type($attr_path);
+#     my $attr_name;
+#     $d->afterIdle([\&updateAttrDialog,$grp]) unless $grp->{updateAttrDialog};
+#     if ($attr_path) {
+#       $attr_name = $attr_path;
+#       $attr_name =~ s{.*/}{};
+#       $grp->{updateAttrDialog} = [ '',$node_type,$node->attr($attr_path), $attr_name ];
+#     } else {
+#       $grp->{updateAttrDialog} = [ '',$node_type,$node ];
+#     }
+#     return;
+#   }
+
   require Tk::TrEdNodeEdit;
   my $schema = $win->{FSFile}->metaData('schema');
-  my ($node_type_name) = grep { $schema->{type}{$_}{role} eq '#NODE' } keys %{$schema->{type}};
-  my $node_type = $schema->{type}{$node_type_name};
+  use Data::Dumper;
+  print "PATH: '$attr_path'\n";
+  my $node_type = $schema->find_type($attr_path);
+  print Dumper($node_type),"\n";
 
-#  $win->toplevel->Busy(-recurse=>1);
-  my $d=$win->toplevel->DialogBox(-title=> "Edit Node", -width=> '10c',
+  $win->toplevel->Busy(-recurse=>1);
+
+ my $d=$win->toplevel->DialogBox(-title=> "Edit Node",
 				  -buttons=> [qw(OK Cancel)]
 				 );
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+ $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
 
-  my $edit = $d->Scrolled('TrEdNodeEdit',
+## experiment with persistent node editor
+#   my $d=$grp->{attrsDialog}=
+#     $grp->{top}->Toplevel(-title=> "Node attributes",-background => 'white');
+#   $d->withdraw;
+#   $d->bind('<Destroy>' => [ sub {delete $_[1]->{attrsDialog};
+# 				 delete $_[1]->{attrsEditor}; },$grp ]);
+
+  my $edit = # $grp->{attrsEditor} =
+    $d->Scrolled('TrEdNodeEdit',
+			  -width=> 70,
+			  -height => 0,
 			  -indicator => 1,
 			  -scrollbars => 'oe'
 			 );
-#  $edit->Subwidget('scrolled')
-#    ->configure('-background'=> 'red');
-  $edit->define_types($schema->{type});
-  $edit->add_members('',$node_type,$node);
+  $edit->Tk::bind('Freeze','<Map>',undef);
+  $edit->bindtags([grep { $_ ne 'Freeze'} $edit->bindtags]);
+  $edit->set_schema($schema);
+  my $attr_name;
+  if ($attr_path) {
+    $attr_name = $attr_path;
+    $attr_name =~ s{.*/}{};
+    $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
+  } else {
+    $edit->add_members('',$node_type,$node);
+  }
+
+  if ($attr_path eq '') {
+    print "Searchline\n";
+    my $sf = $d->Frame->pack(qw(-fill x -side bottom));
+    $sf->Label(-underline => 0,
+	       -text => 'Search name:')->pack(qw(-side left));
+    my $qs = $sf->Entry(
+      -validate => 'key',
+      -validatecommand => 
+	[sub {
+	   my ($tree,$value)=@_;
+	   if ($tree->info(exists => $value)) {
+	     $tree->select_entry($value);
+	     return $value;
+	   } elsif ($value =~ /^(.*)\/([^\/]*)/) {
+	     my ($p,$v)=($1,$2);
+	     if ($tree->info(exists => $p)) {
+	       foreach ($tree->info('children'=>$p)) {
+		 if (/^\Q$p\E\/\Q$v\E/) {
+		   $tree->select_entry($_);
+		   return $_;
+		 }
+	       }
+	     }
+	   } else {
+	     foreach ($tree->info('children')) {
+	       if (/^\Q$value\E/) {
+		 $tree->select_entry($_);
+		 return $_;
+	       }
+	     }
+	   }
+	   return undef;
+	 },$edit]
+       )->pack(qw(-side right -expand 1 -fill x));
+    $d->bind('all','<Alt-s>', [$qs,'focus']);
+    $qs->bind('<Return>',[$edit,'focus_entry']);
+    $qs->bind('<Escape>',[sub { $_[1]->focus; Tk->break; },$edit]);
+    $edit->configure(-browsecmd =>
+		       [sub { $_[0]->delete(0,'end');
+			      $_[0]->insert(0,$_[1]);
+			    },$qs]
+		      );
+  }
+
   $edit->autosetmode();
+
   $edit->columnWidth(0,'');
   $edit->columnWidth(1,'');
   $edit->columnWidth(2,'1c');
-#  $win->toplevel->Unbusy();
+
+#  $edit->configure( -height => 0);
 
   $edit->update;
   $edit->pack(qw(-expand 1 -fill both));
@@ -6342,65 +6525,33 @@ sub editAttrsDialog_schema {
 
   $d->bind('all','<Tab>','focusNext');
   $d->bind('all','<<LeftTab>>','focusPrev');
-  for (qw(OK Cancel)) {
-    $d->Subwidget("B_$_")->configure(-underline => 0);
-    $d->bind('all','<Alt-'.lc(substr($_,0,1)).'>'
+
+ for (qw(OK Cancel)) {
+   $d->Subwidget("B_$_")->configure(-underline => 0);
+   $d->bind('all','<Alt-'.lc(substr($_,0,1)).'>'
 	       => [sub { $_[1]->{selected_button}=$_[2] },$d,$_ ]);
-  }
-  $edit->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
-  $d->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
-  $d->bind('all','<Control-Return>',\&dlgReturn);
-  $edit->bind('<Control-Return>',\&dlgReturn);
-  my $sf = $d->Frame->pack(qw(-fill x -side bottom));
-  $sf->Label(-underline => 0,
-	     -text => 'Search name:')->pack(qw(-side left));
-  my $qs = $sf->Entry(
-    -validate => 'key',
-    -validatecommand => 
-      [sub {
-	 my ($tree,$value)=@_;
-	 if ($tree->info(exists => $value)) {
-	   $tree->select_entry($value);
-	   return $value;
-	 } elsif ($value =~ /^(.*)\/([^\/]*)/) {
-	   my ($p,$v)=($1,$2);
-	   if ($tree->info(exists => $p)) {
-	     foreach ($tree->info('children'=>$p)) {
-	       if (/^\Q$p\E\/\Q$v\E/) {
-		 $tree->select_entry($_);
-		 return $_;
-	       }
-	     }
-	   }
-	 } else {
-	   foreach ($tree->info('children')) {
-	     if (/^\Q$value\E/) {
-	       $tree->select_entry($_);
-	       return $_;
-	     }
-	   }
-	 }
-	 return undef;
-       },$edit]
-   )->pack(qw(-side right -expand 1 -fill x));
-  $d->bind('all','<Alt-s>', [$qs,'focus']);
-  $qs->bind('<Return>',[$edit,'focus_entry']);
-  $qs->bind('<Escape>',[sub { $_[1]->focus; Tk->break; },$edit]);
+ }
+ $edit->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
+ $d->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
+ $d->bind('all','<Control-Return>',\&dlgReturn);
+ $edit->bind('<Control-Return>',\&dlgReturn);
 
-  $edit->configure(-browsecmd =>
-		    [sub { $_[0]->delete(0,'end');
-			   $_[0]->insert(0,$_[1]);
-			 },$qs]
-		  );
-
-#  $d->minsize($edit->reqwidth+200,$edit->reqheight);
+  #$d->minsize($edit->reqwidth+200,$edit->reqheight);
+  $win->toplevel->Unbusy();
 
   my $result = ShowDialog($d,$edit,$win->toplevel);
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
     save_undo($win,prepare_undo($win,'Edit Node'));
     lastActionBookmark($win->{framegroup});
-    $edit->dump_to_node($node);
+    if ($attr_path eq '') {
+      $edit->dump_to_node($node);
+    } else {
+      my $val = {};
+      $edit->dump_to_node($val);
+      $node->set_attr($attr_path,$val->{$attr_name});
+      print Dumper($val),"\n";
+    }
     doEvalHook($win,"after_edit_node_hook",$node,1);
     get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
@@ -6408,6 +6559,8 @@ sub editAttrsDialog_schema {
      doEvalHook($win,"after_edit_node_hook",$node,0);
   }
   $d->destroy;
+## for persistent dialog
+##  $d->Popup;
 }
 
 sub editAttrsDialog {
@@ -6723,7 +6876,14 @@ EOF
                      -exportselection 0/)->pack(qw/-pady 3 -expand yes -fill y/);
   disable_scrollbar_focus($al);
   $al->BindMouseWheelVert();
-  my @atord=$win->{FSFile} ? $win->{FSFile}->FS->attributes : ();
+  my @atord=();
+  if ($win->{FSFile}) { 
+    if ($win->{FSFile}->metaData('schema')) {
+      @atord = $win->{FSFile}->metaData('schema')->attributes;
+    } else {
+      @atord = $win->{FSFile}->FS->attributes;
+    }
+  }
   if ($sortAttrs) {
     @atord=sort {uc($a) cmp uc($b)} @atord
       unless (doEvalHook($win,"sort_attrs_hook",\@atord));
@@ -6901,6 +7061,7 @@ EOF
 	   }]
 	  );
   $d->bind('<Return>'=> [\&dlgReturn,1]);
+  $d->bind('all','<Control-Return>',\&dlgReturn);
   $e->focus();
 #  $d->resizable(0,0);
   _bind_buttons($d,$d);
@@ -6918,8 +7079,10 @@ EOF
     saveStyleSheets($grp) unless $win->{stylesheet} eq STYLESHEET_FROM_FILE();
     update_value_line($grp);
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
+      __debug("Redrawing windows with fsfile\n");
       redraw_fsfile($grp,$win->{FSFile});
     } else {
+      __debug("Redrawing windows with stylesheet $win->{stylesheet}\n");
       redraw_stylesheet($grp,$win->{stylesheet});
     }
   }
@@ -6937,12 +7100,23 @@ EOF
 sub findNodeDialog {
   my ($grp,$template)=@_;
   return unless $grp->{focusedWindow}->{FSFile};
+  my $win = $grp->{focusedWindow};
   my $r;
   my @vals;
-  my @atord=$grp->{focusedWindow}->{FSFile}->FS->attributes;
+  my @atord;
+  if ($win->{FSFile}->metaData('schema')) {
+    @atord = $win->{FSFile}->metaData('schema')->attributes;
+  } else {
+    @atord = $win->{FSFile}->FS->attributes;
+  }
+
   if ($sortAttrs) {
-    @atord=sort {uc($a) cmp uc($b)} $grp->{focusedWindow}->{FSFile}->FS->attributes
-      unless (doEvalHook($grp->{focusedWindow},"sort_attrs_hook",\@atord));
+    my @atord2 = @atord;
+    if (doEvalHook($win,"sort_attrs_hook",\@atord2)) {
+      @atord = @atord2;
+    } else {
+      @atord=sort {uc($a) cmp uc($b)} @atord
+    }
   }
 
   my $b;
@@ -7182,7 +7356,7 @@ sub findFirstTemplated {
 
   $node=nextNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
   while ($node) {
-    unless (grep (!cmpTemplateField($grp,$node->getAttribute($_),$template->{$_}), keys (%$template)))
+    unless (grep (!cmpTemplateField($grp,$node->attr($_),$template->{$_}), keys (%$template)))
       {
 	gotoTree($win,$tree);
 	setCurrent($win, $node);
@@ -7254,7 +7428,7 @@ sub findPrevTemplated {
   $node=prevNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
 
   while ($node) {
-    unless (grep (!cmpTemplateField($grp,$node->getAttribute($_),$template->{$_}), keys (%$template)))
+    unless (grep (!cmpTemplateField($grp,$node->attr($_),$template->{$_}), keys (%$template)))
       {
 	gotoTree($grp->{focusedWindow}, $tree);
 	setCurrent($grp->{focusedWindow}, $node);
@@ -7362,6 +7536,10 @@ sub doEditAttr {
   my $grp=$win->{framegroup};
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
+
+  return editAttrsDialog_schema($win,$node,$attr) 
+    if (ref($win->{FSFile}->metaData('schema')));
+
   my ($Entry,@Eopts) = get_entry_type();
   my $newvalue;
   if ($win->{FSFile}->FS->isList($attr)) {
@@ -7517,7 +7695,7 @@ sub redraw_fsfile {
 
 sub redraw_stylesheet {
   my ($grp,$stylesheet)=@_;
-  return if $insideEval or !$fsfile;
+  return if $insideEval;
   foreach (stylesheetUsingWindows($grp,$stylesheet)) {
     redraw_win($_);
   }
@@ -8345,12 +8523,13 @@ sub prepare_undo {
   my $tree;
   eval { require Storable; };
   if ($@) {
-    undef $@;
-    Fslib::PrintTree($win->{root},
-		     $fsfile->FS->list,
-		     $fsfile->FS->defs,
-		     \$tree);
-    return ['FS',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
+    return undef;
+#    undef $@;
+#    Fslib::PrintTree($win->{root},
+#		     $fsfile->FS->list,
+#		     $fsfile->FS->defs,
+#		     \$tree);
+#    return ['FS',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
   } else {
     $tree = Storable::freeze($win->{root});
     return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
