@@ -5192,24 +5192,24 @@ sub doEvalHook {
   my $oldthis=$TredMacro::this;
   my $oldroot=$TredMacro::root;
   my $context='TredMacro';
+  $TredMacro::FileNotSaved='?';
   if ($win) {
     $TredMacro::this=$win->{currentNode};
     $TredMacro::root=$win->{root};
-    $FileNotSaved='?';
     $context=$win->{macroContext};
   }
   $TredMacro::libDir=$libDir;
-
   $TredMacro::forceFileSaved=0;
-
   my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
+  my $file_changed=$TredMacro::FileNotSaved;
 
   if ($win) {
     if ($win->{FSFile}) {
-      $FileNotSaved=$win->{FSFile}->notSaved if $FileNotSaved eq '?';
-      lastActionBookmark($win->{framegroup},$bookmark) if $FileNotSaved and !$win->{FSFile}->notSaved;
-      $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved);
+      $file_changed=$win->{FSFile}->notSaved if $file_changed eq '?';
+      lastActionBookmark($win->{framegroup},$bookmark)
+	if $file_changed and !$win->{FSFile}->notSaved;
+      $win->{FSFile}->notSaved($win->{FSFile}->notSaved || $file_changed);
     }
     saveFileStateUpdate($win);
   }
