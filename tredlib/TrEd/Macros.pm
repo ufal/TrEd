@@ -320,14 +320,14 @@ sub initialize_macros {
       $result=
 	$safeCompartment
 	  ->reval($macros);
-      print STDERR $@ if $@;
+      TrEd::Basics::errorMessage($win,$@) if $@;
     } else {
       ${TredMacro::grp}=$win;
       $macrosEvaluated=1;
-      $result=eval { eval ($macros); die $@ if $@ };
+      $result=eval { my $res=eval ($macros); die $@ if $@; $res; };
     }
     print STDERR "Returned with: $result\n\n" if $macroDebug;
-    print STDERR $@ if $@
+    TrEd::Basics::errorMessage($win,$@) if $@;
   }
   ${macro_variable('TredMacro::grp')}=$win;
   return $result;
@@ -349,7 +349,9 @@ sub do_eval_macro {
   return 0,0,$TredMacro::this unless $macro;
   my $utf = ($useEncoding) ? "use utf8;\n" : "";
   my $result;
+  undef $@;
   initialize_macros($win);
+  return undef if $@;
   print STDERR "Running $macro\n" if $macroDebug;
   if (defined($safeCompartment)) {
     ${macro_variable('TredMacro::grp')}=$win;
@@ -379,7 +381,9 @@ sub do_eval_hook {
   print STDERR "about to run the hook: '$hook' (in $context context)\n" if $hookDebug;
   return undef unless $hook; # and $TredMacro::this;
   my $utf = ($useEncoding) ? "use utf8;\n" : "";
+  undef $@;
   initialize_macros($win);
+  return undef if $@;
   my $result=undef;
 
   if (context_can($context,$hook)) {
