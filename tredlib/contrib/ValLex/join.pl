@@ -3,11 +3,38 @@
 use XML::LibXML;
 use strict;
 
+sub add_forbidden_id {
+  my ($doc,$id)=@_;
+  my $doc_el=$doc->getDocumentElement();
+  my ($tail)=$doc_el->getElementsByTagName("tail");
+  unless ($tail) {
+    $tail=$doc->createElement("tail");
+    my ($body)=$doc_el->getElementsByTagName("body");
+    $doc_el->insertAfter($tail,$body);
+  }
+  my $forbid=$doc->createElement("forbid");
+  $forbid->setAttribute("forbidden_ID",$id);
+  $tail->appendChild($forbid);
+  return;
+}
+
+sub join_substitutions {
+  my ($x,$y)=@_;
+  my @x=split /\s+/,$x;
+  my @y=split /\s+/,$y;
+  my %uniq;
+  foreach (@x,@y) {
+    $uniq{$_}=1;
+  }
+  return join " ",keys(%uniq);
+}
+
 my ($base_file, @new_files)=@ARGV;
 
+print STDERR "Base document: $base_file\n";
 my $parser=XML::LibXML->new();
-XML::LibXML->load_ext_dtd(1);
-XML::LibXML->validation(1);
+$parser->load_ext_dtd(1);
+$parser->validation(1);
 
 my $base_doc=$parser->parse_file($base_file);
 my $base_doc_el=$base_doc->getDocumentElement();
@@ -16,6 +43,7 @@ my $new_doc;
 my $new_doc_el;
 
 foreach my $new_file (@new_files) {
+  print STDERR "Merging $new_file...\n";
   $new_doc=$parser->parse_file($new_file);
   $new_doc_el=$new_doc->getDocumentElement();
   my $new_doc_owner=$new_doc_el->getAttribute("owner");
@@ -33,7 +61,19 @@ foreach my $new_file (@new_files) {
 
   foreach my $word ($new_doc_el->findnodes("/valency_lexicon/body/word")) {
     my $id=$word->getAttribute("word_ID");
+
     my ($base_word)=$base_doc_el->findnodes("id('$id')");
+    if (!ref($base_word)) {
+      my $lemma=$word->getAttribute("lemma");
+      my $pos=$word->getAttribute("POS");
+#      print STDERR "Trying /valency_lexicon/body/word[\@lemma='$lemma' and \@POS='$pos']\n";
+      ($base_word)=$base_doc_el->findnodes("/valency_lexicon/body/word[\@lemma='$lemma' and \@POS='$pos']");
+      if (ref($base_word)) {
+	print STDERR "found $base_word\n";
+	# the same word was added by different annotators
+	add_forbidden_id($base_doc,$id);
+      }
+    }
     if (ref($base_word)) {
       die("Error: non-word identifier $id of base element ".
 	  $base_word->getName().
@@ -54,6 +94,8 @@ foreach my $new_file (@new_files) {
 
 	  my $status=$frame->getAttribute("status");
 	  my $base_status=$base_frame->getAttribute("status");
+	  my $subst_with=$frame->getAttribute("substituted_with");
+	  my $base_subst_with=$base_frame->getAttribute("substituted_with");
 
 	  # vetsi status vyhrava pri (castecnem) usporadani:
 	  # deleted, substituted > obsolete > reviewed > active
@@ -63,7 +105,10 @@ foreach my $new_file (@new_files) {
 	      ($status eq 'reviewed' and $base_status eq 'active') or
 	      ($status eq 'substituted' and $base_status eq 'obsolete')
 	     ) {
+
 	    $base_frame->setAttribute("status",$status);
+	    $base_frame->setAttribute("substituted_with",
+				      join_substitutions($subst_with,$base_subst_with));
 
 	    #
 	    # lokalni historie se musi prenest taky, ale
@@ -90,10 +135,12 @@ foreach my $new_file (@new_files) {
 	} else {
 	  my $copy=$frame->cloneNode(1);
 	  $copy->setOwnerDocument($base_doc);
-	  $base_word->appendChild($copy);
+	  my ($valframes)=$base_word->getElementsByTagName('valency_frames');
+	  $valframes->appendChild($copy);
 	}
       }
     } else {
+      # ok, the word really does not exist in the base document
       my $copy=$word->cloneNode(1);
       $copy->setOwnerDocument($base_doc);
       $base_doc_body->appendChild($copy);
