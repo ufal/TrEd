@@ -785,7 +785,7 @@ Return linguistic parents of a given node as appear in a TG tree.
 =cut
 
 sub GetFathers_T {
-  my $node = $_[0] || $;
+  my $node = $_[0] || $this;
   if ($node and $node->{is_member}) {
     while ($node and (!is_coord_T($node) or $node->{is_member})) {
       $node=$node->parent;
