@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-06-10 12:13:43 pajas>
+## Time-stamp: <2004-06-10 12:21:28 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -696,7 +696,7 @@ sub CutSubtreeBeforeMove {
 #bind PasteMovedSubtree to Ctrl+6 menu PasteMovedSubtree
 sub PasteMovedSubtree {
   return unless ref($SubtreeToMove);
-
+  PDT::ClearARstruct();
   my ($nodes, $subtree, $anal, $added, $astruct) = @$SubtreeToMove;
   undef $SubtreeToMove;
   my @nodes = ($root->descendants());
