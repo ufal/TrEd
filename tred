@@ -1,14 +1,14 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2000-11-29 09:17:41 pajas>
+# Time-stamp: <2000-12-05 09:32:33 pajas>
 #
-# Tred ver. 0.3 - Copyright (C) 2000 by Petr Pajas
+# TrEd ver. 0.5 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
 # Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
 #
-# This is "Tred" - a simple viewer/editor of tree graphs in fs
-# file-format used in Graph - program developed by M. Kren. Tred is
+# This is "TrEd" - a simple viewer/editor of tree graphs in fs
+# file-format used in Graph - program developed by M. Kren. TrEd is
 # written entirely in Perl and for graphical output it uses PerlTk
 # library as a frontend to Tk toolkit
 #
@@ -61,8 +61,8 @@ or
 
 tred -u|-h    for usage/help
 
-This is `TRED' - a simple viewer/editor of tree graphs in FS-format
-used in `GRAPH' - a program developed by M. Kren. TRED (which stands
+This is `TrEd' - a simple viewer/editor of tree graphs in FS-format
+used in `GRAPH' - a program developed by M. Kren. TrEd (which stands
 for The TRee EDitor) is written entirely in Perl and it uses PerlTk
 module for GUI.
 
@@ -74,20 +74,20 @@ The name of each file may be followed by a suffices of the following
 forms:
 
 #N      where N is a number possibly followed by one or more
-	upper-case letters. In this case, #N tells tred to skip to the
+	upper-case letters. In this case, #N tells TrEd to skip to the
 	first tree the root of which has `#N' as a value of attribute
 	called `form' (this feature is optimized for specific
 	instances of fs-format used while working on The Prague
 	Dependency Treebank)
 
-##N     where N is a number. This makes tred to go to the N-th tree in
+##N     where N is a number. This makes TrEd to go to the N-th tree in
 	the given file after the file is opened.
 
 -m      may be used to specify a macro file different from the one
 	given in ~/.tredrc (or whatsoever) configuration file
 
 -c      may be used to specify a config-file to be used (overrides
-	~/.tredrc and all the other files Tred would otherwise try to
+	~/.tredrc and all the other files TrEd would otherwise try to
 	search for).
 
 EOF
@@ -153,7 +153,7 @@ if (defined $opt_m) {
 
 unless (-d $libDir) {
   print <<'EOL';
- Tred couldn't find a tredlib directory. You may need to point
+ TrEd couldn't find a tredlib directory. You may need to point
  to its location by the TREDHOME variable or add a correct LibDir
  field to your ~/.tredrc.
 
@@ -356,7 +356,7 @@ sub applyConfig {
 sub setConfig {
   my $confs=shift;
 
-  $appName=(exists $confs->{appname}) ? $confs->{appname} : "Tred ver. 0.3";
+  $appName=(exists $confs->{appname}) ? $confs->{appname} : "TrEd ver. 0.5";
   $baseXPos=(exists $confs->{basexpos}) ? $confs->{basexpos} : 15;
   $baseYPos=(exists $confs->{baseypos}) ? $confs->{baseypos} : 15;
   $nodeWidth=(exists $confs->{nodewidth}) ? $confs->{nodewidth} : 5;
@@ -422,9 +422,11 @@ sub setConfig {
   $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : 1;
   $Tk::strictMotif=(exists $confs->{strictmotif}) ? $confs->{strictmotif} : 0;
   $printColors=(exists $confs->{printcolors}) ? $confs->{printcolors} : 0;
-  $anyToFs=(exists $confs->{anytofs}) ? $confs->{anytofs} : undef;
+  $cstsToFs=(exists $confs->{cststofs}) ? $confs->{cststofs} : undef;
+  $fsToCsts=(exists $confs->{fstocsts}) ? $confs->{fstocsts} : undef;
   $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
   $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip." -c");
+  $keyboardDebug=(exists $confs->{keyboarddebug}) ? $confs->{keyboarddebug} : 0;
   print STDERR "Applying configuration.\n";
 }
 
@@ -527,10 +529,10 @@ sub ErrorMessage {
   if ($grp->{top}) {
     $grp->{top}->
       messageBox(-icon => 'error',
-		 -message => $msg
-		 -title => 'Error', -type => 'Ok');
+		 -message => $msg,
+		 -title => 'Error', -buttons => qw/OK/);
   } else {
-    print STDERR "Cannot write to out ($!)\n";
+    print STDERR "$msg\n";
   }
 }
 
@@ -539,9 +541,12 @@ sub openFile {
   my $grp = shift;
   my $goto = undef;
   my $fs;
+  my $gz='';
+  my $in1='<';
+  my $in2='';
   my %fs=(fs => 'FS format', 
 	  fgz => 'gzipped FS format', 
-	  any => 'unspecific format (csts?), using AnyToFs');
+	  any => 'unspecific format (csts?), using CstsToFs');
   my @d=();
 
   $grp->{top}->Busy(-recurse => 1) if ($grp->{top});
@@ -556,14 +561,17 @@ sub openFile {
   #########################################
   # opening file to find out the file type
   #
-  unless (open(F,"<$f")) {
-    ErrorMessage($grp, "Cannot read from $f ($!)\n");
+  if ($f=~/\.f?gz$/i) {
+    $gz='gzipped ';
+    $in1="$zcat ";
+    $in2=" |";
+  }
+  unless (open(F,"$in1$f$in2")) {
+    ErrorMessage($grp, "Cannot read from $in1$f$in2\n($!)\n");
     $grp->{top}->Unbusy() if ($grp);
     return 0;
   }
-  if ($f=~/\.f?gz$/i) {
-    $fs='fgz';
-  } else {
+   else {
     # peep on the first character
     $fs=($_=<F> and /^\@/) ? 'fs' : 'any';
   }
@@ -572,31 +580,22 @@ sub openFile {
   #########################################
 
 
-  print STDERR "File \'$f\' is in ", $fs{$fs};
+  print STDERR "File \'$f\' is in $gz", $fs{$fs},"\n";
 
-  if ($fs eq 'fs') {
-    # opening file again, know it is fs
-    unless (open(F,"<$f")) {
-      ErrorMessage($grp,"Cannot open $f ($!)\n");
-      $grp->{top}->Unbusy() if ($grp);
-      return 0;
-    }
-  } else {
-    my $cmd = $fs eq 'fgz' ? $zcat : $anyToFs;
-    if (defined($cmd) and -x $cmd) {
-      print STDERR "Piping through \`$cmd\'\n";
-      unless (open(F,"$cmd $f |")) {
-	ErrorMessage($grp,"Cannot run filter \`$cmd\' on $f ($!)\n");
-	$grp->{top}->Unbusy() if ($grp);
-	return 0;
-      }
-      print STDERR "ok.\n";
-      $f.=".fs" if ($fs eq 'any');
+  if ($fs eq 'any') {
+    if ($in1 eq '<') {
+      $in1=$cstsToFs." ";
+      $in2=" |";
     } else {
-      ErrorMessage($grp,"Cannot open $f (bad $cmd or unknown format?)!\n");
-      $grp->{top}->Unbusy() if ($grp);
-      return 0;
+      $in2.=$cstsToFs." |";
     }
+  }
+  print STDERR "Reading from $in1$f$in2\n";
+  # opening file again, know it is fs
+  unless (open(F,"$in1$f$in2")) {
+    ErrorMessage($grp,"Cannot read from $in1$f$in2\n($!)\n");
+    $grp->{top}->Unbusy() if ($grp);
+    return 0;
   }
   #reading attribs
   %attribs=ReadAttribs(\*F,\@atord,2,\@header);
@@ -609,6 +608,7 @@ sub openFile {
     } else { push(@rest, $_); }
   }
   close (F);
+  
 
   #parse Rest
   #print "@rest\n";
@@ -631,12 +631,15 @@ sub openFile {
     }
   }
   # --
-  $grp->{'currentFile'}=$f;
-  $grp->{'top'}->title("$appName $f");
-  getNodes($grp);
-  $FileNotSaved=0;
-  redraw_tree($grp);
-  $grp->{'top'}->Unbusy();
+  if ($grp) {
+    $grp->{'currentFile'}=$f;
+    $grp->{'currentFileFormat'}=$gz.$fs;
+    $grp->{'top'}->title("$appName $f");
+    getNodes($grp);
+    $FileNotSaved=0;
+    redraw_tree($grp);
+    $grp->{'top'}->Unbusy();
+  }
   return 1;
 }
 
@@ -644,29 +647,43 @@ sub saveFile {
   my $grp=shift;
   my $f=$grp->{'currentFile'};
   my @atrIds=();
-  my $out;
+  my $out="";
+  my $of;
+  my $gz;
+
 
   return unless $grp->{'currentFile'};
 
-  rename $f,$f."~";
-  if ($f=~/\.f?gz$/i) {
+  rename $f,$f."~" if (-f $f);
+
+  if ($grp->{'currentFileFormat'} =~/gzipped/ or $f=~/\.f?gz$/i) {
     if ($gzip) {
-      $out="| $gzip > $f";
+      $gz='gzipped ';
+      $out.="| $gzip ";
     } else {
       ErrorMessage($grp,"Cannot write gzipped file (No gzip utility defined)\n".
-		   "Use Save As to save the file in a non-gzipped format\n"
+		   "Use file name without the gz suffix to save the file\n".
+		   "in a non-gzipped format.\n"
 		  );
       return 0;
     }
-  } else {
-    $out = ">$f";
   }
-
-  unless (open(FO,$out)) {
-    ErrorMessage($grp,"Cannot write to out ($!)\n");
+  if ($grp->{'currentFileFormat'} =~/any/ or $f=~/csts?$|csts?.gz$/i) {
+    if ($fsToCsts) {
+      $out="| $fsToCsts ".$out;
+    } else {
+      ErrorMessage($grp,"Cannot export to CSTS file (No option FsToCsts defined)\n".
+		   "Use file name without the csts suffix to save the file\n".
+		   "in a FS or gzipped FS format.\n"
+		  );
+      return 0;
+    }
+  }
+  unless (open(FO,"$out> $f")) {
+    ErrorMessage($grp,"Cannot write to '$out > $f'\n($!)\n");
     return 0;
   }
-  print STDERR "Writing to $out\n";
+  print STDERR "Writing to $out> $f\n";
   print FO @header;
   PrintFS(\*FO,\@header,\@trees,\@atord,\%attribs);
   my $atrLine=shift @rest;
@@ -789,6 +806,7 @@ sub printDialog {
 				-buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
+  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   my $cf = $d->Frame();
@@ -1017,7 +1035,7 @@ sub printThis {
 	    "/Arial-Medium findfont 8 scalefont setfont\n",
 	      "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
 		"40 40 [\n",
-		  "(File ",$grp->{currentFile},".    Printed by Tred on $now.)\n",
+		  "(File ",$grp->{currentFile},".    Printed by TrEd on $now.)\n",
 		    "] 13 -0 0 0 false DrawText\ngrestore\n";
 	}
 	$i++;
@@ -1361,12 +1379,28 @@ sub startMain {
 
   $group{UserMenu}=$group{Menubar}->Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
 					       $uM)->pack(qw/-side left/);
-  $group{MacroMenu}=$group{Menubar}->Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
-					       [ map ([Button => $keyBindings{$_}, -accelerator => "($_)",
-						       -command => [\&doEvalMacro,\%group,$keyBindings{$_}]],
-						 keys(%keyBindings))
-					       ])->pack(qw/-side left/) if ($createMacroMenu);
 
+  if ($createMacroMenu) {
+    @umenus =  map (
+		    [Button => $keyBindings{$_},
+		     -command => [\&doEvalMacro,\%group,$keyBindings{$_}],
+		     -accelerator => "($_)"
+		    ],
+		    sort(keys(%keyBindings)));
+
+    $uM=[ @umenus[0..min($maxMenuLines-1,$#umenus)] ];
+    $uuM=$uM;
+    $i=$maxMenuLines;
+    while ($i<=$#umenus) {
+      $_=[@umenus[$i..min($i+$maxMenuLines-1,$#umenus)]];
+      push @$uuM,[Cascade => 'More...', -menuitems => $_];
+      $uuM=$_;
+      $i+=$maxMenuLines;
+    }
+
+    $group{MacroMenu}=$group{Menubar}->Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
+						$uM)->pack(qw/-side left/);
+  }
   addBindTags($group{'frame'},'my');
   my $canvas = $group{'top'}->Scrolled(qw/Canvas -width 20c -height 20c -relief sunken
 			   -borderwidth 2 -scrollbars se -scrollregion/ =>
@@ -1582,6 +1616,7 @@ sub fileDialog {
     (["Fs files",           [qw/.fs .FS .Fs/]],
      ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
      ["CSTS files",           [qw/.am .cst .csg .csts/]],
+     ["Gzipped CSTS files",           [qw/.am.gz .cst.gz .csg.gz .csts.gz/]],
      ["Backup Fs files",           [qw/.fs~ .fb .FB .Fb/]],
      ["Backup gzipped Fs files",           [qw/.fgz~ .fs.gz~ .FGZ~ .FS.gz~ .FS.GZ~/]],
      ["All files",        '*']
@@ -1602,13 +1637,15 @@ sub saveFileAs {
   @types =
     (["Fs files",           [qw/.fs .FS .Fs/]],
      ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
+     ["CSTS files",           [qw/.cst .csts/]],
+     ["Gzipped CSTS files",           [qw/.cst.gz .csts.gz/]],
      ["All files",        '*']
     );
 
   $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
 
-  $file = $grp->{'top'}->getSaveFile(-filetypes => \@types, 
+  $file = $grp->{'top'}->getSaveFile(-filetypes => \@types,
 				     -title => "Save As ...",
 				     -initialdir => $initdir,
      				     -initialfile => filename($file));
@@ -1656,6 +1693,7 @@ sub editConfig {
   $b = $d->Subwidget('bottom')->
     Button(-text => "Cancel",
 	   -command => sub { $d->{'selected_button'} = "Cancel" } );
+  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
   if (open(F,"<$configFile")) {
     $t->insert('0.0',join "",<F>);
@@ -1726,6 +1764,7 @@ sub selectAttrs {
   }
   $d = $grp->{'top'}->DialogBox(-title => "Select", -width => "10c",
 			     -buttons => ["OK", "Cancel"]);
+  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $d->resizable(0,0);
   my $f = $d->Scrolled('Tiler',
 		       -columns =>1,
@@ -1794,6 +1833,7 @@ sub QueryString {
 
   my $d=$grp->{'top'}->DialogBox(-title => $title,
 				 -buttons => ["OK", "Cancel"]);
+  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   addBindTags($d,'dialog');
   my $e=$d->add(Entry,-relief => 'sunken',
 		    -width => 40,
@@ -1824,10 +1864,20 @@ sub selectValuesDialog {
  $grp->{'top'}->Busy(-recurse => 1);
  my $d=$grp->{'top'}->DialogBox(-title => "Select Values", -width => '8c',
 				-buttons => ["OK", "Cancel"]);
+ $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1/,
 		    -font => $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
+
+ $l->bind('<Double-ButtonPress-1>' =>
+	  [sub { my $w=shift;
+		 my $d=shift;
+		 my $e = $w->XEvent;
+		 $w->BeginSelect($w->index($e->xy));
+		 $d->{'selected_button'}='OK';
+	       },$d
+	  ]);
 
  my $act=0;
  for ($a=0;$a<@$vals;$a++)  {
@@ -1903,6 +1953,7 @@ sub editAttrsDialog {
   $grp->{'top'}->Busy(-recurse =>1);
   my $d=$grp->{'top'}->DialogBox(-title => "Edit Node Attributes", -width => '10c',
 				 -buttons => ["OK", "Cancel"]);
+  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $d->resizable(0,0);
   my $f = $d->Scrolled('Tiler',
 		       -columns =>2,
@@ -2013,6 +2064,7 @@ sub findNodeDialog {
   $grp->{'top'}->Busy(-recurse =>1);
   my $d=$grp->{'top'}->DialogBox(-title => "Find Node By Attributes", -width => '10c',
 				 -buttons => ["Find", "Cancel"]);
+  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $d->resizable(0,0);
   my $f = $d->Scrolled('Tiler',
 		       -columns =>2,
@@ -2166,6 +2218,7 @@ sub editAttr {
   $newvalue=encode($$node{$attr});
   $d = $grp->{'top'}->DialogBox(-title => "Edit Node Attribute",
 				-buttons => ["OK", "Cancel"]);
+  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
   my $l = $d->Label(-text => $attr,
@@ -2729,8 +2782,10 @@ sub evalMacro {
   my $e = $w->XEvent;
   my $A = uc($e->A);
 
-  #print STDERR "Pressed: (".ord($A)."), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
-  #print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
+  if ($keyboardDebug) {
+    print STDERR "Pressed: (".ord($A)."), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
+    print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
+  }
 
   if (defined $keyBindings{$prefix.$A}) {
     $key=$prefix.$A;
