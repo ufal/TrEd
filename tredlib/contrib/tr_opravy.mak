@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-08-25 14:19:48 pajas>
+## Time-stamp: <2004-08-25 15:52:49 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -720,7 +720,7 @@ sub PasteMovedSubtree {
   $_->{ord} = int($_->parent->{ord}).".".(++$max{ord1}) for @$added;
 }
 
-#bind insert_node to Insert
+#bind insert_node to Insert menu Insert new node on both TR and AR layers
 sub insert_node {
   PDT::ClearARstruct();
   my$aid=$this->{AID}.$this->{TID};
