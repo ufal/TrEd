@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-07-24 16:14:22 pajas>
+# Time-stamp: <2001-07-24 16:21:31 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -236,14 +236,14 @@ sub set_config {
   $cstsToFs=(exists $confs->{cststofs}) ? $confs->{cststofs} : undef;
   $fsToCsts=(exists $confs->{fstocsts}) ? $confs->{fstocsts} : undef;
 
-  $CSTSBackend::csts2fs=$cstsToFs;
-  $CSTSBackend::fs2csts=$fsToCsts;
   $CSTSBackend::gzip = $gzip;
   $CSTSBackend::zcat = $zcat;
+  $CSTSBackend::csts2fs=$cstsToFs;
+  $CSTSBackend::fs2csts=$fsToCsts;
 
   $sgmls=(exists $confs->{sgmls}) ? $confs->{sgmls} : undef;
   $sgmlsopts=(exists $confs->{sgmlsopts}) ? $confs->{sgmlsopts} : undef;
-  $cstsdoctype=(exists $confs->{cstsdoctype}) ? $confs->{cstsdoctype} : undef;
+  $cstsdoctype=(exists $confs->{cstsdoctype}) ? $confs->{cstsdoctype} : "$libDir/csts.doctype";
 
   $CSTS_SGML_SP_Backend::gzip=$gzip;
   $CSTS_SGML_SP_Backend::zcat=$zcat;
