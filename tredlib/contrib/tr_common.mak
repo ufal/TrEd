@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-26 20:35:55 pajas>
+## Time-stamp: <2002-01-07 09:42:01 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -16,7 +16,7 @@ sub default_tr_attrs {
   return unless $grp->{FSFile};
   print "Using standard patterns\n";
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if "$${memberof}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
 		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
@@ -28,9 +28,9 @@ sub default_tr_attrs {
 sub sort_attrs_hook {
   my ($ar)=@_;
   @$ar = (grep($grp->{FSFile}->FS->exists($_),
-	       'func','trlemma','form','afun','coref','reltype','memberof','aspect','commentA'),
+	       'func','trlemma','form','afun','coref','memberof','aspect','commentA'),
 	  sort {uc($a) cmp uc($b)}
-	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|reltype|memberof|aspect)$/,@$ar));
+	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|memberof|aspect)$/,@$ar));
   return 1;
 }
 
