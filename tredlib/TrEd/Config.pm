@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-07-27 15:16:42 pajas>
+# Time-stamp: <2001-07-31 14:48:57 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -191,6 +191,7 @@ sub set_config {
   $treeViewOpts->{noColor}=(exists $confs->{allowcustomcolors}) ? $confs->{allowcustomcolors} : 0;
   $treeViewOpts->{drawBoxes}=(exists $confs->{drawboxes}) ? $confs->{drawboxes} : 0;
   $treeViewOpts->{highlightAttributes}=(exists $confs->{highlightattributes}) ? $confs->{highlightattributes} : 1;
+  $treeViewOpts->{showHidden}=exists ($confs->{showhidden}) ? $confs->{showhidden} : 0;
   $font=(exists $confs->{font}) ? $confs->{font} :
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
   $treeViewOpts->{font}=$font;
@@ -231,7 +232,6 @@ sub set_config {
   $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
   $psFile=(exists $confs->{psfile}) ? tilde_expand($confs->{psfile}) : 'tred.ps';
   $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
-  $showHidden=exists ($confs->{showhidden}) ? $confs->{showhidden} : 0;
   $createMacroMenu=(exists $confs->{createmacromenu}) ? $confs->{createmacromenu} : 0;
   $maxMenuLines=(exists $confs->{maxmenulines}) ? $confs->{maxmenulines} : 20;
   $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : ($^O !~ /^MS/);
