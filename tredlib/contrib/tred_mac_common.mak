@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-13 14:42:08 pajas>
+## Time-stamp: <2002-12-03 17:30:31 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -159,48 +159,9 @@ sub editQuery {
 }
 
 sub listQuery {
-  my ($select_mode,$vals,$selected)=@_;
+  my ($title,$select_mode,$vals,$selected)=@_;
   my $top=ToplevelFrame();
-
-  my $d=$top->DialogBox(-title	  => "Select attributes to compare",
-			-width	  => '8c',
-			-buttons  => ["OK", "Cancel"]);
-  $d->bind('all','<Escape>'=> [sub { shift; 
-				     shift->{selected_button}='Cancel'; 
-				   },$d ]);
-  my $l=$d->Scrolled(qw/Listbox -relief sunken 
-                        -takefocus 1
-                        -scrollbars e/,
-		     -selectmode => $select_mode,
-		     -height=> min($main::maxDisplayedValues,scalar(@$vals))
-		    )->pack(qw/-expand yes -fill both/);
-  $l->insert('end',@$vals);
-  $l->BindMouseWheelVert();
-  my $act=0;
-  my %selected = map { $_ => 1 } @$selected;
-  for ($a=0;$a<@$vals;$a++)  {
-    if ($selected{$$vals[$a]}) {
-      $l->selectionSet($a);
-      if (not $act) {
-	$act=1;
-	$l->activate($a);
-	$l->see($a);
-      }
-    }
-  }
- $l->focus;
- my $result= &main::ShowDialog($d,$l,$top);
-
- if ($result=~ /OK/) {
-   @$selected=();
-   foreach (0 .. $l->size-1) {
-     push @$selected, $$vals[$_] if $l->selectionIncludes($_);
-   }
-   $d->destroy;
-   return 1;
- }
- $d->destroy;
- return 0;
+  main::ListQuery($top,$title,$select_mode,$vals,$selected);
 }
 
 sub questionQuery {
