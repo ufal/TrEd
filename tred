@@ -1514,7 +1514,7 @@ sub set_status_line {
   return $text;
 }
 
-sub update_value_line {
+sub update_tree_pos {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow}; # only focused window uses the value line
   if ($win->{FSFile}) {
@@ -1522,7 +1522,13 @@ sub update_value_line {
   } else {
     $grp->{vLineNumLabel}->configure(-text => "-/-");
   }
-  $grp->{vLineNumLabel}->update();
+#  $grp->{vLineNumLabel}->update();
+}
+
+sub update_value_line {
+  my ($grp)=@_;
+  my $win=$grp->{focusedWindow}; # only focused window uses the value line
+  update_tree_pos($grp);
   return set_value_line($grp,get_value_line($win,$win->{FSFile},
 					    $win->{treeNo},1,1));
 }
@@ -4351,22 +4357,25 @@ sub startMain {
   print STDERR "Done.\n" if $tredDebug;
 }
 
+sub _do_goto_tree {
+  my $win=shift;
+  update_value_line($win->{framegroup});
+  my $no=$win->{treeNo};
+  $win->{treeNo}=-1;  # this is to force getNodes & redraw
+  gotoTree($win,$no);
+  $win->{framegroup}->{IdleTask}=undef;
+}
+
 sub onIdleNextTree {
   my ($grp,$win)=grp_win(shift);
   return unless $win->{FSFile};
-  $win->{treeNo}=max(0,min($win->{treeNo}+1,$win->{FSFile}->lastTreeNo));
-  update_value_line($grp);
   $win->toplevel->afterCancel($grp->{IdleTask}) if ($grp->{IdleTask});
-  $grp->{valueLine}->idletasks();
-  $grp->{IdleTask}=
-    $win->toplevel->afterIdle([sub {
-				 my $win=shift;
-				 my $no=$win->{treeNo};
-				 # this is to force getNodes & redraw
-				 $win->{treeNo}=-1;
-				 gotoTree($win,$no);
-				 $win->{framegroup}->{IdleTask}=undef;
-			       },$win]);
+  $win->{treeNo}=max(0,min($win->{treeNo}+1,$win->{FSFile}->lastTreeNo));
+  update_tree_pos($grp);
+  #  update_value_line($grp);
+  #  $grp->{valueLine}->idletasks();
+  $grp->{vLineNumLabel}->idletasks();
+  $grp->{IdleTask}=$win->toplevel->afterIdle([\&_do_goto_tree,$win]);
   Tk->break;
 }
 
@@ -4374,19 +4383,13 @@ sub onIdlePrevTree {
   my ($grp,$win)=grp_win(shift);
   return unless $win->{FSFile};
   if ($win->{treeNo}>0) {
-    $win->{treeNo}--;
-    update_value_line($grp);
     $win->toplevel->afterCancel($grp->{IdleTask}) if ($grp->{IdleTask});
-    $grp->{valueLine}->idletasks();
-    $grp->{IdleTask}=
-      $win->toplevel->afterIdle([ sub {
-				    my ($win)=@_;
-				    my $no=$win->{treeNo};
-				    # this is to force getNodes & redraw
-				    $win->{treeNo}=-1;
-				    gotoTree($win,$no);
-				    $win->{framegroup}->{IdleTask}=undef;
-				  },$win]);
+    $win->{treeNo}--;
+    update_tree_pos($grp);
+    #    update_value_line($grp);
+    #    $grp->{valueLine}->idletasks();
+    $grp->{vLineNumLabel}->idletasks();
+    $grp->{IdleTask}=$win->toplevel->afterIdle([\&_do_goto_tree,$win]);
   }
   Tk->break;
 }
