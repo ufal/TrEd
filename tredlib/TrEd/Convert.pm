@@ -13,7 +13,8 @@ use English;
 
 BEGIN {
   use Exporter  ();
-  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc $outputenc $lefttoright $Ds $support_unicode);
+  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc
+	      $outputenc $lefttoright $Ds $support_unicode);
   use TrEd::MinMax;
   @ISA=qw(Exporter);
   $VERSION = "0.1";
