@@ -111,6 +111,42 @@ BEGIN{
 };
 #$bwModeNodeColor = 'white';
 
+
+sub _dirs {
+  my ($dir) = @_;
+  my @dirs;
+  if (opendir(my $dd, $dir)) {
+    @dirs = map { ("$dir/$_",_dirs("$dir/$_")) } grep { -d "$dir/$_" }
+      grep { !/^\.*$/ }	readdir($dd);
+    closedir $dd;
+  } else {
+    warn "Warning: can't read $dir\n";
+  }
+  return @dirs;
+}
+
+sub get_ttf_fonts {
+  my %result;
+  eval {
+    require PDF::API2::TTF::Font;
+    foreach my $dir (map { _dirs($_) } @_) {
+      foreach my $font (grep { -f $_ } glob("$dir/*.*")) {
+	my $f = PDF::API2::TTF::Font->open($font);
+	next unless $f;
+	$PDF::API2::TTF::Name::utf8 = 1;
+	$PDF::API2::TTF::GDEF::new_gdef = 1;
+	$f->{'name'}->read;
+	my $fn=$f->{name}->find_name(1);
+	my $fs=$f->{name}->find_name(2);
+	$fn.=" ".$fs if $fs ne 'Regular';
+	$result{$fn} = $font unless exists $result{$fn};
+      }
+    }
+  };
+  print STDERR $@ if $@;
+  return \%result;
+}
+
 sub parse_print_list {
   my ($fsfile,$printRange)=@_;
   my $pbeg;

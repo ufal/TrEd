@@ -1,6 +1,6 @@
 package TrEd::ConvertArab;
 use bytes;
-no encoding;
+#no encoding;
 use Encode;
 
 # arabjoin - a simple filter to render Arabic text
