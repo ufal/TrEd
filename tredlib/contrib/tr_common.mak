@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-01 14:57:47 pajas>
+## Time-stamp: <2002-11-04 10:29:17 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -171,7 +171,8 @@ sub QueryTrlemma {
      ['EmpNoun','&EmpNoun;','???','???'],
      ['Gen','&Gen;','???','???'],
      ['Idph','&Idph;','???','???'],
-     ['stejnì','stejnì','???','???'],
+     ['stejnì','stejnì','???','MANN'],
+     ['stejný','stejný','???','RSTR'],
      ['???','???','???','???'],
      ['já','já','???','SG'],
      ['ty','ty','???','SG'],
