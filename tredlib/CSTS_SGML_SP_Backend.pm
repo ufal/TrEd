@@ -14,7 +14,7 @@ sub default_settings {
   $doctype = "csts.doctype" unless $doctype;
 
   $sgmls_command='%s %o %d %f' unless $sgmls_command;
-  $z_sgmls_command='%z < %f %s %o %d -' unless $z_sgmls_command;
+  $z_sgmls_command='%z < %f | %s %o %d -' unless $z_sgmls_command;
 }
 
 =item open_backend (filename,mode)
