@@ -15,7 +15,7 @@ sub direction ($) {
 
 sub remix ($;$) {
 
-    my @char = split //, $_[0]; # . " ";
+    my @char = split //, $_[0];
 
     my $context = 1;
     my @cut = (0);
@@ -37,15 +37,14 @@ sub remix ($;$) {
 
     for ($i = 1; $i < @cut; $i++) {
 
-	if ($i % 2 == $reverse and not $_[1]) {
+        if ($i % 2 == $reverse and not $_[1]) {
 
-	    unshift @line, reverse @char[$cut[$i - 1]..$cut[$i] - 1];
-	}
-	else {
+            unshift @line, reverse @char[$cut[$i - 1]..$cut[$i] - 1];
+        }
+        else {
 
-	    unshift @line, @char[$cut[$i - 1]..$cut[$i] - 1];
-	}
-	
+            unshift @line, @char[$cut[$i - 1]..$cut[$i] - 1];
+        }
     }
 
     return join "", @line;
