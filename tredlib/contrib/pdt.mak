@@ -620,9 +620,12 @@ sub GetFather_AR { # node through
   if ($node->{afun}=~/_[CA]/) { # go to coordination head
     while ($node->{afun}!~/(?:Coord|Apos)(?:$|_P)|AuxS/) {
       $node=$node->parent;
-      if (!$node or $node->{afun}eq'AuxS') {
+      if (!$node) {
 	print STDERR
-	  "GetFather: Error - no coordination head $node->{AID}: ".ThisAddress($node || $init_node)."\n";
+	  "GetFather: Error - no coordination head $init_node->{AID}: ".ThisAddress($init_node)."\n";
+      } elsif($node->{afun}eq'AuxS') {
+	print STDERR
+	  "GetFather: Error - no coordination head $node->{AID}: ".ThisAddress($node)."\n";
       }
     }
   }
