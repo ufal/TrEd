@@ -1,6 +1,7 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-08-28 10:26:18 pajas>
+## $Id$
+## Time-stamp: <2003-08-28 10:30:17 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -28,7 +29,7 @@ sub exit_hook {
     stderr($@) if $@;
   }
 }
-
+ 
 
 sub file_opened_hook {
 
