@@ -2938,6 +2938,7 @@ sub switchStylesheet {
       $grp->{StylesheetMenu}->configure(-options =>
 					getStylesheetMenuList($grp));
       # $grp->{StylesheetMenu}->addOptions($stylesheet);
+      saveStyleSheets($grp);
     }
     applyWindowStylesheet($win,$stylesheet);
     $grp->{selectedStylesheet} = $stylesheet;
@@ -2966,6 +2967,7 @@ sub switchStylesheet {
 	}
       }
       $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
+      saveStyleSheets($grp);
     } else {
       $grp->{selectedStylesheet} = $stylesheet;
       return 0;
