@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-05-10 12:20:17 pajas>
+## Time-stamp: <2004-05-31 11:25:18 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -300,6 +300,12 @@ sub goto_father {
   ($this) = @father;
   ChangingFile(0);
   $Redraw='none';
+}
+
+#bind lemma_tag_Xat to Alt+at menu Assign X@------------ to tag and form to lemma
+sub lemma_tag_Xat {
+  $this->{lemma}=$this->{form};
+  $this->{tag}='X@-------------';
 }
 
 #bind edit_lemma_tag to Ctrl+T menu Edit lemma and tag (using morph)
