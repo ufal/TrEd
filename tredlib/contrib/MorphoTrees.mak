@@ -1131,7 +1131,7 @@ sub restrict_feminine {
 
 =head1 NAME
 
-MorphoTrees - Context for Morphological Annotations in TrEd by Petr Pajas
+MorphoTrees - Context for Annotation of Morphology in the TrEd Environment
 
 =head1 REVISION
 
@@ -1147,7 +1147,7 @@ Anyway, see the list of MorphoTrees macros and key-bindings in the User-defined 
 
 =head1 SEE ALSO
 
-TrEd L<http://ckl.mff.cuni.cz/pajas/>
+TrEd L<http://ckl.mff.cuni.cz/pajas/tred/>
 
 
 =head1 AUTHOR
