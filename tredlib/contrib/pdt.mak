@@ -768,7 +768,7 @@ Return a list of all nodes linguistically subordinated to a given node
 sub GetDescendants_TR {
   my ($node)=@_;
   return () unless ($node and !is_coord_TR($node));
-  return uniq map { $_, GetDescendants_TR($_) } GetChildren_TR($node);
+  return uniq(map { $_, GetDescendants_TR($_) } GetChildren_TR($node));
 }
 
 
@@ -803,7 +803,7 @@ Return a list of all nodes linguistically superordinated to (ie governing)a give
 sub GetAncestors_TR {
   my ($node)=@_;
   return () unless ($node and !is_coord_TR($node));
-  return uniq map { $_, GetAncestors_TR($_) } GetFather_TR($node);
+  return uniq(map { ($_, GetAncestors_TR($_)) } GetFather_TR($node));
 }
 
 
