@@ -307,7 +307,7 @@ sub QueryTrlemma {
 
 sub do_edit_attr_hook {
   my ($atr,$node)=@_;
-  if ($atr eq 'trlemma' and $node->{ord}=~/\./) {
+  if ($atr eq 'trlemma' and $node->{ord}=~/\./ and $node->{tag} !~ /......./) {
     if ($node->{trlemma} =~ /tady|tam/ or
 	$node->{func} =~ /DIR[1-3]|LOC/) {
       QuerySemtam($node);
@@ -1174,6 +1174,7 @@ sub status_line_doubleclick_hook {
       } else {
 	if (main::doEditAttr($grp,$this,$1)) {
 	  ChangingFile(1);
+	  Redraw_FSFile();
 	}
 	last;
       }
