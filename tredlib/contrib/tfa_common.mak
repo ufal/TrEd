@@ -244,7 +244,7 @@ sub OrderByTFA {
 
   my $value=$top->{tfa};  # the tfa value for the top node
 
-  if ((IsHidden($top)) or ($value eq "") or ($value eq "NA")) {
+  if ((IsHidden($top)) or ($value !~ /T|C|F/)) {
     # does not do anything on hidden nodes and on nodes with NA or no tfa value
     NotOrderableByTFA;
     return
