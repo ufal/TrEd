@@ -18,11 +18,15 @@ use vars qw(%colors %bitmap);
 
 %colors = (
   alt => "#CDFFC3",
-  seq => "#FFCEA9",
+  list => "#FFCEA9",
   struct => "#FFFFA7",
   fg => '#800000',
   bg => '#F6E9D1'
  );
+
+sub _debug {
+  print STDERR join "",@_,"\n";
+}
 
 sub CreateArgs {
  my ($package,$parent,$args) = @_;
@@ -76,8 +80,8 @@ sub Populate {
 			     -background => 'white',
 			     -pady => 0
 			    ),
-    seq =>  $w->ItemStyle('text', -foreground=>'#800000',
-			  -background => $colors{seq},
+    list =>  $w->ItemStyle('text', -foreground=>'#800000',
+			  -background => $colors{list},
 			  -pady => 0
 			 ),
     struct => $w->ItemStyle('text', -foreground=>'#800000',
@@ -126,7 +130,7 @@ sub BindResize {
 sub invoke_mini_button {
   my ($hlist,$name)=@_;
   my $path = $hlist->info('anchor');
-  print "Anchor $path\n";
+  _debug "Anchor $path";
   if ($path ne '' and
       $hlist->itemExists($path,2) and
       $hlist->itemCget($path,2,'-itemtype') eq 'window') {
@@ -262,12 +266,12 @@ sub up_or_down {
   return unless $parent;
   my $other = $hlist->next_sibling($path,
 				   ($where > 0 ? 'next' : 'prev'));
-  print "THIS: $path, OTHER: $other, PARENT: $parent\n";
+  _debug "THIS: $path, OTHER: $other, PARENT: $parent";
   return unless ($other ne "" and $other ne $path and $hlist->info('parent',$other) eq $parent);
   my $mtype =
     $hlist->info(data => $parent)->{compressed_type} ||
     $hlist->info(data => $parent)->{type};
-  my ($seq_no) = $hlist->info(data => $path)->{name} =~ /\[(\d+)\]/;
+  my ($list_no) = $hlist->info(data => $path)->{name} =~ /\[(\d+)\]/;
   my $val = {};
 
   $hlist->select_entry($path);
@@ -276,23 +280,23 @@ sub up_or_down {
   $hlist->dump_child($path, $val, 1);
   $hlist->delete('entry',$path);
 
-  $hlist->add_seq_member($parent,$mtype,(values %$val)[0],
-		 $seq_no,0,
+  $hlist->add_list_member($parent,$mtype,(values %$val)[0],
+		 $list_no,0,
 		 [($where>0 ? '-after' : '-before'), $other ]
 		);
 
   $hlist->select_entry($path);
 }
 
-sub add_to_seq {
+sub add_to_list {
   my ($hlist,$path)=@_;
   my $data = $hlist->info(data => $path);
-  $data->{seq_no}++;
+  $data->{list_no}++;
   $hlist->select_entry(
-	       $hlist->add_seq_member($path,
+	       $hlist->add_list_member($path,
 				      $data->{compressed_type} ||
 				      $data->{type},
-			      undef,$data->{seq_no},0,[-at => 0]));
+			      undef,$data->{list_no},0,[-at => 0]));
   $hlist->configure(-height => 0);
 }
 
@@ -301,25 +305,25 @@ sub add_to_alt {
   my $data = $hlist->info(data => $path);
   if (!$data->{compressed_type}) {
     #  simply add new item
-    print "simple add\n";
+    _debug "simple add";
     $data->{alt_no}++;
     $hlist->select_entry(
 		 $hlist->add_alt_member($path,$data->{type},undef,
 					$data->{alt_no},0));
   } else {
-    print "create new alt\n";
+    _debug "create new alt";
     my $val = bless [],'Fslib::Alt';
     $hlist->dump_child($path, $val, 1);
     my $parent = $hlist->info(parent => $path);
     my $next = $hlist->next_sibling($path);
     $hlist->delete('entry',$path);
-    print "BASE: '$parent' (next: $next)\n";
+    _debug "BASE: '$parent' (next: $next)";
     my $new_path =
       $hlist->add_member($parent ne '' ? $parent.'/' : '',
 		 $data->{type},
 		 $val,
 		 $data->{name},1,$next ? [-before => $next] : undef);
-    print "new $new_path\n";
+    _debug "new $new_path";
     $hlist->select_entry($new_path);
   }
 #   print "$hlist\n";
@@ -341,16 +345,16 @@ sub remove_alt_member {
   my ($hlist,$path)=@_;
   my $parent = $hlist->info(parent => $path);
   $hlist->delete('entry',$path);
-  print "deleted $path\n";
+  _debug "deleted $path";
   $path = $parent;
-  print "parent=path $path\n";
+  _debug "parent=path $path";
   if ($hlist->info(children => $path) == 0) {
     # no altrenative left -> replace with the usual type
-    print "replacing with normal type: $path\n";
+    _debug "replacing with normal type: $path";
     my $data = $hlist->info(data => $path);
     my $next = $hlist->next_sibling($path);
     $parent = $hlist->info(parent => $path);
-    print "parent $parent, next: $next\n";
+    _debug "parent $parent, next: $next";
     $hlist->delete('entry',$path);
     my $new_path = $hlist->add_member($parent ne "" ? $parent.'/' : '',
 				      $data->{type},undef,
@@ -362,21 +366,21 @@ sub remove_alt_member {
   }
 }
 
-sub new_seq_member {
+sub new_list_member {
   my ($hlist,$path)=@_;
   my $parent = $hlist->info(parent => $path);
   my $pdata = $hlist->info(data => $parent);
-  $pdata->{seq_no}++;
+  $pdata->{list_no}++;
   my $new = 
-    $hlist->add_seq_member($parent,
+    $hlist->add_list_member($parent,
 			   ($pdata->{compressed_type} || $pdata->{type}),
-		   undef,$pdata->{seq_no},0,
+		   undef,$pdata->{list_no},0,
 		   [-after => $path]);
   $hlist->select_entry($new);
   $hlist->configure(-height => 0);
 }
 
-sub remove_seq_member {
+sub remove_list_member {
   my ($hlist,$path)=@_;
   $hlist->select_entry($hlist->info(next => $path));
   $hlist->delete('entry',$path);
@@ -389,7 +393,7 @@ sub add_buttons {
   my $mtype = $hlist->info(data => $path)->{type};
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
 
-  return unless (ref($mtype) and ($mtype->{seq} or $mtype->{alt}) or ref($ptype) and ($ptype->{seq} or $ptype->{alt}));
+  return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt}) or ref($ptype) and ($ptype->{list} or $ptype->{alt}));
 
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
@@ -405,11 +409,11 @@ sub add_buttons {
 
   for my $type ($mtype, $ctype) {
     if (ref($type)) {
-      if ($type->{seq}) {
-	# add seq buttons
+      if ($type->{list}) {
+	# add list buttons
 	$hlist->mini_button($f,'plus',$path,
-			    -background => $colors{seq},
-			    -command => [$hlist,'add_to_seq',$path]
+			    -background => $colors{list},
+			    -command => [$hlist,'add_to_list',$path]
 			   )->pack();
       } elsif ($type->{alt}) {
 	# add alt buttons
@@ -426,28 +430,37 @@ sub add_buttons {
     $ptype = (($hlist->info(data => $parent)->{compressed_type}) || $ptype)
   }
 #  return; # unless ref $ptype;
-  if ($ptype and $ptype->{seq}) {
-    # add seq member buttons
-    my $f2 = $f->Frame->pack(qw(-side left));
-    my $f1 = $f->Frame->pack(qw(-side right));
-    $hlist->mini_button($f1,'plus',$path,
-	  -background => $colors{seq},
-	  -command =>
-	    [$hlist,'new_seq_member',$path]
-	   )->pack(qw(-side top));
-    $hlist->mini_button($f1,'minus',$path,
-	  -background => $colors{seq},
-	  -command =>
-	    [$hlist,'remove_seq_member',$path]
-	   )->pack(qw(-side top));
-    $hlist->mini_button($f2,'up',$path,
-	  -background => $colors{seq},
-	  -command => [$hlist,'up_or_down',-1,$path ]
-	 )->pack(qw(-side top));
-    $hlist->mini_button($f2,'down',$path,
-	  -background => $colors{seq},
-	  -command => [$hlist,'up_or_down',1,$path]
-	 )->pack(qw(-side top));
+  if ($ptype and $ptype->{list}) {
+    # add list member buttons
+    my ($f1,$f2);
+    if ($ptype->{list}{ordered}) {
+      $f2 = $f->Frame->pack(qw(-side left));
+      $f1 = $f->Frame->pack(qw(-side right));
+#    } else {
+#      $f1 = $f->Frame->pack(qw(-side top));
+    }
+    if ($f1) {
+      $hlist->mini_button($f1,'plus',$path,
+			  -background => $colors{list},
+			  -command =>
+			    [$hlist,'new_list_member',$path]
+			   )->pack(qw(-side top));
+      $hlist->mini_button($f1,'minus',$path,
+			  -background => $colors{list},
+			  -command =>
+			    [$hlist,'remove_list_member',$path]
+			   )->pack(qw(-side top));
+    }
+    if ($f2) {
+      $hlist->mini_button($f2,'up',$path,
+			  -background => $colors{list},
+			  -command => [$hlist,'up_or_down',-1,$path ]
+			 )->pack(qw(-side top));
+      $hlist->mini_button($f2,'down',$path,
+			  -background => $colors{list},
+			  -command => [$hlist,'up_or_down',1,$path]
+			 )->pack(qw(-side top));
+    }
   } elsif ($ptype and $ptype->{alt}) {
     # add alt member buttons
     $hlist->mini_button($f,'cross',$path,
@@ -464,9 +477,9 @@ sub add_alt_member {
 			    $val,'['.$alt_no.']',$allow_empty,$entry_opts);
 }
 
-sub add_seq_member {
-  my ($hlist,$path,$mtype,$val,$seq_no,$allow_empty,$entry_opts)=@_;
-  return $hlist->add_member($path."/",$mtype->{seq},$val,'['.$seq_no.']',$allow_empty,$entry_opts);
+sub add_list_member {
+  my ($hlist,$path,$mtype,$val,$list_no,$allow_empty,$entry_opts)=@_;
+  return $hlist->add_member($path."/",$mtype->{list},$val,'['.$list_no.']',$allow_empty,$entry_opts);
 }
 
 sub next_sibling {
@@ -581,24 +594,26 @@ sub add_member {
 		       -text => 'Structure',
 		       -style => $hlist->{my_itemstyles}{struct});
     $hlist->add_members($path."/",$mtype,$attr_val);
-  } elsif ($mtype->{seq}) {
-    my $seq_no=0;
-    $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{seq});
+  } elsif ($mtype->{list}) {
+    my $list_no=0;
+    $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
     $hlist->itemCreate($path,1,-itemtype => 'text',
-		       -text => 'Sequence',
-		       -style => $hlist->{my_itemstyles}{seq});
+		       -text => 
+			 $mtype->{list}{ordered} ?
+			   'Ordered list' : 'Unordered list',
+		       -style => $hlist->{my_itemstyles}{list});
 
 
     if ($attr_val) {
       foreach my $val (@{$attr_val}) {
-	$seq_no++;
-	$hlist->add_seq_member($path,$mtype,$val,$seq_no);
+	$list_no++;
+	$hlist->add_list_member($path,$mtype,$val,$list_no);
       }
     } elsif (!$allow_empty) {
-      $seq_no++;
-      $hlist->add_seq_member($path,$mtype,$attr_val,$seq_no);
+      $list_no++;
+      $hlist->add_list_member($path,$mtype,$attr_val,$list_no);
     }
-    $data->{seq_no}=$seq_no;
+    $data->{list_no}=$list_no;
   } elsif ($mtype->{alt}) {
     my $alt_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{alt});
@@ -673,14 +688,14 @@ sub dump_child {
   my $data = $hlist->info(data => $path);
   $mtype = $data->{type} unless defined $mtype;
   if (!ref($mtype) or $mtype->{choice}) {
-    if (ref($ref) eq 'Fslib::Seq' or ref($ref) eq 'Fslib::Alt') {
+    if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       push @$ref, $data->{value} if $preserve_empty or defined $data->{value};
     } else {
       $ref->{$data->{name}} = $data->{value};
     }
   } elsif ($mtype->{member} or $mtype->{attribute}) {
     my $new_ref;
-    if (ref($ref) eq 'Fslib::Seq' or ref($ref) eq 'Fslib::Alt') {
+    if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       $new_ref = {};
       push @$ref, $new_ref;
     } else {
@@ -690,9 +705,9 @@ sub dump_child {
     for my $child ($hlist->info(children => $path)) {
       $hlist->dump_child($child,$new_ref,$preserve_empty);
     }
-  } elsif ($mtype->{seq}) {
-    my $new_ref=bless [],'Fslib::Seq';
-    if (ref($ref) eq 'Fslib::Seq' or ref($ref) eq 'Fslib::Alt') {
+  } elsif ($mtype->{list}) {
+    my $new_ref=bless [],'Fslib::List';
+    if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       push @$ref, $new_ref;
     } else {
       $ref->{$data->{name}} = $new_ref;
@@ -703,7 +718,7 @@ sub dump_child {
   } elsif ($mtype->{alt}) {
     my $new_ref=bless [],'Fslib::Alt';
     if ($data->{compressed_type}) {
-      print "compressed\n";
+      _debug "compressed";
       $hlist->dump_child($path,$new_ref,
 			 $preserve_empty,$data->{compressed_type});
       die "error: expected only single item in a compressed alt\n"
@@ -723,7 +738,7 @@ sub dump_child {
 	}
       }
     }
-    if (ref($ref) eq 'Fslib::Seq' or ref($ref) eq 'Fslib::Alt') {
+    if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       push @$ref, $new_ref;
     } else {
       $ref->{$data->{name}} = $new_ref;
@@ -771,7 +786,7 @@ sub entry_insert {
   if ($hlist->itemExists($path,1)) {
     my $mode = $hlist->getmode($path);
     if ($what eq ' ' and $mode ne 'none') {
-      print $mode,"\n";
+      _debug $mode;
       $hlist->$mode($path);
     } else {
       return unless $hlist->itemCget($path,1,'-itemtype') eq 'window';
