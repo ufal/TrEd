@@ -684,9 +684,10 @@ sub initialize {
 }
 
 sub DESTROY {
-  my $self = shift;
-  return undef unless ref($self);
-  return Fslib::DeleteLeaf($self);
+    my $self = shift;
+    return undef unless ref($self);
+    %{$self}=();
+    return 1;
 }
 
 sub parent {
@@ -749,6 +750,17 @@ sub DESTROY {
   $self->[0]=undef;
   $self->[1]=undef;
   $self->[2]=undef;
+  $self=undef;
+}
+
+
+sub isHidden {
+  # Tests if given FSNode node is hidden or not
+  # Returns the ancesor that hides it or undef
+  my ($self,$node)=@_;
+  return unless (ref($self) and ref($node));
+  $node=$node->parent while ($node and ($node->{$self->hide} ne 'hide'));
+  return ($node ? $node : undef);
 }
 
 
@@ -898,6 +910,21 @@ sub new {
   return $new;
 }
 
+sub DESTROY {
+  my $self = shift;
+  return undef unless ref($self);
+  foreach ($self->FS->trees) {
+    Fslib::DeleteTree($_);
+  }
+  $self->[0]=undef;
+  $self->[1]=undef;
+  $self->[2]=undef;
+  $self->[3]=undef;
+  $self->[4]=undef;
+  $self->[5]=undef;
+  $self->[6]=undef;
+}
+
 sub initialize {
   my $self = shift;
   # what will we do here ?
@@ -917,7 +944,9 @@ sub readFrom {
   my ($self,$fileref) = @_;
   return unless ref($self);
 
-  $self->changeFS(  FSFormat->new()->readFrom($fileref) );
+  $self->changeFS( FSFormat->new() );
+  $self->FS->readFrom($fileref);
+
   return undef unless $self->FS;
 
   my ($root,$l,@rest);
@@ -977,8 +1006,9 @@ sub FS {
 
 sub changeFS {
   my ($self,$val) = @_;
-  return unless ref($self);
-  return $self->[2]=$val;
+  return undef unless ref($self);
+  $self->[2]=$val;
+  return $self->[2];
 }
 
 # Tred's Hint Info
@@ -1044,6 +1074,10 @@ sub changeTreeList {
   return $self->[6]=$val;
 }
 
+sub lastTreeNo {
+  my $self = shift;
+  return ref($self) ? $#{$self->treeList} : undef;
+}
 
 1;
 
