@@ -2915,7 +2915,7 @@ sub open_backend {
   my $fh = undef;
   if ($filename) {
     if ($filename=~/.gz~?$/) {
-      if (-x $ZBackend::zcat) {
+      if ($^O ne 'MSWin32' and -x $ZBackend::zcat) {
 	if ($mode =~/[w\>]/) {
 	  eval {
 	    $fh = new IO::Pipe();
@@ -2928,12 +2928,34 @@ sub open_backend {
 	  } || return undef;
 	}
       } else {
-	eval {
-	  require IO::Zlib;
-	  $fh = new IO::Zlib();
-	} && $fh || return undef;
-	$fh->open($filename,$mode."b") || return undef;
+	if ($^O eq 'MSWin32') {
+	  eval {
+	    require File::Temp;
+	    $fh = new File::Temp(UNLINK => 1);
+	  } && $fh || return undef;
+	  if ($mode =~ /[w\>]/) {
+	    print "Storing ZIPTOFILE: $mode\n";
+	    ${*$fh}{'ZIPTOFILE'}=$filename;
+	  } else {
+	    my $tmp;
+	    eval {
+	      require IO::Zlib;
+	      $tmp = new IO::Zlib();
+	    } && $tmp || return undef;
+	    $tmp->open($filename,"rb") || return undef;
+	    $fh->print($_) while <$tmp>;
+	    $tmp->close();
+	    seek($fh,0,'SEEK_SET');
+	  }
+        } else {
+	  eval {
+	    require IO::Zlib;
+	    $fh = new IO::Zlib();
+	  } && $fh || return undef;
+	  $fh->open($filename,$mode."b") || return undef;
+	}
       }
+      # Win32 needs this hack - somebody pls kill Bill !!
     } else {
       eval { $fh = new IO::File(); } || return undef;
       $fh->open($filename,$mode) || return undef;
@@ -2943,7 +2965,7 @@ sub open_backend {
   if ($]>=5.008 and defined $encoding) {
     eval {
       print STDERR "USING PERL IO ENCODING: $encoding FOR MODE $mode\n" if $Fslib::Debug;
-      binmode $fh,":encoding($encoding)";
+      binmode($fh,":encoding($encoding)");
     };
     print STDERR $@ if $@;
   }
@@ -2960,6 +2982,21 @@ Close given filehandle opened by previous call to C<open_backend>
 
 sub close_backend {
   my ($fh)=@_;
+  # Win32 hack:
+  if (ref($fh) eq 'File::Temp') {
+    my $filename = ${*$fh}{'ZIPTOFILE'};
+    if ($filename ne "") {
+      print "Doing the real save to $filename\n";
+      seek($fh,0,'SEEK_SET');
+      require IO::Zlib;
+      my $tmp = new IO::Zlib();
+      $tmp->open($filename,"wb") || die "Cannot write to $filename: $!\n";
+      # binmode $tmp;
+      binmode $fh;
+      $tmp->print(<$fh>);
+      $tmp->close;
+    }
+  }
   return ref($fh) && $fh->close();
 }
 
