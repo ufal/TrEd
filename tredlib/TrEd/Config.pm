@@ -27,9 +27,9 @@ BEGIN {
   $libDir
   $psFontFile
   $psFontAFMFile
+  $ttFontFile
   $appIcon
   $sortAttrs
-  $psFontName
   $psFontSize
   $macroFile
   $defaultMacroFile
@@ -307,6 +307,25 @@ sub set_config {
   } else {
     $psFontFile="$libDir/fonts/ariam___.pfa";
   }
+  if (exists $confs->{ttfontfile}) {
+    $ttFontFile=tilde_expand($confs->{ttfontfile});
+    $ttFontFile="$libDir/".$ttFontFile if (not -f $ttFontFile and -f "$libDir/".$ttFontFile);
+  }
+  my @fontpath = (qw(
+		     /usr/X11R6/lib/X11/fonts/TTF/
+		     /usr/X11R6/lib/X11/fonts/TrueType/
+		     /usr/share/fonts/default/TrueType/
+		     /usr/share/fonts/default/TTF/
+		   c:/windows/fonts/
+		   c:/winnt/fonts/
+		    ),
+		  "$ENV{HOME}/.fonts/"
+		 );
+  while (not(defined($ttFontFile) or -f $ttFontFile) and @fontpath) {
+    $ttFontFile = $fontpath[0]."arial.ttf" if -f $fontpath[0]."arial.ttf";
+    shift @fontpath;
+  }
+
   if (exists $confs->{psfontafmfile}) {
     $psFontAFMFile=$confs->{psfontafmfile};
   } else {
@@ -332,7 +351,6 @@ sub set_config {
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
 
   $sortAttrs	     =	val_or_def($confs,"sortattributes",1);
-  $psFontName	     =	val_or_def($confs,"psfontname","Arial-Medium");
   $psFontSize	     =	val_or_def($confs,"psfontsize",($^O=~/^MS/) ? "14" : "12");
 
   $prtFmtWidth	     =	val_or_def($confs,"prtfmtwidth",'595');
@@ -340,7 +358,7 @@ sub set_config {
   $prtVMargin	     =	val_or_def($confs,"prtvmargin",'3c');
   $prtHMargin	     =	val_or_def($confs,"prthmargin",'2c');
 
-  $psMedia	     =	val_or_def($confs,"psmedia",'%%DocumentMedia: A4 595 842 white()');
+  $psMedia	     =	val_or_def($confs,"psmedia",'A4');
   $psFile=(exists $confs->{psfile}) ? tilde_expand($confs->{psfile}) : 'tred.ps';
 
   $maximizePrintSize  =	 val_or_def($confs,"maximizeprintsize",0);
@@ -352,7 +370,6 @@ sub set_config {
   $printColors	      =	 val_or_def($confs,"printcolors",0);
   $defaultPrintCommand = val_or_def($confs,"defaultprintcommand",
 				    ($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr'
-				    
 				   );
   $imageMagickConvert = val_or_def($confs,"imagemagickconvert",'convert');
 
