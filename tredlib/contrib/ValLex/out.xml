@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="iso-8859-2"?>
+<!DOCTYPE valency_lexicon SYSTEM "vallex.dtd">
+<valency_lexicon>
+ <head>
+   <global_history>     
+     <global_event time_stamp="...4/10/2001" author="Z.Z.">
+        import ramcu z lexicon.xml 
+     </global_event>        
+   </global_history>     
+   <list_of_users>
+     <user name="Jarmila Panevov&#225;" user_ID="JPa" annotator="NO" reviewer="YES"/>
+     <user name="Zdena Ure&#353;ov&#225;" user_ID="ZUr" annotator="YES" reviewer="NO"/>     
+      <user name="Zden&#283;k &#381;abokrtsk&#253;" user_ID="Z.Z." annotator="NO" reviewer="NO"/>     
+   </list_of_users>   
+ </head>
+ <body>    
+ <word lemma="chodit" word_ID="w-1" POS="V">
+  <valency_frames>
+  <frame frame_ID="f-1-1" old_frame_ID="lexicon-A" used="0" status="active">
+   <example> chodit n&#283;kam, ... (s n&#283;k&#253;m) p&#283;&#353;ky, chodit-7 od hospody k hospod&#283;, chodit-8 (pravideln&#283;) k psychiatrovi, chod&#237;-9 &#353;patn&#233; zpr&#225;vy z Rwandy </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="MANN" type="non-oblig"><form preposition="arbit" tag="..............."/>   </element>
+   <element functor="DIR1" type="non-oblig"><form preposition="arbit" tag="..............."/>   </element>
+   <element functor="DIR2" type="non-oblig"><form preposition="arbit" tag="..............."/>   </element>
+   <element functor="DIR3" type="non-oblig"><form preposition="arbit" tag="..............."/>   </element>
+   <element functor="AIM" type="non-oblig"><form preposition="pro" tag="....4.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-1-2" old_frame_ID="lexicon-B" used="0" status="active">	 
+   <example>chodit-4 na bor&#367;vky; chodit nakupovat/na n&#225;kup/pro n&#225;kup</example>
+   <note>chodit-4 u&#382;&#353;&#237;</note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="INTT" type="oblig"><form tag="vf............."/><form preposition="na+Acc" tag="..............."/>   </element>
+   <element functor="BEN" type="non-oblig"><form tag="....3.........."/><form preposition="pro" tag="....4.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-1-3" old_frame_ID="lexicon-C" used="0" status="active">
+   <example> chodit s n&#283;k&#253;m; Jana a Marie spolu chod&#237; </example>
+   <note> frazeolog. (chodit-8 &#353;ir&#353;&#237;) = na rande </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="ACMP" type="oblig"><form preposition="s" tag="....7.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-1-4" old_frame_ID="lexicon-D" used="0" status="active">
+   <example> chodit za ma&#353;karu, jako ma&#353;kara </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form preposition="za" tag="....4.........."/><form preposition="jako" tag="....1.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-1-5" old_frame_ID="lexicon-E" used="0" status="active">
+   <example> chodit otrhan&#253;, v kr&#225;sn&#253;ch &#353;atech </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="COMPL" type="non-oblig"><form preposition="arbitr" tag="..............."/>   </element>
+   <!--example> chodit na něco = ujídat </example-->
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-1-6" old_frame_ID="lexicon-E1" used="0" status="active">
+   <example> chodit bez chyby (o stroji) </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="MANN" type="non-oblig"><form preposition="arbitr" tag="..............."/>   </element>
+   <!-- example> chodit na něco = ujídat </example -->
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+
+  </valency_frames>
+ </word>
+ <word lemma="chyb&#283;t" word_ID="w-2" POS="V">
+  <valency_frames>
+  <frame frame_ID="f-2-1" old_frame_ID="lexicon-A" used="0" status="active">
+   <example> n&#283;komu n&#283;co/n&#283;kdo chyb&#237;; chyb&#237; si (=jeden druh&#233;mu) </example>
+   <note>  alter </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/><form tag="vf............."/><form preposition="&#382;e" tag="..............."/>   </element>
+   <element functor="ADDR" type="oblig"><form tag="....3.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-2-2" old_frame_ID="lexicon-A1" used="0" status="active">
+   <example> n&#283;kde n&#283;co chyb&#237; (alter) </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/><form tag="vf............."/><form preposition="&#382;e" tag="..............."/>   </element>
+   <element functor="LOC" type="oblig"><form preposition="arbit" tag="..............."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+
+  </valency_frames>
+ </word>
+ <word lemma="c&#237;tit" word_ID="w-3" POS="V">
+  <valency_frames>
+  <frame frame_ID="f-3-1" old_frame_ID="lexicon-A" used="0" status="active">
+   <example> c&#237;t&#237; v&#367;ni / &#382;e n&#283;co von&#237; / jak n&#283;co von&#237;; psi se c&#237;t&#237; (navz&#225;jem, na d&#225;lku) </example>
+   <note> "slov. akuzativ"; &#353;ir&#353;&#237; (i c&#237;tit~feel) </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form tag="....4.........."/><form preposition="&#382;e" tag="..............."/><form preposition="jak" tag="..............."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-3-2" old_frame_ID="lexicon-B" used="0" status="active">
+   <example> c&#237;til Karla vej&#237;t; c&#237;tili se p&#345;ich&#225;zet </example>
+   <note> "slov. akuzativ"; &#353;ir&#353;&#237; (i c&#237;tit~feel) </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form tag="....4.........."/>   </element>
+   <element functor="EFF" type="oblig"><form tag="vf............."/><form preposition="jak" tag="..............."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-3-3" old_frame_ID="lexicon-C" used="0" status="active">
+   <example> c&#237;tit s trp&#283;j&#237;c&#237;mi; souc&#237;tili spolu (jeden s druh&#253;m)
+   </example>
+   <note> =souc&#237;tit </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form preposition="s" tag="....7.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+
+  </valency_frames>
+ </word>
+ <word lemma="c&#237;tit se" word_ID="w-4" POS="V">
+  <valency_frames>
+  <frame frame_ID="f-4-1" old_frame_ID="lexicon-A" used="0" status="active">
+   <example> c&#237;t&#237; se (b&#253;t) mlad&#253;/mlad&#253;m/jako mlad&#237;k </example>
+   <note> tantum; pova&#382;ovat se za n&#283;jak&#233;ho </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form tag="....7.........."/><form tag="vf............."/><form preposition="Adj" tag="..............."/><form preposition="jako" tag="....1.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-4-2" old_frame_ID="lexicon-A1" used="0" status="active">
+   <example> c&#237;t&#237; se sta&#345;e </example>
+   <note> tantum; jak mu bylo </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="MANN" type="oblig"><form preposition="arbit" tag="..............."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-4-3" old_frame_ID="lexicon-A2" used="0" status="active">
+   <example> c&#237;t&#237; se na sto </example>
+   <note> tantum; fraz&#233;m (elipsa-jak) </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form preposition="na" tag="....4.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-4-4" old_frame_ID="lexicon-B" used="0" status="active">
+   <example> c&#237;t&#237; se na tento &#250;kol </example>
+   <note> tantum; sta&#269;it na n&#283;co </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form preposition="#na" tag="....4.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+
+  </valency_frames>
+ </word>
+ <word lemma="&#269;ekat" word_ID="w-5" POS="V">
+  <valency_frames>
+  <frame frame_ID="f-5-1" old_frame_ID="lexicon-A" used="0" status="active">
+   <example> &#269;ekat n&#283;koho/n&#283;co; &#269;ekal od n&#283;koho omluvu/&#382;e p&#345;ijde </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form tag="....4.........."/><form preposition="&#382;e" tag="..............."/><form preposition="zda" tag="..............."/>   </element>
+   <element functor="ORIG" type="non-oblig"><form preposition="od" tag="....2.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-5-2" old_frame_ID="lexicon-A1" used="0" status="active">
+   <example> &#269;ekat na n&#283;koho; ka&#382;d&#253; den na sebe &#269;ekaj&#237; p&#345;ed &#353;kolou (jeden na druh&#233;ho) </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form preposition="#na" tag="....4.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-5-3" old_frame_ID="lexicon-B" used="0" status="active">
+   <example> &#269;ekat n&#283;komu s dluhem, &#269;ekaj&#237; si s dluhem (v p&#345;&#237;pad&#283; pot&#345;eby, jeden druh&#233;mu, navz&#225;jem) </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form preposition="s" tag="....7.........."/>   </element>
+   <element functor="BEN" type="non-oblig"><form tag="....3.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+  <frame frame_ID="f-5-4" old_frame_ID="lexicon-C" used="0" status="active">
+   <example> &#269;ekat s n&#283;k&#253;m d&#237;t&#283;; &#269;ekaj&#237; spolu d&#237;t&#283; </example>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+   <element functor="PAT" type="oblig"><form tag="....4.........."/>   </element>
+   <element functor="ACMP" type="non-oblig"><form preposition="s" tag="....7.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+
+  </valency_frames>
+ </word>
+ <word lemma="&#269;ekat se" word_ID="w-6" POS="V">
+  <valency_frames>
+  <frame frame_ID="f-6-1" old_frame_ID="lexicon-A" used="0" status="active">
+   <example> &#269;ekat se = &#269;ekat d&#237;t&#283; </example>
+   <note> tantum </note>
+  <frame_elements>
+   <element functor="ACT" type="oblig"><form tag="....1.........."/>   </element>
+  </frame_elements>
+   <local_history>
+     <local_event time_stamp="4.10.2001+presny cas" type_of_event="import" author="Z.Z." imported_from="lexicon.xml"/>
+   </local_history>   
+ </frame> 
+
+  </valency_frames>
+ </word>
+ </body>
+</valency_lexicon>
