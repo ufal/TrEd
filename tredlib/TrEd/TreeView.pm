@@ -317,7 +317,7 @@ sub balance_xfix_node {
   my @c = grep { exists $visible->{$_} } $node->children;
   $xfix += $self->get_node_pinfo($node,"XFIX");
   foreach my $c (@c) {
-    $self->store_node_pinfo($c,"XPOS",
+    $self->store_node_pinfo($c,"XOS",
 			    $self->get_node_pinfo($c,"XPOS")+
 			    $xfix);
     $self->store_node_pinfo($c,"NodeLabel_XPOS",
@@ -385,7 +385,8 @@ sub recalculate_positions {
   my ($self,$fsfile,$nodes,$Opts)=@_;
   return unless ref($self);
 
-  my $baseXPos=$self->get_baseXPos;
+  my $baseXPos=$Opts->{baseXPos} || $self->get_baseXPos;
+  my $baseYPos=$Opts->{baseYPos} || $self->get_baseYPos;
   my $xpos=$baseXPos;
   my $level;
 
@@ -482,7 +483,7 @@ sub recalculate_positions {
     $self->store_node_pinfo($node,"EdgeLabelHeight", $edge_label_height);
 
     $maxlevel=max($maxlevel,$level);
-    $ypos = $self->get_baseYPos + $level*$levelHeight;
+    $ypos = $baseYPos + $level*$levelHeight;
 
     $valign=$self->get_style_opt($node,"NodeLabel","-valign",$Opts);
     if ($valign eq 'bottom') {
@@ -610,7 +611,7 @@ sub recalculate_positions {
   }
 
   $self->{canvasWidth}=$canvasWidth;
-  $self->{canvasHeight}=$self->get_baseYPos+
+  $self->{canvasHeight}=$baseYPos+
 		     + ($maxlevel+1)*$levelHeight+$self->get_ymargin;
 #		     + $nodeHeight + $self->get_ymargin
 #		     + $node_pattern_count*$fontHeight;
@@ -772,6 +773,117 @@ sub get_node_style {
   return $s ? @{$s} : ();
 }
 
+sub parse_coords_spec {
+  my ($self,$node,$coords,$nodes,$nodehash)=@_;
+  # perl inline search
+  $coords =~
+    s{([xy])\[\?((?:.|\n)*?)\?\]}{
+      my $i=0;
+      my $key="[?${2}?]";
+      my $xy=$1;
+      my $code=$2;
+      if (exists($nodehash->{"$xy$key"})) {
+	int($nodehash->{"$xy$key"})
+      } else {
+	while ($i<@$nodes) {
+	  my $c=$code;
+	  my $this=$node;	 # $this is the context node
+	  my $node=$nodes->[$i]; # $node is the search node
+	  $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$nodes->[$i]->{$1}'"]ge;
+	  last if eval $c;	 # NOT SECURE, NOT SAFE!
+	  print STDERR $@ if $@ ne "";
+	  $i++;
+	}
+	if ($i<@$nodes) {
+	  $nodehash->{"x$key"} = $self->get_node_pinfo($nodes->[$i], "XPOS");
+	  $nodehash->{"y$key"} = $self->get_node_pinfo($nodes->[$i], "YPOS");
+	  int($nodehash->{"$xy$key"})
+	} else {
+	  #	    print STDERR "NOT-FOUND $code\n";
+	  "ERR";
+	}
+      }
+    }ge;
+  $coords=~
+    s{([xy])\[!((?:.|\n)*?)!\]}{
+      my $i=0;
+      my $key="[!${2}!]";
+      my $xy=$1;
+      my $code=$2;
+      if (exists($nodehash->{"$xy$key"})) {
+	int($nodehash->{"$xy$key"})
+      } else {
+	my $c=$code;
+	my $this=$node;		# $this is the context node
+
+	$c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$this->{$1}'"]ge;
+	my $that=eval $c;	# NOT SECURE, NOT SAFE!
+	print STDERR $@ if $@ ne "";
+	if (ref($that)) {
+	  $nodehash->{"x$key"}=
+	    $self->get_node_pinfo($that, "XPOS");
+	  $nodehash->{"y$key"}=
+	    $self->get_node_pinfo($that, "YPOS");
+	  int($nodehash->{"$xy$key"})
+	} else {
+	  #	    print STDERR "NOT-FOUND $code\n";
+	  "ERR"
+	}
+      }
+    }ge;
+
+  # simple comparison inline
+  $coords =~
+    s{([xy])\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\]}{
+      my $i=0;
+      if (exists($nodehash->{$&})) {
+	$i=$nodehash->{$&};
+      } else {
+	$i++ while ($i<@$nodes and
+		    !(exists($nodes->[$i]{$2}) and $nodes->[$i]{$2} eq $3));
+	$nodehash->{$&}=$i;
+      }
+      if ($i<@$nodes) { 
+	int($self->get_node_pinfo($nodes->[$i],($1 eq 'x') ? "XPOS" : "YPOS"))
+      } else {
+	"ERR"
+      }
+    }ge;
+  return $coords;
+}
+
+sub eval_coords_spec {
+  my ($self,$node,$parent,$C,$coords) = @_;
+  my $x=1;
+  foreach (@$C) {
+    s{([xy]?)p}{
+      if ($parent) {
+	int($self->get_node_pinfo($parent,(($x and ($1 ne 'y')) or $1 eq 'x') ?
+				    "XPOS" : "YPOS"))
+      } else {
+	"NE"
+      }
+    }ge;
+    s{([xy]?)n}{
+      int($self->get_node_pinfo($node,
+				(($x and ($1 ne 'y')) or $1 eq 'x') ?
+				  "XPOS" : "YPOS"))
+    }ge;
+    if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
+      $_=eval $_;
+      print STDERR $@ if $@ ne "";
+    } else { # catches ERR too
+      if (/ERR/ or !/NE/) {
+	print STDERR "COORD: $coords\n";
+	print STDERR "BAD: $_\n";
+	  }
+      return undef;
+    }
+    $x=!$x;
+  }
+  return $C;
+}
+
 sub redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext)=@_;
   my $node;
@@ -901,6 +1013,7 @@ sub redraw {
   $self->store_gen_pinfo('lastX' => 0);
   $self->store_gen_pinfo('lastY' => 0);
 
+  # draw sentence info
   if ($self->get_drawSentenceInfo) {
     return unless $fsfile;
     my $currentfile=filename($fsfile->filename);
@@ -977,6 +1090,8 @@ sub redraw {
   foreach $node (@{$nodes}) {
     $parent=$node->parent;
     use integer;
+
+    ## Lines ##
     my @arrow=split '&',$self->get_style_opt($node,"Line","-arrow",\%Opts);
     my @fill=split '&',$self->get_style_opt($node,"Line","-fill",\%Opts);
     my @width=split '&',$self->get_style_opt($node,"Line","-width",\%Opts);
@@ -987,117 +1102,12 @@ sub redraw {
     my %nodehash;
 
     my $coords=$self->get_style_opt($node,"Line","-coords",\%Opts);
-
-    # perl inline search
-    $coords =~
-      s{([xy])\[\?((?:.|\n)*?)\?\]}{
-	my $i=0;
-	my $key="[?${2}?]";
-	my $xy=$1;
-	my $code=$2;
-	if (exists($nodehash{"$xy$key"})) {
-	  int($nodehash{"$xy$key"})
-	} else {
-	  while ($i<@$nodes) {
-	    my $c=$code;
-
-	    my $this=$node; # $this is the context node
-	    my $node=$nodes->[$i]; # $node is the search node
-	    $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$nodes->[$i]->{$1}'"]ge;
-
-	    last if eval $c;	# NOT SECURE, NOT SAFE!
-	    print STDERR $@ if $@ ne "";
-	    $i++;
-	  }
-	  if ($i<@$nodes) { 
-	    $nodehash{"x$key"}=
-	      $self->get_node_pinfo($nodes->[$i], "XPOS");
-	    $nodehash{"y$key"}=
-	      $self->get_node_pinfo($nodes->[$i], "YPOS");
-	    int($nodehash{"$xy$key"})
-	  } else {
-#	    print STDERR "NOT-FOUND $code\n";
-	    "ERR";
-	  }
-	}
-      }ge;
-    $coords=~
-      s{([xy])\[!((?:.|\n)*?)!\]}{
-	my $i=0;
-	my $key="[!${2}!]";
-	my $xy=$1;
-	my $code=$2;
-	if (exists($nodehash{"$xy$key"})) {
-	  int($nodehash{"$xy$key"})
-	} else {
-	  my $c=$code;
-	  my $this=$node; # $this is the context node
-
-	  $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$this->{$1}'"]ge;
-	  my $that=eval $c;	# NOT SECURE, NOT SAFE!
-	  print STDERR $@ if $@ ne "";
-	  if (ref($that)) {
-	    $nodehash{"x$key"}=
-	      $self->get_node_pinfo($that, "XPOS");
-	    $nodehash{"y$key"}=
-	      $self->get_node_pinfo($that, "YPOS");
-	    int($nodehash{"$xy$key"})
-	  } else {
-#	    print STDERR "NOT-FOUND $code\n";
-	    "ERR"
-	  }
-	}
-      }ge;
-
-    # simple comparison inline
-    $coords =~
-      s{([xy])\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\]}{
-	my $i=0;
-	if (exists($nodehash{$&})) {
-	  $i=$nodehash{$&};
-	} else {
-	  $i++ while ($i<@$nodes and
-		      !(exists($nodes->[$i]{$2}) and $nodes->[$i]{$2} eq $3));
-	  $nodehash{$&}=$i;
-	}
-	if ($i<@$nodes) { 
-	  int($self->get_node_pinfo($nodes->[$i],($1 eq 'x') ? "XPOS" : "YPOS"))
-	} else {
-	  "ERR"
-	}
-      }ge;
+    $coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
 
     my @coords=split '&',$coords;
     COORD: foreach my $c (@coords) {
       my @c=split ',',$c;
-      my $x=1;
-      foreach (@c) {
-	s{([xy]?)p}{
-	  if ($parent) {
-	    int($self->get_node_pinfo($parent,(($x and ($1 ne 'y')) or $1 eq 'x') ?
-				      "XPOS" : "YPOS"))
-	  } else {
-	    "NE"
-	  }
-	}ge;
-	s{([xy]?)n}{
-	  int($self->get_node_pinfo($node,
-				    (($x and ($1 ne 'y')) or $1 eq 'x') ?
-				    "XPOS" : "YPOS"))
-	}ge;
-	if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
-	  $_=eval $_;
-	  print STDERR $@ if $@ ne "";
-	} else { # catches ERR too
-	  if (/ERR/ or !/NE/) {
-	    print STDERR "COORD: $coords\n";
-	    print STDERR "BAD: $_\n";
-	  }
-	  next COORD;
-	}
-	$x=!$x;
-      }
-
+      next unless $self->eval_coords_spec($node,$parent,\@c,$coords);
       $objectno++;
       my $line="line_$objectno";
       my $l;
@@ -1128,7 +1138,7 @@ sub redraw {
 #    $self->apply_style_opts($line,@{$Opts{Line}},
 #			    $self->get_node_style($node,"Line"));
 
-    ## The Nodes ##
+    ## Node Shape ##
     my $shape=lc($self->get_style_opt($node,'Node','-shape',\%Opts));
 
     $shape='oval' unless ($shape eq 'rectangle' or $shape eq 'polygon');
@@ -1148,37 +1158,62 @@ sub redraw {
     $self->store_node_pinfo($node,"Oval",$oval);
     $self->store_obj_pinfo($oval,$node);
 
+    # EdgeLabel
     if (scalar(@edge_patterns) and $node->parent) {
-      $y_edge_length=
-	($self->get_node_pinfo($node->parent, "YPOS")-
-	 $self->get_node_pinfo($node,"YPOS"));
-      $x_edge_length=
-	($self->get_node_pinfo($node->parent, "XPOS")-
-	 $self->get_node_pinfo($node,"XPOS"));
-      $x_edge_delta=(($self->get_node_pinfo($node, "EdgeLabel_YPOS")
-		      -$self->get_node_pinfo($node, "YPOS"))*$x_edge_length)/$y_edge_length;
-
-      # the reference point for edge label is now
-      # X: $self->get_node_pinfo($node,"XPOS")+$x_edge_delta
-      #	Y: $self->get_node_pinfo($node,"EdgeLabel_YPOS")
-
+      my $coords = $self->get_style_opt($node,"EdgeLabel","-coords",\%Opts);
       $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",\%Opts);
       $valign_edge=$self->get_style_opt($node,"EdgeLabel","-valign",\%Opts);
-
       $edgeLabelWidth=$self->get_node_pinfo($node,"EdgeLabelWidth");
       $edgeLabelHeight=$self->get_node_pinfo($node,"EdgeLabelHeight");
-      if ($halign_edge eq "left") {
-	$x_edge_delta-=$edgeLabelWidth;
-      } elsif ($halign_edge eq "center") {
-	$x_edge_delta-=$edgeLabelWidth/2;
-      }
-      if ($valign_edge eq "bottom") {
-	$x_edge_delta+=($edgeLabelHeight*$x_edge_length)/$y_edge_length;
-      } elsif ($valign_edge eq "center") {
-	$x_edge_delta+=(($edgeLabelHeight*$x_edge_length)/$y_edge_length)/2;
+
+      if ($coords) {
+	# edge label with explicit coords
+	$coords = $self->parse_coords_spec($node,$coords,$nodes,\%nodehash);
+	my @c=split ',',$coords;
+	if ($self->eval_coords_spec($node,$node->parent,\@c,$coords)) {
+	  if ($halign_edge eq "left") {
+	    $c[0]-=$edgeLabelWidth;
+	  } elsif ($halign_edge eq "center") {
+	    $c[0]-=$edgeLabelWidth/2;
+	  }
+	  if ($valign_edge eq "bottom") {
+	    $c[1]-=$edgeLabelHeight;
+	  } elsif ($valign_edge eq "center") {
+	    $c[1]-=$edgeLabelHeight/2;
+	  }
+	  $self->store_node_pinfo($node,"EdgeLabel_XPOS", $c[0]);
+	  $self->store_node_pinfo($node,"EdgeLabel_YPOS", $c[1]);
+	}
+      } else {
+	$y_edge_length=
+	  ($self->get_node_pinfo($node->parent, "YPOS")-
+	     $self->get_node_pinfo($node,"YPOS"));
+	$x_edge_length=
+	  ($self->get_node_pinfo($node->parent, "XPOS")-
+	     $self->get_node_pinfo($node,"XPOS"));
+	$x_edge_delta=(($self->get_node_pinfo($node, "EdgeLabel_YPOS")
+			  -$self->get_node_pinfo($node, "YPOS"))*$x_edge_length)/$y_edge_length;
+	
+	# the reference point for edge label is now
+	# X: $self->get_node_pinfo($node,"XPOS")+$x_edge_delta
+	#	Y: $self->get_node_pinfo($node,"EdgeLabel_YPOS")
+	
+	if ($halign_edge eq "left") {
+	  $x_edge_delta-=$edgeLabelWidth;
+	} elsif ($halign_edge eq "center") {
+	  $x_edge_delta-=$edgeLabelWidth/2;
+	}
+	if ($valign_edge eq "bottom") {
+	  $x_edge_delta+=($edgeLabelHeight*$x_edge_length)/$y_edge_length;
+	} elsif ($valign_edge eq "center") {
+	  $x_edge_delta+=(($edgeLabelHeight*$x_edge_length)/$y_edge_length)/2;
+	}
+	$x_edge_delta+=$self->get_style_opt($node,"EdgeLabel","-xadj",\%Opts);
+	$self->store_node_pinfo($node,"EdgeLabel_XPOS",
+				$self->get_node_pinfo($node,"XPOS")+$x_edge_delta);
       }
     }
-    $x_edge_delta+=$self->get_style_opt($node,"EdgeLabel","-xadj",\%Opts);
+
     $node_has_box=
       $self->get_drawBoxes 
       && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-nodrawbox",\%Opts) ne "yes")
@@ -1224,12 +1259,12 @@ sub redraw {
       $objectno++;
       my $box="edgebox_$objectno";
       my $bid=$self->canvas->
-	createRectangle($self->get_node_pinfo($node,"XPOS")-
-			$self->get_xmargin+$x_edge_delta,
+	createRectangle($self->get_node_pinfo($node,"EdgeLabel_XPOS")-
+			$self->get_xmargin,
 			$self->get_node_pinfo($node,"EdgeLabel_YPOS")
 			-$self->get_ymargin,
-			$self->get_node_pinfo($node,"XPOS")+
-			$self->get_xmargin+$x_edge_delta+$edgeLabelWidth,
+			$self->get_node_pinfo($node,"EdgeLabel_XPOS")+
+			$self->get_xmargin+$edgeLabelWidth,
 			$self->get_node_pinfo($node,"EdgeLabel_YPOS")
 			+$self->get_ymargin
 			+scalar(@edge_patterns)*$lineHeight,
@@ -1258,7 +1293,7 @@ sub redraw {
       if ($pat_class eq "edge") {
 	if ($node->parent) {
 	  $msg =~ s!/!!g;		# should be done in interpolate_text_field
-	  $x=$self->get_node_pinfo($node,"XPOS")+$x_edge_delta;
+	  $x=$self->get_node_pinfo($node,"EdgeLabel_XPOS");
 	  $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
 	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
 				!$edge_has_box, \%Opts);
