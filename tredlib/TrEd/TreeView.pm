@@ -124,10 +124,10 @@ sub get_obj_pinfo {
 sub apply_options {
   my ($self,$opts) = @_;
   return undef unless ref($self);
-
   foreach (@Options) {
     $self->{$_}=$opts->{$_} if (exists($opts->{$_}));
   }
+  print "FONT ======: $self->get_font\n";
   return;
 }
 
