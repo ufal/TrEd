@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-01-29 16:14:07 pajas>
+## Time-stamp: <2003-02-03 10:01:47 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -172,35 +172,36 @@ sub QueryTrlemma {
     #
     # Predelat na entity: &Comma; &Colon; atd.
     #
-    (['Comma','&Comma;','???','???','CONJ'],
-     ['Colon','&Colon;','???','???','CONJ'],
-     ['Dash','&Dash;','???','???','CONJ'],
-     ['Lpar','&Lpar;','???','???'],
-     ['Forn','&Forn;','???','???'],
-     ['Rcp','&Rcp;','???','???','PAT'],
-     ['Neg','&Neg;','???','???'],
-     ['Cor','&Cor;','???','???'],
-     ['Emp','&Emp;','???','???'],
-     ['EmpNoun','&EmpNoun;','???','???'],
-     ['Gen','&Gen;','???','???'],
-     ['Idph','&Idph;','???','???'],
-     ['stejnì','stejnì','???','MANN'],
-     ['stejný','stejný','???','RSTR'],
-     ['???','???','???','???'],
-     ['já','já','???','SG'],
-     ['ty','ty','???','SG'],
-     ['on-¾iv.','on','ANIM','SG'],
-     ['on-ne¾iv.','on','INAN','SG'],
-     ['ona','on','FEM','SG'],
-     ['ono','on','NEUT','SG'],
-     ['my','my','???','PL'],
-     ['vy','vy','???','PL'],
-     ['oni-¾iv.','on','ANIM','PL'],
-     ['ony-ne¾iv','on','INAN','PL'],
-     ['ony-¾en.','on','FEM','PL'],
-     ['ona-pl-neut.','on','NEUT','PL'],
-     ['ten','ten','???','???'],
-     ['tak','tak','???','???','EXT'],
+    ([ 'Comma',        '&Comma;',   '???',  '???', 'CONJ'   ],
+     [ 'Colon',        '&Colon;',   '???',  '???', 'CONJ'   ],
+     [ 'Dash',         '&Dash;',    '???',  '???', 'CONJ'   ],
+     [ 'Lpar',         '&Lpar;',    '???',  '???', '???'    ],
+     [ 'Forn',         '&Forn;',    '???',  '???', '???'    ],
+     [ 'Rcp',          '&Rcp;',     '???',  '???', 'PAT'    ],
+     [ 'Neg',          '&Neg;',     '???',  '???', '???'    ],
+     [ 'Cor',          '&Cor;',     '???',  '???', '???'    ],
+     [ 'Emp',          '&Emp;',     '???',  '???', '???'    ],
+     [ 'EmpNoun',      '&EmpNoun;', '???',  '???', '???'    ],
+     [ 'Gen',          '&Gen;',     '???',  '???', '???'    ],
+     [ 'Idph',         '&Idph;',    '???',  '???', '???'    ],
+     [ 'stejnì',       'stejnì',    '???',  '???', 'MANN'   ],
+     [ 'stejný',       'stejný',    '???',  '???', 'RSTR'   ],
+     [ '???',          '???',       '???',  '???', '???'    ],
+     [ 'já',           'já',        '???',  'SG',  '???'    ],
+     [ 'ty',           'ty',        '???',  'SG',  '???'    ],
+     [ 'on-¾iv.',      'on',        'ANIM', 'SG',  '???'    ],
+     [ 'on-ne¾iv.',    'on',        'INAN', 'SG',  '???'    ],
+     [ 'ona',          'on',        'FEM',  'SG',  '???'    ],
+     [ 'ono',          'on',        'NEUT', 'SG',  '???'    ],
+     [ 'my',           'my',        '???',  'PL',  '???'    ],
+     [ 'vy',           'vy',        '???',  'PL',  '???'    ],
+     [ 'oni-¾iv.',     'on',        'ANIM', 'PL',  '???'    ],
+     [ 'ony-ne¾iv',    'on',        'INAN', 'PL',  '???'    ],
+     [ 'ony-¾en.',     'on',        'FEM',  'PL',  '???'    ],
+     [ 'ona-pl-neut.', 'on',        'NEUT', 'PL',  '???'    ],
+     [ 'ten',          'ten',       '???',  '???', '???'    ],
+     [ 'tak',          'tak',       '???',  '???', 'EXT'    ],
+     [ 'takový',       'takový',    '???',  '???', 'PAT'    ],
     );
   my @selected=grep { 
     $node->{trlemma} eq $_->[1] and 
