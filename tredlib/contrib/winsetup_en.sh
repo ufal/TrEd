@@ -240,7 +240,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     mkplbat any2any); then 
     
     if (test -d "${TREDDIR}/bin" || mkdir "${TREDDIR}/bin"); then
-      cp bin/prfile32.exe bin/*.dll bin/gunzip.exe bin/gzip.exe bin/zcat.exe "${TREDDIR}/bin"
+      cp -f bin/prfile32.exe nsgmls/* bin/*.dll bin/gunzip.exe bin/gzip.exe bin/zcat.exe "${TREDDIR}/bin"
     else 
       echo "Cannot create" "${TREDDIR}/bin" "!"
     fi
