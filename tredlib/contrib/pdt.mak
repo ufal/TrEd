@@ -129,8 +129,24 @@ sub real_parent {
   return $node;
 }
 
+=item PDT::get_sentence_string
 
-=item get_subsentence_string_TR
+Return string representation of the given subtree
+(suitable for Analytical trees).
+
+=cut
+
+ sub get_sentence_string {
+   shift @_ unless ref($_[0]);
+   my $top= $_[0]||$root;
+   return undef unless $top;
+   return join("",
+		 map { $_->{origf}.($_->{nospace} ? "" : " ") }
+		 sort { $a->{ord} <=> $b->{ord} }
+		 $top->descendants);
+}
+
+=item PDT::get_subsentence_string_TR
 
 Return string representation of the given node and the first level of
 tree-structure under it (coordinated substructures are expanded and
@@ -149,9 +165,10 @@ sub get_subsentence_string_TR {
 	 map { expand_coord_apos($_,1) } $node->children());
 }
 
-=item get_sentence_string_TR
+=item PDT::get_sentence_string_TR
 
-Return string representation of the given subtree.
+Return string representation of the given subtree
+(suitable for Tectogrammatical trees).
 
 =cut
 
