@@ -1160,8 +1160,6 @@ server. It makes btred preload a given Perl module at btred startup so
 as it is available to all macros (DOES NOT WORK WITH RESTRICTED MODE).
 This option may be specified more than once with different modules.
 
-=back
-
 =item B<--old-dist-method>
 
 Use old benchmark-based distribution method.
