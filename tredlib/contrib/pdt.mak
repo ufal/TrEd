@@ -714,6 +714,132 @@ sub valid_member_TR {
   return 1;
 }
 
+
+=item PDT::transform_to_tectogrammatic ()
+
+Saves TR strucutre to govTR attribute, changes header to default AR
+header and restores the original AR tree structure from ordorig.
+Nodes added on TR are placed on root and hidden (with ARhide='hide').
+
+=cut
+
+sub transform_to_tectogrammatic {
+  my $defs = {'dord' => ' N'};
+  foreach my $root ($grp->{FSFile}->trees) {
+    my @nodes = ($root,$root->descendants);
+    my %nodes = map {$_->{ord} => $_} @nodes;
+    if ($root->{reserve1} eq 'TR_TREE') {
+      ErrorMessage("Tree already looks like TR_TREE");
+      return;
+    }
+    $root->{reserve1}='TR_TREE';
+    PDT->convertToTRHeader();
+    PDT->saveTreeAStructure($root);
+
+    # disconnect all nodes
+    foreach my $node (@nodes) {
+      Fslib::SetParent($node,0);
+      Fslib::SetFirstSon($node,0);
+      Fslib::SetLBrother($node,0);
+      Fslib::SetRBrother($node,0);
+    }
+
+    # connect nodes
+    foreach my $node (@nodes) {
+      next if $node == $root;
+      if (ref($nodes{ $node->{govTR} })) {
+	Paste($node,$nodes{ $node->{govTR} },$defs);
+      } else {
+	Paste($node,$root,$defs);
+      }
+    }
+
+    # make sure we have a tree
+    foreach my $node (@nodes) {
+      next if $node == $root;
+      my $r = $node;
+      while ($r->parent) {
+	$r = $r->parent();
+	last if $r == $node;
+      }
+      if ($r == $node) {
+	Cut($r);
+      }
+      unless ($r == $root) {
+	print STDERR "fixing structure of [$node->{ord}]\n";
+	Paste($r,$root,$defs);
+      }
+    }
+  }
+}
+
+=item PDT::transform_to_analytic ()
+
+Saves AR strucutre to ordorig attribute, changes header to default TR
+header and restores the original TR tree structure from govTR.
+
+=cut
+
+sub transform_to_analytic {
+  my $defs = {'ord' => ' N'};
+  foreach my $root ($grp->{FSFile}->trees) {
+    my @nodes = ($root,$root->descendants);
+    unless ($root->{reserve1} eq 'TR_TREE') {
+      ErrorMessage("Tree doesn't look like TR_TREE");
+      return;
+    }
+    $root->{reserve1}='AR_TREE';
+    PDT->convertToARHeader();
+    PDT->saveTreeTStructure($root);
+
+    my (@analytic,@added);
+    # disconnect all nodes
+    foreach my $node (@nodes) {
+      Fslib::SetParent($node,0);
+      Fslib::SetFirstSon($node,0);
+      Fslib::SetLBrother($node,0);
+      Fslib::SetRBrother($node,0);
+    }
+
+    # create an array of analytic nodes
+    foreach my $node (@nodes) {
+      if ($node->{ord} !~ /\./) {
+	$analytic[ $node->{ord} ] = $node;
+      } else {
+	push @added,$node;
+      }
+    }
+
+    # connect analytic nodes
+    foreach my $node (@analytic) {
+      next if $node == $root;
+      if ($node->{ordorig} =~ /^\d+$/ and
+	  defined $analytic[ $node->{ordorig} ]) {
+	Paste($node,$analytic[ $node->{ordorig} ],$defs);
+      } else {
+	Paste($node,$root,$defs);
+      }
+      $node->{ARhide}=''; # don't hide them
+    }
+
+    # connect TR-added nodes
+    foreach my $node (@added) {
+      next if $node == $root;
+      Paste($node,$root,$defs);
+      $node->{ARhide}='hide'; # hide them
+    }
+
+    # make sure we have a tree
+    foreach my $node (@nodes) {
+      next if $node == $root;
+      my $r = $node->root();
+      unless ($r == $root) {
+	Paste($r,$root,$defs);
+      }
+    }
+  }
+}
+
 1;
 
 =back
