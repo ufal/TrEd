@@ -804,6 +804,24 @@ sub root {
   return $root;
 }
 
+
+=item level
+
+Calculate node's level (root-level is 0).
+
+=cut
+
+sub level {
+  my ($node) = @_;
+  my $level=-1;
+  while ($node) {
+    $node=$node->parent;
+    $level++;
+  }
+  return $level;
+}
+
+
 =pod
 
 =item lbrother
