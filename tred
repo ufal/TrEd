@@ -921,10 +921,26 @@ sub dlgReturn {
   Tk->break;
 }
 
+sub _descendant_widgets {
+  return ($_[0],map {_descendant_widgets($_)} $_[0]->children);
+}
+
+sub _bind_buttons {
+  my ($w,$top)=@_;
+  $top||=$w->toplevel;
+  foreach my $button (grep { ref($_) and $_->isa('Tk::Button') } _descendant_widgets($w)) {
+    my $ul=$button->cget('-underline');
+    if (defined($ul) and $ul>=0) {
+      my $text=$button->cget('-text');
+      my $key=lc(substr($text,$ul,1));
+      $key=~s/^\.$/period/;
+      $top->bind("<Alt-$key>", [sub { $_[1]->flash; $_[1]->invoke; },$button]);
+    }
+  }
+}
 
 sub userQuery {
   my ($win, $message, %opts) = @_;
-
   my $d = $win->toplevel->Dialog(
 				 %opts
 				);
@@ -933,9 +949,9 @@ sub userQuery {
   $d->bind('<Return>', \&dlgReturn);
   if (exists($opts{-buttons}) and 
       grep { $_ eq 'Cancel' } @{$opts{-buttons}}) {
-    $d->bind('<Escape>', [sub { my $w=shift;
+    $d->bind('all','<Escape>', [sub { shift; my $w=shift;
 			       $w->{selected_button}= "Cancel";
-			     }] );
+			     },$d] );
     $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
 
   }
@@ -2469,6 +2485,19 @@ sub initTTFonts {
 					     split /,/,$ttFontPath);
 }
 
+sub warnWin32PrintConvert {
+  my ($win)=@_;
+  return 'Continue' if $^O ne 'Win32' or
+    $NoConvertWarning;
+  userQuery($win,
+"Note, that this feature may not work properly on your system ".
+"unless some external tools, namely ImageMagick and GhostView, are ".
+"installed and configured properly.\n\n".
+"To avoid this message, add NoConvertWarning=1 to your configuration file.",
+	    -title => "Warning",
+	    -buttons => ["Continue","Cancel"]);
+}
+
 sub updatePrintDialogState {
   my ($grp,$w, $s, $extension)=@_; # widgets, state
   my %t=map { $_ => 1} keys %$w; # toggle
@@ -2680,6 +2709,7 @@ sub printDialog {
 			-font=> $font,
 			-textvariable=> \$s{file})
     ->pack(qw/-padx 10 -side left -expand yes -fill x/);
+  $d->bind('<Alt-r>',[sub{shift;shift->{file}->focus},\$w]);
   set_grp_history($grp, $w{file}, 'printFile',$e_hist);
   if ($s{file} ne "") {
     my $start = rindex($fil,"/")+1;
@@ -2700,6 +2730,7 @@ sub printDialog {
 			     -textvariable=> \$s{printRange});
   set_grp_history($grp, $w{printRange}, 'printRange',$e_hist);
   $w{findFile} = $ff->Button(-text => '...',
+			     -underline => 0,
 		      -command =>
 		      [sub {
 			 my ($d,$s)=@_;
@@ -2746,9 +2777,9 @@ sub printDialog {
 				  -variable => \$s{resolution}
 				 );
 
-  my %printbuttons = ( printer => [$bf,'Send to printer',undef],
-		       file =>[$bf,'Print to file','eps'],
-		       convert =>[$imf,'Convert to bitmap format (ImageMagick)','png']
+  my %printbuttons = ( printer => [$bf,'Send to printer',undef,8],
+		       file =>[$bf,'Print to file','eps',9],
+		       convert =>[$imf,'Convert to bitmap format (ImageMagick)','png',0]
 		     );
 
   # print To buttons
@@ -2756,6 +2787,7 @@ sub printDialog {
     $w{"printTo_$_"} = $printbuttons{$_}[0]->
       Radiobutton(-text    => $printbuttons{$_}[1],
 		  -value   => $_,
+		  -underline => $printbuttons{$_}[3],
 		  -variable=> \$s{printTo},
 		  -relief  => 'flat',
 		  -command =>
@@ -2772,14 +2804,15 @@ sub printDialog {
   $bf->Frame()->pack(qw/-pady 5/);
 
   # output format buttons
-  my %fmtbuttons = ( PS => [$bf,'Create PostScript','ps'],
-		     EPS =>[$bf,'Create EPS','eps'],
-		     PDF =>[$pbf,'Create PDF','pdf']
+  my %fmtbuttons = ( PS => [$bf,'Create PostScript','ps',11],
+		     EPS =>[$bf,'Create EPS','eps',7],
+		     PDF =>[$pbf,'Create PDF','pdf',8]
 		   );
   foreach (qw(PS EPS PDF)) {
     $w{"format_$_"} = $fmtbuttons{$_}[0]->
       Radiobutton(-text    => $fmtbuttons{$_}[1],
 		  -value   => $_,
+		  -underline => $fmtbuttons{$_}[3],
 		  -variable=> \$s{format},
 		  -relief  => 'flat',
 		  -command =>
@@ -2800,21 +2833,26 @@ sub printDialog {
 
   # print options
   $w{printColors}=$bf->Checkbutton(-text=> 'Use colors',
+				   -underline => 0,
 			       -variable=> \$s{printColors},
 			       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   $w{printSentence}=$bf->Checkbutton(-text=> 'Print sentence',
+				     -underline => 8,
 				 -variable=> \$s{printSentence},
 				 -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
   $w{noRotate}=
     $bf->Checkbutton(-text    => 'Disable landscape rotation of wide trees',
+		     -underline => 0,
 		     -variable=> \$s{noRotate},
 		     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   $bf->pack(-side=> 'left');
   $of->pack(qw/-padx 10 -pady 10 -side top -expand yes -fill x/);
   $sf->Label(-text=> 'Page range:',
+	     -underline => 5,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
+  $d->bind('<Alt-r>',[sub{shift;shift->{printRange}->focus},\$w]);
   $w{printRange}->pack(qw/-side left -padx 10 -fill x -expand yes/);
 
   for ($sf,$ff) {
@@ -2851,6 +2889,7 @@ sub printDialog {
 
   updatePrintDialogState($grp,\%w,\%s, $grp->{printFileExtension});
 #  $toFile ? $fe->focus : $ce->focus;
+  _bind_buttons($d,$d);
   my $result= ShowDialog($d,$s{printTo} eq "command" ? $w{command} : $w{file},$grp->{top});
   $grp->{printRange}=$s{printRange};
   $grp->{printToFile}=$s{printTo};
@@ -2870,6 +2909,8 @@ sub printDialog {
   $d->destroy;
   undef $d;
   if ($result=~ /OK/) {
+    return () if $s{printTo} eq 'convert' and
+                 warnWin32PrintConvert($win) eq 'Cancel';
     return ($s{printRange},
 	    ($s{printTo} eq 'file') ? 1 : 0,
 	    ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
@@ -5334,20 +5375,24 @@ sub viewSentencesDialog {
 }
 
 sub dumpSentView {
-  my ($grp, $fsfile, $t)=@_;
+  my ($grp, $fsfile, $t, $create_images)=@_;
+
+  return if ($create_images and warnWin32PrintConvert($t) eq 'Cancel');
+
   my $file=$fsfile->filename;
-  $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml|fs)/.html/i;
+  $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml|fs|pls)(?:\.gz)?$/.html/i;
 
   my $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
   $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
-  $file= get_save_filename($grp->{top},-filetypes=>
-				  [["HTML",           [qw/.html .htm .HTM .HTML/]],
-				   ["All files",        '*']],
-				  -title=> "Save Sentences As HTML ...",
-				  -d $initdir ? (-initialdir=> $initdir) : (),
-				  $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
+  $file= get_save_filename($t->toplevel,
+			   -filetypes=>
+			   [["HTML",           [qw/.html .htm .HTM .HTML/]],
+			    ["All files",        '*']],
+			   -title=> "Save Sentences As HTML ...",
+			   -d $initdir ? (-initialdir=> $initdir) : (),
+			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   open my $html, ">$file" ||
     errorMessage($grp->{focusedWindow},"Cannot write to \"$file\"!"."\n($!)\n".
 		 "\nSentences could not be saved!");
@@ -5367,10 +5412,15 @@ sub dumpSentView {
   print $html "<body>\n";
   my @dump=$t->dump('0.0','end');
   @dump=$t->dump('0.0','end');
+  my $img;
   while (@dump) {
-    my ($K,$V,$I) = (shift @dump, shift @dump, shift @dump);
+    my ($K,$V,$I) = splice @dump, 0, 3;
     if ($K eq 'tagon') {
-      print $html "<p>" if $V eq 'treeno';
+      if ($V eq 'treeno') {
+	$img=1;
+	print $html "<p>" if $V eq 'treeno';
+	print $html "<img src=\"" if ($create_images);
+      }
       print $html "<u>" if $t->tagCget($V,'-underline');
       print $html "<font color=\"".$t->tagCget($V,'-foreground')."\">"
 	if $t->tagCget($V,'-foreground');
@@ -5380,7 +5430,37 @@ sub dumpSentView {
       print $html "</font>" if $t->tagCget($V,'-foreground');
       print $html "</u>" if $t->tagCget($V,'-underline');
       print $html "</p>\n" if $V eq 'newline';
+      $img=0 if $img;
     } elsif ($K eq 'text') {
+      if ($img and $create_images) {
+	# create image filename
+	my $img_file = $file;
+	my $no = $V; $no =~ s/[()]|\s*//g;
+	$img_file =~ s/\.[^.]*$/_${no}.png/;
+	print $html "$img_file\"/><br />\n";
+	# create image
+	my $canvas=$grp->{top}->Canvas();
+	my $stylesheet = $win->{stylesheet};
+	my $ss = undef;
+	if ($stylesheet ne STYLESHEET_FROM_FILE()) {
+	  $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
+	}
+	TrEd::Print::print_trees
+	    ($fsfile,$grp->{top},$canvas,
+	     $no,0,1,0,$img_file,0,
+	     "$imageMagickConvert -density 75 - $img_file",
+	     1,1,
+	     $grp->{focusedWindow}->{treeView}->get_showHidden(),
+	     {
+	      'PS' => $psFontFile,
+	      'AFM' => $psFontAFMFile,
+	      'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
+	      'Size' => $psFontSize,
+	     },
+	     0,0,0,0,0,'BBox',$treeViewOpts,$ss);
+	$canvas->destroy();
+	$img=0;
+      }
       print $html $V;
     } else {
       #print $html "<other key=\"$K\" value=\"$V\"/>";
@@ -5410,19 +5490,34 @@ sub populateSentencesDialog {
   my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
 
   if ($close_button) {
-    $bottom->Button(-text=> "Close", -command=> [sub { $_[0]->destroy; },$d])
+    $bottom->Button(-text=> "Close",
+		    -underline => 0,
+		    -command=> [sub { $_[0]->destroy; },$d])
       ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   }
 
-  $bottom->Button(-text=> "Reload", -command=> [\&reloadSentenceView,$grp,$t,$selref])
+  $bottom->Button(-text=> "Reload",
+		  -underline => 0,
+		  -command=> [\&reloadSentenceView,$grp,$t,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  $bottom->Button(-text=> "Select All", -command=>[ \&sentViewSelectAll,$grp,$selref])
+  $bottom->Button(-text=> "Select All",
+		  -underline => 7,
+		  -command=>[ \&sentViewSelectAll,$grp,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  $bottom->Button(-text=> "Clear selection", -command=>[ \&sentViewSelectNone,$grp,$selref])
+  $bottom->Button(-text=> "Clear selection",
+		  -underline => 1,
+		  -command=>[ \&sentViewSelectNone,$grp,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-  $bottom->Button(-text=> "Save As HTML", -command=>[ \&dumpSentView,$grp,$fsfile,$t])
+  $bottom->Button(-text=> "Save As HTML",
+		  -underline => 0,
+		  -command=>[ \&dumpSentView,$grp,$fsfile,$t])
+    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
+  $bottom->Button(-text=> "Save As HTML with Images",
+		  -underline => 18,
+		  -command=>[ \&dumpSentView,$grp,$fsfile,$t,1])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
+  _bind_buttons($d,$d);
   reloadSentenceView($grp,$t,$selref);
 }
 
@@ -5532,6 +5627,7 @@ sub editAttrsDialog {
     # Reliefs: raised, sunken, flat, ridge, and groove.
     my $eef=$f->Frame()->pack(qw/-side top -expand yes -fill x/);
     $eef->Label(-text=> $_,
+		-underline => 0,
 		-justify => 'left',
 		-width =>$lwidth,
 		-anchor=> 'nw')->pack(qw/-side left/);
@@ -5716,6 +5812,7 @@ sub customAttrsDialog {
   # Frame with buttons
   my $bf= $f->Frame(qw(-takefocus 0));
   $bf->Button(-text=> "Add/Paste",
+	      -underline => 0,
 	      -command=>
 	      sub {
 		my $txt=$e->get('0.0','end');
@@ -5730,6 +5827,7 @@ sub customAttrsDialog {
 	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
 
   $bf->Button(-text=> "Replace",
+	      -underline => 0,
 	      -command=>
 	      sub {
 		my $txt=$e->get('0.0','end');
@@ -5749,6 +5847,7 @@ sub customAttrsDialog {
 	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
 
   $bf->Button(-text=> "Cut",
+	      -underline => 0,
 	      -command=>
 	      [sub {
 		$cl->selectionClear($cl->index('end')-1)
@@ -5761,6 +5860,7 @@ sub customAttrsDialog {
 	      }]
 	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
   $bf->Button(-text=> "Delete",
+	      -underline => 0,
 	      -command=>
 	      [sub {
 		$cl->selectionClear($cl->index('end')-1)
@@ -5773,6 +5873,7 @@ sub customAttrsDialog {
 
 
   $bf->Button(-text=> "Add as hint",
+	      -underline => 7,
 	      -command=>
 	      [sub {
 		my $txt=$e->get('0.0','end');
@@ -5780,6 +5881,7 @@ sub customAttrsDialog {
 		if ($txt ne "") {
 		  Tk::catch { $t->delete('sel.first','sel.last') };
 		  $t->insert('insert',$txt);
+		  $t->see('end');
 		}
 		$e->tagAdd('sel','0.0','end');
 	      }]
@@ -5837,6 +5939,7 @@ sub customAttrsDialog {
   $d->bind('<Return>'=> [\&dlgReturn,1]);
   $e->focus();
 #  $d->resizable(0,0);
+  _bind_buttons($d,$d);
   $grp->{top}->Unbusy();
   my $result= ShowDialog($d,$e,$grp->{top});
 
@@ -5909,6 +6012,7 @@ sub findNodeDialog {
     # Reliefs: raised, sunken, flat, ridge, and groove.
     my $eef=$f->Frame()->pack(qw/-side top -expand yes -fill x/);
     $eef->Label(-text=> $_,
+		-underline => 0,
 		-justify => 'left',
 		-width =>$lwidth,
 		-anchor=> 'nw')->pack(qw/-side left/);
