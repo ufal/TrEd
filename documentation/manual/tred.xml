@@ -73,9 +73,9 @@
     <orderedlist>
       <listitem>
 	  <para>
-	    Windows users first have to download and install <a
-	      href="http://www.activestate.com/Products/Download/Get.plex?id=ActivePerl">ActivePerl</a>
-	    by <a href="http://www.activestate.com">ActiveState</a>.
+	    Windows users first have to download and install <ulink
+	      url="http://www.activestate.com/Products/Download/Get.plex?id=ActivePerl">ActivePerl</a>
+	    by <ulink url="http://www.activestate.com">ActiveState</a>.
 	    Follow the instructions of the installation program.
 	    (When the installation is done, you may need to restart
 	    <application>Windows</application>, so that all the
