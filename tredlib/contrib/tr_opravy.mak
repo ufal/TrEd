@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-06-09 15:01:37 pajas>
+## Time-stamp: <2004-06-09 16:35:17 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -622,7 +622,7 @@ sub MoveTreeToPrev {
   }
 }
 
-#bind JoinNextTree to Ctrl+4 menu Join the following tree to the current (both TR and AR layer)
+#bind JoinNextTree to Ctrl+4 menu Join the following tree with the current tree (both TR and AR layer)
 sub JoinNextTree {
   my @nodes = ($root->descendants());
   PDT::ClearARstruct();
@@ -638,6 +638,61 @@ sub JoinNextTree {
     }
   }
   MoveTreeToPrev();
+}
+
+sub __renumber_by {
+  my $atr = shift;
+  my $i=0;
+  my @list = sort { $a->{$atr} <=> $b->{$atr} } @_;
+  foreach (@list) { $_->{$atr}=$i++ }
+}
+
+#bind JoinSubtreeToPrev to Ctrl+2 menu Join current subtree with the previous tree
+sub JoinSubtreeToPrev {
+  my $node = $this;
+  unless ($node->parent) {
+    return unless PrevTree();
+    JoinNextTree();
+  }
+
+  my @subtree = ($node,$node->descendants());
+  my @anal  = grep $_->{AID}, @subtree;
+  my @added = grep $_->{TID}, @subtree;
+  my %astruct;
+  with_AR { $astruct{$_} = $_->parent for @anal };
+  PDT::ClearARstruct();
+
+  my %max;
+  __renumber_by('dord',@subtree);
+  __renumber_by('sentord',@anal);
+  __renumber_by('ord',@anal);
+
+  Cut($node);
+
+  my @rest = $root->descendants();
+  my @rest_anal = grep $_->{AID}, @rest;
+  __renumber_by('dord',$root,@rest);
+  __renumber_by('sentord',$root,@rest_anal);
+  __renumber_by('ord',$root,@rest_anal);
+
+  return unless PrevTree();
+
+  my @nodes = ($root->descendants());
+  my %max;
+  $max{ord1}   = max(map { $_->{ord}=~/\.(\d+)/ ? $1 : 0 } $root, @nodes);
+  $max{ord}     = max(map { $_->{ord} } $root, @nodes);
+  $max{dord}    = max(map { $_->{dord} } $root,@nodes);
+  $max{sentord} = max(map { $_->{sentord} } $root, grep { $_->{AID} ne "" } @nodes);
+
+  PasteNode($node,$root);
+
+  foreach my $atr (qw(ord dord sentord)) {
+    foreach my $node ($atr eq 'dord' ? @subtree : @anal) {
+      $node->{$atr} += $max{$atr}+1;
+    }
+  }
+  $_->{ordorig} = $astruct{$_}->{ord} for @anal;
+  $_->{ord} = int($_->parent->{ord}).".".(++$max{ord1}) for @added;
 }
 
 
