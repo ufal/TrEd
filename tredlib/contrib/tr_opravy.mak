@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-07 23:13:42 pajas>
+## Time-stamp: <2004-03-11 20:55:34 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -118,7 +118,7 @@ sub hash_AIDs {
 sub uniq { my %a; @a{@_}=@_; values %a }
 
 
-#bind clean_fw_join_to_parent to Ctrl+exclam Clean fw and AIDREFS of current node, repaste children to parent and joinfw with parent
+#bind clean_fw_join_to_parent to Ctrl+exclam menu Clean fw and AIDREFS of current node, repaste children to parent and joinfw with parent
 sub clean_fw_join_to_parent {
   shift if @_ and not ref($_[0]);
   my $node = $_[0] || $this;
@@ -131,7 +131,7 @@ sub clean_fw_join_to_parent {
   { local $this=$node; joinfw(); };
 }
 
-#bind clean_fw_AIDREFS to Ctrl+at Clear fw and AIDREFS of current node
+#bind clean_fw_AIDREFS to Ctrl+at menu Clear fw and AIDREFS of current node
 sub clean_fw_AIDREFS {
   shift if @_ and not ref($_[0]);
   my $node = $_[0] || $this;
