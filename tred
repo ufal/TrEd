@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-29 13:45:21 pajas>";
+$timestamp="Time-stamp: <2001-03-29 17:58:21 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -828,6 +828,7 @@ sub updateBookmarks {
     my $menu = $grp->{BookmarksFileMenu}->menu;
     $menu->delete(0,'end');
     $grp->{BookmarksFileMenu}->command(-label => 'Add to bookmarks',
+				       -underline => 0,
 				       -command => [ \&addBookmark,$grp ]);
     $grp->{BookmarksFileMenu}->separator();
     if (defined($grp->{lastActionBookmark})) {
@@ -1397,8 +1398,7 @@ sub removeFromFilelist {
   $position=$grp->{currentFileNo} if not defined($position);
   return unless ref($filelist);
 
-
-  $filelist->remove(map { $filelist->list_ref->[$_] } @_);
+  $filelist->remove(@_);
   if ($filelist eq $grp->{currentFilelist}) {
     $grp->{currentFileNo} = min($grp->{currentFileNo},
 				$filelist->file_count-1);
@@ -1406,18 +1406,16 @@ sub removeFromFilelist {
 
   if ($grp->{Filelist} and 
       $grp->{filelistCurrentFilelist} eq $filelist) {
-    print "Da filelist window is visible and I am deleteing a file from it, oh yees!\n";
     $position=min($position,$filelist->file_count-1);
     feedHListWithFilelist($grp,$grp->{Filelist},$filelist);
       $grp->{Filelist}->selectionClear();
     my $path;
-    if (defined($position)) {
-      $path=filelistEntryPath($grp->{currentFilelist},$position);
+    $path=$grp->{filelistCurrentFilelist}->list_ref->[$position];
+    if ($grp->{Filelist}->info('exists',$path)) {
       $grp->{Filelist}->anchorSet($path);
       $grp->{Filelist}->selectionSet($path);
-
+      $grp->{Filelist}->see($grp->{Filelist}->info('anchor'));
     }
-    $grp->{Filelist}->see($grp->{Filelist}->info('anchor'));
   }
 }
 
@@ -1541,7 +1539,7 @@ sub filelistDialog {
   my $addbutton=
     $midframe->Button(-text => 'Add -->',
 	       -command=>[
-			  sub { 
+			  sub {
 				my ($grp,$t,$l)=@_;
 				insertToFilelist($grp,
 						 $grp->{filelistCurrentFilelist},
@@ -1557,7 +1555,7 @@ sub filelistDialog {
     $midframe->Button(-text => 'Remove',
 	       -command=>[
 			  sub { 
-				my ($grp,$t,$l)=@_;
+				my ($grp,$t)=@_;
 				removeFromFilelist($grp,
 						   $grp->{filelistCurrentFilelist},
 						   getFilelistLinePosition($grp->{filelistCurrentFilelist},
@@ -1566,7 +1564,7 @@ sub filelistDialog {
 				updateBookmarks($grp)
 				  if (ref($grp->{filelistCurrentFilelist}) and
 				      $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-			      },$grp,$t,$fl])->pack(-side => top);
+			      },$grp,$t])->pack(-side => top);
 
   unless ($modal) {
     $t->bind('<Return>' => [
@@ -1587,11 +1585,24 @@ sub filelistDialog {
 				my ($w,$grp)=@_;
 				my $anchor=$grp->{Filelist}->info('anchor');
 				my $nextentry=$grp->{Filelist}->info('next',$anchor);
-				unless ($nextentry and
+				my $data=$grp->{Filelist}->info('data',$anchor);
+				if ($nextentry and
 					$grp->{Filelist}->info('parent',$nextentry) eq $anchor) {
-				  $grp->{filelistCurrentFilelist}->
-				    set_current($grp->{Filelist}->
-						info('data',$grp->{Filelist}->info('anchor')));
+				  # pattern -> edit
+				  my $position=
+				    $grp->{filelistCurrentFilelist}->find_pattern($data);
+				  $data=Query($grp->{Filelist}->toplevel,"Selection Pattern",
+					"Edit directory pattern for $data",$data);
+				  if (defined($data)) {
+				    print "Removing ",$grp->{Filelist}->info('data',$anchor),"\n";
+				    $grp->{filelistCurrentFilelist}->remove($grp->{Filelist}->info('data',$anchor));
+				    print "Adding $data\n";
+				    $grp->{filelistCurrentFilelist}->add($position,$data);
+				    feedHListWithFilelist($grp,$grp->{Filelist},$grp->{filelistCurrentFilelist});
+				  }
+				} else {
+				  # file -> go to
+				  $grp->{filelistCurrentFilelist}->set_current($data);
 				  selectFilelist($grp,$grp->{filelistCurrentFilelist});
 				}
 			      },$grp ]);
