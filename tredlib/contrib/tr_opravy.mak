@@ -228,7 +228,7 @@ sub tectogrammatical_tree {
 sub light_aidrefs {
   my$aids=hash_AIDs();
   foreach my$aid(keys %$aids){
-    $aids->$aid}->{_light}='';
+    $aids->{$aid}->{_light}='';
   }
   foreach my$aid(getAIDREFs($this)){
     if(exists$aids->{$aid}){
