@@ -41,7 +41,7 @@ BEGIN {
     $Ds='/';
     $outputenc="iso-8859-2" unless defined($outputenc);
   }
-  $support_unicode = ($Tk::VERSION gt 804.00);
+  $support_unicode = ($Tk::VERSION ge 804.00);
 }
 
 sub encode {
@@ -50,12 +50,10 @@ sub encode {
   no integer;
   if ($support_unicode) { # we've got support for UNICODE in
     # perl5.8/Tk8004
-    if ($inputenc eq 'iso-8859-6' or
-	    $inputenc eq 'windows-1256') {
-
+    if ($inputenc eq 'iso-8859-6' or $inputenc eq 'windows-1256') {
       require TrEd::ConvertArab;
-      eval "use Encode (); \$_=Encode::decode('utf8',\$_);";
-      s{([^[:ascii:]]+)}{TrEd::ConvertArab::arabjoin($_)}eg;
+      eval "use Encode (); \$_=Encode::decode('utf8',\$_) unless Encode::is_utf8(\$_);";
+      s{([^[:ascii:]]+)}{TrEd::ConvertArab::arabjoin($1)}eg;
     }
     return $_;
   } elsif ($]>=5.008) {
