@@ -480,9 +480,7 @@ sub addFrameElements {
     if (/^\s*([A-Z0-9]+)([[(])?([^])]*)[])]?$/) {
       my $elem=$doc->createElement("element");
       $elem->setAttribute("functor",$self->conv->encode($1));
-      if ($2 eq '(') {
-	$elem->setAttribute("type","oblig");
-      }
+      $elem->setAttribute("type", ($2 eq '(') ? "oblig" : "non-oblig");
       $self->addForms($elem,$self->conv->encode($3));
       $elems->appendChild($elem);
     }
