@@ -63,8 +63,8 @@ sub editQuery {
   $d=ToplevelFrame()->DialogBox(-title => $title,
 			   -buttons => ["OK","Cancel"]);
   main::addBindTags($d,'dialog');
-  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
-  $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
+  $d->bind('all','<Tab>',sub { shift->focusNext; });
+  $d->bind('all','<Shift-Tab>',sub { shift->focusPrev; });
   if ($hintText) {
     my $t=$d->add(qw/Label -wraplength 6i -justify left -text/,$hintText);
     $t->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
@@ -72,7 +72,8 @@ sub editQuery {
   $ed=$d->Scrolled(qw/Text -height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $main::font);
   $ed->insert('0.0',$var);
   $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
-  $d->bind('<Return>' => [sub {1;}]);
+  $d->bind('<Return>' => sub {1;});
+  $d->bind('<Control-Return>' => sub { shift->toplevel->{default_button}->Invoke });
   $ed->focus;
   if (main::ShowDialog($d) =~ /OK/) {
     $var=$ed->get('0.0','end');
@@ -116,7 +117,8 @@ sub PerlSearch {
   "the right brother of \$n is \`\$n->rbrother\'. The first son of \'$n\' ".
   "is referred to as \`\$->firstson\'. If no such node exists, all these functions ".
   "return zero (\`0\') or possibly \`undef\'.".
-  "NOTE: \$n->lbrother and \$n->rbrother are not necesserilly displayed on left of \$n\n\n"
+  "NOTE: \$n->lbrother and \$n->rbrother are not necesserilly displayed on left of \$n\n\n".
+  "Press Ctrl+Enter to start search\n\n"
     ;
 
   my $script = editQuery("Search: insert perl expression:",$macPerlSearchScript,$label);
@@ -133,6 +135,36 @@ sub PerlSearch {
     }
   };
 }
+
+#bind PerlEval to Alt+e menu Perl-Eval
+sub PerlEval {
+  my $label= <<EOF;
+Insert perl code to evaluate.
+
+Use:
+\$this\t\t- to refer to the current node
+\$root\t\t- to the root of the tree
+\$n->{attr}\t- to refer to the attribute `attr' of node \$n
+\$n->parent\t- to refer to \$n's parent
+\$n->lbrother\t- to refer to \$n's nearest left sibling
+\$n->rbrother\t- to refer to \$n's nearest right sibling
+\$n->firstson\t- to refer to \$n's leftmost child node
+\$n->children\t- to obtain a list of all \$n's child nodes
+\$n->descendants\t- to obtain a list of all nodes in \$n's subtree
+
+When finished, press Ctrl+Enter to execute your script.
+EOF
+
+  my $script = editQuery("Insert perl expression:",$macPerlEvalScript,$label);
+  unless ($script) {
+    $FileNotSaved=0;
+    return;
+  }
+  $macPerlEvalScript=$script;
+  eval("package ".CurrentContext().";\n#line 1\n".$script);
+  die $@ if $@;
+}
+
 
 #bind GotoTreeAsk to Alt+g menu Go to...
 sub GotoTreeAsk {
@@ -287,49 +319,6 @@ sub file_opened_hook {
   }
 }
 
-#binding-context Tectogrammatic
-#include <contrib/tr.mak>
-
-#binding-context TFA
-#include <contrib/tfa.mak>
-
-#binding-context Analytic
-#include <contrib/ar.mak>
-
-#binding-context Analytic_Correction
-#key-binding-adopt Analytic
-#include <contrib/a_opravy.mak>
-
-#binding-context TR_Correction
-#key-binding-adopt Tectogrammatic
-#include <contrib/tr_opravy.mak>
-
-#binding-context TR_Diff
-#include <contrib/trdiff.mak>
-
-#binding-context Coref
-#include <contrib/tr_coref_common.mak>
-
-#binding-context PDT
-#include <contrib/pdt.mak>
-
-#binding-context Analytic
-#include <contrib/sdt.mak>
-
-#binding-context Transfer
-#include <contrib/transf.mak>
-
-#binding-context TREdit
-#include <contrib/edit.mak>
-
-#binding-context TR_Grammatemes
-#include <contrib/grammatemes.mak>
-
-package TredMacro;
-
-#binding-context TredMacro
-#include <contrib/ntred.mak>
-#bind ntred_query_box to key Shift+F10 menu Query BTrEd Servers
-
+#include <contrib/contrib.mac>
 
 #endif __TRED_MAC__
