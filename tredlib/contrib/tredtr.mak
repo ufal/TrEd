@@ -2055,6 +2055,67 @@ sub NP {
 }
 
 
+#bind _key_Backspace to Backspace menu Jump to previous node (do *not* change afun)
+sub _key_Backspace {
+  my $pAct;			# used as type "pointer"
+  my $pNext;			# used as type "pointer"
+  my $pParent;			# used as type "pointer"
+  my $sT;			# used as type "string"
+  my $pRoot;			# used as type "pointer"
+
+  if ($iPrevAfunAssigned ne '') {
+
+    ThisRoot();
+
+    $pRoot = $pReturn;
+
+    $pParent = $pRoot;
+
+    $pAct = $pParent;
+
+    if (!($pAct)) {
+
+      return;
+    }
+  ContLoop1:
+    if (ValNo(0,$pAct->{'ord'})==$iPrevAfunAssigned) {
+
+      goto ExitLoop1;
+    }
+
+    $pNext = FirstSon($pAct);
+
+    if (!($pNext)) {
+
+      $pNext = RBrother($pAct);
+    }
+  ContLoop2:
+    if ($pNext) {
+
+      goto ExitLoop2;
+    }
+
+    $pAct = Parent($pAct);
+
+    if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
+
+      goto ExitLoop1;
+    }
+
+    $pNext = RBrother($pAct);
+
+    goto ContLoop2;
+  ExitLoop2:
+    $pAct = $pNext;
+
+    goto ContLoop1;
+  ExitLoop1:
+    $this = $pAct;
+  }
+
+}
+
+
 sub DepSuffix {
   my $pThis;			# used as type "pointer"
   my $pDep;			# used as type "pointer"
@@ -2466,7 +2527,7 @@ sub add_new_node {
 }
 
 
-#bind add_EV to Ctrl+V menu Doplnit prazdne sloveso EV pod akt. vrchol
+#bind add_EV to Ctrl+V menu Doplnit prazdne sloveso Emp pod akt. vrchol
 sub add_EV {
 
   NewVerb();
@@ -2508,7 +2569,9 @@ sub memberof_co {
   $pPar1 = $this;
 
   $pPar1->{'memberof'} = 'CO';
+
 }
+
 
 #bind memberof_ap to Shift+Y menu Pridat memberof=AP
 sub memberof_ap {
@@ -2516,12 +2579,6 @@ sub memberof_ap {
   $pPar1 = $this;
 
   $pPar1->{'memberof'} = 'AP';
-}
-
-#bind split_fw to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
-sub split_fw {
-
-  splitfw();
 
 }
 
@@ -4930,6 +4987,7 @@ sub ModalVerbs {
   my $pJoin;			# used as type "pointer"
   my $pCut;			# used as type "pointer"
   my $pModal;			# used as type "pointer"
+  my $pKoord;			# used as type "pointer"
   my $sLemma;			# used as type "string"
   my $sTag;			# used as type "string"
   my $sVTagBeg;			# used as type "string"
@@ -4937,6 +4995,8 @@ sub ModalVerbs {
   my $sModLem;			# used as type "string"
   my $sVerbLem;			# used as type "string"
   my $pVerbTag;			# used as type "string"
+  my $sVerbAfun;		# used as type "string"
+  my $sKoord;			# used as type "string"
 
   ThisRoot();
 
@@ -4970,6 +5030,8 @@ sub ModalVerbs {
   }
 
   $pAct = $pNext;
+
+  $sKoord = "0";
 
   $sPar1 = ValNo(0,$pAct->{'lemma'});
 
@@ -5031,13 +5093,24 @@ sub ModalVerbs {
  AllSons:
   if ($pVerb) {
 
+    $sVerbAfun = ValNo(0,$pVerb->{'afun'});
+
     $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
+
+    if ($sVerbAfun eq 'Coord') {
+
+      $sKoord = $sKoord+"1";
+
+      $pKoord = $pVerb;
+
+      $pVerb = FirstSon($pVerb);
+
+      goto ModalKoordination;
+    }
 
     if ($pVerbTag eq 'Vf') {
 
       $pJoin = $pVerb;
-
-      $pModal->{'ID1'} = $pVerbTag;
     } else {
 
       $pVerb = RBrother($pVerb);
@@ -5092,6 +5165,15 @@ sub ModalVerbs {
     $pVerb->{'deontmod'} = $sMod;
 
     $pAct = $pVerb;
+
+    if ($sKoord>"0") {
+
+      $sKoord = $sKoord+"1";
+
+      $pVerb = RBrother($pVerb);
+
+      goto AllSons;
+    }
   }
 
   goto PruchodStromemDoHloubky;
@@ -5106,12 +5188,23 @@ sub ModalVerbs {
 
     $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
 
+    $sVerbAfun = ValNo(0,$pVerb->{'afun'});
+
+    if ($sVerbAfun eq 'Coord') {
+
+      $sKoord = $sKoord+"1";
+
+      $pKoord = $pVerb;
+
+      $pVerb = FirstSon($pVerb);
+
+      goto ModalKoordinationObj;
+    }
+
     if ($pVerbTag eq 'Vf' &&
 	Interjection($pVerb->{'afun'},'Obj') eq 'Obj') {
 
       $pJoin = $pVerb;
-
-      $pModal->{'ID1'} = $pVerbTag;
     } else {
 
       $pVerb = RBrother($pVerb);
@@ -5166,7 +5259,129 @@ sub ModalVerbs {
     $pVerb->{'deontmod'} = $sMod;
 
     $pAct = $pVerb;
+
+    if ($sKoord>"0") {
+
+      $sKoord = $sKoord+"1";
+
+      $pVerb = RBrother($pVerb);
+
+      goto AllSonsObj;
+    }
   }
+
+  goto PruchodStromemDoHloubky;
+ ModalKoordination:
+  $pVerb->{'reserve1'} = 'MODAL KOORD';
+
+  $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
+ AllSonsKoord:
+  if ($pVerb) {
+
+    if ($pVerbTag eq 'Vf') {
+
+      $pJoin = $pVerb;
+    } else {
+
+      $pVerb = RBrother($pVerb);
+
+      goto AllSonsKoord;
+    }
+
+
+    if ($pJoin) {
+
+      $pJoin->{'deontmod'} = $sMod;
+
+      $pVerb = RBrother($pVerb);
+
+      goto AllSonsKoord;
+    }
+  }
+
+  $sPar1 = ValNo(0,$pKoord->{'AID'});
+
+  $sPar2 = ValNo(0,$pModal->{'AID'});
+
+  ConnectID();
+
+  $pKoord->{'AID'} = $sReturn;
+
+  $NodeClipboard=CutNode($pKoord);
+
+  $pD = PasteNode($NodeClipboard,Parent($pModal));
+
+  $pKoord = $pD;
+
+  $pPar1 = $pModal;
+
+  $pPar2 = $pKoord;
+
+  CutAllSubtrees();
+
+  $pModal->{'TR'} = 'hide';
+
+  $NodeClipboard=CutNode($pModal);
+
+  $pD = PasteNode($NodeClipboard,$pKoord);
+
+  $pAct = $pKoord;
+
+  goto PruchodStromemDoHloubky;
+ ModalKoordinationObj:
+  $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
+ AllSonsKoordObj:
+  if ($pVerb) {
+
+    if ($pVerbTag eq 'Vf' &&
+	Interjection($pVerb->{'afun'},'Obj_Co') eq 'Obj_Co') {
+
+      $pJoin = $pVerb;
+    } else {
+
+      $pVerb = RBrother($pVerb);
+
+      goto AllSonsKoordObj;
+    }
+
+
+    if ($pJoin) {
+
+      $pJoin->{'deontmod'} = $sMod;
+
+      $pVerb = RBrother($pVerb);
+
+      goto AllSonsKoordObj;
+    }
+  }
+
+  $sPar1 = ValNo(0,$pKoord->{'AID'});
+
+  $sPar2 = ValNo(0,$pModal->{'AID'});
+
+  ConnectID();
+
+  $pKoord->{'AID'} = $sReturn;
+
+  $NodeClipboard=CutNode($pKoord);
+
+  $pD = PasteNode($NodeClipboard,Parent($pModal));
+
+  $pKoord = $pD;
+
+  $pPar1 = $pModal;
+
+  $pPar2 = $pKoord;
+
+  CutAllSubtrees();
+
+  $pModal->{'TR'} = 'hide';
+
+  $NodeClipboard=CutNode($pModal);
+
+  $pD = PasteNode($NodeClipboard,$pKoord);
+
+  $pAct = $pKoord;
 
   goto PruchodStromemDoHloubky;
 
@@ -5996,13 +6211,10 @@ sub splitfw {
 
     $pSon->{'TR'} = '';
 
-#    $pAct->{'fw'} = '';
-
     $sPar1 = ValNo(0,$pAct->{'fw'});
 
     $sPar2 = ValNo(0,$pSon->{'fw'});
 
-    print "sPar1 $sPar1 sPar2 $sPar2\n";
     DisconnectID();
 
     $pAct->{'fw'} = $sReturn;
@@ -6010,7 +6222,7 @@ sub splitfw {
     $sPar1 = ValNo(0,$pAct->{'AID'});
 
     $sPar2 = ValNo(0,$pSon->{'AID'});
-    print "sPar1 $sPar1 sPar2 $sPar2\n";
+
     DisconnectID();
 
     $pAct->{'AID'} = $sReturn;
@@ -6342,8 +6554,6 @@ sub GetNewOrd {
   my $sBase;			# used as type "string"
   my $sSuf;			# used as type "string"
 
-  print "Get new ord\n";
-
   $pPar1->{'reserve2'} = 'Par1';
 
   $sBaseA = '';
@@ -6532,7 +6742,7 @@ sub NewSubject {
       $pPar2 = RBrother($pT);
     }
   }
-  print "Calling GetNewOrd\n";
+
   GetNewOrd();
 
   $sPoradi = $sPar2;
@@ -7427,7 +7637,7 @@ sub DisconnectID {
   $j = "0";
  GASLoopCont1:
   $sChar = substr($sPar1,$j,1);
-  print "$sPar1 c=$sChar, j=$j\n";
+
   if ($sChar eq '') {
 
     $sReturn = $sPar1;
@@ -7448,11 +7658,10 @@ sub DisconnectID {
   }
 
   $j = $j+"1";
-  print "$j: $sChar\n";
+
   goto GASLoopCont1;
  GASLoopEnd1:
-  print "$sPar1   $i..$j\n";
-  $sReturn = (ValNo(0,substr($sPar1,0,$i)).ValNo(0,substr($sPar1,$j+1,length($sPar1)-1)));
+  $sReturn = (ValNo(0,substr($sPar1,0,$i)).ValNo(0,substr($sPar1,$j+1,200)));
 
   return;
 
