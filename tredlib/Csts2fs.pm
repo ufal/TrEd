@@ -286,7 +286,8 @@ my %att = (
 			  }],
 	   'MTRl quot' => [\&to_composed_node_attr,'_','|','src','quotMTRl'],
 	   'TRl quot' => [\&assign_quot_dsp],
-	   'cors rel' => [\&to_node_attr,'|','corsrel'],
+	   'coref ref' => [\&to_node_attr,'|','coref'],
+	   'coref type' => [\&to_node_attr,'|','cortype'],
 	   'TRl status' => [sub {
 			    my ($s,$data)=@_;
 			    &to_node_attr($s,'hide','','TR')
@@ -348,7 +349,6 @@ my %pcdata = (
 	      'id' => [\&to_attr,'following_root','','docprolog'],
 	      'i' => [\&to_node_attr,'','!GAP'],
 	      'iref' => [\&to_node_attr,'','!GAP'],
-
 	      MDt => [\&to_composed_node_attr,'_','|','src','tagMD'],
 	      MDl => [\&to_composed_node_attr,'_','|','src','lemmaMD'],
 	      MMt => [\&to_composed_node_attr,'_','|','src','tagMM'],
@@ -356,6 +356,7 @@ my %pcdata = (
 	      MTRl => [\&to_composed_node_attr,'_','|','src','trlemmaM'],
 	      MDg => [\&to_composed_node_attr,'_','|','src','govMD'],
 	      MDA => [\&to_composed_node_attr,'_','|','src','afunMD'],
+	      coref => [\&to_node_attr,'|','corlemma'],
 	      f => [sub {
 		      my ($s,$data)=@_;
 		      &to_node_attr(@_,'|','form');
@@ -391,10 +392,6 @@ my %pcdata = (
 	      tfr => [\&to_node_attr,'|','dord'],
 	      fw => [\&to_node_attr,'|','fw'],
 	      phr => [\&to_node_attr,'|','phraseme'],
-	      corl => [\&to_node_attr,'|','corl'],	# which attr?
-	      corT => [\&to_node_attr,'|','corT'],	# which attr?
-	      corr => [\&to_node_attr,'|','corr'],	# which attr?
-	      cors => [\&to_node_attr,'|','cors'],	# which attr?
 	      g => [sub{
 		      my ($s,$data)=@_;
 		      to_node_attr(@_);
@@ -502,11 +499,8 @@ my %pcdata = (
 '@P dsp',
 '@L dsp|---|DSP|DSPP|DSPI|NIL|???',
 '@P coref',
-'@P cornum',
-'@P corsnt',
-'@L corsnt|---|PREV1|PREV2|PREV3|PREV4|PREV5|PREV6|PREV7|NIL|???',
-'@P antec',
-'@L antec|---|ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|ATT|BEN|CAUS|CNCS|COMPL|CONJ|CONFR|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|DPHR|ETHD|EXT|EV|FPHR|GRAD|HER|ID|INTF|INTT|LOC|MANN|MAT|MEANS|MOD|NA|NORM|OPER|PAR|PARTL|PN|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT|SENT|???',
+'@P cortype',
+'@P corlemma',
 '@P commentA',
 '@P parenthesis',
 '@L parenthesis|---|PA|NIL|???',
