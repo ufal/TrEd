@@ -1,9 +1,10 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-09-05 15:05:08 pajas>
+## Time-stamp: <2003-10-03 14:57:50 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
+use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
 use base qw(main Exporter);
 
 use vars qw(@FORCE_EXPORT);
