@@ -59,9 +59,18 @@
 	<arg choice="opt">-a <replaceable>suffix</replaceable></arg>
 	<arg choice="opt">-p <replaceable>prefix-pattern</replaceable></arg>
 	<arg choice="opt">-r <replaceable>prefix</replaceable></arg>
-	<arg choice="opt">-f <replaceable>output-format</replaceable></arg>
+	<arg choice="opt">-f
+	<replaceable>output-format</replaceable></arg>
+	<arg choice="opt">-m <replaceable>filename</replaceable></arg>
+	<arg choice="opt">-n <replaceable>number</replaceable></arg>
 	<group choice="opt">
 	  <arg>-T</arg>
+	</group>
+	<group choice="opt">
+	  <arg>-R</arg>
+	</group>
+	<group choice="opt">
+	  <arg>-A</arg>
 	</group>
 	<group choice="opt">
 	  <arg>-N</arg>
@@ -71,6 +80,12 @@
 	</group>
 	<group choice="opt">
 	  <arg>-C</arg>
+	</group>
+	<group choice="opt">
+	  <arg>-E</arg>
+	</group>
+	<group choice="opt">
+	  <arg>-D</arg>
 	</group>
 	<arg choice="plain"
 	  rep="repeat"><replaceable>input-file</replaceable></arg>
@@ -106,7 +121,7 @@
       <parameter>-r</parameter> (if any).      
     </para>
     <variablelist>
-      <title>Parameters options</title>
+      <title>Options</title>
       <varlistentry>
 	<term><parameter>-f</parameter></term>
 	<listitem>
@@ -159,6 +174,42 @@
 	  </para>
 	</listitem>
       </varlistentry>
+      <varlistentry>
+	<term><parameter>-m</parameter></term>
+	<listitem>
+	  <para>
+	    Merge all given files into one huge file. The implementation is
+	    rather imperfect since for instance CSTS headers are not merged.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-n</parameter></term>
+	<listitem>
+	  <para>
+	    This option may be used in combination with
+	    <parameter>-m</parameter> to merge all given files into
+	    one or more output files containing at most the given
+	    number of trees. If this option is used, the filename
+	    specified with <parameter>-m</parameter> must contain
+	    <literal>%d</literal> or similar sprintf format
+	    instruction which will be replaced by the number of the
+	    output file (starting from one).
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-x</parameter></term>
+	<listitem>
+	  <para>
+	    Comma separated list of non-CSTS attributes to preserve when
+	    converting to CSTS as
+	    <literal>&lt;x name="<replaceable>attribute-name</replaceable>"&gt;</literal>.
+	  </para>
+	</listitem>
+      </varlistentry>
+
+
     </variablelist>
     <variablelist>
       <title>Conversion flags</title>
@@ -168,6 +219,22 @@
 	  <para>Build tectogrammatical tree
 	    structure and use tectogrammatical FS-File header
 	    when converting from CSTS.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-R</parameter></term>
+	<listitem>
+	  <para>
+	    Same as -T (for compatibility with TrEd/bTrEd).
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-A</parameter></term>
+	<listitem>
+	  <para>
+	    When converting from csts, use header for Arabic PADT treebank.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -198,6 +265,24 @@
 	  </para>
 	</listitem>
       </varlistentry>
+      <varlistentry>
+	<term><parameter>-E</parameter></term>
+	<listitem>
+	  <para>
+	    When converting to CSTS, save err1 attribute to (non-CSTS!)
+	    <literal>&lt;err&gt;</literal> element.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-D</parameter></term>
+	<listitem>
+	  <para>
+	    Print various debugging information during conversion.
+	  </para>
+	</listitem>
+      </varlistentry>
+
     </variablelist>
   </sect1>
   <sect1>
