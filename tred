@@ -2877,6 +2877,24 @@ sub warnWin32PrintConvert {
 	    -buttons => ["Continue","Cancel"]);
 }
 
+sub warn55PrintConvert {
+  my ($win)=@_;
+  return 'Continue' if $NoConvertWarning;
+  my $version = `$imageMagickConvert -help`;
+  ($version) = split /\n/,$version;
+  return 'Continue' unless ($version =~ /ImageMagick 5\.5\./);
+  userQuery($win,
+	    "Your version of ImageMagick ($version) is known to hang when converting from EPS. ".
+            "We suggest that you upgrade ImageMagick to version >= 6.0 or downgrade to <= 5.4.7. ".
+            "If you are sure you want to continue ".
+	    "and risk that TrEd will stop responding, press Continue.\n".
+	    "It is strongly recommended that you Cancel the operation now.\n\n".
+	    "To avoid this message, add NoConvertWarning=1 to your configuration file.",
+	    -title => "Warning",
+	    -buttons => ["Cancel","Continue anyway"]);
+}
+
+
 sub updatePrintDialogState {
   my ($grp,$w, $s, $extension)=@_; # widgets, state
   my %t=map { $_ => 1} keys %$w; # toggle
@@ -3151,7 +3169,7 @@ sub printDialog {
   my $imf=$bf->Frame();
   $w{resolution}=$imf->Optionmenu(
 				  -relief => $buttonsRelief,
-				  -options => ['75','80','90','100','120','135','150','160','180',
+				  -options => ['50','60', '75','80','90','100','120','135','150','160','180',
 					       '200','225','240','260','300','360','600','720'],
 				  -variable => \$s{resolution}
 				 );
@@ -3288,6 +3306,8 @@ sub printDialog {
   if ($result=~ /OK/) {
     return () if $s{printTo} eq 'convert' and
                  warnWin32PrintConvert($win) eq 'Cancel';
+    return () if $s{printTo} eq 'convert' and
+                 warn55PrintConvert($win) eq 'Cancel';
     return ($s{printRange},
 	    ($s{printTo} eq 'file') ? 1 : 0,
 	    ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
