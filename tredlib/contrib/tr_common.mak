@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-05 11:47:34 pajas>
+## Time-stamp: <2002-11-11 10:45:37 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -347,13 +347,13 @@ sub GetNewOrd {
 
   my $base=0;
   my $suff=0;
-  my $node;
+  my $node=$_[0] || $pPar2;
 
-  if ($pPar2) {
-    $base=$1 if $pPar2->{ord}=~/^([0-9]+)/;
+  if ($node) {
+    $base=$1 if $node->{ord}=~/^([0-9]+)/;
   }
 
-  $node=$root;
+  $node=$node->root;
   while ($node) {
     if ($node->{ord}=~/^$base\.([0-9]+)$/ and $1>$suff) {
       $suff=$1;
@@ -493,8 +493,7 @@ sub NewVerb {
     $pNew->{sentord}=$pT->{sentord};
   }
 
-  GetNewOrd();
-  $sNum = $sPar2;
+  $sNum = GetNewOrd($pT);
   $pNew->{TID} = generate_new_tid();
   $pNew->{'TR'}='';
   $pNew->{'lemma'} = '-';
@@ -582,8 +581,7 @@ sub FPaste {
     $pPasted->{'del'} = 'ELID';
     $pPasted->{'origf'} = '???';
     $pPasted->{'sentord'}=999;
-    $pPar2=$pThis;
-    $pPasted->{'ord'}=GetNewOrd();
+    $pPasted->{'ord'}=GetNewOrd($pThis);
     $sPar1 = $sDord;
     $sPar2 = "1";
     ShiftDords();
@@ -656,8 +654,133 @@ sub generate_tids_whole_file {
   }
 }
 
+sub check_and_repair_ids {
+  my ($verbose)=@_;
+  repair_added_nodes($verbose);
+  upgrade_file();
+  move_aid_to_aidrefs($verbose);
+  rigorously_check_ids();
+}
+
+sub repair_added_nodes {
+  my ($verbose)=@_;
+  my $treeno=0;
+  foreach my $tree (GetTrees()) {
+    $treeno++;
+    $node=$tree;
+    while ($node) {
+      if ($node->{del} =~ /^E/) {
+	if ($node->{ord} !~ /\./) {
+	  my $neword=GetNewOrd($node);
+	  print FileName()."##$treeno.".GetNodeIndex($node)." fixing ord $node->{ord} --> $neword for del $node->{del}\n" if $verbose;
+	  $node->{ord}=$neword;
+	}
+	if ($node->{sentord} != 999) {
+	  print FileName()."##$treeno.".GetNodeIndex($node)." fixing sentord $node->{sentord} for del $node->{del}\n" if $verbose;
+	  $node->{sentord}=999;
+	}
+      }
+      $node=$node->following;
+    }
+    my %ords;
+    $node=$tree;
+    while ($node) {
+      if ($node->{ord} =~ /\./) {
+	if (exists($ords{$node->{ord}})) {
+	  my $neword=GetNewOrd($node);
+	  print FileName()."##$treeno.".GetNodeIndex($node).
+	    " fixing duplicated ord $node->{ord} --> $neword\n" if $verbose;
+	  $node->{ord}=$neword;
+	}
+	$ords{$node->{ord}}=1;
+      }
+      $node=$node->following;
+    }
+  }
+}
+
+sub rigorously_check_ids {
+  my %aids;
+  my %tids;
+  my $treeno=0;
+  foreach my $tree (GetTrees()) {
+    $treeno++;
+    my $node=$tree;
+    my @sentords=();
+    my @dords=();
+    my %ords;
+    while ($node) {
+      if ($node->{ord} < 0) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." negative ord $node->{ord}\n";
+      }
+      if ($node->{dord} < 0) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." negative dord $node->{dord}\n";
+      }
+      if ($node->{sentord} < 0) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." negative sentord $node->{sentord}\n";
+      }
+      if ($node->{AID} ne "" and exists($aids{$node->{AID}})) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate AID $node->{AID}\n";
+      }
+      if ($node->{TID} ne "" and exists($tids{$node->{TID}})) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate TID $node->{TID}\n";
+      }
+      if ($node->{ord} ne "" and exists($ords{$node->{ord}})) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate ord $node->{ord}\n";
+      }
+      if ($node->{ord} !~ /\./ and $node->{sentord} ne $node->{ord}) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." sentord $node->{sentord} =! ord $node->{ord}\n";
+      }
+      if ($node->{ord} =~ /\./ and $node->{sentord} != 999) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." inconsistent sentord $node->{sentord} for ord $node->{ord}\n";
+      }
+      if ($node->{ord} =~ /\./ and $node->{TID} eq "") {
+	print FileName()."##$treeno.".GetNodeIndex($node)." missing TID for ord $node->{ord}\n";
+      }
+      if ($node->{ord} !~ /\./ and $node->{ord} != 0 and $node->{AID} eq "") {
+	print FileName()."##$treeno.".GetNodeIndex($node)." missing AID for ord $node->{ord}\n";
+      }
+      if ($node->{ord} =~ /\./ and $node->{AID} ne "") {
+	print FileName()."##$treeno.".GetNodeIndex($node)." redundant AID for ord $node->{ord}\n";
+      }
+      if ($node->{ord} !~ /\./ and $node->{TID} ne "") {
+	print FileName()."##$treeno.".GetNodeIndex($node)." redundant TID for ord $node->{ord}\n";
+      }
+      if ($sentords[$node->{sentord}] == 1) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate sentord $node->{sentord}\n";
+      }
+      if ($dords[$node->{dord}] == 1) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate dord $node->{dord}\n";
+      }
+      if ($node->{AID}=~/\|/) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." forbidden character | in AID $node->{AID}\n";
+      }
+      if ($node->{AIDREFS} ne "" and $node->{AID} ne "" and index("|$node->{AIDREFS}|","|$node->{AID}|")<0) {
+	print FileName()."##$treeno.".GetNodeIndex($node)." AID $node->{AID} missing in AIDREFS $node->{AIDREFS}\n";
+      }
+      $sentords[$node->{sentord}]=1 unless ($node->{sentord}<0 or $node->{sentord}>=999);
+      $dords[$node->{dord}]=1 unless ($node->{dord}<0);
+      $ords{$node->{ord}}=1 if $node->{ord} ne "";
+      $aids{$node->{AID}}=1 if $node->{AID} ne "";
+      $tids{$node->{TID}}=1 if $node->{TID} ne "";
+      $node=$node->following();
+    }
+    for (my $i=0; $i<=$#sentords; $i++) {
+      unless ($sentords[$i]) {
+	print FileName()."##$treeno missing sentord $i/$#sentords\n";
+      }
+    }
+    for (my $i=0; $i<=$#dords; $i++) {
+      unless ($dords[$i]) {
+	print FileName()."##$treeno missing dord $i/$#dords\n";
+      }
+    }
+  }
+}
+
 #insert move_aid_to_aidrefs as menu Oprava: presune nasobne AID do AIDREFS
 sub move_aid_to_aidrefs {
+  my ($verbose)=@_;
   my $defs=FS()->defs;
   unless (exists($defs->{AIDREFS})) {
     AppendFSHeader('@P AIDREFS');
@@ -668,25 +791,60 @@ sub move_aid_to_aidrefs {
     $treeno++;
     my $node=$tree->following;
     while ($node) {
+      # reverse!!!
+#      $node->{AID}=$node->{AIDREFS} if ($node->{AIDREFS} ne "");
+#      unless ($node->{ord}=~/\./ or $node->{sentord}==999) {
+#	$node->{TID}=''
+#      }
       if ($node->{AID}=~/\|/) {
-	$node->{AIDREFS}=join '|',split /\|/,$node->{AID};
-	($node->{AID})=split /\|/,$node->{AIDREFS};
+	if ($node->{ord}=~/\./ or $node->{sentord}==999) {
+	  $node->{AIDREFS}=join '|',split /\|/,$node->{AID};
+	  $node->{AID}='';
+	} else {
+	  $node->{AIDREFS}=join '|',split /\|/,$node->{AID};
+	  ($node->{AID})=grep { /w$node->{ord}$/ } split /\|/,$node->{AIDREFS};
+	  if ($node->{AID} eq '') {
+	    my ($aid)=split /\|/,$node->{AIDREFS};
+	    my $aid_risk=$aid;
+	    $aid_risk=~s/w\d+$/w$node->{ord}/;
+	    if (exists($aids{$aid})) {
+	      print FileName()."##$treeno.".GetNodeIndex($node).
+		": no ID from $node->{AIDREFS} matches w$node->{ord}. Using the first one!\n";
+	      $node->{AID}=$aid
+	    } else {
+	      print FileName()."##$treeno.".GetNodeIndex($node).
+		": no ID from $node->{AIDREFS} matches w$node->{ord}. Risking free $aid_risk!\n";
+	      $node->{AID}=$aid_risk;
+	      $node->{AIDREFS}=$aid_risk.'|'.$node->{AIDREFS};
+	    }
+	  }
+	}
       }
-      if ($node->{TID} ne "" or $node->{ord}=~/\./) {
-	print FileName()."##$treeno.".GetNodeIndex().
-	  ": Removing AID $node->{AID} from $node->{TID} $node->{ord}\n";
-	$node->{AID}='';
+      if ($node->{TID} ne "" or $node->{ord}=~/\./ or $node->{sentord}==999) {
+	if ($node->{AID} ne "") {
+	  print FileName()."##$treeno.".GetNodeIndex($node).
+	    ": Removing AID $node->{AID} from $node->{TID} $node->{ord}\n"
+	      if $verbose;
+	  $node->{AID}='';
+	}
 	if ($node->{TID} eq "") {
 	  $node->{TID}=generate_new_tid($tree);
-	  print FileName()."##$treeno.".GetNodeIndex().
+	  print FileName()."##$treeno.".GetNodeIndex($node).
 	    ": node with ord $node->{ord} has no TID yet: assigning $node->{TID}\n";
 	}
-
+	if ($node->{sentord}==999 and $node->{ord}!~/\./) {
+	  do {
+	    my $oldord=$node->{ord};
+	    $node->{ord}=GetNewOrd($node);
+	    print FileName()."##$treeno.".GetNodeIndex($node).
+	      ": changing ord for node with sentord 999 from $oldord to $node->{ord}";
+	  };
+	}
       }
       if ($node->{AID} ne "" and exists($aids{$node->{AID}})) {
 	$node->{TID}=generate_new_tid($tree);
-	print FileName()."##$treeno.".GetNodeIndex().
-	  ": replacing duplicate AID $node->{AID} $node->{ord} with $node->{TID} $node->{ord}\n";
+	print FileName()."##$treeno.".GetNodeIndex($node).
+	  ": replacing duplicate AID $node->{AID} ($node->{ord},$node->{sentord}) with $node->{TID}\n";
 	$node->{AID}='';
       }
       $aids{$node->{AID}}=1 if $node->{AID} ne "";
@@ -699,7 +857,7 @@ sub move_aid_to_aidrefs {
 sub upgrade_file_to_tid_aidrefs {
   my $defs=FS()->defs;
   return if (exists($defs->{TID}) && exists($defs->{AIDREFS}));
-  print "TID and AIDREF don't exist!\n";
+#  print "TID and AIDREF don't exist!\n";
   if (!GUI() || questionQuery('Automatická oprava',
 			      "Tento soubor neobsahuje deklarace atributu AIDREFS nebo TID,\n".
 			      "do nich¾ se ukládají dùle¾ité identifikátory uzlù.\n\n".
