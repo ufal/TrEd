@@ -4936,13 +4936,15 @@ sub dumpSentView {
   open my $html, ">$file" ||
     errorMessage($grp->{focusedWindow},"Cannot write to \"$file\"!"."\n($!)\n".
 		 "\nSentences could not be saved!");
+  _set_encoding($html,$TrEd::Convert::outputenc,"html-out");
 
   print $html "<html>\n";
   print $html "<head>\n";
-  print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=".$TrEd::Convert::outputenc."\" />\n";
+  print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=".$encoding."\" />\n";
   print $html "</head>\n";
   print $html "<body>\n";
   my @dump=$t->dump('0.0','end');
+  @dump=$t->dump('0.0','end');
   while (@dump) {
     my ($K,$V,$I) = (shift @dump, shift @dump, shift @dump);
     if ($K eq 'tagon') {
