@@ -378,6 +378,16 @@ exit;
 ############################
 ############################
 
+sub absolutize_path ($$) {
+  my ($orig, $href)=@_;
+  if ($href !~ m{^[[:alnum:]]+:|^/}) {
+    $orig =~ m{^(.*\/)};
+    return $1.$href;
+  } else {
+    return $href;
+  }
+}
+
 sub absolutize {
   return map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
 }
@@ -1115,15 +1125,16 @@ sub openSecondary {
     my $requires = $fsfile->metaData('fs-require');
     if ($requires) {
       for my $req (@$requires) {
-	_msg "Pre-loading dependent $req->[1] as metaData('ref')->{$req->[0]}\n" if $tredDebug;
-	unless ($grp->{'secondary'}->{$req->[1]}) {
-	  if ($grp->{preloaded}->{$req->[1]}) {
-	    $grp->{'secondary'}->{$req->[1]} = $grp->{'preloaded'}->{$req->[1]};
+	my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
+	_msg "Pre-loading dependent $req_filename as metaData('ref')->{$req->[0]}\n" if $tredDebug;
+	unless ($grp->{'secondary'}->{$req_filename}) {
+	  if ($grp->{preloaded}->{$req_filename}) {
+	    $grp->{'secondary'}->{$req_filename} = $grp->{'preloaded'}->{$req_filename};
 	  } else {
-	    my $req_fs = FSFile->newFSFile($req->[1],$TrEd::Convert::inputenc,@backends);
-	    $req_fs->changeFileFormat(($req->[1]=~/\.gz$/ ? "gz-compressed " : "").$req_fs->backend);
-	    _msg "empty or corrupt secondary file $req->[1] required by $req->[1]!\n" if ($req_fs->lastTreeNo<0);
-	    $grp->{'secondary'}->{$req->[1]} = $req_fs;
+	    my $req_fs = FSFile->newFSFile($req_filename,$TrEd::Convert::inputenc,@backends);
+	    $req_fs->changeFileFormat(($req_filename=~/\.gz$/ ? "gz-compressed " : "").$req_fs->backend);
+	    _msg "empty or corrupt secondary file $req_filename required by ".$fsfile->filename."!\n" if ($req_fs->lastTreeNo<0);
+	    $grp->{'secondary'}->{$req_filename} = $req_fs;
 	    $req_fs->changeUserData({}) unless defined $req_fs->userData();
 	    push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
 	    $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
@@ -1273,7 +1284,7 @@ sub secondaryFiles {
   my ($fsfile)=@_;
   my $requires = $fsfile->metaData('fs-require');
   if ($requires) {
-    return map { $_->[1] } @$requires;
+    return map { absolutize_path($fsfile->filename,$_->[1]) } @$requires;
   } else {
     return ();
   }
@@ -1307,13 +1318,14 @@ sub closeSecondaryFilesOf {
       $grp->{preloaded}->{$fsfile->filename} != $fsfile) {
     my $requires = $fsfile->metaData('fs-require');
     for my $req (@$requires) {
-      my $secondary = $grp->{'secondary'}->{$req->[1]};
+      my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
+      my $secondary = $grp->{'secondary'}->{$req_filename};
       if ($secondary) {
 	my $part_of = $secondary->userData()->{'fs-part-of'};
 	@$part_of = grep { $_ == $fsfile } @$part_of;
 	unless (@$part_of) {
 	  # close secondary file
-	  delete $grp->{'secondary'}->{$req->[1]};
+	  delete $grp->{'secondary'}->{$req_filename};
 	  delete $fsfile->metaData('ref')->{$req->[0]};
 	}
       }
