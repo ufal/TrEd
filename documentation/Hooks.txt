@@ -18,7 +18,9 @@ start_hook	none			yes	executed before the
 exit_hook	none			no	executed when
 						top-level window is
 						destroyed, before
-						askSaveFile is executed
+						askSaveFile is
+						executed
+
 do_edit_attrs_hook
 
 enable_attr_hook	attr,type	yes	executed before
@@ -161,6 +163,12 @@ status_line_doubleclick_hook tags...	no	called when users
                                                 names may obey
                                                 arbitrary user-defined
                                                 convention.
+
+get_backends_hook      backend-list-ref no      gets list of IO backends, and
+                                                should return narrowed
+                                                or extended list. This
+                                                allows dynamically
+                                                add/block certain backends
 
 
 
