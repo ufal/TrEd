@@ -7,10 +7,10 @@ $framere_attr="framere";
 
 eval { require XML::JHXML; };
 if ($@) {
-  print STDERR "Using LibXML\n";
+  print STDERR "Using LibXML\n" if $::tredDebug;
   $XMLDataClass="TrEd::ValLex::LibXMLData";
 } else {
-  print STDERR "Using JHXML\n";
+  print STDERR "Using JHXML\n" if $::tredDebug;
   $XMLDataClass="TrEd::ValLex::JHXMLData";
 }
 
