@@ -176,6 +176,15 @@ sub FindSpecialDef ($$) {
 
 }
 
+sub UpdateSpecials ($) {
+  my ($href)=@_;
+  unless (ref($href->{$special})) {
+    $href->{$special} = 
+      { map { $_ => Fslib::FindSpecialDef($href,$_) } split '',$Fslib::SpecialTypes };
+  } else {
+  }
+}
+
 sub Special ($$$) {
   my ($node,$href,$defchar)=@_;
   my $atr = ASpecial($href,$defchar);
@@ -185,10 +194,11 @@ sub Special ($$$) {
 sub ASpecial ($$) {
   my ($href,$defchar)=@_;
   # use cache if possible
-  if (exists($href->{$special}->{$defchar})) {
+  if (ref($href->{$special})) {
     return $href->{$special}->{$defchar};
   } else {
-    return $href->{$special}->{$defchar} = FindSpecialDef($href,$defchar);
+    UpdateSpecials($href);
+    return $href->{$special}->{$defchar};
   }
 }
 
@@ -1472,6 +1482,7 @@ sub isHidden {
   my ($self,$node)=@_;
   return unless ref($self) and ref($node);
   my $hid=$self->specials->{H};
+
   while (ref($node) && ($node->{$hid} ne 'hide')) {
     $node=$node->parent;
   }
@@ -1546,7 +1557,7 @@ Refresh special attribute hash.
 sub renew_specials {
   my ($self)=@_;
   delete $self->[0]->{$Fslib::special};
-  $self->specials();
+  Fslib::UpdateSpecials($self->[0]);
 }
 
 
@@ -1561,12 +1572,10 @@ of the hash are special attribute types and values are their names.
 sub specials {
   my $self = shift;
   return undef unless ref($self);
-  my $spec = $self->[0]->{$Fslib::special};
-  unless (ref($spec)) {
-    $self->[0]->{$Fslib::special} = $spec =
-      { map { $_ => Fslib::FindSpecialDef($self->[0],$_) } split '',$Fslib::SpecialTypes };
+  unless (ref($self->[0]->{$Fslib::special})) {
+    Fslib::UpdateSpecials($self->[0]);
   }
-  return $spec;
+  return $self->[0]->{$Fslib::special};
 }
 
 
