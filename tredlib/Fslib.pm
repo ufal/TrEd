@@ -2,7 +2,7 @@ package Fslib;
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-03-26 15:30:02 pajas>
+# Time-stamp: <2001-04-04 16:01:36 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -19,7 +19,7 @@ $VERSION = "1.2";
 @EXPORT = qw(&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode &PrintTree &PrintFS &NewNode 
 	     &Parent &LBrother &RBrother &FirstSon &Next &Prev &DeleteTree &DeleteLeaf
 	     &Cut &Paste &Set &Get &DrawTree &IsList &ListValues);
-@EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial &SetParent &SetLBrother &SetRBrother &SetFirstSon);
+@EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &ParseNode2 &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial &SetParent &SetLBrother &SetRBrother &SetFirstSon);
 
 use Carp;
 use vars qw(
@@ -545,7 +545,7 @@ sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
     print $output "[";
     for (my $n=0; $n<=$#$ord; $n++) {
       $v=$node->{$ord->[$n]};
-      $v=~s/[,\[\]=\\]/\\$&/go if (defined($v));      
+      $v=~s/[,\[\]=\\]/\\$&/go if (defined($v));
       if (index($atr->{$ord->[$n]}, " O")>=0) {
 	print $output "," if $n;
 	unless ($lastprinted && index($atr->{$ord->[$n]}," P")>=0) # N could match here too probably
