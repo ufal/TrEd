@@ -1617,8 +1617,8 @@ sub _present_attribute {
       if ($step =~ /^\[(\d+)\]/) {
 	$val = $val->[$1-1];
       } else {
-	$val = $val->[0]{$step};
 	$append="*" if @$val > 1;
+	$val = $val->[0]{$step};
       }
     } elsif (ref($val)) {
       $val = $val->{$step};
