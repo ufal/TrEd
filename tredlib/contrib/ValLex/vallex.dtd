@@ -1,5 +1,8 @@
 <!-- ahoj -->
 <!ELEMENT valency_lexicon (head, body)>
+<!ATTLIST valency_lexicon
+            owner IDREF #REQUIRED>
+
 <!ELEMENT head (global_history, list_of_users)>
 <!ELEMENT body (word+)>
 
@@ -82,9 +85,9 @@ a je potreba ho nejak doresit-->
 
 <!ELEMENT form EMPTY>  
 <!ATTLIST form 
-       tag          CDATA #IMPLIED
-       preposition  CDATA #IMPLIED
-       clause       CDATA #IMPLIED>
+       abbrev         CDATA #IMPLIED
+>
+
 <!-- v XML datech se sice bude pouzivat cely morfologicky tag, ale na anotatora
 se to bude tvari "postaru", napr. na+4,infin.,adverb., atd. -->      
     

@@ -3,6 +3,12 @@
 use Tk;
 use Tk::Wm;
 
+use locale;
+use POSIX qw(locale_h);
+setlocale(LC_COLLATE,"cs_CZ");
+setlocale(LC_NUMERIC,"us_EN");
+setlocale(LANG,"czech");
+
 package Tk::Wm;
 # overwriting the original Tk::Wm::Post:
 sub Post
@@ -26,23 +32,54 @@ use Data;
 use Widgets;
 use Editor;
 
+my $double = 0;
 
 my $data=TrEd::ValLex::Data->new("pokus.xml");
 #print $data->doc()->toString;
 
 my $top=Tk::MainWindow->new();
-my $vallex= TrEd::ValLex::Editor->new($data, $data->doc(),$top,0,1);
+my $top_frame = $top->Frame()->pack(qw/-expand yes -fill both -side top/);
+my $vallex= TrEd::ValLex::Editor->new($data, $data->doc(),$top_frame,0);
 $vallex->pack(qw/-expand yes -fill both -side left/);
+$top->title("Frame editor: ".$data->getUserName($data->user()));
 
-#  my $button_bar = $top->Frame()->pack(qw/ -expand no -side left/);;
-#  my $to_left = $button_bar->Button(-text => '<-')->pack(qw/-pady 5/);
-#  my $to_right = $button_bar->Button(-text => '->')->pack(qw/-pady 5/);
+my $button_bar = $top->Frame()->pack(qw/ -expand no -side left/);;
+#my $to_left = $button_bar->Button(-text => '<-')->pack(qw/-pady 5/);
+#my $to_right = $button_bar->Button(-text => '->')->pack(qw/-pady 5/);
 
-#  my $adjuster = $top->Adjuster();
-#  $adjuster->packAfter($vallex->frame(), -side => 'left');
+if ($double) {
+  my $adjuster = $top_frame->Adjuster();
+  $adjuster->packAfter($vallex->frame(), -side => 'left');
+  my $vallex2= TrEd::ValLex::Editor->new($data, $data->doc(),$top_frame,1);
+  $vallex2->pack(qw/-expand yes -fill both -side left/);
+}
 
-#  my $vallex2= TrEd::ValLex::View->new($data, $data->doc(),$top,1);
-#  $vallex2->pack(qw/-expand yes -fill both -side left/);
+
+my $bottom_frame = $top->Frame()->pack(qw/-expand yes -fill both -side bottom/);
+
+my $save_button=$bottom_frame->Button(-text => "Reload",
+			     -command => sub {
+			       $top->Busy(-recurse=> 1);
+			       $vallex->data()->reload();
+			       $vallex->fetch_data();
+			       $top->Unbusy(-recurse=> 1);
+			     })->pack(qw/-side right -pady 10 -padx 10/);
+
+
+my $save_button=$bottom_frame->Button(-text => "Save",
+			     -command => sub {
+			       $vallex->save_data($top);
+			     })->pack(qw/-side right -pady 10 -padx 10/);
+
+
+$top->protocol('WM_DELETE_WINDOW'=> 
+	     [sub { my ($self,$top)=@_;
+		    $self->ask_save_data($top)
+		      if ($self->data()->changed());
+		    $top->destroy();
+		    undef $top;
+		  },$vallex,$top]);
+
 
 MainLoop;
 

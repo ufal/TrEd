@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-11 11:55:28 paja>
+## Time-stamp: <2001-10-19 17:56:47 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -9,6 +9,7 @@
 ## or tr_anot_main.mak which are used for various purposes
 
 #include contrib/AFA.mak
+#include contrib/ValLex/chooser.mak
 
 #insert default_tr_attrs as menu Display default attributes
 sub default_tr_attrs {
@@ -68,17 +69,18 @@ sub QuerySemtam {
 }
 
 sub QueryTrlemma {
-  my $node=shift;
+  my ($node,$assign_func)=@_;
   my @trs=
     #disp  trlemma gender number
-    (['Gen','Gen','???','???'],
-     ['Neg','Neg','???','???'],
-     ['Emp','Emp','???','???'],
-     ['Cor','Cor','???','???'],
-     ['Comma','Comma','???','???'],
-     ['Colon','Colon','???','???'],
-     ['???','???','???','???'],
+    (['Comma','Comma','???','???','Coord'],
+     ['Colon','Colon','???','???','Coord'],
      ['Forn','Forn','???','???'],
+     ['RCP','RCP','???','???','PAT'],
+     ['Neg','Neg','???','???'],
+     ['Cor','Cor','???','???'],
+     ['Emp','Emp','???','???'],
+     ['Gen','Gen','???','???'],
+     ['???','???','???','???'],
      ['já','já','???','SG'],
      ['ty','ty','???','SG'],
      ['on-¾iv.','on','ANIM','SG'],
@@ -86,7 +88,7 @@ sub QueryTrlemma {
      ['ona','on','FEM','SG'],
      ['ono','on','NEUT','SG'],
      ['my','já','???','PL'],
-     ['vy','ty','???','PL'],
+     ['vy','vy','???','PL'],
      ['oni-¾iv.','on','ANIM','PL'],
      ['ony-ne¾iv','on','INAN','PL'],
      ['ony-¾en.','on','FEM','PL'],
@@ -118,6 +120,9 @@ sub QueryTrlemma {
     $node->{trlemma}=$vals->[1];
     $node->{gender}=$vals->[2];
     $node->{number}=$vals->[3];
+    if ($assign_func) {
+      $node->{func}=$vals->[4] || '???';
+    }
     return 1;
   }
   return 0;
@@ -201,8 +206,8 @@ sub add_new_node {
 
   NewSon();
   $this=$pReturn;
-  unless (QueryTrlemma($this)) {
-   DeleteCurrentNode();
+  unless (QueryTrlemma($this,1)) {
+    DeleteCurrentNode();
   }
 }
 

@@ -7,52 +7,66 @@ use base qw(TrEd::ValLex::FramedWidget);
 
 require Tk::LabFrame;
 require Tk::DialogBox;
+require Tk::Adjuster;
+require Tk::Dialog;
+require Tk::Checkbutton;
+require Tk::Button;
 
 sub show_dialog {
-  my ($top,$data,$select_word)=@_;
+  my ($top,$data,$select_word,$autosave)=@_;
 
-  my $d = $top->DialogBox(-title => "Frame editor",
+  my $d = $top->DialogBox(-title => "Frame editor: ".$data->getUserName($data->user()),
 			  -buttons => ["Ok"],
 			 );
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind($d,'<Return>',[sub {  }]);
-  my $vallex= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,0,1);
+  my $vallex= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,0);
   $vallex->pack(qw/-expand yes -fill both -side left/);
+  $vallex->wordlist_item_changed($vallex->subwidget('wordlist')->focus($select_word));
+
   $d->Show();
+  if ($vallex->data()->changed()) {
+    if ($autosave) {
+      $vallex->save_data($top);
+    } else {
+      $vallex->ask_save_data($top);
+    }
+  }
   $d->destroy();
 }
 
 sub create_widget {
-  my ($self, $data, $field, $top, $reverse, $admin, @conf) = @_;
+  my ($self, $data, $field, $top, $reverse, @conf) = @_;
 
   my $frame = $top->Frame();
+  my $top_frame = $frame->Frame()->pack(qw/-expand yes -fill both -side top/);
   $frame->configure(@conf) if (@conf);
 
 
   # Labeled frames
 
-  my $wf = $frame->Frame();
+  my $wf = $top_frame->Frame();
 
 
   my $lexlist_frame=$wf->LabFrame(-label => "Words",
-				     -labelside => "acrosstop",
+				  -labelside => "acrosstop",
 				     qw/-relief raised/);
   $lexlist_frame->pack(qw/-expand yes -fill both -padx 4 -pady 4/);
 
   my $button_frame=$lexlist_frame->Frame();
   $button_frame->pack(qw/-side top -fill x/);
 
-  my $addword_button=$button_frame->Button(-text => 'Add Word',
-					  -command => [\&addword_button_pressed,
-						      $self]);
-  $addword_button->pack(qw/-padx 5 -side left/);
+  if ($self->data()->user_is_annotator() or
+      $self->data()->user_is_reviewer()) {
+    my $addword_button=$button_frame->Button(-text => 'Add Word',
+					     -command => [\&addword_button_pressed,
+							  $self]);
+    $addword_button->pack(qw/-padx 5 -side left/);
+  }
 
+  my $adjuster = $top_frame->Adjuster();
 
-  my $adjuster = $frame->Adjuster();
-
-  my $ff = $frame->Frame();
-
-
+  my $ff = $top_frame->Frame();
 
   my $lexframe_frame=$ff->LabFrame(-label => "Frames",
 				      -labelside => "acrosstop",
@@ -62,18 +76,29 @@ sub create_widget {
   my $fbutton_frame=$lexframe_frame->Frame();
   $fbutton_frame->pack(qw/-side top -fill x/);
 
-  my $addframe_button=$fbutton_frame->Button(-text => 'Add');
-  $addframe_button->pack(qw/-padx 5 -side left/);
-
-  my $substituteframe_button=$fbutton_frame->Button(-text => 'Substitute');
-  $substituteframe_button->pack(qw/-padx 5 -side left/);
-
-  my $obsoleteframe_button=$fbutton_frame->Button(-text => 'Mark as Deleted',
-						  -command => [\&obsolete_button_pressed,$self]);
-  $obsoleteframe_button->pack(qw/-padx 5 -side left/);
+  # List of Frames
+  my $lexframelist =
+    TrEd::ValLex::FrameList->new($data, $field, $lexframe_frame,
+				 qw/-height 15 -width 50/);
 
 
-  if ($admin) {
+  # Buttons
+  if ($self->data()->user_is_annotator() or
+      $self->data()->user_is_reviewer()) {
+    my $addframe_button=$fbutton_frame->Button(-text => 'Add',
+					       -command => [\&addframe_button_pressed,$self]);
+    $addframe_button->pack(qw/-padx 5 -side left/);
+
+    my $substituteframe_button=$fbutton_frame->Button(-text => 'Substitute',
+						      -command => [\&substitute_button_pressed,$self]);
+    $substituteframe_button->pack(qw/-padx 5 -side left/);
+
+    my $obsoleteframe_button=$fbutton_frame->Button(-text => 'Mark as Deleted',
+						    -command => [\&obsolete_button_pressed,$self]);
+    $obsoleteframe_button->pack(qw/-padx 5 -side left/);
+  }
+
+  if ($self->data()->user_is_reviewer()) {
     my $deleteframe_button=$fbutton_frame->Button(-text => 'Delete',
 						   -command => [\&delete_button_pressed,
 								$self]);
@@ -85,12 +110,28 @@ sub create_widget {
 						  );
     $confirmframe_button->pack(qw/-padx 5 -side left/);
 
-    my $modifyframe_button=$fbutton_frame->Button(-text => 'Modify');
+    my $modifyframe_button=$fbutton_frame->Button(-text => 'Modify',
+						   -command => [\&modify_button_pressed,
+								$self]);
     $modifyframe_button->pack(qw/-padx 5 -side left/);
+
+    my $show_deleted=
+      $fbutton_frame->
+	Checkbutton(-text => 'Show Deleted',
+		    -command => [
+				 sub {
+				   my ($self)=@_;
+				   $self->
+				     wordlist_item_changed($self->subwidget("wordlist")->widget()->infoAnchor());
+				 },$self],
+		    -variable =>
+		    \$lexframelist->[$lexframelist->SHOW_DELETED]
+		   );
+    $show_deleted->pack(qw/-padx 5 -side left/);
+
   }
-  # List of Frames
-  my $lexframelist =  TrEd::ValLex::FrameList->new($data, $field, $lexframe_frame,
-						   qw/-height 15 -width 50/);
+
+
   $lexframelist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
 
 
@@ -138,7 +179,7 @@ sub create_widget {
 				     $self
 				    ]);
 
-  $lexlist->fetch_data($doc);
+  $lexlist->fetch_data();
 
   if ($reverse) {
     $wf->pack(qw/-side right -fill both -expand yes/);
@@ -150,9 +191,15 @@ sub create_widget {
     $ff->pack(qw/-side left -fill both -expand yes/);
   }
 
+  $lexlist->widget()->focus;
+
+  # Status bar
+  my $info_line = TrEd::ValLex::InfoLine->new($data, $field, $frame, qw/-background white/);
+  $info_line->pack(qw/-side bottom -expand yes -fill x/);
 
   return $lexlist->widget(),{
 	     frame        => $frame,
+	     top_frame    => $top_frame,
 	     word_frame   => $lexlist_frame,
 	     frame_frame  => $lexframe_frame,
 	     framelist    => $lexframelist,
@@ -160,20 +207,54 @@ sub create_widget {
 	     frameproblem => $lexframeproblem,
 	     wordlist     => $lexlist,
 	     wordnote     => $lexnote,
-	     wordproblem     => $lexproblem
+	     wordproblem  => $lexproblem,
+	     infoline     => $info_line
 	    };
+}
+
+sub ask_save_data {
+  my ($self,$top)=@_;
+  return 0 unless ref($self);
+  my $d=$self->widget()->toplevel->Dialog(-text=>
+					"Data changed!\nDo you want to save it?",
+					-bitmap=> 'question',
+					-title=> 'Question',
+					-buttons=> ['Yes','No']);
+  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
+			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  my $answer=$d->Show();
+  if ($answer eq 'Yes') {
+    $self->save_data($top);
+    return 0;
+  } elsif ($answer eq 'Keep') {
+    return 1;
+  }
+}
+
+sub save_data {
+  my ($self,$top)=@_;
+  my $top=$top || $self->widget->toplevel;
+  $top->Busy(-recurse=> 1);
+  $self->data()->save();
+  $top->Unbusy(-recurse=> 1);
+}
+
+sub fetch_data {
+  my ($self)=@_;
+  $self->subwidget("wordlist")->fetch_data();
+  $self->wordlist_item_changed();
 }
 
 sub wordlist_item_changed {
   my ($self,$item)=@_;
 
   my $h=$self->subwidget('wordlist')->widget();
-  my $word=$h->infoData($item);
-
+  my $word;
+  $word=$h->infoData($item) if ($h->infoExists($item));
   $self->subwidget('wordnote')->set_data($self->data()->getSubElementNote($word));
   $self->subwidget('wordproblem')->fetch_data($word);
   $self->subwidget('framelist')->fetch_data($word);
-
+  $self->subwidget('infoline')->fetch_word_data($word);
 }
 
 sub framelist_item_changed {
@@ -183,35 +264,158 @@ sub framelist_item_changed {
   my $e;
   $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
   $self->subwidget('frameproblem')->fetch_data($frame);
+  $self->subwidget('infoline')->fetch_frame_data($frame);
 }
 
-sub add_word_button_pressed {
+sub addword_button_pressed {
   my ($self)=@_;
 
   my $top=$self->widget()->toplevel;
-  my $d=ToplevelFrame()->DialogBox(-title => "Add word",
+  my $d=$top->DialogBox(-title => "Add word",
 				-buttons => ["OK","Cancel"]);
 
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
 
   my $label=$d->add(qw/Label -wraplength 6i -justify left -text Lemma/);
-  $t->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
+  $label->pack(qw/-padx 5 -side left/);
 
-  my $ed=$d->Scrolled(qw/Entry -width 50 -scrollbars os/);
-  $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill x/);
+  my $ed=$d->Entry(qw/-width 50 -background white/);
+  $ed->pack(qw/-padx 5 -expand yes -fill x -side left/);
   $ed->focus;
 
   if ($d->Show =~ /OK/) {
-    my $result=$ed->get('0.0','end');
+    my $result=$ed->get();
 
-    $self->data()->addWord($result,"V");
-
+    my $word=$self->data()->addWord($result,"V");
+    $self->subwidget('wordlist')->fetch_data();
+    $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
     $d->destroy();
-    return $var;
+    return $result;
   } else {
     $d->destroy();
     return undef;
+  }
+}
+
+sub addframe_button_pressed {
+  my ($self)=@_;
+
+  my $wl=$self->subwidget('wordlist')->widget();
+  my $item=$wl->infoAnchor();
+  return unless defined($item);
+  my $word=$wl->infoData($item);
+  return unless $word;
+
+  my $top=$self->widget()->toplevel;
+  my ($ok,$elements,$note,$example,$problem)=
+    $self->show_frame_editor_dialog("Add frame for ".$wl->itemCget($item,0,'-text'));
+
+  if ($ok) {
+    my $new=$self->data()->addFrame(undef,$word,$elements,$note,$example,$problem,$self->data()->user());
+    $self->subwidget('framelist')->fetch_data($word);
+    $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
+    $self->framelist_item_changed($self->subwidget('framelist')->focus($new));
+    return $new;
+  } else {
+    return undef;
+  }
+}
+
+sub substitute_button_pressed {
+  my ($self)=@_;
+
+  my $fl=$self->subwidget('framelist')->widget();
+  my $item=$fl->infoAnchor();
+  return unless defined($item);
+  my $frame=$fl->infoData($item);
+  return unless $frame;
+  my $word=$self->data()->getWordForFrame($frame);
+  my $top=$self->widget()->toplevel;
+  my $elements=$self->data()->getFrameElementString($frame);
+  my $note=$self->data()->getSubElementNote($frame);
+  my $example=$self->data()->getFrameExample($frame);
+  my $problem="";
+  ($ok,$elements,$note,$example,$problem)=
+    $self->show_frame_editor_dialog("Substitute frame",
+				    $elements,$note,$example,$problem);
+
+  if ($ok) {
+    my $new=$self->data()->substituteFrame($word,$frame,$elements,$note,$example,$problem,$self->data()->user());
+    $self->subwidget('framelist')->fetch_data($word);
+    $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
+    $self->framelist_item_changed($self->subwidget('framelist')->focus($new));
+    return $new;
+  } else {
+    return undef;
+  }
+}
+
+sub modify_button_pressed {
+  my ($self)=@_;
+
+  my $fl=$self->subwidget('framelist')->widget();
+  my $item=$fl->infoAnchor();
+  return unless defined($item);
+  my $frame=$fl->infoData($item);
+  return unless $frame;
+  my $word=$self->data()->getWordForFrame($frame);
+  my $top=$self->widget()->toplevel;
+  my $elements=$self->data()->getFrameElementString($frame);
+  my $note=$self->data()->getSubElementNote($frame);
+  my $example=$self->data()->getFrameExample($frame);
+  my $problem="";
+  ($ok,$elements,$note,$example,$problem)=
+    $self->show_frame_editor_dialog("Change frame",
+				    $elements,$note,$example,$problem);
+
+  if ($ok) {
+    $self->data()->modifyFrame($frame,$elements,$note,$example,$problem,$self->data()->user());
+    $self->subwidget('framelist')->fetch_data($word);
+    $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
+    $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
+    return $frame;
+  } else {
+    return undef;
+  }
+}
+
+
+sub show_frame_editor_dialog {
+  my ($self,$title,$elements,$note,$example,$problem)=@_;
+
+  my $top=$self->widget()->toplevel;
+  my $d=$top->DialogBox(-title => $title,
+				-buttons => ["OK","Cancel"]);
+  my $ed=TrEd::ValLex::FrameElementEditor->new($self->data(), $self->field(), $d);
+  $ed->pack(qw/-expand yes -fill both/);
+  $ed->subwidget('elements')->insert(0,$elements) unless $elements eq "";
+  $ed->subwidget('note')->insert("0.0",$note) unless $note eq "";
+  $ed->subwidget('example')->insert("0.0",$example) unless $example eq "";
+  $ed->subwidget('problem')->insert("0",$problem) unless $probelm eq "";
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
+  $d->Subwidget('B_OK')->configure(-command => [sub {
+						  my ($cw,$ed)=@_;
+						  if ($ed->validate()) {
+						    $cw->{'selected_button'} = "OK";
+						  } else {
+						    $ed->bell();
+						  }
+						},$d,$ed
+					       ]);
+  if ($d->Show =~ /OK/) {
+    my $elements=$ed->subwidget('elements')->get();
+    my $note=$ed->subwidget('note')->get('0.0','end');
+    my $example=$ed->subwidget('example')->get('0.0','end');
+    my $problem=$ed->subwidget('problem')->get();
+    $d->destroy();
+    $note=~s/[\s\n]+$//g;
+    $example=~s/[\s\n]+$//g;
+    return (1,$elements,$note,$example,$problem);
+  } else {
+    $d->destroy();
+    return (0);
   }
 }
 
@@ -222,8 +426,9 @@ sub confirm_button_pressed {
   return if $item eq "";
   my $frame=$fl->infoData($item);
 
-  $frame->setAttribute('status','reviewed');
+  $self->data()->changeFrameStatus($frame,'reviewed','review');
   $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
+  $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
 }
 
 sub delete_button_pressed {
@@ -233,8 +438,12 @@ sub delete_button_pressed {
   return if $item eq "";
   my $frame=$fl->infoData($item);
 
-  $frame->setAttribute('status','deleted');
+  $self->data()->changeFrameStatus($frame,'deleted','delete');
   $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
+  my $fanchor=$self->subwidget('framelist')->focus($frame);
+  if ($fanchor ne "") {
+    $self->framelist_item_changed($fanchor);
+  }
 }
 
 sub obsolete_button_pressed {
@@ -243,9 +452,9 @@ sub obsolete_button_pressed {
   my $item=$fl->infoAnchor();
   return if $item eq "";
   my $frame=$fl->infoData($item);
-
-  $frame->setAttribute('status','obsolete');
+  $self->data()->changeFrameStatus($frame,'obsolete','obsolete');
   $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
+  $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
 }
 
 1;

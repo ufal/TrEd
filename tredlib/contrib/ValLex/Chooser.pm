@@ -8,7 +8,7 @@ use base qw(TrEd::ValLex::FramedWidget);
 require Tk::LabFrame;
 
 sub show_dialog {
-  my ($title,$top,$data,$word,$select_frame)=@_;
+  my ($title,$top,$data,$word,$select_frame,$start_editor)=@_;
 
   my $d = $top->DialogBox(-title => $title,
 			  -buttons => ['Choose', 'Cancel'],
@@ -18,8 +18,12 @@ sub show_dialog {
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $chooser =
     TrEd::ValLex::Chooser->new($data, $word, $d, undef, 1);
+  $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
   $chooser->widget()->focus();
+  if ($start_editor) {
+    $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
+  }
   if ($chooser->widget()->infoExists(0)) {
     $chooser->widget()->anchorSet(0);
   }
@@ -122,7 +126,11 @@ sub choose_button_pressed {
 sub edit_button_pressed {
   my ($self)=@_;
   TrEd::ValLex::Editor::show_dialog($self->widget()->toplevel,
-				    $self->data(), "");
+				    $self->data(),
+				    $self->field(),
+				    1
+				   );
+  eval { Tk->break; };
   if ($self->field()) {
     $self->subwidget('framelist')->fetch_data($self->field());
   }
