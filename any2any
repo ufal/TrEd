@@ -129,13 +129,13 @@ foreach $f (@files) {
     rename $f, "$f~" || die "Cannot create backup file named $f~ for $f\n";
   }
 
-  if ($opt_T || $opt_R) {
-    $fs->changePatterns('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
-    $fs->changeHint('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
-		      "afun:\t\${afun}\ntag:\t\${tag}".
-		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
-  }
+#   if ($opt_T || $opt_R) {
+#     $fs->changePatterns('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+#                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+#     $fs->changeHint('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
+# 		      "afun:\t\${afun}\ntag:\t\${tag}".
+# 		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
+#   }
 
   $fs->writeFile($out);
   undef $fs;
