@@ -122,7 +122,7 @@ sub MD2TagLemma {
   my ($class,$src,$top)=@_;
   $top||=$root;
   $src='a' unless defined $src;
-
+  return if $src eq "";
   my $node=$root;
   while ($node) {
     $node->{lemma}=$node->{"lemmaMD_$src"};
@@ -154,21 +154,13 @@ sub MR2TR {
   GotoTree(1);
   do {
     print "$root->{form}\n";
-    print "MD2TagLemma\n";
     MD2TagLemma($class,$src);
-    print "assign_afun_auto_tree\n";
     Analytic->assign_all_afun_auto();
-    print "saveTreeAStructure\n";
     saveTreeAStructure($class);
-    print "InitTR\n";
     Tectogrammatic->InitTR();
-    print "TreeToTR\n";
     Tectogrammatic->TreeToTR();
-    print "assign_all_func_auto\n";
     Tectogrammatic->assign_all_func_auto();
-    print "DelTagLemma\n";
-    delTagLemma($class);
-    print ">>NextTree\n\n";
+    delTagLemma($class) unless $src eq "";
   } while NextTree();
   GotoTree(1);
 }
@@ -178,10 +170,39 @@ sub tree2AR {
   $src='a' unless defined $src;
   GotoTree(1);
   do {
-    print "$root->{form}\n";
+    print "$root->{form} 000\n";
     MD2TagLemma($class,$src);
     Analytic->assign_all_afun_auto();
-    delTagLemma($class);
+    delTagLemma($class) unless $src eq "";
+  } while NextTree();
+  GotoTree(1);
+}
+
+sub AR2TRtree {
+  my ($class,$src)=@_;
+  $src='a' unless defined $src;
+  convertToTRHeader($class);
+  GotoTree(1);
+  do {
+    print "$root->{form}\n";
+    MD2TagLemma($class,$src);
+    saveTreeAStructure($class);
+    Tectogrammatic->InitTR();
+    Tectogrammatic->TreeToTR();
+    delTagLemma($class) unless $src eq "";
+  } while NextTree();
+  GotoTree(1);
+}
+
+sub TRAssignFunc {
+  my ($class,$src)=@_;
+  $src='a' unless defined $src;
+  GotoTree(1);
+  do {
+    print "$root->{form}\n";
+    MD2TagLemma($class,$src);
+    Tectogrammatic->assign_all_func_auto();
+    delTagLemma($class) unless $src eq "";
   } while NextTree();
   GotoTree(1);
 }
@@ -198,7 +219,7 @@ sub AR2TR {
     Tectogrammatic->InitTR();
     Tectogrammatic->TreeToTR();
     Tectogrammatic->assign_all_func_auto();
-    delTagLemma($class);
+    delTagLemma($class) unless $src eq "";
   } while NextTree();
   GotoTree(1);
 }
