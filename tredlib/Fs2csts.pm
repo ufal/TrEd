@@ -293,12 +293,19 @@ sub write {
 	  print_split_attr_with_num_attr($fileref,$node,"tagMD_$suf","wMDt_$suf","MDt src=\"$suf\"",'w');
 	}
 	if ($node->{afun} and $node->{afun} ne "???") {
-	  print_split_attr($fileref,$node->{afun},'A');
+	  my $afun_atrs="";
+	  foreach my $afun (split(/\|/,$node->{afun})) {
+	    print $fileref "<A";
+	    $afun_atrs=join " ", grep { /./ && !/^no-/ } map { $node->{$_} }
+	      qw(parallel paren arabfa arabspec arabclaus);
+	    print $fileref (($afun_atrs ne "") ? " $afun_atrs>" : ">"),$afun;
+	  }
 	}
 	foreach (grep(/^afunMD_/,$fsfile->FS->attributes)) {
 	  /afunMD_(.*)$/;
 	  print_split_attr_with_num_attr($fileref,$node,"afunMD_$1","wMDA_$1","MDA src=\"$1\"",'w');
 	}
+	# TODO: PDAT-specific attributes for MDA not yet supported
       }
       my $quot="";
       if ($node->{dsp}=~/(DSPP|DSPI|DSP)/) {
