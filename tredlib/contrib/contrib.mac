@@ -3,6 +3,8 @@
 # This file is included by default in tred.mac and serves only as a
 # wrapper for other contributed macro packages inclusions
 
+#include <contrib/pdt_specific.mak>
+
 #binding-context Tectogrammatic
 #include <contrib/tr.mak>
 
