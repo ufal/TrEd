@@ -22,7 +22,8 @@ if ($^V lt v5.6.0) {
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
 	    $opt_n $opt_D $opt_v $opt_H
-            $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
+            $libDir
+	    $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName %menuBindings %keyBindings
@@ -217,7 +218,10 @@ my $configFile=read_config();
 $TrEd::Convert::inputenc=$opt_n if $opt_n;
 $TrEd::Config::treeViewOpts->{showHidden} = 1 if $opt_H;
 
+$iconPath = "$libDir/icons/default" unless (defined $iconPath);
+
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
+
 if (defined $opt_m) {
   $macroFile=$opt_m;
 }
@@ -398,7 +402,7 @@ ApplyGlobalConfig();
   if ($TrEd::Convert::support_unicode) {
     my $lc_collate=setlocale(LC_COLLATE);
     if ($lc_collate !~ /\.utf-?8/i) {
-      setlocale(LC_COLLATE,$lc_collate.".UTF8");
+      setlocale(LC_COLLATE,$lc_collate.".UTF-8");
     }
     my $lc_ctype=setlocale(LC_CTYPE);
     $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
@@ -414,8 +418,8 @@ ApplyGlobalConfig();
   setlocale(LC_NUMERIC,"C");
 
   if ($TrEd::Convert::support_unicode) {
-    setlocale(LC_COLLATE,"cs_CZ.UTF8");
-    setlocale('LANG',"cs_CZ.UTF8");
+    setlocale(LC_COLLATE,"cs_CZ.UTF-8");
+    setlocale('LANG',"cs_CZ.UTF-8");
     setlocale('LC_CTYPE',"cs_CZ");
   } else {
     setlocale(LC_COLLATE,"cs_CZ");
@@ -492,6 +496,52 @@ exit;
 ############################
 ############################
 ############################
+
+sub icon {
+  my ($grp, $name)=@_;
+  unless (exists $grp->{"icon-".$name}) {
+    my @extensions=qw(gif xpm);
+    eval { require Tk::PNG };
+    if (not($@)) {
+      unshift @extensions,'png';
+    } else {
+      warn "PNG icons not supported by running Tk\n";
+    }
+    # prepend $libDir to relative paths
+    my $default=0;
+    my @paths = (map {
+      my $p =
+      m{^\s*\Q${TrEd::Convert::Ds}\E} ? $_ : $libDir."/icons/".$_;
+      $default = 1 if $p eq $libDir."/icons/default";
+      $p;
+    } split(/:/,$iconPath));
+    # add default theme, unless already in the list
+    push @paths, $libDir."/icons/default" unless $default;
+    DIR: for my $dir (@paths) {
+      for my $ext (@extensions) {
+	my $file = "$dir/$name.$ext";
+	if (-f $file) {
+	  if ($ext eq 'xpm') {
+	    print "Loading pixmap icon $file\n" if $tredDebug;
+	    $grp->{"icon-".$name} = 
+	      $grp->{top}->Pixmap(-file => $file);
+	  } else {
+	    require Tk::PNG if $ext eq 'png';
+	    print "Loading photo icon $file\n" if $tredDebug;
+	    $grp->{"icon-".$name} = 
+	      $grp->{top}->Photo(-format => $ext, -file => $file);
+	  }
+	  last DIR;
+	} else {
+	  print "Icon not found $file\n" if $tredDebug;
+	}
+      }
+    }
+  }
+  print "No icon found for $name\n" if (not $grp->{"icon-".$name} and $tredDebug);
+  return $grp->{"icon-".$name};
+}
+
 sub __debug {
   print STDERR @_,"\n";
 }
@@ -2594,15 +2644,13 @@ sub copyTreesDialog {
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
   $re->pack(qw/-side left -padx 10 -fill x -expand yes/);
-  $sf->Button(-image=> $grp->{top}->Pixmap(-file=>
-					   "$libDir/left.xpm"),
+  $sf->Button(-image=> icon($grp,'1leftarrow'),
 	      -command =>
 	      [sub {
 		  my ($grp,$range)=@_;
 		  $$range=sentViewGetSelection($grp,$grp->{sentDialogSelection});
 	       },$grp,\$range])->pack(qw/-padx 10 -side left/);
-  $sf->Button(-image=> $grp->{top}->Pixmap(-file=>
-					   "$libDir/view_sent.xpm"),
+  $sf->Button(-image=> icon($grp,'contents'),
 	      -command=> [sub {
 			    my ($grp,$d,$range,$source)=@_;
 			    my $list=[];
@@ -3026,15 +3074,13 @@ sub printDialog {
   }
 
   # fill range buttons
-  $sf->Button(-image=> $grp->{top}->Pixmap(-file=>
-					   "$libDir/left.xpm"),
+  $sf->Button(-image=> icon($grp,'1leftarrow'),
 	      -command =>
 	      [sub {
 		 my ($grp,$w)=@_;
 		 $w->{printRange}=sentViewGetSelection($grp,$grp->{sentDialogSelection});
 	       },$grp,\%w])->pack(qw/-padx 10 -side left/);
-  $sf->Button(-image=> $grp->{top}->Pixmap(-file=>
-					   "$libDir/view_sent.xpm"),
+  $sf->Button(-image=> icon($grp,'contents'),
 	      -command=> [sub {
 			    my ($grp,$win,$d,$w)=@_;
 			    my $list=[];
@@ -3416,9 +3462,10 @@ sub saveFileStateUpdate {
   return unless isFocused($win);
   return unless $win->{framegroup}->{saveButton};
   $win->{framegroup}->{saveButton}->
-    configure(-image=>
-	      ($win->{FSFile} and $win->{FSFile}->notSaved)
-	      ? $normalSavePixmap : $savedSavePixmap);
+    configure(-state => (($win->{FSFile} and $win->{FSFile}->notSaved) ? 'normal' : 'disabled'));
+#    configure(-image=>
+#	      ($win->{FSFile} and $win->{FSFile}->notSaved)
+#	      ? $normalSavePixmap : $savedSavePixmap);
 }
 
 
@@ -3747,8 +3794,8 @@ sub startMain {
   $group{autoSaveCallback}=$group{top}->repeat($autoSave*60000,
 					       [\&autoSaveAll,\%group]) if $autoSave>0;
 
-  $group{folderImage}= $group{top}->Pixmap(-file=> Tk->findINC('folder.xpm'));
-  $group{fileImage}  = $group{top}->Pixmap(-file=> Tk->findINC('file.xpm'));
+  $group{folderImage}= icon(\%group,'folder');
+  $group{fileImage}  = icon(\%group,'document');
   $group{lastActionBookmark}= $lastAction;
   $group{selectedContext}=$opt_t || 'TredMacro';
   $group{buildTGTSfromCSTS}=$opt_R;
@@ -4265,7 +4312,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0,
 			  -text=> "Next",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>"$libDir/right.xpm"),
+			  -image=> icon(\%group,"1rightarrow"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
@@ -4277,7 +4324,7 @@ sub startMain {
   $group{prevButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Prev",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>"$libDir/left.xpm"),
+			  -image=> icon(\%group,"1leftarrow"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
@@ -4290,8 +4337,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0, -text=> "Open",
 			  -relief=> $buttonsRelief,
 			  -image=>
-			  $group{top}->Pixmap(-file=>
-					      "$libDir/fileopen.xpm"),
+			  icon(\%group,"fileopen"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
 			  [\&fileDialog,\%group])
@@ -4299,12 +4345,13 @@ sub startMain {
   $group{Balloon}->attach($group{openButton},
 		 -balloonmsg=> "open file");
   addBindTags($group{openButton},'my');
-  $normalSavePixmap=$group{top}->Pixmap(-file=>"$libDir/filefloppy.xpm");
-  $savedSavePixmap=$group{top}->Pixmap(-file=>"$libDir/filesaved.xpm");
+  $normalSavePixmap=icon(\%group,"filesave");
+  $savedSavePixmap=icon(\%group,"filesaved");
   $group{saveButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Save",
 			  -relief=> $buttonsRelief,
-			  -image=> $savedSavePixmap,
+			  -image=> $normalSavePixmap,
+			  -state => 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&saveFile,\%group])->pack(-side=>'left',-padx=>'1');
 
@@ -4315,8 +4362,7 @@ sub startMain {
   $group{reloadButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Reload",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/reload.xpm"),
+			  -image=> icon(\%group,"reload"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&reloadFile,\%group])->pack(-side=>'left',-padx=>'1');
 
@@ -4329,7 +4375,7 @@ sub startMain {
   $group{undoButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Undo",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>"$libDir/undo.xpm"),
+			  -image=> icon(\%group,"undo"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&undo,\%group])->pack(-side=>'left',-padx=>'1');
@@ -4342,7 +4388,7 @@ sub startMain {
   $group{redoButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Redo",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>"$libDir/redo.xpm"),
+			  -image=> icon(\%group,"redo"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&re_do,\%group])->pack(-side=>'left',-padx=>'1');
@@ -4356,8 +4402,7 @@ sub startMain {
   $group{prevFileButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Prev file",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/start.xpm"),
+			  -image=> icon(\%group,"start"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&tiePrevFile,\%group])->pack(-side=>'left',
 									    -padx=>'1');
@@ -4368,8 +4413,7 @@ sub startMain {
   $group{nextFileButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Next file",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/finish.xpm"),
+			  -image=> icon(\%group,"finish"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&tieNextFile,\%group])->pack(-side=>'left',
 									    -padx=>'1');
@@ -4381,8 +4425,7 @@ sub startMain {
   $group{printButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Print",
 			  -relief=> $buttonsRelief,
-			  -image      => $group{top}->Pixmap(-file=>
-							     "$libDir/fileprint.xpm"),
+			  -image      => icon(\%group,"fileprint"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub { printThis(@_) },\%group])->pack(-side=>'left',
 									    -padx=>'1');
@@ -4393,8 +4436,7 @@ sub startMain {
   $group{findButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Find",
 			  -relief=> $buttonsRelief,
-			  -image      => $group{top}->Pixmap(-file=>
-							     "$libDir/find.xpm"),
+			  -image      => icon(\%group,"find"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub {
 					my ($grp,$template)=@_;
@@ -4409,8 +4451,7 @@ sub startMain {
   $group{findNextButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Find Next",
 			  -relief=> $buttonsRelief,
-			  -image      => $group{top}->Pixmap(-file=>
-							     "$libDir/findnext.xpm"),
+			  -image      => icon(\%group,"viewmag+"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1])
       ->pack(-side=>'left', -padx=>'1');
@@ -4422,8 +4463,7 @@ sub startMain {
   $group{findPrevButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Find Previous",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/findprev.xpm"),
+			  -image=> icon(\%group,"viewmag-"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1])
       ->pack(-side=>'left', -padx=>'1');
@@ -4439,8 +4479,7 @@ sub startMain {
   $group{attrButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Attributes",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/tick.xpm"),
+			  -image=> icon(\%group,"wizard"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub { customAttrsDialog(@_) },\%group])->pack(-side=>'right',
 										    -padx=>'1');
@@ -4462,8 +4501,7 @@ sub startMain {
 			      -variable=> \$group{tieWindows},
 			       -relief=> $buttonsRelief,
 			      -indicatoron => 0,
-			      -image=>$group{top}->Pixmap(-file=>
-							  "$libDir/tiewins.xpm"),
+			      -image=>icon(\%group,"lock"),
 			      -borderwidth=> $buttonBorderWidth)->pack(-side=>'right',
 								       -padx=>'1');
   $group{Balloon}->attach($group{tieWinddowsButton},
@@ -4474,8 +4512,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0, 
 			  -text=> "Remove Current View",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/rmsplit.xpm"),
+			  -image=> icon(\%group,"view_remove"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&removeWindow,\%group])->pack(-side=>'right',
 								     -padx=>'1');
@@ -4486,8 +4523,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0, 
 			  -text=> "Split View Horizontally",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/hsplit.xpm"),
+			  -image=> icon(\%group,"view_top_bottom"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&splitWindow,\%group,'horiz'])->pack(-side=>'right',
 									    -padx=>'1');
@@ -4499,8 +4535,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0, 
 			  -text=> "Split View Vertically",
 			  -relief=> $buttonsRelief,
-			  -image=> $group{top}->Pixmap(-file=>
-						       "$libDir/vsplit.xpm"),
+			  -image=> icon(\%group,"view_left_right"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&splitWindow,\%group,'vert'])->pack(-side=>'right',
 									   -padx=>'1');
@@ -4516,8 +4551,7 @@ sub startMain {
   $group{sentButton}=
     $vlsubframe->Button(-takefocus=>0, -text=> "Sentences",
 			-relief=> $buttonsRelief,
-			-image=> $group{top}->Pixmap(-file=>
-						     "$libDir/view_sent.xpm"),
+			-image=> icon(\%group,"contents"),
 			-borderwidth=> $buttonBorderWidth,
 			-command=> [\&viewSentences,\%group])
       ->pack(qw/-side top -fill x/);
@@ -5479,17 +5513,14 @@ sub reloadSentenceView {
 			       -indicatoron => 0,
 			       -height => 19,
 			       -width => 19,
-			       -selectimage => $grp->{top}->Pixmap(-file=>
-							     "$libDir/green_belly3.xpm"),
-			       -image => $grp->{top}->Pixmap(-file=>
-							     "$libDir/gray_belly3.xpm"),
+			       -selectimage => icon($grp,"green_belly3"),
+			       -image => icon($grp,"gray_belly3"),
 			       -variable => \$selref->[$i]
 			      ));
     $t->window('create', 'end', -window =>
 	       $t->Button(-height => 16,
 			  -width => 16,
-			  -image => $grp->{top}->Pixmap(-file=>
-							"$libDir/right.xpm"),
+			  -image => icon($grp,'1rightarrow'),
 			  -command => [\&openFile, $grp, "$filename##".($i+1)]
 			 ));
 
