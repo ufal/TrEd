@@ -1,0 +1,33 @@
+
+sub DrawTree ($@){
+  my ($top,@attrs)=@_;
+  my $node=$top;
+  my $older;
+  my $l;
+  return unless $top;
+  print "(",$top->getAttribute("form"),")\n";
+  $node=$top->firstson;
+  while ($node) {
+    $l='';
+    $older=$node->parent;
+    while ($older and $older!=$top) {
+      if ($older->rbrother) {
+	$l='| '.$l;
+      } else {
+	$l='  '.$l;
+      }
+      $older=$older->parent();
+    }
+    $l=" ".$l;
+    print $l,"| \n";
+    if ($node->rbrother) {
+      $l.="+-[ ";
+    } else {
+      $l.="`-[ ";
+    }
+    print $l;
+    print map $node->getAttribute($_)." ",@attrs ;
+    print "]\n";
+    $node=$node->following($top);
+  }
+}
