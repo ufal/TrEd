@@ -1,13 +1,15 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
+################################################################################
 $version="1.48";
-$timestamp="Time-stamp: <2001-03-07 18:39:17 pajas>";
+$timestamp="Time-stamp: <2001-03-08 17:26:08 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 $lastupdate=$1 if ($timestamp=~/<([0-9-: ]+) /);
+################################################################################
 #
 # This is "TrEd" - a simple viewer/editor of tree graphs in fs
 # file-format used in Graph - program developed by M. Kren. TrEd is
@@ -28,7 +30,6 @@ $lastupdate=$1 if ($timestamp=~/<([0-9-: ]+) /);
 # tred -h  for help
 #
 ################################################################################
-
 
 
 # Once we got rid of them we call getopt to read all the other options
@@ -171,8 +172,6 @@ if (defined $opt_m) {
   $macroFile=$opt_m;
 }
 
-
-
 unless (-d $libDir) {
   print <<'EOL';
  TrEd couldn't find a tredlib directory. You may need to point
@@ -227,16 +226,38 @@ require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 
+require Tk::MyFileSelect;
+
 use Exporter;
 
 @EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
 	     $forceFileSaved $insideEval $FileNotSaved
-             $fileNo $filecount @files &min &max);
+             $filecount @files &min &max);
 
 my @macros=();
 
 my @customColors=('darkgreen','darkblue','darkmagenta',,'orange','darkred','green1',
 		  'slategray1','gold','cyan','midnightblue');
+
+
+@open_types =
+  (["Fs files",           [qw/.fs .FS .Fs/]],
+   ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
+   ["CSTS files",           [qw/.am .cst .csg .csts/]],
+   ["Gzipped CSTS files",           [qw/.am.gz .cst.gz .csg.gz .csts.gz/]],
+   ["Backup Fs files",           [qw/.fs~ .fb .FB .Fb/]],
+   ["Backup gzipped Fs files",           [qw/.fgz~ .fs.gz~ .FGZ~ .FS.gz~ .FS.GZ~/]],
+   ["All files",        '*']
+  );
+
+@save_types =
+  (["Fs files",           [qw/.fs .FS .Fs/]],
+   ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
+   ["CSTS files",           [qw/.cst .csts/]],
+   ["Gzipped CSTS files",           [qw/.cst.gz .csts.gz/]],
+   ["All files",        '*']
+  );
+
 
 
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
@@ -271,21 +292,14 @@ if ($^O =~ /^MS/) {
   push(@files, @ARGV);
 }
 
-# OO changes: passing to FSFile
-# what will be affected:
-#
-# $grp->{fsFile} = FSFile->new();
-#
-#  @trees                      --> $grp->{fsFile}->trees
-#  $fsF                        --> $grp->{fsFile}->FS
-#  @rest                       --> $grp->{fsFile}->tail
-#  $grp->{currentFile}         --> $grp->{fsFile}->filename
-#  $grp->{'currentFileFormat'} --> $grp->{fsFile}->fileFormat
+use File::Spec::Functions (rel2abs);
+@files = map { rel2abs($_) } @files;
 
-#my @nodes=();
-
+# These are used only in macros!!!
 $root=undef;
 $this=undef;
+
+
 $_NoSuchTree; # for compatibility with Graph2Tred
 $NodeClipboard;
 
@@ -293,7 +307,6 @@ $drawSentenceInfo=0;
 $forceFileSaved=0;
 $insideEval=0;
 $FileNotSaved=0;
-$fileNo=0;
 $filecount=$#files+1;
 
 my %searchTemplate;
@@ -326,7 +339,7 @@ print STDERR "Reading macros from $macroFile...\n";
 readMacros($macroFile);		# read macros
 print STDERR "done.\n";
 
-startMain($files[$fileNo]);	# display first tree
+startMain($files[0]);	# display first tree
 
 exit;
 
@@ -632,21 +645,23 @@ sub gotoFile {
   return 0 if doEvalHook($grp,"goto_file_hook") eq 'stop';
   return 0 if ($fn > $#files or $fn<0);
 #  askSaveFile($grp);
-  $fileNo=$fn;
-  openFile($grp,$files[$fileNo]);
+  $grp->{currentFileNo}=$fn;
+  openFile($grp,$files[$grp->{currentFileNo}]);
   if ($grp->{Filelist}) {
-    $grp->{Filelist}->activate($fileNo);
+    $grp->{Filelist}->activate($grp->{currentFileNo});
     $grp->{Filelist}->selectionClear(0,'end');
-    $grp->{Filelist}->selectionSet($fileNo);
+    $grp->{Filelist}->selectionSet($grp->{currentFileNo});
   }
   return 1;
 }
 
 sub nextFile {
-  return gotoFile(shift,$fileNo+1);
+  my $grp=shift;
+  return gotoFile($grp,$grp->{currentFileNo}+1);
 }
 sub prevFile {
-  return gotoFile(shift,$fileNo-1);
+  my $grp=shift;
+  return gotoFile($grp,$grp->{currentFileNo}-1);
 }
 
 sub closeFile {
@@ -655,26 +670,16 @@ sub closeFile {
 
   $grp->{Nodes}=undef;
   undef $NodeClipboard;
-  undef $root;
-
+  $grp->{root}=undef;
   $grp->{FSFile}=undef;
   delete $grp->{'currentNode'} if (exists $grp->{'currentNode'});
   undef %{$grp->{pinfo}} if ($grp->{pinfo});
   $grp->{'top'}->title("$appName");
-  if ($grp->{Filelist}) {
-    $fileNo = min($fileNo,$#files);
-    $grp->{Filelist}->delete(0,'end');
-    $grp->{Filelist}->insert('end',@files);
-    $grp->{Filelist}->activate($fileNo);
-    $grp->{Filelist}->selectionClear(0,'end');
-    $grp->{Filelist}->selectionSet($fileNo) if ($fileNo>=0);
-  }
   $valueLine="";
   redraw_tree($grp);
 
 #  foreach ($grp->{FSFile}->trees) { DeleteTree($_); }
 }
-
 
 sub ErrorMessage {
   my ($grp,$msg)=@_;
@@ -693,7 +698,7 @@ sub addToRecent {
 
   if ($f) {
     @recentFiles=grep { $_ ne $f } @recentFiles;
-    unshift @recentFiles,$f;
+    unshift @recentFiles,rel2abs($f);
   }
   @recentFiles=@recentFiles[0..min($#recentFiles,9)];
 
@@ -773,6 +778,8 @@ sub openFile {
   $grp->{'FSFile'}->changeFilename($f);
   $grp->{'FSFile'}->changeFileFormat($gz.$fs);
   $grp->{'FSFile'}->readFrom(\*F);
+  print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
+
 
   close (F);
   
@@ -789,40 +796,28 @@ sub openFile {
 
   #print "That is:\n@displayAttrs\n";
 
-  print STDERR "empty file!\n" if ($grp->{FSFile}->lastTreeNo<0);
-
-  $treeNo=0;
+  $grp->{treeNo}=0;
 
   # -- smells like PDT-specific code, at least the second case
   if (defined $goto) {
     if ($goto=~/^##([0-9]+)$/) {
-      $treeNo=min(max(0,$1),$grp->{FSFile}->lastTreeNo);
+      $grp->{treeNo}=min(max(0,$1),$grp->{FSFile}->lastTreeNo);
     }
     for (my $i=0;$i<=$grp->{FSFile}->lastTreeNo;$i++) {
-      $treeNo=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq $goto);
+      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq $goto);
     }
   }
   # --
 
   # add file to filelist
-  $fileNo = max(0,$fileNo);
-  unless ($files[$fileNo] eq $f) {
-    splice @files,$fileNo,0,$f;
-    if ($grp->{Filelist}) {
-      $grp->{Filelist}->delete(0,'end');
-      $grp->{Filelist}->insert('end',@files);
-      $grp->{Filelist}->activate($fileNo);
-      $grp->{Filelist}->selectionClear(0,'end');
-      $grp->{Filelist}->selectionSet($fileNo);
-    }
-  }
-
-  $grp->{'top'}->title("$appName $f (".($fileNo+1)."/".@files.")");
+  $grp->{currentFileNo} = max(0,$grp->{currentFileNo});
+  insertToFilelist($grp,$grp->{currentFileNo},$f);
+  $grp->{'top'}->title("$appName $f (".($grp->{currentFileNo}+1)."/".@files.")");
   if ($grp->{currentNode}) {
     centerToXY($grp,0,0);
   }
   getNodes($grp);
-  $FileNotSaved=0;
+  $grp->{FSFile}->notSaved(0);
   doEvalHook($grp,"file_opened_hook");
   redraw_tree($grp);
   $grp->{'top'}->Unbusy();
@@ -886,7 +881,7 @@ sub saveFile {
   
   print FO $grp->{FSFile}->tail;
   close(FO);
-  $FileNotSaved=0;
+  $grp->{FSFile}->notSaved(0);
   saveFileStateUpdate($grp);
   #print STDERR "wrote $f, $f~ is a backup.\n";
 }
@@ -927,7 +922,7 @@ sub getValueLine {
   my ($grp)=@_;
   return unless $grp->{'FSFile'};
 
-  my $node=$root;
+  my $node=$grp->{root};
   my @sent=();
 
   #$valueLine="";
@@ -946,7 +941,7 @@ sub getValueLine {
   } else {
     @sent = sort { $a->{$grp->{FSFile}->FS->order} <=> $b->{$grp->{FSFile}->FS->order} } @sent;
   }
-  $valueLine = ($treeNo+1)."/".$grp->{FSFile}->trees.": ".encode(join(" ", map { $_->{$grp->{FSFile}->FS->value} } @sent));
+  $valueLine = ($grp->{treeNo}+1)."/".$grp->{FSFile}->trees.": ".encode(join(" ", map { $_->{$grp->{FSFile}->FS->value} } @sent));
   undef @sent;
 
 }
@@ -960,11 +955,11 @@ sub getNodes {
   return unless $grp->{FSFile};
   $grp->{Nodes}=[];
   my @unsorted=();
-  $treeNo=0 if ($treeNo<0);
-  $treeNo=$grp->{FSFile}->lastTreeNo if ($treeNo>$grp->{FSFile}->lastTreeNo);
-  $root=$grp->{FSFile}->treeList->[$treeNo];
-  my $node=$root;
-  my $current=$root;
+  $grp->{treeNo}=0 if ($grp->{treeNo}<0);
+  $grp->{treeNo}=$grp->{FSFile}->lastTreeNo if ($grp->{treeNo}>$grp->{FSFile}->lastTreeNo);
+  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+  my $node=$grp->{root};
+  my $current=$grp->{root};
 
   getValueLine($grp);
 
@@ -986,25 +981,99 @@ sub getNodes {
   # may have the same Ord
 }
 
+sub insertToFilelist {
+  my ($grp,$position)=(shift,shift);
+  $position=$grp->{currentFileNo} if not defined($position);
+
+  unless ($files[$position] eq @_[0]) {
+    splice @files,$position,0, map { rel2abs($_) } @_;
+    if ($grp->{Filelist}) {
+      $grp->{Filelist}->delete(0,'end');
+      $grp->{Filelist}->insert('end',@files);
+      $grp->{Filelist}->activate($position);
+      $grp->{Filelist}->see('active');
+      $grp->{Filelist}->selectionClear(0,'end');
+      $grp->{Filelist}->selectionSet($position);
+    }
+  }
+}
+
+sub removeFromFilelist {
+  my ($grp,$position)=shift;
+  foreach (@_) {
+    splice @files,$_,1;
+  }
+  if ($grp->{Filelist}) {
+    $grp->{currentFileNo} = min($grp->{currentFileNo},$#files);
+    $position=$grp->{currentFileNo} if not defined($position);
+    $grp->{Filelist}->delete(0,'end');
+    $grp->{Filelist}->insert('end',@files);
+    $grp->{Filelist}->activate($position);
+    $grp->{Filelist}->see('active');
+    $grp->{Filelist}->selectionClear(0,'end');
+    $grp->{Filelist}->selectionSet($position) if ($position>=0);
+  }
+}
+
 sub filelistDialog {
+
+  use Tk::LabFrame;
+
   my $grp=shift;
   return if ($grp->{Filelist});
   my $d = $grp->{'top'}->Toplevel(-title => "Filelist");
   $d->withdraw;
-#  $d->resizable(0,0);
-  my $t = $d->Scrolled(qw/Listbox -relief sunken 
-                     -borderwidth 2 -setgrid true
-		     -height 15 -width 0 -scrollbars e/);
-  $grp->{Filelist}=$t;
-  $t->pack(qw/-expand yes -fill both/);
-  $t->insert('end',@files);
+  $grp->{'filelistDialog'}=$d;
+  #  $d->resizable(0,0);
+  my $frame=$d->Frame();
+  my $labframe=$frame->LabFrame(-label => 'Files to add',
+				-labelside => 'acrosstop'
+			       )->pack(qw/-expand yes -fill both -side left/);
+  my $fl = $labframe->MyFileSelect(-selectmode => extended,
+				   -filetypes => \@open_types)
+    ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
 
-  $d->bind('<Return>' => [
+  $fl->Subwidget('filelist')->configure(qw/-background white -foreground black/);
+  $fl->Subwidget('entry')->configure(qw/-background white -foreground black/);
+
+  my $midframe=$frame->Frame()->pack(qw/-side left/);
+
+  my $t = $frame->Scrolled(qw/Listbox -relief sunken 
+                     -borderwidth 2 -setgrid true
+    		     -background white
+		     -foreground black
+                     -selectmode extended
+                     -width 60
+		     -height 15 -scrollbars e/)
+    ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
+  $grp->{Filelist}=$t;
+  $t->insert('end',@files);
+#  $grp->{Filelist}->configure(-width=>0) if (@files);
+  $frame->pack(qw/-expand yes -fill both -side top/);
+
+  my $addbutton=
+    $midframe->Button(-text => 'Add -->',
+	       -command=>[
+			  sub { 
+				my ($grp,$t,$l)=@_;
+				insertToFilelist($grp,$t->index('active')+1,$l->getSelectedFiles);
+				$t->see('active');
+			      },$grp,$t,$fl])->pack(-side => top);
+  my $addbutton=
+    $midframe->Button(-text => 'Remove',
+	       -command=>[
+			  sub { 
+				my ($grp,$t,$l)=@_;
+				removeFromFilelist($grp,undef,$t->curselection);
+				$t->see('active');
+			      },$grp,$t,$fl])->pack(-side => top);
+
+  $t->bind('<Return>' => [
 			  sub {
 			    shift;
 			     gotoFile(shift,shift->index('active'));
 			   },$grp,$t ]);
-  $d->bind('<Double-1>' => [
+  $t->bind('<Double-1>' => [
 			    sub {
 			      shift;
 			      gotoFile(shift,shift->index('active'));
@@ -1025,8 +1094,11 @@ sub filelistDialog {
 				     #shift->{Filelist}=undef;
 				     shift->destroy();
 				   },$d ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
-  $t->activate($fileNo);
-  $t->selectionSet($fileNo);
+  if ($grp->{currentFileNo}) {
+    $t->activate($grp->{currentFileNo});
+    $t->selectionSet($grp->{currentFileNo});
+    $t->see('active');
+  }
   $t->focus;
   $d->Popup;
 
@@ -1280,7 +1352,7 @@ sub printThis {
   my ($grp)=@_;
   my $i;
   my $c=$grp->{'canvas'};
-  my $saveTreeNo=$treeNo;
+  my $saveTreeNo=$grp->{treeNo};
   my $savefont=$font;
   my $pagewidth;
   my $pageheight;
@@ -1347,7 +1419,7 @@ sub printThis {
       }
     }
     #  @printList=split ' ',$grp->{'printSelection'};
-    push @printList,$treeNo+1 unless (@printList);
+    push @printList,$grp->{treeNo}+1 unless (@printList);
 
     unless (open(F,"<$psFontFile")) {
       print STDERR "Aborting: failed to open font file $psFontFile\n";
@@ -1369,7 +1441,7 @@ sub printThis {
     for (my $t=0;$t<=$#printList;$t++) {
       print "Printing $printList[$t]\n";
       $font=$type1font if ($grp->{printUseType1Font});      
-      $printList[$t]!=$treeNo+1 ? gotoTree($grp,$printList[$t]-1) : redraw_tree($grp);
+      $printList[$t]!=$grp->{treeNo}+1 ? gotoTree($grp,$printList[$t]-1) : redraw_tree($grp);
       my $rotate = ( ! $grp->{printToEPS} 
 	and $grp->{canvasHeight}<$grp->{canvasWidth});
       print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
@@ -1467,7 +1539,7 @@ sub printThis {
     #print "$psFile written!\n";
   }
 
-  if ($treeNo eq $saveTreeNo) { redraw_tree($grp); }
+  if ($grp->{treeNo} eq $saveTreeNo) { redraw_tree($grp); }
   else { gotoTree($grp,$saveTreeNo); }
   $grp->{top}->Unbusy();
 
@@ -1489,9 +1561,9 @@ sub gotoTree {
   my $grp=shift;
   return unless $grp->{'FSFile'};
   my $no = max(0,min(shift,$grp->{FSFile}->lastTreeNo));
-  return $treeNo if doEvalHook($grp,"goto_tree_hook") eq 'stop';
-  return $no if ($no == $treeNo);
-  $treeNo=$no;
+  return $grp->{treeNo} if doEvalHook($grp,"goto_tree_hook") eq 'stop';
+  return $no if ($no == $grp->{treeNo});
+  $grp->{treeNo}=$no;
   getNodes($grp);
   centerToXY($grp,0,0);
   redraw_tree($grp);
@@ -1501,15 +1573,15 @@ sub gotoTree {
 sub nextTree {
   my ($grp)=@_;
   return unless $grp->{'FSFile'};
-  return 0 if ($treeNo >= $grp->{FSFile}->lastTreeNo);
-  gotoTree($grp,$treeNo+1);
+  return 0 if ($grp->{treeNo} >= $grp->{FSFile}->lastTreeNo);
+  gotoTree($grp,$grp->{treeNo}+1);
   return 1;
 }
 
 sub prevTree {
   my ($grp)=@_;
-  return 0 if ($treeNo <= 0);
-  gotoTree($grp,$treeNo-1);
+  return 0 if ($grp->{treeNo} <= 0);
+  gotoTree($grp,$grp->{treeNo}-1);
   return 1;
 }
 
@@ -1518,7 +1590,7 @@ sub newTree {
   
   my $nr=FSNode->new(); # blessing new root
 
-  splice(@{$grp->{FSFile}->treeList}, $treeNo, 0, $nr);
+  splice(@{$grp->{FSFile}->treeList}, $grp->{treeNo}, 0, $nr);
 
   getNodes($grp);
   centerToXY($grp,0,0);
@@ -1531,7 +1603,7 @@ sub newTreeAfter {
 
   my $nr=FSNode->new(); # blessing new root
 
-  splice(@{$grp->{FSFile}->treeList}, ++$treeNo, 0, $nr);
+  splice(@{$grp->{FSFile}->treeList}, ++$grp->{treeNo}, 0, $nr);
 
   getNodes($grp);
   centerToXY($grp,0,0);
@@ -1542,13 +1614,13 @@ sub newTreeAfter {
 sub pruneTree {
   my ($grp)=@_;
 
-  return unless ($grp->{'FSFile'} and $grp->{FSFile}->treeList->[$treeNo]);
-  $root=$grp->{FSFile}->treeList->[$treeNo];
-  splice(@{$grp->{FSFile}->treeList}, $treeNo, 1);
-  DeleteTree($root);
+  return unless ($grp->{'FSFile'} and $grp->{FSFile}->treeList->[$grp->{treeNo}]);
+  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+  splice(@{$grp->{FSFile}->treeList}, $grp->{treeNo}, 1);
+  DeleteTree($grp->{root});
 
-  $treeNo=max(0,min($treeNo,$grp->{FSFile}->lastTreeNo));
-  undef $root;
+  $grp->{treeNo}=max(0,min($grp->{treeNo},$grp->{FSFile}->lastTreeNo));
+  $grp->{root} = undef;
 
   getNodes($grp);
   centerToXY($grp,0,0);
@@ -1647,8 +1719,10 @@ sub cascadeMenus {
 
 sub saveFileStateUpdate {
   my ($grp)=@_;
-  $grp->{'saveButton'}->configure(-image => $FileNotSaved ?
-				  $grp->{'normalSavePixmap'} : $grp->{'savedSavePixmap'});
+  $grp->{'saveButton'}->
+    configure(-image =>
+	      ($grp->{FSFile} and $grp->{FSFile}->notSaved)
+	      ? $grp->{'normalSavePixmap'} : $grp->{'savedSavePixmap'});
 }
 
 
@@ -1657,6 +1731,7 @@ sub About {
   my $message="";
   my $fileinfo="";
   my $colinf="";
+  print STDERR "=" x 60,"\n",join("\n",keys(%$grp)),"=" x 60,"\n";
   if ($grp->{FSFile}) {
     $fileinfo=
       "Current file:\n".
@@ -1695,23 +1770,12 @@ sub startMain {
 
   $group{top}=MainWindow->new;
 
-  print "Setting geometry to $geometry\n";  
-
   if (defined($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
-      print "I have $1+$2+$3\n";
-      print "root size is ",$group{top}->vrootwidth,"x",
-	$group{top}->vrootheight,"\n";
-      print "Taking x minimum of $3 and ",
-	    $group{top}->vrootwidth-$1,"\n";
-      print "Taking y minimum of $4 and ",
-	$group{top}->vrootheight-$2,"\n";
         $geometry
 	  = "$1x$2+".min($3,$group{top}->vrootwidth-$1).
 	    "+".min($4,$group{top}->vrootheight-$2);
     }
-#    $geometry=~s/\+0(?:(?=[^0-9])|$)//g;
-    print "Actual geometry is $geometry\n";  
     $group{top}->geometry($geometry);
   }
 
@@ -1764,7 +1828,7 @@ sub startMain {
   $group{FileMenu}->command(-label=> 'Close', -underline => 0, 
 			    -command => [ sub {
 					    my ($grp)=@_;
-					    splice @files,$fileNo,1;
+					    removeFromFilelist($grp,undef,$grp->{currentFileNo});
 					    closeFile($grp);
 					  }
 					 , \%group]);
@@ -1990,7 +2054,6 @@ sub startMain {
   $group{Balloon}->attach($group{prevButton},
 		 -balloonmsg => "see the previous tree");
   addBindTags($group{'prevButton'},'my');
-  $group{'attrDialog'}=undef;
 
   $group{'openButton'}=$group{'frame'}->Button(-text => "Open",
 					       -relief => $buttonsRelief,
@@ -2307,6 +2370,7 @@ sub startMain {
     "Geometry\t=\t".$geometry."\n",
     "CanvasHeight\t=\t".$defCHeight."\n",
     "CanvasWidth\t=\t".$defCWidth."\n",map { "RecentFile$_\t=\t$recentFiles[$_]\n"} 0..$#recentFiles;
+  chomp $conf[$#conf];
   saveConfig(\%group,@conf);
   print STDERR "Done.\n" if $tredDebug;
 }
@@ -2314,14 +2378,14 @@ sub startMain {
 sub onIdleNextTree {
   my ($w,$grp)=@_;
   return unless $grp->{'FSFile'};
-  $treeNo=max(0,min($treeNo+1,$grp->{FSFile}->lastTreeNo));
+  $grp->{treeNo}=max(0,min($grp->{treeNo}+1,$grp->{FSFile}->lastTreeNo));
   getValueLine($grp);
   $w->afterCancel($myIdle) if ($myIdle);
   $grp->{valueLine}->idletasks();
   $myIdle=$w->afterIdle([ sub {
 			    my $g=shift;
-			    my $no=$treeNo;
-			    $treeNo=-1; # this is to force getNodes & redraw
+			    my $no=$grp->{treeNo};
+			    $grp->{treeNo}=-1; # this is to force getNodes & redraw
 			    gotoTree($g,$no);
 			    $myIdle=undef;
 			  },$grp]);
@@ -2329,16 +2393,16 @@ sub onIdleNextTree {
 }
 
 sub onIdlePrevTree {
-  if ($treeNo>0) {
+  if ($grp->{treeNo}>0) {
     my ($w,$grp)=@_;
-    $treeNo--;
+    $grp->{treeNo}--;
     getValueLine($grp);
     $w->afterCancel($myIdle) if ($myIdle);
     $grp->{valueLine}->idletasks();
     $myIdle=$w->afterIdle([ sub {
 			      my $g=shift;
-			      my $no=$treeNo;
-			      $treeNo=-1; # this is to force getNodes & redraw
+			      my $no=$grp->{treeNo};
+			      $grp->{treeNo}=-1; # this is to force getNodes & redraw
 			      gotoTree($g,$no);
 			      $myIdle=undef;
 			    },$grp]);
@@ -2393,22 +2457,13 @@ sub ShowDialog {
 
 sub fileDialog {
   my $grp = shift;
-  my $types;
   my $file;
 
 #  use Tk::FileSelect;
 #  my $FSref = $grp->{top}->FileSelect(-selectmode => extended);
 #  print $FSref->Show;
-  @types =
-    (["Fs files",           [qw/.fs .FS .Fs/]],
-     ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
-     ["CSTS files",           [qw/.am .cst .csg .csts/]],
-     ["Gzipped CSTS files",           [qw/.am.gz .cst.gz .csg.gz .csts.gz/]],
-     ["Backup Fs files",           [qw/.fs\~ .fb .FB .Fb/]],
-     ["Backup gzipped Fs files",           [qw/.fgz\~ .fs.gz\~ .FGZ\~ .FS.gz\~ .FS.GZ\~/]],
-     ["All files",        '*']
-    );
-  $file = $grp->{'top'}->getOpenFile(-filetypes => \@types);
+
+  $file = $grp->{'top'}->getOpenFile(-filetypes => \@open_types);
   if (defined $file and $file ne '') {
     return openFile($grp,$file);
   }
@@ -2417,29 +2472,20 @@ sub fileDialog {
 
 sub saveFileAs {
   my $grp = shift;
-  my $types;
   my $initdir;
   return unless $grp->{FSFile};
   my $file=$grp->{FSFile}->filename;
 
-  @types =
-    (["Fs files",           [qw/.fs .FS .Fs/]],
-     ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
-     ["CSTS files",           [qw/.cst .csts/]],
-     ["Gzipped CSTS files",           [qw/.cst.gz .csts.gz/]],
-     ["All files",        '*']
-    );
-
   $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
 
-  $file = $grp->{'top'}->getSaveFile(-filetypes => \@types,
+  $file = $grp->{'top'}->getSaveFile(-filetypes => \@save_types,
 				     -title => "Save As ...",
 				     -initialdir => $initdir,
      				     -initialfile => filename($file));
   if (defined $file and $file ne '') {
     $grp->{FSFile}->changeFilename($file);
-    $grp->{'top'}->title("$appName $file (".($fileNo+1)."/".@files.")");
+    $grp->{'top'}->title("$appName $file (".($grp->{currentFileNo}+1)."/".@files.")");
     return saveFile($grp);
   }
   return 0;
@@ -2812,7 +2858,7 @@ sub editAttrsDialog {
   my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
 
   if ($result =~ /OK/) {
-    $FileNotSaved=1;
+    $grp->{FSFile}->notSaved(1);
     foreach $a (@atord) {
       $$node{$a}=decode($e{$a}->get);
     }
@@ -3058,7 +3104,7 @@ sub findNodeDialog {
   $grp->{'top'}->Unbusy();
   my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result =~ /Find/) {
-    #    $FileNotSaved=1;
+    #    $grp->{FSFile}->notSaved(1);
     foreach $a (@atord) {
       $template->{$a}=decode($e{$a}->get);
     }
@@ -3093,7 +3139,7 @@ sub findFirstTemplated {
   my ($grp,$template,$skipfirst)=@_;
   return unless $grp->{'FSFile'};
   my $node=$grp->{'currentNode'};
-  my $tree=$treeNo;
+  my $tree=$grp->{treeNo};
   my $a;
 
   $node=(HNext($grp,$node) || $grp->{FSFile}->treeList->[(++$tree)]) if ($skipfirst);
@@ -3127,7 +3173,7 @@ sub findPrevTemplated {
   my ($grp,$template,$skipfirst)=@_;
   return unless $grp->{'FSFile'};
   my $node=$grp->{'currentNode'};
-  my $tree=$treeNo;
+  my $tree=$grp->{treeNo};
   my $a;
 
   if ($skipfirst) {
@@ -3184,7 +3230,7 @@ sub editAttr {
     $newvalue = editListAttr($grp,$$node{$attr},$attr,$grp->{top});
     if (defined($newvalue)) {
       $grp->{'top'}->Busy(-recurse => 1);
-      $FileNotSaved=1;
+      $grp->{FSFile}->notSaved(1);
       $$node{$attr}=$newvalue;
       getNodes($grp);
       redraw_tree($grp);
@@ -3197,7 +3243,7 @@ sub editAttr {
     $newvalue = editAmbiguousAttr($grp,$$node{$attr},$attr);
     if (defined $newvalue) {
       $grp->{'top'}->Busy(-recurse => 1);
-      $FileNotSaved=1;
+      $grp->{FSFile}->notSaved(1);
       $$node{$attr}=$newvalue;
       getNodes($grp);
       redraw_tree($grp);
@@ -3230,7 +3276,7 @@ sub editAttr {
   my $result = ShowDialog($d,$e,$grp->{top});
 #  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
-    $FileNotSaved=1;
+    $grp->{FSFile}->notSaved(1);
     $$node{$attr}=decode($newvalue);
     getNodes($grp);
     redraw_tree($grp);
@@ -3733,8 +3779,10 @@ sub centerToXY {
   $shiftx=($bx-$ax)/2;
   $shifty=($by-$ay)/2;
 
-  $grp->{'canvas'}->xview(moveto => min(max(0,$x/$grp->{'canvasWidth'}-$shiftx),1));
-  $grp->{'canvas'}->yview(moveto => min(max(0,$y/$grp->{'canvasHeight'}-$shifty),1));
+  $grp->{'canvas'}->xview(moveto => min(max(0,$x/$grp->{'canvasWidth'}-$shiftx),1))
+    if ($grp->{'canvasWidth'}-$shiftx);
+  $grp->{'canvas'}->yview(moveto => min(max(0,$y/$grp->{'canvasHeight'}-$shifty),1))
+    if ($y/$grp->{'canvasHeight'}-$shifty);
 }
 
 sub centerTo {
@@ -3747,13 +3795,13 @@ sub doEvalHook {
 #  my $hookparams=join ",", map { "\"$_\"" } @_;
   my $context=$grp->{macroContext};
   return unless $hook;
-#  local $this;
-  $this=$grp->{'currentNode'};
-  my $result;
-  my $FileNotSavedOrig=$FileNotSaved;
 
+  $this=$grp->{'currentNode'};
   return unless $this;
-  #$FileNotSaved=0; # Macro may want to override this :)
+  $root=$grp->{'root'};
+
+  my $result;
+  $FileNotSaved=$grp->{FSFile}->notSaved; # Macro may want to override this :)
   $insideEval=1;
 
   unless ($macrosEvaluated) {
@@ -3773,9 +3821,16 @@ sub doEvalHook {
     $result=eval { return &{"TredMacro\:\:$hook"}(@_); };
   }
   print "$@\n" if $@;
-  $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
+  $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
   saveFileStateUpdate($grp);
   $insideEval=0;
+
+  # This may be important
+  # (we do not want to leave references to non-existsing
+  #  objects later)
+  $this=undef;
+  $root=undef;
+
   print STDERR "Hook resulted with $result\n" if $hookDebug;
   return $result;
 }
@@ -3785,14 +3840,14 @@ sub doEvalMacro {
   my ($grp,$macro)=(shift,shift);
   return unless $macro;
   print "$macro\n";
-#  local $this;
-  $this=$grp->{'currentNode'};
-  my $result;
-  my $FileNotSavedOrig=$FileNotSaved;
 
+  $this=$grp->{'currentNode'};
   return unless $this;
+  $root=$grp->{'root'};
+
+  my $result;
   $grp->{'top'}->Busy(-recurse => 1);
-  $FileNotSaved=1;      # Macro may want to override this :)
+  $fileNotSaved=$grp->{FSFile}->notSaved;  # Macro may want to override this :)
   $forceFileSaved=0; # Macro may want to override this :)
   $insideEval=1;
 
@@ -3814,7 +3869,7 @@ sub doEvalMacro {
   unless ($forceFileSaved) {
     print "Macro claims file untouched\n"
       unless ($FileNotSaved);
-    $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
+    $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
   } else {
     print "Macro forsly claims file saved.\n";
     # using value of $FileNotSaved
@@ -3822,6 +3877,13 @@ sub doEvalMacro {
   $insideEval=0;
   $grp->{'top'}->Unbusy;
   setCurrent($grp,$this) if ($this);
+
+  # This may be important
+  # (we do not want to leave references to non-existsing
+  #  objects later)
+  $this=undef;
+  $root=undef;
+
   currentUnhiden($grp);
   getNodes($grp);
   redraw_tree($grp);
@@ -3982,7 +4044,7 @@ sub node_release {
       if ($p and $grp->{'pinfo'}{$p} 
 	  and $node->parent!=$grp->{'pinfo'}{$p}) {
 	Paste(Cut($node),$grp->{'pinfo'}{$p},$grp->{FSFile}->FS->defs);
-	$FileNotSaved=1;
+	$grp->{FSFile}->notSaved(1);
 	redraw_tree($grp);
 	centerTo($grp,$grp->{currentNode});
 	return;
