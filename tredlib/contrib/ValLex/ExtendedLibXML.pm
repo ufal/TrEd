@@ -3,7 +3,7 @@
 package TrEd::ValLex::ExtendedLibXML;
 use ValLex::Extended;
 use ValLex::LibXMLData;
-use base qw(TrEd::ValLex::LibXMLData TrEd::ValLex::Extended);
+use base qw(TrEd::ValLex::Extended TrEd::ValLex::LibXMLData);
 
 sub by_id {
   my ($self,$id)=@_;
