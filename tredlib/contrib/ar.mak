@@ -1,12 +1,14 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2001-11-26 19:39:45 pajas>
+## Time-stamp: <2002-03-22 18:16:57 pajas>
 
 package Analytic;
 use base qw(TredMacro);
 import TredMacro;
 
+
+#include contrib/AutoAfun.mak
 
 sub switch_context_hook {
   if ($grp->{FSFile} and !$grp->{FSFile}->hint()) {
