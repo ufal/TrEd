@@ -35,7 +35,7 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 	    $normalNextPixmap
 	    $normalPrevPixmap
 	    $locale_charset
-	    $no_required
+	    $no_secondary
            );
 
 $version='$Revision$ ';
@@ -79,7 +79,7 @@ Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
 use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GHDUB:RX:s:');
+getopts('qm:c:l:t:n:p:vhuW:GHDYB:RX:s:');
 
 if ($opt_u || $opt_h) {
   print <<'EOH';
@@ -138,14 +138,14 @@ Other options:
 -H              Start with showing hidden nodes
 -G              Do not initially resize window to its last geomtery.
 -W <window_id>  Embed main window into the given window
--U              Don't load secondary files
+-Y              Don't load secondary files
 -B <backends>   Comma separated list of additional backends to import
 
 EOF
   exit;
 }
 
-$no_required = $opt_U;
+$no_secondary = $opt_Y;
 
 if ($opt_v) {
   my $ver=$version;
@@ -1776,7 +1776,7 @@ sub openFile {
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
 
 
-    unless ($no_required) {
+    unless ($no_secondary) {
     # if backend requested another FS-file, load it
     # and store it in metaData('ref') hash table
     #
@@ -4755,6 +4755,7 @@ sub startMain {
 			 doEvalHook($grp->{focusedWindow},"reload_macros_hook");
 			 cleanup_tredmacro($grp);
 			 read_macros($macroFile,$libDir);
+			 doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
 			 redraw_all($grp);
 		       },\%group]],
 	 
@@ -6545,7 +6546,7 @@ sub editAttrsDialog_schema {
   require Tk::TrEdNodeEdit;
 
   use Data::Dumper;
-  print "PATH: '$attr_path'\n";
+#  _debug "PATH: '$attr_path'\n";
 
 
   my $schema = $node->type->schema;
@@ -6588,13 +6589,10 @@ sub editAttrsDialog_schema {
   } elsif (ref($node_type) and $node_type->{structure}) {
     $edit->add_members('',$node_type->{structure},$node,1);
   } else {
-    print map { "$_ => $node->{$_}" } keys %$node;
-    print "\n";
     $edit->add_xmlnode('',$node_type,$node);
   }
 
   if ($attr_path eq '') {
-    print "Searchline\n";
     my $sf = $d->Frame->pack(qw(-fill x -side bottom));
     $sf->Label(-underline => 0,
 	       -text => 'Search name:')->pack(qw(-side left));
