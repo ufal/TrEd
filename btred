@@ -38,7 +38,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
-	    $version $lib
+	    $version $lib $extra_backends
 	    $_ERR %optmap
 	   );
 
@@ -89,6 +89,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "man"            => \$manpage,
 	    "lib"            => \$lib,
 	    "preload-module|M=s" => \@preload_modules,
+	    "extra-backends|B=s" => \$extra_backends,
 	    "version|v"        => \$print_version
 	   );
 
@@ -238,7 +239,9 @@ require TrEd::Basics;
 import TrEd::Basics;
 
 #load back-ends
-@backends=('FSBackend',ImportBackends(qw(NTREDBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
+@backends=('FSBackend',ImportBackends(
+  split(/,/,$extra_backends),
+  qw(NTREDBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 # these are for macros
@@ -1556,6 +1559,10 @@ possesed by the server.
 
 Accept only connections from a given host when operating in the
 server-mode.
+
+=item B<--extra-backends|-B> backends
+
+Comma separated list of user-defined IO-backend modules to load.
 
 =item B<--lib>
 
