@@ -11,6 +11,11 @@ sub tfa_NA {
   TFAAssign();
 }
 
+sub tfa_qm {
+  $sPar1 = '???';
+  TFAAssign();
+}
+
 
 sub GetNodesExceptST {
 # returns the reference to an array ordered according to the ordering attribute
@@ -306,7 +311,9 @@ sub OrderByTFA {
     if ($node eq $top) {
       push @subtree, $node  # only the top node
     } else {
-      push @subtree, SortByOrd([GetNodes($node)])  # push a son's subtree
+      my @sonssubtree=GetNodes($node);
+      SortByOrd(\@sonssubtree);
+      push @subtree, @sonssubtree  # push a son's subtree
     }
   }
   return \@subtree
@@ -339,7 +346,7 @@ sub MoveST {
 
   return unless my $subtree=ContinueProjectivizing($top);
 
-  my $after = ref($_[1]) ? $_[1] : $root;
+  my $after= ref($_[1]) ? $_[1] : $root;
 
   my $all=GetNodesExceptST($top);
 

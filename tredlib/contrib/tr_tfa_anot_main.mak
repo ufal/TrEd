@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-10-19 17:35:34 pajas>
+## Time-stamp: <2001-11-02 11:55:17 pajas>
 
 #include contrib/tr_anot_main.mak
 
