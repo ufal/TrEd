@@ -349,7 +349,8 @@ sub redraw {
       $node->{"_tkTextBg".$i."_"}=
 	$self->canvas->
 	  createRectangle($node->{"_tkXPOS_"},
-			  $node->{"_tkYPOS_"}+$self->get_nodeHeight+$self->get_nodeYSkip+$i*$lineHeight,
+			  $node->{"_tkYPOS_"}+$self->get_nodeHeight+$self->get_nodeYSkip+
+			  $i*$lineHeight-2,
 			  $node->{"_tkXPOS_"}+$node->{"_tkX_$i"}+1,
 			  #$self->canvas->fontMeasure($self->get_font,$self->prepare_text($node,$i))+1,
 			  $node->{"_tkYPOS_"}+$self->get_nodeHeight+$self->get_nodeYSkip+($i+1)*$lineHeight,

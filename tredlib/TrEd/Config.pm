@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-06-07 20:51:13 pajas>
+# Time-stamp: <2001-06-12 09:57:41 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -202,7 +202,7 @@ sub set_config {
     $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
 					   "$libDir/".$psFontFile);
   } else {
-    $psFontFile="$libDir/csarialm.pfa";
+    $psFontFile="$libDir/fonts/ariam___.pfa";
   }
   $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
   $sortAttrs=(exists $confs->{sortattributes}) ? $confs->{sortattributes} : 1;
