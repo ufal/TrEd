@@ -6,6 +6,7 @@ fi
 
 PATH=.:`pwd`/bin:${PATH}
 PERLVERSION="This is perl, v5.6.1 built for MSWin32-x86-multi-thread"
+PERL8VERSION="This is perl, v5.8.0 built for MSWin32-x86-multi-thread"
 
 function ask {
   answer=""
@@ -66,7 +67,7 @@ function findtreddir {
 function perl_version_current {
   INSTVER=`$PERLBIN --version | grep "This is perl."`
   echo $INSTVER
-  if [ "$INSTVER" = "$PERLVERSION" ]; then
+  if $PERLBIN --version | grep -q 'This is perl.* v5\.[86]'; then
     return 0
   else 
     return 1
@@ -185,8 +186,9 @@ else
   fi
 fi
 
-upgrade_packages Tk Text::Iconv XML::JHXML XML::SAX XML::LibXML  XML::LibXML::Iterator Tie::IxHash
-  
+upgrade_packages Tk Text::Iconv XML::JHXML Tie::IxHash
+# XML::SAX XML::LibXML  XML::LibXML::Iterator 
+
 findtreddir
 
 if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
