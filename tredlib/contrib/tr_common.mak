@@ -83,7 +83,7 @@ sub default_tr_attrs {
   stdout("Using standard patterns\n");
     SetDisplayAttrs('<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
-		    'text:<? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
+		    'text:<? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}#{-tag:LEMMA_".$${trlemma}."}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
 		    'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
 		    'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
@@ -1120,6 +1120,8 @@ sub get_status_line_hook {
 	 ];
 }
 
+
+# just an experiment
 sub __get_value_line_hook {
    my ($fsfile,$treeNo)=@_;
    my @vl = $fsfile->value_line_list($treeNo,1,1);

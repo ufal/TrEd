@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-03 15:33:00 pajas>
+## Time-stamp: <2003-07-21 14:11:12 pajas>
 
 package Coref;
 
@@ -13,7 +13,7 @@ sub default_tr_attrs {
     SetDisplayAttrs('mode:Coref',
 		    '<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? " #{red}(\${corinfo})" if $${corinfo} =~/\S/ ?>',
                     '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
-		    'text:<? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
+		    'text:<? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}#{-tag:LEMMA_".$${trlemma}."}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
 		    'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
 		    'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>'
 		   );
