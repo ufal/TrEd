@@ -130,7 +130,7 @@ sub read_macros {
 	  $menuBindings{$_}={} unless exists($menuBindings{$_});
 	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
 	}
-      } elsif (/\#[[ \t]*include[ \t]+(.+)/) {
+      } elsif (/\#[[ \t]*include[ \t]+(.+\S)\s*/) {
 	my $mf=$1;
 #	print STDERR "including $mf\n";
 	unless (-f $mf) {
