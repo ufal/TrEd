@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-12-12 18:36:54 pajas>
+## Time-stamp: <2004-01-14 17:15:26 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -212,5 +212,117 @@ sub goto_father {
 #bind edit_lemma_tag to Ctrl+T
 sub edit_lemma_tag {
   Analytic_Correction::edit_lemma_tag();
+}
+
+
+#bind transform_to_analytic to Ctrl+A
+sub transform_to_analytic {
+  my $defs = {'ord' => ' N'};
+  foreach my $root ($grp->{FSFile}->trees) {
+    my @nodes = ($root,$root->descendants);
+    unless ($root->{reserve1} eq 'TR_TREE') {
+      ErrorMessage("Tree doesn't look like TR_TREE");
+      return;
+    }
+    $root->{reserve1}='AR_TREE';
+    PDT->convertToARHeader();
+    PDT->saveTreeTStructure($root);
+
+    my (@analytic,@added);
+    # disconnect all nodes
+    foreach my $node (@nodes) {
+      Fslib::SetParent($node,0);
+      Fslib::SetFirstSon($node,0);
+      Fslib::SetLBrother($node,0);
+      Fslib::SetRBrother($node,0);
+    }
+
+    # create an array of analytic nodes
+    foreach my $node (@nodes) {
+      if ($node->{ord} !~ /\./) {
+	$analytic[ $node->{ord} ] = $node;
+      } else {
+	push @added,$node;
+      }
+    }
+
+    # connect analytic nodes
+    foreach my $node (@analytic) {
+      next if $node == $root;
+      if ($node->{ordorig} =~ /^\d+$/ and
+	  defined $analytic[ $node->{ordorig} ]) {
+	Paste($node,$analytic[ $node->{ordorig} ],$defs);
+      } else {
+	Paste($node,$root,$defs);
+      }
+    }
+
+    # connect TR-added nodes
+    foreach my $node (@added) {
+      next if $node == $root;
+      Paste($node,$root,$defs);
+      $node->{ARhide}='hide'; # hide them
+    }
+
+    # make sure we have a tree
+    foreach my $node (@nodes) {
+      next if $node == $root;
+      my $r = $node->root();
+      unless ($r == $root) {
+	Paste($r,$root,$defs);
+      }
+    }
+  }
+}
+
+#bind transform_to_tectogrammatic to Ctrl+R
+sub transform_to_tectogrammatic {
+  my $defs = {'dord' => ' N'};
+  foreach my $root ($grp->{FSFile}->trees) {
+    my @nodes = ($root,$root->descendants);
+    my %nodes = map {$_->{ord} => $_} @nodes;
+    if ($root->{reserve1} eq 'TR_TREE') {
+      ErrorMessage("Tree already looks like TR_TREE");
+      return;
+    }
+    $root->{reserve1}='TR_TREE';
+    PDT->convertToTRHeader();
+    PDT->saveTreeAStructure($root);
+
+    # disconnect all nodes
+    foreach my $node (@nodes) {
+      Fslib::SetParent($node,0);
+      Fslib::SetFirstSon($node,0);
+      Fslib::SetLBrother($node,0);
+      Fslib::SetRBrother($node,0);
+    }
+
+    # connect nodes
+    foreach my $node (@nodes) {
+      next if $node == $root;
+      if (ref($nodes{ $node->{govTR} })) {
+	Paste($node,$nodes{ $node->{govTR} },$defs);
+      } else {
+	Paste($node,$root,$defs);
+      }
+    }
+
+    # make sure we have a tree
+    foreach my $node (@nodes) {
+      next if $node == $root;
+      my $r = $node;
+      while ($r->parent) {
+	$r = $r->parent();
+	last if $r == $node;
+      }
+      if ($r == $node) {
+	Cut($r);
+      }
+      unless ($r == $root) {
+	print STDERR "fixing structure of [$node->{ord}]\n";
+	Paste($r,$root,$defs);
+      }
+    }
+  }
 }
 
