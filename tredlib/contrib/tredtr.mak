@@ -5996,11 +5996,11 @@ sub JoinSubtree {
 
 sub ifmodal {
 
-  $sPar3 = '';
-
   $sPar1 = ValNo(0,$pPar1->{'lemma'});
 
   GetAfunSuffix();
+
+  $sPar3 = '';
 
   if ($sPar2 eq 'chtít') {
 
