@@ -193,7 +193,8 @@ sub create_widget {
   my @lexframelists=();
   my @lexframelistlabels=();
   my $focused_framelist;
-  my $size=20/$count;
+  my $size=20;
+  $size/=$count if $count>0;
   for (my $i=0; $i<$count; $i++) {
     # List of Frames
     $lexframe_frame->Frame(-height => 12)->pack();
