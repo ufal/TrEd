@@ -42,7 +42,7 @@ sub default_tfa_attrs {
 #bind edit_commentA to exclam menu Edit annotator's comment
 sub edit_commentA {
     if (not FS()->exists('commentA')) {
-    $ToplevelFrame->messageBox
+    ToplevelFrame()->messageBox
       (
        -icon => 'warning',
        -message => 'Sorry, no attribute for annotator\'s comment in this file',

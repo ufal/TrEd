@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-06-25 12:38:26 pajas>
+## Time-stamp: <2003-07-03 15:33:00 pajas>
 
 package Coref;
 
@@ -70,7 +70,7 @@ sub about_file_hook {
 #bind edit_commentA to exclam
 sub edit_commentA {
   if (not FS()->exists('commentA')) {
-    $ToplevelFrame->messageBox
+    ToplevelFrame()->messageBox
       (
        -icon => 'warning',
        -message => 'Sorry, no attribute for annotator\'s comment in this file',
@@ -90,7 +90,7 @@ sub edit_commentA {
 #bind edit_corinfo to + menu Edit corinfo
 sub edit_corinfo {
   if (not FS()->exists('corinfo')) {
-    $ToplevelFrame->messageBox
+    ToplevelFrame()->messageBox
       (
        -icon => 'warning',
        -message => 'Sorry, no attribute for corinfo in this file',
