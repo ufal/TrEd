@@ -90,6 +90,7 @@ sub close_and_return {
   $top->destroy();
 }
 
+#my $top=Tk::MainWindow->new();
 #TrEd::ValLex::Chooser::show_dialog($find, $top,$data,$word);
 
 #if ($word) {
