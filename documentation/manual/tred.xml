@@ -1121,7 +1121,10 @@ root# <userinput>make install</userinput>
 	      or <literal>$n->rbrother</literal>.  The first son of
 	      <literal>$n</literal> is referred to as to
 	      <literal>FirstSon($n)</literal> or
-	      <literal>$n->firstson</literal>. If no such node exists,
+	      <literal>$n->firstson</literal>.
+	      A perl list of all child-nodes of <literal>$n</literal>
+	      may be obtained by <literal>$n->children</literal> method.
+	      If no such nodes exist,
 	      all these functions return zero `0'.  Moreover, all the
 	      nodes of the tree are elements of the
 	      <literal>@nodes</literal> array (list) with the same
@@ -3369,6 +3372,15 @@ root# <userinput>make install</userinput>
 		  contains a <classname>FSNode</classname> reference,
 		  the searching is limited to the subtree governed by 
 		  the node of <replaceable>top</replaceable>.
+		</entry>
+	      </row>
+	      <row>
+		<entry><literal>children</literal></entry>
+		<entry>
+		  Return a list of all child-nodes of the given node.
+		  The nodes in the list are ordered in their
+		  structural order starting from the first son of their parent,
+		  each node followed by its right brother.
 		</entry>
 	      </row>
 	    </tbody>
