@@ -44,6 +44,9 @@ use TrEd::MinMax;
 import TrEd::MinMax;
 
 use strict;
+use vars qw($bwModeNodeColor);
+
+#$bwModeNodeColor = 'white';
 
 sub parse_print_list {
   my ($fsfile,$printRange)=@_;
@@ -115,13 +118,14 @@ sub print_trees {
   print "AFM: ",$psFontAFMFile,"\n";
   print "Name: ",$psFontName,"\n";
   unless ($printColors) {
+      print " ========= $bwModeNodeColor ========\n";
     $treeView->apply_options({
 			    lineColor	       => 'black',
-			    nodeColor	       => 'white',
+			    currentNodeColor   => $bwModeNodeColor,
+			    nearestNodeColor   => $bwModeNodeColor,
+			    nodeColor	       => $bwModeNodeColor,
 			    currentBoxColor    => 'white',
 			    boxColor	       => 'white',
-			    currentNodeColor   => 'white',
-			    nearestNodeColor   => 'white',
 			    textColor	       => 'black',
 			    textColorShadow    => 'black',
 			    textColorHilite    => 'black',
@@ -173,11 +177,6 @@ sub print_trees {
 
     my $rotate = !$toEPS && !$noRotate
       && $treeView->get_canvasHeight<$treeView->get_canvasWidth;
-    print STDERR "Landscape : $rotate\n";
-    print STDERR "Canvas    : ",int($treeView->get_canvasWidth),"x",
-      int($treeView->get_canvasHeight),"\n";
-    print STDERR "Page      : ",int($c->fpixels($prtFmtWidth)),"x",
-      int($c->fpixels($prtFmtHeight)),"\n";
     if (not $rotate) {
       $pagewidth=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
       $pageheight=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
