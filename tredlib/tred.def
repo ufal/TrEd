@@ -118,6 +118,53 @@ first occurence of the item in the array.
 
 =cut
 
+sub uniq { my %a; grep { !($a{$_}++) } @_ }
+
+=item ListIntersect (array-ref, array-ref, ...)
+
+Compute intersection of given lists. In scalar context returns an
+array-ref, in list context returns a list. All duplicities are
+removed.
+
+=cut
+
+sub ListIntersect {
+  my %counts;
+  my $first = shift;
+  $counts{$_}++ for (map { @$_ } @_);
+  my $count  = scalar(@_);
+  return wantarray ?
+    (uniq grep { $counts{$_}==$count } @{$first})
+    : [uniq grep { $counts{$_}==$count } @{$first}];
+}
+
+=item ListSubtract (array-ref, array-ref)
+
+Return elements occuring in the first list but not in the second list.
+In scalar context returns an array-ref, in list context returns a
+list. All duplicities are removed.
+
+=cut
+
+sub ListSubtract($$) {
+  my %a; @a{ @{$_[1]} }=();
+  return grep { !exists($a{$_}) ? $a{$_}=1 : 0 } @{$_[0]};
+}
+
+
+=item ListUnion (array-ref, array-ref, ...)
+
+Return union of given lists. In scalar context returns an array-ref,
+in list context returns a list. All duplicities are removed.
+
+=cut
+
+sub ListUnion {
+  return wantarray ? (uniq map @$_,@_) : [uniq map @$_,@_];
+}
+
+
+
 =item import (names?)
 
 If specified without parameter, exports every symbol to the caller
