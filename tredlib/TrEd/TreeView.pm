@@ -403,7 +403,8 @@ sub recalculate_positions {
   my $nodeLabelWidth=0;
   my $edgeLabelWidth=0;
   my ($nodeWidth,$nodeHeight)=($self->get_nodeWidth,$self->get_nodeHeight);
-  my ($nodeXSkip,$nodeYSkip)=($self->get_nodeXSkip,$self->get_nodeYSkip);
+  my $nodeXSkip = exists($Opts->{nodeXSkip}) ? $Opts->{nodeXSkip} : $self->get_nodeXSkip;
+  my $nodeYSkip = exists($Opts->{nodeYSkip}) ? $Opts->{nodeYSkip} : $self->get_nodeYSkip;
   my $m;
 
   my ($pattern_count,$node_pattern_count,$edge_pattern_count)=(0,0,0);
@@ -776,7 +777,6 @@ sub get_node_style {
 sub parse_coords_spec {
   my ($self,$node,$coords,$nodes,$nodehash)=@_;
   # perl inline search
-  print "print $coords\n";
   $coords =~
     s{([xy])\[\?((?:.|\n)*?)\?\]}{
       my $i=0;
