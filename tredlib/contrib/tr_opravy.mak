@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-05-31 11:25:18 pajas>
+## Time-stamp: <2004-06-08 16:05:42 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -610,6 +610,59 @@ sub light_current {
   ChangingFile(0);
 }
 
+
+sub MoveTreeToPrev {
+  my @children = $root->children;
+  foreach (@children) {
+    CutNode($_);
+  }
+  PrevTree();
+  foreach (@children) {
+    Paste($_,$root);
+  }
+}
+
+#bind JoinNextTree to Ctrl+4 menu Join the following tree to the current (both TR and AR layer)
+sub JoinNextTree {
+  my @nodes = ($root->descendants());
+  PDT::ClearARstruct();
+  my %max;
+  $max{ord}     = max(map { $_->{ord} } $root, @nodes);
+  $max{dord}    = max(map { $_->{dord} } $root,@nodes);
+  $max{sentord} = max(map { $_->{sentord} } $root, grep { $_->{AID} ne "" } @nodes);
+  $max{ordorig} = $max{ord};
+  return unless NextTree();
+  foreach my $atr (qw(ord dord sentord ordorig)) {
+    foreach my $node ($root->descendants()) {
+      $node->{$atr} += $max{$atr};
+    }
+  }
+  MoveTreeToPrev();
+}
+
+
+############# XPath #############
+sub TRXPath {
+  return if $TRXPath;
+  SetupXPath(name => sub { $_[0]->{func} },
+	     value => sub { $_[0]->{trlemma} },
+	     @_);
+  $TRXPath = 1;
+}
+
+sub findnodes {
+  my ($exp, $node, @defs)=@_;
+  $node ||= $this;
+  TRXPath(@defs);
+  $node->findnodes($exp);
+}
+
+sub findvalue {
+  my ($exp, $node, @defs)=@_;
+  $node ||= $this;
+  TRXPath(@defs);
+  $node->findvalue($exp);
+}
 
 ############################################
 
