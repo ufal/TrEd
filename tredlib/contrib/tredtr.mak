@@ -6192,7 +6192,7 @@ sub joinfw {
 
     $sPar2 = ValNo(0,$pAct->{'AID'});
 
-    ConnetID();
+    ConnectID();
 
     $pParentW->{'AID'} = $sReturn;
 
@@ -6200,7 +6200,7 @@ sub joinfw {
 
     $sPar2 = ValNo(0,$pAct->{'fw'});
 
-    ConnetID();
+    ConnectID();
 
     $pParentW->{'fw'} = $sReturn;
   }
