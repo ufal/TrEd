@@ -42,7 +42,7 @@ sub show_dialog {
   ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
   $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
-  $chooser->widget()->focus();
+#  $chooser->widget()->focus();
   if (ref($field) eq "ARRAY") {
     foreach my $fl (@{$chooser->subwidget('framelists')}) {
       $fl->show_obsolete(!$$show_obsolete_ref);
@@ -72,8 +72,9 @@ sub show_dialog {
       $chooser->widget()->selectionSet(0);
     }
   }
+  $chooser->subwidget('framelists')->[0]->widget()->focus();
   if ($start_editor) {
-    $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
+    $d->afterIdle([sub { $_[0]->edit_button_pressed($start_editor) },$chooser]);
   }
 
   if ($d->Show() eq 'Choose') {
@@ -198,10 +199,23 @@ sub create_widget {
 				       $$ff=$lexframelist;
 				       $chooser->unselect_other_framelists($fl);
 				     },$self,$lexframelist,\$focused_framelist]);
+    $focused_framelist=$lexframelist if ($i==0);
+    $lexframelist->widget()->focus();
     $lexframelist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
     $lexframelists[$i]=$lexframelist;
     $lexframelistlabels[$i]=$lexframelistlab;
+    $lexframelist->configure(-browsecmd => [\&framelist_item_changed,
+					    $self
+					   ]);
   }
+
+  my $lexframenote=TrEd::ValLex::TextView->new($data, undef, $lexframe_frame, "Note",
+					    qw/ -height 2
+						-width 20
+						-spacing3 5
+						-wrap word
+						-scrollbars oe /);
+  $lexframenote->pack(qw/-fill x/);
 
   return $lexframelists[0]->widget(),{
 	     callback     => $cb,
@@ -210,8 +224,8 @@ sub create_widget {
 	     framelists    => \@lexframelists,
 	     framelist_labels    => \@lexframelistlabels,
 	     focused_framelist => \$focused_framelist,
-	     hide_obsolete => \$hide_obsolete
-#	     framenote    => $lexframenote,
+	     hide_obsolete => \$hide_obsolete,
+	     framenote    => $lexframenote
 #	     frameproblem => $lexframeproblem,
 	    }, {
 		items => $item_style,
@@ -220,6 +234,17 @@ sub create_widget {
 		editor_framelist_items => $frame_browser_framelist_item_style,
 		frame_editor => $frame_editor_styles
 	       };
+}
+
+sub framelist_item_changed {
+  my ($self,$item)=@_;
+  my $h=$self->focused_framelist()->widget();
+  my $frame;
+  my $e;
+  $item = $item || $h->infoAnchor();
+  $frame=$h->infoData($item) if defined($item);
+  $frame=undef unless ref($frame);
+  $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
 }
 
 sub destroy {
@@ -232,10 +257,6 @@ sub destroy {
 
 sub style {
   return $_[0]->[4]->{$_[1]};
-}
-
-sub framelist_item_changed {
-  my ($self,$item)=@_;
 }
 
 sub callback {
@@ -335,21 +356,23 @@ sub find_framelist_index {
 }
 
 sub edit_button_pressed {
-  my ($self)=@_;
+  my ($self,$start_frame_editor)=@_;
   my $fl=$self->focused_framelist();
+  print "EDIT: $fl\n";
   return unless defined($fl);
-  my $index=$self->find_framelist_index($fl);
-
-  TrEd::ValLex::Editor::show_dialog($self->widget()->toplevel,
+  my ($frame)= $self->get_selected_frames();
+  $frame= ref($frame) ? $self->data()->getFrameId($frame) : undef;
+  my $frame=TrEd::ValLex::Editor::show_dialog($self->widget()->toplevel,
 				    $self->data(),
 				    $fl->field(),
 				    1,
 				    $self->style('editor'),
 				    $self->style('editor_wordlist_items'),
 				    $self->style('editor_framelist_items'),
-				    $self->style('frame_editor')
+				    $self->style('frame_editor'),
+				    $frame,
+				    $start_frame_editor
 				   );
-
   eval { Tk->break; };
   if (ref($self->field()) eq "ARRAY") {
     my $i=0;
@@ -357,7 +380,9 @@ sub edit_button_pressed {
       $f->fetch_data($self->data()->findWordAndPOS(
 						   @{$f->field()}
 						  ));
+      $f->select_frames($frame);
     }
+    $self->framelist_item_changed();
   }
 }
 
