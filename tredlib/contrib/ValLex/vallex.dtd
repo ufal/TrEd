@@ -69,6 +69,7 @@ a je potreba ho nejak doresit-->
              reciprocity (none|ACT-PAT|ACT-ADDR) "none" 
              control (none|PAT|ADDR) "none"                  
              used CDATA "0"
+             hereditary_used CDATA "0"
              status (active|reviewed|substituted|obsolete|deleted) "active"
              substituted_with IDREFS #IMPLIED
           >   
