@@ -2126,17 +2126,14 @@ sub afun_Obj {
 #bind afun_Atr to a menu Assign afun Atr
 sub afun_Atr {
 
-
-  AfunAssign()
+  AfunAssign('Atr')
 }
 
 
 #bind afun_Adv to d menu Assign afun Adv
 sub afun_Adv {
 
-  $sPar1 = 'Adv';
-
-  AfunAssign('Atr');
+  AfunAssign('Adv');
 
 }
 
