@@ -11,7 +11,9 @@ import Analytic;
 
 #bind edit_lemma_tag to Ctrl+T menu oprava lemmatu a tagu
 sub edit_lemma_tag {
-  my $form = $this->{form};
+  ChangingFile(0);
+  my $form = QueryString('Form:','Form:',$this->{form});
+  return unless defined($form);
   $form =~ s/\\/\\\\/g;
   $form =~ s/'/\\'/g;
   $form = Encode::encode('iso-8859-2',$form) if ($]>=5.008);
