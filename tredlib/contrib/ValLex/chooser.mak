@@ -369,6 +369,12 @@ sub ChooseFrame {
     my $word=$FrameData->findWordAndPOS($lemma,$pos);
     my $base_word;
     $base_word=$FrameData->findWordAndPOS($base,"V") if (defined($base));
+    if (!$word and $lemma ne lc($lemma)) {
+      $lemma = lc($lemma);
+      $word=$FrameData->findWordAndPOS($lemma,$pos);
+      $base = lc($base);
+      $base_word=$FrameData->findWordAndPOS($base,"V") if (defined($base));
+    }
     $top->Unbusy(-recurse=>1);
     if (!$word) {
       my $answer= questionQuery("Word not found",
