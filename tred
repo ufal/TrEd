@@ -2682,10 +2682,10 @@ sub startMain {
 			    -underline=> 0,
 			    -command=> [ sub {
 					    my ($grp)=@_;
-					    askSaveFile($grp->{focusedWindow})
+					    my $keep=askSaveFile($grp->{focusedWindow},1)
 					      if (fsfileDisplayingWindows($grp,
 									  $grp->{focusedWindow}->{FSFile})<2);
-					    closeFile($grp->{focusedWindow});
+					    closeFile($grp->{focusedWindow}, -keep_postponed => $keep);
 					  }
 					 , \%group]);
   $group{FileMenu}->command(-label=> 'File List...',
