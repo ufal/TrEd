@@ -111,7 +111,7 @@ sub create_widget {
   my ($self, $data, $field, $top, $common_style, @conf) = @_;
 
   my $w = $top->Scrolled(qw/Tree -columns 1
-                              -indent 10
+                              -indent 15
                               -drawbranch 1
                               -background white
                               -selectmode browse
@@ -208,7 +208,9 @@ sub fetch_data {
 #    
 #  }
   my $super=$self->data()->getSuperFrameList($word);
-  foreach my $sframe (keys %$super) {
+  foreach my $sframe (sort {
+    @{$super->{$b}} <=> @{$super->{$a}}
+  } keys(%$super)) {
     if (@{$super->{$sframe}}>1) {
       my $examples=join("",map { $_->[4] ? "\n$_->[4] ($_->[5])" : () } 
 					 @{$super->{$sframe}});
@@ -236,7 +238,8 @@ sub fetch_data {
 sub focus {
   my ($self,$frame)=@_;
   my $h=$self->widget();
-  foreach my $t ($h->infoChildren()) {
+  foreach my $t (map { $_,$h->infoChildren($_) } $h->infoChildren()) {
+    next unless ref($h->infoData($t));
     if ($self->data()->isEqual($h->infoData($t),$frame)) {
       $h->anchorSet($t);
       $h->selectionClear();
@@ -254,7 +257,8 @@ sub select_frames {
   my $data=$self->data();
   my $have=0;
   $h->selectionClear();
-  foreach my $t ($h->infoChildren()) {
+  foreach my $t (map { $_,$h->infoChildren($_) } $h->infoChildren()) {
+    next unless ref($h->infoData($t));
     $id = $data->getFrameId($h->infoData($t));
     if (index($frames," $id ")>=0) {
       unless ($have) {
