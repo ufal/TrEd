@@ -144,6 +144,7 @@ sub corefCandidate {
   my $node=shift || $this;
   my $depth;
   my $x=$node; while ($x->parent) {$depth++;$x=$x->parent}
+  return unless $node;
   my ($parent)=(PDT::GetFather_TR($node));
   return ($node->{func}!~/(ETHD|DPHR|INTF|EXT)/ and
 	  (

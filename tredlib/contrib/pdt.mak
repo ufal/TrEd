@@ -105,6 +105,7 @@ coordination/aposition node in the list as well.
 =cut
 sub expand_coord_apos {
   my ($node,$keep)=@_;
+  return unless $node;
   if (is_coord($node)) {
     return (($keep ? $node : ()),map { expand_coord_apos($_,$keep) }
       grep { $_->{afun} =~ '_Co' }
@@ -200,6 +201,7 @@ coordination/aposition node in the list as well.
 
 sub expand_coord_apos_TR {
   my ($node,$keep)=@_;
+  return unless $node;
   if (is_coord_TR($node)) {
     return (($keep ? $node : ()),
 	    map { expand_coord_apos_TR($_,$keep) }
