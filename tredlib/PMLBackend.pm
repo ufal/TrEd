@@ -1,4 +1,4 @@
-package PML2FS;
+package PMLBackend;
 use Fslib;
 use IOBackend qw(close_backend);
 use strict;
