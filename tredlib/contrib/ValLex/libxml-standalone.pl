@@ -53,7 +53,7 @@ my $conv= TrEd::CPConvert->new("utf-8",
 			       "iso-8859-2");
 my $data_file=$ARGV[0];
 die "Usage: $0 <file>\n" if $ARGV[0] eq "";
-my $data=TrEd::ValLex::LibXMLData->new($data_file,$conv);
+my $data=TrEd::ValLex::LibXMLData->new($data_file,$conv,1);
 
 my $font = "-adobe-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-2";
 my $fc=[-font => $font];
