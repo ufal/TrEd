@@ -1395,7 +1395,11 @@ root# <userinput>make install</userinput>
 	      <guimenuitem>Previous Tree</guimenuitem>
 	    </menuchoice>)</term>
 	  <listitem>
-	    <para>Displayes the previous tree in the current file.</para>
+	    <para>Displayes the previous tree in the current file.
+	      Note, that this shorcuts operates on the focused
+	      view only, even if button <inlinegraphic
+	      fileref="pics/tiewins"/> is pressed and all views are tied.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -1404,7 +1408,11 @@ root# <userinput>make install</userinput>
 	      <guimenuitem>Next Tree</guimenuitem>
 	    </menuchoice>)</term>
 	  <listitem>
-	    <para>Displayes the next tree in the current file.</para>
+	    <para>Displayes the next tree in the current file.
+	      Note, that this shorcuts operates on the focused
+	      view only, even if button <inlinegraphic
+	      fileref="pics/tiewins"/> is pressed and all views are tied.
+	    </para>
 	  </listitem>
 	</varlistentry>
       </variablelist>
@@ -1493,7 +1501,222 @@ root# <userinput>make install</userinput>
 	  </para>
 	</listitem>
       </varlistentry>
+      <varlistentry>
+	<term><literal><replaceable>label</replaceable>:</literal></term>
+	<listitem>
+	  <para>If this string appears at the very beginning
+	    of a pattern, the pattern may be treated specially.
+	    There are only four pattern labels valid in current
+	    version of TrEd. These are <literal>node</literal>,
+	    <literal>edge</literal>,
+	    <literal>style</literal> and
+	    <literal>root-style</literal>.
+	    Patterns labeled with any other label are ignored.
+	  </para>
+	  <para>
+	    Patterns labeled as <literal>node</literal> are used to
+	    display a line of to text under each node of the tree
+	    as described above.
+	  </para>
+	  <para>
+	    Patterns labeled as <literal>edge</literal> behave
+	    likewise but the text is drawn across (or beside)
+	    the edge connecting the node with its parent. It
+	    is not drawn at all for the root node.
+	  </para>
+	  <para>Patterns labeled as <literal>style</literal> do not
+	    result in any text visible on the screen but are also
+	    interpolated and the result is scanned for the special
+	    tree styling instructions described bellow that may
+	    dynamically alter the appearens of the nodes, edges and
+	    text labels of the displayed trees.
+	  </para>
+	  <para>
+	    Patterns labeled as <literal>root-style</literal>
+	    behave in much the same way as the
+	    <literal>style</literal> but are only interpolated
+	    once (for the root node) and the styling instructions
+	    defined here have lower precedence than those
+	    of <literal>style</literal> patterns.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><literal>#{<replaceable>object</replaceable>-<replaceable>feature</replaceable>:<replaceable>value</replaceable>}</literal></term>
+	<listitem>
+	  <para>
+	    These instructions may affect appearence of
+	    all elements of the tree. They should be used within
+	    <literal>style</literal>
+	    and <literal>root-style</literal> labeled patterns only, but
+	    may be created dynamically utilizing the <literal>&lt;?
+	    ... ?&gt;</literal> perl-code evaluation.
+	  </para>
+	  <para>See <xref linkend="style-instructions"/> for
+	    list of <replaceable>objects</replaceable>,
+	    their <replaceable>features</replaceable> and
+	    possible <replaceable>values</replaceable>.
+	  </para>
+	</listitem>
+      </varlistentry>
     </variablelist>
+    <table>
+      <title>Styling instructions</title>
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry><replaceable>object</replaceable>-<replaceable>feature</replaceable></entry>
+	    <entry>Description and a list of possible values</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry>Node-addbeforeskip</entry>
+            <entry><para></para></entry>
+	  </row>
+	  <row>
+	    <entry>Node-addafterskip</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Node-disableedgelabelspace</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>NodeLabel-valign</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>NodeLabel-yadj</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>NodeLabel-dodrawbox</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>NodeLabel-nodrawbox</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeLabel-yadj</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeLabel-halign</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeLabel-valign</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeLabel-dodrawbox</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeLabel-nodrawbox</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-dash</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-activedash</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-dashoffset</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-fill</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-activefill</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-outline</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-activeoutline</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-disabledoutline</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-width</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Oval-activewidth</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Line-arrow</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Line-capstyle</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Line-<replaceable>feature</replaceable></entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Text<replaceable>&lt;position&gt;</replaceable>-fill</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Text<replaceable>&lt;position&gt;</replaceable>-activefill</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Text<replaceable>&lt;position&gt;</replaceable>-anchor</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>Text<replaceable>&lt;position&gt;</replaceable>-<replaceable>anchor</replaceable></entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>TextBg<replaceable>&lt;position&gt;</replaceable>-<replaceable>feature</replaceable></entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeText<replaceable>&lt;position&gt;</replaceable>-fill</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeText<replaceable>&lt;position&gt;</replaceable>-activefill</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeText<replaceable>&lt;position&gt;</replaceable>-anchor</entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeTextBg-<replaceable>feature</replaceable></entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>TextBox-<replaceable>feature</replaceable></entry>
+	    <entry><para></para></entry>
+          </row>
+	  <row>
+	    <entry>EdgeTextBox-<replaceable>feature</replaceable></entry>
+	    <entry><para></para></entry>
+          </row>
+	</tbody>
+      </tgroup>
+    </table>
     <para>
       The same syntax applies also to the hint pattern. This
       pattern is interpolated and displayed in a floating
