@@ -347,7 +347,7 @@ use Exporter;
 	      trxml => 'TrXMLBackend',
 	      teixml => 'TEIXMLBackend',
 	      ntred => 'NTREDBackend',
-	      storable => 'SorableBackend'
+	      storable => 'StorableBackend'
 	 );
 
 @open_types=
