@@ -130,6 +130,6 @@ SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive r
 ; CstsToFs="2804.x"		;; give a csts (or any other format) to fs convertor here
 ; FsToCsts="2804.x -oformat=csts"	;; give a fs to csts (or any other format) convertor here
 
-Geometry	=	557x485+4+502
+Geometry	=	557x485+112+221
 CanvasHeight	=	361
 CanvasWidth	=	538

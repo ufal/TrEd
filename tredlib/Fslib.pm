@@ -2,7 +2,7 @@ package Fslib;
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-03-19 08:36:17 pajas>
+# Time-stamp: <2001-03-19 17:23:15 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1198,7 +1198,7 @@ FSFile - Simple OO interface for FS files.
   close (F);
 
   die "File is empty or corrupted!\n" 
-    if ($fs->{FSFile}->lastTreeNo<0);
+    if ($fs->lastTreeNo<0);
 
   foreach my $tree ($fs->trees) {
 

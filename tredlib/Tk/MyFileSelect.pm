@@ -145,11 +145,13 @@ sub getCWD {
 
 sub ChangeDir {
   my ($cw,$dir)=@_;
-
   $cw->{cwd}=getcwd() unless (defined($cw->{cwd}));
   $cw->{cwd}.=$splitchar unless ($cw->{cwd}=~/$rsplit$/);
-  $dir=$cw->{cwd} if $dir=~/^\.(?:$rsplit)?$/;
-  $dir=$cw->{cwd}.$dir unless ($dir=~/^$rsplit$/ or $dir=~/^[a-z]:|^$rsplit/i and $^O eq 'MSWin32');
+  if ($dir=~/^\.(?:$rsplit)?$/) {
+    $dir=$cw->{cwd};
+  } else {
+    $dir=$cw->{cwd}.$dir unless ($dir=~/^$rsplit/ or $dir=~/^[a-z]:|^$rsplit/i and $^O eq 'MSWin32');
+  }
 
   $dir=~s!/!$splitchar!g;
   $dir=~s!$rsplit\.$rsplit!$splitchar!g;
