@@ -306,13 +306,29 @@ sub getTextWidth {
   return $self->canvas->fontMeasure($self->get_font,$text);
 }
 
+sub ballance_xfix_node {
+  my ($self, $xfix, $node, $visible) = @_;
+  my @c = grep { exists $visible->{$_} } $node->children;
+  $xfix += $self->get_node_pinfo($node,"XFIX");
+  foreach my $c (@c) {
+    $self->store_node_pinfo($c,"XPOS",
+			    $self->get_node_pinfo($c,"XPOS")+
+			    $xfix);
+    $self->store_node_pinfo($c,"NodeLabel_XPOS",
+			    $self->get_node_pinfo($c,"NodeLabel_XPOS")+
+			    $xfix);
+    ballance_xfix_node($self,$xfix,$c,$visible);
+  }
+}
+
 # this routine computes node XPos in ballanced mode
 sub ballance_node {
   my ($self, $baseX, $node, $visible) = @_;
   my $last_baseX = $baseX;
   my $xskip = $self->get_nodeXSkip;
   my $i=0;
-  $last_baseX+=$self->get_node_pinfo($node,"Before");
+  my $before = $self->get_node_pinfo($node,"Before");
+#  $last_baseX+=$self->get_node_pinfo($node,"Before");
   my @c = grep { exists $visible->{$_} } $node->children;
   foreach my $c (@c) {
     $last_baseX = $self->ballance_node($last_baseX,$c,$visible);
@@ -327,8 +343,16 @@ sub ballance_node {
     $xpos =($self->get_node_pinfo($c[$#c],"XPOS")
 	    + $self->get_node_pinfo($c[0],"XPOS"))/2;
   } else {
-    $xpos = $baseX+$self->get_node_pinfo($node,"XPOS");
+    $xpos = $last_baseX+$self->get_node_pinfo($node,"XPOS");
   }
+  my $xfix = $before-$xpos+$baseX;
+  if ($xfix > 0) {
+    $last_baseX += $xfix;
+    $xpos += $xfix;
+  } else {
+    $xfix = 0;
+  }
+  $self->store_node_pinfo($node,"XFIX", $xfix);
   my $add = $xpos-$self->get_node_pinfo($node,"XPOS");
   $self->store_node_pinfo($node,"XPOS", $xpos);
 
@@ -497,7 +521,7 @@ sub recalculate_positions {
       $nodeLabelXShift=-$nodeLabelWidth+$nodeWidth/2;
     } elsif ($halign_node eq 'center') {
       $xSkipBefore=max($xSkipBefore,$nodeLabelWidth/2);
-      $xSkipAfter=max($xSkipBefore,$nodeLabelWidth/2);
+      $xSkipAfter=max($xSkipAfter,$nodeLabelWidth/2);
       $nodeLabelXShift=-$nodeLabelWidth/2;
     } else {
       $xSkipAfter=max($xSkipAfter,$nodeLabelWidth-$nodeWidth/2);
@@ -554,6 +578,9 @@ sub recalculate_positions {
     my $baseX = $baseXPos;
     foreach my $c (@zero_level) {
       $baseX = $self->ballance_node($baseX,$c,\%nodes);
+    }
+    foreach my $c (@zero_level) {
+      $self->ballance_xfix_node(0,$c,\%nodes);
     }
     $canvasWidth = $baseX;
   }
