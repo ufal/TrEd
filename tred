@@ -5,39 +5,91 @@
 # Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
 #
 # This is "Tred" - a simple viewer/editor of tree graphs in fs
-# file-format used in Graph - program developed by M. Kren. It is
+# file-format used in Graph - program developed by M. Kren. Tred is
 # written entirely in Perl and for graphical output it uses PerlTk
 # library as a frontend to Tk toolkit
 #
+################################################################################ 
+#
 # Usage:
-# tred [-m <macro-file>] file1[##N|#N] [file2[##N|#N] [...]]
+# tred [-c <config-file>] [-m <macro-file>] file1[##N|#N] [file2[##N|#N] [...]]
 #
-# Files file1,etc. given on the command-line must be in fs-format (for
-# not a little bit obsolete description see:
-# http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html)
+# or 
 #
-# The name of each file may be followed by a suffices of the
-# following form:
+# tred -u  for usage
 #
-# #N   where N is a number possibly followed by one or more upper-case
-#      letters
-# ##N  where N is a number
+# or 
 #
-# In the firstcase, #N tells tred to skip, after opening the file, to
-# the first tree the root of which has #N as a value of attribute
-# called 'form' (this feature is optimized for specific instances of
-# fs-format used while working on The Prague Dependency Treebank)
+# tred -h  for help
 #
-# The later form '##N' simply makes tred to go to the N-th tree in the
-# given file.
-#
-#
-# -m may be used to specify a macro to be used different from the
-# given in ~/.tredrc (or whatsoever) configuration file
-#
-# -c may be used to specify a config-file to be used (overrides
-# ~/.tredrc and all the other files Tred would otherwise try to search for).
-#
+################################################################################
+
+
+# Once we got rid of them we call getopt to read all the other options
+use Tk;
+use Tk::Xrm;
+# process the standard arguments for X resources
+Tk::CmdLine::SetArguments();
+
+
+use Getopt::Std;
+getopts('m:c:hu');
+
+if ($opt_u) {
+
+  print <<EOH;
+Usage: 
+  tred [-c config-file] [-m macro-file] files...
+or
+  btred -u          to show usage
+or 
+  btred -h          to show help
+EOH
+  exit;
+}
+
+if ($opt_h) {
+  print <<EOF;
+Usage:
+tred [-c <config-file>] [-m <macro-file>] file1[##N|#N] [file2[##N|#N] [...]]
+
+or 
+
+tred -u|-h    for usage/help
+
+This is `TRED' - a simple viewer/editor of tree graphs in FS-format
+used in `GRAPH' - a program developed by M. Kren. TRED (which stands
+for The TRee EDitor) is written entirely in Perl and it uses PerlTk
+module for GUI.
+
+Files file1, etc. given on the command-line must be in fs-format (for
+not a little bit obsolete description see:
+        http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html)
+
+The name of each file may be followed by a suffices of the following
+forms:
+
+#N      where N is a number possibly followed by one or more
+        upper-case letters. In this case, #N tells tred to skip to the
+        first tree the root of which has `#N' as a value of attribute
+        called `form' (this feature is optimized for specific
+        instances of fs-format used while working on The Prague
+        Dependency Treebank)
+
+##N     where N is a number. This makes tred to go to the N-th tree in
+        the given file after the file is opened.
+
+-m      may be used to specify a macro file different from the one
+        given in ~/.tredrc (or whatsoever) configuration file
+
+-c      may be used to specify a config-file to be used (overrides
+        ~/.tredrc and all the other files Tred would otherwise try to
+        search for).
+
+EOF
+  exit;
+}
+
 
 # this variable is used when searching for rc-file (i.e. the inicialisation file)
 my @configFileSearchList=($ENV{HOME}.'/.tredrc',
@@ -47,7 +99,7 @@ my @configFileSearchList=($ENV{HOME}.'/.tredrc',
 			  dirname($0).'tredlib/tredrc',
 			  dirname($0).'../lib/tred/tredrc',
 			  '/usr/X11R6/lib/X11/app-defaults');
-
+my $configFile;
 # other configuration should be given in that file
 
 
@@ -70,18 +122,16 @@ print "Trying $libDir\n" if ($libDir);
 
 $macroFile=undef;
 
-if ($ARGV[0] eq '-c') {
-  shift @ARGV;
-  @configFileSearchList=(shift @ARGV); # override any other possible config files
+if (defined $opt_c) {
+  @configFileSearchList=($opt_c); # override any other possible config files
 }
 
 readConfig();
 
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
 
-if ($ARGV[0] eq '-m') {
-  shift @ARGV;
-  $macroFile=shift @ARGV;
+if (defined $opt_m) {
+  $macroFile=$opt_m;
 }
 
 
@@ -140,9 +190,6 @@ use Tk::Tiler;
 use locale;
 use POSIX qw(locale_h);
 
-
-
-Tk::CmdLine::SetArguments();	# handle standard arguments for X resources
 
 push @INC,$libDir;
 require Fslib;
@@ -223,11 +270,10 @@ sub readConfig {
   my $key, $f;
   local *F;
   my $openOk=0;
-
   # open first existing file in config-file list
-  print "\n\n",join(":",@configFileSearchList),"\n\n";
-  foreach $f (@configFileSearchList) {
-    if (open(F,"<$f")) {
+#  print "\n\n",join(":",@configFileSearchList),"\n\n";
+  foreach $f (@_,@configFileSearchList) {
+    if (defined($f), open(F,"<$f")) {
       print "Using resource file $f\n";
       while (<F>) {
 	unless (/^[;#]/ or /^$/) {
@@ -243,6 +289,7 @@ sub readConfig {
       }
       close F;
       $openOk=1;
+      $configFile=$f;
       last;
     }
   }
@@ -251,7 +298,7 @@ sub readConfig {
       "Warning: Cannot open any file in:\n",join(":",@configFileSearchList),"\n" .
       "         Using configuration defaults!\n";
   }
-  print "\n\n",join(":",@configFileSearchList),"\n\n";
+#  print "\n\n",join(":",@configFileSearchList),"\n\n";
   $appName=(exists $confs{AppName}) ? $confs{AppName} : "Tred ver. 0.3";
   $baseXPos=(exists $confs{BaseXPos}) ? $confs{BaseXPos} : 15;
   $baseYPos=(exists $confs{BaseYPos}) ? $confs{BaseYPos} : 15;
@@ -452,7 +499,7 @@ sub openFile {
   }
   # --
   $grp->{'currentFile'}=$f;
-  $grp->{'top'}->title("$appName ".$f);
+  $grp->{'top'}->title("$appName $f");
   getNodes($grp);
   $FileNotSaved=0;
   redraw_tree($grp);
@@ -955,11 +1002,12 @@ sub startMain {
          [Button => 'Open ...',    -command => [\&fileDialog, \%group]],
 #	 [Button => 'New',         -command => [\&menus_error2, 'New']],
 	 [Button => 'Save',        -command => [\&saveFile,\%group]],
-#	 [Button => 'Save As ...', -command => [\&menus_error2, 'Save As']],
+	 [Button => 'Save As ...', -command => [\&saveFileAs, \%group]],
 	 [Separator => ''],
 #	 [Button => 'Setup ...',   -command => [\&menus_error2, 'Setup']],
 	 [Button => 'Print ...',   -command => [\&printThis,\%group]],
 	 [Separator => ''],
+	 [Button => 'Edit config file ...',   -command => [\&editConfig,\%group]],
 	 [Button => 'Reload config ...',   -command => [sub { 
 							  readConfig(); 
 							  redraw_tree(shift);
@@ -1186,14 +1234,14 @@ sub ShowDialog {
     $cw->Popup();
 
     Tk::catch {
-    if (defined $grab && length $grab && ($grab =~ /global/)) {
+      if (defined $grab && length $grab && ($grab =~ /global/)) {
 	$cw->grabGlobal;
-    } else {
+      } else {
 	$cw->grab;
-    }
+      }
     };
     $cw->Wait;
-    &$old_focus;
+#    &$old_focus;
     &$old_grab;
     return $cw->{'selected_button'};
 }
@@ -1202,35 +1250,78 @@ sub fileDialog {
   my $grp = shift;
   my $types;
   my $file;
+
+#  use Tk::FileSelect;
+#  my $FSref = $grp->{top}->FileSelect(-selectmode => extended);
+#  print $FSref->Show;
   @types =
     (["Fs files",           [qw/.fs .FS .Fs/]],
      ["Backup files",           [qw/.fb .FB .Fb/]],
      ["All files",        '*']
     );
-    $file = $grp->{'top'}->getOpenFile(-filetypes => \@types);
-    if (defined $file and $file ne '') {
-      #print "File: $file\n";
-      return openFile($file,$grp);
-    }
+  $file = $grp->{'top'}->getOpenFile(-filetypes => \@types);
+  if (defined $file and $file ne '') {
+    return openFile($file,$grp);
+  }
+  return 0;
+}
+
+sub saveFileAs {
+  my $grp = shift;
+  my $types;
+  my $file=$grp->{currentFile};
+
+  @types =
+    (["Fs files",           [qw/.fs .FS .Fs/]],
+     ["All files",        '*']
+    );
+
+  $file = $grp->{'top'}->getSaveFile(-filetypes => \@types, -initialfile => $file);
+  if (defined $file and $file ne '') {
+    $grp->{currentFile}=$file;
+    $grp->{'top'}->title("$appName $file");
+    return saveFile($grp);
+  }
   return 0;
 }
 
 sub askSaveFile {
-  my ($grp)=@_;  
+  my ($grp)=@_;
   return unless $FileNotSaved;
-  #print "was her4e!\n";
-  #print $grp->{'top'}->toplevel;
-  #print "\n..\n";
+  saveFile($grp)
+   if (
+       $grp->{'top'}->toplevel->
+       messageBox(-icon => 'questhead', 
+		  -message => "File may be changed!\nDo you want to save it?",
+		  -title => 'File not saved', 
+		  -type => 'YesNo',
+		  -default => 'Yes') eq 'Yes');
+}
 
-  saveFile($grp) 
-  #print "OK\n"
-   if ( #$grp->{'top'}->toplevel->getOpenFile() or 
-       $grp->{'top'}->toplevel->messageBox(-icon => 'questhead', 
-					   -message => "File may be changed!\nDo you want to save it?",
-					   -title => 'File not saved', 
-					   -type => 'YesNo',
-					   -default => 'Yes') eq 'Yes');
-  #print "..\n";
+sub editConfig {
+  my $grp=shift;
+  my $d = $grp->{'top'}->DialogBox(-title => "Edit Resource File", -width => "10c",
+				   -buttons => ["Save and Apply", "Cancel"]);
+  $d->resizable(0,0);
+  $d->bind('<Return>' => [sub {1;}]);
+  my $t = $d->
+    Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
+		     -height 30 -scrollbars e/);
+  $t->pack(qw/-expand yes -fill both/);
+  if (open(F,"<$configFile")) {
+    $t->insert('0.0',join "",<F>);
+    close(F);
+  }
+  $t->mark(qw/set insert 0.0/);
+  my $result=ShowDialog($d);
+  if ($result eq 'Save and Apply') {
+    open(F,">$configFile");
+    print F $t->get("0.0","end");
+    close(F);
+    readConfig($configFile);
+    redraw_tree($grp);
+  }
+  undef $d;
 }
 
 
@@ -1301,14 +1392,14 @@ sub selectAttrs {
   $f->Manage(@r);
   $f->pack();
   $grp->{'top'}->Unbusy();
-  my $result = $d->Show;
-  $grp->{'top'}->Busy(-recurse => 1);
+  my $result = ShowDialog($d);
+#  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
     @displayAttrs = grep { $datr{$_} } @atord;
     redraw_tree($grp);
   }
   $d=undef;
-  $grp->{'top'}->Unbusy();
+#  $grp->{'top'}->Unbusy();
 }
 
 sub QueryString {
@@ -1354,6 +1445,7 @@ sub selectValuesDialog {
  for ($a=0;$a<@$vals;$a++)  {
    $l->selectionSet($a) if grep { $$vals[$a] eq $_ } @$selected;
  }
+ $l->focus;
  $d->Checkbutton(-text     => 'multiple select',
 		 -variable => \$multi,
 		 -command  => [sub {
@@ -1373,7 +1465,8 @@ sub selectValuesDialog {
 			   },$grp,$l,$vals])->pack();
  }
  $grp->{'top'}->Unbusy();
- my $result = $d->Show;
+ my $result = ShowDialog($d);
+ undef $d;
  if ($result =~ /OK/) {
    @$selected = (map { $$vals[$_] } ( grep { $l->selectionIncludes($_) } (0 .. $l->size-1) )); 
    return 1;
@@ -1422,9 +1515,9 @@ sub editAttrsDialog {
 		       -relief => 'groove',
 		       -scrollbars => 'e');
   sub focusxDn {
-    my ($w,$i,$e,$f,$rows)=@_; 
+    my ($w,$i,$e,$f,$rows,$cnt)=@_;
     if ($i+1>$#atord) {
-      $w->focusNext;
+      $w->focusNext if ($cnt);
     } else {
       $e->{$atord[$i+1]}->focus;
       $f->scroll(1,'pages') 
@@ -1434,9 +1527,9 @@ sub editAttrsDialog {
     Tk->break;
   };
   sub focusxUp {
-    my ($w,$i,$e,$f)=@_; 
+    my ($w,$i,$e,$f,$cnt)=@_;
     if ($i<=0) {
-      $w->focusPrev;
+      $w->focusPrev if ($cnt);
     } else {
       $e->{$atord[$i-1]}->focus;
       $f->scroll(-1,'pages') 
@@ -1491,17 +1584,17 @@ sub editAttrsDialog {
       push @r, $e{$_};
     }
 
-    $e{$_}->bind($e{$_},'<Tab>',[\&focusxDn,$i,\%e,$f,$rows]);
+    $e{$_}->bind($e{$_},'<Tab>',[\&focusxDn,$i,\%e,$f,$rows,1]);
     $e{$_}->bind($e{$_},'<Down>',[\&focusxDn,$i,\%e,$f,$rows]);
-    $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxUp,$i,\%e,$f]);
+    $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxUp,$i,\%e,$f,1]);
     $e{$_}->bind($e{$_},'<Up>',[\&focusxUp,$i,\%e,$f]);
   }
   $e{$atord[0]}->focus if $atord[0];
   $f->Manage(@r);
   $f->pack();
   $grp->{'top'}->Unbusy();
-  my $result = ShowDialog($d);
-  $grp->{'top'}->Busy(-recurse =>1);
+  my $result = ShowDialog($d,g);
+#  $grp->{'top'}->Busy(-recurse =>1);
   if ($result =~ /OK/) {
     $FileNotSaved=1;
     foreach $a (@atord) {
@@ -1511,7 +1604,7 @@ sub editAttrsDialog {
     redraw_tree($grp);
   }
   $d=undef;
-  $grp->{'top'}->Unbusy();
+#  $grp->{'top'}->Unbusy();
 }
 
 sub editAttrs {
@@ -1578,15 +1671,15 @@ sub editAttr {
   $e->icursor('end');
   $e->focus;
   $grp->{'top'}->Unbusy();
-  my $result = ShowDialog($d);
-  $grp->{'top'}->Busy(-recurse => 1);
+  my $result = ShowDialog($d,grab);
+#  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
     $FileNotSaved=1;
     $$node{$attr}=decode($newvalue);
     getNodes($grp);
     redraw_tree($grp);
   }
-  $grp->{'top'}->Unbusy();
+#  $grp->{'top'}->Unbusy();
   $d=undef;
 }
 
@@ -2081,7 +2174,8 @@ sub doEvalMacro {
     print STDERR "Had run: ",$macro,"\n";
     print STDERR "Returned with: $result\n$@\n";
   }
-  print "File must not saved: $FileNotSaved\n";
+  print "Macro claims file untouched\n"
+    unless ($FileNotSaved);
   $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
   $insideEval=0;
   $grp->{'top'}->Unbusy;
@@ -2201,6 +2295,7 @@ sub node_release {
   my($w,$grp) = @_;
   my $parent;
   my $node;
+  my $center=0;
   my $sel=$w->find('withtag','selected');
   $node=$grp->{'pinfo'}{$sel} if (defined ($sel));
 
@@ -2211,17 +2306,17 @@ sub node_release {
       $parent=$grp->{'pinfo'}{$p};
       while ($parent) {
 	$p=0, last if ($node eq $parent);
-	$parent=Parent($parent);
-      }
-      if ($node and $p and $grp->{'pinfo'}{$p} and Parent($node)!=$grp->{'pinfo'}{$p}) {
-	Paste(Cut($node),$grp->{'pinfo'}{$p},\%attribs);
-	$FileNotSaved=1;
-      }
-    }
-  }
-  redraw_tree($grp);
-  centerTo($grp,$grp->{currentNode});
-}
+  	$parent=Parent($parent);
+        }
+        if ($node and $p and $grp->{'pinfo'}{$p} and Parent($node)!=$grp->{'pinfo'}{$p}) {
+ 	Paste(Cut($node),$grp->{'pinfo'}{$p},\%attribs);
+ 	$FileNotSaved=1;
+       }
+     }
+   }
+   redraw_tree($grp);
+   centerTo($grp,$grp->{currentNode});
+ }
 
 ### Local Variables:
 ### mode:cperl
