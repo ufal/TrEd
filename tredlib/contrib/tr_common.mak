@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-01-18 11:32:32 pajas>
+## Time-stamp: <2002-01-29 16:07:54 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -438,4 +438,31 @@ sub ConnectID {
 sub DisconnectID {
   $sReturn  = $sPar1;
   $sReturn =~ s/(?:^|\|)$sPar2(?:\||$)//;
+}
+
+
+sub FCopy {
+  if ($pThis->{'del'} ne 'ELID') {
+    $NodeClipboard=CopyNode($this);
+    $sPasteNow = 'yes';
+  }
+}
+
+sub FPaste {
+  my $sDord;			# used as type "string"
+  my $pThis;
+
+  $pThis=$this;
+  if ($NodeClipboard and $sPasteNow eq 'yes') {
+    $sDord = ValNo(0,$pThis->{'dord'});
+    $pPasted=PasteNode($NodeClipboard,$pThis);
+    $pPasted->{'dord'} = "-1";
+    $pPasted->{'del'} = 'ELID';
+    $sPar1 = $sDord;
+    $sPar2 = "1";
+    ShiftDords();
+    $pPasted->{'dord'} = $sDord;
+    $this=$pPasted;
+  }
+  $sPasteNow = '';
 }
