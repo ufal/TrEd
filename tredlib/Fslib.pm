@@ -738,6 +738,7 @@ sub PrintFS ($$$$$) {
 sub ImportBackends {
   my @backends=();
   foreach my $backend (@_) {
+    print STDERR "LOADING $backend\n" if $Fslib::Debug;
     if (eval { require $backend.".pm"; } ) {
       push @backends,$backend;
     } else {
