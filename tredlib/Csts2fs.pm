@@ -4,6 +4,16 @@ use SGMLS;
 use Fslib;
 
 #
+# TODO:
+#
+# -preserve MD[tg] in (tag,gov)MM_<l/@src>_<MD[tg]/@src>
+#  so that it is possible to restore them under correct lemmas
+# -buid TR/AR-tree according to mdesc?
+#
+#
+#
+
+#
 # TR vs AR (vs M)
 #
 # $ord = ord (also in TR case)
@@ -123,8 +133,10 @@ my %start_tag = (
 			   $s->{root}->{origf}=$s->{root}->{form};
 			   $s->{root}->{afun}="AuxS";
 			   $s->{root}->{ord}=0;
+			   $s->{root}->{sentord}=0;
 			   $s->{root}->{tag}="Z#-------------";
-			   $s->{root}->{trlemma}=$s->{root}->{form};
+			   $s->{root}->{lemma}="#";
+			   $s->{root}->{trlemma}="#";
 			   $s->{root}->{func}=$s->{root}->{sent};
 			 }],
 		 'salt' => [sub {
@@ -134,23 +146,14 @@ my %start_tag = (
 			      $s->{root}->{ord}=0;
 			      $s->{root}->{afun}="AuxS";
 			      $s->{root}->{tag}="Z#-------------";
-			      $s->{root}->{trlemma}=$s->{root}->{form};
+			      $s->{root}->{lemma}="#";
+			      $s->{root}->{trlemma}="#";
 			      $s->{root}->{func}=$s->{root}->{sent};
 			    }],
 		 'f' => [\&make_new_node],
 		 'd' => [\&make_new_node],
 		 'fadd' => [\&make_new_node],
 		 'D' => [\&copy_tag_to,'','<','!GAP'],
-#		 'h' => [\&copy_tag_to,'','<','!GAP'],
-#		 'source' => [\&copy_tag_to,'','<','cstsprolog'],
-#  		 'markup' => sub {
-#  		   my ($s)=@_;
-#  		   if ($s->{parser}->element->in('h')) {
-#  		     copy_tag_to(@_,'','<','cstsprolog');
-#  		   } else {
-#  		     copy_tag_to(@_,'','<','docprolog');
-#  		   }
-#  		 },
 		 'mauth' => sub {
 		   my ($s)=@_;
 		   if ($s->{parser}->element->parent->in('h')) {
@@ -175,14 +178,12 @@ my %start_tag = (
 		     copy_tag_to(@_,'','<','docmarkup');
 		   }
 		 },
-#		 'doc' => [\&copy_tag_to,'','<','cstsprolog'],
 		 'doc' => [sub {
 			   my ($s)=@_;
 			   my $e=$s->{parser}->element;
 			   $s->{following_root}->{doc}=$e->attribute('file')->value;
 			   $s->{following_root}->{docid}=$e->attribute('id')->value;
 			 }],
-#		 'a' => [\&copy_tag_to,'','<','docprolog'],
 		 'mod' => [\&copy_tag_to,'','<','docprolog'],
 		 'txtype' => [\&copy_tag_to,'','<','docprolog'],
 		 'genre' => [\&copy_tag_to,'','<','docprolog'],
@@ -209,17 +210,6 @@ my %start_tag = (
 
 my %end_tag = (
 	       'csts' => [ \&make_last_tree ],
-#	       'source' => [\&copy_tag_to,'','>','cstsprolog'],
-#	       'h' => [\&copy_tag_to,'','>','cstsprolog'],
-#  	       'markup' => sub {
-#  		 my ($s)=@_;
-#  		 if ($s->{parser}->element->in('h')) {
-#  		   copy_tag_to(@_,'','>','cstsprolog');
-#  		 } else {
-#  		   copy_tag_to(@_,'','>','docprolog');
-#  		 }
-#  	       },
-#	       'a' => [\&copy_tag_to,'','>','docprolog'],
 	      );
 
 my %att = (
@@ -234,6 +224,7 @@ my %att = (
 	   'salt id' => [\&to_attr,'root','|','ID1'],
 	   'csts lang' => [\&to_node_attr,'|','cstslang'],
 	   'f case' => [\&to_node_attr,'|','formtype'],
+	   'd type' => [\&to_node_attr,'|','formtype'],
 	   'w kind' => [\&to_next_node_attr,'|','origfkind'],
 	   't w'=> [\&to_node_attr,'|','wt'],
 	   'fadd del' => [\&to_node_attr,'|','del'],
@@ -299,7 +290,12 @@ my %pcdata = (
 			unless (exists($s->{node}->{origf}));
 		    }],
 	      w => [\&to_next_node_attr,'|','origf'],
-	      d => [\&to_node_attr,'|','form'],
+	      d => [sub {
+		      my ($s,$data)=@_;
+		      &to_node_attr(@_,'|','form');
+		      $s->{node}->{origf}=$data
+			unless (exists($s->{node}->{origf}));
+		    }],
 	      P => [\&to_node_attr,'|','punct'],
 	      Ct => [\&to_node_attr,'|','alltags'],
 	      l => [\&to_node_attr,'|','lemma'],
@@ -324,7 +320,39 @@ my %pcdata = (
 	      r => [\&to_node_attr,'|','ord']
 	     );
 
-@header = (
+@csts = (
+'@P root',
+'@P ending',
+'@P punct',
+'@P alltags',
+'@P wt',
+'@P origfkind',
+'@P formtype',
+"\@P $normal_gap",
+"\@P $no_node_gap",
+'@P cstslang',
+'@P cstssource',
+'@P cstsmarkup',
+'@P chap',
+'@P doc',
+'@P docid',
+'@P docmarkup',
+'@P docprolog'
+);
+
+@misc = (
+ '@P1 warning',
+ '@P3 err1',
+ '@P3 err2',
+'@P reserve1',
+'@P reserve2',
+'@P reserve3',
+'@P reserve4',
+'@P reserve5'
+);
+
+
+@minARheader = (
 '@P lemma',
 '@O lemma',
 '@P tag',
@@ -338,15 +366,14 @@ my %pcdata = (
 '@P ID2',
 '@VA origf',
 '@P origf',
-'@P ordtf',
 '@P afunprev',
-'@P1 warning',
-'@P3 err1',
-'@P3 err2',
 '@P semPOS',
 '@P tagauto',
 '@P lemauto',
-'@P ordorig',
+);
+
+@minTRheader = (
+'@P ordtf',
 '@P trlemma',
 '@P gender',
 '@L gender|---|ANIM|INAN|FEM|NEUT|NA|???',
@@ -394,48 +421,32 @@ my %pcdata = (
 '@P funcauto',
 '@P funcprec',
 '@P funcaux',
-'@P reserve1',
-'@P reserve2',
-'@P reserve3',
-'@P reserve4',
-'@P reserve5',
-'@P dord',
-'@N ord',
-'@P sentord',
-#'@H TR',
-'@P origfkind',
-'@P formtype',
-"\@P $normal_gap",
-"\@P $no_node_gap",
-'@P cstslang',
-'@P cstssource',
-'@P cstsmarkup',
-'@P chap',
-'@P doc',
-'@P docid',
-'@P docmarkup',
-'@P docprolog'
 );
 
+@ARheader = (
+ @minARheader,
+'@N ord',
+'@P dord',
+'@W sentord',
+'@P govTR',
+ @csts,
+ @misc
+);
 
-##
-## root should be treated specially, (stored in state)
-## as the first node created. It should be shifted out of @_ in build_tree,
-## as it is the first node there. (It bears special information)
-## superelements of s (such as c and p) should be kept here,
-## i.e. if there is a p or c, then it should be stored in the root of
-## the tree.
-## End tags of c are required but may be deduced from context.
-## This means that they should not be stored. But whenever new <c>
-## is started, the preceding <c> should be closed. 
-## End tags for p should be ignored and omitted in the backward conversion.
-##
-## c --> @P chap (bckw: newchap non-empty means yes)
-## p --> @P para  (bckw: if newpar is non-empty, the value is taken as the attribute n for element p)
+@TRheader = (
+ @minARheader,
+'@P ord',
+'@N dord',
+'@W sentord',
+'@H TR',
+'@P ordorig',
+ @minTRheader,
+ @csts,
+ @misc
+);
 
+$header=\@ARheader;
 
-### here ordered should be made a hash table for <r> is a general id,
-### not necessarily number
 
 sub build_tree {
   my $root = shift;
@@ -443,7 +454,7 @@ sub build_tree {
   my %ordered=();
   my @unordered=();
   foreach (@_) {
-    if (!exists($ordered{$_->{$ord}})) {
+    if ($_->{$ord} ne "" and !exists($ordered{$_->{$ord}})) {
       $ordered{$_->{$ord}}=$_;
     } else {
       push @unordered,$_;
@@ -451,15 +462,24 @@ sub build_tree {
   }
   foreach (@_) {
     next unless $_;
-    if (exists($ordered{$_->{$gov}})) {
+    if ($_->{$gov} ne "" and exists($ordered{$_->{$gov}})) {
       my $parent=$ordered{$_->{$gov}};
       Paste($_,$parent,{ $ord => ' N'}); # paste using $ord as the numbering attribute
     }
   }
 
   foreach (@_) {
-    if ($_ and !$_->parent) {
+    if (ref($_) and ! $_->parent) {
       Paste($_,$root,{ $ord => ' N'}); # paste using $ord as the numbering attribute
+#        {
+#  	my $node=$root->firstson;
+#  	print STDERR $_->{form};
+#  	while ($node) {
+#  	  print STDERR "-+-",$node->{form};
+#  	  $node=$node->rbrother;
+#  	}
+#  	print STDERR "\n";
+#        }
     }
   }
   unless (ref($root)) {
@@ -513,7 +533,9 @@ sub make_new_node {
   my ($s)=@_;
   # starting a new node
   push @{$s->{nodes}},$s->{node} if ref($s->{node});
+  my $sentord=ref($s->{node}) ? $s->{node}->{sentord}+1 : 0;
   $s->{node} = FSNode->new();
+  $s->{node}->{sentord}=$sentord;
   foreach (keys %{$s->{following}}) {
     $s->{node}->{$_} = $s->{following}->{$_};
   }
@@ -608,6 +630,7 @@ sub read {
   @attlist=();
 
   my @attlist=();
+  my @header=@{$header};
   foreach (keys %composed_attrs) {
     push @header,"\@P $_";
   }
