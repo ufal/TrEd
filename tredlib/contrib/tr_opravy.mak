@@ -1156,7 +1156,7 @@ sub NewSentenceAfter_TR{
   NewID($root)if$root->{ID1}!~/[[:upper:]]$/;
   my$oldsent=$root;
   my$newsent=NewTreeAfter();
-  foreach my$attr(qw/trlemma afun dord ord sentord ID1 lemma tag para reserve1/){
+  foreach my$attr(qw/func trlemma afun dord ord sentord ID1 lemma tag para reserve1/){
     $newsent->{$attr}=$oldsent->{$attr};
   }
   NewID($newsent);
