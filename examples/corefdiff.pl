@@ -67,6 +67,7 @@ my %coref_counts;
 my %diffs_in_spec_type;
 my %cortype_counts;
 my $nodes_with_coreference=0;
+my @trees_with_diff;
 
 foreach my $f (@files) {
   $fileno++;
@@ -169,6 +170,9 @@ for (my $tree_no; $tree_no<=$last_tree; $tree_no++) {
   }
   print "$diffs_in_tree ".differences($diffs_in_tree)." in tree ##".($tree_no+1)."\n\n"
     if ($diffs_in_tree and $opt_t);
+  if ($diffs_in_tree) {
+    push @trees_with_diff, $fs[0]->tree($tree_no)->{form};
+  }
 }
 
 print "\n";
@@ -182,6 +186,7 @@ foreach (keys %diffs_in_spec_type) {
 print "\n$differences ".differences($differences)." in $coreferences coreferences\n";
 print "\n$diffs_in_cortype ".differences($diffs_in_cortype)." in cortype\n";
 print "$node_differences ".differences($node_differences)." in $nodes_with_coreference nodes with coreference of $total_nodes nodes\n";
+print "Trees $files[0]: ",join(" ",@trees_with_diff),"\n" if @trees_with_diff;
 
 sub check_nodes {
   my ($id,$n)=@_;
