@@ -400,7 +400,6 @@ sub generateNewWordId {
   $i++;
   my $user=$self->user;
   $i++ while ($forbidden->{"w-$i-$user"});
-  print "ID: w-$i-$user\n";
   return "w-$i-$user";
 }
 
@@ -524,7 +523,7 @@ sub addFrameElements {
 
 sub addFrame {
   my ($self,$before,$word,$elements,$note,$example,$problem,$author)=@_;
-  return unless $word and $elements ne "";
+  return unless $word and $elements;
   my $new_id = $self->generateNewFrameId($word);
   my $doc=$self->doc();
   my ($valency_frames)=$word->getChildElementsByTagName("valency_frames");
