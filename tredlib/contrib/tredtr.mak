@@ -2732,6 +2732,15 @@ sub func_CAUS {
 
 }
 
+#bind func_CM to Ctrl+e menu CM
+sub func_CM {
+
+  $sPar1 = 'CM';
+
+  FuncAssign();
+
+}
+
 
 #bind func_CNCS to Ctrl+c menu CNCS
 sub func_CNCS {
