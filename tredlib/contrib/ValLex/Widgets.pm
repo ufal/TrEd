@@ -202,11 +202,11 @@ sub open_superframe {
 sub fetch_data {
   my ($self, $word)=@_;
 
+  
   my $t=$self->widget();
   my ($e,$f,$i);
   my $style;
   $t->delete('all');
-  
 #  foreach my $entry ($self->data()->getFrameList($word)) {
 #    next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
 #    $e = $t->addchild("",-data => $entry->[0]);
@@ -306,9 +306,14 @@ sub create_widget {
   my $frame = $top->Frame(-takefocus => 0);
   my $ef = $frame->Frame(-takefocus => 0)->pack(qw/-pady 5 -side top -fill x/);
   my $l = $ef->Label(-text => "Search: ")->pack(qw/-side left/);
+  my $posfilter='*';
+  my $pose = $ef->Entry(qw/-background white -width 2/,
+			-textvariable => \$posfilter,
+		       )->pack(qw/-expand yes -side left -fill x/);
   my $e = $ef->Entry(qw/-background white -validate key/,
 		     -validatecommand => [\&quick_search,$self]
 		    )->pack(qw/-expand yes -fill x/);
+
 
   ## Word List
   my $w = $frame->Scrolled(qw/HList -columns 2 -background white
@@ -316,12 +321,39 @@ sub create_widget {
                               -header 1
                               -relief sunken
                               -scrollbars osoe/)->pack(qw/-side top -expand yes -fill both/);
+  for ($w->Subwidget('scrolled')) {
+    $_->bind($_,'<ButtonRelease-1>',sub { Tk->break });
+    $_->bind(ref($_),'<ButtonRelease-1>',sub { Tk->break });
+#    $_->bind(ref($_),'<ButtonRelease-1>',sub { Tk->break; });
+     $_->bind($_,'<Double-1>',
+	     [sub {
+	       my ($h,$self)=@_;
+#	       my $h=$self->subwidget('wordlist')->widget();
+	       my $word=$h->infoData($h->infoAnchor()) if ($h->infoAnchor());
+	       $self->fetch_data($word);
+	       $self->focus($word);
+	       Tk->break;
+	     },$self]);
+    
+  }
   $e->bind('<Return>',[
 			  sub {
-			    my ($cw,$w)=@_;
+			    my ($cw,$w,$self)=@_;
 			    $w->Callback(-browsecmd => $w->infoAnchor());
-			  },$w
+			    Tk->break;
+			  },$w,$self
 			 ]);
+  $pose->bind('<Return>',[
+			  sub {
+			    my ($cw,$self)=@_;
+			    my $h=$self->subwidget('wordlist');
+			    my $word=$h->infoData($h->infoAnchor()) if ($h->infoAnchor());
+			    $self->fetch_data($word);
+			    $self->focus($word);
+			    Tk->break;
+			  },$self
+			 ]);
+
 
   $w->configure(@conf) if (@conf);
   $w->BindMouseWheelVert() if $w->can('BindMouseWheelVert');
@@ -330,17 +362,23 @@ sub create_widget {
 				-foreground => 'black',
 				-background => 'white',
 				@{$item_style});
-  return $w, {
-	      frame => $frame,
-	      wordlist => $w,
-	      search => $e,
-	      label => $l
-	     }, $itemStyle;
+  return (
+	  $w,
+	  {
+	   frame => $frame,
+	   wordlist => $w,
+	   search => $e,
+	   label => $l
+	  },
+	  $itemStyle,   # style
+	  50,           # max_surrounding
+	  \$posfilter   # POS filter
+	 );
 }
 
-sub style {
-  return $_[0]->[4];
-}
+sub style { $_[0]->[4]; }
+sub max_surrounding { $_[0]->[5] };
+sub pos_filter { ${$_[0]->[6]} };
 
 sub quick_search {
   my ($self,$value)=@_;
@@ -356,7 +394,7 @@ sub forget_data_pointers {
 }
 
 sub fetch_data {
-  my ($self)=@_;
+  my ($self,$word)=@_;
   my $t=$self->widget();
   my $e;
   $t->delete('all');
@@ -365,44 +403,69 @@ sub fetch_data {
   $t->columnWidth(0,'');
   $t->columnWidth(1,'');
 
-  foreach my $entry (sort { $a->[2] cmp $b->[2] } $self->data()->getWordList())
-    {
-      $e= $t->addchild("",-data => $entry->[0]);
-      $t->itemCreate($e, 0, -itemtype=>'text',
-		     -text=> $entry->[3],
-		     -style => $self->style());
-      $t->itemCreate($e, 1, -itemtype=>'text',
-		     -text=> $entry->[2],
-		     -style => $self->style());
-    }
+  foreach my $entry ($self->data()->getWordSubList
+		     ($word,$self->max_surrounding(),$self->pos_filter)) {
+    $e= $t->addchild("",-data => $entry->[0]);
+    $t->itemCreate($e, 0, -itemtype=>'text',
+		   -text=> $entry->[3],
+		   -style => $self->style());
+    $t->itemCreate($e, 1, -itemtype=>'text',
+		   -text=> $entry->[2],
+		   -style => $self->style());
+  }
 }
 
 sub focus_by_text {
   my ($self,$text,$pos)=@_;
   my $h=$self->widget();
-  foreach my $t ($h->infoChildren()) {
-    if (index($h->itemCget($t,1,'-text'),$text)==0 and
-	($pos eq "" || $pos eq $h->itemCget($t,0,'-text'))) {
-      $h->anchorSet($t);
-      $h->selectionClear();
-      $h->selectionSet($t);
-      $h->see($t);
-      return $t;
+  use locale;
+  for my $i (0,1) {
+    # 1st run tries to find it in current list; if it fails
+    # 2nd run asks Data server for more data
+    $self->fetch_data($text) if $i;
+    foreach my $t ($h->infoChildren()) {
+      if (index($h->itemCget($t,1,'-text'),$text)==0 and
+	  ($pos eq "" || $pos eq $h->itemCget($t,0,'-text'))) {
+	$h->anchorSet($t);
+	$h->selectionClear();
+	$h->selectionSet($t);
+	$h->see($t);
+	return $t;
+      }
     }
   }
   return undef;
 }
+
+sub focus_index {
+  my ($self,$idx)=@_;
+  my $h=$self->widget();
+  if ($h->infoExists($idx)) {
+    $h->anchorSet($idx);
+    $h->selectionClear();
+    $h->selectionSet($idx);
+    $h->see($idx);
+  }
+  return $t;
+}
+
 sub focus {
   my ($self,$word)=@_;
   return unless ref($word);
   my $h=$self->widget();
-  foreach my $t ($h->infoChildren()) {
-    if ($self->data()->isEqual($h->infoData($t),$word)) {
-      $h->anchorSet($t);
-      $h->selectionClear();
-      $h->selectionSet($t);
-      $h->see($t);
-      return $t;
+  for my $i (0,1) {
+    # 1st run tries to find it in current list; if it fails
+    # 2nd run asks Data server for more data
+    print "focusing $word $i\n";
+    $self->fetch_data($word) if $i;
+    foreach my $t ($h->infoChildren()) {
+      if ($self->data()->isEqual($h->infoData($t),$word)) {
+	$h->anchorSet($t);
+	$h->selectionClear();
+	$h->selectionSet($t);
+	$h->see($t);
+	return $t;
+      }
     }
   }
 }
