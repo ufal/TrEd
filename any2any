@@ -66,6 +66,8 @@ $Fs2csts::export_dependency = 0 if $opt_G;
 $Fs2csts::compatibility_mode = 1 if $opt_C;
 $Fs2csts::preserve_err1 = 1 if $opt_E;
 
+our $inputenc='iso-8859-2';
+
 %bkmap=(
 	fs => 'FSBackend',
 	csts => 'CSTS_SGML_SP_Backend',
@@ -90,7 +92,7 @@ unless (  $backend = $bkmap{$format} ) {
 foreach $f (@files) {
   $fileno++;
   print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
-  $fs = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+  $fs = FSFile->newFSFile($f,$inputenc,@backends);
   if ($fs->lastTreeNo<0) {
     print STDERR "$f: empty or corrupt file!\n";
     next;
@@ -98,8 +100,21 @@ foreach $f (@files) {
   $fs->changeBackend($backend);
 
   my $out=$f;
-  $out=~s/$opt_s$/$opt_a/ if ($opt_s or $opt_a);
-  $out=~s/^$opt_p/$opt_r/ if ($opt_p or $opt_r);
+
+  my $eval;
+  $eval.="s/$opt_s\$//;"  if ($opt_s);
+  $eval.="\$_.=\"$opt_a\";" if ($opt_a);
+  $eval.="s/^$opt_p//;" if ($opt_p);
+  $eval.="\$_=\"$opt_r\".\$_;" if ($opt_r);
+  if ($eval) {
+    use Safe;
+    my $compartment = new Safe;
+    $compartment->permit_only(qw(concat :base_core));
+    $_=$out;
+    $compartment->reval($eval);
+    print STDERR $@ if $@;
+    $out=$_;
+  }
   if ($f eq $out) {
     unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
     rename $f, "$f~" || die "Cannot create backup file named $f~ for $f\n";
