@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-10-29 11:30:12 pajas>
+## Time-stamp: <2003-12-08 14:55:55 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1662,7 +1662,6 @@ sub GUI {
   return (ref($grp) eq 'TrEd::Window');
 }
 
-
 =item SubstituteFSHeader(declarations)
 
 Substitute a new FS header for current document. A list of valid FS
@@ -1794,7 +1793,7 @@ sub DumpFS {
 
   $fsfile->FS->writeTo($fh);
   Fslib::PrintFS($fh,undef,
-		 $fsfile->treeList,
+		 $treelist,
 		 $fsfile->FS->list,
 		 $fsfile->FS->defs);
   $fh->print($fsfile->tail);
@@ -1822,9 +1821,102 @@ sub ChangingFile {
   return $FileChanged;
 }
 
+=item PrintDialog (-option => value, ...)
+
+Display TrEd's standard print dialog. Possible options are:
+
+-command -psFile -toFile -format -imageMagickResolution
+-fileExtension -useType1Font -sentenceInfo -noRotate -colors
+
+=cut
+
+sub PrintDialog {
+  my (%opts)=@_;
+  if (GUI()) {
+    local $main::insideEval = 0;
+
+    foreach (qw(-command -psFile -toFile -format -noRotate -sentenceInfo
+                -imageMagickResolution -fileExtension -colors)) {
+      if (exists($opts{$_})) {
+	my $o=$_; $o=~s/^-//;
+	$grp->{framegroup}->{"print".lcfirst($o)} = $opts{$_}
+      }
+      main::printDialog($grp->{framegroup});
+    }
+  } else {
+    die "Cannot call PrintDialog from non-GUI version TrEd\n";
+  }
+  return 1;
+}
+
+=item Print (-option => value, ...)
+
+Print trees given from current file according to given printing options:
+
+-command -toFile -filename -format -noRotate -sentenceInfo -imageMagickResolution
+-colors -hidden -psFontFile -psFontAFMFile -ttFont -fontSize
+-fmtWidth -hMargin -fmtHeight -vMargin -maximize -psMedia
+
+=cut
+
+sub Print {
+  my (%opts)=@_;
+
+  if (GUI()) {
+    my $group=$grp->{framegroup};
+    local $main::insideEval = 0;
+    my $canvas=ToplevelFrame()->Canvas();
+    $opts{-range}=CurrentTreeNumber()+1 if ($opts{-range} eq "");
+
+    foreach (qw(-command -toFile -format -noRotate -sentenceInfo
+                -imageMagickResolution -colors)) {
+      unless (exists($opts{$_})) {
+	my $o=$_; $o=~s/^-//;
+	$opts{$_} = $group->{"print".lcfirst($o)};
+      }
+    }
+    unless ($opts{-ttFont}) {
+      main::initTTFonts($group);
+    }
+    TrEd::Print::print_trees
+	($grp->{FSFile},
+	 ToplevelFrame(),
+	 $canvas,
+	 $opts{-range},
+	 ($opts{-toFile} and $opts{-format} ne 'imageMagick') ? 1 : 0,
+	 $opts{-format} =~ /ImageMagick|EPS/ ? 1 : 0,
+	 ($opts{-toFile} and $opts{-format} eq 'PDF') ? 1 : 0,
+	 $opts{-filename},
+	 $opts{-sentenceInfo},
+	 $opts{-command},
+	 $opts{-colors},
+	 $opts{-noRotate},
+	 $opts{-hidden},
+	 {
+	  'PS' => exists($opts{-psFontFile}) ? $opts{-psFontFile} :
+	  $main::psFontFile,
+	  'AFM' => exists($opts{-psFontAFMFile}) ? $opts{-psFontAFMFile} :
+	  $main::psFontAFMFile,
+	  'TTF' => exists($opts{-ttFont}) ? $opts{-ttFont} :
+	  $group->{ttfonts}->{$main::ttFont},
+	  'Size' => exists($opts{-fontSize}) ? $opts{-fontSize} :
+	  $main::psFontSize,
+	 },
+	 exists($opts{-fmtWidth}) ? $opts{-fmtWidth} : $main::prtFmtWidth,
+	 exists($opts{-hMargin}) ? $opts{-hMargin} : $main::prtHMargin,
+	 exists($opts{-fmtHeight}) ? $opts{-fmtHeight} : $main::prtFmtHeight,
+	 exists($opts{-vMargin}) ? $opts{-vMargin} : $main::prtVMargin,
+	 exists($opts{-maximize}) ? $opts{-maximize} : $main::maximizePrintSize,
+	 exists($opts{-psMedia}) ? $opts{-psMedia} : $main::psMedia,
+	 $main::treeViewOpts
+	);
+    $canvas->destroy();
+  } else {
+    die "Cannot call PrintDialog from non-GUI version TrEd\n";
+  }
+}
+
 =back
-
-
 
 =cut
 
