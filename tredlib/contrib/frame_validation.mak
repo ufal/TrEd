@@ -91,21 +91,16 @@ sub has_auxR {
        ['EFF', sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/${1}1${2}/ } ]]],
     # /2 frame test
     [[ 'ACT(.1)', ['PAT', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ]]  =>
-    # form transformation rules:
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
       ['PAT',sub { s/((?:^|,)\.a?)4((?:\[(jako|{jako,jako¾to})(\/AuxY)?\])?(?:,|$))/${1}1${2}/ } ]]],
     # /3 ditto for CPHR
-    # form transformation rules:
     [[ 'ACT(.1)', ['CPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
-    # form transformation rules:
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['CPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]]],
     # /4 frame test
     [[ 'ACT(.1)', 'ADDR(.4)' ] =>
-    # form transformation rules:
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.4)', '+ADDR(.1)' ]],
     # /5 frame test
     [[ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ] ] =>
-    # form transformation rules:
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
       ['EFF',
        sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/${1}1${2}/ }
@@ -159,15 +154,16 @@ sub has_auxR {
 		#and 
                 first { $_->{AID} ne "" and $_->{lemma} =~ /^mít$|^mívat_/ } get_aidrefs_nodes($aids,$node)
 		and not first { $_->{AID} ne "" and $_->{lemma} !~ /^mít$|^mívat_/ and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node)
-		and not first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /Vf/ } get_aidrefs_nodes($aids,$node)
+		and not first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /V[fc]/ } get_aidrefs_nodes($aids,$node)
 	       )
 	  ) ? 1:0;
 	} =>
     # frame transformation rules:
+    [[ '(.$2<s>)' ] => []],
+    [[ '(.v[se/AuxR])' ] => []],
     @fv_passivization_rules,
     # frame test
     [[ 'ACT(.1)' ] =>
-    # form transformation rules:
      [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])']],
    ],
    # 4.
@@ -381,6 +377,12 @@ sub check_node_case {
 	       first {
 		 is_numeric_expression($_) and (($_->{tag}!~/^....(\d)/) or ($case eq $1))
 	       } get_children_include_auxcp($node));
+  print "   CASE: Checking 2+za XY Kc construct\n"  if $V_verbose;
+  return 1 if ($node->{tag}=~/^....2/ and
+	       first {
+		 $_->{lemma} eq 'za-1' and
+		   first { is_numeric_expression($_) } get_children_include_auxcp($_)
+		 } get_children_include_auxcp($node));
   print "   CASE: All checks failed\n"  if $V_verbose;
   return 0;
 }
@@ -1046,8 +1048,15 @@ sub validate_frame_no_transform {
       print "****\n" if (!$quiet and $V_verbose);
     } else {
       # 2) check obligatory frame slots
-      foreach my $c (@{$c{$o}}) {
-	return 0 unless match_element($V,$c,$e,$node,$aids,$quiet);
+      if ($V_verbose) {
+	unless (first { local $V_verbose = 0;
+			match_element($V,$_,$e,$node,$aids,1);
+		      } @{$c{$o}}) {
+	  match_element($V,$_,$e,$node,$aids,$quiet) for @{$c{$o}};
+	  return 0;
+	}
+      } else {
+	return 0 unless (first { match_element($V,$_,$e,$node,$aids,$quiet) } @{$c{$o}});
       }
     }
   }

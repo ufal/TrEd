@@ -126,7 +126,7 @@ sub find_childless_verbs {
     <para>If your script is so simple that you don't bother openning an
     editor, you can put your code directly on the command line. Here is an
     example equivalent to the code of <literal>my_macros</literal>.
-    <literallayout>$ btred -TN -e 'print ThisAddress(),"\n" unless ($node-&gt;firstson() or $node-&gt;{tag}!~/^V/)' *.fs</literallayout></para>
+    <literallayout>$ btred -TN -e 'print ThisAddress(),"\n" unless ($this-&gt;firstson() or $this-&gt;{tag}!~/^V/)' *.fs</literallayout></para>
   </sect1>
 
   <sect1>
@@ -208,7 +208,7 @@ sub find_childless_verbs {
       some more interesting code on the servers. We may start with the one
       already crafted for btred above:</para>
 
-      <literallayout>$ ntred -TN -e 'print ThisAddress(),"\n" unless ($node-&gt;firstson() or $node-&gt;{tag}!~/^V/)'</literallayout>
+      <literallayout>$ ntred -TN -e 'print ThisAddress(),"\n" unless ($this-&gt;firstson() or $this-&gt;{tag}!~/^V/)'</literallayout>
 
       <para>You may see that this is almost identical to the btred example
       above, except that this time we don't have to specify any filenames,
@@ -259,7 +259,7 @@ sub find_childless_verbs {
           redirection and this toolkit: it shows nodes selected by our old
           good macro in TrEd:</para>
 
-          <literallayout>$ ntred -TN -e 'Position unless ($node-&gt;firstson() or $node-&gt;{tag}!~/^V/) | tred -l-</literallayout>
+          <literallayout>$ ntred -TN -e 'Position unless ($this-&gt;firstson() or $this-&gt;{tag}!~/^V/) | tred -l-</literallayout>
         </listitem>
 
         <listitem>
