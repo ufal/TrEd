@@ -276,8 +276,9 @@ sub focus {
   return unless ref($frame);
   my $h=$self->widget();
   foreach my $t (map { $_,$h->infoChildren($_) } $h->infoChildren()) {
-    next unless ref($h->infoData($t));
-    if ($self->data()->isEqual($h->infoData($t),$frame)) {
+    my $infodata = $h->infoData($t);
+    next unless ref($infodata);
+    if ($self->data()->isEqual($infodata,$frame)) {
       $h->anchorSet($t);
       $h->selectionClear();
       $h->selectionSet($t);
@@ -285,6 +286,7 @@ sub focus {
       return $t;
     }
   }
+  return undef;
 }
 
 sub select_frames {
@@ -491,6 +493,7 @@ sub focus {
       }
     }
   }
+  return undef;
 }
 
 sub focused_word {
