@@ -23,17 +23,31 @@ pml.mak - Miscelaneous macros of general use in Prague Dependency Treebank (PDT)
 
 =item schema_name()
 
-Return name of the PML schema for the current file. PDT typically uses
-PML schema named C<adata> for analytical annotation and C<tdata> for
-tectogrammatical annotation.
+Return name of the PML schema associated with the current file. PDT
+typically uses PML schema named C<adata> for analytical annotation and
+C<tdata> for tectogrammatical annotation.
 
 =cut
 
 sub schema_name {
-  my $schema;
-  return undef unless $grp->{FSFile} and $schema=$grp->{FSFile}->metaData('schema');
+  my $schema = &schema;
+  return undef unless $schema;
   return $schema->{root}->{name};
 }
+
+=item schema($fsfile?)
+
+Return PML schema associated with a given (or the current) file
+(Fslib::Schema object).
+
+=cut
+
+sub schema {
+  my $fsfile = $_[0] || $grp->{FSFile};
+  return undef unless $fsfile;
+  return $grp->{FSFile}->metaData('schema');
+}
+
 
 sub file_resumed_hook {
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
@@ -196,7 +210,6 @@ file. If no file is given, the current file is assumed.
 =cut
 
 sub AFile {
-  shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
   return undef unless ref($fsfile->metaData('refnames')) and ref($fsfile->metaData('ref'));
   my $refid = $fsfile->metaData('refnames')->{adata};
@@ -212,9 +225,8 @@ C<$this>.
 =cut
 
 sub getANodes {
-  shift unless ref($_[0]);
   my $node = $_[0] || $this;
-  return map { s/^.*#//; getANodesHash()->{$_} } ListV($node->{'a.rf'});
+  return grep defined, map { s/^.*#//; getANodesHash()->{$_} } ListV($node->{'a.rf'});
 }
 
 =item getANodeByID($id_or_ref)
