@@ -951,9 +951,9 @@ btred - non-interactive scriptable version of the tree editor TrEd
         [-x extra_attribs] [-X gov,ord] [-R]
         [-o script options -- ] files...
 or
-  btred -u          to show usage
-  btred -h          to show help
-  btred --man       to show manual page
+  btred -u          for usage
+  btred -h          for help
+  btred --man       for the manual page
 
 =head1 DESCRIPTION
 
