@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-11-16 16:36:05 pajas>
+# Time-stamp: <2002-01-27 12:18:00 paja>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -214,6 +214,10 @@ sub set_config {
   $treeViewOpts->{clearTextBackground} = val_or_def($confs,"cleartextbackground",1);
 
   $treeViewOpts->{backgroundColor}     = val_or_def($confs,"backgroundcolor",undef);
+
+
+  $treeViewOpts->{backgroundImageX}     = val_or_def($confs,"backgroundimagex",0);
+  $treeViewOpts->{backgroundImageY}     = val_or_def($confs,"backgroundimagey",0);
   $treeViewOpts->{noColor}	       = val_or_def($confs,"allowcustomcolors",0);
   $treeViewOpts->{drawBoxes}	       = val_or_def($confs,"drawboxes",0);
   $treeViewOpts->{drawEdgeBoxes}       = val_or_def($confs,"drawedgeboxes",0);
@@ -250,6 +254,16 @@ sub set_config {
     unless (-f $psFontAFMFile) {
       $psFontAFMFile=~s!/([^/]+)$!/afm/$1!;
     }
+  }
+
+  if ($confs->{backgroundimage} ne "" 
+      and ! -f $confs->{backgroundimage}
+      and  -f $libDir."/".$confs->{backgroundimage}) {
+    $treeViewOpts->{backgroundImage}=
+      $libDir."/".$confs->{backgroundimage};
+  } else {
+    $treeViewOpts->{backgroundImage}=
+      val_or_def($confs,"backgroundimage",undef);
   }
 
   $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
