@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-09-21 16:06:23 pajas>
+## Time-stamp: <2004-09-23 11:58:01 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -830,7 +830,7 @@ sub join_with_mother {
   ChangingFile(1);
 }#join_with_mother
 
-#include <contrib/pdt_tags.mak>
+#ifinclude <contrib/pdt_tags.mak>
 #bind show_tag to Alt+T
 sub show_tag {
   describe_tag($this->{tag});
