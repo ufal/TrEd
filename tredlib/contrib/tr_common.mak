@@ -860,6 +860,16 @@ sub repair_added_nodes {
   }
 }
 
+sub print_out_and_to_attr {
+  my ($node,$treeno,$attr,$text) = @_;
+  if ($node->{$attr} ne "") {
+    $node->{$attr}.="|".$text;
+  } else {
+    $node->{$attr}=$text;
+  }
+  stdout(FileName()."##$treeno.".GetNodeIndex($node)." ".$text."\n");
+}
+
 sub rigorously_check_ids {
   my %aids;
   my %tids;
@@ -872,52 +882,52 @@ sub rigorously_check_ids {
     my %ords;
     while ($node) {
       if ($node->{ord} < 0) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." negative ord $node->{ord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"negative ord $node->{ord}");
       }
       if ($node->{dord} < 0) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." negative dord $node->{dord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"negative dord $node->{dord}");
       }
       if ($node->{sentord} < 0) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." negative sentord $node->{sentord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"negative sentord $node->{sentord}");
       }
       if ($node->{AID} ne "" and exists($aids{$node->{AID}})) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate AID $node->{AID}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"duplicate AID $node->{AID}");
       }
       if ($node->{TID} ne "" and exists($tids{$node->{TID}})) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate TID $node->{TID}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"duplicate TID $node->{TID}");
       }
       if ($node->{ord} ne "" and exists($ords{$node->{ord}})) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate ord $node->{ord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"duplicate ord $node->{ord}");
       }
       if ($node->{ord} !~ /\./ and $node->{sentord} ne $node->{ord}) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." sentord $node->{sentord} =! ord $node->{ord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"sentord $node->{sentord} =! ord $node->{ord}");
       }
       if ($node->{ord} =~ /\./ and $node->{sentord} != 999) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." inconsistent sentord $node->{sentord} for ord $node->{ord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"inconsistent sentord $node->{sentord} for ord $node->{ord}");
       }
       if ($node->{ord} =~ /\./ and $node->{TID} eq "") {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." missing TID for ord $node->{ord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"missing TID for ord $node->{ord}");
       }
       if ($node->{ord} !~ /\./ and $node->{ord} != 0 and $node->{AID} eq "") {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." missing AID for ord $node->{ord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"missing AID for ord $node->{ord}");
       }
       if ($node->{ord} =~ /\./ and $node->{AID} ne "") {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." redundant AID for ord $node->{ord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"redundant AID for ord $node->{ord}");
       }
       if ($node->{ord} !~ /\./ and $node->{TID} ne "") {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." redundant TID for ord $node->{ord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"redundant TID for ord $node->{ord}");
       }
       if ($sentords[$node->{sentord}] == 1) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate sentord $node->{sentord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"duplicate sentord $node->{sentord}");
       }
       if ($dords[$node->{dord}] == 1) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate dord $node->{dord}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"duplicate dord $node->{dord}");
       }
       if ($node->{AID}=~/\|/) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." forbidden character | in AID $node->{AID}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"forbidden character | in AID $node->{AID}");
       }
       if ($node->{AIDREFS} ne "" and $node->{AID} ne "" and index("|$node->{AIDREFS}|","|$node->{AID}|")<0) {
-	stdout(FileName()."##$treeno.".GetNodeIndex($node)." AID $node->{AID} missing in AIDREFS $node->{AIDREFS}\n");
+	print_out_and_to_attr($node,$treeno,'err1',"AID $node->{AID} missing in AIDREFS $node->{AIDREFS}");
       }
       $sentords[$node->{sentord}]=1 unless ($node->{sentord}<0 or $node->{sentord}>=999);
       $dords[$node->{dord}]=1 unless ($node->{dord}<0);
