@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-10-30 11:14:14 pajas>
+## Time-stamp: <2001-10-31 15:27:35 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -81,7 +81,7 @@ sub QueryTrlemma {
     (['Comma','&Comma;','???','???','Coord'],
      ['Colon','&Colon;','???','???','Coord'],
      ['Dash','&Dash;','???','???','Coord'],
-     ['Brackl','&Brackl;','???','???'],
+     ['Lpar','&Lpar;','???','???'],
      ['Forn','&Forn;','???','???'],
      ['Rcp','&Rcp;','???','???','PAT'],
      ['Neg','&Neg;','???','???'],
@@ -238,6 +238,8 @@ sub AddNewLoc {
 ## (overriding definitions of contrib/tredtr.mak)
 sub GetNewOrd {
 
+  print "overriden Get new ord \n";
+
   my $base=0;
   my $suff=0;
   my $node;
@@ -255,6 +257,7 @@ sub GetNewOrd {
   }
 
   $sPar2="$base.".($suff+1);
+  print "returning $sPar2\n";
   return $sPar2;            # for future compatibility
 }
 
@@ -336,7 +339,6 @@ sub NewVerb {
   my $pNew;			# used as type "pointer"
 
   my $sNum;			# used as type "string"
-  my $sDord;			# used as type "string"
 
   print STDERR "Running NewVerb\n";
   return unless ($root->{'reserve1'}=~'TR_TREE');
@@ -373,29 +375,12 @@ sub NewVerb {
   GetNewOrd();
   $sNum = $sPar2;
 
-  $pNew->{'lemma'} = '---';
-  $pNew->{'tag'} = '---';
-  $pNew->{'form'} = '---';
+  $pNew->{'lemma'} = '-';
+  $pNew->{'tag'} = '-';
+  $pNew->{'form'} = '-';
   $pNew->{'afun'} = '---';
-  $pNew->{'ID1'} = '???';
-  $pNew->{'ID2'} = '???';
-  $pNew->{'origf'} = '';
-  $pNew->{'origap'} = '';
-  $pNew->{'gap1'} = '';
-  $pNew->{'gap2'} = '';
-  $pNew->{'gap3'} = '';
   $pNew->{'ord'} = $sNum;
-  $pNew->{'ordtf'} = '???';
-  $pNew->{'afunprev'} = '---';
-  $pNew->{'TR'} = '???';
-  $pNew->{'warning'} = '???';
-  $pNew->{'err1'} = '???';
-  $pNew->{'err2'} = '???';
-  $pNew->{'semPOS'} = '???';
-  $pNew->{'tagauto'} = '???';
-  $pNew->{'lemauto'} = '???';
-  $pNew->{'ordorig'} = '???';
-  $pNew->{'trlemma'} = 'Emp';
+  $pNew->{'trlemma'} = '&Emp;';
   $pNew->{'gender'} = '???';
   $pNew->{'number'} = '???';
   $pNew->{'degcmp'} = '???';
@@ -408,19 +393,34 @@ sub NewVerb {
   $pNew->{'tfa'} = '???';
   $pNew->{'func'} = 'PRED';
   $pNew->{'gram'} = '???';
-  $pNew->{'reltype'} = '???';
   $pNew->{'memberof'} = '???';
-  $pNew->{'fw'} = '???';
-  $pNew->{'phraseme'} = '???';
+  $pNew->{'gender'} = '???';
+  $pNew->{'number'} = '???';
+  $pNew->{'degcmp'} = '???';
+  $pNew->{'tense'} = '???';
+  $pNew->{'aspect'} = '???';
+  $pNew->{'iterativeness'} = '???';
+  $pNew->{'verbmod'} = '???';
+  $pNew->{'deontmod'} = '???';
+  $pNew->{'sentmod'} = '???';
+  $pNew->{'tfa'} = '???';
+  $pNew->{'func'} = '???';
+  $pNew->{'gram'} = '???';
+  $pNew->{'memberof'} = '???';
   $pNew->{'del'} = 'ELID';
   $pNew->{'quoted'} = '???';
   $pNew->{'dsp'} = '???';
-  $pNew->{'coref'} = '???';
-  $pNew->{'cornum'} = '???';
   $pNew->{'corsnt'} = '???';
   $pNew->{'antec'} = '???';
-  $pNew->{'reserve1'} = '???';
-  $pNew->{'reserve2'} = '???';
+  $pNew->{'parenthesis'} = '???';
+  $pNew->{'recip'} = '???';
+  $pNew->{'dispmod'} = '???';
+  $pNew->{'trneg'} = 'NA';
 
   $this=$pNew;
+}
+
+sub DisconnectID {
+  $sReturn  = $sPar1;
+  $sReturn =~ s/(?:^|\|)$sPar2(?:\||$)//;
 }

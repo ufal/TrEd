@@ -10,6 +10,7 @@ import Tectogrammatic;
 #bind tfa_topic to T menu tfa = topic
 #bind tfa_C to C menu tfa = contrast
 #bind tfa_NA to A menu tfa = NA
+#bind tfa_qm to N menu tfa = ???
 #bind ProjectivizeSubTree to P menu Projectivize subtree
 #bind ShiftSTLeft to Alt+Left menu Shift subtree to the left
 #bind ShiftSTRight to Alt+Right menu Shift subtree to the right

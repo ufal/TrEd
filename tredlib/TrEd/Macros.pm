@@ -142,7 +142,7 @@ sub read_macros {
 	if (-f $mf) {
 	  read_macros($mf,$libDir,1,@contexts);
 	} else {
-	  print STDERR "Cannot include macros $1 to $file: file not found!\n";
+	  print STDERR "Cannot include macros\n$mf\n to $file: file not found!\n";
 	}
       }
   }
