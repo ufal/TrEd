@@ -324,6 +324,7 @@ exit;
 ############################
 sub _msg { $_ERR->print("BTRED: ",@_); }
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
+sub sign_md5 ($$) { TrEd::Cipher::block_md5(TrEd::Cipher::block_xor(@_)) }
 sub _benchmark () {
   my $number_of_iters=10000;
   my $i;
@@ -451,16 +452,25 @@ sub startMain {
     $hub->autoflush(1);
     while (1) {
       my $state='default';
+      my $signature;
+      my $request;
       my %request;
       # --- reading request from hub ---
       while (<$hub>) {
         if (/^$control REQUEST_TYPE=(.*)/) {
 	  $request_no++;
 	  _msg("Receiving request $request_no: $1\n");
+	  %request = (); # clear
 	  $request{REQUEST_TYPE}=$1;
+	  $request="";
+	  $signature="";
+	} elsif (/^$control MD5_SIGNATURE (.*)$/) {
+	  $signature = $1;
         } elsif (/^$control STATE=(.*)/) {
 	  $state=$1;
+	  $request.=$_;
         } elsif (!/^$control/) {
+	  $request.=$_;
 	  $request{$state}.=$_;
         } elsif (/$control END_OF_REQUEST/) {
           $state='END_OF_REQUEST';
@@ -470,265 +480,272 @@ sub startMain {
       ($state eq 'END_OF_REQUEST') || die "Broken request $request{REQUEST_TYPE}!\n";
       _msg "Request received from the hub: $request{REQUEST_TYPE}\n";
 
-      # --- performing the request on the trees ----
-      _msg("Performing the hub request...\n");
-
-      $NO_HOOKS=1;
-      if ($request{REQUEST_TYPE} eq 'LOAD_FILES') {
-	my @new=split /\n/,$request{default};
-	@files=(@files,@new);
-	eval {
-	  preloadFiles($grp,[@new],$hub);
-	  die $@ if $@ ;
-	};
-	if ($@) {
-	  $hub->print("$@\n");
-	} else {
-	  $hub->print("OK\n");
-	}
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'BENCHMARK') {
-	$hub->print(_benchmark(),",",_threads(),"\n"); # benchmark,threads
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'EVAL_CODE') {
-	$NO_HOOKS=0;
-	_msg("Initializing safe compartment...\n") if $safe;
-
-	# create temporary file to store macro output
-	my $macro_stdout = IO::File->new_tmpfile();
-	my $macro_stderr = IO::File->new_tmpfile();
-	my $old_stdout = _redirect_stdout($macro_stdout);
-	my $old_stderr = _redirect_stderr($macro_stderr);
-
-	# initialize Safe compartment
-	init_tredmacro($grp);
-
-	# script command-line arguments
-	if (exists($request{ARGS})) {
-	  no strict qw(refs);
-	  @{macro_variable('TredMacro::ARGV')}=split "\n",$request{ARGS};
-	} else {
-	  no strict qw(refs);
-	  @{macro_variable('TredMacro::ARGV')}=();
-	}
-
-	STDOUT->autoflush(1);
-	# load macro
-	_msg "COMPILING MACRO\n";
-	chomp($request{CONTEXT});
-	$context=$request{CONTEXT} || 'TredMacro';
-	$context='TredMacro' if $context eq 'main';
-	$SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
-	doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
-	# execute hooks and the code of the query
-	my $time;
-	$hub->print("$control SERVER_RESPONSE_STDERR\n");
-	$hub->print("$@\n") if $@;
-	if (!$@ and keys(%{$grp->{preloaded}}) and
-	    doEvalHook($grp,"start_hook") ne 'stop' and
-	    doEvalHook($grp,"preload_hook") ne 'stop') { # for compatibility
-	  _msg "RUNNING CODE: $request{CODE}\n";
-	  gotoFile($grp,0);
-	  my $t0 = new Benchmark;
-	  do {
-	    doEvalMacro($grp,"package $context;".$request{CODE});
-	  } while (!$@ and nextFile($grp));
-	  $hub->print("$@\n") if $@;
-	  _msg($@) if $@; undef $@;
-	  doEvalHook($grp,"exit_hook");
-	  $hub->print("$@\n") if $@;
-	  _msg($@) if $@;undef $@;
-	  my $t1 = new Benchmark;
-	  $time = timediff($t1, $t0) if ($t1 and $t0);
-	  $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "";
-	}
-	$SIG{USR1} = sub { };
-	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
-	cleanup_tredmacro($grp,split(/\n/,"package $context;\n".$request{MACRO}."\n".$request{CODE}));
-
-	# send macro's error output from tmp file to client
-	_copy_output($macro_stderr,$hub);
-	$macro_stderr->close;
-	_revert_redirect_stderr($old_stderr);
-
-	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
-
-	# send macro's output from tmp file to client
-	_copy_output($macro_stdout,$hub);
-	$macro_stdout->close;
-	_revert_redirect_stdout($old_stdout);
-
-	_end_response($control,$hub);
-	_msg("The processing of request $request_no completely finished.\n");
-      } elsif ($request{REQUEST_TYPE} eq 'QUIT') {
-	_msg "Quitting on client's request\n";
-	$hub->print("OK\n");
-	_end_response($control,$hub);
-	exit 0;
-      } elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
-	_msg "Reloading all open files at client's request\n";
-	%{$grp->{preloaded}}=();
-	eval {
-	  preloadFiles($grp,\@files,$hub);
-	  die $@ if $@ ;
-	};
-	if ($@) {
-	  $hub->print("$@\n");
-	} else {
-	  $hub->print("OK\n");
-	}
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'RELOAD_MACROS') {
-	my $f=$request{Filename};
-	chomp $f;
-	$macroFile = $f if $f;
-	_msg "Reloading macros from $macroFile libdir=$libDir at client's request\n";
-	%TrEd::Macros::defines=(BTRED => 1);    # reset defines
-	eval {
-	  read_macros($macroFile,$libDir);	# read macros
-	};
-	_msg(@TrEd::Macros::macros);
-	if ($@) {
-	  $hub->print("$@\n");
-	} else {
-	  $hub->print("OK\n");
-	}
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'LIST') {
-	_msg "Listing all open files at client's request\n";
-	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	$hub->print(join("\n",@files),"\n");
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'LIST_CHANGED') {
-	_msg "Listing all open files at client's request\n";
-	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	$hub->print(join("\n",grep { ref($grp->{preloaded}->{$_}) and
-				       $grp->{preloaded}->{$_}->notSaved()
-				   } @files),"\n");
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'DUMP') {
-	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	_msg "Request $request{default} at client's request\n";
-	foreach my $f (grep /\S/,split /\n/,$request{default}) {
-	  next unless ($f);
-	  $f=~s{^ntred://}{};
-	  $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
-	  _msg "Dumping some tree $f at client's request\n";
-	  next unless openFile($grp,$f,-justpreloaded => 1);
-	  for my $fsfile ($grp->{FSFile}) {
-	    _set_encoding($hub,$fsfile->encoding(),undef);
-	    $fsfile->FS->writeTo($hub);
-	    Fslib::PrintFS($hub,undef,
-			   $f=_has_suffix($f) ? [$grp->{root}] :
-			   $fsfile->treeList,
-			   $fsfile->FS->list,
-			   $fsfile->FS->defs);
-	    ## Tredish custom attributes:
-	    $fsfile->changeTail(
-				(grep { $_!~/\/\/Tred:(?:Custom-Attribute(?:Cont)?|Balloon-Pattern):/ } $fsfile->tail),
-				(map {"//Tred:Custom-Attribute:$_\n"}
-				 map {
-				   join "\n//Tred:Custom-AttributeCont:",
-				     split /\n/,$_
-				   } $fsfile->patterns),
-				(map {"//Tred:Balloon-Pattern:$_\n"}
-				 split /\n/,$fsfile->hint)
-			       );
-	    $hub->print($fsfile->tail());
-	    $hub->print("\n\n//FSEND\n\n");
-	  }
-	  _set_encoding($hub,$term_encoding,"socket to hub");
-	}
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
-	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	my $f=$request{Filename};
-	chomp $f;
-	_msg "Request $f at client's request\n";
-	$f=~s{^ntred://}{};
-	$f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
-	if ($] >= 5.008) {
-	  require Encode;
-	  $request{FSFile} = Encode::decode($TrEd::Convert::inputenc,$request{FSFile});
-	}
-	my @fs=map {$_."\n"} split /\n/,$request{FSFile};
-	if ($f and openFile($grp,$f,-justpreloaded => 1) and ref($grp->{FSFile})) {
-	  _msg "Uploading $f at client's request\n";
-	  my $fsfile=FSFile->new();
-	  local $Fslib::Debug=1;
-#	  _msg "received @fs\n";
-	  if (FSBackend::read(\@fs,$fsfile) and ref($fsfile->treeList()->[0])) {
-	    if (_has_suffix($f)) {
-	      _msg "Updated tree $grp->{treeNo} ($f)\n";
-	      # change only one tree
-	      $grp->{FSFile}->treeList()->[$grp->{treeNo}]=$fsfile->treeList()->[0];
-	      $fsfile->changeTreeList([]);
-	      $grp->{FSFile}->notSaved(1);
-	      closeFile($grp);
-	      # $fsfile is garbage collected
-	    } else {
-	      _msg "Updated whole file ($f)\n";
-	      # change the whole file
-	      $grp->{FSFile}->changeTreeList($fsfile->treeList());
-	      $fsfile->changeTreeList([]);
-	      $grp->{FSFile}->notSaved(1);
-	      closeFile($grp);
-	      # $fsfile is garbage collected
-	    }
-	  } else {
-	    _msg "read failed\n";
-	  }
-	}
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'SAVE' or
-	       $request{REQUEST_TYPE} eq 'SAVE_CHANGED'
-	      ) {
-	for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
-	  chomp($request{$_}) if exists $request{$_};
-	}
-	# create temporary file to store std output
-	my $macro_stdout = IO::File->new_tmpfile();
-	my $old_stdout = _redirect_stdout($macro_stdout);
-
-	do {
-	  local $backend=$bkmap{$request{Format}} if exists $request{Format};
-	  local $strip_prefix=$request{"Strip-prefix"} if exists $request{"Strip-prefix"};
-	  local $strip_suffix=$request{"Strip-suffix"} if exists $request{"Strip-suffix"};
-	  local $add_prefix=$request{"Prefix"} if exists $request{"Prefix"};
-	  local $append_suffix=$request{"Suffix"} if exists $request{"Suffix"};
-	  eval {
-	    gotoFile($grp,0);
-	    die $@ if $@;
-	    do {{
-	      next unless ref($grp->{FSFile});
-	      next unless ($request{REQUEST_TYPE} eq 'SAVE'
-			   or $grp->{FSFile}->notSaved());
-	      my $out = saveFile($grp);
-	      $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
-	      die $@ if $@;
-	    }} while (nextFile($grp));
-	    die $@ if $@;
-	  };
-	};
-	$hub->print("$control SERVER_RESPONSE_STDERR\n");
-	$hub->print("$@\n") if $@;
-	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	_copy_output($macro_stdout,$hub);
-	$macro_stdout->close;
-	_revert_redirect_stdout($old_stdout);
-	_end_response($control,$hub);
-      } elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
-	_msg "Reloading all open files at client's request\n";
-	closeFile($grp);
-	%{$grp->{preloaded}}=();
-	@files=();
-	$hub->print("OK\n");
+      _msg("Verifying request signature...\n");
+      if ($signature ne sign_md5($key,$request)) {
+	$hub->print("UNAUTHORIZED REQUEST: MD5 SIGNATURE FAILED\n");
+	$hub->print($request);
 	_end_response($control,$hub);
       } else {
-	$hub->print("ERROR: UNKNOWN REQUEST TYPE $request{REQUEST_TYPE}\n");
-	_end_response($control,$hub);
+	# --- performing the request on the trees ----
+	_msg("Performing the hub request...\n");
+	$NO_HOOKS=1;
+	if ($request{REQUEST_TYPE} eq 'LOAD_FILES') {
+	  my @new=split /\n/,$request{default};
+	  @files=(@files,@new);
+	  eval {
+	    preloadFiles($grp,[@new],$hub);
+	    die $@ if $@ ;
+	  };
+	  if ($@) {
+	    $hub->print("$@\n");
+	  } else {
+	    $hub->print("OK\n");
+	  }
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'BENCHMARK') {
+	  $hub->print(_benchmark(),",",_threads(),"\n"); # benchmark,threads
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'EVAL_CODE') {
+	  $NO_HOOKS=0;
+	  _msg("Initializing safe compartment...\n") if $safe;
+
+	  # create temporary file to store macro output
+	  my $macro_stdout = IO::File->new_tmpfile();
+	  my $macro_stderr = IO::File->new_tmpfile();
+	  my $old_stdout = _redirect_stdout($macro_stdout);
+	  my $old_stderr = _redirect_stderr($macro_stderr);
+
+	  # initialize Safe compartment
+	  init_tredmacro($grp);
+
+	  # script command-line arguments
+	  if (exists($request{ARGS})) {
+	    no strict qw(refs);
+	    @{macro_variable('TredMacro::ARGV')}=split "\n",$request{ARGS};
+	  } else {
+	    no strict qw(refs);
+	    @{macro_variable('TredMacro::ARGV')}=();
+	  }
+
+	  STDOUT->autoflush(1);
+	  # load macro
+	  _msg "COMPILING MACRO\n";
+	  chomp($request{CONTEXT});
+	  $context=$request{CONTEXT} || 'TredMacro';
+	  $context='TredMacro' if $context eq 'main';
+	  $SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
+	  doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
+	  # execute hooks and the code of the query
+	  my $time;
+	  $hub->print("$control SERVER_RESPONSE_STDERR\n");
+	  $hub->print("$@\n") if $@;
+	  if (!$@ and keys(%{$grp->{preloaded}}) and
+	      doEvalHook($grp,"start_hook") ne 'stop' and
+	      doEvalHook($grp,"preload_hook") ne 'stop') { # for compatibility
+	    _msg "RUNNING CODE: $request{CODE}\n";
+	    gotoFile($grp,0);
+	    my $t0 = new Benchmark;
+	    do {
+	      doEvalMacro($grp,"package $context;".$request{CODE});
+	    } while (!$@ and nextFile($grp));
+	    $hub->print("$@\n") if $@;
+	    _msg($@) if $@; undef $@;
+	    doEvalHook($grp,"exit_hook");
+	    $hub->print("$@\n") if $@;
+	    _msg($@) if $@;undef $@;
+	    my $t1 = new Benchmark;
+	    $time = timediff($t1, $t0) if ($t1 and $t0);
+	    $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "";
+	  }
+	  $SIG{USR1} = sub { };
+	  $hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
+	  cleanup_tredmacro($grp,split(/\n/,"package $context;\n".$request{MACRO}."\n".$request{CODE}));
+
+	  # send macro's error output from tmp file to client
+	  _copy_output($macro_stderr,$hub);
+	  $macro_stderr->close;
+	  _revert_redirect_stderr($old_stderr);
+
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+
+	  # send macro's output from tmp file to client
+	  _copy_output($macro_stdout,$hub);
+	  $macro_stdout->close;
+	  _revert_redirect_stdout($old_stdout);
+
+	  _end_response($control,$hub);
+	  _msg("The processing of request $request_no completely finished.\n");
+	} elsif ($request{REQUEST_TYPE} eq 'QUIT') {
+	  _msg "Quitting on client's request\n";
+	  $hub->print("OK\n");
+	  _end_response($control,$hub);
+	  exit 0;
+	} elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
+	  _msg "Reloading all open files at client's request\n";
+	  %{$grp->{preloaded}}=();
+	  eval {
+	    preloadFiles($grp,\@files,$hub);
+	    die $@ if $@ ;
+	  };
+	  if ($@) {
+	    $hub->print("$@\n");
+	  } else {
+	    $hub->print("OK\n");
+	  }
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'RELOAD_MACROS') {
+	  my $f=$request{Filename};
+	  chomp $f;
+	  $macroFile = $f if $f;
+	  _msg "Reloading macros from $macroFile libdir=$libDir at client's request\n";
+	  %TrEd::Macros::defines=(BTRED => 1); # reset defines
+	  eval {
+	    read_macros($macroFile,$libDir); # read macros
+	  };
+	  _msg(@TrEd::Macros::macros);
+	  if ($@) {
+	    $hub->print("$@\n");
+	  } else {
+	    $hub->print("OK\n");
+	  }
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'LIST') {
+	  _msg "Listing all open files at client's request\n";
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  $hub->print(join("\n",@files),"\n");
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'LIST_CHANGED') {
+	  _msg "Listing all open files at client's request\n";
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  $hub->print(join("\n",grep { ref($grp->{preloaded}->{$_}) and
+					 $grp->{preloaded}->{$_}->notSaved()
+				       } @files),"\n");
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'DUMP') {
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  _msg "Request $request{default} at client's request\n";
+	  foreach my $f (grep /\S/,split /\n/,$request{default}) {
+	    next unless ($f);
+	    $f=~s{^ntred://}{};
+	    $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+	    _msg "Dumping some tree $f at client's request\n";
+	    next unless openFile($grp,$f,-justpreloaded => 1);
+	    for my $fsfile ($grp->{FSFile}) {
+	      _set_encoding($hub,$fsfile->encoding(),undef);
+	      $fsfile->FS->writeTo($hub);
+	      Fslib::PrintFS($hub,undef,
+			     $f=_has_suffix($f) ? [$grp->{root}] :
+			     $fsfile->treeList,
+			     $fsfile->FS->list,
+			     $fsfile->FS->defs);
+	      ## Tredish custom attributes:
+	      $fsfile->changeTail(
+				  (grep { $_!~/\/\/Tred:(?:Custom-Attribute(?:Cont)?|Balloon-Pattern):/ } $fsfile->tail),
+				  (map {"//Tred:Custom-Attribute:$_\n"}
+				   map {
+				     join "\n//Tred:Custom-AttributeCont:",
+				       split /\n/,$_
+				     } $fsfile->patterns),
+				  (map {"//Tred:Balloon-Pattern:$_\n"}
+				   split /\n/,$fsfile->hint)
+				 );
+	      $hub->print($fsfile->tail());
+	      $hub->print("\n\n//FSEND\n\n");
+	    }
+	    _set_encoding($hub,$term_encoding,"socket to hub");
+	  }
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  my $f=$request{Filename};
+	  chomp $f;
+	  _msg "Request $f at client's request\n";
+	  $f=~s{^ntred://}{};
+	  $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+	  if ($] >= 5.008) {
+	    require Encode;
+	    $request{FSFile} = Encode::decode($TrEd::Convert::inputenc,$request{FSFile});
+	  }
+	  my @fs=map {$_."\n"} split /\n/,$request{FSFile};
+	  if ($f and openFile($grp,$f,-justpreloaded => 1) and ref($grp->{FSFile})) {
+	    _msg "Uploading $f at client's request\n";
+	    my $fsfile=FSFile->new();
+	    local $Fslib::Debug=1;
+	    #	  _msg "received @fs\n";
+	    if (FSBackend::read(\@fs,$fsfile) and ref($fsfile->treeList()->[0])) {
+	      if (_has_suffix($f)) {
+		_msg "Updated tree $grp->{treeNo} ($f)\n";
+		# change only one tree
+		$grp->{FSFile}->treeList()->[$grp->{treeNo}]=$fsfile->treeList()->[0];
+		$fsfile->changeTreeList([]);
+		$grp->{FSFile}->notSaved(1);
+		closeFile($grp);
+		# $fsfile is garbage collected
+	      } else {
+		_msg "Updated whole file ($f)\n";
+		# change the whole file
+		$grp->{FSFile}->changeTreeList($fsfile->treeList());
+		$fsfile->changeTreeList([]);
+		$grp->{FSFile}->notSaved(1);
+		closeFile($grp);
+		# $fsfile is garbage collected
+	      }
+	    } else {
+	      _msg "read failed\n";
+	    }
+	  }
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'SAVE' or
+		 $request{REQUEST_TYPE} eq 'SAVE_CHANGED'
+		) {
+	  for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
+	    chomp($request{$_}) if exists $request{$_};
+	  }
+	  # create temporary file to store std output
+	  my $macro_stdout = IO::File->new_tmpfile();
+	  my $old_stdout = _redirect_stdout($macro_stdout);
+
+	  do {
+	    local $backend=$bkmap{$request{Format}} if exists $request{Format};
+	    local $strip_prefix=$request{"Strip-prefix"} if exists $request{"Strip-prefix"};
+	    local $strip_suffix=$request{"Strip-suffix"} if exists $request{"Strip-suffix"};
+	    local $add_prefix=$request{"Prefix"} if exists $request{"Prefix"};
+	    local $append_suffix=$request{"Suffix"} if exists $request{"Suffix"};
+	    eval {
+	      gotoFile($grp,0);
+	      die $@ if $@;
+	      do {{
+		next unless ref($grp->{FSFile});
+		next unless ($request{REQUEST_TYPE} eq 'SAVE'
+			     or $grp->{FSFile}->notSaved());
+		my $out = saveFile($grp);
+		$macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+		die $@ if $@;
+	      }
+		} while (nextFile($grp));
+	      die $@ if $@;
+	    };
+	  };
+	  $hub->print("$control SERVER_RESPONSE_STDERR\n");
+	  $hub->print("$@\n") if $@;
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  _copy_output($macro_stdout,$hub);
+	  $macro_stdout->close;
+	  _revert_redirect_stdout($old_stdout);
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
+	  _msg "Reloading all open files at client's request\n";
+	  closeFile($grp);
+	  %{$grp->{preloaded}}=();
+	  @files=();
+	  $hub->print("OK\n");
+	  _end_response($control,$hub);
+	} else {
+	  $hub->print("ERROR: UNKNOWN REQUEST TYPE $request{REQUEST_TYPE}\n");
+	  _end_response($control,$hub);
+	}
+	_msg("Waiting for a new request from the hub...\n\n");
       }
-      _msg("Waiting for a new request from the hub...\n\n");
     }
   } else {
     # ----------------------------------------
@@ -1046,17 +1063,53 @@ sub init_tredmacro {
 sub cleanup_tredmacro {
   my ($grp,@macros)=@_;
   $TrEd::Macros::macrosEvaluated=0;
-  $TrEd::Macros::safeCompartment=undef;
   # cleanup
+
+  my %packages;
+  @packages { ('TredMacro',
+	       grep {/\S/} grep { !/^main$|^TrEd::/ }
+	       map  { (/^package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros,@macros))
+	    } = ();
   if ($safe) {
-    %{TredMacroCompartment::}=();
+    if ($TrEd::Macros::safeCompartment) {
+      $TrEd::Macros::safeCompartment->reval(<<'EOF');
+      package TredMacro;
+undef $this;
+undef $root;
+undef $nodeClipboard;
+EOF
+      _msg($@) if $@;
+      no strict qw(refs);
+
+      my @pkgs = ('TredMacroCompartment::', 
+		  map { 'TredMacroCompartment::'.$_.'::' } keys %packages );
+      my %pkgs = map { $_ => 1 } @pkgs;
+      for (my $i=0; $i<=$#pkgs;$i++) {
+	foreach (keys %{$pkgs[$i]}) {
+	  next if $_ eq 'main::';
+	  if (/::$/ and !exists($pkgs{$pkgs[$i].$_})) {
+	    push @pkgs,$pkgs[$i].$_;
+	    $pkgs{ $pkgs[$i].$_ }=1;
+	  }
+	}
+      }
+      foreach my $package (sort { length($b)<=>length($a) } @pkgs) {
+	$_ERR->flush();
+	%{$package}=();
+      }
+      $_ERR->flush();
+      $TrEd::Macros::safeCompartment->erase();
+      $_ERR->flush();
+    }
+    undef %{main::TredMacroCompartment::TredMacro};
+    undef %{main::TredMacroCompartment::};
   } else {
     my %packages;
     @packages { ('TredMacro',
 		 grep {/\S/} grep { !/^main$|^TrEd::/ }
 		 map  { (/^package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros,@macros))
 	      } = ();
-    foreach my $package ( keys %packages ) {
+    foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
       no strict qw(refs);
       _msg("Cleaning package $package\n");
       %{$package."::"}=();
@@ -1064,15 +1117,20 @@ sub cleanup_tredmacro {
       _msg($@) if $@;
     }
   }
+  $TrEd::Macros::safeCompartment=undef;
 }
 
 sub init_safe_mode {
   my ($grp)=@_;
   require Safe;
   $TrEd::Macros::macrosEvaluated=0;
+  if (ref($TrEd::Macros::safeCompartment)) {
+    $TrEd::Macros::safeCompartment->erase();
+  }
   $TrEd::Macros::safeCompartment=undef;
   %{TredMacroCompartment::}=(); # cleanup
   my $compartment = Safe->new('TredMacroCompartment');
+  $compartment->{Erase} = 1;
   $compartment->reval("package TredMacro;");
   $compartment->deny_only(qw()); # everything allowed for the first initialization
   $compartment->share(qw(&do_eval_macro &do_eval_hook &min &max @INC 
