@@ -2458,6 +2458,8 @@ sub startMain {
 			  -variable => \$hookDebug],
 			 [Checkbutton => 'keyboard', -underline => 0,
 			  -variable => \$keyboardDebug],
+			 [Checkbutton => 'backend', -underline => 0,
+			  -variable => \$Fslib::Debug],
 			]
 	 ]
 	])->pack(qw/-side left/);
