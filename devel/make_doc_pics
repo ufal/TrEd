@@ -1,0 +1,13 @@
+#!/bin/sh
+for s in `ls tredlib/icons/default/*.xpm`; do
+  o="$(basename "$s")"
+  gif="documentation/pics/${o%.xpm}.gif"
+  echo $s
+  convert $s $gif
+  convert $s ${gif%.gif}.png
+
+  # convert (at least here) doesn't handle None (i.e. transparent) consistentnly
+  cat $s | sed 's/ None",/ white",/' > ${gif%.gif}.xpm
+  convert ${gif%.gif}.xpm ${gif%.gif}.eps
+  rm ${gif%.gif}.xpm
+done

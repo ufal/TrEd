@@ -44,7 +44,8 @@ sub tectogrammatical_tree {
   } else {
     SwitchContext('PML_T_View');
   }
-  SetCurrentStylesheet('PML_T_Compact');
+  SetCurrentStylesheet($PML_T::laststylesheet || 'PML_T_Compact');
+  undef$PML_T::laststylesheet;
   my $fsfile = $grp->{FSFile};
   my $id = $root->{id};
   my $this_id = $this->{id};
@@ -249,8 +250,28 @@ sub GetChildren{ # node dive
 
 =item create_stylesheets()
 
-Creates default stylesheets for PML analytical files unless
-already defined.
+Creates default stylesheet for PML analytical files unless already
+defined. Most of the colors it uses can be redefined in the tred
+config file C<.tredrc> by adding a line of the form
+
+  CustomColorsomething = ...
+
+The stylesheet is named C<PML_A> and it has the following display
+features:
+
+=over 4
+
+1. sentence is displayed in C<CustomColorsentence>. If the form was
+changed (e.g. because of a typo), the original form is displayed in
+C<CustomColorspell> with overstrike.
+
+2. analytical function is displayed in C<CustomColorafun>. If the
+node's C<is_member> is set to 1, the type of the structure is
+indicated by C<Co> (coordination) or C<Ap> (apposition) in
+C<CustomColorcoappa>. For C<is_parenthesis_root>, C<Pa> is displayed
+in the same color.
+
+=back
 
 =cut
 
@@ -267,7 +288,7 @@ node:#{customafun}${afun}<?
     $p=$p->parent while $p and $p->{afun}=~/^Aux[CP]$/;
     ($p and $p->{afun}=~/^(Ap)os|(Co)ord/ ? "_#{customcoappa}\${is_member=$1$2}" : "_#{customerror}\${is_member=ERR}")
   } else { "" }
-?>
+?><? '#{customcoappa}_${is_parenthesis_root=Pa}'if$${is_parenthesis_root}?>
 EOF
   }
 }
