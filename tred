@@ -4451,7 +4451,7 @@ sub customAttrsDialog {
 		  $cl->delete(($cl->curselection)[0]);
 		}
 	      }]
-	     )->pack(qw/-side top expand yes -padx 3 -pady 3/);
+	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
   $bf->Button(-text=> "Delete",
 	      -command=>
 	      [sub {
@@ -4461,7 +4461,7 @@ sub customAttrsDialog {
 		  $cl->delete(($cl->curselection)[0]);
 		}
 	      }]
-	     )->pack(qw/-side top expand yes -padx 3 -pady 3/);
+	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
 
 
   $bf->Button(-text=> "Add as hint",
