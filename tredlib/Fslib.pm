@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-06-29 14:24:36 pajas>
+# Time-stamp: <2001-07-04 16:03:50 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1602,6 +1602,8 @@ noSaved to zero.
 sub writeFile {
   my ($self,$filename) = @_;
   return unless ref($self);
+
+  $filename = $self->filename unless (defined($filename) and $filename ne "");
 
   my $backend=$self->backend || 'FSBackend';
   print STDERR "Writing to $filename using backend $backend\n";

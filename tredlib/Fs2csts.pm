@@ -140,35 +140,35 @@ sub write {
 	my ($mod,$txtype,$med,$temp,$opus)=
 	  $root->{doc}=~m!([^/]*)/([^/]*)/([^/]*)/([^/]*)/([^/]*)!;
 	print $fileref "<mod>";
-	print $fileref $root->{docmarkup} =~ /\<mod\>([^\<*]*)/ ?
+	print $fileref $root->{docprolog} =~ /\<mod\>([^\<*]*)/ ?
 	  $1 : $mod,"\n";
 	print $fileref "<txtype>";
-	print $fileref $root->{docmarkup} =~ /\<txtype\>([^\<*]*)/ ?
+	print $fileref $root->{docprolog} =~ /\<txtype\>([^\<*]*)/ ?
 			$1 : $txtype,"\n";
 	print $fileref "<genre>";
-	print $fileref $root->{docmarkup} =~ /\<genre\>([^\<*]*)/ ?
+	print $fileref $root->{docprolog} =~ /\<genre\>([^\<*]*)/ ?
 			$1 : $genre,"\n";
-	print $fileref "<verse>$1\n" if $root->{docmarkup} =~ /\<verse\>([^\<*]*)/;
+	print $fileref "<verse>$1\n" if $root->{docprolog} =~ /\<verse\>([^\<*]*)/;
 	print $fileref "<med>";
-	print $fileref $root->{docmarkup} =~ /\<med\>([^\<*]*)/ ?
+	print $fileref $root->{docprolog} =~ /\<med\>([^\<*]*)/ ?
 			$1 : $med,"\n";
-	print $fileref "<authsex>$1\n" if $root->{docmarkup} =~ /\<authsex\>([^\<*]*)/;
-	print $fileref "<lang>$1\n" if $root->{docmarkup} =~ /\<lang\>([^\<*]*)/;
-	print $fileref "<transsex>$1\n" if $root->{docmarkup} =~ /\<transsex\>([^\<*]*)/;
-	print $fileref "<srclang>$1\n" if $root->{docmarkup} =~ /\<srclang\>([^\<*]*)/;
+	print $fileref "<authsex>$1\n" if $root->{docprolog} =~ /\<authsex\>([^\<*]*)/;
+	print $fileref "<lang>$1\n" if $root->{docprolog} =~ /\<lang\>([^\<*]*)/;
+	print $fileref "<transsex>$1\n" if $root->{docprolog} =~ /\<transsex\>([^\<*]*)/;
+	print $fileref "<srclang>$1\n" if $root->{docprolog} =~ /\<srclang\>([^\<*]*)/;
 	print $fileref "<temp>";
-	print $fileref $root->{docmarkup} =~ /\<temp\>([^\<*]*)/ ?
+	print $fileref $root->{docprolog} =~ /\<temp\>([^\<*]*)/ ?
 			$1 : $temp,"\n";
-	print $fileref "<firsted>$1\n" if $root->{docmarkup} =~ /\<firsted\>([^\<*]*)/;
+	print $fileref "<firsted>$1\n" if $root->{docprolog} =~ /\<firsted\>([^\<*]*)/;
 	print $fileref "<authname>";
-	print $fileref $root->{docmarkup} =~ /\<authname\>([^\<*]*)/ ?
+	print $fileref $root->{docprolog} =~ /\<authname\>([^\<*]*)/ ?
 			$1 : $authname,"\n";
-	print $fileref "<transname>$1\n" if $root->{docmarkup} =~ /\<transname\>([^\<*]*)/;
+	print $fileref "<transname>$1\n" if $root->{docprolog} =~ /\<transname\>([^\<*]*)/;
 	print $fileref "<opus>";
-	print $fileref $root->{docmarkup} =~ /\<opus\>([^\<*]*)/ ?
+	print $fileref $root->{docprolog} =~ /\<opus\>([^\<*]*)/ ?
 			$1 : $opus,"\n";
 	print $fileref "<id>";
-	print $fileref $root->{docmarkup} =~ /\<id\>([^\<*]*)/ ?
+	print $fileref $root->{docprolog} =~ /\<id\>([^\<*]*)/ ?
 			$1 : $id,"\n";
 	print $fileref "</a>\n";
       }
@@ -212,7 +212,7 @@ sub write {
 	print $fileref "<fadd$del>";
       } else {
 	if ($node->{form}=~/^([][!"'()+,-.\/:;=\?`]|&(?:amp|ast|bsol|circ|commat|dollar|gt|lcub|lowbar|lsqb|lt|macron|num|percnt|rcub|rsqb|verbar);)$/) {
-	  my $case = $node->{formtype} =~m/^(?:std|gen)/ ? " ".$node->{formtype} : "";
+	  my $case = $node->{formtype} eq 'gen' ? " ".$node->{formtype} : "";
 	  print $fileref "<d$case>",$node->{form};
 	} else {
 	  my $case = $node->{formtype} =~m/^(?:cap|upper|mixed|gen|num|num.gen|gen.phrase|cap.gen.phrase|abbr|cap.abbr|cap.gen|upper.abbr|upper.gen|mixed.abbr)/ ? " ".$node->{formtype} : "";
@@ -264,7 +264,7 @@ sub write {
 	my $TRt=make_TRt($node,0);
 	print $fileref "<TRt>",$TRt if ($TRt !~/^X*$/);
 	print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
-	print $fileref "<tfr>",$node->{dord} if ($node->{govTR} ne "");
+	print $fileref "<tfr>",$node->{dord} if ($node->{dord} ne "");
 	print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
 	print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
 	if ($fsfile->FS->order eq 'dord') {
@@ -297,6 +297,7 @@ sub write {
 	}
       }
       print $fileref "\n";
+      print $fileref "<D>\n" if ($node->{nospace});
       print $fileref make_gap($node->{gappost});
     }
     # print file ending
