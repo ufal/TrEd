@@ -65,8 +65,9 @@ sub ChooseFrame {
     $lemma=~s/^ne//;
   }
   unless ($tag=~/^([VNA])/) {
-    questionQuery("Sorry!","Given word isn't a verb nor noun nor
-  adjective\naccording to morphological tag.","Ok");
+    questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
+		  "according to morphological tag.",
+		  "Ok");
     return;
   }
   my $pos=$1;
