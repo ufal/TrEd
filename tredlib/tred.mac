@@ -232,6 +232,33 @@ sub GotoPrevNodeLin {
   $this=$next if $next;
 }
 
+@global_exit_hooks=();
+
+# the hook may be either a sub name, CODE ref or ARRAY ref, where
+# the first element of the array is the name/CODE-ref to execute
+# and the rest are arguments to be passed to it
+sub register_exit_hook ($) {
+  my ($hook)=@_;
+  push @global_exit_hooks,$hook;
+}
+
+sub unregister_exit_hook ($) {
+  my ($hook)=@_;
+  @global_exit_hooks=grep { $_ ne $hook } @global_exit_hooks;
+}
+
+sub exit_hook {
+  foreach my $sub (@global_exit_hooks) {
+    if (ref($sub) eq 'ARRAY') {
+      my $realsub=shift @$sub;
+      eval{ &{$realsub}(@$sub); };
+    } else {
+      eval{ &$sub(); };
+    }
+    stderr($@) if $@;
+  }
+}
+
 ######## PDT specific stuff ########
 
 sub file_opened_hook {
