@@ -1,4 +1,4 @@
-User definable hooks in TrEd
+\User definable hooks in TrEd
 ============================
 
 Before and sometimes after some action is performed, TrEd tries to
@@ -28,10 +28,6 @@ enable_attr_hook attr,type		yes	executed before
 
 goto_file_hook				yes	executed before every
 						gotoFile command is executed
-
-goto_tree_hook				yes	executed before every
-						gotoTree command is executed
-
 
 file_opened_hook			no	executed after a file
 						is opened but before 
