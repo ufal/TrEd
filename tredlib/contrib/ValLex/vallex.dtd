@@ -1,10 +1,19 @@
 <!-- ahoj -->
-<!ELEMENT valency_lexicon (head, body)>
+<!ELEMENT valency_lexicon (head, body, tail?)>
 <!ATTLIST valency_lexicon
             owner IDREF #REQUIRED>
 
 <!ELEMENT head (global_history, list_of_users)>
+
+<!-- elementy forbid slouzi k zablokovani identifikatoru ramcu a slov -->
+<!ELEMENT tail (forbid+)>
+<!ELEMENT forbid EMPTY>
+<!ATTLIST forbid forbidden_ID ID #REQUIRED >
+
+
 <!ELEMENT body (word+)>
+
+
 
 <!-- to, co se se slovnikem provadelo jako s celkem, 
 napr. automaticke transformace formatu nebo dat, prilevani dat z jinych zdroju atd.;
