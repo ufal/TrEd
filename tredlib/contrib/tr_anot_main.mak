@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-13 10:29:13 pajas>
+## Time-stamp: <2001-08-13 10:50:56 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -26,6 +26,9 @@ sub file_opened_hook {
   $FileNotSaved=0;
 }
 
+sub file_resumed_hook {
+  SwitchContext('Tectogrammatic');
+}
 
 ## add few custom bindings to predefined subroutines
 
