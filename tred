@@ -558,7 +558,7 @@ sub icon {
 }
 
 sub __debug {
-  print STDERR @_,"\n";
+  print STDERR @_,"\n" if $tredDebug;
 }
 
 sub absolutize {
@@ -1123,7 +1123,6 @@ sub closeFile {
   my ($win,%opts)=@_;
 
   my $fsfile;
-  __debug(join " ",%opts,"\n");
   if ($opts{-fsfile}) {
     $fsfile = $opts{-fsfile};
   } else {
@@ -1134,8 +1133,6 @@ sub closeFile {
       $fsfile->currentNode($win->{currentNode});
     }
   }
-  __debug("$fsfile\n");
-  __debug "Closing ".$fsfile->filename,"\n" if $fsfile;
   if (!$opts{-keep_postponed} and
 	$fsfile and ref($fsfile->userData()->{'fs-part-of'}) and
 	@{$fsfile->userData()->{'fs-part-of'}}) {
@@ -1151,7 +1148,6 @@ sub closeFile {
     @wins=($win);
   }
 
-  __debug "Wins @wins\n";
   foreach my $w (@wins) {
     $w->{Nodes}=undef;
     #  undef $NodeClipboard;
@@ -1163,14 +1159,10 @@ sub closeFile {
     set_value_line($w->{framegroup},"") if (isFocused($w));
   }
   if ($opts{-keep_postponed} and $fsfile) {
-    __debug "Postponed\n";
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
   } else {
-    __debug "real close ",$fsfile->filename," ",
-      fsfileDisplayingWindows($win->{framegroup},$fsfile),"\n" if $fsfile;
     if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
       my $f = $fsfile->filename();
-      __debug "no windows are displaying $f\n";
       print STDERR "Removing $f from list of open files\n"  if $tredDebug;
       @openfiles=grep { $_ ne $fsfile } @openfiles;
       my $autosave = autosave_filename($f);
@@ -2824,10 +2816,11 @@ sub filelistDialog {
 
 sub generateSortedMacroTable {
   my ($grp,$context) = @_;
-  my @macroTable= map { [ 
-			 $_,
-			 $menuBindings{$context}->{$_}->[1],
-			] } keys %{$menuBindings{$context}};
+  my %macro_to_key = reverse %{$keyBindings{$context}};
+  my @macroTable= map {
+    my ($macro,$key) = @{ $menuBindings{$context}{$_} };
+    [ $_, ($keyBindings{$context}{$key} eq $macro ? $key : $macro_to_key{$macro}) ]
+  } keys %{$menuBindings{$context}};
   if ($grp->{macroListOrder} eq 'K') {
     return sort {
       my @a= split '\+',$a->[1];
@@ -6170,10 +6163,8 @@ sub openSimpleHtml {
     my $encoding=$TrEd::Convert::outputenc;
     if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
       _set_encoding($html,':bytes',"html-out");
-      __debug("HTML encoding $encoding, bytes output");
     } else {
       _set_encoding($html,$encoding,"html-out");
-      __debug("HTML encoding $encoding");
     }
     
     print $html "<html>\n";
@@ -8043,8 +8034,18 @@ sub doEvalHook {
 sub examineEvent {
   my $w = shift;
   my $bindings = shift;
-  my ($macro,$eA,$eK) = resolveEvent($w,@_);
-  my $key= ($eA eq $eK) ? $eK : $eA." [$eK]";
+  my ($macro,$key,$eA,$eK) = resolveEvent($w,@_);
+  if ($eA eq $eK) {
+    $key .= " [$eA]" if ($eA ne $key);
+  } else {
+    if ($eA eq $key) {
+      $key .= " [$eK]";
+    } elsif ($eK eq $key) {
+      $key .= " [$eA]";
+    } else {
+      $key .= " [$eA = $eK]";
+    }
+  }
   if (defined($macro)) {
     $$bindings = "$key is bound to: ".findMacroDescription($macro);
   } else {
@@ -8209,7 +8210,7 @@ sub resolveKey {
   foreach my $context ($grp->{focusedWindow}->{macroContext},$grp->{focusedWindow}->{macroContext} eq "TredMacro" ? () : "TredMacro") {
     foreach my $key (@_) {
       if (exists ($keyBindings{$context}->{$key})) {
-	return $keyBindings{$context}->{$key};
+	return($keyBindings{$context}->{$key},$key)
       }
     }
   }
@@ -8238,17 +8239,17 @@ sub resolveEvent {
   }
   push @possib, ($prefix.$A,$prefix.$K);
 
-  $macro=resolveKey($grp,@possib);
-  return ($macro,$prefix.$A,$prefix.$K);
+  ($macro,$key)=resolveKey($grp,@possib);
+  return ($macro,$key,$prefix.$A,$prefix.$K);
 }
 
 sub evalMacro {
   my ($w,$grp,$prefix)=@_;
   my $win=$grp->{focusedWindow};
 
-  my ($macro)=resolveEvent($w,$grp,$prefix);
+  my ($macro,$key)=resolveEvent($w,$grp,$prefix);
   if (defined $macro) {
-    $grp->{statusLineText}="$prefix$A" if $tredDebug;
+    $grp->{statusLineText}="$key" if $tredDebug;
     $grp->{statusLineText}.=", $macro" if $tredDebug;
     update_status_line($win) if $tredDebug;
 #    use Benchmark;
@@ -8263,7 +8264,7 @@ sub evalMacro {
 
     return 1;
   } else {
-    $grp->{statusLineText}="$prefix$K" if $tredDebug;
+    $grp->{statusLineText}=$key if $tredDebug; #"$prefix$K" if $tredDebug;
     update_status_line($win) if $tredDebug;
   }
   return undef;
