@@ -1056,7 +1056,8 @@ necessary for the authentication to the running hub. This defaults to
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--safe-mode] [--server-debug] [-m macro-file] [-M module]
+           [--old-dist-method] [--safe-mode] [--server-debug]
+           [-m macro-file] [-M module]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 =over 8
@@ -1160,6 +1161,11 @@ This option may be specified more than once with different modules.
 
 =back
 
+=item B<--old-dist-method>
+
+Use old benchmark-based distribution method.
+
+=back
 
 =head2 HUB CONTROL OPTIONS
 
