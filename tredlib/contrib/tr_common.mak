@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-01-24 11:09:12 pajas>
+## Time-stamp: <2003-01-24 18:04:28 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -561,8 +561,11 @@ sub ConnectAIDREFS {
 }
 
 sub DisconnectAIDREFS {
-  my $aid=getAIDREF($pPar2);
-  $pPar1->{AIDREFS} =~ s/(?:^|\|)$aid(?:\||$)//g;
+  my $node = shift || $pPar2;
+  my $dnode = shift || $pPar2;
+  my $aid=getAIDREF($dnode);
+  $node->{AIDREFS} =~ s/(?:^|\|)$aid(?:\||$)//g;
+  $node->{AIDREFS} = "" if ($node->{AIDREFS} eq $node->{AID});
 }
 
 sub ConnectFW {
@@ -607,6 +610,45 @@ sub FPaste {
     $this=PasteNode(CutNode($pPasted),$pThis); # repaste to get structure order right
   }
   $sPasteNow = '';
+}
+
+sub split_node_and_lemma {
+  SplitJoinedByAID();
+}
+
+sub SplitJoinedByAID {
+  my $node = ref($_[0]) ? $_[0] : $this;
+  if (Interjection($node->root->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
+    return;
+  }
+  unless ($node->{AIDREFS}) {
+    print STDERR "SplitJoinedByAID: nodes with empty AIDREFS can't be split!\n";
+    return;
+  }
+
+  my %aidrefs;
+  @aidrefs{ split /\|/,$node->{AIDREFS} }=();
+
+  foreach my $child ($node->descendants()) {
+    if (exists($aidrefs{ $child->{AID} })) {
+      my $l=$child->{trlemma};
+      if ($l eq 'se' and $node->{trlemma} !~ /^se_|_se_|_se$/) {
+	$l='si';
+      }
+      if ($node->{trlemma} =~ s/^${l}_|_${l}_|_${l}$//) {
+	$child->{TR}='';
+	DisconnectAIDREFS($node,$child);
+
+	# ugh! 
+	$pPar1 = $child;
+	ifmodal();
+	if ($sPar3 ne '') {
+	  $pAct->{'deontmod'} = '';
+	}
+
+      }
+    }
+  }
 }
 
 #bind operand_op to Ctrl+Y menu Pridat operand=OP
