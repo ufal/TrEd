@@ -1088,7 +1088,7 @@ sub _set_encoding {
     eval {
       _msg("forcing encoding $enc for $what\n") if $debug;
       $fh->flush();
-      binmode $fh,":raw";
+      binmode $fh;  # first get rid of all I/O layers
       binmode $fh,":encoding($enc)";
     };
     _msg $@ if $@;
