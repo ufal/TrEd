@@ -10,7 +10,7 @@
 package main;
 
 use Getopt::Std;
-getopts('qQc:m:e:t:huNHST');
+getopts('qQc:i:m:e:t:huNHST');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u) {
@@ -28,7 +28,7 @@ EOH
 if ($opt_h) {
   print <<'EOF';
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-q|-Q] [-N|-H] [-S] [-T] files...
+  btred [-c config-file] [-m macro-file] [-e script] [-i init-script] [-t context] [-q|-Q] [-N|-H] [-S] [-T] files...
 or
   btred -u          to show usage
 or
@@ -44,6 +44,8 @@ script        - any script (may use macros); typically script is just
                 name of the macro to be run
 context       - start in the given macro context (package).
                 TredMacro is the default context.
+init-script   - any script to be run only once, before any input
+                file is loaded.
 
 -N            - wrap 'while ($this) { ...; $this=$this->following; }
                 around the script
@@ -260,6 +262,8 @@ $pre
 $script;
 $post
 }
+
+$opt_i;
 EOL
 
   doEvalMacro($grp,$premacro);
