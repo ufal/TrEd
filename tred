@@ -2365,7 +2365,7 @@ sub copyTreesDialog {
 
 sub initTTFonts {
   my ($grp)=@_;
-  print STDERR "Collecting TTF fonts\n" if $tredDebug;
+  print STDERR "Collecting TTF fonts\n";# if $tredDebug;
   $grp->{ttfonts}=TrEd::Print::get_ttf_fonts(map TrEd::Config::tilde_expand($_),
 					     split /,/,$ttFontPath)
     unless $grp->{ttfonts};
@@ -2393,8 +2393,9 @@ sub printDialog {
   my $defaultPrtFmtWidth=$prtFmtWidth;
   my $defaultPrtFmtHeight=$prtFmtHeight;
 
-  initTTFonts($grp);
-  $ttFont = '' unless exists($grp->{ttfonts}->{$ttFont});
+  my $initTTFont = $ttFont;
+  $ttFont = '' unless ($grp->{ttfonts} and exists($grp->{ttfonts}->{$ttFont}));
+
   print STDERR "done.\n" if $tredDebug;
 
   my $d= $grp->{top}->DialogBox(-title=> "Print",
@@ -2567,7 +2568,7 @@ sub printDialog {
 #			     -autolimitheight => 'yes',
 #			     -listheight => 10,
 #			     -style => 'MSWin32',
-			     -choices => [sort {$a cmp $b} keys %{$grp->{ttfonts}}]
+			     -choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()]
 			    );
   $pfbe->Subwidget('slistbox')->BindMouseWheelVert();
 #   my $pfb= $pbf->Button(-text => '...',
@@ -2653,10 +2654,24 @@ sub printDialog {
 		  -variable=> \$format,
 		  -relief  => 'flat',
 		  -command =>
-		  [sub { my ($f,$l,$ext,$I,$M,$P,$PB)=@_;
+		  [sub { my ($f,$l,$ext,$I,$M,$P)=@_;
 			 local $_=$$l;
 			 s/\.[^.]+$/.$ext/; 
 			 $$l=$_;
+			 if ($f eq 'PDF' and !$grp->{ttFonts}) {
+			   $win->toplevel->Busy(-recurse=> 1);
+			   initTTFonts($grp);
+			   $win->toplevel->Unbusy();
+			   foreach (sort {$a cmp $b} keys %{$grp->{ttfonts}}) {
+			     $P->insert('end',$_);
+			   }
+			   if (exists($grp->{ttfonts}->{$initTTFont})) {
+			      $ttFont = $initTTFont;
+			   } else {
+			     $ttFont = '';
+			   }
+			 }
+
 			 $I->configure(-state => 
 				       $f eq 'ImageMagick' ?
 					'normal' : 'disabled');
@@ -2806,7 +2821,7 @@ sub printThis {
   do {{
     @print_opts=printDialog($grp);
     return unless scalar(@print_opts)>2;
-    $err = ($print_opts[3] and not $grp->{ttfonts}->{$ttFont});
+    $err = ($print_opts[3] and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$ttFont}));
     ErrorMessage($grp,"You must select TrueType font for PDF!") if $err;
   }} while ($err);
   $print_opts[0]=$grp->{focusedWindow}->{treeNo}+1
@@ -2819,7 +2834,7 @@ sub printThis {
 			   {
 			    'PS' => $psFontFile,
 			    'AFM' => $psFontAFMFile,
-			    'TTF' => $grp->{ttfonts}->{$ttFont},
+			    'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
 			    'Size' => $psFontSize,
 			   },
 			   $prtFmtWidth,
@@ -3339,7 +3354,7 @@ sub startMain {
   } else {
     $group{top}=MainWindow->new();
   }
-  for (qw(ROText Text Entry Listbox HList)) {
+  for (qw(ROText Text Entry Listbox HList CodeText)) {
     $group{top}->option('add',"\*$_.background","white");
     $group{top}->option('add',"\*$_.foreground","black");
     $group{top}->option('add',"\*$_.disabledBackground","lightgray");
@@ -6053,6 +6068,7 @@ sub doEditAttr {
   }
   $d->destroy;
   undef $d;
+  return ($result =~ /OK/) ? 1 : 0;
 }
 
 #############################################

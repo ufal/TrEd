@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-01-14 17:27:01 pajas>
+## Time-stamp: <2004-01-21 12:09:14 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -214,13 +214,12 @@ sub edit_lemma_tag {
   Analytic_Correction::edit_lemma_tag();
 }
 
-
-#bind transform_to_analytic to Ctrl+A
-sub transform_to_analytic {
-  PDT::transform_to_analytic();
+#bind analytical_tree to Ctrl+A
+sub analytical_tree {
+  PDT::ARstruct();
 }
 
-#bind transform_to_tectogrammatic to Ctrl+R
-sub transform_to_tectogrammatic {
-  PDT::transform_to_tectogrammatic();
+#bind tectogrammatical_tree to Ctrl+R
+sub tectogrammatical_tree {
+  PDT::TRstruct();
 }

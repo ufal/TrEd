@@ -33,6 +33,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $term_encoding $save $safe_mode $csts_tree_attrs
 	    $csts_tecto $preload $warn_only $validate_fs $allow_host
 	    $start_server $help $usage $manpage
+	    $NO_HOOKS
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
@@ -96,6 +97,7 @@ if ($print_version) {
 }
 
 $quiet=1 if $Quiet;
+$NO_HOOKS = 0;
 
 unless (open $_ERR, ">&STDERR") {
   warn("Can't dup STDERR: $!");
@@ -471,6 +473,7 @@ sub startMain {
       # --- performing the request on the trees ----
       _msg("Performing the hub request...\n");
 
+      $NO_HOOKS=1;
       if ($request{REQUEST_TYPE} eq 'LOAD_FILES') {
 	my @new=split /\n/,$request{default};
 	@files=(@files,@new);
@@ -488,6 +491,7 @@ sub startMain {
 	$hub->print(_benchmark(),",",_threads(),"\n"); # benchmark,threads
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'EVAL_CODE') {
+	$NO_HOOKS=0;
 	_msg("Initializing safe compartment...\n") if $safe;
 
 	# create temporary file to store macro output
@@ -802,7 +806,7 @@ sub currentFileNo {
 
 sub gotoFile {
   my ($grp,$fn)=@_;
-  return 0 unless $start_server or doEvalHook($grp,"goto_file_hook") ne 'stop';
+  return 0 if (doEvalHook($grp,"goto_file_hook") eq 'stop');
   return 0 if ($fn>$#files or $fn<0);
   $fileNo=$fn;
   openFile($grp,$files[$fileNo]);
@@ -968,6 +972,7 @@ sub closeFile {
 
 sub doEvalHook {
   my ($group,$hook)=(shift,shift);
+  return if $NO_HOOKS;
   no strict qw(refs);
   return unless $hook;# and $group->{'currentNode'};
 
