@@ -621,7 +621,7 @@ sub GetFather_AR { # node through
       $node=$node->parent;
       if ($node->{afun}eq'AuxS') {
 	print STDERR
-	  "GetFather: Error - no coordination head ".ThisAddress()."\n";
+	  "GetFather: Error - no coordination head $node->{AID}: ".ThisAddress($node)."\n";
       }
     }
   }
@@ -688,7 +688,7 @@ sub GetChildren_AR{ # node filter dive
       push @sons,FilterSons_AR($node,$filter,$dive,0,$from);
     }
     if ($node->{afun}eq'AuxS'){
-      print STDERR "Error: Missing Coord/Apos: ".ThisAddress($node)."\n";
+      print STDERR "Error: Missing Coord/Apos: $node->{AID}$node->{ID1} ".ThisAddress($node)."\n";
       @sons=@oldsons;
     }
   }
@@ -750,7 +750,7 @@ sub GetChildren_TR { # node filter
       push @sons,FilterSons_TR($a,$filter,0,$from) if $a;
     }
     if ($a->{func}eq'SENT'){
-      stderr("Error: Missing coordination head: ",ThisAddressNTRED($node),"\n");
+      stderr("Error: Missing coordination head: $node->{ID1} $a->{AID}$a->{TID} ",ThisAddressNTRED($node),"\n");
       @sons=@oldsons;
     }
   }
@@ -822,7 +822,7 @@ sub GetTrueSiblings_TR {
     grep { highest_coord_TR($_) != $coord }
     map { PDT::GetChildren_TR($node) }
     PDT::GetFather_TR($node)
-} # GetTrueSiblings
+} # GetTrueSiblings_TR
 
 =item highest_coord_TR($node)
 
