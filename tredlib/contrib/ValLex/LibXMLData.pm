@@ -117,7 +117,7 @@ package XML::LibXML::Node;
 
 sub getChildElementsByTagName {
   my ($self,$name)=@_;
-  return $self->getElementsByTagName($name);
+  return $self->findnodes("./$name");
 }
 
 sub getDescendantElementsByTagName {
