@@ -3,12 +3,12 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-23 10:31:52 pajas>";
+$timestamp="Time-stamp: <2001-03-28 10:55:53 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
-$lastupdate=$1 if ($timestamp=~/<([0-9-: ]+) /);
+$lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
 ################################################################################
 #
 # This is "TrEd" - a simple viewer/editor of tree graphs in fs
@@ -758,6 +758,7 @@ sub updatePostponed {
   my ($grp)=@_;
 
   if ($grp->{PostponedFileMenu}) {
+    print STDERR "Updating session menu\n";
     my $menu = $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
     $grp->{PostponedFileMenu}->command(-label => 'Kept files',
@@ -1147,10 +1148,12 @@ sub switchFilelist {
       $activate=max(0,$fl->position);
     }
     my $path=filelistEntryPath($fl,$activate);
-    $grp->{Filelist}->anchorSet($path);
-    $grp->{Filelist}->see($path);
     $grp->{Filelist}->selectionClear();
-    $grp->{Filelist}->selectionSet($path);
+    if (defined($path) and $path ne "") {
+      $grp->{Filelist}->anchorSet($path);
+      $grp->{Filelist}->see($path);
+      $grp->{Filelist}->selectionSet($path);
+    }
     $grp->{Filelist}->update();
   }
   return $fl;
@@ -1167,7 +1170,6 @@ sub createFilelistBrowseEntry {
      [
       sub {
 	my ($grp,$list,$l)=@_;
-	print STDERR "$grp .. $list .. $l : @_\n" if $tredDebug;
 	switchFilelist($grp,$$list);
       },$grp,$filelistref
      ],
@@ -1486,7 +1488,11 @@ sub filelistDialog {
 				 $grp->{filelistCurrentFilelist}=undef;
 			       },$grp ]);
   $d->bind('all','<Escape>' =>
-	   [sub { shift; shift->destroy(); },$d ]);
+	   [sub { shift;
+		  $modal ?
+		    shift->{'selected_button'} = "Cancel" :
+		      shift->destroy();
+		},$d ]);
 
   $d->Button(-text => 'Close',
 	     -command => [sub {
@@ -3715,12 +3721,12 @@ sub doFindFirstTemplated {
 
   print "Starting search!\n";
   unless ($result=findFirstTemplated($grp,$template,$cont)) {
+    redraw_tree($grp);
     $grp->{'top'}->toplevel->
       messageBox(-icon => 'warning',
 		 -message => $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
 		 -title => 'Find',
 		 -type => 'ok');
-    redraw_tree($grp);
   }
   $grp->{'top'}->Unbusy();
   return $result;
@@ -3737,12 +3743,12 @@ sub doFindPrevTemplated {
   $grp->{'top'}->Busy(-recurse => 1);
 
   unless ($result=findPrevTemplated($grp,$template,$cont)) {
+    redraw_tree($grp);
     $grp->{'top'}->toplevel->
       messageBox(-icon => 'warning',
 		 -message => $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
 		 -title => 'Find',
 		 -type => 'ok');
-    redraw_tree($grp);
   }
   $grp->{'top'}->Unbusy();
   return $result;
@@ -3777,6 +3783,7 @@ sub nextNodeInSearchFilelist {
   # this realises filelist search
   local $insideEval=1;
   my $result=nextFile($grp);
+  $grp->{treeNo}=-1; # force redraw in gotoTree
   $$tree=0;
   # we especially wait for Escape
   _quick_update($grp);
@@ -3784,6 +3791,7 @@ sub nextNodeInSearchFilelist {
     $result=nextFile($grp);
     # we especially wait for Escape
     _quick_update($grp);
+    $grp->{treeNo}=-1; # force redraw in gotoTree
   }
   return (!$grp->{stopSearch} and $result) ? $grp->{currentNode} : undef;
 }
@@ -3843,11 +3851,13 @@ sub prevNodeInSearchFilelist {
   my $result=prevFile($grp);
   # we especially wait for Escape
   _quick_update($grp);
+  $grp->{treeNo}=-1; # force redraw in gotoTree
   while ($result and !$grp->{stopSearch}
 	 and !$grp->{FSFile} || $grp->{FSFile}->lastTreeNo<0) {
     $result=prevFile($grp);
     # we especially wait for Escape
     _quick_update($grp);
+    $grp->{treeNo}=-1; # force redraw in gotoTree
   }
   if ($result and !$grp->{stopSearch}) {
     $$tree=$grp->{FSFile}->lastTreeNo;
