@@ -135,7 +135,15 @@ sub nodes {
   return $nodes,$current;
 }
 
+sub getFontHeight {
+  my ($self)=@_;
+  return $self->canvas->fontMetrics($self->get_font, -linespace);
+}
 
+sub getTextWidth {
+  my ($self,$text)=@_;
+  return $self->canvas->fontMeasure($self->get_font,$text);
+}
 
 sub recalculate_positions {
   my ($self,$fsfile,$nodes)=@_;
@@ -154,7 +162,7 @@ sub recalculate_positions {
   my $pattern_count=0;
   $pattern_count=$fsfile->pattern_count if (ref($fsfile));
 
-  my $fontHeight=$self->canvas->fontMetrics($self->get_font, -linespace);
+  my $fontHeight=$self->getFontHeight();
   my %prevnode=();
   my $parent;
 
@@ -175,7 +183,7 @@ sub recalculate_positions {
     my $textWidth=0;
     my $m;
     for (my $i=0;$i<$pattern_count;$i++) {
-      $m=$self->canvas->fontMeasure($self->get_font,$self->prepare_text($fsfile,$node,$i));
+      $m=$self->getTextWidth($self->prepare_text($fsfile,$node,$i));
       $node->{"_tkX_$i"}=$m;
       $textWidth=$m if $m>$textWidth;
     }
@@ -197,8 +205,8 @@ sub recalculate_positions {
 
     $prevnode{$ypos}=$node;
   }
-  $self->{'canvasWidth'}=$canvasWidth;
-  $self->{'canvasHeight'}=$self->get_baseYPos
+  $self->{canvasWidth}=$canvasWidth;
+  $self->{canvasHeight}=$self->get_baseYPos
 		     + ($maxypos+1)*(2*($self->get_nodeYSkip + $self->get_ymargin)
 		     + $pattern_count*$fontHeight
 		     + $self->get_nodeHeight);
@@ -252,7 +260,14 @@ sub node_options {
 sub wrappedLines {
   my ($self,$text,$width)=@_;
   use integer;
-  return $self->fontMeasure($self->get_font,$text)/$width + 1;
+  my $spacew=$self->getTextWidth(" ");
+  my @toks = map {$self->getTextWidth($_)} split /\s+/, $text;
+  my $wd=shift @toks;
+  my $lines=1;
+  foreach (@toks) {
+    if ($wd+$spacew+$_<$width) { $wd+=$spacew+$_; } else { $wd=$_; $lines++; }
+  }
+  return $lines;
 }
 
 
@@ -281,7 +296,7 @@ sub redraw {
   if ($self->get_drawSentenceInfo) {
     return unless $fsfile;
     my $currentfile=filename($fsfile->filename);
-    my $fontHeight=$self->canvas->fontMetrics($self->get_font, -linespace);
+    my $fontHeight=$self->getFontHeight();
     $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
 
     if ($valtext=~/^(.*)\/([^:]*):\s*(.*)/) {
@@ -290,17 +305,15 @@ sub redraw {
       $self->canvas->createText(0,$self->{canvasHeight},-font => $self->get_font,-text => $ftext,
 				   -justify => 'left', -anchor => 'nw');
       $self->{canvasHeight}+=$fontHeight;
-      $self->{canvasWidth}=max($self->{canvasWidth},$self->canvas->fontMeasure($self->get_font,$ftext));
+      $self->{canvasWidth}=max($self->{canvasWidth},$self->getTextWidth($ftext));
       $self->canvas->createLine(0,$self->{canvasHeight},
-				   $self->canvas->fontMeasure($self->get_font,$ftext),
+				   $self->getTextWidth($ftext),
 				   $self->{canvasHeight});
       $self->{canvasHeight}+=$fontHeight;
       $self->canvas->createText(0,$self->{canvasHeight},-font => $self->get_font,-text => $vtext,
 				   -justify => 'left', -anchor => 'nw',
 				   -width => $self->{canvasWidth});
-      $self->{canvasHeight}+=$fontHeight*($self->wrappedLines($vtext,$self->{canvasWidth})+2);
-#      $self->canvas->createLine(0,$self->{canvasHeight},$self->{canvasWidth},$self->{canvasHeight});
-
+      $self->{canvasHeight}+=$fontHeight*($self->wrappedLines($vtext,$self->{canvasWidth})+1);
     }
   }
 
@@ -319,7 +332,7 @@ sub redraw {
     }
   }
 
-  my $lineHeight=$self->canvas->fontMetrics($self->get_font, -linespace);
+  my $lineHeight=$self->getFontHeight();
   ## The Nodes ##
   foreach $node (@{$nodes}) {
     $node->{"_tkOval_"}=$self->canvas->createOval($self->node_coords($node,$currentNode),
@@ -330,7 +343,7 @@ sub redraw {
     ## Boxes around attributes
     if ($self->get_drawBoxes) {
       ## get maximum width stored here by recalculate_positions
-      my $textWidth=$node->{'_tkXWidth_'};
+      my $textWidth=$node->{_tkXWidth_};
       $node->{"_tkTextBox_"}=
 	$self->canvas->
 	  createRectangle($node->{"_tkXPOS_"}-$self->get_xmargin,
@@ -352,7 +365,7 @@ sub redraw {
 			  $node->{"_tkYPOS_"}+$self->get_nodeHeight+$self->get_nodeYSkip+
 			  $i*$lineHeight-2,
 			  $node->{"_tkXPOS_"}+$node->{"_tkX_$i"}+1,
-			  #$self->canvas->fontMeasure($self->get_font,$self->prepare_text($node,$i))+1,
+			  #$self->getTextWidth($self->prepare_text($node,$i))+1,
 			  $node->{"_tkYPOS_"}+$self->get_nodeHeight+$self->get_nodeYSkip+($i+1)*$lineHeight,
 			  -fill => $self->canvas->cget('-background'), -outline => undef)
 	  unless ($self->get_drawBoxes);
@@ -389,7 +402,7 @@ sub redraw {
 		       -text => $at_text,
 		       -fill => defined($color) ? $color : $self->which_text_color($fsfile,$1),
 		       -font => $self->get_font);
-	  $xskip+=$self->canvas->fontMeasure($self->get_font,$at_text);
+	  $xskip+=$self->getTextWidth($at_text);
 	  $self->canvas->addtag('text', 'withtag', $txt);
 	  $self->pinfo->{$txt}=$node;
 	  $node->{"_tkText[$1][$i][$j]_"}=$txt;
@@ -409,7 +422,7 @@ sub redraw {
 			 -text => $_,
 			 -fill => defined($color) ? $color : $self->get_textColor,
 			 -font => $self->get_font);
-	    $xskip+=$self->canvas->fontMeasure($self->get_font,$_);
+	    $xskip+=$self->getTextWidth($_);
 	  }
 	}
       }

@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-07-23 13:00:46 pajas>";
+$timestamp="Time-stamp: <2001-07-26 17:22:12 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -73,8 +73,6 @@ Flags:     (each flag -<flag> has also the +<flag> variant whith opposite
            meaning)
 
 -H         print hidden nodes
-
--T         use Type1 (postscript) font
 
 -M         maximize print size
 
@@ -237,7 +235,8 @@ sub processParam {
   my $n;
   my $v;
   $arg=shift @ARGV;
-  if ($arg =~ /^([\+\-])([huUNIHTRSME1C]+)/) {
+  if ($arg =~ /^([\+\-])([huUNIHRTSME1C]+)/) {
+    # T is not used anymore, but it is accepted for compatibility
     $v=$1;
     foreach (split //,$2) {
       ${"opt_$_"} = $v eq '-';
@@ -334,12 +333,13 @@ sub printThis {
 			   $opt_S,
 			   defined($opt_p) ?
 			   $opt_p : "$convert - $outfile",
-			   $opt_T,
+#			   $opt_T,
 			   $opt_C,
 			   $opt_R,
 			   $opt_H,
 			   $psFontFile,
-			   $type1font,
+			   $psFontAFMFile,
+#			   $type1font,
 			   $prtFmtWidth,
 			   $prtHMargin,
 			   $prtFmtHeight,

@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-07-25 09:51:25 pajas>
+# Time-stamp: <2001-07-26 17:08:38 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -27,6 +27,7 @@ BEGIN {
   $type1font
   $libDir
   $psFontFile
+  $psFontAFMFile
   $appIcon
   $sortAttrs
   $psFontName
@@ -207,14 +208,24 @@ sub set_config {
   } else {
     $psFontFile="$libDir/fonts/ariam___.pfa";
   }
+  if (exists $confs->{psfontafmfile}) {
+    $psFontAFMFile=$confs->{psfontafmfile};
+  } else {
+    $psFontAFMFile=$psFontFile;
+    $psFontAFMFile=~s/\.[^.]+$/.afm/;
+    unless (-f $psFontAFMFile) {
+      $psFontAFMFile=~s!/([^/]+)$!/afm/$1!;
+    }
+  }
+
   $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
   $sortAttrs=(exists $confs->{sortattributes}) ? $confs->{sortattributes} : 1;
   $psFontName=(exists $confs->{psfontname}) ? $confs->{psfontname} : "Arial-Medium";
   $psFontSize=(exists $confs->{psfontsize}) ? $confs->{psfontsize} : ($^O=~/^MS/) ? "14" : "12";
   $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
-  $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '21c';
-  $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '297m';
+  $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '595';
+  $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '842';
   $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
   $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '1c';
   $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
