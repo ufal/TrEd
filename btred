@@ -598,11 +598,43 @@ sub startMain {
 	  _end_response($control,$hub);
 	  exit 0;
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
-	  _msg "Reloading all open files at client's request\n";
-	  %{$grp->{preloaded}}=();
+	  if ($request{FILELIST}) {
+	    _msg "Reloading files at client's request\n";
+	    my @fl =
+	      grep { ref($grp->{preloaded}->{$_}) }
+		split /\n/,$request{FILELIST};
+	    foreach my $file (@fl) {
+	      delete $grp->{preloaded}->{$file};
+	    }
+	    eval {
+	      preloadFiles($grp,\@fl,$hub);
+	      die $@ if $@ ;
+	    };
+	  } else {
+	    _msg "Reloading all open files at client's request\n";
+	    %{$grp->{preloaded}}=();
+	    eval {
+	      preloadFiles($grp,\@files,$hub);
+	      die $@ if $@ ;
+	    };
+	  }
+	  if ($@) {
+	    $hub->print("$@\n");
+	  } else {
+	    $hub->print("OK\n");
+	  }
+	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'RELOAD_CHANGED') {
+	  _msg "Reloading changed files at client's request\n";
+	  my @changed = grep { ref($grp->{preloaded}->{$_}) and
+				 $grp->{preloaded}->{$_}->notSaved()
+			       } @files;
+	  foreach my $file (@changed) {
+	    delete $grp->{preloaded}->{$file};
+	  }
 	  eval {
-	    preloadFiles($grp,\@files,$hub);
-	    die $@ if $@ ;
+	    preloadFiles($grp,\@changed,$hub);
+	    die $@ if $@;
 	  };
 	  if ($@) {
 	    $hub->print("$@\n");

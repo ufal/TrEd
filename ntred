@@ -18,7 +18,8 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $client_key_file $verbose $srvlist $kill $filelist
 	    $srvlistfile $request_quit $request_dump $request_upload
 	    $safe_mode $help $usage $manpage $ssh $server_debug
-	    $maxservers $request_reload $request_load $request_close
+	    $maxservers $request_reload $request_reload_changed
+	    $request_load $request_close
 	    $request_list $request_list_changed $request_save
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
@@ -54,6 +55,7 @@ Getopt::Long::Configure ("bundling");
 	 "break"           => \$break,
 	 "quit"           => \$request_quit,
 	 "reload-files"    => \$request_reload,
+	 "reload-changed-files"    => \$request_reload_changed,
 	 "reload-macros"   => \$request_reload_macros,
 	 "close-files"     => \$request_close,
 	 "load-files"      => \$request_load,
@@ -566,8 +568,16 @@ if (defined($init) || defined($kill) || defined($break)) {
   my $request_type;
   if ($request_quit) {
     $request_type="QUIT";
+  } elsif ($request_reload_changed) {
+    $request_type="RELOAD_CHANGED";
   } elsif ($request_reload) {
     $request_type="RELOAD";
+    my @files =  get_files();
+    foreach (@files) {
+      die "Error: File name contains tree suffix: $_\n";
+      if /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
+    }
+    $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
   } elsif ($request_reload_macros) {
     $request_type="RELOAD_MACROS";
     if ($macro_file) {
@@ -605,29 +615,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.=join("",@fs)."\n";
   } else {
     $request_type="EVAL_CODE";
-    my @files;
-    if ($filelist) {
-      if (open(my $f, $filelist)) {
-	while (<$f>) {
-	  s/^\s+//;
-	  next if /^#/;
-	  s{^ntred://}{};
-	  s{@(\d+)##?1(\.\d+)?$}{##$1$2};
-	  chomp; push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
-	}
-	close $f;
-      }
-    }
-    if ($listedfiles) {
-      local $_;
-      while (@ARGV) {
-	$_=shift @ARGV;
-	last if ($ARGV[0] eq '--');
-	s{^ntred://}{};
-	s{@(\d+)##?1(\.\d+)?$}{##$1$2};
-	push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
-      }
-    }
+    my @files =  get_files();
     $request="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding,$code))."\n";
     $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
@@ -768,6 +756,34 @@ sub get_file_list {
   }
   @files = (@files, map { m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_) } @ARGV);
   make_uniq(\@files);
+  return @files;
+}
+
+
+sub get_files {
+  my @files;
+  if ($filelist) {
+    if (open(my $f, $filelist)) {
+      while (<$f>) {
+	s/^\s+//;
+	next if /^#/;
+	s{^ntred://}{};
+	s{@(\d+)##?1(\.\d+)?$}{##$1$2};
+	chomp; push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
+      }
+      close $f;
+    }
+  }
+  if ($listedfiles) {
+    local $_;
+    while (@ARGV) {
+      $_=shift @ARGV;
+      last if ($ARGV[0] eq '--');
+      s{^ntred://}{};
+      s{@(\d+)(?:##?1(\.\d+)?)?$}{##$1$2};
+      push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
+    }
+  }
   return @files;
 }
 
@@ -1035,7 +1051,9 @@ This option may be specified more than once with different modules.
 
   ntred --list-files|--list-changed-files
 
-  ntred --reload-files
+  ntred --reload-files [-filelist file-list] [--listed-files file [...]]
+
+  ntred --reload-changed-files
 
   ntred --reload-macros [-m macro_file]
 
@@ -1090,9 +1108,22 @@ has to claim that the file was changed by setting
 C<$TredMacro::FileChanged> variable to 1, otherwise the btred server
 would never notice.
 
+=item B<--listed-files|-L>
+
+Apply request only on listed files (currently only works for queries
+and C<--reload-files> request).
+
 =item B<--reload-files>
 
-Send a command to the btred servers to reload all open files.
+Send a command to the btred servers to reload all open files.  If
+C<--filelist> or C<--listed-files> options are given, reload only
+files occuring in the given lists (all other files remain intact in
+servers' memory).
+
+=item B<--reload-changed-files>
+
+Send a command to the btred servers to reload files that have been
+modified since (re)loaded.
 
 =item B<--reload-macros>
 
