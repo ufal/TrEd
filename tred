@@ -374,6 +374,8 @@ sub setConfig {
   $maxMenuLines=(exists $confs->{MaxMenuLines}) ? $confs->{MaxMenuLines} : 30;
   $useCzechLocales=(exists $confs->{UseCzechLocales}) ? $confs->{UseCzechLocales} : 1;
   $Tk::strictMotif=(exists $confs->{StrictMotif}) ? $confs->{StrictMotif} : 0;
+  $printColors=(exists $confs->{PrintColors}) ? $confs->{PrintColors} : 0;
+  $anyToFs=(exists $confs->{AnyToFs}) ? $confs->{AnyToFs} : undef;
   print "finished reading ini-file\n";
 }
 
@@ -474,6 +476,7 @@ sub openFile {
   my $f = shift;
   my $grp = shift;
   my $goto = undef;
+  my $fs;
   my @d=();
 
   $grp->{'top'}->Busy(-recurse => 1);
@@ -486,7 +489,30 @@ sub openFile {
   }
 
   # opening file
-  die "cannot open $f!\n" unless open(F,"<$f");
+  unless (open(F,"<$f")) {
+    print STDERR "cannot open $f!\n";
+    return 0;
+  }
+
+  # peep on the first character
+  $fs=(<F> and /^@/); close (F);
+
+  if ($fs) {
+    # opening file again, know it is fs
+    unless (open(F,"<$f")) {
+      print STDERR "cannot open $f!\n";
+      return 0;
+    }
+  } elsif (defined($anyToFs) and -x $anyToFs) {
+    unless (open(F,"$anyToFs $f |")) {
+      print STDERR "cannot run $anyToFs on $f!\n";
+      return 0;
+    }
+    $f.=".fs";
+  } else {   
+    print STDERR "cannot open $f (bad $anyToFs or unknown format?)!\n";
+    return 0;
+  }
 
   #reading attribs
   %attribs=ReadAttribs(\*F,\@atord,2,\@header);
@@ -760,18 +786,22 @@ sub printThis {
   $backgroundColor=$grp->{canvas}->cget('-background');
   {
     local $outputenc='iso-88859-2';
-    local $lineColor='black';
-    local $nodeColor='white';
+
+    unless ($printColors) {
+      local $lineColor='black';
+      local $nodeColor='white';
+      local $currentBoxColor='white';
+      local $boxColor='white';
+      local $currentNodeColor = 'white';
+      local $nearestNodeColor= 'white';
+      local $textColor = 'black';
+      local $textColorShadow = 'black';
+      local $textColorHilite = 'black';
+      local $textColorXHilite = 'black';
+      local $activeTextColor='black';
+    }
+
     local $backgroundColor='white';
-    local $currentBoxColor='white';
-    local $boxColor='white';
-    local $currentNodeColor = 'white';
-    local $nearestNodeColor= 'white';
-    local $textColor = 'black';
-    local $textColorShadow = 'black';
-    local $textColorHilite = 'black';
-    local $textColorXHilite = 'black';
-    local $activeTextColor='black';
     local $lineWidth=1;
     local $font=$savefont;
 
@@ -828,7 +858,8 @@ sub printThis {
 	$pageheight=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
       }
 
-      %pso = (qw/-colormode gray -x 0 -y 0/,
+      %pso = (#-colormode => ($printColors ? 'color' : 'gray') ,
+	      qw/-x 0 -y 0/,
 	      -fontmap => { $font => [$psFontName, $psFontSize] },
 	      -width => $grp->{canvasWidth},
 	      -height => $grp->{canvasHeight},
@@ -856,6 +887,8 @@ sub printThis {
 	  }
 	}
       }
+
+    $grp->{top}->Busy(-recurse => 1);
 
       my @ps = split /\n/,$c->postscript(%pso);
       $i=0;
