@@ -4128,6 +4128,7 @@ sub editAttrsDialog {
   my @vals;
   my %e=();
   my @atord=$win->{FSFile}->FS->attributes;
+
   if ($sortAttrs) {
     @atord=sort {uc($a) cmp uc($b)} $win->{FSFile}->FS->attributes
       unless (doEvalHook($win,"sort_attrs_hook",\@atord));
@@ -4137,7 +4138,8 @@ sub editAttrsDialog {
 
   $win->toplevel->Busy(-recurse=>1);
   my $d=$win->toplevel->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
-				 -buttons=> ["OK", "Cancel"]);
+				  -buttons=> ["OK", "Cancel"]
+				 );
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $ff=$d->Frame(-relief=> 'groove',
 		   -bd => 1);
@@ -4151,6 +4153,8 @@ sub editAttrsDialog {
     $lwidth=max($lwidth,length($_));
   }
   my $height=0;
+
+
   for (my $i=0;$i<=$#atord;$i++) {
     $_=$atord[$i];
     # Reliefs: raised, sunken, flat, ridge, and groove.
@@ -4167,19 +4171,20 @@ sub editAttrsDialog {
 			 -font=> $font)->pack(qw/-expand yes -fill both -side left/);
       addBindTags($e{$_},"EditEntry");
 	$b=$r->Button(-text=> "...", -takefocus=> 0,
-		      -command=> [sub {
-				     my ($e,$win,$node,$attr,$d)=@_;
-				     my $result=
-				       ($win->{FSFile}->FS->isList($attr)
-					? editListAttr($win,$e->get,$attr)
-					: editAmbiguousAttr($win,$e->get,$attr,$d));
-				     if (defined $result) {
-				       $e->configure(-state=> 'normal');
-				       $e->delete(0,length($e->get));
-				       $e->insert(0,$result);
-				       $e->configure(-state=> 'disabled');
-				     }
-				   },$e{$_},$win,$node,$_,$d])
+ 		      -command=> [sub {
+ 				     my ($e,$win,$node,$attr,$d)=@_;
+ 				     my $result=
+ 				       ($win->{FSFile}->FS->isList($attr)
+ 					? editListAttr($win,$e->get,$attr)
+ 					: editAmbiguousAttr($win,$e->get,$attr,$d));
+ 				     if (defined $result) {
+ 				       $e->configure(-state=> 'normal');
+ 				       $e->delete(0,length($e->get));
+ 				       $e->insert(0,$result);
+ 				       $e->configure(-state=> 'disabled');
+ 				     }
+				   },$e{$_},$win,$node,$_,$d]
+		     )
 	  ->pack(qw/-side right/);
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
@@ -4204,12 +4209,16 @@ sub editAttrsDialog {
 	                            [\&focusxEditUp,$i,\%e,$f,\@atord]);
     $f->bind($e{$_}, '<Up>',        [\&focusxEditUp,$i,\%e,$f,\@atord]);
   }
+
   $f->configure(-height => $height);
   $f->pack(qw/-expand yes -fill both/);
   $ff->pack(qw/-expand yes -fill both/);
   $win->toplevel->Unbusy();
 
-  my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$win->toplevel);
+  my $result= ShowDialog($d,(
+			     $atord[0] ? $e{$atord[0]}->focus : undef
+			    ),$win->toplevel);
+
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
     save_undo($win,prepare_undo($win));
@@ -4222,14 +4231,10 @@ sub editAttrsDialog {
     redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
   } else {
      doEvalHook($win,"after_edit_node_hook",$node,0);
-   }
-  undef %e;
-  foreach $_ (@r) {$_->destroy;}
-  @r=();
-  $f->destroy;
-  $d->destroy;
-  undef $d;
+  }
 
+  undef %e;
+  $d->destroy;
 }
 
 sub customAttrsDialog {
