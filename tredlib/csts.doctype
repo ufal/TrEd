@@ -734,6 +734,9 @@ APPINFO    NONE
 <!ENTITY bsol CDATA "&#38;bsol;" -- "bsol" -->
 <!ENTITY lcub CDATA "&#38;lcub;" -- "lcub" -->
 <!ENTITY macron CDATA "&#38;macron;" -- "macron" -->
+<!ENTITY sect CDATA "&#38;sect;" -- "sect" -->
+<!ENTITY curren CDATA "&#38;curren;" -- "curren" -->
+<!ENTITY para CDATA "&#38;para;" -- "para" -->
 
 <!ENTITY agrave CDATA "&#38;agrave;" -- "agrave" -->
 
@@ -772,6 +775,9 @@ APPINFO    NONE
 <!ENTITY bsol CDATA "&#1;" -- "bsol" -->
 <!ENTITY lcub CDATA "&#1;" -- "lcub" -->
 <!ENTITY macron CDATA "&#1;" -- "macron" -->
+<!ENTITY sect CDATA "&#167;" -- "sect" -->
+<!ENTITY curren CDATA "&#164;" -- "curren" -->
+<!ENTITY para CDATA "&#167;" -- "para" -->
 
 <!ENTITY agrave CDATA "&#233;" -- "agrave" -->
 
@@ -790,3 +796,8 @@ APPINFO    NONE
 <!ENTITY Idph CDATA "Idph" -- "Idph" -->
 <!ENTITY Hyphen CDATA "-" -- "Hyphen" -->
 ]>
+
+
+
+
+
