@@ -2,7 +2,7 @@ package TrEd::Convert;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-06-01 19:22:09 pajas>
+# Time-stamp: <2001-06-01 19:24:08 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -12,7 +12,7 @@ use strict;
 
 BEGIN {
   use Exporter  ();
-  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc $outputenc);
+  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc $outputenc $Ds);
   @ISA=qw(Exporter);
   $VERSION = "0.1";
 
@@ -30,9 +30,9 @@ BEGIN {
   $inputenc="iso-8859-2";
   if ($^O eq "MSWin32") {
     $outputenc="windows-1250";
-    $TrEd::Convert::Ds="\\"; # how filenames and directories are separated
+    $Ds="\\"; # how filenames and directories are separated
   } else {
-    $TrEd::Convert::Ds='/';
+    $Ds='/';
     $outputenc="iso-8859-2";
   }
 }
