@@ -5,6 +5,34 @@
 # Frame validation code #
 #########################
 
+=comment
+
+Known issues:
+
+- There is a KDO-RULE for (usually object or subject) subclauses
+starting with "kdo" or "co".  It tries to verify the form of "kdo" or
+"co" instead of the original node (which would be the root of the
+subclause). This behaviour may/may not be incorrect, needs more
+research.
+
+- KDO-RULE is only applied if the subclause is NOT analytically
+governed by "ten".
+
+- KDO-RULE does not apply to subclauses with "jaky", "jak" etc.
+Whether there will be a need for such rules is yet to be determined by
+further research.
+
+- Passivisation rules for se/AuxR are strict, meaning they will not
+apply if the afun of "se" is AuxT or Obj. Fixing the analytical
+layer is often required.
+
+- A rule that would handle "po jablicku" is missing.
+
+- 
+
+=cut
+
+
 sub _highest_coord {
   my ($node)=@_;
   while (PDT::is_valid_member_TR($node)) {
@@ -12,6 +40,132 @@ sub _highest_coord {
   }
   return $node;
 }
+
+sub has_auxR {
+  my ($node)=@_;
+  my $result = 0;
+  # skip infinitives, search for analytic AuxR
+  with_AR {
+    while ($node and $node->{tag}=~/^Vf/) {
+      $result ||= (first { $_->{afun} eq 'AuxR' and $_->{lemma}=~/^se_/ }
+		   PDT::GetChildren_AR($node,sub{1},sub{($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0})) ? 1 : 0;
+      last if $result;
+      $node = PDT::GetFather_AR($node,sub{0});
+    }
+    if (!$result and $node and $node->{tag}=~/^V/) {
+      $result = (first { $_->{afun} eq 'AuxR' and $_->{lemma}=~/^se_/ }
+		 PDT::GetChildren_AR($node,sub{1},sub{($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0})) ? 1 : 0;
+    }
+  };
+  return $result;
+}
+
+@fv_passivization_rules = (
+    [ 'ACT(.1)', 'PAT(.4)',
+      ['EFF',
+       qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/ ]] =>
+    [ '-ACT(.1)', '+ACT(.7)', '-PAT(.4)', '+PAT(.1)',
+      ['EFF',
+       sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/${1}1${2}/ }
+      ]],
+    # frame test
+    [ 'ACT(.1)', ['PAT', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ]]  =>
+    # form transformation rules:
+    [ '-ACT(.1)', '+ACT(.7)',
+      ['PAT',sub { s/((?:^|,)\.a?)4((?:\[(jako|{jako,jako¾to})(\/AuxY)?\])?(?:,|$))/${1}1${2}/ } ]],
+    # ditto for CPHR
+    # form transformation rules:
+    [ 'ACT(.1)', ['CPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
+    # form transformation rules:
+    [ '-ACT(.1)', '+ACT(.7)', ['CPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]],
+    # frame test
+    [ 'ACT(.1)', 'ADDR(.4)' ] =>
+    # form transformation rules:
+    [ '-ACT(.1)', '+ACT(.7)', '-ADDR(.4)', '+ADDR(.1)' ],
+    # frame test
+    [ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ] ] =>
+    # form transformation rules:
+    [ '-ACT(.1)', '+ACT(.7)',
+      ['EFF',
+       sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/${1}1${2}/ }
+      ]]);
+
+@fv_trans_rules_V =
+  (
+   # 1.
+   [# verb test: passive verb
+    # applies to "problem je vyresen nekym", but not to "nekdo ma problem vyresen",
+    # but should still apply to "problem ma byt vyresen"
+    sub { my ($node,$aids) = @_;
+	  ($node->{tag}=~/^Vs/ and
+	   not (first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
+		and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node))
+	  ) ? 1:0;
+	} =>
+    # frame transformation rules:
+    @fv_passivization_rules,
+    # frame test
+    [ 'ACT(.1)' ] =>
+    # form transformation rules:
+    [ '-ACT(.1)', '+ACT(.7)' ],
+   ],
+   # 2.
+   [# dispmod
+    sub { $_[0]->{dispmod} eq "DISPMOD" } =>
+    # frame transformation rules:
+    # frame test
+    [ 'ACT(.1)', 'PAT(.4)' ] =>
+    [ '-ACT(.1)', '+ACT(.3)', '-PAT(.4)', '+PAT(.1)', '+(.[se])', '+MANN(*)' ],
+    # frame test
+    [ 'ACT(.1)' ] =>
+    # form transformation rules:
+    [ '-ACT(.1)', '+ACT(.3)', '+(.[se])', '+MANN(*)' ]
+   ],
+   # 3.
+   [ # chce se mu riskovat
+    sub {
+      my ($node,$aids) = @_;
+      return 0 unless $node->{tag}=~/^Vf/;
+      if ($node->{TID} ne "") {
+	($node) = first { $_->{AID} ne "" and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node);
+	return 0 unless $node;
+      }
+      my ($p) = with_AR { PDT::GetFather_AR($node,sub{ ($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0 }) };
+      return 0 unless $p and
+	$p->{trlemma}=~/^chtít$/ and has_auxR($p);
+      } =>
+    [ 'ACT(.1)' ] =>
+    [ '-ACT(.1)', '+ACT(.3)' ]
+   ],
+   # 4.
+   [# verb test: verb treated as passive due to "se".AuxR
+    sub {
+      my ($node,$aids) = @_;
+      return (first { $_->{AID} ne "" and $_->{tag}=~/^V/ and has_auxR($_)
+		    } get_aidrefs_nodes($aids,$node)) ? 1: 0;
+    }
+    # used to be ACT(!), but some abstract constructions with se.AuxR feel like ACT(.7)
+    =>
+    @fv_passivization_rules
+   ],
+   # 5.
+   [ # nechat si/dat si udelat neco udelat od nekoho/nekym
+    sub {
+      my ($node,$aids) = @_;
+      return 0 unless $node->{tag}=~/^Vf/;
+      if ($node->{TID} ne "") {
+	($node) = first { $_->{AID} ne "" and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node);
+	return 0 unless $node;
+      }
+      my ($p) = with_AR { PDT::GetFather_AR($node,sub{ ($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0 }) };
+      return 0 unless $p and
+	$p->{trlemma}=~/^nechat$|^dát$/
+      } =>
+    [ 'ACT(.1)' ] =>
+    [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ]
+   ],
+  );
+
 
 sub match_node_coord {
   my ($node, $fn,$aids,$loose_lemma) = @_;
@@ -32,14 +186,80 @@ sub get_aidrefs_nodes {
   return grep { defined($_) } map { $aids->{$_} } grep { $_ ne "" } getAIDREFs($node);
 }
 
+sub is_numeric_expression {
+  my ($node)=@_;
+  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
+}
+
+sub get_chilren_include_auxcp {
+  my ($node)=@_;
+  return with_AR { map { PDT::expand_coord_apos($_) } $node->children };
+}
+
+sub check_node_case {
+  my ($node,$case)=@_;
+
+  # simple case
+  print "   CASE: Checking simple case\n" if $V_verbose;
+  return 1 if $node->{tag}=~/^[NCPA]...(\d)/ and $case eq $1;
+  print "   CASE: Checking AC..- tag ('vinen', etc.)\n" if $V_verbose;
+  return 1 if $node->{tag}=~/^AC..-/;
+  print "   CASE: Checking case X\n" if $V_verbose;
+  return 1 if $node->{tag}=~/^[NCPA]...X/ or $node->{tag}=~/^X...-/;
+  print "   CASE: Checking lemmas w/o case\n"  if $V_verbose;
+  # special lemmas without case:
+  return 1 if $node->{lemma} =~ /^(?:&percnt;|hodnì|málo-3|dost)(?:\`|$|_)/;
+  print "   CASE: Checking simple number w/o case\n"  if $V_verbose;
+  # simple number without case: e.g. 3
+  return 1 if ($node->{tag}=~/^C=..\D/);
+  print "   CASE: Checking 'kolem|okolo'+Num\n"  if $V_verbose;
+  # kolem milionu (lidí)
+  return 1 if $node->{lemma} =~ /^kolem-1|okolo-1$/ and $node->{afun}=~/^AuxP/ and
+    first { $_->{tag}=~/^....2/ and is_numeric_expression($_) } get_chilren_include_auxcp($node);
+  print "   CASE: Checking 'pres|na'+Num\n"  if $V_verbose;
+  # pøes milion (lidí)
+  return 1 if $node->{lemma} =~ /^(pøes-1|na-1)$/ and $node->{afun}=~/^AuxP/ and
+    first { $_->{tag}=~/^....4/ and is_numeric_expression($_) } get_chilren_include_auxcp($node);
+  print "   CASE: Checking num+2 construct\n"  if $V_verbose;
+  # a number has the right case (or no case at all) and is analytically governing the node
+  return 1 if ($node->{tag}=~/^....2/ and
+	       first {
+		 print("     CASE: testing parent instead: $_->{form}\n") if $V_verbose;
+		 is_numeric_expression($_) and
+		 (print("     CASE: parent is numeric: $_->{form}\n"),1) and
+		   (($_->{tag}!~/^....(\d)/) or ($case == $1) or
+		    ($_->{tag}=~/^....4/ and
+		     grep { $_->{lemma} =~ /^(pøes-1|na-1)$/ and $_->{afun}=~/^AuxP/ }
+		     with_AR { PDT::GetFather_AR($_,sub{0}) }
+		    ) or
+		    ($_->{tag}=~/^....2/ and
+		     first {
+		       $_->{lemma} =~ /^kolem-1|okolo-1$/ and $_->{afun}=~/^AuxP/ }
+		     with_AR { PDT::GetFather_AR($_,sub{0}) }
+		    ))
+	       } with_AR { PDT::GetFather_AR($node,sub{0}) });
+  print "   CASE: Checking 2+num construct\n"  if $V_verbose;
+  return 1 if ($node->{tag}=~/^....2/ and
+	       first {
+		 is_numeric_expression($_) and (($_->{tag}!~/^....(\d)/) or ($case eq $1))
+	       } get_chilren_include_auxcp($node));
+  print "   CASE: All checks failed\n"  if $V_verbose;
+  return 0;
+}
+
 sub match_node {
   my ($node, $fn, $aids,$no_case,$loose_lemma) = @_;
-  my ($lemma,$form,$pos,$case,$gen,$num,$deg,$neg,$agreement)=map {$fn->getAttribute($_)} qw(lemma form pos case gen num deg neg agreement);
-  print "TRYING: $node->{tag}, $node->{lemma}  .... $lemma,$pos,$case,$gen,$num,$deg\n" if $V_verbose;
+  my ($lemma,$form,$pos,$case,$gen,$num,$deg,$neg,$agreement,$afun)=map {$fn->getAttribute($_)} qw(lemma form pos case gen num deg neg agreement afun);
+  if ($V_verbose) {
+    print "TEST [tag=$node->{tag}, lemma=$node->{lemma}]  ==>  ";
+    print join ", ", map { "$_->[0]=$_->[1]" } grep { $_->[1] ne "" } ([lemma => $lemma], [pos => $pos], [case => $case],
+								 [gen => $gen], [num => $num], [deg => $deg], [afun => $afun]);
+    print "\n";
+  }
 
   if ($lemma ne '') {
     my $l = $node->{lemma};
-    $l =~ s/[_`&].*$//;
+    $l =~ s/[_\`&].*$//;
     if ($lemma=~/^\{(.*)\}$/) {
       my $list = $1;
       my @l = split /,/,$list;
@@ -59,7 +279,7 @@ sub match_node {
       $p->{tag}=~/^..([FMIN])/;
       $gen=$1 if ($gen ne '' and $1);
     } else {
-      print "AGREEMENT REQUESTED BUT NO PARENT: ",$fn->toString(),"\n" if $V_verbose;
+      print "AGREEMENT REQUESTED BUT NO PARENT: ",$V->serialize_form($fn),"\n" if $V_verbose;
       return 0;
     }
   }
@@ -76,24 +296,14 @@ sub match_node {
   if ($neg eq 'negative') {
     return 0 unless $node->{tag}=~/^..........N/;
   }
-
-  if (!$no_case and $case ne '') {
-    return 0 if ((($node->{tag}=~/^....(\d)/ and $case ne $1) or
-		  ($node->{tag}!~/^[NCPAX]/ and $node->{lemma} !~ /^(?:&percnt;|hodnì|málo-3|dost)(?:`|$|_)/))
-		 and
-		 not ($node->{tag}=~/^C...\D/ and not with_AR { PDT::GetChildren_AR($node,sub{1},sub{0}) }) and
-		 not ($node->{tag}=~/^....2/ and
-		      first {
-			($_->{tag} =~ /^C/ or $_->{lemma} =~ /^(?:dost|málo-3|hodnì|sto-[12]|tisíc-[12]|milión|miliarda)(?:`|$|_)/) and
-			($_->{tag}!~/^....(\d)/ or $case eq $1 or
-			 ($1 eq '4' and first { $_->{lemma} eq 'pøes-1' } get_aidrefs_nodes($aids,$_) or
-			  $1 eq '2' and first { $_->{lemma} eq 'kolem-1' } get_aidrefs_nodes($aids,$_)))
-		      } with_AR { (PDT::GetFather_AR($node,sub{shift->{afun}=~/Aux[CP]/?1:0}),
-				   PDT::GetChildren_AR($node,sub{1},sub{shift->{afun}=~/Aux[CP]/?1:0})) })
-   );
+  if ($afun ne "" and $afun ne 'unspecified') {
+    return 0 unless $node->{afun}=~/^\Q${afun}\E($|_)/;
   }
   if ($pos ne '') {
-    if ($pos =~ /^[adnijv]$/) {
+    if ($pos eq 'a' and ($case==1 and $node->{tag}=~/^Vs..[-1]/ or
+			 $case==4 and $node->{tag}=~/^Vs..4/)) {
+      # treat as ok
+    } elsif ($pos =~ /^[adnijv]$/) {
       $pos = uc($pos);
       return 0 if $node->{tag}!~/^$pos/;
     } elsif ($pos eq 'f') {
@@ -104,6 +314,32 @@ sub match_node {
       # TODO: c s
       return 0 unless $node->{tag}=~/^V/;
     }
+  } elsif ($case ne '') { # assume $tag =~ /^[CNP]/
+    unless ($node->{tag}=~/^[CNPAX]/ or
+	    $node->{lemma} =~ /^(?:&percnt;|hodnì|málo-3|dost|kolem-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
+      print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
+      return 0;
+    }
+  }
+  if (!$no_case and $case ne '') {
+    return 0 unless ($pos eq 'a' and ($case==1 and $node->{tag}=~/^Vs..[-1]/ or
+				      $case==4 and $node->{tag}=~/^Vs..4/))
+      or check_node_case($node,$case);
+#     return 0 if ((($node->{tag}=~/^[NCPA]...(\d)/ and $case ne $1) or
+# 		  ($node->{tag}!~/^[NCPAX]/ and $node->{lemma} !~ /^(?:&percnt;|hodnì|málo-3|dost)(?:\`|$|_)/))
+# 		 and
+# 		 not ($node->{tag}=~/^C...\D/ and not get_chilren_include_auxcp($node) and
+# 		 not ($node->{tag}=~/^....2/ and
+# 		      (print("CASE2: $node->{lemma}\n"),1) and
+# 		      first {
+# 			($_->{tag} =~ /^C/ or $_->{lemma} =~ /^(?:dost|málo-3|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda)(?:\`|$|_)/) and
+#              		(print("CASE3: $node->{lemma}\n"),1) and
+# 			($_->{tag}!~/^....(\d)/ or $case eq $1 or
+# 			 ($1 eq '4' and first { $_->{lemma} eq 'pøes-1' } get_aidrefs_nodes($aids,$_) or
+# 			  $1 eq '2' and first { $_->{lemma} eq 'kolem-1' } get_aidrefs_nodes($aids,$_)))
+# 		      } with_AR { (PDT::GetFather_AR($node,sub{shift->{afun}=~/Aux[CP]/?1:0}),
+# 				   PDT::GetChildren_AR($node,sub{1},sub{shift->{afun}=~/Aux[CP]/?1:0})) })
+#    );
   }
   if ($num ne '') {
     return 0 if $node->{tag}=~/^...([SP])/ and $num ne $1;
@@ -117,29 +353,58 @@ sub match_node {
     }
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
-    unless (first { match_node_coord($_,$ffn,$aids,$loose_lemma) } with_AR { $node->children }) {
-      print "CHILDMISMATCH: ",$ffn->toString(),"\n" if $V_verbose;
+    unless (first { match_node_coord($_,$ffn,$aids,$loose_lemma) }
+	    get_chilren_include_auxcp($node)
+	    # $node->children
+	   ) {
+      print "CHILDMISMATCH: ",$V->serialize_form($ffn),"\n" if $V_verbose;
       return 0;
     }
   }
-  print "MATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$fn->toString(),"\n" if $V_verbose;
+  print "MATCH: [$node->{lemma} $node->{form} $node->{tag}] ==> ",$V->serialize_form($fn),"\n" if $V_verbose;
   return 1;
 }
 
 sub match_form {
-  my ($node, $form, $aids, $loose_lemma) = @_;
+  my ($pnode, $node, $form, $aids, $loose_lemma) = @_;
+  print "\nFORM: ".$V->serialize_form($form)." ==> $node->{lemma}, $node->{tag}\n" if $V_verbose;
   my @a = get_aidrefs_nodes($aids,$node);
   my $no_case=0;
   if ($node->{TID} ne "") {
     $no_case=1;
   }
   if (@a) {
+    my @ok_a;
+    my $node_aidrefs = getAIDREFsHash($node);
+    foreach (@a) {
+      if (first { $_->{afun}=~/^Aux[CP]/
+		  and $_->{lemma} !~ /^místo-2_/ and $node_aidrefs->{$_->{AID}} } with_AR { PDT::GetFather_AR($_,sub{0}) }) {
+	print "Ignoring AIDREF to $_->{form}\n" if $V_verbose;
+      } else {
+	print "Accepting AIDREF to $_->{form}\n" if $V_verbose;
+	push @ok_a,$_;
+      }
+    }
+    # add "kdo" of "kdo" subclauses
+    @ok_a = map {
+      if ($_->{tag}=~/^V/ and
+	  not first { $_->{lemma} eq 'ten' and IsHidden($_) and
+		      $_->{func} ne 'INTF' }
+	  with_AR { PDT::GetFather_AR($_,sub{0}) }) {
+	my $kdo = first { $_->{lemma} eq 'kdo' or $_->{lemma} eq 'co-1' }
+	  PDT::GetChildren_TR($_);
+	if ($kdo) {
+	  print "KDO-RULE: found $kdo->{form}\n";
+	}
+	$kdo ? ($kdo,$_) : $_;
+      } else { $_ }
+    } @ok_a;
     my ($parent) = $form->getChildrenByTagName('parent');
     my ($pnode) = $parent->getChildrenByTagName('node') if $parent;
     if ($pnode) {
       foreach my $p (PDT::GetFather_TR($node)) {
 	unless (match_node($p,$pnode,$aids,0,$loose_lemma)) {
-	  print "PARENT-CONSTRAINT MISMATCH: $p->{lemma} $p->{form} $p->{tag} ==> ",$pnode->toString(),"\n" if $V_verbose;
+	  print "PARENT-CONSTRAINT MISMATCH: [$p->{lemma} $p->{form} $p->{tag}] ==> ",$V->serialize_form($pnode),"\n" if $V_verbose;
 	  return 0;
 	}
       }
@@ -147,8 +412,8 @@ sub match_form {
     my @form_nodes = $form->getChildrenByTagName('node');
     if (@form_nodes) {
       foreach my $fn (@form_nodes) {
-	unless (first { match_node($_,$fn,$aids,$no_case,$loose_lemma) } @a) {
-	  print "MISMATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$fn->toString(),"\n"
+	unless (first { match_node($_,$fn,$aids,$no_case,$loose_lemma) } @ok_a) {
+	  print "MISMATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$V->serialize_form($fn),"\n"
 	    if $V_verbose;
 	  return 0;
 	}
@@ -156,15 +421,23 @@ sub match_form {
       return 1;
     } elsif ($form->getChildrenByTagName('typical')) {
       # TODO: somebody pls provide me the map of functors and their typical forms
+      print "MATCH: typical form always matches (TODO)" if $V_verbose;
       return 1;
     } elsif ($form->getChildrenByTagName('elided')) {
-      return ($node->{AID} eq "" and $node->{AIDREFS} eq "") ? 1 : 0
+      my $r = ($node->{AID} eq "" and $node->{AIDREFS} eq "") ? 1 : 0;
+      print $r ? "MATCH: node elided" : "MISMATCH: node not elided\n" if ($V_verbose);
+      return $r;
     } elsif ($form->getChildrenByTagName('recip')) {
-      return ($node->{trlemma} ne "&Rcp;") ?  1 : 0; # correct?
+      my $r = ($node->{trlemma} ne "&Rcp;") ?  1 : 0; # correct?
+      print $r ? "MATCH: trlemma=&Rcp;" : "MISMATCH: trlemma=$node->{trlemma} instead of &Rcp;\n" if ($V_verbose);
+      return $r;
     } elsif ($form->getChildrenByTagName('state')) {
-      return ($node->{state} eq "ST") ? 1 : 0;
+      my $r = ($node->{state} eq "ST" or
+	       $node->{func} =~ /\?\?\?/) ? 1 : 0;
+      print $r ? "MATCH: state=ST" : "MISMATCH: state!=ST\n" if ($V_verbose);
+      return $r;
     } else {
-      print "UNSPECIFIED FORM: ==> ",$form->toString(),"\n" if $V_verbose;
+      print "MATCH, THOUGH FORM UNSPECIFIED: ==> ",$V->serialize_form($form),"\n" if $V_verbose;
       return 1;
     }
   } else {
@@ -301,18 +574,20 @@ sub do_transform_frame {
     if ($verbtest->($node,$aids)) { # check if rule matches verb
       while (@frame_tests) {
 	$j++;
-	my $cache_key = "r:$i t:$j $f:".$V->frame_id($frame);
+	my $cache_key = "r:$i t:$j f:".$V->frame_id($frame);
 	if ($cached_trans_frames{$cache_key}) {
-	  print "applying rule $cache_key\n";
+	  print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
 	  $frame = $cached_trans_frames{$cache_key};
+	  print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
 	  last TRANS;
 	} else {
 	  my ($frame_test,$frame_trans)=(shift @frame_tests, shift @frame_tests);
-	  print "testing rule $cache_key\n" if (!$quiet and $V_verbose);
+	  # print "testing rule $cache_key\n" if (!$quiet and $V_verbose);
 	  if (frame_matches_rule($V,$frame,$frame_test)) {
-	    print "applying rule $cache_key\n" if (!$quiet and $V_verbose);
+	    print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
 	    $frame = transform_frame($V,$frame,$frame_trans);
-	    $cached_trans_frame{$cache_key} = $frame;
+	    print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
+	    $cached_trans_frames{$cache_key} = $frame;
 	  }
 	}
       }
@@ -320,6 +595,28 @@ sub do_transform_frame {
   }
   return $frame;
 }
+
+sub _filter_OPER_AP_and_jako_APPS {
+  # filter out all members of jako.APPS right of the aposition node
+  # and all OPER_AP nodes
+  my ($n)=@_;
+  while (PDT::is_member_TR($n)) {
+    return 1 if
+      ($n->parent and $n->parent->{func} eq "APPS" and
+       $n->parent->{trlemma} eq "jako" and
+       $n->{memberof} eq "AP" and
+       (($n->{AID} ne "" and $n->parent->{AID} ne "" and
+	 $n->parent->{ord} < $n->{ord}) or
+	(($n->{AID} eq "" or $n->parent->{AID} eq "") and
+	 $n->parent->{dord} < $n->{dord}))) or
+	   (($n->{func} eq "OPER" and
+	     $n->parent and $n->parent->{func} eq "APPS" and
+	     $n->{memberof} eq "AP"));
+    $n=$n->parent;
+  }
+  return 0;
+}
+
 
 sub validate_frame {
   my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet) = @_;
@@ -331,9 +628,9 @@ sub validate_frame {
 
   if ($word_form) {
     my @forms = $V->forms($word_form);
-    print $word_form->toString()."\n" if (!$quiet and $V_verbose);
+    print "WORD FORM: ",$V->serialize_form($word_form)."\n" if (!$quiet and $V_verbose);
     if (@forms) {
-      unless (grep { match_form($node,$_,$aids) } @forms) {
+      unless (grep { match_form($node,$node,$_,$aids) } @forms) {
 	unless ($quiet) {
 	  print "11 no word form matches: $node->{lemma},$node->{tag}\t";
 	  Position($node);
@@ -345,7 +642,6 @@ sub validate_frame {
   }
 
   my @c = PDT::GetChildren_TR($node);
-
 
   # we must include children of ktery/jaky/... in relative subclauses
   # co-referring to the current node
@@ -381,8 +677,22 @@ sub validate_frame {
 	  $ignore{$_}=1;
 	}
       }
+    } elsif (_filter_OPER_AP_and_jako_APPS($m)) {
+      $ignore{$m}=1;
+      print "WW should ignore node: '$m->{trlemma}'\n" if (!$quiet and $V_verbose);
+    } elsif ($m->{lemma}=~/^(podobnì|daleko-1|dal¹í)(_|$)/
+	     and  $m->{AID} ne "" and
+             with_AR {
+	       $m->parent and
+	       $m->parent->{lemma} eq 'a-1'
+	       and PDT::is_coord($m->parent) and $m->{afun}=~/_Co$/
+	       and not first { $_->{ord} > $m->{ord} } PDT::expand_coord_apos($m->parent)
+	     }) {
+      $ignore{$m}=1;
+      print "WW should ignore node: '$m->{trlemma}'\n" if (!$quiet and $V_verbose);
     }
   }
+
   @c = grep {
 	if ($ignore{$_}) {
 	  print "WW ignoring node: '$_->{trlemma}'\n" if (!$quiet and $V_verbose);
@@ -401,7 +711,7 @@ sub validate_frame {
       unless ($quiet) {
 	print "06 missing obligatory element: '$o'\t";
 	Position($node);
-	print $frame->toString()."\n" if (!$quiet and $V_verbose);
+	print "FRAME: ",$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
       }
       return 0;
     }
@@ -431,10 +741,16 @@ sub validate_frame {
     my $e = $oblig{get_func($c)} || $nonoblig{get_func($c)};
     next unless ($e);
     my @forms = $V->forms($e);
-    print $e->toString()."\n" if (!$quiet and $V_verbose);
+    if (!$quiet and $V_verbose) {
+      print "--------------------------\n";
+      print "NODE: $c->{func},$c->{lemma},$c->{tag}\n";
+      print "ELEMENT: ",$V->serialize_element($e)."\n";
+    }
     if (@forms) {
-      unless (grep { match_form($c,$_,$aids) } @forms) {
-	unless ($quiet) {
+      unless (first { match_form($node,$c,$_,$aids) } @forms) {
+	if ($V_verbose) {
+	  print "\n09 no form matches: $c->{func},$c->{lemma},$c->{tag}\n";
+	} elsif (!$quiet) {
 	  print "09 no form matches: $c->{func},$c->{lemma},$c->{tag}\t";
 	  Position($node);
 	}
@@ -443,6 +759,8 @@ sub validate_frame {
       }
     }
   }
+
+  print "\nOK - frame matches!\n" if ($V_verbose and !$quiet);
   return 1;
 }
 
@@ -479,4 +797,88 @@ sub hash_pj4 {
   my ($tree)=shift;
   return [ grep { $_->{tag}=~/^PJ/ or ($_->{tag}=~/^P4/ and $_->{lemma}=~/^který$|^jaký$|^co-4/)
 		} $tree->descendants ];
+}
+
+sub check_verb_frames {
+  my ($node,$aids,$frameid,$fix)=@_;
+  my $func = get_func($node);
+  return -1 if $node->{tag}!~/^V/ or $func =~ /[DF]PHR/
+    or ($func eq 'APPS'and $node->{trlemma} eq 'tzn');
+  #    return if $node->{tag}!~/^Vs/; # TODO: REMOVE ME!
+  my $lemma = $node->{trlemma};
+  $lemma =~ s/_/ /g;
+  $cache{$lemma} = $V->word($lemma,'V') unless exists($cache{$lemma});
+  if ($cache{$lemma}) {
+    if ($node->{$frameid} ne '') {
+      my @frames;
+      foreach my $fi (split /\|/, $node->{$frameid}) {
+	my $frame = $V->by_id($fi);
+	if (ref($frame)) {
+	  my @valid = $V->valid_frames_for($frame);
+	  if (@valid) {
+	    foreach my $vframe (@valid) {
+	      print "Valid frame: ",$V->frame_id($vframe),": ",
+		$V->serialize_frame($vframe),"\n" if $vframe and $V_verbose;
+	      if ($vframe) {
+		if ($V->word_lemma($V->frame_word($vframe)) eq $lemma) {
+		  push @frames, $vframe;
+		} else {
+		  print "00 invalid lemma for: ",$V->frame_id($vframe),"\t";
+		  Position($node);
+		}
+	      }
+	    }
+	  } else {
+	    # frame not resolved
+	    if ($cache{$lemma}) {
+	      my @possible_frames =
+		grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,undef,1) } $V->valid_frames($cache{$lemma});
+	      $node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
+	      $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+
+	      if (@possible_frames==1) {
+		print "12 unresloved frame, but one matching frame: $fi\t";
+	      } elsif (@possible_frames>1) {
+		print "13 unresloved frame, but more matching frames: $fi\t";
+	      } else {
+		print "14 unresloved frame, but no matching frame: $fi\t";
+	      }
+	    } else {
+	      print "15 unresloved frame and lemma not found: $fi\t";
+	    }
+	    Position($node);
+	    return 0;
+	  }
+	} else {
+	  print "02 frame not found: $fi\t";
+	  Position($node);
+	  return 0;
+	}
+      }
+      if (@frames) {
+	if ($fix) {
+	  $node->{$frameid}=join "|",map { $V->frame_id($_) } @frames;
+	  $node->{$framere} = join " | ", map { $V->serialize_frame($_) } @frames;
+	  ChangingFile(1);
+	}
+	foreach my $frame (@frames) {
+	  return 0 unless validate_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,undef,0);
+	}
+	# process frames
+      } else {
+	print "03 no valid frame for: $node->{$frameid} \t";
+	Position($node);
+	return 0;
+      }
+    } else {
+      print "04 no frame assigned: $lemma\t";
+      Position($node);
+      return 0;
+    }
+  } else {
+    print "05 lemma not in vallex: $lemma\t";
+    Position($node);
+    return 0;
+  }
+  return 1;
 }
