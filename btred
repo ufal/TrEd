@@ -38,11 +38,13 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules
+	    $_ERR
 	   );
 
 #getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:NHSTFX:RPWVL:b:');
-Getopt::Long::Configure ("bundling");
-GetOptions ("quiet|q" => \$quiet,
+my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
+$optparser->getoptions(
+	    "quiet|q" => \$quiet,
 	    "very-quiet|Q" => \$Quiet,
 	    "debugging|D" => \$debug,
 	    "fs2csts-attributes|x=s" => \$csts_xargs,
@@ -78,6 +80,12 @@ GetOptions ("quiet|q" => \$quiet,
 	   );
 
 $quiet=1 if $Quiet;
+
+unless (open $_ERR, ">&STDERR") {
+  warn("Can't dup STDERR: $!");
+  $_ERR=\*STDERR;
+}
+$_ERR->autoflush(1);
 
 # Help and usage
 if ($usage) {
@@ -205,6 +213,7 @@ import TrEd::Basics;
 @backends=('FSBackend',ImportBackends(qw(AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
+# these are for macros
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
 
@@ -238,6 +247,7 @@ if ($TrEd::Config::useCzechLocales) {
 $TredMacro::root=undef;
 $TredMacro::this=undef;
 $TrEd::Macros::FileNotSaved=0;
+$TrEd::Macros::defines{BTRED}=1;
 $TredMacro::forceFileSaved=0;
 
 $TredMacro::_NoSuchTree=0; # for compatibility with Graph2Tred
@@ -295,7 +305,7 @@ exit;
 ############################
 ############################
 ############################
-sub _msg { print STDERR "BTRED: ",@_; }
+sub _msg { $_ERR->print("BTRED: ",@_); }
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
 sub _benchmark () {
   my $number_of_iters=10000;
@@ -325,6 +335,36 @@ sub _copy_output {
   $hub->print("\n") unless $space;
 }
 
+sub _revert_redirect_stdout {
+  my ($old)=@_;
+  open $old, ">&STDOUT" or die "Can't dup STDOUT: $!";
+}
+
+sub _revert_redirect_stderr {
+  my ($old)=@_;
+  open $old, ">&STDERR" or die "Can't dup STDERR: $!";
+}
+
+sub _redirect_stdout {
+  my ($new_out)=@_;
+  local *MOUT=*$new_out;
+  my $old;
+  open $old, ">&STDOUT" or die "Can't dup STDOUT: $!";
+  open(STDOUT, "+>&MOUT") or die "Can't redirect STDOUT: $!";
+  $new_out->autoflush(1);
+  return $old;
+}
+
+sub _redirect_stderr {
+  my ($new_out)=@_;
+  local *MOUT=*$new_out;
+  my $old;
+  open $old, ">&STDERR" or die "Can't dup STDERR: $!";
+  open(STDERR, "+>&MOUT") or die "Can't redirect STDERR: $!";
+  $new_out->autoflush(1);
+  return $old;
+}
+
 sub startMain {
   my $grp={
 	   treeNo => 0,
@@ -338,6 +378,7 @@ sub startMain {
   my $context = $grp->{macroContext};
 
   if ($start_server) {
+    $SIG{USR1} = sub { };
     # ----------------------------------------
     # SERVER MODE
     # ----------------------------------------
@@ -440,10 +481,9 @@ sub startMain {
 
 	# create temporary file to store macro output
 	my $macro_stdout = IO::File->new_tmpfile();
-
-	*MOUT=*$macro_stdout;
-	#open OLDSTDOUT, ">&STDOUT" or die "Can't dup STDOUT: $!";
-	open(STDOUT, "+>&MOUT") or die "Can't redirect STDOUT: $!";
+	my $macro_stderr = IO::File->new_tmpfile();
+	my $old_stdout = _redirect_stdout($macro_stdout);
+	my $old_stderr = _redirect_stderr($macro_stderr);
 
 	# script command-line arguments
 	if (exists($request{ARGS})) {
@@ -460,10 +500,12 @@ sub startMain {
 	chomp($request{CONTEXT});
 	$context=$request{CONTEXT} || 'TredMacro';
 	$context='TredMacro' if $context eq 'main';
+	$SIG{USR1} = sub { die "BTRED: User break!\n" };
 	doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
 	# execute hooks and the code of the query
 	my $time;
 	$hub->print("$control SERVER_RESPONSE_STDERR\n");
+	$hub->print("$@\n") if $@;
 	if (!$@ and keys(%{$grp->{preloaded}}) and
 	    doEvalHook($grp,"start_hook") ne 'stop' and
 	    doEvalHook($grp,"preload_hook") ne 'stop') { # for compatibility
@@ -473,23 +515,29 @@ sub startMain {
 	    doEvalMacro($grp,"package $context;".$request{CODE});
 	  } while (!$@ and nextFile($grp));
 	  $hub->print("$@\n") if $@;
-	  _msg($@) if $@;
+	  _msg($@) if $@; undef $@;
 	  doEvalHook($grp,"exit_hook");
 	  $hub->print("$@\n") if $@;
-	  _msg($@) if $@;
+	  _msg($@) if $@;undef $@;
 	  my $t1 = new Benchmark;
 	  $time = timediff($t1, $t0) if ($t1 and $t0);
-	  $hub->print("Total Time: ",timestr($time),"\n") if $time ne "";
+	  $hub->print("BTRED: Total Time: ",timestr($time),"\n") if $time ne "";
 	}
+	$SIG{USR1} = sub { };
 	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
 	cleanup_tredmacro($grp,split(/\n/,"package $context;\n".$request{MACRO}."\n".$request{CODE}));
+
+	# send macro's error output from tmp file to client
+	_copy_output($macro_stderr,$hub);
+	$macro_stderr->close;
+	_revert_redirect_stderr($old_stderr);
+
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 
 	# send macro's output from tmp file to client
 	_copy_output($macro_stdout,$hub);
 	$macro_stdout->close;
-	undef $macro_stdout;
-	#open STDOUT, ">&OLDSTDOUT" or die "Can't dup OLDSTDOUT: $!";
+	_revert_redirect_stdout($old_stdout);
 
 	_end_response($control,$hub);
 	_msg("The processing of request $request_no completely finished.\n");
@@ -595,8 +643,7 @@ sub startMain {
 	}
 	# create temporary file to store std output
 	my $macro_stdout = IO::File->new_tmpfile();
-	*MOUT=*$macro_stdout;
-	open(STDOUT, "+>&MOUT") or die "Can't redirect STDOUT: $!";
+	my $old_stdout = _redirect_stdout($macro_stdout);
 
 	do {
 	  local $backend=$bkmap{$request{Format}} if exists $request{Format};
@@ -623,6 +670,7 @@ sub startMain {
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	_copy_output($macro_stdout,$hub);
 	$macro_stdout->close;
+	_redirect_stdout($old_stdout);
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
 	_msg "Reloading all open files at client's request\n";
