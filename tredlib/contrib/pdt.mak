@@ -807,6 +807,40 @@ sub GetAncestors_TR {
 }
 
 
+=item PDT::GetTrueSiblings_TR ($node)
+
+Return linguistic siblings of a given node as appears in a TR
+tree. This doesn't include the node itself, neither those children of
+the node's linguistic parent that are in coordination with the node.
+
+=cut
+
+sub GetTrueSiblings_TR {
+  my ($node)=@_;
+  my $coord = highest_coord_TR($node);
+  return
+    grep { highest_coord_TR($_) != $coord }
+    map { PDT::GetChildren_TR($node) }
+    PDT::GetFather_TR($node)
+} # GetTrueSiblings
+
+=item highest_coord_TR($node)
+
+If the node is not a member of a coordination, return the node.  If it
+is a member of a coordination, return the node representing the
+highest coordination $node is a member of.
+
+=cut
+
+sub highest_coord_TR {
+ my ($node) = @_;
+ while (PDT::is_valid_member_TR($node)) {
+   $node=$node->parent;
+ }
+ return $node;
+}
+
+
 =item PDT::is_member_TR ($node?)
 
 Returns true if the given node is a member of a coordination,
