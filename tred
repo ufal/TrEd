@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-01 10:35:14 pajas>";
+$timestamp="Time-stamp: <2001-06-04 15:02:44 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -89,12 +89,7 @@ used in `GRAPH' - a program developed by M. Kren. TrEd (which stands
 for The TRee EDitor) is written entirely in Perl and it uses PerlTk
 module for GUI.
 
-Files file1, etc. given on the command-line must be in fs-format (for
-not a little bit obsolete description see:
-	http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html)
-
-The name of each file may be followed by a suffices of the following
-forms:
+Each filename may be followed by suffices of the following forms:
 
 #N      where N is a number possibly followed by one or more
 	upper-case letters. In this case, #N tells TrEd to skip to the
@@ -119,7 +114,6 @@ EOF
   exit;
 }
 
-use FindBin;
 
 # in Windows, if HOME not defined, use user's AppData folder instaed
 if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
@@ -133,24 +127,12 @@ if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
   $ENV{HOME} = $shf{AppData}[2];
 }
 
-# this variable is used when searching for rc-file (i.e. the inicialisation file)
-my @configFileSearchList=($ENV{HOME}.'/.tredrc',
-			  (exists $ENV{TREDHOME}) ? $ENV{TREDHOME}.'/tredrc' : (),
-			  "$FindBin::RealBin/tredrc",
-			  "$FindBin::RealBin/../lib/tredlib/tredrc",
-			  "$FindBin::RealBin/tredlib/tredrc",
-			  "$FindBin::RealBin/../lib/tred/tredrc",
-			  '/usr/usr/share/config/tredrc');
-
-my $configFile;
-# other configuration should be given in that file
-
-
-my $libDir;
 # Default values of $libDir used to search for macro-file (tred.mac)
 # and default-macro file (tred.def) are specified here. They may be
 # overriden by value of LibDir in tred resource file (tredrc or ~/.tredrc - see above).
+# It is also used to find TrEd::Config.pm module.
 
+use FindBin;
 if (exists $ENV{TREDHOME}) {
   $libDir=$ENV{TREDHOME};
 } elsif (-d "$FindBin::RealBin/tredlib") {
@@ -162,30 +144,46 @@ if (exists $ENV{TREDHOME}) {
 }
 print "Trying $libDir\n" if ($libDir);
 
-
 $macroFile=undef;
 
-if (defined $opt_c) {
-  @configFileSearchList=($opt_c); # override any other possible config files
-}
-
+########## Config file #############
 # this must be done before readconfig is first used
 @filelists=();
 @openfiles=();
 
+$treeViewOpts={
+	       drawSentenceInfo  => 0,
+	       customColors	  => ['darkgreen','darkblue','darkmagenta',
+				      'orange','black','DodgerBlue4',
+				      'red','gold','cyan','midnightblue']
+	      };
 
-my @customColors=('darkgreen','darkblue','darkmagenta','orange','black','DodgerBlue4',
-		  'red','gold','cyan','midnightblue');
+# We *must* at least find TrEd::Config module to learn the correct libDir!!.
+print "First I'm trying $libDir\n";
+unshift @INC,$libDir if (-d $libDir);
 
-my $configfile=readConfig();
+do {
+  my $ld=$libDir;
+  require TrEd::Config;
+  import TrEd::Config;
+  import TrEd::Config qw(&read_config &apply_config &set_default_config_file_search_list);
+  $libDir=$ld;
+};
 
-print "Resource file parsed\n";
+if (defined $opt_c) {
+  @config_file_search_list=($opt_c); # override any other possible config files
+} else {
+  set_default_config_file_search_list();
+}
+$set_user_config=\&setConfig;	# tred specific configuration
+
+my $configFile=read_config();
 
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
-
 if (defined $opt_m) {
   $macroFile=$opt_m;
 }
+####################################
 
 unless (-d $libDir) {
   print <<'EOL';
@@ -210,12 +208,24 @@ use Tk::Tiler;
 use Tk::BrowseEntry;
 
 unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+
 require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
-require TrEd::Charsets;
-import TrEd::Charsets;
-import TrEd::Charsets qw($Ds);
+
+# import min and max functions
+require TrEd::MinMax;
+import TrEd::MinMax;
+
+# import encode and decode functions
+require TrEd::Convert;
+import TrEd::Convert;
+
+# tree drawing module 
+require TrEd::TreeView;
+
+# tree printing module
+require TrEd::Print;
 
 #load back-ends
 
@@ -246,7 +256,7 @@ if (not File::Spec->can(rel2abs)) {
 
 # This is default export to macros
 @EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
-	     $forceFileSaved $insideEval $FileNotSaved
+	     $forceFileSaved $insideEval $FileNotSaved $libDir
              @openfiles @filelists &min &max);
 
 my @macros=();
@@ -275,8 +285,6 @@ if ($useCzechLocales) {
   setlocale(LC_NUMERIC,"us_EN");
   setlocale(LANG,"czech");
 }
-
-$fsF=undef;
 
 sub bookmarkFilelist {
   foreach (@filelists) {
@@ -318,7 +326,6 @@ $forceFileSaved=0;
 $_NoSuchTree; # for compatibility with Graph2Tred
 $NodeClipboard;
 
-$drawSentenceInfo=0;
 $insideEval=0;
 
 my %searchTemplate;
@@ -336,23 +343,6 @@ my %searchTemplate;
 			   bar => 'backslash', asciitilde => 'grave'
 			  );
 
-sub dirname {
-  my $a=shift;  
-  return (index($a,$Ds)>=0)? substr($a,0,rindex($a,$Ds)+1) : ".$Ds";
-}
-
-sub filename {
-  my $a=shift;
-  return (index($a,$Ds)>=0)? substr($a,rindex($a,$Ds)+1) : $a;
-}
-
-sub tilde_expand {
-  my $a=shift;
-  $a=~s/$\~/$ENV{HOME}/;
-  $a=~s/([^\\])\~/\1$ENV{HOME}/g;
-  return $a;
-}
-
 print STDERR "Reading macros from $macroFile...\n";
 readMacros($macroFile);		# read macros
 print STDERR "done.\n";
@@ -367,171 +357,8 @@ exit;
 ############################
 ############################
 
-sub min {
-  my ($a,$b)=@_;
-  return ($a<$b)?$a:$b;
-}
-
-sub max {
-  my ($a,$b)=@_;
-  return ($a<$b)?$b:$a;
-}
-
-
-sub parseConfigLine {
-  local $_=shift;
-  my $confs=shift;
-  my $key;
-  unless (/^[;#]/ or /^$/) {
-    chomp;
-    if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
-      $key=lc($1);
-      $confs->{$key}=$2;
-      $confs->{$key}=~s/\\(.)/\1/g;
-      $confs->{$key}=$1 if ($confs->{$key}=~/^'(.*)'$/ or $confs->{$key}=~/^"(.*)"$/);
-      #print "$key=$confs->{$key};\n";
-    }
-  }
-}
-
-sub readConfig {
-  #
-  # Simple configuration file handling
-  #
-  my %confs;
-  my $key, $f;
-  local *F;
-  my $openOk=0;
-
-  foreach $f (@_,@configFileSearchList) {
-    if (defined($f), open(F,"<$f")) {
-      print "Using resource file $f\n";
-      while (<F>) {
-	parseConfigLine($_,\%confs);
-      }
-      close F;
-      $openOk=1;
-      $configFile=$f;
-      last;
-    }
-  }
-  unless ($openOk) {
-    print
-      "Warning: Cannot open any file in:\n",
-      join(":",@configFileSearchList),"\n" .
-      "         Using configuration defaults!\n";
-  }
-  setConfig(\%confs);
-  return $f;
-}
-
-sub applyConfig {
-  my %confs;
-  foreach (@_) {
-    parseConfigLine($_,\%confs);
-  }
-  setConfig(\%confs);
-}
-
 sub setConfig {
   my $confs=shift;
-
-  $appName=(exists $confs->{appname}) ? $confs->{appname} : "TrEd ver. 0.5";
-  $baseXPos=(exists $confs->{basexpos}) ? $confs->{basexpos} : 15;
-  $baseYPos=(exists $confs->{baseypos}) ? $confs->{baseypos} : 15;
-  $nodeWidth=(exists $confs->{nodewidth}) ? $confs->{nodewidth} : 7;
-  $nodeHeight=(exists $confs->{nodeheight}) ? $confs->{nodeheight} : 7;
-  $currentNodeWidth=(exists $confs->{currentnodewidth}) ? $confs->{currentnodewidth} : $nodeWidth;
-  $currentNodeHeight=(exists $confs->{currentnodeheight}) ? $confs->{currentnodeheight} : $nodeHeight;
-  $nodeXSkip=(exists $confs->{nodexskip}) ? $confs->{nodexskip} : 5;
-  $nodeYSkip=(exists $confs->{nodeyskip}) ? $confs->{nodeyskip} : 10;
-  $xmargin=(exists $confs->{xmargin}) ? $confs->{xmargin} : 2;
-  $ymargin=(exists $confs->{ymargin}) ? $confs->{ymargin} : 2;
-  $buttonsRelief=(exists $confs->{buttonsrelief}) ? $confs->{buttonsrelief} : 'flat';
-  $menubarRelief=(exists $confs->{menubarrelief}) ? $confs->{menubarrelief} : 'flat';
-  $buttonBorderWidth=(exists $confs->{buttonsborder}) ? $confs->{buttonsborder} : 2;
-  $lineWidth=(exists $confs->{linewidth}) ? $confs->{linewidth} : 1;
-  $lineColor=(exists $confs->{linecolor}) ? $confs->{linecolor} : 'black';
-  $lineArrow=(exists $confs->{linearrow}) ? $confs->{linearrow} : 'none';
-  $nodeColor=(exists $confs->{nodecolor}) ? $confs->{nodecolor} : 'yellow';
-  $nodeOutlineColor=(exists $confs->{nodeoutlinecolor}) ? $confs->{nodeoutlinecolor} : 'black';
-  $hiddenNodeColor=(exists $confs->{hiddennodecolor}) ? $confs->{hiddennodecolor} : 'black';
-  # $activeNodeColor=(exists $confs->{activenodecolor}) ? $confs->{activenodecolor} : 'blue';
-  $currentNodeColor=(exists $confs->{currentnodecolor}) ? $confs->{currentnodecolor} : 'red';
-  $nearestNodeColor=(exists $confs->{nearestnodecolor}) ? $confs->{nearestnodecolor} : 'green';
-  $textColor=(exists $confs->{textcolor}) ? $confs->{textcolor} : 'black';
-  $textColorShadow=(exists $confs->{textcolorshadow}) ? $confs->{textcolorshadow} : 'darkgrey';
-  $textColorHilite=(exists $confs->{textcolorhilite}) ? $confs->{textcolorhilite} : 'darkgreen';
-  $textColorXHilite=(exists $confs->{textcolorxhilite}) ? $confs->{textcolorxhilite} : 'darkred';
-
-  foreach (0..9) {
-    $customColors[$_]=$confs->{"customcolor$_"} if $confs->{"customcolor$_"};
-  }
-
-  $canvasBalloonInitWait=(exists $confs->{hintwait}) ? $confs->{hintwait} : 1000;
-  $activeTextColor=(exists $confs->{activetextcolor}) ? $confs->{activetextcolor} : 'blue';
-  $boxColor=(exists $confs->{boxcolor}) ? $confs->{boxcolor} : 'wheat';
-  $currentBoxColor=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'white';
-  $hiddenBoxColor=(exists $confs->{hiddenboxcolor}) ? $confs->{hiddenboxcolor} : 'gray';
-  $backgroundColor=(exists $confs->{backgroundcolor}) ? $confs->{backgroundcolor} : undef;
-  $noColor=(exists $confs->{allowcustomcolors}) ? $confs->{allowcustomcolors} : 0;
-  $font=(exists $confs->{font}) ? $confs->{font} :
-    (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
-  $vLineFont=(exists $confs->{vlinefont}) ? $confs->{vlinefont} : $font;
-  $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
-    (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2');
-
-  $libDir=tilde_expand($confs->{libdir})
-    if (exists $confs->{libdir});
-  unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
-  if (exists $confs->{psfontfile}) {
-    $psFontFile=tilde_expand($confs->{psfontfile});
-    $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
-					   "$libDir/".$psFontFile);
-  } else {
-    $psFontFile="$libDir/csarialm.pfa";
-  }
-  $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
-  $sortAttrs=(exists $confs->{sortattributes}) ? $confs->{sortattributes} : 1;
-  $psFontName=(exists $confs->{psfontname}) ? $confs->{psfontname} : "Arial-Medium";
-  $psFontSize=(exists $confs->{psfontsize}) ? $confs->{psfontsize} : "12";
-  $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
-  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
-  $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '21c';
-  $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '297m';
-  $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
-  $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '1c';
-  $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
-  $psFile=(exists $confs->{psfile}) ? tilde_expand($confs->{psfile}) : 'tred.ps';
-  $drawBoxes=(exists $confs->{drawboxes}) ? $confs->{drawboxes} : 0;
-  $highlightAttributes=(exists $confs->{highlightattributes}) ? $confs->{highlightattributes} : 1;
-  $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
-  $showHidden=exists ($confs->{showhidden}) ? $confs->{showhidden} : 0;
-  $createMacroMenu=(exists $confs->{createmacromenu}) ? $confs->{createmacromenu} : 0;
-  $maxMenuLines=(exists $confs->{maxmenulines}) ? $confs->{maxmenulines} : 20;
-  $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : ($^O !~ /^MS/);
-  $Tk::strictMotif=(exists $confs->{strictmotif}) ? $confs->{strictmotif} : 0;
-  $printColors=(exists $confs->{printcolors}) ? $confs->{printcolors} : 0;
-  $cstsToFs=(exists $confs->{cststofs}) ? $confs->{cststofs} : undef;
-  $fsToCsts=(exists $confs->{fstocsts}) ? $confs->{fstocsts} : undef;
-  $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
-  $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip);
-  $keyboardDebug=(exists $confs->{keyboarddebug}) ? $confs->{keyboarddebug} : 0;
-  $hookDebug=(exists $confs->{hookdebug}) ? $confs->{hookdebug} : 0;
-  $macroDebug=(exists $confs->{macrodebug}) ? $confs->{macrodebug} : 0;
-  $tredDebug=(exists $confs->{treddebug}) ? $confs->{treddebug} : 0;
-  
-  $defaultTemplateMatchMethod=(exists $confs->{searchmethod}) ? $confs->{searchmethod} : 'Exhaustive regular expression';
-  $defaultMacroListOrder=(exists $confs->{macrolistorder}) ? $confs->{macrolistorder} : 'M';
-
-  $defCWidth=(exists $confs->{canvaswidth}) ? $confs->{canvaswidth} : '18c';
-  $defCHeight=(exists $confs->{canvasheight}) ? $confs->{canvasheight} : '12c';
-
-  $geometry=(exists $confs->{geometry}) ? $confs->{geometry} : undef;
-  $maxDisplayedValues=(exists $confs->{maxdisplayedvalues}) ? $confs->{maxdisplayedvalues} : 30;
-  $maxDisplayedAttributes=(exists $confs->{maxdisplayedattributes}) ? $confs->{maxdisplayedattributes} : 20;
-
-  $lastAction=(exists $confs->{lastaction}) ? $confs->{lastaction} : undef;
 
   foreach (0..9) {
     @recentFiles[$_]=$confs->{"recentfile$_"};
@@ -726,7 +553,7 @@ sub closeFile {
   $grp->{FSFile}=undef;
   $grp->{treeNo}=undef;
   delete $grp->{'currentNode'} if (exists $grp->{'currentNode'});
-  undef %{$grp->{pinfo}} if ($grp->{pinfo});
+  undef %{$grp->{'treeView'}->pinfo} if ($grp->{'treeView'}->pinfo);
   $valueLine="";
   unless ($no_update) {
     updateTitle($grp);
@@ -1045,31 +872,22 @@ sub HPrev { # same as Next but obey $showHidden
 
 sub getValueLine {
   my ($grp)=@_;
-  return unless $grp->{'FSFile'};
+  $valueLine=$grp->{'treeView'}->value_line($grp->{FSFile}, $grp->{treeNo});
+}
 
-  my $node=$grp->{root};
-  my @sent=();
-
-  #$valueLine="";
-
-  my $attr=$grp->{FSFile}->FS->sentord;
-  while ($node) {
-    push @sent,$node unless $node->{$attr}>=999; # this is TR specific
-    $node=Next($node);
+sub getNodes {
+  my ($grp)=@_;
+  if ($grp->{FSFile}) {
+    $grp->{root}=$grp->{FSFile}->treeList->[$tree_no];
+  } else {
+    $grp->{root}=undef;
   }
-  my $defs = join ",", values %{$grp->{FSFile}->FS->defs};
+  getValueLine($grp);
+  ($grp->{Nodes},$grp->{currentNode}) = $grp->{'treeView'}->nodes($grp->{FSFile},
+								$grp->{treeNo},
+								$grp->{currentNode},
+								$showHidden);
 
-  # this is a workaround for TR vs. ATS (ATS trees use only @N to sort
-  # @V to a sentence while on TR there is @W defined for this purpose)
-  $attr=$grp->{FSFile}->FS->order unless ($defs=~/W/);
-
-  @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
-
-  $attr=$grp->{FSFile}->FS->value;
-  $valueLine = 
-    ($grp->{treeNo}+1)."/".($grp->{FSFile}->lastTreeNo+1).": ".
-    encode(join(" ", map { $_->{$attr} } @sent));
-  undef @sent;
 }
 
 
@@ -1887,7 +1705,7 @@ sub printDialog {
   $d->destroy;
   undef $d;
   if ($result =~ /OK/) {
-    return ($printRange,$toFile,$toEPS,$fil,$snt,$com,$useType1Font);
+    return ($printRange,$toFile,$toEPS,$fil,$snt,$com,$useType1Font,$printColors);
   } else {
     return ();
   }
@@ -1896,185 +1714,30 @@ sub printDialog {
 
 sub printThis {
   my ($grp)=@_;
-  printTrees($grp,printDialog($grp));
+  return unless $grp->{FSFile};
+  my $canvas=$grp->{top}->Canvas();
+  my @print_opts=printDialog($grp);
+  $print_opts[0]=$grp->{treeNo}
+    if (!defined($print_opts[0]) or $print_opts[0] eq "");
+  TrEd::Print::print_trees($grp->{FSFile},
+			  $grp->{top},
+			  $canvas,
+			  @print_opts,
+			  $showHidden,
+			  $psFontFile,
+			  $type1font,
+			  $prtFmtWidth,
+			  $prtHMargin,
+			  $prtFmtHeight,
+			  $prtVMargin,
+			  $psFontName,
+			  $psFontSize,
+			  $maximizePrintSize,
+			  $psMedia,
+			  $treeViewOpts
+			 );
+  $canvas->destroy();
 }
-
-sub printTrees {
-  my ($grp,$printRange,$toFile,$toEPS,$fil,$snt,$com,$useType1Font)=@_;
-  my $i;
-  my $c=$grp->{'canvas'};
-  my $saveTreeNo=$grp->{treeNo};
-  my $savefont=$font;
-  my $pagewidth;
-  my $pageheight;
-  my $printMultiple;
-  my @printList=();
-  my %pso;
-
-  return if (not defined($printRange));
-
-  $backgroundColor=$grp->{'canvas'}->cget('-background');
-  {
-    local $outputenc='iso-88859-2';
-    local ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
-	   $currentNodeColor, $currentNodeWidth, $currentNodeHeight,
-	   $nearestNodeColor,
-	   $textColor , $textColorShadow, $textColorHilite,
-	   $textColorXHilite, $activeTextColor, $noColor)=
-	     ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
-	      $nodeColor, $nodeWidth, $currentNodeHeight,
-	      $nearestNodeColor,
-	      $textColor , $textColorShadow, $textColorHilite, 
-	      $textColorXHilite, $activeTextColor,$noColor);
-
-    unless ($printColors) {
-      $lineColor='black';
-      $nodeColor='white';
-      $currentBoxColor='white';
-      $boxColor='white';
-      $currentNodeColor = 'white';
-      $nearestNodeColor= 'white';
-      $textColor = 'black';
-      $textColorShadow = 'black';
-      $textColorHilite = 'black';
-      $textColorXHilite = 'black';
-      $activeTextColor='black';
-      $noColor=1;
-    }
-
-    local $backgroundColor='white';
-    local $lineWidth=1;
-    local $font=$savefont;
-    local $drawSentenceInfo=$snt;
-
-    my $pbeg;
-    my $pend;
-    foreach (split /,/,$printRange) {
-      print "Parsing $_\n";
-      if (/^\s*([0-9]+)\s*$/ and $1<=$grp->{FSFile}->lastTreeNo) {
-	print "Prepairing $1\n";
-	push @printList,$1;
-	next;
-      }
-      if (/^\s*([0-9]*)\s*-\s*([0-9]*)\s*$/) {
-	print "Prepairing $1-$2\n";
-	($pbeg,$pend)=($1,$2);
-	$pend=$grp->{FSFile}->lastTreeNo+1 if ($pend eq '');
-	$pbeg=1 if ($pbeg eq '');
-	$pend=min($grp->{FSFile}->lastTreeNo+1,$pend);
-	next unless ($pbeg<=$pend);
-	push @printList,$pbeg..$pend;
-      }
-    }
-    push @printList,$grp->{treeNo}+1 unless (@printList);
-
-    unless (open(F,"<$psFontFile")) {
-      print STDERR "Aborting: failed to open font file $psFontFile\n";
-      return 0;
-    }
-    if ($toFile) {
-      return 0 unless open(O,">".$fil);
-    } else {
-      $SIG{'PIPE'} = sub {};
-      return 0 unless open(O, "| ".$cmd);
-    }
-
-    $grp->{top}->Busy(-recurse => 1);
-
-    for (my $t=0;$t<=$#printList;$t++) {
-      print "Printing $printList[$t]\n";
-      $font=$type1font if ($useType1Font);      
-      $printList[$t]!=$grp->{treeNo}+1 ? gotoTree($grp,$printList[$t]-1) : redraw_tree($grp);
-      my $rotate = ( ! $toEPS
-	and $grp->{canvasHeight}<$grp->{canvasWidth});
-      print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
-      if (not $rotate) {
-	$pagewidth=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
-	$pageheight=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
-      } else {
-	$pagewidth=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
-	$pageheight=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
-      }
-
-      %pso = (-colormode => $printColors ? 'color' : 'gray',
-	      -x => 0, -y => 0,
-	      -fontmap => { $font => [$psFontName, $psFontSize] },
-	      -width => $grp->{canvasWidth},
-	      -height => $grp->{canvasHeight},
-	      -rotate => $rotate);
-
-      unless ($toEPS) {
-	if ($maximizePrintSize or $c->fpixels($grp->{canvasWidth})>$pagewidth or
-	    $c->fpixels($grp->{canvasHeight})>$pageheight) {
-	  print "Adjusting print size\n";
-	  if ($c->fpixels($grp->{canvasWidth})/$pagewidth*$pageheight>$c->fpixels($grp->{canvasHeight})) {
-	    $pso{-pagewidth} =
-	      $pagewidth;
-	    print "Scaling by tree width,\n";
-	    print "forcing box width to $pagewidth\n";
-	  } else {
-	    $pso{-pageheight} =
-	      $pageheight;
-	    print "Scaling by tree height,\n";
-	    print "forcing box height to $pageheight\n";
-	  }
-	}
-      }
- 
-      my @ps = split /\n/,$c->postscript(%pso);
-      $i=0;
-      if ($t>0) {
-	$i++  while ($i<=$#ps and $ps[$i]!~/^%%Page:/);
-	print O '%%Page: ',$t+1," ",$t+1,"\n";
-	my $now=localtime;
-	unless ($toEPS) {
-	  print O "gsave\n",
-	    "/Arial-Medium findfont 8 scalefont setfont\n",
-	      "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
-		"40 40 [\n",
-		  "(".
-		    "Printed by TrEd on $now.)\n",
-		    "] 13 -0 0 0 false DrawText\ngrestore\n";
-	}
-	$i++;
-      } else {
-	$i=0;
-	print "Lines:",$#ps,"\n";
-	unless ($toEPS) {
-	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BoundingBox:/);
-	  print O $ps[$i++],"\n";
-	  print O $psMedia,"\n";
-	  print O '%%Pages: ',$#printList+1,"\n";
-	  $i++;
-	}
-	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%%DocumentNeededResources: font Arial-Medium/);
-	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BeginProlog/);
-	print O $ps[$i++],"\n";
-	print O '%%BeginFont arialm',"\n";
-	print O <F>;
-	print O '%%EndFont',"\n\n";
-	$i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
-	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%IncludeResource: font Arial-Medium/);
-	$i++;
-      }
-
-      while ($i<=$#ps && $ps[$i]!~/^%%Trailer\w*$/) {
-	$ps[$i]=~s/ISOEncode //g;
-	print O $ps[$i++],"\n";
-      }
-    }
-    print O '%%EOF',"\n";
-    close (F);
-    close (O);
-  }
-
-  if ($grp->{treeNo} eq $saveTreeNo) { redraw_tree($grp); }
-  else { gotoTree($grp,$saveTreeNo); }
-  $grp->{top}->Unbusy();
-
-  return 1;
-}
-
 
 sub switchContext {
   my ($grp,$context)=@_;
@@ -2224,6 +1887,7 @@ sub prepareFont {
 sub prepareFonts {
   my $grp=shift;
   prepareFont($grp,\$font,'C_normal');
+  $treeViewOpts->{font}=$font;
   prepareFont($grp,\$vLineFont,'C_vline');
 }
 
@@ -2392,7 +2056,7 @@ sub startMain {
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label =>'Edit config file ...', -underline => 0,  -command => [\&editConfig,\%group]);
   $group{FileMenu}->command(-label =>'Reload config ...', -underline => 3, -command => [sub {
-							  readConfig();
+							  read_config();
 							  redraw_tree(shift);
 							},\%group]);
   $group{FileMenu}->separator();
@@ -2411,8 +2075,12 @@ sub startMain {
 	 [Button => 'Next Tree', -underline => 0, -command => [\&nextTree,\%group]],
 	 [Separator => ''],
 	 [Checkbutton => 'Draw boxes', -underline => 0,
-	   -variable => \$drawBoxes,
-	   -command  => [\&redraw_tree,\%group]],
+	   -variable => \$treeViewOpts->{drawBoxes},
+	   -command  => [sub {
+			   my ($grp)=@_;
+			   $grp->{'treeView'}->set_drawBoxes($treeViewOpts->{drawBoxes});
+			   redraw_tree($grp);
+			 },\%group]],
 	 [Checkbutton => 'Show Hidden Nodes', -underline => 0,
 	  -underline => 5,
 	  -variable => \$showHidden,
@@ -2420,8 +2088,12 @@ sub startMain {
 			      currentUnhiden(@_);
 			      redraw_tree(@_) },\%group]],
 	 [Checkbutton => 'Highlight Attributes', -underline => 1,
-	  -variable => \$highlightAttributes,
-	  -command  => [\&redraw_tree,\%group]],
+	  -variable => \$treeViewOpts->{highlightAttributes},
+	  -command  => [sub {
+			   my ($grp)=@_;
+			   $grp->{'treeView'}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
+			   redraw_tree($grp);
+			 },\%group]],
 	 [Checkbutton => 'Sort Attributes in Dialogs', -underline => 1,
 	  -variable => \$sortAttrs],
 	 [Separator => ''],
@@ -2556,7 +2228,8 @@ sub startMain {
 				       qw /-relief sunken
 			                   -borderwidth 2 -scrollbars se/, -scrollregion =>
 				       [qw/0c 0c 100c 100c/],
-				       $backgroundColor ? (-background => $backgroundColor) : ());
+				       $treeViewOpts->{backgroundColor} ?
+				       (-background => $treeViewOpts->{backgroundColor}) : ());
 
 
   $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -underline 0 -menuitems/ =>
@@ -2572,15 +2245,18 @@ sub startMain {
   $group{'valueLine'}=$group{'vLineFrame'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
 
-  $group{'canvas'}=$canvas;
+  # creating Canvas balloon
+  my $baloon=$group{top}->Balloon(-initwait => $canvasBalloonInitWait,
+				  -state => 'balloon',
+				  -background => '#fff3b0');
+  $baloon->Subwidget('message')->configure(-justify => 'left',-font => $font);
   addBindTags($canvas,'my');
 
-  # creating Canvas balloon
-  $group{CanvasBalloon}=$group{top}->Balloon(-initwait => $canvasBalloonInitWait,
-					     -state => 'balloon',
-					     -background => '#fff3b0');
-  $group{CanvasBalloon}->Subwidget('message')->configure(-justify => 'left',-font => $font);
-  
+  $group{'treeView'} = new TrEd::TreeView($canvas,'CanvasBalloon' => $baloon);
+#  TrEd::TreeView::apply_options($group{'treeView'},$treeViewOpts);
+  $group{'treeView'}->apply_options($treeViewOpts);
+  print $group{'treeView'}->{font},"\n";
+
   print STDERR "Creating buttons.\n" if $tredDebug;
 
   $group{'nextButton'}=$group{'frame'}->Button(-text => "Next",
@@ -2673,7 +2349,7 @@ sub startMain {
 					   my ($grp,$template)=@_;
 					   findNodeDialog($grp,$template)
 					     if ($grp->{currentNode});
-					 },\%group,\%searchTemplate])->pack(-side=>'left',
+o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 									    -padx=>'1');
   $group{Balloon}->attach($group{findButton},
 		 -balloonmsg => "Find node ...");
@@ -2739,8 +2415,8 @@ sub startMain {
 			    -command => [sub { viewSentencesDialog(@_) },\%group])
       ->pack(qw/-side right -padx 1 -anchor n/);
   $group{'vLineFrame'}->pack(qw/-fill x -expand no/);
-  $group{'canvas'}->pack(qw/-expand yes -fill both/);
-  addBindTags($group{'canvas'},'my');
+  $group{'treeView'}->canvas->pack(qw/-expand yes -fill both/);
+  addBindTags($group{'treeView'},'my');
   #  $group{'contextLed'}->pack(-side => 'bottom');
   
   print STDERR "Binding keystrokes...\n" if $tredDebug;
@@ -2829,42 +2505,42 @@ sub startMain {
 					 },\%group]);
 
   ## Canvas bindings  
-  $group{'canvas'}->bind('text', '<Any-Enter>' => [sub{
+  $group{'treeView'}->canvas->bind('text', '<Any-Enter>' => [sub{
 			       my $c=shift;
 			       my $grp=shift;
 			       my $t=$c->find('withtag','current');
-			       my $node=$grp->{'pinfo'}{$t};
+			       my $node=$grp->{'treeView'}->pinfo->{$t};
 			       $node->{_tkSaveColor_}=$c->itemcget($t,'-fill');
 			       $c->itemconfigure($t,
 						 -fill => $activeTextColor);
 
 			     }, \%group]);
 
-  $group{'canvas'}->bind('text',
+  $group{'treeView'}->canvas->bind('text',
 			 '<Any-Leave>'
 			 => [sub{
 			       my $c=shift;
 			       my $grp=shift;
 			       my $t=$c->find('withtag','current');
-			       my $node=$grp->{'pinfo'}{$t};
+			       my $node=$grp->{'treeView'}->pinfo->{$t};
 			       $c->itemconfigure('current',
 						 -fill => $node->{_tkSaveColor_});
 			     }, \%group]);
 
-  $group{'canvas'}->bind('point', '<1>' => [sub {node_down(@_) },\%group,0]);
-  $group{'canvas'}->bind('point', '<ButtonRelease-1>' => [sub {node_release(@_)},\%group,0]);
-  $group{'canvas'}->bind('point', '<B1-Motion>' => [sub {node_move(@_)},\%group]);
-  $group{'canvas'}->bind('point','<3>' => [sub {node_down(@_)},\%group,1]);
-  $group{'canvas'}->bind('point', '<ButtonRelease-3>' => [sub {node_release(@_)},\%group]);
-  $group{'canvas'}->bind('point','<B3-Motion>' => [sub {node_move(@_)},\%group,1]);
-  $group{'canvas'}->CanvasBind('<2>' => [sub {follow_mouse_press(@_)},\%group]);
-  $group{'canvas'}->CanvasBind('<B2-Motion>' => [sub {follow_mouse(@_)},\%group]);
-  $group{'canvas'}->bind('point', '<Double-1>' => [sub { editAttrs(@_); Tk->break; },\%group]);
-  $group{'canvas'}->bind('text', '<1>' => [sub {node_down(@_) },\%group,0]);
-  $group{'canvas'}->bind('text', '<Double-1>' => [sub { editAttr(@_); Tk->break; },\%group]);
-  $group{'canvas'}->bind('textbg', '<Double-1>' => [sub { editAttr(@_); Tk->break; },\%group]);
+  $group{'treeView'}->canvas->bind('point', '<1>' => [sub {node_down(@_) },\%group,0]);
+  $group{'treeView'}->canvas->bind('point', '<ButtonRelease-1>' => [sub {node_release(@_)},\%group,0]);
+  $group{'treeView'}->canvas->bind('point', '<B1-Motion>' => [sub {node_move(@_)},\%group]);
+  $group{'treeView'}->canvas->bind('point','<3>' => [sub {node_down(@_)},\%group,1]);
+  $group{'treeView'}->canvas->bind('point', '<ButtonRelease-3>' => [sub {node_release(@_)},\%group]);
+  $group{'treeView'}->canvas->bind('point','<B3-Motion>' => [sub {node_move(@_)},\%group,1]);
+  $group{'treeView'}->canvas->CanvasBind('<2>' => [sub {follow_mouse_press(@_)},\%group]);
+  $group{'treeView'}->canvas->CanvasBind('<B2-Motion>' => [sub {follow_mouse(@_)},\%group]);
+  $group{'treeView'}->canvas->bind('point', '<Double-1>' => [sub { editAttrs(@_); Tk->break; },\%group]);
+  $group{'treeView'}->canvas->bind('text', '<1>' => [sub {node_down(@_) },\%group,0]);
+  $group{'treeView'}->canvas->bind('text', '<Double-1>' => [sub { editAttr(@_); Tk->break; },\%group]);
+  $group{'treeView'}->canvas->bind('textbg', '<Double-1>' => [sub { editAttr(@_); Tk->break; },\%group]);
 
-  $group{'canvas'}->focus;
+  $group{'treeView'}->focus;
 
   $group{'printToFile'}=0;
   $group{'printCommand'}='lpr';
@@ -2875,7 +2551,7 @@ sub startMain {
 		      [ sub {
 			  shift;
 			  my $grp=shift;
-			  my $canvas=$grp->{'canvas'}->Subwidget('scrolled');			  
+			  my $canvas=$grp->{'treeView'}->canvas->Subwidget('scrolled');			  
 			  $defCWidth=$canvas->width();
 			  $defCHeight=$canvas->height();
 			  print "$defCHeight x $defCWidth\n";
@@ -3172,11 +2848,12 @@ sub editConfig {
 	   -command => [sub {
 			  my ($grp,$d,$t)=@_;
 			  saveConfig($grp,$t->get("0.0","end"));
-			  applyConfig(split(/\n/,$t->get("0.0","end")));
+			  apply_config(split(/\n/,$t->get("0.0","end")));
 			  addToRecent($grp);
 			  prepareFonts($grp);
 			  updateTitle($grp);
 			  $grp->{valueLine}->configure(-font => $vLineFont);
+			  $grp->{treeView}->apply_options($treeViewOpts);
 			  redraw_tree($grp);
 #			  $d->destroy;
 			},$grp,$d,$t])
@@ -3184,11 +2861,12 @@ sub editConfig {
   $bottom->Button(-text => "  Apply  ",
 		  -command => [sub {
 				 my $grp=shift;
-				 applyConfig(split(/\n/,shift->get("0.0","end")));
+				 apply_config(split(/\n/,shift->get("0.0","end")));
 				 addToRecent($grp);
 				 prepareFonts($grp);
 				 updateTitle($grp);
 				 $grp->{valueLine}->configure(-font => $vLineFont);
+				 $grp->{treeView}->apply_options($treeViewOpts);
 				 redraw_tree($grp);
 			       },$grp,$t])
     ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
@@ -3452,7 +3130,6 @@ sub editAttrsDialog {
 		       -scrollbars => 'e');
 
   sub focusxAtrEditDn {
-    print STDERR "TAB dn\n";
     my ($w,$i,$e,$f,$rows,$cnt)=@_;
     if ($i+1>$#atord) {
       $w->focusNext if ($cnt);
@@ -3465,7 +3142,6 @@ sub editAttrsDialog {
     Tk->break;
   };
   sub focusxAtrEditUp {
-    print STDERR "TAB up\n";
     my ($w,$i,$e,$f,$cnt)=@_;
     if ($i<=0) {
       $w->focusPrev if ($cnt);
@@ -3478,9 +3154,8 @@ sub editAttrsDialog {
     Tk->break;
   };
 
-  $f->bind($f,'<Tab>',[sub { print "TAB\n";
+  $f->bind($f,'<Tab>',[sub {
 			     if ($e{$atord[0]}) {
-			       print  "moving TAB\n";
 			       $e{$atord[0]}->focus;
 			       $f->moveto(0);
 			     } else {
@@ -4076,7 +3751,7 @@ sub findPrevTemplated {
 
 sub editAttrs {
   my ($w,$grp)=@_;
-  my $node=$grp->{'pinfo'}{$w->find('withtag','current')};
+  my $node=$grp->{'treeView'}->pinfo->{$w->find('withtag','current')};
   editAttrsDialog($grp,$node);
 }
 
@@ -4087,7 +3762,7 @@ sub editAttr {
   my $newvalue;
 
   my $t=$w->find('withtag','current');
-  my $node=$grp->{'pinfo'}{$t};
+  my $node=$grp->{'treeView'}->pinfo->{$t};
   my $d;
   setCurrent($grp,$node);
   $attr= (grep {$$node{$_} eq $t} keys %$node)[0];
@@ -4171,254 +3846,32 @@ sub editAttr {
 
 
 #############################################
-# redraw_tree etc.
+# redraw tree etc.
 #############################################
-
-sub whichTextColor {
-  my ($grp,$arg)=@_;
-  return undef unless $grp->{'FSFile'};
-
-  return $textColor unless ($highlightAttributes);
-
-  if ($grp->{FSFile}->FS->color($arg) eq 'Shadow') {
-    return $textColorShadow;
-  } elsif ($grp->{FSFile}->FS->color($arg) eq 'Hilite') {
-    return $textColorHilite;
-  } elsif ($grp->{FSFile}->FS->color($arg) eq 'XHilite') {
-    return $textColorXHilite;
-  } else {
-    return $textColor;
-  }
-}
 
 sub nodeOptions {
   my ($grp,$node)=@_;
-  return (-outline => $nodeOutlineColor,
-	  -fill =>
-	  ($grp->{'currentNode'} eq $node) ?
-	  $currentNodeColor :
-	  (isShown($grp,$node,0) ?
-	   $nodeColor :
-	   $hiddenNodeColor)
-	 );
+  return $grp->{treeView}->node_options($node,$grp->{FSFile}->FS,$grp->{currentNode});
 }
 
 sub nodeBoxOptions {
   my ($grp,$node)=@_;
-  return (-fill =>
-	  ($grp->{'currentNode'} eq $node) ?
-	  $currentBoxColor :
-	  (isShown($grp,$node,0) ?
-	   $boxColor :
-	   $hiddenBoxColor)
-	 );
+  return $grp->{treeView}->node_box_options($node,$grp->{FSFile}->FS,$grp->{currentNode});
 }
-
-
-sub nodeCoords {
-  my ($grp,$node)=@_;
-  my ($nw,$nh)=
-    (($grp->{'currentNode'} eq $node) ? $currentNodeWidth : $nodeWidth,
-     ($grp->{'currentNode'} eq $node) ? $currentNodeHeight : $nodeHeight);
-
-  return ($node->{"_tkXPOS_"}+($nodeWidth-$nw)/2,
-	  $node->{"_tkYPOS_"}+($nodeHeight-$nh)/2,
-	  $node->{"_tkXPOS_"}+$nh,
-	  $node->{"_tkYPOS_"}+$nw);
-}
-
-sub wrappedLines {
-  my ($grp,$font,$text,$width)=@_;
-  use integer;
-  return $grp->{'canvas'}->fontMeasure($font,$text)/$width + 1;
-}
-
 
 sub redraw_tree {
   my ($grp)=@_;
-  my $node;
-  my $parent;
-
   return if $insideEval;
-  my @displayAttrs;
-  @displayAttrs=$grp->{FSFile}->patterns() if (ref($grp->{FSFile}));
   saveFileStateUpdate($grp);
-  foreach $node (@{$grp->{Nodes}}) {
-    foreach (keys(%$node)) {
-      delete $node->{$_} if (/^_tk(?:X|Text)/);
-    }
-  }
-  recalculate_positions($grp);
-
-  $grp->{'canvas'}->configure(-scrollregion =>['0c', '0c', $grp->{canvasWidth}, $grp->{canvasHeight}]);
-  $grp->{'canvas'}->configure(-background => $backgroundColor) if (defined $backgroundColor);
-  $grp->{'canvas'}->addtag('delete','all');
-  $grp->{'canvas'}->delete('delete');
-
-  $grp->{'pinfo'}={lastX => 0, lastY => 0};
-
-  if ($drawSentenceInfo) {
-    return unless $grp->{'FSFile'};
-    my $valtext=$valueLine;
-    my $currentfile=filename($grp->{FSFile}->filename);
-    my $fontHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
-    $valtext=~s/ +([.,!:;])|(\() |(\)) /\1/g;
-
-    if ($valtext=~/^(.*)\/([^:]*):\s*(.*)/) {
-      my $ftext="File: $currentfile, tree $1 of $2";
-      my $vtext=$3;
-      $grp->{'canvas'}->createText(0,$grp->{canvasHeight},-font => $font,-text => $ftext,
-				   -justify => left, -anchor => nw);
-      $grp->{canvasHeight}+=$fontHeight;
-      $grp->{canvasWidth}=max($grp->{canvasWidth},$grp->{'canvas'}->fontMeasure($font,$ftext));
-      $grp->{'canvas'}->createLine(0,$grp->{canvasHeight},
-				   $grp->{'canvas'}->fontMeasure($font,$ftext),
-				   $grp->{canvasHeight});
-      $grp->{canvasHeight}+=$fontHeight;
-      $grp->{'canvas'}->createText(0,$grp->{canvasHeight},-font => $font,-text => $vtext,
-				   -justify => left, -anchor => nw,
-				   -width => $grp->{canvasWidth});
-      $grp->{canvasHeight}+=$fontHeight*(wrappedLines($grp,$font,$vtext,$grp->{canvasWidth})+1);
-#      $grp->{'canvas'}->createLine(0,$grp->{canvasHeight},$grp->{canvasWidth},$grp->{canvasHeight});
-
-    }
-  }
-
-  foreach $node (@{$grp->{Nodes}}) {
-    $parent=$node->parent;
-    use integer;
-    if ($parent) {
-      $$node{"_tkLine_"}=$grp->{'canvas'}->createLine($$node{"_tkXPOS_"}+$nodeWidth/2,
-					     $$node{"_tkYPOS_"}+$nodeHeight/2,
-					     $$parent{"_tkXPOS_"}+$nodeWidth/2,
-					     $$parent{"_tkYPOS_"}+$nodeHeight/2,
-						      '-arrow' =>$lineArrow,
-						     '-width' => $lineWidth,
-						     '-fill' => $lineColor);
-      $grp->{'pinfo'}{$$node{"_tkLine_"}}=$node;
-    }
-  }
-
-  my $lineHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
-  ## The Nodes ##
-  foreach $node (@{$grp->{Nodes}}) {
-    $$node{"_tkOval_"}=$grp->{'canvas'}->createOval(nodeCoords($grp,$node),
-						    nodeOptions($grp,$node));
-    $grp->{'canvas'}->addtag('point', 'withtag', $$node{"_tkOval_"});
-
-
-    ## Boxes around attributes
-    if ($drawBoxes) {
-      ## get maximum width stored here by recalculate_positions
-      my $textWidth=$node->{'_tkXWidth'};
-      $$node{"_tkTextBox_"}=
-	$grp->{'canvas'}->
-	  createRectangle($$node{"_tkXPOS_"}-$xmargin,
-			  $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip-$ymargin,
-			  $$node{"_tkXPOS_"}+
-			  $textWidth+$xmargin,
-			  $$node{"_tkYPOS_"}+
-			  ($#displayAttrs+1)*$lineHeight+
-			  $nodeHeight+$nodeYSkip+$ymargin,
-			  nodeBoxOptions($grp,$node));
-    }
-
-    ## Texts of attributes
-    for (my $i=0;$i<=$#displayAttrs;$i++) {
-
-      ## Clear background
-      $$node{"_tkTextBg".$i."_"}=
-	$grp->{'canvas'}->
-	  createRectangle($$node{"_tkXPOS_"},
-			  $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+$i*$lineHeight,
-			  $$node{"_tkXPOS_"}+$node->{"_tkX_$i"}+1,
-			  #$grp->{'canvas'}->fontMeasure($font,PrepareText($grp,$node,$i))+1,
-			  $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+($i+1)*$lineHeight,
-			  -fill => $grp->{'canvas'}->cget('-background'), -outline => undef)
-	  unless ($drawBoxes);
-      $grp->{'canvas'}->addtag('textbg', 'withtag', $$node{"_tkTextBg".$i."_"});
-      $grp->{'pinfo'}{$$node{"_tkTextBg".$i."_"}}=$node;
-
-      ## Draw attribute
-      ## Custom version (the tredish)
-      ##
-      ## in this case we use the following syntax:
-      ## #{color} changes color of all the following text
-      ## ${attribute} is expanded to the value of attribute (and the
-      ##              text is made active, so that modification is possible)
-      ## <?code?>     expands to the return value of the imbedded perl-code
-      ##              ($${attribute} may be used inside the code and is expanded
-      ##               to 'value'. \${attribute} is not interpolated before <?code?>,
-      ##               but may be used in retur value and is interpolated later)
-      my $msg=encode(InterpolateTextField($node,$displayAttrs[$i]));
-      $msg=~s/([\$\#]{[^}]+})/\#\#\#\1\#\#\#/g;
-      my $xskip=0;
-      my $txt;
-      my $at_text;
-      my $j=0;
-      my $color=undef;
-      foreach (split(/\#\#\#/,$msg)) {
-	if (/^\${([^}]+)}$/) {
-	  $j++;
-	  $at_text=PrepareTextField($node,$1);
-	  $txt=$grp->{'canvas'}->
-	    createText($$node{"_tkXPOS_"}+$xskip,
-		       $$node{"_tkYPOS_"}+
-		       $nodeHeight+$nodeYSkip+$i*$lineHeight,
-		       -anchor => 'nw',
-		       -text => $at_text,
-		       -fill => defined($color) ? $color : whichTextColor($grp,$1),
-		       -font => $font);
-	  $xskip+=$grp->{'canvas'}->fontMeasure($font,$at_text);
-	  $grp->{'canvas'}->addtag('text', 'withtag', $txt);
-	  $grp->{'pinfo'}{$txt}=$node;
-	  $$node{"_tkText[$1][$i][$j]_"}=$txt;
-	} elsif (/^\#{([^}]+)}$/) {
-	  unless ($noColor) {
-	    $color=$1;
-	    $color=undef if ($color eq 'default');
-	    $color=$customColors[$1] if ($color=~/^custom([0-9])$/);
-	  }
-	} else {
-	  if ($_ ne "") {
-	    $txt=$grp->{'canvas'}->
-	      createText($$node{"_tkXPOS_"}+$xskip,
-			 $$node{"_tkYPOS_"}+
-			 $nodeHeight+$nodeYSkip+$i*$lineHeight,
-			 -anchor => 'nw',
-			 -text => $_,
-			 -fill => defined($color) ? $color : $textColor,
-			 -font => $font);
-	    $xskip+=$grp->{'canvas'}->fontMeasure($font,$_);
-	  }
-	}
-      }
-    }
-
-    $grp->{'pinfo'}{$$node{"_tkOval_"}}=$node;
-    $grp->{'pinfo'}{$$node{"_tkTextBox_"}}=$node if exists $$node{"_tkTextBox_"};
-  }
-
-  ## Canvas Custom Balloons ##
-  if ($grp->{FSFile}) {
-    my $hint=$grp->{FSFile}->hint;
-    if ($grp->{CanvasBalloon}) {
-      $grp->{CanvasBalloon}->
-	attach($grp->{'canvas'}->Subwidget('scrolled'),
-	       -balloonposition => 'mouse',
-	       -msg => { map 
-			 {
-			   if (defined($_)) {
-			     my $msg=InterpolateTextField($grp->{'pinfo'}{$_},$hint);
-			     $msg=~s/\${([^}]+)}/$grp->{'pinfo'}{$_}->{$1}/eg;
-			     $_ => encode($msg);
-			 }
-			 } $grp->{'canvas'}->find('withtag','point')
-		       });
-    }
-  }
+  return
+    $grp->{'treeView'}->
+      redraw(
+	     $grp->{FSFile},
+	     $grp->{currentNode},
+	     $grp->{Nodes},
+	     $valueLine
+	    );
 }
-
 
 sub follow_mouse {
   my ($w, $grp) = @_;
@@ -4432,10 +3885,10 @@ sub follow_mouse_press {
   my $e = $w->XEvent;
   my($x, $y) = ($w->fpixels($e->x), $w->fpixels($e->y));
 
-  $grp->{'pinfo'}{'lastX'}=$x;
-  $grp->{'pinfo'}{'lastY'}=$y;
-  $grp->{'pinfo'}{'lastCanvasX'}=$w->canvasx($x);
-  $grp->{'pinfo'}{'lastCanvasY'}=$w->canvasy($y);
+  $grp->{'treeView'}->pinfo->{'lastX'}=$x;
+  $grp->{'treeView'}->pinfo->{'lastY'}=$y;
+  $grp->{'treeView'}->pinfo->{'lastCanvasX'}=$w->canvasx($x);
+  $grp->{'treeView'}->pinfo->{'lastCanvasY'}=$w->canvasy($y);
 }
 
 
@@ -4446,128 +3899,64 @@ sub scrollCanvasToXY {
   my ($ay,$by)=$w->yview;
   my $canvasX;
 
-  my $sizeX=$w->fpixels($grp->{'canvasWidth'})*($bx-$ax);
-  my $shiftX=($x-$grp->{'pinfo'}{'lastX'});
+  my $sizeX=$w->fpixels($grp->{'treeView'}->{'canvasWidth'})*($bx-$ax);
+  my $shiftX=($x-$grp->{'treeView'}->pinfo->{'lastX'});
   if ($shiftX>0) {
-    if ($grp->{'pinfo'}{'lastX'} == $sizeX) {
+    if ($grp->{'treeView'}->pinfo->{'lastX'} == $sizeX) {
       $shiftX=0;
     } else {
-      $shiftX/=$sizeX-$grp->{'pinfo'}{'lastX'}; # a fraction of our right move in window
+      $shiftX/=$sizeX-$grp->{'treeView'}->pinfo->{'lastX'}; # a fraction of our right move in window
     }
     $canvasX=$shiftX*
-      ($w->fpixels($grp->{'canvasWidth'})-
-	$grp->{'pinfo'}{'lastCanvasX'}); # this is where we should get on the canvas
+      ($w->fpixels($grp->{'treeView'}->{'canvasWidth'})-
+	$grp->{'treeView'}->pinfo->{'lastCanvasX'}); # this is where we should get on the canvas
   }
   else {
-    if ($grp->{'pinfo'}{'lastX'} == 0) {
+    if ($grp->{'treeView'}->pinfo->{'lastX'} == 0) {
       $shiftX=0;
     } else{
-      $shiftX/=$grp->{'pinfo'}{'lastX'}
+      $shiftX/=$grp->{'treeView'}->pinfo->{'lastX'}
     }
     $canvasX=$shiftX*
-	$grp->{'pinfo'}{'lastCanvasX'}; # this is where we should get on the canvas
+	$grp->{'treeView'}->pinfo->{'lastCanvasX'}; # this is where we should get on the canvas
   }
-  $canvasX+=$grp->{'pinfo'}{'lastCanvasX'};
+  $canvasX+=$grp->{'treeView'}->pinfo->{'lastCanvasX'};
   $w->xview(moveto =>
 	    max(0,min(1,($canvasX-$x+1+$w->fpixels($w->cget('-borderwidth')))
-		      /$grp->{'canvasWidth'})));
+		      /$grp->{'treeView'}->{'canvasWidth'})));
 
   # the same for Y
-  my $sizeY=$w->fpixels($grp->{'canvasHeight'})*($by-$ay);
-  my $shiftY=($y-$grp->{'pinfo'}{'lastY'});
+  my $sizeY=$w->fpixels($grp->{'treeView'}->{'canvasHeight'})*($by-$ay);
+  my $shiftY=($y-$grp->{'treeView'}->pinfo->{'lastY'});
   if ($shiftY>0) {
-    if ($grp->{'pinfo'}{'lastY'} == $sizeY) {
+    if ($grp->{'treeView'}->pinfo->{'lastY'} == $sizeY) {
       $shiftY=0;
     } else {
-      $shiftY/=$sizeY-$grp->{'pinfo'}{'lastY'}; # a fraction of our right move in window
+      $shiftY/=$sizeY-$grp->{'treeView'}->pinfo->{'lastY'}; # a fraction of our right move in window
     }
     $canvasY=$shiftY*
-      ($w->fpixels($grp->{'canvasHeight'})-
-	$grp->{'pinfo'}{'lastCanvasY'}); # this is where we should get on the canvas
+      ($w->fpixels($grp->{'treeView'}->{'canvasHeight'})-
+	$grp->{'treeView'}->pinfo->{'lastCanvasY'}); # this is where we should get on the canvas
   }
   else {
-    if ($grp->{'pinfo'}{'lastY'}==0) {
+    if ($grp->{'treeView'}->pinfo->{'lastY'}==0) {
       $shiftY=0;
     } else {
-      $shiftY/=$grp->{'pinfo'}{'lastY'};
+      $shiftY/=$grp->{'treeView'}->pinfo->{'lastY'};
     }
     $canvasY=$shiftY*
-	$grp->{'pinfo'}{'lastCanvasY'}; # this is where we should get on the canvas
+	$grp->{'treeView'}->pinfo->{'lastCanvasY'}; # this is where we should get on the canvas
   }
-  $canvasY+=$grp->{'pinfo'}{'lastCanvasY'};
+  $canvasY+=$grp->{'treeView'}->pinfo->{'lastCanvasY'};
   $w->yview(moveto =>
 	    max(0,min(1,($canvasY-$y+1+$w->fpixels($w->cget('-borderwidth')))
-		      /$grp->{'canvasHeight'})));
+		      /$grp->{'treeView'}->{'canvasHeight'})));
 
 
-  $grp->{'pinfo'}{'lastX'}=$x;
-  $grp->{'pinfo'}{'lastY'}=$y;
-  $grp->{'pinfo'}{'lastCanvasX'}=$w->canvasx($x);
-  $grp->{'pinfo'}{'lastCanvasY'}=$w->canvasy($y);
-}
-
-sub recalculate_positions {
-  my ($grp)=@_;
-  my $xpos=$baseXPos;
-  my $ypos;
-  my $minxpos; # used temporarily to place a node far enough from its left neighbour
-  my $maxypos; # has different meaning from $minxpos; this one's used for canvasHeight
-  my $canvasWidth=0;
-  my $node;
-  my $pattern_count=0;
-  $pattern_count=$grp->{FSFile}->pattern_count if (ref($grp->{FSFile}));
-
-  my $fontHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
-
-  #print "Calculating positions ...\n";
-  my %prevnode=();
-  my $parent;
-  $maxypos=0;
-  foreach $node (@{$grp->{Nodes}}) {
-    $ypos=0;
-    $parent=$node->parent;
-    while ($parent) {
-      #print "!\n";
-      $ypos++;
-      $parent=$parent->parent;
-    }
-    $maxypos=max($maxypos,$ypos);
-    $$node{"_tkYPOS_"}=$baseYPos+$ypos*(2*($nodeYSkip+$ymargin)+
-					$pattern_count*$fontHeight+$nodeHeight);
-
-    #print "got y position for ",$$node{"form"},"\n";
-
-
-    my $textWidth=0;
-    my $m;
-
-    for (my $i=0;$i<$pattern_count;$i++) {
-      $m=$grp->{'canvas'}->fontMeasure($font,PrepareText($grp,$node,$i));
-      $$node{"_tkX_$i"}=$m;
-      $textWidth=$m if $m>$textWidth;
-    }
-    $$node{"_tkXWidth_"}=$textWidth;
-    $minxpos=0;
-    if ($prevnode{$ypos}) {
-      $minxpos=$prevnode{$ypos}{"_tkXPOS_"}+$prevnode{$ypos}{"_tkXWidth_"}+
-	$nodeXSkip+$nodeWidth+2*$xmargin;
-    }
-    $xpos=max($xpos,$minxpos);
-    $$node{"_tkXPOS_"}=$xpos;
-    $xpos+=$nodeXSkip+$nodeWidth;
-    $canvasWidth=
-      max($canvasWidth,
-	  $$node{"_tkXPOS_"}+$$node{"_tkXWidth_"}+$baseXPos+$nodeWidth+2*$xmargin+$nodeXSkip);
-    #print "got x position\n";
-
-    $prevnode{$ypos}=$node;
-    #print "$ypos ... ",$$node{"_tkYPOS_"},"\n";
-  }
-  #print "Width: $canvasWidth\n";
-  $grp->{'canvasWidth'}=$canvasWidth;
-  $grp->{'canvasHeight'}=$baseYPos+
-    ($maxypos+1)*(2*($nodeYSkip+$ymargin)+$pattern_count*$fontHeight+$nodeHeight);
-  #print "Done.\n";
+  $grp->{'treeView'}->pinfo->{'lastX'}=$x;
+  $grp->{'treeView'}->pinfo->{'lastY'}=$y;
+  $grp->{'treeView'}->pinfo->{'lastCanvasX'}=$w->canvasx($x);
+  $grp->{'treeView'}->pinfo->{'lastCanvasY'}=$w->canvasy($y);
 }
 
 sub currentUnhiden {
@@ -4653,25 +4042,26 @@ sub setCurrent {
   my $n;
   $grp->{'currentNode'}=$node;
   foreach $n ($prev,$node) { 
-    $grp->{'canvas'}->itemconfigure($n->{'_tkOval_'}, nodeOptions($grp,$n));
-    $grp->{'canvas'}->itemconfigure($n->{'_tkTextBox_'},nodeBoxOptions($grp,$n))
-      if ($drawBoxes and $n->{'_tkTextBox_'});
-    $grp->{'canvas'}->coords($n->{'_tkOval_'}, nodeCoords($grp,$n));
+    $grp->{'treeView'}->canvas->itemconfigure($n->{'_tkOval_'}, nodeOptions($grp,$n));
+    $grp->{'treeView'}->canvas->itemconfigure($n->{'_tkTextBox_'},nodeBoxOptions($grp,$n))
+      if ($grp->{'treeView'}->get_drawBoxes and exists($n->{'_tkTextBox_'}));
+    $grp->{'treeView'}->canvas->coords($n->{'_tkOval_'},
+				       $grp->{'treeView'}->node_coords($n,$grp->{currentNode}));
   }
 }
 
 sub centerToXY {
   ($grp, $x, $y) = @_;
-  ($ax,$bx)=$grp->{'canvas'}->xview;
-  ($ay,$by)=$grp->{'canvas'}->yview;
+  ($ax,$bx)=$grp->{'treeView'}->canvas->xview;
+  ($ay,$by)=$grp->{'treeView'}->canvas->yview;
 
   $shiftx=($bx-$ax)/2;
   $shifty=($by-$ay)/2;
 
-  $grp->{'canvas'}->xview(moveto => min(max(0,$x/$grp->{'canvasWidth'}-$shiftx),1))
-    if ($grp->{'canvasWidth'}-$shiftx);
-  $grp->{'canvas'}->yview(moveto => min(max(0,$y/$grp->{'canvasHeight'}-$shifty),1))
-    if ($y/$grp->{'canvasHeight'}-$shifty);
+  $grp->{'treeView'}->canvas->xview(moveto => min(max(0,$x/$grp->{'treeView'}->{'canvasWidth'}-$shiftx),1))
+    if ($grp->{'treeView'}->{'canvasWidth'}-$shiftx);
+  $grp->{'treeView'}->canvas->yview(moveto => min(max(0,$y/$grp->{'treeView'}->{'canvasHeight'}-$shifty),1))
+    if ($y/$grp->{'treeView'}->{'canvasHeight'}-$shifty);
 }
 
 sub centerTo {
@@ -4883,16 +4273,16 @@ sub node_down {
 
     my $e = $w->XEvent;
     my($x, $y) = ($e->x, $e->y);
-    my $node=$grp->{'pinfo'}{$w->find('withtag','current')};
+    my $node=$grp->{'treeView'}->pinfo->{$w->find('withtag','current')};
 
     setCurrent($grp,$node);
     $w->dtag('selected');
     $w->addtag('selected', 'withtag', 'current');
     $w->raise('current');
-    $grp->{'pinfo'}{'lastX'} = $x;
-    $grp->{'pinfo'}{'lastY'} = $y;
-    $grp->{'pinfo'}{'lastCanvasX'}=$w->canvasx($x);
-    $grp->{'pinfo'}{'lastCanvasY'}=$w->canvasy($y);
+    $grp->{'treeView'}->pinfo->{'lastX'} = $x;
+    $grp->{'treeView'}->pinfo->{'lastY'} = $y;
+    $grp->{'treeView'}->pinfo->{'lastCanvasX'}=$w->canvasx($x);
+    $grp->{'treeView'}->pinfo->{'lastCanvasY'}=$w->canvasy($y);
 } # end plot_down
 
 sub node_move {
@@ -4901,30 +4291,31 @@ sub node_move {
 
     my $e = $w->XEvent;
     my($x, $y) = ($e->x, $e->y);
-    my $node=$grp->{'pinfo'}->{$w->find('withtag','selected')};
+    my $node=$grp->{'treeView'}->pinfo->{$w->find('withtag','selected')};
 
-    my $lcx=$grp->{'pinfo'}{'lastCanvasX'};
-    my $lcy=$grp->{'pinfo'}{'lastCanvasY'};
+    my $lcx=$grp->{'treeView'}->pinfo->{'lastCanvasX'};
+    my $lcy=$grp->{'treeView'}->pinfo->{'lastCanvasY'};
     my $ncolor,$ocolor;
 
     if ($scroll) {
       $ncolor=$w->itemcget('selected','-fill');
       $ocolor=$w->itemcget('selected','-outline');
       $w->itemconfigure('selected',
-			-fill => $grp->{'canvas'}->cget('-background'),
-			-outline => $grp->{'canvas'}->cget('-background')
+			-fill => $grp->{'treeView'}->canvas->cget('-background'),
+			-outline => $grp->{'treeView'}->canvas->cget('-background')
 		       );
       scrollCanvasToXY($w, $grp, $x, $y);
     } else {
-      $grp->{'pinfo'}{'lastCanvasX'}=$w->canvasx($x);
-      $grp->{'pinfo'}{'lastCanvasY'}=$w->canvasy($y);
+      $grp->{'treeView'}->pinfo->{'lastCanvasX'}=$w->canvasx($x);
+      $grp->{'treeView'}->pinfo->{'lastCanvasY'}=$w->canvasy($y);
     }
     my($cx, $cy) = ($w->canvasx($x),$w->canvasy($y));
     $w->move('selected',  $cx-$lcx, $cy-$lcy);
     $w->itemconfigure('selected', -fill => $ncolor, -outline => $ocolor ) if $scroll;
-    $w->itemconfigure('nearest', -fill => (isShown($grp,$node,0) ?
-						     $nodeColor :
-						     $hiddenNodeColor));
+    $w->itemconfigure('nearest', $grp->{treeView}->node_options($node,$grp->{FSFile}->FS,undef));
+#  		      -fill => (isShown($grp,$node,0) ?
+#  						     $grp->{treeView}->get_nodeColor :
+#  						     $grp->{treeView}->get_hiddenNodeColor));
     $w->dtag('nearest');
 
     my @dots= $w->find('withtag','point');
@@ -4932,21 +4323,22 @@ sub node_move {
     my $bestDist=10000;
     my $dist;
     foreach $p (@dots) {
-      if ($grp->{'pinfo'}{$p} and $grp->{'pinfo'}{$p}!=$node) {
+      if ($grp->{'treeView'}->pinfo->{$p} and $grp->{'treeView'}->pinfo->{$p}!=$node) {
 	$dist=
-	  ($cx-$grp->{'pinfo'}{$p}{'_tkXPOS_'})*
-	    ($cx-$grp->{'pinfo'}{$p}{'_tkXPOS_'})+
-	      ($cy-$grp->{'pinfo'}{$p}{'_tkYPOS_'})*
-		($cy-$grp->{'pinfo'}{$p}{'_tkYPOS_'});
+	  ($cx-$grp->{'treeView'}->pinfo->{$p}{'_tkXPOS_'})*
+	    ($cx-$grp->{'treeView'}->pinfo->{$p}{'_tkXPOS_'})+
+	      ($cy-$grp->{'treeView'}->pinfo->{$p}{'_tkYPOS_'})*
+		($cy-$grp->{'treeView'}->pinfo->{$p}{'_tkYPOS_'});
 	if ($bestDist>$dist) {
 	  $bestDist=$dist;
-	  $nearestNode=$grp->{'pinfo'}{$p};
+	  $nearestNode=$grp->{'treeView'}->pinfo->{$p};
 	}
       }
     }
     if ($bestDist<800) {
       $w->addtag('nearest','withtag',$$nearestNode{"_tkOval_"});
-      $w->itemconfigure($$nearestNode{"_tkOval_"}, -fill => $nearestNodeColor);
+      $w->itemconfigure($$nearestNode{"_tkOval_"}, 
+			-fill => $grp->{treeView}->get_nearestNodeColor);
     }
 } # end plot_move
 
@@ -4959,22 +4351,22 @@ sub node_release {
   my $node;
   my $center=0;
   my $sel=$w->find('withtag','selected');
-  $node=$grp->{'pinfo'}{$sel} if (defined ($sel));
+  $node=$grp->{'treeView'}->pinfo->{$sel} if (defined ($sel));
 
   if ($node) {
     $p=$w->find('withtag','nearest');
     $w->dtag('selected');
     if (defined $p) {
-      $parent=$grp->{'pinfo'}{$p};
+      $parent=$grp->{'treeView'}->pinfo->{$p};
       $w->itemconfigure($parent->{"_tkOval_"}, 
 			  nodeOptions($grp,$parent));
       while ($parent) {
 	$p=0, last if ($node eq $parent);
 	$parent=$parent->parent;
       }
-      if ($p and $grp->{'pinfo'}{$p} 
-	  and $node->parent!=$grp->{'pinfo'}{$p}) {
-	Paste(Cut($node),$grp->{'pinfo'}{$p},$grp->{FSFile}->FS->defs);
+      if ($p and $grp->{'treeView'}->pinfo->{$p} 
+	  and $node->parent!=$grp->{'treeView'}->pinfo->{$p}) {
+	Paste(Cut($node),$grp->{'treeView'}->pinfo->{$p},$grp->{FSFile}->FS->defs);
 	$grp->{FSFile}->notSaved(1);
 	lastActionBookmark($grp);
 	redraw_tree($grp);
@@ -4983,35 +4375,6 @@ sub node_release {
       }
     }
     # returning node to its position
-    $w->coords($sel, nodeCoords($grp,$node));
+    $w->coords($sel, $grp->{treeView}->node_coords($node,$node->{currentNode}));
   } else { redraw_tree($grp); }
-}
-
-sub PrepareTextField {
-  my ($node,$atr)=@_;
-  my $text=$node->{$atr};
-  $text=$1."*" if ($text =~/^([^\|]*)\|/);
-  return encode($text);
-}
-
-sub InterpolateTextField {
-  my ($node,$text)=@_;
-  $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval InterpolateRefs($node,$1)/eg;
-  return $text;
-}
-
-sub InterpolateRefs {
-  my ($node,$text)=@_;
-  $text=~s/\$\${([^}]+)}/"'".$node->{$1}."'"/eg;
-  return $text;
-}
-
-
-sub PrepareText {
-  my ($grp,$node,$index)=@_;
-  return unless ref($grp->{FSFile});
-  my $msg=InterpolateTextField($node,$grp->{FSFile}->pattern($index));
-  $msg=~s/\#{[^}]+}//g;
-  $msg=~s/\${([^}]+)}/PrepareTextField($node,$1)/eg;
-  return encode($msg);
 }
