@@ -259,6 +259,8 @@ import TrEd::Convert;
 require TrEd::Macros;
 import TrEd::Macros;
 
+$TrEd::Macros::defines{TRED}=1;
+
 # tree drawing module
 require TrEd::TreeView;
 
@@ -389,7 +391,7 @@ sub bookmarkFilelist {
   my $default= new Filelist('Default');
   my @files;
 
-  if ($opt_l and -f $opt_l) {
+  if ($opt_l) {
     if (open(F,"<$opt_l")) {
       @files=<F>;
       close(F);
@@ -801,6 +803,8 @@ sub updatePostponed {
 				      );
     $grp->{PostponedFileMenu}->checkbutton(-label => 'Don\'t close on open',
 	  -variable=> \$grp->{keepfiles});
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Don\'t append file-list',
+	  -variable=> \$grp->{noinsert});
     $grp->{PostponedFileMenu}->checkbutton(-label => 'Build TGTS from CSTS',
 					   -variable=> \$grp->{buildTGTSfromCSTS},
 					   -command => [sub {
@@ -935,6 +939,21 @@ sub openFile {
     print "Goto suffix is $goto\n" if $tredDebug;
   }
   $opts{-keep} ||= $grp->{keepfiles};
+
+  # first handle the special case of already open file
+  if ($win->{FSFile} and $win->{FSFile}->filename() eq $f) {
+    updateTitle($grp);
+    applyFileSuffix($win,$goto);
+    get_nodes_win($win, $opts{-noredraw});
+    doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
+    unless ($opts{-noredraw}) {
+      redraw_win($win);
+      centerTo($win,$win->{currentNode});
+    }
+    addToRecent($grp,$f) unless $opts{-norecent};
+    $win->toplevel->Unbusy() unless $insideEval;
+    return 2;
+  }
   unless ($opts{-keep} or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f) {
     $opts{-keep} = askSaveFile($win,1) if (fsfileDisplayingWindows($grp,$win->{FSFile})<2);
   }
@@ -949,7 +968,7 @@ sub openFile {
 	  max(0,$win->{currentFileNo});
 	insertToFilelist($grp,$grp->{currentFilelist},
 			 $win->{currentFileNo},
-			 $f.$goto);
+			 $f.$goto) unless $grp->{noinsert};
 	updateTitle($grp);
 	applyFileSuffix($win,$goto);
 	get_nodes_win($win, $opts{-noredraw});
@@ -1028,7 +1047,7 @@ sub openFile {
   updatePostponed($grp);
   # add file to filelist
   $win->{currentFileNo}= max(0,$win->{currentFileNo});
-  if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0) {
+  if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and !$grp->{noinsert}) {
     insertToFilelist($grp,$grp->{currentFilelist},$win->{currentFileNo},$f.$goto);
   }
   updateTitle($grp);
