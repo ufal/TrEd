@@ -66,9 +66,9 @@ eval {
 # #       require Encode;
 # #       require TrEd::ConvertArab;
 # #       return $no.(
-# #		   TrEd::ConvertArab::arabjoin($2));
-# #  	             Encode::encode('windows-1256',
-# #		       ArabicRemix::remix(Encode::decode('windows-1256',$2))
+# #        TrEd::ConvertArab::arabjoin($2));
+# #                  Encode::encode('windows-1256',
+# #            ArabicRemix::remix(Encode::decode('windows-1256',$2))
 # #                  )));
 #     } else {
 #       print "Arabic: Skipping remix\n";
@@ -146,8 +146,8 @@ sub assign_afun_auto {
   shift if (@_ and !ref($_[0]));
   my $node = $_[0] || $this;
   return unless ($node && $node->parent() &&
-		 ($node->{func} eq '???' or
-		  $node->{func} eq ''));
+         ($node->{func} eq '???' or
+          $node->{func} eq ''));
 
 
   require Assign_arab_afun;
@@ -158,8 +158,8 @@ sub assign_afun_auto {
 }
 
 sub node_moved_hook {
-  my ($node)=@_;
-  assign_afun_auto($node);
+  #my ($node)=@_;
+  #assign_afun_auto($node);
 }
 
 #bind assign_all_afun_auto to Ctrl+Shift+F10 menu Auto-assign analytical functions to tree
@@ -183,7 +183,7 @@ sub padt_auto_parse_tree {
 
 
 sub AfunAssign {
-  my $n;			# used as type "pointer"
+  my $n;            # used as type "pointer"
   my $fullafun=$_[0] || $sPar1;
   my ($afun,$parallel,$paren)=($fullafun=~/^([^_]*)(?:_(Ap|Co|no-parallel))?(?:_(Pa|no-paren))?/);
   if ($this->{'afun'} ne 'AuxS') {
@@ -235,9 +235,9 @@ sub default_ar_attrs {
   print "default ar attrs\n\n\n";
   return unless $grp->{FSFile};
   SetDisplayAttrs('${form}',
-		'#{custom1}<? join "_", map { "\${$_}" }
+        '#{custom1}<? join "_", map { "\${$_}" }
                     grep { $this->{$_}=~/./ && $this->{$_}!~/^no-/ }
-	            qw(afun parallel paren arabfa arabspec arabclause) ?>');
+                qw(afun parallel paren arabfa arabspec arabclause) ?>');
   SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ngloss:\t\${x_gloss}\ncommentA:\t\${commentA}");
   return 1;
 }
