@@ -15,7 +15,6 @@ function ask {
 
 function mkplbat {
   PERLBIN=`echo "$PERLBIN" | sed 's!^/cygdrive/\(.\)!\1:!' | sed -e 's!/!\\\\\\\\!g'`
-  echo $PERLBIN
   sed "s!_PERLBIN_!$PERLBIN!" < pl2bat.new > "${TREDDIR}/$1.bat" && \
   cat "${TREDDIR}/$1" pl2batend.new >> "${TREDDIR}/$1.bat"
   return $?
@@ -40,7 +39,6 @@ function findperlbin {
 function findtreddir {
     test $OSTYPE = "cygwin" || return 1
     TREDDIR=`regtool get '\machine\Software\TrEd\Dir' 2>/dev/null`
-    echo TREDDIR registry: $TREDDIR
     if [ ! -f "${TREDDIR}/tred" ]; then
       for d in c d e f g; do 
         if [ -f ${d}:/tred/tred ]; then
@@ -114,7 +112,7 @@ else
 fi
   
 findtreddir
-echo TREDDIR: $TREDDIR
+
 if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
   UPGRADE=1
   echo
