@@ -1,11 +1,10 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-24 14:40:30 pajas>
+## Time-stamp: <2004-11-25 20:32:58 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
 import Tectogrammatic;
-import Coref qw(switch_context_hook); # node_style_hook);
 
 #bind FCopy to Ctrl+c menu copy node
 #bind FPaste to Ctrl+C menu paste node
@@ -18,6 +17,10 @@ import Coref qw(switch_context_hook); # node_style_hook);
   AID => 'cyan'
  );
 
+
+sub switch_context_hook {
+  Coref->switch_context_hook();
+}
 
 sub node_style_hook {
   my ($node,$styles)=@_;
@@ -127,10 +130,15 @@ sub node_release_hook {
     ($mod) = map { $_->[1] } grep { $selection->[0] eq $_->[0] } @choices;
   }
   if ($mod eq 'Super') {
-    ConnectAID($p,$node);
-    light_aidrefs_reverse();
-    Redraw_FSFile_Tree();
-    ChangingFile(1);
+    if ($node->{AID}) {
+      if (getAIDREFsHash($p)->{$node->{AID}}) {
+	DisconnectAID($p,$node);
+      } else {
+	ConnectAID($p,$node);
+      }
+      Redraw_FSFile_Tree();
+      ChangingFile(1);
+    }
   } else {
     Coref::node_release_hook($node,$p,$mod);
   }
