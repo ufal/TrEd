@@ -34,7 +34,8 @@ $version='$Revision$ ';
 $usage=1 unless @ARGV;
 $ssh='ssh';
 
-$term_encoding = 'utf8';
+use POSIX qw(setlocale);
+$term_encoding = 'utf8' if setlocale('LC_CTYPE')=~/UTF-?8/i;
 
 ## Passing -o args... -- to TredMacro
 Getopt::Long::Configure ("bundling");
@@ -242,8 +243,6 @@ my $configFile=TrEd::Config::read_config();
 require TrEd::Macros;
 import TrEd::Macros;
 
-#_set_encoding(\*STDERR,$term_encoding,"STDERR");
-#_set_encoding(\*STDOUT,$term_encoding,"STDOUT");
 
 $TrEd::Macros::defines{NTRED}=1;
 
@@ -413,7 +412,6 @@ if (defined($init) || defined($kill) || defined($break)) {
 	sleep 2;
       }
     } while (!$server);
-#    _set_encoding($server,"utf8","SERVER");
     $_->{socket} = $server;
     msg  " - connected to $_->{fullname}\n";
   }
@@ -484,7 +482,6 @@ if (defined($init) || defined($kill) || defined($break)) {
       $client->close();
       next;
     }
-#    _set_encoding($client,"utf8","CLIENT");
     #  $newclient->timeout(5);
     $request_number++;
 
@@ -681,12 +678,13 @@ if (defined($init) || defined($kill) || defined($break)) {
   } else {
     $request_type="EVAL_CODE";
     my @files =  get_files();
-    $request="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding,$code))."\n";
+    $request="$control STATE=ENCODING\n"._enc2bytes('utf8',$term_encoding)."\n" if $term_encoding;
+    $request.="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',$code))."\n";
     $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
     $request.="$control STATE=MACRO\n".
       _enc2bytes("utf8",join("",@TrEd::Macros::macros));
-    $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding,join("\n",@ARGV)))."\n" unless ($listedfiles || @files);
+    $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',join("\n",@ARGV)))."\n" unless ($listedfiles || @files);
     msg "Code: $code\n\n";
   }
 
@@ -696,7 +694,6 @@ if (defined($init) || defined($kill) || defined($break)) {
 				 PeerPort => $hubport,
 				 Proto => 'tcp'
 				);
-#  _set_encoding($hub,"utf8","HUB");
   die "Can't open socket to $hubname:$hubport. $!\n" unless $hub;
   $hub->autoflush(1);
   $hub->timeout(5);
@@ -758,6 +755,7 @@ sub _enc2bytes {
   require Encode;
   return Encode::encode($enc,$str);
 }
+
 # --------------- optimal file distribution  -------------------
 sub distribute_files {
   my ($control,$servers,$files,$close_empty,$key) = @_;
@@ -1153,10 +1151,11 @@ all server hosts.
 Allows to specify a file where the the session-key for a client's
 authentication will be stored. It defaults to ~/.ntred_session_key.
 
-=item B<--output-encoding|-d> encoding
+=item B<--terminal-encoding|-d> encoding
 
-Automatically apllies a given character encoding to all stdout output
-operations on the servers. Works only with Perl >= 5.8.
+Automatically applies a given character encoding to all stdout output
+operations on the servers and command-line arguments.
+Only works with Perl >= 5.8.
 
 =item B<--hub> hostname
 
