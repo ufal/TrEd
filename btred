@@ -475,15 +475,15 @@ sub startMain {
       } elsif ($request{REQUEST_TYPE} eq 'EVAL_CODE') {
 	_msg("Initializing safe compartment...\n") if $safe;
 
-	# initialize Safe compartment
-	init_tredmacro($grp);
-	gotoFile($grp,0); # neither goto_file_hook nor file_open_hook in server-mode
-
 	# create temporary file to store macro output
 	my $macro_stdout = IO::File->new_tmpfile();
 	my $macro_stderr = IO::File->new_tmpfile();
 	my $old_stdout = _redirect_stdout($macro_stdout);
 	my $old_stderr = _redirect_stderr($macro_stderr);
+
+	# initialize Safe compartment
+	init_tredmacro($grp);
+	gotoFile($grp,0); # neither goto_file_hook nor file_open_hook in server-mode
 
 	# script command-line arguments
 	if (exists($request{ARGS})) {
@@ -559,6 +559,22 @@ sub startMain {
 	  $hub->print("OK\n");
 	}
 	_end_response($control,$hub);
+      } elsif ($request{REQUEST_TYPE} eq 'RELOAD_MACROS') {
+	my $f=$request{Filename};
+	chomp $f;
+	$macroFile = $f if $f;
+	_msg "Reloading macros from $macroFile libdir=$libDir at client's request\n";
+	%TrEd::Macros::defines=(BTRED => 1);    # reset defines
+	eval {
+	  read_macros($macroFile,$libDir);	# read macros
+	};
+	_msg(@TrEd::Macros::macros);
+	if ($@) {
+	  $hub->print("$@\n");
+	} else {
+	  $hub->print("OK\n");
+	}
+	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'LIST') {
 	_msg "Listing all open files at client's request\n";
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
@@ -605,9 +621,9 @@ sub startMain {
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	_msg "Request $request{Filename} at client's request\n";
 	my $f=$request{Filename};
 	chomp $f;
+	_msg "Request $f at client's request\n";
 	$f=~s{^ntred://}{};
 	$f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
 	my @fs=map {$_."\n"} split /\n/,$request{FSFile};
