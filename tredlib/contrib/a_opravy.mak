@@ -9,36 +9,6 @@ package Analytic_Correction;
 use base qw(Analytic);
 import Analytic;
 
-sub cycle_combined {
-  my $suff=shift;
-  if($this->{afun}eq"AtrAdv$suff"){
-    $this->{afun}="AdvAtr$suff"
-  }elsif($this->{afun}eq"AdvAtr$suff"){
-    $this->{afun}="AtrObj$suff"
-  }elsif($this->{afun}eq"AtrObj$suff"){
-    $this->{afun}="ObjAtr$suff"
-  }elsif($this->{afun}eq"ObjAtr$suff"){
-    $this->{afun}="AtrAtr$suff"
-  }else{
-    $this->{afun}="AtrAdv$suff"
-  }
-} # cycle_combined
-
-#bind cycle_combined_no to w menu Cycle Combined Functions
-sub cycle_combined_no{
-  cycle_combined('');
-}
-
-#bind cycle_combined_Coord to Ctrl+w menu Cycle Combined Functions _Co
-sub cycle_combined_Coord{
-  cycle_combined('_Co');
-}
-
-#bind cycle_combined_Apos to W menu Cycle Combined Functions _Ap
-sub cycle_combined_Apos{
-  cycle_combined('_Ap');
-}
-
 # permitting all attributes modification
 sub enable_attr_hook {
   return;
