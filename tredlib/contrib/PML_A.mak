@@ -87,7 +87,7 @@ sub switch_to_tfile {
 #endif TRED
 
 
-=item expand_coord_A($node,$keep?)
+=item expand_coord($node,$keep?)
 
 If the given node is coordination or aposition (according to its
 Analytical function - attribute C<afun>) expand it to a list of
@@ -97,26 +97,26 @@ as well.
 
 =cut
 
-sub expand_coord_A {
+sub expand_coord {
   my ($node,$keep)=@_;
   return unless $node;
   if ($node->{afun}=~/Coord|Apos/) {
     return (($keep ? $node : ()),
-	    map { expand_coord_A($_,$keep) }
+	    map { expand_coord($_,$keep) }
 	    grep { $_->{is_member} } $node->children);
   } else {
     return ($node);
   }
-} #expand_coord_A
+} #expand_coord
 
-=item get_sentence_string_A($tree?)
+=item get_sentence_string($tree?)
 
 Return string representation of the given tree (suitable for
 Analytical trees).
 
 =cut
 
-sub get_sentence_string_A {
+sub get_sentence_string {
   my $node = $_[0]||$this;
   $node=$node->root->following;
   my @sent=();
@@ -127,12 +127,12 @@ sub get_sentence_string_A {
   return join('',map{
     $_->{'m'}{form}.($_->{'m'}{'w'}{no_space_after}?'':' ')
   } sort { $a->{ord} <=> $b->{ord} } @sent);
-}#get_sentence_string_A
+}#get_sentence_string
 
 =item dive_AuxCP($node)
 
-You can use this function as a C<through> argument to GetFathers_A and
-GetChildren_A. It skips all the prepositions and conjunctions when
+You can use this function as a C<through> argument to GetFathers and
+GetChildren. It skips all the prepositions and conjunctions when
 looking for nodes which is what you usually want.
 
 =cut
@@ -141,7 +141,7 @@ sub dive_AuxCP ($){
   $_[0]->{afun}=~/x[CP]/
 }#dive_AuxCP
 
-=item GetFathers_A($node,$through)
+=item GetFathers($node,$through)
 
 Return linguistic parent of a given node as appears in an analytic
 tree. The argument C<$through> should supply a function accepting one
@@ -151,22 +151,22 @@ provided in this package.
 
 =cut
 
-sub _expand_coord_GetFathers_A { # node through
+sub _expand_coord_GetFathers { # node through
   my ($node,$through)=@_;
   my @toCheck = $node->children;
   my @checked;
   while (@toCheck) {
     @toCheck=map {
       if (&$through($_)) { $_->children() }
-      elsif($_->{afun}=~/Coord|Apos/&&$_->{is_member}){ _expand_coord_GetFathers_A($_,$through) }
+      elsif($_->{afun}=~/Coord|Apos/&&$_->{is_member}){ _expand_coord_GetFathers($_,$through) }
       elsif($_->{is_member}){ push @checked,$_;() }
       else{()}
     }@toCheck;
   }
   return @checked;
-}# _expand_coord_GetFathers_A
+}# _expand_coord_GetFathers
 
-sub GetFathers_A { # node through
+sub GetFathers { # node through
   my ($node,$through)=@_;
   my $init_node = $node; # only used for reporting errors
   if ($node->{is_member}) { # go to coordination head
@@ -190,10 +190,10 @@ sub GetFathers_A { # node through
   }
   $node=$node->parent;
   return $node if $node->{afun}!~/Coord|Apos/;
-  _expand_coord_GetFathers_A($node,$through);
-} # GetFathers_A
+  _expand_coord_GetFathers($node,$through);
+} # GetFathers
 
-=item GetChildren_A($node,$dive)
+=item GetChildren($node,$dive)
 
 Return a list of nodes linguistically dependant on a given
 node. C<$dive> is a function which is called to test whether a given
@@ -205,7 +205,7 @@ for all arguments is used.
 
 =cut
 
-sub FilterSons_A{ # node dive suff from
+sub FilterSons{ # node dive suff from
   my ($node,$dive,$suff,$from)=@_;
   my @sons;
   $node=$node->firstson;
@@ -214,9 +214,9 @@ sub FilterSons_A{ # node dive suff from
     unless ($node==$from){ # on the way up do not go back down again
       if (!$suff&&$node->{afun}=~/Coord|Apos/&&!$node->{is_member}
 	  or$suff&&$node->{afun}=~/Coord|Apos/&&$node->{is_member}) {
-	push @sons,FilterSons_A($node,$dive,1,0)
+	push @sons,FilterSons($node,$dive,1,0)
       } elsif (&$dive($node) and $node->firstson){
-	push @sons,FilterSons_A($node,$dive,$suff,0);
+	push @sons,FilterSons($node,$dive,$suff,0);
       } elsif(($suff&&$node->{is_member})
 	      ||(!$suff&&!$node->{is_member})){ # this we are looking for
 	push @sons,$node;
@@ -225,19 +225,19 @@ sub FilterSons_A{ # node dive suff from
     $node=$node->rbrother;
   }
   @sons;
-} # FilterSons_A
+} # FilterSons
 
-sub GetChildren_A{ # node dive
+sub GetChildren{ # node dive
   my ($node,$dive)=@_;
   my @sons;
   my $from;
   $dive = sub { 0 } unless defined($dive);
-  push @sons,FilterSons_A($node,$dive,0,0);
+  push @sons,FilterSons($node,$dive,0,0);
   if($node->{is_member}){
     my @oldsons=@sons;
     while($node->{afun}!~/Coord|Apos|AuxS/ or $node->{is_member}){
       $from=$node;$node=$node->parent;
-      push @sons,FilterSons_A($node,$dive,0,$from);
+      push @sons,FilterSons($node,$dive,0,$from);
     }
     if ($node->{afun}eq'AuxS'){
       print STDERR "Error: Missing Coord/Apos: $node->{id} ".ThisAddress($node)."\n";
@@ -245,7 +245,7 @@ sub GetChildren_A{ # node dive
     }
   }
   return@sons;
-} # GetChildren_A
+} # GetChildren
 
 =item create_stylesheets()
 
