@@ -25,7 +25,7 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $strip_suffix $append_suffix $output_format $term_encoding
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
-	    $version $print_version $listedfiles
+	    $version $print_version $listedfiles $list_options
 	   );
 
 $version='$Revision$ ';
@@ -85,7 +85,8 @@ Getopt::Long::Configure ("bundling");
 	 "verbose|V"      => \$verbose,
 	 "output-encoding|d=s" => \$term_encoding,
 	 "preload-module|M=s" => \@preload_modules,
-	 "version|v" => \$print_version
+	 "version|v" => \$print_version,
+         "list-options" => \$list_options
 	);
 GetOptions(%optmap) or $usage=1;
 
@@ -109,6 +110,15 @@ if ($help) {
 }
 if ($manpage) {
   pod2usage(-exitstatus => 0, -verbose => 2);
+}
+if ($list_options) {
+  foreach my $o (keys %optmap) {
+    $o=~s/=.$//;
+    foreach my $oo (split /\|/,$o) {
+      print sort ((length($oo)>1) ? "--$oo\n" : "-$oo\n");
+    }
+  }
+  exit;
 }
 if ($really_quiet) {
   $quiet = 1;
@@ -1238,7 +1248,7 @@ when saving.
 
 Append given suffix to the filenames when saving.
 
-=item B<--output-format|-f> [fs|csts|trxml|tei]
+=item B<--output-format|-f> [fs|csts|trxml|tei|storable]
 
 Format to use for files being saved.
 
