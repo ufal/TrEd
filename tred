@@ -1815,6 +1815,7 @@ sub filelistDialog {
 			      $d->deiconify;
 			      $d->focus;
 			      $d->raise;
+			      $file.=".fl" unless $file=~/\.fl$/;
 			      return unless (defined $file and $file ne "");
 			      $grp->{filelistCurrentFilelist}->filename($file);
 			    }
