@@ -1,6 +1,6 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 ## author: Alena Bohmova
-## Time-stamp: <2001-03-29 13:57:24 pajas>
+## Time-stamp: <2001-04-18 10:22:39 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
@@ -13,7 +13,7 @@ sub switch_context_hook {
   # its display settings!
   unless ($grp->{BalloonPattern}) {
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '${func}<? "_#{custom2}\${reltype}" if $${reltype} =~ /CO|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+                    '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
 		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
@@ -24,9 +24,9 @@ sub switch_context_hook {
 sub sort_attrs_hook {
   my ($ar)=@_;
   @$ar = (grep($grp->{FSFile}->FS->exists($_),
-	       'func','trlemma','form','afun','coref','reltype','aspect','commentA'),
+	       'func','trlemma','form','afun','coref','reltype','memberof','aspect','commentA'),
 	  sort {uc($a) cmp uc($b)}
-	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|reltype|aspect)$/,@$ar));
+	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|reltype|memberof|aspect)$/,@$ar));
   return 1;
 }
 
@@ -141,7 +141,7 @@ sub do_edit_attr_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:func|commentA|coref|reltype|aspect|err1)$/) {
+  if ($atr!~/^(?:func|commentA|coref|reltype|memberof|aspect|err1)$/) {
     return "stop";
   }
 }
@@ -288,6 +288,7 @@ sub FuncAssign {
   }
 }
 
+#bind add_questionmarks_func to Ctrl+Shift+X menu Pridat k funktoru ???
 sub add_questionmarks_func {
   $pPar1 = $this;
   $sPar1 = Union($pPar1->{'func'},'???');
@@ -402,6 +403,7 @@ sub NewVerb {
   $pNew->{'func'} = 'EV';
   $pNew->{'gram'} = '???';
   $pNew->{'reltype'} = '???';
+  $pNew->{'memberof'} = '???';
   $pNew->{'fw'} = '???';
   $pNew->{'phraseme'} = '???';
   $pNew->{'del'} = 'ELID';
