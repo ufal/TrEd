@@ -7079,10 +7079,8 @@ EOF
     saveStyleSheets($grp) unless $win->{stylesheet} eq STYLESHEET_FROM_FILE();
     update_value_line($grp);
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
-      __debug("Redrawing windows with fsfile\n");
       redraw_fsfile($grp,$win->{FSFile});
     } else {
-      __debug("Redrawing windows with stylesheet $win->{stylesheet}\n");
       redraw_stylesheet($grp,$win->{stylesheet});
     }
   }
