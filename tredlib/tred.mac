@@ -209,8 +209,6 @@ sub FirstTree {
   GotoTree(1);
 }
 
-# include contrib/ar.mak
-
 # binding-context Tectogrammatic
 # include contrib/tr.mak
 
