@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-15 20:48:22 pajas>
+## Time-stamp: <2004-03-15 21:47:24 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -16,6 +16,20 @@ sub node_release_hook {
   if ($mod eq 'Shift') {
     ConnectAID($p,$node);
     light_aidrefs_reverse();
+    Redraw_FSFile_Tree();
+  }
+}
+
+sub node_doubleclick_hook {
+  my ($node, $mod) = @_;
+  if ($mod eq 'Shift') {
+    $node->{_light} = '_LIGHT_';
+    Redraw_FSFile_Tree();
+  } elsif ($mod eq 'Control') {
+    foreach ($node->root->descendants) {
+      delete $_->{_light};
+    }
+    $node->{_light} = '_LIGHT_';
     Redraw_FSFile_Tree();
   }
 }
@@ -491,6 +505,34 @@ sub light_auxcp_children {
   }
   ChangingFile(0);
 }
+
+#bind make_lighten_be_aidrefs to Ctrl+l menu Make nodes marked with _light=_LIGHT_ be the nodes and only the nodes referencing current node in AIDREFS
+sub make_lighten_be_aidrefs {
+  my $node = $root;
+  my $rehang = ($node->parent->{_light} eq '_LIGHT_' ? 0 : 1);
+  my $target;
+  foreach my $node ($root->visible_descendants(FS())) {
+    next if $node == $this;
+    if ($node->{_light} eq '_LIGHT_') {
+      ConnectAID($node,$this);
+      if ($rehang) {
+	PasteNode(Cut($this),$node);
+	$rehang = 0;
+      }
+    } else {
+      $node->{AIDREFS} = join '|', grep { $_ ne $this->{AID} } split /\|/,$node->{AIDREFS};
+      $node->{AIDREFS} = "" if ($node->{AIDREFS} eq $node->{AID});
+    }
+  }
+  ChangingFile(1);
+}
+
+#bind light_current to L menu Lighten current node
+sub light_current {
+  $this->{_light} = '_LIGHT_';
+  ChangingFile(0);
+}
+
 
 ############################################
 
