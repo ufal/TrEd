@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-19 17:29:15 pajas>
+## Time-stamp: <2004-03-19 17:39:27 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -542,9 +542,9 @@ sub make_lighten_be_children {
   foreach my $node ($root->descendants(FS())) {
     if ($node->{_light} eq '_LIGHT_') {
 
-      my $p = $node;
-      $p = $p->parent while ($p and $p!=$this);
-      next if ($p == $this);
+      my $p = $this;
+      $p = $p->parent while ($p and $p!=$node);
+      next if ($p == $node);
 
       $node->{TR} = 'hide';
       ConnectAID($this,$node);
