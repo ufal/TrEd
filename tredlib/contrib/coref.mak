@@ -464,6 +464,9 @@ construction, where C<name> is a name of the new type and C<#rrggbb>
 is the color to be used in hexadecimal notation of RGB (red, green,
 blue).
 
+Press F7 (see above) to apply the changes in the annotation scheme on
+the current file.
+
 =back
 
 =head2 ANNOTATION SCHEME
@@ -489,6 +492,15 @@ representations in C<corlemma> attribute are separated with pipeline
 character '|'.  Coreference relations given by C<corlemma> attribute
 are not assigned any explicit type. In PDT they are automatically
 considered as textual coreference relations.
+
+In CSTS SGML format (used in PDT), each coreference relation starting
+at a given node is stored in a separate C<coref> element. The
+identifier of the node of the coreference relation is stored in its
+C<ref> attribute and type of the relation in its C<type> attribute.
+If the relation target is other entity than a node (i.e. it is
+represented by C<corlemma> attribute in FS), the C<coref> element has
+no ref attribute but contains the representation of the entity as
+PCDATA.
 
 =cut
 
