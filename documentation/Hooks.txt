@@ -1,4 +1,4 @@
-\User definable hooks in TrEd
+User definable hooks in TrEd
 ============================
 
 Before and sometimes after some action is performed, TrEd tries to
