@@ -1445,8 +1445,14 @@ sub draw_text_line {
   my $color=undef;
   foreach (grep {$_ ne ""} split(m/([#\$]${bblock})/,$msg)) {
     if (/^\$${block}$/) {
+      my $c=$1;
       $j++;
-      $at_text=$self->prepare_text_field($node,$1);
+      if ($c=~/^(.*?)=(.*)$/s) {
+	$c=$1;
+	$at_text=$2;
+      } else {
+	$at_text=$self->prepare_text_field($node,$c);
+      }
       next if ($at_text) eq "";
       $objectno++;
       $txt="text_$objectno";
@@ -1456,24 +1462,24 @@ sub draw_text_line {
 		   -text => $at_text,
 		   -fill =>
 		   defined($color) ? $color :
-		   $self->which_text_color($fsfile,$1),
+		   $self->which_text_color($fsfile,$c),
 		   -font => $self->get_font,
 		   -tags => [$txt,'text']
 		  );
       $self->store_id_pinfo($bid,$txt);
       $self->apply_style_opts($txt,
 		   @{$Opts->{Text}},
-		   @{$Opts->{"Text[$1]"}},
-		   @{$Opts->{"Text[$1][$i]"}},
-		   @{$Opts->{"Text[$1][$i][$j]"}},
+		   @{$Opts->{"Text[$c]"}},
+		   @{$Opts->{"Text[$c][$i]"}},
+		   @{$Opts->{"Text[$c][$i][$j]"}},
 		   $self->get_node_style($node,"Text"),
-		   $self->get_node_style($node,"Text[$1]"),
-		   $self->get_node_style($node,"Text[$1][$i]"),
-		   $self->get_node_style($node,"Text[$1][$i][$j]"));
+		   $self->get_node_style($node,"Text[$c]"),
+		   $self->get_node_style($node,"Text[$c][$i]"),
+		   $self->get_node_style($node,"Text[$c][$i][$j]"));
       $xskip+=$self->getTextWidth($at_text);
       $self->store_obj_pinfo($txt,$node);
-      $self->store_node_pinfo($node,"Text[$1][$i][$j]",$txt);
-      $self->store_gen_pinfo("attr:$txt",$1);
+      $self->store_node_pinfo($node,"Text[$c][$i][$j]",$txt);
+      $self->store_gen_pinfo("attr:$txt",$c);
     } elsif (/^\#${block}$/) {
       unless ($self->get_noColor) {
 	my $c=$1;
@@ -1621,9 +1627,13 @@ As prepare_text_field but not recoding text to output encoding.
 
 sub prepare_raw_text_field {
   my ($self,$node,$atr)=@_;
-  my $text=$node->getAttribute($atr);
-  $text=$1."*" if ($text =~/^([^\|]*)\|/);
-  return $text;
+  if ($atr=~/^.*?=(.*)$/s) {
+    return $1;
+  } else {
+    my $text=$node->getAttribute($atr);
+    $text=$1."*" if ($text =~/^([^\|]*)\|/);
+    return $text;
+  }
 }
 
 1;
