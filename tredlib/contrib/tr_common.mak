@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-01 12:45:03 pajas>
+## Time-stamp: <2002-10-03 07:16:50 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -282,7 +282,7 @@ sub edit_commentA {
     return;
   }
   my $value=$this->{commentA};
-  $value=main::QueryString($grp->{framegroup},"Enter comment","commentA",$value);
+  $value=QueryString("Enter comment","commentA",$value);
   if (defined($value)) {
     $this->{commentA}=$value;
   }
