@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-25 11:17:17 pajas>
+## Time-stamp: <2002-11-01 14:57:47 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -268,7 +268,6 @@ sub rotate_func {
 }
 
 #bind edit_commentA to exclam menu Edit annotator's comment
-#bind edit_commentA to exclam
 sub edit_commentA {
   if (not $grp->{FSFile}->FS->exists('commentA')) {
     $ToplevelFrame->messageBox
@@ -710,6 +709,7 @@ sub upgrade_file_to_tid_aidrefs {
   }
 }
 
+#bind reorder_dords Alt+r
 sub reorder_dords {
   my $nodesref=[ GetNodes() ];
   SortByOrd($nodesref);
