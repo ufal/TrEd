@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+# -*- cperl -*-
+#
+# Time-stamp: <2000-11-21 12:12:15 pajas>
 #
 # Tred ver. 0.3 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -12,7 +15,7 @@
 ################################################################################
 #
 # Usage:
-# tred [-c <config-file>] [-m <macro-file>] file1[##N|#N] [file2[##N|#N] [...]]
+# tred [-c <config-file>] [-m <macro-file>] [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
 #
 # or
 #
@@ -25,6 +28,7 @@
 ################################################################################
 
 
+
 # Once we got rid of them we call getopt to read all the other options
 use Tk;
 use Tk::Xrm;
@@ -33,13 +37,13 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('m:c:hu');
+getopts('m:c:l:hu');
 
 if ($opt_u) {
 
   print <<EOH;
 Usage:
-  tred [-c config-file] [-m macro-file] files...
+  tred [-c config-file] [-m macro-file] [-l file-list] files...
 or
   btred -u          to show usage
 or
@@ -51,7 +55,7 @@ EOH
 if ($opt_h) {
   print <<EOF;
 Usage:
-tred [-c <config-file>] [-m <macro-file>] file1[##N|#N] [file2[##N|#N] [...]]
+tred [-c <config-file>] [-m <macro-file>] [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
 
 or
 
@@ -99,7 +103,6 @@ my @configFileSearchList=($ENV{HOME}.'/.tredrc',
 			  dirname($0).'tredlib/tredrc',
 			  dirname($0).'../lib/tred/tredrc',
 			  '/usr/X11R6/lib/X11/app-defaults');
-print STDERR "@configFileSearchList\n";
 
 my $configFile;
 # other configuration should be given in that file
@@ -142,7 +145,7 @@ unless (-d $libDir) {
   print <<'EOL';
  Tred couldn't find a tredlib directory. You may need to point
  to its location by the TREDHOME variable or add a correct LibDir
- field to your .tredrc.
+ field to your ~/.tredrc.
 
 EOL
     die "Error: Couldn't find lib-directory.";
@@ -183,7 +186,8 @@ if ($^O =~ /^MS/) {
 
 ################ end of character encoding functions ########################
 
-use Tk;
+use Cwd;
+
 use Tk::LabFrame;
 use Tk::Listbox;
 use Tk::Balloon;
@@ -208,8 +212,17 @@ if ($useCzechLocales) {
 
 my %attribs = ();
 my @atord = ();
+my @files=();
 
-my @files=@ARGV;
+if ($opt_l and -f $opt_l) {
+  if (open(F,"<$opt_l")) {
+    @files=<F>;
+    close(F);
+    chomp @files;
+  }
+}
+
+push @files, @ARGV;
 my @trees=();
 my @header=();
 my @nodes=();
@@ -244,6 +257,12 @@ sub dirname {
   $_=shift;
   return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : "./";
 }
+
+sub filename {
+  $_=shift;
+  return (m!/!)? (substr($_,rindex($_,"/")+1)) : $_;
+}
+
 
 print STDERR "Reading macros from $macroFile...";
 readMacros($macroFile);		# read macros
@@ -358,21 +377,27 @@ sub setConfig {
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
     (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2');
-  $libDir=(exists $confs->{libdir}) ? <$$confs{libdir}> : $libDir;
-  $appIcon=(exists $confs->{appicon}) ? <$$confs{appicon}> : "$libDir/tred.xpm";
-  $psFontFile=(exists $$confs{psfontfile}) ?
-    ((-d <$$confs{psfontfile}>) ? <$$confs{psfontfile}> : "$libDir/".$$confs{psfontfile}) :
-      "$libDir/csarialm.pfa";
-  $psFontName=(exists $$confs{psfontname}) ? <$$confs{psfontname}> : "Arial-Medium";
-  $psFontSize=(exists $$confs{psfontsize}) ? <$$confs{psfontsize}> : "12";
-  $macroFile=(exists $$confs{macrofile}) ? <$$confs{macrofile}> : $macroFile;
-  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? <$$confs{defaultmacrofile}> : "$libDir/tred.def";
+
+  ($libDir)=<$$confs{libdir}>
+    if (exists $confs->{libdir});
+  if (exists $$confs{psfontfile}) {
+    ($psFontFile)=<$$confs{psfontfile}>;
+    $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
+					   "$libDir/".$psFontFile);
+  } else {
+    $psFontFile="$libDir/csarialm.pfa";
+  }
+  ($appIcon)=(exists $confs->{appicon}) ? <$$confs{appicon}> : ("$libDir/tred.xpm");
+  $psFontName=(exists $$confs{psfontname}) ? $$confs{psfontname} : "Arial-Medium";
+  $psFontSize=(exists $$confs{psfontsize}) ? $$confs{psfontsize} : "12";
+  ($macroFile)=<$$confs{macrofile}> if (exists $$confs{macrofile});
+  ($defaultMacroFile)=(exists $confs->{defaultmacrofile}) ? <$$confs{defaultmacrofile}> : ("$libDir/tred.def");
   $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '21c';
   $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '297m';
   $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
   $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '1c';
   $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
-  $psFile=(exists $confs->{psfile}) ? <$$confs{psfile}> : 'tred.ps';
+  ($psFile)=(exists $confs->{psfile}) ? <$$confs{psfile}> : ('tred.ps');
   $drawBoxes=(exists $confs->{drawboxes}) ? $confs->{drawboxes} : 0;
   $highlightAttributes=(exists $confs->{highlightattributes}) ? $confs->{highlightattributes} : 1;
   $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
@@ -720,7 +745,7 @@ sub printDialog {
   my $useType1Font=$grp->{'printUseType1Font'};
   my $printRange=$grp->{'printRange'};
 
-  my $d = $grp->{'top'}->DialogBox(-title => "Print current tree",
+  my $d = $grp->{'top'}->DialogBox(-title => "Print",
 				-buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
@@ -866,9 +891,9 @@ sub printThis {
       if (/^\s*([0-9]*)\s*-\s*([0-9]*)\s*$/) {
 	print "Prepairing $1-$2\n";
 	($pbeg,$pend)=($1,$2);
-	$pend=$#trees if ($pend eq '');
-	$pbeg=0 if ($pbeg eq '');
-	$pend=min($#trees,$pend);
+	$pend=$#trees+1 if ($pend eq '');
+	$pbeg=1 if ($pbeg eq '');
+	$pend=min($#trees+1,$pend);
 	next unless ($pbeg<=$pend);
 	push @printList,$pbeg..$pend;
       }
@@ -891,11 +916,11 @@ sub printThis {
       #print "Pipe successfully opend!\n";
     }
 
-    $grp->{top}->Busy(-recurse => 1);
+#    $grp->{top}->Busy(-recurse => 1);
 
     for (my $t=0;$t<=$#printList;$t++) {
       print "Printing $printList[$t]\n";
-      $font=$type1font if ($grp->{printUseType1Font});
+      $font=$type1font if ($grp->{printUseType1Font});      
       $printList[$t]!=$treeNo+1 ? gotoTree($printList[$t]-1,$grp) : redraw_tree($grp);
       my $rotate =  !$grp->{printToEPS} and ($grp->{canvasHeight}<$grp->{canvasWidth});
       print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
@@ -1089,6 +1114,50 @@ sub newNode {
   return $nd;
 }
 
+sub pruneNode {
+  ## Deletes given node
+  my ($grp,$node)=@_;
+  my $t;
+  return undef unless ($node and Parent($node));
+
+  Paste(Cut($t),Parent($node),\%attribs)
+    while ($t=FirstSon($node));
+
+  setCurrent($grp,Parent($node)) if ($node == $grp->{currentNode});
+  $t=DeleteLeaf($node);
+  getNodes($grp);
+  redraw_tree($grp);
+  return $t;
+}
+
+sub prepareFonts {
+  my $grp=shift;
+  print STDERR "Preparing fonts.\n";
+  
+  if ($font!~/^-/) {
+    my @a=split(/\s*,\s*/,$font);
+    my $option,$value;
+    my @b;
+    foreach (@a) {
+      ($option, $value) = split(/\s*:\s*/, $_, 2);
+      push @b, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
+    }
+      # try
+    eval { $grp->{top}->fontDelete('C_normal') }; 
+      # error would be displayed otherwise if yet undefined
+      # and I'm lazy to remember or find out how to check
+      # :)
+    $grp->{top}->fontCreate('C_normal',@b);
+    $font='C_normal';
+  }
+  #
+  # There were problems with the following lines, so I'm skipping them  
+  #
+  # else {
+  #  $grp->{top}->fontCreate('C_normal',$grp->{top}->fontActual($font));
+  #  $font='C_normal';
+  # }
+}
 
 sub addBindTags {
   my $w=shift @_;
@@ -1143,6 +1212,9 @@ sub startMain {
 	 [Button => 'Save',        -command => [\&saveFile,\%group]],
 	 [Button => 'Save As ...', -command => [\&saveFileAs, \%group]],
 	 [Separator => ''],
+	 [Button => 'Previous File', -command => [\&prevFile,\%group]],
+	 [Button => 'Next File', -command => [\&nextFile,\%group]],
+	 [Separator => ''],
 #	 [Button => 'Setup ...',   -command => [\&menus_error2, 'Setup']],
 	 [Button => 'Print ...',   -command => [\&printThis,\%group]],
 	 [Separator => ''],
@@ -1152,13 +1224,16 @@ sub startMain {
 							  redraw_tree(shift);
 							},\%group]],
 	 [Separator => ''],
-	 [Button => 'Quit',        -command => [$group{top} => 'destroy']],
+	 [Button => 'Quit',        -command => [sub { $grp=shift;
+						       askSaveFile($grp);
+						       $grp->{'top'}->destroy;
+						    },\%group]],
 	])->pack(qw/-side left/);
 
   $group{ViewMenu}= $group{Menubar}->Menubutton(qw/-text View -underline 0 -menuitems/ =>
 	[
-	 [Button => 'Previous File', -command => [\&prevFile,\%group]],
-	 [Button => 'Next File', -command => [\&nextFile,\%group]],
+	 [Button => 'Previous Tree', -command => [\&prevTree,\%group]],
+	 [Button => 'Next Tree', -command => [\&nextTree,\%group]],
 	 [Separator => ''],
 	 [Checkbutton => 'Draw boxes',
 	   -variable => \$drawBoxes,
@@ -1172,13 +1247,17 @@ sub startMain {
 	  -variable => \$highlightAttributes,
 	  -command  => [\&redraw_tree,\%group]],
 	 [Separator => ''],
-	 [Button => 'Visible Attributes', -command => [\&selectAttrs,\%group]]
+	 [Button => 'Visible Attributes ...', -command => [\&selectAttrs,\%group]]
 	])->pack(qw/-side left/);
   $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/ =>
 	[
 	 [Button => 'New Node', -command => [sub {
 					       my ($grp)=@_;
 					       newNode($grp);
+					     },\%group]],
+	 [Button => 'Remove Active Node', -command => [sub {
+					       my ($grp)=@_;
+					       pruneNode($grp,$grp->{currentNode});
 					     },\%group]],
 	 [Button => 'Insert New Tree', -command => [sub {
 						      my ($grp)=@_;
@@ -1188,22 +1267,23 @@ sub startMain {
 						      my ($grp)=@_;
 						      newTreeAfter($grp);
 						    },\%group]],
-	 [Button => 'Prune Current Tree', -command => [sub {
+	 [Button => 'Remove Whole Current Tree', -command => [sub {
 						      my ($grp)=@_;
 						      pruneTree($grp);
 						    },\%group]],
-	 [Button => 'Edit Attributes', -command => [sub {
+	 [Separator => ''],
+	 [Button => 'Edit Attributes ...', -command => [sub {
 						      my ($grp)=@_;
 						      editAttrsDialog($grp,$grp->{currentNode})
 							if ($grp->{currentNode});
 						    },\%group]],
 	 [Separator => ''],
-	 [Button => 'Find...', -command => [sub {
+	 [Button => 'Find ...', -command => [sub {
 					      my ($grp,$template)=@_;
 					      findNodeDialog($grp,$template)
 						if ($grp->{currentNode});
 					    },\%group,\%searchTemplate]],
-	 [Button => 'Find Next...', 
+	 [Button => 'Find Next', 
 	  -command => [sub {
 			 my ($grp,$template)=@_;
 			 findFirstTemplated($grp,$template,1)
@@ -1245,23 +1325,7 @@ sub startMain {
 				       [qw/0c 0c 100c 100c/],
 				       $backgroundColor ? (-background => $backgroundColor) : ());
 
-  print STDERR "Preparing fonts.\n";
-
-  if ($font!~/^-/) {
-    my @a=split(/\s*,\s*/,$font);
-    my $option,$value;
-    my @b;
-    foreach (@a) {
-      ($option, $value) = split(/\s*:\s*/, $_, 2);
-      push @b, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
-    }
-    $group{top}->fontCreate('C_normal',@b);
-    $font='C_normal';
-  } else {
-    $group{top}->fontCreate('C_normal',$group{top}->fontActual($font));
-    $font='C_normal';
-  }
-
+  prepareFonts(\%group);
 
     print STDERR "Creating canvas.\n";
 
@@ -1482,6 +1546,7 @@ sub fileDialog {
 sub saveFileAs {
   my $grp = shift;
   my $types;
+  my $initdir;
   my $file=$grp->{currentFile};
 
   @types =
@@ -1489,7 +1554,13 @@ sub saveFileAs {
      ["All files",        '*']
     );
 
-  $file = $grp->{'top'}->getSaveFile(-filetypes => \@types, -initialfile => $file);
+  $initdir=dirname($file);
+  $initdir=cwd if ($initdir eq './');
+
+  $file = $grp->{'top'}->getSaveFile(-filetypes => \@types, 
+				     -title => "Save As ...",
+				     -initialdir => $initdir,
+     				     -initialfile => filename($file));
   if (defined $file and $file ne '') {
     $grp->{currentFile}=$file;
     $grp->{'top'}->title("$appName $file");
@@ -1504,11 +1575,12 @@ sub askSaveFile {
   saveFile($grp)
    if (
        $grp->{'top'}->toplevel->
-       messageBox(-icon => 'questhead',
+       messageBox(-icon => 'question',
 		  -message => "File may be changed!\nDo you want to save it?",
 		  -title => 'File not saved',
-		  -type => 'YesNo',
-		  -default => 'Yes') eq 'Yes');
+		  -type => 'YesNo'
+#		  , -default => 'Yes' # problem: Windows 'yes', UNIX 'Yes'
+		 ) =~ /yes/i);
 }
 
 sub editConfig {
@@ -1523,9 +1595,12 @@ sub editConfig {
   $t->pack(qw/-expand yes -fill both/);
   my $b = $d->Subwidget('bottom')->Button(-text => "Apply",
 		     -command => [sub {
+				    my $grp=shift;
 				    applyConfig(split(/\n/,shift->get("0.0","end")));
-				    redraw_tree(shift);
-				  },$t,$grp]);
+				    prepareFonts($grp);
+				    $grp->{valueLine}->configure(-font => $font);
+				    redraw_tree($grp);
+				  },$grp,$t]);
   $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
   $b = $d->Subwidget('bottom')->
     Button(-text => "Cancel",
@@ -1543,27 +1618,28 @@ sub editConfig {
       close(F);
     } else {
       my $lasterr=$!;
+      my ($trc)=<'~/.tredrc'>;
       my ($dc,$ic)=stat($configFile);
-      my ($dh,$ih)=stat(<'~/.tredrc'>);
-      if ($configFile ne <'~/.tredrc'> and ($dc != $dh or $ic != $ih) and
+      my ($dh,$ih)=stat($trc);
+      if ($configFile ne $trc and ($dc != $dh or $ic != $ih) and
 	     $grp->{'top'}->toplevel->
 	       messageBox(-icon => 'warning',
 			  -message => "Cannot write configuration to $configFile\n($lasterr)\n\n".
 			  "Shell I try to save it to ~/.tredrc?\n",
 			  -title => 'Configuration cannot be saved',
 			  -type => 'YesNo',
-			  -default => 'Yes') eq 'Yes') {
-	if (open(F,">".<'~/.tredrc'>)) {
+#			  -default => 'Yes' # problem: Windows 'yes', UNIX 'Yes'
+			 ) =~ /yes/i) {
+	if (open(F,">".$trc)) {
 	  print F $t->get("0.0","end");
 	  close(F);
 	} else {
 	  $grp->{'top'}->toplevel->
 	    messageBox(-icon => 'error',
-		       -message => 'Cannot write to "'.<'~/.tredrc'>.'"!'."\n($!)\n".
+		       -message => 'Cannot write to "'.$trc.'"!'."\n($!)\n".
 		       "\nConfiguration could not be saved!\n",
 		       -title => 'Configuration cannot be saved',
-		       -type => 'Ok',
-		       -default => 'Ok');
+		       -type => 'Ok');
 	}
       } else {
       	$grp->{'top'}->toplevel->
@@ -1576,6 +1652,8 @@ sub editConfig {
       }
     }
     applyConfig(split(/\n/,$t->get("0.0","end")));
+    prepareFonts($grp);
+    $grp->{valueLine}->configure(-font => $font);
     redraw_tree($grp);
   }
   undef $d;
@@ -2711,7 +2789,3 @@ sub node_release {
 	       $node->{"_tkYPOS_"}+$nodeHeight);
   } else { redraw_tree($grp); }
 }
-
-### Local Variables:
-### mode:cperl
-### End:
