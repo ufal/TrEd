@@ -359,7 +359,7 @@ sub ChooseFrame {
 #   }
   unless ($this->{g_wordclass}=~/^(sem([vn]|adj|adv))/) {
     questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
-		  "according to morphological tag.",
+		  "according to g_wordclass.",
 		  "Ok");
     ChangingFile(0);
     return;

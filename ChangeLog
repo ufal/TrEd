@@ -1,3 +1,268 @@
+2005-04-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/PML.mak: *** empty log message ***
+
+	* tredlib/contrib/PML_T_Edit.mak: improved annotation support
+
+	* tredlib/contrib/PML_T.mak: new_node
+
+	* tredlib/contrib/PML_A_Edit.mak: get_status_line, add_this_to_arf...
+
+	* tredlib/contrib/PML_A.mak: get_status_line
+
+	* tredlib/tred.def: docu
+
+	* tredlib/contrib/ValLex/chooser.mak, documentation/manual/tred.xml:
+	*** empty log message ***
+
+	* documentation/manual/tred_def.xml: initial commit
+
+	* tredlib/tred.def: reorganized POD
+
+	* documentation/manual/tred.xml:
+	replaced tred.def reference with xinclude of a file generated from POD
+
+	* documentation/manual/manual.xsl: *** empty log message ***
+
+	* devel/grep_hooks.sh, devel/make_manual, devel/obsolete_hooks.xsh, devel/pod2db.xsh, devel/pod2db.xsl, devel/undocumented_hooks.xsh:
+	initial commit
+
+2005-04-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: *** empty log message ***
+
+	* documentation/manual/tred_def.xml: initial commit
+
+	* tredlib/tred.def: reorganized POD
+
+	* documentation/manual/tred.xml:
+	replaced tred.def reference with xinclude of a file generated from POD
+
+	* documentation/manual/manual.xsl: *** empty log message ***
+
+	* devel/grep_hooks.sh, devel/make_manual, devel/obsolete_hooks.xsh, devel/pod2db.xsh, devel/pod2db.xsl, devel/undocumented_hooks.xsh:
+	initial commit
+
+2005-04-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Tk/TrEdNodeEdit.pm:
+	use Ctrl+Return to close the dialog even from within entries
+
+	* documentation/manual/tred.xml:
+	added documentation for previously undocummented hooks
+
+	* documentation/Hooks.txt: minor fix
+
+	* tred: edit attributes dialog renamed to edit node
+
+2005-04-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* documentation/pics/patternset.png: *** empty log message ***
+
+2005-04-01  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/PML_A.mak: remove trailing _A
+
+	* tredlib/TrEd/Basics.pm: fix absolutize_path
+
+	* btred: *** empty log message ***
+
+	* tredlib/contrib/PML.mak, tredlib/contrib/PML_A.mak, tredlib/contrib/PML_A_Edit.mak, tredlib/contrib/PML_A_View.mak, tredlib/contrib/PML_M.mak, tredlib/contrib/PML_T.mak, tredlib/contrib/PML_T_Edit.mak, tredlib/contrib/PML_T_View.mak:
+	initial commit
+
+	* tredlib/contrib/ValLex/chooser.mak: trlemma -> t_lemma
+	negation
+
+	* tredlib/contrib/ar.mak, tredlib/contrib/arabic.mak, tredlib/contrib/grammatemes.mak, tredlib/contrib/tr.mak, tredlib/contrib/tr_anot_main.mak, tredlib/contrib/tr_edit_anot_main.mak, tredlib/contrib/tr_en.mak, tredlib/contrib/tr_en_anot_main.mak, tredlib/contrib/tr_tfa_anot_main.mak, tredlib/contrib/tr_tfa_only_anot_main.mak:
+	obsoleted GetSpecialPatterns, replaced with GetPatternsByPrefix
+
+	* tredlib/contrib/pml.mak: *** empty log message ***
+
+	* tredlib/contrib/pdt_specific.mak, tredlib/contrib/contrib.mac:
+	added PML_* stuff
+
+	* tredlib/TrEd/TreeView.pm: - arrow shape
+	- fixes
+
+	* tredlib/Tk/TrEdNodeEdit.pm: - correct focus behavior
+	- disabling attributes
+
+	* tredlib/Tk/JComboBox_0_02.pm: - unix eol
+	- fix behavior
+
+	* tredlib/tred.def: - complete stylesheet API
+	- updated and completed list API
+	- DeleteSubtree, DeleteLeafNode, PlainDeleteSubtree
+
+	* tredlib/PMLBackend.pm:
+	try to get slight speed-up by using $node->childNodes instead of
+	looping with $node->nextSibling
+
+	* tredlib/Fslib.pm: - fixes
+	- FSNode->destroy documented
+	- userData, appData API and documentation updated
+
+	* tredlib/Fs2csts.pm: don't generate <g> from TID nodes
+
+	* documentation/pics/customatt.gif, documentation/pics/customatt.png, documentation/pics/filelist.gif, documentation/pics/filelist.png:
+	updated shots
+
+	* documentation/manual/tred.xml: - rewrote stylesheet editor chapter
+	- minor updates
+
+	* tred: - userData -> appData
+	- lots of bugfixes
+	- stylesheet editor has a preview button
+
+	* btred: userData -> appData. userData are really user now
+
+2005-03-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml.mak: - userData/metaData update
+	- added getNodesHash, getNodeByHash, ...
+	- moved a-ids hash to a-file and renamed to id-hash
+
+	* tredlib/tred.def: added FileUserData
+
+	* tredlib/PMLBackend.pm:
+	use userData instead of metaData for non-persistent data
+
+	* tredlib/NTREDBackend.pm: use Storable + Base64
+
+	* tredlib/Fslib.pm:
+	FSNode->destroy, userData, metaData, Fslib::Type->members
+
+	* tred:
+	use userData instead metaData for non-persistent stuff (should create appData)
+
+	* ntred: benchmark each request
+
+	* btred: switched dumping and uploading to Storable+Base64
+
+2005-03-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/tred.def: AddToAlt, AddToList
+
+	* tredlib/TrEd/Basics.pm, tred, btred:
+	moved absolutize* and rel2abs to TrEd::Basic
+
+	* examples/ag2fs.pl, examples/draw_tree.btred:
+	*** empty log message ***
+
+	* LICENSE: initial commit
+
+	* tredlib/contrib/tredtr.mak:
+	never ever put any stuff to TR (hide attribute)
+
+	* tredlib/contrib/pml.mak: minor styling improvements
+
+	* tredlib/TrEd/TreeView.pm:
+	ignore whitespace at the start and end of a pattern
+
+	* tredlib/TrEd/Config.pm: PERLLIB config option added
+
+	* tredlib/tred.def: added copmlete Stylesheet handling API
+
+	* tredlib/StorableBackend.pm: don't use encoding
+
+	* tredlib/Fslib.pm: FSNode->member fixed
+	FSNode->clone_node should work with typed nodes now
+
+	* tred: - new pattern editor
+	- quick search in the pattern editor and the config editor
+
+	* tredlib/AG2FS.pm, tredlib/CSTS_SGML_SP_Backend.pm, tredlib/PMLBackend.pm, tredlib/StorableBackend.pm, tredlib/XML2PMLBackend.pm:
+	don't use encoding for test-open
+
+	* tredlib/Fslib.pm: *** empty log message ***
+
+	* btred:
+	absolutize_path added (should however be somewhere else since is duplicated in tred and PMLBackend)
+
+	* tred:
+	absolutize_path added (should however be somewhere else since is duplicated in btred)
+
+	* tredlib/contrib/pml.mak: schema() functin added
+
+	* tredlib/tred.mac:
+	Alt+h was an annoying shortcut for PerlSearch. Changed to Alt+H and
+	Alt+Ctrl+H, but that's hard to type, so one more change is likely to happen soon
+
+	* tredlib/Fslib.pm: attributes and members methods added to FSType
+
+	* tred: error handling slightly changed
+
+	* any2any: remove obsoleted SSHBackend
+
+2005-03-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml.mak: oops
+
+	* tredlib/contrib/pml.mak: *** empty log message ***
+
+	* tredlib/contrib/pml.mak: docu
+
+	* tredlib/contrib/pml.mak:
+	rewrite of some PDT macros, documentation and general cleanup. More to come.
+
+	* tredlib/contrib/pdt.mak: *** empty log message ***
+
+	* tredlib/tred.def:
+	don't ask about GUI but use #ifdef instead (GUI requires $grp)
+
+	* tredlib/Fslib.pm: cleanup
+
+	* tred: cleanup, no-secondary is now -Y
+
+	* btred, ntred: secondary file documentation
+
+	* ntred, btred: more work on secondary files
+
+2005-03-23  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml.mak:
+	display id instead of t_lemma or form at the root node
+
+	* ntred, btred: LIST_SECONDARY
+
+	* tredlib/contrib/pml.mak: added ANodes API (not yet stable)
+
+	* tredlib/contrib/pml.mak: various changes by J. Stepanek
+
+	* tredlib/Tk/TrEdNodeEdit.pm:
+	very primitive and incomplete XML structure support
+
+	* tredlib/tred.def: FileMetaData getter/setter added
+
+	* tredlib/PMLBackend.pm:
+	- added basic support for intermixed XML sequences
+	- rewrote some stuff in order to allow reading .w files and similar
+
+	* tredlib/Fslib.pm: - rewrote Schema attribute API
+	- added type method for FSNode and _t_ as a default for $Fslib::type
+	- added set_* methods for FSNode's parent, firstson, rbrother, lbrother and type
+
+	* documentation/manual/tred.xml: remove doubled Line-arrow docu
+
+	* tred: types are attached to nodes
+
+	* btred: secondary file handling
+
+2005-03-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ChangeLog: *** empty log message ***
+
+	* tredlib/contrib/pml.mak: various changes by JS
+
+	* tredlib/TrEd/TreeView.pm, tredlib/TrEd/Config.pm: - CustomColors
+
+	* tredlib/tred.def: - CustomColors
+	- UserConf
+	- Locate Node
+
+	* tred: - Fslib::Paste fix
+	- CustomColors
+
 2005-03-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* tredlib/contrib/pml.mak: various changes by JS
