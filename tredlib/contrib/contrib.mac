@@ -62,6 +62,14 @@
 package TredMacro;
 
 #binding-context TredMacro
+
+sub file_save_hook {
+  my ($f)=@_;
+  PrintToFile("/net/projects/pdt/work/TR-KONTROLA/savelog",
+	      $::userlogin.'@'.$ENV{HOSTNAME}."\t".$$."\t".localtime()."\t$f\t".ThisAddress($this)."\t$this->{AID}$this->{TID}$this->{ID1}\n");
+}
+
+
 #include <contrib/ntred.mak>
 #bind ntred_query_box to key Shift+F10 menu Query BTrEd Servers
 
