@@ -2,7 +2,7 @@
 # -*- cperl -*-
 #
 $version="1.48";
-$timestamp="Time-stamp: <2001-03-06 15:49:45 pajas>";
+$timestamp="Time-stamp: <2001-03-07 12:58:29 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -230,7 +230,7 @@ use Exporter;
 
 @EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
 	     $forceFileSaved $insideEval $FileNotSaved &IsHidden
-             $fileNo $filecount %attribs @atord @files &min &max);
+             $fileNo $filecount $fsF @files &min &max);
 
 my @macros=();
 
@@ -251,8 +251,7 @@ if ($useCzechLocales) {
   setlocale(LANG,"czech");
 }
 
-%attribs = ();
-@atord = ();
+$fsF=undef;
 @files=();
 
 if ($opt_l and -f $opt_l) {
@@ -271,8 +270,19 @@ if ($^O =~ /^MS/) {
   push(@files, @ARGV);
 }
 
+# OO changes: passing to FSFile
+# what will be affected:
+#
+# $grp->{fsFile} = FSFile->new();
+#
+#  @trees                      --> $grp->{fsFile}->trees
+#  $fsF                        --> $grp->{fsFile}->FS
+#  @rest                       --> $grp->{fsFile}->tail
+#  $grp->{currentFile}         --> $grp->{fsFile}->filename
+#  $grp->{'currentFileFormat'} --> $grp->{fsFile}->fileFormat
+
+
 my @trees=();
-my @header=();
 my @nodes=();
 my @rest=();
 
@@ -627,7 +637,7 @@ sub gotoFile {
   return 0 if ($fn > $#files or $fn<0);
 #  askSaveFile($grp);
   $fileNo=$fn;
-  openFile($files[$fileNo],$grp);
+  openFile($grp,$files[$fileNo]);
   if ($grp->{Filelist}) {
     $grp->{Filelist}->activate($fileNo);
     $grp->{Filelist}->selectionClear(0,'end');
@@ -671,14 +681,11 @@ sub closeFile {
 
   foreach (@trees) { DeleteTree($_); }
   undef @trees;
-  undef @header;
   undef @rest;
 
   @trees = ();
-  @header = ();
   @rest = ();
-  @atord=();
-  %attribs=();
+  $fsF=undef;
 }
 
 
@@ -708,14 +715,14 @@ sub addToRecent {
     $menu->delete(0,'end');
     foreach (@recentFiles) {
       $grp->{RecentFileMenu}->command(-label  => $_,
-				      -command => [\&openFile,$_,$grp]);
+				      -command => [\&openFile,$grp,$_]);
     }
   }
 }
 
 sub openFile {
-  my $f = shift;
   my $grp = shift;
+  my $f = shift;
   my $goto = undef;
   my $fs;
   my $gz='';
@@ -723,7 +730,7 @@ sub openFile {
   my $in2='';
   my %fs=(fs => 'FS format', 
 	  fgz => 'gzipped FS format', 
-	  any => 'unspecific format (csts?), using CstsToFs');
+	  any => 'any non-specific format (csts?), using CstsToFs');
 
   askSaveFile($grp) if ($grp);
   $grp->{top}->Busy(-recurse => 1) if ($grp->{top});
@@ -775,12 +782,14 @@ sub openFile {
     return 0;
   }
   #reading attribs
-  %attribs=ReadAttribs(\*F,\@atord,2,\@header);
+
+  $fsF=FSFormat->new();
+  $fsF->readFrom(\*F);
 
   # reading trees
   while ($_=ReadTree(\*F)) {
     if (/^\[/) {
-      $root=GetTree2($_,\@atord,\%attribs);
+      $root=$fsF->parseFSTree($_);
       push(@trees, $root) if $root;
     } else { push(@rest, $_); }
   }
@@ -792,7 +801,7 @@ sub openFile {
   #print "Displaying:\n@d\n";
   @displayAttrs = map { /^\/\/Tred:Custom-Attribute:(.*)$/ ? $1 : () } @rest;
   unless (@displayAttrs) {
-    @displayAttrs = map { "\$\{$atord[$_]\}" } ($rest[0]=~/[,\(]([0-9]+)/g);
+    @displayAttrs = map { "\$\{".$fsF->atno($_)."\}" } ($rest[0]=~/[,\(]([0-9]+)/g);
   }
   if ($grp) {
     $grp->{BalloonPattern}=join "\n", map { /^\/\/Tred:Balloon-Pattern:(.*)$/ ? $1 : () } @rest;
@@ -886,8 +895,8 @@ sub saveFile {
     return 0;
   }
   print STDERR "Writing to $out> $f\n" if $tredDebug;
-  print FO @header;
-  PrintFS(\*FO,\@header,\@trees,\@atord,\%attribs);
+  print FO @{$fsF->unparsed};
+  PrintFS(\*FO,$fsF->unparsed,\@trees,$fsF->list,$fsF->defs); #\@atord,\%attribs);
 
   ## Tredish custom attributes:
 
@@ -913,9 +922,9 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
   $show=$showHidden unless defined $show;
 
   return 0 unless $node;
-  return 1 if $show or not defined(AHide(\%attribs));
-  while ($node and (Hide($node,\%attribs) ne 'hide')) {
-    $node=Parent($node);
+  return 1 if $show or not defined($fsF->hide());
+  while ($node and ($node->{$fsF->hide()} ne 'hide')) {
+    $node=$node->parent;
   }
   return ($node ? 0 : 1)
 }
@@ -948,20 +957,20 @@ sub getValueLine {
   #$valueLine="";
 
   while ($node) {
-    push @sent,$node unless SentOrd($node,\%attribs)>=999; # this is TR specific
+    push @sent,$node unless $node->{$fsF->sentord}>=999; # this is TR specific
     $node=Next($node);
   }
-  my $defs = join ",", values %attribs;
+  my $defs = join ",", values %{$fsF->defs};
 
   # this is a workaround for TR vs. ATS (ATS trees use only @N to sort
   # @V to a sentence while on TR there is @W defined for this purpose)
 
   if ($defs=~/W/) {
-    @sent = sort { SentOrd($a,\%attribs) <=> SentOrd($b,\%attribs) } @sent;
+    @sent = sort { $a->{$fsF->sentord} <=> $b->{$fsF->sentord} } @sent;
   } else {
-    @sent = sort { Ord($a,\%attribs) <=> Ord($b,\%attribs) } @sent;
+    @sent = sort { $a->{$fsF->order} <=> $b->{$fsF->order} } @sent;
   }
-  $valueLine = ($treeNo+1)."/".@trees.": ".encode(join(" ", map { Value($_,\%attribs) } @sent));
+  $valueLine = ($treeNo+1)."/".@trees.": ".encode(join(" ", map { $_->{$fsF->value} } @sent));
   undef @sent;
 
 }
@@ -991,7 +1000,7 @@ sub getNodes {
 
   }
   $grp->{'currentNode'}=$current;
-  @nodes=sort { Ord($a,\%attribs) <=> Ord($b,\%attribs)} @unsorted;
+  @nodes=sort { $a->{$fsF->order} <=> $b->{$fsF->order} } @unsorted;
 
   # just for sure
   undef @unsorted;
@@ -1383,7 +1392,7 @@ sub printThis {
     for (my $t=0;$t<=$#printList;$t++) {
       print "Printing $printList[$t]\n";
       $font=$type1font if ($grp->{printUseType1Font});      
-      $printList[$t]!=$treeNo+1 ? gotoTree($printList[$t]-1,$grp) : redraw_tree($grp);
+      $printList[$t]!=$treeNo+1 ? gotoTree($grp,$printList[$t]-1) : redraw_tree($grp);
       my $rotate = ( ! $grp->{printToEPS} 
 	and $grp->{canvasHeight}<$grp->{canvasWidth});
       print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
@@ -1482,7 +1491,7 @@ sub printThis {
   }
 
   if ($treeNo eq $saveTreeNo) { redraw_tree($grp); }
-  else { gotoTree($saveTreeNo,$grp); }
+  else { gotoTree($grp,$saveTreeNo); }
   $grp->{top}->Unbusy();
 
   return 1;
@@ -1500,8 +1509,8 @@ sub switchContext {
 
 
 sub gotoTree {
+  my $grp=shift;
   my $no = max(0,min(shift,$#trees));
-  my ($grp)=@_;
   return $treeNo if doEvalHook($grp,"goto_tree_hook") eq 'stop';
   return $no if ($no == $treeNo);
   @nodes=();
@@ -1513,21 +1522,23 @@ sub gotoTree {
 }
 
 sub nextTree {
+  my ($grp)=@_;
   return 0 if ($treeNo >= $#trees);
-  gotoTree($treeNo+1,shift);
+  gotoTree($grp,$treeNo+1);
   return 1;
 }
 
 sub prevTree {
+  my ($grp)=@_;
   return 0 if ($treeNo <= 0);
-  gotoTree($treeNo-1,shift);
+  gotoTree($grp,$treeNo-1);
   return 1;
 }
 
 sub newTree {
   my ($grp)=@_;
-  my $nr={};
-  NewNode($nr); # blessing new root
+  
+  my $nr=FSNode->new(); # blessing new root
 
   splice(@trees, $treeNo, 0, $nr);
 
@@ -1540,8 +1551,8 @@ sub newTree {
 
 sub newTreeAfter {
   my ($grp)=@_;
-  my $nr={};
-  NewNode($nr); # blessing new root
+
+  my $nr=FSNode->new(); # blessing new root
 
   splice(@trees, ++$treeNo, 0, $nr);
 
@@ -1575,10 +1586,11 @@ sub newNode {
   my ($grp)=@_;
   my $parent=$grp->{currentNode};
   return unless $parent;
-  my $nd={};
-  NewNode($nd);            # initializing new node
-  Paste($nd,$parent,\%attribs);
-  $node->{AOrd(\%attribs)}=Ord($parent,\%attribs);
+
+  my $nd=FSNode->new();
+
+  Paste($nd,$parent,$fsF->defs);
+  $node->{$fsF->order}=$parent->{$fsF->order};
   setCurrent($grp,$nd);
 
   getNodes($grp);
@@ -1591,12 +1603,12 @@ sub pruneNode {
   ## Deletes given node
   my ($grp,$node)=@_;
   my $t;
-  return undef unless ($node and Parent($node));
+  return undef unless ($node and $node->parent);
 
-  Paste(Cut($t),Parent($node),\%attribs)
-    while ($t=FirstSon($node));
+  Paste(Cut($t),$node->parent,$fsF->defs)
+    while ($t=$node->firstson);
 
-  setCurrent($grp,Parent($node)) if ($node == $grp->{currentNode});
+  setCurrent($grp,$node->parent) if ($node == $grp->{currentNode});
   $t=DeleteLeaf($node);
   getNodes($grp);
   redraw_tree($grp);
@@ -1674,18 +1686,14 @@ sub About {
       "Current file:\n".
 	"$grp->{currentFile}\n".
 	  "Format: $grp->{currentFileFormat}, $#trees trees\n";
-    my @colinf=([],[],[]);
-    foreach my $atr (@atord) {
-      foreach (1,2,3) {
-	if (index($attribs{$atr}," $_")>=0) {
-	  $colinf[$_-1]=[@{$colinf[$_-1]},$atr];
-	  last;
-	}
-      }
+    my %colinf=(Shadow => [], Hilite =>, XHilite => []);
+    foreach ($fsF->attributes) {
+      push @{$colinf{$fsF->color($_)}},$_
+	unless ($fsF->color($_) eq 'normal');
     }
-    $colinf="Coloured attributes:\n    Highlited: ".join(",",@{$colinf[1]}).
-      "\n    XHighlited: ".join(",",@{$colinf[2]}).
-	"\n    Shadow: ".join(",",@{$colinf[0]})."\n";
+    $colinf="Coloured attributes:\n    Highlited: ".join(",",@{$colinf{Hilite}}).
+      "\n    XHighlited: ".join(",",@{$colinf{XHilite}}).
+	"\n    Shadow: ".join(",",@{$colinf{Shadow}})."\n";
   }
 
   doEvalHook($grp,"about_file_hook",\$message);
@@ -1791,7 +1799,7 @@ sub startMain {
   $group{RecentFileMenu}=$group{FileMenu}->cascade(-label => "Recent Files", -underline => 0);
   foreach (@recentFiles) {
     $group{RecentFileMenu}->command(-label  => $_,
-				    -command => [\&openFile,$_,\%group]);
+				    -command => [\&openFile,\%group,$_]);
   }
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label => 'Previous File', -underline => 3, -command => [\&prevFile,\%group]);
@@ -2129,8 +2137,6 @@ sub startMain {
   addBindTags($group{'findPrevButton'},'my');
 
 
-
-
   $group{'frame'}->Frame()->pack(-side => 'left', -padx =>'10');
   $group{'prevButton'}->pack(-side => 'left', -padx =>'1');
   $group{'nextButton'}->pack(-side => 'left', -padx => '1');
@@ -2211,8 +2217,8 @@ sub startMain {
   $group{'frame'}->bind('my','<comma>' => [\&onIdlePrevTree,\%group]);
   $group{'frame'}->bind('my','<Next>' => [\&onIdleNextTree,\%group]);
   $group{'frame'}->bind('my','<Prior>' => [\&onIdlePrevTree,\%group]);
-  $group{'frame'}->bind('my','<greater>' => [sub { shift; gotoTree($#trees,shift); Tk->break; },\%group]);
-  $group{'frame'}->bind('my','<less>' => [sub { shift; gotoTree(0,shift); Tk->break; },\%group]);
+  $group{'frame'}->bind('my','<greater>' => [sub { shift; my $grp=shift; gotoTree($grp,$#trees); Tk->break; },\%group]);
+  $group{'frame'}->bind('my','<less>' => [sub { shift; my $grp=shift; gotoTree($grp,0); Tk->break; },\%group]);
 
   $group{'frame'}->bind('my','<KeyPress-Return>' => [sub {
 					      my ($w,$grp)=@_;
@@ -2302,7 +2308,7 @@ sub startMain {
   print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
 
   if ($firstFile) {
-    openFile($firstFile,\%group);
+    openFile(\%group,$firstFile);
   }
   
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
@@ -2329,33 +2335,35 @@ sub startMain {
 }
 
 sub onIdleNextTree {
-  my $w=shift;
+  my ($w,$grp)=@_;
   $treeNo=max(0,min($treeNo+1,$#trees));
   getValueLine(@_);
   $w->afterCancel($myIdle) if ($myIdle);
-  $_[0]->{valueLine}->idletasks();
+  $grp->{valueLine}->idletasks();
   $myIdle=$w->afterIdle([ sub {
+			    my $g=shift;
 			    my $no=$treeNo;
 			    $treeNo=-1; # this is to force getNodes & redraw
-			    gotoTree($no,@_);
+			    gotoTree($g,$no);
 			    $myIdle=undef;
-			  },@_]);
+			  },$grp]);
   Tk->break;
 }
 
 sub onIdlePrevTree {
   if ($treeNo>0) {
-    my $w=shift;
+    my ($w,$grp)=@_;
     $treeNo--;
-    getValueLine(@_);
+    getValueLine($grp);
     $w->afterCancel($myIdle) if ($myIdle);
-    $_[0]->{valueLine}->idletasks();
+    $grp->{valueLine}->idletasks();
     $myIdle=$w->afterIdle([ sub {
+			      my $g=shift;
 			      my $no=$treeNo;
 			      $treeNo=-1; # this is to force getNodes & redraw
-			      gotoTree($no,@_);
+			      gotoTree($g,$no);
 			      $myIdle=undef;
-			    },@_]);
+			    },$grp]);
   }
   Tk->break;
 }
@@ -2418,13 +2426,13 @@ sub fileDialog {
      ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
      ["CSTS files",           [qw/.am .cst .csg .csts/]],
      ["Gzipped CSTS files",           [qw/.am.gz .cst.gz .csg.gz .csts.gz/]],
-     ["Backup Fs files",           [qw/.fs~ .fb .FB .Fb/]],
-     ["Backup gzipped Fs files",           [qw/.fgz~ .fs.gz~ .FGZ~ .FS.gz~ .FS.GZ~/]],
+     ["Backup Fs files",           [qw/.fs\~ .fb .FB .Fb/]],
+     ["Backup gzipped Fs files",           [qw/.fgz\~ .fs.gz\~ .FGZ\~ .FS.gz\~ .FS.GZ\~/]],
      ["All files",        '*']
     );
   $file = $grp->{'top'}->getOpenFile(-filetypes => \@types);
   if (defined $file and $file ne '') {
-    return openFile($file,$grp);
+    return openFile($grp,$file);
   }
   return 0;
 }
@@ -2693,7 +2701,7 @@ sub selectValuesDialog {
 
 sub editListAttr {
   my ($grp, $value, $attr,$d) =@_;
-  my @vals = map { encode($_) } ListValues($attr,\%attribs);
+  my @vals = map { encode($_) } $fsF->listValues($attr);
   #print "splitting ",$value{$attr},"\n";
   my @selected = map { encode($_) } split /\|/,$value;
   #print "splitted to ", join ('-',@selected),"\n";
@@ -2719,9 +2727,9 @@ sub editAttrsDialog {
   my ($grp,$node)=@_;
   return if (doEvalHook($grp,"do_edit_node_hook",$node) eq 'stop');
   my @vals;
-  my $rows=min(10,$#atord+1);
+  my $rows=min(10,$fsF->count);
   my @r=();
-  local @atord = sort {uc($a) cmp uc($b)} @atord if $sortAttrs;
+  my @atord = $sortAttrs ? (sort {uc($a) cmp uc($b)} $fsF->attributes) : $fsF->attributes;
   my ($a,$b,$r);
 
   $grp->{'top'}->Busy(-recurse =>1);
@@ -2774,7 +2782,7 @@ sub editAttrsDialog {
     # Reliefs: raised, sunken, flat, ridge, and groove.
     push @r,$f->Label(-text => $_, -anchor => 'nw')->pack();
 
-    if  (IsList($_,\%attribs) or
+    if  ($fsF->isList($_) or
 	 $$node{$_}=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
       $r = $f->Frame;
       $e{$_} = $r->Entry(-relief => 'sunken', -takefocus => 1,
@@ -2784,7 +2792,7 @@ sub editAttrsDialog {
 		      -command => [sub {
 				     my ($e,$grp,$node,$attr,$d)=@_;
 				     my $result =
-				       (IsList($attr,\%attribs)
+				       ($fsF->isList($attr)
 					? editListAttr($grp,$e->get,$attr)
 					: editAmbiguousAttr($grp,$e->get,$attr,$d));
 				     if (defined $result) {
@@ -2857,7 +2865,7 @@ sub customAttrsDialog {
                      -borderwidth 2 -setgrid true
 		     -height 15 -scrollbars e
                      -exportselection 0/)->pack();
-  $al->insert('end',$sortAttrs ? (sort {uc($a) cmp uc($b)} @atord) : @atord);
+  $al->insert('end',$sortAttrs ? (sort {uc($a) cmp uc($b)} $fsF->attributes) : $fsF->attributes);
   $af->pack(qw/-padx 5 -side left -expand yes -fill both/);
   my $cf = $f->Frame();
   $cf->Label(-text => 'Display patterns')->pack();
@@ -2981,7 +2989,7 @@ sub findNodeDialog {
   my ($grp,$template)=@_;
   my $r;
   my @vals;
-  local @atord = sort {uc($a) cmp uc($b)} @atord if $sortAttrs;
+  my @atord = $sortAttrs ? (sort {uc($a) cmp uc($b)} $fsF->attributes) : $fsF->attributes;
 
   my $b;
   my $a;
@@ -3109,9 +3117,9 @@ sub findFirstTemplated {
     unless (grep ((exists($template->{$_}) and
 		   $template->{$_} ne '' and
 		   not cmpTemplateField($grp,$node->{$_},$template->{$_})
-		  ), @atord))
+		  ), $fsF->attributes))
       {
-	gotoTree($tree, $grp);
+	gotoTree($grp,$tree);
 	setCurrent($grp, $node);
 	centerTo($grp,$node);
 	return $node;
@@ -3124,9 +3132,9 @@ sub findFirstTemplated {
 sub lastSubtreeNode {
   my ($top)=@_;
   return undef unless $top;
-  while (FirstSon($top)) {
-    $top=FirstSon($top);
-    $top=RBrother($top) while (RBrother($top));
+  while ($top->firstson) {
+    $top=$top->firstson;
+    $top=$top->rbrother while ($top->rbrother);
   }
   return $top;
 }
@@ -3148,9 +3156,9 @@ sub findPrevTemplated {
     unless (grep ((exists($template->{$_}) and
 		   $template->{$_} ne '' and
 		   not cmpTemplateField($grp,$node->{$_},$template->{$_})
-		  ), @atord))
+		  ), $fsF->attributes))
       {
-	gotoTree($tree, $grp);
+	gotoTree($grp, $tree);
 	setCurrent($grp, $node);
 	centerTo($grp,$node);
 	return $node;
@@ -3186,7 +3194,7 @@ sub editAttr {
   my $result = doEvalHook($grp,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
-  if (IsList($attr,\%attribs)) {
+  if ($fsF->isList($attr)) {
     $newvalue = editListAttr($grp,$$node{$attr},$attr,$grp->{top});
     if (defined($newvalue)) {
       $grp->{'top'}->Busy(-recurse => 1);
@@ -3253,11 +3261,11 @@ sub whichTextColor {
 
   return $textColor unless ($highlightAttributes);
 
-  if (index($attribs{$arg}," 1")>=0) {
+  if ($fsF->color($arg) eq 'Shadow') {
     return $textColorShadow;
-  } elsif (index($attribs{$arg}," 2")>=0) {
+  } elsif ($fsF->color($arg) eq 'Hilite') {
     return $textColorHilite;
-  } elsif (index($attribs{$arg}," 3")>=0) {
+  } elsif ($fsF->color($arg) eq 'XHilite') {
     return $textColorXHilite;
   } else {
     return $textColor;
@@ -3354,7 +3362,7 @@ sub redraw_tree {
       delete $node->{$_}
 	if (/^_tkText/);
     }
-    $parent=Parent($node);
+    $parent=$node->parent;
     use integer;
     if ($parent) {
       $$node{"_tkLine_"}=$grp->{'canvas'}->createLine($$node{"_tkXPOS_"}+$nodeWidth/2,
@@ -3596,11 +3604,11 @@ sub recalculate_positions {
   $maxypos=0;
   foreach $node (@nodes) {
     $ypos=0;
-    $parent=Parent($node);
+    $parent=$node->parent;
     while ($parent) {
       #print "!\n";
       $ypos++;
-      $parent=Parent($parent);
+      $parent=$parent->parent;
     }
     $maxypos=max($maxypos,$ypos);
     $$node{"_tkYPOS_"}=$baseYPos+$ypos*(2*($nodeYSkip+$ymargin)+($#displayAttrs+1)*$fontHeight+$nodeHeight);
@@ -3643,7 +3651,7 @@ sub IsHidden {
   # Tests if given node is hidden or not
   # Returns the ancesor that hides it or undef
   my $node=shift;
-  $node=Parent($node) while ($node and (Hide($node,\%attribs) ne 'hide'));
+  $node=$node->parent while ($node and ($node->{$fsF->hide} ne 'hide'));
   return ($node ? $node : undef);
 }
 
@@ -3651,21 +3659,21 @@ sub currentUnhiden {
   my $grp=shift;
   unless ($showHidden) {
     my $node=IsHidden($grp->{'currentNode'});
-    setCurrent($grp,Parent($node)) if ($node and Parent($node));
+    setCurrent($grp,$node->parent) if ($node and $node->parent);
   }
 }
 
 sub currentLeft {
   my $grp=shift;
   if ($showHidden) {
-    if (LBrother($grp->{'currentNode'})) {
-      setCurrent($grp,LBrother($grp->{'currentNode'}));
+    if ($grp->{'currentNode'}->lbrother) {
+      setCurrent($grp,$grp->{'currentNode'}->lbrother);
       centerTo($grp,$grp->{'currentNode'});
     }
   } else {
-    my $n=LBrother($grp->{'currentNode'});
-    $n=LBrother($n) while ($n and defined(Hide($n,\%attribs))
-			   and (Hide($n,\%attribs) eq 'hide'));
+    my $n=$grp->{'currentNode'}->lbrother;
+    $n=$n->lbrother while ($n and defined($fsF->hide)
+			   and ($n->{$fsF->hide} eq 'hide'));
     if ($n) {
       setCurrent($grp,$n);
       centerTo($grp,$grp->{'currentNode'});
@@ -3676,15 +3684,15 @@ sub currentLeft {
 sub currentRight {
   my $grp=shift;
   if ($showHidden) {
-    if (RBrother($grp->{'currentNode'})) {
-      setCurrent($grp,RBrother($grp->{'currentNode'}));
+    if ($grp->{'currentNode'}->rbrother) {
+      setCurrent($grp,$grp->{'currentNode'}->rbrother);
       centerTo($grp,$grp->{'currentNode'});
     }
   } else {
-    my $n=RBrother($grp->{'currentNode'});
+    my $n=$grp->{'currentNode'}->rbrother;
 
-    $n=RBrother($n) while ($n and defined(Hide($n,\%attribs))
-			   and (Hide($n,\%attribs) eq 'hide'));
+    $n=$n->rbrother while ($n and defined($n->{$fsF->hide})
+			   and ($n->{$fsF->hide} eq 'hide'));
     if ($n) {
       setCurrent($grp,$n);
       centerTo($grp,$grp->{'currentNode'});
@@ -3695,14 +3703,14 @@ sub currentRight {
 sub currentDown {
   my $grp=shift;
   if ($showHidden) {
-    if (FirstSon($grp->{'currentNode'})) {
-      setCurrent($grp,FirstSon($grp->{'currentNode'}));
+    if ($grp->{'currentNode'}->firstson) {
+      setCurrent($grp,$grp->{'currentNode'}->firstson);
       centerTo($grp,$grp->{'currentNode'});
     }
   } else {
-    my $n=FirstSon($grp->{'currentNode'});
-    $n=RBrother($n) while ($n and defined(Hide($n,\%attribs))
-			   and Hide($n,\%attribs) eq 'hide');
+    my $n=$grp->{'currentNode'}->firstson;
+    $n=$n->rbrother while ($n and defined($n->{$fsF->hide})
+			   and $n->{$fsF->hide} eq 'hide');
     if ($n) {
       setCurrent($grp,$n);
       centerTo($grp,$grp->{'currentNode'});
@@ -3714,8 +3722,8 @@ sub currentDown {
 
 sub currentUp {
   my $grp=shift;
-  if (Parent($grp->{'currentNode'})) {
-    setCurrent($grp,Parent($grp->{'currentNode'}));
+  if ($grp->{'currentNode'}->parent) {
+    setCurrent($grp,$grp->{'currentNode'}->parent);
     centerTo($grp,$grp->{'currentNode'});
   }
 }
@@ -3984,11 +3992,11 @@ sub node_release {
 			  nodeOptions($grp,$parent));
       while ($parent) {
 	$p=0, last if ($node eq $parent);
-	$parent=Parent($parent);
+	$parent=$parent->parent;
       }
       if ($p and $grp->{'pinfo'}{$p} 
-	  and Parent($node)!=$grp->{'pinfo'}{$p}) {
-	Paste(Cut($node),$grp->{'pinfo'}{$p},\%attribs);
+	  and $node->parent!=$grp->{'pinfo'}{$p}) {
+	Paste(Cut($node),$grp->{'pinfo'}{$p},$fsF->defs);
 	$FileNotSaved=1;
 	redraw_tree($grp);
 	centerTo($grp,$grp->{currentNode});
