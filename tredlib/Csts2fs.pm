@@ -283,6 +283,10 @@ my %att = (
 			     }],
 	   'TRl origin' => [\&to_node_attr,'','AIDREFS'],
 	   'MTRl origin' => [\&to_composed_node_attr,'_','','src','MAIDREFS'],
+	   'x name' => [sub {
+			  my ($s,$data)=@_;
+			  $s->{node}->{TR}="" if ($data eq 'TNT');
+			}]
 	  );
 
 my %pcdata = (
@@ -512,29 +516,30 @@ my %pcdata = (
  @misc
 );
 
+
 %initial_root_values = ();
 
 %initial_node_values = (
-  'afun' => '???',
-  'gender' => '???',
-  'number' => '???',
-  'degcmp' => '???',
-  'tense' => '???',
-  'aspect' => '???',
-  'iterativeness' => '???',
-  'verbmod' => '???',
-  'deontmod' => '???',
-  'sentmod' => '???',
-  'tfa' => '???',
-  'func' => '???',
-  'gram' => '???',
-  'memberof' => '???',
-  'del' => 'NIL',
-  'quoted' => '???',
-  'dsp' => '???',
-  'corsnt' => '???',
-  'antec' => '???',
-  'parenthesis' => '???'
+#   'afun' => '???',
+#   'gender' => '???',
+#   'number' => '???',
+#   'degcmp' => '???',
+#   'tense' => '???',
+#   'aspect' => '???',
+#   'iterativeness' => '???',
+#   'verbmod' => '???',
+#   'deontmod' => '???',
+#   'sentmod' => '???',
+#   'tfa' => '???',
+#   'func' => '???',
+#   'gram' => '???',
+#   'memberof' => '???',
+#   'del' => 'NIL',
+#   'quoted' => '???',
+#   'dsp' => '???',
+#   'corsnt' => '???',
+#   'antec' => '???',
+#   'parenthesis' => '???'
 );
 
 $header=\@ARheader;
@@ -626,9 +631,9 @@ sub make_new_node {
   push @{$s->{nodes}},$s->{node} if ref($s->{node});
   my $sentord=ref($s->{node}) ? $s->{node}->{sentord}+1 : 0;
   $s->{node} = FSNode->new();
-#    foreach (keys %initial_node_values) {
-#      $s->{node}->{$_} = $initial_node_values{$_};
-#    }
+  foreach (keys %initial_node_values) {
+    $s->{node}->{$_} = $initial_node_values{$_};
+  }
   $s->{node}->{sentord}=$sentord;
   foreach (keys %{$s->{following}}) {
     $s->{node}->{$_} = $s->{following}->{$_};
@@ -762,6 +767,12 @@ sub setupAR {
   $fs_tail='(2,3)';
   @fs_patterns='${form}', '${afun}';
   $fs_hint="tag:\t".'${tag}';
+}
+
+sub setupSpec {
+  $gov = $_[0];
+  $header = [ (grep !/\@N/,@TRheader), '@N '.$_[1] ];
+  $initial_node_values{TR}='hide';
 }
 
 1;
