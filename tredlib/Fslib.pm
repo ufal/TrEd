@@ -1068,12 +1068,15 @@ Return a list of visible dependent nodea.
 
 sub visible_children {
   my ($self,$fsformat) = @_;
-  die "required parameter missing for visible_children(fsfile)" unless $fsformat;
+  die "required parameter missing for visible_children(fsformat)" unless $fsformat;
   my @children=();
-  my $child=$self->firstson;
-  while ($child) {
-    push @children, $child unless $fsformat->isHidden($child);
-    $child=$child->rbrother;
+  unless ($fsformat->isHidden($self)) {
+    my $hid=$fsformat->hide;
+    my $child=$self->firstson;
+    while ($child) {
+      push @children, $child unless $child->getAttribute($hid) eq 'hide';
+      $child=$child->rbrother;
+    }
   }
   return @children;
 }
@@ -1363,7 +1366,7 @@ sub isHidden {
   my ($self,$node)=@_;
   return unless ref($self) and ref($node);
   my $hid=$self->hide;
-  $node=$node->parent while (ref($node) and ($node->getAttribute($hid) ne 'hide'));
+  $node=$node->parent while (ref($node) && ($node->getAttribute($hid) ne 'hide'));
   return ($node ? $node : undef);
 }
 
