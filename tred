@@ -9,7 +9,7 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
             @backends @ISA @EXPORT @open_types @save_types $opt_l $root
             $this $FileNotSaved $forceFileSaved $_NoSuchTree $NodeClipboard
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
-            $valueLine $showHidden $appName %menuBindings %keyBindings
+            $valueLine $appName %menuBindings %keyBindings
             $savedSavePixmap $normalSavePixmap
            );
 
@@ -180,11 +180,12 @@ do {
 };
 
 $TrEd::Config::treeViewOpts={
-	       drawSentenceInfo => 0,
-	       customColors	 => ['darkgreen','darkblue','darkmagenta',
-				      'orange','black','DodgerBlue4',
-				      'red','gold','cyan','midnightblue']
-	      };
+			     drawSentenceInfo => 0,
+			     showHidden => 0,
+			     customColors	 => ['darkgreen','darkblue','darkmagenta',
+						     'orange','black','DodgerBlue4',
+						     'red','gold','cyan','midnightblue']
+			    };
 
 if (defined $opt_c) {
   @TrEd::Config::config_file_search_list=($opt_c); # override any other possible config files
@@ -474,16 +475,17 @@ sub closeFile {
   undef $NodeClipboard;
   $win->{root}=undef;
   my $fsfile=$win->{FSFile};
+  if ($fsfile) {
+    $fsfile->currentTreeNo($win->{treeNo});
+    $fsfile->currentNode($win->{currentNode});
+  }
   $win->{FSFile}=undef;
   $win->{treeNo}=undef;
-  delete $win->{currentNode} 
-    if (exists $win->{currentNode});
+  delete $win->{currentNode} if (exists $win->{currentNode});
   $win->{treeView}->clear_pinfo();
   $valueLine="" if (isFocused($win));
   if ($keep and $fsfile) {
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
-    $fsfile->currentTreeNo($win->{treeNo});
-    $fsfile->currentNode($win->{currentNode});
   } else {
     if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
       print STDERR "Removing ".$fsfile->filename()." from list of open files\n"  if $tredDebug;
@@ -776,7 +778,7 @@ sub saveFile {
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
   my ($win,$node,$show)=@_;
-  $show=$showHidden unless defined $show;
+  $show=$win->get_showHidden() unless defined $show;
 
   return 0 unless ($node and $win->{FSFile});
   return 1 if $show or not defined($win->{FSFile}->FS->hide());
@@ -823,9 +825,9 @@ sub get_nodes_win {
   my ($win)=@_;
   if ($win->{FSFile}) {
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-    ($win->{Nodes},$win->{currentNode})= $win->{FSFile}->nodes($win->{treeNo},
-							       $win->{currentNode},
-							       $showHidden);
+    ($win->{Nodes},$win->{currentNode})= $win->{treeView}->nodes($win->{FSFile},
+								 $win->{treeNo},
+								 $win->{currentNode});
   } else {
     $win->{root}=undef;
     $win->{Nodes}=[];
@@ -1662,7 +1664,7 @@ sub printThis {
 			   $grp->{top},
 			   $canvas,
 			   @print_opts,
-			   $showHidden,
+			   $grp->{focusedWindow}->{treeView}->get_showHidden(),
 			   $psFontFile,
 			   $psFontAFMFile,
 #			   $type1font,
@@ -2168,25 +2170,33 @@ sub startMain {
 	   -command => [sub {
 			   my ($grp)=@_;
 			   $grp->{focusedWindow}->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
-			   redraw_all($grp->{focusedWindow});
+			   redraw_win($grp->{focusedWindow});
 			 },\%group]],
 	 [Checkbutton=> 'Show Hidden Nodes', -underline=> 0,
 	  -underline=> 5,
-	  -variable=> \$showHidden,
+	  -variable=> \$treeViewOpts->{showHidden},
 	  -command => [sub {
 			 $win=$_[0]->{focusedWindow};
-			 get_nodes_all($_[0]);
+			 $win->{treeView}->set_showHidden($treeViewOpts->{showHidden});
+			 get_nodes_win($win);
 			 currentUnhiden($win);
-			 redraw_all($_[0]) },\%group]],
+			 redraw_win($win) },\%group]],
 	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
 	  -variable=> \$treeViewOpts->{highlightAttributes},
 	  -command => [sub {
 			   my ($grp)=@_;
 			   $grp->{focusedWindow}->{treeView}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
-			   redraw_all($grp->{focusedWindow});
+			   redraw_win($grp->{focusedWindow});
 			 },\%group]],
 	 [Checkbutton=> 'Sort Attributes in Dialogs', -underline=> 1,
 	  -variable=> \$sortAttrs],
+	 [Separator=> ''],
+	 [Button=> "[1] Close current view", -underline=> 1,
+	  -command=> [\&removeWindow,\%group]],
+	 [Button=> "[2] Split view horizontally", -underline=> 1,
+	  -command=> [\&splitWindow,\%group,'horiz']],
+	 [Button=> "[3] Split view vertically", -underline=> 1,
+	  -command=> [\&splitWindow,\%group,'vert']],
 	 [Separator=> ''],
 	 [Button=> 'List of sentences ...', -underline=> 1,
 	  -command=> [\&viewSentencesDialog,\%group]],
@@ -2505,17 +2515,19 @@ sub startMain {
 
   $group{rmsplitButton}=
     $group{frame}->Button(-takefocus=>0, 
-			  -text=> "Remove Window",
+			  -text=> "Remove Current View",
 			  -relief=> $buttonsRelief,
 			  -image=> $group{top}->Pixmap(-file=>
 						       "$libDir/rmsplit.xpm"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&removeWindow,\%group])->pack(-side=>'right',
 								     -padx=>'1');
+  $group{Balloon}->attach($group{rmsplitButton},
+			  -balloonmsg=> "remove current view");
 
   $group{hsplitButton}=
     $group{frame}->Button(-takefocus=>0, 
-			  -text=> "Split Window Horizontally",
+			  -text=> "Split View Horizontally",
 			  -relief=> $buttonsRelief,
 			  -image=> $group{top}->Pixmap(-file=>
 						       "$libDir/hsplit.xpm"),
@@ -2523,10 +2535,10 @@ sub startMain {
 			  -command=> [\&splitWindow,\%group,'horiz'])->pack(-side=>'right',
 									    -padx=>'1');
   $group{Balloon}->attach($group{hsplitButton},
-			  -balloonmsg=> "split window horizontally");
+			  -balloonmsg=> "split view horizontally");
   $group{vsplitButton}=
     $group{frame}->Button(-takefocus=>0, 
-			  -text=> "Split Window Vertically",
+			  -text=> "Split View Vertically",
 			  -relief=> $buttonsRelief,
 			  -image=> $group{top}->Pixmap(-file=>
 						       "$libDir/vsplit.xpm"),
@@ -2534,7 +2546,7 @@ sub startMain {
 			  -command=> [\&splitWindow,\%group,'vert'])->pack(-side=>'right',
 									   -padx=>'1');
   $group{Balloon}->attach($group{hsplitButton},
-			  -balloonmsg=> "split window vertically");
+			  -balloonmsg=> "split view vertically");
 
 
   print STDERR "Packing widgets.\n" if $tredDebug;
@@ -2755,7 +2767,6 @@ sub startMain {
 
 sub onIdleNextTree {
   my ($win)=@_;
-  print "in window $win\n";
   return unless $win->{FSFile};
   $win->{treeNo}=max(0,min($win->{treeNo}+1,$win->{FSFile}->lastTreeNo));
   update_value_line($win->{framegroup});
@@ -2877,13 +2888,20 @@ sub saveFileAs {
 sub askSaveFiles {
   my ($grp)= @_;
 
-  askSaveFile($grp->{focusedWindow},0);
+  @{$grp->{treeWindows}} = grep { $_ ne $grp->{focusedWindow} } @{$grp->{treeWindows}};
+  unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
+  my $win;
+  foreach $win (@{ $grp->{treeWindows} }) {
+    print $win,"\n";
+    if ($win->{FSFile}) {
+      focusCanvas($win->canvas(),$win->{framegroup});
+      askSaveFile($win);
+      closeFile($win,1);
+    }
+  }
+
   while (@openfiles) {
     resumeFile($grp->{focusedWindow},shift @openfiles);
-
-    # let user see what he saves or leaves
-				# CHANGE HERE: first go through all windows and close active files,
-                                # then try to resume postponed files and close them
     updateTitle($grp);
     get_nodes_win($grp->{focusedWindow});
     redraw_win($grp->{focusedWindow});
@@ -2891,7 +2909,6 @@ sub askSaveFiles {
       centerToXY($grp->{focusedWindow},0,0);
     }
     $grp->{top}->update();
-
     askSaveFile($grp->{focusedWindow},0);
   }
 }
@@ -4130,7 +4147,7 @@ sub scrollCanvasToXY {
 sub currentUnhiden {
   my $win=(@_);
   return unless $win->{FSFile};
-  unless ($showHidden) {
+  unless ($win->{treeView}->{showHidden}) {
     my $node=$win->{FSFile}->FS->isHidden($win->{currentNode});
     setCurrent($win,$node->parent) if ($node and $node->parent);
   }
@@ -4140,7 +4157,7 @@ sub currentLeft {
   my $grp=shift;
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
-  if ($showHidden) {
+  if ($win->{treeView}->{showHidden}) {
     if ($win->{currentNode}->lbrother) {
       setCurrent($win,$win->{currentNode}->lbrother);
       centerTo($win,$win->{currentNode});
@@ -4160,7 +4177,7 @@ sub currentRight {
   my $grp=shift;
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
-  if ($showHidden) {
+  if ($win->{treeView}->{showHidden}) {
     if ($win->{currentNode}->rbrother) {
       setCurrent($win,$win->{currentNode}->rbrother);
       centerTo($win,$win->{currentNode});
@@ -4181,7 +4198,7 @@ sub currentDown {
   my $grp=shift;
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
-  if ($showHidden) {
+  if ($win->{treeView}->{showHidden}) {
     if ($win->{currentNode}->firstson) {
       setCurrent($win,$win->{currentNode}->firstson);
       centerTo($win,$win->{currentNode});
