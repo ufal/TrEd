@@ -537,8 +537,7 @@ APPINFO    NONE
 >
 <!ATTLIST fadd
           del  (elid|elex|expn|transf) elid 
-          id    CDATA   #IMPLIED 
->
+          id    CDATA   #IMPLIED>
 
 <!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
                     TRg? & corl? & corT? & corr? &
@@ -604,6 +603,10 @@ APPINFO    NONE
 
 <!ELEMENT Tpa - O (#PCDATA)
                 -- parenthesis --
+>
+
+<!ELEMENT Top - O (#PCDATA)
+                -- operand --
 >
 
 <!ELEMENT TRt - O (#PCDATA)
