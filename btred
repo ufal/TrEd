@@ -502,7 +502,6 @@ sub startMain {
 
 	# initialize Safe compartment
 	init_tredmacro($grp);
-	gotoFile($grp,0); # neither goto_file_hook nor file_open_hook in server-mode
 
 	# script command-line arguments
 	if (exists($request{ARGS})) {
@@ -529,6 +528,7 @@ sub startMain {
 	    doEvalHook($grp,"start_hook") ne 'stop' and
 	    doEvalHook($grp,"preload_hook") ne 'stop') { # for compatibility
 	  _msg "RUNNING CODE: $request{CODE}\n";
+	  gotoFile($grp,0);
 	  my $t0 = new Benchmark;
 	  do {
 	    doEvalMacro($grp,"package $context;".$request{CODE});
