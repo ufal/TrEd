@@ -13,9 +13,16 @@ sub doc_free {
   $self->TrEd::ValLex::Data::doc_free;
 }
 
+sub clear_indexes {
+  $self->[8]=undef;
+  $self->[9]=undef;
+  $self->[10]=undef;
+}
+
 sub _index_by_id {
   my ($self)=@_;
   my $word = $self->getFirstWordNode();
+  $self->[8]={};
   while ($word) {
     $self->[8]->{$word->getAttribute('word_ID')}=$word;
     foreach my $frame ($self->getFrameNodes($word)) {
@@ -28,6 +35,7 @@ sub _index_by_id {
 sub _index_by_lemma {
   my ($self)=@_;
   my $word = $self->getFirstWordNode();
+  $self->[9]={};
   while ($word) {
     push @{$self->[9]->{$word->getAttribute('lemma')}},$word;
     $word = $word->findNextSibling('word');
@@ -247,6 +255,21 @@ sub serialize_forms {
     push @forms,$self->serialize_form($form);
   }
   return join ";",@forms;
+}
+
+sub addWord {
+  my $self = shift;
+  my $ret = $self->TrEd::ValLex::Data::addWord(@_);
+  if ($ret) {
+    $self->clear_indexes();
+  }
+  return $ret;
+}
+
+sub reload {
+  my $self = shift;
+  $self->clear_indexes();
+  return $self->TrEd::ValLex::Data::reload(@_);
 }
 
 sub serialize_form {
