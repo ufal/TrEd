@@ -272,6 +272,31 @@ EOF
   }
 }
 
+sub get_status_line_hook {
+  # get_status_line_hook may either return a string
+  # or a pair [ field-definitions, field-styles ]
+  return unless $this;
+  return [
+	  # status line field definitions ( field-text => [ field-styles ] )
+	  [
+	   "     id: " => [qw(label)],
+	   $this->{id} => [qw({id} value)],
+           ($this->parent
+            ?
+            ("     m/lemma: " => [qw(label)],
+             $this->{'m'}{lemma} => [qw({m/lemma} value)],
+             "     m/tag: " => [qw(label)],
+             $this->{'m'}{tag} => [qw({m/tag} value)])
+            :''),
+	  ],
+
+	  # field styles
+	  [
+	   "label" => [-foreground => 'black' ],
+	   "value" => [-underline => 1 ],
+	  ]
+	 ];
+}
 
 sub allow_switch_context_hook {
   return 'stop' if schema_name() ne 'adata';
