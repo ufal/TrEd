@@ -4,7 +4,9 @@
 
 sub file_opened_hook {
   if (exists $grp->{FSFile}->FS->defs->{TR}) {
-    return SwitchContext('Tectogrammatic');
+    return SwitchContext('Tectogrammatic') 
+      unless (CurrentContext eq 'TR_Correction' or
+	      CurrentContext eq 'TFA');
   } else {
     return SwitchContext('Analytic') unless CurrentContext eq 'Analytic_Correction';
   }
