@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-24 17:29:45 pajas>
+## Time-stamp: <2004-03-25 11:04:16 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -502,7 +502,7 @@ sub light_auxcp_children {
     $node=$node->following;
   }
   $node=$this;
-  if ($node->{afun} =~ /Aux[P]/ and $node->{TR} eq 'hide') {
+  if ($node->{afun} =~ /Aux[CP]/ and $node->{TR} eq 'hide') {
     # get real analytic children of AuxP (skip coords, Aux[CPZYKG])
     with_AR {
       my @c = grep { $_->{afun}!~/AuxZ/ } children_of_auxcp($node);
