@@ -24,7 +24,7 @@ foreach my $new_file (@new_files) {
     my ($global_history)=$base_doc_el->findnodes("/valency_lexicon/head/global_history");
     my  $global_event=$base_doc->createElement("global_event");
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
-    $global_event->setAttribute("timestamp",sprintf('%d.%d.%d %02d:%02d:%02d',
+    $global_event->setAttribute("time_stamp",sprintf('%d.%d.%d %02d:%02d:%02d',
 						   $mday,$mon,1900+$year,$hour,$min,$sec));
     $global_event->setAttribute("author","PP");
     $global_event->appendText("slevani s novymi ramci z dat $new_doc_owner");
