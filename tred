@@ -12,7 +12,7 @@ if ($^V lt v5.6.0) {
 }
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
-	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q
+	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
@@ -82,7 +82,7 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('qm:c:l:t:huW:GRX:');
+getopts('qm:c:l:t:huW:GDB:RX:');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
@@ -129,7 +129,8 @@ Other options:
 -X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
                 and <ord> to order nodes
 -G              Do not initially resize window to its last geomtery.
--W <window_id>  Embed main window into the given window 
+-W <window_id>  Embed main window into the given window
+-B <backends>   Comma separated list of additional backends to import
 
 EOF
   exit;
@@ -237,6 +238,8 @@ require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
 
+$Fslib::Debug=1 if $opt_D;
+
 # import min and max functions
 require TrEd::MinMax;
 import TrEd::MinMax;
@@ -268,7 +271,9 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 
 #load back-ends
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw/AG2FS TrXMLBackend CSTS_SGML_SP_Backend/));
+@backends=('FSBackend',ImportBackends(split(/,/,$opt_B),
+				      qw/AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend/
+				     ));
 # CSTSBackend not used any more
 #$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
 
@@ -303,7 +308,8 @@ use Exporter;
 %backend_map=(
 	   fs => 'FSBackend',
 	   csts => 'CSTS_SGML_SP_Backend',
-	   trxml => 'TrXMLBackend'
+	   trxml => 'TrXMLBackend',
+	   teixml => 'TEIXMLBackend'
 	 );
 
 @open_types=
@@ -327,9 +333,15 @@ use Exporter;
 	     ],
 	     trxml =>
 	     [["TrXML files",          [qw/.trx .trxml .xml/]],
-	      ["gzipped CSTS files",   [qw/.trx.gz .trxml.gz .xml.gz/]],
+	      ["gzipped TrXML files",   [qw/.trx.gz .trxml.gz .xml.gz/]],
 	      ["All files",        '*']
-	     ]);
+	     ],
+	     teixml =>
+	     [["TEIXML files",          [qw/.tei .xml/]],
+	      ["gzipped TEIXML files",   [qw/.tei.gz .xml.gz/]],
+	      ["All files",        '*']
+	     ]
+	    );
 
 ApplyGlobalConfig();
 
@@ -3684,19 +3696,22 @@ sub saveFileAs {
   $initdir=cwd if ($initdir eq './');
   $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
-  my $response=userQuery($win, "\nPlease,\nchoose one of the following output formats:",
+  my $response=userQuery($win, "\nPlease,\nchoose one of the following output formats.\n\n".
+			 "\nWARNING:\nsome formats may be incompatible with current file.\n",
 			 -title => "Save As ...",
-			 -buttons => ["FS","CSTS","TrXML","Cancel"]);
+			 -buttons => ["FS","CSTS","TrXML","TEIXML","Cancel"]);
   return if ($response eq "Cancel");
 
   $win->{FSFile}->changeBackend($backend_map{lc($response)});
   if ($response eq 'FS') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|xml)/.fs/i;
+    $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml)/.fs/i;
     $file=~s/\.(amt|am|m|a)/$1.fs/;
   } elsif ($response eq 'CSTS') {
-    $file=~s/\.fs/.csts/i;
+    $file=~s/\.(?:fs|tei|trxml|trx|xml)/.csts/i;
   } elsif ($response eq 'TrXML') {
-    $file=~s/\.(?:csts|sgml|sgm|cst|fs)/.trxml/i;
+    $file=~s/\.(?:csts|sgml|sgm|cst|fs|tei)/.trxml/i;
+  } elsif ($response eq 'TEIXML') {
+    $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx)/.xml/i;
   }
   $file= $win->toplevel->getSaveFile(-filetypes=> $save_types{lc($response)},
 				     -title=> "Save As ...",
