@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-01-15 09:45:29 pajas>
+## Time-stamp: <2002-01-28 10:03:11 pajas>
 
 package TredMacro;
 
@@ -313,11 +313,12 @@ sub Union {
 sub Interjection {
 # make interjection of two lists
 # ( strings with |-delimited elements )
-  my @a=ListSplit(shift);
+  return $_[0] unless $_[1] ne "";
+  my @a=ListSplit($_[1]);
   my @c=();
   my $s;
   my $t;
-  element: foreach $s (ListSplit(Union(shift,""))) {
+  element: foreach $s (ListSplit(Union($_[0],""))) {
     for ($t=0;$t<=$#a;$t++) {
       if ($a[$t] eq $s) {
 	push(@c,$s);
