@@ -1154,6 +1154,17 @@ sub GetNewTrlemma {
   return$lemma;
 }#GetNewTrlemma
 
+=item modal_verb_trlemma (trlemma)
+
+Return 1 if trlemma is a member of the list of all possible modal verb
+trlemmas.
+
+=cut
+
+sub modal_verb_trlemma ($) {
+  $_[0]=~/^(?:dát|dovést|hodlat|chtít|mít|moct|muset|smìt|umìt)$/;
+}#modal_verb_trlemmas
+
 
 1;
 
