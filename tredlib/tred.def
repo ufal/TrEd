@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-17 15:06:29 pajas>
+## Time-stamp: <2003-07-24 18:00:50 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1554,7 +1554,7 @@ Return current node's address string in a form of filename#tree_no.index
 
 sub ThisAddress {
   my $node = ref($_[0]) ? $_[0] : $this;
-  return FileName().'#'.(CurrentTreeNumber()+1).'.'.GetNodeIndex($node);
+  return FileName().'##'.(CurrentTreeNumber()+1).'.'.GetNodeIndex($node);
 }
 
 =item ThisAddressNTRED
@@ -1767,6 +1767,25 @@ sub DumpFS {
   return 1;
 }
 
+=item ChangingFile (0|1)
+
+If no argument given, sets C<$FileChanged> to 1. If C<$FileChanged> is
+already set to 1 already 1, does nothing. If C<$FileChanged> has not
+yet been assigned or is zero, sets it to the given value. Returns the
+resulting value.
+
+=cut
+
+sub ChangingFile {
+  my ($val)=@_;
+  $val=1 if !defined($val);
+  if ($FileChanged eq '?') {
+    $FileChanged=$val;
+  } elsif ($FileChanged==0) {
+    $FileChanged=$val;
+  }
+  return $FileChanged;
+}
 
 =back
 
