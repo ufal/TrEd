@@ -603,7 +603,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       die "Error: File name contains tree suffix: $_\n" if
 	/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
     }
-    $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
+    $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
   } elsif ($request_reload_macros) {
     $request_type="RELOAD_MACROS";
     if ($macro_file) {
@@ -619,7 +619,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	die "Error: File name contains tree suffix: $_\n" if
 	  /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
       }
-      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
+      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
     }
   } elsif ($request_list_changed) {
     $request_type="LIST_CHANGED";
@@ -637,7 +637,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	die "Error: File name contains tree suffix: $_\n" if
 	  /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
       }
-      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
+      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n";
     }
   } elsif ($request_close) {
     $request_type="CLOSE";
@@ -647,7 +647,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	die "Error: File name contains tree suffix: $_\n" if
 	  /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
       }
-      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
+      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n";
     }
   } elsif ($request_load) {
     $request_type="HUB_DISTRIBUTE";
@@ -674,7 +674,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
     $request.="$control STATE=MACRO\n".
       _enc2bytes("utf8",join("",@TrEd::Macros::macros));
-    $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding,join("\n",@ARGV)))."\n" if @ARGV;
+    $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding,join("\n",@ARGV)))."\n" ($listedfiles || @files);
     msg "Code: $code\n\n";
   }
 
