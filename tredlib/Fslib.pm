@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-18 15:13:44 pajas>
+# Time-stamp: <2002-04-24 13:31:26 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -446,7 +446,7 @@ sub ReadTree {
   my $l=undef;
 
   while (ReadLine($handle)) {
-    if (s/\\\r*\n//go) { $l.=$_; next; } # if backslashed eol, concatenate
+    if (s/\\\r*\n?$//go) { $l.=$_; next; } # if backslashed eol, concatenate
     $l.=$_;
     last;                               # else we have the whole tree
   }
@@ -1059,11 +1059,9 @@ passed as one FS header line.
 sub create {
   my $self = shift;
   my @header=@_;
-  my @attlist=();
-  my %defs=Fslib::ReadAttribs(\@header,\@attlist);
-  return $self->new({%defs},
-		    \@attlist,
-		    \@header);
+  my $new=$self->new();
+  $new->readFrom(\@header);
+  return $new;
 }
 
 
