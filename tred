@@ -3969,17 +3969,21 @@ sub startMain {
 				my ($w,$grp)=@_;
 				my $Ev=$w->XEvent;
 				my $win=$grp->{focusedWindow};
-				my $node=$win->{root};
 				my (@tags)=
 				  $w->tagNames($w->index($Ev->xy));
-				while ($node) {
-				  if (index(join("",@tags),${node})>=0) {
-				    setCurrent($win,$node);
-				    centerTo($win,$node);
-				    Tk->break;
-				    return;
+				if (doEvalHook($win,
+					       "value_line_doubleclick_hook",
+					       @tags) ne 'stop') {
+				  my $node=$win->{root};
+				  while ($node) {
+				    if (index(join("",@tags),${node})>=0) {
+				      setCurrent($win,$node);
+				      centerTo($win,$node);
+				      Tk->break;
+				      return;
+				    }
+				    $node=$node->following();
 				  }
-				  $node=$node->following();
 				}
 				Tk->break;
 			      },\%group]
