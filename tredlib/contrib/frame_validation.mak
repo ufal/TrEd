@@ -720,7 +720,7 @@ sub match_form {
       $tag = 'AAXXX----------';
       push @a,$fake_node;
     } elsif ($node->{trlemma} eq '&EmpNoun;' or $node->{trlemma} eq '&Idph;') {
-      $pos='NX';
+      $tag = 'NNXXX----------';
       $no_case=2 if $node->{trlemma} eq '&Idph;';
       push @a,$fake_node;
     } elsif ($node->{trlemma} eq '&Emp;') {
