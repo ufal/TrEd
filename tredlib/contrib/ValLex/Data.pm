@@ -198,17 +198,12 @@ sub getWordSubList {
     WORD: while ($word) {
       last if ($i++ % $slen == 0 &&
 	       $item le $self->conv()->decode($word->getAttribute ("lemma")));
-      $word = $word->nextSibling() || last;
-      while ($word) {
-	last if ($word->nodeName() eq 'word');
-	$word = $word->nextSibling() || last;
-      }
+      $word = $word->findNextSibling('word') || last;
     }
     $milestone = $word;
     $before = $slen + $slen/2;
     $after = $slen/2;
   }
-
   # get before list
   $i=0;
   my $word = $milestone;
@@ -221,11 +216,7 @@ sub getWordSubList {
       unshift @words, [$word,$id,$lemma,$pos];
       $i++;
     }
-    $word=$word->previousSibling();
-    while ($word) {
-      last if ($word->nodeName() eq 'word');
-      $word=$word->previousSibling();
-    }
+    $word=$word->findPreviousSibling('word');
   }
 
   # get after list
@@ -239,11 +230,7 @@ sub getWordSubList {
       push @words, [$word,$id,$lemma,$pos];
       $i++;
     }
-    $word=$word->nextSibling();
-    while ($word) {
-      last if ($word->nodeName() eq 'word');
-      $word=$word->nextSibling();
-    }
+    $word=$word->findNextSibling('word');
   }
   return			# sort { $a->[2] cmp $b->[2] }
     @words;
@@ -383,17 +370,6 @@ sub getFrameElementString {
   } else {
     return "EMPTY";
   }
-}
-
-sub getNextWordNode {
-  my ($self,$n)=@_;
-
-  $n=$n->nextSibling();
-  while ($n) {
-    last if ($n and $n->nodeName() eq 'word');
-    $n=$n->nextSibling();
-  }
-  return $n;
 }
 
 sub getFirstWordNode {

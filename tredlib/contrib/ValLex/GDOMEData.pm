@@ -109,6 +109,26 @@ sub isTextNode {
   return $_[0]->getNodeType == XML::GDOME::TEXT_NODE;
 }
 
+sub findNextSibling {
+  my ($self, $name)=@_;
+  my $n=$self->nextSibling();
+  while ($n) {
+    last if ($n and $n->nodeName() eq $name);
+    $n=$n->nextSibling();
+  }
+  return $n;
+}
+
+sub findPreviousSibling {
+  my ($self, $name)=@_;
+  my $n=$self->previousSibling();
+  while ($n) {
+    last if ($n and $n->nodeName() eq $name);
+    $n=$n->previousSibling();
+  }
+  return $n;
+}
+
 package XML::GDOME::Element;
 
 sub addText {
