@@ -40,6 +40,17 @@ sub rebuild_cac_tree {
 	$p = $nodes[$i-$delta];
       }
       CutPaste($n,$p) if $p;
+    } elsif ($n->{x_origt}=~/^81/) {
+      my $j = $i+1;
+      while ($j<@nodes) {
+	my $p = $nodes[$j];
+	if ($p->{x_origt} ne "" and
+	    substr($p->{x_origa},5,1) =~ /[12]/) {
+	  CutPaste($n,$p);
+	  last;
+	}
+	$j++
+      }
     } else {
       my $j = $i+1;
       while ($j<@nodes) {
