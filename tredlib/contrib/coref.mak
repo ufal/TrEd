@@ -458,7 +458,7 @@ new types to the $cortypes variable (separating items with the
 pipeline '|' character) and associate them with colors of arrows
 in the %cortype_colors variable by adding a
 
-C< name => '#rrggbb', >
+C< name =E<gt> '#rrggbb', >
 
 construction, where C<name> is a name of the new type and C<#rrggbb>
 is the color to be used in hexadecimal notation of RGB (red, green,
