@@ -21,7 +21,7 @@ function ask {
 
 function mkplbat {
   PERLBIN=`echo "$PERLBIN" | sed 's!^/cygdrive/\(.\)!\1:!' | sed -e 's!/!\\\\\\\\!g'`
-  sed "s!_PERLBIN_!$PERLBIN!" < bat | sed "s!_CMD_!$1!" > "${TREDDIR}/$1.bat"
+  sed "s!_PERLBIN_!$PERLBIN!" < bat | sed "s!_CMD_!${TREDDIR}/$1!" > "${TREDDIR}/$1.bat"
   return $?
 }
 
