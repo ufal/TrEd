@@ -180,21 +180,21 @@ sub value_line {
   if ($tags) {
     if ($self->{reverseNodeOrder}) {
       return [[$prfx,'prefix'],
-	      map { $_->[0]=encode($_->[0]); $_ } reverse
-	      $fsfile->value_line_list($tree_no,$no_numbers,1)];
+	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
+	      reverse $fsfile->value_line_list($tree_no,$no_numbers,1)];
     } else {
       return [[$prfx,'prefix'],
-	      map { $_->[0]=encode($_->[0]); $_ }
+	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
 	      $fsfile->value_line_list($tree_no,$no_numbers,1)];
     }
   } else {
     if ($self->{reverseNodeOrder}) {
       return $prfx.join " ",
-	map { encode($_) } reverse
-	  $fsfile->value_line_list($tree_no,$no_numbers);
+	map { encode($_) } grep { $_ ne "" }
+	  reverse $fsfile->value_line_list($tree_no,$no_numbers);
     } else {
       return $prfx.join " ",
-	map { encode($_) }
+	map { encode($_) } grep { $_ ne "" }
 	  $fsfile->value_line_list($tree_no,$no_numbers);
     }
   }
@@ -480,7 +480,7 @@ sub node_coords {
   my $x=$self->get_node_pinfo($node,'XPOS');
   my $y=$self->get_node_pinfo($node,'YPOS');
   my $Opts=$self->get_gen_pinfo('Opts');
-  if ($self->get_style_opt($node,'Node','-shape') ne 'polygon',$Opts) {
+  if ($self->get_style_opt($node,'Node','-shape',$Opts) ne 'polygon') {
     my ($nw,$nh)=
       (($currentNode eq $node) ? $self->get_currentNodeWidth : $self->get_nodeWidth,
        ($currentNode eq $node) ? $self->get_currentNodeHeight : $self->get_nodeHeight);
@@ -755,7 +755,6 @@ sub redraw {
   foreach $node (@{$nodes}) {
     $parent=$node->parent;
     use integer;
-    my @coords=split '&',$self->get_style_opt($node,"Line","-coords",\%Opts);
     my @arrow=split '&',$self->get_style_opt($node,"Line","-arrow",\%Opts);
     my @fill=split '&',$self->get_style_opt($node,"Line","-fill",\%Opts);
     my @width=split '&',$self->get_style_opt($node,"Line","-width",\%Opts);
@@ -765,101 +764,137 @@ sub redraw {
     my $lin=0;
     my %nodehash;
 
-    foreach my $coords (@coords) {
-      my @c=split ',',$coords;
-      my $x=$1;
-      my $err=0;
-      COORD: foreach (@c) {
-	# perl inline
-	s{([xy]?)\[\?(.*?)\?\]}{
-	  my $i=0;
-	  my $xy=$1;
-	  my $code=$2;
-	  if (exists($nodehash{$code})) {
-	    $i=$nodehash{$code}
-	  } else {
-	    while ($i<@$nodes) {
-	      my $c=$code;
-	      $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$nodes->[$i]->{$1}'"]ge;
-	      last if eval $c; # not secure, not safe!!!
-	      print STDERR $@ if $@ ne "";
-	      $i++;
-	    }
-	    $nodehash{$code}=$i;
+    my $coords=$self->get_style_opt($node,"Line","-coords",\%Opts);
+
+    # perl inline search
+    $coords =~
+      s{([xy])\[\?(.*?)\?\]}{
+	my $i=0;
+	my $key="[?${2}?]";
+	my $xy=$1;
+	my $code=$2;
+	if (exists($nodehash{"$xy$key"})) {
+	  $nodehash{"$xy$key"}
+	} else {
+	  while ($i<@$nodes) {
+	    my $c=$code;
+
+	    my $this=$node; # $this is the context node
+	    my $node=$nodes->[$i]; # $node is the search node
+	    $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$nodes->[$i]->{$1}'"]ge;
+
+	    last if eval $c;	# NOT SECURE, NOT SAFE!
+	    print STDERR $@ if $@ ne "";
+	    $i++;
 	  }
 	  if ($i<@$nodes) { 
-	    $self->get_node_pinfo($nodes->[$i],(($x and ($xy ne 'y')) or $xy eq 'x') ?
-				  "XPOS" : "YPOS")
+	    $nodehash{"x$key"}=
+	      $self->get_node_pinfo($nodes->[$i], "XPOS");
+	    $nodehash{"y$key"}=
+	      $self->get_node_pinfo($nodes->[$i], "YPOS");
+	    $nodehash{"$xy$key"};
 	  } else {
-	    print STDERR "NOT-FOUND $code\n";
-	    $err=1; 0
+#	    print STDERR "NOT-FOUND $code\n";
+	    "ERR";
 	  }
-	}ge;
-	last COORD if $err;
-	# simple comparison inline
-	s{([xy]?)\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\]}{
-	  my $i=0;
-	  if (exists($nodehash{$2,$3})) {
-	    $i=$nodehash{$2,$3}
+	}
+      }ge;
+    $coords=~
+      s{([xy])\[!(.*?)!\]}{
+	my $i=0;
+	my $key="[!${2}!]";
+	my $xy=$1;
+	my $code=$2;
+	if (exists($nodehash{"$xy$key"})) {
+	  $nodehash{"$xy$key"}
+	} else {
+	  my $c=$code;
+	  my $this=$node; # $this is the context node
+
+	  $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$this->{$1}'"]ge;
+	  my $that=eval $c;	# NOT SECURE, NOT SAFE!
+	  print STDERR $@ if $@ ne "";
+	  if (ref($that)) {
+	    $nodehash{"x$key"}=
+	      $self->get_node_pinfo($that, "XPOS");
+	    $nodehash{"y$key"}=
+	      $self->get_node_pinfo($that, "YPOS");
+	    $nodehash{"$xy$key"};
 	  } else {
-	    $i++ while ($i<@$nodes and
-			!(exists($nodes->[$i]{$2}) and $nodes->[$i]{$2} eq $3));
-	    $nodehash{$2,$3}=$i;
+#	    print STDERR "NOT-FOUND $code\n";
+	    "ERR"
 	  }
-	  if ($i<@$nodes) { 
-	    $self->get_node_pinfo($nodes->[$i],(($x and ($1 ne 'y')) or $1 eq 'x') ?
-				  "XPOS" : "YPOS")
-	  } else {
-	    $err=1; 0 
-	  }
-	}ge;
-	last COORD if $err;
+	}
+      }ge;
+
+    # simple comparison inline
+    $coords =~
+      s{([xy])\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\]}{
+	my $i=0;
+	if (exists($nodehash{$&})) {
+	  $i=$nodehash{$&}
+	} else {
+	  $i++ while ($i<@$nodes and
+		      !(exists($nodes->[$i]{$2}) and $nodes->[$i]{$2} eq $3));
+	  $nodehash{$&}=$i;
+	}
+	if ($i<@$nodes) { 
+	  $self->get_node_pinfo($nodes->[$i],($1 eq 'x') ? "XPOS" : "YPOS")
+	} else {
+	  "ERR"
+	}
+      }ge;
+
+    my @coords=split '&',$coords;
+    COORD: foreach my $c (@coords) {
+      my @c=split ',',$c;
+      my $x=1;
+      foreach (@c) {
 	s{([xy]?)p}{
 	  if ($parent) {
 	    $self->get_node_pinfo($parent,(($x and ($1 ne 'y')) or $1 eq 'x') ?
 				  "XPOS" : "YPOS")
 	  } else {
-	    $err=1;
-	    0
+	    "ERR"
 	  }
 	}ge;
-	last COORD if $err;
 	s{([xy]?)n}{
-	  $self->get_node_pinfo($node,(($x and ($1 ne 'y')) or $1 eq 'x') ?
+	  $self->get_node_pinfo($node,
+				(($x and ($1 ne 'y')) or $1 eq 'x') ?
 				"XPOS" : "YPOS")
-	 }ge;
+	}ge;
 	if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
 	  $_=eval $_;
 	  print STDERR $@ if $@ ne "";
-	} else {
-	  $err=1;
+	} else { # catches ERR too
+	  print STDERR "COORD: $coords\n";
 	  print STDERR "BAD: $_\n";
-	  $_="";
-	  last COORD;
+	  next COORD;
 	}
 	$x=!$x;
       }
-      unless ($err) {
-	$objectno++;
-	my $line="line_$objectno";
-	my $l;
-	eval {
-          $l=$self->canvas->createLine(@c,
-                                  -tags => [$line,'line'],
-				  '-arrow' =>  $arrow[$lin] || $self->get_lineArrow,
-				  '-width' =>  $width[$lin] || $self->get_lineWidth,
-				  '-fill'  =>  $fill[$lin] || $self->get_lineColor,
-				  '-smooth'  =>  $smooth[$lin] || 0,
-				  $can_dash ? ('-dash'  => $dash[$lin] || $self->get_lineDash)
-				  : ());
-	};
-	print STDERR $@ if $@ ne "";
-	$self->store_id_pinfo($l,$line);
-	$self->store_node_pinfo($node,"Line$lin",$line);
-	$self->store_obj_pinfo($line,$node);
-	$self->realcanvas->lower($line,'all');
-	$self->realcanvas->raise($line,'line');
-      }
+
+      $objectno++;
+      my $line="line_$objectno";
+      my $l;
+      eval {
+	$l=$self->canvas->
+	  createLine(@c,
+		     -tags => [$line,'line'],
+		     '-arrow' =>  $arrow[$lin] || $self->get_lineArrow,
+		     '-width' =>  $width[$lin] || $self->get_lineWidth,
+		     '-fill'  =>  $fill[$lin] || $self->get_lineColor,
+		     '-smooth'  =>  $smooth[$lin] || 0,
+		     $can_dash ? ('-dash'  => $dash[$lin] || $self->get_lineDash)
+		     : ());
+      };
+      print STDERR $@ if $@ ne "";
+      $self->store_id_pinfo($l,$line);
+      $self->store_node_pinfo($node,"Line$lin",$line);
+      $self->store_obj_pinfo($line,$node);
+      $self->realcanvas->lower($line,'all');
+      $self->realcanvas->raise($line,'line');
+
       $lin++;
    }
 
@@ -1254,10 +1289,10 @@ text.
 =cut
 
 sub interpolate_text_field {
-  my ($self,$node,$text)=@_;
+  my ($self,$this,$text)=@_;
   # make root visible for the evaluated expression
-  my $root=$node; $root=$root->parent while ($root->parent);
-  $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval $self->interpolate_refs($node,$1)/eg;
+  my $root=$this; $root=$root->parent while ($root->parent);
+  $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval $self->interpolate_refs($this,$1)/eg;
   return $text;
 }
 
