@@ -30,6 +30,7 @@ BEGIN {
   $vLineFont
   $type1font
   $libDir
+  $iconPath
   $psFontFile
   $psFontAFMFile
   $ttFont
@@ -396,6 +397,7 @@ sub set_config {
   }
 
   $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
+  $iconPath=(exists $confs->{iconpath}) ? tilde_expand($confs->{iconpath}) : "$libDir/icons/default";
   $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
   $defaultMacroEncoding=val_or_def($confs,"defaultmacroencoding",'utf8');
