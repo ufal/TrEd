@@ -12,9 +12,7 @@ unless ($ArabicRendering) {
   $TrEd::Convert::lefttoright=0;
 }
 
-unless ($^O eq 'MSWin32') {
-  $TrEd::Config::valueLineReverseLines=1;
-}
+$TrEd::Config::valueLineReverseLines=1;
 $TrEd::Config::valueLineAlign='right';
 
 # display nodes in the reversed order
@@ -44,33 +42,33 @@ $TrEd::TreeView::DefaultNodeStyle{Node}=
   [-textalign => 'right'];
 
 # create the value_line
-sub get_value_line_hook {
-  my ($fsfile,$treeNo)=@_;
-  if ($^O ne 'MSWin32') {
-    if (1000*$] >= 5008) { # we've got support for UNICODE in
-      # perl5.8/Tk8004
-      print "Arabic: Skipping remix\n";
-      return undef;        # use the default way to do it
-#       print STDERR "PERLVERSION $]\n";
-#       require Encode;
-#       require TrEd::ConvertArab;
-#       return $no.(
-#		   TrEd::ConvertArab::arabjoin($2));
-#  	             Encode::encode('windows-1256',
-#		       ArabicRemix::remix(Encode::decode('windows-1256',$2))
-#                  )));
-    } else {
-      print "Arabic: Skipping remix\n";
-      return undef;        # use the default way to do it
-    }
-  } else {
-    return [$fsfile->value_line_list($treeNo,1,1)];
-#    my $line=$fsfile->value_line($treeNo,1);
-#    print "Arabic: Using remix\n";
-#    return $line;
-#    return ArabicRemix::remix($line); # use Ota Smrz's remix
-  }
-}
+# sub get_value_line_hook {
+#   my ($fsfile,$treeNo)=@_;
+#   if ($^O ne 'MSWin32') {
+#     if (1000*$] >= 5008) { # we've got support for UNICODE in
+#       # perl5.8/Tk8004
+#       print "Arabic: Skipping remix\n";
+#       return undef;        # use the default way to do it
+# #       print STDERR "PERLVERSION $]\n";
+# #       require Encode;
+# #       require TrEd::ConvertArab;
+# #       return $no.(
+# #		   TrEd::ConvertArab::arabjoin($2));
+# #  	             Encode::encode('windows-1256',
+# #		       ArabicRemix::remix(Encode::decode('windows-1256',$2))
+# #                  )));
+#     } else {
+#       print "Arabic: Skipping remix\n";
+#       return undef;        # use the default way to do it
+#     }
+#   } else {
+#     return [$fsfile->value_line_list($treeNo,1,1)];
+# #    my $line=$fsfile->value_line($treeNo,1);
+# #    print "Arabic: Using remix\n";
+# #    return $line;
+# #    return ArabicRemix::remix($line); # use Ota Smrz's remix
+#   }
+# }
 
 # if arabic text is not rendered ok, use this function to provide a
 # reversed nodelist for both value_line and the tree (since
