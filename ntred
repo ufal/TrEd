@@ -416,7 +416,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 
   # --------------------------------------------------------------
   # --------------- optimal file distribution  -------------------
-  distribute_files($control,\@running,\@files,0,$server_key);
+  distribute_files($control,\@running,\@files,1,$server_key);
 
   # save client key
   save_block($server_key,$client_key_file);
@@ -483,7 +483,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       }
       if (md5_sign($server_key,join "\n",@files) eq $md5) {
 	shift @files; pop @files; # get rid of the controls
-	distribute_files($control,\@running,\@files,$server_key);
+	distribute_files($control,\@running,\@files,0,$server_key);
       } else {
 	print $client "Request MD5 signature failed!\n";
       }
@@ -720,9 +720,11 @@ sub distribute_files {
   }
 
   # Distribute files
+  my @servers_to_respond;
   foreach my $server (@$servers) {
     my @f=splice @totalfilelist,0,$filescnt{$server};
     if (@f) {
+      push @servers_to_respond,$server;
       msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
       send_request($control,$server->{socket},'LOAD_FILES',$key,@f);
     } elsif ($close_empty) {
@@ -732,7 +734,7 @@ sub distribute_files {
   }
   msg "Please wait ...\n";
   # get responses
-  foreach my $server (@$servers) {
+  foreach my $server (@servers_to_respond) {
     my $response;
     unless (forward_response($control,$server->{socket},\$response)) {
       msg "Communication with $server->{fullname} seems broken\n";
