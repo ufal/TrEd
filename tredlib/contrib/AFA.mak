@@ -1,6 +1,8 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2003-07-03 19:20:33 pajas>
+## Time-stamp: <2003-10-23 10:12:38 pajas>
+
+#encoding iso-8859-2
 
 unshift @INC,"$main::libDir/contrib" unless (grep($_ eq "$main::libDir/contrib", @INC));
 require AFA;

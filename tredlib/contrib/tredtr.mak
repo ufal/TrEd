@@ -1,5 +1,7 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 
+#encoding iso-8859-2
+
 my $iPrevAfunAssigned;		# used as type "string"
 my $pPar1;			# used as type "pointer"
 my $pPar2;			# used as type "pointer"

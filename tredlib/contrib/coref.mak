@@ -5,6 +5,8 @@
 # CONFIGURATION:
 #
 
+#encoding iso-8859-2
+
 $cortypes='textual|grammatical';              # types of coreference
 
 %cortype_colors = (                           # colors of coreference arrows

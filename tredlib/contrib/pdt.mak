@@ -1,5 +1,7 @@
 # -*- cperl -*-
 
+#encoding iso-8859-2
+
 package PDT;
 use base qw(TredMacro);
 import TredMacro;
@@ -696,10 +698,6 @@ sub valid_member_TR {
   }
   return 1;
 }
-
-
-
-
 
 1;
 
