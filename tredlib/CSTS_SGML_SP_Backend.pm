@@ -25,7 +25,7 @@ sub open_backend {
   my ($filename, $mode)=@_;
   my $fh = undef;
   my $cmd = "";
-  if ($filename and -r $filename) {
+  if ($filename and -x $sgmls and -r $filename) {
     if ($mode =~/[w\>]/) {
       if ($filename=~/.gz$/) {
 	eval {
@@ -39,6 +39,7 @@ sub open_backend {
       }
     } else {
       if ($filename=~/.gz$/) {
+	return undef unless -x $zcat;
 	$cmd = "$zcat < \"$filename\" | $sgmls $sgmlsopts $doctype -";
       } else {
 	$cmd="$sgmls $sgmlsopts $doctype $filename";
