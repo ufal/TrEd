@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-05-09 11:28:45 pajas>
+## Time-stamp: <2002-05-13 14:52:13 pajas>
 
 package TredMacro;
 
@@ -321,10 +321,24 @@ sub GotoTree {
   return $result;
 }
 
+=item TieGotoTree (n)
+
+Go to n'th tree in all tied windows.
+
+=cut
+sub TieGotoTree {
+  my $to=shift()-1;
+  my $result=main::tieGotoTree($grp->{framegroup},$to);
+  $root=$grp->{root};
+  $this=$root;
+  $Redraw='tie';
+  return $result;
+}
+
+
 =item TieNextTree
 
-Display the next tree in the current file and redraw all
-tied windows.
+Display the next tree in all tied windows.
 
 =cut
 sub TieNextTree {
@@ -337,8 +351,7 @@ sub TieNextTree {
 
 =item TiePrevTree
 
-Display the previous tree in the current file and redraw all tied
-windows.
+Display the previous tree in all tied windows.
 
 =cut
 sub TiePrevTree {
