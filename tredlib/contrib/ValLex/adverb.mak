@@ -14,6 +14,12 @@ sub ChooseAdverbFunc {
   my $top=ToplevelFrame();
   unless ($AdvLexiconData) {
     $AdvLexiconData=parse_advxml($AdvFile);
+    unless ($AdvLexiconData) {
+      $FileNotSaved=0;
+      questionQuery("Lexicon not found.",
+		    "Lexicon of adverbials not found.\nPlease install!","Ok");
+      return;
+    }
   }
   return unless $AdvLexiconData;
   require TrEd::CPConvert;
@@ -34,8 +40,18 @@ sub parse_advxml {
   require XML::LibXML;
   my $parser=XML::LibXML->new();
   return undef unless $parser;
-  my $doc=$parser->parse_file($file);
-  return $doc;
+  my $doc;
+  eval {
+    $doc=$parser->parse_file($file);
+  };
+
+  if ($@ or !$doc) {
+    print STDERR "$@\n";
+    return undef;
+  } else {
+    return $doc;
+  }
+
 }
 
 sub listAdverbs {
