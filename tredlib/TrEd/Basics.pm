@@ -152,7 +152,12 @@ sub errorMessage {
   if ($on_error) {
     &$on_error(@_);
   } else {
-    if (exists($win->{framegroup}) and
+    if (ref($win)=~/^Tk::/) {
+      $win->toplevel->
+	messageBox(-icon=> 'error',
+		   -message=> $msg,
+		   -title=> 'Error', -type=> 'ok');
+    } elsif (exists($win->{framegroup}) and
 	ref($win->{framegroup}) and
       exists($win->{framegroup}{top}) and
 	ref($win->{framegroup}{top})) {
