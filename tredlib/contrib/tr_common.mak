@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-10 15:16:13 pajas>
+## Time-stamp: <2002-10-16 11:30:31 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -662,6 +662,7 @@ sub move_aid_to_aidrefs {
   unless (exists($defs->{AIDREFS})) {
     AppendFSHeader('@P AIDREFS');
   }
+  my %aids;
   foreach my $tree (GetTrees()) {
     my $node=$tree->following;
     while ($node) {
@@ -669,6 +670,12 @@ sub move_aid_to_aidrefs {
 	$node->{AIDREFS}=join '|',split /\|/,$node->{AID};
 	($node->{AID})=split /\|/,$node->{AIDREFS};
       }
+      if ($node->{AID} ne "" and exists($aids{$node->{AID}})) {
+	$node->{TID}=generate_new_tid($tree);
+	print STDERR "Warning: replacing duplicate AID $node->{AID} with $node->{TID}\n";
+	$node->{AID}='';
+      }
+      $aids{$node->{AID}}=1 if $node->{AID} ne "";
       $node=$node->following;
     }
   }
