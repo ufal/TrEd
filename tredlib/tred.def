@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-26 10:06:56 pajas>
+## Time-stamp: <2002-04-26 16:39:04 pajas>
 
 package TredMacro;
 
@@ -12,19 +12,113 @@ use vars @FORCE_EXPORT;
 
 *FileChanged=*FileNotSaved;	# alias
 
-# set $Redraw to one of "file|tree|win|all|tie"; file is default
-# tie means redraw all if windows are tied. Otherwise redraw only
-# current window
+=pod
 
-#  $_NoSuchTree=0;
-#  $grp=undef
-#  $root=undef;
-#  $NodeClipboard=undef;
-#  $forceFileSaved=0;
-#  $FileNotSaved=0;
+=head1 TredMacro
+
+tred.def - This package implements default macros for TrEd/bTred
+
+=head2 GLOBAL VARIABLES
+
+=over 4
+
+=item $FileNotSaved (alias $FileChanged)
+
+If this variable is set to 1, TrEd/bTrEd considers the current file to
+be modified and in case of bTrEd makes the program to save it before
+it is closed (in case of TrEd, user is prompted before the file is
+closed). If the macro does not change this variable, bTrEd does not
+change the file status, while TrEd still assumes that the file B<was>
+modified. In other words, set this variable to 1 in bTrEd if you want
+the file to be saved at last, and set this variable to 0 in TrEd if
+you are sure you did not make any change to the file that would be
+worth saving it.
+
+=item $Redraw
+
+This variable makes sense only in TrEd.  You may set it to one of
+C<file, tree, win, all, tie> to alter the mechanism of redrawing the
+screen. The default value is C<file> (redraw all windows displaying
+current file), while C<file> means redraw all windows displaying
+current tree, C<win> means redraw only current window and C<tie> means
+redraw all if windows are tied or (if not) redraw only current window.
+
+=item $forceFileSaved
+
+In TrEd, you may wish to set this variable to 0 if you wish to change
+the status of the file to C<saved> (e.g. after saving the file from
+your macro).
+
+=item $root
+
+Root of the current tree. If possible, avoid changing this variable in
+your code, so that other macros you call may use it too.
+
+=item $this
+
+Current node (i.e. the active node in TrEd and the node in turn if
+C<-N> or C<-H> flag was used in bTrEd). Assigning a different node
+from the current tree to this variable results in changing the active
+node in TrEd.
+
+=item $libDir
+
+This variable contains path to TrEd's library directory.
+
+=item $grp
+
+This variable is a hash reference which stores the fundamental piece
+of information about current file, current context etc. B<DO NOT
+CHANGE IT>. You may (and in some situations must), however, use this
+variable to access that information.
+
+=over 5
+
+=item $grp->{FSFile}
+
+This field stores the FSFile object of the current file.  See L<Fslib>
+or manual to TrEd (section Accessing other trees) for more info.
+
+=item $grp->{treeNo}
+
+This field contains index of the current tree.
+
+=item $grp->{macroContext}
+
+This field contains the name of current macro context. To change
+current context use the pre-defined macro SwitchContext.
+
+=back
+
+=back
+
+=cut
+
 import Fslib;
 import Fslib qw(&Index);
 import main;
+
+=head2 FUNCTION REFERENCE
+
+=head3 Auxiliary functions
+
+=item Index (array-ref, item)
+
+This is an auxiliary function imported from L<Fslib> which returns the
+first occurence of the item in the array.
+
+=cut
+
+=item import (names?)
+
+If specified without parameter, exports every symbol to the caller
+package (except for symbols already (re)defined in the caller
+packages). If parameters are given, exports only names specified by
+the parameters and the following few variables that every TredMacro
+B<must> share: C<$libDir $grp $root $this $_NoSuchTree $Redraw
+$forceFileSaved $FileChanged $FileNotSaved $NodeClipboard>.
+
+=cut
 
 sub import {
   # If specified without parameter, exports everything but
@@ -66,6 +160,16 @@ sub import {
 # Default macro definitions to make
 # calls to global subroutines less humble
 
+=head3 Basic TrEd-related macros
+
+=item Redraw
+
+Force TrEd to immediately redraw the current window. Hence TrEd
+redraws the tree right after an interactively invoked macro finishes,
+explicit calls to Redraw macro are needed rather rearly (for example
+from a hook).
+
+=cut
 sub Redraw {
   my $ie=$main::insideEval;
   $main::insideEval=0;
@@ -73,6 +177,12 @@ sub Redraw {
   $main::insideEval=$ie;
 }
 
+=item Redraw_FSFile
+
+Force TrEd to immediately redraw all windows displaying current
+file.
+
+=cut
 sub Redraw_FSFile {
   my $ie=$main::insideEval;
   $main::insideEval=0;
@@ -80,6 +190,12 @@ sub Redraw_FSFile {
   $main::insideEval=$ie;
 }
 
+=item Redraw_FSFile_Tree
+
+Force TrEd to immediately redraw all windows displaying current
+tree.
+
+=cut
 sub Redraw_FSFile_Tree {
   my $ie=$main::insideEval;
   $main::insideEval=0;
@@ -87,6 +203,11 @@ sub Redraw_FSFile_Tree {
   $main::insideEval=$ie;
 }
 
+=item Redraw_All
+
+Force TrEd to immediately redraw all windows.
+
+=cut
 sub Redraw_All {
   my $ie=$main::insideEval;
   $main::insideEval=0;
@@ -94,11 +215,22 @@ sub Redraw_All {
   $main::insideEval=$ie;
 }
 
+=item StandardTredFont
 
+Return a string or Tk::Font object representation of the font used in
+TrEd to label tree-nodes.
+
+=cut
 sub StandardTredFont {
   return $main::font;
 }
 
+=item StandardTredValueLineFont
+
+Return a string or Tk::Font object representation of the font used in
+TrEd to display the "sentence" above the tree.
+
+=cut
 sub StandardTredValueLineFont {
   return $main::vLineFont;
 }
@@ -108,34 +240,70 @@ sub SetCurrentNodeInOtherWin {
   TrEd::Basics::setCurrent($win,$node);
 }
 
+=item SetDisplayAttrs
+
+Use the given list of TrEd's patterns for displaying attributes.
+
+=cut
 sub SetDisplayAttrs {
   return unless $grp->{FSFile};
   $grp->{FSFile}->changePatterns(@_);
 }
 
+=item SetBalloonPattern
+
+Use the given pattern as a new hint pattern
+
+=cut
 sub SetBalloonPattern {
   return unless $grp->{FSFile};
   $grp->{FSFile}->changeHint(join "\n",@_);
 }
 
+=item GetDisplayAttrs
+
+Get the current list of patterns used by TrEd to display attributes.
+
+=cut
 sub GetDisplayAttrs {
   return unless $grp->{FSFile};
   return $grp->{FSFile}->patterns();
 }
 
+=item GetBalloonPattern
+
+Get TrEd's current hint pattern.
+
+=cut
 sub GetBalloonPattern {
   return unless $grp->{FSFile};
   return $grp->{FSFile}->hint();
 }
 
+=item SwitchContext
+
+Switch to a different macro context.
+
+=cut
 sub SwitchContext {
   main::switchContext($grp,shift);
 }
 
+
+=item CurrentContext
+
+Return the name of the current macro context.
+
+=cut
 sub CurrentContext {
   return $grp->{macroContext};
 }
 
+=item GotoTree (n)
+
+Display the n'th tree in the current file.
+
+=cut
 sub GotoTree {
   my $to=shift()-1;
   $_NoSuchTree=($to != main::max(0,min($to,$#trees)));
@@ -145,6 +313,12 @@ sub GotoTree {
   return $result;
 }
 
+=item TieNextTree
+
+Display the next tree in the current file and redraw all
+tied windows.
+
+=cut
 sub TieNextTree {
   my $result=main::tieNextTree($grp->{framegroup});
   $root=$grp->{root};
@@ -153,6 +327,12 @@ sub TieNextTree {
   return $result;
 }
 
+=item TiePrevTree
+
+Display the previous tree in the current file and redraw all tied
+windows.
+
+=cut
 sub TiePrevTree {
   my $result=main::tiePrevTree($grp->{framegroup});
   $root=$grp->{root};
@@ -161,7 +341,11 @@ sub TiePrevTree {
   return $result;
 }
 
+=item NextTree
 
+Display the next tree in the current file.
+
+=cut
 sub NextTree {
   my $result=main::nextTree($grp);
   $root=$grp->{root};
@@ -170,6 +354,11 @@ sub NextTree {
   return $result;
 }
 
+=item PrevTree
+
+Display the previous tree in the current file.
+
+=cut
 sub PrevTree { 
   my $result=main::prevTree($grp);
   $root=$grp->{root};
@@ -178,21 +367,47 @@ sub PrevTree {
   return $result;
 }
 
+=item GetOrd (node)
+
+Return value of the special numbering FS attribute. This macro
+actually returns the same value as
+C<$node->{$grp->{FSFile}->FS->order()}>
+
+=cut
 sub GetOrd { return $_[0]->{$grp->{FSFile}->FS->order}; }
 
+=item PasteNode (node, new-parent)
+
+Paste the subtree of the node under the new-parent.  The root of the
+subtree is placed among other children of new-parent with respect to
+the numbering attribute.
+
+=cut
 sub PasteNode {
   my ($node,$p)=@_; 
   Fslib::Paste($node,$p,$grp->{FSFile}->FS->defs); 
   return $node;
 }
 
+=item CloneSubtree (node)
+
+Return an identical copy (except that only declared attributes are
+preserved) of the given subtree.
+
+=cut
 sub CloneSubtree {
   my ($node)=@_;
   return $grp->{FSFile}->FS->clone_subtree($node);
 }
 
+=item CopyNode (node)
+
+Return an identical copy (except that only declared attributes are
+preserved) of the given node.
+
+=cut
 sub CopyNode {
-  my $node=shift;
+  my ($node)=@_;
   my $nd=FSNode->new();
   foreach (Attributes()) {
     $nd->{$_}=$node->{$_};
@@ -200,6 +415,13 @@ sub CopyNode {
   return $nd;
 }
 
+=item CutNode (node)
+
+Cut the node's subtree off the tree and return it. By cuttin a subtree
+we mean disconnecting it from the rest of the tree. Use PasteNode to
+attach it to some node again.
+
+=cut
 sub CutNode {
   my $node=shift;
   my $parent=Fslib::Parent($node);
@@ -208,6 +430,13 @@ sub CutNode {
   return $result;
 }
 
+=item NewTree
+
+Create a new tree before the current tree. The new tree consists of
+exactly one node. This node is activated and a reference to its FSNode
+object is returned.
+
+=cut
 sub NewTree {
   main::newTree($grp);
   $root=$grp->{root};
@@ -215,6 +444,13 @@ sub NewTree {
   return $root;
 }
 
+=item NewTreeAfter
+
+Create a new tree after the current tree. The new tree consists of
+exactly one node. This node is activated and a reference to its FSNode
+object is returned.
+
+=cut
 sub NewTreeAfter {
   main::newTreeAfter($grp);
   $root=$grp->{root};
@@ -222,193 +458,106 @@ sub NewTreeAfter {
   return $root;
 }
 
+=item Save
+
+Save the current file.
+
+=cut
 sub Save {
   main::saveFile($grp);
   $forceFileSaved=1;
   $FileNotSaved=0;
 }
 
+=item SaveAndNextFile
+
+Save the current file and open the next file in the current file-list.
+
+=cut
 sub SaveAndNextFile {
   Save();
   main::nextFile($grp);
   $root=$grp->{root};
 }
 
+=item SaveAndPrevFile
+
+Save the current file and open the previous file in the current
+file-list.
+
+=cut
 sub SaveAndPrevFile {
   Save();
   main::prevFile($grp);
   $root=$grp->{root};
 }
 
+=item Find
+
+Open the Find Node by Attributes GUI dialog.
+
+=cut
 sub Find {
   $grp->{framegroup}->{findButton}->invoke();
   $this=$grp->{currentNode};
   $FileNotSaved=0;
 }
 
+=item FindNext
+
+Searches for the first node matching the criteria of the previous use
+of the Find... menu command or FindNode macro usage.
+
+=cut
 sub FindNext {
   $grp->{framegroup}->{findNextButton}->invoke();
   $this=$grp->{currentNode};
   $FileNotSaved=0;
 }
 
+=item FindPrev
+
+Searches for the previous node matching the criteria of the previous
+use of the Find... menu command or FindNode macro usage.
+
+=cut
 sub FindPrev {
   $grp->{framegroup}->{findPrevButton}->invoke();
   $this=$grp->{currentNode};
   $FileNotSaved=0;
 }
 
+=item ToplevelFrame
+
+Returns the Tk::Toplevel object containing the current window.
+
+=cut
 sub ToplevelFrame {
   return $grp->toplevel();
 }
 
-###########################################################
-# Macros used by Graph2Tred macro convertor
-
-
-sub PlainNewSon {
-## Adds new son to a given parent
-  my $parent=shift;
-  return unless ($parent);
-  my $nd=FSNode->new();
-  PasteNode($nd,$parent);
-  return $this=$nd;
-}
-
-sub PlainDeleteNode {
-## Deletes given node
-  my $node=shift;
-  return undef unless ($node and Parent($node));
-
-  $this=Parent($this) if ($node == $this);
-  return DeleteLeaf($node);
-}
-
-sub PrintToFile {
-  my $file=shift;
-  return unless( defined($file) and $file ne '' );
-  my @a=@_;
-
-  if (open(PTF,">>$file")) {
-    print PTF (join("",(map {
-      s/\\\|/|/g;
-      s/\\n/\n/g;
-      $_} @a)));
-    close(PTF);
-} else { print STDERR "Could not open file $file\n"; }
-}
-
-sub ValNo {
-## return n'th field of given string (separated by |); 
-  my $n=shift;
-  my @val=ListSplit(shift);
-  return $val[$n];
-}
-
-sub Attributes {
-  return $grp->{FSFile}->FS->attributes;
-}
-
-sub AtrNo {
-  return $grp->{FSFile}->FS->atno(shift);
-}
-
-sub Union {
-# make (pairwise disjoint, i.e. set-like) union
-# of two lists ( strings with |-delimited elements )
-  my @c=();
-  my $s;
-  my $t;
-  element: foreach $s (ListSplit(shift),ListSplit(shift)) {
-    for ($t=0;$t<=$#c;$t++) {
-      next element if ($c[$t] eq $s);
-    }
-    push @c,$s;
-  }
-  return join('|',@c);
-}
-
-sub Interjection {
-# make interjection of two lists
-# ( strings with |-delimited elements )
-  return $_[0] unless $_[1] ne "";
-  my @a=ListSplit($_[1]);
-  my @c=();
-  my $s;
-  my $t;
-  element: foreach $s (ListSplit(Union($_[0],""))) {
-    for ($t=0;$t<=$#a;$t++) {
-      if ($a[$t] eq $s) {
-	push(@c,$s);
-	next element;
-      }
-    }
-  }
-  return join '|',@c;
-}
-
-sub ListSplit {
-# split |-delimited string to a list
-  my $s=shift;
-  my $j=0,$i=0;
-  my @a=();
-  while (($j=index($s,'|',$j))>=0) {
-    $j++,next if ($j>0 and substr($s,$j-1,1) eq "\\");
-    push @a, substr($s,$i,$j-$i);
-    $i=++$j; $j=$i;
-  }
-  push @a, substr($s,$i,length($s)-$i) if ($i<length($s));
-  return @a;
-}
-
-sub ListJoin {
-# split |-delimited string to a list
- return join '|', @_;
-}
-
-sub ListEq {
-# test if two given lists ( strings with |-delimited elements )
-# contain the same elements
-  my ($a,$b)=(shift,shift);
-  $a=Union($a,""); # make them uniqe
-  $b=Union($b,""); # make them uniqe
-  my @a=ListSplit($a);
-  my @b=ListSplit($b);
-
-  return 0 unless ($#a == $#b);
-
-  my @c=ListSplit(Union($a,$b));
-
-  return ($#a == $#c);
-}
-
-sub ListAssign {
-# args: list, n, value
-# assign (string) value to the n'th position in a list
-# represented as |-delimited string
-
-  my @a=ListSplit(shift);
-  my ($n,$value)=(shift,shift);
-
-  @a[$n]=ValNo(0,$value);
-  return join '|',@a;
-}
-
-sub SubStr {
-  my ($str, $pos, $len)=(shift, shift, shift);
-
-  return "" if ($pos > length($str));
-  return substr($str,$pos,$len);
-}
 
 
 #####################################################
-# Common useful user-level subroutines 
+# Common useful user-level subroutines
 
+=item ErrorMessage (message)
+
+In TrEd, show a dialog box containing the given error-message.
+In BTrEd print the error message on standard output.
+
+=cut
 sub ErrorMessage {
   TrEd::Basics::errorMessage($grp,join("",@_));
 }
 
+=item NewRBrother (node)
+
+Create a new brother of the given node and recalculate the special FS
+numbering attribute values in the whole tree so that the new node is
+the first right sibling of the given node.
+
+=cut
 sub NewRBrother {
 ## Adds new RBrother to current node and shifts
 ## ords of the other nodes appropriately
@@ -425,6 +574,13 @@ sub NewRBrother {
   return $this=$nd;
 }
 
+=item NewLBrother (node)
+
+Create a new brother of the given node and recalculate the special FS
+numbering attribute values in the whole tree so that the new node is
+the first left sibling of the given node.
+
+=cut
 sub NewLBrother {
 ## Adds new RLrother to current node and shifts
 ## ords of the other nodes appropriately
@@ -441,6 +597,13 @@ sub NewLBrother {
   return $this=$nd;
 }
 
+=item NewSon (parent)
+
+Create a new child of the given parent node and recalculate the
+special FS numbering attribute values in the whole tree so that the
+new node is the first node left to the given parent.
+
+=cut
 sub NewSon {
 ## Adds new son to current node and shifts
 ## ords of the other nodes appropriately
@@ -458,6 +621,14 @@ sub NewSon {
   return $this=$nd;
 }
 
+=item DeleteThisNode
+
+Delete the current node and recalculate the special FS numbering
+attribute values in the whole tree so that there is no gap in the
+numbering. If the current node is not a leaf or if it is the root of
+the current tree, this macro does nothing.
+
+=cut
 sub DeleteThisNode {
 ## Deletes current node and shifts
 ## ords of the other nodes appropriately
@@ -476,6 +647,13 @@ sub DeleteThisNode {
   }
 }
 
+=item CopyValues
+
+Copy the values of all the attributes except the special FS numbering
+attribute of the current node to a global hash variable named
+%ValuesClipboard.
+
+=cut
 sub CopyValues {
   undef %ValuesClipboard;
   %ValuesClipboard = map { $_ => $this->{$_} } $grp->{FSFile}->FS->attributes;
@@ -483,22 +661,54 @@ sub CopyValues {
   $FileNotSaved=0;
 }
 
+=item PasteValues
+
+Replace the values of the current node's attributes by those stored in
+the global hash variable named %ValuesClipboard.
+
+=cut
 sub PasteValues {
   foreach $_ (keys(%ValuesClipboard)) {
     $this->{$_}=$ValuesClipboard{$_};
   }
 }
 
+=item NextNode (node, top?)
+
+Return the first displayed node following the given node in the
+subtree of top. This function behaves in the same manner as the
+node->following(top) method, except it works only on the nodes which
+are actually visible according to the state of the View->Show Hidden
+Nodes menu item.
+
+=cut
 sub NextNode {
   my ($node,$top)=@_;
   return $node ? main::HNext($grp,$node,$top) : undef;
 }
 
+=item PrevNode (node,top?)
+
+Return the first displayed node preceding the given node in the
+subtree of top. This function behaves in the same manner as the
+node->previous(top) method, except it works only on the nodes which
+are actually visible according to the state of the View->Show Hidden
+Nodes menu item.
+
+=cut
 sub PrevNode {
   my ($node,$top)=@_;
   return $node ? main::HPrev($grp,$node,$top) : undef;
 }
 
+=item NextVisibleNode (node,top?)
+
+Return the first visible node following the given node in the subtree
+of top. This function behaves in the same manner as the
+C<$node->following($top)> method, except that nodes of hidden subtrees
+are skipped.
+
+=cut
 sub NextVisibleNode {
   my ($node,$top)=@_;
   $node=Next($node,$top);
@@ -510,6 +720,14 @@ sub NextVisibleNode {
   return 0;
 }
 
+=item PrevVisibleNode (node,top?)
+
+Return the first visible node preceding the given node in the subtree
+of top. This function behaves in the same manner as the
+C<$node->previous($top)> method, except that nodes of hidden subtrees
+are skipped.
+
+=cut
 sub PrevVisibleNode {
   my ($node,$top)=@_;
   $node=Prev($node,$top);
@@ -521,11 +739,23 @@ sub PrevVisibleNode {
   return 0;
 }
 
+=item IsHidden (node)
+
+Return true if the given node is member of a hidden subtree. This
+macro is only an abbreviation for
+C<$grp->{FSFile}->FS->isHidden(node)>
+
+=cut
 sub IsHidden {
   my ($node)=@_;
   return $grp->{FSFile}->FS->isHidden($node);
 }
 
+=item Hide (node)
+
+Hide the given node.
+
+=cut
 sub Hide {
   my ($node)=@_;
   my $hide=$grp->{FSFile}->FS->hide();
@@ -536,9 +766,224 @@ sub Hide {
   return 0;
 }
 
-## Node shifting macros
+###########################################################
+# Macros for backward compatibility with Graph
 
-# Get all nodes
+=head3 Macros used by Graph2Tred macro convertor
+
+=item PlainNewSon (parent)
+
+Add a new child node to the given parent.
+
+=cut
+sub PlainNewSon {
+## Adds new son to a given parent
+  my $parent=shift;
+  return unless ($parent);
+  my $nd=FSNode->new();
+  PasteNode($nd,$parent);
+  return $this=$nd;
+}
+
+=item PlainDeleteNode
+
+Delete the given node. The node must be a leaf of the tree (may not
+have any children) and must have a parent (may not be the root of the
+tree).
+
+=cut
+sub PlainDeleteNode {
+## Deletes given node
+  my $node=shift;
+  return undef unless ($node and Parent($node));
+
+  $this=Parent($this) if ($node == $this);
+  return DeleteLeaf($node);
+}
+
+
+=item Attributes
+
+Return a list of names of all attributes declared in the header of the
+current FS file.
+
+=cut
+sub Attributes {
+  return $grp->{FSFile}->FS->attributes;
+}
+
+=item PrintToFile (filename, string, ...)
+
+Print given strings to the end of the given file.
+
+=cut
+sub PrintToFile {
+  my $file=shift;
+  return unless( defined($file) and $file ne '' );
+  my @a=@_;
+
+  if (open(PTF,">>$file")) {
+    print PTF (join("",(map {
+      s/\\\|/|/g;
+      s/\\n/\n/g;
+      $_} @a)));
+    close(PTF);
+  } else { print STDERR "Could not open file $file\n"; }
+}
+
+=item ValNo (n,string)
+
+Return the n'th field of the given string where individual fields are
+separated by "|".
+
+=cut
+sub ValNo {
+  my $n=shift;
+  my @val=ListSplit(shift);
+  return $val[$n];
+}
+
+=item AtrNo (n)
+
+Retrun name of the n'th attribute defined in the FS file. This macro
+only abbreviates the following expression:
+C<$grp->{FSFile}->FS->atno(n)>
+
+=cut
+sub AtrNo {
+  return $grp->{FSFile}->FS->atno(shift);
+}
+
+=item Union(string_a,string_b)
+
+Return a string consisting of |-separated fields which form a pairwise
+disjoint set of the |-separated fields of the given strings string_a
+and string_b.
+
+=cut
+sub Union {
+  my @c=();
+  my $s;
+  my $t;
+  element: foreach $s (ListSplit(shift),ListSplit(shift)) {
+    for ($t=0;$t<=$#c;$t++) {
+      next element if ($c[$t] eq $s);
+    }
+    push @c,$s;
+  }
+  return join('|',@c);
+}
+
+=item Interjection (string_a,string_b)
+
+Return a string consisting of |-separated fields which form the
+interjection of the sets of |-separated fields of the given strings
+string_a and string_b.
+
+=cut
+sub Interjection {
+  return $_[0] unless $_[1] ne "";
+  my @a=ListSplit($_[1]);
+  my @c=();
+  my $s;
+  my $t;
+  element: foreach $s (ListSplit(Union($_[0],""))) {
+    for ($t=0;$t<=$#a;$t++) {
+      if ($a[$t] eq $s) {
+	push(@c,$s);
+	next element;
+      }
+    }
+  }
+  return join '|',@c;
+}
+
+=item ListSplit (string)
+
+Split the given string of |-separated fields and return a list of the
+individual fields.
+
+=cut
+sub ListSplit {
+
+  my $s=shift;
+  my $j=0,$i=0;
+  my @a=();
+  while (($j=index($s,'|',$j))>=0) {
+    $j++,next if ($j>0 and substr($s,$j-1,1) eq "\\");
+    push @a, substr($s,$i,$j-$i);
+    $i=++$j; $j=$i;
+  }
+  push @a, substr($s,$i,length($s)-$i) if ($i<length($s));
+  return @a;
+}
+
+=item ListJoin (list)
+
+Form a string of |-separated fields from the given list of fields.
+
+=cut
+sub ListJoin {
+ return join '|', map { s/|/\|/ }  @_;
+}
+
+=item ListEq (string1, string2)
+
+Compare the sets of |-separated fields of the two given
+strings. Return true if the sets contain the same elements; return
+false otherwise.
+
+=cut
+sub ListEq {
+  my ($a,$b)=(shift,shift);
+  $a=Union($a,""); # make them uniqe
+  $b=Union($b,""); # make them uniqe
+  my @a=ListSplit($a);
+  my @b=ListSplit($b);
+
+  return 0 unless ($#a == $#b);
+
+  my @c=ListSplit(Union($a,$b));
+
+  return ($#a == $#c);
+}
+
+=item ListAssign (string,n,value)
+
+Return the given string of |-separated fields, except that the n'th
+field in the string is replaced by the given value.
+
+=cut
+sub ListAssign {
+  my @a=ListSplit(shift);
+  my ($n,$value)=(shift,shift);
+
+  @a[$n]=ValNo(0,$value);
+  return join '|',@a;
+}
+
+=item SubStr (string, position, length)
+
+Simple substr wrapper which returns empty string if the position is
+beyond the end of the string.
+
+=cut
+sub SubStr {
+  my ($str, $pos, $len)=(shift, shift, shift);
+
+  return "" if ($pos > length($str));
+  return substr($str,$pos,$len);
+}
+
+=head3 Node shifting macros
+
+=item GetNodes (top?)
+
+Get a list of all nodes in the current tree of (if top is given) in
+the subtree of top (the root of the tree is icluded as well). The list
+returned is ordered in the natural structure ordering.
+
+=cut
 sub GetNodes {
   my $top = defined($_[0]) ? $_[0] : $root;
   my $node=$top;
@@ -550,6 +995,14 @@ sub GetNodes {
   return @n;
 }
 
+=item GetVisibleNodes (top?)
+
+Return the list of all visible nodes in the subtree of the given top
+node (or the whole current tree if no top is given). The list returned
+is ordered in the natural structure ordering and all members of hidden
+subtrees are skipped.
+
+=cut
 sub GetVisibleNodes {
   my $top = defined($_[0]) ? $_[0] : $root;
   my $node=$top;
@@ -561,6 +1014,13 @@ sub GetVisibleNodes {
   return @n;
 }
 
+=item NormalizeOrds (listref)
+
+Adjusts the special FS numbering attribute of every node of the list
+referenced by the listref argument so that the value for the attribute
+corresponds to the order of the node in the list.
+
+=cut
 sub NormalizeOrds {
   my ($nodesref)=@_;
 
@@ -573,6 +1033,12 @@ sub NormalizeOrds {
   }
 }
 
+=item SortByOrd (listref)
+
+Sort the list of nodes referenced by the listref argumnt according to
+the values of the special FS numbering attribute.
+
+=cut
 sub SortByOrd {
   my ($nodesref)=@_;
   my $ord=$grp->{FSFile}->FS->order;
@@ -580,6 +1046,13 @@ sub SortByOrd {
   return $nodesref;
 }
 
+=item RepasteNode (node)
+
+Cut the given node and paste it immediately on the same parent so that
+its structural position between its parent children is brought to
+correspondence with the values of the special FS numbering attribute.
+
+=cut
 sub RepasteNode {
   my ($node)=@_;
   my $parent=Parent($node);
@@ -587,6 +1060,13 @@ sub RepasteNode {
   Fslib::Paste(Fslib::Cut($node),$parent,$grp->{FSFile}->FS->defs);
 }
 
+=item ShiftNodeRightSkipHidden (node)
+
+Shift the current node in the tree to the right leaping over all
+hidden subtress by modifying the tree structure and value of the
+special FS numbering attribute appropriately.
+
+=cut
 sub ShiftNodeRightSkipHidden {
   my ($node)=@_;
   my $ord=$grp->{FSFile}->FS->order;
@@ -614,6 +1094,15 @@ sub ShiftNodeRightSkipHidden {
   Fslib::Paste(Fslib::Cut($node),$parent,$grp->{FSFile}->FS->defs);
 }
 
+=item ShiftNodeLeftSkipHidden (node,min?)
+
+Shift the current node in the tree to the left leaping over all hidden
+subtress by modifying the tree structure and value of the special FS
+numbering attribute appropriately. The optional argument min may be
+used to specify the minimum left boundary for the value of the
+ordering attribute of node.
+
+=cut
 sub ShiftNodeLeftSkipHidden {
   my ($node,$min)=@_;          # min sets the minimum left...
   my $ord=$grp->{FSFile}->FS->order;     # ... boundary for Ord
@@ -640,6 +1129,13 @@ sub ShiftNodeLeftSkipHidden {
   RepasteNode($node);
 }
 
+=item ShiftNodeRight (node)
+
+Shift the current node in the tree to the right by modifying the tree
+structure and value of the special FS numbering attribute
+appropriately.
+
+=cut
 sub ShiftNodeRight {
   my ($node)=@_;
   my $ord=$grp->{FSFile}->FS->order;
@@ -661,6 +1157,13 @@ sub ShiftNodeRight {
   RepasteNode($node);
 }
 
+=item ShiftNodeLeft (node)
+
+Shift the current node in the tree to the right by modifying the tree
+structure and value of the special FS numbering attribute
+appropriately.
+
+=cut
 sub ShiftNodeLeft {
   my ($node)=@_;
   my $ord=$grp->{FSFile}->FS->order;
@@ -682,6 +1185,11 @@ sub ShiftNodeLeft {
   RepasteNode($node);
 }
 
+=item HiddenVisible
+
+Return true if TrEd presently displays hidden nodes.
+
+=cut
 sub HiddenVisible {
   return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
 }
