@@ -574,8 +574,8 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request_type="RELOAD";
     my @files =  get_files();
     foreach (@files) {
-      die "Error: File name contains tree suffix: $_\n";
-      if /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
+      die "Error: File name contains tree suffix: $_\n" if
+	/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
     }
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
   } elsif ($request_reload_macros) {
