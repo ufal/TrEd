@@ -23,15 +23,6 @@ $V_backend = 'JHXML';
 
 $V_module = 'ValLex::Extended'.$V_backend;
 
-eval {
-  if ($^O eq 'MSWin32') {
-    if ($::ENV{OS} eq 'Windows_NT') {
-      binmode STDOUT,":encoding(cp1250)";
-    } else {
-      binmode STDOUT,":encoding(cp852)";
-    }
-  }
-};
 
 sub init_vallex {
   $TrEd::ValLex::Editor::reviewer_can_modify=1;
@@ -130,10 +121,20 @@ sub validate_assigned_frames {
   }
   init_vallex();
   my $aids = hash_AIDs();
-  unless ($ENV{LC_CTYPE}=~/UTF-?8/i) {
+  eval {
     binmode STDOUT;
-    binmode STDOUT,':utf8';
-  }
+    if ($^O eq 'MSWin32') {
+      if ($::ENV{OS} eq 'Windows_NT') {
+	binmode STDOUT,":encoding(cp1250)";
+      } else {
+	binmode STDOUT,":encoding(cp852)";
+      }
+    } elsif ($ENV{LC_CTYPE}=~/UTF-?8/i) {
+      binmode STDOUT,':utf8';
+    } else {
+      binmode STDOUT,':encoding(iso-8859-2)';
+    }
+  }; print STDERR $@ if $@;
   local $V_verbose = 1;
   print "\n\n==================================================\n";
   print $node->{trlemma}."\t".ThisAddress($node)."\n";

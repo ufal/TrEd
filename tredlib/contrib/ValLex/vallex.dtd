@@ -120,6 +120,7 @@ a je potreba ho nejak doresit-->
 <!ELEMENT node (node*)>
 <!ATTLIST node
         lemma         CDATA #IMPLIED
+        afun          (Pred|Pnom|AuxV|Sb|Obj|Atr|Adv|AtrAdv|AdvAtr|Coord|AtrObj|ObjAtr|AtrAtr|AuxT|AuxR|AuxP|Apos|ExD|AuxC|Atv|AtvV|AuxO|AuxZ|AuxY|AuxG|AuxK|AuxX|AuxS|unspecified) "unspecified"
         neg           (negative|unspecified) "unspecified"
         form          CDATA #IMPLIED
         pos           (a|d|i|n|j|v|u|f|s|c) #IMPLIED

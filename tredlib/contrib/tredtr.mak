@@ -6980,7 +6980,6 @@ sub NewSubject {
   $sPasteNow = '';
 
   $sLemma = $sPar1;
-
   UnGap();
 
   ThisRoot();
