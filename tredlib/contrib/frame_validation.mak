@@ -30,13 +30,22 @@ TODO:
 
 - A rule that would handle "po jablicku" is missing.
 
+
+PROBLEMS OF OPER:
+
 - ".1 az po.OPER .4" - in this (and probably other similar) the latter
 member of the OPER has a different case than expected.
+
+- "zvysili na 1 :.OPER 2" - "na" is in AIDREFS of the OPER
+
+
 
 - distinguish between:
 "Marie ma pro Petra uvareno" (where no transformation rules applies) and
 "Petr ma od Marie uvareno" (where transformation changes ADDR(.3) to
 ADDR(.1), etc)
+
+- preposition+&Idph; - we should igore case tests in these cases
 
 =cut
 
@@ -110,15 +119,25 @@ sub has_auxR {
     sub { my ($node,$aids) = @_;
 	  ($node->{tag}=~/^Vs/ and
 	   first { $_->{func} eq 'ACT' and $_->{tag}!~/^....1/ } PDT::GetChildren_TR($node) and
-	   (first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
-	    and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node))
-	  ) ? 'STOP':0;
+	   (first { $_->{AID} ne "" and $_->{lemma} =~ /^mít$|^mívat_/ } get_aidrefs_nodes($aids,$node)
+	   )
+#	    and
+#	    not first { $_->{AID} ne "" and $_->{lemma} !~ /^mít$|^mívat_/ and $_->{tag}=~/^Vf/ }
+#	      get_aidrefs_nodes($aids,$node))
+	  ) ? 1:0; # STOP
 	} =>
     # frame transformation rules:
     # frame test
     [[ 'ACT(.1)', 'ADDR(.3)' ] =>
     # form transformation rules:
-     [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)','-ADDR(pro-1[.4])', '+ADDR(.1)' ]],
+     [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)','-ADDR(pro-1[.4])', '+ADDR(.1)' ],
+     { KEEP_ORIG => 1 } # try the original frame too
+    ],
+    [[ 'ACT(.1)' ] =>
+    # form transformation rules:
+     [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])' ],
+     { KEEP_ORIG => 1 } # try the original frame too
+    ]
    ],
    # 2.
    [# case: "mrizka/mrizku=PAT(.4,.1) nejde udelat", "mrizka/mrizku je videt"
@@ -138,8 +157,8 @@ sub has_auxR {
 	     # eliminate "ma", "bude mit" or even "mel by mit"
 		#first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /Vc/ } get_aidrefs_nodes($aids,$node) 
 		#and 
-                first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
-		and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node)
+                first { $_->{AID} ne "" and $_->{lemma} =~ /^mít$|^mívat_/ } get_aidrefs_nodes($aids,$node)
+		and not first { $_->{AID} ne "" and $_->{lemma} !~ /^mít$|^mívat_/ and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node)
 		and not first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /Vf/ } get_aidrefs_nodes($aids,$node)
 	       )
 	  ) ? 1:0;
@@ -206,6 +225,8 @@ sub has_auxR {
 	  };
       return 0 unless $p and $p->{trlemma}=~/^nechat$|^dát$/
     } =>
+      [[ 'ACT(.1)', 'PAT(.7)' ] =>
+       [ '-ACT(.1)', '+ACT(od-1[.2];.7)', '+PAT(.4)' ]],
       [[ 'ACT(.1)' ] =>
        [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ]]
    ],
@@ -250,15 +271,15 @@ sub match_lemma {
 }
 
 sub match_node_coord {
-  my ($node, $fn,$aids,$loose_lemma) = @_;
-  my $res = match_node($node,$fn,$aids,0,$loose_lemma);
+  my ($node, $fn,$aids,$no_case,$loose_lemma) = @_;
+  my $res = match_node($node,$fn,$aids,$no_case,$loose_lemma);
   if (!$res and $node->{afun} =~ /^Coord|^Apos/) {
     foreach (grep { $node->{lemma} !~ /^a-1$|^nebo$/ or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ or
 		      ((first { $_->{lemma} =~ /^tak-3(_|$)/ } get_aidrefs_nodes($aids,$_)) and
 		       (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$_)))
 		  }
 	     with_AR{PDT::expand_coord_apos($node)}) {
-      return 0 unless match_node($_,$fn,$aids,0,$loose_lemma);
+      return 0 unless match_node($_,$fn,$aids,$no_case,$loose_lemma);
     }
     return 1;
   } else {
@@ -332,11 +353,11 @@ sub check_node_case {
   print "   CASE: Checking 'kolem|okolo'+Num\n"  if $V_verbose;
   # kolem milionu (lidí)
   return 1 if $node->{lemma} =~ /^(?:do1|kolem-1|okolo-1)$/ and $node->{afun}=~/^AuxP/ and
-    first { $_->{tag}=~/^....2/ and is_numeric_expression($_) } get_children_include_auxcp($node);
+    first { $_->{tag}=~/^C=/ or $_->{tag}=~/^....2/ and is_numeric_expression($_) } get_children_include_auxcp($node);
   print "   CASE: Checking 'pres|na'+Num\n"  if $V_verbose;
   # pøes milion (lidí)
   return 1 if $node->{lemma} =~ /^(pøes-1|na-1)$/ and $node->{afun}=~/^AuxP/ and
-    first { $_->{tag}=~/^....4/ and is_numeric_expression($_) } get_children_include_auxcp($node);
+    first { $_->{tag}=~/^C=/ or $_->{tag}=~/^....4/ and is_numeric_expression($_) } get_children_include_auxcp($node);
   print "   CASE: Checking num+2 construct\n"  if $V_verbose;
   # a number has the right case (or no case at all) and is analytically governing the node
   return 1 if ($node->{tag}=~/^....2/ and
@@ -368,7 +389,7 @@ sub match_node {
   my ($node, $fn, $aids,$no_case,$loose_lemma,$toplevel) = @_;
   my ($lemma,$form,$pos,$case,$gen,$num,$deg,$neg,$agreement,$afun)=map {$fn->getAttribute($_)} qw(lemma form pos case gen num deg neg agreement afun);
   if ($V_verbose) {
-    print "TEST [tag=$node->{tag}, lemma=$node->{lemma}]  ==>  ";
+    print "TEST [no_case=$no_case, tag=$node->{tag}, lemma=$node->{lemma}]  ==>  ";
     print join ", ", map { "$_->[0]=$_->[1]" } grep { $_->[1] ne "" } ([lemma => $lemma], [pos => $pos], [case => $case],
 								 [gen => $gen], [num => $num], [deg => $deg], [afun => $afun]);
     print "\n";
@@ -487,7 +508,7 @@ sub match_node {
     }
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
-    unless (first { match_node_coord($_,$ffn,$aids,$loose_lemma,0) }
+    unless (first { match_node_coord($_,$ffn,$aids,$no_case,$loose_lemma) }
 	    get_children_include_auxcp($node)
 	    # $node->children
 	   ) {
@@ -506,6 +527,9 @@ sub match_form {
   my $no_case=0;
   if ($node->{TID} ne "") {
     $no_case=1;
+  }
+  if ($node->{trlemma} eq '&Idph') {
+    $no_case=2;
   }
   if (@a) {
     my @ok_a;
@@ -693,6 +717,7 @@ sub transform_frame {
 sub do_transform_frame {
   my ($V,$trans_rules,$node, $frame,$aids,$quiet) = @_;
   my ($i, $j)=(0,0);
+  my @transformed;
   TRANS:
   foreach my $rule (@$trans_rules) {
     $i++; $j=0;
@@ -703,7 +728,7 @@ sub do_transform_frame {
       while (@frame_tests) {
 	my $frame_rule = shift @frame_tests;
 	my ($frame_test,$frame_trans,$opts) = @$frame_rule;
-	my $opts ||= {};
+	$opts ||= {};
 	#TODO: check if we better stop here or continue
 	#  possibly: make each rule have a parameter for this: i.e. "filter"-like rules
 
@@ -719,18 +744,24 @@ sub do_transform_frame {
 	  # print "testing rule $cache_key\n" if (!$quiet and $V_verbose);
 	  if (frame_matches_rule($V,$frame,$frame_test)) {
 	    print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
-	    $frame = transform_frame($V,$frame,$frame_trans);
-	    print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
-	    $V->user_cache->{$cache_key} = $frame unless $filter_applied; # only cache if no filter was applied so far
-	    $filter_applied ||= $opts->{FILTER};
-	    last TRANS unless $opts->{FILTER}; # except for filters
+	    if ($opts->{KEEP_ORIG}) {
+	      push @transformed, transform_frame($V,$frame,$frame_trans);
+	      print "RESULT: ".$V->serialize_frame($transformed[$#transformed])."\n\n" if (!$quiet and $V_verbose);
+	      print "WILL TRY ORIGINAL FRAME TOO\n" if (!$quiet and $V_verbose);
+	    } else {
+	      $frame = transform_frame($V,$frame,$frame_trans);
+	      print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
+	      $V->user_cache->{$cache_key} = $frame unless $filter_applied; # only cache if no filter was applied so far
+	    }
+	    $filter_applied ||= $opts->{FILTER} || $opts->{KEEP_ORIG};
+	    last TRANS unless $opts->{KEEP_ORIG} || $opts->{FILTER}; # except for filters
 	  }
 	}
       }
       last TRANS if $vt eq 'STOP'; # stop if verbtest matched, but no rule applied
     }
   }
-  return $frame;
+  return $frame,@transformed;
 }
 
 sub _filter_OPER_AP_and_jako_APPS {
@@ -783,7 +814,7 @@ sub match_element ($$$$$$) {
 	print "09 no form matches: $c->{func},$c->{lemma},$c->{tag}\t";
 	  Position($node);
       }
-      $c->{_light}='_LIGHT_';
+      $c->{_light}='_LIGHT_' unless $quiet;
       return 0;
     }
   }
@@ -793,12 +824,41 @@ sub match_element ($$$$$$) {
 
 sub validate_frame {
   my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet) = @_;
-  $frame = do_transform_frame($V,$trans_rules,$node, $frame,$aids,$quiet);
+  my @transformed = do_transform_frame($V,$trans_rules,$node, $frame,$aids,$quiet);
+  if (@transformed>1) {
+    print "TRANSFORMATION RETURNED ".scalar(@transformed)." FRAMES, WILL CHECK ALL\n" if (!$quiet and $V_verbose);
+    my @ok_frames = grep {
+      local $V_verbose;
+      validate_frame_no_transform($V, $node, $_, $aids, $pj4, 1)
+    } @transformed;
+    unless ($quiet) {
+      # once more for the show
+      print scalar(@ok_frames)." OF ".scalar(@transformed)." FRAMES MATCHED, HERE IS WHY:\n\n" if (!$quiet and $V_verbose);
+      if (@ok_frames) {
+	foreach (@ok_frames) {
+	  print "FRAME ".$V->frame_id($_)."\n" if (!$quiet and $V_verbose);
+	  validate_frame_no_transform($V, $node, $_, $aids, $pj4, 0);
+	}
+	return 1;
+      } else {
+	foreach (@transformed) {
+	  print "FRAME ".$V->frame_id($_)."\n" if (!$quiet and $V_verbose);
+	  validate_frame_no_transform($V, $node, $_, $aids, $pj4, 0);
+	}
+	return 0;
+      }
+    }
+  } else {
+    validate_frame_no_transform($V, $node, $transformed[0], $aids, $pj4, $quiet);
+  }
+}
 
+sub validate_frame_no_transform {
+  my ($V,$node, $frame,$aids,$pj4,$quiet) = @_;
   my %all_elements;
   # check over-all validity of the frame itself
   {
-    # verify, that no functors are repeated in the frame
+      # verify, that no functors are repeated in the frame
     foreach my $el ($V->all_elements($frame)) {
       my $func = $V->func($el);
       if (exists($all_elements{$func})) {
@@ -806,7 +866,7 @@ sub validate_frame {
 	  print "EE invalid frame: repeated elements\t";
 	  Position($node);
 	}
-	$node->{_light}='_LIGHT_';
+	$node->{_light}='_LIGHT_' unless $quiet;
 	return 0;
       }
       $all_elements{$func} = $el;
@@ -819,8 +879,8 @@ sub validate_frame {
 	  print "EE invalid frame: non-obligatory element in alternation\t";
 	  Position($node);
 	}
-	$node->{_light}='_LIGHT_';
-	return 0;
+	$node->{_light}='_LIGHT_' unless $quiet;
+	  return 0;
       }
     }
   }
@@ -836,7 +896,7 @@ sub validate_frame {
 	  print "11 no word form matches: $node->{lemma},$node->{tag}\t";
 	  Position($node);
 	}
-	$node->{_light}='_LIGHT_';
+	$node->{_light}='_LIGHT_' unless $quiet;
 	return 0;
       }
     }
