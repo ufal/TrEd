@@ -12,7 +12,8 @@ use vars qw(
 	    $nohub $client_key_file $verbose $srvlist
 	    $kill $filelist $srvlistfile $request_quit
 	    $unrestricted $help $usage $manpage $ssh
-	    $server_debug
+	    $server_debug $maxservers
+	    $request_reload $request_load $request_close
 	   );
 
 $usage=1 unless @ARGV;
@@ -37,9 +38,13 @@ GetOptions ("all-trees|T"    => \$opt_T,
 	    "ssh=s"           => \$ssh,
 	    "kill|k"           => \$kill,
 	    "quit"           => \$request_quit,
+	    "reload-files"    => \$request_reload,
+	    "close-files"     => \$request_close,
+	    "load-files"      => \$request_load,
 	    "servers=s"    => \$srvlist,
 	    "unrestricted|U" => \$unrestricted,
 	    "serverlist|s=s"    => \$srvlistfile,
+	    "max-servers|M=i"    => \$maxservers,
 	    "filelist|l=s"    => \$filelist,
 	    "no-server-check" => \$nocheck,
 	    "no-server-start" => \$noservers,
@@ -73,6 +78,7 @@ sub send_request {
   my ($control, $server, $type)=(shift,shift,shift);
   return 0 unless $server;
   $server->print("$control REQUEST_TYPE=$type\n");
+  $server->flush;
   foreach (@_) {
     chomp; $server->print("$_\n");
     $server->flush;
@@ -187,23 +193,7 @@ if (defined($init) || defined($kill)) {
   # run servers and start a hub
   # ==================================================
 
-  chomp(my $cwd = `pwd`);
-
-  my @files;
-  if (defined($filelist) or !scalar(@ARGV)) {
-    $filelist ||= $ENV{HOME}."/.ntred_filelist";
-    if (open(my $f, $filelist)) {
-      while (<$f>) {
-	s/^\s+//;
-	next if /^#/;
-	chomp; push @files,$_;
-      }
-      close $f;
-    }
-  }
-  @files = (@files, map { m{^/} ? $_ : $cwd.'/'.$_ } @ARGV);
-  make_uniq(\@files);
-
+  my @files = get_file_list();
   die "No files given!\n" unless @files;
 
   my $logdir=$ENV{TMP} || $ENV{TEMP} || "/tmp";
@@ -213,23 +203,25 @@ if (defined($init) || defined($kill)) {
   # check that the server machines are actually running
   foreach (@servers) {
     my ($server,$port) = split /:/;
-    next if $server !~ /\S/ or $servers{$server};
-    $servers{$server}=1;
-    $port ||= 1600;
-    msg "checking $server\n";
-    unless ($nocheck) {
-      my $cmd = "$ssh $server 'sh -c \"echo -n running 2>/dev/null\"'";
-      msg "$cmd\n";
-      msg "Server $server - ";
-      my $result=`$cmd`;
-      if ($result eq 'running') {
-	msg "\n";
-      } else {
-	msg "not-running.\n";
-	next;
+    next if $server !~ /\S/;
+    unless ($servers{$server}) {
+      $servers{$server}=1;
+      $port ||= 1600;
+      msg "checking $server\n";
+      unless ($nocheck) {
+	my $cmd = "$ssh $server 'sh -c \"echo -n running 2>/dev/null\"'";
+	msg "$cmd\n";
+	my $result=`$cmd`;
+	if ($result eq 'running') {
+	  msg "Server $server - running\n";
+	} else {
+	  msg "Server $server - down\n";
+	  next;
+	}
       }
     }
-    push @running, { host => $server, port => $port };
+    push @running, { host => $server, port => $port, fullname => "$server:$port" };
+    last if ($maxservers>0 && @running >= $maxservers);
   }
 
   die "No servers available - exit.\n" unless (@running);
@@ -253,14 +245,14 @@ if (defined($init) || defined($kill)) {
     $server_key=generate_random_block();
 
     foreach (@running) {
-      msg "Running btred server on $_->{host}\n";
+      msg "Running btred server on $_->{host} port $_->{port}\n";
       # as for now, we only make use of the secure pipe to the server
       # in order to pass it the session key
       my $cmd = "$ssh $_->{host} '$btred -P".
 	($unrestricted ? "" : "F").
 	($server_debug ? "D" : "").
 	"L $_->{port}' ".
-	" 2> $logdir/ntred-server-$_->{host}.log";
+	" 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
       msg "$cmd\n";
       if (open ($_->{ssh},"| ".$cmd)) {
 	$_->{ssh}->autoflush(1);
@@ -289,7 +281,7 @@ if (defined($init) || defined($kill)) {
   msg "Opening connections to servers...\n";
   foreach (@running) {
     next unless $_->{running};
-    msg "Openning connection to $_->{host}:$_->{port}\n";
+    msg "Openning connection to $_->{fullname}\n";
     my $server;
     do {
       $server= new IO::Socket::INET (PeerAddr => $_->{host},
@@ -297,84 +289,42 @@ if (defined($init) || defined($kill)) {
 				     Proto => 'tcp',
 				    );
       if ($server and $server->connected) {
-	die "Authentification to $_->{host}:$_->{port} has been denied.\n"
+	die "Authentification to $_->{fullname} has been denied.\n"
 	  unless Negotiate($server_key,$server,$control);
       } else {
-	msg("$_->{host} not ready\n");
+	msg("$_->{fullname} not ready\n");
 	sleep 2;
       }
     } while (!$server);
-    #  die "Can't open socket to $_->{host}:$_->{port}. $!\n" unless $server;
     $_->{socket} = $server;
-    msg  " - connected to $_->{host}:$_->{port}\n";
+    msg  " - connected to $_->{fullname}\n";
   }
   undef $server_key;  # clean-up
   @running = grep $_->{socket},@running;
 
   msg "Connected to btred servers on the following hosts:\n";
   foreach  (@running) {
-    msg " - $_->{host}:$_->{port}\n"
+    msg " - $_->{fullname}\n"
   }
 
   # Benchmark the servers
   foreach my $server (@running) {
     send_request($control,$server->{socket},'BENCHMARK');
   }
+  foreach my $server (@running) {
+    my $response;
+    unless (forward_response($control,$server->{socket},\$response)) {
+      msg "Communication with $server->{fullname} seems broken; skipping.\n";
+      next;
+    }
+    chomp $response;
+    msg "$server->{fullname} benchmark: $response\n";
+    $server->{benchmark}=$response;
+  }
 
   # --------------------------------------------------------------
   # --------------- optimal file distribution  -------------------
-  do {
-    my @totalfilelist=@files;
-    my %benchmark_time;
-    my %number_of_procs;
-    my %power;
-
-    my $totalpower;
-    foreach my $server (@running) {
-      my $response;
-      unless (forward_response($control,$server->{socket},\$response)) {
-	msg "Communication with $server->{host}:$server->{port} seems broken; skipping.\n";
-	next;
-      }
-      chomp $response;
-      msg "$server->{host}:$server->{port} benchmark: $response\n";
-      ($benchmark_time{$server}, $number_of_procs{$server})=split /,/,$response;
-      $power{$server}=$number_of_procs{$server}/($benchmark_time{$server}+1);
-      $totalpower+=$power{$server};
-    }
-
-    my (%files,%filescnt);
-    my $totalfilecnt=@totalfilelist;
-    my $remaining_power=$totalpower;
-    my $remaining_files=$totalfilecnt;
-    foreach my $server (sort {$power{$a}<=>$power{$b}} @running) {
-      $filescnt{$server}=
-	sprintf("%0.0f", $remaining_files*$power{$server}/$remaining_power);
-      $remaining_power-=$power{$server};
-      $remaining_files-=$filescnt{$server};
-    }
-
-    # Distribute files
-    foreach my $server (@running) {
-      my @f=splice @totalfilelist,0,$filescnt{$server};
-      if (@f) {
-	msg "Distributing ".scalar(@f)." files to $server->{host}:$server->{port}\n";
-	send_request($control,$server->{socket},'LOAD_FILES',@f);
-      } else {
-	msg "No files for server $server->{host}:$server->{port}, closing it.\n";
-	send_request($control,$server->{socket},'QUIT',@f);
-      }
-    }
-    # get responses
-    foreach my $server (@running) {
-      my $response;
-      unless (forward_response($control,$server->{socket},\$response)) {
-	msg "Communication with $server->{host}:$server->{port} seems broken\n";
-      }
-      msg "$server->{host}:$server->{port} $response";
-    }
-  };
-
+  distribute_files($control,\@running,\@files);
 
   # Generate client key
   my $client_key = generate_random_block(1024);
@@ -428,30 +378,38 @@ if (defined($init) || defined($kill)) {
     if ($request_type eq 'QUIT') {
       $SIG{PIPE} = sub {};
     }
+
+    if ($request_type eq 'HUB_DISTRIBUTE') {
+      @files = split /\n/,$request;
+      shift @files; pop @files; # get rid of the controls
+      distribute_files($control,\@running,\@files);
+      end_response($control,$client);
+    } else {
     #print STDERR "Request: $request\n\n";
     # ---------- distributing the request -------------
-    msg "Distributing the request to the servers...\n";
-    foreach my $server (@running) {
-      next unless $server->{socket};
-      msg " - to $server->{host}:$server->{port}\n";
-      $server->{socket}->print($request);
-      $server->{socket}->flush;
-    }
+      msg "Distributing the request to the servers...\n";
+      foreach my $server (@running) {
+	next unless $server->{socket};
+	msg " - to $server->{fullname}\n";
+	$server->{socket}->print($request);
+	$server->{socket}->flush;
+      }
 
-    # ----------- reading and forwarding the response ---------------
-    msg "Waiting for server responses and forwarding them to the client...\n";
-    foreach my $server (@running) {
-      next unless $server->{socket};
-      msg " - from $server->{host}:$server->{port}\n";
-      print $client "\n$control Response from $server->{host}:$server->{port}\n";
-      forward_response($control,$server->{socket},$client);
-    }
-    end_response($control,$client);
-    msg "The processing of request $request_number completely finished.\n";
-    msg "Waiting for a new client request.\n\n";
-    if ($request_type eq 'QUIT') {
-      msg "Quitting on client's request.\n";
-      exit;
+      # ----------- reading and forwarding the response ---------------
+      msg "Waiting for server responses and forwarding them to the client...\n";
+      foreach my $server (@running) {
+	next unless $server->{socket};
+	msg " - from $server->{fullname}\n";
+	print $client "$control Response from $server->{fullname}\n";
+	forward_response($control,$server->{socket},$client);
+      }
+      end_response($control,$client);
+      msg "The processing of request $request_number completely finished.\n";
+      msg "Waiting for a new client request.\n\n";
+      if ($request_type eq 'QUIT') {
+	msg "Quitting on client's request.\n";
+	exit;
+      }
     }
   }
   msg "Closing hub.\n";
@@ -496,12 +454,21 @@ if (defined($init) || defined($kill)) {
   if ($request_quit) {
     $request_type="QUIT";
     $request="";
+  } elsif ($request_reload) {
+    $request_type="RELOAD";
+    $request="";
+  } elsif ($request_close) {
+    $request_type="CLOSE";
+    $request="";
+  } elsif ($request_load) {
+    $request_type="HUB_DISTRIBUTE";
+    my @files = get_file_list();
+    $request=join "\n", @files;
   } else {
     $request_type="EVAL_CODE";
     $request="$control STATE=CODE\n$code\n$control STATE=MACRO\n$macro";
+    msg "Code: $code\n\n";
   }
-
-  msg "Code: $code\n\n";
 
   # ---------- open hub connection ----------------
   msg "Opening connection to ntred-hub on $hubname:$hubport\n";
@@ -558,6 +525,74 @@ if (defined($init) || defined($kill)) {
   msg "Done.\n";
 }
 
+# --------------------------------------------------------------
+# --------------- optimal file distribution  -------------------
+sub distribute_files {
+  my ($control,$servers,$files,$close_empty) = @_;
+  my @totalfilelist=@$files;
+  my %benchmark_time;
+  my %number_of_procs;
+  my %power;
+
+  my $totalpower;
+  foreach my $server (@$servers) {
+    ($benchmark_time{$server}, $number_of_procs{$server})=split /,/,$server->{benchmark};
+    $power{$server}=$number_of_procs{$server}/($benchmark_time{$server}+1);
+    $totalpower+=$power{$server};
+  }
+
+  my (%files,%filescnt);
+  my $totalfilecnt=@totalfilelist;
+  my $remaining_power=$totalpower;
+  my $remaining_files=$totalfilecnt;
+  foreach my $server (sort {$power{$a}<=>$power{$b}} @$servers) {
+    $filescnt{$server}=
+      sprintf("%0.0f", $remaining_files*$power{$server}/$remaining_power);
+    $remaining_power-=$power{$server};
+    $remaining_files-=$filescnt{$server};
+  }
+
+  # Distribute files
+  foreach my $server (@$servers) {
+    my @f=splice @totalfilelist,0,$filescnt{$server};
+    if (@f) {
+      msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
+      send_request($control,$server->{socket},'LOAD_FILES',@f);
+    } elsif ($close_empty) {
+      msg "No files for server $server->{fullname}, closing it.\n";
+      send_request($control,$server->{socket},'QUIT',@f);
+    }
+  }
+  # get responses
+  foreach my $server (@$servers) {
+    my $response;
+    unless (forward_response($control,$server->{socket},\$response)) {
+      msg "Communication with $server->{fullname} seems broken\n";
+    }
+    msg "$server->{fullname} $response";
+  }
+}
+
+sub get_file_list {
+  my @files;
+  if (defined($filelist) or !scalar(@ARGV)) {
+    $filelist ||= $ENV{HOME}."/.ntred_filelist";
+    if (open(my $f, $filelist)) {
+      while (<$f>) {
+	s/^\s+//;
+	next if /^#/;
+	chomp; push @files,$_;
+      }
+      close $f;
+    }
+  }
+  chomp(my $cwd = `pwd`);
+  @files = (@files, map { m{^/} ? $_ : $cwd.'/'.$_ } @ARGV);
+  make_uniq(\@files);
+  return @files;
+}
+
+
 __END__
 
 =head1 ntred
@@ -582,9 +617,9 @@ To kill all remote servers and a hub:
 To start remote servers and a hub:
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
-           [--filelist file-list]
+           [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--unrestricted]
+           [--unrestricted] [--server-debug]
            [--key-file] [--hub hub] [--port port] file [...]
 
 Get help:
@@ -670,9 +705,9 @@ necessary for the authentication to the running hub. This defaults to
 =head2 HUB/SERVER MODE (-i or --init) OPTIONS
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
-           [--filelist file-list]
+           [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--unrestricted]
+           [--unrestricted] [--server-debug]
            [--key-file] [--hub hub] [--port port] file [...]
 
 =over 8
@@ -695,6 +730,11 @@ servers is read from ~/.ntred_serverlist.
 
 A list of files to distribute between servers (one filename per line).
 Additional files may be given as command-line arguments.
+
+=item B<--max-servers|-M> number
+
+Limit number of servers to start even if the list of servers contains
+more of them.
 
 =item B<--no-server-check>
 
@@ -771,6 +811,22 @@ Sends the hub and all the servers a command to quit.
 Kills all ntred instances on the running machine and all btred
 instances on the servers listed with --servers, --serverlist, or 
 in ~/.ntred_serverlist.
+
+=item B<--reload-files>
+
+Send a command to the btred servers to reload all open files.
+
+=item B<--close-files>
+
+Send a command to the btred servers to close all open files.
+
+=item B<--load-files>
+
+Send a command to the hub to distribute files given on the
+command-line or those specified using L<--filelist> of in
+~/.ntred_filelist to the servers. Note, that a file distributed to a
+server is not reloaded by the server if the server already has a file
+with the same path in memory.
 
 =back
 

@@ -378,7 +378,7 @@ sub startMain {
     # resolve peer IP
     if ($opt_b) {
       ($opt_b) = (`LC_ALL=C host "$opt_b"` =~ / has address (.*)$/) if ($opt_b =~/[^:.0-9]/);
-      print "Awaiting connection from $opt_b\n";
+      _msg("Awaiting connection from $opt_b\n");
     }
     my ($hub,$peer);
     do {
@@ -473,13 +473,14 @@ sub startMain {
 	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	# send macro's output from tmp file to client
+	$macro_stdout->flush();
 	seek($macro_stdout,0,0);
 	my $space;
 	while (<$macro_stdout>) {
-	  print $hub $_;
+	  $hub->print($_);
 	  $space=chomp;
 	}
-	print $hub "\n" unless $space;
+	$hub->print("\n") unless $space;
 	$macro_stdout->close;
 	undef $macro_stdout;
 	#open STDOUT, ">&OLDSTDOUT" or die "Can't dup OLDSTDOUT: $!";
@@ -491,8 +492,23 @@ sub startMain {
 	$hub->print("OK\n");
 	_end_response($control,$hub);
 	exit 0;
+      } elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
+	_msg "Reloading all open files at client's request\n";
+	%{$grp->{preloaded}}=();
+	preloadFiles($grp,\@files);
+	$hub->print("OK\n");
+	_end_response($control,$hub);
+	exit 0;
+      } elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
+	_msg "Reloading all open files at client's request\n";
+	closeFile($grp);
+	%{$grp->{preloaded}}=();
+	@files=();
+	$hub->print("OK\n");
+	_end_response($control,$hub);
+	exit 0;
       } else {
-	$hub->print("ERROR: UNKNOWN REQUEST TYPE\n");
+	$hub->print("ERROR: UNKNOWN REQUEST TYPE $request{REQUEST_TYPE}\n");
 	_end_response($control,$hub);
       }
       _msg("Waiting for a new request from the hub...\n\n");
@@ -754,9 +770,8 @@ sub init_safe_mode {
   require Safe;
   $TrEd::Macros::macrosEvaluated=0;
   $TrEd::Macros::safeCompartment=undef;
-  my $compartment;
-
-  $compartment = Safe->new('TredMacro');
+  %{TredMacroCompartment::}=(); # cleanup
+  my $compartment = Safe->new('TredMacroCompartment');
   $compartment->reval("package TredMacro;\n");
   $compartment->deny_only(qw()); # everything allowed for the first initialization
   $compartment->share(qw(&do_eval_macro &do_eval_hook &min &max @INC 
