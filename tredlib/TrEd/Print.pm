@@ -114,23 +114,25 @@ BEGIN{
 
 sub _dirs {
   my ($dir) = @_;
+  my $ds=$TrEd::Convert::Ds;
   my @dirs;
   if (opendir(my $dd, $dir)) {
-    @dirs = map { ("$dir/$_",_dirs("$dir/$_")) } grep { -d "$dir/$_" }
+    @dirs = map { ("${dir}${ds}$_",_dirs("${dir}${ds}$_")) } grep { -d "${dir}${ds}$_" }
       grep { !/^\.*$/ }	readdir($dd);
     closedir $dd;
   } else {
-    warn "Warning: can't read $dir\n";
+    warn "Warning: can't read ${dir}\n";
   }
-  return @dirs;
+  return $dir,@dirs;
 }
 
 sub get_ttf_fonts {
   my %result;
+  my $ds=$TrEd::Convert::Ds;
   eval {
     require PDF::API2::TTF::Font;
     foreach my $dir (map { _dirs($_) } @_) {
-      foreach my $font (grep { -f $_ } glob("$dir/*.*")) {
+      foreach my $font (grep { -f $_ } glob("${dir}${ds}*.*")) {
 	my $f = PDF::API2::TTF::Font->open($font);
 	next unless $f;
 	$PDF::API2::TTF::Name::utf8 = 1;
