@@ -10,8 +10,14 @@ import TredMacro;
 sub default_tr_attrs {
   return unless $grp->{FSFile};
   print "Using standard patterns\n";
-    SetDisplayAttrs('${x_TNl}');
-    SetBalloonPattern("\${trlemma}\n\${x_TNT}\n\${x_TNr}");
+    SetDisplayAttrs('${x_TNl}','#{blue}${trlemma}','${func}');
+    SetBalloonPattern("TNT: \${x_TNT}\n".
+		      '<? $node->parent->{x_TNT} eq "OR_node" ?
+                          $node->parent->{trlemma}."\n".
+                          $node->parent->{func}."\n".
+                          $node->parent->{afun}."\n".
+                          $node->parent->{tagMD_a} :
+		      $${afun}."\n".$${tagMD_a} ?>');
   return 1;
 }
 
@@ -83,14 +89,17 @@ sub node_style_hook {
 	      -addwidth => 2,
 	      -addheight => 2,
 	      -shape => 'rectangle',
-	      -level => '0.5', # lower them down a little
+	      -rellevel => '-0.1', # lower them down a little
 	     );
   }
   # styling ID_node children
   if ($node->parent and $node->parent->{x_TNT} eq 'ID_node') {
+    add_style($styles,'Node',
+	      -rellevel => '-0.1', # lower them down a little
+	     );
     add_style($styles,'Line',
 	      -fill => $node->parent->{x_TNcolor},
-	      -dash => '-'
+	      -dash => '-',
 	     );
   }
   # styling OR_nodes
@@ -103,21 +112,26 @@ sub node_style_hook {
 	      -addwidth => 2,
 	      -addheight => 2,
 	      -shape => 'polygon',
-	      -polygon => '-6,0,-2,2,0,6,2,2,6,0,2,-2,0,-6,-2,-2'
+	      -polygon => '-6,0,-2,2,0,6,2,2,6,0,2,-2,0,-6,-2,-2',
+	      -rellevel => '-0.2', # lower them down a little
 	     );
   }
   # styling OR_node children
   if ($node->parent and $node->parent->{x_TNT} eq 'OR_node') {
+    add_style($styles,'Node',
+	      -rellevel => '0', # lower them down a little
+	     );
     add_style($styles,'Line',
 	      -fill => 'orange',
-	      -dash => '.'
+	      -dash => '.',
 	     );
   }
   # styling all other nodes
-  if (($node->parent and $node->parent->{x_TNT} !~ /(OR|ID)_node/) and
+  if (($node->parent and $node->parent->parent and
+       $node->parent->{x_TNT} !~ /(OR|ID)_node/) and
       $node->{x_TNT} !~ /(OR|ID)_node/) {
     add_style($styles,'Node',
-	      -rellevel => '1',
+	      -rellevel => '0.8',
 	     );
   }
 
