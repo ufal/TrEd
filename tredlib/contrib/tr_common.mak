@@ -41,13 +41,16 @@ sub upgrade_file {
   # Add new functor OPER if not present in header
   my $defs=$grp->{FSFile}->FS->defs;
   if (exists($defs->{func}) and $defs->{func} !~ /OPER/) {
-    $fsfunc=$defs->{func}=~s/(NORM)/NORM|OPER/;
+    $defs->{func}=~s/(NORM)/NORM|OPER/;
+  }
+  if (exists($defs->{func}) and $defs->{func} !~ /CPHR/) {
+    $defs->{func}=~s/(DPHR)/CPHR|DPHR/;
   }
   if (exists($defs->{func}) and $defs->{func} !~ /CONTRA/) {
-    $fsfunc=$defs->{func}=~s/(CONFR)/CONFR|CONTRA/;
+    $defs->{func}=~s/(CONFR)/CONFR|CONTRA/;
   }
   if (exists($defs->{antec}) and $defs->{func} !~ /OPER/) {
-    $fsfunc=$defs->{antec}=~s/(NORM)/NORM|OPER/;
+    $defs->{antec}=~s/(NORM)/NORM|OPER/;
   }
   if (exists($defs->{memberof}) and $defs->{memberof} =~ /CO\|AP\|PA/) {
     $defs->{memberof}=~s/CO\|AP\|PA/CO|AP/;
@@ -56,7 +59,7 @@ sub upgrade_file {
     $defs->{gram}=~s/LESS/LESS|MULT|RATIO/;
   }
   if (exists($defs->{gram}) and $defs->{gram} !~ /\|ADD\|SUBTR\|ORDER\|/) {
-    $fsfunc=$defs->{func}=~s/(\|NIL\|)/\|ADD\|SUBTR\|ORDER\|NIL\|/;
+    $defs->{func}=~s/(\|NIL\|)/\|ADD\|SUBTR\|ORDER\|NIL\|/;
   }
   unless (exists($defs->{operand})) {
     AppendFSHeader('@P operand',
