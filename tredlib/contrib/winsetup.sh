@@ -85,7 +85,8 @@ if [ $OSTYPE = "cygwin" ]; then
 
   if [ "${TKTEST}" = "1" ]; then
     echo "Perl/Tk knihovna je jiz nainstalovana."
-    ask "Prejete si provest upgrade knihovny Perl/Tk"
+    #ask "Prejete si provest upgrade knihovny Perl/Tk"
+    false
   else
     ask "Chcete nainstalovat knihovnu Perl/Tk"
   fi
@@ -104,8 +105,6 @@ if [ $OSTYPE = "cygwin" ]; then
     $PERLBIN $PERLDIR/ppm install Tk.ppd ||\
       ( echo "Chyba pri instalaci Tk knihovny"; exit 1 )
   fi
-
-
 else
   echo 
   echo "TrEd vyzaduje knihovnu Tk."
@@ -120,13 +119,24 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
   UPGRADE=1
   echo
   echo "TrEd je jiz nainstalovan v adresari $TREDDIR"
-  ask "Chcete provest upgrade v tomto adresari" || exit 0
-  if ask "Chcete zachovat stavajici konfiguracni soubor"; then
-    test -f "$TREDDIR/tredlib/tredrc" && \
-      mv "$TREDDIR/tredlib/tredrc" "$TREDDIR/tredlib/tredrc.sav"
+  if ask "Chcete provest upgrade v tomto adresari"; then
+    if ask "Chcete zachovat stavajici konfiguracni soubor"; then
+      test -f "$TREDDIR/tredlib/tredrc" && \
+        mv "$TREDDIR/tredlib/tredrc" "$TREDDIR/tredlib/tredrc.sav"
+    else
+      rm -f "$TREDDIR/tredlib/tredrc.sav"
+    fi  
   else
-    rm -f "$TREDDIR/tredlib/tredrc.sav"
-  fi  
+    echo
+    ask "Chcete nainstalovat TrEd do jineho adresare" || exit 0
+    if [ "$OSTYPE" = "cygwin" ]; then
+      TREDDIR="c:/tred"
+    else 
+      TREDDIR="$HOME/tred"
+    fi    
+    read -e -p "Zadejte cilovy adresar [implicitne $TREDDIR]: " DIR
+    test -z $DIR || TREDDIR=$DIR
+  fi
 else 
   echo
   ask "Chcete nainstalovat TrEd" || exit 0
@@ -158,7 +168,8 @@ if ((test $UPGRADE = 1 || mkdir "${TREDDIR}") && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc"
     ) && \
     (test $UPGRADE = 1 || "$PERLBIN" trinstall.pl)); then
-
+  echo "Upravuji polozku TrEdu v registrech Windows
+  regtool -s set '\machine\Software\TrEd\Dir' $TREDDIR 
   echo
   echo "Instalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla"
   echo "ikona s obrazkem sileneho zvirete:)"
@@ -169,6 +180,8 @@ else
   echo Behem instalace doslo k chybe.
   echo
 fi
+
+
 
 
 
