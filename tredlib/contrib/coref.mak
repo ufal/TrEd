@@ -47,11 +47,11 @@ sub update_coref_file {
 			      "Should this declaration be added and the obsolete coreference attributes\n".
 			      "'cornum', 'corsnt' and 'antec' removed (recommended)?\n\n",
 			      qw{Yes No}) eq 'Yes') {
-    PDT->appendFSHeader('@P cortype',
+    appendFSHeader('@P cortype',
 			'@L cortype|'.$cortypes.'|---',
 			'@P corlemma'
 		       );
-    PDT->undeclareAttributes(qw(cornum corsnt antec));
+    undeclareAttributes(qw(cornum corsnt antec));
   }
 }
 
@@ -420,8 +420,8 @@ coreference between nodes that belong to different files.
 
 =item Automatic coreference assignment
 
-Some simple cases of gramatical coreference in PDT tectogrammatical
-trees can be recognized automatically. To apply the automatical
+Some simple cases of grammatical coreference in PDT tectogrammatical
+trees can be recognized automatically. To apply the automatic
 coreference recognition procedure on the current tree, press Ctrl+e.
 
 =item Reseting default display style
