@@ -495,14 +495,14 @@ sub func_PAR {
 }
 
 sub TFAAssign {
-  if (Parent($this)) {
+  if ($this->parent or $this->{func} ne 'SENT') {
     $this->{'tfa'} = $sPar1;
     $this=NextVisibleNode($this);
   }
 }
 
 sub FuncAssign {
-  if (Parent($this)) {
+  if ($this->parent or $this->{func} ne 'SENT') {
     $this->{'func'} = $sPar1;
     clear_funcaux($this);
     $this=NextVisibleNode($this);
@@ -534,7 +534,7 @@ sub ShiftLeft {
 }
 
 sub ShiftRight {
-  return unless (Parent($this));
+  return unless (Parent($this) or $this->{func} ne 'SENT');
   if (HiddenVisible()) {
     ShiftNodeRight($this);
   } else {
