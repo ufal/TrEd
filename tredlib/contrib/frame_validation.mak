@@ -1469,6 +1469,7 @@ sub check_verb_frames {
 		  push @frames, $vframe;
 		} else {
 		  print "00 invalid lemma for: ",$V->frame_id($vframe)," [$vlemma $lemma]\t";
+		  	  print $node->{AID}.$node->{TID}."\t";
 		  Position($node);
 		}
 	      }
@@ -1485,6 +1486,11 @@ sub check_verb_frames {
 	      if (@possible_frames==1) {
 		print "12 unresloved frame, but one matching frame: $fi\t";
 		print join("|",sort map { $V->frame_id($_) } @possible_frames)."\t";
+		if ($fix) {
+		  $node->{frameid}=join "|",map { $V->frame_id($_) } @possible_frames;
+		  $node->{framere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+		  ChangingFile(1);
+		}
 	      } elsif (@possible_frames>1) {
 		print "13 unresloved frame, but more matching frames: $fi\t";
 		print join("|",sort map { $V->frame_id($_) } @possible_frames)."\t";
@@ -1494,27 +1500,30 @@ sub check_verb_frames {
 	    } else {
 	      print "15 unresloved frame and lemma not found: $fi\t";
 	    }
+	    print $node->{AID}.$node->{TID}."\t";
 	    Position($node);
 	    return 0;
 	  }
 	} else {
 	  print "02 frame not found: $fi\t";
+	  print $node->{AID}.$node->{TID}."\t";
 	  Position($node);
 	  return 0;
 	}
       }
       if (@frames) {
-	if ($fix) {
-	  $node->{frameid}=join "|",map { $V->frame_id($_) } @frames;
-	  $node->{framere} = join " | ", map { $V->serialize_frame($_) } @frames;
-	  ChangingFile(1);
-	}
+# 	if ($fix) {
+# 	  $node->{frameid}=join "|",map { $V->frame_id($_) } @frames;
+# 	  $node->{framere} = join " | ", map { $V->serialize_frame($_) } @frames;
+# 	  ChangingFile(1);
+# 	}
 	foreach my $frame (@frames) {
 	  return 0 unless validate_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,[],0,$flags);
 	}
 	# process frames
       } else {
 	print "03 no valid frame for: $node->{$frameid} \t";
+	print $node->{AID}.$node->{TID}."\t";
 	Position($node);
 	return 0;
       }
@@ -1535,9 +1544,19 @@ sub check_verb_frames {
 	  } else {
 	    print "17 no frame assigned, but word has only one frame, which matches:\t";
 	  }
+	  if ($fix) {
+	    $node->{frameid}=join "|",map { $V->frame_id($_) } @possible_frames;
+	    $node->{framere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+	    ChangingFile(1);
+	  }
 	} elsif (@possible_frames==1) {
 	  print "18 no frame assigned, but one matching frame:\t";
 	  print join (",",map { $V->frame_id($_) } @possible_frames)."\t";
+	  if ($fix) {
+	    $node->{frameid}=join "|",map { $V->frame_id($_) } @possible_frames;
+	    $node->{framere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+	    ChangingFile(1);
+	  }
 	} elsif (@possible_frames>1) {
 	  print "19 no frame assigned, but more matching frames:\t";
 	  print join("|",sort map { $V->frame_id($_) } @possible_frames)."\t";
@@ -1562,11 +1581,13 @@ sub check_verb_frames {
       } else {
 	print "04 no frame assigned: $lemma\t";
       }
+      print $node->{AID}.$node->{TID}."\t";
       Position($node);
       return 0;
     }
   } else {
     print "05 lemma not in vallex: $lemma\t";
+    print $node->{AID}.$node->{TID}."\t";
     Position($node);
     return 0;
   }
