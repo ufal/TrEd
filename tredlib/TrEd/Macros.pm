@@ -132,7 +132,7 @@ sub read_macros {
 	$menu=TrEd::Convert::encode($2);
 	foreach (@contexts) {
 	  $menuBindings{$_}={} unless exists($menuBindings{$_});
-	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
+	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",undef] if ($menu);
 	}
       } elsif (/^\#\s*include\s+\<(.+\S)\>\s*$/) {
 	my $mf="$libDir/$1";
