@@ -159,7 +159,7 @@ sub OpenEditor {
 
   my $pos='V';
   $pos=$sempos_map{$1} if $this->{g_wordclass}=~/^(sem([vn]|adj|adv))/;
-  my $lemma=TrEd::Convert::encode($this->{trlemma});
+  my $lemma=TrEd::Convert::encode($this->{t_lemma});
 
   my $font = $main::font;
   my $fc=[-font => $font];
@@ -354,9 +354,9 @@ sub ChooseFrame {
 
   my $lemma=TrEd::Convert::encode($this->{t_lemma});
   my $tag=$this->{tag};
-  if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
-    $lemma=~s/^ne//;
-  }
+#   if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
+#     $lemma=~s/^ne//;
+#   }
   unless ($this->{g_wordclass}=~/^(sem([vn]|adj|adv))/) {
     questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
 		  "according to morphological tag.",
