@@ -54,7 +54,7 @@ sub open_backend {
   $filename=$1;
   $filename=~s/@/##/;
   if ($filename) {
-    if ($mode =~/[w\>]/) {
+    if ($mode eq 'w') {
       $cmd = "| $ntred --upload-file \"$filename\" 2>/dev/null";
       print STDERR "[w $cmd]\n" if $Fslib::Debug;
       eval { open $fh,"$cmd"; } || return undef;
