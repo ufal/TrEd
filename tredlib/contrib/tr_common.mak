@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-20 10:26:03 pajas>
+## Time-stamp: <2002-09-30 10:23:53 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -26,18 +26,7 @@ sub choose_frame_or_advfunc {
   }
 }
 
-#bind default_tr_attrs to F8 menu Display default attributes
-sub default_tr_attrs {
-  return unless $grp->{FSFile};
-  print "Using standard patterns\n";
-    SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
-    SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
-		      "afun:\t\${afun}\ntag:\t\${tag}".
-		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
-		      '<?"\nframe:\t\${framere}" if $${framere} ne "" ?>'.
-		      '<?"\nframe_id:\t\${frameid}" if $${frameid} ne "" ?>');
-
+sub upgrade_file {
   # Add new functor OPER if not present in header
   my $defs=$grp->{FSFile}->FS->defs;
   if (exists($defs->{func}) and $defs->{func} !~ /OPER/) {
@@ -56,6 +45,21 @@ sub default_tr_attrs {
     PDT->appendFSHeader('@P operand',
 			'@L operand|---|OP|NIL|???');
   }
+  upgrade_file_to_tid_aidrefs();
+}
+
+#bind default_tr_attrs to F8 menu Display default attributes
+sub default_tr_attrs {
+  return unless $grp->{FSFile};
+  print "Using standard patterns\n";
+    SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+    SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
+		      "afun:\t\${afun}\ntag:\t\${tag}".
+		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
+		      '<?"\nframe:\t\${framere}" if $${framere} ne "" ?>'.
+		      '<?"\nframe_id:\t\${frameid}" if $${frameid} ne "" ?>');
+  upgrade_file();
   return 1;
 }
 
@@ -444,6 +448,10 @@ sub add_EN {
   $this->{'func'}='???';
 }
 
+sub GetNewTID { # fill GraphTR fake
+  $sPar3 = generate_new_tid();
+}
+
 sub NewVerb {
   my $pT;			# used as type "pointer"
   my $pD;			# used as type "pointer"
@@ -487,6 +495,7 @@ sub NewVerb {
 
   GetNewOrd();
   $sNum = $sPar2;
+  $pNew->{TID} = generate_new_tid();
   $pNew->{'TR'}='';
   $pNew->{'lemma'} = '-';
   $pNew->{'tag'} = '-';
@@ -530,13 +539,27 @@ sub NewVerb {
   $this=$pNew;
 }
 
-sub ConnectID {
-  $sReturn =  $sPar1.'|'.$sPar2;
+sub getAIDREF {
+  my $node = $_[0] || $this;
+  return ($node->{AIDREFS} ne "") ? $node->{AIDREFS} : $node->{AID};
 }
 
-sub DisconnectID {
-  $sReturn  = $sPar1;
-  $sReturn =~ s/(?:^|\|)$sPar2(?:\||$)//;
+sub ConnectAIDREFS {
+  $pPar1->{AIDREFS}=getAIDREF($pPar1).'|'.getAIDREF($pPar2);
+}
+
+sub DisconnectAIDREFS {
+  my $aid=getAIDREF($pPar2);
+  $pPar1->{AIDREFS} =~ s/(?:^|\|)$aid(?:\||$)//g;
+}
+
+sub ConnectFW {
+  $pPar1->{fw}= join '|',grep { $_ ne "" }
+    $pPar1->{fw},$pPar2->{trlemma},$pPar2->{fw};
+}
+
+sub DisconnectFW {
+  $pPar1->{fw} =~ s/(?:^|\|)$pPar2->{trlemma}(?:\||$)//g;
 }
 
 
@@ -565,6 +588,11 @@ sub FPaste {
     $sPar2 = "1";
     ShiftDords();
     $pPasted->{'dord'} = $sDord;
+    $pPasted->{'TID'} = generate_new_tid();
+    if ($pPasted->{'AIDREFS'} eq '') {
+      $pPasted->{'AIDREFS'} = $pPasted->{'AID'};
+    }
+    $pPasted->{'AID'} = '';
     $this=PasteNode(CutNode($pPasted),$pThis); # repaste to get structure order right
   }
   $sPasteNow = '';
@@ -638,7 +666,7 @@ sub move_aid_to_aidrefs {
     my $node=$tree->following;
     while ($node) {
       if ($node->{AID}=~/\|/) {
-	$node->{AIDREFS}=$node->{AID};
+	$node->{AIDREFS}=join '|',split /\|/,$node->{AID};
 	($node->{AID})=split /\|/,$node->{AIDREFS};
       }
       $node=$node->following;
@@ -649,13 +677,12 @@ sub move_aid_to_aidrefs {
 #bind upgrade_file_to_tid_aidrefs to F7 menu Aktualizace souboru na system AID/AIDREFS, TID
 sub upgrade_file_to_tid_aidrefs {
   my $defs=FS()->defs;
-  print "probing $defs!\n";
-  return if (exists($defs->{TID}) && exists($defs->{AIDREF}));
+  return if (exists($defs->{TID}) && exists($defs->{AIDREFS}));
   print "TID and AIDREF don't exist!\n";
   if (questionQuery('Automatická oprava',
-		    "Tento soubor neobsahuje deklarace atributu AIDREF nebo TID,\n".
+		    "Tento soubor neobsahuje deklarace atributu AIDREFS nebo TID,\n".
 		    "do nich¾ se ukládají dùle¾ité identifikátory uzlù.\n\n".
-		    "Pøejete si tyto atributy pøidat a aktualizovat soubor?\n\n",
+		    "Pøejete si tyto atributy pøidat a aktualizovat soubor (doporuèeno)?\n\n",
 		    qw{Ano Ne}) eq 'Ano') {
     generate_tids_whole_file();
     move_aid_to_aidrefs();
