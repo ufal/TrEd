@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-12 14:00:13 pajas>";
+$timestamp="Time-stamp: <2001-06-28 16:15:30 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -244,8 +244,8 @@ $on_node_change = \&onNodeChange;
 $on_current_change = \&onCurrentChange;
 
 #load back-ends
-
-@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTSBackend)));
+#require CSTS_SGML_SP_Backend;
+@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend)));
 
 require Filelist;
 
@@ -2214,11 +2214,15 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 
   foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
               Control-Meta Alt-Shift Meta-Shift)) {
-    foreach my $event (qw(KeyPress Right Left Up Down Return comma period Next Prior greater less)) {
+    foreach my $event (qw(KeyPress Right Left Up Down
+                          Return comma period Next Prior greater less)) {
       $group{'frame'}->bind('my',"<$_-$event>" =>
-			    [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+			    [sub { evalMacro(@_); Tk->break; },
+			     \%group, keyBind($_)."+"])
+	unless ("$_-$event" eq "Alt-KeyPress")
     }
   }
+
   #  $group{'frame'}->bind('all','<Tab>' => [sub {1;}]);
   #  $group{'top'}->bind('dialog','<Tab>' => [sub { shift->focusNext(); }] );
   #  $group{'top'}->bind('dialog','<Shift-Tab>' => [sub { shift->focusPrev(); }] );
@@ -2316,7 +2320,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 		      [ sub {
 			  shift;
 			  my $grp=shift;
-			  my $canvas=$grp->{'treeView'}->canvas->Subwidget('scrolled');			  
+			  my $canvas=$grp->{'treeView'}->canvas->Subwidget('scrolled');
 			  $defCWidth=$canvas->width();
 			  $defCHeight=$canvas->height();
 			  print "$defCHeight x $defCWidth\n";
