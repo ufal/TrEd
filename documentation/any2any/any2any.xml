@@ -49,6 +49,12 @@
 	<group choice="opt">
 	  <arg>-T</arg>
 	</group>
+	<group choice="opt">
+	  <arg>-N</arg>
+	</group>
+	<group choice="opt">
+	  <arg>-G</arg>
+	</group>
 	<arg choice="plain"
 	  rep="repeat"><replaceable>input-file</replaceable></arg>
       </cmdsynopsis>
@@ -82,65 +88,90 @@
       The filename is then prepended by the suffix given after
       <parameter>-r</parameter> (if any).      
     </para>
-    <formalpara>
+    <variablelist>
       <title>Parameters options</title>
-      <para>
-	<variablelist>
-	  <varlistentry>
-	    <term><parameter>-f</parameter></term>
-	    <listitem>
-	      <para>
-		Output format. The following output formats are
-		available: <literal>fs</literal>
-		(<application>TrEd</application>'s native file
-		format),
-		<literal>csts</literal> (PDT 1.0 specific SGML
-		format),
-		<literal>TrXML</literal> (XML variant of the
-		general FS format).		
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><parameter>-s</parameter></term>
-	    <listitem>
-	      <para>
-		Regular expression that should match the trailing part
-		of the file name which is to be deleted.
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><parameter>-a</parameter></term>
-	    <listitem>
-	      <para>
-		Suffix to be appended to the output file name (after
-		the trailing part matched by <parameter>-s</parameter>
-		is deleted from it).
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	  <varlistentry>
-	    <term><parameter>-p</parameter></term>
-	    <listitem>
-	      <para>
-		Regular expression that should match the beginning
-		of the file name (including path) which is to be deleted.
-	      </para>
-	    </listitem>	    
-	  </varlistentry>
-	  <varlistentry>
-	    <term><parameter>-r</parameter></term>
-	    <listitem>
-	      <para>
-		Prefix to be inserted to the beginning of the output file name (after
-		the part matched by <parameter>-p</parameter> is deleted from it).
-	      </para>
-	    </listitem>
-	  </varlistentry>
-	</variablelist>
-      </para>
-    </formalpara>
+      <varlistentry>
+	<term><parameter>-f</parameter></term>
+	<listitem>
+	  <para>
+	    Output format. The following output formats are
+	    available: <literal>fs</literal>
+	    (<application>TrEd</application>'s native file
+	    format),
+	    <literal>csts</literal> (PDT 1.0 specific SGML
+	    format),
+	    <literal>TrXML</literal> (XML variant of the
+	    general FS format).		
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-s</parameter></term>
+	<listitem>
+	  <para>
+	    Regular expression that should match the trailing part
+	    of the file name which is to be deleted.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-a</parameter></term>
+	<listitem>
+	  <para>
+	    Suffix to be appended to the output file name (after
+	    the trailing part matched by <parameter>-s</parameter>
+	    is deleted from it).
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-p</parameter></term>
+	<listitem>
+	  <para>
+	    Regular expression that should match the beginning
+	    of the file name (including path) which is to be deleted.
+	  </para>
+	</listitem>	    
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-r</parameter></term>
+	<listitem>
+	  <para>
+	    Prefix to be inserted to the beginning of the output file name (after
+	    the part matched by <parameter>-p</parameter> is deleted from it).
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+    <variablelist>
+      <title>Conversion flags</title>
+      <varlistentry>
+	<term><parameter>-T</parameter></term>
+	<listitem>
+	  <para>Build tectogrammatical tree
+	    structure and use tectogrammatical FS-File header
+	    when converting from CSTS.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-N</parameter></term>
+	<listitem>
+	  <para>Fill empty ordering attributes with sentence ordering
+	    number when converting from CSTS.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-G</parameter></term>
+	<listitem>
+	  <para>If set, the element <sgmltag class="starttag">g</sgmltag> is not written to the
+	    output for nodes dependent on the node with
+	    <literal><sgmltag class="starttag">g</sgmltag>0</literal>
+	    (usually the root node) when converting to CSTS.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
   </sect1>
   <sect1>
     <title>Expamles</title>
