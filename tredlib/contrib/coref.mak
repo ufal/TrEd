@@ -369,44 +369,54 @@ sub switch_context_hook {
   }
 }
 
-
 #bind markPossibleCorefStarts to Ctrl+m menu Mark possible coreference start nodes
 sub markPossibleCorefStarts {
   shift @_ unless ref($_[0]);
-  my $node = ($_[0] || $root);
-
+  my $node = shift || $root;
   while ($node) {
-    # if it is a hidden node, go to the next one,
-    # otherwise we would overgenerate 'se's:
-    if ($node->{TR} eq 'hide') {
-      $node = $node->following;
-      next;
-    }
-    if (
-	# typical trlemmata for coreference start:
-	($node->{trlemma} =~ 
-	 /^(který|jen¾|jak|Cor|\&Cor|\&Cor;|\&Rcp;|kdy|kam|kde|kdo|co¾|on|ten)$/)
-	||
-	# se that is not DPHR or ETHD:
-	($node->{trlemma} =~ /^se$/ &&
-	 $node->{func} !~ /^(DPHR|ETHD)/) 
-	||
-	# for COMPL, the rules have to be refined:
-	($node->{func} eq 'COMPL' && $node->{tag} !~ /^V/)
-	||
-	# a verb with functor COMPL is only then a coref node,
-	# when there's a jaky somewhere below it:
-	($node->{func} eq 'COMPL' && $node->{tag} =~ /^V/
-	 && grep {$_->{trlemma} eq 'jaký'} $node->descendants)
-       ) 
-    {
-      $node->{corefMark}=1;
-#      print STDERR "markPossibleCorefStart result: $node->{AID}\n";
-    } # end if
-    # process next node:
-    $node = $node->following;
+    $node->{corefMark}=ACAP::corefCandidate($node);
+    $node=$node->following_visible(FS())
   }
 }
+
+# Oliver's original code:
+
+# sub markPossibleCorefStarts {
+#   shift @_ unless ref($_[0]);
+#   my $node = ($_[0] || $root);
+
+#   while ($node) {
+#     # if it is a hidden node, go to the next one,
+#     # otherwise we would overgenerate 'se's:
+#     if ($node->{TR} eq 'hide') {
+#       $node = $node->following;
+#       next;
+#     }
+#     if (
+# 	# typical trlemmata for coreference start:
+# 	($node->{trlemma} =~ 
+# 	 /^(který|jen¾|jak|Cor|\&Cor|\&Cor;|\&Rcp;|kdy|kam|kde|kdo|co¾|on|ten)$/)
+# 	||
+# 	# se that is not DPHR or ETHD:
+# 	($node->{trlemma} =~ /^se$/ &&
+# 	 $node->{func} !~ /^(DPHR|ETHD)/) 
+# 	||
+# 	# for COMPL, the rules have to be refined:
+# 	($node->{func} eq 'COMPL' && $node->{tag} !~ /^V/)
+# 	||
+# 	# a verb with functor COMPL is only then a coref node,
+# 	# when there's a jaky somewhere below it:
+# 	($node->{func} eq 'COMPL' && $node->{tag} =~ /^V/
+# 	 && grep {$_->{trlemma} eq 'jaký'} $node->descendants)
+#        ) 
+#     {
+#       $node->{corefMark}=1;
+# #      print STDERR "markPossibleCorefStart result: $node->{AID}\n";
+#     } # end if
+#     # process next node:
+#     $node = $node->following;
+#   }
+# }
 
 #bind normalizeAutoCorefs to Ctrl+n menu Normalize automatically assigned Corefs
 sub normalizeAutoCorefs {
