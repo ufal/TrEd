@@ -25,7 +25,7 @@ sub open_backend {
   my ($filename, $mode)=@_;
   my $fh = undef;
   my $cmd = "";
-  if ($filename) {
+  if ($filename and -r $filename) {
     if ($mode =~/[w\>]/) {
       if ($filename=~/.gz$/) {
 	eval {
