@@ -148,7 +148,8 @@ sub ChangeDir {
 
   $cw->{cwd}=getcwd() unless (defined($cw->{cwd}));
   $cw->{cwd}.=$splitchar unless ($cw->{cwd}=~/$rsplit$/);
-  $dir=$cw->{cwd}.$dir unless ($dir=~/^$rsplit|^\.(?:$rsplit)?$/ or $dir=~/^[a-z]:|^$rsplit/i and $^O eq 'MSWin32');
+  $dir=$cw->{cwd} if $dir=~/^\.(?:$rsplit)?/;
+  $dir=$cw->{cwd}.$dir unless ($dir=~/^$rsplit$/ or $dir=~/^[a-z]:|^$rsplit/i and $^O eq 'MSWin32');
 
   $dir=~s!/!$splitchar!g;
   $dir=~s!$rsplit\.$rsplit!$splitchar!g;
