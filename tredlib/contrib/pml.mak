@@ -67,7 +67,7 @@ sub switch_context_hook {
 
 sub set_default_tdata_attrs {
   SetDisplayAttrs(split /\n/,<<'EOF');
-node:<? '#{customparenthesis}' if $${is_parenthesis} ?>${t_lemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? '#{customcoref}.'.$PMLTectogrammatic::coreflemmas{$${id}} if $PMLTectogrammatic::coreflemmas{$${id}}ne'' ?>
+node:<? '#{customparenthesis}' if $${is_parenthesis} ?><?$${nodetype}eq'root' ? '${id}' : '${t_lemma}'?><? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? '#{customcoref}.'.$PMLTectogrammatic::coreflemmas{$${id}} if $PMLTectogrammatic::coreflemmas{$${id}}ne'' ?>
 node:#{customfunc}${functor}<? "#{#4C9CCD}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? "#{customsubfunc}".($${subfunctor}?".\${subfunctor}":'').($${is_state}?".\${is_state=state}":'') ?>
 node:<? $${nodetype} ne 'complex' ? '#{darkblue}${nodetype}'  : ''?>#{darkmagenta}<? local $_=$${gram/wordclass}; s/^sem([^.]+)(\..)?[^.]*(.*)$/$1$2$3/; '${gram/wordclass='.$_.'}'?>
 style:<? '#{Node-shape:Rectangle}'if$${is_generated} ?>
@@ -82,7 +82,7 @@ EOF
 
 sub set_default_adata_attrs {
     SetDisplayAttrs(split /\n/, <<'EOF');
-${m/form}
+<? $${afun} eq "AuxS" ? '${id}' : '${m/form}' ?>
 node:#{blue}${afun}<? if ($${is_member}) { my $p=$this->parent; $p=$p->parent while $p and $p->{afun}=~/^Aux[CP]$/; ($p and $p->{afun}=~/^(Ap)os|(Co)ord/ ? "_#{#4C9CCD}\${is_member=$1$2}" : "_#{red}\${is_member=ERR}")} else {""} ?>
 text:${m/w/token}
 EOF
