@@ -2,19 +2,19 @@ package TrEd::Convert;
 
 #
 # $Revision$ '
-# Time-stamp: <2002-07-10 22:41:00 pajas>
+# Time-stamp: <2002-10-10 17:09:33 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
 #
-
 use strict;
 use English;
 #use TrEd::ConvertArab;
 
+
 BEGIN {
   use Exporter  ();
-  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc $outputenc $lefttoright $Ds);
+  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc $outputenc $lefttoright $Ds $support_unicode);
   use TrEd::MinMax;
   @ISA=qw(Exporter);
   $VERSION = "0.1";
@@ -41,17 +41,18 @@ BEGIN {
     $Ds='/';
     $outputenc="iso-8859-2" unless defined($outputenc);
   }
+  $support_unicode = ($Tk::VERSION gt 804.00);
 }
 
 sub encode {
   local $_=join '',@_;
   $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
   no integer;
-
-  if (1000*$] >= 5008) { # we've got support for UNICODE in
+  if ($support_unicode) { # we've got support for UNICODE in
     # perl5.8/Tk8004
     if ($inputenc eq 'iso-8859-6' or
 	    $inputenc eq 'windows-1256') {
+
       require TrEd::ConvertArab;
       eval "use Encode (); \$_=Encode::decode('utf8',\$_);";
       s{([^[:ascii:]]+)}{TrEd::ConvertArab::arabjoin($_)}eg;
@@ -68,7 +69,7 @@ sub decode {
   local $_=join '',@_;
   $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
   no integer;
-  return $_ if (1000*$] >= 5008 or $inputenc eq $outputenc);
+  return $_ if ($support_unicode or $inputenc eq $outputenc);
   eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
   return $_;
 }
