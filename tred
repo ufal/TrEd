@@ -177,8 +177,8 @@ print "Trying $libDir\n" if ($libDir and !$opt_q);
 
 $macroFile=undef;
 
-_set_encoding(\*STDERR,'utf-8',"STDERR");
-_set_encoding(\*STDOUT,'utf-8',"STDERR");
+_set_encoding(\*STDERR,':utf8',"STDERR");
+_set_encoding(\*STDOUT,':utf8',"STDOUT");
 
 ########## Config file #############
 # this must be done before readconfig is first used
