@@ -8321,7 +8321,7 @@ sub UnGap {
 
       $sShift = $sShift-"1";
 
-      PrintToFile('c:\\log', map { ValNo(0,$_) } ($sMaxDord, '\n'));
+      #PrintToFile('c:\\log', map { ValNo(0,$_) } ($sMaxDord, '\n'));
     }
 
 
