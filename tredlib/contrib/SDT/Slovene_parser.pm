@@ -440,11 +440,11 @@ sub run_parser ($$) {
 # ------------------------------------------------
 # ------ Evaluation ------------------------------
 
-END {
-
-  print "Applied rules:\n";
-  print join "",map {"$applied_rules{$_}   $_\n"}
-    sort {$applied_rules{$b}<=>$applied_rules{$a}} keys %applied_rules;
-
-
-}
+#END {
+#
+#  print "Applied rules:\n";
+#  print join "",map {"$applied_rules{$_}   $_\n"}
+#    sort {$applied_rules{$b}<=>$applied_rules{$a}} keys %applied_rules;
+#
+#
+#}
