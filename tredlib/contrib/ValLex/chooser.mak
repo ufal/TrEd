@@ -483,7 +483,7 @@ sub frame_chosen {
       $win->{currentNode}) {
     my $field = $chooser->focused_framelist()->field();
     my $node = $win->{currentNode};
-    my $lemma = $node->{trlemma}; $lemma=~s/_/ /g;
+    my $lemma = TrEd::Convert::encode($node->{trlemma}); $lemma=~s/_/ /g;
     my ($pos) = $node->{tag}=~/^(.)/;
     if (ref($field) and $field->[0] eq $lemma and
 	$field->[1] eq $pos) {
