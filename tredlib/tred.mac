@@ -22,7 +22,6 @@
 #bind TiePrevTree to Ctrl+Prior
 #bind TieNextTree to Ctrl+Next
 
-
 #bind CutToClipboard to Ctrl+Insert menu Cut Subtree
 sub CutToClipboard {
   return unless ($this and Parent($this));
@@ -39,6 +38,13 @@ sub PasteFromClipboard {
   $nodeClipboard=undef;
 }
 
+sub QueryString {
+  ## display a dialog box with an edit line and Ok/Cancel buttons
+  ## parameters: window title, entry label, default value
+
+  main::QueryString($grp->{framegroup},@_);
+}
+
 sub editQuery {
   ## draws a dialog box with one Text widget and Ok/Cancel buttons
   ## expects dialog title and default text
@@ -46,13 +52,13 @@ sub editQuery {
   my $d;
   my $ed;
 
-  $d=ToplevelFrame()->DialogBox(-title => shift,
+  my ($title,$var,$hintText)=@_;
+
+  $d=ToplevelFrame()->DialogBox(-title => $title,
 			   -buttons => ["OK","Cancel"]);
   main::addBindTags($d,'dialog');
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
-  my $var=shift;
-  my $hintText=shift;
   if ($hintText) {
     my $t=$d->add(qw/Label -wraplength 6i -justify left -text/,$hintText);
     $t->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
