@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-10 15:14:15 pajas>
+## Time-stamp: <2002-11-05 11:39:25 pajas>
 
 package TredMacro;
 
@@ -295,13 +295,21 @@ sub GetBalloonPattern {
 
 =item SwitchContext
 
-Switch to a different macro context.
+Switch to given macro context.
 
 =cut
 sub SwitchContext {
   main::switchContext($grp,shift);
 }
 
+=item SwitchContextForWindow
+
+Switch given window to given macro context.
+
+=cut
+sub SwitchContextForWindow {
+  main::switchContext(@_);
+}
 
 =item CurrentContext
 
