@@ -1,13 +1,13 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-05-31 10:08:50 pajas>
+## Time-stamp: <2001-06-05 13:08:21 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
 import TredMacro;
 import main;
 
-#include AFA.mak
+#include contrib/AFA.mak
 
 sub switch_context_hook {
 
