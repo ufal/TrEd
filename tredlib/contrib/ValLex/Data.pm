@@ -499,9 +499,12 @@ sub addForms {
   my ($self, $elem,$string)=@_;
   my $doc=$self->doc();
   foreach my $f (split /\s*,\s*/, $string) {
-    my $form=$doc->createElement("form");
-    $form->setAttribute("abbrev",$f);
-    $elem->appendChild($form);
+    $f=~s/^\s+//;
+    if ($f ne "") {
+      my $form=$doc->createElement("form");
+      $form->setAttribute("abbrev",$f);
+      $elem->appendChild($form);
+    }
   }
   $self->set_change_status(1);
 }
