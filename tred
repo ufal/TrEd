@@ -1426,9 +1426,43 @@ sub editConfig {
   $t->mark(qw/set insert 0.0/);
   my $result=ShowDialog($d);
   if ($result eq 'Save and Apply') {
-    open(F,">$configFile");
-    print F $t->get("0.0","end");
-    close(F);
+    if (open(F,">$configFile")) {
+      print F $t->get("0.0","end");
+      close(F);
+    } else {
+      my $lasterr=$!;
+      my ($dc,$ic)=stat($configFile);
+      my ($dh,$ih)=stat(<'~/.tredrc'>);
+      if ($configFile ne <'~/.tredrc'> and ($dc != $dh or $ic != $ih) and
+	     $grp->{'top'}->toplevel->
+	       messageBox(-icon => 'warning',
+			  -message => "Cannot write configuration to $configFile\n($lasterr)\n\n".
+			  "Shell I try to save it to ~/.tredrc?\n",
+			  -title => 'Configuration cannot be saved',
+			  -type => 'YesNo',
+			  -default => 'Yes') eq 'Yes') {
+	if (open(F,">".<'~/.tredrc'>)) {
+	  print F $t->get("0.0","end");
+	  close(F);
+	} else {
+	  $grp->{'top'}->toplevel->
+	    messageBox(-icon => 'error',
+		       -message => 'Cannot write to "'.<'~/.tredrc'>.'"!'."\n($!)\n".
+		       "\nConfiguration could not be saved!\n",
+		       -title => 'Configuration cannot be saved',
+		       -type => 'Ok',
+		       -default => 'Ok');
+	}
+      } else {
+      	$grp->{'top'}->toplevel->
+	  messageBox(-icon => 'error',
+		     -message => "Cannot write to \"$configFile\"!"."\n($lasterr)\n".
+		     "\nConfiguration could not be saved!",
+		     -title => 'Configuration cannot be saved',
+		     -type => 'Ok',
+		     -default => 'Ok');
+      }
+    }
     applyConfig(split(/\n/,$t->get("0.0","end")));
     redraw_tree($grp);
   }
