@@ -6295,10 +6295,114 @@ sub focusxFind {
 }
 
 
+sub editAttrsDialog_schema {
+  my ($win,$node)=@_;
+  require Tk::TrEdNodeEdit;
+  my $schema = $win->{FSFile}->metaData('schema');
+  my ($node_type_name) = grep { $schema->{type}{$_}{role} eq '#NODE' } keys %{$schema->{type}};
+  my $node_type = $schema->{type}{$node_type_name};
+
+#  $win->toplevel->Busy(-recurse=>1);
+  my $d=$win->toplevel->DialogBox(-title=> "Edit Node", -width=> '10c',
+				  -buttons=> [qw(OK Cancel)]
+				 );
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+
+  my $edit = $d->Scrolled('TrEdNodeEdit',
+			  -indicator => 1,
+			  -scrollbars => 'oe'
+			 );
+#  $edit->Subwidget('scrolled')
+#    ->configure('-background'=> 'red');
+  $edit->define_types($schema->{type});
+  $edit->add_members('',$node_type,$node);
+  $edit->autosetmode();
+  $edit->columnWidth(0,'');
+  $edit->columnWidth(1,'');
+  $edit->columnWidth(2,'1c');
+#  $win->toplevel->Unbusy();
+
+  $edit->update;
+  $edit->pack(qw(-expand 1 -fill both));
+  $edit->BindResize;
+
+  $edit->focus;
+
+  $d->bind('all','<Tab>','focusNext');
+  $d->bind('all','<<LeftTab>>','focusPrev');
+  for (qw(OK Cancel)) {
+    $d->Subwidget("B_$_")->configure(-underline => 0);
+    $d->bind('all','<Alt-'.lc(substr($_,0,1)).'>'
+	       => [sub { $_[1]->{selected_button}=$_[2] },$d,$_ ]);
+  }
+  $edit->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
+  $d->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
+  $d->bind('all','<Control-Return>',\&dlgReturn);
+  $edit->bind('<Control-Return>',\&dlgReturn);
+  my $sf = $d->Frame->pack(qw(-fill x -side bottom));
+  $sf->Label(-underline => 0,
+	     -text => 'Search name:')->pack(qw(-side left));
+  my $qs = $sf->Entry(
+    -validate => 'key',
+    -validatecommand => 
+      [sub {
+	 my ($tree,$value)=@_;
+	 if ($tree->info(exists => $value)) {
+	   $tree->select_entry($value);
+	   return $value;
+	 } elsif ($value =~ /^(.*)\/([^\/]*)/) {
+	   my ($p,$v)=($1,$2);
+	   if ($tree->info(exists => $p)) {
+	     foreach ($tree->info('children'=>$p)) {
+	       if (/^\Q$p\E\/\Q$v\E/) {
+		 $tree->select_entry($_);
+		 return $_;
+	       }
+	     }
+	   }
+	 } else {
+	   foreach ($tree->info('children')) {
+	     if (/^\Q$value\E/) {
+	       $tree->select_entry($_);
+	       return $_;
+	     }
+	   }
+	 }
+	 return undef;
+       },$edit]
+   )->pack(qw(-side right -expand 1 -fill x));
+  $d->bind('all','<Alt-s>', [$qs,'focus']);
+  $qs->bind('<Return>',[$edit,'focus_entry']);
+  $qs->bind('<Escape>',[sub { $_[1]->focus; Tk->break; },$edit]);
+
+  $edit->configure(-browsecmd =>
+		    [sub { $_[0]->delete(0,'end');
+			   $_[0]->insert(0,$_[1]);
+			 },$qs]
+		  );
+
+#  $d->minsize($edit->reqwidth+200,$edit->reqheight);
+
+  my $result = ShowDialog($d,$edit,$win->toplevel);
+  if ($result=~ /OK/) {
+    $win->{FSFile}->notSaved(1);
+    save_undo($win,prepare_undo($win,'Edit Node'));
+    lastActionBookmark($win->{framegroup});
+    $edit->dump_to_node($node);
+    doEvalHook($win,"after_edit_node_hook",$node,1);
+    get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+    redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+  } else {
+     doEvalHook($win,"after_edit_node_hook",$node,0);
+  }
+  $d->destroy;
+}
+
 sub editAttrsDialog {
   my ($win,$node)=@_;
   return if (doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
   return unless $win->{FSFile};
+  return editAttrsDialog_schema($win,$node) if (ref($win->{FSFile}->metaData('schema')));
   my @vals;
   my %e=();
   my @atord=$win->{FSFile}->FS->attributes;
