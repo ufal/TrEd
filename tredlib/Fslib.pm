@@ -1853,19 +1853,28 @@ Note: this function sets noSaved to zero.
 
 sub readFile {
   my ($self,$filename) = (shift,shift);
+  my $url=$filename;
   my $ret = 1;
   return unless ref($self);
+
+  if ($filename=~m(^\s*(?:https?|ftp|gopher|news|file):)) {
+    eval('require LWP::Simple;
+          require POSIX;
+          $filename=POSIX::tmpnam();
+          LWP::Simple::getstore($url,$filename);');
+  }
+
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
     if (eval {
-	  return $backend->can('test')
-	      && $backend->can('read') 
-	      && $backend->can('open_backend')
-	      && &{"${backend}::test"}($filename,$self->encoding);
+	  $backend->can('test')
+	  && $backend->can('read')
+	  && $backend->can('open_backend')
+	  && &{"${backend}::test"}($filename,$self->encoding);
 	}) {
       $self->changeBackend($backend);
-      $self->changeFilename($filename);
+      $self->changeFilename($url);
       print STDERR "success\n" if $Fslib::Debug;
       eval {
 	my $fh;
@@ -1885,6 +1894,9 @@ sub readFile {
     }
     print STDERR "fail\n" if $Fslib::Debug;
     print STDERR "$@\n" if $@;
+  }
+  if ($url ne $filename) {
+    unlink $filename || warn "couldn't unlink tmp file $filename\n";
   }
   return $ret;
 }
@@ -1921,6 +1933,14 @@ noSaved to zero.
 sub writeFile {
   my ($self,$filename) = @_;
   return unless ref($self);
+
+  if ($filename=~m(^\s*(?:https?|ftp|gopher|news):)) {
+#    $!="Cannot write to URL $filename";
+    print STDERR "Cannot write to URL $filename\n";
+    return 0;
+  } elsif ($filename=~m(^\s*(?:file):)) {
+    $filename =~ s{^\s*(?:file):/+?}{/};
+  }
 
   $filename = $self->filename unless (defined($filename) and $filename ne "");
 
@@ -2630,6 +2650,7 @@ $VERSION = "0.1";
 @EXPORT_OK = qw($gzip $zcat);
 
 eval('require IO;');
+eval('require IO::File;');
 
 =pod
 
