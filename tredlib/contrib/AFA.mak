@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2001-06-07 19:24:55 pajas>
+## Time-stamp: <2002-01-10 13:30:04 pajas>
 
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require AFA;
@@ -23,7 +23,7 @@ my %npprep = (
 	     );
 my %ntprep = (
 	      'z2' => 'TSIN',
-	      'do2' => 'TILL',
+	      'do2' => 'TTILL',
 	      'od2' => 'TSIN',
 	      'na4' => 'TFHL',
 	      'pøed7' => 'TWHEN',
