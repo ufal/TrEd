@@ -652,7 +652,7 @@ sub distribute_files {
     unless (forward_response($control,$server->{socket},\$response)) {
       msg "Communication with $server->{fullname} seems broken\n";
     }
-    msg "$server->{fullname} $response";
+    msg "$server->{fullname} $response\n";
   }
 }
 
