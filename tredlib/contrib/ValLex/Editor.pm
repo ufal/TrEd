@@ -52,6 +52,7 @@ sub new_dialog_window {
     pack(qw(-fill x -side top -pady 6));
   $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
     Button(-text => 'Save & Close',
+	   -underline => 2,
 	   -command =>
 	   [sub {
 	      my ($d,$f,$autosave,$top)=@_;
@@ -70,6 +71,7 @@ sub new_dialog_window {
 	  )->pack(qw(-padx 10 -expand 1));
   $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
     Button(-text => 'Save',
+	   -underline => 0,
 	   -command =>
 	   [sub {
 	      my ($d,$f)=@_;
@@ -77,6 +79,7 @@ sub new_dialog_window {
 	    },$d,$vallex])->pack(qw(-padx 10 -expand 1));
   $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
     Button(-text => 'Undo Changes',
+	   -underline => 3,
 	   -command =>[sub {
 			 my ($d,$f)=@_;
 			 $d->Busy(-recurse=> 1);
@@ -90,6 +93,15 @@ sub new_dialog_window {
 			 }
 			 $d->Unbusy(-recurse=> 1);
 		       },$d,$vallex])->pack(qw(-padx 10 -expand 1));
+  _bind_buttons($button_frame);
+
+  $d->protocol('WM_DELETE_WINDOW' =>
+	       [sub {
+		  my ($d,$f)=@_;
+		  $f->ask_save_data($d);
+		  $d->destroy;
+		},$d,$vallex]);
+  
   if (ref($bindings)) {
     while (my ($event, $command) = each %$bindings) {
       if (ref($command) eq 'ARRAY') {
@@ -187,6 +199,7 @@ sub show_dialog {
 		 }
 		 $d->Unbusy(-recurse=> 1);
 	       },$d,$vallex]);
+
   if (ref($bindings)) {
     while (my ($event, $command) = each %$bindings) {
       if (ref($command) eq 'ARRAY') {
@@ -196,6 +209,7 @@ sub show_dialog {
       }
     }
   }
+
   if ($start_frame_editor) {
     $d->afterIdle([$vallex => 'addframe_button_pressed']);
   }
@@ -285,14 +299,17 @@ sub create_widget {
   if ($self->data()->user_is_annotator() or
       $self->data()->user_is_reviewer()) {
     my $addframe_button=$fbutton_frame->Button(-text => 'Add',
+					       -underline => 0,
 					       -command => [\&addframe_button_pressed,$self]);
     $addframe_button->pack(qw/-padx 5 -side left/);
 
     my $substituteframe_button=$fbutton_frame->Button(-text => 'Substitute',
+						      -underline => 2,
 						      -command => [\&substitute_button_pressed,$self]);
     $substituteframe_button->pack(qw/-padx 5 -side left/);
 
     my $obsoleteframe_button=$fbutton_frame->Button(-text => 'Mark as Deleted',
+						    -underline => 0,
 						    -command => [\&obsolete_button_pressed,$self]);
     $obsoleteframe_button->pack(qw/-padx 5 -side left/);
   }
@@ -300,12 +317,14 @@ sub create_widget {
   if ($self->data()->user_is_reviewer()) {
     if ($reviewer_can_delete) {
       my $deleteframe_button=$fbutton_frame->Button(-text => 'Delete',
+						    -underline => 2,
 						    -command => [\&delete_button_pressed,
 								 $self]);
       $deleteframe_button->pack(qw/-padx 5 -side left/);
     }
 
     my $confirmframe_button=$fbutton_frame->Button(-text => 'Confirm',
+						   -underline => 0,
 						   -command => [\&confirm_button_pressed,
 								$self]
 						  );
@@ -313,32 +332,37 @@ sub create_widget {
 
     if ($reviewer_can_modify) {
       my $modifyframe_button=$fbutton_frame->Button(-text => 'Modify',
+						    -underline => 0,
 						    -command => [\&modify_button_pressed,
 								 $self]);
       $modifyframe_button->pack(qw/-padx 5 -side left/);
     }
 
     my $moveup_button=$fbutton_frame2->Button(-text => 'Move Up',
-						   -command => [\&move_button_pressed,
-								$self,'up']
-						  );
+					      -underline => 5,
+					      -command => [\&move_button_pressed,
+							   $self,'up']
+					     );
     $moveup_button->pack(qw/-padx 5 -side left/);
 
     my $movedown_button=$fbutton_frame2->Button(-text => 'Move Down',
-						   -command => [\&move_button_pressed,
-								$self,'down']
-						  );
+						-underline => 5,
+						-command => [\&move_button_pressed,
+							     $self,'down']
+					       );
     $movedown_button->pack(qw/-padx 5 -side left/);
 
     my $nextactive_button=$fbutton_frame2->Button(-text => 'Next Active',
-						 -command => [\&findactive_button_pressed,
-							      $self,'next']
+						  -underline => 0,
+						  -command => [\&findactive_button_pressed,
+							       $self,'next']
 						);
     $nextactive_button->pack(qw/-padx 5 -side left/);
 
     my $prevactive_button=$fbutton_frame2->Button(-text => 'Prev Active',
-						 -command => [\&findactive_button_pressed,
-							      $self,'prev']
+						  -underline => 0,
+						  -command => [\&findactive_button_pressed,
+							       $self,'prev']
 						);
     $prevactive_button->pack(qw/-padx 5 -side left/);
 
@@ -361,6 +385,7 @@ sub create_widget {
   my $hide_obsolete=
     $fbutton_frame2->
       Checkbutton(-text => 'Show Obsolete',
+		  -underline => 1,
 		  -command => [
 			       sub {
 				 my ($self)=@_;
@@ -374,7 +399,8 @@ sub create_widget {
 
   my $use_superframes=
     $fbutton_frame2->
-      Checkbutton(-text => 'Superframes',
+      Checkbutton(-text => 'Show Superframes',
+		  -underline => 3,
 		  -command => [
 			       sub {
 				 my ($self)=@_;
@@ -388,10 +414,11 @@ sub create_widget {
 
 
   # Frame search entry
-  $fsearch_frame->Label(-text => 'Search frame: ')->pack(qw/-side left/);;
+  $fsearch_frame->Label(-text => 'Search frame: ',-underline => 7)->pack(qw/-side left/);
   my $search_entry = $fsearch_frame->Entry(qw/-width 50 -background white -validate key/,
 					   -validatecommand => [\&quick_search,$self])
     ->pack(qw/-side left -fill both -expand yes/);
+  $top->toplevel->bind('<Alt-f>',sub { $search_entry->focus() });
   $search_entry->bind('<Up>',[$lexframelist->widget(),'UpDown', 'prev']);
   $search_entry->bind('<Down>',[$lexframelist->widget(),'UpDown', 'next']);
   $search_entry->bind('<Return>',[sub { my ($w,$self)=@_;
@@ -471,6 +498,10 @@ sub create_widget {
   my $info_line = TrEd::ValLex::InfoLine->new($data, undef, $frame, qw/-background white/);
   $info_line->pack(qw/-side bottom -fill x/);
 
+  # Bind buttons
+  _bind_buttons($frame);
+
+
   return $lexlist->widget(),{
 	     frame        => $frame,
 	     top_frame    => $top_frame,
@@ -488,6 +519,24 @@ sub create_widget {
 	     framelistitemstyle  => $framelist_item_style,
       	     hide_obsolete => \$hide_obsolete,
 	    },$fe_confs;
+}
+
+sub _descendant_widgets {
+  return ($_[0],map {_descendant_widgets($_)} $_[0]->children);
+}
+
+sub _bind_buttons {
+  my ($w,$top)=@_;
+  $top||=$w->toplevel;
+  foreach my $button (grep { ref($_) and $_->isa('Tk::Button') } _descendant_widgets($w)) {
+    my $ul=$button->cget('-underline');
+    if (defined($ul) and $ul>=0) {
+      my $text=$button->cget('-text');
+      my $key=lc(substr($text,$ul,1));
+      print STDERR "binding Alt-$key to button $text\n";
+      $top->bind("<Alt-$key>", [sub { $_[1]->flash; $_[1]->invoke; },$button]);
+    }
+  }
 }
 
 sub destroy {
@@ -511,7 +560,7 @@ sub ask_save_data {
   my ($self,$top)=@_;
   return 0 unless ref($self);
   my $d=$self->widget()->toplevel->Dialog(-text=>
-					"Data changed!\nDo you want to save it?",
+					"Valency lexicon changed!\nDo you want to save it?",
 					-bitmap=> 'question',
 					-title=> 'Question',
 					-buttons=> ['Yes','No']);
@@ -831,6 +880,7 @@ sub confirm_button_pressed {
   }
   $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
   $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
+  $self->subwidget('framelist')->widget()->UpDown('next');
 }
 
 sub delete_button_pressed {
