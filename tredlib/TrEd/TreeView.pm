@@ -1525,7 +1525,7 @@ in the text with the single-quotted value.
 
 =cut
 
-sub _quote_quote { my ($q) = @_; $q =~ s/'/\\'/g; $q }
+sub _quote_quote { my ($q) = @_; $q=~s/\\/\\\\/g; $q =~ s/'/\\'/g; $q }
 
 sub interpolate_refs {
   my ($self,$node,$text)=@_;
