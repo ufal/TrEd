@@ -184,7 +184,7 @@ sub new {
   my $fontType;
   if ($opts{-ttfont}) {
     $fontType='TT';
-    if ($encoding eq 'utf8') {
+    if ($unicode or $encoding eq 'utf8') {
       $font=$pdf->ttfont($opts{-ttfont})->unicode();
     } else {
       $font=$pdf->ttfont($opts{-ttfont},-encode => $encoding);
@@ -322,7 +322,7 @@ sub draw_canvas {
       if (eval "Encode::is_utf8(\$text)" and not $@) {
 	$width = $fn->width_utf8($text)*$fnsize;
       } elsif ($P->{Unicode}) {
-	eval "\$text= Encode::decode($P->{Encoding},\$text);";
+	eval "\$text= Encode::decode(\$P->{Encoding},\$text);";
 	$width = $fn->width_utf8($text)*$fnsize;
       } else {
 	$width = $fn->width($text)*$fnsize;
