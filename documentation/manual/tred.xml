@@ -2850,6 +2850,18 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry>
+	  <term><literal>ImageMagickConvert</literal></term>
+	  <listitem>
+	    <para>
+	      Path to ImageMagick's <command>convert</command> command
+	      which is used to convert resulting EPS to various image
+	      formats. The default value is <literal>convert</literal>
+	      which means TrEd expects the command to be installed in
+	      some directory in <varname>PATH</varname>.
+	    </para>
+	  </listitem>
+	</varlistentry>
       </variablelist>
     </sect2>
     <sect2>
@@ -2922,6 +2934,42 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="cstsparsercommand">
+	  <term><literal>CstsParserCommand</literal></term>
+	  <listitem>
+	    <para>
+	      This option may be used to customize the command used by
+	      CSTS backend to invoke SGML parser. The default value is
+	      <literal>%s %o %d %f</literal>. In this string,
+	      the <literal>%s</literal> substring is replaced
+	      with the value of <link linkend="sgmls"><literal>Sgmls</literal></link> option,
+	      <literal>%o</literal> is replaced with the value of
+	      <link linkend="sgmlsopts"><literal>SgmlsOpts</literal></link> option, 
+	      <literal>%d</literal> is replaced with the value of
+	      <link linkend="cstsdoctype"><literal>CSTSDoctype</literal></link> option, and
+	      <literal>%f</literal> is replaced with the filename.
+	      The only requirement is that this command returns
+	      a valid representation of the CSTS file in <ulink
+	      url="http://xml.coverpages.org/WG8-n931a.html#n931-esis">ESIS</ulink>
+	      format on standard output.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>CstsParserZCommand</literal></term>
+	  <listitem>
+	    <para>
+	      This option may be used to customize the command used by
+	      CSTS backend to invoke SGML parser for files compressed
+	      with GNU GZip. The default value is <literal>%z < %f |
+	      %s %o %d -</literal>.  In this string, the
+	      <literal>%z</literal> substring is replaced with the
+	      value of <link linkend="zcat"><literal>zcat</literal></link> option.  See <link
+	      linkend="cstsparsercommand"><literal>CstsParserCommand</literal></link>
+	      for more.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="cstcdoctype">
 	  <term><literal>CSTSDoctype</literal></term>
 	  <listitem>
@@ -2952,7 +3000,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="zcat">
 	  <term>zcat</term>
 	  <listitem>
 	    <para>This option may be used to point
