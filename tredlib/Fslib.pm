@@ -26,7 +26,7 @@ $VERSION = "1.2";
 @EXPORT = qw/&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode
 	     &PrintTree &PrintFS &NewNode &Parent &LBrother &RBrother
 	     &FirstSon &Next &Prev &DeleteTree &DeleteLeaf &Cut &Paste
-	     &Set &Get &DrawTree &IsList &ListValues &ImportBackends/;
+	     &Set &Get &DrawTree &IsList($$) &ListValues &ImportBackends/;
 
 @EXPORT_OK = qw/$FSTestListValidity $FSError &Index &ParseNode &ParseNode2 &Ord
                 &Value &Hide &SentOrd &Special &AOrd &AValue &AHide
@@ -1073,11 +1073,11 @@ sub getAttribute {
 
 Return value of an attribute specified as a path of the form
 attr/subattr/[n]/subsubattr/[m], where [n] can be used to pick n-th
-element of a sequence or alternative.  If alternative or sequence is
-encountered but no index is given, then 1st element of the sequence or
-alternative is used (except for the case when sequence or alternative
+element of a list or alternative.  If alternative or list is
+encountered but no index is given, then 1st element of the list or
+alternative is used (except for the case when list or alternative
 is found in the last path step, in which case the corresponding object
-- sequence or alternative - is returned as is).
+- list or alternative - is returned as is).
 
 =cut
 
@@ -1085,7 +1085,7 @@ sub attr {
   my ($node,$path, $strict) = @_;
   my $val = $node;
   for my $step (split /\//, $path) {
-    if (ref($val) eq 'Fslib::Seq' or ref($val) eq 'Fslib::Alt') {
+    if (ref($val) eq 'Fslib::List' or ref($val) eq 'Fslib::Alt') {
       if ($step =~ /^\[(\d+)\]/) {
 	$val = $val->[$1-1];
       } elsif ($strict) {
@@ -1112,7 +1112,7 @@ sub set_attr {
   my @steps = split /\//, $path;
   while (@steps) {
     my $step = shift @steps;
-    if (ref($val) eq 'Fslib::Seq' or ref($val) eq 'Fslib::Alt') {
+    if (ref($val) eq 'Fslib::List' or ref($val) eq 'Fslib::Alt') {
       if ($step =~ /^\[(\d+)\]/) {
 	if (@steps) {
 	  $val = $val->[$1-1];
@@ -3067,7 +3067,7 @@ sub write {
 
 ############################################################
 
-package Fslib::Seq;
+package Fslib::List;
 
 sub new {
   my $class = shift;
@@ -3112,7 +3112,7 @@ sub new {
 
 sub readFrom {
   my ($self,$file)=@_;
-  print STDERR "parsing schema $file\n";
+  print STDERR "parsing schema $file\n" if $Fslib::Debug;
   my $fh = IOBackend::open_backend($file,'r');
   die "Couldn't open PML schema file '$file'\n" unless $fh;
   local $/;
@@ -3152,8 +3152,8 @@ sub find_type {
 	if ($type->{knit}) {
 	  $type = $type->{knit};
 	  redo;
-	} elsif ($type->{seq} or $type->{alt}) {
-	  $type = $type->{seq} || $type->{alt};
+	} elsif ($type->{list} or $type->{alt}) {
+	  $type = $type->{list} || $type->{alt};
 	  if ($step =~ /^\[(\d+)\]/) {
 	    next;
 	  } else {
@@ -3184,27 +3184,30 @@ sub attributes {
   } else {
     $type = $self->node_type;
   }
-  while (ref($type) and ($type->{seq} and $type->{role} ne '#CHILDNODES'
-			   or $type->{alt}
-			     or $type->{knit})) {
+  if (ref($type) and $type->{role} eq '#CHILDNODES') {
+    return ();
+  }
+  while (ref($type) and ($type->{list} or $type->{alt})) {
     use Data::Dumper;
-    print Dumper($type),"\n";
-    $type = $self->resolve_type($type->{seq}
-				  || $type->{alt}
-				    || $type->{knit})
+    $type = $self->resolve_type($type->{list} || $type->{alt})
   }
   
   if (ref($type) and ($type->{member} or $type->{attribute})) {
     my @result;
     for my $member (sort (keys %{$type->{attribute}},
 			  keys %{$type->{member}})) {
+      next if ($type->{member}{$member} and
+	       $type->{member}{$member}{role} eq '#CHILDNODES');
       my @subattrs = $self->attributes($type->{attribute}{$member} ||
 				       $type->{member}{$member});
-      print "$member\t@subattrs\n";
+      my $name = $member;
+      if ($type->{member}{$member} and $type->{member}{$member}{role} eq '#KNIT') {
+	$name=~s/\.rf$//;
+      }
       if (@subattrs) {
-	push @result, map { $member."/".$_ } @subattrs;
+	push @result, map { $name."/".$_ } @subattrs;
       } else {
-	push @result,$member;
+	push @result,$name;
       }
     }
     return @result;

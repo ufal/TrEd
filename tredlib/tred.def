@@ -1727,6 +1727,7 @@ use them for other purposes.
 
 sub GetSpecialPattern {
   my ($patname)=@_;
+  return unless $grp->{FSFile};
   my $pat;
   foreach ($grp->{FSFile}->patterns()) {
     if (/^$patname:\s*(\S+)\s*$/) {
@@ -2076,16 +2077,16 @@ sub SetupXPath {
 =cut
 
 
-sub IsSeq {
-  return 1 if ref($_[0]) eq 'Fslib::Seq';
+sub IsList {
+  return 1 if ref($_[0]) eq 'Fslib::List';
 }
 
 sub IsAlt {
   return 1 if ref($_[0]) eq 'Fslib::Alt';
 }
 
-sub Seq {
-  Fslib::Seq->new(@_);
+sub List {
+  Fslib::List->new(@_);
 }
 
 sub Alt {
@@ -2096,8 +2097,8 @@ sub AltV {
   ref($_[0]) eq 'Fslib::Alt' ? @{$_[0]} : $_[0]
 }
 
-sub SeqV {
-  ref($_[0]) eq 'Fslib::Seq' ? @{$_[0]} : ()
+sub ListV {
+  ref($_[0]) eq 'Fslib::List' ? @{$_[0]} : ()
 }
 
 
