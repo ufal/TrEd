@@ -103,7 +103,7 @@ sub test {
   return 0 unless test_nsgmls();
   if (ref($f)) {
     my $line=$f->getline();
-    return $line=~/^\s*<csts[ >]/;
+    return $line=~/^\s*<csts[ >]|^<!DOCTYPE csts/;
   } else {
     my $fh = IOBackend::open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
