@@ -6,6 +6,9 @@ package TrEd::ValLex::Data;
 use strict;
 use utf8;
 
+require ValLex::Sort;
+
+
 my @abbrev_forms = (
 ['do+2' => 'do-1[.2]'],
 ['k+3' => 'k-1[.3]'],
@@ -47,6 +50,11 @@ sub new {
 		   $file, undef, undef, 0, $cpconvert, []], $class;
   $new->loadListOfUsers();
   return $new;
+}
+
+sub compare {
+  shift;
+  return &TrEd::ValLex::Sort::czcmp;
 }
 
 sub conv {
@@ -265,7 +273,7 @@ sub getWordSubList {
   my ($self,$item,$slen,$posfilter)=@_;
   my $doc=$self->doc();
   return unless $doc;
-  use locale;
+#  use locale;
   my @words=();
   my $docel=$doc->documentElement();
   my ($milestone,$after,$before,$i);
@@ -283,7 +291,7 @@ sub getWordSubList {
     my $i=0;
     WORD: while ($word) {
       last if ($i++ % $slen == 0 &&
-	       $item le $self->conv()->decode($word->getAttribute ("lemma")));
+	       $self->compare($item,$self->conv()->decode($word->getAttribute ("lemma")))<=0);
       $word = $word->findNextSibling('word') || last;
     }
     $milestone = $word;
@@ -949,10 +957,10 @@ sub addWord {
   return unless $body;
   # find alphabetic position
   my $n=$self->getFirstWordNode();
-  use locale;
+#  use locale;
 
   while ($n) {
-    last if $lemma le $self->conv->decode($n->getAttribute("lemma"));
+    last if $self->compare($lemma, $self->conv->decode($n->getAttribute("lemma")))<=0;
     # don't allow more then 1 lemma/pos pair
     $n=$n->nextSibling();
     while ($n && $n->nodeName ne 'word') {

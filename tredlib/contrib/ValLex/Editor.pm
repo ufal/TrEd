@@ -1002,7 +1002,7 @@ sub quick_search {
 sub focus_by_text {
   my ($self,$text,$caseinsensitive)=@_;
   my $h=$self->subwidget('framelist')->widget();
-  use locale;
+#  use locale;
   my $st = $h->infoAnchor();
   my ($t) = ($st eq "") ? $h->infoChildren("") : $st;
   while ($t ne "") {
