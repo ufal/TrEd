@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-09 18:47:19 pajas>
+# Time-stamp: <2002-04-18 10:10:24 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1440,7 +1440,7 @@ sub color {
 =item special (letter)
 
 Return name of a special attribute declared in FS definition with a
-given letter. See also L<sentord> and similar.
+given letter. See also L<"sentord"> and similar.
 
 =cut
 
