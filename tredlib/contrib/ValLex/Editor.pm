@@ -508,6 +508,10 @@ sub show_frame_editor_dialog {
   my $top=$self->widget()->toplevel;
   my $d=$top->DialogBox(-title => $title,
 				-buttons => ["OK","Cancel"]);
+  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
+			     $f->Invoke if ($f and $f->isa('Tk::Button'));
+			     Tk->break;
+			   } );
   my $ed=TrEd::ValLex::FrameElementEditor->new($self->data(), undef, $d);
   $ed->subwidget_configure($confs) if ($confs);
   $ed->pack(qw/-expand yes -fill both/);
@@ -535,8 +539,12 @@ sub show_frame_editor_dialog {
     my $example=$ed->subwidget('example')->get('0.0','end');
     my $problem=$ed->subwidget('problem')->get();
     $d->destroy();
+    $note=~s/^[\s\n]+//g;
     $note=~s/[\s\n]+$//g;
+    $note=~s/[\s]*\n[\n\s]*/;/g;
+    $example=~s/^[\s\n]+//g;
     $example=~s/[\s\n]+$//g;
+    $example=~s/[\s]*\n[\n\s]*/;/g;
     $ed->destroy();
     return (1,$elements,$note,$example,$problem);
   } else {
