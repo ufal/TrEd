@@ -2815,7 +2815,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal moreinfo="none">ClearBackground</literal></term>
+	  <term><literal moreinfo="none">ClearTextBackground</literal></term>
 	  <listitem>
 	    <para>
 	      Choose if invisible rectangles should be drawn beneath
