@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-01-29 17:35:16 pajas>
+## Time-stamp: <2005-02-03 14:03:05 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -358,6 +358,7 @@ sub hash_AIDs_file {
   my %aids;
   foreach my $tree (GetTrees()) {
     my $node=$tree;
+    $node=$node->following;
     while ($node) {
       $aids{$node->{AID}.$node->{TID}} = $node;
       $node=$node->following;
@@ -375,7 +376,7 @@ being the keys and the nodes themselves being the values.
 
 sub hash_AIDs {
   my %aids;
-  my $node=ref($_[0]) ? $_[0] : $root;
+  my $node=ref($_[0]) ? $_[0] : $root->following;
   while ($node) {
     $aids{$node->{AID}.$node->{TID}} = $node;
     $node=$node->following;
