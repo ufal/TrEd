@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-07-02 10:07:49 pajas>";
+$timestamp="Time-stamp: <2001-07-23 12:51:49 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -1130,6 +1130,7 @@ sub filelistDialog {
 			    -separator => "\t"
 			   )
     ->pack(qw/-expand yes -fill both -side top/);
+  $t->BindMouseWheelVert();
   $grp->{Filelist}=$t;
   feedHListWithFilelist($grp,$t,$grp->{currentFilelist});
 
@@ -1354,6 +1355,7 @@ sub macrolistDialog {
   my $t = $d->Scrolled(qw/HList -columns 2 -background white 
            -selectmode browse
            -height 25 -relief sunken -scrollbars e/);
+  $t->BindMouseWheelVert();
   $grp->{Macrolist}=$d;
   my $e;
   my $maxw=0;
@@ -1441,6 +1443,7 @@ sub printDialog {
   my $useType1Font=$grp->{'printUseType1Font'};
   my $printRange=$grp->{'printRange'};
   my $snt=$grp->{'printSentenceInfo'};
+  my $noRotate=$grp->{'printNoRotate'};
 
   my $d = $grp->{'top'}->DialogBox(-title => "Print",
 				-buttons => ["OK", "Cancel"]);
@@ -1517,6 +1520,10 @@ sub printDialog {
   $bf->Checkbutton(-text => 'Print sentence',
 		   -variable => \$snt,
 		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+
+  $bf->Checkbutton(-text     => 'Disable landscape rotation of wide trees',
+			  -variable => \$noRotate,
+			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
   
   $bf->pack(-side => 'right');
   $of->pack(-fill => 'x',-padx=>'1c');
@@ -1541,6 +1548,7 @@ sub printDialog {
   $grp->{'printSentenceInfo'}=$snt;
   $grp->{'printCommand'}=$com;
   $grp->{'printUseType1Font'}=$useType1Font;
+  $grp->{'printNoRotate'}=$noRotate;
   $d->destroy;
   undef $d;
   if ($result =~ /OK/) {
@@ -1559,22 +1567,22 @@ sub printThis {
   $print_opts[0]=$grp->{treeNo}
     if (!defined($print_opts[0]) or $print_opts[0] eq "");
   TrEd::Print::print_trees($grp->{FSFile},
-			  $grp->{top},
-			  $canvas,
-			  @print_opts,
-			  $showHidden,
-			  $psFontFile,
-			  $type1font,
-			  $prtFmtWidth,
-			  $prtHMargin,
-			  $prtFmtHeight,
-			  $prtVMargin,
-			  $psFontName,
-			  $psFontSize,
-			  $maximizePrintSize,
-			  $psMedia,
-			  $treeViewOpts
-			 );
+			   $grp->{top},
+			   $canvas,
+			   @print_opts,
+			   $showHidden,
+			   $psFontFile,
+			   $type1font,
+			   $prtFmtWidth,
+			   $prtHMargin,
+			   $prtFmtHeight,
+			   $prtVMargin,
+			   $psFontName,
+			   $psFontSize,
+			   $maximizePrintSize,
+			   $psMedia,
+			   $treeViewOpts
+			  );
   $canvas->destroy();
 }
 
@@ -1705,6 +1713,55 @@ sub About {
 			  -message =>
 			  "TrEd $ver\n\n$fileinfo$colinf$message\n$about\n\nLast update: $lastupdate",
 			  -title => 'About');
+}
+
+sub Tk::Widget::BindMouseWheelVert {
+    my($w,$modifier) = @_;
+    $modifier.="-" if ($modifier);
+    $w->bind("<$modifier"."MouseWheel>",
+              [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
+    if ($Tk::platform eq 'unix') {
+        $w->bind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units') unless $Tk::strictMotif; });
+        $w->bind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units') unless $Tk::strictMotif; });
+    }
+}
+
+sub Tk::Widget::BindMouseWheelHoriz {
+    my($w,$modifier) = @_;
+    $modifier.="-" if ($modifier);
+    $w->bind("<$modifier"."MouseWheel>",
+              [ sub { $_[0]->xview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
+    if ($Tk::platform eq 'unix') {
+        $w->bind("<$modifier"."4>", sub { $_[0]->xview('scroll', -3, 'units')
+				      unless $Tk::strictMotif; });
+        $w->bind("<$modifier"."5>", sub { $_[0]->xview('scroll', 3, 'units')
+				      unless $Tk::strictMotif; });
+    }
+}
+
+
+sub canvasBindMouseWheelVert {
+    my($w,$modifier) = @_;
+    $modifier.="-" if ($modifier);
+    $w->CanvasBind("<$modifier"."MouseWheel>",
+              [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
+    if ($Tk::platform eq 'unix') {
+        $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units') unless $Tk::strictMotif; });
+        $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units') unless $Tk::strictMotif; });
+    }
+}
+
+sub canvasBindMouseWheelHoriz {
+    my($w,$modifier) = @_;
+    $modifier.="-" if ($modifier);
+    $w->CanvasBind("<$modifier"."MouseWheel>",
+              [ sub { $_[0]->xview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
+    if ($Tk::platform eq 'unix') {
+        $w->CanvasBind("<$modifier"."4>", sub { $_[0]->xview('scroll', -3, 'units')
+				      unless $Tk::strictMotif; });
+        $w->CanvasBind("<$modifier"."5>", sub { $_[0]->xview('scroll', 3, 'units')
+				      unless $Tk::strictMotif; });
+    }
 }
 
 sub keyBind {
@@ -1989,6 +2046,10 @@ sub startMain {
 				       [qw/0c 0c 100c 100c/],
 				       $treeViewOpts->{backgroundColor} ?
 				       (-background => $treeViewOpts->{backgroundColor}) : ());
+  canvasBindMouseWheelVert($canvas);
+  canvasBindMouseWheelHoriz($canvas,"Shift");
+
+
 
   require Tk::Adjuster;
   $group{canvasAdjuster}=$group{top}->Adjuster(-side => top, -widget => $canvas);
@@ -2004,7 +2065,7 @@ sub startMain {
   $group{'vLineFrame'}=$group{'top'}->Frame();
   $group{'valueLine'}=$group{'vLineFrame'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
-
+  $group{'valueLine'}->BindMouseWheelHoriz();
   # creating Canvas balloon
   my $baloon=$group{top}->Balloon(-initwait => $canvasBalloonInitWait,
 				  -state => 'balloon',
@@ -2606,6 +2667,7 @@ sub editConfig {
     Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
 		     -height 30 -scrollbars e/);
   $t->pack(qw/-expand yes -fill both/);
+  $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
   $bottom->
     Button(-text => "  Save and Apply  ",
@@ -2724,7 +2786,7 @@ sub selectValuesDialog {
 		    -height => min($maxDisplayedValues,scalar(@$vals)),
 		    -font => $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
-
+ $l->BindMouseWheelVert();
  if ($enabled) {
    $l->bind('<Double-ButtonPress-1>' =>
 	    [sub { my $w=shift;
@@ -2817,6 +2879,7 @@ sub viewSentencesDialog {
                      -spacing3 6 -wrap word -background white
 		     -height 20 -scrollbars e/,-font =>$font);
   $t->pack(qw/-expand yes -fill both/);
+  $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
 
   $bottom->Button(-text => "  Close  ", -command => [sub { shift->destroy; },$d])
@@ -2892,7 +2955,7 @@ sub editAttrsDialog {
 		       -rows =>$rows,
 		       -relief => 'groove',
 		       -scrollbars => 'e');
-
+  $f->BindMouseWheelVert();	# does not work here for some reason
   sub focusxAtrEditDn {
     my ($w,$i,$e,$f,$rows,$cnt)=@_;
     if ($i+1>$#atord) {
@@ -3019,7 +3082,7 @@ sub customAttrsDialog {
                      -borderwidth 2 -setgrid true
 		     -height 15 -scrollbars e
                      -exportselection 0/)->pack();
-
+  $al->BindMouseWheelVert();
   my @atord=$grp->{FSFile}->FS->attributes;
   if ($sortAttrs) {
     @atord=sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes
@@ -3038,6 +3101,7 @@ sub customAttrsDialog {
 		 )->pack(qw/-side top -expand yes
                             -fill both
                             -padx 3 -pady 3/);
+  $cl->BindMouseWheelVert();
   $cl->insert('end',$grp->{FSFile}->patterns,'   ');
   $cf->Label(-text => 'Hint pattern')->pack();
   my $t =
@@ -3051,7 +3115,7 @@ sub customAttrsDialog {
                             -fill both
                             -padx 3 -pady 3/);
   $t->insert('0.0',$grp->{FSFile}->hint);
-
+  $t->BindMouseWheelVert();
   my $e = $d->Entry(qw/-relief sunken
                        -borderwidth 2/);
 
@@ -3192,6 +3256,7 @@ sub findNodeDialog {
 		       -rows =>$rows,
 		       -relief => 'groove',
 		       -scrollbars => 'e');
+  $f->BindMouseWheelVert();	# does not work here for some reason
   sub focusxFindDn {
     my ($w,$i,$e,$f,$rows,$cnt)=@_;
     if ($i+1>$#atord) {
@@ -4078,3 +4143,4 @@ sub node_release {
     $w->coords($sel, $grp->{treeView}->node_coords($node,$grp->{currentNode}));
   } else { redraw_tree($grp); }
 }
+
