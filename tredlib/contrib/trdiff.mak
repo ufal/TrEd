@@ -27,6 +27,7 @@ use vars qw($usenames $onlylemma $onlyfunc $onlydep $onlymissing
 
 use integer;
 
+$compare_all=1;
 $check_presence=1;
 $check_dependency=1;
 $check_attributes=1;
@@ -470,7 +471,7 @@ sub DiffTRFiles {
   my @T;
   my ($fs,$tree);
   foreach my $win (@{$fg->{treeWindows}}) {
-    next unless $win->{macroContext} eq 'TR_Diff';
+    next unless $compare_all or $win->{macroContext} eq 'TR_Diff';
     $fs=$win->{FSFile};
     if ($fs) {
       $tree=$fs->treeList()->[$win->{treeNo}];
@@ -494,7 +495,7 @@ sub DiffWholeTRFiles {
   do {
     @T=();
     foreach my $win (@{$fg->{treeWindows}}) {
-      next unless $win->{macroContext} eq 'TR_Diff';
+      next unless $compare_all or $win->{macroContext} eq 'TR_Diff';
       my $fs=$win->{FSFile};
       if ($fs) {
 	my $tree;
