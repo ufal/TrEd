@@ -5897,10 +5897,9 @@ sub reloadSentenceView {
       }
     }
 
-
-    $t->insert('end',"(".($i+1).") ",'treeno',
+    $t->insert('end',"(".($i+1).") ",['treeno',"start-tree-".($i+1)],
 	       map { ($_->[0], [@$_[1..$#$_]]) } @$v);
-    $t->insert('end',"\n",'newline');
+    $t->insert('end',"\n",['newline',"end-tree-".($i+1)]);
 	       #	       get_value_line($grp->{focusedWindow},
 	       #			      $grp->{focusedWindow}->{FSFile},$i,1),'tline',
     #	       "\n",'newline');
@@ -6011,7 +6010,7 @@ sub openSimpleHtml {
     print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=".$encoding."\" />\n";
     print $html "</head>\n";
     print $html "<body>\n";
-    return $html;
+    return wantarray ? ($html,$file) : $html;
   } else {
     return undef;
   }
@@ -6025,7 +6024,7 @@ sub closeSimpleHtml {
 }
 
 sub dumpSentView {
-  my ($grp, $fsfile, $t, $create_images)=@_;
+  my ($grp, $fsfile, $t, $create_images, $selref)=@_;
 
   return if ($create_images and warnWin32PrintConvert($t) eq 'Cancel');
 
@@ -6036,10 +6035,17 @@ sub dumpSentView {
   $initdir=cwd if ($initdir eq './');
   $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
-  my $html = openSimpleHtml($t,$file,"Save Sentences As HTML ...",$initdir);
+  my @selref = split /,/,sentViewGetSelection($grp,$selref);
+  unless (@selref) {
+    errorMessage($t->toplevel,"No sentences selected. Select requested sentences and try again. To select a sentence, click the round button in front of it.");
+    return;
+  }
+
+  (my $html,$file) = openSimpleHtml($t,$file,"Save Sentences As HTML ...",$initdir);
   if (defined($html)) {
-    my @dump=$t->dump('0.0','end');
-    @dump=$t->dump('0.0','end');
+    my @dump=$t->dump('0.0','end'); # to avoid a bug ??
+    @dump = map $t->dump("start-tree-$_.first","end-tree-$_.first"), @selref;
+    # @dump=$t->dump('0.0','end');
     my $img;
     while (@dump) {
       my ($K,$V,$I) = splice @dump, 0, 3;
@@ -6146,11 +6152,11 @@ sub populateSentencesDialog {
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "Save As HTML",
 		  -underline => 0,
-		  -command=>[ \&dumpSentView,$grp,$fsfile,$t])
+		  -command=>[ \&dumpSentView,$grp,$fsfile,$t,0,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "Save As HTML with Images",
 		  -underline => 18,
-		  -command=>[ \&dumpSentView,$grp,$fsfile,$t,1])
+		  -command=>[ \&dumpSentView,$grp,$fsfile,$t,1,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
   _bind_buttons($d,$d);
