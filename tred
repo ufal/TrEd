@@ -2998,7 +2998,9 @@ sub editConfig {
 			  prepareFonts($grp);
 			  updateTitle($grp);
 			  $grp->{valueLine}->configure(-font=> $vLineFont);
-			  $grp->{focusedWindow}->{treeView}->apply_options($treeViewOpts);
+			  foreach (@{$grp->{treeWindows}}) {
+			    $_->apply_options($treeViewOpts);
+			  }
 			  redraw_all($grp);
 #			  $d->destroy;
 			},$grp,$d,$t])
@@ -3011,7 +3013,9 @@ sub editConfig {
 				 prepareFonts($grp);
 				 updateTitle($grp);
 				 $grp->{valueLine}->configure(-font=> $vLineFont);
-				 $grp->{focusedWindow}->{treeView}->apply_options($treeViewOpts);
+				 foreach (@{$grp->{treeWindows}}) {
+				   $_->apply_options($treeViewOpts);
+				 }
 				 redraw_all($grp);
 			       },$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
