@@ -20,6 +20,9 @@ import TredMacro;
 #bind ShiftSToverSTLeft to Ctrl+Alt+Left menu Switch subtree with subtree to the left
 #bind ShiftSToverSTRight to Ctrl+Alt+Right menu Switch subtree with subtree to the right
 #bind OrderSTByTFA to o menu Order subtree by TFA
+#bind PreSetTFACurrentTree to s menu Preset TFA attributes in subtree
+#bind PreSetTFATree to Ctrl+s menu Preset TFA attributes in tree
+#bind PreSetTFAAllTrees to Ctrl+Alt+s menu Preset TFA attributes in all trees
 
 #bind default_tfa_attrs to F8 menu Display default attributes
 sub default_tfa_attrs {

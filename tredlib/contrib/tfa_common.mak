@@ -1,6 +1,8 @@
 # -*- cperl -*-
 # common tfa macros
 
+# use strict;
+
 sub TFAAssign {
   my ($value)=@_;
   if (Parent($this)) {
@@ -383,6 +385,171 @@ e subtree is to be projectivized
   NormalizeOrds($all);  # the ordering attributes are modified accordingly
 }
 
+
+# ******************************* pre-set the attribute tfa *****************************************
+sub PreSetTFASubTree {
+# sets the tfa attribute for the subtree of a node passed as parameter or the root if no parameter is passed
+
+  my $top=ref($_[0]) ? $_[0] : $root;  # the reference to the node whose subtree is to be set the tfa attribute
+
+  my @all=GetNodes($root);
+  SortByOrd(\@all);  # an array of all nodes in the tree ordered according to the ordering attribute
+
+  for (my $node=$top; $node; $node=NextVisibleNode($node,$top)) {  # go through all nodes of the subtree
+
+    print STDERR "==================  ".$node->{'trlemma'}." : ";
+    my $verb=0;  # a flag (whether a finite verb is being processed)
+
+    if ($node->{'func'} =~ /CONJ|DISJ|ADVS|CONFR|GRAD|CSQ|REAS|APPS/) { # non-applicable (conjunctions)
+    print STDERR "  NA";
+      $node->{'tfa'} = "NA";
+      next;
+    }
+    # verbal phrase (finite verb)
+    elsif ($node->{'tag'} =~ /^V[^f].*/) {
+      print STDERR "  VP F";
+      $node->{'tfa'} = "F";
+      $verb = 1;  # set the verb flag
+    }
+#     # not covered by the rules
+#     elsif ($node->{'tag'} !~ /^(N.*|Vp.*)/) {
+#       print STDERR "++++++++++++  ".$node->{'trlemmma'}."not covered by rules ???\n";
+#       $node->{'tfa'} = "???";
+#       next;
+#     }
+
+    print STDERR "\n";
+
+    # nominal phrase and infinitive remain
+
+    # the things common to verbal and nominal phrases
+    my (@leftmovedchildren, @rightmovedchildren, @prec, @neg)=();
+    for (my $child=$node->firstson; $child; $child=$child->rbrother) {
+      # reorder certain visible children and set the tfa attribute to all the visible children of the current node
+      if (not IsHidden($child)) {
+        print STDERR "   +++++++++  ".$child->{trlemma}.": ";
+	# negation
+	if ($child->{'func'} =~ /RHEM/ and $child->{'trlemma'} =~ /^(&)?Neg(;)?$/) {
+	  print STDERR "   negation F\n";
+	  $child->{'tfa'} = "F";
+	  push @neg, splice @all, Index(\@all,$child), 1;
+	}
+	# certain modifiers are to be put immediately after their parent node
+	elsif ($child->{'func'} =~ /MOD|MANN|EXT/) {
+	  print STDERR "  modifiers F\n";
+	  $child->{'tfa'} = "F";
+	  push @rightmovedchildren, splice @all, Index(\@all,$child), 1;
+	}
+	# restored nodes to be put to the left of the governing node
+	elsif ($child->{'ord'} =~ /\./) {
+	  print STDERR "  restored nodes T\n";
+	  $child->{'tfa'} = "T";
+	  push @leftmovedchildren, splice @all, Index(\@all,$child), 1;
+	}
+	# nodes depending on a finite verb (TODO functors PREC and ATT)
+	elsif ($verb) {
+	  # actants
+	  print STDERR "  verbal actants";
+    	  if ($child->{'func'} =~ /ACT|PAT|ADDR|ORIG|EFF/) {
+	    if (GetOrd($child) < GetOrd($node)) {
+	      $child->{'tfa'} = "T";
+	      print STDERR "  T\n";
+	    }
+	    else { 
+	      $child->{'tfa'} = "F";
+	      print STDERR "  F\n";
+	    }
+	  }
+	  # other nodes
+	  else {
+	    print STDERR "  other verbal complements  T\n";
+	    $child->{'tfa'} = "T";
+	  }
+	}
+	# nodes depending on a nominal phrase
+	# (all those not depending on a finite verb and not pertaining to the above categories
+	else {
+	  print STDERR " NP - ";
+	  # pronouns (TODO subtypes)
+	  if ($child->{'tag'} =~ /^P.*/) {
+	    print STDERR "pronouns T\n";
+	    $child->{'tfa'} = "T";
+	  }
+	  # other nodes
+	  else {
+	    print STDERR "other F\n";
+    	    $child->{'tfa'} = "F";
+	    # unshift @rightmovedchildren, splice @all, Index(\@all,$child), 1;  BETTER DO NOT MOVE ATTRIBUTES
+	  }
+	}
+      }
+
+    }  # for for children
+
+    if (@leftmovedchildren) {
+      print STDERR "    moved nodes - left: ";
+      print STDERR join " ", map $_->{'trlemma'}, @leftmovedchildren;
+      print STDERR "\n";
+    }
+    if (@neg) {
+      print STDERR "    moved nodes - negation: ";
+      print STDERR join " ", map $_->{'trlemma'}, @neg;
+      print STDERR "\n";
+    }
+    if (@rightmovedchildren) {
+      print STDERR "     moved nodes - right: ";
+      print STDERR join " ", map $_->{'trlemma'}, @rightmovedchildren;
+      print STDERR "\n";
+    }
+
+#    print STDERR join " ", map $_->{'trlemma'}, @all; print STDERR "     - 1\n";
+
+    splice @all, Index(\@all,$node), 0, @leftmovedchildren, @neg;
+
+#    print STDERR join " ", map $_->{'trlemma'}, @all; print STDERR "     - 2\n";
+
+    splice @all, Index(\@all,$node)+1, 0, @rightmovedchildren;
+
+#    print STDERR join " ", map $_->{'trlemma'}, @all; print STDERR "     - 3\n";
+
+    NormalizeOrds(\@all);
+
+  }  # the global for
+
+#   # set the tfa attribute to tha added nodes and nodes considered as bound or tfa non-applicable
+#   if ($node->{'func') =~ /CONJ|DISJ|ADVS|CONFR|GRAD|CSQ|REAS|APPS/) { # non-applicable
+#     $node->{'tfa'} = "NA";
+#   } elsif ($node->{'func'} =~ /MOD|MANN|EXT/) { # modifiers are to be put immediately after their parent node
+#   }
+
+#   my @nodes;
+#   while ($node) { # get all original nodes
+#     if ($node != $top) { # preset all except the root as non-bound
+#       $node->{'tfa'} = "F";
+#     }
+#     push @nodes,$node if $node->{ord} !~ /./;
+#     $node=$node->following($top);
+#   }
+
+#   sort {$a->{'ord'} <=> $b->{'ord'}} @nodes;  # sort the array according to the original surface ordering
+
+}
+
+sub PreSetTFACurrentTree {
+  PreSetTFASubTree($this);
+}
+
+sub PreSetTFATree {
+  PreSetTFASubTree($root);
+}
+
+sub PreSetTFAAllTrees {
+  if (AskCzEn("Varování","Chcete nastavit atribut TFA u v¹ech stromù v souboru?","Warning","Do you want to set the TFA attribute in all trees in the file?")) {
+    foreach my $node ($grp->{FSFile}->trees()) {
+      PreSetTFASubTree($node);
+    }
+  }
+}
 
 sub Move {
 # move the node specified by the first parameter right after the node specified in the second parameter
