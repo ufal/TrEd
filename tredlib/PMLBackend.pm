@@ -12,6 +12,9 @@ use XML::Writer;
 
 
 use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG);
+
+$DEBUG=1;
+
 use constant {
   LM => 'LM',
   AM => 'AM',
@@ -32,7 +35,7 @@ $encoding='utf8';
 $pmlhint="";
 
 sub _debug {
-  print "PML2FS: ",@_,"\n" if $PML2FS::DEBUG;
+  print "PMLBackend: ",@_,"\n" if $DEBUG;
 }
 
 
@@ -119,7 +122,6 @@ sub read ($$) {
     die "Unknown XML data: ",$dom_root->localname()," ",$dom_root->namespaceURI(),"\n";
   }
   $return = read_trees($parser, $fsfile,$dom_root);
-
 #  @{$fsfile->FS->list} = grep {$_ ne $Fslib::special } sort keys %{$fsfile->FS->defs};
   return $return;
 }
@@ -303,6 +305,8 @@ sub read_node ($$$;$) {
 	  } else {
 	    if ($role eq "#ORDER") {
 	      $defs->{$name} = ' N' unless exists($defs->{$name});
+	    } elsif ($role eq "#HIDE") {
+	      $defs->{$name} = ' H' unless exists($defs->{$name});
 #	    } else {
 #	      $defs->{$name} = ' K' unless exists($defs->{$name});
 	    }
@@ -333,6 +337,7 @@ sub read_node ($$$;$) {
   } elsif ($type->{choice}) {
     my $data = $node->textContent();
     my $ok;
+    warn "$type->{choice} at ".$node->nodeName."\n" unless ref($type->{choice}) eq 'ARRAY';
     foreach (@{$type->{choice}}) {
       if ($_ eq $data) {
 	$ok = 1;
@@ -414,10 +419,14 @@ sub read_trees {
     $roles{$types->{$t}->{role}}{$t}=1 if ($types->{$t}->{role});
   }
 
+  _debug("reading trees ".join(",",%{$roles{'#TREES'}}),"\n");
+
+
   for my $child ($dom_root->childNodes) {
     if ($child->nodeType == ELEMENT_NODE and
 	$child->namespaceURI eq PML_NS and
 	$roles{'#TREES'}{$child->localname}) {
+      _debug("found tree ",$child->localname);
       my $type = $types->{$child->localname};
       if ($type->{list}) {
 	if ($type->{list} and
@@ -672,9 +681,9 @@ sub test {
     local $_;
     1 while ($_=$f->getline() and !/\S/);
     return 0 unless (/^\s*<\?xml\s/);
-    return 1 if /<[amt]data/;
+    return 1 if /<[atx]data/;
     1 while ($_=$f->getline() and !/\S/);
-    return (/<[amt]data/) ? 1 : 0;
+    return (/<[atx]data/) ? 1 : 0;
   } else {
     my $fh = IOBackend::open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
