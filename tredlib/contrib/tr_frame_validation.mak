@@ -44,7 +44,7 @@ sub init_vallex {
     Tectogrammatic::InitValencyLexicon() || return;
 #    $V=$Tectogrammatic::ValencyLexicon;
 #else
-    $V_vallex = "$libDir/contrib/ValLex/vallex.xml";
+    my $V_vallex = "$libDir/contrib/ValLex/vallex.xml";
     require ValLex::DummyConv;
     $V = $tredmodule->new($V_vallex,TrEd::ValLex::DummyConv->new(),0);
 #endif
@@ -91,7 +91,8 @@ sub open_frame_editor {
 sub choose_frame_or_advfunc_validate {
   init_vallex();
   print "FID: $this->{frameid}\n";
-  return unless ($this->{tag}=~/^[VAN]/);
+  
+  return unless $this->{g_wordclass}=~/^sem([vn]|adj|adv)/;
   ChooseFrame(\&frame_chosen);
 }
 
@@ -152,18 +153,21 @@ sub validate_assigned_frames {
   }; print STDERR $@ if $@;
   local $V_verbose = 1;
   print "\n\n==================================================\n";
-  print $node->{trlemma}."\t".$node->{frameid}."\t".ThisAddress($node)."\n";
+  print $node->{t_lemma}."\t".$node->{frameid}."\t".ThisAddress($node)."\n";
   print "==================================================\n";
-  if ($node->{tag}=~/^[NA]/
-      or ($node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/)) {
+  if ($this->{g_wordclass}=~/^(semn|semadj|semadv)/) {
     my $pj4 = hash_pj4($node->root);
     if (check_nounadj_frames($node,$aids,'frameid',$pj4,{strict_subclause=>1,ExD_tolerant => $ExD_tolerant})==0) {
       $node->{_light}='_LIGHT_';
     }
-  } else {
+  } elsif($this->{g_wordclass}=~/^semv/) {
     if (check_verb_frames($node,$aids,'frameid',$fix,{strict_subclause=>1,ExD_tolerant => $ExD_tolerant})==0) {
       $node->{_light}='_LIGHT_';
     }
+  } else {
+    questionQuery("Sorry!","Given word isn't a verb, nor noun, nor adjective, nor adverb\n".
+		    "according to grammatemes.",
+		  "Ok");
   }
   ChangingFile(0);
 }
