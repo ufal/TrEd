@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2002-07-04 11:16:08 pajas>
+## Time-stamp: <2002-07-15 20:45:11 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -10,11 +10,33 @@ import TredMacro;
 
 #include <contrib/AutoAfun.mak>
 
+#bind edit_commentA to exclam menu Edit annotator's comment
+#bind edit_commentA to exclam
+sub edit_commentA {
+  if (not $grp->{FSFile}->FS->exists('commentA')) {
+    $ToplevelFrame->messageBox
+      (
+       -icon => 'warning',
+       -message => 'Sorry, no attribute for annotator\'s comment in this file',
+       -title => 'Sorry',
+       -type => 'OK'
+      );
+    $FileNotSaved=0;
+    return;
+  }
+  my $value=$this->{commentA};
+  $value=main::QueryString($grp->{framegroup},"Enter comment","commentA",$value);
+  if (defined($value)) {
+    $this->{commentA}=$value;
+  }
+}
+
+
 #bind default_ar_attrs to F8 menu Display default attributes
 sub default_ar_attrs {
   return unless $grp->{FSFile};
   SetDisplayAttrs('${form}', '${afun}');
-  SetBalloonPattern("tag:\t".'${tag}');
+  SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}");
   return 1;
 }
 
@@ -22,7 +44,7 @@ sub default_ar_attrs {
 sub switch_context_hook {
   if ($grp->{FSFile} and !$grp->{FSFile}->hint()) {
 #    SetDisplayAttrs('${form}', '${afun}');
-    SetBalloonPattern("tag:\t".'${tag}');
+    SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ncommentA: \${commentA}");
   }
   $FileNotSaved=0;
 }
@@ -30,7 +52,7 @@ sub switch_context_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:afun|err1|err2)$/) {
+  if ($atr!~/^(?:afun|commentA|err1|err2)$/) {
     return "stop";
   }
 }
@@ -1777,7 +1799,6 @@ sub _key_1 {
 }
 
 
-#bind _key_Shift_1 to exclam
 sub _key_Shift_1 {
   my $pAct;			# used as type "pointer"
   my $pNext;			# used as type "pointer"
