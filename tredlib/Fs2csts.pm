@@ -184,7 +184,6 @@ sub write {
       }
       if ($root->{para} or $treeNo==1) {
 	my $n =	$root->{para}=~/\d+/ ? $& : 0;
-	print "PARA: $root->{para}\n";
 	print $fileref "<p n=$n>\n";
       }
 #      print $fileref make_gap($root->{gappre});
