@@ -220,16 +220,17 @@ sub value_line_list {
 	  if (/^\${([^}]+)}$/) {
 	    #attr
 	    if (exists($node->{$1})) {
-	      push @vl,[$node->{$1},$node, map { "$_ => $styles{$_}" } keys %styles];
+	      push @vl,[$node->{$1},$node, map { encode("$_ => $styles{$_}") }
+			keys %styles];
 	    }
 	  } elsif (/^\#{([^}]+)}$/) {
 	    #attr
 	    my $style=$1;
 	    if ($style =~ /-tag:\s*(.*\S)\s*$/) {
-	      if ($styles{"tag"} ne "") {
-		$styles{"tag"}.=",$1";
+	      if ($styles{tag} ne "") {
+		$styles{tag}.=",$1";
 	      } else {
-		$styles{"tag"}=$1;
+		$styles{tag}="$1";
 	      }
 	    } elsif ($style =~ /(-[a-z0-9]+):\s*(.*\S)\s*$/) {
 	      $styles{$1} = $2;
