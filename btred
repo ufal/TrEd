@@ -77,7 +77,7 @@ $optparser->getoptions(
 	    "usage|u"        => \$usage,
 	    "man"            => \$manpage,
 	    "preload-module|M=s" => \@preload_modules
-	   );
+	   ) or $usage=1;
 
 $quiet=1 if $Quiet;
 
