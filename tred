@@ -5378,6 +5378,7 @@ sub ListQuery {
 			       },$d ]);
   my $l=$d->Scrolled(qw/Listbox -relief sunken
                         -takefocus 1
+                        -width 0
                         -scrollbars e/,
 		     -font=> $font,
 		     -selectmode => $select_mode,
@@ -7293,7 +7294,7 @@ sub doEvalMacro {
 	$win->{FSFile}->notSaved(1);
 	lastActionBookmark($win->{framegroup},$bookmark);
       } else {
-	print STDERR "Macro claims file untouched\n"
+	print STDERR "Macro claims file untouched.\n" if $macroDebug;
       }
     }
   }
