@@ -206,6 +206,7 @@ sub non_proj_edges {
                      current red
                      sentence black
                      spell gray
+                     status darkblue
                      tfa_text darkcyan
                      tfa_t white
                      tfa_f yellow
