@@ -3,7 +3,7 @@
 use strict;
 use Getopt::Std;
 use vars qw($opt_v $opt_V $opt_h $opt_D $opt_r $opt_n $opt_t);
-getopts('rvVhD');
+getopts('rntvVhD');
 
 $opt_v ||= $opt_V;
 
