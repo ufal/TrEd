@@ -497,7 +497,7 @@ sub GetTree2 ($$$) {
       }
       croak "Unexpected token... `$c'!\n$l\n";
     }
-    croak "Error: Closing parens do not lead to root of the tree." 
+    croak "Error: Closing brackets do not lead to root of the tree." 
 	if ($curr != $root);
   }
 #    else { croak "** $l\nTree does not begin with `['!\n"; }
@@ -534,7 +534,7 @@ sub GetTree ($$$) {
       $l=~/\G(.)/gsco;
       croak "Unexpected token `$1'!\n$l\n";
     }
-    croak "Error: Closing parens do not lead to root of the tree." 
+    croak "Error: Closing brackets do not lead to root of the tree." 
 	if ($curr != $root);
   }
 #    else { croak "** $l\nTree does not begin with `['!\n"; }
