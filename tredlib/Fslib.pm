@@ -308,6 +308,12 @@ sub initialize {
   $self->{$Fslib::parent}=0;
 }
 
+=item destroy
+
+This function destroys a FSNode (and all its descendants). The node
+should not be attached to a tree.
+
+=cut
 
 sub destroy {
   my $self = shift;
@@ -687,6 +693,7 @@ sub set_attr {
 	$val = $val->{$step};
       } else {
 	$val->{$step} = $value;
+	return $value;
       }
     } elsif (defined($val)) {
       warn "Can't follow attribute path '$path' (step '$step')\n";
@@ -1530,7 +1537,7 @@ FSFile - Simple OO interface for FS files.
 
 =pod
 
-=item new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?,meta_data?)
+=item new (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?,meta_data?,app_data?)
 
 Create a new FS file object and C<initialize> it with the optional values.
 
@@ -1561,7 +1568,7 @@ See C<initialize> for more detail.
 sub create {
   my $self = shift;
   my %args=@_;
-  return $self->new(@args{qw(name format FS hint patterns tail trees save_status backend encoding user_data meta_data)});
+  return $self->new(@args{qw(name format FS hint patterns tail trees save_status backend encoding user_data meta_data app_data)});
 }
 
 
@@ -1618,7 +1625,7 @@ sub DESTROY {
 
 =pod
 
-=item initialize (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?)
+=item initialize (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?,meta_data?,app_data?)
 
 Initialize a FS file object. Argument description:
 
@@ -1667,12 +1674,18 @@ IO character encoding for perl 5.8 I/O filters
 
 =item user_data (arbitrary scalar type)
 
-Applicatoin specific data
+Reserved for the user. Content of this slot is not persistent.
 
 =item meta_data (hashref)
 
 Meta data (usually used by IO Backends to store additional information
-about the file).
+about the file - i.e. other than encoding, trees, patterns, etc).
+
+=item app_data (hashref)
+
+Non-persistent application specific data associated with the file (by
+default this is an empty hash reference). Applications may store
+temporary data associated with the file into this hash.
 
 =back
 
@@ -1696,6 +1709,7 @@ sub initialize {
   $self->[11] = $_[9] ? $_[9] : undef; # encoding;
   $self->[12] = $_[10] ? $_[10] : {}; # user data
   $self->[13] = $_[11] ? $_[11] : {}; # meta data
+  $self->[14] = $_[12] ? $_[12] : {}; # app data
   return ref($self) ? $self : undef;
 }
 
@@ -1990,9 +2004,7 @@ sub changeEncoding {
 
 Return user data associated with the file (by default this is an empty
 hash reference). User data are not supposed to be persistent and IO
-backends should ignore it. "User" does not necessarily mean that this
-slot is reserved for the user. Applications often store their
-temporary data associated with the file into this hash.
+backends should ignore it.
 
 =cut
 
@@ -2006,8 +2018,7 @@ sub userData {
 =item changeUserData
 
 Change user data associated with the file. User data are not supposed
-to be persistent and IO backends should ignore it. It is rather risky
-to set this value to something else than a hash reference.
+to be persistent and IO backends should ignore it.
 
 =cut
 
@@ -2048,12 +2059,10 @@ sub changeMetaData {
   return $self->[13]->{$name}=$val;
 }
 
-=pod
-
 =item listMetaData(name)
 
-Return meta-data keys (in array context) or meta-data hash reference
-(in scalar context).
+In array context, return the list of metaData keys. In scalar context
+return the hash reference where metaData are stored.
 
 =cut
 
@@ -2061,6 +2070,48 @@ sub listMetaData {
   my ($self) = @_;
   return unless ref($self);
   return wantarray ? keys(%{$self->[13]}) : $self->[13];
+}
+
+=item appData(name)
+
+Return application specific information associated with the
+file. Application data are not persistent, i.e. they are not saved
+together with the file by IO backends.
+
+=cut
+
+sub appData {
+  my ($self,$name) = @_;
+  return ref($self) ? $self->[14]->{$name} : undef;
+}
+
+=pod
+
+=item changeAppData(name,value)
+
+Change aplication specific information associated with the
+file. Application data are not persistent, i.e. they are not saved
+together with the file by IO backends.
+
+=cut
+
+sub changeAppData {
+  my ($self,$name,$val) = @_;
+  return unless ref($self);
+  return $self->[14]->{$name}=$val;
+}
+
+=item listAppData(name)
+
+In array context, return the list of appData keys. In scalar context
+return the hash reference where appData are stored.
+
+=cut
+
+sub listAppData {
+  my ($self) = @_;
+  return unless ref($self);
+  return wantarray ? keys(%{$self->[14]}) : $self->[13];
 }
 
 =pod
@@ -3033,7 +3084,7 @@ sub type_struct {
 sub members {
   my ($self,$path)=@_;
   my $type = defined($path) ? $self->find($path) : $self->type_struct;
-  my $struct = ref($type) ? (exists($type->{structure}) ? $type->{structure} : $type);
+  my $struct = ref($type) ? (exists($type->{structure}) ? $type->{structure} : $type) : undef;
   if ($struct) {
     my $members = $struct->{member};
     return grep { !(ref($members->{$_}) and $members->{$_}{role} eq '#CHILDNODES') } keys %$members;
@@ -3068,6 +3119,10 @@ sub find {
 	  } else {
 	    redo;
 	  }
+	} elsif ($type->{member}) {
+	  $type = $type->{member}{$step};
+	} elsif ($type->{element}) {
+	  $type = $type->{element}{$step};
 	} elsif ($type->{structure}) {
 	  $type = $type->{structure}{member}{$step};
 	} elsif ($type->{sequence}) {
