@@ -232,6 +232,7 @@ sub copy_verb_frame {
     $lexlist->focus_by_text(substr($target_lemma,0,$i),undef,1) && last;
   }
   $d->bind('<Return>', \&TrEd::ValLex::Widget::dlgReturn );
+  $d->bind('<KP_Enter>', \&TrEd::ValLex::Widget::dlgReturn );
   $d->bind($d,'<Escape>', [sub { shift; $_[0]->{selected_button}= "Cancel"; },$d] );
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   my $answer=$d->Show();
@@ -470,6 +471,7 @@ sub ChooseFrame {
 			  $new_word,
 			  0);
   }
+  ChangingFile(0);
   return 1;
 }
 
@@ -488,7 +490,6 @@ sub frame_chosen {
       my @frames=$chooser->get_selected_frames();
       my $real=$chooser->get_selected_element_string();
       my $ids = $chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames));
-      
       my $fmt  = $win->{FSFile}->FS();
       $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
       $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
@@ -496,11 +497,20 @@ sub frame_chosen {
       $node->{$framere_attr}=TrEd::Convert::decode($real);
       $win->{framegroup}{top}->focus();
       $win->{framegroup}{top}->raise();
+      $win->{FSFile}->notSaved(1);
+      main::saveFileStateUpdate($win);
       main::onTreeChange($win);
     } else {
-      TrEd::Basics::errorMessage($win,"Can't assign frame for $field->[0].$field->[1] to $lemma.$pos\n");
+      $chooser->widget->toplevel->
+	messageBox(-icon=> 'error',
+		   -message=> "Can't assign frame for $field->[0].$field->[1] to $lemma.$pos",
+		   -title=> 'Error', -type=> 'ok');
+
     }
   } else {
-    TrEd::Basics::errorMessage($win,"No node to assign selected frame $ids to!\n");
+    $chooser->widget->toplevel->
+      messageBox(-icon=> 'error',
+		 -message=> "No node to assign selected frame $ids to!",
+		 -title=> 'Error', -type=> 'ok');
   }
 }
