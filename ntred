@@ -619,7 +619,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	die "Error: File name contains tree suffix: $_\n" if
 	  /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
       }
-      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
+      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n";
     }
   } elsif ($request_list_changed) {
     $request_type="LIST_CHANGED";
