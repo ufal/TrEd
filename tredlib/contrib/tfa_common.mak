@@ -136,11 +136,11 @@ sub AskCzEn ($$$$) {
 
   use POSIX qw(locale_h);
 
-  if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech/i) {
-    ($yes, $no, $title, $message) = ("Ano", "Ne", $titleCz, $messageCz);
-  } else {
-    ($yes, $no, $title, $message) = ("Yes", "No", $titleEn, $messageEn);
-  }
+    if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech/i) {
+      ($yes, $no, $title, $message) = ("Ano", "Ne", $titleCz, $messageCz);
+    } else {
+      ($yes, $no, $title, $message) = ("Yes", "No", $titleEn, $messageEn);
+    }
 
   my $d = ToplevelFrame()->DialogBox(-title => $title,
 				       -buttons => [$yes, $no]
@@ -338,6 +338,26 @@ e subtree is to be projectivized
   NormalizeOrds($all);  # the ordering attributes are modified accordingly
 }
 
+
+sub Move {
+# move the node specified by the first parameter right after the node specified in the second parameter
+
+  my $top=$_[0];
+  return unless $top;
+
+  my $after= ref($_[1]) ? $_[1] : $root;  # if no node to place after is specified, it is taken to be the root node
+
+  my $all = [GetNodes($top)];
+  SortByOrd($all);
+
+  splice @$all,Index($all,$top),1;   # the top node is cut off from the array
+  splice @$all,Index($all,$after)+1,0,$top;   # the top node is spliced after the appropriate node
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+
+}
+
+
 sub MoveST {
 # move the subtree specified by the first parameter right after the node specified in the second parameter
 
@@ -346,7 +366,7 @@ sub MoveST {
 
   return unless my $subtree=ContinueProjectivizing($top);
 
-  my $after= ref($_[1]) ? $_[1] : $root;
+  my $after= ref($_[1]) ? $_[1] : $root;  # if no node to place after is specified, it is taken to be the root node
 
   my $all=GetNodesExceptST($top);
 
@@ -531,4 +551,3 @@ sub ShiftSubTreeRightSkipHidden {
 #    $node->{$ord}=$x;
 #    RepasteNode($node);
 #  }
-
