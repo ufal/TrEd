@@ -145,10 +145,10 @@ Return string representation of the given subtree
    shift @_ unless ref($_[0]);
    my $top= $_[0]||$root;
    return undef unless $top;
-   return join("",
-		 map { $_->{origf}.($_->{nospace} ? "" : " ") }
+   return substr(join("",
+		 map { ($_->{nospace} ? "" : " ").$_->{origf} }
 		 sort { $a->{ord} <=> $b->{ord} }
-		 $top->descendants);
+		 $top->descendants),1);
 }
 
 =item PDT::get_subsentence_string_TR
