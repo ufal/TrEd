@@ -193,8 +193,9 @@ sub copy_verb_frame {
   return unless defined($item);
   my $word=$wl->infoData($item);
   return unless $word;
-  my $subst_lemma=$data->getLemma($word);
-  print "lemma $subst_lemma\n";
+  my $target_lemma=$data->getLemma($word);
+  my $target_pos=$data->getPOS($word);
+  print "lemma $target_lemma\n";
 
   my $d=$top->Dialog(-title => 'Select source verb',
 		     -buttons => ['OK','Cancel']);
@@ -205,8 +206,8 @@ sub copy_verb_frame {
   $lexlist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
   $lexlist->fetch_data();
   $lexlist->widget()->focus();
-  for (my $i=length($subst_lemma); $i>0; $i--) {
-    $lexlist->focus_by_text(substr($subst_lemma,0,$i),undef,1) && last;
+  for (my $i=length($target_lemma); $i>0; $i--) {
+    $lexlist->focus_by_text(substr($target_lemma,0,$i),undef,1) && last;
   }
   $d->bind($d,'<Escape>', [sub { shift; $_[0]->{selected_button}= "Cancel"; },$d] );
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
@@ -222,9 +223,11 @@ sub copy_verb_frame {
       foreach my $frame ($data->getFrameList($verb)) {
 	next unless ($frame->[3] =~ /^active$|^reviewed$/);
 	my $elements=$frame->[2];
-	$elements=~s/(ACT[\[\(])(1|[^\]\)]+,1)(\]|\)|,)/${1}p,2,7${3}/;
-	$elements=~s/(PAT[\[\(])(4|[^\]\)]+,4)(\]|\)|,)/${1}2${3}/;
-	$new=$data->addFrame(undef,$word,$elements,"<$lemma>",$frame->[4],"",$data->user());
+	if ($target_pos eq 'N') {
+	  $elements=~s/(ACT[\[\(])(1|[^\]\)]+,1)(\]|\)|,)/${1}p,2,7${3}/;
+	  $elements=~s/(PAT[\[\(])(4|[^\]\)]+,4)(\]|\)|,)/${1}2${3}/;
+	}
+	$new=$data->addFrame(undef,$word,$elements,"($lemma.$pos)",$frame->[4],"",$data->user());
 	print "$lemma: converting $frame->[2] => $elements\n";
       }
       if ($new) {
