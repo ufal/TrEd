@@ -188,9 +188,9 @@ sub print_trees {
       $prtVMargin,
       $maximizePrintSize,
       $Media,
-      $canvas_opts		# color hash reference
+      $canvas_opts,		# color hash reference
+      $stylesheet
      )=@_;
-
 
   return if (not defined($printRange));
 
@@ -267,6 +267,11 @@ sub print_trees {
 			    lineWidth => 1,
 			    drawSentenceInfo => $snt
 			   });
+  if (defined($stylesheet)) {
+    $treeView->set_patterns($stylesheet->{patterns});
+    $treeView->set_hint(\$stylesheet->{hint});
+  }
+
   my @printList=parse_print_list($fsfile,$printRange);
   return unless @printList;
 
@@ -423,7 +428,6 @@ sub print_trees {
 	    }
 	  }
 	}
-
 	my $ps_result = $c->postscript(%pso);
 	my $curenc = <<END_OF_ENC;
 /CurrentEncoding [
