@@ -13,40 +13,89 @@ import Tectogrammatic;
 # bind NextTree to key period
 
 
-use vars qw($hide $usenames $onlylemma $onlyfunc $onlydep $onlymissing $excludelemma $summary $diff_style);
+use vars qw($usenames $onlylemma $onlyfunc $onlydep $onlymissing
+            $excludelemma $summary @standard_check_list
+            $summary
+            $check_dependency $check_presence $check_attributes $id);
 
 use integer;
 
-$hide=1;
-$diff_style;
+$check_presence=1;
+$check_dependency=1;
+$check_attributes=1;
+@standard_check_list=		# list of attributes to check
+  qw(func form trlemma lemma origf del gram sentmod deontmod TR);
+
+$id="ord";			# (numeric) attribute which identifies
+                                # elements to compare
 
 sub switch_context_hook {
   my ($precontext,$context)=@_;
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
   return unless ($precontext ne $context);
+  remove_diff_patterns();
+  add_diff_patterns();
+  return;
+}
+
+sub pre_switch_context_hook {
+  remove_diff_patterns();
+  return;
+}
+
+# bind remove_diff_patterns to key space menu Add diff patterns
+sub add_diff_patterns {
   my @pat=GetDisplayAttrs();
   my $hint=GetBalloonPattern();
 
   SetDisplayAttrs(@pat,
 'style:<? #diff ?><? "#{Line-fill:red}#{Line-dash:- -}" if $${_diff_dep_} ?>',
 'style:<? #diff ?><? join "",map{"#{Text[$_]-fill:orange}"} split  " ",$${_diff_attrs_} ?>',
-'style:<? #diff ?><? "#{Oval-fill:darkorange}#{Oval-addwidth:4}#{Oval-addheight:4}" if $${_diff_attrs_} ?>',
+'style:<? #diff ?><? "#{Oval-fill:darkorange}#{Node-addwidth:4}#{Node-addheight:4}" if $${_diff_attrs_} ?>',
 'style:<? #diff ?><? "#{Oval-fill:cyan}#{Line-fill:cyan}#{Line-dash:- -}" if $${_diff_in_} ?>',
 'style:<? #diff ?><? "#{Line-fill:black}#{Line-dash:- -}" if $${_diff_attrs_}=~/ TR/ ?>',
 '<? #diff ?>${_group_}');
   SetBalloonPattern($hint.
 		    "\n".'Diffs in:${_diff_attrs_}'
 		   );
-  print STDERR "Setting TRDiff attributes\n";
 }
 
-sub pre_switch_context_hook {
+# bind remove_diff_patterns to key space menu Remove diff patterns
+sub remove_diff_patterns {
   my $hint=GetBalloonPattern();
-  $hint=~s/\n_diff_\n//g;
+  $hint=~s/\n.*_diff_.*(?:\n|$)//g;
   SetBalloonPattern($hint);
   SetDisplayAttrs(grep { !/\#diff.*(?:\n?|$)/ } GetDisplayAttrs());
-  print "Removing TRDiff attributes\n";
+}
+
+sub current_node_change_hook {
+  my ($node,$prev)=@_;
+  return unless (exists($node->{_group_}));
+  foreach my $win (@{$grp->{framegroup}->{treeWindows}}) {
+    next if ($win eq $grp);
+    next unless ($win->{FSFile} and $win->{macroContext} eq 'TR_Diff');
+    my $r=$win->{FSFile}->tree($win->{treeNo});
+    while ($r and $r->{_group_} ne $node->{_group_}) {
+      $r=$r->following();
+    }
+    SetCurrentNodeInOtherWin($win,$r) if ($r);
+  }  
+  return;
+}
+
+# bind find_next_difference to key space menu Goto next difference
+sub find_next_difference {
+  my $node=$this->following;
+  while ($node and not
+	 ($node->{_diff_dep_} or
+	  $node->{_diff_attrs_} or
+	  $node->{_diff_in_})) {
+    $node=$node->following;
+  }
+  $this=$node if ($node);
+  $FileChanged=0;
+  $Redraw='none'
 }
 
 
@@ -81,6 +130,7 @@ sub Max {
 }
 
 sub diff_trees {
+  my $summary=shift;
   my %T=@_;
   my @names=keys %T;
   # %T is a has of the form id => tree, where id is any textual identifier
@@ -99,7 +149,7 @@ sub diff_trees {
       } else {
 	$trcount++;
 	$acount++;
-	$newcount++ if ($node->{ord}=~/\./);
+	$newcount++ if ($node->{$id}=~/\./);
       }
       delete $node->{_group_};
       delete $node->{_diff_in_};
@@ -134,12 +184,12 @@ sub diff_trees {
     if ($T{$f}) {
       $node=Next($T{$f}); # or NextVisibleNode if all are to be compared
       while ($node) {
-	if ($node->{"ord"}!~/\./) {
-	  if (! exists $G{$node->{"ord"}}) { 
-	    $G{$node->{"ord"}} = { }; # structure: $G{ ord }->{ file } == node_from_file_at_ord
+	if ($node->{$id}!~/\./) {
+	  if (! exists $G{$node->{$id}}) { 
+	    $G{$node->{$id}} = { }; # structure: $G{ ord }->{ file } == node_from_file_at_ord
 	  }
-	  $G{$node->{"ord"}}->{$f}=$node;
-	  $node->{_group_}=$node->{"ord"};
+	  $G{$node->{$id}}->{$f}=$node;
+	  $node->{_group_}=$node->{$id};
 	}
 	$node=Next($node);
       }
@@ -205,7 +255,7 @@ sub diff_trees {
 
     my @grps=keys(%$Gr);
 
-    unless ($onlylemma or $onlydep) {
+    if ($check_presence) {
       # check if all files have node in this group
       if (@grps != @names) {
 	$diffs++;
@@ -222,7 +272,7 @@ sub diff_trees {
     # check for (parent) structure differences but ignore changes,
     # if parents are alone, i.e. not associated in groups
 
-    unless ($onlylemma or $onlymissing) {
+    if ($check_dependency) {
       undef %valhash;
       my $diff_them=0;
 
@@ -248,18 +298,8 @@ sub diff_trees {
     }
 
     #check for value differences
-    my @atrchecklist=();
-    unless($onlydep or $onlymissing) {
-
-      if ($onlyfunc or $onlylemma) {
-      	@atrchecklist=();
-	push (@atrchecklist,"trlemma","lemma") if $onlylemma;
-	push (@atrchecklist,"func") if $onlyfunc;
-      } else {
-	@atrchecklist=$excludelemma ? qw(func form origf del gram sentmod deontmod TR) :
-	  qw(func form trlemma lemma origf del gram sentmod deontmod TR);
-      }
-      foreach my $attr (@atrchecklist) {
+    if ($check_attributes) {
+      foreach my $attr (@standard_check_list) {
 	undef %valhash;
 	foreach my $f (@grps) {
 	  $valhash{"$Gr->{$f}->{$attr}"}.=" $f";
@@ -279,12 +319,105 @@ sub diff_trees {
       $total+=$diffs;
     }
   }
+
+  return unless $summary;
+  my @summary=();
+  push @summary, "Comparison of @names\n\nFile statistics:\n" if ($summary);
+  
+  foreach $f (@names) {            
+    push @summary, 
+    "$f:\n\tTotal:\t$T{$f}->{acount} nodes\n",
+    "\tOn TR:\t$T{$f}->{trcount} nodes\n",
+    "\tNew:\t$T{$f}->{newcount} nodes\n\n";
+  }
+  
+  foreach (keys %total) {
+    $total_values+=$total{$_};
+  }
+  
+  delete $total{''};
+  
+  push @summary,
+  "Diferences statistics:\n",
+  "\tTotal:\t$total differences\n",
+  "\tStructure:\t$total_dependency\n",
+  "\tRestoration:\t$total_restoration\n",
+  "\tAttributes:\t$total_values\n",
+  map ({ "\t  -- $_:\t$total{$_}\n" } keys(%total)),
+  "\n";
+  
+  if ($total_restoration) {
+    push @summary, 
+    "Restoration - detailed statiscics:\n",
+    "\tOf $total_restoration differences, there were\n",
+    map ({ "\t      ".pack("A4",$restoration{$_})." agreements of $_\n" }
+	 grep {$restoration{$_}>0} keys %restoration),
+      "\n";
+  }
+  if ($total_dependency) {
+    push @summary, 
+    "Dependency - detailed statiscics:\n",
+    "\tOf $total_dependency differences, there were\n",
+    map ({ "\t      ".pack("A4",$dependency{$_})." agreements of $_\n" }
+	 grep {$dependency{$_}>0} keys %dependency),
+      "\n";
+  }
+  if ($total_values) {
+    push @summary, 
+    "Values of attributes - detailed statiscics:\n",
+    "\tOf $total_values differences, there were\n",
+    map ({ "\t      ".pack("A4",$value{$_})." agreements of $_\n" }
+	 grep {$value{$_}>0} keys %value),
+      "\n";
+  }
+  return @summary;
 }
 
-#bind DiffTRFiles to key equal menu Porovnej tektogramatické soubory
+#bind DiffTRFiles to key equal menu Compare files
+#bind DiffTRFiles_select_attrs to key Ctrl+equal menu Choose attributes to compare
+#bind DiffTRFiles_with_summary to key Ctrl+Shift+equal menu Compare files with summary
+
+sub DiffTRFiles_select_attrs {
+  listQuery("multiple",$grp->{FSFile}->FS->list,\@standard_check_list);
+  $FileChanged=0;
+  $Redraw='none';
+}
+
+sub DiffTRFiles_with_summary {
+  require Tk::ROText;
+  my @summary=TR_Diff->DiffTRFiles(1);
+  
+  my $top=ToplevelFrame();
+
+  print "creating dialog\n";
+  my $d=$top->DialogBox('-title'   => "Comparizon summary",
+			'-width'   => '8c',
+			'-buttons' => ["OK"]);
+  print "created dialog\n";
+  $d->bind('all','<Escape>'=> [sub { shift; 
+				     shift->{selected_button}='OK'; 
+				   },$d ]);
+
+  my $t= $d->Scrolled(qw/ROText
+                         -relief sunken
+                         -borderwidth 2
+		         -height 30 
+                         -scrollbars e/,
+		      '-tabs' => [qw/1c 4c/]
+		     );
+  $t->pack(qw/-expand yes -fill both/);
+
+  $t->insert('0.0',join "",@summary);
+  $t->BindMouseWheelVert();
+  $t->BindMouseWheelHoriz("Shift");
+  $t->focus;
+  print "showing dialog\n";
+  &main::ShowDialog($d);
+  $FileChanged=0;
+}
 
 sub DiffTRFiles {
-
+  my ($class,$summary)=@_;
   my $fg=$TredMacro::grp->{framegroup};
   my @T;
   my ($fs,$tree);
@@ -293,11 +426,14 @@ sub DiffTRFiles {
     $fs=$win->{FSFile};
     if ($fs) {
       $tree=$fs->treeList()->[$win->{treeNo}];
-      push @T, $fs->filename()."##".$win->{treeNo} => $tree if $tree;
+      push @T,($fs->filename()."##".($win->{treeNo}+1) => $tree) if $tree;
     }
   }
+  $FileChanged=0;
   if (@T>2) {
-    diff_trees(@T);
+    $Redraw='all';
+    return diff_trees($summary,@T);
+  } else {
+    $Redraw='none';
   }
-  $Redraw='all';
 }
