@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-26 11:03:54 pajas>
+# Time-stamp: <2002-07-02 17:10:16 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -987,7 +987,7 @@ sub setAttribute {
 
 =item children
 
-Return node's first dependent node (C<undef> if none).
+Return a list of dependent nodes.
 
 =cut
 
@@ -1002,9 +1002,29 @@ sub children {
   return @children;
 }
 
+=pod
+
+=item visible_children(fsformat)
+
+Return a list of visible dependent nodea.
+
+=cut
+
+sub visible_children {
+  my ($self,$fsformat) = @_;
+  my @children=();
+  my $child=$self->firstson;
+  while ($child) {
+    push @children, $child unless $fsformat->isHidden($child);
+    $child=$child->rbrother;
+  }
+  return @children;
+}
+
+
 =item descendants
 
-Return all recursively dependent nodes (C<undef> if none).
+Return a list recursively dependent nodes.
 
 =cut
 
@@ -1015,6 +1035,23 @@ sub descendants {
   while ($desc) {
     push @kin, $desc;
     $desc=$desc->following($self);
+  }
+  return @kin;
+}
+
+=item visible_descendants(fsformat)
+
+Return a list recursively dependent visible nodes.
+
+=cut
+
+sub visible_descendants {
+  my ($self,$fsformat) = @_;
+  my @kin=();
+  my $desc=$self->following_visible($fsformat,$self);
+  while ($desc) {
+    push @kin, $desc;
+    $desc=$desc->following_visible($fsformat,$self);
   }
   return @kin;
 }
