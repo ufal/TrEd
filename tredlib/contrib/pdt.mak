@@ -616,12 +616,13 @@ otherwise.
 
 sub GetFather_AR { # node through
   my ($node,$through)=@_;
+  my $init_node = $node; # only used for reporting errors
   if ($node->{afun}=~/_[CA]/) { # go to coordination head
     while ($node->{afun}!~/(?:Coord|Apos)(?:$|_P)|AuxS/) {
       $node=$node->parent;
-      if ($node->{afun}eq'AuxS') {
+      if (!$node or $node->{afun}eq'AuxS') {
 	print STDERR
-	  "GetFather: Error - no coordination head $node->{AID}: ".ThisAddress($node)."\n";
+	  "GetFather: Error - no coordination head $node->{AID}: ".ThisAddress($node || $init_node)."\n";
       }
     }
   }
