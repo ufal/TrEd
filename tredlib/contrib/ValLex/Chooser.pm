@@ -49,21 +49,30 @@ sub show_dialog {
     }
   }
   if ($select_frame) {
+    my ($fl)=@{ $chooser->subwidget("framelists") };
+    $chooser->focus_framelist($fl) if ($fl);
     if (ref($select_frame) eq "ARRAY") {
       if (@$select_frame) {
 	foreach (@{$chooser->subwidget("framelists")}) {
-	  $_->widget()->focus() if $_->select_frames(@$select_frame);
+	  if ($_->select_frames(@$select_frame)) {
+	    $_->widget()->focus();
+	    $chooser->framelist_item_changed();
+	  }
 	}
       } else {
 	if ($chooser->widget()->infoExists(0)) {
 	  $chooser->widget()->anchorSet(0);
 	  $chooser->widget()->selectionSet(0);
 	  $chooser->widget()->focus();
+	  $chooser->framelist_item_changed(0);
 	}
       }
     } else {
       foreach (@{$chooser->subwidget("framelists")}) {
-	$_->widget()->focus() if $_->select_frames($select_frame);
+	if ($_->select_frames($select_frame)) {
+	  $chooser->framelist_item_changed();
+	  $_->widget()->focus();
+	}
       }
     }
   } else {
@@ -71,9 +80,9 @@ sub show_dialog {
       $chooser->widget()->anchorSet(0);
       $chooser->widget()->selectionSet(0);
       $chooser->widget()->focus();
+      $chooser->framelist_item_changed(0);
     }
   }
-
   if ($start_editor) {
     unless ($chooser->focused_framelist()) {
       my ($fl) = grep { $_->field()->[0] eq $start_editor->[0] and
@@ -153,6 +162,7 @@ sub create_widget {
 		       $fl->show_obsolete(!${$self->subwidget('hide_obsolete')});
 		       $fl->fetch_data($self->data()->findWordAndPOS(@{$fl->field()}));
 		     }
+		     $self->framelist_item_changed();
 		   },
 		   $self
 		  ]);
@@ -221,6 +231,9 @@ sub create_widget {
 #						-scrollbars oe /);
 #  $lexframenote->pack(qw/-fill x/);
 
+  my $info_line = TrEd::ValLex::InfoLine->new($data, undef, $frame, qw/-background white/);
+  $info_line->pack(qw/-side bottom -fill x/);
+
   return $lexframelists[0]->widget(),{
 	     callback     => $cb,
 	     frame        => $frame,
@@ -231,6 +244,7 @@ sub create_widget {
 	     hide_obsolete => \$hide_obsolete,
 #	     framenote    => $lexframenote
 #	     frameproblem => $lexframeproblem,
+	     infoline     => $info_line
 	    }, {
 		items => $item_style,
 		editor => $frame_browser_styles,
@@ -253,21 +267,25 @@ sub focus_framelist {
 }
 
 sub framelist_item_changed {
-#  my ($self,$item)=@_;
-#  my $h=$self->focused_framelist()->widget();
-#  my $frame;
-#  my $e;
-#  $item = $item || $h->infoAnchor();
-#  $frame=$h->infoData($item) if (defined($item) and $h->infoExists($item));
-#  $frame=undef unless ref($frame);
+  my ($self,$item)=@_;
+  return unless $self->focused_framelist();
+  my $h=$self->focused_framelist()->widget();
+  $item = $item || $h->infoAnchor();
+  my $frame;
+  my $e;
+  $frame=$h->infoData($item) if $item ne "";
+  $frame=undef unless ref($frame);
+  $self->subwidget('infoline')->fetch_frame_data($frame);
 #  $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
 }
+
 
 sub destroy {
   my ($self)=@_;
   foreach (@{$self->subwidget('framelists')}) {
     $_->destroy();
   }
+  $self->subwidget("infoline")->destroy();
   $self->SUPER::destroy();
 }
 
