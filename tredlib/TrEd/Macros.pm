@@ -273,6 +273,15 @@ sub do_eval_macro {
   return $result;
 }
 
+sub context_can {
+  my ($context,$sub)=@_;
+  if (defined($safeCompartment)) {
+    return $safeCompartment->reval("\${'${context}::'}{'$sub'}");
+  } else {
+    return $context->can($sub);
+  }
+}
+
 sub do_eval_hook {
   my ($win,$context,$hook)=(shift,shift,shift);  # $win is a reference
 				# which should in this way be made visible
@@ -282,14 +291,14 @@ sub do_eval_hook {
   initialize_macros($win);
   my $result=undef;
 
-  if ($context->can($hook)) {
+  if (context_can($context,$hook)) {
     print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
     if (defined($safeCompartment)) {
       $safeCompartment->reval("\&$context\:\:$hook(\@_)");
     } else {
       $result=eval { return &{"$context\:\:$hook"}(@_); };
     }
-  } elsif ($context ne "TredMacro" and TredMacro->can($hook)) {
+  } elsif ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
     print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
     if (defined($safeCompartment)) {
       $safeCompartment->reval("\&TredMacro\:\:$hook(\@_)");
