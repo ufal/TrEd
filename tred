@@ -5574,7 +5574,7 @@ sub resetUndoStatus {
   my $fsfile=$win->{FSFile};
   my ($undostatus,$redostatus);
 
-  if ($maxUndo!=0 and $fsfile and $fsfile->userData()) {
+  if ($maxUndo!=0 and ref($fsfile) and $fsfile->userData()) {
     my $stack=$fsfile->userData()->{undostack};
     my $stackpos=$fsfile->userData()->{undo};
     print STDERR "STATUS: $stackpos/",$#$stack+1,"\n" if $tredDebug;
@@ -5585,7 +5585,6 @@ sub resetUndoStatus {
     $undostatus=0;
     $redostatus=0;
   }
-  print "FG: $win->{framegroup}, $fsfile, ",$fsfile->userData(),"\n";
   $win->{framegroup}->{undoButton}->
     configure(
 	      $undostatus ?
