@@ -17,6 +17,7 @@ BEGIN {
     &read_macros
     &do_eval_macro
     &do_eval_hook
+    &macro_variable
     %keyBindings
     %menuBindings
     @macros
@@ -53,6 +54,7 @@ sub read_macros {
     %keyBindings=();
     %menuBindings=();
     @macros=();
+    print STDERR "Reading $defaultMacroFile\n" if $macroDebug;
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
     print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
       unless open(F,"<$defaultMacroFile");
@@ -228,7 +230,7 @@ sub initialize_macros {
   my $result = 2;
   unless ($macrosEvaluated) {
     if (defined($safeCompartment)) {
-      ${$safeCompartment->varglob('TredMacro::grp')}=$win;
+      ${macro_variable('TredMacro::grp')}=$win;
       my $macros=join("",@macros)."\n return 1;";
       my %packages;
       # dirty hack to support ->isa in safe compartment
@@ -236,20 +238,27 @@ sub initialize_macros {
       $result=
 	$safeCompartment
 	  ->reval($macros);
-#     print STDERR "running:\n",substr($macros,0,1000),"\n";
+      print STDERR $@ if $@;
     } else {
-      $TredMacro::grp=$win;
+      ${macro_variable('TredMacro::grp')}=$win;
       $result=eval (join("",@macros)."\n; return 1;");
     }
     $macrosEvaluated=1;
     print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     print STDERR "Returned with: $result\n\n" if $macroDebug;
-    if ($result or $@) {
-      print STDERR $@ if $@;
-    }
+    print STDERR $@ if $@
   }
-  $TredMacro::grp=$win;
+  ${macro_variable('TredMacro::grp')}=$win;
   return $result;
+}
+
+sub macro_variable {
+  my ($name)=@_;
+  if (defined($safeCompartment)) {
+    $safeCompartment->varglob($name);
+  } else {
+    $name
+  }
 }
 
 sub do_eval_macro {
@@ -262,7 +271,7 @@ sub do_eval_macro {
   initialize_macros($win);
   print STDERR "Running $macro\n" if $macroDebug;
   if (defined($safeCompartment)) {
-    ${$safeCompartment->varglob('TredMacro::grp')}=$win;
+    ${macro_variable('TredMacro::grp')}=$win;
     $result = $safeCompartment->reval("$macro");
   } else {
     $result = eval("$macro");
