@@ -113,7 +113,7 @@ sub InitFrameData {
       } else {
 	$info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 	$FrameData=
-	  $XMLDataClass->new(-f "${vallex_file}.gz" ?
+	  $XMLDataClass->new(($XMLDataClass =~ /LibXML/ and -f "${vallex_file}.gz") ?
 			     "${vallex_file}.gz" :
 			     "${vallex_file}",$conv,!$vallex_validate);
       }
