@@ -146,18 +146,18 @@ sub print_trees {
 #  push @printList,$grp->{treeNo}+1 unless (@printList);
 
   unless (open(F,"<$psFontFile")) {
-    print STDERR "Aborting: failed to open font file $psFontFile\n";
+    print STDERR "Aborting: failed to open file '$psFontFile': $!\n";
     return 0;
   }
   if ($toFile) {
     unless (open(O,">".$fil)) {
-      print STDERR "Aborting: failed to open font file $fil\n";
+      print STDERR "Aborting: failed to open file '$fil': $!\n";
       return 0;
     }
   } else {
     $SIG{'PIPE'} = sub {};
     unless (open(O, "| ".$cmd)) {
-      print STDERR "Aborting: failed to open font file $cmd\n";
+      print STDERR "Aborting: failed to open pipe to '$cmd': $!\n";
       return 0;
     }
   }
