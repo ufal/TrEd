@@ -53,7 +53,7 @@ sub editQuery {
   my $d;
   my $ed;
 
-  $d=$grp->{'top'}->DialogBox(-title => shift,
+  $d=$grp->toplevel->DialogBox(-title => shift,
 			   -buttons => ["OK","Cancel"]);
   main::addBindTags($d,'dialog');
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
@@ -107,7 +107,7 @@ sub PerlSearch {
 
 #bind GotoTreeAsk to key Alt+G menu Go to...
 sub GotoTreeAsk {
-  my $to=main::QueryString($grp,"Give a Tree Number","Number");
+  my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
 
   $FileNotSaved=0;
   if ($to=~/#/) {
