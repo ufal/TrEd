@@ -513,7 +513,6 @@ if (defined($init) || defined($kill) || defined($break)) {
     $code = "do { $code } while TredMacro::NextTree();";
   }
 
-
   my $request="";
   my $request_type;
   if ($request_quit) {

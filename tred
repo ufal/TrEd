@@ -1065,6 +1065,7 @@ sub reloadFile {
       $win->{FSFile}->changePatterns(@patterns);
       $win->{FSFile}->changeHint($hint);
     }
+    get_nodes_win($win);
     redraw_win($win);
     centerTo($win,$win->{currentNode});
   }
@@ -1258,11 +1259,19 @@ sub autoSaveAll {
   my $top=$grp->{top};
   my @files=grep { $_->notSaved == 1 } @openfiles;
   return unless @files;
-$top->title("Autosaving...");
+  $top->title("Autosaving...");
   $top->Busy(-recurse=> 1) if (!$insideEval);
   foreach my $fsfile (@files) {
     my $f=autosave_filename($fsfile->filename);
     print STDERR "auto-saving recovery file ".$fsfile->filename." to '$f'\n" if $tredDebug;
+
+    # this is not a kosher implementation but
+    # there is no way to call a hook on fsfile
+    # not owned by any windows, sigh!
+    my ($win) = fsfileDisplayingWindows($grp,$fsfile);
+    $win = $grp->{focusedWindow} unless $win;
+    return if doEvalHook($win,"file_autosave_hook",$fsfile) eq 'stop';
+
     unless ($fsfile->writeFile($f)) {
       print STDERR "Error auto-saving file to '$f'\n($!)\n";
       next;
@@ -1288,6 +1297,7 @@ sub saveFile {
 #   }
   rename $f,$f."~" if (-f $f);
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
+  return if doEvalHook($win,"file_save_hook",$f) eq 'stop';
   unless ($win->{FSFile}->writeFile($f)) {
     $win->toplevel->Unbusy() unless $insideEval;
     errorMessage($win,"Error saving file to '$f'\n($!)\n");
