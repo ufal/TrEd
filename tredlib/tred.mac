@@ -2,6 +2,9 @@
 ## author: Petr Pajas
 ## created: Wed Mar 15 14:50:16 CET 2000
 
+#ifndef __TRED_MAC__
+#define __TRED_MAC__
+
 ## add few custom bindings to predefined subroutines
 
 #bind Save to F2 menu Save File
@@ -289,4 +292,4 @@ package TredMacro;
 #bind ntred_query_box to key Shift+F10 menu Query BTrEd Servers
 
 
-
+#endif __TRED_MAC__
