@@ -17,6 +17,10 @@
 #bind PasteValues to F6 menu Paste Values
 #bind PrevTree to comma
 #bind NextTree to period
+#bind TiePrevTree to Ctrl+comma
+#bind TieNextTree to Ctrl+period
+#bind TiePrevTree to Shift+Prior
+#bind TieNextTree to Shift+Next
 
 
 #bind CutToClipboard to Ctrl+Insert menu Cut Subtree
@@ -171,6 +175,23 @@ sub GotoTreeAsk {
     }
   } else {
     GotoTree($to) if defined $to;
+  }
+}
+
+#bind TieGotoTreeAsk to Ctrl+Alt+g menu Go to... (tied)
+sub TieGotoTreeAsk {
+  my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
+
+  $FileNotSaved=0;
+  if ($to=~/#/) {
+    for (my $i=$grp->{treeNo}+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {
+      TieGotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
+    }
+    for (my $i=0; $i<$grp->{treeNo}; $i++) {
+      TieGotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
+    }
+  } else {
+    TieGotoTree($to) if defined $to;
   }
 }
 
