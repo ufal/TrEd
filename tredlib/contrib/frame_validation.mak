@@ -349,6 +349,35 @@ sub get_children_include_auxcp {
   }
 }
 
+sub is_direct_subclause {
+  my ($node)=@_;
+  my $obj_pronoun=qr/^(?:co-1|jak-3|jaký|kdo|kolik|proè|kde|jak-2|co-4|kdy|kam|který|co¾-1|nakolik|odkud|èí)$/;
+  # TODO: try finite verb
+  if ($node->{__no_fake}) {
+    $node=$node->{__no_fake};
+  }
+  if ($node->{tag}=~/^V/ or $node->{trlemma} eq "&Emp;") {
+    print "subclause trying:",join(", ",map{$_->{trlemma}} $node),"\n" if $V_verbose;
+    my @c= PDT::GetChildren_TR($node);
+    print "1st level:",join(", ",map{$_->{trlemma}} @c),"\n" if $V_verbose;
+    @c = grep { ($_->{tag}!~/^V/ or
+		 $_->{tag}=~/^Vf/ and
+		 first { $_->{lemma} =~ /^(dokázat|lze)$/ } PDT::GetFather_TR($_)
+		) and $_->{trlemma} ne "&Emp;" } @c;
+    while (@c) {
+      print "subclause trying:",join(", ",map{$_->{trlemma}} @c),"\n" if $V_verbose;
+      return 1 if (first { $_->{lemma} =~ $obj_pronoun } @c);
+      @c = uniq map {
+	grep { ($_->{tag}!~/^V/ or
+		 $_->{tag}=~/^Vf/ and
+		 first { $_->{lemma} =~ /^(dokázat|lze)$/ } PDT::GetFather_TR($_)
+		) and $_->{trlemma} ne "&Emp;" }
+	  PDT::GetChildren_TR($_)} @c;
+    }
+  }
+  return 0;
+}
+
 sub check_node_case {
   my ($node,$case)=@_;
 
@@ -415,6 +444,16 @@ sub check_node_case {
   return 0;
 }
 
+# check if genders in given tags/nodes match
+sub match_gender {
+  my ($g1,$g2)= @_;
+  my $g=$g1.$g2;
+  return (($g1 eq $g2) or
+          ($g=~/-|X|^(?:H[NF]|[NF]H|Y[IMZ]|[ZIM]Y|Z[IMN]|[IMN]Z)$/)
+         ) ? 1 : 0;
+}
+
+
 sub match_node {
   my ($node, $fn, $aids,$no_case,$flags,$toplevel) = @_;
 
@@ -477,11 +516,17 @@ sub match_node {
     my ($p)=with_AR{PDT::GetFather_AR($node,sub{shift->{afun}=~/Aux[CP]/?1:0})};
     if ($p) {
       $p->{tag}=~/^....(\d)/;
-      $case=$1 if ($case ne '' and $1);
+      $case=$1 if ($case eq '' and $1);
       $p->{tag}=~/^...([SP])/;
-      $num=$1 if ($num ne '' and $1);
-      $p->{tag}=~/^..([FMIN])/;
-      $gen=$1 if ($gen ne '' and $1);
+      $num=$1 if ($num eq '' and $1);
+      $p->{tag}=~/^..([FMINHZY])/;
+      $gen=$1 if ($gen eq '' and $1);
+      if ($V_verbose) {
+	print "AGREEMENT [no_case=$no_case, tag=$node->{tag}, lemma=".$l."]  ==>  ";
+	print join ", ", map { "$_->[0]=$_->[1]" } grep { $_->[1] ne "" } ([lemma => $lemma], [pos => $pos], [case => $case],
+									   [gen => $gen], [num => $num], [deg => $deg], [afun => $afun]);
+	print "\n";
+      }
     } else {
       print "AGREEMENT REQUESTED BUT NO PARENT: ",$V->serialize_form($fn),"\n" if $V_verbose;
       return 0;
@@ -495,7 +540,7 @@ sub match_node {
     }
   }
   if ($gen ne '') {
-    return 0 if $node->{tag}=~/^..([FMIN])/ and $gen ne $1;
+    return 0 if $node->{tag}=~/^..([FMINHZY])/ and !match_gender($gen,$1);
   }
   if ($neg eq 'negative') {
     return 0 unless $node->{tag}=~/^..........N/;
@@ -531,9 +576,37 @@ sub match_node {
       return 0 unless $node->{tag}=~/^Vf/ or ($node->{TID} ne "" and $node->{trlemma} eq '&Emp;');
     } elsif ($pos eq 'u') {
       return 0 unless $node->{tag}=~/^AU|^P[S1]|^P8/ or $node->{lemma} eq 'èí';
+    } elsif ($pos eq 's') {
+      if ($flags->{loose_dsp}) {
+	return 0 unless $node->{tag}=~/^V/;
+      } else {
+	unless ($node->{dsp_root}==1) {
+	  my $dsp = 0;
+	  if (PDT::is_member_TR($node)) {
+	    my $p = $node->parent;
+	    while ($p and PDT::is_coord_TR($p)) {
+	      if ($p->{dsp_root}) {
+		$dsp=1;
+		last;
+	      }
+	      $p = $p->parent;
+	    }
+	  }
+	  return 0 unless $dsp;
+	}
+      }
+    } elsif ($pos eq 'c') {
+      # TODO: c
+      # this should be more strict, for ex. we should probably require IsFiniteVerb or something
+      if ($flags->{strict_subclause}) {
+	print "trying STRICT subclause\n" if $V_verbose;
+	return 0 unless is_direct_subclause($node);
+      } else {
+	return 0 unless $node->{tag}=~/^V/;
+      }
     } else {
-      # TODO: c s
-      return 0 unless $node->{tag}=~/^V/;
+      warn "Unknown POS: '$pos'\n";
+      return 0;
     }
   } elsif (#!$no_case and  # BYT_CHANGE
 	   $case ne '') { # assume $tag =~ /^[CNP]/
@@ -751,6 +824,7 @@ sub match_form {
       $fake_node->{form} = $form || $node->{trlemma};
       $fake_node->{trlemma} = $node->{trlemma};
       $fake_node->{TID} = $node->{TID};
+      $fake_node->{__no_fake} = $node; 
       print "Creating FAKE node [form=$fake_node->{form},lemma=$fake_node->{lemma},tag=$fake_node->{tag}\n" if $V_verbose;
     } else {
       $no_case=1;
@@ -1300,7 +1374,7 @@ sub validate_frame_no_transform {
       return 0;
     }
   } else {
-  # IN THIS THE USUAL FRAME MATCHING ROUTINE
+  # THIS IS THE USUAL FRAME MATCHING ROUTINE
 
     # check, that all obligatory elements are present
     foreach my $o (keys %oblig) {
@@ -1318,7 +1392,8 @@ sub validate_frame_no_transform {
     # check, that all actants present in data are in the vallex
     # check, multiplicity
     foreach my $ac (@actants) {
-      if (exists($c{$ac}) and !exists($all_elements{$ac})) {
+      if (!$flags->{${ac}."_is_free"} and
+	    exists($c{$ac}) and !exists($all_elements{$ac})) {
 	unless ($quiet) {
 	  print "07 actant present in data but not in vallex: $ac\t";
 	  Position($node);
