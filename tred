@@ -11,10 +11,10 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName %menuBindings %keyBindings
             $savedSavePixmap $normalSavePixmap $NewFileNo
-	    $normalUndoPixmap $disabledUndoPixmap
-	    $normalRedoPixmap $disabledRedoPixmap
-	    $normalNextPixmap $disabledNextPixmap
-	    $normalPrevPixmap $disabledPrevPixmap
+	    $normalUndoPixmap
+	    $normalRedoPixmap
+	    $normalNextPixmap
+	    $normalPrevPixmap
            );
 
 $version='$Revision$ ';
@@ -216,7 +216,6 @@ use Tk::LabFrame;
 use Tk::Listbox;
 use Tk::HList;
 use Tk::ItemStyle;
-use Tk::Balloon;
 use Tk::DialogBox;
 use Tk::Tiler;
 use Tk::BrowseEntry;
@@ -268,6 +267,7 @@ require Filelist;
 
 require Tk::MyFileSelect;
 require Tk::BindMouseWheel;
+require Tk::Balloon;
 
 # different namespace only to load local rather than system files
 # (rel2abs is not supported in all instalations)
@@ -512,7 +512,7 @@ sub resumeFile {
   return unless ref($win) and ref($fsfile);
   print "Resuming file ".$fsfile->filename."\n"  if $tredDebug;
 
-  closeFile($win,0,$keep);
+  closeFile($win,-keep_postponed => $keep);
 
   $win->{FSFile}=$fsfile;
   $win->{treeNo}=$fsfile->currentTreeNo;
@@ -535,22 +535,32 @@ sub isFocused {
 
 
 sub closeFile {
-  my ($win,$no_update,$keep)=@_;
+  my ($win,%opts)=@_;
 
-  $win->{Nodes}=undef;
-#  undef $NodeClipboard;
-  $win->{root}=undef;
   my $fsfile=$win->{FSFile};
   if ($fsfile) {
     $fsfile->currentTreeNo($win->{treeNo});
     $fsfile->currentNode($win->{currentNode});
   }
-  $win->{FSFile}=undef;
-  $win->{treeNo}=undef;
-  delete $win->{currentNode} if (exists $win->{currentNode});
-  $win->{treeView}->clear_pinfo();
-  set_value_line($win->{framegroup},"") if (isFocused($win));
-  if ($keep and $fsfile) {
+
+  my @wins;
+  if ($opts{-all_windows} and $fsfile) {
+    @wins=fsfileDisplayingWindows($win->{framegroup},$fsfile);
+  } else {
+    @wins=($win);
+  }
+
+  foreach my $w (@wins) {
+    $w->{Nodes}=undef;
+    #  undef $NodeClipboard;
+    $w->{root}=undef;
+    $w->{FSFile}=undef;
+    $w->{treeNo}=undef;
+    delete $w->{currentNode} if (exists $w->{currentNode});
+    $w->{treeView}->clear_pinfo();
+    set_value_line($w->{framegroup},"") if (isFocused($w));
+  }
+  if ($opts{-keep_postponed} and $fsfile) {
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
   } else {
     if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
@@ -559,11 +569,13 @@ sub closeFile {
       undef $fsfile;
     }
   }
-  unless ($no_update) {
+  unless ($opts{-no_update}) {
     updateTitle($win->{framegroup});
     updatePostponed($win->{framegroup});
-    get_nodes_win($win);
-    redraw_win($win);
+    foreach my $w (@wins) {
+      get_nodes_win($w);
+      redraw_win($w);
+    }
   }
 }
 
@@ -587,13 +599,13 @@ sub userQuery {
 				);
   $d->add('Label', -text => $message,
 	  -wraplength => 300)->pack();
-  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
-			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  $d->bind('<Return>', [sub { my $w=shift; my $f=$w->focusCurrent;
+			     $f->Invoke if ($f and $f->isa('Tk::Button')) }] );
   if (exists($opts->{-buttons}) and 
       grep { $_ eq 'Cancel' } @{$opts->{-buttons}}) {
-    $d->bind('<Escape>', sub { my $w=shift;
+    $d->bind('<Escape>', [sub { my $w=shift;
 			       $w->{selected_button}= "Cancel";
-			     } );
+			     }] );
   }
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   return $d->Show;
@@ -790,7 +802,7 @@ sub newFileFromCurrent {
 			     1,
 			     'FSBackend');
   $cur=undef;
-  closeFile($win,1,$keep);
+  closeFile($win,-no_update => 1,-keep_postponed => $keep);
 #  $new->new_tree(0);
   $win->{FSFile}=$new;
   push @openfiles, $win->{FSFile};
@@ -824,7 +836,7 @@ sub reloadFile {
     };
     $nodeidx--;
     askSaveFile($win);
-    closeFile($win);
+    closeFile($win,-all_windows => 1);
     openFile($win->{framegroup},"$f##$no.$nodeidx",
 	     -noredraw => 1, -nohook=>1);
     if ($win->{FSFile}) {
@@ -846,9 +858,9 @@ sub openFile {
       $goto=$1;
     print "Goto suffix is $goto\n" if $tredDebug;
   }
+  $opts{-keep} ||= $grp->{keepfiles};
   unless ($opts{-keep} or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f) {
-    $opts{-keep} = askSaveFile($win,1);
-    $opts{-keep} ||= $grp->{keepfiles};
+    $opts{-keep} = askSaveFile($win,1) if (fsfileDisplayingWindows($grp,$win->{FSFile})<2);
   }
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
@@ -876,7 +888,7 @@ sub openFile {
       }
     }
   }
-  closeFile($win,1,$opts{-keep});
+  closeFile($win,-no_update =>1 , -keep_postponed => $opts{-keep});
 
   print STDERR "TrEd::Convert::inputenc $TrEd::Convert::inputenc\n";
   $win->{FSFile}= FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
@@ -884,7 +896,7 @@ sub openFile {
 
   unless ($grp->{noOpenFileError} or $win->{FSFile}->lastTreeNo>=0) {
     errorMessage($win,"$f: empty or corrupt file!");
-    closeFile($win,1);
+    closeFile($win,-no_update => 1);
   }
 
   $win->{treeNo}=0;
@@ -1060,8 +1072,6 @@ sub set_value_line {
   my $vl=$grp->{valueLine};
   $vl->configure(qw(-state normal));
   $vl->delete('0.0','end');
-#  print STDERR "VL: $TrEd::Config::valueLineReverseLines\n";
-#  print STDERR "VL2: $valueLineReverseLines\n";
   if ($valueLineWrap eq 'word' and
       $valueLineReverseLines) {
     $vl->configure(qw(-wrap none));
@@ -1069,11 +1079,12 @@ sub set_value_line {
     $v=reverseWrapLines($grp->{valueLine},$vLineFont,$v,
 			$grp->{valueLine}->width()-15);
   }
+  my @oldtags=grep {/^FSNode/} $vl->tagNames();
+  if (@oldtags) {
+    $vl->tagDelete(@oldtags);
+  }
   if (ref($v)) {
-    foreach (@$v) {
-      $vl->insert('end', $_->[0],$_->[1]);
-      $vl->insert('end', ' ','space') unless $_->[0] eq "\n";
-    }
+    $vl->Subwidget('scrolled')->insert('end', map { ($_->[0], $_->[1], $_->[0] ne "\n" ? (' ','space') : ()) } @$v);
   } else {
     $vl->Subwidget('scrolled')->insert('0.0',$v);
   }
@@ -1091,6 +1102,7 @@ sub update_value_line {
   } else {
     $grp->{vLineNumLabel}->configure(-text => "-/-");
   }
+  $grp->{vLineNumLabel}->update();
   return set_value_line($grp,get_value_line($win,$win->{FSFile},
 					    $win->{treeNo},1,1));
 }
@@ -1187,7 +1199,8 @@ sub selectFilelist {
 #  if (defined($file)) {
 #    openFile($grp,$file);
 #  } else {
-#    closeFile($grp->{focusedWindow},0,askSaveFile($grp->{focusedWindow},1));  #emtpy filelist
+#    closeFile($grp->{focusedWindow},-keep_postponed => askSaveFile($grp->{focusedWindow},
+#              -all_windows => 1));  #emtpy filelist
 #  }
 }
 
@@ -1274,8 +1287,8 @@ sub createFilelistBrowseEntry {
 		    -bitmap=> 'question',
 		    -title=> 'Create/Rename?',
 		    -buttons=> ['Create', 'Rename', 'Cancel']);
-	   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
-				      $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+	   $d->bind('<Return>', [sub { my $w=shift; my $f=$w->focusCurrent;
+				      $f->Invoke if ($f and $f->isa('Tk::Button')) }] );
 	   my $answer=$d->Show();
 	   if ($answer eq 'Create') {
 	     push @filelists, Filelist->new($text);
@@ -2366,7 +2379,7 @@ sub About {
     messageBox(-icon=> 'info',
 			  -type=> 'ok',
 			  -message=>
-			  "TrEd $ver\n\n$fileinfo$contextinfo$colinf$message\n$about\n\nLast update: $lastupdate",
+			  "TrEd $ver\nTk $Tk::VERSION\n\n$fileinfo$contextinfo$colinf$message\n$about\n\nLast update: $lastupdate",
 			  -title=> 'About');
 }
 
@@ -2452,7 +2465,7 @@ sub splitWindow {
   my $canvas=$twin->canvas();
   $canvas->configure(@normal_win_opts);
   $grp->{focusedWindow}->split_frame($canvas,$dir);
-  foreach (qw(FSFile treeNo currentNode currentFileNo)) {
+  foreach (qw(FSFile treeNo currentNode currentFileNo macroContext)) {
     $twin->{$_}=$grp->{focusedWindow}->{$_};
   }
   get_nodes_win($twin);
@@ -2465,7 +2478,7 @@ sub removeWindow {
   my $win=$grp->{focusedWindow};
   if (@{$grp->{treeWindows}}>1) {
     @{$grp->{treeWindows}}=grep {$_ ne $win} @{$grp->{treeWindows}};
-    closeFile($win,1,1);
+    closeFile($win,-no_update => 1, -keep_postponed => 1);
     my $brother=$win->canvas_destroy();
     delete $grp->{focusedWindow};
     focusCanvas($brother,$grp);
@@ -2514,9 +2527,9 @@ sub createCanvasBindings {
 		'<Any-Enter>'
 		=> [sub{
 		      my ($c,$grp)=@_;
-		      my ($t)=$c->find('withtag','current');
 		      my $win=findCanvasWindow($grp,$c);
 		      my $tv=$win->{treeView};
+		      my ($t)=$tv->find_item('withtag','current');
 		      my $node=$tv->get_obj_pinfo($t);
 		      $tv->store_node_pinfo($node,"SaveColor",
 					    $c->itemcget($t,'-fill'));
@@ -2527,9 +2540,9 @@ sub createCanvasBindings {
 		'<Any-Leave>'
 		=> [sub{
 		      my ($c,$grp)=@_;
-		      my ($t)=$c->find('withtag','current');
 		      my $win=findCanvasWindow($grp,$c);
 		      my $tv=$win->{treeView};
+		      my ($t)=$tv->find_item('withtag','current');
 		      my $node=$tv->get_obj_pinfo($t);
 		      $c->itemconfigure('current',
 					-fill=>
@@ -2614,7 +2627,7 @@ sub startMain {
 		    doEvalHook($grp->{focusedWindow},"exit_hook");
 		    # run user's exit_hook
 		    askSaveFiles($grp);
-		    closeFile($grp->{focusedWindow});
+		    closeFile($grp->{focusedWindow}, -all_windows => 1);
 		    $grp->{top}->destroy;
 		    $grp->{top}=undef;
 		  },\%group]);
@@ -2662,6 +2675,16 @@ sub startMain {
 							       undef,
 							       $grp->{currentFilelist}->list_ref->[$grp->{focusedWindow}->{currentFileNo}]);
 					    askSaveFile($grp->{focusedWindow});
+					    closeFile($grp->{focusedWindow},-all_windows => 1);
+					  }
+					 , \%group]);
+  $group{FileMenu}->command(-label=> 'Close in Window',
+			    -underline=> 0,
+			    -command=> [ sub {
+					    my ($grp)=@_;
+					    askSaveFile($grp->{focusedWindow})
+					      if (fsfileDisplayingWindows($grp,
+									  $grp->{focusedWindow}->{FSFile})<2);
 					    closeFile($grp->{focusedWindow});
 					  }
 					 , \%group]);
@@ -2883,7 +2906,7 @@ sub startMain {
     }
 
     $group{MacroMenu}=$group{Menubar}->
-      Menubutton(qw/-text Shortcuts -underline 0 -menuitems/=>
+      Menubutton(qw/-text Shortcuts -underline 2 -menuitems/=>
 		 $cM)->pack(qw/-side left/);
   }
 
@@ -2999,35 +3022,33 @@ sub startMain {
 
   print STDERR "Creating buttons.\n" if $tredDebug;
 
-  $normalNextPixmap=$group{top}->Pixmap(-file=>"$libDir/right.xpm");
-  $disabledNextPixmap=$group{top}->Pixmap(-file=>"$libDir/noright.xpm");
-
   $group{nextButton}=
     $group{frame}->Button(-takefocus=>0,
 			  -text=> "Next",
 			  -relief=> $buttonsRelief,
-			  -image=> $disabledNextPixmap,
+			  -image=> $group{top}->Pixmap(-file=>"$libDir/right.xpm"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
-			  [sub { tieNextTree($_[0]) },\%group]);
+			  [sub {
+			     tieNextTree($_[0]);
+			   },\%group]);
   $group{Balloon}->attach($group{nextButton},
-		 -balloonmsg=> "see the next tree");
+			  -balloonmsg=> "see the next tree");
   addBindTags($group{nextButton},'my');
-
-  $normalPrevPixmap=$group{top}->Pixmap(-file=>"$libDir/left.xpm");
-  $disabledPrevPixmap=$group{top}->Pixmap(-file=>"$libDir/noleft.xpm");
 
   $group{prevButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Prev",
 			  -relief=> $buttonsRelief,
-			  -image=> $disabledPrevPixmap,
+			  -image=> $group{top}->Pixmap(-file=>"$libDir/left.xpm"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
-			  [sub { tiePrevTree($_[0]) },\%group]);
+			  [sub {
+			     tiePrevTree($_[0]);
+			   },\%group]);
   $group{Balloon}->attach($group{prevButton},
-		 -balloonmsg=> "see the previous tree");
+			  -balloonmsg=> "see the previous tree");
   addBindTags($group{prevButton},'my');
 
 
@@ -3075,13 +3096,11 @@ sub startMain {
   addBindTags($group{reloadButton},'my');
 
   # Undo button
-  $normalUndoPixmap=$group{top}->Pixmap(-file=>"$libDir/undo.xpm");
-  $disabledUndoPixmap=$group{top}->Pixmap(-file=>"$libDir/noundo.xpm");
 
   $group{undoButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Undo",
 			  -relief=> $buttonsRelief,
-			  -image=> $disabledUndoPixmap,
+			  -image=> $group{top}->Pixmap(-file=>"$libDir/undo.xpm"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub {
@@ -3092,13 +3111,11 @@ sub startMain {
   addBindTags($group{undoButton},'my');
 
   # Redo button
-  $normalRedoPixmap=$group{top}->Pixmap(-file=>"$libDir/redo.xpm");
-  $disabledRedoPixmap=$group{top}->Pixmap(-file=>"$libDir/noredo.xpm");
 
   $group{redoButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Redo",
 			  -relief=> $buttonsRelief,
-			  -image=> $disabledRedoPixmap,
+			  -image=> $group{top}->Pixmap(-file=>"$libDir/redo.xpm"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub {
@@ -3282,7 +3299,7 @@ sub startMain {
 				      [qw/-side left/])->pack(qw/-expand yes -fill both/);
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
-  $group{Menubar}->bind('Menubutton','<Escape>', sub { shift->Leave(); } );
+  $group{Menubar}->bind('Menubutton','<Escape>', [sub { shift->Leave(); }] );
   foreach my $prefix ('Alt','Meta') {
     $group{frame}->
       bind('my',"<$prefix-KeyPress>"=>
@@ -3632,7 +3649,7 @@ sub askSaveFiles {
     if ($win->{FSFile}) {
       focusCanvas($win->canvas(),$win->{framegroup});
       askSaveFile($win);
-      closeFile($win,1);
+      closeFile($win,-no_update => 1,-all_windows => 1);
     }
   }
 
@@ -4299,7 +4316,7 @@ sub customAttrsDialog {
 
   $bf->Button(-text=> "Cut",
 	      -command=>
-	      sub {
+	      [sub {
 		$cl->selectionClear($cl->index('end')-1)
 		  if ($cl->selectionIncludes($cl->index('end')-1));
 		while (defined(($cl->curselection)[0])) {
@@ -4307,23 +4324,23 @@ sub customAttrsDialog {
 		  $e->insert('insert',$cl->get(($cl->curselection)[0]));
 		  $cl->delete(($cl->curselection)[0]);
 		}
-	      }
+	      }]
 	     )->pack(qw/-side top expand yes -padx 3 -pady 3/);
   $bf->Button(-text=> "Delete",
 	      -command=>
-	      sub {
+	      [sub {
 		$cl->selectionClear($cl->index('end')-1)
 		  if ($cl->selectionIncludes($cl->index('end')-1));
 		while (defined(($cl->curselection)[0])) {
 		  $cl->delete(($cl->curselection)[0]);
 		}
-	      }
+	      }]
 	     )->pack(qw/-side top expand yes -padx 3 -pady 3/);
 
 
   $bf->Button(-text=> "Add as hint",
 	      -command=>
-	      sub {
+	      [sub {
 		my $txt=$e->get('0.0','end');
 		chomp $txt;
 		if ($txt ne "") {
@@ -4331,7 +4348,7 @@ sub customAttrsDialog {
 		  $t->insert('insert',$txt);
 		}
 		$e->tagAdd('sel','0.0','end');
-	      }
+	      }]
 	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
 
 
@@ -4353,22 +4370,22 @@ sub customAttrsDialog {
 		  shift->{selected_button}='Cancel';
 		},$d ]);
   $al->bind('<Double-1>'=> 
-	   sub {
+	   [sub {
 	     $e->delete('sel.first','sel.last') 
 	       if ($e->tagNextrange('sel','0.0'));
 	     $e->insert('insert','${'.$al->get('active').'}');
 	     $e->focus();
-	   }
+	   }]
 	  );
   $cl->bind('<Double-1>'=> 
-	   sub {
+	   [sub {
 	     return if ($cl->index('active')== $cl->index('end')-1);
 	     if ($e->tagNextrange('sel','0.0')) {
 	       $e->delete('sel.first','sel.last')
 	     }
 	     $e->insert('insert',$cl->get('active'));
 	     $e->focus();
-	   }
+	   }]
 	  );
   $d->bind('<Return>'=> [sub {1;}]);
 #  $d->resizable(0,0);
@@ -4731,7 +4748,8 @@ sub findPrevTemplated {
 sub editAttrs {
   my ($w,$grp)=@_;
   my $win=findCanvasWindow($grp,$w);
-  my $node=$win->{treeView}->get_obj_pinfo($w->find('withtag','current'));
+  my $tv=$win->{treeView};
+  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
   editAttrsDialog($win,$node);
 }
 
@@ -4742,8 +4760,8 @@ sub editAttr {
   my $attr;
   my $newvalue;
 
-  my ($t)=$w->find('withtag','current');
   my $tv=$win->{treeView};
+  my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
   my $d;
   setCurrent($win,$node);
@@ -4847,25 +4865,6 @@ sub nodeBoxOptions {
   return $win->{treeView}->node_box_options($node,
 					 $win->{FSFile}->FS,
 					 $win->{currentNode},$edge);
-}
-
-sub call_redraw_hook {
-#  my ($grp);
-#  return doEvalHook($win,"redraw_hook");
-}
-
-sub call_draw_node_hook {
-# the problem here and above is that the calls
-# to hooks should pass win reference. But redraw
-# cannot even call hooks, and has no notion about
-# window objects.
-#
-# we have to settle this down yet.
-# the best solution seems to me to change
-# the API of redraw to redraw($win,$valueLine)
-#
-# (still, $valueLine should seems obsolette)
-#
 }
 
 sub redraw_win {
@@ -5128,6 +5127,7 @@ sub centerTo {
 
 sub doEvalHook {
   my ($win,$hook)=(shift,shift);
+
   return unless $hook; # and $win->{currentNode};
   my $bookmark=bookmarkThis($win->{framegroup});  # Save current position (as last action position)
 
@@ -5352,7 +5352,7 @@ sub node_down {
   my $tv=$win->{treeView};
   my $e= $w->XEvent;
   my($x, $y)= ($e->x, $e->y);
-  my $node=$tv->get_obj_pinfo($w->find('withtag','current'));
+  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
 
   setCurrent($win,$node);
   $w->dtag('selected');
@@ -5370,7 +5370,7 @@ sub node_move {
   my $tv=$win->{treeView};
   my $e= $w->XEvent;
   my($x, $y)= ($e->x, $e->y);
-  my $node=$tv->get_obj_pinfo($w->find('withtag','selected'));
+  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','selected'));
 
   my $lcx=$tv->get_gen_pinfo('lastCanvasX');
   my $lcy=$tv->get_gen_pinfo('lastCanvasY');
@@ -5396,14 +5396,14 @@ sub node_move {
 	     $w->coords('selected'));
 #  $w->move('selected',  $cx-$lcx, $cy-$lcy);
   $w->itemconfigure('selected', -fill=> $ncolor, -outline=> $ocolor ) if $scroll;
-  my $nearest=$tv->get_obj_pinfo($w->find('withtag','nearest'));
+  my $nearest=$tv->get_obj_pinfo($tv->find_item('withtag','nearest'));
   if ($nearest) {
     $w->itemconfigure('nearest',nodeOptions($win,$nearest));
     $tv->apply_stored_style_opts("Oval",$nearest);
     $w->dtag('nearest');
   }
 
-  my @dots= $w->find('withtag','point');
+  my @dots= $tv->find_item('withtag','point');
   my $nearestNode=0;
   my $bestDist=10000;
   my $dist;
@@ -5438,11 +5438,11 @@ sub node_release {
   my $parent;
   my $node;
   my $center=0;
-  my ($sel)=$w->find('withtag','selected');
+  my ($sel)=$tv->find_item('withtag','selected');
   $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
 
   if ($node) {
-    my ($p)=$w->find('withtag','nearest');
+    my ($p)=$tv->find_item('withtag','nearest');
     $w->dtag('selected');
     if (defined $p) {
       $parent=$tv->get_obj_pinfo($p);
@@ -5482,11 +5482,11 @@ sub node_release_modif {
   my $parent;
   my $node;
   my $center=0;
-  my ($sel)=$w->find('withtag','selected');
+  my ($sel)=$tv->find_item('withtag','selected');
   $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
 
   if ($node) {
-    my ($p)=$w->find('withtag','nearest');
+    my ($p)=$tv->find_item('withtag','nearest');
     $w->dtag('selected');
     if (defined $p) {
       $parent=$tv->get_obj_pinfo($p);
@@ -5613,27 +5613,9 @@ sub resetUndoStatus {
     $redostatus=0;
   }
   $win->{framegroup}->{undoButton}->
-    configure(
-	      $undostatus ?
-	      (-image => $normalUndoPixmap,
-	       -state => 'normal'
-	      )
-	      :
-	      (-image=> $disabledUndoPixmap,
-	       -state => 'disabled'
-	      )
-	     );
+    configure(-state => ($undostatus ? 'normal' : 'disabled'));
   $win->{framegroup}->{redoButton}->
-    configure(
-	      $redostatus ?
-	      (-image => $normalRedoPixmap,
-	       -state => 'normal'
-	      )
-	      :
-	      (-image=> $disabledRedoPixmap,
-	       -state => 'disabled'
-	      )
-	     );
+    configure(-state => ($redostatus ? 'normal' : 'disabled'));
 }
 
 sub resetTreePosStatus {
@@ -5644,25 +5626,7 @@ sub resetTreePosStatus {
   $prevstatus=ref($fsfile) && $fsfile->lastTreeNo>=0 && $win->{treeNo}>0;
   $nextstatus=ref($fsfile) && $fsfile->lastTreeNo>$win->{treeNo};
   $win->{framegroup}->{nextButton}->
-    configure(
-	      $nextstatus ?
-	      (-image => $normalNextPixmap,
-	       -state => 'normal'
-	      )
-	      :
-	      (-image=> $disabledNextPixmap,
-	       -state => 'disabled'
-	      )
-	     );
+    configure(-state => ($nextstatus ? 'normal' : 'disabled'));
   $win->{framegroup}->{prevButton}->
-    configure(
-	      $prevstatus ?
-	      (-image => $normalPrevPixmap,
-	       -state => 'normal'
-	      )
-	      :
-	      (-image=> $disabledPrevPixmap,
-	       -state => 'disabled'
-	      )
-	     );
+    configure(-state => ($prevstatus ? 'normal' : 'disabled'));
 }
