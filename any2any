@@ -100,13 +100,6 @@ unless (  $backend = $bkmap{$format} ) {
 
 foreach $f (@files) {
   $fileno++;
-  print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
-  $fs = FSFile->newFSFile($f,$inputenc,@backends);
-  if ($fs->lastTreeNo<0) {
-    print STDERR "$f: empty or corrupt file!\n";
-    next;
-  }
-  $fs->changeBackend($backend);
 
   my $out=$f;
 
@@ -124,6 +117,15 @@ foreach $f (@files) {
     print STDERR $@ if $@;
     $out=$_;
   }
+
+  print STDERR "$f\t->\t$out\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
+  $fs = FSFile->newFSFile($f,$inputenc,@backends);
+  if ($fs->lastTreeNo<0) {
+    print STDERR "$f: empty or corrupt file!\n";
+    next;
+  }
+  $fs->changeBackend($backend);
+
   if ($f eq $out) {
     unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
     rename $f, "$f~" || die "Cannot create backup file named $f~ for $f\n";
