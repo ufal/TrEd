@@ -4,7 +4,6 @@ use Fslib;
 use strict;
 use XML::LibXML;
 use XML::LibXML::Common qw(:encoding);
-use Text::Iconv;
 use vars qw(@agformat @agpatterns $aghint $encoding);
 
 $encoding='windows-1256';
