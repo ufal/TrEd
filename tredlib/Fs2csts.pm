@@ -64,7 +64,6 @@ sub make_gap {
   if ($gap ne "") {
     $gap.="\n";
   }
-  print $gap;
   return $gap;
 }
 
