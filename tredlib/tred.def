@@ -1,6 +1,7 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-24 12:33:40 pajas>
+## $Id$
+
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -69,7 +70,7 @@ node in TrEd.
 
 =item $libDir
 
-This variable contains path to TrEd's library directory.
+This variable contains a path to TrEd library directory.
 
 =item $grp
 
