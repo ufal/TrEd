@@ -58,7 +58,14 @@ if (exists $ENV{TREDHOME}) {
   $libDir="$rb/../lib/tredlib";
 } elsif (-d "$rb/../lib/tred") {
   $libDir="$rb/../lib/tred";
+} elsif (-d "$rb/../tredlib") {
+  $libDir="$rb/../tredlib";
+} elsif (-d "$rb/../../lib/tredlib") {
+  $libDir="$rb/../../lib/tredlib";
+} elsif (-d "$rb/../../lib/tred") {
+  $libDir="$rb/../../lib/tred";
 }
+
 print STDERR "Trying $libDir\n" if ($libDir and !$opt_q);
 unshift @INC,"$libDir";
 
