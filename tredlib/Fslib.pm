@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-03 11:45:37 paja>
+# Time-stamp: <2002-04-05 11:06:48 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -725,7 +725,7 @@ FSNode - Simple OO interface to tree structures of Fslib.pm
 =item new
 
 Create a new FSNode object. FSNode is basicly a hash reference, which
-means that you may simply acces node's attributes as C<$node->getAttribute(attribute)>
+means that you may simply acces node's attributes as C<$node->{attribute}>
 
 =cut
 
@@ -1615,6 +1615,26 @@ sub new {
   $new->initialize(@_);
   return $new;
 }
+
+=pod
+
+=item create
+
+Same as C<new> but accepts name => value pairs as arguments. The
+following argument names are available:
+
+filename, format, FS, hint, patterns, tail, trees, save_status, backend
+
+See C<initialize> for more detail.
+
+=cut
+
+sub create {
+  my $self = shift;
+  my %args=@_;
+  return $self->new(@args{qw(name format FS hint patterns tail trees save_status backend)});
+}
+
 
 sub DESTROY {
   my $self = shift;
