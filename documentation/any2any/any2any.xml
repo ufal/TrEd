@@ -14,8 +14,9 @@
   <sect1>
     <title>Introduction</title>
     <para><command>any2any</command> is a command-line utility
-    for conversion between different file formats representing a tree
-      structure, including FS (<application>Graph</application>'s and
+    for conversion between different file formats representing
+    dependency tree
+      structures, including FS format (<application>Graph</application>'s and
       <application>TrEd</application>'s native format),
       CSTS (PDT1.0 specific SGML format) and TrTree XML (which is a simple XML
       variant of the general FS format).
