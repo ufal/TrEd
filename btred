@@ -469,11 +469,11 @@ sub startMain {
     # Start btred server
     preloadFiles($grp,\@files);
 
-    my $control="@@@"; # @@@ marks the beginning of control lines
+    my $control='@-NTRED-@-PROTOCOL-@'; # @@@ marks the beginning of control lines
 
     my $key = readline(*STDIN);
 #    close STDIN;
-    if ($key =~ /^$control SESSION-KEY=([0-9A-Z]+)$/) {
+    if ($key =~ /^\Q$control\E SESSION-KEY=([0-9A-Z]+)$/) {
       $key = TrEd::Cipher::hex_to_block($1);
       /(.)/; # clean-up :-)
     } else {
@@ -521,26 +521,26 @@ sub startMain {
       my %request;
       # --- reading request from hub ---
       while (<$hub>) {
-        if (/^$control REQUEST_TYPE=(.*)/) {
+        if (/^\Q$control\E REQUEST_TYPE=(.*)/) {
 	  $request_no++;
 	  _msg("Receiving request $request_no: $1\n");
 	  %request = (); # clear
 	  $request{REQUEST_TYPE}=$1;
 	  $request="";
 	  $signature="";
-	} elsif (/^$control MD5_SIGNATURE (.*)$/) {
+	} elsif (/^\Q$control\E MD5_SIGNATURE (.*)$/) {
 	  $signature = $1;
-        } elsif (/^$control STATE=(.*)/) {
+        } elsif (/^\Q$control\E STATE=(.*)/) {
 	  $state=$1;
 	  $request.=$_;
 	  $request{$state}.="";
 	  if ($state eq 'FSFile' and $request{REQUEST_TYPE} eq 'UPLOAD') {
 	    _set_encoding($hub,undef,"socket to hub");
 	  }
-        } elsif (!/^$control/) {
+        } elsif (!/^\Q$control\E/) {
 	  $request.=$_;
 	  $request{$state}.=$_;
-        } elsif (/$control END_OF_REQUEST/) {
+        } elsif (/\Q$control\E END_OF_REQUEST/) {
           $state='END_OF_REQUEST';
 	  last
         }
