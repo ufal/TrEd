@@ -73,31 +73,17 @@ Tk::CmdLine::SetArguments();
 use Getopt::Std;
 getopts('m:c:l:t:hu');
 
-if ($opt_u) {
+if ($opt_u || $opt_h) {
   print <<EOH;
 Usage:
-  tred [-c config-file] [-m macro-file] [-t context] [-l file-list] files...
+ tred [-c <config-file>] [-m <macro-file>] [-t context] [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
 or
-  tred -u          to show usage
-or
-  tred -h          to show help
+ tred -u|-h    for usage/help
+
 EOH
-  exit;
-}
-
-if ($opt_h) {
+  exit unless $opt_h;
   print <<EOF;
-Usage:
-tred [-c <config-file>] [-m <macro-file>] [-t context] [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
-
-or
-
-tred -u|-h    for usage/help
-
-This is `TrEd' - a simple viewer/editor of tree graphs in FS-format
-used in `GRAPH' - a program developed by M. Kren. TrEd (which stands
-for The TRee EDitor) is written entirely in Perl and it uses PerlTk
-module for GUI.
+This is `TrEd' - an interactive tool for editing tree graphs.
 
 Each filename may be followed by suffices of the following forms:
 
@@ -816,6 +802,7 @@ sub update_value_line {
 
 sub get_nodes_win {
   my ($win)=@_;
+
   if ($win->{FSFile}) {
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
     ($win->{Nodes},$win->{currentNode})= $win->{treeView}->nodes($win->{FSFile},
@@ -1708,7 +1695,6 @@ sub onCurrentChange {
     $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"Oval"),
 			       nodeOptions($win,$n));
     if ($tv->get_node_pinfo($n,"NodeHasBox")) {
-      #and defined($tv->get_node_pinfo($n,"TextBox")));
       $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"TextBox"),
 				 nodeBoxOptions($win,$n,0));
     }
@@ -1719,9 +1705,12 @@ sub onCurrentChange {
     $tv->canvas->coords($tv->get_node_pinfo($n,"Oval"),
 			$tv->node_coords($n,$win->{currentNode}));
   }
-  $tv->apply_stored_style_opts("Oval",$prev);
-  $tv->apply_stored_style_opts("TextBox",$prev);
-  $tv->apply_stored_style_opts("EdgeTextBox",$prev);
+  unless ($prev eq $node) {
+    $tv->apply_stored_style_opts("Oval",$prev);
+    $tv->apply_stored_style_opts("TextBox",$prev);
+    $tv->apply_stored_style_opts("EdgeTextBox",$prev);
+    doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
+  }
 }
 
 sub prepareFont {
@@ -2255,7 +2244,7 @@ sub startMain {
 
 
   $group{ContextsMenu}=$group{Menubar}->
-    Optionmenu(-textvariable=> \$group{selectedContext},
+    Optionmenu(-variable=> \$group{selectedContext},
 	       -command=> [sub { my ($grp,$context) = @_;
 				 switchContext($grp->{focusedWindow}, $context);
 			       },\%group],
@@ -3107,10 +3096,13 @@ sub selectValuesDialog {
 
  $top=$grp->{top};
  $top->Busy(-recurse=> 1);
- my $enabled=($force or doEvalHook($grp->{focusedWindow},'enable_attr_hook',$attr,"ambiguous") ne 'stop');
+ my $enabled=($force or doEvalHook($grp->{focusedWindow},
+				   'enable_attr_hook',
+				   $attr,
+				   "ambiguous") ne 'stop');
 
  my $d=$top->DialogBox(-title=> "$attr: select values", -width=> '8c',
-				-buttons=> $enabled ? ["OK", "Cancel"] : ["Cancel"]);
+		       -buttons=> $enabled ? ["OK", "Cancel"] : ["Cancel"]);
  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars e/,
@@ -4030,11 +4022,26 @@ sub redraw_win {
   my ($win)=@_;
   return if $insideEval;
   saveFileStateUpdate($win);
+  #------------------------------------------------------------
+  #{
+  #use Benchmark;
+  #my $t0= new Benchmark;
+  #for (my $i=0;$i<=50;$i++) {
+  #------------------------------------------------------------
+
   $win->{treeView}->
       redraw($win->{FSFile},
 	     $win->{currentNode},
 	     $win->{Nodes},
 	     $valueLine);	# CHANGE THIS (this is just for printing)
+  #------------------------------------------------------------
+  #}
+  #my $t1= new Benchmark;
+  #my $td= timediff($t1, $t0);
+  #print "redraw: the code took:",timestr($td),"\n";
+  #}
+  #------------------------------------------------------------
+
   return;
 }
 
@@ -4060,7 +4067,6 @@ sub redraw_fsfile_tree {
 sub redraw_all {
   my ($grp)=@_;
   foreach (@{ $grp->{treeWindows} }) {
-    print "REDRAWING $_\n";
     redraw_win($_);
   }
   return;
@@ -4310,28 +4316,34 @@ sub doEvalMacro {
   }
   $insideEval=0;
 
-  get_nodes_fsfile($win->{framegroup},$win->{FSFile});
-
   #------------------------------------------------------------
   #use Benchmark;
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
+  ### ??? 4kb/50 runs memory leaks in redraw (probably in Tk)
   #------------------------------------------------------------
-  print "REDRAW: $TredMacro::Redraw\n";
   if ($TredMacro::Redraw eq 'all') {
     redraw_all($win->{framegroup});
+    get_nodes_all($win->{framegroup});
   } elsif ($TredMacro::Redraw eq 'win') {
+    get_nodes_win($win);
     redraw_win($win);
   } elsif ($TredMacro::Redraw eq 'tree') {
+    get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
   } elsif ($TredMacro::Redraw eq 'tie') {
     if ($win->{framegroup}->{tieWindows}) {
+      get_nodes_all($win->{framegroup});
       redraw_all($win->{framegroup});
     } else {
+      get_nodes_win($win);
       redraw_win($win);
     }
+  } elsif ($TredMacro::Redraw eq 'none') {
+    # do nothing
   } else {
-    redraw_fsfile($win->{framegroup},$win->{FSFile});  # ??? 4kb/50 runs memory leaks???, speed ok
+    get_nodes_fsfile($win->{framegroup},$win->{FSFile});
+    redraw_fsfile($win->{framegroup},$win->{FSFile});  
   }
   #------------------------------------------------------------
   #}
@@ -4385,7 +4397,7 @@ sub evalMacro {
   push @possib,
     ($prefix.$A,
       ($prefix=~/SHIFT/ and exists($pckey_shift_translates{$e->K})) ?
-	$prefix.$pckey_shift_translates{$e->K} : ()),
+	$prefix.uc($pckey_shift_translates{$e->K}) : ()),
 	$prefix.uc($e->K);
 
   $macro=resolveKey($grp,@possib);
@@ -4408,8 +4420,10 @@ sub evalMacro {
 sub tieNextTree {
   my ($grp)=@_;
   if ($grp->{tieWindows}) {
+    print "Shifting to tie next\n";
     foreach (@{$grp->{treeWindows}}) {
       nextTree($_) if ($_->{FSFile});
+      print "$_ has now ", $_->{treeNo},"\n";
     }
   } else {
     nextTree($grp->{focusedWindow}) if ($grp->{focusedWindow}->{FSFile});
