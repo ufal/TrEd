@@ -5281,6 +5281,9 @@ sub startMain {
     focusCanvas($group{treeWindows}->[0]->canvas,\%group);
   }
   $group{top}->repeat(1000,sub {1}); # otherwise SIGINT would wait till next focus
+  $SIG{PIPE}=sub {
+    print STDERR "Caught signal SIGPIPE: $!\n";
+  };
   $SIG{USR1}=sub {
     if ($insideEval) {
       print STDERR "Caught signal USR1: stopping current evaluation.\n";
