@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-28 16:15:30 pajas>";
+$timestamp="Time-stamp: <2001-07-02 10:07:49 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -246,6 +246,7 @@ $on_current_change = \&onCurrentChange;
 #load back-ends
 #require CSTS_SGML_SP_Backend;
 @backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend)));
+$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 require Filelist;
 
@@ -3826,7 +3827,7 @@ sub doEvalHook {
   $this=$grp->{'currentNode'};
   $root=$grp->{'root'};
   $FileNotSaved=$grp->{FSFile}->notSaved;
-  my $result=do_eval_hook($grp,$grp->{macroContext},$hook);
+  my $result=do_eval_hook($grp,$grp->{macroContext},$hook,@_);
 
   print "$@\n" if $@;
   lastActionBookmark($grp,$bookmark) if $FileNotSaved and !$grp->{FSFile}->notSaved;
