@@ -234,7 +234,7 @@ if ($useCzechLocales) {
   use POSIX qw(locale_h);
   setlocale(LC_COLLATE,"cs_CZ");
   setlocale(LC_NUMERIC,"C");
-  setlocale(LANG,"czech");
+  setlocale(LANG,"cs_CZ");
 }
 
 # These are used only in macros and hooks!!!
