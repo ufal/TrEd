@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-28 10:55:53 pajas>";
+$timestamp="Time-stamp: <2001-03-28 16:30:39 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -118,7 +118,7 @@ EOF
 
 # platform specific stuff
 $inputenc="iso-8859-2";
-if ($^O =~ /^MS/) {
+if ($^O eq "MSWin32") {
   $outputenc="windows-1250";
   $Ds="\\"; # how filenames and directories are separated
 } else {
@@ -127,6 +127,18 @@ if ($^O =~ /^MS/) {
 }
 
 use FindBin;
+
+# in Windows, if HOME not defined, use user's AppData folder instaed
+if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
+  require Win32::Registry;
+  my %shf;
+  my $ShellFolders;
+
+  my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
+  $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or die "Cannot read $shfolders $^E\n";
+  $ShellFolders->GetValues(\%shf);
+  $ENV{HOME} = $shf{AppData}[2];
+}
 
 # this variable is used when searching for rc-file (i.e. the inicialisation file)
 my @configFileSearchList=($ENV{HOME}.'/.tredrc',
@@ -168,7 +180,7 @@ if (defined $opt_c) {
 @filelists=();
 @openfiles=();
 
-readConfig();
+my $configfile=readConfig();
 
 print "Resource file parsed\n";
 
@@ -256,6 +268,13 @@ if ($useCzechLocales) {
 
 $fsF=undef;
 
+sub bookmarkFilelist {
+  foreach (@filelists) {
+    return $_ if ref and $_->name eq 'Bookmarks';
+  }
+  return undef;
+}
+
 {
   my $default = new Filelist('Default');
   my @files;
@@ -274,6 +293,10 @@ $fsF=undef;
 
   $default->add(0,@files);
   addNewFilelist(undef,$default);
+  unless (bookmarkFilelist) {
+    my $bookmarks = new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
+    addNewFilelist(undef,$bookmarks);
+  }
 }
 
 # These are used only in macros and hooks!!!
@@ -411,6 +434,7 @@ sub readConfig {
       "         Using configuration defaults!\n";
   }
   setConfig(\%confs);
+  return $f;
 }
 
 sub applyConfig {
@@ -664,12 +688,12 @@ sub readMacros {
 }
 
 sub gotoFile {
-  my ($grp,$fn)=@_;
+  my ($grp,$fn,$no_recent)=@_;
   return 0 if doEvalHook($grp,"goto_file_hook") eq 'stop';
   return 0 if ($fn >= $grp->{currentFilelist}->file_count or $fn<0);
 #  askSaveFile($grp);
   $grp->{currentFileNo}=$fn;
-  openFile($grp,$grp->{currentFilelist}->file_at($grp->{currentFileNo}));
+  openFile($grp,$grp->{currentFilelist}->file_at($grp->{currentFileNo}),$no_recent);
   if ($grp->{Filelist} and
 	$grp->{filelistCurrentFilelist} eq $grp->{currentFilelist}) {
     my $path=filelistEntryPath($grp->{currentFilelist},$grp->{currentFileNo});
@@ -681,12 +705,12 @@ sub gotoFile {
 }
 
 sub nextFile {
-  my $grp=shift;
-  return gotoFile($grp,$grp->{currentFileNo}+1);
+  my ($grp,$no_recent)=@_;
+  return gotoFile($grp,$grp->{currentFileNo}+1,$no_recent);
 }
 sub prevFile {
-  my $grp=shift;
-  return gotoFile($grp,$grp->{currentFileNo}-1);
+  my ($grp,$no_recent)=@_;
+  return gotoFile($grp,$grp->{currentFileNo}-1,$no_recent);
 }
 
 sub resumeFile {
@@ -754,6 +778,50 @@ sub addToRecent {
   }
 }
 
+sub addBookmark {
+  my ($grp)=@_;
+  my $bl=bookmarkFilelist();
+  return unless ref($bl);
+  if (ref($grp->{FSFile})) {
+    my $f=$grp->{FSFile}->filename()."##".($grp->{treeNo}+1);
+    if ($grp->{currentNode}) {
+      my $root;
+      my $i=0;
+      $root=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+      while ($root and $root ne $grp->{currentNode}) {
+	$i++;
+	$root=$root->following();
+      }
+      $f.=".$i" if ($root);
+    }
+    insertToFilelist($grp,$bl,$bl->count,$f);
+    updateBookmarks($grp);
+  }
+}
+
+sub updateBookmarks {
+  my ($grp)=@_;
+
+  if ($grp->{BookmarksFileMenu}) {
+    print STDERR "Updating bookmark menu\n";
+    my $menu = $grp->{BookmarksFileMenu}->menu;
+    $menu->delete(0,'end');
+    $grp->{BookmarksFileMenu}->command(-label => 'Add to bookmarks',
+				       -command => [ \&addBookmark,$grp ]);
+    $grp->{BookmarksFileMenu}->separator();
+    my $i=0;
+    my $bl=bookmarkFilelist();
+    return unless ref ($bl);
+    foreach (bookmarkFilelist->files()) {
+      print STDERR "$_\n";
+      $grp->{BookmarksFileMenu}->command(-label  => "$i.  ".$_,
+				      -underline => 0,
+				      -command => [ \&openFile,$grp,$_ ]);
+      $i++;
+    }
+  }
+}
+
 sub updatePostponed {
   my ($grp)=@_;
 
@@ -806,8 +874,7 @@ sub updateTitle {
 }
 
 sub openFile {
-  my $grp = shift;
-  my $f = shift;
+  my ($grp,$f,$no_recent) = @_;
   my $goto = undef;
   my $fs;
   my $gz='';
@@ -822,29 +889,30 @@ sub openFile {
 
   # Ask reopen here if file is currently open
 
-  foreach (@openfiles) {
+  if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
+    $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
+      $goto=$1
+  }
+
+  foreach ($grp->{FSFile},@openfiles) {
     if (ref($_) and $_->filename() eq $f) {
       print "Opening postponed file\n";
       resumeFile($grp,$_);
 
       $grp->{currentFileNo} = max(0,$grp->{currentFileNo});
-      insertToFilelist($grp,$grp->{currentFilelist},$grp->{currentFileNo},$f);
+      insertToFilelist($grp,$grp->{currentFilelist},$grp->{currentFileNo},$f.$goto);
       updateTitle($grp);
+      applyFileSuffix($grp,$goto);
       getNodes($grp);
       redraw_tree($grp);
       if ($grp->{currentNode}) {
 	centerToXY($grp,0,0);
       }
       doEvalHook($grp,"file_resumed_hook");
-      addToRecent($grp,$f);
+      addToRecent($grp,$f) unless $no_recent;
       $grp->{'top'}->Unbusy() unless $insideEval;
       return 2;
     }
-  }
-
-  if ($f=~/(##?[0-9A-Z]+)$/) {
-    $f=~s/(##?[0-9A-Z]+)$//;
-      $goto=$1
   }
 
   #########################################
@@ -899,32 +967,50 @@ sub openFile {
 
   $grp->{treeNo}=0;
 
-  # -- smells like PDT-specific code, at least the second case
-  if (defined $goto) {
-    if ($goto=~/^##([0-9]+)$/) {
-      $grp->{treeNo}=min(max(0,$1),$grp->{FSFile}->lastTreeNo);
-    }
-    for (my $i=0;$i<=$grp->{FSFile}->lastTreeNo;$i++) {
-      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq $goto);
-    }
-  }
-  # --
-
   # add file to filelist
   $grp->{currentFileNo} = max(0,$grp->{currentFileNo});
-  insertToFilelist($grp,$grp->{currentFilelist},$grp->{currentFileNo},$f);
+  insertToFilelist($grp,$grp->{currentFilelist},$grp->{currentFileNo},$f.$goto);
   updateTitle($grp);
-  if ($grp->{currentNode}) {
-    centerToXY($grp,0,0);
-  }
+
+  applyFileSuffix($grp,$goto);
   getNodes($grp);
   doEvalHook($grp,"file_opened_hook");
   redraw_tree($grp);
+  if ($grp->{currentNode}) {
+    centerToXY($grp,0,0);
+  }
   $grp->{'top'}->Unbusy() unless $insideEval;
-
 
   addToRecent($grp,$f);
   return 1;
+}
+
+sub applyFileSuffix {
+  my ($grp,$goto) = @_;
+  return unless ref($grp) and defined($goto) and $goto ne "";
+
+  # -- smells like PDT-specific code, at least the second case
+  # but we want it, dont we:)
+
+  if ($goto=~/^##([0-9]+)/) {
+    $grp->{treeNo}=min(max(0,$1-1),$grp->{FSFile}->lastTreeNo);
+  } elsif ($goto=~/^#([0-9]+)/) {
+    for (my $i=0;$i<=$grp->{FSFile}->lastTreeNo;$i++) {
+      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq $1);
+    }
+  }
+  # new: we're the dot in .[0-9]+ (TM)
+  my $root;
+  if ($goto=~/\.([0-9]+)$/) {
+    $root=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+    my $i=$1;
+    while ($root and $i>0) {
+      $i--;
+      $root=$root->following();
+    }
+    $grp->{currentNode}=$root if ($root);
+  }
+  # hey, caller, you should redraw after this!
 }
 
 sub saveFile {
@@ -2405,6 +2491,10 @@ sub startMain {
     ->pack(qw/-side left/);
   updatePostponed(\%group);
 
+  $group{BookmarksFileMenu} = $group{Menubar}->Menubutton(qw/-text Bookmarks -underline 0/)
+    ->pack(qw/-side left/);
+  updateBookmarks(\%group);
+
 
   $group{ContextsMenu}=$group{Menubar}->
     Optionmenu(-textvariable => \$group{macroContext},
@@ -3782,13 +3872,13 @@ sub nextNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
-  my $result=nextFile($grp);
+  my $result=nextFile($grp,1);
   $grp->{treeNo}=-1; # force redraw in gotoTree
   $$tree=0;
   # we especially wait for Escape
   _quick_update($grp);
   while (!$grp->{stopSearch} and $result and !$grp->{currentNode}) {
-    $result=nextFile($grp);
+    $result=nextFile($grp,1);
     # we especially wait for Escape
     _quick_update($grp);
     $grp->{treeNo}=-1; # force redraw in gotoTree
@@ -3848,13 +3938,13 @@ sub prevNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
-  my $result=prevFile($grp);
+  my $result=prevFile($grp,1);
   # we especially wait for Escape
   _quick_update($grp);
   $grp->{treeNo}=-1; # force redraw in gotoTree
   while ($result and !$grp->{stopSearch}
 	 and !$grp->{FSFile} || $grp->{FSFile}->lastTreeNo<0) {
-    $result=prevFile($grp);
+    $result=prevFile($grp,1);
     # we especially wait for Escape
     _quick_update($grp);
     $grp->{treeNo}=-1; # force redraw in gotoTree
