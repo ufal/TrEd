@@ -148,9 +148,9 @@ sub edit_corlemma {
 # remove it otherwise add it.
 sub assign_coref {
   my ($node,$ref,$type)=@_;
-  if ($type !~ /auto/) {
+  if ($type =~ /auto/) {
     # don't assign auto corefs if manual corefs exist
-    return if $node->{coref} ne '';
+    return unless $node->{coref} eq '';
   } elsif ($node->{cortype}=~/auto/) {
     # clear all corefs if assigning manual corefs to auto corefs
     $node->{coref} = '';
