@@ -1666,6 +1666,32 @@ sub GetNodeIndex {
   return $i;
 }
 
+=item LocateNode($node)
+
+Return current filename, index of a tree (starting from 1) in the file
+to which the node belongs (0 if not found) and node's position in the tree
+in the deep-first tee ordering.
+
+=cut
+
+sub LocateNode {
+  my $node = ref($_[0]) ? $_[0] : $this;
+  if ($tree eq $root) {
+    return (FileName(),CurrentTreeNumber()+1,GetNodeIndex($node));
+  } else {
+    my $tree = $node->root;
+    my $i = 1;
+    foreach my $t (GetTrees()) {
+      if ($t == $tree) {
+	return (FileName(),$i,GetNodeIndex($node));
+	return FileName().'@'.$i.'##1.'.GetNodeIndex($node);
+      }
+      $i++;
+    }
+    return (FileName(),0,GetNodeIndex($node));
+  }
+}
+
 =item ThisAddress
 
 Return current node's address string in a form of filename#tree_no.index
@@ -1673,9 +1699,10 @@ Return current node's address string in a form of filename#tree_no.index
 
 =cut
 
+
 sub ThisAddress {
-  my $node = ref($_[0]) ? $_[0] : $this;
-  return FileName().'##'.(CurrentTreeNumber()+1).'.'.GetNodeIndex($node);
+  my ($f,$i,$n)=&LocateNode;
+  return $f.'##'.$i.'.'.$n;
 }
 
 =item ThisAddressNTRED
@@ -1688,8 +1715,8 @@ the tree in memory of a remote btred server.
 =cut
 
 sub ThisAddressNTRED {
-  my $node = ref($_[0]) ? $_[0] : $this;
-  return "ntred://".FileName().'@'.(CurrentTreeNumber()+1).'##1.'.GetNodeIndex($node);
+  my ($f,$i,$n)=&LocateNode;
+  return 'ntred://'.$f.'@'.$i.'##1.'.$n;
 }
 
 =item GetFileSaveStatus
@@ -1735,6 +1762,39 @@ sub GetSpecialPattern {
     }
   }
   return $pat;
+}
+
+=item CustomColor(name,new-value?)
+
+Get or set user defined custom color.
+
+=cut
+
+
+sub CustomColor {
+  my ($color,$value)=@_;
+  if (GUI()) {
+    if (defined($value)) {
+      $grp->treeView->get_customColors->{$color}=$value;
+    } else {
+      $grp->treeView->get_customColors->{$color};
+    }
+  }
+}
+
+=item UserConf(name,new-value?)
+
+Get or set value of a user defined configuration option.
+
+=cut
+
+sub UserConf {
+  my ($name,$value)=@_;
+  if (@_>=1) {
+    $TrEd::Config::userConf->{$name}=$value;
+  } else {
+    $TrEd::Config::userConf->{$name};
+  }
 }
 
 =item GUI
