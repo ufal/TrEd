@@ -467,7 +467,7 @@ sub startMain {
 	}
 	$hub->print("$control SERVER_RESPONSE_STDERR\n");
 	$hub->print("$@\n") if $@;
-	msg($@) if $@;
+	_msg($@) if $@;
 	$hub->print("Total Time: ",timestr($time),"\n");
 	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
