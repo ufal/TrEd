@@ -3158,7 +3158,7 @@ sub printDialog {
 			      -font => ref($font) ? $font->Clone(-size => 8) :
 			      $d->Font(-family => 'sans', -size => 8),
 			      -textvariable => \$s{psMedia}, # global variable in TrEd::Config
-			      -command => [\&updatePrintDialogState,$grp,\%w,\%s]
+			      -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef]
 			)->pack(-side=> 'left');
   $w{prtFmtHeight}->raise($w{psMedia});
   $w{prtFmtWidth}->raise($w{psMedia});
