@@ -62,7 +62,6 @@ EOF
     sub decode {
       my ($self,$string)=@_;
       my $res= $self->[0]->convert($string);
-      Dump $res;
       return $res;
     }
 EOF
