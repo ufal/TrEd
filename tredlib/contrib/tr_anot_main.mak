@@ -1,11 +1,15 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-01 13:29:48 pajas>
+## Time-stamp: <2001-08-13 10:18:36 pajas>
 
 #
 # This file defines default macros for TR annotators.
 # Only TredMacro context is present here.
 #
+package Tectogrammatic;
+
+use base qw(TredMacro);
+import TredMacro;
 
 
 sub file_opened_hook {
@@ -20,8 +24,10 @@ sub file_opened_hook {
   foreach ("New Node","Remove Active Node","Insert New Tree",
 	   "Insert New Tree After", "Remove Whole Current Tree") {
     $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'disabled');
-    $grp->{framegroup}->{ContextsMenu}->configure(-state=>'disabled');
   }
+  my $o=$grp->{framegroup}->{ContextsMenu};
+#  $o->configure(-state=>'disabled');
+  $o->options(['Tectogrammatic','TR_Diff']);
   $FileNotSaved=0;
 }
 
@@ -82,3 +88,6 @@ sub FirstTree {
 }
 
 #include tr_common.mak
+
+# binding-context TR_Diff
+#include contrib/trdiff.mak
