@@ -4,6 +4,7 @@ $FrameData=undef;
 $ChooserHideObsolete=1;
 $frameid_attr="frameid";
 $framere_attr="framere";
+$vallexEditor=undef;
 
 eval { require XML::JHXML; };
 if ($@) {
@@ -100,7 +101,7 @@ sub InitFrameData {
     if ($err or !$FrameData->doc()) {
       print STDERR "$err\n";
       $top->Unbusy(-recurse=>1);
-      $FileNotSaved=0;
+      ChangingFile(0);
       ErrorMessage("Valency lexicon not found or corrupted.\nPlease install!\n\n$err\n");
       return 0;
     } else {
@@ -112,15 +113,21 @@ sub InitFrameData {
 
 
 sub OpenEditor {
+  if ($vallexEditor) {
+    return unless ref($vallexEditor);
+    $vallexEditor->toplevel->deiconify;
+    $vallexEditor->toplevel->focus;
+    $vallexEditor->toplevel->raise;
+  }
+  $vallexEditor=1;
   my $top=ToplevelFrame();
-  $top->Busy(-recurse=>1);
-
+#  $top->Busy(-recurse=>1);
   require ValLex::Data;
   init_XMLDataClass();
   require ValLex::Widgets;
   require ValLex::Editor;
   require TrEd::CPConvert;
-  InitFrameData() || return;
+  InitFrameData() || return; #do { $top->Unbusy(-recurse=>1); return };
 
   my $pos='V';
   $pos=$1 if $this->{tag}=~/^(.)/;
@@ -146,20 +153,135 @@ sub OpenEditor {
 
   print STDERR "EDITOR start at: $lemma,$pos,",$this->{$frameid_attr},"\n";
 
-  TrEd::ValLex::Editor::show_dialog($top,
-                                    $FrameData,
-				    [$lemma,$pos],    # select field
-				    1,                # autosave
-				    $vallex_conf,
-				    $fc,
-				    $fc,
-				    $fe_conf,
-				    $this->{$frameid_attr},    # select frame
-				    0);               # start frame editor
+  ($vallexEditor)=
+    TrEd::ValLex::Editor::new_dialog_window($top,
+					    $FrameData,
+					    [$lemma,$pos],    # select field
+					    1,                # autosave
+					    $vallex_conf,
+					    $fc,
+					    $fc,
+					    $fe_conf,
+					    $this->{$frameid_attr},    # select frame
+					    0,
+					    {
+					     '<F5>' => [\&copy_verb_frame,$grp->{framegroup}],
+					     '<F7>' => [\&create_default_subst_frame,$grp->{framegroup}],
+					     '<F3>' => [\&open_frame_instance_in_tred,$grp->{framegroup}]
+					    }
+					   );               # start frame editor
+  $vallexEditor->bind('<Destroy>',sub { undef $vallexEditor; });
+  $vallexEditor->Popup;
+  ChangingFile(0);
+}
 
+sub copy_verb_frame {
+  my ($w,$group,$editor)=@_;
+  print "copy_verb_frame $editor\n";
+  my $top=$w->toplevel();
+  my $data=$editor->data();
+
+  my $wl=$editor->subwidget('wordlist')->widget();
+  my $item=$wl->infoAnchor();
+  print "item $item\n";
+  return unless defined($item);
+  my $word=$wl->infoData($item);
+  return unless $word;
+  my $subst_lemma=$data->getLemma($word);
+  print "lemma $subst_lemma\n";
+
+  my $d=$top->Dialog(-title => 'Select source verb',
+		     -buttons => ['OK','Cancel']);
+  my $lexlist = TrEd::ValLex::WordList->new($data, undef, $d,
+					    $editor->subwidget('wordlistitemstyle'),
+					    qw/-height 10 -width 0/);
+  $lexlist->set_pos_filter('V');
+  $lexlist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
+  $lexlist->fetch_data();
+  $lexlist->widget()->focus();
+  for (my $i=length($subst_lemma); $i>0; $i--) {
+    $lexlist->focus_by_text(substr($subst_lemma,0,$i),undef,1) && last;
+  }
+  $d->bind($d,'<Escape>', [sub { shift; $_[0]->{selected_button}= "Cancel"; },$d] );
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+  my $answer=$d->Show();
+  if ($answer eq 'OK') {
+    my $focused=$lexlist->focused_word();
+    if (ref($focused)) {
+      my ($lemma,$pos)= @$focused;
+      print "lemma: $lemma, POS: $pos\n";
+    }
+  }
+  $d->destroy();
+}
+
+sub create_default_subst_frame {
+  my ($d,$group,$editor)=@_;
+  print "create_default_subst_frame $editor\n";
+  my $data=$editor->data();
+  my $wl=$editor->subwidget('wordlist')->widget();
+  my $item=$wl->infoAnchor();
+  print "item $item\n";
+  return unless defined($item);
+  my $word=$wl->infoData($item);
+  print "word $word\n";
+  return unless $word;
+
+  my $new=$data->addFrame(undef,$word,"ACT(p,2,7) PAT(2)","","","",$data->user());
+  print "new $new\n";
+  $editor->subwidget('framelist')->fetch_data($word);
+  $editor->wordlist_item_changed($editor->subwidget('wordlist')->focus($word));
+  $editor->framelist_item_changed($editor->subwidget('framelist')->focus($new));
+}
+
+sub open_frame_instance_in_tred {
+  my ($w,$group,$editor)=@_;
+  my $top=$w->toplevel();
+  print "open_frame_instance_in_tred $editor\n";
+  my $data=$editor->data();
+  my $fl=$editor->subwidget('framelist')->widget();
+  my $item=$fl->infoAnchor();
+  return unless defined($item);
+  my $frame=$fl->infoData($item);
+  return unless ref($frame);
+  my $example=$data->getFrameExample($frame);
+  if ($example =~ /\{([^#}]*)(##?[0-9A-Z]+(?:\.[0-9]+)?)?\}/) {
+    my $f=$1;
+    my $suffix=$2;
+    print "file: $f\n";
+    my $fl=$group->{currentFilelist};
+    return unless ref($fl);
+    my $files=$fl->files_ref;
+    my $i;
+    for ($i=0; $i<=$#$files; $i++) {
+      last if ($fl->file_at($i)=~/(?:^|\\|\/)([^\\\/]*)$/ and $1 eq $f);
+    }
+    if ($i<=$#$files) {
+      my $win=$group->{focusedWindow};
+      print "index: $i\n";
+      print "file: $files->[$i]\n";
+      print "suffix: $suffix\n";
+      print "win $win\n";
+      $top->Busy(-recurse=>1);
+      &main::gotoFile($group,$i,1,1);
+      &main::applyFileSuffix($win,$suffix);
+      &main::get_nodes_win($win);
+      &main::redraw_win($win);
+      &main::centerTo($win,$win->{currentNode});
+      $top->Unbusy(-recurse=>1);
+    }
+  } else {
+    print "no pointer in $example\n";
+  }
 }
 
 sub ChooseFrame {
+  if ($vallexEditor) {
+    questionQuery("Sorry!","Valency editor already running.\n".
+		  "To assign frames, you have to close it first.",
+		  "Ok");
+    return;
+  }
   my $top=ToplevelFrame();
   $top->Busy(-recurse=>1);
 
@@ -179,7 +301,7 @@ sub ChooseFrame {
     questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
 		  "according to morphological tag.",
 		  "Ok");
-    $FileNotSaved=0;
+    ChangingFile(0);
     return;
   }
   my $pos=$1;
@@ -187,7 +309,7 @@ sub ChooseFrame {
   my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
   my $field;
   my $title;
-  InitFrameData() || do { $FileNotSaved=0; return; };
+  InitFrameData() || do { ChangingFile(0); return; };
   my $new_word=0;
   {
     my $word=$FrameData->findWordAndPOS($lemma,$pos);
@@ -217,7 +339,7 @@ sub ChooseFrame {
 	$base_word=$FrameData->addWord($base,"V");
 	$new_word=[$lemma,$pos];
       } elsif ($answer eq "Cancel") {
-	$FileNotSaved=0;
+	ChangingFile(0);
 	return;
       }
     }
@@ -280,7 +402,7 @@ sub ChooseFrame {
     $this->{$frameid_attr}=$frame;
     $this->{$framere_attr}=TrEd::Convert::decode($real);
   } else {
-    $FileNotSaved=0;
+    ChangingFile(0);
   }
   if (ref($bfont)) {
     $top->fontDelete($bfont);
