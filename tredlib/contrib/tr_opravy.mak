@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-23 12:24:54 pajas>
+## Time-stamp: <2005-02-27 15:26:30 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -619,12 +619,20 @@ sub edit_lemma_tag {
 #bind analytical_tree to Ctrl+A menu Display analytical tree
 sub analytical_tree {
   PDT::ARstruct() if (which_struct() eq 'TR');
+  $contextBeforeSwitch = CurrentContext();
+  unless ($contextBeforeSwitch =~ /Analytic/) {
+    SwitchContext('Analytic_Correction');
+  }
   ChangingFile(0);
 }
 
 #bind tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree
 sub tectogrammatical_tree {
   PDT::TRstruct() if (which_struct() eq 'AR');
+  unless (CurrentContext() =~ /^TR/) {
+    SwitchContext($contextBeforeSwitch);
+  }
+  undef $contextBeforeSwitch;
   ChangingFile(0);
 }
 
@@ -639,6 +647,10 @@ sub tectogrammatical_tree_store_AR {
   }
   PDT::TRstruct();
   PDT::ClearARstruct();
+  if (CurrentContext() =~ /^TR/) {
+    SwitchContext($contextBeforeSwitch);
+  }
+  undef $contextBeforeSwitch;
   ChangingFile(0);
 }
 
