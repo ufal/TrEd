@@ -416,6 +416,7 @@ sub create_widget {
 sub style { $_[0]->[4]; }
 sub max_surrounding { $_[0]->[5] };
 sub pos_filter { ${$_[0]->[6]} };
+sub set_pos_filter { ${$_[0]->[6]}=$_[1] };
 
 sub quick_search {
   my ($self,$value)=@_;
