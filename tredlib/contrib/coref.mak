@@ -385,7 +385,7 @@ sub markPossibleCorefStarts {
     if (
 	# typical trlemmata for coreference start:
 	($node->{trlemma} =~ 
-	 /^(který|jen¾|jak|Cor|\&Cor|\&Cor;|kdy|kam|kde|kdo|co¾|on|ten)$/)
+	 /^(který|jen¾|jak|Cor|\&Cor|\&Cor;|\&Rcp;|kdy|kam|kde|kdo|co¾|on|ten)$/)
 	||
 	# se that is not DPHR or ETHD:
 	($node->{trlemma} =~ /^se$/ &&
