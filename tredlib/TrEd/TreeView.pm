@@ -855,7 +855,7 @@ sub redraw {
 	    $self->get_node_pinfo($parent,(($x and ($1 ne 'y')) or $1 eq 'x') ?
 				  "XPOS" : "YPOS")
 	  } else {
-	    "ERR"
+	    "NE"
 	  }
 	}ge;
 	s{([xy]?)n}{
@@ -867,8 +867,10 @@ sub redraw {
 	  $_=eval $_;
 	  print STDERR $@ if $@ ne "";
 	} else { # catches ERR too
-	  print STDERR "COORD: $coords\n";
-	  print STDERR "BAD: $_\n";
+	  if (/ERR/ or !/NE/) {
+	    print STDERR "COORD: $coords\n";
+	    print STDERR "BAD: $_\n";
+	  }
 	  next COORD;
 	}
 	$x=!$x;
