@@ -82,9 +82,12 @@ a je potreba ho nejak doresit-->
 <!ELEMENT element (form*)>  
 <!-- pokud neni vevnitr zadna forma, povazuje se realizace za arbitrary -->  
 
-
+<!-- functor: "three dashes" means form specification for the governing word 
+     it is a dirty hack, but all possibly clean solutions would probably break
+     most of the current code
+-->
 <!ATTLIST element 
-       functor  (ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|AUTH|
+       functor  (---|ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|AUTH|
                  ATT|BEN|CAUS|CNCS|COMPL|COND|CONJ|CONFR|CONTRA|CONTRD|CPR|CRIT|
                  CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|CPHR|DPHR|
                  ETHD|EXT|FPHR|GRAD|HER|ID|INTF|INTT|
@@ -96,7 +99,7 @@ a je potreba ho nejak doresit-->
        orig_type CDATA #IMPLIED
      > 
 
-<!ELEMENT form (typical | elided | recip | state | (parent?, node*))>  
+<!ELEMENT form (typical | elided | recip | state | (parent?, node*, (parentpos, node*)?))>  
 <!ATTLIST form 
        abbrev         CDATA #IMPLIED
 >
@@ -109,17 +112,38 @@ a je potreba ho nejak doresit-->
 <!-- constrainty na rodice slovesa -->
 <!ELEMENT parent (node)>
 
+<!-- element urcuje pozici rodice vuci zavislym uzlum -->
+<!ELEMENT parentpos EMPTY>
+
+
 <!-- pos: f - infinitiv, pos: s - prima rec -->
 <!ELEMENT node (node*)>
 <!ATTLIST node
         lemma         CDATA #IMPLIED
+        neg           (negative|unspecified) "unspecified"
+        form          CDATA #IMPLIED
         pos           (a|d|i|n|j|v|u|f|s|c) #IMPLIED
         gen           (F|M|I|N) #IMPLIED
         num           (S|P) #IMPLIED
         deg           (1|2|3) #IMPLIED
         case          (1|2|3|4|5|6|7) #IMPLIED
-        agreement     (0|1) #IMPLIED
-        inherits      (0|1) #IMPLIED
+        agreement     (0|1) "0"
+        inherits      (0|1) "0"
+        tagpos1       CDATA #IMPLIED
+        tagpos2       CDATA #IMPLIED
+        tagpos3       CDATA #IMPLIED
+        tagpos4       CDATA #IMPLIED
+        tagpos5       CDATA #IMPLIED
+        tagpos6       CDATA #IMPLIED
+        tagpos7       CDATA #IMPLIED
+        tagpos8       CDATA #IMPLIED
+        tagpos9       CDATA #IMPLIED
+        tagpos10      CDATA #IMPLIED
+        tagpos11      CDATA #IMPLIED
+        tagpos12      CDATA #IMPLIED
+        tagpos13      CDATA #IMPLIED
+        tagpos14      CDATA #IMPLIED
+        tagpos15      CDATA #IMPLIED
 >
 
 <!-- v XML datech se sice bude pouzivat cely morfologicky tag, ale na anotatora
