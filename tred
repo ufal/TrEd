@@ -1652,7 +1652,7 @@ sub printThis {
   my $canvas=$grp->{top}->Canvas();
   my @print_opts=printDialog($grp);
   return unless scalar(@print_opts)>2;
-  $print_opts[0]=$grp->{focusedWindow}->{treeNo}
+  $print_opts[0]=$grp->{focusedWindow}->{treeNo}+1
     if (!defined($print_opts[0]) or $print_opts[0] eq "");
   TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
 			   $grp->{top},
@@ -1688,6 +1688,7 @@ sub switchContext {
 
 sub onTreeChange {
   my ($win)=@_;
+  print "redrawing tree\n";
   get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
   if ($win->{currentNode}) {
     centerToXY($win,0,0);
@@ -2088,6 +2089,7 @@ sub startMain {
 							       undef,
 							       undef,
 							       $grp->{currentFilelist}->list_ref->[$grp->{focusedWindow}->{currentFileNo}]);
+					    askSaveFile($grp->{focusedWindow});
 					    closeFile($grp->{focusedWindow});
 					  }
 					 , \%group]);
@@ -3246,8 +3248,8 @@ sub viewSentencesDialog {
     }
     $t->insert('end',
 	       join (" ",
-	       map { encode($_->{$value}) }
-	       sort { $a->{$sentord} <=> $b->{$sentord} } @nodes)."\n");
+	       map { encode($_->getAttribute($value)) }
+	       sort { $a->getAttribute($sentord) <=> $b->getAttribute($sentord) } @nodes)."\n");
   }
   $d->Popup;
 }
@@ -3336,7 +3338,7 @@ sub editAttrsDialog {
 		-anchor=> 'nw')->pack(qw/-side left/);
 
     if  ($win->{FSFile}->FS->isList($_) or
-	 $$node{$_}=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
+	 $node->getAttribute($_)=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
       $r= $eef->Frame();
       $e{$_}= $r->Entry(-relief=> 'sunken', -takefocus=> 1,
 			 -font=> $font)->pack(qw/-expand yes -fill both -side left/);
@@ -3358,7 +3360,7 @@ sub editAttrsDialog {
 	  ->pack(qw/-side right/);
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
-      $e{$_}->insert(0,encode($$node{$_}));
+      $e{$_}->insert(0,encode($node->getAttribute($_)));
       $e{$_}->configure(-state=> 'disabled');
       $r->pack(qw/side right -expand yes -fill both/);
       $height += max($b->reqheight,$e{$_}->reqheight()) if ($i<$rows);
@@ -3366,7 +3368,7 @@ sub editAttrsDialog {
       $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
 			 -font=> $font)->pack(qw/-side right -expand yes -fill both/);
       addBindTags($e{$_},"EditEntry");
-      $e{$_}->insert(0,encode($$node{$_}));
+      $e{$_}->insert(0,encode($node->getAttribute($_)));
       if (doEvalHook($win,'enable_attr_hook',$_,"normal") eq 'stop') {
 	$e{$_}->configure(-state=> 'disabled');
       }
@@ -3389,7 +3391,7 @@ sub editAttrsDialog {
     $win->{FSFile}->notSaved(1);
     lastActionBookmark($win->{framegroup});
     foreach $a (@atord) {
-      $$node{$a}=decode($e{$a}->get);
+      $node->setAttribute($a,decode($e{$a}->get));
     }
     doEvalHook($win,"after_edit_node_hook",$node,1);
     get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
@@ -3821,7 +3823,7 @@ sub findFirstTemplated {
 
   $node=nextNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
   while ($node) {
-    unless (grep (!cmpTemplateField($grp,$node->{$_},$template->{$_}), keys (%$template)))
+    unless (grep (!cmpTemplateField($grp,$node->getAttribute($_),$template->{$_}), keys (%$template)))
       {
 	gotoTree($win,$tree);
 	setCurrent($win, $node);
@@ -3893,7 +3895,7 @@ sub findPrevTemplated {
   $node=prevNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
 
   while ($node) {
-    unless (grep (!cmpTemplateField($grp,$node->{$_},$template->{$_}), keys (%$template)))
+    unless (grep (!cmpTemplateField($grp,$node->getAttribute($_),$template->{$_}), keys (%$template)))
       {
 	gotoTree($grp->{focusedWindow}, $tree);
 	setCurrent($grp->{focusedWindow}, $node);
@@ -3937,12 +3939,12 @@ sub editAttr {
   return 0 if $result eq 'stop';
 
   if ($win->{FSFile}->FS->isList($attr)) {
-    $newvalue= editListAttr($win,$node->{$attr},$attr,$grp->{top});
+    $newvalue= editListAttr($win,$node->getAttribute($attr),$attr,$grp->{top});
     if (defined($newvalue)) {
       $win->toplevel->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
       lastActionBookmark($grp);
-      $$node{$attr}=$newvalue;
+      $node->setAttribute($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -3953,13 +3955,13 @@ sub editAttr {
     return;
   }
 
-  if ($$node{$attr}=~/^(?:[^\|\\]|\\.)*\|/) {
-    $newvalue= editAmbiguousAttr($win,$node->{$attr},$attr);
+  if ($node->getAttribute($attr)=~/^(?:[^\|\\]|\\.)*\|/) {
+    $newvalue= editAmbiguousAttr($win,$node->getAttribute($attr),$attr);
     if (defined $newvalue) {
       $grp->{top}->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
       lastActionBookmark($grp);
-      $$node{$attr}=$newvalue;
+      $node->setAttribute($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -3972,7 +3974,7 @@ sub editAttr {
 
   $grp->{top}->Busy(-recurse=> 1);
 
-  $newvalue=encode($node->{$attr});
+  $newvalue=encode($node->getAttribute($attr));
   $d= $grp->{top}->DialogBox(-title=> "Edit Node Attribute",
 				-buttons=> ["OK", "Cancel"]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
@@ -3994,7 +3996,7 @@ sub editAttr {
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
     lastActionBookmark($grp);
-    $$node{$attr}=decode($newvalue);
+    $node->setAttribute($attr,decode($newvalue));
     doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
     get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
     redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -4205,8 +4207,9 @@ sub currentLeft {
     }
   } else {
     my $n=$win->{currentNode}->lbrother;
-    $n=$n->lbrother while ($n and defined($win->{FSFile}->FS->hide)
-			   and ($n->{$win->{FSFile}->FS->hide} eq 'hide'));
+    my $hide=$win->{FSFile}->FS->hide;
+    $n=$n->lbrother while ($n and defined($hide)
+			   and ($n->getAttribute($hide) eq 'hide'));
     if ($n) {
       setCurrent($win,$n);
       centerTo($win,$win->{currentNode});
@@ -4225,9 +4228,9 @@ sub currentRight {
     }
   } else {
     my $n=$win->{currentNode}->rbrother;
-
-    $n=$n->rbrother while ($n and defined($n->{$win->{FSFile}->FS->hide})
-			   and ($n->{$win->{FSFile}->FS->hide} eq 'hide'));
+    my $hide=$win->{FSFile}->FS->hide;
+    $n=$n->rbrother while ($n and defined($hide)
+			   and ($n->getAttribute($hide) eq 'hide'));
     if ($n) {
       setCurrent($win,$n);
       centerTo($win,$win->{currentNode});
@@ -4246,8 +4249,8 @@ sub currentDown {
     }
   } else {
     my $n=$win->{currentNode}->firstson;
-    $n=$n->rbrother while ($n and defined($n->{$win->{FSFile}->FS->hide})
-			   and $n->{$win->{FSFile}->FS->hide} eq 'hide');
+    my $hide=$win->{FSFile}->FS->hide;
+    $n=$n->rbrother while ($n and $n->getAttribute($hide) eq 'hide');
     if ($n) {
       setCurrent($win,$n);
       centerTo($win,$win->{currentNode});
