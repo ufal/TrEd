@@ -199,6 +199,7 @@ sub getSuperFrameList {
 			) {
       $base.=$self->getOneFrameElementString($element)." ";
     }
+    $base="$frame" if $base eq '';
     if (exists $super{$base}) {
       push @{$super{$base}},$self->getFrame($frame);
     } else {
@@ -399,6 +400,11 @@ sub addWord {
   $self->set_change_status(1);
   print "Added $word\n";
   return $word;
+}
+
+sub getPOS {
+  return unless ref($_[1]);
+  return $_[1]->getAttribute("POS");
 }
 
 sub addFrameLocalHistory {
