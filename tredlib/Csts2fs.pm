@@ -36,6 +36,8 @@ $fs_tail='(2,3)';
 @fs_patterns=('${form}', '${afun}');
 $fs_hint="tag:\t".'${tag}';
 
+$next_sentord=0;
+
 %composed_attrs=();
 
 sub assign_TRt {
@@ -144,9 +146,10 @@ my %start_tag = (
 			   $s->{root}->{afun}="AuxS";
 			   $s->{root}->{ord}=0;
 			   $s->{root}->{sentord}=0;
+			   $s->{root}->{dord}=0;
 			   $s->{root}->{tag}="Z#-------------";
 			   $s->{root}->{lemma}="#";
-			   $s->{root}->{trlemma}="#";
+			   $s->{root}->{trlemma}=$s->{root}->{form};
 			   $s->{root}->{TR}="";
 			   $s->{root}->{ARhide}='';
 			   $s->{root}->{X_hide}='';
@@ -157,18 +160,20 @@ my %start_tag = (
 			      $s->{root}->{form}="#$s->{treeNo}.alt";
 			      $s->{root}->{origf}=$s->{root}->{form};
 			      $s->{root}->{ord}=0;
+			      $s->{root}->{dord}=0;
+			      $s->{root}->{sentord}=0;
 			      $s->{root}->{afun}="AuxS";
 			      $s->{root}->{tag}="Z#-------------";
 			      $s->{root}->{lemma}="#";
-			      $s->{root}->{trlemma}="#";
+			      $s->{root}->{trlemma}=$s->{root}->{form};
 			      $s->{root}->{TR}="";
 			      $s->{root}->{ARhide}='';
 			      $s->{root}->{X_hide}='';
 			      $s->{root}->{func}="SENT";
 			    }],
-		 'f' => [\&make_new_node],
-		 'd' => [\&make_new_node],
-		 'fadd' => [\&make_new_node],
+		 'f' => [\&make_new_node,0],
+		 'd' => [\&make_new_node,0],
+		 'fadd' => [\&make_new_node,1],
 		 'TRl' => [sub {
 			     my ($s)=@_;
 			     # inicialization may be altered to fill
@@ -285,7 +290,7 @@ my %att = (
 	   'fadd id' => [\&to_node_attr,'','TID'],
 	   'fadd del' => [sub {
 			    my ($s,$data)=@_;
-			    &to_node_attr($s,$data,'|','del');
+			    &to_node_attr($s,uc($data),'|','del');
 			    &to_node_attr($s,'hide','','ARhide');
 			  }],
 	   'MTRl quot' => [\&to_composed_node_attr,'_','|','src','quotMTRl'],
@@ -503,7 +508,7 @@ my %pcdata = (
 '@P tfa',
 '@L tfa|---|T|F|C|NA|???',
 '@P func',
-'@L2 func|---|ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|ATT|BEN|CAUS|CNCS|COMPL|CONJ|CONFR|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|DPHR|ETHD|EXT|EV|FPHR|GRAD|HER|ID|INTF|INTT|LOC|MANN|MAT|MEANS|MOD|NA|NORM|OPER|PAR|PARTL|PN|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT|SENT|???',
+'@L2 func|---|ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|ATT|BEN|CAUS|CNCS|COMPL|CONJ|CONFR|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|DPHR|ETHD|EXT|FPHR|GRAD|HER|ID|INTF|INTT|LOC|MANN|MAT|MEANS|MOD|NA|NORM|OPER|PAR|PARTL|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT|SENT|???',
 '@P gram',
 '@L gram|---|0|GNEG|DISTR|APPX|GPART|GMULT|VCT|PNREL|DFR|BEF|AFT|JBEF|INTV|WOUT|AGST|MORE|LESS|MULT|RATIO|NIL|blízko|kolem|mezi.1|mezi.2|mimo|na|nad|naproti|pod|pøed|u|uprostøed|v|vedle|za|pøes|uvnitø|NA|???',
 '@P memberof',
@@ -712,15 +717,20 @@ sub to_composed_node_attr {
 }
 
 sub make_new_node {
-  my ($s)=@_;
+  my ($s,$data,$added)=@_;
   # starting a new node
   push @{$s->{nodes}},$s->{node} if ref($s->{node});
-  my $sentord=ref($s->{node}) ? $s->{node}->{sentord}+1 : 0;
+  #my $sentord=ref($s->{node}) ? $s->{node}->{sentord}+1 : 0;
   $s->{node} = FSNode->new();
   foreach (keys %initial_node_values) {
     $s->{node}->{$_} = $initial_node_values{$_};
   }
-  $s->{node}->{sentord}=$sentord;
+  if ($added) {
+    $s->{node}->{sentord}=999;
+  } else {
+    $s->{node}->{sentord}=$next_sentord;
+    $next_sentord++;
+  }
   foreach (keys %{$s->{following}}) {
     $s->{node}->{$_} = $s->{following}->{$_};
   }
@@ -730,6 +740,7 @@ sub make_new_node {
 sub make_new_tree {
   my ($s)=@_;
   # starting a new tree
+  $next_sentord=0;
   make_new_node(@_);
   push @{$s->{trees}}, build_tree(@{$s->{nodes}}) if (@{$s->{nodes}});
   $s->{root}=$s->{node};
