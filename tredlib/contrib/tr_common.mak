@@ -80,7 +80,7 @@ sub upgrade_file {
 #bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
   return unless $grp->{FSFile};
-  print "Using standard patterns\n";
+  stdout("Using standard patterns\n");
     SetDisplayAttrs('<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
 		    'text:<? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${origf}',
@@ -662,7 +662,7 @@ sub SplitJoinedByAID {
   my $node = ref($_[0]) ? $_[0] : $this;
   ($node->root->{'reserve1'} eq 'TR_TREE') || return;
   unless ($node->{AIDREFS}) {
-    print STDERR "SplitJoinedByAID: nodes with empty AIDREFS can't be split!\n";
+    stderr("SplitJoinedByAID: nodes with empty AIDREFS can't be split!\n");
     return;
   }
 
@@ -824,11 +824,11 @@ sub repair_added_nodes {
       if ($node->{del} =~ /^E/) {
 	if ($node->{ord} !~ /\./) {
 	  my $neword=GetNewOrd($node);
-	  print FileName()."##$treeno.".GetNodeIndex($node)." fixing ord $node->{ord} --> $neword for del $node->{del}\n" if $verbose;
+	  stdout(FileName()."##$treeno.".GetNodeIndex($node)." fixing ord $node->{ord} --> $neword for del $node->{del}\n") if $verbose;
 	  $node->{ord}=$neword;
 	}
 	if ($node->{sentord} != 999) {
-	  print FileName()."##$treeno.".GetNodeIndex($node)." fixing sentord $node->{sentord} for del $node->{del}\n" if $verbose;
+	  stdout(FileName()."##$treeno.".GetNodeIndex($node)." fixing sentord $node->{sentord} for del $node->{del}\n") if $verbose;
 	  $node->{sentord}=999;
 	}
       }
@@ -840,8 +840,8 @@ sub repair_added_nodes {
       if ($node->{ord} =~ /\./) {
 	if (exists($ords{$node->{ord}})) {
 	  my $neword=GetNewOrd($node);
-	  print FileName()."##$treeno.".GetNodeIndex($node).
-	    " fixing duplicated ord $node->{ord} --> $neword\n" if $verbose;
+	  stdout(FileName()."##$treeno.".GetNodeIndex($node).
+	    " fixing duplicated ord $node->{ord} --> $neword\n") if $verbose;
 	  $node->{ord}=$neword;
 	}
 	$ords{$node->{ord}}=1;
@@ -863,52 +863,52 @@ sub rigorously_check_ids {
     my %ords;
     while ($node) {
       if ($node->{ord} < 0) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." negative ord $node->{ord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." negative ord $node->{ord}\n");
       }
       if ($node->{dord} < 0) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." negative dord $node->{dord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." negative dord $node->{dord}\n");
       }
       if ($node->{sentord} < 0) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." negative sentord $node->{sentord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." negative sentord $node->{sentord}\n");
       }
       if ($node->{AID} ne "" and exists($aids{$node->{AID}})) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate AID $node->{AID}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate AID $node->{AID}\n");
       }
       if ($node->{TID} ne "" and exists($tids{$node->{TID}})) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate TID $node->{TID}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate TID $node->{TID}\n");
       }
       if ($node->{ord} ne "" and exists($ords{$node->{ord}})) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate ord $node->{ord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate ord $node->{ord}\n");
       }
       if ($node->{ord} !~ /\./ and $node->{sentord} ne $node->{ord}) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." sentord $node->{sentord} =! ord $node->{ord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." sentord $node->{sentord} =! ord $node->{ord}\n");
       }
       if ($node->{ord} =~ /\./ and $node->{sentord} != 999) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." inconsistent sentord $node->{sentord} for ord $node->{ord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." inconsistent sentord $node->{sentord} for ord $node->{ord}\n");
       }
       if ($node->{ord} =~ /\./ and $node->{TID} eq "") {
-	print FileName()."##$treeno.".GetNodeIndex($node)." missing TID for ord $node->{ord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." missing TID for ord $node->{ord}\n");
       }
       if ($node->{ord} !~ /\./ and $node->{ord} != 0 and $node->{AID} eq "") {
-	print FileName()."##$treeno.".GetNodeIndex($node)." missing AID for ord $node->{ord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." missing AID for ord $node->{ord}\n");
       }
       if ($node->{ord} =~ /\./ and $node->{AID} ne "") {
-	print FileName()."##$treeno.".GetNodeIndex($node)." redundant AID for ord $node->{ord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." redundant AID for ord $node->{ord}\n");
       }
       if ($node->{ord} !~ /\./ and $node->{TID} ne "") {
-	print FileName()."##$treeno.".GetNodeIndex($node)." redundant TID for ord $node->{ord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." redundant TID for ord $node->{ord}\n");
       }
       if ($sentords[$node->{sentord}] == 1) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate sentord $node->{sentord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate sentord $node->{sentord}\n");
       }
       if ($dords[$node->{dord}] == 1) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." duplicate dord $node->{dord}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." duplicate dord $node->{dord}\n");
       }
       if ($node->{AID}=~/\|/) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." forbidden character | in AID $node->{AID}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." forbidden character | in AID $node->{AID}\n");
       }
       if ($node->{AIDREFS} ne "" and $node->{AID} ne "" and index("|$node->{AIDREFS}|","|$node->{AID}|")<0) {
-	print FileName()."##$treeno.".GetNodeIndex($node)." AID $node->{AID} missing in AIDREFS $node->{AIDREFS}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node)." AID $node->{AID} missing in AIDREFS $node->{AIDREFS}\n");
       }
       $sentords[$node->{sentord}]=1 unless ($node->{sentord}<0 or $node->{sentord}>=999);
       $dords[$node->{dord}]=1 unless ($node->{dord}<0);
@@ -919,12 +919,12 @@ sub rigorously_check_ids {
     }
     for (my $i=0; $i<=$#sentords; $i++) {
       unless ($sentords[$i]) {
-	print FileName()."##$treeno missing sentord $i/$#sentords\n";
+	stdout(FileName()."##$treeno missing sentord $i/$#sentords\n");
       }
     }
     for (my $i=0; $i<=$#dords; $i++) {
       unless ($dords[$i]) {
-	print FileName()."##$treeno missing dord $i/$#dords\n";
+	stdout(FileName()."##$treeno missing dord $i/$#dords\n");
       }
     }
   }
@@ -960,12 +960,12 @@ sub move_aid_to_aidrefs {
 	    my $aid_risk=$aid;
 	    $aid_risk=~s/w\d+$/w$node->{ord}/;
 	    if (exists($aids{$aid})) {
-	      print FileName()."##$treeno.".GetNodeIndex($node).
-		" no ID from $node->{AIDREFS} matches w$node->{ord}. Using the first one!\n";
+	      stdout(FileName()."##$treeno.".GetNodeIndex($node).
+		" no ID from $node->{AIDREFS} matches w$node->{ord}. Using the first one!\n");
 	      $node->{AID}=$aid
 	    } else {
-	      print FileName()."##$treeno.".GetNodeIndex($node).
-		" no ID from $node->{AIDREFS} matches w$node->{ord}. Risking free $aid_risk!\n";
+	      stdout(FileName()."##$treeno.".GetNodeIndex($node).
+		" no ID from $node->{AIDREFS} matches w$node->{ord}. Risking free $aid_risk!\n");
 	      $node->{AID}=$aid_risk;
 	      $node->{AIDREFS}=$aid_risk.'|'.$node->{AIDREFS};
 	    }
@@ -974,29 +974,29 @@ sub move_aid_to_aidrefs {
       }
       if ($node->{TID} ne "" or $node->{ord}=~/\./ or $node->{sentord}==999) {
 	if ($node->{AID} ne "") {
-	  print FileName()."##$treeno.".GetNodeIndex($node).
-	    " Removing AID $node->{AID} from $node->{TID} $node->{ord}\n"
+	  stdout(FileName()."##$treeno.".GetNodeIndex($node).
+	    " Removing AID $node->{AID} from $node->{TID} $node->{ord}\n")
 	      if $verbose;
 	  $node->{AID}='';
 	}
 	if ($node->{TID} eq "") {
 	  $node->{TID}=generate_new_tid($tree);
-	  print FileName()."##$treeno.".GetNodeIndex($node).
-	    " node with ord $node->{ord} has no TID yet: assigning $node->{TID}\n";
+	  stdout(FileName()."##$treeno.".GetNodeIndex($node).
+	    " node with ord $node->{ord} has no TID yet: assigning $node->{TID}\n");
 	}
 	if ($node->{sentord}==999 and $node->{ord}!~/\./) {
 	  do {
 	    my $oldord=$node->{ord};
 	    $node->{ord}=GetNewOrd($node);
-	    print FileName()."##$treeno.".GetNodeIndex($node).
-	      " changing ord for node with sentord 999 from $oldord to $node->{ord}";
+	    stdout(FileName()."##$treeno.".GetNodeIndex($node).
+	      " changing ord for node with sentord 999 from $oldord to $node->{ord}");
 	  };
 	}
       }
       if ($node->{AID} ne "" and exists($aids{$node->{AID}})) {
 	$node->{TID}=generate_new_tid($tree);
-	print FileName()."##$treeno.".GetNodeIndex($node).
-	  " replacing duplicate AID $node->{AID} ($node->{ord},$node->{sentord}) with $node->{TID}\n";
+	stdout(FileName()."##$treeno.".GetNodeIndex($node).
+	  " replacing duplicate AID $node->{AID} ($node->{ord},$node->{sentord}) with $node->{TID}\n");
 	$node->{AID}='';
       }
       $aids{$node->{AID}}=1 if $node->{AID} ne "";
@@ -1028,8 +1028,8 @@ sub reorder_dords {
   my $ord=$grp->{FSFile}->FS->order;
   for (my $i=0;$i<=$#$nodesref; $i++) {
     if ($nodesref->[$i]->{$ord}!=$i) {
-      print FileName()."##".(CurrentTreeNumber()+1).".".GetNodeIndex($nodesref->[$i])." ",
-	$nodesref->[$i]->{$ord}," --> $i\n";
+      stdout(FileName()."##".(CurrentTreeNumber()+1).".".GetNodeIndex($nodesref->[$i])." ",
+	$nodesref->[$i]->{$ord}," --> $i\n");
       $nodesref->[$i]->{$ord}=$i;
       $FileChanged=1;
     }
@@ -1050,12 +1050,12 @@ sub tr_diff_all_windows {
 #bind tr_vallex_transform to Alt+F10 menu Create missing nodes (based on ValLex)
 sub tr_vallex_transform {
   unless ($simple_vallex_loaded) {
-    print "Loading simple_vallex $libDir/contrib/ValLex/simple_vallex.txt\n";
+    stderr("Loading simple_vallex $libDir/contrib/ValLex/simple_vallex.txt\n");
     local $vallex;
     do "$libDir/contrib/ValLex/simple_vallex.txt";
     die "$@" if ($@);
     $TRValLexTransform::vallex=$vallex;
-    print "Loaded ",scalar(keys %$vallex)," items\n";
+    stderr("Loaded ",scalar(keys %$vallex)," items\n");
     $simple_vallex_loaded=1;
   }
   TRValLexTransform::DoTransformTree();
