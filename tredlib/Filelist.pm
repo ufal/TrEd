@@ -285,7 +285,7 @@ sub expand {
   }
 
   my %saw;
-  @{ $self->files_ref } = grep( !$saw{$_}++, @{ $self->files_ref } );
+  @{ $self->files_ref } = grep( defined($_) && $_ ne "" && !$saw{$_}++, @{ $self->files_ref } );
 
   return 1;
 }
@@ -369,6 +369,7 @@ sub add {
 
   # never add elements already present here or in files
   # and add each element once only
+  @_=grep {defined($_) and $_ ne ""} @_;
   do {
     my %saw=map { $_ => 1 } @{ $self->list_ref },@{ $self->files_ref };
     @_=grep(!$saw{$_}++,@_);
