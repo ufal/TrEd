@@ -83,16 +83,14 @@ sub PerlSearch {
   my $label= "Any inserted perl code will be evaluated for each node from current ".
   "as long as it ends with zero or undefined value; the first node for which ".
   "the code succeedes (returns defined non-zero value) will be selected.\n\n".
-  "Use \`\$node\' to refer to the current node, \`\$root\' to the root of the tree.\n".
+  "Use \`\$this\' to refer to the current node, \`\$root\' to the root of the tree.\n".
   "If \`\$n\' refers to some node, \`\$n->{attr}\' is its value of the attribute \`attr\'.\n".
-  "The governor of a node \$n is refered to as \`Parent(\$n)\', nearest ".
-  "left brother of \'\$n\' in the tree structure is \'LBrother(\$n)\'".
-  "the right brother of \$n is \`RBrother(\$n)\'. The first son of \'$n\' ".
-  "is referred to as \`FirstSon(\$n)\'. If no such node exists, all these functions ".
+  "The governor of a node \$n is \`\$n->parent\', nearest ".
+  "left brother of \'\$n\' in the tree structure is \'\$n->lbrother\'".
+  "the right brother of \$n is \`\$n->rbrother\'. The first son of \'$n\' ".
+  "is referred to as \`\$->firstson\'. If no such node exists, all these functions ".
   "return zero (\`0\') or possibly \`undef\'.".
-    "Moreover, all the nodes of the tree are elements of the \`\@nodes\' array (list) ".
-  "with the same order as they are displayed from left to right.\n\n".
-  "NOTE: LBrother(\$n) and RBrother(\$n) are not necesserilly displayed on left of \$n\n\n"
+  "NOTE: \$n->lbrother and \$n->rbrother are not necesserilly displayed on left of \$n\n\n"
     ;
 
   my $script = editQuery("Search: insert perl expression:",$macPerlSearchScript,$label);

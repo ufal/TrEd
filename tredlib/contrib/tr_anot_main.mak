@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-04-27 09:02:05 pajas>
+## Time-stamp: <2001-05-03 11:13:23 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -100,7 +100,7 @@ sub QueryTrlemma {
      ['on-ne¾iv.','on','INAN','SG'],
      ['ona','on','FEM','SG'],
      ['ono','on','NEUT','SG'],
-     ['my','já','???','PL'],
+     ['my','my','???','PL'],
      ['vy','ty','???','PL'],
      ['oni-¾iv.','on','ANIM','PL'],
      ['ony-ne¾iv','on','INAN','PL'],
@@ -308,8 +308,12 @@ sub GetNewOrd {
     $base=$1 if $pPar2->{ord}=~/^([0-9]+)/;
   }
 
-  foreach $node (@nodes) {
-    $suff=$1 if ($node->{ord}=~/^$base\.([0-9]+)$/ and $1>$suff);
+  $node=$root;
+  while ($node) {
+    if ($node->{ord}=~/^$base\.([0-9]+)$/ and $1>$suff) {
+      $suff=$1;
+    }
+    $node=$node->following;
   }
 
   $sPar2="$base.".($suff+1);
@@ -465,7 +469,7 @@ sub NewVerb {
   $pNew->{'deontmod'} = '???';
   $pNew->{'sentmod'} = '???';
   $pNew->{'tfa'} = '???';
-  $pNew->{'func'} = 'EV';
+  $pNew->{'func'} = 'PRED';
   $pNew->{'gram'} = '???';
   $pNew->{'reltype'} = '???';
   $pNew->{'memberof'} = '???';

@@ -11,13 +11,6 @@ import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
 import main;
 
-#@EXPORT = qw(new SwitchContext GotoTree NextTree PrevTree GetOrd
-#             PasteNode CutNode NewTree NewTreeAfter Save
-#             SaveAndNextFile SaveAndPrevFile PlainNewSon
-#             PlainDeleteNode PrintToFile ValNo AtrNo Union
-#             Interjection ListSplit ListJoin ListEq ListAssign SubStr
-#             NewRBrother NewSon DeleteThisNode CopyValues PasteValues);
-
 sub import {
   # If specified without parameter, exports everything but
   # names already defined in caller package
@@ -52,12 +45,6 @@ sub import {
     }
   }
 };
-
-sub new {
-  my $type = shift;
-  my $self = [];
-  bless $self, $type;
-}
 
 ###########################################################
 # Default macro definitions to make
@@ -125,12 +112,14 @@ sub NewTree {
   main::newTree($grp);
   $root=$grp->{root};
   $this=$root;
+  return $root;
 }
 
 sub NewTreeAfter {
   main::newTreeAfter($grp);
   $root=$grp->{root};
   $this=$root;
+  return $root;
 }
 
 sub Save {
@@ -206,7 +195,7 @@ sub PrintToFile {
 }
 
 sub ValNo {
-## return n'th of given string (separated by |); 
+## return n'th field of given string (separated by |); 
   my $n=shift;
   my @val=ListSplit(shift);
   return $val[$n];
@@ -359,12 +348,7 @@ sub NewSon {
 sub DeleteThisNode {
 ## Deletes current node and shifts
 ## ords of the other nodes appropriately
-  unless ($this and Parent($this)) {
-    print "This is $this\n";
-    print "Form is $this->{form}\n";
-    print "Parent is :",Parent($this),"\n";
-    return;
-  }
+  return unless ($this and Parent($this));
   my $parent=Parent($this);
   my $ord=$grp->{FSFile}->FS->order;
   my $order=$this->{$ord};
@@ -438,7 +422,7 @@ sub GetNodes {
   my @n;
   while ($node) {
     push @n,$node;
-    $node=Next($node,$top);
+    $node=$node->following($top);
   }
   return @n;
 }
