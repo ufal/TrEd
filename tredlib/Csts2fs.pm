@@ -870,10 +870,10 @@ sub setupPADTAR {
   setupAR();
   $header = \@PADTARheader;
   @fs_patterns=('${form}',
-		'#{custom1}<? join "_", map { "\${$_}" }
-                    grep { $node->{$_}=~/./ && $node->{$_}!~/^no-/ }
-	            qw(afun parallel paren arabfa arabspec arabclause) ?>');
-  $fs_hint="tag:\t\${tag}\nlemma:\t\${lemma}\ngloss:\t\${x_gloss}\ncommentA: \${commentA}";
+		'#{custom1}<? join "_", map { "\${$_}" }'.
+                '   grep { $this->{$_}=~/./ && $this->{$_}!~/^no-/ }'.
+	        '   qw(afun parallel paren arabfa arabspec arabclause) ?>');
+  $fs_hint="tag:\t\${tag}\nlemma:\t\${lemma}\ngloss:\t\${x_gloss}\ncommentA:\t\${commentA}";
 }
 
 
