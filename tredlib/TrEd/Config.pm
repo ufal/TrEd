@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-08-09 15:11:40 pajas>
+# Time-stamp: <2001-08-13 12:23:13 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -64,6 +64,8 @@ BEGIN {
   $geometry
   $maxDisplayedValues
   $maxDisplayedAttributes
+  $highlightWindowColor
+  $highlightWindowWidth
   $lastAction);
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -160,6 +162,9 @@ sub set_config {
   $buttonBorderWidth=val_or_def($confs,"buttonsborder",2);
   $canvasBalloonInitWait=val_or_def($confs,"hintwait",1000);
   $activeTextColor=val_or_def($confs,"activetextcolor",'blue');
+
+  $highlightWindowColor=val_or_def($confs,"highlightwindowcolor",'black');
+  $highlightWindowWidth=val_or_def($confs,"highlightwindowwidth",3);
 
   $treeViewOpts->{baseXPos}	      =	 val_or_def($confs,"basexpos",15);
   $treeViewOpts->{baseYPos}	      =	 val_or_def($confs,"baseypos",15);
