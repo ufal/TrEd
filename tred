@@ -2978,6 +2978,8 @@ sub startMain {
 			  -variable => \$keyboardDebug],
 			 [Checkbutton => 'backend', -underline => 0,
 			  -variable => \$Fslib::Debug],
+			 [Button => 'Reload macros', - underline => 0,
+			  -command => sub { read_macros($macroFile,$libDir) }]
 			]
 	 ]
 	])->pack(qw/-side left/);
