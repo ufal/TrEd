@@ -7,7 +7,7 @@
 if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n";
   print STDERR "WARNING: Your version of perl is older than v5.6.0\n";
-  print STDERR "THINGS MAY NOT WORK AS EXPECTED!\n";
+  print STDERR "THINGS MAY NOT WORK AS EXPECTED OR NOT AT ALL!\n";
   print STDERR '-' x 50,"\n\n";
 }
 
@@ -1182,6 +1182,7 @@ sub applyFileSuffix {
       $win->{currentNode}=$root;
       unless (isShown($win,$root)) {
 	$win->{treeView}->set_showHidden(1);
+	$grp->{focusedWindow} = 1;
 	print STDERR "SHOW HIDDEN\n";
       }
 
@@ -4779,7 +4780,8 @@ sub selectValuesDialog {
  my $result= ShowDialog($d,$l,$lastFocus);
  if ($result=~ /OK/) {
    # Hajic wanted this (I wash my hands):
-   # first we store the values, which were selected originaly and stayed selected
+   # first we store the values, which were selected originaly and
+   # stayed selected
    foreach my $s (@$selected) { 
      push @prevSelectionSet, (grep { $$vals[$_] eq $s } (0 .. $l->size-1));
    }
@@ -4943,7 +4945,14 @@ sub dumpSentView {
   open my $html, ">$file" ||
     errorMessage($grp->{focusedWindow},"Cannot write to \"$file\"!"."\n($!)\n".
 		 "\nSentences could not be saved!");
-  _set_encoding($html,$TrEd::Convert::outputenc,"html-out");
+  $encoding=$TrEd::Convert::outputenc;
+  if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
+    _set_encoding($html,'bytes',"html-out");
+    __debug("HTML encoding $encoding, bytes output");
+  } else {
+    _set_encoding($html,$encoding,"html-out");
+    __debug("HTML encoding $encoding");
+  }
 
   print $html "<html>\n";
   print $html "<head>\n";
@@ -6006,11 +6015,13 @@ sub scrollCanvasToXY {
     if ($tv->get_gen_pinfo("lastX")== $sizeX) {
       $shiftX=0;
     } else {
-      $shiftX/=$sizeX-$tv->get_gen_pinfo("lastX"); # a fraction of our right move in window
+      $shiftX/=$sizeX-$tv->get_gen_pinfo("lastX");
+      # a fraction of our right move in window
     }
     $canvasX=$shiftX*
       ($w->fpixels($tv->{canvasWidth})-
-       $tv->get_gen_pinfo("lastCanvasX")); # this is where we should get on the canvas
+       $tv->get_gen_pinfo("lastCanvasX"));
+    # this is where we should get on the canvas
   } else {
     if ($tv->get_gen_pinfo("lastX")== 0) {
       $shiftX=0;
@@ -6018,7 +6029,8 @@ sub scrollCanvasToXY {
       $shiftX/=$tv->get_gen_pinfo("lastX");
     }
     $canvasX=$shiftX*
-      $tv->get_gen_pinfo("lastCanvasX"); # this is where we should get on the canvas
+      $tv->get_gen_pinfo("lastCanvasX");
+    # this is where we should get on the canvas
   }
   $canvasX+=$tv->get_gen_pinfo("lastCanvasX");
   $w->xview(moveto=>
@@ -6033,11 +6045,13 @@ sub scrollCanvasToXY {
     if ($tv->get_gen_pinfo("lastY")== $sizeY) {
       $shiftY=0;
     } else {
-      $shiftY/=$sizeY-$tv->get_gen_pinfo("lastY"); # a fraction of our right move in window
+      $shiftY/=$sizeY-$tv->get_gen_pinfo("lastY");
+      # a fraction of our right move in window
     }
     $canvasY=$shiftY*
       ($w->fpixels($tv->{canvasHeight})-
-       $tv->get_gen_pinfo("lastCanvasY")); # this is where we should get on the canvas
+       $tv->get_gen_pinfo("lastCanvasY"));
+    # this is where we should get on the canvas
   } else {
     if ($tv->get_gen_pinfo("lastY")==0) {
       $shiftY=0;
@@ -6045,7 +6059,8 @@ sub scrollCanvasToXY {
       $shiftY/=$tv->get_gen_pinfo("lastY");
     }
     $canvasY=$shiftY*
-      $tv->get_gen_pinfo("lastCanvasY"); # this is where we should get on the canvas
+      $tv->get_gen_pinfo("lastCanvasY");
+    # this is where we should get on the canvas
   }
   $canvasY+=$tv->get_gen_pinfo("lastCanvasY");
   $w->yview(moveto=>
@@ -6199,7 +6214,8 @@ sub doEvalHook {
   my ($win,$hook)=(shift,shift);
 
   return unless $hook; # and $win->{currentNode};
-  my $bookmark=bookmarkThis($win->{framegroup});  # Save current position (as last action position)
+  my $bookmark=bookmarkThis($win->{framegroup});
+  # Save current position (as last action position)
 
   local $insideEval=1;
   my $oldgrp=$TredMacro::grp;
