@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-08 19:17:25 pajas>
+## Time-stamp: <2003-07-11 12:46:07 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1736,6 +1736,33 @@ Returns a temporary filename..
 sub tmpFileName {
   require POSIX;
   return POSIX::tmpnam();
+}
+
+=item DumpFS ($treelist, $fsfile, $fh)
+
+Dump given trees from the given FSFile in FS format to the given
+filehandle. If $treelist is undefined, all trees from the FSFile are
+dumped. If $fsfile is undefined, current file is used. If $fh is
+undefined, STDOUT is used.
+
+=cut
+
+sub DumpFS {
+  my ($treelist, $fsfile, $fh)=@_;
+
+  $fsfile ||= $grp->{FSFile};
+  $fh ||= \*STDOUT;
+  $treelist ||= $fsfile->treeList;
+
+  return 0 unless ref($fsfile);
+
+  $fsfile->FS->writeTo($fh);
+  Fslib::PrintFS($fh,undef,
+		 $fsfile->treeList,
+		 $fsfile->FS->list,
+		 $fsfile->FS->defs);
+  $fh->print($fsfile->tail);
+  return 1;
 }
 
 
