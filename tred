@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-19 08:34:50 pajas>";
+$timestamp="Time-stamp: <2001-03-19 11:02:49 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -513,6 +513,7 @@ sub setConfig {
 
   $geometry=(exists $confs->{geometry}) ? $confs->{geometry} : undef;
   $maxDisplayedValues=(exists $confs->{maxdisplayedvalues}) ? $confs->{maxdisplayedvalues} : 30;
+  $maxDisplayedAttributes=(exists $confs->{maxdisplayedattributes}) ? $confs->{maxdisplayedattributes} : 20;
 
   foreach (0..9) {
     @recentFiles[$_]=$confs->{"recentfile$_"};
@@ -3058,7 +3059,7 @@ sub editAttrsDialog {
   my @vals;
   my @r=();
   my @atord = $sortAttrs ? (sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes) : $grp->{FSFile}->FS->attributes;
-  my $rows=min($maxDisplayedValues,$#atord+1);
+  my $rows=min($maxDisplayedAttributes,$#atord+1);
   my ($a,$b,$r);
 
   $grp->{'top'}->Busy(-recurse =>1);
@@ -3330,7 +3331,7 @@ sub findNodeDialog {
 
   my $b;
   my $a;
-  my $rows=min($maxDisplayedValues,$#atord+1);
+  my $rows=min($maxDisplayedAttributes,$#atord+1);
   my @r=();
   my %e=();
   $grp->{'top'}->Busy(-recurse =>1);
