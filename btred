@@ -1,0 +1,400 @@
+#!/usr/bin/perl
+#
+# Usage: 
+# btred [-m macro-file] [-e script] files...
+#
+# This is a "batch mode" version of Tred (Tk Tree editor for FS files).
+# Runs given script or macro on each file.
+# Parameters:
+#
+#  macro-file    - file with macro definitions
+#  script        - any script (may use macros); typically script is just
+#                  name of the macro to be run
+#
+# You may use these variables in your macros and scripts:
+#
+#  @nodes        - ordered array of nodes of current tree 
+#  @trees        - list of roots of all trees
+#  $this         - current node - $root of the first tree at the beginning
+#  $root         - root node of current tree
+#  $currentFile  - current file name
+#  $FileNotSaved - change this to 1 if you need not to save the file at the end
+#  %attribs      - attribute definition hash 
+#  @atord        - (positional) attribute array
+#
+# You may also use all functions defined in default macro file tred.def
+# as well as any function from Fslib (see Fslib documentation).
+
+my @configFileSearchList=($ENV{HOME}.'/.tredrc',
+			  (exists $ENV{TREDHOME}) ? $ENV{TREDHOME}.'/tredrc' : (),
+			  dirname($0).'tredrc',
+			  dirname($0).'../lib/tredlib/tredrc',
+			  '/usr/X11R6/lib/X11/app-defaults');
+my $libDir;
+
+# other configuration should be given in that file
+
+# Default values of $libDir used to search for macro-file (tred.mac)
+# and default-macro file (tred.def) are specified here. They may be
+# overriden by value of LibDir in tred resource file (tredrc or ~/.tredrc - see above).
+
+if (exists $ENV{TREDHOME}) {
+  $libDir=$ENV{TREDHOME};
+} else {
+  print "Trying ".dirname($0).'tredlib',"\n";
+  $libDir=(-d dirname($0).'tredlib') ?
+    dirname($0).'tredlib': dirname($0).'../lib/tredlib';
+}
+
+$macroFile="$libDir/tred.mac";
+
+my $i;
+
+for ($i=0;$i<=$#ARGV;$i++) {
+  if ($ARGV[$i] eq '-m') {
+    $macroFile=$ARGV[$i+1];
+    splice @ARGV,$i--,2;
+  } elsif ($ARGV[$i] eq '-e') {
+    $macroName=$ARGV[$i+1];
+    splice @ARGV,$i--,2;
+  }
+}
+
+print @ARGV,"\n";
+
+readConfig();
+
+
+unless (-d $libDir) {
+  print <<'EOL';
+ Tred couldn't find a tredlib directory. You may need to point
+ to its location by the TREDHOME variable or add a correct LibDir
+ field to your .tredrc.
+
+EOL
+    die "Error: Couldn't find lib-directory.";
+}
+
+use locale;
+use POSIX qw(locale_h);
+use IO::Handle;
+
+push @INC,$libDir;
+require Fslib;
+import Fslib;
+import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
+
+
+my @macros=();
+my $useCzechLocales;
+
+if ($useCzechLocales) {
+  setlocale(LC_COLLATE,"cs_CZ");
+  setlocale(LC_NUMERIC,"us_EN");
+  setlocale(LANG,"czech");
+}
+
+my %attribs = ();
+my @atord = ();
+
+my @files=@ARGV;
+my @trees=();
+
+my $FileNotSaved=0;
+my $fileNo=0;
+my $filecount=$#files+1;
+
+print STDERR "Reading $macroFile (macros)\n";
+readMacros($macroFile);		# read macros
+print STDERR "Done.\n";
+
+$valueLine="";
+@nodes=();
+
+openFile($files[$fileNo]);
+do {
+  print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n";
+  doEvalMacro($macroName);
+  saveFile() if $FileNotSaved;
+} while (nextFile());
+
+
+foreach (@trees) { DeleteTree($_); }
+undef @header;
+
+exit;
+
+sub gotoTree {
+  my $no = max(0,min(shift,$#trees));
+  return $no if ($no == $treeNo);
+  @nodes=();
+  $treeNo=$no;
+  getNodes();
+  return $no;
+}
+
+
+sub nextTree {
+  return 0 if ($treeNo >= $#trees);
+  @nodes=();
+  $treeNo++;
+  getNodes();
+  return 1;
+}
+
+
+sub prevTree {
+  return 0 if ($treeNo <= 0);
+  @nodes=();
+  $treeNo--;
+  getNodes();
+  return 1;
+}
+
+sub nextFile {
+  return 0 if ($fileNo >= $#files);
+  $fileNo++;
+  openFile($files[$fileNo]);
+  return 1;
+}
+sub prevFile {
+  return 0 unless ($fileNo > 0);
+  $fileNo--;
+  openFile($files[$fileNo]);
+  return 1;
+}
+
+sub openFile {
+  my $f = shift;
+  my $goto = undef;
+
+  foreach (@trees) { DeleteTree($_); }
+  @trees = ();
+  @header = ();
+  @rest = ();
+  @nodes=();
+  @atord=();
+  %attribs=();
+
+  if ($f=~/(##?[0-9A-Z]+)$/) {
+    $f=~s/(##?[0-9A-Z]+)$//;
+    $goto=$1;
+  }
+
+  # opening file
+  die "cannot open $f!\n" unless open(F,"<$f");
+
+  print STDERR "Reading attribs\n";
+  #reading attribs
+  %attribs=ReadAttribs(\*F,\@atord,2,\@header);
+
+  print STDERR "Reading trees: ";
+  # reading trees 
+  while ($_=ReadTree(\*F)) {
+    if (/^\[/) {
+      print STDERR "#";
+      STDERR->autoflush(1);
+      $root=GetTree($_,\@atord,\%attribs);
+      push(@trees, $root) if $root;
+    } else { push(@rest, $_); }
+  }
+  close (F);
+  print STDERR "\n";
+  print STDERR "empty file!\n" if ($#trees<0);
+
+  $treeNo=0;
+
+  # -- smells like proprietary code, at least the second case
+  if (defined $goto) {
+    if ($goto=~/^##([0-9]+)$/) {
+      $treeNo=min(max(0,$1),$#trees);
+    }
+    for (my $i=0;$i<=$#trees;$i++) {
+      $treeNo=$i,last if ($trees[$i]->{'form'} eq $goto);
+    }
+  }
+  # --
+  $currentFile=$f;
+  $FileNotSaved=0;
+  getNodes();
+  return 1;
+}
+
+sub saveFile {
+  my $f=$currentFile;
+  my @atrIds=();
+
+  return unless $f;
+
+  rename $f,$f."~";
+  die "cannot open $f for writing!\n" unless open(FO,">$f");
+  print FO @header;
+  PrintFS(\*FO,\@header,\@trees,\@atord,\%attribs);
+  print FO @rest;
+  close(FO);
+  $FileNotSaved=0;
+}
+
+sub getNodes {
+  # prepare value line and @nodes list with deleted/saved hidden
+  # and ordered by real Ord
+
+  my @unsorted=();
+  $treeNo=0 if ($treeNo<0);
+  $treeNo=$#trees if ($treeNo>$#trees);
+  @nodes=();
+  my @sent=();
+  $root=$trees[$treeNo];
+  my $node=$root;
+  my $current=$root;
+
+  $valueLine="";
+
+  while ($node) {
+    push @sent,$node;
+    $node=Next($node);
+  }
+  my $defs = join ",", values %attribs;
+
+  # this is a workaround for TR vs. ATS (ATS trees use only @N to sort
+  # @V to a sentence while on TR there is @W defined for this purpose)
+
+  if ($defs=~/W/) {  
+    @sent = sort { SentOrd($a,\%attribs) <=> SentOrd($b,\%attribs) } @sent;
+  } else {
+    @sent = sort { Ord($a,\%attribs) <=> Ord($b,\%attribs) } @sent;
+  }
+  $valueLine = join " ", map { Value($_,\%attribs) } @sent;
+
+  $node=$root;
+  loop: while($node)
+  {
+    #skip hidden subtrees
+    if (not $showHidden and
+	defined(Hide($node,\%attribs)) and
+	(Hide($node,\%attribs) eq 'hide')) {
+      while ($node) {
+	if (RBrother($node)) {
+	  $node=RBrother($node);
+	  next loop;
+	}
+	$node = Parent($node);
+      }
+      next loop;
+    }
+    push @unsorted, $node;
+    $node=Next($node);
+  }
+  @nodes=sort { Ord($a,\%attribs) <=> Ord($b,\%attribs)} @unsorted;
+  # this is actually a workaround for TR, where two different nodes
+  # may have the same Ord
+}
+
+
+sub doEvalMacro {
+  my ($macro)=@_;
+  my $this=$trees[0];
+  my $result;
+  my $FileNotSavedOrig=$FileNotSaved;
+
+  return unless $this;
+
+  $FileNotSaved=1;  # Macro may want to override this :)
+  print STDERR "Starting: ",$macro,"\n";
+  $result=eval("@macros\n".($macro?" return $macro;\n":""));
+  print STDERR "Macro $macro returned with: $result\n$@\n";
+  $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
+  getNodes();
+}
+
+
+sub dirname {
+  $_=shift;  
+  return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : "./";
+}
+
+sub readConfig {
+  #
+  # Simple configuration file handling
+  #
+  my %confs;
+  my $key;
+  local *F;
+
+  # open first existing file in config-file list
+  while ($_=shift @configFileSearchList) {
+    if (open(F,"<$_")) {
+      print "Using resource file $_\n";
+      last;
+    }
+  }
+  if (defined($_)) {
+    while (<F>) {
+      unless (/^[;#]/ or /^$/) {
+	chomp;
+	if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
+	  $confs{$1}=$2;
+	  $key=$1;
+	  $confs{$key}=~s/\\//g;
+	  $confs{$key}=$1 if ($confs{$key}=~/^'(.*)'$/ or $confs{$key}=~/^"(.*)"$/);
+	  #print "$key=$confs{$key};\n";
+	}
+      }
+    }
+    close F;
+  } else {
+    print 
+      "Warning: Cannot open any file in:\n",join(":",@configFileSearchList),"\n" .
+      "         Using configuration defaults!\n";
+  }
+  $appName=(exists $confs{AppName}) ? $confs{AppName} : "Batch Tred ver. 1.0";
+  $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : $libDir;
+  $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : $macroFile;
+  $defaultMacroFile=(exists $confs{DefaultMacroFile}) ? <$confs{DefaultMacroFile}> : "$libDir/tred.def";
+  $useCzechLocales=(exists $confs{UseCzechLocales}) ? $confs{UseCzechLocales} : 1;
+  print "finished reading ini-file\n";
+}
+
+sub readMacros {
+  # This subroutine reads macro file. Macros are usual perl
+  # subroutines and may use this program's namespace. They are also
+  # provided some special names for certain variables which override
+  # the original namespace.
+
+  # Macros may be bound to a keysym with a special form of a comment.
+  # The synax is:
+  #
+  # # bind MacroName to key [[Modifyer+]*]KeySym
+  #
+  # which causes subroutine MacroName to be bound to keyboard event of
+  # simoultaneous pressing the optionally specified Modifyer(s) (which
+  # should be some of Shift, Ctrl and Alt) and the specified KeySym
+  # (this probabbly depends on platform too :( ).
+
+
+  my ($file)=@_;
+  my $nextBind=undef;
+  my $macro;
+  my $key;
+  local *F;
+
+  %keyBindings=();
+  %menuBindings=();
+  @macros=();
+
+  print STDERR "ERROR: Cannot open macros!\n", return 
+    unless open(F,"<$defaultMacroFile");
+  push @macros, <F>;
+  close F;
+
+  print STDERR "ERROR: Cannot open macros!\n", return 
+    unless open(F,"<$file");
+  
+  while (<F>) {
+    push @macros,$_;
+  }
+  close(F);
+}
+
+### Local Variables:
+### mode: cperl

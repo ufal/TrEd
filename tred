@@ -90,7 +90,6 @@ import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 
 
 my @macros=();
-my $useCzechLocales;
 
 if ($useCzechLocales) {
   setlocale(LC_COLLATE,"cs_CZ");
@@ -108,7 +107,6 @@ my $insideEval=0;
 my $FileNotSaved=0;
 my $fileNo=0;
 my $filecount=$#files+1;
-my $macrosEvaluated=0;		# is this of any use now?
 
 %pckey_shift_translates = (exclam => 1, at => 2, numbersign => 3,
 			   dollar => 4, percent => 5, asciicircum => 6,
@@ -218,6 +216,7 @@ sub readConfig {
   $maximizePrintSize=(exists $confs{MaximizePrintSize}) ? $confs{MaximizePrintSize} : 0;
   $showHidden=(exists $confs{ShowHidden}) ? $confs{ShowHidden} : 0;
   $createMacroMenu=(exists $confs{CreateMacroMenu}) ? $confs{CreateMacroMenu} : 0;
+  $maxMenuLines=(exists $confs{MaxMenuLines}) ? $confs{MaxMenuLines} : 30;
   $useCzechLocales=(exists $confs{UseCzechLocales}) ? $confs{UseCzechLocales} : 1;
   print "finished reading ini-file\n";
 }
@@ -788,7 +787,9 @@ sub tkDrawTree {
 	   -command  => [\&redraw_tree,\%group]],
 	 [Checkbutton => 'Show Hidden',
 	  -variable => \$showHidden,
-	  -command  => [sub { getNodes(@_); redraw_tree(@_) },\%group]],
+	  -command  => [sub { getNodes(@_); 
+			      currentUnhiden(@_);
+			      redraw_tree(@_) },\%group]],
 	 [Separator => ''],
 	 [Button => 'Visible Attributes', -command => [\&selectAttrs,\%group]]
 	])->pack(qw/-side left/);
@@ -800,14 +801,28 @@ sub tkDrawTree {
 							if ($grp->{currentNode});
 						    },\%group]],
 	])->pack(qw/-side left/);
+
+
+  my @umenus = map (
+		    [Button => $_,
+		   -command => [\&doEvalMacro,\%group,$menuBindings{$_}->[0]],
+		     ($menuBindings{$_}->[1]) ?
+		     (-accelerator => "(".$menuBindings{$_}->[1].")") : ()],
+		    sort(keys(%menuBindings)));
+  my $uM,$uuM;
+  $uM=[ @umenus[0..min($maxMenuLines-1,$#umenus)] ];
+  $uuM=$uM;
+  my $i=$maxMenuLines;
+  while ($i<=$#umenus) {
+    $_=[@umenus[$i..min($i+$maxMenuLines-1,$#umenus)]];
+    push @$uuM,[Cascade => 'More...', -menuitems => $_];
+    $uuM=$_;
+    $i+=$maxMenuLines;
+  }
+
+
   $group{UserMenu}=$group{Menubar}->Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
-					       [ map (
-						      [Button => $_, 
-						       -command => [\&doEvalMacro,\%group,$menuBindings{$_}->[0]],
-						       ($menuBindings{$_}->[1]) ?
-						       (-accelerator => "(".$menuBindings{$_}->[1].")") : ()],
-						   sort(keys(%menuBindings)))
-					       ])->pack(qw/-side left/);
+					       $uM)->pack(qw/-side left/);
   $group{MacroMenu}=$group{Menubar}->Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
 					       [ map ([Button => $keyBindings{$_}, -accelerator => "($_)",
 						       -command => [\&doEvalMacro,\%group,$keyBindings{$_}]],
@@ -1455,44 +1470,29 @@ sub redraw_tree {
   
   $grp->{'frame'}->bind('my','<Tab>' => [sub { currentNext(@_); Tk->break; },$grp]);
   $grp->{'frame'}->bind('my','<Control-Tab>' => [sub { currentPrev(@_); Tk->break; },$grp]);
-  $grp->{'frame'}->bind('my','<Left>' => [sub {     
-					   my ($w,$grp)=@_; 
-					   if (LBrother($grp->{'currentNode'})) {
-					     setCurrent($grp,LBrother($grp->{'currentNode'}));
-					     centerTo($grp,$grp->{'currentNode'});
-					   }
-					   Tk->break;
-					 },$grp]);
-  #print "binding return\n";
-  $grp->{'frame'}->bind('my','<Return>' => [sub { 
+  $grp->{'frame'}->bind('my','<Return>' => [sub {
 					      my ($w,$grp)=@_;
 					      editAttrsDialog($grp,$grp->{'currentNode'}); 
 					      Tk->break;
-					    },$grp]);  
-  #print "done\n";
-
-  $grp->{'frame'}->bind('my','<Right>' => [sub {     
-					    my ($w,$grp)=@_; 
-					    if (RBrother($grp->{'currentNode'})) {
-					      setCurrent($grp,RBrother($grp->{'currentNode'}));
-					      centerTo($grp,$grp->{'currentNode'});
-					    }
+					    },$grp]);
+  $grp->{'frame'}->bind('my','<Left>' => [sub {
+					   my ($w,$grp)=@_; 
+					   currentLeft($grp);
+					   Tk->break;
+					 },$grp]);
+  $grp->{'frame'}->bind('my','<Right>' => [sub {
+					    my ($w,$grp)=@_;
+					    currentRight($grp);
 					    Tk->break;
 					  },$grp]);
-  $grp->{'frame'}->bind('my','<Up>' => [sub {     
-					 my ($w,$grp)=@_; 
-					 if (Parent($grp->{'currentNode'})) {
-					   setCurrent($grp,Parent($grp->{'currentNode'}));
-					   centerTo($grp,$grp->{'currentNode'});
-					 }
+  $grp->{'frame'}->bind('my','<Up>' => [sub {
+					 my ($w,$grp)=@_;
+					 currentUp($grp);
 					 Tk->break;
 				       },$grp]);
-  $grp->{'frame'}->bind('my','<Down>' => [sub {     
+  $grp->{'frame'}->bind('my','<Down>' => [sub {
 					   my ($w,$grp)=@_; 
-					   if (FirstSon($grp->{'currentNode'})) {
-					     setCurrent($grp,FirstSon($grp->{'currentNode'}));
-					     centerTo($grp,$grp->{'currentNode'});
-					   }
+					   currentDown($grp);
 					   Tk->break;
 					 },$grp]);
 
@@ -1655,6 +1655,87 @@ sub recalculate_positions {
   $grp->{'canvasHeight'}=$baseYPos+
     ($maxypos+1)*(2*($nodeYSkip+$ymargin)+($#displayAttrs+1)*$fontHeight+$nodeHeight);
   #print "Done.\n";
+}
+
+sub IsHidden {  
+  # Tests if given node is hidden or not
+  # Returns the ancesor that hides it or undef
+  my $node=shift;
+  $node=Parent($node) while ($node and (Hide($node,\%attribs) ne 'hide'));
+  return ($node ? $node : undef);
+}
+
+sub currentUnhiden {
+  my $grp=shift;
+  unless ($showHidden) {
+    my $node=IsHidden($grp->{'currentNode'});
+    setCurrent($grp,Parent($node)) if ($node and Parent($node));
+  }
+}
+
+sub currentLeft {
+  my $grp=shift;
+  if ($showHidden) {
+    if (LBrother($grp->{'currentNode'})) {
+      setCurrent($grp,LBrother($grp->{'currentNode'}));
+      centerTo($grp,$grp->{'currentNode'});
+    }
+  } else {
+    my $n=LBrother($grp->{'currentNode'});
+    $n=LBrother($n) while ($n and defined(Hide($n,\%attribs)) 
+			   and (Hide($n,\%attribs) eq 'hide'));
+    if ($n) {
+      setCurrent($grp,$n);
+      centerTo($grp,$grp->{'currentNode'});
+    }
+  }
+}
+
+sub currentRight {
+  my $grp=shift;
+  if ($showHidden) {
+    if (RBrother($grp->{'currentNode'})) {
+      setCurrent($grp,RBrother($grp->{'currentNode'}));
+      centerTo($grp,$grp->{'currentNode'});
+    }
+  } else {
+    my $n=RBrother($grp->{'currentNode'});
+
+    $n=RBrother($n) while ($n and defined(Hide($n,\%attribs)) 
+			   and (Hide($n,\%attribs) eq 'hide'));
+    if ($n) {
+      setCurrent($grp,$n);
+      centerTo($grp,$grp->{'currentNode'});
+    }
+  }
+}
+
+sub currentDown {
+  my $grp=shift;
+  if ($showHidden) {
+    if (FirstSon($grp->{'currentNode'})) {
+      setCurrent($grp,FirstSon($grp->{'currentNode'}));
+      centerTo($grp,$grp->{'currentNode'});
+    }
+  } else {
+    my $n=FirstSon($grp->{'currentNode'});
+    $n=RBrother($n) while ($n and defined(Hide($n,\%attribs))
+			   and Hide($n,\%attribs) eq 'hide');
+    if ($n) {
+      setCurrent($grp,$n);
+      centerTo($grp,$grp->{'currentNode'});
+    }
+  }
+}
+
+
+
+sub currentUp {
+  my $grp=shift;
+  if (Parent($grp->{'currentNode'})) {
+    setCurrent($grp,Parent($grp->{'currentNode'}));
+    centerTo($grp,$grp->{'currentNode'});
+  }
 }
 
 sub setCurrent {
