@@ -384,7 +384,7 @@ root# <userinput>make install</userinput>
 	  <listitem>
 	    <para>
 	      Creates a new empty file with the same header as
-	      the current open file. If no file is open, does nothing.
+	      the current open file.  Does nothing if no file is open.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -491,14 +491,15 @@ root# <userinput>make install</userinput>
 		<para>If <ulink
 		url="http://www.imagemagick.org">ImageMagick</ulink>
 		utilities are installed on the system running TrEd,
-		automatic conversion to many graphics file formats may
-		be performed directly from the TrEd. To use it, first
+		automatic conversion to one of many image formats may
+		be performed directly from
+		<application>TrEd</application>. To use it, first
 		check the <guilabel>Convert according to file
-		extension</guilabel> button, then select a desired pixel
-		resolution for conversion to bitmap, and finally
+		extension</guilabel> button, then select a desired
+		pixel resolution for conversion to bitmap, and finally
 		edit the filename giving it the usual extension of the
 		desired output file-format; for example
-		  <filename>.jpg</filename> or
+		<filename>.jpg</filename> or
 		<filename>.png</filename>.
 		</para>
 	      </listitem>
@@ -535,20 +536,18 @@ root# <userinput>make install</userinput>
 	      </listitem>
 	      <listitem>
 		<para>
-		  It is possible to print more than one tree within
-		  one command.  This is realized by entering a
-		  comma-separated list of
-		  numbers or ranges of numbers, that correspond to the
-		  desired trees or tree-ranges in the active file, to
-		  the <guilabel>Page range</guilabel> field.
-		  The <inlinegraphic
-		    fileref="pics/left"/> button may be used to
-		  automatically insert a page range corresponding to
-		  sentences selected via <link
+		  It is possible to print more than one tree (each
+		  tree on a separate page).  To do so, a comma-separated list of
+		  tree numbers or ranges of tree numbers, that correspond to the
+		  desired trees in the active file, must be entered
+		  into the <guilabel>Page range</guilabel> field.  The
+		  <inlinegraphic fileref="pics/left"/> button may be
+		  used to automatically insert a page range
+		  corresponding to sentences selected via <link
 		  linkend="list_of_sentences"><menuchoice>
-		    <guimenu>View</guimenu>
-		    <guimenuitem>List of sentences...</guimenuitem>
-		  </menuchoice></link>. A different selection based on
+		  <guimenu>View</guimenu> <guimenuitem>List of
+		  sentences...</guimenuitem> </menuchoice></link>. A
+		  different selection based on
 		  <quote>sentences</quote> can be made by pressing the
 		  <inlinegraphic fileref="pics/view_sent"/> button.
 		</para>
@@ -757,12 +756,14 @@ root# <userinput>make install</userinput>
 	    </para>
 	    <para>The <inlinegraphic fileref="pics/right" scale="70"/>
 	      button may be used to display the corresponding sentence
-	      in the current TrEd window.</para>
-	    <para>The <inlinegraphic fileref="pics/gray_belly3" scale="70"/>
+	      in the current TrEd window.</para> <para>The
+	      <inlinegraphic fileref="pics/gray_belly3" scale="70"/>
 	      button may be used to select the current sentence.
-	      Selected sentences may be later inserted into the range
-	      selection in the <link linkend="print_command">Print
-		dialog</link> using the <inlinegraphic
+	      Selected sentences may be later inserted to the tree
+	      selection field in the <link
+	      linkend="print_command">Print dialog</link> as well as
+	      in the <link linkend="copytrees_command">Copy trees
+	      dialog</link> by pressing the <inlinegraphic
 	      fileref="pics/left"/> button.
 	    </para>
 	  </listitem>
@@ -849,7 +850,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="copytrees_command">
 	  <term><guimenu>Copy Trees</guimenu></term>
 	  <listitem>
 	    <para>
