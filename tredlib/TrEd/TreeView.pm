@@ -1,6 +1,7 @@
 package TrEd::TreeView;
 
 use Tk;
+use Tk::Balloon;
 use Fslib;
 use TrEd::MinMax;
 import TrEd::MinMax;
