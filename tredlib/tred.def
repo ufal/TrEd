@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-10 10:46:30 pajas>
+## Time-stamp: <2002-04-24 12:35:39 pajas>
 
 package TredMacro;
 
@@ -184,6 +184,11 @@ sub PasteNode {
   my ($node,$p)=@_; 
   Fslib::Paste($node,$p,$grp->{FSFile}->FS->defs); 
   return $node;
+}
+
+sub CloneSubtree {
+  my ($node)=@_;
+  return $grp->{FSFile}->FS->clone_subtree($node);
 }
 
 sub CopyNode {
@@ -558,6 +563,7 @@ sub SortByOrd {
   my ($nodesref)=@_;
   my $ord=$grp->{FSFile}->FS->order;
   @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
+  return $nodesref;
 }
 
 sub RepasteNode {
