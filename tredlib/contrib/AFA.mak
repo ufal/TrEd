@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2002-07-23 16:32:28 pajas>
+## Time-stamp: <2003-03-12 13:55:56 pajas>
 
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require AFA;
@@ -147,6 +147,13 @@ sub assign_func_auto {
   $prec=~s/(\.[0-9][0-9]).*$/\1/;
   $node->{funcaux} = $prec>90 ? "#{custom4}" : ( $prec<50 ? "#{custom6}" : "#{custom5}");
   $node->{func}=$node->{funcauto} if ($node->{funcauto});
+}
+
+sub assign_func_auto_node {
+  my $class=$_[0];
+  my $node=$_[1] || $this;
+  assign_func_auto($class,$node) if ($node->{func} eq '???' or
+				     $node->{func} eq '');
 }
 
 #bind assign_all_func_auto to F10 menu Auto-assign functors to tree
