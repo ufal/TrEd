@@ -10,13 +10,15 @@ import TredMacro;
 sub default_tr_attrs {
   return unless $grp->{FSFile};
   print "Using standard patterns\n";
-    SetDisplayAttrs('${x_TNl}','#{blue}${trlemma}','${func}');
+    SetDisplayAttrs('${x_TNl}','#{blue}${trlemma}','${x_TNfunc}');
     SetBalloonPattern("TNT: \${x_TNT}\n".
+                      "TNmg: \${x_TNmg}\n".
 		      '<? $node->parent->{x_TNT} eq "OR_node" ?
-                          $node->parent->{trlemma}."\n".
-                          $node->parent->{func}."\n".
-                          $node->parent->{afun}."\n".
-                          $node->parent->{tagMD_a} :
+                          "czlemma: ".$node->parent->{trlemma}."\n".
+                          "TNfunc: ".$node->{x_TNfunc}."\n".
+                          "TNmg: ".$node->{x_TNmg}."\n".
+                          "afun: ".$node->parent->{afun}."\n".
+                          "tagMD: ".$node->parent->{tagMD_a} :
 		      $${afun}."\n".$${tagMD_a} ?>');
   return 1;
 }
