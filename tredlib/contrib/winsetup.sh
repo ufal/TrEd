@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $1 = "perl58" ]; then
+if [ "x$1" = "xperl58" ]; then
   REQPERLVER=8
   REQPERLINSTDIR=win32_perl58
 else
@@ -113,12 +113,36 @@ function upgrade_packages {
 	fi
       done
   else
+      echo Docasne upravuji nastaveni nastroje PPM3 ...
+      $PPM rep del tredsetup 2>/dev/null >/dev/null
+      REPS="$($PPM rep | grep -E '^\[[0-9]+\]' | sed 's/^\[[0-9]*\] *//')"
+      OLDIFS="$IFS";
+      IFS=$'\n\t\n';
+      for rep in $REPS; do
+           IFS="$OLDIFS";
+           $PPM rep off $rep 2>/dev/null >/dev/null
+      done
+      IFS="$OLDIFS";
+      $PPM rep add tredsetup packages-ap58 2>/dev/null >/dev/null
+      echo Hotovo.
       for s in $PACKAGES58; do 
 	echo
-	echo Kontroluji verzi baliku $s
-	ppd="packages-ap58/${s//::/-}.ppd";
-	$PPM install "$ppd"
+        echo Zkousim aktualizovat balik $s
+	ppd="${s//::/-}";
+	if ! $PPM install "$ppd" 2>/dev/null >/dev/null; then
+          $PPM upgrade -install "$ppd"
+        fi
       done
+      echo Obnovuji puvodni nastaveni nastroje PPM3 ...
+      $PPM rep del tredsetup 2>/dev/null >/dev/null
+      OLDIFS="$IFS";
+      IFS=$'\n\t\n';
+      for rep in $REPS; do
+           IFS="$OLDIFS";
+           $PPM rep on $rep 2>/dev/null >/dev/null
+      done
+      IFS="$OLDIFS";
+      echo Hotovo.
   fi
 }
 
@@ -193,7 +217,7 @@ DOSPERLDIR=`dosdirname $PERLDIR`
 PPM="$PERLBIN $DOSPERLDIR/ppm.bat"
 
 
-echo Kontruluji verzi instalovaneho perlu.
+echo Kontruluji verzi nainstalovaneho perlu.
 
 if perl_version_current; then
   echo Ok.
