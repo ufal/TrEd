@@ -554,7 +554,6 @@ sub startMain {
 		# normalize urls
 		my $goto;
 		$goto=$1 if $file=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
-		print "$file$goto\n";
 		if (exists $grp->{preloaded}{$file}) {
 		  openFile($grp,$file.$goto);
 		  doEvalMacro($grp,"package $context;".$request{CODE});
