@@ -61,6 +61,7 @@ sub read_macros {
     push @macros, <F>;
     close F;
   }
+  print STDERR "Reading $file\n" if $macroDebug;
   open(F,"<$file")
     || (!$keep && ($file="$libDir/$file") && open(F,"<$file")) ||
       die "ERROR: Cannot open macros: $file ($!)!\n";
