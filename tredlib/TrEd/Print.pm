@@ -138,7 +138,7 @@ sub print_trees {
 			  drawSentenceInfo => $snt
 			 });
 
-  local $TrEd::Convert::outputenc='iso-88859-2';
+  local $TrEd::Convert::outputenc='iso-8859-2';
 
   my @printList=parse_print_list($fsfile,$printRange);
 
