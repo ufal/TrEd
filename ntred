@@ -167,8 +167,11 @@ if (defined($init) || defined($kill)) {
   # kill servers and start a hub
   # ==================================================
     msg "Killing all servers\n";
+    my %servers;
     foreach (@servers) {
       my ($machine)=split /:/;
+      next if $servers{$machine};
+      $servers{$machine}=1;
       msg "$ssh $machine killall btred\n";
       system("$ssh $machine killall btred");   #'$btred'
     }
@@ -204,10 +207,12 @@ if (defined($init) || defined($kill)) {
   my $logdir=$ENV{TMP} || $ENV{TEMP} || "/tmp";
 
   my @running;
+  my %servers;
   # check that the server machines are actually running
   foreach (@servers) {
     my ($server,$port) = split /:/;
-    next unless $server =~ /\S/;
+    next if $server !~ /\S/ or $servers{$server};
+    $servers{$server}=1;
     $port ||= 1600;
     msg "checking $server\n";
     unless ($nocheck) {
@@ -710,6 +715,19 @@ Run unrestricted (unsafe) version of btred servers allowing user
 queries to execute arbitrary Perl code and thus have a full access to
 the hosts with the privileges of the user running the servers.  This
 mode may also lead to unexpected memory leaks on the btred servers.
+
+In the restricted mode, only the following opcodes and opcode-sets are
+allowed (see L<Opcode>):
+
+  :base_core :base_mem :base_loop :base_math
+  entereval caller dofile
+  print entertry leavetry tie untie bless
+  sprintf localtime gmtime sort require
+
+plus :base_orig, but the following opcodes (which are forbidden):
+
+  getppid getpgrp setpgrp getpriority setpriority pipe_op sselect
+  select dbmopen dbmclose tie untie
 
 =item B<--key-file>
 
