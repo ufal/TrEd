@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
+# $Id$
+#
 # BTred ver. 0.1 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
 # Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
@@ -23,11 +25,6 @@ if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n\n";
 }
 
-## Passing -o args... -- to TredMacro
-@TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
-shift @TredMacro::ARGV; pop @TredMacro::ARGV;
-@ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
-
 use strict;
 use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $config_file
@@ -38,9 +35,17 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $start_server $help $usage $manpage
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
-	    @files $backend %bkmap $nosave @preload_modules
+	    @files $backend %bkmap $nosave @preload_modules $print_version
+	    $version
 	    $_ERR %optmap
 	   );
+
+$version='$Revision$ ';
+
+## Passing -o args... -- to TredMacro
+@TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
+shift @TredMacro::ARGV; pop @TredMacro::ARGV;
+@ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
 #getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:NHSTFX:RPWVL:b:');
 my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
@@ -77,9 +82,18 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "help|h" => \$help,
 	    "usage|u"        => \$usage,
 	    "man"            => \$manpage,
-	    "preload-module|M=s" => \@preload_modules);
+	    "preload-module|M=s" => \@preload_modules,
+	    "version|v"        => \$print_version
+	   );
 
 $optparser->getoptions(%optmap) or $usage=1;
+
+if ($print_version) {
+  my $ver=$version;
+  $ver=~s/\$//g;
+  print "BTrEd $ver\nPerl: $]\nPlatform: $^O\n";
+  exit;
+}
 
 $quiet=1 if $Quiet;
 
@@ -1082,16 +1096,21 @@ sub updateTredMacroGlobals {
   ${macro_variable('TredMacro::this')}=$grp->{currentNode};
 }
 
+
 sub _set_encoding {
   my ($fh, $enc, $what)=@_;
   if ($enc and $]>=5.008) {
     eval {
       _msg("forcing encoding $enc for $what\n") if $debug;
       $fh->flush();
-      binmode $fh;  # first get rid of all I/O layers
-      binmode $fh,":encoding($enc)";
+      binmode $fh; # first get rid of all I/O layers
+      if ($enc =~ /^:/) {
+	binmode $fh,$enc;
+      } else {
+	binmode $fh,":encoding($enc)";
+      }
     };
-    _msg $@ if $@;
+    _msg($@) if $@;
   }
 }
 
