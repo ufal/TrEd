@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-02-27 17:46:17 pajas>
+## Time-stamp: <2004-03-01 18:33:32 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -239,3 +239,33 @@ sub light_aidrefs {
   }
   ChangingFile(0);
 }
+
+#bind light_aidrefs_reverse to Ctrl+b
+sub light_aidrefs_reverse {
+  my $node = $root;
+  while ($node) {
+    if ($node != $this and
+	getAIDREFsHash($node)->{$this->{AID}}) { $node->{_light}='_LIGHT_'; }
+    else { delete $node->{_light} }
+    $node=$node->following;
+  }
+  ChangingFile(0);
+}
+
+#bind light_ar_children to Ctrl+c
+sub light_ar_children {
+  my $node = $root;
+  while ($node) {
+    delete $node->{_light};
+    $node=$node->following;
+  }
+  PDT::ARstruct();
+  foreach (PDT::GetChildren_AR($this,
+			       sub { 1 },
+			       sub { $_[0]{afun}=~/Aux[PC]/ })) {
+    $_->{_light}='_LIGHT_';
+  }
+  PDT::TRstruct();
+  ChangingFile(0);
+}
+
