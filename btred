@@ -501,7 +501,7 @@ sub startMain {
 	chomp($request{CONTEXT});
 	$context=$request{CONTEXT} || 'TredMacro';
 	$context='TredMacro' if $context eq 'main';
-	$SIG{USR1} = sub { die "BTRED: User break!\n" };
+	$SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
 	doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
 	# execute hooks and the code of the query
 	my $time;
@@ -522,7 +522,7 @@ sub startMain {
 	  _msg($@) if $@;undef $@;
 	  my $t1 = new Benchmark;
 	  $time = timediff($t1, $t0) if ($t1 and $t0);
-	  $hub->print("BTRED: Total Time: ",timestr($time),"\n") if $time ne "";
+	  $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "";
 	}
 	$SIG{USR1} = sub { };
 	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
