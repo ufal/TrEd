@@ -2,13 +2,15 @@ package TrEd::Convert;
 
 #
 # $Revision$ '
-# Time-stamp: <2002-07-03 16:08:08 pajas>
+# Time-stamp: <2002-07-10 22:41:00 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
 #
 
 use strict;
+use English;
+#use TrEd::ConvertArab;
 
 BEGIN {
   use Exporter  ();
@@ -42,20 +44,31 @@ BEGIN {
 }
 
 sub encode {
-  my @a=@_;
-  return "" unless (@a);
-  return join("",@a) if ($inputenc eq $outputenc);
-  local $_=join "",@a;
-  eval " tr/$encodings{$inputenc}/$encodings{$outputenc}/";
-  return $_;
+  local $_=join '',@_;
+  $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
+  no integer;
+
+  if (1000*$] >= 5008) { # we've got support for UNICODE in
+    # perl5.8/Tk8004
+    if ($inputenc eq 'iso-8859-6' or
+	    $inputenc eq 'windows-1256') {
+      require TrEd::ConvertArab;
+      eval "use Encode (); \$_=Encode::decode('utf8',\$_);";
+      s{([^[:ascii:]]+)}{TrEd::ConvertArab::arabjoin($_)}eg;
+    }
+    return $_;
+  } else {
+    return $_ if ($inputenc eq $outputenc);
+    eval " tr/$encodings{$inputenc}/$encodings{$outputenc}/";
+    return $_;
+  }
 }
 
 sub decode {
-  my @a=@_;
-  return "" unless (@a);
-  return join("",@a) if ($inputenc eq $outputenc);
-
-  local $_=join "",@a;
+  local $_=join '',@_;
+  $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
+  no integer;
+  return $_ if (1000*$] >= 5008 or $inputenc eq $outputenc);
   eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
   return $_;
 }
