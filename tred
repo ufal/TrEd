@@ -5951,10 +5951,12 @@ sub node_release {
 	if ($p and $tv->get_obj_pinfo($p) 
 	    and $node->parent!=$tv->get_obj_pinfo($p)) {
 	  save_undo($win,prepare_undo($win));
+	  my $oldparent=$node->parent;
 	  Paste(Cut($node),
 		$tv->get_obj_pinfo($p),
 		$win->{FSFile}->FS->defs);
 	  $win->{FSFile}->notSaved(1);
+          doEvalHook($win,"node_moved_hook",$node,$oldparent);
 	  lastActionBookmark($grp);
 	  redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
 	  centerTo($win,$win->{currentNode});

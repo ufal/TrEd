@@ -111,6 +111,16 @@ get_nodelist_hook			no      supply custom
                                                 treeNo and hidden node
 						visibility state
 
+node_released_hook node,target-node,mod yes     called when node is
+                                                released over another
+                                                node after a mouse
+                                                drag (mod is keyboard
+                                                modifiers - Ctrl/Meta/...)
+
+node_moved_hook    node,old-parent      no      called after a node is
+                                                moved using a mouse
+
+
 NOTE:
 Unlike other macros, hooks are expected not to modify the file. If the
 file is modified, the hook-function should set the $FileNotSaved
