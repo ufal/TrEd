@@ -37,7 +37,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $start_server $help $usage $manpage
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
-	    @files $backend %bkmap $nosave
+	    @files $backend %bkmap $nosave @preload_modules
 	   );
 
 #getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:NHSTFX:RPWVL:b:');
@@ -73,7 +73,9 @@ GetOptions ("quiet|q" => \$quiet,
 	    "server-port|L=i"  => \$start_server,
 	    "help|h" => \$help,
 	    "usage|u"        => \$usage,
-	    "man"            => \$manpage);
+	    "man"            => \$manpage,
+	    "preload-module|M=s" => \@preload_modules
+	   );
 
 $quiet=1 if $Quiet;
 
@@ -281,6 +283,11 @@ if ($output_format) {
 
 $TrEd::Convert::inputenc=$file_encoding if $file_encoding;
 
+foreach my $module (@preload_modules) {
+  eval "require $module";
+  die $@ if $@;
+}
+
 startMain();
 
 exit;
@@ -306,6 +313,17 @@ sub _end_response {
   $client->print("$control END_OF_SERVER_RESPONSE\n");
 }
 
+sub _copy_output {
+  my ($macro_stdout,$hub)=@_;
+  $macro_stdout->flush();
+  seek($macro_stdout,0,0);
+  my $space=1;
+  while (<$macro_stdout>) {
+    $hub->print($_);
+    $space=chomp;
+  }
+  $hub->print("\n") unless $space;
+}
 
 sub startMain {
   my $grp={
@@ -320,6 +338,9 @@ sub startMain {
   my $context = $grp->{macroContext};
 
   if ($start_server) {
+    # ----------------------------------------
+    # SERVER MODE
+    # ----------------------------------------
     require IO::Socket::INET;
     require TrEd::Cipher;
     # Start btred server
@@ -353,7 +374,7 @@ sub startMain {
       _msg("Awaiting connection from $allow_host\n");
     }
     my ($hub,$peer);
-    do {
+    do {{
       $hub = $server->accept();
       $peer=$hub->peerhost();
       if ($hub and $allow_host and $peer ne $allow_host) {
@@ -364,7 +385,7 @@ sub startMain {
 	$hub->close();
 	undef $hub;
       }
-    } while (!$hub);
+    }} while (!$hub);
     _set_encoding($hub,$term_encoding,"socket to hub");
     _msg("Connection to the hub on $peer established.\n");
     my $request_no=0;
@@ -414,7 +435,7 @@ sub startMain {
 	_msg("Initializing safe compartment...\n") if $safe;
 
 	# initialize Safe compartment
-	init_safe_mode($grp) if $safe;
+	init_tredmacro($grp);
 	gotoFile($grp,0); # neither goto_file_hook nor file_open_hook in server-mode
 
 	# create temporary file to store macro output
@@ -433,11 +454,12 @@ sub startMain {
 	  @{macro_variable('TredMacro::ARGV')}=();
 	}
 
-	STDOUT->autoflush();
+	STDOUT->autoflush(1);
 	# load macro
 	_msg "COMPILING MACRO\n";
 	chomp($request{CONTEXT});
 	$context=$request{CONTEXT} || 'TredMacro';
+	$context='TredMacro' if $context eq 'main';
 	doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
 	# execute hooks and the code of the query
 	my $time;
@@ -457,19 +479,14 @@ sub startMain {
 	  _msg($@) if $@;
 	  my $t1 = new Benchmark;
 	  $time = timediff($t1, $t0) if ($t1 and $t0);
+	  $hub->print("Total Time: ",timestr($time),"\n") if $time ne "";
 	}
-	$hub->print("Total Time: ",timestr($time),"\n") if $time ne "";
 	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
+	cleanup_tredmacro($grp,split(/\n/,"package $context;\n".$request{MACRO}."\n".$request{CODE}));
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
+
 	# send macro's output from tmp file to client
-	$macro_stdout->flush();
-	seek($macro_stdout,0,0);
-	my $space=1;
-	while (<$macro_stdout>) {
-	  $hub->print($_);
-	  $space=chomp;
-	}
-	$hub->print("\n") unless $space;
+	_copy_output($macro_stdout,$hub);
 	$macro_stdout->close;
 	undef $macro_stdout;
 	#open STDOUT, ">&OLDSTDOUT" or die "Can't dup OLDSTDOUT: $!";
@@ -576,6 +593,11 @@ sub startMain {
 	for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
 	  chomp($request{$_}) if exists $request{$_};
 	}
+	# create temporary file to store std output
+	my $macro_stdout = IO::File->new_tmpfile();
+	*MOUT=*$macro_stdout;
+	open(STDOUT, "+>&MOUT") or die "Can't redirect STDOUT: $!";
+
 	do {
 	  local $backend=$bkmap{$request{Format}} if exists $request{Format};
 	  local $strip_prefix=$request{"Strip-prefix"} if exists $request{"Strip-prefix"};
@@ -585,18 +607,22 @@ sub startMain {
 	  eval {
 	    gotoFile($grp,0);
 	    die $@ if $@;
-	    do {
+	    do {{
 	      next unless ref($grp->{FSFile});
 	      next unless ($request{REQUEST_TYPE} eq 'SAVE'
 			   or $grp->{FSFile}->notSaved());
 	      my $out = saveFile($grp);
-	      $hub->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+	      $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
 	      die $@ if $@;
-	    } while (nextFile($grp));
+	    }} while (nextFile($grp));
 	    die $@ if $@;
 	  };
 	};
+	$hub->print("$control SERVER_RESPONSE_STDERR\n");
 	$hub->print("$@\n") if $@;
+	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	_copy_output($macro_stdout,$hub);
+	$macro_stdout->close;
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
 	_msg "Reloading all open files at client's request\n";
@@ -612,6 +638,9 @@ sub startMain {
       _msg("Waiting for a new request from the hub...\n\n");
     }
   } else {
+    # ----------------------------------------
+    # INTERACTIVE MODE
+    # ----------------------------------------
     init_safe_mode($grp) if $safe;
     my $pre='';
     $pre .= "do { " if ($all_trees);
@@ -619,7 +648,7 @@ sub startMain {
     my $post.= "\$this=\$this->following; \n}" if ($all_nodes);
     $post.= "\$this=\$this->following_visible(\$grp->{FSFile}->FS); \n}"
       if (not $all_nodes and $all_nonhidden_nodes);
-    $post.= " } while NextTree();" if ($all_trees);
+    $post.= " } while TredMacro::NextTree();" if ($all_trees);
     my $premacro= <<EOL;
 package $context;
 sub _btred_eval_ {
@@ -640,14 +669,14 @@ EOL
     exit if $preload and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
     openFile($grp,$files[$fileNo]) if $fileNo <= $#files; # goto first file
     if (@files) {
-      do {
+      do {{
 	_msg "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $Quiet;
 	doEvalMacro($grp,"$context->_btred_eval_();");
 	STDOUT->flush();
 	STDERR->flush();
 	_msg "Done.\n" unless $quiet;
 	saveFile($grp) if ($grp->{FSFile}->notSaved or $save);
-      } while (nextFile($grp));
+      }} while (nextFile($grp));
     } else {
       _msg "No files to process!\n" unless $Quiet;
     }
@@ -881,6 +910,41 @@ sub doEvalMacro {
   return $result;
 }
 
+sub init_tredmacro {
+  my ($grp)=@_;
+  $TrEd::Macros::macrosEvaluated=0;
+  $TrEd::Macros::safeCompartment=undef;
+  if ($safe) {
+    init_safe_mode($grp);
+  } else {
+    TrEd::Macros::initialize_macros($grp);
+  }
+}
+
+
+sub cleanup_tredmacro {
+  my ($grp,@macros)=@_;
+  $TrEd::Macros::macrosEvaluated=0;
+  $TrEd::Macros::safeCompartment=undef;
+  # cleanup
+  if ($safe) {
+    %{TredMacroCompartment::}=();
+  } else {
+    my %packages;
+    @packages { ('TredMacro',
+		 grep {/\S/} grep { !/^main$|^TrEd::/ }
+		 map  { (/^package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros,@macros))
+	      } = ();
+    foreach my $package ( keys %packages ) {
+      no strict qw(refs);
+      _msg("Cleaning package $package\n");
+      %{$package."::"}=();
+      eval("package $package; use UNIVERSAL qw(isa can);");
+      _msg($@) if $@;
+    }
+  }
+}
+
 sub init_safe_mode {
   my ($grp)=@_;
   require Safe;
@@ -888,7 +952,7 @@ sub init_safe_mode {
   $TrEd::Macros::safeCompartment=undef;
   %{TredMacroCompartment::}=(); # cleanup
   my $compartment = Safe->new('TredMacroCompartment');
-  $compartment->reval("package TredMacro;\n");
+  $compartment->reval("package TredMacro;");
   $compartment->deny_only(qw()); # everything allowed for the first initialization
   $compartment->share(qw(&do_eval_macro &do_eval_hook &min &max @INC 
                          &nextTree &prevTree &gotoTree 
@@ -910,7 +974,6 @@ sub init_safe_mode {
   $compartment->deny(qw(getppid getpgrp setpgrp getpriority setpriority
 			pipe_op sselect select dbmopen dbmclose tie untie
 		       ));
-			
   $TrEd::Macros::safeCompartment=$compartment;
 }
 
@@ -936,7 +999,7 @@ sub _set_encoding {
 
 __END__
 
-=head1 ntred
+=head1 btred
 
 btred - non-interactive scriptable version of the tree editor TrEd
 
@@ -957,7 +1020,8 @@ or
 
 =head1 DESCRIPTION
 
-BTrEd loads given macro-file and executes given code for each file.
+BTrEd loads a given macro-file and executes a given code for each
+file.
 
 =head1 OPTIONS
 
@@ -974,7 +1038,7 @@ Macro code to apply to given files. If no code is specified, btred
 expects a function called `autostart' to be defined in the used
 context and defaults to `autostart()' as the macro code.
 
-The macro code may use all functions defined in the given macro file,
+The macro code may use all functions defined in a given macro file,
 the default macro file tred.def, plus all functions and methods from
 Fslib (see Fslib documentation).
 
@@ -1009,25 +1073,31 @@ Code to be evaluated before any file is open.
 
 =item B<--context|-t>
 
-Start in the given macro context (Perl package).
+Start in a given macro context (Perl package).
 The default context is `TredMacro'.
+
+=item B<--preload-module|-M> module-name
+
+Preload a given Perl module at btred startup so as it is available to
+all macros (even if running in a safe compartment).  This option may
+be specified more than once with different modules.
 
 =item B<--strip-prefix|-p> regexp
 
-Remove strings matching given regexp from the beginning of filenames
+Remove strings matching a given regexp from the beginning of filenames
 before saving.
 
 =item B<--add-prefix|-r> prefix
 
-Prepend output filenames with the given prefix.
+Prepend output filenames with a given prefix.
 
 =item B<--strip-suffix|-s> regexp
 
-Strip strings matching given regexp from the end of filenames.
+Strip strings matching a given regexp from the end of filenames.
 
 =item B<--add-suffix|-a> suffix
 
-Append given suffix to the filenames.
+Append a given suffix to the filenames.
 
 =item B<--output-format|-f> [fs|csts|trxml|tei]
 
@@ -1040,7 +1110,7 @@ TrEd configuration file.
 =item B<--all-trees|-T>
 
 Apply the macro code to all trees (wrapping the code into a
-C<do { CODE } while NextTree()> loop).
+C<do {{ CODE }} while TredMacro::NextTree()> loop).
 
 =item B<--all-nodes|-N>
 
@@ -1062,7 +1132,7 @@ XML files) and is probably only useful with Perl >= 5.8.
 
 =item B<--terminal-encoding|-d> encoding
 
-Automatically apllies given character encoding to all stdout and
+Automatically apllies a given character encoding to all stdout and
 stderr output operations. Works only with Perl >= 5.8.
 
 =item B<--save|-S>
@@ -1103,11 +1173,12 @@ should be preserved as <x> elements when saving to CSTS.
 
 =item B<--confing-file|-c> filename
 
-Use given TrEd configuration file.
+Use a given TrEd configuration file.
 
 =item B<--preload-files|-P>
 
-Preload all given files into memory before applying the macros.
+Preload all given files into memory before applying the macros (DOES
+NOT WORK WITH RESTRICTED MODE).
 
 =item B<--warn-only|-W>
 
@@ -1132,13 +1203,13 @@ Print a lot of debugging information on the stderr.
 
 =item B<--server-port|-L> port
 
-Start btred server, listening on given port; implies -P. Use a
+Start btred server, listening on a given port; implies -P. Use a
 suitable client such as B<ntred> to apply a macro code on the files
 possesed by the server.
 
 =item B<--allow-host|-b> hostname
 
-Accept only connections from given host when operating in the
+Accept only connections from a given host when operating in the
 server-mode.
 
 =item B<--usage|-u>
