@@ -303,6 +303,9 @@ sub file_opened_hook {
 #binding-context PDT
 #include <contrib/pdt.mak>
 
+#binding-context Analytic
+#include <contrib/sdt.mak>
+
 #binding-context Transfer
 #include <contrib/transf.mak>
 
