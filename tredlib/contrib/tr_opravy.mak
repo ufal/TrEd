@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-15 11:57:16 pajas>
+## Time-stamp: <2003-07-15 17:30:34 pajas>
 
 
 package TR_Correction;
@@ -71,3 +71,15 @@ sub add_commentA {
   $node->{commentA}.='|' if $node->{commentA} ne "";
   $node->{commentA}.=$comment;
 }
+
+sub hash_AIDs {
+  my %aids;
+  my $node=ref($_[0]) ? $_[0] : $root;
+  while ($node) {
+    $aids{$node->{AID}} = $node;
+    $node=$node->following;
+  }
+  return \%aids;
+}
+
+sub uniq { my %a; @a{@_}=@_; values %a }
