@@ -1732,6 +1732,35 @@ sub create {
 }
 
 
+=item clone ($clone_trees)
+
+Create a new FSFile object with the same file name, file format,
+FSFormat, backend, encoding, patterns, hint and tail as the current
+FSFile. If $clone_trees is true, populate the new FSFile object with
+clones of all trees from the current FSFile.
+
+=cut
+
+sub clone {
+  my ($self, $deep)=@_;
+  my $fs=$self->FS;
+  my $new = FSFile->create(
+			   name => $self->filename,
+			   format => $self->fileFormat,
+			   FS => $fs->clone,
+			   trees => [],
+			   backend => $self->backend,
+			   encoding => $self->encoding,
+			   hint => $self->hint,
+			   patterns => [ $self->patterns() ],
+			   tail => $self->tail
+			  );
+  if ($deep) {
+    @{$new->treeList} = map { $fs->clone_subtree($_) } $self->trees();
+  }
+  return $new;
+}
+
 sub DESTROY {
   my $self = shift;
   return undef unless ref($self);
