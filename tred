@@ -1798,6 +1798,7 @@ sub openFile {
 
     }
     closeFile($win,-no_update => 1) unless $opts{-preload};
+    removeLock(undef, $f) if $lockinfo and $lockinfo !~ /^locked/;
   }
 
   $win->{FSFile}=$fsfile unless $opts{-preload};
@@ -1811,8 +1812,6 @@ sub openFile {
       $fsfile->notSaved(1);
     }
     push @openfiles, $fsfile;
-  } else {
-    removeLock(undef, $f) if $lockinfo and $lockinfo !~ /^locked/;
   }
   updatePostponed($grp);
   # add file to filelist
@@ -1996,6 +1995,26 @@ sub HPrev { # same as Next but obey $showHidden
   $node=Prev($node,$top);
   while ($node) {
     return $node if (isShown($win,$node));
+    $node=Prev($node,$top);
+  }
+  return 0;
+}
+
+sub NextDisplayed { # same as Next but obey $showHidden
+  my ($win,$node,$top)= @_;
+  $node=Next($node,$top);
+  while ($node) {
+    return $node if ($win->treeView->node_is_displayed($node));
+    $node=Next($node,$top);
+  }
+  return 0;
+}
+
+sub PrevDisplayed { # same as Next but obey $showHidden
+  my ($win,$node,$top)= @_;
+  $node=Prev($node,$top);
+  while ($node) {
+    return $node if ($win->treeView->node_is_displayed($node));
     $node=Prev($node,$top);
   }
   return 0;
@@ -4521,7 +4540,7 @@ sub startMain {
 			 my $win=$_[0]->{focusedWindow};
 			 $win->{treeView}->set_showHidden($treeViewOpts->{showHidden});
 			 get_nodes_win($win);
-			 currentUnhiden($win);
+			 ensureCurrentIsDisplayed($win);
 			 redraw_win($win) },\%group]],
 	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
 	  -variable=> \$treeViewOpts->{highlightAttributes},
@@ -4809,6 +4828,7 @@ sub startMain {
 				  while ($node) {
 				    if (index(join("",@tags),${node})>=0) {
 				      setCurrent($win,$node);
+				      ensureCurrentIsDisplayed($win);
 				      centerTo($win,$node);
 				      Tk->break;
 				      return;
@@ -7436,6 +7456,7 @@ sub findFirstTemplated {
       {
 	gotoTree($win,$tree);
 	setCurrent($win, $node);
+	ensureCurrentIsDisplayed($win);
 	centerTo($win,$node);
 	return $node;
       }
@@ -7508,6 +7529,7 @@ sub findPrevTemplated {
       {
 	gotoTree($grp->{focusedWindow}, $tree);
 	setCurrent($grp->{focusedWindow}, $node);
+	ensureCurrentIsDisplayed($grp->{focusedWindow});
 	centerTo($grp->{focusedWindow},$node);
 	return $node;
       }
@@ -7576,6 +7598,7 @@ sub text_doubleclick_modif {
   my $node=$tv->get_obj_pinfo($t);
   my $d;
   setCurrent($win,$node);
+  ensureCurrentIsDisplayed($win);
   $attr=$tv->get_gen_pinfo("attr:$t");
 
   doEvalHookWithUndo($win,"text_click_hook",$node,$attr,$mod, $w->XEvent);
@@ -7587,6 +7610,7 @@ sub editAttrs {
   my $tv=$win->{treeView};
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
   editAttrsDialog($win,$node);
+  ensureCurrentIsDisplayed($win);
 }
 
 sub editAttr {
@@ -7601,6 +7625,7 @@ sub editAttr {
   my $node=$tv->get_obj_pinfo($t);
   my $d;
   setCurrent($win,$node);
+  ensureCurrentIsDisplayed($win);
   $attr=$tv->get_gen_pinfo("attr:$t");
 
   doEditAttr($win,$node,$attr);
@@ -7746,7 +7771,10 @@ sub redraw_win {
 		: undef),
 	   $win
 	  );
-  setCurrent($win,$win->{currentNode}) if $win->{FSFile};
+  if ($win->{FSFile}) {
+    setCurrent($win,$win->{currentNode});
+    ensureCurrentIsDisplayed($win);
+  }
   $TrEd::TreeView::on_tree_redraw= undef; #forget the reference on $win
   $TrEd::TreeView::on_node_redraw= undef;
 
@@ -7895,12 +7923,18 @@ sub scrollCanvasToXY {
   $tv->store_gen_pinfo("lastCanvasY",$w->canvasy($y));
 }
 
-sub currentUnhiden {
+sub ensureCurrentIsDisplayed {
   my ($win)=@_;
   return unless $win->{FSFile};
-  unless ($win->{treeView}->{showHidden}) {
-    my $node=$win->{FSFile}->FS->isHidden($win->{currentNode});
-    setCurrent($win,$node->parent) if ($node and $node->parent);
+  my $node = $win->{currentNode};
+  while ($node and !$win->treeView->node_is_displayed($node)) {
+    $node = $node->parent;
+  }
+  if (!$node) {
+    $node = $win->{Nodes}->[0];
+  }
+  if ($node and $node != $win->{currentNode}) {
+    setCurrent($win,$node);
   }
 }
 
@@ -7908,20 +7942,13 @@ sub currentLeft {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
-  if ($win->{treeView}->{showHidden}) {
-    if ($win->{currentNode}->lbrother) {
-      setCurrent($win,$win->{currentNode}->lbrother);
-      centerTo($win,$win->{currentNode});
-    }
-  } else {
-    my $n=$win->{currentNode}->lbrother;
-    my $hide=$win->{FSFile}->FS->hide;
-    $n=$n->lbrother while ($n and defined($hide)
-			   and ($n->getAttribute($hide) eq 'hide'));
-    if ($n) {
-      setCurrent($win,$n);
-      centerTo($win,$win->{currentNode});
-    }
+  my $node = $win->{currentNode}->lbrother;
+  while ($node and !$win->treeView->node_is_displayed($node)) {
+    $node = $node->lbrother;
+  }
+  if ($node) {
+    setCurrent($win,$node);
+    centerTo($win,$win->{currentNode});
   }
 }
 
@@ -7929,20 +7956,13 @@ sub currentRight {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
-  if ($win->{treeView}->{showHidden}) {
-    if ($win->{currentNode}->rbrother) {
-      setCurrent($win,$win->{currentNode}->rbrother);
-      centerTo($win,$win->{currentNode});
-    }
-  } else {
-    my $n=$win->{currentNode}->rbrother;
-    my $hide=$win->{FSFile}->FS->hide;
-    $n=$n->rbrother while ($n and defined($hide)
-			   and ($n->getAttribute($hide) eq 'hide'));
-    if ($n) {
-      setCurrent($win,$n);
-      centerTo($win,$win->{currentNode});
-    }
+  my $node = $win->{currentNode}->rbrother;
+  while ($node and !$win->treeView->node_is_displayed($node)) {
+    $node = $node->rbrother;
+  }
+  if ($node) {
+    setCurrent($win,$node);
+    centerTo($win,$win->{currentNode});
   }
 }
 
@@ -7954,7 +7974,7 @@ sub currentRightWholeLevel {
   return unless $node;
   my $level=$node->level;
   do {
-    $node=HNext($win,$node);
+    $node=NextDisplayed($win,$node);
   } while ($node and $level!=$node->level);
   if ($node) {
     setCurrent($win,$node);
@@ -7970,7 +7990,7 @@ sub currentLeftWholeLevel {
   return unless $node;
   my $level=$node->level;
   do {
-    $node=HPrev($win,$node);
+    $node=PrevDisplayed($win,$node);
   } while ($node and $level!=$node->level);
   if ($node) {
     setCurrent($win,$node);
@@ -7982,27 +8002,25 @@ sub currentDown {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
-  if ($win->{treeView}->{showHidden}) {
-    if ($win->{currentNode}->firstson) {
-      setCurrent($win,$win->{currentNode}->firstson);
-      centerTo($win,$win->{currentNode});
-    }
-  } else {
-    my $n=$win->{currentNode}->firstson;
-    my $hide=$win->{FSFile}->FS->hide;
-    $n=$n->rbrother while ($n and $n->getAttribute($hide) eq 'hide');
-    if ($n) {
-      setCurrent($win,$n);
-      centerTo($win,$win->{currentNode});
-    }
+  my $node = $win->{currentNode}->firstson;
+  while ($node and !$win->treeView->node_is_displayed($node)) {
+    $node = NextDisplayed($win,$node,$win->{currentNode});
+  }
+  if ($node) {
+    setCurrent($win,$node);
+    centerTo($win,$win->{currentNode});
   }
 }
 
 sub currentUp {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
-  if ($win->{currentNode} && $win->{currentNode}->parent) {
-    setCurrent($win,$win->{currentNode}->parent);
+  my $node = $win->{currentNode}->parent;
+  while ($node and !$win->treeView->node_is_displayed($node)) {
+    $node = $node->parent;
+  }
+  if ($node) {
+    setCurrent($win,$node);
     centerTo($win,$win->{currentNode});
   }
 }
@@ -8280,7 +8298,7 @@ sub doEvalMacro {
   # the rest of this routine is:
   # memory ok, speed ok
   setCurrent($win,$current) if ($current);
-  currentUnhiden($win);
+  ensureCurrentIsDisplayed($win);
 
   ${"TredMacro::this"}=undef;
   ${"TredMacro::root"}=undef;
@@ -8429,7 +8447,7 @@ sub tiePrevTree {
 
 sub currentNext {
   my ($win)=@_;
-  my $next=HNext($win,$win->{currentNode});
+  my $next=NextDisplayed($win,$win->{currentNode});
   if ($next) {
     setCurrent($win,$next);
     centerTo($win,$win->{currentNode});
@@ -8439,7 +8457,7 @@ sub currentNext {
 
 sub currentPrev {
   my ($win)=@_;
-  my $prev=HPrev($win,$win->{currentNode});
+  my $prev=PrevDisplayed($win,$win->{currentNode});
   if ($prev) {
     setCurrent($win,$prev);
     centerTo($win,$win->{currentNode});
