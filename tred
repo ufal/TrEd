@@ -410,13 +410,13 @@ ApplyGlobalConfig();
 ($TrEd::Config::useCzechLocales) && do {
   $ENV{LC_ALL}=undef;
   use locale;
-  use POSIX qw(locale_h);
+   use POSIX qw(locale_h);
   setlocale(LC_ALL,undef);
   setlocale(LC_NUMERIC,"C");
   if ($TrEd::Convert::support_unicode) {
     setlocale(LC_COLLATE,"cs_CZ.UTF8");
     setlocale('LANG',"cs_CZ.UTF8");
-    setlocale('LC_CTYPE',"cs_CZ");
+    setlocale('LC_CTYPE',"en_US");
   } else {
     setlocale(LC_COLLATE,"cs_CZ");
     setlocale('LANG',"cs_CZ");
@@ -2552,8 +2552,8 @@ sub printDialog {
 			 -relief => $buttonsRelief,
 			 -options => ['BBox', 'User', sort {$a cmp $b} grep !/\d+x\d+|^ISO/, 
 				      keys %TrEd::Print::media ],
-			 -font => ref($font) ? $font->Clone(-size => 8) : $d->Font(-family => 'sans',
-										   -size => 8),
+			 -font => ref($font) ? $font->Clone(-size => 8) :
+			 $d->Font(-family => 'sans', -size => 8),
 			 -textvariable => \$psMedia, # global variable in TrEd::Config
 			 -command => [sub {
 					my ($x,$y,$dfw,$dfh)=@_;
@@ -2928,7 +2928,9 @@ sub printDialog {
 
 sub printThis {
   my ($grp)=@_;
-  return unless $grp->{focusedWindow}->{FSFile};
+  my $win = $grp->{focusedWindow};
+  return unless $win->{FSFile};
+
   my $canvas=$grp->{top}->Canvas();
   my @print_opts;
   my $err;
@@ -2940,6 +2942,12 @@ sub printThis {
   }} while ($err);
   $print_opts[0]=$grp->{focusedWindow}->{treeNo}+1
     if (!defined($print_opts[0]) or $print_opts[0] eq "");
+
+  my $stylesheet = $win->{stylesheet};
+  my $ss = undef;
+  if ($stylesheet ne STYLESHEET_FROM_FILE()) {
+    $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
+  }
   TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
 			   $grp->{top},
 			   $canvas,
@@ -2957,7 +2965,8 @@ sub printThis {
 			   $prtVMargin,
 			   $maximizePrintSize,
 			   $psMedia,
-			   $treeViewOpts
+			   $treeViewOpts,
+			   $ss
 			  );
   $canvas->destroy();
 }
