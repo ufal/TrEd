@@ -173,6 +173,9 @@ print "Trying $libDir\n" if ($libDir and !$opt_q);
 
 $macroFile=undef;
 
+_set_encoding(\*STDERR,'utf-8',"STDERR");
+_set_encoding(\*STDOUT,'utf-8',"STDERR");
+
 ########## Config file #############
 # this must be done before readconfig is first used
 @filelists=();
@@ -6294,3 +6297,13 @@ sub list_isearch {
   }
 }
 
+sub _set_encoding {
+  my ($fh, $enc, $what)=@_;
+  if ($enc and $]>=5.008) {
+    eval {
+      print STDERR ("forcing encoding $enc for $what\n") if $debug;
+      binmode $fh,":encoding($enc)";
+    };
+    _msg $@ if $@;
+  }
+}
