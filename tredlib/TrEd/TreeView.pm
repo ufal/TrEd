@@ -16,10 +16,10 @@ use strict;
 @Options = qw(CanvasBalloon backgroundColor baseXPos baseYPos boxColor
   currentBoxColor currentNodeHeight currentNodeWidth customColors
   drawBoxes drawSentenceInfo font hiddenBoxColor highlightAttributes
-  lineArrow lineColor lineWidth noColor nodeHeight nodeWidth nodeXSkip
-  nodeYSkip pinfo textColor xmargin nodeOutlineColor nodeColor
-  hiddenNodeColor nearestNodeColor ymargin currentNodeColor
-  textColorShadow textColorHilite textColorXHilite);
+  showHidden lineArrow lineColor lineWidth noColor nodeHeight
+  nodeWidth nodeXSkip nodeYSkip pinfo textColor xmargin
+  nodeOutlineColor nodeColor hiddenNodeColor nearestNodeColor ymargin
+  currentNodeColor textColorShadow textColorHilite textColorXHilite);
 
 sub new {
   my $self = shift;
@@ -155,38 +155,8 @@ sub value_line {
 
 
 sub nodes {
-# prepare value line and node list with deleted/saved hidden
-# and ordered by real Ord
-
-  my ($self,$fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;
-  my $nodes=[];
-  return $nodes unless ref($fsfile);
-
-  my @unsorted=();
-  $tree_no=0 if ($tree_no<0);
-  $tree_no=$fsfile->lastTreeNo if ($tree_no>$fsfile->lastTreeNo);
-
-  my $root=$fsfile->treeList->[$tree_no];
-  my $node=$root;
-  my $current=$root;
-
-  while($node)
-  {
-    push @unsorted, $node;
-    $current=$node if ($prevcurrent eq $node);
-    $node=$show_hidden ? $node->following() : $node->following_visible($fsfile->FS);
-  }
-
-  my $ord=$fsfile->FS->order;
-  @{$nodes}=
-    sort { $a->{$ord} <=> $b->{$ord} }
-      @unsorted;
-
-  # just for sure
-  undef @unsorted;
-  # this is actually a workaround for TR, where two different nodes
-  # may have the same Ord
-  return $nodes,$current;
+  my ($self,$fsfile,$tree_no,$prevcurrent)=@_;
+  return ($fsfile->nodes($tree_no,$prevcurrent,$self->get_showHidden()));
 }
 
 sub getFontHeight {
@@ -262,7 +232,6 @@ sub recalculate_positions {
 		       + $self->get_nodeXSkip);
 
     $prevnode{$ypos}=$node;
-    print "WIDTH: $canvasWidth, ",$self->get_node_pinfo($node,"XPOS"),"\n";
   }
 
   $self->{canvasWidth}=$canvasWidth;
