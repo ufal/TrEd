@@ -3651,14 +3651,14 @@ root# <userinput>make install</userinput>
 	keyboard shortcut, the following line should appear somewhere
 	in the macro file:
       </para>
-	<literallayout>#bind my_first_macro to key Ctrl+Alt+Del</literallayout>
+      <literallayout>#bind my_first_macro to key Ctrl+Alt+Del</literallayout>
       <para>
 	Again, the <literal>to</literal> and
 	<literal>key</literal> words may be omitted.	
       </para>
       <warning>
 	<para>
-	  Using the shortcut selected here as an example is probbably
+	  Using the shortcut chosen here as an example is probbably
 	  not a good idea, as it is a shortcut that restarts the
 	  system on many computers.  Remember, that only shortcuts
 	  which are not interpreted by the operating system or desktop
@@ -3677,6 +3677,20 @@ root# <userinput>make install</userinput>
 	shortcut, the latest binding appearing in the macro files
 	is used. Also, if two or more macros with the same name
 	appear in the loaded macro files, the last one is used.
+      </para>
+      <literallayout>#unbind-key Ctrl+Alt+Del</literallayout>
+      <para>
+	The above directive may be used to remove an existing
+	key-bindning from current binding context(s). It is especially
+	useful for disabling certain functionality and bindings of an
+	incuded macro file.
+      </para>
+      <literallayout>#remove-menu My First Macro</literallayout>
+      <para>
+	The above directive may be used to remove an existing menu
+	item from current binding context(s). It is especially useful
+	for disabling certain functionality and bindings of an incuded
+	macro file.
       </para>
       <para>
 	When an interactively invoked macro returns,
@@ -4955,8 +4969,10 @@ MyPackage::my_macro();   # call to a macro defined in MyPackage
 	say <literal>MyContext</literal>, the following directive
 	should be used:
 	<literallayout>#binding-context MyContext</literallayout>
-	Now, all the subsequent directives <literal>#bind</literal>
-	or <literal>#insert</literal> would apply to this context
+	Now, all the subsequent directives <literal>#bind</literal>,
+	<literal>#insert</literal>, <literal>#unbind-key</literal>,
+	and <literal>#remove-menu</literal>
+	would apply to this context
 	and all the bound macros, when invoked, will be first searched
 	in the package named <literal>MyContext</literal>.
       </para>
