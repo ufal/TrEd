@@ -79,7 +79,7 @@ HintWait	 	= 1000			;; interval in ms before floating hint
 ;; attributes may be these: family, size, weight, slant, underline, overstrike
 ;; size is given in points (! not pixels !)
 ;; values for weight: normal, bold
-;; values for slant: roman, italics
+;; values for slant: roman, italic
 ;; values for underline and overstrake: 0,1
 ;;
 ;; Example (Windows):
@@ -111,7 +111,7 @@ HintWait	 	= 1000			;; interval in ms before floating hint
 ;; so similar metrices that they can be used together.
 ;; The following is also default: 
 
-; PsFontFile = csarialm.pfa
+; PsFontFile = fonts/ariam___.pfa
 ; PsFontName = Arial-Medium	;; this is used to force substitution of screenfont
 ; PsFontSize = 12	             		;; -- " --
 
