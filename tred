@@ -831,13 +831,27 @@ sub filelistFullFileName {
 }
 
 sub nextOrPrevFile {
-  my ($grp_or_win,$delta,$no_recent)=@_;
+  my ($grp_or_win,$delta,$no_recent,$real)=@_;
   my ($grp,$win) = grp_win($grp_or_win);
   return 0 if ($delta==0);
   my $op=$grp->{noOpenFileError};
   $grp->{noOpenFileError}=1;
-  my $filename=filelistFullFileName($win,$win->{currentFileNo}+$delta);
-  my $result=gotoFile($win,$win->{currentFileNo}+$delta,$no_recent);
+  my $filename;
+  my $pos = $win->{currentFileNo}+$delta;
+  if ($real and $win->{FSFile}) {
+    my $prev_filename= $win->{FSFile}->filename;
+    my $f = $filename = filelistFullFileName($win,$pos);
+    $prev_filename=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
+    $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
+    while ($f eq $prev_filename) {
+      $pos+=$delta;
+      $f=$filename=filelistFullFileName($win,$pos);
+      $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
+    }
+  } else {
+    $filename=filelistFullFileName($win,$pos);
+  }
+  my $result=gotoFile($win,$pos,$no_recent);
   my $quiet=0;
   my $response;
   while ($result and $result != -1 and (!$win->{FSFile} or $win->{FSFile}->lastTreeNo<0)) {
@@ -849,10 +863,20 @@ sub nextOrPrevFile {
       last if ($response eq "Cancel");
       $quiet=1 if ($response eq "Skip to next correct file");
     }
-    $result=gotoFile($win,$win->{currentFileNo}+$delta,$no_recent);
+    $result=gotoFile($win,$pos,$no_recent);
   }
   $grp->{noOpenFileError}=$op;
   return $result;
+}
+
+sub nextRealFile {
+  my ($grp_or_win,$no_recent)=@_;
+  return nextOrPrevFile($grp_or_win,1,$no_recent,1);
+}
+
+sub prevRealFile {
+  my ($grp_or_win,$no_recent)=@_;
+  return nextOrPrevFile($grp_or_win,-1,$no_recent,1);
 }
 
 sub nextFile {
@@ -6462,13 +6486,13 @@ sub nextNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
-  my $result=nextFile($grp,1);
+  my $result=nextRealFile($grp,1);
   $win->{treeNo}=-1; # force redraw in gotoTree
   $$tree=0;
   # we especially wait for Escape
   _quick_update($grp);
   while (!$grp->{stopSearch} and $result and !$win->{currentNode}) {
-    $result=nextFile($grp,1);
+    $result=nextRealFile($grp,1);
     # we especially wait for Escape
     _quick_update($grp);
     $win->{treeNo}=-1; # force redraw in gotoTree
@@ -6531,13 +6555,13 @@ sub prevNodeInSearchFilelist {
 
   # this realises filelist search
   local $insideEval=1;
-  my $result=prevFile($grp,1);
+  my $result=prevRealFile($grp,1);
   # we especially wait for Escape
   _quick_update($grp);
   $grp->{focusedWindow}->{treeNo}=-1; # force redraw in gotoTree
   while ($result and !$grp->{stopSearch}
 	 and !$grp->{focusedWindow}->{FSFile} || $grp->{focusedWindow}->{FSFile}->lastTreeNo<0) {
-    $result=prevFile($grp,1);
+    $result=prevRealFile($grp,1);
     # we especially wait for Escape
     _quick_update($grp);
     $grp->{focusedWindow}->{treeNo}=-1; # force redraw in gotoTree
