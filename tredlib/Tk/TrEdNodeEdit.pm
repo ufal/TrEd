@@ -17,7 +17,8 @@ use Data::Dumper;
 use vars qw(%colors %bitmap);
 
 %colors = (
-  alt => "#CDFFC3",
+  alt => "#FFFF00",
+  alt_flat => "#CDFFC3",
   list => "#FFCEA9",
   struct => "#FFFFA7",
   sequence => "#B0C1FF",
@@ -97,8 +98,11 @@ sub Populate {
 			    -background => $colors{constant},
 			   ),
     alt => $w->ItemStyle('text', -foreground=>$colors{fg},
-			 -background => $colors{alt},
+			 -background => $colors{alt}
 			),
+    alt_flat => $w->ItemStyle('text', -foreground=>$colors{fg},
+			      -background => $colors{alt_flat},
+			     ),
     buttons => $w->ItemStyle('window',
 			     -pady => 1, -padx => 0, -anchor => "nw"
 			    ),
@@ -430,7 +434,8 @@ sub add_buttons {
       } elsif ($type->{alt}) {
 	# add alt buttons
 	$hlist->mini_button($f,'star',$path,
-			    -background => $colors{alt},
+			    -background => $type->{alt}{flat} ?
+			      $colors{alt_flat} : $colors{alt},
 			    -command => [$hlist,'add_to_alt',$path]
 			   )->pack(-side => 'top');
       }
@@ -478,7 +483,8 @@ sub add_buttons {
   } elsif ($ptype and $ptype->{alt}) {
     # add alt member buttons
     $hlist->mini_button($f,'cross',$path,
-	  -background => $colors{alt},
+	  -background => $ptype->{alt}{flat} ? $colors{alt_flat}
+	    : $colors{alt},
 	  -command => [$hlist,'remove_alt_member',$path]
 	   )->pack(-side => 'top');
   }
@@ -690,10 +696,18 @@ sub add_member {
     $data->{list_no}=$list_no;
   } elsif (exists $mtype->{alt}) {
     my $alt_no=0;
-    $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{alt});
+    $hlist->itemConfigure($path,0,-style => 
+			    $mtype->{alt}{flat} ?
+			    $hlist->{my_itemstyles}{alt_flat} :
+			      $hlist->{my_itemstyles}{alt});
     $hlist->itemCreate($path,1,-itemtype => 'text',
-		       -style => $hlist->{my_itemstyles}{alt},
-		       -text => 'Alternative');
+		       -style => 
+			 ($mtype->{alt}{flat} ?
+			   $hlist->{my_itemstyles}{alt_flat} :
+			     $hlist->{my_itemstyles}{alt}),
+		       -text => 
+			 $mtype->{alt}{flat} ?
+			   'FS-Alternative' : 'Alternative');
 
     if (ref($attr_val) eq 'Fslib::Alt') {
       foreach my $val (@{$attr_val}) {
