@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-03 17:05:00 pajas>
+## Time-stamp: <2005-02-06 14:04:57 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -17,6 +17,27 @@ import Tectogrammatic;
   AID => 'cyan'
  );
 
+#bind remember_this_node_AID to space menu AIDREFS: Remeber current node's AID
+sub remember_this_node_AID {
+  if ($this->{AID} ne '') {
+    $aid_referent = $this->{AID};
+    print STDERR "Remember:$aid_referent\n" if $main::macroDebug;
+  }
+}
+
+#bind add_remembered_AID_to_AIDREFS to Shift+space menu AIDREFS: Add remembered AID to AIDREFs of current node
+sub add_remembered_AID_to_AIDREFS {
+  if ($aid_referent ne '') {
+    unless ($this->{AID} eq $aid_referent or
+	    getAIDREFsHash($this)->{$aid_referent}) {
+      if ($this->{AIDREFS} eq "" and $this->{AID} ne "") {
+	$this->{AIDREFS}=$this->{AID};
+      }
+      $this->{AIDREFS}.='|'.$aid_referent;
+    }
+    undef $aid_referent;
+  }
+}
 
 sub switch_context_hook {
   Coref->switch_context_hook();
@@ -32,6 +53,18 @@ sub node_style_hook {
     $line{-fill}='red';
     $line{-dash}='- -';
   }
+  if (($aid_referent ne "") and
+	($node->{AID} eq $aid_referent)) {
+    AddStyle($styles,'Oval',
+	      -fill => 'cyan'
+	     );
+    AddStyle($styles,'Node',
+	      -shape => 'rectangle',
+	      -addheight => '6',
+	      -addwidth => '6'
+	     );
+  }
+
   if ($node->{_diff_attrs_}) {
     #'style:<? #diff ?><? "#{Oval-fill:darkorange}#{Node-addwidth:4}#{Node-addheight:4}" if $${_diff_attrs_} ?>',
     AddStyle($styles,'Oval',
