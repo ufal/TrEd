@@ -569,7 +569,7 @@ sub add_member {
       -textvariable => \$data->{value},
       -background => 'gray',
 
-      -choices => ($mtype->{optional} ? ['',@{$mtype->{choice}}] : $mtype->{choice}),
+      -choices => ($mtype->{required} ? $mtype->{choice} : ['',@{$mtype->{choice}}]),
       -popupbackground => 'black',
       -borderwidth => 1,
       -relief => 'flat',
