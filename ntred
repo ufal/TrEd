@@ -1,4 +1,11 @@
 #!/usr/bin/perl
+#
+# $Id$
+#
+# This is ntred - a hub/client for btred servers
+#
+# See documentation at the end of program (or run ntred --man)
+#
 
 use strict;
 use Getopt::Long;
@@ -17,7 +24,10 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $strip_suffix $append_suffix $output_format $term_encoding
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
+	    $version $print_version
 	   );
+
+$version='$Revision$ ';
 
 $usage=1 unless @ARGV;
 $ssh='ssh';
@@ -69,11 +79,19 @@ Getopt::Long::Configure ("bundling");
 	 "server-debug|D" => \$server_debug,
 	 "no-hub-start"   => \$nohub,
 	 "key-file=s"     => \$client_key_file,
-	 "verbose|v"      => \$verbose,
+	 "verbose|V"      => \$verbose,
 	 "output-encoding|d=s" => \$term_encoding,
-	 "preload-module|M=s" => \@preload_modules
+	 "preload-module|M=s" => \@preload_modules,
+	 "version|v" => \$print_version
 	);
 GetOptions(%optmap) or $usage=1;
+
+if ($print_version) {
+  my $ver=$version;
+  $ver=~s/\$//g;
+  print "NTrEd $ver\nPerl: $]\nPlatform: $^O\n";
+  exit;
+}
 
 $client_key_file ||= "$ENV{HOME}/.ntred_session_key";
 $hubport ||= 1500;
@@ -105,7 +123,7 @@ sub send_request {
   $server->print("$control REQUEST_TYPE=$type\n");
   $server->flush;
   foreach (@_) {
-    chomp; $server->print("$_\n");
+    chomp; print $server "$_\n";
     $server->flush;
   }
   $server->print("$control END_OF_REQUEST\n");
@@ -197,6 +215,9 @@ my $configFile=TrEd::Config::read_config();
 
 require TrEd::Macros;
 import TrEd::Macros;
+
+#_set_encoding(\*STDERR,$term_encoding,"STDERR");
+#_set_encoding(\*STDOUT,$term_encoding,"STDOUT");
 
 $TrEd::Macros::defines{NTRED}=1;
 
@@ -356,6 +377,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	sleep 2;
       }
     } while (!$server);
+#    _set_encoding($server,"utf8","SERVER");
     $_->{socket} = $server;
     msg  " - connected to $_->{fullname}\n";
   }
@@ -419,6 +441,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       $client->close();
       next;
     }
+#    _set_encoding($client,"utf8","CLIENT");
     #  $newclient->timeout(5);
     $request_number++;
 
@@ -563,12 +586,12 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.=join("",@fs)."\n";
   } else {
     $request_type="EVAL_CODE";
-    $request="$control STATE=CODE\n$code\n";
+    $request="$control STATE=CODE\n"._enc2bytes($term_encoding,$code)."\n";
     $request.="$control STATE=CONTEXT\n$start_context\n";
     $request.="$control STATE=MACRO\n".
-      join("",@TrEd::Macros::macros);
+      _enc2bytes("utf8",join("",@TrEd::Macros::macros));
 #    $request.="$control STATE=ENCODING\n$term_encoding\n" if $term_encoding;
-    $request.="$control STATE=ARGS\n".join("\n",@ARGV)."\n" if @ARGV;
+    $request.="$control STATE=ARGS\n"._enc2bytes($term_encoding,join("\n",@ARGV))."\n" if @ARGV;
     msg "Code: $code\n\n";
   }
 
@@ -578,6 +601,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 				 PeerPort => $hubport,
 				 Proto => 'tcp'
 				);
+#  _set_encoding($hub,"utf8","HUB");
   die "Can't open socket to $hubname:$hubport. $!\n" unless $hub;
   $hub->autoflush(1);
   $hub->timeout(5);
@@ -589,9 +613,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 
   # --------- sending the request to the hub ---------------
   msg "Sending the request to the hub...\n";
-
   send_request($control,$hub,$request_type,split /\n/,$request);
-
   # --------- receiving the response from the hub -----------
   msg "Waiting for responses forwarded by the hub...\n";
   my $first=1;
@@ -628,6 +650,12 @@ if (defined($init) || defined($kill) || defined($break)) {
 }
 
 # --------------------------------------------------------------
+sub _enc2bytes {
+  my ($enc,$str)=@_;
+  return $str if ($enc eq "" or $]<5.008);
+  require Encode;
+  return Encode::encode($enc,$str);
+}
 # --------------- optimal file distribution  -------------------
 sub distribute_files {
   my ($control,$servers,$files,$close_empty) = @_;
