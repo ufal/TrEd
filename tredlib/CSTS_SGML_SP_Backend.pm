@@ -45,8 +45,13 @@ sub open_backend {
       }
       print STDERR "[r $cmd]\n";
       eval {
-	$fh = new IO::Pipe();
-	$fh && $fh->reader($cmd);
+	if ($^O eq 'MSWin32') {
+          $fh = new IO::File();
+	  $fh && $fh->open("$cmd |");
+	} else {
+  	  $fh = new IO::Pipe();
+	  $fh && $fh->reader($cmd);
+        }
       } || return undef;
     }
   }
@@ -106,5 +111,3 @@ sub test {
     return $test;
   }
 }
-
-
