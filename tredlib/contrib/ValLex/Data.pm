@@ -177,15 +177,34 @@ sub getFrameList {
   return @frames;
 }
 
+sub getOneFrameElementString {
+  my ($self,$element)=@_;
+
+  my $functor = $element->getAttribute ("functor");
+  my $type = $element->getAttribute("type");
+  my $forms = $self->getFrameElementFormsString($element);
+  return $functor.($type eq "oblig" ? "($forms)" : "[$forms]");
+}
+
 sub getFrameElementString {
   my ($self,$frame)=@_;
   return unless $frame;
   my @elements;
-  foreach my $element ($frame->getDescendantElementsByTagName("element")) {
-    my $functor = $element->getAttribute ("functor");
-    my $type = $element->getAttribute("type");
-    my $forms = $self->getFrameElementFormsString($element);
-    push @elements,$functor.($type eq "oblig" ? "($forms)" : "[$forms]");
+  my @element_nodes=$frame->getDescendantElementsByTagName("element");
+
+  foreach my $element (
+		       (grep { $_->getAttribute('type') eq 'oblig' }
+			@element_nodes)
+		      ) {
+    push @elements,$self->getOneFrameElementString($element);
+  }
+  push @elements, "  ";
+  foreach my $element (
+		       (grep { $_->getAttribute('type') eq 'non-oblig' }
+			@element_nodes
+		       )
+		      ) {
+    push @elements,$self->getOneFrameElementString($element);
   }
   return join "  ",@elements;
 }
