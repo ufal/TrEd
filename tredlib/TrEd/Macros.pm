@@ -169,7 +169,6 @@ sub do_eval_macro {
 				# to macros
 
   return 0,0,$this unless $macro;
-  return 0,0,$this unless $this;
 
   unless ($macrosEvaluated) {
     eval (join("",@macros)."\n return 1;");

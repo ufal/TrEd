@@ -20,7 +20,7 @@ sub parse_print_list {
   return unless ref($fsfile);
   foreach (split /,/,$printRange) {
     print "Parsing $_\n";
-    if (/^\s*([0-9]+)\s*$/ and $1<=$fsfile->lastTreeNo) {
+    if (/^\s*([0-9]+)\s*$/ and $1-1<=$fsfile->lastTreeNo) {
       print "Preparing $1\n";
       push @printList,$1;
       next;
@@ -192,14 +192,14 @@ sub print_trees {
 	print O '%%Pages: ',$#printList+1,"\n";
 	$i++;
       }
-      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%\%DocumentNeededResources: font Arial-Medium/);
+      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%\%DocumentNeededResources: font $psFontName/);
       print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BeginProlog/);
       print O $ps[$i++],"\n";
-      print O '%%BeginFont arialm',"\n";
+      print O '%%BeginFont tredfont',"\n";
       print O <F>;
       print O '%%EndFont',"\n\n";
       $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
-      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font Arial-Medium/);
+      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font $psFontName/);
       $i++;
     }
     while ($i<=$#ps && $ps[$i]!~/^%\%Trailer\w*$/) {
