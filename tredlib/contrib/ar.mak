@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2003-03-12 14:23:04 pajas>
+## Time-stamp: <2003-03-12 14:26:06 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -2108,8 +2108,8 @@ sub DepSuffix {
 }
 
 
-#bind AssignAfun_Pred to q menu Assign afun Pred
-sub AssignAfun_Pred {
+#bind afun_Pred to q menu Assign afun Pred
+sub afun_Pred {
 
   $sPar1 = 'Pred';
 
@@ -2118,8 +2118,8 @@ sub AssignAfun_Pred {
 }
 
 
-#bind AssignAfun_Pnom to n menu Assign afun Pnom
-sub AssignAfun_Pnom {
+#bind afun_Pnom to n menu Assign afun Pnom
+sub afun_Pnom {
 
   $sPar1 = 'Pnom';
 
@@ -2128,8 +2128,8 @@ sub AssignAfun_Pnom {
 }
 
 
-#bind AssignAfun_AuxV to v menu Assign afun AuxV
-sub AssignAfun_AuxV {
+#bind afun_AuxV to v menu Assign afun AuxV
+sub afun_AuxV {
 
   $sPar1 = 'AuxV';
 
@@ -2138,8 +2138,8 @@ sub AssignAfun_AuxV {
 }
 
 
-#bind AssignAfun_Sb to s menu Assign afun Sb
-sub AssignAfun_Sb {
+#bind afun_Sb to s menu Assign afun Sb
+sub afun_Sb {
 
   $sPar1 = 'Sb';
 
@@ -2148,8 +2148,8 @@ sub AssignAfun_Sb {
 }
 
 
-#bind AssignAfun_Obj to b menu Assign afun Obj
-sub AssignAfun_Obj {
+#bind afun_Obj to b menu Assign afun Obj
+sub afun_Obj {
 
   $sPar1 = 'Obj';
 
@@ -2158,8 +2158,8 @@ sub AssignAfun_Obj {
 }
 
 
-#bind AssignAfun_Atr to a menu Assign afun Atr
-sub AssignAfun_Atr {
+#bind afun_Atr to a menu Assign afun Atr
+sub afun_Atr {
 
   $sPar1 = 'Atr';
 
@@ -2168,8 +2168,8 @@ sub AssignAfun_Atr {
 }
 
 
-#bind AssignAfun_Adv to d menu Assign afun Adv
-sub AssignAfun_Adv {
+#bind afun_Adv to d menu Assign afun Adv
+sub afun_Adv {
 
   $sPar1 = 'Adv';
 
@@ -2178,8 +2178,8 @@ sub AssignAfun_Adv {
 }
 
 
-#bind AssignAfun_Coord to i menu Assign afun Coord
-sub AssignAfun_Coord {
+#bind afun_Coord to i menu Assign afun Coord
+sub afun_Coord {
 
   $sPar1 = 'Coord';
 
@@ -2188,8 +2188,8 @@ sub AssignAfun_Coord {
 }
 
 
-#bind AssignAfun_AuxT to t menu Assign afun AuxT
-sub AssignAfun_AuxT {
+#bind afun_AuxT to t menu Assign afun AuxT
+sub afun_AuxT {
 
   $sPar1 = 'AuxT';
 
@@ -2198,8 +2198,8 @@ sub AssignAfun_AuxT {
 }
 
 
-#bind AssignAfun_AuxR to r menu Assign afun AuxR
-sub AssignAfun_AuxR {
+#bind afun_AuxR to r menu Assign afun AuxR
+sub afun_AuxR {
 
   $sPar1 = 'AuxR';
 
@@ -2208,8 +2208,8 @@ sub AssignAfun_AuxR {
 }
 
 
-#bind AssignAfun_AuxP to p menu Assign afun AuxP
-sub AssignAfun_AuxP {
+#bind afun_AuxP to p menu Assign afun AuxP
+sub afun_AuxP {
 
   $sPar1 = 'AuxP';
 
@@ -2218,8 +2218,8 @@ sub AssignAfun_AuxP {
 }
 
 
-#bind AssignAfun_Apos to u menu Assign afun Apos
-sub AssignAfun_Apos {
+#bind afun_Apos to u menu Assign afun Apos
+sub afun_Apos {
 
   $sPar1 = 'Apos';
 
@@ -2228,8 +2228,8 @@ sub AssignAfun_Apos {
 }
 
 
-#bind AssignAfun_AuxC to c menu Assign afun AuxC
-sub AssignAfun_AuxC {
+#bind afun_AuxC to c menu Assign afun AuxC
+sub afun_AuxC {
 
   $sPar1 = 'AuxC';
 
@@ -2238,8 +2238,8 @@ sub AssignAfun_AuxC {
 }
 
 
-#bind AssignAfun_AuxO to o menu Assign afun AuxO
-sub AssignAfun_AuxO {
+#bind afun_AuxO to o menu Assign afun AuxO
+sub afun_AuxO {
 
   $sPar1 = 'AuxO';
 
@@ -2248,8 +2248,8 @@ sub AssignAfun_AuxO {
 }
 
 
-#bind AssignAfun_Atv to h menu Assign afun Atv
-sub AssignAfun_Atv {
+#bind afun_Atv to h menu Assign afun Atv
+sub afun_Atv {
 
   $sPar1 = 'Atv';
 
@@ -2258,8 +2258,8 @@ sub AssignAfun_Atv {
 }
 
 
-#bind AssignAfun_AtvV to j menu Assign afun AtvV
-sub AssignAfun_AtvV {
+#bind afun_AtvV to j menu Assign afun AtvV
+sub afun_AtvV {
 
   $sPar1 = 'AtvV';
 
@@ -2268,8 +2268,8 @@ sub AssignAfun_AtvV {
 }
 
 
-#bind AssignAfun_AuxZ to z menu Assign afun AuxZ
-sub AssignAfun_AuxZ {
+#bind afun_AuxZ to z menu Assign afun AuxZ
+sub afun_AuxZ {
 
   $sPar1 = 'AuxZ';
 
@@ -2278,8 +2278,8 @@ sub AssignAfun_AuxZ {
 }
 
 
-#bind AssignAfun_AuxY to y menu Assign afun AuxY
-sub AssignAfun_AuxY {
+#bind afun_AuxY to y menu Assign afun AuxY
+sub afun_AuxY {
 
   $sPar1 = 'AuxY';
 
@@ -2288,8 +2288,8 @@ sub AssignAfun_AuxY {
 }
 
 
-#bind AssignAfun_AuxG to g menu Assign afun AuxG
-sub AssignAfun_AuxG {
+#bind afun_AuxG to g menu Assign afun AuxG
+sub afun_AuxG {
 
   $sPar1 = 'AuxG';
 
@@ -2298,8 +2298,8 @@ sub AssignAfun_AuxG {
 }
 
 
-#bind AssignAfun_AuxK to k menu Assign afun AuxK
-sub AssignAfun_AuxK {
+#bind afun_AuxK to k menu Assign afun AuxK
+sub afun_AuxK {
 
   $sPar1 = 'AuxK';
 
@@ -2308,8 +2308,8 @@ sub AssignAfun_AuxK {
 }
 
 
-#bind AssignAfun_AuxX to x menu Assign afun AuxX
-sub AssignAfun_AuxX {
+#bind afun_AuxX to x menu Assign afun AuxX
+sub afun_AuxX {
 
   $sPar1 = 'AuxX';
 
@@ -2318,8 +2318,8 @@ sub AssignAfun_AuxX {
 }
 
 
-#bind AssignAfun_ExD to e menu Assign afun ExD
-sub AssignAfun_ExD {
+#bind afun_ExD to e menu Assign afun ExD
+sub afun_ExD {
 
   $sPar1 = 'ExD';
 
@@ -2328,8 +2328,8 @@ sub AssignAfun_ExD {
 }
 
 
-#bind AssignAfun_Pred_Co to Ctrl+q menu Assign afun Pred_Co
-sub AssignAfun_Pred_Co {
+#bind afun_Pred_Co to Ctrl+q menu Assign afun Pred_Co
+sub afun_Pred_Co {
 
   $sPar1 = 'Pred_Co';
 
@@ -2338,8 +2338,8 @@ sub AssignAfun_Pred_Co {
 }
 
 
-#bind AssignAfun_Pnom_Co to Ctrl+n menu Assign afun Pnom_Co
-sub AssignAfun_Pnom_Co {
+#bind afun_Pnom_Co to Ctrl+n menu Assign afun Pnom_Co
+sub afun_Pnom_Co {
 
   $sPar1 = 'Pnom_Co';
 
@@ -2348,8 +2348,8 @@ sub AssignAfun_Pnom_Co {
 }
 
 
-#bind AssignAfun_AuxV_Co to Ctrl+v menu Assign afun AuxV_Co
-sub AssignAfun_AuxV_Co {
+#bind afun_AuxV_Co to Ctrl+v menu Assign afun AuxV_Co
+sub afun_AuxV_Co {
 
   $sPar1 = 'AuxV_Co';
 
@@ -2358,8 +2358,8 @@ sub AssignAfun_AuxV_Co {
 }
 
 
-#bind AssignAfun_Sb_Co to Ctrl+s menu Assign afun Sb_Co
-sub AssignAfun_Sb_Co {
+#bind afun_Sb_Co to Ctrl+s menu Assign afun Sb_Co
+sub afun_Sb_Co {
 
   $sPar1 = 'Sb_Co';
 
@@ -2368,8 +2368,8 @@ sub AssignAfun_Sb_Co {
 }
 
 
-#bind AssignAfun_Obj_Co to Ctrl+b menu Assign afun Obj_Co
-sub AssignAfun_Obj_Co {
+#bind afun_Obj_Co to Ctrl+b menu Assign afun Obj_Co
+sub afun_Obj_Co {
 
   $sPar1 = 'Obj_Co';
 
@@ -2378,8 +2378,8 @@ sub AssignAfun_Obj_Co {
 }
 
 
-#bind AssignAfun_Atr_Co to Ctrl+a menu Assign afun Atr_Co
-sub AssignAfun_Atr_Co {
+#bind afun_Atr_Co to Ctrl+a menu Assign afun Atr_Co
+sub afun_Atr_Co {
 
   $sPar1 = 'Atr_Co';
 
@@ -2388,8 +2388,8 @@ sub AssignAfun_Atr_Co {
 }
 
 
-#bind AssignAfun_Adv_Co to Ctrl+d menu Assign afun Adv_Co
-sub AssignAfun_Adv_Co {
+#bind afun_Adv_Co to Ctrl+d menu Assign afun Adv_Co
+sub afun_Adv_Co {
 
   $sPar1 = 'Adv_Co';
 
@@ -2398,8 +2398,8 @@ sub AssignAfun_Adv_Co {
 }
 
 
-#bind AssignAfun_Coord_Co to Ctrl+i menu Assign afun Coord_Co
-sub AssignAfun_Coord_Co {
+#bind afun_Coord_Co to Ctrl+i menu Assign afun Coord_Co
+sub afun_Coord_Co {
 
   $sPar1 = 'Coord_Co';
 
@@ -2408,8 +2408,8 @@ sub AssignAfun_Coord_Co {
 }
 
 
-#bind AssignAfun_AuxT_Co to Ctrl+t menu Assign afun AuxT_Co
-sub AssignAfun_AuxT_Co {
+#bind afun_AuxT_Co to Ctrl+t menu Assign afun AuxT_Co
+sub afun_AuxT_Co {
 
   $sPar1 = 'AuxT_Co';
 
@@ -2418,8 +2418,8 @@ sub AssignAfun_AuxT_Co {
 }
 
 
-#bind AssignAfun_AuxR_Co to Ctrl+r menu Assign afun AuxR_Co
-sub AssignAfun_AuxR_Co {
+#bind afun_AuxR_Co to Ctrl+r menu Assign afun AuxR_Co
+sub afun_AuxR_Co {
 
   $sPar1 = 'AuxR_Co';
 
@@ -2428,8 +2428,8 @@ sub AssignAfun_AuxR_Co {
 }
 
 
-#bind AssignAfun_AuxP_Co to Ctrl+p menu Assign afun AuxP_Co
-sub AssignAfun_AuxP_Co {
+#bind afun_AuxP_Co to Ctrl+p menu Assign afun AuxP_Co
+sub afun_AuxP_Co {
 
   $sPar1 = 'AuxP_Co';
 
@@ -2438,8 +2438,8 @@ sub AssignAfun_AuxP_Co {
 }
 
 
-#bind AssignAfun_Apos_Co to Ctrl+u menu Assign afun Apos_Co
-sub AssignAfun_Apos_Co {
+#bind afun_Apos_Co to Ctrl+u menu Assign afun Apos_Co
+sub afun_Apos_Co {
 
   $sPar1 = 'Apos_Co';
 
@@ -2448,8 +2448,8 @@ sub AssignAfun_Apos_Co {
 }
 
 
-#bind AssignAfun_AuxC_Co to Ctrl+c menu Assign afun AuxC_Co
-sub AssignAfun_AuxC_Co {
+#bind afun_AuxC_Co to Ctrl+c menu Assign afun AuxC_Co
+sub afun_AuxC_Co {
 
   $sPar1 = 'AuxC_Co';
 
@@ -2458,8 +2458,8 @@ sub AssignAfun_AuxC_Co {
 }
 
 
-#bind AssignAfun_AuxO_Co to Ctrl+o menu Assign afun AuxO_Co
-sub AssignAfun_AuxO_Co {
+#bind afun_AuxO_Co to Ctrl+o menu Assign afun AuxO_Co
+sub afun_AuxO_Co {
 
   $sPar1 = 'AuxO_Co';
 
@@ -2468,8 +2468,8 @@ sub AssignAfun_AuxO_Co {
 }
 
 
-#bind AssignAfun_Atv_Co to Ctrl+h menu Assign afun Atv_Co
-sub AssignAfun_Atv_Co {
+#bind afun_Atv_Co to Ctrl+h menu Assign afun Atv_Co
+sub afun_Atv_Co {
 
   $sPar1 = 'Atv_Co';
 
@@ -2478,8 +2478,8 @@ sub AssignAfun_Atv_Co {
 }
 
 
-#bind AssignAfun_AtvV_Co to Ctrl+j menu Assign afun AtvV_Co
-sub AssignAfun_AtvV_Co {
+#bind afun_AtvV_Co to Ctrl+j menu Assign afun AtvV_Co
+sub afun_AtvV_Co {
 
   $sPar1 = 'AtvV_Co';
 
@@ -2488,8 +2488,8 @@ sub AssignAfun_AtvV_Co {
 }
 
 
-#bind AssignAfun_AuxZ_Co to Ctrl+z menu Assign afun AuxZ_Co
-sub AssignAfun_AuxZ_Co {
+#bind afun_AuxZ_Co to Ctrl+z menu Assign afun AuxZ_Co
+sub afun_AuxZ_Co {
 
   $sPar1 = 'AuxZ_Co';
 
@@ -2498,8 +2498,8 @@ sub AssignAfun_AuxZ_Co {
 }
 
 
-#bind AssignAfun_AuxY_Co to Ctrl+y menu Assign afun AuxY_Co
-sub AssignAfun_AuxY_Co {
+#bind afun_AuxY_Co to Ctrl+y menu Assign afun AuxY_Co
+sub afun_AuxY_Co {
 
   $sPar1 = 'AuxY_Co';
 
@@ -2508,8 +2508,8 @@ sub AssignAfun_AuxY_Co {
 }
 
 
-#bind AssignAfun_AuxG_Co to Ctrl+g menu Assign afun AuxG_Co
-sub AssignAfun_AuxG_Co {
+#bind afun_AuxG_Co to Ctrl+g menu Assign afun AuxG_Co
+sub afun_AuxG_Co {
 
   $sPar1 = 'AuxG_Co';
 
@@ -2518,8 +2518,8 @@ sub AssignAfun_AuxG_Co {
 }
 
 
-#bind AssignAfun_AuxK_Co to Ctrl+k menu Assign afun AuxK_Co
-sub AssignAfun_AuxK_Co {
+#bind afun_AuxK_Co to Ctrl+k menu Assign afun AuxK_Co
+sub afun_AuxK_Co {
 
   $sPar1 = 'AuxK_Co';
 
@@ -2528,8 +2528,8 @@ sub AssignAfun_AuxK_Co {
 }
 
 
-#bind AssignAfun_AuxX_Co to Ctrl+x menu Assign afun AuxX_Co
-sub AssignAfun_AuxX_Co {
+#bind afun_AuxX_Co to Ctrl+x menu Assign afun AuxX_Co
+sub afun_AuxX_Co {
 
   $sPar1 = 'AuxX_Co';
 
@@ -2538,8 +2538,8 @@ sub AssignAfun_AuxX_Co {
 }
 
 
-#bind AssignAfun_ExD_Co to Ctrl+e menu Assign afun ExD_Co
-sub AssignAfun_ExD_Co {
+#bind afun_ExD_Co to Ctrl+e menu Assign afun ExD_Co
+sub afun_ExD_Co {
 
   $sPar1 = 'ExD_Co';
 
@@ -2548,8 +2548,8 @@ sub AssignAfun_ExD_Co {
 }
 
 
-#bind AssignAfun_Pred_Ap to Q menu Assign afun Pred_Ap
-sub AssignAfun_Pred_Ap {
+#bind afun_Pred_Ap to Q menu Assign afun Pred_Ap
+sub afun_Pred_Ap {
 
   $sPar1 = 'Pred_Ap';
 
@@ -2558,8 +2558,8 @@ sub AssignAfun_Pred_Ap {
 }
 
 
-#bind AssignAfun_Pnom_Ap to N menu Assign afun Pnom_Ap
-sub AssignAfun_Pnom_Ap {
+#bind afun_Pnom_Ap to N menu Assign afun Pnom_Ap
+sub afun_Pnom_Ap {
 
   $sPar1 = 'Pnom_Ap';
 
@@ -2568,8 +2568,8 @@ sub AssignAfun_Pnom_Ap {
 }
 
 
-#bind AssignAfun_AuxV_Ap to V menu Assign afun AuxV_Ap
-sub AssignAfun_AuxV_Ap {
+#bind afun_AuxV_Ap to V menu Assign afun AuxV_Ap
+sub afun_AuxV_Ap {
 
   $sPar1 = 'AuxV_Ap';
 
@@ -2578,8 +2578,8 @@ sub AssignAfun_AuxV_Ap {
 }
 
 
-#bind AssignAfun_Sb_Ap to S menu Assign afun Sb_Ap
-sub AssignAfun_Sb_Ap {
+#bind afun_Sb_Ap to S menu Assign afun Sb_Ap
+sub afun_Sb_Ap {
 
   $sPar1 = 'Sb_Ap';
 
@@ -2588,8 +2588,8 @@ sub AssignAfun_Sb_Ap {
 }
 
 
-#bind AssignAfun_Obj_Ap to B menu Assign afun Obj_Ap
-sub AssignAfun_Obj_Ap {
+#bind afun_Obj_Ap to B menu Assign afun Obj_Ap
+sub afun_Obj_Ap {
 
   $sPar1 = 'Obj_Ap';
 
@@ -2598,8 +2598,8 @@ sub AssignAfun_Obj_Ap {
 }
 
 
-#bind AssignAfun_Atr_Ap to A menu Assign afun Atr_Ap
-sub AssignAfun_Atr_Ap {
+#bind afun_Atr_Ap to A menu Assign afun Atr_Ap
+sub afun_Atr_Ap {
 
   $sPar1 = 'Atr_Ap';
 
@@ -2608,8 +2608,8 @@ sub AssignAfun_Atr_Ap {
 }
 
 
-#bind AssignAfun_Adv_Ap to D menu Assign afun Adv_Ap
-sub AssignAfun_Adv_Ap {
+#bind afun_Adv_Ap to D menu Assign afun Adv_Ap
+sub afun_Adv_Ap {
 
   $sPar1 = 'Adv_Ap';
 
@@ -2618,8 +2618,8 @@ sub AssignAfun_Adv_Ap {
 }
 
 
-#bind AssignAfun_Coord_Ap to I menu Assign afun Coord_Ap
-sub AssignAfun_Coord_Ap {
+#bind afun_Coord_Ap to I menu Assign afun Coord_Ap
+sub afun_Coord_Ap {
 
   $sPar1 = 'Coord_Ap';
 
@@ -2628,8 +2628,8 @@ sub AssignAfun_Coord_Ap {
 }
 
 
-#bind AssignAfun_AuxT_Ap to T menu Assign afun AuxT_Ap
-sub AssignAfun_AuxT_Ap {
+#bind afun_AuxT_Ap to T menu Assign afun AuxT_Ap
+sub afun_AuxT_Ap {
 
   $sPar1 = 'AuxT_Ap';
 
@@ -2638,8 +2638,8 @@ sub AssignAfun_AuxT_Ap {
 }
 
 
-#bind AssignAfun_AuxR_Ap to R menu Assign afun AuxR_Ap
-sub AssignAfun_AuxR_Ap {
+#bind afun_AuxR_Ap to R menu Assign afun AuxR_Ap
+sub afun_AuxR_Ap {
 
   $sPar1 = 'AuxR_Ap';
 
@@ -2648,8 +2648,8 @@ sub AssignAfun_AuxR_Ap {
 }
 
 
-#bind AssignAfun_AuxP_Ap to P menu Assign afun AuxP_Ap
-sub AssignAfun_AuxP_Ap {
+#bind afun_AuxP_Ap to P menu Assign afun AuxP_Ap
+sub afun_AuxP_Ap {
 
   $sPar1 = 'AuxP_Ap';
 
@@ -2658,8 +2658,8 @@ sub AssignAfun_AuxP_Ap {
 }
 
 
-#bind AssignAfun_Apos_Ap to U menu Assign afun Apos_Ap
-sub AssignAfun_Apos_Ap {
+#bind afun_Apos_Ap to U menu Assign afun Apos_Ap
+sub afun_Apos_Ap {
 
   $sPar1 = 'Apos_Ap';
 
@@ -2668,8 +2668,8 @@ sub AssignAfun_Apos_Ap {
 }
 
 
-#bind AssignAfun_AuxC_Ap to C menu Assign afun AuxC_Ap
-sub AssignAfun_AuxC_Ap {
+#bind afun_AuxC_Ap to C menu Assign afun AuxC_Ap
+sub afun_AuxC_Ap {
 
   $sPar1 = 'AuxC_Ap';
 
@@ -2678,8 +2678,8 @@ sub AssignAfun_AuxC_Ap {
 }
 
 
-#bind AssignAfun_AuxO_Ap to O menu Assign afun AuxO_Ap
-sub AssignAfun_AuxO_Ap {
+#bind afun_AuxO_Ap to O menu Assign afun AuxO_Ap
+sub afun_AuxO_Ap {
 
   $sPar1 = 'AuxO_Ap';
 
@@ -2688,8 +2688,8 @@ sub AssignAfun_AuxO_Ap {
 }
 
 
-#bind AssignAfun_Atv_Ap to H menu Assign afun Atv_Ap
-sub AssignAfun_Atv_Ap {
+#bind afun_Atv_Ap to H menu Assign afun Atv_Ap
+sub afun_Atv_Ap {
 
   $sPar1 = 'Atv_Ap';
 
@@ -2698,8 +2698,8 @@ sub AssignAfun_Atv_Ap {
 }
 
 
-#bind AssignAfun_AtvV_Ap to J menu Assign afun AtvV_Ap
-sub AssignAfun_AtvV_Ap {
+#bind afun_AtvV_Ap to J menu Assign afun AtvV_Ap
+sub afun_AtvV_Ap {
 
   $sPar1 = 'AtvV_Ap';
 
@@ -2708,8 +2708,8 @@ sub AssignAfun_AtvV_Ap {
 }
 
 
-#bind AssignAfun_AuxZ_Ap to Z menu Assign afun AuxZ_Ap
-sub AssignAfun_AuxZ_Ap {
+#bind afun_AuxZ_Ap to Z menu Assign afun AuxZ_Ap
+sub afun_AuxZ_Ap {
 
   $sPar1 = 'AuxZ_Ap';
 
@@ -2718,8 +2718,8 @@ sub AssignAfun_AuxZ_Ap {
 }
 
 
-#bind AssignAfun_AuxY_Ap to Y menu Assign afun AuxY_Ap
-sub AssignAfun_AuxY_Ap {
+#bind afun_AuxY_Ap to Y menu Assign afun AuxY_Ap
+sub afun_AuxY_Ap {
 
   $sPar1 = 'AuxY_Ap';
 
@@ -2728,8 +2728,8 @@ sub AssignAfun_AuxY_Ap {
 }
 
 
-#bind AssignAfun_AuxG_Ap to G menu Assign afun AuxG_Ap
-sub AssignAfun_AuxG_Ap {
+#bind afun_AuxG_Ap to G menu Assign afun AuxG_Ap
+sub afun_AuxG_Ap {
 
   $sPar1 = 'AuxG_Ap';
 
@@ -2738,8 +2738,8 @@ sub AssignAfun_AuxG_Ap {
 }
 
 
-#bind AssignAfun_AuxK_Ap to K menu Assign afun AuxK_Ap
-sub AssignAfun_AuxK_Ap {
+#bind afun_AuxK_Ap to K menu Assign afun AuxK_Ap
+sub afun_AuxK_Ap {
 
   $sPar1 = 'AuxK_Ap';
 
@@ -2748,8 +2748,8 @@ sub AssignAfun_AuxK_Ap {
 }
 
 
-#bind AssignAfun_AuxX_Ap to X menu Assign afun AuxX_Ap
-sub AssignAfun_AuxX_Ap {
+#bind afun_AuxX_Ap to X menu Assign afun AuxX_Ap
+sub afun_AuxX_Ap {
 
   $sPar1 = 'AuxX_Ap';
 
@@ -2758,8 +2758,8 @@ sub AssignAfun_AuxX_Ap {
 }
 
 
-#bind AssignAfun_ExD_Ap to E menu Assign afun ExD_Ap
-sub AssignAfun_ExD_Ap {
+#bind afun_ExD_Ap to E menu Assign afun ExD_Ap
+sub afun_ExD_Ap {
 
   $sPar1 = 'ExD_Ap';
 
@@ -2768,8 +2768,8 @@ sub AssignAfun_ExD_Ap {
 }
 
 
-#bind AssignAfun_Pred_Pa to Ctrl+Q menu Assign afun Pred_Pa
-sub AssignAfun_Pred_Pa {
+#bind afun_Pred_Pa to Ctrl+Q menu Assign afun Pred_Pa
+sub afun_Pred_Pa {
 
   $sPar1 = 'Pred_Pa';
 
@@ -2778,8 +2778,8 @@ sub AssignAfun_Pred_Pa {
 }
 
 
-#bind AssignAfun_Pnom_Pa to Ctrl+N menu Assign afun Pnom_Pa
-sub AssignAfun_Pnom_Pa {
+#bind afun_Pnom_Pa to Ctrl+N menu Assign afun Pnom_Pa
+sub afun_Pnom_Pa {
 
   $sPar1 = 'Pnom_Pa';
 
@@ -2788,8 +2788,8 @@ sub AssignAfun_Pnom_Pa {
 }
 
 
-#bind AssignAfun_AuxV_Pa to Ctrl+V menu Assign afun AuxV_Pa
-sub AssignAfun_AuxV_Pa {
+#bind afun_AuxV_Pa to Ctrl+V menu Assign afun AuxV_Pa
+sub afun_AuxV_Pa {
 
   $sPar1 = 'AuxV_Pa';
 
@@ -2798,8 +2798,8 @@ sub AssignAfun_AuxV_Pa {
 }
 
 
-#bind AssignAfun_Sb_Pa to Ctrl+S menu Assign afun Sb_Pa
-sub AssignAfun_Sb_Pa {
+#bind afun_Sb_Pa to Ctrl+S menu Assign afun Sb_Pa
+sub afun_Sb_Pa {
 
   $sPar1 = 'Sb_Pa';
 
@@ -2808,8 +2808,8 @@ sub AssignAfun_Sb_Pa {
 }
 
 
-#bind AssignAfun_Obj_Pa to Ctrl+B menu Assign afun Obj_Pa
-sub AssignAfun_Obj_Pa {
+#bind afun_Obj_Pa to Ctrl+B menu Assign afun Obj_Pa
+sub afun_Obj_Pa {
 
   $sPar1 = 'Obj_Pa';
 
@@ -2818,8 +2818,8 @@ sub AssignAfun_Obj_Pa {
 }
 
 
-#bind AssignAfun_Atr_Pa to Ctrl+A menu Assign afun Atr_Pa
-sub AssignAfun_Atr_Pa {
+#bind afun_Atr_Pa to Ctrl+A menu Assign afun Atr_Pa
+sub afun_Atr_Pa {
 
   $sPar1 = 'Atr_Pa';
 
@@ -2828,8 +2828,8 @@ sub AssignAfun_Atr_Pa {
 }
 
 
-#bind AssignAfun_Adv_Pa to Ctrl+D menu Assign afun Adv_Pa
-sub AssignAfun_Adv_Pa {
+#bind afun_Adv_Pa to Ctrl+D menu Assign afun Adv_Pa
+sub afun_Adv_Pa {
 
   $sPar1 = 'Adv_Pa';
 
@@ -2838,8 +2838,8 @@ sub AssignAfun_Adv_Pa {
 }
 
 
-#bind AssignAfun_Coord_Pa to Ctrl+I menu Assign afun Coord_Pa
-sub AssignAfun_Coord_Pa {
+#bind afun_Coord_Pa to Ctrl+I menu Assign afun Coord_Pa
+sub afun_Coord_Pa {
 
   $sPar1 = 'Coord_Pa';
 
@@ -2848,8 +2848,8 @@ sub AssignAfun_Coord_Pa {
 }
 
 
-#bind AssignAfun_AuxT_Pa to Ctrl+T menu Assign afun AuxT_Pa
-sub AssignAfun_AuxT_Pa {
+#bind afun_AuxT_Pa to Ctrl+T menu Assign afun AuxT_Pa
+sub afun_AuxT_Pa {
 
   $sPar1 = 'AuxT_Pa';
 
@@ -2858,8 +2858,8 @@ sub AssignAfun_AuxT_Pa {
 }
 
 
-#bind AssignAfun_AuxR_Pa to Ctrl+R menu Assign afun AuxR_Pa
-sub AssignAfun_AuxR_Pa {
+#bind afun_AuxR_Pa to Ctrl+R menu Assign afun AuxR_Pa
+sub afun_AuxR_Pa {
 
   $sPar1 = 'AuxR_Pa';
 
@@ -2868,8 +2868,8 @@ sub AssignAfun_AuxR_Pa {
 }
 
 
-#bind AssignAfun_AuxP_Pa to Ctrl+P menu Assign afun AuxP_Pa
-sub AssignAfun_AuxP_Pa {
+#bind afun_AuxP_Pa to Ctrl+P menu Assign afun AuxP_Pa
+sub afun_AuxP_Pa {
 
   $sPar1 = 'AuxP_Pa';
 
@@ -2878,8 +2878,8 @@ sub AssignAfun_AuxP_Pa {
 }
 
 
-#bind AssignAfun_Apos_Pa to Ctrl+U menu Assign afun Apos_Pa
-sub AssignAfun_Apos_Pa {
+#bind afun_Apos_Pa to Ctrl+U menu Assign afun Apos_Pa
+sub afun_Apos_Pa {
 
   $sPar1 = 'Apos_Pa';
 
@@ -2888,8 +2888,8 @@ sub AssignAfun_Apos_Pa {
 }
 
 
-#bind AssignAfun_AuxC_Pa to Ctrl+C menu Assign afun AuxC_Pa
-sub AssignAfun_AuxC_Pa {
+#bind afun_AuxC_Pa to Ctrl+C menu Assign afun AuxC_Pa
+sub afun_AuxC_Pa {
 
   $sPar1 = 'AuxC_Pa';
 
@@ -2898,8 +2898,8 @@ sub AssignAfun_AuxC_Pa {
 }
 
 
-#bind AssignAfun_AuxO_Pa to Ctrl+O menu Assign afun AuxO_Pa
-sub AssignAfun_AuxO_Pa {
+#bind afun_AuxO_Pa to Ctrl+O menu Assign afun AuxO_Pa
+sub afun_AuxO_Pa {
 
   $sPar1 = 'AuxO_Pa';
 
@@ -2908,8 +2908,8 @@ sub AssignAfun_AuxO_Pa {
 }
 
 
-#bind AssignAfun_Atv_Pa to Ctrl+H menu Assign afun Atv_Pa
-sub AssignAfun_Atv_Pa {
+#bind afun_Atv_Pa to Ctrl+H menu Assign afun Atv_Pa
+sub afun_Atv_Pa {
 
   $sPar1 = 'Atv_Pa';
 
@@ -2918,8 +2918,8 @@ sub AssignAfun_Atv_Pa {
 }
 
 
-#bind AssignAfun_AtvV_Pa to Ctrl+J menu Assign afun AtvV_Pa
-sub AssignAfun_AtvV_Pa {
+#bind afun_AtvV_Pa to Ctrl+J menu Assign afun AtvV_Pa
+sub afun_AtvV_Pa {
 
   $sPar1 = 'AtvV_Pa';
 
@@ -2928,8 +2928,8 @@ sub AssignAfun_AtvV_Pa {
 }
 
 
-#bind AssignAfun_AuxZ_Pa to Ctrl+Z menu Assign afun AuxZ_Pa
-sub AssignAfun_AuxZ_Pa {
+#bind afun_AuxZ_Pa to Ctrl+Z menu Assign afun AuxZ_Pa
+sub afun_AuxZ_Pa {
 
   $sPar1 = 'AuxZ_Pa';
 
@@ -2938,8 +2938,8 @@ sub AssignAfun_AuxZ_Pa {
 }
 
 
-#bind AssignAfun_AuxY_Pa to Ctrl+Y menu Assign afun AuxY_Pa
-sub AssignAfun_AuxY_Pa {
+#bind afun_AuxY_Pa to Ctrl+Y menu Assign afun AuxY_Pa
+sub afun_AuxY_Pa {
 
   $sPar1 = 'AuxY_Pa';
 
@@ -2948,8 +2948,8 @@ sub AssignAfun_AuxY_Pa {
 }
 
 
-#bind AssignAfun_AuxG_Pa to Ctrl+G menu Assign afun AuxG_Pa
-sub AssignAfun_AuxG_Pa {
+#bind afun_AuxG_Pa to Ctrl+G menu Assign afun AuxG_Pa
+sub afun_AuxG_Pa {
 
   $sPar1 = 'AuxG_Pa';
 
@@ -2958,8 +2958,8 @@ sub AssignAfun_AuxG_Pa {
 }
 
 
-#bind AssignAfun_AuxK_Pa to Ctrl+K menu Assign afun AuxK_Pa
-sub AssignAfun_AuxK_Pa {
+#bind afun_AuxK_Pa to Ctrl+K menu Assign afun AuxK_Pa
+sub afun_AuxK_Pa {
 
   $sPar1 = 'AuxK_Pa';
 
@@ -2968,8 +2968,8 @@ sub AssignAfun_AuxK_Pa {
 }
 
 
-#bind AssignAfun_AuxX_Pa to Ctrl+X menu Assign afun AuxX_Pa
-sub AssignAfun_AuxX_Pa {
+#bind afun_AuxX_Pa to Ctrl+X menu Assign afun AuxX_Pa
+sub afun_AuxX_Pa {
 
   $sPar1 = 'AuxX_Pa';
 
@@ -2978,8 +2978,8 @@ sub AssignAfun_AuxX_Pa {
 }
 
 
-#bind AssignAfun_ExD_Pa to Ctrl+E menu Assign afun ExD_Pa
-sub AssignAfun_ExD_Pa {
+#bind afun_ExD_Pa to Ctrl+E menu Assign afun ExD_Pa
+sub afun_ExD_Pa {
 
   $sPar1 = 'ExD_Pa';
 
