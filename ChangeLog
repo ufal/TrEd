@@ -1,3 +1,784 @@
+2003-07-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	- OpenEditor opens a non-modal ValLex window
+	- some vallex macros on F3,F5,F7 (not yet fully functional)
+
+	* tredlib/contrib/ValLex/Widgets.pm: set_pos_filter
+
+	* tredlib/contrib/ValLex/Editor.pm: - new_dialog_window
+
+	* tredlib/tred.def: - documentation update
+
+	* tredlib/tred.def: - FileName() uses ## instead of #
+	- added ChangingFile() macro
+
+	* tredlib/Filelist.pm:
+	- bugfixes regarding values of @{$self->file_ref} being arrays
+
+	* tred: - fixed gotoFile
+	- sorting filelist alphabetically in the Session menu
+
+	* ntred: *** empty log message ***
+
+2003-07-21  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Macros.pm:
+	when $macroDebug, prints all files being loaded
+
+	* ntred: added --reload-macros (RELOAD_MACROS)
+
+	* btred: server: added RELOAD_MACROS support
+	server: redirect STDERR to client before initializing macros
+
+	* tredlib/contrib/pdt.mak: get_sentence_string_TR
+
+	* tredlib/contrib/tr_common.mak, tredlib/contrib/tr_coref_common.mak:
+	added lemma among value-line tags
+
+	* tredlib/contrib/ar.mak: added lemma to value-line tags
+
+	* tredlib/contrib/sort_html_by_NG_TOP.pl: - sort by LEMMA
+	- sort after conversion to cp1250
+
+	* tredlib/TrEd/Macros.pm: fixed line numbering
+
+	* tredlib/NTREDBackend.pm: initial commit
+
+2003-07-19  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred:
+	flushing and resetting fh with :raw before seting encoding (to workaround sth that could be considered as bug in perl)
+
+	* tredlib/contrib/ValLex/Data.pm, tredlib/contrib/ValLex/Widgets.pm:
+	wordlist displayes a flag by a verb whose all active frames are reviewed
+
+	* tred: use utf-8 for STDOUT and STDERR in perl 5.8
+
+2003-07-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: - hash_AIDs()
+	- uniq()
+
+	* tredlib/contrib/tr_common.mak:
+	ported all print calls to stderr()/stdout()
+
+	* tredlib/tred.def:
+	- stdout() and stderr() macros also able to print if given arguments
+
+	* tredlib/Fslib.pm: - faster implementation of visible_children
+
+	* examples/fsdiff.pl: - use IO added
+	- minor compatibility fixes
+
+	* tred: - "don't append filelist" option in Session menu
+	- faster nextFile/prevFile when actually moving within the same file
+
+	* ntred: - --break
+	- docu
+
+	* btred:
+	- OO iface to GetOpts::Long used to preserve default behavior if used by macros
+	- macro STDERR also redirected to ntred hub and clients
+
+2003-07-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: - hash_AIDs()
+	- uniq()
+
+	* tredlib/contrib/tr_common.mak:
+	ported all print calls to stderr()/stdout()
+
+	* tredlib/tred.def:
+	- stdout() and stderr() macros also able to print if given arguments
+
+	* tredlib/Fslib.pm: - faster implementation of visible_children
+
+	* examples/fsdiff.pl: - use IO added
+	- minor compatibility fixes
+
+	* tred: - "don't append filelist" option in Session menu
+	- faster nextFile/prevFile when actually moving within the same file
+
+	* ntred: - --break
+	- docu
+
+	* btred:
+	- OO iface to GetOpts::Long used to preserve default behavior if used by macros
+	- macro STDERR also redirected to ntred hub and clients
+
+2003-07-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: addedd add_commentA
+
+	* tredlib/tredrc: added displayStatusLine
+
+	* tredlib/tred.def: - added DumpFS
+
+	* tredlib/csts.doctype: - updated from csts cvs repository
+
+	* ntred: - docu
+	- --btred flag
+
+	* btred: - bugfixes
+	- perl-like -M option added
+	- memory cleanup after query in unrestricted server mode
+
+2003-07-11  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ntred, any2any: docu
+
+	* documentation/any2any/any2any.xml: update
+
+	* any2any: enhanced merging and splitting support
+
+	* btred, ntred: docu tweaks
+
+	* ntred: - documentated --dump-files and --upload-file
+
+	* btred: - support ntred:// URI's in UPLOAD
+
+	* btred: - support ntred:// URI's in --dump
+
+	* any2any: - -m filename now merges all given files into a single one
+
+2003-07-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/tred.mac: - loading ntred.mak
+
+	* tredlib/contrib/ntred.mak: - initial commit
+
+	* tredlib/Filelist.pm: - added clear() method
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	- report LibXML/JHXML only conditionally
+
+	* tredlib/contrib/tr_opravy.mak: - reorder_ord
+	- reorder_sentord
+
+	* tredlib/contrib/tr_common.mak: - TTIL -> TTILL
+
+	* tredlib/tred.def: - tmpFileName
+	- bugfixes
+	- ThisAddressNTRED
+
+	* tredlib/Fslib.pm:
+	- changed use IO; to eval('require IO;'); to allow use Fslib; in a
+	  Safe compartment
+
+	* tred: - ntred:// uri support
+	- use IO;
+	- minor bugfix
+
+	* ntred: - --context|-t
+	- --list-changed-files, --save-changed-files
+
+	* btred: - new option --no-save
+	- make tred work with a Fslib that does not automatically load IO
+	- server: LIST_CHANGED, SAVE_CHANGED commands
+	- server: removed extra newline in STDOUT when no output from macro at all
+
+2003-07-08  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Macros.pm: macro_variable()
+
+	* ntred: - --dump, --upload
+	- fixes, enhancements
+
+	* btred: - DUMP server command implemented
+	- fixed serious bugs with $this and $root in safe compartment mode
+	- bug fixes, enhancements
+
+2003-07-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: parens -> brackets
+
+	* btred, ntred:
+	- ntred/bred server: output encoding (permanent for a running server)
+	- ntred: more file management, saving files
+
+	* ntred: - fixes
+	- renamed some $opt_ variables
+	- --list command
+
+	* btred: - switched to GetOpt::Long
+	- bugfixes
+	- LIST command
+
+2003-07-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Macros.pm: fix in a comment
+
+	* btred, ntred: - bug fixes
+	- somewhat reorganized code
+	- new ntred commands: --reload, --close, --load
+
+	* tredlib/contrib/ValLex/Widgets.pm:
+	- fixed a bug in focus() when defined value was returned eventhough
+	  nothing was found
+
+2003-07-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/AFA.mak:
+	- fixed open/close to be able to compile it in a Safe compartment
+
+	* tredlib/TrEd/Macros.pm:
+	- fixed running hooks using 'can' in Safe mode
+
+	* ntred: - added --server-debug
+
+	* btred: - safe mode fixes
+	- cleanup
+	- shorter benchmark
+
+	* ntred: added opcode list into the docs
+
+	* btred: - added checks for defined values in time comparisons
+
+	* btred: fix
+
+	* btred: safe mode fix
+
+	* ntred: doc fix
+
+	* ntred: cwd followed by /
+
+	* ntred:
+	fixed echo so that it works also with tcsh as the default shell
+
+	* ntred: added --ssh option
+
+	* ntred: docu
+
+	* tredlib/contrib/ar.mak, tredlib/contrib/edit.mak, tredlib/contrib/tfa.mak, tredlib/contrib/tr_common.mak, tredlib/contrib/tr_coref_common.mak:
+	$ToplevelFrame -> ToplevelFrame()
+
+	* ntred: print usage if no arguments given
+
+	* tredlib/TrEd/Cipher.pm, ntred: initial commit
+
+	* btred: - safe mode implementation
+	- option to set standard output encoding in Perl 5.8
+	- server mode
+	- some restructuralization
+
+	* tredlib/contrib/ValLex/vallex.dtd, tredlib/contrib/ValLex/Widgets.pm:
+	- uptodated list of allowed functors
+
+	* tredlib/contrib/tr_common.mak: - added CPHR
+	- cleanup
+
+	* tredlib/contrib/tfa_common.mak: - moved "use POSIX" into evals
+	- fixed broken comment
+
+	* tredlib/contrib/AFA.mak: use libDir explicitly
+
+	* tredlib/TrEd/Macros.pm: - added support for safe compartment
+
+	* tredlib/TrEd/Basics.pm: *** empty log message ***
+
+	* tredlib/tred.def:
+	- added stdout() and stderr() macros returning the corresponding file
+	descriptors
+	- fixed some macros to return the return value they should
+	- other minor fixes
+
+	* tred: added $stdout and $stderr globals for macro purposes
+
+2003-06-26  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred, tred, tredlib/tred.def: lastFileNo, currentFileNo, gotoFile
+
+	* tredlib/tred.def: added Open
+
+	* btred: don't load one file twice
+
+	* btred: remove goto-suffix when preloading
+
+	* btred: added preload_hook
+
+	* btred:
+	-P option allows preloading all input files before processing them
+
+2003-06-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred, tredlib/TrEd/TreeView.pm: debug prints removed, sorry
+
+	* tredlib/TrEd/TreeView.pm, tred: allow HTML exporting tags
+
+	* tredlib/contrib/coref.mak: changes by ZZ
+
+	* tredlib/contrib/ar.mak, tredlib/contrib/tr_common.mak, tredlib/contrib/tr_coref_common.mak:
+	added NG_TOP tag to text line to allow HTML sorting by head
+
+	* tredlib/contrib/sort_html_by_NG_TOP.pl:
+	tool to sort TrEd's HTML output from sentences view by NG_TOP flag
+
+2003-06-23  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Editor.pm, tredlib/contrib/ValLex/Widgets.pm:
+	fixed quicksearch bugs
+
+	* tredlib/contrib/ValLex/vallex.dtd: - added unreview local_event type
+
+	* tredlib/contrib/ValLex/Data.pm, tredlib/contrib/ValLex/Editor.pm, tredlib/contrib/ValLex/standalone.pl:
+	- little enhancements
+
+2003-06-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/standalone.pl:
+	- added -P flag to enable problems views
+
+	* tredlib/contrib/ValLex/chooser.pl:
+	- hardcode vallex.xml (not vn2.xml)
+
+	* tredlib/contrib/ValLex/Widgets.pm: - allow disabling superframes
+
+	* tredlib/contrib/ValLex/Editor.pm:
+	- interface changes and enhancements
+
+	* tredlib/contrib/ValLex/Data.pm: - getNormalFrameList
+	- moveFrameBefore
+	- moveFrameAfter
+	- findNextFrame
+	- findPrevFrame
+
+	* tredlib/Fslib.pm: allow initializing FSNode hash size
+
+2003-06-06  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: fixed encoding in HTML dump
+
+	* tredlib/contrib/Assign_czech_grammatemes.pm: ZZ
+
+	* tred, tredlib/Fslib.pm, tredlib/TrEd/Macros.pm, tredlib/TrEd/TreeView.pm, tredlib/contrib/ar.mak, tredlib/contrib/grammatemes.mak, tredlib/contrib/tr_common.mak:
+	support for text: pattern prefix used for value-line customization
+
+2003-06-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tfa.mak: updated balloon patterns
+
+2003-05-30  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/standalone.pl:
+	flags to allow reviewer do brutal delete and/or brutal modify
+
+	* tredlib/contrib/ValLex/Editor.pm:
+	reviewer may modify/delete only conditionally
+
+	* tredlib/contrib/tr_corr_anot_main.mak, tredlib/contrib/tr_corref_common.mak, tredlib/contrib/ValLex/libxml-standalone.pl:
+	removed
+
+	* tredlib/contrib/ValLex/standalone.pl: now general for any XML backend
+
+2003-05-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/arabic_common.mak:
+	node_moved_hook auto-assigns functions
+
+	* tred: fixed filelistFullFileName
+
+	* tred, documentation/Hooks.txt: added node_moved_hook
+
+	* tred: hopefully better handling of local filenames in filelists
+
+2003-05-26  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred: LANG => cs_CZ
+
+	* btred: LC_NUMERIC => C
+
+	* btred: added useLocales test
+
+	* tredlib/tred.def:
+	added DefaultInputEncoding and SetDefaultInputEncoding macros
+
+	* tredlib/Fslib.pm: debug ENCODING info conditional
+	debug ENCODING info displays mode
+
+	* btred, tred: command-line argument -n allows to specify an encoding
+
+	* tredlib/contrib/pdt.mak: docu fixes
+
+	* tred: update statusLine font on font change
+
+2003-05-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak: bugfix
+
+2003-05-19  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	Added FileNotSaved to some places where chooser does not change FS file.
+
+2003-05-13  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: minor fix
+
+	* tredlib/contrib/ar.mak: rewritten DepSuffix from scratch
+
+	* tredlib/contrib/ar.mak: fixed atr assignment
+
+2003-05-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: append .fl to filelistname if not given
+
+	* tredlib/tred.def: bugfix
+
+	* tredlib/contrib/tfa.mak, tredlib/contrib/tfa_common.mak:
+	presetting of tfa attributes
+
+2003-04-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml, tredlib/contrib/tr_common.mak, tredlib/tred.def:
+	*** empty log message ***
+
+	* tred: fixed deleting filelist
+
+2003-04-23  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: section on #include reformulated
+
+	* documentation/manual/tred.xml: documented Shift+left/Shift+right
+
+	* btred: added TEIXMLBackend support
+
+	* documentation/manual/tred.xml:
+	documented $Redraw, $FileChanged and $forceFileSaved
+
+	* tredlib/tred.def: POD fix
+
+2003-04-17  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_coref_common.mak:
+	use do_edit_attr_hook from Tectogramatic context
+
+2003-04-14  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak: *** empty log message ***
+
+	* tred: added _hook suffix to status_line_[double]click_hook
+
+	* tred, tredlib/TrEd/Config.pm, tredlib/contrib/tr_common.mak:
+	status line support
+
+2003-04-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: added $FSError to signal errors in newFSFile
+
+	* tred, tredlib/TrEd/Config.pm, tredlib/tredrc:
+	added autosave/recovery support
+
+	* tredlib/contrib/coref.mak, tredlib/contrib/tr_coref_common.mak, tredlib/tred.mac:
+	*** empty log message ***
+
+2003-04-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/Assign_german_grammatemes.pm: initial commit
+
+	* tredlib/contrib/grammatemes.mak: *** empty log message ***
+
+	* tredlib/contrib/grammatemes.mak: initial commit
+
+	* tredlib/contrib/tfa.mak: fix
+
+	* tredlib/contrib/tfa.mak, tredlib/contrib/tr_tfa_only_anot_main.mak:
+	povoleno editaci func a presunu uzlu pro func=RHEM
+
+2003-04-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TEIXMLBackend.pm:
+	- switching back to XML::LibXML::SAX::Parser until a bug in libxml2's
+	native sax parser is fixed
+	- renamed auxiliary attribute type to tei_type
+
+2003-03-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml:
+	documented #unbind-key and #remove-menu
+
+	* tredlib/contrib/ar.mak: removed debug print
+
+	* tredlib/TEIXMLBackend.pm: *** empty log message ***
+
+	* tredlib/Fslib.pm: - fixed FSFormat->exists
+
+	* tredlib/contrib/ar.mak:
+	- adaptive AssignAfun macro (can use parallel and paren attributes if
+	  exist)
+	- keyboard macros now pass afun to AssignAfun via parameter
+
+	* tredlib/TEIXMLBackend.pm:
+	- use an fLib declaration for the dep attribute
+	- save all list attributes with a corresponding fLib declaration
+	- prepare the sax handler and the writer to save a DTD decl
+
+2003-03-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TEIXMLBackend.pm: added support for fLib tags
+
+	* tredlib/contrib/ValLex/tr_vallex_transform.mak: new version by VH
+
+2003-03-12  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ar.mak:
+	names afun_ for compatibility with arabic_common
+
+	* tredlib/contrib/ar.mak:
+	giving the afun-assigning macros propper names
+
+	* tredlib/contrib/AFA.mak: added assign_func_auto_node
+
+2003-03-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/arabic.mak: set binding-context back to TredMacro
+
+	* tredlib/contrib/PADT/README, tredlib/contrib/PADT/Arab_afun_dec_tree.pm, tredlib/contrib/PADT/Arab_parser.pm, tredlib/contrib/PADT/Arab_special_chars.pm, tredlib/contrib/PADT/Assign_arab_afun.pm, tredlib/contrib/PADT/Detect_arab_dependencies.pm, tredlib/contrib/PADT/Extract_node_features.pm, tredlib/contrib/PADT/most_freq_200:
+	initial commit
+
+	* tredlib/contrib/tred_arabic.mak:
+	swap inclusion order to allow arabic macros overwrite tred's originals
+
+	* tredlib/contrib/arabic_common.mak:
+	added auto-parsing and auto-afun assigning macros by ZZ
+
+	* tredlib/TrEd/Macros.pm:
+	added "#unbind-key" and "#remove-menu" directives
+
+	* tredlib/contrib/ValLex/adverb.mak:
+	Close dialog only on double-click on hlist
+
+	* tredlib/contrib/ValLex/Chooser.pm: Don't close at all double-clicks
+
+	* tredlib/contrib/ValLex/adverb.mak: reuse one dialog window
+	usability changes
+	use tred's default font
+
+2003-03-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/winsetup_en.sh, tredlib/contrib/winsetup.sh:
+	added XML::JHXML
+
+	* tredlib/contrib/ValLex/JHXMLData.pm: no blanks, indent
+
+	* tredlib/contrib/ValLex/Data.pm: carefull with insertBefore
+
+	* tredlib/TrXMLBackend.pm: complete replacement based on libxml2 module
+
+	* tredlib/TEIXMLBackend.pm: use libxml2 streaming sax parser
+
+	* tredlib/Fslib.pm: added FSFormat->listMetaData method
+
+2003-03-06  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* any2any: tei -> teixml
+
+2003-03-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TEIXMLBackend.pm: initial commit
+
+	* tred: - TEIXML support
+	- added -D command-line option to force Fslib::debug
+	- added -B command-line to add other user-provided IO backends
+
+	* any2any: added TEIXML support
+
+	* tredlib/TrXMLBackend.pm:
+	better filetype checking (check for xml with root element trees)
+
+	* tredlib/Fslib.pm: allow metadata
+
+	* tredlib/CSTS_SGML_SP_Backend.pm:
+	avoid extra nsgmls run to check fileformat
+
+	* tredlib/AG2FS.pm: better namespace handling
+	void open_backend (return filename)
+
+2003-03-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/adverb.mak:
+	start with focus on entry, allow Up/Down
+
+2003-02-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: fixed locale
+
+	* tredlib/contrib/ValLex/Data.pm, tredlib/contrib/ValLex/GDOMEData.pm, tredlib/contrib/ValLex/JHXMLData.pm, tredlib/contrib/ValLex/LibXMLData.pm, tredlib/contrib/ValLex/XML_DOM_Data.pm:
+	use JHXML optimized find* methods if possible
+
+2003-02-27  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/JHXMLData.pm:
+	do not return error line number when dieing on parse errors
+
+	* tredlib/contrib/ValLex/Widgets.pm: case-insensitive quick-search
+
+	* tred: more carefull settings of locales
+
+	* tredlib/contrib/ValLex/chooser.mak: default: validation off
+
+	* tredlib/contrib/ValLex/LibXMLData.pm:
+	- of course, die only if failed:)
+
+	* tredlib/contrib/ValLex/LibXMLData.pm: die on parse error
+
+	* tredlib/contrib/ValLex/JHXMLData.pm: initial commit
+
+	* tredlib/contrib/ValLex/libxml-standalone.pl: - benchmarking support
+	- module selection
+
+	* tredlib/contrib/ValLex/chooser.pl: - turn of validation
+
+	* tredlib/contrib/ValLex/chooser.mak: - try XML::JHXML
+
+	* tredlib/contrib/ValLex/adverb.mak: - try XML::JHXML
+	- avoid findnodes
+
+	* tredlib/contrib/ValLex/XML_DOM_Data.pm:
+	- some more DOM method name aliases
+
+	* tredlib/contrib/ValLex/Widgets.pm:
+	- put a limit on number of words displayed in a WordList
+
+	* tredlib/contrib/ValLex/LibXMLData.pm: - now default is validation 0
+	- use toFile if possible
+	- use nodeName instead of localname
+
+	* tredlib/contrib/ValLex/Editor.pm:
+	- limited number of words in a word-list
+
+	* tredlib/contrib/ValLex/Data.pm:
+	- getWordNodes, getFirstWordNode, getNextWordNode, getWordSublist
+	- don't require existing parser object on reload
+	- use DOM method name documentElement rather than getDocumentElement
+	- changed order of node creation to strict:
+	  create-node -> insert-to-doc -> set-other-features-of-the-node
+
+	* tredlib/contrib/ValLex/Chooser.pm: - ws-only changes
+
+	* tredlib/contrib/tr_common.mak:
+	- fixes in the ConnectAID/DisconnectAID
+	- added new gram values: ADD, SUBTR, ORDER
+	- added attribute argnum
+	- added attribute state
+	- added trlemma &Unspec;
+
+	* tredlib/TrEd/Print.pm: - fixed initiation of iso-8859-2 encoding
+
+	* tred: - upgraded Copytight notice
+	- some playing with the locale and mouse-wheel settings
+	- RepeatedShowDialog utility function added
+
+2003-02-17  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/simple_vallex.txt, tredlib/contrib/ValLex/tr_vallex_transform.mak:
+	initial commit
+
+	* tredlib/contrib/tr.mak, tredlib/contrib/tr_common.mak:
+	added Vasek's TR macros
+
+	* tredlib/TrEd/Config.pm: added useLocales option
+
+2003-02-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred:
+	- closing dialog box with wm's [x] button works as Escape/Cancel
+	- edit attribute dialog label reflects ability to change the attribute
+
+	* tredlib/contrib/tr_common.mak: added trlemma "takový"
+
+	* tredlib/tred.def:
+	added ThisAddress for convenience of btred scripting
+
+2003-01-29  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak:
+	Overrided Alena's JoinSubtree macro. New version respects sentord
+	(except for reflexive pronouns which are always appended).
+
+	* tredlib/contrib/tr_coref_common.mak: allow direct trlemma editing
+
+2003-01-27  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/winsetup_en.sh: added  XML::LibXML::Iterator
+
+	* tredlib/contrib/winsetup.sh: addedd  XML::LibXML::Iterator
+
+	* tredlib/contrib/ValLex/LibXMLData.pm:
+	- use custom entity loader only for LibXML <= 1.49 (dunno exact version)
+
+	* tredlib/contrib/tr_common.mak: - added SplitJoinedByAID
+	- overriden Alena's split_node_and_lemma
+
+2003-01-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/coref.mak, tredlib/contrib/tr_common.mak, tredlib/contrib/tr_coref_common.mak, tredlib/contrib/ar.mak:
+	Added patterns to render NetGraph's NG search attributes
+
+2003-01-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/LibXMLData.pm, tredlib/contrib/ValLex/Data.pm:
+	optimization/speed improvements
+
+	* examples/stream_read.pl: initial commit
+
+2002-12-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak:
+	use TrEd::Convert to translate message into system encoding
+
+2002-12-13  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_edit_anot_main.mak: initial commit
+
+2002-12-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/edit.mak: edit package
+
+	* tredlib/contrib/tred_mac_common.mak, tredlib/contrib/trdiff.mak, tredlib/contrib/coref.mak:
+	use new listQuery function
+
+	* tredlib/tred.mac: use main::listQuery
+
+	* tredlib/tred.def:
+	NewParent macro added, minor adjustsments of other macros
+
+	* tredlib/Fslib.pm: FSFile->set_tree added
+
+	* tred: new listQuery and selectContext functions
+
+	* documentation/tools_install: initial commit
+
+2002-12-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/winsetup_en.sh:
+	CR/LF handling removed for ever and ever
+
+	* tredlib/contrib/winsetup.sh:
+	CR/LF handling removed for ever and ever!
+
+	* tredlib/contrib/winsetup.sh: one more fix for CR/LF
+
+	* tredlib/contrib/winsetup_en.sh: one more fix for CR/LF?
+
+2002-12-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ChangeLog: *** empty log message ***
+
+	* tredlib/contrib/winsetup.sh, tredlib/contrib/winsetup_en.sh:
+	install nsgmls et al into tred/bin
+
+	* tredlib/contrib/winsetup.sh, tredlib/contrib/winsetup_en.sh:
+	use , instead of ! in sed
+
+	* tred:
+	debug prints removed, filelist field update in filelist dialog on load
+
+	* tredlib/Filelist.pm: fix basedir stripping
+
+	* tredlib/Filelist.pm, tred:
+	handle relative filenames in file lists correctly
+
 2002-12-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* tredlib/contrib/winsetup.sh, tredlib/contrib/winsetup_en.sh:
