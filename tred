@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version="1.48";
-$timestamp="Time-stamp: <2001-03-08 17:26:08 pajas>";
+$timestamp="Time-stamp: <2001-03-09 18:23:47 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -367,7 +367,7 @@ sub parseConfigLine {
     if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
       $key=lc($1);
       $confs->{$key}=$2;
-      $confs->{$key}=~s/\\//g;
+      $confs->{$key}=~s/\\(.)/\1/g;
       $confs->{$key}=$1 if ($confs->{$key}=~/^'(.*)'$/ or $confs->{$key}=~/^"(.*)"$/);
       #print "$key=$confs->{$key};\n";
     }
@@ -705,9 +705,12 @@ sub addToRecent {
   if ($grp->{RecentFileMenu}) {
     my $menu = $grp->{RecentFileMenu}->cget(-menu);
     $menu->delete(0,'end');
+    my $i=0;
     foreach (@recentFiles) {
-      $grp->{RecentFileMenu}->command(-label  => $_,
+      $grp->{RecentFileMenu}->command(-label  => "$i.  $_",
+				      -underline => 0,
 				      -command => [\&openFile,$grp,$_]);
+      $i++;
     }
   }
 }
@@ -927,23 +930,24 @@ sub getValueLine {
 
   #$valueLine="";
 
+  my $attr=$grp->{FSFile}->FS->sentord;
   while ($node) {
-    push @sent,$node unless $node->{$grp->{FSFile}->FS->sentord}>=999; # this is TR specific
+    push @sent,$node unless $node->{$attr}>=999; # this is TR specific
     $node=Next($node);
   }
   my $defs = join ",", values %{$grp->{FSFile}->FS->defs};
 
   # this is a workaround for TR vs. ATS (ATS trees use only @N to sort
   # @V to a sentence while on TR there is @W defined for this purpose)
+  $attr=$grp->{FSFile}->FS->order unless ($defs=~/W/);
 
-  if ($defs=~/W/) {
-    @sent = sort { $a->{$grp->{FSFile}->FS->sentord} <=> $b->{$grp->{FSFile}->FS->sentord} } @sent;
-  } else {
-    @sent = sort { $a->{$grp->{FSFile}->FS->order} <=> $b->{$grp->{FSFile}->FS->order} } @sent;
-  }
-  $valueLine = ($grp->{treeNo}+1)."/".$grp->{FSFile}->trees.": ".encode(join(" ", map { $_->{$grp->{FSFile}->FS->value} } @sent));
+  @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
+
+  $attr=$grp->{FSFile}->FS->value;
+  $valueLine = 
+    ($grp->{treeNo}+1)."/".($grp->{FSFile}->lastTreeNo+1).": ".
+    encode(join(" ", map { $_->{$attr} } @sent));
   undef @sent;
-
 }
 
 
@@ -960,19 +964,25 @@ sub getNodes {
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   my $node=$grp->{root};
   my $current=$grp->{root};
+  my $prevcurrent=$grp->{currentNode};
 
+#  use Benchmark;
+#  my $t=timeit(100, 'getValueLine($grp);');
+#  print "$count loops of getNodes took: ",timestr($t),"\n";
   getValueLine($grp);
 
   while($node)
   {
     push @unsorted, $node;
-    $current=$node if (exists $grp->{currentNode} and
-		       $grp->{currentNode} eq $node);
+    $current=$node if ($prevcurrent eq $node);
     $node=HNext($grp,$node);  #skip also hidden subtrees unless showHidden
 
   }
   $grp->{'currentNode'}=$current;
-  @{$grp->{Nodes}}=sort { $a->{$grp->{FSFile}->FS->order} <=> $b->{$grp->{FSFile}->FS->order} } @unsorted;
+  my $ord=$grp->{FSFile}->FS->order;
+  @{$grp->{Nodes}}=
+    sort { $a->{$ord} <=> $b->{$ord} } 
+      @unsorted;
 
   # just for sure
   undef @unsorted;
@@ -986,32 +996,38 @@ sub insertToFilelist {
   $position=$grp->{currentFileNo} if not defined($position);
 
   unless ($files[$position] eq @_[0]) {
-    splice @files,$position,0, map { rel2abs($_) } @_;
+    splice @files,$position+1,0, map { rel2abs($_) } @_;
     if ($grp->{Filelist}) {
       $grp->{Filelist}->delete(0,'end');
       $grp->{Filelist}->insert('end',@files);
-      $grp->{Filelist}->activate($position);
+      $grp->{Filelist}->activate($position+1);
       $grp->{Filelist}->see('active');
       $grp->{Filelist}->selectionClear(0,'end');
-      $grp->{Filelist}->selectionSet($position);
+      $grp->{Filelist}->selectionSet($position+1);
     }
   }
 }
 
 sub removeFromFilelist {
-  my ($grp,$position)=shift;
+  my ($grp,$position)=(shift,shift);
+  print "Removing @_\n";
+  print "Position is $position\n";
   foreach (@_) {
     splice @files,$_,1;
   }
   if ($grp->{Filelist}) {
     $grp->{currentFileNo} = min($grp->{currentFileNo},$#files);
-    $position=$grp->{currentFileNo} if not defined($position);
+    if (not defined($position)) {
+      $position=$grp->{currentFileNo} 
+    } else {
+      $position=min($position,$#files);
+    }
     $grp->{Filelist}->delete(0,'end');
     $grp->{Filelist}->insert('end',@files);
-    $grp->{Filelist}->activate($position);
+    $grp->{Filelist}->activate($position) if (defined($position));
     $grp->{Filelist}->see('active');
     $grp->{Filelist}->selectionClear(0,'end');
-    $grp->{Filelist}->selectionSet($position) if ($position>=0);
+    $grp->{Filelist}->selectionSet($position) if (defined($position));
   }
 }
 
@@ -1034,7 +1050,7 @@ sub filelistDialog {
     ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
 
   $fl->Subwidget('filelist')->configure(qw/-background white -foreground black/);
-  $fl->Subwidget('entry')->configure(qw/-background white -foreground black/);
+#  $fl->Subwidget('entry')->configure(qw/-background white -foreground black/);
 
   my $midframe=$frame->Frame()->pack(qw/-side left/);
 
@@ -1056,7 +1072,7 @@ sub filelistDialog {
 	       -command=>[
 			  sub { 
 				my ($grp,$t,$l)=@_;
-				insertToFilelist($grp,$t->index('active')+1,$l->getSelectedFiles);
+				insertToFilelist($grp,$t->index('active'),$l->getSelectedFiles);
 				$t->see('active');
 			      },$grp,$t,$fl])->pack(-side => top);
   my $addbutton=
@@ -1064,7 +1080,7 @@ sub filelistDialog {
 	       -command=>[
 			  sub { 
 				my ($grp,$t,$l)=@_;
-				removeFromFilelist($grp,undef,$t->curselection);
+				removeFromFilelist($grp,$t->index('active'),$t->curselection);
 				$t->see('active');
 			      },$grp,$t,$fl])->pack(-side => top);
 
@@ -1838,9 +1854,12 @@ sub startMain {
   $group{FileMenu}->command(-label => 'Save As ...', -underline => 5 ,-command => [\&saveFileAs, \%group]);
   $group{FileMenu}->separator();
   $group{RecentFileMenu}=$group{FileMenu}->cascade(-label => "Recent Files", -underline => 0);
+  my $i=0;
   foreach (@recentFiles) {
-    $group{RecentFileMenu}->command(-label  => $_,
+    $group{RecentFileMenu}->command(-label  => "$i.  $_",
+				    -underline => 0,
 				    -command => [\&openFile,\%group,$_]);
+    $i++;
   }
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label => 'Previous File', -underline => 3, -command => [\&prevFile,\%group]);
@@ -2026,13 +2045,15 @@ sub startMain {
   $group{'valueLine'}=$group{'top'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
 
-#  $group{'contextLed'}=$group{'top'}->Entry(qw/ -state disabled -relief sunken
-#			   -borderwidth 2 /, -textvariable => \$group{macroContext});
-
   $group{'canvas'}=$canvas;
   addBindTags($canvas,'my');
 
-
+  # creating Canvas balloon
+  $group{CanvasBalloon}=$group{top}->Balloon(-initwait => $canvasBalloonInitWait,
+					     -state => 'balloon',
+					     -background => '#fff3b0');
+  $group{CanvasBalloon}->Subwidget('message')->configure(-justify => 'left',-font => $font);
+  
   print STDERR "Creating buttons.\n" if $tredDebug;
 
   $group{'nextButton'}=$group{'frame'}->Button(-text => "Next",
@@ -2355,7 +2376,12 @@ sub startMain {
 
   exit if doEvalHook(\%group,"start_hook") eq 'stop'; # run start_hook
 
+  # Starting ------------------------------------------
+
   MainLoop;
+
+
+  # Finished ------------------------------------------
 
   # Save configuration
   print STDERR "Saving some configuration options.\n" if $tredDebug;
@@ -2365,11 +2391,16 @@ sub startMain {
     @conf= grep { !/^\s*(?:$ommit)\s*=/i } <F>;
     close(F);
   }
-#  $geometry=~s/^[0-9]+x[0-9]+//;
+  #  $geometry=~s/^[0-9]+x[0-9]+//;
   push @conf,
     "Geometry\t=\t".$geometry."\n",
     "CanvasHeight\t=\t".$defCHeight."\n",
-    "CanvasWidth\t=\t".$defCWidth."\n",map { "RecentFile$_\t=\t$recentFiles[$_]\n"} 0..$#recentFiles;
+    "CanvasWidth\t=\t".$defCWidth."\n",
+      map { 
+	my $s=$recentFiles[$_];
+	$s=~s/\\/\\\\/g;
+	"RecentFile$_\t=\t$s\n"
+      } 0..$#recentFiles;
   chomp $conf[$#conf];
   saveConfig(\%group,@conf);
   print STDERR "Done.\n" if $tredDebug;
@@ -3336,7 +3367,7 @@ sub nodeCoords {
      ($grp->{'currentNode'} eq $node) ? $currentNodeHeight : $nodeHeight);
 
   return ($node->{"_tkXPOS_"}+($nodeWidth-$nw)/2,
-	  $node->{"_tkYPOS_"}+($nodeHeight-$nh)/2,	  
+	  $node->{"_tkYPOS_"}+($nodeHeight-$nh)/2,
 	  $node->{"_tkXPOS_"}+$nh,
 	  $node->{"_tkYPOS_"}+$nw);
 }
@@ -3347,6 +3378,7 @@ sub wrappedLines {
   return $grp->{'canvas'}->fontMeasure($font,$text)/$width + 1;
 }
 
+
 sub redraw_tree {
   my ($grp)=@_;
   my $node;
@@ -3354,9 +3386,13 @@ sub redraw_tree {
 
   return if $insideEval;
   saveFileStateUpdate($grp);
+  foreach $node (@{$grp->{Nodes}}) {
+    foreach (keys(%$node)) {
+      delete $node->{$_} if (/^_tk(?:X|Text)/);
+    }
+  }
   recalculate_positions($grp);
-  $grp->{CanvasBalloon}->destroy() if $grp->{CanvasBalloon};
-  #print $grp->{'canvasWidth'},'x',$grp->{'canvasHeight'},"\n";
+
   $grp->{'canvas'}->configure(-scrollregion =>['0c', '0c', $grp->{canvasWidth}, $grp->{canvasHeight}]);
   $grp->{'canvas'}->configure(-background => $backgroundColor) if (defined $backgroundColor);
   $grp->{'canvas'}->addtag('delete','all');
@@ -3387,15 +3423,11 @@ sub redraw_tree {
 				   -width => $grp->{canvasWidth});
       $grp->{canvasHeight}+=$fontHeight*(wrappedLines($grp,$font,$vtext,$grp->{canvasWidth})+1);
 #      $grp->{'canvas'}->createLine(0,$grp->{canvasHeight},$grp->{canvasWidth},$grp->{canvasHeight});
-    
+
     }
   }
 
   foreach $node (@{$grp->{Nodes}}) {
-    foreach (keys(%$node)) {
-      delete $node->{$_}
-	if (/^_tkText/);
-    }
     $parent=$node->parent;
     use integer;
     if ($parent) {
@@ -3410,35 +3442,29 @@ sub redraw_tree {
     }
   }
 
+  my $lineHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
   ## The Nodes ##
   foreach $node (@{$grp->{Nodes}}) {
     $$node{"_tkOval_"}=$grp->{'canvas'}->createOval(nodeCoords($grp,$node),
-						    nodeOptions($grp,$node)
-						    );
+						    nodeOptions($grp,$node));
     $grp->{'canvas'}->addtag('point', 'withtag', $$node{"_tkOval_"});
 
-    my $lineHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
-    my $textWidth=0;
-
-    ## measure maximum width
-    my $i;
-    for (0..@displayAttrs) {
-      $i=$grp->{'canvas'}->fontMeasure($font,PrepareText($node,$_));
-      $textWidth=$i if ($i>$textWidth);
-    }
 
     ## Boxes around attributes
-    $$node{"_tkTextBox_"}=
-      $grp->{'canvas'}->
-	createRectangle($$node{"_tkXPOS_"}-$xmargin,
-			$$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip-$ymargin,
-			$$node{"_tkXPOS_"}+
-			$textWidth+$xmargin,
-			$$node{"_tkYPOS_"}+
-			($#displayAttrs+1)*$lineHeight+
-			$nodeHeight+$nodeYSkip+$ymargin,
-			nodeBoxOptions($grp,$node))
-	  if ($drawBoxes);
+    if ($drawBoxes) {
+      ## get maximum width stored here by recalculate_positions
+      my $textWidth=$node->{'_tkXWidth'};
+      $$node{"_tkTextBox_"}=
+	$grp->{'canvas'}->
+	  createRectangle($$node{"_tkXPOS_"}-$xmargin,
+			  $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip-$ymargin,
+			  $$node{"_tkXPOS_"}+
+			  $textWidth+$xmargin,
+			  $$node{"_tkYPOS_"}+
+			  ($#displayAttrs+1)*$lineHeight+
+			  $nodeHeight+$nodeYSkip+$ymargin,
+			  nodeBoxOptions($grp,$node));
+    }
 
     ## Texts of attributes
     for ($i=0;$i<=$#displayAttrs;$i++) {
@@ -3448,8 +3474,8 @@ sub redraw_tree {
 	$grp->{'canvas'}->
 	  createRectangle($$node{"_tkXPOS_"},
 			  $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+$i*$lineHeight,
-			  $$node{"_tkXPOS_"}+
-			  $grp->{'canvas'}->fontMeasure($font,PrepareText($node,$i))+1,
+			  $$node{"_tkXPOS_"}+$node->{"_tkX_$i"}+1,
+			  #$grp->{'canvas'}->fontMeasure($font,PrepareText($node,$i))+1,
 			  $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+($i+1)*$lineHeight,
 			  -fill => $grp->{'canvas'}->cget('-background'), -outline => undef)
 	  unless ($drawBoxes);
@@ -3471,20 +3497,22 @@ sub redraw_tree {
       $msg=~s/([\$\#]{[^}]+})/\#\#\#\1\#\#\#/g;
       my $xskip=0;
       my $txt;
+      my $at_text;
       my $j=0;
       my $color=undef;
       foreach (split(/\#\#\#/,$msg)) {
 	if (/^\${([^}]+)}$/) {
 	  $j++;
+	  $at_text=PrepareTextField($node,$1);
 	  $txt=$grp->{'canvas'}->
 	    createText($$node{"_tkXPOS_"}+$xskip,
 		       $$node{"_tkYPOS_"}+
 		       $nodeHeight+$nodeYSkip+$i*$lineHeight,
 		       -anchor => 'nw',
-		       -text => PrepareTextField($node,$1),
+		       -text => $at_text,
 		       -fill => defined($color) ? $color : whichTextColor($grp,$1),
 		       -font => $font);
-	  $xskip+=$grp->{'canvas'}->fontMeasure($font,PrepareTextField($node,$1));
+	  $xskip+=$grp->{'canvas'}->fontMeasure($font,$at_text);
 	  $grp->{'canvas'}->addtag('text', 'withtag', $txt);
 	  $grp->{'pinfo'}{$txt}=$node;
 	  $$node{"_tkText[$1][$i][$j]_"}=$txt;
@@ -3511,28 +3539,25 @@ sub redraw_tree {
     }
 
     $grp->{'pinfo'}{$$node{"_tkOval_"}}=$node;
-    $grp->{'pinfo'}{$$node{"_tkTextBox_"}}=$node
-      if exists $$node{"_tkTextBox_"};
+    $grp->{'pinfo'}{$$node{"_tkTextBox_"}}=$node if exists $$node{"_tkTextBox_"};
   }
 
   ## Canvas Custom Balloons ##
-  $grp->{CanvasBalloon}=$grp->{top}->Balloon(-initwait => $canvasBalloonInitWait,
-				-state => 'balloon',
-				-background => '#fff3b0');
-  $grp->{CanvasBalloon}->Subwidget('message')->configure(-justify => 'left',-font => $font);
-  $grp->{CanvasBalloon}->attach($grp->{'canvas'}->Subwidget('scrolled'),
-				-balloonposition => 'mouse',
-				-msg => { map 
-					  {
-					    if (defined($_)) {
-					      my $msg=InterpolateTextField($grp->{'pinfo'}{$_},
-								      $grp->{'BalloonPattern'});
-					      $msg=~s/\${([^}]+)}/$grp->{'pinfo'}{$_}->{$1}/eg;
-					      $_ => encode($msg);
-					    }
-					  } $grp->{'canvas'}->find('withtag','point')
-					});
-
+  if ($grp->{CanvasBalloon}) {
+    $grp->{CanvasBalloon}->
+      attach($grp->{'canvas'}->Subwidget('scrolled'),
+	     -balloonposition => 'mouse',
+	     -msg => { map 
+		       {
+			 if (defined($_)) {
+			   my $msg=InterpolateTextField($grp->{'pinfo'}{$_},
+							$grp->{'BalloonPattern'});
+			   $msg=~s/\${([^}]+)}/$grp->{'pinfo'}{$_}->{$1}/eg;
+			   $_ => encode($msg);
+			 }
+		       } $grp->{'canvas'}->find('withtag','point')
+		     });
+  }
 }
 
 
@@ -3651,10 +3676,11 @@ sub recalculate_positions {
 
 
     my $textWidth=0;
-    my $i;
-    for (0..@displayAttrs) {
-      $i=$grp->{'canvas'}->fontMeasure($font,PrepareText($node,$_));
-      $textWidth=max($i,$textWidth);
+    my $m;
+    for ($i=0;$i<=$#displayAttrs;$i++) {
+      $m=$grp->{'canvas'}->fontMeasure($font,PrepareText($node,$i));
+      $$node{"_tkX_$i"}=$m;
+      $textWidth=$m if $m>$textWidth;
     }
     $$node{"_tkXWidth_"}=$textWidth;
 
@@ -3839,7 +3865,6 @@ sub doEvalHook {
 sub doEvalMacro {
   my ($grp,$macro)=(shift,shift);
   return unless $macro;
-  print "$macro\n";
 
   $this=$grp->{'currentNode'};
   return unless $this;
@@ -3847,7 +3872,7 @@ sub doEvalMacro {
 
   my $result;
   $grp->{'top'}->Busy(-recurse => 1);
-  $fileNotSaved=$grp->{FSFile}->notSaved;  # Macro may want to override this :)
+  $FileNotSaved=1; #$grp->{FSFile}->notSaved;  # Macro may want to override this :)
   $forceFileSaved=0; # Macro may want to override this :)
   $insideEval=1;
 
@@ -3855,28 +3880,52 @@ sub doEvalMacro {
     eval ("@macros\n return 1;");
     $macrosEvaluated=1;
     if ($result or $@) {
-      print STDERR "FirstEvaluation of macros\n" if $macroDebug;
+      print STDERR "FirstEvaluation of macros\n";# if $macroDebug;
       print STDERR "Returned with: $result\n$@\n" if $macroDebug;
     }
   }
 #  $result=eval("return ".$macro."();\n@macros\n");  # this consumes memory!!!!
-  print "Running $macro\n";
+  print "Running $macro\n" if $macroDebug;
   $result=eval("return $macro;\n");
+
   if ($result or $@) {
     print STDERR "Had run: ",$macro,"\n" if $macroDebug;
     print STDERR "Returned with: $result\n$@\n" if $macroDebug;
   }
   unless ($forceFileSaved) {
-    print "Macro claims file untouched\n"
+    print STDERR "Macro claims file untouched\n"
       unless ($FileNotSaved);
     $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
   } else {
-    print "Macro forsly claims file saved.\n";
+    print STDERR "Macro forsly claims file saved.\n";
     # using value of $FileNotSaved
+    $grp->{FSFile}->notSaved($FileNotSaved);
   }
   $insideEval=0;
-  $grp->{'top'}->Unbusy;
+
+  getNodes($grp);     # memory ok, speed ok
+
+
+  #------------------------------------------------------------
+  #use Benchmark;
+  #my $t0 = new Benchmark;
+  #for (my $i=0;$i<=50;$i++) {
+  #------------------------------------------------------------
+
+  redraw_tree($grp);  # ??? 4kb/50 runs memory leaks???, speed ok
+ 
+  #------------------------------------------------------------
+  #}
+  #my $t1 = new Benchmark;
+  #my $td = timediff($t1, $t0);
+  #print "$FileNotSaved the code took:",timestr($td),"\n";
+  #------------------------------------------------------------
+
+
+  # the rest of this routine is:
+  # memory ok, speed ok
   setCurrent($grp,$this) if ($this);
+  currentUnhiden($grp);
 
   # This may be important
   # (we do not want to leave references to non-existsing
@@ -3884,10 +3933,10 @@ sub doEvalMacro {
   $this=undef;
   $root=undef;
 
-  currentUnhiden($grp);
-  getNodes($grp);
-  redraw_tree($grp);
   centerTo($grp,$grp->{currentNode});
+
+
+  $grp->{'top'}->Unbusy;
   return $result;
 }
 
@@ -3920,7 +3969,16 @@ sub evalMacro {
     }
   }
   if (defined $macro) {
-    doEvalMacro($grp,$macro);
+#    use Benchmark;
+#    my $t0 = new Benchmark;
+#    # ... your code here ...
+#    for (my $i=0;$i<=50;$i++) {
+      doEvalMacro($grp,$macro);
+#    }
+#    my $t1 = new Benchmark;
+#    my $td = timediff($t1, $t0);
+#    print "the code took:",timestr($td),"\n";
+
     return 1;
   }
   return undef;
