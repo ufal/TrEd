@@ -220,6 +220,9 @@ sub print_trees {
 
   my $hMargin = $c->fpixels($prtHMargin);
   my $vMargin = $c->fpixels($prtVMargin);
+
+  $Media='BBox' if $toPDF and $toEPS; # hack
+
   if ($Media eq 'User') {
     $prtFmtWidth = $c->fpixels($prtFmtWidth);
     $prtFmtHeight = $c->fpixels($prtFmtHeight);
@@ -230,7 +233,6 @@ sub print_trees {
   }
 
   if ($toPDF) {
-    die "Sending PDF command not yet supported!" unless $toFile;
     $pagewidth=$prtFmtWidth-2*$hMargin;
     $pageheight=$prtFmtHeight-2*$vMargin;
     local $TrEd::Convert::support_unicode = 1 if ($]>=5.008);
@@ -357,7 +359,30 @@ sub print_trees {
 ###	last; # only one page for now
       }
       print STDERR "saving PDF to $fil\n";
-      $P->finish(-file => $fil);
+      if ($toFile) {
+	$P->finish(-file => $fil);
+      } else {
+	$SIG{'PIPE'} = sub {};
+	eval {
+	  require File::Temp;
+	  my $fh = new File::Temp(UNLINK => 0);
+	  my $fn = $fh->filename;
+	  $P->finish(-file => $fn);
+	  open $fh, $fn;
+	  binmode $fh;
+	  my $out = new IO::Pipe;
+	  $out->writer($cmd);
+	  binmode $out;
+	  $out->print(<$fh>);
+	  unlink $fh;
+	  close $fh;
+	  close $out;
+	} || do {
+	  print STDERR $@ if $@;
+	  print STDERR "Aborting: failed to open pipe to '$cmd': $!\n";
+	  return 0;
+	};
+      }
       print STDERR "PDF done\n";
     } else {
       my $i;
