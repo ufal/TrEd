@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-19 17:39:27 pajas>
+## Time-stamp: <2004-03-24 17:29:45 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -552,6 +552,19 @@ sub make_lighten_be_children {
       delete $node->{_light};
       ChangingFile(1);
     }
+  }
+}
+
+#bind add_lighten_to_aidrefs to Ctrl+q menu Reference nodes marked with _light=_LIGHT_ from active node's AIDREFS
+sub add_lighten_to_aidrefs {
+  my $node = $root;
+  my $target;
+  while ($node) {
+    if ($node->{_light} eq '_LIGHT_') {
+      ConnectAID($this,$node);
+      ChangingFile(1);
+    }
+    $node = $node->following;
   }
 }
 
