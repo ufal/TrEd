@@ -1211,7 +1211,7 @@ sub filelistDialog {
                      -selectmode extended
                      -width 60
                      -background white
-		     -height 15 -scrollbars e/,
+		     -height 15 -scrollbars oe/,
 			    -separator=> "\t"
 			   )
     ->pack(qw/-expand yes -fill both -side top/);
@@ -1439,7 +1439,7 @@ sub macrolistDialog {
   $d->resizable(0,1);
   my $t= $d->Scrolled(qw/HList -columns 2 -background white 
            -selectmode browse
-           -height 25 -relief sunken -scrollbars e/);
+           -height 25 -relief sunken -scrollbars oe/);
   $t->BindMouseWheelVert();
   $grp->{Macrolist}=$d;
   my $e;
@@ -1842,8 +1842,8 @@ sub newTreeView {
 		   -height=> $defCHeight,
 		   qw /-relief sunken
 		       -borderwidth 2
-                       -scrollbars se/,
-		   -scrollregion=> [qw/0c 0c 100c 100c/],
+                       -scrollbars osoe/,
+		   -scrollregion=> [qw/0c 0c 1c 1c/],
 		   $treeViewOpts->{backgroundColor} 
 		   ? (-background=> $treeViewOpts->{backgroundColor}) : ()
 		  );
@@ -2995,7 +2995,7 @@ sub editConfig {
   $d->bind('<Return>'=> [sub {1;}]);
   my $t= $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
-		     -height 30 -scrollbars e/);
+		     -height 30 -scrollbars oe/);
   $t->pack(qw/-expand yes -fill both/);
   $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
@@ -3122,7 +3122,7 @@ sub selectValuesDialog {
 		       -buttons=> $enabled ? ["OK", "Cancel"] : ["Cancel"]);
  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
  $d->resizable(0,0);
- my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars e/,
+ my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars oe/,
 		    -height=> min($maxDisplayedValues,scalar(@$vals)),
 		    -font=> $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
@@ -3217,7 +3217,7 @@ sub viewSentencesDialog {
   my $t= $d->
     Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
                      -spacing3 6 -wrap word -background white
-		     -height 20 -scrollbars e/,-font=>$font);
+		     -height 20 -scrollbars oe/,-font=>$font);
   $t->pack(qw/-expand yes -fill both/);
   $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
@@ -3310,7 +3310,7 @@ sub editAttrsDialog {
 		   -bd => 1);
   my $f= $ff->Scrolled('Pane',
 		      -sticky => 'we',
-		      -scrollbars=> 'e');
+		      -scrollbars=> 'oe');
   $f->BindMouseWheelVert("","EditEntry");
 
   my $lwidth;
@@ -3421,7 +3421,7 @@ sub customAttrsDialog {
                      -width 0
                      -relief sunken
                      -borderwidth 2 -setgrid true
-                     -scrollbars e
+                     -scrollbars oe
                      -exportselection 0/)->pack(qw/-pady 3 -expand yes -fill y/);
   $al->BindMouseWheelVert();
   my @atord=$win->{FSFile}->FS->attributes;
@@ -3439,7 +3439,7 @@ sub customAttrsDialog {
                      -bg white
                      -borderwidth 2
                      -setgrid true
-		     -scrollbars se
+		     -scrollbars osoe
                      -selectmode extended
                      -exportselection 0/
 		 )->pack(qw/-side top -expand yes
@@ -3452,7 +3452,7 @@ sub customAttrsDialog {
   my $t=
     $cf->Scrolled(qw/Text -relief sunken
                      -borderwidth 2 -setgrid true
-		     -height 4 -scrollbars se
+		     -height 4 -scrollbars osoe
                      -width 50
                      -exportselection 1
                      -wrap none/
@@ -3605,7 +3605,7 @@ sub findNodeDialog {
 		   -bd => 1);
   my $f= $ff->Scrolled('Pane',
 		      -sticky => 'we',
-		      -scrollbars=> 'e');
+		      -scrollbars=> 'oe');
   $f->BindMouseWheelVert("","EditEntry");
 
   my $lwidth;
