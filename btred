@@ -1170,8 +1170,10 @@ sub saveFile {
   }
   $grp->{FSFile}->changeBackend($backend) if ($backend);
   my $out=$f;
-  $out=~s/$strip_suffix$/$append_suffix/ if ($strip_suffix ne "" or $append_suffix ne "");
-  $out=~s/^$strip_prefix/$add_prefix/ if ($strip_prefix ne "" or $add_prefix ne "");
+  $out=~s/$strip_suffix$// if ($strip_suffix ne "");
+  $out.=$append_suffix;
+  $out=~s/^$strip_prefix// if ($strip_prefix ne "");
+  $out=$add_prefix.$out if ($add_prefix ne "");
   if ($f eq $out) {
     unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
     rename $f, "$f~" if (-f $f);
