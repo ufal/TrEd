@@ -326,6 +326,7 @@ sub open_frame_instance_in_tred {
 }
 
 sub ChooseFrame {
+  my ($no_assign)=@_;
   if ($vallexEditor) {
     questionQuery("Sorry!","Valency editor already running.\n".
 		  "To assign frames, you have to close it first.",
@@ -445,7 +446,7 @@ sub ChooseFrame {
 				       [split /\|/,
 					$this->{$frameid_attr}],
 				       $new_word);
-  if ($frame) {
+  if ($frame and $no_assign!=1) {
     my $fmt=$grp->{FSFile}->FS();
     $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
     $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
