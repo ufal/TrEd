@@ -456,6 +456,7 @@ sub wordlist_item_changed {
 #   }
 #   print "\n";
 
+  $self->subwidget('framesearch')->delete(0,'end');
   $self->subwidget('wordnote')->set_data($self->data()->getSubElementNote($word));
   $self->subwidget('wordproblem')->fetch_data($word) if $self->subwidget('wordproblem');
   $self->subwidget('framelist')->fetch_data($word);
@@ -762,22 +763,20 @@ sub obsolete_button_pressed {
 
 sub quick_search {
   my ($self,$value)=@_;
-  print "QUICK SEARCH\n";
   return defined($self->focus_by_text($value));
 }
 
 
 sub focus_by_text {
   my ($self,$text,$caseinsensitive)=@_;
-  print "FOCUS $text\n";
   my $h=$self->subwidget('framelist')->widget();
   use locale;
   my $st = $h->infoAnchor();
   my ($t) = ($st eq "") ? $h->infoChildren("") : $st;
   while ($t ne "") {
-    print $h->itemCget($t,0,'-text'),"\n";
-    if (!$caseinsensitive and index($h->itemCget($t,0,'-text'),$text)>=0 or
-	$caseinsensitive and index(lc($h->itemCget($t,0,'-text')),lc($text))>=0) {
+    my $item=$h->itemCget($t,0,'-text');
+    if (!$caseinsensitive and index($item,$text)>=0 or
+	$caseinsensitive and index(lc($item),lc($text))>=0) {
       $h->anchorSet($t);
       $h->selectionClear();
       $h->selectionSet($t);
@@ -787,6 +786,7 @@ sub focus_by_text {
     $t=$h->infoNext($t);
     last if $t eq $st;
     ($t) = $h->infoChildren("") if ($t eq "" and $st);
+    last if $t eq $st;
   }
   return undef;
 }

@@ -357,6 +357,7 @@ sub create_widget {
   $e->bind('<Return>',[
 			  sub {
 			    my ($cw,$w,$self)=@_;
+			    $self->quick_search($cw->get);
 			    $w->Callback(-browsecmd => $w->infoAnchor());
 			    Tk->break;
 			  },$w,$self
