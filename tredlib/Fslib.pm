@@ -13,7 +13,7 @@ package Fslib;
 use Exporter;
 @ISA=(Exporter);
 $VERSION = "0.91";
-@EXPORT = qw(&ReadAttribs &ReadTree &GetTree &PrintNode &PrintTree &PrintFS &NewNode 
+@EXPORT = qw(&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode &PrintTree &PrintFS &NewNode 
 	     &Parent &LBrother &RBrother &FirstSon &Next &Prev &DeleteTree &DeleteLeaf
 	     &Cut &Paste &Set &Get &DrawTree &IsList &ListValues);
 @EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial &SetParent &SetLBrother &SetRBrother &SetFirstSon);
@@ -373,6 +373,67 @@ sub ParseNode ($$$) {
   return { %node };
 }
 
+sub ParseNode2 ($$$) {
+  my ($lr,$ord,$attr) = @_;
+  my $n = 0;
+  my %node;
+  my @ats=();
+  my $pos = 1;
+  my $a=0;
+  my $v=0;
+  my $tmp;
+  my @lv;
+  my $nd;
+  my $i;
+  my $w;
+
+  NewNode(\%node);
+  if ($ {$lr}=~/^\[/) {
+    chomp $$lr;
+    $i=index($$lr,']');
+    $nd=substr($$lr,1,$i-1);
+    $$lr=substr($$lr,$i+1);
+    @ats=split(',',$nd);
+    while (@ats) {
+      $w=shift @ats;
+      $i=index($w,'=');
+      if ($i>=0) {
+	$a=substr($w,0,$i);
+	$v=substr($w,$i+1);
+	$tmp=Index($ord,$a);
+	$n = $tmp if (defined($tmp));
+      } else {
+	$v=$w;
+        $n++ while ( $n<=$#$ord and $attr->{$ord->[$n]}!~/ [PNW]/);
+	if ($n>$#$ord) {
+	  croak "No more positional attribute $n for value $v at position in:\n".$n."\n";
+	}
+	$a=$ord->[$n];
+      }
+      #$v=~s/\\([,=\[\]\\])/$1/go;
+      if ($FSTestListValidity) {
+	if (IsList($a,$attr)) {
+	  @lv=ListValues($a,$attr);
+	  foreach $tmp (split /\|/,$v) {
+	    print("Invalid list value $v of atribute $a no in @lv:\n$nd\n" )
+	      unless (defined(Index(\@lv,$tmp))); 
+	    #(0<grep($_ eq $tmp, @lv)); # this seems to be slower
+	  }
+	}
+      }
+      $n++;
+      $v=~s/&comma;/,/g;
+      $v=~s/&lsqb;/[/g;
+      $v=~s/&rsqb;/]/g;
+      $v=~s/&backslash;/\\/g;
+      $v=~s/&eq;/=/g;
+      $node{$a}=$v;
+    }
+  } else { croak $ {$lr}," not node!\n"; }
+  return { %node };
+}
+
+
 sub ReadLine {
   my $handle=shift;
 
@@ -394,6 +455,51 @@ sub ReadTree {
     last;                               # else we have the whole tree
   }
   return $l;
+}
+
+sub GetTree2 ($$$) {
+  my ($l,$ord,$atr)=@_;
+  my $root;
+  my $curr;
+  my $c;
+  if ($l=~/^\[/o) {
+    $l=~s/\\,/&comma;/g;
+    $l=~s/\\\[/&lsqb;/g;
+    $l=~s/\\]/&rsqb;/g;
+    $l=~s/\\\\/&backslash;/g;
+    $l=~s/\\=/&eq;/g;
+    $l=~s/\r//g;
+    $curr=$root=ParseNode2(\$l,$ord,$atr);   # create Root
+
+    while ($l) {
+      $c = substr($l,0,1);
+      $l = substr($l,1);
+      if ( $c eq '(' ) { # Create son (go down)
+	$ {$curr}{$firstson} = ParseNode2(\$l,$ord,$atr);
+	$ { $ {$curr}{ $firstson }}{$parent}=$curr; 
+	$curr=$ {$curr}{$firstson};
+	next;
+      }
+      if ( $c eq ')' ) { # Return to parent (go up)
+	croak "Error paring tree" if ($curr eq $root);
+	$curr=$ {$curr}{$parent};
+	next;
+      }
+      if ( $c eq ',' ) { # Create right brother (go right);
+	$ {$curr}{$rbrother} = ParseNode2(\$l,$ord,$atr);
+	$ {$ {$curr}{$rbrother}}{$lbrother}=$curr;
+	$ {$ {$curr}{$rbrother}}{$parent}=$ {$curr}{$parent}; 
+	$curr=$ {$curr}{$rbrother};
+	next;
+      }
+      croak "Unexpected token... `$c'!\n";
+    }
+    croak "Error: Closing parens do not lead to root of the tree." 
+	if ($curr != $root);
+  }
+#    else { croak "** $l\nTree does not begin with `['!\n"; }
+#  reset;
+  return $root;
 }
 
 sub GetTree ($$$) {
