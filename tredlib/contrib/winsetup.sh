@@ -293,7 +293,7 @@ echo
 echo "$MSG037 $TREDDIR"
 if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     cp -R tred/* "${TREDDIR}"             && \
-    cp tred.mac "${TREDDIR}/tredlib"      && \
+    (test ! -f tred.mac || cp tred.mac "${TREDDIR}/tredlib")  && \
     mkplbat tred                          && \
     mkplbat btred                         && \
     mkplbat trprint                       && \
