@@ -146,10 +146,10 @@ Return string representation of the given subtree
    shift @_ unless ref($_[0]);
    my $top= $_[0]||$root;
    return undef unless $top;
-   return substr(join("",
+   return join("",
 		 map { $_->{origf}.($_->{nospace} ? "" : " ") }
 		 sort { $a->{ord} <=> $b->{ord} }
-		 $top->descendants),1);
+		 $top->descendants);
 }
 
 =item PDT::get_subsentence_string_TR
@@ -1289,7 +1289,7 @@ sub non_proj_edges {
 
   return undef unless ref($top);
 
-  $ord = FS->order() unless defined($ord);
+  $ord = $grp->{FSFile}->FS->order() unless defined($ord);
   $filterNode = sub { 1 } unless defined($filterNode);
   $returnParents = sub { return $_[0]->parent ? ($_[0]->parent) : () } unless defined $returnParents;
   $subord = sub { my ($n,$top) = @_;
