@@ -106,7 +106,6 @@ unless (open $_ERR, ">&STDERR") {
   $_ERR=\*STDERR;
 }
 
-#_set_encoding($_ERR,$term_encoding,'ERR encoding');
 $_ERR->autoflush(1);
 
 # Help and usage
@@ -121,6 +120,7 @@ if ($manpage) {
   pod2usage(-exitstatus => 0, -verbose => 2);
 }
 
+_set_encoding($_ERR,':utf8',"_ERR");
 _set_encoding(\*STDERR,$term_encoding,"STDERR");
 _set_encoding(\*STDOUT,$term_encoding,"STDOUT");
 
@@ -337,7 +337,12 @@ exit;
 ############################
 sub _msg { $_ERR->print("BTRED: ",@_); }
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
-sub sign_md5 ($$) { TrEd::Cipher::block_md5(TrEd::Cipher::block_xor(@_)) }
+sub sign_md5 ($$) {
+  my ($key,$message)=@_;
+  Encode::_utf8_off($key);
+  Encode::_utf8_off($message);
+  TrEd::Cipher::block_md5(TrEd::Cipher::block_xor($key,$message));
+}
 sub _benchmark () {
   my $number_of_iters=10000;
   my $i;
@@ -359,6 +364,7 @@ sub _copy_output {
   $macro_stdout->flush();
   seek($macro_stdout,0,0);
   my $space=1;
+  _set_encoding($hub,$term_encoding,"socket to hub");
   while (<$macro_stdout>) {
     $hub->print($_);
     $space=chomp;
@@ -460,12 +466,12 @@ sub startMain {
 	undef $hub;
       }
     }} while (!$hub);
-    ## _set_encoding($hub,$term_encoding,"socket to hub");
     _msg("Connection to the hub on $peer established.\n");
     my $request_no=0;
     _msg("Waiting for a request from the hub...\n\n");
     $hub->autoflush(1);
     while (1) {
+      _set_encoding($hub,':utf8',"socket to hub");
       my $state='default';
       my $signature;
       my $request;
@@ -609,15 +615,18 @@ sub startMain {
 	  $hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
 	  cleanup_tredmacro($grp,split(/\n/,"package $context;\n".$request{MACRO}."\n".$request{CODE}));
 	  # send macro's error output from tmp file to client
+	  _revert_redirect_stderr($old_stderr);
+	  _set_encoding($macro_stderr,$term_encoding);
 	  _copy_output($macro_stderr,$hub);
 	  $macro_stderr->close;
-	  _revert_redirect_stderr($old_stderr);
+
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 
 	  # send macro's output from tmp file to client
+	  _revert_redirect_stdout($old_stdout);
+	  _set_encoding($macro_stdout,$term_encoding);
 	  _copy_output($macro_stdout,$hub);
 	  $macro_stdout->close;
-	  _revert_redirect_stdout($old_stdout);
 
 	  _end_response($control,$hub);
 	  _msg("The processing of request $request_no completely finished.\n");
@@ -719,7 +728,7 @@ sub startMain {
 	    _msg "Dumping some tree $f at client's request\n";
 	    next unless openFile($grp,$f,-justpreloaded => 1);
 	    for my $fsfile ($grp->{FSFile}) {
-	      _set_encoding($hub,$fsfile->encoding(),undef);
+	      ## _set_encoding($hub,$fsfile->encoding(),undef);
 	      $fsfile->FS->writeTo($hub);
 	      Fslib::PrintFS($hub,undef,
 			     $f=_has_suffix($f) ? [$grp->{root}] :
