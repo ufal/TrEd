@@ -1,9 +1,23 @@
 #!/usr/bin/perl
+use FindBin;
+my $binDir=$FindBin::RealBin;
+my $libDir;
+if (exists $ENV{TREDHOME}) {
+  $libDir=$ENV{TREDHOME};
+} elsif (-d "$binDir/../..") {
+  $libDir="$binDir/../..";
+} elsif (-d "$binDir/../lib/tredlib") {
+  $libDir="$binDir/../lib/tredlib";
+} elsif (-d "$binDir/../lib/tred") {
+  $libDir="$binDir/../lib/tred";
+}
+
+push @INC, $libDir, "$libDir/contrib";# "$libDir/contrib/ValLex";
 
 use Tk;
 use Tk::Wm;
 
-use locale;
+require locale;
 use POSIX qw(locale_h);
 setlocale(LC_COLLATE,"cs_CZ");
 setlocale(LC_NUMERIC,"us_EN");
@@ -17,22 +31,19 @@ sub Post
  $X= int($X);
  $Y= int($Y);
  $w->positionfrom('user');
-# $w->geometry("+$X+$Y");
  $w->MoveToplevelWindow($X,$Y);
  $w->deiconify;
-## This causes the "slowness":
-# $w->raise;
 }
 
 package main;
 
-use strict;
-use Tk::Adjuster;
-use Data;
-use LibXMLData;
-use Widgets;
-use Editor;
-use TrEd::CPConvert;
+require strict;
+require Tk::Adjuster;
+require ValLex::Data;
+require ValLex::LibXMLData;
+require ValLex::Widgets;
+require ValLex::Editor;
+require TrEd::CPConvert;
 
 my $double = 0;
 
@@ -40,7 +51,8 @@ my $conv= TrEd::CPConvert->new("utf-8",
 			       ($^O eq "MSWin32") ?
 			       "windows-1250" :
 			       "iso-8859-2");
-my $data=TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv);
+my $data_file=$ARGV[0];
+my $data=TrEd::ValLex::LibXMLData->new($data_file,$conv);
 
 my $font = "-adobe-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-2";
 my $fc=[-font => $font];
@@ -81,7 +93,6 @@ if ($double) {
   my $vallex2= TrEd::ValLex::Editor->new($data, undef,$top_frame,1);
   $vallex2->pack(qw/-expand yes -fill both -side left/);
 }
-
 
 my $bottom_frame = $top->Frame()->pack(qw/-expand yes -fill both -side bottom/);
 
