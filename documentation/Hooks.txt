@@ -131,7 +131,7 @@ get_value_line_hook			no      supply custom
 get_nodelist_hook			no      supply custom
                                                 node ordering
 						given a fsfile,
-                                                treeNo and hidden node
+                                                treeNo, current node and hidden node
 						visibility state
 
 node_release_hook node,target-node,mod yes     called when node is
