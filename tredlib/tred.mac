@@ -208,11 +208,13 @@ sub PerlSearchNext {
 
 #bind TieLastTree to Ctrl+End menu Go to last tree (tied)
 sub TieLastTree {
+  $FileNotSaved=0;
   TieGotoTree($grp->{FSFile}->lastTreeNo+1);
 }
 
 #bind TieFirstTree to Ctrl+Home menu Go to first tree (tied)
 sub TieFirstTree {
+  $FileNotSaved=0;
   TieGotoTree(1);
 }
 
@@ -220,17 +222,20 @@ sub TieFirstTree {
 #bind LastTree to End menu Go to last tree
 #bind LastTree to greater
 sub LastTree {
+  $FileNotSaved=0;
   GotoTree($grp->{FSFile}->lastTreeNo+1);
 }
 
 #bind FirstTree to Home menu Go to first tree
 #bind FirstTree to less
 sub FirstTree {
+  $FileNotSaved=0;
   GotoTree(1);
 }
 
 #bind GotoNextNodeLin to Ctrl+greater
 sub GotoNextNodeLin {
+  $FileNotSaved=0;
   my $sentord=$grp->{FSFile}->FS->sentord;
   my $next=NextNodeLinear($this,$sentord);
   unless (HiddenVisible()) {
@@ -243,6 +248,7 @@ sub GotoNextNodeLin {
 
 #bind GotoPrevNodeLin to Ctrl+less
 sub GotoPrevNodeLin {
+  $FileNotSaved=0;
   my $sentord=$grp->{FSFile}->FS->sentord;
   my $next=PrevNodeLinear($this,$sentord);
   unless (HiddenVisible()) {
