@@ -222,9 +222,6 @@ import TrEd::Macros;
 $TrEd::Macros::defines{NTRED}=1;
 
 if (defined($init) || defined($kill) || defined($break)) {
-  # btred executable
-  $btred ||= "$FindBin::RealBin/btred";
-
   # get list of servers
   my @servers;
 
@@ -326,6 +323,10 @@ if (defined($init) || defined($kill) || defined($break)) {
       msg "Running btred server on $_->{host} port $_->{port}\n";
       # as for now, we only make use of the secure pipe to the server
       # in order to pass it the session key
+
+      # btred executable
+      $btred ||= "$FindBin::RealBin/btred";
+
       my $cmd = "$ssh $_->{host} '$btred -P ".
 	($unrestricted ? "" : "-F ").
 	($server_debug ? "-D " : "").
