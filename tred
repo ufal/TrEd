@@ -762,7 +762,7 @@ sub nextOrPrevFile {
   my $response;
   while ($result and (!$win->{FSFile} or $win->{FSFile}->lastTreeNo<0)) {
     unless ($quiet) {
-      my $f="File \"$filename\" is empty, corrupted or does not exist!";
+      my $f="File \"$filename\" is locked, empty, corrupted, or does not exist!";
       $response=userQuery($win, $f,
 			  -title => "Error",
 			  -buttons => ["Try next","Skip to next correct file","Cancel"]);
@@ -848,6 +848,93 @@ sub isFocused {
   return $win eq $win->{framegroup}->{focusedWindow} ? 1 : 0;
 }
 
+sub initUserData {
+  my ($fsfile)=@_;
+  $fsfile->changeUserData({ undostack => [], undo => -1}) unless ref($fsfile->userData);
+}
+
+sub setFSLockInfo {
+  my ($fsfile,$lockinfo)=@_;
+  initUserData($fsfile);
+  $fsfile->userData->{lockinfo} = $lockinfo;
+}
+
+sub setLock {
+  my ($f) = @_; # filename
+  open(my $lock, ">", $f.".lock") || do {
+    warn "Error creating lock-file: $!\n";
+    return undef;
+  };
+  chmod 644, $lock;
+  my $mtime = [stat($f)]->[9];
+  my $lockinfo = "by user ".getlogin().'@'.$ENV{HOSTNAME}." pid ".$$." at ".localtime()." mtime: $mtime";
+  $lock->print($lockinfo)."\n";
+  close $lock;
+  return $lockinfo;
+}
+
+# check if a file has .lock
+# returns: none (no lock), my (locked by us), locked
+sub checkLock {
+  my ($fsfile,$f) = @_; # filename
+  $f = $fsfile->filename() if ($fsfile and not defined($f));
+  my $current_mtime = [stat($f)]->[9];
+  if (-f $f.".lock") {
+    my $lockinfo;
+    eval { open my $l, $f.".lock"; $lockinfo = <$l>; chomp $lockinfo; close $l; };
+    my ($user, $host, $pid) = $lockinfo =~ /^by user (.*?)@(.*?) pid (\d+)/;
+    if ($fsfile and $fsfile->userData() and $fsfile->userData()->{lockinfo}) {
+      my $ourlockinfo = $fsfile->userData()->{lockinfo};
+      my ($mtime)= $ourlockinfo =~ / mtime: (\d+)$/;
+      if ($ourlockinfo =~ /^locked (.*)/) {
+	if ($1 ne $lockinfo) {
+	  return "opened by us ignoring the lock $1, but later locked again ".$lockinfo;
+	} elsif ($mtime != $current_mtime) {
+	  my $l = $1;
+	  $ourlockinfo =~ s/^locked //;
+	  $ourlockinfo =~ s/ mtime: .*$//;
+	  return "opened by us ignoring the lock $l and later changed by the lock owner";
+	} else {
+	  return "opened by us ignoring the lock $1, who still owns the lock, but has not saved the file since";
+	}
+      } elsif ($ourlockinfo ne $lockinfo) {
+	if ($current_mtime != $mtime) {
+	  return "stolen and changed ".$lockinfo." (previously locked $ourlockinfo)";
+	} else {
+	  return "stolen (but not yet changed) ".$lockinfo." (previously locked $ourlockinfo)";
+	}
+      } elsif ($mtime != $current_mtime) {
+	return "changed by another program"
+      } else {
+	return "my"
+      }
+    } elsif ($pid == $$ and $user eq getlogin() and $host eq $ENV{HOSTNAME}) {
+      return "my";
+    } else {
+      return "locked ".$lockinfo;
+    }
+  } elsif ($fsfile and $fsfile->userData() and $fsfile->userData()->{lockinfo}) {
+    my $ourlockinfo = $fsfile->userData()->{lockinfo};
+    my ($mtime)= $ourlockinfo =~ / mtime: (\d+)$/;
+    if ($ourlockinfo =~ /^locked (.*)/) {
+      if ($current_mtime != $mtime) {
+	$ourlockinfo =~ s/^locked //;
+	$ourlockinfo =~ s/ mtime: (.*)$//;
+	return "opened by us ignoring a lock $1 who released the lock, but the file has changed since";
+      } else {
+	return "opened by us ignoring a lock $1, who released the lock without making any changes";
+      }
+    } else {
+      if ($current_mtime != $mtime) {
+	return "changed by another program and our lock was removed";
+      } else {
+	return "originally locked by us but the lock was stolen from us by an unknown thief. The file seems unchanged";
+      }
+    }
+  } else {
+    return "none";
+  }
+}
 
 sub closeFile {
   my ($win,%opts)=@_;
@@ -880,10 +967,12 @@ sub closeFile {
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
   } else {
     if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
-      print STDERR "Removing ".$fsfile->filename()." from list of open files\n"  if $tredDebug;
+      my $f = $fsfile->filename();
+      print STDERR "Removing $f from list of open files\n"  if $tredDebug;
       @openfiles=grep { $_ ne $fsfile } @openfiles;
-      my $autosave = autosave_filename($fsfile->filename());
+      my $autosave = autosave_filename($f);
       unlink $autosave if defined $autosave;
+      unlink $f.".lock" if (checkLock($fsfile,$f) =~ /^my|^changed/);
       undef $fsfile;
     }
   }
@@ -1155,7 +1244,9 @@ sub newFileFromCurrent {
 		             $cur->encoding()
 		     );
   $cur=undef;
-  $keep=$keep || askSaveFile($win,1);
+  my $answer = askSaveFile($win,1,1);
+  return 0 if $answer == -1;
+  $keep=$keep || $answer;
   closeFile($win,-no_update => 1,-keep_postponed => $keep);
 #  $new->new_tree(0);
   $win->{FSFile}=$new;
@@ -1192,7 +1283,7 @@ sub reloadFile {
       while ($node) { $nodeidx++; $node=$node->previous() };
     };
     $nodeidx--;
-    askSaveFile($win,0);
+    return if askSaveFile($win,0,1) == -1;
     closeFile($win,-all_windows => 1);
     openFile($win,"$f##$no.$nodeidx",
 	     -noredraw => 1, -nohook=>1);
@@ -1234,7 +1325,14 @@ sub openFile {
     return 2;
   }
   unless ($opts{-keep} or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f) {
-    $opts{-keep} = askSaveFile($win,1) if (fsfileDisplayingWindows($grp,$win->{FSFile})<2);
+    if (fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
+      my $answer = askSaveFile($win,1,1);
+      if ($answer == -1) {
+	$win->toplevel->Unbusy() unless $insideEval;
+	return 4;
+      }
+      $opts{-keep} = $answer;
+    }
   }
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   unless ($opts{-justheader}) {
@@ -1261,8 +1359,30 @@ sub openFile {
       }
     }
   }
+
   closeFile($win,-no_update =>1 , -keep_postponed => $opts{-keep});
 
+  my $lock = checkLock(undef,$f);
+  print STDERR "LOCK: $lock\n";
+  my $lockinfo;
+  if ($lock  =~ /^locked/) {
+    my $answer = userQuery($win,
+			   "File $f is $lock.",
+			   -bitmap=> 'question',
+			   -title => "Accessing locked file?",
+			   -buttons => ['Open anyway', 'Steal lock', 'Cancel']);
+    if ($answer eq 'Cancel') {
+      $win->toplevel->Unbusy() unless $insideEval;
+      return 3;
+    } elsif ($answer eq 'Steal lock') {
+      $lockinfo=setLock($f)
+    } else {
+      $lockinfo = $lock;
+      print "LOCKINFO: $lockinfo\n";
+    }
+  } elsif ($lockFiles) {
+    $lockinfo=setLock($f);
+  }
   my $recover='No';
   my $autosave=autosave_filename($f);
   if (not $no_err and defined($autosave) and -r $autosave) {
@@ -1280,6 +1400,7 @@ sub openFile {
     if ($win->{FSFile}->lastTreeNo>=0 and $Fslib::FSError==0) {
       $win->{FSFile}->changeFilename($f);
       $win->{FSFile}->notSaved(2);
+      setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
     } else {
       my $trees=$win->{FSFile}->lastTreeNo+1;
       if (userQuery($win,
@@ -1290,6 +1411,7 @@ sub openFile {
 	closeFile($win,-no_update => 1);
 	$win->{FSFile}=
 	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+	setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
       } else {
 	closeFile($win,-no_update => 1) unless $win->{FSFile}->lastTreeNo>=0;
 	$no_err=1;
@@ -1301,6 +1423,7 @@ sub openFile {
     }
     $win->{FSFile}=
       FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+    setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
   }
   if ($win->{FSFile}) {
     $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
@@ -1426,14 +1549,36 @@ sub saveFile {
   return unless $win->{FSFile};
   my $f=$win->{FSFile}->filename;
 
-## you may have wr-perms on directory but not on the file
-##
-#   unless (-w $f) {
-#     return 0 unless userQuery($win,"You don't have writing permissions to file '$f'\n".
-# 			      "Do you still want to try to save it?\n",
-# 			      -title => "Error",
-# 			      -buttons => ["Try","Cancel"]) eq 'Try';
-#   }
+  my $lock = checkLock($win->{FSFile},$f);
+  if ($lock =~ /^locked|^stolen|^opened/) {
+    if (userQuery($win,
+		  "File $f was $lock!",
+		  -bitmap=> 'question',
+		  -title => "Saving locked file?",
+		  -buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
+      $win->toplevel->Unbusy() unless $insideEval;
+      return -1;
+    }
+  } elsif ($lock =~ /^originally locked by us/) {
+    if (userQuery($win,
+		  "File $f has been $lock, so saving it now seems quite safe.",
+		  -bitmap=> 'question',
+		  -title => "Saving changed file?",
+		  -buttons => ['Save','Cancel']) eq 'Cancel') {
+      $win->toplevel->Unbusy() unless $insideEval;
+      return -1;
+    }
+  } elsif ($lock =~ /^changed/) {
+    if (userQuery($win,
+		  "File $f has been $lock! Saving it now would overwrite those changes made by the other program.",
+		  -bitmap=> 'question',
+		  -title => "Saving changed file?",
+		  -buttons => ['Save anyway','Cancel']) eq 'Cancel') {
+      $win->toplevel->Unbusy() unless $insideEval;
+      return -1;
+    }
+  }
+
   rename $f,$f."~" if (-f $f);
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   if (doEvalHook($win,"file_save_hook",$f) eq 'stop') {
@@ -1445,6 +1590,7 @@ sub saveFile {
     errorMessage($win,"Error saving file to '$f'\n($!)\n");
     return 0;
   }
+  setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
   $win->toplevel->Unbusy() unless $insideEval;
   saveFileStateUpdate($win);
   my $autosave=autosave_filename($f);
@@ -1727,18 +1873,6 @@ sub selectFilelist {
   # find current file
   $win->{currentFileNo}=max(0,0,$fl->position())-1;
   nextFile($win);
-#  gotoFile($win,$win->{currentFileNo});
-
-#  my $file=$fl->file_at($win->{currenatFileNo});
-#
-#  print "Setting up file $file, no. $win->{currentFileNo}\n"  if $tredDebug;
-#
-#  if (defined($file)) {
-#    openFile($win,$file);
-#  } else {
-#    closeFile($win,-keep_postponed => askSaveFile($win,
-#              -all_windows => 1));  #emtpy filelist
-#  }
 }
 
 # Find named filelist. Return undef if no such filelist exists
@@ -3618,7 +3752,7 @@ sub startMain {
 	     [sub { my $grp=shift;
 		    doEvalHook($grp->{focusedWindow},"exit_hook");
 		    # run user's exit_hook
-		    askSaveFiles($grp);
+		    return if askSaveFiles($grp,1) == -1;
 		    closeFile($grp->{focusedWindow}, -all_windows => 1);
 		    $grp->{top}->destroy;
 		    $grp->{top}=undef;
@@ -3674,7 +3808,7 @@ sub startMain {
 							       undef,
 							       undef,
 							       $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
-					    askSaveFile($grp->{focusedWindow},0);
+					    return if askSaveFile($grp->{focusedWindow},0,1) == -1;
 					    closeFile($grp->{focusedWindow},-all_windows => 1);
 					  }
 					 , \%group]);
@@ -3682,9 +3816,12 @@ sub startMain {
 			    -underline=> 0,
 			    -command=> [ sub {
 					    my ($grp)=@_;
-					    my $keep=askSaveFile($grp->{focusedWindow},1)
-					      if (fsfileDisplayingWindows($grp,
-									  $grp->{focusedWindow}->{FSFile})<2);
+					    my $keep;
+					    if (fsfileDisplayingWindows($grp,
+						$grp->{focusedWindow}->{FSFile})<2) {
+					      $keep=askSaveFile($grp->{focusedWindow},1,1);
+					      return if $keep == -1;
+					    }
 					    closeFile($grp->{focusedWindow}, -keep_postponed => $keep);
 					  }
 					 , \%group]);
@@ -3737,8 +3874,8 @@ sub startMain {
 			    -underline=> 0,
 			    -command=> [sub {
 					  my $grp=shift;
-					  askSaveFiles($grp);
-					  $grp->{top}->destroy;
+					  $grp->{top}->destroy
+					    unless askSaveFiles($grp,1) == -1;
 					},\%group]);
 	
   $group{FileMenu}->pack(qw/-side left/);
@@ -4791,7 +4928,7 @@ sub saveFileAs {
 }
 
 sub askSaveFiles {
-  my ($grp)= @_;
+  my ($grp,$cancelbutton)= @_;
 
   @{$grp->{treeWindows}} = grep { $_ ne $grp->{focusedWindow} } @{$grp->{treeWindows}};
   unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
@@ -4799,7 +4936,7 @@ sub askSaveFiles {
   foreach $win (@{ $grp->{treeWindows} }) {
     if ($win->{FSFile}) {
       focusCanvas($win->canvas(),$win->{framegroup});
-      askSaveFile($win);
+      return -1 if askSaveFile($win,0,$cancelbutton) == -1;
       closeFile($win,-no_update => 1,-all_windows => 1);
     }
   }
@@ -4811,7 +4948,7 @@ sub askSaveFiles {
     redraw_win($grp->{focusedWindow});
     centerTo($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
     $grp->{top}->update();
-    askSaveFile($grp->{focusedWindow},0);
+    return -1 if askSaveFile($grp->{focusedWindow},0,$cancelbutton) == -1;
   }
 }
 
@@ -4821,7 +4958,7 @@ sub askSaveFiles {
 # return 0 if file saved, 1 if file should be kept and undef if no
 
 sub askSaveFile {
-  my ($win,$keepbutton)=@_;
+  my ($win,$keepbutton,$cancelbutton)=@_;
   return 0 unless
     ref($win->{FSFile}) and
       $win->{FSFile}->notSaved;
@@ -4830,12 +4967,14 @@ sub askSaveFile {
 			"\n\nFile may be changed!\nDo you want to save it?",
 			-bitmap=> 'question',
 			-title => "Should I save the file?",
-			-buttons => ['Yes', 'No', $keepbutton ? 'Keep' : ()]);
+			-buttons => ['Yes', 'No', $keepbutton ? 'Keep' : (),
+				     $cancelbutton ? 'Cancel' : ()]);
   if ($answer eq 'Yes') {
-    saveFile($win);
-    return 0;
+    return saveFile($win) == -1 ? -1 : 0;
   } elsif ($answer eq 'Keep') {
     return 1;
+  } elsif ($answer eq 'Cancel') {
+    return -1;
   }
 }
 
@@ -7212,9 +7351,7 @@ sub save_undo {
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
   return unless ref($fsfile) and $undo;
-  unless ($fsfile->userData) {
-    $fsfile->changeUserData({ undostack => [], undo => -1});
-  }
+  initUserData($fsfile);
 
   my $stack=$fsfile->userData()->{undostack};
   splice @$stack, $fsfile->userData->{undo}+1; # remove redo
