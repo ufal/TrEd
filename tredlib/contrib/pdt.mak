@@ -228,26 +228,26 @@ sub saveTreeStructureToAttr {
 }
 
 
-=item PDT->saveTreeAStructure(atr,top?)
+=item PDT->saveTreeAStructure(top?)
 
 For each node in the tree save governing node's ord to attribute
 C<ordorig>.
 
 =cut
 sub saveTreeAStructure {
-  my $class=$_[0];
-  saveTreeStructureToAttr($class,"ordorig");
+  my ($class,$top)=@_;
+  saveTreeStructureToAttr($class,"ordorig",$top);
 }
 
-=item PDT->saveTreeTStructure(atr,top?)
+=item PDT->saveTreeTStructure(top?)
 
 For each node in the tree save governing node's ord to attribute
 C<govTR>.
 
 =cut
 sub saveTreeTStructure {
-  my $class=$_[0];
-  saveTreeStructureToAttr($class,"govTR");
+  my ($class,$top)=@_;
+  saveTreeStructureToAttr($class,"govTR",$top);
 }
 
 =item PDT->substituteFSHeader(declarations)
@@ -267,6 +267,7 @@ Assign standard TGTS header to current document.
 
 =cut
 sub assignTRHeader {
+  require Csts2fs;
   my $class=$_[0];
   substituteFSHeader($class,@Csts2fs::TRheader);
 }
@@ -277,6 +278,7 @@ Assign standard analytical header to current document.
 
 =cut
 sub assignARHeader {
+  require Csts2fs;
   my $class=$_[0];
   substituteFSHeader($class,@Csts2fs::ARheader);
 }
@@ -328,6 +330,7 @@ Merge current document's FS header with the standard TGTS header.
 
 =cut
 sub convertToTRHeader {
+  require Csts2fs;
   my $class=$_[0];
   appendFSHeader($class,@Csts2fs::TRheader);
 }
@@ -339,6 +342,7 @@ header.
 
 =cut
 sub convertToARHeader {
+  require Csts2fs;
   my $class=$_[0];
   appendFSHeader($class,@Csts2fs::ARheader);
 }
@@ -618,6 +622,7 @@ sub FilterSons_TR { # node filter suff from
 
 sub GetChildren_TR { # node filter
   my ($node,$filter)=(shift,shift);
+  $filter = sub { 1 } unless $filter;
   my @sons;
   my $a=$node;
   my $from;
