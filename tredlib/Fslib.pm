@@ -257,7 +257,7 @@ sub Index ($$) {
   my $ar = shift;
   my @a = @{$ar};
   my $i = shift;
-  my $result=-1;
+  my $result=undef;
   for (my $n=0;$n<=$#a;$n++) {
     $result=$n, last if ($a[$n] eq $i);
   }
@@ -314,7 +314,7 @@ sub ParseNode ($$$) {
 	$a=$1;
 	$v=$2;
 	$tmp=Index($ordr,$a);
-	$n = $tmp if ($tmp>=0);
+	$n = $tmp if (defined($tmp));
       } elsif ($ {$lr}=~/\G($field)/gsco) {
 	$a=$ord[$n];
 	$v=$1;
@@ -394,7 +394,7 @@ sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
     print $output "[";
     for (my $n=0; $n<=$#ord; $n++) {
       $v=$ {$node}{$ord[$n]};
-      $v=~s/[,\[\]=\\]/\\$&/go;
+      $v=~s/[,\[\]=\\]/\\$&/go if (defined($v));      
       if (index($atr{$ord[$n]}, " O")>=0) {
 	print $output "," if $n;
 	unless ($lastprinted) { print $output $ord[$n],"="; }

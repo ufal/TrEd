@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#                                                      -*-cperl-*-
+#                                                      
 # This is "Tred" - a simple viewer/editor of tree
 # graphs in fs file-format used in Graph - program developed by
 # M. Kren. It is written entirely in Perl and for graphical output it
@@ -30,9 +30,12 @@
 #
 
 # this variable is used when searching for rc-file (i.e. the inicialisation file)
-@configFileSearchList=($ENV{HOME}.'/.tredrc',$ENV{TREDHOME}.'/tredrc',dirname($0).'tredrc',
-		       dirname($0).'../lib/tredlib/tredrc',
-		       '/usr/X11R6/lib/X11/app-defaults');
+my @configFileSearchList=($ENV{HOME}.'/.tredrc',
+			  (exists $ENV{TREDHOME}) ? $ENV{TREDHOME}.'/tredrc' : (),
+			  dirname($0).'tredrc',
+			  dirname($0).'../lib/tredlib/tredrc',
+			  '/usr/X11R6/lib/X11/app-defaults');
+my $libDir;
 
 # other configuration should be given in that file
 
@@ -47,7 +50,16 @@ if (exists $ENV{TREDHOME}) {
   $libDir=(-d dirname($0).'tredlib') ?
     dirname($0).'tredlib': dirname($0).'../lib/tredlib';
 }
+
+$macroFile="$libDir/tred.mac";
+
+if ($ARGV[0] eq '-m') {
+  shift @ARGV;
+  $macroFile=shift @ARGV;
+}
+
 readConfig();
+
 
 unless (-d $libDir) {
   print <<'EOL';
@@ -63,10 +75,13 @@ use Tk;
 use Tk::LabFrame;
 use Tk::Listbox;
 use Tk::Balloon;
+use Tk::DialogBox;
+use Tk::Tiler;
 use locale;
 use POSIX qw(locale_h);
 
-Tk::CmdLine::SetArguments(); # handle standard arguments for X resources
+
+Tk::CmdLine::SetArguments();	# handle standard arguments for X resources
 
 push @INC,$libDir;
 require Fslib;
@@ -74,7 +89,8 @@ import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 
 
-@macros=();
+my @macros=();
+my $useCzechLocales;
 
 if ($useCzechLocales) {
   setlocale(LC_COLLATE,"cs_CZ");
@@ -82,38 +98,45 @@ if ($useCzechLocales) {
   setlocale(LANG,"czech");
 }
 
-%attribs = ();
-@atord = ();
+my %attribs = ();
+my @atord = ();
 
-@files=@ARGV;
-@trees=();
+my @files=@ARGV;
+my @trees=();
 
-$insideEval=0;
-$FileNotSaved=0;
-$fileNo=0;
-$filecount=$#files+1;
+my $insideEval=0;
+my $FileNotSaved=0;
+my $fileNo=0;
+my $filecount=$#files+1;
+my $macrosEvaluated=0;		# is this of any use now?
 
-#
+%pckey_shift_translates = (exclam => 1, at => 2, numbersign => 3,
+			   dollar => 4, percent => 5, asciicircum => 6,
+			   ampersand => 7, asterisk => 8, parenleft => 9,
+			   parenright => 0, plus => 'equal', underscore => 'minus',
+			   less => 'comma', greater => 'period', question => 'slash',
+			   colon => 'semicolon', quotedbl => 'apostroph',
+			   braceleft => 'bracketleft', braceright => 'bracketright',
+			   bar => 'backslash', asciitilde => 'grave'
+			  );
+
 sub dirname {
   $_=shift;  
   return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : "./";
 }
 
-#
-#read macros
-readMacros($macroFile);
-$macrosEvaluated=0;
-#display first tree
-
-tkDrawTree($files[$fileNo]);
+readMacros($macroFile);		# read macros
+tkDrawTree($files[$fileNo]);	# display first tree
 
 $valueLine="";
 @nodes=();
 foreach (@trees) { DeleteTree($_); }
 undef @header;
+
 exit;
 
-
+############################
+############################
 ############################
 
 sub min {
@@ -158,7 +181,7 @@ sub readConfig {
     close F;
   } else {
     print 
-      "Warning: Cannot open $dotConfigFile nor $configFile,!\n" .
+      "Warning: Cannot open any file in:\n",join(":",@configFileSearchList),"\n" .
       "         Using configuration defaults!\n";
   }
   $appName=(exists $confs{AppName}) ? $confs{AppName} : "Tred ver. 1.0";
@@ -171,7 +194,7 @@ sub readConfig {
   $xmargin=(exists $confs{Xmargin}) ? $confs{Xmargin} : 2;
   $ymargin=(exists $confs{Ymargin}) ? $confs{Ymargin} : 2;
   $nodeColor=(exists $confs{NodeColor}) ? $confs{NodeColor} : 'yellow';
-  $activeNodeColor=(exists $confs{ActiveNodeColor}) ? $confs{ActiveNodeColor} : 'blue';
+  # $activeNodeColor=(exists $confs{ActiveNodeColor}) ? $confs{ActiveNodeColor} : 'blue';
   $currentNodeColor=(exists $confs{CurrentNodeColor}) ? $confs{CurrentNodeColor} : 'red';
   $nearestNodeColor=(exists $confs{NearestNodeColor}) ? $confs{NearestNodeColor} : 'green';
   $textColor=(exists $confs{TextColor}) ? $confs{TextColor} : 'black';
@@ -179,15 +202,15 @@ sub readConfig {
   $boxColor=(exists $confs{BoxColor}) ? $confs{BoxColor} : 'wheat';
   $currentBoxColor=(exists $confs{CurrentBoxColor}) ? $confs{CurrentBoxColor} : 'white';
   $font=(exists $confs{Font}) ? $confs{Font} : '-*-helvetica-medium-r-normal--*-120-*-*-*-*-*-2';
-  #  $font=(exists $confs{Font}) ? $confs{Font} : '-misc-fixed-*-*-*-*-15-*-2';
+  # $font=(exists $confs{Font}) ? $confs{Font} : '-misc-fixed-*-*-*-*-15-*-2';
   $type1font=(exists $confs{Type1Font}) ? $confs{Type1Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
   $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : $libDir;
   $psFontFile=(exists $confs{PsFontFile}) ? <$confs{PsFontFile}> : "$libDir/csarialm.pfa";
-  $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : "$libDir/tred.mac";
+  $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : $macroFile;
   $defaultMacroFile=(exists $confs{DefaultMacroFile}) ? <$confs{DefaultMacroFile}> : "$libDir/tred.def";
   $prtFmtWidth=(exists $confs{PrtFmtWidth}) ? $confs{PrtFmtWidth} : '21c';
   $prtFmtHeight=(exists $confs{PrtFmtHeight}) ? $confs{PrtFmtHeight} : '297m';
-  $prtVMargin=(exists $confs{PrtVMargin}) ? $confs{PrtVMargin} : '1c';
+  $prtVMargin=(exists $confs{PrtVMargin}) ? $confs{PrtVMargin} : '3c';
   $prtHMargin=(exists $confs{PrtHMargin}) ? $confs{PrtHMargin} : '1c';
   $psMedia=(exists $confs{PsMedia}) ? $confs{PsMedia} : '%%DocumentMedia: A4 595 842 white()';
   $psFile=(exists $confs{PsFile}) ? <$confs{PsFile}> : 'tred.ps';
@@ -310,7 +333,7 @@ sub openFile {
   #print "@rest\n";
   @d= $rest[0]=~/[,\(]([0-9]+)/g;
   #print "Displaying:\n@d\n";
-  @displayAttrs = map { @atord[$_] } @d;
+  @displayAttrs = map { $atord[$_] } @d;
   #print "That is:\n@displayAttrs\n";
   
   print STDERR "empty file!\n" if ($#trees<0);
@@ -374,7 +397,7 @@ sub getNodes {
   $treeNo=$#trees if ($treeNo>$#trees);
   @nodes=();
   my @sent=();
-  $root=@trees[$treeNo];
+  $root=$trees[$treeNo];
   my $node=$root;
   my $current=$root;
 
@@ -400,7 +423,9 @@ sub getNodes {
   loop: while($node)
   {
     #skip hidden subtrees
-    if (not $showHidden and (Hide($node,\%attribs) eq 'hide')) {
+    if (not $showHidden and
+	defined(Hide($node,\%attribs)) and
+	(Hide($node,\%attribs) eq 'hide')) {
       while ($node) {
 	if (RBrother($node)) {
 	  $node=RBrother($node);
@@ -414,7 +439,8 @@ sub getNodes {
     $node=Next($node);
 
 
-    $current=$node if ($grp->{'currentNode'} eq $node);
+    $current=$node if (exists $grp->{'currentNode'} and
+		       $grp->{'currentNode'} eq $node);
   }
   $grp->{'currentNode'}=$current; 
   @nodes=sort { Ord($a,\%attribs) <=> Ord($b,\%attribs)} @unsorted;
@@ -443,32 +469,32 @@ sub printDialog {
   my $cf = $d->Frame();
   my $cl = $cf->Label(-text => 'Print command:',
 		     -anchor => 'w',
-		     -justify => 'right')->pack(-side => left);
+		     -justify => 'right')->pack(-side => 'left');
 
   my $ce = $cf->Entry(-relief => 'sunken',
 		     -width => 20,
 		     -font => $font,
 		     -state => $toFile ? 'disabled' : 'normal',
-		     -textvariable => \$com)->pack(-side => left);
+		     -textvariable => \$com)->pack(-side => 'left');
 
-  $cf->pack(-pady => '5m', -side=>top);
+  $cf->pack(-pady => '5m', -side=>'top');
   my $ff=$d->Frame();
   my $fl = $ff->Label(-text => 'File name:',
 		     -anchor => 'w',
-		     -justify => 'right')->pack(-side => left);
+		     -justify => 'right')->pack(-side => 'left');
 
   my $fe = $ff->Entry(-relief => 'sunken',
 		     -width => 20,
 		     -state => $toFile ? 'normal' : 'disabled' ,
 		     -font => $font,
-		     -textvariable => \$fil)->pack(-side => left);
+		     -textvariable => \$fil)->pack(-side => 'left');
 
   my $of=$d->Frame();
   my $bf=$of->Frame();
   $bf->Checkbutton(-text     => 'Print to file',
 		   -variable => \$toFile,
 		   -command  => [sub {
-				  my ($t,$c,$f,$e)=@_;
+				  my ($t,$c,$f)=@_;
 				  if ($$t) {
 				    $f->focus;
 				    $c->configure(-state => 'disabled');
@@ -478,30 +504,30 @@ sub printDialog {
 				    $f->configure(-state => 'disabled');
 				    $c->configure(-state => 'normal');
 				  }
-				},\$toFile,$ce,$fe,$te ],
+				},\$toFile,$ce,$fe ],
 		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
 
-  my $te=$bf->Checkbutton(-text     => 'Create EPS',
+  $bf->Checkbutton(-text     => 'Create EPS',
 			  -variable => \$toEPS,
 			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
 
-  my $te=$bf->Checkbutton(-text     => 'Use Type1 Postscript Font',
+  $bf->Checkbutton(-text     => 'Use Type1 Postscript Font',
 			  -state => $type1font ? 'normal' : 'disabled' ,
 			  -variable => \$useType1Font,
 			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
 
-  $bf->pack(-side => right);
+  $bf->pack(-side => 'right');
   $of->pack(-fill => 'x',-padx=>'1c');
   my $sf = $d->Frame();
   $sf->Label(-text => 'Page range:',
 	     -anchor => 'w',
-	     -justify => 'right')->pack(-side => left);
+	     -justify => 'right')->pack(-side => 'left');
   $sf->Entry(-relief => 'sunken',
 	     -width => 20,
 	     -font => $font,
-	     -textvariable => \$printRange)->pack(-side => left, -padx=>'2m');
-  $sf->pack(-side => bottom, -pady => '5m');
-  $ff->pack(-side => bottom, -pady => '5m');
+	     -textvariable => \$printRange)->pack(-side => 'left', -padx=>'2m');
+  $sf->pack(-side => 'bottom', -pady => '5m');
+  $ff->pack(-side => 'bottom', -pady => '5m');
 
   $toFile ? $fe->focus : $ce->focus;
   my $result = ShowDialog($d);
@@ -525,6 +551,8 @@ sub printThis {
   my $pagewidth;
   my $pageheight;
   my $printMultiple;
+  my @printList=();
+  my %pso;
 
   if (not printDialog($grp)) {
     #print "Printing aborted!\n";
@@ -573,35 +601,42 @@ sub printThis {
   for (my $t=0;$t<=$#printList;$t++) {
     print "Printing $printList[$t]\n";
     $font=$type1font if ($grp->{printUseType1Font});
-    $t ? gotoTree($printList[$t],$grp) : redraw_tree($grp);
+    $printList[$t]!=$treeNo+1 ? gotoTree($printList[$t]-1,$grp) : redraw_tree($grp);
     my $rotate =  (!$grp->{printToEPS} and ($grp->{canvasHeight}<$grp->{canvasWidth}));
     print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
 
-    if ($rotate) {
-      $pagewidth=$c->fpixels($prtFmtWidth)+2*$c->fpixels($prtVMargin);
-      $pageheight=$c->fpixels($prtFmtHeight)+2*$c->fpixels($prtHMargin);
+    if (not $rotate) {
+      $pagewidth=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
+      $pageheight=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
     } else {
-      $pagewidth=$c->fpixels($prtFmtHeight)+2*$c->fpixels($prtVMargin);
-      $pageheight=$c->fpixels($prtFmtWidth)+2*$c->fpixels($prtHMargin);
+      $pagewidth=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
+      $pageheight=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
     }
-    my %pso = (qw/-colormode mono -x 0 -y 0/,
-	       -fontmap => { $font => ['Arial-Medium', 12] },
-	       -width => $grp->{canvasWidth},
-	       -height => $grp->{canvasHeight},
-	       -rotate => $rotate);
+    %pso = (qw/-colormode mono -x 0 -y 0/,
+	    -fontmap => { $font => ['Arial-Medium', 12] },
+	    -width => $grp->{canvasWidth},
+	    -height => $grp->{canvasHeight},
+	    -rotate => $rotate);
 
-    if ($grp->{printToEPS}) {
-      print "Maximizing: $maximizePrintSize\n";
-      if ($maximizePrintSize or $c->fpixels($grp->{canvasWidth})>$c->fpixels($pagewidth) or
-	  $c->fpixels($grp->{canvasHeight})>$c->fpixels($pageheight)) {
-
-	if ($c->fpixels($grp->{canvasWidth})/$c->fpixels($pagewidth)*$c->fpixels($pageheight)
-	    >$c->fpixels($grp->{canvasHeight})) {
-	  #print "Applying width\n";
-	  $pso{-pagewidth} = $c->fpixels($prtFmtWidth)-2*$c->fpixels($prtVMargin);
+    unless ($grp->{printToEPS}) {
+      #print "Maximizing: $maximizePrintSize\n";
+      if ($maximizePrintSize or $c->fpixels($grp->{canvasWidth})>$pagewidth or
+	  $c->fpixels($grp->{canvasHeight})>$pageheight) {
+      print "Adjusting print size\n";
+	if ($c->fpixels($grp->{canvasWidth})/$pagewidth*$pageheight>$c->fpixels($grp->{canvasHeight})) {
+	  #print "Applying width\n";	  
+	  $pso{-pagewidth} = 
+	    $pagewidth; 
+	  print "Scaling by tree width,\n";
+	  print "forcing box width to $pagewidth\n";
+	    #$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
 	} else {
 	  #print "Applying height\n";
-	  $pso{-pageheight} = $c->fpixels($prtFmtHeight)-2*$c->fpixels($prtHMargin);
+	  $pso{-pageheight} = 
+	    $pageheight; 
+	  print "Scaling by tree height,\n";
+	  print "forcing box height to $pageheight\n";
+	    #$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
 	}
       }
     }
@@ -614,7 +649,7 @@ sub printThis {
       my $now=localtime;
       unless ($grp->{printToEPS}) {
 	print O "gsave\n",
-	  "/Arial-Medium findfont 12 scalefont setfont\n",
+	  "/Arial-Medium findfont 8 scalefont setfont\n",
 	    "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
 	      "40 40 [\n",
 		"(File ",$grp->{currentFile},".    Printed by Tred on $now.)\n",
@@ -626,8 +661,8 @@ sub printThis {
       print "Lines:",$#ps,"\n";
       unless ($grp->{printToEPS}) {
 	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BoundingBox:/);
-	print "Bounding Box:\n";
-	print $ps[$i],"\n";
+#	print "Bounding Box:\n";
+#	print $ps[$i],"\n";
 	print O $ps[$i++],"\n";
 	print O $psMedia,"\n";	
 	print O '%%Pages: ',$#printList+1,"\n";
@@ -658,7 +693,7 @@ sub printThis {
   #print "$psFile written!\n";
 
   $font=$savefont;
-  if ($TreeNo eq $saveTreeNo) { redraw_tree($grp); }
+  if ($treeNo eq $saveTreeNo) { redraw_tree($grp); }
   else { gotoTree($saveTreeNo,$grp); }
   $grp->{top}->Unbusy();
 
@@ -728,7 +763,7 @@ sub tkDrawTree {
 
 
   $group{Menubar}=$group{top}->Frame(-relief => 'raised', -borderwidth => 2);
-  $group{Menubar}->pack(qw/-expand yes -fill both/);
+  $group{Menubar}->pack(qw/-fill x/);
   addBindTags($group{Menubar},'my');
   $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0 -menuitems/ =>
         [
@@ -972,7 +1007,7 @@ sub selectAttrs {
   foreach $a (@atord) {
     $datr{$a} = grep {$a eq $_} @displayAttrs;
   }
-  my $d = $grp->{'top'}->DialogBox(-title => "Select", -width => "10c",
+  $d = $grp->{'top'}->DialogBox(-title => "Select", -width => "10c",
 			     -buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
   my $f = $d->Scrolled('Tiler',
@@ -1141,22 +1176,22 @@ sub editAttrsDialog {
 		       -rows =>$rows,
 		       -relief => 'groove',
 		       -scrollbars => 'e');
-  sub focusxDn {  my ($w,$i)=@_;#,$e,$f)=@_; 
+  sub focusxDn {  my ($w,$i,$e,$f,$rows)=@_; 
 		if ($i+1>$#atord) {
 		  $w->focusNext;
 		} else {
-		  $e{$atord[$i+1]}->focus;
+		  $e->{$atord[$i+1]}->focus;
 		  $f->scroll(1,'pages') 
 		    if ($i+1>=($f->{SubWidget}{tiler}{Start}+$rows));
 		  # D'ya like dirty tricks ? :)
 		}
 		Tk->break;
 	      };
-  sub focusxUp {  my ($w,$i)=@_; 
+  sub focusxUp {  my ($w,$i,$e,$f)=@_; 
 		 if ($i<=0) {
 		   $w->focusPrev;
 		 } else {
-		   $e{$atord[$i-1]}->focus;
+		   $e->{$atord[$i-1]}->focus;
 		   $f->scroll(-1,'pages') 
 		     if ($i-1<($f->{SubWidget}{tiler}{Start}));
 		   # D'ya like dirty tricks ? :)
@@ -1189,7 +1224,7 @@ sub editAttrsDialog {
 				  $e->insert(0,$result);
 				  $e->configure(-state => 'disabled');
 				}
-			      },$e{$_},$grp,$node,$_])->pack(-side => right);
+			      },$e{$_},$grp,$node,$_])->pack(-side => 'right');
       $e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
       $e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);      
       $e{$_}->insert(0,$$node{$_});
@@ -1201,10 +1236,10 @@ sub editAttrsDialog {
       push @r, $e{$_};
     }
 
-    $e{$_}->bind($e{$_},'<Tab>',[\&focusxDn,$i]);#,\%e,$f]);
-    $e{$_}->bind($e{$_},'<Down>',[\&focusxDn,$i]);#,\%e,$f]);
-    $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxUp,$i]);
-    $e{$_}->bind($e{$_},'<Up>',[\&focusxUp,$i]);
+    $e{$_}->bind($e{$_},'<Tab>',[\&focusxDn,$i,\%e,$f,$rows]);
+    $e{$_}->bind($e{$_},'<Down>',[\&focusxDn,$i,\%e,$f,$rows]);
+    $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxUp,$i,\%e,$f]);
+    $e{$_}->bind($e{$_},'<Up>',[\&focusxUp,$i,\%e,$f]);
   }
   $e{$atord[0]}->focus if $atord[0];
   $f->Manage(@r);
@@ -1319,8 +1354,10 @@ sub redraw_tree {
   $grp->{'canvas'}->configure(-scrollregion =>['0c', '0c', $grp->{canvasWidth}, $grp->{canvasHeight}]);
   $grp->{'canvas'}->addtag('delete','all');
   $grp->{'canvas'}->delete('delete');
-  
-  %grp->{'pinfo'}=('lastX',0,'lastY',0);
+
+  #$grp->{'pinfo'}={lastX => 0, lastY => 0};
+  $grp->{'pinfo'}{'lastX'}=0;
+  $grp->{'pinfo'}{'lastY'}=0;
   foreach $node (@nodes) {
     $parent=Parent($node);
     use integer;
@@ -1373,8 +1410,9 @@ sub redraw_tree {
       $grp->{'canvas'}->addtag('textbg', 'withtag', $$node{"_tkTextBg".$i."_"});
       $grp->{'pinfo'}{$$node{"_tkTextBg".$i."_"}}=$node;
       $$node{"_tkText".$i."_"}=
-	$grp->{'canvas'}->createText($$node{"_tkXPOS_"},$$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+$i*$lineHeight,
-				     -anchor => nw, 
+	$grp->{'canvas'}->createText($$node{"_tkXPOS_"},$$node{"_tkYPOS_"}+
+				     $nodeHeight+$nodeYSkip+$i*$lineHeight,
+				     -anchor => 'nw', 
 				     -text => PrepareText($$node{$displayAttrs[$i]}),
 				     -fill => $textColor,
 				     -font => $font);
@@ -1383,7 +1421,8 @@ sub redraw_tree {
     }
 #    print "done\n";
     $grp->{'pinfo'}{$$node{"_tkOval_"}}=$node;
-    $grp->{'pinfo'}{$$node{"_tkTextBox_"}}=$node;
+    $grp->{'pinfo'}{$$node{"_tkTextBox_"}}=$node
+      if exists $$node{"_tkTextBox_"};
   }
 
 #  $grp->{'canvas'}->bind('point', '<Any-Enter>' => [sub{shift->itemconfigure(@_)},
@@ -1681,10 +1720,15 @@ sub evalMacro {
   my $e = $w->XEvent;
   my $A = uc($e->A);
 
-  #print STDERR "Pressed: ($A), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
-
+  print STDERR "Pressed: ($A), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
+  print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
+  
   if (defined $keyBindings{$prefix.$A}) {
     $key=$prefix.$A;
+  } elsif ($prefix =~/SHIFT/ and exists($pckey_shift_translates{$e->K}) 
+	  and defined $keyBindings{$prefix.$pckey_shift_translates{$e->K}}) {
+    $key=$prefix.$pckey_shift_translates{$e->K};
+    print STDERR "Trying: ",$prefix.$pckey_shift_translates{$e->K},"\n";
   } else {
     $key=$prefix.uc($e->K);
   }
@@ -1779,21 +1823,27 @@ sub node_move {
 sub node_release {
   my($w,$grp) = @_;
   my $parent;
-  my $node=$grp->{'pinfo'}{$w->find('withtag','selected')};  
+  my $node;
+  my $sel=$w->find('withtag','selected');
+  $node=$grp->{'pinfo'}{$sel} if (defined ($sel));
 
   if ($node) {
     $p=$w->find('withtag','nearest');
     $w->dtag('selected');
-
-    $parent=$grp->{'pinfo'}{$p};
-    while ($parent) {
-      $p=0, last if ($node eq $parent);
-      $parent=Parent($parent);
-    }
-    if ($node and $p and $grp->{'pinfo'}{$p} and Parent($node)!=$grp->{'pinfo'}{$p}) {    
-      Paste(Cut($node),$grp->{'pinfo'}{$p},\%attribs);
-      $FileNotSaved=1;
+    if (defined $p) {
+      $parent=$grp->{'pinfo'}{$p};
+      while ($parent) {
+	$p=0, last if ($node eq $parent);
+	$parent=Parent($parent);
+      }
+      if ($node and $p and $grp->{'pinfo'}{$p} and Parent($node)!=$grp->{'pinfo'}{$p}) {
+	Paste(Cut($node),$grp->{'pinfo'}{$p},\%attribs);
+	$FileNotSaved=1;
+      }
     }
   }
   redraw_tree($grp);
 }
+
+### Local Variables:
+### mode: cperl

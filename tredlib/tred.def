@@ -2,16 +2,136 @@
 ## author: Petr Pajas
 ## created: Fri Mar 17 14:48:42 CET 2000
 
+###########################################################
 # Default macro definitions to make
 # calls to global subroutines less humble
 
-sub GotoTree { my $result=gotoTree(shift,$grp); $this=$root; return $result; }
-sub NextTree { my $result=nextTree($grp); $this=$root; return $result; }
-sub PrevTree { my $result=prevTree($grp); $this=$root; return $result; }
-sub GetOrd { return Ord(shift,\%attribs); }
-sub PasteNode { return Paste(shift,shift,\%attribs); }
-sub CutNode { return Cut(shift); }
+my $_NoSuchTree; # for compatibility with Graph2Tred
 
+sub GotoTree {
+  my $to=shift;
+  $_NoSuchTree=($to != max(0,min($to,$#trees)));
+  my $result=gotoTree($to,$grp);
+  $this=$root;
+  return $result;
+}
+
+sub NextTree {
+  my $result=nextTree($grp);
+  $this=$root;
+  $_NoSuchTree=!$result;
+  return $result;
+}
+
+sub PrevTree { 
+  my $result=prevTree($grp);
+  $this=$root; 
+  $_NoSuchTree=!$result;
+  return $result;
+}
+
+sub GetOrd { return Ord(shift,\%attribs); }
+sub PasteNode { my $node=shift; Paste($node,shift,\%attribs); return $node; }
+sub CutNode {
+  my $node=shift;
+  my $parent=Parent($node);
+  $result=Cut($node);
+  $this=$parent if ($result and $this==$node);
+  return $result;
+}
+
+###########################################################
+# Macros used by Graph2Tred macro convertor
+
+sub PlainNewSon {
+## Adds new son to a given parent
+  my $parent=shift;
+  return unless ($parent);
+  my $nd={};
+  NewNode($nd); # blessing NewNode
+  PasteNode($nd,$this);
+  return $this=$nd;
+}
+
+sub PlainDeleteNode {
+## Deletes given node
+  my $node=shift;
+  return undef unless ($node and Parent($node));
+
+  $this=Parent($this) if ($node == $this);
+  return DeleteLeaf($node);
+}
+
+sub PrintToFile {
+  my $file=shift;
+  if (open(PTF,">>$file")) {
+    print PTF join("\n",@_);
+    close(PTF);
+  }
+}
+
+sub ValNo {
+## return n'th of given string (separated by |); 
+  my $n=shift;
+  my @val=split /\|/, shift;
+  return $val[$n];
+}
+
+sub AtrNo {
+  return @atord[shift];
+}
+
+sub Union {
+# make (pairwise disjoint, i.e. set-like) union
+# of two lists ( strings with |-delimited elements )
+  my @c=();
+  my $s;
+  my $t;
+  element: foreach $s (split(/\|/, shift),split(/\|/, shift)) {
+    for ($t=0;$t<=$#c;$t++) {
+      next element if ($c[$t] eq $s);
+    }
+    push @c,$s;
+  }
+  return join '|',@c;
+}
+
+sub Interjection {
+# make interjection of two lists
+# ( strings with |-delimited elements )
+  my @a=split(/\|/, shift);
+  my @c=();
+  my $s;
+  my $t;
+  element: foreach $s (split(/\|/, Union(shift,""))) {
+    for ($t=0;$t<=$#a;$t++) {
+      if ($a[$t] eq $s) {
+	push(@c,$s);
+	next element;
+      }
+    }
+  }
+  return join '|',@c;
+}
+
+
+sub ListEq {
+# test if two given lists ( strings with |-delimited elements )
+# contain the same elements
+  my ($a,$b)=(shift,shift);
+  $a=Union($a,""); # make them uniqe
+  $b=Union($b,""); # make them uniqe
+  my @a=split(/\|/, $a);
+  my @b=split(/\|/, $b);
+
+  return 0 unless ($#a == $#b);
+
+  my @c=split(/\|/,Union($a,$b));
+
+  return ($#a == $#c);
+}
+
+#####################################################
 # Common useful user-level subroutines 
 
 sub NewRBrother {
