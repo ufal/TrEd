@@ -1,6 +1,6 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 ## author: Alena Bohmova
-## Time-stamp: <2001-04-18 10:22:39 pajas>
+## Time-stamp: <2001-04-18 11:06:10 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
@@ -12,13 +12,18 @@ sub switch_context_hook {
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
   unless ($grp->{BalloonPattern}) {
+    default_tr_attrs();
+  }
+  $FileNotSaved=0;
+}
+
+#insert default_tr_attrs as menu Display default attributes
+sub default_tr_attrs {
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+                    '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
 		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
-  }
-  $FileNotSaved=0;
 }
 
 sub sort_attrs_hook {
