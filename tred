@@ -677,7 +677,7 @@ sub updatePostponed {
     foreach (@openfiles) {
       $grp->{PostponedFileMenu}->command(-label => "$i.  ".$_->filename(),
 				      -underline=> 0,
-				      -command=> [\&openFile,$grp,$_->filename(),0,1]);
+				      -command=> [\&openFile,$grp,$_->filename(),-keep => 1]);
       $i++;
     }
     $grp->{PostponedFileMenu}->command(-label=> 'none',
@@ -753,21 +753,33 @@ sub reloadFile {
   my ($win)=@_;
   if (ref($win->{FSFile}) and $win->{FSFile}->filename()) {
     my $f=$win->{FSFile}->filename();
+    my @patterns=$win->{FSFile}->patterns();
+    my $hint=$win->{FSFile}->hint();
     $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
-    my $no=$win->{treeNo};
+    my $no=$win->{treeNo}+1;
     my $nodeidx=0;
     do {			# $node is undefined after this block
       my $node=$win->{currentNode};
       while ($node) { $nodeidx++; $node=$node->previous() };
     };
+    $nodeidx--;
     askSaveFile($win);
     closeFile($win);
-    openFile($win->{framegroup},"$f##$no.$nodeidx");
+    openFile($win->{framegroup},"$f##$no.$nodeidx",
+	     -noredraw => 1, -nohook=>1);
+    if ($win->{FSFile}) {
+      $win->{FSFile}->changePatterns(@patterns);
+      $win->{FSFile}->changeHint($hint);
+    }
+    redraw_win($win);
+    if ($win->{currentNode}) {
+      centerToXY($win,0,0);
+    }
   }
 }
 
 sub openFile {
-  my ($grp,$f,$no_recent,$keep,$just_header)= @_;
+  my ($grp,$f,%opts)= @_;
   my $win=$grp->{focusedWindow};
   my $goto= undef;
   my %fs=(fs=> 'FS format',
@@ -780,17 +792,17 @@ sub openFile {
       $goto=$1;
     print "Goto suffix is $goto\n" if $tredDebug;
   }
-  unless ($keep or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f) {
-    $keep = askSaveFile($win,1);
-    $keep ||= $grp->{keepfiles};
+  unless ($opts{-keep} or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f) {
+    $opts{-keep} = askSaveFile($win,1);
+    $opts{-keep} ||= $grp->{keepfiles};
   }
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
-  unless ($just_header) {
+  unless ($opts{-justheader}) {
     foreach ($win->{FSFile},@openfiles) {
       if (ref($_) and $_->filename() eq $f) {
 	print "Opening postponed file\n" if $tredDebug;
-	resumeFile($win,$_,$keep);
+	resumeFile($win,$_,$opts{-keep});
 	$win->{currentFileNo} =
 	  max(0,$win->{currentFileNo});
 	insertToFilelist($grp,$grp->{currentFilelist},
@@ -799,18 +811,20 @@ sub openFile {
 	updateTitle($grp);
 	applyFileSuffix($win,$goto);
 	get_nodes_win($win);
-	redraw_win($win);
-	if ($win->{currentNode}) {
-	  centerToXY($win,0,0);
+	doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
+	unless ($opts{-noredraw}) {
+	  redraw_win($win);
+	  if ($win->{currentNode}) {
+	    centerToXY($win,0,0);
+	  }
 	}
-	doEvalHook($win,"file_resumed_hook");
-	addToRecent($grp,$f) unless $no_recent;
+	addToRecent($grp,$f) unless $opts{-norecent};
 	$win->toplevel->Unbusy() unless $insideEval;
 	return 2;
       }
     }
   }
-  closeFile($win,1,$keep);
+  closeFile($win,1,$opts{-keep});
 
   $win->{FSFile}= FSFile->newFSFile($f,@backends);
   $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
@@ -844,10 +858,12 @@ sub openFile {
   applyFileSuffix($win,$goto);
 
   get_nodes_win($win);
-  doEvalHook($win,"file_opened_hook") if ($win->{FSFile});
-  redraw_win($win);
-  if ($win->{currentNode}) {
-    centerToXY($win,0,0);
+  doEvalHook($win,"file_opened_hook") if ($win->{FSFile} and !$opts{-nohook});
+  unless ($opts{-noredraw}) {
+    redraw_win($win);
+    if ($win->{currentNode}) {
+      centerToXY($win,0,0);
+    }
   }
   $win->toplevel->Unbusy() unless $insideEval;
 
@@ -3306,7 +3322,7 @@ sub fileDialog {
 
   $file= $grp->{top}->getOpenFile(-filetypes=> \@open_types);
   if (defined $file and $file ne '') {
-    return openFile($grp,$file,undef,undef,$header_only);
+    return openFile($grp,$file,-justheader => $header_only);
   }
   return 0;
 }
