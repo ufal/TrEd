@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-05-17 11:14:59 pajas>
+## Time-stamp: <2002-06-25 14:46:51 pajas>
 
 package TredMacro;
 
@@ -584,21 +584,28 @@ Create a new brother of the given node and recalculate the special FS
 numbering attribute values in the whole tree so that the new node is
 the first right sibling of the given node.
 
+If no node is given, this function operates on C<$this> and B<resets>
+C<$this> to the newly created node. If some node is given the value
+of C<$this> is preserved.
+
 =cut
 sub NewRBrother {
 ## Adds new RBrother to current node and shifts
 ## ords of the other nodes appropriately
-  return unless ($this and Parent($this));
+  my $ref=ref($_[0]) ? $_[0] : $this;
+
+  return unless ($ref and Parent($ref));
   my $nd=FSNode->new();
   my $ord=$grp->{FSFile}->FS->order;
-  $nd->{$ord}=$this->{$ord}+1;
+  $nd->{$ord}=$ref->{$ord}+1;
   my $node=$root;
   while ($node) {
-    $node->{$ord}++ if ($node ne $nd and $node->{$ord}>$this->{$ord});
+    $node->{$ord}++ if ($node ne $nd and $node->{$ord}>$ref->{$ord});
     $node=Next($node);
   }
-  PasteNode($nd,Parent($this));
-  return $this=$nd;
+  PasteNode($nd,Parent($ref));
+  $this=$nd unless ($_[0]);
+  return $nd;
 }
 
 =item NewLBrother (node)
@@ -607,53 +614,65 @@ Create a new brother of the given node and recalculate the special FS
 numbering attribute values in the whole tree so that the new node is
 the first left sibling of the given node.
 
+If no node is given, this function operates on C<$this> and B<resets>
+C<$this> to the newly created node. If some node is given the value
+of C<$this> is preserved.
+
 =cut
 sub NewLBrother {
 ## Adds new RLrother to current node and shifts
 ## ords of the other nodes appropriately
-  return unless ($this and Parent($this));
+  my $ref=ref($_[0]) ? $_[0] : $this;
+  return unless ($ref and Parent($ref));
   my $nd=FSNode->new();
   my $ord=$grp->{FSFile}->FS->order;
-  $nd->{$ord}=$this->{$ord};
+  $nd->{$ord}=$ref->{$ord};
   my $node=$root;
   while ($node) {
-    $node->{$ord}++ if ($node ne $nd and $node->{$ord}>=$this->{$ord});
+    $node->{$ord}++ if ($node ne $nd and $node->{$ord}>=$ref->{$ord});
     $node=Next($node);
   }
-  PasteNode($nd,Parent($this));
-  return $this=$nd;
+  PasteNode($nd,Parent($ref));
+  $this=$nd unless ($_[0]);
+  return $nd;
 }
 
 =item NewSon (parent)
 
 Create a new child of the given parent node and recalculate the
 special FS numbering attribute values in the whole tree so that the
-new node is the first node left to the given parent.
+new node is the first node left to the given parent. 
+
+If no parent node is given, this function operates on C<$this> and
+B<resets> C<$this> to the newly created node. If a parent node is
+given the value of C<$this> is preserved.
 
 =cut
 sub NewSon {
 ## Adds new son to current node and shifts
 ## ords of the other nodes appropriately
-  return unless ($this);
+  my $ref=ref($_[0]) ? $_[0] : $this;
+  return unless ($ref);
   my $nd=FSNode->new();
   my $ord=$grp->{FSFile}->FS->order;
-  $nd->{$ord}=$this->{$ord}+1;
+  $nd->{$ord}=$ref->{$ord}+1;
 
   my $node=$root;
   while ($node) {
-    $node->{$ord}++ if ($node->{$ord}>$this->{$ord});
+    $node->{$ord}++ if ($node->{$ord}>$ref->{$ord});
     $node=Next($node);
   }
-  PasteNode($nd,$this);
-  return $this=$nd;
+  PasteNode($nd,$ref);
+  $this=$nd unless ($_[0]);
+  return $nd;
 }
 
 =item DeleteThisNode
 
-Delete the current node and recalculate the special FS numbering
-attribute values in the whole tree so that there is no gap in the
-numbering. If the current node is not a leaf or if it is the root of
-the current tree, this macro does nothing.
+Delete the current (C<$this>) node and recalculate the special FS
+numbering attribute values in the whole tree so that there is no gap
+in the numbering. If the current node is not a leaf or if it is the
+root of the current tree, this macro does nothing.
 
 =cut
 sub DeleteThisNode {
@@ -806,7 +825,8 @@ sub Hide {
 
 =item PlainNewSon (parent)
 
-Add a new child node to the given parent.
+Add a new child node to the given parent and make it the current
+node (by setting C<$this> to point to it).
 
 =cut
 sub PlainNewSon {
