@@ -4637,13 +4637,11 @@ sub AuxPY {
 
       $pAct->{'reserve1'} = 'AuxP';
 
-      $sPar1 = ValNo(0,$pPrepParent->{'AID'});
+      $pPar1 = $pPrepParent;
 
-      $sPar2 = ValNo(0,$pAct->{'AID'});
+      $pPar2 = $pAct;
 
-      ConnectID();
-
-      $pPrepParent->{'AID'} = $sReturn;
+      ConnectAIDREFS();
 
       $pPrepParent->{'reserve1'} = 'complex';
 
@@ -4699,13 +4697,11 @@ sub AuxPY {
 
       $pAct->{'reserve1'} = 'AuxC';
 
-      $sPar1 = ValNo(0,$pPrepParent->{'AID'});
+      $pPar1 = $pPrepParent;
 
-      $sPar2 = ValNo(0,$pAct->{'AID'});
+      $pPar2 = $pAct;
 
-      ConnectID();
-
-      $pPrepParent->{'AID'} = $sReturn;
+      ConnectAIDREFS();
     }
   }
 
@@ -4826,13 +4822,11 @@ sub TRVerbs {
 
 	      $pThisSon->{'TR'} = 'hide';
 
-	      $sPar1 = ValNo(0,$pAct->{'AID'});
+	      $pPar1 = $pAct;
 
-	      $sPar2 = ValNo(0,$pThisSon->{'AID'});
+	      $pPar2 = $pThisSon;
 
-	      ConnectID();
-
-	      $pAct->{'AID'} = $sReturn;
+	      ConnectAIDREFS();
 
 	      $pPar1 = $pThisSon;
 
@@ -4847,13 +4841,17 @@ sub TRVerbs {
 
 	      $pThisSon->{'TR'} = 'hide';
 
-	      $sPar1 = ValNo(0,$pVerb->{'AID'});
+	      $pPar1 = $pVerb;
 
-	      $sPar2 = ValNo(0,$pThisSon->{'AID'});
+	      $pPar2 = $pThisSon;
 
-	      ConnectID();
+	      ConnectAIDREFS();
 
-	      $pVerb->{'AID'} = $sReturn;
+	      $pPar1 = $pThisSon;
+
+	      $pPar2 = $pVerb;
+
+	      CutAllSubtrees();
 	    }
 	  }
 
@@ -4868,13 +4866,11 @@ sub TRVerbs {
 
 	    $pThisSon->{'TR'} = 'hide';
 
-	    $sPar1 = ValNo(0,$pAct->{'AID'});
+	    $pPar1 = $pAct;
 
-	    $sPar2 = ValNo(0,$pThisSon->{'AID'});
+	    $pPar2 = $pThisSon;
 
-	    ConnectID();
-
-	    $pAct->{'AID'} = $sReturn;
+	    ConnectAIDREFS();
 	  }
 	}
 
@@ -4886,13 +4882,11 @@ sub TRVerbs {
 
 	  $pSE->{'TR'} = 'hide';
 
-	  $sPar1 = ValNo(0,$pAct->{'AID'});
+	  $pPar1 = $pAct;
 
-	  $sPar2 = ValNo(0,$pThisSon->{'AID'});
+	  $pPar2 = $pThisSon;
 
-	  ConnectID();
-
-	  $pAct->{'AID'} = $sReturn;
+	  ConnectAIDREFS();
 	}
 
 	if (Interjection($pThisSon->{'afun'},'Pnom') eq 'Pnom') {
@@ -5023,6 +5017,7 @@ sub ModalVerbs {
   my $pVerbTag;			# used as type "string"
   my $sVerbAfun;		# used as type "string"
   my $sKoord;			# used as type "string"
+  my $sFw;			# used as type "string"
 
   ThisRoot();
 
@@ -5116,6 +5111,8 @@ sub ModalVerbs {
   $pModal = $pAct;
 
   $pVerb = FirstSon($pModal);
+
+  $sFw = ValNo(0,$pModal->{'fw'});
  AllSons:
   if ($pVerb) {
 
@@ -5146,6 +5143,8 @@ sub ModalVerbs {
 	$pVerbTag eq 'Vs') {
 
       $pJoin = $pVerb;
+
+      $pVerb->{'fw'} = $sFw;
     } else {
 
       $pVerb = RBrother($pVerb);
@@ -5182,13 +5181,11 @@ sub ModalVerbs {
 	goto CutAllSubtrees;
       }
 
-      $sPar1 = ValNo(0,$pVerb->{'AID'});
+      $pPar1 = $pVerb;
 
-      $sPar2 = ValNo(0,$pModal->{'AID'});
+      $pPar2 = $pModal;
 
-      ConnectID();
-
-      $pVerb->{'AID'} = $sReturn;
+      ConnectAIDREFS();
 
       $NodeClipboard=CutNode($pModal);
 
@@ -5218,6 +5215,8 @@ sub ModalVerbs {
   $pModal = $pAct;
 
   $pVerb = FirstSon($pModal);
+
+  $sFw = ValNo(0,$pModal->{'fw'});
  AllSonsObj:
   if ($pVerb) {
 
@@ -5252,6 +5251,8 @@ sub ModalVerbs {
       if (Interjection($pVerb->{'afun'},'Obj') eq 'Obj') {
 
 	$pJoin = $pVerb;
+
+	$pVerb->{'fw'} = $sFw;
       } else {
 
 	$pJoin = undef;
@@ -5293,13 +5294,11 @@ sub ModalVerbs {
 	goto CutAllSubtrees;
       }
 
-      $sPar1 = ValNo(0,$pVerb->{'AID'});
+      $pPar1 = $pVerb;
 
-      $sPar2 = ValNo(0,$pModal->{'AID'});
+      $pPar2 = $pModal;
 
-      ConnectID();
-
-      $pVerb->{'AID'} = $sReturn;
+      ConnectAIDREFS();
 
       $NodeClipboard=CutNode($pModal);
 
@@ -5334,6 +5333,8 @@ sub ModalVerbs {
 	$pVerbTag eq 'Vs') {
 
       $pJoin = $pVerb;
+
+      $pVerb->{'fw'} = $sFw;
     } else {
 
       $pVerb = RBrother($pVerb);
@@ -5352,13 +5353,11 @@ sub ModalVerbs {
     }
   }
 
-  $sPar1 = ValNo(0,$pKoord->{'AID'});
+  $pPar1 = $pKoord;
 
-  $sPar2 = ValNo(0,$pModal->{'AID'});
+  $pPar2 = $pModal;
 
-  ConnectID();
-
-  $pKoord->{'AID'} = $sReturn;
+  ConnectAIDREFS();
 
   $NodeClipboard=CutNode($pKoord);
 
@@ -5392,6 +5391,8 @@ sub ModalVerbs {
       if (Interjection($pVerb->{'afun'},'Obj_Co') eq 'Obj_Co') {
 
 	$pJoin = $pVerb;
+
+	$pVerb->{'fw'} = $sFw;
       }
     } else {
 
@@ -5411,13 +5412,11 @@ sub ModalVerbs {
     }
   }
 
-  $sPar1 = ValNo(0,$pKoord->{'AID'});
+  $pPar1 = $pKoord;
 
-  $sPar2 = ValNo(0,$pModal->{'AID'});
+  $pPar2 = $pModal;
 
-  ConnectID();
-
-  $pKoord->{'AID'} = $sReturn;
+  ConnectAIDREFS();
 
   $NodeClipboard=CutNode($pKoord);
 
@@ -5724,13 +5723,11 @@ sub Prepositions {
 
     $pPrep->{'TR'} = 'hide';
 
-    $sPar1 = ValNo(0,$pOnlyChild->{'AID'});
+    $pPar1 = $pOnlyChild;
 
-    $sPar2 = ValNo(0,$pPrep->{'AID'});
+    $pPar2 = $pPrep;
 
-    ConnectID();
-
-    $pOnlyChild->{'AID'} = $sReturn;
+    ConnectAIDREFS();
 
     if (Interjection($pOnlyChild->{'ordorig'},'') eq '') {
 
@@ -5840,13 +5837,11 @@ sub Conjunctions {
 
     $pOnlyChild->{'fw'} = $sTRLema;
 
-    $sPar1 = ValNo(0,$pOnlyChild->{'AID'});
+    $pPar1 = $pOnlyChild;
 
-    $sPar2 = ValNo(0,$pConj->{'AID'});
+    $pPar2 = $pConj;
 
-    ConnectID();
-
-    $pOnlyChild->{'AID'} = $sReturn;
+    ConnectAIDREFS();
 
     if (Interjection($pConj->{'ord'},"1") ne "1") {
 
@@ -6013,6 +6008,110 @@ sub HideSubtree {
 
 
 }
+
+
+sub JoinSubtree {
+  my $pAct;			# used as type "pointer"
+  my $pSubtree;			# used as type "pointer"
+  my $pNext;			# used as type "pointer"
+  my $pT;			# used as type "pointer"
+  my $pD;			# used as type "pointer"
+  my $pCut;			# used as type "pointer"
+  my $pTatka;			# used as type "pointer"
+  my $pRoot;			# used as type "pointer"
+  my $pVerb;			# used as type "pointer"
+  my $sJLema;			# used as type "string"
+  my $sActLema;			# used as type "string"
+  my $sPriznak;			# used as type "string"
+
+  $sPasteNow = '';
+
+  $sPriznak = $sPar1;
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
+
+    return;
+  }
+
+  $pAct = $this;
+
+  $pSubtree = $pAct;
+
+  $sJLema = ValNo(0,Parent($pAct)->{'trlemma'});
+
+  $sActLema = ValNo(0,$pAct->{'trlemma'});
+
+  if ($sActLema eq '&Gen;') {
+
+    $sActLema = 'se';
+  }
+
+  if ($sActLema eq 'se' &&
+      Interjection($pAct->{'form'},'si') eq 'si') {
+
+    $sActLema = 'si';
+  }
+
+  $sJLema = (ValNo(0,$sJLema).ValNo(0,'_'));
+
+  $sJLema = (ValNo(0,$sJLema).ValNo(0,$sActLema));
+
+  $pCut = FirstSon($pAct);
+
+  $pTatka = Parent($pAct);
+ CutAllSubtrees:
+  if ($pCut) {
+
+    if (Interjection($pCut->{'ordorig'},'') eq '') {
+
+      $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+    }
+
+    $NodeClipboard=CutNode($pCut);
+
+    $pD = PasteNode($NodeClipboard,$pTatka);
+
+    $pCut = FirstSon($pAct);
+
+    goto CutAllSubtrees;
+  }
+
+  $pAct->{'TR'} = 'hide';
+
+  $pPar1 = Parent($pAct);
+
+  $pPar2 = $pAct;
+
+  ConnectAIDREFS();
+
+  $pPar1 = $pAct;
+
+  $pAct = Parent($pAct);
+
+  if ($sPriznak eq "1") {
+
+    $pAct->{'trlemma'} = $sJLema;
+
+    $sPar1 = "0";
+  }
+
+  if ($sPriznak eq "0") {
+
+    $sPar3 = '';
+
+    ifmodal();
+
+    $pAct->{'deontmod'} = $sPar3;
+  }
+
+  $this = $pAct;
+
+}
+
 
 sub ifmodal {
 
@@ -6186,23 +6285,17 @@ sub joinfw {
 
     $pParentW = Parent($pAct);
 
-    $pParentW->{'fw'} = $pAct->{'trlemma'};
+    $pPar1 = $pParentW;
 
-    $sPar1 = ValNo(0,$pParentW->{'AID'});
+    $pPar2 = $pAct;
 
-    $sPar2 = ValNo(0,$pAct->{'AID'});
+    ConnectAIDREFS();
 
-    ConnectID();
+    $pPar1 = $pParentW;
 
-    $pParentW->{'AID'} = $sReturn;
+    $pPar2 = $pAct;
 
-    $sPar1 = ValNo(0,$pParentW->{'fw'});
-
-    $sPar2 = ValNo(0,$pAct->{'fw'});
-
-    ConnectID();
-
-    $pParentW->{'fw'} = $sReturn;
+    ConnectFW();
   }
 
 }
@@ -6240,21 +6333,13 @@ sub splitfw {
 
     $pSon->{'TR'} = '';
 
-    $sPar1 = ValNo(0,$pAct->{'fw'});
+    $pPar1 = $pAct;
 
-    $sPar2 = ValNo(0,$pSon->{'fw'});
+    $pPar2 = $pSon;
 
-    DisconnectID();
+    DisconnectFW();
 
-    $pAct->{'fw'} = $sReturn;
-
-    $sPar1 = ValNo(0,$pAct->{'AID'});
-
-    $sPar2 = ValNo(0,$pSon->{'AID'});
-
-    DisconnectID();
-
-    $pAct->{'AID'} = $sReturn;
+    DisconnectAIDREFS();
   } else {
 
     $pSon = RBrother($pSon);
@@ -6268,6 +6353,97 @@ sub splitfw {
 
 }
 
+
+sub SplitJoined {
+  my $pAct;			# used as type "pointer"
+  my $pSon;			# used as type "pointer"
+  my $sWLemma;			# used as type "string"
+  my $sRestOfTrLemma;		# used as type "string"
+  my $pRoot;			# used as type "pointer"
+  my $sCaseSi;			# used as type "string"
+
+  $sCaseSi = "0";
+
+  $sPasteNow = '';
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
+
+    return;
+  }
+
+  $pAct = $this;
+
+  $pSon = FirstSon($pAct);
+
+  $sRestOfTrLemma = ValNo(0,$pAct->{'trlemma'});
+ AllParts:
+  $sPar1 = $sRestOfTrLemma;
+
+  GetAfunSuffix();
+
+  $sRestOfTrLemma = $sPar2;
+
+  $sWLemma = $sPar3;
+
+  if ($sWLemma eq '') {
+
+    $pAct->{'trlemma'} = $sRestOfTrLemma;
+
+    return;
+  }
+
+  if ($sWLemma eq 'si') {
+
+    $sCaseSi = "1";
+  }
+ AllSons:
+  if ($sCaseSi eq "1") {
+
+    if (Interjection($pSon->{'trlemma'},'se') eq 'se' &&
+	Interjection($pSon->{'form'},'si') eq 'si') {
+
+      $sWLemma = 'se';
+    }
+
+    $sCaseSi = "0";
+  }
+
+  if (substr(ValNo(0,$pSon->{'trlemma'}),0,3) eq substr($sWLemma,1,3)) {
+
+    $pPar1 = $pAct;
+
+    $pPar2 = $pSon;
+
+    DisconnectAIDREFS();
+
+    $pSon->{'TR'} = '';
+
+    $pPar1 = $pSon;
+
+    ifmodal();
+
+    if ($sPar3 ne '') {
+
+      $pAct->{'deontmod'} = '';
+    }
+  } else {
+
+    $pSon = RBrother($pSon);
+
+    if ($pSon) {
+
+      goto AllSons;
+    }
+  }
+
+
+  goto AllParts;
+
+}
 
 
 sub FillEmpty {
@@ -6411,6 +6587,12 @@ sub FillEmpty {
   if ($sAfunc eq 'AuxX') {
 
     $pAct->{'TR'} = 'hide';
+
+    $pPar1 = $pAct;
+
+    $pPar2 = Parent($pAct);
+
+    CutAllSubtrees();
   }
 
   $sTRlemma = ValNo(0,$pAct->{'trlemma'});
@@ -6595,6 +6777,11 @@ sub Prec {
 }
 
 
+sub GetNewTID {
+
+}
+
+
 sub GetNewOrd {
   my $pNext;			# used as type "pointer"
   my $sOrdnum;			# used as type "string"
@@ -6770,6 +6957,7 @@ sub NewSubject {
   my $sPoradi;			# used as type "string"
   my $sDord;			# used as type "string"
   my $sLemma;			# used as type "string"
+  my $sTID;			# used as type "string"
 
   $sPasteNow = '';
 
@@ -6804,6 +6992,10 @@ sub NewSubject {
 
   $sPoradi = $sPar2;
 
+  GetNewTID();
+
+  $sTID = $sPar3;
+
   if (FirstSon($pT)) {
 
     $sDord = ValNo(0,FirstSon($pT)->{'dord'});
@@ -6822,6 +7014,8 @@ sub NewSubject {
   $pNew->{'form'} = '-';
 
   $pNew->{'afun'} = '-';
+
+  $pNew->{'TID'} = $sTID;
 
   $pPredch = FirstSon($pT);
 
@@ -7026,6 +7220,7 @@ sub NewSon {
   my $pRoot;			# used as type "pointer"
   my $sNum;			# used as type "string"
   my $sDord;			# used as type "string"
+  my $sTID;			# used as type "string"
 
   $sPasteNow = '';
 
@@ -7071,6 +7266,10 @@ sub NewSon {
 
   ShiftDords();
 
+  GetNewTID();
+
+  $sTID = $sPar3;
+
   $pNew =   PlainNewSon($pT);
 
   $pNew->{'lemma'} = '-';
@@ -7080,6 +7279,8 @@ sub NewSon {
   $pNew->{'form'} = '-';
 
   $pNew->{'afun'} = '---';
+
+  $pNew->{'TID'} = $sTID;
 
   $pNew->{'ID1'} = '';
 
@@ -7263,6 +7464,7 @@ sub NewVerb {
   my $pRoot;			# used as type "pointer"
   my $sNum;			# used as type "string"
   my $sDord;			# used as type "string"
+  my $sTID;			# used as type "string"
 
   $sPasteNow = '';
 
@@ -7295,6 +7497,10 @@ sub NewVerb {
 
   $sNum = $sPar2;
 
+  GetNewTID();
+
+  $sTID = $sPar3;
+
   if (FirstSon($pT)) {
 
     $sDord = ValNo(0,FirstSon($pT)->{'dord'});
@@ -7313,6 +7519,8 @@ sub NewVerb {
   $pNew->{'form'} = '---';
 
   $pNew->{'afun'} = '---';
+
+  $pNew->{'TID'} = $sTID;
 
   $pNew->{'ID1'} = '';
 
@@ -7691,57 +7899,22 @@ sub CutAllSubtrees {
 }
 
 
-sub ConnectID {
-
-  $sPasteNow = '';
-
-  $sReturn = (ValNo(0,$sPar1).ValNo(0,'\|'));
-
-  $sReturn = (ValNo(0,$sReturn).ValNo(0,$sPar2));
+sub ConnectFW {
 
 }
 
 
-sub DisconnectID {
-  my $sChar;			# used as type "string"
-  my $i;			# used as type "string"
-  my $j;			# used as type "string"
-  my $k;			# used as type "string"
+sub DisconnectFW {
 
-  $sPasteNow = '';
+}
 
-  $i = "0";
 
-  $j = "0";
- GASLoopCont1:
-  $sChar = substr($sPar1,$j,1);
+sub ConnectAIDREFS {
 
-  if ($sChar eq '') {
+}
 
-    $sReturn = $sPar1;
 
-    goto GASLoopEnd1;
-  }
-
-  if ($sChar eq '\|') {
-
-    $k = $j-$i;
-
-    if ($sPar2 eq substr($sPar1,$i,$k)) {
-
-      goto GASLoopEnd1;
-    }
-
-    $i = $j;
-  }
-
-  $j = $j+"1";
-
-  goto GASLoopCont1;
- GASLoopEnd1:
-  $sReturn = (ValNo(0,substr($sPar1,0,$i)).ValNo(0,substr($sPar1,$j+1,200)));
-
-  return;
+sub DisconnectAIDREFS {
 
 }
 
@@ -8756,13 +8929,11 @@ sub Pnoms {
 
     $pPnomPar = $pD;
 
-    $sPar1 = ValNo(0,$pPnomPar->{'AID'});
+    $pPar1 = $pPnomPar;
 
-    $sPar2 = ValNo(0,$pPNOM->{'AID'});
+    $pPar2 = $pPNOM;
 
-    ConnectID();
-
-    $pPNOM->{'AID'} = $sReturn;
+    ConnectAIDREFS();
 
     $pAct = $pPNOM;
   }
@@ -8797,6 +8968,7 @@ sub FPaste {
   my $pPasted;			# used as type "pointer"
   my $sDord;			# used as type "string"
   my $pCut;			# used as type "pointer"
+  my $sTID;			# used as type "string"
 
   if ($sPasteNow eq 'yes') {
 
@@ -8831,208 +9003,21 @@ sub FPaste {
     ShiftDords();
 
     $pPasted->{'dord'} = $sDord;
+
+    GetNewTID();
+
+    $sTID = $sPar3;
+
+    $pPasted->{'TID'} = $sTID;
+
+    if (Interjection($pPasted->{'AIDREFS'},'') eq '') {
+
+      $pPasted->{'AIDREFS'} = $pPasted->{'AID'};
+    }
+
+    $pPasted->{'AID'} = '';
   }
 
   $sPasteNow = '';
-
-}
-
-###################################
-###################################
-###################################
-
-sub JoinSubtree {
-  my $pAct;			# used as type "pointer"
-  my $pSubtree;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pCut;			# used as type "pointer"
-  my $pTatka;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sJLema;			# used as type "string"
-  my $sActLema;			# used as type "string"
-  my $sPriznak;			# used as type "string"
-
-  $sPasteNow = '';
-
-  $sPriznak = $sPar1;
-
-  ThisRoot();
-
-  $pRoot = $pReturn;
-
-  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
-
-    return;
-  }
-
-  $pAct = $this;
-
-  $pSubtree = $pAct;
-
-  $sJLema = ValNo(0,Parent($pAct)->{'trlemma'});
-
-  $sActLema = ValNo(0,$pAct->{'trlemma'});
-
-  if ($sActLema eq '&Gen;') {
-
-    $sActLema = 'se';
-  }
-
-  if ($sActLema eq 'se' &&
-      Interjection($pAct->{'form'},'si') eq 'si') {
-
-    $sActLema = 'si';
-  }
-
-  $sJLema = (ValNo(0,$sJLema).ValNo(0,'_'));
-
-  $sJLema = (ValNo(0,$sJLema).ValNo(0,$sActLema));
-
-  $pCut = FirstSon($pAct);
-
-  $sPar1 = ValNo(0,Parent($pAct)->{'AID'});
-
-  $sPar2 = ValNo(0,$pAct->{'AID'});
-
-  $pTatka = Parent($pAct);
- CutAllSubtrees:
-  if ($pCut) {
-
-    if (Interjection($pCut->{'ordorig'},'') eq '') {
-
-      $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-    }
-
-    $NodeClipboard=CutNode($pCut);
-
-    $pD = PasteNode($NodeClipboard,$pTatka);
-
-    $pCut = FirstSon($pAct);
-
-    goto CutAllSubtrees;
-  }
-
-  $pAct->{'TR'} = 'hide';
-
-  $pPar1 = $pAct;
-
-  $pAct = Parent($pAct);
-
-  ConnectID();
-
-  $pAct->{'AID'} = $sReturn;
-
-  if ($sPriznak eq "1") {
-
-    $pAct->{'trlemma'} = $sJLema;
-
-    $sPar1 = "0";
-  }
-
-  if ($sPriznak eq "0") {
-
-    ifmodal();
-
-    $pAct->{'deontmod'} = $sPar3;
-  }
-
-  $this = $pAct;
-
-}
-
-
-sub SplitJoined {
-  my $pAct;			# used as type "pointer"
-  my $pSon;			# used as type "pointer"
-  my $sWLemma;			# used as type "string"
-  my $sRestOfTrLemma;		# used as type "string"
-  my $pRoot;			# used as type "pointer"
-  my $sCaseSi;			# used as type "string"
-
-  $sCaseSi = "0";
-
-  $sPasteNow = '';
-
-  ThisRoot();
-
-  $pRoot = $pReturn;
-
-  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
-
-    return;
-  }
-
-  $pAct = $this;
-
-  $pSon = FirstSon($pAct);
-
-  $sRestOfTrLemma = ValNo(0,$pAct->{'trlemma'});
- AllParts:
-  $sPar1 = $sRestOfTrLemma;
-
-  GetAfunSuffix();
-
-  $sRestOfTrLemma = $sPar2;
-
-  $sWLemma = $sPar3;
-
-  if ($sWLemma eq '') {
-
-    $pAct->{'trlemma'} = $sRestOfTrLemma;
-
-    return;
-  }
-
-  if ($sWLemma eq 'si') {
-
-    $sCaseSi = "1";
-  }
- AllSons:
-  if ($sCaseSi eq "1") {
-
-    if (Interjection($pSon->{'trlemma'},'se') eq 'se' &&
-	Interjection($pSon->{'form'},'si') eq 'si') {
-
-      $sWLemma = 'se';
-    }
-
-    $sCaseSi = "0";
-  }
-
-  if (substr(ValNo(0,$pSon->{'trlemma'}),0,3) eq substr($sWLemma,1,3)) {
-
-    $sPar1 = ValNo(0,$pAct->{'AID'});
-
-    $sPar2 = ValNo(0,$pSon->{'AID'});
-
-    DisconnectID();
-
-    $pAct->{'AID'} = $sReturn;
-
-    $pSon->{'TR'} = '';
-
-    $pPar1 = $pSon;
-
-    ifmodal();
-
-    if ($sPar3 ne '') {
-
-      $pAct->{'deontmod'} = '';
-    }
-  } else {
-
-    $pSon = RBrother($pSon);
-
-    if ($pSon) {
-
-      goto AllSons;
-    }
-  }
-
-
-  goto AllParts;
 
 }
