@@ -20,6 +20,33 @@ sub InfoDialog {
 
 }
 
+sub parse_lemma {
+  my ($trlemma,$lemma,$tag)=@_;
+  my @components=split /_[\^,:;']/,$lemma;
+  my $pure_lemma=shift @components;
+  my $deriv;
+  foreach (@components) {
+    if (/^\(.*\*(.*)\)/) {
+      $deriv=$1;
+      if ($deriv =~/^([0-9]+)(.*)$/) {
+	$deriv=substr($pure_lemma,0,-$1).$2;
+      }
+      last;
+    }
+  }
+  if ((($tag=~/^N/ and $trlemma=~/[tn]í(?:$|\s)/) or
+       ($tag=~/^A/ and $trlemma=~/[tn]ý(?:$|\s)/)) 
+      and $deriv=~/t$|ci$/) {
+    $deriv=~s/-[0-9]+$//g;
+    if ($trlemma=~/( s[ei])$/) {
+      $deriv.=$1;
+    }
+  } else {
+    $deriv=undef;
+  }
+  return ($pure_lemma,$deriv);
+}
+
 sub ChooseFrame {
   my $top=ToplevelFrame();
   $top->Busy(-recurse=>1);
@@ -40,6 +67,9 @@ sub ChooseFrame {
   return unless $tag=~/^([VNA])/;
   my $pos=$1;
   $lemma=~s/_/ /g;
+  my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
+  my $field;
+  my $title;
   unless ($FrameData) {
     my $conv= TrEd::CPConvert->new("utf-8",
 				   ($^O eq "MSWin32") ?
@@ -64,21 +94,52 @@ sub ChooseFrame {
   my $new_word=0;
   {
     my $word=$FrameData->findWordAndPOS($lemma,$pos);
+    my $base_word;
+    $base_word=$FrameData->findWordAndPOS($base,"V") if (defined($base));
     $top->Unbusy(-recurse=>1);
-    unless ($word) {
-      if (questionQuery("Word does not exist",
-			"Do you want to add this word to the lexicon?",
-			"Yes", "No") eq "Yes") {
+    if (!$word) {
+      my $answer= questionQuery("Word not found",
+				defined($base) && $base_word ?
+				("Word $lemma was not found in the lexicon.\n",
+				 "Add $lemma", "Use $base", "Cancel") :
+				(!defined($base) ?
+				("Word $lemma was not found in the lexicon.\n".
+				 "Do you want to add it?","Add $lemma", "Cancel") :
+				("Neither $lemma nor $base was found in the lexicon.\n".
+				 "Do you want to add them?","Add $lemma",
+				 "Add $base", "Add both", "Cancel")));
+
+      if ($answer eq "Add $lemma") {
 	$word=$FrameData->addWord($lemma,$pos);
 	$new_word=1;
-      } else {
+      } elsif ($answer eq "Add $base") {
+	$base_word=$FrameData->addWord($base,$pos);
+	$new_word=1;
+      } elsif ($answer eq "Add both") {
+	$word=$FrameData->addWord($lemma,$pos);
+	$base_word=$FrameData->addWord($base,"V");
+	$new_word=1;
+      } elsif ($answer eq "Cancel") {
 	return;
       }
     }
-#    undef $word;
+    $field=[
+	    $word ? ($lemma,$pos) : (),
+	    $base_word ? ($base,"V") : ()
+	   ];
+    $title= join ("/",$word ? $lemma : (), $base_word ? $base : ());
+    #    undef $word;
   }
   my $font = $main::font;
   my $fc=[-font => $font];
+  my $bfont;
+  if (ref($font)) {
+    $bfont = $font->Clone(-weight => 'bold');
+  } else {
+    $bfont=$font;
+    $bfont=~s/-medium-/-bold-/;
+  }
+  my $fb=[-font => $bfont];
   my $fe_conf={ elements => $fc,
 		example => $fc,
 		note => $fc,
@@ -95,21 +156,23 @@ sub ChooseFrame {
 		    };
 
   my $chooser_conf = {
-		      framelist => $fc
+		      framelists => $fc,
+		      framelist_labels => $fb
 		     };
 
-  my ($frame,$real)=TrEd::ValLex::Chooser::show_dialog($lemma,$top,
-					       $chooser_conf,
-					       $fc,
-					       $vallex_conf,
-					       $fc,
-					       $fc,
-					       $fe_conf,
-					       $FrameData,
-					       [$lemma,$pos],
-					       [split /\|/,
-						$this->{$frameid_attr}],
-					       $new_word);
+  my ($frame,$real)=TrEd::ValLex::Chooser::show_dialog($title,
+						       $top,
+						       $chooser_conf,
+						       $fc,
+						       $vallex_conf,
+						       $fc,
+						       $fc,
+						       $fe_conf,
+						       $FrameData,
+						       $field,
+						       [split /\|/,
+							$this->{$frameid_attr}],
+						       $new_word);
   if ($frame) {
     my $fmt=$grp->{FSFile}->FS();
     $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
@@ -118,6 +181,9 @@ sub ChooseFrame {
     $this->{$framere_attr}=$real;
   } else {
     $FileNotSaved=0;
+  }
+  if (ref($bfont)) {
+    $top->fontDelete($bfont);
   }
 }
 

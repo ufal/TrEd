@@ -31,11 +31,17 @@ sub show_dialog {
 					$wordlist_item_style,
 					$framelist_item_style,
 					$fe_confs);
+  print "Editor created\n";
+  print "Configuring...\n";
   $vallex->subwidget_configure($confs) if ($confs);
+  print "Packing...\n";
   $vallex->pack(qw/-expand yes -fill both -side left/);
+  print "getting words\n";
   {
+    print "querying @{$select_field}\n";
     $vallex->wordlist_item_changed($vallex->subwidget('wordlist')
 				 ->focus($data->findWordAndPOS(@{$select_field})));
+    print "done.\n";
   }
 
 #   my $adjuster = $d->Adjuster();
@@ -87,6 +93,7 @@ sub show_dialog {
 		 }
 		 $d->Unbusy(-recurse=> 1);
 	       },$d,$vallex]);
+  print "Show!\n";
 
   $d->Show();
   if ($vallex->data()->changed()) {
@@ -147,6 +154,7 @@ sub create_widget {
 
   my $fbutton_frame=$lexframe_frame->Frame(-takefocus => 0);
   $fbutton_frame->pack(qw/-side top -fill x/);
+
 
   # List of Frames
   my $lexframelist =
