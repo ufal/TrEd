@@ -293,7 +293,7 @@ sub UnhideNode {
 #bind AssignTrLemma to Ctrl+L menu Regenerate trlemma from lemma
 sub AssignTrLemma {
   my $lemma = $this->{lemma};
-  $lemma =~ s/[-_`].*$//;
+  $lemma = PDT::GetNewTrlemma();
   $this->{trlemma}=$lemma;
 }
 

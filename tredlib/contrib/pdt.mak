@@ -1067,6 +1067,93 @@ sub SetHidden {
   $node->{$hid} = 'hide' if IsHidden($node);
 }
 
+sub trueFiniteVerb_TR {
+  my ($node)=@_;
+  $node->{tag}=~/^V[^sf]/;
+}#trueFiniteVerb_TR
+
+=item isFiniteVerb_TR (node,aid_hash)
+
+If the node is the head of a finite complex verb form (based on
+C<AIDREFS> information), return 1, else return 0.
+
+=cut
+
+sub isFiniteVerb_TR {
+  my ($node,$hash)=@_;
+  return (trueFiniteVerb_TR($node)
+	  or $node->{tag}=~/^V/
+          &&(
+             grep {trueFiniteVerb_TR($_)}grep{IsHidden($_)}
+             map {my$n=$hash->{$_};$n!=$node?$n:0} split /\|/,$node->{AIDREFS}) >0
+         )
+  ? 1 : 0;
+}#isFiniteVerb_TR
+
+=item isPassive_TR (node,aid_hash)
+
+If the node is the head of a passive complex verb form, (based on
+C<AIDREFS> information), return 1, else return 0.
+
+=cut
+
+sub isPassive_TR {
+  my($node,$hash)=@_;
+  return($node->{tag}=~/^Vs/
+         and not first(sub{
+                         $_->{tag}=~/^V/
+                       },map{my$n=$hash->{$_};$n!=$node?$n:0}split /\|/,$node->{AIDREFS}
+                      )
+        )
+}#isPassive_TR
+
+=item isInfinitive_TR (node,aid_hash)
+
+If the node is the head of an infinitive complex verb form, (based on
+C<AIDREFS> information), return 1, else return 0.
+
+=cut
+
+sub isInfinitive_TR {
+  $_[0]->{tag}=~/^V/ and not(&isFiniteVerb_TR or &isPassive_TR);
+}#isInfinitive_TR
+
+=item GetNewTrlemma (node?)
+
+This function tries to guess the right trlemma of the node.
+
+=cut
+
+sub GetNewTrlemma {
+  my$node=$_[0]||$this;
+  return$node->{trlemma}if($node->{TID}and$node->{tag}eq'-')or($node==$root);
+  my%specialEntity;
+  %specialEntity=qw!. Period , Comma &amp; Amp - Hyphen / Slash ( Lpar ) Rpar
+              ; Semicolon : Colon &ast; Ast &verbar; Verbar &percnt; Percnt
+              !;
+  my%specialLemma;
+  my$lemma=$node->{lemma};
+  if($lemma=~/^.*`([^0-9_-]+)/){
+    $lemma=$1;
+  }else{
+    $lemma=~s/(.+?)[-_`].*$/$1/;
+    if($lemma eq'svùj'){$lemma='se'}
+    elsif($lemma=~/^(m|tv)ùj$/){
+      if($1 eq'm'){
+        $lemma=substr($node->{tag},6,1)eq'S'?'já':'my';
+      }else{# $1 eq 'tv'
+        $lemma=substr($node->{tag},6,1)eq'S'?'ty':'vy';
+      }
+    }elsif($lemma eq'já'){
+      $lemma=substr($node->{tag},3,1)eq'S'?'já':'my';
+    }elsif($lemma eq'ty'){
+      $lemma=substr($node->{tag},3,1)eq'S'?'ty':'vy';
+    }elsif($lemma eq'jeho'){$lemma='on'}
+    $lemma="&$specialEntity{$lemma};"if exists$specialEntity{$lemma};
+  }
+  return$lemma;
+}#GetNewTrlemma
+
 
 1;
 
