@@ -6,14 +6,16 @@ use Pod::Usage;
 use IO::Socket;
 use IO::Select;
 
-use vars qw($all_trees $all_nodes $all_nonhidden_nodes $opt_m $code
+use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file $code
 	    $hubname $hubport $init $nocheck $noservers $nohub
 	    $client_key_file $verbose $srvlist $kill $filelist
-	    $srvlistfile $request_quit $unrestricted $help $usage
-	    $manpage $ssh $server_debug $maxservers $request_reload
-	    $request_load $request_close $request_list $request_save
-	    $strip_prefix $add_prefix $strip_suffix $append_suffix
-	    $output_format $term_encoding );
+	    $srvlistfile $request_quit $request_dump $request_upload
+	    $unrestricted $help $usage $manpage $ssh $server_debug
+	    $maxservers $request_reload $request_load $request_close
+	    $request_list $request_save $strip_prefix $add_prefix
+	    $strip_suffix $append_suffix $output_format $term_encoding
+	    $config_file
+	    );
 
 $usage=1 unless @ARGV;
 $ssh='ssh';
@@ -26,7 +28,7 @@ GetOptions ("all-trees|T"    => \$all_trees,
 	    "help|h"         => \$help,
 	    "usage|u"        => \$usage,
 	    "man"            => \$manpage,
-	    "macro-file|m=s" => \$opt_m,
+	    "macro-file|m=s" => \$macro_file,
 	    "execute|e=s"    => \$code,
 	    "hub=s"          => \$hubname,
 	    "port=i"         => \$hubport,
@@ -39,11 +41,14 @@ GetOptions ("all-trees|T"    => \$all_trees,
 	    "load-files"      => \$request_load,
 	    "list-files"      => \$request_list,
 	    "save-files"      => \$request_save,
+	    "dump-files"    => \$request_dump,
+	    "upload-files"    => \$request_upload,
 	    "strip-prefix|p=s" => \$strip_prefix,
 	    "add-prefix|r=s" => \$add_prefix,
 	    "strip-suffix|s=s" => \$strip_suffix,
 	    "add-suffix|a=s" => \$append_suffix,
 	    "output-format|f=s" => \$output_format,
+	    "config-file|c=s" => \$config_file,
 	    "servers=s"    => \$srvlist,
 	    "unrestricted|U" => \$unrestricted,
 	    "serverlist=s"    => \$srvlistfile,
@@ -149,6 +154,33 @@ import TrEd::Cipher qw(generate_random_block block_to_hex hex_to_block
 		       Negotiate Authentify save_block);
 
 
+do {
+  require TrEd::Config;
+  $TrEd::Config::libDir=$libDir;
+};
+
+use File::Spec;
+if (not File::Spec->can('rel2abs')) {
+  require TFile::Spec;
+  require TFile::Spec::Functions;
+  import TFile::Spec::Functions qw(rel2abs);
+} else {
+  require File::Spec;
+  require File::Spec::Functions;
+  import File::Spec::Functions qw(rel2abs);
+}
+
+if (defined $config_file) {
+  @TrEd::Config::config_file_search_list=($config_file);
+  # override any other possible config files
+} else {
+  TrEd::Config::set_default_config_file_search_list();
+}
+my $configFile=TrEd::Config::read_config();
+
+require TrEd::Macros;
+import TrEd::Macros;
+
 if (defined($init) || defined($kill)) {
   # btred executable
   my $btred = "$FindBin::RealBin/btred";
@@ -252,12 +284,13 @@ if (defined($init) || defined($kill)) {
       msg "Running btred server on $_->{host} port $_->{port}\n";
       # as for now, we only make use of the secure pipe to the server
       # in order to pass it the session key
-      my $cmd = "$ssh $_->{host} '$btred -P".
-	($unrestricted ? "" : "F").
-	($server_debug ? "D" : "").
-	"L $_->{port}' ".
+      my $cmd = "$ssh $_->{host} '$btred -P ".
+	($unrestricted ? "" : "-F ").
+	($server_debug ? "-D " : "").
+	($macro_file ? "-m \"".rel2abs($macro_file)."\"" : "").
 	($term_encoding ? "-d $term_encoding " : "").
-	" 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
+	"-L $_->{port} ".
+	"' 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
       msg "$cmd\n";
       if (open ($_->{ssh},"| ".$cmd)) {
 	$_->{ssh}->autoflush(1);
@@ -447,24 +480,22 @@ if (defined($init) || defined($kill)) {
     $code = "do { $code } while NextTree();";
   }
 
-  my $macro;
-  if ($opt_m) {
-    open my $m, $opt_m;
-    $macro=join "",<$m>;
-    close $m;
+  if ($macro_file) {
+    msg("Reading macros from $macro_file ...\n");
+    $TrEd::Macros::defaultMacroFile='/dev/null'; # don't read this one
+    $TrEd::Config::macroDebug=1;
+    TrEd::Macros::read_macros($macro_file,$libDir) if $macro_file; # read macros
+    msg("done.\n");
   }
 
-  my $request;
+  my $request="";
   my $request_type;
   if ($request_quit) {
     $request_type="QUIT";
-    $request="";
   } elsif ($request_reload) {
     $request_type="RELOAD";
-    $request="";
   } elsif ($request_list) {
     $request_type="LIST";
-    $request="";
   } elsif ($request_save) {
     $request_type="SAVE";
     $request="$control STATE=Format\n".($output_format || "fs")."\n";
@@ -475,14 +506,26 @@ if (defined($init) || defined($kill)) {
     msg($request,"\n");
   } elsif ($request_close) {
     $request_type="CLOSE";
-    $request="";
   } elsif ($request_load) {
     $request_type="HUB_DISTRIBUTE";
     my @files = get_file_list();
     $request=join "\n", @files;
+  } elsif ($request_dump) {
+    $request_type="DUMP";
+    msg "DUMP @ARGV\n";
+    $request=join("\n",@ARGV)."\n";
+  } elsif ($request_upload) {
+    die "Too few parameters for --upload!" unless @ARGV;
+    die "Too many parameters for --upload!" if @ARGV>1;
+    $request_type="UPLOAD";
+    $request.="$control STATE=Filename\n".$ARGV[0]."\n";
+    $request.="$control STATE=FSFile\n";
+    my @fs=<STDIN>;
+    $request.=join("",@fs)."\n";
   } else {
     $request_type="EVAL_CODE";
-    $request="$control STATE=CODE\n$code\n$control STATE=MACRO\n$macro";
+    $request="$control STATE=CODE\n$code\n$control STATE=MACRO\n".
+      join("",@TrEd::Macros::macros);
 #    $request.="$control STATE=ENCODING\n$term_encoding\n" if $term_encoding;
     $request.="$control STATE=ARGS\n".join("\n",@ARGV)."\n" if @ARGV;
     msg "Code: $code\n\n";
@@ -604,8 +647,7 @@ sub get_file_list {
       close $f;
     }
   }
-  chomp(my $cwd = `pwd`);
-  @files = (@files, map { m{^/} ? $_ : $cwd.'/'.$_ } @ARGV);
+  @files = (@files, map { m{^/|^[[:alnum:]]://} ? $_ : rel2abs($_) } @ARGV);
   make_uniq(\@files);
   return @files;
 }
@@ -629,7 +671,7 @@ To start remote servers and a hub:
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--unrestricted] [--server-debug]
+           [--unrestricted] [--server-debug] [-m macro-file]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 To close all remote servers and a hub:
@@ -692,8 +734,10 @@ the macro file provided..
 
 =item B<--macro-file|-m> filename
 
-A file containing the macros to be executed on the servers. The exact
-code to be evaluated must be specified in --execute.
+A file containing macros that are to be sent to the servers and
+preloaded on the servers before the particular query code is
+evaluated. The query code to be evaluated must be specified in
+--execute.
 
 =item B<--hub> hostname
 
@@ -734,7 +778,7 @@ necessary for the authentication to the running hub. This defaults to
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--unrestricted] [--server-debug]
+           [--unrestricted] [--server-debug] [-m macro-file]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 =over 8
@@ -803,6 +847,11 @@ plus :base_orig, but the following opcodes (which are forbidden):
 =item B<--server-debug>
 
 Run btred server with -D flag for some more debugging information.
+
+=item B<--macro-file|-m> filename
+
+A file containing the default set of macros to be prepared on btred
+servers.
 
 =item B<--key-file>
 
