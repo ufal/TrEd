@@ -492,6 +492,16 @@ sub ApplyGlobalConfig {
   $grp->{autoSaveCallback}=$grp->{top}->repeat($autoSave*60000, [\&autoSaveAll,$grp]) if $autoSave>0;
 }
 
+sub lastFileNo {
+  my ($win)=@_;
+  return $win->{framegroup}->{currentFilelist}->file_count()-1;
+}
+
+sub currentFileNo {
+  my ($win)=@_;
+  return $win->{currentFileNo};
+}
+
 # TrEd::Window ? should openFile in focusedWindow
 sub gotoFile {
   my ($grp,$fn,$no_recent)=@_;
