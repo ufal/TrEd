@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2003-06-27 15:33:18 pajas>
+## Time-stamp: <2003-07-03 19:20:33 pajas>
 
 unshift @INC,"$main::libDir/contrib" unless (grep($_ eq "$main::libDir/contrib", @INC));
 require AFA;
@@ -33,29 +33,29 @@ my %ntprep = (
 	     );
 
 do {
-  local *F;
-  open F,"<$libDir/contrib/adverb2functor.lex" || warn "cannot open $libDir/contrib/adverb2functor.lex: $!";
+  my $f;
+  open $f,"<$libDir/contrib/adverb2functor.lex" || warn "cannot open $libDir/contrib/adverb2functor.lex: $!";
   my ($key,$func,$num,$of);
-  while (<F>) {
+  while (<$f>) {
     s/[\r\n]//g;
     ($lemma,$func,$num,$of)=split "\t",$_;
     $advfunc{$lemma}=[ $func,$num,$of ];
   }
-  close F;
-  open F,"<$libDir/contrib/noun_time.list" || warn "cannot open $libDir/contrib/noun_time.list: $!";
-  while (<F>) {
+  close $f;
+  open $f,"<$libDir/contrib/noun_time.list" || warn "cannot open $libDir/contrib/noun_time.list: $!";
+  while (<$f>) {
     /(\S+)/;
     $_=$1;
     $ntime{$_}=1;
   }
-  close F;
-  open F,"<$libDir/contrib/noun_place.list" || warn "cannot open $libDir/contrib/noun_place.list: $!";
-  while (<F>) {
+  close $f;
+  open $f,"<$libDir/contrib/noun_place.list" || warn "cannot open $libDir/contrib/noun_place.list: $!";
+  while (<$f>) {
     /(\S+)/;
     $_=$1;
     $nplace{$_}=1;
   }
-  close F;
+  close $f;
 };
 
 sub after_edit_attr_hook {
