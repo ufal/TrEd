@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2002-01-27 12:18:00 paja>
+# Time-stamp: <2002-02-06 16:33:34 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -11,7 +11,7 @@ package TrEd::Config;
 BEGIN {
   use Exporter  ();
 #  use Tk;			# Tk::strictMotif
-  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK @config_file_search_list);
+  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK @config_file_search_list $quiet);
   @ISA=qw(Exporter);
   $VERSION = "0.1";
   @EXPORT = qw(@config_file_search_list $set_user_config
@@ -123,7 +123,7 @@ sub read_config {
 
   foreach $f (@_,@config_file_search_list) {
     if (defined($f) and open(F,"<$f")) {
-      print STDERR "Using resource file $f\n";
+      print STDERR "Using resource file $f\n" unless $quiet;
       while (<F>) {
 	parse_config_line($_,\%confs);
       }
@@ -137,7 +137,7 @@ sub read_config {
     print STDERR
       "Warning: Cannot open any file in:\n",
       join(":",@config_file_search_list),"\n" .
-      "         Using configuration defaults!\n";
+      "         Using configuration defaults!\n" unless $quiet;
   }
   set_config(\%confs);
   return $config_file;
