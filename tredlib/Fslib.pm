@@ -13,6 +13,7 @@
 
 package Fslib;
 use strict;
+use Data::Dumper;
 
 use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $field_re $attr_name_re
             $parent $firstson $lbrother $rbrother $type
@@ -1430,11 +1431,23 @@ Create a copy of the given node.
 
 sub clone_node {
   my ($self,$node)=@_;
-  my $nd=FSNode->new();
-  foreach (@{$self->list}) {
-    $nd->{$_}=$node->{$_};
+  my $new = FSNode->new();
+  if ($node->type) {
+    foreach my $atr ($node->type->members) {
+      if (ref($node->{$atr})) {
+	my $val;
+	$new->{$atr} = eval Data::Dumper->new([$node->{$atr}],['val'])->Purity(1)->Dump;
+      } else {
+	$new->{$atr} = $node->{$atr};
+      }
+    }
+    $new->set_type($node->type);
+  } else {
+    foreach (@{$self->list}) {
+      $new->{$_}=$node->{$_};
+    }
   }
-  return $nd;
+  return $new;
 }
 
 =item clone_subtree
@@ -1451,12 +1464,12 @@ sub clone_subtree {
   my $nd=$self->clone_node($node);
   foreach ($node->children()) {
     $nc=$self->clone_subtree($_);
-    Fslib::SetParent($nc,$nd);
+    $nc->set_parent($nd);
     if ($prev_nc) {
-      Fslib::SetLBrother($nc,$prev_nc);
-      Fslib::SetRBrother($prev_nc,$nc);
+      $nc->set_lbrother($prev_nc);
+      $prev_nc->set_rbrother($nc);
     } else {
-      Fslib::SetFirstSon($nd,$nc);
+      $nd->set_firstson($nc);
     }
     $prev_nc=$nc;
   }
@@ -2528,6 +2541,7 @@ sub test {
   if (ref($f) eq 'ARRAY') {
     return $f->[0]=~/^@/; 
   } elsif (ref($f)) {
+    binmode $f;
     my $test = ($f->getline()=~/^@/);
     return $test;
   } else {
@@ -3004,8 +3018,9 @@ sub type_struct {
 sub members {
   my ($self,$path)=@_;
   my $type = defined($path) ? $self->find($path) : $self->type_struct;
-  if (ref($type) and $type->{member}) {
-    return keys %$type;
+  if (ref($type) and $type->{structure}) {
+    my $members = $type->{structure}{member};
+    return grep { !(ref($members->{$_}) and $members->{$_}{role} eq '#CHILDNODES') } keys %$members;
   } else {
     return ();
   }
