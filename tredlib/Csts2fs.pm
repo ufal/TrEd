@@ -137,7 +137,7 @@ my %start_tag = (
 			   $s->{root}->{tag}="Z#-------------";
 			   $s->{root}->{lemma}="#";
 			   $s->{root}->{trlemma}="#";
-			   $s->{root}->{func}=$s->{root}->{sent};
+			   $s->{root}->{func}="SENT";
 			 }],
 		 'salt' => [sub {
 			      &make_new_tree(@_);
@@ -148,12 +148,21 @@ my %start_tag = (
 			      $s->{root}->{tag}="Z#-------------";
 			      $s->{root}->{lemma}="#";
 			      $s->{root}->{trlemma}="#";
-			      $s->{root}->{func}=$s->{root}->{sent};
+			      $s->{root}->{func}="SENT";
 			    }],
 		 'f' => [\&make_new_node],
 		 'd' => [\&make_new_node],
 		 'fadd' => [\&make_new_node],
-		 'D' => [\&copy_tag_to,'','<','!GAP'],
+#		 'D' => [\&copy_tag_to,'','<','!GAP'],
+		 'D' => [sub {
+			   my ($s)=@_;
+			   if ($s->{node}) {
+			     $s->{node}->{nospace}=1;
+			   } else {
+			     $s->{following}->{$gappre}="<D>";
+			   }
+			 }],
+
 		 'mauth' => sub {
 		   my ($s)=@_;
 		   if ($s->{parser}->element->parent->in('h')) {
@@ -237,25 +246,25 @@ my %pcdata = (
 	      'mauth' => sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
-		  to_node_attr(@_,'','cstsprolog');
+		  to_node_attr(@_,'','cstsmarkup');
 		} else {
-		  to_node_attr(@_,'','docprolog');
+		  to_node_attr(@_,'','docmarkup');
 		}
 	      },
 	      'mdate' => sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
-		  to_node_attr(@_,'','cstsprolog');
+		  to_node_attr(@_,'','cstsmarkup');
 		} else {
-		  to_node_attr(@_,'','docprolog');
+		  to_node_attr(@_,'','docmarkup');
 		}
 	      },
 	      'mdesc' => sub {
 		my ($s)=@_;
 		if ($s->{parser}->element->parent->in('h')) {
-		  to_node_attr(@_,'','cstsprolog');
+		  to_node_attr(@_,'','cstsmarkup');
 		} else {
-		  to_node_attr(@_,'','docprolog');
+		  to_node_attr(@_,'','docmarkup');
 		}
 	      },
 	      'mod' => [\&to_node_attr,'','docprolog'],
@@ -303,7 +312,7 @@ my %pcdata = (
 	      E => [\&to_node_attr,'|','ending'], # should be src-ed by n parent
 	      t => [\&to_node_attr,'|','tag'],
 	      A => [\&to_node_attr,'|','afun'],
-	      TRl => [\&to_node_attr,'|','trlemmaM'],
+	      TRl => [\&to_node_attr,'|','trlemma'],
 	      TRg => [\&to_node_attr,'|','govTR'],
 	      T => [\&to_node_attr,'|','func'],
 	      grm => [\&to_node_attr,'|','gram'],
@@ -321,6 +330,7 @@ my %pcdata = (
 	     );
 
 @csts = (
+'@P nospace',
 '@P root',
 '@P ending',
 '@P punct',
