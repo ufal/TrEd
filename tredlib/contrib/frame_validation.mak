@@ -14,12 +14,12 @@ sub _highest_coord {
 }
 
 sub match_node_coord {
-  my ($node, $fn) = @_;
-  my $res = match_node($node,$fn);
+  my ($node, $fn,$aids,$loose_lemma) = @_;
+  my $res = match_node($node,$fn,$aids,0,$loose_lemma);
   if (!$res and $node->{afun} =~ /^Coord|^Apos/) {
     foreach (grep { $node->{lemma} ne 'a-1' or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ }
 	     with_AR{PDT::expand_coord_apos($node)}) {
-      return 0 unless match_node($_,$fn);
+      return 0 unless match_node($_,$fn,$aids,0,$loose_lemma);
     }
     return 1;
   } else {
@@ -27,15 +27,27 @@ sub match_node_coord {
   }
 }
 
+sub get_aidrefs_nodes {
+  my ($aids,$node)=@_;
+  return grep { defined($_) } map { $aids->{$_} } grep { $_ ne "" } getAIDREFs($node);
+}
+
 sub match_node {
-  my ($node, $fn) = @_;
+  my ($node, $fn, $aids,$no_case,$loose_lemma) = @_;
   my ($lemma,$form,$pos,$case,$gen,$num,$deg,$neg,$agreement)=map {$fn->getAttribute($_)} qw(lemma form pos case gen num deg neg agreement);
   print "TRYING: $node->{tag}, $node->{lemma}  .... $lemma,$pos,$case,$gen,$num,$deg\n" if $V_verbose;
 
   if ($lemma ne '') {
     my $l = $node->{lemma};
     $l =~ s/[_`&].*$//;
-    return 0 unless $lemma eq $l;
+    if ($lemma=~/^\{(.*)\}$/) {
+      my $list = $1;
+      my @l = split /,/,$list;
+      return 0 unless (first { (!$loose_lemma and $_ eq '...')
+			       or $_ eq $l } @l)
+    } else {
+      return 0 unless $lemma eq $l;
+    }
   }
   if ($agreement) {
     my ($p)=with_AR{PDT::GetFather_AR($node,sub{shift->{afun}=~/Aux[CP]/?1:0})};
@@ -47,7 +59,7 @@ sub match_node {
       $p->{tag}=~/^..([FMIN])/;
       $gen=$1 if ($gen ne '' and $1);
     } else {
-      print "AGREEMENT REQUESTED BUT NO PARENT: ",$fn->toString(1),"\n" if $V_verbose;
+      print "AGREEMENT REQUESTED BUT NO PARENT: ",$fn->toString(),"\n" if $V_verbose;
       return 0;
     }
   }
@@ -65,18 +77,20 @@ sub match_node {
     return 0 unless $node->{tag}=~/^..........N/;
   }
 
-  if ($case ne '') {
-    return 0 if ((($node->{tag}=~/^....(\d)/ and $case ne $1) or 
-		  ($node->{tag}!~/^[NCPAX]/ and $node->{lemma} ne '&percnt;'))
+  if (!$no_case and $case ne '') {
+    return 0 if ((($node->{tag}=~/^....(\d)/ and $case ne $1) or
+		  ($node->{tag}!~/^[NCPAX]/ and $node->{lemma} !~ /^(?:&percnt;|hodnì|málo-3|dost)(?:`|$|_)/))
 		 and
+		 not ($node->{tag}=~/^C...\D/ and not with_AR { PDT::GetChildren_AR($node,sub{1},sub{0}) }) and
 		 not ($node->{tag}=~/^....2/ and
-		      first { ($_->{tag} =~ /^C/ or
-			       $_->{lemma} =~ /^(?:dost|málo-3|hodnì|sto-1|tisíc-1|milión|miliarda)(`|$)/) and
-			       ($_->{tag}!~/^....(\d)/ or $case eq $1)
-			      } with_AR { (PDT::GetFather_AR($node,sub{shift->{afun}=~/Aux[CP]/?1:0}),
-					   PDT::GetChildren_AR($node,sub{1},
-							       sub{shift->{afun}=~/Aux[CP]/?1:0})) })
-		);
+		      first {
+			($_->{tag} =~ /^C/ or $_->{lemma} =~ /^(?:dost|málo-3|hodnì|sto-[12]|tisíc-[12]|milión|miliarda)(?:`|$|_)/) and
+			($_->{tag}!~/^....(\d)/ or $case eq $1 or
+			 ($1 eq '4' and first { $_->{lemma} eq 'pøes-1' } get_aidrefs_nodes($aids,$_) or
+			  $1 eq '2' and first { $_->{lemma} eq 'kolem-1' } get_aidrefs_nodes($aids,$_)))
+		      } with_AR { (PDT::GetFather_AR($node,sub{shift->{afun}=~/Aux[CP]/?1:0}),
+				   PDT::GetChildren_AR($node,sub{1},sub{shift->{afun}=~/Aux[CP]/?1:0})) })
+   );
   }
   if ($pos ne '') {
     if ($pos =~ /^[adnijv]$/) {
@@ -98,30 +112,34 @@ sub match_node {
     return 0 if $node->{tag}=~/^........([123])/ and $deg ne $1;
   }
   foreach my $tagpos (1..15) {
-    if (my $tag = $node->getAttribute('tagpos'.$tagpos)) {
+    if (my $tag = $fn->getAttribute('tagpos'.$tagpos)) {
       return 0 if substr($node->{tag},$tagpos-1,1) !~ /[\Q$tag\E]/;
     }
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
-    unless (first { match_node_coord($_,$ffn) } with_AR { $node->children }) {
-      print "CHILDMISMATCH: ",$ffn->toString(1),"\n" if $V_verbose;
+    unless (first { match_node_coord($_,$ffn,$aids,$loose_lemma) } with_AR { $node->children }) {
+      print "CHILDMISMATCH: ",$ffn->toString(),"\n" if $V_verbose;
       return 0;
     }
   }
-  print "MATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$fn->toString(1),"\n" if $V_verbose;
+  print "MATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$fn->toString(),"\n" if $V_verbose;
   return 1;
 }
 
 sub match_form {
-  my ($node, $form, $aids) = @_;
-  my @a = map { $aids->{$_} } grep { $_ ne "" } getAIDREFs($node);
+  my ($node, $form, $aids, $loose_lemma) = @_;
+  my @a = get_aidrefs_nodes($aids,$node);
+  my $no_case=0;
+  if ($node->{TID} ne "") {
+    $no_case=1;
+  }
   if (@a) {
     my ($parent) = $form->getChildrenByTagName('parent');
     my ($pnode) = $parent->getChildrenByTagName('node') if $parent;
     if ($pnode) {
       foreach my $p (PDT::GetFather_TR($node)) {
-	unless (match_node($p,$pnode)) {
-	  print "PARENT-CONSTRAINT MISMATCH: $p->{lemma} $p->{form} $p->{tag} ==> ",$pnode->toString(1),"\n" if $V_verbose;
+	unless (match_node($p,$pnode,$aids,0,$loose_lemma)) {
+	  print "PARENT-CONSTRAINT MISMATCH: $p->{lemma} $p->{form} $p->{tag} ==> ",$pnode->toString(),"\n" if $V_verbose;
 	  return 0;
 	}
       }
@@ -129,8 +147,8 @@ sub match_form {
     my @form_nodes = $form->getChildrenByTagName('node');
     if (@form_nodes) {
       foreach my $fn (@form_nodes) {
-	unless (first { match_node($_,$fn) } @a) {
-	  print "MISMATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$fn->toString(1),"\n"
+	unless (first { match_node($_,$fn,$aids,$no_case,$loose_lemma) } @a) {
+	  print "MISMATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$fn->toString(),"\n"
 	    if $V_verbose;
 	  return 0;
 	}
@@ -146,11 +164,15 @@ sub match_form {
     } elsif ($form->getChildrenByTagName('state')) {
       return ($node->{state} eq "ST") ? 1 : 0;
     } else {
-      print "UNSPECIFIED FORM: ==> ",$form->toString(1),"\n" if $V_verbose;
+      print "UNSPECIFIED FORM: ==> ",$form->toString(),"\n" if $V_verbose;
       return 1;
     }
   } else {
     print "NOAIDREFS: $node->{lemma} $node->{form}\n" if $V_verbose;
+    if ($node->{tag} ne '-') {
+      print "WW no AIDREFs: $node->{trlemma}\t";
+      Position($node);
+    }
     # hm, really nothing to check here? If yes, we have to assume a match.
     # TODO: we still have to check something, e.g. lemma, pos; probably not case,
     # prepositions, number, gender
@@ -165,7 +187,17 @@ sub get_func { join '|',grep {$_ ne '???'} split /\|/, $_[0]->{func} };
 sub frame_matches_rule ($$$) {
   my ($V,$frame,$frame_test) = @_;
   foreach my $el (@$frame_test) {
-    if ($el =~ /^(\?)?([[:upper:]]*)\((.*)\)$/) {
+    if (ref($el)) { # match a regexp
+      my ($func, $regexp)=@$el;
+      my $oblig = ($func=~s/^\?// ? 1 : 0);
+      $func = '---' if $func eq "";
+      my ($element) = grep { $V->func($_) eq $func } $V->elements($frame);
+      if (!defined($element)) {
+	return 0 unless $oblig;
+	next;
+      }
+      return 0 unless first { /$regexp/ } map { $V->serialize_form($_) } $V->forms($element);
+    } elsif ($el =~ /^(\?)?([[:upper:]]*)\((.*)\)$/) {
       my ($oblig, $func, $forms)=($1,$2,$3);
       $func = '---' if $func eq "";
       my ($element) = grep { $V->func($_) eq $func } $V->elements($frame);
@@ -189,9 +221,34 @@ sub frame_matches_rule ($$$) {
 
 sub transform_frame {
   my ($V,$old_frame,$frame_trans) = @_;
-  my $new = $old_frame->cloneNode(1);
+  my $new = $V->clone_frame($old_frame);
   foreach my $trans (@$frame_trans) {
-    if ($trans=~/^([\-\+])(\??)([[:upper:]]*)?(?:\((.*)\))?$/) {
+    if (ref($trans)) { # match a regexp
+      my ($func, $code)=@$trans;
+      my $oblig = ($func=~s/^\?// ? 1 : 0);
+      $func = '---' if $func eq "";
+      if (!defined($func)) {
+        # TODO: transform verb form
+	next;
+      }
+
+      my ($element) = grep { $V->func($_) eq $func } $V->elements($new);
+      next unless $element; # nothing to do
+      foreach my $form ($V->forms($element)) {
+	my $old_form = $V->serialize_form($form);
+	my $new_form =
+	  eval {
+	    local $_ = $old_form;
+	    &$code;
+	    $_;
+	  };
+	$new_form = TrEd::ValLex::Data::expandFormAbbrevs($new_form);
+	if ($old_form ne $new_form) {
+	  $V->remove_node($form);
+	  $V->new_element_form($element,$new_form);
+	}
+      }
+    } elsif ($trans=~/^([\-\+])(\??)([[:upper:]]*)?(?:\((.*)\))?$/) {
       my ($add_or_remove,$type,$func,$forms)=($1,$2,$3,$4);
       $func = '---' if $func eq "";
 
@@ -234,9 +291,8 @@ sub transform_frame {
   return $new;
 }
 
-sub validate_frame {
-  my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet) = @_;
-
+sub do_transform_frame {
+  my ($V,$trans_rules,$node, $frame,$aids,$quiet) = @_;
   my ($i, $j)=(0,0);
   TRANS:
   foreach my $rule (@$trans_rules) {
@@ -262,6 +318,12 @@ sub validate_frame {
       }
     }
   }
+  return $frame;
+}
+
+sub validate_frame {
+  my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet) = @_;
+  $frame = do_transform_frame($V,$trans_rules,$node, $frame,$aids,$quiet);
 
   my %oblig = map { $V->func($_) => $_ } $V->oblig($frame);
   my %nonoblig = map { $V->func($_) => $_ } $V->nonoblig($frame);
@@ -282,9 +344,11 @@ sub validate_frame {
     }
   }
 
+  my @c = PDT::GetChildren_TR($node);
+
+
   # we must include children of ktery/jaky/... in relative subclauses
   # co-referring to the current node
-  my @c = PDT::GetChildren_TR($node);
   if ($node->{tag}=~/^N/ and @$pj4) {
     my $id = $node->{AID}.$node->{TID};
     my @d = grep { grep { $_ eq $id } split /\|/,$_->{coref} } @$pj4;
@@ -300,11 +364,38 @@ sub validate_frame {
     push @c,@d;
   }
 
+  # ignore all coordinated members right of a "coz" on the level of "coz"'s parent
+  my %ignore;
+  foreach $m (@c) {
+    if (($m->{tag}=~/^V/ or $m->{trlemma} eq '&Emp;') 
+	and PDT::is_coord_TR($m->parent) and
+	first { $_->{trlemma} eq "co¾" } PDT::GetChildren_TR($m)) {
+      $ignore{$m}=1;
+      print "WW should ignore node: '$m->{trlemma}'\n" if (!$quiet and $V_verbose);
+      if ($m->{AID} ne "") {
+	for (grep { $_->{func} eq $m->{func} }
+	     map { PDT::expand_coord_apos_TR($_) }
+	     grep { PDT::is_valid_member_TR($_) and $_->{AID} ne "" and $_->{sentord} > $m->{sentord}  }
+	     $m->parent->children) {
+	  print "WW should also ignore node: '$_->{trlemma}'\n" if (!$quiet and $V_verbose);
+	  $ignore{$_}=1;
+	}
+      }
+    }
+  }
+  @c = grep {
+	if ($ignore{$_}) {
+	  print "WW ignoring node: '$_->{trlemma}'\n" if (!$quiet and $V_verbose);
+	}
+	!$ignore{$_};
+       } @c;
+
 
   my %c;
   foreach (@c) {
     push @{$c{get_func($_)}}, $_;
   }
+
   foreach my $o (keys %oblig) {
     unless (exists($c{$o})) {
       unless ($quiet) {
@@ -335,6 +426,7 @@ sub validate_frame {
       }
     }
   }
+
   foreach my $c (@c) {
     my $e = $oblig{get_func($c)} || $nonoblig{get_func($c)};
     next unless ($e);
@@ -363,13 +455,15 @@ sub resolve_substitution_for_assigned_frames {
     print "resolving $fi\n";
     my $frame = $V->by_id($fi);
     if (ref($frame)) {
-      $frame = $V->valid_frame_for($frame);
-      if ($frame) {
-	if ($V->word_lemma($V->frame_word($frame)) eq $lemma) {
-	  push @frameids, $V->frame_id($frame);
-	  print "OK: $fi resolves to ".$V->frame_id($frame)."\n";
-	} else {
-	  print "FAIL: $fi resolves to ".$V->frame_id($frame)." with different lemma\n";
+      my @valid = $V->valid_frames_for($frame);
+      if (@valid) {
+	foreach my $vframe (@valid) {
+	  if ($V->word_lemma($V->frame_word($vframe)) eq $lemma) {
+	    push @frameids, $V->frame_id($vframe);
+	    print "OK: $fi resolves to ".$V->frame_id($vframe)."\n";
+	  } else {
+	    print "FAIL: $fi resolves to ".$V->frame_id($vframe)." with different lemma\n";
+	  }
 	}
       } else {
 	print "$fi doesn't resolve\n";
