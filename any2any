@@ -1,0 +1,74 @@
+#!/usr/bin/perl
+
+use Getopt::Std;
+getopts('p:r:s:a:f:hu');
+
+if (@ARGV<1 or $opt_h or $opt_u) {
+  print "Usage: $0 [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] file [file ...]\n";
+  if ($opt_h) {
+    print <<EOF;
+Open a file and save it in FS format
+Parameters:
+  -f format          output format; one of: fs, csts, trxml. Default is csts.
+  -s suffix_regexp   strip strings matching given regexp from the end of filenames
+  -a append          append given suffix to the filenames
+  -p prefix_regexp   remove strings matching given regexp from the beginning of filenames
+  -r prepend         prepend filenames with the given prefix
+EOF
+  }
+  exit 0;
+}
+
+use FindBin;
+my $rb=$FindBin::RealBin;
+if (exists $ENV{TREDHOME}) {
+  $libDir=$ENV{TREDHOME};
+} elsif (-d "$rb/tredlib") {
+  $libDir="$rb/tredlib";
+} elsif (-d "$rb/../lib/tredlib") {
+  $libDir="$rb/../lib/tredlib";
+} elsif (-d "$rb/../lib/tred") {
+  $libDir="$rb/../lib/tred";
+}
+print STDERR "Trying $libDir\n" if ($libDir);
+unshift @INC,"$libDir";
+
+require Fslib;
+import Fslib;
+
+@backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend)));
+
+%bkmap=(
+	fs => 'FSBackend',
+	csts => 'CSTS_SGML_SP_Backend',
+	trxml => 'TrXMLBackend'
+);
+
+$fileno=0;
+$filecount=scalar(@ARGV);
+
+$format=defined($opt_f) ? lc($opt_f) : "csts";
+unless (  $backend = $bkmap{$format} ) {
+  die "Unknown format $format. Use -f [fs|csts|trxml]\n";
+}
+
+foreach $f (@ARGV) {
+  $fileno++;
+  print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
+  $fs = FSFile->newFSFile($f,@backends);
+  if ($fs->lastTreeNo<0) {
+    print STDERR "$f: empty or corrupt file!\n";
+    next;
+  }
+  $fs->changeBackend($backend);
+
+  if ($opt_s or $opt_a or $opt_p or $opt_r) {
+    $f=~s/$opt_s$/$opt_a/ if ($opt_s or $opt_a);
+    $f=~s/^$opt_p/$opt_r/ if ($opt_p or $opt_r);
+  } else {
+    unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
+    rename $f, "$f~" || die "Cannot create backup file named $f~ for $f\n";
+  }
+  $fs->writeFile($f);
+  undef $fs;
+}
