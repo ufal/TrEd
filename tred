@@ -512,8 +512,8 @@ sub gotoFile {
 sub filelistFullFileName {
   my ($grp, $fn)=@_;
   my $filename=$grp->{currentFilelist}->file_at($fn);
-  if ($filename!~/\// and
-      ($^O ne 'MSWin32' or $filename!~/\\/)) {
+  if ($filename!~/^\s\// and
+      ($^O ne 'MSWin32' or $filename!~/^\s([[:alpha:]]:)?\\/)) {
     # relative filename
     if (dirname($grp->{currentFilelist}->filename()) ne "") {
       $filename=dirname($grp->{currentFilelist}->filename()).$filename;
