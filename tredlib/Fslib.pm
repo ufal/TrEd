@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-03-22 14:20:20 pajas>
+# Time-stamp: <2002-03-28 16:39:19 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1067,6 +1067,25 @@ sub new {
 
 =pod
 
+=item clone
+
+Duplicate FS format instance object.
+
+=cut
+
+sub clone {
+  my $self = shift;
+  return unless ref($self);
+  return $self->new(
+		    {%{$self->defs()}},
+		    [$self->attributes()],
+		    [@{$self->unparsed()}]
+		   );
+}
+
+
+=pod
+
 =item initialize (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)
 
 Initialize a new FS format instance with given values. See L<"Fslib">
@@ -1425,6 +1444,9 @@ sub exists {
     ref($self) ? defined($self->defs->{$arg}) : undef;
 }
 
+
+=pod
+
 =item make_sentence (root_node,separator)
 
 Return a string containing the content of value (special) attributes
@@ -1450,6 +1472,50 @@ sub make_sentence {
 	       map { $_->getAttribute($value) }
 	       sort { $a->getAttribute($sentord) <=> $b->getAttribute($sentord) } @nodes);
 }
+
+
+=pod
+
+=item clone_node
+
+Create a copy of the given node.
+
+=cut
+
+sub clone_node {
+  my ($self,$node)=@_;
+  my $nd=FSNode->new();
+  foreach (@{$self->list}) {
+    $nd->{$_}=$node->{$_};
+  }
+  return $nd;
+}
+
+=item clone_subtree
+
+Create a deep copy of the given subtree.
+
+=cut
+
+sub clone_subtree {
+  my ($self,$node)=@_;
+  return 0 unless $node;
+  my $prev_nc=0;
+  my $nd=$self->clone_node($node);
+  foreach ($node->children()) {
+    $nc=$self->clone_subtree($_);
+    Fslib::SetParent($nc,$nd);
+    if ($prev_nc) {
+      Fslib::SetLBrother($nc,$prev_nc);
+      Fslib::SetRBrother($prev_nc,$nc);
+    } else {
+      Fslib::SetFirstSon($nd,$nc);
+    }
+    $prev_nc=$nc;
+  }
+  return $nd;
+}
+
 
 =pod
 
@@ -2177,6 +2243,20 @@ sub value_line {
   $line.=join(" ", map { $_->getAttribute($attr) } @sent);
   undef @sent;
   return $line;
+}
+
+=pod
+
+=item insert_tree (root,position)
+
+Insert new tree at given position.
+
+=cut
+
+sub insert_tree {
+  my ($self,$nr,$pos)=@_;
+  splice(@{$self->treeList}, $pos, 0, $nr) if $nr;
+  return $nr;
 }
 
 =pod
