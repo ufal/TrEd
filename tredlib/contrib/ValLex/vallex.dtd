@@ -1,0 +1,122 @@
+<!-- ahoj -->
+<!ELEMENT valency_lexicon (head, body)>
+<!ELEMENT head (global_history, list_of_users)>
+<!ELEMENT body (word+)>
+
+<!-- to, co se se slovnikem provadelo jako s celkem, 
+napr. automaticke transformace formatu nebo dat, prilevani dat z jinych zdroju atd.;
+pokud se nekdy prileji dalsi ramce, bude z global_history jasne, co vsechno s nimi
+udelat, taky merge -->
+
+<!ELEMENT global_history (global_event+)>   
+<!ELEMENT global_event (#PCDATA)> <!-- obsahem elementu je slovni popis zmeny -->
+<!ATTLIST global_event 
+               time_stamp CDATA #REQUIRED
+               author CDATA #REQUIRED   
+            > 
+                
+
+<!-- zaznam v list_of_users maji jen ti, kteri maji pravo data menit -->
+<!ELEMENT list_of_users (user+)>   
+<!ELEMENT user EMPTY>  
+<!-- user: radeji zkratka, ne cislo -->
+<!ATTLIST user 
+             name CDATA #REQUIRED
+             user_ID ID  #REQUIRED           
+             annotator (YES|NO) "NO"
+             reviewer (YES|NO) "NO"
+           >
+<!-- z anotatora muze byt casem reviewer, i reviewer ale muze delat
+obycejnou anotacni praci (napr.zalozeni ramce), proto musi mit spolecny namespace -->
+
+<!-- ================================================== -->
+
+
+<!ELEMENT word (problems?, note?, valency_frames)>
+<!-- lemma: "hole" lemma, bez indexu, ale se "se"!!! - rozdil od ATS!-->
+<!ATTLIST word lemma CDATA #REQUIRED   
+               POS (V|A|N|D)  "V"
+               word_ID ID  #REQUIRED           
+       >
+<!ELEMENT problems (problem+)>
+<!ELEMENT problem (#PCDATA)>
+<!ATTLIST problem 
+               author IDREF #REQUIRED
+               solved (YES|NO) "NO"> 
+<!-- rozdil mezi note a postponed je ten, ze note obsahuje jen libovolnou doplnkovou informaci,
+zatimco poznamka v postponed indikuje, ze to slovo je rozpracovane 
+a je potreba ho nejak doresit-->      
+
+<!-- pp: pridavam moznost bez ramcu, napr. je mozne naplnit slovnik nejprve slovesy,
+ a teprve pak k nim doplnovat ramce -->
+<!ELEMENT valency_frames (frame*)>
+<!ELEMENT frame (example, note?, problems?, frame_elements, local_history )>
+<!ATTLIST frame
+             frame_ID ID #REQUIRED
+             old_frame_ID CDATA #IMPLIED
+             reciprocity (none|ACT-PAT|ACT-ADDR) "none" 
+             control (none|PAT|ADDR) "none"                  
+             used CDATA "0"
+             status (active|reviewed|substituted|obsolete|deleted) "active"
+             substituted_with IDREFS #IMPLIED
+          >   
+          
+<!ELEMENT example (#PCDATA)>   
+<!ELEMENT note (#PCDATA)>   
+          
+<!ELEMENT frame_elements (element+)>  
+
+<!ELEMENT element (form*)>  
+<!-- pokud neni vevnitr zadna forma, povazuje se realizace za arbitrary -->  
+
+
+<!ATTLIST element 
+       functor  (ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|ATT|BEN|CAUS|
+                 CNCS|COMPL|COND|CONJ|CONFR|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|
+                 DIR1|DIR2|DIR3|DISJ|DPHR|ETHD|EXT|FPHR|GRAD|HER|ID|INTF|INTT|
+                 LOC|MANN|MAT|MEANS|MOD|NA|NORM|PAR|PARTL|PN|PREC|PRED|REAS|
+                 REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|
+                 TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT|SENT) #REQUIRED  
+       type (oblig|non-oblig) "non-oblig"
+     > 
+
+<!ELEMENT form EMPTY>  
+<!ATTLIST form 
+       tag          CDATA #IMPLIED
+       preposition  CDATA #IMPLIED
+       clause       CDATA #IMPLIED>
+<!-- v XML datech se sice bude pouzivat cely morfologicky tag, ale na anotatora
+se to bude tvari "postaru", napr. na+4,infin.,adverb., atd. -->      
+    
+<!ELEMENT local_history (local_event+)>
+<!ELEMENT local_event EMPTY>  
+<!-- time_stamp: okamzik, kdy clovek provedl nebo potvrdil zmenu -->
+<!-- author: identifikator anotatora nebo reviewera, nebo empty, jde-li o import -->
+<!ATTLIST local_event 
+       time_stamp CDATA #REQUIRED 
+       type_of_event (create|modify|delete|import|review|obsolete) #REQUIRED
+       author IDREF #IMPLIED
+       imported_from CDATA #IMPLIED
+    >   
+<!-- 1) tady by mozna bylo dobre porusit pravidlo o redundanci a zkopirovat
+informaci o tom, jestli byl ramec deleted, nahoru jako atribut elementu frame 
+2) drivejsi binarni atributy videnoJPa a videnoMSt zmizi, informace o kontrolach
+budou v local_history s typem "reviewed" 
+
+
+Co se musi rozhodnout:
+  - budou -TG anotatori u slovesa oznacovat i kontrolu a reciprocitu?
+  - budou TG anotatori pouzivat vicestupnovou skalu obligatornosti,
+    nebo jim staci obl/non-obl
+  - je jim k necemu informace o zpusobu uziti (primarni, posunuty, frazeolog...)
+  - co delat s frazeologismy, ma mit frame element i vlastni lemma (nebo mnozinu lemmat)?
+
+ !!! jestlize se v ramci objevi infinitiv, musi anotator zaskrtnout
+ u nektereho slotu kontrolu;
+ - zatim neni jasne, jak vypada idealni skala "obligatornosti" (atribut type)
+
+    
+  
+
+
+-->
