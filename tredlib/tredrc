@@ -48,6 +48,11 @@ NodeHeight	= 7          		;; height of the oval
 CurrentNodeWidth	= 9          		;; width of the oval
 CurrentNodeHeight	= 9          		;; height of the oval
 
+;; --------- Tree position  ---------
+
+;; BaseXPos = 15
+;; BaseYPos = 15
+
 ;; ------------------------------------------------------------
 ;; Set file/display character encodings 
 ;; e.g. iso-8859-2/windows-1250 or iso-8859-6/windows-1256
@@ -70,6 +75,11 @@ CurrentNodeHeight	= 9          		;; height of the oval
 ; VLineHeight = 2                 ;; initial height in lines
 ; VLineAlign = right              ;; one of left, center, right
 ; VLineWrap = word                ;; one of none, char, word
+; VLineReverseLines = 0           ;; draw wrapped lines in reverse order
+; VLineForeground = black         ;; foreground color
+; VLineBackground = black         ;; background color
+; VLineFocusForeground = black    ;; foreground color of the focused word
+; VLineFocusBackground = yellow   ;; background color of the focused word
 ;; see also VLineFont bellow
 
 ;; ------------------------------------------------------------
@@ -91,6 +101,8 @@ CurrentNodeHeight	= 9          		;; height of the oval
 ;; HintWait	 	= 1000	        ;; interval in ms before floating hint
 					;; is displayed on a given node
 
+;; reverseNodeOrder = 0                 ;; draw nodes in reverse order
+
 ;; ------------------------------------------------------------
 ;; Menubar look
 ;; possible values: reliefs are raised, sunken, flat, ridge, solid,
@@ -99,6 +111,8 @@ CurrentNodeHeight	= 9          		;; height of the oval
 
 ; ButtonsRelief  	= flat     		
 ; MenubarRelief  	= flat
+
+; ButtonBorderWidth     = 2
 
 ;; ------------------------------------------------------------
 ;; Fonts
@@ -157,6 +171,7 @@ CurrentNodeHeight	= 9          		;; height of the oval
 
 ; PrintColors = 0	  	 ;; 1 if you want to print in colors by default
 
+; DefaultPrintCommand = 'lpr'    ;; default command for LPR print spooler
 
 ;; ---------- Other Options -------------
 SearchMethod = R		 ;; R=Regular Expression, W=Wildcards,

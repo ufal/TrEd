@@ -2441,6 +2441,12 @@ root# <userinput>make install</userinput>
 	    <para>Background color of the tree-view canvas.</para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry>
+	  <term><literal>BackgroundImage</literal></term>
+	  <listitem>
+	    <para>Background image file (JPG/GIF). Tiles are not supported.</para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="highlightwindowcolor">
 	  <term><literal>HighlightWindowColor</literal></term>
 	  <listitem>
@@ -2844,6 +2850,70 @@ root# <userinput>make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal>VLineHeight</literal></term>
+	  <listitem>
+	    <para>Initial height for the value line in lines. Default
+	    value is 2.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>VLineAlign</literal></term>
+	  <listitem>
+	    <para>Specifies alignment for value line. Possible values
+	      are <literal>left</literal>, <literal>center</literal>, and <literal>right</literal>.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>VLineWrap</literal></term>
+	  <listitem>
+	    <para>Specifies value line wrapping. Possible values
+	      are <literal>node</literal> (no wrapping),
+	      <literal>char</literal> (allow wrapping on any character
+	      boundary),
+	      and <literal>word</literal> (allow wrapping on word boundary).</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>VLineReverseLines</literal></term>
+	  <listitem>
+	    <para>Draw wrapped value lines in reverse order (bottom-up).</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>VLineForeground</literal></term>
+	  <listitem>
+	    <para>
+	      Foreground color of the value line.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>VLineBackground</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of the value line.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>VLineFocusForeground</literal></term>
+	  <listitem>
+	    <para>
+	      Foreground color of the highlighted value corresponding to the
+	      active node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>VLineFocusBackground</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of the highlighted value corresponding to the
+	      active node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal>ButtonsRelief</literal></term>
 	  <listitem>
 	    <para>
@@ -2965,6 +3035,19 @@ root# <userinput>make install</userinput>
     <sect2>
       <title>Printing options</title>
       <variablelist>
+	<varlistentry>
+	  <term><literal>DefaultPrintCommand</literal></term>
+	  <listitem>
+	    <para>
+	      Command used to pass the resulting PostScript to
+	      the print spool. Default value is <command>lpr</command>
+	      in UNIX systems and <command>prfile32.exe /-</command>
+	      on Windows (<literal>prfile32.exe</literal> is a
+	      freeware Windows printing utility available at <ulink
+	      url="http://www.lerup.com/printfile/">http://www.lerup.com/printfile/</ulink>.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry>
 	  <term><literal>PsFontFile</literal></term>
 	  <listitem>
@@ -3106,11 +3189,19 @@ root# <userinput>make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal>ReverseNodeOrder</literal></term>
+	  <listitem>
+	    <para>
+	      Draw nodes (and value line values) in reverse order.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal>UseCzechLocales</literal></term>
 	  <listitem>
 	    <para>
-	      If <literal>1</literal> is set here, <application>TrEd</application> uses Czech locales for
-	      handling text. This may be especially useful in macros.
+	      If <literal>1</literal> is set here, <application>TrEd</application> uses Czech locales.
+	      This may be especially useful in macros e.g. for sorting.
 	    </para>
 	  </listitem>
 	</varlistentry>
