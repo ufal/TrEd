@@ -11,6 +11,8 @@ use XML::JHXML;
 sub parser_start {
   my ($self, $file, $novalidation)=@_;
   my $parser=XML::JHXML->new();
+  $parser->keep_blanks(-1);
+  $parser->indent(3);
   my $doc;
   print STDERR "parsing file $file\n";
   eval {
