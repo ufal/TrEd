@@ -1,3 +1,286 @@
+2004-10-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/cac_treebank.mak:
+	- try to place coordination nodes at least on the right coordination
+	  member (otherwise would stay on the root)
+
+	* tredlib/tred.mac: remove PDT specific sutff
+
+	* tredlib/contrib/cac_treebank.mak: initial commit
+
+	* tredlib/contrib/frame_validation.mak:
+	better recognition of possesives
+
+	* tredlib/contrib/contrib.mac: include CAC stuff
+
+	* tredlib/contrib/tr_opravy.mak: remove CAC stuff
+
+	* tredlib/contrib/pdt_tags.mak: only PDT stuff here
+
+	* tredlib/contrib/pdt_specific.mak:
+	added AcademicTreebank file recognition
+
+2004-10-21  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: *** empty log message ***
+
+	* tredlib/tred.mac:
+	fixed some default macro bindings (with no _nochange)
+
+	* tredlib/contrib/tr_common.mak: *** empty log message ***
+
+	* tredlib/contrib/tr_common.mak: added functor CM
+
+2004-10-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Extended.pm: added user cache
+
+	* tredlib/contrib/pdt_tags.mak: initial commit
+
+	* tredlib/contrib/tr_common.mak:
+	use global variables for common lemma-lists
+
+	* tredlib/contrib/tr_frame_validation.mak: code for substantives
+
+	* tredlib/contrib/tr_en.mak, tredlib/contrib/tr_en_anot_main.mak:
+	initial commit
+
+	* tredlib/contrib/frame_validation.mak:
+	merged with substantive frame validation
+
+	* tredlib/contrib/arabic_Analytic.mak, tredlib/contrib/MorphoTrees.mak:
+	Ota's changes
+
+	* btred: fixed globbing on Win32
+
+2004-10-06  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_cphr.mak: use highest coord when adding coref
+	use trans rules
+
+	* tredlib/contrib/tr_common.mak: added trlemma "vsechen"
+
+	* tredlib/contrib/frame_validation.mak: refined some rules
+
+2004-10-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: filelist load/save fix for Tk804 on Windows
+
+	* tredlib/contrib/frame_validation.mak:
+	added rules for imperative and nejde; extended numeric construct handling
+
+	* tredlib/contrib/ValLex/Data.pm: abbreviations oproti+3, z+2
+
+	* tredlib/contrib/winsetup.sh: - updated installer
+
+2004-10-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Print.pm: *** empty log message ***
+
+2004-10-01  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/winsetup.sh: only copy tred.mac if available
+
+	* documentation/manual/tred.xml: updated
+
+	* documentation/manual/manual.xsl:
+	- use docbook stylesheets from sf.net
+	- avoid navigation graphics
+
+	* tredlib/contrib/ValLex/Data.pm: fix parenpos
+
+2004-09-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak:
+	added delete_analytical_node_from_all_layers (untested)
+
+	* tredlib/contrib/frame_validation.mak:
+	- added @actants lists (fixes tests that depend on it)
+	- added more "atd"-like constructs support
+
+	* tred: fixed "Try next"
+
+2004-09-23  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_cphr.mak, tredlib/contrib/tr_opravy.mak:
+	*** empty log message ***
+
+	* tredlib/contrib/tr_cphr.mak: initial commit
+
+	* tredlib/contrib/ValLex/ExtendedJHXML.pm, tredlib/contrib/ValLex/vallex.dtd, tredlib/contrib/tr_opravy.mak, tredlib/contrib/tredtr.mak, tredlib/contrib/vallex.mak, tredlib/contrib/contrib.mac, tredlib/contrib/coref.mak, tredlib/contrib/tr_frame_validation.mak:
+	added TR_CPHR
+
+2004-09-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_frame_validation.mak:
+	binmode encoding stdout on win32
+
+	* tredlib/contrib/tr_frame_validation.mak:
+	reviewer can modify frame without substituting
+
+	* tredlib/contrib/frame_validation.mak:
+	improved get_chilren_include_auxcp
+
+	* tredlib/contrib/ValLex/ExtendedJHXML.pm, tredlib/contrib/ValLex/ExtendedLibXML.pm:
+	- fixed inheritance
+	- JHXML rehashes IDs on addWord and addFrame
+
+2004-09-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_frame_validation.mak, tredlib/contrib/frame_validation.mak:
+	*** empty log message ***
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	allow custom callback from frame-dialog
+
+	* tredlib/contrib/ValLex/Data.pm: afun support
+
+	* tredlib/contrib/frame_validation.mak: most u0056_find code moved here
+
+	* tredlib/contrib/contrib.mac: include frame validation mode
+
+	* tredlib/contrib/tr_frame_validation.mak: initial commit
+
+	* tredlib/contrib/tr_common.mak: - added aidrefs light features
+
+	* tred: - make listQuery width computed from the largest list entry
+	- "macro claims file untouched" now only printed if $macroDebug==1
+
+2004-09-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	avoid trying .gz for non-LibXML backends
+
+	* tredlib/contrib/ValLex/LibXMLData.pm:
+	added JHXML compatible XML::LibXML::Element::findFirstChild
+
+	* tredlib/contrib/ValLex/ExtendedJHXML.pm, tredlib/contrib/ValLex/ExtendedLibXML.pm:
+	initial commit
+
+	* tredlib/contrib/ValLex/Extended.pm: - JHXML compatible
+
+	* tredlib/contrib/tr_opravy.mak: - light AR children
+	- join with mother
+	- XPath
+
+	* tredlib/contrib/tr_coref_common.mak: status-line
+
+	* tredlib/contrib/frame_validation.mak: various improvements
+	made JHXML compatible
+
+	* tredlib/tred.def: some XPath stuff
+
+	* btred, ntred: added no-all-nodes, no-all-trees options
+
+2004-08-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Csts2fs.pm: fixed handling of MMl/MMt
+
+	* tredlib/contrib/tr_opravy.mak: added menu entry for Insert
+
+	* tred: fix save as Storable
+
+	* tredlib/contrib/tr_opravy.mak:
+	file_save_hook TRstruct switching fixed
+
+2004-08-06  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Extended.pm: - add missing my
+
+	* tredlib/contrib/ValLex/Data.pm: - fix handling of $x<y>
+
+	* tredlib/contrib/frame_validation.mak:
+	- pass AIDREFs hash to trans_rules tests
+
+	* tredlib/contrib/arabic_Analytic.mak, tredlib/contrib/MorphoTrees.mak:
+	changes by Ota Smrz
+
+	* tredlib/Filelist.pm: *** empty log message ***
+
+2004-08-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/vallex.dtd: updated
+
+	* tredlib/Fslib.pm: windows related changes - allow reading .pls.gz
+
+2004-08-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* documentation/Hooks.txt, tred: added highlight_value_line_tag_hook
+
+2004-08-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred:
+	corrected findnext for file-lists with many pointers to the same file
+
+	* tredlib/contrib/frame_validation.mak: *** empty log message ***
+
+	* tredlib/contrib/ValLex/XML_DOM_Data.pm: isElementNode
+
+	* tredlib/contrib/ValLex/LibXMLData.pm: isTextNode, isElementNode
+
+	* tredlib/contrib/ValLex/JHXMLData.pm: childNodes
+
+	* tredlib/contrib/ValLex/Extended.pm: *** empty log message ***
+
+	* tredlib/contrib/ValLex/Editor.pm: fix default forms for substantives
+
+	* tredlib/contrib/ValLex/Data.pm: added new vallex features
+
+	* documentation/btred_tutorial.xml: english
+
+	* tred, ntred: - allow arguments even with -L
+
+	* btred: - set raw encoding for upload requests
+	- merge attributes when saving tree
+
+2004-07-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred: dump in file's encoding
+
+	* btred, ntred:
+	- more encoding work: trying to fix sporadic encoding problems
+
+2004-07-26  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred, ntred: print unauthorized request messages on stderr
+
+	* btred, ntred: make --quiet not display benchmarks
+
+2004-07-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred, ntred: encoding changes
+
+2004-07-19  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	fix encoding problems with frame_chosen
+
+2004-07-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ChangeLog: updated
+
+	* tredlib/contrib/ValLex/chooser.mak: - bind KP_Enter
+	- fixes
+
+	* tredlib/contrib/ValLex/Editor.pm: - bind KP_Enter
+
+	* tredlib/contrib/ValLex/Chooser.pm:
+	- approach to make chooser window smaller
+
+	* tredlib/contrib/tr_common.mak: - prev/next-file + choose frame
+
+	* tredlib/tred.mac: - Escape in questionQuery
+
+	* tred: - fiddling with locale
+	- icon-theme changes dynamically with Apply Config
+	- -D also sets tredDebug on
+
+	* ntred: utf8 is default term encoding
+
+	* tredlib/TrEd/Config.pm: don't enforce czech locale
+
+	* tredlib/TrEd/TreeView.pm: bblock, block now global
+
 2004-07-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* tredlib/contrib/ValLex/chooser.mak: - bind KP_Enter
