@@ -5,7 +5,7 @@
 package TrEd::ValLex::Editor;
 use strict;
 use base qw(TrEd::ValLex::FramedWidget);
-use vars qw($reviewer_can_delete $reviewer_can_modify);
+use vars qw($reviewer_can_delete $reviewer_can_modify $display_problems);
 
 require Tk::LabFrame;
 require Tk::DialogBox;
@@ -170,7 +170,9 @@ sub create_widget {
 
   my $fbutton_frame=$lexframe_frame->Frame(-takefocus => 0);
   $fbutton_frame->pack(qw/-side top -fill x/);
+  my $fbutton_frame2=$lexframe_frame->Frame(-takefocus => 0);
 
+  my $fsearch_frame=$lexframe_frame->Frame(-takefocus => 1);
 
   # List of Frames
   my $lexframelist =
@@ -216,24 +218,90 @@ sub create_widget {
       $modifyframe_button->pack(qw/-padx 5 -side left/);
     }
 
-    my $show_deleted=
-      $fbutton_frame->
-	Checkbutton(-text => 'Show Deleted',
-		    -command => [
-				 sub {
-				   my ($self)=@_;
-				   $self->
-				     wordlist_item_changed($self->subwidget("wordlist")->widget()->infoAnchor());
-				 },$self],
-		    -variable =>
-		    \$lexframelist->[$lexframelist->SHOW_DELETED]
-		   );
-    $show_deleted->pack(qw/-padx 5 -side left/);
+    my $moveup_button=$fbutton_frame2->Button(-text => 'Move Up',
+						   -command => [\&move_button_pressed,
+								$self,'up']
+						  );
+    $moveup_button->pack(qw/-padx 5 -side left/);
 
+    my $movedown_button=$fbutton_frame2->Button(-text => 'Move Down',
+						   -command => [\&move_button_pressed,
+								$self,'down']
+						  );
+    $movedown_button->pack(qw/-padx 5 -side left/);
+
+    my $nextactive_button=$fbutton_frame2->Button(-text => 'Next Active',
+						 -command => [\&findactive_button_pressed,
+							      $self,'next']
+						);
+    $nextactive_button->pack(qw/-padx 5 -side left/);
+
+    my $prevactive_button=$fbutton_frame2->Button(-text => 'Prev Active',
+						 -command => [\&findactive_button_pressed,
+							      $self,'prev']
+						);
+    $prevactive_button->pack(qw/-padx 5 -side left/);
+
+    if ($reviewer_can_delete) {
+      my $show_deleted=
+	$fbutton_frame2->
+	  Checkbutton(-text => 'Show Deleted',
+		      -command => [
+				   sub {
+				     my ($self)=@_;
+				     $self->
+				       wordlist_item_changed($self->subwidget("wordlist")->widget()->infoAnchor());
+				   },$self],
+		      -variable =>
+		      \$lexframelist->[$lexframelist->SHOW_DELETED]
+		     );
+      $show_deleted->pack(qw/-padx 5 -side left/);
+    }
   }
+  my $hide_obsolete=
+    $fbutton_frame2->
+      Checkbutton(-text => 'Show Obsolete',
+		  -command => [
+			       sub {
+				 my ($self)=@_;
+				 $self->
+				   wordlist_item_changed($self->subwidget("wordlist")->widget()->infoAnchor());
+			       },$self],
+		  -variable =>
+		  \$lexframelist->[$lexframelist->SHOW_OBSOLETE]
+		 );
+  $hide_obsolete->pack(qw/-padx 5 -side left/);
 
+  my $use_superframes=
+    $fbutton_frame2->
+      Checkbutton(-text => 'Superframes',
+		  -command => [
+			       sub {
+				 my ($self)=@_;
+				 $self->
+				   wordlist_item_changed($self->subwidget("wordlist")->widget()->infoAnchor());
+			       },$self],
+		  -variable =>
+		  \$lexframelist->[$lexframelist->USE_SUPERFRAMES]
+		 );
+  $use_superframes->pack(qw/-padx 5 -side left/);
+
+
+  # Frame search entry
+  $fsearch_frame->Label(-text => 'Search frame: ')->pack(qw/-side left/);;
+  my $search_entry = $fsearch_frame->Entry(qw/-width 50 -background white -validate key/,
+					   -validatecommand => [\&quick_search,$self])
+    ->pack(qw/-side left -fill both -expand yes/);
+  $search_entry->bind('<Up>',[$lexframelist->widget(),'UpDown', 'prev']);
+  $search_entry->bind('<Down>',[$lexframelist->widget(),'UpDown', 'next']);
+  $search_entry->bind('<Return>',[sub { my ($w,$self)=@_;
+					$self->quick_search($w->get);
+				      },$self]);
+
+  $fsearch_frame->pack(qw/-side top -pady 6 -fill x/);
 
   $lexframelist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
+  $fbutton_frame2->pack(qw/-side top -fill x/);
 
 
   ## Frame Note
@@ -246,15 +314,17 @@ sub create_widget {
 #  $lexframenote->pack(qw/-fill x/);
 
   # Frame Problems
-  my $lexframeproblem = TrEd::ValLex::FrameProblems->new($data, undef, $lexframe_frame,
-							 qw/-width 30 -height 3/);
-  $lexframeproblem->pack(qw/-fill both/);
-
-
-  $lexframelist->configure(-browsecmd => [\&framelist_item_changed,
-					  $self
-					 ]);
-
+  my $lexframeproblem;
+  if ($display_problems) {
+    $lexframeproblem = TrEd::ValLex::FrameProblems->new($data, undef, $lexframe_frame,
+							   qw/-width 30 -height 3/);
+    $lexframeproblem->pack(qw/-fill both/);
+    
+    
+    $lexframelist->configure(-browsecmd => [\&framelist_item_changed,
+					    $self
+					   ]);
+  }
   ## Word List
   my $lexlist = TrEd::ValLex::WordList->new($data, undef, $lexlist_frame,
 					    $wordlist_item_style,
@@ -272,10 +342,13 @@ sub create_widget {
   $lexnote->pack(qw/-fill x/);
 
   # Word Problems
-  my $lexproblem = TrEd::ValLex::FrameProblems->new($data, undef, $lexlist_frame,
+  my $lexproblem;
+  if ($display_problems) {
+    $lexproblem = TrEd::ValLex::FrameProblems->new($data, undef, $lexlist_frame,
 						   qw/-width 20 -height 3/);
-  $lexproblem->pack(qw/-fill both/);
+    $lexproblem->pack(qw/-fill both/);
 
+  }
 
   $lexlist->configure(-browsecmd => [
 				     \&wordlist_item_changed,
@@ -294,7 +367,7 @@ sub create_widget {
     $ff->pack(qw/-side left -fill both -expand yes/);
   }
 
-  $lexlist->widget()->focus;
+  $lexlist->subwidget('search')->focus;
 
   # Status bar
   my $info_line = TrEd::ValLex::InfoLine->new($data, undef, $frame, qw/-background white/);
@@ -311,7 +384,9 @@ sub create_widget {
 	     wordlist     => $lexlist,
 	     wordnote     => $lexnote,
 	     wordproblem  => $lexproblem,
-	     infoline     => $info_line
+	     infoline     => $info_line,
+	     framesearch  => $search_entry,
+      	     hide_obsolete => \$hide_obsolete,
 	    },$fe_confs;
 }
 
@@ -319,10 +394,10 @@ sub destroy {
   my ($self)=@_;
   $self->subwidget("framelist")->destroy();
 #  $self->subwidget("framenote")->destroy();
-  $self->subwidget("frameproblem")->destroy();
+  $self->subwidget("frameproblem")->destroy() if $self->subwidget("frameproblem");
   $self->subwidget("wordlist")->destroy();
   $self->subwidget("wordnote")->destroy();
-  $self->subwidget("wordproblem")->destroy();
+  $self->subwidget("wordproblem")->destroy() if $self->subwidget("wordproblem");
   $self->subwidget("infoline")->destroy();
   $self->SUPER::destroy();
 }
@@ -384,7 +459,7 @@ sub wordlist_item_changed {
 #   print "\n";
 
   $self->subwidget('wordnote')->set_data($self->data()->getSubElementNote($word));
-  $self->subwidget('wordproblem')->fetch_data($word);
+  $self->subwidget('wordproblem')->fetch_data($word) if $self->subwidget('wordproblem');
   $self->subwidget('framelist')->fetch_data($word);
   $self->subwidget('infoline')->fetch_word_data($word);
   $self->framelist_item_changed();
@@ -398,7 +473,7 @@ sub framelist_item_changed {
   $frame=$h->infoData($item) if defined($item);
   $frame=undef unless ref($frame);
 #  $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
-  $self->subwidget('frameproblem')->fetch_data($frame);
+  $self->subwidget('frameproblem')->fetch_data($frame) if $self->subwidget("frameproblem");
   $self->subwidget('infoline')->fetch_frame_data($frame);
 }
 
@@ -539,6 +614,49 @@ sub modify_button_pressed {
   }
 }
 
+sub findactive_button_pressed {
+  my ($self,$which)=@_;
+  my $fl=$self->subwidget('framelist')->widget();
+  my $item=$fl->infoAnchor();
+  return unless defined($item);
+  my $frame=$fl->infoData($item);
+  if ($which eq 'next') {
+    $frame = $self->data()->findNextFrame($frame,'active');
+  } else {
+    $frame = $self->data()->findPrevFrame($frame,'active');
+  }
+  return unless ref($frame);
+  my $word=$self->data()->getWordForFrame($frame);
+  $self->subwidget('framelist')->fetch_data($word);
+  $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
+  $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
+}
+
+sub move_button_pressed {
+  my ($self,$where)=@_;
+  my $fl=$self->subwidget('framelist')->widget();
+  my $item=$fl->infoAnchor();
+  return unless defined($item);
+  my $frame=$fl->infoData($item);
+  return unless ref($frame);
+  my $word=$self->data()->getWordForFrame($frame);
+  if ($where eq 'up') {
+    my $previtem=$fl->infoPrev($item);
+    return unless ($previtem ne "");
+    my $prevframe=$fl->infoData($previtem);
+    return unless ref($prevframe);
+    $self->data()->moveFrameBefore($frame,$prevframe);
+  } else {
+    my $nextitem=$fl->infoNext($item);
+    return unless ($nextitem ne "");
+    my $nextframe=$fl->infoData($nextitem);
+    return unless ref($nextframe);
+    $self->data()->moveFrameAfter($frame,$nextframe);
+  }
+  $self->subwidget('framelist')->fetch_data($word);
+  $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
+  $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
+}
 
 sub show_frame_editor_dialog {
   my ($self,$title,$confs,$elements,$note,$example,$problem)=@_;
@@ -640,6 +758,37 @@ sub obsolete_button_pressed {
     $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
     $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
   }
+}
+
+sub quick_search {
+  my ($self,$value)=@_;
+  print "QUICK SEARCH\n";
+  return defined($self->focus_by_text($value));
+}
+
+
+sub focus_by_text {
+  my ($self,$text,$caseinsensitive)=@_;
+  print "FOCUS $text\n";
+  my $h=$self->subwidget('framelist')->widget();
+  use locale;
+  my $st = $h->infoAnchor();
+  my ($t) = ($st eq "") ? $h->infoChildren("") : $st;
+  while ($t ne "") {
+    print $h->itemCget($t,0,'-text'),"\n";
+    if (!$caseinsensitive and index($h->itemCget($t,0,'-text'),$text)>=0 or
+	$caseinsensitive and index(lc($h->itemCget($t,0,'-text')),lc($text))>=0) {
+      $h->anchorSet($t);
+      $h->selectionClear();
+      $h->selectionSet($t);
+      $h->see($t);
+      return $t;
+    }
+    $t=$h->infoNext($t);
+    last if $t eq $st;
+    ($t) = $h->infoChildren("") if ($t eq "" and $st);
+  }
+  return undef;
 }
 
 1;
