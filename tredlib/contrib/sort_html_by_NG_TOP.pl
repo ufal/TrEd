@@ -11,7 +11,10 @@ die "Parsing $ARGV[0] failed.\n" unless $doc;
 my @p=$doc->findnodes('//body/p');
 my %keys;
 foreach (@p) {
-  $keys{$_} = $_->findvalue('string(.//span[@class="NG_TOP"])');
+  my $key=$_->findvalue('string(.//span/@class[starts-with(.,"NG_TOP")])');
+  $key=decodeFromUTF8('cp1250',$key);
+  ($key)=($key=~/LEMMA_(.*)/);
+  $keys{$_}=$key;
 }
 
 use locale;
