@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-26 17:01:44 pajas>
+## Time-stamp: <2002-05-09 11:28:45 pajas>
 
 package TredMacro;
 
@@ -1211,6 +1211,70 @@ Return true if TrEd presently displays hidden nodes.
 sub HiddenVisible {
   return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
 }
+
+
+=item PrevNodeLinear(node,attribute,top?)
+
+Returns nearest node in the tree preceding the given node in linear
+ordering provided by the given attribute. If top node is present, only
+a subtree of top is examined.
+
+=cut
+
+sub PrevNodeLinear {
+  my ($node, $attr, $top) = @_;
+
+  return undef unless $node;
+
+  my $v=$node->{$attr};
+  my $best;
+  my $best_v;
+
+  my $nv;
+  $node=$top || $root; # reusing variable $node
+  while ($node) {
+    $nv=$node->{$attr};
+    if ($nv < $v and
+	(!$best or $nv > $best_v)) {
+      $best_v=$nv;
+      $best=$node;
+    }
+    $node=$node->following($top);
+  }
+  return $best;
+}
+
+=item NextNodeLinear(node,attribute,top?)
+
+Returns nearest node in the tree following the given node in linear
+ordering provided by the given attribute. If top node is present, only
+a subtree of top is examined.
+
+=cut
+
+sub NextNodeLinear {
+  my ($node, $attr, $top) = @_;
+
+  return undef unless $node;
+
+  my $v=$node->{$attr};
+  my $best;
+  my $best_v;
+
+  my $nv;
+  $node=$top || $root; # reusing the variable
+  while ($node) {
+    $nv=$node->{$attr};
+    if ($nv > $v and
+	(!$best or $nv < $best_v)) {
+      $best_v=$nv;
+      $best=$node;
+    }
+    $node=$node->following($top);
+  }
+  return $best;
+}
+
 
 =back
 
