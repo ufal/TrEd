@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-07-26 17:22:12 pajas>";
+$timestamp="Time-stamp: <2001-11-07 16:36:40 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -197,12 +197,12 @@ exit;
 ############################
 ############################
 
-sub setConfig {
-  my $confs=shift;
+# sub setConfig {
+#   my $confs=shift;
 
-  $convert=(exists $confs->{imagemagickconvert}) ? tilde_expand($confs->{imagemagickconvert}) : "convert";
-  print STDERR "Applying configuration.\n" if $tredDebug;
-}
+#   $convert=(exists $confs->{imagemagickconvert}) ? tilde_expand($confs->{imagemagickconvert}) : "convert";
+#   print STDERR "Applying configuration.\n" if $tredDebug;
+# }
 
 
 sub prepareFont {
@@ -332,7 +332,7 @@ sub printThis {
 			   $outfile,
 			   $opt_S,
 			   defined($opt_p) ?
-			   $opt_p : "$convert - $outfile",
+			   $opt_p : "$imageMagickConvert - $outfile",
 #			   $opt_T,
 			   $opt_C,
 			   $opt_R,
