@@ -605,10 +605,9 @@ if (defined($init) || defined($kill) || defined($break)) {
   } else {
     $request_type="EVAL_CODE";
     $request="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding,$code))."\n";
-    $request.="$control STATE=CONTEXT\n$start_context\n";
+    $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
     $request.="$control STATE=MACRO\n".
       _enc2bytes("utf8",join("",@TrEd::Macros::macros));
-#    $request.="$control STATE=ENCODING\n$term_encoding\n" if $term_encoding;
     $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding,join("\n",@ARGV)))."\n" if @ARGV;
     msg "Code: $code\n\n";
   }
