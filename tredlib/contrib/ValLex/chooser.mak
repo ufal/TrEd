@@ -1,7 +1,5 @@
 # -*- cperl -*-
 
-#bind ChooseFrame to Ctrl+Return menu Vyber ramec pro sloveso
-
 $FrameData=undef;
 $ChooserHideObsolete=0;
 
