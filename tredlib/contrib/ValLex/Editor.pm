@@ -363,6 +363,13 @@ sub create_widget {
       $show_deleted->pack(qw/-padx 5 -side left/);
     }
   }
+  my $search_button=$fbutton_frame->Button(-text => 'Search Frames',
+					      -underline => 0,
+					      -command => [\&show_frame_search_dialog,
+							   $self]);
+  $search_button->pack(qw/-padx 5 -side left/);
+
+
   my $hide_obsolete=
     $fbutton_frame2->
       Checkbutton(-text => 'Show Obsolete',
@@ -499,6 +506,7 @@ sub create_widget {
 	     wordlistitemstyle  => $wordlist_item_style,
 	     framelistitemstyle  => $framelist_item_style,
       	     hide_obsolete => \$hide_obsolete,
+             search_params => ['',0,0],
 	    },$fe_confs;
 }
 
@@ -659,9 +667,7 @@ sub addword_button_pressed {
   $ed->pack(qw/-padx 5 -expand yes -fill x -side left/);
   $ed->focus;
 
-
-
-  if ($d->Show =~ /OK/) {
+  if (TrEd::ValLex::Widget::ShowDialog($d,$ed) =~ /OK/) {
     my $result=$ed->get();
 
     my $word=$self->data()->addWord($result,$POS);
@@ -820,6 +826,59 @@ sub move_button_pressed {
   $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
 }
 
+sub show_frame_search_dialog {
+  my ($self)=@_;
+  my $top=$self->widget()->toplevel;
+  my $params=$self->subwidget('search_params');
+  my $d=$top->DialogBox(-title => "Full-text Frame Search",
+				-buttons => ["OK","Cancel"]);
+  $d->bind($d,'<Return>', \&TrEd::ValLex::Widget::dlgReturn);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  my $regexp=0;
+  my $beg=0;
+  my $f = $d->Frame()->pack(qw/-padx 10 -expand yes -fill both/);
+  $f->Label(-text => "Search expression:", 
+	    qw/-justify left -anchor nw/)->pack(qw/-expand yes -fill x/);
+  my $e = $f->Entry(qw(-width 50 -background white),
+		    -textvariable => \$params->[0]
+		   )->pack(qw/-expand yes -fill x/);
+  my $b1 = $f->Checkbutton(-text => "Regular expression",
+			   -underline => 0,
+			   -variable => \$params->[1]
+			 )->pack(qw/-pady 5/);
+  my $b2 = $f->Checkbutton(-text => "Search from beginning",
+			   -underline => 0,
+			   -variable => \$params->[2]
+			 )->pack(qw/-pady 5/);
+  $f->Frame->pack(-pady => 10);
+  $d->bind($d,"<Alt-r>", [sub { shift; $_[0]->flash(); $_[0]->invoke },$b1]);
+  $d->bind($d,"<Alt-s>", [sub { shift; $_[0]->flash(); $_[0]->invoke },$b2]);
+  if (TrEd::ValLex::Widget::ShowDialog($d,$e) =~ /OK/) {
+
+    my ($word,$frame);
+    unless ($params->[2]) {
+      my $h=$self->subwidget('wordlist')->widget();
+      my $fl=$self->subwidget('framelist')->widget();
+      my $item=$h->infoAnchor();
+      $word=$h->infoData($item) if ($h->infoExists($item));
+      $item=$fl->infoAnchor();
+      $frame=$fl->infoData($item) if ($fl->infoExists($item));
+    }
+    $frame =
+      $self->data()->searchFrameMatching($params->[0],
+					 $self->subwidget('wordlist')->pos_filter(),
+					 $word,
+					 $frame,
+					 $params->[1]);
+    if ($frame) {
+      $word = $self->data()->getWordForFrame($frame);
+      $self->wordlist_item_changed($self->subwidget("wordlist")->focus($word));
+      $self->framelist_item_changed($self->subwidget("framelist")->focus($frame));
+    }
+  }
+  $d->destroy();
+}
+
 sub show_frame_editor_dialog {
   my ($self,$title,$confs,$elements,$note,$example,$problem)=@_;
 
@@ -854,7 +913,7 @@ sub show_frame_editor_dialog {
 						  }
 						},$d,$ed
 					       ]);
-  if ($d->Show =~ /OK/) {
+  if (TrEd::ValLex::Widget::ShowDialog($d,$ed->subwidget('elements')) =~ /OK/) {
     my $elements=$ed->subwidget('elements')->get();
     my $note=$ed->subwidget('note')->get('0.0','end');
     my $example=$ed->subwidget('example')->get('0.0','end');

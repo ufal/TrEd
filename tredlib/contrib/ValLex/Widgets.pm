@@ -6,6 +6,33 @@ package TrEd::ValLex::Widget;
 use locale;
 use base qw(TrEd::ValLex::DataClient);
 
+sub ShowDialog {
+  my ($cw, $focus, $oldFocus)= @_;
+  $oldFocus= $cw->focusCurrent unless $oldFocus;
+  my $oldGrab= $cw->grabCurrent;
+  my $grabStatus= $oldGrab->grabStatus if ($oldGrab);
+  $cw->Popup();
+
+  Tk::catch {
+    $cw->grab;
+  };
+  $focus->focusForce if ($focus);
+  Tk::DialogBox::Wait($cw);
+  eval {
+    $oldFocus->focusForce;
+  };
+  $cw->withdraw;
+  $cw->grabRelease;
+  if ($oldGrab) {
+    if ($grabStatus eq 'global') {
+      $oldGrab->grabGlobal;
+    } else {
+      $oldGrab->grab;
+    }
+  }
+  return $cw->{selected_button};
+}
+
 sub dlgReturn {
   my ($w,$no_default)=@_;
   my $f=$w->focusCurrent;
