@@ -7,7 +7,10 @@
 # This program allows you run macros written for Tred in batch mode
 #
 # Usage: 
-# btred [-m macro-file] [-e script] files...
+#   btred [-m macro-file] [-e script] files...
+# or
+#   btred -h|--help      to show this help
+#
 #
 # This is a "batch mode" version of Tred (Tk Tree editor for FS files).
 # Runs given script or macro on each file.
@@ -16,6 +19,12 @@
 #  macro-file    - file with macro definitions
 #  script        - any script (may use macros); typically script is just
 #                  name of the macro to be run
+#
+# If no macro-file is given, standard macro file (see Tred
+# documentation) is searched and used if found. If script is not
+# specified, call to function autostart is performed, expecting such a
+# function is defined in macro-file.
+#
 #
 # You may use these variables in your macros and scripts:
 #
@@ -57,6 +66,7 @@ if (exists $ENV{TREDHOME}) {
 }
 
 $macroFile="$libDir/tred.mac";
+$macroname="autostart"; # this is the default macro name
 
 my $i;
 
@@ -67,6 +77,54 @@ for ($i=0;$i<=$#ARGV;$i++) {
   } elsif ($ARGV[$i] eq '-e') {
     $macroName=$ARGV[$i+1];
     splice @ARGV,$i--,2;
+  } elsif ($ARGV[$i] eq '-h') {
+
+    print <<EOH;
+Usage: 
+  btred [-m macro-file] [-e script] files...
+or
+  btred -h          to show usage
+or 
+  btred --help      to show help
+EOH
+    exit;
+  } elsif ($ARGV[$i] eq '--help') {
+    print <<EOF;
+Usage: 
+  btred [-m macro-file] [-e script] files...
+or
+  btred -h          to show usage
+or 
+  btred --help      to show help
+
+This is a "batch mode" version of Tred (Tk Tree editor for FS files).
+Runs given script or macro on each file.
+Parameters:
+
+macro-file    - file with macro definitions
+script        - any script (may use macros); typically script is just
+                name of the macro to be run
+
+If no macro-file is given, standard macro file (see Tred
+documentation) is searched and used if found. If script is not
+specified, call to function autostart is performed, expecting such a
+function is defined in macro-file.
+
+You may use these variables in your macros and scripts:
+
+\@nodes        - ordered array of nodes of current tree 
+\@trees        - list of roots of all trees
+\$this         - current node - $root of the first tree at the beginning
+\$root         - root node of current tree
+\$currentFile  - current file name
+\$FileNotSaved - change this to 1 if you need not to save the file at the end
+\%attribs      - attribute definition hash 
+\@atord        - (positional) attribute array
+
+You may also use all functions defined in default macro file tred.def
+as well as any function from Fslib (see Fslib documentation).
+EOF
+      exit;
   }
 }
 
