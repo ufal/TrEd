@@ -233,7 +233,7 @@ sub print_trees {
     $pagewidth=$prtFmtWidth-2*$hMargin;
     $pageheight=$prtFmtHeight-2*$vMargin;
     $P = Tk::Canvas::PDF->new(
-			      -unicode => $]>=5.008 ? 1 : 0,
+			      -unicode => ($]>=5.008) ? 1 : 0,
 			      -encoding => $TrEd::Convert::support_unicode ? 
 			      'utf8' : $TrEd::Convert::outputenc,
 			      -ttfont => $fontSpec->{TTF},
@@ -492,21 +492,21 @@ END_OF_ENC
 	  if ($ps[$i]=~/^%\%BeginSetup/) {
 	    # this hack is to partially fix Tk804.025 bug
 	    print O '%%BeginProlog',"\n";
-	    print O '%%BeginFont tredfont',"\n";
+#	    print O '%%BeginFont tredfont',"\n";
 	    print O <F>;
-	    print O '%%EndFont',"\n\n";
+#	    print O '%%EndFont',"\n\n";
 	  } else {
 	    print O $ps[$i++],"\n";
-	    print O '%%BeginFont $psFontName',"\n";
+#	    print O '%%BeginFont ',"$psFontName\n";
 	    print O <F>;
-	    print O '%%EndFont',"\n\n";
+#	    print O '%%EndFont',"\n\n";
 	    #	      $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
 	  }
 	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font $psFontName/);
 	  $i++;
 	}
 	while ($i<=$#ps && $ps[$i]!~/^%\%Trailer\w*$/) {
-	  #	    $ps[$i]=~s/ISOEncode //g;
+	  $ps[$i]=~s/ISOEncode //g unless $TrEd::Convert::support_unicode;
 	  print O $ps[$i]."\n" unless ($toEPS and
 				       $ps[$i] =~/^restore showpage/);
 	  $i++
