@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-03-22 16:26:19 pajas>
+## Time-stamp: <2002-04-10 10:46:40 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -419,7 +419,7 @@ sub add_questionmarks_func {
 #bind ShiftRight to U menu posun uzel doprava
 
 sub ShiftLeft {
-  return unless ($this->{dord}>1);
+  return unless (GetOrd($this)>1);
   if (HiddenVisible()) {
     ShiftNodeLeft($this);
   } else {
