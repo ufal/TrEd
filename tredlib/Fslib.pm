@@ -1559,8 +1559,10 @@ Return true if an attribute of the given name exists.
 
 sub exists {
   my ($self,$arg)=@_;
-  return 
-    ref($self) ? defined($self->defs->{$arg}) : undef;
+  return
+    ref($self) ?
+      (exists($self->defs->{$arg}) &&
+       defined($self->defs->{$arg})) : undef;
 }
 
 
