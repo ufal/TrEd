@@ -4459,7 +4459,7 @@ sub dumpSentView {
 
   print $html "<html>\n";
   print $html "<head>\n";
-  print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=iso-8859-2\" />\n";
+  print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=".$TrEd::Convert::outputenc."\" />\n";
   print $html "</head>\n";
   print $html "<body>\n";
   my @dump=$t->dump('0.0','end');
