@@ -401,6 +401,8 @@ sub startMain {
   #  eval (join("",@macros)."\n return 1;");
   my $context = $grp->{macroContext};
 
+  $TrEd::Macros::on_error = sub { _msg($_[1]) };
+
   if ($start_server) {
     $SIG{USR1} = sub { };
     # ----------------------------------------
@@ -545,6 +547,7 @@ sub startMain {
 	  $grp->{macroContext} = $context;
 	  doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
 	  # execute hooks and the code of the query
+
 	  my $time;
 	  $hub->print("$control SERVER_RESPONSE_STDERR\n");
 	  $hub->print("$@\n") if $@;
@@ -586,12 +589,10 @@ sub startMain {
 	  $SIG{USR1} = sub { };
 	  $hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
 	  cleanup_tredmacro($grp,split(/\n/,"package $context;\n".$request{MACRO}."\n".$request{CODE}));
-
 	  # send macro's error output from tmp file to client
 	  _copy_output($macro_stderr,$hub);
 	  $macro_stderr->close;
 	  _revert_redirect_stderr($old_stderr);
-
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 
 	  # send macro's output from tmp file to client
@@ -1087,8 +1088,7 @@ sub doEvalMacro {
   ${macro_variable('TredMacro::forceFileSaved')}=0;
 
   my $result=do_eval_macro($group,$macro);
-
-  _msg "$@" if $@;
+ 
   exit 1 if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
