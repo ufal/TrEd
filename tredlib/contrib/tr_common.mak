@@ -48,6 +48,9 @@ sub upgrade_file {
   if (exists($defs->{func}) and $defs->{func} !~ /CPHR/) {
     $defs->{func}=~s/(DPHR)/CPHR|DPHR/;
   }
+  if (exists($defs->{func}) and $defs->{func} !~ /AUTH/) {
+    $defs->{func}=~s/(APPS)/APPS|AUTH/;
+  }
   if (exists($defs->{func}) and $defs->{func} !~ /CONTRA/) {
     $defs->{func}=~s/(CONFR)/CONFR|CONTRA/;
   }
@@ -62,6 +65,10 @@ sub upgrade_file {
   }
   if (exists($defs->{gram}) and $defs->{gram} !~ /\|ADD\|SUBTR\|ORDER\|/) {
     $defs->{func}=~s/(\|NIL\|)/\|ADD\|SUBTR\|ORDER\|NIL\|/;
+  }
+  unless (exists($defs->{parenthesis})) {
+    AppendFSHeader('@P parenthesis',
+		   '@L parenthesis|---|PA|NIL|???');
   }
   unless (exists($defs->{operand})) {
     AppendFSHeader('@P operand',
