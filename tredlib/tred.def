@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2004-06-06 11:54:25 pajas>
+## Time-stamp: <2004-06-08 12:46:24 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1937,8 +1937,7 @@ sub Print {
   }
 }
 
-=item XPathObj ($node,
-                [ id         => \&find_node_by_id,
+=item SetupXPath ([ id         => \&find_node_by_id,
                   pos        => \&node_position,
                   attributes => \&node_attributes_hashref,
                   name       => \&node_name,
@@ -1963,9 +1962,9 @@ method.
 
 Usage example:
 
-$xp_node = XPathObj($root, id    => sub { $hashed_ids{ $_[0] } },
-                           name  => sub { $_[0]->{func} },
-                           value => sub { $_[0]->{trlemma} });
+$xp_node = SetupXPath(id    => sub { $hashed_ids{ $_[0] } },
+                      name  => sub { $_[0]->{func} },
+                      value => sub { $_[0]->{trlemma} });
 
 foreach ($xp_node->findnodes(q{
      //ACT/PAT[starts-with(@tag,"N") or .="cedule"]
@@ -1975,29 +1974,30 @@ foreach ($xp_node->findnodes(q{
 
 =cut
 
-sub XPathObj {
-  my $node = shift || $this;
+sub SetupXPath {
   my %handlers = @_;
-  require Object::XPath;
 
-  $handlers{id} = sub {} unless exists $handlers{id};
   unless (exists $handlers{pos}) {
     my $attr=FS()->sentord() || FS()->order();
     $handlers{pos} = sub { $_[0]->{$attr} } ;
   }
-  $handlers{attributes} = sub { $_[0] } unless exists $handlers{attributes};
-  $handlers{name} = sub { "node" } unless exists $handlers{name};
   unless (exists $handlers{value}) {
     my $val=FS()->value();
     $handlers{value} = sub { $_[0]->{$val} } ;
   }
-  $handlers{parent} = \&FSNode::parent unless exists $handlers{parent};
-  $handlers{children} = \&FSNode::children unless exists $handlers{children};
-  $handlers{lbrother} = \&FSNode::lbrother unless exists $handlers{lbrother};
-  $handlers{rbrother} = \&FSNode::rbrother unless exists $handlers{rbrother};
-  return Object::XPath->new($node,
-			    $node->root,
-			    \%handlers);
+
+  *FSNode::getElementById = $handlers{id} if $handlers{id};
+  *FSNode::get_global_pos = $handlers{pos} if $handlers{pos};
+  *FSNode::getAttributes = $handlers{attributes} if $handlers{attributes};
+  *FSNode::getName = $handlers{name} if $handlers{name};
+  *FSNode::getLocalName = $handlers{name} if $handlers{name};
+  *FSNode::getValue = $handlers{value} if $handlers{value};
+  *FSNode::string_value = $handlers{value} if $handlers{value};
+
+  *FSNode::getParentNode = $handlers{parent} if $handlers{parent};
+  *FSNode::getChildNodes = $handlers{children} if $handlers{children};
+  *FSNode::getPreviousSibling = $handlers{lbrother} if $handlers{lbrother};
+  *FSNode::getNextSibling = $handlers{rbrother} if $handlers{rbrother};
 }
 
 =back
