@@ -1043,8 +1043,9 @@ sub MoveTreeToPrev {
 
 #bind insert_node to Insert menu Insert new node on both TR and AR layers
 sub insert_node {
+  return unless$this->{AID}ne'';
   PDT::ClearARstruct();
-  my$aid=$this->{AID}.$this->{TID};
+  my$aid=$this->{AID};
   $aid=~s/[wa]\d+$/w/;
   $aid.=max(map{$_->{AID}=~m/w(\d+)$/?$1:0}$root->descendants())+1;
   foreach my$node (grep{
