@@ -1068,6 +1068,9 @@ sub newFileFromCurrent {
   updateTitle($grp);
   get_nodes_win($win);
   doEvalHook($win,"file_opened_hook");
+  switchContext($win,$opt_t,1)
+    if ($opt_t ne "" and
+	$win->{macroContext} ne $opt_t);
   redraw_win($win);
   centerTo($win,$win->{currentNode});
   $win->toplevel->Unbusy() unless $insideEval;
@@ -1231,6 +1234,10 @@ sub openFile {
   applyFileSuffix($win,$goto);
   doEvalHook($win,"file_opened_hook") if ($win->{FSFile} and
 					  !$opts{-nohook});
+  switchContext($win,$opt_t,1)
+    if ($opt_t ne "" and
+	$win->{macroContext} ne $opt_t);
+
   get_nodes_win($win,$opts{-noredraw});
   unless ($opts{-noredraw}) {
     redraw_win($win);
@@ -2977,15 +2984,17 @@ sub switchStylesheet {
 }
 
 sub switchContext {
-  my ($win,$context)=@_;
+  my ($win,$context,$noredraw)=@_;
   my $prevcontext=$win->{macroContext};
   return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context)
 	       eq 'stop');
   $win->{macroContext}=$context;
   $win->{framegroup}{selectedContext}=$context if (isFocused($win));
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
-  get_nodes_win($win);
-  redraw_win($win);		# something should be done with display attrs vs windows maybe
+  if ($noredraw) {
+    get_nodes_win($win);
+    redraw_win($win);		# something should be done with display attrs vs windows maybe
+  }
 }
 
 sub onGetNodeStyle {
@@ -3188,11 +3197,10 @@ sub newTreeView {
 
   my $balloon=$grp->{top}->Balloon(-initwait=> $canvasBalloonInitWait,
 				  -state=> 'balloon',
-				  -background => $canvasBalloonBackground
 				 );
   $balloon->Subwidget('message')->configure(-foreground=> $canvasBalloonForeground);
 
-  $balloon->Tk::Toplevel::configure(-background=> '#fff3b0');
+  $balloon->Tk::Toplevel::configure(-background=> $canvasBalloonBackground);
   $balloon->Subwidget('message')->configure(-justify=> 'left',-font=> $font);
   my $treeView=new TrEd::TreeView($canvas,'CanvasBalloon'=> $balloon);
   $treeView->apply_options($treeViewOpts);
@@ -3429,11 +3437,11 @@ sub startMain {
   print STDERR "Exit hook created.\n" if $tredDebug;
 
   $group{Balloon}=$group{top}->Balloon(-initwait=> $toolbarBalloonInitWait,
-				       -background=> $toolbarBalloonBackground,
 				       -balloonposition=> 'mouse',
 				       -state=> 'balloon',
 				      );
   $group{Balloon}->Subwidget('message')->configure(-foreground=> $toolbarBalloonForeground);
+  $group{Balloon}->Tk::Toplevel::configure(-background=> $toolbarBalloonBackground);
   $group{frame}=$group{top}->Frame;
 
 
@@ -4753,7 +4761,7 @@ sub QueryString {
 
   addBindTags($d,'dialog');
   my $e=$d->add('Entry',-relief=> 'sunken',
-		    -width=> 40,
+		    -width=> 70,
 		    -takefocus=> 1,
 		    -font=> $font,
 		    -textvariable=> \$newvalue);
