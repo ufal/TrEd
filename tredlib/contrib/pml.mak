@@ -35,28 +35,36 @@ sub switch_context_hook {
   return;
 }
 
-#bind default_pml_attrs to F8 menu Display default attributes
-sub default_pml_attrs { # cperl-mode _ _
-  return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
-  if ($grp->{FSFile}->metaData('schema')->{name} eq 'tdata') {
+sub set_default_tdata_attrs {
     SetDisplayAttrs(split /\n/,<<'EOF');
 <? "#{red}" if $${commentA} ne "" ?>${t_lemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? "$${_light}"if$${_light}and$${_light}ne"_LIGHT_" ?>${m/form}
-node:#{darkgreen}${functor}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${subfunctor}" if $${subfunctor} ne "???" and $${subfunctor} ne ""?>
+node:#{darkgreen}${functor}<? $${is_member} ? "_#{#4C9CCD}".($this->parent->{functor}=~/^(AP)PS|^(OP)ER/ ? "\${is_member=$1$2}" : "\${is_member=CO}") : "" ?><? "#{#4C9CCD}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${subfunctor}" if $${subfunctor} ne "???" and $${subfunctor} ne ""?>
 text:<? "#{-background:cyan}" if $${_light}eq"_LIGHT_" ?><? "#{-foreground:green}#{-underline:1}" if $${NG_matching_node} eq "true" ?><? "#{-tag:NG_TOP}#{-tag:LEMMA_".$${trlemma}."}" if ($${NG_matching_node} eq "true" and $${NG_matching_edge} ne "true") ?>${m/w/origf}
 style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>
 style:<? "#{Node-addwidth:7}#{Node-addheight:7}#{Oval-fill:cyan}" if $${_light}eq"_LIGHT_" ?>
 style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>
 node:<? $${nodetype} ne 'complex' ? '#{darkblue}${nodetype}'  : ''?>#{darkred}<? local $_=$${gram/wordclass}; s/^sem([^.]+)(\..)?[^.]*(.*)$/$1$2$3/; '${gram/wordclass='.$_.'}' ?><? $${dsp_root} ? '#{black}.#{green}${dsp_root=DSP}' : '' ?><? $${quot_type} ne '' ? '.#{green}${quot_type}' : ''?>
-style:<? $${operand}.$${memberof} ne '' ? '#{Line-coords:n,n,n,n+(p-n)/3&n,n+(p-n)/3,p,p}' : '#{Line-coords:n,n,n,n}') ?>
+style:<? $${operand}.$${is_member} ? '#{Line-coords:n,n,n,n+(p-n)/3&n,n+(p-n)/3,p,p}' : '#{Line-coords:n,n,n,n}') ?>
 style:<? $${nodetype} eq 'coap' ? '#{Node-shape:rectangle}#{Node-currentwidth:7}#{Node-currentheight:7}#{CurrentOval-width:1}#{Node-width:0}#{Node-height:0}#{Oval-width:0}' : '' ?>
 EOF
     SetBalloonPattern('');
-  } elsif ($grp->{FSFile}->metaData('schema')->{name} eq 'adata') {
+}
+
+sub set_default_adata_attrs {
     SetDisplayAttrs(split /\n/, <<'EOF');
 ${m/form}
-node:#{blue}${afun}
+node:#{blue}${afun}<? if ($${is_member}) { my $p=$this->parent; $p=$p->parent while $p and $p->{afun}=~/^Aux[CP]$/; ($p and $p->{afun}=~/^(Ap)os|(Co)ord/ ? "_#{#4C9CCD}\${is_member=$1$2}" : "_#{red}\${is_member=ERR}")} else {""} ?>
 text:${m/w/origf}
 EOF
+}
+
+#bind default_pml_attrs to F8 menu Display default attributes
+sub default_pml_attrs { # cperl-mode _ _
+  return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
+  if ($grp->{FSFile}->metaData('schema')->{name} eq 'tdata') {
+    set_default_tdata_attrs()
+  } elsif ($grp->{FSFile}->metaData('schema')->{name} eq 'adata') {
+    set_default_adata_attrs();
   }
   return 1;
 }
@@ -64,7 +72,7 @@ EOF
 sub adata {
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
-
+  return undef unless ref($fsfile->metaData('refnames')) and ref($fsfile->metaData('ref'));
   my $refid = $fsfile->metaData('refnames')->{adata};
   $fsfile->metaData('ref')->{$refid};
 }
@@ -324,10 +332,10 @@ sub node_style_hook {
     $line{$_}=$my_line{$_} for keys %my_line;
   }
 
-  if  (!$ARstruct and ($node->{'coref_text.rf'} or $node->{'coref_gram.rf'})) {
-    my @gram = grep {$_ ne "" } $node->{'coref_gram.rf'}->values;
-    my @text = grep {$_ ne "" } $node->{'coref_text.rf'}->values;
-    my @compl = grep {$_ ne "" } $node->{'complref.rf'}->values;
+  if  (!$ARstruct and ($node->{'coref_text.rf'} or $node->{'coref_gram.rf'} or $node->{'complref.rf'})) {
+    my @gram = grep {$_ ne "" } ListV($node->{'coref_gram.rf'});
+    my @text = grep {$_ ne "" } ListV($node->{'coref_text.rf'});
+    my @compl = grep {$_ ne "" } ListV($node->{'complref.rf'});
     draw_coref_arrows($node,$styles,\%line,
 		      [@gram,@text,@compl],
 		      [(map 'grammatical',@gram),
