@@ -2033,12 +2033,11 @@ returns node's @V FS-attribute value, and 'children', 'parent',
 method.
 
 Usage example:
+SetupXPath(id    => sub { $hashed_ids{ $_[0] } },
+           name  => sub { $_[0]->{func} },
+           value => sub { $_[0]->{trlemma} });
 
-$xp_node = SetupXPath(id    => sub { $hashed_ids{ $_[0] } },
-                      name  => sub { $_[0]->{func} },
-                      value => sub { $_[0]->{trlemma} });
-
-foreach ($xp_node->findnodes(q{
+foreach ($node->findnodes(q{
      //ACT/PAT[starts-with(@tag,"N") or .="cedule"]
    })) {
   # process matching nodes
@@ -2095,6 +2094,10 @@ sub Alt {
 
 sub AltV {
   ref($_[0]) eq 'Fslib::Alt' ? @{$_[0]} : $_[0]
+}
+
+sub SeqV {
+  ref($_[0]) eq 'Fslib::Seq' ? @{$_[0]} : ()
 }
 
 

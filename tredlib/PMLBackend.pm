@@ -6,6 +6,11 @@ use strict;
 use XML::Simple; # for PML schema
 use XML::LibXML;
 use XML::LibXML::Common qw(:w3c :encoding);
+use XML::Writer;
+
+  use Data::Dumper;
+
+
 use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $pml_ns);
 
 $pml_ns = "http://ufal.mff.cuni.cz/pdt/pml/";
@@ -44,27 +49,6 @@ sub open_backend {
 =item read (handle_ref,fsfile)
 
 =cut
-
-
-sub get_pml_schema {
-  my ($file)=@_;
-  print STDERR "$file\n";
-  my $fh = IOBackend::open_backend($file,'r');
-  die "Couldn't open PML schema file '$file'\n" unless $fh;
-  local $/;
-  my $slurp = <$fh>;
-  my $simple = XMLin($slurp,
- 		     ForceArray=>[ 'member', 'attribute', 'value' ],
- 		     KeyAttr => { "member" => "name",
-				  "attribute" =>"name",
-				  "type" => "name"
- 				 },
- 		     GroupTags => { "choice" => "value" }
- 		    );
-  close $fh;
-  return $simple;
-}
-
 
 sub index_by_id {
   my ($dom) = @_;
@@ -117,101 +101,60 @@ sub read ($$) {
   $parser->line_numbers(1);
   $parser->load_ext_dtd(0);
   $parser->validation(0);
+
   my $dom = $parser->parse_fh($input);
   $parser->process_xincludes($dom);
 
   my $dom_root = $dom->getDocumentElement();
   my $return;
-  $fsfile->FS->defs->{id}=' K';
+#  $fsfile->FS->defs->{id}=' K';
   read_references($fsfile,$dom_root);
 
-  if (ref($fsfile->metaData('schema'))) {
-    $return = read_with_schema($fsfile,$dom_root);
-  } elsif ($dom_root->localname() eq "mdata" and
-      $dom_root->namespaceURI() eq $pml_ns) {
-    $return = read_mdata($fsfile,$dom_root);
-  } elsif ($dom_root->localname() eq "adata" and
-	   $dom_root->namespaceURI() eq $pml_ns) {
-    $fsfile->FS->defs->{ord}=' N';
-    $fsfile->FS->defs->{'m/w/origf'}=' K V';
-    my $m_file = $fsfile->metaData('references')->{'m'};
-    # read morphological file if available
-    _debug("MFile: $m_file");
-    if ($m_file and $m_file ne $fsfile->filename()) {
-      my $m_fh = open_backend($m_file,'r');
-      _debug("M_FH: $m_fh");
-      if ($m_fh) {
-	my $m_dom = $parser->parse_fh($m_fh);
-	_debug("M_DOM: $m_dom");
-	$parser->process_xincludes($m_dom);
-	$fsfile->changeMetaData('m',$m_dom);
-	$fsfile->changeMetaData('m-lookup', index_by_id($m_dom));
-      }
-      close_backend($m_fh);
-    }
-
-    # knit with morphological data
-    $return = read_trees($fsfile,$dom_root,{ 'm.rf' => $fsfile->metaData('m-lookup') });
-
-  } elsif ($dom_root->localname() eq "tdata" and
-	   $dom_root->namespaceURI() eq $pml_ns) {
-    _debug("tdata\n");
-    $fsfile->FS->defs->{dord}=' N';
-    $return = read_trees($fsfile,$dom_root);
-    my $a_file = $fsfile->metaData('references')->{a};
-
-    if ($a_file and $a_file ne $fsfile->filename()) {
-      # read analytical tree too
-      my $afh = open_backend($a_file,'r');
-      if ($afh) {
- 	my $a_fsfile = FSFile->new();
- 	$a_fsfile->changeFilename($a_file);
- 	&read($afh,$a_fsfile);
-	$fsfile->changeMetaData('a-ids',index_fs_by_id($a_fsfile));
-	$fsfile->changeMetaData('a-fs',$a_fsfile);
-      }
-    }
-
-#     if ($a_file and $a_file ne $fsfile->filename()) {
-#       # read analytical tree too
-#       my $afh = open_backend($a_file);
-#       if ($afh) {
-# 	my $a_fsfile = FSFile->new();
-# 	$a_fsfile->changeFilename($a_file);
-# 	__PACKAGE__::read($afh,$a_fsfile);
-#       }
-#     }
-  } else {
+  unless (ref($fsfile->metaData('schema'))) {
     die "Unknown XML data: ",$dom_root->localname()," ",$dom_root->namespaceURI(),"\n";
   }
-  @{$fsfile->FS->list} = grep {$_ ne $Fslib::special } sort keys %{$fsfile->FS->defs};
+  $return = read_trees($parser, $fsfile,$dom_root);
+
+#  @{$fsfile->FS->list} = grep {$_ ne $Fslib::special } sort keys %{$fsfile->FS->defs};
   return $return;
 }
 
 
+sub absolutize_path ($$) {
+  my ($orig, $href)=@_;
+  if ($href !~ m{^[[:alnum:]]+:|^/}) {
+    $orig =~ m{^(.*\/)};
+    return $1.$href;
+  } else {
+    return $href;
+  }
+}
+
 sub read_references {
-  my ($fs_file,$dom_root)=@_;
+  my ($fsfile,$dom_root)=@_;
   my %references;
+  my %named_references;
   my ($head) = $dom_root->getElementsByTagNameNS($pml_ns,'head');
   if ($head) {
     my ($references) = $head->getElementsByTagNameNS($pml_ns,'references');
     if ($references) {
       foreach my $reffile ($references->getElementsByTagNameNS($pml_ns,'reffile')) {
-	$references{ $reffile->getAttribute('id') } =
-	  $reffile->getAttribute('href');
+	my $id = $reffile->getAttribute('id');
+	my $name = $reffile->getAttribute('name');
+	$named_references{ $name } = $id if $name;
+	$references{ $id } =
+	  absolutize_path($fsfile->filename,$reffile->getAttribute('href'));
       }
     }
     my ($schema) = $head->getElementsByTagNameNS($pml_ns,'schema');
     if ($schema) {
-      my $schema_file = $schema->getAttribute('href');
-      if ($schema_file !~ m{^[[:alnum:]]+:|/}) {
-	my ($dir) = $fs_file->filename =~ m{^(.*\/)};
-	$schema_file=$dir.$schema_file;
-      }
-      $fs_file->changeMetaData('schema',get_pml_schema($schema_file));
+      my $schema_file = absolutize_path($fsfile->filename,$schema->getAttribute('href'));
+      $fsfile->changeMetaData('schema-url',$schema_file);
+      $fsfile->changeMetaData('schema',Fslib::Schema->readFrom($schema_file));
     }
   }
-  $fs_file->changeMetaData('references',\%references);
+  $fsfile->changeMetaData('references',\%references);
+  $fsfile->changeMetaData('refnames',\%named_references);
 }
 
 =item read_Seq($node)
@@ -243,77 +186,6 @@ sub read_Alt ($) {
 }
 
 
-sub read_attr ($$$$;$) {
-  my ($node,$fs_node,$defs,$attr,$knit)=@_;
-  $attr = ($attr ne "") ? ($attr."/".$node->localname) : $node->localname;
-  my @c = grep { $_->nodeType == ELEMENT_NODE } $node->childNodes;
-  if (@c) {
-    if ($c[0]->localname eq 'Seq' and $c[0]->namespaceURI eq $pml_ns) {
-      $defs->{$attr} = ' K' unless (exists $defs->{$attr});
-      $fs_node->{$attr}=join '|',map { $_->textContent } read_Seq($node);
-    } elsif ($c[0]->localname eq 'Alt' and $c[0]->namespaceURI eq $pml_ns) {
-      $defs->{$attr} = ' K' unless (exists $defs->{$attr});
-      $fs_node->{$attr}=join '|',map { $_->textContent } read_Alt($node);
-    } else {
-      foreach (@c) {
-	read_attr($_,$fs_node,$defs,$attr);
-      }
-    }
-  } else {
-    my $value = $node->textContent;
-    $defs->{$attr} = ' K' unless (exists $defs->{$attr});
-    $fs_node->{$attr}=$value;
-    my $knit_hash = $knit->{$attr} if $knit;
-    if ($knit_hash) {
-      my $ref = $value;
-      $ref =~ s/.*#//;
-      $attr =~ s/\.rf$//;
-      my $knit_with = $knit_hash->{$ref} if $knit_hash;
-      if ($knit_with) {
-	#_debug("Knitting $ref");
-	foreach (grep { $_->nodeType == ELEMENT_NODE } $knit_with->childNodes) {
-	  read_attr($_,$fs_node,$defs,$attr);
-	}
-      } else {
-	_debug("Can't knit  $value") if $knit_hash;
-      }
-    }
-  }
-}
-
-sub read_node ($$;$) {
-  my ($node,$fsfile,$knit)=@_;
-
-  my $fs_node=FSNode->new();
-  $fs_node->{'id'} = $node->getAttribute('id');
-  foreach my $child (grep {$node->nodeType == ELEMENT_NODE } $node->childNodes) {
-    if ($child->namespaceURI eq $pml_ns) {
-      if ($child->localname eq 'children') {
-	foreach my $c (read_Seq($child)) {
-	  Paste(read_node($c, $fsfile,$knit),$fs_node,$fsfile->FS->defs());
-	}
-      } else {
-	read_attr($child,$fs_node,$fsfile->FS->defs(),"",$knit);
-      }
-    } else {
-      $fs_node->{$node->namespaceURI.'#'.$node->localname}=$node->toString;
-    }
-  }
-  return $fs_node;
-}
-
-sub read_trees ($$;$) {
-  my ($fsfile, $dom_root, $knit) = @_;
-  my ($trees) = $dom_root->getChildrenByTagNameNS($pml_ns,'trees');
-  unless ($trees) {
-    die "no trees\n";
-  }
-  _debug("Knit: $knit\n");
-  foreach my $tree (read_Seq($trees)) {
-    push @{$fsfile->treeList}, read_node($tree,$fsfile,$knit);
-  }
-}
-
 sub resolve_type ($$) {
   my ($types,$type)=@_;
   return $type unless ref($type);
@@ -330,26 +202,59 @@ sub _element_address {
   return "'".$node->localname."' at line ".$node->line_number."\n";
 }
 
-sub read_node_with_schema ($$$;$) {
+sub read_node ($$$;$) {
   my ($node,$fsfile,$types,$type) = @_;
   my $defs = $fsfile->FS->defs;
   if ($type eq 'REF' or $type eq 'CDATA') {
+    # pre-defined atomic types
     return $node->textContent;
   }
   unless (ref($type)) {
     die "Unknown node type: $type\n";
   }
-  if ($type->{seq}) {
+
+  if ($type->{knit}) {
+    my $ref = $node->getAttribute($type->{knit}{name});
+    if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
+      my ($reffile,$idref)=($1,$2);
+      my $refdom =
+	($reffile ne "") ? $fsfile->metaData('ref')->{$reffile} :
+	  $node->ownerDocument;
+      if (ref($refdom)) {
+	my $refnode =
+	  $fsfile->metaData('ref-index')->{$reffile}{$idref} ||
+	  $refdom->getElementsById($idref);
+	if (ref($refnode)) {
+#	  print "KNIT: $idref\n";
+#	  print "KNIT-TYPE: ",Dumper(resolve_type($types,$type->{knit})),"\n";
+#	  print $refnode->toString(1),"\n";
+	  my $ret = read_node($refnode,$fsfile,$types,
+					  resolve_type($types,$type->{knit}));
+#	  print Dumper($ret),"\n";
+	  if (ref($ret) and $ret->{id}) {
+	    $ret->{id} = $reffile.'#'.$ret->{id};
+	  }
+	  return $ret;
+	} else {
+	  warn "warning: ID $idref not found in '$reffile'\n";
+	}
+      } else {
+	die "Reference to $ref cannot be resolved - document '$reffile' not loaded\n";
+	  return $ref;
+      }
+    } else {
+      return $ref;
+    }
+    return;
+  } elsif ($type->{seq}) {
     return bless [
       map {
-	read_node_with_schema($_,$fsfile,
+	read_node($_,$fsfile,
 			      $types,resolve_type($types,$type->{seq}))
       } read_Seq($node)
     ], 'Fslib::Seq';
-  }
-
-  # on-Seq
-  if ($type->{member}) {
+  } elsif ($type->{member} or $type->{attribute}) {
+    # structure
     my $hash = ($type->{role} eq '#NODE') ? FSNode->new() : {};
 
     if ($type->{attribute}) {
@@ -376,7 +281,7 @@ sub read_node_with_schema ($$$;$) {
 	  if (ref($member) and $member->{role} eq '#CHILDNODES') {
 	    if (ref($hash) eq 'FSNode') {
 	      my $seq =
-		read_node_with_schema($child,$fsfile,
+		read_node($child,$fsfile,
 				      $types,
 				      $member);
 	      $hash->{$Fslib::firstson} = $seq->[0];
@@ -396,10 +301,10 @@ sub read_node_with_schema ($$$;$) {
 	  } else {
 	    if ($role eq "#ORDER") {
 	      $defs->{$name} = ' N' unless exists($defs->{$name});
-	    } else {
-	      $defs->{$name} = ' K' unless exists($defs->{$name});
+#	    } else {
+#	      $defs->{$name} = ' K' unless exists($defs->{$name});
 	    }
-	    $hash->{$name} = read_node_with_schema($child,$fsfile,
+	    $hash->{$name} = read_node($child,$fsfile,
 						   $types,
 						   $member);
 	  }
@@ -437,16 +342,17 @@ sub read_node_with_schema ($$$;$) {
     }
     return $data;
   } elsif ($type->{alt}) {
+    # alt
     my ($Alt) = $node->getChildrenByTagNameNS($pml_ns,'Alt');
     if ($Alt) {
       return bless [
 	map {
-	  read_node_with_schema($_,$fsfile,
+	  read_node($_,$fsfile,
 				$types,resolve_type($types,$type->{alt}))
 	} $Alt->getChildrenByTagNameNS($pml_ns,'M'),
        ], 'Fslib::Alt';
     } else {
-      return read_node_with_schema($node,$fsfile,
+      return read_node($node,$fsfile,
 				   $types,
 				   resolve_type($types,$type->{alt}));
     }
@@ -455,15 +361,52 @@ sub read_node_with_schema ($$$;$) {
   }
 }
 
-sub read_with_schema {
-  my ($fsfile, $dom_root) = @_;
+sub read_trees {
+  my ($parser, $fsfile, $dom_root) = @_;
+  my $references = $fsfile->metaData('schema')->{reference};
+  if ($references) {
+    print Dumper($references),"\n";
+    foreach my $reference (@$references) {
+      my $refid = $fsfile->metaData('refnames')->{$reference->{name}};
+      if ($refid) {
+	my $href = $fsfile->metaData('references')->{$refid};
+	if ($href and $reference->{readas} =~ /^(?:dom|trees)$/) {
+	  _debug("Found '$reference->{name}' as $refid# = '$href'");
+	  if ($reference->{readas} eq 'trees') {
+	    my $requires = ($fsfile->metaData('fs-require') || []);
+	    push @$requires,[$refid,$href];
+	    $fsfile->changeMetaData('fs-require',$requires);
+	  } elsif ($reference->{readas} eq 'dom') {
+	    my $ref_data;
+	    my $ref_fh = open_backend($href,'r');
+	    print "$href $ref_fh\n";
+	    $ref_data = $parser->parse_fh($ref_fh);
+	    $parser->process_xincludes($ref_data);
+	    close_backend($ref_fh);
+	    for (qw(ref ref-index)) {
+	      $fsfile->changeMetaData($_,{}) unless $fsfile->metaData($_)
+	    }
+	    $fsfile->metaData('ref')->{$refid}=$ref_data;
+	    $fsfile->metaData('ref-index')->{$refid}=index_by_id($ref_data);
+	    print "Stored meta 'ref' -> '$reference->{name}' = $ref_data\n";
+	  }
+	} elsif ($href) {
+	  die "Unknown readas method '$reference->{readas}'\n"
+	} else {
+	  die "No href for $refid# ($reference->{name})\n"
+	}
+      } else {
+	warn "Didn't find any reference to '".$reference->{name}."'\n";
+      }
+    }
+  }
+
   my $types = $fsfile->metaData('schema')->{type};
   my %roles;
   foreach my $t (keys %$types) {
     print $t,"\n";
     $roles{$types->{$t}->{role}}{$t}=1 if ($types->{$t}->{role});
   }
-  use Data::Dumper;
 
   for my $child ($dom_root->childNodes) {
     if ($child->nodeType == ELEMENT_NODE and
@@ -477,22 +420,21 @@ sub read_with_schema {
 # and turn it into a simple list
 
 	  my $trees;
-	  $trees = read_node_with_schema($child,$fsfile,$types,$type);
+	  $trees = read_node($child,$fsfile,$types,$type);
 	  if (ref($trees) eq 'Fslib::Seq') {
 	    @{$fsfile->treeList} = @$trees
 	  } else {
 	    @{$fsfile->treeList} = ($trees);
 	  }
-	  print "ORDER: ",Fslib::ASpecial($fsfile->FS->defs,"N"),"\n";
+#	  print "ORDER: ",Fslib::ASpecial($fsfile->FS->defs,"N"),"\n";
 #
 #	  foreach my $tree (read_Seq($child, $types)) {
-#	    push @{$fsfile->treeList}, read_node_with_schema($tree,$fsfile,$types,$types->{});
+#	    push @{$fsfile->treeList}, read_node($tree,$fsfile,$types,$types->{});
 #	  }
 
 	} else {
 	  die "Expected 'seq' of #NODE types in role #TREES\n";
 	}
-	  
       } else {
 	die "Expected 'seq' in role #TREES\n";
       }
@@ -509,8 +451,189 @@ sub read_with_schema {
 =cut
 
 sub write {
-  print STDERR "Error: Writing not supported by this module!"
+  my ($fh,$fsfile)=@_;
+  my $xml =  new XML::Writer(OUTPUT => $fh,
+			   DATA_MODE => 1,
+			   DATA_INDENT => 1);
+  unless (ref($fsfile->metaData('schema'))) {
+    die "Can't write - document isn't associated with a schema\n";
+  }
+  my $types = $fsfile->metaData('schema')->{type};
+  my %roles;
+  foreach my $t (keys %$types) {
+    print $t,"\n";
+    $roles{$types->{$t}->{role}}{$t}=1 if ($types->{$t}->{role});
+  }
+  my ($data) = keys (%{$roles{'#DATA'}});
+
+  $xml->xmlDecl("utf-8");
+  $xml->startTag($data,xmlns => $pml_ns);
+  $xml->startTag('head');
+  $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
+  $xml->startTag('references');
+  {
+    my $references = $fsfile->metaData('references');
+    my $named = $fsfile->metaData('refnames');
+    my %names = $named ? (map { $named->{$_} => $_ } keys %$named) : ();
+    if ($references) {
+      foreach (keys %$references) {
+	$xml->emptyTag('reffile', id => $_,
+		       href => $references->{$_},
+		       (exists($names{$_}) ? (name => $names{$_}) : ()));
+      }
+    }
+  }
+  $xml->endTag('references');
+  $xml->endTag('head');
+  my ($trees) = keys (%{$roles{'#TREES'}});
+  my $tree_seq = bless [$fsfile->trees],'Fslib::Seq';
+  write_object($xml, $fsfile, $types,$types->{$trees},$trees,$tree_seq);
+  $xml->endTag($data);
+  $xml->end;
+
+  # write embedded DOM documents
+  my $references = $fsfile->metaData('schema')->{reference};
+  if ($references) {
+    foreach my $reference (@$references) {
+      my $refid = $fsfile->metaData('refnames')->{$reference->{name}};
+      if ($refid) {
+	my $href = $fsfile->metaData('references')->{$refid};
+	if ($href and $reference->{readas} eq 'dom' and
+	      ref($fsfile->metaData('ref'))) {
+	  my $dom = $fsfile->metaData('ref')->{$refid};
+	  if ($dom) {
+	    my $ref_fh = IOBackend::open_backend($href,"w");
+	    binmode $ref_fh;
+	    $dom->toFH($ref_fh,1);
+	    close $ref_fh;
+	  }
+	}
+      }
+    }
+  }
+  1;
 }
+
+sub write_object ($$$$) {
+  my ($xml,$fsfile, $types,$type,$tag,$object)=@_;
+  if (ref($type) and $type->{knit}) {
+    my $ref = $object->{id};
+    $xml->emptyTag($tag, $type->{knit}{name} => $ref);
+    if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
+      my ($reffile,$idref)=($1,$2);
+      my $indeces = $fsfile->metaData('ref-index');
+      if ($indeces and $indeces->{$reffile}) {
+	my $knit = $indeces->{$reffile}{$idref};
+	if ($knit) {
+	  $tag = 'M' if ($knit->parentNode->nodeName =~ /^(Alt|Seq)$/ and
+			   $knit->parentNode->namespaceURI eq $pml_ns);
+	  my $dom_writer = MyDOMWriter->new(REPLACE => $knit);
+	  write_object($dom_writer, $fsfile, $types,
+		       resolve_type($types,$type->{knit}),
+		       $tag, $object);
+	  my $new = $dom_writer->end;
+	  $new->setAttribute('id',$idref);
+	  #print $dom_writer->end->toString(1),"\n";
+	} else {
+	  warn "Didn't find ID $idref in $reffile - can't knit back!\n";
+	}
+
+      } else {
+	warn "Knit-file $reffile has no index - can't knit back!\n";
+      }
+    }
+    # special;
+    return;
+  }
+  $type = resolve_type($types,$type);
+  if (!ref($type)) {
+    $xml->startTag($tag);
+    $xml->characters($object);
+    $xml->endTag($tag);
+  } elsif ($type->{choice}) {
+    my $ok;
+    foreach (@{$type->{choice}}) {
+      if ($_ eq $object) {
+	$ok = 1;
+	last;
+      }
+    }
+    warn "Invalid value for '$tag': $object\n" unless ($ok);
+    $xml->startTag($tag);
+    $xml->characters($object);
+    $xml->endTag($tag);
+  } elsif ($type->{member} or $type->{attribute}) {
+    if (ref($object)) {
+      my %attribs;
+      if ($type->{attribute}) {
+	foreach my $atr (sort keys %{$type->{attribute}}) {
+	  if ($type->{attribute}{$atr}{optional} or $object->{$atr} ne "") {
+	    $attribs{$atr} = $object->{$atr};
+	  }
+	}
+      }
+      $xml->startTag($tag,%attribs);
+      if ($type->{member}) {
+	foreach my $member (sort keys %{$type->{member}}) {
+#	  print "Writing children to $member\n";
+	  if ($type->{member}{$member}{role} eq '#CHILDNODES') {
+	    if (ref($object) eq 'FSNode') {
+	      if ($object->firstson or !$type->{member}{$member}{optional}) {
+		write_object($xml, $fsfile, $types,$type->{member}{$member},$member,
+			     bless [ $object->children ],'Fslib::Seq');
+	      }
+	    } else {
+	      warn "Found #CHILDNODES member '$tag/$member' on a non-node value: $object\n";
+	    }
+	  } elsif ($object->{$member} ne "" or !$type->{member}{$member}{optional}) {
+	    write_object($xml, $fsfile, $types,$type->{member}{$member},$member,$object->{$member});
+	  }
+	}
+      }
+      $xml->endTag($tag);
+    } else {
+      # what do we do now?
+      warn "Unexpected content structure '$tag': $object\n";
+    }
+  } elsif ($type->{seq}) {
+    if ($object ne "" and ref($object) eq 'Fslib::Seq') {
+      if (@$object == 0) {
+	# what do we do now?
+      } elsif (@$object == 1) {
+	write_object($xml, $fsfile,  $types,$type->{seq},$tag,$object->[0]);
+      } else {
+	$xml->startTag($tag);
+	$xml->startTag('Seq');
+	foreach my $member (@$object) {
+	  write_object($xml, $fsfile, $types,$type->{seq},'M',$member);
+	}
+	$xml->endTag('Seq');
+	$xml->endTag($tag);
+      }
+    } else {
+      warn "Unexpected content of Seq '$tag': $object\n";
+    }
+  } elsif ($type->{alt}) {
+    if ($object ne "" and ref($object) eq 'Fslib::Alt') {
+      if (@$object == 0) {
+	# what do we do now?
+      } elsif (@$object == 1) {
+	write_object($xml, $fsfile, $types,$type->{alt},$tag,$object->[0]);
+      } else {
+	$xml->startTag($tag);
+	$xml->startTag('Alt');
+	foreach my $member (@$object) {
+	  write_object($xml, $fsfile, $types,$type->{alt},'M',$member);
+	}
+	$xml->endTag('Alt');
+	$xml->endTag($tag);
+      }
+    } else {
+      write_object($xml, $fsfile, $types,$type->{alt},$tag,$object);
+    }
+  }
+}
+
 
 =pod
 
@@ -536,4 +659,72 @@ sub test {
   }
 }
 
+  package MyDOMWriter;
+  sub new {
+    my ($class,%args)=@_;
+    $class = ref($class) || $class;
+
+    unless ($args{DOM} || $args{ELEMENT} || $args{REPLACE} ) {
+      die "Usage: $class->new(ELEMENT => XML::LibXML::Document)\n";
+    }
+    if ($args{ELEMENT}) {
+      $args{DOM} ||= $args{ELEMENT}->ownerDocument;
+    } else {
+      $args{DOM} ||= $args{REPLACE}->ownerDocument;
+    }
+    return bless \%args,$class;
+  }
+  sub end {
+    my ($self)=@_;
+    return $self->{REPLACEMENT} || $self->{ELEMENT};
+  }
+  sub startTag {
+    my ($self,$name,@attrs)=@_;
+    if ($self->{ELEMENT}) {
+      $self->{ELEMENT} = $self->{ELEMENT}->addNewChild($self->{NS},$name);
+    } elsif ($self->{REPLACE}) {
+      $self->{ELEMENT} = $self->{DOM}->createElementNS($self->{NS},$name);
+      $self->{REPLACE}->replaceNode($self->{ELEMENT});
+      $self->{REPLACEMENT} = $self->{ELEMENT};
+      delete $self->{REPLACE};
+    } else {
+      $self->{ELEMENT} = $self->{DOM}->createElementNS($self->{NS},$name);
+      $self->{DOM}->setDocumentElement($self->{ELEMENT});
+    }
+    for (my $i=0; $i<@attrs; $i+=2) {
+      $self->{ELEMENT}->setAttribute( $attrs[$i] => $attrs[$i+1] );
+    }
+  }
+  sub endTag {
+    my ($self,$name)=@_;
+    if ($name ne "") {
+      if ($self->{ELEMENT} and $self->{ELEMENT}->nodeName eq $name) {
+	$self->{ELEMENT} = $self->{ELEMENT}->parentNode;
+      } else {
+	die "Can't end ".
+	  ($self->{ELEMENT} ? '<'.$self->{ELEMENT}->nodeName.'>' : 'none').
+	    " with </$name>\n";
+      }
+    }
+  }
+  sub characters {
+    my ($self,$pcdata) = @_;
+    if ($self->{REPLACE}) {
+      $self->{REPLACEMENT} = $self->{DOM}->createTextNode($pcdata);
+      $self->{REPLACE}->replaceNode($self->{REPLACEMENT});
+      delete $self->{REPLACE};
+    } else {
+      $self->{ELEMENT}->appendTextNode($pcdata);
+    }
+  }
+  sub cdata {
+    my ($self,$pcdata) = @_;
+    if ($self->{REPLACE}) {
+      $self->{REPLACEMENT} = $self->{DOM}->createCDATASection($pcdata);
+      $self->{REPLACE}->replaceNode($self->{REPLACEMENT});
+      delete $self->{REPLACE};
+    } else {
+      $self->{ELEMENT}->appendChild($self->{DOM}->createCDATASection($pcdata));
+    }
+  }
 1;
