@@ -1,19 +1,32 @@
 # -*- cperl -*-
 # common tfa macros
 
+sub TFAAssign {
+  my ($value)=@_;
+  if (Parent($this)) {
+    $this->{'tfa'} = $value;
+    $this=NextVisibleNode($this);
+  }
+}
+
+sub tfa_focus {
+  TFAAssign('F');
+}
+
+sub tfa_topic {
+  TFAAssign('T');
+}
+
 sub tfa_C {
-  $sPar1 = 'C';
-  TFAAssign();
+  TFAAssign('C');
 }
 
 sub tfa_NA {
-  $sPar1 = 'NA';
-  TFAAssign();
+  TFAAssign('NA');
 }
 
 sub tfa_qm {
-  $sPar1 = '???';
-  TFAAssign();
+  TFAAssign('???');
 }
 
 

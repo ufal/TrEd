@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-05 17:48:33 pajas>
+## Time-stamp: <2002-11-13 11:13:30 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -12,7 +12,7 @@ sub file_opened_hook {
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
 
-  Tectogrammatic->upgrade_file();
+#  Tectogrammatic->upgrade_file();
 
   if ($grp->{FSFile} and
       GetSpecialPattern('patterns') ne 'force' and
@@ -26,7 +26,7 @@ sub file_opened_hook {
     $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'disabled');
   }
   my $o=$grp->{framegroup}->{ContextsMenu};
-  $o->options(['TFA','TR_Diff']);
+  $o->options(['TFA']);
   SwitchContext('TFA');
   $FileNotSaved=0;
 }
@@ -40,11 +40,6 @@ sub file_resumed_hook {
 sub CutToClipboard {}
 sub PasteFromClipboard {}
 
-#binding-context Tectogrammatic
-#include <contrib/tr.mak>
-
-#binding-context TR_Diff
-#include <contrib/trdiff.mak>
 
 sub node_release_hook { return 'stop'; }
 
