@@ -3,7 +3,7 @@
 #
 
 package TrEd::ValLex::Widget;
-use locale;
+#use locale;
 use base qw(TrEd::ValLex::DataClient);
 
 sub ShowDialog {
@@ -491,7 +491,7 @@ sub fetch_data {
 sub focus_by_text {
   my ($self,$text,$pos,$caseinsensitive)=@_;
   my $h=$self->widget();
-  use locale;
+#  use locale;
   for my $i (0,1) {
     # 1st run tries to find it in current list; if it fails
     # 2nd run asks Data server for more data

@@ -78,8 +78,8 @@ sub parse_lemma {
       last;
     }
   }
-  if ((($tag=~/^N/ and $trlemma=~/[tn]‚í(?:$|\s)/) or
-       ($tag=~/^A/ and $trlemma=~/[tn]‚ý(?:$|\s)/)) 
+  if ((($tag=~/^N/ and $trlemma=~/[tn]í(?:$|\s)/) or
+       ($tag=~/^A/ and $trlemma=~/[tn]ý(?:$|\s)/)) 
       and $deriv=~/t$|ci$/) {
     $deriv=~s/-[0-9]+$//g;
     if ($trlemma=~/( s[ei])$/) {
