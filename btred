@@ -233,7 +233,7 @@ if ($useCzechLocales) {
   use locale;
   use POSIX qw(locale_h);
   setlocale(LC_COLLATE,"cs_CZ");
-  setlocale(LC_NUMERIC,"us_EN");
+  setlocale(LC_NUMERIC,"C");
   setlocale(LANG,"czech");
 }
 
