@@ -266,7 +266,7 @@ sub getFrameExample {
     if ($text and $text->isTextNode) {
       my $data=$text->getData();
       $data=~s/^\s+//;
-      $data=~s/;\s+/\n/g;
+      $data=~s/\s*;\s*/\n/g;
       $data=~s/[\s\n]+$//g;
       return $self->conv->decode($data);
     }
@@ -298,7 +298,7 @@ sub getSubElementNote {
   if ($text and $text->isTextNode) {
     my $data=$text->getData();
     $data=~s/^\s+//;
-    $data=~s/;\s+/\n/g;
+    $data=~s/\s*;\s*/\n/g;
     $data=~s/[\s\n]+$//g;
     return $self->conv->decode($data);
   }
