@@ -204,6 +204,7 @@ sub print_trees {
   # A hack to support correct Arabic rendering under Tk800
   if (1000*$] >= 5008 and
       !$TrEd::Convert::support_unicode and
+      $TrEd::Convert::inputenc =~ /^utf-?8$/i or
       $TrEd::Convert::inputenc eq 'iso-8859-6' or
       $TrEd::Convert::inputenc eq 'windows-1256') {
     $TrEd::Convert::lefttoright=1; # arabjoin does this
@@ -232,6 +233,7 @@ sub print_trees {
     die "Sending PDF command not yet supported!" unless $toFile;
     $pagewidth=$prtFmtWidth-2*$hMargin;
     $pageheight=$prtFmtHeight-2*$vMargin;
+    local $TrEd::Convert::support_unicode = 1 if ($]>=5.008);
     $P = Tk::Canvas::PDF->new(
 			      -unicode => ($]>=5.008) ? 1 : 0,
 			      -encoding => $TrEd::Convert::support_unicode ? 
