@@ -64,7 +64,7 @@ sub Populate {
 		    -relief => 'raised',
 		    -bd => 2,
 		    -anchor => 'w')
-      ->pack(qw /-side top -expand yes -pady 0 -fill x/);
+      ->pack(qw /-side top -expand no -pady 0 -fill x/);
 
   $cw->{hlist} = my $hlist = 
     $cw->Scrolled('Listbox',
@@ -84,7 +84,7 @@ sub Populate {
 		    -relief => 'raised',
 		    -bd => 2,
 		    -anchor => 'w')
-      ->pack(qw /-side top -expand yes -pady 0 -fill x/);
+      ->pack(qw /-side top -expand no -pady 0 -fill x/);
 
 
   $cw->Advertise(filelist => $hlist );
