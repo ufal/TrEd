@@ -105,8 +105,8 @@ sub test {
     my $line=$f->getline();
     return $line=~/^\s*<csts[ >]|^<!DOCTYPE csts/;
   } else {
-    my $fh = IOBackend::open_backend($f,"r",$encoding);
-    my $test = $fh && test($fh,$encoding);
+    my $fh = IOBackend::open_backend($f,"r");
+    my $test = $fh && test($fh);
     close_backend($fh);
     return $test;
   }
