@@ -53,7 +53,7 @@ sub open_backend {
   my $cmd = "";
   return undef unless $filename=~m(^ntred://(.*)$);
   $filename=$1;
-  $filename=~s/@/#/;
+  $filename=~s/@/##/;
   if ($filename) {
     if ($mode =~/[w\>]/) {
       $cmd = "| $ntred --upload-file \"$filename\" 2>/dev/null";
