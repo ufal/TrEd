@@ -417,6 +417,21 @@ sub create_widget {
   $search_entry->bind('<KP_Enter>',[sub { my ($w,$self)=@_;
 					  $self->quick_search($w->get);
 					},$self]);
+  $search_entry->bind('<F3>',[sub { my ($w,$self,$fl)=@_;
+				    my $h=$fl->widget();
+				    my $t = $h->infoAnchor();
+				    $h->UpDown('next');
+				    if ($t eq $h->infoAnchor()
+					  or
+					    !$self->quick_search($w->get)) {
+				      ($t) = $h->infoChildren("");
+				      $h->anchorSet($t);
+				      $h->selectionClear();
+				      $h->selectionSet($t);
+				      $h->see($t);
+				      $self->quick_search($w->get);
+				    }
+				  },$self,$lexframelist]);
 
 
   $fsearch_frame->pack(qw/-side top -pady 6 -fill x/);
