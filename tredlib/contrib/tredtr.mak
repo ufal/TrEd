@@ -8174,37 +8174,37 @@ sub delete_node {
 }
 
 
-sub DeleteCurrentNode {
-  my $pAct;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $sDord;			# used as type "string"
+# sub DeleteCurrentNode {
+#   my $pAct;			# used as type "pointer"
+#   my $pParent;			# used as type "pointer"
+#   my $sDord;			# used as type "string"
 
-  $sPasteNow = '';
+#   $sPasteNow = '';
 
-  $pAct = $this;
+#   $pAct = $this;
 
-  $pParent = Parent($pAct);
+#   $pParent = Parent($pAct);
 
-  UnGap();
+#   UnGap();
 
-  if (FirstSon($pAct)) {
+#   if (FirstSon($pAct)) {
 
-    return;
-  }
+#     return;
+#   }
 
-  $sDord = ValNo(0,$pAct->{'dord'});
+#   $sDord = ValNo(0,$pAct->{'dord'});
 
-  $NodeClipboard=CutNode($pAct);
+#   $NodeClipboard=CutNode($pAct);
 
-  $sPar1 = $sDord;
+#   $sPar1 = $sDord;
 
-  $sPar2 = "-1";
+#   $sPar2 = "-1";
 
-  ShiftDords();
+#   ShiftDords();
 
-  $this = $pParent;
+#   $this = $pParent;
 
-}
+# }
 
 
 #bind cut_paste_all to Ctrl+I menu Cut a paste na vsechny uzly podle struktury. (Treba spustit vicekrat).
