@@ -217,7 +217,7 @@ sub Union {
     }
     push @c,$s;
   }
-  return join '|',@c;
+  return join('|',@c);
 }
 
 sub Interjection {

@@ -2,7 +2,7 @@ package Fslib;
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-03-19 17:23:15 pajas>
+# Time-stamp: <2001-03-26 15:30:02 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -37,7 +37,7 @@ $FSTestListValidity=0;
 
 sub NewNode ($) {
   my $node = shift;
-  
+ 
   $node->{$firstson}=0;
   $node->{$lbrother}=0;
   $node->{$rbrother}=0;
@@ -955,8 +955,8 @@ sub isHidden {
   # Tests if given FSNode node is hidden or not
   # Returns the ancesor that hides it or undef
   my ($self,$node)=@_;
-  return unless (ref($self) and ref($node));
-  $node=$node->parent while ($node and ($node->{$self->hide} ne 'hide'));
+  return unless ref($self) and ref($node);
+  $node=$node->parent while (ref($node) and ($node->{$self->hide} ne 'hide'));
   return ($node ? $node : undef);
 }
 
@@ -1568,7 +1568,7 @@ sub changePatterns {
 
 =item tail
 
-Return the unparsed tail of the FS file (i.e. Graph's embedded macros). 
+Return the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
 =cut
 
@@ -1581,7 +1581,7 @@ sub tail {
 
 =item tail
 
-Modify the unparsed tail of the FS file (i.e. Graph's embedded macros). 
+Modify the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
 =cut
 
@@ -1790,7 +1790,7 @@ of the trees (via B<Cut>, B<Paste> and B<DeleteTree> functions or "directly").
 =head2 USAGE
 
 There are many ways to benefit from this package, I note here the most
-typical one. 
+typical one.
 Assume, you want to read the .fs file from the STDIN (or whatever),
 then make some changes either to the structure of the trees or to the
 values of the attributes (or both) and write it again. (Maybe you
@@ -1934,8 +1934,8 @@ is 0 (no check is performed).
 
  Returns:
    A hash, having fs-attribute names as keys
-   and strings containing characters identifying 
-   types as corresponding values   
+   and strings containing characters identifying
+   types as corresponding values
    The characters may be some of following
    (as given by the .fs format):
 
@@ -1955,7 +1955,7 @@ is 0 (no check is performed).
 
 =item ReadTree (FILE)
 
- Params: 
+ Params:
 
    FILE - file handle, like STDIN
 
@@ -1967,10 +1967,10 @@ is 0 (no check is performed).
 
 =item GetTree ($tree,$aref,$href)
 
- Params: 
+ Params:
 
    $tree - the source form of a tree with concatenated lines
-   $aref - a reference to an array of attributes in their 
+   $aref - a reference to an array of attributes in their
            positional order (see ReadAttributes)
    $href - a reference to a hash, containing attributes as keys
            and corresponding type strigs as values
@@ -1978,14 +1978,14 @@ is 0 (no check is performed).
  Returns:
 
    A reference to a tree hash-structure described below.
-   
+
 
 =item PrintNode ($node,$aref,$href)
 
- Params: 
+ Params:
 
    $node - a reference to a tree hash-structure
-   $aref - a reference to an array of attributes in their 
+   $aref - a reference to an array of attributes in their
            positional order (see ReadAttributes)
    $href - a reference to a hash, containing attributes as keys
            and corresponding type strigs as values
@@ -1995,33 +1995,33 @@ is 0 (no check is performed).
 
  Descrption:
 
-   Prints the node structure referenced by $node 
+   Prints the node structure referenced by $node
    to STDOUT in a source format
 
 
 =item PrintTree ($node,$aref,$href)
 
- Params: 
+ Params:
 
    $node - a reference to a tree hash-structure
-   $aref - a reference to an array of attributes in their 
+   $aref - a reference to an array of attributes in their
            positional order (see ReadAttributes)
    $href - a reference to a hash, containing attributes as keys
            and corresponding type strigs as values
- 
+
  Returns:
 
    Unknown.
 
  Descrption:
 
-   Prints the tree having its root-node referenced by $node 
+   Prints the tree having its root-node referenced by $node
    to STDOUT in a source format
 
 
 =item Parent($node), FirstSon($node), LBrother($node), RBrother($node)
 
- Params: 
+ Params:
 
    $node - a reference to a tree hash-structure
 
@@ -2033,7 +2033,7 @@ is 0 (no check is performed).
 
 =item Next($node,[$top]), Prev($node,[$top])
 
- Params: 
+ Params:
 
    $node - a reference to a tree hash-structure
    $top  - a reference to a tree hash-structure, containing
@@ -2041,7 +2041,7 @@ is 0 (no check is performed).
 
  Return:
 
-   Reference to the next or previous node of $node on 
+   Reference to the next or previous node of $node on
    the backtracking way along the tree having its root in $top.
    The $top parameter is NOT obligatory and may be omitted.
    Return zero, if $top of root of the tree reached.
@@ -2049,14 +2049,14 @@ is 0 (no check is performed).
 
 =item Cut($node)
 
- Params: 
+ Params:
 
    $node - a reference to a node
 
   Description:
 
    Cuts (disconnets) $node from its parent and brothers
- 
+
   Returns:
 
    $node
@@ -2064,7 +2064,7 @@ is 0 (no check is performed).
 
 =item Paste($node,$newparent,$href)
 
- Params: 
+ Params:
 
    $node      - a reference to a (cutted or new) node
    $newparent - a reference to the new parent node
@@ -2075,7 +2075,7 @@ is 0 (no check is performed).
    connetcs $node to $newparent and links it
    with its new brothers, placing it to position
    corresponding to its numerical-argument value
-   obtained via call to an Ord function.  
+   obtained via call to an Ord function.
 
  Returns $node
 
@@ -2083,7 +2083,7 @@ is 0 (no check is performed).
 
  Exported with EXPORT_OK
 
- Params: 
+ Params:
 
    $node    - a reference to a tree hash-structure
    $href    - a reference to a hash, containing attributes as keys
@@ -2098,7 +2098,7 @@ is 0 (no check is performed).
 
  Exported with EXPORT_OK
 
- Params: 
+ Params:
 
    $href    - a reference to a hash, containing attributes as keys
               and corresponding type strigs as values
@@ -2128,7 +2128,7 @@ is 0 (no check is performed).
 
  Exported with EXPORT_OK
 
- Params: 
+ Params:
 
    $node - a reference to a tree hash-structure
    $href - a reference to a hash, containing attributes as keys
@@ -2143,7 +2143,7 @@ is 0 (no check is performed).
 
  Exported with EXPORT_OK
 
- Params: 
+ Params:
 
    $node - a reference to a tree hash-structure
    $href - a reference to a hash, containing attributes as keys
@@ -2158,7 +2158,7 @@ is 0 (no check is performed).
 
  Exported with EXPORT_OK
 
- Params: 
+ Params:
 
    $node - a reference to a tree hash-structure
    $href - a reference to a hash, containing attributes as keys
@@ -2173,7 +2173,7 @@ is 0 (no check is performed).
 
  Exported with EXPORT_OK
 
- Params: 
+ Params:
 
    $node - a reference to a tree hash-structure
    $href - a reference to a hash, containing attributes as keys
@@ -2215,7 +2215,7 @@ is 0 (no check is performed).
 
 =item Set($node,$attribute,$value)
 
- Params: 
+ Params:
 
    $node      - a reference to a node
    $attribute - attribute
@@ -2228,7 +2228,7 @@ is 0 (no check is performed).
 
 =item Get($node,$attribute)
 
- Params: 
+ Params:
 
    $node      - a reference to a node
    $attribute - attribute
@@ -2239,7 +2239,7 @@ is 0 (no check is performed).
 
 =item DrawTree($node,@attrs)
 
- Params: 
+ Params:
 
    $node      - a reference to a node
    $attrs     - list of attributes to display
@@ -2256,8 +2256,8 @@ is 0 (no check is performed).
  Description:
 
  TNS is a normal hash, whose keys are names of attribute
- and whose values are strings, values of the correspoding 
- attributes (as they are given in the FS format source). 
+ and whose values are strings, values of the correspoding
+ attributes (as they are given in the FS format source).
 
  In addtion, few other keys and values are added to each node:
 
