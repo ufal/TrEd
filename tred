@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-25 16:33:55 pajas>";
+$timestamp="Time-stamp: <2001-04-26 18:17:13 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -552,7 +552,7 @@ sub setConfig {
   $macroDebug=(exists $confs->{macrodebug}) ? $confs->{macrodebug} : 0;
   $tredDebug=(exists $confs->{treddebug}) ? $confs->{treddebug} : 0;
   
-  $defaultTemplateMatchMethod=(exists $confs->{searchmethod}) ? $confs->{searchmethod} : 'E';
+  $defaultTemplateMatchMethod=(exists $confs->{searchmethod}) ? $confs->{searchmethod} : 'Exhaustive regular expression';
   $defaultMacroListOrder=(exists $confs->{macrolistorder}) ? $confs->{macrolistorder} : 'M';
 
   $defCWidth=(exists $confs->{canvaswidth}) ? $confs->{canvaswidth} : '18c';
@@ -2840,7 +2840,7 @@ sub startMain {
 			    -borderwidth => $buttonBorderWidth,
 			    -command => [sub { viewSentencesDialog(@_) },\%group])
       ->pack(qw/-side right -padx 1 -anchor n/);
-  $group{'vLineFrame'}->pack(qw/-fill x -expand yes/);
+  $group{'vLineFrame'}->pack(qw/-fill x -expand no/);
   $group{'canvas'}->pack(qw/-expand yes -fill both/);
   addBindTags($group{'canvas'},'my');
   #  $group{'contextLed'}->pack(-side => 'bottom');
@@ -3475,7 +3475,7 @@ sub viewSentencesDialog {
   my $t = $d->
     Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
                      -spacing3 6 -wrap word -background white
-		     -height 20 -scrollbars e/);
+		     -height 20 -scrollbars e/,-font =>$font);
   $t->pack(qw/-expand yes -fill both/);
   my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
 
