@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-01-03 14:41:09 pajas>
+## Time-stamp: <2002-01-15 09:45:29 pajas>
 
 package TredMacro;
 
@@ -57,7 +57,7 @@ sub import {
     } elsif ($type eq '*') {
       *{"${caller}::$k"} = \*{"${pkg}::$k"};
     } else {
-      do { warn("Can't export symbol: $type$sym") };
+#      do { warn("Can't export symbol: $type $pkg $k") };
     }
   }
 };
