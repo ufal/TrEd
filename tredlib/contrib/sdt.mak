@@ -5,7 +5,7 @@ package Annalytic;
 
 # ---- macros added by Zdenek Zabokrtsky for SDT purposes ----
 
-#bind parse_slovene_sentence to Ctrl+F9
+#bind parse_slovene_sentence to Ctrl+F2
 require SDT::Slovene_parser;
 sub parse_slovene_sentence {
   Slovene_parser::run_parser($root,$grp);
