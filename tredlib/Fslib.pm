@@ -15,7 +15,7 @@ package Fslib;
 use strict;
 
 use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $field_re $attr_name_re
-            $parent $firstson $lbrother $rbrother $special
+            $parent $firstson $lbrother $rbrother $type
             $SpecialTypes $FSError $Debug );
 
 use Exporter;
@@ -36,6 +36,7 @@ $parent="_P_";
 $firstson="_S_";
 $lbrother="_L_";
 $rbrother="_R_";
+$type="_T_";
 $SpecialTypes='WNVH';
 $FSError=0;
 
@@ -282,8 +283,8 @@ sub new {
   my $self = shift;
   my $class = ref($self) || $self;
   my $size = shift;
-  my $new = {};
-  keys (%$new) = $size + 4 if defined($size);
+  my $new = {@_};
+  keys (%$new) = $size + 5 if defined($size);
   bless $new, $class;
   $new->initialize();
   return $new;
@@ -325,6 +326,20 @@ Return node's parent node (C<undef> if none).
 sub parent {
   my ($self) = @_;
   return ref($self) ? Fslib::Parent($self) : undef;
+}
+
+=pod
+
+=item type
+
+Return node's type node (C<undef> if none).
+
+=cut
+
+
+sub type {
+  my ($self) = @_;
+  return ref($self) ? $self->{$Fslib::type} : undef;
 }
 
 =item root
@@ -398,6 +413,32 @@ Return node's first dependent node (C<undef> if none).
 sub firstson {
   my $self = shift;
   return ref($self) ? Fslib::FirstSon($self) : undef;
+}
+
+
+sub set_parent ($$) {
+  my ($node,$p) = @_;
+  $node->{$Fslib::parent}= ref($p) ? $p : 0;
+}
+
+sub set_lbrother ($$) {
+  my ($node,$p) = @_;
+  $node->{$Fslib::lbrother}= ref($p) ? $p : 0;
+}
+
+sub set_rbrother ($$) {
+  my ($node,$p) = @_;
+  $node->{$Fslib::rbrother}= ref($p) ? $p : 0;
+}
+
+sub set_firstson ($$) {
+  my ($node,$p) = @_;
+  $node->{$Fslib::firstson}=ref($p) ? $p : 0;
+}
+
+sub set_type ($$) {
+  my ($node,$type) = @_;
+  $node->{$Fslib::type}=$type;
 }
 
 =pod
@@ -700,7 +741,7 @@ sub visible_children {
     my $hid=$fsformat->hide;
     my $child=$self->firstson;
     while ($child) {
-      push @children, $child unless $child->getAttribute($hid) eq 'hide';
+      push @children, $child if $child->getAttribute($hid) eq '';
       $child=$child->rbrother;
     }
   }
@@ -1098,7 +1139,7 @@ sub isHidden {
   return unless ref($self) and ref($node);
   my $hid=$self->specials->{H};
 
-  while (ref($node) && ($node->{$hid} ne 'hide')) {
+  while (ref($node) && ($node->{$hid} eq '')) {
     $node=$node->parent;
   }
   return ($node ? $node : undef);
@@ -1692,6 +1733,13 @@ sub readFile {
       last;
     }
     print STDERR "fail\n" if $Fslib::Debug;
+    eval {
+      no strict 'refs';
+      print STDERR "TEST",$backend->can('test'),"\n";
+      print STDERR "READ",$backend->can('read'),"\n";
+      print STDERR "OPEN",$backend->can('open_backend'),"\n";
+      print STDERR "REAL_TEST($file): ",&{"${backend}::test"}($file,$self->encoding),"\n";
+    } if $Fslib::Debug;
     print STDERR "$@\n" if $@;
   }
   if ($url ne $file and $remove_file) {
@@ -2844,10 +2892,12 @@ sub new {
   require XML::Simple;
   bless
     XML::Simple::XMLin($string,
-	  ForceArray=>[ 'member', 'attribute', 'value', 'reference' ],
-	  KeyAttr => { "member" => "name",
-		       "attribute" =>"name",
-		       "type" => "name"
+	  ForceArray=>[ 'member', 'element', 'attribute', 'value', 'reference' ],
+	  KeyAttr => { "member"    => "-name",
+		       "element"   => "-name",
+		       "attribute" => "-name",
+		       "element"   => "-name",
+		       "type"      => "-name"
 		      },
 	  GroupTags => { "choice" => "value" }
 	 ), $class;
@@ -2864,11 +2914,16 @@ sub readFrom {
   $self->new($slurp);
 }
 
-sub node_type {
+sub find_role {
+  my ($self,$type,$role)=@_;
+  return() unless UNIVERSAL::isa($type,'HASH');
+  return (($type->{role} eq $role ? $self->resolve_type($type) : ()),  map { $self->find_role($_,$role) } grep { UNIVERSAL::isa($_,'HASH') } values %$type);
+}
+
+sub node_types {
   my ($self) = @_;
-  for (keys %{$self->{type}}) {
-    return $self->{type}{$_} if $self->{type}{$_}{role} eq '#NODE';
-  }
+  my @result;
+  return $self->find_role($self->{type},'#NODE');
 }
 
 sub resolve_type {
@@ -2882,15 +2937,80 @@ sub resolve_type {
   }
 }
 
-sub find_type {
+sub type {
+  my ($self,$type)=@_;
+  return Fslib::Type->new($self,$type);
+}
+
+
+# emulate FSFormat->attributes to some extent
+
+sub attributes {
+  my ($self,@types) = @_;
+  # find node type
+
+  unless (@types) {
+    @types = $self->node_types;
+  }
+  my @result;
+  foreach my $type (@types) {
+    $type = $self->resolve_type($type);
+    if (ref($type) and $type->{role} eq '#CHILDNODES') {
+      return ();
+    }
+    while (ref($type) and ($type->{list} or $type->{alt})) {
+      $type = $self->resolve_type($type->{list} || $type->{alt})
+    }
+    if (ref($type) and (exists($type->{member}) or exists($type->{structure}))) {
+      my $members = exists($type->{member}) ? $type->{member} : $type->{structure}{member};
+      for my $member (sort (keys %{$members})) {
+	next if ($members->{$member} and
+		   $members->{$member}{role} eq '#CHILDNODES');
+	my @subattrs = $self->attributes($members->{$member});
+	my $name = $member;
+	if ($members->{$member} and $members->{$member}{role} eq '#KNIT') {
+	  $name=~s/\.rf$//;
+	}
+	if (@subattrs) {
+	  push @result, map { $name."/".$_ } @subattrs;
+	} else {
+	  push @result,$name;
+	}
+      }
+    }
+  }
+  print @result,"\n";
+  my %uniq;
+  return grep { !$uniq{$_} && ($uniq{$_}=1) } @result;
+}
+
+package Fslib::Type;
+
+sub new {
+  my ($class, $schema, $type)=@_;
+  return bless [$schema,$type], $class;
+}
+
+sub schema {
+  my ($self)=@_;
+  return $self->[0];
+}
+
+sub type_struct {
+  my ($self)=@_;
+  return $self->[1];
+}
+
+sub find {
   my ($self, $path) = @_;
   # find node type
-  my $type = $self->node_type;
+  my $type = $self->type_struct;
+  my $schema = $self->schema;
   if ($path eq '') {
     return $type;
   } else {
     for my $step (split /\//, $path) {
-      $type = $self->resolve_type($type);
+      $type = $schema->resolve_type($type);
       if (ref($type)) {
 	if ($type->{knit}) {
 	  $type = $type->{knit};
@@ -2902,8 +3022,10 @@ sub find_type {
 	  } else {
 	    redo;
 	  }
-	} elsif ($type->{member} or $type->{attribute}) {
-	  $type = $type->{attribute}{$step} || $type->{member}{$step};
+	} elsif ($type->{structure}) {
+	  $type = $type->{structure}{member}{$step};
+	} elsif ($type->{sequence}) {
+	  $type = $type->{sequence}{element}{$step};
 	} else {
 	  return undef;
 	}
@@ -2912,53 +3034,9 @@ sub find_type {
 	return undef; # ERROR
       }
     }
-    return $self->resolve_type($type);
+    return $schema->resolve_type($type);
   }
 }
-
-
-# emulate FSFormat->attributes to some extent
-
-sub attributes {
-  my ($self,$type) = @_;
-  # find node type
-  if ($type) {
-    $type = $self->resolve_type($type);
-  } else {
-    $type = $self->node_type;
-  }
-  if (ref($type) and $type->{role} eq '#CHILDNODES') {
-    return ();
-  }
-  while (ref($type) and ($type->{list} or $type->{alt})) {
-    use Data::Dumper;
-    $type = $self->resolve_type($type->{list} || $type->{alt})
-  }
-  
-  if (ref($type) and ($type->{member} or $type->{attribute})) {
-    my @result;
-    for my $member (sort (keys %{$type->{attribute}},
-			  keys %{$type->{member}})) {
-      next if ($type->{member}{$member} and
-	       $type->{member}{$member}{role} eq '#CHILDNODES');
-      my @subattrs = $self->attributes($type->{attribute}{$member} ||
-				       $type->{member}{$member});
-      my $name = $member;
-      if ($type->{member}{$member} and $type->{member}{$member}{role} eq '#KNIT') {
-	$name=~s/\.rf$//;
-      }
-      if (@subattrs) {
-	push @result, map { $name."/".$_ } @subattrs;
-      } else {
-	push @result,$name;
-      }
-    }
-    return @result;
-  } else {
-    return ();
-  }
-}
-
 
 1;
 
