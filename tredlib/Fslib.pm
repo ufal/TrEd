@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-10-26 19:42:01 pajas>
+# Time-stamp: <2001-11-06 18:31:54 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -2119,14 +2119,13 @@ the FS->sentord or FS->order if FS->sentord attribute is not defined.
 =cut
 
 sub value_line {
-  my ($fsfile,$tree_no)=@_;
+  my ($fsfile,$tree_no,$no_numbers)=@_;
   return unless $fsfile;
 
   my $node=$fsfile->treeList->[$tree_no];
   my @sent=();
 
   my $attr=$fsfile->FS->sentord();
-  my $val=$fsfile->FS->value();
   $attr=$fsfile->FS->order() unless (defined($attr));
   while ($node) {
     push @sent,$node unless ($node->getAttribute($val) eq '???' or
@@ -2134,11 +2133,9 @@ sub value_line {
     $node=$node->following();
   }
   @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
-
-
-  my $line =
-    ($tree_no+1)."/".($fsfile->lastTreeNo()+1).": ".
-    join(" ", map { $_->getAttribute($val) } @sent);
+  $attr=$fsfile->FS->value();
+  my $line = $no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ";
+  $line.=join(" ", map { $_->getAttribute($attr) } @sent);
   undef @sent;
   return $line;
 }
