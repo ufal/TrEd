@@ -325,6 +325,12 @@ sub set_config {
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
 
+  if ($confs->{perllib}) {
+    foreach my $perllib (split/\:/,$confs->{perllib}) {
+      $perllib = tilde_expand($perllib);
+      unshift @INC,$perllib unless (grep($_ eq $perllib, @INC));
+    }
+  }
   $libDir=tilde_expand($confs->{libdir})
     if (exists $confs->{libdir});
   unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
