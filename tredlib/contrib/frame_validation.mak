@@ -127,6 +127,8 @@ sub has_auxR {
 #	      get_aidrefs_nodes($aids,$node))
 	  ) ? 1:0; # STOP
 	} =>
+    [[ '(.$2<s>)', 'ACT(.1)' ] => 
+       ['-ACT(.1)', '+ACT(.4)' ]],
     # frame transformation rules:
     # frame test
     [[ 'ACT(.1)', 'ADDR(.3)' ] =>
@@ -213,8 +215,10 @@ sub has_auxR {
    [# verb test: verb treated as passive due to "se".AuxR
     sub {
       my ($node,$aids) = @_;
-      return (first { $_->{AID} ne "" and $_->{tag}=~/^V/ and has_auxR($_)
-		    } get_aidrefs_nodes($aids,$node)) ? 1: 0;
+      return (first { $_->{AID} ne "" and $_->{tag}=~/^V/ and has_auxR($_) } 
+		(get_aidrefs_nodes($aids,$node),
+		 grep { $_->{lemma} eq "dát" and $_->{tag}=~/V.........N/ } PDT::GetFather_TR($node))
+		   ) ? 1: 0;
     }
     # used to be ACT(!), but some abstract constructions with se.AuxR feel like ACT(.7)
     =>
@@ -385,7 +389,7 @@ sub same_clause_below {
 sub is_direct_subclause {
   my ($node)=@_;
   # |co¾-1
-  my $obj_pronoun=qr/^(?:co-1|co-4|jak-3|jaký|kdo|kudy|kolik|proè|kde|kde¾e|jak-2|co-4|kdy|kam|který|nakolik|odkud|èí)$/;
+  my $obj_pronoun=qr/^(?:co-1|co-3|jak-3|jaký|kdo|kudy|kolik|proè|kde|kde¾e|jak-2|co-4|kdy|kam|který|nakolik|odkud|èí)(_|$)/;
   # TODO: try finite verb
   if ($node->{__no_fake}) {
     $node=$node->{__no_fake};
@@ -465,9 +469,22 @@ sub check_node_case {
   return 1 if ($node->{lemma} eq 'mezi-1' and
 		 scalar(get_children_include_auxcp($node)) > 1 and
 		 !first { !is_numeric_expression($_) } get_children_include_auxcp($node));
-  print "   CASE: Checking po jablicku construct\n"  if $V_verbose;
+  print "   CASE: Checking 'po jablicku' construct\n"  if $V_verbose;
   return 1 if ($node->{lemma} eq 'po-1' and
-		 !first { $_->{tag}!=/^....6/ } get_children_include_auxcp($node));
+		 !first { $_->{tag}!~/^....6/ } get_children_include_auxcp($node));
+  print "   CASE: Checking 'po jablicku' construct - hack 2\n"  if $V_verbose;
+  return 1 if ($node->{tag} =~ /^....6/ and
+	       with_AR { $node->parent and $node->parent->{lemma} eq 'po-1' } );
+  print "   CASE: Checking actant of a copied 'CPR' with hodne\n"  if $V_verbose;
+  return 1 if ($node->{tag} =~ /^....2/ and
+	       with_AR { $node->parent and
+			 $node->parent->{lemma} eq 'ne¾-2' and
+			 $node->parent->parent->{lemma} eq 'hodnì' and
+			   (1<grep { $_->{afun}!~/^AuxY/ } $node->parent->children) 
+		       } );
+
+
+
   print "   CASE: All checks failed\n"  if $V_verbose;
   return 0;
 }
@@ -640,7 +657,7 @@ sub match_node {
   } elsif (#!$no_case and  # BYT_CHANGE
 	   $case ne '') { # assume $tag =~ /^[CNP]/
     unless ($kdo or $node->{tag}=~/^[CNFPX]/ or (!$flags->{strict_adjectives} and $node->{tag}=~/^A/) or
-	    ($node->{lemma}=~ /(ano|ne|pro-1|proti-1)/ and $node->{afun}=~/^(ExD|Adv|Obj|Sb)_.*$/) or
+	    ($node->{lemma}=~ /^(ano|ne|pro-1|proti-1)$/ and $node->{afun}=~/^(ExD|Adv|Obj|Sb)(_|$)/) or
 	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|nemálo-1|málo-3|dost|do-1|mezi-1|kolem-1|po-1|okolo-1|pøes-1|na-1|pod-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
       return 0;
@@ -1519,8 +1536,29 @@ sub validate_frame_no_transform {
 	      $c->{trlemma} ne "&Rcp;" and
 		!first { $_->{AID} ne "" } $c->visible_descendants(FS())
 	       ) {
-	print "0X Possibly redundant added node: ",get_func($c)."\t";
-	Position($c);
+
+	# this is brutal
+	my $coref = 0;
+      TREE:
+	foreach my $tree (GetTrees()) {
+	  my $n = $tree;
+	  while ($n) {
+	    if (first { $_->[0] eq $c->{TID} and $_->[1] =~ /^(grammatical|textual)$/ }
+		  ListRegroupElements([split(/\t/,$n->{coref})],
+				      [split(/\t/,$n->{cortype})])) {
+	      $coref = 1;
+	      last TREE;
+	    }
+	    $n=$n->following_visible(FS());
+	  }
+	}
+	unless ($coref) {
+	  print "0X Possibly redundant added node: ",get_func($c)."\t";
+	  Position($c);
+	} else {
+	  print "0Z Possibly redundant added node, but coreference leads to it: ",get_func($c)."\t";
+	  Position($c);
+	}
       } elsif ($c->{trlemma} eq '&Rcp;' and !$oblig{get_func($c)} and
 		 !first { $_->{tag}=~/^V/ and first { $_->{trlemma} eq "se" } $_->children } get_aidrefs_nodes($aids,$node)
 		) {
