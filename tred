@@ -863,6 +863,7 @@ sub nextOrPrevFile {
       last if ($response eq "Cancel");
       $quiet=1 if ($response eq "Skip to next correct file");
     }
+    $pos+=$delta;
     $result=gotoFile($win,$pos,$no_recent);
   }
   $grp->{noOpenFileError}=$op;
