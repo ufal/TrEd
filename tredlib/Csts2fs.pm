@@ -254,7 +254,10 @@ my %att = (
 	   'd type' => [\&to_node_attr,'|','formtype'],
 	   'w kind' => [\&to_next_node_attr,'|','origfkind'],
 	   't w'=> [\&to_node_attr,'|','wt'],
-	   'fadd del' => [\&to_node_attr,'|','del'],
+	   'fadd del' => [sub {
+			    my ($s,$data)=@_;
+			    &to_node_attr($s,uc($data),'|','del')
+			  }],
 	   'TRl quot' => [\&assign_quot_dsp],
 	   'cors rel' => [\&to_node_attr,'|','corsrel']
 	  );
@@ -494,7 +497,7 @@ my %pcdata = (
   'func' => '???',
   'gram' => '???',
   'memberof' => '???',
-  'del' => '???',
+  'del' => 'NIL',
   'quoted' => '???',
   'dsp' => '???',
   'corsnt' => '???',
