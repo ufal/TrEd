@@ -1587,9 +1587,10 @@ sub addNewFilelist {
 
 sub deleteFilelist {
   my ($grp,$fl)=@_;
+  return unless ref($fl);
   print "Deleting filelist $fl,".$fl->name()."\n" if $tredDebug;
-  return if (ref($fl) or $fl->name eq 'Default' or 
-		 $fl->name eq 'Bookmarks');
+  return if ($fl->name eq 'Default' or
+	     $fl->name eq 'Bookmarks');
   print "Allowed\n" if $tredDebug;
   @filelists=grep($_ ne $fl, @filelists);
   print join "\n","Filelists:",@filelists,"" if $tredDebug;
