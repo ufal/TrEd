@@ -34,12 +34,17 @@ sub hex_to_block {
 
 sub block_xor {
   my ($b1, $b2) = @_;
+  # b1 is key
+  # b2 is data
+  # b1 XORs cyclically b2
   my @b1 = unpack "C".length($b1), $b1;
   my @b2 = unpack "C".length($b1), $b2;
 
   my @result;
-  while (@b1) {
-    push @result, (shift(@b1)^shift(@b2));
+  my $i = 0;
+  while (@b2) {
+    push @result, ($b1[$i]^shift(@b2));
+    $i = ($i+1) % scalar(@b1); # cycle 
   }
   return pack "C".scalar(@result), @result;
 }
