@@ -30,26 +30,30 @@
 #
 # You may also use all functions defined in default macro file tred.def
 # as well as any function from Fslib (see Fslib documentation).
-
 my @configFileSearchList=($ENV{HOME}.'/.tredrc',
 			  (exists $ENV{TREDHOME}) ? $ENV{TREDHOME}.'/tredrc' : (),
 			  dirname($0).'tredrc',
 			  dirname($0).'../lib/tredlib/tredrc',
+			  dirname($0).'tredlib/tredrc',
+			  dirname($0).'../lib/tred/tredrc',
 			  '/usr/X11R6/lib/X11/app-defaults');
-my $libDir;
 
 # other configuration should be given in that file
+
+my $libDir;
+
 
 # Default values of $libDir used to search for macro-file (tred.mac)
 # and default-macro file (tred.def) are specified here. They may be
 # overriden by value of LibDir in tred resource file (tredrc or ~/.tredrc - see above).
-
 if (exists $ENV{TREDHOME}) {
   $libDir=$ENV{TREDHOME};
-} else {
-  print "Trying ".dirname($0).'tredlib',"\n";
-  $libDir=(-d dirname($0).'tredlib') ?
-    dirname($0).'tredlib': dirname($0).'../lib/tredlib';
+} elsif (-d dirname($0).'tredlib') {
+  $libDir=dirname($0).'tredlib';
+} elsif (-d dirname($0).'../lib/tredlib') {
+  $libDir=dirname($0).'../lib/tredlib';
+} elsif (-d dirname($0).'../lib/tredlib') {
+  $libDir=dirname($0).'../lib/tred';
 }
 
 $macroFile="$libDir/tred.mac";
