@@ -499,7 +499,7 @@ identifier of the node of the coreference relation is stored in its
 C<ref> attribute and type of the relation in its C<type> attribute.
 If the relation target is other entity than a node (i.e. it is
 represented by C<corlemma> attribute in FS), the C<coref> element has
-no ref attribute but contains the representation of the entity as
+no C<ref> attribute but contains the representation of the entity as
 PCDATA.
 
 =cut
