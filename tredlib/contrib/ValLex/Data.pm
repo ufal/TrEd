@@ -76,7 +76,7 @@ sub file {
 
 sub user {
   my ($self)=@_;
-  return undef unless ref($_[0]);
+  return undef unless ref($self);
   return $self->doc()->getDocumentElement->getAttribute("owner");
 }
 
@@ -86,8 +86,9 @@ sub set_file {
 }
 
 sub set_user {
-  return undef unless ref($_[0]);
-  return $_[0]->[3]=$_[1];
+  my ($self,$user)=@_;
+  return undef unless ref($self);
+  return $self->doc()->getDocumentElement->setAttribute("owner",$user);
 }
 
 sub set_doc {
@@ -176,7 +177,7 @@ sub getSuperFrameList {
   my ($self,$word)=@_;
   use Tie::IxHash;
   tie my %super, 'Tie::IxHash';
-
+  return unless $word;
   foreach my $frame ($word->getDescendantElementsByTagName("frame")) {
     my $base="";
     my @element_nodes=$frame->getDescendantElementsByTagName("element");
