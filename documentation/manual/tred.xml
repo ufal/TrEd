@@ -5482,7 +5482,6 @@ sub MakeSentence {
 		The second argument is the newly selected current stylesheet.
 	      </para></entry>
 	    </row>
-
 	    <row id="about_file_hook">
 	      <entry><literal moreinfo="none">about_file_hook</literal></entry>
 	      <entry>no</entry>
