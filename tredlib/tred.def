@@ -85,7 +85,7 @@ sub SwitchContext {
 sub GotoTree {
   my $to=shift()-1;
   $_NoSuchTree=($to != main::max(0,min($to,$#trees)));
-  my $result=main::gotoTree($to,$grp);
+  my $result=main::gotoTree($grp,$to);
   $this=$root;
   return $result;
 }
@@ -104,8 +104,8 @@ sub PrevTree {
   return $result;
 }
 
-sub GetOrd { return Fslib::Ord(shift,\%attribs); }
-sub PasteNode { my $node=shift; Fslib::Paste($node,shift,\%attribs); return $node; }
+sub GetOrd { return shift->{$grp->{FSFile}->FS->order}; }
+sub PasteNode { my $node=shift; Fslib::Paste($node,shift,$grp->{FSFile}->FS->defs); return $node; }
 sub CutNode {
   my $node=shift;
   my $parent=Fslib::Parent($node);
@@ -159,8 +159,7 @@ sub PlainNewSon {
 ## Adds new son to a given parent
   my $parent=shift;
   return unless ($parent);
-  my $nd={};
-  NewNode($nd); # blessing NewNode
+  my $nd=FSNode->new();
   PasteNode($nd,$parent);
   return $this=$nd;
 }
@@ -196,7 +195,7 @@ sub ValNo {
 }
 
 sub AtrNo {
-  return @atord[shift];
+  return $grp->{FSFile}->FS->atno(shift);
 }
 
 sub Union {
@@ -294,13 +293,11 @@ sub NewRBrother {
 ## Adds new RBrother to current node and shifts
 ## ords of the other nodes appropriately
   return unless ($this and Parent($this));
-
-  my $nd={};
-  NewNode($nd); # blessing NewNode
-  Set($nd,AOrd(\%attribs),Ord($this,\%attribs)+1);
+  my $nd=FSNode->new();
+  $nd->{$grp->{FSFile}->FS->order}=$this->{$grp->{FSFile}->FS->order}+1;
   my $node=$root;
   while ($node) {
-    $node->{AOrd(\%attribs)}++ if (Ord($node,\%attribs)>Ord($this,\%attribs));
+    $node->{$grp->{FSFile}->FS->order}++ if ($node->{$grp->{FSFile}->FS->order}>$this->{$grp->{FSFile}->FS->order});
     $node=Next($node);
   }
   PasteNode($nd,Parent($this));
@@ -311,13 +308,12 @@ sub NewSon {
 ## Adds new son to current node and shifts
 ## ords of the other nodes appropriately
   return unless ($this);
+  my $nd=FSNode->new();
+  $nd->{$grp->{FSFile}->FS->order}=$this->{$grp->{FSFile}->FS->order}+1;
 
-  my $nd={};
-  NewNode($nd); # blessing NewNode
-  Set($nd,AOrd(\%attribs),Ord($this,\%attribs)+1);
   my $node=$root;
   while ($node) {
-    $node->{AOrd(\%attribs)}++ if (Ord($node,\%attribs)>Ord($this,\%attribs));
+    $node->{$grp->{FSFile}->FS->order}++ if ($node->{$grp->{FSFile}->FS->order}>$this->{$grp->{FSFile}->FS->order});
     $node=Next($node);
   }
   PasteNode($nd,$this);
@@ -334,11 +330,11 @@ sub DeleteThisNode {
     return;
   }
   my $parent=Parent($this);
-  my $ord=Ord($this,\%attribs);
+  my $ord=$this->{$grp->{FSFile}->FS->order};
   if (DeleteLeaf($this)) {
     my $node=$root;
     while ($node) {
-      $node->{AOrd(\%attribs)}-- if (Ord($node,\%attribs)>$ord);
+      $node->{$grp->{FSFile}->FS->order}-- if ($node->{$grp->{FSFile}->FS->order}>$ord);
       $node=Next($node);
     }
     $this=$parent;
@@ -347,8 +343,8 @@ sub DeleteThisNode {
 
 sub CopyValues {
   undef %ValuesClipboard;
-  %ValuesClipboard = map { $_ => $this->{$_} } keys(%attribs);
-  delete $ValuesClipboard{AOrd(\%attribs)}; # we do not copy this
+  %ValuesClipboard = map { $_ => $this->{$_} } $grp->{FSFile}->FS->attributes;
+  delete $ValuesClipboard{$grp->{FSFile}->FS->order}; # we do not copy this
   $FileNotSaved=0;
 }
 
@@ -360,19 +356,19 @@ sub PasteValues {
 
 sub NextNode {
   my ($node,$top)=@_;
-  return $node ? main::HNext($node,$top) : undef;
+  return $node ? main::HNext($grp,$node,$top) : undef;
 }
 
 sub PrevNode {
   my ($node,$top)=@_;
-  return $node ? main::HPrev($node,$top) : undef;
+  return $node ? main::HPrev($grp,$node,$top) : undef;
 }
 
 sub NextVisibleNode {
   my ($node,$top)=@_;
   $node=Next($node,$top);
   while ($node) {
-    return $node unless (IsHidden($node));
+    return $node unless ($grp->{FSFile}->FS->isHidden($node));
     $node=Next($node,$top);
   }
   return 0;
@@ -382,10 +378,15 @@ sub PrevVisibleNode {
   my ($node,$top)=@_;
   $node=Prev($node,$top);
   while ($node) {
-    return $node unless (IsHidden($node));
+    return $node unless ($grp->{FSFile}->FS->isHidden($node));
     $node=Prev($node,$top);
   }
   return 0;
+}
+
+sub IsHidden {
+  my ($node)=@_;
+  return $grp->{FSFile}->FS->isHidden($node);
 }
 
 ## Node shifting macros
@@ -416,7 +417,7 @@ sub GetVisibleNodes {
 sub NormalizeOrds {
   my ($nodesref)=@_;
 
-  my $ord=AOrd(\%attribs);
+  my $ord=$grp->{FSFile}->FS->order;
   for (my $i=0;$i<=$#$nodesref;$i++) {
     $nodesref->[$i]->{$ord}=$i;
   }
@@ -427,7 +428,7 @@ sub NormalizeOrds {
 
 sub SortByOrd {
   my ($nodesref)=@_;
-  my $ord=AOrd(\%attribs);
+  my $ord=$grp->{FSFile}->FS->order;
   @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
 }
 
@@ -435,12 +436,12 @@ sub RepasteNode {
   my ($node)=(@_);
   my $parent=Parent($node);
   return unless $parent;
-  Fslib::Paste(Fslib::Cut($node),$parent,\%attribs);
+  Fslib::Paste(Fslib::Cut($node),$parent,$grp->{FSFile}->FS->defs);
 }
 
 sub ShiftNodeRightSkipHidden {
   my ($node)=@_;
-  my $ord=AOrd(\%attribs);
+  my $ord=$grp->{FSFile}->FS->order;
   return unless $node;
   my @all=GetNodes();
   SortByOrd(\@all);
@@ -457,17 +458,17 @@ sub ShiftNodeRightSkipHidden {
   my @vis=GetVisibleNodes();
   SortByOrd(\@vis);
   my $m=Index(\@vis,$node);
-  return undef unless defined($m);
+  return undef unless (defined($m) and $m<$#vis);
   my $x=min(Index(\@all,$vis[$m+1]),$#all);
   for (my $i=$n+1;$i<=$x;$i++) { $all[$i]->{$ord}--; }
   $node->{$ord}=$x;
   my $parent=Parent($node);
-  Fslib::Paste(Fslib::Cut($node),$parent,\%attribs);
+  Fslib::Paste(Fslib::Cut($node),$parent,$grp->{FSFile}->FS->defs);
 }
 
 sub ShiftNodeLeftSkipHidden {
-  my ($node)=@_;
-  my $ord=AOrd(\%attribs);
+  my ($node,$min)=@_;          # min sets the minimum left...
+  my $ord=$grp->{FSFile}->FS->order;     # ... boundary for Ord
   return unless $node;
   my @all=GetNodes();
   SortByOrd(\@all);
@@ -484,7 +485,7 @@ sub ShiftNodeLeftSkipHidden {
   my @vis=GetVisibleNodes();
   SortByOrd(\@vis);
   my $m=Index(\@vis,$node);
-  return undef unless defined($m);
+  return undef unless (defined($m) and !defined($min) || $m>$min);
   my $x=max(Index(\@all,$vis[$m-1]),0);
   for (my $i=$n-1;$i>=$x;$i--) { $all[$i]->{$ord}++; }
   $node->{$ord}=$x;
@@ -493,7 +494,7 @@ sub ShiftNodeLeftSkipHidden {
 
 sub ShiftNodeRight {
   my ($node)=@_;
-  my $ord=AOrd(\%attribs);
+  my $ord=$grp->{FSFile}->FS->order;
   return unless $node;
   my @all=GetNodes();
   SortByOrd(\@all);
@@ -514,7 +515,7 @@ sub ShiftNodeRight {
 
 sub ShiftNodeLeft {
   my ($node)=@_;
-  my $ord=AOrd(\%attribs);
+  my $ord=$grp->{FSFile}->FS->order;
   return unless $node;
   my @all=GetNodes();
   SortByOrd(\@all);
