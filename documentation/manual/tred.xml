@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "/usr/share/xml/docbook/schema/dtd/4.3/docbookx.dtd">
 <article lang="en">
   <articleinfo>
     <title>Tree Editor Manual</title>
@@ -2562,6 +2562,16 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal moreinfo="none">BWPrintNodeColor</literal></term>
+	  <listitem>
+	    <para>Color used to fill nodes when printing in
+	      black-and-white. Defaults to <literal>white</literal>,
+	      which results in nodes with only black outline. 
+	      If set to <literal>black</literal>, nodes are printed
+	      as all-black objects without a visible outline.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal moreinfo="none">TextColor</literal></term>
 	  <listitem>
 	    <para>Color used to display text of normal tree attributes.</para>
@@ -2622,9 +2632,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Background color of a border drawn around the text of
-	      attributes if the <menuchoice moreinfo="none">
+	      labels if the <menuchoice moreinfo="none">
 		<guimenu moreinfo="none">View</guimenu>
-		<guimenuitem moreinfo="none">Draw Boxes</guimenuitem>
+		<guimenuitem moreinfo="none">Draw boxes around edges</guimenuitem>
 	      </menuchoice> item is checked.
 	    </para>
 	  </listitem>
@@ -2634,9 +2644,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Background color of a border drawn around the text of
-	      the active node's attributes if the <menuchoice moreinfo="none">
+	      the active node's labels if the <menuchoice moreinfo="none">
 		<guimenu moreinfo="none">View</guimenu>
-		<guimenuitem moreinfo="none">Draw Boxes</guimenuitem></menuchoice> item is checked.
+		<guimenuitem moreinfo="none">Draw boxes around labels</guimenuitem></menuchoice> item is checked.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -2645,9 +2655,48 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Background color of a border drawn around the text of
-	      a hidden node's attributes if the <menuchoice moreinfo="none">
+	      a hidden node's labels if the <menuchoice moreinfo="none">
 		<guimenu moreinfo="none">View</guimenu>
-		<guimenuitem moreinfo="none">Draw Boxes</guimenuitem></menuchoice> and 
+		<guimenuitem moreinfo="none">Draw boxes around labels</guimenuitem></menuchoice> and 
+	      <menuchoice moreinfo="none">
+		<guimenu moreinfo="none">View</guimenu>
+		<guimenuitem moreinfo="none">Show Hidden
+		</guimenuitem></menuchoice>
+	      items are checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">EdgeBoxColor</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of a border drawn around the text of
+	      edge labels if the <menuchoice moreinfo="none">
+		<guimenu moreinfo="none">View</guimenu>
+		<guimenuitem moreinfo="none">Draw boxes around edge labels</guimenuitem>
+	      </menuchoice> item is checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">EdgeCurrentBoxColor</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of a border drawn around the text of
+	      the edge label of the active node ( if the <menuchoice moreinfo="none">
+		<guimenu moreinfo="none">View</guimenu>
+		<guimenuitem moreinfo="none">Draw boxes around edge labels</guimenuitem></menuchoice> item is checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">EdgeHiddenBoxColor</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of a border drawn around the text of
+	      a hidden node's edge labels if the <menuchoice moreinfo="none">
+		<guimenu moreinfo="none">View</guimenu>
+		<guimenuitem moreinfo="none">Draw boxes around edge labels</guimenuitem></menuchoice> and 
 	      <menuchoice moreinfo="none">
 		<guimenu moreinfo="none">View</guimenu>
 		<guimenuitem moreinfo="none">Show Hidden
@@ -2683,6 +2732,19 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal>LineArrow</literal></term>
+	  <listitem>
+	    <para>One of the values
+	      <quote><literal moreinfo="none">first</literal></quote>,
+	      <quote><literal moreinfo="none">both</literal></quote>,
+	      <quote><literal moreinfo="none">last</literal></quote>,
+	      may be used to make arrows to be drawn by default
+	      on one or both sides of the edge connecting
+	      the given node with its parent.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal moreinfo="none">NodeColor</literal></term>
 	  <listitem>
 	    <para>Color used to fill an ordinary node of the tree.
@@ -2705,11 +2767,44 @@ root# <userinput moreinfo="none">make install</userinput>
 	      is black.</para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">BackgroundImage</literal></term>
+	  <listitem>
+	    <para>This option allows specifying a background image
+	      for the canvas on which trees are displayed. 
+	      At present, only GIF, XBM, XPM, BMP, JPEG, PNG and
+	      PPM/PGM files are supported.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">BackgroundImageX</literal></term>
+	  <listitem>
+	    <para>Horizontal offset of the background image.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">BackgroundImageY</literal></term>
+	  <listitem>
+	    <para>Vertical offset of the background image.
+	    </para>
+	  </listitem>
+	</varlistentry>
       </variablelist>
     </sect2>
     <sect2>
       <title>Other options affecting tree appearence</title>
       <variablelist>
+	<varlistentry id="balancetree">
+	  <term><literal moreinfo="none">BalanceTree</literal></term>
+	  <listitem>
+	    <para>If this option is set to 1, the tree will be
+	      auto-balanced, disregarding a node-ordering
+	      attribute.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="highlightwindowwidth">
 	  <term><literal moreinfo="none">HighlightWindowWidth</literal></term>
 	  <listitem>
@@ -2818,6 +2913,48 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal moreinfo="none">DrawEdgeBoxes</literal></term>
+	  <listitem>
+	    <para>
+	      If this option is set, 
+	      <application moreinfo="none">TrEd</application> starts with the 
+	      <menuchoice moreinfo="none">
+		<guimenu moreinfo="none">View</guimenu>
+		<guimenuitem moreinfo="none">Draw boxes around edge labels</guimenuitem>
+	      </menuchoice> menu item checked.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">EdgeLabelSkipAbove</literal></term>
+	  <listitem>
+	    <para>
+	      Extra space left above every edge label.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">EdgeLabelSkipBelow</literal></term>
+	  <listitem>
+	    <para>
+	      Extra space left below every edge label.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">UseAdditionalEdgeLabelSkip</literal></term>
+	  <listitem>
+	    <para>
+	      This options controls whether the algorighm
+	      computing the tree-layout in TrEd should try to
+	      add a reasonable horizontal skip for the edge labels,
+	      to avoid their overlapping. Note, that
+	      even with this option on, the algorithm cannot
+	      reliably ensure that. Defaults to 1.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal moreinfo="none">HighlightAttributes</literal></term>
 	  <listitem>
 	    <para>
@@ -2867,10 +3004,24 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term>HintWait</term>
 	  <listitem>
 	    <para>
-	      This option controls the length of the time interval
-	      between user points a node with a cursor mouse and to
-	      when <application moreinfo="none">TrEd</application> displayes the
-	      floating hint for the node. The value is to be given in
+	      This option controls time interval
+	      that mouse pointer needs to linger over a node 
+	      before the hint for the node is displayed. 
+	      The value is to be given in
+	      milliseconds.  See <xref linkend="attributes"/> for more
+	      information about defining the content of the hints.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="toolbarhintwait">
+	  <term>ToolbarHintWait</term>
+	  <listitem>
+	    <para>
+	      This option controls time interval
+	      that mouse pointer needs to linger over a TrEd toolbar
+	      button (or other widget with a tool-tip)
+	      before a tool-tip is displayed. 
+	      The value is to be given in
 	      milliseconds.  See <xref linkend="attributes"/> for more
 	      information about defining the content of the hints.
 	    </para>
@@ -3025,6 +3176,44 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal moreinfo="none">HintBackground</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of the hints shown when mouse
+	      lingers over a node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">HintForeground</literal></term>
+	  <listitem>
+	    <para>
+	      Text color of the hints shown when mouse 
+	      lingers over a node.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">ToolbarHintBackground</literal></term>
+	  <listitem>
+	    <para>
+	      Background color of the tool-tips shown when mouse
+	      lingers over a tool-bar button or one of
+	      several other widgets.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">ToolbarHintForeground</literal></term>
+	  <listitem>
+	    <para>
+	      Text color of the tool-tips shown when mouse 
+	      lingers over a tool-bar button or one of
+	      several other widgets.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal moreinfo="none">ButtonsRelief</literal></term>
 	  <listitem>
 	    <para>
@@ -3036,7 +3225,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal moreinfo="none">ButtonBorderWidth</literal></term>
+	  <term><literal moreinfo="none">ButtonsBorder</literal></term>
 	  <listitem>
 	    <para>
 	      Width of the borders of GUI buttons. Default is 2.
@@ -3089,6 +3278,51 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">IconPath</literal></term>
+	  <listitem>
+	    <para>
+	      Colon-separated (on Windows comma-separated) 
+	      list of paths for tred to look for icons.
+	      Only XPM and PNG icons are supported
+	      (it is not recommended to use
+	      PNG icons on X11 with present versions of Tk804,
+	      due to a severe bug causing occasional crashes).
+	      Relative paths relate to 
+	      <literal><replaceable>libDir</replaceable>/icons</literal>
+	      directory.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">LastAction</literal></term>
+	  <listitem>
+	    <para>
+	      This option, automatically updated on exit, contains an
+	      URL and position of a last action on a tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">Geometry</literal></term>
+	  <listitem>
+	    <para>
+	      TrEd's main window geometry 
+	      (<literal>HxW[+-]x[+-]y</literal>,
+	      where <literal>H</literal> is window's height,
+	      <literal>W</literal> is window's width,
+	      <literal>x</literal> is window's horizontal
+	      position from the left if positive and
+	      from the right if negative, 
+	      and <literal>y</literal>
+	      is window's vertical
+	      position from the top of the screen if positive and
+	      from the bottom of the screen if negative).
+	      This option is automatically updated every time
+	      TrEd's main window is closed.
+	    </para>
+	  </listitem>
+	</varlistentry>
       </variablelist>
     </sect2>
     <sect2>
@@ -3127,8 +3361,54 @@ root# <userinput moreinfo="none">make install</userinput>
 		    <literallayout class="normal" format="linespecific">Font = family:Arial,size:10,weight:bold</literallayout>
 		  </note>
 		</listitem>
+		<listitem><para>On XFT enabled Tk/X11, it is also
+		    possible to use font patterns as specified by the
+		    <ulink url="http://freedesktop.org/software/fontconfig">fontconfig</ulink>
+		    library. These font patterns take the form:
+<literallayout>&lt;families&gt;-&lt;point sizes&gt;:&lt;name1&gt;=&lt;values1&gt;:&lt;name2&gt;=&lt;values2&gt;...</literallayout>
+		  </para>
+	      Where <replaceable>names</replaceable> and 
+	      <replaceable>values</replaceable>
+	      refer to the floowing table
+	      <literallayout>
+Property        Type    Description
+  --------------------------------------------------------------
+  family          String  Font family name
+  style           String  Font style. Overrides weight and slant
+  slant           Int     Italic, oblique or roman
+  weight          Int     Light, medium, demibold, bold or black
+  size            Double  Point size
+  aspect          Double  Stretches glyphs horizontally before hinting
+  pixelsize       Double  Pixel size
+  spacing         Int     Proportional, monospace or charcell
+  foundry         String  Font foundry name
+  antialias       Bool    Whether glyphs can be antialiased
+  hinting         Bool    Whether the rasterizer should use hinting
+  verticallayout  Bool    Use vertical layout
+  autohint        Bool    Use autohinter instead of normal hinter
+  globaladvance   Bool    Use font global advance data
+  file            String  The filename holding the font
+  index           Int     The index of the font within the file
+  ftface          FT_Face Use the specified FreeType face object
+  rasterizer      String  Which rasterizer is in use
+  outline         Bool    Whether the glyphs are outlines
+  scalable        Bool    Whether glyphs can be scaled
+  scale           Double  Scale factor for point->pixel conversions
+  dpi             Double  Target dots per inch
+  rgba            Int     unknown, rgb, bgr, vrgb, vbgr,
+                          none - subpixel geometry
+  minspace        Bool    Eliminate leading from line spacing
+  charset         CharSet Unicode chars encoded by the font
+  lang            String  List of RFC-3066-style languages this
+                          font supports
+</literallayout>
+		</listitem>
 	      </orderedlist>	
 	    </para>
+		  <note>
+		    <title>Example</title>		 
+		    <literallayout class="normal" format="linespecific">Font = Times-12:bold:slant=italic:antialias=0</literallayout>
+		  </note>	  
 	  </listitem>
 	</varlistentry>      
 	<varlistentry>
@@ -3216,15 +3496,6 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal moreinfo="none">PsFontName</literal></term>
-	  <listitem>
-	    <para>
-	      A Postscript font name to be substituted 
-	      by the font given in PsFontFile in the final PosctScript.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
 	  <term><literal moreinfo="none">PsFontSize</literal></term>
 	  <listitem>
 	    <para>Size of the Postscript font to be substituted 
@@ -3297,6 +3568,27 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal moreinfo="none">PrtHMargin</literal></term>
+	  <listitem>
+	    <para>
+	      Specifies the default 
+	      horizontal print margin. Default is <literal>2c</literal>
+	      (c = centimeters).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">PrtVMargin</literal></term>
+	  <listitem>
+	    <para>
+	      Specifies the default 
+	      vertical print margin.
+	      Default is <literal>3c</literal>
+	      (c = centimeters).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal moreinfo="none">ImageMagickConvert</literal></term>
 	  <listitem>
 	    <para>
@@ -3346,6 +3638,38 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="autosave">
+	  <term><literal moreinfo="none">AutoSave</literal></term>
+	  <listitem>
+	    <para>
+	      Time interval in minutes in which TrEd creates
+              auto-save file. AutoSave=0 disables auto-saving.
+	      Defaults to 5.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="lockfiles">
+	  <term><literal moreinfo="none">LockFiles</literal></term>
+	  <listitem>
+	    <para>
+	      When a file is open, TrEd creates
+	      a lock file to prevent other TrEd instances
+	      accessing the same file.
+	      If set to 0, this option disables this behaviour.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="noconvertwarning">
+	  <term><literal moreinfo="none">NoConvertWarning</literal></term>
+	  <listitem>
+	    <para>
+	      When a ImageMagick printing extension is used
+	      on Windows or with a black-listed version of ImageMagick,
+	      a warning dialog pops-up. This option can be set to 1 to
+	      disable this behaviour.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="reloadpreservespatterns">
 	  <term><literal moreinfo="none">ReloadPreservesPatterns</literal></term>
 	  <listitem>
@@ -3365,11 +3689,26 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal moreinfo="none">UseLocales</literal></term>
+	  <listitem>
+	    <para>
+	      If <literal moreinfo="none">1</literal> is set here, 
+	      <application moreinfo="none">TrEd</application> 
+	      uses locales. This is especially useful in macros 
+	      e.g. for sorting. <literal>LC_CTYPE</literal> 
+	      locale settings may also affect keyboard input and other
+	      charset-related stuff in the GUI.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal moreinfo="none">UseCzechLocales</literal></term>
 	  <listitem>
 	    <para>
-	      If <literal moreinfo="none">1</literal> is set here, <application moreinfo="none">TrEd</application> uses Czech locales.
-	      This may be especially useful in macros e.g. for sorting.
+	      If <literal moreinfo="none">1</literal> is set here,
+	      <application moreinfo="none">TrEd</application> uses
+	      Czech (cs_CZ) locales. This option is present for rather
+	      historical reasons.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -3377,7 +3716,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><literal moreinfo="none">defaultFileEncoding</literal></term>
 	  <listitem>
 	    <para>
-	      The encoding (charset) used for files opened in TrEd.
+	      The encoding used for files opened in TrEd.
 	      If TrEd runs on <literal moreinfo="none">Perl 5.8</literal> or higher
 	      with <literal moreinfo="none">Tk804</literal> or higher with Unicode
 	      support, arbitrary encoding supported by Perl can be
@@ -3403,6 +3742,41 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="displaynonasciilefttoright">
+	  <term><literal moreinfo="none">displayNonAsciiLeftToRight</literal></term>
+	  <listitem>
+	    <para>
+	      This option adds a poor-man's bidi-support.
+	      It reverses all non ASCII-strings before displaying.
+	      This option is not intended for Arabic, since
+	      TrEd already contains better arab-remixing
+	      algorigthms contributed by Ota Smrz.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="defaultmacroencoding">
+	  <term><literal moreinfo="none">defaultMacroEncoding</literal></term>
+	  <listitem>
+	    <para>
+	      The default encoding used when parsing TrEd macros.
+	      This option only takes effect for
+	      <literal moreinfo="none">Perl 5.8</literal> or higher.
+	      Default macro encoding can be overriden
+	      in the macro itself as described in 
+	      <xref linkend="macroencodings"/>. Defaults to UTF-8.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="displaystatusline">
+	  <term><literal moreinfo="none">displayStatusLine</literal></term>
+	  <listitem>
+	    <para>
+	      Turn on/off displaying status line. Default is off.
+	      Currently, status line content can only be controlled
+	      from macros, via <xref linkend="get_status_line_hook"/>.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="sgmls">
 	  <term><literal moreinfo="none">Sgmls</literal></term>
 	  <listitem>
@@ -3415,6 +3789,42 @@ root# <userinput moreinfo="none">make install</userinput>
 	      parser to read SGML <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
 	      files (used e.g. in the
 	      Prague Dependency Treebank 1.0).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="openfilenamecommand">
+	  <term><literal moreinfo="none">OpenFileNameCommand</literal></term>
+	  <listitem>
+	    <para>This option may be used 
+	      to provide a custom command for displaying Open File dialogs.
+	      In the command specification,
+	      <literal>%t</literal> is replaced with
+	      the dialog title, 
+	      <literal>%m</literal> with a list of file-types (patterns),
+	      <literal>%t</literal> with the initial filename
+	      (only for save dialogs, see the 
+	      <link linkend="savefilenamecommand">SaveFileNameCommand</link>
+	      option below), and
+	      <literal>%d</literal> with the initial directory.
+	      For example, setting this option to 
+	      <literal>kdialog --title %t --getopenfilename %d %m</literal>
+	      in a KDE 3.3.x environment makes TrEd use
+	      the default KDE Open File dialog.
+	      This option is unused by default.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="savefilenamecommand">
+	  <term><literal moreinfo="none">SaveFileNameCommand</literal></term>
+	  <listitem>
+	    <para>This option may be used 
+	      to provide a custom command for displaying Save File dialogs.
+	      See the <link linkend="openfilenamecommand">SaveFileNameCommand</link> option above
+	      for more detail. For example, setting this option to 
+	      <literal>kdialog --title %t --getopenfilename %d%f %m</literal>
+	      in a KDE 3.3.x environment makes TrEd use
+	      the default KDE Open File dialog.
+	      This option is unused by default.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -3482,7 +3892,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>gzip</term>
+	  <term><literal>gzip</literal></term>
 	  <listitem>
 	    <para>This option may be used to point
 	      <application moreinfo="none">TrEd</application> to a
@@ -3498,7 +3908,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="zcat">
-	  <term>zcat</term>
+	  <term><literal>zcat</literal></term>
 	  <listitem>
 	    <para>This option may be used to point
 	      <application moreinfo="none">TrEd</application> to a
@@ -3512,6 +3922,52 @@ root# <userinput moreinfo="none">make install</userinput>
 	      executable. Otherwise the value of
 	      <literal moreinfo="none">gzip</literal> option is used.
 	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>nsgmls</literal></term>
+	  <listitem>
+	    <para>This option may be used to point
+	      <application moreinfo="none">TrEd</application> to
+	      <command moreinfo="none">nsgmls</command>
+	      SGML parser.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </sect2>
+    <sect2>
+      <title>Debugging options</title>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>backenddebug</literal></term>
+	  <listitem>
+	    <para>Print debugging information for I/O backends.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>hookdebug</literal></term>
+	  <listitem>
+	    <para>Print debugging information when hooks are called.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>keyboarddebug</literal></term>
+	  <listitem>
+	    <para>Print debugging on keyboard events.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>macrodebug</literal></term>
+	  <listitem>
+	    <para>Print debugging when macros are invoked.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>treddebug</literal></term>
+	  <listitem>
+	    <para>Print various debugging information not covered
+	      by the debugging options listed above.</para>
 	  </listitem>
 	</varlistentry>
       </variablelist>
@@ -3838,7 +4294,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	even if the requested file was not found.
       </para>
     </sect2>
-    <sect2>
+    <sect2 id="macroencodings">
       <title>Writing macros in various character encodings</title>
       <note>
 	<para>This section applies only to <application moreinfo="none">TrEd</application>/<application moreinfo="none">bTrEd</application> running under Perl 5.8
@@ -3849,11 +4305,14 @@ root# <userinput moreinfo="none">make install</userinput>
 	necessary to indicate the character encoding used.  Otherwise
 	<application moreinfo="none">TrEd</application> wouldn't be able to translate the non-ASCII characters
 	into an internal Unicode representation.  Failing to indicate
-	charset used in macro code can therefore lead to unexpected
+	encoding used in macro code can therefore lead to unexpected
 	behaviour of the code and/or fatal run-time errors.
       </para>
       <para>
-	By default, <application moreinfo="none">TrEd</application> expects UTF-8 encoded macro code.
+	By default, <application moreinfo="none">TrEd</application> 
+	expects UTF-8 encoded macro code (unless specified
+	otherwise using the <link linkend="defaultmacroencoding">
+	  <literal>defaultMacroEncoding</literal> configuration option</link>).
 	Any other character encoding must be indicated using
 	<literal moreinfo="none">#encoding</literal> directive, followed by name of
 	the encoding, such as <literal moreinfo="none">utf-8</literal>,
@@ -3973,7 +4432,7 @@ root# <userinput moreinfo="none">make install</userinput>
       <literallayout class="normal" format="linespecific">#bind my_first_macro to key Ctrl+Alt+Del</literallayout>
       <para>
 	Again, the <literal moreinfo="none">to</literal> and
-	<literal moreinfo="none">key</literal> words may be omitted.	
+	<literal moreinfo="none">key</literal> keywords may be omitted.	
       </para>
       <warning>
 	<para>
@@ -5393,7 +5852,7 @@ sub MakeSentence {
 	      <entry>called after a node is moved using a mouse</entry>
 	    </row>
 	    <row>
-	      <entry>get_status_line_hook</entry>
+	      <entry id="get_status_line_hook">get_status_line_hook</entry>
 	      <entry>no</entry>
 	      <entry>Supply status-line content.
 		Status line is an experimental feature which can be
