@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-19 09:49:36 pajas>";
+$timestamp="Time-stamp: <2001-04-19 11:28:23 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -222,9 +222,20 @@ require Filelist;
 require Tk::MyFileSelect;
 
 use Exporter;
-require File::Spec;
-require File::Spec::Functions;
-import File::Spec::Functions qw(rel2abs);
+# different namespace only to load local rather than system files
+# (rel2abs is not supported in all instalations)
+use File::Spec;
+if (not File::Spec->can(rel2abs)) {
+  print "Using TFile::Spec\n";
+  require TFile::Spec;
+  require TFile::Spec::Functions;
+  import TFile::Spec::Functions qw(rel2abs);
+} else {
+  print "Using File::Spec\n";
+  require File::Spec;
+  require File::Spec::Functions;
+  import File::Spec::Functions qw(rel2abs);
+}
 
 # This is default export to macros
 @EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
