@@ -246,7 +246,7 @@ import TrEd::Basics;
 #load back-ends
 @backends=('FSBackend',ImportBackends(
   split(/,/,$extra_backends),
-  qw(NTREDBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
+  qw(NTREDBackend PMLBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 # different namespace only to load local rather than system files
