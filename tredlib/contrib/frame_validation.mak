@@ -592,6 +592,44 @@ sub match_text_form {
   return $ret;
 }
 
+
+my %fake_when_where = (
+'tady.LOC' =>
+[qw(tady tady Db------------- Adv)],
+'tady.DIR1' =>
+[qw(odsud odsud Db------------- Adv)],
+'tady.DIR2' =>
+[qw(tudy tudy Db------------- Adv)],
+'tady.DIR3' =>
+[qw(sem sem Db------------- Adv)],
+'tam.LOC' =>
+[qw(tam tam Db------------- Adv)],
+'tam.LOC1' =>
+[qw(odtamtud odtamtud Db------------- Adv)],
+'tam.DIR2' =>
+[qw(tamtudy tamtudy Db------------- Adv)],
+'tam.DIR3' =>
+[qw(tam tam Db------------- Adv)],
+'kdy.TWHEN' =>
+[qw(kdy kdy Db------------- Adv)],
+'kdy.TSIN' =>
+[qw(odkdy odkdy Db------------- Adv)],
+'kdy.TTILL' =>
+[qw(dokdy dokdy Db------------- Adv)],
+'kdy.TFHL' =>
+[qw(dlouho dlouho_^(o_èase;_pø._dlouhá_doba) Dg-------1A---- Adv)],
+'kdy.THO' =>
+[qw(èasto èasto Dg-------1A---- Adv)],
+'kdy.TFRWH' =>
+[qw(ze z-1 RV--2---------- AuxP),
+   [qw(kdy kdy Db------------- Adv)],
+],
+'kdy.TOWH' =>
+[qw(na-1 1 RR--4---------- AuxP),
+ [qw(kdy kdy Db------------- Adv)],
+],
+);
+
 sub match_form {
   my ($node, $form, $aids, $flags,$no_ignore) = @_;
   print "match_node_FLAGS: ",join(" ",%$flags),"\n" if $V_verbose;
@@ -607,8 +645,24 @@ sub match_form {
     # we may suppose 1st case (.1)
 
     print "ADDED NODE: '$node->{trlemma}'\n" if $V_verbose;
-    my ($pos,$case,$gen,$num,$person,$tag,$lemma,$form)=('XX','-','-','-','-');
-    if ($node->{trlemma} =~ /^(já|my)$/) {
+    my ($afun,$pos,$case,$gen,$num,$person,$tag,$lemma,$form)=('','XX','-','-','-','-');
+    if ($node->{trlemma} =~ /^&Neg;$/) {
+      $lemma = 'ne';
+      $tag = 'TT-------------';
+    } elsif (exists($fake_when_where{$node->{trlemma}.".".$node->{func}})) {
+      my $fake = $fake_when_where{$node->{trlemma}.".".$node->{func}};
+      my $fake_children;
+      ($form,$lemma,$tag,$fake_children,$afun) = @$fake;
+      if (ref($fake_children)) {
+	foreach my $fake_child (@$fake_children) {
+	  my $c = FSNode->new();
+	  ($c->{form},$c->{lemma},$c->{tag},$c->{afun}) = @$fake_child;
+	  $c->{_P_}=$fake_node;
+	  $fake_node->{_F_} ||= $c;
+	}
+      }
+      push @a,$fake_node;
+    } elsif ($node->{trlemma} =~ /^(já|my)$/) {
       print "ADDED JA/MY: '$node->{trlemma}'\n" if $V_verbose;
       print "VERB-PERSONS:",join("\t",map { $_->{form}." ".verb_person($aids,$_) } PDT::GetFather_TR($node)),"\n"
 	if $V_verbose;
@@ -621,7 +675,11 @@ sub match_form {
 	  $tag='PP-P1--1-------';
 	}
 	push @a,$fake_node;
-      } 
+      } else {
+	$lemma = 'já';
+	$tag='PP-XX--1-------';
+      }
+      push @a,$fake_node;
     } elsif ($node->{trlemma} =~ /^(ty|vy)$/) {
       if (first { verb_person($aids,$_) eq '2' } PDT::GetFather_TR($node)) {
 	$lemma = 'ty';
@@ -630,8 +688,11 @@ sub match_form {
 	} else {
 	  $tag='PP-P1--2-------';
 	}
-	push @a,$fake_node;
+      } else {
+	$lemma = 'ty';
+	$tag='PP-XX--2-------';
       }
+      push @a,$fake_node;
     } elsif ($node->{trlemma} eq 'v¹echen') {
       $tag = 'PLYSX----------';
       push @a,$fake_node;
@@ -667,6 +728,7 @@ sub match_form {
     if (@a) {
       $tag = $pos.$gen.$num.$case.'--'.$person.'-------'     unless defined($tag);
       $fake_node->{tag}=$tag;
+      $fake_node->{afun}=$afun;
       $fake_node->{lemma} = $lemma || $node->{trlemma};
       $fake_node->{form} = $form || $node->{trlemma};
       $fake_node->{trlemma} = $node->{trlemma};
