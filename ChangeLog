@@ -1,3 +1,876 @@
+2005-03-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml.mak: various changes by JS
+
+	* tredlib/TrEd/TreeView.pm, tredlib/TrEd/Config.pm: - CustomColors
+
+	* tredlib/tred.def: - CustomColors
+	- UserConf
+	- Locate Node
+
+	* tred: - Fslib::Paste fix
+	- CustomColors
+
+2005-03-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml.mak: new schema name API
+
+	* tredlib/TrEd/TreeView.pm: improved node hiding
+
+	* tredlib/Tk/TrEdNodeEdit.pm: - required instead of optional
+
+	* tredlib/PMLBackend.pm: - use root element in PML schemas
+	- required instead of optional
+
+	* btred, tred, tredlib/AG2FS.pm, tredlib/Fslib.pm, tredlib/TEIXMLBackend.pm, tredlib/TrXMLBackend.pm, tredlib/tred.def, tredlib/TrEd/Basics.pm, tredlib/contrib/a_opravy.mak, tredlib/contrib/ar.mak, tredlib/contrib/arabic_Analytic.mak, tredlib/contrib/edit.mak, tredlib/contrib/pdt.mak, tredlib/contrib/tfa.mak, tredlib/contrib/tfa_common.mak, tredlib/tred.mac, tredlib/contrib/PADT/Arab_parser.pm, tredlib/contrib/SDT/Slovene_parser.pm, tredlib/contrib/tr_common.mak, tredlib/contrib/tr_opravy.mak, tredlib/contrib/trdiff.mak, tredlib/contrib/tred_mac_common.mak, tredlib/contrib/tredtr.mak:
+	huge cleanup in Fslib:
+	  all FS-format related functions and old API removed or moved to
+	  FSBackend and renamed. These includes:
+	  - ReadAttribs, ReadTree, GetTree, GetTree2, PrintNode, PrintTree,
+	    PrintFS, $FSTestListValidity
+	  - DrawTree (removed - but see examples directory)
+	  - IsList, ListValues, $special - moved to FSFormat package
+	  - Special, ASpecial, Ord, AOrd, etc. all removed (use FSFormat
+	    methods instead)
+	  - Parent, RBrother, LBrother, FirstSon - no longer exported by
+	    default from Fslib, still in @EXPORT_OK, but should not be used -
+	    use FSNode methods instead
+	  - NewNode - removed (use FSNode->new)
+	  - Get,Set removed
+
+	* trprint: event_hook added
+
+2005-03-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred, tred, tredlib/AG2FS.pm, tredlib/Fslib.pm, tredlib/TEIXMLBackend.pm, tredlib/TrXMLBackend.pm, tredlib/tred.def, tredlib/TrEd/Basics.pm, tredlib/contrib/a_opravy.mak, tredlib/contrib/ar.mak, tredlib/contrib/arabic_Analytic.mak, tredlib/contrib/edit.mak, tredlib/contrib/pdt.mak, tredlib/contrib/tfa.mak, tredlib/contrib/tfa_common.mak, tredlib/tred.mac, tredlib/contrib/PADT/Arab_parser.pm, tredlib/contrib/SDT/Slovene_parser.pm, tredlib/contrib/tr_common.mak, tredlib/contrib/tr_opravy.mak, tredlib/contrib/trdiff.mak, tredlib/contrib/tred_mac_common.mak, tredlib/contrib/tredtr.mak:
+	huge cleanup in Fslib:
+	  all FS-format related functions and old API removed or moved to
+	  FSBackend and renamed. These includes:
+	  - ReadAttribs, ReadTree, GetTree, GetTree2, PrintNode, PrintTree,
+	    PrintFS, $FSTestListValidity
+	  - DrawTree (removed - but see examples directory)
+	  - IsList, ListValues, $special - moved to FSFormat package
+	  - Special, ASpecial, Ord, AOrd, etc. all removed (use FSFormat
+	    methods instead)
+	  - Parent, RBrother, LBrother, FirstSon - no longer exported by
+	    default from Fslib, still in @EXPORT_OK, but should not be used -
+	    use FSNode methods instead
+	  - NewNode - removed (use FSNode->new)
+	  - Get,Set removed
+
+	* trprint: event_hook added
+
+2005-03-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: use TreeView->node_is_displayed instead of isHidden
+
+	* tredlib/TrEd/Config.pm, tredlib/TrEd/TreeView.pm: skipHiddenLevels
+	skipHiddenParents
+
+	* tredlib/XML2PMLBackend.pm: initial commit
+
+	* btred: -D turns on backend debugging
+
+2005-03-14  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml.mak: various minor fixes
+
+	* tredlib/TrEd/TreeView.pm: fix
+
+	* tredlib/PMLBackend.pm: xdata, #HIDE, some debug
+
+	* tred: catch sigpipe
+
+	* btred: append and prepend flags work independently on strip and
+	remove-prefix. On the other hand, it is not possible to use full
+	regexp power.
+
+	* tredlib/PMLBackend.pm: REF renamed to PMLREF
+
+2005-03-13  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Tk/TrEdNodeEdit.pm:
+	support nonNegativeInteger type, REF renamed to PMLREF
+
+	* tredlib/Csts2fs.pm:
+	punct renamed to pronounciation (which is the correct name)
+
+2005-03-12  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Tk/TrEdNodeEdit.pm, tred: *** empty log message ***
+
+2005-03-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm:
+	use constants for list and alt elements, so that we may easily rename them
+
+	* btred, tred: PML related changes
+
+2005-03-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak, tredlib/contrib/coref.mak:
+	*** empty log message ***
+
+	* tredlib/PMLBackend.pm: renamed to PMLBackend
+
+	* tredlib/contrib/pml.mak: initial commit
+
+	* tredlib/contrib/pdt_specific.mak, tredlib/contrib/contrib.mac:
+	add pml.mak
+
+	* tred: - various PML related updates
+	- (hopefully) better error reporting
+
+	* tredlib/TrEd/TreeView.pm: Fslib::List
+
+	* tredlib/Tk/JComboBox_0_02.pm: *** empty log message ***
+
+	* tredlib/Tk/TrEdNodeEdit.pm: use our own copy of TkJComboBox 0.02
+
+	* tredlib/PMLBackend.pm: die when required file can't be opened
+
+	* tredlib/Fslib.pm: report more errors unconditionally
+
+	* tredlib/CSTS_SGML_SP_Backend.pm:
+	allow DOCTYPE declaration on the first line
+	TODO: swallow it before passing the file to nsgmls
+
+	* tredlib/contrib/frame_validation.mak: frameid assing
+
+2005-03-08  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak: *** empty log message ***
+
+	* tredlib/TrEd/TreeView.pm: current width/height
+
+	* tredlib/Tk/TrEdNodeEdit.pm: alt/list fixes, various improvemetns
+
+	* tredlib/tred.def: alt/list fixes
+
+	* tredlib/PMLBackend.pm: alt/list fixes, cleanup
+
+	* tredlib/Fslib.pm: alt/list fixes
+
+	* documentation/Hooks.txt: *** empty log message ***
+
+	* tred: - fixed closing files
+	- adjuster in custom attrs dialog
+
+2005-03-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak: use sempos
+
+	* tredlib/contrib/ValLex/Extended.pm: clean indexes
+
+	* tredlib/contrib/ValLex/Editor.pm: allow D POS in vallex
+
+	* tredlib/contrib/tredtr.mak:
+	disable old implementaion of DeleteCurrentNode (just for sure)
+
+	* tredlib/contrib/tr_frame_validation.mak: use semantic POS
+
+	* tredlib/contrib/pdt.mak: - get_sentence_string fixed
+
+	* tredlib/contrib/frame_validation.mak:
+	various improvements, new using t_lemma and g_wordclass
+
+	* tredlib/TrEd/Macros.pm: report number of lines of code read
+
+	* tredlib/TrEd/Basics.pm: finally satisfied
+
+	* tredlib/TrEd/Basics.pm: even better error message box
+
+	* tredlib/TrEd/Basics.pm: New message box
+
+2005-03-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak, tredlib/contrib/tr_frame_validation.mak:
+	*** empty log message ***
+
+	* tredlib/contrib/frame_validation.mak: various fixes
+
+2005-03-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/frame_validation.mak: added F
+
+2005-02-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Editor.pm: F3 bound to find next
+
+	* tredlib/contrib/ValLex/Chooser.pm: added search-entry to Chooser
+
+	* tredlib/contrib/tr_frame_validation.mak: bindings
+
+	* tredlib/contrib/frame_validation.mak: DPHR CPHR are actants
+
+	* tredlib/contrib/tr_opravy.mak: *** empty log message ***
+
+	* tredlib/contrib/tr_opravy.mak:
+	remember previous context when switching to AR and back
+
+	* tredlib/contrib/tr_frame_validation.mak: pass the correct flags
+
+	* tredlib/contrib/pdt.mak: *** empty log message ***
+
+	* tredlib/contrib/frame_validation.mak: - strict subclause checking
+	- various fixes
+
+	* tredlib/contrib/a_opravy.mak: bind rehanging routines from tr_opravy
+
+	* tredlib/tred.mac: persistent (surviving macro reloads) eval code
+
+	* ntred: don't print anything if message is empty
+
+2005-02-26  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/frame_validation.mak:
+	added more detailed sub-clause checking
+
+2005-02-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_cphr.mak: fixed
+
+	* tredlib/contrib/frame_validation.mak: improved rules
+
+	* tred: stylesheets are in utf8
+
+2005-02-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak: FPaste fixed
+
+2005-02-23  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak: *** empty log message ***
+
+	* tredlib/contrib/tr_common.mak, tredlib/contrib/tr_opravy.mak, tredlib/contrib/tredtr.mak:
+	set_parenthesis asks about PA in non-clear cases, auto-assignes in
+	clear cases
+
+	* tredlib/contrib/pdt.mak: *** empty log message ***
+
+	* tred: error in locale handling: lc_collate value passed to lc_ctype
+
+	* ntred: *** empty log message ***
+
+	* tredlib/contrib/frame_validation.mak: flags
+
+2005-02-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Data.pm: emacs coding
+
+	* tredlib/contrib/tr_frame_validation.mak: $::ENV instead of $ENV
+
+	* tredlib/contrib/frame_validation.mak:
+	fix added, print AID/TID wherever possible
+
+2005-02-21  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: insert_node only operates on AID nodes
+
+	* tredlib/contrib/tr_common.mak:
+	make added empty verbs have sentord=999
+
+	* tredlib/contrib/pdt.mak: more stable error reporting
+
+	* btred: report run-time errors from start_hook and preload_hook
+
+2005-02-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/TreeView.pm, tred:
+	pass $win as new $grp parameter of TreeView->redraw (this allows full
+	macros power)
+
+	* tredlib/contrib/pdt.mak: *** empty log message ***
+
+	* tredlib/contrib/frame_validation.mak: - encoding
+
+	* tredlib/TrEd/TreeView.pm:
+	- pass $grp to patterns if available (presently only works for text:
+	patterns)
+	- set $TredMacro::this, $TredMacro::root for patterns too (helps when
+	macros are called)
+
+	* tred: *** empty log message ***
+
+2005-02-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pdt.mak: *** empty log message ***
+
+	* tredlib/contrib/tr_opravy.mak: don't overwrite custom line styles
+
+2005-02-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak, tredlib/contrib/frame_validation.mak:
+	*** empty log message ***
+
+	* tred:
+	better binding information in Examine key bindings and List named macros
+
+	* tredlib/Fslib.pm: *** empty log message ***
+
+	* btred, ntred: userlogin
+
+2005-02-14  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pdt.mak: Jura added PDT::non_proj_edges
+
+2005-02-13  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/a_opravy.mak: *** empty log message ***
+
+	* tredlib/contrib/tr_opravy.mak:
+	being more careful not to declare TredMacro::file_save_hook
+
+	* tredlib/Tk/TrEdNodeEdit.pm, tredlib/PMLBackend.pm:
+	modified knit mechanism
+
+	* tred, tredlib/tred.def: *** empty log message ***
+
+	* tredlib/TrEd/TreeView.pm: present attribute
+
+	* tredlib/Tk/TrEdNodeEdit.pm, tredlib/TEIXMLBackend.pm, tredlib/PMLBackend.pm:
+	*** empty log message ***
+
+	* tredlib/Fslib.pm: - added Fslib::Schema
+	- attr and set_attr methods
+
+	* tred: - updated schema support (referenced files)
+	- fixed redrawing on stylesheet change
+
+2005-02-11  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: SwapToParent
+
+	* tred: *** empty log message ***
+
+2005-02-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Data.pm: *** empty log message ***
+
+	* tredlib/contrib/ValLex/Data.pm, tredlib/contrib/ValLex/Editor.pm, tredlib/contrib/ValLex/Widgets.pm, tredlib/contrib/ValLex/chooser.mak:
+	use TrEd::ValLex::Sort instead of locale
+
+	* tredlib/contrib/ValLex/Sort.pm: initial commit
+
+	* tredlib/contrib/tredtr.mak, tredlib/contrib/frame_validation.mak:
+	*** empty log message ***
+
+	* tred: element_frame method added
+
+2005-02-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: userlogin s a global
+
+	* tredlib/contrib/contrib.mac: removed ufal contrib mac
+
+	* tredlib/contrib/ValLex/Extended.pm: element_frame method added
+
+	* tredlib/contrib/tr_opravy.mak: call TredMacro::file_save_hook too
+
+	* tredlib/contrib/pdt.mak: better reports
+
+	* tredlib/contrib/frame_validation.mak:
+	fake A-nodes for when/where added
+
+	* tredlib/contrib/contrib.mac: added savelog
+
+	* tredlib/tred.def: *** empty log message ***
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	VALLEX environment variable can be used to setup vallex file
+
+2005-02-08  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pdt.mak: added GetTrueSiblings_TR
+
+	* btred, ntred: *** empty log message ***
+
+2005-02-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak, tredlib/contrib/a_opravy.mak, tredlib/contrib/tredtr.mak:
+	*** empty log message ***
+
+	* tredlib/contrib/tr_opravy.mak:
+	remember this node for AIDREFs and assign AIDREFs
+
+	* tredlib/contrib/frame_validation.mak: *** empty log message ***
+
+	* tredlib/contrib/a_opravy.mak: bindings for switching layers
+
+	* tredlib/tred.def: ListRegroupElements added
+
+2005-02-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Data.pm:
+	- pri+6 matches pri-1[.6], not pri[.6]
+
+	* tredlib/contrib/tr_frame_validation.mak: - tolerant match (Alt+M)
+	- reload_macros_hook disposes XML trees
+
+	* tredlib/contrib/tr_common.mak: generalized DeleteCurrentNode
+
+	* tredlib/contrib/pdt.mak: PDT::GetAncestors_TR added by Jura
+
+	* tredlib/contrib/frame_validation.mak, tredlib/tred.def:
+	new ListUnion, ListIntersect, ListSubtract operations added
+
+	* tred: reload macros hook
+
+	* ntred: logdir support
+
+2005-02-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak:
+	remove_func_questionmarks [semicolon] added
+
+	* tredlib/contrib/pdt.mak: added GetDescendants_TR
+
+	* tredlib/contrib/tr_opravy.mak: Jura added hash_copies function
+
+	* tredlib/contrib/tr_opravy.mak: *** empty log message ***
+
+2005-02-01  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/adverb.mak, tredlib/contrib/tredtr.mak, tredlib/contrib/tr_opravy.mak, tredlib/contrib/tr_common.mak:
+	*** empty log message ***
+
+	* tredlib/contrib/frame_validation.mak, documentation/btred_tutorial.xml:
+	fix: $node has to be $this on various places
+
+2005-01-21  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/frame_validation.mak:
+	transrules may now generate more than one frame
+
+	* tredlib/tred.def: *** empty log message ***
+
+2005-01-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: func
+
+	* tredlib/contrib/frame_validation.mak: *** empty log message ***
+
+	* tredlib/Fslib.pm: loading backend message
+
+	* tredlib/Csts2fs.pm: default headers update
+
+	* tred: redraws when stylesheet changes
+
+	* tredlib/contrib/tr_common.mak:
+	redraw fsfile after changes in status_line_doubleclick_hook
+
+2005-01-13  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm, tredlib/Tk/TrEdNodeEdit.pm: initial commit
+
+2005-01-12  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tredtr.mak: added Ctrl+e shortcut for func:=CM
+
+	* ntred: don't report closed hubs as being down
+
+2005-01-11  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak, tredlib/contrib/coref.mak:
+	support for PML corefs
+
+	* tredlib/tred.def: Handle:
+	  Fslib::Alt
+	  Fslib::Seq
+
+	* tredlib/Fslib.pm: Added:
+	  Fslib::Alt
+	  Fslib::Seq
+
+	* tred: added schema-based node editor
+
+2005-01-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	fallback to lower-case lemma if capitalized lemma is not found
+
+2005-01-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/frame_validation.mak: various rules fixed
+
+	* tredlib/contrib/ValLex/Extended.pm: substitution fix
+
+	* tredlib/contrib/tr_opravy.mak: hash_AIDs_file
+	fixes for TRDiff styling
+
+	* tredlib/contrib/tr_frame_validation.mak: fix dispmod values
+
+	* tredlib/contrib/tr_common.mak: show ID1 in status-line
+
+	* tredlib/contrib/ntred.mak: binmode
+
+	* tredlib/contrib/coref.mak: fix arrow styling bug
+
+	* tredlib/TrEd/TreeView.pm: allow custom attr interpolation
+
+	* tred: bindings, etc.
+
+	* ntred: docu fix
+
+	* btred: added file-list support
+
+2005-01-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/IOBackend.pm: use IO::Pipe
+
+2005-01-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ntred:
+	Warn if server doesn't respond with the correct end-of-response code.
+
+2005-01-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/frame_validation.mak: *** empty log message ***
+
+2004-12-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: Ctrl+L shortcut clears pattern editor
+
+2004-12-21  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/tred.def: replace timestamp with CVS Id
+
+	* tredlib/StorableBackend.pm:
+	remove unnecessary IO::Pipe and Data::Dumper
+
+	* btred: - support for extra backends
+
+	* tred: - improved value-line tagging
+	- fixed bug when saving stylesheets
+
+2004-12-17  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak, tredlib/contrib/trdiff.mak:
+	macro to clear trdiff attributes
+
+	* tredlib/contrib/ar.mak: added status line
+
+	* tredlib/TrEd/TreeView.pm: evaluate <? ?> in TredMacro package
+
+	* tred:
+	set $TredMacro::grp before redraw, so as <? ?> patterns can use it
+
+	* tredlib/contrib/ValLex/Extended.pm: *** empty log message ***
+
+2004-12-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/coref.mak: remove debug prints
+
+	* tred, tredlib/TrEd/Config.pm, tredlib/TrEd/TreeView.pm, tredlib/tredrc:
+	inactive tree-view stippling
+
+2004-12-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak:
+	new tree splitting/joining macros by JS
+
+	* tredlib/contrib/ValLex/Data.pm, tredlib/contrib/ValLex/Extended.pm, tredlib/contrib/ValLex/vallex.dtd, tredlib/contrib/frame_validation.mak, tredlib/contrib/tr_frame_validation.mak:
+	frame element aternations
+
+	* tred, tredlib/TrEd/TreeView.pm: CurrentOval
+
+	* tredlib/IOBackend.pm: added IO::File
+
+	* tred: - user-login name
+	- CurrentOval support
+
+2004-12-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: SplitTreeHere added
+
+	* tredlib/Tk/Canvas/PDF.pm: fixed polygons
+
+2004-11-26  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: implemented proper lock handling for Save as ...
+
+	* tredlib/contrib/tr_frame_validation.mak:
+	call inherited node_style_hook
+
+	* btred, ntred: chomp \r even on unix
+
+	* tred:
+	skip 1st line in a file-list if the filelist is .fl, the 1st line
+	doesn't look like a filename (doesn't contain neither / or .) and
+	doesn't exist
+
+	* tredlib/TrEd/TreeView.pm: added a debug flag
+
+	* tredlib/contrib/cac_treebank.mak: convert encoding
+
+	* tredlib/contrib/frame_validation.mak:
+	don't ignore nodes when checking word forms (so that (.~) works even
+	for verbs under a conjunction)
+
+	* tredlib/contrib/tr_opravy.mak:
+	- Alt+mouse drag can also remove existing aidrefs
+	- switch_context_hook
+
+2004-11-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: - Save sentences as HTML now respects current selection
+
+2004-11-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/edit.mak: - macro for node auto-indexing (TID) added
+	- macro for editing root's origf added
+
+	* tredlib/contrib/tr_common.mak:
+	allow various operations on root if root isn't SENT
+
+	* tred: sentence view can now export to HTML
+
+	* tredlib/contrib/tredtr.mak: *** empty log message ***
+
+	* tredlib/TrEd/Basics.pm:
+	errorMessage allows any Tk::Widget instead of TredWindow
+
+	* tredlib/tred.def: - added writeln
+	- use RepasteNode in ShiftNodeLeftHidden
+
+	* tredlib/CSTS_SGML_SP_Backend.pm: added missing %f to the nsgmls pipe
+
+	* tredlib/contrib/tr_opravy.mak: *** empty log message ***
+
+2004-11-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/frame_validation.mak: chilren->children
+
+	* tredlib/CSTS_SGML_SP_Backend.pm: fix reading csts
+
+	* tredlib/IOBackend.pm: fix open_pipe
+
+2004-11-19  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pdt.mak: - removed debug print
+
+	* tredlib/contrib/pdt.mak:
+	call renew_specials after direct access to $defs.
+
+	* tredlib/contrib/trdiff.mak: added flag to diff all windows
+
+	* tredlib/contrib/tr_opravy.mak: added TRDiff support
+
+	* tredlib/contrib/coref.mak: added edge-to-parent default styling
+
+	* tredlib/TrEd/Macros.pm:
+	allow binding macros from a different package with package->macro
+
+	* tredlib/tred.def: removed debug-print
+
+	* tredlib/IOBackend.pm: rename_uri added
+
+	* tredlib/Filelist.pm: - use substitution to remove MS-DOS \r on Unix
+
+	* tred: - use IO::rename_uri
+	- use substitution to remove MS-DOS \r on Unix
+
+2004-11-17  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: *** empty log message ***
+
+	* tredlib/contrib/tr_opravy.mak:
+	- hooks/macros to display and create coref+AIDREF arrows
+
+	* tredlib/contrib/tr_coref_common.mak: cleanup
+
+	* tredlib/contrib/tr_common.mak: add coref attributes if mising
+
+	* tredlib/contrib/coref.mak: cleanup, generalized arrow drowing routine
+
+	* tredlib/contrib/contrib.mac:
+	TR_Correction adopts TFA bindings and Coref+TFA+Tectogrammatic menu-bindings.
+
+	* tredlib/TrEd/TreeView.pm: allow sqrt function
+
+	* documentation/manual/tred.xml: menu/key binding documentation updated
+
+2004-11-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak:
+	distinguish AR-only trees in with_AR. Added with_ARtree.
+
+	* tredlib/contrib/pdt.mak:
+	avoid using slow appendHeader in favor of a directct access to defs
+
+	* tredlib/contrib/frame_validation.mak: redundant obligs
+
+	* documentation/manual/tred.xml: typos and formatting fixes
+
+	* btred: print benchmark results also to the log
+
+2004-11-12  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tfa.mak: allow everything in TFA mode
+
+2004-11-11  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pdt.mak: fixed expand_coord_apos_TR on hidden nodes
+
+2004-11-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/TreeView.pm: - new rootstyles: nodeXSkip, nodeYSkip
+
+	* tred: - Store stylesheet to current files
+	- new rootstyles: nodeXSkip, nodeYSkip
+
+	* tred: don't change extension when media is changed
+
+	* tredlib/contrib/tr_common.mak, tredlib/contrib/pdt.mak:
+	modal verbs list updated
+
+	* tredlib/TrEd/TreeView.pm: use block for #{...}
+
+	* tredlib/csts.doctype: more entities added
+
+	* tredlib/CSTS_SGML_SP_Backend.pm: *** empty log message ***
+
+	* documentation/manual/tred.xml: Line-smooth documented
+
+	* tred: docu
+
+	* tredlib/contrib/edit.mak: *** empty log message ***
+
+2004-11-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: fixed default
+
+	* documentation/manual/tred.xml: added EdgeLabel-coords
+
+	* tred: - EdgeLabel-coords documented
+	- some tooltip text changed
+
+	* tredlib/TrEd/TreeView.pm: added EdgeLabel-coords
+
+2004-11-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/IOBackend.pm: send err output of which to /dev/null
+
+	* tredlib/TrEd/Config.pm: send which err output to /dev/null
+
+	* tredlib/Fslib.pm: removed silly debug prints
+
+	* tredlib/contrib/pdt.mak:
+	modal_verb_trlemma: check if a given word is a modal verb
+
+	* tredlib/Tk/HelpTiptool.pm:
+	don't narow the scrollbar on windows (looks ugly and can't be scrolled)
+
+	* tredlib/NTREDBackend.pm: mode 'w'
+
+	* tred: *** empty log message ***
+
+2004-11-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/SSHBackend.pm: obsoleted by IOBackend
+
+	* btred: remove SSHBackend
+
+	* tred: make use of new IOBackend
+
+	* tredlib/TrEd/Config.pm:
+	new options: gzip, zcat, gzipopts, zcatopts, nolockprotocols,
+	rejectprotocols, ssh, sshopts, kioclient, kioclientopts, curl,
+	curlopts
+
+	* tredlib/csts.doctype:
+	added some missing entities, origin is CDATA, not IDREFS
+
+	* tredlib/Fslib.pm: use IOBackend, remove ZBackend
+
+	* tredlib/AG2FS.pm, tredlib/CSTSBackend.pm, tredlib/CSTS_SGML_SP_Backend.pm, tredlib/NTREDBackend.pm, tredlib/StorableBackend.pm, tredlib/TEIXMLBackend.pm, tredlib/TrXMLBackend.pm:
+	use IOBackend instead of old ZBackend
+
+	* tredlib/IOBackend.pm: initial commit
+
+2004-11-01  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_en.mak, tredlib/contrib/tr_en_anot_main.mak:
+	*** empty log message ***
+
+2004-10-29  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pdt.mak, tredlib/contrib/tr_opravy.mak:
+	- PDT::GetNewTRLemma
+	- verb finitariness checking macros
+
+	* tred: - fixed filelist handling
+	- allow browsing various context in the macro list
+
+	* documentation/manual/tred.xml: doctype
+
+	* tredlib/TrEd/Config.pm: remove obsolete stuff
+
+	* tredlib/Tk/HelpTiptool.pm: improved: moving
+
+	* documentation/manual/tred.xml: - more config options documented
+
+	* tred: - HTML sentence view improved
+	- TooltipHelp improved
+
+	* tredlib/contrib/cac_treebank.mak: added x_origs descriptions
+
+2004-10-27  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: fix helptiptool
+
+	* tred: added ImageMagick == 5.5.x warning
+
+2004-10-26  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: - added busy recurse to filelist dialog
+	- added more icons to filelist dialog
+
+	* tredlib/icons/crystal/button_cancel.png, tredlib/icons/crystal/button_ok.png, tredlib/icons/crystal/editdelete.png, tredlib/icons/default/button_cancel.xpm, tredlib/icons/default/button_ok.xpm, tredlib/icons/default/editdelete.xpm:
+	initial commit
+
+2004-10-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Tk/HelpTiptool.pm: initial commit
+
+	* tredlib/Tk/ImgButton.pm: use Tk::Compound
+
+	* tredlib/Tk/MyFileSelect.pm: changed packing policy
+
+	* tred: added contextual help to the customization dialog
+
+2004-10-23  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Tk/ImgButton.pm: initial commit
+
+	* tredlib/Filelist.pm: fix position() method
+
+	* tred: reworking filelists
+
+	* ChangeLog: updated
+
+2004-10-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/cac_treebank.mak:
+	- try to place coordination nodes at least on the right coordination
+	  member (otherwise would stay on the root)
+
+	* tredlib/tred.mac: remove PDT specific sutff
+
+	* tredlib/contrib/cac_treebank.mak: initial commit
+
+	* tredlib/contrib/frame_validation.mak:
+	better recognition of possesives
+
+	* tredlib/contrib/contrib.mac: include CAC stuff
+
+	* tredlib/contrib/tr_opravy.mak: remove CAC stuff
+
+	* tredlib/contrib/pdt_tags.mak: only PDT stuff here
+
+	* tredlib/contrib/pdt_specific.mak:
+	added AcademicTreebank file recognition
+
 2004-10-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* tredlib/contrib/cac_treebank.mak:
