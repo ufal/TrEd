@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2002-02-06 16:33:34 pajas>
+# Time-stamp: <2002-03-22 13:55:09 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -55,6 +55,8 @@ BEGIN {
   $sgmls
   $sgmlsopts
   $cstsdoctype
+  $cstsparsecommand
+  $cstsparsezcommand
   $keyboardDebug
   $hookDebug
   $macroDebug
@@ -312,12 +314,16 @@ sub set_config {
   $sgmls       = val_or_def($confs,"sgmls",undef);
   $sgmlsopts   = val_or_def($confs,"sgmlsopts",undef);
   $cstsdoctype = val_or_def($confs,"cstsdoctype","$libDir/csts.doctype");
+  $cstsparsecommand = val_or_def($confs,"cstsparsercommand","\%s \%o \%d \%f");
+  $cstsparsezcommand = val_or_def($confs,"cstsparserzcommand","\%z < \%f | \%s \%o \%d -");
 
   $CSTS_SGML_SP_Backend::gzip=$gzip;
   $CSTS_SGML_SP_Backend::zcat=$zcat;
   $CSTS_SGML_SP_Backend::sgmls=$sgmls;
   $CSTS_SGML_SP_Backend::sgmlsopts=$sgmlsopts;
   $CSTS_SGML_SP_Backend::doctype=$cstsdoctype;
+  $CSTS_SGML_SP_Backend::sgmls_command=$cstsparsecommand;
+  $CSTS_SGML_SP_Backend::z_sgmls_command=$cstsparsezcommand;
 
   $keyboardDebug	      =	val_or_def($confs,"keyboarddebug",0);
   $hookDebug		      =	val_or_def($confs,"hookdebug",0);
