@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-10-27 13:00:07 paja>
+## Time-stamp: <2001-10-29 13:45:33 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -11,7 +11,7 @@
 #include contrib/AFA.mak
 #include contrib/ValLex/chooser.mak
 
-#bind default_tr_attrs to key F9 menu Display default attributes
+#bind default_tr_attrs to key F8 menu Display default attributes
 sub default_tr_attrs {
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
