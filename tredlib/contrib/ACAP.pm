@@ -154,7 +154,7 @@ sub corefCandidate {
 		 $_->{sentord}==$node->{sentord}+2 and
 		   ($_->{trlemma}=~/^(kdo|co|který|jaký|jak|jen¾)$/ or # ten, kdo...
 		    $_->{tag}=~/^J,/) # to, ze....
-		 } $root->descendants()
+		 } $node->root->descendants()
 		       )
 	      )
 	   or ($node->{trlemma}=~/^(jen¾|jak|kdy|kam|kudy|kde|kdo|co|co¾|tenhle|odkud|odkdy)$/
