@@ -151,7 +151,8 @@ sub assign_all_func_auto {
   my $class=$_[0];
   my $node=$root;
   while ($node) {
-    assign_func_auto($class,$node) if ($node->{func} eq '???');
+    assign_func_auto($class,$node) if ($node->{func} eq '???' or
+                                       $node->{func} eq '');
     $node=NextVisibleNode($node);
   }
 }
