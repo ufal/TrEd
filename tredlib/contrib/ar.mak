@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2002-10-06 08:33:36 pajas>
+## Time-stamp: <2003-01-24 11:09:23 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -34,8 +34,10 @@ sub edit_commentA {
 #bind default_ar_attrs to F8 menu Display default attributes
 sub default_ar_attrs {
   return unless $grp->{FSFile};
-  SetDisplayAttrs('${form}', '${afun}');
-  SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}");
+  SetDisplayAttrs('${form}', '${afun}',
+		'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
+		  'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>');
+  SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ncommentA: \${commentA}");
   return 1;
 }
 
@@ -44,8 +46,9 @@ sub switch_context_hook {
   if ($grp->{FSFile} and 
       GetSpecialPattern('patterns') ne 'force' and
       !$grp->{FSFile}->hint()) {
+    default_ar_attrs();
 #    SetDisplayAttrs('${form}', '${afun}');
-    SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ncommentA: \${commentA}");
+#    SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ncommentA: \${commentA}");
   }
   $FileNotSaved=0;
 }

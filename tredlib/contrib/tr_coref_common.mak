@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-20 14:05:31 pajas>
+## Time-stamp: <2003-01-24 11:09:01 pajas>
 
 package Coref;
 
@@ -13,6 +13,8 @@ sub default_tr_attrs {
     SetDisplayAttrs('mode:Coref',
 		    '<? "#{red}" if $${commentA} ne "" ?>${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
+		    'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
+		    'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>'
 		   );
 
     SetBalloonPattern(<<'__BALLOON__');
