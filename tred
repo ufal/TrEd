@@ -1009,7 +1009,7 @@ sub get_value_line {
     $vl=doEvalHook($win,"get_value_line_hook",$fsfile,$no);
     if (defined($vl)) {
       if (ref($vl)) {
-	$vl=map { $_->[0]=encode($_->[0]); $_ } @$vl;
+	$vl=[ map { $_->[0]=encode($_->[0]); $_ } @$vl ];
       } else {
 	$vl=encode($vl);
       }
