@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-11 10:45:37 pajas>
+## Time-stamp: <2002-11-13 14:32:25 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -19,10 +19,15 @@
 #bind choose_frame_or_advfunc to F1 menu Vyber ramec pro sloveso, funktor pro adverbium
 
 sub choose_frame_or_advfunc {
-  if ($this->{tag}!~/^[VAN]/) {	# co neni sloveso, subst ni adj, je adv :))))
-    ChooseAdverbFunc();
-  } else {
+  my $tag;
+  foreach $tag (qw(tag tagMD_a tagMD_b)) {
+    last if ($this->{$tag} ne "" and
+	     $this->{$tag} ne "-");
+  }
+  if ($this->{$tag}=~/^[VAN]/) {	# co neni sloveso, subst ni adj, je adv :))))
     ChooseFrame();
+  } else {
+    ChooseAdverbFunc();
   }
 }
 
@@ -809,11 +814,11 @@ sub move_aid_to_aidrefs {
 	    $aid_risk=~s/w\d+$/w$node->{ord}/;
 	    if (exists($aids{$aid})) {
 	      print FileName()."##$treeno.".GetNodeIndex($node).
-		": no ID from $node->{AIDREFS} matches w$node->{ord}. Using the first one!\n";
+		" no ID from $node->{AIDREFS} matches w$node->{ord}. Using the first one!\n";
 	      $node->{AID}=$aid
 	    } else {
 	      print FileName()."##$treeno.".GetNodeIndex($node).
-		": no ID from $node->{AIDREFS} matches w$node->{ord}. Risking free $aid_risk!\n";
+		" no ID from $node->{AIDREFS} matches w$node->{ord}. Risking free $aid_risk!\n";
 	      $node->{AID}=$aid_risk;
 	      $node->{AIDREFS}=$aid_risk.'|'.$node->{AIDREFS};
 	    }
@@ -823,28 +828,28 @@ sub move_aid_to_aidrefs {
       if ($node->{TID} ne "" or $node->{ord}=~/\./ or $node->{sentord}==999) {
 	if ($node->{AID} ne "") {
 	  print FileName()."##$treeno.".GetNodeIndex($node).
-	    ": Removing AID $node->{AID} from $node->{TID} $node->{ord}\n"
+	    " Removing AID $node->{AID} from $node->{TID} $node->{ord}\n"
 	      if $verbose;
 	  $node->{AID}='';
 	}
 	if ($node->{TID} eq "") {
 	  $node->{TID}=generate_new_tid($tree);
 	  print FileName()."##$treeno.".GetNodeIndex($node).
-	    ": node with ord $node->{ord} has no TID yet: assigning $node->{TID}\n";
+	    " node with ord $node->{ord} has no TID yet: assigning $node->{TID}\n";
 	}
 	if ($node->{sentord}==999 and $node->{ord}!~/\./) {
 	  do {
 	    my $oldord=$node->{ord};
 	    $node->{ord}=GetNewOrd($node);
 	    print FileName()."##$treeno.".GetNodeIndex($node).
-	      ": changing ord for node with sentord 999 from $oldord to $node->{ord}";
+	      " changing ord for node with sentord 999 from $oldord to $node->{ord}";
 	  };
 	}
       }
       if ($node->{AID} ne "" and exists($aids{$node->{AID}})) {
 	$node->{TID}=generate_new_tid($tree);
 	print FileName()."##$treeno.".GetNodeIndex($node).
-	  ": replacing duplicate AID $node->{AID} ($node->{ord},$node->{sentord}) with $node->{TID}\n";
+	  " replacing duplicate AID $node->{AID} ($node->{ord},$node->{sentord}) with $node->{TID}\n";
 	$node->{AID}='';
       }
       $aids{$node->{AID}}=1 if $node->{AID} ne "";
@@ -876,7 +881,7 @@ sub reorder_dords {
   my $ord=$grp->{FSFile}->FS->order;
   for (my $i=0;$i<=$#$nodesref; $i++) {
     if ($nodesref->[$i]->{$ord}!=$i) {
-      print FileName()."##".(CurrentTreeNumber()+1).".".GetNodeIndex($nodesref->[$i]).": ",
+      print FileName()."##".(CurrentTreeNumber()+1).".".GetNodeIndex($nodesref->[$i])." ",
 	$nodesref->[$i]->{$ord}," --> $i\n";
       $nodesref->[$i]->{$ord}=$i;
       $FileChanged=1;
