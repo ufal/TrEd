@@ -798,7 +798,7 @@ sub FPaste {
 
   $pThis=$this;
   if ($NodeClipboard and $sPasteNow eq 'yes') {
-    $sDord = $pThis->{'dord'};
+    $sDord = $pThis->{'dord'}+1;
     $pPasted=PasteNode($NodeClipboard,$pThis);
     $pPasted->{'dord'} = "-1";
     $pPasted->{'del'} = 'ELID';
@@ -815,6 +815,7 @@ sub FPaste {
     }
     $pPasted->{'AID'} = '';
     $this=PasteNode(CutNode($pPasted),$pThis); # repaste to get structure order right
+    set_parenthesis( $this );
   }
   $sPasteNow = '';
 }
