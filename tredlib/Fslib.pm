@@ -2571,7 +2571,7 @@ sub destroy_tree {
 #
 
 package FSBackend;
-use vars qw($CheckListValidity);
+use vars qw($CheckListValidity $emulatePML);
 use strict;
 use IOBackend qw(open_backend close_backend);
 use Carp;
@@ -2589,6 +2589,31 @@ FSBackend - IO backend for reading/writing FS files using FSFile class.
 =cut
 
 =pod
+
+=item $emulatePML
+
+This variable controls whether a simple PML schema should be created
+for FS files (default is 1 - yes). Attribute whose name contains one
+or more slashes is represented as a (possibly nested) structure where
+each slash represents one level of nesting. Attributes sharing a
+common name-part followed by a slash are represented as members of
+the same structure. For example, attirubtes C<a>, C<b/u/x>, C<b/v/x> and
+C<b/v/y> result in the following structure:
+
+C<{a => value_of_a,
+   b => { u => { x => value_of_a/u/x },
+        { v => { x => value_of_a/v/x,
+                 y => value_of_a/v/y }}}
+  }>
+
+In the PML schema emulation mode, it is forbidden to have both C<a>
+and C<a/b> attributes. In such a case the parser reverts to
+non-emulation mode.
+
+=cut
+
+$emulatePML=1;
+
 
 =item test (filehandle | filename, encoding?)
 
@@ -2619,7 +2644,35 @@ sub test {
   }
 }
 
-=pod
+
+sub _fs2members {
+  my ($fs)=@_;
+  my $mbr = {};
+  my $defs = $fs->defs;
+  # sort, so that possible short parts go first
+  foreach my $attr (sort $fs->attributes) {
+    my $m = $mbr;
+    # check that no short attr exists
+    my @parts = split /\//,$attr;
+    my $short=$parts[0];
+    for (my $i=1;$i<@parts;$i++) {
+      if ($defs->{$short}) {
+	warn "Can't emulate PML schema: attribute name conflict between $short and $attr: falling back to non-emulation mode\n";
+      }
+      $short .= '/'.$parts[$i];
+    }
+    for my $part (@parts) {
+      $m->{structure}{member}{$part}{-name} = $part;
+      $m=$m->{structure}{member}{$part};
+    }
+    if ($fs->isList($attr)) {
+      $m->{choice} = [ $fs->listValues($attr) ];
+    } else {
+      $m->{type} = 'CDATA';
+    }
+  }
+  return $mbr->{structure}{member};
+}
 
 =item read (handle_ref,fsfile)
 
@@ -2636,6 +2689,42 @@ sub read {
   $fsfile->changeFS( FSFormat->new() );
   $fsfile->FS->readFrom($fileref) || return 0;
 
+  my $emu_schema_type;
+  if ($emulatePML) {
+    # fake a PML Schema:
+    my $node_type;
+    my $schema= bless {
+      description => 'PML schema generated from FS header',
+      root => { name => 'fs-data',
+		element => {
+		  trees => {
+		    -name => 'trees',
+		    role => '#TREES',
+		    required => 1,
+		    list => {
+		      ordered => 1,
+		      type => 'fs-node.type'
+		    }
+		  }
+		}
+	      },
+      type => {
+	'fs-node.type' => {
+	  -name => 'fs-node.type',
+	  structure => ($node_type = {
+	    name => 'fs-node',
+	    role => '#NODE',
+	    member => _fs2members($fsfile->FS)
+	  })
+	}
+      }
+    },'Fslib::Schema';
+    if (defined($node_type->{member})) {
+      $emu_schema_type = $schema->type($node_type);
+      $fsfile->changeMetaData('schema',$schema);
+    }
+  }
+
   my ($root,$l,@rest);
   $fsfile->changeTrees();
 
@@ -2648,7 +2737,7 @@ sub read {
 
   while ($l=Fslib::ReadEscapedLine($fileref)) {
     if ($l=~/^\[/) {
-      $root=ParseFSTree($fsfile->FS,$l,$ordhash);
+      $root=ParseFSTree($fsfile->FS,$l,$ordhash,$emu_schema_type);
       push @{$fsfile->treeList}, $root if $root;
     } else { push @rest, $l; }
   }
@@ -2818,7 +2907,7 @@ resulting FS tree as an FSNode object.
 =cut
 
 sub ParseFSTree {
-  my ($fsformat,$l,$ordhash)=@_;
+  my ($fsformat,$l,$ordhash,$emu_schema_type)=@_;
   return undef unless ref($fsformat);
   my $root;
   my $curr;
@@ -2836,13 +2925,13 @@ sub ParseFSTree {
     $l=~s/\\\\/&backslash;/g;
     $l=~s/\\=/&eq;/g;
     $l=~s/\r//g;
-    $curr=$root=ParseFSNode($fsformat,\$l,$ordhash);   # create Root
+    $curr=$root=ParseFSNode($fsformat,\$l,$ordhash,$emu_schema_type);   # create Root
 
     while ($l) {
       $c = substr($l,0,1);
       $l = substr($l,1);
       if ( $c eq '(' ) { # Create son (go down)
-	$curr->{$Fslib::firstson} = ParseFSNode($fsformat,\$l,$ordhash);
+	$curr->{$Fslib::firstson} = ParseFSNode($fsformat,\$l,$ordhash,$emu_schema_type);
 	$curr->{$Fslib::firstson}->{$Fslib::parent}=$curr;
 	$curr=$curr->{$Fslib::firstson};
 	next;
@@ -2853,7 +2942,7 @@ sub ParseFSTree {
 	next;
       }
       if ( $c eq ',' ) { # Create right brother (go right);
-	$curr->{$Fslib::rbrother} = ParseFSNode($fsformat,\$l,$ordhash);
+	$curr->{$Fslib::rbrother} = ParseFSNode($fsformat,\$l,$ordhash,$emu_schema_type);
 	$curr->{$Fslib::rbrother}->{$Fslib::lbrother}=$curr;
 	$curr->{$Fslib::rbrother}->{$Fslib::parent}=$curr->{$Fslib::parent};
 	$curr=$curr->{$Fslib::rbrother};
@@ -2868,7 +2957,7 @@ sub ParseFSTree {
 
 
 sub ParseFSNode {
-  my ($fsformat,$lr,$ordhash) = @_;
+  my ($fsformat,$lr,$ordhash,$emu_schema_type) = @_;
   my $n = 0;
   my $node;
   my @ats=();
@@ -2890,6 +2979,7 @@ sub ParseFSNode {
   }
 
   $node = FSNode->new();
+  $node->set_type($emu_schema_type) if ($emu_schema_type);
   if ($$lr=~/^\[/) {
     chomp $$lr;
     $i=index($$lr,']');
@@ -2926,7 +3016,13 @@ sub ParseFSNode {
       $v=~s/&rsqb;/]/g;
       $v=~s/&backslash;/\\/g;
       $v=~s/&eq;/=/g;
-      $node->setAttribute($a,$v);
+      if ($emu_schema_type and $a=~/\//) {
+	$node->set_attr($a,$v);
+      } else {
+	# speed optimized version
+	#      $node->setAttribute($a,$v);
+	$node->{$a}=$v;
+      }
     }
   } else { croak $$lr," not node!\n"; }
   return $node;
