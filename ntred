@@ -893,7 +893,8 @@ sub get_file_list {
       while (<$f>) {
 	s/^\s+//;
 	next if /^#/;
-	chomp; push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
+	s/[\n\r]+$//;
+	push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
       }
       close $f;
     }
@@ -914,7 +915,8 @@ sub get_files {
 	next if /^#/;
 	s{^ntred://}{};
 	s{@(\d+)##?1(\.\d+)?$}{##$1$2};
-	chomp; push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
+	s/[\n\r]+$//;
+	push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
       }
       close $f;
     }

@@ -296,6 +296,7 @@ if ($^O eq 'MSWin32') {
 } else {
   @files=@ARGV;
 }
+s/[\n\r]+$// for @files;
 @ARGV=@TredMacro::ARGV;
 
 
@@ -689,7 +690,8 @@ sub startMain {
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD_MACROS') {
 	  my $f=$request{Filename};
-	  chomp $f;
+	  $f =~ s/[\n\r]+$//;
+	  # chomp $f;
 	  $macroFile = $f if $f;
 	  _msg "Reloading macros from $macroFile libdir=$libDir at client's request\n";
 	  %TrEd::Macros::defines=(BTRED => 1); # reset defines
@@ -762,7 +764,8 @@ sub startMain {
 	} elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  my $f=$request{Filename};
-	  chomp $f;
+	  # chomp $f;
+	  $f =~ s/[\n\r]+$//;
 	  _msg "Uploading $f at client's request\n";
 	  $f=~s{^ntred://}{};
 	  $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
@@ -814,7 +817,9 @@ sub startMain {
 		 $request{REQUEST_TYPE} eq 'SAVE_CHANGED'
 		) {
 	  for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
-	    chomp($request{$_}) if exists $request{$_};
+	    if (exists $request{$_}) {
+	      $request{$_} =~ s/[\n\r]+$//;
+	    }
 	  }
 	  # create temporary file to store std output
 	  my $macro_stdout = IO::File->new_tmpfile();
@@ -1100,7 +1105,7 @@ sub checkLock {
   return "none" if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
   my $lockinfo = "none";
   if (-f $f.".lock") {
-    eval { open my $l, $f.".lock"; $lockinfo = <$l>; chomp $lockinfo; close $l; };
+    eval { open my $l, $f.".lock"; $lockinfo = <$l>; $lockinfo =~ s/[\n\r]+$//; close $l; };
   }
   return $lockinfo;
 }
