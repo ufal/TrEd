@@ -21,7 +21,7 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $safe_mode $help $usage $manpage $ssh $run_local $server_debug
 	    $maxservers $request_reload $request_reload_changed
 	    $request_load $request_close
-	    $request_list $request_list_changed $request_save
+	    $request_list $request_list_changed $request_save $request_list_secondary
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
 	    $config_file $start_context @preload_modules $btred $break
@@ -67,6 +67,7 @@ Getopt::Long::Configure ("bundling");
 	 "close-files"     => \$request_close,
 	 "load-files"      => \$request_load,
 	 "list-files"      => \$request_list,
+	 "list-secondary-files"      => \$request_list_secondary,
 	 "count-files"      => \$count_files,
 	 "list-changed-files" => \$request_list_changed,
 	 "save-files"      => \$request_save,
@@ -657,6 +658,8 @@ if (defined($init) || defined($kill) || defined($break)) {
       }
       $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n";
     }
+  } elsif ($request_list_secondary) {
+    $request_type="LIST_SECONDARY";
   } elsif ($request_list_changed) {
     $request_type="LIST_CHANGED";
   } elsif ($request_save || $request_save_changed) {
