@@ -2,7 +2,7 @@ package Fslib;
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-04-04 16:01:36 pajas>
+# Time-stamp: <2001-05-05 20:50:59 paja>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -956,7 +956,8 @@ sub isHidden {
   # Returns the ancesor that hides it or undef
   my ($self,$node)=@_;
   return unless ref($self) and ref($node);
-  $node=$node->parent while (ref($node) and ($node->{$self->hide} ne 'hide'));
+  my $hid=$self->hide;
+  $node=$node->parent while (ref($node) and ($node->{$hid} ne 'hide'));
   return ($node ? $node : undef);
 }
 
@@ -1164,6 +1165,31 @@ sub exists {
     ref($self) ? defined($self->defs->{$arg}) : undef;
 }
 
+=item make_sentence (root_node,separator)
+
+Return a string containing the content of value (special) attributes
+of the nodes of the given tree, separted by separator string, sorted by
+value of the (special) attribute sentord or (if sentord does not exist) by
+(special) attribute order.
+
+=cut
+
+sub make_sentence {
+  my ($self,$root,$separator)=@_;
+  return undef unless ref($self);
+  $separator=' ' unless defined($separator);
+  my @nodes=();
+  my $sentord = $self->sentord || $self->order;
+  my $value = $self->value;
+  my $node=$root;
+  while ($node) {
+    push @nodes,$node;
+    $node=$node->following($root);
+  }
+  return join ($separator,
+	       map { $_->{$value} }
+	       sort { $a->{$sentord} <=> $b->{$sentord} } @nodes);
+}
 
 =pod
 
@@ -1595,7 +1621,7 @@ sub changeTail {
 
 =item trees
 
-Return a list of all trees (e.g. their roots represented by FSNode objects).
+Return a list of all trees (i.e. their roots represented by FSNode objects).
 
 =cut
 

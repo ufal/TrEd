@@ -21,9 +21,7 @@ exit_hook	none			no	executed when
 						askSaveFile is executed
 do_edit_attrs_hook
 
-enable_attr_hook                                
-
-edit_attr_hook	attr,type		yes	executed before
+enable_attr_hook attr,type		yes	executed before
 						attribute "attr" is edited by
 						user in a GUI. Type "type"
 						may be one of "ambiguous","normal"
@@ -80,6 +78,31 @@ sort_attrs_hook				no	executed when
 						modified by the hook)
 						list is used without
 						any further sorting.
+
+after_edit_node_hook			no	executed after
+						node attribute values
+						are edited via the
+						tred's edit attributes
+						dialog window
+						Arguments:node,result
+						where result==1 if
+						the user has pressed Ok
+						and result==0 if the user
+						pressed has pressed Cancel
+
+after_edit_attr_hook			no	executed after
+						a node attribute is
+						edited via the
+						tred's edit attribute
+						dialog window
+						Arguments:node,attr,result
+						where attr is the name
+						of the edited
+						attribute result==1 if
+						the user has pressed Ok
+						and result==0 if the user
+						pressed has pressed Cancel
+
 
 NOTE:
 Unlike other macros, hooks are expected not to modify the file. If the

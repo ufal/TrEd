@@ -2,7 +2,7 @@
 package TFA;
 @ISA=qw(Tectogrammatic);
 import main;
-import TredMac;
+import TredMacro;
 import Tectogrammatic;
 
 

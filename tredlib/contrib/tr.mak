@@ -1,21 +1,64 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 ## author: Alena Bohmova
-## Time-stamp: <2001-04-26 17:20:13 pajas>
+## Time-stamp: <2001-05-04 15:58:37 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
 import TredMacro;
 import main;
 
-use AFA;
+require AFA;
+
+sub after_edit_attr_hook {
+  my ($node,$attr,$result)=@_;
+  if ($attr eq 'func' and $result) {
+    $node->{funcaux}='';
+  }
+}
+
+sub after_edit_node_hook {
+  my ($node,$result)=@_;
+  if ($result) {
+    $node->{funcaux}='';
+  }
+}
+
+#bind clear_funcaux to key Space
+sub clear_funcaux {
+  my $node=$_[1] || $this;
+  $node->{funcaux}='';
+}
 
 #bind assign_func_auto to key F9
 sub assign_func_auto {
   my $node=$_[1] || $this;
-  $node->{reserve2}='';
-  $node->{err1}='black';
-  return if IsHidden($node) 
-    || $node eq $root || 
+  foreach (qw/funcauto funcprec funcaux/) {
+    $node->{$_}='';
+  }
+  $node->{funcaux}='black';
+  if ($node->{afun}=~/Coord/) {
+    if ($node->{lemma} eq 'a-1') {
+      $node->{func}='CONJ';
+    } elsif ($node->{lemma} eq 'v¹ak') {
+      $node->{func}='PREC';
+    } elsif ($node->{lemma} eq 'ale') {
+      $node->{func}='ADVS';
+    } elsif ($node->{lemma} eq ',') {
+      $node->{func}='CONJ';
+    } elsif ($node->{lemma} eq 'nebo') {
+      $node->{func}='DISJ';
+    } else {
+      $node->{func}='CONJ';
+    }
+    $node->{funcauto}=$node->{func};
+    $node->{funcaux}="#{custom5}";
+  } elsif ($node->{afun}=~/Apos/) {
+    $node->{func}='APPS';
+    $node->{funcaux}="#{custom5}";
+    $node->{funcauto}=$node->{func};
+  }
+  return if IsHidden($node)
+    || $node eq $root ||
     $node->{afun}=~/Coord|Apos/i || index($node->{ord},'.')>=0;
   my $p=$node->parent;
   $p=$p->parent while ($p and $p->{afun}=~/Coord|Apos/i);
@@ -24,13 +67,14 @@ sub assign_func_auto {
   $na=~s/_.*//g;
   $pa=~s/_.*//g;
   my $prec;
-  $node->{reserve2}="???";
-  ($node->{reserve2},$prec)=AFA::AutoFunctor($p->{tag},$node->{tag},$pa,$na,$node->{fw});
-  $node->{reserve1}=$prec;
+  $node->{funcauto}="???";
+  ($node->{funcauto},$prec)=AFA::AutoFunctor($p->{tag},$node->{tag},$pa,$na,$node->{fw});
+  $node->{funcprec}=$prec;
   $prec=~m!([0-9.]+)/([0-9.]+)!;
-  $prec=100*($1-$2)/$1;
+  eval { $prec=100*($1-$2)/$1; };
   $prec=~s/(\.[0-9][0-9]).*$/\1/;
-  $node->{err1} = $prec>90 ? "#{darkblue}" : ( $prec<70 ? "#{red}" : "#{darkgreen}");
+  $node->{funcaux} = $prec>90 ? "#{custom4}" : ( $prec<50 ? "#{custom6}" : "#{custom5}");
+  $node->{func}=$node->{funcauto};
 }
 
 #bind assign_all_func_auto to key F10
@@ -57,7 +101,7 @@ sub switch_context_hook {
 #insert default_tr_attrs as menu Display default attributes
 sub default_tr_attrs {
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
 		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
@@ -326,6 +370,7 @@ sub TFAAssign {
 sub FuncAssign {
   if (Parent($this)) {
     $this->{'func'} = $sPar1;
+    clear_funcaux($this);
     $this=NextVisibleNode($this);
   }
 }
@@ -415,11 +460,11 @@ sub NewVerb {
   $pNew->{'afun'} = '---';
   $pNew->{'ID1'} = '???';
   $pNew->{'ID2'} = '???';
-  $pNew->{'origf'} = '---';
-  $pNew->{'origap'} = '???';
+  $pNew->{'origf'} = '';
+  $pNew->{'origap'} = '';
   $pNew->{'gap1'} = '';
   $pNew->{'gap2'} = '';
-  $pNew->{'gap3'} = 's';
+  $pNew->{'gap3'} = '';
   $pNew->{'ord'} = $sNum;
   $pNew->{'ordtf'} = '???';
   $pNew->{'afunprev'} = '---';
@@ -442,7 +487,7 @@ sub NewVerb {
   $pNew->{'deontmod'} = '???';
   $pNew->{'sentmod'} = '???';
   $pNew->{'tfa'} = '???';
-  $pNew->{'func'} = 'EV';
+  $pNew->{'func'} = 'PRED';
   $pNew->{'gram'} = '???';
   $pNew->{'reltype'} = '???';
   $pNew->{'memberof'} = '???';
