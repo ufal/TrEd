@@ -331,6 +331,7 @@ EOL
   doEvalMacro($grp,$premacro);
   exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
   preloadFiles($grp,\@files) if $opt_P;
+  doEvalHook($grp,"preload_hook") if $opt_P; # run start_hook
   openFile($grp,$files[$fileNo]);
   do {
     print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $opt_Q;
