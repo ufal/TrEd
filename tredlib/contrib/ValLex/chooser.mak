@@ -1,14 +1,23 @@
 # -*- cperl -*-
 
+package VallexGUI;
+import TredMacro;
+
 #encoding iso-8859-2
 
 $ValencyLexicon=undef;
 $ChooserHideObsolete=1;
 $frameid_attr="frameid";
 $framere_attr="framere";
+$lemma_attr="t_lemma";
+$wordclass_attr="g_wordclass";
 $vallexEditor=undef;
 $vallex_validate = 0;
-$vallex_file = $ENV{VALLEX} || "$libDir/contrib/ValLex/vallex.xml";
+$vallex_file = $ENV{VALLEX};
+if ($vallex_file eq "") {
+  # try to find vallex in libDir (old-way) or in resources (new-way)
+  $vallex_file = ResolvePath("$libDir/contrib/ValLex/vallex.xml",'vallex.xml',1);
+}
 
 $chooserDialog=undef;
 
@@ -16,23 +25,13 @@ $chooserDialog=undef;
 #$XMLDataClass="TrEd::ValLex::LibXMLData";
 
 %sempos_map = (
-  semn => 'N',
-  semv => 'V',
+  semn   => 'N',
+  semv   => 'V',
   semadj => 'A',
   semadv => 'D'
  );
 
 sub init_XMLDataClass {
-
-  eval <<'EOF';
-    require POSIX;
-    # ensure czech collating locale
-    #    print STDERR "LC_COLLATE:",
-    #      $TrEd::Convert::support_unicode ? "cs_CZ.UTF-8" : "cs_CZ";
-    POSIX::setlocale(POSIX::LC_COLLATE,
-		     $TrEd::Convert::support_unicode ? "cs_CZ.UTF-8" : "cs_CZ");
-EOF
-
   unless (defined $XMLDataClass) {
     eval { require XML::JHXML; };
     if ($@) {
@@ -45,6 +44,7 @@ EOF
       $XMLDataClass="TrEd::ValLex::ExtendedJHXML";
     }
   }
+  require ValLex::Data;
   if ($XMLDataClass =~ /JHXML/) {
     require ValLex::ExtendedJHXML;
   } elsif ($XMLDataClass =~ /LibXML/) {
@@ -52,6 +52,12 @@ EOF
   }
 }
 
+sub init_VallexClasses {
+  require ValLex::Widgets;
+  require ValLex::Editor;
+  require ValLex::Chooser;
+  require TrEd::CPConvert;
+}
 
 sub InfoDialog {
   my ($top,$text)=@_;
@@ -69,59 +75,22 @@ sub InfoDialog {
 
 }
 
-sub parse_lemma {
-  my ($trlemma,$lemma,$tag)=@_;
-  my @components=split /_[\^,:;\']/,$lemma;
-  my $pure_lemma=shift @components;
-  my $deriv;
-  foreach (@components) {
-    if (/^\(.*\*(.*)\)/) {
-      $deriv=$1;
-      if ($deriv =~/^([0-9]+)(.*)$/) {
-	$deriv=substr($pure_lemma,0,-$1).$2;
-      }
-      last;
-    }
-  }
-  if ((($tag=~/^N/ and $trlemma=~/[tn]í(?:$|\s)/) or
-       ($tag=~/^A/ and $trlemma=~/[tn]ý(?:$|\s)/)) 
-      and $deriv=~/t$|ci$/) {
-    $deriv=~s/-[0-9]+$//g;
-    if ($trlemma=~/( s[ei])$/) {
-      $deriv.=$1;
-    }
-  } else {
-    $deriv=undef;
-  }
-  return ($pure_lemma,$deriv);
-}
-
 sub InitValencyLexicon {
   my $top=ToplevelFrame();
   unless ($ValencyLexicon) {
     my $support_unicode = ($Tk::VERSION ge 804.00);
-    my $conv= TrEd::CPConvert->new("utf-8",
-				   $support_unicode ? "utf-8" :
-				   (($^O eq "MSWin32") ?
-				    "windows-1250" :
-				    "iso-8859-2"));
+    my $conv= TrEd::CPConvert->new("utf-8", 
+				   $support_unicode ? "utf-8" : (($^O eq "MSWin32") ? "windows-1250" : "iso-8859-2"));
     my $info;
     eval {
       if ($^O eq "MSWin32") {
 	$vallex_file =~ s{/}{\\}g;
-	#### we may leave this commented out since 1. LibXML is fast enough and
-	#### 2. it does not work always well under windows
+	#### we may leave this commented out since it does not work correctly under windows
 	#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
-
-	$ValencyLexicon=
-	  $XMLDataClass->new($vallex_file,$conv,!$vallex_validate);
       } else {
 	$info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
-	$ValencyLexicon=
-	  $XMLDataClass->new(($XMLDataClass =~ /LibXML/ and -f "${vallex_file}.gz") ?
-			     "${vallex_file}.gz" :
-			     "${vallex_file}",$conv,!$vallex_validate);
       }
+      $ValencyLexicon= $XMLDataClass->new($vallex_file,$conv,!$vallex_validate);
     };
     my $err=$@;
     $info->destroy() if $info;
@@ -129,7 +98,7 @@ sub InitValencyLexicon {
       print STDERR "$err\n";
       $top->Unbusy(-recurse=>1);
       ChangingFile(0);
-      ErrorMessage("Valency lexicon not found or corrupted.\nPlease install!\n\n$err\n");
+      ErrorMessage("Valency lexicon not found or corrupted.\nPlease, make sure that the following file is installed correctly: ${vallex_file}!\n\n$err\n");
       return 0;
     } else {
       return 1;
@@ -141,6 +110,8 @@ sub InitValencyLexicon {
 
 
 sub OpenEditor {
+  my %opts=@_;
+  my $node = $opts{-node} || $this;
   if ($vallexEditor) {
     return unless ref($vallexEditor);
     $vallexEditor->toplevel->deiconify;
@@ -158,8 +129,8 @@ sub OpenEditor {
   InitValencyLexicon() || return; #do { $top->Unbusy(-recurse=>1); return };
 
   my $pos='V';
-  $pos=$sempos_map{$1} if $this->{g_wordclass}=~/^(sem([vn]|adj|adv))/;
-  my $lemma=TrEd::Convert::encode($this->{t_lemma});
+  $pos=$sempos_map{$1} if $node->attr($wordclass_attr)=~/^(sem([vn]|adj|adv))/;
+  my $lemma=TrEd::Convert::encode($node->attr($lemma_attr));
 
   my $font = $main::font;
   my $fc=[-font => $font];
@@ -179,7 +150,7 @@ sub OpenEditor {
 		     infoline => { label => $fc }
 		    };
 
-  print STDERR "EDITOR start at: $lemma,$pos,",$this->{$frameid_attr},"\n";
+  print STDERR "EDITOR start at: $lemma,$pos,",$node->attr($frameid_attr),"\n";
 
   my $d;
   ($d,$vallexEditor)=
@@ -191,7 +162,7 @@ sub OpenEditor {
 					    $fc,
 					    $fc,
 					    $fe_conf,
-					    $this->{$frameid_attr},    # select frame
+					    $node->attr($frameid_attr),    # select frame
 					    0,
 					    {
 					     '<F5>' => [\&copy_verb_frame,$grp->{framegroup}],
@@ -334,7 +305,36 @@ sub open_frame_instance_in_tred {
   }
 }
 
+sub parse_lemma {
+  my ($trlemma,$lemma,$pos)=@_;
+  my @components=split /_[\^,:;\']/,$lemma;
+  my $pure_lemma=shift @components;
+  my $deriv;
+  foreach (@components) {
+    if (/^\(.*\*(.*)\)/) {
+      $deriv=$1;
+      if ($deriv =~/^([0-9]+)(.*)$/) {
+	$deriv=substr($pure_lemma,0,-$1).$2;
+      }
+      last;
+    }
+  }
+  if ((($pos eq 'N' and $trlemma=~/[tn]í(?:$|\s)/) or
+       ($pos eq 'A' and $trlemma=~/[tn]ý(?:$|\s)/)) 
+      and $deriv=~/t$|ci$/) {
+    $deriv=~s/-[0-9]+$//g;
+    if ($trlemma=~/( s[ei])$/) {
+      $deriv.=$1;
+    }
+  } else {
+    $deriv=undef;
+  }
+  return ($pure_lemma,$deriv);
+}
+
 sub ChooseFrame {
+  my %opts=@_;
+  my $node = $opts{-node} || $this;
   my ($no_assign)=@_;
   if ($vallexEditor) {
     questionQuery("Sorry!","Valency editor already running.\n".
@@ -345,19 +345,11 @@ sub ChooseFrame {
   my $top=ToplevelFrame();
   $top->Busy(-recurse=>1);
 
-  require ValLex::Data;
   init_XMLDataClass();
-  require ValLex::Widgets;
-  require ValLex::Editor;
-  require ValLex::Chooser;
-  require TrEd::CPConvert;
+  init_VallexClasses();
 
-  my $lemma=TrEd::Convert::encode($this->{t_lemma});
-  my $tag=$this->{tag};
-#   if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
-#     $lemma=~s/^ne//;
-#   }
-  unless ($this->{g_wordclass}=~/^(sem([vn]|adj|adv))/) {
+  my $lemma=TrEd::Convert::encode($node->attr($lemma_attr));
+  unless ($node->attr($wordclass_attr)=~/^(sem([vn]|adj|adv))/) {
     questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
 		  "according to g_wordclass.",
 		  "Ok");
@@ -365,13 +357,15 @@ sub ChooseFrame {
     return;
   }
   my $pos=$sempos_map{$1};
+  my ($morph_pos) = $node->{tag}=~/^(.)/;
+  my $morph_lemma = $node->{lemma};
   $lemma=~s/_/ /g;
-  my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
   my $title;
   InitValencyLexicon() || do { ChangingFile(0); return; };
   my $field;
   my $new_word=0;
-  {
+  unless ($opts{-noadd}) {
+    my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($morph_lemma),$morf_pos);
     my $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
     my $base_word;
     $base_word=$ValencyLexicon->findWordAndPOS($base,"V") if (defined($base));
@@ -415,6 +409,11 @@ sub ChooseFrame {
 	    $base_word ? ($base,"V") : ()
 	   ];
   }
+  DisplayFrame($field,$node->attr($frameid_attr),$new_word);
+}
+
+sub DisplayFrame {
+  my ($field,$frameid,$new_word)=@_;
   my ($frame,$real);
 
   if (ref($chooserDialog) and
@@ -466,7 +465,7 @@ sub ChooseFrame {
 					     \$ChooserHideObsolete,
 					     $ValencyLexicon,
 					     $field,
-					     [split /\|/, $this->{$frameid_attr}],
+					     [split /\|/, $frameid],
 					     $new_word,
 					     (ref($no_assign) ?
 					      [$no_assign, $grp->{framegroup}] :
@@ -481,7 +480,7 @@ sub ChooseFrame {
     $chooserDialog->reuse($title,
 			  \$ChooserHideObsolete,
 			  $field,
-			  [split /\|/, $this->{$frameid_attr}],
+			  [split /\|/, $frameid],
 			  $new_word,
 			  0);
   }
@@ -497,8 +496,8 @@ sub frame_chosen {
       $win->{currentNode}) {
     my $field = $chooser->focused_framelist()->field();
     my $node = $win->{currentNode};
-    my $lemma = TrEd::Convert::encode($node->{t_lemma}); $lemma=~s/_/ /g;
-    $node->{g_wordclass}=~/^(sem([vn]|adj|adv))/;
+    my $lemma = TrEd::Convert::encode($node->attr($lemma_attr)); $lemma=~s/_/ /g;
+    $node->attr($wordclass_attr)=~/^(sem([vn]|adj|adv))/;
     my ($pos) = $sempos_map{$1};
     if (ref($field) and ($field->[0] eq $lemma or $field->[0] eq lc($lemma)) and
 	$field->[1] eq $pos) {
@@ -506,10 +505,10 @@ sub frame_chosen {
       my $real=$chooser->get_selected_element_string();
       my $ids = $chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames));
       my $fmt  = $win->{FSFile}->FS();
-      $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
-      $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
-      $node->{$frameid_attr}=$ids;
-      $node->{$framere_attr}=TrEd::Convert::decode($real);
+#      $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
+#      $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
+      $node->set_attr($frameid_attr)=$ids;
+      $node->set_attr($framere_attr)=TrEd::Convert::decode($real) if defined($framere_attr);
       $win->{framegroup}{top}->focus();
       $win->{framegroup}{top}->raise();
       $win->{FSFile}->notSaved(1);
@@ -529,3 +528,5 @@ sub frame_chosen {
 		 -title=> 'Error', -type=> 'ok');
   }
 }
+
+1;
