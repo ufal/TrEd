@@ -2,7 +2,7 @@
 
 #encoding iso-8859-2
 
-$FrameData=undef;
+$ValencyLexicon=undef;
 $ChooserHideObsolete=1;
 $frameid_attr="frameid";
 $framere_attr="framere";
@@ -26,24 +26,23 @@ sub init_XMLDataClass {
     POSIX::setlocale(POSIX::LC_COLLATE,
 		     $TrEd::Convert::support_unicode ? "cs_CZ.UTF-8" : "cs_CZ");
 EOF
+
   unless (defined $XMLDataClass) {
     eval { require XML::JHXML; };
     if ($@) {
       print STDERR "Using LibXML\n" if $::tredDebug;
       eval { require XML::LibXML; };
       die $@ if $@;
-      $XMLDataClass="TrEd::ValLex::LibXMLData";
+      $XMLDataClass="TrEd::ValLex::ExtendedLibXML";
     } else {
       print STDERR "Using JHXML\n" if $::tredDebug;
-      $XMLDataClass="TrEd::ValLex::JHXMLData";
+      $XMLDataClass="TrEd::ValLex::ExtendedJHXML";
     }
   }
-  if ($XMLDataClass eq "TrEd::ValLex::JHXMLData") {
-    require ValLex::JHXMLData;
-  } elsif ($XMLDataClass eq "TrEd::ValLex::LibXMLData") {
-    require ValLex::LibXMLData;
-  } elsif ($XMLDataClass eq "TrEd::ValLex::GDOMEData") {
-    require ValLex::GDOMEData;
+  if ($XMLDataClass =~ /JHXML/) {
+    require ValLex::ExtendedJHXML;
+  } elsif ($XMLDataClass =~ /LibXML/) {
+    require ValLex::ExtendedLibXML;
   }
 }
 
@@ -91,9 +90,9 @@ sub parse_lemma {
   return ($pure_lemma,$deriv);
 }
 
-sub InitFrameData {
+sub InitValencyLexicon {
   my $top=ToplevelFrame();
-  unless ($FrameData) {
+  unless ($ValencyLexicon) {
     my $support_unicode = ($Tk::VERSION ge 804.00);
     my $conv= TrEd::CPConvert->new("utf-8",
 				   $support_unicode ? "utf-8" :
@@ -108,11 +107,11 @@ sub InitFrameData {
 	#### 2. it does not work always well under windows
 	#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 
-	$FrameData=
+	$ValencyLexicon=
 	  $XMLDataClass->new($vallex_file,$conv,!$vallex_validate);
       } else {
 	$info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
-	$FrameData=
+	$ValencyLexicon=
 	  $XMLDataClass->new(($XMLDataClass =~ /LibXML/ and -f "${vallex_file}.gz") ?
 			     "${vallex_file}.gz" :
 			     "${vallex_file}",$conv,!$vallex_validate);
@@ -120,7 +119,7 @@ sub InitFrameData {
     };
     my $err=$@;
     $info->destroy() if $info;
-    if ($err or !$FrameData->doc()) {
+    if ($err or !$ValencyLexicon->doc()) {
       print STDERR "$err\n";
       $top->Unbusy(-recurse=>1);
       ChangingFile(0);
@@ -129,8 +128,9 @@ sub InitFrameData {
     } else {
       return 1;
     }
-
   }
+  %{$ValencyLexicon->user_cache}=() if defined($ValencyLexicon) and defined($ValencyLexicon->user_cache()); # clear cache
+  return 1;
 }
 
 
@@ -149,7 +149,7 @@ sub OpenEditor {
   require ValLex::Widgets;
   require ValLex::Editor;
   require TrEd::CPConvert;
-  InitFrameData() || return; #do { $top->Unbusy(-recurse=>1); return };
+  InitValencyLexicon() || return; #do { $top->Unbusy(-recurse=>1); return };
 
   my $pos='V';
   $pos=$1 if $this->{tag}=~/^(.)/;
@@ -178,7 +178,7 @@ sub OpenEditor {
   my $d;
   ($d,$vallexEditor)=
     TrEd::ValLex::Editor::new_dialog_window($top,
-					    $FrameData,
+					    $ValencyLexicon,
 					    [$lemma,$pos],    # select field
 					    1,                # autosave
 					    $vallex_conf,
@@ -362,18 +362,18 @@ sub ChooseFrame {
   $lemma=~s/_/ /g;
   my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
   my $title;
-  InitFrameData() || do { ChangingFile(0); return; };
+  InitValencyLexicon() || do { ChangingFile(0); return; };
   my $field;
   my $new_word=0;
   {
-    my $word=$FrameData->findWordAndPOS($lemma,$pos);
+    my $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
     my $base_word;
-    $base_word=$FrameData->findWordAndPOS($base,"V") if (defined($base));
+    $base_word=$ValencyLexicon->findWordAndPOS($base,"V") if (defined($base));
     if (!$word and $lemma ne lc($lemma)) {
       $lemma = lc($lemma);
-      $word=$FrameData->findWordAndPOS($lemma,$pos);
+      $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
       $base = lc($base);
-      $base_word=$FrameData->findWordAndPOS($base,"V") if (defined($base));
+      $base_word=$ValencyLexicon->findWordAndPOS($base,"V") if (defined($base));
     }
     $top->Unbusy(-recurse=>1);
     if (!$word) {
@@ -389,14 +389,14 @@ sub ChooseFrame {
 				 "Add $base", "Add both", "Cancel")));
 
       if ($answer eq "Add $lemma") {
-	$word=$FrameData->addWord($lemma,$pos);
+	$word=$ValencyLexicon->addWord($lemma,$pos);
 	$new_word=[$lemma,$pos];
       } elsif ($answer eq "Add $base") {
-	$base_word=$FrameData->addWord($base,"V");
+	$base_word=$ValencyLexicon->addWord($base,"V");
 	$new_word=[$base,"V"];
       } elsif ($answer eq "Add both") {
-	$word=$FrameData->addWord($lemma,$pos);
-	$base_word=$FrameData->addWord($base,"V");
+	$word=$ValencyLexicon->addWord($lemma,$pos);
+	$base_word=$ValencyLexicon->addWord($base,"V");
 	$new_word=[$lemma,$pos];
       } elsif ($answer eq "Cancel") {
 	ChangingFile(0);
@@ -458,7 +458,7 @@ sub ChooseFrame {
 					     $fc,
 					     $fe_conf,
 					     \$ChooserHideObsolete,
-					     $FrameData,
+					     $ValencyLexicon,
 					     $field,
 					     [split /\|/, $this->{$frameid_attr}],
 					     $new_word,
