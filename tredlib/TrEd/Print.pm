@@ -1,5 +1,4 @@
-package TrEd::PrintTreeView;
-
+package TrEd::PSTreeView;
 use TrEd::TreeView;
 use base qw(TrEd::TreeView);
 use PostScript::FontMetrics;
@@ -8,23 +7,35 @@ sub setFontMetrics {
   my ($self,$filename,$fontsize,$fontscale)=@_;
   $self->{psFontSize} = $fontsize;
   $self->{psFontScale} = $fontscale ? $fontscale : 1000;
-  print "USING FONT $filename\n";
+  $self->{textWidthHash}={};
   $self->{psFontMetrics} = new PostScript::FontMetrics($filename);
+  print STDERR "FONT SIZE: $self->{psFontSize}, $self->{psFontMetrics}\n";
   return $self->{psFontMetrics};
 }
 
 sub getFontHeight {
   my ($self)=@_;
   return 0 unless $self->{psFontMetrics};
-  $ascent=$self->{psFontSize}*$self->{psFontMetrics}->FontBBox->[3]/1000;
-  $descent=-$self->{psFontSize}*$self->{psFontMetrics}->FontBBox->[1]/1000;
+  my $ascent=($self->{psFontSize}*$self->{psFontMetrics}->FontBBox->[3])/1000;
+  my $descent=-($self->{psFontSize}*$self->{psFontMetrics}->FontBBox->[1])/1000;
+  print STDERR "FONT HEIGHT: ".($ascent+$descent)."\n";
   return sprintf("%.0f",$ascent+$descent);
 }
 
 sub getTextWidth {
   my ($self,$text)=@_;
   return 0 unless $self->{psFontMetrics};
-  return $self->{psFontMetrics}->stringwidth($text,$self->{psFontSize});
+  my $width=$self->{textWidthHash}->{$text};
+  if (!defined($width)) {
+    $width=$self->{psFontMetrics}->stringwidth($text,$self->{psFontSize});
+    print STDERR "WIDTH: $width\n";
+    $self->{textWidthHash}->{$text}=$width;
+    $self->{textWidthHashMiss}++;
+  } else {
+    print STDERR "HIT-WIDTH: $width\n";
+    $self->{textWidthHashHit}++;
+  }
+  return $width;
 }
 
 sub getFontName {
@@ -33,20 +44,71 @@ sub getFontName {
   $self->{psFontMetrics}->FontName;
 }
 
+package TrEd::PDFTreeView;
+
+use TrEd::TreeView;
+use base qw(TrEd::TreeView);
+
+sub initPDF {
+  my ($self,$P)=@_;
+  $self->{psFontSize} = abs($self->canvas->fontActual($self->get_font(),'-size'));
+  $self->{TTF} = $P->{DefaultFont};
+  return $self->{TTF};
+}
+
+sub getFontHeight {
+  my ($self)=@_;
+  return 0 unless $self->{TTF};
+  my $ascent=($self->{TTF}->data->{ascender}*$self->{psFontSize})/1000;
+  my $descent=-($self->{TTF}->data->{descender}*$self->{psFontSize})/1000;
+  my $height=sprintf("%.0f",$ascent+$descent);
+  return $height;
+}
+
+sub getTextWidth {
+  my ($self,$text)=@_;
+  return 0 unless $self->{TTF};
+  my $width=$self->{textWidthHash}->{$text};
+  if (!defined($width)) {
+    if ($TrEd::Convert::support_unicode) {
+      $width= $self->{TTF}->width_utf8($text)*$self->{psFontSize};
+    } else {
+      $width= $self->{TTF}->width($text)*$self->{psFontSize};
+    }
+    $self->{textWidthHash}->{$text}=$width;
+    $self->{textWidthHashMiss}++;
+  } else {
+    $self->{textWidthHashHit}++;
+  }
+#  print STDERR "Width: $text = $width ($self->{psFontSize})\n";
+  return $width;
+}
+
+sub getFontName {
+  my ($self,$text)=@_;
+  return 0 unless $self->{TTF};
+  my $name= $self->{TTF}->name;
+  print STDERR "NAME: $name\n";
+  return $name;
+}
+
 package TrEd::Print;
-
-use Tk;
-use Fslib;
-
-use TrEd::Convert;
-import TrEd::Convert;
-
-use TrEd::MinMax;
-import TrEd::MinMax;
-
 use strict;
-use vars qw($bwModeNodeColor);
+BEGIN{
+  use vars qw($bwModeNodeColor %media);
+  use Exporter;
+  use Tk;
+  use Tk::Wm;
+  use Tk::Canvas::PDF;
+  *media = *Tk::Canvas::PDF::media;
+  use Fslib;
 
+  use TrEd::Convert;
+  import TrEd::Convert;
+
+  use TrEd::MinMax;
+  import TrEd::MinMax;
+};
 #$bwModeNodeColor = 'white';
 
 sub parse_print_list {
@@ -79,202 +141,289 @@ sub print_trees {
       $printRange,		# print range
       $toFile,			# boolean: print to file
       $toEPS,			# boolean: create EPS
+      $toPDF,			# boolean: create EPS
       $fil,			# output file-name
       $snt,			# boolean: print sentence
       $cmd,			# lpr command
-#      $useType1Font,		# boolean: use Type1 font
       $printColors,		# boolean: produce color output
       $noRotate,                # boolean: disable tree rotation
       $show_hidden,		# boolean: print hidden nodes too
-      $psFontFile,		# postscript font
-      $psFontAFMFile,		# postscript font
-#      $type1font,		# Type1 font
+      $fontSpec,                # hash
       $prtFmtWidth,		# paper width
       $prtHMargin,
       $prtFmtHeight,
       $prtVMargin,
-      $psFontName,
-      $psFontSize,
       $maximizePrintSize,
-      $psMedia,
+      $Media,
       $canvas_opts		# color hash reference
      )=@_;
 
 
   return if (not defined($printRange));
 
-  my $treeView = new TrEd::PrintTreeView($c);
-  my $i;
+  print STDERR "Printing (TO-FILE=$toFile, PDF=$toPDF, EPS=$toEPS, FIL=$fil, CMD=$cmd, MEDIA=$Media=$prtFmtWidth x $prtFmtHeight)\n";
   my $pagewidth;
   my $pageheight;
-  my $printMultiple;
-  my %pso;
+  my $P;
+  my $treeView;
 
-  $treeView->setFontMetrics($psFontAFMFile,$psFontSize);
-  $psFontName=$treeView->getFontName();
-  $treeView->apply_options($canvas_opts);
-  print "AFM: ",$psFontAFMFile,"\n";
-  print "Name: ",$psFontName,"\n";
+  my $hMargin = $c->fpixels($prtHMargin);
+  my $vMargin = $c->fpixels($prtVMargin);
+
+  if ($Media eq 'User') {
+    $prtFmtWidth = $c->fpixels($prtFmtWidth);
+    $prtFmtHeight = $c->fpixels($prtFmtHeight);
+  } elsif ($Media ne 'BBox') {
+    die "Unknown media $Media\n" unless exists $media{$Media};
+      $prtFmtWidth  = $media{$Media}[0];
+      $prtFmtHeight = $media{$Media}[1];
+  }
+
+  if ($toPDF) {
+    die "Sending PDF command not yet supported!" unless $toFile;
+    $pagewidth=$prtFmtWidth-2*$hMargin;
+    $pageheight=$prtFmtHeight-2*$vMargin;
+    $P = Tk::Canvas::PDF->new(
+			      -encoding => $TrEd::Convert::support_unicode ? 
+			      'utf8' : $TrEd::Convert::outputenc,
+			      -ttfont => $fontSpec->{TTF},
+			      ($Media ne 'BBox') ?
+			      (-media => [0,0,$prtFmtWidth,$prtFmtHeight]) 
+			      : ()
+			     );
+
+    $treeView = new TrEd::PDFTreeView($c);
+    $treeView->apply_options($canvas_opts);
+    $treeView->initPDF($P);
+  } else {
+    $treeView = new TrEd::PSTreeView($c);
+    $treeView->apply_options($canvas_opts);
+    $treeView->setFontMetrics($fontSpec->{AFM},$fontSpec->{Size});
+  }
+
   unless ($printColors) {
-      print " ========= $bwModeNodeColor ========\n";
     $treeView->apply_options({
-			    lineColor	       => 'black',
-			    currentNodeColor   => $bwModeNodeColor,
-			    nearestNodeColor   => $bwModeNodeColor,
-			    nodeColor	       => $bwModeNodeColor,
-			    currentBoxColor    => 'white',
-			    boxColor	       => 'white',
-			    textColor	       => 'black',
-			    textColorShadow    => 'black',
-			    textColorHilite    => 'black',
-			    textColorXHilite   => 'black',
-			    activeTextColor    => 'black',
-			    noColor	       => 1,
-			    backgroundColor    => 'white',
-			   });
+			      lineColor	       => 'black',
+			      currentNodeColor   => $bwModeNodeColor,
+			      nearestNodeColor   => $bwModeNodeColor,
+			      nodeColor	       => $bwModeNodeColor,
+			      currentBoxColor    => 'white',
+			      boxColor	       => 'white',
+			      textColor	       => 'black',
+			      textColorShadow    => 'black',
+			      textColorHilite    => 'black',
+			      textColorXHilite   => 'black',
+			      activeTextColor    => 'black',
+			      noColor	       => 1,
+			      backgroundColor    => 'white',
+			     });
   }
   $treeView->apply_options({
-			  lineWidth => 1,
-			  drawSentenceInfo => $snt
-			 });
-
-  local $TrEd::Convert::outputenc='iso-8859-2';
-
+			    lineWidth => 1,
+			    drawSentenceInfo => $snt
+			   });
   my @printList=parse_print_list($fsfile,$printRange);
+  return unless @printList;
 
-#### this must be done by TrEd somewhere ###############
-#  push @printList,$grp->{treeNo}+1 unless (@printList);
-
-  unless (open(F,"<$psFontFile")) {
-    print STDERR "Aborting: failed to open file '$psFontFile': $!\n";
-    return 0;
-  }
-  if ($toFile) {
-    unless (open(O,">".$fil)) {
-      print STDERR "Aborting: failed to open file '$fil': $!\n";
-      return 0;
-    }
-  } else {
-    $SIG{'PIPE'} = sub {};
-    unless (open(O, "| ".$cmd)) {
-      print STDERR "Aborting: failed to open pipe to '$cmd': $!\n";
-      return 0;
-    }
-  }
-  if ($]>=5.008) {
-    binmode O,":encoding($TrEd::Convert::outputenc)";
-  }
-
-  my ($infot,$text);
+  my ($infot,$infotext);
   if ($toplevel) {
-    $text="Printing";
-    $toplevel->Busy(-recurse => 1);
+    $infotext="Printing";
     $infot=$toplevel->Toplevel();
     my $f=$infot->Frame(qw/-relief raised -borderwidth 3/)->pack();
-    $f->Label(-textvariable => \$text,
+    $f->Label(-textvariable => \$infotext,
 	      -wraplength => 200
 	     )->pack();
     $infot->overrideredirect(1);
     $infot->Popup();
+    $toplevel->Busy(-recurse => 1);
   }
-
-  for (my $t=0;$t<=$#printList;$t++) {
-    $text="Printing $printList[$t]";
-    $infot->idletasks() if ($infot);
-    print STDERR "$text\n";
-
-#    $treeView->set_font($type1font) if ($useType1Font);
-    do {
-      $treeView->set_showHidden($show_hidden);
-      my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
-      my ($valtext) = encode($fsfile->value_line($printList[$t]-1));
-      $treeView->redraw($fsfile,undef,$nodes,$valtext);
-    };
-
-    my $rotate = !$toEPS && !$noRotate
-      && $treeView->get_canvasHeight<$treeView->get_canvasWidth;
-    if (not $rotate) {
-      $pagewidth=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
-      $pageheight=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
-    } else {
-      $pagewidth=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
-      $pageheight=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
-    }
-    print STDERR "Real Page : ",int($pagewidth),"x",int($pageheight),"\n";
-
-    %pso = (  -colormode => $printColors ? 'color' : 'gray',
-	      '-x'	 => 0,
-	      '-y'	 => 0,
-	      -fontmap	 => { $treeView->get_font() => [$psFontName, $psFontSize] },
-	      -width	 => $treeView->get_canvasWidth,
-	      -height	 => $treeView->get_canvasHeight,
-	      -rotate	 => $rotate);
-
-    unless ($toEPS) {
-      if ($maximizePrintSize or $c->fpixels($treeView->get_canvasWidth)>$pagewidth or
-	  $c->fpixels($treeView->get_canvasHeight)>$pageheight) {
-	print "Adjusting print size\n";
-	if ($c->fpixels($treeView->get_canvasWidth)/$pagewidth*$pageheight>$c->fpixels($treeView->get_canvasHeight)) {
-	  $pso{-pagewidth} =
-	    $pagewidth;
-	  print "Scaling by tree width,\n";
-	  print "forcing box width to $pagewidth\n";
+  eval {
+    if ($toPDF) {
+      my $scale;
+      for (my $t=0;$t<=$#printList;$t++) {
+	$infotext="Printing $printList[$t]";
+	$infot->idletasks() if ($infot);
+	print STDERR "$infotext\n";
+	$P->new_page();
+	do {
+	  $treeView->set_showHidden($show_hidden);
+	  my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
+	  my $valtext=$treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	  $treeView->redraw($fsfile,undef,$nodes,$valtext);
+	};
+	my $width=$c->fpixels($treeView->get_canvasWidth);
+	my $height=$c->fpixels($treeView->get_canvasHeight)+10;
+	my $rotate = !$toEPS && !$noRotate && $Media ne 'BBox'
+	  && $height<$width;
+	if ($Media eq 'BBox') {
+	  $pagewidth=$width;
+	  $pageheight=$height;
+	  if (@printList == 1) {
+	    $P->{PDF}->mediabox(0,0,$pagewidth+2*$vMargin,$pageheight+2*$vMargin)
+	  } else {
+	    $P->{current_page}->mediabox(0,0,$pagewidth+2*$vMargin,$pageheight+2*$vMargin);
+	  }
+	}
+	if ($rotate) {
+	  $scale = min($pagewidth/$height,
+		       $pageheight/$width);
 	} else {
-	  $pso{-pageheight} =
-	    $pageheight;
-	  print "Scaling by tree height,\n";
-	  print "forcing box height to $pageheight\n";
+	  $scale = min($pageheight/$height,
+		       $pagewidth/$width);
+	}
+	$scale = 1 if ($scale>1 and !$maximizePrintSize);
+	if ($rotate) {
+	  $P->draw_canvas($c,
+			  -width => $width,
+			  -height => $height,
+			  -scale => [$scale,$scale],
+			  -rotate => -90,
+			  -translate => [$hMargin+
+					 ($pagewidth-$height*$scale)/2,
+					 $vMargin+
+					 ($pageheight+$width*$scale)/2]
+			 );
+	} else {
+	  $P->draw_canvas($c,
+			  -width => $width,
+			  -height => $height,
+			  #			-rotate => -90,
+			  -scale => [$scale,$scale],
+			  -translate => [$hMargin+
+					 ($pagewidth-$width*$scale)/2,
+					 $vMargin+
+					 ($pageheight-$height*$scale)/2]
+			 );
+	}
+###	last; # only one page for now
+      }
+      print STDERR "saving PDF to $fil\n";
+      $P->finish(-file => $fil);
+      print STDERR "PDF done\n";
+    } else {
+      my $i;
+      my $printMultiple;
+      my %pso;
+      my $psFontName=$treeView->getFontName();
+      print STDERR "Font: ",$fontSpec->{PS},"\n";
+      print STDERR "AFM: ",$fontSpec->{AFM},"\n";
+      print STDERR "Size: ",$fontSpec->{Size},"\n";
+      print STDERR "Name: ",$psFontName,"\n";
+      local $TrEd::Convert::outputenc='iso-8859-2';
+
+      unless (open(F,"<$fontSpec->{PS}")) {
+	print STDERR "Aborting: failed to open file '$fontSpec->{PS}': $!\n";
+	return 0;
+      }
+      if ($toFile) {
+	unless (open(O,">".$fil)) {
+	  print STDERR "Aborting: failed to open file '$fil': $!\n";
+	  return 0;
+	}
+      } else {
+	$SIG{'PIPE'} = sub {};
+	unless (open(O, "| ".$cmd)) {
+	  print STDERR "Aborting: failed to open pipe to '$cmd': $!\n";
+	  return 0;
 	}
       }
-    }
+      for (my $t=0;$t<=$#printList;$t++) {
+	$infotext="Printing $printList[$t]";
+	$infot->idletasks() if ($infot);
+	print STDERR "$infotext\n";
+	do {
+	  $treeView->set_showHidden($show_hidden);
+	  my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
+	  my $valtext=$treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	  $treeView->redraw($fsfile,undef,$nodes,$valtext);
+	};
 
-    my @ps = split /\n/,$c->postscript(%pso);
-    if ($toFile) {
-      local *U;
-      open(U,">"."$fil.orig.ps");
-      print U $c->postscript(%pso);
-      close U;
-    }
+	my $rotate = !$toEPS && !$noRotate
+	  && $treeView->get_canvasHeight<$treeView->get_canvasWidth;
+	if (not $rotate) {
+	  $pagewidth=$prtFmtWidth-2*$hMargin;
+	  $pageheight=$prtFmtHeight-2*$vMargin;
+	} else {
+	  $pagewidth=$prtFmtHeight-2*$vMargin;
+	  $pageheight=$prtFmtWidth-2*$hMargin;
+	}
+	print STDERR "Real Page : ",int($pagewidth),"x",int($pageheight),"\n";
 
-    $i=0;
-    if ($t>0) {
-      $i++  while ($i<=$#ps and $ps[$i]!~/^%%Page:/);
-      print O '%%Page: ',$t+1," ",$t+1,"\n";
-#       my $now=localtime;
-#        unless ($toEPS) {
-#  	print O	       "gsave\n",
-#  		       "/Arial-Medium findfont 8 scalefont setfont\n",
-#  		       "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
-#  		       "40 40 [\n",
-#  		       "(".
-#  		       "Printed by TrEd on $now.)\n",
-#  		       "] 13 -0 0 0 false DrawText\ngrestore\n";
-#        }
-      $i++;
-    } else {
-      $i=0;
-      unless ($toEPS) {
-	$ps[0]=~s/ EPSF-3.0//;
-	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BoundingBox:/);
-	print O $ps[$i++],"\n";
-	print O $psMedia,"\n";
-	print O '%%Pages: ',$#printList+1,"\n";
-	$i++;
-      }
-      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%\%DocumentNeededResources: font $psFontName/);
-      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BeginProlog|^%\%BeginSetup/);
-      if ($ps[$i]=~/^%\%BeginSetup/) {
-	# this hack is to partially fix Tk804.025 bug
-	print O '%%BeginProlog',"\n";
-	print O '%%BeginFont tredfont',"\n";
-	print O <F>;
-	print O '%%EndFont',"\n\n";
-	print O <<'__END_OF_TK804_WORKAROUD__';
+	%pso = (  -colormode => $printColors ? 'color' : 'gray',
+		  '-x'	 => 0,
+		  '-y'	 => 0,
+		  -fontmap	 => { $treeView->get_font() => [$psFontName,$fontSpec->{Size}] },
+		  -width	 => $treeView->get_canvasWidth,
+		  -height	 => $treeView->get_canvasHeight,
+		  -rotate	 => $rotate);
+	my $width=$c->fpixels($treeView->get_canvasWidth);
+	my $height=$c->fpixels($treeView->get_canvasHeight);
+
+	unless ($toEPS) {
+	  if ($maximizePrintSize or $width>$pagewidth or
+	      $height>$pageheight) {
+	    print STDERR "Adjusting print size\n";
+	    if ($width/$pagewidth*$pageheight>$height) {
+	      $pso{-pagewidth} =
+		$pagewidth;
+	      print STDERR "Scaling by tree width,\n";
+	      print STDERR "forcing box width to $pagewidth\n";
+	    } else {
+	      $pso{-pageheight} =
+		$pageheight;
+	      print STDERR "Scaling by tree height,\n";
+	      print STDERR "forcing box height to $pageheight\n";
+	    }
+	  }
+	}
+
+	my @ps = split /\n/,$c->postscript(%pso);
+	# if ($toFile) {
+	#      local *U;
+	#      open(U,">"."$fil.orig.ps");
+	#      print U $c->postscript(%pso);
+	#      close U;
+	#    }
+
+	$i=0;
+	if ($t>0) {
+	  $i++  while ($i<=$#ps and $ps[$i]!~/^%%Page:/);
+	  print O '%%Page: ',$t+1," ",$t+1,"\n";
+	  #       my $now=localtime;
+	  #        unless ($toEPS) {
+	  #  	print O	       "gsave\n",
+	  #  		       "/Arial-Medium findfont 8 scalefont setfont\n",
+	  #  		       "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
+	  #  		       "40 40 [\n",
+	  #  		       "(".
+	  #  		       "Printed by TrEd on $now.)\n",
+	  #  		       "] 13 -0 0 0 false DrawText\ngrestore\n";
+	  #        }
+	  $i++;
+	} else {
+	  $i=0;
+	  unless ($toEPS) {
+	    $ps[0]=~s/ EPSF-3.0//;
+	    print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BoundingBox:/);
+	    print O $ps[$i++],"\n";
+	    print O "\%\%DocumentMedia: $Media $prtFmtWidth $prtFmtHeight white()\n";
+	    print O '%%Pages: ',$#printList+1,"\n";
+	    $i++;
+	  }
+	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%\%DocumentNeededResources: font $psFontName/);
+	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%BeginProlog|^%\%BeginSetup/);
+	  if ($ps[$i]=~/^%\%BeginSetup/) {
+	    # this hack is to partially fix Tk804.025 bug
+	    print O '%%BeginProlog',"\n";
+	    print O '%%BeginFont tredfont',"\n";
+	    print O <F>;
+	    print O '%%EndFont',"\n\n";
+	    print O <<'__END_OF_TK804_WORKAROUD__';
 % StrokeClip
 %
 % This procedure converts the current path into a clip area under
 % the assumption of stroking.  It's a bit tricky because some Postscript
-% interpreters get errors during strokepath for dashed lines.  If
+% interpreters get errors during strokepath for dashed lines. If
 % this happens then turn off dashes and try again.
 
 /StrokeClip {
@@ -383,7 +532,7 @@ sub print_trees {
 %		nw/n/ne anchor, +0.5 for w/center/e, and +1.0 for sw/s/se.
 % justify -	0 for left justification, 0.5 for center, 1 for right justify.
 % stipple -	Boolean value indicating whether or not text is to be
-%		drawn in stippled fashion.  If text is stippled,
+%		drawn in stippled fashion. If text is stippled,
 %		procedure StippleText must have been defined to call
 %		StippleFill in the right way.
 %
@@ -462,40 +611,43 @@ sub print_trees {
 
 %%EndProlog
 __END_OF_TK804_WORKAROUD__
-	print O $ps[$i++],"\n";
-	for (my $j=$i; $j<=$#ps; $j++) {
-	  if ($ps[$j]=~/^\[(\(.*\))\]$/) {
-	    $ps[$j]=$1;
-	    $ps[$j] =~ s/\\370/\\354/g;
-	    $ps[$j] =~ s/\)\/\(/\\370/g;
+	    print O $ps[$i++],"\n";
+	    for (my $j=$i; $j<=$#ps; $j++) {
+	      if ($ps[$j]=~/^\[(\(.*\))\]$/) {
+		$ps[$j]=$1;
+		$ps[$j] =~ s/\\370/\\354/g;
+		$ps[$j] =~ s/\)\/\(/\\370/g;
+	      }
+	    }
+	  } else {
+	    print O $ps[$i++],"\n";
+	    print O '%%BeginFont tredfont',"\n";
+	    print O <F>;
+	    print O '%%EndFont',"\n\n";
+	    $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
 	  }
+	  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font $psFontName/);
+	  $i++;
 	}
-      } else {
-	print O $ps[$i++],"\n";
-	print O '%%BeginFont tredfont',"\n";
-	print O <F>;
-	print O '%%EndFont',"\n\n";
-	$i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
+	while ($i<=$#ps && $ps[$i]!~/^%\%Trailer\w*$/) {
+	  $ps[$i]=~s/ISOEncode //g;
+	  print O $ps[$i]."\n" unless ($toEPS and
+				       $ps[$i] =~/^restore showpage/);
+	  $i++
+	}
       }
-      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%\%IncludeResource: font $psFontName/);
-      $i++;
+      print O "restore\n" if $toEPS;
+      print O '%%EOF',"\n";
+      close (F);
+      close (O);
     }
-    while ($i<=$#ps && $ps[$i]!~/^%\%Trailer\w*$/) {
-      $ps[$i]=~s/ISOEncode //g;
-      print O $ps[$i]."\n" unless ($toEPS and
-				   $ps[$i] =~/^restore showpage/);
-      $i++
-    }
-  }
-  print O "restore\n" if $toEPS;
-  print O '%%EOF',"\n";
-  close (F);
-  close (O);
-
+  };
+  my $err=$@;
   if ($toplevel) {
-    $infot->destroy();
+    $infot->destroy() if ($infot);
     $toplevel->Unbusy();
   }
+  die $err if $err;
   return 1;
 }
 
