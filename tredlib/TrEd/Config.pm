@@ -80,6 +80,7 @@ BEGIN {
   $valueLineBackground
   $valueLineForeground
   $maxUndo
+  $reloadKeepsPatterns
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -394,6 +395,7 @@ sub set_config {
 
   &$set_user_config($confs) if (ref($set_user_config));
   $maxUndo		      =	val_or_def($confs,"maxundo",30);
+  $reloadKeepsPatterns	      =	val_or_def($confs,"reloadpreservespatterns",1);
 
 }
 
