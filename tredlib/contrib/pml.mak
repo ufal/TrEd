@@ -107,7 +107,19 @@ sub adata {
   $fsfile->metaData('ref')->{$refid};
 }
 
-sub aids {
+sub getANodes {
+  shift unless ref($_[0]);
+  my $node = $_[0] || $this;
+  return map { s/^.*#//; getANodesHash()->{$_} } ListV($node->{'a.rf'});
+}
+
+sub getANodeByID {
+  my ($arf)=@_;
+  $arf =~ s/^.*#//;
+  return getANodesHash()->{$arf};
+}
+
+sub getANodesHash {
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
 
@@ -121,7 +133,7 @@ sub aids {
     my %a_ids;
     my $a_fs = adata($fsfile);
     unless ($a_fs) {
-      # print(join(",",caller($_))."\n") for (0..10);
+      #print(join(",",caller($_))."\n") for (0..10);
       return {};
     }
     my $trees = $a_fs->treeList;
@@ -157,7 +169,7 @@ sub analytical_tree {
       }
     }
     $root = $fsfile->tree($grp->{treeNo});
-    my $a_ids = aids($fsfile);
+    my $a_ids = getANodesHash($fsfile);
     my $first =
       first {
 	ref($a_ids->{$_}) and ($a_ids->{$_}->root == $root) ? 1 : 0
@@ -229,11 +241,8 @@ sub get_value_line_hook {
   return unless $fsfile;
   return unless which_struct() eq 'TR';
   my $tree = $fsfile->tree($treeNo);
-  my $a_fs = adata($fsfile);
-  my $ref = $tree->{'a.rf'}[0];
-  $ref =~ s/^.*\#//;
-  my $a_tree = aids($fsfile)->{$ref};
-  return unless ($a_fs and $a_tree);
+  my ($a_tree) = getANodes($tree);
+  return unless ($a_tree);
   my $node = $tree;
   my %refers_to;
   while ($node) {
