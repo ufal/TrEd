@@ -2513,7 +2513,7 @@ sub add_Cor_ACT {
 }
 
 
-#bind add_on_ACT to 3 menu Doplnit on.ACT pod akt. vrchol
+#######################donnt bind add_on_ACT to 3 menu Doplnit on.ACT pod akt. vrchol
 sub add_on_ACT {
 
   $sPar1 = 'on';
