@@ -721,7 +721,7 @@ sub startMain {
 		  $initial_code ? () : ("initial-code|i=s"),
 		  $code ? () : ("execute|e=s"),
 		  $start_context ? () : ("context|t=s"));
-      $grp->{macroContext} = defined($start_context) ? $start_context : 'TredMacro';
+      $context = $grp->{macroContext} = defined($start_context) ? $start_context : 'TredMacro';
     }
 
     $code||="autostart()"; # this is the default macro name
