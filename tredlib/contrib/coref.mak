@@ -45,11 +45,11 @@ sub update_coref_file {
 			      "Should this declaration be added and the obsolete coreference attributes\n".
 			      "'cornum', 'corsnt' and 'antec' removed (recommended)?\n\n",
 			      qw{Yes No}) eq 'Yes') {
-    appendFSHeader('@P cortype',
+    AppendFSHeader('@P cortype',
 			'@L cortype|'.$cortypes.'|---',
 			'@P corlemma'
 		       );
-    undeclareAttributes(qw(cornum corsnt antec));
+    UndeclareAttributes(qw(cornum corsnt antec));
   }
 }
 
@@ -185,27 +185,16 @@ sub remove_last_coref {
 }
 
 
-# auxiliary funcion: add some style to given style-sheet
-sub add_style {
-  my $styles=shift;
-  my $style=shift;
-  if (exists($styles->{$style})) {
-    push @{$styles->{$style}},@_
-  } else {
-    $styles->{$style}=[@_];
-  }
-}
-
 # hook coref arrows drawing and custom coloring to node styling event
 sub node_style_hook {
   my ($node,$styles)=@_;
   if (($referent ne "") and
       (($node->{TID} eq $referent) or
        ($node->{AID} eq $referent))) {
-    add_style($styles,'Oval',
+    AddStyle($styles,'Oval',
 	      -fill => $referent_color
 	     );
-    add_style($styles,'Node',
+    AddStyle($styles,'Node',
 	      -addheidht => '6',
 	      -addwidth => '6'
 	     );
@@ -260,17 +249,17 @@ COORDS
       }
   }
   if ($node->{corlemma} ne "") {
-    add_style($styles,'Oval',
+    AddStyle($styles,'Oval',
 	      -fill => $cortype_colors{'textual'}
 	     );
-    add_style($styles,'Node',
+    AddStyle($styles,'Node',
 	      -shape => 'rectangle',
 	      -addheidht => '5',
 	      -addwidth => '5'
 	     );
   }
   if (@coords) {
-    add_style($styles,'Line',
+    AddStyle($styles,'Line',
 	      -coords => 'n,n,p,p'.join("",@coords),
 	      -arrow => '&last' x @coords,
 	      -dash => '&9,3' x @coords,
