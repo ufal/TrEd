@@ -16,7 +16,7 @@ $VERSION = "0.91";
 @EXPORT = qw(&ReadAttribs &ReadTree &GetTree &PrintNode &PrintTree &PrintFS &NewNode 
 	     &Parent &LBrother &RBrother &FirstSon &Next &Prev &DeleteTree &DeleteLeaf
 	     &Cut &Paste &Set &Get &DrawTree &IsList &ListValues);
-@EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial);
+@EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial &SetParent &SetLBrother &SetRBrother &SetFirstSon);
 
 use Carp;
 use vars qw(
@@ -38,6 +38,7 @@ $firstson="_S_";
 $lbrother="_L_";
 $rbrother="_R_";
 $FSTestListValidity=0;
+
 
 sub NewNode ($) {
   my $node = shift;
@@ -64,19 +65,40 @@ sub Parent ($) {
   return $ {$node}{$parent};
 }
 
+sub SetParent ($$) {
+  my ($node,$p) = @_;
+  $ {$node}{$parent}=$p if ($node);
+}
+
 sub LBrother ($) {
   my $node = shift;
   return $ {$node}{$lbrother};
 }
+
+sub SetLBrother ($$) {
+  my ($node,$p) = @_;
+  $ {$node}{$lbrother}=$p if ($node);
+}
+
 
 sub RBrother ($) {
   my $node = shift;
   return $ {$node}{$rbrother};
 }
 
+sub SetRBrother ($$) {
+  my ($node,$p) = @_;
+  $ {$node}{$rbrother}=$p if ($node);
+}
+
 sub FirstSon ($) {
   my $node = shift;
   return $ {$node}{$firstson};
+}
+
+sub SetFirstSon ($$) {
+  my ($node,$p) = @_;
+  $ {$node}{$firstson}=$p if ($node);
 }
 
 sub Next {
@@ -91,6 +113,7 @@ sub Next {
     return RBrother($node) if (RBrother($node));
     $node = Parent($node);
   }
+  return 0;
 }
 
 sub Prev {
@@ -281,11 +304,11 @@ sub ReadAttribs  {
 
   my %result;
   my $count=0;
-#  print STDERR "Reading Attribs\n";
+
   while ($_=ReadTree($handle)) {
-#    print STDERR ".\n";
+
     s/\r$//o;
-#    print $_;
+
     print $outfile $_ if $DO_PRINT==1;
     push @$out, $_ if $DO_PRINT==2; 
     if (/^\@([KPOVNWLH])([A-Z0-9])* ([A-Za-z0-9]+)(?:\|(.*))?/o) {
@@ -350,11 +373,22 @@ sub ParseNode ($$$) {
   return { %node };
 }
 
-sub ReadTree (*) {
-  my $handle=shift;                # file handle
+sub ReadLine {
+  my $handle=shift;
+
+  if (ref($handle) eq 'GLOB') {
+    $_=<$handle>;
+  } elsif (ref($handle) eq 'ARRAY') {
+    $_=shift @$handle;
+  } else { $_=''; return $_; }
+  return $_;
+}
+
+sub ReadTree {
+  my $handle=shift;                # file handle or array reference
   my $l=undef;
 
-  while (<$handle>) {
+  while (ReadLine($handle)) {
     if (s/\\\r*\n//go) { $l.=$_; next; } # if backslashed eol, concatenate
     $l.=$_;
     last;                               # else we have the whole tree
