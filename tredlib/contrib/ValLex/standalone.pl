@@ -1,7 +1,7 @@
 #!/usr/bin/perl -I.. -I../..
 use Getopt::Std;
 
-getopts('m:pc:hMD');
+getopts('m:pc:hMDP');
 
 if ($opt_h) {
   print "Usage: $0 [options] <vallex.xml>\n";
@@ -11,6 +11,7 @@ if ($opt_h) {
   print "   -h          this help\n";
   print "   -D          reviewer may delete existing frames (brutal force)\n";
   print "   -M          reviewer may modify existing frames (brutal force)\n";
+  print "   -P          display lists of problems for words and frames\n";
   exit 0;
 }
 
@@ -93,6 +94,7 @@ $opt_c = 1 unless defined($opt_c);
 
 $TrEd::ValLex::Editor::reviewer_can_delete = $opt_D;
 $TrEd::ValLex::Editor::reviewer_can_modify = $opt_M;
+$TrEd::ValLex::Editor::display_problems = $opt_P;
 
 
 while ($opt_c--) {
@@ -139,7 +141,7 @@ while ($opt_c--) {
       $vallex2->pack(qw/-expand yes -fill both -side left/);
     }
 
-    my $bottom_frame = $top->Frame()->pack(qw/-expand yes -fill x -side bottom/);
+    my $bottom_frame = $top->Frame()->pack(qw/-expand no -fill x -side bottom/);
 
     my $save_button=
       $bottom_frame->Button(-text => "Reload",
@@ -174,7 +176,6 @@ while ($opt_c--) {
 			  $top->destroy();
 			  undef $top;
 			},$vallex,$top]);
-
     print "starting editor\n";
 
     if ($opt_p) {
