@@ -7,13 +7,14 @@ use IO::Socket;
 use IO::Select;
 
 use vars qw(
-	    $opt_T $opt_N $opt_H $opt_m $code
+	    $all_trees $all_nodes $all_nonhidden_nodes $opt_m $code
 	    $hubname $hubport $init $nocheck $noservers
 	    $nohub $client_key_file $verbose $srvlist
 	    $kill $filelist $srvlistfile $request_quit
 	    $unrestricted $help $usage $manpage $ssh
 	    $server_debug $maxservers
 	    $request_reload $request_load $request_close
+	    $request_list
 	   );
 
 $usage=1 unless @ARGV;
@@ -24,9 +25,9 @@ $ssh='ssh';
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 Getopt::Long::Configure ("bundling");
-GetOptions ("all-trees|T"    => \$opt_T,
-	    "all-nodes|N"    => \$opt_N,
-	    "all-nonhidden-nodes|H"  => \$opt_H,
+GetOptions ("all-trees|T"    => \$all_trees,
+	    "all-nodes|N"    => \$all_nodes,
+	    "all-nonhidden-nodes|H"  => \$all_nonhidden_nodes,
 	    "help|h"         => \$help,
 	    "usage|u"        => \$usage,
 	    "man"            => \$manpage,
@@ -41,6 +42,7 @@ GetOptions ("all-trees|T"    => \$opt_T,
 	    "reload-files"    => \$request_reload,
 	    "close-files"     => \$request_close,
 	    "load-files"      => \$request_load,
+	    "list-files"      => \$request_list,
 	    "servers=s"    => \$srvlist,
 	    "unrestricted|U" => \$unrestricted,
 	    "serverlist|s=s"    => \$srvlistfile,
@@ -433,12 +435,12 @@ if (defined($init) || defined($kill)) {
 
   $code ||= 'autostart()';
 
-  if ($opt_H) {
+  if ($all_nonhidden_nodes) {
     $code = "while (\$this) { $code ; \$this=\$this->following_visible(\$grp->{FSFile}->FS)}";
-  } elsif ($opt_N) {
+  } elsif ($all_nodes) {
     $code = "while (\$this) { $code ; \$this=\$this->following }";
   }
-  if ($opt_T) {
+  if ($all_trees) {
     $code = "do { $code } while NextTree();";
   }
 
@@ -456,6 +458,9 @@ if (defined($init) || defined($kill)) {
     $request="";
   } elsif ($request_reload) {
     $request_type="RELOAD";
+    $request="";
+  } elsif ($request_list) {
+    $request_type="LIST";
     $request="";
   } elsif ($request_close) {
     $request_type="CLOSE";
@@ -676,6 +681,11 @@ The hostname of the hub to connect to (defaults to localhost).
 
 The port on which the hub is listening (defaults to 1500).
 
+=item B<--all-trees|-T>
+
+Run the query code on all trees (wrapping the code into a
+C<do { CODE } while NextTree()> loop).
+
 =item B<--all-nodes|-N>
 
 Run the query code on all nodes (you still must use --all-trees or -T
@@ -688,11 +698,6 @@ Run the query code on all nodes that are not hidden (you still must
 use --all-trees or -T to process all trees). This wraps
 the code into a
 C<while ($this) { CODE ; $this=$this->following_visible(FS()) }";> loop).
-
-=item B<--all-trees|-T>
-
-Run the query code on all trees (wrapping the code into a
-C<do { CODE } while NextTree()> loop).
 
 =item B<--key-file>
 
@@ -861,8 +866,12 @@ C<~/.ntred_filelist>    - default list of files to load on servers
 
 C<~/.ntred_session_key> - client/hub session key
 
-=head1 Author
+=head1 AUTHORS
 
+Petr Pajas <pajas@matfyz.cz>
+Zdenek Zabokrtsky <zabokrtsky@ckl.mff.cuni.cz>
+
+Copyright 2003 Petr Pajas and Zdenek Zabokrtsky, All rights reserved.
 
 =cut
 
