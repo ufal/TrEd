@@ -28,10 +28,12 @@ layer is often required.
 
 - A rule that would handle "po jablicku" is missing.
 
-- 
+- distinguish between:
+"Marie ma pro Petra uvareno" (where no transformation rules applies) and
+"Petr ma od Marie uvareno" (where transformation changes ADDR(.3) to
+ADDR(.1), etc)
 
 =cut
-
 
 sub _highest_coord {
   my ($node)=@_;
@@ -102,7 +104,6 @@ sub has_auxR {
 	  ) ? 1:0;
 	} =>
     # frame transformation rules:
-    @fv_passivization_rules,
     # frame test
     [ 'ACT(.1)', 'ADDR(.3)' ] =>
     # form transformation rules:
@@ -207,9 +208,39 @@ sub is_numeric_expression {
   return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
 }
 
+sub climb_auxcp {
+  my ($node) = @_;
+  my $last = $node;
+  my $go_coord = ($node->{afun}=~/_Co/) ? 1 : 0;
+  my $go_apos = ($node->{afun}=~/_Ap/) ? 1 : 0;
+  while ($node->parent) {
+    if ($go_coord and $node->parent->{afun}=~/^Coord/) {
+      $node=$node->parent;
+      $go_coord = ($node->{afun}=~/_Co/) ? 1 : 0;
+      $go_apos = ($node->{afun}=~/_Ap/) ? 1 : 0;
+    } elsif ($go_apos and $node->parent->{afun}=~/^Apos/) {
+      $node=$node->parent;
+      $go_apos = ($node->{afun}=~/_Ap/) ? 1 : 0;
+      $go_coord = ($node->{afun}=~/_Co/) ? 1 : 0;
+    } elsif ($node->parent->{afun}=~/^Aux[CP]/) {
+      $last=$node=$node->parent;
+    } else {
+      last;
+    }
+  }
+  $node = $last if ($node->{afun}=~/^Coord|^Apos/);
+  return $node;
+}
+
 sub get_chilren_include_auxcp {
   my ($node)=@_;
-  return with_AR { map { PDT::expand_coord_apos($_) } $node->children };
+  if ($node->{afun} =~ /^Aux[CP]/) {
+    return with_AR { map { PDT::expand_coord_apos($_) } $node->children };
+  } else {
+    return with_AR { map { climb_auxcp($_) } PDT::GetChildren_AR($node,
+								 sub{1},
+								 sub{ $_[0]{afun}=~/Aux[CP]/ }) };
+  }
 }
 
 sub check_node_case {
@@ -242,7 +273,7 @@ sub check_node_case {
 	       first {
 		 print("     CASE: testing parent instead: $_->{form}\n") if $V_verbose;
 		 is_numeric_expression($_) and
-		 (print("     CASE: parent is numeric: $_->{form}\n"),1) and
+		 ($V_verbose && print("     CASE: parent is numeric: $_->{form}\n"),1) and
 		   (($_->{tag}!~/^....(\d)/) or ($case == $1) or
 		    ($_->{tag}=~/^....4/ and
 		     grep { $_->{lemma} =~ /^(pøes-1|na-1)$/ and $_->{afun}=~/^AuxP/ }
@@ -330,7 +361,7 @@ sub match_node {
       # TODO: c s
       return 0 unless $node->{tag}=~/^V/;
     }
-  } elsif ($case ne '') { # assume $tag =~ /^[CNP]/
+  } elsif (!$no_case and $case ne '') { # assume $tag =~ /^[CNP]/
     unless ($node->{tag}=~/^[CNPAX]/ or
 	    $node->{lemma} =~ /^(?:&percnt;|hodnì|málo-3|dost|kolem-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
