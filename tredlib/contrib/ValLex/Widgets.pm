@@ -520,7 +520,7 @@ sub focused_word {
   my $h=$self->widget();
   my $t=$h->infoAnchor();
   if (defined($t)) {
-    return [$h->itemCget($t,2,'-text'),$h->itemCget($t,0,'-text')]
+    return [$h->itemCget($t,2,'-text'),$h->itemCget($t,1,'-text')]
   }
   return undef;
 }
