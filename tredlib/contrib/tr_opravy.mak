@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-10-20 14:22:38 pajas>
+## Time-stamp: <2004-10-22 11:50:57 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -850,17 +850,6 @@ sub show_tag {
   describe_tag($this->{tag});
 }
 
-#bind show_x_origa to Alt+o
-sub show_x_origa {
-  describe_x_origa($this->{x_origa}) if $this->{x_origa} ne "";
-  ChangingFile(0);
-}
-
-#bind show_x_origt to Alt+t
-sub show_x_origt {
-  describe_x_origt($this->{x_origt}) if $this->{x_origt} ne "";
-  ChangingFile(0);
-}
 
 
 ############# XPath #############
