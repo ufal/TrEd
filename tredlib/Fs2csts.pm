@@ -334,7 +334,8 @@ sub write {
 
 	  print $fileref "<TRl$quot";
 	  print $fileref " hidden" if ($node->{"TR"} eq "hide");
-	  print $fileref " origin=\"".$node->{"AIDREFS"}."\"" if $node->{"AIDREFS"} ne "";
+	  print $fileref " origin=\"".join(" ",split /\|/,$node->{"AIDREFS"}).
+	    "\"" if $node->{"AIDREFS"} ne "";
 	  print $fileref ">",translate_to_entities($node->{trlemma});
 
 	  if ($node->{func} ne "" or $node->{gram} ne "") {
@@ -353,6 +354,9 @@ sub write {
 	  print $fileref "<tfr>",$node->{dord} if ($node->{dord} ne "");
 	  print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
 	  print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
+	  print $fileref "<Tframeid>",$node->{frameid} if ($node->{frameid} ne "");
+	  print $fileref "<Tframere>",translate_to_entities($node->{frameire}) 
+	    if ($node->{framere} ne "");
 	  if ($fsfile->FS->order eq 'dord') {
 	    print $fileref "<TRg>",$node->parent->{ord};
 	  } else {
@@ -375,7 +379,7 @@ sub write {
 	print $fileref "<MTRl ";
 	print $fileref " hidden" if ($node->{"MTR_$1"} eq "hide");
 	print $fileref " src=\"$1\"";
-	print $fileref " origin=\"".$node->{"MAIDREFS_$1"}."\"" if $node->{"MAIDREFS_$1"} ne "";;
+	print $fileref " origin=\"".join(" ",split /\|/,$node->{"MAIDREFS_$1"})."\"" if $node->{"MAIDREFS_$1"} ne "";;
 	print $fileref ">",$node->{$_};
 	# actually, all the set of MTRl subelements should be
 	# treated the same (plus hide
