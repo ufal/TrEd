@@ -367,7 +367,14 @@ my %pcdata = (
 	      'iref' => [\&to_node_attr,'','!GAP'],
 	      MDt => [\&to_composed_node_attr,'_','|','src','tagMD'],
 	      MDl => [\&to_composed_node_attr,'_','|','src','lemmaMD'],
-	      MMt => [\&to_composed_node_attr,'_','|','src','tagMM'],
+	      MMt => [sub {
+			my ($s,$data) = @_;
+			# dirty hack to have the same number of MMl and MMt values
+			to_composed_node_attr(@_,'_','|','src','tagMM');
+			my $attr='MM_'.$s->{parser}->element->attribute('src')->value;
+			my @l = split /\|/,$s->{node}->{'lemma'.$attr};
+			$s->{node}->{'lemma'.$attr}.='|'.$l[$#l] if (@l == scalar(split /\|/,$s->{node}->{'tag'.$attr})-1);
+		      }],
 	      MMl => [\&to_composed_node_attr,'_','|','src','lemmaMM'],
 	      MTRl => [\&to_composed_node_attr,'_','|','src','trlemmaM'],
 	      MDg => [\&to_composed_node_attr,'_','|','src','govMD'],
