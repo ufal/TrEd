@@ -3,6 +3,7 @@
 package IOBackend;
 use Exporter;
 require File::Temp;
+use IO::File;
 use strict;
 
 use vars qw(@ISA $VERSION @EXPORT @EXPORT_OK
