@@ -181,9 +181,7 @@ sub upgrade_file {
     AppendFSHeader('@P state',
 		   '@L state|---|NA|NIL|ST|???');
   }
-
-
-  upgrade_file_to_tid_aidrefs();
+  eval { Coref::update_coref_file(); 1; } || upgrade_file_to_tid_aidrefs();
 }
 
 #bind default_tr_attrs to F8 menu Display default attributes
