@@ -171,7 +171,7 @@ sub forward_response {
   if (ref($client) eq 'SCALAR') {
     # store response to string
     while (<$server>) {
-      if (/^$control END_OF_SERVER_RESPONSE/) {
+      if (/^\Q$control\E END_OF_SERVER_RESPONSE/) {
 	return 1;
       }
       $$client.=$_;
@@ -180,7 +180,7 @@ sub forward_response {
     # forward response to client
     while (<$server>) {
       print $client $_;
-      if (/^$control END_OF_SERVER_RESPONSE/) {
+      if (/^\Q$control\E END_OF_SERVER_RESPONSE/) {
 	$client->flush;
 	return 1;
       }
@@ -189,7 +189,7 @@ sub forward_response {
   } else {
     # spit response to stderr
     while (<$server>) {
-      if (/^$control END_OF_SERVER_RESPONSE/) {
+      if (/^\Q$control\E END_OF_SERVER_RESPONSE/) {
 	return 1;
       }
       msg "Server replies: $_";
@@ -219,7 +219,7 @@ if (exists $ENV{TREDHOME}) {
 msg "Trying $libDir\n" if ($libDir);
 unshift @INC,$libDir if (-d $libDir);
 
-my $control = '@@@';
+my $control = '@-NTRED-@-PROTOCOL-@';
 require TrEd::Cipher;
 import TrEd::Cipher qw(generate_random_block block_to_hex hex_to_block
 		       Negotiate Authentify save_block);
@@ -350,7 +350,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     # Read the server key from STDIN
 
     $server_key = readline(*STDIN);
-    if ($server_key =~ /^$control SESSION-KEY=([0-9A-Z]+)$/) {
+    if ($server_key =~ /^\Q$control\E SESSION-KEY=([0-9A-Z]+)$/) {
       $server_key = $1;
       /(.)/; # clean-up :-)
     } else {
@@ -386,7 +386,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	$_->{ssh}->autoflush(1);
 	STDERR->autoflush(1);
 	msg "sending session key\n";
-	$_->{ssh}->print("@@@ SESSION-KEY=".block_to_hex($server_key)."\n");
+	$_->{ssh}->print("$control SESSION-KEY=".block_to_hex($server_key)."\n");
 	$_->{ssh}->flush;
 	msg "sent session key\n";
 	$_->{running}=1;
@@ -397,7 +397,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     }
   }
   if ($nohub) {
-    print "@@@ SESSION-KEY=".block_to_hex($server_key)."\n";
+    print "$control SESSION-KEY=".block_to_hex($server_key)."\n";
     exit;
   }
 
@@ -501,9 +501,9 @@ if (defined($init) || defined($kill) || defined($break)) {
     my $request_type;
     while (<$client>) {		#
       $request.=$_;
-      if (/^$control REQUEST_TYPE=(.*)/) {
+      if (/^\Q$control\E REQUEST_TYPE=(.*)/) {
 	$request_type=$1;
-      } elsif (/^$control END_OF_REQUEST/) {
+      } elsif (/^\Q$control\E END_OF_REQUEST/) {
 	last;
       }
     }
@@ -516,9 +516,9 @@ if (defined($init) || defined($kill) || defined($break)) {
       @files = ();
       my $md5;
       foreach (split /\n/,$request) {
-	if (/^$control MD5_SIGNATURE (.*)$/) {
+	if (/^\Q$control\E MD5_SIGNATURE (.*)$/) {
 	  $md5 = $1;
-	} elsif (!/^$control /)  {
+	} elsif (!/^\Q$control\E /)  {
 	  push @files, $_;
 	}
       }
@@ -583,7 +583,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     close $tmp;
   };
 
-  my $control="@@@";	    # @@@ marks the beginning of control lines
+  my $control='@-NTRED-@-PROTOCOL-@';	    # @@@ marks the beginning of control lines
 
   # ---------- composing and testing the request -----------
 
@@ -738,18 +738,18 @@ if (defined($init) || defined($kill) || defined($break)) {
       msg "Receiving the server responses and printing it to STDOUT...\n";
       $first=0;
     }
-    if (/^$control Response from (\S+)/) { # prasim
+    if (/^\Q$control\E Response from (\S+)/) { # prasim
       msg "Receiving response from $1\n";
       $real_response=1;
-    } elsif (/^$control HUB_RESPONSE_STDERR/) {
+    } elsif (/^\Q$control\E HUB_RESPONSE_STDERR/) {
       $out = \*STDERR;
-    } elsif (/^$control SERVER_RESPONSE_STDOUT/) {
+    } elsif (/^\Q$control\E SERVER_RESPONSE_STDOUT/) {
       $out = \*STDOUT;
-    } elsif (/^$control SERVER_RESPONSE_STDERR/) {
+    } elsif (/^\Q$control\E SERVER_RESPONSE_STDERR/) {
       $out = \*STDERR;
-    } elsif (/^$control SERVER_RESPONSE_STDOUT/) {
+    } elsif (/^\Q$control\E SERVER_RESPONSE_STDOUT/) {
       $out = \*STDOUT;
-    } elsif (/^$control/) {
+    } elsif (/^\Q$control\E/) {
       print STDERR $_ unless $quiet;
     } else {
       if ($real_response) {
@@ -758,7 +758,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	msg "Hub send: $_";
       }
     }
-    if (/^$control END_OF_HUB_RESPONSE/) {
+    if (/^\Q$control\E END_OF_HUB_RESPONSE/) {
       last;
     }
   }
