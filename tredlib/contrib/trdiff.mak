@@ -23,6 +23,8 @@ use integer;
 $check_presence=1;
 $check_dependency=1;
 $check_attributes=1;
+$questionmarks_as_empty=1;      # ignore difference between '???' and '' in attrs
+$dash_as_threedashes=1;         # ignore difference between '-' and '---' in attrs
 @standard_check_list=		# list of attributes to check
   qw(func form trlemma lemma origf del memberof gram sentmod deontmod TR);
 
@@ -172,6 +174,7 @@ sub diff_trees {
   my %total=undef;
   my $total_dependency=0;
   my $total_restoration=0;
+  my $total_values=0;
   my %restoration=map { $_ => 0 } 1..@names;
   my %dependency=map { $_ => 0 } 1..@names;
   my %value=map { $_ => 0 } 1..@names;
@@ -305,7 +308,14 @@ sub diff_trees {
       foreach my $attr (@standard_check_list) {
 	undef %valhash;
 	foreach my $f (@grps) {
-	  $valhash{"$Gr->{$f}->{$attr}"}.=" $f";
+	  my $key=$Gr->{$f}->{$attr};
+	  if ($questionmarks_as_empty and $key eq "???") {
+	    $key="";
+	  }
+	  if ($dash_as_threedashes and $key eq "---") {
+	    $key="-";
+	  }
+	  $valhash{$key}.=" $f";
 	}
 	if (keys (%valhash) > 1) {
 	  my @a;
