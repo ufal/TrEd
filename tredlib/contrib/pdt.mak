@@ -601,10 +601,13 @@ sub _expand_coord_apos_GetFather_AR { # node through
   return @checked;
 }
 
-=item PDT::GetFather_AR(top?)
+=item PDT::GetFather_AR($node,$through)
 
 Return linguistic parent of a given node as appears in an annalytic
-tree.
+tree. The argument C<$through> should supply a function accepting one
+node as an argument and returning true if the node should be skipped
+on the way to parent (usually nodes with afun AuxC or AuxP) or 0
+otherwise.
 
 =cut
 
