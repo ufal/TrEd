@@ -32,7 +32,7 @@ sub ChooseFrame {
   require TrEd::CPConvert;
   my $frameid_attr="frameid";
   my $framere_attr="framere";
-  my $lemma=$this->{trlemma};
+  my $lemma=TrEd::Convert::encode($this->{trlemma});
   my $tag=$this->{tag};
   if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
     $lemma=~s/^ne//;

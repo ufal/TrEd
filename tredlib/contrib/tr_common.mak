@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-10-31 15:27:35 pajas>
+## Time-stamp: <2001-11-05 11:18:18 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -238,8 +238,6 @@ sub AddNewLoc {
 ## (overriding definitions of contrib/tredtr.mak)
 sub GetNewOrd {
 
-  print "overriden Get new ord \n";
-
   my $base=0;
   my $suff=0;
   my $node;
@@ -257,7 +255,6 @@ sub GetNewOrd {
   }
 
   $sPar2="$base.".($suff+1);
-  print "returning $sPar2\n";
   return $sPar2;            # for future compatibility
 }
 
@@ -418,6 +415,10 @@ sub NewVerb {
   $pNew->{'trneg'} = 'NA';
 
   $this=$pNew;
+}
+
+sub ConnectID {
+  $sReturn =  $sPar1.'|'.$sPar2;
 }
 
 sub DisconnectID {

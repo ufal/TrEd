@@ -114,6 +114,8 @@ print STDERR "Trying $libDir\n" if ($libDir);
 
 $macroFile=undef;
 
+$Fslib::Debug=1;
+
 # We *must* at least find TrEd::Config module to learn the correct libDir!!.
 unshift @INC,$libDir if (-d $libDir);
 
