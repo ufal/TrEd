@@ -1,11 +1,34 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-30 10:20:34 pajas>
+## Time-stamp: <2003-08-28 10:26:18 pajas>
 
 #
 # This file defines default macros for TR annotators.
 # Only TredMacro context is present here.
 #
+
+sub register_exit_hook ($) {
+  my ($hook)=@_;
+  push @global_exit_hooks,$hook;
+}
+
+sub unregister_exit_hook ($) {
+  my ($hook)=@_;
+  @global_exit_hooks=grep { $_ ne $hook } @global_exit_hooks;
+}
+
+sub exit_hook {
+  foreach my $sub (@global_exit_hooks) {
+    if (ref($sub) eq 'ARRAY') {
+      my $realsub=shift @$sub;
+      eval{ &{$realsub}(@$sub); };
+    } else {
+      eval{ &$sub(); };
+    }
+    stderr($@) if $@;
+  }
+}
+
 
 sub file_opened_hook {
 
