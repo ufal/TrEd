@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-02 13:40:01 pajas>
+## Time-stamp: <2001-08-11 11:55:28 paja>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -171,7 +171,7 @@ sub rotate_func {
 # bind edit_commentA to key Shift+1
 sub edit_commentA {
   if (not $grp->{FSFile}->FS->exists('commentA')) {
-    $grp->toplevel->messageBox
+    $ToplevelFrame->messageBox
       (
        -icon => 'warning',
        -message => 'Sorry, no attribute for annotator\'s comment in this file',
