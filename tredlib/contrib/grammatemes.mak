@@ -41,15 +41,19 @@ my %relevant_gramms = (
 		       'ADV' => ['degcmp']
 		      );
 
+sub patterns_forced {
+  return (grep { $_ eq 'force' } GetPatternsByPrefix('patterns',STYLESHEET_FROM_FILE()) ? 1 : 0)
+}
+
 sub switch_context_hook {
-  if ($grp->{FSFile} and GetSpecialPattern('patterns') ne 'force') {
+  if ($grp->{FSFile} and !patterns_forced()) {
     set_default_attrs();
   }
 }
 
 #ifdef TRED
 sub file_opened_hook {
-  if ($grp->{FSFile} and GetSpecialPattern('patterns') ne 'force') {
+  if ($grp->{FSFile} and !patterns_forced()) {
     set_default_attrs();
   }
 }

@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2005-03-15 18:21:49 pajas>
+## Time-stamp: <2005-04-01 18:20:59 pajas>
 ## $Id$
 
 #encoding iso-8859-2
@@ -153,11 +153,12 @@ sub default_ar_attrs {
   return 1;
 }
 
+sub patterns_forced {
+  return (grep { $_ eq 'force' } GetPatternsByPrefix('patterns',STYLESHEET_FROM_FILE()) ? 1 : 0)
+}
 
 sub switch_context_hook {
-  if ($grp->{FSFile} and 
-      GetSpecialPattern('patterns') ne 'force' and
-      !$grp->{FSFile}->hint()) {
+  if ($grp->{FSFile} and !patterns_forced() and !$grp->{FSFile}->hint()) {
     default_ar_attrs();
 #    SetDisplayAttrs('${form}', '${afun}');
 #    SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ncommentA: \${commentA}");

@@ -9,7 +9,7 @@ package TredMacro;
 
 sub file_opened_hook {
 
-    my $mode = GetSpecialPattern('mode');
+    my ($mode) = GetPatternsByPrefix('mode',STYLESHEET_FROM_FILE());
 
     SwitchContext((defined $mode) ? $mode :
 		  ($grp->{FSFile}->FS()->isList('type') and 
