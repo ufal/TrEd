@@ -5308,15 +5308,19 @@ sub MakeSentence {
 	      </entry>
 	    </row>
 	    <row>
-	      <entry>node_released_hook
+	    <row>
+	      <entry>node_release_hook
 		(<replaceable>node</replaceable>,
 		<replaceable>target-node</replaceable>,
 		<replaceable>mod</replaceable>)</entry>
-		<entry>yes</entry> <entry>Called when node is released
+		<entry>yes</entry> <entry>Called when a node is released
 		over another node after a mouse
 		drag. <replaceable>mod</replaceable> is a keyboard
-		modifier string, such as <literal moreinfo="none">Ctrl</literal>,
-		<literal moreinfo="none">Meta</literal>. It can also be empty.  If
+		modifier string, such as <literal moreinfo="none">Control</literal>,
+		<literal moreinfo="none">Shift</literal>,
+		<literal moreinfo="none">Alt</literal> or
+		<literal moreinfo="none">Meta</literal>.
+		  It can also be empty.  If
 		<literal moreinfo="none">mod</literal> is empty, the hook should
 		either result 'stop', to disable rehanging
 		<replaceable>node</replaceable> on
@@ -5325,6 +5329,48 @@ sub MakeSentence {
 		reorganize the tree in arbitrary way, but
 		it should call <literal moreinfo="none">Redraw_FSFile_Tree()</literal>
 		and set <literal moreinfo="none">$FileChanged=1</literal> if needed.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>node_doubleclick_hook
+		(<replaceable>node</replaceable>,
+		<replaceable>mod</replaceable>)</entry>
+		<entry>no</entry> 
+	      <entry>Called when a node is double-clicked
+		  while a modifier key was pressed.
+		  <replaceable>mod</replaceable> is a keyboard
+		modifier string, such as <literal moreinfo="none">Control</literal>,
+		<literal moreinfo="none">Shift</literal>,
+		<literal moreinfo="none">Alt</literal> or
+		<literal moreinfo="none">Meta</literal>.
+		  The hook is responsible for calling
+		<literal moreinfo="none">Redraw_FSFile_Tree()</literal> or
+		similar default macro to redraw the tree as well as for 
+		setting <literal moreinfo="none">$FileChanged=1</literal> if needed.
+	      </entry>
+	    </row>
+	    <row>
+	      <entry>text_doubleclick_hook
+		(<replaceable>node</replaceable>,
+		  <replaceable>attr</replaceable>,
+		<replaceable>mod</replaceable>)</entry>
+		<entry>no</entry> 
+	      <entry>Called when an attribute in a displayed
+		  node or edge label is double-clicked
+		  while a modifier key was pressed.
+		  <replaceable>mod</replaceable> is a keyboard
+		modifier string, such as <literal moreinfo="none">Control</literal>,
+		<literal moreinfo="none">Shift</literal>,
+		<literal moreinfo="none">Alt</literal> or
+		<literal moreinfo="none">Meta</literal>.
+		  <replaceable>node</replaceable> is the  FSNode object
+		  whose attribute was clicked.
+		  <replaceable>attr</replaceable> is name of the
+		  attribute which was clicked.
+		  The hook is responsible for calling
+		<literal moreinfo="none">Redraw_FSFile_Tree()</literal> or
+		similar default macro to redraw the tree as well as for 
+		setting <literal moreinfo="none">$FileChanged=1</literal> if needed.
 	      </entry>
 	    </row>
 	    <row>
