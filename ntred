@@ -803,13 +803,13 @@ necessary for the authentication to the running hub. This defaults to
 A comma separated list of hosts to run btred servers. The hostname may
 be optionally followed by a comma and a port number thus making it
 possible to run several btred servers on one host. If the port number
-is omitted, it defaults to 1600. See also L<--serverlist>
+is omitted, it defaults to 1600. See also L<--serverlist/"--serverlist">
 
 =item B<--serverlist> filename
 
 This provides more convenient way to specify servers by providing a
 file containing a list of servers, one per line. If neither
-L<--servers> nor L<--serverlist> is provided, then the list of
+L<--servers/"--servers"> nor L<--serverlist/"--serverlist"> is provided, then the list of
 servers is read from ~/.ntred_serverlist.
 
 =item B<--filelist> filename
@@ -946,7 +946,7 @@ Send a command to the btred servers to reload all open files.
 =item B<--load-files>
 
 Send a command to the hub to distribute files given on the
-command-line or those specified using L<--filelist> of in
+command-line or those specified using L<--filelist/"--filelist"> of in
 ~/.ntred_filelist to the servers. Note, that a file distributed to a
 server is not reloaded by the server if the server already has a file
 with the same path in memory.
@@ -958,16 +958,18 @@ Send a command to the btred servers to close all open files.
 =item B<--save-files>
 
 Send a command to the servers to save all open files.  The filenames
-of the saved files may be modified using L<--add-prefix>,
-L<--strip-prefix>, L<--strip-suffix>, L<--append-suffix>.
+of the saved files may be modified using
+L<--add-prefix/"--add-prefix">, L<--strip-prefix/"--strip-prefix">,
+L<--strip-suffix/"--strip-suffix">,
+L<--append-suffix/"--append-suffix">.
 
 =item B<--save-changed-files>
 
-Same as L<--save-files> except that only files that have been changed
+Same as L<--save-files/"--save-files"> except that only files that have been changed
 by some macro will be saved. Note, that a macro has to claim that the
 file was changed by setting C<$TredMacro::FileChanged> variable to 1,
 otherwise the btred server would never notice. See also
-L<--list-changed-files>.
+L<--list-changed-files/"--list-changed-files">.
 
 =item B<--dump-files>
 
