@@ -70,7 +70,7 @@ sub open_backend {
   my ($filename, $mode)=@_;
   my $fh = undef;
   my $cmd = "";
-  if ($filename) {
+  if ($filename and -r $filename) {
     if ($mode =~/[w\>]/) {
       $cmd = "| $CSTSBackend::gzip" if ($filename=~/.gz$/);
       $cmd="$CSTSBackend::fs2csts $cmd > \"$filename\"";
