@@ -286,10 +286,10 @@ APPINFO    NONE
 <!ELEMENT p - O (s+) -- Paragraph -->
 <!ATTLIST p
           n   NUMBER   #REQUIRED >
-<!ELEMENT s - O ((i|w|f|d|D|fadd)* , idioms?, salt*) -- sentence -->
+<!ELEMENT s - O (((w*,(f|d|fadd),D?)* & i*)*, idioms?, salt*) -- sentence -->
 <!ATTLIST s
           id   CDATA   #REQUIRED >
-<!ELEMENT salt - O ((i|f|w|d|D|fadd)* & idioms? )
+<!ELEMENT salt - O (((w*,(f|d|fadd),D?)* & i*)*, idioms? )
                  -- sentence with alternate annotation -->
 <!ATTLIST salt
           id   CDATA   #REQUIRED >
