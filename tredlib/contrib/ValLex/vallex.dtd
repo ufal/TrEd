@@ -81,6 +81,7 @@ a je potreba ho nejak doresit-->
                  REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|
                  TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT|SENT) #REQUIRED  
        type (oblig|non-oblig) "non-oblig"
+       orig_type CDATA #IMPLIED
      > 
 
 <!ELEMENT form EMPTY>  
