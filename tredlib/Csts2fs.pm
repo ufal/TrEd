@@ -140,6 +140,7 @@ my %start_tag = (
 			   $s->{root}->{tag}="Z#-------------";
 			   $s->{root}->{lemma}="#";
 			   $s->{root}->{trlemma}="#";
+			   $s->{root}->{TR}="";
 			   $s->{root}->{func}="SENT";
 			 }],
 		 'salt' => [sub {
@@ -151,11 +152,25 @@ my %start_tag = (
 			      $s->{root}->{tag}="Z#-------------";
 			      $s->{root}->{lemma}="#";
 			      $s->{root}->{trlemma}="#";
+			      $s->{root}->{TR}="";
 			      $s->{root}->{func}="SENT";
 			    }],
 		 'f' => [\&make_new_node],
 		 'd' => [\&make_new_node],
 		 'fadd' => [\&make_new_node],
+		 'TRl' => [sub {
+			     my ($s)=@_;
+			     # inicialization may be altered to fill
+			     # 'hide' here otherwise
+			     $s->{node}->{TR}="";
+			   }],
+		 'MTRl' => [sub {
+			      my ($s)=@_;
+			      # inicialization may be altered to fill
+			      # 'hide' here otherwise (maybe not easy as
+			      # these attributes are generated)
+			      to_composed_node_attr($s,"","_","","src","MTR");
+			    }],
 #		 'D' => [\&copy_tag_to,'','<','!GAP'],
 		 'D' => [sub {
 			   my ($s)=@_;
@@ -318,6 +333,7 @@ my %pcdata = (
 	      TRl => [\&to_node_attr,'|','trlemma'],
 	      TRg => [\&to_node_attr,'|','govTR'],
 	      T => [\&to_node_attr,'|','func'],
+	      Tmo => [\&to_node_attr,'|','memberof'],
 	      grm => [\&to_node_attr,'|','gram'],
 	      TRt => [\&assign_TRt,0],
 	      tfa => [\&to_node_attr,'|','tfa'],
@@ -328,7 +344,11 @@ my %pcdata = (
 	      corT => [\&to_node_attr,'|','corT'],	# which attr?
 	      corr => [\&to_node_attr,'|','corr'],	# which attr?
 	      cors => [\&to_node_attr,'|','cors'],	# which attr?
-	      g => [\&to_node_attr,'|','ordorig'],
+	      g => [sub{
+		      my ($s,$data)=@_;
+		      to_node_attr(@_);
+		      $s->{node}->{govTR}=$data if $s->{node}->{govTR} eq "";
+		    },'|','ordorig'],
 	      r => [\&to_node_attr,'|','ord']
 	     );
 
