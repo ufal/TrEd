@@ -44,10 +44,12 @@ sub questionQuery {
   return $d->Show;
 }
 
+my $support_unicode = ($Tk::VERSION ge 804.00);
 my $conv= TrEd::CPConvert->new("utf-8",
-			       ($^O eq "MSWin32") ?
-			       "windows-1250" :
-			       "iso-8859-2");
+			       $support_unicode ? "utf-8" :
+			       (($^O eq "MSWin32") ?
+				"windows-1250" :
+				"iso-8859-2"));
 
 my $data=TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv,1);
 
