@@ -7,6 +7,7 @@ use strict;
 use base qw(TrEd::ValLex::Data);
 use IO;
 use XML::LibXML;
+use XML::LibXML::Iterator;
 
 sub parser_start {
   my ($self, $file, $novalidation)=@_;
@@ -82,6 +83,26 @@ sub save {
   return 1;
 }
 
+sub getWordNodes {
+  my ($self)=@_;
+  my $doc=$self->doc();
+  return unless $doc;
+  my $docel=$doc->getDocumentElement();
+  my $body=$docel->firstChild();
+  while ($body) {
+    last if ($body->localname() eq 'body');
+    $body=$body->nextSibling();
+  }
+  die "didn't find vallency_lexicon body?" unless $body;
+  my @w;
+  my $n=$body->firstChild();
+  while ($n) {
+    push @w,$n if ($n->localname() eq 'word');
+    $n=$n->nextSibling();
+  }
+  return @w;
+}
+
 # sub findWord {
 #   my ($self,$find,$nearest)=@_;
 #   my $doc=$self->doc();
@@ -121,12 +142,29 @@ package XML::LibXML::Node;
 
 sub getChildElementsByTagName {
   my ($self,$name)=@_;
-  return $self->findnodes("./$name");
+  my $n=$self->firstChild();
+  my @n;
+  while ($n) {
+    push @n,$n if ($n->localname() eq $name);
+    $n=$n->nextSibling();
+  }
+  return @n;
 }
 
 sub getDescendantElementsByTagName {
   my ($self,$name)=@_;
-  return $self->findnodes(".//$name");
+#  return $self->findnodes(".//$name");
+  my @n;
+  my $iter= XML::LibXML::SubTreeIterator->new( $self );
+  $iter->iterator_function(\&XML::LibXML::SubTreeIterator::subtree_iterator);
+  my $i;
+  while ( $iter->next() ) {
+    my $c=$iter->current();
+    last if ($i>100);
+    last if $c->isSameNode($self);
+    push @n, $c if $c->localname() eq $name;
+  }
+  return @n;
 }
 
 sub isTextNode {
@@ -138,5 +176,52 @@ package XML::LibXML::Element;
 sub addText {
   $_[0]->appendText($_[1])
 }
+
+package XML::LibXML::SubTreeIterator;
+use strict;
+use base qw(XML::LibXML::Iterator);
+# (inheritance is not a real necessity here)
+
+sub subtree_iterator {
+    my $self = shift;
+    my $dir  = shift;
+    my $node = undef;
+
+
+    if ( $dir < 0 ) {
+        return undef if $self->{CURRENT}->isSameNode( $self->{FIRST} )
+          and $self->{INDEX} <= 0;
+
+        $node = $self->{CURRENT}->previousSibling;
+        return $self->{CURRENT}->parentNode unless defined $node;
+
+        while ( $node->hasChildNodes ) {
+	  return undef if $node->isSameNode( $self->{FIRST} )
+	    and $self->{INDEX} > 0;
+            $node = $node->lastChild;
+        }
+    }
+    else {
+        return undef if $self->{CURRENT}->isSameNode( $self->{FIRST} )
+          and $self->{INDEX} > 0;
+
+        if ( $self->{CURRENT}->hasChildNodes ) {
+            $node = $self->{CURRENT}->firstChild;
+        }
+        else {
+            $node = $self->{CURRENT}->nextSibling;
+            my $pnode = $self->{CURRENT}->parentNode;
+            while ( not defined $node ) {
+                last unless defined $pnode;
+		return undef if $pnode->isSameNode( $self->{FIRST} );
+                $node = $pnode->nextSibling;
+                $pnode = $pnode->parentNode unless defined $node;
+            }
+        }
+    }
+
+    return $node;
+}
+
 
 1;

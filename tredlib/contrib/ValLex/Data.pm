@@ -146,13 +146,38 @@ sub loadListOfUsers {
   $self->[4]=$users;
 }
 
+sub getWordNodes {
+  my ($self)=@_;
+  my $doc=$self->doc();
+  return unless $doc;
+  my ($body)=$doc->getDocumentElement()->getChildElementsByTagName ("body");
+  return unless $body;
+  return $body->getChildElementsByTagName("word");
+}
+
+sub getFrameNodes {
+  my ($self,$word)=@_;
+  return unless ref($word);
+  my ($vf)=$word->getChildElementsByTagName ("valency_frames");
+  return unless $vf;
+  return $vf->getChildElementsByTagName ("frame");
+}
+
+sub getFrameElementNodes {
+  my ($self,$frame)=@_;
+  return unless ref($frame);
+  my ($fe)=$frame->getChildElementsByTagName ("frame_elements");
+  return unless $fe;
+  return $fe->getChildElementsByTagName ("element");
+}
+
 sub getWordList {
   my ($self)=@_;
   my $doc=$self->doc();
   return unless $doc;
   my @words=();
   my $docel=$doc->getDocumentElement();
-  foreach my $word ($docel->getDescendantElementsByTagName ("word")) {
+  foreach my $word ($self->getWordNodes()) {
     my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
     my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
@@ -184,7 +209,7 @@ sub getSuperFrameList {
   my $base;
   my $nosuper=0;
   my $pos=$self->getPOS($word);
-  my @frames=$word->getDescendantElementsByTagName("frame");
+  my @frames=$self->getFrameNodes($word);
   my (@active,@obsolete);
   foreach (@frames) {
     if ($self->getFrameStatus($_) =~ /substituted|obsolete|deleted/) {
@@ -201,7 +226,7 @@ sub getSuperFrameList {
   }
   foreach my $frame (@active) {
     $base="";
-    my @element_nodes=$frame->getDescendantElementsByTagName("element");
+    my @element_nodes=$self->getFrameElementNodes($frame);
     foreach my $element (
 			 (
 			  grep { 
@@ -234,8 +259,7 @@ sub getSuperFrameList {
 sub getFrameList {
   my ($self,$word)=@_;
   return unless $word;
-  my @frames=();
-  return map { $self->getFrame($_) } $word->getDescendantElementsByTagName("frame");
+  return map { $self->getFrame($_) } $self->getFrameNodes($word);
 }
 
 sub getOneFrameElementString {
@@ -251,7 +275,7 @@ sub getFrameElementString {
   my ($self,$frame)=@_;
   return unless $frame;
   my @elements;
-  my @element_nodes=$frame->getDescendantElementsByTagName("element");
+  my @element_nodes=$self->getFrameElementNodes($frame);
 
   foreach my $element (
 		       (grep { $_->getAttribute('type') eq 'oblig' }
@@ -355,7 +379,7 @@ sub findWord {
   my $doc=$self->doc();
   return unless $doc;
   my $docel=$doc->getDocumentElement();
-  foreach my $word ($docel->getDescendantElementsByTagName("word")) {
+  foreach my $word ($self->getWordNodes()) {
     my $lemma = $self->conv->decode($word->getAttribute("lemma"));
     return $word if (($nearest and index($lemma,$find)==0) or $lemma eq $find);
   }
@@ -367,7 +391,7 @@ sub findWordAndPOS {
   my $doc=$self->doc();
   return unless $doc;
   my $docel=$doc->getDocumentElement();
-  foreach my $word ($docel->getDescendantElementsByTagName("word")) {
+  foreach my $word ($self->getWordNodes()) {
     my $lemma = $self->conv->decode($word->getAttribute("lemma"));
     my $POS = $self->conv->decode($word->getAttribute ("POS"));
     return $word if ($lemma eq $find and $POS eq $pos);
