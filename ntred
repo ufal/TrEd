@@ -656,7 +656,7 @@ necessary for the authentication to the running hub. This defaults to
 
 =back
 
-=head2 HUB/SERVER MODE OPTIONS (-i or --init)
+=head2 HUB/SERVER MODE (-i or --init) OPTIONS
 
   ntred -i [--servers server[,server,...]] [--server-list server-list]
            [--file-list file-list]
@@ -763,6 +763,14 @@ Prints the help page and exits.
 Displays the help as manual page.
 
 =back
+
+=head1 FILES
+
+C<~/.ntred_serverlist>  - default list of servers to use
+
+C<~/.ntred_filelist>    - default list of files to load on servers
+
+C<~/.ntred_session_key> - client/hub session key
 
 =cut
 
