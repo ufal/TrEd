@@ -109,7 +109,7 @@ sub expand_coord_apos {
 	$node->children());
   } elsif (is_apos($node)) {
     return (($keep ? $node : ()), map { expand_coord_apos($_,$keep) }
-      grep { $_->{afun} =~ '_Co' }
+      grep { $_->{afun} =~ '_Ap' }
 	$node->children());
   } else {
     return $node;
@@ -200,11 +200,14 @@ sub expand_coord_apos_TR {
   my ($node,$keep)=@_;
   if (is_coord_TR($node)) {
     return (($keep ? $node : ()),map { expand_coord_apos_TR($_,$keep) }
-      grep { $_->{memberof} eq 'CO' or $_->{reltype} eq 'CO' }
+      grep { $node->{func} ne 'OPER' and
+	     ($_->{memberof} eq 'CO' or $_->{reltype} eq 'CO') or
+	     $node->{func} eq 'OPER' and $_->{operand} eq 'OP'
+	     }
 	$node->children());
   } elsif (is_apos_TR($node)) {
     return (($keep ? $node : ()), map { expand_coord_apos_TR($_,$keep) }
-      grep { $_->{memberof} eq 'CO' or $_->{reltype} eq 'CO' }
+      grep { $_->{memberof} eq 'AP' or $_->{reltype} eq 'AP' }
 	$node->children());
   } else {
     return $node;
