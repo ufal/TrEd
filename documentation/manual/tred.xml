@@ -2961,7 +2961,7 @@ root# <userinput>make install</userinput>
 	    <para>
 	      This option may be used to customize the command used by
 	      CSTS backend to invoke SGML parser for files compressed
-	      with GNU GZip. The default value is <literal>%z < %f |
+	      with GNU GZip. The default value is <literal>%z &lt; %f |
 	      %s %o %d -</literal>.  In this string, the
 	      <literal>%z</literal> substring is replaced with the
 	      value of <link linkend="zcat"><literal>zcat</literal></link> option.  See <link
