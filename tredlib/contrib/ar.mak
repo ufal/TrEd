@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2002-07-15 20:45:11 pajas>
+## Time-stamp: <2002-10-02 11:05:56 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -42,7 +42,9 @@ sub default_ar_attrs {
 
 
 sub switch_context_hook {
-  if ($grp->{FSFile} and !$grp->{FSFile}->hint()) {
+  if ($grp->{FSFile} and 
+      GetSpecialPattern('patterns') ne 'force' and
+      !$grp->{FSFile}->hint()) {
 #    SetDisplayAttrs('${form}', '${afun}');
     SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ncommentA: \${commentA}");
   }
