@@ -3281,8 +3281,17 @@ sub canvasBindMouseWheelVert {
     $w->CanvasBind("<$modifier"."MouseWheel>",
               [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
 #    if ($Tk::platform eq 'unix') {
-    $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units') unless $Tk::strictMotif; });
-    $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units') unless $Tk::strictMotif; });
+    $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units')
+					      unless $Tk::strictMotif; });
+    $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units')
+					      unless $Tk::strictMotif; });
+    if ($modifier eq "") {
+      $w->CanvasBind("<6>", sub { $_[0]->xview('scroll', -3, 'units')
+				    unless $Tk::strictMotif; });
+      $w->CanvasBind("<7>", sub { $_[0]->xview('scroll', 3, 'units')
+				    unless $Tk::strictMotif; });
+    }
+
 #    }
 }
 
