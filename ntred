@@ -573,7 +573,7 @@ To kill all remote servers and a hub:
 To start remote servers and a hub:
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
-           [--file-list file-list]
+           [--filelist file-list]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--unrestricted]
            [--key-file] [--hub hub] [--port port] file [...]
@@ -661,7 +661,7 @@ necessary for the authentication to the running hub. This defaults to
 =head2 HUB/SERVER MODE (-i or --init) OPTIONS
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
-           [--file-list file-list]
+           [--filelist file-list]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--unrestricted]
            [--key-file] [--hub hub] [--port port] file [...]
