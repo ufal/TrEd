@@ -3040,6 +3040,7 @@ root# <userinput>make install</userinput>
       <cmdsynopsis>
 	<command>tred</command>
 	<arg choice="opt">-R</arg>
+	<arg choice="opt">-G</arg>
 	<arg choice="opt">-c <replaceable>config-file</replaceable></arg>
 	<arg choice="opt">-m <replaceable>macro-file</replaceable></arg>
 	<arg choice="opt">-t <replaceable>context</replaceable></arg>
