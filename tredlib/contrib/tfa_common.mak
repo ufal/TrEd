@@ -7,7 +7,7 @@
 
 sub TFAAssign {
   my ($value)=@_;
-  if (Parent($this)) {
+  if ($this->parent) {
     $this->{'tfa'} = $value;
     $this=NextVisibleNode($this);
   }
@@ -427,7 +427,7 @@ sub PreSetTFArecursive {
   # set the flag when top of the subtree is encountered
   $flag = 1 if ($node == $top); # simple case
   if (not ($flag)) { # case when top is a coordination node
-    for (my $n=Parent($node); $n and PDT::is_coord_TR($n); $n=Parent($n)) {
+    for (my $n=$node->parent; $n and PDT::is_coord_TR($n); $n=$n->parent) {
       $flag = 1 if ($n == $top);
     }
   }
@@ -485,7 +485,7 @@ sub PreSetTFArecursive {
     if ($child->{'func'} =~ /RHEM/ and $child->{'trlemma'} =~ /^(&)?Neg(;)?$/) {
       # print STDERR "   negation F\n";
       PreSetTFArecursive($all, $top, $child, "F", $flag);
-      if ($flag and Parent($child) == $node and $node != $root) {
+      if ($flag and $child->parent == $node and $node != $root) {
  	push @neg, @{Projectivize($child)};
       }
     }
@@ -493,7 +493,7 @@ sub PreSetTFArecursive {
     elsif ($child->{'func'} =~ /MOD|MANN|EXT/) {
       # print STDERR "  modifiers F\n";
       PreSetTFArecursive($all, $top, $child, "F", $flag);
-      if ($flag and Parent($child) == $node and $node != $root) {
+      if ($flag and $child->parent == $node and $node != $root) {
  	push @rightmovedchildren, @{Projectivize($child)};
       }
     }
@@ -501,7 +501,7 @@ sub PreSetTFArecursive {
     elsif ($child->{'ord'} =~ /\./ and not($child->firstson)) {
       # print STDERR "  restored nodes T\n";
       PreSetTFArecursive($all, $top, $child, "T", $flag);
-      if ($flag and Parent($child) == $node and $node != $root) {
+      if ($flag and $child->parent == $node and $node != $root) {
  	push @leftmovedchildren, @{Projectivize($child)};
       }
     }

@@ -249,7 +249,7 @@ sub start_element {
     foreach (grep { !/^{}(?:n|h|id)$/ } keys %$attr) {
       $new->{$self->decode($attr->{$_}->{Name})} = $self->decode($attr->{$_}->{Value});
     }
-    Paste($new,$parent,{ ORD => ' N'}) if ($parent);
+    Fslib::Paste($new,$parent,FSFormat->new({ ORD => ' N'},['ORD'])) if ($parent);
   }
   $self->{attributes}=$attr;
 }

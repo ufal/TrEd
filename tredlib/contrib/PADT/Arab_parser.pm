@@ -82,7 +82,7 @@ sub parse_sentence($$) {
   foreach my $node (@allnodes) {Cut($node)};
 
   # hanging nodes according to the detected dependencies
-  foreach my $node (@allnodes) {  Paste($node,$node->{new_parent},$grp->{FSFile}->FS->defs()) }
+  foreach my $node (@allnodes) {  PasteNode($node,$node->{new_parent}) }
 
   print STDERR "Done.\n";
 }

@@ -911,7 +911,7 @@ Nodes added on TR are placed on root and hidden (with ARhide='hide').
 =cut
 
 sub transform_to_tectogrammatic {
-  my $defs = {'dord' => ' N'};
+  my $fsformat = FSFormat->new({'dord' => ' N'},['dord']);
   foreach my $root ($grp->{FSFile}->trees) {
     my @nodes = ($root,$root->descendants);
     my %nodes = map {$_->{ord} => $_} @nodes;
@@ -935,9 +935,9 @@ sub transform_to_tectogrammatic {
     foreach my $node (@nodes) {
       next if $node == $root;
       if (ref($nodes{ $node->{govTR} })) {
-	Paste($node,$nodes{ $node->{govTR} },$defs);
+	Fslib::Paste($node,$nodes{ $node->{govTR} },$fsformat);
       } else {
-	Paste($node,$root,$defs);
+	Fslib::Paste($node,$root,$fsformat);
       }
     }
 
@@ -954,7 +954,7 @@ sub transform_to_tectogrammatic {
       }
       unless ($r == $root) {
 	print STDERR "fixing structure of [$node->{ord}]\n";
-	Paste($r,$root,$defs);
+	Fslib::Paste($r,$root,$fsformat);
       }
     }
   }
@@ -968,7 +968,7 @@ header and restores the original TR tree structure from govTR.
 =cut
 
 sub transform_to_analytic {
-  my $defs = {'ord' => ' N'};
+  my $fsformat = FSFormat->new({'ord' => ' N'},['ord']);
   foreach my $root ($grp->{FSFile}->trees) {
     my @nodes = ($root,$root->descendants);
     unless ($root->{reserve1} eq 'TR_TREE') {
@@ -1002,9 +1002,9 @@ sub transform_to_analytic {
       next if $node == $root;
       if ($node->{ordorig} =~ /^\d+$/ and
 	  defined $analytic[ $node->{ordorig} ]) {
-	Paste($node,$analytic[ $node->{ordorig} ],$defs);
+	Fslib::Paste($node,$analytic[ $node->{ordorig} ],$fsformat);
       } else {
-	Paste($node,$root,$defs);
+	Fslib::Paste($node,$root,$fsformat);
       }
       $node->{ARhide}=''; # don't hide them
     }
@@ -1012,7 +1012,7 @@ sub transform_to_analytic {
     # connect TR-added nodes
     foreach my $node (@added) {
       next if $node == $root;
-      Paste($node,$root,$defs);
+      Fslib::Paste($node,$root,$fsformat);
       $node->{ARhide}='hide'; # hide them
     }
 
@@ -1021,7 +1021,7 @@ sub transform_to_analytic {
       next if $node == $root;
       my $r = $node->root();
       unless ($r == $root) {
-	Paste($r,$root,$defs);
+	Fslib::Paste($r,$root,$fsformat);
       }
     }
   }

@@ -40,7 +40,7 @@ sub ThisRoot {
 
     $pPrev = $pT;
 
-    $pT = Parent($pT);
+    $pT = $pT->parent;
 
     goto Cont1;
   }
@@ -189,9 +189,9 @@ sub SubtreeAfunAssign {
 
   $pParent = $pThis;
 
-  if (!(Parent($pThis))) {
+  if (!($pThis->parent)) {
 
-    $pAct = FirstSon($pThis);
+    $pAct = $pThis->firstson;
   } else {
 
     $pAct = $pThis;
@@ -256,7 +256,7 @@ sub SubtreeAfunAssign {
 
   $sPOS = substr($sTag,0,1);
 
-  $pParAct = Parent($pAct);
+  $pParAct = $pAct->parent;
  GoUp:
   $lPar1 = $pParAct->{'tag'};
 
@@ -293,7 +293,7 @@ sub SubtreeAfunAssign {
   if ($sParAfun eq 'Coord' ||
       $sParAfun eq 'Apos') {
 
-    $pParAct = Parent($pParAct);
+    $pParAct = $pParAct->parent;
 
     if (!($pParAct)) {
 
@@ -335,7 +335,7 @@ sub SubtreeAfunAssign {
  ExitLoop5:
   $sParLemma = substr($sLemmaFull,0,$i);
 
-  $pParParAct = Parent($pParAct);
+  $pParParAct = $pParAct->parent;
  GoUpPar2:
   if ($pParParAct) {
 
@@ -379,7 +379,7 @@ sub SubtreeAfunAssign {
     if ($sParParAfun eq 'Coord' ||
 	$sParParAfun eq 'Apos') {
 
-      $pParParAct = Parent($pParParAct);
+      $pParParAct = $pParParAct->parent;
 
       if (!($pParParAct)) {
 
@@ -466,7 +466,7 @@ sub SubtreeAfunAssign {
 
   if (Interjection($lForm,'vèetnì') eq 'vèetnì') {
 
-    if (FirstSon($pAct)) {
+    if ($pAct->firstson) {
 
       $sAfun = 'AuxP';
 
@@ -562,7 +562,7 @@ sub SubtreeAfunAssign {
       Interjection($lForm,'}') eq '}' ||
       Interjection($lForm,']') eq ']') {
 
-    if (!(RBrother($pAct))) {
+    if (!($pAct->rbrother)) {
 
       if (Interjection($pParAct->{'afun'},'AuxS') eq 'AuxS') {
 
@@ -609,7 +609,7 @@ sub SubtreeAfunAssign {
 
   if (Interjection($lTag,'JE') eq 'JE') {
 
-    if (FirstSon($pAct)) {
+    if ($pAct->firstson) {
 
       $sAfun = 'Coord';
 
@@ -641,7 +641,7 @@ sub SubtreeAfunAssign {
 
   if (Interjection($pAct->{'form'},'se') eq 'se') {
 
-    if (!(FirstSon($pAct))) {
+    if (!($pAct->firstson)) {
 
       $pAct->{'afun'} = 'AuxT';
 
@@ -664,7 +664,7 @@ sub SubtreeAfunAssign {
 
   if ($sLemma eq ',') {
 
-    if (!(FirstSon($pAct))) {
+    if (!($pAct->firstson)) {
 
       $pAct->{'afun'} = 'AuxX';
 
@@ -706,7 +706,7 @@ sub SubtreeAfunAssign {
 
   if (Interjection($lTag,'JS') eq 'JS') {
 
-    if (FirstSon($pAct)) {
+    if ($pAct->firstson) {
 
       $sAfun = 'AuxC';
 
@@ -755,7 +755,7 @@ sub SubtreeAfunAssign {
 
   $fObject = "0";
 
-  $pT = LBrother($pAct);
+  $pT = $pAct->lbrother;
  ContLoop3:
   if (!($pT)) {
 
@@ -772,7 +772,7 @@ sub SubtreeAfunAssign {
     $fObject = "1";
   }
 
-  $pT = LBrother($pT);
+  $pT = $pT->lbrother;
 
   goto ContLoop3;
  ExitLoop3:
@@ -1172,7 +1172,7 @@ sub SubtreeAfunAssign {
 
     if (Interjection($lLemma,'být') eq 'být') {
 
-      if (!(FirstSon($pAct))) {
+      if (!($pAct->firstson)) {
 
 	$pAct->{'afunprev'} = $pAct->{'afun'};
 
@@ -1264,11 +1264,11 @@ sub SubtreeAfunAssign {
  aa:
   $pAct->{'afun'} = (ValNo(0,$sAfun).ValNo(0,$sSuffAct));
  ex:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1276,14 +1276,14 @@ sub SubtreeAfunAssign {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1304,7 +1304,7 @@ sub SubtreeUndefAfun {
 
   $pParent = $pPar1;
 
-  $pAct = FirstSon($pParent);
+  $pAct = $pParent->firstson;
 
   if (!($pAct)) {
 
@@ -1321,11 +1321,11 @@ sub SubtreeUndefAfun {
     $pAct->{'afunprev'} = $sT;
   }
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1333,14 +1333,14 @@ sub SubtreeUndefAfun {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1358,29 +1358,29 @@ sub GoNext {
 
   $pAct = $pPar1;
 
-  if (FirstSon($pAct)) {
+  if ($pAct->firstson) {
 
-    $pReturn = FirstSon($pAct);
+    $pReturn = $pAct->firstson;
 
     return;
   }
  loopGoNext:
   if ($pAct eq $pPar2 ||
-      !(Parent($pAct))) {
+      !($pAct->parent)) {
 
     $pReturn = undef;
 
     return;
   }
 
-  if (RBrother($pAct)) {
+  if ($pAct->rbrother) {
 
-    $pReturn = RBrother($pAct);
+    $pReturn = $pAct->rbrother;
 
     return;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   goto loopGoNext;
 
@@ -1393,9 +1393,9 @@ sub GoNextVisible {
 
   $pAct = $pPar1;
 
-  if (FirstSon($pAct)) {
+  if ($pAct->firstson) {
 
-    $n = FirstSon($pAct);
+    $n = $pAct->firstson;
   whileHidden:
     if ($n) {
 
@@ -1406,21 +1406,21 @@ sub GoNextVisible {
 	return;
       }
 
-      $n = RBrother($n);
+      $n = $n->rbrother;
 
       goto whileHidden;
     }
   }
  lpGoNext:
   if ($pAct eq $pPar2 ||
-      !(Parent($pAct))) {
+      !($pAct->parent)) {
 
     $pReturn = undef;
 
     return;
   }
 
-  $n = RBrother($pAct);
+  $n = $pAct->rbrother;
  whileHiddenRBrother:
   if ($n) {
 
@@ -1431,12 +1431,12 @@ sub GoNextVisible {
       return;
     }
 
-    $n = RBrother($n);
+    $n = $n->rbrother;
 
     goto whileHiddenRBrother;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   goto lpGoNext;
 
@@ -1448,22 +1448,22 @@ sub GoPrev {
 
   $pAct = $pPar1;
 
-  if (LBrother($pAct)) {
+  if ($pAct->lbrother) {
 
-    $pAct = LBrother($pAct);
+    $pAct = $pAct->lbrother;
 
-    if (FirstSon($pAct)) {
+    if ($pAct->firstson) {
     loopDigDown:
-      $pAct = FirstSon($pAct);
+      $pAct = $pAct->firstson;
     loopLastBrother:
-      if (RBrother($pAct)) {
+      if ($pAct->rbrother) {
 
-	$pAct = RBrother($pAct);
+	$pAct = $pAct->rbrother;
 
 	goto loopLastBrother;
       }
 
-      if (FirstSon($pAct)) {
+      if ($pAct->firstson) {
 
 	goto loopDigDown;
       }
@@ -1479,14 +1479,14 @@ sub GoPrev {
   }
 
   if ($pAct eq $pPar2 ||
-      !(Parent($pAct))) {
+      !($pAct->parent)) {
 
     $pReturn = undef;
 
     return;
   }
 
-  $pReturn = Parent($pAct);
+  $pReturn = $pAct->parent;
 
   return;
 
@@ -1526,16 +1526,16 @@ sub ToLine {
   my $pPrince;			# used as type "pointer"
   my $pInLaw;			# used as type "pointer"
 
-  if (Parent($pPar1)) {
+  if ($pPar1->parent) {
 
-    $pKing = Parent($pPar1);
+    $pKing = $pPar1->parent;
 
     $pPrince = $pPar1;
   } else {
 
     $pKing = $pPar1;
 
-    $pPrince = FirstSon($pKing);
+    $pPrince = $pKing->firstson;
 
     goto whileHasBrothers;
   }
@@ -1571,11 +1571,11 @@ sub ToLine {
 
     $pDummy = PasteNode($NodeClipboard,$pKing);
 
-    $pInLaw = FirstSon($pKing);
+    $pInLaw = $pKing->firstson;
   whileNotInLaw:
     if (Interjection($pInLaw->{'warning'},'InLaw') ne 'InLaw') {
 
-      $pInLaw = RBrother($pInLaw);
+      $pInLaw = $pInLaw->rbrother;
 
       goto whileNotInLaw;
     }
@@ -1591,16 +1591,16 @@ sub ToLine {
 
   $pKing = $pPrince;
 
-  if (!(FirstSon($pKing))) {
+  if (!($pKing->firstson)) {
 
     return;
   }
 
-  $pPrince = FirstSon($pKing);
+  $pPrince = $pKing->firstson;
  whileHasBrothers:
-  if (RBrother($pPrince)) {
+  if ($pPrince->rbrother) {
 
-    $NodeClipboard=CutNode(RBrother($pPrince));
+    $NodeClipboard=CutNode($pPrince->rbrother);
 
     $pDummy = PasteNode($NodeClipboard,$pPrince);
 
@@ -1632,14 +1632,14 @@ sub Auxk {
     return;
   }
  ContLoop1:
-  if (!(FirstSon($pAct))) {
+  if (!($pAct->firstson)) {
 
     goto AuxkStart;
   }
 
   $pParent = $pAct;
 
-  $pAct = FirstSon($pAct);
+  $pAct = $pAct->firstson;
 
   goto ContLoop1;
  AuxkStart:
@@ -1661,7 +1661,7 @@ sub Auxk {
 
     $pAct = $pParent;
 
-    $pParent = Parent($pParent);
+    $pParent = $pParent->parent;
 
     if (!($pAct)) {
 
@@ -1694,7 +1694,7 @@ sub LeftMost {
     $iMin = ValNo(0,$pAct->{'ord'});
   }
 
-  $pAct = FirstSon($pAct);
+  $pAct = $pAct->firstson;
 
   goto ContLoop1;
  ExitLoop1:
@@ -1737,7 +1737,7 @@ sub ToChainNode {
 
   $pRoot->{'err2'} = 'reinited';
 
-  $pParent = Parent($pRoot);
+  $pParent = $pRoot->parent;
 
   if (!($pParent)) {
 
@@ -1745,7 +1745,7 @@ sub ToChainNode {
 
     $pEndChain = $pRoot;
 
-    $pAct = FirstSon($pRoot);
+    $pAct = $pRoot->firstson;
 
     $iAct = "1";
   } else {
@@ -1790,7 +1790,7 @@ sub ToChainNode {
     $fJustPasted = 'y';
   }
  ContLoop3:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
@@ -1799,7 +1799,7 @@ sub ToChainNode {
       goto ExitLoop1;
     }
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   } else {
 
     if ($fJustPasted eq 'y') {
@@ -1823,7 +1823,7 @@ sub ToChainNode {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (!($pAct)) {
 
@@ -1835,7 +1835,7 @@ sub ToChainNode {
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1891,18 +1891,18 @@ sub ToChain {
 
     $pDummy = PasteNode($NodeClipboard,$pEndChain);
 
-    $pEndChain = FirstSon($pEndChain);
+    $pEndChain = $pEndChain->firstson;
 
     $iAct = $iAct+"1";
 
     $pAct = $pEndChain;
   }
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  ContLoop2:
   if ($pNext) {
@@ -1910,14 +1910,14 @@ sub ToChain {
     goto ExitLoop2;
   }
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
     goto ExitLoop1;
   }
 
-  $pNext = RBrother($pAct);
+  $pNext = $pAct->rbrother;
 
   goto ContLoop2;
  ExitLoop2:
@@ -1925,9 +1925,9 @@ sub ToChain {
 
   goto ContLoop1;
  ExitLoop1:
-  if (RBrother($pAct)) {
+  if ($pAct->rbrother) {
 
-    $pAct = RBrother($pAct);
+    $pAct = $pAct->rbrother;
 
     goto ContLoop1;
   }
@@ -1969,7 +1969,7 @@ sub NP {
     return;
   }
 
-  $pAct = FirstSon($pAct);
+  $pAct = $pAct->firstson;
 
   if (!($pAct)) {
 
@@ -1983,7 +1983,7 @@ sub NP {
 
     if ($sPOSAct eq 'A') {
 
-      $pActR1 = FirstSon($pAct);
+      $pActR1 = $pAct->firstson;
 
       if (!($pActR1)) {
 
@@ -1994,19 +1994,19 @@ sub NP {
 
       if ($sPOSAct eq 'N') {
 
-	$pActR2 = FirstSon($pActR1);
+	$pActR2 = $pActR1->firstson;
 
 	if ($pActR2) {
 
-	  $pActR3 = FirstSon($pActR2);
+	  $pActR3 = $pActR2->firstson;
 
 	  $NodeClipboard=CutNode($pActR2);
 
-	  $pDummy = PasteNode($NodeClipboard,Parent($pAct));
+	  $pDummy = PasteNode($NodeClipboard,$pAct->parent);
 
 	  if ($pActR3) {
 
-	    $pActR2 = Parent($pActR3);
+	    $pActR2 = $pActR3->parent;
 	  } else {
 
 	    $pActR2 = undef;
@@ -2018,7 +2018,7 @@ sub NP {
 
 	$NodeClipboard=CutNode($pActR1);
 
-	$pDummy = PasteNode($NodeClipboard,Parent($pAct));
+	$pDummy = PasteNode($NodeClipboard,$pAct->parent);
 
 	$NodeClipboard=CutNode($pAct);
 
@@ -2037,16 +2037,16 @@ sub NP {
   }
 
  GoDown:
-  $pAct = FirstSon($pAct);
+  $pAct = $pAct->firstson;
  GoNext:
   if (!($pAct)) {
 
     goto ExitLoop1;
   }
  Rightmost:
-  if (RBrother($pAct)) {
+  if ($pAct->rbrother) {
 
-    $pAct = RBrother($pAct);
+    $pAct = $pAct->rbrother;
 
     goto Rightmost;
   }
@@ -2086,11 +2086,11 @@ sub _key_Backspace {
       goto ExitLoop1;
     }
 
-    $pNext = FirstSon($pAct);
+    $pNext = $pAct->firstson;
 
     if (!($pNext)) {
 
-      $pNext = RBrother($pAct);
+      $pNext = $pAct->rbrother;
     }
   ContLoop2:
     if ($pNext) {
@@ -2098,14 +2098,14 @@ sub _key_Backspace {
       goto ExitLoop2;
     }
 
-    $pAct = Parent($pAct);
+    $pAct = $pAct->parent;
 
     if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
       goto ExitLoop1;
     }
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
 
     goto ContLoop2;
   ExitLoop2:
@@ -2130,7 +2130,7 @@ sub DepSuffix {
 
   $pThis = $this;
 
-  $pDep = FirstSon($this);
+  $pDep = $this->firstson;
 
   AfunAssign();
  DSLoopCont1:
@@ -2155,7 +2155,7 @@ sub DepSuffix {
     $pDep->{'afun'} = (ValNo(0,$sDepAfun).ValNo(0,$sDepSuff));
   }
 
-  $pDep = RBrother($pDep);
+  $pDep = $pDep->rbrother;
 
   goto DSLoopCont1;
  DSLoopEnd1:
@@ -2182,23 +2182,23 @@ sub AfunAssign {
 
     $iPrevAfunAssigned = ValNo(0,$t->{'ord'});
 
-    if (FirstSon($t)) {
+    if ($t->firstson) {
 
-      $n = FirstSon($t);
+      $n = $t->firstson;
     } else {
 
       $n = $t;
     SearchForBrotherCont:
       if (Interjection($n->{'afun'},'AuxS') ne 'AuxS') {
 
-	if (RBrother($n)) {
+	if ($n->rbrother) {
 
-	  $n = RBrother($n);
+	  $n = $n->rbrother;
 
 	  goto FoundBrother;
 	}
 
-	$n = Parent($n);
+	$n = $n->parent;
 
 	goto SearchForBrotherCont;
       }
@@ -2252,23 +2252,23 @@ sub FuncAssign {
       $t->{'memberof'} = 'PA';
     }
 
-    if (FirstSon($t)) {
+    if ($t->firstson) {
 
-      $n = FirstSon($t);
+      $n = $t->firstson;
     } else {
 
       $n = $t;
     SearchForBrotherCont:
       if (Interjection($n->{'afun'},'AuxS') ne 'AuxS') {
 
-	if (RBrother($n)) {
+	if ($n->rbrother) {
 
-	  $n = RBrother($n);
+	  $n = $n->rbrother;
 
 	  goto FoundBrother;
 	}
 
-	$n = Parent($n);
+	$n = $n->parent;
 
 	goto SearchForBrotherCont;
       }
@@ -2277,7 +2277,7 @@ sub FuncAssign {
     FoundBrother:
       if (Interjection($n->{'TR'},'hide') eq 'hide') {
 
-	$n = Parent($n);
+	$n = $n->parent;
       }
 
       $n = $n;
@@ -3547,12 +3547,12 @@ sub InitTR {
  PruchodStromemDoHloubky:
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -3561,7 +3561,7 @@ sub InitTR {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -3595,7 +3595,7 @@ sub InitTR {
     $pAct->{'func'} = 'PRED';
   }
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   goto PruchodStromemDoHloubky;
 
@@ -3618,16 +3618,16 @@ sub Init {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -3636,7 +3636,7 @@ sub Init {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -3715,16 +3715,16 @@ sub MorphGram {
 
   $sVTag8 = '';
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -3733,7 +3733,7 @@ sub MorphGram {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4042,11 +4042,11 @@ sub Numeratives {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
 
   if (!($pNext)) {
@@ -4056,7 +4056,7 @@ sub Numeratives {
 
   $pAct = $pNext;
 
-  $pParAct = Parent($pAct);
+  $pParAct = $pAct->parent;
 
   if (Interjection($pAct->{'form'},'tisíc') eq 'tisíc') {
 
@@ -4066,13 +4066,13 @@ sub Numeratives {
 
     if ($sTag1 eq 'C') {
 
-      $pT = FirstSon($pAct);
+      $pT = $pAct->firstson;
 
       if ($pT) {
 
 	if (Interjection($pT->{'ordorig'},'') eq '') {
 
-	  $pT->{'ordorig'} = Parent($pT)->{'ord'};
+	  $pT->{'ordorig'} = $pT->parent->{'ord'};
 	}
 
 	$NodeClipboard=CutNode($pT);
@@ -4103,16 +4103,16 @@ sub PassiveVerb {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -4121,7 +4121,7 @@ sub PassiveVerb {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4138,7 +4138,7 @@ sub PassiveVerb {
 
     $pVerb = $pAct;
 
-    $pT = FirstSon($pVerb);
+    $pT = $pVerb->firstson;
   PodstromVS:
     if (!($pT)) {
 
@@ -4150,7 +4150,7 @@ sub PassiveVerb {
       $pT->{'func'} = 'ACT';
     }
 
-    $pT = RBrother($pT);
+    $pT = $pT->rbrother;
 
     goto PodstromVS;
   }
@@ -4181,16 +4181,16 @@ sub NumAndNoun {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -4199,7 +4199,7 @@ sub NumAndNoun {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4217,11 +4217,11 @@ sub NumAndNoun {
 
     $pNum = $pAct;
 
-    $pSon = FirstSon($pNum);
+    $pSon = $pNum->firstson;
   CheckSons:
     if ($pSon) {
 
-      $pParent = Parent($pNum);
+      $pParent = $pNum->parent;
 
       $sTag = ValNo(0,$pSon->{'tag'});
 
@@ -4231,7 +4231,7 @@ sub NumAndNoun {
 
 	if (Interjection($pSon->{'ordorig'},'') eq '') {
 
-	  $pSon->{'ordorig'} = Parent($pSon)->{'ord'};
+	  $pSon->{'ordorig'} = $pSon->parent->{'ord'};
 	}
 
 	$NodeClipboard=CutNode($pSon);
@@ -4240,7 +4240,7 @@ sub NumAndNoun {
 
 	if (Interjection($pNum->{'ordorig'},'') eq '') {
 
-	  $pNum->{'ordorig'} = Parent($pNum)->{'ord'};
+	  $pNum->{'ordorig'} = $pNum->parent->{'ord'};
 	}
 
 	$NodeClipboard=CutNode($pNum);
@@ -4250,9 +4250,9 @@ sub NumAndNoun {
 	$pAct = $pD;
       } else {
 
-	if (RBrother($pSon)) {
+	if ($pSon->rbrother) {
 
-	  $pSon = RBrother($pSon);
+	  $pSon = $pSon->rbrother;
 
 	  goto CheckSons;
 	}
@@ -4285,16 +4285,16 @@ sub RelTyp {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -4303,7 +4303,7 @@ sub RelTyp {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4339,7 +4339,7 @@ sub RelTyp {
 
     if ($sSuffix eq '_Ap') {
 
-      Parent($pAct)->{'func'} = 'APPS';
+      $pAct->parent->{'func'} = 'APPS';
 
       $pAct->{'memberof'} = 'AP';
     } else {
@@ -4387,16 +4387,16 @@ sub TRAuxO {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -4405,7 +4405,7 @@ sub TRAuxO {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4454,16 +4454,16 @@ sub DegofComp {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -4472,7 +4472,7 @@ sub DegofComp {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4535,16 +4535,16 @@ sub ActiveVerb {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -4553,7 +4553,7 @@ sub ActiveVerb {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4573,7 +4573,7 @@ sub ActiveVerb {
 
     $pVerb = $pAct;
 
-    $pT = FirstSon($pVerb);
+    $pT = $pVerb->firstson;
   PodstromVS:
     if (!($pT)) {
 
@@ -4585,7 +4585,7 @@ sub ActiveVerb {
       $pT->{'func'} = 'ACT';
     }
 
-    $pT = RBrother($pT);
+    $pT = $pT->rbrother;
 
     goto PodstromVS;
   }
@@ -4617,16 +4617,16 @@ sub AuxPY {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -4635,7 +4635,7 @@ sub AuxPY {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4647,7 +4647,7 @@ sub AuxPY {
   if (Interjection($pAct->{'afun'},'AuxP') eq 'AuxP' &&
       Interjection($pAct->{'TR'},'hide') ne 'hide') {
 
-    $pPrepParent = Parent($pAct);
+    $pPrepParent = $pAct->parent;
 
     if (Interjection($pPrepParent->{'afun'},'AuxP') eq 'AuxP') {
 
@@ -4686,13 +4686,13 @@ sub AuxPY {
 
       $pPrepParent->{'reserve1'} = 'complex';
 
-      $pSubtree = FirstSon($pAct);
+      $pSubtree = $pAct->firstson;
 
       if ($pSubtree) {
 
 	if (Interjection($pSubtree->{'ordorig'},'') eq '') {
 
-	  $pSubtree->{'ordorig'} = Parent($pSubtree)->{'ord'};
+	  $pSubtree->{'ordorig'} = $pSubtree->parent->{'ord'};
 	}
 
 	$NodeClipboard=CutNode($pSubtree);
@@ -4704,7 +4704,7 @@ sub AuxPY {
 
   if (Interjection($pAct->{'afun'},'AuxY') eq 'AuxY') {
 
-    $pPrepParent = Parent($pAct);
+    $pPrepParent = $pAct->parent;
 
     if (Interjection($pPrepParent->{'afun'},'AuxC') eq 'AuxC' ||
 	Interjection($pPrepParent->{'afun'},'Coord') eq 'Coord') {
@@ -4783,16 +4783,16 @@ sub TRVerbs {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -4801,7 +4801,7 @@ sub TRVerbs {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -4836,11 +4836,11 @@ sub TRVerbs {
 	$pVerb->{'aspect'} = 'CPL';
       }
 
-      if (FirstSon($pVerb)) {
+      if ($pVerb->firstson) {
 
 	$sVTagBeg = substr($sTag,0,2);
 
-	$pThisSon = FirstSon($pVerb);
+	$pThisSon = $pVerb->firstson;
 
 	$pBY = undef;
 
@@ -4942,9 +4942,9 @@ sub TRVerbs {
 
 	if ($pThisSon) {
 
-	  if (RBrother($pThisSon)) {
+	  if ($pThisSon->rbrother) {
 
-	    $pThisSon = RBrother($pThisSon);
+	    $pThisSon = $pThisSon->rbrother;
 
 	    goto AllSons;
 	  }
@@ -5066,16 +5066,16 @@ sub ModalVerbs {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -5084,7 +5084,7 @@ sub ModalVerbs {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -5151,7 +5151,7 @@ sub ModalVerbs {
 
   $pModal = $pAct;
 
-  $pVerb = FirstSon($pModal);
+  $pVerb = $pModal->firstson;
 
   $sFw = ValNo(0,$pModal->{'fw'});
  AllSons:
@@ -5167,7 +5167,7 @@ sub ModalVerbs {
 
       $pKoord = $pVerb;
 
-      $pPossVerb = FirstSon($pVerb);
+      $pPossVerb = $pVerb->firstson;
 
       if ($pPossVerb) {
 
@@ -5188,7 +5188,7 @@ sub ModalVerbs {
       $pVerb->{'fw'} = $sFw;
     } else {
 
-      $pVerb = RBrother($pVerb);
+      $pVerb = $pVerb->rbrother;
 
       goto AllSons;
     }
@@ -5200,24 +5200,24 @@ sub ModalVerbs {
 
       $NodeClipboard=CutNode($pCut1);
 
-      $pD = PasteNode($NodeClipboard,Parent($pModal));
+      $pD = PasteNode($NodeClipboard,$pModal->parent);
 
       $pVerb = $pD;
 
-      $pCut = FirstSon($pModal);
+      $pCut = $pModal->firstson;
     CutAllSubtrees:
       if ($pCut) {
 
 	if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	  $pCut->{'ordorig'} = $pCut->parent->{'ord'};
 	}
 
 	$NodeClipboard=CutNode($pCut);
 
 	$pD = PasteNode($NodeClipboard,$pVerb);
 
-	$pCut = FirstSon($pModal);
+	$pCut = $pModal->firstson;
 
 	goto CutAllSubtrees;
       }
@@ -5242,7 +5242,7 @@ sub ModalVerbs {
 
 	$sKoord = $sKoord+"1";
 
-	$pVerb = RBrother($pVerb);
+	$pVerb = $pVerb->rbrother;
 
 	goto AllSons;
       }
@@ -5255,13 +5255,13 @@ sub ModalVerbs {
 
   $pModal = $pAct;
 
-  $pVerb = FirstSon($pModal);
+  $pVerb = $pModal->firstson;
 
   $sFw = ValNo(0,$pModal->{'fw'});
  AllSonsObj:
   if ($pVerb) {
 
-    $pVerbRBrother = RBrother($pVerb);
+    $pVerbRBrother = $pVerb->rbrother;
 
     $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
 
@@ -5273,7 +5273,7 @@ sub ModalVerbs {
 
       $pKoord = $pVerb;
 
-      $pPossVerb = FirstSon($pVerb);
+      $pPossVerb = $pVerb->firstson;
 
       if ($pPossVerb) {
 
@@ -5313,24 +5313,24 @@ sub ModalVerbs {
 
       $NodeClipboard=CutNode($pCut);
 
-      $pD = PasteNode($NodeClipboard,Parent($pModal));
+      $pD = PasteNode($NodeClipboard,$pModal->parent);
 
       $pVerb = $pD;
 
-      $pCut = FirstSon($pModal);
+      $pCut = $pModal->firstson;
     CutAllSubtrees:
       if ($pCut) {
 
 	if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	  $pCut->{'ordorig'} = $pCut->parent->{'ord'};
 	}
 
 	$NodeClipboard=CutNode($pCut);
 
 	$pD = PasteNode($NodeClipboard,$pVerb);
 
-	$pCut = FirstSon($pModal);
+	$pCut = $pModal->firstson;
 
 	goto CutAllSubtrees;
       }
@@ -5378,7 +5378,7 @@ sub ModalVerbs {
       $pVerb->{'fw'} = $sFw;
     } else {
 
-      $pVerb = RBrother($pVerb);
+      $pVerb = $pVerb->rbrother;
 
       goto AllSonsKoord;
     }
@@ -5388,7 +5388,7 @@ sub ModalVerbs {
 
       $pJoin->{'deontmod'} = $sMod;
 
-      $pVerb = RBrother($pVerb);
+      $pVerb = $pVerb->rbrother;
 
       goto AllSonsKoord;
     }
@@ -5402,7 +5402,7 @@ sub ModalVerbs {
 
   $NodeClipboard=CutNode($pKoord);
 
-  $pD = PasteNode($NodeClipboard,Parent($pModal));
+  $pD = PasteNode($NodeClipboard,$pModal->parent);
 
   $pKoord = $pD;
 
@@ -5437,7 +5437,7 @@ sub ModalVerbs {
       }
     } else {
 
-      $pVerb = RBrother($pVerb);
+      $pVerb = $pVerb->rbrother;
 
       goto AllSonsKoordObj;
     }
@@ -5447,7 +5447,7 @@ sub ModalVerbs {
 
       $pJoin->{'deontmod'} = $sMod;
 
-      $pVerb = RBrother($pVerb);
+      $pVerb = $pVerb->rbrother;
 
       goto AllSonsKoordObj;
     }
@@ -5461,7 +5461,7 @@ sub ModalVerbs {
 
   $NodeClipboard=CutNode($pKoord);
 
-  $pD = PasteNode($NodeClipboard,Parent($pModal));
+  $pD = PasteNode($NodeClipboard,$pModal->parent);
 
   $pKoord = $pD;
 
@@ -5506,9 +5506,9 @@ sub Sentmod {
 
   $pFirstWord = $pRoot;
  FindFirstWord:
-  if (FirstSon($pFirstWord)) {
+  if ($pFirstWord->firstson) {
 
-    $pFirstWord = FirstSon($pFirstWord);
+    $pFirstWord = $pFirstWord->firstson;
 
     goto FindFirstWord;
   } else {
@@ -5517,18 +5517,18 @@ sub Sentmod {
   }
 
 
-  $pLastWord = FirstSon($pAct);
+  $pLastWord = $pAct->firstson;
  FindInterpunction:
-  if (RBrother($pLastWord)) {
+  if ($pLastWord->rbrother) {
 
-    $pLastWord = RBrother($pLastWord);
+    $pLastWord = $pLastWord->rbrother;
 
     goto FindInterpunction;
   }
 
   $sInterpunction = ValNo(0,$pLastWord->{'form'});
  LookForVerbs:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
@@ -5559,11 +5559,11 @@ sub Sentmod {
 
   if (Interjection($pNext->{'afun'},'Coord') eq 'Coord') {
 
-    $pAct = FirstSon($pAct);
+    $pAct = $pAct->firstson;
   FindLast:
-    if (RBrother($pAct)) {
+    if ($pAct->rbrother) {
 
-      $pAct = RBrother($pAct);
+      $pAct = $pAct->rbrother;
 
       goto FindLast;
     }
@@ -5611,11 +5611,11 @@ sub Sentmod {
       return;
     }
 
-    $pAct = LBrother($pAct);
+    $pAct = $pAct->lbrother;
 
     if (Interjection($pAct->{'memberof'},'CO') ne 'CO') {
 
-      $pAct = LBrother($pAct);
+      $pAct = $pAct->lbrother;
 
       goto AnyVerb;
     }
@@ -5677,16 +5677,16 @@ sub Prepositions {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -5695,7 +5695,7 @@ sub Prepositions {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -5714,14 +5714,14 @@ sub Prepositions {
 
     $pPrep = $pAct;
 
-    $pParent = Parent($pPrep);
+    $pParent = $pPrep->parent;
 
     if (Interjection($pParent->{'afun'},'AuxP') eq 'AuxP') {
 
       goto PruchodStromemDoHloubky;
     }
 
-    $pOnlyChild = FirstSon($pPrep);
+    $pOnlyChild = $pPrep->firstson;
   FindNoun:
     if (!($pOnlyChild)) {
 
@@ -5731,7 +5731,7 @@ sub Prepositions {
     if (Interjection($pOnlyChild->{'afun'},'AuxP') eq 'AuxP' ||
 	Interjection($pOnlyChild->{'afun'},'AuxG') eq 'AuxG') {
 
-      $pOnlyChild = RBrother($pOnlyChild);
+      $pOnlyChild = $pOnlyChild->rbrother;
 
       goto FindNoun;
     }
@@ -5743,7 +5743,7 @@ sub Prepositions {
 
     if (Interjection($pOnlyChild->{'afun'},'Coord') eq 'Coord') {
 
-      $pCoordP = FirstSon($pOnlyChild);
+      $pCoordP = $pOnlyChild->firstson;
     CoordinationWPrep:
       if ($pCoordP) {
 
@@ -5752,7 +5752,7 @@ sub Prepositions {
 	  $pCoordP->{'fw'} = $pPrep->{'trlemma'};
 	}
 
-	$pCoordP = RBrother($pCoordP);
+	$pCoordP = $pCoordP->rbrother;
 
 	goto CoordinationWPrep;
       }
@@ -5772,7 +5772,7 @@ sub Prepositions {
 
     if (Interjection($pOnlyChild->{'ordorig'},'') eq '') {
 
-      $pOnlyChild->{'ordorig'} = Parent($pOnlyChild)->{'ord'};
+      $pOnlyChild->{'ordorig'} = $pOnlyChild->parent->{'ord'};
     }
 
     $NodeClipboard=CutNode($pOnlyChild);
@@ -5781,7 +5781,7 @@ sub Prepositions {
 
     if (Interjection($pPrep->{'ordorig'},'') eq '') {
 
-      $pPrep->{'ordorig'} = Parent($pPrep)->{'ord'};
+      $pPrep->{'ordorig'} = $pPrep->parent->{'ord'};
     }
 
     $NodeClipboard=CutNode($pPrep);
@@ -5818,16 +5818,16 @@ sub Conjunctions {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -5836,7 +5836,7 @@ sub Conjunctions {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -5855,9 +5855,9 @@ sub Conjunctions {
 
     $pConj = $pAct;
 
-    $pParent = Parent($pConj);
+    $pParent = $pConj->parent;
 
-    $pOnlyChild = FirstSon($pConj);
+    $pOnlyChild = $pConj->firstson;
   FindNoun:
     if (!($pOnlyChild)) {
 
@@ -5869,7 +5869,7 @@ sub Conjunctions {
 	Interjection($pOnlyChild->{'afun'},'AuxZ') eq 'AuxZ' ||
 	Interjection($pOnlyChild->{'afun'},'AuxP') eq 'AuxP') {
 
-      $pOnlyChild = RBrother($pOnlyChild);
+      $pOnlyChild = $pOnlyChild->rbrother;
 
       goto FindNoun;
     }
@@ -5895,7 +5895,7 @@ sub Conjunctions {
 
     if (Interjection($pOnlyChild->{'ordorig'},'') eq '') {
 
-      $pOnlyChild->{'ordorig'} = Parent($pOnlyChild)->{'ord'};
+      $pOnlyChild->{'ordorig'} = $pOnlyChild->parent->{'ord'};
     }
 
     $NodeClipboard=CutNode($pOnlyChild);
@@ -5904,7 +5904,7 @@ sub Conjunctions {
 
     if (Interjection($pConj->{'ordorig'},'') eq '') {
 
-      $pConj->{'ordorig'} = Parent($pConj)->{'ord'};
+      $pConj->{'ordorig'} = $pConj->parent->{'ord'};
     }
 
     $NodeClipboard=CutNode($pConj);
@@ -5943,16 +5943,16 @@ sub Quot {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -5961,7 +5961,7 @@ sub Quot {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -5984,9 +5984,9 @@ sub Quot {
 
       $pLook = $pLQuot;
     FindRight:
-      if (RBrother($pLook)) {
+      if ($pLook->rbrother) {
 
-	$pLook = RBrother($pLook);
+	$pLook = $pLook->rbrother;
 
 	$i = $i+"1";
 
@@ -6006,15 +6006,15 @@ sub Quot {
 
       if (!($pRQuot)) {
 
-	Parent($pLQuot)->{'dsp'} = 'DSPP';
+	$pLQuot->parent->{'dsp'} = 'DSPP';
       } else {
 
 	if ($i eq "2") {
 
-	  RBrother($pLQuot)->{'quoted'} = 'QUOT';
+	  $pLQuot->rbrother->{'quoted'} = 'QUOT';
 	} else {
 
-	  Parent($pLQuot)->{'dsp'} = 'DSP';
+	  $pLQuot->parent->{'dsp'} = 'DSP';
 	}
 
       }
@@ -6082,7 +6082,7 @@ sub JoinSubtree {
 
   $pSubtree = $pAct;
 
-  $sJLema = ValNo(0,Parent($pAct)->{'trlemma'});
+  $sJLema = ValNo(0,$pAct->parent->{'trlemma'});
 
   $sActLema = ValNo(0,$pAct->{'trlemma'});
 
@@ -6101,29 +6101,29 @@ sub JoinSubtree {
 
   $sJLema = (ValNo(0,$sJLema).ValNo(0,$sActLema));
 
-  $pCut = FirstSon($pAct);
+  $pCut = $pAct->firstson;
 
-  $pTatka = Parent($pAct);
+  $pTatka = $pAct->parent;
  CutAllSubtrees:
   if ($pCut) {
 
     if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-      $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+      $pCut->{'ordorig'} = $pCut->parent->{'ord'};
     }
 
     $NodeClipboard=CutNode($pCut);
 
     $pD = PasteNode($NodeClipboard,$pTatka);
 
-    $pCut = FirstSon($pAct);
+    $pCut = $pAct->firstson;
 
     goto CutAllSubtrees;
   }
 
   $pAct->{'TR'} = 'hide';
 
-  $pPar1 = Parent($pAct);
+  $pPar1 = $pAct->parent;
 
   $pPar2 = $pAct;
 
@@ -6131,7 +6131,7 @@ sub JoinSubtree {
 
   $pPar1 = $pAct;
 
-  $pAct = Parent($pAct);
+  $pAct = $pAct->parent;
 
   if ($sPriznak eq "1") {
 
@@ -6231,7 +6231,7 @@ sub JoinNegation {
 
   $sActLema = ValNo(0,$pAct->{'trlemma'});
 
-  $pSon = FirstSon($pAct);
+  $pSon = $pAct->firstson;
  CheckSons:
   if ($pSon) {
 
@@ -6244,7 +6244,7 @@ sub JoinNegation {
       goto DoIt;
     }
 
-    $pSon = RBrother($pSon);
+    $pSon = $pSon->rbrother;
 
     goto CheckSons;
   } else {
@@ -6253,7 +6253,7 @@ sub JoinNegation {
   }
 
 
-  $pParent = Parent($pAct);
+  $pParent = $pAct->parent;
 
   if ($pParent) {
 
@@ -6280,11 +6280,11 @@ sub JoinNegation {
 
   return;
  DoIt:
-  $pParent = Parent($pNeg);
+  $pParent = $pNeg->parent;
 
   $sParLema = ValNo(0,$pParent->{'trlemma'});
 
-  $pSon = FirstSon($pNeg);
+  $pSon = $pNeg->firstson;
 
   if ($pSon) {
 
@@ -6320,11 +6320,11 @@ sub joinfw {
 
   $pAct = $this;
 
-  if (!(FirstSon($pAct))) {
+  if (!($pAct->firstson)) {
 
     $pAct->{'TR'} = 'hide';
 
-    $pParentW = Parent($pAct);
+    $pParentW = $pAct->parent;
 
     $pPar1 = $pParentW;
 
@@ -6368,7 +6368,7 @@ sub splitfw {
     return;
   }
 
-  $pSon = FirstSon($pAct);
+  $pSon = $pAct->firstson;
  AllSons:
   if (Interjection($pSon->{'trlemma'},$sWLemma) eq $sWLemma) {
 
@@ -6383,7 +6383,7 @@ sub splitfw {
     DisconnectAIDREFS();
   } else {
 
-    $pSon = RBrother($pSon);
+    $pSon = $pSon->rbrother;
 
     if ($pSon) {
 
@@ -6418,7 +6418,7 @@ sub SplitJoined {
 
   $pAct = $this;
 
-  $pSon = FirstSon($pAct);
+  $pSon = $pAct->firstson;
 
   $sRestOfTrLemma = ValNo(0,$pAct->{'trlemma'});
  AllParts:
@@ -6471,7 +6471,7 @@ sub SplitJoined {
     }
   } else {
 
-    $pSon = RBrother($pSon);
+    $pSon = $pSon->rbrother;
 
     if ($pSon) {
 
@@ -6520,16 +6520,16 @@ sub FillEmpty {
 
   $pRoot->{'func'} = 'SENT';
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -6538,7 +6538,7 @@ sub FillEmpty {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -6596,7 +6596,7 @@ sub FillEmpty {
 
     $pAct->{'TR'} = 'hide';
 
-    $pPar1 = Parent($pAct);
+    $pPar1 = $pAct->parent;
 
     NewSon();
 
@@ -6629,7 +6629,7 @@ sub FillEmpty {
 
     $pPar1 = $pAct;
 
-    $pPar2 = Parent($pAct);
+    $pPar2 = $pAct->parent;
 
     CutAllSubtrees();
   }
@@ -6742,16 +6742,16 @@ sub Prec {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -6760,7 +6760,7 @@ sub Prec {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -6771,17 +6771,17 @@ sub Prec {
 
   if (Interjection($pAct->{'afun'},'Coord') eq 'Coord') {
 
-    $pTest = Parent($pAct);
+    $pTest = $pAct->parent;
 
-    $pSon = FirstSon($pAct);
+    $pSon = $pAct->firstson;
 
     if (Interjection($pTest->{'afun'},'AuxS') eq 'AuxS') {
 
-      if (!(RBrother($pSon))) {
+      if (!($pSon->rbrother)) {
 
 	if (Interjection($pSon->{'ordorig'},'') eq '') {
 
-	  $pSon->{'ordorig'} = Parent($pSon)->{'ord'};
+	  $pSon->{'ordorig'} = $pSon->parent->{'ord'};
 	}
 
 	$NodeClipboard=CutNode($pSon);
@@ -6794,7 +6794,7 @@ sub Prec {
 
 	if (Interjection($pAct->{'ordorig'},'') eq '') {
 
-	  $pAct->{'ordorig'} = Parent($pAct)->{'ord'};
+	  $pAct->{'ordorig'} = $pAct->parent->{'ord'};
 	}
 
 	$NodeClipboard=CutNode($pAct);
@@ -7018,13 +7018,13 @@ sub NewSubject {
 
   $pPar1 = $pT;
 
-  $pPar2 = FirstSon($pT);
+  $pPar2 = $pT->firstson;
 
   if (!($pPar2)) {
 
-    if (RBrother($pT)) {
+    if ($pT->rbrother) {
 
-      $pPar2 = RBrother($pT);
+      $pPar2 = $pT->rbrother;
     }
   }
 
@@ -7036,9 +7036,9 @@ sub NewSubject {
 
   $sTID = $sPar3;
 
-  if (FirstSon($pT)) {
+  if ($pT->firstson) {
 
-    $sDord = ValNo(0,FirstSon($pT)->{'dord'});
+    $sDord = ValNo(0,$pT->firstson->{'dord'});
   } else {
 
     $sDord = ValNo(0,$pT->{'dord'});
@@ -7057,7 +7057,7 @@ sub NewSubject {
 
   $pNew->{'TID'} = $sTID;
 
-  $pPredch = FirstSon($pT);
+  $pPredch = $pT->firstson;
 
   $pNew->{'ord'} = $sPoradi;
 
@@ -7278,13 +7278,13 @@ sub NewSon {
     return;
   }
 
-  $pPar2 = FirstSon($pT);
+  $pPar2 = $pT->firstson;
 
   if (!($pPar2)) {
 
-    if (RBrother($pT)) {
+    if ($pT->rbrother) {
 
-      $pPar2 = RBrother($pT);
+      $pPar2 = $pT->rbrother;
     }
   }
 
@@ -7292,9 +7292,9 @@ sub NewSon {
 
   $sNum = $sPar2;
 
-  if (FirstSon($pT)) {
+  if ($pT->firstson) {
 
-    $sDord = ValNo(0,FirstSon($pT)->{'dord'});
+    $sDord = ValNo(0,$pT->firstson->{'dord'});
   } else {
 
     $sDord = ValNo(0,$pT->{'dord'});
@@ -7525,13 +7525,13 @@ sub NewVerb {
 
   $pPar1 = $pT;
 
-  $pPar2 = FirstSon($pT);
+  $pPar2 = $pT->firstson;
 
   if (!($pPar2)) {
 
-    if (RBrother($pT)) {
+    if ($pT->rbrother) {
 
-      $pPar2 = RBrother($pT);
+      $pPar2 = $pT->rbrother;
     }
   }
 
@@ -7543,9 +7543,9 @@ sub NewVerb {
 
   $sTID = $sPar3;
 
-  if (FirstSon($pT)) {
+  if ($pT->firstson) {
 
-    $sDord = ValNo(0,FirstSon($pT)->{'dord'});
+    $sDord = ValNo(0,$pT->firstson->{'dord'});
   } else {
 
     $sDord = ValNo(0,$pT->{'dord'});
@@ -7760,13 +7760,13 @@ sub NewVerb {
 
   $pNew->{'dord'} = $sDord;
 
-  $pNew->{'sentord'} = FirstSon($pT)->{'dord'};
+  $pNew->{'sentord'} = $pT->firstson->{'dord'};
 
   $NodeClipboard=CutNode($pNew);
 
   $pTatka = PasteNode($NodeClipboard,$pT);
 
-  $pCut = RBrother($pTatka);
+  $pCut = $pTatka->rbrother;
  CutAllSubtrees:
   if ($pCut) {
 
@@ -7774,7 +7774,7 @@ sub NewVerb {
 
       if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	$pCut->{'ordorig'} = $pCut->parent->{'ord'};
       }
 
       $NodeClipboard=CutNode($pCut);
@@ -7782,7 +7782,7 @@ sub NewVerb {
       $pD = PasteNode($NodeClipboard,$pTatka);
     }
 
-    $pCut = RBrother($pTatka);
+    $pCut = $pTatka->rbrother;
 
     goto CutAllSubtrees;
   }
@@ -7816,16 +7816,16 @@ sub TRLemaForm {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -7834,7 +7834,7 @@ sub TRLemaForm {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -7917,7 +7917,7 @@ sub CutAllSubtrees {
     return;
   }
 
-  $pCut = FirstSon($pPar1);
+  $pCut = $pPar1->firstson;
 
   if ($pCut) {
   CutAllSubtrees:
@@ -7925,14 +7925,14 @@ sub CutAllSubtrees {
 
       if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	$pCut->{'ordorig'} = $pCut->parent->{'ord'};
       }
 
       $NodeClipboard=CutNode($pCut);
 
       $pD = PasteNode($NodeClipboard,$pPar2);
 
-      $pCut = FirstSon($pPar1);
+      $pCut = $pPar1->firstson;
 
       goto CutAllSubtrees;
     }
@@ -8114,7 +8114,7 @@ sub MoveNode {
 
   $pAct = $this;
 
-  $pParent = Parent($pAct);
+  $pParent = $pAct->parent;
 
   $sOrdNum = ValNo(0,$pAct->{'dord'});
 
@@ -8183,11 +8183,11 @@ sub delete_node {
 
 #   $pAct = $this;
 
-#   $pParent = Parent($pAct);
+#   $pParent = $pAct->parent;
 
 #   UnGap();
 
-#   if (FirstSon($pAct)) {
+#   if ($pAct->firstson) {
 
 #     return;
 #   }
@@ -8223,12 +8223,12 @@ sub CutPasteAll {
 
   ThisRoot();
 
-  $pAct = FirstSon($pReturn);
+  $pAct = $pReturn->firstson;
 
  forallnodes:
   if ($pAct) {
 
-    $pParent = Parent($pAct);
+    $pParent = $pAct->parent;
 
     $NodeClipboard=CutNode($pAct);
 
@@ -8390,16 +8390,16 @@ sub OpravaGenNum {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -8408,7 +8408,7 @@ sub OpravaGenNum {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -8540,16 +8540,16 @@ sub Oprava {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -8558,7 +8558,7 @@ sub Oprava {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -8734,7 +8734,7 @@ sub Oprava {
     $pAct->{'gram'} = 'NA';
   }
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   goto PruchodStromemDoHloubky;
 
@@ -8755,16 +8755,16 @@ sub Oprava1 {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -8773,7 +8773,7 @@ sub Oprava1 {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -8796,7 +8796,7 @@ sub Oprava1 {
 
   $pAct->{'phraseme'} = '';
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   goto PruchodStromemDoHloubky;
 
@@ -8818,16 +8818,16 @@ sub OpravaHlavy {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -8836,7 +8836,7 @@ sub OpravaHlavy {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -8863,7 +8863,7 @@ sub OpravaHlavy {
     $pAct->{'memberof'} = 'AP';
   }
 
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   goto PruchodStromemDoHloubky;
 
@@ -8889,16 +8889,16 @@ sub Pnoms {
 
   $pAct = $pRoot;
  PruchodStromemDoHloubky:
-  $pNext = FirstSon($pAct);
+  $pNext = $pAct->firstson;
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+    $pNext = $pAct->rbrother;
   }
  LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+    $pNext = $pAct->parent;
 
     if (!($pNext)) {
 
@@ -8907,7 +8907,7 @@ sub Pnoms {
 
       $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+      $pNext = $pNext->rbrother;
 
       goto LevelUp;
     }
@@ -8928,7 +8928,7 @@ sub Pnoms {
 
     $pPNOM = $pAct;
 
-    $pPnomPar = Parent($pPNOM);
+    $pPnomPar = $pPNOM->parent;
 
     $pCut = $pPNOM;
 
@@ -8936,13 +8936,13 @@ sub Pnoms {
 
       if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	$pCut->{'ordorig'} = $pCut->parent->{'ord'};
       }
 
       $NodeClipboard=CutNode($pCut);
     }
 
-    $pD = PasteNode($NodeClipboard,Parent($pPnomPar));
+    $pD = PasteNode($NodeClipboard,$pPnomPar->parent);
 
     $pPNOM = $pD;
 
@@ -8952,7 +8952,7 @@ sub Pnoms {
 
       if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	$pCut->{'ordorig'} = $pCut->parent->{'ord'};
       }
 
       $NodeClipboard=CutNode($pCut);
@@ -8990,7 +8990,7 @@ sub FCopy {
 
   $pThis = $this;
 
-  $pParent = Parent($pThis);
+  $pParent = $pThis->parent;
 
   if (Interjection($pThis->{'del'},'ELID') ne 'ELID') {
 
@@ -9019,7 +9019,7 @@ sub FPaste {
 
     $pPasted = PasteNode($NodeClipboard,$pThis);
 
-    $pCut = FirstSon($pPasted);
+    $pCut = $pPasted->firstson;
 
     if ($pCut) {
     CutAllSubtrees:
@@ -9027,7 +9027,7 @@ sub FPaste {
 
 	$NodeClipboard=CutNode($pCut);
 
-	$pCut = FirstSon($pPasted);
+	$pCut = $pPasted->firstson;
 
 	goto CutAllSubtrees;
       }

@@ -209,7 +209,7 @@ sub diff_trees {
       delete $node->{_diff_dep_};
       delete $node->{_diff_attrs_};
 
-      $node=Next($node);
+      $node=$node->following();
     }
     # store the information in $tree
     $tree->{acount}=$acount;
@@ -245,7 +245,7 @@ sub diff_trees {
 	  $G{$node->{$id}}->{$f}=$node;
 	  $node->{_group_}=$node->{$id};
 	}
-	$node=Next($node);
+	$node=$node->following();
       }
     }
   }
@@ -271,7 +271,7 @@ sub diff_trees {
 	  $parent_grp= $node->parent->{_group_};
 	  for (my $j=$i+1; $j < @names; $j++) {
 	    if (exists ($G{$parent_grp}->{$names[$j]})) {
-	      $son=FirstSon($G{$parent_grp}->{$names[$j]});
+	      $son=$G{$parent_grp}->{$names[$j]}->firstson;
 	    SON: while ($son) {
 		if ((!exists($son->{_group_}) or $son->{_group_} eq "")
 		    and ($son->{func} eq $node->{func})) {
@@ -279,12 +279,12 @@ sub diff_trees {
 		  $G{$g}->{$names[$j]}=$son;
 		  last SON;
 		}
-		$son=RBrother($son);
+		$son=$son->rbrother;
 	      }
 	    }
 	  }
 	}
-	$node=Next($node);
+	$node=$node->following;
       }
     }
   }

@@ -267,7 +267,7 @@ sub read {
 	  die "unrecoginzed token $_! Aborting\n";
 	}
 	die "malformed tree?\n" unless ref($child);
-	Paste($child,$node,$fsfile->FS->defs());
+	Fslib::Paste($child,$node,$fsfile->FS);
       }
       $nts[$nt]=$node;
       $nt++;
@@ -290,7 +290,7 @@ sub read {
 	my $parent=$node->parent;
 	if ($parent) {
 #	  Cut($node);
-#	  Paste($node,$parent,$fsfile->FS->defs());
+#	  Paste($node,$parent,$fsfile->FS);
 	}
 	$node=$node->following;
       }

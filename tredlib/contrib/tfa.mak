@@ -85,7 +85,7 @@ sub ShiftLeft {
 }
 
 sub ShiftRight {
-  return unless (Parent($this));
+  return unless ($this->parent);
   if (HiddenVisible()) {
     ShiftNodeRight($this);
   } else {

@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-04-07 16:45:01 pajas>
+## Time-stamp: <2005-03-15 18:16:30 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -16,22 +16,10 @@
 #bind FindNext to F4 menu Find Next
 #bind FindPrev to Ctrl+F4 menu Find Prev
 
-#bind CutToClipboard to Ctrl+Insert menu Cut Subtree
-
-sub CutToClipboard {
-#  return unless ($this and Parent($this));
-#  $nodeClipboard=$this;
-#  $this=RBrother($this) ? RBrother($this) : Parent($this);
-#  CutNode($nodeClipboard);
-}
-
-#bind PasteFromClipboard to Shift+Insert menu Paste Subtree
-sub PasteFromClipboard {
-#  return unless ($this and $nodeClipboard);
-#  PasteNode($nodeClipboard,$this);
-#  $this=$nodeClipboard;
-#  $nodeClipboard=undef;
-}
+#unbind-key Ctrl+Insert
+sub CutToClipboard {}
+#unbind-key Shift+Insert
+sub PasteFromClipboard {}
 
 
 #bind GotoTreeAsk to Alt+g menu Go to...

@@ -284,7 +284,7 @@ sub start_element {
     $self->{Node} = FSNode->new();
     $self->{Node}->{tei_type}=$elem;
     $self->{Node}->{ord} = ++($self->{LastOrd});
-    Fslib::Paste($self->{Node},$self->{Tree},{ ord => ' N'});
+    Fslib::Paste($self->{Node},$self->{Tree},FSFormat->new({ ord => ' N'},['ord']));
     if (ref($attr)) {
       foreach (values %$attr) {
 	$self->{Node}->{$_->{Name}} = ($]>=5.008) ? $_->{Value} :
@@ -308,7 +308,7 @@ sub end_element {
       my $dep=$node->{dep};
       if ($dep ne '' and
 	  ref($self->{IDs}{$dep})) {
-	Fslib::Paste(Cut($node),$self->{IDs}{$dep}, { ord => ' N' });
+	Fslib::Paste(Cut($node),$self->{IDs}{$dep}, FSFormat->new({ ord => ' N' },['ord']));
       }
     }
   }
