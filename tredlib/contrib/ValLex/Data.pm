@@ -171,15 +171,17 @@ sub getFrameElementNodes {
 }
 
 =item getWordNodes
+
   return $slen words before and after given word
   suppose the lexicon is sorted alphabetically
+
 =cut
 
 sub getWordSubList {
   my ($self,$item,$slen,$posfilter)=@_;
-  use locale;
   my $doc=$self->doc();
   return unless $doc;
+  use locale;
   my @words=();
   my $docel=$doc->documentElement();
   my ($milestone,$after,$before,$i);
