@@ -250,20 +250,6 @@ import TrEd::Basics;
   qw(NTREDBackend PMLBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
-# different namespace only to load local rather than system files
-# (rel2abs is not supported in all instalations)
-use File::Spec;
-if (not File::Spec->can('rel2abs')) {
-  print "Using TFile::Spec\n" if $tredDebug;
-  require TFile::Spec;
-  require TFile::Spec::Functions;
-  import TFile::Spec::Functions qw(rel2abs);
-} else {
-  print "Using File::Spec\n" if $tredDebug;
-  require File::Spec;
-  require File::Spec::Functions;
-  import File::Spec::Functions qw(rel2abs);
-}
 
 # these are for macros
 $stdout=\*STDOUT;
@@ -377,21 +363,6 @@ exit;
 ############################
 ############################
 ############################
-
-sub absolutize_path ($$) {
-  my ($orig, $href)=@_;
-  if ($href !~ m{^[[:alnum:]]+:|^/}) {
-    $orig =~ m{^(.*\/)};
-    return $1.$href;
-  } else {
-    return $href;
-  }
-}
-
-sub absolutize {
-  return map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
-}
-
 
 sub _msg { $_ERR->print("BTRED: ",@_); }
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
