@@ -4,312 +4,172 @@
 # in TGTS structures for Czech.
 # contributed to TrEd by Oliver Culo in 12/2003
 
-
-#### Package declarations: ###############################################
+# Completely substituted by Zdenek Zabokrtsky'code in 4/2004
 
 package ACAP;
 
 
-#### Variables ############################################################
+# listst of control verbs
 
-# we build up the data structures, that represent the Gender and
-# number hierarchies:
-my %Case = 
-  { X => 'Y|Z|H|M|I|N|F',
-    Y => 'M|I', Z => 'M|I|N', T => 'I|F', H => 'N|F' }; 
-# wie sieht's mit den Basistypen aus? Sieht man spaeter...
+my $control_ADDR='(bránit|dát|donutit|dopomoci|doporuèit|doporuèovat|dovolit|dovolovat|motivovat|naøídit|nauèit|navrhnout|navrhovat|nutit|podaøit_se|pomáhat|pomoci|povìøit|povolit|povolovat|po¾adovat|pøedepsat|pøikázat|pøimìt|pøinutit|staèit|stát|ukládat|ulo¾it|umo¾nit|umo¾òovat|urèit|vypomoci|zabránit|zabraòovat|zakázat|zakazovat|zapovídat|zavazovat|zmocnit|znemo¾nit|znemo¾òovat)';
 
-my %Number = 
-  { X => 'P|S' };
-# ebenfalls Basistypen: ???
+my $control_PAT='(bavit|být|donutit|nauèit|nechat|nechávat|nutit|oprávnit|osvìdèovat_se|podaøit_se|pøipravit|sna¾it_se|spatøit|staèit|¹kodit|unavovat|vadit|vidìt|vyplatit_se|zbýt|zbývat)';
 
-# with translation, we cover special cases, e.g. Q constrains
-# to 'QP', so it has to be plural:
-my %GenderTranslation = 
-  { Q => 'QP', T => 'TP' };
-my %NumberTranslation =
-  { W => 'FS|NP', D => 'XP' };
+my $control_BEN='(být|bývat|jít|lze|odmítat|oznaèit|pova¾ovat|sna¾it_se|stát|uznat|vyplatit_se|zdát_se|znamenat)';
 
-# verbs with antecedent PAT (for automatic coreference assingment)
-my $InfLemmataPAT =
-    'cítit|dát|dávat|lákat|nechat|nechávat|nutit|ponechat|ponechávat|poslat|'.
-    'posílat|sly¹et|slýchávat|spatøit|uvidìt|vidìt|vídávat|vyslat|vysílat';
+my $control_ACT='(bát_se|cítit_se|èasit|daøit_se|dát|dát|dát_se|dávat|dojít|dokázat|dostat|dovést|dovolit_si|dovolovat_si|dozvìdìt_se|hodlat|hrozit|chodit|chtít|chtít_se|chystat_se|jet|jevit_se|jezdit|klást|koukat|mínit|mít|moci|naklonit|namáhat_se|napadnout|nauèit_se|nechat_se|nechávat|nechávat_se|odejít|odhodlat|odhodlat_se|odlétat|odmítat|odmítnout|odnauèit_se|odvá¾it_se|opomenout|oprávnit|ostýchat_se|plánovat|podaøit_se|pokou¹et_se|pokusit|pokusit_se|pomáhat|potøebovat|pova¾ovat|povést_se|pøát_si|pøestat|pøestávat|pøicházet|pøijet|pøijít|pøijít_si|pøijí¾dìt|pøipravit|pøislíbit|pøíslu¹et|rozhodnout|rozhodnout_se|rozmyslit_si|sna¾it_se|spìchat|stihnout|svést|tou¾it|troufat_si|troufnout_si|uèit_se|ukázat_se|ukazovat_se|umìt|usilovat|uznat|váhat|vìdìt|vyhýbat_se|vytknout_si|zaèínat|zaèít|zakázat|zapomenout|zapomínat|zaslou¾it_si|zatou¾it|zavázat_se|zbýt|zkou¹et|zkusit|znamenat|znemo¾òovat|zùstat|zùstávat|zvládnout|zvyknout_si)';
 
-
-# verbs with antecedent ADDR (for automatic coreference assingment)
-my $InfLemmataADDR =
-    'bránit|donutit|donucovat|doporuèit|doporuèovat|dovolit|dovolovat|zaøídit|'.
-    'za¾izovat|nauèit|pomoci|pomáhat|povolit|povolovat|pøimìt|uèit|umo¾nit|'.
-    'umo¾òovat|zabránít|zabraòovat|zakázat|zakazovat';
-
-my %Coref;
-
-#### Main ##################################################################
+# ------------------------------------------------------------------------------
+# --------  function for automatic assignment of grammatical coreference -------
 
 sub autoAssignCorefs ($) {
-    my $node = shift;
-    %Coref = undef;
 
-    # rule for reflexives:
-    &ReflexiveAndEmpCompRule($node,'Reflexive') 
-	if ($node->{trlemma} =~ /^(se|svùj)$/ &&
-	    $node->{func} !~ /^(DPHR|ETHD)/);
-    # first, use the ReflexiveAndEmpCompRule, as it
-    # is a special case for &Cor; occurences. &Cor;
-    # in general is dealt with at a later point:
-#    &ReflexiveAndEmpCompRule($node,'EmptyCOMP')
-#	    if ($node->{trlemma} =~ /^\&Cor/ && 
-#		$node->parent->{trlemma} eq '&Emp;' &&
-#		$node->parent->{func} eq 'COMPL') ;
-    # use infinitive Coref rule if we have an infinitive
-    # construction with an &Cor; or a construction of
-    # coordinated infinitives with &Cor; at the same level:
-#    &ControlRule($node) if ($node->{trlemma} =~ /^\&Cor/ and
-#	    ($node->parent->{tag} =~ /^V[fs]/ or
-#	     ($node->parent->{func} =~ /^(?:APOS|CONJ|DISJ)$/ and
-#	      grep { $_->{tag}=~/^V[fs]/ and
-#			 $_->{memberof}=~/^(CO|AP)$/ } $node->parent->children)));
-    # sentential rule for coz:
-#    &SententialRule($node) 
-#	if ($node->{trlemma} =~ /^co¾$/ );
-    # COMPL that are participles:
-#    &ParticipleComplementRule($node) 
-#	if ($node->{func} eq 'COMPL' && $node->{tag} =~ /^V[ems]/); 
-    # for COMPL that are adjectives, numerals or nouns:
-#    &NonVerbalComplementRule($node)
-#	if ($node->{func} eq 'COMPL' && $node->{tag} !~ /^V/);
-#    &VerbalComplementRule($node) 
-#	if ($node->{func} eq 'COMPL' && $node->{tag} =~ /^V/);
-    # relative clause rule for the trlemmata ketry and jenz and jak:
-    &RelativeClauseRule($node) 
-	if ($node->{trlemma} =~ /^(který|jen¾|jak)$/);
+  my $node=shift || $this;
+  return unless ($node->parent and $node->parent->parent);
+  my $parent=$node->parent;
+  my $grandpa=$parent->parent;
+  my ($lparent)=(PDT::GetFather_TR($node));
+  my $antec;
 
-    # we return auto.'type', as we want to distinguish
-    # these arrows frow the manually annotated ones:
-    if ($Coref{ID}) {return ($Coref{ID},'auto'.$Coref{type})}
-    else {return undef}
-
-}
-
-
-#### SUBs and HOOks ##################################################################
-
-########################
-### Annotation SUBs: ###
-########################
-
-# automatically assign coreference to constructions with infinitive
-sub ControlRule ($) {
-    my $node = shift;
-
-    my $p=$node->parent->parent;
- 
-    $p=$p->parent while ($p and $p->{tag} !~ /^(?:V|AG)/);
-    if ($p) {
-	#print "P2: $p->{trlemma},$p->{func}\n";
-	my $cor;
-	if ($p->{tag} =~ /^AG/) {
-	    $cor=$p->parent;
-	    $cor=$cor->parent while ($cor and $cor->{func} =~ /^(?:APOS|CONJ|DISJ)$/);
-	    $cor=undef unless ($cor->{tag}=~/^[ANCP]/);
-	    $Coref{lastRule} = 'Control';
-	} elsif ($p->{trlemma} =~ /^(?:$InfLemmataPAT)$/) {
-	    $cor=&GetEffectiveDaughter($p,'func','PAT');
-	    $Coref{lastRule} = 'ControlPAT';
-	} elsif ($p->{trlemma} =~ /^(?:$InfLemmataADDR)$/) {
-	    $cor=&GetEffectiveDaughter($p,'func','ADDR');
-	    $Coref{lastRule} = 'ControlADDR';
-	} else {
-	    $cor=&GetEffectiveDaughter($p,'func','ACT');
-	    $Coref{lastRule} = 'ControlACT';
-	}
-	if ($cor and $cor != $node->parent) {
-	    $cor = $cor->parent if ($cor->{memberof} =~ /^(CO|AP)/);
-	    $Coref{ID} = &GetID($cor);
-	    $Coref{type} = 'grammatical';
-	} 
+  #  -------------------- gramaticka kontrola -------------------------------
+  if ($node->{trlemma} eq '&Cor;' and $parent->{tag}=~/^Vf/ and $grandpa->{tag}=~/^V/) {
+    if ($grandpa->{trlemma}=~/^$control_BEN$/) {
+      ($antec)=(grep {$_->{func} eq "BEN"} $grandpa->children);
     }
-}
-
-
-### SUB
-# automatically assign relative clause coreference
-sub RelativeClauseRule ($) {
-  my $node = shift;
-  my $climb;
-
-  # this rule goes as follows: find the first RSTS above the 
-  # relative clause node, and then the first noun above that
-  # RSTR; this should be the coreferent
-  $climb = $node->parent;
-  $climb = $climb->parent while ($climb && ($climb->{func} ne 'RSTR' || $climb->{func} =~ /^(CONJ|DISJ)$/));
-  $climb = $climb->parent while ($climb && $climb->{tag} !~ /^[NP]/);
-
-  if ($climb) {
-      $Coref{ID} = &GetID($climb);
-      $Coref{type} = 'grammatical';
+    if (not $antec and $grandpa->{trlemma}=~/^$control_ADDR$/) {
+      ($antec)=(grep {$_->{func} eq "ADDR"} $grandpa->children);
+    }
+    if (not $antec  and $grandpa->{trlemma}=~/^$control_ACT$/) {
+      ($antec)=(grep {$_->{func} eq "ACT"} $grandpa->children);
+    }
   }
 
+  # ------------------- zvratna zajmena -------------------
+  elsif ($node->{trlemma} eq "se" and $node->{func} ne "DPHR") {
+    my $par=$node;
+    while ($par->parent) {
+      my $child=$par;
+      $par=$par->parent;
+      my @children= PDT::GetChildren_TR($par);
+      my ($act)= grep {$_->{afun} eq "Sb" and $_ ne $child and $_ ne $node} @children;
+      if (not $act) {($act)= grep {$_->{func} eq "ACT" and $_ ne $child and $_ ne $node} @children; }
+      if ($act) {
+	if (PDT::is_member_TR($act)) {$act=$act->parent}
+	$antec=$act;
+	last;
+      }
+    }
+  }
+
+ # -------- vztazne vedlejsi vety
+ elsif ($node->{trlemma}=~/^(který|jaký|jen¾|kdy|kde|co|kdo)$/ and $lparent
+	and $lparent->{tag}=~/^V/ and $lparent->{func} eq "RSTR") {
+   my ($lgrandpa)=(PDT::GetFather_TR($lparent));
+   if ($lgrandpa and $lgrandpa->{tag}=~/^[PN]/) {
+     my %path_to_root;
+     my $n=$node;
+     while ($n->parent) {
+       $path_to_root{$n}=1;
+       $n=$n->parent
+     };
+     my $n=$lgrandpa;
+     while ($n->parent) {
+       if ($path_to_root{$n}) {$antec=$n;last}
+       $n=$n->parent;
+     }
+   }
+ }
+
+ # -------- vztazne vedlejsi vety s privlastnovacim vztaznym zajmenem (clovek, v jehoz dome...)
+ elsif ($node->{trlemma}=~/^(jen¾)$/ and $lparent and $lparent->{tag}=~/^N/) {
+   my ($lgrandpa)=(PDT::GetFather_TR($lparent));
+   if ($lgrandpa
+       and $lgrandpa->{func} eq "RSTR"
+       and $lgrandpa->{tag}=~/^V/
+      ) {
+     my ($lggrandpa)=(PDT::GetFather_TR($lgrandpa));
+     if ($lggrandpa and $lggrandpa->{tag}=~/^[PN]/) {
+       my %path_to_root;
+       my $n=$node;
+       while ($n->parent) {
+	 $path_to_root{$n}=1;
+	 $n=$n->parent
+       };
+       my $n=$lggrandpa;
+       while ($n->parent) {
+	 if ($path_to_root{$n}) {$antec=$n;last}
+	 $n=$n->parent;
+       }
+     }
+   }
+ }
+
+  # ------------------ jmenne doplnky ve shode se subjektem -------------------------
+  elsif ($node->{func} eq "COMPL" and $node->{tag}=~/^(AC|((NN|PL|AA|C[rl])..1))/) {
+    my ($parent)=(PDT::GetFather_TR($node));
+    my @children= PDT::GetChildren_TR($parent);
+    my ($act)= grep {$_->{afun} eq "Sb" and $_ ne $child and $_ ne $node} @children;
+    if (not $act) {
+	($act)= grep {$_->{func} eq "ACT" and $_ ne $child and $_ ne $node} @children;
+      }
+    if ($act) {
+      if (PDT::is_member_TR($act)) {$act=$act->parent}
+      $antec=$act;
+    }
+  }
+
+  # ------------------ jmenne doplnky ve shode s objektem -------------------------
+  elsif ($node->{func} eq "COMPL" and $node->{tag}=~/^(NN|AA)..4/) {
+    my ($parent)=(PDT::GetFather_TR($node));
+    my @children= PDT::GetChildren_TR($parent);
+    my ($obj)= grep {$_->{tag}=~/^.[^7]..4/ and $_ ne $child and $_ ne $node} @children;
+    if ($obj) {
+      if (PDT::is_member_TR($obj)) {$obj=$obj->parent}
+      $antec=$obj;
+    }
+  }
+
+  if ($antec) {
+    my $antecid=$antec->{TID} || $antec->{AID};
+    return ($antecid,'autogrammatical')
+  }  else {
+    return undef
+  }
 }
 
+# ------------------------------------------------------------------------------
+# ----------- function for detecting coreference `candidates' ------------------ 
 
-### SUB
-sub SententialRule ($) {
-    my $node = shift;
-    my ($climb,$lb);
+sub corefCandidate {
+  my $node=shift || $this;
+  my $depth;
+  my $x=$node; while ($x->parent) {$depth++;$x=$x->parent}
+  my ($parent)=(PDT::GetFather_TR($node));
+  return ($node->{func}!~/(ETHD|DPHR|INTF|EXT)/ and
+	  (
+	   $node->{trlemma}=~/^(Cor|\&Cor|\&Cor;|\&Rcp;|.?QCor.?|on|se)$/
+	   or ($node->{trlemma}=~/^(ten|tentý¾|tý¾|tento|tenhle)$/ and
+	       $node->{func}!~/(RSTR|DIFF)/
+	       and not (grep {
+		 $_->{sentord}==$node->{sentord}+2 and
+		   ($_->{trlemma}=~/^(kdo|co|který|jaký|jak|jen¾)$/ or # ten, kdo...
+		    $_->{tag}=~/^J,/) # to, ze....
+		 } $root->descendants()
+		       )
+	      )
+	   or ($node->{trlemma}=~/^(jen¾|jak|kdy|kam|kudy|kde|kdo|co|co¾|tenhle|odkud|odkdy)$/
+	       and $node->{ord}>2
+	       and not ($parent->{func}=~/(EFF|PAT)/ and $parent->{tag}=~/^V/)
+	       and $depth>2
+	      )
+	   or ($node->{trlemma}=~/^(který|jaký)$/
+	       and not $parent->{tag}=~/^N/
+	       and $depth>2
+	      )
 
-    # if coz is firstson of the main verb (except
-    # a PREC or RHEM to its left), the coref is the previous sentence:
-    if (!$node->lbrother ||
-	$node->lbrother->{func} =~ /(RHEM|PREC)/) {
-	$Coref{ID} = &GetID($LastSentTop);
-	$Coref{type} = 'grammatical';
-	return;
-    }
-
-    # if we are in a coordination, coz will relate to the
-    # previous sentence, if it is on the left hand side:
-    $climb = $node->parent; # up one level...
-    if ($climb) {$climb = $climb->lbrother} # ...then get the left brother:
-    if ($climb && $climb->{func} eq 'CONFR') {
-	$climb = $climb->firstson;
-	$climb = $climb->rbrother while ($climb->rbrother);
-    }
-    
-    if ($climb) {
-	$Coref{ID} = &GetID($climb);
-	$Coref{type} = 'grammatical';
-    }
-
-}
-
-
-### SUB
-sub ReflexiveAndEmpCompRule ($$) {
-    my ($node,$rule) = @_;
-    my ($climb,$daughter);
-
-    # set lastRule for later Evaluation:
-    $Coref{lastRule} = $rule;
-
-    # climb up to the first node that has an ACT as child
-    # which is not 'se'
-    $climb = $node->parent;
-    while ($climb) {
-	# we get the "effective daughter":
-	$daughter = &GetEffectiveDaughter($climb,'func','ACT');
-	# if this daughter is part of a coordination, we
-	# choose its parent node as we want to refer to all
-	# nodes below:
-	if ($daughter && $daughter->{memberof} =~ /CO/) {$daughter = $daughter->parent}
-	last if ($daughter && $daughter->{trlemma} ne 'se');
-	$climb = $climb->parent;
-    }
-    if ($daughter && $climb) {
-	$Coref{ID} = &GetID($daughter);
-	$Coref{type} = 'grammatical';
-    }
-    
-}    
-
-### SUB 
-sub ParticipleComplementRule ($) {
-    my $node = shift;
-    my ($climb,$cor);
-
-    $climb = $node;
-    # climb until the first verb above the complement:
-    $climb = $climb->parent while ($climb && ($climb->{memberof} =~ /(CO|AP)/
-				   || $climb->{tag} !~ /^V/));
-    # now search for an actor:
-    $cor = &GetEffectiveDaughter($climb,'func','ACT');
-
-    if ($cor) {
-	$Coref{ID} = &GetID($cor);
-	$Coref{type} = 'grammatical';
-    }
-
-}
-
-### SUB 
-sub NonVerbalComplementRule ($) {
-    my $node = shift;
-    my ($climb,@children,$anaCase,$a,$cor);
-
-    $climb = $node;
-    # extract the case value from the positional tag:
-    ($a,$a,$a,$a,$anaCase) = split("|",$node->{tag});
-    # climb until the first verb above the complement:
-    $climb = $climb->parent while ($climb->parent && ($climb->{memberof} =~ /(CO|AP)/
-				   || $climb->{tag} !~ /^V/));
-    # get these verb's children:
-    @children = $climb->children;
-    # now search for a noun in the same case:
-    foreach my $child (@children) {
-	# extract the child's case:
-	my ($a,$a,$a,$a,$cCase) = split("|",$child->{tag}); 
-	if ($anaCase eq $cCase &&
-	    $child->{tag} =~ /^[NP]/) {
-	    $cor = $child;
-	    last;
-	}
-    }
-
-    if ($cor) {
-	$Coref{ID} = &GetID($cor);
-	$Coref{type} = 'grammatical';
-    }
-
-}
-
-
-### SUB
-sub VerbalComplementRule () {
-    my $node = shift;
-    my $cor;
-
-    # this rules works as follows: we check each node
-    # whether it has jaky as its daughter, then we put up a link between that node
-    # and the verb:
-    foreach my $desc ($node->descendants) {
-	if (grep {$_->{trlemma} eq 'jaký'} $desc->children) {
-	    $cor = $desc;
-	    last;
-	}
-    }
-
-    if ($cor) {
-	$Coref{ID} = &GetID($cor);
-	$Coref{type} = 'grammatical';
-    }
-}
-
-
-####################
-### Helper SUBs: ###
-####################
-
-### SUB
-### return AID or TID of a node (whichever is available)
-sub GetID {
-  my $node = shift;
-  return ($node->{TID} ne "") ? $node->{TID} : $node->{AID};
-}
-
-### SUB
-### get daughter with specified feature-value-pair
-sub GetEffectiveDaughter ($$$) {
-    my ($node,$feat,$val) = @_;
-
-    foreach my $child ($node->children) {
-	# jump over coordination:
-	if ($child->{func} =~ /(CONJ|DISJ)/) {
-	    $child = &GetEffectiveDaughter($child,$feat,$val);}
-	return $child if ($child->{$feat} eq $val);
-    }
-
-    return undef;
-
+	   or $node->{func}=~/^COMPL/
+	  )
+	 )
 }
 
 1;
