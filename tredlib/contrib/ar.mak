@@ -1,12 +1,30 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2003-03-12 14:26:06 pajas>
+## Time-stamp: <2003-03-25 10:10:42 pajas>
 
 package Analytic;
 use base qw(TredMacro);
 import TredMacro;
 
+
+# converted from Graph macros with graph2tred to Perl.
+# =======================================================
+my $iPrevAfunAssigned;		# used as type "string"
+my $pPar1;			# used as type "pointer"
+my $pPar2;			# used as type "pointer"
+my $pPar3;			# used as type "pointer"
+my $pReturn;			# used as type "pointer"
+my $sPar1;			# used as type "string"
+my $sPar2;			# used as type "string"
+my $sPar3;			# used as type "string"
+my $sReturn;			# used as type "string"
+my $lPar1;			# used as type "list"
+my $lPar2;			# used as type "list"
+my $lPar3;			# used as type "list"
+my $lReturn;			# used as type "list"
+my $_pDummy;			# used as type "pointer"
+# =======================================================
 
 #include <contrib/AutoAfun.mak>
 
@@ -34,7 +52,10 @@ sub edit_commentA {
 #bind default_ar_attrs to F8 menu Display default attributes
 sub default_ar_attrs {
   return unless $grp->{FSFile};
-  SetDisplayAttrs('${form}', '${afun}',
+  SetDisplayAttrs('${form}',
+		  '#{custom1}<? join "_", map { "\${$_}" }
+                    grep { $this->{$_}=~/./ && $this->{$_}!~/^no-/ }
+	            qw(afun parallel paren) ?>',
 		'style:<? "#{Line-fill:green}" if $${NG_matching_edge} eq "true" ?>',
 		  'style:<? "#{Oval-fill:green}" if $${NG_matching_node} eq "true" ?>');
   SetBalloonPattern("tag:\t\${tag}\nlemma:\t\${lemma}\ncommentA: \${commentA}");
@@ -86,23 +107,28 @@ sub thisChildrensAfun {
   }
 }
 
-# Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
+sub AfunAssign {
+  my $fullafun=($_[0] || $sPar1);
+  my ($afun,$parallel,$paren)=($fullafun=~/^([^_]*)(?:_(Ap|Co|no-parallel))?(?:_(Pa|no-paren))?/);
+  if ($this->{'afun'} ne 'AuxS') {
+    if ($this->{'afun'} ne '???') {
+      $this->{'afunprev'} = $this->{'afun'};
+    }
+    if (FS()->exists('parallel') && FS()->exists('paren') ) {
+      $this->{'afun'} = $afun;
+      $this->{'parallel'} = $parallel;
+      $this->{'paren'} = $paren;
+    } else {
+      print STDERR "Assigning '$fullafun' : $sPar1 ($@)\n";
+      $this->{'afun'} = $fullafun;
+    }
+    $iPrevAfunAssigned = $this->{'ord'};
+    $this=$this->following;
+  }
+}
 
-my $iPrevAfunAssigned;		# used as type "string"
-my $pPar1;			# used as type "pointer"
-my $pPar2;			# used as type "pointer"
-my $pPar3;			# used as type "pointer"
-my $pReturn;			# used as type "pointer"
-my $sPar1;			# used as type "string"
-my $sPar2;			# used as type "string"
-my $sPar3;			# used as type "string"
-my $sReturn;			# used as type "string"
-my $lPar1;			# used as type "list"
-my $lPar2;			# used as type "list"
-my $lPar3;			# used as type "list"
-my $lReturn;			# used as type "list"
-my $_pDummy;			# used as type "pointer"
-
+# Automatically converted from Graph macros with graph2tred to Perl.
+# ==================================================================
 
 sub ReadMe {
 
@@ -2011,56 +2037,6 @@ sub _key_Backspace {
 
 }
 
-
-sub AfunAssign {
-  my $t, $n;			# used as type "pointer"
-
-  $t = $this;
-
-  if (Interjection($t->{'afun'},'AuxS') ne 'AuxS') {
-
-    if (Interjection($t->{'afun'},'???') ne '???') {
-
-      $t->{'afunprev'} = $t->{'afun'};
-    }
-
-    $t->{'afun'} = $sPar1;
-
-    $iPrevAfunAssigned = ValNo(0,$t->{'ord'});
-
-    if (FirstSon($t)) {
-
-      $n = FirstSon($t);
-    } else {
-
-      $n = $t;
-    SearchForBrotherCont:
-      if (Interjection($n->{'afun'},'AuxS') ne 'AuxS') {
-
-	if (RBrother($n)) {
-
-	  $n = RBrother($n);
-
-	  goto FoundBrother;
-	}
-
-	$n = Parent($n);
-
-	goto SearchForBrotherCont;
-      }
-
-      $n = $t;
-    FoundBrother:
-      $n = $n;
-    }
-
-
-    $this = $n;
-  }
-
-}
-
-
 sub DepSuffix {
   my $pThis;			# used as type "pointer"
   my $pDep;			# used as type "pointer"
@@ -2111,9 +2087,7 @@ sub DepSuffix {
 #bind afun_Pred to q menu Assign afun Pred
 sub afun_Pred {
 
-  $sPar1 = 'Pred';
-
-  AfunAssign();
+  AfunAssign('Pred');
 
 }
 
@@ -2121,9 +2095,7 @@ sub afun_Pred {
 #bind afun_Pnom to n menu Assign afun Pnom
 sub afun_Pnom {
 
-  $sPar1 = 'Pnom';
-
-  AfunAssign();
+  AfunAssign('Pnom');
 
 }
 
@@ -2131,9 +2103,7 @@ sub afun_Pnom {
 #bind afun_AuxV to v menu Assign afun AuxV
 sub afun_AuxV {
 
-  $sPar1 = 'AuxV';
-
-  AfunAssign();
+  AfunAssign('AuxV');
 
 }
 
@@ -2141,9 +2111,7 @@ sub afun_AuxV {
 #bind afun_Sb to s menu Assign afun Sb
 sub afun_Sb {
 
-  $sPar1 = 'Sb';
-
-  AfunAssign();
+  AfunAssign('Sb');
 
 }
 
@@ -2151,9 +2119,7 @@ sub afun_Sb {
 #bind afun_Obj to b menu Assign afun Obj
 sub afun_Obj {
 
-  $sPar1 = 'Obj';
-
-  AfunAssign();
+  AfunAssign('Obj');
 
 }
 
@@ -2161,10 +2127,8 @@ sub afun_Obj {
 #bind afun_Atr to a menu Assign afun Atr
 sub afun_Atr {
 
-  $sPar1 = 'Atr';
 
-  AfunAssign();
-
+  AfunAssign()
 }
 
 
@@ -2173,7 +2137,7 @@ sub afun_Adv {
 
   $sPar1 = 'Adv';
 
-  AfunAssign();
+  AfunAssign('Atr');
 
 }
 
@@ -2181,9 +2145,7 @@ sub afun_Adv {
 #bind afun_Coord to i menu Assign afun Coord
 sub afun_Coord {
 
-  $sPar1 = 'Coord';
-
-  DepSuffix();
+  DepSuffix('Coord');
 
 }
 
@@ -2191,9 +2153,7 @@ sub afun_Coord {
 #bind afun_AuxT to t menu Assign afun AuxT
 sub afun_AuxT {
 
-  $sPar1 = 'AuxT';
-
-  AfunAssign();
+  AfunAssign('AuxT');
 
 }
 
@@ -2201,9 +2161,7 @@ sub afun_AuxT {
 #bind afun_AuxR to r menu Assign afun AuxR
 sub afun_AuxR {
 
-  $sPar1 = 'AuxR';
-
-  AfunAssign();
+  AfunAssign('AuxR');
 
 }
 
@@ -2211,9 +2169,7 @@ sub afun_AuxR {
 #bind afun_AuxP to p menu Assign afun AuxP
 sub afun_AuxP {
 
-  $sPar1 = 'AuxP';
-
-  AfunAssign();
+  AfunAssign('AuxP');
 
 }
 
@@ -2221,9 +2177,7 @@ sub afun_AuxP {
 #bind afun_Apos to u menu Assign afun Apos
 sub afun_Apos {
 
-  $sPar1 = 'Apos';
-
-  DepSuffix();
+  DepSuffix('Apos');
 
 }
 
@@ -2231,9 +2185,7 @@ sub afun_Apos {
 #bind afun_AuxC to c menu Assign afun AuxC
 sub afun_AuxC {
 
-  $sPar1 = 'AuxC';
-
-  AfunAssign();
+  AfunAssign('AuxC');
 
 }
 
@@ -2241,9 +2193,7 @@ sub afun_AuxC {
 #bind afun_AuxO to o menu Assign afun AuxO
 sub afun_AuxO {
 
-  $sPar1 = 'AuxO';
-
-  AfunAssign();
+  AfunAssign('AuxO');
 
 }
 
@@ -2251,9 +2201,7 @@ sub afun_AuxO {
 #bind afun_Atv to h menu Assign afun Atv
 sub afun_Atv {
 
-  $sPar1 = 'Atv';
-
-  AfunAssign();
+  AfunAssign('Atv');
 
 }
 
@@ -2261,9 +2209,7 @@ sub afun_Atv {
 #bind afun_AtvV to j menu Assign afun AtvV
 sub afun_AtvV {
 
-  $sPar1 = 'AtvV';
-
-  AfunAssign();
+  AfunAssign('AtvV');
 
 }
 
@@ -2271,9 +2217,7 @@ sub afun_AtvV {
 #bind afun_AuxZ to z menu Assign afun AuxZ
 sub afun_AuxZ {
 
-  $sPar1 = 'AuxZ';
-
-  AfunAssign();
+  AfunAssign('AuxZ');
 
 }
 
@@ -2281,9 +2225,7 @@ sub afun_AuxZ {
 #bind afun_AuxY to y menu Assign afun AuxY
 sub afun_AuxY {
 
-  $sPar1 = 'AuxY';
-
-  AfunAssign();
+  AfunAssign('AuxY');
 
 }
 
@@ -2291,9 +2233,7 @@ sub afun_AuxY {
 #bind afun_AuxG to g menu Assign afun AuxG
 sub afun_AuxG {
 
-  $sPar1 = 'AuxG';
-
-  AfunAssign();
+  AfunAssign('AuxG');
 
 }
 
@@ -2301,9 +2241,7 @@ sub afun_AuxG {
 #bind afun_AuxK to k menu Assign afun AuxK
 sub afun_AuxK {
 
-  $sPar1 = 'AuxK';
-
-  AfunAssign();
+  AfunAssign('AuxK');
 
 }
 
@@ -2311,9 +2249,7 @@ sub afun_AuxK {
 #bind afun_AuxX to x menu Assign afun AuxX
 sub afun_AuxX {
 
-  $sPar1 = 'AuxX';
-
-  AfunAssign();
+  AfunAssign('AuxX');
 
 }
 
@@ -2321,9 +2257,7 @@ sub afun_AuxX {
 #bind afun_ExD to e menu Assign afun ExD
 sub afun_ExD {
 
-  $sPar1 = 'ExD';
-
-  AfunAssign();
+  AfunAssign('ExD');
 
 }
 
@@ -2331,9 +2265,7 @@ sub afun_ExD {
 #bind afun_Pred_Co to Ctrl+q menu Assign afun Pred_Co
 sub afun_Pred_Co {
 
-  $sPar1 = 'Pred_Co';
-
-  AfunAssign();
+  AfunAssign('Pred_Co');
 
 }
 
@@ -2341,9 +2273,7 @@ sub afun_Pred_Co {
 #bind afun_Pnom_Co to Ctrl+n menu Assign afun Pnom_Co
 sub afun_Pnom_Co {
 
-  $sPar1 = 'Pnom_Co';
-
-  AfunAssign();
+  AfunAssign('Pnom_Co');
 
 }
 
@@ -2351,9 +2281,7 @@ sub afun_Pnom_Co {
 #bind afun_AuxV_Co to Ctrl+v menu Assign afun AuxV_Co
 sub afun_AuxV_Co {
 
-  $sPar1 = 'AuxV_Co';
-
-  AfunAssign();
+  AfunAssign('AuxV_Co');
 
 }
 
@@ -2361,9 +2289,7 @@ sub afun_AuxV_Co {
 #bind afun_Sb_Co to Ctrl+s menu Assign afun Sb_Co
 sub afun_Sb_Co {
 
-  $sPar1 = 'Sb_Co';
-
-  AfunAssign();
+  AfunAssign('Sb_Co');
 
 }
 
@@ -2371,9 +2297,7 @@ sub afun_Sb_Co {
 #bind afun_Obj_Co to Ctrl+b menu Assign afun Obj_Co
 sub afun_Obj_Co {
 
-  $sPar1 = 'Obj_Co';
-
-  AfunAssign();
+  AfunAssign('Obj_Co');
 
 }
 
@@ -2381,9 +2305,7 @@ sub afun_Obj_Co {
 #bind afun_Atr_Co to Ctrl+a menu Assign afun Atr_Co
 sub afun_Atr_Co {
 
-  $sPar1 = 'Atr_Co';
-
-  AfunAssign();
+  AfunAssign('Atr_Co');
 
 }
 
@@ -2391,9 +2313,7 @@ sub afun_Atr_Co {
 #bind afun_Adv_Co to Ctrl+d menu Assign afun Adv_Co
 sub afun_Adv_Co {
 
-  $sPar1 = 'Adv_Co';
-
-  AfunAssign();
+  AfunAssign('Adv_Co');
 
 }
 
@@ -2401,9 +2321,7 @@ sub afun_Adv_Co {
 #bind afun_Coord_Co to Ctrl+i menu Assign afun Coord_Co
 sub afun_Coord_Co {
 
-  $sPar1 = 'Coord_Co';
-
-  DepSuffix();
+  DepSuffix('Coord_Co');
 
 }
 
@@ -2411,9 +2329,7 @@ sub afun_Coord_Co {
 #bind afun_AuxT_Co to Ctrl+t menu Assign afun AuxT_Co
 sub afun_AuxT_Co {
 
-  $sPar1 = 'AuxT_Co';
-
-  AfunAssign();
+  AfunAssign('AuxT_Co');
 
 }
 
@@ -2421,9 +2337,7 @@ sub afun_AuxT_Co {
 #bind afun_AuxR_Co to Ctrl+r menu Assign afun AuxR_Co
 sub afun_AuxR_Co {
 
-  $sPar1 = 'AuxR_Co';
-
-  AfunAssign();
+  AfunAssign('AuxR_Co');
 
 }
 
@@ -2431,9 +2345,7 @@ sub afun_AuxR_Co {
 #bind afun_AuxP_Co to Ctrl+p menu Assign afun AuxP_Co
 sub afun_AuxP_Co {
 
-  $sPar1 = 'AuxP_Co';
-
-  AfunAssign();
+  AfunAssign('AuxP_Co');
 
 }
 
@@ -2441,9 +2353,7 @@ sub afun_AuxP_Co {
 #bind afun_Apos_Co to Ctrl+u menu Assign afun Apos_Co
 sub afun_Apos_Co {
 
-  $sPar1 = 'Apos_Co';
-
-  DepSuffix();
+  DepSuffix('Apos_Co');
 
 }
 
@@ -2451,9 +2361,7 @@ sub afun_Apos_Co {
 #bind afun_AuxC_Co to Ctrl+c menu Assign afun AuxC_Co
 sub afun_AuxC_Co {
 
-  $sPar1 = 'AuxC_Co';
-
-  AfunAssign();
+  AfunAssign('AuxC_Co');
 
 }
 
@@ -2461,9 +2369,7 @@ sub afun_AuxC_Co {
 #bind afun_AuxO_Co to Ctrl+o menu Assign afun AuxO_Co
 sub afun_AuxO_Co {
 
-  $sPar1 = 'AuxO_Co';
-
-  AfunAssign();
+  AfunAssign('AuxO_Co');
 
 }
 
@@ -2471,9 +2377,7 @@ sub afun_AuxO_Co {
 #bind afun_Atv_Co to Ctrl+h menu Assign afun Atv_Co
 sub afun_Atv_Co {
 
-  $sPar1 = 'Atv_Co';
-
-  AfunAssign();
+  AfunAssign('Atv_Co');
 
 }
 
@@ -2481,9 +2385,7 @@ sub afun_Atv_Co {
 #bind afun_AtvV_Co to Ctrl+j menu Assign afun AtvV_Co
 sub afun_AtvV_Co {
 
-  $sPar1 = 'AtvV_Co';
-
-  AfunAssign();
+  AfunAssign('AtvV_Co');
 
 }
 
@@ -2491,9 +2393,7 @@ sub afun_AtvV_Co {
 #bind afun_AuxZ_Co to Ctrl+z menu Assign afun AuxZ_Co
 sub afun_AuxZ_Co {
 
-  $sPar1 = 'AuxZ_Co';
-
-  AfunAssign();
+  AfunAssign('AuxZ_Co');
 
 }
 
@@ -2501,9 +2401,7 @@ sub afun_AuxZ_Co {
 #bind afun_AuxY_Co to Ctrl+y menu Assign afun AuxY_Co
 sub afun_AuxY_Co {
 
-  $sPar1 = 'AuxY_Co';
-
-  AfunAssign();
+  AfunAssign('AuxY_Co');
 
 }
 
@@ -2511,9 +2409,7 @@ sub afun_AuxY_Co {
 #bind afun_AuxG_Co to Ctrl+g menu Assign afun AuxG_Co
 sub afun_AuxG_Co {
 
-  $sPar1 = 'AuxG_Co';
-
-  AfunAssign();
+  AfunAssign('AuxG_Co');
 
 }
 
@@ -2521,9 +2417,7 @@ sub afun_AuxG_Co {
 #bind afun_AuxK_Co to Ctrl+k menu Assign afun AuxK_Co
 sub afun_AuxK_Co {
 
-  $sPar1 = 'AuxK_Co';
-
-  AfunAssign();
+  AfunAssign('AuxK_Co');
 
 }
 
@@ -2531,9 +2425,7 @@ sub afun_AuxK_Co {
 #bind afun_AuxX_Co to Ctrl+x menu Assign afun AuxX_Co
 sub afun_AuxX_Co {
 
-  $sPar1 = 'AuxX_Co';
-
-  AfunAssign();
+  AfunAssign('AuxX_Co');
 
 }
 
@@ -2541,9 +2433,7 @@ sub afun_AuxX_Co {
 #bind afun_ExD_Co to Ctrl+e menu Assign afun ExD_Co
 sub afun_ExD_Co {
 
-  $sPar1 = 'ExD_Co';
-
-  AfunAssign();
+  AfunAssign('ExD_Co');
 
 }
 
@@ -2551,9 +2441,7 @@ sub afun_ExD_Co {
 #bind afun_Pred_Ap to Q menu Assign afun Pred_Ap
 sub afun_Pred_Ap {
 
-  $sPar1 = 'Pred_Ap';
-
-  AfunAssign();
+  AfunAssign('Pred_Ap');
 
 }
 
@@ -2561,9 +2449,7 @@ sub afun_Pred_Ap {
 #bind afun_Pnom_Ap to N menu Assign afun Pnom_Ap
 sub afun_Pnom_Ap {
 
-  $sPar1 = 'Pnom_Ap';
-
-  AfunAssign();
+  AfunAssign('Pnom_Ap');
 
 }
 
@@ -2571,9 +2457,7 @@ sub afun_Pnom_Ap {
 #bind afun_AuxV_Ap to V menu Assign afun AuxV_Ap
 sub afun_AuxV_Ap {
 
-  $sPar1 = 'AuxV_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxV_Ap');
 
 }
 
@@ -2581,9 +2465,7 @@ sub afun_AuxV_Ap {
 #bind afun_Sb_Ap to S menu Assign afun Sb_Ap
 sub afun_Sb_Ap {
 
-  $sPar1 = 'Sb_Ap';
-
-  AfunAssign();
+  AfunAssign('Sb_Ap');
 
 }
 
@@ -2591,9 +2473,7 @@ sub afun_Sb_Ap {
 #bind afun_Obj_Ap to B menu Assign afun Obj_Ap
 sub afun_Obj_Ap {
 
-  $sPar1 = 'Obj_Ap';
-
-  AfunAssign();
+  AfunAssign('Obj_Ap');
 
 }
 
@@ -2601,9 +2481,7 @@ sub afun_Obj_Ap {
 #bind afun_Atr_Ap to A menu Assign afun Atr_Ap
 sub afun_Atr_Ap {
 
-  $sPar1 = 'Atr_Ap';
-
-  AfunAssign();
+  AfunAssign('Atr_Ap');
 
 }
 
@@ -2611,9 +2489,7 @@ sub afun_Atr_Ap {
 #bind afun_Adv_Ap to D menu Assign afun Adv_Ap
 sub afun_Adv_Ap {
 
-  $sPar1 = 'Adv_Ap';
-
-  AfunAssign();
+  AfunAssign('Adv_Ap');
 
 }
 
@@ -2621,9 +2497,7 @@ sub afun_Adv_Ap {
 #bind afun_Coord_Ap to I menu Assign afun Coord_Ap
 sub afun_Coord_Ap {
 
-  $sPar1 = 'Coord_Ap';
-
-  DepSuffix();
+  DepSuffix('Coord_Ap');
 
 }
 
@@ -2631,9 +2505,7 @@ sub afun_Coord_Ap {
 #bind afun_AuxT_Ap to T menu Assign afun AuxT_Ap
 sub afun_AuxT_Ap {
 
-  $sPar1 = 'AuxT_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxT_Ap');
 
 }
 
@@ -2641,9 +2513,7 @@ sub afun_AuxT_Ap {
 #bind afun_AuxR_Ap to R menu Assign afun AuxR_Ap
 sub afun_AuxR_Ap {
 
-  $sPar1 = 'AuxR_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxR_Ap');
 
 }
 
@@ -2651,9 +2521,7 @@ sub afun_AuxR_Ap {
 #bind afun_AuxP_Ap to P menu Assign afun AuxP_Ap
 sub afun_AuxP_Ap {
 
-  $sPar1 = 'AuxP_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxP_Ap');
 
 }
 
@@ -2661,9 +2529,7 @@ sub afun_AuxP_Ap {
 #bind afun_Apos_Ap to U menu Assign afun Apos_Ap
 sub afun_Apos_Ap {
 
-  $sPar1 = 'Apos_Ap';
-
-  DepSuffix();
+  DepSuffix('Apos_Ap');
 
 }
 
@@ -2671,9 +2537,7 @@ sub afun_Apos_Ap {
 #bind afun_AuxC_Ap to C menu Assign afun AuxC_Ap
 sub afun_AuxC_Ap {
 
-  $sPar1 = 'AuxC_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxC_Ap');
 
 }
 
@@ -2681,9 +2545,7 @@ sub afun_AuxC_Ap {
 #bind afun_AuxO_Ap to O menu Assign afun AuxO_Ap
 sub afun_AuxO_Ap {
 
-  $sPar1 = 'AuxO_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxO_Ap');
 
 }
 
@@ -2691,9 +2553,7 @@ sub afun_AuxO_Ap {
 #bind afun_Atv_Ap to H menu Assign afun Atv_Ap
 sub afun_Atv_Ap {
 
-  $sPar1 = 'Atv_Ap';
-
-  AfunAssign();
+  AfunAssign('Atv_Ap');
 
 }
 
@@ -2701,9 +2561,7 @@ sub afun_Atv_Ap {
 #bind afun_AtvV_Ap to J menu Assign afun AtvV_Ap
 sub afun_AtvV_Ap {
 
-  $sPar1 = 'AtvV_Ap';
-
-  AfunAssign();
+  AfunAssign('AtvV_Ap');
 
 }
 
@@ -2711,9 +2569,7 @@ sub afun_AtvV_Ap {
 #bind afun_AuxZ_Ap to Z menu Assign afun AuxZ_Ap
 sub afun_AuxZ_Ap {
 
-  $sPar1 = 'AuxZ_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxZ_Ap');
 
 }
 
@@ -2721,9 +2577,7 @@ sub afun_AuxZ_Ap {
 #bind afun_AuxY_Ap to Y menu Assign afun AuxY_Ap
 sub afun_AuxY_Ap {
 
-  $sPar1 = 'AuxY_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxY_Ap');
 
 }
 
@@ -2731,9 +2585,7 @@ sub afun_AuxY_Ap {
 #bind afun_AuxG_Ap to G menu Assign afun AuxG_Ap
 sub afun_AuxG_Ap {
 
-  $sPar1 = 'AuxG_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxG_Ap');
 
 }
 
@@ -2741,9 +2593,7 @@ sub afun_AuxG_Ap {
 #bind afun_AuxK_Ap to K menu Assign afun AuxK_Ap
 sub afun_AuxK_Ap {
 
-  $sPar1 = 'AuxK_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxK_Ap');
 
 }
 
@@ -2751,9 +2601,7 @@ sub afun_AuxK_Ap {
 #bind afun_AuxX_Ap to X menu Assign afun AuxX_Ap
 sub afun_AuxX_Ap {
 
-  $sPar1 = 'AuxX_Ap';
-
-  AfunAssign();
+  AfunAssign('AuxX_Ap');
 
 }
 
@@ -2761,9 +2609,7 @@ sub afun_AuxX_Ap {
 #bind afun_ExD_Ap to E menu Assign afun ExD_Ap
 sub afun_ExD_Ap {
 
-  $sPar1 = 'ExD_Ap';
-
-  AfunAssign();
+  AfunAssign('ExD_Ap');
 
 }
 
@@ -2771,9 +2617,7 @@ sub afun_ExD_Ap {
 #bind afun_Pred_Pa to Ctrl+Q menu Assign afun Pred_Pa
 sub afun_Pred_Pa {
 
-  $sPar1 = 'Pred_Pa';
-
-  AfunAssign();
+  AfunAssign('Pred_Pa');
 
 }
 
@@ -2781,9 +2625,7 @@ sub afun_Pred_Pa {
 #bind afun_Pnom_Pa to Ctrl+N menu Assign afun Pnom_Pa
 sub afun_Pnom_Pa {
 
-  $sPar1 = 'Pnom_Pa';
-
-  AfunAssign();
+  AfunAssign('Pnom_Pa');
 
 }
 
@@ -2791,9 +2633,7 @@ sub afun_Pnom_Pa {
 #bind afun_AuxV_Pa to Ctrl+V menu Assign afun AuxV_Pa
 sub afun_AuxV_Pa {
 
-  $sPar1 = 'AuxV_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxV_Pa');
 
 }
 
@@ -2801,9 +2641,7 @@ sub afun_AuxV_Pa {
 #bind afun_Sb_Pa to Ctrl+S menu Assign afun Sb_Pa
 sub afun_Sb_Pa {
 
-  $sPar1 = 'Sb_Pa';
-
-  AfunAssign();
+  AfunAssign('Sb_Pa');
 
 }
 
@@ -2811,9 +2649,7 @@ sub afun_Sb_Pa {
 #bind afun_Obj_Pa to Ctrl+B menu Assign afun Obj_Pa
 sub afun_Obj_Pa {
 
-  $sPar1 = 'Obj_Pa';
-
-  AfunAssign();
+  AfunAssign('Obj_Pa');
 
 }
 
@@ -2821,9 +2657,7 @@ sub afun_Obj_Pa {
 #bind afun_Atr_Pa to Ctrl+A menu Assign afun Atr_Pa
 sub afun_Atr_Pa {
 
-  $sPar1 = 'Atr_Pa';
-
-  AfunAssign();
+  AfunAssign('Atr_Pa');
 
 }
 
@@ -2831,9 +2665,7 @@ sub afun_Atr_Pa {
 #bind afun_Adv_Pa to Ctrl+D menu Assign afun Adv_Pa
 sub afun_Adv_Pa {
 
-  $sPar1 = 'Adv_Pa';
-
-  AfunAssign();
+  AfunAssign('Adv_Pa');
 
 }
 
@@ -2841,9 +2673,7 @@ sub afun_Adv_Pa {
 #bind afun_Coord_Pa to Ctrl+I menu Assign afun Coord_Pa
 sub afun_Coord_Pa {
 
-  $sPar1 = 'Coord_Pa';
-
-  DepSuffix();
+  DepSuffix('Coord_Pa');
 
 }
 
@@ -2851,9 +2681,7 @@ sub afun_Coord_Pa {
 #bind afun_AuxT_Pa to Ctrl+T menu Assign afun AuxT_Pa
 sub afun_AuxT_Pa {
 
-  $sPar1 = 'AuxT_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxT_Pa');
 
 }
 
@@ -2861,9 +2689,7 @@ sub afun_AuxT_Pa {
 #bind afun_AuxR_Pa to Ctrl+R menu Assign afun AuxR_Pa
 sub afun_AuxR_Pa {
 
-  $sPar1 = 'AuxR_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxR_Pa');
 
 }
 
@@ -2871,9 +2697,7 @@ sub afun_AuxR_Pa {
 #bind afun_AuxP_Pa to Ctrl+P menu Assign afun AuxP_Pa
 sub afun_AuxP_Pa {
 
-  $sPar1 = 'AuxP_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxP_Pa');
 
 }
 
@@ -2881,9 +2705,7 @@ sub afun_AuxP_Pa {
 #bind afun_Apos_Pa to Ctrl+U menu Assign afun Apos_Pa
 sub afun_Apos_Pa {
 
-  $sPar1 = 'Apos_Pa';
-
-  DepSuffix();
+  DepSuffix('Apos_Pa');
 
 }
 
@@ -2891,9 +2713,7 @@ sub afun_Apos_Pa {
 #bind afun_AuxC_Pa to Ctrl+C menu Assign afun AuxC_Pa
 sub afun_AuxC_Pa {
 
-  $sPar1 = 'AuxC_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxC_Pa');
 
 }
 
@@ -2901,9 +2721,7 @@ sub afun_AuxC_Pa {
 #bind afun_AuxO_Pa to Ctrl+O menu Assign afun AuxO_Pa
 sub afun_AuxO_Pa {
 
-  $sPar1 = 'AuxO_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxO_Pa');
 
 }
 
@@ -2911,9 +2729,7 @@ sub afun_AuxO_Pa {
 #bind afun_Atv_Pa to Ctrl+H menu Assign afun Atv_Pa
 sub afun_Atv_Pa {
 
-  $sPar1 = 'Atv_Pa';
-
-  AfunAssign();
+  AfunAssign('Atv_Pa');
 
 }
 
@@ -2921,9 +2737,7 @@ sub afun_Atv_Pa {
 #bind afun_AtvV_Pa to Ctrl+J menu Assign afun AtvV_Pa
 sub afun_AtvV_Pa {
 
-  $sPar1 = 'AtvV_Pa';
-
-  AfunAssign();
+  AfunAssign('AtvV_Pa');
 
 }
 
@@ -2931,9 +2745,7 @@ sub afun_AtvV_Pa {
 #bind afun_AuxZ_Pa to Ctrl+Z menu Assign afun AuxZ_Pa
 sub afun_AuxZ_Pa {
 
-  $sPar1 = 'AuxZ_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxZ_Pa');
 
 }
 
@@ -2941,9 +2753,7 @@ sub afun_AuxZ_Pa {
 #bind afun_AuxY_Pa to Ctrl+Y menu Assign afun AuxY_Pa
 sub afun_AuxY_Pa {
 
-  $sPar1 = 'AuxY_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxY_Pa');
 
 }
 
@@ -2951,9 +2761,7 @@ sub afun_AuxY_Pa {
 #bind afun_AuxG_Pa to Ctrl+G menu Assign afun AuxG_Pa
 sub afun_AuxG_Pa {
 
-  $sPar1 = 'AuxG_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxG_Pa');
 
 }
 
@@ -2961,9 +2769,7 @@ sub afun_AuxG_Pa {
 #bind afun_AuxK_Pa to Ctrl+K menu Assign afun AuxK_Pa
 sub afun_AuxK_Pa {
 
-  $sPar1 = 'AuxK_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxK_Pa');
 
 }
 
@@ -2971,9 +2777,7 @@ sub afun_AuxK_Pa {
 #bind afun_AuxX_Pa to Ctrl+X menu Assign afun AuxX_Pa
 sub afun_AuxX_Pa {
 
-  $sPar1 = 'AuxX_Pa';
-
-  AfunAssign();
+  AfunAssign('AuxX_Pa');
 
 }
 
@@ -2981,9 +2785,7 @@ sub afun_AuxX_Pa {
 #bind afun_ExD_Pa to Ctrl+E menu Assign afun ExD_Pa
 sub afun_ExD_Pa {
 
-  $sPar1 = 'ExD_Pa';
-
-  AfunAssign();
+  AfunAssign('ExD_Pa');
 
 }
 
