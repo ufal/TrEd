@@ -85,7 +85,7 @@ or
 EOH
   exit unless $opt_h;
   print <<EOF;
-This is `TrEd' - an interactive tool for editing tree graphs.
+This is TrEd - an interactive tool for editing tree graphs.
 
 Each filename may be followed by suffixes of the following forms:
 
@@ -2344,8 +2344,10 @@ sub filelistDialog {
   $d->withdraw;
   $grp->{filelistDialog}=$d;
 
-  my $frame=$d->Frame();
-  my $labframe=$frame->LabFrame(-label=> 'Files to add',
+  my $botframe=$d->Frame()->pack(qw/-fill both -side bottom/);
+  my $topframe=$d->Frame()->pack(qw/-fill both -side top -expand 1/);
+
+  my $labframe=$topframe->LabFrame(-label=> 'Files to add',
 				-labelside=> 'acrosstop'
 			       )->pack(qw/-expand yes -fill both -side left/);
   $labframe->Subwidget('label')->configure(-underline => 0);
@@ -2353,14 +2355,16 @@ sub filelistDialog {
 				  -takefocus => 1,
 				  -filetypes=> \@open_types)
     ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
-  $fl->Subwidget('filelist')->configure(-background => 'white');
+  $fl->Subwidget('filelist')->configure(-background => 'white', -setgrid => 1);
   $d->bind("<Alt-f>",[$fl->Subwidget('filelist')->Subwidget('scrolled'),'focus']);
 
-  my $midframe=$frame->Frame()->pack(qw/-side left/);
+  my $leftframe=$topframe->Frame();
+  my $midframe=$topframe->Frame();
 
-  my $lframe=$frame->Frame()->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
-  my $ll= createFilelistBrowseEntry($grp,$lframe,\$filelist);
-  $ll->pack(qw/-expand yes -fill both -side top/);
+  my $rightframe=$topframe->Frame();
+
+  my $ll= createFilelistBrowseEntry($grp,$rightframe,\$filelist);
+  $ll->pack(qw/-expand no -fill x -side top/);
 
   # Bloody hell, how do I underline BrowseEntry labels?
   foreach (grep { ref($_) and $_->isa('Tk::Label') } _descendant_widgets($ll)) {
@@ -2370,41 +2374,48 @@ sub filelistDialog {
   $grp->{Balloon}->attach($ll,-balloonmsg=>
 			  "Select a file-list to display.\nTo rename the selected file-list, type in a new name and press Enter.");
 
-  my $t= $lframe->Scrolled(qw/HList -relief sunken
-                     -selectmode extended
-                     -width 60
-		     -height 15 -scrollbars oe/,
-			    -separator=> "\t"
-			   )
+  my $t= $rightframe->Scrolled(qw/HList -relief sunken
+				  -selectmode extended
+				  -width 60
+				  -height 15 -scrollbars oe/,
+			       -separator=> "\t"
+			      )
     ->pack(qw/-expand yes -fill both -side top/);
   disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
   $grp->{Filelist}=$t;
   feedHListWithFilelist($grp,$t,$grp->{focusedWindow}->{currentFilelist});
 
-  $frame->pack(qw/-expand yes -fill both -side top/);
+  my @pad = qw(-padleft 7 -padright 7 -padmiddle 5 );
+  my @b_pack = qw(-padx 0.1c -pady 0.2c -side right);
+  $midframe->ImgButton(-text=> 'Add',
+		       -image => icon($grp,"1rightarrow"),
+		       @pad,
+		       -underline=> 0,
+		       -balloon => $grp->{Balloon},
+		       -balloonmsg=> "Add files selected on the left\nto the file-list on the right.",
+		       -command=>[
+				  sub {
+				    my ($grp,$t,$l)=@_;
+				    insertToFilelist($grp,
+						     $grp->{filelistCurrentFilelist},
+						     getFilelistLinePosition($grp->{filelistCurrentFilelist},
+									     $t->info('anchor')),
+						     $l->getSelectedFiles
+						    );
+				    updateBookmarks($grp)
+				      if (ref($grp->{filelistCurrentFilelist}) and
+					  $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
+				  },$grp,$t,$fl])->pack(qw/-expand yes -pady 0.2c -side top/);
 
-  my $b=$midframe->Button(-text=> 'Add -->',
-			  -underline=> 0,
-			  -command=>[
-				     sub {
-				       my ($grp,$t,$l)=@_;
-				       insertToFilelist($grp,
-							$grp->{filelistCurrentFilelist},
-							getFilelistLinePosition($grp->{filelistCurrentFilelist},
-										$t->info('anchor')),
-							$l->getSelectedFiles
-						       );
-				       updateBookmarks($grp)
-					 if (ref($grp->{filelistCurrentFilelist}) and
-					     $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-				     },$grp,$t,$fl])->pack(-pady => '0.2c', -side=> 'top');
-  $grp->{Balloon}->attach($b,-balloonmsg=>
-			  "Add files selected on the left\nto the file-list on the right.");
-
-  $b=$midframe->Button(-text=> '<-- Remove',
-		    -underline=> 4,
-		    -command=>[
+  $midframe->ImgButton(-text=> 'Remove',
+		       -image => icon($grp,"1leftarrow"),
+		       @pad,
+		       -underline=> 0,
+		       -balloon => $grp->{Balloon},
+		       -balloonmsg=> "Remove selected files on the right from the file-list.",
+		       -underline=> 4,
+		       -command=>[
 			       sub { 
 				 my ($grp,$t)=@_;
 				 removeFromFilelist($grp,
@@ -2415,12 +2426,13 @@ sub filelistDialog {
 				 updateBookmarks($grp)
 				   if (ref($grp->{filelistCurrentFilelist}) and
 				       $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-			       },$grp,$t])->pack(-pady => '0.2c', -side=> 'top');
-  $grp->{Balloon}->attach($b,-balloonmsg=>
-			  "Remove selected files on the right from the file-list.");
+			       },$grp,$t])->pack(qw/-expand yes -pady 0.2c -side top/);
 
   unless ($modal) {
-    $b=$midframe->Button(-text=> 'Show in TrEd',
+    $midframe->ImgButton(-text=> 'Show in TrEd',
+		      -balloon => $grp->{Balloon},
+		      -balloonmsg=> "Open the file-list on the selected position.",
+		      @pad,
 		      -underline=> 0,
 		      -command=> [ sub {
 				     my ($grp)=@_;
@@ -2428,10 +2440,7 @@ sub filelistDialog {
 				       set_current($grp->{Filelist}->
 						   info('data',$grp->{Filelist}->info('anchor')));
 				     selectFilelist($grp,$grp->{filelistCurrentFilelist});
-				   },$grp ])->pack(-pady => '0.2c', -side => 'top');
-    $grp->{Balloon}->attach($b,-balloonmsg=>
-			    "Open the file-list on the selected position.");
-
+				   },$grp ])->pack(qw/-expand yes -pady 0.2c -side top/);
     $t->bind('<Return>'=> [
 			    sub {
 			      my ($w,$grp)=@_;
@@ -2485,30 +2494,36 @@ sub filelistDialog {
 		      shift->destroy();
 		},$d ]);
 
-  $b=$d->Button(-text=> 'Close',
+  $botframe->ImgButton(-text => 'Close',
+	     -balloon => $grp->{Balloon},
+	     -balloonmsg => "Close this window.",
 	     -underline=> 0,
+	     @pad,
 	     -command=> [sub {
-			    $modal ?
-			      shift->{selected_button}= "Cancel" :
-				shift->destroy();
-			  },$d ])
-    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side => 'right');
-  $grp->{Balloon}->attach($b,-balloonmsg=>
-			  "Close this window.");
+			   $modal ?
+			     shift->{selected_button}= "Cancel" :
+			       shift->destroy();
+			 },$d ])
+    ->pack(@b_pack);
 
-  $b=$d->Button(-text=> 'Delete',
+  $botframe->ImgButton(-text=> 'Delete',
+		-balloon => $grp->{Balloon},
+		-balloonmsg=> "Delete current file-list.",
+		@pad,
 		-underline=> 0,
 		-command=> [sub {
 			      my ($grp,$d)=@_;
 			      deleteFilelist($grp,$grp->{filelistCurrentFilelist});
 			    },$grp,$d ])
-    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side=>'right');
-  $grp->{Balloon}->attach($b,-balloonmsg=>
-			  "Delete current file-list.");
+    ->pack(@b_pack);
 
-  $b=$d->Button(-text=> 'Save',
-	     -underline=> 0,
-	     -command=> [sub {
+  $botframe->ImgButton(-text=> 'Save',
+		-image=> icon($grp,"filesave"),
+		-balloon => $grp->{Balloon},
+		-balloonmsg=> "Save current file-list to a file.",
+		@pad,
+		-underline=> 0,
+		-command=> [sub {
 			    my ($grp,$d)=@_;
 			    my $file=$grp->{filelistCurrentFilelist}->filename;
 			    unless (defined ($file)  and $file ne "") {
@@ -2531,13 +2546,15 @@ sub filelistDialog {
 			    }
 			    $grp->{filelistCurrentFilelist}->save;
 			  },$grp,$d ])
-    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side => 'right');
-  $grp->{Balloon}->attach($b,-balloonmsg=>
-			     "Save current file-list to a file.");
+    ->pack(@b_pack);
 
-  $b=$d->Button(-text=> 'New',
-	     -underline=> 0,
-	     -command=> [sub {
+  $botframe->ImgButton(-text=> 'New',
+		-image=> icon($grp,"filenew"),
+		-balloon => $grp->{Balloon},
+		-balloonmsg=> "Create a new (empty) file-list.",
+		-underline=> 0,
+		@pad,
+		-command=> [sub {
 			   my ($grp,$d,$filelistref)=@_;
 			   my $name = QueryString($d,"File-list name", "Name: ");
 			   $d->deiconify;
@@ -2555,13 +2572,15 @@ sub filelistDialog {
 			     updatePostponed($grp);
 			   }
 			 },$grp,$d,\$filelist ])
-    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side=>'right');
-  $grp->{Balloon}->attach($b,-balloonmsg=>
-			     "Create a new (empty) file-list.");
+    ->pack(@b_pack);
 
-  $b=$d->Button(-text=> 'Load',
-	     -underline=> 0,
-	     -command=> [sub {
+  $botframe->ImgButton(-text=> 'Load',
+		-image => icon($grp,"fileopen"),
+		-balloon => $grp->{Balloon},
+		-balloonmsg=> "Load a file-list from a file.",
+		@pad,
+		-underline=> 0,
+		-command=> [sub {
 			   my ($grp,$d,$filelistref)=@_;
 			   my $file= get_open_filename($d,-filetypes=> 
 						       [["Filelists",           ['.fl']],
@@ -2579,9 +2598,12 @@ sub filelistDialog {
 			   addNewFilelist($grp,$fl);
 			   $$filelistref=$fl->name();
 			 },$grp,$d,\$filelist ])
-    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side=>'right');
-  $grp->{Balloon}->attach($b,-balloonmsg=>
-			  "Load a file-list from a file.");
+    ->pack(@b_pack);
+
+  $leftframe->pack(qw/-padx 5 -side left -fill y/);
+  $midframe->pack(qw/-padx 5 -side left/);
+  $rightframe->pack(qw/-padx 5 -side left -fill y/);
+  $topframe->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
 
   if ($grp->{focusedWindow}->{currentFileNo}) {
     my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{focusedWindow}->{currentFileNo});
@@ -2608,7 +2630,7 @@ sub filelistDialog {
 }
 
 sub generateSortedMacroTable {
-  my ($grp)=@_;
+  my ($grp) = @_;
   my @macroTable= map { [ 
 			 $_,
 			 $menuBindings{$grp->{focusedWindow}->{macroContext}}->{$_}->[1],
@@ -3575,6 +3597,13 @@ sub prepareFonts {
   prepareFont($grp,\$font,'C_normal');
   $treeViewOpts->{font}=$font;
   prepareFont($grp,\$vLineFont,'C_vline');
+  eval { # eval, in case fonts already exist
+    $grp->{top}->fontCreate(qw/C_fixed   -family courier   -size 9/);
+    $grp->{top}->fontCreate(qw/C_default -family helvetica -size 9/);
+    $grp->{top}->fontCreate(qw/C_bold    -family helvetica -size 9 -weight bold/);
+    $grp->{top}->fontCreate(qw/C_italic  -family helvetica -size 9 -slant italic/);
+  };
+
 }
 
 sub addBindTags {
@@ -4036,7 +4065,7 @@ sub startMain {
 					  }
 					 , \%group]);
   $group{FileMenu}->command(-label=> 'Close in Window',
-			    -underline=> 1,
+			    -underline=> 9,
 			    -command=> [ sub {
 					    my ($grp)=@_;
 					    my $keep;
@@ -4255,6 +4284,8 @@ sub startMain {
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
+  $group{Balloon}->attach($group{ContextsMenu},
+			  -balloonmsg=> "macro context");
 
   my $cM=[];
   if ($createMacroMenu) {
@@ -4465,7 +4496,7 @@ sub startMain {
 			  -command=>
 			  [\&tieNextTree,\%group]);
   $group{Balloon}->attach($group{nextButton},
-			  -balloonmsg=> "see the next tree");
+			  -balloonmsg=> "see the next tree in the file");
   addBindTags($group{nextButton},'my');
 
   $group{prevButton}=
@@ -4477,7 +4508,7 @@ sub startMain {
 			  -command=>
 			  [\&tiePrevTree,\%group]);
   $group{Balloon}->attach($group{prevButton},
-			  -balloonmsg=> "see the previous tree");
+			  -balloonmsg=> "see the previous tree the file");
   addBindTags($group{prevButton},'my');
 
   $group{openButton}=
@@ -4554,7 +4585,7 @@ sub startMain {
 			  -command=> [\&tiePrevFile,\%group])->pack(-side=>'left',
 									    -padx=>'1');
   $group{Balloon}->attach($group{prevFileButton},
-			  -balloonmsg=> "visit the previous open file");
+			  -balloonmsg=> "visit the previous file in the file-list");
   addBindTags($group{prevFileButton},'my');
 
   $group{nextFileButton}=
@@ -4565,7 +4596,7 @@ sub startMain {
 			  -command=> [\&tieNextFile,\%group])->pack(-side=>'left',
 									    -padx=>'1');
   $group{Balloon}->attach($group{nextFileButton},
-			  -balloonmsg=> "visit the next open file");
+			  -balloonmsg=> "visit the next file in the file-list");
   addBindTags($group{nextFileButton},'my');
 
 
@@ -4631,7 +4662,7 @@ sub startMain {
 			  -command=> [sub { customAttrsDialog(@_) },\%group])->pack(-side=>'right',
 										    -padx=>'1');
   $group{Balloon}->attach($group{attrButton},
-			  -balloonmsg=> "select visible attributes");
+			  -balloonmsg=> "customize selected stylesheet\n(e.g. change tree appearance, labels etc.)");
 
   $group{StylesheetMenu}=$group{frame}->
     Optionmenu(-options => getStylesheetMenuList(\%group),
@@ -4641,6 +4672,8 @@ sub startMain {
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
+  $group{Balloon}->attach($group{StylesheetMenu},
+			  -balloonmsg=> "stylesheet (tree appearance)");
 
   $group{tieWinddowsButton}=
     $group{frame}->Checkbutton(-takefocus=>0,
@@ -4695,6 +4728,9 @@ sub startMain {
   $group{frame}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
   my $vlsubframe=$group{vLineFrame}->Frame();
   $group{vLineNumLabel}=$vlsubframe->Label(-text => '-/-')->pack(qw/-side top -fill x/);
+  $group{Balloon}->attach($group{vLineNumLabel},
+			  -balloonmsg=> "position of the current tree\nin the file (current/total)");
+
   $group{sentButton}=
     $vlsubframe->Button(-takefocus=>0, -text=> "Sentences",
 			-relief=> $buttonsRelief,
@@ -4702,6 +4738,9 @@ sub startMain {
 			-borderwidth=> $buttonBorderWidth,
 			-command=> [\&viewSentences,\%group])
       ->pack(qw/-side top -fill x/);
+  $group{Balloon}->attach($group{sentButton},
+			  -balloonmsg=> "View all trees as a list of 'sentences'...\nThis dialog also allows export to HTML.");
+
   $vlsubframe->pack(qw/-fill x -side right -padx 1 -anchor n/);
   $group{valueLine}->pack(qw/-side left -fill both -expand yes/);
   $group{vLineFrame}->pack(qw/-fill x -expand no/);
@@ -5336,6 +5375,7 @@ sub editConfig {
   my $bottom=$d->Frame()->pack(qw/-side bottom -fill x/);
   $bottom->
     Button(-text=> "  Save and Apply  ",
+	   -underline => 2,
 	   -command=> [sub {
 			  my ($grp,$d,$t)=@_;
 			  saveConfig($grp,$t->get("0.0","end"));
@@ -5345,6 +5385,7 @@ sub editConfig {
 			},$grp,$d,$t])
       ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "  Apply  ",
+		  -underline => 2,
 		  -command=> [sub {
 				 my ($grp,$w)=@_;
 				 apply_config(split(/\n/,$w->get("0.0","end")));
@@ -5353,9 +5394,11 @@ sub editConfig {
 			       },$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
-  $bottom->Button(-text=> "  Close  ", -command=> [sub { shift->destroy; },$d])
+  $bottom->Button(-text=> "  Close  ", 
+		  -underline => 2,
+		  -command=> [sub { shift->destroy; },$d])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-
+  _bind_buttons($d,$d);
   $d->bind('<Destroy>'=> [sub { shift; shift->{configDialog}=undef; },$grp ]);
   $d->bind($d,'<Escape>'=> [sub { shift; shift->destroy(); },$d]);
   if (open(F,"<$configFile")) {
@@ -5789,8 +5832,8 @@ sub dumpSentView {
 
   $file= get_save_filename($t->toplevel,
 			   -filetypes=>
-			   [["HTML",           [qw/.html .htm .HTM .HTML/]],
-			    ["All files",        '*']],
+			   [["HTML",  ['.html','.htm','.HTM','.HTML']],
+			    ["All files",        "*"]],
 			   -title=> "Save Sentences As HTML ...",
 			   -d $initdir ? (-initialdir=> $initdir) : (),
 			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
@@ -6136,10 +6179,126 @@ sub customAttrsDialog {
   my $eff=$d->Frame(qw/-relief sunken -bd 1 -takefocus 0/)->
     pack(qw/-padx 3 -pady 3 -side top -fill x/);
   $eff->Frame(qw/-height 6 -takefocus 0/)->pack();
-  $d->Label(-text => "Edit attribute pattern (press ^I to insert tab)",
-	    -anchor => 'nw', -justify => 'left')
-    ->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+  my $elabff=$d->Frame->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+  $elabff->Label(-text => "Edit display pattern (press ^I to insert tab)",
+		 -anchor => 'nw', -justify => 'left')->pack(qw/-side left/);
+  my $helplabel = $elabff->Label(-text => "Help",
+			    -underline => 0,
+			    -anchor => 'nw', -justify => 'left')
+    ->pack(qw/-side right/);
+
+  my $HELP = <<'EOF';
+B<Stylesheet quick help:>
+I<In this dialog you may edit the current stylesheet. Stylesheets are sets of patterns (as described below) that influence the overall tree appearance as well as visual representation of individual nodes, edges and labels (including label content). Each pattern either represents one line of a label (node or edge), defines a per-node text to appear in the value line above the tree, and/or provides styling information for the node and its edges (such as node shape, color, line thickness, line style, etc.). See the User's manual for more details.>
+
+B<Pattern:> C<[&lt;prefix&gt;:]&lt;rules&gt;>
+
+B<Default prefixes:>
+  C<node>      	- define a node label (default if no prefix given)
+  C<edge>      	- define an edge label
+  C<style>     	- define node and edge appearance (for individual nodes)
+  C<rootstyle> 	- define node and edge appearance globally
+  C<text>      	- define per-node value-line text
+
+B<Rules interpolation:>
+  C<${attribute}    >- interpolates to the attribute value
+  C<#{color}        >- applies given font color to the rest of the label
+
+  C<&lt;? perlcode ?&gt;>  - evaluates Perl code and interpolates the result.
+                    C<$this> - the node the label or style applies to
+                    C<$root> - root of the tree
+                    C<$${attribute}> - like C<"$this-&gt;{attribute}">
+
+  any other text - interpolates to itself
+
+B<Styles:>
+  C<#{object-feature:value}>
+
+B<Colors:>
+  Colors can be specified either by name (such as 'red', 'lightblue', etc.), or
+  by a hex RGB string of the form #RRGGBB.
+
+B<Features:>
+  C<balance             >- draw "balanced" Penn-treebank like tree, instead of
+  C<                    >  ordering nodes according to a dedicated attribute
+  C<                    >  (can only be used in a rootstyle pattern)
+  C<Node-shape          >- oval, rectangle, polygon
+  C<Node-polygon        >- relative coordinates of the poligon points
+  C<Node-rellevel       >- alter vertical leveling of the subtree
+  C<Node-level          >- alter vertical leveling of a single node
+  C<Node-addbeforeskip  >- skip before: 10, 2c, 12pt, etc.
+  C<Node-addafterskip   >- skip after
+  C<NodeLabel-valign    >- only as rootstyle. Values: top, center, bottom.
+  C<NodeLabel-halign    >- left, right, center
+  C<NodeLabel-yadj      >- adjust vertical position of node labels by given amount
+  C<NodeLabel-dodrawbox >- force drawing a box around labels: yes/no
+  C<NodeLabel-nodrawbox >- force disabling a box around node label: yes/no
+  C<EdgeLabel-yadj      >- adjust vertical position of edge labels by given amount
+  C<EdgeLabel-halign    >- values: right, center, left
+  C<EdgeLabel-valign    >- values: top, center, bottom
+  C<EdgeLabel-dodrawbox >- force drawing a box around edge labels: yes/no
+  C<EdgeLabel-nodrawbox >- force disabling a box around node label: yes/no
+  C<Oval-dash           >- pattern for the outline of the node shape
+  C<                    >  (oval/rectangle/polygon)
+  C<Oval-activedash     >- pattern for the outline of the active node shape
+  C<Oval-dashoffset     >- starting offset for the outline pattern
+  C<Oval-fill           >- color to fill a node shape with
+  C<Oval-activefill     >- color to fill the shape of an active node with
+  C<Oval-outline        >- color of the outline of node shape
+  C<Oval-activeoutline  >- color of the outline of the shape of the active node
+  C<Oval-width          >- width of the outline of a node shape
+  C<Oval-activewidth    >- width of the outline of an active node shape
+  C<Line-coords         >- coordinations of the edge(s) to be drawn. 
+  C<                    >  Default: n,n,p,p. (See the documentation for more info.)
+  C<Line-arrow          >- side of an edge to put an arrow on: first, both, last
+  C<Line-...            >- ...=dash, activedash, dashoffset, fill, activefill,
+  C<Line-...            >  width, activewidth
+  C<TextBox-...         >- ...=dash, activedash, dashoffset, fill, activefill,
+  C<                    >  outline, activeoutline, width, activewidth
+  C<EdgeTextBox-...     >- ditto
+  C<                    >  (similar to Oval-... described above)
+  C<Text[...]-..        >- see the documentation
+
+EOF
+
+  require Tk::HelpTiptool;
+  my $help = $d->HelpTiptool(-background => '#ffffaa',
+			     -troughcolor => '#cccc99',
+			     -message=>[
+					map {
+					  if (/^([BICQ])<(.[^>]*)>/) {
+					    my $style;
+					    if ($1 eq 'B') {
+					      $style = 'bold';
+					    } elsif ($1 eq 'I') {
+					      $style = 'italic';
+					    } elsif ($1 eq 'C') {
+					      $style = 'fixed';
+					    } else {
+					      $style = 'default';
+					    }
+					    my $l = $2;
+					    $l=~s/&lt;/\</g;
+                                            $l=~s/&gt;/\>/g;
+					    ($l,$style)
+					  } else {
+					    my $l=$_;
+					    $l=~s/&lt;/\</g;
+					    $l=~s/&gt;/\>/g;
+					    ($l,'default')
+					  }} split /([BICQ]<.[^>]*>)/,$HELP
+				       ]
+			    );
+  $help->Subwidget('text')->tag(qw(configure bold -font C_bold));
+  $help->Subwidget('text')->tag(qw(configure fixed -font C_fixed));
+  $help->Subwidget('text')->tag(qw(configure default -font C_default));
+  $help->Subwidget('text')->tag(qw(configure italic -font C_italic));
+  $help->configure(-height => scalar(split /\n/,$HELP)+1);
+
+  $d->bind('all','<Alt-h>', sub { $help->Toggle($helplabel); });
+  $helplabel->bind('<Button>', sub { $help->Toggle($helplabel); });
   $e->pack(-in => $eff,qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+
   $e->raise($eff);
 
 
@@ -6171,7 +6330,6 @@ sub customAttrsDialog {
     $al->activate(0);
     $al->selectionSet(0);
   }
-  $af->pack(qw/-padx 5 -side left -fill y/);
 
   # Frame with pattenrs listbox
   my $cf= $f->Frame(qw(-takefocus 0));
@@ -6288,7 +6446,7 @@ sub customAttrsDialog {
 	      }]
 	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
 
-
+  $af->pack(qw/-padx 5 -side left -fill y/);
   $bf->pack(qw/-padx 5 -side left -fill y/);
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
