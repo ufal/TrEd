@@ -55,6 +55,14 @@ pre_switch_context_hook			yes	executed before
 						current context and
 						the name of the new context.
 
+switch_context_hook			no	executed after
+						context is
+						switched. Takes two
+						argumetns:
+						the name of the
+						previous context and
+						the name of the current context.
+
 about_file_hook				no	executed before About
 						window is
 						displayed. Takes one
