@@ -3,6 +3,8 @@
 ## author: Petr Pajas
 ## $Id$
 
+#encoding iso-8859-2
+
 package Analytic_Correction;
 use base qw(Analytic);
 import Analytic;
@@ -95,102 +97,6 @@ sub gotoPrevFound {
   } while (PrevTree and ($node=LastNode));
   $FileNotSaved=0;
 }
-
-sub editQuery {
-  ## draws a dialog box with one Text widget and Ok/Cancel buttons
-  ## expects dialog title and default text
-  ## returns text of the Text widget
-  my $d;
-  my $ed;
-
-  $d=$grp->toplevel->DialogBox(-title => shift,
-			    -buttons => ["OK","Cancel"]);
-  addBindTags($d,'dialog');
-  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
-  $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
-  my $var=shift;
-  my $hintText=shift;
-  if ($hintText) {
-    my $t=$d->add(qw/Label -wraplength 6i -justify left -text/,$hintText);
-    $t->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
-  }
-  $ed=$d->Scrolled(qw/Text -height 8 -relief sunken -scrollbars sw -borderwidth 2/,
-		   -font => $font);
-  $ed->insert('0.0',$var);
-  $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
-  $d->bind('<Return>' => [sub {1;}]);
-  $ed->focus;
-  if (ShowDialog($d) =~ /OK/) {
-    $var=$ed->get('0.0','end');
-    return $var;
-  } else {
-    return undef;
-  }
-}
-
-#bind PerlSearch to Alt+h menu Perl-Search
-sub PerlSearch {
-  my $label= "Any inserted perl code will be evaluated for each node from current ".
-    "as long as it ends with zero or undefined value; the first node for which ".
-    "the code succeedes (returns defined non-zero value) will be selected.\n\n".
-    "Use \`\$this\' to refer to the current node, \`\$root\' to the root of the tree.\n".
-    "If \`\$n\' refers to some node, \`\$n->{attr}\' is its value of the attribute \`attr\'.\n".
-    "The governor of a node \$n is refered to as \`Parent(\$n)\', nearest ".
-    "left brother of \'\$n\' in the tree structure is \'LBrother(\$n)\'".
-    "the right brother of \$n is \`RBrother(\$n)\'. The first son of \'$n\' ".
-    "is referred to as \`FirstSon(\$n)\'. If no such node exists, all these functions ".
-    "return zero (\`0\') or possibly \`undef\'.".
-    "Moreover, all the nodes of the tree are elements of the \`\@nodes\' array (list) ".
-    "with the same order as they are displayed from left to right.\n\n".
-    "NOTE: LBrother(\$n) and RBrother(\$n) are not necesserilly displayed on left of \$n\n\n"
-    ;
-
-  my $script = editQuery("Search: insert perl expression:",$macPerlSearchScript,$label);
-  unless ($script) {
-    $FileNotSaved=0;
-    return;
-  }
-  $macPerlSearchScript=$script;
-  while ($this=Next($this) or NextTree()) {
-#    print $this->{'form'},"\n";
-    last if eval($script);
-  };
-  print $this->{'form'},"\n";
-}
-
-#bind GotoTreeAsk to Alt+g menu Go to...
-sub GotoTreeAsk {
-  my $to=QueryString($grp->{framegroup},"Give a Tree Number","Number");
-  GotoTree($to+1) if defined $to;
-  $FileNotSaved=0;
-}
-
-#bind PerlSearchNext to Alt+H menu Perl-Search Next
-sub PerlSearchNext {
-  if ($macPerlSearchScript) {
-    while ($this=Next($this) or NextTree()) {
-#      print $this->{'form'},"\n";
-      last if eval($macPerlSearchScript);
-    }
-  } else {
-    PerlSearch();
-  }
-}
-
-#bind LastTree to greater menu Go to last tree
-sub LastTree {
-  GotoTree($#trees);
-}
-
-#bind FirstTree to less menu Go to first tree
-sub FirstTree {
-  GotoTree(0);
-}
-
-
-
-#bind PrevTree to comma
-#bind NextTree to period
 
 #bind UnsetFound to minus
 sub UnsetFound { $this->{'err2'}=''; }
