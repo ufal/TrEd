@@ -765,6 +765,7 @@ APPINFO    NONE
 <!ENTITY agrave CDATA "&#38;agrave;" -- "agrave" -->
 
 <!ENTITY Amp CDATA "&#38;Amp;" -- "Amp" -->
+<!ENTITY Ast CDATA "&#38;Ast;" -- "Ast" -->
 <!ENTITY Period CDATA "&#38;Period;" -- "Period" -->
 <!ENTITY Comma CDATA "&#38;Comma;" -- "Comma" -->
 <!ENTITY Neg CDATA "&#38;Neg;" -- "Neg" -->
@@ -784,6 +785,9 @@ APPINFO    NONE
 <!ENTITY Hyphen CDATA "&#38;Hyphen;" -- "Hyphen" -->
 <!ENTITY Slash CDATA "&#38;Slash;" -- "Slash" -->
 <!ENTITY Semicolon CDATA "&#38;Semicolon;" -- "Semicolon" -->
+<!ENTITY Verbar CDATA "&#38;Verbar;" -- "Verbar" -->
+<!ENTITY Unsp CDATA "&#38;Unsp;" -- "Unsp" -->
+<!ENTITY Percnt CDATA "&#38;Percnt;" -- "Percnt" -->
 ]]>
 
 
@@ -811,15 +815,19 @@ APPINFO    NONE
 
 <!ENTITY agrave CDATA "&#233;" -- "agrave" -->
 
+<!ENTITY Amp CDATA "&#38;" -- "Amp" -->
+<!ENTITY Ast CDATA "*" -- "Ast" -->
 <!ENTITY Period CDATA "." -- "Period" -->
 <!ENTITY Comma CDATA "," -- "Comma" -->
 <!ENTITY Neg CDATA "Neg" -- "Neg" -->
 <!ENTITY Colon CDATA ":" -- "Colon" -->
 <!ENTITY Dash CDATA "-" -- "Dash" -->
 <!ENTITY Lpar CDATA "(" -- "Lpar" -->
+<!ENTITY Rpar CDATA ")" -- "Rpar" -->
 <!ENTITY Forn CDATA "Forn" -- "Forn" -->
 <!ENTITY Rcp CDATA "Rcp" -- "Rcp" -->
 <!ENTITY Cor CDATA "Cor" -- "Cor" -->
+<!ENTITY QCor CDATA "QCor" -- "QCor" -->
 <!ENTITY Emp CDATA "Emp" -- "Emp" -->
 <!ENTITY EmpNoun CDATA "EmpNoun" -- "EmpNoun" -->
 <!ENTITY Gen CDATA "Gen" -- "Gen" -->
@@ -827,4 +835,8 @@ APPINFO    NONE
 <!ENTITY Hyphen CDATA "-" -- "Hyphen" -->
 <!ENTITY Slash CDATA "/" -- "Slash" -->
 <!ENTITY Semicolon CDATA ";" -- "Semicolon" -->
+<!ENTITY Verbar CDATA "|" -- "Verbar" -->
+<!ENTITY Unsp CDATA "Unsp" -- "Unsp" -->
+<!ENTITY Percnt CDATA "&#37;" -- "Percnt" -->
 ]>
+
