@@ -262,10 +262,12 @@ sub node_style_hook {
   my (@coords,@colors);
   my @cortypes=split /\|/,$node->{cortype};
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
+  my $ids={};
+  my $nd = $root; while ($nd) { $ids->{$nd->{AID}.$nd->{TID}}=1 } continue { $nd=$nd->following };
   foreach my $coref (split /\|/,$node->{coref}) {
     my $cortype=shift @cortypes;
     next if (!$drawAutoCoref and $cortype =~ /auto/);
-    if (index($coref,$id1)==0) {
+    if ($ids->{$coref}) { #index($coref,$id1)==0) {
       print STDERR "Same sentence\n";
       # same sentence
       my $T="[?\$node->{AID} eq '$coref' or \$node->{TID} eq '$coref'?]";
