@@ -7,6 +7,9 @@ package Coref;
 use base qw(TredMacro);
 import TredMacro;
 
+#include <contrib/ValLex/chooser.mak>
+
+
 #bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
   if ($grp->{FSFile}) {
