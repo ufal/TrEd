@@ -84,7 +84,7 @@ function get_version {
 function upgrade_packages {
   for s in $*; do 
     echo
-    echo Kontroluji verzi baliku $s
+    echo Checking package $s
     QUERY=`$PPM query "^$s\$"`
     if [ -n "$QUERY" ]; then
       $PPM verify --location=packages --upgrade "$s"
