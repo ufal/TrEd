@@ -1791,13 +1791,14 @@ Get or set user defined custom color.
 
 sub CustomColor {
   my ($color,$value)=@_;
-  if (GUI()) {
-    if (defined($value)) {
-      $grp->treeView->get_customColors->{$color}=$value;
-    } else {
-      $grp->treeView->get_customColors->{$color};
-    }
+#ifdef TRED
+  if (defined($value)) {
+    $TrEd::Config::treeViewOpts->{customColors}->{$color}=$value;
+  } else {
+    $val = $TrEd::Config::treeViewOpts->{customColors}->{$color};
+    return $val;
   }
+#endif TRED
 }
 
 =item UserConf(name,new-value?)
