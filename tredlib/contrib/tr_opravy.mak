@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-16 12:36:17 pajas>
+## Time-stamp: <2005-02-23 12:24:54 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -9,6 +9,7 @@ import Tectogrammatic;
 #bind FCopy to Ctrl+c menu copy node
 #bind FPaste to Ctrl+C menu paste node
 
+sub first (&@);
 
 ######################### Hooks ######################
 
@@ -773,7 +774,6 @@ sub only_parent_aidrefs {
 }
 
 #################################################
-sub first (&@);
 
 sub expand_auxcp {
   my ($node)=@_;
