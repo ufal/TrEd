@@ -9,6 +9,10 @@ package Analytic_Correction;
 use base qw(Analytic);
 import Analytic;
 
+#bind TR_Correction->analytical_tree to Ctrl+A menu Display analytical tree (in a TR file)
+#bind TR_Correction->tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree (in a TR file)
+#bind TR_Correction->tectogrammatical_tree_store_AR to Ctrl+B menu Save ordorig of AR tree and display tectogrammatical tree
+
 #bind edit_lemma_tag to Ctrl+T menu oprava lemmatu a tagu
 sub edit_lemma_tag {
   ChangingFile(0);
