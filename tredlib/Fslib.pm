@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-18 15:07:45 pajas>
+# Time-stamp: <2002-04-18 15:13:44 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -2324,7 +2324,7 @@ sub new_tree {
   my ($self,$pos)=@_;
 
   my $nr=FSNode->new(); # creating new root
-  splice(@{$self->treeList}, $pos, 0, $nr);
+  $self->insert_tree($nr,$pos);
   return $nr;
 
 }
