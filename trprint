@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-04 18:03:35 pajas>";
+$timestamp="Time-stamp: <2001-06-07 13:28:10 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -41,7 +41,7 @@ EOH
 if ($opt_h) {
   print <<EOF;
 Usage:
-tred -u|-h    for usage/help
+$0 -u|-h    for usage/help
 
  or
 
@@ -50,26 +50,31 @@ $0 [-c config-file] [options/flags] files [ [options/flags] files ...]
 where:
 
 -c <file>  specifies a config-file to be used (overrides
-	   ~/.tredrc and all the other files TrEd would otherwise try to
+	   ~/.tredrc and all the other files TrPrint would otherwise try to
 	   search for).
 
 Options:
 
 -o <file> Output file prefix (otherwise standard output or command is
-          used). If more than one output file is to be created, the
-          filename given is used as a filename prefix and numbers
-          starting from 1 are appended after optional underscore; thus
-          files named as <filename>_<number>.ps are created.
+           used). If more than one output file is to be created, the
+           filename given is used as a filename prefix and numbers
+           starting from 1 are appended after optional underscore (see
+           -U); thus files named as <filename>_<number>.<extension>
+           are created if the <file> was <filename>.<extension>.  All
+           previous -p option occurrences are ignored.
 
 -r <range> print trees in given range (if no range is given, all trees
            in the files are printed)
 
-Flags: (each flag -<flag> has also the +<flag> variant whith opposite
-        meaning)
+-p <cmd>   pipe output to standard input of the given command. Previous
+           -o options and -I flags are ignored.
+
+Flags:     (each flag -<flag> has also the +<flag> variant whith opposite
+           meaning)
 
 -H         print hidden nodes
 
--T         use Type1 (postscript) font (this is default)
+-T         use Type1 (postscript) font
 
 -M         maximize print size
 
@@ -85,6 +90,8 @@ Flags: (each flag -<flag> has also the +<flag> variant whith opposite
 -N         use tree numbers as output file suffixes (implies -1)
 
 -U         insert underscore before output file number suffix
+
+-I         enable ImageMagick output filter (implies -E and -1)
 EOF
   exit;
 }
@@ -100,10 +107,7 @@ if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
   $ENV{HOME} = $shf{AppData}[2];
 }
 
-# Default values of $libDir used to search for macro-file (tred.mac)
-# and default-macro file (tred.def) are specified here. They may be
-# overriden by value of LibDir in tred resource file (tredrc or ~/.tredrc - see above).
-# It is also used to find TrEd::Config.pm module.
+# This is first used to find TrEd::Config.pm module.
 
 use FindBin;
 if (exists $ENV{TREDHOME}) {
@@ -144,13 +148,14 @@ if (defined $opt_c) {
 } else {
   set_default_config_file_search_list();
 }
+$set_user_config=\&setConfig;	# trprint specific configuration
 
 my $configFile=read_config();
 $opt_M=$maximizePrintSize;
 
 unless (-d $libDir) {
   print <<'EOL';
- TrEd couldn't find a tredlib directory. You may need to point
+ TrPrint couldn't find a tredlib directory. You may need to point
  to its location by the TREDHOME variable or add a correct LibDir
  field to your ~/.tredrc.
 
@@ -194,8 +199,16 @@ exit;
 ############################
 ############################
 
+sub setConfig {
+  my $confs=shift;
+
+  $convert=(exists $confs->{imagemagickconvert}) ? tilde_expand($confs->{imagemagickconvert}) : "convert";
+  print STDERR "Applying configuration.\n" if $tredDebug;
+}
+
+
 sub prepareFont {
-  my ($grp,$font,$fn)=@_;
+  my ($top,$font,$fn)=@_;
   print STDERR "Preparing fonts.\n" if $tredDebug;
 
   if ($$font!~/^-/) {
@@ -206,17 +219,17 @@ sub prepareFont {
       ($option, $value) = split(/\s*:\s*/, $_, 2);
       push @b, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
     }
-    eval { $grp->{top}->fontDelete($fn) };
-    $grp->{top}->fontCreate($fn,@b);
+    eval { $top->fontDelete($fn) };
+    $top->fontCreate($fn,@b);
     $$font=$fn;
   }
 }
 
 sub prepareFonts {
-  my $grp=shift;
-  prepareFont($grp,\$font,'C_normal');
+  my $top=shift;
+  prepareFont($top,\$font,'C_normal');
   $treeViewOpts->{font}=$font;
-  prepareFont($grp,\$vLineFont,'C_vline');
+  prepareFont($top,\$vLineFont,'C_vline');
 }
 
 sub processParam {
@@ -224,12 +237,17 @@ sub processParam {
   my $n;
   my $v;
   $arg=shift @ARGV;
-  if ($arg =~ /^([\+\-])([huUNHTSME1C])/) {
-    ${"opt_$2"} = $1 eq '-';
+  if ($arg =~ /^([\+\-])([huUNIHTSME1C]+)/) {
+    $v=$1;
+    foreach (split //,$2) {
+      ${"opt_$_"} = $v eq '-';
+    }
   } elsif ($arg =~ /^-([crope])(.*)$/) {
     $n = $1;
     $v = $2 ne "" ? $2 : shift @ARGV;
     ${"opt_$n"}=$v;
+    $opt_o=undef if $n eq 'p';
+    $opt_p=undef if $n eq 'o';
   }
 }
 
@@ -249,6 +267,8 @@ sub startMain {
   my $canvas = $top->Canvas();
   $canvas->pack();
 
+  prepareFonts($top);
+
   while (@ARGV) {
     processParam while ($ARGV[0]=~/^[\+\-][^\-]/);
     shift @ARGV if $ARGV[0]=~/^[\+\-]\-/;
@@ -263,12 +283,12 @@ sub startMain {
       next;
     }
     $u = $opt_U ? "_" : "";
-    if ($opt_1 or $opt_E or $opt_N) {
+    if ($opt_1 or $opt_E or !defined($opt_p) && ($opt_N or $opt_I)) {
       @pl=TrEd::Print::parse_print_list($fsfile,$opt_r);
       $ofile_base=$opt_o || $file;
       $ofile_base=~s/\.([^.]*)$//;
 
-      $ofile_suffix= $1 ne "" && $opt_o ? $1 : "ps";
+      $ofile_suffix= $1 ne "" && $opt_o ? $1 : $opt_E ? "eps" : "ps";
       unless ($ofile_base eq $prev_ofile_base) {
 	$ofile_counter=0;
 	$prev_ofile_base=$ofile_base;
@@ -278,16 +298,23 @@ sub startMain {
 	$outfile= $opt_N ?
 	  $ofile_base."$u$_.$ofile_suffix" :
 	  $ofile_base."$u$ofile_counter.$ofile_suffix";
-
-	print "Printing $range of $file to $outfile\n";
+	if (defined($opt_p)) {
+	  print "Sending $_ of $file to $opt_p\n";
+	} else {
+	  print "Printing $_ of $file to $outfile\n";
+	}
 	printThis($fsfile,$top,$canvas,$_,$outfile);
       }
     } else {
       $ofile_base=$opt_o || $file;
       $ofile_base=~s/\.([^.]*)$//;
-      $ofile_suffix= $1 ne "" && $opt_o ? $1 : "ps" ;
+      $ofile_suffix= $1 ne "" && $opt_o ? $1 : $opt_E ? "eps" : "ps" ;
       $outfile="$ofile_base.$ofile_suffix";
-      print "Printing $range of $file to $outfile\n";
+      if (defined($opt_p)) {
+	print "Printing $opt_r of $file to $opt_p\n";
+      } else {
+	print "Printing $opt_r of $file to $outfile\n";
+      }
       printThis($fsfile,$top,$canvas,$opt_r,$outfile);
     }
     undef $fsfile;
@@ -301,11 +328,12 @@ sub printThis {
 			   $top,
 			   $c,
 			   $range,
-			   1,
-			   $opt_E,
+			   !($opt_I||defined($opt_p)),
+			   $opt_E || $opt_I,
 			   $outfile,
 			   $opt_S,
-			   $opt_p,
+			   defined($opt_p) ?
+			   $opt_p : "$convert - $outfile",
 			   $opt_T,
 			   $opt_C,
 			   $opt_H,

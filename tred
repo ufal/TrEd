@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-04 18:03:01 pajas>";
+$timestamp="Time-stamp: <2001-06-07 10:02:15 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -2730,7 +2730,7 @@ sub saveFileAs {
   $file = $grp->{'top'}->getSaveFile(-filetypes => \@save_types,
 				     -title => "Save As ...",
 				     -d $initdir ? (-initialdir => $initdir) : (),
-     				     -initialfile => filename($file));
+     				     $^O eq 'MSWin32' ? () : (-initialfile => filename($file)));
   if (defined $file and $file ne '') {
     $grp->{FSFile}->changeFilename($file);
     updateTitle($grp);
