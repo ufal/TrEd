@@ -10,6 +10,11 @@ sub uniq { my %a; @a{@_}=@_; values %a }
 
 #bind only_parent_aidrefs to Ctrl+p menu Make only parent have the current node among its AIDREFS
 #bind make_lighten_be_aidrefs to Ctrl+l menu Make nodes marked with _light=_LIGHT_ be the nodes and only the nodes referencing current node in AIDREFS
+#bind light_aidrefs to Ctrl+a menu Mark AIDREFS nodes with _light = _LIGHT_
+#bind light_aidrefs_reverse to Ctrl+b menu Mark nodes pointing to current via AIDREFS with _light = _LIGHT_
+#bind analytical_tree to Ctrl+A menu Display analytical tree
+#bind tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree, discarding changes to analytical tree
+#bind tectogrammatical_tree_store_AR to Ctrl+B menu Display tectogrammatical tree, storing changes to analytical tree
 
 #include <contrib/frame_validation.mak>
 
@@ -125,4 +130,107 @@ sub validate_assigned_frames {
     $node->{_light}='_LIGHT_';
   }
   ChangingFile(0);
+}
+
+
+sub status_line_doubleclick_hook {
+  # status-line field double clicked
+  # there is also status_line_click_hook for single clicks
+
+  # @_ contains a list of style names associated with the clicked
+  # field. Style names may obey arbitrary user-defined convention.
+
+  foreach (@_) {
+    if (/^\{(.*)}$/) {
+      if ($1 eq 'FRAME') {
+	choose_frame_or_advfunc_validate();
+	last;
+      } elsif ($1 eq 'AIDREFS') {
+	print "Light aidrefs\n";
+	light_aidrefs();
+	Redraw();
+	last;
+      } elsif ($1 eq 'AID') {
+	print "Light aidrefs reverse\n";
+	light_aidrefs_reverse();
+	Redraw();
+	last;
+      } else {
+	if (main::doEditAttr($grp,$this,$1)) {
+	  ChangingFile(1);
+	}
+	last;
+      }
+    }
+  }
+}
+
+sub get_status_line_hook {
+  # get_status_line_hook may either return a string
+  # or a pair [ field-definitions, field-styles ]
+  return [
+	  # status line field definitions ( field-text => [ field-styles ] )
+	  [
+	   "form: " => [qw(label)],
+	   $this->{form} => [qw({form} value)],
+	   ($this->{framere} ne "" ?
+	    ("   frame: " => [qw(label)],
+	     $this->{framere} => [qw({FRAME} value)]
+	    ) : ()),
+	   "   " => [qw(label)],
+	   $this->{lemma} => [qw({lemma} value)],
+	   "   " => [qw(label)],
+	   $this->{tag} => [qw({tag} value)],
+	   "   " => [qw(label)],
+	   $this->{afun} => [qw({afun} value)],
+	   "   A/TID: " => [qw(label)],
+	   $this->{AID} => [qw({AID} value)],
+	   $this->{TID} => [qw({TID} value)],
+	   ($this->{AIDREFS} ne "" ?
+	     ("   AIDREFS: " => [qw(label)],
+	      join(", ",split /\|/,$this->{AIDREFS}) => [qw({AIDREFS} value)]) : ()),
+	   ($this->{commentA} ne "" ?
+	    ("     [" => [qw()],
+	     $this->{commentA} => [qw({commentA})],
+	     "]" => [qw()]
+	    ) : ())
+	  ],
+
+	  # field styles
+	  [
+	   "label" => [-foreground => 'black' ],
+	   "value" => [-underline => 1 ],
+	   "{commentA}" => [ -foreground => 'red' ],
+	   "{FRAME}" => [ -foreground => 'blue' ],
+	   "{afun}" => [ -foreground => 'darkgreen' ],
+	   "{tag}" => [ -foreground => 'chocolate3' ],
+	   "{lemma}" => [ -foreground => 'chocolate4' ],
+	   "bg_white" => [ -background => 'white' ],
+	  ]
+
+	 ];
+}
+
+
+# just an experiment
+sub get_value_line_hook {
+   my ($fsfile,$treeNo)=@_;
+   my @vl = $fsfile->value_line_list($treeNo,1,1);
+   %colors = ( ACT => 'red',
+	       PAT => 'blue',
+	       EFF => 'green',
+	       PRED => 'gray' );
+   @vl = map {
+     push @$_, "-underline => 1, -background => cyan" if ($_->[1]->{_light} eq '_LIGHT_');
+     $_,[" ",'space']
+   } @vl;
+   return \@vl;
+}
+
+sub node_style_hook {
+  my ($node, $style)=@_;
+  if ($node->{_light} eq '_LIGHT_') {
+    push @{$style->{Oval}}, -fill => 'cyan';
+    push @{$style->{Node}}, -addwidth => 7, -addheight => 7;
+  }
 }

@@ -93,6 +93,22 @@ sub has_auxR {
 @fv_trans_rules_V =
   (
    # 1.
+   [# verb test: "nekdo1.ADDR ma auto pronajmuto nekym2/od+nekoho2.ACT",
+    # transforms to: "nekdo2.ACT pronajmul auto nekomu1.ADDR"
+    sub { my ($node,$aids) = @_;
+	  ($node->{tag}=~/^Vs/ and
+	   (first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
+	    and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node))
+	  ) ? 1:0;
+	} =>
+    # frame transformation rules:
+    @fv_passivization_rules,
+    # frame test
+    [ 'ACT(.1)', 'ADDR(.3)' ] =>
+    # form transformation rules:
+    [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)', '+ADDR(.1)' ],
+   ],
+   # 2.
    [# verb test: passive verb
     # applies to "problem je vyresen nekym", but not to "nekdo ma problem vyresen",
     # but should still apply to "problem ma byt vyresen"
@@ -109,7 +125,7 @@ sub has_auxR {
     # form transformation rules:
     [ '-ACT(.1)', '+ACT(.7)' ],
    ],
-   # 2.
+   # 3.
    [# dispmod
     sub { $_[0]->{dispmod} eq "DISPMOD" } =>
     # frame transformation rules:
@@ -121,7 +137,7 @@ sub has_auxR {
     # form transformation rules:
     [ '-ACT(.1)', '+ACT(.3)', '+(.[se])', '+MANN(*)' ]
    ],
-   # 3.
+   # 4.
    [ # chce se mu riskovat
     sub {
       my ($node,$aids) = @_;
@@ -137,7 +153,7 @@ sub has_auxR {
     [ 'ACT(.1)' ] =>
     [ '-ACT(.1)', '+ACT(.3)' ]
    ],
-   # 4.
+   # 5.
    [# verb test: verb treated as passive due to "se".AuxR
     sub {
       my ($node,$aids) = @_;
@@ -148,7 +164,7 @@ sub has_auxR {
     =>
     @fv_passivization_rules
    ],
-   # 5.
+   # 6.
    [ # nechat si/dat si udelat neco udelat od nekoho/nekym
     sub {
       my ($node,$aids) = @_;
@@ -366,7 +382,7 @@ sub match_node {
 }
 
 sub match_form {
-  my ($pnode, $node, $form, $aids, $loose_lemma) = @_;
+  my ($node, $form, $aids, $loose_lemma) = @_;
   print "\nFORM: ".$V->serialize_form($form)." ==> $node->{lemma}, $node->{tag}\n" if $V_verbose;
   my @a = get_aidrefs_nodes($aids,$node);
   my $no_case=0;
@@ -394,7 +410,7 @@ sub match_form {
 	my $kdo = first { $_->{lemma} eq 'kdo' or $_->{lemma} eq 'co-1' }
 	  PDT::GetChildren_TR($_);
 	if ($kdo) {
-	  print "KDO-RULE: found $kdo->{form}\n";
+	  print "KDO-RULE: found $kdo->{form}\n" if $V_verbose;
 	}
 	$kdo ? ($kdo,$_) : $_;
       } else { $_ }
@@ -630,7 +646,7 @@ sub validate_frame {
     my @forms = $V->forms($word_form);
     print "WORD FORM: ",$V->serialize_form($word_form)."\n" if (!$quiet and $V_verbose);
     if (@forms) {
-      unless (grep { match_form($node,$node,$_,$aids) } @forms) {
+      unless (grep { match_form($node,$_,$aids) } @forms) {
 	unless ($quiet) {
 	  print "11 no word form matches: $node->{lemma},$node->{tag}\t";
 	  Position($node);
@@ -747,7 +763,7 @@ sub validate_frame {
       print "ELEMENT: ",$V->serialize_element($e)."\n";
     }
     if (@forms) {
-      unless (first { match_form($node,$c,$_,$aids) } @forms) {
+      unless (first { match_form($c,$_,$aids) } @forms) {
 	if ($V_verbose) {
 	  print "\n09 no form matches: $c->{func},$c->{lemma},$c->{tag}\n";
 	} elsif (!$quiet) {
