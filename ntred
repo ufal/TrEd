@@ -138,7 +138,12 @@ if ($really_quiet) {
   open(STDERR, ">/dev/null") or die "Can't redirect STDERR to /dev/null: $!";
 }
 
-sub msg { print STDERR ($init ? "NTRED-HUB: " : "NTRED-CLIENT: "), @_ unless $quiet }
+sub msg {
+  return if $quiet;
+  my $msg = join '',@_;
+  return if $msg eq '';
+  print STDERR (($init ? "NTRED-HUB: " : "NTRED-CLIENT: "), $msg);
+}
 
 # make given list (passes by reference) unique
 sub make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
