@@ -59,7 +59,9 @@ sub read_macros {
     push @macros, <F>;
     close F;
   }
-  open(F,"<$file") || die "ERROR: Cannot open macros: $file!\n";
+  open(F,"<$file")
+    || (!$keep && ($file="$libDir/$file") && open(F,"<$file")) ||
+      die "ERROR: Cannot open macros: $file ($!)!\n";
 
 #
 # new "pragmas":
