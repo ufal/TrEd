@@ -311,16 +311,28 @@ sub set_config {
     $ttFontFile=tilde_expand($confs->{ttfontfile});
     $ttFontFile="$libDir/".$ttFontFile if (not -f $ttFontFile and -f "$libDir/".$ttFontFile);
   }
-  my @fontpath = (qw(
-		     /usr/X11R6/lib/X11/fonts/TTF/
-		     /usr/X11R6/lib/X11/fonts/TrueType/
-		     /usr/share/fonts/default/TrueType/
-		     /usr/share/fonts/default/TTF/
-		   c:/windows/fonts/
-		   c:/winnt/fonts/
-		    ),
-		  "$ENV{HOME}/.fonts/"
-		 );
+  my @fontpath;
+  if ($^O eq "MSWin32") {
+    require Win32::Registry;
+    my %shf;
+    my $ShellFolders;
+    my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
+    $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or warn "Cannot read $shfolders $^E\n";
+    $ShellFolders->GetValues(\%shf);
+    @fontpath = ($shf{Fonts}[2],
+		 qw(c:/windows/fonts/ c:/winnt/fonts/));
+  } else {
+    @fontpath = ("$ENV{HOME}/.fonts/",
+		 qw(
+		    /usr/X11R6/lib/X11/fonts/TTF/
+		    /usr/X11R6/lib/X11/fonts/TrueType/
+		    /usr/share/fonts/default/TrueType/
+		    /usr/share/fonts/default/TTF/
+		   )
+		);
+  }
+
+
   while (not(defined($ttFontFile) or -f $ttFontFile) and @fontpath) {
     $ttFontFile = $fontpath[0]."arial.ttf" if -f $fontpath[0]."arial.ttf";
     shift @fontpath;
