@@ -1,14 +1,14 @@
-\## -*- cperl -*-
+## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-05-22 09:31:49 pajas>
+## Time-stamp: <2001-05-31 10:09:18 pajas>
 
 #
 # This file defines default macros for TR annotators.
 # Only TredMacro context is present here.
 #
 
-#include remote_control.mak
-#include AFA.mak
+#include contrib/remote_control.mak
+#include contrib/AFA.mak
 
 sub file_opened_hook {
 
@@ -358,6 +358,7 @@ sub TFAAssign {
 sub FuncAssign {
   if (Parent($this)) {
     $this->{'func'} = $sPar1;
+    clear_funcaux($this);
     $this=NextVisibleNode($this);
   }
 }

@@ -1,5 +1,6 @@
+## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-05-17 17:26:35 pajas>
+## Time-stamp: <2001-05-31 10:08:50 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
