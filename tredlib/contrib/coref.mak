@@ -238,7 +238,7 @@ sub node_style_hook {
       ($node->{coref} eq "" or $node->{cortype}=~/auto/)) {
       AddStyle($styles,'Node',
 	       -shape => 'rectangle',
-	       -addheidht => '10',
+	       -addheight => '10',
 	       -addwidth => '10'
 	      );
       AddStyle($styles,'Oval',
@@ -252,7 +252,7 @@ sub node_style_hook {
 	      -fill => $referent_color
 	     );
     AddStyle($styles,'Node',
-	      -addheidht => '6',
+	      -addheight => '6',
 	      -addwidth => '6'
 	     );
   }
@@ -321,7 +321,7 @@ COORDS
 	     );
     AddStyle($styles,'Node',
 	      -shape => 'rectangle',
-	      -addheidht => '5',
+	      -addheight => '5',
 	      -addwidth => '5'
 	     );
   }
