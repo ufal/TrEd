@@ -385,7 +385,7 @@ sub set_config {
   $lastAction		      =	val_or_def($confs,"lastaction",undef);
 
   &$set_user_config($confs) if (ref($set_user_config));
-  $maxUndo		      =	val_or_def($confs,"maxundo",0);
+  $maxUndo		      =	val_or_def($confs,"maxundo",30);
 
 }
 
