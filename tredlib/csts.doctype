@@ -555,7 +555,7 @@ APPINFO    NONE
           src      CDATA #IMPLIED -- tectogrammatical lemmatizer id --
           quot (quot|dsp|dsp.quot|dspp|dspp.quot|dspi|dspi.quot) #IMPLIED 
           status (sound|hidden) "sound" 
-          origin IDREFS #IMPLIED
+          origin CDATA #IMPLIED
 >
 
 <!ELEMENT TRl - O (#PCDATA & T? & Tmo? & Tpa? & Top? & TRt? & tfa? & tfr? & fw? & phr? &
@@ -566,7 +566,7 @@ APPINFO    NONE
 <!ATTLIST TRl
           quot (quot|dsp|dsp.quot|dspp|dspp.quot|dspi|dspi.quot) #IMPLIED 
           status (sound|hidden) "sound" 
-          origin IDREFS #IMPLIED
+          origin CDATA #IMPLIED
 >
 
 <!ELEMENT TRg - O (#PCDATA)
@@ -764,15 +764,19 @@ APPINFO    NONE
 
 <!ENTITY agrave CDATA "&#38;agrave;" -- "agrave" -->
 
+<!ENTITY Amp CDATA "&#38;Amp;" -- "Amp" -->
 <!ENTITY Period CDATA "&#38;Period;" -- "Period" -->
 <!ENTITY Comma CDATA "&#38;Comma;" -- "Comma" -->
 <!ENTITY Neg CDATA "&#38;Neg;" -- "Neg" -->
 <!ENTITY Colon CDATA "&#38;Colon;" -- "Colon" -->
 <!ENTITY Dash CDATA "&#38;Dash;" -- "Dash" -->
 <!ENTITY Lpar CDATA "&#38;Lpar;" -- "Lpar" -->
+<!ENTITY Rpar CDATA "&#38;Rpar;" -- "Rpar" -->
 <!ENTITY Forn CDATA "&#38;Forn;" -- "Forn" -->
 <!ENTITY Rcp CDATA "&#38;Rcp;" -- "Rcp" -->
 <!ENTITY Cor CDATA "&#38;Cor;" -- "Cor" -->
+<!ENTITY QCor CDATA "&#38;QCor;" -- "QCor" -->
+<!ENTITY PersPron CDATA "&#38;PersPron;" -- "PersPron" -->
 <!ENTITY Emp CDATA "&#38;Emp;" -- "Emp" -->
 <!ENTITY EmpNoun CDATA "&#38;EmpNoun;" -- "EmpNoun" -->
 <!ENTITY Gen CDATA "&#38;Gen;" -- "Gen" -->
