@@ -202,7 +202,7 @@ sub options {
 }
 
 sub value_line_list {
-  my ($self,$fsfile,$tree_no,$no_numbers,$tags)=@_;
+  my ($self,$fsfile,$tree_no,$no_numbers,$tags,$grp)=@_;
   return () unless $fsfile;
 
   my @patterns = $self->get_label_patterns($fsfile,"text");
@@ -221,7 +221,7 @@ sub value_line_list {
     foreach $node (@sent) {
       my %styles;
       foreach my $style (@patterns) {
-	my $msg=$self->interpolate_text_field($node,$style);
+	my $msg=$self->interpolate_text_field($node,$style,$grp);
 	foreach (split(m/([\#\$]${bblock})/,$msg)) {
 	  if (/^\$${block}$/) {
 	    #attr
@@ -245,26 +245,26 @@ sub value_line_list {
 	      $styles{-foreground} = $style
 	    }
 	  } else {
-	    push @vl,[$_,$node,'text'];
+	    push @vl,[$_,$node,'text',map { encode("$_ => $styles{$_}") } keys %styles];
 	  }
 	}
       }
-      push @vl,[" ",'space'];
+      push @vl,[" ",'space',];
     }
     return @vl;
   } else {
     if ($tags) {
       return map { ($_,
 		    $_->[0] ne "\n" ? ([' ','space']) : ())
-		 } $fsfile->value_line_list($tree_no,$no_numbers,$tags);
+		 } $fsfile->value_line_list($tree_no,$no_numbers,$tags,$grp);
     } else {
-      return $fsfile->value_line_list($tree_no,$no_numbers,$tags);
+      return $fsfile->value_line_list($tree_no,$no_numbers,$tags,$grp);
     }
   }
 }
 
 sub value_line {
-  my ($self,$fsfile,$tree_no,$no_numbers,$tags)=@_;
+  my ($self,$fsfile,$tree_no,$no_numbers,$tags,$grp)=@_;
 
   return unless $fsfile;
 
@@ -274,21 +274,21 @@ sub value_line {
     if ($self->{reverseNodeOrder}) {
       return [[$prfx,'prefix'],
 	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
-	      reverse $self->value_line_list($fsfile,$tree_no,$no_numbers,1)];
+	      reverse $self->value_line_list($fsfile,$tree_no,$no_numbers,1,$grp)];
     } else {
       return [[$prfx,'prefix'],
 	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
-	      $self->value_line_list($fsfile,$tree_no,$no_numbers,1)];
+	      $self->value_line_list($fsfile,$tree_no,$no_numbers,1,$grp)];
     }
   } else {
     if ($self->{reverseNodeOrder}) {
       return $prfx.join " ",
 	map { encode($_) } grep { $_ ne "" }
-	  reverse $self->value_line_list($fsfile,$tree_no,$no_numbers);
+	  reverse $self->value_line_list($fsfile,$tree_no,$no_numbers,0,$grp);
     } else {
       return $prfx.join " ",
 	map { encode($_) } grep { $_ ne "" }
-	  $self->value_line_list($fsfile,$tree_no,$no_numbers);
+	  $self->value_line_list($fsfile,$tree_no,$no_numbers,0,$grp);
     }
   }
 }
@@ -1576,9 +1576,11 @@ text.
 =cut
 
 sub interpolate_text_field {
-  my ($self,$this,$text)=@_;
+  my ($self,$this,$text,$grp)=@_;
   # make root visible for the evaluated expression
-  my $root=$this; $root=$root->parent while ($root->parent);
+  local $TredMacro::this = $this;
+  local $TredMacro::root = my $root = $this->root;
+  local $TredMacro::grp = $grp;
   $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval "package TredMacro;\n".$self->interpolate_refs($this,$1)/eg;
   return $text;
 }
