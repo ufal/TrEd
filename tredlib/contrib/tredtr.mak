@@ -20,10 +20,12 @@ my $lPar1;			# used as type "list"
 my $lPar2;			# used as type "list"
 my $lPar3;			# used as type "list"
 my $lReturn;			# used as type "list"
+my $_pDummy;			# used as type "pointer"
 
 
 sub ThisRoot {
-  my $pT, $pPrev;		# used as type "pointer"
+  my $pT;			# used as type "pointer"
+  my $pPrev;			# used as type "pointer"
 
   $pPrev = undef;
 
@@ -41,6 +43,1310 @@ sub ThisRoot {
   $pReturn = $pPrev;
 
 }
+
+
+sub TagPrune {
+  my $lT;			# used as type "list"
+  my $lTRet;			# used as type "list"
+  my $sT;			# used as type "string"
+  my $sT1;			# used as type "string"
+  my $i;			# used as type "string"
+  my $iLast;			# used as type "string"
+
+  $lT = $lPar1;
+
+  $sT1 = ValNo(0,$lT);
+
+  $i = "0";
+
+  $lTRet = Interjection('q','a');
+
+  $iLast = scalar(split /\|/,$lT);
+ TagPruneCont:
+  if ($i>=$iLast) {
+
+    goto TagPruneEnd;
+  }
+
+  $sT =  ValNo($i,$lT) ;
+
+  if (substr($sT,0,1) ne '-') {
+
+    $sT1 = $sT;
+
+    if (substr($sT,0,2) ne 'VM') {
+
+      $lTRet = Union($lTRet,$sT);
+    }
+  }
+
+  $i = $i+"1";
+
+  goto TagPruneCont;
+ TagPruneEnd:
+  if (ListEq($lTRet,Interjection('q','a'))) {
+
+    $lTRet = $sT1;
+  }
+
+  $lReturn = $lTRet;
+
+}
+
+
+sub GetAfunSuffix {
+  my $sChar;			# used as type "string"
+  my $i;			# used as type "string"
+
+  $i = "0";
+ GASLoopCont1:
+  $sChar = substr($sPar1,$i,1);
+
+  if ($sChar eq '') {
+
+    $sPar2 = $sPar1;
+
+    $sPar3 = '';
+
+    goto GASLoopEnd1;
+  }
+
+  if ($sChar eq '_' ||
+      $sChar eq '-' ||
+      $sChar eq '`' ||
+      $sChar eq '&') {
+
+    $sPar2 = substr($sPar1,0,$i);
+
+    $sPar3 = substr($sPar1,$i,40);
+
+    goto GASLoopEnd1;
+  }
+
+  $i = $i+"1";
+
+  goto GASLoopCont1;
+ GASLoopEnd1:
+  return;
+
+}
+
+
+sub SubtreeAfunAssign {
+  my $pAct;			# used as type "pointer"
+  my $pParAct;			# used as type "pointer"
+  my $pParParAct;		# used as type "pointer"
+  my $pNext;			# used as type "pointer"
+  my $pParent;			# used as type "pointer"
+  my $pT;			# used as type "pointer"
+  my $pThis;			# used as type "pointer"
+  my $fSubject;			# used as type "string"
+  my $fObject;			# used as type "string"
+  my $sT;			# used as type "string"
+  my $sT1;			# used as type "string"
+  my $sLemmaFull;		# used as type "string"
+  my $sLemma;			# used as type "string"
+  my $sParTag;			# used as type "string"
+  my $sParParTag;		# used as type "string"
+  my $sParLemma;		# used as type "string"
+  my $sParParLemma;		# used as type "string"
+  my $sPOS;			# used as type "string"
+  my $sParPOS;			# used as type "string"
+  my $sParParPOS;		# used as type "string"
+  my $lT;			# used as type "list"
+  my $lafun;			# used as type "list"
+  my $lTag;			# used as type "list"
+  my $lLemma;			# used as type "list"
+  my $lForm;			# used as type "list"
+  my $lParTag;			# used as type "list"
+  my $sTag;			# used as type "string"
+  my $fObj;			# used as type "string"
+  my $i;			# used as type "string"
+  my $iLast;			# used as type "string"
+  my $sCo;			# used as type "string"
+  my $sAp;			# used as type "string"
+  my $sSuffAct;			# used as type "string"
+  my $sParAfun;			# used as type "string"
+  my $sParParAfun;		# used as type "string"
+  my $sAfun;			# used as type "string"
+  my $pTmp;			# used as type "pointer"
+  my $cList;			# used as type "string"
+  my $lPar;			# used as type "list"
+  my $sPar;			# used as type "string"
+  my $Return;			# used as type "string"
+  my $fReturn;			# used as type "string"
+
+  $pThis = $pPar1;
+
+  $sCo = '_Co';
+
+  $sAp = '_Ap';
+
+  $pParent = $pThis;
+
+  if (!(Parent($pThis))) {
+
+    $pAct = FirstSon($pThis);
+  } else {
+
+    $pAct = $pThis;
+  }
+
+
+  if (!($pAct)) {
+
+    return;
+  }
+ ContLoop1:
+  if (Interjection($pAct->{'afun'},'???') ne '???') {
+
+    if (Interjection($pAct->{'form'},'se') ne 'se') {
+
+      goto ex;
+    }
+  }
+
+  $sSuffAct = '';
+
+  $lafun = $pAct->{'afun'};
+
+  $lLemma = $pAct->{'lemma'};
+
+  $sLemmaFull = ValNo(0,$lLemma);
+
+  $i = "0";
+
+  $sT = substr($sLemmaFull,$i,1);
+ ContLoop4:
+  if ($sT eq '' ||
+      $sT eq '_') {
+
+    goto ExitLoop4;
+  }
+
+  $i = $i+"1";
+
+  $sT = substr($sLemmaFull,$i,1);
+
+  goto ContLoop4;
+ ExitLoop4:
+  $sLemma = substr($sLemmaFull,0,$i);
+
+  $lPar1 = $pAct->{'tag'};
+
+  TagPrune();
+
+  $lTag = $lReturn;
+
+  $lForm = $pAct->{'form'};
+
+  $sTag = ValNo(0,$lTag);
+
+  if ($sTag eq 'NOMORPH') {
+
+    $lTag = 'NFXXA';
+
+    $sTag = 'NFXXA';
+  }
+
+  $sPOS = substr($sTag,0,1);
+
+  $pParAct = Parent($pAct);
+ GoUp:
+  $lPar1 = $pParAct->{'tag'};
+
+  TagPrune();
+
+  $lParTag = $lReturn;
+
+  $sParTag = ValNo(0,$lParTag);
+
+  $sParPOS = substr($sParTag,0,1);
+
+  $sLemmaFull = ValNo(0,$pParAct->{'lemma'});
+
+  $sParAfun = ValNo(0,$pParAct->{'afun'});
+
+  $i = "0";
+
+  $sT = substr($sParAfun,$i,1);
+ ContLoop5s:
+  if ($sT eq '' ||
+      $sT eq '_') {
+
+    goto ExitLoop5s;
+  }
+
+  $i = $i+"1";
+
+  $sT = substr($sParAfun,$i,1);
+
+  goto ContLoop5s;
+ ExitLoop5s:
+  $sParAfun = substr($sParAfun,0,$i);
+
+  if ($sParAfun eq 'Coord' ||
+      $sParAfun eq 'Apos') {
+
+    $pParAct = Parent($pParAct);
+
+    if (!($pParAct)) {
+
+      goto ex;
+    }
+
+    if ($sSuffAct eq '') {
+
+      $sSuffAct = (ValNo(0,'_').ValNo(0,substr($sParAfun,0,2)));
+    }
+
+    goto GoUp;
+  }
+
+  if ($sLemmaFull eq '&percnt;') {
+
+    $sParPOS = 'N';
+
+    $lParTag = 'NNXXA';
+
+    $sParTag = ValNo(0,$lParTag);
+  }
+
+  $i = "0";
+
+  $sT = substr($sLemmaFull,$i,1);
+ ContLoop5:
+  if ($sT eq '' ||
+      $sT eq '_') {
+
+    goto ExitLoop5;
+  }
+
+  $i = $i+"1";
+
+  $sT = substr($sLemmaFull,$i,1);
+
+  goto ContLoop5;
+ ExitLoop5:
+  $sParLemma = substr($sLemmaFull,0,$i);
+
+  $pParParAct = Parent($pParAct);
+ GoUpPar2:
+  if ($pParParAct) {
+
+    $lPar1 = $pParParAct->{'tag'};
+
+    TagPrune();
+
+    $sParParTag = ValNo(0,$lReturn);
+
+    $sParParPOS = substr($sParParTag,0,1);
+
+    $sLemmaFull = ValNo(0,$pParParAct->{'lemma'});
+
+    $sParParAfun = ValNo(0,$pParParAct->{'afun'});
+
+    if ($sLemmaFull eq '&percnt;') {
+
+      $sParParPOS = 'N';
+
+      $sParParTag = 'NNXXA';
+    }
+
+    $i = "0";
+
+    $sT = substr($sParParAfun,$i,1);
+  ContLoop5ps:
+    if ($sT eq '' ||
+	$sT eq '_') {
+
+      goto ExitLoop5ps;
+    }
+
+    $i = $i+"1";
+
+    $sT = substr($sParParAfun,$i,1);
+
+    goto ContLoop5ps;
+  ExitLoop5ps:
+    $sParParAfun = substr($sParParAfun,0,$i);
+
+    if ($sParParAfun eq 'Coord' ||
+	$sParParAfun eq 'Apos') {
+
+      $pParParAct = Parent($pParParAct);
+
+      if (!($pParParAct)) {
+
+	$sParParTag = '';
+
+	$sParParPOS = '';
+
+	$sParParLemma = '';
+
+	goto MakeSuff;
+      }
+
+      if (substr(ValNo(0,$pParAct->{'afun'}),0,3) eq 'Aux') {
+
+	if ($sSuffAct eq '') {
+
+	  $sSuffAct = (ValNo(0,'_').ValNo(0,substr($sParParAfun,0,2)));
+	}
+      }
+
+      goto GoUpPar2;
+    }
+
+    $i = "0";
+
+    $sT = substr($sLemmaFull,$i,1);
+  ContLoop6:
+    if ($sT eq '' ||
+	$sT eq '_') {
+
+      goto ExitLoop6;
+    }
+
+    $i = $i+"1";
+
+    $sT = substr($sLemmaFull,$i,1);
+
+    goto ContLoop6;
+  ExitLoop6:
+    $sParParLemma = substr($sLemmaFull,0,$i);
+  } else {
+
+    $sParParTag = '';
+
+    $sParParPOS = '';
+
+    $sParParLemma = '';
+  }
+
+ MakeSuff:
+  $i = $i;
+ StartWork:
+  $pAct->{'afunprev'} = $pAct->{'afun'};
+
+  if (Interjection($lForm,'mo¾ná') eq 'mo¾ná' ||
+      Interjection($lForm,'prý') eq 'prý' ||
+      Interjection($lForm,'zøejmì') eq 'zøejmì' ||
+      Interjection($lForm,'patrnì') eq 'patrnì' ||
+      Interjection($lForm,'ostatnì') eq 'ostatnì' ||
+      Interjection($lForm,'toti¾') eq 'toti¾' ||
+      Interjection($lForm,'vlastnì') eq 'vlastnì' ||
+      Interjection($lForm,'pravdìpodobnì') eq 'pravdìpodobnì') {
+
+    $pAct->{'afun'} = 'AuxY';
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'jen') eq 'jen' ||
+      Interjection($lForm,'dokonce') eq 'dokonce' ||
+      Interjection($lForm,'pouze') eq 'pouze') {
+
+    $pAct->{'afun'} = 'AuxZ';
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'snad') eq 'snad') {
+
+    $pAct->{'afun'} = Union('AuxY','AuxZ');
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'vèetnì') eq 'vèetnì') {
+
+    if (FirstSon($pAct)) {
+
+      $sAfun = 'AuxP';
+
+      goto aa;
+    } else {
+
+      $pAct->{'afun'} = 'Adv';
+
+      goto ex;
+    }
+
+  }
+
+  if (substr($sLemma,0,6) eq 'podle-') {
+
+    $pAct->{'afun'} = 'AuxP';
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'mezi') eq 'mezi' ||
+      Interjection($lForm,'Mezi') eq 'Mezi' ||
+      Interjection($lForm,'MEZI') eq 'MEZI') {
+
+    $pAct->{'afun'} = 'AuxP';
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'V') eq 'V' &&
+      Interjection($pAct->{'ord'},"1") eq "1") {
+
+    if (scalar(split /\|/,$lTag) ne "1") {
+
+      $pAct->{'tag'} = Union('R4','R6');
+    }
+
+    $pAct->{'afun'} = 'AuxP';
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'Od') eq 'Od') {
+
+    if (scalar(split /\|/,$lTag) ne "1") {
+
+      $pAct->{'tag'} = 'R2';
+    }
+
+    $pAct->{'afun'} = 'AuxP';
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'kolem') eq 'kolem' ||
+      Interjection($lForm,'Kolem') eq 'Kolem' ||
+      Interjection($lForm,'KOLEM') eq 'KOLEM') {
+
+    $pAct->{'afun'} = 'AuxP';
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'pøi') eq 'pøi' ||
+      Interjection($lForm,'Pøi') eq 'Pøi' ||
+      Interjection($lForm,'PøI') eq 'PøI') {
+
+    $pAct->{'afun'} = 'AuxP';
+
+    goto ex;
+  }
+
+  if (Interjection($lForm,'&percnt;') eq '&percnt;') {
+
+    $sPOS = 'N';
+
+    $lTag = 'NNXXA';
+
+    $sTag = ValNo(0,$lTag);
+
+    $sAfun = 'Atr';
+
+    goto aa;
+  }
+
+  if (Interjection($lForm,'.') eq '.' ||
+      Interjection($lForm,';') eq ';' ||
+      Interjection($lForm,'!') eq '!' ||
+      Interjection($lForm,'?') eq '?' ||
+      Interjection($lForm,'-') eq '-' ||
+      Interjection($lForm,':') eq ':' ||
+      Interjection($lForm,')') eq ')' ||
+      Interjection($lForm,'}') eq '}' ||
+      Interjection($lForm,']') eq ']') {
+
+    if (!(RBrother($pAct))) {
+
+      if (Interjection($pParAct->{'afun'},'AuxS') eq 'AuxS') {
+
+	$pAct->{'afun'} = 'AuxK';
+      }
+    }
+
+    goto ex;
+  }
+
+  if ($sPOS eq 'R') {
+
+    $pAct->{'afun'} = 'AuxP';
+  }
+
+  if ($sTag eq 'ABBRX') {
+
+    $sPOS = 'N';
+
+    $lTag = 'NNXXA';
+
+    $sTag = ValNo(0,$lTag);
+  }
+
+  if (Interjection($pParAct->{'afun'},'AuxS') eq 'AuxS') {
+
+    if ($sPOS eq 'V' ||
+	Interjection($lLemma,'být') eq 'být' ||
+	Interjection('mít',$lLemma) eq 'mít') {
+
+      $sAfun = 'Pred';
+
+      goto aa;
+    }
+
+    if ($sPOS eq 'N' ||
+	$sPOS eq 'X') {
+
+      $sAfun = 'ExD';
+
+      goto aa;
+    }
+  }
+
+  if (Interjection($lTag,'JE') eq 'JE') {
+
+    if (FirstSon($pAct)) {
+
+      $sAfun = 'Coord';
+
+      goto aa;
+    } else {
+
+      $pAct->{'afun'} = 'AuxY';
+
+      goto ex;
+    }
+
+  }
+
+  if ($sPOS eq 'D') {
+
+    if ($sParPOS ne 'N') {
+
+      $sAfun = 'Adv';
+
+      goto aa;
+    } else {
+
+      $pAct->{'afun'} = 'AuxZ';
+
+      goto ex;
+    }
+
+  }
+
+  if (Interjection($pAct->{'form'},'se') eq 'se') {
+
+    if (!(FirstSon($pAct))) {
+
+      $pAct->{'afun'} = 'AuxT';
+
+      goto ex;
+    } else {
+
+      $pAct->{'afun'} = 'AuxP';
+
+      goto ex;
+    }
+
+  }
+
+  if ($sPOS eq 'R') {
+
+    $pAct->{'afun'} = 'AuxP';
+
+    goto ex;
+  }
+
+  if ($sLemma eq ',') {
+
+    if (!(FirstSon($pAct))) {
+
+      $pAct->{'afun'} = 'AuxX';
+
+      goto ex;
+    } else {
+
+      $sAfun = 'Apos';
+
+      goto aa;
+    }
+
+  }
+
+  if (substr(ValNo(0,$pAct->{'gap1'}),0,3) eq '<d>' ||
+      substr(ValNo(0,$pAct->{'gap1'}),0,10) eq '<D>&nl;<d>') {
+
+    if (Interjection($pParAct->{'afun'},'AuxS') eq 'AuxS') {
+
+      if (Interjection($pAct->{'form'},':') eq ':') {
+
+	$pAct->{'afun'} = 'Pred';
+
+	goto ex;
+      } else {
+
+	$pAct->{'afun'} = 'AuxK';
+
+	goto ex;
+      }
+
+    } else {
+
+      $pAct->{'afun'} = 'AuxG';
+
+      goto ex;
+    }
+
+  }
+
+  if (Interjection($lTag,'JS') eq 'JS') {
+
+    if (FirstSon($pAct)) {
+
+      $sAfun = 'AuxC';
+
+      goto aa;
+    } else {
+
+      $pAct->{'afun'} = 'AuxY';
+
+      goto ex;
+    }
+
+  }
+
+  if ($sPOS eq 'A' ||
+      $sPOS eq 'P') {
+
+    if ($sParPOS eq 'N' &&
+	Interjection($pParAct->{'afun'},'AuxP') ne 'AuxP') {
+
+      $sAfun = 'Atr';
+
+      goto aa;
+    }
+
+    if ($sPOS eq 'A' &&
+	( $sParLemma eq 'být' ||
+	  Interjection($pParAct->{'form'},'je') eq 'je' ||
+	  Interjection($pParAct->{'form'},'Je') eq 'Je' ||
+	  Interjection($pParAct->{'form'},'JE') eq 'JE' )) {
+
+      $sAfun = 'Pnom';
+
+      goto aa;
+    }
+  }
+
+  if ($sPOS eq 'P' &&
+      substr($sParTag,0,3) eq 'DG3') {
+
+    $sAfun = 'Adv';
+
+    goto aa;
+  }
+
+  $fSubject = "0";
+
+  $fObject = "0";
+
+  $pT = LBrother($pAct);
+ ContLoop3:
+  if (!($pT)) {
+
+    goto ExitLoop3;
+  }
+
+  if (Interjection($pT->{'afun'},'Sb') eq 'Sb') {
+
+    $fSubject = "1";
+  }
+
+  if (Interjection($pT->{'afun'},'Obj') eq 'Obj') {
+
+    $fObject = "1";
+  }
+
+  $pT = LBrother($pT);
+
+  goto ContLoop3;
+ ExitLoop3:
+  if ($sPOS eq 'N' ||
+      $sPOS eq 'P' ||
+      $sPOS eq 'C' ||
+      Interjection($lTag,'ZNUM') eq 'ZNUM') {
+
+    if (Interjection($pParAct->{'afun'},'AuxP') eq 'AuxP') {
+
+      goto ParentPossiblyAux;
+    }
+
+    if ($sParPOS eq 'C' ||
+	Interjection($lParTag,'ZNUM') eq 'ZNUM') {
+
+      $sAfun = 'Atr';
+
+      goto aa;
+    }
+
+    if ($sParPOS eq 'N') {
+
+      $sAfun = 'Atr';
+
+      goto aa;
+    }
+
+    if ($pParParAct) {
+
+      if (Interjection($pParAct->{'afun'},'AuxP') eq 'AuxP' &&
+	  $sParParPOS eq 'N') {
+
+	$sAfun = 'Atr';
+
+	goto aa;
+      }
+    }
+
+    if (Interjection($pParAct->{'afun'},'Pred') eq 'Pred' ||
+	$sParPOS eq 'V' ||
+	$sParPOS eq 'A') {
+
+      if (Interjection($lTag,'NFS1A') eq 'NFS1A' ||
+	  Interjection($lTag,'NFP1A') eq 'NFP1A' ||
+	  Interjection($lTag,'NIS1A') eq 'NIS1A' ||
+	  Interjection($lTag,'NIP1A') eq 'NIP1A' ||
+	  Interjection($lTag,'NMS1A') eq 'NMS1A' ||
+	  Interjection($lTag,'NMP1A') eq 'NMP1A' ||
+	  Interjection($lTag,'NNS1A') eq 'NNS1A' ||
+	  Interjection($lTag,'NNP1A') eq 'NNP1A' ||
+	  Interjection($lTag,'NFS1N') eq 'NFS1N' ||
+	  Interjection($lTag,'NFP1N') eq 'NFP1N' ||
+	  Interjection($lTag,'NIS1N') eq 'NIS1N' ||
+	  Interjection($lTag,'NIP1N') eq 'NIP1N' ||
+	  Interjection($lTag,'NMS1N') eq 'NMS1N' ||
+	  Interjection($lTag,'NMP1N') eq 'NMP1N' ||
+	  Interjection($lTag,'NNS1N') eq 'NNS1N' ||
+	  Interjection($lTag,'NNP1N') eq 'NNP1N' ||
+	  Interjection($lTag,'PDNS1') eq 'PDNS1' ||
+	  Interjection($lTag,'PDNP1') eq 'PDNP1' ||
+	  Interjection($lTag,'PDFS1') eq 'PDFS1' ||
+	  Interjection($lTag,'PDFP1') eq 'PDFP1' ||
+	  Interjection($lTag,'PDMS1') eq 'PDMS1' ||
+	  Interjection($lTag,'PDMP1') eq 'PDMP1' ||
+	  Interjection($lTag,'PDIS1') eq 'PDIS1' ||
+	  Interjection($lTag,'PDIP1') eq 'PDIP1' ||
+	  Interjection($lTag,'NFXXA') eq 'NFXXA' ||
+	  Interjection($lTag,'NMXXA') eq 'NMXXA' ||
+	  Interjection($lTag,'NIXXA') eq 'NIXXA' ||
+	  Interjection($lTag,'NNXXA') eq 'NNXXA' ||
+	  Interjection($lTag,'ZNUM') eq 'ZNUM') {
+
+	if ($fSubject eq "0" &&
+	    Interjection($pParAct->{'tag'},'VFA') ne 'VFA' &&
+	    Interjection($pParAct->{'tag'},'VFN') ne 'VFN' &&
+	    Interjection($pParAct->{'tag'},'VPP1A') ne 'VPP1A' &&
+	    Interjection($pParAct->{'tag'},'VPP1N') ne 'VPP1N' &&
+	    Interjection($pParAct->{'tag'},'VPS1A') ne 'VPS1A' &&
+	    Interjection($pParAct->{'tag'},'VPS2N') ne 'VPS2N') {
+
+	  $sAfun = 'Sb';
+
+	  goto aa;
+	} else {
+
+	  goto TryObj;
+	}
+
+      }
+    TryObj:
+      $fObj = "0";
+
+      if (substr($sParLemma,0,10) eq 'financovat') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,9) eq 'dosahovat') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,6) eq 'vybrat') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,6) eq 'èerpat') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,6) eq 'mít') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,6) eq 'chtít') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,6) eq 'muset') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,6) eq 'smìt') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,6) eq 'zaèít') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+
+      if (substr($sParLemma,0,6) eq 'skonèit') {
+
+	$fObj = "1";
+
+	goto TDO;
+      }
+    TDO:
+      if ($fObj eq "1") {
+
+	$sAfun = 'Obj';
+
+	goto aa;
+      } else {
+
+	if (Interjection($lTag,'NFS4A') eq 'NFS4A' ||
+	    Interjection($lTag,'NFP4A') eq 'NFP4A' ||
+	    Interjection($lTag,'NIS4A') eq 'NIS4A' ||
+	    Interjection($lTag,'NIP4A') eq 'NIP4A' ||
+	    Interjection($lTag,'NMS4A') eq 'NMS4A' ||
+	    Interjection($lTag,'NMP4A') eq 'NMP4A' ||
+	    Interjection($lTag,'NNS4A') eq 'NNS4A' ||
+	    Interjection($lTag,'NNP4A') eq 'NNP4A' ||
+	    Interjection($lTag,'NFS4N') eq 'NFS4N' ||
+	    Interjection($lTag,'NFP4N') eq 'NFP4N' ||
+	    Interjection($lTag,'NIS4N') eq 'NIS4N' ||
+	    Interjection($lTag,'NIP4N') eq 'NIP4N' ||
+	    Interjection($lTag,'NMS4N') eq 'NMS4N' ||
+	    Interjection($lTag,'NMP4N') eq 'NMP4N' ||
+	    Interjection($lTag,'NNS4N') eq 'NNS4N' ||
+	    Interjection($lTag,'NNP4N') eq 'NNP4N' ||
+	    Interjection($lTag,'PDNS4') eq 'PDNS4' ||
+	    Interjection($lTag,'PDNP4') eq 'PDNP4' ||
+	    Interjection($lTag,'PDFS4') eq 'PDFS4' ||
+	    Interjection($lTag,'PDFP4') eq 'PDFP4' ||
+	    Interjection($lTag,'PDMS4') eq 'PDMS4' ||
+	    Interjection($lTag,'PDMP4') eq 'PDMP4' ||
+	    Interjection($lTag,'PDIS4') eq 'PDIS4' ||
+	    Interjection($lTag,'PDIP4') eq 'PDIP4' ||
+	    Interjection($lTag,'NFXXA') eq 'NFXXA' ||
+	    Interjection($lTag,'NMXXA') eq 'NMXXA' ||
+	    Interjection($lTag,'NIXXA') eq 'NIXXA' ||
+	    Interjection($lTag,'NNXXA') eq 'NNXXA' ||
+	    Interjection($lTag,'ZNUM') eq 'ZNUM') {
+
+	  $sAfun = 'Obj';
+
+	  goto aa;
+	}
+
+	if (substr($sTag,0,2) eq 'PQ' ||
+	    substr($sTag,0,2) eq 'PI' ||
+	    substr($sTag,0,2) eq 'PD' ||
+	    substr($sTag,0,2) eq 'PP' ||
+	    substr($sTag,0,2) eq 'PN') {
+
+	  $sAfun = 'Sb';
+
+	  goto aa;
+	}
+
+	if (Interjection($pParAct->{'form'},'je') eq 'je' ||
+	    Interjection($pParAct->{'form'},'Je') eq 'Je' ||
+	    Interjection($pParAct->{'form'},'JE') eq 'JE' ||
+	    Interjection($pParAct->{'form'},'jsou') eq 'jsou' ||
+	    Interjection($pParAct->{'form'},'Jsou') eq 'Jsou' ||
+	    Interjection($pParAct->{'form'},'JSOU') eq 'JSOU') {
+
+	  $pAct->{'afunprev'} = $pAct->{'afun'};
+
+	  $pAct->{'afun'} = 'Pnom';
+
+	  goto ex;
+	} else {
+
+	  $sAfun = 'Adv';
+
+	  goto aa;
+	}
+
+      }
+
+    }
+  ParentPossiblyAux:
+    if ($pParParAct) {
+
+      if (Interjection($pParAct->{'afun'},'AuxP') eq 'AuxP') {
+
+	if (Interjection($pParParAct->{'afun'},'Pred') eq 'Pred' ||
+	    $sParParPOS eq 'V' ||
+	    $sParParPOS eq 'A') {
+
+	  $fObj = "0";
+
+	  if (substr($sParLemma,0,3) eq 'bez') {
+
+	    if (substr($sParParLemma,0,6) eq 'obejít') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+
+	  if (substr($sParLemma,0,2) eq 'na') {
+
+	    if (substr($sParParLemma,0,3) eq 'jít') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+
+	    if (substr($sParParLemma,0,5) eq 'chtít') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+
+	    if (substr($sParParLemma,0,5) eq 'dìlit') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+
+	  if (substr($sParLemma,0,2) eq 'od') {
+
+	    if (substr($sParParLemma,0,5) eq 'chtít') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+
+	    if (substr($sParParLemma,0,7) eq 'odli¹it') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+
+	  if (substr($sParLemma,0,2) eq 'za') {
+
+	    if (substr($sParParLemma,0,4) eq 'moci') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+
+	  if (substr($sParLemma,0,1) eq 's') {
+
+	    if (substr($sParParLemma,0,6) eq 'jednat') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+
+	  if (substr($sParLemma,0,1) eq 'o') {
+
+	    if (substr($sParParLemma,0,10) eq 'informovat') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+
+	    if (substr($sParParLemma,0,3) eq 'jít') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+
+	  if (substr($sParLemma,0,1) eq 'z') {
+
+	    if (substr($sParParLemma,0,10) eq 'financovat') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+
+	  if (substr($sParLemma,0,1) eq 'k') {
+
+	    if (substr($sParParLemma,0,5) eq 'dojít') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+
+	  if (substr($sParLemma,0,1) eq 'v') {
+
+	    if (substr($sParParLemma,0,10) eq 'pokraèovat') {
+
+	      $fObj = "1";
+
+	      goto TObj;
+	    }
+	  }
+	TObj:
+	  if ($fObj eq "1") {
+
+	    $sAfun = 'Obj';
+
+	    goto aa;
+	  } else {
+
+	    $sAfun = 'Adv';
+
+	    goto aa;
+	  }
+
+	}
+
+	if ($sParParPOS eq 'N' ||
+	    $sParParPOS eq 'P' ||
+	    $sParParPOS eq 'C') {
+
+	  $sAfun = 'Atr';
+
+	  goto aa;
+	}
+      }
+    }
+  }
+
+  if ($sPOS eq 'V' ||
+      Interjection('být',$lLemma) eq 'být' ||
+      Interjection('mít',$lLemma) eq 'mít') {
+
+    if (Interjection($lLemma,'být') eq 'být') {
+
+      if (!(FirstSon($pAct))) {
+
+	$pAct->{'afunprev'} = $pAct->{'afun'};
+
+	$pAct->{'afun'} = 'AuxV';
+
+	goto ex;
+      }
+    }
+
+    if ($sParPOS eq 'N' ||
+	$sParPOS eq 'P') {
+
+      $sAfun = 'Atr';
+
+      goto aa;
+    }
+
+    if (Interjection($pParAct->{'afun'},'AuxC') eq 'AuxC') {
+
+      $fObj = "0";
+
+      if ($sParLemma eq '¾e') {
+
+	$fObj = "1";
+      }
+
+      if ($fObj eq "1") {
+
+	$sAfun = 'Obj';
+
+	goto aa;
+      } else {
+
+	$sAfun = 'Adv';
+
+	goto aa;
+      }
+
+    }
+
+    if ($sParLemma eq 'øíkat' ||
+	$sParLemma eq 'utrousit' ||
+	$sParLemma eq 'myslet' ||
+	$sParLemma eq 'myslit' ||
+	$sParLemma eq 'øíci' ||
+	$sParLemma eq 'pronést' ||
+	$sParLemma eq 'sdìlit' ||
+	$sParLemma eq 'øíct' ||
+	$sParLemma eq 'povìdìt') {
+
+      $sAfun = 'Obj';
+
+      goto aa;
+    }
+
+    if (Interjection($lTag,'VFA') eq 'VFA' ||
+	Interjection($lTag,'VFN') eq 'VFN') {
+
+      if ($fSubject eq "1" ||
+	  $sParLemma eq 'mít' ||
+	  $sParLemma eq 'chtít' ||
+	  $sParLemma eq 'zaèít' ||
+	  $sParLemma eq 'pøestat' ||
+	  $sParLemma eq 'smìt' ||
+	  $sParLemma eq 'moci' ||
+	  $sParLemma eq 'moct') {
+
+	$sAfun = 'Obj';
+
+	goto aa;
+      } else {
+
+	$sAfun = 'Sb';
+
+	goto aa;
+      }
+
+    }
+  }
+
+  if ($sParPOS eq 'N') {
+
+    $sAfun = 'Atr';
+
+    goto aa;
+  }
+
+  goto ex;
+ aa:
+  $pAct->{'afun'} = (ValNo(0,$sAfun).ValNo(0,$sSuffAct));
+ ex:
+  $pNext = FirstSon($pAct);
+
+  if (!($pNext)) {
+
+    $pNext = RBrother($pAct);
+  }
+ ContLoop2:
+  if ($pNext) {
+
+    goto ExitLoop2;
+  }
+
+  $pAct = Parent($pAct);
+
+  if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
+
+    goto ExitLoop1;
+  }
+
+  $pNext = RBrother($pAct);
+
+  goto ContLoop2;
+ ExitLoop2:
+  $pAct = $pNext;
+
+  goto ContLoop1;
+ ExitLoop1:
+  return;
+
+}
+
+
+sub SubtreeUndefAfun {
+  my $pAct;			# used as type "pointer"
+  my $pNext;			# used as type "pointer"
+  my $pParent;			# used as type "pointer"
+  my $sT;			# used as type "string"
+
+  $pParent = $pPar1;
+
+  $pAct = FirstSon($pParent);
+
+  if (!($pAct)) {
+
+    return;
+  }
+ ContLoop1:
+  $sT = ValNo(0,$pAct->{'afun'});
+
+  $pAct->{'afun'} = '???';
+
+  if ($sT ne '' &&
+      $sT ne '???') {
+
+    $pAct->{'afunprev'} = $sT;
+  }
+
+  $pNext = FirstSon($pAct);
+
+  if (!($pNext)) {
+
+    $pNext = RBrother($pAct);
+  }
+ ContLoop2:
+  if ($pNext) {
+
+    goto ExitLoop2;
+  }
+
+  $pAct = Parent($pAct);
+
+  if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
+
+    goto ExitLoop1;
+  }
+
+  $pNext = RBrother($pAct);
+
+  goto ContLoop2;
+ ExitLoop2:
+  $pAct = $pNext;
+
+  goto ContLoop1;
+ ExitLoop1:
+  return;
+
+}
+
 
 sub GoNext {
   my $pAct;			# used as type "pointer"
@@ -1207,6 +2513,18 @@ sub _key_Ctrl_Shift_P {
 }
 
 
+#bind _key_Shift_X to Shift+X menu Pridat k funktoru ???
+sub _key_Shift_X {
+
+  $pPar1 = $this;
+
+  $sPar1 = ValNo(0,Union($pPar1->{'func'},'???'));
+
+  FuncAssign();
+
+}
+
+
 #bind _key_Ctrl_Shift_Q to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
 sub _key_Ctrl_Shift_Q {
 
@@ -1495,6 +2813,16 @@ sub _key_Shift_J {
 }
 
 
+#bind _key_Ctrl_X to Ctrl+X menu DPHR zavisla cast frazemu
+sub _key_Ctrl_X {
+
+  $sPar1 = 'DPHR';
+
+  FuncAssign();
+
+}
+
+
 #bind _key_Shift_E to Shift+E menu ETHD Ethical Dative (já ti mám knih, dìti nám nechodí vèas)
 sub _key_Shift_E {
 
@@ -1519,6 +2847,16 @@ sub _key_E {
 sub _key_X {
 
   $sPar1 = 'EXT';
+
+  FuncAssign();
+
+}
+
+
+#bind _key_Ctrl_U to Ctrl+U menu FPHR fraze v cizim jazyce
+sub _key_Ctrl_U {
+
+  $sPar1 = 'FPHR';
 
   FuncAssign();
 
@@ -3397,6 +4735,36 @@ sub TRVerbs {
 	  $pSE->{'TR'} = 'hide';
 	}
 
+	if (Interjection($pThisSon->{'afun'},'Pnom') eq 'Pnom') {
+
+	  $sVTagBeg = substr(ValNo(0,$pThisSon->{'tag'}),0,1);
+
+	  if ($sVTagBeg eq 'V') {
+
+	    $pPNOM = $pThisSon;
+
+	    $pCut = FirstSon($pPNOM);
+	  CutAllSubtrees:
+	    if ($pCut) {
+
+	      if (Interjection($pCut->{'ordorig'},'') eq '') {
+
+		$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	      }
+
+	      $NodeClipboard=CutNode($pCut);
+
+	      $pD = PasteNode($NodeClipboard,Parent($pPNOM));
+
+	      $pCut = FirstSon($pPNOM);
+
+	      goto CutAllSubtrees;
+	    }
+
+	    $pPNOM->{'TR'} = 'hide';
+	  }
+	}
+
 	if (RBrother($pThisSon)) {
 
 	  $pThisSon = RBrother($pThisSon);
@@ -3606,7 +4974,7 @@ sub ModalVerbs {
 
       $pJoin = $pVerb;
 
-      $pModal->{'commentTR'} = $pVerbTag;
+      $pModal->{'ID1'} = $pVerbTag;
     } else {
 
       $pVerb = RBrother($pVerb);
@@ -3662,7 +5030,7 @@ sub ModalVerbs {
 
       $pJoin = $pVerb;
 
-      $pModal->{'commentTR'} = $pVerbTag;
+      $pModal->{'ID1'} = $pVerbTag;
     } else {
 
       $pVerb = RBrother($pVerb);
@@ -4247,8 +5615,6 @@ sub JoinSubtree {
 
     $NodeClipboard=CutNode($pCut);
 
-    $sPar2 = 'blabla';
-
     $pD = PasteNode($NodeClipboard,$pTatka);
 
     $pCut = FirstSon($pAct);
@@ -4699,9 +6065,9 @@ sub NewSubject {
 
   $pNew->{'afun'} = '---';
 
-  $pNew->{'commentTR'} = '???';
+  $pNew->{'ID1'} = '???';
 
-  $pNew->{'commentAR'} = '???';
+  $pNew->{'ID2'} = '???';
 
   $pNew->{'origf'} = '---';
 
@@ -4866,9 +6232,9 @@ sub NewSon {
 
   $pNew->{'afun'} = '---';
 
-  $pNew->{'commentTR'} = '???';
+  $pNew->{'ID1'} = '???';
 
-  $pNew->{'commentAR'} = '???';
+  $pNew->{'ID2'} = '???';
 
   $pNew->{'origf'} = '---';
 
@@ -5023,9 +6389,9 @@ sub NewVerb {
 
   $pNew->{'afun'} = '---';
 
-  $pNew->{'commentTR'} = '???';
+  $pNew->{'ID1'} = '???';
 
-  $pNew->{'commentAR'} = '???';
+  $pNew->{'ID2'} = '???';
 
   $pNew->{'origf'} = '---';
 
@@ -5129,14 +6495,17 @@ sub NewVerb {
  CutAllSubtrees:
   if ($pCut) {
 
-    if (Interjection($pCut->{'ordorig'},'') eq '') {
+    if (Interjection($pCut->{'afun'},'ExD') eq 'ExD') {
 
-      $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+      if (Interjection($pCut->{'ordorig'},'') eq '') {
+
+	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+      }
+
+      $NodeClipboard=CutNode($pCut);
+
+      $pD = PasteNode($NodeClipboard,$pTatka);
     }
-
-    $NodeClipboard=CutNode($pCut);
-
-    $pD = PasteNode($NodeClipboard,$pTatka);
 
     $pCut = RBrother($pTatka);
 
@@ -5384,8 +6753,6 @@ sub MoveNode {
   my $sMaxDord;			# used as type "string"
   my $pRoot;			# used as type "pointer"
   my $sDir;			# used as type "string"
-
-  print STDERR "Original move node\n";
 
   $sDir = $sPar1;
 
@@ -5721,14 +7088,14 @@ sub Oprava {
     $pAct->{'afun'} = '???';
   }
 
-  if (Interjection($pAct->{'commentTR'},'') eq '') {
+  if (Interjection($pAct->{'ID1'},'') eq '') {
 
-    $pAct->{'commentTR'} = '???';
+    $pAct->{'ID1'} = '???';
   }
 
-  if (Interjection($pAct->{'commentAR'},'') eq '') {
+  if (Interjection($pAct->{'ID2'},'') eq '') {
 
-    $pAct->{'commentAR'} = '???';
+    $pAct->{'ID2'} = '???';
   }
 
   if (Interjection($pAct->{'origf'},'') eq '') {
