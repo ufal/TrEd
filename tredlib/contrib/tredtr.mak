@@ -1149,6 +1149,7 @@ sub _key_Ctrl_Shift_S {
   $sPar1 = 'Gen';
 
   NewSubject();
+
 }
 
 
@@ -1158,6 +1159,7 @@ sub _key_Ctrl_Shift_K {
   $sPar1 = 'Cor';
 
   NewSubject();
+
 }
 
 
@@ -1167,6 +1169,7 @@ sub _key_Ctrl_Shift_O {
   $sPar1 = 'on';
 
   NewSubject();
+
 }
 
 
