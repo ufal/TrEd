@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-10-22 11:50:57 pajas>
+## Time-stamp: <2004-11-16 16:10:44 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -70,16 +70,20 @@ sub node_click_hook {
 sub which_struct {
   if ($Fslib::parent eq "_AP_") {
     return "AR";
-  } elsif ($Fslib::parent eq "_P_") {
-    return "TR";
-  } else {
-    return "unknown";
+  } elsif ($Fslib::parent eq "_P_" and $grp->{FSFile}) {
+    my $o = $grp->{FSFile}->FS->order;
+    if ($o eq 'dord') {
+      return "TR";
+    } elsif ($o eq 'ord') {
+      return "AR-ONLY";
+    }
   }
+  return "unknown";
 }
 
 sub with_AR (&) {
   my ($code) = @_;
-  if (which_struct() eq 'AR') {
+  if (which_struct() =~ /AR/) {
     my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
     die $@ if $@;
     return wantarray ? @$ret : $ret;
@@ -92,8 +96,40 @@ sub with_AR (&) {
   }
 }
 
+sub with_ARtree (&) {
+  my ($code) = @_;
+  if (which_struct() =~ /AR/) {
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
+    die $@ if $@;
+    return wantarray ? @$ret : $ret;
+  } else {
+    PDT::ARstruct(1);
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
+    PDT::TRstruct();
+    die $@ if $@;
+    return wantarray ? @$ret : $ret;
+  }
+}
+
+sub with_TRtree (&) {
+  my ($code) = @_;
+  die "Can't call with_TR on analytical files!" if which_struct() eq 'AR-ONLY';
+  if (which_struct() eq 'AR') {
+    PDT::TRstruct();
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
+    PDT::ARstruct(1);
+    die $@ if $@;
+    return wantarray ? @$ret : $ret;
+  } else {
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
+    die $@ if $@;
+    return wantarray ? @$ret : $ret;
+  }
+}
+
 sub with_TR (&) {
   my ($code) = @_;
+  die "Can't call with_TR on analytical files!" if which_struct() eq 'AR-ONLY';
   if (which_struct() eq 'AR') {
     PDT::TRstruct();
     my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
@@ -318,13 +354,13 @@ sub edit_lemma_tag {
 
 #bind analytical_tree to Ctrl+A menu Display analytical tree
 sub analytical_tree {
-  PDT::ARstruct();
+  PDT::ARstruct() if (which_struct() eq 'TR');
   ChangingFile(0);
 }
 
 #bind tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree
 sub tectogrammatical_tree {
-  PDT::TRstruct();
+  PDT::TRstruct() if (which_struct() eq 'AR');
   ChangingFile(0);
 }
 
