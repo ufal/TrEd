@@ -375,9 +375,10 @@ sub diff_trees {
   return @summary;
 }
 
-#bind DiffTRFiles to equal menu Compare files
+#bind DiffTRFiles to equal menu Compare trees
+#bind DiffWholeTRFiles to Alt+equal menu Compare files
 #bind DiffTRFiles_select_attrs to Ctrl+equal menu Choose attributes to compare
-#bind DiffTRFiles_with_summary to Ctrl+plus menu Compare files with summary
+#bind DiffTRFiles_with_summary to Ctrl+plus menu Compare trees with summary
 
 sub DiffTRFiles_select_attrs {
   listQuery("multiple",$grp->{FSFile}->FS->list,\@standard_check_list);
@@ -438,4 +439,28 @@ sub DiffTRFiles {
   } else {
     $Redraw='none';
   }
+}
+
+sub DiffWholeTRFiles {
+  my ($class,$summary)=@_;
+  my $fg=$TredMacro::grp->{framegroup};
+  my @T;
+  my $i=0;
+  do {
+    @T=();
+    foreach my $win (@{$fg->{treeWindows}}) {
+      next unless $win->{macroContext} eq 'TR_Diff';
+      my $fs=$win->{FSFile};
+      if ($fs) {
+	my $tree;
+	$tree=$fs->treeList()->[$i] if $i<=$fs->lastTreeNo();
+	push @T,($fs->filename()."##".($i+1) => $tree) if $tree;
+      }
+    }
+    $i++;
+    print STDERR "$i: @T\n";
+    diff_trees($summary,@T) if @T>2
+  } while (@T>2);
+  $FileChanged=0;
+  $Redraw='all';
 }
