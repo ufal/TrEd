@@ -148,6 +148,8 @@ my %start_tag = (
 			   $s->{root}->{lemma}="#";
 			   $s->{root}->{trlemma}="#";
 			   $s->{root}->{TR}="";
+			   $s->{root}->{ARhide}='';
+			   $s->{root}->{X_hide}='';
 			   $s->{root}->{func}="SENT";
 			 }],
 		 'salt' => [sub {
@@ -160,6 +162,8 @@ my %start_tag = (
 			      $s->{root}->{lemma}="#";
 			      $s->{root}->{trlemma}="#";
 			      $s->{root}->{TR}="";
+			      $s->{root}->{ARhide}='';
+			      $s->{root}->{X_hide}='';
 			      $s->{root}->{func}="SENT";
 			    }],
 		 'f' => [\&make_new_node],
@@ -266,7 +270,8 @@ my %att = (
 	   't w'=> [\&to_node_attr,'|','wt'],
 	   'fadd del' => [sub {
 			    my ($s,$data)=@_;
-			    &to_node_attr($s,uc($data),'|','del')
+			    &to_node_attr($s,$data,'|','del');
+			    &to_node_attr($s,'hide','','ARhide');
 			  }],
 	   'MTRl quot' => [\&to_composed_node_attr,'_','|','src','quotMTRl'],
 	   'TRl quot' => [\&assign_quot_dsp],
@@ -285,7 +290,7 @@ my %att = (
 	   'MTRl origin' => [\&to_composed_node_attr,'_','','src','MAIDREFS'],
 	   'x name' => [sub {
 			  my ($s,$data)=@_;
-			  $s->{node}->{TR}="" if ($data eq 'TNT');
+			  $s->{node}->{X_hide}='' if ($data eq 'TNT');
 			}]
 	  );
 
@@ -500,6 +505,8 @@ my %pcdata = (
 '@P dord',
 '@W sentord',
 '@P govTR',
+'@H ARhide',
+ @minTRheader,
  @csts,
  @misc
 );
@@ -771,8 +778,8 @@ sub setupAR {
 
 sub setupSpec {
   $gov = $_[0];
-  $header = [ (grep !/\@N/,@TRheader), '@N '.$_[1] ];
-  $initial_node_values{TR}='hide';
+  $header = [ (grep !/\@[NH]/,@TRheader), '@N '.$_[1], '@H X_hide'];
+  $initial_node_values{X_hide}='hide';
 }
 
 1;
