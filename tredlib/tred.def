@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-12-08 14:55:55 pajas>
+## Time-stamp: <2004-01-27 23:06:40 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1160,7 +1160,8 @@ individual fields.
 sub ListSplit {
 
   my $s=shift;
-  my $j=0,$i=0;
+  my $j=0;
+  my $i=0;
   my @a=();
   while (($j=index($s,'|',$j))>=0) {
     $j++,next if ($j>0 and substr($s,$j-1,1) eq "\\");
@@ -1300,6 +1301,7 @@ the values of the special FS numbering attribute.
 sub SortByOrd {
   my ($nodesref)=@_;
   my $ord=$grp->{FSFile}->FS->order;
+  local ($a,$b);
   @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
   return $nodesref;
 }
@@ -1337,7 +1339,6 @@ sub ShiftNodeRightSkipHidden {
   NormalizeOrds(\@all);
   #
   #
-  print "$n\n";
   my $n=$node->{$ord};
   return $n if ($n == $#all);
 
@@ -1373,7 +1374,6 @@ sub ShiftNodeLeftSkipHidden {
   NormalizeOrds(\@all);
   #
   #
-  print "$n\n";
   my $n=$node->{$ord};
   return $n if ($n == 0);
 
