@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-11-20 11:15:21 pajas>
+# Time-stamp: <2001-11-20 15:29:23 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -347,7 +347,7 @@ sub ParseNode ($$$) {
 	$n = $tmp if (defined($tmp));
       } elsif ($$lr=~/\G($field)/gsco) {
 	$v=$1;
-        $n++ while ( $n<=$#$ord and $attr->getAttribute($ord->[$n])!~/ [PNW]/);
+        $n++ while ( $n<=$#$ord and $attr->{$ord->[$n]}!~/ [PNW]/);
 	if ($n>$#$ord) {
 	  croak "No more positional attribute for value $v at position ".pos($$lr)." in:\n".$$lr."\n";
 	}
