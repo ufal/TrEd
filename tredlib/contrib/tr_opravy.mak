@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-06 14:04:57 pajas>
+## Time-stamp: <2005-02-07 16:53:41 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -1384,8 +1384,8 @@ Removes ??? from func of a given node or $this
 
 =cut
 
-#bind remove_from_aidrefs to semicolon
-sub remove_from_aidrefs {
+#bind remove_func_questionmarks to semicolon
+sub remove_func_questionmarks {
   shift unless ref($_[0]);
   my $node=ref($_[0]) ? $_[0] : $this;
   $this->{func} = join '|', grep {$_ ne ''} grep {$_ ne '???'} split /\|/,$this->{func};
