@@ -604,7 +604,6 @@ sub startMain {
 
 	  # execute hooks and the code of the query
 
-	  my $time;
 	  $hub->print("$control SERVER_RESPONSE_STDERR\n");
 	  $hub->print("$@\n") if $@;
 	  if (!$@ and keys(%{$grp->{preloaded}})) {
@@ -642,7 +641,7 @@ sub startMain {
 	      $hub->print("$@\n") if $@;
 	      _msg($@) if $@;undef $@;
 	      my $t1 = new Benchmark;
-	      $time = timediff($t1, $t0) if ($t1 and $t0);
+	      my $time = timediff($t1, $t0) if ($t1 and $t0);
 	      $hub->print("BTRED: $host: Total Time: ",timestr($time),"\n") if $time ne "" and not $request{STATE_QUIET};
 	      _msg("Total Time: ",timestr($time),"\n");
 	    }
@@ -772,34 +771,104 @@ sub startMain {
 	} elsif ($request{REQUEST_TYPE} eq 'DUMP') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  _msg "Dumping $request{STATE_default} at client's request\n";
-	  foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
-	    next unless ($f);
-	    $f=~s{^ntred://}{};
-	    $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
-	    _msg "Dumping some tree $f at client's request\n";
-	    next unless openFile($grp,$f,-justpreloaded => 1);
-	    for my $fsfile ($grp->{FSFile}) {
-	      _set_encoding($hub,$fsfile->encoding(),undef);
-	      $fsfile->FS->writeTo($hub);
-	      FSBackend::PrintFSFile($hub,
-				     $fsfile->FS,
-				     $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList);
-	      ## Tredish custom attributes:
-	      $fsfile->changeTail(
-				  (grep { $_!~/\/\/Tred:(?:Custom-Attribute(?:Cont)?|Balloon-Pattern):/ } $fsfile->tail),
-				  (map {"//Tred:Custom-Attribute:$_\n"}
-				   map {
-				     join "\n//Tred:Custom-AttributeCont:",
-				       split /\n/,$_
-				     } $fsfile->patterns),
-				  (map {"//Tred:Balloon-Pattern:$_\n"}
-				   split /\n/,$fsfile->hint)
-				 );
-	      $hub->print($fsfile->tail());
-	      $hub->print("\n\n//FSEND\n\n");
+
+# 	  if ($request{STATE_format} =~ /^Data::Dumper\s*/) {
+# 	    use Data::Dumper;
+# 	    my @dump;
+# 	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
+# 	      next unless ($f);
+# 	      $f=~s{^ntred://}{};
+# 	      $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+# 	      next unless openFile($grp,$f,-justpreloaded => 1,
+# 				   -secondary => !$no_secondary);
+# 	      _msg "Dumping the tree $f at client's request\n";
+# 	      my $fsfile = $grp->{FSFile};
+# 	      push @dump, [$fsfile->FS,
+# 			   $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList,
+# 			   [$fsfile->tail],
+# 			   $fsfile->[13],
+# 			   [$fsfile->patterns],
+# 			   $fsfile->hint];
+# 	    }
+# 	    $hub->print(Data::Dumper->new([\@dump],
+# 					  ['dump']
+# 					 )->Indent(0)->Purity(1)->Dump);
+# 	    $hub->print("\n");
+# 	  } elsif ($request{STATE_format} =~ /^Storable-Base64\s*/) {
+	    use Storable;
+	    use MIME::Base64;
+	    my @dump;
+	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
+	      next unless ($f);
+	      chomp($f);
+	      $f=~s{^ntred://}{};
+	      $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+	      next unless openFile($grp,$f,-justpreloaded => 1, -secondary => !$no_secondary);
+	      _msg "Dumping the tree $f at client's request\n";
+	      my $fsfile = $grp->{FSFile};
+	      my $req = $fsfile->metaData('fs-require');
+	      my @save_req;
+	      if (ref($req)) {
+		if ($no_secondary) {
+		  @save_req = @$req;
+		  @$req = ();
+		} else {
+		  $_->[1]="ntred://".$_->[1] for @$req;
+		}
+	      }
+	      push @dump, [$fsfile->FS,
+			   $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList,
+			   [$fsfile->tail],
+			   $fsfile->[13],
+			   [$fsfile->patterns],
+			   $fsfile->hint];
+	      # undo the change
+	      if (ref($req)) {
+		if ($no_secondary) {
+		  @$req = @save_req;
+		} else {
+		  $_->[1]=~s{^ntred://}{} for @$req;
+		}
+	      }
 	    }
-	    ## _set_encoding($hub,$term_encoding,"socket to hub");
-	  }
+	    eval {
+	      $hub->print(encode_base64(Storable::nfreeze(\@dump)));
+	    };
+	    $hub->print("\n");
+	    if ($@) {
+	      $hub->print("$control SERVER_RESPONSE_STDERR\n");
+	      $hub->print("$@\n");
+	    }
+# 	  } else {
+# 	    # old-default was FS. We leave it here for backward compatibility
+# 	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
+# 	      next unless ($f);
+# 	      $f=~s{^ntred://}{};
+# 	      $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+# 	      next unless openFile($grp,$f,-justpreloaded => 1,
+# 				   -secondary => !$no_secondary);
+# 	      _msg "Dumping the tree $f at client's request\n";
+# 	      my $fsfile = $grp->{FSFile};
+# 	      _set_encoding($hub,$fsfile->encoding(),undef);
+# 	      $fsfile->FS->writeTo($hub);
+# 	      FSBackend::PrintFSFile($hub,
+# 				     $fsfile->FS,
+# 				     $f=_has_suffix($f) ? [$grp->{root}] : $fsfile->treeList);
+# 	      #	      Tredish custom attributes:
+# 	      $fsfile->changeTail(
+# 		(grep { $_!~/\/\/Tred:(?:Custom-Attribute(?:Cont)?|Balloon-Pattern):/ } $fsfile->tail),
+# 		(map {"//Tred:Custom-Attribute:$_\n"}
+# 		   map {
+# 		     join "\n//Tred:Custom-AttributeCont:",
+# 		       split /\n/,$_
+# 		     } $fsfile->patterns),
+# 		(map {"//Tred:Balloon-Pattern:$_\n"}
+# 		   split /\n/,$fsfile->hint)
+# 	       );
+# 	      $hub->print($fsfile->tail());
+# 	      $hub->print("\n\n//FSEND\n\n");
+# 	    }
+# 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
@@ -813,49 +882,74 @@ sub startMain {
 	    require Encode;
 	    $request{STATE_FSFile} = Encode::decode($TrEd::Convert::inputenc,$request{STATE_FSFile});
 	  }
-	  my @fs=map {$_."\n"} split /\n/,$request{STATE_FSFile};
-	  if ($f and openFile($grp,$f,-justpreloaded => 1) and ref($grp->{FSFile})) {
+	  if ($f and openFile($grp,$f,-justpreloaded => 1,-secondary => 1) and ref($grp->{FSFile})) {
 	    _msg "Uploading $f at client's request\n";
-	    my $fsfile=FSFile->new();
-	    local $Fslib::Debug=1;
-	    #	  _msg "received @fs\n";
-	    if (FSBackend::read(\@fs,$fsfile) and ref($fsfile->treeList()->[0])) {
-	      {
-		my $newdefs=$fsfile->FS->defs();
-		my $fs=$grp->{FSFile}->FS;
-		my $defs=$grp->{FSFile}->FS->defs();
-		my $list=$grp->{FSFile}->FS->list();
-		foreach ($fsfile->FS->attributes()) {
-		  push @$list, $_ unless ($fs->exists($_));
-		  $defs->{$_}=$newdefs->{$_};
-		}
-		$grp->{FSFile}->FS->renew_specials();
-	      }
+
+	    my $fs_files = Storable::thaw(decode_base64($request{STATE_FSFile}));
+	    my $restore = ref($fs_files) ? $fs_files->[0] : undef;
+	    if (ref($restore)) {
+	      my $fs = $grp->{FSFile};
+	      $fs->changeFS($restore->[0]);
+	      $fs->changeTail(@{$restore->[2]});
+	      $fs->[13]=$restore->[3];
+	      $fs->changePatterns(@{$restore->[4]});
+	      $fs->changeHint($restore->[5]);
+	      $fs->FS->renew_specials();
+	      # TODO: maybe clean $fs->userData->{'id-hash'}
 	      if (_has_suffix($f)) {
-		_msg "Updated tree $grp->{treeNo} ($f)\n";
 		# change only one tree
-		$grp->{FSFile}->treeList()->[$grp->{treeNo}]=$fsfile->treeList()->[0];
-		$fsfile->changeTreeList([]);
-		$grp->{FSFile}->notSaved(1);
-		closeFile($grp);
-		# $fsfile is garbage collected
+		_msg "Update tree $grp->{treeNo} ($f)\n";
+
+		# in this case, all other trees remain, but
+		# since we chainged the schema, we must also change
+		# their node-types....
+		# we try to use type names in order to do that
+		my $trees = $fs->treeList();
+		my $prev = $trees->[$grp->{treeNo}];
+		$prev->destroy() if ref($prev);
+		my $schema = $fs->metaData('schema');
+		if (ref($schema)) {
+		  # file uses a schema!
+		  my %types;
+		  foreach my $type ($schema->node_types) {
+		    $types{$type->{name}} = $type if ref($type) and $type->{name} ne "";
+		  }
+		  if (keys(%types)) {
+		    for (my $i=0; $i<@{$trees}; $i++) {
+		      unless ($i == $grp->{treeNo}) {
+			# for every node in the tree change its schema type
+			my $node = $trees->[$i];
+			while ($node) {
+			  my $type;
+			  next unless ($node->type and ($type = $node->type->type_struct));
+			  next unless $type;
+			  if (exists $types{$type->{name}}) {
+			    $node->set_type($schema->type($types{$type->{name}}));
+			  }
+			} continue {
+			  $node = $node->following;
+			}
+		      }
+		    }
+		  }
+		}
+		$trees->[$grp->{treeNo}]=$restore->[1]->[0];
 	      } else {
 		_msg "Updated whole file ($f)\n";
 		# change the whole file
-		$grp->{FSFile}->changeTreeList($fsfile->treeList());
-		$fsfile->changeTreeList([]);
-		$grp->{FSFile}->notSaved(1);
-		closeFile($grp);
-		# $fsfile is garbage collected
+		$_->destroy for ($fs->trees);
+		$fs->changeTrees(@{$restore->[1]});
 	      }
+	      $fs->notSaved(1);
 	    } else {
 	      _msg "read failed\n";
 	    }
+	    closeFile($grp);
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'SAVE' or
-		 $request{REQUEST_TYPE} eq 'SAVE_CHANGED'
-		) {
+		   $request{REQUEST_TYPE} eq 'SAVE_CHANGED'
+		  ) {
 	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
 	  for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
 	    if (exists $request{"STATE_".$_}) {
@@ -1097,7 +1191,7 @@ sub openSecondary {
     if ($requires) {
       for my $req (@$requires) {
 	my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
-	_msg "Pre-loading dependent $req_filename as metaData('ref')->{$req->[0]}\n" if $tredDebug;
+	_msg "Pre-loading dependent $req_filename as userData->{'ref'}->{$req->[0]}\n" if $tredDebug;
 	unless ($grp->{'secondary'}->{$req_filename}) {
 	  if ($grp->{preloaded}->{$req_filename}) {
 	    $grp->{'secondary'}->{$req_filename} = $grp->{'preloaded'}->{$req_filename};
@@ -1108,8 +1202,7 @@ sub openSecondary {
 	    $grp->{'secondary'}->{$req_filename} = $req_fs;
 	    $req_fs->changeUserData({}) unless defined $req_fs->userData();
 	    push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
-	    $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
-	    $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
+	    $fsfile->userData->{'ref'}->{$req->[0]}=$req_fs;
 	  }
 	}
       }
@@ -1136,6 +1229,8 @@ sub openFile {
   if (exists($grp->{preloaded}) and
       exists($grp->{preloaded}->{$f})) {
     $grp->{'FSFile'} = $grp->{preloaded}->{$f};
+  } elsif ($opts{-secondary} and exists($grp->{secondary}) and exists($grp->{secondary}->{$f})) {
+    $grp->{'FSFile'} = $grp->{secondary}->{$f};
   } elsif ($opts{-justpreloaded}) {
     return 0;
   } else {
@@ -1297,7 +1392,7 @@ sub closeSecondaryFilesOf {
 	unless (@$part_of) {
 	  # close secondary file
 	  delete $grp->{'secondary'}->{$req_filename};
-	  delete $fsfile->metaData('ref')->{$req->[0]};
+	  delete $fsfile->userData->{'ref'}->{$req->[0]};
 	}
       }
     }
