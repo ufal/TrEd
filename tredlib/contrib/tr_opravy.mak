@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-09-23 11:58:01 pajas>
+## Time-stamp: <2004-09-23 16:15:59 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -793,19 +793,33 @@ sub join_with_mother {
                 and$this->parent->{AID}
                 and with_AR{$this->parent}==$this->parent
                 and$this->{ord}==$this->parent->{ord}+1);
+
+  my$parent=$this->parent;
+  $parent->{form}.=$this->{form};
+
+  if($parent->{origfkind}!~/spell/){
+    $parent->{origfkind}=($parent->{origfkind}?$parent->{origfkind}.'|':'').'spell';
+  }
+  delete_analytical_node_from_all_layers();
+}#join_with_mother
+
+sub delete_analytical_node_from_all_layers {
+  shift unless ref($_[0]);
+  my $node = $_[0] || $this;
+  ChangingFile(0);
+  return unless($node->{AID} and $node->parent);
+
+  my$parent=$node->parent;
+
   rehang_children_to_mother;
   PDT::ARstruct();
   rehang_children_to_mother;
   tectogrammatical_tree_store_AR();
 
-  my$parent=$this->parent;
-  $parent->{form}.=$this->{form};
-  my($sentord,$ord,$dord)=map{$this->{$_}}qw/sentord ord dord/;
-  Cut($this);
-  with_AR{Cut($this)};
-  if($parent->{origfkind}!~/spell/){
-    $parent->{origfkind}=($parent->{origfkind}?$parent->{origfkind}.'|':'').'spell';
-  }
+  my($sentord,$ord,$dord)=map{$node->{$_}}qw/sentord ord dord/;
+  Cut($node);
+  with_AR{Cut($node)};
+
   foreach my$node (grep{
     $_->{sentord}>$sentord and$_->{AID}
   }$root->descendants()){
@@ -826,7 +840,7 @@ sub join_with_mother {
   }$root->descendants()){
     $node->{dord}--;
   }
-  $this=$parent;
+  $this=$parent if $this==$node;
   ChangingFile(1);
 }#join_with_mother
 
