@@ -17,7 +17,8 @@ sub parser_start {
 			       my $f=$file;
 			       $f=~s!([\\/])[^/\\]+$!$1!; 
 			       local *F;
-			       open F,"$f$_[0]";
+			       print STDERR "Trying to open dtd at $f$_[0]\n";
+			       open(F,"$f$_[0]") || print STDERR "failed to open dtd\n";
 			       my @f=<F>;
 			       close F;
 			       return join "",@f;
