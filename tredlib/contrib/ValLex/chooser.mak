@@ -9,6 +9,7 @@ $vallexEditor=undef;
 eval { require XML::JHXML; };
 if ($@) {
   print STDERR "Using LibXML\n" if $::tredDebug;
+  require XML::LibXML;
   $XMLDataClass="TrEd::ValLex::LibXMLData";
 } else {
   print STDERR "Using JHXML\n" if $::tredDebug;
@@ -237,6 +238,7 @@ sub copy_verb_frame {
       }
     }
   }
+  $lexlist->destroy();
   $d->destroy();
 }
 
