@@ -26,8 +26,9 @@ sub parser_start {
   } else {
     $parser=XML::LibXML->new();
   }
-  XML::LibXML->load_ext_dtd(1);
-  XML::LibXML->validation(1);
+  return () unless $parser;
+  $parser->load_ext_dtd(1);
+  $parser->validation(1);
   my $doc;
   $doc=$parser->parse_file($file);
   return ($parser,$doc);
@@ -35,9 +36,11 @@ sub parser_start {
 
 sub doc_reload {
   my ($self)=@_;
-  XML::LibXML->load_ext_dtd(1);
-  XML::LibXML->validation(1);
-  $self->set_doc($self->parser()->parse_file($self->file));
+  my $parser=$self->parser();
+  return unless $parser;
+  $parser->load_ext_dtd(1);
+  $parser->validation(1);
+  $self->set_doc($parser->parse_file($self->file));
 }
 
 sub save {
