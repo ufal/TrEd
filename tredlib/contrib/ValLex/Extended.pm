@@ -116,7 +116,7 @@ sub new_frame_element {
 sub new_element_form {
   my ($self, $eldom, $form)=@_;
 
-  $formdom = $self->doc()->createElement('form');
+  my $formdom = $self->doc()->createElement('form');
   $eldom->appendChild($formdom);
   do {{
     $form = $self->parseFormPart($form,0,$formdom);
