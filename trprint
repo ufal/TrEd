@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-11-07 16:36:40 pajas>";
+$timestamp="Time-stamp: <2002-01-18 17:21:42 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -148,7 +148,7 @@ if (defined $opt_c) {
 } else {
   set_default_config_file_search_list();
 }
-$set_user_config=\&setConfig;	# trprint specific configuration
+#$set_user_config=\&setConfig;	# trprint specific configuration
 
 my $configFile=read_config();
 $opt_M=$maximizePrintSize;
