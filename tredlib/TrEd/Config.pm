@@ -285,7 +285,7 @@ sub set_config {
       $font='-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc;
     }
   }
-  
+  # print "USING FONT $font\n";
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
