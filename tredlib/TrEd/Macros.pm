@@ -7,7 +7,6 @@ BEGIN {
 
   use TrEd::Convert;
   use Exporter  ();
-  use Tk;			# Tk::strictMotif
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK 
               $macrosEvaluated $FileNotSaved $forceFileSaved
               $root $this);

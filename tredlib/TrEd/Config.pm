@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-07-24 16:21:31 pajas>
+# Time-stamp: <2001-07-25 09:51:25 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -10,7 +10,7 @@ package TrEd::Config;
 
 BEGIN {
   use Exporter  ();
-  use Tk;			# Tk::strictMotif
+#  use Tk;			# Tk::strictMotif
   use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK @config_file_search_list);
   @ISA=qw(Exporter);
   $VERSION = "0.1";
