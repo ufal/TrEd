@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-11-24 18:31:59 pajas>
+## Time-stamp: <2003-11-27 12:56:46 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -202,46 +202,6 @@ sub goto_father {
 
 #bind edit_lemma_tag to Ctrl+T
 sub edit_lemma_tag {
-  my $form = $this->{form};
-  $form =~ s/\\/\\\\/g;
-  $form =~ s/'/\\'/g;
-  print STDERR "exec: morph '$form'\n";
-  open my $fh,"morph '$form' |";
-  binmode($fh,":encoding(iso-8859-2)") if ($]>=5.008);
-  my $morph = join("",<$fh>);
-  close($fh);
-  print STDERR "$morph\n";
-  my $lemma;
-  my @morph = split /(<.*?>)/,$morph;
-  my @val;
-  my @sel;
-  shift @morph;
-  while (@morph) {
-    my $tag   = shift @morph;
-    my $value = shift @morph;
-    chomp $value;
-    if ($tag =~ /^<MMl/) {
-      print STDERR "lemma: $value\n";
-      $lemma = $value;
-    } elsif ($tag =~ /^<MMt/) {
-      print STDERR "tag: $value $lemma\n";
-      push @val, "$value $lemma";
-    } else {
-      print STDERR "ignoring: $tag $value\n";
-    }
-  }
-  @sel=grep { $_ eq "$this->{tag} $this->{lemma}" } @val;
-  listQuery("Select tag for $this->{form}",
-	    'browse',
-	    \@val,
-	    \@sel) || do { ChangingFile(0); return };
-  if (@sel) {
-    ($this->{tag},$this->{lemma})=split " ",$sel[0],2;
-    $this->{err1} = 'LEMMA_TAG_CHANGED';
-    ChangingFile(1);
-    return 1;
-  }
-  ChangingFile(0);
-  return 0;
+  Analytic_Correction::edit_lemma_tag();
 }
 
