@@ -89,11 +89,10 @@ sub switch_context_hook {
 # hook coref assignment to node-release event
 sub node_release_hook {
   my ($node,$target,$mod)=@_;
-  print "node_release_hook: ",join(",",@_),"\n";
 
   return unless $target;
   my $type;
-  print "MODE: $mod\n";
+  # print "MODE: $mod\n";
   if ($mod eq 'Shift') {
     $type='grammatical';
   } elsif ($mod eq 'Control') {
@@ -104,7 +103,7 @@ sub node_release_hook {
     $type=$selection->[0];
   } else {
     # Ignoring this mode
-    print $mod,"\n";
+    # print $mod,"\n";
     return 'stop';
   } 
   assign_coref($node,get_ID_for_coref($target),$type);
