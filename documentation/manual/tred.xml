@@ -2206,18 +2206,6 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
 	  </row>
 	  <row>
-	    <entry><literal>Line-arrow</literal></entry>
-	    <entry><para>One of the values
-		<quote><literal moreinfo="none">first</literal></quote>,
-		<quote><literal moreinfo="none">both</literal></quote>,
-		<quote><literal moreinfo="none">last</literal></quote>,
-		may be used to make arrow to be drawn
-		on one or both sides of the edge connecting
-		the given node with its parent.
-	      </para>
-	    </entry>
-          </row>
-	  <row>
 	    <entry><literal>Line-</literal><replaceable>feature</replaceable></entry>
 	    <entry><para>Features
 		<literal moreinfo="none">dash</literal>,
