@@ -7,9 +7,12 @@ $ChooserHideObsolete=1;
 $frameid_attr="frameid";
 $framere_attr="framere";
 $vallexEditor=undef;
+$vallex_validate = 0;
+$vallex_file = "$libDir/contrib/ValLex/vallex.xml";
 
 #$XMLDataClass="TrEd::ValLex::JHXMLData";
 #$XMLDataClass="TrEd::ValLex::LibXMLData";
+
 
 sub init_XMLDataClass {
 
@@ -21,17 +24,18 @@ sub init_XMLDataClass {
     POSIX::setlocale(POSIX::LC_COLLATE,
 		     $TrEd::Convert::support_unicode ? "cs_CZ.UTF8" : "cs_CZ");
 EOF
-  eval { require XML::JHXML; };
-  if ($@) {
-    print STDERR "Using LibXML\n" if $::tredDebug;
-    eval { require XML::LibXML; };
-    die $@ if $@;
-    $XMLDataClass="TrEd::ValLex::LibXMLData";
-  } else {
-    print STDERR "Using JHXML\n" if $::tredDebug;
-    $XMLDataClass="TrEd::ValLex::JHXMLData";
+  unless (defined $XMLDataClass) {
+    eval { require XML::JHXML; };
+    if ($@) {
+      print STDERR "Using LibXML\n" if $::tredDebug;
+      eval { require XML::LibXML; };
+      die $@ if $@;
+      $XMLDataClass="TrEd::ValLex::LibXMLData";
+    } else {
+      print STDERR "Using JHXML\n" if $::tredDebug;
+      $XMLDataClass="TrEd::ValLex::JHXMLData";
+    }
   }
-
   if ($XMLDataClass eq "TrEd::ValLex::JHXMLData") {
     require ValLex::JHXMLData;
   } elsif ($XMLDataClass eq "TrEd::ValLex::LibXMLData") {
@@ -97,18 +101,19 @@ sub InitFrameData {
     my $info;
     eval {
       if ($^O eq "MSWin32") {
+	$vallex_file =~ s{/}{\\}g;
 	#### we may leave this commented out since 1. LibXML is fast enough and
 	#### 2. it does not work always well under windows
 	#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 
 	$FrameData=
-	  $XMLDataClass->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv,1);
+	  $XMLDataClass->new($vallex_file,$conv,!$vallex_validate);
       } else {
 	$info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 	$FrameData=
-	  $XMLDataClass->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
-			     "$libDir/contrib/ValLex/vallex.xml.gz" :
-			     "$libDir/contrib/ValLex/vallex.xml",$conv,1);
+	  $XMLDataClass->new(-f "${vallex_file}.gz" ?
+			     "${vallex_file}.gz" :
+			     "${vallex_file}",$conv,!$vallex_validate);
       }
     };
     my $err=$@;
