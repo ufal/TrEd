@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-01-09 18:17:21 pajas>
+## Time-stamp: <2005-01-29 17:35:16 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -347,6 +347,13 @@ sub prepend_commentA {
 }
 
 
+=item hash_AIDs_file
+
+Returns hash-ref of all nodes in the current file, nodes' AIDs or TIDs
+being the keys and the nodes themselves being the values.
+
+=cut
+
 sub hash_AIDs_file {
   my %aids;
   foreach my $tree (GetTrees()) {
@@ -359,6 +366,12 @@ sub hash_AIDs_file {
   return \%aids;
 }
 
+=item hash_AIDs_file
+
+Returns hash-ref of all nodes in the current tree, nodes' AIDs or TIDs
+being the keys and the nodes themselves being the values.
+
+=cut
 
 sub hash_AIDs {
   my %aids;

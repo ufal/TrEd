@@ -2494,7 +2494,7 @@ sub add_Gen_ACT {
 
   $sPar1 = '&Gen;';
 
-  $sPar2 = '';
+  $sPar2 = 'ACT';
 
   NewSubject();
 
@@ -2506,7 +2506,7 @@ sub add_Cor_ACT {
 
   $sPar1 = '&Cor;';
 
-  $sPar2 = '';
+  $sPar2 = 'ACT';
 
   NewSubject();
 
@@ -2525,12 +2525,24 @@ sub add_on_ACT {
 }
 
 
+#bind add_Neg_RHEM to 0 menu Doplnit &Neg;.RHEM pod akt. vrchol
+sub add_Neg_RHEM {
+
+  $sPar1 = '&Neg;';
+
+  $sPar2 = 'RHEM';
+
+  NewSubject();
+
+}
+
+
 #bind add_Forn_ACT to 8 menu Doplnit Forn.ACT pod akt. vrchol
 sub add_Forn_ACT {
 
   $sPar1 = '&Forn;';
 
-  $sPar2 = '';
+  $sPar2 = 'ACT';
 
   NewSubject();
 
@@ -6984,11 +6996,13 @@ sub NewSubject {
   my $sPoradi;			# used as type "string"
   my $sDord;			# used as type "string"
   my $sLemma;			# used as type "string"
+  my $sFunc;			# used as type "string"
   my $sTID;			# used as type "string"
 
   $sPasteNow = '';
 
   $sLemma = $sPar1;
+  $sFunc = $sPar2;
   UnGap();
 
   ThisRoot();
@@ -7133,7 +7147,7 @@ sub NewSubject {
 
   $pNew->{'trlemma'} = $sLemma;
 
-  $pNew->{'func'} = 'ACT';
+  $pNew->{'func'} = $sFunc;
 
   $pNew->{'del'} = 'ELID';
 
