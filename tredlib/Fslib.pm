@@ -1924,19 +1924,34 @@ sub readFile {
   my $url=$filename;
   my $ret = 1;
   return unless ref($self);
-
+  my $remove_filename = 0;
   if ($filename=~m(^\s*(?:https?|ftp|gopher|news|file):)) {
     eval('require LWP::Simple;
           require POSIX;
           $filename=POSIX::tmpnam();
           LWP::Simple::is_success(LWP::Simple::getstore($url,$filename)) ||
-          die "Error occured while fetching URL $url\n";');
+          die "Error occured while fetching URL $url\n";
+          $remove_filename = 1;
+          ');
     warn $@ if $@;
   }
 
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
+    if (eval {
+          $backend->can('test') &&
+          $backend->can('protocol_filter') &&
+          &{"${backend}::test"}($filename,$self->encoding);
+	}) {
+      eval {
+	$filename = $backend->protocol_filter($filename,'r');
+      };
+      if ($@) {
+	print STDERR "Error occured while filtering protocol '$filename':\n";
+      }
+      redo;
+    }
     if (eval {
 	  $backend->can('test')
 	  && $backend->can('read')
@@ -1965,7 +1980,7 @@ sub readFile {
     print STDERR "fail\n" if $Fslib::Debug;
     print STDERR "$@\n" if $@;
   }
-  if ($url ne $filename) {
+  if ($url ne $filename and $remove_filename) {
     unlink $filename || warn "couldn't unlink tmp file $filename\n";
   }
   return $ret;
@@ -2613,15 +2628,16 @@ sub value_line_list {
   my $val=$fsfile->FS->value();
   $attr=$fsfile->FS->order() unless (defined($attr));
   while ($node) {
-    push @sent,$node unless ($node->getAttribute($val) eq '???' or
-			     $node->getAttribute($attr)>=999); # this is TR specific stuff
+    push @sent,$node unless ($node->{$val} eq '' or
+			     $node->{$val} eq '???' or
+			     $node->{$attr}>=999); # this is TR specific stuff
     $node=$node->following();
   }
-  @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
+  @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
   if ($wantnodes) {
-    return (map { [$_->getAttribute($val),$_] } @sent);
+    return (map { [$_->{$val},$_] } @sent);
   } else {
-    return (map { $_->getAttribute($val) } @sent);
+    return (map { $_->{$val} } @sent);
   }
 }
 
