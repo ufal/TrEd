@@ -214,10 +214,11 @@ sub read_macros {
 	  }
 	} elsif (/^\#\s*(if)?include\s+(.+\S)\s*$/) {
 	  my $f=$2;
+	  my $if = $1;
 	  if ($f=~m%^/%) {
 	    read_macros($f,$libDir,1,@contexts);
 	    push @macros,"\n#line $line \"$file\"\n";
-	  } elsif ($1 ne 'if') {
+	  } else {
 	    my $mf=$f;
 	    print STDERR "including $mf\n" if $macroDebug;
 	    unless (-f $mf) {
@@ -231,7 +232,7 @@ sub read_macros {
 	    if (-f $mf) {
 	      read_macros($mf,$libDir,1,@contexts);
 	      push @macros,"\n#line $line \"$file\"\n";
-	    } else {
+	    } elsif ($if ne 'if') {
 	      die
 		"Error including macros $mf\n from $file: ",
 		  "file not found!\n";
