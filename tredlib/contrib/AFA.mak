@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2002-02-19 09:48:03 pajas>
+## Time-stamp: <2002-07-23 16:32:28 pajas>
 
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require AFA;
@@ -137,6 +137,9 @@ sub assign_func_auto {
     $prec="10/2";
   } else {
     ($node->{funcauto},$prec)=AFA::AutoFunctor($p->{tag},$node->{tag},$pa,$na,$node->{fw});
+    if ($node->{funcauto} eq '') {
+      $node->{funcauto} = '???';
+    }
   }
   $node->{funcprec}=$prec;
   $prec=~m!([0-9.]+)/([0-9.]+)!;
