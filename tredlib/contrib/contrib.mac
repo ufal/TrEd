@@ -8,6 +8,9 @@
 #binding-context Tectogrammatic
 #include <contrib/tr.mak>
 
+#binding-context PMLTectogrammatic
+#include <contrib/pml.mak>
+
 #binding-context TFA
 #include <contrib/tfa.mak>
 
