@@ -1,6 +1,6 @@
 ## This is a XML backend for FSLib                           -*-cperl-*-
 ## author: Petr Pajas
-# Time-stamp: <2001-08-27 16:20:46 pajas>
+# Time-stamp: <2003-03-05 12:30:42 pajas>
 
 #############################################################
 
@@ -333,7 +333,8 @@ file after the test has read few characters or lines from it.
 sub test {
   my ($f)=@_;
   if (ref($f)) {
-    return $f->getline()=~/\<\?xml /;
+    return ($f->getline()=~/\s*\<\?xml / &&
+	    $f->getline()=~/\<!DOCTYPE trees[ >]|\<trees[ >]/i);
   } else {
     my $fh = open_backend($f,"r");
     my $test = $fh && test($fh);
