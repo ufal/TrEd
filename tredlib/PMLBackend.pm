@@ -127,16 +127,6 @@ sub read ($$) {
 }
 
 
-sub absolutize_path ($$) {
-  my ($orig, $href)=@_;
-  if ($href !~ m{^[[:alnum:]]+:|^/}) {
-    $orig =~ m{^(.*\/)};
-    return $1.$href;
-  } else {
-    return $href;
-  }
-}
-
 sub read_references {
   my ($fsfile,$dom_root)=@_;
   my %references;
@@ -149,13 +139,12 @@ sub read_references {
 	my $id = $reffile->getAttribute('id');
 	my $name = $reffile->getAttribute('name');
 	$named_references{ $name } = $id if $name;
-	$references{ $id } =
-	  absolutize_path($fsfile->filename,$reffile->getAttribute('href'));
+	$references{ $id } = Fslib::ResolvePath($fsfile->filename,$reffile->getAttribute('href'),0);
       }
     }
     my ($schema) = $head->getElementsByTagNameNS(PML_NS,'schema');
     if ($schema) {
-      my $schema_file = absolutize_path($fsfile->filename,$schema->getAttribute('href'));
+      my $schema_file = Fslib::ResolvePath($fsfile->filename,$schema->getAttribute('href'),1);
       $fsfile->changeMetaData('schema-url',$schema_file);
       $fsfile->changeMetaData('schema',Fslib::Schema->readFrom($schema_file));
     }
