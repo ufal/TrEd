@@ -938,6 +938,8 @@ This option may be specified more than once with different modules.
 
   ntred --kill [--servers server[,server,...]] [--serverlist server-list]
 
+  ntred --break
+
   ntred --dump-files [--filelist file-list] [file [...]]
 
   ntred --upload-file filename < fs-file
@@ -952,6 +954,12 @@ Start remote btred servers and a hub. See L<"HUB/SERVER MODE"|"HUB/SERVER MODE (
 =item B<--quit>
 
 Sends the hub and all the servers a command to quit.
+
+=item B<--break>
+
+Tells ntred nub to send USR1 a signal to all running btred servers.
+Upon receiving that signal, the servers should stop current processing
+and return to the request awaiting state.
 
 =item B<--kill>
 
