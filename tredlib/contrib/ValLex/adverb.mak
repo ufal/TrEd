@@ -17,11 +17,12 @@ sub ChooseAdverbFunc {
   }
   return unless $AdvLexiconData;
   require TrEd::CPConvert;
+  require TrEd::Convert;
   my $conv= TrEd::CPConvert->new("utf-8",
 				 ($^O eq "MSWin32") ?
 				 "windows-1250":
 				 "iso-8859-2");
-  my $lemma=$this->{trlemma};
+  my $lemma=TrEd::Convert::encode($this->{trlemma});
   my $func=show_adverbs_dialog($top,$AdvLexiconData,$conv,$lemma,$this->{func});
   if ($func) {
     $this->{func}=$func;
