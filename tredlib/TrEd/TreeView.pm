@@ -27,7 +27,7 @@ use strict;
   edgeLabelSkipBelow pinfo textColor xmargin nodeOutlineColor
   nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
   textColorShadow textColorHilite textColorXHilite
-  useAdditionalEdgeLabelSkip reverseNodeOrder ballanceTree);
+  useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree);
 
 %DefaultNodeStyle = (
 	      Oval            =>  [],
@@ -307,7 +307,7 @@ sub getTextWidth {
   return $self->canvas->fontMeasure($self->get_font,$text);
 }
 
-sub ballance_xfix_node {
+sub balance_xfix_node {
   my ($self, $xfix, $node, $visible) = @_;
   my @c = grep { exists $visible->{$_} } $node->children;
   $xfix += $self->get_node_pinfo($node,"XFIX");
@@ -318,13 +318,13 @@ sub ballance_xfix_node {
     $self->store_node_pinfo($c,"NodeLabel_XPOS",
 			    $self->get_node_pinfo($c,"NodeLabel_XPOS")+
 			    $xfix);
-    ballance_xfix_node($self,$xfix,$c,$visible);
+    balance_xfix_node($self,$xfix,$c,$visible);
   }
 }
 
-# this routine computes node XPos in ballanced mode
-sub ballance_node {
-  my ($self, $baseX, $node, $visible, $ballanceOpts) = @_;
+# this routine computes node XPos in balanced mode
+sub balance_node {
+  my ($self, $baseX, $node, $visible, $balanceOpts) = @_;
   my $last_baseX = $baseX;
   my $xskip = $self->get_nodeXSkip;
   my $i=0;
@@ -332,7 +332,7 @@ sub ballance_node {
 #  $last_baseX+=$self->get_node_pinfo($node,"Before");
   my @c = grep { exists $visible->{$_} } $node->children;
   foreach my $c (@c) {
-    $last_baseX = $self->ballance_node($last_baseX,$c,$visible,$ballanceOpts);
+    $last_baseX = $self->balance_node($last_baseX,$c,$visible,$balanceOpts);
     $last_baseX += $xskip;
   }
   $last_baseX -= $xskip if @c;
@@ -341,14 +341,14 @@ sub ballance_node {
     $xpos = $last_baseX+$self->get_node_pinfo($node,"XPOS");
   } else {
     if (scalar(@c) % 2 == 1) { # odd number of nodes
-      if ($ballanceOpts->[0]) { # ballance on middle node
+      if ($balanceOpts->[0]) { # balance on middle node
 	$xpos =$self->get_node_pinfo($c[$#c/2],"XPOS");
       } else {
 	$xpos =($self->get_node_pinfo($c[$#c],"XPOS")
 		+ $self->get_node_pinfo($c[0],"XPOS"))/2;
       }
     } else { # even number of nodes
-      if ($ballanceOpts->[1]) {
+      if ($balanceOpts->[1]) {
 	$xpos =
 	  ($self->get_node_pinfo($c[1+$#c/2],"XPOS") +
 	   $self->get_node_pinfo($c[$#c/2],"XPOS"))/2;
@@ -454,11 +454,15 @@ sub recalculate_positions {
 #       }
 #     }
 #   }
-  my $ballance= exists($Opts->{ballance}) ? 
-    $Opts->{ballance} : $self->get_ballanceTree;
+  if (exists($Opts->{ballance})) {
+    print STDERR "Use 'balance' instead of misspelled 'ballance'!\n";
+    $Opts->{balance}=$Opts->{ballance} unless (exists($Opts->{balance}));
+  }
+  my $balance= exists($Opts->{balance}) ? 
+    $Opts->{balance} : $self->get_balanceTree;
 
-  my $ballanceOpts = [$ballance =~ /^aboveMiddleChild(Odd$|$)/ ? 1 : 0,
-		      $ballance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0];
+  my $balanceOpts = [$balance =~ /^aboveMiddleChild(Odd$|$)/ ? 1 : 0,
+		      $balance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0];
 
   foreach $node (@{$nodes}) {
     $level=0;
@@ -564,7 +568,7 @@ sub recalculate_positions {
     $self->store_node_pinfo($node,"EdgeLabelWidth",$edgeLabelWidth);
     $self->store_node_pinfo($node,"After",$xSkipAfter);
     $self->store_node_pinfo($node,"Before",$xSkipBefore);
-    if ($ballance) {
+    if ($balance) {
       #$xSkipBefore+
       $xpos = $self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
     } else {
@@ -588,14 +592,14 @@ sub recalculate_positions {
     push @zero_level, $node if ($level == 0);
   }
 
-  if ($ballance) {
+  if ($balance) {
     my %nodes; @nodes{@$nodes}=();
     my $baseX = $baseXPos;
     foreach my $c (@zero_level) {
-      $baseX = $self->ballance_node($baseX,$c,\%nodes,$ballanceOpts);
+      $baseX = $self->balance_node($baseX,$c,\%nodes,$balanceOpts);
     }
     foreach my $c (@zero_level) {
-      $self->ballance_xfix_node(0,$c,\%nodes);
+      $self->balance_xfix_node(0,$c,\%nodes);
     }
     $canvasWidth = $baseX;
   }
