@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-01-31 16:47:02 pajas>
+## Time-stamp: <2002-02-06 10:24:35 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -12,6 +12,10 @@
 
 #include contrib/ValLex/chooser.mak
 #include contrib/ValLex/adverb.mak
+
+#bind OpenEditor to Ctrl+Shift+Return menu Zobraz valenèní slovník
+
+
 #bind choose_frame_or_advfunc to Ctrl+Return menu Vyber ramec pro sloveso, funktor pro adverbium
 
 sub choose_frame_or_advfunc {
@@ -515,6 +519,7 @@ sub FPaste {
     $pPasted=PasteNode($NodeClipboard,$pThis);
     $pPasted->{'dord'} = "-1";
     $pPasted->{'del'} = 'ELID';
+    $pPasted->{'form'} = '???';
     $sPar1 = $sDord;
     $sPar2 = "1";
     ShiftDords();
