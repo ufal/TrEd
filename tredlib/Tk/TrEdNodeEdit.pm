@@ -20,6 +20,8 @@ use vars qw(%colors %bitmap);
   alt => "#CDFFC3",
   list => "#FFCEA9",
   struct => "#FFFFA7",
+  sequence => "#B0C1FF",
+  constant => "#F6E9D1",
   fg => '#800000',
   bg => '#F6E9D1'
  );
@@ -84,8 +86,15 @@ sub Populate {
 			  -background => $colors{list},
 			  -pady => 0
 			 ),
+    sequence =>  $w->ItemStyle('text', -foreground=>'#800000',
+			       -background => $colors{sequence},
+			       -pady => 0
+			      ),
     struct => $w->ItemStyle('text', -foreground=>'#800000',
 			    -background => $colors{struct},
+			   ),
+    constant => $w->ItemStyle('text', -foreground=>'black',
+			    -background => $colors{constant},
 			   ),
     alt => $w->ItemStyle('text', -foreground=>$colors{fg},
 			 -background => $colors{alt},
@@ -487,6 +496,12 @@ sub add_list_member {
   return $hlist->add_member($path."/",$mtype->{list},$val,'['.$list_no.']',$allow_empty,$entry_opts);
 }
 
+sub add_sequence_member {
+  my ($hlist,$path,$mtype,$val,$list_no,$entry_opts)=@_;
+  return $hlist->add_member($path."/",$mtype->{element},$val,'['.$list_no.']',1,$entry_opts);
+}
+
+
 sub next_sibling {
   my ($hlist,$path,$where)=@_;
   $where ||= 'next';
@@ -507,11 +522,12 @@ sub next_sibling {
 sub add_member {
   my ($hlist,$base_path,$member,$attr_val,
       $attr_name,$allow_empty,$entry_opts)=@_;
-  my $mtype = $hlist->schema->resolve_type($member);
-
-#  if (ref($mtype) and $mtype->{knit}) {
-#    $mtype = $hlist->schema->resolve_type($mtype->{knit});
-#  }
+  my $mtype;
+  if (!ref($member) and $member =~ /^#/) {
+    $mtype = $member;
+  } else {
+    $mtype = $hlist->schema->resolve_type($member);
+  }
   return if ref($mtype) and $mtype->{role} eq '#CHILDNODES';
   my $path = $base_path.$attr_name;
   my $data = {type => $mtype,
@@ -523,7 +539,12 @@ sub add_member {
 		       ($attr_name =~ /^\[\d+\]$/) ? ' ' : "  ".$attr_name,
 		     -style => $hlist->{my_itemstyles}{default}
 		    );
-  if (!ref($mtype)) {
+  if ($mtype eq '#type') {
+    $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{text});
+    $hlist->itemCreate($path,1,-itemtype => 'text',
+		       -text => $attr_val,
+		       -style => $hlist->{my_itemstyles}{text});
+  } elsif (!ref($mtype)) {
     my $w = $hlist->Frame(-background => 'white', #'gray',
 			  -borderwidth => 1
 			 );
@@ -554,7 +575,7 @@ sub add_member {
 		       -widget => $w,
 		       -style => $hlist->{my_itemstyles}{entries}
 		      );
-  } elsif ($mtype->{choice}) {
+  } elsif (exists $mtype->{choice}) {
     $data->{value} = $attr_val;
     my $w = $hlist->JComboBox_0_02(
 
@@ -598,14 +619,18 @@ sub add_member {
 		       -widget => $w,
 		       -style => $hlist->{my_itemstyles}{entries}
 		      );
-  } elsif ($mtype->{member} or $mtype->{attribute}) {
-
+  } elsif (exists $mtype->{constant}) {
+    $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{constant});
+    $hlist->itemCreate($path,1,-itemtype => 'text',
+		       -text => $mtype->{constant},
+		       -style => $hlist->{my_itemstyles}{constant});
+  } elsif (exists $mtype->{structure}) {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => 'Structure',
 		       -style => $hlist->{my_itemstyles}{struct});
-    $hlist->add_members($path."/",$mtype,$attr_val);
-  } elsif ($mtype->{list}) {
+    $hlist->add_members($path."/",$mtype->{structure},$attr_val);
+  } elsif (exists $mtype->{list}) {
     my $list_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
     $hlist->itemCreate($path,1,-itemtype => 'text',
@@ -625,7 +650,26 @@ sub add_member {
       $hlist->add_list_member($path,$mtype,$attr_val,$list_no);
     }
     $data->{list_no}=$list_no;
-  } elsif ($mtype->{alt}) {
+  } elsif (exists $mtype->{sequence}) {
+    my $list_no=0;
+    $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
+    if ($mtype->{role} ne '#CHILDREN') {
+      $hlist->itemCreate($path,1,-itemtype => 'text',
+			 -text => 'XML sequence',
+			 -style => $hlist->{my_itemstyles}{sequence});
+      if ($attr_val) {
+	foreach my $element (@{$attr_val}) {
+	  $list_no++;
+	  $hlist->add_sequence_member($path,$mtype->{sequence},$element,$list_no);
+	}
+      }
+    } else {
+      $hlist->itemCreate($path,1,-itemtype => 'text',
+			 -text => 'child nodes',
+			 -style => $hlist->{my_itemstyles}{sequence});
+    }
+    $data->{list_no}=$list_no;
+  } elsif (exists $mtype->{alt}) {
     my $alt_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{alt});
     $hlist->itemCreate($path,1,-itemtype => 'text',
@@ -657,12 +701,10 @@ sub add_member {
 }
 
 sub add_members {
-  my ($hlist,$base_path,$type,$node)=@_;
+  my ($hlist,$base_path,$type,$node,$allow_empty)=@_;
   my $members = $type->{member};
-  my $attributes = $type->{attribute};
-  foreach my $attr (sort(keys %$attributes),
-		    sort(keys %$members)) {
-    my $member = $attributes->{$attr} || $members->{$attr};
+  foreach my $attr (sort(keys %$members)) {
+    my $member = $members->{$attr};
     if (ref($member) and $member->{role} eq '#KNIT') {
       if (exists($node->{$attr})) {
 	$member='PMLREF'
@@ -670,7 +712,24 @@ sub add_members {
 	$attr=~s/\.rf$//;
       }
     }
-    $hlist->add_member($base_path,$member,($node ? $node->{$attr} : undef), $attr,);
+    $hlist->add_member($base_path,$member,($node ? $node->{$attr} : undef), $attr,$allow_empty);
+  }
+}
+
+sub add_xmlnode {
+  my ($hlist,$base_path,$type,$node)=@_;
+  if ($node) {
+    $hlist->add_member($base_path,'#type',$node->{'#type'}, '#type');
+    if ($node->{'#type'} =~ /element/) {
+      $hlist->add_member($base_path,'#name',$node->{'#name'}, '#name');
+      $hlist->add_member($base_path,'#ns',$node->{'#ns'}, '#ns') if $node->{'#type'} eq 'element';
+      if ($type->{attribute}) {
+	foreach my $atr (sort keys (%{$type->{attribute}})) {
+	  $hlist->add_member($base_path,$type->{attribute}{$atr},$node->{$atr},$atr);
+	}
+      }
+    }
+    $hlist->add_member($base_path,$type,$node->{'#content'}, '#content');
   }
 }
 
