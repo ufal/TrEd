@@ -2833,7 +2833,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry id="sgmlsopts">
+	<varlistentry id="cstcdoctype">
 	  <term><literal>CSTSDoctype</literal></term>
 	  <listitem>
 	    <para>
