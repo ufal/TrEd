@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-02 17:55:25 pajas>
+# Time-stamp: <2001-02-06 10:53:22 pajas>
 #
 # TrEd ver. 0.5 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -451,39 +451,81 @@ sub readMacros {
   # (this probabbly depends on platform too :( ).
 
 
-  my ($file)=@_;
+  my ($file,$keep)=(shift,shift);
   my $nextBind=undef;
   my $macro;
   my $key;
   local *F;
+  my @contexts=@_;
 
-  %keyBindings=();
-  %menuBindings=();
-  @macros=();
-
-  print "ERROR: Cannot open macros!\n", return
-    unless open(F,"<$defaultMacroFile");
-  push @macros, <F>;
+  @contexts=("default") unless (@contexts);
+  unless ($keep) {
+    %keyBindings=();
+    %menuBindings=();
+    @macros=();
+    print "ERROR: Cannot open macros!\n", return
+      unless open(F,"<$defaultMacroFile");
+    push @macros, <F>;
+  }
   close F;
 
   print "ERROR: Cannot open macros!\n", return
     unless open(F,"<$file");
 
+#
+# new "pragmas":
+#
+# include <file>
+# include "file"
+#
+# binding-context <context> [<context> [...]]
+#
+# bind <method> [to] [key[sym]] <key> [menu <menu>[/submenu[/...]]]
+#
+# insert <method> [as] [menu] <menu>[/submenu[/...]]
+#
+
+
   while (<F>) {
     push @macros,$_;
-    if (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
-      $macro=$1;
-      $key=uc($2);
-      $menu=$3;
-      #print "binding $key [$menu] => $macro\n";
-      $keyBindings{$key}=$macro;
-      $menuBindings{$menu}=[$macro,$key] if ($menu);
-    } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
-      $macro=$1;
-      $menu=$2;
-      #print "binding [$menu] => $macro\n";
-      $menuBindings{$menu}=[$macro,undef];
+    if (/\#[ \t]*binding-context[ \t]+(.*)/) {
+      @contexts=(split /[ \t]+/,$1);
     }
+    elsif (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/)
+      {
+	$macro=$1;
+	$key=uc($2);
+	$menu=$3;
+	#print "binding $key [$menu] => $macro\n";
+	foreach (@contexts) {
+	  $keyBindings{$_}={} unless exists($keyBindings{$_});
+	  $keyBindings{$_}->{$key}=$macro;
+	  if ($menu) {
+	    $menuBindings{$_}={} unless exists($menuBindings{$_});
+	    $menuBindings{$_}->{$menu}=[$macro,$key] if ($menu);
+	  }
+	}
+      } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
+	$macro=$1;
+	$menu=$2;
+	foreach (@contexts) {
+	  $menuBindings{$_}={} unless exists($menuBindings{$_});
+	  $menuBindings{$_}->{$menu}=[$macro,$key] if ($menu);
+	}
+      } elsif (/\#[[ \t]*include[ \t]+(.+)/) {
+	my $mf=$1;
+	unless (-f $mf) {
+	  $mf=dirname($file).$mf;
+	  unless (-f $mf) {
+	    $mf="$libDir/$mf";
+	  }
+	}
+	if (-f $mf) {
+	  readMacros($mf,1,@contexts);
+	} else {
+	  print STDERR "Cannot include macros $1: file not found!\n";
+	}
+      }
   }
   close(F);
 }
@@ -647,6 +689,7 @@ sub openFile {
       centerToXY($grp,0,0);
     }
     getNodes($grp);
+    doEvalHook($grp,"file_opened_hook");
     $FileNotSaved=0;
     redraw_tree($grp);
     $grp->{'top'}->Unbusy();
@@ -1141,6 +1184,7 @@ sub printThis {
   return 1;
 }
 
+
 sub gotoTree {
   my $no = max(0,min(shift,$#trees));
   my ($grp)=@_;
@@ -1286,6 +1330,20 @@ sub addBindTags {
 
 }
 
+sub cascadeMenus {
+  my $uM=[ @_[0..min($maxMenuLines-1,$#_)] ];
+  my $uuM=$uM;
+  $i=$maxMenuLines;
+  while ($i<=$#_) {
+    $_=[@_[$i..min($i+$maxMenuLines-1,$#_)]];
+    push @$uuM,[Cascade => 'More...', -menuitems => $_];
+    $uuM=$_;
+    $i+=$maxMenuLines;
+  }
+  return $uM;
+}
+
+
 sub startMain {
   my $firstFile=shift;
   my $node;
@@ -1293,6 +1351,7 @@ sub startMain {
   my %group;
 
   $group{top}=MainWindow->new;
+  $group{macroContext}='Default';
   print STDERR "Main window created.\n";
 
   if (-f $appIcon) {
@@ -1370,6 +1429,7 @@ sub startMain {
 	  -variable => \$highlightAttributes,
 	  -command  => [\&redraw_tree,\%group]],
 	 [Separator => ''],
+	 [Button => 'Customize Attributes ...', -command => [\&customAttrsDialog,\%group]],
 	 [Button => 'Visible Attributes ...', -command => [\&selectAttrs,\%group]]
 	])->pack(qw/-side left/);
   $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/ =>
@@ -1413,51 +1473,58 @@ sub startMain {
 			   if ($grp->{currentNode});
 		       },\%group,\%searchTemplate]],
 	])->pack(qw/-side left/);
+  print STDERR "Creating user menu.\n";
 
-  print STDERR "Creating user menubar.\n";
-
-  my @umenus = map (
-		    [Button => $_,
-		   -command => [\&doEvalMacro,\%group,$menuBindings{$_}->[0]],
-		     ($menuBindings{$_}->[1]) ?
-		     (-accelerator => "(".$menuBindings{$_}->[1].")") : ()],
-		    sort(keys(%menuBindings)));
-  my $uM,$uuM;
-  $uM=[ @umenus[0..min($maxMenuLines-1,$#umenus)] ];
-  $uuM=$uM;
-  my $i=$maxMenuLines;
-  while ($i<=$#umenus) {
-    $_=[@umenus[$i..min($i+$maxMenuLines-1,$#umenus)]];
-    push @$uuM,[Cascade => 'More...', -menuitems => $_];
-    $uuM=$_;
-    $i+=$maxMenuLines;
+  my $cM=[];
+  foreach my $context (sort(keys(%menuBindings))) {
+    push @$cM, 
+      [Cascade => $context,
+       -menuitems =>
+       cascadeMenus(map ([Button => $_,
+			  -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
+			  ($menuBindings{$context}->{$_}->[1]) ?
+			  (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
+			 sort(keys(%{$menuBindings{$context}}))))];
   }
-
-
-  $group{UserMenu}=$group{Menubar}->Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
-					       $uM)->pack(qw/-side left/);
-
+  $group{UserMenu}=$group{Menubar}->
+    Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
+	       $cM)->pack(qw/-side left/);
+  $cM=[];
   if ($createMacroMenu) {
-    @umenus =  map (
-		    [Button => $keyBindings{$_},
-		     -command => [\&doEvalMacro,\%group,$keyBindings{$_}],
-		     -accelerator => "($_)"
-		    ],
-		    sort(keys(%keyBindings)));
-
-    $uM=[ @umenus[0..min($maxMenuLines-1,$#umenus)] ];
-    $uuM=$uM;
-    $i=$maxMenuLines;
-    while ($i<=$#umenus) {
-      $_=[@umenus[$i..min($i+$maxMenuLines-1,$#umenus)]];
-      push @$uuM,[Cascade => 'More...', -menuitems => $_];
-      $uuM=$_;
-      $i+=$maxMenuLines;
+    foreach my $context (sort(keys(%keyBindings))) {
+      push @$cM, 
+	[Cascade => $context,
+	 -menuitems =>
+	 cascadeMenus(map ( 
+			   [Button => $keyBindings{$context}->{$_},
+			    -command => [\&doEvalMacro,\%group,$keyBindings{$context}->{$_}],
+			    -accelerator => "($_)"
+			   ], sort(keys(%{$keyBindings{$context}}))))];
     }
-
-    $group{MacroMenu}=$group{Menubar}->Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
-						$uM)->pack(qw/-side left/);
+    $group{MacroMenu}=$group{Menubar}->
+      Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
+		 $cM)->pack(qw/-side left/);
   }
+  
+#    $group{ContextsMenu}=$group{Menubar}->
+#      Menubutton(qw/-underline 0 
+#                 -indicatoron 1/,
+#  	       -textvariable => \$group{macroContext},
+#                 -menuitems =>
+#  	       cascadeMenus(map (
+#  		       [Button => $_,
+#  			#-command => [sub { #$macroContext=shift;
+#  			#		 },$_],
+#  		       ], sort(keys(%keyBindings)))))->pack(qw/-side right/);
+
+  $group{ContextsMenu}=$group{Menubar}->
+    Optionmenu(-textvariable => \$group{macroContext},
+	       -underline => 0,
+	       -relief => $menubarRelief,
+	       -borderwidth => 2,
+	       -options => [sort(keys(%keyBindings))])->pack(qw/-side right/);
+
+
   addBindTags($group{'frame'},'my');
   my $canvas = $group{'top'}->Scrolled('Canvas', -width => $defCWidth,
 				       -height => $defCHeight, 
@@ -1472,8 +1539,15 @@ sub startMain {
 
   $group{'valueLine'}=$group{'top'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
+
+#  $group{'contextLed'}=$group{'top'}->Entry(qw/ -state disabled -relief sunken
+#			   -borderwidth 2 /, -textvariable => \$group{macroContext});
+
   $group{'canvas'}=$canvas;
   addBindTags($canvas,'my');
+
+
+
 
   print STDERR "Creating buttons.\n";
 
@@ -1610,6 +1684,7 @@ sub startMain {
   $group{'valueLine'}->pack(qw/-fill x/);
   $group{'canvas'}->pack(qw/-expand yes -fill both/);
   addBindTags($group{'canvas'},'my');
+#  $group{'contextLed'}->pack(-side => 'bottom');
 
   $group{'canvas'}->focus;
 
@@ -2152,6 +2227,99 @@ sub editAttrsDialog {
 
 }
 
+sub customAttrsDialog {
+  my ($grp)=@_;
+  return if (doEvalHook($grp,"customize_attrs_hook",$node) eq 'stop');
+  my $e;
+
+  $grp->{'top'}->Busy(-recurse =>1);
+  my $d=$grp->{'top'}->
+    DialogBox(-title => "Customize Visible Attributes",
+	      -width => '10c',
+	      -buttons => ["OK", "Cancel"]);
+
+  my $f = $d->Frame();
+  my $al = $f->Scrolled(qw/Listbox -relief sunken 
+                     -borderwidth 2 -setgrid true
+		     -height 15 -scrollbars e
+                     -exportselection 0/);
+  $al->pack(qw/-padx 5 -side left -expand yes -fill both/);
+  $al->insert('end',@atord);
+  my $bf = $f->Frame();
+  my $cl = $f->Scrolled(qw/Listbox -relief sunken 
+                     -borderwidth 2 -setgrid true
+		     -height 15 -scrollbars se
+                     -selectmode extended
+                     -exportselection 0/);
+  $cl->insert('end','   ');
+  my $e = $d->Entry(qw/-relief sunken
+                       -borderwidth 2/);
+
+  $bf->Button(-text => "Add",
+	      -command =>
+	      sub {
+		if ($e->get ne "") {
+		  $cl->insert('active',$e->get);
+		}
+		$e->selectionRange(0,'end');
+	      }
+	     )->pack(-side => top, -expand => yes, -padx => 3, -pady => 3);
+
+  $bf->Button(-text => "Remove",
+	      -command =>
+	      sub {
+		$cl->selectionClear($cl->index('end')-1)
+		  if ($cl->selectionIncludes($cl->index('end')-1));
+		while ($cl->curselection) {
+		  $e->delete(0,'end');
+		  $e->insert('insert',$cl->get(($cl->curselection)[0]));
+		  $cl->delete(($cl->curselection)[0]);
+		}
+	      }
+	     )->pack(-side => top, expand => yes, -padx => 3, -pady => 3);
+
+  $bf->pack(qw/-padx 5 -side left -expand yes -fill both/);
+  $cl->pack(qw/-padx 5 -side left -expand yes -fill both/);
+
+  $f->pack(qw/-side top -expand yes -fill x/);
+  $e->pack(qw/-side bottom -expand yes -fill x/);
+
+  $d->bind('all','<Escape>' =>
+	   [sub { shift;
+		  shift->{'selected_button'}='Cancel';
+		},$d ]);
+  $al->bind('<Double-1>' => 
+	   sub {
+	     $e->delete('sel.first','sel.last')
+	       if ($e->selectionPresent);
+	     $e->insert('insert','${'.$al->get('active').'}');
+	   }
+	  );
+  $cl->bind('<Double-1>' => 
+	   sub {
+	     return if ($cl->index('active') == $cl->index('end')-1);
+	     if ($e->selectionPresent) {
+	       $e->delete('sel.first','sel.last')
+	     }
+	     $e->insert('insert',$cl->get('active'));
+	   }
+	  );
+
+  $d->resizable(0,0);
+  $grp->{'top'}->Unbusy();
+
+  my $result = ShowDialog($d,$e,$grp->{top});
+
+  if ($result =~ /OK/) {
+#    $FileNotSaved=1;
+#    getNodes($grp);
+#    redraw_tree($grp);
+  }
+  $d->destroy;
+  undef $d;
+}
+
+
 sub findNodeDialog {
   my ($grp,$template)=@_;
   my $r;
@@ -2349,8 +2517,10 @@ sub editAttr {
 }
 
 
+
 sub PrepareText {
-  my $text=shift;
+  my ($node,$str)=@_;
+  $text=$node->{$str};
   $text=$1."*" if ($text =~/^([^\|]*)\|/);
 
   return encode($text);
@@ -2455,7 +2625,7 @@ sub redraw_tree {
     my $textWidth=0;
     my $i;
     foreach (@displayAttrs) {
-      $i=$grp->{'canvas'}->fontMeasure($font,PrepareText($$node{$_}));
+      $i=$grp->{'canvas'}->fontMeasure($font,PrepareText($node,$_));
       $textWidth=$i if ($i>$textWidth);
     }
     if ($drawBoxes) {
@@ -2473,7 +2643,7 @@ sub redraw_tree {
 	$grp->{'canvas'}->createRectangle($$node{"_tkXPOS_"},
 				 $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+$i*$lineHeight,
 				 $$node{"_tkXPOS_"}+
-				 $grp->{'canvas'}->fontMeasure($font,PrepareText($$node{$displayAttrs[$i]}))+1,
+				 $grp->{'canvas'}->fontMeasure($font,PrepareText($node,$displayAttrs[$i]))+1,
 				 $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+($i+1)*$lineHeight,
 				 -fill => $grp->{'canvas'}->cget('-background'), -outline => undef)
 	unless ($drawBoxes);
@@ -2483,7 +2653,7 @@ sub redraw_tree {
 	$grp->{'canvas'}->createText($$node{"_tkXPOS_"},$$node{"_tkYPOS_"}+
 				     $nodeHeight+$nodeYSkip+$i*$lineHeight,
 				     -anchor => 'nw',
-				     -text => PrepareText($$node{$displayAttrs[$i]}),
+				     -text => PrepareText($node,$displayAttrs[$i]),
 				     -fill => whichTextColor($i),
 				     -font => $font);
       $grp->{'canvas'}->addtag('text', 'withtag', $$node{"_tkText".$i."_"});
@@ -2707,7 +2877,7 @@ sub recalculate_positions {
     my $textWidth=0;
     my $i;
     foreach (@displayAttrs) {
-      $i=$grp->{'canvas'}->fontMeasure($font,PrepareText($$node{$_}));
+      $i=$grp->{'canvas'}->fontMeasure($font,PrepareText($node,$_));
       $textWidth=max($i,$textWidth);
     }
     $$node{"_tkXWidth_"}=$textWidth;
@@ -2882,7 +3052,8 @@ sub doEvalMacro {
 
   return unless $this;
   $grp->{'top'}->Busy(-recurse => 1);
-  $FileNotSaved=1; # Macro may want to override this :)
+  $FileNotSaved=1;      # Macro may want to override this :)
+  $forceFileSaved=0; # Macro may want to override this :)
   $insideEval=1;
 
   unless ($macrosEvaluated) {
@@ -2895,9 +3066,14 @@ sub doEvalMacro {
     print STDERR "Had run: ",$macro,"\n";
     print STDERR "Returned with: $result\n$@\n";
   }
-  print "Macro claims file untouched\n"
-    unless ($FileNotSaved);
-  $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
+  unless ($forceFileSaved) {
+    print "Macro claims file untouched\n"
+      unless ($FileNotSaved);
+    $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
+  } else {
+    print "Macro forsly claims file saved.\n";
+    # using value of $FileNotSaved
+  }
   $insideEval=0;
   $grp->{'top'}->Unbusy;
   setCurrent($grp,$this) if ($this);
@@ -2918,18 +3094,18 @@ sub evalMacro {
     print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
   }
 
-  if (defined $keyBindings{$prefix.$A}) {
+  if (defined $keyBindings{$grp->{macroContext}}->{$prefix.$A}) {
     $key=$prefix.$A;
   } elsif ($prefix =~/SHIFT/ and exists($pckey_shift_translates{$e->K})
-	  and defined $keyBindings{$prefix.$pckey_shift_translates{$e->K}}) {
+	  and defined $keyBindings{$grp->{macroContext}}->{$prefix.$pckey_shift_translates{$e->K}}) {
     $key=$prefix.$pckey_shift_translates{$e->K};
     print STDERR "Trying: ",$prefix.$pckey_shift_translates{$e->K},"\n";
   } else {
     $key=$prefix.uc($e->K);
   }
   #print "Got $prefix$A (",ord($e->A),",",ord($A),",",ord($e->B),") looking for macro\n";
-  if (defined $keyBindings{$key}) {
-    doEvalMacro($grp,$keyBindings{$key});
+  if (defined $keyBindings{$grp->{macroContext}}->{$key}) {
+    doEvalMacro($grp,$keyBindings{$grp->{macroContext}}->{$key});
   }
 }
 
