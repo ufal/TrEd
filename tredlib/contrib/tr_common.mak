@@ -333,6 +333,22 @@ sub memberof_pa_to_parenthesis {
 ################################################
 ## Overriding definitions of contrib/tredtr.mak
 
+sub DeleteCurrentNode {
+  my $node = $this;
+  $sPasteNow = '';
+  UnGap();
+  return unless $node->{ord}=~/\./; # forbid deleting Analytic nodes
+  return if $node->firstson;
+  return unless $this->parent();
+  my $dord = $node->{dord};
+  $this=$this->parent();
+  CutNode($node);
+
+  $sPar1 = $dord;
+  $sPar2 = "-1";
+  ShiftDords();
+}
+
 sub add_new_node {
 
   $pPar1 = $this;
