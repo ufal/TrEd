@@ -1715,7 +1715,7 @@ FSFile - Simple OO interface for FS files.
 
   use Fslib;
 
-  my $file="trees.fs");
+  my $file="trees.fs";
   my $fs = FSFile->newFSFile($file);
 
   if ($fs->lastTreeNo<0) { die "File is empty or corrupted!\n" }
@@ -2019,6 +2019,8 @@ sub writeFile {
   my ($self,$filename) = @_;
   return unless ref($self);
 
+  $filename = $self->filename unless (defined($filename) and $filename ne "");
+
   if ($filename=~m(^\s*(?:https?|ftp|gopher|news):)) {
 #    $!="Cannot write to URL $filename";
     print STDERR "Cannot write to URL $filename\n";
@@ -2026,8 +2028,6 @@ sub writeFile {
   } elsif ($filename=~m(^\s*(?:file):)) {
     $filename =~ s{^\s*(?:file):/+?}{/};
   }
-
-  $filename = $self->filename unless (defined($filename) and $filename ne "");
 
   my $backend=$self->backend || 'FSBackend';
   print STDERR "Writing to $filename using backend $backend\n" if $Fslib::Debug;
