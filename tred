@@ -403,7 +403,7 @@ sub bookmarkFilelist {
   }
   push(@files, @ARGV);
 
-  @files= map { m(^[[:alnum:]]+://) ? $_ : rel2abs($_) } @files;
+  @files= map { m(^[[:alnum:]]+://)||m(^\s*\|) ? $_ : rel2abs($_) } @files;
 
   $default->add(0,@files);
   addNewFilelist(undef,$default);
@@ -533,7 +533,7 @@ sub filelistFullFileName {
   my ($grp, $fn)=@_;
   my $filename=$grp->{currentFilelist}->file_at($fn);
 
-  return $filename if $filename =~ m(^[[:alnum:]]+://);
+  return $filename if $filename =~ m(^[[:alnum:]]+://) or $filename =~ m(^\s*\|);
 
   if ($filename!~/^\s*[\/~]/ and
       ($^O ne 'MSWin32' or $filename!~/^\s*([[:alpha:]]:)?\\/)) {
@@ -694,7 +694,7 @@ sub userQuery {
 sub addToRecent {
   my ($grp,$f)=@_;
   if (defined($f)) {
-    $f=($f=~m(^[[:alnum:]]+://) ? $f : rel2abs($f));
+    $f=($f=~m(^[[:alnum:]]+://)||m(^\s*\|) ? $f : rel2abs($f));
     @recentFiles=grep { $_ ne $f } @recentFiles;
     unshift @recentFiles,$f;
   }
@@ -1571,7 +1571,7 @@ sub insertToFilelist {
   return if ($#_==0 and $filelist->position($_[0])>=0);
   # this is the case when we add a file which is actually already there
 
-  my @list=map { m(^[[:alnum:]]+://) ? $_ : rel2abs($_) } @_;
+  my @list=map { m(^[[:alnum:]]+://)||m(^\s*\|) ? $_ : rel2abs($_) } @_;
   my $tmp;
   my $toplevel= $grp->{Filelist} ? $grp->{Filelist}->toplevel : $grp->{top};
   @list= map {
@@ -2878,6 +2878,9 @@ sub startMain {
   $group{FileMenu}->command(-label=> 'Open ...',
 			    -underline=> 0,
 			    -command=> [\&fileDialog, \%group]);
+  $group{FileMenu}->command(-label=> 'Open URL ...',
+			    -underline=> 5,
+			    -command=> [\&urlDialog, \%group]);
   $group{FileMenu}->cascade(-label=> 'New',
 			    -underline=>2,
 			    -menuitems=>
@@ -3908,6 +3911,15 @@ sub fileDialog {
 #  print $FSref->Show;
 
   $file= $grp->{top}->getOpenFile(-filetypes=> \@open_types);
+  if (defined $file and $file ne '') {
+    return openFile($grp,$file,-justheader => $header_only);
+  }
+  return 0;
+}
+
+sub urlDialog {
+  my ($grp,$header_only)= @_;
+  my $file = QueryString($grp,"Enter URL", "URL: ");
   if (defined $file and $file ne '') {
     return openFile($grp,$file,-justheader => $header_only);
   }
