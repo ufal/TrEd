@@ -19,8 +19,8 @@
 #bind NextTree to period
 #bind TiePrevTree to Ctrl+comma
 #bind TieNextTree to Ctrl+period
-#bind TiePrevTree to Shift+Prior
-#bind TieNextTree to Shift+Next
+#bind TiePrevTree to Ctrl+Prior
+#bind TieNextTree to Ctrl+Next
 
 
 #bind CutToClipboard to Ctrl+Insert menu Cut Subtree
@@ -206,14 +206,25 @@ sub PerlSearchNext {
   }
 }
 
-#bind LastTree to greater menu Go to last tree
-#bind LastTree to Ctrl+Next
+#bind TieLastTree to Ctrl+End menu Go to last tree (tied)
+sub TieLastTree {
+  TieGotoTree($grp->{FSFile}->lastTreeNo+1);
+}
+
+#bind TieFirstTree to Ctrl+Home menu Go to first tree (tied)
+sub TieFirstTree {
+  TieGotoTree(1);
+}
+
+
+#bind LastTree to End menu Go to last tree
+#bind LastTree to greater
 sub LastTree {
   GotoTree($grp->{FSFile}->lastTreeNo+1);
 }
 
-#bind FirstTree to less menu Go to first tree
-#bind FirstTree to Ctrl+Prior
+#bind FirstTree to Home menu Go to first tree
+#bind FirstTree to less
 sub FirstTree {
   GotoTree(1);
 }
