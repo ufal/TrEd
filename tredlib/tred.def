@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2004-04-07 16:31:55 pajas>
+## Time-stamp: <2004-05-06 16:15:58 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -452,6 +452,7 @@ C<$node->{$grp->{FSFile}->FS->order()}>
 =cut
 sub GetOrd { return $_[0]->{$grp->{FSFile}->FS->order}; }
 
+
 =item PasteNode (node, new-parent)
 
 Paste the subtree of the node under the new-parent.  The root of the
@@ -463,6 +464,26 @@ sub PasteNode {
   my ($node,$p)=@_; 
   Fslib::Paste($node,$p,$grp->{FSFile}->FS->defs); 
   return $node;
+}
+
+=item CutPaste (node, new-parent)
+
+Cut given node and paste it to a new parent. This macro is safer than
+PasteNode since it checks that new-parent isn't a descendant of node
+or node itself. This macro dies on error before any change is made.
+
+=cut
+
+sub CutPaste {
+  my($cutted,$target)=@_;
+  my $p = $target;
+  while ($p) {
+    if( $p == $cutted ) {
+      die("Can't paste node to its descendant or self at ".ThisAddress($cutted));
+    }
+    $p=$p->parent;
+  }
+  PasteNode(Cut($cutted),$target);
 }
 
 =item CloneSubtree (node)
