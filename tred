@@ -733,10 +733,15 @@ sub setConfig {
 sub ApplyGlobalConfig {
   my ($grp)=@_;
 
-  @normal_win_opts = qw/-relief flat -borderwidth 0 -highlightthickness 0/;
+  my $bg = $treeViewOpts->{backgroundColor} || 'white';
+  my $bgoff = $treeViewOpts->{backgroundColorNofocus} || $bg; #'#fbfbfb';
+  @normal_win_opts = (qw/-relief flat -borderwidth 0 -highlightthickness 0 /,
+		      -background => $bgoff);
   @focused_win_opts = (qw/-relief flat/,
 		       -highlightthickness  => $highlightWindowWidth,
-		       -highlightbackground => $highlightWindowColor);
+		       -highlightbackground => $highlightWindowColor,
+		       -bg => $bg
+		      );
   return unless $grp;
 
   delete $grp->{icon};
@@ -762,8 +767,12 @@ sub ApplyGlobalConfig {
   update_status_line($grp->{focusedWindow});
   print STDERR $@ if $@;
   foreach my $w (@{$grp->{treeWindows}}) {
-    if ($w->{treeView} and $treeViewOpts->{backgroundColor}) {
-      $w->{treeView}->canvas->configure(-background=> $treeViewOpts->{backgroundColor});
+    if ($grp->{focusedWindow} == $w) {
+      if ($w->{treeView}) {
+	$w->{treeView}->canvas->configure(@focused_win_opts);
+      }
+    } else {
+      $w->{treeView}->canvas->configure(@normal_win_opts);
     }
   }
   $grp->{top}->afterCancel($grp->{autoSaveCallback});
@@ -997,7 +1006,7 @@ sub readLock {
   return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
   my $lockinfo;
   eval {
-    print "readling lock $f.lock\n";
+    print STDERR "reading lock $f.lock\n" if $tredDebug;
     my ($file,$remove_file) = IOBackend::fetch_file($f.".lock");
     open my $lock,"<",$file;
     $lockinfo = $lock->getline();
@@ -1006,18 +1015,18 @@ sub readLock {
     chomp $lockinfo;
   };
   print $@ if $@;
-  print "Fetched lock $lockinfo\n" if $lockinfo and $tredDebug;
+  print STDERR "Fetched lock $lockinfo\n" if $lockinfo and $tredDebug;
   return $lockinfo;
 }
 
 sub removeLock {
   my ($fsfile,$f) = @_; # filename
-  print STDERR "removing lock $f.lock\n" if $tredDebug;
   $f=$fsfile->filename() unless defined $f;
   my $proto = IOBackend::get_protocol($f);
   $f=IOBackend::strip_protocol($f) if ($proto eq 'file');
   return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
   if (!$fsfile or checkLock($fsfile,$f) =~ /^my|^changed/) {
+    print STDERR "removing lock $f.lock\n" if $tredDebug;
     IOBackend::unlink_uri($f.".lock");
   }
 }
