@@ -1,23 +1,50 @@
 #!/bin/bash
 
-if [ "x$1" = "x" ]; then
-  echo Error: no language specified
-  echo "Usage: $0 en|cz [perl58]"
-fi
+#
+# This is a TrEd and ActivePerl installer for Windows
+# (intended for use with cygwin bash)
+#
 
-INSTLANG=$1
-. "winsetup_${INSTLANG}.msg"
+# usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r]
+# or
+# winsetup.sh -h
 
-if [ "x$2" = "xperl58" ]; then
-  REQPERLVER=8
-  REQPERLINSTDIR=win32_perl58
-else
-  REQPERLVER="[68]"
-  REQPERLINSTDIR=win32_perl
-fi
-
+packages_ap58=packages58_win32
+packages_ap56=packages56_win32
 PACKAGES56="Tk Text::Iconv XML::JHXML Tie::IxHash"
 PACKAGES58="Text::Iconv XML::JHXML Tie::IxHash"
+
+INSTLANG=en
+INSTPERLVER=8
+TREDRC=""
+
+while getopts "l:p:tr:h" o; do
+  case "$o" in
+     l) INSTLANG="$OPTARG" ;;
+     p) INSTPERLVER="$OPTARG" ;;
+     t) PACKAGES58="Tk $PACKAGES58" ;;
+     r) TREDRC="$OPTARG" ;;
+     h) cat <<EOF ;;
+usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r tredrc]
+       -l language
+       -p perl5 sub-version
+       -t force Tk804 for perl 5.8
+       -r use given file as the default tredrc
+or
+       winsetup.sh -h for this help
+EOF
+  esac
+done
+
+. "winsetup_${INSTLANG}.msg" || exit 1
+
+if [[ "$INSTPERLVER" = 6 ]]; then
+  REQPERLVER="[68]"
+  REQPERLINSTDIR=win32_perl56
+else
+  REQPERLVER=8
+  REQPERLINSTDIR=win32_perl58
+fi
 
 if [ "$OSTYPE" != "cygwin" ]; then 
   echo $MSG000
@@ -113,7 +140,7 @@ function upgrade_packages {
 	echo $MSG002 $s
 	QUERY=`$PPM query "^$s\$"`
 	if [ -n "$QUERY" ]; then
-	  $PPM verify --location=packages --upgrade "$s"
+	  $PPM verify --location="$packages_ap56" --upgrade "$s"
 	else
 	  install_packages $s
 	  echo
@@ -130,14 +157,15 @@ function upgrade_packages {
            $PPM rep off $rep 2>/dev/null >/dev/null
       done
       IFS="$OLDIFS";
-      $PPM rep add tredsetup packages-ap58 2>/dev/null >/dev/null
+      $PPM rep add tredsetup "$packages_ap58" 2>/dev/null >/dev/null
+      $PPM rep
       echo $MSGDONE
       for s in $PACKAGES58; do 
 	echo
         echo "$MSG004 $s"
 	ppd="${s//::/-}";
 	if ! $PPM install "$ppd" 2>/dev/null >/dev/null; then
-          $PPM upgrade -install "$ppd"
+          $PPM upgrade -install -precious "$ppd"
         fi
       done
       echo $MSG005
@@ -154,7 +182,7 @@ function upgrade_packages {
 }
 
 function install_packages {
-  $PPM install --location=packages $*
+  $PPM install --location="$packages_ap58" $*
 }
 
 function upgrade_perl {
@@ -221,7 +249,8 @@ done
 
 PERLDIR=`dirname $PERLBIN 2>/dev/null`
 DOSPERLDIR=`dosdirname $PERLDIR`
-PPM="$PERLBIN $DOSPERLDIR/ppm.bat"
+PATH=$PERLDIR:$PATH
+PPM="	$DOSPERLDIR/ppm.bat"
 
 
 echo $MSG024
@@ -291,9 +320,16 @@ fi
 
 echo
 echo "$MSG037 $TREDDIR"
+
+if [[ "$UPGRADE" = 1 && -f "${TREDDIR}/tredlib/tredrc.sav" ]]; then
+  SAVED_TREDRC=1
+fi
+
 if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     cp -R tred/* "${TREDDIR}"             && \
-    (test ! -f tred.mac || cp tred.mac "${TREDDIR}/tredlib")  && \
+    ([[ ! -f tred.mac ]] || cp tred.mac "${TREDDIR}/tredlib")  && \
+    ([[ $SAVED_TREDRC = 1 || "$TREDRC" = "" || ! -f "$TREDRC" ]] || \
+     (echo "Using $TREDRC as the default tredrc"; cp $TREDRC "${TREDDIR}/tredlib/tredrc"))  && \
     mkplbat tred                          && \
     mkplbat btred                         && \
     mkplbat trprint                       && \
@@ -304,7 +340,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     else 
       echo "$MSG039 ${TREDDIR}/bin !"
     fi
-    test "x$UPGRADE" = "x1" -a -f "${TREDDIR}/tredlib/tredrc.sav" && \
+    [[ $SAVED_TREDRC = 1 ]] && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
     test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl $INSTLANG
 
