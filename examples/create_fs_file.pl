@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 use Fslib;
 
 my @format=(
@@ -20,7 +21,7 @@ my $fs=
 # vytvorime 10 cvicnych stromu
 my ($root,$node);
 foreach (1..10) {
-  $root=$fs->new_tree($_);	# vytvori novy koren
+  $root=$fs->new_tree($_-1);	# vytvori novy koren
   $root->{form}="#$_";
   $root->{ord}=0;
   foreach (1..4) {
