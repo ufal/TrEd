@@ -500,7 +500,7 @@ sub GetTree2 ($$$) {
       }
       croak "Unexpected token... `$c'!\n$l\n";
     }
-    croak "Error: Closing brackets do not lead to root of the tree." 
+    croak "Error: Closing brackets do not lead to root of the tree.\n"
 	if ($curr != $root);
   }
 #    else { croak "** $l\nTree does not begin with `['!\n"; }
@@ -537,7 +537,7 @@ sub GetTree ($$$) {
       $l=~/\G(.)/gsco;
       croak "Unexpected token `$1'!\n$l\n";
     }
-    croak "Error: Closing brackets do not lead to root of the tree." 
+    croak "Error: Closing brackets do not lead to root of the tree.\n"
 	if ($curr != $root);
   }
 #    else { croak "** $l\nTree does not begin with `['!\n"; }
@@ -3135,7 +3135,7 @@ a construct like:
 Note, that Cut function also deletes a subree from the tree but
 keeps the TNS in memory and returns a reference to it.
 
-There is also a global variable Fslib::$FSTestListValidity, which may
+There is also a global variable $Fslib::FSTestListValidity, which may
 be set to 1 to make Fslib::ParseNode check if value assigned to a list
 attribute is one of the possible values declared in FS file
 header. Because this may slow the process of parsing significantly
