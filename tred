@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-19 09:35:23 pajas>";
+$timestamp="Time-stamp: <2001-04-19 09:49:36 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -340,8 +340,8 @@ sub filename {
 
 sub tilde_expand {
   my $a=shift;
-  $a=~s/$~/$ENV{HOME}/;
-  $a=~s/([^\\])~/\1$ENV{HOME}/g;
+  $a=~s/$\~/$ENV{HOME}/;
+  $a=~s/([^\\])\~/\1$ENV{HOME}/g;
   return $a;
 }
 
@@ -516,7 +516,7 @@ sub setConfig {
   $psFontName=(exists $confs->{psfontname}) ? $confs->{psfontname} : "Arial-Medium";
   $psFontSize=(exists $confs->{psfontsize}) ? $confs->{psfontsize} : "12";
   $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
-  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile} : "$libDir/tred.def";
+  $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
   $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '21c';
   $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '297m';
   $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
