@@ -27,7 +27,7 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 $version='$Revision$ ';
 $timestamp="Time-stamp: <2001-07-27 14:45:25 pajas>";
 $about=
-  "Copyright (c) 2001 by Petr Pajas\n".
+  "Copyright (c) 2000-2003 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
@@ -337,14 +337,19 @@ ApplyGlobalConfig();
 # work, so I recommend not to use czech locales there, unless you
 # really want the decimal points to be replaced by commas in
 # postscript:)
-
-if ($TrEd::Config::useCzechLocales) {
+($TrEd::Config::useLocales) || do {
   use locale;
   use POSIX qw(locale_h);
+  setlocale(LC_NUMERIC,"C");
+};
+
+($TrEd::Config::useCzechLocales) || do {
+  use locale;
+  use POSIX qw(locale_h);
+  setlocale(LC_NUMERIC,"C");
   setlocale(LC_COLLATE,"cs_CZ");
-  setlocale(LC_NUMERIC,"us_EN");
   setlocale(LANG,"czech");
-}
+};
 
 sub bookmarkFilelist {
   foreach (@filelists) {
@@ -2507,10 +2512,10 @@ sub canvasBindMouseWheelVert {
     $modifier.="-" if ($modifier);
     $w->CanvasBind("<$modifier"."MouseWheel>",
               [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
-    if ($Tk::platform eq 'unix') {
-        $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units') unless $Tk::strictMotif; });
-        $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units') unless $Tk::strictMotif; });
-    }
+#    if ($Tk::platform eq 'unix') {
+    $w->CanvasBind("<$modifier"."4>", sub { $_[0]->yview('scroll', -3, 'units') unless $Tk::strictMotif; });
+    $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units') unless $Tk::strictMotif; });
+#    }
 }
 
 sub canvasBindMouseWheelHoriz {
@@ -3581,13 +3586,41 @@ sub onIdlePrevTree {
   Tk->break;
 }
 
+sub RepeatedShowDialog {
+  my ($cw, $focus, $oldFocus)= @_;
+  $oldFocus= $cw->focusCurrent unless $oldFocus;
+  my $oldGrab= $cw->grabCurrent;
+  my $grabStatus= $oldGrab->grabStatus if ($oldGrab);
+
+  # instead of Popup
+  $cw->deiconify;
+  $cw->waitVisibility;
+
+  Tk::catch {
+    $cw->grab;
+  };
+  $focus->focusForce if ($focus);
+  Tk::DialogBox::Wait($cw);
+  eval {
+    $oldFocus->focusForce;
+  };
+  $cw->withdraw;
+  $cw->grabRelease;
+  if ($oldGrab) {
+    if ($grabStatus eq 'global') {
+      $oldGrab->grabGlobal;
+    } else {
+      $oldGrab->grab;
+    }
+  }
+  return $cw->{selected_button};
+}
 
 # This patches $dialog->Show which implicitly focuses the default button;
 # here focus stays where it is.
 # Usage: my $dlg=DialogBox(); ...; ShowDialog($dlg);
 sub ShowDialog {
   my ($cw, $focus, $oldFocus)= @_;
-
   $oldFocus= $cw->focusCurrent unless $oldFocus;
   my $oldGrab= $cw->grabCurrent;
 #  my $old_grab= $cw->grabSave;
@@ -3597,7 +3630,6 @@ sub ShowDialog {
 #  $cw->grab;
 
   $cw->Popup();
-
 
   Tk::catch {
     $cw->grab;
