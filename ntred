@@ -12,6 +12,7 @@ use vars qw(
 	    $nohub $client_key_file $verbose $srvlist
 	    $kill $filelist $srvlistfile $request_quit
 	    $unrestricted $help $usage $manpage $ssh
+	    $server_debug
 	   );
 
 $usage=1 unless @ARGV;
@@ -42,6 +43,7 @@ GetOptions ("all-trees|T"    => \$opt_T,
 	    "filelist|l=s"    => \$filelist,
 	    "no-server-check" => \$nocheck,
 	    "no-server-start" => \$noservers,
+	    "server-debug|D" => \$server_debug,
 	    "no-hub-start"   => \$nohub,
 	    "key-file=s"     => \$client_key_file,
 	    "verbose|v"      => \$verbose
@@ -255,7 +257,9 @@ if (defined($init) || defined($kill)) {
       # as for now, we only make use of the secure pipe to the server
       # in order to pass it the session key
       my $cmd = "$ssh $_->{host} '$btred -P".
-	($unrestricted ? "" : "F")."L $_->{port}' ".
+	($unrestricted ? "" : "F").
+	($server_debug ? "D" : "").
+	"L $_->{port}' ".
 	" 2> $logdir/ntred-server-$_->{host}.log";
       msg "$cmd\n";
       if (open ($_->{ssh},"| ".$cmd)) {
@@ -728,6 +732,10 @@ plus :base_orig, but the following opcodes (which are forbidden):
 
   getppid getpgrp setpgrp getpriority setpriority pipe_op sselect
   select dbmopen dbmclose tie untie
+
+=item B<--server-debug>
+
+Run btred server with -D flag for some more debugging information.
 
 =item B<--key-file>
 
