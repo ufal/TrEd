@@ -68,6 +68,9 @@
 	<group choice="opt">
 	  <arg>-G</arg>
 	</group>
+	<group choice="opt">
+	  <arg>-C</arg>
+	</group>
 	<arg choice="plain"
 	  rep="repeat"><replaceable>input-file</replaceable></arg>
       </cmdsynopsis>
@@ -181,6 +184,16 @@
 	    output for nodes dependent on the node with
 	    <literal><sgmltag class="starttag">g</sgmltag>0</literal>
 	    (usually the root node) when converting to CSTS.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-C</parameter></term>
+	<listitem>
+	  <para>This flag is provided for backward compatibility
+	    with Dan Zeman's older conversion tool called 
+	    <command>cstsfs</command> where some CSTS elements
+	    are treated in a different way.
 	  </para>
 	</listitem>
       </varlistentry>

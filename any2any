@@ -2,7 +2,7 @@
 #                                                          -*- cperl -*-
 
 use Getopt::Std;
-getopts('p:r:s:a:f:TNGhu');
+getopts('p:r:s:a:f:CTNGhu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
   print "Usage: $0 [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] [-T] [-N] [-G] file [file ...]\n";
@@ -19,6 +19,7 @@ Parameters:
   -T                 if converting from csts, build tectogrammatical tree structure
   -N                 if empty, initialize ordering attribute with sentence ordering
   -G                 do not save dependency on the root of the tree in csts format
+  -C                 convert to CSTS in mode quite compatible with Dan Zemans cstsfs
 EOF
   }
   exit 0;
@@ -60,6 +61,9 @@ if ($opt_G) {
   $Fs2csts::export_dependency = 0;
 }
 
+if ($opt_C) {
+  $Fs2csts::compatibility_mode = 1;
+}
 
 %bkmap=(
 	fs => 'FSBackend',
