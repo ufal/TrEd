@@ -105,6 +105,8 @@ unless (open $_ERR, ">&STDERR") {
   warn("Can't dup STDERR: $!");
   $_ERR=\*STDERR;
 }
+
+#_set_encoding($_ERR,$term_encoding,'ERR encoding');
 $_ERR->autoflush(1);
 
 # Help and usage
@@ -458,7 +460,7 @@ sub startMain {
 	undef $hub;
       }
     }} while (!$hub);
-    _set_encoding($hub,$term_encoding,"socket to hub");
+    ## _set_encoding($hub,$term_encoding,"socket to hub");
     _msg("Connection to the hub on $peer established.\n");
     my $request_no=0;
     _msg("Waiting for a request from the hub...\n\n");
@@ -526,10 +528,18 @@ sub startMain {
 	  # create temporary file to store macro output
 	  my $macro_stdout = IO::File->new_tmpfile();
 	  my $macro_stderr = IO::File->new_tmpfile();
+
 	  my $old_stdout = _redirect_stdout($macro_stdout);
 	  my $old_stderr = _redirect_stderr($macro_stderr);
 
+	  chomp $request{ENCODING};
+	  local $term_encoding=$request{ENCODING} if ($request{ENCODING});
+	  _set_encoding(\*STDOUT,$term_encoding);
+	  _set_encoding(\*STDERR,$term_encoding);
+
+
 	  # initialize Safe compartment
+
 	  init_tredmacro($grp);
 
 	  # script command-line arguments
@@ -551,7 +561,9 @@ sub startMain {
 	  $context='TredMacro' if $context eq 'main';
 	  $SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
 	  $grp->{macroContext} = $context;
+
 	  doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
+
 	  # execute hooks and the code of the query
 
 	  my $time;
@@ -727,7 +739,7 @@ sub startMain {
 	      $hub->print($fsfile->tail());
 	      $hub->print("\n\n//FSEND\n\n");
 	    }
-	    _set_encoding($hub,$term_encoding,"socket to hub");
+	    ## _set_encoding($hub,$term_encoding,"socket to hub");
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
