@@ -827,22 +827,22 @@ sub SplitJoinedByAID {
   my $node = ref($_[0]) ? $_[0] : $this;
   ($node->root->{'reserve1'} eq 'TR_TREE') || return;
   unless ($node->{AIDREFS}) {
-    stderr("SplitJoinedByAID: nodes with empty AIDREFS can't be split!\n");
+    ErrorMessage("SplitJoinedByAID: nodes with empty AIDREFS can't be split!\n");
     return;
   }
 
   my %aidrefs;
   @aidrefs{ split /\|/,$node->{AIDREFS} }=();
 
-  foreach my $child ($node->descendants()) {
+  foreach my $child (grep { IsHidden($_) } $node->descendants()) {
     if (exists($aidrefs{ $child->{AID} })) {
       my $l=$child->{trlemma};
       if ($l eq 'se' and $node->{trlemma} !~ /^se_|_se_|_se$/) {
 	$l='si';
       }
-      if ($node->{trlemma} =~ s/^${l}_|_${l}_|_${l}$//i) {
+      if ($node->{trlemma} =~ s/^${l}_|_${l}(_|$)/$1/i) {
 	$child->{TR}='';
-	DisconnectAIDREFS($node,$child);
+	DisconnectAID($node,$child);
 
 	# ugh! 
 	$pPar1 = $child;
