@@ -60,6 +60,7 @@ my $differences=0;
 my $total_nodes=0;
 my $diffs_in_node=0;
 my $diffs_in_tree=0;
+my %coref_counts;
 
 foreach my $f (@files) {
   $fileno++;
@@ -97,8 +98,10 @@ for (my $tree_no; $tree_no<=$last_tree; $tree_no++) {
 	print STDERR "Node ".$f->filename."#[id=$id]: coref $_\n" if $opt_v;
 	if (! exists($corefs{$_}) ) {
 	  $corefs{$_} = [$f->filename];
+	  $coref_counts{$f->filename}++;
 	} else {
 	  push @{$corefs{$_}}, $f->filename;
+	  $coref_counts{$f->filename}++;
 	}
       }
     }
@@ -128,6 +131,10 @@ for (my $tree_no; $tree_no<=$last_tree; $tree_no++) {
     if ($diffs_in_tree and $opt_t);
 }
 
+print "\n";
+foreach my $file (@files) {
+  print $coref_counts{$file}+0, " coreferences in $file\n";
+}
 print "\n$differences ".differences($differences)." in $total_nodes nodes\n";
 
 sub check_nodes {
@@ -138,9 +145,10 @@ sub check_nodes {
     foreach (qw(trlemma func ord)) {
       if (exists($values{$_})) {
 	if ($values{$_} ne $n->{$file}{$id}->{$_}) {
-	  print STDERR "Error: nodes id=$id from $file and $files[0] differ in $_\n";
-	  print STDERR "Aborting!\n";
-	  exit 1;
+	  print STDERR "Error: nodes ",report_node($n->{$file}{$id})," and ",
+	    report_node($n->{$files[0]}{$id})," differ in $_\n";
+#	  print STDERR "Aborting!\n";
+#	  exit 1;
 	}
       } else {
 	$values{$_} = $n->{$file}{$id}->{$_};
