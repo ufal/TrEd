@@ -520,7 +520,7 @@ APPINFO    NONE
                  --
 >
 <!ATTLIST fadd
-          del  (elid|elex|expn) elid 
+          del  (elid|elex|expn|transf) elid 
           id    CDATA   #IMPLIED 
 >
 
