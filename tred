@@ -2,7 +2,7 @@
 # -*- cperl -*-
 #
 $version="1.48";
-$timestamp="Time-stamp: <2001-03-05 14:35:25 pajas>";
+$timestamp="Time-stamp: <2001-03-06 12:37:50 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -1696,6 +1696,13 @@ sub About {
 			  -title => 'About');
 }
 
+sub keyBind {
+  local $_=shift;
+  s/-/+/g;
+  s/Control/CTRL/g;
+  return uc($_);
+}
+
 sub startMain {
   my $firstFile=shift;
   my $node;
@@ -2118,14 +2125,8 @@ sub startMain {
   #  $group{'contextLed'}->pack(-side => 'bottom');
   
   print STDERR "Binding keystrokes...\n" if $tredDebug;
-  $group{'frame'}->bind('my','<KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group, '' ]);
   #  $group{'frame'}->bind('my','<Control-x><KeyPress>' =>
   #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
-  $group{'frame'}->bind('my','<Shift-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group,'SHIFT+']);
-  $group{'frame'}->bind('my','<Control-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group,'CTRL+']);
   $group{'Menubar'}->bind('Menubutton','<Escape>', sub { shift->Leave(); } );
   $group{'frame'}->
     bind('my','<Alt-KeyPress>' =>
@@ -2151,19 +2152,25 @@ sub startMain {
 	      Tk->break;	      
 	    }
 	  }, \%group,'ALT+']);
-  $group{'frame'}->bind('my','<Meta-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group,'META+']);
-  $group{'frame'}->bind('my','<Control-Shift-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group,'CTRL+SHIFT+']);
-  $group{'frame'}->bind('my','<Control-Alt-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group,'CTRL+ALT+']);
-  $group{'frame'}->bind('my','<Control-Meta-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group,'CTRL+META+']);
-  $group{'frame'}->bind('my','<Alt-Shift-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group,'ALT+SHIFT+']);
-  $group{'frame'}->bind('my','<Meta-Shift-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, \%group,'META+SHIFT+']);
 
+  $group{'frame'}->bind('my','<KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group, '' ]);
+
+  foreach (qw(Shift Control Meta Control-Shift Control-Alt
+              Control-Meta Alt-Shift Meta-Shift)) {
+    $group{'frame'}->bind('my',"<$_-KeyPress>" =>
+			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+    $group{'frame'}->bind('my',"<$_-Right>" =>
+			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+    $group{'frame'}->bind('my',"<$_-Left>" =>
+			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+    $group{'frame'}->bind('my',"<$_-Up>" =>
+			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+    $group{'frame'}->bind('my',"<$_-Down>" =>
+			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+    $group{'frame'}->bind('my',"<$_-Return>" =>
+			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+  }
 
   #  $group{'frame'}->bind('all','<Tab>' => [sub {1;}]);
   #  $group{'top'}->bind('dialog','<Tab>' => [sub { shift->focusNext(); }] );
@@ -2212,27 +2219,27 @@ sub startMain {
   $group{'frame'}->bind('my','<greater>' => [sub { shift; gotoTree($#trees,shift); Tk->break; },\%group]);
   $group{'frame'}->bind('my','<less>' => [sub { shift; gotoTree(0,shift); Tk->break; },\%group]);
 
-  $group{'frame'}->bind('my','<Return>' => [sub {
+  $group{'frame'}->bind('my','<KeyPress-Return>' => [sub {
 					      my ($w,$grp)=@_;
 					      editAttrsDialog($grp,$grp->{'currentNode'});
 					      Tk->break;
 					    },\%group]);
-  $group{'frame'}->bind('my','<Left>' => [sub {
+  $group{'frame'}->bind('my','<KeyPress-Left>' => [sub {
 					   my ($w,$grp)=@_;
 					   currentLeft($grp);
 					   Tk->break;
 					 },\%group]);
-  $group{'frame'}->bind('my','<Right>' => [sub {
+  $group{'frame'}->bind('my','<KeyPress-Right>' => [sub {
 					    my ($w,$grp)=@_;
 					    currentRight($grp);
 					   Tk->break;
 					  },\%group]);
-  $group{'frame'}->bind('my','<Up>' => [sub {
+  $group{'frame'}->bind('my','<KeyPress-Up>' => [sub {
 					 my ($w,$grp)=@_;
 					 currentUp($grp);
 					 Tk->break;
 				       },\%group]);
-  $group{'frame'}->bind('my','<Down>' => [sub {
+  $group{'frame'}->bind('my','<KeyPress-Down>' => [sub {
 					   my ($w,$grp)=@_;
 					   currentDown($grp);
 					   Tk->break;
