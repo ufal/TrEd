@@ -291,7 +291,7 @@ sub getWordSubList {
     my $i=0;
     WORD: while ($word) {
       last if ($i++ % $slen == 0 &&
-	       $self->compare($item,$self->conv()->decode($word->getAttribute ("lemma")))<=0);
+	       $self->compare($self->conv()->encode($item),$word->getAttribute ("lemma"))<=0);
       $word = $word->findNextSibling('word') || last;
     }
     $milestone = $word;
@@ -960,7 +960,7 @@ sub addWord {
 #  use locale;
 
   while ($n) {
-    last if $self->compare($lemma, $self->conv->decode($n->getAttribute("lemma")))<=0;
+    last if $self->compare($self->conv->encode($lemma), $n->getAttribute("lemma"))<=0;
     # don't allow more then 1 lemma/pos pair
     $n=$n->nextSibling();
     while ($n && $n->nodeName ne 'word') {
