@@ -15,7 +15,7 @@ sub direction ($) {
 
 sub remix ($;$) {
 
-    my @char = split //, $_[0] . " ";
+    my @char = split //, $_[0]; # . " ";
 
     my $context = 1;
     my @cut = (0);
