@@ -923,9 +923,12 @@ sub saveFile {
     rename $f, "$f~" if (-f $f);
   }
 
-  _msg "Saving $f as $out\n" unless $Quiet;
-
-
+  if (doEvalHook($grp,"file_save_hook",$out) eq 'stop') {
+    _msg "Saving of $f stopped by file_save_hook\n" unless $Quiet;
+    return undef;
+  } else {
+    _msg "Saving $f as $out\n" unless $Quiet;
+  }
   unless ($grp->{FSFile}->writeFile($out)) {
     _msg "Error saving file to '$out'\n($!)\n";
     return undef;
