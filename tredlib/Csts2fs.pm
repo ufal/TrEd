@@ -1,5 +1,4 @@
 package Csts2fs;
-
 use SGMLS;
 use Fslib;
 
@@ -428,6 +427,8 @@ my %pcdata = (
 		    }],
 	     );
 
+my $headers = <<'EOF';
+
 @csts = (
 '@P nospace',
 '@P root',
@@ -587,6 +588,15 @@ my %pcdata = (
  @misc
 );
 
+EOF
+
+if ($]>=5.008) {
+  require Encode;
+  $headers=Encode::decode('iso-8859-2',$headers);
+  eval('use utf8;'.$headers);
+} else {
+  eval($headers);
+}
 
 %initial_root_values = ();
 
