@@ -196,7 +196,6 @@ sub getSuperFrameList {
 			) {
       $base.=$self->getOneFrameElementString($element)." ";
     }
-    print "BASE: $base\n";
     if (exists $super{$base}) {
       push @{$super{$base}},$self->getFrame($frame);
     } else {
