@@ -588,10 +588,6 @@ sub InitTROrderingAttributes {
 
 #####include /home/stepanek/objsearch/tgsearch.btred
 
-=item PDT::FilterSons_TR
-
-=cut
-
 sub FilterSons_TR { # node filter suff from
   my ($node,$filter,$suff,$from)=(shift,shift,shift,shift);
   my @sons;
@@ -618,6 +614,14 @@ sub FilterSons_TR { # node filter suff from
 
 =item PDT::GetChildren_TR ($node, $filter)
 
+Return a list of nodes linguistically dependant
+on a given node. The list may be filtered by
+a given subroutine specified in C<$filter>.
+A fitler obtains one argument - the child node to be filtered - 
+and should return either true (the child node is permitted
+to the result list) or false (the child node
+is filtered out).
+
 =cut
 
 sub GetChildren_TR { # node filter
@@ -643,6 +647,9 @@ sub GetChildren_TR { # node filter
 } # GetChildren_TR
 
 =item PDT::GetFather_TR ($node)
+
+Return linguistic parent of a given node as
+appears in a TR tree.
 
 =cut
 
