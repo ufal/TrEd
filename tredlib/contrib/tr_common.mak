@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-04 10:29:17 pajas>
+## Time-stamp: <2002-11-05 11:47:34 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -727,4 +727,12 @@ sub reorder_dords {
   for (my $i=0;$i<=$#$nodesref;$i++) {
     RepasteNode($nodesref->[$i]);
   }
+}
+
+#bind tr_diff_all_windows key equal menu Porovnej zobrazene stromy pomoci TR_Diff
+sub tr_diff_all_windows {
+  foreach my $win (@{$grp->{framegroup}->{treeWindows}}) {
+    SwitchContextForWindow($win,'TR_Diff');
+  }
+  TR_Diff->DiffTRFiles(0);
 }
