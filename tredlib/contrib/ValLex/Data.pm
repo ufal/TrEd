@@ -627,6 +627,7 @@ sub make_clients_forget_data_pointers {
 
 sub DESTROY {
   my ($self)=@_;
+  $self->set_parser(undef);
   $self->make_clients_forget_data_pointers();
 }
 
