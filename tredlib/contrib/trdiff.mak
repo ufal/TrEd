@@ -6,11 +6,18 @@ import Tectogrammatic;
 
 #key-binding-adopt Tectogrammatic
 
-#bind TiePrevTree to Ctrl+comma
-#bind TieNextTree to Ctrl+period
-
-#bind PrevTree to comma
-#bind NextTree to period
+#bind PrevTree_nochange to comma
+sub PrevTree_nochange { PrevTree(@_); ChangingFile(0); }
+#bind NextTree_nochange to period
+sub NextTree_nochange { NextTree(@_); ChangingFile(0); }
+#bind TiePrevTree_nochange to Ctrl+comma
+sub TiePrevTree_nochange { TiePrevTree(@_); ChangingFile(0); }
+#bind TieNextTree_nochange to Ctrl+period
+sub TieNextTree_nochange { TieNextTree(@_); ChangingFile(0); }
+#bind TiePrevTree_nochange to Ctrl+Prior
+sub TiePrevTree_nochange { TiePrevTree(@_); ChangingFile(0); }
+#bind TieNextTree_nochange to Ctrl+Next
+sub TieNextTree_nochange { TieNextTree(@_); ChangingFile(0); }
 
 
 use vars qw($usenames $onlylemma $onlyfunc $onlydep $onlymissing
