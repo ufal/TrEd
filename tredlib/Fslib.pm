@@ -754,7 +754,9 @@ means that you may simply acces node's attributes as C<$node->>C<{attribute}>
 sub new {
   my $self = shift;
   my $class = ref($self) || $self;
+  my $size = shift;
   my $new = {};
+  keys (%$new) = $size + 4 if defined($size);
   bless $new, $class;
   $new->initialize();
   return $new;
