@@ -100,6 +100,17 @@ after_edit_attr_hook			no	executed after
 						pressed has pressed Cancel
 
 
+get_value_line_hook			no      supply custom
+                                                value-line content
+                                                based on given fsfile
+                                                and treeNo
+
+get_nodelist_hook			no      supply custom
+                                                node ordering
+						given a fsfile,
+                                                treeNo and hidden node
+						visibility state
+
 NOTE:
 Unlike other macros, hooks are expected not to modify the file. If the
 file is modified, the hook-function should set the $FileNotSaved

@@ -136,28 +136,27 @@ sub options {
   return { map {$_ => $self->{$_} } @Options };
 }
 
-
 sub value_line {
-  my ($self,$fsfile,$tree_no)=@_;
+  my ($self,$fsfile,$tree_no,$no_numbers)=@_;
   return unless $fsfile;
+  return $fsfile->value_line($tree_no,$no_numbers);
 
-  my $node=$fsfile->treeList->[$tree_no];
-  my @sent=();
+#   my $node=$fsfile->treeList->[$tree_no];
+#   my @sent=();
 
-  my $attr=$fsfile->FS->sentord;
-  $attr=$fsfile->FS->order unless (defined($attr));
-  while ($node) {
-    push @sent,$node unless $node->getAttribute($attr)>=999; # this is TR specific
-    $node=Next($node);
-  }
-  @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
+#   my $attr=$fsfile->FS->sentord;
+#   $attr=$fsfile->FS->order unless (defined($attr));
+#   while ($node) {
+#     push @sent,$node unless $node->getAttribute($attr)>=999; # this is TR specific
+#     $node=Next($node);
+#   }
+#   @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
 
-  $attr=$fsfile->FS->value;
-  my $line =
-    ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ".
-    encode(join(" ", map { $_->getAttribute($attr) } @sent));
-  undef @sent;
-  return $line;
+#   $attr=$fsfile->FS->value;
+#   my $line = $no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ";
+#   $line.=encode(join(" ", map { $_->getAttribute($attr) } @sent));
+#   undef @sent;
+#   return $line;
 }
 
 

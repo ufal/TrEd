@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-10-26 19:42:05 pajas>
+# Time-stamp: <2001-11-06 19:15:47 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -66,7 +66,8 @@ BEGIN {
   $maxDisplayedAttributes
   $highlightWindowColor
   $highlightWindowWidth
-  $lastAction);
+  $lastAction
+);
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
   use strict;
@@ -217,12 +218,17 @@ sub set_config {
   $treeViewOpts->{highlightAttributes} = val_or_def($confs,"highlightattributes",1);
   $treeViewOpts->{showHidden} = val_or_def($confs,"showhiddne",0);;
 
+  $TrEd::Convert::inputenc = val_or_def($confs,"defaultfileencoding",$TrEd::Convert::inputenc);
+  $TrEd::Convert::outputenc = val_or_def($confs,"defaultdisplayencoding",$TrEd::Convert::outputenc);
+
+  my $fontenc=$TrEd::Convert::outputenc || "iso-8859-2";
+  $fontenc=~s/^iso-/iso/;
   $font=(exists $confs->{font}) ? $confs->{font} :
-    (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
+    (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc);
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
-    (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2');
+    (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-'.$fontenc);
 
   $libDir=tilde_expand($confs->{libdir})
     if (exists $confs->{libdir});
