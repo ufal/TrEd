@@ -158,7 +158,7 @@ sub align_other {
 	  if (exists ($G->{$parent_grp}{$j_name})) {
 	    $son=$G->{$parent_grp}->{$j_name}->firstson();
 	  SON: while ($son) {
-	      if (!exists($son->{_group_})
+	      if ((!exists($son->{_group_}) or $son->{_group_} eq "")
 		  and ($son->{func} eq $node->{func})) {
 		$son->{_group_}=$grp;
 		$G->{$grp}->{$j_name}=$son;
