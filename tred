@@ -50,8 +50,11 @@ push @INC,$libDir;
 use Tk;
 use Tk::LabFrame;
 use Tk::Listbox;
+use Tk::Balloon;
 use locale;
 use POSIX qw(locale_h);
+
+Tk::CmdLine::SetArguments(); # handle standard arguments for X resources
 
 require Fslib;
 import Fslib;
@@ -59,9 +62,12 @@ import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 
 
 @macros=();
-setlocale(LC_COLLATE,"cs_CZ");
-setlocale(LC_NUMERIC,"us_EN");
-setlocale(LANG,"czech");
+
+if ($useCzechLocales) {
+  setlocale(LC_COLLATE,"cs_CZ");
+  setlocale(LC_NUMERIC,"us_EN");
+  setlocale(LANG,"czech");
+}
 
 %attribs = ();
 @atord = ();
@@ -175,6 +181,8 @@ sub readConfig {
   $drawBoxes=(exists $confs{DrawBoxes}) ? $confs{DrawBoxes} : 0;
   $maximizePrintSize=(exists $confs{MaximizePrintSize}) ? $confs{MaximizePrintSize} : 0;
   $showHidden=(exists $confs{ShowHidden}) ? $confs{ShowHidden} : 0;
+  $createMacroMenu=(exists $confs{CreateMacroMenu}) ? $confs{CreateMacroMenu} : 0;
+  $useCzechLocales=(exists $confs{UseCzechLocales}) ? $confs{UseCzechLocales} : 1;
   print "finished reading ini-file\n";
 }
 
@@ -203,6 +211,7 @@ sub readMacros {
   local *F;
 
   %keyBindings=();
+  %menuBindings=();
   @macros=();
 
   print "ERROR: Cannot open macros!\n", return 
@@ -215,11 +224,18 @@ sub readMacros {
   
   while (<F>) {
     push @macros,$_;
-    if (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?(.+)/) {
+    if (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
       $macro=$1;
       $key=uc($2);
-      #print "got binding $key => $macro\n";
+      $menu=$3;
+      #print "binding $key [$menu] => $macro\n";
       $keyBindings{$key}=$macro;
+      $menuBindings{$menu}=[$macro,$key] if ($menu);
+    } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:menu[ \t]+)?(.+)/) {
+      $macro=$1;
+      $menu=$2;
+      #print "binding [$menu] => $macro\n";
+      $menuBindings{$menu}=[$macro,undef];
     }
   }
   close(F);
@@ -684,8 +700,8 @@ sub tkDrawTree {
   my $node;
   my $parent;
   my %group;
-  
-  $group{'top'}=MainWindow->new;    
+
+  $group{'top'}=MainWindow->new;
   addBindTags($group{'top'},'my');
 #  $group{'top'}->bind($group{'top'},'<Destroy>', 
 #	   [sub { print "Save?\n"; shift; askSavFile(@_); },\%group]);
@@ -696,7 +712,66 @@ sub tkDrawTree {
   #$group{'top'}->OnDestroy([sub { askSaveFile(@_); },\%group]);
 
 
+  $group{Balloon}=$group{'top'}->Balloon(-initwait => 450, -balloonposition => 'mouse',
+					-state => 'balloon', -background => '#fff3b0');
   $group{'frame'}=$group{'top'}->Frame;
+
+
+
+
+
+  $group{Menubar}=$group{top}->Frame(-relief => 'raised', -borderwidth => 2);
+  $group{Menubar}->pack(qw/-expand yes -fill both/);
+  addBindTags($group{Menubar},'my');
+  $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0 -menuitems/ =>
+        [
+         [Button => 'Open ...',    -command => [\&fileDialog, \%group]],
+#	 [Button => 'New',         -command => [\&menus_error2, 'New']],
+	 [Button => 'Save',        -command => [\&saveFile,\%group]],
+#	 [Button => 'Save As ...', -command => [\&menus_error2, 'Save As']],
+	 [Separator => ''],
+#	 [Button => 'Setup ...',   -command => [\&menus_error2, 'Setup']],
+	 [Button => 'Print ...',   -command => [\&printThis,\%group]],
+	 [Separator => ''],
+	 [Button => 'Quit',        -command => [$group{top} => 'destroy']],
+	])->pack(qw/-side left/);
+
+  $group{ViewMenu}= $group{Menubar}->Menubutton(qw/-text View -underline 0 -menuitems/ =>
+        [
+	 [Button => 'Previous File', -command => [\&prevFile,\%group]],
+	 [Button => 'Next File', -command => [\&nextFile,\%group]],
+	 [Separator => ''],
+	 [Checkbutton => 'Draw boxes',
+	   -variable => \$drawBoxes,
+	   -command  => [\&redraw_tree,\%group]],
+	 [Checkbutton => 'Show Hidden',
+	  -variable => \$showHidden,
+	  -command  => [sub { getNodes(@_); redraw_tree(@_) },\%group]],
+	 [Separator => ''],
+	 [Button => 'Visible Attributes', -command => [\&selectAttrs,\%group]]
+	])->pack(qw/-side left/);
+  $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/ =>
+        [
+	 [Button => 'Edit Attributes', -command => [sub {
+						      my ($grp)=@_;
+						      editAttrsDialog($grp,$grp->{currentNode})
+							if ($grp->{currentNode});
+						    },\%group]],
+	])->pack(qw/-side left/);
+  $group{UserMenu}=$group{Menubar}->Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
+					       [ map (
+						      [Button => $_, 
+						       -command => [\&doEvalMacro,\%group,$menuBindings{$_}->[0]],
+						       ($menuBindings{$_}->[1]) ?
+						       (-accelerator => "(".$menuBindings{$_}->[1].")") : ()],
+						   keys(%menuBindings))
+					       ])->pack(qw/-side left/);
+  $group{MacroMenu}=$group{Menubar}->Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
+					       [ map ([Button => $keyBindings{$_}, -accelerator => "($_)",
+						       -command => [\&doEvalMacro,\%group,$keyBindings{$_}]],
+						 keys(%keyBindings))
+					       ])->pack(qw/-side left/) if ($createMacroMenu);
+
   addBindTags($group{'frame'},'my');
   my $canvas = $group{'top'}->Scrolled(qw/Canvas -width 20c -height 20c -relief sunken
 			   -borderwidth 2 -scrollbars se -scrollregion/ =>
@@ -706,55 +781,95 @@ sub tkDrawTree {
   $group{'canvas'}=$canvas;
   addBindTags($canvas,'my');
   $group{'nextButton'}=$group{'frame'}->Button(-text => "Next",
+					       -image => $group{top}->Pixmap(-file => 
+									     "$libDir/right.xpm"),
+					       -borderwidth => 2,
+
 			    -command => [sub { nextTree(@_) },\%group]);
+  $group{Balloon}->attach($group{'nextButton'},
+		 -balloonmsg => "see the next tree");
   addBindTags($group{'nextButton'},'my');
   $group{'prevButton'}=$group{'frame'}->Button(-text => "Prev",
+					       -image => $group{top}->Pixmap(-file => 
+									     "$libDir/left.xpm"),
+					       -borderwidth => 2,
 					       -command => [sub { prevTree(@_) },\%group]);
+  $group{Balloon}->attach($group{prevButton},
+		 -balloonmsg => "see the previous tree");
   addBindTags($group{'prevButton'},'my');
-  $group{'boxButton'} = $group{'frame'}->Checkbutton(-text     => 'Draw boxes',
-						     -variable => \$drawBoxes,
-						     -command  => [sub { redraw_tree(@_) },\%group],
-						     -relief   => 'flat');
-  addBindTags($group{'boxButton'},'my');
-  $group{'hideButton'} = $group{'frame'}->Checkbutton(-text     => 'Show Hidden',
-				  -variable => \$showHidden,
-				  -command  => [sub { getNodes(@_); redraw_tree(@_) },\%group],
-				  -relief   => 'flat');
-  addBindTags($group{'hideButton'},'my');
+#    $group{'boxButton'} = $group{'frame'}->Checkbutton(-text     => 'Draw boxes',
+#  						     -variable => \$drawBoxes,
+#  						     -command  => [sub { redraw_tree(@_) },\%group],
+#  						     -relief   => 'flat');
+#    addBindTags($group{'boxButton'},'my');
+#    $group{'hideButton'} = $group{'frame'}->Checkbutton(-text     => 'Show Hidden',
+#  				  -variable => \$showHidden,
+#  				  -command  => [sub { getNodes(@_); redraw_tree(@_) },\%group],
+#  				  -relief   => 'flat');
+#    addBindTags($group{'hideButton'},'my');
   $group{'attrDialog'}=undef;
 
   $group{'openButton'}=$group{'frame'}->Button(-text => "Open",
+					       -image       => $group{top}->Pixmap(-file => "$libDir/fileopen.xpm"),
+					       -borderwidth => 2,
 			 -command => [sub { fileDialog(@_) },\%group])->pack(-side=>'left',-padx=>'1');
+  $group{Balloon}->attach($group{openButton},
+		 -balloonmsg => "open file");
   addBindTags($group{'openButton'},'my');
   $group{'saveButton'}=$group{'frame'}->Button(-text => "Save",
+					       -image       => $group{top}->Pixmap(-file =>
+										   "$libDir/filefloppy.xpm"),
+					       -borderwidth => 2,
 			 -command => [sub { saveFile(@_) },\%group])->pack(-side=>'left',-padx=>'1');
+  $group{Balloon}->attach($group{saveButton},
+		 -balloonmsg => "save current file");
   addBindTags($group{'saveButton'},'my');
   $group{'printButton'}=$group{'frame'}->Button(-text => "Print",
+						-image       => $group{top}->Pixmap(-file => 
+										    "$libDir/fileprint.xpm"),
+					       -borderwidth => 2,
 			 -command => [sub { printThis(@_) },\%group])->pack(-side=>'left',
 									    -padx=>'1');
+  $group{Balloon}->attach($group{printButton},
+		 -balloonmsg => "print ...");
   addBindTags($group{'printButton'},'my');
 
   $group{'prevFileButton'}=$group{'frame'}->Button(-text => "Prev file",
+						   -image => $group{top}->Pixmap(-file => 
+										 "$libDir/start.xpm"),
+						   -borderwidth => 2,
 			 -command => [sub { prevFile(@_); },\%group])->pack(-side=>'left',
 								 -padx=>'1');
+  $group{Balloon}->attach($group{prevFileButton},
+		 -balloonmsg => "visit the previous open file");
   addBindTags($group{'prevFileButton'},'my');
 
   $group{'nextFileButton'}=$group{'frame'}->Button(-text => "Next file",
+						   -image => $group{top}->Pixmap(-file => 
+										 "$libDir/finish.xpm"),
+						   -borderwidth => 2,
 			 -command => [sub { nextFile(@_); },\%group])->pack(-side=>'left',
 								 -padx=>'1');
+  $group{Balloon}->attach($group{nextFileButton},
+		 -balloonmsg => "visit the next open file");
   addBindTags($group{'nextFileButton'},'my');
 
 
 
   $group{'attrButton'}=$group{'frame'}->Button(-text => "Attributes",
+					       -image => $group{top}->Pixmap(-file => 
+									     "$libDir/tick.xpm"),
+					       -borderwidth => 2,
 			 -command => [sub { selectAttrs(@_) },\%group])->pack(-side=>'right',
 								       -padx=>'1');
+  $group{Balloon}->attach($group{attrButton},
+		 -balloonmsg => "select visible attributes");
   $group{'nextButton'}->pack(-side => 'right', -padx => '1');
   $group{'prevButton'}->pack(-side => 'right', -padx =>'1');
-  $group{'boxButton'}->pack(-side => 'top', -pady => 2, -padx => 10, -anchor => 'w');
-  $group{'hideButton'}->pack(-side => 'top', -pady => 2, -padx => 10,-anchor => 'w');
+#  $group{'boxButton'}->pack(-side => 'top', -pady => 2, -padx => 10, -anchor => 'w');
+#  $group{'hideButton'}->pack(-side => 'top', -pady => 2, -padx => 10,-anchor => 'w');
 
-  $group{'frame'}->pack(-fill => 'x', -padx => '1c', -pady => 3);
+  $group{'frame'}->pack(-fill => 'x', -padx => '1', -pady => 1);
   $group{'valueLine'}->pack(qw/-fill x/);
   $group{'canvas'}->pack(qw/-expand yes -fill both/);
   addBindTags($group{'canvas'},'my');
@@ -769,12 +884,12 @@ sub tkDrawTree {
     openFile($firstFile,\%group);
   } 
 #  else {
-#    die "You didn't open any file!" unless fileDialog(\%group);    
+#    die "You didn't open any file!" unless fileDialog(\%group);
 #  }
 ####
 
   #print "entering main loop\n";
-  MainLoop;    
+  MainLoop;
 }
 
 sub fileDialog {
@@ -810,7 +925,6 @@ sub askSaveFile {
 					      -type => 'YesNo',
 					      -default => 'Yes') eq 'Yes');
   #print "..\n";
-		     
 }
 
 
@@ -898,12 +1012,12 @@ sub QueryString {
 				-buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  my $e = $d->Entry(-relief => 'sunken', 
+  my $e = $d->Entry(-relief => 'sunken',
 		    -width => 40, 
 		    -font => $font, 
 		    -textvariable => \$newvalue);
-  my $l = $d->Label(-text => $label, 
-		    -anchor => 'e', 
+  my $l = $d->Label(-text => $label,
+		    -anchor => 'e',
 		    -justify => 'right');
   $l->pack(-side=>'left');
   $e->pack();
@@ -926,10 +1040,10 @@ sub selectValuesDialog {
  my $d=$grp->{'top'}->DialogBox(-title => "Select Values", -width => '8c',
 				-buttons => ["OK", "Cancel"]);
  $d->resizable(0,0);
- my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1/, 
+ my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1/,
 		    -font => $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
- for ($a=0;$a<@$vals;$a++)  {   
+ for ($a=0;$a<@$vals;$a++)  {
    $l->selectionSet($a) if grep { $$vals[$a] eq $_ } @$selected;
  }
  $d->Checkbutton(-text     => 'multiple select',
@@ -1507,13 +1621,33 @@ sub centerTo {
   centerToXY($grp,$$node{'_tkXPOS_'},$$node{'_tkYPOS_'});
 }
 
-sub evalMacro {
-  my ($w,$grp,$prefix)=@_;
+sub doEvalMacro {
+  my ($grp,$macro)=@_;
   my $this=$grp->{'currentNode'};
   my $result;
-  my $key;
   my $FileNotSavedOrig=$FileNotSaved;
 
+  return unless $this;
+  $grp->{'top'}->Busy(-recurse => 1);
+  $FileNotSaved=1; # Macro may want to override this :)
+  $insideEval=1;
+  $result=eval("return ".$macro."();\n@macros\n");
+  if (!$result or $@) {
+    print STDERR "Had run: ",$macro,"\n";
+    print STDERR "Returned with: $result\n$@\n";
+  }
+  $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
+  $insideEval=0;
+  $grp->{'top'}->Unbusy;
+  setCurrent($grp,$this);
+  getNodes($grp);
+  redraw_tree($grp);
+  centerTo($grp,$this);
+}
+
+sub evalMacro {
+  my ($w,$grp,$prefix)=@_;
+  my $key;
   my $e = $w->XEvent;
   my $A = uc($e->A);
 
@@ -1526,23 +1660,7 @@ sub evalMacro {
   }
   #print "Got $prefix$A (",ord($e->A),",",ord($A),",",ord($e->B),") looking for macro\n";
   if (defined $keyBindings{$key}) {
-    $grp->{'top'}->Busy(-recurse => 1);
-    #print "Running ",$keyBindings{$prefix.$A},"\n";
-    $FileNotSaved=1; # Macro may want to override this :)
-    $insideEval=1;
-    $result=eval("return ".$keyBindings{$key}."();\n@macros\n");
-    if (!$result or $@) {
-      print STDERR "Got: $prefix$A (",ord($e->A),",",ord($A),",",$e->K,")\n";
-      print STDERR "Had run: ",$keyBindings{$key},"\n";
-      print STDERR "Returned with: $result\n$@\n";
-    }
-    $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
-    $insideEval=0;
-    $grp->{'top'}->Unbusy;
-    setCurrent($grp,$this);
-    getNodes($grp);
-    redraw_tree($grp);
-    centerTo($grp,$this);
+    doEvalMacro($grp,$keyBindings{$key});
   }
 }
 
