@@ -127,7 +127,6 @@ sub apply_options {
   foreach (@Options) {
     $self->{$_}=$opts->{$_} if (exists($opts->{$_}));
   }
-  print "FONT ======: ",$self->get_font,"\n";
   return;
 }
 
@@ -357,7 +356,7 @@ sub recalculate_positions {
   $self->{canvasHeight}=$self->get_baseYPos
 		     + ($maxlevel+1)*(2*($nodeYSkip +
 					 $self->get_ymargin)
-		     + $pattern_count*$fontHeight
+		     + ($node_pattern_count+$edge_pattern_count)*$fontHeight
 		     + $nodeHeight);
 }
 
@@ -901,7 +900,6 @@ sub draw_text_line {
       $self->canvas->addtag('text', 'withtag', $txt);
       $self->store_obj_pinfo($txt,$node);
       $self->store_node_pinfo($node,"Text[$1][$i][$j]",$txt);
-#      print "Text[$1][$i][$j]\n";
       $self->store_gen_pinfo("attr:$txt",$1);
     } elsif (/^\#{([^}]+)}$/) {
       unless ($self->get_noColor) {
@@ -916,9 +914,7 @@ sub draw_text_line {
 	} else {
 	  $color=$c;
 	  $color=undef if ($color eq 'default');
-	  print "Setting color to $color\n";
 	  $color=$self->get_customColors->[$1] if ($color=~/^custom([0-9])$/);
-	  print "Setting color to $color\n";
 	}
       }
     } else {
