@@ -372,18 +372,23 @@ my %pcdata = (
 	      f => [sub {
 		      my ($s,$data)=@_;
 		      &to_node_attr(@_,'|','form');
-		      $s->{node}->{origf}=$data
-			unless (exists($s->{node}->{origf})
-				or
-				$s->{node}->{formtype} =~ /^gen$/
-			       );
+		      unless (exists($s->{node}->{origf})
+			      or
+			      $s->{node}->{formtype} =~ /^gen$/
+			     ) {
+			$s->{node}->{origf}=$data;
+		      }
 		    }],
 	      w => [\&to_next_node_attr,'|','origf'],
 	      d => [sub {
 		      my ($s,$data)=@_;
 		      &to_node_attr(@_,'|','form');
-		      $s->{node}->{origf}=$data
-			unless (exists($s->{node}->{origf}));
+		      unless (exists($s->{node}->{origf})
+			      or
+			      $s->{node}->{formtype} =~ /^gen$/
+			     ) {
+			$s->{node}->{origf}=$data;
+		      }
 		    }],
 	      P => [\&to_node_attr,'|','punct'],
 	      Ct => [\&to_node_attr,'|','alltags'],
