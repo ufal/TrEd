@@ -352,9 +352,14 @@ sub read_node ($$$;$) {
       }
     }
 
-    my $child = $node->firstChild;
-    while ($child) {
-      if($child->nodeType == ELEMENT_NODE
+#    foreach my $child ($node->findnodes('*')) {
+#    foreach my $child ($node->getChildrenByTagNameNS(PML_NS,'*')) {
+#    foreach my $child ($node->findnodes('*[namespace-uri()="'.PML_NS.'"]')) {
+    foreach my $child ($node->childNodes) {
+#    my $child = $node->firstChild;
+#    while ($child) {
+      my $child_nodeType = $child->nodeType;
+      if($child_nodeType == ELEMENT_NODE
 	 and
 	 $child->namespaceURI eq PML_NS) {
 	my $name = $child->localname;
@@ -383,10 +388,12 @@ sub read_node ($$$;$) {
 	    _debug("KNIT: name=$name, '$ref'");
 	    if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
 	      my ($reffile,$idref)=($1,$2);
-	      my $refdom = ($reffile ne "") ? $fsfile->userData->{ref}->{$reffile} : $child->ownerDocument;
+	      $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
+	      my $refdom = ($reffile ne "") ? $fsfile->appData('ref')->{$reffile} : $child->ownerDocument;
 	      if (ref($refdom)) {
+		$fsfile->changeAppData('ref-index',{}) unless ref($fsfile->appData('ref-index'));
 		my $refnode =
-		  $fsfile->userData->{'ref-index'}->{$reffile}{$idref} ||
+		  $fsfile->appData('ref-index')->{$reffile}{$idref} ||
 		    $refdom->getElementsById($idref);
 		if (ref($refnode)) {
 		  my $ret = read_node($refnode,$fsfile,$types,$member);
@@ -422,16 +429,16 @@ sub read_node ($$$;$) {
 	  die "Undeclared member '$name' in '".$node->localname."' encountered".
 		  " at line ".$child->line_number."\n";
 	}
-      } elsif (($child->nodeType == TEXT_NODE
-		or $child->nodeType == CDATA_SECTION_NODE)
+     } elsif (($child_nodeType == TEXT_NODE
+		or $child_nodeType == CDATA_SECTION_NODE)
 		and $child->data=~/\S/) {
 	warn "Ignoring text content '".$child->data."'.\n";
-      } elsif ($child->nodeType == ELEMENT_NODE
+     } elsif ($child_nodeType == ELEMENT_NODE
 	       and $child->namespaceURI eq PML_NS) {
 	warn "Ignoring non-PML element '".$child->nodeName."'.\n";
-      }
-    } continue {
-      $child = $child->nextSibling;
+     }
+#    } continue {
+#      $child = $child->nextSibling;
     }
     foreach (keys %{$members}) {
       if (!exists($hash->{$_})) {
@@ -510,8 +517,10 @@ sub read_trees {
 	      $ref_data = $parser->parse_fh($ref_fh);
 	      $parser->process_xincludes($ref_data);
 	      close_backend($ref_fh);
-	      $fsfile->userData->{'ref'}->{$refid}=$ref_data;
-	      $fsfile->userData->{'ref-index'}->{$refid}=index_by_id($ref_data);
+	      $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
+	      $fsfile->appData('ref')->{$refid}=$ref_data;
+	      $fsfile->changeAppData('ref-index',{}) unless ref($fsfile->appData('ref-index'));
+	      $fsfile->appData('ref-index')->{$refid}=index_by_id($ref_data);
 	      _debug("Stored meta 'ref' -> '$reference->{name}' = $ref_data");
 	    } else {
 	      die "Couldn't open '".$href."': $!\n";
@@ -660,8 +669,8 @@ sub write {
       if ($refid) {
 	my $href = $fsfile->metaData('references')->{$refid};
 	if ($href and $reference->{readas} eq 'dom' and
-	      ref($fsfile->userData->{'ref'})) {
-	  my $dom = $fsfile->userData->{'ref'}->{$refid};
+	      ref($fsfile->appData('ref'))) {
+	  my $dom = $fsfile->appData('ref')->{$refid};
 	  if ($dom) {
 	    my $ref_fh = IOBackend::open_backend($href,"w");
 	    binmode $ref_fh;
@@ -738,7 +747,7 @@ sub write_object ($$$$$$) {
 	      $xml->endTag($member);
 	      if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
 		my ($reffile,$idref)=($1,$2);
-		my $indeces = $fsfile->userData->{'ref-index'};
+		my $indeces = $fsfile->appData('ref-index');
 		if ($indeces and $indeces->{$reffile}) {
 		  my $knit = $indeces->{$reffile}{$idref};
 		  if ($knit) {
