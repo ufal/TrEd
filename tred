@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-03-02 09:01:26 pajas>
+# Time-stamp: <2001-03-02 15:40:04 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -488,10 +488,8 @@ sub setConfig {
 
   foreach (0..9) {
     @recentFiles[$_]=$confs->{"recentfile$_"};
-    @recentFiles=grep {$_} @recentFiles;
-    addToRecent($grp);
   }
-
+  @recentFiles=grep {$_} @recentFiles;
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
 
@@ -695,7 +693,7 @@ sub ErrorMessage {
 
 sub addToRecent {
   my ($grp,$f)=@_;
-  
+
   if ($f) {
     @recentFiles=grep { $_ ne $f } @recentFiles;
     unshift @recentFiles,$f;
@@ -705,7 +703,6 @@ sub addToRecent {
   if ($grp->{RecentFileMenu}) {
     my $menu = $grp->{RecentFileMenu}->cget(-menu);
     $menu->delete(0,'end');
-
     foreach (@recentFiles) {
       $grp->{RecentFileMenu}->command(-label  => $_,
 				      -command => [\&openFile,$_,$grp]);
@@ -2369,44 +2366,58 @@ sub saveConfig {
 sub editConfig {
   my $grp=shift;
   return unless $grp;
-  $grp->{'configDialog'} = $grp->{'top'}->DialogBox(-title => "Edit Resource File ($configFile)" , -width => "10c",
-				   -buttons => ["  Save and Apply  "]);
-  my $d=$grp->{'configDialog'};
+  if ($grp->{configDialog}) {
+    $grp->{configDialog}->deiconify;
+    $grp->{configDialog}->focus;
+    $grp->{configDialog}->raise;
+    return;
+  }
+  $grp->{configDialog} = $grp->{'top'}->Toplevel(-title => "Edit Resource File ($configFile)" , 
+						   -width => "10c");
+  my $d=$grp->{configDialog};
+  $d->withdraw;
 #  $d->resizable(0,0);
   $d->bind('<Return>' => [sub {1;}]);
   my $t = $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
 		     -height 30 -scrollbars e/);
   $t->pack(qw/-expand yes -fill both/);
-  my $b = $d->Subwidget('bottom')->Button(-text => "  Apply  ",
-		     -command => [sub {
-				    my $grp=shift;
-				    applyConfig(split(/\n/,shift->get("0.0","end")));
-				    prepareFonts($grp);
-				    $grp->{valueLine}->configure(-font => $vLineFont);
-				    redraw_tree($grp);
-				  },$grp,$t]);
-  $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
-  $b = $d->Subwidget('bottom')->
-    Button(-text => "  Cancel  ",
-	   -command => sub { $d->{'selected_button'} = "  Cancel  " } );
-  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
-  $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+  my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
+  $bottom->
+    Button(-text => "  Save and Apply  ",
+	   -command => [sub {
+			  my ($grp,$d,$t)=@_;
+			  saveConfig($grp,$t->get("0.0","end"));
+			  applyConfig(split(/\n/,$t->get("0.0","end")));
+			  addToRecent($grp);
+			  prepareFonts($grp);
+			  $grp->{valueLine}->configure(-font => $vLineFont);
+			  redraw_tree($grp);
+#			  $d->destroy;
+			},$grp,$d,$t])
+      ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+  $bottom->Button(-text => "  Apply  ",
+		  -command => [sub {
+				 my $grp=shift;
+				 applyConfig(split(/\n/,shift->get("0.0","end")));
+				 addToRecent($grp);
+				 prepareFonts($grp);
+				 $grp->{valueLine}->configure(-font => $vLineFont);
+				 redraw_tree($grp);
+			       },$grp,$t])
+    ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+
+  $bottom->Button(-text => "  Close  ", -command => [sub { shift->destroy; },$d])
+    ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+
+  $d->bind('<Destroy>' => [sub { shift; shift->{configDialog}=undef; },$grp ]);
+  $d->bind('all','<Escape>' => [sub { shift; shift->destroy(); },$d]);
   if (open(F,"<$configFile")) {
     $t->insert('0.0',join "",<F>);
     close(F);
   }
   $t->mark(qw/set insert 0.0/);
-  my $result=ShowDialog($d,undef,$grp->{top});
-  if ($result eq '  Save and Apply  ') {
-    saveConfig($grp,$t->get("0.0","end"));
-    applyConfig(split(/\n/,$t->get("0.0","end")));
-    prepareFonts($grp);
-    $grp->{valueLine}->configure(-font => $vLineFont);
-    redraw_tree($grp);
-  }
-  $d->destroy;
-  undef $d;
+  $d->Popup;
 }
 
 
