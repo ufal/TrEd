@@ -307,7 +307,11 @@ sub set_config {
     $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
 					   "$libDir/".$psFontFile);
   } else {
-    $psFontFile="$libDir/fonts/ariam___.pfa";
+    if ($Tk::VERSION >= 804) {
+      $psFontFile="$libDir/fonts/n019003l.pfa";
+    } else {
+      $psFontFile="$libDir/fonts/ariam___.pfa";
+    }
   }
 #  if (exists $confs->{ttfontfile}) {
 #    $ttFontFile=tilde_expand($confs->{ttfontfile});
