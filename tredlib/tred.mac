@@ -322,4 +322,7 @@ sub file_opened_hook {
 
 #ifinclude <contrib/contrib.mac>
 
+package TredMacro;
+#binding-context TredMacro
+
 #endif __TRED_MAC__
