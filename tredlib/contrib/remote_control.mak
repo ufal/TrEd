@@ -38,7 +38,7 @@ sub runCommand {
     main::doEvalMacro($grp,$macro);
   } else {
     print STDERR "Remote command $command not recognized!\n";
-  }  
+  }
 }
 
 sub onRemoteCommand {
