@@ -83,7 +83,7 @@ function findtreddir {
 function perl_version_current {
   INSTVER=`$PERLBIN --version | grep "This is perl."`
   echo $INSTVER
-  if $PERLBIN --version | grep -q 'This is perl.* v5\.[86]'; then
+  if $PERLBIN --version | grep -q 'This is perl.* v5\.'${REQPERLVER}; then
     return 0
   else 
     return 1
