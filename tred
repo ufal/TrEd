@@ -284,17 +284,34 @@ use Exporter;
             $libDir
             @openfiles @filelists &min &max);
 
+%backend_map=(
+	   fs => 'FSBackend',
+	   csts => 'CSTS_SGML_SP_Backend',
+	   trxml => 'TrXMLBackend'
+	 );
+
 @open_types=
   (["FS files",           [qw/.fs .FS .Fs/]],
    ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
    ["All files",        '*']
   );
 
-@save_types=
-  (["FS files",           [qw/.fs .FS .Fs/]],
-   ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
-   ["All files",        '*']
-  );
+%save_types=(
+	     fs =>
+	     [["FS files",           [qw/.fs .FS .Fs/]],
+	      ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
+	      ["All files",        '*']
+	     ],
+	     csts =>
+	     [["CSTS files",           [qw/.cst .csts .sgm .sgml .a .m .am .amt .at/]],
+	      ["gzipped CSTS files",   [qw/.cst.gz .csts.gz .sgm.gz .sgml.gz .a.gz .m.gz .am.gz .amt.gz .at.gz/]],
+	      ["All files",        '*']
+	     ],
+	     trxml =>
+	     [["TrXML files",          [qw/.trx .trxml .xml/]],
+	      ["gzipped CSTS files",   [qw/.trx.gz .trxml.gz .xml.gz/]],
+	      ["All files",        '*']
+	     ]);
 
 ApplyGlobalConfig();
 
@@ -797,10 +814,6 @@ sub openFile {
   my ($grp,$f,%opts)= @_;
   my $win=$grp->{focusedWindow};
   my $goto= undef;
-  my %fs=(fs=> 'FS format',
-	  fgz=> 'gzipped FS format',
-	  trxml=> 'tree XML format',
-	  any=> 'any non-specific format (csts?), using CstsToFs');
 
   if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
     $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
@@ -3353,12 +3366,28 @@ sub saveFileAs {
   $initdir=cwd if ($initdir eq './');
   $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
-  $file= $win->toplevel->getSaveFile(-filetypes=> \@save_types,
+  my $response=userQuery($win, "\nPlease,\nchoose one of the following output formats:",
+			 -title => "Save As ...",
+			 -buttons => ["FS","CSTS","TrXML","Cancel"]);
+  return if ($response eq "Cancel");
+
+  $win->{FSFile}->changeBackend($backend_map{lc($response)});
+  if ($response eq 'FS') {
+    $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|xml)/.fs/i;
+    $file=~s/\.(amt|am|m|a)/$1.fs/;
+  } elsif ($response eq 'CSTS') {
+    $file=~s/\.fs/.csts/i;
+  } elsif ($response eq 'TrXML') {
+    $file=~s/\.(?:csts|sgml|sgm|cst|fs)/.trxml/i;
+  }
+  $file= $win->toplevel->getSaveFile(-filetypes=> $save_types{lc($response)},
 				     -title=> "Save As ...",
 				     -d $initdir ? (-initialdir=> $initdir) : (),
      				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   if (defined $file and $file ne '') {
     $win->{FSFile}->changeFilename($file);
+    $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").
+				     $win->{FSFile}->backend);
     updateTitle($win->{framegroup});
     return saveFile($win);
   }
