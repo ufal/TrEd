@@ -258,12 +258,12 @@ require Tk::BindMouseWheel;
 # (rel2abs is not supported in all instalations)
 use File::Spec;
 if (not File::Spec->can(rel2abs)) {
-  print "Using TFile::Spec\n";
+  print "Using TFile::Spec\n" if $tredDebug;
   require TFile::Spec;
   require TFile::Spec::Functions;
   import TFile::Spec::Functions qw(rel2abs);
 } else {
-  print "Using File::Spec\n";
+  print "Using File::Spec\n" if $tredDebug;
   require File::Spec;
   require File::Spec::Functions;
   import File::Spec::Functions qw(rel2abs);
@@ -328,7 +328,7 @@ sub bookmarkFilelist {
   $default->add(0,@files);
   addNewFilelist(undef,$default);
   unless (bookmarkFilelist()) {
-    print "Bookmarks: ".$ENV{HOME}.'/.tred_bookmarks'."\n";
+    print "Bookmarks: ".$ENV{HOME}.'/.tred_bookmarks'."\n" if $tredDebug;
     my $bookmarks= new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
     addNewFilelist(undef,$bookmarks);
   }
@@ -589,7 +589,7 @@ sub updateBookmarks {
     my $bl=bookmarkFilelist();
     return unless ref ($bl);
     foreach (bookmarkFilelist->files()) {
-      print STDERR "$_\n";
+      print STDERR "$_\n" if $tredDebug;
       $grp->{BookmarksFileMenu}->command(-label => "$i.  ".$_,
 				      -underline=> 0,
 				      -command=> [ \&openFile,$grp,$_ ]);
@@ -661,7 +661,7 @@ sub openFile {
   if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
     $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
       $goto=$1;
-    print "Goto suffix is $goto\n";
+    print "Goto suffix is $goto\n" if $tredDebug;
   }
 
   $keep = askSaveFile($win,1)
@@ -696,7 +696,7 @@ sub openFile {
 
   $win->{FSFile}= FSFile->newFSFile($f,@backends);
   $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
-  print STDERR "empty or corrupt file!\n" 
+  ErrorMessage($grp,"empty or corrupt file!")
     if ($win->{FSFile}->lastTreeNo<0);
 
   $win->{treeNo}=0;
@@ -711,8 +711,8 @@ sub openFile {
   updateTitle($grp);
 
   applyFileSuffix($win,$goto);
+
   get_nodes_win($win);
-  print "running on $win, focused is $win->{framegroup}->{focusedWindow}\n";
   doEvalHook($win,"file_opened_hook");
   redraw_win($win);
   if ($win->{currentNode}) {
@@ -818,20 +818,26 @@ sub update_value_line {
 sub get_nodes_win {
   my ($win)=@_;
 
+  print "Get nodes for win\n" if $tredDebug;
   if ($win->{FSFile}) {
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-    my @l=doEvalHook($win,"get_nodelist_hook",
+    print "get_nodelist_hook\n" if $tredDebug;
+    my $l=doEvalHook($win,"get_nodelist_hook",
 		     $win->{FSFile},
 		     $win->{treeNo},
+		     $win->{currentNode},
 		     $win->{treeView}->get_showHidden());
-    if (@l==2) {
-      ($win->{Nodes},$win->{currentNode})=@_;
+    if (ref($l) eq 'ARRAY' and @$l==2) {
+      print "using hook's list\n" if $tredDebug;
+      ($win->{Nodes},$win->{currentNode})=@$l;
     } else {
+      print "using default get_node_list\n" if $tredDebug;
       ($win->{Nodes},$win->{currentNode})= $win->{treeView}->nodes($win->{FSFile},
 								   $win->{treeNo},
 								   $win->{currentNode});
     }
   } else {
+    print "no nodes to get\n" if $tredDebug;
     $win->{root}=undef;
     $win->{Nodes}=[];
     $win->{currentNode}=undef;
@@ -1119,13 +1125,13 @@ sub addNewFilelist {
 
 sub deleteFilelist {
   my ($grp,$fl)=@_;
-  print "Deleting filelist $fl,".$fl->name()."\n";
+  print "Deleting filelist $fl,".$fl->name()."\n" if $tredDebug;
   return if (ref($fl) or $fl->name eq 'Default' or 
 		 $fl->name eq 'Bookmarks');
-  print "Allowed\n";
+  print "Allowed\n" if $tredDebug;
   @filelists=grep($_ ne $fl, @filelists);
-  print join "\n","Filelists:",@filelists,"";
-  print scalar(@filelists),"\n";
+  print join "\n","Filelists:",@filelists,"" if $tredDebug;
+  print scalar(@filelists),"\n" if $tredDebug;
   $grp->{filelistCurrentFilelist}=undef;
   undef $fl;
   switchFilelist($grp,'Default');
@@ -1336,6 +1342,7 @@ sub filelistDialog {
 			    unless (defined ($file)  and $file ne "") {
 			      my $initdir=dirname($file);
 			      $initdir=cwd if ($initdir eq './');
+			      $initdir=~s!${TrEd::Convert::Ds}$!!m;
 			      $file= $d->getSaveFile(-filetypes=> 
 								 [["Filelists",           ['.fl']]],
 								 -title=> "Save filelist as ...",
@@ -1536,6 +1543,7 @@ sub printDialog {
   $fil=~s/\.[^.]*$/.ps/;
   my $toFile=$grp->{printToFile};
   my $toEPS=$grp->{printToEPS};
+  my $imageMagick=$grp->{printImageMagick};
 #  my $useType1Font=$grp->{printUseType1Font};
   my $printRange=$grp->{printRange};
   my $snt=$grp->{printSentenceInfo};
@@ -1556,16 +1564,16 @@ sub printDialog {
   my $ce= $cf->Entry(-relief=> 'sunken',
 		     -width=> 20,
 		     -font=> $font,
-		     -textvariable=> \$com)->pack(-side=> 'left');
+		     -textvariable=> \$com)->pack(qw/-padx 10 -side left -expand yes -fill x/);
+
   my $defaultBg=$ce->cget('-background');
   my $disabledBg=$d->cget('-background');
 
   $ce->configure($toFile 
 		? (-state=> 'disabled',-background=> $disabledBg)
 		: (-state=> 'normal', -background=> $defaultBg));
+  $cf->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
 
-
-  $cf->pack(-pady=> '5m', -side=>'top');
   my $ff=$d->Frame();
   my $fl= $ff->Label(-text=> 'File name:',
 		     -anchor=> 'w',
@@ -1574,35 +1582,63 @@ sub printDialog {
   my $fe= $ff->Entry(-relief=> 'sunken',
 		     -width=> 50,
 		     -font=> $font,
-		     -textvariable=> \$fil)->pack(-side=> 'left');
+		     -textvariable=> \$fil)->pack(qw/-padx 10 -side left -expand yes -fill x/);
+  my $fb= $ff->Button(-text => '...',
+		      -command =>
+		      [sub {
+			 my ($d,$rfil)=@_;
+			 my $initdir=dirname($$rfil);
+			 $initdir=cwd() if ($initdir eq './');
+			 $initdir=~s!${TrEd::Convert::Ds}$!!m;
+			 my $file=
+			   $d->getSaveFile(-title => "Print To File ...",
+					   $^O eq 'MSWin32' ? () :
+					   (-initialfile=> filename($$rfil)),
+					   -d $initdir ? (-initialdir=> $initdir) : (),
+					   -filetypes=>
+					   [
+					    ["PostScript files", [qw/.ps .eps .PS .EPS/]],
+					    ["All files", '*']
+					   ]
+					  );
+			 $$rfil=$file if (defined $file and $file ne '');
+		       },$d,\$fil])->pack(qw/-padx 10 -side left -expand yes -fill x/);
 
   $fe->configure($toFile 
 		? (-state=> 'normal', -background=> $defaultBg)
 		: (-state=> 'disabled',-background=> $disabledBg));
+  $fb->configure($toFile 
+		? (-state=> 'normal')
+		: (-state=> 'disabled'));
   my $of=$d->Frame();
   my $bf=$of->Frame();
   $bf->Checkbutton(-text    => 'Print to file',
 		   -variable=> \$toFile,
 		   -command => [sub {
-				  my ($t,$c,$f)=@_;
+				  my ($t,$c,$f,$b)=@_;
 				  if ($$t) {
 				    $f->focus;
 				    $c->configure(-state=> 'disabled',
 						  -background=> $disabledBg);
 				    $f->configure(-state=> 'normal',
 						  -background=> $defaultBg);
+				    $b->configure(-state=> 'normal');
 				  } else {
 				    $c->focus;
 				    $f->configure(-state=> 'disabled',
 						  -background=> $disabledBg);
+				    $b->configure(-state=> 'disabled');
 				    $c->configure(-state=> 'normal',
 						  -background=> $defaultBg);
 				  }
-				},\$toFile,$ce,$fe ],
+				},\$toFile,$ce,$fe,$fb ],
 		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
   $bf->Checkbutton(-text    => 'Create EPS',
 			  -variable=> \$toEPS,
+			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+  $bf->Checkbutton(-text    => 'Convert according to file extension (ImageMagick)',
+			  -variable=> \$imageMagick,
 			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
 #    $bf->Checkbutton(-text    => 'Use Type1 Postscript Font',
@@ -1621,8 +1657,8 @@ sub printDialog {
 			  -variable=> \$noRotate,
 			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   
-  $bf->pack(-side=> 'right');
-  $of->pack(-fill=> 'x',-padx=>'1c');
+  $bf->pack(-side=> 'left');
+  $of->pack(qw/-padx 10 -pady 10 -side top -expand yes -fill x/);
   my $sf= $d->Frame();
   $sf->Label(-text=> 'Page range:',
 	     -anchor=> 'w',
@@ -1630,9 +1666,9 @@ sub printDialog {
   $sf->Entry(-relief=> 'sunken',
 	     -width=> 20,
 	     -font=> $font,
-	     -textvariable=> \$printRange)->pack(-side=> 'left', -padx=>'2m');
-  $sf->pack(-side=> 'bottom', -pady=> '5m');
-  $ff->pack(-side=> 'bottom', -pady=> '5m');
+	     -textvariable=> \$printRange)->pack(qw/-side left -padx 10 -fill x -expand yes/);
+  $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
+  $ff->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
 
 #  $toFile ? $fe->focus : $ce->focus;
   my $result= ShowDialog($d,$toFile ? $fe : $ce,$grp->{top});
@@ -1640,15 +1676,21 @@ sub printDialog {
 #  $grp->{printSelection}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
   $grp->{printToFile}=$toFile;
   $grp->{printToEPS}=$toEPS;
-  $grp->{printPsFile}=$ fil;
+  $grp->{printPsFile}=$fil;
   $grp->{printSentenceInfo}=$snt;
   $grp->{printCommand}=$com;
+  $grp->{printImageMagick}=$imageMagick;
+  if ($toFile and $imageMagick) {
+    $com="$imageMagickConvert - $fil"
+  }
 #  $grp->{printUseType1Font}=$useType1Font;
   $grp->{printNoRotate}=$noRotate;
   $d->destroy;
   undef $d;
   if ($result=~ /OK/) {
-    return ($printRange,$toFile,$toEPS,$fil,$snt,$com,
+    return ($printRange,
+	    $toFile && !$imageMagick,
+	    $toEPS || $imageMagick,$fil,$snt,$com,
 	    #$useType1Font,
 	    $printColors,$noRotate);
   } else {
@@ -2731,7 +2773,7 @@ sub startMain {
   $group{focusedWindow}->canvas->focus;
 
   $group{printToFile}=0;
-  $group{printCommand}='lpr';
+  $group{printCommand}=$defaultPrintCommand;
   $group{printPsFile}=$psFile;
 
   print STDERR "Binding canvas destroy...\n" if $tredDebug;
@@ -2914,7 +2956,7 @@ sub saveFileAs {
 
   $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
-
+  $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
   $file= $win->toplevel->getSaveFile(-filetypes=> \@save_types,
 				     -title=> "Save As ...",
@@ -4324,7 +4366,7 @@ sub centerTo {
 
 sub doEvalHook {
   my ($win,$hook)=(shift,shift);
-  return unless $hook and $win->{currentNode};
+  return unless $hook; # and $win->{currentNode};
   my $bookmark=bookmarkThis($grp->{framegroup});  # Save current position (as last action position)
 
   local $insideEval=1;
@@ -4332,12 +4374,12 @@ sub doEvalHook {
   $TredMacro::this=$win->{currentNode};
   $TredMacro::root=$win->{root};
   $TredMacro::libDir=$libDir;
-  $FileNotSaved=$win->{FSFile}->notSaved;
+  $FileNotSaved=$win->{FSFile}->notSaved if $win->{FSFile};
   $TredMacro::forceFileSaved=0;
   my $result=do_eval_hook($win,$win->{macroContext},$hook,@_);
   warn "$@\n" if $@;
   lastActionBookmark($grp->{framegroup},$bookmark) if $FileNotSaved and !$win->{FSFile}->notSaved;
-  $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved);
+  $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved) if $win->{FSFile};
   saveFileStateUpdate($win);
 
   $TredMacro::this=undef;
