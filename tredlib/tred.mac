@@ -319,6 +319,6 @@ sub file_opened_hook {
   }
 }
 
-#include <contrib/contrib.mac>
+#ifinclude <contrib/contrib.mac>
 
 #endif __TRED_MAC__
