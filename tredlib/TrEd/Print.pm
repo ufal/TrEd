@@ -1,14 +1,19 @@
 package TrEd::PSTreeView;
 use TrEd::TreeView;
 use base qw(TrEd::TreeView);
-use PostScript::FontMetrics;
 
 sub setFontMetrics {
   my ($self,$filename,$fontsize,$fontscale)=@_;
   $self->{psFontSize} = $fontsize;
   $self->{psFontScale} = $fontscale ? $fontscale : 1000;
   $self->{textWidthHash}={};
-  $self->{psFontMetrics} = new PostScript::FontMetrics($filename);
+  if ($TrEd::Convert::support_unicode) {
+    require PostScript::AGLFN;
+    $self->{psFontMetrics} = new PostScript::AGLFN($filename);
+  } else {
+    require PostScript::FontMetrics;
+    $self->{psFontMetrics} = new PostScript::FontMetrics($filename);
+  }
 #  print STDERR "FONT SIZE: $self->{psFontSize}, $self->{psFontMetrics}\n";
   return $self->{psFontMetrics};
 }
