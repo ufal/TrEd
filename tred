@@ -2,7 +2,7 @@
 # -*- cperl -*-
 #
 $version="1.48";
-$timestamp="Time-stamp: <2001-03-06 13:27:42 pajas>";
+$timestamp="Time-stamp: <2001-03-06 15:49:45 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -1753,7 +1753,9 @@ sub startMain {
 		    doEvalHook(\%group,"exit_hook");
 		    # run user's exit_hook
 		    askSaveFile($grp);
-		    $grp->{'top'}->destroy; },\%group]);
+		    $grp->{'top'}->destroy;
+		    $grp->{'top'}=undef;
+		  },\%group]);
 
 
   print STDERR "Exit hook created.\n" if $tredDebug;
@@ -1878,6 +1880,13 @@ sub startMain {
 			 findFirstTemplated($grp,$template,1)
 			   if ($grp->{currentNode});
 		       },\%group,\%searchTemplate]],
+	 [Button => 'Find Previous', -underline => 5,
+	  -command => [sub {
+			 my ($grp,$template)=@_;
+			 findPrevTemplated($grp,$template,1)
+			   if ($grp->{currentNode});
+		       },\%group,\%searchTemplate]]
+
 	])->pack(qw/-side left/);
   print STDERR "Creating user menu.\n" if $tredDebug;
 
@@ -2097,6 +2106,31 @@ sub startMain {
   addBindTags($group{'findNextButton'},'my');
 
 
+  $group{'findPrevButton'}=
+    $group{'frame'}->Button(-text => "Find Previous",
+			    -relief => $buttonsRelief,
+			    -image => $group{top}->Pixmap(-file =>
+								"$libDir/findprev.xpm"),
+			    -borderwidth => $buttonBorderWidth,
+			    -command => [sub {
+					   my ($grp,$template)=@_;
+					   if ($grp->{currentNode}) {
+					     $grp->{'top'}->toplevel->
+					       messageBox(-icon => 'warning',
+							  -message => "No matching node found!",
+							  -title => 'Find Next',
+							  -type => 'ok')
+						 unless( findPrevTemplated($grp,$template,1));
+					   }
+					 },\%group,\%searchTemplate])->pack(-side=>'left',
+									       -padx=>'1');
+  $group{Balloon}->attach($group{findPrevButton},
+		 -balloonmsg => "Find previous ...");
+  addBindTags($group{'findPrevButton'},'my');
+
+
+
+
   $group{'frame'}->Frame()->pack(-side => 'left', -padx =>'10');
   $group{'prevButton'}->pack(-side => 'left', -padx =>'1');
   $group{'nextButton'}->pack(-side => 'left', -padx => '1');
@@ -2147,9 +2181,9 @@ sub startMain {
 		  # Windows, otherwise the button remains active even
 		  # when you leave the window! Window$ realy suck!!!!
 		  last;
-		}	      
-	      }	      
-	      Tk->break;	      
+		}
+	      }
+	      Tk->break;
 	    }
 	  }, \%group,'ALT+']);
 
@@ -2158,20 +2192,11 @@ sub startMain {
 
   foreach (qw(Shift Control Meta Control-Shift Control-Alt
               Control-Meta Alt-Shift Meta-Shift)) {
-    $group{'frame'}->bind('my',"<$_-KeyPress>" =>
-			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
-    $group{'frame'}->bind('my',"<$_-Right>" =>
-			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
-    $group{'frame'}->bind('my',"<$_-Left>" =>
-			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
-    $group{'frame'}->bind('my',"<$_-Up>" =>
-			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
-    $group{'frame'}->bind('my',"<$_-Down>" =>
-			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
-    $group{'frame'}->bind('my',"<$_-Return>" =>
-			  [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+    foreach my $event (qw(KeyPress Right Left Up Down Return comma period Next Prior greater less)) {
+      $group{'frame'}->bind('my',"<$_-$event>" =>
+			    [sub { evalMacro(@_); Tk->break; }, \%group, keyBind($_)."+"]);
+    }
   }
-
   #  $group{'frame'}->bind('all','<Tab>' => [sub {1;}]);
   #  $group{'top'}->bind('dialog','<Tab>' => [sub { shift->focusNext(); }] );
   #  $group{'top'}->bind('dialog','<Shift-Tab>' => [sub { shift->focusPrev(); }] );
@@ -2182,40 +2207,10 @@ sub startMain {
   $group{'frame'}->bind('my','<Shift-ISO_Left_Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
   $group{'frame'}->bind('my','<Shift-Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
 
-  $group{'frame'}->bind('my','<KeyPress-period>' => 
-			[sub { my $w=shift;
-			       $treeNo=max(0,min($treeNo+1,$#trees));
-			       getValueLine(@_);
-			       $w->afterCancel($myIdle) if ($myIdle);
-			       $_[0]->{valueLine}->idletasks();
-			       $myIdle=$w->afterIdle([ sub {
-						 my $no=$treeNo;
-						 $treeNo=-1; # this is to force getNodes & redraw
-						 gotoTree($no,@_);
-						 $myIdle=undef;
-					       },@_]);
-			       Tk->break;
-			     },\%group]);
-
-  $group{'frame'}->bind('my','<KeyPress-comma>' =>
-			[sub { 
-			   if ($treeNo>0) {
-			     my $w=shift;
-			     $treeNo--;
-			     getValueLine(@_);
-			     $w->afterCancel($myIdle) if ($myIdle);
-			     $_[0]->{valueLine}->idletasks();
-			     $myIdle=$w->afterIdle([ sub {
-						       my $no=$treeNo;
-						       $treeNo=-1; # this is to force getNodes & redraw
-						       gotoTree($no,@_);
-						       $myIdle=undef;
-						     },@_]);
-			   }
-			   Tk->break;
-			 },\%group]);
-
-#  $group{'frame'}->bind('my','<comma>' => [sub { shift; prevTree(@_); Tk->break; },\%group]);
+  $group{'frame'}->bind('my','<period>' => [\&onIdleNextTree,\%group]);
+  $group{'frame'}->bind('my','<comma>' => [\&onIdlePrevTree,\%group]);
+  $group{'frame'}->bind('my','<Next>' => [\&onIdleNextTree,\%group]);
+  $group{'frame'}->bind('my','<Prior>' => [\&onIdlePrevTree,\%group]);
   $group{'frame'}->bind('my','<greater>' => [sub { shift; gotoTree($#trees,shift); Tk->break; },\%group]);
   $group{'frame'}->bind('my','<less>' => [sub { shift; gotoTree(0,shift); Tk->break; },\%group]);
 
@@ -2331,6 +2326,38 @@ sub startMain {
     "CanvasWidth\t=\t".$defCWidth."\n",map { "RecentFile$_\t=\t$recentFiles[$_]\n"} 0..$#recentFiles;
   saveConfig(\%group,@conf);
   print STDERR "Done.\n" if $tredDebug;
+}
+
+sub onIdleNextTree {
+  my $w=shift;
+  $treeNo=max(0,min($treeNo+1,$#trees));
+  getValueLine(@_);
+  $w->afterCancel($myIdle) if ($myIdle);
+  $_[0]->{valueLine}->idletasks();
+  $myIdle=$w->afterIdle([ sub {
+			    my $no=$treeNo;
+			    $treeNo=-1; # this is to force getNodes & redraw
+			    gotoTree($no,@_);
+			    $myIdle=undef;
+			  },@_]);
+  Tk->break;
+}
+
+sub onIdlePrevTree {
+  if ($treeNo>0) {
+    my $w=shift;
+    $treeNo--;
+    getValueLine(@_);
+    $w->afterCancel($myIdle) if ($myIdle);
+    $_[0]->{valueLine}->idletasks();
+    $myIdle=$w->afterIdle([ sub {
+			      my $no=$treeNo;
+			      $treeNo=-1; # this is to force getNodes & redraw
+			      gotoTree($no,@_);
+			      $myIdle=undef;
+			    },@_]);
+  }
+  Tk->break;
 }
 
 
@@ -3090,6 +3117,49 @@ sub findFirstTemplated {
 	return $node;
       }
     $node=(HNext($node) || $trees[(++$tree)]);
+  }
+  return undef;
+}
+
+sub lastSubtreeNode {
+  my ($top)=@_;
+  return undef unless $top;
+  while (FirstSon($top)) {
+    $top=FirstSon($top);
+    $top=RBrother($top) while (RBrother($top));
+  }
+  return $top;
+}
+
+sub findPrevTemplated {
+  my ($grp,$template,$skipfirst)=@_;
+  my $node=$grp->{'currentNode'};
+  my $tree=$treeNo;
+  my $a;
+
+  if ($skipfirst) {
+    $node=HPrev($node);
+    unless ($node or $tree==0) {
+      $node=lastSubtreeNode($trees[(--$tree)]);
+      $node=HPrev($node) unless (isShown($node));
+    }
+  }
+  while ($node) {
+    unless (grep ((exists($template->{$_}) and
+		   $template->{$_} ne '' and
+		   not cmpTemplateField($grp,$node->{$_},$template->{$_})
+		  ), @atord))
+      {
+	gotoTree($tree, $grp);
+	setCurrent($grp, $node);
+	centerTo($grp,$node);
+	return $node;
+      }
+    $node=HPrev($node);
+    unless ($node or $tree==0) {
+      $node=lastSubtreeNode($trees[(--$tree)]);
+      $node=HPrev($node) unless (isShown($node));
+    }
   }
   return undef;
 }
