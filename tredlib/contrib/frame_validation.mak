@@ -26,13 +26,14 @@ further research.
 apply if the afun of "se" is AuxT or Obj. Fixing the analytical
 layer is often required.
 
+TODO:
+
 - A rule that would handle "po jablicku" is missing.
 
 - ".1 az po.OPER .4" - in this (and probably other similar) the latter
 member of the OPER has a different case than expected.
 
 - distinguish between:
-TODO:
 "Marie ma pro Petra uvareno" (where no transformation rules applies) and
 "Petr ma od Marie uvareno" (where transformation changes ADDR(.3) to
 ADDR(.1), etc)
@@ -1177,7 +1178,7 @@ sub check_nounadj_frames {
 	    }
 	  } else {
 	    # frame not resolved
-	    my @word_frames = $V->frames($V->user_cache->{$lemma},q([@status='active' or @status='reviewed']));
+	    my @word_frames = $V->valid_frames($V->user_cache->{$lemma});
 	    my @possible_frames = 
 	      grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1) }
 		@word_frames;
