@@ -805,7 +805,8 @@ sub update_value_line {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow}; # only focused window uses the value line
   if ($win and $win->{FSFile}) {
-    $valueLine=encode($win->{FSFile}->value_line($win->{treeNo}));
+    my $vl=doEvalHook($win,"get_value_line_hook",$win->{FSFile},$win->{treeNo});
+    $valueLine=defined($vl) ? encode($vl) : encode($win->{FSFile}->value_line($win->{treeNo}));
   } else {
     $valueLine="";
   }
@@ -819,9 +820,17 @@ sub get_nodes_win {
 
   if ($win->{FSFile}) {
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-    ($win->{Nodes},$win->{currentNode})= $win->{treeView}->nodes($win->{FSFile},
-								 $win->{treeNo},
-								 $win->{currentNode});
+    my @l=doEvalHook($win,"get_nodelist_hook",
+		     $win->{FSFile},
+		     $win->{treeNo},
+		     $win->{treeView}->get_showHidden());
+    if (@l==2) {
+      ($win->{Nodes},$win->{currentNode})=@_;
+    } else {
+      ($win->{Nodes},$win->{currentNode})= $win->{treeView}->nodes($win->{FSFile},
+								   $win->{treeNo},
+								   $win->{currentNode});
+    }
   } else {
     $win->{root}=undef;
     $win->{Nodes}=[];
@@ -3255,19 +3264,26 @@ sub viewSentencesDialog {
   $d->bind('<Destroy>'=> [sub { shift; shift->{sentDialog}=undef; },$grp ]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->destroy(); },$d]);
 
-  foreach my $r ($grp->{focusedWindow}->{FSFile}->trees()) {
-    my @nodes=();
-    my $sentord= $grp->{focusedWindow}->{FSFile}->FS->sentord || $grp->{focusedWindow}->{FSFile}->FS->order;
-    my $value= $grp->{focusedWindow}->{FSFile}->FS->value;
-    while ($r) {
-      push @nodes,$r;
-      $r=$r->following();
-    }
+  for (my $i=0; $i<=$grp->{focusedWindow}->{FSFile}->lastTreeNo();$i++) {
     $t->insert('end',
-	       join (" ",
-	       map { encode($_->getAttribute($value)) }
-	       sort { $a->getAttribute($sentord) <=> $b->getAttribute($sentord) } @nodes)."\n");
+	       "$i. ".
+	       encode($grp->{focusedWindow}->treeView->value_line($grp->{focusedWindow}->{FSFile},$i,1)).
+		      "\n");
   }
+
+#   foreach my $r ($grp->{focusedWindow}->{FSFile}->trees()) {
+#     my @nodes=();
+#     my $sentord= $grp->{focusedWindow}->{FSFile}->FS->sentord || $grp->{focusedWindow}->{FSFile}->FS->order;
+#     my $value= $grp->{focusedWindow}->{FSFile}->FS->value;
+#     while ($r) {
+#       push @nodes,$r;
+#       $r=$r->following();
+#     }
+#     $t->insert('end',
+# 	       join (" ",
+# 	       map { encode($_->getAttribute($value)) }
+# 	       sort { $a->getAttribute($sentord) <=> $b->getAttribute($sentord) } @nodes)."\n");
+#   }
   $d->Popup;
 }
 
