@@ -60,7 +60,7 @@ sub status_line_doubleclick_hook {
 
 =item add_this_to_arf_original
 
-If called from analytical tree entered through C<mark_for_arf>, adds
+If called from analytical tree entered through C<PML_T_Edit::mark_for_arf>, adds
 this node's C<id> to C<a.rf> list of the marked tectogrammatical node.
 
 =cut
@@ -103,7 +103,7 @@ sub add_this_to_arf_original {
 
 =item add_this_to_arf
 
-If called from analytical tree entered through C<mark_for_arf>, adds
+If called from analytical tree entered through C<PML_T_Edit::mark_for_arf>, adds
 this node's C<id> to C<a.rf> list of the marked tectogrammatical node.
 
 =cut
