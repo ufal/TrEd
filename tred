@@ -2998,6 +2998,10 @@ sub startMain {
     $group{top}=MainWindow->new();
   }
 
+  if ($TrEd::Convert::support_unicode) {
+    require Tk::UCSKeyBind;
+  }
+
   readStyleSheets(\%group);
 
   $group{autoSaveCallback}=$group{top}->repeat($autoSave*60000,
