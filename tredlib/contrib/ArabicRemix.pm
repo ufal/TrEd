@@ -1,5 +1,4 @@
-#!/usr/bin/perl -w
-#
+#!/usr/bin/perl -w#
 # remix.pm ###############################################################################
 #
 # 2001/11/05 #############################################################################
@@ -9,6 +8,10 @@ package ArabicRemix;
 use Exporter;
 @ISA=qw(Exporter);
 @EXPORT=qw(&remix);
+
+no integer;
+(1000*$] < 5008) || eval 'no encoding';
+
 
 sub remix
 {
