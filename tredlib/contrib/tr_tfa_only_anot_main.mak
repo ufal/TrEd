@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-24 09:25:39 pajas>
+## Time-stamp: <2002-10-09 16:04:10 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -12,12 +12,17 @@ sub file_opened_hook {
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
 
-  unless ($grp->{FSFile}->hint()) {
-    default_tr_attrs();
+  Tectogrammatic->upgrade_file();
+
+  if ($grp->{FSFile} and
+      GetSpecialPattern('patterns') ne 'force' and
+      !$grp->{FSFile}->hint()) {
+    TFA->default_tfa_attrs();
   }
 
   foreach ("New Node","Remove Active Node","Insert New Tree",
-	   "Insert New Tree After", "Remove Whole Current Tree") {
+	   "Insert New Tree After", "Remove Whole Current Tree",
+	   "Copy Trees ...") {
     $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'disabled');
   }
   my $o=$grp->{framegroup}->{ContextsMenu};
