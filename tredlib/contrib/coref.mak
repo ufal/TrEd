@@ -153,10 +153,13 @@ sub node_release_hook {
     my $selection=['textual'];
     listQuery('single',[qw(textual grammatical)],$selection) || return;
     $type=$selection->[0];
+  } elsif ($mod eq '') {
+    # no cutting/pasting in Coref mode
+    return 'stop';
   } else {
-    print "Ignoring this mode\n";
+    # Ignoring this mode
     return;
-  }
+  } 
   assign_coref($node,get_ID_for_coref($target),$type);
   TredMacro::Redraw_FSFile_Tree();
   $FileNotSaved=1;
