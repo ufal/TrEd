@@ -33,7 +33,10 @@ sub ntred_query {
     ($N ? '-N ' : '').
       "-e '$query' $args";
   print STDERR "$cmd\n";
-  my $result=`$cmd`;
+  open my $fh, "$cmd |";
+  binmode $fh,':utf8' if $TrEd::Convert::support_unicode;
+  local $/;
+  my $result = <$fh>;
   return $result;
 }
 
