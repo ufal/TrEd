@@ -12,7 +12,7 @@ setlocale(LC_ALL,"cs_CZ");
 setlocale(LANG,"czech");
 
 use Getopt::Std;
-getopts('andflmesSqQRDA:M:owh');
+getopts('andflmesSqQRDKA:M:owh');
 
 
 $usenames=0;
@@ -38,6 +38,7 @@ if ($opt_h) {
      -R   build TR tree from CSTS
      -o   check only attributes listed in -A
      -w   print relevant part of the sentence below each node
+     -K   compute kappa measure
      -h   print this help screen
      -D   debug
 
@@ -89,6 +90,89 @@ sub expand_coord_apos {
 	$node->children());
   } else {
     return $node;
+  }
+}
+
+sub align_by_id {
+  my ($attr,$trees,$G,@names)=@_;
+
+
+  # $G is a reference to alignment hash
+  # structure: $G->{ ord }->{ file } == node_from_file_at_ord
+
+  # create groups of corresponding old nodes, i.e. nodes not created
+  # by anotators
+  my ($ord, $node, $tree);
+
+  foreach my $f (sort @names) {
+    # store trees to compare to $f-indexed hash
+    $tree=$trees->{$f};
+    if ($tree) {
+      $node=$tree->following;
+      while ($node) {
+	$ord=$node->{$attr};
+	if ($ord !~ /\./) {
+	  if (! exists $G->{$ord}) {
+	    $G->{$ord} = { };
+	  }
+	  $G->{$ord}{$f}=$node;
+	  $node->{_group_}=$ord;
+	}
+	$node=$node->following();
+      }
+    }
+  }
+  print STDERR "Done.\n" unless ($opt_q);
+}
+
+sub align_other {
+  my ($trees,$G,@names)=@_;
+  # $trees: a hash reference of trees to align
+  # $G is a reference to alignment hash
+  # structure: $G->{ grpid }->{ file } == node_from_file_at_ord
+
+  # create groups of nodes added by anotators that correspond
+  # dunno how to make it easily, so I'm working hard (looking for func)
+
+  # here node is aligned to the first unaligned son of the aligned parent
+  # with the same func :) (hard to understand? look at the code bellow)
+
+  # well, wasn't so difficult :)
+
+  my $grpid=0;
+  my ($i_name,$j_name,$node,$grp);
+  for ($i=0; $i < @names; $i++) {
+    $i_name=$names[$i];
+    next unless ($trees->{$i_name});
+    $node=$trees->{$i_name}->following();
+  NODE: while ($node) {
+      unless (exists($node->{_group_}) and $node->{_group_} ne "") {
+	$grp="N$grpid";
+	$grpid++;
+	if (! exists $G->{$grp}) {
+	  $G->{$grp} = { };
+	}
+	$G->{$grp}{$i_name}=$node;
+	$node->{_group_}=$grp;
+	$parent_grp= $node->parent()->{_group_};
+	for ($j=$i+1; $j < @names; $j++) {
+	  $j_name=$names[$j];
+	  if (exists ($G->{$parent_grp}{$j_name})) {
+	    $son=$G->{$parent_grp}->{$j_name}->firstson();
+	  SON: while ($son) {
+	      if (!exists($son->{_group_})
+		  and ($son->{func} eq $node->{func})) {
+		$son->{_group_}=$grp;
+		$G->{$grp}->{$j_name}=$son;
+		last SON;
+	      }
+	      $son=$son->rbrother();
+	    }
+	  }
+	}
+      }
+      $node=$node->following();
+    }
   }
 }
 
@@ -154,6 +238,8 @@ sub Max {
   return $max;
 }
 
+
+# Stuff like file openning, reading, counting and optional hidden nodes pruning
 foreach $f (@files) {
   $fileno++;
   print STDERR "Reading $f\t($fileno/$filecount)\n" unless $opt_q;
@@ -238,67 +324,16 @@ do {
       }
       $any=1;
     }
-
-    # create groups of corresponding old nodes, i.e. nodes not created
-    # by anotators
-    if ($T{$f}) {
-      print STDERR "Creating groups for tree # $n (starting at $f)\n" unless ($opt_q);
-      $node=Next($T{$f}); 
-      while ($node) {
-	if ($node->{"ord"}!~/\./) {
-	  if (! exists $G{$node->{"ord"}}) { 
-	    $G{$node->{"ord"}} = { };	# structure: $G{ ord }->{ file } == node_from_file_at_ord
-	  }
-	  $G{$node->{"ord"}}->{$f}=$node;
-	  $node->{"_group_"}=$node->{"ord"};
-	}
-	$node=Next($node);
-      }
-      print STDERR "Done.\n" unless ($opt_q);
-    }
   }
 
   if ($any) {
     print "Comparing trees ",$trees[$n]->{'form'}," (",$n+1,"):\n" unless ($opt_Q);
+
+    print STDERR "Creating groups for tree # $n (starting at $f)\n" unless ($opt_q);
+    align_by_id('ord',\%T,\%G,@names);
+
     print STDERR "Crating groups for new nodes\n" unless ($opt_q);
-
-    # create groups of nodes added by anotators that correspond
-    # dunno how to make it easily, so I'm working hard (looking for func)
-
-    $grpid=0;
-    for ($i=0; $i < @names; $i++) {
-      if ($T{$names[$i]}) {
-	$node=Next($T{$names[$i]});
-	while ($node) {
-	  if (! exists $node->{"_group_"}) {
-	    $grp="N$grpid";
-	    $grpid++;
-
-	    if (! exists $G{$grp}) { 
-	      $G{$grp} = { };	
-	    }
-	    $G{$grp}->{$names[$i]}=$node;
-	    $node->{"_group_"}=$grp;
-	    $parent_grp= Get(Parent($node),"_group_");
-	    for ($j=$i+1; $j < @names; $j++) {
-	      if (exists ($G{$parent_grp}->{$names[$j]})) {
-		$son=FirstSon($G{$parent_grp}->{$names[$j]});
-		SON: while ($son) {
-		  if ((! exists $son->{"_group_"}) and ($son->{"func"} eq $node->{"func"})) {
-		    $son->{"_group_"}=$grp;
-		    $G{$grp}->{$names[$j]}=$son;
-		    last SON;
-		  }
-		  $son=RBrother($son);
-		}
-	      }
-	    }
-	  }
-	  $node=Next($node);
-	}
-      }      
-    }
-    # well, wasn't so difficult :)
+    align_other(\%T,\%G,@names);
 
     print STDERR "Done.\n" unless ($opt_q);
     # Now have look on the groups:
@@ -344,10 +379,9 @@ do {
 	undef %valhash;
 	$diff_them=0;
 	foreach $f (keys %$Gr) {
-	  if (Parent($Gr->{$f})) {
-#	    print "$grp ",Get($Gr->{$f},"form"),"<-",Get(Parent($Gr->{$f}),"form")," $f\n";
-	    $valhash{Get(Parent($Gr->{$f}),"_group_")}.=" $f";
-	    $diff_them++ if (keys(% {$G{Get(Parent($Gr->{$f}),"_group_")}})>1);
+	  if ($Gr->{$f}->parent()) {
+	    $valhash{$Gr->{$f}->parent->{_group_}}.=" $f";
+	    $diff_them++ if (keys(%{$G{ $Gr->{$f}->parent->{_group_} }})>1);
 	  } else {
 	    $valhash{"none"}.=" $f";
 	  }
@@ -420,6 +454,7 @@ do {
       $total+=$diffs;
     }
     print "\n" unless $opt_Q;
+
     if ($opt_S) {
       print "#\n";
       foreach my $f (sort keys %alltrees) {
@@ -450,8 +485,70 @@ do {
         "\n";
       print (">\tAttributes%:  ",(100*$tree_values)/($tree_cmp_attrs),"%\n") if ($tree_cmp_attrs);
     }
+  
+    if ($opt_K) {
+      no integer;
+      for (my $i=0;$i<@names;$i++) {
+	for (my $j=$i+1;$j<@names;$j++) {
+	  my $I=$names[$i];
+	  my $J=$names[$j];
+	  print "Kappa($I,$J): ";
+
+	  # pocet uzlu ve stromu vyjma vrcholu == pocet hran ve stromu :)
+
+	  my $a=0;    # pocet hran, ktere se vyskytuji v obou stromech
+	  my $b=0;            # pocet hran, ktere se vyskytuji jen v I
+	  my $c=0;            # pocet hran, ktere se vyskytuji jen v J
+	  my $k=0; # pocet uzlu ktere se vyskytuji alespon u jednoho z I,J
+
+	  # daly na grafu o @nodes+1 uzlech vytvorit
+	  foreach $nodegrp (values(%G)) {
+	    if (exists($nodegrp->{$I}) and $nodegrp->{$I}) {
+	      $k++;
+	      my $Inode=$nodegrp->{$I};
+	      if (exists($nodegrp->{$J}) and $nodegrp->{$J}) {
+		my $Jnode=$nodegrp->{$J};
+		if ($Inode->parent->{_group_} eq $Jnode->parent->{_group_}) {
+		  $a++;
+		} else {
+		  $b++; $c++;	# rodic vzdy exisistuje
+		}
+	      } else {
+		$b++
+	      }
+	    } elsif (exists($nodegrp->{$J}) and $nodegrp->{$J}) {
+	      my $Jnode=$nodegrp->{$J};
+	      $k++;
+	      $c++;
+	    }
+	  }
+	  if ($k==0) {
+	    print "1.00 (trivial agreement - no possible edges)\n";
+	    next;
+	  }
+	  my $h=$k*($k+1); 	# potencialni pocet vsech hran v grafu
+                                # o $k+1 uzlech
+	  my $d=$h-$a-$b-$c;	# pocet hran, ktere nejsou ani u I ani u J
+
+	  my $p = ($a+$c)*($a+$b)/$h + ($c+$d)*($b+$d)/$h;
+	  my $kappa=($a+$d - $p) / ($h - $p);
+	  # print "[a=$a,b=$b,c=$c,d=$d,h=$h,nodes=$k,p=$p,kappa=$kappa]\n";
+
+	  printf '%.2f (',$kappa;
+	  if ($kappa<0) { print "no agreement" }
+	  elsif ($kappa<0.20) { print "poor agreement" }
+	  elsif ($kappa<0.40) { print "fair agreement" }
+	  elsif ($kappa<0.60) { print "moderate agreement" }
+	  elsif ($kappa<0.80) { print "substantial agreement" }
+	  elsif ($kappa<1) { print "almost perfect agreement" }
+	  else { print "perfect agreement" }
+	  print ")\n\n";
+	}
+      }
+    }
     print "$alldiffs differences.\n\n" unless ($opt_Q);
   }
+
   $tree_cmp_attrs=0;
   $tree_dependency=0;
   $tree_restoration=0;
@@ -521,16 +618,20 @@ if ($opt_s) {
 }
 
 
-# popí¹u algoritmus (bomba: Emacs umí M-q i v perlovských komentáøích:) : 
+# popí¹u algoritmus:
 #
 # jedu pìknì soubor po souboru (pøes keys %alltrees), ze v¹ech beru
 # i-tý strom (mám stromy T1,T2,...,Tk, kde k je poèet souborù) 
-# 
+#
 # 1. Ke ka¾dému uzlu stromu T1 najdu postupnì ve v¹ech stromech
 # T2,...,Tk odpovídající uzly a ty si zapamatuji a oznaèím, ¾e jsou
 # pøiøazeny.  Podobnì posupuji pro dosud neoznaèené uzly stromù T2 a¾
-# Tk, pøièem¾ takto seskupuji uzly které si odpovídají.
-# 
+# Tk, pøièem¾ takto seskupuji uzly které si odpovídají. 
+#
+# Uzly si odpovídají, mají-li stejný ord neobsahující teèku (staré
+# uzly), nebo kdy¾ si odpovídají jejich rodièe a uzly mají stejný
+# funktor (pøidané uzly).
+#
 # 2. Pro ka¾dou skupinu odpovídajících si uzlù porovnávám: a) které
 # uzly mají shodné zkoumané atributy b) které uzly mají "shodné" otce
 # 3. Pokud nìkterý strom nemá zastoupení v nìkteré skupinì, zji¹»uji,
