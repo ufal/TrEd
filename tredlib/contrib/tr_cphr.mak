@@ -20,7 +20,10 @@ sub uniq { my %a; @a{@_}=@_; values %a }
 sub find_and_assing_CPHR_and_frame {
   my ($c,$func) = discover_cphr_dphr($this);
   if ($func eq 'CPHR') {
-    { local $this = $c; assign_CPHR_and_add_QCor(); }
+    my $node = $this;
+    $this = $c; 
+    assign_CPHR_and_add_QCor();
+    $this = $node;
     choose_frame_match_CPHR();
   } else {
     print "Different functor: $func\n";
@@ -45,7 +48,10 @@ sub assign_CPHR_and_add_QCor {
   unless (first { $_->{func} eq 'ACT' } $this->children) {
     add_Gen_ACT();
     my $qcor = first { $_->{func} eq 'ACT' } $this->children;
-    return unless $qcor;
+    unless ($qcor) {
+      print "Why can't I find &Gen;.ACT I just created\n";
+      return;
+    }
     $qcor->{trlemma} = '&QCor;';
     foreach my $p (PDT::GetFather_TR($this)) {
       if ($p->{trlemma} eq 'mít') {
