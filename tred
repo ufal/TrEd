@@ -204,6 +204,7 @@ sub openFile {
   my $grp = shift;
   my $goto = undef;
 
+  $grp->{'top'}->Busy(-recurse => 1);
   foreach (@trees) { DeleteTree($_); }
   @trees = ();
   @header = ();
@@ -258,6 +259,7 @@ sub openFile {
   getNodes($grp);
   $FileNotSaved=0;
   redraw_tree($grp);
+  $grp->{'top'}->Unbusy();
   return 1;
 }
 
@@ -290,6 +292,9 @@ sub saveFile {
 
 
 sub getNodes {
+# prepare value line and @nodes list with deleted/saved hidden
+# and ordered by real Ord
+
   my ($grp)=@_;
   my @unsorted=();
   $treeNo=0 if ($treeNo<0);
@@ -352,66 +357,83 @@ sub printDialog {
   my $com=$grp->{'printCommand'};
   my $fil=$grp->{'printPsFile'};
   my $toFile=$grp->{'printToFile'};
-  
+  my $toEPS=$grp->{'printToEPS'};
+
   my $d = $grp->{'top'}->DialogBox(-title => "Print current tree",
 				-buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
-  my $cl = $d->Label(-text => 'Print command:', 
-		     -anchor => 'e', 
-		     -justify => 'right')->pack();
+  my $cf = $d->Frame();
+  my $cl = $cf->Label(-text => 'Print command:',
+		     -anchor => 'e',
+		     -justify => 'right')->pack(-side => left);
 
-  my $ce = $d->Entry(-relief => 'sunken', 
-		     -width => 40, 
-		     -font => $font, 
-		     -textvariable => \$com)->pack(-pady => '5m');
+  my $ce = $cf->Entry(-relief => 'sunken',
+		     -width => 20,
+		     -font => $font,
+		     -state => $toFile ? 'disabled' : 'normal',
+		     -textvariable => \$com)->pack(-side => right);
 
-  my $fl = $d->Label(-text => 'File name:', 
-		     -anchor => 'e', 
-		     -justify => 'right');
+  $cf->pack(-pady => '5m', -side=>top);
+  my $ff=$d->Frame();
+  my $fl = $ff->Label(-text => 'File name:',
+		     -anchor => 'e',
+		     -justify => 'right')->pack(-side => left);
 
-  my $fe = $d->Entry(-relief => 'sunken', 
-		     -width => 40,
-		     -state => 'disabled',
-		     -font => $font, 
-		     -textvariable => \$fil);
+  my $fe = $ff->Entry(-relief => 'sunken',
+		     -width => 20,
+		     -state => $toFile ? 'normal' : 'disabled' ,
+		     -font => $font,
+		     -textvariable => \$fil)->pack(-side => right);
 
-  $d->Checkbutton(-text     => 'Print to file',
-		  -variable => \$toFile,
-		  -command  => [sub {
-				  my ($t,$c,$f)=@_;
-				  if ($$t) { 
+  my $of=$d->Frame();
+  my $lt=$of->Scrolled(qw/Listbox -relief sunken -takefocus 1 -selectmode multiple -width 4 -height 5/,
+		       -font => $font)->pack(-side => left, -padx => '1c');
+  my $i=1;
+  $lt->insert('end',map { $i++ } @trees);
+
+  my $bf=$of->Frame();
+  $bf->Checkbutton(-text     => 'Print to file',
+		   -variable => \$toFile,
+		   -command  => [sub {
+				  my ($t,$c,$f,$e)=@_;
+				  if ($$t) {
 				    $f->focus;
 				    $c->configure(-state => 'disabled');
 				    $f->configure(-state => 'normal');
-				  } else { 
+				  } else {
 				    $c->focus;
 				    $f->configure(-state => 'disabled');
 				    $c->configure(-state => 'normal');
-				  } 
-				},\$toFile,$ce,$fe ],
-		  -relief   => 'flat')->pack(-fill => 'y', -pady => '2m');
+				  }
+				},\$toFile,$ce,$fe,$te ],
+		   -relief   => 'flat')->pack(-fill => 'y', -pady => '2m');
 
-  $fl->pack();
-  $fe->pack(-pady => '5m');
+  my $te=$bf->Checkbutton(-text     => 'Create EPS',
+			  -variable => \$toEPS,
+			  -relief   => 'flat')->pack(-fill => 'y');
 
-  $ce->focus;
+  $bf->pack(-side => right);
+  $of->pack(-fill => 'x',-padx=>'1c');
+  $ff->pack(-side => bottom, -pady => '5m');
+
+  $toFile ? $fe->focus : $ce->focus;
   my $result = $d->Show;
+  $grp->{'printSelection'}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
   $grp->{'printToFile'}=$toFile;
-  $grp->{'printPsFile'}=<$fil>;
+  $grp->{'printToEPS'}=$toEPS;
+  $grp->{'printPsFile'}=$fil;
   $grp->{'printCommand'}=$com;
   undef $d;
   return ($result =~ /OK/);
 }
 
 sub printThis {
-  my ($grp)=@_;  
+  my ($grp)=@_;
   my $i;
   my $c=$grp->{'canvas'};
-
-  my $rotate=($grp->{canvasHeight}<$grp->{canvasWidth});
   my $pagewidth;
   my $pageheight;
 
@@ -419,7 +441,11 @@ sub printThis {
     #print "Printing aborted!\n";
     return;
   }
+
   
+
+  my $rotate =  !$grp->{printToEPS} and ($grp->{canvasHeight}<$grp->{canvasWidth});
+
   if ($rotate) {
     $pagewidth=$c->fpixels($prtFmtWidth)+$c->fpixels($prtVMargin);
     $pageheight=$c->fpixels($prtFmtHeight)+$c->fpixels($prtHMargin);
@@ -427,28 +453,26 @@ sub printThis {
     $pagewidth=$c->fpixels($prtFmtHeight)+$c->fpixels($prtVMargin);
     $pageheight=$c->fpixels($prtFmtWidth)+$c->fpixels($prtHMargin);
   }
-  my %pso = (-colormode => 'mono', 
-	     -x => 0,
-	     -y => 0,
+  my %pso = (qw/-colormode mono -x 0 -y 0/,
 	     -fontmap => { $font => ['Arial-Medium', 12] },
 	     -width => $grp->{canvasWidth},
 	     -height => $grp->{canvasHeight},
 	     -rotate => $rotate);
 
-
-  if ($c->fpixels($grp->{canvasWidth})>$c->fpixels($pagewidth) or 
-      $c->fpixels($grp->{canvasHeight})>$c->fpixels($pageheight)) {
-    
-    if ($c->fpixels($grp->{canvasWidth})/$c->fpixels($pagewidth)*$c->fpixels($pageheight)
-	>$c->fpixels($grp->{canvasHeight})) {
-      #print "Applying width\n";
-      $pso{-pagewidth} = $c->fpixels($prtFmtWidth)-2*$c->fpixels($prtVMargin);
-    } else {
-      #print "Applying height\n";
-      $pso{-pageheight} = $c->fpixels($prtFmtHeight)-2*$c->fpixels($prtHMargin);
+  if ($grp{printToEPS}) {
+    if ($c->fpixels($grp->{canvasWidth})>$c->fpixels($pagewidth) or
+	$c->fpixels($grp->{canvasHeight})>$c->fpixels($pageheight)) {
+      
+      if ($c->fpixels($grp->{canvasWidth})/$c->fpixels($pagewidth)*$c->fpixels($pageheight)
+	  >$c->fpixels($grp->{canvasHeight})) {
+	#print "Applying width\n";
+	$pso{-pagewidth} = $c->fpixels($prtFmtWidth)-2*$c->fpixels($prtVMargin);
+      } else {
+	#print "Applying height\n";
+	$pso{-pageheight} = $c->fpixels($prtFmtHeight)-2*$c->fpixels($prtHMargin);
+      }
     }
   }
-
 
   my @ps = split /\n/,$c->postscript(%pso);
   
@@ -471,12 +495,14 @@ sub printThis {
 
 
   $i=0;
-  #print "Lines:",$#ps,"\n";
-  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BoundingBox:/);
-  #print "Bounding Box:\n";
-  print $ps[$i],"\n";
-  print O $ps[$i++],"\n";
-  print O $psMedia,"\n"; 
+  print "Lines:",$#ps,"\n";
+  unless ($grp->{printToEPS}) {
+    print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BoundingBox:/);
+    print "Bounding Box:\n";
+    print $ps[$i],"\n";
+    print O $ps[$i++],"\n";
+    print O $psMedia,"\n";
+  }
   print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%%DocumentNeededResources: font Arial-Medium/);
   print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BeginProlog/);
   print O $ps[$i++],"\n";
@@ -633,9 +659,10 @@ sub tkDrawTree {
   $group{'printPsFile'}=$psFile;
 
 #### was a bug on Win platform (couldnot create FileDialog outside MainLoop;
-#  if ($firstFile) {
-#    openFile($firstFile,\%group);
-#  } else {
+  if ($firstFile) {
+    openFile($firstFile,\%group);
+  } 
+#  else {
 #    die "You didn't open any file!" unless fileDialog(\%group);    
 #  }
 ####
@@ -690,6 +717,7 @@ sub selectAttrs {
   my @r=();
   my $rows=min(10,$#atord+1);
   return unless $grp->{currentFile};
+  $grp->{'top'}->Busy(-recurse => 1);
   foreach $a (@atord) {
     $datr{$a} = grep {$a eq $_} @displayAttrs;
   }
@@ -745,14 +773,42 @@ sub selectAttrs {
   $e{$atord[0]}->focus if $atord[0];
   $f->Manage(@r);
   $f->pack();
+  $grp->{'top'}->Unbusy();
   my $result = $d->Show;
+  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
     @displayAttrs = grep { $datr{$_} } @atord;
     redraw_tree($grp);
   }
   $d=undef;
+  $grp->{'top'}->Unbusy();
 }
 
+sub QueryString {
+  my $newvalue;
+  my ($grp, $title, $label)=@_;
+
+  my $d=$grp->{'top'}->DialogBox(-title => $title,
+				-buttons => ["OK", "Cancel"]);
+  $d->resizable(0,0);
+  addBindTags($d,'dialog');
+  my $e = $d->Entry(-relief => 'sunken', 
+		    -width => 40, 
+		    -font => $font, 
+		    -textvariable => \$newvalue);
+  my $l = $d->Label(-text => $label, 
+		    -anchor => 'e', 
+		    -justify => 'right');
+  $l->pack(-side=>'left');
+  $e->pack();
+  $e->focus;
+  my $result = $d->Show;
+  if ($result =~ /OK/) {
+    return $newvalue;
+  } else {
+    return undef;
+  }
+}
 
 
 sub selectValuesDialog {
@@ -760,6 +816,7 @@ sub selectValuesDialog {
  my $a;
  my $multi=0;
 
+ $grp->{'top'}->Busy(-recurse => 1);
  my $d=$grp->{'top'}->DialogBox(-title => "Select Values", -width => '8c',
 				-buttons => ["OK", "Cancel"]);
  $d->resizable(0,0);
@@ -775,6 +832,17 @@ sub selectValuesDialog {
 				 shift->configure(-selectmode => $multi ? 'multiple' : 'single');
 				 },$l],
 		 -relief   => 'flat')->pack();
+ $d->Button(-text => 'Add',
+	    -command => [sub {
+			   my ($grp,$l,$vals)=@_;
+			   my $val=QueryString($grp,"Add new value","Value");
+			   return unless defined $val;
+			   push @$vals,$val;
+			   $l->insert('end',$val);
+			   $l->selectionClear(0,$l->size-1) unless $multi;
+			   $l->selectionSet($l->size-1);
+			 },$grp,$l,$vals])->pack();
+ $grp->{'top'}->Unbusy();
  my $result = $d->Show;
  if ($result =~ /OK/) {
    @$selected = (map { $$vals[$_] } ( grep { $l->selectionIncludes($_) } (0 .. $l->size-1) )); 
@@ -795,6 +863,16 @@ sub editListAttr {
   return undef;
 }
 
+sub editAmbiguousAttr {
+  my ($grp, $value, $attr) =@_;
+  my @vals = split /\|/,$value;
+  my @selected = @vals;
+  if (selectValuesDialog($grp,\@vals,\@selected)) {
+    return join '|',@selected;
+  }
+  return undef;
+}
+
     
 sub editAttrsDialog {
   my ($grp,$node)=@_;
@@ -804,6 +882,7 @@ sub editAttrsDialog {
   my @vals;
   my $rows=min(10,$#atord+1);
   my @r=();
+  $grp->{'top'}->Busy(-recurse =>1);
   my $d=$grp->{'top'}->DialogBox(-title => "Edit Node Attributes", -width => '10c',
 				 -buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
@@ -849,11 +928,10 @@ sub editAttrsDialog {
 
     if  (IsList($_,\%attribs)) { # readonly entry and buttons for list
       $r = $f->Frame;
-      
       $e{$_} = $r->Entry(-relief => 'sunken', -takefocus => 1, -font => $font)->pack(qw/-expand yes -fill both -side left/);
       $b=$r->Button(-text => "...", -takefocus => 0,
 		    -command => [sub { 
-				my ($e,$grp,$node,$attr)=@_;				
+				my ($e,$grp,$node,$attr)=@_;
 				my $result = editListAttr($grp,$e->get,$attr);
 				if (defined $result) {
 				  $e->configure(-state => 'normal');
@@ -881,7 +959,9 @@ sub editAttrsDialog {
   $e{$atord[0]}->focus if $atord[0];
   $f->Manage(@r);
   $f->pack();
+  $grp->{'top'}->Unbusy();
   my $result = $d->Show;
+  $grp->{'top'}->Busy(-recurse =>1);
   if ($result =~ /OK/) {
     $FileNotSaved=1;
     foreach $a (@atord) {
@@ -891,6 +971,7 @@ sub editAttrsDialog {
     redraw_tree($grp);
   }
   $d=undef;
+  $grp->{'top'}->Unbusy();
 }
 
 sub editAttrs {
@@ -908,45 +989,77 @@ sub editAttr {
   my $node=$grp->{'pinfo'}{$t};
   my $d;
   $attr= (grep {$$node{$_} eq $t} keys %$node)[0];
-  
+
   return unless ($attr=~/^_tkText(?:Bg)*(\d+)_$/ or $1>$#displayAttrs);
   $attr=$displayAttrs[$1];
 
-  #print "editing $attr";
   if (IsList($attr,\%attribs)) {
     $newvalue = editListAttr($grp,$$node{$attr},$attr);
     if (defined $newvalue) {
-      $$node{$attr}=$newvalue;      
+      $grp->{'top'}->Busy(-recurse => 1);
+      $FileNotSaved=1;
+      $$node{$attr}=$newvalue;
+      getNodes($grp);
+      redraw_tree($grp);
+      $grp->{'top'}->Unbusy();
     }
     return;
-  }			
+  }
+
+  if ($$node{$attr}=~/^(?:[^\|\\]|\\.)*\|/) {
+    $newvalue = editAmbiguousAttr($grp,$$node{$attr},$attr);
+    if (defined $newvalue) {
+      $grp->{'top'}->Busy(-recurse => 1);
+      $FileNotSaved=1;
+      $$node{$attr}=$newvalue;
+      getNodes($grp);
+      redraw_tree($grp);
+      $grp->{'top'}->Unbusy();
+    }
+    return;
+  }
+
+  $grp->{'top'}->Busy(-recurse => 1);
+
 
   $newvalue=$$node{$attr};
   $d = $grp->{'top'}->DialogBox(-title => "Edit Node Attribute",
-				-buttons => ["OK", "Cancel"]);    
+				-buttons => ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  my $e = $d->Entry(-relief => 'sunken', 
-		    -width => 40, 
-		    -font => $font, 
+  my $e = $d->Entry(-relief => 'sunken',
+		    -width => 40,
+		    -font => $font,
 		    -textvariable => \$newvalue);
-  my $l = $d->Label(-text => $attr, 
-		    -anchor => 'e', 
+  my $l = $d->Label(-text => $attr,
+		    -anchor => 'e',
 		    -justify => 'right');
   $l->pack(-side=>'left');
   $e->pack();
   $e->focus;
+
+  $grp->{'top'}->Unbusy();
   my $result = $d->Show;
+  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
     $FileNotSaved=1;
     $$node{$attr}=$newvalue;
     getNodes($grp);
     redraw_tree($grp);
   }
+  $grp->{'top'}->Unbusy();
   $d=undef;
 }
 
-sub redraw_tree {  
+
+sub PrepareText {
+  my ($text)=@_;
+  $text=$1."*" if ($text =~/^([^\|]*)\|/);
+  return $text;
+}
+
+
+sub redraw_tree {
   my ($grp)=@_;
   my $node;
   my $parent;
@@ -1004,7 +1117,7 @@ sub redraw_tree {
 	$grp->{'canvas'}->createRectangle($$node{"_tkXPOS_"},
 				 $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+$i*$lineHeight,
 				 $$node{"_tkXPOS_"}+
-				 $grp->{'canvas'}->fontMeasure($font,$$node{$displayAttrs[$i]})+1,
+				 $grp->{'canvas'}->fontMeasure($font,PrepareText($$node{$displayAttrs[$i]}))+1,
 				 $$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+($i+1)*$lineHeight,
 				 -fill => $grp->{'canvas'}->cget('-background'), -outline => undef)
 	unless ($drawBoxes);
@@ -1013,7 +1126,7 @@ sub redraw_tree {
       $$node{"_tkText".$i."_"}=
 	$grp->{'canvas'}->createText($$node{"_tkXPOS_"},$$node{"_tkYPOS_"}+$nodeHeight+$nodeYSkip+$i*$lineHeight,
 				     -anchor => nw, 
-				     -text => $$node{$displayAttrs[$i]},
+				     -text => PrepareText($$node{$displayAttrs[$i]}),
 				     -fill => $textColor,
 				     -font => $font);
       $grp->{'canvas'}->addtag('text', 'withtag', $$node{"_tkText".$i."_"});
@@ -1160,9 +1273,8 @@ sub scrollCanvasToXY {
   $w->xview(moveto => 
 	    max(0,min(1,($canvasX-$x+1+$w->fpixels($w->cget('-borderwidth')))
 		      /$grp->{'canvasWidth'})));
-	     
-  # the same for Y
 
+  # the same for Y
   my $sizeY=$w->fpixels($grp->{'canvasHeight'})*($by-$ay);
   my $shiftY=($y-$grp->{'pinfo'}{'lastY'});
   if ($shiftY>0) { 
@@ -1295,6 +1407,7 @@ sub evalMacro {
   my $this=$grp->{'currentNode'};
   my $result;
   my $key;
+  my $FileNotSavedOrig=$FileNotSaved;
 
   my $e = $w->XEvent;
   my $A = uc($e->A);
@@ -1303,11 +1416,13 @@ sub evalMacro {
 
   #$A=chr(ord($A)+ord('A')-1) if (ord($A)<32 and $prefix=~/CTRL/);
 
-  unless ($macrosEvaluated) {
-    eval "\nreturn 1;@macros\n";  
-    print STDERR "Pre-compiling macros: returned with: $@\n" if ($@);    
-    $macroEvaluated=1;
-  }
+#  unless ($macrosEvaluated) {
+#    $grp->{'top'}->Busy(-recurse => 1);
+#    eval "\nreturn 1;@macros\n";
+#    print STDERR "Pre-compiling macros: returned with: $@\n" if ($@);
+#    $macrosEvaluated=1;
+#    $grp->{'top'}->Unbusy;
+#  }
 
   if (defined $keyBindings{$prefix.$A}) {
     $key=$prefix.$A;
@@ -1316,19 +1431,22 @@ sub evalMacro {
   }
   #print "Got $prefix$A (",ord($e->A),",",ord($A),",",ord($e->B),") looking for macro\n";
   if (defined $keyBindings{$key}) {
+    $grp->{'top'}->Busy(-recurse => 1);
     #print "Running ",$keyBindings{$prefix.$A},"\n";
     $FileNotSaved=1; # Macro may want to override this :)
-    $insideEval=1;    
-    $result=eval("return ".$keyBindings{$key}."();\n");
+    $insideEval=1;
+    $result=eval("return ".$keyBindings{$key}."();\n@macros\n");
     if (!$result or $@) {
       print STDERR "Got: $prefix$A (",ord($e->A),",",ord($A),",",$e->K,")\n";
       print STDERR "Had run: ",$keyBindings{$key},"\n";
       print STDERR "Returned with: $result\n$@\n";
     }
+    $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
     $insideEval=0;
+    $grp->{'top'}->Unbusy;
     setCurrent($grp,$this);
     redraw_tree($grp);
-    centerTo($grp,$this);    
+    centerTo($grp,$this);
   }
 }
 
