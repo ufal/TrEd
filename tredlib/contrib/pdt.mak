@@ -741,6 +741,7 @@ is filtered out).
 
 sub GetChildren_TR { # node filter
   my ($node,$filter)=(shift,shift);
+  return () if is_coord_TR($node);
   $filter = sub { 1 } unless $filter;
   my @sons;
   my $a=$node;
