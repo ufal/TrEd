@@ -201,18 +201,11 @@ coordination/aposition node in the list as well.
 sub expand_coord_apos_TR {
   my ($node,$keep)=@_;
   if (is_coord_TR($node)) {
-    return (($keep ? $node : ()),map { expand_coord_apos_TR($_,$keep) }
-      grep { $node->{func} ne 'OPER' and
-	     ($_->{memberof} eq 'CO' or $_->{reltype} eq 'CO') or
-	     $node->{func} eq 'OPER' and $_->{operand} eq 'OP'
-	     }
-	$node->children());
-  } elsif (is_apos_TR($node)) {
-    return (($keep ? $node : ()), map { expand_coord_apos_TR($_,$keep) }
-      grep { $_->{memberof} eq 'AP' or $_->{reltype} eq 'AP' }
-	$node->children());
+    return (($keep ? $node : ()),
+	    map { expand_coord_apos_TR($_,$keep) }
+	    grep { is_valid_member_TR($_) } $node->children());
   } else {
-    return $node;
+    return ($node);
   }
 }
 
@@ -643,6 +636,23 @@ sub GetChildren_TR { # node filter
   }
   grep &$filter($_),@sons;
 } # GetChildren_TR
+
+=item PDT::GetFather_TR ($node)
+
+=cut
+
+sub GetFather_TR {
+  my ($node)=@_;
+  if ($node and is_valid_member_TR($node)) {
+    while ($node and (!is_coord_TR($node) or is_valid_member_TR($node))) {
+      $node=$node->parent;
+    }
+  }
+  return () unless $node;
+  $node=$node->parent;
+  return ($node) if !is_coord_TR($node);
+  return (expand_coord_apos_TR($node));
+} # GetFather
 
 
 =item PDT::is_member_TR ($node?)
