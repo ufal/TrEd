@@ -100,17 +100,19 @@ sub filter_possible_cphr_frames {
     # frame not resolved
     my @frames = grep {
       first { $V->func($_) eq 'CPHR' }
-	$V->elements($_)
+	$V->all_elements($_)
       } $V->valid_frames($word);
     my @result;
     foreach my $frame (@frames) {
-      $tframe = do_transform_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,$quiet);
-      foreach my $e (grep { $V->func($_) eq 'CPHR' } $V->elements($tframe)) {
-	my @forms = $V->forms($e);
-	my $func = $V->func($e);
-	next unless (@forms);
-	if (first { match_form($c,$_,$aids,1) } @forms) {
+      my @transformed = do_transform_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,$quiet);
+      foreach my $tframe (@transformed) {
+	foreach my $e (grep { $V->func($_) eq 'CPHR' } $V->all_elements($tframe)) {
+	  my @forms = $V->forms($e);
+	  my $func = $V->func($e);
+	  next unless (@forms);
+	  if (first { match_form($c,$_,$aids,{}) } @forms) {
 	  push @result, $frame;
+	}
 	}
       }
     }
@@ -118,6 +120,7 @@ sub filter_possible_cphr_frames {
   }
   return ();
 }
+
 
 
 sub discover_cphr_dphr {
@@ -136,25 +139,32 @@ sub discover_cphr_dphr {
   if ($cache{$lemma}) {
     # frame not resolved
     my @c = grep { $_->{AID} ne "" or $_->{AIDREFS} ne "" } PDT::GetChildren_TR($node);
+    print "@c\n";
     return () unless @c;
     $cache{"FRAMES:".$lemma} = [
 				grep {
 				first { $V->func($_) =~ /^[CD]PHR$/ }
-				  $V->elements($_)
+				  $V->all_elements($_)
 				} $V->valid_frames($cache{$lemma})]
       unless exists($cache{"FRAMES:".$lemma});
     foreach my $frame (@{$cache{"FRAMES:".$lemma}}) {
-      $tframe = do_transform_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,0);
-      foreach my $e (grep { $V->func($_) =~ /^[DC]PHR$/ } $V->elements($tframe)) {
-	my @forms = $V->forms($e);
-	my $func = $V->func($e);
-	next unless (@forms);
-	foreach my $c (@c) {
-	  next if $c->{func} eq $func;
-	  if (first { match_form($c,$_,$aids,1) } @forms) {
-	    print "MATCH: ",
-	      $V->frame_id($frame),"\t", $V->serialize_frame($tframe),"\n";
-	    return ($c,$func);
+      print "$lemma $frame\n";
+      my @transformed = do_transform_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,0);
+      foreach my $tframe (@transformed) {
+	print "tframe $tframe\n";
+	foreach my $e (grep { $V->func($_) =~ /^[DC]PHR$/ } $V->all_elements($tframe)) {
+	  my @forms = $V->forms($e);
+	  my $func = $V->func($e);
+	  print "func $func\n";
+	  
+	  next unless (@forms);
+	  foreach my $c (@c) {
+	    next if $c->{func} eq $func;
+	    if (first { match_form($c,$_,$aids,{}) } @forms) {
+	      print "MATCH: ",
+		$V->frame_id($frame),"\t", $V->serialize_frame($tframe),"\n";
+	      return ($c,$func);
+	    }
 	  }
 	}
       }
