@@ -43,21 +43,3 @@ sub tfa_NA {
   TFAAssign();
 }
 
-sub ShiftLeft {
-  return unless ($this->{dord}>0);
-  if ($main::showHidden) {
-    ShiftNodeLeft($this);
-  } else {
-    ShiftNodeLeftSkipHidden($this);
-  }
-}
-
-sub ShiftRight {
-  return unless (Parent($this));
-  if ($main::showHidden) {
-    ShiftNodeRight($this);
-  } else {
-    ShiftNodeRightSkipHidden($this);
-  }
-}
-

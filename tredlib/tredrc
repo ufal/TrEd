@@ -49,7 +49,7 @@ CurrentNodeHeight	= 9          		;; height of the oval
 
 ;; --------- Miscelaneous Options ---------
 
-maxDisplayedValues= 30			;; maximum number of rows in a dialog
+maxDisplayedValues= 25			;; maximum number of rows in a dialog
 					;; for selecting attribute values
 
 HintWait	 	= 1000			;; interval in ms before floating hint
@@ -130,3 +130,6 @@ SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive r
 ; CstsToFs="2804.x"		;; give a csts (or any other format) to fs convertor here
 ; FsToCsts="2804.x -oformat=csts"	;; give a fs to csts (or any other format) convertor here
 
+Geometry	=	557x485+4+502
+CanvasHeight	=	361
+CanvasWidth	=	538

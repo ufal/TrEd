@@ -53,7 +53,7 @@ sub editQuery {
 
   $d=$grp->{'top'}->DialogBox(-title => shift,
 			   -buttons => ["OK","Cancel"]);
-  addBindTags($d,'dialog');
+  main::addBindTags($d,'dialog');
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   my $var=shift;
@@ -62,12 +62,12 @@ sub editQuery {
     my $t=$d->add(qw/Label -wraplength 6i -justify left -text/,$hintText);
     $t->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
   }
-  $ed=$d->Scrolled(qw/Text -height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $font);
+  $ed=$d->Scrolled(qw/Text -height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $main::font);
   $ed->insert('0.0',$var);
   $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
   $d->bind('<Return>' => [sub {1;}]);
   $ed->focus;
-  if (ShowDialog($d) =~ /OK/) {
+  if (main::ShowDialog($d) =~ /OK/) {
     $var=$ed->get('0.0','end');
     return $var;
   } else {
@@ -98,7 +98,7 @@ sub PerlSearch {
     return;
   }
   $macPerlSearchScript=$script;
-  while ($this=Next($this) or NextTree()) {
+  while ($this=NextNode($this) or NextTree()) {
 #    print $this->{'form'},"\n";
     last if eval($script);
   };
@@ -111,14 +111,14 @@ sub GotoTreeAsk {
 
   $FileNotSaved=0;
   if ($to=~/#/) {
-    for (my $i=$treeNo+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {
-      GotoTree($i), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
+    for (my $i=$grp->{treeNo}+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {
+      GotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
     }
-    for (my $i=0; $i<$treeNo; $i++) {
-      GotoTree($i), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
+    for (my $i=0; $i<$grp->{treeNo}; $i++) {
+      GotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
     }
   } else {
-    GotoTree($to-1) if defined $to;
+    GotoTree($to) if defined $to;
   }
 }
 
