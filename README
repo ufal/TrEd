@@ -1,13 +1,13 @@
-tkdisplaytree.pl aka tkfs ver. 0.2
-==================================
+Tred ver. 0.2
+=============
 
 author:
   Petr Pajas (pajas@ufal.ms.mff.cuni.cz)
 
-What is tkfs
+What is tred
 ------------
 
-tkdisplaytree.pl also refered to as tkfs is a perl-based graphical
+Tred stands for "Tree Editor". It is a Perl/Tk-based graphical
 editor for tree structures in the Fs format (for description see
 http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html) used for
 working with syntactical and tectogramatical trees in The Prague
@@ -16,9 +16,9 @@ program may also find some other applications.
 
 What it requires
 ----------------
-You only need perl5 with Perl/Tk ver. 800.015 library to run tkfs
-(tkdisplaytree.pl).  This means that tkfs may run on following
-platforms:
+
+You only need perl5 with Perl/Tk ver. 800.015 library to run Tred.
+This means that Tred may run on following platforms:
 
   Windows 9x,NT (download perl and perlTk from ActivePerl)
   Linux (with glibc2 = libc.6, otherwise you will probably 
@@ -40,25 +40,25 @@ This topic is described in the INSTALL file.
 
 Also note that:
 ---------------
-- .tkfsrc is your configuration file, it is text-based so that you may edit it 
+- .tredrc is your configuration file, it is text-based so that you may edit it 
 
-- you may print either to file or using a command. In both cases
-tkdisplaytree.fs (aka tkfs) generates postscript. On Windows desktop
-you will probably have to use ghostview to print obtained file (unless
-you have installed st. like lpr i.e. from cygwins).
+- you may print either to file or using a command. In both cases Tred
+generates postscript. On Windows desktop you will probably have to use
+ghostview to print obtained file (unless you have installed st. like
+lpr i.e. from cygwins).
 
 - printing uses postscript font (arial by default) but expects it has
 the same metrics as the display font
 
 - you may define macros and bind them to keyboard events. This is done
-preferably in tkfs.mac file, but you may use also tkfs.def which should
-however contain moreless st. like preliminary definitions. Let the files
-included with this distributions serve you as examples (the macro language
-is perl, it is evaled directly form tkdisplaytree.pl, so you may use
-its variables). The active node is pointed to by variable $this. To change
-active node simply assign this variable. Root of the current tree is 
-$root. You may (as in Fslib.pm)
-change or refer to node's attribute values by either
+preferably in tred.mac file, but you may use also tred.def which
+should however contain moreless st. like preliminary definitions. Let
+the files included with this distributions serve you as examples (the
+macro language is perl, it is evaled directly form Tred, so you may
+use its variables). The active node is pointed to by variable
+$this. To change active node simply assign this variable. Root of the
+current tree is $root. You may (as in Fslib.pm) change or refer to
+node's attribute values by either
   $$node{'atrname'}
 or (by more readable but one-char longer)
   $node->{'atrname'}
@@ -68,7 +68,7 @@ Also, you may find useful macros NextTree,PrevTree,GotoTree to move
 between trees and Next/Prev macros to trace along the current tree.
 
 For more info on macros see Fslib documentation (in
-tkfslib/documentation directory).
+tredlib/documentation directory).
 
 TODO
 ----
