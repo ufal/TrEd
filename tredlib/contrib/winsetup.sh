@@ -171,8 +171,8 @@ if ((test $UPGRADE = 1 || mkdir "${TREDDIR}") && \
   echo "Upravuji polozku TrEdu v registrech Windows"
   regtool -s set '\machine\Software\TrEd\Dir' $TREDDIR 
   echo
-  echo "nstalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla
-  echo ikona s obrazkem sileneho zvirete
+  echo "nstalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla"
+  echo "ikona s obrazkem sileneho zvirete:)"
   echo
 
 else
