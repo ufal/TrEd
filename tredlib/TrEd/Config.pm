@@ -28,7 +28,6 @@ BEGIN {
   $treeViewOpts
   $font
   $vLineFont
-  $type1font
   $libDir
   $iconPath
   $psFontFile
@@ -257,7 +256,6 @@ sub set_config {
   $TrEd::Print::bwModeNodeColor	      =	 val_or_def($confs,"bwprintnodecolor",'white');
   $treeViewOpts->{nodeOutlineColor}   =	 val_or_def($confs,"nodeoutlinecolor",'black');
   $treeViewOpts->{hiddenNodeColor}    =	 val_or_def($confs,"hiddennodecolor",'black');
-  # $activeNodeColor		      =	 val_or_def($confs,"activenodecolor",'blue');
   $treeViewOpts->{currentNodeColor}   =	 val_or_def($confs,"currentnodecolor",'red');
   $treeViewOpts->{nearestNodeColor}   =	 val_or_def($confs,"nearestnodecolor",'green');
   $treeViewOpts->{balanceTree}	      =	 val_or_def($confs,"balancetree",0) ||
@@ -290,7 +288,7 @@ sub set_config {
   $treeViewOpts->{drawBoxes}	       = val_or_def($confs,"drawboxes",0);
   $treeViewOpts->{drawEdgeBoxes}       = val_or_def($confs,"drawedgeboxes",0);
   $treeViewOpts->{highlightAttributes} = val_or_def($confs,"highlightattributes",1);
-  $treeViewOpts->{showHidden} = val_or_def($confs,"showhiddne",0);;
+  $treeViewOpts->{showHidden} = val_or_def($confs,"showhidden",0);;
 
   $TrEd::Convert::inputenc = val_or_def($confs,"defaultfileencoding",$TrEd::Convert::inputenc);
   $TrEd::Convert::outputenc = val_or_def($confs,"defaultdisplayencoding",$TrEd::Convert::outputenc);
@@ -314,8 +312,6 @@ sub set_config {
   # print "USING FONT $font\n";
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
-  $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
-    (($^O=~/^MS/) ? $font : '-*-helvetica-medium-r-*-*-*-*-*-*-*-*-'.$fontenc);
 
   $libDir=tilde_expand($confs->{libdir})
     if (exists $confs->{libdir});
@@ -331,10 +327,6 @@ sub set_config {
       $psFontFile="$libDir/fonts/ariam___.pfa";
     }
   }
-#  if (exists $confs->{ttfontfile}) {
-#    $ttFontFile=tilde_expand($confs->{ttfontfile});
-#    $ttFontFile="$libDir/".$ttFontFile if (not -f $ttFontFile and -f "$libDir/".$ttFontFile);
-#  }
   $ttFont=val_or_def($confs,"ttfont","Arial");
   if (exists $confs->{ttfontpath}) {
     $ttFontPath=tilde_expand($confs->{ttfontpath});
@@ -370,11 +362,6 @@ sub set_config {
     }
     $ttFontPath = join ",",map tilde_expand($_),@fontpath;
   }
-
-#  while (not(defined($ttFontFile) or -f $ttFontFile) and @fontpath) {
-#    $ttFontFile = $fontpath[0]."arial.ttf" if -f $fontpath[0]."arial.ttf";
-#    shift @fontpath;
-#  }
 
   if (exists $confs->{psfontafmfile}) {
     $psFontAFMFile=$confs->{psfontafmfile};
