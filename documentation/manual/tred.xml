@@ -39,8 +39,7 @@
       called <command>btred</command> &mdash; which stands for
       <quote>Batch-mode Tree Editor</quote> &mdash; which allows user
       to run macros on trees without having to enter the graphical
-      interface. However, the current version of
-      <command>btred</command> is a little obsolete.
+      interface.
     </para>
     <para>
       <application>TrEd</application> runs on the following platforms (see <xref linkend="chap1"/> for details):
