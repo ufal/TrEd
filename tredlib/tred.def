@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-05 11:39:25 pajas>
+## Time-stamp: <2002-11-12 18:32:10 pajas>
 
 package TredMacro;
 
@@ -248,9 +248,24 @@ sub StandardTredValueLineFont {
   return $main::vLineFont;
 }
 
+=item SetCurrentNodeInOtherWin (win, node)
+
+Set active node for a given window.
+
+=cut
 sub SetCurrentNodeInOtherWin {
   my ($win,$node)=@_;
   TrEd::Basics::setCurrent($win,$node);
+}
+
+=item CenterOtherWinTo (win, node)
+
+Center given window to a given node.
+
+=cut
+sub CenterOtherWinTo {
+  my ($win,$node)=@_;
+  main::centerTo($win,$node);
 }
 
 =item SetDisplayAttrs
