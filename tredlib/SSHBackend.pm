@@ -68,7 +68,11 @@ sub open_backend {
   $filename=$3;
   if ($filename) {
     if ($mode =~/[w\>]/) {
-      if (defined($gzip)) {
+      if ($filename=~/\.gz$/ and !defined($gzip)) {
+	die "You need gzip on both sides to load $filename\n";
+      } elsif ($filename=~/\.gz$/) {
+	$cmd = "| $gzip | $ssh $host \"cat > $filename\" 2>/dev/null";
+      } elsif (defined($gzip)) {
 	$cmd = "| $gzip | $ssh $host \"$gzip -d > $filename\" 2>/dev/null";
       } else {
 	$cmd = "$ssh $host \"cat > $filename\" 2>/dev/null";
@@ -80,7 +84,11 @@ sub open_backend {
 	 open $fh,"$cmd";
        } || return undef;
      } else {
-       if (defined($gzip)) {
+      if ($filename=~/\.gz$/ and !defined($gzip)) {
+	die "You need gzip on both sides to load $filename\n";
+      } elsif ($filename=~/\.gz$/) {
+	$cmd = "$ssh $host \"cat $filename\" 2>/dev/null | $gzip -d |";
+      } elsif (defined($gzip) and $filename!~/\.gz$/) {
 	 $cmd = "$ssh $host \"$gzip < $filename\" 2>/dev/null | $gzip -d |";
       } else {
 	$cmd = "$ssh $host \"cat $filename\" 2>/dev/null |";
