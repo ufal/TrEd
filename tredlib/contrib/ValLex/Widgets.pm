@@ -251,6 +251,7 @@ sub fetch_data {
 
 sub focus {
   my ($self,$frame)=@_;
+  return unless ref($frame);
   my $h=$self->widget();
   foreach my $t (map { $_,$h->infoChildren($_) } $h->infoChildren()) {
     next unless ref($h->infoData($t));
@@ -390,6 +391,7 @@ sub focus_by_text {
 }
 sub focus {
   my ($self,$word)=@_;
+  return unless ref($word);
   my $h=$self->widget();
   foreach my $t ($h->infoChildren()) {
     if ($self->data()->isEqual($h->infoData($t),$word)) {
