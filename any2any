@@ -21,7 +21,7 @@ EOF
     print <<EOF;
 Open a file and save it in FS format
 Parameters:
-  -f format          output format; one of: fs, csts, trxml. Default is csts.
+  -f format          output format; one of: fs, csts, trxml, teixml. Default is csts.
   -s suffix_regexp   strip strings matching given regexp from the end of filenames
   -a append          append given suffix to the filenames
   -p prefix_regexp   remove strings matching given regexp from the beginning of filenames
@@ -60,7 +60,7 @@ require Fslib;
 import Fslib;
 
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw(AG2FS TrXMLBackend CSTS_SGML_SP_Backend)));
+@backends=('FSBackend',ImportBackends(qw(AG2FS TrXMLBackend TEIXMLBackend CSTS_SGML_SP_Backend)));
 
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
@@ -80,7 +80,8 @@ our $inputenc='iso-8859-2';
 %bkmap=(
 	fs => 'FSBackend',
 	csts => 'CSTS_SGML_SP_Backend',
-	trxml => 'TrXMLBackend'
+	trxml => 'TrXMLBackend',
+	tei => 'TEIXMLBackend'
 );
 
 $fileno=0;
@@ -95,7 +96,7 @@ $filecount=scalar(@files);
 
 $format=defined($opt_f) ? lc($opt_f) : "csts";
 unless (  $backend = $bkmap{$format} ) {
-  die "Unknown format $format. Use -f [fs|csts|trxml]\n";
+  die "Unknown format $format. Use -f [fs|csts|trxml|teixml]\n";
 }
 
 foreach $f (@files) {
