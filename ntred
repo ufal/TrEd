@@ -531,7 +531,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request_type="LIST_CHANGED";
   } elsif ($request_save || $request_save_changed) {
     $request_type= $request_save ? "SAVE" : "SAVE_CHANGED";
-    $request="$control STATE=Format\n".($output_format || "fs")."\n";
+    $request="$control STATE=Format\n".($output_format || "fs")."\n" if ($output_format ne "");
     $request.="$control STATE=Strip-prefix\n".$strip_prefix."\n" if ($strip_prefix ne "");
     $request.="$control STATE=Strip-suffix\n".$strip_suffix."\n" if ($strip_suffix ne "");
     $request.="$control STATE=Prefix\n".$add_prefix."\n" if ($add_prefix ne "");
