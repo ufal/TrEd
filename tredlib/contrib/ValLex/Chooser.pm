@@ -12,6 +12,20 @@ use base qw(TrEd::ValLex::FramedWidget);
 require Tk::LabFrame;
 
 sub show_dialog {
+  my @ret = reusable_dialog(@_);
+  my $chooser = shift @ret;
+  $chooser->destroy_dialog();
+  return @ret;
+}
+
+sub destroy_dialog {
+  my ($self)=@_;
+  my $d = $self->widget->toplevel;
+  $self->destroy();
+  $d->destroy();
+}
+
+sub create_toplevel {
   my ($title,$top,
       $confs,
       $item_style,
@@ -23,7 +37,67 @@ sub show_dialog {
       $data,
       $field,
       $select_frame,
-      $start_editor)=@_;
+      $start_editor,
+      $assign_callback,
+      $destroy_callback
+     )=@_;
+
+  my $d = $top->Toplevel(-title => $title);
+  $d->withdraw;
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  my $top = $d->Frame();
+  my $bot = $d->Frame();
+  $bot->pack(qw/-side bottom -fill x -ipady 3 -ipadx 3/);
+  $top->pack(qw/-side top -fill both -ipady 3 -ipadx 3 -expand 1/);
+
+  my $chooser =
+    TrEd::ValLex::Chooser->new($data, $field, $top,
+			       ((ref($field) eq "ARRAY") ?
+				scalar(@$field)/2 : 1),
+			       $item_style,
+			       $frame_browser_styles,
+			       $frame_browser_wordlist_item_style,
+			       $frame_browser_framelist_item_style,
+			       $frame_editor_styles,
+			       undef, 1,-width => '25c');
+  $chooser->subwidget_configure($confs) if ($confs);
+  ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
+  if (defined $assign_callback) {
+    my $assign_cb = ref($assign_callback) eq 'ARRAY' ?
+      [ @$assign_callback, $chooser ] : [ $assign_callback,$chooser ];
+    my $ab = $bot->Button(-text => 'Assign',
+			  -command => $assign_cb)->pack(-side => 'left',-expand => 1);
+    $d->bind('<Return>',sub { $ab->flash; $ab->invoke });
+    $chooser->widget()->bind('<Double-1>'=> sub { $ab->invoke });
+  }
+  $bot->Button(-text => 'Close',
+	       -command => [$destroy_callback,$d] )->pack(-side => 'right', -expand => 1);
+  $d->protocol('WM_DELETE_WINDOW' => [$destroy_callback,$d]);
+  $chooser->subwidget('frame')->pack(qw/-fill both -expand 1/);
+  $d->bind('all','<Escape>'=> [$destroy_callback,$d]);
+
+
+  $chooser->prepare($show_obsolete_ref, $field, $select_frame, $start_editor);
+  $chooser->widget->focus;
+#  $d->resizable(0,0);
+  $d->Popup;
+  return $chooser;
+}
+
+sub reusable_dialog {
+  my ($title,$top,
+      $confs,
+      $item_style,
+      $frame_browser_styles,
+      $frame_browser_wordlist_item_style,
+      $frame_browser_framelist_item_style,
+      $frame_editor_styles,
+      $show_obsolete_ref,
+      $data,
+      $field,
+      $select_frame,
+      $start_editor
+     )=@_;
 
   my $d = $top->DialogBox(-title => $title,
 			  -buttons => ['Choose', 'Cancel'],
@@ -45,7 +119,21 @@ sub show_dialog {
   $chooser->subwidget_configure($confs) if ($confs);
   ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
   $chooser->widget()->bind('<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
-  $chooser->pack(qw/-expand yes -fill both -side left/);
+  $chooser->subwidget('frame')->pack(qw/-expand yes -fill both -side left/);
+  $chooser->prepare($show_obsolete_ref, $field, $select_frame, $start_editor);
+  if (TrEd::ValLex::Widget::ShowDialog($d,$chooser->widget) eq 'Choose') {
+    my @frames=$chooser->get_selected_frames();
+    my $real=$chooser->get_selected_element_string();
+    $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
+    return ($chooser,$chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames)),$real);
+  } else {
+    $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
+    return ($chooser);
+  }
+}
+
+sub prepare {
+  my ($chooser, $show_obsolete_ref, $field,  $select_frame, $start_editor)=@_;
   if (ref($field) eq "ARRAY") {
     foreach my $fl (@{$chooser->subwidget('framelists')}) {
       $fl->show_obsolete(!$$show_obsolete_ref);
@@ -63,14 +151,14 @@ sub show_dialog {
 	    $chooser->framelist_item_changed();
 	  }
 	}
-	      } else {
+      } else {
 	if ($chooser->widget()->infoExists(0)) {
-	  $chooser->widget()->anchorSet(0);
-	  $chooser->widget()->selectionSet(0);
+#	  $chooser->widget()->anchorSet(0);
+#	  $chooser->widget()->selectionSet(0);
 	  $chooser->widget()->focus();
 	  $chooser->framelist_item_changed(0);
 	}
-	      }
+      }
     } else {
       foreach (@{$chooser->subwidget("framelists")}) {
 	if ($_->select_frames($select_frame)) {
@@ -81,8 +169,8 @@ sub show_dialog {
     }
   } else {
     if ($chooser->widget()->infoExists(0)) {
-      $chooser->widget()->anchorSet(0);
-      $chooser->widget()->selectionSet(0);
+#      $chooser->widget()->anchorSet(0);
+#      $chooser->widget()->selectionSet(0);
       $chooser->widget()->focus();
       $chooser->framelist_item_changed(0);
     }
@@ -94,20 +182,51 @@ sub show_dialog {
 		      } @{$chooser->subwidget('framelists')};
       $chooser->focus_framelist($fl) if ($fl);
     }
-    $d->afterIdle([sub { $_[0]->edit_button_pressed(1) },$chooser]);
+    $chooser->widget->toplevel->afterIdle([sub { $_[0]->edit_button_pressed(1) },$chooser]);
   }
-  if ($d->Show() eq 'Choose') {
-    my @frames=$chooser->get_selected_frames();
-    my $real=$chooser->get_selected_element_string();
-    $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
-    $chooser->destroy();
-    $d->destroy();
-    return ($chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames)),$real);
+
+}
+
+sub reuse {
+  my ($self,
+      $title,
+      $show_obsolete_ref,
+      $field,
+      $select_frame,
+      $start_editor,
+      $modal
+     )=@_;
+  my $d = $self->widget()->toplevel();
+  $d->configure(-title => $title) if defined $title;
+  @{$self->field} = @$field;
+  my $count = ref($field) eq 'ARRAY' ? scalar(@$field/2) : 1;
+  my $lexframelists=$self->subwidget('framelists');
+  my $lexframelabels=$self->subwidget('framelist_labels');
+  for (my $i=0; $i<$count; $i++) {
+    # List of Frames
+    if (ref($lexframelists->[$i])) {
+      $lexframelabels->[$i]->configure(-text => $field->[2*$i]);
+      @{$lexframelists->[$i]->field()} =
+	($field->[2*$i], $field->[2*$i+1]);
+    }
+  }
+  $self->prepare($show_obsolete_ref, $field, $select_frame, $start_editor);
+  $self->widget()->focus();
+  if ($modal) {
+    if (TrEd::ValLex::Widget::ShowDialog($d,$self->widget) eq 'Choose') {
+      my @frames=$self->get_selected_frames();
+      my $real=$self->get_selected_element_string();
+      $$show_obsolete_ref=${$self->subwidget('hide_obsolete')};
+    return ($self->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames)),$real);
+    } else {
+      $$show_obsolete_ref=${$self->subwidget('hide_obsolete')};
+      return undef;
+    }
   } else {
-    $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
-    $chooser->destroy();
-    $d->destroy();
-    return undef;
+    $d->deiconify;
+    $d->focus;
+    $d->raise;
+    $self->widget->focus;
   }
 }
 
@@ -125,15 +244,21 @@ sub create_widget {
   my $frame = $top->Frame();
   $frame->configure(@conf) if (@conf);
 
+  my $info_line = TrEd::ValLex::InfoLine->new($data, undef, $frame, qw/-background white/);
+  $info_line->pack(qw/-side bottom -fill x -expand 0/);
+
+
   # Labeled frames
 
-  my $lexframe_frame=$top->LabFrame(-label => "Frames",
+  my $lexframe_frame=$frame->LabFrame(-label => "Frames",
 				   -labelside => "acrosstop",
 				   qw/-relief sunken/);
-  $lexframe_frame->pack(qw/-expand yes -fill both -padx 4 -pady 4/);
+  $lexframe_frame->pack(qw/-side top -expand 1 -fill both -padx 4 -pady 4/);
+
+
 
   my $fbutton_frame=$lexframe_frame->Frame();
-  $fbutton_frame->pack(qw/-side top -fill x/);
+  $fbutton_frame->pack(qw/-side top -expand 0 -fill x/);
 
 
   unless ($no_choose_button) {
@@ -196,14 +321,14 @@ sub create_widget {
   my @lexframelists=();
   my @lexframelistlabels=();
   my $focused_framelist;
-  my $size=20;
+  my $size=10;
   $size/=$count if $count>0;
   for (my $i=0; $i<$count; $i++) {
     # List of Frames
-    $lexframe_frame->Frame(-height => 12)->pack();
+    $lexframe_frame->Frame(-height => 12)->pack(qw/-expand 0 -fill x/);
     my $lexframelistlab=$lexframe_frame->Label(-text => $self->field()->[2*$i],
 			   qw/-anchor nw -justify left/)
-      ->pack(qw/-fill x -padx 4/);
+      ->pack(qw/-fill x -expand 0 -padx 4/);
     my $lexframelist =  TrEd::ValLex::FrameList->new($data,
 						     [
 						      $self->field()->[2*$i],
@@ -219,7 +344,7 @@ sub create_widget {
 								 ]
 						    );
     $lexframelist->widget()->bind('<FocusIn>',[\&focus_framelist,$self,$lexframelist]);
-    $lexframelist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
+    $lexframelist->pack(qw/-expand 1 -fill both -padx 6 -pady 6/);
     $lexframelists[$i]=$lexframelist;
     $lexframelistlabels[$i]=$lexframelistlab;
     $lexframelist->configure(-browsecmd => [\&framelist_item_changed,
@@ -235,8 +360,6 @@ sub create_widget {
 #						-scrollbars oe /);
 #  $lexframenote->pack(qw/-fill x/);
 
-  my $info_line = TrEd::ValLex::InfoLine->new($data, undef, $frame, qw/-background white/);
-  $info_line->pack(qw/-side bottom -fill x/);
 
   return $lexframelists[0]->widget(),{
 	     callback     => $cb,
