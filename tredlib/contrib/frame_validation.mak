@@ -853,7 +853,6 @@ sub validate_frame {
       }
     }
   }
-
   foreach my $c (@c) {
     my $e = $oblig{get_func($c)} || $nonoblig{get_func($c)};
     next unless ($e);
@@ -874,6 +873,16 @@ sub validate_frame {
 	$c->{_light}='_LIGHT_';
 	return 0;
       }
+    }
+  }
+  foreach my $c (@c) {
+    if ($c->{TID} ne "" and $nonoblig{get_func($c)} and
+	$c->{coref} eq "" and
+	$c->{trlemma} ne "&Rcp;" and
+	!first { $_->{AID} ne "" } $c->visible_children(FS())
+       ) {
+      print "0X Possibly redundant added node: ",get_func($c)."\t";
+      Position($c);
     }
   }
 
