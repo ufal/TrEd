@@ -306,7 +306,9 @@ use Exporter;
 
 @open_types=
   (["FS files",           [qw/.fs .FS .Fs/]],
+   ["CSTS files",           [qw/.cst .csts/]],
    ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
+   ["gzipped CSTS files",   [qw/.cst.gz .csts.gz/]],
    ["All files",        '*']
   );
 
@@ -317,8 +319,8 @@ use Exporter;
 	      ["All files",        '*']
 	     ],
 	     csts =>
-	     [["CSTS files",           [qw/.cst .csts .sgm .sgml .a .m .am .amt .at/]],
-	      ["gzipped CSTS files",   [qw/.cst.gz .csts.gz .sgm.gz .sgml.gz .a.gz .m.gz .am.gz .amt.gz .at.gz/]],
+	     [["CSTS files",           [qw/.cst .csts/]],
+	      ["gzipped CSTS files",   [qw/.cst.gz .csts.gz/]],
 	      ["All files",        '*']
 	     ],
 	     trxml =>
@@ -2874,7 +2876,7 @@ sub startMain {
   updateBookmarks(\%group);
 
   $group{ContextsMenu}=$group{Menubar}->
-    Optionmenu(-options=> [sort(keys(%keyBindings))],
+    Optionmenu(-options => [sort(keys(%keyBindings))],
 	       -textvariable=> \$group{selectedContext},
 	       -command=> [sub { my ($grp,$context) = @_;
 				 switchContext($grp->{focusedWindow}, $context);
@@ -2917,7 +2919,6 @@ sub startMain {
       Menubutton(qw/-text Shortcuts -underline 2 -menuitems/=>
 		 $cM)->pack(qw/-side left/);
   }
-
   $cM=[];
   push @$cM,
     @{cascadeMenus(map ([Button=> $_,
@@ -3058,8 +3059,6 @@ sub startMain {
   $group{Balloon}->attach($group{prevButton},
 			  -balloonmsg=> "see the previous tree");
   addBindTags($group{prevButton},'my');
-
-
 
   $group{openButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Open",
@@ -5625,10 +5624,14 @@ sub resetUndoStatus {
     $undostatus=0;
     $redostatus=0;
   }
-  $win->{framegroup}->{undoButton}->
-    configure(-state => ($undostatus ? 'normal' : 'disabled'));
-  $win->{framegroup}->{redoButton}->
-    configure(-state => ($redostatus ? 'normal' : 'disabled'));
+  if ($win->{framegroup}->{undoButton}) {
+    $win->{framegroup}->{undoButton}->
+      configure(-state => ($undostatus ? 'normal' : 'disabled'));
+  }
+  if ($win->{framegroup}->{redoButton}) {
+    $win->{framegroup}->{redoButton}->
+      configure(-state => ($redostatus ? 'normal' : 'disabled'));
+  }
 }
 
 sub resetTreePosStatus {
@@ -5638,8 +5641,12 @@ sub resetTreePosStatus {
 
   $prevstatus=ref($fsfile) && $fsfile->lastTreeNo>=0 && $win->{treeNo}>0;
   $nextstatus=ref($fsfile) && $fsfile->lastTreeNo>$win->{treeNo};
-  $win->{framegroup}->{nextButton}->
-    configure(-state => ($nextstatus ? 'normal' : 'disabled'));
-  $win->{framegroup}->{prevButton}->
-    configure(-state => ($prevstatus ? 'normal' : 'disabled'));
+  if ($win->{framegroup}->{nextButton}) {
+    $win->{framegroup}->{nextButton}->
+      configure(-state => ($nextstatus ? 'normal' : 'disabled'));
+  }
+  if ($win->{framegroup}->{prevButton}) {
+    $win->{framegroup}->{prevButton}->
+      configure(-state => ($prevstatus ? 'normal' : 'disabled'));
+  }
 }
