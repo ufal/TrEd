@@ -8,7 +8,9 @@ use base qw(TredMacro);
 import TredMacro;
 
 #include <contrib/ValLex/chooser.mak>
-
+#bind OpenEditor to Ctrl+Shift+Return menu Zobraz valencni ramce
+#bind ChooseFrameNoAssign to Ctrl+Return menu Zobraz valencni ramce pro sloveso
+sub ChooseFrameNoAssign { ChooseFrame(1); }
 
 #bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
