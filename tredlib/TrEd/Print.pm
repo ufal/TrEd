@@ -165,7 +165,8 @@ sub print_trees {
     print STDERR "Printing $printList[$t]\n";
 #    $treeView->set_font($type1font) if ($useType1Font);
     do {
-      my ($nodes) = $fsfile->nodes($printList[$t]-1,undef,$show_hidden);
+      $treeView->set_showHidden($show_hidden);
+      my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
       my ($valtext) = encode($fsfile->value_line($printList[$t]-1));
       $treeView->redraw($fsfile,undef,$nodes,$valtext);
     };
