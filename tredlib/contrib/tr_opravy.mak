@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-15 21:47:24 pajas>
+## Time-stamp: <2004-03-15 23:09:27 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -17,13 +17,18 @@ sub node_release_hook {
     ConnectAID($p,$node);
     light_aidrefs_reverse();
     Redraw_FSFile_Tree();
+    ChangingFile(1);
   }
 }
 
-sub node_doubleclick_hook {
+sub node_click_hook {
   my ($node, $mod) = @_;
   if ($mod eq 'Shift') {
-    $node->{_light} = '_LIGHT_';
+    if ($node->{_light} eq '_LIGHT_') {
+      delete $node->{_light};
+    } else {
+      $node->{_light} = '_LIGHT_'
+    }
     Redraw_FSFile_Tree();
   } elsif ($mod eq 'Control') {
     foreach ($node->root->descendants) {
