@@ -301,7 +301,7 @@ sub appendFSHeader {
     push @$list, $_ unless ($fs->exists($_));
     $defs->{$_}=$newdefs->{$_};
   }
-  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
+#  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
 }
 
 =item PDT->undeclareAttributes(@attributes)
@@ -318,8 +318,8 @@ sub undeclareAttributes {
   delete @{$defs}{@_};
 
   @$list=grep { exists($defs->{$_}) } @$list;
-  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
-    @{$fs->unparsed} if $fs->unparsed;
+#  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
+#    @{$fs->unparsed} if $fs->unparsed;
 
 }
 
