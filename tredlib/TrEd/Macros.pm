@@ -43,13 +43,13 @@ sub read_macros {
   # should be some of Shift, Ctrl and Alt) and the specified KeySym
   # (this probabbly depends on platform too :( ).
 
-  my ($file,$libDir,$keep)=(shift,shift,shift);
+  my ($file,$libDir,$keep,$encoding)=(shift,shift,shift,shift);
   $macrosEvaluated=0;
   my $macro;
   my $key;
   local *F;
   my @contexts=@_;
-
+  $encoding = $defaultMacroEncoding unless $encoding ne "";
   @contexts=("TredMacro") unless (@contexts);
   unless ($keep) {
     %keyBindings=();
@@ -60,7 +60,7 @@ sub read_macros {
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
     print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
       unless open(F,"<$defaultMacroFile");
-    set_encoding(\*F,$defaultMacroEncoding);
+    set_encoding(\*F,$encoding);
     push @macros, <F>;
     close F;
   }
@@ -68,7 +68,7 @@ sub read_macros {
   open(F,"<$file")
     || (!$keep && ($file="$libDir/$file") && open(F,"<$file")) ||
       die "ERROR: Cannot open macros: $file ($!)!\n";
-  set_encoding(\*F,$defaultMacroEncoding);
+  set_encoding(\*F,$encoding);
 
 #
 # new "pragmas":
@@ -193,31 +193,32 @@ sub read_macros {
 	    next unless exists($menuBindings{$_});
 	    delete $menuBindings{$_}{$menu};
 	  }
-	} elsif (/^\#\s*(if)?include\s+\<(.+\S)\>\s*$/) {
+	} elsif (/^\#\s*(if)?include\s+\<(.+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
+	  my $enc = $3;
 	  my $mf="$libDir/$2";
 	  if (-f $mf) {
-	    read_macros($mf,$libDir,1,@contexts);
+	    read_macros($mf,$libDir,1,$enc,@contexts);
 	    push @macros,"\n#line $line \"$file\"\n";
 	  } elsif ($1 ne 'if') {
 	    die
 	      "Error including macros $mf\n from $file: ",
 		"file not found!\n";
 	  }
-	} elsif (/^\#\s*(if)?include\s+"(.+\S)"\s*$/) {
+	} elsif (/^\#\s*(if)?include\s+"(.+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
+	  my $enc = $3;
 	  $mf=dirname($file).$2;
 	  if (-f $mf) {
-	    read_macros($mf,$libDir,1,@contexts);
+	    read_macros($mf,$libDir,1,$enc,@contexts);
 	    push @macros,"\n#line $line \"$file\"\n";
 	  } elsif ($1 ne 'if') {
 	    die
 	      "Error including macros $mf\n from $file: ",
 		"file not found!\n";
 	  }
-	} elsif (/^\#\s*(if)?include\s+(.+\S)\s*$/) {
-	  my $f=$2;
-	  my $if = $1;
+	} elsif (/^\#\s*(if)?include\s+(.+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
+	  my ($if,$f,$enc) = ($1,$2,$3);
 	  if ($f=~m%^/%) {
-	    read_macros($f,$libDir,1,@contexts);
+	    read_macros($f,$libDir,1,$enc,@contexts);
 	    push @macros,"\n#line $line \"$file\"\n";
 	  } else {
 	    my $mf=$f;
@@ -231,7 +232,7 @@ sub read_macros {
 	      }
 	    }
 	    if (-f $mf) {
-	      read_macros($mf,$libDir,1,@contexts);
+	      read_macros($mf,$libDir,1,$enc,@contexts);
 	      push @macros,"\n#line $line \"$file\"\n";
 	    } elsif ($if ne 'if') {
 	      die
@@ -299,12 +300,13 @@ sub initialize_macros {
   my $result = 2;
   my $utf = ($useEncoding) ? "use utf8;\n" : "";
   unless ($macrosEvaluated) {
-    my $macros=$utf.join("",@macros)."\n return 1;";
+    my $macros=$utf.join("",@macros)."\n; return 1;";
     if (defined($safeCompartment)) {
       ${macro_variable('TredMacro::grp')}=$win;
       my %packages;
       # dirty hack to support ->isa in safe compartment
-      $macros=~s/\n\s*package\s+(\S+?)\s*;/exists($packages{$1}) ? $1 : $&.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'/ge;
+      $macros=~s{\n\s*package\s+(\S+?)\s*;}
+	{ exists($packages{$1}) ? $& : do { $packages{$1} = 1; $&.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'} }ge;
       $result=
 	$safeCompartment
 	  ->reval($macros);
