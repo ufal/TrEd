@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2002-03-22 14:30:36 pajas>
+# Time-stamp: <2002-06-28 17:12:36 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -71,6 +71,7 @@ BEGIN {
   $highlightWindowColor
   $highlightWindowWidth
   $lastAction
+  $reverseNodeOrder
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -170,6 +171,8 @@ sub set_config {
 
   $highlightWindowColor=val_or_def($confs,"highlightwindowcolor",'black');
   $highlightWindowWidth=val_or_def($confs,"highlightwindowwidth",3);
+
+  $treeViewOpts->{reverseNodeOrder}   =	val_or_def($confs,"reversenodeorder",0);
 
   $treeViewOpts->{baseXPos}	      =	 val_or_def($confs,"basexpos",15);
   $treeViewOpts->{baseYPos}	      =	 val_or_def($confs,"baseypos",15);
