@@ -3771,6 +3771,10 @@ root# <userinput>make install</userinput>
 		otherwise redraw only the current one</para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term><literal>none</literal></term>
+	    <listitem>disables redrawing</listitem>
+	  </varlistentry>
 	</variablelist>
       </para>
       <para>

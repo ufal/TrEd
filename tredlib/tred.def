@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-04-23 11:45:53 pajas>
+## Time-stamp: <2003-04-24 18:15:26 pajas>
 
 package TredMacro;
 
@@ -42,6 +42,7 @@ screen. The default value is C<file> (redraw all windows displaying
 current file), while C<tree> means redraw all windows displaying
 current tree, C<win> means redraw only current window and C<tie> means
 redraw all if windows are tied or (if not) redraw only current window.
+To disable redrawing set this variable to C<none>.
 
 =item $forceFileSaved
 
@@ -226,6 +227,16 @@ sub Redraw_All {
   &main::get_nodes_all($grp->{framegroup});
   &main::redraw_all($grp->{framegroup});
   $main::insideEval=$ie;
+}
+
+=item RedrawStatusLine
+
+Force TrEd to immediately redraw status line.
+
+=cut
+sub RedrawStatusLine {
+  local $main::insideEval=0;
+  &main::updateStatusLine($grp);
 }
 
 =item StandardTredFont
