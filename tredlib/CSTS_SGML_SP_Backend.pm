@@ -1,5 +1,6 @@
 package CSTS_SGML_SP_Backend;
 
+use IOBackend qw(handle_protocol set_encoding);
 use Csts2fs;
 use Fs2csts;
 
@@ -13,15 +14,14 @@ sub default_settings {
   $sgmlsopts = "-i preserve.gen.entities" unless $sgmlsopts;
   $doctype = "csts.doctype" unless $doctype;
 
-  $sgmls_command='%s %o %d %f' unless $sgmls_command;
-  $z_sgmls_command='%z < %f | %s %o %d -' unless $z_sgmls_command;
+  $sgmls_command='%s %o %d' unless $sgmls_command;
 }
 
 =item open_backend (filename,mode, encoding?)
 
 Open given file for reading or writing (depending on mode which may be
 one of "r" or "w"); Return the corresponding object blessed to
-File::Pipe. Only files the filename of which ends with `.gz' are
+File::Pipe. Only files the filename of which ends with '.gz' are
 considered to be gz-commpressed.
 
 Optionally, in perl ver. >= 5.8, you may also specify file character
@@ -31,67 +31,23 @@ encoding.
 
 sub open_backend {
   my ($filename, $mode, $encoding)=@_;
-  my $fh = undef;
-  my $cmd = "";
-
-  if ($mode =~/[w\>]/) {
-    if ($filename=~/.gz$/) {
-      eval {
-	$fh = new IO::Pipe();
-	$fh && $fh->writer("$gzip > $filename");
-	if ($]>=5.008 and defined($encoding)) {
-	  binmode $fh,":encoding($encoding)";
-	}
-      } || return undef;
-	print STDERR "[w $cmd]\n" if $Fslib::Debug;
-    } else {
-      eval { $fh = new IO::File(); } || return undef;
-      $fh->open($filename,$mode) || return undef;
-      if ($]>=5.008 and defined($encoding)) {
-	binmode $fh,":encoding($encoding)";
-      }
-    }
+  print "CSTSBACKEND!!!yahoo!\n";
+  if ($mode eq 'w') {
+    return IOBackend::open($filename,$mode,$encoding);
+  } elsif ($mode eq 'r') {
+    my $fh = undef;
+    my $cmd = $sgmls_command;
+    print STDERR "$cmd\n" if $Fslib::Debug;
+    $cmd=~s/\%s/$sgmls/g;
+    $cmd=~s/\%o/$sgmlsopts/g;
+    $cmd=~s/\%d/$doctype/g;
+    $cmd=~s/\%f/-/g;
+    print STDERR "[r $cmd]\n"; # if $Fslib::Debug;
+    no integer;
+    $fh = set_encoding(IOBackend::get_store_fh($filename,$cmd),$encoding);
   } else {
-    if ($filename and -r $filename) {
-      if ($filename=~/.gz$/) {
-	return undef unless -x $zcat;
-	$cmd=$z_sgmls_command;
-      } else {
-	$cmd=$sgmls_command;
-      }
-      print STDERR "$cmd\n" if $Fslib::Debug;
-      $cmd=~s/\%f/"$filename"/g;
-      $cmd=~s/\%s/$sgmls/g;
-      $cmd=~s/\%o/$sgmlsopts/g;
-      $cmd=~s/\%d/$doctype/g;
-      $cmd=~s/\%z/$zcat/g;
-      print STDERR "[r $cmd]\n" if $Fslib::Debug;
-
-      no integer;
-#      if ($]>=5.008 and defined $encoding) {
-#	eval 'use open ":encoding($encoding)"';
-#	print STDERR $@ if $@;
-#      }
-      eval {
-	my $ok=open($fh,"-|", $cmd) && $fh;
-	if ($]>=5.008 and defined($encoding)) {
-	  binmode $fh,":encoding($encoding)";
-	}
-	$ok
-#	if ($^O eq 'MSWin32') {
-#	  $fh = new IO::File();
-#	  $fh && $fh->open("$cmd |");
-#	} else {
-#	  $fh = new IO::Pipe();
-#	  $fh && $fh->reader($cmd);
-#	}
-      } || do {
-	print STDERR "error: $!\n" if $!;
-	return undef;
-      }
-    }
+    die "unknown mode $mode\n";
   }
-  return $fh;
 }
 
 =pod
@@ -153,7 +109,7 @@ sub test {
     my $line=$f->getline();
     return $line=~/^\s*<csts[ >]/;
   } else {
-    my $fh = ZBackend::open_backend($f,"r",$encoding);
+    my $fh = IOBackend::open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;

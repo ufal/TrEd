@@ -7,6 +7,7 @@ package TrXMLBackend;
 use Fslib;
 use XML::LibXML;
 use XML::LibXML::SAX;
+use IOBackend qw(close_backend);
 use strict;
 
 sub test {
@@ -15,7 +16,7 @@ sub test {
     return ($f->getline()=~/\s*\<\?xml / &&
 	    $f->getline()=~/\<!DOCTYPE trees[ >]|\<trees[ >]/i);
   } else {
-    my $fh = ZBackend::open_backend($f,"r");
+    my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh);
     close_backend($fh);
     return $test;
@@ -23,21 +24,9 @@ sub test {
 }
 
 sub open_backend {
-  my ($filename, $mode,$encoding)=@_;
-  if ($mode eq 'r') {
-    return $_[0];
-  } else {
-    return ZBackend::open_backend($filename, $mode, $encoding);
-  }
-}
-
-sub close_backend {
-  my ($fh)=@_;
-  if (ref($fh)) {
-    return $fh->close();
-  } else {
-    return 1;
-  }
+  my ($uri,$rw,$encoding)=@_;
+  # discard encoding and pass the rest to the IOBackend
+  IOBackend::open_backend($uri,$rw,($rw eq 'w' ? $encoding : undef));
 }
 
 =item read ($input,$fsfile)
@@ -54,7 +43,7 @@ sub read {
   my $handler = XML::Handler::TrXML2FS->new(FSFile => $fsfile);
   my $p = XML::LibXML::SAX->new(Handler => $handler);
   if (ref($input)) {
-    $p->parse_fh($input);
+    $p->parse(Source => { ByteStream => $input });
   } else {
     $p->parse_uri($input);
   }

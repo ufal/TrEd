@@ -2,14 +2,10 @@ package StorableBackend;
 use Fslib;
 use Storable qw(nstore_fd fd_retrieve);
 use IO::Pipe;
-use vars qw(@ISA);
 use Data::Dumper;
-import ZBackend;
+use IOBackend qw(open_backend close_backend);
 use strict;
 
-BEGIN {
-  @ISA=('ZBackend');
-};
 
 =pod
 

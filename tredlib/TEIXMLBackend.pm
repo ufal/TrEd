@@ -7,11 +7,19 @@ package TEIXMLBackend;
 use Fslib;
 use XML::LibXML;
 use XML::LibXML::SAX::Parser;
+use IOBackend qw(close_backend);
 use strict;
+
+sub open_backend {
+  my ($uri,$rw,$encoding)=@_;
+  # discard encoding and pass the rest to the IOBackend
+  IOBackend::open_backend($uri,$rw,($rw eq 'w' ? $encoding : undef));
+}
+
 
 sub test {
   # should be replaced with some better magic-test for TEI XML
-  my ($f,$encoding)=@_;
+  my ($f)=@_;
 
   if (ref($f)) {
     my $line1=$f->getline();
@@ -19,28 +27,10 @@ sub test {
     return ($line1 =~ /^\s*<\?xml / and ($line2 =~ /^\s*<p[\s>]/
 	   or $line2 =~ /^\s*<text>/ or $line2 =~/^<!DOCTYPE text /));
   } else {
-    my $fh = ZBackend::open_backend($f,"r",$encoding);
-    my $test = $fh && test($fh,$encoding);
+    my $fh = IOBackend::open_backend($f,"r");
+    my $test = $fh && test($fh);
     close_backend($fh);
     return $test;
-  }
-}
-
-sub open_backend {
-  my ($filename, $mode,$encoding)=@_;
-  if ($mode eq 'r') {
-    return $_[0];
-  } else {
-    return ZBackend::open_backend($filename, $mode, $encoding);
-  }
-}
-
-sub close_backend {
-  my ($fh)=@_;
-  if (ref($fh)) {
-    return $fh->close();
-  } else {
-    return 1;
   }
 }
 
@@ -55,7 +45,7 @@ sub read {
   my $handler = XML::Handler::TEIXML2FS->new(FSFile => $fsfile);
   my $p = XML::LibXML::SAX::Parser->new(Handler => $handler);
   if (ref($input)) {
-    $p->parse_fh($input);
+    $p->parse(Source => { ByteStream => $input });
   } else {
     $p->parse_uri($input);
   }

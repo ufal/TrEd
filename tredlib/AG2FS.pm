@@ -51,22 +51,6 @@ Only reading is supported now!
 sub open_backend {
   my ($filename, $mode, $encoding)=@_;
   return $filename;
-#   my $fh = undef;
-
-#   if ($mode =~/[w\>]/) {
-#     print STDERR "Error: Writing not supported by this backend!\n";
-#   } else {
-#     eval {
-#       my $ok=open($fh,$filename) && $fh;
-#       binmode($fh,":utf8") if ($ok && $]>=5.008);
-#       $ok
-#     } || do {
-#       print STDERR "AG2FS error while openning $filename\n" if $!;
-#       print STDERR "error: $!\n" if $!;
-#       return undef;
-#     };
-#   }
-#   return $fh;
 }
 
 =pod
@@ -340,7 +324,7 @@ sub test {
     my $line2=$f->getline();
     return ($line1.$line2)=~/<!DOCTYPE AGSet/;
   } else {
-    my $fh = ZBackend::open_backend($f,"r",$encoding);
+    my $fh = IOBackend::open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;
