@@ -312,6 +312,7 @@ sub ballance_node {
   my $last_baseX = $baseX;
   my $xskip = $self->get_nodeXSkip;
   my $i=0;
+  $last_baseX+=$self->get_node_pinfo($node,"Before");
   my @c = grep { exists $visible->{$_} } $node->children;
   foreach my $c (@c) {
     $last_baseX = $self->ballance_node($last_baseX,$c,$visible);
@@ -523,8 +524,10 @@ sub recalculate_positions {
     $self->store_node_pinfo($node,"NodeLabelWidth",$nodeLabelWidth);
     $self->store_node_pinfo($node,"EdgeLabelWidth",$edgeLabelWidth);
     $self->store_node_pinfo($node,"After",$xSkipAfter);
+    $self->store_node_pinfo($node,"Before",$xSkipBefore);
     if ($ballance) {
-      $xpos = $xSkipBefore+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
+      #$xSkipBefore+
+      $xpos = $self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
     } else {
       $minxpos=0;
       if ($prevnode[$level]) {
@@ -539,6 +542,7 @@ sub recalculate_positions {
     }
     $self->store_node_pinfo($node,"XPOS",$xpos);
     $self->store_node_pinfo($node,"NodeLabel_XPOS",$xpos+$nodeLabelXShift);
+
     $canvasWidth = max($canvasWidth,
 		       $xpos+$xSkipAfter+$nodeWidth+2*$self->get_xmargin+$baseXPos);
     $self->store_node_pinfo($node,"Level", $level);
