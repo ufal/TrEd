@@ -47,16 +47,20 @@ sub ntred_query_box {
 			 -relief  => 'flat')->pack(qw(-fill y -anchor nw -side left));
 
   my $t= $d->Scrolled(qw/Text -relief sunken -borderwidth 2
-			 -height 10 -scrollbars oe/
+			 -height 10 -scrollbars oe/,
+		      -font => StandardTredFont()
 		     );
   my $tm=$d->Adjuster(-widget => $m ,-side => 'bottom');
   my $m= $d->Scrolled(qw/Text -relief sunken -borderwidth 2
-			 -height 4 -scrollbars oe/
+			 -height 4 -scrollbars oe/,
+		      -font => StandardTredFont()
 		     );
   $m->insert('end','sub Position { print ThisAddressNTRED(),"\n"; }'."\n");
   my $mr=$d->Adjuster(-widget=>$m, -side => 'top');
   my $r= $d->Scrolled(qw/Text -relief sunken -borderwidth 2
-			 -height 20 -scrollbars oe/);
+			 -height 20 -scrollbars oe/,
+		      -font => StandardTredFont()
+		     );
   for ($t, $m, $r) {
     $_->bind('<Alt-f>'  => sub {
 	       my ($w)=@_;
