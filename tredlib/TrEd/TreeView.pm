@@ -225,8 +225,9 @@ sub value_line_list {
 	foreach (split(m/([\#\$]${bblock})/,$msg)) {
 	  if (/^\$${block}$/) {
 	    #attr
-	    if (exists($node->{$1})) {
-	      push @vl,[$node->{$1},$node, map { encode("$_ => $styles{$_}") }
+	    my $val = _present_attribute($node,$1);
+	    if ($val ne "") {
+	      push @vl,[$val,$node, map { encode("$_ => $styles{$_}") }
 			keys %styles];
 	    }
 	  } elsif (/^\#${block}$/) {
@@ -1333,7 +1334,7 @@ sub redraw {
 		    my $msg=
 		      $self->interpolate_text_field($node,
 						    $hint);
-		    $msg=~s/\${([^}]+)}/$node->getAttribute($1)/eg;
+		    $msg=~s/\${([^}]+)}/_present_attribute($node,$1)/eg;
 		    $_ => encode($msg);
 		  }
 		} $self->find_item('withtag','point')
@@ -1370,8 +1371,8 @@ sub redraw {
 			     max(5000,$self->{canvasWidth}),max(5000,$self->{canvasHeight}),
 			     -outline => undef,
 			     -fill=>'lightgray',
-			     -stipple => 'gray50',
-			     -activestipple => 'gray25',
+			     -stipple => 'gray25',
+#			     -activestipple => 'gray25',
 			     -tags => 'stipple',
 			     -state => $stipple);
   }
@@ -1586,17 +1587,40 @@ sub interpolate_text_field {
 
 =item interpolate_refs (node, text)
 
-Interpolate any attribute references of the form `$${attribute}'
-in the text with the single-quotted value. 
+Interpolate any attribute references of the form $${attribute}
+in the text with the single-quotted value.
 
 =cut
 
 sub _quote_quote { my ($q) = @_; $q=~s/\\/\\\\/g; $q =~ s/'/\\'/g; $q }
 
+sub _present_attribute {
+  my ($node,$path) = @_;
+  my $val = $node;
+  my $append = "";
+  for my $step (split /\//, $path) {
+    if (ref($val) eq 'Fslib::Seq' or ref($val) eq 'Fslib::Alt') {
+      if ($step =~ /^\[(\d+)\]/) {
+	$val = $val->[$1-1];
+      } else {
+	$val = $val->[0]{$step};
+	$append="*" if @$val > 1;
+      }
+    } elsif (ref($val)) {
+      $val = $val->{$step};
+    } elsif (defined($val)) {
+#      warn "Can't follow attribute path '$path' (step '$step')\n";
+      return undef; # ERROR
+    } else {
+      return '';
+    }
+  }
+  return $val.$append;
+}
+
 sub interpolate_refs {
   my ($self,$node,$text)=@_;
-  my $atr = $node->getAttribute($1);
-  $text=~s/\$\${([^}]+)}/"'"._quote_quote($node->getAttribute($1))."'"/eg;
+  $text=~s/\$\${([^}]+)}/"'"._quote_quote(_present_attribute($node,$1))."'"/eg;
   return $text;
 }
 
@@ -1605,15 +1629,17 @@ sub interpolate_refs {
 =item prepare_text_field (node,attribute)
 
 Return the first (of possibly multiple) value of the given node's
-attribute. The value is appended by "*" character if more values
-exist.
+attribute. If more values exist, only the first is
+presented followed by the character "*".
 
 =cut
 
+#'
+
 sub prepare_text_field {
   my ($self,$node,$atr)=@_;
-  my $text=$node->getAttribute($atr);
-  $text=$1."*" if ($text =~/^([^\|]*)\|/);
+  my $text=_present_attribute($node,$atr);
+#  $text=$1."*" if ($text =~/^([^\|]*)\|/);
   return encode($text);
 }
 
@@ -1630,7 +1656,7 @@ sub prepare_raw_text_field {
   if ($atr=~/^.*?=(.*)$/s) {
     return $1;
   } else {
-    my $text=$node->getAttribute($atr);
+    my $text=_present_attribute($node,$atr);
     $text=$1."*" if ($text =~/^([^\|]*)\|/);
     return $text;
   }
