@@ -86,13 +86,13 @@ sub has_auxR {
 
 @fv_passivization_rules = (
     # /1
-    [[ 'ACT(.1)', 'PAT(.4)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/ ]] =>
+    [[ 'ACT(.1)', 'PAT(.4)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])$/ ]] =>
      [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-PAT(.4)', '+PAT(.1)',
-       ['EFF', sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/${1}1${2}/ } ]]],
+       ['EFF', sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])$/${1}1${2}/ } ]]],
     # /2 frame test
-    [[ 'ACT(.1)', ['PAT', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ]]  =>
+    [[ 'ACT(.1)', ['PAT', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])?$/ ]]  =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
-      ['PAT',sub { s/((?:^|,)\.a?)4((?:\[(jako|{jako,jako¾to})(\/AuxY)?\])?(?:,|$))/${1}1${2}/ } ]]],
+      ['PAT',sub { s/((?:^|,)\.a?)4((?:\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])?(?:,|$))/${1}1${2}/ } ]]],
     # /3 ditto for CPHR
     [[ 'ACT(.1)', ['CPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['CPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]]],
@@ -106,10 +106,10 @@ sub has_auxR {
     [[ 'ACT(.1)', 'ADDR(.2)' ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.2)', '+ADDR(.1)' ]],
     # /7 frame test
-    [[ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ] ] =>
+    [[ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])?$/ ] ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
       ['EFF',
-       sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/${1}1${2}/ }
+       sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?[.:]?$/${1}1${2}/ }
       ]]]);
 
 @fv_trans_rules_V =
@@ -261,6 +261,11 @@ sub has_auxR {
     sub { 1 } =>
     [[ 'ACT(.2;.u)', 'PAT(s-1[.7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ]],
     [[ 'ACT(:2;:u)', 'PAT(s-1[:7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ]],
+   ],
+   [
+    sub { 1 } =>
+    [[ 'ACT(.2;.u)', 'EFF(s-1[.7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ]],
+    [[ 'ACT(:2;:u)', 'EFF(s-1[:7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ]],
    ],
    [
     sub { 1 } =>
@@ -421,11 +426,11 @@ sub match_node {
   my $f = $node->{form};
 
   if ($lemma ne '' or $form ne '') {
-    if ($node->{tag}=~/^PP/ or $node->{tag}=~/^PJ/ or
+    if ($node->{tag}=~/^P[5P]/ or $node->{tag}=~/^PJ/ or
 	($node->{tag}=~/^P4/ and $node->{lemma}=~/^který$|^jaký$|^co-4/)) {
       my @corefs = split /\|/,$node->{coref};
       my @cortypes = split /\|/,$node->{cortype};
-      my $find_cortype = $node->{tag}=~/^PP/ ? 'textual' : 'grammatical';
+      my $find_cortype = $node->{tag}=~/^P[5P]/ ? 'textual' : 'grammatical';
       if ($V_verbose) {
 	print "--------------------------\n";
 	print "EXPANDING DPHR/CPHR TO CO-REFERRED NODE (cortype $find_cortype)\n";
@@ -525,7 +530,7 @@ sub match_node {
     } elsif ($pos eq 'f') {
       return 0 unless $node->{tag}=~/^Vf/ or ($node->{TID} ne "" and $node->{trlemma} eq '&Emp;');
     } elsif ($pos eq 'u') {
-      return 0 unless $node->{tag}=~/^AU|^PS|^P8/;
+      return 0 unless $node->{tag}=~/^AU|^P[S1]|^P8/ or $node->{lemma} eq 'èí';
     } else {
       # TODO: c s
       return 0 unless $node->{tag}=~/^V/;
@@ -1003,12 +1008,21 @@ sub _filter_OPER_AP_and_jako_APPS {
   while (PDT::is_member_TR($n)) {
     return 1 if
       ($n->parent and $n->parent->{func} eq "APPS" and
-       $n->parent->{trlemma} eq "jako" and
+       $n->parent->{trlemma} =~ /^(jako|&Colon;|&Hyphen;)$/ and
        $n->{memberof} eq "AP" and
        (($n->{AID} ne "" and $n->parent->{AID} ne "" and
 	 $n->parent->{ord} < $n->{ord}) or
 	(($n->{AID} eq "" or $n->parent->{AID} eq "") and
-	 $n->parent->{dord} < $n->{dord}))) or
+	 $n->parent->{dord} < $n->{dord})))
+	or
+      ($n->parent and PDT::is_coord_TR($n->parent) and
+       $n->parent->{trlemma} eq "ani¾" and
+       $n->{memberof} eq "CO" and
+       (($n->{AID} ne "" and $n->parent->{AID} ne "" and
+	 $n->parent->{ord} < $n->{ord}) or
+	(($n->{AID} eq "" or $n->parent->{AID} eq "") and
+	 $n->parent->{dord} < $n->{dord})))
+	or
 	   (($n->{func} eq "OPER" and
 	     $n->parent and $n->parent->{func} eq "APPS" and
 	     $n->{memberof} eq "AP"));
@@ -1480,11 +1494,19 @@ sub check_verb_frames {
 	      my @possible_frames =
 		grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,[],1,{%$flags, strict_adjectives => 1}) }
 		  $V->valid_frames($V->user_cache->{$lemma});
+	      my @word_frames = $V->valid_frames($V->user_cache->{$lemma});
 	      $node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
 	      $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 
 	      if (@possible_frames==1) {
-		print "12 unresloved frame, but one matching frame: $fi\t";
+		#print "12 unresloved frame, but one matching frame: $fi\t";
+		if (1 == grep { $V->getFrameElementString($_)!~/EMPTY/ } @word_frames) {
+		  print "12a no frame assigned, one of two frames matches, the other is EMPTY: $fi\t";
+		} elsif (0 == grep { $V->getFrameElementString($_)!~/^(ACT|PAT|ADDR|EFF)$/ } grep { $_!=$possible_frames[0] } @word_frames) {
+		  print "12b no frame assigned, one frame matches, the other have no actants: $fi\t";
+		} else {
+		  print "12 no frame assigned, one frame matches, but other frames with actants exist: $fi\t";
+		}
 		print join("|",sort map { $V->frame_id($_) } @possible_frames)."\t";
 		if ($fix) {
 		  print "FIXED\t";
@@ -1553,7 +1575,13 @@ sub check_verb_frames {
 	    ChangingFile(1);
 	  }
 	} elsif (@possible_frames==1) {
-	  print "18 no frame assigned, but one matching frame:\t";
+	  if (1 == grep { $V->getFrameElementString($_)!~/EMPTY/ } @word_frames) {
+	    print "18a no frame assigned, one of two frames matches, the other is EMPTY:\t";
+	  } elsif (0 == grep { $V->getFrameElementString($_)!~/^(ACT|PAT|ADDR|EFF)$/ } grep { $_!=$possible_frames[0] } @word_frames) {
+	    print "18b no frame assigned, one frame matches, the other have no actants:\t";
+	  } else {
+	    print "18 no frame assigned, one frame matches, but other frames with actants exist:\t";
+	  }
 	  print join (",",map { $V->frame_id($_) } @possible_frames)."\t";
 	  if ($fix) {
 	    print "FIXED\t";
@@ -1642,8 +1670,8 @@ sub check_nounadj_frames {
 	    my @possible_frames = 
 	      grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1,$flags) }
 		@word_frames;
-	    $node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
-	    $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+	    #$node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
+	    #$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 	    if (@possible_frames == 1 and
 		@word_frames == 1) {
 	      my @els = $V->all_elements($possible_frames[0]);
@@ -1653,7 +1681,13 @@ sub check_nounadj_frames {
 		print "11 unresloved frame, but word has only one frame, which matches: $fi\t";
 	      }
 	    } elsif (@possible_frames==1) {
-	      print "12 unresloved frame, but one matching frame: $fi\t";
+	      if (1 == grep { $V->getFrameElementString($_)!~/EMPTY/ } @word_frames) {
+		print "12a no frame assigned, one of two frames matches, the other is EMPTY: $fi\t";
+	      } elsif (0 == grep { $V->getFrameElementString($_)!~/^(ACT|PAT|ADDR|EFF)$/ } grep { $_!=$possible_frames[0] } @word_frames) {
+		print "12b no frame assigned, one frame matches, the other have no actants: $fi\t";
+	      } else {
+		print "12 no frame assigned, one frame matches, but other frames with actants exist: $fi\t";
+	      }
 	    } elsif (@possible_frames>1) {
 	      print "13 unresloved frame, but more matching frames: $fi\t";
 	    } elsif (@word_frames==0) {
@@ -1677,8 +1711,8 @@ sub check_nounadj_frames {
 	}
       }
       if (@frames) {
-	$node->{$frameid}=join "|",map { $V->frame_id($_) } @frames;
-	$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @frames;
+	#$node->{$frameid}=join "|",map { $V->frame_id($_) } @frames;
+	#$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @frames;
 	foreach my $frame (@frames) {
 	  return 0 unless validate_frame($V,\@fv_trans_rules_N,$node,$frame,$aids,$pj4,0,$flags);
 	}
@@ -1694,8 +1728,8 @@ sub check_nounadj_frames {
 	my @possible_frames = 
 	  grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1,$flags) }
 	    @word_frames;
-	$node->{$frameid} = join "|", map { $V->frame_id($_) } @possible_frames;
-	$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+	#$node->{$frameid} = join "|", map { $V->frame_id($_) } @possible_frames;
+	#$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 	if (@possible_frames == 1 and
 	    @word_frames == 1) {
 	  my @els = $V->all_elements($possible_frames[0]);
@@ -1705,7 +1739,13 @@ sub check_nounadj_frames {
 	    print "17 no frame assigned, but word has only one frame, which matches:\t";
 	  }
 	} elsif (@possible_frames==1) {
-	  print "18 no frame assigned, but one matching frame:\t";
+	  if (1 == grep { $V->getFrameElementString($_)!~/EMPTY/ } @word_frames) {
+	    print "18a no frame assigned, one of two frames matches, the other is EMPTY:\t";
+	  } elsif (0 == grep { $V->getFrameElementString($_)!~/^(ACT|PAT|ADDR|EFF)$/ } grep { $_!=$possible_frames[0] } @word_frames) {
+	    print "18b no frame assigned, one frame matches, the other have no actants:\t";
+	  } else {
+	    print "18 no frame assigned, one frame matches, but other frames with actants exist:\t";
+	  }
 	} elsif (@possible_frames>1) {
 	  print "19 no frame assigned, but more matching frames:\t";
 	} elsif (@word_frames==0) {
