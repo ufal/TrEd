@@ -907,8 +907,6 @@ to the hub).
 
 The port number the hub will be listening on (defaults to 1500).
 
-=back
-
 =item B<--preload-module|-M> module-name
 
 This option is passed to the btred command line when starting a btred
