@@ -108,7 +108,7 @@ se to bude tvari "postaru", napr. na+4,infin.,adverb., atd. -->
 <!-- author: identifikator anotatora nebo reviewera, nebo empty, jde-li o import -->
 <!ATTLIST local_event 
        time_stamp CDATA #REQUIRED 
-       type_of_event (create|modify|delete|import|review|obsolete) #REQUIRED
+       type_of_event (create|modify|delete|import|review|obsolete|unreview) #REQUIRED
        author IDREF #IMPLIED
        imported_from CDATA #IMPLIED
     >   
