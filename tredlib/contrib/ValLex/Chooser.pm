@@ -8,7 +8,14 @@ use base qw(TrEd::ValLex::FramedWidget);
 require Tk::LabFrame;
 
 sub show_dialog {
-  my ($title,$top,$data,$word,$select_frame,$start_editor)=@_;
+  my ($title,$top,
+      $confs,
+      $item_style,
+      $frame_browser_styles,
+      $frame_browser_wordlist_item_style,
+      $frame_browser_framelist_item_style,
+      $frame_editor_styles,
+      $data,$word,$select_frame,$start_editor)=@_;
 
   my $d = $top->DialogBox(-title => $title,
 			  -buttons => ['Choose', 'Cancel'],
@@ -17,8 +24,15 @@ sub show_dialog {
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $chooser =
-    TrEd::ValLex::Chooser->new($data, $word, $d, undef, 1);
-  $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+    TrEd::ValLex::Chooser->new($data, $word, $d,
+			       $item_style,
+			       $frame_browser_styles,
+			       $frame_browser_wordlist_item_style,
+			       $frame_browser_framelist_item_style,
+			       $frame_editor_styles,
+			       undef, 1);
+  $chooser->subwidget_configure($confs) if ($confs);
+  $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
   $chooser->widget()->focus();
   if ($start_editor) {
@@ -29,9 +43,9 @@ sub show_dialog {
   }
 
   if ($d->Show() eq 'Choose') {
-    my $frame=$chooser->get_current_frame();
+    my @frames=$chooser->get_selected_frames();
     $d->destroy();
-    return $frame ? $frame->getAttribute('frame_ID') : undef;
+    return map { $_->getAttribute('frame_ID') } @frames;
   } else {
     $d->destroy();
     return undef;
@@ -39,7 +53,14 @@ sub show_dialog {
 }
 
 sub create_widget {
-  my ($self, $data, $word, $top, $cb, $no_choose_button, @conf) = @_;
+  my ($self, $data, $word, $top,
+      $item_style,
+      $frame_browser_styles,
+      $frame_browser_wordlist_item_style,
+      $frame_browser_framelist_item_style,
+      $frame_editor_styles,
+      $cb,
+      $no_choose_button, @conf) = @_;
 
   my $frame = $top->Frame();
   $frame->configure(@conf) if (@conf);
@@ -53,6 +74,7 @@ sub create_widget {
 
   my $fbutton_frame=$lexframe_frame->Frame();
   $fbutton_frame->pack(qw/-side top -fill x/);
+
 
   unless ($no_choose_button) {
     my $choose_button=$fbutton_frame->Button(-text => 'Choose',
@@ -69,15 +91,36 @@ sub create_widget {
 							    $self
 							   ]);
 
-  $editframes_button->pack(qw/-padx 5 -side left/);
+  $editframes_button->pack(qw/-padx 5 -side left/); 
+
+  my $multiselect_button=
+    $fbutton_frame->Checkbutton(-text => 'Multiple select',
+				-command => [
+					     sub {
+					       my ($self)=@_;
+					       print "Button: @_\n";
+					       my $fl=$self->subwidget('framelist')->widget();
+					       $mode = $fl->cget('-selectmode');
+					       if ($mode eq 'extended') {
+						 $fl->configure(-selectmode => 'browse');
+					       } else {
+						 $fl->configure(-selectmode => 'extended');
+					       }
+					     },
+					     $self
+					    ]);
+
+  $multiselect_button->pack(qw/-padx 5 -side left/);
 
   # List of Frames
-  my $lexframelist =  TrEd::ValLex::FrameList->new($data, $field, $lexframe_frame,
+  my $lexframelist =  TrEd::ValLex::FrameList->new($data, $field, 
+						   $lexframe_frame,
+						   $item_style,
 						   qw/-height 15 -width 50/,
-						  -command => [
-							       \&item_chosen,
-							      $self
-							      ]);
+						   -command => [
+								\&item_chosen,
+								$self
+							       ]);
   $lexframelist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
 
   $lexframelist->fetch_data($word) if ($word);
@@ -89,7 +132,18 @@ sub create_widget {
 	     framelist    => $lexframelist,
 #	     framenote    => $lexframenote,
 #	     frameproblem => $lexframeproblem,
-	    };
+	    }, {
+		items => $item_style,
+		editor => $frame_browser_styles,
+		editor_wordlist_items => $frame_browser_wordlist_item_style,
+		editor_framelist_items => $frame_browser_framelist_item_style,
+		frame_editor => $frame_editor_styles
+	       };
+}
+
+
+sub style {
+  return $_[0]->[4]->{$_[1]};
 }
 
 sub framelist_item_changed {
@@ -105,6 +159,16 @@ sub callback {
   }
 }
 
+sub get_selected_frames {
+  my ($self)=@_;
+  my @frames;
+  my $fl=$self->subwidget('framelist')->widget();
+  foreach ($fl->infoSelection()) {
+    push @frames,$fl->infoData($_);
+  }
+  return @frames;
+}
+
 sub get_current_frame {
   my ($self,$item)=@_;
   my $fl=$self->subwidget('framelist')->widget();
@@ -115,12 +179,12 @@ sub get_current_frame {
 
 sub item_chosen {
   my ($self,$item)=@_;
-  $self->callback($self->get_current_frame($item));
+  $self->callback($self->get_selected_frames($item));
 }
 
 sub choose_button_pressed {
   my ($self)=@_;
-  $self->callback($self->get_current_frame());
+  $self->callback($self->get_selected_frames());
 }
 
 sub edit_button_pressed {
@@ -128,7 +192,11 @@ sub edit_button_pressed {
   TrEd::ValLex::Editor::show_dialog($self->widget()->toplevel,
 				    $self->data(),
 				    $self->field(),
-				    1
+				    1,
+				    $self->style('editor'),
+				    $self->style('editor_wordlist_items'),
+				    $self->style('editor_framelist_items'),
+				    $self->style('frame_editor')
 				   );
   eval { Tk->break; };
   if ($self->field()) {

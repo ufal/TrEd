@@ -31,15 +31,45 @@ use Tk::Adjuster;
 use Data;
 use Widgets;
 use Editor;
+use TrEd::CPConvert;
 
 my $double = 0;
 
-my $data=TrEd::ValLex::Data->new("pokus.xml");
+my $conv= TrEd::CPConvert->new("utf-8",
+			       ($^O eq "MSWin32") ?
+			       "windows-1250" :
+			       "iso-8859-2");
+print $conv->encoding_to()," encoding\n";
+print $conv->decoding_to()," decoding\n";
+my $data=TrEd::ValLex::Data->new("vallex.xml",$conv);
 #print $data->doc()->toString;
+
+my $font = "-adobe-helvetica-medium-r-*-*-14-*-*-*-*-*-iso8859-2";
+my $fc=[-font => $font];
+my $fe_conf={ elements => $fc,
+	      example => $fc,
+	      note => $fc,
+	      problem => $fc
+	    };
+my $vallex_conf = {
+		   framelist => $fc,
+		   framenote => $fc,
+		   frameproblem => $fc,
+		   wordlist => { wordlist => $fc, search => $fc},
+		   wordnote => $fc,
+		   wordproblem => $fc,
+		   infoline => { label => $fc }
+		  };
 
 my $top=Tk::MainWindow->new();
 my $top_frame = $top->Frame()->pack(qw/-expand yes -fill both -side top/);
-my $vallex= TrEd::ValLex::Editor->new($data, $data->doc(),$top_frame,0);
+
+
+my $vallex= TrEd::ValLex::Editor->new($data, $data->doc(),$top_frame,0,
+				      $fc, # wordlist items
+				      $fc, # framelist items
+				      $fe_conf);
+$vallex->subwidget_configure($vallex_conf);
 $vallex->pack(qw/-expand yes -fill both -side left/);
 $top->title("Frame editor: ".$data->getUserName($data->user()));
 

@@ -32,37 +32,43 @@ sub comment {
 package TrEd::ValLex::Data;
 
 use XML::DOM;
-use vars qw($toil2 $fromil2);
 
 use IO;
 
-if (eval { require Text::Iconv; }) {
-  $toil2 = Text::Iconv->new("utf-8", "iso-8859-2");
-  $fromil2 = Text::Iconv->new("iso-8859-2","utf-8");
-  sub toil2 {
-    return $toil2->convert(@_);
-  }
-  sub fromil2 {
-    return $fromil2->convert(@_);
-  }
-} else {
-  use Unicode::MapUTF8 qw(from_utf8 to_utf8);
-  sub toil2 {
-    return from_utf8({-string => $_[0], -charset => 'ISO-8859-2'});
-  }
-  sub fromil2 {
-    return to_utf8({-string => $_[0], -charset => 'ISO-8859-2'});
-  }
-}
-
 sub new {
-  my ($self, $file)=@_;
+  my ($self, $file, $cpconvert)=@_;
   my $class = ref($self) || $self;
-  my $parser = new XML::DOM::Parser(ParseParamEnt => 1);
+  my $parser;
+  if ($^O eq "MSWin32") {
+    # why even simple things must this damned hacked
+    # in that system, huh?
+    my ($filename_base)= $file=~/^(.*[\/\\])[^\/\\]*$/;
+    $parser = 
+      new XML::DOM::Parser(ParseParamEnt => 1,
+			   NoLWP =>1,
+			   Handlers =>{ExternEnt =>
+				       sub {
+					 my ($exp, $base, $sys, $pub) = @_;
+					 if ($base eq "" and
+					     $sys!~/^(\/)/ and
+					     $sys!~/^\w+:/) {
+					   $base="file:$filename_base";
+					 }
+					 return XML::Parser::file_ext_ent_handler($exp,$base,$sys,$pub);
+				       }
+				      }
+			  );
+  } else {
+    $parser = new XML::DOM::Parser(ParseParamEnt => 1, NoLWP =>1);
+  }
   my $doc = $parser->parsefile ($file);
-  my $new = bless [$parser,$doc,$file, undef, undef, 0], $class;
+  my $new = bless [$parser,$doc,$file, undef, undef, 0, $cpconvert], $class;
   $new->loadListOfUsers();
   return $new;
+}
+
+sub conv {
+  return $_[0]->[6];
 }
 
 sub changed {
@@ -81,8 +87,14 @@ sub save {
   my ($self, $no_backup,$indent)=@_;
   my $file=$self->file();
   return unless ref($self);
+  my $backup=$file;
+  if ($^O eq "MSWin32") {
+    $backup=~s/(\.xml)?$/.bak/i;
+  } else {
+    $backup.="~";
+  }
 
-  unless ($no_backup || rename $file, "$file~") {
+  unless ($no_backup || rename $file, $backup) {
     warn "Couldn't create backup file, aborting save!\n";
     return 0;
   }
@@ -101,20 +113,37 @@ sub save {
     my $filter = new XML::Filter::Reindent (Handler => $writer);
     $self->doc()->to_sax(Handler => $filter);
     $output->close;
-    $self->set_change_status(0);
   } else {
-    $self->doc()->getXMLDecl->printToFileHandle($output);
-    $output->print("\n");
     my $doctype=$self->doc()->getDoctype;
-    $output->print('<!DOCTYPE '.$doctype->getName());
-    if ($doctype->getPubId() ne "") {
-      $output->print(' PUBLIC "'.$doctype->getPubId.
-		     '" "'.$doctype->getSysId."\">\n");
+    if ($doctype and !$doctype->{Internal}) {
+      $self->doc()->getXMLDecl->printToFileHandle($output);
+      $output->print("\n");
+      my $doctype=$self->doc()->getDoctype;
+      if ($doctype) {
+	my $name  = $doctype->getName;
+	my $sysId = $doctype->getSysId;
+	my $pubId = $doctype->getPubId;
+	$output->print ("<!DOCTYPE $name");
+	if (defined $pubId)
+	  {
+	    $output->print (" PUBLIC \"$pubId\" \"$sysId\"");
+	  }
+	elsif (defined $sysId)
+	  {
+	    $output->print (" SYSTEM \"$sysId\"");
+	  }
+	# if no internal subset exists, do not print anything
+	$output->print (">\x0A");
+      }
+      $self->doc()->getDocumentElement->printToFileHandle($output);
     } else {
-      $output->print(' SYSTEM "'.$doctype->getSysId()."\">\n");
+      # If there is an internal subset, dump whole document including
+      # doctype (which may result in the external subset included too :((
+      # I don't know yet how to handle this using XML::Parser.
+      $self->doc()->printToFileHandle($output);
     }
-    $self->doc()->getDocumentElement->printToFileHandle($output);
   }
+  $self->set_change_status(0);
   return 1;
 }
 
@@ -189,7 +218,7 @@ sub user_is_annotator {
 sub getUserName {
   my ($self)=@_;
   return undef unless ref($self);
-  return toil2($self->get_user_info($self->user())->[0]);
+  return $self->conv->decode($self->get_user_info($self->user())->[0]);
 }
 
 sub loadListOfUsers {
@@ -214,8 +243,6 @@ sub loadListOfUsers {
   $self->[4]=$users;
 }
 
-# print all HREF attributes of all CODEBASE elements
-
 sub getWordList {
   my ($self)=@_;
   my $doc=$self->doc();
@@ -226,7 +253,7 @@ sub getWordList {
   for (my $i = 0; $i < $n; $i++) {
     my $word = $words->item($i);
     my $id = $word->getAttribute ("word_ID");
-    my $lemma = toil2($word->getAttribute ("lemma"));
+    my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
     my $pos = $word->getAttribute ("POS");
     push @words, [$word,$id,$lemma,$pos];
   }
@@ -245,7 +272,7 @@ sub getFrameList {
     my $status = $frame->getAttribute ("status");
     my $elements = $self->getFrameElementString($frame);
     my $example=$self->getFrameExample($frame);
-    my $auth=toil2($frame->getElementsByTagName("local_event")->item(0)->getAttribute("author"));
+    my $auth=$self->conv->decode($frame->getElementsByTagName("local_event")->item(0)->getAttribute("author"));
     push @frames, [$frame,$id,$elements,$status,$example,$auth];
   }
   return @frames;
@@ -275,7 +302,7 @@ sub getFrameElementFormsString {
   my $n = $forms->getLength;
   for (my $i = 0; $i < $n; $i++) {
     my $form = $forms->item($i);
-    my $abbrev = toil2($form->getAttribute ("abbrev"));
+    my $abbrev = $self->conv->decode($form->getAttribute ("abbrev"));
     push @forms,"$abbrev";
   }
   return join ",",@forms;
@@ -291,7 +318,7 @@ sub getFrameExample {
     $data=~s/^\s+//;
     $data=~s/;\s+/\n/g;
     $data=~s/[\s\n]+$//g;
-    return toil2($data);
+    return $self->conv->decode($data);
   }
   return "";
 }
@@ -305,7 +332,7 @@ sub getElementText {
     my $data=$text->getData();
     $data=~s/^\s+//;
     $data=~s/[\s\n]+$//g;
-    return toil2($data);
+    return $self->conv->decode($data);
   }
   return "";
 }
@@ -322,7 +349,7 @@ sub getSubElementNote {
     $data=~s/^\s+//;
     $data=~s/;\s+/\n/g;
     $data=~s/[\s\n]+$//g;
-    return toil2($data);
+    return $self->conv->decode($data);
   }
   return "";
 }
@@ -337,7 +364,7 @@ sub getSubElementProblemsList {
   my $n = $problems->getLength;
   for (my $i = 0; $i < $n; $i++) {
     my $problem = $problems->item($i);
-    my $author = toil2($problem->getAttribute ("author"));
+    my $author = $self->conv->decode($problem->getAttribute ("author"));
     my $solved = $problem->getAttribute ("solved");
     my $text = $self->getElementText($problem);
     push @problems, [$problem,$text,$author,$solved];
@@ -353,7 +380,7 @@ sub findWord {
   my $n = $words->getLength;
   for (my $i = 0; $i < $n; $i++) {
     my $word = $words->item($i);
-    my $lemma = toil2($word->getAttribute ("lemma"));
+    my $lemma = $self->conv->decode($word->getAttribute ("lemma"));
     return $word if ($nearest and index($lemma,$find)==0 or $lemma eq $find);
   }
   return undef;
@@ -383,7 +410,7 @@ sub addWord {
   my ($body)=$root->getElementsByTagName("body",0);
   return unless $body;
   my $word=$doc->createElement("word");
-  $word->setAttribute("lemma",fromil2($lemma));
+  $word->setAttribute("lemma",$self->conv->encode($lemma));
   $word->setAttribute("POS",$pos);
   $word->setAttribute("word_ID",$new_id);
   $body->appendChild($word);
@@ -493,12 +520,12 @@ sub addFrame {
   $valency_frames->insertBefore($frame,$before);
 
   my $ex=$doc->createElement("example");
-  $ex->addText(fromil2($example));
+  $ex->addText($self->conv->encode($example));
   $frame->appendChild($ex);
 
   if ($note ne "") {
     my $not=$doc->createElement("note");
-    $not->addText(fromil2($note));
+    $not->addText($self->conv->encode($note));
     $frame->appendChild($not);
   }
 
@@ -507,7 +534,7 @@ sub addFrame {
     $frame->appendChild($problems);
 
     my $probl=$doc->createElement("problem");
-    $probl->addText(fromil2($problem));
+    $probl->addText($self->conv->encode($problem));
     $probl->setAttribute("author",$author);
     $problems->appendChild($probl);
   }
@@ -528,7 +555,7 @@ sub modifyFrame {
   my $doc=$self->doc();
   my ($old_ex)=$frame->getElementsByTagName("example",0);
   my $ex=$doc->createElement("example");
-  $ex->addText(fromil2($example));
+  $ex->addText($self->conv->encode($example));
   $frame->replaceChild($ex,$old_ex);
   $old_ex->dispose();
   undef $old_ex;
@@ -536,7 +563,7 @@ sub modifyFrame {
   my ($old_note)=$frame->getElementsByTagName("note",0);
   if ($note ne "") {
     my $not=$doc->createElement("note");
-    $not->addText(fromil2($note));
+    $not->addText($self->conv->encode($note));
     print "replacing\n";
     $frame->replaceChild($not,$old_note);
   } else {
@@ -552,7 +579,7 @@ sub modifyFrame {
       $frame->insertBefore($problems,$old_elems);
     }
     my $probl=$doc->createElement("problem");
-    $probl->addText(fromil2($problem));
+    $probl->addText($self->conv->encode($problem));
     $probl->setAttribute("author",$author);
     $problems->appendChild($probl);
   }

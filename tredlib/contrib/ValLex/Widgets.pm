@@ -76,8 +76,26 @@ sub configure {
   return $self->widget()->configure(@_);
 }
 
+sub subwidget_configure {
+  my ($self,$conf)=@_;
+  foreach (keys(%$conf)) {
+    my $sub=$self->subwidget($_);
+    next unless $sub;
+    if ($sub->isa("TrEd::ValLex::FramedWidget") and
+	ref($conf->{$_}) eq "HASH") {
+      print "subconfiguring $_\n";
+      $sub->subwidget_configure($conf->{$_});
+    } elsif(ref($conf->{$_}) eq "ARRAY") {
+      print "configuring $_\n";
+      $sub->configure(@{$conf->{$_}});
+    } else {
+      print STDERR "bad configuration options $conf->{$_}\n";
+    }
+  }
+}
+
 #
-# LexFrameList widget
+# FrameList widget
 #
 
 package TrEd::ValLex::FrameList;
@@ -87,7 +105,7 @@ require Tk::HList;
 require Tk::ItemStyle;
 
 sub create_widget {
-  my ($self, $data, $field, $top, @conf) = @_;
+  my ($self, $data, $field, $top, $common_style, @conf) = @_;
 
   my $w = $top->Scrolled(qw/HList -columns 1
                               -background white
@@ -97,19 +115,20 @@ sub create_widget {
                               -scrollbars osoe/
 			  );
   $w->configure(@conf) if (@conf);
+  $common_style=[] unless (ref($common_style) eq "ARRAY");
   $w->BindMouseWheelVert() if $w->can('BindMouseWheelVert');
   $w->headerCreate(0,-itemtype=>'text', -text=>'Elements');
   return $w, {
 	      obsolete => $w->ItemStyle("imagetext", -foreground => '#707070',
-					-background => 'white'),
+					-background => 'white', @$common_style),
 	      substituted => $w->ItemStyle("imagetext", -foreground => '#707070',
-					   -background => 'white'),
+					   -background => 'white', @$common_style),
 	      reviewed => $w->ItemStyle("imagetext", -foreground => 'black',
-					-background => 'white'),
+					-background => 'white', @$common_style),
 	      active => $w->ItemStyle("imagetext", -foreground => 'black',
-				      -background => 'white'),
+				      -background => 'white', @$common_style),
 	      deleted => $w->ItemStyle("imagetext", -foreground => '#707070',
-				       -background => '#e0e0e0')
+				       -background => '#e0e0e0', @$common_style)
 	     },{
 		obsolete => $w->Pixmap(-file => Tk::findINC("ValLex/stop.xpm")),
 		substituted => $w->Pixmap(-file => Tk::findINC("ValLex/red.xpm")),
@@ -142,18 +161,19 @@ sub fetch_data {
   my ($self, $word)=@_;
 
   my $t=$self->widget();
-  my $e;
+  my ($e,$i);
   my $style;
 
   $t->delete('all');
+  my $myfont=$t->cget(-font);
   foreach my $entry ($self->data()->getFrameList($word)) {
     next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
     $e = $t->addchild("",-data => $entry->[0]);
-    $t->itemCreate($e, 0,
-		   -itemtype=>'imagetext',
-		   -image => $self->pixmap($entry->[3]),
-		   -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
-		   -style => $self->style($entry->[3]));
+    $i=$t->itemCreate($e, 0,
+		      -itemtype=>'imagetext',
+		      -image => $self->pixmap($entry->[3]),
+		      -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
+		      -style => $self->style($entry->[3]));
   }
 }
 
@@ -173,42 +193,60 @@ sub focus {
 
 
 #
-# LexWordList widget
+# WordList widget
 #
 
 package TrEd::ValLex::WordList;
 use base qw(TrEd::ValLex::FramedWidget);
 
 require Tk::HList;
+require Tk::ItemStyle;
 
 sub create_widget {
-  my ($self, $data, $field, $top, @conf) = @_;
+  my ($self, $data, $field, $top, $item_style, @conf) = @_;
 
-  my $frame = $top->Frame();
-  my $ef = $frame->Frame()->pack(qw/-pady 5 -side top -expand yes -fill x/);
+  my $frame = $top->Frame(-takefocus => 0);
+  my $ef = $frame->Frame(-takefocus => 0)->pack(qw/-pady 5 -side top -expand yes -fill x/);
   my $l = $ef->Label(-text => "Search: ")->pack(qw/-side left/);
   my $e = $ef->Entry(qw/-background white -validate key/,
 		     -validatecommand => [\&quick_search,$self]
 		    )->pack(qw/-expand yes -fill x/);
+
   ## Word List
   my $w = $frame->Scrolled(qw/HList -columns 1 -background white
                               -selectmode browse
                               -header 1
                               -relief sunken
                               -scrollbars osoe/)->pack(qw/-side top -expand yes -fill both/);
+  $e->bind('<Return>',[
+			  sub {
+			    my ($cw,$w)=@_;
+			    $w->Callback(-browsecmd => $w->infoAnchor());
+			  },$w
+			 ]);
+
   $w->configure(@conf) if (@conf);
   $w->BindMouseWheelVert() if $w->can('BindMouseWheelVert');
+  print @{$item_style},"\n";
+  $item_style = [] unless(ref($item_style) eq "ARRAY");
+  my $itemStyle = $w->ItemStyle("text",
+				-foreground => 'black',
+				-background => 'white',
+				@{$item_style});
   return $w, {
 	      frame => $frame,
 	      wordlist => $w,
 	      search => $e,
 	      label => $l
-	     };
+	     }, $itemStyle;
+}
+
+sub style {
+  return $_[0]->[4];
 }
 
 sub quick_search {
   my ($self,$value)=@_;
-  print "got @_\n";
   return defined($self->focus_by_text($value));
 }
 
@@ -223,7 +261,9 @@ sub fetch_data {
   foreach my $entry (sort { $a->[2] cmp $b->[2] } $self->data()->getWordList())
     {
       $e= $t->addchild("",-data => $entry->[0]);
-      $t->itemCreate($e, 0, -itemtype=>'text', -text=> $entry->[2]);
+      $t->itemCreate($e, 0, -itemtype=>'text',
+		     -text=> $entry->[2],
+		     -style => $self->style());
     }
 }
 
@@ -256,7 +296,7 @@ sub focus {
 }
 
 #
-# LexFrameProblems widget
+# FrameProblems widget
 #
 
 package TrEd::ValLex::FrameProblems;
@@ -266,7 +306,7 @@ require Tk::HList;
 sub create_widget {
   my ($self, $data, $field, $top, @conf) = @_;
 
-  my $frame = $top->Frame();
+  my $frame = $top->Frame(-takefocus => 0);
   my $label = $frame->Label(qw/-text Problems -anchor nw -justify left/)->pack(qw/-fill both/);
 
   my $w=
@@ -316,7 +356,7 @@ require Tk::ROText;
 sub create_widget {
   my ($self, $data, $field, $top, $label, @conf) = @_;
 
-  my $frame = $top->Frame();
+  my $frame = $top->Frame(-takefocus => 0);
   my $label = $frame->Label(-text => $label, qw/-anchor nw -justify left/)->pack(qw/-fill both/);
   my $w =
     $frame->Scrolled(qw/ROText -background white
@@ -350,7 +390,8 @@ require Tk::LabFrame;
 sub create_widget {
   my ($self, $data, $field, $top, @conf) = @_;
 
-  my $frame = $top->LabFrame(-label => "Edit Frame",
+  my $frame = $top->LabFrame(-takefocus => 0,
+			     -label => "Edit Frame",
 			     -labelside => "acrosstop",
 			     -relief => 'raised'
 			    );
@@ -364,20 +405,20 @@ sub create_widget {
 		     );
 #  $w->configure(-invcmd => [\&bell,$self]);
   $w->pack(qw/-padx 6 -fill x -expand yes/);
-  $frame->Frame(qw/-height 6/)->pack();
+  $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
   my $ex_label=$frame->Label(qw/-text Example -anchor nw -justify left/)
     ->pack(qw/-expand yes -fill x -padx 6/);
   my $example=$frame->Text(qw/-width 40 -height 5 -background white/);
   $example->pack(qw/-padx 6 -expand yes -fill both/);
   $example->bind($example,'<Tab>',[sub { shift->focusNext; Tk->break;}]);
-  $frame->Frame(qw/-height 6/)->pack();
+  $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
 
   my $note_label=$frame->Label(qw/-text Note -anchor nw -justify left/)
     ->pack(qw/-expand yes -fill x -padx 6/);
   my $note=$frame->Text(qw/-width 40 -height 5 -background white/);
   $note->pack(qw/-padx 6 -expand yes -fill both/);
   $note->bind($note,'<Tab>',[sub { shift->focusNext; Tk->break;}]);
-  $frame->Frame(qw/-height 6/)->pack();
+  $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
 
   my $problem_label=$frame->Label(qw/-text Problem -anchor nw -justify left/)
     ->pack(qw/-expand yes -fill x -padx 6/);
@@ -433,7 +474,7 @@ sub create_widget {
   my ($self, $data, $field, $top, @conf) = @_;
 
   my $value="";
-  my $frame = $top->Frame(-relief => 'sunken',
+  my $frame = $top->Frame(-takefocus => 0,-relief => 'sunken',
 			  -borderwidth => 4);
   my $w=$frame->Label(-textvariable => \$value,
 		      qw/-anchor nw -justify left/)
@@ -461,9 +502,9 @@ sub fetch_word_data {
   return unless $self;
   if (!$word) {
     $self->line_content("");
+    return;
   }
   my $w_id=$self->data()->getWordId($word);
-
   $self->line_content("word: $w_id");
 }
 
@@ -472,6 +513,7 @@ sub fetch_frame_data {
   return unless $self;
   if (!$frame) {
     $self->line_content("");
+    return;
   }
   my $word=$self->data()->getWordForFrame($frame);
   my $w_id=$self->data()->getWordId($word);
