@@ -214,7 +214,7 @@ sub FirstTree {
 # include contrib/tr_opravy.mak
 
 # binding-context TR_Diff
-#include contrib/trdiff.mak
+# include contrib/trdiff.mak
 
-
-
+# binding-context Corref
+# include contrib/tr_corref_common.mak

@@ -1,13 +1,18 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-09-03 10:24:43 pajas>
+## Time-stamp: <2001-09-04 11:09:02 pajas>
 
+package Corref;
+
+use base qw(TredMacro);
+import TredMacro;
 
 #bind default_tr_attrs F1
 #insert default_tr_attrs as menu Display default attributes
 sub default_tr_attrs {
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>',
+		    '${gender}.${number}',
 		    '${coref}',
 		    '${corsnt}'
 		   );
@@ -57,5 +62,12 @@ sub edit_commentA {
   $value=main::QueryString($grp->{framegroup},"Enter comment","commentA",$value);
   if (defined($value)) {
     $this->{commentA}=$value;
+  }
+}
+
+#bind fill_empty_attrs to key Space
+sub fill_empty_attrs {
+  foreach (qw/coref gender number corsnt/) {
+    $this->{$_} = '???' if ($this->{$_} eq "");
   }
 }

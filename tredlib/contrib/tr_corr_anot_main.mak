@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-09-03 10:27:19 pajas>
+## Time-stamp: <2001-09-04 11:13:56 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -12,9 +12,7 @@ sub file_opened_hook {
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
 
-  unless ($grp->{FSFile}->hint()) {
-    default_tr_attrs();
-  }
+  Corref->default_tr_attrs();
 
   foreach ("New Node","Remove Active Node","Insert New Tree",
 	   "Insert New Tree After", "Remove Whole Current Tree") {
@@ -166,14 +164,6 @@ sub listQuery {
 
 # binding-context Corref
 # include contrib/tr_corref_common.mak
-
-package Corref;
-
-use base qw(TredMacro);
-import TredMacro;
-
-#include tr_corref_common.mak
-
 
 # binding-context Tectogrammatic
 # include contrib/tr.mak
