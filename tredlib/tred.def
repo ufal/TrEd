@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-24 12:35:39 pajas>
+## Time-stamp: <2002-04-26 10:06:56 pajas>
 
 package TredMacro;
 
@@ -23,7 +23,7 @@ use vars @FORCE_EXPORT;
 #  $forceFileSaved=0;
 #  $FileNotSaved=0;
 import Fslib;
-import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
+import Fslib qw(&Index);
 import main;
 
 sub import {
@@ -405,6 +405,10 @@ sub SubStr {
 #####################################################
 # Common useful user-level subroutines 
 
+sub ErrorMessage {
+  TrEd::Basics::errorMessage($grp,join("",@_));
+}
+
 sub NewRBrother {
 ## Adds new RBrother to current node and shifts
 ## ords of the other nodes appropriately
@@ -520,6 +524,16 @@ sub PrevVisibleNode {
 sub IsHidden {
   my ($node)=@_;
   return $grp->{FSFile}->FS->isHidden($node);
+}
+
+sub Hide {
+  my ($node)=@_;
+  my $hide=$grp->{FSFile}->FS->hide();
+  if ($node and $hide ne "") {
+    $node->{$hide}='hide';
+    return 1;
+  }
+  return 0;
 }
 
 ## Node shifting macros
