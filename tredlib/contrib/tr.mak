@@ -1,6 +1,6 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 ## author: Alena Bohmova
-## Time-stamp: <2001-03-15 12:01:47 pajas>
+## Time-stamp: <2001-03-29 13:57:24 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
@@ -19,6 +19,15 @@ sub switch_context_hook {
 		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
   }
   $FileNotSaved=0;
+}
+
+sub sort_attrs_hook {
+  my ($ar)=@_;
+  @$ar = (grep($grp->{FSFile}->FS->exists($_),
+	       'func','trlemma','form','afun','coref','reltype','aspect','commentA'),
+	  sort {uc($a) cmp uc($b)}
+	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|reltype|aspect)$/,@$ar));
+  return 1;
 }
 
 sub QuerySemtam {
@@ -132,7 +141,7 @@ sub do_edit_attr_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:func|commentTR|coref|reltype|aspect|err1)$/) {
+  if ($atr!~/^(?:func|commentA|coref|reltype|aspect|err1)$/) {
     return "stop";
   }
 }
@@ -200,7 +209,7 @@ sub edit_commentA {
 ################################################
 ## Overriding definitions of contrib/tredtr.mak
 
-sub _key_Ctrl_Shift_X {
+sub add_new_node {
 
   $pPar1 = $this;
 
@@ -279,14 +288,20 @@ sub FuncAssign {
   }
 }
 
+sub add_questionmarks_func {
+  $pPar1 = $this;
+  $sPar1 = Union($pPar1->{'func'},'???');
+  FuncAssign();
+}
+
 
 #######################################################
 # Node shifting
 
 #bind ShiftLeft to Ctrl+Left menu posun uzel doleva
-#bind _key_Shift_Q to Shift+Q menu posun uzel doleva
+#bind shift_node_left to Shift+Q menu posun uzel doleva
 #bind ShiftRight to Ctrl+Right menu posun uzel doprava
-#bind _key_Shift_U to Shift+U menu posun uzel doprava
+#bind shift_node_right to Shift+U menu posun uzel doprava
 
 sub ShiftLeft {
   return unless ($this->{dord}>1);

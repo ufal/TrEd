@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-28 17:09:16 pajas>";
+$timestamp="Time-stamp: <2001-03-29 13:45:21 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -543,6 +543,8 @@ sub setConfig {
   $maxDisplayedValues=(exists $confs->{maxdisplayedvalues}) ? $confs->{maxdisplayedvalues} : 30;
   $maxDisplayedAttributes=(exists $confs->{maxdisplayedattributes}) ? $confs->{maxdisplayedattributes} : 20;
 
+  $lastAction=(exists $confs->{lastaction}) ? $confs->{lastaction} : undef;
+
   foreach (0..9) {
     @recentFiles[$_]=$confs->{"recentfile$_"};
   }
@@ -778,12 +780,11 @@ sub addToRecent {
   }
 }
 
-sub addBookmark {
+sub bookmarkThis {
   my ($grp)=@_;
-  my $bl=bookmarkFilelist();
-  return unless ref($bl);
+  my $f=undef;
   if (ref($grp->{FSFile})) {
-    my $f=$grp->{FSFile}->filename()."##".($grp->{treeNo}+1);
+    $f=$grp->{FSFile}->filename()."##".($grp->{treeNo}+1);
     if ($grp->{currentNode}) {
       my $root;
       my $i=0;
@@ -794,7 +795,27 @@ sub addBookmark {
       }
       $f.=".$i" if ($root);
     }
+  }
+  return $f;
+}
+
+sub addBookmark {
+  my ($grp)=@_;
+  my $bl=bookmarkFilelist();
+  return unless ref($bl);
+  my $f=bookmarkThis($grp);
+  if (defined($f)) {
     insertToFilelist($grp,$bl,$bl->count,$f);
+    updateBookmarks($grp);
+  }
+}
+
+sub lastActionBookmark {
+  my ($grp,$bmk)=@_;
+  my $f=defined($bmk) ? $bmk : bookmarkThis($grp);
+  if (defined($f)) {
+    print STDERR "Bookmarking last action at: $f\n";
+    $grp->{lastActionBookmark}=$f;
     updateBookmarks($grp);
   }
 }
@@ -808,6 +829,12 @@ sub updateBookmarks {
     $menu->delete(0,'end');
     $grp->{BookmarksFileMenu}->command(-label => 'Add to bookmarks',
 				       -command => [ \&addBookmark,$grp ]);
+    $grp->{BookmarksFileMenu}->separator();
+    if (defined($grp->{lastActionBookmark})) {
+      $grp->{BookmarksFileMenu}->command(-label  => "Last action",
+					 -underline => 0,
+					 -command => [ \&openFile,$grp,$grp->{lastActionBookmark} ]);
+    }
     $grp->{BookmarksFileMenu}->separator();
     my $i=0;
     my $bl=bookmarkFilelist();
@@ -884,16 +911,16 @@ sub openFile {
 	  fgz => 'gzipped FS format', 
 	  any => 'any non-specific format (csts?), using CstsToFs');
 
-  askSaveFile($grp,1);
-  $grp->{top}->Busy(-recurse => 1) unless $insideEval;
-
-  # Ask reopen here if file is currently open
-
+  print STDERR "Got openFile $f\n";
   if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
     $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
       $goto=$1
   }
 
+  askSaveFile($grp,1)
+    unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
+
+  $grp->{top}->Busy(-recurse => 1) unless $insideEval;
   foreach ($grp->{FSFile},@openfiles) {
     if (ref($_) and $_->filename() eq $f) {
       print "Opening postponed file\n";
@@ -1522,9 +1549,9 @@ sub filelistDialog {
 									 $t->info('anchor')),
 						 $l->getSelectedFiles
 						 );
-				updateBookmarks($grp);
-				if (ref($grp->{filelistCurrentFilelist}) and
-				    $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
+				updateBookmarks($grp)
+				  if (ref($grp->{filelistCurrentFilelist}) and
+				      $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
 			      },$grp,$t,$fl])->pack(-side => top);
   my $addbutton=
     $midframe->Button(-text => 'Remove',
@@ -1536,9 +1563,9 @@ sub filelistDialog {
 						   getFilelistLinePosition($grp->{filelistCurrentFilelist},
 									   $t->info('anchor')),
 						   $t->info('selection'));
-				updateBookmarks($grp);
-				if (ref($grp->{filelistCurrentFilelist}) and
-				    $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
+				updateBookmarks($grp)
+				  if (ref($grp->{filelistCurrentFilelist}) and
+				      $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
 			      },$grp,$t,$fl])->pack(-side => top);
 
   unless ($modal) {
@@ -2322,10 +2349,10 @@ sub startMain {
   my %group;
 
   $group{top}=MainWindow->new;
-			
+
   $group{folderImage} = $group{top}->Pixmap(-file => Tk->findINC('folder.xpm'));
   $group{fileImage}   = $group{top}->Pixmap(-file => Tk->findINC('file.xpm'));
-
+  $group{lastActionBookmark} = $lastAction;
 
   if (defined($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
@@ -2922,6 +2949,7 @@ sub startMain {
     close(F);
   }
   #  $geometry=~s/^[0-9]+x[0-9]+//;
+  push @conf,"LastAction\t=\t".$group{lastActionBookmark}."\n" if $group{lastActionBookmark};
   push @conf,
     "Geometry\t=\t".$geometry."\n",
     "CanvasHeight\t=\t".$defCHeight."\n",
@@ -3381,7 +3409,11 @@ sub editAttrsDialog {
   return unless $grp->{'FSFile'};
   my @vals;
   my @r=();
-  my @atord = $sortAttrs ? (sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes) : $grp->{FSFile}->FS->attributes;
+  my @atord=$grp->{FSFile}->FS->attributes;
+  if ($sortAttrs) {
+    @atord=sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes
+      unless (doEvalHook($grp,"sort_attrs_hook",\@atord));
+  }
   my $rows=min($maxDisplayedAttributes,$#atord+1);
   my ($a,$b,$r);
 
@@ -3485,6 +3517,7 @@ sub editAttrsDialog {
 
   if ($result =~ /OK/) {
     $grp->{FSFile}->notSaved(1);
+    lastActionBookmark($grp);
     foreach $a (@atord) {
       $$node{$a}=decode($e{$a}->get);
     }
@@ -3519,7 +3552,13 @@ sub customAttrsDialog {
                      -borderwidth 2 -setgrid true
 		     -height 15 -scrollbars e
                      -exportselection 0/)->pack();
-  $al->insert('end',$sortAttrs ? (sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes) : $grp->{FSFile}->FS->attributes);
+
+  my @atord=$grp->{FSFile}->FS->attributes;
+  if ($sortAttrs) {
+    @atord=sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes
+      unless (doEvalHook($grp,"sort_attrs_hook",\@atord));
+  }
+  $al->insert('end',@atord);
   $af->pack(qw/-padx 5 -side left -expand yes -fill both/);
   my $cf = $f->Frame();
   $cf->Label(-text => 'Display patterns')->pack();
@@ -3650,7 +3689,11 @@ sub findNodeDialog {
   return unless $grp->{'FSFile'};
   my $r;
   my @vals;
-  my @atord = $sortAttrs ? (sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes) : $grp->{FSFile}->FS->attributes;
+  my @atord=$grp->{FSFile}->FS->attributes;
+  if ($sortAttrs) {
+    @atord=sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes
+      unless (doEvalHook($grp,"sort_attrs_hook",\@atord));
+  }
 
   my $b;
   my $a;
@@ -4027,6 +4070,7 @@ sub editAttr {
     if (defined($newvalue)) {
       $grp->{'top'}->Busy(-recurse => 1);
       $grp->{FSFile}->notSaved(1);
+      lastActionBookmark($grp);
       $$node{$attr}=$newvalue;
       getNodes($grp);
       redraw_tree($grp);
@@ -4040,6 +4084,7 @@ sub editAttr {
     if (defined $newvalue) {
       $grp->{'top'}->Busy(-recurse => 1);
       $grp->{FSFile}->notSaved(1);
+      lastActionBookmark($grp);
       $$node{$attr}=$newvalue;
       getNodes($grp);
       redraw_tree($grp);
@@ -4073,6 +4118,7 @@ sub editAttr {
 #  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
     $grp->{FSFile}->notSaved(1);
+    lastActionBookmark($grp);
     $$node{$attr}=decode($newvalue);
     getNodes($grp);
     redraw_tree($grp);
@@ -4601,8 +4647,8 @@ sub doEvalHook {
 
   my $result;
   $FileNotSaved=$grp->{FSFile}->notSaved; # Macro may want to override this :)
+  my $bookmark=bookmarkThis($grp);        # Save current position (as last action position)
   local $insideEval=1;
-
   unless ($macrosEvaluated) {
     eval ("@macros\n return 1;");
     $macrosEvaluated=1;
@@ -4618,8 +4664,11 @@ sub doEvalHook {
     print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
 #    $result=eval("return TredMacro\:\:$hook($hookparams);\n");
     $result=eval { return &{"TredMacro\:\:$hook"}(@_); };
+  } else {
+    return undef;
   }
   print "$@\n" if $@;
+  lastActionBookmark($grp,$bookmark) if $FileNotSaved and !$grp->{FSFile}->notSaved;
   $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
   saveFileStateUpdate($grp);
 
@@ -4646,6 +4695,7 @@ sub doEvalMacro {
   $grp->{'top'}->Busy(-recurse => 1);
   $FileNotSaved=1; #$grp->{FSFile}->notSaved;  # Macro may want to override this :)
   $forceFileSaved=0; # Macro may want to override this :)
+  my $bookmark=bookmarkThis($grp);
   $insideEval=1;
 
   unless ($macrosEvaluated) {
@@ -4668,10 +4718,12 @@ sub doEvalMacro {
     print STDERR "Macro claims file untouched\n"
       unless ($FileNotSaved);
     $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
+    lastActionBookmark($grp,$bookmark) if $FileNotSaved;
   } else {
     print STDERR "Macro forsly claims file saved.\n";
     # using value of $FileNotSaved
     $grp->{FSFile}->notSaved($FileNotSaved);
+    lastActionBookmark($grp,$bookmark) if $FileNotSaved;
   }
   $insideEval=0;
 
@@ -4880,6 +4932,7 @@ sub node_release {
 	  and $node->parent!=$grp->{'pinfo'}{$p}) {
 	Paste(Cut($node),$grp->{'pinfo'}{$p},$grp->{FSFile}->FS->defs);
 	$grp->{FSFile}->notSaved(1);
+	lastActionBookmark($grp);
 	redraw_tree($grp);
 	centerTo($grp,$grp->{currentNode});
 	return;
