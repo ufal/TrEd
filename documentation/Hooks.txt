@@ -120,6 +120,19 @@ node_released_hook node,target-node,mod yes     called when node is
 node_moved_hook    node,old-parent      no      called after a node is
                                                 moved using a mouse
 
+get_status_line_hook                    no      supply status-line content
+
+status_line_doubleclick_hook tags...	no	called when users
+                                                double-clicks the
+                                                status-line. Arguments are
+                                                a list of style names
+                                                associated with the
+                                                clicked field. Style
+                                                names may obey
+                                                arbitrary user-defined
+                                                convention.
+
+
 
 NOTE:
 Unlike other macros, hooks are expected not to modify the file. If the

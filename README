@@ -1,4 +1,4 @@
-Tred ver. 0.5
+TrEd ver. 0.5
 =============
 
 author:
@@ -7,7 +7,7 @@ author:
 What is tred
 ------------
 
-Tred stands for "Tree Editor". It is a Perl/Tk-based graphical
+TrEd stands for "Tree Editor". It is a Perl/Tk-based graphical
 editor for tree structures in the Fs format (for description see
 http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html) used for
 working with syntactical and tectogramatical trees in The Prague
@@ -17,28 +17,28 @@ by writing your own macros (in Perl using functions defined
 in tred.def standard definition file and functions defined in Fslib library
 - see Fslib documentation for more detail).
 
-There is also a batch (off-line) variant of Tred called btred -
+There is also a batch (off-line) variant of TrEd called btred -
 "Batch-mode Tree Editor" - which allows you to run macros on trees
 without having to use the graphical environment. See also examples
 directory for few more scripts that may serve you in a similar way as
 btred and may be simplier to use in some cases. 
 
-What it requires
+What's required
 ----------------
 
-You only need perl5 with Perl/Tk ver. 800.015 library to run Tred.
-This means that Tred may run on following platforms:
+You only need Perl v5.6 or higher and Perl/Tk library v800.022 or
+higher. TrEd may run on following platforms:
 
   Windows 9x,NT (download perl and perlTk from ActivePerl)
-  Linux (with glibc2 = libc.6, otherwise you will probably 
-         not be able to compile Perl/Tk)
+  Linux (with glibc2 = libc.6, otherwise you probably won't 
+         be able to compile Perl/Tk)
   Possibly other platforms (other UN*X platforms as Perl5
          and perlTk should be abailable for them;
-	 AFAIK there is perl5 and perlTk on MacOS too)
+	 AFAIK there is perl and perlTk on MacOS too)
 
-Please NOTE that this program was tested and developed under Linux, so
-all other platform support is moreless experimental or even
-theoretical.
+Please NOTE that this program is being developed and tested under
+Linux, and is also widely used on Windows. Support for all other
+platforms either experimental or theoretical.
 
 	 
 Installation
@@ -49,49 +49,41 @@ This topic is described in the INSTALL file.
 
 Also note that:
 ---------------
-- .tredrc is your configuration file, it is text-based so that you may edit it 
+- .tredrc is your configuration file, it is text-based so that you may
+edit it
 
-- you may print either to file or using a command. In both cases Tred
-generates postscript. On Windows desktop you will probably have to use
-ghostview to print obtained file (unless you have installed st. like
-lpr i.e. from cygwins).
+- you may print from TrEd either to file or using a command. I TrEd is
+able to generate PostScript and/or PDF. On Windows desktop you will
+probably have to use Adobe Acrobat Reader or GhostView to print the
+resulting file (unless you have installed st. like lpr i.e. from
+cygwin).
 
-- printing uses postscript font (arial by default) but expects it has
-the same metrics as the display font
+- printing to PostScript uses Type1 font (arial by default), printing
+to PDF requires a TrueType font
 
 - you may define macros and bind them to keyboard events. This is done
 preferably in tred.mac file, but you may use also tred.def which
 should however contain moreless st. like preliminary definitions. Let
 the files included with this distributions serve you as examples (the
-macro language is perl, it is evaled directly form Tred, so you may
+macro language is perl, it is evaled directly form TrEd, so you may
 use its variables and functions - but be carefull!!). The active node
 is pointed to by variable $this. To change active node simply assign
 this variable. Root of the current tree is $root. You may (as in
-Fslib.pm) change or refer to node's attribute values by either
-  $$node{'atrname'}
-or (by more readable but one-char longer)
-  $node->{'atrname'} 
-To access node's neighbours use Parent, FirstSon,
-LBrother and RBrother functions.  To rearange nodes in the tree you
-may use macros CutNode/Cut and PasteNode (Paste is more low-level and
-you should *not* therfore use it).  Also, you may find useful macros
+Fslib.pm) change or refer to node's attribute values by 
+  $node->{'atrname'} To access node's neighbours use the following
+methods: $node->parent, $node->firstson, $node->lbrother and
+$node->rbrother functions.  To rearange nodes in the tree you may use
+macros CutNode/Cut and PasteNode (Paste is more low-level and you
+should *not* therfore use it).  Also, you may find useful macros
 NextTree,PrevTree,GotoTree to move between trees and Next/Prev macros
-to trace along the current tree.
-
-For more info on macros see Fslib documentation (in
-tredlib/documentation directory) - which is as well as the library
-itself part of this distribution.
+to trace along the current tree. See tred.def and Fslib.pm
+documentation form more detail.
 
 Note that there is a convertor called graph2tred which allows you port
 your macros written for Michal Kren's editor Graph to Perl macros
-which may be used by Tred withough any further modifications. For more
+which may be used by TrEd withough any further modifications. For more
 detail see README.grap2tred file in this distribution.
 
-
-TODO
-----
-
-There is a plenty of reasonable features still missing. Those include:
 
 LICENSE
 -------

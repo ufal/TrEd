@@ -1,4 +1,4 @@
-Instalation of Tred ver. 0.5
+Instalation of TrEd ver. 0.5
 ============================
 
 This text describes installation of tred under Linux or any other
@@ -7,8 +7,8 @@ UN*X-like system.
 
 REQUIRES
 --------
-  perl5
-  perl/Tk ver. >= 800.015
+  perl 5.6.1
+  perl/Tk ver. >= 800.022
 
 
 INSTALLATION
@@ -16,24 +16,25 @@ INSTALLATION
 
 Untar the distribution tarball using the following command:
 
-	tar -xzf tred-0.2.tgz 
+	tar -xzf tred-current.tgz 
 
-A distribution directory named tred-0.2 will be created.
+A distribution directory named tred will be created.
 
-In this directory you will find the following files and directories:
+In this directory you will find among others the following files and
+directories:
 
 	README              (a readme file)
 	INSTALL             (this file)
 	tred                (the program itself)
 	tredlib/            (other files necessary for running tred)
-	tredrc              (configuration file)
+	tredlib/tredrc      (configuration file)
 
 
 You may try to issue ./tred in this directory.
 
 
 If you prefer having executable files in a different directory than
-the libraries (tredlib), you may follow the following instructions.
+the libraries (tredlib), you may follow the instructions below.
 
 INSTALLING TO SEPARATE DIRECTORIES
 ----------------------------------
@@ -48,17 +49,17 @@ tredlib or edit your .tredrc and add a line similar to the following:
 LibDir  = "/my/favoured/location/for/tredlib"
 
 
-CUSTOMIZING Tred
+CUSTOMIZING TrEd
 ----------------
 
-Tred reads and uses a configuration file and macro-file (where user
+TrEd reads and uses a configuration file and macro-file (where user
 may define his/her own macros (in Perl) and bind them easily to
-keystrokes or menus). Tred searches for the configuration file in in
+keystrokes or menus). TrEd searches for the configuration file in in
 your home directory and also the directory from which it was
 started. To customize tred, you may wish to make a copy of the
 configuration file "tredrc" shipped with the distribution in your home
 directory. This copy must be named ".tredrc" (note the dot at the
-beginning). If you want Tred to read your own set of macro (instead
+beginning). If you want TrEd to read your own set of macro (instead
 the default sample set "tredlib/tred.mac"), you should point to it by
 the option "macroFile" in your ".tredrc" like this:
 
