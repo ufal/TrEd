@@ -185,7 +185,7 @@ else
   fi
 fi
 
-upgrade_packages Tk Text::Iconv XML::SAX XML::LibXML  XML::LibXML::Iterator Tie::IxHash
+upgrade_packages Tk Text::Iconv XML::JHXML XML::SAX XML::LibXML  XML::LibXML::Iterator Tie::IxHash
   
 findtreddir
 
