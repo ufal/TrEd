@@ -16,7 +16,7 @@ use Getopt::Std;
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-getopts('qQx:p:r:s:a:f:c:i:m:e:t:huNHSTR');
+getopts('qQDx:p:r:s:a:f:c:i:m:e:t:huNHSTR');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u || $opt_h) {
@@ -25,7 +25,7 @@ Usage:
   btred [-c config-file] [-m macro-file] [-e script]
         [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
         [-f out-fmt]  [-x extra_attribs]
-        [-i init-script] [-t context] [-q|-Q] [-N|-H]
+        [-i init-script] [-t context] [-q|-Q] [-D] [-N|-H]
         [-S] [-T] [-o script options -- ] files...
 or
   btred -u          to show usage
@@ -67,6 +67,7 @@ extra_attribs - comma separated list of non-CSTS attributes to preserve when
 -R            - build tectogrammatic trees from CSTS files
 -q            - quiet
 -Q            - by *very* quiet
+-D            - enable debugging messages on stderr
 
 Flags -N and -H may not be combined. If both are used, -N has the
 precedence. However, both -N and -H may be used together with -T.
@@ -229,6 +230,13 @@ $NodeClipboard=undef;
 
 $fileNo=0;
 
+$Fslib::Debug=$opt_D;
+if ($opt_q) {
+  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
+} elsif ($opt_D) {
+  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
+}
+
 print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
 read_macros($macroFile,$libDir);	# read macros
 print STDERR "done.\n" unless $opt_q;
@@ -236,10 +244,6 @@ print STDERR "done.\n" unless $opt_q;
 @files=@ARGV;
 @ARGV=@TredMacro::ARGV;
 
-$Fslib::Debug=!$opt_q;
-if ($opt_q) {
-  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
-}
 
 
 %bkmap=(
