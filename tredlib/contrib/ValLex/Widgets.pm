@@ -142,7 +142,7 @@ sub create_widget {
 		reviewed => $w->Pixmap(-file => Tk::findINC("ValLex/ok.xpm")),
 		active => $w->Pixmap(-file => Tk::findINC("ValLex/filenew.xpm")),
 		deleted => $w->Pixmap(-file => Tk::findINC("ValLex/erase.xpm"))
-	       },0,1;
+	       },0,1,1;
 }
 
 sub style {
@@ -155,6 +155,16 @@ sub pixmap {
 
 sub SHOW_DELETED { 5 }
 sub SHOW_OBSOLETE { 6 }
+sub USE_SUPERFRAMES { 7 }
+
+sub use_superframes {
+  my ($self,$value)=@_;
+  if (defined($value)) {
+    $self->[USE_SUPERFRAMES]=$value;
+  }
+  return $self->[USE_SUPERFRAMES];
+}
+
 
 sub show_deleted {
   my ($self,$value)=@_;
@@ -202,50 +212,60 @@ sub open_superframe {
 sub fetch_data {
   my ($self, $word)=@_;
 
-  
   my $t=$self->widget();
   my ($e,$f,$i);
   my $style;
   $t->delete('all');
-#  foreach my $entry ($self->data()->getFrameList($word)) {
-#    next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
-#    $e = $t->addchild("",-data => $entry->[0]);
-#    $i=$t->itemCreate($e, 0,
-#		      -itemtype=>'imagetext',
-#		      -image => $self->pixmap($entry->[3]),
-#		      -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
-#		      -style => $self->style($entry->[3]));
-#
-#  }
-  my $super=$self->data()->getSuperFrameList($word);
-  foreach my $sframe (sort {
-    @{$super->{$b}} <=> @{$super->{$a}}
-  } keys(%$super)) {
-    if (@{$super->{$sframe}}>1) {
-      my $examples=join("",map { $_->[4] ? "\n$_->[4] ($_->[5])" : () } 
-					 @{$super->{$sframe}});
-      $e = $t->addchild("",-data => $examples);
-      $i=$t->itemCreate($e, 0,
-			-itemtype=>'imagetext',
-			-text => $sframe,
-			-style => $self->style('active')
-		       );
-    } else {
-      $e="";
+
+  if ($self->use_superframes) {
+    my $super=$self->data()->getSuperFrameList($word);
+    foreach my $sframe (sort {
+      @{$super->{$b}} <=> @{$super->{$a}}
+    } keys(%$super)) {
+      if (@{$super->{$sframe}}>1) {
+	my $examples=join("",map { $_->[4] ? "\n$_->[4] ($_->[5])" : () } 
+			  @{$super->{$sframe}});
+	$e = $t->addchild("",-data => $examples);
+	$i=$t->itemCreate($e, 0,
+			  -itemtype=>'imagetext',
+			  -text => $sframe,
+			  -style => $self->style('active')
+			 );
+      } else {
+	$e="";
+      }
+      foreach my $entry (@{$super->{$sframe}}) {
+	next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
+	next if (!$self->show_obsolete() and
+		 ($entry->[3] eq 'obsolete' or
+		  $entry->[3] eq 'substituted'));
+	$f = $t->addchild("$e",-data => $entry->[0]);
+	$i=$t->itemCreate($f, 0,
+			  -itemtype=>'imagetext',
+			  -image => $self->pixmap($entry->[3]),
+			  -text=> $entry->[2].($entry->[6].$entry->[4] ? "\n" : "").
+			  ($entry->[6] ? "(".$entry->[6].") " : "").
+			  $entry->[4]." (".$entry->[5].")",
+			  -style => $self->style($entry->[3]));
+      }
     }
-    foreach my $entry (@{$super->{$sframe}}) {
+
+  } else {
+    foreach my $entry ($self->data()->getNormalFrameList($word)) {
       next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
       next if (!$self->show_obsolete() and
-		   ($entry->[3] eq 'obsolete' or
-		    $entry->[3] eq 'substituted'));
-      $f = $t->addchild("$e",-data => $entry->[0]);
-      $i=$t->itemCreate($f, 0,
+	       ($entry->[3] eq 'obsolete' or
+		$entry->[3] eq 'substituted'));
+      $e = $t->addchild("",-data => $entry->[0]);
+      $i=$t->itemCreate($e, 0,
 			-itemtype=>'imagetext',
 			-image => $self->pixmap($entry->[3]),
 			-text=> $entry->[2].($entry->[6].$entry->[4] ? "\n" : "").
 			($entry->[6] ? "(".$entry->[6].") " : "").
 			$entry->[4]." (".$entry->[5].")",
+#			-text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
 			-style => $self->style($entry->[3]));
+
     }
   }
   $t->autosetmode();
@@ -314,7 +334,6 @@ sub create_widget {
 		     -validatecommand => [\&quick_search,$self]
 		    )->pack(qw/-expand yes -fill x/);
 
-
   ## Word List
   my $w = $frame->Scrolled(qw/HList -columns 2 -background white
                               -selectmode browse
@@ -334,7 +353,6 @@ sub create_widget {
 	       $self->focus($word);
 	       Tk->break;
 	     },$self]);
-    
   }
   $e->bind('<Return>',[
 			  sub {
@@ -343,6 +361,9 @@ sub create_widget {
 			    Tk->break;
 			  },$w,$self
 			 ]);
+  $e->bind('<Down>',[$w,'UpDown', 'next']);
+  $e->bind('<Up>',[$w,'UpDown', 'prev']);
+
   $pose->bind('<Return>',[
 			  sub {
 			    my ($cw,$self)=@_;
@@ -458,7 +479,6 @@ sub focus {
   for my $i (0,1) {
     # 1st run tries to find it in current list; if it fails
     # 2nd run asks Data server for more data
-    print "focusing $word $i\n";
     $self->fetch_data($word) if $i;
     foreach my $t ($h->infoChildren()) {
       if ($self->data()->isEqual($h->infoData($t),$word)) {
