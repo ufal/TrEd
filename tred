@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-04 15:02:44 pajas>";
+$timestamp="Time-stamp: <2001-06-04 18:03:01 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -151,12 +151,6 @@ $macroFile=undef;
 @filelists=();
 @openfiles=();
 
-$treeViewOpts={
-	       drawSentenceInfo  => 0,
-	       customColors	  => ['darkgreen','darkblue','darkmagenta',
-				      'orange','black','DodgerBlue4',
-				      'red','gold','cyan','midnightblue']
-	      };
 
 # We *must* at least find TrEd::Config module to learn the correct libDir!!.
 print "First I'm trying $libDir\n";
@@ -169,6 +163,13 @@ do {
   import TrEd::Config qw(&read_config &apply_config &set_default_config_file_search_list);
   $libDir=$ld;
 };
+
+$treeViewOpts={
+	       drawSentenceInfo  => 0,
+	       customColors	  => ['darkgreen','darkblue','darkmagenta',
+				      'orange','black','DodgerBlue4',
+				      'red','gold','cyan','midnightblue']
+	      };
 
 if (defined $opt_c) {
   @config_file_search_list=($opt_c); # override any other possible config files
