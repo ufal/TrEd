@@ -4339,7 +4339,7 @@ sub startMain {
 	 [Button=> 'Select stylesheet ...', -underline=> 9,
 	  -command=> [\&selectStylesheet,\%group]],
 	 [Separator=> ''],
-	 [Button=> 'Customize Tree ...', -underline=> 0,
+	 [Button=> 'Customize tree (display patterns) ...', -underline=> 0,
 	  -command=> [\&customAttrsDialog,\%group]],
 	 [Separator=> ''],
 	 [Button=> 'List of Named Macros ...', -underline=> 0,
@@ -4795,7 +4795,7 @@ sub startMain {
 			  -command=> [sub { customAttrsDialog(@_) },\%group])->pack(-side=>'right',
 										    -padx=>'1');
   $group{Balloon}->attach($group{attrButton},
-			  -balloonmsg=> "customize selected stylesheet\n(e.g. change tree appearance, labels etc.)");
+			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
 
   $group{StylesheetMenu}=$group{frame}->
     Optionmenu(-options => getStylesheetMenuList(\%group),
@@ -6410,6 +6410,7 @@ B<Features:>
   C<NodeLabel-dodrawbox >- force drawing a box around labels: yes/no
   C<NodeLabel-nodrawbox >- force disabling a box around node label: yes/no
   C<EdgeLabel-yadj      >- adjust vertical position of edge labels by given amount
+  C<EdgeLabel-coords    >- force specific position of an edge label (default n,n,p,p)
   C<EdgeLabel-halign    >- values: right, center, left
   C<EdgeLabel-valign    >- values: top, center, bottom
   C<EdgeLabel-dodrawbox >- force drawing a box around edge labels: yes/no
