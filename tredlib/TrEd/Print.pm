@@ -56,14 +56,11 @@ sub parse_print_list {
   my @printList;
   return unless ref($fsfile);
   foreach (split /,/,$printRange) {
-    print "Parsing $_\n";
-    if (/^\s*([0-9]+)\s*$/ and $1-1<=$fsfile->lastTreeNo) {
-      print "Preparing $1\n";
+    if (/^\s*(\d+)\s*$/ and $1-1<=$fsfile->lastTreeNo) {
       push @printList,$1;
       next;
     }
-    if (/^\s*([0-9]*)\s*-\s*([0-9]*)\s*$/) {
-      print "Preparing $1-$2\n";
+    if (/^\s*(\d*)\s*-\s*(\d*)\s*$/) {
       ($pbeg,$pend)=($1,$2);
       $pend=$fsfile->lastTreeNo+1 if ($pend eq '');
       $pbeg=1 if ($pbeg eq '');
