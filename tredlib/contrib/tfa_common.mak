@@ -1,5 +1,7 @@
 # -*- cperl -*-
-# common tfa macros
+# Common tfa macros
+
+#encoding iso-8859-2
 
 # use strict;
 

@@ -4,12 +4,14 @@
 #
 # Copyright (c) 2001-2003 by Petr Pajas <pajas@matfyz.cz>
 #
-
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
 ##
 ## It is a base for other macro packages like tr.mak
 ## or tr_anot_main.mak which are used for various purposes
+
+
+#encoding iso-8859-2
 
 #include <contrib/AFA.mak>
 
