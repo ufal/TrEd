@@ -6315,7 +6315,7 @@ EOF
   require Tk::HelpTiptool;
   my $help = $d->HelpTiptool(-background => '#ffffaa',
 			     -troughcolor => '#cccc99',
-			     -message=> format_tred_pod($HELP)
+			     -message=> [format_tred_pod($HELP)]
 			    );
   $help->Subwidget('text')->tag(qw(configure bold -font C_bold));
   $help->Subwidget('text')->tag(qw(configure fixed -font C_fixed));
