@@ -2,6 +2,8 @@
 
 $FrameData=undef;
 $ChooserHideObsolete=0;
+$frameid_attr="frameid";
+$framere_attr="framere";
 
 sub InfoDialog {
   my ($top,$text)=@_;
@@ -46,34 +48,8 @@ sub parse_lemma {
   return ($pure_lemma,$deriv);
 }
 
-sub ChooseFrame {
+sub InitFrameData {
   my $top=ToplevelFrame();
-  $top->Busy(-recurse=>1);
-
-  require ValLex::Data;
-  require ValLex::LibXMLData;
-  require ValLex::Widgets;
-  require ValLex::Editor;
-  require ValLex::Chooser;
-  require TrEd::CPConvert;
-  my $frameid_attr="frameid";
-  my $framere_attr="framere";
-  my $lemma=TrEd::Convert::encode($this->{trlemma});
-  my $tag=$this->{tag};
-  if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
-    $lemma=~s/^ne//;
-  }
-  unless ($tag=~/^([VNA])/) {
-    questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
-		  "according to morphological tag.",
-		  "Ok");
-    return;
-  }
-  my $pos=$1;
-  $lemma=~s/_/ /g;
-  my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
-  my $field;
-  my $title;
   unless ($FrameData) {
     my $conv= TrEd::CPConvert->new("utf-8",
 				   ($^O eq "MSWin32") ?
@@ -99,10 +75,91 @@ sub ChooseFrame {
       $top->Unbusy(-recurse=>1);
       $FileNotSaved=0;
       questionQuery("Valency lexicon not found.","Valency lexicon not found.\nPlease install!","Ok");
-      return;
+      return 0;
+    } else {
+      return 1;
     }
-#    $info->destroy();
+
   }
+}
+
+
+sub OpenEditor {
+  my $top=ToplevelFrame();
+  $top->Busy(-recurse=>1);
+
+  require ValLex::Data;
+  require ValLex::LibXMLData;
+  require ValLex::Widgets;
+  require ValLex::Editor;
+  require TrEd::CPConvert;
+  InitFrameData() || return;
+
+  my $pos='V';
+  $pos=$1 if $this->{tag}=~/^(.)/;
+  my $lemma=TrEd::Convert::encode($this->{trlemma});
+
+  my $font = $main::font;
+  my $fc=[-font => $font];
+
+  my $fe_conf={ elements => $fc,
+		example => $fc,
+		note => $fc,
+		problem => $fc
+	      };
+  my $vallex_conf = {
+		     framelist => $fc,
+		     framenote => $fc,
+		     frameproblem => $fc,
+		     wordlist => { wordlist => $fc, search => $fc},
+		     wordnote => $fc,
+		     wordproblem => $fc,
+		     infoline => { label => $fc }
+		    };
+
+  print STDERR "EDITOR start at: $lemma,$pos,",$this->{$frameid_attr},"\n";
+
+  TrEd::ValLex::Editor::show_dialog($top,
+                                    $FrameData,
+				    [$lemma,$pos],    # select field
+				    0,                # autosave
+				    $vallex_conf,
+				    $fc,
+				    $fc,
+				    $fe_conf,
+				    $this->{$frameid_attr},    # select frame
+				    0);               # start frame editor
+
+}
+
+sub ChooseFrame {
+  my $top=ToplevelFrame();
+  $top->Busy(-recurse=>1);
+
+  require ValLex::Data;
+  require ValLex::LibXMLData;
+  require ValLex::Widgets;
+  require ValLex::Editor;
+  require ValLex::Chooser;
+  require TrEd::CPConvert;
+
+  my $lemma=TrEd::Convert::encode($this->{trlemma});
+  my $tag=$this->{tag};
+  if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
+    $lemma=~s/^ne//;
+  }
+  unless ($tag=~/^([VNA])/) {
+    questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
+		  "according to morphological tag.",
+		  "Ok");
+    return;
+  }
+  my $pos=$1;
+  $lemma=~s/_/ /g;
+  my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
+  my $field;
+  my $title;
+  InitFrameData() || return;
   my $new_word=0;
   {
     my $word=$FrameData->findWordAndPOS($lemma,$pos);
@@ -171,20 +228,21 @@ sub ChooseFrame {
 		      framelist_labels => $fb,
 		     };
 
-  my ($frame,$real)=TrEd::ValLex::Chooser::show_dialog($title,
-						       $top,
-						       $chooser_conf,
-						       $fc,
-						       $vallex_conf,
-						       $fc,
-						       $fc,
-						       $fe_conf,
-						       \$ChooserHideObsolete,
-						       $FrameData,
-						       $field,
-						       [split /\|/,
-							$this->{$frameid_attr}],
-						       $new_word);
+  my ($frame,$real)=
+    TrEd::ValLex::Chooser::show_dialog($title,
+				       $top,
+				       $chooser_conf,
+				       $fc,
+				       $vallex_conf,
+				       $fc,
+				       $fc,
+				       $fe_conf,
+				       \$ChooserHideObsolete,
+				       $FrameData,
+				       $field,
+				       [split /\|/,
+					$this->{$frameid_attr}],
+				       $new_word);
   if ($frame) {
     my $fmt=$grp->{FSFile}->FS();
     $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
