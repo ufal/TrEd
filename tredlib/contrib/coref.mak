@@ -1,4 +1,3 @@
-
 # -*- cperl -*-
 #encoding iso-8859-2
 
@@ -42,6 +41,8 @@ $inf_lemmas_addr=
 
 $referent=""; # stores ID of the marked node (Cut-and-Paste style)
 
+########################## Update file header ###########################
+
 #bind update_coref_file to F7 menu Update coref attributes
 sub update_coref_file {
   Tectogrammatic->upgrade_file_to_tid_aidrefs();
@@ -72,6 +73,183 @@ sub update_coref_file {
     }
   }
 }
+
+########################## Hooks ###########################
+
+sub switch_context_hook {
+#  SUPER::file_opened_hook();
+  default_tr_attrs();
+  foreach my $tree ($grp->{FSFile}->trees) {
+    markPossibleCorefStarts($tree);
+    auto_coref($tree);
+  }
+  Redraw_FSFile();
+}
+
+# hook coref assignment to node-release event
+sub node_release_hook {
+  my ($node,$target,$mod)=@_;
+  print "node_release_hook: ",join(",",@_),"\n";
+
+  return unless $target;
+  my $type;
+  print "MODE: $mod\n";
+  if ($mod eq 'Shift') {
+    $type='grammatical';
+  } elsif ($mod eq 'Control') {
+    $type='textual';
+  } elsif ($mod eq 'Alt') {
+    my $selection=['textual'];
+    listQuery("Select cortype",'browse',[qw(textual grammatical)],$selection) || return;
+    $type=$selection->[0];
+  } else {
+    # Ignoring this mode
+    print $mod,"\n";
+    return 'stop';
+  } 
+  assign_coref($node,get_ID_for_coref($target),$type);
+  TredMacro::Redraw_FSFile_Tree();
+  $FileChanged=1;
+}
+
+# hook coref arrows drawing and custom coloring to node styling event
+sub node_style_hook {
+  my ($node,$styles)=@_;
+  if ($drawAutoCoref and $node->{corefMark}==1 and
+      ($node->{coref} eq "" or $node->{cortype}=~/auto/)) {
+      AddStyle($styles,'Node',
+	       -shape => 'rectangle',
+	       -addheight => '10',
+	       -addwidth => '10'
+	      );
+      AddStyle($styles,'Oval',
+	       -fill => '#FF7D20');
+  }
+
+  if (($referent ne "") and
+      (($node->{TID} eq $referent) or
+       ($node->{AID} eq $referent))) {
+    AddStyle($styles,'Oval',
+	      -fill => $referent_color
+	     );
+    AddStyle($styles,'Node',
+	      -addheight => '6',
+	      -addwidth => '6'
+	     );
+  }
+
+  draw_coref_arrows($node,$styles,
+		    [split /\|/,$node->{coref}],
+		    [split /\|/,$node->{cortype}],
+		    \%cortype_colors
+		   );
+
+  1;
+}
+
+########################## Macros ###########################
+
+sub draw_coref_arrows {
+  my ($node,$styles,$corefs,$cortypes,$cortype_colors)=@_;
+  my $id1=$root->{ID1};
+  $id1=~s/:/-/g;
+  my (@coords,@colors);
+  my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
+  my $ids={};
+  my $nd = $root; while ($nd) { $ids->{$nd->{AID}.$nd->{TID}}=1 } continue { $nd=$nd->following };
+  foreach my $coref (@$corefs) {
+    my $cortype=shift @$cortypes;
+    next if (!$drawAutoCoref and $cortype =~ /auto/);
+    if ($ids->{$coref}) { #index($coref,$id1)==0) {
+      print STDERR "ref-arrows: Same sentence\n" if $main::macroDebug;
+      # same sentence
+      my $T="[?\$node->{AID} eq '$coref' or \$node->{TID} eq '$coref'?]";
+      my $X="(x$T-xn)";
+      my $Y="(y$T-yn)";
+      my $D="sqrt($X**2+$Y**2)";
+      push @colors,$cortype_colors->{$cortype};
+      my $c = <<COORDS;
+
+&n,n,
+(x$T+xn)/2 - $Y*(25/$D+0.12),
+(y$T+yn)/2 + $X*(25/$D+0.12),
+x$T,y$T
+
+
+COORDS
+      push @coords,$c;
+
+#&n,n,
+#(x$T+xn)/2 + $D*$Y,
+#(y$T+yn)/2 - $D*$X,
+#x$T,y$T
+
+
+#&n,n,
+#n + (x$T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
+#n + (y$T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
+#x$T,y$T
+
+
+#&n,n,
+#n + (x$T-n)/2, n,
+#n + (x$T-n)/2, y$T,
+#x$T,y$T
+      } else {
+	my ($d,$p,$s,$l)=($id1=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*)$/);
+	my ($cd,$cp,$cs,$cl)=($coref=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*).\d+/);
+	if ($d eq $cd) {
+	  print STDERR "ref-arrows: Same document\n" if $main::macroDebug;
+	  # same document
+	  if ($cp<$p || $cp==$p && ($cs<$s or $cs == $s and $cl lt $l)) {
+	    # preceding sentence
+	    print STDERR "ref-arrows: Preceding sentence\n";
+	    push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
+	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
+	    $rotate_prv_snt+=10;
+	  } else {
+	    # following sentence
+	    print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
+	    push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
+	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
+	    $rotate_nxt_snt+=10;
+	  }
+	} else {
+	  # different document
+	  print STDERR "ref-arrows: Different document?\n" if $main::macroDebug;
+	  push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
+	  push @coords,"&n,n,n+$rotate_dfr_doc,n-30";
+	  $rotate_dfr_doc+=10;
+	  print STDERR "ref-arrows: Different document sentence\n" if $main::macroDebug;
+	}
+      }
+  }
+  if ($node->{corlemma} eq "sg") { # pointer to an unspecified segment of preceeding sentences
+    print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug;
+    push @colors,$cortype_colors->{segment};
+    push @coords,"&n,n,n-25,n";
+  }
+  elsif ($node->{corlemma} ne "") {
+    AddStyle($styles,'Oval',
+	      -fill => $cortype_colors->{textual}
+	     );
+    AddStyle($styles,'Node',
+	      -shape => 'rectangle',
+	      -addheight => '5',
+	      -addwidth => '5'
+	     );
+  }
+  if (@coords) {
+    AddStyle($styles,'Line',
+	      -coords => 'n,n,p,p'.join("",@coords),
+	      -arrow => '&last' x @coords,
+#	      -dash => '&_' x @coords,
+	      -width => '&1' x @coords,
+	      -fill => join("&","",@colors),
+	      -smooth => '&1' x @coords);
+  }
+}
+
 
 # return AID or TID of a node (whichever is available)
 sub get_ID_for_coref {
@@ -148,7 +326,7 @@ sub edit_corlemma {
 # remove it otherwise add it.
 sub assign_coref {
   my ($node,$ref,$type)=@_;
-  print "ASSIGNING coref @_\n";
+  print "ASSIGNING coref @_\n" if $main::macroDebug;
   if ($type =~ /auto/) {
     # don't assign auto corefs if manual corefs exist
     return unless $node->{coref} eq '';
@@ -178,34 +356,10 @@ sub assign_coref {
   }
 }
 
-# hook coref assignment to node-release event
-sub node_release_hook {
-  my ($node,$target,$mod)=@_;
-  return unless $target;
-  my $type;
-  print "MODE: $mod\n";
-  if ($mod eq 'Shift') {
-    $type='grammatical';
-  } elsif ($mod eq 'Control') {
-    $type='textual';
-  } elsif ($mod eq 'Alt') {
-    my $selection=['textual'];
-    listQuery("Select cortype",'single',[qw(textual grammatical)],$selection) || return;
-    $type=$selection->[0];
-  } else {
-    # Ignoring this mode
-    print $mod,"\n";
-    return 'stop';
-  } 
-  assign_coref($node,get_ID_for_coref($target),$type);
-  TredMacro::Redraw_FSFile_Tree();
-  $FileChanged=1;
-}
-
 #bind remember_this_node to Ctrl+q menu Remeber current node for coreference
 sub remember_this_node {
   $referent = get_ID_for_coref($this);
-  print STDERR "Remember:$referent $this->{AID}\n";
+  print STDERR "Remember:$referent $this->{AID}\n" if $main::macroDebug;
 }
 
 #bind set_referent_to_coref to Ctrl+s menu Set coreference to previously marked node
@@ -230,115 +384,6 @@ sub toggle_draw_auto_corefs {
 }
 
 
-# hook coref arrows drawing and custom coloring to node styling event
-sub node_style_hook {
-  my ($node,$styles)=@_;
-
-  if ($drawAutoCoref and $node->{corefMark}==1 and
-      ($node->{coref} eq "" or $node->{cortype}=~/auto/)) {
-      AddStyle($styles,'Node',
-	       -shape => 'rectangle',
-	       -addheight => '10',
-	       -addwidth => '10'
-	      );
-      AddStyle($styles,'Oval',
-	       -fill => '#FF7D20');
-  }
-
-  if (($referent ne "") and
-      (($node->{TID} eq $referent) or
-       ($node->{AID} eq $referent))) {
-    AddStyle($styles,'Oval',
-	      -fill => $referent_color
-	     );
-    AddStyle($styles,'Node',
-	      -addheight => '6',
-	      -addwidth => '6'
-	     );
-  }
-
-  my $id1=$root->{ID1};
-  $id1=~s/:/-/g;
-  my (@coords,@colors);
-  my @cortypes=split /\|/,$node->{cortype};
-  my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
-  my $ids={};
-  my $nd = $root; while ($nd) { $ids->{$nd->{AID}.$nd->{TID}}=1 } continue { $nd=$nd->following };
-  foreach my $coref (split /\|/,$node->{coref}) {
-    my $cortype=shift @cortypes;
-    next if (!$drawAutoCoref and $cortype =~ /auto/);
-    if ($ids->{$coref}) { #index($coref,$id1)==0) {
-      print STDERR "Same sentence\n";
-      # same sentence
-      my $T="[?\$node->{AID} eq '$coref' or \$node->{TID} eq '$coref'?]";
-      push @colors,$cortype_colors{$cortype};
-      push @coords,<<COORDS;
-&n,n,
-n + (x$T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
-n + (y$T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
-x$T,y$T
-
-COORDS
-#&n,n,
-#n + (x$T-n)/2, n,
-#n + (x$T-n)/2, y$T,
-#x$T,y$T
-      } else {
-	my ($d,$p,$s,$l)=($id1=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*)$/);
-	my ($cd,$cp,$cs,$cl)=($coref=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*).\d+/);
-	if ($d eq $cd) {
-	  print STDERR "Same document\n";
-	  # same document
-	  if ($cp<$p || $cp==$p && ($cs<$s or $cs == $s and $cl lt $l)) {
-	    # preceding sentence
-	    print STDERR "Preceding sentence\n";
-	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
-	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
-	    $rotate_prv_snt+=10;
-	  } else {
-	    # following sentence
-	    print STDERR "Following sentence\n";
-	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
-	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
-	    $rotate_nxt_snt+=10;
-	  }
-	} else {
-	  # different document
-	  print STDERR "Different document?\n";
-	  push @colors,$cortype_colors{$cortype}; #'&#c53c00'
-	  push @coords,"&n,n,n+$rotate_dfr_doc,n-30";
-	  $rotate_dfr_doc+=10;
-	  print STDERR "Different document sentence\n";
-	}
-      }
-  }
-  if ($node->{corlemma} eq "sg") { # pointer to an unspecified segment of preceeding sentences
-    print STDERR "Segment - unaimed arrow\n";
-    push @colors,$cortype_colors{segment};
-    push @coords,"&n,n,n-25,n";
-  }
-  elsif ($node->{corlemma} ne "") {
-    AddStyle($styles,'Oval',
-	      -fill => $cortype_colors{'textual'}
-	     );
-    AddStyle($styles,'Node',
-	      -shape => 'rectangle',
-	      -addheight => '5',
-	      -addwidth => '5'
-	     );
-  }
-  if (@coords) {
-    AddStyle($styles,'Line',
-	      -coords => 'n,n,p,p'.join("",@coords),
-	      -arrow => '&last' x @coords,
-	      -dash => '&_' x @coords,
-	      -width => '&1' x @coords,
-	      -fill => join("&","",@colors),
-	      -smooth => '&1' x @coords);
-  }
-  1;
-}
-
 
 # functions auto_coref, markPossibleCorefStarts, normalizeAutoCorefs
 # and ACAP package contributed by Oliver Culo 12/2003
@@ -360,16 +405,6 @@ sub auto_coref {
     }
     $node = $node->following;
   }
-}
-
-sub switch_context_hook {
-#  SUPER::file_opened_hook();
-  default_tr_attrs();
-  foreach my $tree ($grp->{FSFile}->trees) {
-    markPossibleCorefStarts($tree);
-    auto_coref($tree);
-  }
-  Redraw_FSFile();
 }
 
 #bind markPossibleCorefStarts to Ctrl+m menu Mark possible coreference start nodes
