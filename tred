@@ -42,7 +42,6 @@ $about=
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
 
-# Once we got rid of them we call getopt to read all the other options
 use Tk;
 use Tk::Config ();
 use Tk::Wm;
@@ -70,7 +69,7 @@ package main;
 # process the standard arguments for X resources
 Tk::CmdLine::SetArguments();
 
-
+# Once we got rid of them we call getopt to read all the other options
 use Getopt::Std;
 getopts('qm:c:l:t:n:p:vhuW:GHDB:RX:s:');
 
@@ -720,8 +719,8 @@ sub gotoFile {
   return 0 if doEvalHook($win,"goto_file_hook") eq 'stop';
   return 0 if ($fn>=$win->{currentFilelist}->file_count() or $fn<0);
   $win->{currentFileNo}=$fn;
-  openFile($win,filelistFullFileName($win,$fn),
-	   -norecent => $no_recent, -noredraw => $no_redraw);
+  my $result = openFile($win,filelistFullFileName($win,$fn),
+			-norecent => $no_recent, -noredraw => $no_redraw);
   if ($grp->{Filelist} and
 	$grp->{filelistCurrentFilelist} eq $win->{currentFilelist}) {
     my $path=filelistEntryPath($win->{currentFilelist},$fn);
@@ -729,7 +728,7 @@ sub gotoFile {
     $grp->{Filelist}->selectionClear();
     $grp->{Filelist}->selectionSet($path);
   }
-  return 1;
+  return $result;
 }
 
 sub filelistFullFileName {
@@ -760,7 +759,7 @@ sub nextOrPrevFile {
   my $result=gotoFile($win,$win->{currentFileNo}+$delta,$no_recent);
   my $quiet=0;
   my $response;
-  while ($result and (!$win->{FSFile} or $win->{FSFile}->lastTreeNo<0)) {
+  while ($result and $result != -1 and (!$win->{FSFile} or $win->{FSFile}->lastTreeNo<0)) {
     unless ($quiet) {
       my $f="File \"$filename\" is locked, empty, corrupted, or does not exist!";
       $response=userQuery($win, $f,
@@ -861,6 +860,7 @@ sub setFSLockInfo {
 
 sub setLock {
   my ($f) = @_; # filename
+  return undef if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
   open(my $lock, ">", $f.".lock") || do {
     warn "Error creating lock-file: $!\n";
     return undef;
@@ -873,12 +873,19 @@ sub setLock {
   return $lockinfo;
 }
 
+sub removeLock {
+  my ($fsfile,$f) = @_; # filename
+  $f=$fsfile->filename() unless defined $f;
+  unlink $f.".lock" if (!$fsfile or checkLock($fsfile,$f) =~ /^my|^changed/);
+}
+
 # check if a file has .lock
 # returns: none (no lock), my (locked by us), locked
 sub checkLock {
   my ($fsfile,$f) = @_; # filename
   $f = $fsfile->filename() if ($fsfile and not defined($f));
   my $current_mtime = [stat($f)]->[9];
+  return "none" if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
   if (-f $f.".lock") {
     my $lockinfo;
     eval { open my $l, $f.".lock"; $lockinfo = <$l>; chomp $lockinfo; close $l; };
@@ -972,7 +979,7 @@ sub closeFile {
       @openfiles=grep { $_ ne $fsfile } @openfiles;
       my $autosave = autosave_filename($f);
       unlink $autosave if defined $autosave;
-      unlink $f.".lock" if (checkLock($fsfile,$f) =~ /^my|^changed/);
+      removeLock($fsfile,$f);
       undef $fsfile;
     }
   }
@@ -1310,7 +1317,9 @@ sub openFile {
   }
   $opts{-keep} ||= $grp->{keepfiles};
 
-  # first handle the special case of already open file
+  $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
+
+  # File already open in current window? Simple!
   if ($win->{FSFile} and $win->{FSFile}->filename() eq $f) {
     updateTitle($grp);
     applyFileSuffix($win,$goto);
@@ -1324,17 +1333,21 @@ sub openFile {
     $win->toplevel->Unbusy() unless $insideEval;
     return 2;
   }
+
+  # Shell we close current file?
   unless ($opts{-keep} or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f) {
     if (fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
       my $answer = askSaveFile($win,1,1);
       if ($answer == -1) {
 	$win->toplevel->Unbusy() unless $insideEval;
-	return 4;
+	return -1;
       }
       $opts{-keep} = $answer;
     }
   }
-  $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
+  closeFile($win,-no_update =>1 , -keep_postponed => $opts{-keep});
+
+  # Search open files for requested file, resume if available
   unless ($opts{-justheader}) {
     foreach my $of ($win->{FSFile},@openfiles) {
       if (ref($of) and $of->filename() eq $f) {
@@ -1360,10 +1373,9 @@ sub openFile {
     }
   }
 
-  closeFile($win,-no_update =>1 , -keep_postponed => $opts{-keep});
-
+  # We're going to open a file: check locks
   my $lock = checkLock(undef,$f);
-  print STDERR "LOCK: $lock\n";
+  print STDERR "LOCK: $lock\n" if $tredDebug;
   my $lockinfo;
   if ($lock  =~ /^locked/) {
     my $answer = userQuery($win,
@@ -1372,17 +1384,20 @@ sub openFile {
 			   -title => "Accessing locked file?",
 			   -buttons => ['Open anyway', 'Steal lock', 'Cancel']);
     if ($answer eq 'Cancel') {
+      redraw_win($win) unless ($opts{-noredraw});
       $win->toplevel->Unbusy() unless $insideEval;
-      return 3;
+      return -1;
     } elsif ($answer eq 'Steal lock') {
       $lockinfo=setLock($f)
     } else {
       $lockinfo = $lock;
-      print "LOCKINFO: $lockinfo\n";
+      print STDERR "LOCKINFO: $lockinfo\n";
     }
   } elsif ($lockFiles) {
     $lockinfo=setLock($f);
   }
+
+  # Check autosave file
   my $recover='No';
   my $autosave=autosave_filename($f);
   if (not $no_err and defined($autosave) and -r $autosave) {
@@ -1394,25 +1409,35 @@ sub openFile {
 		-title => "Recover file?",
 		-buttons => ['Yes', 'No', 'No, delete recovery file']);
   }
+
+  # Autosave file requested
   if ($recover eq 'Yes') {
+    # Open recovery file
     $win->{FSFile} =
       FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,@backends);
-    if ($win->{FSFile}->lastTreeNo>=0 and $Fslib::FSError==0) {
+    if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and $Fslib::FSError==0) {
+      # Success
       $win->{FSFile}->changeFilename($f);
       $win->{FSFile}->notSaved(2);
       setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
     } else {
+      # Recovery failed
       my $trees=$win->{FSFile}->lastTreeNo+1;
-      if (userQuery($win,
+      my $answer = userQuery($win,
 		    "\nRecovery file is corrupted ($trees trees read)!\n\nFall back to the original file\n'$f' ?",
 		    -bitmap=> 'question',
 		    -title => "Recovery error!",
-		    -buttons => ['Yes', 'No']) eq 'Yes') {
+		    -buttons => ['Yes', 'No', 'Cancel']);
+      if ($answer eq 'Yes') {
 	closeFile($win,-no_update => 1);
 	$win->{FSFile}=
 	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
 	setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
-      } else {
+      } elsif ($answer eq 'Cancel') {
+	redraw_win($win) unless ($opts{-noredraw});
+	$win->toplevel->Unbusy() unless $insideEval;
+	return -1;
+      }	else {
 	closeFile($win,-no_update => 1) unless $win->{FSFile}->lastTreeNo>=0;
 	$no_err=1;
       }
@@ -1421,16 +1446,20 @@ sub openFile {
     if ($recover eq 'No, delete recovery file') {
       unlink $autosave;
     }
+    # Open requeseted file
     $win->{FSFile}=
       FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
     setFSLockInfo($win->{FSFile}, $lockinfo) if $lockFiles;
   }
+
   if ($win->{FSFile}) {
     $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
   }
-  unless ($no_err or ($win->{FSFile}->lastTreeNo>=0 and $Fslib::FSError==0)) {
-    my $trees=$win->{FSFile}->lastTreeNo+1;
-    errorMessage($win,"$f: empty or corrupted file ($trees trees read)!");
+  unless ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and $Fslib::FSError==0) {
+    unless ($no_err) {
+      my $trees=$win->{FSFile} ? $win->{FSFile}->lastTreeNo+1 : 0;
+      errorMessage($win,"File '$f' is either empty, corrupted, or does not exist ($trees trees read)!");
+    }
     closeFile($win,-no_update => 1);
   }
 
@@ -1444,6 +1473,8 @@ sub openFile {
       $win->{FSFile}->notSaved(1);
     }
     push @openfiles, $win->{FSFile};
+  } else {
+    removeLock(undef, $f) if $lockinfo and $lockinfo !~ /^locked/;
   }
   updatePostponed($grp);
   # add file to filelist
