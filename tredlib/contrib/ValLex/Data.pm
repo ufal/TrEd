@@ -589,8 +589,13 @@ sub parseFormPart {
       $node->setAttribute('inherits','1') if $sep eq ".";
       if ($tagpos) {
 	foreach my $tag (split /\$/,$tagpos) {
-	  my ($pos,$value) = $tag =~ /^(\d+)\<(.*)\>$/;
-	  $node->setAttribute('tag'.$pos,$value);
+	  next if $tag eq "";
+	  if ($tag =~ /^(\d+)\<(.*)\>$/) {
+	    my ($pos,$value)=($1,$2);
+	    $node->setAttribute('tagpos'.$pos,$value);
+	  } else {
+	    die "Can't parse tag: $tag\n";
+	  }
 	}
       }
     }
