@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-09-03 10:18:22 pajas>
+## Time-stamp: <2001-09-03 10:27:19 pajas>
 
 #
 # This file defines default macros for TR annotators.

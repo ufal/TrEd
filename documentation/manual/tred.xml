@@ -346,7 +346,7 @@ root# <userinput>make install</userinput>
 	      url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
 	      SGML format. In the later case, 
 	      James Clark's <ulink
-	      url="../../Support/nsgmls/index.html">SGML parser
+	      url="../../../../Support/nsgmls/index.html">SGML parser
 	      <application>SP</application></ulink> must be installed and
 	      the <link
 	      linkend="sgmls"><literal>sgmls</literal></link>
@@ -2804,7 +2804,7 @@ root# <userinput>make install</userinput>
 	      This option may be used to provide a path to an
 	      SGML parser with support for ESIS output, such as
 	      James Clark's <ulink
-	      url="../../Support/nsgmls/index.html">SGML parser
+	      url="../../../../Support/nsgmls/index.html">SGML parser
 		<command>nsgmls</command></ulink>.
 	      <application>TrEd</application> may then use this
 	      parser to read SGML <ulink
