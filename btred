@@ -1169,7 +1169,7 @@ sub preloadFiles {
       $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
     }
     next if exists($grp->{preloaded}->{$f});
-    _msg "Preloading: $f (",$fno++,"/$filecount)\n" unless $Quiet;
+    _msg "Pre-loading: $f (",$fno++,"/$filecount)\n" unless $Quiet;
     my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
     if ($fsfile->lastTreeNo<0) {
       _msg "empty or corrupt file: $f!\n";
@@ -1191,7 +1191,7 @@ sub openSecondary {
     if ($requires) {
       for my $req (@$requires) {
 	my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
-	_msg "Pre-loading dependent $req_filename as appData('ref')->{$req->[0]}\n" if $tredDebug;
+	_msg("Pre-loading dependent $req_filename as appData('ref')->{$req->[0]}\n") if $tredDebug;
 	unless ($grp->{'secondary'}->{$req_filename}) {
 	  if ($grp->{preloaded}->{$req_filename}) {
 	    $grp->{'secondary'}->{$req_filename} = $grp->{'preloaded'}->{$req_filename};
