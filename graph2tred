@@ -1508,8 +1508,8 @@ sub yylex {
       print STDERR "==> $yylval\n" if $yydebug;
       return NUMBER;
     }
-    elsif ($yyinput =~ /\G\"(?:[^\"]*|\\\")\"/gsco ) {
-      $yylval=$&;
+    elsif ($yyinput =~ /\G\"((?:[^\\\"]|\\.)*)\"/gsco ) {
+      $yylval="'$1'";
       print STDERR "==> $yylval\n" if $yydebug;
       return STRING;
     }
