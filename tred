@@ -259,6 +259,7 @@ import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index
 
 $tredDebug=1 if $opt_D;
 $Fslib::Debug=1 if $opt_D;
+$IOBackend::Debug=1 if $opt_D;
 
 # import min and max functions
 require TrEd::MinMax;
@@ -300,7 +301,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 #load back-ends
 #require CSTS_SGML_SP_Backend;
 @backends=('FSBackend',ImportBackends(split(/,/,$opt_B),
-				      qw/NTREDBackend SSHBackend AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend/
+				      qw/NTREDBackend CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend AG2FS/
 				     ));
 # CSTSBackend not used any more
 #$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
@@ -554,7 +555,7 @@ sub __debug {
 }
 
 sub absolutize {
-  return map { m(^[[:alnum:]]+://|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
+  return map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
 }
 
 sub get_open_filename {
@@ -822,7 +823,7 @@ sub filelistFullFileName {
   return undef unless $win->{currentFilelist};
   my $filename=$win->{currentFilelist}->file_at($fn);
 
-  return $filename if $filename =~ m(^[[:alnum:]]+://) or $filename =~ m(^\s*\|);
+  return $filename if $filename =~ m(^[[:alnum:]]+:/) or $filename =~ m(^\s*\|);
 
   if ($filename!~/^\s*[\/~]/ and
       ($^O ne 'MSWin32' or $filename!~/^\s*([[:alpha:]]:)?\\/)) {
@@ -969,23 +970,56 @@ sub setFSLockInfo {
 
 sub setLock {
   my ($f) = @_; # filename
-  return undef if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
-  open(my $lock, ">", $f.".lock") || do {
-    warn "Error creating lock-file: $!\n";
+  my $proto = IOBackend::get_protocol($f);
+  $f=IOBackend::strip_protocol($f) if ($proto eq 'file');
+  return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
+  my $lock=eval { IOBackend::open_backend($f.".lock","w") };
+  if ($@ or not ref($lock)) {
+    warn "Error creating lock-file: $@ $!\n";
     return undef;
   };
-  chmod 644, $lock;
+  chmod 644, $lock if $proto eq 'file';
   my $mtime = [stat($f)]->[9];
   my $lockinfo = "by user ".getlogin().'@'.$ENV{HOSTNAME}." pid ".$$." at ".localtime()." mtime: $mtime";
   $lock->print($lockinfo)."\n";
-  close $lock;
+  IOBackend::close_backend($lock);
+  return $lockinfo;
+}
+
+sub readLock {
+  my ($f) = @_; # filename
+  my $proto = IOBackend::get_protocol($f);
+  if ($proto eq 'file') {
+    $f=IOBackend::strip_protocol($f);
+    return undef unless -f $f;
+  }
+
+  return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
+  my $lockinfo;
+  eval {
+    print "readling lock $f.lock\n";
+    my ($file,$remove_file) = IOBackend::fetch_file($f.".lock");
+    open my $lock,"<",$file;
+    $lockinfo = $lock->getline();
+    $lock->close();
+    unlink $file if $remove_file;
+    chomp $lockinfo;
+  };
+  print $@ if $@;
+  print "Fetched lock $lockinfo\n" if $lockinfo and $tredDebug;
   return $lockinfo;
 }
 
 sub removeLock {
   my ($fsfile,$f) = @_; # filename
+  print STDERR "removing lock $f.lock\n" if $tredDebug;
   $f=$fsfile->filename() unless defined $f;
-  unlink $f.".lock" if (!$fsfile or checkLock($fsfile,$f) =~ /^my|^changed/);
+  my $proto = IOBackend::get_protocol($f);
+  $f=IOBackend::strip_protocol($f) if ($proto eq 'file');
+  return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
+  if (!$fsfile or checkLock($fsfile,$f) =~ /^my|^changed/) {
+    IOBackend::unlink_uri($f.".lock");
+  }
 }
 
 # check if a file has .lock
@@ -994,10 +1028,9 @@ sub checkLock {
   my ($fsfile,$f) = @_; # filename
   $f = $fsfile->filename() if ($fsfile and not defined($f));
   my $current_mtime = [stat($f)]->[9];
-  return "none" if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
-  if (-f $f.".lock") {
-    my $lockinfo;
-    eval { open my $l, $f.".lock"; $lockinfo = <$l>; chomp $lockinfo; close $l; };
+#  return "none" if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
+  my $lockinfo = readLock($f);
+  if ($lockinfo) {
     my ($user, $host, $pid) = $lockinfo =~ /^by user (.*?)@(.*?) pid (\d+)/;
     if ($fsfile and $fsfile->userData() and $fsfile->userData()->{lockinfo}) {
       my $ourlockinfo = $fsfile->userData()->{lockinfo};
