@@ -25,7 +25,7 @@ sub saveTreeStructureToAttr {
 
 sub saveTreeAStructure {
   my $class=$_[0];
-  $class->saveTreeStructureToAttr("ordorig");
+  saveTreeStructureToAttr($class,"ordorig");
 }
 
 #
@@ -34,7 +34,7 @@ sub saveTreeAStructure {
 
 sub saveTreeTStructure {
   my $class=$_[0];
-  $class->saveTreeStructureToAttr("govTR");
+  saveTreeStructureToAttr($class,"govTR");
 }
 
 #
@@ -52,7 +52,7 @@ sub substituteFSHeader {
 
 sub assignTRHeader {
   my $class=$_[0];
-  $class->substituteFSHeader(@Csts2fs::TRheader);
+  substituteFSHeader($class,@Csts2fs::TRheader);
 }
 
 #
@@ -61,7 +61,7 @@ sub assignTRHeader {
 
 sub assignARHeader {
   my $class=$_[0];
-  $class->substituteFSHeader(@Csts2fs::ARheader);
+  substituteFSHeader($class,@Csts2fs::ARheader);
 }
 
 #
@@ -88,7 +88,7 @@ sub appendFSHeader {
 
 sub convertToTRHeader {
   my $class=$_[0];
-  $class->appendFSHeader(@Csts2fs::TRheader);
+  appendFSHeader($class,@Csts2fs::TRheader);
 }
 
 #
@@ -97,7 +97,7 @@ sub convertToTRHeader {
 
 sub convertToARHeader {
   my $class=$_[0];
-  $class->appendFSHeader(@Csts2fs::ARheader);
+  appendFSHeader($class,@Csts2fs::ARheader);
 }
 
 #
@@ -106,10 +106,10 @@ sub convertToARHeader {
 
 sub file2TR {
   my $class=$_[0];
-  $class->convertToTRHeader();
+  convertToTRHeader($class);
   GotoTree(1);
   do {
-    $class->saveTreeAStructure();
+    saveTreeAStructure($class);
   } while NextTree();
   GotoTree(1);
 }
@@ -150,16 +150,16 @@ sub delTagLemma {
 sub MR2TR {
   my ($class,$src)=@_;
   $src='a' unless defined $src;
-  $class->convertToTRHeader();
+  convertToTRHeader($class);
   GotoTree(1);
   do {
     print "$root->{form}\n";
     print "MD2TagLemma\n";
-    $class->MD2TagLemma($src);
+    MD2TagLemma($class,$src);
     print "assign_afun_auto_tree\n";
     Analytic->assign_all_afun_auto();
     print "saveTreeAStructure\n";
-    $class->saveTreeAStructure();
+    saveTreeAStructure($class);
     print "InitTR\n";
     Tectogrammatic->InitTR();
     print "TreeToTR\n";
@@ -167,7 +167,7 @@ sub MR2TR {
     print "assign_all_func_auto\n";
     Tectogrammatic->assign_all_func_auto();
     print "DelTagLemma\n";
-    $class->delTagLemma();
+    delTagLemma($class);
     print ">>NextTree\n\n";
   } while NextTree();
   GotoTree(1);
@@ -179,9 +179,9 @@ sub tree2AR {
   GotoTree(1);
   do {
     print "$root->{form}\n";
-    $class->MD2TagLemma($src);
+    MD2TagLemma($class,$src);
     Analytic->assign_all_afun_auto();
-    $class->delTagLemma();
+    delTagLemma($class);
   } while NextTree();
   GotoTree(1);
 }
@@ -189,16 +189,16 @@ sub tree2AR {
 sub AR2TR {
   my ($class,$src)=@_;
   $src='a' unless defined $src;
-  $class->convertToTRHeader();
+  convertToTRHeader($class);
   GotoTree(1);
   do {
     print "$root->{form}\n";
-    $class->MD2TagLemma($src);
-    $class->saveTreeAStructure();
+    MD2TagLemma($class,$src);
+    saveTreeAStructure($class);
     Tectogrammatic->InitTR();
     Tectogrammatic->TreeToTR();
     Tectogrammatic->assign_all_func_auto();
-    $class->delTagLemma();
+    delTagLemma($class);
   } while NextTree();
   GotoTree(1);
 }
