@@ -117,9 +117,11 @@ sub read_macros {
 	die "unmatched #elseif in \"$file\" line $line\n";
       }
     } elsif (/^\#ifdef\s+(\S*)/) {
+      push @macros,$_;
       push @conditions, (exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
       $ifok = $conditions[$#conditions];
     } elsif (/^\#ifndef\s+(\S*)/) {
+      push @macros,$_;
       push @conditions, (!exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
       $ifok = $conditions[$#conditions];
     } else {
@@ -300,23 +302,24 @@ sub initialize_macros {
   my $result = 2;
   my $utf = ($useEncoding) ? "use utf8;\n" : "";
   unless ($macrosEvaluated) {
-    my $macros=$utf.join("",@macros)."\n; return 1;";
+    my $macros="{\n".$utf.join("",@macros)."\n}; 1;";
+    print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     if (defined($safeCompartment)) {
       ${macro_variable('TredMacro::grp')}=$win;
       my %packages;
       # dirty hack to support ->isa in safe compartment
       $macros=~s{\n\s*package\s+(\S+?)\s*;}
 	{ exists($packages{$1}) ? $& : do { $packages{$1} = 1; $&.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'} }ge;
+      $macrosEvaluated=1;
       $result=
 	$safeCompartment
 	  ->reval($macros);
       print STDERR $@ if $@;
     } else {
-      ${macro_variable('TredMacro::grp')}=$win;
-      $result=eval ($macros);
+      ${TredMacro::grp}=$win;
+      $macrosEvaluated=1;
+      $result=eval { eval ($macros); die $@ if $@ };
     }
-    $macrosEvaluated=1;
-    print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     print STDERR "Returned with: $result\n\n" if $macroDebug;
     print STDERR $@ if $@
   }
