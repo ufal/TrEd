@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-29 18:37:30 pajas>
+## Time-stamp: <2004-12-08 14:36:10 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -782,100 +782,102 @@ sub MoveTreeToPrev {
   }
 }
 
-#bind JoinNextTree to Ctrl+4 menu Join the following tree with the current tree (both TR and AR layer)
-sub JoinNextTree {
-  my @nodes = ($root->descendants());
-  PDT::ClearARstruct();
-  my %max;
-  $max{ord}     = max(map { $_->{ord} } $root, @nodes);
-  $max{dord}    = max(map { $_->{dord} } $root,@nodes);
-  $max{sentord} = max(map { $_->{sentord} } $root, grep { $_->{AID} ne "" } @nodes);
-  $max{ordorig} = $max{ord};
-  return unless NextTree();
-  foreach my $atr (qw(ord dord sentord ordorig)) {
-    foreach my $node ($root->descendants()) {
-      $node->{$atr} += $max{$atr};
-    }
-  }
-  MoveTreeToPrev();
-}
+# OBSOLETE use CutPasteSubTree instead
 
-sub __renumber_by {
-  my $atr = shift;
-  my $i=0;
-  my @list = sort { $a->{$atr} <=> $b->{$atr} } @_;
-  foreach (@list) { $_->{$atr}=$i++ }
-}
+# #bind JoinNextTree to Ctrl+4 menu Join the following tree with the current tree (both TR and AR layer)
+# sub JoinNextTree {
+#   my @nodes = ($root->descendants());
+#   PDT::ClearARstruct();
+#   my %max;
+#   $max{ord}     = max(map { $_->{ord} } $root, @nodes);
+#   $max{dord}    = max(map { $_->{dord} } $root,@nodes);
+#   $max{sentord} = max(map { $_->{sentord} } $root, grep { $_->{AID} ne "" } @nodes);
+#   $max{ordorig} = $max{ord};
+#   return unless NextTree();
+#   foreach my $atr (qw(ord dord sentord ordorig)) {
+#     foreach my $node ($root->descendants()) {
+#       $node->{$atr} += $max{$atr};
+#     }
+#   }
+#   MoveTreeToPrev();
+# }
 
-#bind JoinSubtreeToPrev to Ctrl+2 menu Join current subtree with the previous tree
-sub JoinSubtreeToPrev {
-  unless ($this->parent) {
-    return unless PrevTree();
-    JoinNextTree();
-    return;
-  }
+# sub __renumber_by {
+#   my $atr = shift;
+#   my $i=0;
+#   my @list = sort { $a->{$atr} <=> $b->{$atr} } @_;
+#   foreach (@list) { $_->{$atr}=$i++ }
+# }
 
-  CutSubtreeBeforeMove();
-  if (PrevTree()) {
-    PasteMovedSubtree();
-  } else {
-    undef $SubtreeToMove;
-  }
-}
+# #bind JoinSubtreeToPrev to Ctrl+2 menu Join current subtree with the previous tree
+# sub JoinSubtreeToPrev {
+#   unless ($this->parent) {
+#     return unless PrevTree();
+#     JoinNextTree();
+#     return;
+#   }
 
-#bind CutSubtreeBeforeMove to Ctrl+5 menu Cut subtree to be moved to another tree or file
-sub CutSubtreeBeforeMove {
-  my @nodes;
-  if ($this->parent) {
-    @nodes = ($this);
-  } else {
-    @nodes = $this->children();
-  }
-  my @subtree = grep ref,map { ($_,$_->descendants()) } @nodes;
-  my @anal  = grep $_->{AID}, @subtree;
-  my @added = grep $_->{TID}, @subtree;
-  my %astruct;
-  with_AR { $astruct{$_} = $_->parent for @anal };
-  PDT::ClearARstruct();
+#   CutSubtreeBeforeMove();
+#   if (PrevTree()) {
+#     PasteMovedSubtree();
+#   } else {
+#     undef $SubtreeToMove;
+#   }
+# }
 
-  __renumber_by('dord',@subtree);
-  __renumber_by('sentord',@anal);
-  __renumber_by('ord',@anal);
+# #bind CutSubtreeBeforeMove to Ctrl+5 menu Cut subtree to be moved to another tree or file
+# sub CutSubtreeBeforeMove {
+#   my @nodes;
+#   if ($this->parent) {
+#     @nodes = ($this);
+#   } else {
+#     @nodes = $this->children();
+#   }
+#   my @subtree = grep ref,map { ($_,$_->descendants()) } @nodes;
+#   my @anal  = grep $_->{AID}, @subtree;
+#   my @added = grep $_->{TID}, @subtree;
+#   my %astruct;
+#   with_AR { $astruct{$_} = $_->parent for @anal };
+#   PDT::ClearARstruct();
 
-  Cut($_) for @nodes;
+#   __renumber_by('dord',@subtree);
+#   __renumber_by('sentord',@anal);
+#   __renumber_by('ord',@anal);
 
-  my @rest = $root->descendants();
-  my @rest_anal = grep $_->{AID}, @rest;
-  __renumber_by('dord',$root,@rest);
-  __renumber_by('sentord',$root,@rest_anal);
-  __renumber_by('ord',$root,@rest_anal);
+#   Cut($_) for @nodes;
 
-  $SubtreeToMove = [ \@nodes,\@subtree,\@anal,\@added, \%astruct ];
-}
+#   my @rest = $root->descendants();
+#   my @rest_anal = grep $_->{AID}, @rest;
+#   __renumber_by('dord',$root,@rest);
+#   __renumber_by('sentord',$root,@rest_anal);
+#   __renumber_by('ord',$root,@rest_anal);
 
-#bind PasteMovedSubtree to Ctrl+6 menu PasteMovedSubtree
-sub PasteMovedSubtree {
-  return unless ref($SubtreeToMove);
-  PDT::ClearARstruct();
-  my ($nodes, $subtree, $anal, $added, $astruct) = @$SubtreeToMove;
-  undef $SubtreeToMove;
-  my @nodes = ($root->descendants());
-  my %max;
-  $max{ord1}   = max(map { $_->{ord}=~/\.(\d+)/ ? $1 : 0 } $root, @nodes);
-  $max{ord}     = max(map { $_->{ord} } $root, @nodes);
-  $max{dord}    = max(map { $_->{dord} } $root,@nodes);
-  $max{sentord} = max(map { $_->{sentord} } $root, grep { $_->{AID} ne "" } @nodes);
+#   $SubtreeToMove = [ \@nodes,\@subtree,\@anal,\@added, \%astruct ];
+# }
 
-  PasteNode($_,$root) for @$nodes;
+# #bind PasteMovedSubtree to Ctrl+6 menu PasteMovedSubtree
+# sub PasteMovedSubtree {
+#   return unless ref($SubtreeToMove);
+#   PDT::ClearARstruct();
+#   my ($nodes, $subtree, $anal, $added, $astruct) = @$SubtreeToMove;
+#   undef $SubtreeToMove;
+#   my @nodes = ($root->descendants());
+#   my %max;
+#   $max{ord1}   = max(map { $_->{ord}=~/\.(\d+)/ ? $1 : 0 } $root, @nodes);
+#   $max{ord}     = max(map { $_->{ord} } $root, @nodes);
+#   $max{dord}    = max(map { $_->{dord} } $root,@nodes);
+#   $max{sentord} = max(map { $_->{sentord} } $root, grep { $_->{AID} ne "" } @nodes);
 
-  foreach my $atr (qw(ord dord sentord)) {
-    foreach my $node ($atr eq 'dord' ? @$subtree : @$anal) {
-      $node->{$atr} += $max{$atr}+1;
-    }
-  }
-  $_->{ordorig} = $astruct->{$_}->{ord} for @$anal;
-  $_->{ord} = int($_->parent->{ord}).".".(++$max{ord1}) for @$added;
-}
+#   PasteNode($_,$root) for @$nodes;
+
+#   foreach my $atr (qw(ord dord sentord)) {
+#     foreach my $node ($atr eq 'dord' ? @$subtree : @$anal) {
+#       $node->{$atr} += $max{$atr}+1;
+#     }
+#   }
+#   $_->{ordorig} = $astruct->{$_}->{ord} for @$anal;
+#   $_->{ord} = int($_->parent->{ord}).".".(++$max{ord1}) for @$added;
+# }
 
 #bind insert_node to Insert menu Insert new node on both TR and AR layers
 sub insert_node {
@@ -940,6 +942,7 @@ sub join_with_mother {
   delete_analytical_node_from_all_layers();
 }#join_with_mother
 
+#bind delete_analytical_node_from_all_layers to Ctrl+Delete
 sub delete_analytical_node_from_all_layers {
   shift unless ref($_[0]);
   my $node = $_[0] || $this;
@@ -979,122 +982,261 @@ sub delete_analytical_node_from_all_layers {
   }
   $this=$parent if $this==$node;
   ChangingFile(1);
-}#join_with_mother
+}#delete_analytical_node_from_all_layers
 
-#bind SplitTreeHere to backslash menu Start New Tree Here
+=item recountAll (shift_ord, shift_dord, nodes)
 
-=item SplitTreeHere
-
-Creates a new tree after the current one and moves the part of the
-sentence starting at current node to it. The current node must be AID
-node. All ord-like attributes are correctly normalized.
+Normalizes ords, dords and sentords of given nodes so that they start
+at given value and the increment in ord at AR and dord at TR is
+1. Ordorig must be set manually.
 
 =cut
 
-sub _STHe{
-  print@_,"\n"if@_;
-  $_->{_light}=''foreach$root->descendants;
-}#_STHe
-sub SplitTreeHere {
-  my(@tomove,@tostay);
-  _STHe("Cannot split on this node."),return unless$this->{AID};
+sub recountAll ($$@){
+  my($shiftOrd,$shiftDord,@nodes)=@_;
+  print"RECOUNT $shiftOrd,$shiftDord,$nodes[0]->{trlemma}\n";
+  my$maxOrd;
+  with_AR{
+    NormalizeOrds(SortByOrd([grep{$_->{AID}}@nodes]));
+    foreach my$node(grep{$_->{AID}}@nodes){
+      $node->{ord}+=$shiftOrd;
+      $maxOrd=$node->{ord}if$node->{ord}>$maxOrd;
+    }
+  };
+  my$number;
+  $_->{ord}=int($_->parent->{ord}).'.'.++$number foreach grep{$_->{TID}}@nodes;
+  NormalizeOrds(SortByOrd(\@nodes));
+  my$maxDord;
+  foreach(@nodes){
+    $_->{dord}+=$shiftDord;
+    $maxDord=$_->{dord}if$_->{dord}>$maxDord;
+  }
+  $_->{sentord}=($_->{AID}?$_->{ord}:999)
+    foreach@nodes;
+  return($maxOrd,$maxDord);
+}# recountAll
+
+sub _testChainOfNoColor{
+  my$node=$_[0];
+  my@aidch=$node->children;
+  my$magch=grep{$_->{_light}eq'_LIGHT_magenta'}@aidch;
+  my$blch=grep{$_->{_light}eq'_LIGHT_blue'}@aidch;
+  if($magch and not $blch){
+    $node->{_light}='_LIGHT_magenta';
+    return 1;
+  }elsif(not $magch and $blch){
+    $node->{_light}='_LIGHT_blue';
+    return 2;
+  }elsif($magch and$blch){
+    $this=$node;
+    print("Cannot decide $node->{trlemma}.\n"),return 0;
+  }
+  3;
+}#_testChainOfNoColor
+
+=item PrepareCutHere (node?)
+
+Divides nodes into two sets so that the sentence can be split in two
+by C<CutPasteSubTree>.
+
+=cut
+
+#bind PrepareCutHere to slash menu Prepare Cut Here
+sub PrepareCutHere(;$){
+  shift unless ref $_[0];
+  my$Node=$_[0]||$this;
+  print("Cannot split on this node.\n"),return unless$Node->{AID};
   foreach my$node($root->descendants){
     $node->{_light}='';
-    push@tomove,$node if$node->{AID}and$node->{ord}>=$this->{ord};
-    push@tostay,$node if$node->{AID}and$node->{ord}<$this->{ord};
+    $node->{_light}='_LIGHT_magenta'
+      if$node->{AID}&&$node->{ord}>=$Node->{ord}
+        or$node->{TID}&&$node->parent->{_light}eq'_LIGHT_magenta';
+    $node->{_light}='_LIGHT_blue'
+      if$node->{AID}and$node->{ord}<$Node->{ord}
+        or$node->{TID}&&$node->parent->{_light}eq'_LIGHT_blue';
   }
-  $_->{_light}='_LIGHT_magenta'foreach(@tomove);
-  $_->{_light}='_LIGHT_blue'foreach(@tostay);
   my@problematic=grep{$_->{TID}}$root->children;
   foreach my$prb(@problematic){
-    my@aidch=grep{$_->{AID}}$prb->children;
-    if(grep{$_->{_light}eq'_LIGHT_magenta'}@aidch and
-       not grep{$_->{_light}eq'_LIGHT_blue'}@aidch){
-      push@tomove,$prb;
-      $prb->{_light}='_LIGHT_magenta';
-    }elsif(not grep{$_->{_light}eq'_LIGHT_magenta'}@aidch and
-           grep{$_->{_light}eq'_LIGHT_blue'}@aidch){
-      push@tostay,$prb;
-      $prb->{_light}='_LIGHT_blue';
-    }else{
-      _STHe("Cannot decide $prb->{trlemma}."),return;
+    return unless _testChainOfNoColor($prb);
+  }
+  my$nochange;
+  until($nochange){
+    $nochange=1;
+    foreach(grep{$_->{TID}and!$_->{_light}}$root->descendants){
+      my$test=_testChainOfNoColor($_);
+      return unless $test;
+      $nochange=0 if$test!=3;
     }
   }
+  my$problem=first{$_->{TID}and not$_->{_light}}$root->descendants;
+  $this=$problem if$problem;
+}#PrepareCutHere
 
-  # Create new tree root:
-  my($osuf,$nsuf)=('A','B');# to be computed!
+=item NewID (node?)
+
+Assigns a new ID1 to node's root (uses C<$this> if no node is given).
+
+=cut
+
+#bind NewID to numbersign
+
+sub NewID(;$){
+  shift unless ref $_[0];
+  my$node=$_[0]||$this;
+  $node=$node->root if$node->parent;
+  my($suf,$iprfx,$lprfx);
+  my$sentnum=$node->{ID1};
+  if($sentnum!~/[[:upper:]]$/){
+    $suf='A';
+    $iprfx=$sentnum;
+    $lprfx=$node->{trlemma};
+  }else{
+    $sentnum=~s/.$//;
+    $iprfx=$sentnum;
+    $lprfx=$node->{trlemma};
+    $lprfx=~s/[[:upper:]]$//;
+    my@trees=map{s/^.*(.)$/$1/;$1}
+      grep{$_=~/^\Q$sentnum\E\D/}
+        map{$_->{ID1}}GetTrees();
+    $suf=[sort@trees]->[@trees-1];
+    $suf++;
+    print"@trees;$suf\n";
+  }
+  $node->{trlemma}=$lprfx.$suf;
+  $node->{form}=$lprfx.$suf;
+  $node->{origf}=$lprfx.$suf;
+  $node->{ID1}=$iprfx.$suf;
+  ChangingFile(1);
+}#NewID
+
+
+=item NewSentenceAfter_TR
+
+Inserts a new TR sentence after the current one.
+
+=cut
+
+#bind NewSentenceAfter_TR to bar menu Create New TR Sentence After Current
+sub NewSentenceAfter_TR{
+  NewID($root)if$root->{ID1}!~/[[:upper:]]$/;
   my$oldsent=$root;
   my$newsent=NewTreeAfter();
-  $newsent->{func}='SENT';
-  $newsent->{trlemma}=$oldsent->{trlemma}.$nsuf;
+  foreach my$attr(qw/trlemma afun dord ord sentord ID1 lemma tag para reserve1/){
+    $newsent->{$attr}=$oldsent->{$attr};
+  }
+  NewID($newsent);
   $newsent->{form}=$newsent->{trlemma};
   $newsent->{origf}=$newsent->{trlemma};
-  $newsent->{afun}='AuxS';
-  $newsent->{dord}=0;
-  $newsent->{ord}=0;
-  $newsent->{sentord}=0;
-  $newsent->{ID1}=$oldsent->{ID1}.$nsuf;
-  $newsent->{lemma}='#';
-  $newsent->{tag}='Z#-------------';
-  $newsent->{para}=$oldsent->{para};
-  $newsent->{reserve1}='TR_TREE';
-  $oldsent->{trlemma}.='A';
-  $oldsent->{form}.=$osuf;
-  $oldsent->{origf}.=$osuf;
-  $oldsent->{ID1}.=$osuf;
+}#NewSentenceAfter_TR
 
-  # Rehang:
-  with_AR{
-    foreach my$node(@tomove){
-      if($node->{AID}and$node->parent->{_light}ne$node->{_light}){
-        CutPaste($node,$newsent);
-      }
-    }
-    foreach my$node(@tostay){
-      if($node->{AID}and$node->parent->{_light}ne$node->{_light}){
-        CutPaste($node,$oldsent);
-      }
-    }
-  };
-  foreach my$node(@tomove){
-    print$node,"\n";
-    print$node->{trlemma},"\n";
-    if($node->parent->{_light}ne$node->{_light}){
-      CutPaste($node,$newsent);
-    }
+=item CutPasteSubTree
+
+Must be run immediately after C<PrepareCutHere>. Cuts the subtree to
+which the current nodes belongs and moves it the appropriate way.
+
+=cut
+
+#bind CutPasteSubTree to asterisk menu Cut Colored Subtrees and Paste Them
+sub CutPasteSubTree{
+  return if first{$_->{_light}!~/_LIGHT_(?:magenta|blue)$/}$root->descendants;
+  return if$this==$root;
+  my$left=$this->{_light}eq'_LIGHT_blue';
+  return if$left&&CurrentTreeNumber()==0 or !$left&&CurrentTreeNumber()==GetTrees();
+  my($new_ord,$new_dord); # amount to shift ords and dords
+  my@right_a_nodes=grep{$_->{AID}and$_->{_light}eq'_LIGHT_magenta'}$root->descendants;
+  my@right_t_nodes=grep{$_->{_light}eq'_LIGHT_magenta'}$root->descendants;
+  my@left_a_nodes=grep{$_->{AID}and$_->{_light}eq'_LIGHT_blue'}$root->descendants;
+  my@left_t_nodes=grep{$_->{_light}eq'_LIGHT_blue'}$root->descendants;
+  my(@move_a,@move_t,@stay_a,@stay_t);
+  if($left){
+    @move_a=@left_a_nodes;
+    @move_t=@left_t_nodes;
+    @stay_a=@right_a_nodes;
+    @stay_t=@right_t_nodes;
+  }else{
+    @move_a=@right_a_nodes;
+    @move_t=@right_t_nodes;
+    @stay_a=@left_a_nodes;
+    @stay_t=@left_t_nodes;
   }
-  foreach my$node(@tostay){
-    if($node->parent->{_light}ne$node->{_light}){
-      CutPaste($node,$oldsent);
-    }
+  NewID($root);
+  my$newsent;
+  if($left){
+    PrevTree();
+    $new_ord=max(map{$_->{ord}}grep{$_->{AID}}$root->descendants)+1;
+    $new_dord=max(map{$_->{dord}}$root->descendants)+1;
+    $newsent=$root;
+    NextTree();
+    recountAll(1,1,@stay_t);
+  }else{#right
+    $new_ord=1;
+    $new_dord=1;
+    NextTree();
+    $newsent=$root;
+    recountAll(1+scalar @move_a,1+scalar @move_t,$root->descendants);
+    with_AR{
+      $_->{ordorig}=$_->parent->{ord} foreach(grep{$_->{AID}}$root->descendants);
+    };
+    PrevTree();
   }
-
-  # ords
+  recountAll($new_ord,$new_dord,@move_t);
   with_AR{
-    NormalizeOrds(SortByOrd(scalar GetNodes()));
-    my$node=$root->firstson;
-    while($node){
+    foreach my$node(@move_a){
+      CutPaste($node,$newsent)if$node->parent->{_light}ne$node->{_light};
       $node->{ordorig}=$node->parent->{ord};
-      $node=$node->following();
+    }
+    foreach my$node(@stay_a){
+      CutPaste($node,$root)if$node->parent->{_light}ne$node->{_light};
+      $node->{ordorig}=$node->parent->{ord};
     }
   };
-  NormalizeOrds(SortByOrd(scalar GetNodes()));
-  _STHe();
-  PrevTree();
-  with_AR{
-    NormalizeOrds(SortByOrd(scalar GetNodes()));
-    my$node=$root->firstson;
-    while($node){
-      $node->{ordorig}=$node->parent->{ord};
-      $node=$node->following();
-    }
-  };
-  NormalizeOrds(SortByOrd(scalar GetNodes()));
-  $_->{sentord}=($_->{AID}?$_->{ord}:999)
-    foreach(($newsent->descendants,$oldsent->descendants));
-  _STHe('Done.');
-}# SplitTreeHere
+  foreach my$node(@move_t){
+    CutPaste($node,$newsent)if$node->parent->{_light}ne$node->{_light};
+  }
+  foreach my$node(@stay_t){
+    CutPaste($node,$root)if$node->parent->{_light}ne$node->{_light};
+  }
+}#CutPasteSubTree
 
+#bind mark_blue to question
+
+=item mark_blue
+
+Makes the node blue, magenta or of no colour to be used by
+C<CodePasteSubTree>.
+
+=cut
+
+sub mark_blue {
+  if($this->{_light}eq'_LIGHT_blue'){
+    $this->{_light}='_LIGHT_magenta';
+  }elsif($this->{_light}eq'_LIGHT_magenta'){
+    $this->{_light}='';
+  }else{
+    $this->{_light}='_LIGHT_blue';
+  }
+}#mark_blue
+
+
+
+=item untouch()
+
+Returns 1 if the current tree is untouchable.
+
+=cut
+
+#bind untouch to backslash
+sub untouch {
+  ChangingFile(0);
+  if(system
+     "grep '^".$root->{ID1}."\$' /net/projects/pdt/work/TR/kontrola/all/untouchables*"){
+    print "TOUCHABLE\n";
+    0;
+  }else{
+    print "NOT touchable\n";
+    1;
+  }
+}#untouch
 
 
 #### TFA
@@ -1117,6 +1259,13 @@ sub show_tag {
 #bind DiffWholeTRFiles         to Alt+equal  menu Compare files
 #bind DiffTRFiles_with_summary to Ctrl+plus  menu Compare trees with summary
 #bind TR_Diff->DiffTRFiles_select_attrs to Ctrl+equal menu Choose attributes to compare
+#bind find_next_difference_in_file to Alt+space menu Goto next difference in file
+
+sub find_next_difference_in_file {
+  local $TR_Diff::compare_all = 1;
+  TR_Diff->find_next_difference_in_file;
+}
+
 
 sub DiffTRFiles {
   local $TR_Diff::compare_all = 1;
