@@ -111,8 +111,15 @@ sub read_macros {
 	  }
 	}
       }
-    } elsif (/^\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/)
-      {
+    } elsif (/^\#[ \t]*unbind-key[ \t]([^ \t\r\n]+)?/) {
+      $key=$1;
+      $key=~s/\-/+/g;		     # convert ctrl-x to ctrl+x
+      $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
+      foreach (@contexts) {
+	next unless exists($keyBindings{$_});
+	delete $keyBindings{$_}{$key};
+      }
+    } elsif (/^\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
 	$macro=$1;
 	$key=$2;
 	$menu=TrEd::Convert::encode($3);
@@ -133,6 +140,12 @@ sub read_macros {
 	foreach (@contexts) {
 	  $menuBindings{$_}={} unless exists($menuBindings{$_});
 	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",undef] if ($menu);
+	}
+      } elsif (/^\#\s*remove-menu[ \t]+(.+)/) {
+	$menu=TrEd::Convert::encode($1);
+	foreach (@contexts) {
+	  next unless exists($menuBindings{$_});
+	  delete $menuBindings{$_}{$menu};
 	}
       } elsif (/^\#\s*include\s+\<(.+\S)\>\s*$/) {
 	my $mf="$libDir/$1";
