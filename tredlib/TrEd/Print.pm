@@ -270,6 +270,7 @@ sub print_trees {
       $i++
     }
   }
+  print O "restore\n" if $toEPS;
   print O '%%EOF',"\n";
   close (F);
   close (O);
