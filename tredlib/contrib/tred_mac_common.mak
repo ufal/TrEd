@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-13 10:07:40 pajas>
+## Time-stamp: <2002-10-21 10:20:29 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -116,6 +116,13 @@ sub GotoPrevNodeLin {
     }
   }
   $this=$next if $next;
+}
+
+sub QueryString {
+  ## display a dialog box with an edit line and Ok/Cancel buttons
+  ## parameters: window title, entry label, default value
+
+  main::QueryString($grp->{framegroup},@_);
 }
 
 sub editQuery {
