@@ -151,9 +151,9 @@ sub test {
   return 0 unless test_nsgmls();
   if (ref($f)) {
     my $line=$f->getline();
-    return $line=~/^Alang|\(csts/;
+    return $line=~/^\s*<csts[ >]/;
   } else {
-    my $fh = open_backend($f,"r",$encoding);
+    my $fh = ZBackend::open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;
