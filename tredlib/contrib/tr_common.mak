@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-18 14:29:51 pajas>
+## Time-stamp: <2002-09-20 10:26:03 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -593,5 +593,71 @@ sub subtree_remove_pa {
   my $node = $_[0] || $this;
   foreach ($node, $node->descendants(FS())) {
     $_->{'parenthesis'} = 'NIL';
+  }
+}
+
+sub generate_new_tid {
+  my $tree = $_[0] || $root;
+  my $id = $tree->{ID1};
+  my $t = 0;
+  my $node=$tree;
+  $id=~s/:/-/g;
+  while ($node) {
+    if ($node->{TID}=~/a(\d+)$/ and $t<=$1) {
+      $t=$1+1;
+    }
+    $node = $node->following();
+  }
+  return "${id}a${t}";
+}
+
+#insert generate_tids_whole_file as menu Doplnit TID v celem souboru
+sub generate_tids_whole_file {
+  my $defs=FS()->defs;
+  unless (exists($defs->{TID})) {
+    PDT->appendFSHeader('@P TID');
+  }
+  foreach my $tree (GetTrees()) {
+    my $node=$tree->following;
+    while ($node) {
+      if ($node->{ord}=~/\./ and $node->{TID} eq "") {
+	$node->{TID}=generate_new_tid($tree);
+      }
+      $node=$node->following;
+    }
+  }
+}
+
+#insert move_aid_to_aidrefs as menu Oprava: presune nasobne AID do AIDREFS
+sub move_aid_to_aidrefs {
+  my $defs=FS()->defs;
+  unless (exists($defs->{AIDREFS})) {
+    PDT->appendFSHeader('@P AIDREFS');
+  }
+  foreach my $tree (GetTrees()) {
+    my $node=$tree->following;
+    while ($node) {
+      if ($node->{AID}=~/\|/) {
+	$node->{AIDREFS}=$node->{AID};
+	($node->{AID})=split /\|/,$node->{AIDREFS};
+      }
+      $node=$node->following;
+    }
+  }
+}
+
+#bind upgrade_file_to_tid_aidrefs to F7 menu Aktualizace souboru na system AID/AIDREFS, TID
+sub upgrade_file_to_tid_aidrefs {
+  my $defs=FS()->defs;
+  print "probing $defs!\n";
+  return if (exists($defs->{TID}) && exists($defs->{AIDREF}));
+  print "TID and AIDREF don't exist!\n";
+  if (questionQuery('Automatická oprava',
+		    "Tento soubor neobsahuje deklarace atributu AIDREF nebo TID,\n".
+		    "do nich¾ se ukládají dùle¾ité identifikátory uzlù.\n\n".
+		    "Pøejete si tyto atributy pøidat a aktualizovat soubor?\n\n",
+		    qw{Ano Ne}) eq 'Ano') {
+    generate_tids_whole_file();
+    move_aid_to_aidrefs();
   }
 }
