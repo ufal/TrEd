@@ -34,19 +34,13 @@ sub show_dialog {
 					$wordlist_item_style,
 					$framelist_item_style,
 					$fe_confs);
-  print "Editor created\n";
-  print "Configuring...\n";
+
   $vallex->subwidget_configure($confs) if ($confs);
-  print "Packing...\n";
   $vallex->pack(qw/-expand yes -fill both -side left/);
-  print "getting words\n";
   {
-    print "querying @{$select_field}\n";
     $vallex->wordlist_item_changed($vallex->subwidget('wordlist')
 				 ->focus($data->findWordAndPOS(@{$select_field})));
-    print "Selecting $select_frame\n";
     $vallex->subwidget('framelist')->select_frames($select_frame);
-    print "done.\n";
   }
 
 #   my $adjuster = $d->Adjuster();
@@ -235,13 +229,13 @@ sub create_widget {
 
 
   ## Frame Note
-  my $lexframenote = TrEd::ValLex::TextView->new($data, undef, $lexframe_frame, "Note",
-						qw/ -height 2
-						    -width 20
-						    -spacing3 5
-						    -wrap word
-						    -scrollbars oe /);
-  $lexframenote->pack(qw/-fill x/);
+#  my $lexframenote = TrEd::ValLex::TextView->new($data, undef, $lexframe_frame, "Note",
+#						qw/ -height 2
+#						    -width 20
+#						    -spacing3 5
+#						    -wrap word
+#						    -scrollbars oe /);
+#  $lexframenote->pack(qw/-fill x/);
 
   # Frame Problems
   my $lexframeproblem = TrEd::ValLex::FrameProblems->new($data, undef, $lexframe_frame,
@@ -304,7 +298,7 @@ sub create_widget {
 	     word_frame   => $lexlist_frame,
 	     frame_frame  => $lexframe_frame,
 	     framelist    => $lexframelist,
-	     framenote    => $lexframenote,
+#	     framenote    => $lexframenote,
 	     frameproblem => $lexframeproblem,
 	     wordlist     => $lexlist,
 	     wordnote     => $lexnote,
@@ -316,7 +310,7 @@ sub create_widget {
 sub destroy {
   my ($self)=@_;
   $self->subwidget("framelist")->destroy();
-  $self->subwidget("framenote")->destroy();
+#  $self->subwidget("framenote")->destroy();
   $self->subwidget("frameproblem")->destroy();
   $self->subwidget("wordlist")->destroy();
   $self->subwidget("wordnote")->destroy();
@@ -383,7 +377,7 @@ sub framelist_item_changed {
   my $e;
   $frame=$h->infoData($item) if defined($item);
   $frame=undef unless ref($frame);
-  $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
+#  $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
   $self->subwidget('frameproblem')->fetch_data($frame);
   $self->subwidget('infoline')->fetch_frame_data($frame);
 }
