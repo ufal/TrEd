@@ -7880,7 +7880,7 @@ sub SignatureAssign {
 
   if (Interjection($pT->{'TR'},'') eq '') {
 
-    $pT->{'TR'} = $sPar1;
+#    $pT->{'TR'} = $sPar1;
   }
 
   NextTree();
