@@ -102,7 +102,6 @@ sub AskCzEn ($$$$) {
 
   use POSIX qw(locale_h);
 
-#  print setlocale(LC_MESSAGES);
   if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech$/) {
     ($yes, $no, $title, $message) = ("Ano", "Ne", $titleCz, $messageCz);
   } else {
@@ -206,64 +205,65 @@ sub OrderByTFA {
 
   my $top=$_[0];  # the reference to the node whose subtree is to be ordered according to tfa
 
-  return undef unless ref($top);  # no valid reference parameter was passed
+  return unless ref($top);  # no valid reference parameter was passed
 
   my $value=$top->{tfa};  # the tfa value for the top node
-
-#  print $top->{tfa}."\n\n";
 
   if ((IsHidden($top)) or ($value eq "") or ($value eq "NA")) {
     # does not do anything on hidden nodes and on nodes with NA or no tfa value
     NotOrderableByTFA;
-    return undef
+    return
   }
 
   my (@subtree, @sons_C, @sons_T, @sons_F, @sons_hidden);
   my $ord=$grp->{FSFile}->FS->order;  # the ordering attribute
 
   # place the top node appropriately among its sons
-  if (($value eq 'C') or ($value eq 'T')) {
+  if (($value eq "C") or ($value eq "T")) {
     push @sons_T, $top
-  } elsif ($value eq 'F') {
+  } elsif ($value eq "F") {
     push @sons_F, $top
   } else {  # return if the top node's tfa value is not acceptable
     NotOrderableByTFA;
-    return undef
+    return
   }
 
-  my $node=$top->firstson;
-
-  while ($node) {
+  my $node;
+  # now go through the sons
+  for ($node=$top->firstson; $node; $node=$node->rbrother) {
 
     if (IsHidden($node)) {push @sons_hidden, $node}  # the node is hidden
     else {  # decide according to the tfa value of the node
       $value=$node->{tfa};  # the tfa value of the node
 
-      if ($value eq 'C') {push @sons_C, $node}
-      elsif ($value eq 'T') {push @sons_T, $node}
-      elsif ($value eq 'F') {push @sons_F, $node}
-      elsif ($value eq 'NA') {
+      if ($value eq "C") {push @sons_C, $node}
+      elsif ($value eq "T") {push @sons_T, $node}
+      elsif ($value eq "F") {push @sons_F, $node}
+      elsif ($value eq "NA") {
 	# in this case decide according to the tfa value of depending nodes
-	my $nodes=GetNodes($node);
+	# if there is at least one depending node with F, place the current node among F nodes
+	# otherwise if there is at least one with T, place the current node among T nodes, return otherwise
+	my @nodes= HiddenVisible() ? GetNodes($node) : GetVisibleNodes($node);
+	# look at appropriate nodes according to the visibility-of-hidden-nodes status
 	my ($hasTorC, $hasF);
-	while ($nodes) {  # checks whether at least some depending node has tfa value
-	  my $value=unshift(@nodes);
-	  if (($value eq 'C') or ($value eq 'T')) {$hasTorC=1}
-	  elsif ($value eq 'F') {$hasF=1}
+	while (@nodes) {  # checks whether at least some depending node has tfa value
+	  my $value=shift(@nodes)->{tfa};
+	  if (($value eq "C") or ($value eq "T")) {$hasTorC=1}
+	  elsif ($value eq "F") {$hasF=1}
 	}
 	if ($hasF or $hasTorC) {  # there is a depending node with tfa value
 	  if ($hasF) {push @sons_F, $node}
 	  else {push @sons_T, $node}
 	} else {  # no depending node has a tfa value, therefore return
 	  NotOrderableByTFA;
-	  return undef
+	  return
 	}
-      } else {  # return if there is a node that is visible and doesn't have tfa value
+      }
+      else {  # return if there is a node that is visible and doesn't have tfa value
 	NotOrderableByTFA;
-	return undef
+	return
       }
     }
-    $node=$node->rbrother;
   }
 
   @sons_C= sort {$a->{$ord} <=> $b->{$ord}} @sons_C;
@@ -271,7 +271,7 @@ sub OrderByTFA {
   @sons_F= sort {$a->{$ord} <=> $b->{$ord}} @sons_F;
   @sons_hidden= sort {$a->{$ord} <=> $b->{$ord}} @sons_hidden;
 
-  foreach $node ((@sons_C, @sons_T, @sons_F, @sons_hidden)) {
+  foreach $node (@sons_C, @sons_T, @sons_F, @sons_hidden) {
     # creates an ordered array with the subtree ordered according to tfa
     if ($node eq $top) {
       push @subtree, $node  # only the top node
@@ -279,24 +279,20 @@ sub OrderByTFA {
       push @subtree, SortByOrd([GetNodes($node)])  # push a son's subtree
     }
   }
-#  print (join " ",map{$_->{form}} @subtree)."\n\n";
   return @subtree
 }
 
 
 sub OrderSTByTFA {
+# orders the passed node's sons' subtrees according to the tfa value
 
   my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node whos
 e subtree is to be projectivized
 
-  return undef unless ProjectivizeSubTree($top);
-
-#  print "============ prosel pres projektivizovani\n\n";
+  return unless ProjectivizeSubTree($top);
 
   my @subtree=OrderByTFA($top);
-  return undef unless @subtree;
-
-#  print "============ prosel serazovanim podle tfa\n\n";
+  return unless @subtree;
 
   my @all;
 
@@ -346,7 +342,7 @@ sub ShiftSubTreeLeft {
   my $top=ref($_[0]) ? $_[0] : $this;  # if no parameter is passed,
                                        # take $this to be the reference to the node to be processed
 
-  return undef unless my @subtree=ContinueProjectivizing($top);
+  return unless my @subtree=ContinueProjectivizing($top);
 
   my @all;
 
@@ -383,7 +379,7 @@ sub ShiftSubTreeRight {
 
   my $top=ref($_[0]) ? $_[0] : $this;
 
-  return undef unless my @subtree=ContinueProjectivizing($top);
+  return unless my @subtree=ContinueProjectivizing($top);
 
   my @all;
 
@@ -418,7 +414,7 @@ sub ShiftSubTreeLeftSkipHidden {
   my $top=ref($_[0]) ? $_[0] : $this;  # if no parameter is passed,
                                        # take $this to be the reference to the node to be processed
 
-  return undef unless my @subtree=ContinueProjectivizing($top);  # the projectivized subtree
+  return unless my @subtree=ContinueProjectivizing($top);  # the projectivized subtree
 
   my @all;    # all nodes except the nodes depending on the given node
   my @allvis; # all visible (ie non-hidden) nodes except the nodes depending on the given node
@@ -469,7 +465,7 @@ sub ShiftSubTreeRightSkipHidden {
 
   my $top=ref($_[0]) ? $_[0] : $this;
 
-  return undef unless my @subtree=ContinueProjectivizing($top);
+  return unless my @subtree=ContinueProjectivizing($top);
 
   my @all;
   my @allvis;

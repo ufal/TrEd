@@ -30,10 +30,11 @@ sub comment {
 
 
 package TrEd::ValLex::Data;
-
+use strict;
 use XML::DOM;
 
 use IO;
+use IO::Zlib;
 
 sub new {
   my ($self, $file, $cpconvert)=@_;
@@ -61,7 +62,19 @@ sub new {
   } else {
     $parser = new XML::DOM::Parser(ParseParamEnt => 1, NoLWP =>1);
   }
-  my $doc = $parser->parsefile ($file);
+  my $doc;
+  if ($file=~/.gz$/) {
+    my $fh;
+    if (eval {
+      $fh = new IO::Pipe();
+      $fh && $fh->reader("$ZBackend::zcat < \"$file\"");
+    }) {
+      $doc = $parser->parse ($fh);
+      $fh->close();
+    }
+  } else {
+    $doc = $parser->parsefile ($file);
+  }
   my $new = bless [$parser,$doc,$file, undef, undef, 0, $cpconvert], $class;
   $new->loadListOfUsers();
   return $new;
@@ -83,6 +96,15 @@ sub set_change_status {
   $self->[5]=$status;
 }
 
+sub test_internal {
+  my ($self,$doctype)=@_;
+  if ($doctype->can('getInternal')) {
+    return $doctype->getInternal();
+  } else {
+    return $doctype->{Internal};
+  }
+}
+
 sub save {
   my ($self, $no_backup,$indent)=@_;
   my $file=$self->file();
@@ -98,7 +120,19 @@ sub save {
     warn "Couldn't create backup file, aborting save!\n";
     return 0;
   }
-  my $output = new IO::File(">$file");
+  my $output;
+  if ($file=~/.gz$/) {
+    eval {
+      $output = new IO::Pipe();
+      $output && $output->writer("$ZBackend::gzip > \"$file\"");
+    };
+  } else {
+    $output = new IO::File(">$file");
+  }
+  unless ($output) {
+    print STDERR "ERROR: cannot write to file $file\n";
+    return 0;
+  }
   if ($indent) {
     require XML::Handler::Composer;
     require XML::Filter::Reindent;
@@ -112,11 +146,10 @@ sub save {
 					     });
     my $filter = new XML::Filter::Reindent (Handler => $writer);
     $self->doc()->to_sax(Handler => $filter);
-    $output->close;
   } else {
     my $doctype=$self->doc()->getDoctype;
-    if ($doctype and !$doctype->{Internal}) {
-      $self->doc()->getXMLDecl->printToFileHandle($output);
+    if ($doctype and !$self->test_internal($doctype)) {
+      $self->doc()->getXMLDecl->print($output);
       $output->print("\n");
       my $doctype=$self->doc()->getDoctype;
       if ($doctype) {
@@ -135,14 +168,15 @@ sub save {
 	# if no internal subset exists, do not print anything
 	$output->print (">\x0A");
       }
-      $self->doc()->getDocumentElement->printToFileHandle($output);
+      $self->doc()->getDocumentElement->print($output);
     } else {
       # If there is an internal subset, dump whole document including
       # doctype (which may result in the external subset included too :((
       # I don't know yet how to handle this using XML::Parser.
-      $self->doc()->printToFileHandle($output);
+      $self->doc()->print($output);
     }
   }
+  $output->close();
   $self->set_change_status(0);
   return 1;
 }
@@ -387,10 +421,10 @@ sub findWord {
 }
 
 sub generateNewWordId {
-  my ($self,$lemma)=@_;
+  my ($self,$lemma,$pos)=@_;
   my $i=0;
   foreach ($self->getWordList) {
-    return undef if ($_->[2] eq $lemma);
+    return undef if ($_->[2] eq $lemma and $_->[3] eq $pos);
     if ($_->[1]=~/^w-([0-9]+)/ and $i<$1) {
       $i=$1;
     }
@@ -402,7 +436,7 @@ sub generateNewWordId {
 sub addWord {
   my ($self,$lemma,$pos)=@_;
   return unless $lemma ne "";
-  my $new_id = $self->generateNewWordId($lemma);
+  my $new_id = $self->generateNewWordId($lemma,$pos);
   return unless defined($new_id);
 
   my $doc=$self->doc();
@@ -602,11 +636,13 @@ sub getWordForFrame {
 
 sub getFrameId {
   my ($self,$frame)=@_;
+  return undef unless $frame;
   return $frame->getAttribute("frame_ID");
 }
 
 sub getWordId {
   my ($self,$word)=@_;
+  return undef unless $word;
   return $word->getAttribute("word_ID");
 }
 
@@ -618,6 +654,11 @@ sub getSubstitutingFrame {
 sub getFrameStatus {
   my ($self,$frame)=@_;
   return $frame->getAttribute("status");
+}
+
+sub isEqual {
+  my ($self,$a,$b)=@_;
+  return $a == $b;
 }
 
 1;

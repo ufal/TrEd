@@ -11,6 +11,7 @@ require Tk::Adjuster;
 require Tk::Dialog;
 require Tk::Checkbutton;
 require Tk::Button;
+require Tk::Optionmenu;
 
 sub show_dialog {
   my ($top,$data,$select_word,$autosave,$confs,
@@ -33,6 +34,27 @@ sub show_dialog {
   $vallex->pack(qw/-expand yes -fill both -side left/);
   $vallex->wordlist_item_changed($vallex->subwidget('wordlist')
 				 ->focus($select_word));
+
+
+#   my $adjuster = $d->Adjuster();
+#   my $vallex2= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,1,
+# 					$wordlist_item_style,
+# 					$framelist_item_style,
+# 					$fe_confs);
+#   my $double=0;
+#   my $chb=$d->Checkbutton(-variable => \$double,
+# 		       -command => [sub {
+# 				      my($d,$vallex,$vallex2,$adjuster,$double)=@_;
+# 				      if ($$double) {
+# 					$adjuster->packAfter($vallex->frame(), -side => 'left');
+# 					$vallex2->pack(qw/-expand yes -fill both -side left/);
+# 				      } else {
+# 					$adjuster->packForget();
+# 					$vallex2->frame()->packForget();
+
+# 				      }
+# 				    },$d,$vallex,$vallex2,$adjuster,\$double])->pack(qw/-side left/);
+
 
   $d->Subwidget("B_Save & Close")->
     configure(-command =>
@@ -182,7 +204,7 @@ sub create_widget {
 						    -spacing3 5
 						    -wrap word
 						    -scrollbars oe /);
-  $lexframenote->pack(qw/-expand yes -fill both/);
+  $lexframenote->pack(qw/-fill x/);
 
   # Frame Problems
   my $lexframeproblem = TrEd::ValLex::FrameProblems->new($data, $field, $lexframe_frame,
@@ -208,7 +230,7 @@ sub create_widget {
 						    -spacing3 5
 						    -wrap word
 						    -scrollbars oe /);
-  $lexnote->pack(qw/-expand yes -fill both/);
+  $lexnote->pack(qw/-fill x/);
 
   # Word Problems
   my $lexproblem = TrEd::ValLex::FrameProblems->new($data, $field, $lexlist_frame,
@@ -237,7 +259,7 @@ sub create_widget {
 
   # Status bar
   my $info_line = TrEd::ValLex::InfoLine->new($data, $field, $frame, qw/-background white/);
-  $info_line->pack(qw/-side bottom -expand yes -fill x/);
+  $info_line->pack(qw/-side bottom -fill x/);
 
   return $lexlist->widget(),{
 	     frame        => $frame,
@@ -316,13 +338,19 @@ sub framelist_item_changed {
 
 sub addword_button_pressed {
   my ($self)=@_;
-
+  my $POS="V";
   my $top=$self->widget()->toplevel;
   my $d=$top->DialogBox(-title => "Add word",
 				-buttons => ["OK","Cancel"]);
 
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
+
+  my $poslab=$d->add(qw/Label -wraplength 6i -justify left -text POS/);
+  $poslab->pack(qw/-padx 5 -side left/);
+
+  my $pos=$d->Optionmenu(-options => [qw/V N A/], -variable => \$POS);
+  $pos->pack(qw/-padx 5 -expand yes -fill x -side left/);
 
   my $label=$d->add(qw/Label -wraplength 6i -justify left -text Lemma/);
   $label->pack(qw/-padx 5 -side left/);
@@ -331,12 +359,18 @@ sub addword_button_pressed {
   $ed->pack(qw/-padx 5 -expand yes -fill x -side left/);
   $ed->focus;
 
+
+
   if ($d->Show =~ /OK/) {
     my $result=$ed->get();
 
-    my $word=$self->data()->addWord($result,"V");
-    $self->subwidget('wordlist')->fetch_data();
-    $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
+    my $word=$self->data()->addWord($result,$POS);
+    if ($word) {
+      $self->subwidget('wordlist')->fetch_data();
+      $self->wordlist_item_changed($self->subwidget('wordlist')->focus($word));
+    } else {
+      $self->wordlist_item_changed($self->subwidget('wordlist')->focus_by_text($result,$POS));
+    }
     $d->destroy();
     return $result;
   } else {

@@ -34,18 +34,38 @@ sub show_dialog {
   $chooser->subwidget_configure($confs) if ($confs);
   $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
+  if ($select_frame) {
+    if (ref($select_frame) eq "ARRAY") {
+      if (@$select_frame) {
+	$chooser->subwidget("framelist")->select_frames(@$select_frame);
+      } else {
+	if ($chooser->widget()->infoExists(0)) {
+	  $chooser->widget()->anchorSet(0);
+	  $chooser->widget()->selectionSet(0);
+	}
+      }
+    } else {
+      $chooser->subwidget("framelist")->select_frames($select_frame);
+    }
+  } else {
+    if ($chooser->widget()->infoExists(0)) {
+      $chooser->widget()->anchorSet(0);
+      $chooser->widget()->selectionSet(0);
+    }
+  }
   $chooser->widget()->focus();
   if ($start_editor) {
     $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
   }
-  if ($chooser->widget()->infoExists(0)) {
-    $chooser->widget()->anchorSet(0);
-  }
 
   if ($d->Show() eq 'Choose') {
     my @frames=$chooser->get_selected_frames();
+    my $real="";
+    if ($#frames==0) {
+      $real=$chooser->data()->getFrameElementString($frames[0]);
+    }
     $d->destroy();
-    return map { $_->getAttribute('frame_ID') } @frames;
+    return (join("|",map { $_->getAttribute('frame_ID') } @frames),$real);
   } else {
     $d->destroy();
     return undef;
@@ -98,7 +118,6 @@ sub create_widget {
 				-command => [
 					     sub {
 					       my ($self)=@_;
-					       print "Button: @_\n";
 					       my $fl=$self->subwidget('framelist')->widget();
 					       $mode = $fl->cget('-selectmode');
 					       if ($mode eq 'extended') {

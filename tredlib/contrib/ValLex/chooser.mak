@@ -3,30 +3,49 @@
 #bind ChooseFrame to Ctrl+Return menu Vyber ramec pro sloveso
 
 $FrameData=undef;
-unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
-print "-=---------------=-\n";
-print "INC @INC\n";
+
+sub InfoDialog {
+  my ($top,$text)=@_;
+
+  my $t=$top->Toplevel();
+  my $f=$t->Frame(qw/-relief raised -borderwidth 3/)->pack();
+  my $l=$f->Label(-text => $text,
+		  -font => StandardTredFont(),
+		  -wraplength => 200
+		 )->pack();
+  $t->overrideredirect(1);
+  $t->Popup();
+  return $t;
+
+}
 
 sub ChooseFrame {
   my $top=ToplevelFrame();
 
   require ValLex::Data;
+  require ValLex::LibXMLData;
   require ValLex::Widgets;
   require ValLex::Editor;
   require ValLex::Chooser;
   require TrEd::CPConvert;
+  my $frameid_attr="frameid";
+  my $framere_attr="framere";
   my $lemma=$this->{trlemma};
   my $tag=$this->{tag};
-  return unless $tag=~/^V/;
+  return unless $tag=~/^([VNA])/;
+  my $pos=$1;
   $lemma=~s/_/ /g;
   $top->Busy(-recurse=>1);
   my $conv= TrEd::CPConvert->new("utf-8",
 				 ($^O eq "MSWin32") ?
 				 "windows-1250":
 				 "iso-8859-2");
-  $FrameData=
-    TrEd::ValLex::Data->new("$libDir/contrib/ValLex/vallex.xml",$conv)
-      unless ($FrameData);
+  unless ($FrameData) {
+    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
+    $FrameData=
+      TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv);
+    $info->destroy();
+  }
   my $new_word=0;
   my $word=$FrameData->findWord($lemma);
   $top->Unbusy(-recurse=>1);
@@ -34,7 +53,7 @@ sub ChooseFrame {
     if (questionQuery("Word does not exist",
 		      "Do you want to add this word to the lexicon?",
 		      "Yes", "No") eq "Yes") {
-      $word=$FrameData->addWord($lemma,"V");
+      $word=$FrameData->addWord($lemma,$pos);
       $new_word=1;
     } else {
       return;
@@ -62,7 +81,7 @@ sub ChooseFrame {
 		      framelist => $fc
 		     };
 
-  my $frame=join "|",TrEd::ValLex::Chooser::show_dialog($lemma,$top,
+  my ($frame,$real)=TrEd::ValLex::Chooser::show_dialog($lemma,$top,
 					       $chooser_conf,
 					       $fc,
 					       $vallex_conf,
@@ -70,10 +89,17 @@ sub ChooseFrame {
 					       $fc,
 					       $fe_conf,
 					       $FrameData,
-					       $word,undef,$new_word);
+					       $word,
+					       [split "|",$this->{$frameid_attr}],
+					       $new_word);
   if ($frame) {
-    print "Frame: $frame\n";
-    $this->{commentA}=$frame;
+    my $fmt=$grp->{FSFile}->FS();
+    $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
+    $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
+    $this->{$frameid_attr}=$frame;
+    $this->{$framere_attr}=$real;
+  } else {
+    $FileNotSaved=0;
   }
 }
 
