@@ -7,7 +7,7 @@ use Tk;
 use Tk::Tree;
 use Tk::Derived;
 use Tk::ItemStyle;
-use Tk::JComboBox;
+use Tk::JComboBox_0_02;
 use base qw(Tk::Derived Tk::Tree);
 use strict;
 
@@ -399,6 +399,7 @@ sub add_buttons {
     -background => $hlist->cget('-background')
    );
 
+  $f->Frame(-height => '20',-borderwidth => 1,-relief=>'ridge')->pack(qw(-side left));
 
   $hlist->itemCreate($path,2,
 		     -itemtype => 'window',
@@ -436,15 +437,17 @@ sub add_buttons {
     if ($ptype->{list}{ordered}) {
       $f2 = $f->Frame->pack(qw(-side left));
       $f1 = $f->Frame->pack(qw(-side right));
-#    } else {
-#      $f1 = $f->Frame->pack(qw(-side top));
+    } else {
+      $f1 = $f->Frame->pack(qw(-side top));
     }
     if ($f1) {
-      $hlist->mini_button($f1,'plus',$path,
-			  -background => $colors{list},
-			  -command =>
-			    [$hlist,'new_list_member',$path]
-			   )->pack(qw(-side top));
+      if ($ptype->{list}{ordered}) {
+	$hlist->mini_button($f1,'plus',$path,
+			    -background => $colors{list},
+			    -command =>
+			      [$hlist,'new_list_member',$path]
+			     )->pack(qw(-side top));
+      }
       $hlist->mini_button($f1,'minus',$path,
 			  -background => $colors{list},
 			  -command =>
@@ -546,22 +549,22 @@ sub add_member {
 		      );
   } elsif ($mtype->{choice}) {
     $data->{value} = $attr_val;
-    my $w = $hlist->JComboBox(
+    my $w = $hlist->JComboBox_0_02(
 
       -mode => 'editable',
       -validate => 'match',
 
       -takefocus => 1,
       -borderwidth => 0,
-#      -highlightcolor => 'black',
-#      -highlightbackground => 'gray',
+      -highlightcolor => 'black',
+      -highlightbackground => 'gray',
       -highlightthickness => 1,
       -textvariable => \$data->{value},
       -background => 'gray',
 
       -choices => $mtype->{choice},
       -popupbackground => 'black',
-      -popupborderwidth => 1,
+      -borderwidth => 1,
       -relief => 'flat',
 
       -buttonrelief => 'ridge',
@@ -769,7 +772,7 @@ sub focus_entry {
       }
       if ($w) {
 	$w->focus;
-	if ($w->isa('Tk::JComboBox')) {
+	if ($w->isa('Tk::JComboBox_0_02')) {
 	  $w->showPopup unless $w->popupIsVisible;
 	}
       }
@@ -796,7 +799,7 @@ sub entry_insert {
       }
       if ($w) {
 	$w->focus;
-	if ($w->isa('Tk::JComboBox')) {
+	if ($w->isa('Tk::JComboBox_0_02')) {
 	  $w->showPopup unless $w->popupIsVisible;
 	  $w = $w->Subwidget('ED_Entry');
 	}
@@ -810,7 +813,7 @@ sub entry_insert {
 }
 
 # "fix" behavior of JComboBox
-*Tk::JComboBox::EntryUpDown = sub {
+*Tk::JComboBox_0_02::EntryUpDown = sub {
   my ($cw, $modifier) = @_;
   return unless $cw->cget('-validate') =~ /cs-match|match/;
   $cw->showPopup unless
