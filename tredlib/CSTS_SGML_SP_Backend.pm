@@ -5,12 +5,18 @@ use Fs2csts;
 
 use vars qw($zcat $gzip $sgmls $sgmlsopts $doctype);
 
-$zcat = "/bin/zcat" unless $zcat;
-$gzip = "/usr/bin/gzip" unless $gzip;
+sub default_settings {
+  $zcat = "/bin/zcat" unless $zcat;
+  $gzip = "/usr/bin/gzip" unless $gzip;
 
-$sgmls = "nsgmls" unless $sgmls;
-$sgmlsopts = "-i preserve.gen.entities" unless $sgmlsopts;
-$doctype = "csts.doctype" unless $doctype;
+  $sgmls = "nsgmls" unless $sgmls;
+  $sgmlsopts = "-i preserve.gen.entities" unless $sgmlsopts;
+  $doctype = "csts.doctype" unless $doctype;
+
+  $sgmls_command='%s %o %d %f';
+  $z_sgmls_command='%z < %f %s %o %d -';
+  print "RESETING DEFAULT CSTS PARSER SETTINGS\n" if $Fslib::Debug;
+}
 
 =item open_backend (filename,mode)
 
@@ -26,34 +32,40 @@ sub open_backend {
   my $fh = undef;
   my $cmd = "";
 
-  if ($filename and -r $filename) {
-    if ($mode =~/[w\>]/) {
-      if ($filename=~/.gz$/) {
-	eval {
-	  $fh = new IO::Pipe();
-	  $fh && $fh->writer("$gzip > $filename");
-	} || return undef;
+  if ($mode =~/[w\>]/) {
+    if ($filename=~/.gz$/) {
+      eval {
+	$fh = new IO::Pipe();
+	$fh && $fh->writer("$gzip > $filename");
+      } || return undef;
 	print STDERR "[w $cmd]\n" if $Fslib::Debug;
-      } else {
-	eval { $fh = new IO::File(); } || return undef;
-	$fh->open($filename,$mode) || return undef;
-      }
     } else {
+      eval { $fh = new IO::File(); } || return undef;
+      $fh->open($filename,$mode) || return undef;
+    }
+  } else {
+    if ($filename and -r $filename) {
       if ($filename=~/.gz$/) {
 	return undef unless -x $zcat;
-	$cmd = "$zcat < \"$filename\" | $sgmls $sgmlsopts $doctype -";
+	$cmd=$z_sgmls_command;
       } else {
-	$cmd="$sgmls $sgmlsopts $doctype $filename";
+	$cmd=$sgmls_command;
       }
+      print STDERR "$cmd\n" if $Fslib::Debug;
+      $cmd=~s/\%f/"$filename"/g;
+      $cmd=~s/\%s/$sgmls/g;
+      $cmd=~s/\%o/$sgmlsopts/g;
+      $cmd=~s/\%d/$doctype/g;
+      $cmd=~s/\%z/$zcat/g;
       print STDERR "[r $cmd]\n" if $Fslib::Debug;
       eval {
 	if ($^O eq 'MSWin32') {
-          $fh = new IO::File();
+	  $fh = new IO::File();
 	  $fh && $fh->open("$cmd |");
 	} else {
-  	  $fh = new IO::Pipe();
+	  $fh = new IO::Pipe();
 	  $fh && $fh->reader($cmd);
-        }
+	}
       } || return undef;
     }
   }
@@ -125,3 +137,9 @@ sub test {
     return $test;
   }
 }
+
+BEGIN {
+  default_settings();
+}
+
+1;
