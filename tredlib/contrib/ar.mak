@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2003-03-25 10:15:28 pajas>
+## Time-stamp: <2003-05-13 19:09:23 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -205,41 +205,6 @@ sub TagPrune {
   }
 
   $lReturn = $lTRet;
-
-}
-
-
-sub GetAfunSuffix {
-  my $sChar;			# used as type "string"
-  my $i;			# used as type "string"
-
-  $i = "0";
- GASLoopCont1:
-  $sChar = substr($sPar1,$i,1);
-
-  if ($sChar eq '') {
-
-    $sPar2 = $sPar1;
-
-    $sPar3 = '';
-
-    goto GASLoopEnd1;
-  }
-
-  if ($sChar eq '_') {
-
-    $sPar2 = substr($sPar1,0,$i);
-
-    $sPar3 = substr($sPar1,$i,20);
-
-    goto GASLoopEnd1;
-  }
-
-  $i = $i+"1";
-
-  goto GASLoopCont1;
- GASLoopEnd1:
-  return;
 
 }
 
@@ -2037,49 +2002,29 @@ sub _key_Backspace {
 }
 
 sub DepSuffix {
-  my $pThis;			# used as type "pointer"
-  my $pDep;			# used as type "pointer"
-  my $sDepAfun;			# used as type "string"
-  my $sDepSuff;			# used as type "string"
-  my $sAfun;			# used as type "string"
+  my $afun=($_[0] || $sPar1);
+  my $node=$this;
+  AfunAssign($afun);
+  return unless $afun=~/^(Coord|Apos)/;
+  $afun=$1;
 
-  $sAfun = $sPar1;
-
-  $pThis = $this;
-
-  $pDep = FirstSon($this);
-
-  AfunAssign();
- DSLoopCont1:
-  if (!($pDep)) {
-
-    goto DSLoopEnd1;
+  if (FS()->exists('parallel') && FS()->exists('paren') ) {
+    foreach ($node->children) {
+      if ($afun eq "Coord") {
+	$_->{parallel}='Co' if ($_->{parallel} eq 'Ap');
+      } else {
+	$_->{parallel}='Ap' if ($_->{parallel} eq 'Co');
+      }
+    }
+  } else {
+    foreach ($node->children) {
+      if ($afun eq "Coord") {
+	$_->{afun} =~ s/_Ap/_Co/;
+      } else {
+	$_->{afun} =~ s/_Co/_Ap/;
+      }
+    }
   }
-
-  $sPar1 = ValNo(0,$pDep->{'afun'});
-
-  GetAfunSuffix();
-
-  $sDepAfun = $sPar2;
-
-  $sDepSuff = $sPar3;
-
-  if ($sDepSuff ne '' &&
-      $sDepSuff ne '_Pa') {
-
-    $sDepSuff = (ValNo(0,'_').ValNo(0,substr($sAfun,0,2)));
-
-    $pDep->{'afun'} = (ValNo(0,$sDepAfun).ValNo(0,$sDepSuff));
-  }
-
-  $pDep = RBrother($pDep);
-
-  goto DSLoopCont1;
- DSLoopEnd1:
-  $this = $pThis;
-
-  return;
-
 }
 
 
