@@ -199,7 +199,14 @@ sub value_line_list {
 	  } elsif (/^\#{([^}]+)}$/) {
 	    #attr
 	    my $style=$1;
-	    if ($style =~ /(-[a-z0-9]+):\s*(.*\S)\s*$/) {
+	    if ($style =~ /-tag:\s*(.*\S)\s*$/) {
+	      print "Storing tag:$1\n";
+	      if ($styles{"tag"} ne "") {
+		$styles{"tag"}.=",$1";
+	      } else {
+		$styles{"tag"}=$1;
+	      }
+	    } elsif ($style =~ /(-[a-z0-9]+):\s*(.*\S)\s*$/) {
 	      $styles{$1} = $2;
 	    } else {
 	      $styles{-foreground} = $style
