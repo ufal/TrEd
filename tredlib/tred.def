@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-16 16:29:47 pajas>
+## Time-stamp: <2004-11-24 12:33:40 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1369,8 +1369,7 @@ sub ShiftNodeRightSkipHidden {
   my $x=min(Index(\@all,$vis[$m+1]),$#all);
   for (my $i=$n+1;$i<=$x;$i++) { $all[$i]->{$ord}--; }
   $node->{$ord}=$x;
-  my $parent=Parent($node);
-  Fslib::Paste(Fslib::Cut($node),$parent,$grp->{FSFile}->FS->defs);
+  RepasteNode($node);
 }
 
 =item ShiftNodeLeftSkipHidden (node,min?)
@@ -1766,6 +1765,14 @@ Set TrEd's/bTrEd's default IO encoding.
 sub SetDefaultInputEncoding {
   $TrEd::Convert::inputenc = $_[0];
 }
+
+=item writeln
+
+Print the arguments to standard output appending a new-line if missing.
+
+=cut
+sub writeln { $::stdout->print(@_, $_[$#_]=~/\n$/ ? () : "\n") }
+
 
 =item stdout
 
