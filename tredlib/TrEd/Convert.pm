@@ -55,9 +55,7 @@ sub encode {
     if ($inputenc eq 'iso-8859-6' or $inputenc =~ /^utf-?8$/i or $inputenc eq 'windows-1256') {
       require TrEd::ConvertArab;
       require TrEd::ArabicRemix;
-      eval "use Encode (); \$_=Encode::decode('utf8',\$_) unless Encode::is_utf8(\$_);".
-           "s{((?:\\p{Arabic}|\\p{InArabic}|\\p{InArabicPresentationFormsA}|\\p{InArabicPresentationFormsB}|\\s)+)}{ TrEd::ConvertArab::arabjoin($1)}eg;";
-      $_ = TrEd::ArabicRemix::remix($_);
+      $_ = TrEd::ArabicRemix::remix(TrEd::ConvertArab::arabjoin($_));
     }
   } elsif ($]>=5.008) {
     eval "use Encode (); \$_=Encode::encode(\$outputenc,\$_);";
