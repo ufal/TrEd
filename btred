@@ -548,9 +548,23 @@ sub startMain {
 	    _msg "RUNNING CODE: $request{CODE}\n";
 	    gotoFile($grp,0);
 	    my $t0 = new Benchmark;
-	    do {
-	      doEvalMacro($grp,"package $context;".$request{CODE});
-	    } while (!$@ and nextFile($grp));
+	    if ($request{FILELIST}) {
+	      my @fl = split /\n/,$request{FILELIST};
+	      foreach my $file (@fl) {
+		# normalize urls
+		$file=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
+		my $goto=$1;
+		if (exists $grp->{preloaded}{$file}) {
+		  openFile($grp,$file.$goto);
+		  doEvalMacro($grp,"package $context;".$request{CODE});
+		  last if $@;
+		}
+	      }
+	    } else {
+	      do {
+		doEvalMacro($grp,"package $context;".$request{CODE});
+	      } while (!$@ and nextFile($grp));
+	    }
 	    $hub->print("$@\n") if $@;
 	    _msg($@) if $@; undef $@;
 	    doEvalHook($grp,"exit_hook");
