@@ -16,7 +16,7 @@ $VERSION = "0.91";
 @EXPORT = qw(&ReadAttribs &ReadTree &GetTree &PrintNode &PrintTree &PrintFS &NewNode 
 	     &Parent &LBrother &RBrother &FirstSon &Next &Prev &DeleteTree &DeleteLeaf
 	     &Cut &Paste &Set &Get &DrawTree &IsList &ListValues);
-@EXPORT_OK = qw(&Index &ParseNode &Ord &Value &Hide &SentOrd &Special);    
+@EXPORT_OK = qw(&Index &ParseNode &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial);
 
 use vars qw(
 	    $VERSION @EXPORT @EXPORT_OK
@@ -127,7 +127,7 @@ sub ListValues ($$) {
 
 sub Special ($$$) {
   my ($node,$href,$defchar)=@_;
-  
+
   if ($node and $href) {
     foreach (keys(%$href)) {
       return $$node{$_} if $$href{$_}=~/ $defchar/;
@@ -135,6 +135,22 @@ sub Special ($$$) {
   }
   return undef;
 }
+
+sub ASpecial ($$) {
+  my ($href,$defchar)=@_;
+
+  if ($href) {
+    foreach (keys(%$href)) {
+      return $_ if $$href{$_}=~/ $defchar/;
+    }
+  }
+  return undef;
+}
+
+sub ASentOrd ($) {
+  return ASpecial(shift,'W');
+}
+
 
 sub SentOrd ($$) {
   return Special(shift,shift,'W');
@@ -144,12 +160,25 @@ sub Ord ($$) {
   return Special(shift,shift,'N');
 }
 
+sub AOrd ($) {
+  return ASpecial(shift,'N');
+}
+
 sub Hide ($$) {
   return Special(shift,shift,'H');
 }
 
+sub AHide ($) {
+  return ASpecial(shift,'H');
+}
+
+
 sub Value ($$) {
   return Special(shift,shift,'V');
+}
+
+sub AValue ($) {
+  return ASpecial(shift,'V');
 }
 
 sub Cut ($) {
@@ -367,8 +396,8 @@ sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
       $v=~s/[,\[\]=\\]/\\$&/go;
       if (index($atr{$ord[$n]}, "O")>=0) {
 	print $output "," if $n;
-	print $output $v;
-      } 
+	print $output (defined($v) and $v ne '') ? $v : '-';
+      }
       elsif (defined $ {$node}{$ord[$n]}) {
 	print $output "," if $n;
 	print $output $ord[$n],"=",$v;
@@ -804,7 +833,7 @@ keeps the TNS in memory and returns a reference to it.
    with its new brothers, placing it to position
    corresponding to its numerical-argument value
    obtained via call to an Ord function.  
-                
+
  Returns $node
 
 =item Special($node,$href,$defchar)
@@ -821,7 +850,35 @@ keeps the TNS in memory and returns a reference to it.
  Returns:
 
    Value of the first $node attribute of type matching $defchar pattern
-   
+
+=item ASpecial($href,$defchar)
+
+ Exported with EXPORT_OK
+
+ Params: 
+
+   $href    - a reference to a hash, containing attributes as keys
+              and corresponding type strigs as values
+   $defchar - a type string pattern
+
+ Returns:
+
+   Name of the first attribute of type matching $defchar pattern
+
+==item AOrd, ASentOrd, AValue, AHide ($href)
+
+ Exported wiht EXPORT_OK
+
+ Params:
+
+   $href    - a reference to a hash, containing attributes as keys
+              and corresponding type strigs as values
+
+ Description:
+
+ Are all like Ord, SentOrd, Value, Hide only except for
+ they do not get $node as parameter and return attribute
+ name rather than its value.
 
 
 =item Ord($node,$href)
