@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-07-23 12:58:55 pajas>
+# Time-stamp: <2001-07-26 16:52:18 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -2063,17 +2063,19 @@ sub value_line {
   my @sent=();
 
   my $attr=$fsfile->FS->sentord();
+  my $val=$fsfile->FS->value();
   $attr=$fsfile->FS->order() unless (defined($attr));
   while ($node) {
-    push @sent,$node unless $node->{$attr}>=999; # this is TR specific
+    push @sent,$node unless ($node->{$val} eq '???' or
+			     $node->{$attr}>=999); # this is TR specific stuff
     $node=$node->following();
   }
   @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
 
-  $attr=$fsfile->FS->value();
+
   my $line =
     ($tree_no+1)."/".($fsfile->lastTreeNo()+1).": ".
-    join(" ", map { $_->{$attr} } @sent);
+    join(" ", map { $_->{$val} } @sent);
   undef @sent;
   return $line;
 }
@@ -2097,7 +2099,7 @@ use Exporter;
 @ISA=(Exporter);
 $VERSION = "0.1";
 @EXPORT = qw(&open_backend &close_backend);
-@EXPORT_OK = qw($zcat);
+@EXPORT_OK = qw($gzip $zcat);
 
 use IO;
 
@@ -2136,8 +2138,8 @@ module.
 =cut
 
 
-$ZBackend::zcat = "/bin/zcat";
-$ZBackend::gzip = "/usr/bin/gzip";
+$ZBackend::zcat = "/bin/zcat" unless $ZBackend::zcat;
+$ZBackend::gzip = "/usr/bin/gzip" unless $ZBackend::gzip;
 
 =pod
 
