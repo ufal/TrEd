@@ -205,7 +205,7 @@ sub expand_coord_apos_TR {
   if (is_coord_TR($node)) {
     return (($keep ? $node : ()),
 	    map { expand_coord_apos_TR($_,$keep) }
-	    grep { is_valid_member_TR($_) } $node->children());
+	    grep { is_valid_member_TR($_) } $node->visible_children(FS()));
   } else {
     return ($node);
   }
