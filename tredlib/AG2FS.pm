@@ -199,7 +199,7 @@ sub read {
     my $tree=xp($ag,q{ string(descendant::ag:OtherMetadata[@name='treebanking']|
                               descendant::ag:MetadataElement[@name='treebanking']) });
     my $para=xp($ag,q{ string(descendant::ag:OtherMetadata[@name='paragraph']|
-                              descendant::ag:MetadataElement[@name='paragrah']) });
+                              descendant::ag:MetadataElement[@name='paragraph']) });
     my $comment=xp($ag,q{ string(descendant::ag:OtherMetadata[@name='tbcomment']|
                                  descendant::ag:MetadataElement[@name='tbcomment']) });
 
