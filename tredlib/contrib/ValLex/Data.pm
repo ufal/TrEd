@@ -160,21 +160,50 @@ sub getWordList {
   return @words;
 }
 
+sub getFrame {
+  my ($self,$frame)=@_;
+  my $id = $frame->getAttribute("frame_ID");
+  my $status = $frame->getAttribute("status");
+  my $elements = $self->getFrameElementString($frame);
+  my $example=$self->getFrameExample($frame);
+  my ($local_event)=$frame->getDescendantElementsByTagName("local_event");
+  my $auth="NA";
+  $auth=$self->conv->decode($local_event->getAttribute("author")) if ($local_event);
+  return [$frame,$id,$elements,$status,$example,$auth];
+}
+
+sub getSuperFrameList {
+  my ($self,$word)=@_;
+  use Tie::IxHash;
+  tie my %super, 'Tie::IxHash';
+
+  foreach my $frame ($word->getDescendantElementsByTagName("frame")) {
+
+    my $base="";
+    my @element_nodes=$frame->getDescendantElementsByTagName("element");
+    foreach my $element (
+			 (
+			  grep { $_->getAttribute('type') eq 'oblig' or
+				   $_->getAttribute('functor') =~ /^(?:ACT|PAT|EFF|ORIG|ADDR)/
+				 }
+			  @element_nodes)
+			) {
+      $base.=$self->getOneFrameElementString($element)." ";
+    }
+    if (exists $super{$base}) {
+      push @{$super{$base}},$self->getFrame($frame);
+    } else {
+      $super{$base}=[$self->getFrame($frame)];
+    }
+  }
+  return \%super;
+}
+
 sub getFrameList {
   my ($self,$word)=@_;
   return unless $word;
   my @frames=();
-  foreach my $frame ($word->getDescendantElementsByTagName("frame")) {
-    my $id = $frame->getAttribute ("frame_ID");
-    my $status = $frame->getAttribute ("status");
-    my $elements = $self->getFrameElementString($frame);
-    my $example=$self->getFrameExample($frame);
-    my ($local_event)=$frame->getDescendantElementsByTagName("local_event");
-    my $auth="NA";
-    $auth=$self->conv->decode($local_event->getAttribute("author")) if ($local_event);
-    push @frames, [$frame,$id,$elements,$status,$example,$auth];
-  }
-  return @frames;
+  return map { $self->getFrame($_) } $word->getDescendantElementsByTagName("frame");
 }
 
 sub getOneFrameElementString {
