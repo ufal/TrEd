@@ -4047,7 +4047,7 @@ sub MakeSentence {
 	      <entry><literal>PlainNewSon(<replaceable>parent</replaceable>)</literal></entry>
 	      <entry>Add a new child node to the given
 	      <replaceable>parent</replaceable> and make it the
-	      current node (by setting <tt>$this</tt> to point to it).
+	      current node (by setting <literal>$this</literal> to point to it).
 	      </entry>
 	    </row>
 	    <row>
@@ -4069,9 +4069,9 @@ sub MakeSentence {
 		</para>
 		<para>
 		  If no node is given, this function operates on
-		  <tt>$this</tt> and <emphasis>resets</emphasis>
-		  <tt>$this</tt> to the newly created node. If some node is
-		  given the value of <tt>$this</tt> is preserved.
+		  <literal>$this</literal> and <emphasis>resets</emphasis>
+		  <literal>$this</literal> to the newly created node. If some node is
+		  given the value of <literal>$this</literal> is preserved.
 		</para>
 	      </entry>
 	    </row>
@@ -4087,9 +4087,9 @@ sub MakeSentence {
 		</para>
 		<para>
 		  If no node is given, this function operates on
-		  <tt>$this</tt> and <emphasis>resets</emphasis>
-		  <tt>$this</tt> to the newly created node. If some node is
-		  given the value of <tt>$this</tt> is preserved.
+		  <literal>$this</literal> and <emphasis>resets</emphasis>
+		  <literal>$this</literal> to the newly created node. If some node is
+		  given the value of <literal>$this</literal> is preserved.
 		</para>
 	      </entry>
 	    </row>
@@ -4106,9 +4106,9 @@ sub MakeSentence {
 		</para>
 		<para>
 		  If no parent node is given, this function operates
-		  on <tt>$this</tt> and <emphasis>resets</emphasis>
-		  <tt>$this</tt> to the newly created node. If a
-		  parent node is given the value of <tt>$this</tt> is
+		  on <literal>$this</literal> and <emphasis>resets</emphasis>
+		  <literal>$this</literal> to the newly created node. If a
+		  parent node is given the value of <literal>$this</literal> is
 		  preserved.
 		</para>
 	      </entry>
