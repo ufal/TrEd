@@ -61,10 +61,20 @@ sub get_ID_for_coref {
 
 
 #bind jump_to_referent to ? menu Jump to node in coreference with current
-sub jump_to_referent {
+sub jump_to_referent { # modified by Zdenek Zabokrtsky, Jan 2003
   my $id1=$this->{ID1};
   $id1=~s/:/-/g;
-  my $coref=$this->{coref};
+  my $coref;
+  my @coref_list=split /\|/,$this->{coref};
+  print STDERR "Ahoj: @coref_list == $this->{coref} nazdar\n";
+  if (@coref_list>1) {
+    my $selection=[$coref_list[0]];
+    listQuery("Multiple coreference",'single',
+        \@coref_list,$selection) || return;
+    $coref=$selection->[0];
+  }
+  else {$coref=$this->{coref}}
+
   my $treeno=0;
   if ($coref ne '') {
     my ($d)=($coref=~/^(.*?-p\d+s[0-9A-Z]+).\d+/);
@@ -93,7 +103,7 @@ sub jump_to_referent {
     }
     if (!$tree) {
       GUI() && questionQuery('Error',
-			   "The node in creference relation with the current node " .
+			   "The node in coreference relation with the current node " .
 			   "was not found in this file!",
 			   'Ok');
     }
@@ -207,6 +217,7 @@ sub node_style_hook {
   $id1=~s/:/-/g;
   my (@coords,@colors);
   my @cortypes=split /\|/,$node->{cortype};
+  my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
   foreach my $coref (split /\|/,$node->{coref}) {
     my $cortype=shift @cortypes;
     if (index($coref,$id1)==0) {
@@ -235,18 +246,21 @@ COORDS
 	    # preceding sentence
 	    print STDERR "Preceding sentence\n";
 	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
-	    push @coords,'&n,n,n-30,n';
+	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
+	    $rotate_prv_snt+=10;
 	  } else {
 	    # following sentence
 	    print STDERR "Following sentence\n";
 	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
-	    push @coords,'&n,n,n+30,n';
+	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
+	    $rotate_nxt_snt+=10;
 	  }
 	} else {
 	  # different document
 	  print STDERR "Different document?\n";
 	  push @colors,$cortype_colors{$cortype}; #'&#c53c00'
-	  push @coords,'&n,n,n,n-30';
+	  push @coords,"&n,n,n+$rotate_dfr_doc,n-30";
+	  $rotate_dfr_doc+=10;
 	  print STDERR "Different document sentence\n";
 	}
       }
