@@ -28,7 +28,7 @@ BEGIN {
 
 
 #
-# The $grp parameter to the following two routines should be
+# The $win parameter to the following two routines should be
 # a hash reference, having at least the following keys:
 #
 # FSFile       => FSFile blessed reference of the current FSFile
@@ -39,107 +39,107 @@ BEGIN {
 #
 
 sub gotoTree {
-  my $grp=shift;
-  return unless $grp->{FSFile};
-  my $no = max(0,min(shift,$grp->{FSFile}->lastTreeNo));
-  return $no if ($no == $grp->{treeNo});
-  $grp->{treeNo}=$no;
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
-  &$on_tree_change($grp,'gotoTree') if $on_tree_change;
+  my $win=shift;
+  return unless $win->{FSFile};
+  my $no = max(0,min(shift,$win->{FSFile}->lastTreeNo));
+  return $no if ($no == $win->{treeNo});
+  $win->{treeNo}=$no;
+  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
+  &$on_tree_change($win,'gotoTree') if $on_tree_change;
   return $no;
 }
 
 sub nextTree {
-  my ($grp)=@_;
+  my ($win)=@_;
 
-  return 0 if ($grp->{treeNo} >= $grp->{FSFile}->lastTreeNo);
-  gotoTree($grp,$grp->{treeNo}+1);
+  return 0 if ($win->{treeNo} >= $win->{FSFile}->lastTreeNo);
+  gotoTree($win,$win->{treeNo}+1);
   return 1;
 }
 
 sub prevTree {
-  my ($grp)=@_;
-  return 0 if ($grp->{treeNo} <= 0);
-  gotoTree($grp,$grp->{treeNo}-1);
+  my ($win)=@_;
+  return 0 if ($win->{treeNo} <= 0);
+  gotoTree($win,$win->{treeNo}-1);
   return 1;
 }
 
 sub newTree {
-  my ($grp)=@_;
+  my ($win)=@_;
 
   my $nr=FSNode->new(); # blessing new root
-  splice(@{$grp->{FSFile}->treeList}, $grp->{treeNo}, 0, $nr);
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
-  &$on_tree_change($grp,'newTree') if $on_tree_change;
+  splice(@{$win->{FSFile}->treeList}, $win->{treeNo}, 0, $nr);
+  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
+  &$on_tree_change($win,'newTree') if $on_tree_change;
   return 1;
 }
 
 sub newTreeAfter {
-  my ($grp)=@_;
+  my ($win)=@_;
 
   my $nr=FSNode->new(); # blessing new root
 
-  splice(@{$grp->{FSFile}->treeList}, ++$grp->{treeNo}, 0, $nr);
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
-  &$on_tree_change($grp,'newTreeAfter') if $on_tree_change;
+  splice(@{$win->{FSFile}->treeList}, ++$win->{treeNo}, 0, $nr);
+  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
+  &$on_tree_change($win,'newTreeAfter') if $on_tree_change;
   return 1;
 }
 
 sub pruneTree {
-  my ($grp)=@_;
+  my ($win)=@_;
 
-  return unless ($grp->{FSFile} and $grp->{FSFile}->treeList->[$grp->{treeNo}]);
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
-  splice(@{$grp->{FSFile}->treeList}, $grp->{treeNo}, 1);
-  DeleteTree($grp->{root});
+  return unless ($win->{FSFile} and $win->{FSFile}->treeList->[$win->{treeNo}]);
+  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
+  splice(@{$win->{FSFile}->treeList}, $win->{treeNo}, 1);
+  DeleteTree($win->{root});
 
-  $grp->{treeNo}=max(0,min($grp->{treeNo},$grp->{FSFile}->lastTreeNo));
-#  $grp->{root} = undef;
-  $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
-  &$on_tree_change($grp,'pruneTree') if $on_tree_change;
+  $win->{treeNo}=max(0,min($win->{treeNo},$win->{FSFile}->lastTreeNo));
+#  $win->{root} = undef;
+  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
+  &$on_tree_change($win,'pruneTree') if $on_tree_change;
   return 1;
 }
 
 
 sub newNode {
   ## Adds new son to current node
-  my ($grp)=@_;
-  my $parent=$grp->{currentNode};
-  return unless ($grp->{FSFile} and $parent);
+  my ($win)=@_;
+  my $parent=$win->{currentNode};
+  return unless ($win->{FSFile} and $parent);
 
   my $nd=FSNode->new();
 
-  Paste($nd,$parent,$grp->{FSFile}->FS->defs);
-  $nd->{$grp->{FSFile}->FS->order}=$parent->{$grp->{FSFile}->FS->order};
+  Paste($nd,$parent,$win->{FSFile}->FS->defs);
+  $nd->{$win->{FSFile}->FS->order}=$parent->{$win->{FSFile}->FS->order};
 
-  setCurrent($grp,$nd);
+  setCurrent($win,$nd);
 
-  &$on_node_change($grp,'newNode') if $on_node_change;
+  &$on_node_change($win,'newNode') if $on_node_change;
 
   return $nd;
 }
 
 sub pruneNode {
   ## Deletes given node
-  my ($grp,$node)=@_;
+  my ($win,$node)=@_;
   my $t;
-  return undef unless ($grp->{FSFile} and $node and $node->parent);
+  return undef unless ($win->{FSFile} and $node and $node->parent);
 
-  Paste(Cut($t),$node->parent,$grp->{FSFile}->FS->defs)
+  Paste(Cut($t),$node->parent,$win->{FSFile}->FS->defs)
     while ($t=$node->firstson);
 
-  setCurrent($grp,$node->parent) if ($node == $grp->{currentNode});
+  setCurrent($win,$node->parent) if ($node == $win->{currentNode});
   $t=DeleteLeaf($node);
 
-  &$on_node_change($grp,'newTree') if $on_node_change;
+  &$on_node_change($win,'newTree') if $on_node_change;
   return $t;
 }
 
 sub setCurrent {
-  my ($grp,$node)=@_;
-  my $prev=$grp->{currentNode};
-  $grp->{currentNode}=$node;
-  &$on_current_change($grp,$node,$prev,'setCurrent') if $on_current_change;
+  my ($win,$node)=@_;
+  my $prev=$win->{currentNode};
+  $win->{currentNode}=$node;
+  &$on_current_change($win,$node,$prev,'setCurrent') if $on_current_change;
 }
 
 1;

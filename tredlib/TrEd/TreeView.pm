@@ -24,7 +24,18 @@ use strict;
 sub new {
   my $self = shift;
   my $class = ref($self) || $self;
-  my $new = { pinfo => {}, canvas => shift, @_ };
+  my $new = { pinfo     => {},	# maps canvas objects to nodes
+#  	      ypos_info  => {},	# maps nodes to y positions
+#  	      xpos_info  => {},	# maps nodes to x positions
+#  	      x_info     => {},	# maps node text to x positions
+#  	      wd_info    => {},	# maps nodes to widths
+#  	      txt_info   => {},	# maps nodes to text objects
+#  	      line_info  => {},	# maps nodes to line objects
+#  	      oval_info  => {},	# maps nodes to oval objects
+#  	      box_info   => {},	# maps nodes to box objects
+#  	      txtbg_info => {},	# maps nodes to box_backround objects
+	      canvas     => shift, @_ };
+
   bless $new, $class;
   return $new;
 }
@@ -58,6 +69,49 @@ sub set_pinfo {
   return undef unless ref($self);
   $self->{pinfo}=shift;
 }
+
+sub clear_pinfo {
+  my $self = shift;
+  return undef unless ref($self);
+  %{$self->{pinfo}}=();
+}
+
+sub store_gen_pinfo {
+  my ($self,$key,$value) = @_;
+  return undef unless ref($self);
+  $self->{pinfo}->{"gen:$key"}=$value;
+}
+
+sub store_node_pinfo {
+  my ($self,$node,$key,$value) = @_;
+  return undef unless ref($self);
+  $self->{pinfo}->{"node:${node};${key}"}=$value;
+}
+
+sub store_obj_pinfo {
+  my ($self,$obj,$value) = @_;
+  return undef unless ref($self);
+  $self->{pinfo}->{"obj:${obj}"}=$value;
+}
+
+sub get_gen_pinfo {
+  my ($self,$key) = @_;
+  return undef unless ref($self);
+  return $self->{pinfo}->{"gen:$key"};
+}
+
+sub get_node_pinfo {
+  my ($self,$node,$key) = @_;
+  return undef unless ref($self);
+  return $self->{pinfo}->{"node:${node};${key}"};
+}
+
+sub get_obj_pinfo {
+  my ($self,$obj) = @_;
+  return undef unless ref($self);
+  return $self->{pinfo}->{"obj:${obj}"};
+}
+
 
 sub apply_options {
   my ($self,$opts) = @_;
@@ -175,36 +229,42 @@ sub recalculate_positions {
       $parent=$parent->parent;
     }
     $maxypos=max($maxypos,$ypos);
-    $node->{"_tkYPOS_"}=$self->get_baseYPos
-		+ $ypos*(2*($self->get_nodeYSkip+$self->get_ymargin)
-		+ $pattern_count*$fontHeight
-		+ $self->get_nodeHeight);
+    $self->store_node_pinfo($node,"YPOS",
+			    $self->get_baseYPos
+			    + $ypos*(2*($self->get_nodeYSkip+$self->get_ymargin)
+				     + $pattern_count*$fontHeight
+				     + $self->get_nodeHeight));
 
     my $textWidth=0;
     my $m;
     for (my $i=0;$i<$pattern_count;$i++) {
       $m=$self->getTextWidth($self->prepare_text($fsfile,$node,$i));
-      $node->{"_tkX_$i"}=$m;
+      $self->store_node_pinfo($node,"X[$i]",$m);
       $textWidth=$m if $m>$textWidth;
     }
-    $node->{"_tkXWidth_"}=$textWidth;
+    $self->store_node_pinfo($node,"Width",$textWidth);
     $minxpos=0;
     if ($prevnode{$ypos}) {
-      $minxpos=$prevnode{$ypos}{"_tkXPOS_"}+$prevnode{$ypos}{"_tkXWidth_"}+
+      $minxpos=
+	$self->get_node_pinfo($prevnode{$ypos},"XPOS")+
+	$self->get_node_pinfo($prevnode{$ypos},"Width")+
 	$self->get_nodeXSkip+$self->get_nodeWidth+2*$self->get_xmargin;
     }
     $xpos=max($xpos,$minxpos);
-    $node->{"_tkXPOS_"}=$xpos;
+    $self->store_node_pinfo($node,"XPOS",$xpos);
     $xpos+=$self->get_nodeXSkip+$self->get_nodeWidth;
-    $canvasWidth = max($canvasWidth, $node->{"_tkXPOS_"}
-		       + $node->{"_tkXWidth_"}
+    $canvasWidth = max($canvasWidth,
+		       $self->get_node_pinfo($node,"XPOS")
+		       + $self->get_node_pinfo($node,"Width")
 		       + $self->get_baseXPos
 		       + $self->get_nodeWidth
 		       + 2*$self->get_xmargin
 		       + $self->get_nodeXSkip);
 
     $prevnode{$ypos}=$node;
+    print "WIDTH: $canvasWidth, ",$self->get_node_pinfo($node,"XPOS"),"\n";
   }
+
   $self->{canvasWidth}=$canvasWidth;
   $self->{canvasHeight}=$self->get_baseYPos
 		     + ($maxypos+1)*(2*($self->get_nodeYSkip + $self->get_ymargin)
@@ -238,11 +298,13 @@ sub node_coords {
   my ($nw,$nh)=
     (($currentNode eq $node) ? $self->get_currentNodeWidth : $self->get_nodeWidth,
      ($currentNode eq $node) ? $self->get_currentNodeHeight : $self->get_nodeHeight);
+  my $x=$self->get_node_pinfo($node,"XPOS");
+  my $y=$self->get_node_pinfo($node,"YPOS");
 
-  return ($node->{"_tkXPOS_"}+($self->get_nodeWidth-$nw)/2,
-	  $node->{"_tkYPOS_"}+($self->get_nodeHeight-$nh)/2,
-	  $node->{"_tkXPOS_"}+$nh,
-	  $node->{"_tkYPOS_"}+$nw);
+  return ($x+($self->get_nodeWidth-$nw)/2,
+	  $y+($self->get_nodeHeight-$nh)/2,
+	  $x+$nh,
+	  $y+$nw);
 }
 
 sub node_options {
@@ -301,11 +363,7 @@ sub redraw {
   my @displayAttrs;
   @displayAttrs=$fsfile->patterns() if (ref($fsfile));
 
-  foreach $node (@{$nodes}) {
-    foreach (keys(%$node)) {
-      delete $node->{$_} if (/^_tk(?:X|Text)/);
-    }
-  }
+  $self->clear_pinfo();
   recalculate_positions($self,$fsfile,$nodes);
 
   $self->canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
@@ -313,7 +371,8 @@ sub redraw {
   $self->canvas->addtag('delete','all');
   $self->canvas->delete('delete');
 
-  $self->set_pinfo({lastX => 0, lastY => 0});
+  $self->store_gen_pinfo('lastX' => 0);
+  $self->store_gen_pinfo('lastY' => 0);
 
   if ($self->get_drawSentenceInfo) {
     return unless $fsfile;
@@ -333,7 +392,6 @@ sub redraw {
 				   $self->{canvasHeight});
       $self->{canvasHeight}+=$fontHeight;
       foreach ($self->wrapLines($vtext,$self->{canvasWidth})) {
-	print "Line: $_\n";
 	$self->canvas->createText(0,$self->{canvasHeight},
 				  -font => $self->get_font,
 				  -text => $_,
@@ -349,56 +407,78 @@ sub redraw {
     $parent=$node->parent;
     use integer;
     if ($parent) {
-      $node->{"_tkLine_"}=$self->canvas->createLine($node->{"_tkXPOS_"}+$self->get_nodeWidth/2,
-					     $node->{"_tkYPOS_"}+$self->get_nodeHeight/2,
-					     $parent->{"_tkXPOS_"}+$self->get_nodeWidth/2,
-					     $parent->{"_tkYPOS_"}+$self->get_nodeHeight/2,
-						      '-arrow' =>$self->get_lineArrow,
-						     '-width' => $self->get_lineWidth,
-						     '-fill' => $self->get_lineColor);
-      $self->pinfo->{$node->{"_tkLine_"}}=$node;
+      my $line= 
+	$self->canvas->createLine($self->get_node_pinfo($node,"XPOS")+
+				  $self->get_nodeWidth/2,
+				  $self->get_node_pinfo($node,"YPOS")+
+				  $self->get_nodeHeight/2,
+				  $self->get_node_pinfo($parent,"XPOS")+
+				  $self->get_nodeWidth/2,
+				  $self->get_node_pinfo($parent,"YPOS")+
+				  $self->get_nodeHeight/2,
+				  '-arrow' =>  $self->get_lineArrow,
+				  '-width' =>  $self->get_lineWidth,
+				  '-fill' =>   $self->get_lineColor);
+      $self->store_node_pinfo($node,"Line",$line);
+      $self->store_obj_pinfo($line,$node);
     }
   }
 
   my $lineHeight=$self->getFontHeight();
   ## The Nodes ##
   foreach $node (@{$nodes}) {
-    $node->{"_tkOval_"}=$self->canvas->createOval($self->node_coords($node,$currentNode),
-						 $self->node_options($node,$fsfile->FS,$currentNode));
-    $self->canvas->addtag('point', 'withtag', $node->{"_tkOval_"});
-
+    my $oval=$self->canvas->createOval($self->node_coords($node,$currentNode),
+				       $self->node_options($node,
+							   $fsfile->FS,
+							   $currentNode));
+    $self->canvas->addtag('point', 'withtag', $oval);
+    $self->store_node_pinfo($node,"Oval",$oval);
+    $self->store_obj_pinfo($oval,$node);
 
     ## Boxes around attributes
     if ($self->get_drawBoxes) {
       ## get maximum width stored here by recalculate_positions
-      my $textWidth=$node->{_tkXWidth_};
-      $node->{"_tkTextBox_"}=
+      my $textWidth=$self->get_node_pinfo($node,"Width");
+      my $box=
 	$self->canvas->
-	  createRectangle($node->{"_tkXPOS_"}-$self->get_xmargin,
-			  $node->{"_tkYPOS_"}+$self->get_nodeHeight+$self->get_nodeYSkip-$self->get_ymargin,
-			  $node->{"_tkXPOS_"}+$textWidth+$self->get_xmargin,
-			  $node->{"_tkYPOS_"}+
+	  createRectangle($self->get_node_pinfo($node,"XPOS")-
+			  $self->get_xmargin,
+			  $self->get_node_pinfo($node,"YPOS")+
+			  $self->get_nodeHeight+
+			  $self->get_nodeYSkip-$self->get_ymargin,
+			  $self->get_node_pinfo($node,"XPOS")+
+			  $textWidth+$self->get_xmargin,
+			  $self->get_node_pinfo($node,"YPOS")+
 			  ($#displayAttrs+1)*$lineHeight+
-			  $self->get_nodeHeight+$self->get_nodeYSkip+$self->get_ymargin,
+			  $self->get_nodeHeight+$self->get_nodeYSkip+
+			  $self->get_ymargin,
 			  $self->node_box_options($node,$fsfile->FS,$currentNode));
+      $self->store_node_pinfo($node,"TextBox",$box);
+      $self->store_obj_pinfo($box,$node);
     }
 
     ## Texts of attributes
     for (my $i=0;$i<=$#displayAttrs;$i++) {
 
       ## Clear background
-      $node->{"_tkTextBg".$i."_"}=
-	$self->canvas->
-	  createRectangle($node->{"_tkXPOS_"},
-			  $node->{"_tkYPOS_"}+$self->get_nodeHeight+$self->get_nodeYSkip+
-			  $i*$lineHeight-2,
-			  $node->{"_tkXPOS_"}+$node->{"_tkX_$i"}+1,
-			  #$self->getTextWidth($self->prepare_text($node,$i))+1,
-			  $node->{"_tkYPOS_"}+$self->get_nodeHeight+$self->get_nodeYSkip+($i+1)*$lineHeight,
-			  -fill => $self->canvas->cget('-background'), -outline => undef)
-	  unless ($self->get_drawBoxes);
-      $self->canvas->addtag('textbg', 'withtag', $node->{"_tkTextBg".$i."_"});
-      $self->pinfo->{$node->{"_tkTextBg".$i."_"}}=$node;
+      unless ($self->get_drawBoxes) {
+	my $bg=
+	  $self->canvas->
+	    createRectangle($self->get_node_pinfo($node,"XPOS"),
+			    $self->get_node_pinfo($node,"YPOS")+
+			    $self->get_nodeHeight+$self->get_nodeYSkip+
+			    $i*$lineHeight-2,
+			    $self->get_node_pinfo($node,"XPOS")+
+			    $self->get_node_pinfo($node,"X[$i]")+1,
+			    $self->get_node_pinfo($node,"YPOS")+
+			    $self->get_nodeHeight+
+			    $self->get_nodeYSkip+($i+1)*$lineHeight,
+			    -fill => $self->canvas->cget('-background'),
+			    -outline => undef);
+	$self->store_node_pinfo($node,"TextBg_$i",$bg);
+	$self->store_obj_pinfo($bg,$node);
+	$self->canvas->addtag('textbg', 'withtag', $bg);
+      }
 
       ## Draw attribute
       ## Custom version (the tredish)
@@ -423,17 +503,19 @@ sub redraw {
 	  $j++;
 	  $at_text=$self->prepare_text_field($node,$1);
 	  $txt=$self->canvas->
-	    createText($node->{"_tkXPOS_"}+$xskip,
-		       $node->{"_tkYPOS_"}+
+	    createText($self->get_node_pinfo($node,"XPOS")+$xskip,
+		       $self->get_node_pinfo($node,"YPOS")+
 		       $self->get_nodeHeight+$self->get_nodeYSkip+$i*$lineHeight,
 		       -anchor => 'nw',
 		       -text => $at_text,
-		       -fill => defined($color) ? $color : $self->which_text_color($fsfile,$1),
+		       -fill =>
+		       defined($color) ? $color : $self->which_text_color($fsfile,$1),
 		       -font => $self->get_font);
 	  $xskip+=$self->getTextWidth($at_text);
 	  $self->canvas->addtag('text', 'withtag', $txt);
-	  $self->pinfo->{$txt}=$node;
-	  $node->{"_tkText[$1][$i][$j]_"}=$txt;
+	  $self->store_obj_pinfo($txt,$node);
+	  $self->store_node_pinfo($node,"Text[$1][$i][$j]",$txt);
+	  $self->store_gen_pinfo("attr:$txt",$1);
 	} elsif (/^\#{([^}]+)}$/) {
 	  unless ($self->get_noColor) {
 	    $color=$1;
@@ -443,8 +525,8 @@ sub redraw {
 	} else {
 	  if ($_ ne "") {
 	    $txt=$self->canvas->
-	      createText($node->{"_tkXPOS_"}+$xskip,
-			 $node->{"_tkYPOS_"}+
+	      createText($self->get_node_pinfo($node,"XPOS")+$xskip,
+			 $self->get_node_pinfo($node,"YPOS")+
 			 $self->get_nodeHeight+$self->get_nodeYSkip+$i*$lineHeight,
 			 -anchor => 'nw',
 			 -text => $_,
@@ -455,9 +537,6 @@ sub redraw {
 	}
       }
     }
-
-    $self->pinfo->{$node->{"_tkOval_"}}=$node;
-    $self->pinfo->{$node->{"_tkTextBox_"}}=$node if exists $node->{"_tkTextBox_"};
   }
 
   ## Canvas Custom Balloons ##
@@ -467,15 +546,19 @@ sub redraw {
       $self->get_CanvasBalloon()->
 	attach($self->canvas->Subwidget('scrolled'),
 	       -balloonposition => 'mouse',
-	       -msg => { map 
-			 {
-			   if (defined($_)) {
-			     my $msg=$self->interpolate_text_field($self->pinfo->{$_},$hint);
-			     $msg=~s/\${([^}]+)}/$self->pinfo->{$_}->{$1}/eg;
-			     $_ => encode($msg);
-			 }
-			 } $self->canvas->find('withtag','point')
-		       });
+	       -msg =>
+	       {
+		map { 
+		  if (defined($_)) {
+		    my $node=$self->get_obj_pinfo($_);
+		    my $msg=
+		      $self->interpolate_text_field($node,
+						    $hint);
+		    $msg=~s/\${([^}]+)}/$node->{$1}/eg;
+		    $_ => encode($msg);
+		  }
+		} $self->canvas->find('withtag','point')
+	       });
     }
   }
 }
