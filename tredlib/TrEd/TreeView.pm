@@ -323,7 +323,7 @@ sub ballance_xfix_node {
 
 # this routine computes node XPos in ballanced mode
 sub ballance_node {
-  my ($self, $baseX, $node, $visible) = @_;
+  my ($self, $baseX, $node, $visible, $ballanceOpts) = @_;
   my $last_baseX = $baseX;
   my $xskip = $self->get_nodeXSkip;
   my $i=0;
@@ -331,19 +331,31 @@ sub ballance_node {
 #  $last_baseX+=$self->get_node_pinfo($node,"Before");
   my @c = grep { exists $visible->{$_} } $node->children;
   foreach my $c (@c) {
-    $last_baseX = $self->ballance_node($last_baseX,$c,$visible);
+    $last_baseX = $self->ballance_node($last_baseX,$c,$visible,$ballanceOpts);
     $last_baseX += $xskip;
   }
   $last_baseX -= $xskip if @c;
   my $xpos;
-  if (scalar(@c) % 2 == 1) {
-    # odd: place just above the middle child
-    $xpos =$self->get_node_pinfo($c[$#c/2],"XPOS");
-  } elsif (@c) { # even: place to the middle of all children
-    $xpos =($self->get_node_pinfo($c[$#c],"XPOS")
-	    + $self->get_node_pinfo($c[0],"XPOS"))/2;
-  } else {
+  if (!@c) {
     $xpos = $last_baseX+$self->get_node_pinfo($node,"XPOS");
+  } else {
+    if (scalar(@c) % 2 == 1) { # odd number of nodes
+      if ($ballanceOpts->[0]) { # ballance on middle node
+	$xpos =$self->get_node_pinfo($c[$#c/2],"XPOS");
+      } else {
+	$xpos =($self->get_node_pinfo($c[$#c],"XPOS")
+		+ $self->get_node_pinfo($c[0],"XPOS"))/2;
+      }
+    } else { # even number of nodes
+      if ($ballanceOpts->[1]) {
+	$xpos =
+	  ($self->get_node_pinfo($c[1+$#c/2],"XPOS") +
+	   $self->get_node_pinfo($c[$#c/2],"XPOS"))/2;
+      } else {
+	$xpos =($self->get_node_pinfo($c[$#c],"XPOS")
+		+ $self->get_node_pinfo($c[0],"XPOS"))/2;
+      }
+    }
   }
   my $xfix = $before-$xpos+$baseX;
   if ($xfix > 0) {
@@ -441,9 +453,11 @@ sub recalculate_positions {
 #       }
 #     }
 #   }
-  
   my $ballance= exists($Opts->{ballance}) ? 
     $Opts->{ballance} : $self->get_ballanceTree;
+
+  my $ballanceOpts = [$ballance =~ /^aboveMiddleChild(Odd$|$)/ ? 1 : 0,
+		      $ballance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0];
 
   foreach $node (@{$nodes}) {
     $level=0;
@@ -577,7 +591,7 @@ sub recalculate_positions {
     my %nodes; @nodes{@$nodes}=();
     my $baseX = $baseXPos;
     foreach my $c (@zero_level) {
-      $baseX = $self->ballance_node($baseX,$c,\%nodes);
+      $baseX = $self->ballance_node($baseX,$c,\%nodes,$ballanceOpts);
     }
     foreach my $c (@zero_level) {
       $self->ballance_xfix_node(0,$c,\%nodes);
