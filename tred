@@ -1711,9 +1711,15 @@ sub onCurrentChange {
   foreach $n ($prev,$node) { 
     $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"Oval"),
 			       nodeOptions($win,$n));
-    $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"TextBox"),
-			       nodeBoxOptions($win,$n))
-      if ($tv->get_drawBoxes);  #and defined($tv->get_node_pinfo($n,"TextBox")));
+    if ($tv->get_drawBoxes) {
+      #and defined($tv->get_node_pinfo($n,"TextBox")));
+      $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"TextBox"),
+				 nodeBoxOptions($win,$n,0));
+    }
+    if ($tv->get_drawEdgeBoxes) {
+      $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"EdgeTextBox"),
+				 nodeBoxOptions($win,$n,1));
+    }
     $tv->canvas->coords($tv->get_node_pinfo($n,"Oval"),
 			$tv->node_coords($n,$win->{currentNode}));
   }
@@ -2137,13 +2143,22 @@ sub startMain {
 			nextTree($_[0]->{focusedWindow});
 		      },\%group]],
 	 [Separator=> ''],
-	 [Checkbutton=> 'Draw boxes', -underline=> 0,
-	   -variable=> \$treeViewOpts->{drawBoxes},
-	   -command => [sub {
-			   my ($grp)=@_;
-			   $grp->{focusedWindow}->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
-			   redraw_win($grp->{focusedWindow});
-			 },\%group]],
+	 [Checkbutton=> 'Draw boxes around labels', -underline=> 0,
+	  -variable=> \$treeViewOpts->{drawBoxes},
+	  -command => [sub {
+			 my ($grp)=@_;
+			 # vice versa setting should be done when focus changes
+			 $grp->{focusedWindow}->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
+			 redraw_win($grp->{focusedWindow});
+		       },\%group]],
+	 [Checkbutton=> 'Draw boxes around edge labels', -underline=> 0,
+	  -variable=> \$treeViewOpts->{drawEdgeBoxes},
+	  -command => [sub {
+			 my ($grp)=@_;
+			 # vice versa setting should be done when focus changes
+			 $grp->{focusedWindow}->{treeView}->set_drawEdgeBoxes($treeViewOpts->{drawEdgeBoxes});
+			 redraw_win($grp->{focusedWindow});
+		       },\%group]],
 	 [Checkbutton=> 'Show Hidden Nodes', -underline=> 0,
 	  -underline=> 5,
 	  -variable=> \$treeViewOpts->{showHidden},
@@ -3919,7 +3934,7 @@ sub editAttr {
   }
 
   if ($$node{$attr}=~/^(?:[^\|\\]|\\.)*\|/) {
-    $newvalue= editAmbiguousAttr($win,$->node{$attr},$attr);
+    $newvalue= editAmbiguousAttr($win,$node->{$attr},$attr);
     if (defined $newvalue) {
       $grp->{top}->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
@@ -3983,10 +3998,29 @@ sub nodeOptions {
 }
 
 sub nodeBoxOptions {
-  my ($win,$node)=@_;
-  return $->{treeView}->node_box_options($node,
+  my ($win,$node,$edge)=@_;
+  return $win->{treeView}->node_box_options($node,
 					 $win->{FSFile}->FS,
-					 $win->{currentNode});
+					 $win->{currentNode},$edge);
+}
+
+sub call_redraw_hook {
+#  my ($grp);
+#  return doEvalHook($win,"redraw_hook");
+}
+
+sub call_draw_node_hook {
+# the problem here and above is that the calls
+# to hooks should pass win reference. But redraw
+# cannot even call hooks, and has no notion about
+# window objects.
+#
+# we have to settle this down yet.
+# the best solution seems to me to change
+# the API of redraw to redraw($win,$valueLine)
+#
+# (still, $valueLine should seems obsolette)
+#
 }
 
 sub redraw_win {
@@ -4230,8 +4264,7 @@ sub doEvalHook {
   $FileNotSaved=$win->{FSFile}->notSaved;
   $TredMacro::forceFileSaved=0;
   my $result=do_eval_hook($win,$win->{macroContext},$hook,@_);
-
-  print "$@\n" if $@;
+  warn "$@\n" if $@;
   lastActionBookmark($grp->{framegroup},$bookmark) if $FileNotSaved and !$win->{FSFile}->notSaved;
   $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved);
   saveFileStateUpdate($win);
@@ -4484,6 +4517,6 @@ sub node_release {
     }
     # returning node to its position
     $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
-  } else { redraw_tree($win); }
+  } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
 }
 
