@@ -82,7 +82,7 @@ sub ChooseFrame {
 
     if ($^O eq "MSWin32") {
       $FrameData=
-	TrEd::ValLex::LibXMLData->new("$libDir/contrib/ValLex/vallex.xml",$conv);
+	TrEd::ValLex::LibXMLData->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv);
     } else {
       $FrameData=
 	TrEd::ValLex::LibXMLData->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
