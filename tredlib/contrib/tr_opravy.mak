@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-06-08 16:05:42 pajas>
+## Time-stamp: <2004-06-09 15:01:37 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -614,11 +614,11 @@ sub light_current {
 sub MoveTreeToPrev {
   my @children = $root->children;
   foreach (@children) {
-    CutNode($_);
+    Cut($_);
   }
   PrevTree();
   foreach (@children) {
-    Paste($_,$root);
+    PasteNode($_,$root);
   }
 }
 
