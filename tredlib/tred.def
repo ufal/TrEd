@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-06-07 20:49:43 pajas>
+## Time-stamp: <2001-07-27 18:48:51 pajas>
 
 package TredMacro;
 @ISA=qw(main);
@@ -141,19 +141,19 @@ sub SaveAndPrevFile {
 }
 
 sub Find {
-  $grp->{findButton}->invoke();
+  $grp->{framegroup}->{findButton}->invoke();
   $this=$grp->{currentNode};
   $FileNotSaved=0;
 }
 
 sub FindNext {
-  $grp->{findNextButton}->invoke();
+  $grp->{framegroup}->{findNextButton}->invoke();
   $this=$grp->{currentNode};
   $FileNotSaved=0;
 }
 
 sub FindPrev {
-  $grp->{findPrevButton}->invoke();
+  $grp->{framegroup}->{findPrevButton}->invoke();
   $this=$grp->{currentNode};
   $FileNotSaved=0;
 }
