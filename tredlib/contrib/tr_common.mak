@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-02-18 09:55:13 pajas>
+## Time-stamp: <2002-02-18 10:02:58 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -14,8 +14,6 @@
 #include contrib/ValLex/adverb.mak
 
 #bind OpenEditor to Ctrl+Shift+Return menu Zobraz valenèní slovník
-#bind OpenEditor to F2 menu Zobraz valenèní slovník
-
 
 #bind choose_frame_or_advfunc to Ctrl+Return menu Vyber ramec pro sloveso, funktor pro adverbium
 #bind choose_frame_or_advfunc to F1 menu Vyber ramec pro sloveso, funktor pro adverbium
