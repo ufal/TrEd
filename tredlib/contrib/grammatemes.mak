@@ -14,7 +14,7 @@ import TredMacro;
 #use vars qw ($root $grp $this);
 
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
-require contrib::Assign_german_grammatemes;
+require Assign_german_grammatemes;
 
 # ---------------------------------------------------
 # --------------- color settings --------------------
