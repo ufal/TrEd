@@ -8,7 +8,7 @@ BEGIN {
 
   use TrEd::Convert;
   use Exporter  ();
-  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK
+  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros
               $macrosEvaluated $safeCompartment %defines);
 
   @ISA=qw(Exporter);
@@ -54,6 +54,7 @@ sub read_macros {
     %keyBindings=();
     %menuBindings=();
     @macros=();
+    $exec_code=undef;
     print STDERR "Reading $defaultMacroFile\n" if $macroDebug;
     push @macros,"\n#line 1 \"$defaultMacroFile\"\n";
     print "ERROR: Cannot open macros: $defaultMacroFile!\n", return 0
@@ -100,7 +101,9 @@ sub read_macros {
     } else {
       if ($ifok) {
 	push @macros,$_;
-	if (/^\#define\s+(\S*)(?:\s+(.*))?/) {
+	if (/^\#!(.*)$/) {
+	  $exec_code=$1 unless defined $exec_code; # first wins
+	} elsif (/^\#define\s+(\S*)(?:\s+(.*))?/) {
 	  $defines{$1}=$2;	# there is no use for $2 so far
 	} elsif (/^\#undefine\s+(\S*)/) {
 	  delete $defines{$1};
