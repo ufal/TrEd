@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-01-21 12:09:14 pajas>
+## Time-stamp: <2004-02-19 17:38:51 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -109,7 +109,7 @@ sub hash_AIDs {
   my %aids;
   my $node=ref($_[0]) ? $_[0] : $root;
   while ($node) {
-    $aids{$node->{AID}} = $node;
+    $aids{$node->{AID}.$node->{TID}} = $node;
     $node=$node->following;
   }
   return \%aids;
@@ -204,7 +204,7 @@ sub AssignTrLemma {
 #bind goto_father to Ctrl+F
 sub goto_father {
   print STDERR map {$_->{trlemma},"\n"} PDT::GetFather_TR($this);
-  ($this) = PDT::GetFather_TR($this);
+  ($this) = @father;
   ChangingFile(0);
   $Redraw='none';
 }
@@ -222,4 +222,19 @@ sub analytical_tree {
 #bind tectogrammatical_tree to Ctrl+R
 sub tectogrammatical_tree {
   PDT::TRstruct();
+}
+
+#bind light_aidrefs to Ctrl+a
+sub light_aidrefs {
+  my$aids=hash_AIDs();
+  foreach my$aid(keys %$aids){
+    $aids->$aid}->{_light}='';
+  }
+  foreach my$aid(getAIDREFs($this)){
+    if(exists$aids->{$aid}){
+      $aids->{$aid}->{_light}='_LIGHT_' if$aid ne$this->{AID};
+    }else{
+      $this->{_light}=join'|',(split/\|/,$this->{_light}),$aid;
+    }
+  }
 }
