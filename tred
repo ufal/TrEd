@@ -45,7 +45,7 @@ $about=
 $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
 
 # Get user's login name
-my ($userlogin) = getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown';
+($userlogin) = getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown';
 ($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
 
 use Tk;
