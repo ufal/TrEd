@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-09-04 11:13:56 pajas>
+## Time-stamp: <2001-11-26 20:29:42 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -12,7 +12,7 @@ sub file_opened_hook {
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
 
-  Corref->default_tr_attrs();
+  Corref->default_tr_attrs() unless $grp->{FSFile};
 
   foreach ("New Node","Remove Active Node","Insert New Tree",
 	   "Insert New Tree After", "Remove Whole Current Tree") {

@@ -18,14 +18,15 @@ import Tectogrammatic;
 
 
 sub switch_context_hook {
-
-  SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-		  '<? Parent($node) ? "#{custom4}\${tfa}#{default}_" : "" ?>'.
-		  '${func}<? "_#{custom2}\${reltype}" if $${reltype} =~ /CO|PA/ ?>'.
-		  '<? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>'
-		 );
-  SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
-		    "afun:\t\${afun}\ntag:\t\${tag}");
+  if ($grp->{FSFile}) {
+    SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+		    '<? Parent($node) ? "#{custom4}\${tfa}#{default}_" : "" ?>'.
+		    '${func}<? "_#{custom2}\${reltype}" if $${reltype} =~ /CO|PA/ ?>'.
+		    '<? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>'
+		   );
+    SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
+		      "afun:\t\${afun}\ntag:\t\${tag}");
+  }
   $FileNotSaved=0;
   return "1";
 }

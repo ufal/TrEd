@@ -34,6 +34,7 @@ sub switch_context_hook {
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
   return unless ($precontext ne $context);
+  return unless $grp->{FSFile};
   remove_diff_patterns();
   add_diff_patterns();
   return;
@@ -46,6 +47,7 @@ sub pre_switch_context_hook {
 
 # insert remove_diff_patterns as menu Add diff patterns
 sub add_diff_patterns {
+  return unless $grp->{FSFile};
   my @pat=GetDisplayAttrs();
   my $hint=GetBalloonPattern();
 
@@ -63,6 +65,7 @@ sub add_diff_patterns {
 
 # insert remove_diff_patterns as menu Remove diff patterns
 sub remove_diff_patterns {
+  return unless $grp->{FSFile};
   my $hint=GetBalloonPattern();
   $hint=~s/\n.*_diff_.*(?:\n|$)//g;
   SetBalloonPattern($hint);
