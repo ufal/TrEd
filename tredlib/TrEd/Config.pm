@@ -93,6 +93,7 @@ BEGIN {
   $displayStatusLine
   $openFilenameCommand
   $saveFilenameCommand
+  $NoConvertWarning
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -418,6 +419,7 @@ sub set_config {
 				    ($^O eq 'MSWin32') ? 'prfile32.exe /-' : 'lpr'
 				   );
   $imageMagickConvert = val_or_def($confs,"imagemagickconvert",'convert');
+  $NoConvertWarning = val_or_def($confs,"noconvertwarning",0);
 
   $gzip=val_or_def($confs,"gzip",(-x "/bin/gzip" ? "/bin/gzip -c" :
 				  (-x "$libDir/../gzip" ? 
