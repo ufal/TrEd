@@ -1,5 +1,7 @@
 # -*- cperl -*-
 
+#encoding iso-8859-2
+
 $FrameData=undef;
 $ChooserHideObsolete=1;
 $frameid_attr="frameid";
@@ -77,10 +79,12 @@ sub parse_lemma {
 sub InitFrameData {
   my $top=ToplevelFrame();
   unless ($FrameData) {
+    my $support_unicode = ($Tk::VERSION ge 804.00);
     my $conv= TrEd::CPConvert->new("utf-8",
-				   ($^O eq "MSWin32") ?
-				   "windows-1250":
-				   "iso-8859-2");
+				   $support_unicode ? "utf-8" :
+				   (($^O eq "MSWin32") ?
+				    "windows-1250" :
+				    "iso-8859-2"));
     my $info;
     eval {
       if ($^O eq "MSWin32") {
@@ -211,6 +215,7 @@ sub copy_verb_frame {
   for (my $i=length($target_lemma); $i>0; $i--) {
     $lexlist->focus_by_text(substr($target_lemma,0,$i),undef,1) && last;
   }
+  $d->bind('<Return>', \&TrEd::ValLex::Widget::dlgReturn );
   $d->bind($d,'<Escape>', [sub { shift; $_[0]->{selected_button}= "Cancel"; },$d] );
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   my $answer=$d->Show();
