@@ -18,7 +18,10 @@ sub show_dialog {
   my ($top,$data,$select_field,$autosave,$confs,
       $wordlist_item_style,
       $framelist_item_style,
-      $fe_confs)=@_;
+      $fe_confs,
+      $select_frame,
+      $start_frame_editor
+     )=@_;
 
   my $d = $top->DialogBox(-title => "Frame editor: ".
 			  $data->getUserName($data->user()),
@@ -41,6 +44,8 @@ sub show_dialog {
     print "querying @{$select_field}\n";
     $vallex->wordlist_item_changed($vallex->subwidget('wordlist')
 				 ->focus($data->findWordAndPOS(@{$select_field})));
+    print "Selecting $select_frame\n";
+    $vallex->subwidget('framelist')->select_frames($select_frame);
     print "done.\n";
   }
 
@@ -93,6 +98,9 @@ sub show_dialog {
 		 }
 		 $d->Unbusy(-recurse=> 1);
 	       },$d,$vallex]);
+  if ($start_frame_editor) {
+    $d->afterIdle([$vallex => 'addframe_button_pressed']);
+  }
   $d->Show();
   if ($vallex->data()->changed()) {
     if ($autosave) {
@@ -101,10 +109,22 @@ sub show_dialog {
       $vallex->ask_save_data($top);
     }
   }
+  my $frame_id;
+  do {
+    my $fl=$vallex->subwidget('framelist')->widget();
+    my $item=$fl->infoAnchor();
+    if (defined($item)) {
+      my $frame=$fl->infoData($item);
+      if (ref($frame)) {
+	$frame_id=$vallex->data()->getFrameId($frame);
+      }
+    }
+  };
   $vallex->destroy();
   undef $vallex;
   $d->destroy();
   undef $d;
+  return $frame_id;
 }
 
 sub create_widget {
@@ -361,7 +381,7 @@ sub framelist_item_changed {
   my $h=$self->subwidget('framelist')->widget();
   my $frame;
   my $e;
-  $frame=$h->infoData($item) if $item;
+  $frame=$h->infoData($item) if defined($item);
   $frame=undef unless ref($frame);
   $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
   $self->subwidget('frameproblem')->fetch_data($frame);
