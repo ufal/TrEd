@@ -78,7 +78,7 @@ sub node_style_hook {
   if ($node->{x_TNT} eq 'ID_node') {
     my @glo=split(',',$node->{x_TNglo});
     add_style($styles,'Line',
-	      -coords => join('&',"n,n,p,p", map { "n,n,[ord=$_],[ord=$_]" } @glo),
+	      -coords => join('&',"n,n,p,p", map { "n,n,x[ord=$_],y[ord=$_]" } @glo),
 	      -fill => $node->{x_TNcolor}.("&$node->{x_TNcolor}"x@glo),
 	      -arrow => 'last'.('&last'x@glo),
 	      -width => '1'.('&1'x@glo)
@@ -100,7 +100,7 @@ sub node_style_hook {
 	     );
     add_style($styles,'Line',
 	      -fill => $node->parent->{x_TNcolor},
-	      -dash => '-',
+	      -dash => '_',
 	     );
   }
   # styling OR_nodes
@@ -124,7 +124,7 @@ sub node_style_hook {
 	     );
     add_style($styles,'Line',
 	      -fill => 'orange',
-	      -dash => '.',
+	      -dash => ',',
 	     );
   }
   # styling all other nodes
