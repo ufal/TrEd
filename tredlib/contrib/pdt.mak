@@ -303,6 +303,53 @@ sub file2TR {
   GotoTree(1);
 }
 
+
+=item PDT->SaveAttributes(save_prefix,\@attributes,top?)
+
+For the whole tree (or the subtree of optional top-node), copy values
+of given attributes into new set of attributes with the original names
+prefixed with the given save_prefix.
+
+Thus, e.g., C<PDT->SaveAttributes('x_save_',[qw(afun lemma tag)])>
+stores afun to x_save_afun, lemma to x_save_lemma and tag to x_save_tag
+for every node in the current tree.
+
+=cut
+sub SaveAttributes {
+  my ($class,$prefix,$attrs,$top)=@_;
+  $top||=$root;
+  return if $prefix eq "";
+  my $node=$top;
+  while ($node) {
+    foreach (@$attrs) {
+      $node->{$prefix.$_}=$node->{$_};
+    }
+    $node=$node->following($top);
+  }
+}
+
+=item PDT->RestoreSavedAttributes(save_prefix,\@attributes,top?)
+
+Same as SaveAttributes but other way round.
+Thus, e.g., C<PDT->RestoreSavedAttributes('x_save_',[qw(afun lemma tag)])>
+copies value of afun from x_save_afun, lemma from x_save_lemma and
+tag from x_save_tag for every node in the current tree.
+
+=cut
+sub RestoreSavedAttributes {
+  my ($class,$prefix,$attrs,$top)=@_;
+  $top||=$root;
+  return if $prefix eq "";
+  my $node=$top;
+  while ($node) {
+    foreach (@$attrs) {
+      $node->{$prefix.$_}=$node->{$_};
+    }
+    $node=$node->following($top);
+  }
+}
+
+
 =item PDT->MD2TagLemma(source,top?)
 
 Copy values of C<lemmaMD_src> and C<tagMD_src> attributes (that is,
@@ -317,8 +364,8 @@ whole tree.
 sub MD2TagLemma {
   my ($class,$src,$top)=@_;
   $top||=$root;
-  return if $src eq "";
   $src='a' unless defined $src;
+  return if $src eq "";
   $src="_$src";
   my $node=$top;
   while ($node) {
@@ -385,7 +432,7 @@ sub tree2AR {
   $src='a' unless defined $src;
   GotoTree(1);
   do {
-    print "$root->{form} 000\n";
+    print "$root->{form}\n";
     MD2TagLemma($class,$src);
     Analytic->assign_all_afun_auto();
     delTagLemma($class) unless $src eq "";
