@@ -39,6 +39,18 @@ $dash_as_threedashes=1;         # ignore difference between '-' and '---' in att
 $id="ord";			# (numeric) attribute which identifies
                                 # elements to compare
 
+#bind clear_diff_attrs to Alt+-
+sub clear_diff_attrs {
+  foreach my $tree (GetTrees()) {
+    foreach my $node ($tree,$tree->descendants) {
+      delete $node->{_group_};
+      delete $node->{_diff_in_};
+      delete $node->{_diff_dep_};
+      delete $node->{_diff_attrs_}
+    }
+  }
+}
+
 sub switch_context_hook {
   my ($precontext,$context)=@_;
   # if this file has no balloon pattern, I understand it as a reason to override
