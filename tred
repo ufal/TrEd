@@ -10,6 +10,7 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
             $this $FileNotSaved $forceFileSaved $_NoSuchTree $NodeClipboard
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $showHidden $appName %menuBindings %keyBindings
+            $savedSavePixmap $normalSavePixmap
            );
 
 $version='$Revision$ ';
@@ -415,14 +416,14 @@ sub setConfig {
 # TrEd::Window ? should openFile in focusedWindow
 sub gotoFile {
   my ($grp,$fn,$no_recent)=@_;
-  return 0 if doEvalHook($grp,"goto_file_hook") eq 'stop';
+  return 0 if doEvalHook($grp->{focusedWindow},"goto_file_hook") eq 'stop';
   return 0 if ($fn >= $grp->{currentFilelist}->file_count or $fn<0);
-#  askSaveFile($grp);
-  $grp->{currentFileNo}=$fn;
-  openFile($grp,$grp->{currentFilelist}->file_at($grp->{currentFileNo}),$no_recent);
+
+  $grp->{focusedWindow}->{currentFileNo}=$fn;
+  openFile($grp,$grp->{currentFilelist}->file_at($grp->{focusedWindow}->{currentFileNo}),$no_recent);
   if ($grp->{Filelist} and
 	$grp->{filelistCurrentFilelist} eq $grp->{currentFilelist}) {
-    my $path=filelistEntryPath($grp->{currentFilelist},$grp->{currentFileNo});
+    my $path=filelistEntryPath($grp->{currentFilelist},$grp->{focusedWindow}->{currentFileNo});
     $grp->{Filelist}->anchorSet($path);
     $grp->{Filelist}->selectionClear();
     $grp->{Filelist}->selectionSet($path);
@@ -432,43 +433,69 @@ sub gotoFile {
 
 sub nextFile {
   my ($grp,$no_recent)=@_;
-  return gotoFile($grp,$grp->{currentFileNo}+1,$no_recent);
+  return gotoFile($grp,$grp->{focusedWindow}->{currentFileNo}+1,$no_recent);
 }
 sub prevFile {
   my ($grp,$no_recent)=@_;
-  return gotoFile($grp,$grp->{currentFileNo}-1,$no_recent);
+  return gotoFile($grp,$grp->{focusedWindow}->{currentFileNo}-1,$no_recent);
 }
 
 # TrEd::Window ?
 sub resumeFile {
-  my ($grp,$fsfile)=@_;
-  return unless ref($grp) and ref($fsfile);
+  my ($win,$fsfile,$keep)=@_;
+  return unless ref($win) and ref($fsfile);
   print "Resuming file ".$fsfile->filename."\n"  if $tredDebug;
-  closeFile($grp);
+  closeFile($win,0,$keep);
 
-  $grp->{FSFile}=$fsfile;
-  $grp->{treeNo}=$fsfile->currentTreeNo;
-  $grp->{currentNode}=$fsfile->currentNode;
-  @openfiles=grep { $_ ne $fsfile } @openfiles;
-  updatePostponed($grp);
-  saveFileStateUpdate($grp);
+  $win->{FSFile}=$fsfile;
+  $win->{treeNo}=$fsfile->currentTreeNo;
+  $win->{currentNode}=$fsfile->currentNode;
+  saveFileStateUpdate($win);
 }
 
-# TrEd::Window ?
-sub closeFile {
-  my ($grp,$no_update)=@_;
+sub fsfileDisplayingWindows {
+  my ($grp,$fsfile)=@_;
+  return 
+    grep {
+      $_->{FSFile} eq $fsfile 
+    } @{$grp->{treeWindows}};
+}
 
-  $grp->{Nodes}=undef;
+sub isFocused {
+  my ($win)=@_;
+  return $win eq $win->{framegroup}->{focusedWindow};
+}
+
+
+sub closeFile {
+  my ($win,$no_update,$keep)=@_;
+
+  $win->{Nodes}=undef;
   undef $NodeClipboard;
-  $grp->{root}=undef;
-  $grp->{FSFile}=undef;
-  $grp->{treeNo}=undef;
-  delete $grp->{currentNode} if (exists $grp->{currentNode});
-  undef %{$grp->{treeView}->pinfo} if ($grp->{treeView}->pinfo);
-  $valueLine="";
+  $win->{root}=undef;
+  my $fsfile=$win->{FSFile};
+  $win->{FSFile}=undef;
+  $win->{treeNo}=undef;
+  delete $win->{currentNode} 
+    if (exists $win->{currentNode});
+  $win->{treeView}->clear_pinfo();
+  $valueLine="" if (isFocused($win));
+  if ($keep and $fsfile) {
+    print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
+    $fsfile->currentTreeNo($win->{treeNo});
+    $fsfile->currentNode($win->{currentNode});
+  } else {
+    if ($fsfile and not fsfileDisplayingWindows($win->{framegroup},$fsfile)) {
+      print STDERR "Removing ".$fsfile->filename()." from list of open files\n"  if $tredDebug;
+      @openfiles=grep { $_ ne $fsfile } @openfiles;
+      undef $fsfile;
+    }
+  }
   unless ($no_update) {
-    updateTitle($grp);
-    redraw_tree($grp);
+    updateTitle($win->{framegroup});
+    updatePostponed($win->{framegroup});
+    get_nodes_win($win);
+    redraw_win($win);
   }
 }
 
@@ -510,13 +537,13 @@ sub addToRecent {
 sub bookmarkThis {
   my ($grp)=@_;
   my $f=undef;
-  if (ref($grp->{FSFile})) {
-    $f=$grp->{FSFile}->filename()."##".($grp->{treeNo}+1);
-    if ($grp->{currentNode}) {
+  if (ref($grp->{focusedWindow}->{FSFile})) {
+    $f=$grp->{focusedWindow}->{FSFile}->filename()."##".($grp->{focusedWindow}->{treeNo}+1);
+    if ($grp->{focusedWindow}->{currentNode}) {
       my $root;
       my $i=0;
-      $root=$grp->{FSFile}->treeList->[$grp->{treeNo}];
-      while ($root and $root ne $grp->{currentNode}) {
+      $root=$grp->{focusedWindow}->{FSFile}->treeList->[$grp->{focusedWindow}->{treeNo}];
+      while ($root and $root ne $grp->{focusedWindow}->{currentNode}) {
 	$i++;
 	$root=$root->following();
       }
@@ -584,7 +611,7 @@ sub updatePostponed {
     print STDERR "Updating session menu\n"  if $tredDebug;
     my $menu= $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
-    $grp->{PostponedFileMenu}->command(-label=> 'Kept files',
+    $grp->{PostponedFileMenu}->command(-label=> 'Open files',
 				       -state=> 'disabled',
 				       -background=> '#444444'
 				      );
@@ -592,7 +619,7 @@ sub updatePostponed {
     foreach (@openfiles) {
       $grp->{PostponedFileMenu}->command(-label => "$i.  ".$_->filename(),
 				      -underline=> 0,
-				      -command=> [\&openFile,$grp,$_->filename()]);
+				      -command=> [\&openFile,$grp,$_->filename(),0,1]);
       $i++;
     }
     $grp->{PostponedFileMenu}->command(-label=> 'none',
@@ -616,20 +643,21 @@ sub updatePostponed {
 sub updateTitle {
   my ($grp)=@_;
   return unless ref($grp);
-  if (defined($grp->{currentFileNo}) and 
-      ref($grp->{FSFile}) and
+  if (defined($grp->{focusedWindow}->{currentFileNo}) and 
+      ref($grp->{focusedWindow}->{FSFile}) and
       defined($grp->{currentFilelist})) {
     $grp->{top}->title("$appName    ".
-			 $grp->{currentFilelist}->name()."(".($grp->{currentFileNo}+1)."/".
-			 $grp->{currentFilelist}->file_count()."): ".$grp->{FSFile}->filename()
-			);
+		       $grp->{currentFilelist}->name()."(".($grp->{focusedWindow}->{currentFileNo}+1)."/".
+		       $grp->{currentFilelist}->file_count()."): ".$grp->{focusedWindow}->{FSFile}->filename()
+		      );
   } else {
     $grp->{top}->title("$appName");
   }
 }
 
 sub openFile {
-  my ($grp,$f,$no_recent)= @_;
+  my ($grp,$f,$no_recent,$keep)= @_;
+  my $win=$grp->{focusedWindow};
   my $goto= undef;
   my %fs=(fs=> 'FS format',
 	  fgz=> 'gzipped FS format',
@@ -642,152 +670,195 @@ sub openFile {
     print "Goto suffix is $goto\n";
   }
 
-  askSaveFile($grp,1)
-    unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
+  $keep = askSaveFile($win,1)
+    unless ($keep or ref($win->{FSFile}) and $win->{FSFile}->filename() eq $f);
 
-  $grp->{top}->Busy(-recurse=> 1) unless $insideEval;
-  foreach ($grp->{FSFile},@openfiles) {
+  $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
+  foreach ($win->{FSFile},@openfiles) {
     if (ref($_) and $_->filename() eq $f) {
-      print "Opening postponed file\n"  if $tredDebug;
-      resumeFile($grp,$_);
+      print "Opening postponed file\n" if $tredDebug;
+      resumeFile($win,$_,$keep);
 
-      $grp->{currentFileNo}= max(0,$grp->{currentFileNo});
-      insertToFilelist($grp,$grp->{currentFilelist},$grp->{currentFileNo},$f.$goto);
+      $win->{currentFileNo} =
+	max(0,$win->{currentFileNo});
+      insertToFilelist($grp,$grp->{currentFilelist},
+		       $win->{currentFileNo},
+		       $f.$goto);
       updateTitle($grp);
-      applyFileSuffix($grp,$goto);
-      getNodes($grp);
-      redraw_tree($grp);
-      if ($grp->{currentNode}) {
-	centerToXY($grp,0,0);
+      applyFileSuffix($win,$goto);
+      get_nodes_win($win);
+      redraw_win($win);
+      if ($win->{currentNode}) {
+	centerToXY($win,0,0);
       }
-      doEvalHook($grp,"file_resumed_hook");
+      doEvalHook($win,"file_resumed_hook");
       addToRecent($grp,$f) unless $no_recent;
-      $grp->{top}->Unbusy() unless $insideEval;
+      $win->toplevel->Unbusy() unless $insideEval;
       return 2;
     }
   }
 
-  closeFile($grp,1);
+  closeFile($win,1,$keep);
 
-  $grp->{FSFile}= FSFile->newFSFile($f,@backends);
-  $grp->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{FSFile}->backend);
-  print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
+  $win->{FSFile}= FSFile->newFSFile($f,@backends);
+  $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
+  print STDERR "empty or corrupt file!\n" 
+    if ($win->{FSFile}->lastTreeNo<0);
 
-  $grp->{treeNo}=0;
+  $win->{treeNo}=0;
 
+  if ($win->{FSFile}) {
+    push @openfiles, $win->{FSFile};
+    updatePostponed($grp);
+  }
   # add file to filelist
-  $grp->{currentFileNo}= max(0,$grp->{currentFileNo});
-  insertToFilelist($grp,$grp->{currentFilelist},$grp->{currentFileNo},$f.$goto);
+  $win->{currentFileNo}= max(0,$win->{currentFileNo});
+  insertToFilelist($grp,$grp->{currentFilelist},$win->{currentFileNo},$f.$goto);
   updateTitle($grp);
 
-  applyFileSuffix($grp,$goto);
-  getNodes($grp);
-  doEvalHook($grp,"file_opened_hook");
-  redraw_tree($grp);
-  if ($grp->{currentNode}) {
-    centerToXY($grp,0,0);
+  applyFileSuffix($win,$goto);
+  get_nodes_win($win);
+  doEvalHook($win,"file_opened_hook");
+  redraw_win($win);
+  if ($win->{currentNode}) {
+    centerToXY($win,0,0);
   }
-  $grp->{top}->Unbusy() unless $insideEval;
+  $win->toplevel->Unbusy() unless $insideEval;
 
   addToRecent($grp,$f);
   return 1;
 }
 
 sub applyFileSuffix {
-  my ($grp,$goto)= @_;
-  return unless ref($grp) and defined($goto) and $goto ne "";
+  my ($win,$goto)= @_;
+  return unless $win->{FSFile} and defined($goto) and $goto ne "";
   # -- smells like PDT-specific code, at least the second case
   # but we want it, dont we:)
 
   if ($goto=~/^##([0-9]+)/) {
-    $grp->{treeNo}=min(max(0,$1-1),$grp->{FSFile}->lastTreeNo);
+    $win->{treeNo}=min(max(0,$1-1),$win->{FSFile}->lastTreeNo);
   } elsif ($goto=~/^#([0-9]+)/) {
-    for (my $i=0;$i<=$grp->{FSFile}->lastTreeNo;$i++) {
-      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{form} eq "#$1");
+    for (my $i=0;$i<=$win->{FSFile}->lastTreeNo;$i++) {
+      $win->{treeNo}=$i,last if ($win->{FSFile}->treeList->[$i]->{form} eq "#$1");
     }
   }
   # new: we're the dot in .[0-9]+ (TM)
   my $root;
   if ($goto=~/\.([0-9]+)$/) {
-    $root=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+    $root=$win->{FSFile}->treeList->[$win->{treeNo}];
     my $i=$1;
     while ($root and $i>0) {
       $i--;
       $root=$root->following();
     }
-    $grp->{currentNode}=$root if ($root);
+    $win->{currentNode}=$root if ($root);
   }
   # hey, caller, you should redraw after this!
 }
 
 sub saveFile {
-  my $grp=shift;
+  my ($win)=@_;
+  return unless $win->{FSFile};
 
-  return unless $grp->{FSFile};
-
-  my $f=$grp->{FSFile}->filename;
+  my $f=$win->{FSFile}->filename;
 
   rename $f,$f."~" if (-f $f);
 
-  $grp->{top}->Busy(-recurse=> 1) unless $insideEval;
-  unless ($grp->{FSFile}->writeFile($f)) {
-    $grp->{top}->Unbusy() unless $insideEval;
-    ErrorMessage($grp,"Error saving file to '$f'\n($!)\n");
+  $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
+  unless ($win->{FSFile}->writeFile($f)) {
+    $win->toplevel->Unbusy() unless $insideEval;
+    ErrorMessage($win->{framegroup},"Error saving file to '$f'\n($!)\n");
     return 0;
   }
-  $grp->{top}->Unbusy() unless $insideEval;
-  saveFileStateUpdate($grp);
-
+  $win->toplevel->Unbusy() unless $insideEval;
+  saveFileStateUpdate($win);
 }
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
-  my ($grp,$node,$show)=@_;
+  my ($win,$node,$show)=@_;
   $show=$showHidden unless defined $show;
 
-  return 0 unless ($node and $grp->{FSFile});
-  return 1 if $show or not defined($grp->{FSFile}->FS->hide());
-  while ($node and ($node->{$grp->{FSFile}->FS->hide()} ne 'hide')) {
+  return 0 unless ($node and $win->{FSFile});
+  return 1 if $show or not defined($win->{FSFile}->FS->hide());
+  while ($node and ($node->{$win->{FSFile}->FS->hide()} ne 'hide')) {
     $node=$node->parent;
   }
   return ($node ? 0 : 1)
 }
 
 sub HNext { # same as Next but obey $showHidden
-  my ($grp,$node,$top)= @_;
+  my ($win,$node,$top)= @_;
   $node=Next($node,$top);
   while ($node) {
-    return $node if (isShown($grp,$node));
+    return $node if (isShown($win,$node));
     $node=Next($node,$top);
   }
   return 0;
 }
 
 sub HPrev { # same as Next but obey $showHidden
-  my ($grp,$node,$top)= @_;
+  my ($win,$node,$top)= @_;
   $node=Prev($node,$top);
   while ($node) {
-    return $node if (isShown($grp,$node));
+    return $node if (isShown($win,$node));
     $node=Prev($node,$top);
   }
   return 0;
 }
 
-sub getValueLine {
+sub update_value_line {
   my ($grp)=@_;
-  $valueLine=encode($grp->{FSFile}->value_line($grp->{treeNo}));
+  my $win=$grp->{focusedWindow}; # only focused window uses the value line
+  if ($win and $win->{FSFile}) {
+    $valueLine=encode($win->{FSFile}->value_line($win->{treeNo}));
+  } else {
+    $valueLine="";
+  }
+  return $valueLine;
 }
 
-sub getNodes {
-  my ($grp)=@_;
-  if ($grp->{FSFile}) {
-    $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
+### Get Nodes
+
+sub get_nodes_win {
+  my ($win)=@_;
+  if ($win->{FSFile}) {
+    $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
+    ($win->{Nodes},$win->{currentNode})= $win->{FSFile}->nodes($win->{treeNo},
+							       $win->{currentNode},
+							       $showHidden);
   } else {
-    $grp->{root}=undef;
+    $win->{root}=undef;
+    $win->{Nodes}=[];
+    $win->{currentNode}=undef;
   }
-  getValueLine($grp);
-  ($grp->{Nodes},$grp->{currentNode})= $grp->{FSFile}->nodes($grp->{treeNo},
-							      $grp->{currentNode},
-							      $showHidden);
+  update_value_line($win->{framegroup}) if (isFocused($win));
+}
+
+sub get_nodes_fsfile {
+  my ($grp,$fsfile)=@_;
+  return if $insideEval;
+  foreach (fsfileDisplayingWindows($grp,$fsfile)) {
+    get_nodes_win($_);
+  }
+  return;
+}
+
+sub get_nodes_fsfile_tree {
+  my ($grp,$fsfile,$tree_no)=@_;
+  return if $insideEval;
+  foreach (grep {$_->{treeNo} == $tree_no}
+	   fsfileDisplayingWindows($grp,$fsfile)) {
+    get_nodes_win($_);
+  }
+  return;
+}
+
+sub get_nodes_all {
+  my ($grp)=@_;
+  foreach (@{ $grp->{treeWindows} }) {
+    get_nodes_win($_);
+  }
+  return;
 }
 
 ############################################################
@@ -805,24 +876,23 @@ sub selectFilelist {
   if ($fl ne $grp->{currentFilelist}) {
     # save file position in the current file-list
     # before switching
-    if (ref($grp->{FSFile}) and
-	$grp->{currentFilelist}->position($grp->{FSFile}->filename())>=0) {
-      $grp->{currentFilelist}->set_current($grp->{FSFile}->filename());
+    if (ref($grp->{focusedWindow}->{FSFile}) and
+	$grp->{currentFilelist}->position($grp->{focusedWindow}->{FSFile}->filename())>=0) {
+      $grp->{currentFilelist}->set_current($grp->{focusedWindow}->{FSFile}->filename());
     }
     $grp->{currentFilelist}=$fl;
   }
 
   # find current file
-  $grp->{currentFileNo}=max(0,$fl->position());
-  my $file=$fl->file_at($grp->{currentFileNo});
+  $grp->{focusedWindow}->{currentFileNo}=max(0,$fl->position());
+  my $file=$fl->file_at($grp->{focusedWindow}->{currentFileNo});
 
-  print "Setting up file $file, no. $grp->{currentFileNo}\n"  if $tredDebug;
+  print "Setting up file $file, no. $grp->{focusedWindow}->{currentFileNo}\n"  if $tredDebug;
 
   if (defined($file)) {
     openFile($grp,$file);
   } else {
-    askSaveFile($grp,1);
-    closeFile($grp);  #emtpy filelist
+    closeFile($grp->{focusedWindow},0,askSaveFile($grp->{focusedWindow},1));  #emtpy filelist
   }
 }
 
@@ -945,7 +1015,7 @@ sub insertToFilelist {
 
   my ($grp,$filelist,$position)=(shift,shift,shift);
   $filelist=$grp->{currentFilelist} unless defined($filelist);
-  $position=$grp->{currentFileNo} unless defined($position);
+  $position=$grp->{focusedWindow}->{currentFileNo} unless defined($position);
   return unless ref($filelist);
 
 
@@ -990,12 +1060,12 @@ sub insertToFilelist {
 sub removeFromFilelist {
   my ($grp,$filelist,$position)=(shift,shift,shift);
   $filelist=$grp->{currentFilelist} if not defined($filelist);
-  $position=$grp->{currentFileNo} if not defined($position);
+  $position=$grp->{focusedWindow}->{currentFileNo} if not defined($position);
   return unless ref($filelist);
 
   $filelist->remove(@_);
   if ($filelist eq $grp->{currentFilelist}) {
-    $grp->{currentFileNo}= min($grp->{currentFileNo},
+    $grp->{focusedWindow}->{currentFileNo}= min($grp->{focusedWindow}->{currentFileNo},
 				$filelist->file_count-1);
   }
 
@@ -1300,8 +1370,8 @@ sub filelistDialog {
 			  },$grp,$d ])
     ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
 
-  if ($grp->{currentFileNo}) {
-    my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{currentFileNo});
+  if ($grp->{focusedWindow}->{currentFileNo}) {
+    my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{focusedWindow}->{currentFileNo});
     $t->anchorSet($path);
     $t->selectionClear();
     $t->selectionSet($path);
@@ -1323,8 +1393,8 @@ sub generateSortedMacroTable {
   my ($grp)=@_;
   my @macroTable= map { [ 
 			 $_,
-			 $menuBindings{$grp->{macroContext}}->{$_}->[1],
-			] } keys %{$menuBindings{$grp->{macroContext}}};
+			 $menuBindings{$grp->{focusedWindow}->{macroContext}}->{$_}->[1],
+			] } keys %{$menuBindings{$grp->{focusedWindow}->{macroContext}}};
   if ($grp->{macroListOrder} eq 'K') {
     return sort {
       my @a= split '\+',$a->[1];
@@ -1357,7 +1427,7 @@ sub macrolistCreateItems {
 
 sub macrolistDialog {
   my $grp=shift;
-  my $context=$grp->{macroContext};
+  my $context=$grp->{focusedWindow}->{macroContext};
   if ($grp->{Macrolist}) {
     $grp->{Macrolist}->deiconify;
     $grp->{Macrolist}->focus;
@@ -1390,7 +1460,7 @@ sub macrolistDialog {
 	   [
 	    sub {
 	      my ($w,$grp,$t,$context)=@_;
-	      doEvalMacro($grp,
+	      doEvalMacro($grp->{focusedWindow},
 			  $menuBindings{$context}->
 			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
 	    },$grp,$t,$context ]);
@@ -1398,7 +1468,7 @@ sub macrolistDialog {
 	   [
 	    sub {
 	      my ($w,$grp,$t,$context)=@_;
-	      doEvalMacro($grp,
+	      doEvalMacro($grp->{focusedWindow},
 			  $menuBindings{$context}->
 			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
 	    },$grp,$t,$context ]);
@@ -1430,7 +1500,8 @@ sub macrolistDialog {
 			     my ($w,$grp,$t,$context)=@_;
 			     my $mac=$t->itemCget($t->info('anchor'),0,'-text');
 			     $w->destroy();
-			     doEvalMacro($grp,$menuBindings{$context}->{$mac}->[0]);
+			     doEvalMacro($grp->{focusedWindow},
+					 $menuBindings{$context}->{$mac}->[0]);
 
 
 			   },$d,$grp,$t,$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'left');
@@ -1451,11 +1522,11 @@ sub macrolistDialog {
 sub printDialog {
   my $grp=shift;
 
-  return unless $grp->{FSFile};
+  return unless $grp->{focusedWindow}->{FSFile};
 
   my $com=$grp->{printCommand};
   my $fil=$grp->{printPsFile};
-  $fil=$grp->{FSFile}->filename;
+  $fil=$grp->{focusedWindow}->{FSFile}->filename;
   $fil=~s/\.[^.]*$/.ps/;
   my $toFile=$grp->{printToFile};
   my $toEPS=$grp->{printToEPS};
@@ -1581,13 +1652,13 @@ sub printDialog {
 
 sub printThis {
   my ($grp)=@_;
-  return unless $grp->{FSFile};
+  return unless $grp->{focusedWindow}->{FSFile};
   my $canvas=$grp->{top}->Canvas();
   my @print_opts=printDialog($grp);
   return unless scalar(@print_opts)>2;
-  $print_opts[0]=$grp->{treeNo}
+  $print_opts[0]=$grp->{focusedWindow}->{treeNo}
     if (!defined($print_opts[0]) or $print_opts[0] eq "");
-  TrEd::Print::print_trees($grp->{FSFile},
+  TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
 			   $grp->{top},
 			   $canvas,
 			   @print_opts,
@@ -1609,45 +1680,48 @@ sub printThis {
 }
 
 sub switchContext {
-  my ($grp,$context)=@_;
-  my $prevcontext=$grp->{macroContext};
-  return 0 if (doEvalHook($grp,"pre_switch_context_hook",$prevcontext,$context) eq 'stop');
-  $grp->{macroContext}=$context;
-  doEvalHook($grp,"switch_context_hook",$prevcontext,$context);
-  redraw_tree($grp);
+  my ($win,$context)=@_;
+  my $prevcontext=$win->{macroContext};
+  return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context)
+	       eq 'stop');
+  $win->{macroContext}=$context;
+  doEvalHook($win,"switch_context_hook",$prevcontext,$context);
+  redraw_win($win);		# something should be done with display attrs vs windows maybe
 }
 
 sub onTreeChange {
-  my ($grp)=@_;
-  getNodes($grp);
-  if ($grp->{currentNode}) {
-    centerToXY($grp,0,0);
+  my ($win)=@_;
+  get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+  if ($win->{currentNode}) {
+    centerToXY($win,0,0);
   }
-  redraw_tree($grp);
+  redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
 }
 
 sub onNodeChange {
-  my ($grp)=@_;
-  getNodes($grp);
-  redraw_tree($grp);
+  my ($win)=@_;
+  get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+  redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
 }
 
 sub onCurrentChange {
-  my ($grp,$prev,$node)=@_;
+  my ($win,$node,$prev)=@_;
   my $n;
+  $tv=$win->{treeView};
   foreach $n ($prev,$node) { 
-    $grp->{treeView}->canvas->itemconfigure($n->{_tkOval_}, nodeOptions($grp,$n));
-    $grp->{treeView}->canvas->itemconfigure($n->{_tkTextBox_},nodeBoxOptions($grp,$n))
-      if ($grp->{treeView}->get_drawBoxes and exists($n->{_tkTextBox_}));
-    $grp->{treeView}->canvas->coords($n->{_tkOval_},
-				       $grp->{treeView}->node_coords($n,$grp->{currentNode}));
+    $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"Oval"),
+			       nodeOptions($win,$n));
+    $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"TextBox"),
+			       nodeBoxOptions($win,$n))
+      if ($tv->get_drawBoxes);  #and defined($tv->get_node_pinfo($n,"TextBox")));
+    $tv->canvas->coords($tv->get_node_pinfo($n,"Oval"),
+			$tv->node_coords($n,$win->{currentNode}));
   }
 }
 
 sub prepareFont {
   my ($grp,$font,$fn)=@_;
   print STDERR "Preparing fonts.\n" if $tredDebug;
-  
   if ($$font!~/^-/) {
     my @a=split(/\s*,\s*/,$$font);
     my ($option,$value);
@@ -1700,11 +1774,13 @@ sub cascadeMenus {
 }
 
 sub saveFileStateUpdate {
-  my ($grp)=@_;
-  $grp->{saveButton}->
+  my ($win)=@_;
+  return unless isFocused($win);
+  return unless $win->{framegroup}->{saveButton};
+  $win->{framegroup}->{saveButton}->
     configure(-image=>
-	      ($grp->{FSFile} and $grp->{FSFile}->notSaved)
-	      ? $grp->{normalSavePixmap} : $grp->{savedSavePixmap});
+	      ($win->{FSFile} and $win->{FSFile}->notSaved)
+	      ? $normalSavePixmap : $savedSavePixmap);
 }
 
 
@@ -1713,22 +1789,22 @@ sub About {
   my $message="";
   my $fileinfo="";
   my $colinf="";
-  if ($grp->{FSFile}) {
+  if ($grp->{focusedWindow}->{FSFile}) {
     $fileinfo=
       "Current file:\n".
-	$grp->{FSFile}->filename."\n".
-	  "Format: ".$grp->{FSFile}->fileFormat.", ".$grp->{FSFile}->lastTreeNo." trees\n";
+	$grp->{focusedWindow}->{FSFile}->filename."\n".
+	  "Format: ".$grp->{focusedWindow}->{FSFile}->fileFormat.", ".$grp->{focusedWindow}->{FSFile}->lastTreeNo." trees\n";
     my %colinf=(Shadow=> [], Hilite=>, XHilite=> []);
-    foreach ($grp->{FSFile}->FS->attributes) {
-      push @{$colinf{$grp->{FSFile}->FS->color($_)}},$_
-	unless ($grp->{FSFile}->FS->color($_) eq 'normal');
+    foreach ($grp->{focusedWindow}->{FSFile}->FS->attributes) {
+      push @{$colinf{$grp->{focusedWindow}->{FSFile}->FS->color($_)}},$_
+	unless ($grp->{focusedWindow}->{FSFile}->FS->color($_) eq 'normal');
     }
     $colinf="Coloured attributes:\n    Highlited: ".join(",",@{$colinf{Hilite}}).
       "\n    XHighlited: ".join(",",@{$colinf{XHilite}}).
 	"\n    Shadow: ".join(",",@{$colinf{Shadow}})."\n";
   }
 
-  doEvalHook($grp,"about_file_hook",\$message);
+  doEvalHook($grp->{focusedWindow},"about_file_hook",\$message);
   my $ver=$version;
   $ver=~s/\$//g;
   $grp->{top}->toplevel->
@@ -1739,7 +1815,17 @@ sub About {
 			  -title=> 'About');
 }
 
-sub newTrEdCanvas {
+sub newTrEdWindow {
+  my ($grp)=@_;
+
+  my $win= new TrEd::Window(newTreeView($grp),framegroup=>$grp);
+  $win->{macroContext}= $opt_t && exists($keyBindings{$opt_t}) 
+    ? $opt_t : 'TredMacro';
+  push @{$grp->{treeWindows}}, $win;
+  return $win;
+}
+
+sub newTreeView {
   my ($grp)=@_;
 
   my $canvas=
@@ -1755,40 +1841,69 @@ sub newTrEdCanvas {
 		  );
   canvasBindMouseWheelVert($canvas);
   canvasBindMouseWheelHoriz($canvas,"Shift");
+  createCanvasBindings($grp,$canvas);
   addBindTags($canvas,'my');
   addBindTags($canvas->Subwidget('scrolled'),'canvas');
-  $canvas->CanvasBind('<1>',[sub { focusCanvas(@_); },$grp]);
-  return $canvas;
+
+  my $baloon=$grp->{top}->Balloon(-initwait=> $canvasBalloonInitWait,
+				  -state=> 'balloon',
+				  -background=> '#fff3b0');
+  $baloon->Subwidget('message')->configure(-justify=> 'left',-font=> $font);
+  my $treeView=new TrEd::TreeView($canvas,'CanvasBalloon'=> $baloon);
+  $treeView->apply_options($treeViewOpts);
+  return $treeView;
+}
+
+sub findCanvasWindow {
+  my ($grp,$canvas)=@_;
+  foreach (@{$grp->{treeWindows}}) {
+    return $_ if $_->contains($canvas);
+  }
+  return undef;
 }
 
 sub focusCanvas {
   my ($c,$grp)=@_;
-  print "FOCUS CANVAS: @_\n";
-  $grp->{focusedWindow}->canvas()->configure(@normal_win_opts);
-  $grp->{focusedWindow}->canvas()->update();
-  $c->configure(@focused_win_opts);
-  $c->update();
-  foreach (@{$grp->{treeWindows}}) {
-    if ($_->contains($c)) {
-      $grp->{focusedWindow}=$_;
-      print "ASSIGNING FOCUS to: $_\n";
-      # do some other adjustments here also
-      return;
-    }
+  if ($grp->{focusedWindow}) {
+    return if $grp->{focusedWindow}->contains($c);
+    $grp->{focusedWindow}->canvas()->configure(@normal_win_opts);
+    $grp->{focusedWindow}->canvas()->update();
+  }
+  if ($c) {
+    $c->configure(@focused_win_opts);
+    $c->update();
+  }
+  my $newfocus=findCanvasWindow($grp,$c);
+  if ($newfocus) {
+    $grp->{selectedContext}=$newfocus->{macroContext};
+    $grp->{focusedWindow}=$newfocus;
+    update_value_line($grp);
+    updateTitle($grp);
+  } else {
+    print STDERR "DID NOT FIND Window of $c\n";
   }
 }
 
 sub splitWindow {
   my ($grp,$dir)=@_;
-  my $canvas   = newTrEdCanvas($grp);
-  my $treeView = new TrEd::TreeView($canvas,'CanvasBalloon'=> $baloon);
-  $treeView->apply_options($treeViewOpts);
+  my $twin     = newTrEdWindow($grp);
+  my $canvas=$twin->canvas();
   $canvas->configure(@normal_win_opts);
-  print $grp->{focusedWindow}, "__", keys %{$grp->{focusedWindow}}, "++", 
-    $grp->{focusedWindow}->{treeView},"++",$grp->{focusedWindow}->treeView(),"__",$grp->{focusedWindow}->canvas,"\n";
-  my $twin     = new TrEd::Window($treeView, toplevel => 0);
-  push @{$grp->{treeWindows}}, $twin;
   $grp->{focusedWindow}->split_frame($canvas,$dir);
+}
+
+sub removeWindow {
+  my ($grp)=@_;
+  my $win=$grp->{focusedWindow};
+  if (@{$grp->{treeWindows}}>1) {
+    @{$grp->{treeWindows}}=grep {$_ ne $win} @{$grp->{treeWindows}};
+    closeFile($win,1,1);
+    my $brother=$win->canvas_destroy();
+    delete $grp->{focusedWindow};
+    focusCanvas($brother,$grp);
+    $win->{treeView}=undef;
+    undef $win;
+  }
 }
 
 sub Tk::Widget::BindMouseWheelVert {
@@ -1847,6 +1962,52 @@ sub keyBind {
   return uc($_);
 }
 
+sub createCanvasBindings {
+  my ($grp,$canvas) = @_;
+
+  ## Canvas bindings 
+  $canvas->CanvasBind('<ButtonPress>',[sub { focusCanvas(@_); },$grp]);
+  $canvas->bind('text',
+		'<Any-Enter>'
+		=> [sub{
+		      my ($c,$grp)=@_;
+		      my $t=$c->find('withtag','current');
+		      my $win=findCanvasWindow($grp,$c);
+		      my $tv=$win->{treeView};
+		      my $node=$tv->get_obj_pinfo($t);
+		      $tv->store_node_pinfo($node,"SaveColor",
+					    $c->itemcget($t,'-fill'));
+		      $c->itemconfigure($t,-fill=> $activeTextColor);
+		    }, $grp]);
+
+  $canvas->bind('text',
+		'<Any-Leave>'
+		=> [sub{
+		      my ($c,$grp)=@_;
+		      my $t=$c->find('withtag','current');
+		      my $win=findCanvasWindow($grp,$c);
+		      my $tv=$win->{treeView};
+		      my $node=$tv->get_obj_pinfo($t);
+		      $c->itemconfigure('current',
+					-fill=>
+					$tv->get_node_pinfo($node,"SaveColor"));
+		    }, $grp]);
+
+  $canvas->bind('point', '<1>'=> [sub {node_down(@_) },$grp,0]);
+
+  $canvas->bind('point', '<ButtonRelease-1>'=> [sub {node_release(@_)},$grp,0]);
+  $canvas->bind('point', '<B1-Motion>'=> [sub {node_move(@_)},$grp]);
+  $canvas->bind('point','<3>'=> [sub {node_down(@_)},$grp,1]);
+  $canvas->bind('point', '<ButtonRelease-3>'=> [sub {node_release(@_)},$grp]);
+  $canvas->bind('point','<B3-Motion>'=> [sub {node_move(@_)},$grp,1]);
+  $canvas->CanvasBind('<2>'=> [sub {follow_mouse_press(@_)},$grp]);
+  $canvas->CanvasBind('<B2-Motion>'=> [sub {follow_mouse(@_)},$grp]);
+  $canvas->bind('point', '<Double-1>'=> [sub { editAttrs(@_); Tk->break; },$grp]);
+  $canvas->bind('text', '<1>'=> [sub {node_down(@_) },$grp,0]);
+  $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+  $canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+}
+
 sub startMain {
   my $firstFile=shift;
   my $node;
@@ -1868,8 +2029,14 @@ sub startMain {
     $group{top}->geometry($geometry);
   }
 
-  $group{macroContext}= $opt_t && exists($keyBindings{$opt_t}) ? $opt_t : 'TredMacro';
-  print "Starting in context $group{macroContext}\n" if $tredDebug;
+  $group{treeWindows}=[];
+  $group{focusedWindow}=newTrEdWindow(\%group);
+  my $canvas = $group{focusedWindow}->canvas();
+  $canvas->configure(@focused_win_opts);
+
+
+  print "Starting in context $group{focusedWindow}->{macroContext}\n" if $tredDebug;
+
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
   $group{macroListOrder}=$defaultMacroListOrder;
   print STDERR "Main window created.\n" if $tredDebug;
@@ -1881,17 +2048,17 @@ sub startMain {
   }
 
 #  $group{top}->focusFollowsMouse;
-  addBindTags($group{top},'my','canvases');
+  addBindTags($group{top},'my');
 
   print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
 
   $group{top}->
     protocol('WM_DELETE_WINDOW'=> 
 	     [sub { my $grp=shift;
-		    doEvalHook($grp,"exit_hook");
+		    doEvalHook($grp->{focusedWindow},"exit_hook");
 		    # run user's exit_hook
 		    askSaveFiles($grp);
-		    closeFile($grp);
+		    closeFile($grp->{focusedWindow});
 		    $grp->{top}->destroy;
 		    $grp->{top}=undef;
 		  },\%group]);
@@ -1904,7 +2071,6 @@ sub startMain {
   $group{frame}=$group{top}->Frame;
 
 
-
   print STDERR "Creating menubar.\n" if $tredDebug;
 
 
@@ -1914,23 +2080,33 @@ sub startMain {
   addBindTags($group{Menubar},'my');
 
   $group{FileMenu}= $group{Menubar}->Menubutton(qw/-text File -underline 0/);
-  $group{FileMenu}->command(-label=> 'Open ...', -underline=> 0,   -command=> [\&fileDialog, \%group]);
-  $group{FileMenu}->command(-label=> 'Close', -underline=> 0, 
+  $group{FileMenu}->command(-label=> 'Open ...',
+			    -underline=> 0,
+			    -command=> [\&fileDialog, \%group]);
+  $group{FileMenu}->command(-label=> 'Close',
+			    -underline=> 0,
 			    -command=> [ sub {
 					    my ($grp)=@_;
 					    removeFromFilelist($grp,
 							       undef,
 							       undef,
-							       $grp->{currentFilelist}->list_ref->[$grp->{currentFileNo}]);
-					    closeFile($grp);
+							       $grp->{currentFilelist}->list_ref->[$grp->{focusedWindow}->{currentFileNo}]);
+					    closeFile($grp->{focusedWindow});
 					  }
 					 , \%group]);
-  $group{FileMenu}->command(-label=> 'File List...', -underline=> 5, -command=> [\&filelistDialog, \%group]);
+  $group{FileMenu}->command(-label=> 'File List...',
+			    -underline=> 5,
+			    -command=> [\&filelistDialog, \%group]);
 #	 [Button=> 'New',         -command=> [\&menus_error2, 'New']],
-  $group{FileMenu}->command(-label=> 'Save', -underline=> 0, -command=> [\&saveFile,\%group]);
-  $group{FileMenu}->command(-label=> 'Save As ...', -underline=> 5 ,-command=> [\&saveFileAs, \%group]);
+  $group{FileMenu}->command(-label=> 'Save',
+			    -underline=> 0,
+			    -command=> [ sub { saveFile($_[0]->{focusedWindow}); },\%group]);
+  $group{FileMenu}->command(-label=> 'Save As ...', 
+			    -underline=> 5 ,
+			    -command=> [ sub { saveFileAs($_[0]->{focusedWindow}); }, \%group]);
   $group{FileMenu}->separator();
-  $group{RecentFileMenu}=$group{FileMenu}->cascade(-label=> "Recent Files", -underline=> 0);
+  $group{RecentFileMenu}=$group{FileMenu}->cascade(-label=> "Recent Files",
+						   -underline=> 0);
   my $i=0;
   foreach (@recentFiles) {
     $group{RecentFileMenu}->command(-label => "$i.  $_",
@@ -1941,17 +2117,25 @@ sub startMain {
 #  $group{PostponedFileMenu}=$group{FileMenu}->cascade(-label=> "Postponed Files", -underline=> 0);
 
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label=> 'Previous File', -underline=> 3, -command=> [\&prevFile,\%group]);
-  $group{FileMenu}->command(-label=> 'Next File', -underline=> 0, -command=> [\&nextFile,\%group]);
+  $group{FileMenu}->command(-label=> 'Previous File',
+			    -underline=> 3,
+			    -command=> [\&prevFile,\%group]);
+  $group{FileMenu}->command(-label=> 'Next File',
+			    -underline=> 0,
+			    -command=> [\&nextFile,\%group]);
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label=> 'Print ...', -underline=> 0, -command=> [\&printThis,\%group]);
+  $group{FileMenu}->command(-label=> 'Print ...',
+			    -underline=> 0,
+			    -command=> [\&printThis,\%group]);
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label=>'Edit config file ...', -underline=> 0,  -command=> [\&editConfig,\%group]);
+  $group{FileMenu}->command(-label=>'Edit config file ...',
+			    -underline=> 0,
+			    -command=> [\&editConfig,\%group]);
   $group{FileMenu}->command(-label=>'Reload config ...',
 			    -underline=> 3,
 			    -command=> [sub {
 					  read_config();
-					  redraw_tree(shift);
+					  redraw_all(shift);
 					},\%group]);
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label=>'Quit',
@@ -1968,28 +2152,38 @@ sub startMain {
 	[
 	 [Button=> 'Previous Tree',
 	  -underline=> 0,
-	  -command=> [\&prevTree,\%group]],
-	 [Button=> 'Next Tree', -underline=> 0, -command=> [\&nextTree,\%group]],
+	  -command=> [sub {
+			prevTree($_[0]->{focusedWindow});
+		      },\%group]],
+	 [Button=> 'Next Tree',
+	  -underline=> 0,
+	  -command=> [sub {
+			print STDERR "NextTree: ",$_[0]," ",$_[0]->{focusedWindow},
+			  $_[0]->{focusedWindow}->{FSFile},"\n";
+#			nextTree($_[0]->{focusedWindow});
+		      },\%group]],
 	 [Separator=> ''],
 	 [Checkbutton=> 'Draw boxes', -underline=> 0,
 	   -variable=> \$treeViewOpts->{drawBoxes},
 	   -command => [sub {
 			   my ($grp)=@_;
-			   $grp->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
-			   redraw_tree($grp);
+			   $grp->{focusedWindow}->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
+			   redraw_all($grp->{focusedWindow});
 			 },\%group]],
 	 [Checkbutton=> 'Show Hidden Nodes', -underline=> 0,
 	  -underline=> 5,
 	  -variable=> \$showHidden,
-	  -command => [sub { getNodes(@_);
-			      currentUnhiden(@_);
-			      redraw_tree(@_) },\%group]],
+	  -command => [sub {
+			 $win=$_[0]->{focusedWindow};
+			 get_nodes_all($_[0]);
+			 currentUnhiden($win);
+			 redraw_all($_[0]) },\%group]],
 	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
 	  -variable=> \$treeViewOpts->{highlightAttributes},
 	  -command => [sub {
 			   my ($grp)=@_;
-			   $grp->{treeView}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
-			   redraw_tree($grp);
+			   $grp->{focusedWindow}->{treeView}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
+			   redraw_all($grp->{focusedWindow});
 			 },\%group]],
 	 [Checkbutton=> 'Sort Attributes in Dialogs', -underline=> 1,
 	  -variable=> \$sortAttrs],
@@ -2007,36 +2201,41 @@ sub startMain {
 	[
 	 [Button=> 'New Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
-					       newNode($grp);
+					       newNode($grp->{focusedWindow});
 					     },\%group]],
 	 [Button=> 'Remove Active Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
-					       pruneNode($grp,$grp->{currentNode});
+					       pruneNode($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
 					     },\%group]],
 	 [Button=> 'Insert New Tree', -underline=> 0, -command=> [sub {
 						      my ($grp)=@_;
-						      newTree($grp);
+						      newTree($grp->{focusedWindow});
 						    },\%group]],
 	 [Button=> 'Insert New Tree After', -underline=> 16, -command=> [sub {
 						      my ($grp)=@_;
-						      newTreeAfter($grp);
+						      newTreeAfter($grp->{focusedWindow});
 						    },\%group]],
 	 [Button=> 'Remove Whole Current Tree', -underline=> 7, -command=> [sub {
 						      my ($grp)=@_;
-						      pruneTree($grp);
+						      pruneTree($grp->{focusedWindow});
 						    },\%group]],
 	 [Separator=> ''],
-	 [Button=> 'Edit Attributes ...', -underline=> 0, -command=> [sub {
-						      my ($grp)=@_;
-						      editAttrsDialog($grp,$grp->{currentNode})
-							if ($grp->{currentNode});
-						    },\%group]],
+	 [Button=> 'Edit Attributes ...',
+	  -underline=> 0,
+	  -command=> [sub {
+			my ($grp)=@_;
+			editAttrsDialog($grp->{focusedWindow},
+					$grp->{focusedWindow}->{currentNode})
+			  if ($grp->{focusedWindow}->{currentNode});
+		      },\%group]],
 	 [Separator=> ''],
-	 [Button=> 'Find ...', -underline=> 0,-command=> [sub {
-					      my ($grp,$template)=@_;
-					      findNodeDialog($grp,$template)
-						if ($grp->{currentNode});
-					    },\%group,\%searchTemplate]],
+	 [Button=> 'Find ...',
+	  -underline=> 0,
+	  -command=> [sub {
+			my ($grp,$template)=@_;
+			findNodeDialog($grp,$template)
+			  if ($grp->{focusedWindow}->{currentNode});
+		      },\%group,\%searchTemplate]],
 	 [Button=> 'Find Next', -underline=> 7,
 	  -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1]],
 	 [Button=> 'Find Previous', -underline=> 5,
@@ -2056,9 +2255,10 @@ sub startMain {
 
 
   $group{ContextsMenu}=$group{Menubar}->
-    Optionmenu(-textvariable=> \$group{macroContext},
-	       -command=> [sub { my $grp=shift;
-				  switchContext($grp,$grp->{macroContext}); },\%group],
+    Optionmenu(-textvariable=> \$group{selectedContext},
+	       -command=> [sub { my ($grp,$context) = @_;
+				 switchContext($grp->{focusedWindow}, $context);
+			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2,
 	       -options=> [sort(keys(%keyBindings))])->pack(qw/-side right/);
@@ -2067,7 +2267,11 @@ sub startMain {
     push @$cM, 
       @{cascadeMenus(map { $keyBindings{TredMacro}->{$_}=~/$context\-\>(.*)/;
 			   [Button=> $1,
-			    -command=> [\&doEvalMacro,\%group,$keyBindings{TredMacro}->{$_}],
+			    -command=> [ sub {
+					   doEvalMacro($_[0]->{focusedWindow},
+						       $_[1]);
+					 },\%group,
+					 $keyBindings{TredMacro}->{$_}],
 			    -accelerator=> "($_)"
 			   ]
 			 } sort(keys(%{$keyBindings{TredMacro}})))};
@@ -2079,7 +2283,11 @@ sub startMain {
 	   -menuitems=>
 	   cascadeMenus(map { $keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
 			      [Button=> $1,
-			       -command=> [\&doEvalMacro,\%group,$keyBindings{$context}->{$_}],
+			       -command=> [sub {
+					   doEvalMacro($_[0]->{focusedWindow},
+						       $_[1]);
+					 },\%group,
+					   $keyBindings{$context}->{$_}],
 			       -accelerator=> "($_)"
 			      ]
 			    } sort(keys(%{$keyBindings{$context}})))];
@@ -2094,7 +2302,11 @@ sub startMain {
   $cM=[];
   push @$cM,
     @{cascadeMenus(map ([Button=> $_,
-			 -command=> [\&doEvalMacro,\%group,$menuBindings{TredMacro}->{$_}->[0]],
+			 -command=> [sub {
+				       doEvalMacro($_[0]->{focusedWindow},
+						   $_[1]);
+				     },
+				     \%group,$menuBindings{TredMacro}->{$_}->[0]],
 			 ($menuBindings{TredMacro}->{$_}->[1]) ?
 			 (-accelerator=> "(".$menuBindings{TredMacro}->{$_}->[1].")") : ()],
 			sort(keys(%{$menuBindings{TredMacro}}))))};
@@ -2106,7 +2318,12 @@ sub startMain {
   	[Cascade=> $context,
   	 -menuitems=>
   	 cascadeMenus(map ([Button=> $_,
-  			    -command=> [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
+  			    -command=> [sub {
+					  doEvalMacro($_[0]->{focusedWindow},
+						      $_[1]);
+					 },
+					\%group,
+					$menuBindings{$context}->{$_}->[0]],
   			    ($menuBindings{$context}->{$_}->[1]) ?
   			    (-accelerator=> "(".$menuBindings{$context}->{$_}->[1].")") : ()],
   			   sort(keys(%{$menuBindings{$context}}))))];
@@ -2123,7 +2340,9 @@ sub startMain {
 
   $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -underline 0 -menuitems/=>
 	[
-	 [Button=> 'About', -underline=> 0, -command=> [\&About,\%group]]])->pack(qw/-side left/);
+	 [Button=> 'About',
+	  -underline=> 0,
+	  -command=> [\&About,\%group]]])->pack(qw/-side left/);
 
   prepareFonts(\%group);
 
@@ -2133,52 +2352,57 @@ sub startMain {
   $group{valueLine}=$group{vLineFrame}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font=> $vLineFont, -textvariable=> \$valueLine);
   $group{valueLine}->BindMouseWheelHoriz();
-  # creating Canvas balloon
-  my $baloon=$group{top}->Balloon(-initwait=> $canvasBalloonInitWait,
-				  -state=> 'balloon',
-				  -background=> '#fff3b0');
-  $baloon->Subwidget('message')->configure(-justify=> 'left',-font=> $font);
+
 
   print STDERR "Creating buttons.\n" if $tredDebug;
 
-  $group{nextButton}=$group{frame}->Button(-takefocus=>0, -text=> "Next",
-					       -relief=> $buttonsRelief,
-					       -image=> $group{top}->Pixmap(-file=>
-									     "$libDir/right.xpm"),
-					       -borderwidth=> $buttonBorderWidth,
-
-			    -command=> [sub { nextTree(@_) },\%group]);
+  $group{nextButton}=
+    $group{frame}->Button(-takefocus=>0,
+			  -text=> "Next",
+			  -relief=> $buttonsRelief,
+			  -image=> $group{top}->Pixmap(-file=>
+						       "$libDir/right.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=>
+			  [sub { nextTree($_[0]->{focusedWindow}) },\%group]);
   $group{Balloon}->attach($group{nextButton},
 		 -balloonmsg=> "see the next tree");
   addBindTags($group{nextButton},'my');
-  $group{prevButton}=$group{frame}->Button(-takefocus=>0, -text=> "Prev",
-					       -relief=> $buttonsRelief,
-					       -image=> $group{top}->Pixmap(-file=>
-									     "$libDir/left.xpm"),
-					       -borderwidth=> $buttonBorderWidth,
-					       -command=> [sub { prevTree(@_) },\%group]);
+  $group{prevButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Prev",
+			  -relief=> $buttonsRelief,
+			  -image=> $group{top}->Pixmap(-file=>
+						       "$libDir/left.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=>
+			  [sub { prevTree($_[0]->{focusedWindow}) },\%group]);
   $group{Balloon}->attach($group{prevButton},
 		 -balloonmsg=> "see the previous tree");
   addBindTags($group{prevButton},'my');
 
-  $group{openButton}=$group{frame}->Button(-takefocus=>0, -text=> "Open",
-					       -relief=> $buttonsRelief,
-					       -image      => $group{top}->Pixmap(-file=> "$libDir/fileopen.xpm"),
-					       -borderwidth=> $buttonBorderWidth,
-			 -command=> [sub { fileDialog(@_) },\%group])->pack(-side=>'left',-padx=>'1');
+  $group{openButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Open",
+			  -relief=> $buttonsRelief,
+			  -image=>
+			  $group{top}->Pixmap(-file=>
+					      "$libDir/fileopen.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=>
+			  [sub { fileDialog(@_) },\%group])
+      ->pack(-side=>'left',-padx=>'1');
   $group{Balloon}->attach($group{openButton},
 		 -balloonmsg=> "open file");
   addBindTags($group{openButton},'my');
-  $group{normalSavePixmap}=$group{top}->Pixmap(-file=>"$libDir/filefloppy.xpm");
-  $group{savedSavePixmap}=$group{top}->Pixmap(-file=>"$libDir/filesaved.xpm");
+  $normalSavePixmap=$group{top}->Pixmap(-file=>"$libDir/filefloppy.xpm");
+  $savedSavePixmap=$group{top}->Pixmap(-file=>"$libDir/filesaved.xpm");
   $group{saveButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Save",
-			    -relief=> $buttonsRelief,
-			    -image=> $group{savedSavePixmap},
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [sub {
-					   saveFile(@_)
-					 },\%group])->pack(-side=>'left',-padx=>'1');
+			  -relief=> $buttonsRelief,
+			  -image=> $savedSavePixmap,
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub {
+					saveFile($_[0]->{focusedWindow})
+				      },\%group])->pack(-side=>'left',-padx=>'1');
 
   $group{Balloon}->attach($group{saveButton},
 			  -balloonmsg=> "save current file");
@@ -2186,80 +2410,80 @@ sub startMain {
 
   $group{prevFileButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Prev file",
-			    -relief=> $buttonsRelief,
-			    -image=> $group{top}->Pixmap(-file=>
-							  "$libDir/start.xpm"),
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [sub { prevFile(@_); },\%group])->pack(-side=>'left',
-									       -padx=>'1');
+			  -relief=> $buttonsRelief,
+			  -image=> $group{top}->Pixmap(-file=>
+						       "$libDir/start.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub { prevFile(@_); },\%group])->pack(-side=>'left',
+									    -padx=>'1');
   $group{Balloon}->attach($group{prevFileButton},
 			  -balloonmsg=> "visit the previous open file");
   addBindTags($group{prevFileButton},'my');
 
   $group{nextFileButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Next file",
-			    -relief=> $buttonsRelief,
-			    -image=> $group{top}->Pixmap(-file=>
-							  "$libDir/finish.xpm"),
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [sub { nextFile(@_); },\%group])->pack(-side=>'left',
-									       -padx=>'1');
+			  -relief=> $buttonsRelief,
+			  -image=> $group{top}->Pixmap(-file=>
+						       "$libDir/finish.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub { nextFile(@_); },\%group])->pack(-side=>'left',
+									    -padx=>'1');
   $group{Balloon}->attach($group{nextFileButton},
-		 -balloonmsg=> "visit the next open file");
+			  -balloonmsg=> "visit the next open file");
   addBindTags($group{nextFileButton},'my');
 
 
   $group{printButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Print",
-			    -relief=> $buttonsRelief,
-			    -image      => $group{top}->Pixmap(-file=>
-								"$libDir/fileprint.xpm"),
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [sub { printThis(@_) },\%group])->pack(-side=>'left',
-									       -padx=>'1');
+			  -relief=> $buttonsRelief,
+			  -image      => $group{top}->Pixmap(-file=>
+							     "$libDir/fileprint.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub { printThis(@_) },\%group])->pack(-side=>'left',
+									    -padx=>'1');
   $group{Balloon}->attach($group{printButton},
-		 -balloonmsg=> "print ...");
+			  -balloonmsg=> "print ...");
   addBindTags($group{printButton},'my');
 
   $group{findButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Find",
-			    -relief=> $buttonsRelief,
-			    -image      => $group{top}->Pixmap(-file=>
-								"$libDir/find.xpm"),
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [sub {
-					   my ($grp,$template)=@_;
-					   findNodeDialog($grp,$template)
-					     if ($grp->{currentNode});
-					 },\%group,\%searchTemplate])->pack(-side=>'left',
-									    -padx=>'1');
+			  -relief=> $buttonsRelief,
+			  -image      => $group{top}->Pixmap(-file=>
+							     "$libDir/find.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub {
+					my ($grp,$template)=@_;
+					findNodeDialog($grp,$template)
+					  if ($grp->{focusedWindow}->{currentNode});
+				      },\%group,\%searchTemplate])->pack(-side=>'left',
+									 -padx=>'1');
   $group{Balloon}->attach($group{findButton},
-		 -balloonmsg=> "Find node ...");
+			  -balloonmsg=> "Find node ...");
   addBindTags($group{findButton},'my');
 
   $group{findNextButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Find Next",
-			    -relief=> $buttonsRelief,
-			    -image      => $group{top}->Pixmap(-file=>
-								"$libDir/findnext.xpm"),
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1])
+			  -relief=> $buttonsRelief,
+			  -image      => $group{top}->Pixmap(-file=>
+							     "$libDir/findnext.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1])
       ->pack(-side=>'left', -padx=>'1');
   $group{Balloon}->attach($group{findNextButton},
-		 -balloonmsg=> "Find next ...");
+			  -balloonmsg=> "Find next ...");
   addBindTags($group{findNextButton},'my');
 
 
   $group{findPrevButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Find Previous",
-			    -relief=> $buttonsRelief,
-			    -image=> $group{top}->Pixmap(-file=>
-								"$libDir/findprev.xpm"),
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1])
+			  -relief=> $buttonsRelief,
+			  -image=> $group{top}->Pixmap(-file=>
+						       "$libDir/findprev.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1])
       ->pack(-side=>'left', -padx=>'1');
   $group{Balloon}->attach($group{findPrevButton},
-		 -balloonmsg=> "Find previous ...");
+			  -balloonmsg=> "Find previous ...");
   addBindTags($group{findPrevButton},'my');
 
 
@@ -2270,14 +2494,24 @@ sub startMain {
 
   $group{attrButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Attributes",
-			    -relief=> $buttonsRelief,
-			    -image=> $group{top}->Pixmap(-file=>
-							  "$libDir/tick.xpm"),
-			    -borderwidth=> $buttonBorderWidth,
-			    -command=> [sub { customAttrsDialog(@_) },\%group])->pack(-side=>'right',
-										 -padx=>'1');
+			  -relief=> $buttonsRelief,
+			  -image=> $group{top}->Pixmap(-file=>
+						       "$libDir/tick.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub { customAttrsDialog(@_) },\%group])->pack(-side=>'right',
+										    -padx=>'1');
   $group{Balloon}->attach($group{attrButton},
-		 -balloonmsg=> "select visible attributes");
+			  -balloonmsg=> "select visible attributes");
+
+  $group{rmsplitButton}=
+    $group{frame}->Button(-takefocus=>0, 
+			  -text=> "Remove Window",
+			  -relief=> $buttonsRelief,
+			  -image=> $group{top}->Pixmap(-file=>
+						       "$libDir/rmsplit.xpm"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&removeWindow,\%group])->pack(-side=>'right',
+								     -padx=>'1');
 
   $group{hsplitButton}=
     $group{frame}->Button(-takefocus=>0, 
@@ -2320,25 +2554,16 @@ sub startMain {
       ->pack(qw/-side right -padx 1 -anchor n/);
   $group{vLineFrame}->pack(qw/-fill x -expand no/);
 
-  print STDERR "Creating first tree window...\n" if $tredDebug;
-  my $canvas=newTrEdCanvas(\%group);
-  $group{treeView}= new TrEd::TreeView($canvas,'CanvasBalloon'=> $baloon);
-  $group{treeView}->apply_options($treeViewOpts);
-  $canvas->configure(@focused_win_opts);
+
   # frame canvas here
-  $group{focusedWindow}= new TrEd::Window($group{treeView},
-					  toplevel => 1);
   $group{focusedWindow}->frame_widget($canvas,[],
 				      [qw/-side left/])->pack(qw/-expand yes -fill both/);
-  $group{treeWindows}=[ $group{focusedWindow} ];
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
-  #  $group{frame}->bind('my','<Control-x><KeyPress>'=>
-  #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
   $group{Menubar}->bind('Menubutton','<Escape>', sub { shift->Leave(); } );
   $group{frame}->
     bind('my','<Alt-KeyPress>'=>
-	 [sub { 
+	 [sub {
 	    if (defined(evalMacro(@_))) {
 	      Tk->break;
 	    } else {
@@ -2361,8 +2586,13 @@ sub startMain {
 	    }
 	  }, \%group,'ALT+']);
 
+  #  $group{frame}->bind('my','<Control-x><KeyPress>'=>
+  #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
+
   $group{frame}->bind('my','<KeyPress>'=>
-			[sub { evalMacro(@_); Tk->break; }, \%group, '' ]);
+			[sub {
+			   evalMacro(@_); Tk->break;
+			 }, \%group, '' ]);
 
   foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
               Control-Meta Alt-Shift Meta-Shift)) {
@@ -2375,107 +2605,86 @@ sub startMain {
     }
   }
 
-  #  $group{frame}->bind('all','<Tab>'=> [sub {1;}]);
-  #  $group{top}->bind('dialog','<Tab>'=> [sub { shift->focusNext(); }] );
-  #  $group{top}->bind('dialog','<Shift-Tab>'=> [sub { shift->focusPrev(); }] );
-  #  $group{frame}->bind('all','<Shift-Tab>'=> [sub {1;}]);
-  #  $group{frame}->bind('all','<Control-Tab>'=> [sub {1;}]);
   $group{top}->bind('all','<Tab>',undef);
 
   $group{frame}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
   $group{top}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
 
-  $group{top}->bind('my','<Tab>'=> [sub { shift;
-					     currentNext(@_); 
-					     Tk->break; },\%group]);
-  $group{frame}->bind('my','<Shift-ISO_Left_Tab>'=> [sub { shift; currentPrev(@_); Tk->break; },\%group]);
-  $group{frame}->bind('my','<Shift-Tab>'=> [sub { shift; currentPrev(@_); Tk->break; },\%group]);
+  $group{top}->bind('my', '<Tab>'=>
+		    [sub { currentNext($_[1]->{focusedWindow});
+			   Tk->break; },\%group]);
+  $group{frame}->bind('my',
+		      '<Shift-ISO_Left_Tab>'=>
+		      [sub { currentPrev($_[1]->{focusedWindow});
+			     Tk->break; },\%group]);
+  $group{frame}->bind('my',
+		      '<Shift-Tab>'=>
+		      [sub { currentPrev($_[1]->{focusedWindow});
+			     Tk->break; },\%group]);
 
-  $group{frame}->bind('my','<period>'=> [\&onIdleNextTree,\%group]);
-  $group{frame}->bind('my','<comma>'=> [\&onIdlePrevTree,\%group]);
-  $group{frame}->bind('my','<Next>'=> [\&onIdleNextTree,\%group]);
-  $group{frame}->bind('my','<Prior>'=> [\&onIdlePrevTree,\%group]);
-  $group{frame}->bind('my','<greater>'=> [sub { shift; my $grp=shift; gotoTree($grp,$grp->{FSFile}->lastTreeNo); Tk->break; },\%group]);
-  $group{frame}->bind('my','<less>'=> [sub { shift; my $grp=shift; gotoTree($grp,0); Tk->break; },\%group]);
+  $group{frame}->bind('my',
+		      '<period>'=> 
+		      [sub { onIdleNextTree($_[1]->{focusedWindow}); },
+		       \%group]);
+  $group{frame}->bind('my','<comma>'=> 
+		      [sub { onIdlePrevTree($_[1]->{focusedWindow}); },
+		       \%group]);
+  $group{frame}->bind('my','<Next>'=> 
+		      [sub { onIdleNextTree($_[1]->{focusedWindow}); },
+		       \%group]);
+  $group{frame}->bind('my','<Prior>'=> 
+		      [sub { onIdlePrevTree($_[1]->{focusedWindow}); }
+		       ,\%group]);
+  $group{frame}->bind('my','<greater>'=>
+		      [sub { my $fw=$_[1]->{focusedWindow};
+			     gotoTree($fw,
+				      $fw->{FSFile}->lastTreeNo);
+			     Tk->break;
+			   },\%group]);
+  $group{frame}->bind('my','<less>'=> 
+		      [sub { gotoTree($_[1]->{focusedWindow},0);
+			     Tk->break;
+			   },\%group]);
 
-  $group{frame}->bind('my','<KeyPress-Return>'=> [sub {
-					      my ($w,$grp)=@_;
-					      editAttrsDialog($grp,$grp->{currentNode});
-					      Tk->break;
-					    },\%group]);
-  $group{frame}->bind('my','<KeyPress-Left>'=> [sub {
-					   my ($w,$grp)=@_;
-					   currentLeft($grp);
-					   Tk->break;
-					 },\%group]);
-  $group{frame}->bind('my','<KeyPress-Right>'=> [sub {
-					    my ($w,$grp)=@_;
-					    currentRight($grp);
-					   Tk->break;
-					  },\%group]);
-  $group{frame}->bind('my','<KeyPress-Up>'=> [sub {
-					 my ($w,$grp)=@_;
-					 currentUp($grp);
-					 Tk->break;
-				       },\%group]);
-  $group{frame}->bind('my','<KeyPress-Down>'=> [sub {
-					   my ($w,$grp)=@_;
-					   currentDown($grp);
-					   Tk->break;
-					 },\%group]);
+  $group{frame}->bind('my',
+		      '<KeyPress-Return>'=>
+		      [sub { editAttrsDialog($_[1]->{focusedWindow},
+			     $_[1]->{focusedWindow}->{currentNode});
+			 Tk->break;
+		       },\%group]);
+  $group{frame}->bind('my','<KeyPress-Left>'=>
+		      [sub {
+			 currentLeft($_[1]);
+			 Tk->break;
+		       },\%group]);
+  $group{frame}->bind('my','<KeyPress-Right>'=>
+		      [sub {
+			 currentRight($_[1]);
+			 Tk->break;
+		       },\%group]);
+  $group{frame}->bind('my','<KeyPress-Up>'=>
+		      [sub {
+			 currentUp($_[1]);
+			 Tk->break;
+		       },\%group]);
+  $group{frame}->bind('my','<KeyPress-Down>'=>
+		      [sub {
+			 currentDown($_[1]);
+			 Tk->break;
+		       },\%group]);
 
-  ## Canvas bindings  
-  $group{treeView}->canvas->bind('text', '<Any-Enter>'=> [sub{
-			       my $c=shift;
-			       my $grp=shift;
-			       my $t=$c->find('withtag','current');
-			       my $node=$grp->{treeView}->pinfo->{$t};
-			       $node->{_tkSaveColor_}=$c->itemcget($t,'-fill');
-			       $c->itemconfigure($t,
-						 -fill=> $activeTextColor);
-
-			     }, \%group]);
-
-  $group{treeView}->canvas->bind('text',
-			 '<Any-Leave>'
-			=> [sub{
-			       my $c=shift;
-			       my $grp=shift;
-			       my $t=$c->find('withtag','current');
-			       my $node=$grp->{treeView}->pinfo->{$t};
-			       $c->itemconfigure('current',
-						 -fill=> $node->{_tkSaveColor_});
-			     }, \%group]);
-
-  $group{treeView}->canvas->bind('point', '<1>'=> [sub {node_down(@_) },\%group,0]);
-
-  $group{treeView}->canvas->bind('point', '<ButtonRelease-1>'=> [sub {node_release(@_)},\%group,0]);
-  $group{treeView}->canvas->bind('point', '<B1-Motion>'=> [sub {node_move(@_)},\%group]);
-  $group{treeView}->canvas->bind('point','<3>'=> [sub {node_down(@_)},\%group,1]);
-  $group{treeView}->canvas->bind('point', '<ButtonRelease-3>'=> [sub {node_release(@_)},\%group]);
-  $group{treeView}->canvas->bind('point','<B3-Motion>'=> [sub {node_move(@_)},\%group,1]);
-  $group{treeView}->canvas->CanvasBind('<2>'=> [sub {follow_mouse_press(@_)},\%group]);
-  $group{treeView}->canvas->CanvasBind('<B2-Motion>'=> [sub {follow_mouse(@_)},\%group]);
-  $group{treeView}->canvas->bind('point', '<Double-1>'=> [sub { editAttrs(@_); Tk->break; },\%group]);
-  $group{treeView}->canvas->bind('text', '<1>'=> [sub {node_down(@_) },\%group,0]);
-  $group{treeView}->canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },\%group]);
-  $group{treeView}->canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },\%group]);
-
-  $group{treeView}->focus;
+  $group{focusedWindow}->{treeView}->focus;
 
   $group{printToFile}=0;
   $group{printCommand}='lpr';
   $group{printPsFile}=$psFile;
 
   print STDERR "Binding canvas destroy...\n" if $tredDebug;
-  $group{top}->bind('canvas', '<Destroy>',
+  $group{top}->bind($group{frame},
+		    '<Destroy>',
 		      [ sub {
 			  shift;
 			  my $grp=shift;
-			  my $canvas=$grp->{treeView}->canvas->Subwidget('scrolled');
-			  $defCWidth=$canvas->width();
-			  $defCHeight=$canvas->height();
-			  print "$defCHeight x $defCWidth\n";
 			  $geometry=$group{top}->geometry();
 			  print "geometry is $geometry\n";
 			  if ($^O eq "MSWin32" and $group{top}->state() eq 'zoomed') {
@@ -2494,7 +2703,7 @@ sub startMain {
   
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
 
-  exit if doEvalHook(\%group,"start_hook") eq 'stop'; # run start_hook
+  exit if doEvalHook($group{focusedWindow},"start_hook") eq 'stop'; # run start_hook
 
   # Starting ------------------------------------------
 
@@ -2545,37 +2754,42 @@ sub startMain {
 }
 
 sub onIdleNextTree {
-  my ($w,$grp)=@_;
-  return unless $grp->{FSFile};
-  $grp->{treeNo}=max(0,min($grp->{treeNo}+1,$grp->{FSFile}->lastTreeNo));
-  getValueLine($grp);
-  $w->afterCancel($myIdle) if ($myIdle);
-  $grp->{valueLine}->idletasks();
-  $myIdle=$w->afterIdle([ sub {
-			    my $g=shift;
-			    my $no=$grp->{treeNo};
-			    $grp->{treeNo}=-1; # this is to force getNodes & redraw
-			    gotoTree($g,$no);
-			    $myIdle=undef;
-			  },$grp]);
+  my ($win)=@_;
+  print "in window $win\n";
+  return unless $win->{FSFile};
+  $win->{treeNo}=max(0,min($win->{treeNo}+1,$win->{FSFile}->lastTreeNo));
+  update_value_line($win->{framegroup});
+  $win->toplevel->afterCancel($myIdle) if ($myIdle);
+  $win->{framegroup}->{valueLine}->idletasks();
+  $myIdle=
+    $win->toplevel->afterIdle([sub {
+				 my $win=shift;
+				 my $no=$win->{treeNo};
+				 # this is to force getNodes & redraw
+				 $win->{treeNo}=-1;
+				 gotoTree($win,$no);
+				 $myIdle=undef;
+			       },$win]);
   Tk->break;
 }
 
 sub onIdlePrevTree {
-  my ($w,$grp)=@_;
-  return unless $grp->{FSFile};
-  if ($grp->{treeNo}>0) {
-    $grp->{treeNo}--;
-    getValueLine($grp);
-    $w->afterCancel($myIdle) if ($myIdle);
-    $grp->{valueLine}->idletasks();
-    $myIdle=$w->afterIdle([ sub {
-			      my $g=shift;
-			      my $no=$grp->{treeNo};
-			      $grp->{treeNo}=-1; # this is to force getNodes & redraw
-			      gotoTree($g,$no);
-			      $myIdle=undef;
-			    },$grp]);
+  my ($win)=@_;
+  return unless $win->{FSFile};
+  if ($win->{treeNo}>0) {
+    $win->{treeNo}--;
+    update_value_line($win->{framegroup});
+    $win->toplevel->afterCancel($myIdle) if ($myIdle);
+    $win->{framegroup}->{valueLine}->idletasks();
+    $myIdle=
+      $win->toplevel->afterIdle([ sub {
+				    my $win=shift;
+				    my $no=$win->{treeNo};
+				    # this is to force getNodes & redraw
+				    $win->{treeNo}=-1;
+				    gotoTree($win,$no);
+				    $myIdle=undef;
+				  },$win]);
   }
   Tk->break;
 }
@@ -2639,23 +2853,23 @@ sub fileDialog {
 }
 
 sub saveFileAs {
-  my $grp= shift;
+  my ($win)= @_;
   my $initdir;
-  return unless $grp->{FSFile};
-  my $file=$grp->{FSFile}->filename;
+  return unless $win->{FSFile};
+  my $file=$win->{FSFile}->filename;
 
   $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
 
 
-  $file= $grp->{top}->getSaveFile(-filetypes=> \@save_types,
+  $file= $win->toplevel->getSaveFile(-filetypes=> \@save_types,
 				     -title=> "Save As ...",
 				     -d $initdir ? (-initialdir=> $initdir) : (),
      				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   if (defined $file and $file ne '') {
-    $grp->{FSFile}->changeFilename($file);
-    updateTitle($grp);
-    return saveFile($grp);
+    $win->{FSFile}->changeFilename($file);
+    updateTitle($win->{framegroup});
+    return saveFile($win);
   }
   return 0;
 }
@@ -2663,42 +2877,45 @@ sub saveFileAs {
 sub askSaveFiles {
   my ($grp)= @_;
 
-  askSaveFile($grp,0);
+  askSaveFile($grp->{focusedWindow},0);
   while (@openfiles) {
-    resumeFile($grp,shift @openfiles);
+    resumeFile($grp->{focusedWindow},shift @openfiles);
 
     # let user see what he saves or leaves
+				# CHANGE HERE: first go through all windows and close active files,
+                                # then try to resume postponed files and close them
     updateTitle($grp);
-    getNodes($grp);
-    redraw_tree($grp);
-    if ($grp->{currentNode}) {
-      centerToXY($grp,0,0);
+    get_nodes_win($grp->{focusedWindow});
+    redraw_win($grp->{focusedWindow});
+    if ($grp->{focusedWindow}->{currentNode}) {
+      centerToXY($grp->{focusedWindow},0,0);
     }
     $grp->{top}->update();
 
-    askSaveFile($grp,0);
+    askSaveFile($grp->{focusedWindow},0);
   }
 }
 
 sub askSaveFile {
-  my ($grp,$keep)=@_;
-  return unless ref($grp) and ref($grp->{FSFile}) and $grp->{FSFile}->notSaved;
+  my ($win,$keep)=@_;
+  return 0 unless
+    ref($win->{FSFile}) and
+      $win->{FSFile}->notSaved;
 
-  my $d=$grp->{top}->Dialog(-text=> $grp->{FSFile}->filename()."\n\nFile may be changed!\nDo you want to save it?",
-				 -bitmap=> 'question', 
-				 -title=> 'Save File Dialog',
-				 -buttons=> ['Yes','No', $keep ? 'Keep' : ()]);
+  my $d=$win->toplevel->Dialog(-text=> 
+			       $win->{FSFile}->filename().
+			       "\n\nFile may be changed!\nDo you want to save it?",
+			       -bitmap=> 'question', 
+			       -title=> 'Save File Dialog',
+			       -buttons=> ['Yes','No', $keep ? 'Keep' : ()]);
   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
 			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
   my $answer=$d->Show();
   if ($answer eq 'Yes') {
-    saveFile($grp);
+    saveFile($win);
+    return 0;
   } elsif ($answer eq 'Keep') {
-    print STDERR "Postponing ".$grp->{FSFile}->filename()."\n"  if $tredDebug;
-    $grp->{FSFile}->currentTreeNo($grp->{treeNo});
-    $grp->{FSFile}->currentNode($grp->{currentNode});
-    push @openfiles, $grp->{FSFile};
-    updatePostponed($grp);
+    return 1;
   }
 }
 
@@ -2769,8 +2986,8 @@ sub editConfig {
 			  prepareFonts($grp);
 			  updateTitle($grp);
 			  $grp->{valueLine}->configure(-font=> $vLineFont);
-			  $grp->{treeView}->apply_options($treeViewOpts);
-			  redraw_tree($grp);
+			  $grp->{focusedWindow}->{treeView}->apply_options($treeViewOpts);
+			  redraw_all($grp);
 #			  $d->destroy;
 			},$grp,$d,$t])
       ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
@@ -2782,8 +2999,8 @@ sub editConfig {
 				 prepareFonts($grp);
 				 updateTitle($grp);
 				 $grp->{valueLine}->configure(-font=> $vLineFont);
-				 $grp->{treeView}->apply_options($treeViewOpts);
-				 redraw_tree($grp);
+				 $grp->{focusedWindow}->{treeView}->apply_options($treeViewOpts);
+				 redraw_all($grp);
 			       },$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
@@ -2865,10 +3082,11 @@ sub selectValuesDialog {
  my $multi=0;
  my @prevSelectionSet;
 
- $grp->{top}->Busy(-recurse=> 1);
- my $enabled=($force or doEvalHook($grp,'enable_attr_hook',$attr,"ambiguous") ne 'stop');
+ $top=$grp->{top};
+ $top->Busy(-recurse=> 1);
+ my $enabled=($force or doEvalHook($grp->{focusedWindow},'enable_attr_hook',$attr,"ambiguous") ne 'stop');
 
- my $d=$grp->{top}->DialogBox(-title=> "$attr: select values", -width=> '8c',
+ my $d=$top->DialogBox(-title=> "$attr: select values", -width=> '8c',
 				-buttons=> $enabled ? ["OK", "Cancel"] : ["Cancel"]);
  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
  $d->resizable(0,0);
@@ -2919,7 +3137,7 @@ sub selectValuesDialog {
 			     },$grp,$l,$vals])->pack();
    }
  }
- $grp->{top}->Unbusy();
+ $top->Unbusy();
  $l->focus;
  my $result= ShowDialog($d,$l,$lastFocus);
  if ($result=~ /OK/) {
@@ -2949,7 +3167,7 @@ sub selectValuesDialog {
 
 sub viewSentencesDialog {
   my $grp=shift;
-  return unless $grp and ref($grp->{FSFile});
+  return unless $grp and ref($grp->{focusedWindow}->{FSFile});
   if ($grp->{sentDialog}) {
     $grp->{sentDialog}->deiconify;
     $grp->{sentDialog}->focus;
@@ -2957,7 +3175,7 @@ sub viewSentencesDialog {
     return;
   }
   $grp->{sentDialog}= 
-    $grp->{top}->Toplevel(-title=> "List of sentences for ".$grp->{FSFile}->filename(),
+    $grp->{top}->Toplevel(-title=> "List of sentences for ".$grp->{focusedWindow}->{FSFile}->filename(),
 			    -width=> "10c");
   my $d=$grp->{sentDialog};
   $d->withdraw;
@@ -2978,10 +3196,10 @@ sub viewSentencesDialog {
   $d->bind('<Destroy>'=> [sub { shift; shift->{sentDialog}=undef; },$grp ]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->destroy(); },$d]);
 
-  foreach my $r ($grp->{FSFile}->trees()) {
+  foreach my $r ($grp->{focusedWindow}->{FSFile}->trees()) {
     my @nodes=();
-    my $sentord= $grp->{FSFile}->FS->sentord || $grp->{FSFile}->FS->order;
-    my $value= $grp->{FSFile}->FS->value;
+    my $sentord= $grp->{focusedWindow}->{FSFile}->FS->sentord || $grp->{focusedWindow}->{FSFile}->FS->order;
+    my $value= $grp->{focusedWindow}->{FSFile}->FS->value;
     while ($r) {
       push @nodes,$r;
       $r=$r->following();
@@ -2996,47 +3214,47 @@ sub viewSentencesDialog {
 
 
 sub editListAttr {
-  my ($grp, $value, $attr,$d)=@_;
-  return unless $grp->{FSFile};
-  my @vals= map { encode($_) } $grp->{FSFile}->FS->listValues($attr);
+  my ($win, $value, $attr,$d)=@_;
+  return unless $win->{FSFile};
+  my @vals= map { encode($_) } $win->{FSFile}->FS->listValues($attr);
   #print "splitting ",$value{$attr},"\n";
   my @selected= map { encode($_) } split /\|/,$value;
   #print "splitted to ", join ('-',@selected),"\n";
 
-  if (selectValuesDialog($grp,$attr,\@vals,\@selected,0,$d)) {
+  if (selectValuesDialog($win->{framegroup},$attr,\@vals,\@selected,0,$d)) {
     return decode(join('|',@selected));
   }
   return undef;
 }
 
 sub editAmbiguousAttr {
-  my ($grp, $value, $attr)=@_;
+  my ($win, $value, $attr)=@_;
   my @vals= map { encode($_) }split /\|/,$value;
   my @selected= @vals;
   
-  if (selectValuesDialog($grp,$attr,\@vals,\@selected,1,$grp->{top})) {
+  if (selectValuesDialog($win->{framegroup},$attr,\@vals,\@selected,1,$win->toplevel)) {
     return decode(join('|',@selected));
   }
   return undef;
 }
 
 sub editAttrsDialog {
-  my ($grp,$node)=@_;
-  return if (doEvalHook($grp,"do_edit_node_hook",$node) eq 'stop');
-  return unless $grp->{FSFile};
+  my ($win,$node)=@_;
+  return if (doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
+  return unless $win->{FSFile};
   my @vals;
   my @r=();
   my %e=();
-  my @atord=$grp->{FSFile}->FS->attributes;
+  my @atord=$win->{FSFile}->FS->attributes;
   if ($sortAttrs) {
-    @atord=sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes
-      unless (doEvalHook($grp,"sort_attrs_hook",\@atord));
+    @atord=sort {uc($a) cmp uc($b)} $win->{FSFile}->FS->attributes
+      unless (doEvalHook($win,"sort_attrs_hook",\@atord));
   }
   my $rows=min($maxDisplayedAttributes,$#atord+1);
   my ($a,$b,$r);
 
-  $grp->{top}->Busy(-recurse=>1);
-  my $d=$grp->{top}->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
+  $win->toplevel->Busy(-recurse=>1);
+  my $d=$win->toplevel->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
 				 -buttons=> ["OK", "Cancel"]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->resizable(0,0);
@@ -3085,26 +3303,26 @@ sub editAttrsDialog {
     # Reliefs: raised, sunken, flat, ridge, and groove.
     push @r,$f->Label(-text=> $_, -anchor=> 'nw')->pack();
 
-    if  ($grp->{FSFile}->FS->isList($_) or
+    if  ($win->{FSFile}->FS->isList($_) or
 	 $$node{$_}=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
       $r= $f->Frame;
       $e{$_}= $r->Entry(-relief=> 'sunken', -takefocus=> 1,
 			 -font=> $font)->pack(qw/-expand yes -fill both -side left/);
-#      unless (doEvalHook($grp,'enable_attr_hook',$_,"ambiguous") eq 'stop') {
+#      unless (doEvalHook($win,'enable_attr_hook',$_,"ambiguous") eq 'stop') {
 	$b=$r->Button(-text=> "...", -takefocus=> 0,
 		      -command=> [sub {
-				     my ($e,$grp,$node,$attr,$d)=@_;
+				     my ($e,$win,$node,$attr,$d)=@_;
 				     my $result=
-				       ($grp->{FSFile}->FS->isList($attr)
-					? editListAttr($grp,$e->get,$attr)
-					: editAmbiguousAttr($grp,$e->get,$attr,$d));
+				       ($win->{FSFile}->FS->isList($attr)
+					? editListAttr($win,$e->get,$attr)
+					: editAmbiguousAttr($win,$e->get,$attr,$d));
 				     if (defined $result) {
 				       $e->configure(-state=> 'normal');
 				       $e->delete(0,length($e->get));
 				       $e->insert(0,$result);
 				       $e->configure(-state=> 'disabled');
 				     }
-				   },$e{$_},$grp,$node,$_,$d])->pack(-side=> 'right');
+				   },$e{$_},$win,$node,$_,$d])->pack(-side=> 'right');
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
 #      }
@@ -3115,7 +3333,7 @@ sub editAttrsDialog {
       $e{$_}= $f->Entry(-relief=> 'sunken', -takefocus=> 1,
 			 -font=> $font)->pack(qw/-expand yes -fill both/);
       $e{$_}->insert(0,encode($$node{$_}));
-      if (doEvalHook($grp,'enable_attr_hook',$_,"normal") eq 'stop') {
+      if (doEvalHook($win,'enable_attr_hook',$_,"normal") eq 'stop') {
 	$e{$_}->configure(-state=> 'disabled');
       }
 
@@ -3129,20 +3347,20 @@ sub editAttrsDialog {
   }
   $f->Manage(@r);
   $f->pack();
-  $grp->{top}->Unbusy();
+  $win->toplevel->Unbusy();
 
-  my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
+  my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$win->toplevel);
   if ($result=~ /OK/) {
-    $grp->{FSFile}->notSaved(1);
-    lastActionBookmark($grp);
+    $win->{FSFile}->notSaved(1);
+    lastActionBookmark($win->{framegroup});
     foreach $a (@atord) {
       $$node{$a}=decode($e{$a}->get);
     }
-    doEvalHook($grp,"after_edit_node_hook",$node,1);
-    getNodes($grp);
-    redraw_tree($grp);
+    doEvalHook($win,"after_edit_node_hook",$node,1);
+    get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+    redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
   } else {
-     doEvalHook($grp,"after_edit_node_hook",$node,0);
+     doEvalHook($win,"after_edit_node_hook",$node,0);
    }
   undef %e;
   foreach $_ (@r) {$_->destroy;}
@@ -3155,8 +3373,10 @@ sub editAttrsDialog {
 
 sub customAttrsDialog {
   my ($grp)=@_;
-  return if (doEvalHook($grp,"customize_attrs_hook",$node) eq 'stop');
-  return unless $grp->{FSFile};
+  my $win=$grp->{focusedWindow};
+  return if (doEvalHook($win,"customize_attrs_hook",$node) eq 'stop');
+
+  return unless $win->{FSFile};
 
   $grp->{top}->Busy(-recurse=>1);
   my $d=$grp->{top}->
@@ -3172,10 +3392,10 @@ sub customAttrsDialog {
 		     -height 15 -scrollbars e
                      -exportselection 0/)->pack();
   $al->BindMouseWheelVert();
-  my @atord=$grp->{FSFile}->FS->attributes;
+  my @atord=$win->{FSFile}->FS->attributes;
   if ($sortAttrs) {
-    @atord=sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes
-      unless (doEvalHook($grp,"sort_attrs_hook",\@atord));
+    @atord=sort {uc($a) cmp uc($b)} $win->{FSFile}->FS->attributes
+      unless (doEvalHook($win,"sort_attrs_hook",\@atord));
   }
   $al->insert('end',@atord);
   $af->pack(qw/-padx 5 -side left -expand yes -fill both/);
@@ -3191,7 +3411,7 @@ sub customAttrsDialog {
                             -fill both
                             -padx 3 -pady 3/);
   $cl->BindMouseWheelVert();
-  $cl->insert('end',$grp->{FSFile}->patterns,'   ');
+  $cl->insert('end',$win->{FSFile}->patterns,'   ');
   $cf->Label(-text=> 'Hint pattern')->pack();
   my $t=
     $cf->Scrolled(qw/Text -relief sunken
@@ -3203,7 +3423,7 @@ sub customAttrsDialog {
 		 )->pack(qw/-side top -expand yes
                             -fill both
                             -padx 3 -pady 3/);
-  $t->insert('0.0',$grp->{FSFile}->hint);
+  $t->insert('0.0',$win->{FSFile}->hint);
   $t->BindMouseWheelVert();
   my $e= $d->Entry(qw/-relief sunken
                        -borderwidth 2/);
@@ -3291,9 +3511,9 @@ sub customAttrsDialog {
   my $result= ShowDialog($d,$e,$grp->{top});
 
   if ($result=~ /OK/) {
-    $grp->{FSFile}->changeHint($t->get('0.0','end - 1 chars'));
-    $grp->{FSFile}->changePatterns($cl->get(0,$cl->index('end')-2));
-    redraw_tree($grp);
+    $win->{FSFile}->changeHint($t->get('0.0','end - 1 chars'));
+    $win->{FSFile}->changePatterns($cl->get(0,$cl->index('end')-2));
+    redraw_fsfile($grp,$win->{FSFile},$win->{treeNo});
   }
   $d->destroy;
   undef $d;
@@ -3308,13 +3528,13 @@ sub customAttrsDialog {
 
 sub findNodeDialog {
   my ($grp,$template)=@_;
-  return unless $grp->{FSFile};
+  return unless $grp->{focusedWindow}->{FSFile};
   my $r;
   my @vals;
-  my @atord=$grp->{FSFile}->FS->attributes;
+  my @atord=$grp->{focusedWindow}->{FSFile}->FS->attributes;
   if ($sortAttrs) {
-    @atord=sort {uc($a) cmp uc($b)} $grp->{FSFile}->FS->attributes
-      unless (doEvalHook($grp,"sort_attrs_hook",\@atord));
+    @atord=sort {uc($a) cmp uc($b)} $grp->{focusedWindow}->{FSFile}->FS->attributes
+      unless (doEvalHook($grp->{focusedWindow},"sort_attrs_hook",\@atord));
   }
 
   my $b;
@@ -3444,8 +3664,6 @@ sub findNodeDialog {
       $grp->{searchFilelist}=undef;
     }
     doFindFirstTemplated($grp,$template,0);
-    #    getNodes($grp);
-    #    redraw_tree($grp);
   }
   $d->destroy;
   undef $d;
@@ -3456,7 +3674,7 @@ sub findNodeDialog {
 #####################################
 sub _search_busy {
   my ($w,$grp)=@_;
-  print STDERR $grp->{currentFileNo}."stopped by user\n" if ($tredDebug);
+  print STDERR $grp->{focusedWindow}->{currentFileNo}."stopped by user\n" if ($tredDebug);
   $grp->{stopSearch}=1;
   Tk->break;
 }
@@ -3479,13 +3697,13 @@ sub _quick_update {
 ######################################
 sub doFindFirstTemplated {
   my ($grp,$template,$cont)=@_;
-  return undef unless ($grp->{currentNode});
+  return undef unless ($grp->{focusedWindow}->{currentNode});
   my $result;
   $grp->{top}->Busy(-recurse=> 1);
 
   print "Starting search!\n"  if $tredDebug;
   unless ($result=findFirstTemplated($grp,$template,$cont)) {
-    redraw_tree($grp);
+    redraw_win($grp->{focusedWindow});
     $grp->{top}->toplevel->
       messageBox(-icon=> 'warning',
 		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
@@ -3502,12 +3720,12 @@ sub doFindFirstTemplated {
 ######################################
 sub doFindPrevTemplated {
   my ($grp,$template,$cont)=@_;
-  return undef unless ($grp->{currentNode});
+  return undef unless ($grp->{focusedWindow}->{currentNode});
   my $result;
   $grp->{top}->Busy(-recurse=> 1);
 
   unless ($result=findPrevTemplated($grp,$template,$cont)) {
-    redraw_tree($grp);
+    redraw_win($grp->{focusedWindow});
     $grp->{top}->toplevel->
       messageBox(-icon=> 'warning',
 		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
@@ -3541,23 +3759,26 @@ sub cmpTemplateField {
 ######################################
 sub nextNodeInSearchFilelist {
   my ($grp,$node,$tree)=@_;
-  $node=(HNext($grp,$node) || $grp->{FSFile}->treeList->[(++$$tree)]);
+  my $win=$grp->{focusedWindow};
+
+  $node=(HNext($win,$node) || 
+	 $win->{FSFile}->treeList->[(++$$tree)]);
   return $node if ($node or !defined($grp->{searchFilelist}));
 
   # this realises filelist search
   local $insideEval=1;
   my $result=nextFile($grp,1);
-  $grp->{treeNo}=-1; # force redraw in gotoTree
+  $win->{treeNo}=-1; # force redraw in gotoTree
   $$tree=0;
   # we especially wait for Escape
   _quick_update($grp);
-  while (!$grp->{stopSearch} and $result and !$grp->{currentNode}) {
+  while (!$grp->{stopSearch} and $result and !$win->{currentNode}) {
     $result=nextFile($grp,1);
     # we especially wait for Escape
     _quick_update($grp);
-    $grp->{treeNo}=-1; # force redraw in gotoTree
+    $win->{treeNo}=-1; # force redraw in gotoTree
   }
-  return (!$grp->{stopSearch} and $result) ? $grp->{currentNode} : undef;
+  return (!$grp->{stopSearch} and $result) ? $win->{currentNode} : undef;
 }
 
 ######################################
@@ -3565,9 +3786,12 @@ sub nextNodeInSearchFilelist {
 ######################################
 sub findFirstTemplated {
   my ($grp,$template,$skipfirst)=@_;
-  return unless $grp->{FSFile};
-  my $node=$grp->{currentNode};
-  my $tree=$grp->{treeNo};
+
+  my $win=$grp->{focusedWindow};
+
+  return unless $win->{FSFile};
+  my $node=$win->{currentNode};
+  my $tree=$win->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
 
@@ -3575,9 +3799,9 @@ sub findFirstTemplated {
   while ($node) {
     unless (grep (!cmpTemplateField($grp,$node->{$_},$template->{$_}), keys (%$template)))
       {
-	gotoTree($grp,$tree);
-	setCurrent($grp, $node);
-	centerTo($grp,$node);
+	gotoTree($win,$tree);
+	setCurrent($win, $node);
+	centerTo($win,$node);
 	return $node;
       }
     $node=nextNodeInSearchFilelist($grp,$node,\$tree);
@@ -3603,10 +3827,10 @@ sub lastSubtreeNode {
 ######################################
 sub prevNodeInSearchFilelist {
   my ($grp,$node,$tree)=@_;
-  $node=HPrev($grp,$node);
+  $node=HPrev($grp->{focusedWindow},$node);
   unless ($node or $$tree==0) {
-    $node=lastSubtreeNode($grp->{FSFile}->treeList->[(--$$tree)]);
-    $node=HPrev($grp,$node) unless (isShown($grp,$node));
+    $node=lastSubtreeNode($grp->{focusedWindow}->{FSFile}->treeList->[(--$$tree)]);
+    $node=HPrev($grp->{focusedWindow},$node) unless (isShown($grp->{focusedWindow},$node));
   }
   return $node if $node or !defined($grp->{searchFilelist});
 
@@ -3615,17 +3839,17 @@ sub prevNodeInSearchFilelist {
   my $result=prevFile($grp,1);
   # we especially wait for Escape
   _quick_update($grp);
-  $grp->{treeNo}=-1; # force redraw in gotoTree
+  $grp->{focusedWindow}->{treeNo}=-1; # force redraw in gotoTree
   while ($result and !$grp->{stopSearch}
-	 and !$grp->{FSFile} || $grp->{FSFile}->lastTreeNo<0) {
+	 and !$grp->{focusedWindow}->{FSFile} || $grp->{focusedWindow}->{FSFile}->lastTreeNo<0) {
     $result=prevFile($grp,1);
     # we especially wait for Escape
     _quick_update($grp);
-    $grp->{treeNo}=-1; # force redraw in gotoTree
+    $grp->{focusedWindow}->{treeNo}=-1; # force redraw in gotoTree
   }
   if ($result and !$grp->{stopSearch}) {
-    $$tree=$grp->{FSFile}->lastTreeNo;
-    $node=lastSubtreeNode($grp->{FSFile}->treeList->[$$tree]);
+    $$tree=$grp->{focusedWindow}->{FSFile}->lastTreeNo;
+    $node=lastSubtreeNode($grp->{focusedWindow}->{FSFile}->treeList->[$$tree]);
     return $node;
   }
   return undef;
@@ -3636,9 +3860,9 @@ sub prevNodeInSearchFilelist {
 ######################################
 sub findPrevTemplated {
   my ($grp,$template,$skipfirst)=@_;
-  return unless $grp->{FSFile};
-  my $node=$grp->{currentNode};
-  my $tree=$grp->{treeNo};
+  return unless $grp->{focusedWindow}->{FSFile};
+  my $node=$grp->{focusedWindow}->{currentNode};
+  my $tree=$grp->{focusedWindow}->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
 
@@ -3647,9 +3871,9 @@ sub findPrevTemplated {
   while ($node) {
     unless (grep (!cmpTemplateField($grp,$node->{$_},$template->{$_}), keys (%$template)))
       {
-	gotoTree($grp, $tree);
-	setCurrent($grp, $node);
-	centerTo($grp,$node);
+	gotoTree($grp->{focusedWindow}, $tree);
+	setCurrent($grp->{focusedWindow}, $node);
+	centerTo($grp->{focusedWindow},$node);
 	return $node;
       }
     $node=prevNodeInSearchFilelist($grp,$node,\$tree);
@@ -3667,64 +3891,64 @@ sub findPrevTemplated {
 
 sub editAttrs {
   my ($w,$grp)=@_;
-  my $node=$grp->{treeView}->pinfo->{$w->find('withtag','current')};
-  editAttrsDialog($grp,$node);
+  my $win=findCanvasWindow($grp,$w);
+  my $node=$win->{treeView}->get_obj_pinfo($w->find('withtag','current'));
+  editAttrsDialog($win,$node);
 }
 
 sub editAttr {
   my ($w,$grp)=@_;
-  return unless $grp->{FSFile};
+  my $win=findCanvasWindow($grp,$w);
+  return unless($win and $win->{FSFile});
   my $attr;
   my $newvalue;
 
   my $t=$w->find('withtag','current');
-  my $node=$grp->{treeView}->pinfo->{$t};
+  my $tv=$win->{treeView};
+  my $node=$tv->get_obj_pinfo($t);
   my $d;
-  setCurrent($grp,$node);
-  $attr= (grep {$$node{$_} eq $t} keys %$node)[0];
-  return 0 unless ($attr=~/^_tkText\[([^]]+)\]/);
-  $attr=$1;
-  my $result= doEvalHook($grp,'do_edit_attr_hook',$attr,$node);
+  setCurrent($win,$node);
+  $attr=$tv->get_gen_pinfo("attr:$t");
+  my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
-  if ($grp->{FSFile}->FS->isList($attr)) {
-    $newvalue= editListAttr($grp,$$node{$attr},$attr,$grp->{top});
+  if ($win->{FSFile}->FS->isList($attr)) {
+    $newvalue= editListAttr($win,$node->{$attr},$attr,$grp->{top});
     if (defined($newvalue)) {
-      $grp->{top}->Busy(-recurse=> 1);
-      $grp->{FSFile}->notSaved(1);
+      $win->toplevel->Busy(-recurse=> 1);
+      $win->{FSFile}->notSaved(1);
       lastActionBookmark($grp);
       $$node{$attr}=$newvalue;
-      doEvalHook($grp,"after_edit_attr_hook",$node,$attr,1);
-      getNodes($grp);
-      redraw_tree($grp);
-      $grp->{top}->Unbusy();
+      doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
+      get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
+      redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
+      $win->toplevel->Unbusy();
     } else {
-      doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
+      doEvalHook($win,"after_edit_attr_hook",$node,$attr,0);
     }
     return;
   }
 
   if ($$node{$attr}=~/^(?:[^\|\\]|\\.)*\|/) {
-    $newvalue= editAmbiguousAttr($grp,$$node{$attr},$attr);
+    $newvalue= editAmbiguousAttr($win,$->node{$attr},$attr);
     if (defined $newvalue) {
       $grp->{top}->Busy(-recurse=> 1);
-      $grp->{FSFile}->notSaved(1);
+      $win->{FSFile}->notSaved(1);
       lastActionBookmark($grp);
       $$node{$attr}=$newvalue;
-      doEvalHook($grp,"after_edit_attr_hook",$node,$attr,1);
-      getNodes($grp);
-      redraw_tree($grp);
+      doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
+      get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
+      redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       $grp->{top}->Unbusy();
     } else {
-      doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
+      doEvalHook($win,"after_edit_attr_hook",$node,$attr,0);
     }
     return;
   }
 
   $grp->{top}->Busy(-recurse=> 1);
 
-
-  $newvalue=encode($node{$attr});
+  $newvalue=encode($node->{$attr});
   $d= $grp->{top}->DialogBox(-title=> "Edit Node Attribute",
 				-buttons=> ["OK", "Cancel"]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
@@ -3735,7 +3959,7 @@ sub editAttr {
 		    -justify=> 'right')->pack(-side=>'left');
   my $e= $d->Entry(-relief=> 'sunken',
 		    -width=> 40,
-		    -state=> (doEvalHook($grp,'enable_attr_hook',
+		    -state=> (doEvalHook($win,'enable_attr_hook',
 					  $attr,"normal") eq 'stop') ? 'disabled' : 'normal',
 		    -takefocus=> 1,
 		    -font=> $font,
@@ -3744,14 +3968,14 @@ sub editAttr {
   $grp->{top}->Unbusy();
   $result= ShowDialog($d,$e,$grp->{top});
   if ($result=~ /OK/) {
-    $grp->{FSFile}->notSaved(1);
+    $win->{FSFile}->notSaved(1);
     lastActionBookmark($grp);
     $$node{$attr}=decode($newvalue);
-    doEvalHook($grp,"after_edit_attr_hook",$node,$attr,1);
-    getNodes($grp);
-    redraw_tree($grp);
+    doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
+    get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
+    redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
   } else {
-    doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
+    doEvalHook($win,"after_edit_attr_hook",$node,$attr,0);
   }
   $d->destroy;
   undef $d;
@@ -3763,225 +3987,263 @@ sub editAttr {
 #############################################
 
 sub nodeOptions {
-  my ($grp,$node)=@_;
-  return $grp->{treeView}->node_options($node,$grp->{FSFile}->FS,$grp->{currentNode});
+  my ($win,$node)=@_;
+  return $win->{treeView}->node_options($node,
+					$win->{FSFile}->FS,
+					$win->{currentNode});
 }
 
 sub nodeBoxOptions {
-  my ($grp,$node)=@_;
-  return $grp->{treeView}->node_box_options($node,$grp->{FSFile}->FS,$grp->{currentNode});
+  my ($win,$node)=@_;
+  return $->{treeView}->node_box_options($node,
+					 $win->{FSFile}->FS,
+					 $win->{currentNode});
 }
 
-sub redraw_tree {
-  my ($grp)=@_;
+sub redraw_win {
+  my ($win)=@_;
   return if $insideEval;
-  saveFileStateUpdate($grp);
-  return
-    $grp->{treeView}->
-      redraw(
-	     $grp->{FSFile},
-	     $grp->{currentNode},
-	     $grp->{Nodes},
-	     $valueLine
-	    );
+  saveFileStateUpdate($win);
+  $win->{treeView}->
+      redraw($win->{FSFile},
+	     $win->{currentNode},
+	     $win->{Nodes},
+	     $valueLine);	# CHANGE THIS (this is just for printing)
+  return;
+}
+
+sub redraw_fsfile {
+  my ($grp,$fsfile)=@_;
+  return if $insideEval;
+  foreach (fsfileDisplayingWindows($grp,$fsfile)) {
+    redraw_win($_);
+  }
+  return;
+}
+
+sub redraw_fsfile_tree {
+  my ($grp,$fsfile,$tree_no)=@_;
+  return if $insideEval;
+  foreach (grep {$_->{treeNo} == $tree_no}
+	   fsfileDisplayingWindows($grp,$fsfile)) {
+    redraw_win($_);
+  }
+  return;
+}
+
+sub redraw_all {
+  my ($grp)=@_;
+  foreach (@{ $grp->{treeWindows} }) {
+    redraw_win($_);
+  }
+  return;
 }
 
 sub follow_mouse {
   my ($w, $grp)= @_;
   my $e= $w->XEvent;
+  my $win=findCanvasWindow($grp,$w);
   my($x, $y)= ($w->fpixels($e->x), $w->fpixels($e->y));
-  scrollCanvasToXY($w, $grp, $x, $y);
+  scrollCanvasToXY($w, $win, $x, $y);
 }
 
 sub follow_mouse_press {
   my ($w, $grp)= @_;
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
   my $e= $w->XEvent;
   my($x, $y)= ($w->fpixels($e->x), $w->fpixels($e->y));
 
-  $grp->{treeView}->pinfo->{lastX}=$x;
-  $grp->{treeView}->pinfo->{lastY}=$y;
-  $grp->{treeView}->pinfo->{lastCanvasX}=$w->canvasx($x);
-  $grp->{treeView}->pinfo->{lastCanvasY}=$w->canvasy($y);
+  $tv->store_gen_pinfo("lastX",$x);
+  $tv->store_gen_pinfo("lastY",$y);
+  $tv->store_gen_pinfo("lastCanvasX",$w->canvasx($x));
+  $tv->store_gen_pinfo("lastCanvasY",$w->canvasy($y));
 }
 
 
 
 sub scrollCanvasToXY {
-  my ($w, $grp, $x, $y)=@_;
+  my ($w, $win, $x, $y)=@_;
   my ($ax,$bx)=$w->xview;
   my ($ay,$by)=$w->yview;
   my $canvasX;
+  my $tv=$win->{treeView};
 
-  my $sizeX=$w->fpixels($grp->{treeView}->{canvasWidth})*($bx-$ax);
-  my $shiftX=($x-$grp->{treeView}->pinfo->{lastX});
+  my $sizeX=$w->fpixels($tv->{canvasWidth})*($bx-$ax);
+  my $shiftX=($x-$tv->get_gen_pinfo("lastX"));
   if ($shiftX>0) {
-    if ($grp->{treeView}->pinfo->{lastX}== $sizeX) {
+    if ($tv->get_gen_pinfo("lastX")== $sizeX) {
       $shiftX=0;
     } else {
-      $shiftX/=$sizeX-$grp->{treeView}->pinfo->{lastX}; # a fraction of our right move in window
+      $shiftX/=$sizeX-$tv->get_gen_pinfo("lastX"); # a fraction of our right move in window
     }
     $canvasX=$shiftX*
-      ($w->fpixels($grp->{treeView}->{canvasWidth})-
-	$grp->{treeView}->pinfo->{lastCanvasX}); # this is where we should get on the canvas
-  }
-  else {
-    if ($grp->{treeView}->pinfo->{lastX}== 0) {
+      ($w->fpixels($tv->{canvasWidth})-
+       $tv->get_gen_pinfo("lastCanvasX")); # this is where we should get on the canvas
+  } else {
+    if ($tv->get_gen_pinfo("lastX")== 0) {
       $shiftX=0;
-    } else{
-      $shiftX/=$grp->{treeView}->pinfo->{lastX}
+    } else {
+      $shiftX/=$tv->get_gen_pinfo("lastX");
     }
     $canvasX=$shiftX*
-	$grp->{treeView}->pinfo->{lastCanvasX}; # this is where we should get on the canvas
+      $tv->get_gen_pinfo("lastCanvasX"); # this is where we should get on the canvas
   }
-  $canvasX+=$grp->{treeView}->pinfo->{lastCanvasX};
+  $canvasX+=$tv->get_gen_pinfo("lastCanvasX");
   $w->xview(moveto=>
 	    max(0,min(1,($canvasX-$x+1+$w->fpixels($w->cget('-borderwidth')))
-		      /$grp->{treeView}->{canvasWidth})));
+		      /$tv->{canvasWidth})));
 
   # the same for Y
-  my $sizeY=$w->fpixels($grp->{treeView}->{canvasHeight})*($by-$ay);
-  my $shiftY=($y-$grp->{treeView}->pinfo->{lastY});
+  my $sizeY=$w->fpixels($tv->{canvasHeight})*($by-$ay);
+  my $shiftY=($y-$tv->get_gen_pinfo("lastY"));
   if ($shiftY>0) {
-    if ($grp->{treeView}->pinfo->{lastY}== $sizeY) {
+    if ($tv->get_gen_pinfo("lastY")== $sizeY) {
       $shiftY=0;
     } else {
-      $shiftY/=$sizeY-$grp->{treeView}->pinfo->{lastY}; # a fraction of our right move in window
+      $shiftY/=$sizeY-$tv->get_gen_pinfo("lastY"); # a fraction of our right move in window
     }
     $canvasY=$shiftY*
-      ($w->fpixels($grp->{treeView}->{canvasHeight})-
-	$grp->{treeView}->pinfo->{lastCanvasY}); # this is where we should get on the canvas
-  }
-  else {
-    if ($grp->{treeView}->pinfo->{lastY}==0) {
+      ($w->fpixels($tv->{canvasHeight})-
+       $tv->get_gen_pinfo("lastCanvasY")); # this is where we should get on the canvas
+  } else {
+    if ($tv->get_gen_pinfo("lastY")==0) {
       $shiftY=0;
     } else {
-      $shiftY/=$grp->{treeView}->pinfo->{lastY};
+      $shiftY/=$tv->get_gen_pinfo("lastY");
     }
     $canvasY=$shiftY*
-	$grp->{treeView}->pinfo->{lastCanvasY}; # this is where we should get on the canvas
+      $tv->get_gen_pinfo("lastCanvasY"); # this is where we should get on the canvas
   }
-  $canvasY+=$grp->{treeView}->pinfo->{lastCanvasY};
+  $canvasY+=$tv->get_gen_pinfo("lastCanvasY");
   $w->yview(moveto=>
 	    max(0,min(1,($canvasY-$y+1+$w->fpixels($w->cget('-borderwidth')))
-		      /$grp->{treeView}->{canvasHeight})));
+		      /$tv->{canvasHeight})));
 
 
-  $grp->{treeView}->pinfo->{lastX}=$x;
-  $grp->{treeView}->pinfo->{lastY}=$y;
-  $grp->{treeView}->pinfo->{lastCanvasX}=$w->canvasx($x);
-  $grp->{treeView}->pinfo->{lastCanvasY}=$w->canvasy($y);
+  $tv->store_gen_pinfo("lastX",$x);
+  $tv->store_gen_pinfo("lastY",$y);
+  $tv->store_gen_pinfo("lastCanvasX",$w->canvasx($x));
+  $tv->store_gen_pinfo("lastCanvasY",$w->canvasy($y));
 }
 
 sub currentUnhiden {
-  my $grp=shift;
-  return unless $grp->{FSFile};
+  my $win=(@_);
+  return unless $win->{FSFile};
   unless ($showHidden) {
-    my $node=$grp->{FSFile}->FS->isHidden($grp->{currentNode});
-    setCurrent($grp,$node->parent) if ($node and $node->parent);
+    my $node=$win->{FSFile}->FS->isHidden($win->{currentNode});
+    setCurrent($win,$node->parent) if ($node and $node->parent);
   }
 }
 
 sub currentLeft {
   my $grp=shift;
-  return unless $grp->{FSFile};
+  my $win=$grp->{focusedWindow};
+  return unless $win->{FSFile};
   if ($showHidden) {
-    if ($grp->{currentNode}->lbrother) {
-      setCurrent($grp,$grp->{currentNode}->lbrother);
-      centerTo($grp,$grp->{currentNode});
+    if ($win->{currentNode}->lbrother) {
+      setCurrent($win,$win->{currentNode}->lbrother);
+      centerTo($win,$win->{currentNode});
     }
   } else {
-    my $n=$grp->{currentNode}->lbrother;
-    $n=$n->lbrother while ($n and defined($grp->{FSFile}->FS->hide)
-			   and ($n->{$grp->{FSFile}->FS->hide} eq 'hide'));
+    my $n=$win->{currentNode}->lbrother;
+    $n=$n->lbrother while ($n and defined($win->{FSFile}->FS->hide)
+			   and ($n->{$win->{FSFile}->FS->hide} eq 'hide'));
     if ($n) {
-      setCurrent($grp,$n);
-      centerTo($grp,$grp->{currentNode});
+      setCurrent($win,$n);
+      centerTo($win,$win->{currentNode});
     }
   }
 }
 
 sub currentRight {
   my $grp=shift;
-  return unless $grp->{FSFile};
+  my $win=$grp->{focusedWindow};
+  return unless $win->{FSFile};
   if ($showHidden) {
-    if ($grp->{currentNode}->rbrother) {
-      setCurrent($grp,$grp->{currentNode}->rbrother);
-      centerTo($grp,$grp->{currentNode});
+    if ($win->{currentNode}->rbrother) {
+      setCurrent($win,$win->{currentNode}->rbrother);
+      centerTo($win,$win->{currentNode});
     }
   } else {
-    my $n=$grp->{currentNode}->rbrother;
+    my $n=$win->{currentNode}->rbrother;
 
-    $n=$n->rbrother while ($n and defined($n->{$grp->{FSFile}->FS->hide})
-			   and ($n->{$grp->{FSFile}->FS->hide} eq 'hide'));
+    $n=$n->rbrother while ($n and defined($n->{$win->{FSFile}->FS->hide})
+			   and ($n->{$win->{FSFile}->FS->hide} eq 'hide'));
     if ($n) {
-      setCurrent($grp,$n);
-      centerTo($grp,$grp->{currentNode});
+      setCurrent($win,$n);
+      centerTo($win,$win->{currentNode});
     }
   }
 }
 
 sub currentDown {
   my $grp=shift;
-  return unless $grp->{FSFile};
+  my $win=$grp->{focusedWindow};
+  return unless $win->{FSFile};
   if ($showHidden) {
-    if ($grp->{currentNode}->firstson) {
-      setCurrent($grp,$grp->{currentNode}->firstson);
-      centerTo($grp,$grp->{currentNode});
+    if ($win->{currentNode}->firstson) {
+      setCurrent($win,$win->{currentNode}->firstson);
+      centerTo($win,$win->{currentNode});
     }
   } else {
-    my $n=$grp->{currentNode}->firstson;
-    $n=$n->rbrother while ($n and defined($n->{$grp->{FSFile}->FS->hide})
-			   and $n->{$grp->{FSFile}->FS->hide} eq 'hide');
+    my $n=$win->{currentNode}->firstson;
+    $n=$n->rbrother while ($n and defined($n->{$win->{FSFile}->FS->hide})
+			   and $n->{$win->{FSFile}->FS->hide} eq 'hide');
     if ($n) {
-      setCurrent($grp,$n);
-      centerTo($grp,$grp->{currentNode});
+      setCurrent($win,$n);
+      centerTo($win,$win->{currentNode});
     }
   }
 }
 
 sub currentUp {
   my $grp=shift;
-  if ($grp->{currentNode}->parent) {
-    setCurrent($grp,$grp->{currentNode}->parent);
-    centerTo($grp,$grp->{currentNode});
+  my $win=$grp->{focusedWindow};
+  if ($win->{currentNode}->parent) {
+    setCurrent($win,$win->{currentNode}->parent);
+    centerTo($win,$win->{currentNode});
   }
 }
 
 sub centerToXY {
-  ($grp, $x, $y)= @_;
-  ($ax,$bx)=$grp->{treeView}->canvas->xview;
-  ($ay,$by)=$grp->{treeView}->canvas->yview;
+  my ($win, $x, $y)= @_;
+  my ($ax,$bx)=$win->{treeView}->canvas->xview;
+  my ($ay,$by)=$win->{treeView}->canvas->yview;
 
-  $shiftx=($bx-$ax)/2;
-  $shifty=($by-$ay)/2;
+  my $shiftx=($bx-$ax)/2;
+  my $shifty=($by-$ay)/2;
 
-  $grp->{treeView}->canvas->xview(moveto=> min(max(0,$x/$grp->{treeView}->{canvasWidth}-$shiftx),1))
-    if ($grp->{treeView}->{canvasWidth}-$shiftx);
-  $grp->{treeView}->canvas->yview(moveto=> min(max(0,$y/$grp->{treeView}->{canvasHeight}-$shifty),1))
-    if ($y/$grp->{treeView}->{canvasHeight}-$shifty);
+  $win->{treeView}->canvas->xview(moveto=> min(max(0,$x/$win->{treeView}->{canvasWidth}-$shiftx),1))
+    if ($win->{treeView}->{canvasWidth}-$shiftx);
+  $win->{treeView}->canvas->yview(moveto=> min(max(0,$y/$win->{treeView}->{canvasHeight}-$shifty),1))
+    if ($y/$win->{treeView}->{canvasHeight}-$shifty);
 }
 
 sub centerTo {
-  ($grp, $node)= @_;
-  centerToXY($grp,$$node{_tkXPOS_},$$node{_tkYPOS_});
+  my ($win, $node)= @_;
+  my $tv=$win->{treeView};
+  centerToXY($win,
+	     $tv->get_node_pinfo($node,"XPOS"),
+	     $tv->get_node_pinfo($node,"YPOS"));
 }
 
 sub doEvalHook {
-  my ($grp,$hook)=(shift,shift);
-  return unless $hook and $grp->{currentNode};
-  my $bookmark=bookmarkThis($grp);        # Save current position (as last action position)
+  my ($win,$hook)=(shift,shift);
+  return unless $hook and $win->{currentNode};
+  my $bookmark=bookmarkThis($grp->{framegroup});  # Save current position (as last action position)
 
   local $insideEval=1;
 
-  $this=$grp->{currentNode};
-  $root=$grp->{root};
-  $FileNotSaved=$grp->{FSFile}->notSaved;
-  my $result=do_eval_hook($grp,$grp->{macroContext},$hook,@_);
+  $this=$win->{currentNode};
+  $root=$win->{root};
+  $FileNotSaved=$win->{FSFile}->notSaved;
+  my $result=do_eval_hook($win,$win->{macroContext},$hook,@_);
 
   print "$@\n" if $@;
-  lastActionBookmark($grp,$bookmark) if $FileNotSaved and !$grp->{FSFile}->notSaved;
-  $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
-  saveFileStateUpdate($grp);
+  lastActionBookmark($grp->{framegroup},$bookmark) if $FileNotSaved and !$win->{FSFile}->notSaved;
+  $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved);
+  saveFileStateUpdate($win);
 
   $this=undef;
   $root=undef;
@@ -3991,41 +4253,41 @@ sub doEvalHook {
 }
 
 sub doEvalMacro {
-  my ($grp,$macro)=(shift,shift);
-  return unless $macro and $grp->{currentNode};
+  my ($win,$macro)=(shift,shift);
+  return unless $macro and $win->{currentNode};
 
-  $grp->{top}->Busy(-recurse=> 1);
-  my $bookmark=bookmarkThis($grp);
+  $win->toplevel->Busy(-recurse=> 1);
+  my $bookmark=bookmarkThis($grp->{framegroup});
 
   $insideEval=1;
 
-  $this=$grp->{currentNode};
-  $root=$grp->{root};
+  $this=$win->{currentNode};
+  $root=$win->{root};
   $FileNotSaved=1;
   $forceFileSaved=0;
 
-  my $result=do_eval_macro($grp,$macro);
+  my $result=do_eval_macro($win,$macro);
 
   unless ($forceFileSaved) {
     print STDERR "Macro claims file untouched\n"
       unless ($FileNotSaved);
-    $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
-    lastActionBookmark($grp,$bookmark) if $FileNotSaved;
+    $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved);
+    lastActionBookmark($grp->{framegroup},$bookmark) if $FileNotSaved;
   } else {
     print STDERR "Macro forsly claims file saved.\n";
-    $grp->{FSFile}->notSaved($FileNotSaved);
-    lastActionBookmark($grp,$bookmark) if $FileNotSaved;
+    $win->{FSFile}->notSaved($FileNotSaved);
+    lastActionBookmark($grp->{framegroup},$bookmark) if $FileNotSaved;
   }
   $insideEval=0;
 
-  getNodes($grp);     # memory ok, speed ok
+  get_nodes_fsfile($win->{framegroup},$win->{FSFile});
 
   #------------------------------------------------------------
   #use Benchmark;
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
-  redraw_tree($grp);  # ??? 4kb/50 runs memory leaks???, speed ok
+  redraw_fsfile($win->{framegroup},$win->{FSFile});  # ??? 4kb/50 runs memory leaks???, speed ok
   #------------------------------------------------------------
   #}
   #my $t1= new Benchmark;
@@ -4035,22 +4297,22 @@ sub doEvalMacro {
 
   # the rest of this routine is:
   # memory ok, speed ok
-  setCurrent($grp,$this) if ($this);
-  currentUnhiden($grp);
+  setCurrent($win,$this) if ($this);
+  currentUnhiden($win);
 
   $this=undef;
   $root=undef;
 
-  centerTo($grp,$grp->{currentNode});
+  centerTo($win,$win->{currentNode});
 
-  $grp->{top}->Unbusy;
+  $win->toplevel->Unbusy;
   return $result;
 }
 
 sub resolveKey {
   my $grp=shift;
  context:
-  foreach my $context ($grp->{macroContext},$grp->{macroContext} eq "TredMacro" ? () : "TredMacro") {
+  foreach my $context ($grp->{focusedWindow}->{macroContext},$grp->{focusedWindow}->{macroContext} eq "TredMacro" ? () : "TredMacro") {
     foreach $key (@_) {
       if (exists ($keyBindings{$context}->{$key})) {
 	return $keyBindings{$context}->{$key};
@@ -4062,6 +4324,7 @@ sub resolveKey {
 
 sub evalMacro {
   my ($w,$grp,$prefix)=@_;
+  my $win=$grp->{focusedWindow};
   my $key;
   my $e= $w->XEvent;
   my $A= uc($e->A);
@@ -4085,7 +4348,7 @@ sub evalMacro {
 #    my $t0= new Benchmark;
 #    # ... your code here ...
 #    for (my $i=0;$i<=50;$i++) {
-      doEvalMacro($grp,$macro);
+      doEvalMacro($win,$macro);
 #    }
 #    my $t1= new Benchmark;
 #    my $td= timediff($t1, $t0);
@@ -4097,134 +4360,136 @@ sub evalMacro {
 }
 
 sub currentNext {
-  my ($grp)=@_;
-  my $next=HNext($grp,$grp->{currentNode});
+  my ($win)=@_;
+  my $next=HNext($win,$win->{currentNode});
   if ($next) {
-    setCurrent($grp,$next);
-    centerTo($grp,$grp->{currentNode});
+    setCurrent($win,$next);
+    centerTo($win,$win->{currentNode});
   }
 }
 
 
 sub currentPrev {
-  my ($grp)=@_;
-  my $prev=HPrev($grp,$grp->{currentNode});
+  my ($win)=@_;
+  my $prev=HPrev($win,$win->{currentNode});
   if ($prev) {
-    setCurrent($grp,$prev);
-    centerTo($grp,$grp->{currentNode});
+    setCurrent($win,$prev);
+    centerTo($win,$win->{currentNode});
   }
 }
 
 
 sub node_down {
+  my($w,$grp)= @_;
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
+  my $e= $w->XEvent;
+  my($x, $y)= ($e->x, $e->y);
+  my $node=$tv->get_obj_pinfo($w->find('withtag','current'));
 
-    my($w,$grp)= @_;
-
-    my $e= $w->XEvent;
-    my($x, $y)= ($e->x, $e->y);
-    my $node=$grp->{treeView}->pinfo->{$w->find('withtag','current')};
-
-    setCurrent($grp,$node);
-    $w->dtag('selected');
-    $w->addtag('selected', 'withtag', 'current');
-    $w->raise('current');
-    $grp->{treeView}->pinfo->{lastX}= $x;
-    $grp->{treeView}->pinfo->{lastY}= $y;
-    $grp->{treeView}->pinfo->{lastCanvasX}=$w->canvasx($x);
-    $grp->{treeView}->pinfo->{lastCanvasY}=$w->canvasy($y);
-} # end plot_down
+  setCurrent($win,$node);
+  $w->dtag('selected');
+  $w->addtag('selected', 'withtag', 'current');
+  $w->raise('current');
+  $tv->store_gen_pinfo("lastX",$x);
+  $tv->store_gen_pinfo("lastY",$y);
+  $tv->store_gen_pinfo("lastCanvasX",$w->canvasx($x));
+  $tv->store_gen_pinfo("lastCanvasY",$w->canvasy($y));
+}				# end plot_down
 
 sub node_move {
+  my($w,$grp,$scroll)= @_;
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
+  my $e= $w->XEvent;
+  my($x, $y)= ($e->x, $e->y);
+  my $node=$tv->get_obj_pinfo($w->find('withtag','selected'));
 
-    my($w,$grp,$scroll)= @_;
+  my $lcx=$tv->get_gen_pinfo('lastCanvasX');
+  my $lcy=$tv->get_gen_pinfo('lastCanvasY');
+  my ($ncolor,$ocolor);
 
-    my $e= $w->XEvent;
-    my($x, $y)= ($e->x, $e->y);
-    my $node=$grp->{treeView}->pinfo->{$w->find('withtag','selected')};
+  if ($scroll) {
+    $ncolor=$w->itemcget('selected','-fill');
+    $ocolor=$w->itemcget('selected','-outline');
+    $w->itemconfigure('selected',
+		      -fill=> $tv->canvas->cget('-background'),
+		      -outline=> $tv->canvas->cget('-background')
+		     );
+    scrollCanvasToXY($w, $win, $x, $y);
+  } else {
+    $tv->store_gen_pinfo('lastCanvasX',$w->canvasx($x));
+    $tv->store_gen_pinfo('lastCanvasY',$w->canvasy($y));
+  }
+  my($cx, $cy)= ($w->canvasx($x),$w->canvasy($y));
+  $w->move('selected',  $cx-$lcx, $cy-$lcy);
+  $w->itemconfigure('selected', -fill=> $ncolor, -outline=> $ocolor ) if $scroll;
+  $w->itemconfigure('nearest', $tv->node_options($node,$win->{FSFile}->FS,undef));
+  $w->dtag('nearest');
 
-    my $lcx=$grp->{treeView}->pinfo->{lastCanvasX};
-    my $lcy=$grp->{treeView}->pinfo->{lastCanvasY};
-    my ($ncolor,$ocolor);
-
-    if ($scroll) {
-      $ncolor=$w->itemcget('selected','-fill');
-      $ocolor=$w->itemcget('selected','-outline');
-      $w->itemconfigure('selected',
-			-fill=> $grp->{treeView}->canvas->cget('-background'),
-			-outline=> $grp->{treeView}->canvas->cget('-background')
-		       );
-      scrollCanvasToXY($w, $grp, $x, $y);
-    } else {
-      $grp->{treeView}->pinfo->{lastCanvasX}=$w->canvasx($x);
-      $grp->{treeView}->pinfo->{lastCanvasY}=$w->canvasy($y);
-    }
-    my($cx, $cy)= ($w->canvasx($x),$w->canvasy($y));
-    $w->move('selected',  $cx-$lcx, $cy-$lcy);
-    $w->itemconfigure('selected', -fill=> $ncolor, -outline=> $ocolor ) if $scroll;
-    $w->itemconfigure('nearest', $grp->{treeView}->node_options($node,$grp->{FSFile}->FS,undef));
-#  		      -fill=> (isShown($grp,$node,0) ?
-#  						     $grp->{treeView}->get_nodeColor :
-#  						     $grp->{treeView}->get_hiddenNodeColor));
-    $w->dtag('nearest');
-
-    my @dots= $w->find('withtag','point');
-    my $nearestNode=0;
-    my $bestDist=10000;
-    my $dist;
-    foreach $p (@dots) {
-      if ($grp->{treeView}->pinfo->{$p} and $grp->{treeView}->pinfo->{$p}!=$node) {
-	$dist=
-	  ($cx-$grp->{treeView}->pinfo->{$p}{_tkXPOS_})*
-	    ($cx-$grp->{treeView}->pinfo->{$p}{_tkXPOS_})+
-	      ($cy-$grp->{treeView}->pinfo->{$p}{_tkYPOS_})*
-		($cy-$grp->{treeView}->pinfo->{$p}{_tkYPOS_});
-	if ($bestDist>$dist) {
-	  $bestDist=$dist;
-	  $nearestNode=$grp->{treeView}->pinfo->{$p};
-	}
+  my @dots= $w->find('withtag','point');
+  my $nearestNode=0;
+  my $bestDist=10000;
+  my $dist;
+  foreach $p (@dots) {
+    my $n=$tv->get_obj_pinfo($p);
+    if ($n and $n!=$node) {
+      $dist=
+	($cx-$tv->get_node_pinfo($n,"XPOS"))*
+	  ($cx-$tv->get_node_pinfo($n,"XPOS"))+
+	    ($cy-$tv->get_node_pinfo($n,"YPOS"))*
+	      ($cy-$tv->get_node_pinfo($n,"YPOS"));
+      if ($bestDist>$dist) {
+	$bestDist=$dist;
+	$nearestNode=$n;
       }
     }
-    if ($bestDist<800) {
-      $w->addtag('nearest','withtag',$$nearestNode{"_tkOval_"});
-      $w->itemconfigure($$nearestNode{"_tkOval_"}, 
-			-fill=> $grp->{treeView}->get_nearestNodeColor);
-    }
-} # end plot_move
+  }
+  if ($bestDist<800) {
+    $w->addtag('nearest','withtag',$tv->get_node_pinfo($nearestNode,"Oval"));
+    $w->itemconfigure($tv->get_node_pinfo($nearestNode,"Oval"),
+		      -fill=> $tv->get_nearestNodeColor);
+  }
+}				# end plot_move
 
 sub node_release {
   my($w,$grp)= @_;
-  return unless $grp->{FSFile};
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
+  return unless $win->{FSFile};
   my $e= $w->XEvent;
   my($x, $y)= ($e->x, $e->y);
   my $parent;
   my $node;
   my $center=0;
   my $sel=$w->find('withtag','selected');
-  $node=$grp->{treeView}->pinfo->{$sel} if (defined ($sel));
+  $node=$tv->get_obj_pinfo($sel) if (defined ($sel));
 
   if ($node) {
     $p=$w->find('withtag','nearest');
     $w->dtag('selected');
     if (defined $p) {
-      $parent=$grp->{treeView}->pinfo->{$p};
-      $w->itemconfigure($parent->{"_tkOval_"}, 
-			  nodeOptions($grp,$parent));
+      $parent=$tv->get_obj_pinfo($p);
+      $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
+			  nodeOptions($win,$parent));
       while ($parent) {
 	$p=0, last if ($node eq $parent);
 	$parent=$parent->parent;
       }
-      if ($p and $grp->{treeView}->pinfo->{$p} 
-	  and $node->parent!=$grp->{treeView}->pinfo->{$p}) {
-	Paste(Cut($node),$grp->{treeView}->pinfo->{$p},$grp->{FSFile}->FS->defs);
-	$grp->{FSFile}->notSaved(1);
+      if ($p and $tv->get_obj_pinfo($p) 
+	  and $node->parent!=$tv->get_obj_pinfo($p)) {
+	Paste(Cut($node),
+	      $tv->get_obj_pinfo($p),
+	      $win->{FSFile}->FS->defs);
+	$win->{FSFile}->notSaved(1);
 	lastActionBookmark($grp);
-	redraw_tree($grp);
-	centerTo($grp,$grp->{currentNode});
+	redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
+	centerTo($win,$win->{currentNode});
 	return;
       }
     }
     # returning node to its position
-    $w->coords($sel, $grp->{treeView}->node_coords($node,$grp->{currentNode}));
-  } else { redraw_tree($grp); }
+    $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
+  } else { redraw_tree($win); }
 }
 
