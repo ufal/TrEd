@@ -415,7 +415,7 @@ sub set_config {
   $maximizePrintSize  =	 val_or_def($confs,"maximizeprintsize",0);
   $createMacroMenu    =	 val_or_def($confs,"createmacromenu",0);
   $maxMenuLines	      =	 val_or_def($confs,"maxmenulines",20);
-  $useCzechLocales    =	 val_or_def($confs,"useczechlocales",($^O !~ /^MS/));
+  $useCzechLocales    =	 val_or_def($confs,"useczechlocales",0);
   $useLocales         =	 val_or_def($confs,"uselocales",0);
   $Tk::strictMotif    =	 val_or_def($confs,"strictmotif",0);
   $printColors	      =	 val_or_def($confs,"printcolors",0);
