@@ -1206,11 +1206,6 @@ EOF
     undef %{main::TredMacroCompartment::TredMacro};
     undef %{main::TredMacroCompartment::};
   } else {
-    my %packages;
-    @packages { ('TredMacro',
-		 grep {/\S/} grep { !/^main$|^TrEd::/ }
-		 map  { (/^package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros,@macros))
-	      } = ();
     foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
       no strict qw(refs);
       _msg("Cleaning package $package\n");
