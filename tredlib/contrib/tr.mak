@@ -1,6 +1,6 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 ## author: Alena Bohmova
-## Time-stamp: <2001-05-04 15:58:37 pajas>
+## Time-stamp: <2001-05-07 13:07:14 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
@@ -158,12 +158,13 @@ sub QuerySemtam {
 sub QueryTrlemma {
   my $node=shift;
   my @trs=
-
     #disp  trlemma gender number
     (['Gen','Gen','???','???'],
      ['Neg','Neg','???','???'],
      ['Emp','Emp','???','???'],
      ['Cor','Cor','???','???'],
+     ['Comma','Comma','???','???'],
+     ['Colon','Colon','???','???'],
      ['???','???','???','???'],
      ['Forn','Forn','???','???'],
      ['já','já','???','SG'],
@@ -173,11 +174,13 @@ sub QueryTrlemma {
      ['ona','on','FEM','SG'],
      ['ono','on','NEUT','SG'],
      ['my','my','???','PL'],
-     ['vy','vy','???','PL'],
+     ['vy','ty','???','PL'],
      ['oni-¾iv.','on','ANIM','PL'],
      ['ony-ne¾iv','on','INAN','PL'],
      ['ony-¾en.','on','FEM','PL'],
-     ['ona-pl-neut.','on','NEUT','PL']);
+     ['ona-pl-neut.','on','NEUT','PL'],
+     ['ten','ten','???','???'],
+    );
   my @selected=grep { 
     $node->{trlemma} eq $_->[1] and 
       $node->{gender} eq $_->[2] and
