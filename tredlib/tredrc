@@ -115,8 +115,9 @@ HintWait	 	= 1000			;; interval in ms before floating hint
 ; PrtFmtWidth  = '595';
 ; PrtFmtHeight = '842';
 
+; ImageMagickConvert = 'convert' ;; path to ImageMagick convert program
 
-PrintColor = 0			;; 1 if you want to print in colors by default
+PrintColors = 0			;; 1 if you want to print in colors by default
 
 SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive regexp
 
@@ -136,7 +137,6 @@ SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive r
 ; sgmls       = "nsgmls"                	;; path to nsgmls SGML parser
 ; sgmlsopts   = "-i preserve.gen.entities"      ;; other options to sgml parser
 ; cstsdoctype = ""                              ;; path to csts.doctype (default is
-                                                ;; $libDir/csts.doctype)
 
 ;; These are the actual parsing commands for CSTS parsing.
 ;; All occurences of %x where x is one of s,o,z,d,f are
