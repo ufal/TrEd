@@ -29,6 +29,27 @@ sub default_tfa_attrs {
 
 }
 
+#bind edit_commentA to exclam menu Edit annotator's comment
+sub edit_commentA {
+    if (not $grp->{FSFile}->FS->exists('commentA')) {
+    $ToplevelFrame->messageBox
+      (
+       -icon => 'warning',
+       -message => 'Sorry, no attribute for annotator\'s comment in this file',
+       -title => 'Sorry',
+       -type => 'OK'
+      );
+    $FileNotSaved=0;
+    return;
+  }
+  my $value=$this->{commentA};
+  $value=QueryString("Enter comment","commentA",$value);
+  if (defined($value)) {
+    $this->{commentA}=$value;
+  }
+}
+
+
 sub switch_context_hook {
   default_tfa_attrs();
   $FileNotSaved=0;
