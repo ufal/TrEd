@@ -462,13 +462,13 @@ sub startMain {
 	    doEvalMacro($grp,"package $context;".$request{CODE});
 	  } while (!$@ and nextFile($grp));
 	  my $t1 = new Benchmark;
-	  $time = timediff($t1, $t0);
+	  $time = timediff($t1, $t0) if ($t1 and $t0);
 	  doEvalHook($grp,"exit_hook") unless $@;
 	}
 	$hub->print("$control SERVER_RESPONSE_STDERR\n");
 	$hub->print("$@\n") if $@;
 	_msg($@) if $@;
-	$hub->print("Total Time: ",timestr($time),"\n");
+	$hub->print("Total Time: ",timestr($time),"\n") if $time ne "";
 	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	# send macro's output from tmp file to client
