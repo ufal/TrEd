@@ -8,6 +8,7 @@ sub setFontMetrics {
   my ($self,$filename,$fontsize,$fontscale)=@_;
   $self->{psFontSize} = $fontsize;
   $self->{psFontScale} = $fontscale ? $fontscale : 1000;
+  print "USING FONT $filename\n";
   $self->{psFontMetrics} = new PostScript::FontMetrics($filename);
   return $self->{psFontMetrics};
 }

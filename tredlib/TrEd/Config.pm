@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-08-06 17:40:33 pajas>
+# Time-stamp: <2001-08-06 17:50:14 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -237,7 +237,7 @@ sub set_config {
   $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '595';
   $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '842';
   $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
-  $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '1c';
+  $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '2c';
   $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
   $psFile=(exists $confs->{psfile}) ? tilde_expand($confs->{psfile}) : 'tred.ps';
   $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
