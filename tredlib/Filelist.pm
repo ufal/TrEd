@@ -158,9 +158,10 @@ sub load {
     local *F;
     if (defined ($self->filename) and $self->filename ne "") {
       open F,"<".$self->filename;
-      chomp ($self->{name} = <F>);
+      $self->{name} = <F>;
+      $self->{name} =~ s/[\r\n]+$//;
       @{ $self->list_ref } = <F>; #grep { -f $_ } <F>;
-      chomp @{ $self->list_ref };
+      s/[\r\n]+$// for @{ $self->list_ref };
       @{ $self->list_ref } = grep $_ ne "", @{ $self->list_ref };
       close F;
     } else {
