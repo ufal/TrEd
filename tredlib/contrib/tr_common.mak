@@ -614,6 +614,16 @@ sub getAIDREFsHash {
   return { map { $_ => 1 } getAIDREFs(@_) };
 }
 
+sub ConnectAID {
+  my $node = shift || $pPar1;
+  my $dnode = shift || $pPar2;
+
+  if (getAIDREF($dnode) ne '') {
+    my %a; @a{ getAIDREFs($node) }=();
+    $node->{AIDREFS}=getAIDREF($node).'|'.$dnode->{AID}
+      unless exists $a{ $dnode->{AID} };
+  }
+}
 
 sub ConnectAIDREFS {
   my $node = shift || $pPar1;
