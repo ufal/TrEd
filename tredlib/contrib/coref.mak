@@ -1,20 +1,59 @@
 # -*- cperl -*-
 
 $referent="";
+%cortype_colors = (
+		   textual => '&#6a85cd',
+		   grammatical => '&#f6c27b'
+		  );
 
 sub get_ID_for_coref {
   my $node=$_[0] || $this;
   return ($node->{TID} ne "") ? $node->{TID} : $node->{AID};
 }
 
+sub assign_coref {
+  my ($node,$ref,$type)=@_;
+  if ($ref eq get_ID_for_coref($node)) {
+    $node->{coref}='';
+    $node->{cortype}='';
+  } elsif ($node->{coref} =~ /(^|\|)$ref(\||$)/) {
+    # remove $ref from coref, plus remove the corresponding cortype
+    my (%coref,@coref);
+    @coref = split /\|/,$node->{coref};
+    @coref{ @coref }=split /\|/,$node->{cortype};
+    @coref = grep { $_ ne $ref } @coref;
+    $node->{coref} = join '|',  @coref;
+    $node->{cortype} = join '|', @coref{ @coref };
+  } elsif ($node->{coref} eq '' or
+	   $node->{coref} eq '???') {
+    $node->{coref}=$ref;
+    $node->{cortype}=$type;
+  } else {
+    $node->{coref}.='|'.$ref;
+    $node->{cortype}.='|'.$type;
+  }
+}
+
 sub node_release_hook {
   my ($node,$target,$mod)=@_;
   return unless $target;
+  my $type;
+  print "MODE: $mod\n";
   if ($mod eq 'Shift') {
-    $node->{coref}=get_ID_for_coref($target);
-    TredMacro::Redraw_FSFile_Tree();
-    $FileNotSaved=1;
+    $type='grammatical';
+  } elsif ($mod eq 'Control') {
+    $type='textual';
+  } elsif ($mod eq 'Alt') {
+    my $selection=['textual'];
+    listQuery('single',[qw(textual grammatical)],$selection) || return;
+    $type=$selection->[0];
+  } else {
+    print "Ignoring this mode\n";
+    return;
   }
+  assign_coref($node,get_ID_for_coref($target),$type);
+  TredMacro::Redraw_FSFile_Tree();
+  $FileNotSaved=1;
 }
 
 #bind remember_this_node to Ctrl+q menu Remeber current node for coreference
@@ -25,11 +64,9 @@ sub remember_this_node {
 
 #bind set_referent_to_coref to Ctrl+s menu Set coreference to previously marked node
 sub set_referent_to_coref {
-  if ($referent eq get_ID_for_coref()) {
-    $this->{coref}='';
-  } else {
-    $this->{coref}=$referent;
-  }
+  my $selection=['textual'];
+  listQuery('single',[qw(textual grammatical)],$selection) || return;
+  assign_coref($this,$referent,$selection->[0]);
 }
 
 
@@ -59,58 +96,57 @@ sub node_style_hook {
 
   my $id1=$root->{ID1};
   $id1=~s/:/-/g;
-  if ($node->{coref} ne "") {
-    my ($coords,$color);
-    if (index($node->{coref},$id1)==0) {
+  my (@coords,@colors);
+  my @cortypes=split /\|/,$node->{cortype};
+  foreach my $coref (split /\|/,$node->{coref}) {
+    my $cortype=shift @cortypes;
+    if (index($coref,$id1)==0) {
       print STDERR "Same sentence\n";
       # same sentence
-      my $T="[?\${AID} eq '$node->{coref}' or \${TID} eq '$node->{coref}'?]";
-      $color='&#6a85cd';
-      $coords=<<COORDS;
-         n,n,p,p &
-         n,n,
-         n + ($T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
-         n + ($T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
-         $T,$T
+      my $T="[?\${AID} eq '$coref' or \${TID} eq '$coref'?]";
+      push @colors,$cortype_colors{$cortype};
+      push @coords,<<COORDS;
+&n,n,
+n + ($T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
+n + ($T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
+$T,$T
 COORDS
-    } else {
-      my ($d,$p,$s)=($id1=~/^(.*?)-p(\d+)s(\d+)$/);
-      my ($cd,$cp,$cs)=($node->{coref}=~/^(.*?)-p(\d+)s(\d+).\d+/);
-      if ($d eq $cd) {
-	print STDERR "Same document\n";
-	# same document
-	if ($cp<$p || $cp==$p && $cs<$s) {
-	  # preceding sentence
-	  print STDERR "Preceding sentence\n";
-	  $color='&#c53c00';
-	  $coords='n,n,p,p&n,n,n-30,n';
-	} else {
-	  # following sentence
-	  print STDERR "Following sentence\n";
-	  $color='&#c53c00';
-	  $coords='n,n,p,p&n,n,n+30,n';
-	}
       } else {
-	# different document
-	$coords=undef;
-	print STDERR "Different document sentence\n";
-	add_style($styles,'Oval', -fill => '#c53c00');
-	add_style($styles,'Node',
-		  -shape => 'rectangle',
-		  -addwidth => 2,
-		  -addheight => 2);
+	my ($d,$p,$s)=($id1=~/^(.*?)-p(\d+)s(\d+)$/);
+	my ($cd,$cp,$cs)=($coref=~/^(.*?)-p(\d+)s(\d+).\d+/);
+	if ($d eq $cd) {
+	  print STDERR "Same document\n";
+	  # same document
+	  if ($cp<$p || $cp==$p && $cs<$s) {
+	    # preceding sentence
+	    print STDERR "Preceding sentence\n";
+	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
+	    push @coords,'&n,n,n-30,n';
+	  } else {
+	    # following sentence
+	    print STDERR "Following sentence\n";
+	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
+	    push @coords,'&n,n,n+30,n';
+	  }
+	} else {
+	  # different document
+	  print STDERR "Following sentence\n";
+	  push @colors,$cortype_colors{$cortype}; #'&#c53c00'
+	  push @coords,'&n,n,n,n+30';
+	  print STDERR "Different document sentence\n";
+	}
       }
-    }
-    if ($coords) {
-      add_style($styles,'Line',
-		-coords => $coords,
-		-arrow => '&last',
-		-dash => '&9,3',
-		-width => '&2',
-		-fill => $color,
-		-smooth => '&1');
-    }
   }
+  if (@coords) {
+    add_style($styles,'Line',
+	      -coords => 'n,n,p,p'.join("",@coords),
+	      -arrow => '&last' x @coords,
+	      -dash => '&9,3' x @coords,
+	      -width => '&2' x @coords,
+	      -fill => join("",@colors),
+	      -smooth => '&1' x @coords);
+  }
+  1;
 }
 
 #bind generate_tids_whole_file to F7 menu Repair TID and AIDREFS
@@ -137,7 +173,7 @@ sub auto_coref_subclause {
 	my $s=$p->parent;
 	$s=$s->parent while ($s and $s->{tag}!~/^[NP]/);
 	if ($s) {
-	  $node->{coref}=get_ID_for_coref($s);
+	  $coref=get_ID_for_coref($s);
 	}
       }
     }
@@ -192,7 +228,7 @@ sub auto_coref_infinitive {
 	}
 	if ($cor and $cor != $node->parent) {
 	  print "C: $cor->{trlemma},$cor->{func}\n";
-	  $node->{coref}=get_ID_for_coref($cor);
+	  $coref=get_ID_for_coref($cor);
 	}
       }
     }
