@@ -1420,7 +1420,10 @@ sub saveFile {
 #   }
   rename $f,$f."~" if (-f $f);
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
-  return if doEvalHook($win,"file_save_hook",$f) eq 'stop';
+  if (doEvalHook($win,"file_save_hook",$f) eq 'stop') {
+    $win->toplevel->Unbusy() unless $insideEval;
+    return;
+  }
   unless ($win->{FSFile}->writeFile($f)) {
     $win->toplevel->Unbusy() unless $insideEval;
     errorMessage($win,"Error saving file to '$f'\n($!)\n");
@@ -4547,7 +4550,7 @@ sub startMain {
     focusCanvas($group{treeWindows}->[0]->canvas,\%group);
   }
 
-#  $group{noinsert} = ($group{focusedWindow}{currentFilelist}->count()>0);
+  $group{noinsert} = ($group{focusedWindow}{currentFilelist}->count()>0);
 #    $group{focusedWindow}{currentFilelist}=$filelists[0];
 #    if ($group{focusedWindow}{currentFilelist}->file_at(0)) {
 #      openFile(\%group,$group{focusedWindow}{currentFilelist}->file_at(0));
@@ -7122,7 +7125,7 @@ sub node_release_modif {
 }
 
 sub prepare_undo {
-  my ($win)=@_;
+  my ($win,$phase_only)=@_;
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
   return undef unless $fsfile;
@@ -7134,10 +7137,10 @@ sub prepare_undo {
 		     $fsfile->FS->list,
 		     $fsfile->FS->defs,
 		     \$tree);
-    return ['FS',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode})];
+    return ['FS',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$phase_only];
   } else {
     $tree = Storable::freeze($win->{root});
-    return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode})];
+    return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$phase_only];
   }
 #  local $Data::Dump::Purity = 1;
 #  return Data::Dumper->Dump([$win->{treeNo},$win->{root},$win->{currentNode}],
@@ -7215,14 +7218,6 @@ sub undo {
     $fsfile->notSaved(1);
     $win->{treeNo}=$treeNo;
     $win->{currentNode}=getNodeByNo($win,$undo->[3]);
-    
-#    my ($treeNo,$root,$currentNode);
-#    print STDERR "$undo\n";
-#    eval $undo;
-#    $win->{treeNo}=$treeNo;
-#    $win->{root}=$root;
-#    $fsfile->treeList->[$treeNo]=$root;
-#    $win->{currentNode}=$currentNode;
     get_nodes_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
     redraw_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
     centerTo($win,$win->{currentNode});
