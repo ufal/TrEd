@@ -118,8 +118,8 @@ sub readConfig {
   $boxColor=(exists $confs{BoxColor}) ? $confs{BoxColor} : 'wheat';
   $currentBoxColor=(exists $confs{CurrentBoxColor}) ? $confs{CurrentBoxColor} : 'white';
   $font=(exists $confs{Font}) ? $confs{Font} : '-*-helvetica-medium-r-normal--*-120-*-*-*-*-*-2';
-#  $font=(exists $confs{Font}) ? $confs{Font} : '-misc-fixed-*-*-*-*-15-*-2';
-#  $font=(exists $confs{Font}) ? $confs{Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
+  #  $font=(exists $confs{Font}) ? $confs{Font} : '-misc-fixed-*-*-*-*-15-*-2';
+  #  $font=(exists $confs{Font}) ? $confs{Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
   $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : "/home/pajas/share/tkfs";
   $psFontFile=(exists $confs{PsFontFile}) ? <$confs{PsFontFile}> : "$libDir/csarialm.pfa";
   $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : "$libDir/tkfs.mac";
