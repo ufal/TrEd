@@ -308,6 +308,12 @@ sub initialize {
   $self->{$Fslib::parent}=0;
 }
 
+
+sub destroy {
+  my $self = shift;
+  Fslib::DeleteTree($self);
+}
+
 sub DESTROY {
     my $self = shift;
     return undef unless ref($self);
@@ -1688,7 +1694,7 @@ sub initialize {
   $self->[9] = undef; # storage fro current node
   $self->[10] = $_[8] ? $_[8] : 'FSBackend'; # backend;
   $self->[11] = $_[9] ? $_[9] : undef; # encoding;
-  $self->[12] = $_[10] ? $_[10] : undef; # user data
+  $self->[12] = $_[10] ? $_[10] : {}; # user data
   $self->[13] = $_[11] ? $_[11] : {}; # meta data
   return ref($self) ? $self : undef;
 }
@@ -1982,7 +1988,11 @@ sub changeEncoding {
 
 =item userData
 
-Return user data associated with the file
+Return user data associated with the file (by default this is an empty
+hash reference). User data are not supposed to be persistent and IO
+backends should ignore it. "User" does not necessarily mean that this
+slot is reserved for the user. Applications often store their
+temporary data associated with the file into this hash.
 
 =cut
 
@@ -1995,7 +2005,9 @@ sub userData {
 
 =item changeUserData
 
-Change user data associated with the file
+Change user data associated with the file. User data are not supposed
+to be persistent and IO backends should ignore it. It is rather risky
+to set this value to something else than a hash reference.
 
 =cut
 
@@ -2009,7 +2021,9 @@ sub changeUserData {
 
 =item metaData(name)
 
-Return meta data stored into the object usually by IO backends.
+Return meta data stored into the object usually by IO backends. Meta
+data are supposed to be persistent, i.e. they are saved together with
+the file (at least by some IO backends).
 
 =cut
 
@@ -2022,7 +2036,9 @@ sub metaData {
 
 =item changeMetaData(name,value)
 
-Change meta information (usually used by IO backends).
+Change meta information (usually used by IO backends). Meta data are
+supposed to be persistent, i.e. they are saved together with the file
+(at least by some IO backends).
 
 =cut
 
@@ -2909,7 +2925,6 @@ sub new {
     XML::Simple::XMLin($string,
 	  ForceArray=>[ 'member', 'element', 'attribute', 'value', 'reference' ],
 	  KeyAttr => { "member"    => "-name",
-		       "element"   => "-name",
 		       "attribute" => "-name",
 		       "element"   => "-name",
 		       "type"      => "-name"
@@ -3018,8 +3033,9 @@ sub type_struct {
 sub members {
   my ($self,$path)=@_;
   my $type = defined($path) ? $self->find($path) : $self->type_struct;
-  if (ref($type) and $type->{structure}) {
-    my $members = $type->{structure}{member};
+  my $struct = ref($type) ? (exists($type->{structure}) ? $type->{structure} : $type);
+  if ($struct) {
+    my $members = $struct->{member};
     return grep { !(ref($members->{$_}) and $members->{$_}{role} eq '#CHILDNODES') } keys %$members;
   } else {
     return ();
