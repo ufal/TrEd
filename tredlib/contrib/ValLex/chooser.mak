@@ -86,13 +86,13 @@ sub InitFrameData {
 	#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 
 	$FrameData=
-	  $XMLDataClass->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv);
+	  $XMLDataClass->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv,1);
       } else {
 	$info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 	$FrameData=
 	  $XMLDataClass->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
 			     "$libDir/contrib/ValLex/vallex.xml.gz" :
-			     "$libDir/contrib/ValLex/vallex.xml",$conv);
+			     "$libDir/contrib/ValLex/vallex.xml",$conv,1);
       }
     };
     my $err=$@;
