@@ -134,9 +134,11 @@ sub new {
   my %fontmap;
 
 
+  my $unicode=$opts{-unicode}; # force unicode if possible
   my $encoding=$opts{-encoding} || 'utf8';
   $encoding = 'utf8' if $encoding =~ /^\s*unicode\s*$|^\s*utf-?8\s*$/i;
-  $encoding =~ s/^\s*windows/cp/i;
+  $encoding =~ s/^\s*windows-?/cp/i;
+  $encoding =~ s/^\s*latin-(\d+)?/latin$1/i;
   $encoding =~ s/^\s*iso-?8859(\d+)/iso-8859-$1/i;
 
   my @media;
@@ -156,7 +158,7 @@ sub new {
   if ($opts{-fontmap}) {
     foreach my $fn (keys %{$opts{-fontmap}}) {
       if ($opts{-fontmap}->{$fn}->[0] =~ /tt|truetype/i) {
-	if ($encoding eq 'utf8') {
+	if ($unicode or $encoding eq 'utf8') {
 	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1])->unicode();
 	} else {
 	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1],
@@ -204,6 +206,7 @@ sub new {
   return bless {
 	  Debug => $opts{-debug},
 	  Encoding => $encoding,
+	  Unicode => $unicode,
 	  PDF => $pdf,
 	  FontMap => \%fontmap,
 	  Media => \@media,
@@ -318,8 +321,8 @@ sub draw_canvas {
 
       if (eval "Encode::is_utf8(\$text)" and not $@) {
 	$width = $fn->width_utf8($text)*$fnsize;
-      } elsif ($P->{Encoding} eq 'utf8') {
-	eval "\$text= Encode::decode('utf8',\$text);";
+      } elsif ($P->{Unicode}) {
+	eval "\$text= Encode::decode($P->{Encoding},\$text);";
 	$width = $fn->width_utf8($text)*$fnsize;
       } else {
 	$width = $fn->width($text)*$fnsize;
