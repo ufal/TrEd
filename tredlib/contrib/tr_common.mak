@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-24 09:24:34 pajas>
+## Time-stamp: <2002-09-02 09:23:11 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -31,7 +31,7 @@ sub default_tr_attrs {
   return unless $grp->{FSFile};
   print "Using standard patterns\n";
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if "$${memberof}" =~ /CO|AP|PA/ ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if $${memberof} =~ /CO|AP|PA/ ?><? "_#{custom2}\${operand}" if $${operand} eq "OP" ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
 		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
@@ -49,15 +49,22 @@ sub default_tr_attrs {
   if (exists($defs->{memberof}) and $defs->{memberof} =~ /CO\|AP\|PA/) {
     $defs->{memberof}=~s/CO\|AP\|PA/CO|AP/;
   }
+  if (exists($defs->{gram}) and $defs->{gram} !~ /MULT\|RATIO/) {
+    $defs->{gram}=~s/LESS/LESS|MULT|RATIO/;
+  }
+  unless (exists($defs->{operand})) {
+    PDT->appendFSHeader('@P operand',
+			'@L operand|---|OP|NIL|???');
+  }
   return 1;
 }
 
 sub sort_attrs_hook {
   my ($ar)=@_;
   @$ar = (grep($grp->{FSFile}->FS->exists($_),
-	       'func','trlemma','form','afun','coref','memberof','parenthesis','aspect','commentA'),
+	       'func','trlemma','form','afun','coref','memberof','operand','parenthesis','aspect','commentA'),
 	  sort {uc($a) cmp uc($b)}
-	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|memberof|aspect|parenthesis)$/,@$ar));
+	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|memberof|operand|aspect|parenthesis)$/,@$ar));
   return 1;
 }
 
@@ -231,7 +238,7 @@ sub do_edit_attr_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:func|coref|commentA|reltype|memberof|aspect|tfa|err1|parenthesis)$/) {
+  if ($atr!~/^(?:func|coref|commentA|reltype|memberof|operand|aspect|tfa|err1|parenthesis)$/) {
     return "stop";
   }
 }
@@ -383,7 +390,7 @@ sub GoNextVisible {
 }
 
 sub func_PAR {
-  $this->{parenthesis}='PA';
+  subtree_add_pa($this);
   $sPar1 = 'PAR';
   FuncAssign();
 }
@@ -506,6 +513,7 @@ sub NewVerb {
   $pNew->{'func'} = 'PRED';
   $pNew->{'gram'} = '???';
   $pNew->{'memberof'} = '???';
+  $pNew->{'operand'} = '???';
   $pNew->{'gender'} = '???';
   $pNew->{'number'} = '???';
   $pNew->{'degcmp'} = '???';
@@ -515,10 +523,6 @@ sub NewVerb {
   $pNew->{'verbmod'} = '???';
   $pNew->{'deontmod'} = '???';
   $pNew->{'sentmod'} = '???';
-  $pNew->{'tfa'} = '???';
-  $pNew->{'func'} = '???';
-  $pNew->{'gram'} = '???';
-  $pNew->{'memberof'} = '???';
   $pNew->{'del'} = 'ELID';
   $pNew->{'quoted'} = '???';
   $pNew->{'dsp'} = '???';
@@ -570,4 +574,30 @@ sub FPaste {
     $this=PasteNode(CutNode($pPasted),$pThis); # repaste to get structure order right
   }
   $sPasteNow = '';
+}
+
+#bind operand_op to Ctrl+Y menu Pridat operand=OP
+sub operand_op {
+
+  $pPar1 = $this;
+  $pPar1->{'operand'} = 'OP';
+
+}
+
+#bind subtree_add_pa to z menu Pridat _PA k podstromu
+sub subtree_add_pa {
+  shift unless ref($_[0]);
+  my $node = $_[0] || $this;
+  foreach ($node, $node->descendants(FS())) {
+    $_->{'parenthesis'} = 'PA';
+  }
+}
+
+#bind subtree_remove_pa to Z Odebrat _PA od podstromu
+sub subtree_remove_pa {
+  shift unless ref($_[0]);
+  my $node = $_[0] || $this;
+  foreach ($node, $node->descendants(FS())) {
+    $_->{'parenthesis'} = 'NIL';
+  }
 }
