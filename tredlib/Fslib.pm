@@ -14,9 +14,11 @@
 package Fslib;
 use strict;
 use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION
-            $field 
+            $field_re $attr_name_re
             $parent $firstson $lbrother $rbrother $special
-            $SpecialTypes $FSTestValidity $FSError);
+            $SpecialTypes $FSTestListValidity $FSError
+	    $Debug
+	   );
 use Exporter;
 @ISA=qw(Exporter);
 $VERSION = "1.2";
@@ -32,10 +34,12 @@ $VERSION = "1.2";
                 &SetRBrother &SetFirstSon/;
 
 use Carp;
-use vars qw/$VERSION @EXPORT @EXPORT_OK $field $parent $firstson $lbrother $FSTestListValidity $Debug $special_attrs/;
+#use vars qw/$VERSION @EXPORT @EXPORT_OK $field_re $parent $firstson $lbrother $FSTestListValidity/;
 
 $Debug=0;
-$field='(?:\\\\[\\]\\,]|[^\\,\\]])*';
+$field_re='(?:\\\\[\\]\\,]|[^\\,\\]])*';
+
+$attr_name_re='[^\\\\ \\n\\r\\t{}(),=|]+';
 $parent="_P_";
 $firstson="_S_";
 $lbrother="_L_";
@@ -331,7 +335,7 @@ sub ReadAttribs  {
 
     print $outfile $_ if $DO_PRINT==1;
     push @$out, $_ if $DO_PRINT==2;
-    if (/^\@([KPOVNWLH])([A-Z0-9])* ([-_A-Za-z0-9]+)(?:\|(.*))?/o) {
+    if (/^\@([KPOVNWLH])([A-Z0-9])* ($attr_name_re)(?:\|(.*))?/o) {
       if (index($SpecialTypes, $1)+1) {
 	$result{$special}->{$1}=$3;
       }
@@ -365,12 +369,12 @@ sub ParseNode ($$$) {
   if ($$lr=~/\G\[/gsco) {
     while ($$lr !~ /\G\]/gsco) {
       $n++,next if ($$lr=~/\G\,/gsco);
-      if ($$lr=~/\G([-_A-Za-z0-9]+)=($field)/gsco) {
+      if ($$lr=~/\G([\\ \n\r\t{}(),=|])+)=($field_re)/gsco) {
 	$a=$1;
 	$v=$2;
 	$tmp=Index($ord,$a);
 	$n = $tmp if (defined($tmp));
-      } elsif ($$lr=~/\G($field)/gsco) {
+      } elsif ($$lr=~/\G($field_re)/gsco) {
 	$v=$1;
         $n++ while ( $n<=$#$ord and $attr->{$ord->[$n]}!~/ [PNW]/);
 	if ($n>$#$ord) {
@@ -1467,7 +1471,7 @@ sub readFrom {
     } else {
       push @{$self->unparsed}, $_;
     }
-    if (/^\@([KPOVNWLH])([A-Z0-9])* ([-_A-Za-z0-9]+)(?:\|(.*))?/o) {
+    if (/^\@([KPOVNWLH])([A-Z0-9])* (${Fslib::attr_name_re})(?:\|(.*))?/o) {
       if (index($Fslib::SpecialTypes, $1)+1) {
 	$self->defs->{$Fslib::special}->{$1}=$3;
       }
