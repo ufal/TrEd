@@ -300,8 +300,8 @@ sub file_opened_hook {
 #binding-context TR_Diff
 #include <contrib/trdiff.mak>
 
-#binding-context Corref
-#include <contrib/tr_corref_common.mak>
+#binding-context Coref
+#include <contrib/tr_coref_common.mak>
 
 #binding-context PDT
 #include <contrib/pdt.mak>
