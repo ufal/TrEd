@@ -584,7 +584,7 @@ my $headers = <<'EOF';
 '@W sentord',
 '@H TR',
 '@P ordorig',
-'@P ARhide'
+'@P ARhide',
  @minTRheader,
  @csts,
  @misc,
