@@ -1964,6 +1964,19 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
+	    <entry>EdgeLabel-coords</entry> 
+	    <entry><para> This option
+		can be used to specify custom (non-standard) positioning
+		of the edge label by specifying the exact point to which
+		the edge label is anchored.  The format of this option is
+		similar to <literal>Line-coords</literal>, except that
+		only one pair of coordinates (X,Y) is allowed. See <link
+		  linkend="Line-coords">Line-coords</link> for more
+		information.
+	      </para>
+	    </entry>
+	  </row>
+	  <row>
 	    <entry>EdgeLabel-halign</entry>
 	    <entry><para>One of 
 		the values <quote><literal moreinfo="none">right</literal></quote>,
@@ -2070,7 +2083,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <entry><para>Width of the outline
 		of the node when mouse is over it.</para></entry>
           </row>
-	  <row>
+	  <row id="Line-coords">
 	    <entry>Line-coords</entry>
 	    <entry><para>
 		This, very complex, option allows to setup
