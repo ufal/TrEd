@@ -82,16 +82,7 @@ sub new_dialog_window {
 	   -underline => 3,
 	   -command =>[sub {
 			 my ($d,$f)=@_;
-			 $d->Busy(-recurse=> 1);
-			 my $field=$f->subwidget("wordlist")->focused_word();
-			 $f->data()->reload();
-			 if ($field) {
-			   my $word=$f->data()->findWordAndPOS(@{$field});
-			   $f->wordlist_item_changed($f->subwidget("wordlist")->focus($word));
-			 } else {
-			   $f->subwidget("wordlist")->fetch_data();
-			 }
-			 $d->Unbusy(-recurse=> 1);
+			 $f->reload_data($d);
 		       },$d,$vallex])->pack(qw(-padx 10 -expand 1));
   _bind_buttons($button_frame);
 
@@ -187,17 +178,7 @@ sub show_dialog {
     configure(-command =>
 	      [sub {
 		 my ($d,$f)=@_;
-		 $d->Busy(-recurse=> 1);
-		 my $field=$f->subwidget("wordlist")->focused_word();
-		 $f->data()->reload();
-		 if ($field) {
-		   my $word=$f->data()->findWordAndPOS(@{$field});
-		   $f->wordlist_item_changed($f->subwidget("wordlist")->focus($word));
-
-		 } else {
-		   $f->subwidget("wordlist")->fetch_data();
-		 }
-		 $d->Unbusy(-recurse=> 1);
+		 $f->reload_data($d);
 	       },$d,$vallex]);
 
   if (ref($bindings)) {
@@ -555,6 +536,21 @@ sub frame_editor_confs {
   return $_[0]->[4];
 }
 
+sub reload_data {
+  my ($self,$top)=@_;
+  $top->Busy(-recurse=> 1);
+  my $field=$self->subwidget("wordlist")->focused_word();
+  $self->data()->reload();
+  if ($field) {
+    my $word=$self->data()->findWordAndPOS(@{$field});
+    $self->wordlist_item_changed($self->subwidget("wordlist")->focus($word));
+
+  } else {
+    $self->subwidget("wordlist")->fetch_data();
+  }
+  $self->update_title();
+  $top->Unbusy(-recurse=> 1);
+}
 
 sub ask_save_data {
   my ($self,$top)=@_;
@@ -580,6 +576,7 @@ sub save_data {
   my $top=$top || $self->widget->toplevel;
   $top->Busy(-recurse=> 1);
   $self->data()->save();
+  $self->update_title();
   $top->Unbusy(-recurse=> 1);
 }
 
@@ -615,6 +612,13 @@ sub wordlist_item_changed {
   $self->framelist_item_changed();
 }
 
+sub update_title {
+  my ($self)=@_;
+  $self->widget->toplevel->title("Frame editor: ".
+				 $self->data->getUserName($self->data->user()).
+				 ($self->data->changed() ? " (modified)" : ""));
+}
+
 sub framelist_item_changed {
   my ($self,$item)=@_;
   my $h=$self->subwidget('framelist')->widget();
@@ -625,6 +629,7 @@ sub framelist_item_changed {
 #  $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
   $self->subwidget('frameproblem')->fetch_data($frame) if $self->subwidget("frameproblem");
   $self->subwidget('infoline')->fetch_frame_data($frame);
+  $self->update_title();
 }
 
 sub addword_button_pressed {
@@ -686,9 +691,14 @@ sub addframe_button_pressed {
   my $top=$self->widget()->toplevel;
   my ($ok,$elements,$note,$example,$problem)=
     $self->show_frame_editor_dialog("Add frame for ".
-				    $wl->itemCget($item,1,'-text'),
+				    $wl->itemCget($item,2,'-text'),
 				    $self->frame_editor_confs,
-				    "ACT(1) "
+				    ($wl->itemCget($item,1,'-text') eq 'V') ?
+				    "ACT(1) " :
+				    ($wl->itemCget($item,1,'-text') eq 'A') ?
+				    "ACT(7) " :
+				    ($wl->itemCget($item,1,'-text') eq 'N') ?
+				    "ACT(2,p,7) " : ""
 				   );
 
   if ($ok) {
@@ -812,6 +822,10 @@ sub move_button_pressed {
 
 sub show_frame_editor_dialog {
   my ($self,$title,$confs,$elements,$note,$example,$problem)=@_;
+
+  for ($elements, $note, $example, $problem) {
+    s/\s+(\s)$/$1/;
+  }
 
   my $top=$self->widget()->toplevel;
   my $d=$top->DialogBox(-title => $title,
