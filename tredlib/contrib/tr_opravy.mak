@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-09-05 15:16:41 pajas>
+## Time-stamp: <2003-10-03 16:58:05 pajas>
 
 
 package TR_Correction;
@@ -20,6 +20,32 @@ sub add_ord_patterns {
 
   SetDisplayAttrs(@pat,'<? #corr ?>${ord}/${sentord}/${dord}/${del}',
 		  '<? #corr ?>${AID}','<? #corr ?>${TID}');
+}
+
+#bind add_AID_to_AIDREFS to key Alt+s menu add AID to AIDREFS
+sub add_AID_to_AIDREFS {
+  if ($this->{AIDREFS} ne "" and
+      $this->{AID} ne "" and
+      index("|$this->{AIDREFS}|","|$this->{AID}|")<0) {
+    $this->{AIDREFS}.='|'.$this->{AID};
+    ChangingFile(1);
+  } else {
+    print STDERR "nothing to fix\n";
+    ChangingFile(0);
+  }
+}
+
+sub auto_fix_AID_if_marked_in_err1 {
+  if ($this->{err1} =~ 
+      s/missing AID for ord (\d+)\|redundant TID for ord (\d+)\|?//g) {
+    do {{
+      local $this=$this->parent;
+      try_fix_AID() if $this;
+    }};
+    try_fix_AID();
+    print "$this->{AID}\n";
+    $this->{err1} =~ s/\|$//;
+  }
 }
 
 #bind try_fix_AID to key Alt+i menu addremove TID, generate AID from ord
