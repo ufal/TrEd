@@ -243,8 +243,6 @@ foreach $f (@files) {
   print STDERR "Reading $f\t($fileno/$filecount)\n" unless $opt_q;
   my $fs = FSFile->newFSFile($f,'iso-8859-2',@backends);
   $fs->lastTreeNo<0 && die "$f: empty or corrupt file!\n";
-  die "cannot open $f!\n" unless open(F,"<$f");
-
 
   foreach my $root ($fs->trees) {
     # count all nodes, visible nodes and nodes added on TR-layer
