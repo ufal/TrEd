@@ -140,7 +140,7 @@ sub load {
     if (defined ($self->filename) and $self->filename ne "") {
       open F,"<".$self->filename;
       chomp ($self->{name} = <F>);
-      @{ $self->list_ref } = <F>;
+      @{ $self->list_ref } = grep { -f $_ } <F>;
       chomp @{ $self->list_ref };
       @{ $self->list_ref } = grep $_ ne "", @{ $self->list_ref };
       close F;
