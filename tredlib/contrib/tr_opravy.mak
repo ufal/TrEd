@@ -1,14 +1,52 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-16 16:10:44 pajas>
+## Time-stamp: <2004-11-17 14:46:00 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
 import Tectogrammatic;
+import Coref qw(switch_context_hook); # node_style_hook);
 
-#bind _key_Ctrl_B to Ctrl+c menu copy node
-#bind _key_Ctrl_Shift_F1 to Ctrl+C menu paste node
+######################### Hooks ######################
 
+%arrow_colors = (                           # colors of coreference arrows
+  %Coref::cortype_colors,
+  AID => 'cyan'
+ );
+
+
+sub node_style_hook {
+  my ($node,$styles)=@_;
+  if ($Coref::drawAutoCoref and $node->{corefMark}==1 and
+      ($node->{coref} eq "" or $node->{cortype}=~/auto/)) {
+      AddStyle($styles,'Node',
+	       -shape => 'rectangle',
+	       -addheight => '10',
+	       -addwidth => '10'
+	      );
+      AddStyle($styles,'Oval',
+	       -fill => '#FF7D20');
+  }
+
+  if (($Coref::referent ne "") and
+      (($node->{TID} eq $Coref::referent) or
+       ($node->{AID} eq $Coref::referent))) {
+    AddStyle($styles,'Oval',
+	     -fill => $Coref::referent_color
+	    );
+    AddStyle($styles,'Node',
+	     -addheight => '6',
+	     -addwidth => '6'
+	    );
+  }
+  my @aids = grep { $_ ne "" and $_ ne $node->{AID} } getAIDREFs($node);
+  Coref::draw_coref_arrows($node,$styles,
+			   [split(/\|/,$node->{coref}), @aids ],
+			   [split(/\|/,$node->{cortype}), map "AID",@aids ],
+			   \%arrow_colors
+			  );
+  1;
+}
 
 sub file_close_hook {
   if (which_struct() eq 'AR') {
@@ -41,12 +79,25 @@ sub enable_attr_hook {
 
 sub node_release_hook {
   my ($node,$p, $mod) = @_;
-  if ($mod eq 'Shift') {
+  if ($mod eq 'Alt') {
+    my @choices = (["grammatical coreference" => 'Shift'],
+		   ["textual coreference" => 'Control'],
+		   ["add source AID to AIDREFS of target" => 'Super']);
+    my $selection=[$choices[0][0]];
+    listQuery("What do you want to do",'browse',
+	      [map { $_->[0] } @choices],
+	      $selection) || return;
+    ($mod) = map { $_->[1] } grep { $selection->[0] eq $_->[0] } @choices;
+  }
+  if ($mod eq 'Super') {
     ConnectAID($p,$node);
     light_aidrefs_reverse();
     Redraw_FSFile_Tree();
     ChangingFile(1);
+  } else {
+    Coref::node_release_hook($node,$p,$mod);
   }
+  return 1; # allow all
 }
 
 sub node_click_hook {
@@ -66,6 +117,9 @@ sub node_click_hook {
     Redraw_FSFile_Tree();
   }
 }
+
+
+################### with_AR etc. ##################
 
 sub which_struct {
   if ($Fslib::parent eq "_AP_") {
@@ -142,6 +196,8 @@ sub with_TR (&) {
     return wantarray ? @$ret : $ret;
   }
 }
+
+########################## Macros #######################
 
 #bind add_ord_patterns to key Shift+F8 menu Show ord, dord, sentord, and del, AID/TID
 sub add_ord_patterns {
@@ -885,6 +941,8 @@ sub delete_analytical_node_from_all_layers {
 sub show_tag {
   describe_tag($this->{tag});
 }
+
+############# Coreference #############
 
 
 
