@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-29 17:58:21 pajas>";
+$timestamp="Time-stamp: <2001-04-02 09:36:14 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -294,6 +294,7 @@ sub bookmarkFilelist {
   $default->add(0,@files);
   addNewFilelist(undef,$default);
   unless (bookmarkFilelist) {
+    print "Bookmarks: ".$ENV{HOME}.'/.tred_bookmarks'."\n";
     my $bookmarks = new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
     addNewFilelist(undef,$bookmarks);
   }
@@ -553,7 +554,7 @@ sub setConfig {
   require Filelist;
   my $fl;
   foreach (grep /^filelist[0-9]+/, keys %$confs) {
-    print "Reading $_\n";
+    print "Reading $_\n"  if $tredDebug;
     $fl=Filelist->new(undef,$confs->{$_});
     next unless $fl;
     $fl->load();
@@ -718,7 +719,7 @@ sub prevFile {
 sub resumeFile {
   my ($grp,$fsfile)=@_;
   return unless ref($grp) and ref($fsfile);
-  print "Resuming file ".$fsfile->filename."\n";
+  print "Resuming file ".$fsfile->filename."\n"  if $tredDebug;
   closeFile($grp);
 
   $grp->{FSFile}=$fsfile;
@@ -814,7 +815,7 @@ sub lastActionBookmark {
   my ($grp,$bmk)=@_;
   my $f=defined($bmk) ? $bmk : bookmarkThis($grp);
   if (defined($f)) {
-    print STDERR "Bookmarking last action at: $f\n";
+    print STDERR "Bookmarking last action at: $f\n" if $tredDebug;
     $grp->{lastActionBookmark}=$f;
     updateBookmarks($grp);
   }
@@ -824,7 +825,7 @@ sub updateBookmarks {
   my ($grp)=@_;
 
   if ($grp->{BookmarksFileMenu}) {
-    print STDERR "Updating bookmark menu\n";
+    print STDERR "Updating bookmark menu\n"  if $tredDebug;
     my $menu = $grp->{BookmarksFileMenu}->menu;
     $menu->delete(0,'end');
     $grp->{BookmarksFileMenu}->command(-label => 'Add to bookmarks',
@@ -854,7 +855,7 @@ sub updatePostponed {
   my ($grp)=@_;
 
   if ($grp->{PostponedFileMenu}) {
-    print STDERR "Updating session menu\n";
+    print STDERR "Updating session menu\n"  if $tredDebug;
     my $menu = $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
     $grp->{PostponedFileMenu}->command(-label => 'Kept files',
@@ -912,7 +913,6 @@ sub openFile {
 	  fgz => 'gzipped FS format', 
 	  any => 'any non-specific format (csts?), using CstsToFs');
 
-  print STDERR "Got openFile $f\n";
   if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
     $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
       $goto=$1
@@ -924,7 +924,7 @@ sub openFile {
   $grp->{top}->Busy(-recurse => 1) unless $insideEval;
   foreach ($grp->{FSFile},@openfiles) {
     if (ref($_) and $_->filename() eq $f) {
-      print "Opening postponed file\n";
+      print "Opening postponed file\n"  if $tredDebug;
       resumeFile($grp,$_);
 
       $grp->{currentFileNo} = max(0,$grp->{currentFileNo});
@@ -1201,7 +1201,7 @@ sub getNodes {
 sub selectFilelist {
   my ($grp,$list_name)=@_;
   my $fl=switchFilelist($grp,$list_name);
-  print "Switching filelist to $list_name\n";
+  print "Switching filelist to $list_name\n"  if $tredDebug;
   return unless defined($fl);
 
   if ($fl ne $grp->{currentFilelist}) {
@@ -1218,7 +1218,7 @@ sub selectFilelist {
   $grp->{currentFileNo}=max(0,$fl->position());
   my $file=$fl->file_at($grp->{currentFileNo});
 
-  print "Setting up file $file, no. $grp->{currentFileNo}\n";
+  print "Setting up file $file, no. $grp->{currentFileNo}\n"  if $tredDebug;
 
   if (defined($file)) {
     openFile($grp,$file);
@@ -1305,7 +1305,6 @@ sub createFilelistBrowseEntry {
 	   switchFilelist($grp,$text);
 	 } else {
 	   return unless $text ne "";
-	   print "Continuing...$text\n";
 	   my $d=$w->toplevel->
 	     Dialog(-text => "File-list named $text does not exist.\n".
 		    "Do you want to create new filelist or rename current?",
@@ -1345,7 +1344,6 @@ sub getFilelistLinePosition {
 }
 
 sub insertToFilelist {
-  print "Parameters: @_\n";  
 
   my ($grp,$filelist,$position)=(shift,shift,shift);
   $filelist=$grp->{currentFilelist} unless defined($filelist);
@@ -1353,7 +1351,7 @@ sub insertToFilelist {
   return unless ref($filelist);
 
 
-  print "Insert: ",$#_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n";
+  print "Insert: ",$#_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n"  if $tredDebug;
   return if ($#_==0 and $filelist->position($_[0])>=0);
   # this is the case when we add a file which is actually already there
 
@@ -1367,7 +1365,7 @@ sub insertToFilelist {
     }
     $_;
   } @list;
-  print "Inserting @list\n";
+  print "Inserting @list\n" if $tredDebug;
   $filelist->add($position+1,@list);
 
   if ($grp->{Filelist} and 
@@ -1377,7 +1375,6 @@ sub insertToFilelist {
     my $path=filelistEntryPath($filelist,$position);
 
     $grp->{Filelist}->selectionClear();
-    print "path is $path";
     if ($grp->{Filelist}->info('exists',$path)) {
       $grp->{Filelist}->anchorSet($path);
       $grp->{Filelist}->selectionSet($path);
@@ -1594,9 +1591,9 @@ sub filelistDialog {
 				  $data=Query($grp->{Filelist}->toplevel,"Selection Pattern",
 					"Edit directory pattern for $data",$data);
 				  if (defined($data)) {
-				    print "Removing ",$grp->{Filelist}->info('data',$anchor),"\n";
+				    print "Removing ",$grp->{Filelist}->info('data',$anchor),"\n" if $tredDebug;
 				    $grp->{filelistCurrentFilelist}->remove($grp->{Filelist}->info('data',$anchor));
-				    print "Adding $data\n";
+				    print "Adding $data\n" if $tredDebug;
 				    $grp->{filelistCurrentFilelist}->add($position,$data);
 				    feedHListWithFilelist($grp,$grp->{Filelist},$grp->{filelistCurrentFilelist});
 				  }
@@ -2929,7 +2926,7 @@ sub startMain {
 			  if ($^O eq "MSWin32" and $group{top}->state() eq 'zoomed') {
 			    $geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
 			  }
-			  print "state is ",$group{top}->state(),"\n";
+			  print "state is ",$group{top}->state(),"\n"  if $tredDebug;
 			},\%group ]);
 
   print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
@@ -2960,23 +2957,32 @@ sub startMain {
     close(F);
   }
   #  $geometry=~s/^[0-9]+x[0-9]+//;
-  push @conf,"LastAction\t=\t".$group{lastActionBookmark}."\n" if $group{lastActionBookmark};
-  push @conf,
-    "Geometry\t=\t".$geometry."\n",
-    "CanvasHeight\t=\t".$defCHeight."\n",
-    "CanvasWidth\t=\t".$defCWidth."\n",
-    map { 
-      my $s=$recentFiles[$_];
-      $s=~s/\\/\\\\/g;
-      "RecentFile$_\t=\t$s\n"
-    } 0..$#recentFiles;
-  my $i=0;
-  foreach (@filelists) {
-    if (ref($_) and defined($_->filename) and $_->filename ne "") {
-      $_->save;
-      push @conf,"filelist".$i++."\t=\t".$_->filename."\n";
-    }
+  if ($group{lastActionBookmark}) {
+    $group{lastActionBookmark}=~s/\\/\\\\/g;
+    push @conf,"LastAction\t=\t".$group{lastActionBookmark}."\n" if $group{lastActionBookmark};
   }
+  do {
+    my $s;
+    push @conf,
+      "Geometry\t=\t".$geometry."\n",
+      "CanvasHeight\t=\t".$defCHeight."\n",
+      "CanvasWidth\t=\t".$defCWidth."\n",
+	map { 
+	  $s=$recentFiles[$_];
+	  $s=~s/\\/\\\\/g;
+	  "RecentFile$_\t=\t$s\n"
+	} 0..$#recentFiles;
+
+    my $i=0;
+    foreach (@filelists) {
+      if (ref($_) and defined($_->filename) and $_->filename ne "") {
+	$_->save;
+	$s=$_->filename();
+	$s=~s/\\/\\\\/g;
+	push @conf,"filelist".$i++."\t=\t".$s."\n";
+      }
+    }
+  };
   chomp $conf[$#conf];
   saveConfig(\%group,@conf);
   print STDERR "Done.\n" if $tredDebug;
@@ -3132,7 +3138,7 @@ sub askSaveFile {
   if ($answer eq 'Yes') {
     saveFile($grp);
   } elsif ($answer eq 'Keep') {
-    print STDERR "Postponing ".$grp->{FSFile}->filename()."\n";
+    print STDERR "Postponing ".$grp->{FSFile}->filename()."\n"  if $tredDebug;
     $grp->{FSFile}->currentTreeNo($grp->{treeNo});
     $grp->{FSFile}->currentNode($grp->{currentNode});
     push @openfiles, $grp->{FSFile};
@@ -3334,7 +3340,7 @@ sub selectValuesDialog {
    if (grep { $$vals[$a] eq $_ } @$selected) {
      $l->selectionSet($a);
      if (not $act) {
-       print "Activating $a\n";
+       print "Activating $a\n"  if $tredDebug;
        $act=1;
        $l->activate($a);
        $l->see($a);
@@ -3872,7 +3878,7 @@ sub doFindFirstTemplated {
   my $result;
   $grp->{'top'}->Busy(-recurse => 1);
 
-  print "Starting search!\n";
+  print "Starting search!\n"  if $tredDebug;
   unless ($result=findFirstTemplated($grp,$template,$cont)) {
     redraw_tree($grp);
     $grp->{'top'}->toplevel->
@@ -4484,7 +4490,6 @@ sub recalculate_positions {
   my $pattern_count=0;
   $pattern_count=$grp->{FSFile}->pattern_count if (ref($grp->{FSFile}));
 
-  print "pattern count is $pattern_count\n";
   my $fontHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
 
   #print "Calculating positions ...\n";
