@@ -543,6 +543,8 @@ sub startMain {
 	_msg "Request $request{Filename} at client's request\n";
 	my $f=$request{Filename};
 	chomp $f;
+	$f=~s{^ntred://}{};
+	$f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
 	my @fs=map {$_."\n"} split /\n/,$request{FSFile};
 	if ($f and openFile($grp,$f,-justpreloaded => 1) and ref($grp->{FSFile})) {
 	  _msg "Uploading $f at client's request\n";
