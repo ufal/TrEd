@@ -1198,8 +1198,9 @@ sub get_status_line_hook {
 	   ($this->{fw} ne "" ?
 	    ("     fw: " => [qw(label)],
 	     $this->{fw} => [qw({fw} value)]) : ()),
-	   "     A/TID: " => [qw(label)],
+	   "     ID: " => [qw(label)],
 	   $this->{AID} => [qw({AID} value)],
+	   $this->{ID1} => [qw({ID1} value)],
 	   $this->{TID} => [qw({TID} value)],
 	   "     AIDREFS: " => [qw(label)],
 	   (join ", ",split /\|/,$this->{AIDREFS}) => [qw({AIDREFS} value)],
