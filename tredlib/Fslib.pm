@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-07-02 17:10:16 pajas>
+# Time-stamp: <2002-07-15 18:51:09 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -232,7 +232,7 @@ sub Paste ($$$) {
   my $aord=AOrd($href);
   my $ordnum = $node->getAttribute($aord);
 
-  $b=$p->{$firstson};
+  my $b=$p->{$firstson};
   if ($b and $ordnum>$b->getAttribute($aord)) {
     $b=$b->{$rbrother} while ($b->{$rbrother} and $ordnum>$b->{$rbrother}->getAttribute($aord));
     $node->{$rbrother}=$b->{$rbrother};
@@ -437,17 +437,21 @@ sub ReadLine {
 
   if (ref($handle) eq 'ARRAY') {
     $_=shift @$handle;
-  } else { $_=<$handle>; return $_; }
+  } else { $_=<$handle>;
+	   return $_; }
   return $_;
 }
 
 sub ReadTree {
   my $handle=shift;                # file handle or array reference
-  my $l=undef;
-
-  while (ReadLine($handle)) {
-    if (s/\\\r*\n?$//go) { $l.=$_; next; } # if backslashed eol, concatenate
+  my $l="";
+  while ($_=ReadLine($handle)) {
+    if (s/\\\r*\n?$//og) {
+      $l.=$_; next; 
+    } # if backslashed eol, concatenate
     $l.=$_;
+#    use Devel::Peek;
+#    Dump($l);
     last;                               # else we have the whole tree
   }
   return $l;
@@ -458,6 +462,7 @@ sub GetTree2 ($$$) {
   my $root;
   my $curr;
   my $c;
+
   if ($l=~/^\[/o) {
     $l=~s/\\,/&comma;/g;
     $l=~s/\\\[/&lsqb;/g;
@@ -535,6 +540,18 @@ sub GetTree ($$$) {
   return $root;
 }
 
+sub Print ($$) {
+  my (
+      $output,			# filehandle or string
+      $text			# text
+     )=@_;
+  if (ref($output) eq 'SCALAR') {
+    $$output.=$text;
+  } else {
+    print $output $text;
+  }
+}
+
 sub PrintNode($$$$) {
   my ($node,			# a reference to the root-node
       $ord,			# a reference to the ord-array
@@ -545,31 +562,31 @@ sub PrintNode($$$$) {
   my $lastprinted=1;
 
   if ($node) {
-    print $output "[";
+    Print($output, "[");
     for (my $n=0; $n<=$#$ord; $n++) {
       $v=$node->getAttribute($ord->[$n]);
-      $v=~s/[,\[\]=\\]/\\$&/go if (defined($v));
+      $v=~s/([,\[\]=\\])/\\$&/go if (defined($v));
       if (index($atr->{$ord->[$n]}, " O")>=0) {
-	print $output "," if $n;
+	Print($output,",") if $n;
 	unless ($lastprinted && index($atr->{$ord->[$n]}," P")>=0) # N could match here too probably
-	  { print $output $ord->[$n],"="; }
+	  { Print($output, $ord->[$n]."="); }
 	$v='-' if ($v eq '' or not defined($v));
-	print $output $v;
+	Print($output,$v);
 	$lastprinted=1;
       }
       elsif (defined($node->getAttribute($ord->[$n])) and $node->getAttribute($ord->[$n]) ne '') {
-	print $output "," if $n;
+	Print($output,",") if $n;
 	unless ($lastprinted && index($atr->{$ord->[$n]}," P")>=0) # N could match here too probably
-	  { print $output $ord->[$n],"="; }
-	print $output $v;
+	  { Print($output,$ord->[$n]."="); }
+	Print($output,$v);
 	$lastprinted=1;
       } else {
 	$lastprinted=0;
       }
     }
-    print $output "]";
+    Print($output,"]");
   } else {
-    print $output "<<NULL>>";
+    Print($output,"<<NULL>>");
   }
 }
 
@@ -585,22 +602,22 @@ sub PrintTree {
     PrintNode($curr,$rord,$ratr,$output);
     if ($curr->{$firstson}) {
 #      print $output "\\\n(";
-      print $output "(";
+      Print($output, "(");
       $curr = $curr->{$firstson};
       redo;
     }
     while ($curr && $curr != $root && !($curr->{$rbrother})) {
-      print $output ")"; 
+      Print($output, ")");
       $curr = $curr->{$parent};
     }
     croak "Error: NULL-node within the tree while printing\n" if !$curr;
     last if ($curr == $root || !$curr);
 #    print $output ",\\\n";
-    print $output ",";
+    Print($output, ",");
     $curr = $curr->{$rbrother};
     redo;
   }
-  print $output "\n";
+  Print($output, "\n");
 }
 
 sub CreateFSHeader {
@@ -674,7 +691,7 @@ sub PrintFS ($$$$$) {
   my $t;
 
   $FS=\*STDOUT unless $FS;
-  print $FS @$header if defined($header);
+  Print($FS,join "",@$header) if defined($header);
   foreach $t (@$trees) {
     PrintTree($t,$atord,$attribs,$FS);
   }
@@ -1012,6 +1029,7 @@ Return a list of visible dependent nodea.
 
 sub visible_children {
   my ($self,$fsformat) = @_;
+  die "required parameter missing for visible_children(fsfile)" unless $fsformat;
   my @children=();
   my $child=$self->firstson;
   while ($child) {
@@ -1045,8 +1063,9 @@ Return a list recursively dependent visible nodes.
 
 =cut
 
-sub visible_descendants {
+sub visible_descendants($$) {
   my ($self,$fsformat) = @_;
+  die "required parameter missing for visible_descendants(fsfile)" unless $fsformat;
   my @kin=();
   my $desc=$self->following_visible($fsformat,$self);
   while ($desc) {
@@ -1633,7 +1652,7 @@ FSFile - Simple OO interface for FS files.
 
 =pod
 
-=item new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?,backend?)
+=item new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?)
 
 Create a new FS file object and C<initialize> it with the optional values.
 
@@ -1664,7 +1683,7 @@ See C<initialize> for more detail.
 sub create {
   my $self = shift;
   my %args=@_;
-  return $self->new(@args{qw(name format FS hint patterns tail trees save_status backend)});
+  return $self->new(@args{qw(name format FS hint patterns tail trees save_status backend encoding user_data)});
 }
 
 
@@ -1672,6 +1691,7 @@ sub DESTROY {
   my $self = shift;
   return undef unless ref($self);
   $self->[9]=undef;
+  $self->[12]=undef;
   foreach ($self->trees) {
     Fslib::DeleteTree($_);
   }
@@ -1686,11 +1706,12 @@ sub DESTROY {
   $self->[8]=undef;
   $self->[9]=undef;
   $self->[10]=undef;
+  $self->[11]=undef;
 }
 
 =pod
 
-=item initialize (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?)
+=item initialize (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?)
 
 Initialize a FS file object. Argument description:
 
@@ -1723,7 +1744,7 @@ The rest of the file, which is not parsed by Fslib, i.e. Graph's embedded macros
 
 =item trees (list reference)
 
-List of FSNode objects representing root nodes of all trees in the FSFiled.
+List of FSNode objects representing root nodes of all trees in the FSFile.
 
 =item save_status (scalar)
 
@@ -1732,6 +1753,10 @@ File save status indicator, 0=file is saved, 1=file is not saved (TrEd uses this
 =item backend (scalar)
 
 IO Backend used to open/save the file.
+
+=item encoding (scalar)
+
+IO character encoding for perl 5.8 I/O filters
 
 =back
 
@@ -1752,6 +1777,8 @@ sub initialize {
   $self->[8] = undef; # storage for current tree number
   $self->[9] = undef; # storage fro current node
   $self->[10] = $_[8] ? $_[8] : 'FSBackend'; # backend;
+  $self->[11] = $_[9] ? $_[9] : undef; # encoding;
+  $self->[12] = $_[10] ? $_[10] : undef; # user data
 
   return ref($self) ? $self : undef;
 }
@@ -1763,16 +1790,17 @@ sub initialize {
 Read FS declaration and trees from a given file.  The first argument
 must be a file-name.  If a list of backend modules is specified,
 C<test> methods of the modules are invoked as long as one of them
-succeeds. This module is than used as a backend for opening and
+succeeds. That module is than used as a backend for opening and
 parsing the file.
-Sets noSaved to zero.
+
+Note: this function sets noSaved to zero.
 
 =cut
 
 sub readFile {
   my ($self,$filename) = (shift,shift);
   return unless ref($self);
-
+  print STDERR "FSFile->encoding: ",$self->encoding,"\n";
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
@@ -1781,14 +1809,14 @@ sub readFile {
 	  return $backend->can('test')
 	      && $backend->can('read') 
 	      && $backend->can('open_backend')
-	      && &{"${backend}::test"}($filename);
+	      && &{"${backend}::test"}($filename,$self->encoding);
 	}) {
       $self->changeBackend($backend);
       $self->changeFilename($filename);
       print STDERR "success\n" if $Fslib::Debug;
       eval {
 	my $fh;
-	$fh = &{"${backend}::open_backend"}($filename,"r");
+	$fh = &{"${backend}::open_backend"}($filename,"r",$self->encoding);
 	&{"${backend}::read"}($fh,$self);
 	&{"${backend}::close_backend"}($fh);
       };
@@ -1845,7 +1873,7 @@ sub writeFile {
     my $fh;
     $ret=( $backend->can('write')
        and $backend->can('open_backend')
-       and ($fh=&{"${backend}::open_backend"}($filename,"w"))
+       and ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding))
        and &{"${backend}::write"}($fh,$self)
        and &{"${backend}::close_backend"}($fh));
     print STDERR "Status: $ret\n" if $Fslib::Debug;
@@ -1883,19 +1911,23 @@ sub writeTo {
 
 =pod
 
-=item newFSFile (filename,[backends...])
+=item newFSFile (filename,encoding?,[backends...])
 
 Create a new FSFile object based on the content of a given file.
 If a list of backend
 modules is specified, C<read> methods of the modules are invoked
 as long as one of them succeeds to open and parse the file.
 
+Optionally, in perl ver. >= 5.8, you may also specify file character
+encoding.
+
 =cut
 
 sub newFSFile {
-  my ($self,$filename) = (shift,shift);
+  my ($self,$filename,$encoding) = (shift,shift,shift);
 
   my $new=$self->new();
+  $new->changeEncoding($encoding);
   $new->readFile($filename,@_);
   return $new;
 }
@@ -1982,6 +2014,61 @@ sub changeBackend {
   my ($self,$val) = @_;
   return unless ref($self);
   return $self->[10]=$val;
+}
+
+=pod
+
+=item encoding
+
+Return file character encoding (used by Perl 5.8 input/output filters).
+
+=cut
+
+sub encoding {
+  my $self = shift;
+  return ref($self) ? $self->[11] : undef;
+}
+
+=pod
+
+=item changeEncoding
+
+Change file character encoding (used by Perl 5.8 input/output filters).
+
+=cut
+
+sub changeEncoding {
+  my ($self,$val) = @_;
+  return unless ref($self);
+  return $self->[11]=$val;
+}
+
+
+=pod
+
+=item userData
+
+Return user data associated with the file
+
+=cut
+
+sub userData {
+  my $self = shift;
+  return ref($self) ? $self->[12] : undef;
+}
+
+=pod
+
+=item changeUserData
+
+Change user data associated with the file
+
+=cut
+
+sub changeUserData {
+  my ($self,$val) = @_;
+  return unless ref($self);
+  return $self->[12]=$val;
 }
 
 =pod
@@ -2297,16 +2384,35 @@ sub nodes {
 
 =pod
 
-=item value_line (tree_no)
+=item value_line (tree_no, no_tree_numbers?)
 
 Return a sentence string for the given tree. Sentence string is a
 string of chained value attributes (FS->value) ordered according to
 the FS->sentord or FS->order if FS->sentord attribute is not defined.
 
+Unless no_tree_numbers is non-zero, prepend the resulting string with
+a "tree number/tree count: " prefix.
+
 =cut
 
 sub value_line {
   my ($fsfile,$tree_no,$no_numbers)=@_;
+  return unless $fsfile;
+
+  return ($no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ").
+    join(" ",$fsfile->value_line_list($tree_no));
+}
+
+=item value_line_list (tree_no)
+
+Return a list of value (FS->value) attributes for the given tree
+ordered according to the FS->sentord or FS->order if FS->sentord
+attribute is not defined.
+
+=cut
+
+sub value_line_list {
+  my ($fsfile,$tree_no,$no_numbers,$wantnodes)=@_;
   return unless $fsfile;
 
   my $node=$fsfile->treeList->[$tree_no];
@@ -2322,10 +2428,13 @@ sub value_line {
   @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
   $attr=$fsfile->FS->value();
   my $line = $no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ";
-  $line.=join(" ", map { $_->getAttribute($attr) } @sent);
-  undef @sent;
-  return $line;
+  if ($wantnodes) {
+    return (map { [$_->getAttribute($attr),$_] } @sent);
+  } else {
+    return (map { $_->getAttribute($attr) } @sent);
+  }
 }
+
 
 =pod
 
@@ -2449,7 +2558,7 @@ $ZBackend::gzip = "/usr/bin/gzip" unless $ZBackend::gzip;
 
 =pod
 
-=item open_backend (filename,mode)
+=item open_backend (filename,mode,encoding?)
 
 Open given file for reading or writing (depending on mode which may be
 one of "r" or "w"); Return the corresponding object based on
@@ -2457,10 +2566,13 @@ File::Handle class. Only files the filename of which ends with `.gz'
 are considered to be gz-commpressed. All other files are opened using
 IO::File.
 
+Optionally, in perl ver. >= 5.8, you may also specify file character
+encoding.
+
 =cut
 
 sub open_backend {
-  my ($filename, $mode)=@_;
+  my ($filename, $mode,$encoding)=@_;
   my $fh = undef;
   if ($filename) {
     if ($filename=~/.gz$/) {
@@ -2476,7 +2588,6 @@ sub open_backend {
 	    $fh && $fh->reader("$ZBackend::zcat < \"$filename\"");
 	  } || return undef;
 	}
-	return $fh;
       } else {
 	eval {
 	  require IO::Zlib;
@@ -2488,6 +2599,15 @@ sub open_backend {
       eval { $fh = new IO::File(); } || return undef;
       $fh->open($filename,$mode) || return undef;
     }
+  }
+  no integer;
+  print STDERR "ENCODING: $mode $encoding\n";
+  if ($]>=5.008 and defined $encoding) {
+    eval {
+      print STDERR "USING PERL IO ENCODING: $encoding\n";
+      binmode $fh,":encoding($encoding)";
+    };
+    print STDERR $@ if $@;
   }
   return $fh;
 }
@@ -2538,7 +2658,7 @@ FSBackend - IO backend for reading/writing FS files using FSFile class.
 
 =pod
 
-=item test (filehandle | filename)
+=item test (filehandle | filename, encoding?)
 
 Test if given filehandle or filename is in FSFormat. If the argument
 is a file-handle the filehandle is supposed to be open by previous
@@ -2546,15 +2666,18 @@ call to C<open_backend>. In this case, the calling application may
 need to close the handle and reopen it in order to seek the beginning
 of the file after the test has read few characters or lines from it.
 
+Optionally, in perl ver. >= 5.8, you may also specify file character
+encoding.
+
 =cut
 
 sub test {
-  my ($f)=@_;
+  my ($f,$encoding)=@_;
   if (ref($f)) {
     return $f->getline()=~/^@/;
   } else {
-    my $fh = open_backend($f,"r");
-    my $test = $fh && test($fh);
+    my $fh = open_backend($f,"r",$encoding);
+    my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;
   }
@@ -2588,8 +2711,16 @@ sub read {
   $fsfile->changeTail(@rest);
 
   #parse Rest
-  $fsfile->changePatterns( map { /^\/\/Tred:Custom-Attribute:(.*\S)\s+$/ ? $1 : () } $fsfile->tail);
-  unless ($fsfile->patterns) {
+  my @patterns;
+  foreach ($fsfile->tail) {
+    if (/^\/\/Tred:Custom-Attribute:(.*\S)\s+$/) {
+      push @patterns,$1;
+    } elsif (/^\/\/Tred:Custom-AttributeCont:(.*\S)\s+$/) {
+      $patterns[$#patterns].="\n".$1;
+    }
+  }
+  $fsfile->changePatterns(@patterns);
+  unless (@patterns) {
     my ($peep)=$fsfile->tail;
     $fsfile->changePatterns( map { "\$\{".$fsfile->FS->atno($_)."\}" } 
 		    ($peep=~/[,\(]([0-9]+)/g));
@@ -2622,8 +2753,12 @@ sub write {
 
   ## Tredish custom attributes:
   $fsfile->changeTail(
-		    (grep { $_!~/\/\/Tred:(?:Custom-Attribute|Balloon-Pattern):/ } $fsfile->tail),
-		    (map {"//Tred:Custom-Attribute:$_\n"} $fsfile->patterns),
+		    (grep { $_!~/\/\/Tred:(?:Custom-Attribute(?:Cont)?|Balloon-Pattern):/ } $fsfile->tail),
+		    (map {"//Tred:Custom-Attribute:$_\n"}
+		     map {
+		       join "\n//Tred:Custom-AttributeCont:",
+			 split /\n/,$_
+		       } $fsfile->patterns),
 		    (map {"//Tred:Balloon-Pattern:$_\n"}
 		     split /\n/,$fsfile->hint)
 		   );
@@ -2908,7 +3043,7 @@ is 0 (no check is performed).
    A reference to a tree hash-structure described below.
 
 
-=item PrintNode ($node,$aref,$href)
+=item PrintNode ($node,$aref,$href,$output?)
 
  Params:
 
@@ -2917,17 +3052,19 @@ is 0 (no check is performed).
            positional order (see ReadAttributes)
    $href - a reference to a hash, containing attributes as keys
            and corresponding type strigs as values
+   $output - output filehandle
+
   Returns:
 
-   Unknown.
+   Not specified.
 
  Descrption:
 
    Prints the node structure referenced by $node
-   to STDOUT in a source format
+   to $output (or STDOUT) in the source format.
 
 
-=item PrintTree ($node,$aref,$href)
+=item PrintTree ($node,$aref,$href,$output?)
 
  Params:
 
@@ -2936,15 +3073,16 @@ is 0 (no check is performed).
            positional order (see ReadAttributes)
    $href - a reference to a hash, containing attributes as keys
            and corresponding type strigs as values
+   $output - output filehandle
 
  Returns:
 
-   Unknown.
+   Not specified.
 
  Descrption:
 
    Prints the tree having its root-node referenced by $node
-   to STDOUT in a source format
+   to STDOUT in the source format
 
 
 =item Parent($node), FirstSon($node), LBrother($node), RBrother($node)
