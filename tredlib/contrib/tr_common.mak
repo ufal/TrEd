@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-03-07 09:07:27 pajas>
+## Time-stamp: <2002-03-11 09:25:12 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -42,6 +42,9 @@ sub default_tr_attrs {
   my $defs=$grp->{FSFile}->FS->defs;
   if (exists($defs->{func}) and $defs->{func} !~ /OPER/) {
     $fsfunc=$defs->{func}=~s/(NORM)/NORM|OPER/;
+  }
+  if (exists($defs->{antec}) and $defs->{func} !~ /OPER/) {
+    $fsfunc=$defs->{antec}=~s/(NORM)/NORM|OPER/;
   }
   if (exists($defs->{memberof}) and $defs->{memberof} =~ /CO\|AP\|PA/) {
     $defs->{memberof}=~s/CO\|AP\|PA/CO|AP/;
