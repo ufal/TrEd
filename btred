@@ -766,6 +766,18 @@ sub startMain {
 	    $hub->print(join("\n",@files),"\n");
 	  }
 	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'LIST_SECONDARY') {
+	  _msg "Listing secondary files at client's request\n";
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  if (ref($grp->{secondary})) { 
+	    if (exists $request{FILELIST}) {
+	      my @f = grep { ref($grp->{secondary}->{$_}) } split /\n/,$request{FILELIST};
+	      $hub->print(join("\n",@f),"\n") if @f;
+	    } else {
+	      $hub->print(join("\n",sort keys %{$grp->{secondary}}),"\n");
+	    }
+	  }
+	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST_CHANGED') {
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
@@ -1060,11 +1072,38 @@ sub preloadFiles {
       $errlog->print("ERROR: Empty or corrupt file: $f!\n") if ($errlog);
       next;
     }
+    openSecondary($grp,$fsfile);
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f} = $fsfile;
   }
   @files=grep { exists($grp->{preloaded}->{$_}) } @files;
   _make_uniq(\@files);
+}
+
+sub openSecondary {
+  my ($grp,$fsfile)=@_;
+  unless ($no_required) {
+    my $requires = $fsfile->metaData('fs-require');
+    if ($requires) {
+      for my $req (@$requires) {
+	_msg "Pre-loading dependent $req->[1] as metaData('ref')->{$req->[0]}\n" if $tredDebug;
+	unless ($grp->{'secondary'}->{$req->[1]}) {
+	  if ($grp->{preloaded}->{$req->[1]}) {
+	    $grp->{'secondary'}->{$req->[1]} = $grp->{'preloaded'}->{$req->[1]};
+	  } else {
+	    my $req_fs = FSFile->newFSFile($req->[1],$TrEd::Convert::inputenc,@backends);
+	    $req_fs->changeFileFormat(($req->[1]=~/\.gz$/ ? "gz-compressed " : "").$req_fs->backend);
+	    _msg "empty or corrupt secondary file $req->[1] required by $req->[1]!\n" if ($req_fs->lastTreeNo<0);
+	    $grp->{'secondary'}->{$req->[1]} = $req_fs;
+	    $req_fs->changeUserData({}) unless defined $req_fs->userData();
+	    push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
+	    $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
+	    $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
+	  }
+	}
+      }
+    }
+  }
 }
 
 sub openFile {
@@ -1095,28 +1134,7 @@ sub openFile {
     $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
 
     # open files required by this one
-    unless ($no_required) {
-      my $requires = $fsfile->metaData('fs-require');
-      if ($requires) {
-	for my $req (@$requires) {
-	  print STDERR "Pre-loading dependent $req->[1] as metaData('ref')->{$req->[0]}\n" if $tredDebug;
-	  unless ($grp->{'secondary'}->{$req->[1]}) {
-	    if ($grp->{preloaded}->{$req->[1]}) {
-	      $grp->{'secondary'}->{$req->[1]} = $grp->{'preloaded'}->{$req->[1]};
-	    } else {
-	      my $req_fs = FSFile->newFSFile($req->[1],$TrEd::Convert::inputenc,@backends);
-	      $req_fs->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
-	      _msg "empty or corrupt secondary file $req->[1] required by $f!\n" if ($req_fs->lastTreeNo<0);
-	      $grp->{'secondary'}->{$req->[1]} = $req_fs;
-	      $req_fs->changeUserData({}) unless defined $req_fs->userData();
-	      push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
-	      $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
-	      $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
-	    }
-	  }
-	}
-      }
-    }
+    openSecondary($grp,$fsfile);
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
   }
