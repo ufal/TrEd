@@ -301,6 +301,7 @@ sub appendFSHeader {
     push @$list, $_ unless ($fs->exists($_));
     $defs->{$_}=$newdefs->{$_};
   }
+  $grp->{FSFile}->FS->renew_specials();
 #  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
 }
 
