@@ -86,6 +86,17 @@
 	If, for some reason, you don't want to use the Windows installation
 	package, you may try the manual installation described below.
       </para>
+      <note>
+	<para>It is not recommended to use TrEd with CygWin Perl.
+	  First, because is is not being tested and second
+	  because Perl-Tk for CygWin Perl requires CygWin XFree86.
+	  It is therefore recommended that you install ActiveState
+	  Perl, even if you already have Perl from CygWin.
+	  If you still want to try TrEd with CygWin Perl,
+	  follow the instructions for setup on <link
+	  linkend="install-unix">UNIX-like systems</link>.
+	</para>
+      </note>
       <orderedlist continuation="restarts" inheritnum="ignore">
       <listitem>
 	  <para>
@@ -143,7 +154,7 @@
 	  <orderedlist continuation="restarts" inheritnum="ignore">
 	    <listitem>
 	      <para>Open a command prompt (<application moreinfo="none">MS-DOS prompt</application> in
-		<application moreinfo="none">WindowsÅ†9x/ME</application>)</para>
+		<application moreinfo="none">Windows†9x/ME</application>)</para>
 	    </listitem> 
 	    <listitem>
 	      <para>Unzip the Windows <application>TrEd</application>
@@ -220,7 +231,7 @@
 	    using the following command (substituting 804.025 with your Tk version 
 	    number):
 	    <literallayout class="normal" format="linespecific">
-	      $ <userinput moreinfo="none">gunzipÅ†-cÅ†Tk-804.025.tar.gzÅ†|Å†tarÅ†-x</userinput>
+	      $ <userinput moreinfo="none">gunzip†-c†Tk-804.025.tar.gz†|†tar†-x</userinput>
 	    </literallayout>
 	    
 	    and issue the following commands (see file <filename
@@ -306,7 +317,7 @@ root# <userinput moreinfo="none">make install</userinput>
     <para>
       The following paragraphs describe menu commands. Each submenu in
       <application moreinfo="none">TrEd</application> has as its first item a tear-off
-      line (<guimenuitem moreinfo="none">-Å†-Å†-Å†-Å†-</guimenuitem>)
+      line (<guimenuitem moreinfo="none">-†-†-†-†-</guimenuitem>)
       which can be used to tear the menu off and place it as a
       separate window anywhere on your desktop.
     </para>
@@ -3769,7 +3780,7 @@ root# <userinput moreinfo="none">make install</userinput>
       </para>
       <variablelist>
 	<varlistentry>
-	  <term><literal moreinfo="none">#includeÅ†&quot;<replaceable>filename</replaceable>&quot;</literal></term>
+	  <term><literal moreinfo="none">#include†&quot;<replaceable>filename</replaceable>&quot;</literal></term>
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must be
 	      relative to the directory of the file to which it is
@@ -3777,14 +3788,14 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal moreinfo="none">#includeÅ†&lt;<replaceable>filename</replaceable>&gt;</literal></term>
+	  <term><literal moreinfo="none">#include†&lt;<replaceable>filename</replaceable>&gt;</literal></term>
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must
 	      be relative to the TrEd's library directory.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal moreinfo="none">#includeÅ†<replaceable>filename</replaceable></literal></term>
+	  <term><literal moreinfo="none">#include†<replaceable>filename</replaceable></literal></term>
 	  <listitem>
 	    <para>
 	      The <replaceable>filename</replaceable> may be
