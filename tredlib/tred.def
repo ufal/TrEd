@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-01-29 15:59:56 pajas>
+## Time-stamp: <2002-03-22 14:20:12 pajas>
 
 package TredMacro;
 
