@@ -319,12 +319,10 @@ sub create_widget {
     $lexframeproblem = TrEd::ValLex::FrameProblems->new($data, undef, $lexframe_frame,
 							   qw/-width 30 -height 3/);
     $lexframeproblem->pack(qw/-fill both/);
-    
-    
-    $lexframelist->configure(-browsecmd => [\&framelist_item_changed,
-					    $self
-					   ]);
   }
+  $lexframelist->configure(-browsecmd => [\&framelist_item_changed,
+					  $self
+					 ]);
   ## Word List
   my $lexlist = TrEd::ValLex::WordList->new($data, undef, $lexlist_frame,
 					    $wordlist_item_style,
@@ -621,9 +619,11 @@ sub findactive_button_pressed {
   return unless defined($item);
   my $frame=$fl->infoData($item);
   if ($which eq 'next') {
-    $frame = $self->data()->findNextFrame($frame,'active');
+    $frame = $self->data()->findNextFrame($frame,'active',
+					  $self->subwidget('wordlist')->pos_filter());
   } else {
-    $frame = $self->data()->findPrevFrame($frame,'active');
+    $frame = $self->data()->findPrevFrame($frame,'active',
+					  $self->subwidget('wordlist')->pos_filter());
   }
   return unless ref($frame);
   my $word=$self->data()->getWordForFrame($frame);
@@ -722,7 +722,7 @@ sub confirm_button_pressed {
   my $frame=$fl->infoData($item);
   return unless ref($frame);
   if ($self->data()->getFrameStatus($frame) eq 'reviewed') {
-    $self->data()->changeFrameStatus($frame,'active','review');
+    $self->data()->changeFrameStatus($frame,'active','unreview');
   } else {
     $self->data()->changeFrameStatus($frame,'reviewed','review');
   }

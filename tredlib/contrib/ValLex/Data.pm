@@ -812,8 +812,9 @@ sub moveFrameAfter {
 =cut
 
 sub findNextFrame {
-  my ($self,$frame, $status)=@_;
+  my ($self,$frame, $status, $posfilter)=@_;
   my $word;
+  ($posfilter) = $posfilter=~/^\s*([a-z])/i;
   unless ($frame) {
     $word=$self->getFirstWordNode();
     ($frame)=$self->getFrameNodes($word);
@@ -822,9 +823,12 @@ sub findNextFrame {
     $frame=$frame->findNextSibling('frame');
   }
   while ($word) {
-    while ($frame) {
-      return $frame if $self->getFrameStatus($frame) =~ $status;
-      $frame = $frame->findNextSibling('frame');
+    my $pos = $self->conv()->decode($word->getAttribute ("POS"));
+    if ($posfilter eq '' or $pos eq uc($posfilter)) {
+      while ($frame) {
+	return $frame if $self->getFrameStatus($frame) =~ $status;
+	$frame = $frame->findNextSibling('frame');
+      }
     }
     $word = $word->findNextSibling('word');
     ($frame)=$self->getFrameNodes($word);
@@ -833,17 +837,21 @@ sub findNextFrame {
 }
 
 sub findPrevFrame {
-  my ($self,$frame, $status)=@_;
+  my ($self,$frame, $status, $posfilter)=@_;
   my $word;
+  ($posfilter) = $posfilter=~/^\s*([a-z])/i;
   return $self->findNextFrame() unless ($frame);
 
   $word=$self->getWordForFrame($frame);
   $frame=$frame->findPreviousSibling('frame');
 
   while ($word) {
-    while ($frame) {
-      return $frame if $self->getFrameStatus($frame) =~ $status;
-      $frame = $frame->findPreviousSibling('frame');
+    my $pos = $self->conv()->decode($word->getAttribute ("POS"));
+    if ($posfilter eq '' or $pos eq uc($posfilter)) {
+      while ($frame) {
+	return $frame if $self->getFrameStatus($frame) =~ $status;
+	$frame = $frame->findPreviousSibling('frame');
+      }
     }
     $word = $word->findPreviousSibling('word');
     do {
