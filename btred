@@ -713,14 +713,16 @@ sub startMain {
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
       print STDERR "Applying macro options: @ARGV\n";
-      GetOptions (map {$_ => $optmap{$_}}
-		  "all-trees|T",
-		  "all-nodes|N",
-		  "all-nonhidden-nodes|H",
-		  "safe-mode|F",
-		  $initial_code ? () : ("initial-code|i=s"),
-		  $code ? () : ("execute|e=s"),
-		  $start_context ? () : ("context|t=s"));
+      $optparser->getoptions(
+		  map {$_ => $optmap{$_}}
+		  (
+		   "all-trees|T",
+		   "all-nodes|N",
+		   "all-nonhidden-nodes|H",
+		   "safe-mode|F",
+		   $initial_code ? () : ("initial-code|i=s"),
+		   $code ? () : ("execute|e=s"),
+		   $start_context ? () : ("context|t=s")));
       $context = $grp->{macroContext} = defined($start_context) ? $start_context : 'TredMacro';
     }
 
