@@ -175,7 +175,9 @@ sub write {
 	print $output " $_=\"".xml_quote($node->{$_})."\"";
       }
       print $output " dep=\"".
-	xml_quote($node->parent->parent ? $node->parent->{id} : $rootdep )."\"";
+	xml_quote($node->parent->parent ? ($node->parent->{id}
+					   || $node->parent->{AID} #grrrrrrrr!
+					  ) : $rootdep )."\"";
       print $output ">";
       print $output xml_quote_pcdata($node->{form});
       print $output "</$type>\n";
@@ -277,6 +279,8 @@ sub start_element {
       }
       $self->{IDs}->{$self->{Node}->{id}}=$self->{Node}
 	if ($self->{Node}->{id} ne '');
+      $self->{IDs}->{$self->{Node}->{AID}}=$self->{Node}
+	if ($self->{Node}->{AID} ne ''); #grrrrrrrr!
     }
     if ($self->{FSFile}->lastTreeNo == 0 and ref($self->{DocAttributes})) {
       foreach (values %{$self->{DocAttributes}}) {
@@ -299,6 +303,8 @@ sub start_element {
       }
       $self->{IDs}->{$self->{Node}->{id}}=$self->{Node}
 	if ($self->{Node}->{id} ne '');
+      $self->{IDs}->{$self->{Node}->{AID}}=$self->{Node}
+	if ($self->{Node}->{AID} ne ''); #grrrrrrrr!
     }
   }
 }
@@ -360,6 +366,10 @@ sub doctype_decl { # unfortunatelly, not called by the parser, so far
   my ($self,$hash) = @_;
   $self->{FSFile}->changeMetaData("xml_doctype" => $hash);
 }
+
+# hack to fix LibXML
+package XML::LibXML::Dtd;
+sub type { return $_[0]->nodeType }
 
 1;
 
