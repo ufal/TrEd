@@ -10,6 +10,8 @@ use Tk qw(Ev);
 require Tk::Frame;
 require Tk::Derived;
 require Tk::Listbox;
+require Tk::BindMouseWheel;
+
 #require Tk::Entry;
 use Cwd;
 
@@ -70,7 +72,7 @@ sub Populate {
 		  -relief  => 'raised',
 		  -selectmode => $selectmode,
 		  -scrollbars => 'e');
-
+  $hlist->BindMouseWheelVert();
   $hlist->pack(qw /-side top -expand yes -fill both/);
   $hlist->bind('<Double-1>', [ $cw, 'ChDir' ]);
   $hlist->bind('<Return>', [ $cw, 'ChDir' ]);
