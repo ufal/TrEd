@@ -490,9 +490,10 @@ sub add_member {
   my ($hlist,$base_path,$member,$attr_val,
       $attr_name,$allow_empty,$entry_opts)=@_;
   my $mtype = $hlist->schema->resolve_type($member);
-  if (ref($mtype) and $mtype->{knit}) {
-    $mtype = $hlist->schema->resolve_type($mtype->{knit});
-  }
+
+#  if (ref($mtype) and $mtype->{knit}) {
+#    $mtype = $hlist->schema->resolve_type($mtype->{knit});
+#  }
   return if ref($mtype) and $mtype->{role} eq '#CHILDNODES';
   my $path = $base_path.$attr_name;
   my $data = {type => $mtype,
@@ -579,7 +580,6 @@ sub add_member {
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => 'Structure',
 		       -style => $hlist->{my_itemstyles}{struct});
-
     $hlist->add_members($path."/",$mtype,$attr_val);
   } elsif ($mtype->{seq}) {
     my $seq_no=0;
@@ -637,6 +637,13 @@ sub add_members {
   foreach my $attr (sort(keys %$attributes),
 		    sort(keys %$members)) {
     my $member = $attributes->{$attr} || $members->{$attr};
+    if (ref($member) and $member->{role} eq '#KNIT') {
+      if (exists($node->{$attr})) {
+	$member='REF'
+      } else {
+	$attr=~s/\.rf$//;
+      }
+    }
     $hlist->add_member($base_path,$member,($node ? $node->{$attr} : undef), $attr,);
   }
 }
