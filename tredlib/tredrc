@@ -31,14 +31,14 @@ CurrentBoxColor	 = white
 ;; 	Font = "family:Arial,size:10,weight:bold"
 ;;
 
-Font		 = -*-helvetica-medium-r-normal--12-*-*-*-*-*-*-2
+Font		 = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
 
 ;; Type1Font is used when calculating postscript output when printing.
 ;; It should be the same font as PSFontPath, 
 ;; but here you must give a X11 font-spec. If no value set, Font is used
 ;; (but it may lead to bad spacing in the printed tree).
 
-; Type1Font	 = -ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2  
+; Type1Font	 = -ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2  
 
 ; LibDir	 = "/usr/local/lib/tred" 
 
@@ -71,3 +71,11 @@ ShowHidden	 = 0
 ; PsFontFile = csarialm.pfa
 ; PsFontName = Arial-Medium ;; this is used to force substitution of screenfont
 ; PsFontSize = 12           ;; -- " --
+
+PrintColor = 0 ;; 1 if you want colors
+
+; TextColorShadow = darkgrey   ;; or #rrggbb
+; TextColorHilite = darkgreen
+; TextColorXHilite = darkred
+
+; AnyToFS = 2804.x
