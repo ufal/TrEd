@@ -164,13 +164,13 @@ function upgrade_perl {
       $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat >/dev/null 2>/dev/null
       echo
       echo "$MSG006 $PERLINSTALLDIR"
-      read -e -n1 -r -p $MSG008
+      read -e -n1 -r -p "$MSG008"
       echo "$MSG009 $PERLINSTALLDIR..."
       rm -rf $PERLINSTALLDIR
       echo $MSGDONE
   else
       echo $MSG010
-      read -e -n1 -r -p $MSG011
+      read -e -n1 -r -p "$MSG011"
       exit 1;
   fi
   echo 
@@ -200,7 +200,7 @@ echo
 echo "-------------------------------------------------------------------------------"
 echo
 echo $MSG016
-ask $MSG017 || exit 0
+ask "$MSG017" || exit 0
 
 echo
 findperlbin
@@ -209,13 +209,13 @@ until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $PERL
   echo $MSG020
   echo $MSG021
   echo
-  if ask $MSG022; then
+  if ask "$MSG022"; then
     get_perl_install_dir
     install_perl
 #    findperlbin
     PERLBIN="$PERLINSTALLDIR/bin/perl.exe"
   else  
-    read -e -p $MSG023 PERLBIN
+    read -e -p "$MSG023" PERLBIN
   fi
 done
 
@@ -231,11 +231,11 @@ if perl_version_current; then
 else 
   echo
   echo "$MSG025 5.${REQPERLVER}"
-  if ask $MSG026; then
+  if ask "$MSG026"; then
     upgrade_perl
     PERLBIN="$PERLINSTALLDIR/bin/perl.exe"
   else
-    if ask $MSG027; then
+    if ask "$MSG027"; then
      echo 
      echo $MSG028
      echo $MSG029
@@ -252,9 +252,9 @@ findtreddir
 if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
   echo
   echo "$MSG030 $TREDDIR"
-  if ask $MSG031; then
+  if ask "$MSG031"; then
     UPGRADE=1
-    if ask $MSG032; then
+    if ask "$MSG032"; then
       test -f "$TREDDIR/tredlib/tredrc" && \
         mv "$TREDDIR/tredlib/tredrc" "$TREDDIR/tredlib/tredrc.sav"
     else
@@ -262,7 +262,7 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
     fi  
   else
     echo
-    ask $MSG033 || exit 0
+    ask "$MSG033" || exit 0
     if [ "$OSTYPE" = "cygwin" ]; then
       TREDDIR="c:/tred"
     else 
@@ -273,7 +273,7 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
   fi
 else 
   echo
-  ask $MSG035 || exit 0
+  ask "$MSG035" || exit 0
   if [ "$OSTYPE" = "cygwin" ]; then
     TREDDIR="c:/tred"
   else 
@@ -319,5 +319,5 @@ else
   echo
   echo $MSG042
   echo
-  read -e -n1 -r -p $MSG043
+  read -e -n1 -r -p "$MSG043"
 fi
