@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-02 09:23:11 pajas>
+## Time-stamp: <2002-09-18 14:29:51 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -362,12 +362,6 @@ sub GetNewOrd {
 }
 
 
-#bind parenthesis_pa to Ctrl+Y menu Pridat parenthesis=PA
-sub parenthesis_pa {
-  $this->{'parenthesis'} = 'PA';
-}
-
-
 sub AfunAssign {
   my $t, $n;
 
@@ -593,7 +587,7 @@ sub subtree_add_pa {
   }
 }
 
-#bind subtree_remove_pa to Z Odebrat _PA od podstromu
+#bind subtree_remove_pa to Z menu Odebrat _PA od podstromu
 sub subtree_remove_pa {
   shift unless ref($_[0]);
   my $node = $_[0] || $this;
