@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<?xml-stylesheet href="docbook-css-0.4/driver.css" type="text/css"?>
 <article lang="en">
   <articleinfo>
     <title>Tree Editor Manual</title>
@@ -1628,38 +1629,49 @@ root# <userinput moreinfo="none">make install</userinput>
     </sect2>
   </sect1>
   <sect1 id="attributes">
-    <title>Customizing Tree Appearance</title>
+    <title>Customizing Tree Appearance: Stylesheets</title>
     <para>
-      <application moreinfo="none">TrEd</application> allows for customizing
-      the appearance of the tree, esp. the content and appearance
-      of node and edge labels, node coloring, edge appearance,
-      and content of the hint displayed when mouse pointer lingers
-      over a node.
+      In <application moreinfo="none">TrEd</application>, the way a
+      tree is displayed is controlled by so called <firstterm>display
+      stylesheets</firstterm>.  Display stylesheets define what text
+      is rendered as node and edge and how labels, the way tree edges
+      are drawn (much more can be achieved than just straight lines
+      connecting a node and its parent node), shape of the nodes,
+      coloring, content of a tool-tip (<firstterm>hint</firstterm>)
+      shown when mouse pointer lingers over a node, as well as the
+      content of text window displayed above the tree.
+      All these properties of the visual representation of the tree
+      are specified using so called styling <firstterm>patterns</firstterm>.
     </para>
     <para>
-      The text of node labels (usually consisting of node attribute
-      values) displayed below each node (and/or on tree edges) as well as
-      other properties of the visual appearance of the displayed tree
-      can be specified using so called styling <emphasis>patterns</emphasis>.
+      TrEd maintains a list of stylesheets from which stylesheets can
+      selected and swithched between.  The easiest way to select a
+      stylesheet is to click on the stylesheet menu-button shown on
+      the picture <xref linkend="fig_patternset"/> below. This button
+      can be found on the right side of the toolbar next to the
+      <inlinegraphic fileref="pics/tick.png"/> button.
+      Another way to select a stylesheet is using 
+      <menuchoice>
+	<guimenu>View</guimenu>
+	<guimenuitem>Select stylesheet...</guimenuitem>
+      </menuchoice>.
     </para>
+
+    <figure float="0" id="fig_patternset">
+      <title>Switching between stylesheets</title>
+      <graphic fileref="pics/patternset.png"/>
+    </figure>
+
     <para>
-      <emphasis>Patterns</emphasis> are generally templates for one
-      line of text to be displayed under each node in the
-      <application moreinfo="none">TrEd</application>'s main window, but some special
-      syntax may be used to specify visual appearance of
-      other parts of the displayed tree.
-    </para>
-    <para>
-      Patterns may be stored directly in FS files which makes their
-      setting specific to a file. Because this is not usually very
-      convenient, TrEd introduces another way to store and orgainze
-      pattern sets, called <literal moreinfo="none">stylesheets</literal>. In fact,
-      the user may create many different stylesheets. Pattern
-      stylesheets can be given a name and swithched between using a
-      stylesheet list shown on the picture below. It can be found on
-      the right side of toolbar next to the <inlinegraphic fileref="pics/tick.png"/> button. A stylesheet specific for a
-      file is represented by <guilabel moreinfo="none">&lt;From
-      File&gt;</guilabel> item of the stylesheet list.
+      The stylesheet currently selected on the picture and named
+      <guilabel moreinfo="none">&lt;From File&gt;</guilabel> is always
+      present. This is a rather virtual stylesheet whose content is
+      always the styling patterns specified in the currently displayed
+      file (some - but not all - file formats such as FS allow storing
+      stylesheet information). These file-specific stylesheets are
+      rather hard to maintain especially when one is working with
+      hunderds of files. It is thus much more convenient to create a
+      named stylesheet, that can be used for any file at any time.
     </para>
     <para>
       To create a new named stylesheet (based on the current pattern
@@ -1668,52 +1680,201 @@ root# <userinput moreinfo="none">make install</userinput>
       into the displayed dialog entry. The new stylesheet
       immediatelly appears as the selected item in the list.
     </para>
-    <figure float="0">
-      <title>Switching stylesheets</title>
-      <graphic fileref="pics/patternset.png"/>
-    </figure>
     <para>
-      While file-specific patterns are stored directly in the FS
-      files, named stylesheets are saved in a file called
-      <filename moreinfo="none">.tred-stylesheets</filename> in user's home directory.
-      This file is updated every time a pattern-set is modified.
-      Currently selected named pattern set can be completely removed
-      from the list by selecting <guilabel moreinfo="none">&lt;Delete
-      Current&gt;</guilabel> item from the pattern-set list.
+      While a file-specific stylesheet is stored directly in the FS
+      file, named stylesheets are all saved in a file called <filename
+      moreinfo="none">.tred-stylesheets</filename> in user's home
+      directory.  This file is updated every time a named stylesheet
+      is added removed or edited. Currently selected named stylesheet
+      can be completely removed from the list by selecting <guilabel
+      moreinfo="none">&lt;Delete Current&gt;</guilabel> item from the
+      pattern-set list.
     </para>
     <para>
-      Selected pattern set can be populated with patterns and modified in
-      a configuration dialog which is displayed on pressing <inlinegraphic fileref="pics/tick.png"/> button or <menuchoice moreinfo="none">
-      <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">Customize
-      Tree...</guimenuitem></menuchoice> menu command.
+      Selected stylesheet can be edited in a stylesheet editor which
+      appears when <inlinegraphic
+      fileref="pics/tick.png"/> button is pressed or <menuchoice moreinfo="none">
+      <guimenu moreinfo="none">View</guimenu> <guimenuitem
+      moreinfo="none">Edit stylesheet...</guimenuitem></menuchoice>
+      menu command issued.
     </para>
     <figure float="0">
-      <title>Customizing Tree Appearance dialog</title>
+      <title>Stylesheet editor</title>
       <graphic fileref="pics/customatt.png"/>
     </figure>
     <para>
-      The dialog window contains four main elemens: an editor of
-      individual patterns, an attribute list, a pattern list and a
-      hint pattern editor. Double-clicking an attribute
-      insert attribute reference into current cursor position
-      in the pattern editor or hint pattern editor, whichever is focused.
+      The dialog window contains two main elemens: a list of node
+      attributes and an editor of stylesheet paterns. Double-clicking
+      an attribute in the list inserts an attribute reference at the
+      current cursor position in the pattern editor.
     </para>
-    <para>
-      While literal text occuring within a pattern is copied into the
-      tree (as a node label) without any change or evaluation, the
-      following substrings have special meaning:
-    </para>
+    <sect2 id="pattern_syntax">
+      <title>Stylesheet syntax: the styling patterns</title>
+      <para>
+	A stylesheet consists of one or more styling patterns. A
+	styling pattern begins with a pattern prefix which must occur
+	at the very beginning of a line (no whitespace allowed) and is
+	followed by a comma. After the comma follows a body of the
+	pattern.
+      </para>
+      <para>
+	TrEd recognizes the following pattern prefixes (described in
+	detail below): <literal moreinfo="none">node</literal>,
+	<literal moreinfo="none">edge</literal>, <literal
+	moreinfo="none">style</literal>, <literal
+	moreinfo="none">text</literal> and <literal
+	moreinfo="none">rootstyle</literal>.
+	If any other prefix is used, TrEd ignores the pattern.
+      </para>
+      <variablelist>
+	<varlistentry>
+	  <term><literal>node:</literal></term>
+	  <listitem>
+	    <para>
+	      defines a line of text to be
+	      displayed under each node of the tree. A stylesheet may
+	      contain one or more <literal>node:</literal> patterns,
+	      in which case the lines are displayed in the tree one
+	      under another in the order as they appear in the
+	      stylesheet.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>edge:</term>
+	  <listitem>
+	  <para>
+	    defines a line of text displayed across (or beside)
+	    the edge connecting each node with its parent. Of course, this
+	    label is not rendered for the root node.
+	      Likewise <literal>node:</literal> patterns, several
+	    <literal>edge:</literal> patterns may be specified.
+	      Note however, that <literal>edge:</literal> patterns
+	      make the tree look quite wide and it is usually better
+	    to avoid them.
+	  </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>style:</literal></term>
+	  <listitem>
+	    <para>defines a pattern affecting the visual
+	      representation of various components of a tree. <literal
+	      moreinfo="none">style:</literal> patterns do not result
+	      in any text visible on the screen but may contain
+	      special tree styling instructions described below. These
+	      instructions may dynamically alter the appearance (such
+	      as coloring, line thickness, etc) of the nodes, edges
+	      and text labels.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>text:</literal></term>
+	  <listitem>
+	    <para>defines a portion of the text representing each node
+	      in the text window above the tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>rootstyle:</literal></term>
+	  <listitem>
+	    <para>defines a pattern which behaves quite the same as a
+	    <literal moreinfo="none">style:</literal> pattern but is
+	    only interpolated once (for the root node), applies to
+	    every node of the tree, but the styling instructions
+	    defined in this pattern have lower precedence than those
+	    of <literal moreinfo="none">style:</literal> patterns.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>hint:</literal></term>
+	  <listitem>
+	    <para>
+	      defines the content of a tool-tip shown when mouse pointer
+	      lingers over a node.  No styling instructions are
+	      allowed in the <literal>hint:</literal> patterns.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+      <para>
+	Pattern body consists of a text which is interpreted as follows:
+      </para>
     <variablelist>
+      <varlistentry>
+	<term><literal moreinfo="none">&lt;?<replaceable>code</replaceable>?&gt;</literal></term>
+	<listitem>
+	  <para>
+	    Perl-code expansion. This sequence may encapsulate any Perl code. The code
+	    is interpreted in the time of evaluation of the pattern
+	    (i.e. just before the line is actually to be displayed)
+	    and the result returned by the code replaces
+	    the code sequence in the pattern.
+	  </para>
+	  <para>
+	    Note that the returned value may contain other special
+	    sequences, but can't contain another <literal
+	    moreinfo="none">&lt;?<replaceable>...</replaceable>?&gt;</literal>
+	    sequences.
+	  </para>
+	  <para>Within the <replaceable>code</replaceable>, 
+	    one may refer to any attribute value 
+	    of the node currently being styled with either
+	    <literal moreinfo="none">$${<replaceable>attr</replaceable>}</literal>
+	    or
+	    <literal moreinfo="none">$this-&gt;{<replaceable>attr</replaceable>}</literal>.
+	    The current node object itself may be referrenced as
+	    <literal moreinfo="none">$this</literal> (so it is for example possible to
+	    access current node's parent by
+	    <literal moreinfo="none">$this-&gt;parent</literal>).
+	    Regardless of what context is currently selected,
+	    the code occuring in the styling patterns is always 
+	    evaluated within the <literal>TredMacro</literal> namespace.
+	    In order to call a user-defined macro from another
+	    namespace, it is therefore necessary to use a complete namespace
+	    (package name) prefix. So, a call to
+	      a macro named <literal>bar</literal> from a package
+	      (context) <literal>Foo</literal> should look like
+	      <literal>Foo::bar(<replaceable>arguments...</replaceable>)</literal>.
+	  </para>
+	</listitem>
+      </varlistentry>
       <varlistentry>
 	<term><literal moreinfo="none">${<replaceable>attr</replaceable>}</literal></term>
 	<listitem>
 	  <para>
-	    Attribute reference. Any occurence of this substring is
-	    replaced by current node's value of attribute named
-	    <replaceable>attr</replaceable>. This reference is
-	    actually linked with the attribute, so double-clicking the
-	    displayed value in the tree shows a dialog where the
-	    attribute value can be changed.
+	      Attribute reference. Any occurence of this substring is
+	      replaced by current node's value of attribute named
+	      <replaceable>attr</replaceable>.  Using attribute
+	      references only makes sense in the
+	      <literal>node:</literal>, <literal>edge:</literal>,
+	      <literal>text:</literal> and <literal>hint:</literal>
+	      patterns. In the labels rendered from
+	      <literal>node:</literal>, <literal>edge:</literal>
+	      patterns, this reference is actually linked with the
+	      corresponding node's attribute, so double-clicking on the
+	      displayed value in the tree shows a dialog where the
+	      attribute value can be edited.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><literal moreinfo="none">${<replaceable>attr</replaceable>=<replaceable>value</replaceable>}</literal></term>
+	<listitem>
+	  <para>
+	      This is a special form of an attribute reference, which
+	      is only useful in <literal>node:</literal>,
+	      <literal>edge:</literal> patterns.  It always renders as
+	      <replaceable>value</replaceable>, but still retains the
+	      reference to the attribute
+	      <replaceable>attr</replaceable> of the corresponding
+	      node, so that double-clicking on the displayed
+	      <replaceable>value</replaceable> in the tree shows a
+	      dialog where the attribute
+	      <replaceable>attr</replaceable> can be edited.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -1723,91 +1884,26 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <para>
 	    This sequence of characters may be used to change the
 	    color of any possible following text generated by the
-	    pattern.  The <replaceable>color</replaceable> may be
+	    pattern. The <replaceable>color</replaceable> may be
 	    either an english name of a color,
 	    such as <literal moreinfo="none">black</literal>, <literal moreinfo="none">red</literal> or
-	    <literal moreinfo="none">darkblue</literal>, or one of ten symbolic names
-	    <literal moreinfo="none">custom0</literal>, <literal moreinfo="none">custom1</literal> to
-	    <literal moreinfo="none">custom9</literal>.  In the later case, the
-	    resulting color depends on current settings of the <link linkend="customcolor"><literal moreinfo="none">CustomColor<replaceable>#</replaceable></literal></link>
-	    configuration options (where <replaceable>#</replaceable>
-	    is one of <literal moreinfo="none">0...9</literal>).
+	    <literal moreinfo="none">darkblue</literal>, or one of
+	      user defined colors <literal
+		moreinfo="none">custom<replaceable>XXX</replaceable></literal>
+	    (that can be defined in the configuration file using 
+	    <literal>CustomColor<replaceable>XXX</replaceable></literal>
+	    configuration option), or
+	    an RGB value specified as
+	    <literal>#<replaceable>RRGGBB</replaceable></literal>,
+	    where <replaceable>RR</replaceable>,
+	    <replaceable>GG</replaceable>,
+	    <replaceable>BB</replaceable> are hexadecimal numbers
+	      from 00 to FF representing respectively the red, green, and blue
+	    components of the color.
 	  </para>
 	</listitem>
-      </varlistentry>
-      <varlistentry>
-	<term><literal moreinfo="none">&lt;?<replaceable>code</replaceable>?&gt;</literal></term>
-	<listitem>
-	  <para>
-	    This sequence may encapsulate any Perl code. The code
-	    is interpreted in the time of evaluation of the pattern
-	    (i.e. just before the line is actually to be displayed)
-	    and the result returned by the code replaces
-	    the code sequence in the pattern.
-	  </para>
-	  <para>
-	    Note that the returned value may contain other special
-	    sequences, except for another <literal moreinfo="none">&lt;?<replaceable>...</replaceable>?&gt;</literal>
-	    sequence.
-	  </para>
-	  <para>Within the <replaceable>code</replaceable>, 
-	    one may refer to any attribute value 
-	    of the current node with either
-	    <literal moreinfo="none">$${<replaceable>attr</replaceable>}</literal>
-	    or
-	    <literal moreinfo="none">$this-&gt;{<replaceable>attr</replaceable>}</literal>.
-	    
-	    The current node object itself may be referrenced as
-	    <literal moreinfo="none">$this</literal> (so it is for example possible to
-	    access current node's parent by
-	    <literal moreinfo="none">$this-&gt;parent</literal>).
-	  </para>
-	</listitem>
-      </varlistentry>
-      <varlistentry>
-	<term><literal moreinfo="none"><replaceable>label</replaceable>:</literal></term>
-	<listitem>
-	  <para>If this string appears at the very beginning of a
-	    pattern, the pattern may be treated specially.  There are
-	    only five pattern labels used by TrEd itself. These are
-	    <literal moreinfo="none">node</literal>, <literal moreinfo="none">edge</literal>, <literal moreinfo="none">style</literal>, <literal moreinfo="none">text</literal>
-	    and <literal moreinfo="none">rootstyle</literal>.
-	    Patterns labeled with any other label are ignored by TrEd
-	    but may be queried and used by macros.
-	  </para>
-	  <para>
-	    Patterns labeled as <literal moreinfo="none">node</literal> are used to
-	    display a line of to text under each node of the tree
-	    as described above.
-	  </para>
-	  <para>
-	    Patterns labeled as <literal moreinfo="none">edge</literal> behave
-	    likewise but the text is drawn across (or beside)
-	    the edge connecting the node with its parent. It
-	    is not drawn at all for the root node.
-	  </para>
-	  <para>Patterns labeled as <literal moreinfo="none">style</literal> do not
-	    result in any text visible on the screen but are also
-	    interpolated and the result is scanned for the special
-	    tree styling instructions described below that may
-	    dynamically alter the appearens of the nodes, edges and
-	    text labels of the displayed trees.
-	  </para>
-	  <para>Patterns labeled as <literal moreinfo="none">text</literal> 
-	    may be used to specify string to be displayed for given
-	    node in the text field above the tree.
-	  </para>
-	  <para>
-	    Patterns labeled as <literal moreinfo="none">rootstyle</literal>
-	    behave in much the same way as the
-	    <literal moreinfo="none">style</literal> but are only interpolated
-	    once (for the root node) and the styling instructions
-	    defined here have lower precedence than those
-	    of <literal moreinfo="none">style</literal> patterns.
-	  </para>
-	</listitem>
-      </varlistentry>
-      <varlistentry>
+	</varlistentry>
+	<varlistentry>
 	<term><literal moreinfo="none">#{<replaceable>object</replaceable>-<replaceable>feature</replaceable>:<replaceable>value</replaceable>}</literal></term>
 	<listitem>
 	  <para>
@@ -1825,6 +1921,32 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </para>
 	</listitem>
       </varlistentry>
+	<varlistentry>
+	  <term>any other text</term>
+	  <listitem>
+	    <para>
+	      Any other text occuring within a
+	      <literal>node:</literal>, <literal>edge:</literal>,
+	      <literal>text:</literal>, or <literal>hint:</literal>
+	      pattern is render as is (using the default font and
+	      the default or previously selected color and styling).
+	      Plain text occuring in a 
+	      <literal>style:</literal> or
+	      <literal>root-style:</literal>
+	      pattern is ignored (note however, that this may change
+	      in the future versions).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>white space</term>
+	  <listitem>
+	    <para>Leading and trailing white space of a pattern is
+	    ignored. To all other occurences of white-space the above
+	    rule for any other text applies.
+	    </para>
+	  </listitem>
+	</varlistentry>
     </variablelist>
     <table id="style-instructions">
       <title>Styling instructions</title>
@@ -1856,6 +1978,47 @@ root# <userinput moreinfo="none">make install</userinput>
 		or not, TrEd will draw the polygon as a closed polygon.
 	      </para></entry>
 	  </row>
+	  <row>
+	    <entry><literal>Node-width</literal></entry>
+	    <entry>
+	      <para>Width of an oval- or rectangle-shaped node.</para>
+	    </entry>
+          </row>
+	  <row>
+	    <entry><literal>Node-height</literal></entry>
+	    <entry>
+	      <para>Height of an oval- or rectangle-shaped node.</para>
+	    </entry>
+          </row>
+	  <row>
+	    <entry><literal>Node-currentwidth</literal></entry>
+	    <entry>
+	      <para>Width of an oval- or rectangle-shaped node
+	      when current.</para>
+	    </entry>
+          </row>
+	  <row>
+	    <entry><literal>Node-currentheight</literal></entry>
+	    <entry>
+	      <para>Height of the node an oval- or
+	      rectangle-shaped node when current.</para>
+	    </entry>
+          </row>
+	  <row>
+	    <entry><literal>Node-addwidth</literal></entry>
+	    <entry>
+	      <para>Increase width of an oval- or rectangle-shaped node
+	      by a given amount.</para>
+	    </entry>
+          </row>
+	  <row>
+	    <entry><literal>Node-addheight</literal></entry>
+	    <entry>
+	      <para>Increase height of an oval- or rectangle-shaped
+	      node by a given
+	      amount.</para>
+	    </entry>
+          </row>
 	  <row>
 	    <entry><literal>Node-rellevel</literal></entry> <entry><para> Allows altering
 		the default vertical position of a subtree. 
@@ -2296,56 +2459,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	</tbody>
       </tgroup>
     </table>
-    <para>
-      The same syntax that applies to patterns applies also to the
-      hint pattern, except that only attribute value and perl code
-      interpolations are accepted.
-      The hint
-      pattern is interpolated and displayed in a floating
-      <quote>tool-tip</quote> like frame whenever user positions
-      the mouse cursor above a node and waits for a while.
-      (The lenght of the time interval may be customized
-      by setting the <link linkend="hintwait"><literal moreinfo="none">HintWait</literal></link>
-      option to the desired number of milliseconds).
-    </para>
-    <para>
-      A new pattern may be added to the pattern list by typing the
-      pattern definition
-      into the pattern editor at the top of the dialog window and pressing
-      the <guibutton moreinfo="none">Add/Paste</guibutton> button.
-      The pattern is inserted just before the pattern currently
-      selected in the pattern list (or to the end of the list if no pattern is
-      selected).
-    </para>
-    <para>
-      To remove a pattern from the pattern list, either the
-      <guibutton moreinfo="none">Delete</guibutton> or <guibutton moreinfo="none">Cut</guibutton>
-      button may be used. In the latter case,
-      the pattern is copied to the input entry first.
-    </para>
-    <para>
-      The list of attributes provides a shortcut for inserting
-      <literal moreinfo="none">${<replaceable>attr</replaceable>}</literal>
-      sequences into the input entry as well as for inserting
-      simple patterns of the form 
-      <literal moreinfo="none">${<replaceable>attr</replaceable>}</literal> to 
-      the pattern list.
-    </para>
-    <para>
-      To insert a simple
-      <literal moreinfo="none">${<replaceable>attr</replaceable>}</literal>
-      pattern to the pattern list, select
-      <replaceable>attr</replaceable>
-      from the <guilabel moreinfo="none">Attributes</guilabel> list
-      and press the <guibutton moreinfo="none">Add/Place</guibutton> button.
-      If you press the <guibutton moreinfo="none">Add as hint</guibutton>
-      button, the pattern is inserted to the current cursor's position
-      in the hint pattern editor.
-      To insert the above sequence to the current cursor's
-      position on the entry line, double-click the
-      <replaceable>attr</replaceable>
-      item in the <guilabel moreinfo="none">Attributes</guilabel> list.
-    </para>
+    </sect2>
   </sect1>
   <sect1 id="filelists">
     <title>Using File-Lists</title>
@@ -2404,12 +2518,16 @@ root# <userinput moreinfo="none">make install</userinput>
       </varlistentry>
     </variablelist>
     <para>
-      User may then create any number of his/her own file-list.  To do
-      so, open the <guilabel moreinfo="none">Filelist</guilabel> dialog, Type a name
+      To create a user-defined file-list, open the <guilabel moreinfo="none">Filelist</guilabel> dialog, Type a name
       of the file-list into the <guilabel moreinfo="none">File lists</guilabel> field
       (on the top right side) and press <keycap moreinfo="none">Enter</keycap> and
       confirm the creation by pressing the
-      <guibutton moreinfo="none">Create</guibutton> button in the window that appears.      
+      <guibutton moreinfo="none">Create</guibutton> button in the
+      window that appears.
+      Alternativelly, press the <guibutton
+      moreinfo="none">New</guibutton> button,
+      fill the name of the new file-list to the entry in the displayed
+      dialog and press <guibutton moreinfo="none">OK</guibutton>.
     </para>
     <para>
       To modify an existing file-list, first choose it from the menu
@@ -2433,8 +2551,8 @@ root# <userinput moreinfo="none">make install</userinput>
     <para>
       To make the chosen file-list the current file-list for
       <application moreinfo="none">TrEd</application> double-click on any file in the
-      file-list or just select the file and press the
-      <guibutton moreinfo="none">Go</guibutton> button. The selected files is opend
+      file-list or just select the file and press 
+      <guibutton moreinfo="none">Show in TrEd</guibutton>. The selected files is opend
       and the file-list is made current. (You may of course switch between
       file-lists also by selecting a file-list in the
       <guimenu moreinfo="none">Session</guimenu> menu.)      
