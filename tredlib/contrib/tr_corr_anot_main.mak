@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-24 09:27:41 pajas>
+## Time-stamp: <2002-09-18 17:51:06 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -177,7 +177,3 @@ import TredMacro;
 
 #binding-context TR_Diff
 #include <contrib/trdiff.mak>
-
-
-
-
