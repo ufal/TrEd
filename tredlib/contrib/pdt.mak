@@ -265,6 +265,26 @@ sub appendFSHeader {
   @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
 }
 
+=item PDT->undeclareAttributes(@attributes)
+
+Remove declarations of given attributes from the FS header
+
+=cut
+
+sub undeclareAttributes {
+  my $class=shift;
+  my $fs=$grp->{FSFile}->FS;
+  my $defs=$grp->{FSFile}->FS->defs();
+  my $list=$grp->{FSFile}->FS->list();
+  delete @{$defs}{@_};
+
+  @$list=grep { exists($defs->{$_}) } @$list;
+  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
+    @{$fs->unparsed} if $fs->unparsed;
+
+}
+
+
 =item PDT->convertToTRHeader
 
 Merge current document's FS header with the standard TGTS header.
