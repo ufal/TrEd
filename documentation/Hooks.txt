@@ -132,11 +132,20 @@ get_nodelist_hook			no      supply custom
                                                 treeNo and hidden node
 						visibility state
 
-node_released_hook node,target-node,mod yes     called when node is
+node_release_hook node,target-node,mod yes     called when node is
                                                 released over another
                                                 node after a mouse
                                                 drag (mod is keyboard
-                                                modifiers - Ctrl/Meta/...)
+                                                modifiers - Control/Alt/Shift/Meta/...)
+
+node_doubleclick_hook node,mod         no       called when node is
+                                                double-clicked with a modifier
+                                                Ctrl/Alt/Shift/Meta/...
+
+text_doubleclick_hook node,attr,mod    no       called when an attribute is
+                                                double-clicked with a modifier
+                                                Ctrl/Alt/Shift/Meta/...
+
 
 node_moved_hook		node,old-parent	no      called after a node is
                                                 moved using a mouse
