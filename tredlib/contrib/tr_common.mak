@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-16 11:30:31 pajas>
+## Time-stamp: <2002-10-16 12:14:10 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -663,16 +663,30 @@ sub move_aid_to_aidrefs {
     AppendFSHeader('@P AIDREFS');
   }
   my %aids;
+  my $treeno=0;
   foreach my $tree (GetTrees()) {
+    $treeno++;
     my $node=$tree->following;
     while ($node) {
       if ($node->{AID}=~/\|/) {
 	$node->{AIDREFS}=join '|',split /\|/,$node->{AID};
 	($node->{AID})=split /\|/,$node->{AIDREFS};
       }
+      if ($node->{TID} ne "" or $node->{ord}=~/\./) {
+	print FileName()."##$treeno.".GetNodeIndex().
+	  ": Removing AID $node->{AID} from $node->{TID} $node->{ord}\n";
+	$node->{AID}='';
+	if ($node->{TID} eq "") {
+	  $node->{TID}=generate_new_tid($tree);
+	  print FileName()."##$treeno.".GetNodeIndex().
+	    ": node with ord $node->{ord} has no TID yet: assigning $node->{TID}\n";
+	}
+
+      }
       if ($node->{AID} ne "" and exists($aids{$node->{AID}})) {
 	$node->{TID}=generate_new_tid($tree);
-	print STDERR "Warning: replacing duplicate AID $node->{AID} with $node->{TID}\n";
+	print FileName()."##$treeno.".GetNodeIndex().
+	  ": replacing duplicate AID $node->{AID} $node->{ord} with $node->{TID} $node->{ord}\n";
 	$node->{AID}='';
       }
       $aids{$node->{AID}}=1 if $node->{AID} ne "";
