@@ -720,7 +720,7 @@ sub get_file_list {
       while (<$f>) {
 	s/^\s+//;
 	next if /^#/;
-	chomp; push @files,$_;
+	chomp; push @files, (m{^/|^[[:alnum:]]://} ? $_ : rel2abs($_));
       }
       close $f;
     }
