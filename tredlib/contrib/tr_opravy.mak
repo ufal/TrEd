@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-01 18:33:32 pajas>
+## Time-stamp: <2004-03-07 23:13:42 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -118,7 +118,7 @@ sub hash_AIDs {
 sub uniq { my %a; @a{@_}=@_; values %a }
 
 
-#bind clean_fw_join_to_parent to Ctrl+exclam
+#bind clean_fw_join_to_parent to Ctrl+exclam Clean fw and AIDREFS of current node, repaste children to parent and joinfw with parent
 sub clean_fw_join_to_parent {
   shift if @_ and not ref($_[0]);
   my $node = $_[0] || $this;
@@ -131,7 +131,7 @@ sub clean_fw_join_to_parent {
   { local $this=$node; joinfw(); };
 }
 
-#bind clean_fw_AIDREFS to Ctrl+at
+#bind clean_fw_AIDREFS to Ctrl+at Clear fw and AIDREFS of current node
 sub clean_fw_AIDREFS {
   shift if @_ and not ref($_[0]);
   my $node = $_[0] || $this;
@@ -139,7 +139,7 @@ sub clean_fw_AIDREFS {
   $node->{AIDREFS}='';
 }
 
-#bind join_AIDREFS to Ctrl+J
+#bind join_AIDREFS to Ctrl+J menu Join current node's AID to parent's AIDREFS
 sub join_AIDREFS {
   shift if @_ and not ref($_[0]);
   my $node = $_[0] || $this;
@@ -179,12 +179,12 @@ sub rehang_up {
   $this=PasteNode(CutNode($this),$p);
 }
 
-#bind SwapNodes to Ctrl+9
+#bind SwapNodes to Ctrl+9 menu Swap nodes
 sub SwapNodes {
   Analytic_Correction::SwapNodes;
 }
 
-#bind UnhideNode to Ctrl+H
+#bind UnhideNode to Ctrl+H menu Unhide current node and all ancestors
 sub UnhideNode {
   shift if $_[0] and !ref($_[0]);
   my $node = $_[0] || $this;
@@ -194,14 +194,14 @@ sub UnhideNode {
   }
 }
 
-#bind AssignTrLemma to Ctrl+L
+#bind AssignTrLemma to Ctrl+L menu Regenerate trlemma from lemma
 sub AssignTrLemma {
   my $lemma = $this->{lemma};
   $lemma =~ s/[-_`&].*$//;
   $this->{trlemma}=$lemma;
 }
 
-#bind goto_father to Ctrl+F
+#bind goto_father to Ctrl+F menu Go to real father
 sub goto_father {
   print STDERR map {$_->{trlemma},"\n"} PDT::GetFather_TR($this);
   ($this) = @father;
@@ -209,22 +209,38 @@ sub goto_father {
   $Redraw='none';
 }
 
-#bind edit_lemma_tag to Ctrl+T
+#bind edit_lemma_tag to Ctrl+T menu Edit lemma and tag (using morph)
 sub edit_lemma_tag {
   Analytic_Correction::edit_lemma_tag();
 }
 
-#bind analytical_tree to Ctrl+A
+#bind analytical_tree to Ctrl+A menu Display analytical tree
 sub analytical_tree {
   PDT::ARstruct();
+  ChangingFile(0);
 }
 
-#bind tectogrammatical_tree to Ctrl+R
+#bind tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree
 sub tectogrammatical_tree {
   PDT::TRstruct();
+  ChangingFile(0);
 }
 
-#bind light_aidrefs to Ctrl+a
+#bind tectogrammatical_tree_store_AR to Ctrl+B menu Save ordorig of AR tree and display tectogrammatical tree
+sub tectogrammatical_tree_store_AR {
+  my $node = $root;
+  if ($Fslib::parent eq "_AP_") {
+    while ($node) {
+      $node->{ordorig} = $node->parent->{ord} if $node->parent;
+      $node=$node->following();
+    }
+  }
+  PDT::TRstruct();
+  PDT::ClearARstruct();
+  ChangingFile(0);
+}
+
+#bind light_aidrefs to Ctrl+a menu Mark AIDREFS nodes with _light = _LIGHT_
 sub light_aidrefs {
   my$aids=hash_AIDs();
   foreach my$aid(keys %$aids){
@@ -240,7 +256,7 @@ sub light_aidrefs {
   ChangingFile(0);
 }
 
-#bind light_aidrefs_reverse to Ctrl+b
+#bind light_aidrefs_reverse to Ctrl+b menu Mark nodes pointing to current via AIDREFS with _light = _LIGHT_
 sub light_aidrefs_reverse {
   my $node = $root;
   while ($node) {
@@ -252,7 +268,7 @@ sub light_aidrefs_reverse {
   ChangingFile(0);
 }
 
-#bind light_ar_children to Ctrl+c
+#bind light_ar_children to Ctrl+c menu Mark true analytic children of current node with _light = _LIGHT_
 sub light_ar_children {
   my $node = $root;
   while ($node) {
