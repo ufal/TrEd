@@ -1540,10 +1540,12 @@ sub printDialog {
   my $com=$grp->{printCommand};
   my $fil=$grp->{printPsFile};
   $fil=$grp->{focusedWindow}->{FSFile}->filename;
-  $fil=~s/\.[^.]*$/.ps/;
+  my $printFileExtension=$grp->{printFileExtension} || "ps";
+  $fil=~s/\.[^.]*$/.$printFileExtension/;
   my $toFile=$grp->{printToFile};
   my $toEPS=$grp->{printToEPS};
   my $imageMagick=$grp->{printImageMagick};
+  my $imageMagickResolution=$grp->{printImageMagickResolution} || 80;
 #  my $useType1Font=$grp->{printUseType1Font};
   my $printRange=$grp->{printRange};
   my $snt=$grp->{printSentenceInfo};
@@ -1583,6 +1585,11 @@ sub printDialog {
 		     -width=> 50,
 		     -font=> $font,
 		     -textvariable=> \$fil)->pack(qw/-padx 10 -side left -expand yes -fill x/);
+  my $sf= $d->Frame();
+  $re=$sf->Entry(-relief=> 'sunken',
+		 -width=> 20,
+		 -font=> $font,
+		 -textvariable=> \$printRange);
   my $fb= $ff->Button(-text => '...',
 		      -command =>
 		      [sub {
@@ -1610,12 +1617,15 @@ sub printDialog {
   $fb->configure($toFile 
 		? (-state=> 'normal')
 		: (-state=> 'disabled'));
+  $re->configure($imageMagick
+		? (-state=> 'disabled',-background=> $disabledBg)
+		: (-state=> 'normal', -background=> $defaultBg));
   my $of=$d->Frame();
   my $bf=$of->Frame();
-  $bf->Checkbutton(-text    => 'Print to file',
+  my $bfb=$bf->Checkbutton(-text    => 'Print to file',
 		   -variable=> \$toFile,
 		   -command => [sub {
-				  my ($t,$c,$f,$b)=@_;
+				  my ($t,$i,$c,$f,$b,$r)=@_;
 				  if ($$t) {
 				    $f->focus;
 				    $c->configure(-state=> 'disabled',
@@ -1624,22 +1634,49 @@ sub printDialog {
 						  -background=> $defaultBg);
 				    $b->configure(-state=> 'normal');
 				  } else {
+				    $$i=0;
 				    $c->focus;
 				    $f->configure(-state=> 'disabled',
 						  -background=> $disabledBg);
 				    $b->configure(-state=> 'disabled');
 				    $c->configure(-state=> 'normal',
 						  -background=> $defaultBg);
+				    $re->configure(-state=> 'normal',
+						  -background=> $defaultBg);
 				  }
-				},\$toFile,$ce,$fe,$fb ],
+				},\$toFile,\$imageMagick,$ce,$fe,$fb,$re ],
 		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
   $bf->Checkbutton(-text    => 'Create EPS',
 			  -variable=> \$toEPS,
 			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
-  $bf->Checkbutton(-text    => 'Convert according to file extension (ImageMagick)',
+  my $imf=$bf->Frame();
+  my $imr=$imf->Optionmenu(
+			   -state => $imageMagick ? 'normal' : 'disabled',
+			   -relief => $buttonsRelief,
+			   -options => ['75','80','90','100','120','135','150','160','180',
+					'200','225','240','260','300','360','600','720'],
+			   -variable => \$imageMagickResolution
+		   );
+  $imf->Checkbutton(-text    => 'Convert according to file extension (ImageMagick)',
 			  -variable=> \$imageMagick,
-			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+		   -command => [sub {
+				  my ($i,$t,$b,$r)=@_;
+				  if ($$i) {
+				    $b->invoke() unless $$t;
+				    $r->configure(-state=> 'disabled',
+						  -background=> $disabledBg);
+				    $imr->configure(-state=> 'normal');
+				  } else {
+				    $r->configure(-state=> 'normal',
+						  -background=> $defaultBg);
+				    $imr->configure(-state=> 'disabled');
+				  }
+				},\$imageMagick,\$toFile,$bfb,$re,$imr ],
+			  -relief  => 'flat')->pack(qw/-anchor nw -side left -fill y -expand 1/);
+  $imf->Label(-text => "Resolution")->pack(qw/-anchor nw -padx 10 -side left/);
+  $imr->pack(qw/-anchor nw -padx 10 -side left/);
+  $imf->pack(-fill=> 'y',-anchor=> 'nw');
 
 #    $bf->Checkbutton(-text    => 'Use Type1 Postscript Font',
 #  			  -state=> $type1font ? 'normal' : 'disabled' ,
@@ -1659,14 +1696,11 @@ sub printDialog {
   
   $bf->pack(-side=> 'left');
   $of->pack(qw/-padx 10 -pady 10 -side top -expand yes -fill x/);
-  my $sf= $d->Frame();
   $sf->Label(-text=> 'Page range:',
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-  $sf->Entry(-relief=> 'sunken',
-	     -width=> 20,
-	     -font=> $font,
-	     -textvariable=> \$printRange)->pack(qw/-side left -padx 10 -fill x -expand yes/);
+
+  $re->pack(qw/-side left -padx 10 -fill x -expand yes/);
   $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
   $ff->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
 
@@ -1677,11 +1711,13 @@ sub printDialog {
   $grp->{printToFile}=$toFile;
   $grp->{printToEPS}=$toEPS;
   $grp->{printPsFile}=$fil;
+  ($grp->{printFileExtension})=$fil=~m!\.([^.\\/]+)$!;
   $grp->{printSentenceInfo}=$snt;
   $grp->{printCommand}=$com;
   $grp->{printImageMagick}=$imageMagick;
+  $grp->{printImageMagickResolution}=$imageMagickResolution;
   if ($toFile and $imageMagick) {
-    $com="$imageMagickConvert - $fil"
+    $com="$imageMagickConvert -density $imageMagickResolution - $fil"
   }
 #  $grp->{printUseType1Font}=$useType1Font;
   $grp->{printNoRotate}=$noRotate;
