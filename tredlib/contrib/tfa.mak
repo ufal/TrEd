@@ -38,7 +38,7 @@ sub enable_attr_hook {
   }
 }
 
-#include tfa_common.mak
+#include <contrib/tfa_common.mak>
 
 
 

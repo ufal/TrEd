@@ -1,12 +1,12 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-02 11:55:17 pajas>
+## Time-stamp: <2002-04-24 09:25:29 pajas>
 
-#include contrib/tr_anot_main.mak
+#include <contrib/tr_anot_main.mak>
 
 package Tectogrammatic;
 #binding-context Tectogrammatic
-#include contrib/tfa_common.mak
+#include <contrib/tfa_common.mak>
 
 #bind ShiftLeft to Ctrl+Left menu posun uzel doleva
 #bind ShiftRight to Ctrl+Right menu posun uzel doprava

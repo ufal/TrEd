@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-10 10:46:40 pajas>
+## Time-stamp: <2002-04-24 09:24:34 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -8,10 +8,10 @@
 ## It is a base for other macro packages like tr.mak
 ## or tr_anot_main.mak which are used for various purposes
 
-#include contrib/AFA.mak
+#include <contrib/AFA.mak>
 
-#include contrib/ValLex/chooser.mak
-#include contrib/ValLex/adverb.mak
+#include <contrib/ValLex/chooser.mak>
+#include <contrib/ValLex/adverb.mak>
 
 #bind OpenEditor to Ctrl+Shift+Return menu Zobraz valenèní slovník
 
@@ -286,7 +286,7 @@ sub memberof_pa_to_parenthesis {
 
 
 ## add few custom bindings to predefined subroutines
-#include contrib/tredtr.mak
+#include <contrib/tredtr.mak>
 
 ################################################
 ## Overriding definitions of contrib/tredtr.mak

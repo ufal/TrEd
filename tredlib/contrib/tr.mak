@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-26 19:17:13 pajas>
+## Time-stamp: <2002-04-24 09:25:15 pajas>
 
 package Tectogrammatic;
 
@@ -19,4 +19,4 @@ sub switch_context_hook {
   $FileNotSaved=0;
 }
 
-#include tr_common.mak
+#include <contrib/tr_common.mak>

@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-26 20:29:42 pajas>
+## Time-stamp: <2002-04-24 09:27:41 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -162,21 +162,21 @@ sub listQuery {
  return 0;
 }
 
-# binding-context Corref
-# include contrib/tr_corref_common.mak
+#binding-context Corref
+#include <contrib/tr_corref_common.mak>
 
-# binding-context Tectogrammatic
-# include contrib/tr.mak
+#binding-context Tectogrammatic
+#include <contrib/tr.mak>
 
 package Tectogrammatic;
 
 use base qw(TredMacro);
 import TredMacro;
 
-#include tr_common.mak
+#include <contrib/tr_common.mak>
 
-# binding-context TR_Diff
-#include contrib/trdiff.mak
+#binding-context TR_Diff
+#include <contrib/trdiff.mak>
 
 
 
