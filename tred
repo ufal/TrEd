@@ -6591,20 +6591,48 @@ sub editAttrsDialog_schema {
   use Data::Dumper;
   __debug("PATH: '$attr_path'\n");
 
-
-  my $schema = $node->type->schema;
+  my $base_type = $node->type;
+  my $schema;
   my $enabled = 1;
   my $node_type;
+  unless (ref($base_type)) {
+    $schema = $win->{FSFile}->metaData('schema');
+    my @ntypes = $schema->node_types;
+    if (@ntypes==1) {
+      $base_type = $schema->type($ntypes[0]);
+    } elsif (!grep {!(UNIVERSAL::isa($_,'HASH') and 
+	              exists $_->{name} and 
+		      $_->{name} ne "")
+		  } @ntypes) {
+      my $i = 1;
+      my @types = map {($i++)." ".$_->{name}} @ntypes;
+      my $selection = [$types[0]];
+      ListQuery($grp->{top},'Untyped node: select node-type','browse',
+		\@types,$selection) || return;
+      if ($selection->[0]=~/^(\d+) /) {
+	$node->set_type($schema->type($ntypes[$1-1]));
+	$base_type=$node->type;
+      } else {
+	return;
+      }
+    } else {
+      errorMessage($win,"Untyped node: can't edit untyped node in a file with a schema defining un-named node-types...\n".
+      join "\n",map { Dumper($_) } grep {!(UNIVERSAL::isa($_,'HASH') and 
+	  exists $_->{name} and $_->{name} ne "")} @ntypes);
+      return;
+    }
+  } else {
+    $schema = $node->type->schema;
+  }
 
   $win->toplevel->Busy(-recurse=>1);
 
   if ($attr_path ne "") {
-    $node_type = $node->type->find($attr_path);
+    $node_type = $base_type->find($attr_path);
     $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
-    print "$node_type\n";
   } else {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
-    $node_type = $node->type->type_struct;
+    $node_type = $base_type->type_struct;
   }
   my $dlg_title = ($attr_path ne "" ? "Edit Attribute '$attr_path'" : "Edit Node");
   my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
@@ -6645,7 +6673,7 @@ sub editAttrsDialog_schema {
   if ($attr_path ne "") {
     $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
   } elsif (ref($node_type) and $node_type->{member}) {
-    $edit->add_members('',$node_type,$node,1);
+    $edit->add_members('',$node_type,$node);
   } else {
     $edit->add_xmlnode('',$node_type,$node);
   }
@@ -6753,7 +6781,9 @@ sub editAttrsDialog {
   my ($win,$node)=@_;
   return if (doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
   return unless $win->{FSFile};
-  return editAttrsDialog_schema($win,$node) if (ref($node->type));
+  return editAttrsDialog_schema($win,$node)
+    if (ref($node->type) or
+	ref($win->{FSFile}->metaData('schema')));
   my @vals;
   my %e=();
   my @atord=$win->{FSFile}->FS->attributes;
