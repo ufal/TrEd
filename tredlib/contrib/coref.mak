@@ -131,6 +131,7 @@ sub jump_to_referent { # modified by Zdenek Zabokrtsky, Jan 2003
   $FileChanged=0 if $FileChanged eq '?';
 }
 
+#bind edit_corlemma to Ctrl+t menu Edit textual coreference (corlemma)
 #bind edit_corlemma to \ menu Edit textual coreference (corlemma)
 sub edit_corlemma {
   my $value=$this->{corlemma};
