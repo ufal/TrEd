@@ -514,11 +514,11 @@ sub currentFileNo {
 
 # TrEd::Window ? should openFile in focusedWindow
 sub gotoFile {
-  my ($grp,$fn,$no_recent)=@_;
+  my ($grp,$fn,$no_recent,$no_redraw)=@_;
   return 0 if doEvalHook($grp->{focusedWindow},"goto_file_hook") eq 'stop';
   return 0 if ($fn>=$grp->{currentFilelist}->file_count() or $fn<0);
   $grp->{focusedWindow}->{currentFileNo}=$fn;
-  openFile($grp,filelistFullFileName($grp,$fn),$no_recent);
+  openFile($grp,filelistFullFileName($grp,$fn),-norecent => $no_recent, -noredraw => $no_redraw);
   if ($grp->{Filelist} and
 	$grp->{filelistCurrentFilelist} eq $grp->{currentFilelist}) {
     my $path=filelistEntryPath($grp->{currentFilelist},$fn);
@@ -842,7 +842,7 @@ sub updatePostponed {
 				      );
 
     $i='A';
-    foreach (@filelists) { 
+    foreach (sort {lc($a->name()) cmp lc($b->name())} @filelists) { 
       $grp->{PostponedFileMenu}->command(-label => "$i.  ".$_->name(),
 					 -underline=> 0,
 					 -command=> [\&selectFilelist,$grp,$_->name()]);
