@@ -1,0 +1,347 @@
+package Filelist;
+# -*- cperl -*-
+
+# Author: Petr Pajas
+# E-mail: pajas@ufal.mff.cuni.cz
+#
+# Description:
+# (TrEd's) filelist handling routines
+
+=pod
+
+=head1 NAME
+
+Filelist.pm - Simple filelist handling routines for TrEd
+
+=head1 REFERENCE
+
+=over 4
+
+=cut
+
+use Exporter;
+
+@ISA=(Exporter);
+$VERSION = "0.1";
+@EXPORT = qw();
+@EXPORT_OK = qw();
+
+use Carp;
+use vars qw( $VERSION @EXPORT @EXPORT_OK );
+
+use Fslib;
+
+=pod
+
+=item new
+
+Create a new filelist object
+
+=cut
+
+sub new {
+  my ($self,$name) = @_;
+  my $class = ref($self) || $self;
+  my $new =
+    {
+     name => $name,
+     list => [],
+     files => [],
+     current => undef
+    };
+  bless $new, $class;
+  return $new;
+}
+
+=pod
+
+=item name
+
+Return name of the file-list
+
+=cut
+
+sub name {
+  my ($self,$position,$count)=@_;
+  return ref($self) ? $self->{name} : undef;
+}
+
+
+=pod
+
+=item rename (new_name)
+
+Re-name the file-list
+
+=cut
+
+sub rename {
+  my ($self,$new_name)=@_;
+  return undef unless ref($self);
+  return $self->{name}=$new_name;
+}
+
+=pod
+
+=item current
+
+Return current file's name or undef if no current file is defined.
+
+Note: the feature of current file is completely user-driven
+
+=cut
+
+sub current {
+  my ($self)=@_;
+  return ref($self) ? $self->{current} : undef;
+}
+
+=pod
+
+=item set_current (filename)
+
+Let given file be the current file in the file-list (completely user-driven).
+
+=cut
+
+sub set_current {
+  my ($self,$filename)=@_;
+  return undef unless ref($self);
+  return $self->{current}=$filename;
+}
+
+
+=pod
+
+=item files_ref
+
+Return a reference to internal list containing expanded file names
+as pairs L<[filename,idx]>, where idx is the index of a pattern
+in filelist, which had brought the file name to the list
+
+=cut
+
+sub files_ref {
+  my $self = shift;
+  return undef unless ref($self);
+  return $self->{files};
+}
+
+=pod
+
+=item files
+
+Return a list of all file names in the list
+
+=cut
+
+sub files {
+  my $self = shift;
+  return undef unless ref($self);
+  return map { $_->[0] } @{ $self->{files} };
+}
+
+=pod
+
+=item list_ref
+
+Return a reference to the internal pattern list
+
+=cut
+
+sub list_ref {
+  my $self = shift;
+  return undef unless ref($self);
+  return $self->{list};
+}
+
+=pod
+
+=item list
+
+Return a list of all patterns in the file list
+
+=cut
+
+sub list {
+  my $self = shift;
+  return undef unless ref($self);
+  return @{$self->{list}};
+}
+
+=pod
+
+=item file_count
+
+Return the total number of all files in the list
+
+=cut
+
+sub file_count {
+  my $self = shift;
+  return undef unless ref($self);
+  return scalar(@{$self->{files}});
+}
+
+=pod
+
+=item count
+
+Return the number of all patterns in the list
+
+=cut
+
+sub count {
+  my $self = shift;
+  return undef unless ref($self);
+  return $#{$self->{list}}+1;
+}
+
+=pod
+
+=item expand
+
+Expand all patterns in the filelist and store them in the internal
+list of filenames
+
+=cut
+
+sub expand {
+  my $self = shift;
+  return undef unless ref($self);
+  @{ $self->files_ref }=();
+  foreach my $i (0..$self->count-1) {
+    push @{ $self->files_ref },
+      $self->list_ref->[$i]=~/[\[\{\*\?]/ ?
+	map { [$_,$i] } glob($self->list_ref->[$i]) :
+	  [$self->list_ref->[$i],$i];
+  }
+
+  my %saw;
+  @{ $self->files_ref } = grep( !$saw{$_}++, @{ $self->files_ref } );
+
+  return 1;
+}
+
+=pod
+
+=item file_at (n)
+
+Return the n'th file name in the list
+
+=cut
+
+sub file_at {
+  my ($self,$index) = @_;
+  return undef unless ref($self);
+  return $self->files_ref->[$index]->[0];
+}
+
+=item position (fsfile?)
+
+If the argument is FSFile object, return an index of the filename
+corresponding to the given FSFile object. IF the argument is string,
+return an index of the string in the file list. If no argument is given,
+return index of current file.
+
+=cut
+
+sub position {
+  my ($self,$fsfile) = @_;
+  return undef unless ref($self);
+  $fsfile=$self->current() unless defined($fsfile);
+  my $files=$self->files_ref;
+  my $fname=ref($fsfile) ? $fsfile->name() : $fsfile;
+  for (my $i=0; $i < $self->file_count; $i++) {
+    return $i if ($fname eq $files->[$i]->[0]);
+  }
+  return -1;
+}
+
+
+=pod
+
+=item file_pattern_index (n)
+
+Return the index of the pattern which has generated the n'th file
+
+=cut
+
+sub file_pattern_index {
+  my ($self,$index) = @_;
+  return undef unless ref($self);
+  return $self->files_ref->[$index]->[1];
+}
+
+=pod
+
+=item file_pattern (n)
+
+Return the pattern which has generated the n'th file
+
+=cut
+
+sub file_pattern {
+  my ($self,$index) = @_;
+  return undef unless ref($self);
+  return $self->list_ref->[$self->file_pattern_index($index)];
+}
+
+=pod
+
+=item add (position, patterns)
+
+Insert patterns on the given position in the list and update
+file-list
+
+=cut
+
+sub add {
+  my ($self,$position)=(shift,shift);
+  return undef unless ref($self);
+
+  # never add elements already present here or in files
+  # and add each element once only
+  do {
+    my %saw=map { $_ => 1 } @{ $self->list_ref },@{ $self->files_ref };
+    @_=grep(!$saw{$_}++,@_);
+  };
+  splice @{ $self->list_ref },$position,0,@_;
+  $self->expand();
+  return 1;
+}
+
+=pod
+
+=item remove (position, count?)
+
+Remove patterns from the given position in the list and update
+file-list
+
+=cut
+
+sub remove {
+  my ($self,$position,$count)=@_;
+  return undef unless ref($self);
+  $count=1 unless defined($count);
+  splice @{ $self->list_ref },$position, $count;
+
+  $self->expand();
+  return 1;
+}
+
+
+
+1;
+
+__END__
+
+=head1 AUTHOR
+
+Petr Pajas
+
+=head1 SEE ALSO
+
+L<tred(1)|tred>, L<Fslib(1)|Fslib>.
+
+=cut
