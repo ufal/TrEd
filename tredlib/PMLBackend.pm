@@ -213,40 +213,7 @@ sub read_node ($$$;$) {
     die "Unknown node type: $type\n";
   }
 
-  if ($type->{knit}) {
-    my $ref = $node->getAttribute($type->{knit}{name});
-    if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
-      my ($reffile,$idref)=($1,$2);
-      my $refdom =
-	($reffile ne "") ? $fsfile->metaData('ref')->{$reffile} :
-	  $node->ownerDocument;
-      if (ref($refdom)) {
-	my $refnode =
-	  $fsfile->metaData('ref-index')->{$reffile}{$idref} ||
-	  $refdom->getElementsById($idref);
-	if (ref($refnode)) {
-#	  print "KNIT: $idref\n";
-#	  print "KNIT-TYPE: ",Dumper(resolve_type($types,$type->{knit})),"\n";
-#	  print $refnode->toString(1),"\n";
-	  my $ret = read_node($refnode,$fsfile,$types,
-					  resolve_type($types,$type->{knit}));
-#	  print Dumper($ret),"\n";
-	  if (ref($ret) and $ret->{id}) {
-	    $ret->{id} = $reffile.'#'.$ret->{id};
-	  }
-	  return $ret;
-	} else {
-	  warn "warning: ID $idref not found in '$reffile'\n";
-	}
-      } else {
-	die "Reference to $ref cannot be resolved - document '$reffile' not loaded\n";
-	  return $ref;
-      }
-    } else {
-      return $ref;
-    }
-    return;
-  } elsif ($type->{seq}) {
+  if ($type->{seq}) {
     return bless [
       map {
 	read_node($_,$fsfile,
@@ -278,17 +245,15 @@ sub read_node ($$$;$) {
 	  $role = $member->{role} if ref($member);
 	  $member = resolve_type($types,$member);
 	  $role ||= $member->{role} if ref($member);
-	  if (ref($member) and $member->{role} eq '#CHILDNODES') {
+	  if (ref($member) and $role eq '#CHILDNODES') {
 	    if (ref($hash) eq 'FSNode') {
-	      my $seq =
-		read_node($child,$fsfile,
-				      $types,
-				      $member);
+	      my $seq = read_node($child,$fsfile,$types,$member);
 	      $hash->{$Fslib::firstson} = $seq->[0];
 	      my $prev=0;
 	      foreach my $son (@{$seq}) {
 		unless (ref($son) eq 'FSNode') {
-		  die "non-#NODE child of '".$node->localname."'\n";
+		  die "non-#NODE child '$name' of '".$node->localname.
+		    "' at line ".$child->line_number."\n";
 		}
 		$son->{$Fslib::parent} = $hash;
 		$son->{$Fslib::lbrother} = $prev;
@@ -296,7 +261,39 @@ sub read_node ($$$;$) {
 		$prev = $son;
 	      }
 	    } else {
-	      die "#CHILDNODES member '$name' encountered in non-#NODE element '".$node->localname."'\n";
+	      die "#CHILDNODES member '$name' encountered in non-#NODE element '".$node->localname.
+		"' at line ".$child->line_number."\n";
+	    }
+	  } elsif (ref($member) and $role eq '#KNIT') {
+	    my $ref = $child->textContent();
+	    # print "KNIT: name=$name, '$ref'\n";
+	    if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
+	      my ($reffile,$idref)=($1,$2);
+	      my $refdom = ($reffile ne "") ? $fsfile->metaData('ref')->{$reffile} : $child->ownerDocument;
+	      if (ref($refdom)) {
+		my $refnode =
+		  $fsfile->metaData('ref-index')->{$reffile}{$idref} ||
+		    $refdom->getElementsById($idref);
+		if (ref($refnode)) {
+		  #	  print "KNIT: $idref\n";
+		  #	  print "KNIT-TYPE: ",Dumper(resolve_type($types,$type->{knit})),"\n";
+		  #	  print $refnode->toString(1),"\n";
+		  my $ret = read_node($refnode,$fsfile,$types,$member);
+		  $name =~ s/\.rf$//;
+		  $hash->{$name} = $ret;
+		  if (ref($ret) and $ret->{id}) {
+		    $ret->{id} = $reffile.'#'.$ret->{id};
+		  }
+		} else {
+		  warn "warning: ID $idref not found in '$reffile'\n";
+		  $hash->{$name} = $ref;
+		}
+	      } else {
+		warn "Reference to $ref cannot be resolved - document '$reffile' not loaded\n";
+		$hash->{$name} = $ref;
+	      }
+	    } else {
+	      $hash->{$name} = $ref;
 	    }
 	  } else {
 	    if ($role eq "#ORDER") {
@@ -380,15 +377,19 @@ sub read_trees {
 	    my $ref_data;
 	    my $ref_fh = open_backend($href,'r');
 	    print "$href $ref_fh\n";
-	    $ref_data = $parser->parse_fh($ref_fh);
-	    $parser->process_xincludes($ref_data);
-	    close_backend($ref_fh);
-	    for (qw(ref ref-index)) {
-	      $fsfile->changeMetaData($_,{}) unless $fsfile->metaData($_)
+	    if ($ref_fh){
+	      $ref_data = $parser->parse_fh($ref_fh);
+	      $parser->process_xincludes($ref_data);
+	      close_backend($ref_fh);
+	      for (qw(ref ref-index)) {
+		$fsfile->changeMetaData($_,{}) unless $fsfile->metaData($_)
+	      }
+	      $fsfile->metaData('ref')->{$refid}=$ref_data;
+	      $fsfile->metaData('ref-index')->{$refid}=index_by_id($ref_data);
+	      print "Stored meta 'ref' -> '$reference->{name}' = $ref_data\n";
+	    } else {
+	      warn "Couldn't open '".$href."': $!\n";
 	    }
-	    $fsfile->metaData('ref')->{$refid}=$ref_data;
-	    $fsfile->metaData('ref-index')->{$refid}=index_by_id($ref_data);
-	    print "Stored meta 'ref' -> '$reference->{name}' = $ref_data\n";
 	  }
 	} elsif ($href) {
 	  die "Unknown readas method '$reference->{readas}'\n"
@@ -516,35 +517,6 @@ sub write {
 
 sub write_object ($$$$) {
   my ($xml,$fsfile, $types,$type,$tag,$object)=@_;
-  if (ref($type) and $type->{knit}) {
-    my $ref = $object->{id};
-    $xml->emptyTag($tag, $type->{knit}{name} => $ref);
-    if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
-      my ($reffile,$idref)=($1,$2);
-      my $indeces = $fsfile->metaData('ref-index');
-      if ($indeces and $indeces->{$reffile}) {
-	my $knit = $indeces->{$reffile}{$idref};
-	if ($knit) {
-	  $tag = 'M' if ($knit->parentNode->nodeName =~ /^(Alt|Seq)$/ and
-			   $knit->parentNode->namespaceURI eq $pml_ns);
-	  my $dom_writer = MyDOMWriter->new(REPLACE => $knit);
-	  write_object($dom_writer, $fsfile, $types,
-		       resolve_type($types,$type->{knit}),
-		       $tag, $object);
-	  my $new = $dom_writer->end;
-	  $new->setAttribute('id',$idref);
-	  #print $dom_writer->end->toString(1),"\n";
-	} else {
-	  warn "Didn't find ID $idref in $reffile - can't knit back!\n";
-	}
-
-      } else {
-	warn "Knit-file $reffile has no index - can't knit back!\n";
-      }
-    }
-    # special;
-    return;
-  }
   $type = resolve_type($types,$type);
   if (!ref($type)) {
     $xml->startTag($tag);
@@ -580,10 +552,55 @@ sub write_object ($$$$) {
 	    if (ref($object) eq 'FSNode') {
 	      if ($object->firstson or !$type->{member}{$member}{optional}) {
 		write_object($xml, $fsfile, $types,$type->{member}{$member},$member,
-			     bless [ $object->children ],'Fslib::Seq');
+			     bless([ $object->children ],'Fslib::Seq'));
 	      }
 	    } else {
 	      warn "Found #CHILDNODES member '$tag/$member' on a non-node value: $object\n";
+	    }
+	  } elsif ($type->{member}{$member}{role} eq '#KNIT') {
+	    if ($object->{$member} ne "") {
+	      print "#KNIT.rf $member\n";
+	      $xml->startTag($member);
+	      $xml->characters($object->{$member});
+	      $xml->startTag($member);
+	    } else {
+	      my $name = $member;
+	      $name =~ s/\.rf$//;
+	      if (ref($object->{$name})) {
+		my $ref = $object->{$name}{id};
+		$xml->startTag($member);
+		$xml->characters($object->{$name}{id});
+		$xml->endTag($member);
+		if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
+		  my ($reffile,$idref)=($1,$2);
+		  my $indeces = $fsfile->metaData('ref-index');
+		  if ($indeces and $indeces->{$reffile}) {
+		    my $knit = $indeces->{$reffile}{$idref};
+		    if ($knit) {
+		      #print $knit->toString(1),"\n";
+		      my $knit_tag = $name;
+		      $knit_tag = 'M' if ($knit->parentNode->nodeName =~ /^(Alt|Seq)$/ and
+				     $knit->parentNode->namespaceURI eq $pml_ns);
+		      my $dom_writer = MyDOMWriter->new(REPLACE => $knit);
+		      write_object($dom_writer, $fsfile, $types,
+				   resolve_type($types,$type->{member}{$member}),
+				   $knit_tag, $object->{$name});
+		      my $new = $dom_writer->end;
+		      $new->setAttribute('id',$idref);
+		      #print $dom_writer->end->toString(1),"\n";
+		    } else {
+		      warn "Didn't find ID $idref in $reffile - can't knit back!\n";
+		    }
+		  } else {
+		    warn "Knit-file $reffile has no index - can't knit back!\n";
+		  }
+		} else {
+		  print "$object = {\n",(map {"  $_ => $object->{$name}{$_}\n"} keys %{$object->{$name}}),"}\n";
+		  warn "Can't parse '$member' href '$ref' - can't knit back!\n";
+		}
+	      }# else {
+	#	warn "Didn't find $name on the object! ",join(" ",%$object),"\n";
+	#      }
 	    }
 	  } elsif ($object->{$member} ne "" or !$type->{member}{$member}{optional}) {
 	    write_object($xml, $fsfile, $types,$type->{member}{$member},$member,$object->{$member});
@@ -599,8 +616,8 @@ sub write_object ($$$$) {
     if ($object ne "" and ref($object) eq 'Fslib::Seq') {
       if (@$object == 0) {
 	# what do we do now?
-      } elsif (@$object == 1) {
-	write_object($xml, $fsfile,  $types,$type->{seq},$tag,$object->[0]);
+#      } elsif (@$object == 1) {
+#	write_object($xml, $fsfile,  $types,$type->{seq},$tag,$object->[0]);
       } else {
 	$xml->startTag($tag);
 	$xml->startTag('Seq');
