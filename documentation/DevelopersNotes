@@ -1,0 +1,13 @@
+Styling options:
+
+NodeLabel
+-valign         vertical align of node label, relatively to node oval
+-yadj           alter y position of node label
+-valign         vertical alignment of the node label    
+-addbeforeskip  make additional request for horizontal space before the node
+-addafterskip   make additional request for horizontal space after the node
+
+EdgeLabel
+-yadj       alter y position of node label (x-coord. is calculated automatically)
+-halign     horizontal alignment of the edge label
+-valign     vertical alignment of the edge label    
