@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2003-06-25 12:38:38 pajas>
+## Time-stamp: <2003-07-03 15:31:20 pajas>
 
 package Analytic;
 use base qw(TredMacro);
@@ -31,7 +31,7 @@ my $_pDummy;			# used as type "pointer"
 #bind edit_commentA to exclam menu Edit annotator's comment
 sub edit_commentA {
   if (not $grp->{FSFile}->FS->exists('commentA')) {
-    $ToplevelFrame->messageBox
+    ToplevelFrame()->messageBox
       (
        -icon => 'warning',
        -message => 'Sorry, no attribute for annotator\'s comment in this file',

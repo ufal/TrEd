@@ -41,7 +41,7 @@ sub enable_attr_hook {
 sub edit_attr_value {
   my ($attr)=@_;
   if (not $grp->{FSFile}->FS->exists($attr)) {
-    $ToplevelFrame->messageBox
+    ToplevelFrame()->messageBox
       (
        -icon => 'warning',
        -message => "Attribute $attr not defined!",

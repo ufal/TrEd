@@ -306,7 +306,7 @@ sub rotate_func {
 #bind edit_commentA to exclam menu Edit annotator's comment
 sub edit_commentA {
   if (not $grp->{FSFile}->FS->exists('commentA')) {
-    $ToplevelFrame->messageBox
+    ToplevelFrame()->messageBox
       (
        -icon => 'warning',
        -message => 'Sorry, no attribute for annotator\'s comment in this file',
