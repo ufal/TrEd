@@ -2,7 +2,6 @@ package TrEd::Convert;
 
 #
 # $Revision$ '
-# Time-stamp: <2002-10-25 11:34:10 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
