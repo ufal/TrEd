@@ -737,4 +737,11 @@ sub read {
   return 1;
 }
 
+sub setupTR {
+  $gov = "govTR";
+  $header = \@TRheader;
+  $initial_node_values{TR}='hide';
+  $initial_node_values{reserve1}='TR_TREE';
+}
+
 1;
