@@ -35,6 +35,78 @@ our ($hooks_request_mode);
 #
 # ##################################################################################################
 
+#unbind-key j
+#remove-menu Assign afun AtvV
+#unbind-key J
+#remove-menu Assign afun AtvV_Ap
+#unbind-key Ctrl+j
+#remove-menu Assign afun AtvV_Co
+#unbind-key Ctrl+J
+#remove-menu Assign afun AtvV_Pa
+
+#unbind-key j
+#remove-menu Assign afun AtvV
+#unbind-key J
+#remove-menu Assign afun AtvV_Ap
+#unbind-key Ctrl+j
+#remove-menu Assign afun AtvV_Co
+#unbind-key Ctrl+J
+#remove-menu Assign afun AtvV_Pa
+
+#unbind-key o
+#remove-menu Assign afun AuxO
+#unbind-key O
+#remove-menu Assign afun AuxO_Ap
+#unbind-key Ctrl+o
+#remove-menu Assign afun AuxO_Co
+#unbind-key Ctrl+O
+#remove-menu Assign afun AuxO_Pa
+
+#unbind-key r
+#remove-menu Assign afun AuxR
+#unbind-key R
+#remove-menu Assign afun AuxR_Ap
+#unbind-key Ctrl+r
+#remove-menu Assign afun AuxR_Co
+#unbind-key Ctrl+R
+#remove-menu Assign afun AuxR_Pa
+
+#unbind-key t
+#remove-menu Assign afun AuxT
+#unbind-key T
+#remove-menu Assign afun AuxT_Ap
+#unbind-key Ctrl+t
+#remove-menu Assign afun AuxT_Co
+#unbind-key Ctrl+T
+#remove-menu Assign afun AuxT_Pa
+
+#unbind-key v
+#remove-menu Assign afun AuxV
+#unbind-key V
+#remove-menu Assign afun AuxV_Ap
+#unbind-key Ctrl+v
+#remove-menu Assign afun AuxV_Co
+#unbind-key Ctrl+V
+#remove-menu Assign afun AuxV_Pa
+
+#unbind-key x
+#remove-menu Assign afun AuxX
+#unbind-key X
+#remove-menu Assign afun AuxX_Ap
+#unbind-key Ctrl+x
+#remove-menu Assign afun AuxX_Co
+#unbind-key Ctrl+X
+#remove-menu Assign afun AuxX_Pa
+
+#unbind-key z
+#remove-menu Assign afun AuxZ
+#unbind-key Z
+#remove-menu Assign afun AuxZ_Ap
+#unbind-key Ctrl+z
+#remove-menu Assign afun AuxZ_Co
+#unbind-key Ctrl+Z
+#remove-menu Assign afun AuxZ_Pa
+
 sub AfunAssign {
 
     my $fullafun = $_[0] || $sPar1;
@@ -128,11 +200,88 @@ sub assign_arabclause {
   EditAttribute($this,'arabclause');
 }
 
+#bind thisToParent to Alt+Up menu Annotate: Current node up one level to grandparent
+sub thisToParent {
+  return unless Parent($this) and Parent(Parent($this));
+  my $act=$this;
+  my $p=Parent(Parent($act));
+  PasteNode(Cut($act),$p);
+  $this=$act;
+}
+
+#bind thisToRBrother to Alt+Left menu Annotate: Current node to brother on the left
+sub thisToRBrother {
+  return unless RBrother($this);
+  my $act=$this;
+  my $p=RBrother($this);
+  PasteNode(Cut($act),$p);
+  $this=$act;
+}
+
+#bind thisToLBrother to Alt+Right menu Annotate: Current node to brother on the right
+sub thisToLBrother {
+  return unless LBrother($this);
+  my $act=$this;
+  my $p=LBrother($this);
+  PasteNode(Cut($act),$p);
+  $this=$act;
+}
+
+#bind thisToParentRBrother to Alt+Shift+Left menu Annotate: Current node to uncle on the left
+sub thisToParentRBrother {
+  return unless Parent($this) and RBrother(Parent($this));
+  my $act=$this;
+  my $p=RBrother(Parent($this));
+  PasteNode(Cut($act),$p);
+  $this=$act;
+}
+
+#bind thisToParentLBrother to Alt+Shift+Right menu Annotate: Current node to uncle on the right
+sub thisToParentLBrother {
+  return unless Parent($this) and LBrother(Parent($this));
+  my $act=$this;
+  my $p=LBrother(Parent($this));
+  PasteNode(Cut($act),$p);
+  $this=$act;
+}
+
+#bind thisToEitherBrother to Alt+Down menu Annotate: Current node to either side brother if unique
+sub thisToEitherBrother {
+  my $lb = LBrother($this);
+  my $rb = RBrother($this);
+  return unless $lb xor $rb;
+  my $act=$this;
+  my $p = $lb || $rb;
+  PasteNode(Cut($act),$p);
+  $this=$act;
+}
+
+#bind SwapNodesUp to Alt+Shift+Up menu Annotate: Current node exchanged with parent
+sub SwapNodesUp {
+  return unless $this;
+  my $parent=Parent($this);
+  return unless $parent;
+  my $grandParent=Parent($parent);
+  return unless $grandParent;
+  PasteNode(Cut($this),$grandParent);
+  PasteNode(Cut($parent),$this);
+  $this=$parent;
+}
+
+#bind SwapNodesDown to Alt+Shift+Down menu Annotate: Current node exchanged with son if unique
+sub SwapNodesDown {
+  return unless $this;
+  my @childs = $this->children();
+  my $parent = Parent($this);
+  return unless @childs == 1 and $parent;
+  PasteNode(Cut($childs[0]),$parent);
+  PasteNode(Cut($this),$childs[0]);
+  $this=$childs[0];
+}
+
 # ##################################################################################################
 #
 # ##################################################################################################
-
-### remove old PDT bindings used for Czech etc.
 
 #unbind-key Ctrl+Shift+F1
 #remove-menu Automatically assign afun to subtree
@@ -156,7 +305,7 @@ sub get_auto_afun {
 }
 
 ### rebind PDT bindings used for Czech with Arabic ones
-#bind request_auto_afun_node Ctrl+Shift+F9 menu Arabic: Request auto afun for node
+#bind request_auto_afun_node Ctrl+Shift+F9 menu Arabic: Request auto afun for current node
 sub request_auto_afun_node {
 
     my $node = $_[0] eq __PACKAGE__ ? $this : $_[0];
@@ -175,7 +324,7 @@ sub request_auto_afun_node {
     }
 }
 
-#bind request_auto_afun_subtree to Ctrl+Shift+F10 menu Arabic: Request auto afun for subtree
+#bind request_auto_afun_subtree to Ctrl+Shift+F10 menu Arabic: Request auto afun for current subtree
 sub request_auto_afun_subtree {
 
     my $node = $this;
@@ -194,7 +343,7 @@ sub request_auto_afun_subtree {
     $Redraw = 'tree';
 }
 
-#bind hooks_request_mode Ctrl+Shift+F8 menu Arabic: Toggle hooks request mode for auto afuns
+#bind hooks_request_mode Ctrl+Shift+F8 menu Arabic: Toggle request mode for auto afuns
 sub hooks_request_mode {
 
     $hooks_request_mode = not $hooks_request_mode;
@@ -288,51 +437,7 @@ sub node_style_hook {
 
         my $T = << 'TARGET';
 [!
-    my ($head, $attr, $ante);
-
-    $head = $this->parent;
-
-    until ( (not $head) or ($head->{afun} =~ /^(?:Atr|Atv)$/ and ($head->{arabclause} !~ /^no-|^$/ or $head->{tag} =~ /^V/))
-                        or ($head->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/)
-                        or ($head->{afun} =~ /^(?:Coord|Apos)$/ and grep {
-
-                            $_->{parallel} =~ /^(?:Co|Ap)$/
-
-                            and (  ($_->{afun} =~ /^(?:Atr|Atv)$/ and ($_->{arabclause} !~ /^no-|^$/ or $_->{tag} =~ /^V/))
-                                or ($_->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/) )
-
-                            } $head->children) ) {
-
-        $head = $head->parent;
-        $attr = $head if not defined $attr and $head->{afun} eq 'Atr';  # attributive pseudo-clause .. approximation only
-    }
-
-    if ($head) {
-
-        $ante = $head;
-        $ante = $ante->following($head) until not $ante or $ante->{afun} eq 'Ante';
-
-        return $ante if $ante;
-
-        if (defined $attr) {
-
-            $head = $attr;
-        }
-        else {
-
-            $attr = $head;
-        }
-
-        $head = $head->parent while $head->{parallel} =~ /^(?:Co|Ap)$/;
-
-        $head = $head->parent;
-
-        return $head;
-    }
-    else {
-
-        return defined $attr ? $attr->parent : undef;
-    }
+    return Analytic::referring_Ref($this);
 !]
 TARGET
 
@@ -359,13 +464,7 @@ COORDS
 
       my $T = << 'TARGET';
 [!
-    my $head = $this->parent;                                   # the masdar itself might feature the critical tags
-
-    $head = $head->parent if $this->{afun} eq 'Atr';                    # constructs like <_hAfa 'a^sadda _hawfiN>
-
-    $head = $head->parent until not $head or $head->{tag} =~ /^[VNA]/;  # the verb, governing masdar or participle
-
-    return $head;
+    return Analytic::referring_Msd($this);
 !]
 TARGET
 
@@ -392,13 +491,108 @@ COORDS
 #
 # ##################################################################################################
 
+sub referring_Ref {
+
+    my $this = defined $_[0] ? $_[0] : $this;
+
+    my $head = $this->parent;
+
+    until ( (not $head) or (#$head->{afun} =~ /^(?:Atr|Atv)$/ and
+                            ($head->{arabclause} !~ /^no-|^$/ or $head->{tag} =~ /^V/))
+                        or ($head->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/)
+                        or ($head->{afun} =~ /^(?:Coord|Apos)$/ and grep {
+
+                            $_->{parallel} =~ /^(?:Co|Ap)$/
+
+                            and (  (#$_->{afun} =~ /^(?:Atr|Atv)$/ and
+                                    ($_->{arabclause} !~ /^no-|^$/ or $_->{tag} =~ /^V/))
+                                or ($_->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/) )
+
+                            } $head->children()) ) {
+
+        $head = $head->parent();
+        last if not defined $attr and $head->{afun} eq 'Atr';   # attributive pseudo-clause .. approximation only
+    }
+
+    if ($head) {
+
+        if ($head->{afun} eq 'Pnom') {                          # needs attention since {Pred} <- [Pnom] = [Pnom]
+
+            my $pnom = $head;
+
+            if ($pnom->{parallel} =~ /^(?:Co|Ap)$/) {
+
+                do {
+
+                    $pnom = $pnom->parent();
+                }
+                while $pnom and $pnom->{parallel} =~ /^(?:Co|Ap)$/ and $pnom->{afun} =~ /^(?:Coord|Apos)$/;
+
+                $pnom = $head unless $pnom and $pnom->{afun} =~ /^(?:Coord|Apos)$/;
+            }
+
+            $head = $pnom->parent() if $pnom->parent() and ( $pnom->parent()->{arabclause} =~ /^Pred[CEP]?$/
+                                       or $_->{tag} =~ /^V/ or $pnom->parent()->{afun} =~ /^Pred[CEP]?$/ );
+        }
+
+        my $ante = $head;
+
+        $ante = $ante->following($head) while $ante and $ante->{afun} ne 'Ante';
+
+        unless ($ante) {
+
+            $head = $head->parent() while $head->{parallel} =~ /^(?:Co|Ap)$/;
+
+            $ante = $head;
+
+            $ante = $ante->following($head) while $ante and $ante->{afun} ne 'Ante';
+        }
+
+        $ante = $ante->parent() while $ante and $ante->{parallel} =~ /^(?:Co|Ap)$/;
+
+        if ($ante) {
+
+            $this = $this->parent() while $this and $this != $ante;
+
+            return $ante if $this != $ante;
+        }
+
+        $head = $head->parent() while $head->{parallel} =~ /^(?:Co|Ap)$/;
+
+        $head = $head->parent();
+
+        return $head;
+    }
+    else {
+
+        return undef;
+    }
+}
+
+sub referring_Msd {
+
+    my $this = defined $_[0] ? $_[0] : $this;
+
+    my $head = $this->parent();                                     # the token itself might feature the critical tags
+
+    $head = $head->parent() if $this->{afun} eq 'Atr';                      # constructs like <_hAfa 'a^sadda _hawfiN>
+
+    $head = $head->parent() until not $head or $head->{tag} =~ /^[VNA]/;    # the verb, governing masdar or participle
+
+    return $head;
+}
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
 sub enable_attr_hook {
 
     return 'stop' unless $_[0] =~ /^(?:afun|parallel|paren|arabclause|arabfa|arabspec|comment|commentA|err1|err2)$/;
 }
 
 #remove-menu Edit annotator's comment
-#bind edit_commentA to exclam menu Arabic: Edit annotator's comment
+#bind edit_commentA to exclam menu Annotate: Edit annotator's comment
 sub edit_commentA {
 
     $Redraw = 'none';
@@ -432,7 +626,7 @@ sub edit_commentA {
 }
 
 #remove-menu Display default attributes
-#bind default_ar_attrs to F8 menu Arabic: Show / hide morphological tags
+#bind default_ar_attrs to F8 menu Annotate: Show / hide morphological tags
 sub default_ar_attrs {
 
     return unless $grp->{FSFile};
@@ -450,7 +644,7 @@ sub default_ar_attrs {
     return 1;
 }
 
-#bind invoke_undo BackSpace menu Arabic: Undo annotation
+#bind invoke_undo BackSpace menu Annotate: Undo recent annotation action
 sub invoke_undo {
 
     warn 'Undoooooing ;)';
@@ -461,7 +655,7 @@ sub invoke_undo {
     ChangingFile(0);
 }
 
-#bind annotate_following space menu Arabic: Move to following ???
+#bind annotate_following space menu Annotate: Move to following ???
 sub annotate_following {
 
     my $node = $this;
@@ -474,7 +668,7 @@ sub annotate_following {
     ChangingFile(0);
 }
 
-#bind annotate_previous Shift+space menu Arabic: Move to previous ???
+#bind annotate_previous Shift+space menu Annotate: Move to previous ???
 sub annotate_previous {
 
     my $node = $this;
