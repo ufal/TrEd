@@ -380,10 +380,9 @@ sub add {
 
 =pod
 
-=item remove (position, count?)
+=item remove (patterns+)
 
-Remove patterns from the given position in the list and update
-file-list
+Remove given patterns from the list and update file-list
 
 =cut
 
@@ -399,6 +398,22 @@ sub remove {
   return 1;
 }
 
+=pod
+
+=item find_pattern (pattern)
+
+Return index of a given pattern in the filelist or -1 if not found.
+
+=cut
+
+sub find_pattern {
+  my ($self,$pattern)=@_;
+  return undef unless ref($self);
+  for (my $i=0; $i< $self->count; $i++) {
+    return $i if $self->list_ref->[$i] eq $pattern;
+  }
+  return -1;
+}
 
 
 1;
