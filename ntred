@@ -728,7 +728,7 @@ STDOUT of the client. STDERR is reserved for debugging and information
 messages as well as error messages caused by the macros on the
 servers. The rest of the error output from a server is stored in a
 file <logdir>/ntred-server-<host>.log (where <logdir> can be specified
-using --logdir and defaults to /tmp).
+using C<--logdir> and defaults to /tmp).
 
 =head1 OPTIONS
 
@@ -743,7 +743,7 @@ using --logdir and defaults to /tmp).
 
 This is the query to be executed on the remote servers. It usually
 either of a name of the macro defined in the file given as
---macro-file or some Perl one-liner. If omitted, it defaults to
+C<--macro-file> or some Perl one-liner. If omitted, it defaults to
 'autostart()' and a macro with this name must be defined in
 the macro file provided..
 
@@ -752,7 +752,7 @@ the macro file provided..
 A file containing macros that are to be sent to the servers and
 preloaded on the servers before the particular query code is
 evaluated. The query code to be evaluated must be specified in
---execute.
+C<--execute>.
 
 =item B<--hub> hostname
 
@@ -803,14 +803,14 @@ necessary for the authentication to the running hub. This defaults to
 A comma separated list of hosts to run btred servers. The hostname may
 be optionally followed by a comma and a port number thus making it
 possible to run several btred servers on one host. If the port number
-is omitted, it defaults to 1600. See also L<--serverlist/"--serverlist">
+is omitted, it defaults to 1600. See also C<--serverlist>.
 
 =item B<--serverlist> filename
 
 This provides more convenient way to specify servers by providing a
 file containing a list of servers, one per line. If neither
-L<--servers/"--servers"> nor L<--serverlist/"--serverlist"> is provided, then the list of
-servers is read from ~/.ntred_serverlist.
+C<--servers> nor C<--serverlist> is
+provided, then the list of servers is read from ~/.ntred_serverlist.
 
 =item B<--filelist> filename
 
@@ -916,7 +916,7 @@ The port number the hub will be listening on (defaults to 1500).
 
 =item B<--init|-i>
 
-Start remote btred servers and a hub. See L<HUB/SERVER OPTIONS>.
+Start remote btred servers and a hub. See L<"HUB/SERVER MODE"|"HUB/SERVER MODE (-i or --init) OPTIONS">.
 
 =item B<--quit>
 
@@ -946,7 +946,7 @@ Send a command to the btred servers to reload all open files.
 =item B<--load-files>
 
 Send a command to the hub to distribute files given on the
-command-line or those specified using L<--filelist/"--filelist"> of in
+command-line or those specified using C<--filelist> of in
 ~/.ntred_filelist to the servers. Note, that a file distributed to a
 server is not reloaded by the server if the server already has a file
 with the same path in memory.
@@ -959,17 +959,17 @@ Send a command to the btred servers to close all open files.
 
 Send a command to the servers to save all open files.  The filenames
 of the saved files may be modified using
-L<--add-prefix/"--add-prefix">, L<--strip-prefix/"--strip-prefix">,
-L<--strip-suffix/"--strip-suffix">,
-L<--append-suffix/"--append-suffix">.
+C<--add-prefix>, C<--strip-prefix>,
+C<--strip-suffix>,
+C<--append-suffix>.
 
 =item B<--save-changed-files>
 
-Same as L<--save-files/"--save-files"> except that only files that have been changed
+Same as C<--save-files> except that only files that have been changed
 by some macro will be saved. Note, that a macro has to claim that the
 file was changed by setting C<$TredMacro::FileChanged> variable to 1,
 otherwise the btred server would never notice. See also
-L<--list-changed-files/"--list-changed-files">.
+C<--list-changed-files>.
 
 =item B<--dump-files>
 
