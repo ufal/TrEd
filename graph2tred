@@ -1,14 +1,1478 @@
-#!/usr/bin/perl -P
+#!/usr/bin/perl
+# 1 "graph2tred.driver"
 
-#define YYDEBUG 1
+
 package Parser;
 
-#include "graph2tred.tab.ph"
-#include "graph2tred.tab.pl"
+# 1 "graph2tred.tab.pl" 1
+
+#A Bison parser, made from graph2tred.y
+#by  GNU Bison version 1.25 Perl modifications v1.0
+
+
+#Identify Bison output.
+
+
+sub	NUMBER () { 258; }
+sub	STRING () { 259; }
+sub	KEYS () { 260; }
+sub	ID () { 261; }
+sub	SID () { 262; }
+sub	LID () { 263; }
+sub	PID () { 264; }
+sub	LABELID () { 265; }
+sub	LABELREF () { 266; }
+sub	FUNCID () { 267; }
+
+# 2 "graph2tred.y"
+
+
+  sub yy_keys2func {
+    my $aux=shift;
+    $aux=~s/\+/_/g;
+    return $aux;
+  }
+
+  sub yy_quote_vrule {
+    my $aux=shift;
+    $aux=~s/\|/\\|/g;
+    return $aux;
+  }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@yytranslate = (     0,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,    57,     2,     2,     2,     2,    56,     2,    26,
+    27,     2,    49,    38,    50,    13,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,    20,     2,
+    24,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,    55,     2,     2,     2,     2,     2,
+    41,     2,    42,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,    17,     2,    18,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+     2,     2,     2,     2,     2,     1,     2,     3,     4,     5,
+     6,     7,     8,     9,    10,    11,    12,    14,    15,    16,
+    19,    21,    22,    23,    25,    28,    29,    30,    31,    32,
+    33,    34,    35,    36,    37,    39,    40,    43,    44,    45,
+    46,    47,    48,    51,    52,    53,    54,    58,    59,    60,
+    61,    62,    63,    64,    65,    66,    67
+);
+
+
+@yyprhs = (     0,
+     0,     2,     5,     6,     9,    10,    13,    21,    29,    30,
+    33,    37,    39,    41,    43,    45,    48,    50,    52,    54,
+    56,    57,    60,    63,    64,    66,    71,    76,    81,    86,
+    91,    96,   101,   110,   114,   117,   121,   125,   131,   137,
+   143,   148,   153,   159,   167,   175,   181,   182,   187,   189,
+   191,   193,   195,   202,   207,   211,   213,   220,   224,   226,
+   228,   230,   232,   234,   236,   238,   240,   242,   246,   248,
+   250,   252,   254,   256,   258,   262,   266,   268,   272,   276,
+   280,   284,   286,   288,   290,   292,   301,   310,   315,   320,
+   327,   334,   341,   348,   355,   360,   362,   364,   369,   374,
+   376,   378,   385,   392,   399,   406,   413,   420,   427,   434,
+   439,   443,   445,   449,   451,   453,   457,   461,   465,   469,
+   473,   477,   481,   485,   489,   493,   497,   501,   505,   507,
+   509,   511,   513,   515,   517,   519,   521,   523
+);
+
+@yyrhs = (    69,
+     0,    70,    71,     0,     0,    70,    74,     0,     0,    71,
+    72,     0,    16,     5,    73,    17,    70,    81,    18,     0,
+    16,    12,    73,    17,    70,    81,    18,     0,     0,    19,
+     4,     0,    75,    76,    20,     0,    21,     0,    22,     0,
+    23,     0,    77,     0,    76,    77,     0,     6,     0,     7,
+     0,     9,     0,     8,     0,     0,    81,    82,     0,    83,
+    84,     0,     0,    10,     0,    86,    24,    99,    20,     0,
+    86,    24,   103,    20,     0,    87,    24,   102,    20,     0,
+    89,    24,    99,    20,     0,    89,    24,   103,    20,     0,
+    88,    24,    99,    20,     0,    88,    24,   103,    20,     0,
+    25,    26,   104,    27,    17,    81,    18,    85,     0,    28,
+    11,    20,     0,    29,    20,     0,    30,     5,    20,     0,
+    30,    12,    20,     0,    31,    26,   102,    27,    20,     0,
+    32,    26,   102,    27,    20,     0,    33,    26,   102,    27,
+    20,     0,    34,    26,    27,    20,     0,    35,    26,    27,
+    20,     0,    36,    26,    95,    27,    20,     0,    37,    26,
+    99,    38,    98,    27,    20,     0,    37,    26,   103,    38,
+    98,    27,    20,     0,    39,    26,   102,    27,    20,     0,
+     0,    40,    17,    81,    18,     0,    78,     0,    91,     0,
+    90,     0,    80,     0,    91,    13,    94,    41,    95,    42,
+     0,    80,    41,    95,    42,     0,    91,    13,    94,     0,
+    92,     0,    91,    43,    93,    41,    95,    42,     0,    91,
+    43,    93,     0,    44,     0,    79,     0,    45,     0,    46,
+     0,    47,     0,    48,     0,     3,     0,     4,     0,    96,
+     0,    95,    97,    96,     0,    78,     0,     3,     0,    49,
+     0,    50,     0,    99,     0,   103,     0,    98,    38,    99,
+     0,    98,    38,   103,     0,   100,     0,   103,    97,   100,
+     0,   103,    97,   103,     0,    99,    97,   103,     0,    99,
+    97,   100,     0,    78,     0,   101,     0,     4,     0,     3,
+     0,    51,    26,    99,    38,    95,    38,    95,    27,     0,
+    51,    26,   103,    38,    95,    38,    95,    27,     0,    52,
+    26,   103,    27,     0,    52,    26,    99,    27,     0,    53,
+    26,   103,    38,   103,    27,     0,    53,    26,    99,    38,
+   103,    27,     0,    53,    26,   103,    38,    99,    27,     0,
+    53,    26,    99,    38,    99,    27,     0,    91,    13,    94,
+    41,    95,    42,     0,    80,    41,    95,    42,     0,    91,
+     0,    54,     0,    32,    26,   102,    27,     0,    33,    26,
+   102,    27,     0,    80,     0,    90,     0,    55,    26,   103,
+    38,   103,    27,     0,    55,    26,    99,    38,    99,    27,
+     0,    55,    26,   103,    38,    99,    27,     0,    55,    26,
+    99,    38,   103,    27,     0,    56,    26,   103,    38,   103,
+    27,     0,    56,    26,    99,    38,    99,    27,     0,    56,
+    26,   103,    38,    99,    27,     0,    56,    26,    99,    38,
+   103,    27,     0,    57,    26,   104,    27,     0,    26,   104,
+    27,     0,   106,     0,   104,   105,   104,     0,    14,     0,
+    15,     0,   102,   107,   102,     0,    99,   107,    99,     0,
+    99,   108,    99,     0,   103,   108,   103,     0,   103,   108,
+    99,     0,    99,   108,   103,     0,    99,   107,   103,     0,
+   103,   107,    99,     0,   103,   107,   103,     0,   103,   109,
+   103,     0,   103,   109,    99,     0,    99,   109,   103,     0,
+    99,   109,    99,     0,    58,     0,    59,     0,    60,     0,
+    61,     0,    62,     0,    63,     0,    64,     0,    65,     0,
+    66,     0,    67,     0
+);
+
+
+
+
+
+@yyrline = ( 0,
+    38,    43,    45,    46,    48,    49,    51,    54,    58,    59,
+    61,    63,    63,    63,    65,    66,    69,    70,    71,    72,
+    74,    75,    77,    79,    80,    82,    83,    84,    85,    86,
+    87,    88,    89,    90,    91,    92,    93,    94,    95,    96,
+    97,    98,    99,   100,   101,   102,   104,   105,   107,   108,
+   109,   109,   111,   112,   114,   116,   117,   118,   120,   121,
+   123,   124,   125,   126,   128,   129,   131,   132,   134,   135,
+   137,   138,   140,   141,   142,   143,   145,   146,   147,   148,
+   149,   152,   153,   154,   155,   156,   157,   158,   159,   160,
+   161,   162,   163,   165,   166,   168,   169,   170,   171,   173,
+   174,   175,   176,   177,   178,   179,   180,   181,   182,   184,
+   185,   186,   187,   189,   190,   192,   201,   202,   203,   204,
+   205,   206,   209,   212,   215,   216,   217,   218,   220,   221,
+   223,   224,   225,   226,   227,   228,   230,   231
+);
+
+
+
+
+
+
+
+
+
+@yytname = (   '$','error','$undefined.','NUMBER',
+'STRING','KEYS','ID','SID','LID','PID','LABELID','LABELREF','FUNCID','\'.\'',
+'"&&"','"||"','"function"','\'{\'','\'}\'','"comment"','\';\'','"string"','"pointer"',
+'"list"','\'=\'','"if"','\'(\'','\')\'','"goto"','"return"','"call"','"Cut"',
+'"Paste"','"NewNode"','"TreeNext"','"TreePrev"','"TreeGoTo"','"Print"','\',\'',
+'"Remove"','"else"','\'[\'','\']\'','"->"','"this"','"lbrother"','"rbrother"',
+'"parent"','"firstson"','\'+\'','\'-\'','"substr"','"valnum"','"concat"','"null"',
+'\'U\'','\'&\'','\'!\'','"=="','"!="','"#=="','"#!="','"#<"','"#<="','"#>"',
+'"#>="','"==="','"=!="','top','program','declarations','macros','macro','comment',
+'definition','type','ids','xid','sid','pid','lid','body','bodyline','label',
+'command','elseclause','lvaluestring','lvaluenode','lvaluelist','llistspec',
+'nodespec','nodepath','node','direction','attrspec','num','numpart','addsign',
+'rvalues','rvaluestring','rvaluepartstring','rlistspec','rvaluenode','rvaluelist',
+'condition','condsign','comparison','compsign','compnumsign','listcompsign', 'NULL'
+);
+
+@yytoknum = ( 0,
+   256,   257,   258,   259,   260,   261,   262,   263,   264,   265,
+   266,   267,    46,   268,   269,   270,   123,   125,   271,    59,
+   272,   273,   274,    61,   275,    40,    41,   276,   277,   278,
+   279,   280,   281,   282,   283,   284,   285,    44,   286,   287,
+    91,    93,   288,   289,   290,   291,   292,   293,    43,    45,
+   294,   295,   296,   297,    85,    38,    33,   298,   299,   300,
+   301,   302,   303,   304,   305,   306,   307,     0
+);
+
+
+@yyr1 = (     0,
+    68,    69,    70,    70,    71,    71,    72,    72,    73,    73,
+    74,    75,    75,    75,    76,    76,    77,    78,    79,    80,
+    81,    81,    82,    83,    83,    84,    84,    84,    84,    84,
+    84,    84,    84,    84,    84,    84,    84,    84,    84,    84,
+    84,    84,    84,    84,    84,    84,    85,    85,    86,    87,
+    88,    88,    89,    89,    90,    91,    91,    91,    92,    92,
+    93,    93,    93,    93,    94,    94,    95,    95,    96,    96,
+    97,    97,    98,    98,    98,    98,    99,    99,    99,    99,
+    99,   100,   100,   100,   100,   100,   100,   100,   100,   100,
+   100,   100,   100,   101,   101,   102,   102,   102,   102,   103,
+   103,   103,   103,   103,   103,   103,   103,   103,   103,   104,
+   104,   104,   104,   105,   105,   106,   106,   106,   106,   106,
+   106,   106,   106,   106,   106,   106,   106,   106,   107,   107,
+   108,   108,   108,   108,   108,   108,   109,   109
+);
+
+@yyr2 = (     0,
+     1,     2,     0,     2,     0,     2,     7,     7,     0,     2,
+     3,     1,     1,     1,     1,     2,     1,     1,     1,     1,
+     0,     2,     2,     0,     1,     4,     4,     4,     4,     4,
+     4,     4,     8,     3,     2,     3,     3,     5,     5,     5,
+     4,     4,     5,     7,     7,     5,     0,     4,     1,     1,
+     1,     1,     6,     4,     3,     1,     6,     3,     1,     1,
+     1,     1,     1,     1,     1,     1,     1,     3,     1,     1,
+     1,     1,     1,     1,     3,     3,     1,     3,     3,     3,
+     3,     1,     1,     1,     1,     8,     8,     4,     4,     6,
+     6,     6,     6,     6,     4,     1,     1,     4,     4,     1,
+     1,     6,     6,     6,     6,     6,     6,     6,     6,     4,
+     3,     1,     3,     1,     1,     3,     3,     3,     3,     3,
+     3,     3,     3,     3,     3,     3,     3,     3,     1,     1,
+     1,     1,     1,     1,     1,     1,     1,     1
+);
+
+@yydefact = (     3,
+     1,     5,    12,    13,    14,     2,     4,     0,     0,     6,
+    17,     0,    15,     9,     9,    11,    16,     0,     0,     0,
+    10,     3,     3,    21,    21,    24,    24,    25,     7,    22,
+     0,     8,    18,    20,    19,     0,     0,     0,     0,     0,
+     0,     0,     0,     0,     0,     0,     0,    59,    49,    60,
+    52,    23,     0,     0,     0,     0,    51,    50,    56,     0,
+     0,    35,     0,     0,     0,     0,     0,     0,     0,     0,
+     0,     0,     0,     0,     0,     0,     0,     0,     0,    85,
+    84,     0,     0,     0,     0,     0,     0,    97,     0,     0,
+     0,    82,   100,   101,    96,     0,    77,    83,     0,     0,
+     0,   112,    34,    36,    37,    96,     0,     0,     0,     0,
+     0,    70,    69,     0,    67,     0,     0,     0,     0,     0,
+     0,     0,     0,     0,     0,     0,     0,    65,    66,    55,
+    61,    62,    63,    64,    58,     0,     0,     0,     0,     0,
+     0,     0,     0,     0,     0,     0,    71,    72,   129,   130,
+   131,   132,   133,   134,   135,   136,   137,   138,     0,     0,
+     0,     0,     0,     0,     0,     0,     0,   114,   115,     0,
+     0,     0,     0,     0,    41,    42,     0,     0,     0,     0,
+     0,    54,    26,    27,    28,    31,    32,    29,    30,     0,
+     0,   111,     0,     0,     0,     0,     0,     0,     0,     0,
+     0,     0,     0,     0,     0,     0,    55,    81,    80,   117,
+   122,   118,   121,   128,   127,   116,    78,    79,   123,   124,
+   120,   119,   126,   125,    21,   113,    38,    39,    40,    43,
+    68,     0,    73,    74,     0,    46,     0,     0,    98,    99,
+     0,     0,    89,    88,     0,     0,     0,     0,     0,     0,
+   110,    95,     0,    24,     0,     0,     0,    53,    57,     0,
+     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+     0,     0,     0,     0,    47,    44,    75,    76,    45,     0,
+     0,    93,    91,    92,    90,   103,   105,   104,   102,   107,
+   109,   108,   106,    94,     0,    33,     0,     0,    21,    86,
+    87,    24,    48,     0,     0,     0
+);
+
+@yydefgoto = (   304,
+     1,     2,     6,    10,    19,     7,     8,    12,    13,    92,
+    50,    93,    26,    30,    31,    52,   296,    53,    54,    55,
+    56,    94,   116,    59,   135,   130,   114,   115,   159,   232,
+    96,    97,    98,    99,   100,   101,   171,   102,   160,   161,
+   162
+);
+
+@yypact = (-32768,
+-32768,   354,-32768,-32768,-32768,    -6,-32768,     7,    70,-32768,
+-32768,     0,-32768,     3,     3,-32768,-32768,    21,    15,    25,
+-32768,-32768,-32768,   354,   354,    28,   119,-32768,-32768,-32768,
+   359,-32768,-32768,-32768,-32768,    30,    55,    56,   137,    59,
+    65,    99,   105,   125,   127,   153,   163,-32768,-32768,-32768,
+   103,-32768,   182,   189,   202,   208,-32768,    -2,-32768,   263,
+   229,-32768,   256,   259,    -5,    -5,    -5,   265,   279,   305,
+   318,    -5,   305,   318,    -5,   318,   318,   107,   283,-32768,
+-32768,   263,   209,   257,   275,   285,   287,-32768,   316,   325,
+   329,-32768,   324,-32768,     8,   274,-32768,-32768,   118,   274,
+    94,-32768,-32768,-32768,-32768,   336,   356,   358,   370,   384,
+   387,-32768,-32768,    18,-32768,     8,   167,   184,   381,   131,
+   -15,   -13,   389,     4,     9,    11,    13,-32768,-32768,   369,
+-32768,-32768,-32768,-32768,   371,   132,    -5,    -5,   318,   318,
+   318,   318,   318,   263,   305,   107,-32768,-32768,-32768,-32768,
+-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,   318,   318,
+   318,   318,    -5,   318,   318,   318,   318,-32768,-32768,   394,
+   263,   393,   395,   396,-32768,-32768,   397,   305,   318,   318,
+   398,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,   305,
+   305,-32768,   392,   399,   193,   198,    20,    37,   206,   219,
+   235,   250,   253,   255,   151,   203,   373,-32768,-32768,   332,
+   332,   332,   332,   332,   332,-32768,-32768,-32768,   332,   332,
+   332,   332,   332,   332,-32768,   385,-32768,-32768,-32768,-32768,
+-32768,   -19,   332,   332,    45,-32768,   212,   308,-32768,-32768,
+   305,   305,-32768,-32768,   318,   318,   318,   318,   318,   318,
+-32768,-32768,   305,   276,   400,   318,   401,-32768,-32768,   260,
+   311,    44,    46,    57,    63,    74,    89,   106,   108,   113,
+   165,   169,   171,   314,   382,-32768,   332,   332,-32768,   305,
+   305,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,-32768,
+-32768,-32768,-32768,-32768,   406,-32768,   175,   180,-32768,-32768,
+-32768,   362,-32768,   424,   425,-32768
+);
+
+@yypgoto = (-32768,
+-32768,   379,-32768,-32768,   412,-32768,-32768,-32768,   416,   -30,
+-32768,   402,   -25,-32768,-32768,-32768,-32768,-32768,-32768,-32768,
+-32768,   403,   215,-32768,-32768,   284,   -71,   251,   -70,   252,
+    98,   -37,-32768,   -49,   -62,   -79,-32768,-32768,   306,   331,
+   335
+);
+
+
+
+
+
+@yytable = (    27,
+    49,   120,   136,    35,   183,    11,   184,   255,   118,     9,
+    78,   122,    11,   125,   127,   107,   108,   109,   256,    16,
+   146,    18,   119,   186,    21,   123,    83,    84,   187,   164,
+   188,    22,   189,   147,   148,   147,   148,    28,    48,   113,
+    79,    23,   113,   178,   177,    29,   243,   164,    88,   178,
+    79,   164,   147,   148,   164,    60,   164,   147,   148,   147,
+   148,   147,   148,   244,   205,    61,   147,   148,   147,   148,
+   282,   257,   283,   206,    14,    62,   196,   198,   200,   202,
+   204,    15,   256,   284,    65,   147,   148,   193,   194,   285,
+    66,   226,   147,   148,   147,   148,   209,   211,   213,   215,
+   286,   218,   220,   222,   224,   147,   148,   168,   169,   128,
+   129,   147,   148,   216,   113,   287,   234,   234,   237,   238,
+   170,   208,   147,   148,    67,   164,   217,   164,    28,   164,
+    68,   164,   288,   164,   289,   178,    32,   147,   148,   290,
+   164,    63,   164,    73,   164,   168,   169,   113,    64,   164,
+    69,   164,    70,   164,   147,   148,   147,   148,   192,   113,
+   113,   147,   148,   164,   168,   169,   178,   178,   117,   260,
+   261,   121,   182,   124,   126,   149,   150,   251,    71,   147,
+   148,   274,   263,   265,   267,   269,   271,   273,    72,   178,
+   178,   291,   164,   278,   164,   292,   164,   293,   164,   254,
+   164,   300,   164,   178,   179,    74,   301,   164,   297,   298,
+   113,   113,    75,   147,   148,   147,   148,   147,   148,   147,
+   148,   180,   113,   147,   148,    76,   178,   178,   147,   148,
+   241,    77,   147,   148,   137,   242,   195,   197,   199,   201,
+   203,   147,   148,   245,   252,    58,   147,   148,   103,   113,
+   113,   147,   148,   258,   147,   148,   246,   210,   212,   214,
+   147,   148,   219,   221,   223,    80,    81,   147,   148,    33,
+    34,    35,   247,   302,    95,   104,   233,   233,   105,   106,
+   106,   106,   138,   147,   148,    28,   106,   248,    82,   106,
+   249,   110,   250,   275,    83,    84,    95,   280,   147,   148,
+   139,   147,   148,   147,   148,   111,    48,   112,   147,   148,
+   140,    33,   141,    85,    86,    87,    88,    89,    90,    91,
+    80,    81,   147,   148,    33,    34,    35,   131,   132,   133,
+   134,   149,   150,   151,   152,   153,   154,   155,   156,   157,
+   158,   142,   262,   264,   266,   268,   270,   272,   281,   259,
+   143,   106,   106,   277,   144,   294,   147,   148,    95,   147,
+   148,    48,   147,   148,   145,    33,    34,    35,    85,    86,
+    87,    28,    89,    90,     3,     4,     5,   106,    79,   303,
+   147,   148,   172,    36,   173,    95,    37,    38,    39,    40,
+    41,    42,    43,    44,    45,    46,   174,    47,   168,   169,
+    24,    25,    48,   175,   163,   165,   176,   181,   185,   190,
+   225,   191,   227,   253,   228,   229,   230,   236,   239,   276,
+   279,   295,   299,   305,   306,   240,    20,    17,   231,   207,
+   166,   235,    51,    57,   167
+);
+
+@yycheck = (    25,
+    31,    73,    82,     9,    20,     6,    20,    27,    71,    16,
+    13,    74,     6,    76,    77,    65,    66,    67,    38,    20,
+    13,    19,    72,    20,     4,    75,    32,    33,    20,   100,
+    20,    17,    20,    49,    50,    49,    50,    10,    44,    70,
+    43,    17,    73,   114,    27,    18,    27,   118,    54,   120,
+    43,   122,    49,    50,   125,    26,   127,    49,    50,    49,
+    50,    49,    50,    27,   144,    11,    49,    50,    49,    50,
+    27,    27,    27,   145,     5,    20,   139,   140,   141,   142,
+   143,    12,    38,    27,    26,    49,    50,   137,   138,    27,
+    26,   171,    49,    50,    49,    50,   159,   160,   161,   162,
+    27,   164,   165,   166,   167,    49,    50,    14,    15,     3,
+     4,    49,    50,   163,   145,    27,   179,   180,   190,   191,
+    27,   159,    49,    50,    26,   196,   164,   198,    10,   200,
+    26,   202,    27,   204,    27,   206,    18,    49,    50,    27,
+   211,     5,   213,    41,   215,    14,    15,   178,    12,   220,
+    26,   222,    26,   224,    49,    50,    49,    50,    27,   190,
+   191,    49,    50,   234,    14,    15,   237,   238,    71,   241,
+   242,    74,    42,    76,    77,    58,    59,    27,    26,    49,
+    50,   253,   245,   246,   247,   248,   249,   250,    26,   260,
+   261,    27,   263,   256,   265,    27,   267,    27,   269,   225,
+   271,    27,   273,   274,    38,    24,    27,   278,   280,   281,
+   241,   242,    24,    49,    50,    49,    50,    49,    50,    49,
+    50,    38,   253,    49,    50,    24,   297,   298,    49,    50,
+    38,    24,    49,    50,    26,    38,   139,   140,   141,   142,
+   143,    49,    50,    38,    42,    31,    49,    50,    20,   280,
+   281,    49,    50,    42,    49,    50,    38,   160,   161,   162,
+    49,    50,   165,   166,   167,     3,     4,    49,    50,     7,
+     8,     9,    38,   299,    60,    20,   179,   180,    20,    65,
+    66,    67,    26,    49,    50,    10,    72,    38,    26,    75,
+    38,    27,    38,    18,    32,    33,    82,    38,    49,    50,
+    26,    49,    50,    49,    50,    27,    44,     3,    49,    50,
+    26,     7,    26,    51,    52,    53,    54,    55,    56,    57,
+     3,     4,    49,    50,     7,     8,     9,    45,    46,    47,
+    48,    58,    59,    60,    61,    62,    63,    64,    65,    66,
+    67,    26,   245,   246,   247,   248,   249,   250,    38,    42,
+    26,   137,   138,   256,    26,    42,    49,    50,   144,    49,
+    50,    44,    49,    50,    41,     7,     8,     9,    51,    52,
+    53,    10,    55,    56,    21,    22,    23,   163,    43,    18,
+    49,    50,    27,    25,    27,   171,    28,    29,    30,    31,
+    32,    33,    34,    35,    36,    37,    27,    39,    14,    15,
+    22,    23,    44,    20,    99,   100,    20,    27,    20,    41,
+    17,    41,    20,    41,    20,    20,    20,    20,    27,    20,
+    20,    40,    17,     0,     0,    27,    15,    12,   178,   146,
+   100,   180,    31,    31,   100
+);
+#This is happy joyful -*-perl-*- code!!
+# 2 "/home/pajas/share/bison.simple.perl"
+
+
+#Skeleton output parser for bison,
+#Copyright (C) 1984, 1989, 1990 Free Software Foundation, Inc.
+
+#This program is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2, or (at your option)
+#any later version.
+
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with this program; if not, write to the Free Software
+#Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+#As a special exception, when this file is copied by Bison into a
+#Bison output file, you may use that output file without restriction.
+#This special exception was added by the Free Software Foundation
+#in version 1.24 of Bison.
+
+#This is the parser code that is written into each bison parser
+#when the %semantic_parser declaration is not specified in the grammar.
+#It was written by Richard Stallman by simplifying the hairy parser
+#used when %semantic_parser is specified.
+
+#Note: there must be only one dollar sign in this file.
+#It is replaced by the list of actions, each action
+#as one case of the switch.
+
+
+
+
+
+
+
+
+#Like { goto yyerrlab1; }  except do call yyerror.
+#This remains here temporarily to ease the
+#transition to the new meaning of { goto yyerrlab1; } , for GCC.
+#Once GCC version 2 has supplanted version 1, this can go.
+
+
+
+# 59 "/home/pajas/share/bison.simple.perl"
+
+
+
+
+
+
+
+
+# 81 "/home/pajas/share/bison.simple.perl"
+
+
+#If nonreentrant, generate the variables here
+
+
+
+    local($yychar);			#  the lookahead symbol		
+local($yylval);			#  the semantic value of the	
+#lookahead symbol		
+
+
+
+
+
+
+local($yynerrs);		#  number of parse errors so far       
+
+
+
+local($yydebug);		#  nonzero means print parse trace
+#Since this is uninitialized, it does not stop multiple parsers
+#from coexisting.
+
+
+
+# 108 "/home/pajas/share/bison.simple.perl"
+
+
+sub yyparse
+{
+    my $yystate;
+    my $yyn;
+    my $yyssp;
+    my $yyvsp;
+    my $yyerrstatus;    #  number of tokens to shift before error messages enabled
+    my $yychar1 = 0;	#  lookahead token as an internal (translated) token number
+
+    my @yyss;	        #  the state stack
+    my @yyvs;	        #  the semantic value stack
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    my $yyval;  		#  the variable used to return		
+    #semantic values from the action	
+    #routines				
+
+    my $yylen;
+
+
+    print STDERR "Starting parse\n" if $yydebug;
+
+
+    $yystate = 0;
+    $yyerrstatus = 0;
+    $yynerrs = 0;
+    $yychar = -2 ;		# Cause a token to be read.  
+
+    #Initialize stack pointers.
+    #Waste one element of value and location stack
+    #so that they stay on the same level as the state stack.
+    #The wasted elements are never initialized. 
+
+    $yyssp = -1;
+    $yyvsp = 0;
+
+
+
+
+#Push a new state, which is found in  yystate  . 
+#In all cases, when you get here, the value and location stacks
+#have just been pushed. so pushing a state here evens the stacks.
+yynewstate:
+
+    $yyss[++$yyssp] = $yystate;
+
+
+    print STDERR "Entering state $yystate\n" if $yydebug;
+
+
+yybackup:
+
+#Do appropriate processing given the current state.
+#Read a lookahead token if we need one and do not already have one.
+#yyresume:
+
+    #First try to decide what to do without reference to lookahead token.
+
+    $yyn = $yypact[$yystate];
+    if ($yyn == -32768 ) {
+	goto yydefault;
+    }
+
+    #Not known => get a lookahead token if do not already have one.
+
+    #yychar is either -2  or 0 
+    #or a valid token in external form. 
+
+    if ($yychar == -2 )
+    {
+
+	print STDERR "Reading a token: " if $yydebug;
+
+	$yychar = yylex() ;
+    }
+
+    #Convert token to internal form (in yychar1) for indexing tables with
+
+    if ($yychar <= 0)		# This means end of input.
+    {
+	$yychar1 = 0;
+	$yychar = 0 ;		# do not call yylex()  any more
+
+
+	printf STDERR "Now at end of input.\n" if $yydebug;
+
+    }
+    else
+    {
+	$yychar1 = (( $yychar ) <= 307 ? $yytranslate[ $yychar ] : 110) ;
+
+
+	if ($yydebug)
+	{
+	    print STDERR "Next token is $yychar ($yytname[$yychar1]";
+	    #Give the individual parser a way to print the precise meaning
+	    #of a token, for further debugging info.
+
+
+
+	    print STDERR ")\n";
+	}
+
+    }
+
+    $yyn += $yychar1;
+    if ($yyn < 0 || $yyn > 435  || $yycheck[$yyn] != $yychar1) {
+	goto yydefault;
+    }
+
+    $yyn = $yytable[$yyn];
+
+#yyn is what to do for this token type in this state.
+#Negative => reduce, -yyn is rule number.
+#Positive => shift, yyn is new state.
+#New state is final state => do not bother to shift,
+#just return success.
+#zero, or most negative number => error.
+
+    if ($yyn < 0) {
+	goto yyerrlab if ($yyn == -32768 );
+	$yyn = -$yyn;
+	goto yyreduce;
+    } elsif ($yyn == 0) {
+	goto yyerrlab;
+    }
+
+    if ($yyn == 306 ) {
+	return(0) ;
+    }
+
+    #Shift the lookahead token.
+
+
+    print STDERR "Shifting token $yychar ($yytname[$yychar1]), " if $yydebug;
+
+
+    #Discard the token being shifted unless it is eof.
+    if ($yychar != 0 ) {
+	$yychar = -2 ;
+    }
+
+    $yyvs[++$yyvsp] = $yylval;
+
+
+
+
+    #count tokens shifted since error; after three, turn off error status.
+    $yyerrstatus-- if $yyerrstatus;
+
+    $yystate = $yyn;
+    goto yynewstate;
+
+#Do the default action for the current state.
+yydefault:
+
+    $yyn = $yydefact[$yystate];
+    goto yyerrlab if ($yyn == 0);
+
+#Do a reduction.  yyn is the number of a rule to reduce with.
+yyreduce:
+    $yylen = $yyr2[$yyn];
+    if ($yylen > 0) {
+	$yyval = $yyvs[$yyvsp + 1 - $yylen]; # implement default value of the action
+    }
+
+
+    if ($yydebug)
+    {
+	my $i;
+
+	print STDERR "Reducing via rule $yyn (line $yyrline[$yyn]), ";
+
+	#Print the symbols being reduced, and their result.
+        for ($i = $yyprhs[$yyn]; $yyrhs[$i] > 0; $i++) {
+	    print STDERR "$yytname[$yyrhs[$i]] ";
+	}
+	print STDERR " -> $yytname[$yyr1[$yyn]]\n";
+    }
+
+
+    
+  if (0) {
+  } elsif ($yyn == 1) {
+# 37 "graph2tred.y"
+
+{ 
+		    print "# Automatically converted from Graph ".
+		          "macros by graph2tred to Perl.         -*-cperl-*-.\n\n", $yyvs[$yyvsp+0], "\n"; 
+                  ;
+}
+  } elsif ($yyn == 2) {
+# 42 "graph2tred.y"
+
+{ $yyval = $yyvs[$yyvsp+-1]."\n".$yyvs[$yyvsp+0]; ;
+}
+  } elsif ($yyn == 3) {
+# 44 "graph2tred.y"
+
+{ $yyval=""; ;
+}
+  } elsif ($yyn == 4) {
+# 45 "graph2tred.y"
+
+{ $yyval = $yyvs[$yyvsp+-1].$yyvs[$yyvsp+0]; ;
+}
+  } elsif ($yyn == 5) {
+# 47 "graph2tred.y"
+
+{ $yyval=""; ;
+}
+  } elsif ($yyn == 6) {
+# 48 "graph2tred.y"
+
+{ $yyval = $yyvs[$yyvsp+-1]."\n".$yyvs[$yyvsp+0]; ;
+}
+  } elsif ($yyn == 7) {
+# 50 "graph2tred.y"
+
+{                  
+                    $yyval = "\n#bind _key_".yy_keys2func($yyvs[$yyvsp+-5])." to $yyvs[$yyvsp+-5]\nsub _key_".yy_keys2func($yyvs[$yyvsp+-5])." {\n$yyvs[$yyvsp+-4]".$yyvs[$yyvsp+-2].$yyvs[$yyvsp+-1]."\n}";
+	      	;
+}
+  } elsif ($yyn == 8) {
+# 53 "graph2tred.y"
+
+{
+		  $yyval = "\nsub $yyvs[$yyvsp+-5] {\n".$yyvs[$yyvsp+-4].$yyvs[$yyvsp+-2].$yyvs[$yyvsp+-1]."\n}";  
+		;
+}
+  } elsif ($yyn == 9) {
+# 57 "graph2tred.y"
+
+{ $yyval=""; ;
+}
+  } elsif ($yyn == 10) {
+# 58 "graph2tred.y"
+
+{ $yyval="#comment: $yyvs[$yyvsp+0]\n" ;
+}
+  } elsif ($yyn == 11) {
+# 60 "graph2tred.y"
+
+{ $yyval="  my $yyvs[$yyvsp+-1]; # used as type \"$yyvs[$yyvsp+-2]\"\n"; ;
+}
+  } elsif ($yyn == 16) {
+# 65 "graph2tred.y"
+
+{ $yyval=$yyvs[$yyvsp+-1].", $yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 17) {
+# 68 "graph2tred.y"
+
+{ $yyval = '$'."$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 18) {
+# 69 "graph2tred.y"
+
+{ $yyval = '$'."$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 19) {
+# 70 "graph2tred.y"
+
+{ $yyval = '$'."$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 20) {
+# 71 "graph2tred.y"
+
+{ $yyval = '$'."$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 21) {
+# 73 "graph2tred.y"
+
+{ $yyval=""; ;
+}
+  } elsif ($yyn == 22) {
+# 74 "graph2tred.y"
+
+{$yyval = "$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 23) {
+# 76 "graph2tred.y"
+
+{ $yyval = "$yyvs[$yyvsp+-1]\n$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 24) {
+# 78 "graph2tred.y"
+
+{ $yyval=""; ;
+}
+  } elsif ($yyn == 25) {
+# 79 "graph2tred.y"
+
+{ $yyval=$yyvs[$yyvsp+0].":"; ;
+}
+  } elsif ($yyn == 26) {
+# 81 "graph2tred.y"
+
+{ $yyval="  $yyvs[$yyvsp+-3] = $yyvs[$yyvsp+-1];\n"; ;
+}
+  } elsif ($yyn == 27) {
+# 82 "graph2tred.y"
+
+{ $yyval="  $yyvs[$yyvsp+-3] = ValNo(0,$yyvs[$yyvsp+-1]);\n"; ;
+}
+  } elsif ($yyn == 28) {
+# 83 "graph2tred.y"
+
+{ $yyval="  $yyvs[$yyvsp+-3] = $yyvs[$yyvsp+-1];\n"; ;
+}
+  } elsif ($yyn == 29) {
+# 84 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-3]$yyvs[$yyvsp+-1]);\n"; ;
+}
+  } elsif ($yyn == 30) {
+# 85 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-3]"."ValNo(0,$yyvs[$yyvsp+-1]));\n"; ;
+}
+  } elsif ($yyn == 31) {
+# 86 "graph2tred.y"
+
+{ $yyval="  $yyvs[$yyvsp+-3] = $yyvs[$yyvsp+-1];\n"; ;
+}
+  } elsif ($yyn == 32) {
+# 87 "graph2tred.y"
+
+{ $yyval="  $yyvs[$yyvsp+-3] = $yyvs[$yyvsp+-1];\n"; ;
+}
+  } elsif ($yyn == 33) {
+# 88 "graph2tred.y"
+
+{ $yyval="  if ($yyvs[$yyvsp+-5]) {\n$yyvs[$yyvsp+-2]  }$yyvs[$yyvsp+0]\n"; ;
+}
+  } elsif ($yyn == 34) {
+# 89 "graph2tred.y"
+
+{ $yyval="  goto $yyvs[$yyvsp+-1];\n"; ;
+}
+  } elsif ($yyn == 35) {
+# 90 "graph2tred.y"
+
+{ $yyval="  return;\n" ;
+}
+  } elsif ($yyn == 36) {
+# 91 "graph2tred.y"
+
+{ $yyval="  _key_".yy_keys2func($yyvs[$yyvsp+-1])."();\n" ;
+}
+  } elsif ($yyn == 37) {
+# 92 "graph2tred.y"
+
+{ $yyval="  $yyvs[$yyvsp+-1]();\n" ;
+}
+  } elsif ($yyn == 38) {
+# 93 "graph2tred.y"
+
+{ $yyval="  \$NodeClipboard=CutNode($yyvs[$yyvsp+-2]);\n"; ;
+}
+  } elsif ($yyn == 39) {
+# 94 "graph2tred.y"
+
+{ $yyval="  PasteNode(\$NodeClipboard,$yyvs[$yyvsp+-2]);\n"; ;
+}
+  } elsif ($yyn == 40) {
+# 95 "graph2tred.y"
+
+{ $yyval="  PlainNewSon($yyvs[$yyvsp+-2]);\n"; ;
+}
+  } elsif ($yyn == 41) {
+# 96 "graph2tred.y"
+
+{ $yyval="  NextTree();\n"; ;
+}
+  } elsif ($yyn == 42) {
+# 97 "graph2tred.y"
+
+{ $yyval="  PrevTree();\n"; ;
+}
+  } elsif ($yyn == 43) {
+# 98 "graph2tred.y"
+
+{ $yyval="  GotoTree($yyvs[$yyvsp+-2]);\n"; ;
+}
+  } elsif ($yyn == 44) {
+# 99 "graph2tred.y"
+
+{ $yyval="  PrintToFile($yyvs[$yyvsp+-4], map { ValNo(0,$_) } ($yyvs[$yyvsp+-2]));\n"; ;
+}
+  } elsif ($yyn == 45) {
+# 100 "graph2tred.y"
+
+{ $yyval="  PrintToFile(ValNo(0,$yyvs[$yyvsp+-4]), map { ValNo(0,$_) } ($yyvs[$yyvsp+-2]));\n"; ;
+}
+  } elsif ($yyn == 46) {
+# 101 "graph2tred.y"
+
+{ $yyval="  PlainDeleteNode($yyvs[$yyvsp+-2]);\n"; ;
+}
+  } elsif ($yyn == 47) {
+# 103 "graph2tred.y"
+
+{ $yyval=""; ;
+}
+  } elsif ($yyn == 48) {
+# 104 "graph2tred.y"
+
+{ $yyval=" else {\n$yyvs[$yyvsp+-1]  }\n";;
+}
+  } elsif ($yyn == 53) {
+# 110 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-5]->{$yyvs[$yyvsp+-3]} = ListAssign($yyvs[$yyvsp+-5]->{$yyvs[$yyvsp+-3]}, $yyvs[$yyvsp+-1], "; ;
+}
+  } elsif ($yyn == 54) {
+# 111 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-3] = ListAssign($yyvs[$yyvsp+-3], $yyvs[$yyvsp+-1], "; ;
+}
+  } elsif ($yyn == 55) {
+# 113 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2]".'->{'.$yyvs[$yyvsp+0].'}'; ;
+}
+  } elsif ($yyn == 57) {
+# 116 "graph2tred.y"
+
+{ $yyval=$yyvs[$yyvsp+-5]; for (my $i=0;$i<$yyvs[$yyvsp+-1];$i++) { $yyval=$yyvs[$yyvsp+-3]."($yyval)" } ;
+}
+  } elsif ($yyn == 58) {
+# 117 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+0]"."($yyvs[$yyvsp+-2])"; ;
+}
+  } elsif ($yyn == 59) {
+# 119 "graph2tred.y"
+
+{ $yyval = '$this'; ;
+}
+  } elsif ($yyn == 61) {
+# 122 "graph2tred.y"
+
+{ $yyval="LBrother" ;
+}
+  } elsif ($yyn == 62) {
+# 123 "graph2tred.y"
+
+{ $yyval="RBrother" ;
+}
+  } elsif ($yyn == 63) {
+# 124 "graph2tred.y"
+
+{ $yyval="Parent" ;
+}
+  } elsif ($yyn == 64) {
+# 125 "graph2tred.y"
+
+{ $yyval="FirstSon" ;
+}
+  } elsif ($yyn == 65) {
+# 127 "graph2tred.y"
+
+{ $yyval="AtrNo($yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 66) {
+# 128 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+0]" ;
+}
+  } elsif ($yyn == 68) {
+# 131 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2]$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 74) {
+# 140 "graph2tred.y"
+
+{ $yyval="ValNo(0,$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 75) {
+# 141 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2], $yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 76) {
+# 142 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2], ValNo(0,$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 78) {
+# 145 "graph2tred.y"
+
+{ $yyval="ValNo(0,$yyvs[$yyvsp+-2])$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 79) {
+# 146 "graph2tred.y"
+
+{ $yyval="ValNo(0,$yyvs[$yyvsp+-2])$yyvs[$yyvsp+-1]ValNo(0,$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 80) {
+# 147 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2]$yyvs[$yyvsp+-1]ValNo(0,$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 81) {
+# 148 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2]$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 84) {
+# 153 "graph2tred.y"
+
+{ $yyval = yy_quote_vrule($yyvs[$yyvsp+0]); ;
+}
+  } elsif ($yyn == 86) {
+# 155 "graph2tred.y"
+
+{ $yyval="substr($yyvs[$yyvsp+-5],$yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 87) {
+# 156 "graph2tred.y"
+
+{ $yyval="substr(ValNo(0,$yyvs[$yyvsp+-5]),$yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 88) {
+# 157 "graph2tred.y"
+
+{ $yyval='scalar(split /\|/,'.$yyvs[$yyvsp+-1].')'; ;
+}
+  } elsif ($yyn == 89) {
+# 158 "graph2tred.y"
+
+{ $yyval='scalar(split /\|/,'.$yyvs[$yyvsp+-1].')'; ;
+}
+  } elsif ($yyn == 90) {
+# 159 "graph2tred.y"
+
+{ $yyval="(ValNo(0,$yyvs[$yyvsp+-3]).ValNo(0,$yyvs[$yyvsp+-1]))"; ;
+}
+  } elsif ($yyn == 91) {
+# 160 "graph2tred.y"
+
+{ $yyval="($yyvs[$yyvsp+-3].ValNo(0,$yyvs[$yyvsp+-1]))"; ;
+}
+  } elsif ($yyn == 92) {
+# 161 "graph2tred.y"
+
+{ $yyval="(ValNo(0,$yyvs[$yyvsp+-3]).$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 93) {
+# 162 "graph2tred.y"
+
+{ $yyval="(ValNo(0,$yyvs[$yyvsp+-3]).ValNo(0,$yyvs[$yyvsp+-1]))"; ;
+}
+  } elsif ($yyn == 94) {
+# 164 "graph2tred.y"
+
+{ $yyval="ValNo($yyvs[$yyvsp+-1],$yyvs[$yyvsp+-5]->{$yyvs[$yyvsp+-3]})"; ;
+}
+  } elsif ($yyn == 95) {
+# 165 "graph2tred.y"
+
+{ $yyval=" ValNo($yyvs[$yyvsp+-1],$yyvs[$yyvsp+-3]) "; ;
+}
+  } elsif ($yyn == 97) {
+# 168 "graph2tred.y"
+
+{ $yyval="undef"; ;
+}
+  } elsif ($yyn == 98) {
+# 169 "graph2tred.y"
+
+{ $yyval="PasteNode(\$NodeClipboard,$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 99) {
+# 170 "graph2tred.y"
+
+{ $yyval="  PlainNewSon($yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 102) {
+# 174 "graph2tred.y"
+
+{ $yyval="Union($yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 103) {
+# 175 "graph2tred.y"
+
+{ $yyval="Union($yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 104) {
+# 176 "graph2tred.y"
+
+{ $yyval="Union($yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 105) {
+# 177 "graph2tred.y"
+
+{ $yyval="Union($yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 106) {
+# 178 "graph2tred.y"
+
+{ $yyval="Interjection($yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 107) {
+# 179 "graph2tred.y"
+
+{ $yyval="Interjection($yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 108) {
+# 180 "graph2tred.y"
+
+{ $yyval="Interjection($yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 109) {
+# 181 "graph2tred.y"
+
+{ $yyval="Interjection($yyvs[$yyvsp+-3],$yyvs[$yyvsp+-1])"; ;
+}
+  } elsif ($yyn == 110) {
+# 183 "graph2tred.y"
+
+{ $yyval="!( $yyvs[$yyvsp+-1] )"; ;
+}
+  } elsif ($yyn == 111) {
+# 184 "graph2tred.y"
+
+{ $yyval="( $yyvs[$yyvsp+-1] )"; ;
+}
+  } elsif ($yyn == 112) {
+# 185 "graph2tred.y"
+
+{ $yyval=$yyvs[$yyvsp+0]; ;
+}
+  } elsif ($yyn == 113) {
+# 186 "graph2tred.y"
+
+{ $yyval=$yyvs[$yyvsp+-2].' '.$yyvs[$yyvsp+-1]."\n      ".$yyvs[$yyvsp+0]; ;
+}
+  } elsif ($yyn == 114) {
+# 188 "graph2tred.y"
+
+{ $yyval='&&'; ;
+}
+  } elsif ($yyn == 115) {
+# 189 "graph2tred.y"
+
+{ $yyval='||'; ;
+}
+  } elsif ($yyn == 116) {
+# 191 "graph2tred.y"
+
+{
+                  if (($yyvs[$yyvsp+-1].$yyvs[$yyvsp+0]) eq " eq undef") {
+		    $yyval="!(".$yyvs[$yyvsp+-2].")";
+                  } elsif (($yyvs[$yyvsp+-1].$yyvs[$yyvsp+0]) eq " ne undef") {
+                    $yyval=$yyvs[$yyvsp+-2];
+		  } else {
+                    $yyval="$yyvs[$yyvsp+-2]$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]";
+                  }
+                ;
+}
+  } elsif ($yyn == 117) {
+# 200 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2]$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 118) {
+# 201 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2]$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 119) {
+# 202 "graph2tred.y"
+
+{ $yyval="ValNo(0,$yyvs[$yyvsp+-2])$yyvs[$yyvsp+-1]ValNo(0,$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 120) {
+# 203 "graph2tred.y"
+
+{ $yyval="ValNo(0,$yyvs[$yyvsp+-2])$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]"; ;
+}
+  } elsif ($yyn == 121) {
+# 204 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-2]$yyvs[$yyvsp+-1]ValNo(0,$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 122) {
+# 205 "graph2tred.y"
+
+{ 
+ 		  $yyval="Interjection($yyvs[$yyvsp+-2],$yyvs[$yyvsp+0])$yyvs[$yyvsp+-1]$yyvs[$yyvsp+-2]";     
+                ;
+}
+  } elsif ($yyn == 123) {
+# 208 "graph2tred.y"
+
+{ 
+                    $yyval="Interjection($yyvs[$yyvsp+-2],$yyvs[$yyvsp+0])$yyvs[$yyvsp+-1]$yyvs[$yyvsp+0]"; 
+                ;
+}
+  } elsif ($yyn == 124) {
+# 211 "graph2tred.y"
+
+{ 
+                    $yyval="ValNo(0,$yyvs[$yyvsp+-2])$yyvs[$yyvsp+-1]ValNo(0,$yyvs[$yyvsp+0])"; 
+                ;
+}
+  } elsif ($yyn == 125) {
+# 214 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-1]($yyvs[$yyvsp+-2],$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 126) {
+# 215 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-1]($yyvs[$yyvsp+-2],$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 127) {
+# 216 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-1]($yyvs[$yyvsp+-2],$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 128) {
+# 217 "graph2tred.y"
+
+{ $yyval="$yyvs[$yyvsp+-1]($yyvs[$yyvsp+-2],$yyvs[$yyvsp+0])"; ;
+}
+  } elsif ($yyn == 129) {
+# 219 "graph2tred.y"
+
+{ $yyval=" eq "; ;
+}
+  } elsif ($yyn == 130) {
+# 220 "graph2tred.y"
+
+{ $yyval=" ne "; ;
+}
+  } elsif ($yyn == 131) {
+# 222 "graph2tred.y"
+
+{ $yyval="=="; ;
+}
+  } elsif ($yyn == 132) {
+# 223 "graph2tred.y"
+
+{ $yyval="!="; ;
+}
+  } elsif ($yyn == 133) {
+# 224 "graph2tred.y"
+
+{ $yyval="<";;
+}
+  } elsif ($yyn == 134) {
+# 225 "graph2tred.y"
+
+{ $yyval="<=";;
+}
+  } elsif ($yyn == 135) {
+# 226 "graph2tred.y"
+
+{ $yyval=">";;
+}
+  } elsif ($yyn == 136) {
+# 227 "graph2tred.y"
+
+{ $yyval=">=";;
+}
+  } elsif ($yyn == 137) {
+# 229 "graph2tred.y"
+
+{ $yyval="ListEq"; ;
+}
+  } elsif ($yyn == 138) {
+# 230 "graph2tred.y"
+
+{ $yyval="!ListEq"; ;
+}
+
+}
+   #the action file gets copied in in place of this line
+
+# 313 "/home/pajas/share/bison.simple.perl"
+
+
+	$yyvsp -= $yylen;
+    $yyssp -= $yylen;
+
+
+
+
+
+    print STDERR "state stack now ",join(" ",@yyss[0..$yyssp+1]),"\n" 
+	if $yydebug;
+
+
+    $yyvs[++$yyvsp] = $yyval;
+
+# 339 "/home/pajas/share/bison.simple.perl"
+
+
+#Now "shift" the result of the reduction.
+#Determine what state that goes to,
+#based on the state we popped back to
+#and the rule number reduced by.
+
+    $yyn = $yyr1[$yyn];
+
+    $yystate = $yypgoto[$yyn - 68 ] + $yyss[$yyssp];
+    if ($yystate >= 0 && $yystate <= 435  && $yycheck[$yystate] == $yyss[$yyssp]) {
+	$yystate = $yytable[$yystate];
+    } else {
+	$yystate = $yydefgoto[$yyn - 68 ];
+    }
+
+    goto yynewstate;
+
+yyerrlab:   # here on detecting error
+
+    if (! $yyerrstatus)
+	#If not already recovering from an error, report this error.
+    {
+	++$yynerrs;
+
+# 401 "/home/pajas/share/bison.simple.perl"
+
+	    yyerror("parse error");
+    }
+
+    goto yyerrlab1;
+yyerrlab1:   # here on error raised explicitly by an action
+
+    if ($yyerrstatus == 3)
+    {
+	#_if just tried and failed to reuse lookahead token after an error, discard it.
+
+	#return failure if at end of input
+	if ($yychar == 0 ) {
+	    return(1) ;
+	}
+
+
+	if ($yydebug) {
+	    print STDERR "Discarding token $yychar ($yytname[$yychar1]).\n";
+	}
+
+
+	$yychar = -2 ;
+    }
+
+    #_Else will try to reuse lookahead token
+    #after shifting the error token.
+
+    $yyerrstatus = 3;		# Each real token shifted decrements this
+
+    goto yyerrhandle;
+
+yyerrdefault:  # current state does not do anything special for the error token.
+
+    1;
+
+yyerrpop:   # pop the current state because it cannot handle the error token
+
+    return(1)  if ($yyssp == 0); 
+    $yyvsp--;
+    $yystate = $yyss[--$yyssp];
+
+
+
+
+
+    print STDERR "state stack now",join(" ",@yyss[0..$yyssp+1]),"\n" 
+	if $yydebug;
+
+
+yyerrhandle:
+
+    $yyn = $yypact[$yystate];
+    goto yyerrdefault if ($yyn == -32768 );
+
+    $yyn += 1 ;
+    if ($yyn < 0 || $yyn > 435  || $yycheck[$yyn] != 1 ) {
+	goto yyerrdefault;
+    }
+
+    $yyn = $yytable[$yyn];
+    if ($yyn < 0)
+    {
+	if ($yyn == -32768 ) {
+	    goto yyerrpop;
+	}
+	$yyn = -$yyn;
+	goto yyreduce;
+    }
+    elsif ($yyn == 0) {
+	goto yyerrpop;
+    }
+
+    return(0)  if ($yyn == 306 );
+
+
+    print "Shifting error token, " if $yydebug;
+
+
+    $yyvs[++$yyvsp] = $yylval;
+
+
+
+
+    $yystate = $yyn;
+    goto yynewstate;
+}
+# 232 "graph2tred.y"
+
+# 5 "graph2tred.driver" 2
+
 
 $keywords='function|comment|string|pointer|list|if|else|goto|return|call|Cut|Paste|NewNode|TreeNext|TreePrev|TreeGoTo|Print|Remove|this|null|substr|valnum|concat';
 $directions='lbrother|rbrother|parent|firstson';
 $operators='===|!=|==|=!=|\#==|\#!=|\#\<=|\#\<|\#\>=|\#\>|&&|\|\|';
+
+my %gvar = ( '_MakeActive' => 'pointer',
+	      '_NoSuchTree' => 'string',
+	      '_Error' => 'string',
+	      '_CatchError' => 'string',
+	      '_ExitFromBatch' => 'string',
+	    );  # global variables
+my %lvar;  # local variables (for function)
+my @yynext_yylval = ();
+my @yynext_yylex = ();
+my $infunc=0;
+
 
 sub yyguard {
   return 1;
@@ -25,14 +1489,13 @@ sub yy_lookup_token {
 }
 
 sub yylex {
-  if (defined ($yynext_yylval)) {
-    $yylval=$yynext_yylval;
-    $yynext_yylval=undef;
-    return $yynext_yylex;
+  if (@yynext_yylval) {
+    $yylval=shift @yynext_yylval;
+    return shift @yynext_yylex;
   }
   while ($yyinput!~/\G$/gsco) {	
     if ( $yyinput =~ /\G[\s\n]+/gsco ) { 
-#      print STDERR "==> $&\n";
+#print STDERR "==> $&\n";
       next; 
     }
     elsif ($yyinput =~ /\G[0-9]+(?![a-z0-9A-Z_])/gsco ) {
@@ -51,22 +1514,39 @@ sub yylex {
       return STRING;
     }
     elsif ($yyinput =~ /\G(function)\s+([^\#])\s+/gsco) {
+      $infunc=1;
+      %lvar=();
       $yylval=$1;
-      $yynext_yylval=$2;
-      $yynext_yylex=KEYS;
+      push @yynext_yylval, $2;
+      push @yynext_yylex, KEYS;
+      return FUNCID+yy_lookup_token($yylval);
+    }
+    elsif ($yyinput =~ /\G(string|list|pointer)\s+((?:[a-zA-Z_]+[a-zA-Z0-9_]*\s*,\s*)*[a-zA-Z_]+[a-zA-Z0-9_]*(?=\s*;))/gsco ) {
+      $yylval=$1;
+      $yy_temp=$2;
+      foreach (split(/\s*,\s*/,$yy_temp)) {
+	push @yynext_yylval,$_;
+	push @yynext_yylex, ID;
+	if ($infunc) {
+	  $lvar{$_}=$yylval;
+	} else {
+	  $gvar{$_}=$yylval;
+	}
+      }
+
       return FUNCID+yy_lookup_token($yylval);
     }
     elsif ($yyinput =~ /\G(call)\s+([^\#])\s*(?=;)/gsco) {
       $yylval=$1;
-      $yynext_yylval=$2;
-      $yynext_yylex=KEYS;
+      push @yynext_yylval,$2;
+      push @yynext_yylex, KEYS;
       return FUNCID+yy_lookup_token($yylval);
     }
     elsif ($yyinput =~ /\G(-\>)($directions)/gsco) {
       print STDERR "=direction=> $yylval\n" if $yydebug;
       $yylval=$1;
-      $yynext_yylval=$2;
-      $yynext_yylex=FUNCID+yy_lookup_token($yynext_yylval);
+      push @yynext_yylval,$2;
+      push @yynext_yylex, FUNCID+yy_lookup_token($2);
       return FUNCID+yy_lookup_token($yylval);
     }
     elsif ($yyinput =~ /\G(?:[][\+,.;)(}{]|$operators|(?:$keywords)(?![a-z0-9A-Z_])|&(?!&)|\-(?!\>)|=(?!=)|U(?![a-z0-9A-Z_]))/gsco ) {
@@ -89,10 +1569,21 @@ sub yylex {
       print STDERR "==> $yylval\n" if $yydebug;
       return KEYS;
     }
+    elsif  ($yyinput =~ /\G_MakeActive(?![a-z0-9A-Z_])/gsco ) {
+      $yylval="this";
+      print STDERR "==> _MakeActive\n" if $yydebug;
+      return FUNCID+yy_lookup_token($yylval);
+    }
     elsif ($yyinput =~ /\G[a-zA-Z_]+[a-zA-Z0-9_]*/gsco ) {
       $yylval=$&;
       print STDERR "==> $yylval\n" if $yydebug;
-      return ID;
+      if ($lvar{$yylval} eq 'string') { return SID; }
+      elsif ($lvar{$yylval} eq 'list') { return LID; }
+      elsif ($lvar{$yylval} eq 'pointer') { return PID; }
+      elsif ($gvar{$yylval} eq 'string') { return SID; }
+      elsif ($gvar{$yylval} eq 'list') { return LID; }
+      elsif ($gvar{$yylval} eq 'pointer') { return PID; }
+      else { return ID; }
     }
     elsif ($yyinput =~ /\G:([a-zA-Z_]+[a-zA-Z0-9_]*):/gsco ) {
       $yylval=$1;
@@ -118,13 +1609,15 @@ sub yylex {
 }
 sub yyerror { die (shift()."\n"); }
 
-while (<>) {
-  next if (1 .. /^[^(]/);
+$test_header=1;
+while (<>) { 
+  next if (/^\(/ and $test_header .. /^[^(]/);
+  $test_header=0;
   s!//.*$!!;
   $yyinput.=$_." ";
 }
 #  print $yyinput;
 
-#$yydebug = 1;
+# $yydebug = 1;
 yyparse();
 

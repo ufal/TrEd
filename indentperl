@@ -2,24 +2,30 @@
 
 TREDLIB="."
 
-if [ ! -f $TREDLIB/indentperl.el ]; then 
+if [ ! -f ${TREDLIB}/indentperl.el ]; then 
 
   TREDLIB="./tredlib"
+  echo trying $TREDLIB
 
-elif  [ ! -f $TREDLIB/indentperl.el ]; then
+  if  [ ! -f ${TREDLIB}/indentperl.el ]; then
 
-  TREDLIB=`dirname $0`/../lib/tredlib
+    TREDLIB=`dirname $0`/../lib/tredlib
+    echo trying $TREDLIB
+  
+    if  [ ! -f ${TREDLIB}/indentperl.el ]; then
 
-elif  [ ! -f $TREDLIB/indentperl.el ]; then
+      TREDLIB=`dirname $0`/../lib/tred
+      echo trying $TREDLIB
+    fi
 
-  TREDLIB=`dirname $0`/../lib/tred
+  fi
 
 fi
 
-if [ -f $TREDLIB/indentperl.el ]; then 
+if [ -f ${TREDLIB}/indentperl.el ]; then 
 
   echo Using indentperl.el from $TREDLIB directory
-  emacs -batch $* -l $TREDLIB/indentperl.el
+  emacs -batch $* -l ${TREDLIB}/indentperl.el
 
 else
 
