@@ -144,7 +144,7 @@ sub validate_assigned_frames {
       } else {
 	binmode STDOUT,":encoding(cp852)";
       }
-    } elsif ($ENV{LC_CTYPE}=~/UTF-?8/i) {
+    } elsif ($::ENV{LC_CTYPE}=~/UTF-?8/i) {
       binmode STDOUT,':utf8';
     } else {
       binmode STDOUT,':encoding(iso-8859-2)';
