@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-02 15:06:23 pajas>
+# Time-stamp: <2001-02-02 17:55:25 pajas>
 #
 # TrEd ver. 0.5 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -490,28 +490,24 @@ sub readMacros {
 
 sub gotoFile {
   my ($grp,$fn)=@_;
+  return 0 if doEvalHook($grp,"goto_file_hook") eq 'stop';
   return 0 if ($fn > $#files or $fn<0);
   askSaveFile($grp);
   $fileNo=$fn;
   openFile($files[$fileNo],$grp);
+  if ($grp->{Filelist}) {
+    $grp->{Filelist}->activate($fileNo);
+    $grp->{Filelist}->selectionClear(0,'end');
+    $grp->{Filelist}->selectionSet($fileNo);
+  }
   return 1;
 }
 
 sub nextFile {
-  return 0 if ($fileNo >= $#files);
-  my ($grp)=@_;
-  askSaveFile($grp);
-  $fileNo++;
-  openFile($files[$fileNo],$grp);
-  return 1;
+  return gotoFile(shift,$fileNo+1);
 }
 sub prevFile {
-  return 0 unless ($fileNo > 0);
-  my ($grp)=@_;
-  askSaveFile($grp);
-  $fileNo--;
-  openFile($files[$fileNo],$grp);
-  return 1;
+  return gotoFile(shift,$fileNo-1);
 }
 
 sub closeFile {
@@ -807,23 +803,48 @@ sub getNodes {
 
 sub filelistDialog {
   my $grp=shift;
-  my $d = $grp->{'top'}->DialogBox(-title => "Filelist" ,
-				   -buttons => ["Go", "Cancel"]);
+  return if ($grp->{Filelist});
+  my $d = $grp->{'top'}->Toplevel(-title => "Filelist");
+  $d->withdraw;
   $d->resizable(0,0);
-  $d->bind('<Return>' => [sub {1;}]);
-  my $t = $d->
-    Scrolled(qw/Listbox -relief sunken -borderwidth 2 -setgrid true
+  my $t = $d->Scrolled(qw/Listbox -relief sunken 
+                     -borderwidth 2 -setgrid true
 		     -height 15 -scrollbars e/);
+  $grp->{Filelist}=$t;
   $t->pack(qw/-expand yes -fill both/);
-  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $t->insert('end',@files);
+
+  $d->bind('<Return>' => [
+			  sub {
+			    shift;
+			     gotoFile(shift,shift->index('active'));
+			   },$grp,$t ]);
+  $d->bind('<Double-1>' => [
+			    sub {
+			      shift;
+			      gotoFile(shift,shift->index('active'));
+			   },$grp,$t ]);
+
+  $d->Button(-text => 'Go',
+	     -command => [ sub {
+			     gotoFile(shift,shift->index('active'));
+			   },$grp,$t ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
+  $d->bind('<Destroy>' => [sub { shift; shift->{Filelist}=undef; },$grp ]);
+  $d->bind('all','<Escape>' =>
+	   [sub {
+	      shift; shift->destroy();
+	    },$d ]);
+
+  $d->Button(-text => 'Close',
+		     -command => [ sub {
+				     #shift->{Filelist}=undef;
+				     shift->destroy();
+				   },$d ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
   $t->activate($fileNo);
-  my $result=ShowDialog($d,undef,$grp->{top});
-  if ($result eq 'Go') {
-    gotoFile($grp,$t->index('active'));
-  }
-  $d->destroy;
-  undef $d;
+  $t->selectionSet($fileNo);
+  $t->focus;
+  $d->Popup;
+
 }
 
 sub printDialog {
@@ -1122,8 +1143,9 @@ sub printThis {
 
 sub gotoTree {
   my $no = max(0,min(shift,$#trees));
-  return $no if ($no == $treeNo);
   my ($grp)=@_;
+  return $treeNo if doEvalHook($grp,"goto_tree_hook") eq 'stop';
+  return $no if ($no == $treeNo);
   @nodes=();
   $treeNo=$no;
   getNodes($grp);
@@ -1134,23 +1156,13 @@ sub gotoTree {
 
 sub nextTree {
   return 0 if ($treeNo >= $#trees);
-  my ($grp)=@_;
-  @nodes=();
-  $treeNo++;
-  getNodes($grp);
-  centerToXY($grp,0,0);
-  redraw_tree($grp);
+  gotoTree($treeNo+1,shift);
   return 1;
 }
 
 sub prevTree {
   return 0 if ($treeNo <= 0);
-  my ($grp)=@_;
-  @nodes=();
-  $treeNo--;
-  getNodes($grp);
-  centerToXY($grp,0,0);
-  redraw_tree($grp);
+  gotoTree($treeNo+1,shift);
   return 1;
 }
 
