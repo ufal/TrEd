@@ -1720,8 +1720,8 @@ sub evalMacro {
   my $e = $w->XEvent;
   my $A = uc($e->A);
 
-  print STDERR "Pressed: ($A), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
-  print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
+#  print STDERR "Pressed: ($A), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
+#  print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
   
   if (defined $keyBindings{$prefix.$A}) {
     $key=$prefix.$A;
