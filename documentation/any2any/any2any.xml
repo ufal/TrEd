@@ -27,7 +27,14 @@
       <application>TrEd</application> distribution, so if
       <application>Perl</application> and <application>TrEd</application>
       are installed properly <command>any2any</command> should work
-      fine.      
+      fine. There is also a stand-alone distribution of
+      <command>any2any</command>
+      for those who do not wish to install
+      <application>TrEd</application>.
+      To install the stand-alone distribution, simply copy the whole
+      <filename>any2any</filename> directory to any location you want
+      and run <command>any2any</command> from that location. Make sure,
+      that <application>Perl 5</application> is installed on your system.
     </para>
   </sect1>
   <sect1>
