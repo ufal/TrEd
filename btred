@@ -534,6 +534,7 @@ sub startMain {
 	  $context=$request{CONTEXT} || 'TredMacro';
 	  $context='TredMacro' if $context eq 'main';
 	  $SIG{USR1} = sub { die "BTRED: $host: User break!\n" };
+	  $grp->{macroContext} = $context;
 	  doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
 	  # execute hooks and the code of the query
 	  my $time;
@@ -602,7 +603,7 @@ sub startMain {
 	  eval {
 	    read_macros($macroFile,$libDir); # read macros
 	  };
-	  _msg(@TrEd::Macros::macros);
+#	  _msg(@TrEd::Macros::macros);
 	  if ($@) {
 	    $hub->print("$@\n");
 	  } else {
