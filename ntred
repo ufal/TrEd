@@ -66,7 +66,7 @@ Getopt::Long::Configure ("bundling");
 	 "reload-macros"   => \$request_reload_macros,
 	 "close-files"     => \$request_close,
 	 "load-files"      => \$request_load,
-	 "no-secondary|Y" => \$no_secondary,
+	 "no-secondary-files|Y" => \$no_secondary,
 	 "list-files"      => \$request_list,
 	 "list-secondary-files"      => \$request_list_secondary,
 	 "count-files"      => \$count_files,
@@ -1005,7 +1005,7 @@ To query the servers:
 To start remote servers and a hub:
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
-           [--filelist file-list] [--max-servers num]
+           [--filelist file-list] [--max-servers num] [--no-secondary-files]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--old-dist-method] [--safe-mode] [--server-debug]
            [-m macro-file] [-M module] [--btred path-to-btred]
@@ -1143,7 +1143,7 @@ necessary for the authentication to the running hub. This defaults to
 =head2 HUB/SERVER MODE (-i or --init) OPTIONS
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
-           [--filelist file-list] [--max-servers num]
+           [--filelist file-list] [--max-servers num] [--no-secondary-files]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--old-dist-method] [--safe-mode] [--server-debug]
            [-m macro-file] [-M module] [--btred path-to-btred]
@@ -1170,6 +1170,13 @@ provided, then the list of servers is read from ~/.ntred_serverlist.
 
 A list of files to distribute between servers (one filename per line).
 Additional files may be given as command-line arguments.
+
+=item B<--no-secondary-files>
+
+Don't load "secondary" files along with normal files (a file may
+require other - secondary - file to load together with it; this is
+typical for stand-off annotation where one tree is built upon
+another).
 
 =item B<--max-servers> number
 
@@ -1400,6 +1407,13 @@ with the one provided on the standard input. To update a single tree,
 follow the filename with C<##n> suffix where C<n> is the absolute
 position of the tree in the file (starting from one).
 
+=item B<--no-secondary-files>
+
+Ignore "secondary" files even if loaded. This only affects some
+commands, such as B<--list-changed>, in which particular case is means
+that a file, whose secondary file was changed, is not reported as
+changed unless the (primary) file itself was marked as changed.
+
 =back
 
 =head2 SAVING OPTIONS
@@ -1427,6 +1441,13 @@ Append given suffix to the filenames when saving.
 =item B<--output-format|-f> [fs|csts|trxml|tei|storable]
 
 Format to use for files being saved.
+
+=item B<--no-secondary-files>
+
+Don't save "secondary" files (not even if changed). Normally,
+secondary files (if loaded) are saved along with their primary files
+(the exactly same file-name prefix/suffix processing and format apply
+to both the primary and secondary files).
 
 =back
 
@@ -1523,7 +1544,9 @@ security risks:
 
 6) Unless C<--hub> option is used, the hub runs on localhost and as
    such is not (under normal circumstances) open for connections from
-   the outside world.
+   the outside world. If you are considering making the hub listen on
+   a non-local interface, note that it is much better option to setup
+   a secure SSH tunnel.
 
 =head1 FILES
 

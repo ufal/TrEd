@@ -78,7 +78,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "no-save" => \$nosave,
 	    "safe-mode|F" => \$safe_mode,
 	    "obey-locks|O" => \$obey_locks,
-	    "no-secondary|Y" => \$no_secondary,
+	    "no-secondary-files|Y" => \$no_secondary,
 	    "csts-tree-attributes|X" => \$csts_tree_attrs,
 	    "tectogrammatical-trees|R" => \$csts_tecto,
 	    "preload-files|P" => \$preload,
@@ -1759,6 +1759,19 @@ server-mode.
 =item B<--extra-backends|-B> backends
 
 Comma separated list of user-defined IO-backend modules to load.
+
+=item B<--no-secondary-files>
+
+Neither load or save "secondary" files. Normally, secondary files (if
+loaded) are saved along with their primary files (the exactly same
+file-name prefix/suffix processing and format apply to both the
+primary and secondary files). A secondary file is a file required by a
+(normal - primary) file to be loaded along with it; this is typical
+for files containing some form of a stand-off annotation where one
+tree is built upon another. Note however, that this doesn't include so
+called knitting - an operation where the stand-off annotation is
+handled by a IO backend and the resulting knitted file appears to
+btred as a single unit.
 
 =item B<--lib>
 
