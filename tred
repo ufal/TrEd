@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-20 13:23:53 pajas>";
+$timestamp="Time-stamp: <2001-03-23 09:42:49 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -170,6 +170,8 @@ if (defined $opt_c) {
 
 readConfig();
 
+print "Resource file parsed\n";
+
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
 
 if (defined $opt_m) {
@@ -208,6 +210,7 @@ require Filelist;
 require Tk::MyFileSelect;
 
 use Exporter;
+use File::Spec;
 
 # This is default export to macros
 @EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
@@ -468,7 +471,7 @@ sub setConfig {
 
   ($libDir)=<$$confs{libdir}>
     if (exists $confs->{libdir});
-  push @INC,$libDir unless (grep($_ eq $libDir, @INC));
+  unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
   if (exists $$confs{psfontfile}) {
     ($psFontFile)=<$$confs{psfontfile}>;
     $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
@@ -521,10 +524,10 @@ sub setConfig {
   }
   @recentFiles=grep {$_} @recentFiles;
 
-  
   require Filelist;
   my $fl;
   foreach (grep /^filelist[0-9]+/, keys %$confs) {
+    print "Reading $_\n";
     $fl=Filelist->new(undef,$confs->{$_});
     next unless $fl;
     $fl->load();
@@ -668,10 +671,11 @@ sub gotoFile {
   $grp->{currentFileNo}=$fn;
   openFile($grp,$grp->{currentFilelist}->file_at($grp->{currentFileNo}));
   if ($grp->{Filelist} and
-	$grp->{filelistCurrentFilelist} eq $filelist) {
-    $grp->{Filelist}->activate($grp->{currentFileNo});
-    $grp->{Filelist}->selectionClear(0,'end');
-    $grp->{Filelist}->selectionSet($grp->{currentFileNo});
+	$grp->{filelistCurrentFilelist} eq $grp->{currentFilelist}) {
+    my $path=filelistEntryPath($grp->{currentFilelist},$grp->{currentFileNo});
+    $grp->{Filelist}->anchorSet($path);
+    $grp->{Filelist}->selectionClear();
+    $grp->{Filelist}->selectionSet($path);
   }
   return 1;
 }
@@ -1136,17 +1140,17 @@ sub switchFilelist {
   return undef unless $fl;
   if ($grp->{Filelist}) {
     $grp->{filelistCurrentFilelist}=$fl;
-    $grp->{Filelist}->delete(0,'end');
     $fl->expand();
-    $grp->{Filelist}->insert('end',$fl->files);
+    feedHListWithFilelist($grp,$grp->{Filelist},$fl);
     my $activate=0;
     if (defined($fl->current)) {
       $activate=max(0,$fl->position);
     }
-    $grp->{Filelist}->activate($activate);
-    $grp->{Filelist}->see('active');
-    $grp->{Filelist}->selectionClear(0,'end');
-    $grp->{Filelist}->selectionSet($activate);
+    my $path=filelistEntryPath($fl,$activate);
+    $grp->{Filelist}->anchorSet($path);
+    $grp->{Filelist}->see($path);
+    $grp->{Filelist}->selectionClear();
+    $grp->{Filelist}->selectionSet($path);
     $grp->{Filelist}->update();
   }
   return $fl;
@@ -1214,38 +1218,56 @@ sub createFilelistBrowseEntry {
   return $ll;
 }
 
+sub getFilelistLinePosition {
+  my ($fl,$line)=@_;
+  return undef unless ref($fl);
+  my ($p,$f)=split /\t/,$line;
+  return Index($fl->list_ref,$p);
+}
+
 sub insertToFilelist {
+  print "Parameters: @_\n";  
+
   my ($grp,$filelist,$position)=(shift,shift,shift);
   $filelist=$grp->{currentFilelist} unless defined($filelist);
   $position=$grp->{currentFileNo} unless defined($position);
   return unless ref($filelist);
 
-  unless ($filelist->file_at($position) eq @_[0]) {
-    my @list=map { rel2abs($_) } @_;
-    my $tmp;
-    my $toplevel = $grp->{Filelist} ? $grp->{Filelist}->toplevel : $grp->{top};
-    @list = map {
-      if (-d $_) {
-	$tmp=Query($toplevel,"Selection Pattern","Insert pattern for directory $_","*.*");
-	$_ = defined($tmp) ? $_."/".$tmp : undef;
-      }
-      $_;
-    } @list;
-    print "Inserting @list\n";
-    $filelist->add($position+1,@list);
 
-    if ($grp->{Filelist} and 
-	$grp->{filelistCurrentFilelist} eq $filelist) {
-      $grp->{Filelist}->delete(0,'end');
-      $grp->{Filelist}->insert('end',$filelist->files);
+  print "Insert: ",$#_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n";
+  return if ($#_==0 and $filelist->position($_[0])>=0);
+  # this is the case when we add a file which is actually already there
+
+  my @list=map { rel2abs($_) } @_;
+  my $tmp;
+  my $toplevel = $grp->{Filelist} ? $grp->{Filelist}->toplevel : $grp->{top};
+  @list = map {
+    if (-d $_) {
+      $tmp=Query($toplevel,"Selection Pattern","Insert pattern for directory $_","*.*");
+      $_ = defined($tmp) ? File::Spec->catfile($_,$tmp) : undef;
+    }
+    $_;
+  } @list;
+  print "Inserting @list\n";
+  $filelist->add($position+1,@list);
+
+  if ($grp->{Filelist} and 
+      $grp->{filelistCurrentFilelist} eq $filelist) {
+    feedHListWithFilelist($grp,$grp->{Filelist},$filelist);
       $position=max(0,$filelist->position(@_[0]));
-      $grp->{Filelist}->activate($position);
-      $grp->{Filelist}->see('active');
-      $grp->{Filelist}->selectionClear(0,'end');
-      # select all files resulting from added patterns
-      for (my $i=0 ; $i<$filelist->file_count ; $i++) {
-	$grp->{Filelist}->selectionSet($i) if
-	  defined(Index(\@_,$filelist->file_pattern($i)));
+    my $path=filelistEntryPath($filelist,$position);
+
+    $grp->{Filelist}->selectionClear();
+    print "path is $path";
+    if ($grp->{Filelist}->info('exists',$path)) {
+      $grp->{Filelist}->anchorSet($path);
+      $grp->{Filelist}->selectionSet($path);
+      $grp->{Filelist}->see($path);
+    }
+    # select all files resulting from added patterns
+    for (my $i=0 ; $i<$filelist->file_count ; $i++) {
+      if (defined(Index(\@_,$filelist->file_pattern($i)))) {
+	$grp->{Filelist}->selectionSet(filelistEntryPath($filelist,$i));
       }
     }
   }
@@ -1257,6 +1279,7 @@ sub removeFromFilelist {
   $position=$grp->{currentFileNo} if not defined($position);
   return unless ref($filelist);
 
+
   $filelist->remove(map { $filelist->list_ref->[$_] } @_);
   if ($filelist eq $grp->{currentFilelist}) {
     $grp->{currentFileNo} = min($grp->{currentFileNo},
@@ -1267,12 +1290,16 @@ sub removeFromFilelist {
       $grp->{filelistCurrentFilelist} eq $filelist) {
     print "Da filelist window is visible and I am deleteing a file from it, oh yees!\n";
     $position=min($position,$filelist->file_count-1);
-    $grp->{Filelist}->delete(0,'end');
-    $grp->{Filelist}->insert('end',$filelist->files);
-    $grp->{Filelist}->activate($position) if (defined($position));
-    $grp->{Filelist}->see('active');
-    $grp->{Filelist}->selectionClear(0,'end');
-    $grp->{Filelist}->selectionSet($position) if (defined($position));
+    feedHListWithFilelist($grp,$grp->{Filelist},$filelist);
+      $grp->{Filelist}->selectionClear();
+    my $path;
+    if (defined($position)) {
+      $path=filelistEntryPath($grp->{currentFilelist},$position);
+      $grp->{Filelist}->anchorSet($path);
+      $grp->{Filelist}->selectionSet($path);
+
+    }
+    $grp->{Filelist}->see($grp->{Filelist}->info('anchor'));
   }
 }
 
@@ -1296,6 +1323,48 @@ sub addNewFilelist {
   if ($grp) {
     switchFilelist($grp,$fl);
     updatePostponed($grp);
+  }
+}
+
+sub filelistEntryPath {
+  my ($fl,$index) = @_;
+  return undef unless ref($fl);
+
+  my $f = $fl->file_at($index);
+  my $p = $fl->file_pattern($index);
+  return $f eq $p ? $f : "$p\t$f";
+}
+
+sub feedHListWithFilelist {
+  my ($grp,$hl,$fl)=@_;
+  return unless ref($hl) and ref($fl);
+  $hl->delete('all');
+  my $pat;
+  my $f;
+  for(my $i=0;$i<$fl->file_count;$i++) {
+    $pat=$fl->file_pattern($i);
+    $f=$fl->file_at($i);
+    next unless defined($pat) and defined($f);
+    if ($pat eq $f) {
+      $hl->add($f,
+	       -itemtype => 'imagetext',
+	       -image => $grp->{fileImage},
+	       -data => $f,
+	       -text => $f);
+      next;
+    }
+    unless ( $hl->info('exists', $pat) ) {
+      $hl->add("$pat",
+	       -itemtype => 'imagetext',
+	       -image => $grp->{folderImage},
+	       -data => $pat,
+	       -text => $pat);
+    }
+    $hl->add("$pat\t$f",
+	     -itemtype => 'imagetext',
+	     -image => $grp->{fileImage},
+	     -data => $f,
+	     -text => $f);
   }
 }
 
@@ -1338,16 +1407,16 @@ sub filelistDialog {
   my $ll = createFilelistBrowseEntry($grp,$lframe,\$filelist);
 
   $ll->pack(qw/-expand yes -fill both -side top/);
-  my $t = $lframe->Scrolled(qw/Listbox -relief sunken 
-                     -borderwidth 2 -setgrid true
-    		     -background white
-		     -foreground black
+  my $t = $lframe->Scrolled(qw/HList -relief sunken 
                      -selectmode extended
                      -width 60
-		     -height 15 -scrollbars e/)
+                     -background white
+		     -height 15 -scrollbars e/,
+			    -separator => "\t"
+			   )
     ->pack(qw/-expand yes -fill both -side top/);
   $grp->{Filelist}=$t;
-  $t->insert('end',$grp->{currentFilelist}->files);
+  feedHListWithFilelist($grp,$t,$grp->{currentFilelist});
 
   $frame->pack(qw/-expand yes -fill both -side top/);
 
@@ -1358,8 +1427,10 @@ sub filelistDialog {
 				my ($grp,$t,$l)=@_;
 				insertToFilelist($grp,
 						 $grp->{filelistCurrentFilelist},
-						 $t->index('active'),$l->getSelectedFiles);
-				$t->see('active');
+						 getFilelistLinePosition($grp->{filelistCurrentFilelist},
+									 $t->info('anchor')),
+						 $l->getSelectedFiles
+						 );
 			      },$grp,$t,$fl])->pack(-side => top);
   my $addbutton=
     $midframe->Button(-text => 'Remove',
@@ -1368,30 +1439,44 @@ sub filelistDialog {
 				my ($grp,$t,$l)=@_;
 				removeFromFilelist($grp,
 						   $grp->{filelistCurrentFilelist},
-						   $t->index('active'),$t->curselection);
-				$t->see('active');
+						   getFilelistLinePosition($grp->{filelistCurrentFilelist},
+									   $t->info('anchor')),
+						   $t->info('selection'));
 			      },$grp,$t,$fl])->pack(-side => top);
 
   unless ($modal) {
     $t->bind('<Return>' => [
 			    sub {
 			      my ($w,$grp)=@_;
-			      $grp->{filelistCurrentFilelist}->
-				set_current($grp->{Filelist}->get('active'));
-			      selectFilelist($grp,$grp->{filelistCurrentFilelist});
+			      my $anchor=$grp->{Filelist}->info('anchor');
+			      my $nextentry=$grp->{Filelist}->info('next',$anchor);
+			      unless ($nextentry and
+					$grp->{Filelist}->info('parent',$nextentry) eq $anchor) {
+				$grp->{filelistCurrentFilelist}->
+				  set_current($grp->{Filelist}->
+					      info('data',$grp->{Filelist}->info('anchor')));
+				selectFilelist($grp,$grp->{filelistCurrentFilelist});
+			      }
 			    },$grp]);
     $t->bind('<Double-1>' => [
 			      sub {
 				my ($w,$grp)=@_;
-				$grp->{filelistCurrentFilelist}->
-				set_current($grp->{Filelist}->get('active'));
-				selectFilelist($grp,$grp->{filelistCurrentFilelist});
+				my $anchor=$grp->{Filelist}->info('anchor');
+				my $nextentry=$grp->{Filelist}->info('next',$anchor);
+				unless ($nextentry and
+					$grp->{Filelist}->info('parent',$nextentry) eq $anchor) {
+				  $grp->{filelistCurrentFilelist}->
+				    set_current($grp->{Filelist}->
+						info('data',$grp->{Filelist}->info('anchor')));
+				  selectFilelist($grp,$grp->{filelistCurrentFilelist});
+				}
 			      },$grp ]);
     $d->Button(-text => 'Go',
 	     -command => [ sub {
 			     my ($grp)=@_;
 			     $grp->{filelistCurrentFilelist}->
-			       set_current($grp->{Filelist}->get('active'));
+			       set_current($grp->{Filelist}->
+					   info('data',$grp->{Filelist}->info('anchor')));
 			     selectFilelist($grp,$grp->{filelistCurrentFilelist});
 			   },$grp ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
   }
@@ -1451,9 +1536,11 @@ sub filelistDialog {
     ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
 
   if ($grp->{currentFileNo}) {
-    $t->activate($grp->{currentFileNo});
-    $t->selectionSet($grp->{currentFileNo});
-    $t->see('active');
+    my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{currentFileNo});
+    $t->anchorSet($path);
+    $t->selectionClear();
+    $t->selectionSet($path);
+    $t->see($path);
   }
   $t->focus;
   if ($modal) {
@@ -2133,7 +2220,12 @@ sub startMain {
   my $parent;
   my %group;
 
+
   $group{top}=MainWindow->new;
+
+  $group{folderImage} = $group{top}->Pixmap(-file => Tk->findINC('folder.xpm'));
+  $group{fileImage}   = $group{top}->Pixmap(-file => Tk->findINC('file.xpm'));
+
 
   if (defined($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
@@ -2193,7 +2285,10 @@ sub startMain {
   $group{FileMenu}->command(-label=> 'Close', -underline => 0, 
 			    -command => [ sub {
 					    my ($grp)=@_;
-					    removeFromFilelist($grp,undef,undef,$grp->{currentFileNo});
+					    removeFromFilelist($grp,
+							       undef,
+							       undef,
+							       $grp->{currentFilelist}->list_ref->[$grp->{currentFileNo}]);
 					    closeFile($grp);
 					  }
 					 , \%group]);
@@ -2847,6 +2942,7 @@ sub saveFileAs {
 
   $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
+
 
   $file = $grp->{'top'}->getSaveFile(-filetypes => \@save_types,
 				     -title => "Save As ...",
@@ -4409,10 +4505,10 @@ sub doEvalHook {
     }
   }
   if ($context->can($hook)) {
-    print STDERR "running hook $context\-\>$hook\n" if $hookDebug;
+    print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
     $result=eval { return &{"$context\:\:$hook"}(@_); };
   } elsif ($context ne "TredMacro" and TredMacro->can($hook)) {
-    print STDERR "running hook Tredmacro->$hook\n" if $hookDebug;
+    print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
 #    $result=eval("return TredMacro\:\:$hook($hookparams);\n");
     $result=eval { return &{"TredMacro\:\:$hook"}(@_); };
   }
@@ -4509,13 +4605,25 @@ sub doEvalMacro {
   return $result;
 }
 
+sub resolveKey {
+  my $grp=shift;
+ context:
+  foreach my $context ($grp->{macroContext},$grp->{macroContext} eq "TredMacro" ? () : "TredMacro") {
+    foreach $key (@_) {
+      if (exists ($keyBindings{$context}->{$key})) {
+	return $keyBindings{$context}->{$key};
+      }
+    }
+  }
+  return undef;
+}
+
 sub evalMacro {
   my ($w,$grp,$prefix)=@_;
   my $key;
   my $e = $w->XEvent;
   my $A = uc($e->A);
   my @possib=();
-  my $context;
   my $macro=undef;
 
   if ($keyboardDebug) {
@@ -4528,15 +4636,8 @@ sub evalMacro {
       ($prefix =~/SHIFT/ and exists($pckey_shift_translates{$e->K})) ?
 	$prefix.$pckey_shift_translates{$e->K} : ()),
 	$prefix.uc($e->K);
- context:
-  foreach $context ($grp->{macroContext},$grp->{macroContext} eq "TredMacro" ? () : "TredMacro") {
-    foreach $key (@possib) {
-      if (exists ($keyBindings{$context}->{$key})) {
-	$macro=$keyBindings{$context}->{$key};
-	last context;
-      }
-    }
-  }
+
+  $macro=resolveKey($grp,@possib);
   if (defined $macro) {
 #    use Benchmark;
 #    my $t0 = new Benchmark;
