@@ -4663,6 +4663,15 @@ sub startMain {
     }
     focusCanvas($group{treeWindows}->[0]->canvas,\%group);
   }
+
+#   $SIG{INT}=sub {
+#     print STDERR "Caught SIGINT, closing all files\n";
+#     closeAllFiles(\%group);
+#     print STDERR "Good bye!\n";
+#     $group{top}->destroy;
+#     exit 1;
+#   };
+
   selectFilelist(\%group,'Default');
   if ($opt_p) {
     my $dir=$opt_p>0 ? 'vert' : 'horiz';
@@ -4949,6 +4958,23 @@ sub askSaveFiles {
     centerTo($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
     $grp->{top}->update();
     return -1 if askSaveFile($grp->{focusedWindow},0,$cancelbutton) == -1;
+  }
+}
+
+sub closeAllFiles {
+  my ($grp)= @_;
+
+  @{$grp->{treeWindows}} = grep { $_ ne $grp->{focusedWindow} } @{$grp->{treeWindows}};
+  unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
+  my $win;
+  foreach $win (@{ $grp->{treeWindows} }) {
+    if ($win->{FSFile}) {
+      closeFile($win,-no_update => 1,-all_windows => 1);
+    }
+  }
+  while (@openfiles) {
+    resumeFile($grp->{focusedWindow},shift @openfiles);
+    closeFile($grp->{focusedWindow},-no_update => 1, -all_windows => 1);
   }
 }
 
