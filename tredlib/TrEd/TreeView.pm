@@ -1233,6 +1233,7 @@ sub redraw {
     $self->realcanvas->raise('text','TextBg');
     $self->realcanvas->raise('plaintext','TextBg');
   };
+  undef $@;
 }
 
 
