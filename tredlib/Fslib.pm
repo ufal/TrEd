@@ -2795,7 +2795,7 @@ sub open_backend {
   my ($filename, $mode,$encoding)=@_;
   my $fh = undef;
   if ($filename) {
-    if ($filename=~/.gz$/) {
+    if ($filename=~/.gz~?$/) {
       if (-x $ZBackend::zcat) {
 	if ($mode =~/[w\>]/) {
 	  eval {
