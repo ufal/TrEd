@@ -217,7 +217,7 @@ fi
 #    fi
 
 #  upgrade_package XML::Parser
-  upgrade_packages Tk XML::DOM Text::Iconv
+  upgrade_packages Tk XML::DOM Text::Iconv XML::LibXML
 
 #else
 #  if [ "${TKTEST}" != "1" ]; then
