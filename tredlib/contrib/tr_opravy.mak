@@ -1,10 +1,31 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-04-08 15:35:21 pajas>
+## Time-stamp: <2004-04-19 18:02:19 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
 import Tectogrammatic;
+
+
+sub file_close_hook {
+  if (which_struct() eq 'AR') {
+    TRstruct();
+  }
+}
+
+sub file_save_hook {
+  if (which_struct() eq 'AR') {
+    my $answ = questionQuery("Save file", "TrEd is currently displaying AR structure.\nReally save?",qw(Yes No),'Switch to TR and save');
+    if ( $answ eq 'Yes'
+	and
+	questionQuery("Save file", "You realy want to save with AR structure only?\nReally, really?",qw(Yes No)) eq 'Yes') {
+      return;
+    } elsif ($answ eq 'Switch to TR and save') {
+    } else {
+      return "stop";
+    }
+  }
+}
 
 # permitting all attributes modification
 sub enable_attr_hook {
@@ -558,10 +579,11 @@ sub make_lighten_be_children {
   }
 }
 
-#bind add_lighten_to_aidrefs to Ctrl+q menu Reference nodes marked with _light=_LIGHT_ from active node's AIDREFS
+#bind add_lighten_to_aidrefs to Ctrl+q menu Reference only nodes marked with _light=_LIGHT_ from active node's AIDREFS
 sub add_lighten_to_aidrefs {
   my $node = $root;
   my $target;
+  $node->{AIDREFS}='';
   while ($node) {
     if ($node->{_light} eq '_LIGHT_') {
       ConnectAID($this,$node);
