@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-15 11:49:05 pajas>
+## Time-stamp: <2004-03-15 19:08:58 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -9,6 +9,46 @@ import Tectogrammatic;
 # permitting all attributes modification
 sub enable_attr_hook {
   return;
+}
+
+sub which_struct {
+  if ($Fslib::parent eq "_AP_") {
+    return "AR";
+  } elsif ($Fslib::parent eq "_P_") {
+    return "TR";
+  } else {
+    return "unknown";
+  }
+}
+
+sub with_AR (&) {
+  my ($code) = @_;
+  if (which_struct() eq 'AR') {
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
+    die $@ if $@;
+    return wantarray ? @$ret : $ret;
+  } else {
+    PDT::ARstruct();
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
+    die $@ if $@;
+    PDT::TRstruct();
+    return wantarray ? @$ret : $ret;
+  }
+}
+
+sub with_TR (&) {
+  my ($code) = @_;
+  if (which_struct() eq 'AR') {
+    PDT::TRstruct();
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
+    die $@ if $@;
+    PDT::ARstruct();
+    return wantarray ? @$ret : $ret;
+  } else {
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
+    die $@ if $@;
+    return wantarray ? @$ret : $ret;
+  }
 }
 
 #bind add_ord_patterns to key Shift+F8 menu Show ord, dord, sentord, and del, AID/TID
@@ -260,9 +300,18 @@ sub light_aidrefs {
 sub light_aidrefs_reverse {
   my $node = $root;
   while ($node) {
+    delete $node->{_light};
+    $node=$node->following;
+  }
+  $node = $root;
+  while ($node) {
     if ($node != $this and
-	getAIDREFsHash($node)->{$this->{AID}}) { $node->{_light}='_LIGHT_'; }
-    else { delete $node->{_light} }
+	getAIDREFsHash($node)->{$this->{AID}}) {
+      $node->{_light}='_LIGHT_';
+      foreach my $r (PDT::expand_coord_apos_TR($node)) {
+	$r->{_light}='_LIGHT_'; 
+      }
+    }
     $node=$node->following;
   }
   ChangingFile(0);
@@ -371,7 +420,7 @@ sub expand_coord_apos_auxcp {
     return (($keep ? $node : ()), map { expand_coord_apos_auxcp($_,$keep) } 
 	    grep { $_->{afun} !~ /_Pa$/ and ($_->{afun} !~ /Aux[KGYZX]/ or $_->firstson)}
 	    $node->children());
-  } elsif ($node->{afun} =~ /AuxC/) {
+  } elsif ($node->{afun} =~ /AuxP/) {
     return (($keep ? $node : ()), map { expand_coord_apos_auxcp($_,$keep) }
 	    # $_->{afun} !~ /_Pa$/ and 
 	    grep { ($_->{afun} !~ /Aux[KGPZX]/ or $_->firstson) }
@@ -420,42 +469,3 @@ sub light_auxcp_children {
 
 ############################################
 
-sub which_struct {
-  if ($Fslib::parent eq "_AP_") {
-    return "AR";
-  } elsif ($Fslib::parent eq "_P_") {
-    return "TR";
-  } else {
-    return "unknown";
-  }
-}
-
-sub with_AR (&) {
-  my ($code) = @_;
-  if (which_struct() eq 'AR') {
-    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
-    die $@ if $@;
-    return wantarray ? @$ret : $ret;
-  } else {
-    PDT::ARstruct();
-    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
-    die $@ if $@;
-    PDT::TRstruct();
-    return wantarray ? @$ret : $ret;
-  }
-}
-
-sub with_TR (&) {
-  my ($code) = @_;
-  if (which_struct() eq 'AR') {
-    PDT::TRstruct();
-    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
-    die $@ if $@;
-    PDT::ARstruct();
-    return wantarray ? @$ret : $ret;
-  } else {
-    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
-    die $@ if $@;
-    return wantarray ? @$ret : $ret;
-  }
-}
