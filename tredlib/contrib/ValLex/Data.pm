@@ -336,6 +336,21 @@ sub getFrameList {
   return map { $self->getFrame($_) } $self->getFrameNodes($word);
 }
 
+sub getNormalFrameList {
+  my ($self,$word)=@_;
+  return unless $word;
+  my @frames=$self->getFrameNodes($word);
+  my (@active,@obsolete);
+  foreach (@frames) {
+    if ($self->getFrameStatus($_) =~ /substituted|obsolete|deleted/) {
+      push @obsolete,$_;
+    } else {
+      push @active,$_;
+    }
+  }
+  return map { $self->getFrame($_) } @active,@obsolete;
+}
+
 sub getOneFrameElementString {
   my ($self,$element)=@_;
 
@@ -772,6 +787,73 @@ sub modifyFrame {
   $self->set_change_status(1);
   return $frame;
 }
+
+sub moveFrameBefore {
+  my ($self,$frame,$refframe)=@_;
+  my $parent=$frame->getParentNode();
+  if ($parent and $refframe) {
+    $parent->removeChild($frame);
+    $parent->insertBefore($frame, $refframe);
+  }
+}
+
+sub moveFrameAfter {
+  my ($self,$frame,$refframe)=@_;
+  my $parent=$frame->getParentNode();
+  if ($parent and $refframe) {
+    $parent->removeChild($frame);
+    $parent->insertAfter($frame, $refframe);
+  }
+}
+
+
+=item findNextFrame ($refframe, $status)
+  Searches for the next frame following $refframe with the given $status
+=cut
+
+sub findNextFrame {
+  my ($self,$frame, $status)=@_;
+  my $word;
+  unless ($frame) {
+    $word=$self->getFirstWordNode();
+    ($frame)=$self->getFrameNodes($word);
+  } else {
+    $word=$self->getWordForFrame($frame);
+    $frame=$frame->findNextSibling('frame');
+  }
+  while ($word) {
+    while ($frame) {
+      return $frame if $self->getFrameStatus($frame) =~ $status;
+      $frame = $frame->findNextSibling('frame');
+    }
+    $word = $word->findNextSibling('word');
+    ($frame)=$self->getFrameNodes($word);
+  }
+
+}
+
+sub findPrevFrame {
+  my ($self,$frame, $status)=@_;
+  my $word;
+  return $self->findNextFrame() unless ($frame);
+
+  $word=$self->getWordForFrame($frame);
+  $frame=$frame->findPreviousSibling('frame');
+
+  while ($word) {
+    while ($frame) {
+      return $frame if $self->getFrameStatus($frame) =~ $status;
+      $frame = $frame->findPreviousSibling('frame');
+    }
+    $word = $word->findPreviousSibling('word');
+    do {
+      my @frames=$self->getFrameNodes($word);
+      $frame=$frames[$#frames];
+    };
+  }
+
+}
+
 
 sub getWordForFrame {
   my ($self,$frame)=@_;
