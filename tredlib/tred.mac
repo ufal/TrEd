@@ -96,6 +96,25 @@ sub listQuery {
 		    )->pack(qw/-expand yes -fill both/);
   $l->insert('end',@$vals);
   $l->BindMouseWheelVert();
+  if ($select_mode eq 'multiple') {
+    $f=$d->Frame()->pack(qw/-expand yes -fill both/);
+    $f->Button(-text => 'All',
+	       -command => [
+			    sub{
+			      my ($list)=@_;
+			      $list->selectionSet(0,'end');
+			    },
+			    $l
+			   ])->pack(-side => 'left');
+    $f->Button(-text => 'None',
+	       -command => [
+			    sub{
+			      my ($list)=@_;
+			      $list->selectionClear(0,'end');
+			    },
+			    $l
+			   ])->pack(-side => 'left');
+  }
   my $act=0;
   my %selected = map { $_ => 1 } @$selected;
   for ($a=0;$a<@$vals;$a++)  {
@@ -273,15 +292,15 @@ sub file_opened_hook {
     return SwitchContext($mode);
   } elsif (exists($grp->{FSFile}->FS->defs->{x_TNT})
      and $grp->{FSFile}->FS->hide eq 'X_hide') {
-    print STDERR "file_open_hook: Switching context to Transfer\n";
+#    print STDERR "file_open_hook: Switching context to Transfer\n";
     return SwitchContext('Transfer');
   } elsif ($grp->{FSFile}->FS->hide eq 'TR') {
-    print STDERR "file_open_hook: Switching context to Tectogrammatic\n";
+#    print STDERR "file_open_hook: Switching context to Tectogrammatic\n";
     return SwitchContext('Tectogrammatic') 
       unless (CurrentContext eq 'TR_Correction' or
 	      CurrentContext eq 'TFA');
   } else {
-    print STDERR "file_open_hook: Cannot guess context, using Analytic\n";
+#    print STDERR "file_open_hook: Cannot guess context, using Analytic\n";
     return SwitchContext('Analytic') unless CurrentContext eq 'Analytic_Correction';
   }
 }
