@@ -3377,12 +3377,25 @@ sub _key_Ctrl_Shift_F1 {
 }
 
 
-#bind tree_to_tr to Ctrl+Shift+F2
+#bind tree_to_tr to F10
 sub tree_to_tr {
 
+  foreach ($root,$root->descendants) {
+    $_->{TR}='';
+  }
+  $root->{reserve1}='';
+  InitFileTR();
   TreeToTR();
 
 }
+
+
+##bind tree_to_tr to Ctrl+Shift+F2
+#sub tree_to_tr {
+#
+#  TreeToTR();
+#
+#}
 
 
 #bind init_file_tr to Ctrl+Shift+F8
@@ -7934,7 +7947,7 @@ sub MaxDord {
   }
 
   $pPar1 = $pAct;
-
+  $pPar2 = undef;
   GoNext();
 
   $pAct = $pReturn;
@@ -7974,7 +7987,7 @@ sub ShiftDordsButFirst {
 
 
   $pPar1 = $pAct;
-
+  $pPar2 = undef;
   GoNext();
 
   $pAct = $pReturn;
@@ -7994,7 +8007,6 @@ sub ShiftDords {
 
   $pAct = $pReturn;
 
-  $pPar2 = undef;
  loopShiftDord:
   if (ValNo(0,$pAct->{'dord'})>=$sPar1) {
 
@@ -8002,7 +8014,7 @@ sub ShiftDords {
   }
 
   $pPar1 = $pAct;
-
+  $pPar2 = undef;
   GoNext();
 
   $pAct = $pReturn;
@@ -8022,7 +8034,6 @@ sub ShiftFirst {
 
   $pAct = $pReturn;
 
-  $pPar2 = undef;
  loopShiftDord:
   if (ValNo(0,$pAct->{'dord'})==$sPar1) {
 
@@ -8032,6 +8043,7 @@ sub ShiftFirst {
   }
 
   $pPar1 = $pAct;
+  $pPar2 = undef;
 
   GoNext();
 
@@ -8184,7 +8196,6 @@ sub CutPasteAll {
 
   $pAct = FirstSon($pReturn);
 
-  $pPar2 = undef;
  forallnodes:
   if ($pAct) {
 
@@ -8195,7 +8206,7 @@ sub CutPasteAll {
     $pAct = PasteNode($NodeClipboard,$pParent);
 
     $pPar1 = $pAct;
-
+    $pPar2 = undef;
     GoNext();
 
     $pAct = $pReturn;
@@ -8254,6 +8265,7 @@ sub UnGap {
 
 
     $pPar1 = $pAct;
+    $pPar2 = undef;
 
     GoNext();
 
