@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-08-06 10:47:32 pajas>
+# Time-stamp: <2001-08-06 17:40:33 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -85,7 +85,7 @@ sub set_default_config_file_search_list {
 }
 
 sub tilde_expand {
-  my $a=(@_);
+  my ($a)=@_;
   $a=~s/^\~/$ENV{HOME}/;
   $a=~s/([^\\])\~/$1$ENV{HOME}/g;
   return $a;
