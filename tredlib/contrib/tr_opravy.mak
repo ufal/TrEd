@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-09 16:50:25 pajas>
+## Time-stamp: <2005-02-11 16:46:03 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -543,6 +543,29 @@ sub rehang_up {
 sub SwapNodes {
   Analytic_Correction::SwapNodes;
 }
+
+#bind SwapToParent to Ctrl+S menu Swap nodes position, children, func, memberof, operand, parenthesis, TR, tfa, dord
+sub SwapToParent {
+  return unless ($this and $this->parent and $this->parent->parent);
+  my $parent = $this->parent;
+  my $granny=$parent->parent;
+  $this=PasteNode(CutNode($this),$granny);
+  foreach ($parent->children) {
+      PasteNode(CutNode($_),$this);
+  }
+  PasteNode(CutNode($parent),$this);
+
+  for (qw(func memberof operand parenthesis TR tfa dord)) {
+    ($this->{$_}, $parent->{$_})=($parent->{$_}, $this->{$_});
+  }
+  for my $tree (GetTrees()) {
+    for my $n ($tree->descendants) {
+      $n->{coref} = join "|", map { $_ eq $parent->{TID}.$parent->{AID} ? $this->{TID}.$this->{AID} : $_ }
+	split /\|/,$n->{coref};
+    }
+  }
+}
+
 
 #bind UnhideNode to Ctrl+H menu Unhide current node and all ancestors
 sub UnhideNode {
