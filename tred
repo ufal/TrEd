@@ -21,7 +21,7 @@ if ($^V lt v5.6.0) {
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
-	    $opt_n $opt_D $opt_v
+	    $opt_n $opt_D $opt_v $opt_H
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
@@ -72,7 +72,7 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GDB:RX:s:');
+getopts('qm:c:l:t:n:p:vhuW:GHDB:RX:s:');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
@@ -128,6 +128,7 @@ Other options:
 -R              build tectogrammatic trees from CSTS files
 -X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
                 and <ord> to order nodes
+-H              Start with showing hidden nodes
 -G              Do not initially resize window to its last geomtery.
 -W <window_id>  Embed main window into the given window
 -B <backends>   Comma separated list of additional backends to import
@@ -215,6 +216,7 @@ $TrEd::Config::set_user_config=\&setConfig;	# tred specific configuration
 my $configFile=read_config();
 
 $TrEd::Convert::inputenc=$opt_n if $opt_n;
+$TrEd::Config::treeViewOpts->{showHidden} = 1 if $opt_H;
 
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
 if (defined $opt_m) {
@@ -345,7 +347,8 @@ use Exporter;
 	 );
 
 @open_types=
-  (["FS files",           [qw/.fs .FS .Fs/]],
+  (["Supported",  [qw/.fs .csts .pls .pls.gz .fs.gz a.gz m.gz .csts.gz/]],
+   ["FS files",           [qw/.fs .FS .Fs/]],
    ["CSTS files",           [qw/.cst .csts/]],
    ["Perl Storable files",  [qw/.pls .pls.gz/]],
    ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
@@ -497,6 +500,49 @@ sub __debug {
 sub absolutize {
   return map { m(^[[:alnum:]]+://|^\s*\|) ? $_ : rel2abs($_) } @_;
 }
+
+sub get_open_filename {
+  my $w = shift;
+  my %opts=@_;
+  if ($openFilenameCommand) {
+    my $c = $openFilenameCommand;
+    my $types = ref($opts{-filetypes}) ?
+      join " ",map { "*".$_ } map { @{$_->[1]} } @{$opts{-filetypes}} : "*";
+    my $title = $opts{-title} || 'Open';
+    my $initialdir = $opts{-initialdir} || '.';
+    $c=~s/\%t/"$title"/g;
+    $c=~s/\%m/"$types"/g;
+    $c=~s/\%d/"$initialdir"/g;
+    my $ret = `$c`;
+    chomp $ret;
+    return $ret;
+  } else {
+    $w->getOpenFile(%opts);
+  }
+}
+
+sub get_save_filename {
+  my $w = shift;
+  my %opts=@_;
+  if ($saveFilenameCommand) {
+    my $c = $saveFilenameCommand;
+    my $types = ref($opts{-filetypes}) ?
+      join " ",map { "*".$_ } map { @{$_->[1]} } @{$opts{-filetypes}} : "*";
+    my $title = $opts{-title} || 'Open';
+    my $initialdir = $opts{-initialdir}.$TrEd::Convert::Ds || '';
+    my $initialfile = $opts{-initialfile} || '';
+    $c=~s/\%t/"$title"/g;
+    $c=~s/\%m/"$types"/g;
+    $c=~s/\%d/"$initialdir"/g;
+    $c=~s/\%f/"$initialfile"/g;
+    my $ret = `$c`;
+    chomp $ret;
+    return $ret;
+  } else {
+    $w->getSaveFile(%opts);
+  }
+}
+
 
 sub saveStyleSheets {
   my ($grp)=@_;
@@ -2085,7 +2131,7 @@ sub filelistDialog {
 			      my $initdir=dirname($file);
 			      $initdir=cwd if ($initdir eq './');
 			      $initdir=~s!${TrEd::Convert::Ds}$!!m;
-			      $file= $d->getSaveFile(-filetypes=> 
+			      $file= get_save_filename($d,-filetypes=> 
 								 [["Filelists",           ['.fl']]],
 								 -title=> "Save filelist as ...",
 								 -initialdir=> $initdir,
@@ -2104,7 +2150,7 @@ sub filelistDialog {
   $d->Button(-text=> 'Load',
 	     -command=> [sub {
 			    my ($grp,$d,$filelistref)=@_;
-			    my $file= $d->getOpenFile(-filetypes=> 
+			    my $file= get_open_filename($d,-filetypes=> 
 						      [["Filelists",           ['.fl']]],
 						      -title=> "Load filelist ...");
 			    $d->deiconify;
@@ -2538,7 +2584,7 @@ sub printDialog {
 			 $initdir=cwd() if ($initdir eq './');
 			 $initdir=~s!${TrEd::Convert::Ds}$!!m;
 			 my $file=
-			   $d->getSaveFile(-title => "Print To File ...",
+			   get_save_filename($d,-title => "Print To File ...",
 					   $^O eq 'MSWin32' ? () :
 					   (-initialfile=> filename($$rfil)),
 					   -d $initdir ? (-initialdir=> $initdir) : (),
@@ -2588,7 +2634,7 @@ sub printDialog {
 # 			  $initdir=cwd() if ($initdir eq './');
 # 			  $initdir=~s!${TrEd::Convert::Ds}$!!m;
 # 			  my $file=
-# 			    $d->getOpenFile(-title => "TrueType Font ...",
+# 			    get_open_filename($d,-title => "TrueType Font ...",
 # 					    $^O eq 'MSWin32' ? () :
 # 					    (-initialfile=> filename($$rfil)),
 # 					    -d $initdir ? (-initialdir=> $initdir) : (),
@@ -4525,7 +4571,8 @@ sub fileDialog {
 #  my $FSref= $grp->{top}->FileSelect(-selectmode=> extended);
 #  print $FSref->Show;
 
-  $file= $grp->{top}->getOpenFile(-filetypes=> \@open_types);
+  $file= get_open_filename($grp->{top},-filetypes=> \@open_types);
+  __debug "$file";
   if (defined $file and $file ne '') {
     return openFile($grp,$file,-justheader => $header_only);
   }
@@ -4575,7 +4622,7 @@ sub saveFileAs {
   } elsif ($response eq 'Storable') {
     $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx|tei|xml)/.pls/i;
   }
-  $file= $win->toplevel->getSaveFile(-filetypes=> $save_types{lc($response)},
+  $file= get_save_filename($win->toplevel,-filetypes=> $save_types{lc($response)},
 				     -title=> "Save As ...",
 				     -d $initdir ? (-initialdir=> $initdir) : (),
      				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
@@ -5141,7 +5188,7 @@ sub dumpSentView {
   $initdir=cwd if ($initdir eq './');
   $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
-  $file= $grp->{top}->getSaveFile(-filetypes=>
+  $file= get_save_filename($grp->{top},-filetypes=>
 				  [["HTML",           [qw/.html .htm .HTM .HTML/]],
 				   ["All files",        '*']],
 				  -title=> "Save Sentences As HTML ...",
@@ -6588,9 +6635,10 @@ sub evalMacro {
   push @possib, ($prefix.$A,$prefix.$K);
 
   $macro=resolveKey($grp,@possib);
-  $grp->{statusLineText}="$prefix$K" if $tredDebug;
   if (defined $macro) {
+    $grp->{statusLineText}="$prefix$A" if $tredDebug;
     $grp->{statusLineText}.=", $macro" if $tredDebug;
+    update_status_line($win) if $tredDebug;
 #    use Benchmark;
 #    my $t0= new Benchmark;
 #    # ... your code here ...
@@ -6603,7 +6651,8 @@ sub evalMacro {
 
     return 1;
   } else {
-    update_status_line($win);
+    $grp->{statusLineText}="$prefix$K" if $tredDebug;
+    update_status_line($win) if $tredDebug;
   }
   return undef;
 }
