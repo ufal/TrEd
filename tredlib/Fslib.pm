@@ -2979,7 +2979,6 @@ sub attributes {
       }
     }
   }
-  print @result,"\n";
   my %uniq;
   return grep { !$uniq{$_} && ($uniq{$_}=1) } @result;
 }
