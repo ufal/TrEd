@@ -202,7 +202,7 @@ if ($useCzechLocales) {
 # These are used only in macros and hooks!!!
 $root=undef;
 $this=undef;
-$FileNotSaved=0;
+$TrEd::Macros::FileNotSaved=0;
 $forceFileSaved=0;
 
 $_NoSuchTree=0; # for compatibility with Graph2Tred
@@ -262,7 +262,7 @@ EOL
     STDOUT->flush();
     STDERR->flush();
     print STDERR "Done.\n";
-    saveFile($grp) if ($FileNotSaved or $opt_S);
+    saveFile($grp) if ($grp->{FSFile}->notSaved or $opt_S);
   } while (nextFile($grp));
 }
 
@@ -392,13 +392,13 @@ sub doEvalMacro {
   $TredMacro::this=$group->{currentNode};
   $TredMacro::root=$group->{root};
   $TredMacro::libDir=$libDir;
-  $TredMacro::FileNotSaved=1;
+  $TredMacro::FileNotSaved=0;
   $TredMacro::forceFileSaved=0;
 
   my $result=do_eval_macro($group,$macro);
 
   if ($group->{FSFile}) {
-    $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
+#    $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
     if ($TredMacro::forceFileSaved) {
       $group->{FSFile}->notSaved($TredMacro::FileNotSaved);
     } else {
