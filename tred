@@ -1,11 +1,13 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-03-02 15:40:04 pajas>
-#
-# TrEd - Copyright (C) 2000 by Petr Pajas
-# This software is covered by GPL - The General Public Licence
-# Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
+$version="1.48";
+$timestamp="Time-stamp: <2001-03-05 10:25:12 pajas>";
+$about=
+  "Copyright (C) 2001 by Petr Pajas\n".
+  "This software is distributed under GPL - The General Public Licence\n".
+  "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
+$lastupdate=$1 if ($timestamp=~/<([0-9-: ]+) /);
 #
 # This is "TrEd" - a simple viewer/editor of tree graphs in fs
 # file-format used in Graph - program developed by M. Kren. TrEd is
@@ -227,7 +229,7 @@ import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 use Exporter;
 
 @EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
-	     $forceFileSaved $insideEval $FileNotSaved
+	     $forceFileSaved $insideEval $FileNotSaved &IsHidden
              $fileNo $filecount %attribs @atord @files &min &max);
 
 my @macros=();
@@ -479,6 +481,7 @@ sub setConfig {
   $tredDebug=(exists $confs->{treddebug}) ? $confs->{treddebug} : 0;
   
   $defaultTemplateMatchMethod=(exists $confs->{searchmethod}) ? $confs->{searchmethod} : 'E';
+  $defaultMacroListOrder=(exists $confs->{macrolistorder}) ? $confs->{macrolistorder} : 'M';
 
   $defCWidth=(exists $confs->{canvaswidth}) ? $confs->{canvaswidth} : '18c';
   $defCHeight=(exists $confs->{canvasheight}) ? $confs->{canvasheight} : '12c';
@@ -1043,6 +1046,42 @@ sub filelistDialog {
 
 }
 
+sub generateSortedMacroTable {
+  my ($grp)=@_;
+  @macroTable = map { [ 
+		       $_,
+		       $menuBindings{$grp->{macroContext}}->{$_}->[1],
+		      ] } keys %{$menuBindings{$grp->{macroContext}}};
+  if ($grp->{macroListOrder} eq 'K') {
+    return sort {
+      my @a= split '\+',$a->[1];
+      my @b= split '\+',$b->[1];
+      return $#a <=> $#b if ($#a != $#b);
+      return length($a[0]) cmp length($b[0]) if (length($a[0]) ne length($b[0]));
+      return $a[0] cmp $b[0] if ($a[0] ne $b[0]);
+      return length($a[1]) cmp length($b[1]) if (length($a[1]) ne length($b[1]));
+      return $a[1] cmp $b[1] if ($a[1] ne $b[1]);
+      return length($a[2]) cmp length($b[2]) if (length($a[2]) ne length($b[2]));
+      return $a[2] cmp $b[2] if ($a[2] ne $b[2]);
+      return length($a[3]) cmp length($b[3]) if (length($a[3]) ne length($b[3]));
+      return $a[3] cmp $b[3] if ($a[2] ne $b[3]);
+      return $a cmp $b;
+    } @macroTable;
+  } else {
+    return sort { $a->[0] cmp $b->[0] } @macroTable;
+  }
+}
+
+sub macrolistCreateItems {
+  my ($grp,$t)=@_;
+  $t->delete('all');
+  foreach my $entry (generateSortedMacroTable($grp)) {
+    $e = $t->addchild("");
+    $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry->[0]);
+    $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[1]);
+  }
+}
+
 sub macrolistDialog {
   my $grp=shift;
   my $context=$grp->{macroContext};
@@ -1065,12 +1104,8 @@ sub macrolistDialog {
   $grp->{Macrolist}=$d;
   my $e;
   my $maxw=0;
-  foreach my $entry (sort(keys %{$menuBindings{$context}})) {
-    $e = $t->addchild("");
-    $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry);
-    $t->itemCreate($e, 1, -itemtype=>'text',
-		       -text=>$menuBindings{$context}->{$entry}->[1]);
-  }
+  macrolistCreateItems($grp,$t);
+
   $t->columnWidth(0,'');
   $t->columnWidth(1,'');
   $t->anchorSet('0');
@@ -1093,6 +1128,28 @@ sub macrolistDialog {
 			  $menuBindings{$context}->
 			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
 	    },$grp,$t ]);
+
+  my $f=$d->Frame()->pack();
+  $f->Radiobutton( -anchor   => 'nw',
+		   -text     => 'Sort by name',
+		   -variable => \$grp->{macroListOrder},
+		   -relief   => 'flat',
+		   -command  => [sub { #shift;
+				       my ($grp,$t)=@_;
+				       macrolistCreateItems($grp,$t);
+				     },$grp,$t],
+		   -value    => 'M'
+		 )->pack(-side => 'left',-padx => 20);
+  $f->Radiobutton( -anchor   => 'nw',
+		   -text     => 'Sort by keyboard shortcut',
+		   -variable => \$grp->{macroListOrder},
+		   -relief   => 'flat',
+		   -command  => [sub { #shift;
+				       my ($grp,$t)=@_;
+				       macrolistCreateItems($grp,$t);
+				     },$grp,$t],
+		   -value    => 'K'
+		 )->pack(-side => 'right',-padx => 20);
 
   $d->Button(-text => 'Run and Close',
 	     -command => [ sub {
@@ -1614,8 +1671,31 @@ sub startMain {
   my %group;
 
   $group{top}=MainWindow->new;
+
+  print "Setting geometry to $geometry\n";  
+
+  if (defined($geometry)) {
+    if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
+      print "I have $1+$2+$3\n";
+      print "root size is ",$group{top}->vrootwidth,"x",
+	$group{top}->vrootheight,"\n";
+      print "Taking x minimum of $3 and ",
+	    $group{top}->vrootwidth-$1,"\n";
+      print "Taking y minimum of $4 and ",
+	$group{top}->vrootheight-$2,"\n";
+        $geometry
+	  = "$1x$2+".min($3,$group{top}->vrootwidth-$1).
+	    "+".min($4,$group{top}->vrootheight-$2);
+    }
+#    $geometry=~s/\+0(?:(?=[^0-9])|$)//g;
+    print "Actual geometry is $geometry\n";  
+    $group{top}->geometry($geometry);
+  }
+
+
   $group{macroContext}='TredMacro';
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
+  $group{macroListOrder}=$defaultMacroListOrder;
   print STDERR "Main window created.\n" if $tredDebug;
 
   if (-f $appIcon) {
@@ -1836,10 +1916,23 @@ sub startMain {
 				       [qw/0c 0c 100c 100c/],
 				       $backgroundColor ? (-background => $backgroundColor) : ());
 
+
+  $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -menuitems/ =>
+	[
+	 [Button => 'About', -command => [sub {
+					    my ($grp)=@_;
+					    $grp->{top}->
+					      messageBox(-icon => 'info',
+							 -message => 
+							 "TrEd version $version\n\n".
+							 "$about\n\n$lastupdate",
+							 -title => 'About', -buttons => qw/OK/);
+					  },\%group]]])->pack(qw/-side left/);
+
   addBindTags($canvas->Subwidget('scrolled'),'canvas');
   prepareFonts(\%group);
 
-    print STDERR "Creating canvas.\n" if $tredDebug;
+  print STDERR "Creating canvas.\n" if $tredDebug;
 
   $group{'valueLine'}=$group{'top'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
@@ -2174,6 +2267,10 @@ sub startMain {
 			  print "$defCHeight x $defCWidth\n";
 			  $geometry=$group{top}->geometry();
 			  print "geometry is $geometry\n";
+			  if ($^O eq "MSWin32" and $group{top}->state() eq 'zoomed') {
+			    $geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
+			  }
+			  print "state is ",$group{top}->state(),"\n";
 			},\%group ]);
 
   print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
@@ -2186,9 +2283,6 @@ sub startMain {
 
   exit if doEvalHook(\%group,"start_hook") eq 'stop'; # run start_hook
 
-  print "Setting geometry to $geometry\n";  
-  $group{top}->geometry($geometry) if (defined($geometry));
-
   MainLoop;
 
   # Save configuration
@@ -2199,7 +2293,7 @@ sub startMain {
     @conf= grep { !/^\s*(?:$ommit)\s*=/i } <F>;
     close(F);
   }
-  $geometry=~s/^[0-9]+x[0-9]+//;
+#  $geometry=~s/^[0-9]+x[0-9]+//;
   push @conf,
     "Geometry\t=\t".$geometry."\n",
     "CanvasHeight\t=\t".$defCHeight."\n",
@@ -2456,6 +2550,7 @@ sub selectValuesDialog {
  my ($grp, $attr, $vals, $selected, $may_add, $lastFocus,$force)=@_;
  my $a;
  my $multi=0;
+ my @prevSelectionSet;
 
  $grp->{'top'}->Busy(-recurse => 1);
  my $enabled=($force or doEvalHook($grp,'enable_attr_hook',$attr,"ambiguous") ne 'stop');
@@ -2494,7 +2589,7 @@ sub selectValuesDialog {
    $d->Checkbutton(-text     => 'multiple select',
 		   -variable => \$multi,
 		   -command  => [sub {
-				   shift->configure(-selectmode => $multi ? 'extended' : 'browse');
+				   shift->configure(-selectmode => $multi ? 'multiple' : 'browse');
 				 },$l],
 		   -relief   => 'flat')->pack();
    if ($may_add) {
@@ -2514,7 +2609,21 @@ sub selectValuesDialog {
 # $l->focus;
  my $result = ShowDialog($d,$l,$lastFocus);
  if ($result =~ /OK/) {
-   @$selected = (map { $$vals[$_] } ( grep { $l->selectionIncludes($_) } (0 .. $l->size-1) ));
+   # Hajic wanted this (I wash my hands):
+   # first we store the values, which were selected originaly and stayed selected
+   foreach my $s (@$selected) { 
+     push @prevSelectionSet, (grep { $$vals[$_] eq $s } (0 .. $l->size-1));
+   }
+   @$selected=();
+   foreach (@prevSelectionSet) {
+     if ($l->selectionIncludes($_)) {
+       $l->selectionClear($_);
+       push @$selected,$$vals[$_];
+     }
+   }
+   foreach (0 .. $l->size-1) {
+     push @$selected, $$vals[$_] if $l->selectionIncludes($_);
+   }
    $d->destroy;
    undef $d;
    return 1;
