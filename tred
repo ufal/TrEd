@@ -4140,7 +4140,6 @@ sub startMain {
     $group{top}=MainWindow->new();
   }
 
-
   for (qw(ROText Text Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $group{top}->option('add',"\*$_.background","white");
@@ -4576,6 +4575,7 @@ sub startMain {
 	 [Button => 'Reload macros', -underline => 0,
 	  -command => [sub {
 			 my ($grp)=@_;
+			 doEvalHook($grp->{focusedWindow},"reload_macros_hook");
 			 cleanup_tredmacro($grp);
 			 read_macros($macroFile,$libDir);
 			 redraw_all($grp);
