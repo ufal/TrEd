@@ -230,7 +230,7 @@ sub write {
 
       # choosing between f d and fadd
       if (index($node->{ord},'.')>=$[) {
-	my $del=$node->{del}=~/^(?:elid|elex|expn)/ ? " ".$node->{del} : "";
+	my $del=$node->{del}=~/^(?:ELID|ELEX|EXPN)/i ? " ".lc($node->{del}) : "";
 	print $fileref "<fadd$del>";
       } else {
 	if ($node->{form}=~/^([][!"'()+,-.\/:;=\?`]|&(?:amp|ast|bsol|circ|commat|dollar|gt|lcub|lowbar|lsqb|lt|macron|num|percnt|rcub|rsqb|verbar);)$/) {
