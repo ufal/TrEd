@@ -28,6 +28,9 @@ layer is often required.
 
 - A rule that would handle "po jablicku" is missing.
 
+- ".1 az po.OPER .4" - in this (and probably other similar) the latter
+member of the OPER has a different case than expected.
+
 - distinguish between:
 TODO:
 "Marie ma pro Petra uvareno" (where no transformation rules applies) and
@@ -72,34 +75,31 @@ sub has_auxR {
 }
 
 @fv_passivization_rules = (
-    [ 'ACT(.1)', 'PAT(.4)',
-      ['EFF',
-       qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/ ]] =>
-    [ '-ACT(.1)', '+ACT(.7)', '-PAT(.4)', '+PAT(.1)',
-      ['EFF',
-       sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/${1}1${2}/ }
-      ]],
-    # frame test
-    [ 'ACT(.1)', ['PAT', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ]]  =>
+    # /1
+    [[ 'ACT(.1)', 'PAT(.4)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/ ]] =>
+     [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-PAT(.4)', '+PAT(.1)',
+       ['EFF', sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])$/${1}1${2}/ } ]]],
+    # /2 frame test
+    [[ 'ACT(.1)', ['PAT', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ]]  =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.7)',
-      ['PAT',sub { s/((?:^|,)\.a?)4((?:\[(jako|{jako,jako¾to})(\/AuxY)?\])?(?:,|$))/${1}1${2}/ } ]],
-    # ditto for CPHR
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
+      ['PAT',sub { s/((?:^|,)\.a?)4((?:\[(jako|{jako,jako¾to})(\/AuxY)?\])?(?:,|$))/${1}1${2}/ } ]]],
+    # /3 ditto for CPHR
     # form transformation rules:
-    [ 'ACT(.1)', ['CPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
+    [[ 'ACT(.1)', ['CPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.7)', ['CPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]],
-    # frame test
-    [ 'ACT(.1)', 'ADDR(.4)' ] =>
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['CPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]]],
+    # /4 frame test
+    [[ 'ACT(.1)', 'ADDR(.4)' ] =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.7)', '-ADDR(.4)', '+ADDR(.1)' ],
-    # frame test
-    [ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ] ] =>
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.4)', '+ADDR(.1)' ]],
+    # /5 frame test
+    [[ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ] ] =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.7)',
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
       ['EFF',
        sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/${1}1${2}/ }
-      ]]);
+      ]]]);
 
 @fv_trans_rules_V =
   (
@@ -111,21 +111,21 @@ sub has_auxR {
 	   first { $_->{func} eq 'ACT' and $_->{tag}!~/^....1/ } PDT::GetChildren_TR($node) and
 	   (first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
 	    and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node))
-	  ) ? 1:0;
+	  ) ? 'STOP':0;
 	} =>
     # frame transformation rules:
     # frame test
-    [ 'ACT(.1)', 'ADDR(.3)' ] =>
+    [[ 'ACT(.1)', 'ADDR(.3)' ] =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)','-ADDR(pro-1[.4])', '+ADDR(.1)' ],
+     [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)','-ADDR(pro-1[.4])', '+ADDR(.1)' ]],
    ],
    # 2.
-   [# case: "mrizka/mrizku=PAT(.4,.1) nejde udelat"
+   [# case: "mrizka/mrizku=PAT(.4,.1) nejde udelat", "mrizka/mrizku je videt"
     # adds PAT(.1)
     sub { my ($node) = @_;
-	  ($node->{tag}=~/^Vf/ and first { $_->{lemma} eq 'jít' } PDT::GetFather_TR($node)) ? 1:0;
+	  ($node->{tag}=~/^Vf/ and first { $_->{lemma} eq 'být' or $_->{lemma} eq 'jít' } PDT::GetFather_TR($node)) ? 1:0;
 	} =>
-    [ 'PAT(.4)' ] => [ '+PAT(.1)' ],
+    [[ 'PAT(.4)' ] => [ '+PAT(.1)' ]],
    ],
    # 3.
    [# verb test: passive verb
@@ -135,30 +135,32 @@ sub has_auxR {
 	  ($node->{tag}=~/^Vs/ and
 	   not (
 	     # eliminate "ma", "bude mit" or even "mel by mit"
-		first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /Vc/ } get_aidrefs_nodes($aids,$node) and
-		first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
+		#first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /Vc/ } get_aidrefs_nodes($aids,$node) 
+		#and 
+                first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
 		and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node)
+		and not first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /Vf/ } get_aidrefs_nodes($aids,$node)
 	       )
 	  ) ? 1:0;
 	} =>
     # frame transformation rules:
     @fv_passivization_rules,
     # frame test
-    [ 'ACT(.1)' ] =>
+    [[ 'ACT(.1)' ] =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])'],
+     [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])']],
    ],
    # 4.
    [# dispmod
     sub { $_[0]->{dispmod} eq "DISP" } =>
     # frame transformation rules:
     # frame test
-    [ 'ACT(.1)', 'PAT(.4)' ] =>
-    [ '-ACT(.1)', '+ACT(.3)', '-PAT(.4)', '+PAT(.1)', '+(.[se])', '+MANN(*)' ],
+    [[ 'ACT(.1)', 'PAT(.4)' ] =>
+     [ '-ACT(.1)', '+ACT(.3)', '-PAT(.4)', '+PAT(.1)', '+(.[se])', '+MANN(*)' ]],
     # frame test
-    [ 'ACT(.1)' ] =>
+    [[ 'ACT(.1)' ] =>
     # form transformation rules:
-    [ '-ACT(.1)', '+ACT(.3)', '+(.[se])', '+MANN(*)' ]
+     [ '-ACT(.1)', '+ACT(.3)', '+(.[se])', '+MANN(*)' ]]
    ],
    # 5.
    [ # chce se mu riskovat
@@ -173,8 +175,8 @@ sub has_auxR {
       return 0 unless $p and
 	$p->{trlemma}=~/^chtít$/ and has_auxR($p);
       } =>
-    [ 'ACT(.1)' ] =>
-    [ '-ACT(.1)', '+ACT(.3)' ]
+    [[ 'ACT(.1)' ] =>
+     [ '-ACT(.1)', '+ACT(.3)' ]]
    ],
    # 6.
    [# verb test: verb treated as passive due to "se".AuxR
@@ -203,13 +205,13 @@ sub has_auxR {
 	  };
       return 0 unless $p and $p->{trlemma}=~/^nechat$|^dát$/
     } =>
-      [ 'ACT(.1)' ] =>
-      [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ]
+      [[ 'ACT(.1)' ] =>
+       [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ]]
    ],
    # 8. imperative
    [
     sub { $_[0]->{tag}=~/^Vi/ ? 1 : 0 } =>
-    [ 'ACT(.1)' ] => [ '+ACT(.5)' ]
+    [[ 'ACT(.1)' ] => [ '+ACT(.5)' ]]
    ]
   );
 
@@ -219,18 +221,18 @@ sub has_auxR {
   (
    [
     sub { 1 } =>
-    [ 'ACT(.2;.u)', 'ADDR(s-1[.7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ],
-    [ 'ACT(:2;:u)', 'ADDR(s-1[:7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ],
+    [[ 'ACT(.2;.u)', 'ADDR(s-1[.7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ]],
+    [[ 'ACT(:2;:u)', 'ADDR(s-1[:7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ]],
    ],
    [
     sub { 1 } =>
-    [ 'ACT(.2;.u)', 'PAT(s-1[.7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ],
-    [ 'ACT(:2;:u)', 'PAT(s-1[:7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ],
+    [[ 'ACT(.2;.u)', 'PAT(s-1[.7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ]],
+    [[ 'ACT(:2;:u)', 'PAT(s-1[:7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ]],
    ],
    [
     sub { 1 } =>
-    [ 'ACT(.2;.u)' ] => [ '+ACT(z-1[strana:2[.2]])' ],
-    [ 'ACT(:2;:u)' ] => [ '+ACT(z-1[strana:2[.2]])' ],
+    [[ 'ACT(.2;.u)' ] => [ '+ACT(z-1[strana:2[.2]])' ]],
+    [[ 'ACT(:2;:u)' ] => [ '+ACT(z-1[strana:2[.2]])' ]],
    ]
   );
 
@@ -270,7 +272,7 @@ sub get_aidrefs_nodes {
 
 sub is_numeric_expression {
   my ($node)=@_;
-  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|tolik-1|trochu|plno|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
+  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|tolik-1|trochu|plno|hodnì|spousta|pùl-[12]|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
 }
 
 sub climb_auxcp {
@@ -516,20 +518,7 @@ sub match_form {
 	push @ok_a,$_;
       }
     }
-#     # add "kdo" of "kdo" subclauses
-#     @ok_a = map {
-#       if ($_->{tag}=~/^V/ and
-# 	  not first { $_->{lemma} eq 'ten' and IsHidden($_) and
-# 		      $_->{func} ne 'INTF' }
-# 	  with_AR { PDT::GetFather_AR($_,sub{0}) }) {
-# 	my $kdo = first { $_->{lemma} eq 'kdo' or $_->{lemma} eq 'co-1' }
-# 	  PDT::GetChildren_TR($_);
-# 	if ($kdo) {
-# 	  print "KDO-RULE: found $kdo->{form}\n" if $V_verbose;
-# 	}
-# 	$kdo ? ($kdo,$_) : $_;
-#       } else { $_ }
-#     } @ok_a;
+
     my ($parent) = $form->getChildrenByTagName('parent');
     my ($pnode) = $parent->getChildrenByTagName('node') if $parent;
     if ($pnode) {
@@ -707,29 +696,37 @@ sub do_transform_frame {
   foreach my $rule (@$trans_rules) {
     $i++; $j=0;
     my ($verbtest,@frame_tests) = @$rule;
-    if ($verbtest->($node,$aids)) { # check if rule matches verb
+    my $vt = $verbtest->($node,$aids);
+    my $filter_applied = 0;
+    if ($vt) { # check if rule matches verb
       while (@frame_tests) {
+	my $frame_rule = shift @frame_tests;
+	my ($frame_test,$frame_trans,$opts) = @$frame_rule;
+	my $opts ||= {};
+	#TODO: check if we better stop here or continue
+	#  possibly: make each rule have a parameter for this: i.e. "filter"-like rules
+
 	$j++;
 	my $cache_key = "r:$i t:$j f:".$V->frame_id($frame);
-	if ($V->user_cache->{$cache_key}) {
+	# only use cache if no filter was applied so far
+	if (!$filter_applied and $V->user_cache->{$cache_key}) {
 	  print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
 	  $frame = $V->user_cache->{$cache_key};
 	  print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
-
-#TODO: check if we better stop here or continue
-#  possibly: make each rule have a parameter for this: i.e. "filter"-like rules
-#  last TRANS;
+	  last TRANS; # except for filters?
 	} else {
-	  my ($frame_test,$frame_trans)=(shift @frame_tests, shift @frame_tests);
 	  # print "testing rule $cache_key\n" if (!$quiet and $V_verbose);
 	  if (frame_matches_rule($V,$frame,$frame_test)) {
 	    print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
 	    $frame = transform_frame($V,$frame,$frame_trans);
 	    print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
-	    $V->user_cache->{$cache_key} = $frame;
+	    $V->user_cache->{$cache_key} = $frame unless $filter_applied; # only cache if no filter was applied so far
+	    $filter_applied ||= $opts->{FILTER};
+	    last TRANS unless $opts->{FILTER}; # except for filters
 	  }
 	}
       }
+      last TRANS if $vt eq 'STOP'; # stop if verbtest matched, but no rule applied
     }
   }
   return $frame;
@@ -1060,7 +1057,9 @@ sub hash_pj4 {
 sub check_verb_frames {
   my ($node,$aids,$frameid,$fix)=@_;
   my $func = get_func($node);
-  return -1 if $node->{tag}!~/^V/ or $func =~ /[DF]PHR/
+  return -1 if
+    $node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/ or
+    $node->{tag}!~/^V/ or $func =~ /[DF]PHR/
     or ($func eq 'APPS'and $node->{trlemma} eq 'tzn');
   #    return if $node->{tag}!~/^Vs/; # TODO: REMOVE ME!
   my $lemma = lc($node->{trlemma});
@@ -1153,6 +1152,7 @@ sub check_nounadj_frames {
 
   my $func = get_func($node);
   my $pos = substr($node->{tag},0,1);
+  $pos = 'A' if ($node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/);
   return if $pos!~/[NA]/ or $func =~ /[DF]PHR/;
   my $lemma = lc($node->{trlemma});
   $lemma =~ s/_/ /g;
