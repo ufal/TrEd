@@ -863,7 +863,7 @@ sub userQuery {
 sub addToRecent {
   my ($grp,$f)=@_;
   if (defined($f)) {
-    $f=absolutize($f);
+    ($f)=absolutize($f);
     @recentFiles=grep { $_ ne $f } @recentFiles;
     unshift @recentFiles,$f;
   }
@@ -6532,6 +6532,11 @@ sub evalMacro {
   if ($keyboardDebug) {
     print STDERR "Pressed: (".ord($A)."), prefix $prefix, keysym $K/",$e->N,"\n";
     print STDERR "Maybe: $prefix$K\n";
+  }
+  if ($K =~ /^XF86_Switch_VT_(\d+)$/) {
+    print STDERR "Translating $shift $K to SHIFT+F$1\n" if $keyboardDebug;
+    $prefix='SHIFT+';
+    $K='F'.$1;
   }
   push @possib, ($prefix.$A,$prefix.$K);
 
