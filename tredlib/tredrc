@@ -7,22 +7,54 @@ TextColor	 = black
 ActiveTextColor	 = blue
 BoxColor	 = wheat
 CurrentBoxColor	 = white
+
+
+;; Font may be given in two ways: on X11 (Unix) platforms you may
+;; give a (possibly incomplete) X11 font-spec, i.e.: 
+;;
+;;  Font = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
+;;
+;; The the font spec must in this case start with a dash `-'.
+;;
+;; You may also specify font attributes in the following way (works on
+;; all platforms, but has limitations):
+;; 
+;;	"<attribut>:<value>,..."
+;;
+;; attributs may be these: family, size, weight, slant, underline, overstrike
+;; size is given in points (! not pixels !)
+;; values for weight: normal, bold
+;; values for slant: roman, italics
+;; values for underline and overstrake: 0,1
+;;
+;; Example:
+;; 	Font = "family:Arial,size:10,weight:bold"
+;;
+
 Font		 = -*-helvetica-medium-r-normal--12-*-*-*-*-*-*-2
-;; Type1Font	 = -ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2
-;; LibDir	 = "/usr/local/lib/tred" 
+
+;; Type1Font is used when calculating postscript output when printing.
+;; It should be the same font as PSFontPath, 
+;; but here you must give a X11 font-spec. If no value set, Font is used
+;; (but it may lead to bad spacing in the printed tree).
+
+; Type1Font	 = -ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2  
+
+; LibDir	 = "/usr/local/lib/tred" 
+
 DrawBoxes	 = 0
 ShowHidden	 = 0
 
-;; LineWidth	 = 2
-;; LineColor	 = gray
-;; BackgroundColor  = seashell1
-;; NodeWidth	 = 5
-;; NodeHeight	 = 5
-;; ButtonsRelief = groove
-;; MenubarRelief = groove
+; LineWidth	 = 2
+; LineColor	 = gray
+; BackgroundColor= seashell1
+; NodeWidth	 = 5          ;; width of the oval
+; NodeHeight	 = 5          ;; height of the oval
+; ButtonsRelief  = groove     ;; possible values: 
+; MenubarRelief  = groove
 
 
-;; UseCzechLocales  = 1
+; UseCzechLocales= 1
 
 
 ;; The following file should contain pfa poscript
@@ -35,6 +67,7 @@ ShowHidden	 = 0
 ;; (if you have it). Also some pairs of fonts like Arial/Helvetica have
 ;; so similar metrices that they can be used together.
 ;; The following is also default: 
-;; PsFontFile = csarialm.pfa
-;; PsFontName = Arial-Medium ;; this is used to force substitution of screenfont
-;; PsFontSize = 12           ;; -- " --
+
+; PsFontFile = csarialm.pfa
+; PsFontName = Arial-Medium ;; this is used to force substitution of screenfont
+; PsFontSize = 12           ;; -- " --
