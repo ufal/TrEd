@@ -184,6 +184,7 @@ sub assign_arabclause {
 
 #bind default_ar_attrs to F8 menu Display default attributes
 sub default_ar_attrs {
+  print "default ar attrs\n\n\n";
   return unless $grp->{FSFile};
   SetDisplayAttrs('${form}',
 		'#{custom1}<? join "_", map { "\${$_}" }
@@ -193,8 +194,6 @@ sub default_ar_attrs {
   return 1;
 }
 
-
-my $ante;
 
 # root style hook
 # here used only to check if the sentence contains a node with afun=Ante
@@ -213,22 +212,24 @@ sub node_style_hook {
 
       $T=<<'TARGET';
 [!
-    my $ante;
-    my $head=$this;
+    my($ante,$refer);
+    my($head)=$this;
 
     # search for the head of the clause
-    $head=$head->parent
-      until ( (not $head) or ($head->{afun} eq 'Atr' and ($head->{arabclause}!~/^no-|^$/ or $head->{tag}=~/VERB/))
-                          or ($head->{afun}=~/^(?:Pred|Pnom)/) );
+    until ( (not $head) or ($head->{afun} eq 'Atr' and ($head->{arabclause}!~/^no-|^$/ or $head->{tag}=~/VERB/))
+                        or ($head->{afun}=~/^(?:Pred|Pnom)/) ) {
+      $head=$head->parent;
+      $refer=$head if (not defined $refer and $head->{afun} eq 'Atr'); # attributive pseudo-clause
+    }
 
-    # search for an Ante in the subtree, or point to the parent of the head
+    # search for an Ante in the subtree, or point to the parent of the $refer or $head
     if ($head) {
       $ante=$head;
       $ante=$ante->following($head) until (not($ante) or $ante->{afun} eq 'Ante');
-    
-      $ante or $head->parent;
+
+      $ante or (defined $refer ? $refer->parent : $head->parent);
     }
-    else { undef; }
+    else { defined $refer ? $refer->parent : undef; }
 !]
 TARGET
 
@@ -248,14 +249,14 @@ COORDS
     # the ampersand & separates settings for the default line
     # to the parent node and our line
     AddStyle($styles,'Line',
-	     -coords => 'n,n,p,p&'. # coords for the default edge to parent
-	                $coords,    # coords for our line
-	     -arrow => '&last',
-	     -dash => '&_',
-	     -width => '&1',
-	     -fill => '&#8080a0',   # color
-	     -smooth => '&1'        # approximate our line with a smooth curve
-	    );
+             -coords => 'n,n,p,p&'. # coords for the default edge to parent
+                        $coords,    # coords for our line
+             -arrow => '&last',
+             -dash => '&_',
+             -width => '&2',
+             -fill => '&#C000D0',   # color
+             -smooth => '&1'        # approximate our line with a smooth curve
+            );
 
   }
 
@@ -266,8 +267,8 @@ COORDS
 
       $T=<<'TARGET';
 [!
-    my $ante;
-    my $head=$this;
+    my $head=$this->parent; # start one node above (the masdar itself might feature the critical tags)
+    if ($this->{afun} eq 'Atr') { $head=$head->parent; } # constructs like <_hAfa 'a^sadda _hawfiN>
 
     # search for the verb, governing masdar or participle
     $head=$head->parent
@@ -293,14 +294,14 @@ COORDS
     # the ampersand & separates settings for the default line
     # to the parent node and our line
     AddStyle($styles,'Line',
-	     -coords => 'n,n,p,p&'. # coords for the default edge to parent
-	                $coords,    # coords for our line
-	     -arrow => '&last',
-	     -dash => '&_',
-	     -width => '&1',
-	     -fill => '&#8080a0',   # color
-	     -smooth => '&1'        # approximate our line with a smooth curve
-	    );
+             -coords => 'n,n,p,p&'. # coords for the default edge to parent
+                        $coords,    # coords for our line
+             -arrow => '&last',
+             -dash => '&_',
+             -width => '&2',
+             -fill => '&#FFA000',   # color
+             -smooth => '&1'        # approximate our line with a smooth curve
+            );
 
   }
 }
