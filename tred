@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-03-28 16:30:39 pajas>";
+$timestamp="Time-stamp: <2001-03-28 17:09:16 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -1292,7 +1292,10 @@ sub createFilelistBrowseEntry {
 	     switchFilelist($grp,$text);
 	     updatePostponed($grp);
 	   } elsif ($answer eq 'Rename') {
+	     my $oldn=$grp->{filelistCurrentFilelist}->name();
 	     $grp->{filelistCurrentFilelist}->rename($text);
+	     updateBookmarks($grp)
+	       if ($oldn eq 'Bookmarks');
 	     $$fl=$text;
 	     updatePostponed($grp);
 	   } else {
@@ -1519,6 +1522,9 @@ sub filelistDialog {
 									 $t->info('anchor')),
 						 $l->getSelectedFiles
 						 );
+				updateBookmarks($grp);
+				if (ref($grp->{filelistCurrentFilelist}) and
+				    $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
 			      },$grp,$t,$fl])->pack(-side => top);
   my $addbutton=
     $midframe->Button(-text => 'Remove',
@@ -1530,6 +1536,9 @@ sub filelistDialog {
 						   getFilelistLinePosition($grp->{filelistCurrentFilelist},
 									   $t->info('anchor')),
 						   $t->info('selection'));
+				updateBookmarks($grp);
+				if (ref($grp->{filelistCurrentFilelist}) and
+				    $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
 			      },$grp,$t,$fl])->pack(-side => top);
 
   unless ($modal) {
