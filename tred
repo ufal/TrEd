@@ -3724,10 +3724,10 @@ sub onCurrentChange {
     }
     $tv->canvas->coords($tv->get_node_pinfo($n,"Oval"),
 			$tv->node_coords($n,$win->{currentNode}));
+    $tv->apply_stored_style_opts("Oval",$n);
   }
   $tv->apply_stored_style_opts("CurrentOval",$node);
   unless ($prev eq $node) {
-    $tv->apply_stored_style_opts("Oval",$prev);
     $tv->apply_stored_style_opts("TextBox",$prev);
     $tv->apply_stored_style_opts("EdgeTextBox",$prev);
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
