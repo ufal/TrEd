@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-04-12 18:34:01 pajas>
+## Time-stamp: <2001-04-18 13:18:10 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -15,13 +15,8 @@ sub file_opened_hook {
   # its display settings!
 
   unless ($grp->{BalloonPattern}) {
-    SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '${func}<? "_#{custom2}\${reltype}" if $${reltype} =~ /CO|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
-    SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
-		      "afun:\t\${afun}\ntag:\t\${tag}".
-		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
+    default_tr_attrs();
   }
-
 
   foreach ("New Node","Remove Active Node","Insert New Tree",
 	   "Insert New Tree After", "Remove Whole Current Tree") {
@@ -31,12 +26,21 @@ sub file_opened_hook {
   $FileNotSaved=0;
 }
 
+#insert default_tr_attrs as menu Display default attributes
+sub default_tr_attrs {
+    SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+                    '${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+    SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
+		      "afun:\t\${afun}\ntag:\t\${tag}".
+		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
+}
+
 sub sort_attrs_hook {
   my ($ar)=@_;
   @$ar = (grep($grp->{FSFile}->FS->exists($_),
-	       'func','trlemma','form','afun','coref','reltype','aspect','commentA'),
+	       'func','trlemma','form','afun','coref','reltype','memberof','aspect','commentA'),
 	  sort {uc($a) cmp uc($b)}
-	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|reltype|aspect)$/,@$ar));
+	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|reltype|memberof|aspect)$/,@$ar));
   return 1;
 }
 
@@ -151,7 +155,7 @@ sub do_edit_attr_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:func|coref|commentA|reltype|aspect|tfa|err1)$/) {
+  if ($atr!~/^(?:func|coref|commentA|reltype|memberof|aspect|tfa|err1)$/) {
     return "stop";
   }
 }
@@ -349,6 +353,7 @@ sub FuncAssign {
   }
 }
 
+#bind add_questionmarks_func to Ctrl+Shift+X menu Pridat k funktoru ???
 sub add_questionmarks_func {
   $pPar1 = $this;
   $sPar1 = Union($pPar1->{'func'},'???');
@@ -463,6 +468,7 @@ sub NewVerb {
   $pNew->{'func'} = 'EV';
   $pNew->{'gram'} = '???';
   $pNew->{'reltype'} = '???';
+  $pNew->{'memberof'} = '???';
   $pNew->{'fw'} = '???';
   $pNew->{'phraseme'} = '???';
   $pNew->{'del'} = 'ELID';
