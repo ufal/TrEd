@@ -74,7 +74,7 @@ sub open_backend {
     if ($mode =~/[w\>]/) {
       $cmd = "| $CSTSBackend::gzip" if ($filename=~/.gz$/);
       $cmd="$CSTSBackend::fs2csts $cmd > \"$filename\"";
-      print STDERR "[w $cmd]\n";
+      print STDERR "[w $cmd]\n" if $Fslib::Debug;
       eval {
 	$fh = new IO::Pipe();
 	$fh && $fh->writer($cmd);
@@ -85,7 +85,7 @@ sub open_backend {
       } else {
 	$cmd="$CSTSBackend::csts2fs < \"$filename\"";
       }
-      print STDERR "[r $cmd]\n";
+      print STDERR "[r $cmd]\n" if $Fslib::Debug;
       eval {
 	$fh = new IO::Pipe();
 	$fh && $fh->reader($cmd);

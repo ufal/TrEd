@@ -1,4 +1,4 @@
-<?xml version='1.0'?>
+<?xml version='1.0' encoding='utf-8'?>
 <!--                    custom node attribute list                 -->
 <!--                    redefine this entity in the in-line DTD of
                         the XML file to declare the attributes     -->
@@ -24,7 +24,7 @@
 <!--         full       all attributes are defined here, no parsing
                         of custom DTD is needed                    -->
 <!ATTLIST  types
-             full       (0|1)                              0         >
+             full       (0|1)                              "0"       >
 
 <!--                    t                                          -->
 <!--                    attribute type                             -->
@@ -37,7 +37,7 @@
              n          CDATA                              #REQUIRED
              v          CDATA                              #IMPLIED
              d          CDATA                              #IMPLIED
-             m          (0|1)                              1         >
+             m          (0|1)                              "1"       >
 
 
 <!--                    nd                                         -->
@@ -51,12 +51,12 @@
              id         ID                                 #IMPLIED
              n          NMTOKEN                            #IMPLIED
              %trxml.attributes;
-             h          (0|1)                              0         >
+             h          (0|1)                              "0"       >
 
              
 <!--                    e                                          -->
 <!--                    general XML element wrapper                -->
-<!ELEMENT  e            (att?,(#PCDATA|e|pi|c)*)                     >
+<!ELEMENT  e            (att?,(PCDATA|e|pi|c)*)                     >
 <!--         n          element tag
              ns         element namespace                          -->
 <!ATTLIST  e
@@ -67,16 +67,16 @@
 <!ELEMENT  att          (a)+                                         >
 <!--                    a                                          -->
 <!--                    general element attribute                  -->
-<!ELEMENT  a            (#PCDATA)                                    >
+<!ELEMENT  a            (PCDATA)                                    >
 <!--         n          attribute name                             -->
 <!ATTLIST  a
              n          CDATA                              #REQUIRED >
 <!--                    pi                                         -->
 <!--                    general processing instruction             -->
-<!ELEMENT  pi           (#PCDATA)                                    >
+<!ELEMENT  pi           (PCDATA)                                    >
 <!--         n          processing instruction name                -->
 <!ATTLIST  pi
              n          CDATA                              #REQUIRED >
 <!--                    c                                          -->
 <!--                    general XML comment                        -->
-<!ELEMENT  c            (#PCDATA)                                    >
+<!ELEMENT  c            (PCDATA)                                    >
