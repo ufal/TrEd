@@ -32,9 +32,11 @@ sub default_tfa_attrs {
 		  '${func}<? "_#{custom2}\${reltype}" if $${reltype} =~ /CO|PA/ ?>'.
 		  '<? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>'
 		 );
-  SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
-		    "afun:\t\${afun}\ntag:\t\${tag}");
-
+    SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
+		      "afun:\t\${afun}\ntag:\t\${tag}".
+		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
+		      '<?"\nframe:\t\${framere}" if $${framere} ne "" ?>'.
+		      '<?"\nframe_id:\t\${frameid}" if $${frameid} ne "" ?>');
 }
 
 #bind edit_commentA to exclam menu Edit annotator's comment
