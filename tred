@@ -14,7 +14,7 @@
 #  %attribs      - attribute definition hash 
 #  @atord        - (positional) attribute array
 #
-# If you want to save the file after each tree is processed, set the $save var. to 1
+#  If you want to save the file after each tree is processed, set the $save var. to 1
 #
 #
 
