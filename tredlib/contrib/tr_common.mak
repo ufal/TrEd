@@ -167,8 +167,7 @@ sub QueryKdy {
      ['na kdy', 'kdy', 'TOWH']
     );
   my @selected=grep { 
-    $node->{trlemma} eq $_->[1] and 
-      $node->{func} eq $_->[2]
+    $node->{trlemma} eq $_->[1] and $node->{func} eq $_->[2]
     }  @trs;
   @selected=grep { 
     $node->{trlemma} eq $_->[1]
