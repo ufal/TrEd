@@ -1,6 +1,7 @@
 package TrEd::TreeView;		# -*- cperl -*-
 
 use Tk;
+use Tk::Canvas;
 use Tk::Balloon;
 use Fslib;
 use TrEd::MinMax;
@@ -1348,7 +1349,7 @@ sub draw_text_line {
 		      $y+$lineHeight,
 		      -fill => $self->canvas->cget('-background'),
 		      -outline => undef,
-		      tags => [$bg,'TextBg']
+		      -tags => [$bg,'TextBg']
 		     );
     $self->store_id_pinfo($bid,$bg);
     $self->apply_style_opts($bg,
@@ -1567,5 +1568,15 @@ sub prepare_raw_text_field {
 
 1;
 
-
+# package Tk::Canvas;
+# BEGIN {
+# *old_create = *create;
+# *create = *new_create;
+# };
+# sub new_create {
+#   my $self=shift;
+#   print "\$canvas->create(",join(",",map { "'$_'" } @_),");\n";
+#   $self->old_create(@_);
+# }
+# 1;
 
