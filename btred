@@ -221,6 +221,13 @@ use Exporter;
 # work, so I recommend not to use czech locales there, unless you
 # really want the decimal points to be replaced by commas in
 # postscript:)
+($TrEd::Config::useLocales) && do {
+  use locale;
+  use POSIX qw(locale_h);
+  $ENV{LC_ALL}=undef;
+  setlocale(LC_ALL,undef);
+  setlocale(LC_NUMERIC,"C");
+};
 
 if ($useCzechLocales) {
   use locale;
@@ -278,6 +285,8 @@ if ($opt_f) {
     die "Unknown format $format. Use -f [fs|csts|trxml]\n";
   }
 }
+
+$TrEd::Convert::inputenc=$opt_n if $opt_n;
 
 startMain();
 
@@ -365,7 +374,6 @@ sub openFile {
 # saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
   closeFile($grp);
 
-  $TrEd::Convert::inputenc=$opt_n if $opt_n;
   $grp->{'FSFile'} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
   $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
   print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
