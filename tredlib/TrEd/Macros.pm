@@ -229,11 +229,9 @@ sub do_eval_hook {
   my ($win,$context,$hook)=(shift,shift,shift);  # $win is a reference
 				# which should in this way be made visible
 				# to hooks
-  print STDERR "about to run a hook $hook\n" if $hookDebug;
+  print STDERR "about to run the hook: '$hook'\n" if $hookDebug;
   $TredMacro::grp=$win;
-  print STDERR "testing $hook and $TredMacro::this\n" if $hookDebug;
   return undef unless $hook; # and $TredMacro::this;
-  print STDERR "no problem, continuing\n" if $hookDebug;
 
   unless ($macrosEvaluated) {
     eval (join("",@macros)."\n return 1;");
