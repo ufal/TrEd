@@ -102,6 +102,19 @@ package XML::JHXML::Node;
 *getChildElementsByTagName=*getChildrenByTagName;
 *getDescendantElementsByTagName=*getElementsByTagName;
 
+sub isElementNode { return $_[0]->isTextNode ? 0 : 1 }
+sub childNodes {
+  my ($self)=@_;
+  my @childs;
+  my $node = $self->getFirstChild;
+  while ($node) {
+    push @childs,$node;
+    $node = $node->nextSibling;
+  }
+  return @childs;
+}
+
+
 package XML::JHXML::Node;
 
 *addText = *appendText;
