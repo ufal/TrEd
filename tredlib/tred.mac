@@ -262,10 +262,11 @@ sub GotoPrevNodeLin {
 ######## PDT specific stuff ########
 
 sub file_opened_hook {
-  if (exists $grp->{FSFile}->FS->defs->{x_TNT}) {
+  if (exists($grp->{FSFile}->FS->defs->{x_TNT})
+     and $grp->{FSFile}->FS->hide eq 'X_hide') {
     print STDERR "file_open_hook: Switching context to Transfer\n";
     return SwitchContext('Transfer');
-  } if (exists $grp->{FSFile}->FS->defs->{TR}) {
+  } if ($grp->{FSFile}->FS->hide eq 'TR') {
     print STDERR "file_open_hook: Switching context to Tectogrammatic\n";
     return SwitchContext('Tectogrammatic') 
       unless (CurrentContext eq 'TR_Correction' or
