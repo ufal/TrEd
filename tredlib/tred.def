@@ -19,13 +19,13 @@ use vars @FORCE_EXPORT;
 
 =head1 TredMacro
 
-tred.def - This package implements default macros for TrEd/bTred
+TredMacro (F<tred.def>) - implements the public API for TrEd/bTred macros
 
-=head2 GLOBAL VARIABLES
+=head2 Global variables
 
 =over 4
 
-=item $FileChanged (alias $FileNotSaved - still valid but obsolete)
+=item C<$FileChanged> (alias C<$FileNotSaved> - still valid but obsolete)
 
 If this variable is set to 1, TrEd/bTrEd considers the current file to
 be modified and in case of bTrEd makes the program to save it before
@@ -40,39 +40,39 @@ another may result in a mess in the value of C<$FileChanged> it is
 adviced to use the default macro C<ChangingFile()> which tries to set
 the file status only if really intended (see below).
 
-=item $Redraw
+=item C<$Redraw>
 
 This variable makes sense only in TrEd.  You may set it to one of
-C<file, tree, win, all, tie> to alter the mechanism of redrawing the
+C<file>, C<tree>, C<win>, C<all>, C<tie> to alter the mechanism of redrawing the
 screen. The default value is C<file> (redraw all windows displaying
 current file), while C<tree> means redraw all windows displaying
 current tree, C<win> means redraw only current window and C<tie> means
 redraw all if windows are tied or (if not) redraw only current window.
 To disable redrawing set this variable to C<none>.
 
-=item $forceFileSaved
+=item C<$forceFileSaved>
 
 In TrEd, you may wish to set this variable to 0 if you wish to change
 the status of the file to C<saved> (e.g. after saving the file from
 your macro).
 
-=item $root
+=item C<$root>
 
 Root of the current tree. If possible, avoid changing this variable in
 your code, so that other macros you call may use it too.
 
-=item $this
+=item C<$this>
 
 Current node (i.e. the active node in TrEd and the node in turn if
 C<-N> or C<-H> flag was used in bTrEd). Assigning a different node
 from the current tree to this variable results in changing the active
 node in TrEd.
 
-=item $libDir
+=item C<$libDir>
 
 This variable contains a path to TrEd library directory.
 
-=item $grp
+=item C<$grp>
 
 This variable is a hash reference which stores the fundamental piece
 of information about current file, current context etc. B<DO NOT
@@ -81,16 +81,16 @@ variable to access that information.
 
 =over 5
 
-=item $grp->{FSFile}
+=item C<$grp-E<gt>{FSFile}>
 
 This field stores the FSFile object of the current file.  See Fslib
 or manual to TrEd (section Accessing other trees) for more info.
 
-=item $grp->{treeNo}
+=item C<$grp-E<gt>{treeNo}>
 
 This field contains index of the current tree.
 
-=item $grp->{macroContext}
+=item C<$grp-E<gt>{macroContext}>
 
 This field contains the name of current macro context. To change
 current context use the pre-defined macro SwitchContext
@@ -105,13 +105,15 @@ import Fslib;
 import Fslib qw(&Index);
 import main;
 
-=head2 FUNCTION REFERENCE
+## =head2 FUNCTION REFERENCE
 
-=head3 Helper macros for attributes with list or alternative of values
+=head2 Helper macros for attributes with list or alternative of values
+
+=over 4
 
 =cut
 
-=item IsList(value)
+=item C<IsList(value)>
 
 Check that a given value is a list, i.e. Fslib::List object.
 
@@ -121,7 +123,7 @@ sub IsList {
   return 1 if ref($_[0]) eq 'Fslib::List';
 }
 
-=item IsAlt(value)
+=item C<IsAlt(value)>
 
 Check that a given value is an alternative, i.e. Fslib::Alt object.
 
@@ -131,7 +133,7 @@ sub IsAlt {
   return 1 if ref($_[0]) eq 'Fslib::Alt';
 }
 
-=item List(value,value,...)
+=item C<List(value,value,...)>
 
 Return a new list (Fslib::List object) populated with given values.
 
@@ -141,7 +143,7 @@ sub List {
   Fslib::List->new(@_);
 }
 
-=item Alt(value,value,...)
+=item C<Alt(value,value,...)>
 
 Return a new alternative (Fslib::Alt object) populated with given values.
 
@@ -151,7 +153,7 @@ sub Alt {
   Fslib::Alt->new(@_);
 }
 
-=item AltV(value)
+=item C<AltV(value)>
 
 If the value is an alternative (i.e. a Fslib::Alt object), return
 all its values. Otherwise return value.
@@ -162,7 +164,7 @@ sub AltV {
   ref($_[0]) eq 'Fslib::Alt' ? @{$_[0]} : $_[0]
 }
 
-=item ListV(value)
+=item C<ListV(value)>
 
 If the value is a list (i.e. a Fslib::List object), return
 all its values. Otherwise return empty (Perl) list.
@@ -173,14 +175,14 @@ sub ListV {
   ref($_[0]) eq 'Fslib::List' ? @{$_[0]} : ()
 }
 
-=item AddToAlt($node,$attr,value,value...)
+=item C<AddToAlt(node,attr,value,value...)>
 
 Add given values as alternatives to the current value of
-$node->{$attr}.  If only one value is given and $node->{$attr} is
+C<$node-E<gt>{$attr}>.  If only one value is given and C<$node-E<gt>{$attr}> is
 empty or same as value, the given value is simply assigned to it. If
-$node->{$attr} is a Fslib::Alt object, the new values are simply added
-to it. Otherwise, if $node->{$attr} is a simple value, $node->{$attr}
-is set to a new Fslib::Alt object containing the original value as
+C<$node-E<gt>{$attr}> is a C<Fslib::Alt> object, the new values are simply added
+to it. Otherwise, if C<$node-E<gt>{$attr}> is a simple value, C<$node-E<gt>{$attr}>
+is set to a new C<Fslib::Alt> object containing the original value as
 well as the given values.
 
 =cut
@@ -200,13 +202,13 @@ sub AddToAlt {
   }
 }
 
-=item AddToList($node,$attr,value,value,...)
+=item C<AddToList(node,attr,value,value,...)>
 
-Add values to a given attribute. If $node->{$attr} is not defined or
-empty, a new Fslib::List containing given values is created. If
-$node->{$attr} is a Fslib::List object, given values are simply added
-to it. Error is issued if $node->{$attr} is defined, non-empty, yet not
-a Fslib::List object.
+Add values to a given attribute. If C<$node-E<gt>{$attr}> is not defined or
+empty, a new C<Fslib::List> containing given values is created. If
+C<$node-E<gt>{$attr}> is a C<Fslib::List> object, given values are simply added
+to it. Error is issued if C<$node-E<gt>{$attr}> is defined, non-empty, yet not
+a C<Fslib::List> object.
 
 =cut
 
@@ -224,20 +226,26 @@ sub AddToList {
 }
 
 
-=head3 Auxiliary functions
+=back
+
+=head2 General-purpose list functions
 
 =over 4
-
-=item Index (array-ref, item)
-
-This is an auxiliary function imported from Fslib which returns the
-first occurence of the item in the array.
 
 =cut
 
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
-=item ListIntersect (array-ref, array-ref, ...)
+=item C<Index(array-ref,item)>
+
+A helper function which returns the first occurence of the item in the
+array.
+
+=cut
+
+# imported from Fslib
+
+=item C<ListIntersect(array-ref,array-ref,...)>
 
 Compute intersection of given lists. In scalar context returns an
 array-ref, in list context returns a list. All duplicities are
@@ -254,7 +262,7 @@ sub ListIntersect {
   return wantarray ? @res : List(@res);
 }
 
-=item ListSubtract (array-ref, array-ref)
+=item C<ListSubtract(array-ref, array-ref)>
 
 Return elements occuring in the first list but not in the second list.
 In scalar context returns a Fslib::List object (array-ref), in list
@@ -269,7 +277,7 @@ sub ListSubtract($$) {
 }
 
 
-=item ListUnion (array-ref, array-ref, ...)
+=item C<ListUnion(array-ref, array-ref, ...)>
 
 Return union of given lists. In scalar context returns an array-ref,
 in list context returns a Fslib::List object (array-ref). All
@@ -283,7 +291,7 @@ sub ListUnion {
 }
 
 
-=item ListRegroupElements (array-ref, array-ref, ...)
+=item C<ListRegroupElements(array-ref, array-ref, ...)>
 
 This is rotate-matrix like operation. The input is a list of
 rows (array-refs each representing a row in a matrix); the output
@@ -302,53 +310,6 @@ sub ListRegroupElements {
   return wantarray ? @r : List(@r);
 }
 
-=item import (names?)
-
-If specified without parameter, exports every symbol to the caller
-package (except for symbols already (re)defined in the caller
-packages). If parameters are given, exports only names specified by
-the parameters and the following few variables that every TredMacro
-B<must> share: C<$libDir $grp $root $this $_NoSuchTree $Redraw
-$forceFileSaved $FileChanged $FileNotSaved $NodeClipboard>.
-
-=cut
-
-sub import {
-  # If specified without parameter, exports everything but
-  # names already defined in caller package
-  # If parameters are given, exports only names specified by the parameters
-  # and few variables that every TredMacro *must* share.
-
-  my $pkg=shift;
-  my $caller=caller;
-  my %stash=%{"${pkg}::"};
-  my ($type,$val);
-  my @exports;
-
-  @exports = $#_>=0 ? @_ : keys %stash;
-  push @exports,@FORCE_EXPORT;
-  foreach my $k (@exports) {
-    unless ($k =~ s/^(\W)//) {
-      *{"${caller}::$k"} = \&{"${pkg}::$k"} unless defined (&{"${caller}::$k"});
-       next;
-    }
-    $type = $1;
-    if ($type eq '&') {
-      *{"${caller}::$k"} = \&{"${pkg}::$k"};
-    } elsif ($type eq '$') {
-      *{"${caller}::$k"} = \${"${pkg}::$k"};
-    } elsif ($type eq '@') {
-      *{"${caller}::$k"} = \@{"${pkg}::$k"};
-    } elsif ($type eq '%') {
-      *{"${caller}::$k"} = \%{"${pkg}::$k"};
-    } elsif ($type eq '*') {
-      *{"${caller}::$k"} = \*{"${pkg}::$k"};
-    } else {
-#      do { warn("Can't export symbol: $type $pkg $k") };
-    }
-  }
-};
-
 =back
 
 =cut
@@ -357,11 +318,11 @@ sub import {
 # Default macro definitions to make
 # calls to global subroutines less humble
 
-=head3 Basic TrEd-related macros
+=head2 Forcing redraw
 
 =over 4
 
-=item Redraw
+=item C<Redraw()>
 
 Force TrEd to immediately redraw the current window. Hence TrEd
 redraws the tree right after an interactively invoked macro finishes,
@@ -379,7 +340,7 @@ sub Redraw {
   $main::insideEval=$ie;
 }
 
-=item Redraw_FSFile
+=item C<Redraw_FSFile()>
 
 Force TrEd to immediately redraw all windows displaying current
 file.
@@ -395,7 +356,7 @@ sub Redraw_FSFile {
   $main::insideEval=$ie;
 }
 
-=item Redraw_FSFile_Tree
+=item C<Redraw_FSFile_Tree()>
 
 Force TrEd to immediately redraw all windows displaying current
 tree.
@@ -411,7 +372,7 @@ sub Redraw_FSFile_Tree {
   $main::insideEval=$ie;
 }
 
-=item Redraw_All
+=item C<Redraw_All()>
 
 Force TrEd to immediately redraw all windows.
 
@@ -426,7 +387,7 @@ sub Redraw_All {
   $main::insideEval=$ie;
 }
 
-=item RedrawStatusLine
+=item C<RedrawStatusLine()>
 
 Force TrEd to immediately redraw status line.
 
@@ -438,7 +399,15 @@ sub RedrawStatusLine {
   &main::updateStatusLine($grp);
 }
 
-=item StandardTredFont
+=back
+
+=cut
+
+=head2 Macros related to TrEd GUI
+
+=over 4
+
+=item C<StandardTredFont()>
 
 Return a string or Tk::Font object representation of the font used in
 TrEd to label tree-nodes.
@@ -449,7 +418,7 @@ sub StandardTredFont {
   return $main::font;
 }
 
-=item StandardTredValueLineFont
+=item C<StandardTredValueLineFont()>
 
 Return a string or Tk::Font object representation of the font used in
 TrEd to display the "sentence" above the tree.
@@ -460,7 +429,7 @@ sub StandardTredValueLineFont {
   return $main::vLineFont;
 }
 
-=item SetCurrentNodeInOtherWin (win, node)
+=item C<SetCurrentNodeInOtherWin(win,node)>
 
 Set active node for a given window.
 
@@ -471,7 +440,7 @@ sub SetCurrentNodeInOtherWin {
   TrEd::Basics::setCurrent($win,$node);
 }
 
-=item CenterOtherWinTo (win, node)
+=item C<CenterOtherWinTo(win,node)>
 
 Center given window to a given node.
 
@@ -482,7 +451,28 @@ sub CenterOtherWinTo {
   main::centerTo($win,$node);
 }
 
-=item STYLESHEET_FROM_FILE()
+
+=item C<HiddenVisible()>
+
+Return true if TrEd presently displays hidden nodes.
+
+=cut
+
+sub HiddenVisible {
+  return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
+}
+
+=back
+
+=cut
+
+###########################################################
+
+=head2 Stylesheet API
+
+=over 4
+
+=item C<STYLESHEET_FROM_FILE()>
 
 This function returns a symbolic name for a virtual stylesheet that is
 constructed from the patterns and hint specified in the currently
@@ -492,7 +482,7 @@ displayed file.
 
 sub STYLESHEET_FROM_FILE { &main::STYLESHEET_FROM_FILE }
 
-=item SetStylesheetPatterns (patterns,stylesheet,create)
+=item C<SetStylesheetPatterns(patterns,stylesheet,create)>
 
 Set TrEd's display patterns for a given stylesheet. If stylesheet is
 undefined, then the stylesheet currently selected for the active view
@@ -520,7 +510,7 @@ sub SetStylesheetPatterns {
   main::setStylesheetPatterns($grp,$patterns,$stylesheet,$create);
 }
 
-=item DeleteStylesheet (stylesheet)
+=item C<DeleteStylesheet(stylesheet)>
 
 Delete given stylesheet. All windows using that stylesheet are
 switched to the pattern and hint specified in the respective files
@@ -533,7 +523,7 @@ sub DeleteStylesheet {
   main::deleteStylesheet($grp->{framegroup},$stylesheet) unless GUI();
 }
 
-=item SaveStylesheets ()
+=item C<SaveStylesheets()>
 
 Save all TrEd's stylesheets (to ~/.tred-stylesheets).
 
@@ -544,7 +534,7 @@ sub SaveStylesheets {
   main::saveStyleSheets($grp->{framegroup}) unless GUI();
 }
 
-=item ReloadStyleseets (filename?)
+=item C<ReloadStyleseets(filename?)>
 
 Reload stylesheets from a given file. If no filename is specified, the
 default path "~/.tred-stylesheets" is used.
@@ -556,7 +546,7 @@ sub ReloadStylesheets {
    main::readStyleSheets($grp->{framegroup},$filename) unless GUI();
 }
 
-=item GetStylesheetPatterns ($stylesheet)
+=item C<GetStylesheetPatterns(stylesheet)>
 
 For a given stylesheet, return it's patterns. In a scalar context,
 returns a string consisting of all patterns, including the hint.  In
@@ -571,7 +561,7 @@ sub GetStylesheetPatterns {
   return main::getStylesheetPatterns($grp,$stylesheet);
 }
 
-=item GetPatternsByPrefix ($prefix,$stylesheet?)
+=item C<GetPatternsByPrefix(prefix,stylesheet?)>
 
 Return all patterns of a given stylesheet starting with a given prefix.
 If no stylesheet name is given, a current stylesheet is used.
@@ -588,22 +578,7 @@ sub GetPatternsByPrefix {
   }
 }
 
-=item GetSpecialPattern (prefix) - OBSOLETE!!
-
-This macro is obsoleted by GetPatternsByPrefix.
-
-=cut
-
-sub GetSpecialPattern {
-  my ($patname)=@_;
-  return unless $grp->{FSFile};
-  my ($pat) = GetPatternsByPrefix($patname,STYLESHEET_FROM_FILE());
-  warn "GetSpecialPattern is obsolete: use GetPatternsByPrefix('$patname',STYLESHEET_FROM_FILE()) instead\n";
-  return $pat;
-}
-
-
-=item StylesheetExists ($stylesheet)
+=item C<StylesheetExists(stylesheet)>
 
 Returns true if stylesheet with a given name exists.
 
@@ -616,7 +591,7 @@ sub StylesheetExists {
   }
 }
 
-=item Stylesheets ()
+=item C<Stylesheets()>
 
 Returns a list of TrEd's stylesheet names.
 
@@ -628,7 +603,7 @@ sub Stylesheets {
   }
 }
 
-=item SetCurrentStylesheet ()
+=item C<SetCurrentStylesheet()>
 
 Set stylesheet for the active window.
 
@@ -644,7 +619,7 @@ sub SetCurrentStylesheet {
   return -1;
 }
 
-=item GetCurrentStylesheet ()
+=item C<GetCurrentStylesheet()>
 
 Returns name of the stylesheet currently selected for the active
 window.
@@ -657,52 +632,84 @@ sub GetCurrentStylesheet {
   }
 }
 
+=item C<GetSpecialPattern(prefix)> - OBSOLETE!!
 
-=item SetDisplayAttrs
+This macro is obsoleted by GetPatternsByPrefix.
 
-Use the given list of TrEd's patterns for displaying attributes.
+=cut
+
+sub GetSpecialPattern {
+  my ($patname)=@_;
+  return unless $grp->{FSFile};
+  warn "GetSpecialPattern is obsolete: use GetPatternsByPrefix('$patname',STYLESHEET_FROM_FILE()) instead\n";
+  my ($pat) = GetPatternsByPrefix($patname,STYLESHEET_FROM_FILE());
+  return $pat;
+}
+
+=item C<SetDisplayAttrs(pattern,...)> - OBSOLETE!!
+
+Setup given patterns as a stylesheet of
+the currently displayed FSFile. This doesn't include
+a hint pattern.
 
 =cut
 
 sub SetDisplayAttrs {
   return unless $grp->{FSFile};
+  warn "SetDisplayAttrs is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead\n";
   $grp->{FSFile}->changePatterns(@_);
 }
 
-=item SetBalloonPattern
+=item C<SetBalloonPattern(string,...)> - OBSOLETE!!
 
-Use the given pattern as a new hint pattern
+Use given strings as a C<hint:> pattern for
+the currently displayed FSFile.
 
 =cut
 
 sub SetBalloonPattern {
   return unless $grp->{FSFile};
   $grp->{FSFile}->changeHint(join "\n",@_);
+  warn "SetBalloonPattern is obsolete: use SetStylesheetPatterns([...],STYLESHEET_FROM_FILE()) instead\n";
 }
 
-=item GetDisplayAttrs
+=item C<GetDisplayAttrs()> - OBSOLETE!!
 
-Get the current list of patterns used by TrEd to display attributes.
+Get patterns of the currently displayed FSFile's stylesheet, except
+for a C<hint:> pattern.
 
 =cut
 
 sub GetDisplayAttrs {
   return unless $grp->{FSFile};
+  warn "GetDisplayAttrs is obsolete: use GetStylesheetPatterns(STYLESHEET_FROM_FILE()) instead\n";
   return $grp->{FSFile}->patterns();
 }
 
-=item GetBalloonPattern
+=item C<GetBalloonPattern()> - OBSOLETE!!
 
-Get TrEd's current hint pattern.
+Get a C<hint:> pattern of the currently displayed
+FSFile's stylesheet.
 
 =cut
 
 sub GetBalloonPattern {
   return unless $grp->{FSFile};
+  warn "GetBalloonPattern is obsolete: use (\$hint)=GetPatternsByPrefix('hint',STYLESHEET_FROM_FILE()) instead\n";
   return $grp->{FSFile}->hint();
 }
 
-=item SwitchContext
+=back
+
+=cut
+
+###########################################################
+
+=head2 Context API
+
+=over 4
+
+=item C<SwitchContext()>
 
 Switch to given macro context.
 
@@ -712,7 +719,7 @@ sub SwitchContext {
   main::switchContext($grp,shift);
 }
 
-=item SwitchContextForWindow
+=item C<SwitchContextForWindow()>
 
 Switch given window to given macro context.
 
@@ -722,7 +729,7 @@ sub SwitchContextForWindow {
   main::switchContext(@_);
 }
 
-=item CurrentContext
+=item C<CurrentContext()>
 
 Return the name of the current macro context.
 
@@ -732,7 +739,17 @@ sub CurrentContext {
   return $grp->{macroContext};
 }
 
-=item GotoTree (n)
+=back
+
+=cut
+
+###########################################################
+
+=head2 API for switching to another tree
+
+=over 4
+
+=item C<GotoTree(n)>
 
 Display the n'th tree in the current file.
 
@@ -748,7 +765,7 @@ sub GotoTree {
   return $result;
 }
 
-=item TieGotoTree (n)
+=item C<TieGotoTree(n)>
 
 Go to n'th tree in all tied windows.
 
@@ -765,7 +782,7 @@ sub TieGotoTree {
 }
 
 
-=item TieNextTree
+=item C<TieNextTree()>
 
 Display the next tree in all tied windows.
 
@@ -780,7 +797,7 @@ sub TieNextTree {
   return $result;
 }
 
-=item TiePrevTree
+=item C<TiePrevTree()>
 
 Display the previous tree in all tied windows.
 
@@ -795,7 +812,7 @@ sub TiePrevTree {
   return $result;
 }
 
-=item NextTree
+=item C<NextTree()>
 
 Display the next tree in the current file.
 
@@ -810,7 +827,7 @@ sub NextTree {
   return $result;
 }
 
-=item PrevTree
+=item C<PrevTree()>
 
 Display the previous tree in the current file.
 
@@ -825,32 +842,125 @@ sub PrevTree {
   return $result;
 }
 
-=item GetOrd (node)
+
+=item C<GetTrees()>
+
+Return a list of trees in current FSFile. Equivallent to
+C<$grp-E<gt>{FSFile}-E<gt>trees>.
+
+=cut
+
+sub GetTrees {
+  return $grp->{FSFile}->trees;
+}
+
+=back
+
+=cut
+
+###########################################################
+
+=head2 FSFormat API
+
+=over 4
+
+=item C<GetOrd(node)>
 
 Return value of the special numbering FS attribute. This macro
 actually returns the same value as
-C<$node->{$grp->{FSFile}->FS->order()}>
+C<$node-E<gt>{$grp-E<gt>{FSFile}-E<gt>FS-E<gt>order()}>
 
 =cut
 
 sub GetOrd { return $_[0]->{$grp->{FSFile}->FS->order}; }
 
 
-=item PasteNode (node, new-parent)
+=item C<Attributes()>
 
-Paste the subtree of the node under the new-parent.  The root of the
-subtree is placed among other children of new-parent with respect to
-the numbering attribute.
+Return a list of names of all attributes declared in the header of the
+current FS file.
 
 =cut
 
-sub PasteNode {
-  my ($node,$p)=@_; 
-  Fslib::Paste($node,$p,$grp->{FSFile}->FS);
-  return $node;
+sub Attributes {
+  if (ref($grp->{FSFile}->metaData('schema'))) {
+    return $grp->{FSFile}->metaData('schema')->attributes()
+  } else {
+    return $grp->{FSFile}->FS->attributes;
+  }
 }
 
-=item CutPaste (node, new-parent)
+=item C<FS()>
+
+Return FSFormat object associated with the current FSFile.
+
+=cut
+
+sub FS {
+  return $grp->{FSFile}->FS;
+}
+
+=item C<SubstituteFSHeader(declarations)>
+
+Substitute a new FS header for current document. A list of valid FS
+declarations must be passed to this function.
+
+=cut
+
+sub SubstituteFSHeader {
+  $grp->{FSFile}->changeFS(FS()->create(@_));
+}
+
+
+=item C<AppendFSHeader(declarations)>
+
+Merge given FS header declarations with the present header
+of the current document.
+
+=cut
+
+sub AppendFSHeader {
+  my $new=FS()->create(@_);
+  my $newdefs=$new->defs();
+  my $fs=$grp->{FSFile}->FS;
+  my $defs=$grp->{FSFile}->FS->defs();
+  my $list=$grp->{FSFile}->FS->list();
+  foreach ($new->attributes()) {
+    push @$list, $_ unless ($fs->exists($_));
+    $defs->{$_}=$newdefs->{$_};
+  }
+  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
+}
+
+=item C<UndeclareAttributes(attribute,...)>
+
+Remove declarations of given attributes from the FS header
+
+=cut
+
+sub UndeclareAttributes {
+  my $fs=$grp->{FSFile}->FS;
+  my $defs=$grp->{FSFile}->FS->defs();
+  my $list=$grp->{FSFile}->FS->list();
+  delete @{$defs}{@_};
+
+  @$list=grep { exists($defs->{$_}) } @$list;
+  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
+    @{$fs->unparsed} if $fs->unparsed;
+
+}
+
+=back
+
+=cut
+
+###########################################################
+
+=head2 Tree editing API
+
+=over 4
+
+=item C<CutPaste(node,new-parent)>
 
 Cut given node and paste it to a new parent. This macro is safer than
 PasteNode since it checks that new-parent isn't a descendant of node
@@ -870,7 +980,22 @@ sub CutPaste {
   PasteNode(Cut($cutted),$target);
 }
 
-=item CloneSubtree (node)
+=item C<PasteNode(node,new-parent)>
+
+Paste the subtree of the node under the new-parent.  The root of the
+subtree is placed among other children of new-parent with respect to
+the numbering attribute.
+
+=cut
+
+sub PasteNode {
+  my ($node,$p)=@_; 
+  Fslib::Paste($node,$p,$grp->{FSFile}->FS);
+  return $node;
+}
+
+
+=item C<CloneSubtree(node)>
 
 Return an identical copy (except that only declared attributes are
 preserved) of the given subtree.
@@ -882,7 +1007,7 @@ sub CloneSubtree {
   return $grp->{FSFile}->FS->clone_subtree($node);
 }
 
-=item CopyNode (node)
+=item C<CopyNode(node)>
 
 Return an identical copy (except that only declared attributes are
 preserved) of the given node.
@@ -898,7 +1023,7 @@ sub CopyNode {
   return $nd;
 }
 
-=item CutNode (node)
+=item C<CutNode(node)>
 
 Cut the node's subtree off the tree and return it. By cuttin a subtree
 we mean disconnecting it from the rest of the tree. Use PasteNode to
@@ -914,7 +1039,7 @@ sub CutNode {
   return $result;
 }
 
-=item NewTree
+=item C<NewTree()>
 
 Create a new tree before the current tree. The new tree consists of
 exactly one node. This node is activated and a reference to its FSNode
@@ -929,7 +1054,7 @@ sub NewTree {
   return $root;
 }
 
-=item NewTreeAfter
+=item C<NewTreeAfter()>
 
 Create a new tree after the current tree. The new tree consists of
 exactly one node. This node is activated and a reference to its FSNode
@@ -944,218 +1069,7 @@ sub NewTreeAfter {
   return $root;
 }
 
-
-=item Open ($filename)
-
-Open given file.
-
-=cut
-
-sub Open {
-  if (exists($grp->{framegroup})) {
-    main::openFile($grp->{framegroup},$_[0]);
-  } else {
-    main::openFile($grp,$_[0]);
-  }
-}
-
-=item Save
-
-Save the current file.
-
-=cut
-
-sub Save {
-  main::saveFile($grp);
-  $forceFileSaved=!GetFileSaveStatus();
-  $FileNotSaved=0;
-}
-
-=item GotoFileNo ($n)
-
-Goto n'th file in the current filelist.
-
-=cut
-
-sub GotoFileNo {
-  my $result;
-  if ($FileNotSaved ne '?' and $FileNotSaved) {
-    SetFileSaveStatus(1);
-  }
-  if (exists($grp->{framegroup})) {
-    $result=main::gotoFile($grp->{framegroup},$_[0]);
-  } else {
-    $result=main::gotoFile($grp,$_[0]);
-  }
-  $root=$grp->{root};
-  $this=$grp->{currentNode};
-  return $result;
-}
-
-=item LastFileNo
-
-Return the index of the last file in the current filelist.
-
-=cut
-
-sub LastFileNo {
-  main::lastFileNo($grp);
-}
-
-=item CurrentFileNo
-
-Return the index of the current file in the current filelist.
-
-=cut
-
-sub CurrentFileNo {
-  main::currentFileNo($grp);
-}
-
-=item SaveAndNextFile
-
-Save the current file and open the next file in the current file-list.
-
-=cut
-
-sub SaveAndNextFile {
-  Save() if GetFileSaveStatus() || $FileNotSaved;
-  NextFile();
-}
-
-=item NextFile
-
-Goto next file in the file-list.
-
-=cut
-
-sub NextFile {
-  my $result;
-  my $GRP=exists($grp->{framegroup}) ? $grp->{framegroup} : $grp;
-  if ($FileNotSaved ne '?' and $FileNotSaved) {
-    SetFileSaveStatus(1);
-  }
-  if ($result=main::nextFile($GRP)) {
-    $root=$grp->{root};
-    $this=$grp->{currentNode} || $root;
-    $FileNotSaved=GetFileSaveStatus();
-  } else {
-    $FileNotSaved=0 if $FileNotSaved eq '?';
-  }
-  return $result;
-}
-
-
-=item SaveAndPrevFile
-
-Save the current file and open the previous file in the current
-file-list.
-
-=cut
-
-sub SaveAndPrevFile {
-  Save() if GetFileSaveStatus() || $FileNotSaved;
-  PrevFile();
-}
-
-=item PrevFile
-
-Goto previous file in the file-list.
-
-=cut
-
-sub PrevFile {
-  my $result;
-  my $GRP=exists($grp->{framegroup}) ? $grp->{framegroup} : $grp;
-  if ($FileNotSaved ne '?' and $FileNotSaved) {
-    SetFileSaveStatus(1);
-  }
-  if ($result=main::prevFile($GRP)) {
-    $root=$grp->{root};
-    $this=$grp->{currentNode} || $root;
-    $FileNotSaved=GetFileSaveStatus();
-  } else {
-    $FileNotSaved=0 if $FileNotSaved eq '?';
-  }
-  return $result;
-}
-
-
-=item EditAttribute (node, attribute)
-
-Open edit attribute GUI.
-
-=cut
-
-sub EditAttribute {
-  main::doEditAttr($grp,@_);
-}
-
-=item Find
-
-Open the Find Node by Attributes GUI dialog.
-
-=cut
-
-sub Find {
-  $grp->{framegroup}->{findButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-}
-
-=item FindNext
-
-Searches for the first node matching the criteria of the previous use
-of the Find... menu command or FindNode macro usage.
-
-=cut
-
-sub FindNext {
-  $grp->{framegroup}->{findNextButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-}
-
-=item FindPrev
-
-Searches for the previous node matching the criteria of the previous
-use of the Find... menu command or FindNode macro usage.
-
-=cut
-
-sub FindPrev {
-  $grp->{framegroup}->{findPrevButton}->invoke();
-  $this=$grp->{currentNode};
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
-}
-
-=item ToplevelFrame
-
-Returns the Tk::Toplevel object containing the current window.
-
-=cut
-
-sub ToplevelFrame {
-  return $grp->toplevel();
-}
-
-
-
-#####################################################
-# Common useful user-level subroutines
-
-=item ErrorMessage (message)
-
-In TrEd, show a dialog box containing the given error-message.
-In BTrEd print the error message on standard output.
-
-=cut
-
-sub ErrorMessage {
-  TrEd::Basics::errorMessage($grp,join("",@_));
-}
-
-=item NewRBrother (node)
+=item C<NewRBrother(node)>
 
 Create a new brother of the given node and recalculate the special FS
 numbering attribute values in the whole tree so that the new node is
@@ -1186,7 +1100,7 @@ sub NewRBrother {
   return $nd;
 }
 
-=item NewLBrother (node)
+=item C<NewLBrother(node)>
 
 Create a new brother of the given node and recalculate the special FS
 numbering attribute values in the whole tree so that the new node is
@@ -1216,7 +1130,7 @@ sub NewLBrother {
   return $nd;
 }
 
-=item NewSon (parent)
+=item C<NewSon(parent)>
 
 Create a new child of the given parent node and recalculate the
 special FS numbering attribute values in the whole tree so that the
@@ -1247,7 +1161,7 @@ sub NewSon {
   return $nd;
 }
 
-=item NewParent (node)
+=item C<NewParent(node)>
 
 Create a node between given node and its parent and recalculate the
 special FS numbering attribute values in the whole tree so that the
@@ -1291,7 +1205,7 @@ sub NewParent {
   return $nd;
 }
 
-=item DeleteThisNode
+=item C<DeleteThisNode()>
 
 Delete the current (C<$this>) node and recalculate the special FS
 numbering attribute values in the whole tree so that there is no gap
@@ -1308,7 +1222,7 @@ sub DeleteThisNode {
   }
 }
 
-=item DeleteLeafNode($node)
+=item C<DeleteLeafNode(node)>
 
 Delete a leaf node and recalculate the special FS numbering attribute
 values in the whole tree so that there is no gap in the numbering. If
@@ -1337,7 +1251,7 @@ sub DeleteLeafNode {
   }
 }
 
-=item DeleteSubtree($node)
+=item C<DeleteSubtree(node)>
 
 Deletes a whole node's subtree and recalculate the special FS numbering attribute
 values in the whole tree so that there is no gap in the numbering. If
@@ -1361,7 +1275,7 @@ sub DeleteSubtree {
 }
 
 
-=item CopyValues
+=item C<CopyValues()>
 
 Copy the values of all the attributes except the special FS numbering
 attribute of the current node to a global hash variable named
@@ -1376,7 +1290,7 @@ sub CopyValues {
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
-=item PasteValues
+=item C<PasteValues()>
 
 Replace the values of the current node's attributes by those stored in
 the global hash variable named %ValuesClipboard.
@@ -1389,117 +1303,7 @@ sub PasteValues {
   }
 }
 
-=item NextNode (node, top?)
-
-Return the first displayed node following the given node in the
-subtree of top. This function behaves in the same manner as the
-node->following(top) method, except it works only on the nodes which
-are actually visible according to the state of the View->Show Hidden
-Nodes menu item.
-
-=cut
-
-sub NextNode {
-  my ($node,$top)=@_;
-  return $node ? main::NextDisplayed($grp,$node,$top) : undef;
-}
-
-=item PrevNode (node,top?)
-
-Return the first displayed node preceding the given node in the
-subtree of top. This function behaves in the same manner as the
-node->previous(top) method, except it works only on the nodes which
-are actually visible according to the state of the View->Show Hidden
-Nodes menu item.
-
-=cut
-
-sub PrevNode {
-  my ($node,$top)=@_;
-  return $node ? main::PrevDisplayed($grp,$node,$top) : undef;
-}
-
-=item NextVisibleNode (node,top?)
-
-Return the first visible node following the given node in the subtree
-of top. This function behaves in the same manner as the
-C<$node->following($top)> method, except that nodes of hidden subtrees
-are skipped.
-
-=cut
-
-sub NextVisibleNode {
-  my ($node,$top)=@_;
-  $node=$node->following($top);
-  my $fs=$grp->{FSFile}->FS;
-  while ($node) {
-    return $node unless ($fs->isHidden($node));
-    $node=$node->following($top);
-  }
-  return 0;
-}
-
-=item PrevVisibleNode (node,top?)
-
-Return the first visible node preceding the given node in the subtree
-of top. This function behaves in the same manner as the
-C<$node->previous($top)> method, except that nodes of hidden subtrees
-are skipped.
-
-=cut
-
-sub PrevVisibleNode {
-  my ($node,$top)=@_;
-  $node=$node->previous($top);
-  my $fs=$grp->{FSFile}->FS;
-  while ($node) {
-    return $node unless ($fs->isHidden($node));
-    $node=$node->previous($top);
-  }
-  return 0;
-}
-
-=item IsHidden (node)
-
-Return true if the given node is member of a hidden subtree. This
-macro is only an abbreviation for
-C<$grp->{FSFile}->FS->isHidden(node)>
-
-=cut
-
-sub IsHidden {
-  my ($node)=@_;
-  return $grp->{FSFile}->FS->isHidden($node);
-}
-
-=item Hide (node)
-
-Hide the given node.
-
-=cut
-
-sub Hide {
-  my ($node)=@_;
-  my $hide=$grp->{FSFile}->FS->hide();
-  if ($node and $hide ne "") {
-    $node->{$hide}='hide';
-    return 1;
-  }
-  return 0;
-}
-
-=back
-
-=cut
-
-###########################################################
-# Macros for backward compatibility with Graph
-
-=head3 Macros used by Graph2Tred macro convertor
-
-=over 4
-
-=item PlainNewSon (parent)
+=item C<PlainNewSon(parent)>
 
 Add a new child node to the given parent and make it the current
 node (by setting C<$this> to point to it).
@@ -1515,7 +1319,7 @@ sub PlainNewSon {
   return $this=$nd;
 }
 
-=item PlainDeleteNode
+=item C<PlainDeleteNode()>
 
 Delete the given node. The node must be a leaf of the tree (may not
 have any children) and must have a parent (may not be the root of the
@@ -1532,7 +1336,7 @@ sub PlainDeleteNode {
   return DeleteLeaf($node);
 }
 
-=item PlainDeleteSubtree($node)
+=item C<PlainDeleteSubtree(node)>
 
 Cut a the given node's subtree and destroy all its nodes.
 This macro doesn't recalculate ordering attributes.
@@ -1547,18 +1351,673 @@ sub PlainDeleteSubtree {
   return 1;
 }
 
-=item Attributes
-
-Return a list of names of all attributes declared in the header of the
-current FS file.
+=back
 
 =cut
 
-sub Attributes {
-  return $grp->{FSFile}->FS->attributes;
+###########################################################
+
+=head2 FSFile I/O API
+
+=over 4
+
+=item C<ChangingFile(0|1)>
+
+If no argument given the default is 1. If C<$FileChanged> is already
+set to 1 already 1, does nothing. If C<$FileChanged> has not yet been
+assigned or is zero, sets it to the given value. Returns the resulting
+value. C<ChangingFile(1)> also resets C<$forceFileSaved> to 0.
+
+=cut
+
+sub ChangingFile {
+  my ($val)=@_;
+  $val=1 if !defined($val);
+  if ($FileChanged eq '?') {
+    $FileChanged=$val;
+  } elsif ($FileChanged==0) {
+    $FileChanged=$val;
+  }
+  $forceFileSaved=0 if ($val);
+  return $FileChanged;
 }
 
-=item PrintToFile (filename, string, ...)
+=item C<Open(filename)>
+
+Open a given FSFile in TrEd.
+
+=cut
+
+sub Open {
+  if (exists($grp->{framegroup})) {
+    main::openFile($grp->{framegroup},$_[0]);
+  } else {
+    main::openFile($grp,$_[0]);
+  }
+}
+
+=item C<Save()>
+
+Save the current FSFile.
+
+=cut
+
+sub Save {
+  main::saveFile($grp);
+  $forceFileSaved=!GetFileSaveStatus();
+  $FileNotSaved=0;
+}
+
+=item C<GetFileSaveStatus()>
+
+Return 1 if some file modification was noticed by TrEd untill last save
+or reload, 0 otherwise.
+
+=cut
+
+sub GetFileSaveStatus {
+  return $grp->{FSFile} ? $grp->{FSFile}->notSaved : 0;
+}
+
+=item C<SetFileSaveStatus()>
+
+Use SetFileSaveStatus(1) to declare that some modification was made to
+the file. Use SetFileSaveStatus(0) after the file was saved from a
+macro (and TrEd/bTrEd would not notice that).
+
+=cut
+
+sub SetFileSaveStatus {
+  $grp->{FSFile}->notSaved($_[0]) if $grp->{FSFile};
+}
+
+
+=item C<DefaultInputEncoding()>
+
+Return's TrEd's/bTrEd's default IO encoding.
+
+=cut
+
+sub DefaultInputEncoding {
+  return $TrEd::Convert::inputenc;
+}
+
+
+=item C<SetDefaultInputEncoding(encoding)>
+
+Set TrEd's/bTrEd's default IO encoding.
+
+=cut
+
+sub SetDefaultInputEncoding {
+  $TrEd::Convert::inputenc = $_[0];
+}
+
+
+
+
+=item C<DumpFS(treelist,fsfile,fh)>
+
+Dump given trees from the given FSFile in FS format to the given
+filehandle. If C<$treelist> is undefined, all trees from the FSFile are
+dumped. If C<$fsfile> is undefined, current file is used. If C<$fh> is
+undefined, C<STDOUT> is used.
+
+=cut
+
+sub DumpFS {
+  my ($treelist, $fsfile, $fh)=@_;
+
+  $fsfile ||= $grp->{FSFile};
+  $fh ||= \*STDOUT;
+  $treelist ||= $fsfile->treeList;
+
+  return 0 unless ref($fsfile);
+
+  $fsfile->FS->writeTo($fh);
+  FSBackend::PrintFSFile($fh,$fsfile->FS,$treelist);
+  $fh->print($fsfile->tail);
+  return 1;
+}
+
+=item C<FileName()>
+
+Return current file's name.
+
+=cut
+
+sub FileName {
+  return $grp->{FSFile}->filename if $grp->{FSFile};
+}
+
+=item C<FileMetaData(key,value?)>
+
+Get or set meta data associated with the current FSFile.  Key is the
+meta data key. If value is omitted, current value associated with the
+key is returned. Otherwise, the given value is associated with the
+key, overwritting any previous value.
+
+=cut
+
+sub FileMetaData {
+  my ($name,$value)=@_;
+  if (@_<=1) {
+    $grp->{FSFile}->metaData($name);
+  } else {
+    $grp->{FSFile}->changeMetaData($name,$value);
+  }
+}
+
+=item C<FileUserData(key,value?)>
+
+Get or set user data associated with the current FSFile.  Key is the
+user data key. If value is omitted, current value associated with the
+key is returned. Otherwise, the given value is associated with the
+key, overwritting any previous value.
+
+=cut
+
+sub FileUserData {
+  my ($name,$value)=@_;
+  if (@_<=1) {
+    $grp->{FSFile}->userData()->{$name};
+  } else {
+    $grp->{FSFile}->userData()->{$name}=$value;
+  }
+}
+
+=item C<FileAppData(key,value?)>
+
+Get or set application specific data associated with the current
+FSFile.  Key is the appData key. If value is omitted, current value
+associated with the key is returned. Otherwise, the given value is
+associated with the key, overwritting any previous value.
+
+=cut
+
+sub FileAppData {
+  my ($name,$value)=@_;
+  if (@_<=1) {
+    $grp->{FSFile}->appData($name);
+  } else {
+    $grp->{FSFile}->changeAppData($name,$value);
+  }
+}
+
+=item C<GotoFileNo(n)>
+
+Goto n'th file in the current filelist.
+
+=cut
+
+sub GotoFileNo {
+  my $result;
+  if ($FileNotSaved ne '?' and $FileNotSaved) {
+    SetFileSaveStatus(1);
+  }
+  if (exists($grp->{framegroup})) {
+    $result=main::gotoFile($grp->{framegroup},$_[0]);
+  } else {
+    $result=main::gotoFile($grp,$_[0]);
+  }
+  $root=$grp->{root};
+  $this=$grp->{currentNode};
+  return $result;
+}
+
+=item C<LastFileNo()>
+
+Return the index of the last file in the current filelist.
+
+=cut
+
+sub LastFileNo {
+  main::lastFileNo($grp);
+}
+
+=item C<CurrentFileNo()>
+
+Return the index of the current file in the current filelist.
+
+=cut
+
+sub CurrentFileNo {
+  main::currentFileNo($grp);
+}
+
+=item C<SaveAndNextFile()>
+
+Save the current file and open the next file in the current file-list.
+
+=cut
+
+sub SaveAndNextFile {
+  Save() if GetFileSaveStatus() || $FileNotSaved;
+  NextFile();
+}
+
+=item C<NextFile()>
+
+Goto next file in the file-list.
+
+=cut
+
+sub NextFile {
+  my $result;
+  my $GRP=exists($grp->{framegroup}) ? $grp->{framegroup} : $grp;
+  if ($FileNotSaved ne '?' and $FileNotSaved) {
+    SetFileSaveStatus(1);
+  }
+  if ($result=main::nextFile($GRP)) {
+    $root=$grp->{root};
+    $this=$grp->{currentNode} || $root;
+    $FileNotSaved=GetFileSaveStatus();
+  } else {
+    $FileNotSaved=0 if $FileNotSaved eq '?';
+  }
+  return $result;
+}
+
+=item C<SaveAndPrevFile()>
+
+Save the current file and open the previous file in the current
+file-list.
+
+=cut
+
+sub SaveAndPrevFile {
+  Save() if GetFileSaveStatus() || $FileNotSaved;
+  PrevFile();
+}
+
+=item C<PrevFile()>
+
+Goto previous file in the file-list.
+
+=cut
+
+sub PrevFile {
+  my $result;
+  my $GRP=exists($grp->{framegroup}) ? $grp->{framegroup} : $grp;
+  if ($FileNotSaved ne '?' and $FileNotSaved) {
+    SetFileSaveStatus(1);
+  }
+  if ($result=main::prevFile($GRP)) {
+    $root=$grp->{root};
+    $this=$grp->{currentNode} || $root;
+    $FileNotSaved=GetFileSaveStatus();
+  } else {
+    $FileNotSaved=0 if $FileNotSaved eq '?';
+  }
+  return $result;
+}
+
+=back
+
+=head2 General I/O macros
+
+=over 4
+
+=item C<writeln(string?,...)>
+
+Print the arguments to standard output appending a new-line if missing.
+
+=cut
+
+sub writeln { $::stdout->print(@_, $_[$#_]=~/\n$/ ? () : "\n") }
+
+
+=item C<stdout(string?,...)>
+
+If called without arguments return current standard output filehandle.
+Otherwise call print the arguments to standard output.
+
+=cut
+
+sub stdout { @_ ? $::stdout && $::stdout->print(@_) : $::stdout }
+
+=item C<stderr(string?,...)>
+
+If called without arguments return current standard error output
+filehandle.  Otherwise call print the arguments to standard output.
+
+=cut
+
+sub stderr { @_ ? $::stderr && $::stderr->print(@_) : $::stderr}
+
+=item C<tmpFileName()>
+
+Returns a temporary filename..
+
+=cut
+
+sub tmpFileName {
+  require POSIX;
+  return POSIX::tmpnam();
+}
+
+=back
+
+=cut
+
+###########################################################
+
+=head2 GUI and common dialogs
+
+=over 4
+
+=item C<GUI()>
+
+Return 1 if running from TrEd, i.e., GUI is available.
+
+=cut
+
+
+sub GUI {
+  return (ref($grp) eq 'TrEd::Window');
+}
+
+
+=item C<EditAttribute(node,attribute)>
+
+Open edit attribute GUI.
+
+=cut
+
+sub EditAttribute {
+  main::doEditAttr($grp,@_);
+}
+
+=item C<Find()>
+
+Open the Find Node by Attributes GUI dialog.
+
+=cut
+
+sub Find {
+  $grp->{framegroup}->{findButton}->invoke();
+  $this=$grp->{currentNode};
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+}
+
+=item C<FindNext()>
+
+Searches for the first node matching the criteria of the previous use
+of the Find... menu command or FindNode macro usage.
+
+=cut
+
+sub FindNext {
+  $grp->{framegroup}->{findNextButton}->invoke();
+  $this=$grp->{currentNode};
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+}
+
+=item C<FindPrev()>
+
+Searches for the previous node matching the criteria of the previous
+use of the Find... menu command or FindNode macro usage.
+
+=cut
+
+sub FindPrev {
+  $grp->{framegroup}->{findPrevButton}->invoke();
+  $this=$grp->{currentNode};
+#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+}
+
+=item C<ToplevelFrame()>
+
+Returns the Tk::Toplevel object containing the current window.
+
+=cut
+
+sub ToplevelFrame {
+  return $grp->toplevel();
+}
+
+=item C<PrintDialog(...)>
+
+See the description in the L<Printing trees> section.
+
+=cut
+
+
+=item C<ErrorMessage(message)>
+
+In TrEd, show a dialog box containing the given error-message.
+In BTrEd print the error message on standard output.
+
+=cut
+
+sub ErrorMessage {
+  TrEd::Basics::errorMessage($grp,join("",@_));
+}
+
+=back
+
+=cut
+
+###########################################################
+
+=head2 Tree navigation API
+
+=over 4
+
+=item C<NextNode(node,top?)>
+
+Return the first displayed node following the given node in the
+subtree of top. This function behaves in the same manner as the
+node->following(top) method, except it works only on the nodes which
+are actually visible according to the state of the View->Show Hidden
+Nodes menu item.
+
+=cut
+
+sub NextNode {
+  my ($node,$top)=@_;
+  return $node ? main::NextDisplayed($grp,$node,$top) : undef;
+}
+
+=item C<PrevNode(node,top?)>
+
+Return the first displayed node preceding the given node in the
+subtree of top. This function behaves in the same manner as the
+node->previous(top) method, except it works only on the nodes which
+are actually visible according to the state of the View->Show Hidden
+Nodes menu item.
+
+=cut
+
+sub PrevNode {
+  my ($node,$top)=@_;
+  return $node ? main::PrevDisplayed($grp,$node,$top) : undef;
+}
+
+=item C<NextVisibleNode(node,top?)>
+
+Return the first visible node following the given node in the subtree
+of top. This function behaves in the same manner as the
+C<$node-E<gt>following($top)> method, except that nodes of hidden subtrees
+are skipped.
+
+=cut
+
+sub NextVisibleNode {
+  my ($node,$top)=@_;
+  $node=$node->following($top);
+  my $fs=$grp->{FSFile}->FS;
+  while ($node) {
+    return $node unless ($fs->isHidden($node));
+    $node=$node->following($top);
+  }
+  return 0;
+}
+
+=item C<PrevVisibleNode(node,top?)>
+
+Return the first visible node preceding the given node in the subtree
+of top. This function behaves in the same manner as the
+C<$node-E<gt>previous($top)> method, except that nodes of hidden subtrees
+are skipped.
+
+=cut
+
+sub PrevVisibleNode {
+  my ($node,$top)=@_;
+  $node=$node->previous($top);
+  my $fs=$grp->{FSFile}->FS;
+  while ($node) {
+    return $node unless ($fs->isHidden($node));
+    $node=$node->previous($top);
+  }
+  return 0;
+}
+
+=item C<IsHidden(node)>
+
+Return true if the given node is member of a hidden subtree. This
+macro is only an abbreviation for
+C<$grp-E<gt>{FSFile}-E<gt>FS-E<gt>isHidden(node)>
+
+=cut
+
+sub IsHidden {
+  my ($node)=@_;
+  return $grp->{FSFile}->FS->isHidden($node);
+}
+
+=item C<Hide(node)>
+
+Hide the given node.
+
+=cut
+
+sub Hide {
+  my ($node)=@_;
+  my $hide=$grp->{FSFile}->FS->hide();
+  if ($node and $hide ne "") {
+    $node->{$hide}='hide';
+    return 1;
+  }
+  return 0;
+}
+
+=item C<GetNodes(top?)>
+
+Get a list of all nodes in the current tree of (if top is given) in
+the subtree of top (the root of the tree is icluded as well). The list
+returned is ordered in the natural structure ordering.
+(This function automatically returns array reference in scalar context.)
+
+=cut
+
+sub GetNodes {
+  my $top = defined($_[0]) ? $_[0] : $root;
+  my $node=$top;
+  my @n;
+  while ($node) {
+    push @n,$node;
+    $node=$node->following($top);
+  }
+  return wantarray ? @n : \@n;
+}
+
+=item C<GetVisibleNodes(top?)>
+
+Return the list of all visible nodes in the subtree of the given top
+node (or the whole current tree if no top is given). The list returned
+is ordered in the natural structure ordering and all members of hidden
+subtrees are skipped.
+
+=cut
+
+sub GetVisibleNodes {
+  my $top = defined($_[0]) ? $_[0] : $root;
+  my $node=$top;
+  my @n;
+  while ($node) {
+    push @n,$node;
+    $node=$node->following_visible($top);
+  }
+  return @n;
+}
+
+=item C<PrevNodeLinear(node,attribute,top?)>
+
+Returns nearest node in the tree preceding the given node in linear
+ordering provided by the given attribute. If top node is present, only
+a subtree of top is examined.
+
+=cut
+
+sub PrevNodeLinear {
+  my ($node, $attr, $top) = @_;
+
+  return undef unless $node;
+
+  my $v=$node->{$attr};
+  my $best;
+  my $best_v;
+
+  my $nv;
+  $node=$top || $root; # reusing variable $node
+  while ($node) {
+    $nv=$node->{$attr};
+    if ($nv < $v and
+	(!$best or $nv > $best_v)) {
+      $best_v=$nv;
+      $best=$node;
+    }
+    $node=$node->following($top);
+  }
+  return $best;
+}
+
+=item C<NextNodeLinear(node,attribute,top?)>
+
+Returns nearest node in the tree following the given node in linear
+ordering provided by the given attribute. If top node is present, only
+a subtree of top is examined.
+
+=cut
+
+sub NextNodeLinear {
+  my ($node, $attr, $top) = @_;
+
+  return undef unless $node;
+
+  my $v=$node->{$attr};
+  my $best;
+  my $best_v;
+
+  my $nv;
+  $node=$top || $root; # reusing the variable
+  while ($node) {
+    $nv=$node->{$attr};
+    if ($nv > $v and
+	(!$best or $nv < $best_v)) {
+      $best_v=$nv;
+      $best=$node;
+    }
+    $node=$node->following($top);
+  }
+  return $best;
+}
+
+
+=back
+
+=cut
+
+###########################################################
+# Macros for backward compatibility with Graph
+
+=head2 Macros used by Graph2Tred macro convertor
+
+=over 4
+
+=item C<PrintToFile(filename,string,...)>
 
 Print given strings to the end of the given file.
 
@@ -1578,7 +2037,7 @@ sub PrintToFile {
   } else { print STDERR "Could not open file $file\n"; }
 }
 
-=item ValNo (n,string)
+=item C<ValNo(n,string)>
 
 Return the n'th field of the given string where individual fields are
 separated by "|".
@@ -1591,11 +2050,11 @@ sub ValNo {
   return $val[$n];
 }
 
-=item AtrNo (n)
+=item C<AtrNo(n)>
 
 Retrun name of the n'th attribute defined in the FS file. This macro
 only abbreviates the following expression:
-C<$grp->{FSFile}->FS->atno(n)>
+C<$grp-E<gt>{FSFile}-E<gt>FS-E<gt>atno(n)>
 
 =cut
 
@@ -1603,7 +2062,7 @@ sub AtrNo {
   return $grp->{FSFile}->FS->atno(shift);
 }
 
-=item Union(string_a,string_b)
+=item C<Union(string_a,string_b)>
 
 Return a string consisting of |-separated fields which form a pairwise
 disjoint set of the |-separated fields of the given strings string_a
@@ -1624,7 +2083,7 @@ sub Union {
   return join('|',@c);
 }
 
-=item Interjection (string_a,string_b)
+=item C<Interjection(string_a,string_b)>
 
 Return a string consisting of |-separated fields which form the
 interjection of the sets of |-separated fields of the given strings
@@ -1649,7 +2108,7 @@ sub Interjection {
   return join '|',@c;
 }
 
-=item ListSplit (string)
+=item C<ListSplit(string)>
 
 Split the given string of |-separated fields and return a list of the
 individual fields.
@@ -1671,7 +2130,7 @@ sub ListSplit {
   return @a;
 }
 
-=item ListJoin (list)
+=item C<ListJoin(list)>
 
 Form a string of |-separated fields from the given list of fields.
 
@@ -1681,7 +2140,7 @@ sub ListJoin {
  return join '|', map { s/|/\|/ }  @_;
 }
 
-=item ListEq (string1, string2)
+=item C<ListEq(string1, string2)>
 
 Compare the sets of |-separated fields of the two given
 strings. Return true if the sets contain the same elements; return
@@ -1703,7 +2162,7 @@ sub ListEq {
   return ($#a == $#c);
 }
 
-=item ListAssign (string,n,value)
+=item C<ListAssign(string,n,value)>
 
 Return the given string of |-separated fields, except that the n'th
 field in the string is replaced by the given value.
@@ -1718,9 +2177,9 @@ sub ListAssign {
   return join '|',@a;
 }
 
-=item SubStr (string, position, length)
+=item C<SubStr(string,position,length)>
 
-Simple substr wrapper which returns empty string if the position is
+Simple substr wrapper which returns an empty string if the position is
 beyond the end of the string.
 
 =cut
@@ -1734,51 +2193,11 @@ sub SubStr {
 
 =back
 
-=head3 Node shifting macros
+=head2 Node shifting macros
 
 =over 4
 
-=item GetNodes (top?)
-
-Get a list of all nodes in the current tree of (if top is given) in
-the subtree of top (the root of the tree is icluded as well). The list
-returned is ordered in the natural structure ordering.
-(This function automatically returns array reference in scalar context.)
-
-=cut
-
-sub GetNodes {
-  my $top = defined($_[0]) ? $_[0] : $root;
-  my $node=$top;
-  my @n;
-  while ($node) {
-    push @n,$node;
-    $node=$node->following($top);
-  }
-  return wantarray ? @n : \@n;
-}
-
-=item GetVisibleNodes (top?)
-
-Return the list of all visible nodes in the subtree of the given top
-node (or the whole current tree if no top is given). The list returned
-is ordered in the natural structure ordering and all members of hidden
-subtrees are skipped.
-
-=cut
-
-sub GetVisibleNodes {
-  my $top = defined($_[0]) ? $_[0] : $root;
-  my $node=$top;
-  my @n;
-  while ($node) {
-    push @n,$node;
-    $node=$node->following_visible($top);
-  }
-  return @n;
-}
-
-=item NormalizeOrds (listref)
+=item C<NormalizeOrds(listref)>
 
 Adjusts the special FS numbering attribute of every node of the list
 referenced by the listref argument so that the value for the attribute
@@ -1798,7 +2217,7 @@ sub NormalizeOrds {
   }
 }
 
-=item SortByOrd (listref)
+=item C<SortByOrd(listref)>
 
 Sort the list of nodes referenced by the listref argumnt according to
 the values of the special FS numbering attribute.
@@ -1813,7 +2232,7 @@ sub SortByOrd {
   return $nodesref;
 }
 
-=item RepasteNode (node)
+=item C<RepasteNode(node)>
 
 Cut the given node and paste it immediately on the same parent so that
 its structural position between its parent children is brought to
@@ -1828,7 +2247,7 @@ sub RepasteNode {
   CutPaste($node,$parent);
 }
 
-=item ShiftNodeRightSkipHidden (node)
+=item C<ShiftNodeRightSkipHidden(node)>
 
 Shift the current node in the tree to the right leaping over all
 hidden subtress by modifying the tree structure and value of the
@@ -1861,7 +2280,7 @@ sub ShiftNodeRightSkipHidden {
   RepasteNode($node);
 }
 
-=item ShiftNodeLeftSkipHidden (node,min?)
+=item C<ShiftNodeLeftSkipHidden(node,min?)>
 
 Shift the current node in the tree to the left leaping over all hidden
 subtress by modifying the tree structure and value of the special FS
@@ -1896,7 +2315,7 @@ sub ShiftNodeLeftSkipHidden {
   RepasteNode($node);
 }
 
-=item ShiftNodeRight (node)
+=item C<ShiftNodeRight(node)>
 
 Shift the current node in the tree to the right by modifying the tree
 structure and value of the special FS numbering attribute
@@ -1925,7 +2344,7 @@ sub ShiftNodeRight {
   RepasteNode($node);
 }
 
-=item ShiftNodeLeft (node)
+=item C<ShiftNodeLeft(node)>
 
 Shift the current node in the tree to the right by modifying the tree
 structure and value of the special FS numbering attribute
@@ -1954,174 +2373,18 @@ sub ShiftNodeLeft {
   RepasteNode($node);
 }
 
+
 =back
 
-=head3 Miscelaneous macros
+=cut
+
+###################################################
+
+=head2 Locating nodes and trees
 
 =over 4
 
-=cut
-
-=item HiddenVisible
-
-Return true if TrEd presently displays hidden nodes.
-
-=cut
-
-sub HiddenVisible {
-  return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
-}
-
-
-=item PrevNodeLinear(node,attribute,top?)
-
-Returns nearest node in the tree preceding the given node in linear
-ordering provided by the given attribute. If top node is present, only
-a subtree of top is examined.
-
-=cut
-
-sub PrevNodeLinear {
-  my ($node, $attr, $top) = @_;
-
-  return undef unless $node;
-
-  my $v=$node->{$attr};
-  my $best;
-  my $best_v;
-
-  my $nv;
-  $node=$top || $root; # reusing variable $node
-  while ($node) {
-    $nv=$node->{$attr};
-    if ($nv < $v and
-	(!$best or $nv > $best_v)) {
-      $best_v=$nv;
-      $best=$node;
-    }
-    $node=$node->following($top);
-  }
-  return $best;
-}
-
-=item NextNodeLinear(node,attribute,top?)
-
-Returns nearest node in the tree following the given node in linear
-ordering provided by the given attribute. If top node is present, only
-a subtree of top is examined.
-
-=cut
-
-sub NextNodeLinear {
-  my ($node, $attr, $top) = @_;
-
-  return undef unless $node;
-
-  my $v=$node->{$attr};
-  my $best;
-  my $best_v;
-
-  my $nv;
-  $node=$top || $root; # reusing the variable
-  while ($node) {
-    $nv=$node->{$attr};
-    if ($nv > $v and
-	(!$best or $nv < $best_v)) {
-      $best_v=$nv;
-      $best=$node;
-    }
-    $node=$node->following($top);
-  }
-  return $best;
-}
-
-
-=item GetTrees
-
-Return a list of trees in current FSFile. Equivallent to
-$grp->{FSFile}->trees.
-
-=cut
-
-sub GetTrees {
-  return $grp->{FSFile}->trees;
-}
-
-=item FS
-
-Return FSFormat object associated with the current FSFile.
-
-=cut
-
-sub FS {
-  return $grp->{FSFile}->FS;
-}
-
-=item FileName
-
-Return current file's name.
-
-=cut
-
-sub FileName {
-  return $grp->{FSFile}->filename if $grp->{FSFile};
-}
-
-=item FileMetaData(key,value?)
-
-Get or set meta data associated with the current FSFile.  Key is the
-meta data key. If value is omitted, current value associated with the
-key is returned. Otherwise, the given value is associated with the
-key, overwritting any previous value.
-
-=cut
-
-sub FileMetaData {
-  my ($name,$value)=@_;
-  if (@_<=1) {
-    $grp->{FSFile}->metaData($name);
-  } else {
-    $grp->{FSFile}->changeMetaData($name,$value);
-  }
-}
-
-=item FileUserData(key,value?)
-
-Get or set user data associated with the current FSFile.  Key is the
-user data key. If value is omitted, current value associated with the
-key is returned. Otherwise, the given value is associated with the
-key, overwritting any previous value.
-
-=cut
-
-sub FileUserData {
-  my ($name,$value)=@_;
-  if (@_<=1) {
-    $grp->{FSFile}->userData()->{$name};
-  } else {
-    $grp->{FSFile}->userData()->{$name}=$value;
-  }
-}
-
-=item FileAppData(key,value?)
-
-Get or set application specific data associated with the current
-FSFile.  Key is the appData key. If value is omitted, current value
-associated with the key is returned. Otherwise, the given value is
-associated with the key, overwritting any previous value.
-
-=cut
-
-sub FileAppData {
-  my ($name,$value)=@_;
-  if (@_<=1) {
-    $grp->{FSFile}->appData($name);
-  } else {
-    $grp->{FSFile}->changeAppData($name,$value);
-  }
-}
-
-=item CurrentTreeNumber
+=item C<CurrentTreeNumber()>
 
 Return current tree number.
 
@@ -2131,7 +2394,7 @@ sub CurrentTreeNumber {
   return $grp->{treeNo};
 }
 
-=item GetNodeIndex
+=item C<GetNodeIndex()>
 
 Return given node's position in the deep-first tree ordering.
 
@@ -2147,7 +2410,7 @@ sub GetNodeIndex {
   return $i;
 }
 
-=item LocateNode($node)
+=item C<LocateNode(node)>
 
 Return current filename, index of a tree (starting from 1) in the file
 to which the node belongs (0 if not found) and node's position in the tree
@@ -2173,7 +2436,7 @@ sub LocateNode {
   }
 }
 
-=item ThisAddress
+=item C<ThisAddress()>
 
 Return current node's address string in a form of filename#tree_no.index
 (tree_no starts from 1 to reflect TrEd's UI convention).
@@ -2186,7 +2449,7 @@ sub ThisAddress {
   return $f.'##'.$i.'.'.$n;
 }
 
-=item ThisAddressNTRED
+=item C<ThisAddressNTRED()>
 
 Return current node's address string in a form of
 ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
@@ -2200,32 +2463,13 @@ sub ThisAddressNTRED {
   return 'ntred://'.$f.'@'.$i.'##1.'.$n;
 }
 
-=item GetFileSaveStatus
+=back
 
-Return 1 if some file modification was noticed by TrEd untill last save
-or reload, 0 otherwise.
+=head2 Styling helper functions
 
-=cut
+=over 4
 
-sub GetFileSaveStatus {
-  return $grp->{FSFile} ? $grp->{FSFile}->notSaved : 0;
-}
-
-=item SetFileSaveStatus
-
-Use SetFileSaveStatus(1) to declare that some modification was made to
-the file. Use SetFileSaveStatus(0) after the file was saved from a
-macro (and TrEd/bTrEd would not notice that).
-
-=cut
-
-sub SetFileSaveStatus {
-  $grp->{FSFile}->notSaved($_[0]) if $grp->{FSFile};
-}
-
-
-
-=item CustomColor(name,new-value?)
+=item C<CustomColor(name,new-value?)>
 
 Get or set user defined custom color.
 
@@ -2244,7 +2488,7 @@ sub CustomColor {
 #endif TRED
 }
 
-=item UserConf(name,new-value?)
+=item C<UserConf(name,new-value?)>
 
 Get or set value of a user defined configuration option.
 
@@ -2259,69 +2503,8 @@ sub UserConf {
   }
 }
 
-=item GUI
 
-Return 1 if running from TrEd, i.e., GUI is available.
-
-=cut
-
-
-sub GUI {
-  return (ref($grp) eq 'TrEd::Window');
-}
-
-=item SubstituteFSHeader(declarations)
-
-Substitute a new FS header for current document. A list of valid FS
-declarations must be passed to this function.
-
-=cut
-
-sub SubstituteFSHeader {
-  $grp->{FSFile}->changeFS(FS()->create(@_));
-}
-
-
-=item AppendFSHeader(declarations)
-
-Merge given FS header declarations with the present header
-of the current document.
-
-=cut
-
-sub AppendFSHeader {
-  my $new=FS()->create(@_);
-  my $newdefs=$new->defs();
-  my $fs=$grp->{FSFile}->FS;
-  my $defs=$grp->{FSFile}->FS->defs();
-  my $list=$grp->{FSFile}->FS->list();
-  foreach ($new->attributes()) {
-    push @$list, $_ unless ($fs->exists($_));
-    $defs->{$_}=$newdefs->{$_};
-  }
-  @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
-}
-
-=item UndeclareAttributes(@attributes)
-
-Remove declarations of given attributes from the FS header
-
-=cut
-
-sub UndeclareAttributes {
-  my $fs=$grp->{FSFile}->FS;
-  my $defs=$grp->{FSFile}->FS->defs();
-  my $list=$grp->{FSFile}->FS->list();
-  delete @{$defs}{@_};
-
-  @$list=grep { exists($defs->{$_}) } @$list;
-  @{$fs->unparsed}=grep { !/^\@\S+\s+([^\s|]+)/ || exists($defs->{$1})  }
-    @{$fs->unparsed} if $fs->unparsed;
-
-}
-
-
-=item AddStyle($styles,$object,%styles)
+=item C<AddStyle(styles,object,key =E<gt> value,...)>
 
 Auxiliary funcion: add styles for an object to given style-sheet (can
 be used e.g. from node_style_hook).
@@ -2338,111 +2521,14 @@ sub AddStyle {
   }
 }
 
-=item DefaultInputEncoding()
 
-Return's TrEd's/bTrEd's default IO encoding.
+=back
 
-=cut
+=head2 Printing trees
 
-sub DefaultInputEncoding {
-  return $TrEd::Convert::inputenc;
-}
+=over 4
 
-
-=item SetDefaultInputEncoding($encoding)
-
-Set TrEd's/bTrEd's default IO encoding.
-
-=cut
-
-sub SetDefaultInputEncoding {
-  $TrEd::Convert::inputenc = $_[0];
-}
-
-=item writeln
-
-Print the arguments to standard output appending a new-line if missing.
-
-=cut
-
-sub writeln { $::stdout->print(@_, $_[$#_]=~/\n$/ ? () : "\n") }
-
-
-=item stdout
-
-If called without arguments return current standard output filehandle.
-Otherwise call print the arguments to standard output.
-
-=cut
-
-sub stdout { @_ ? $::stdout && $::stdout->print(@_) : $::stdout }
-
-=item stderr
-
-If called without arguments return current standard error output
-filehandle.  Otherwise call print the arguments to standard output.
-
-=cut
-
-sub stderr { @_ ? $::stderr && $::stderr->print(@_) : $::stderr}
-
-=item tmpFileName
-
-Returns a temporary filename..
-
-=cut
-
-sub tmpFileName {
-  require POSIX;
-  return POSIX::tmpnam();
-}
-
-=item DumpFS ($treelist, $fsfile, $fh)
-
-Dump given trees from the given FSFile in FS format to the given
-filehandle. If $treelist is undefined, all trees from the FSFile are
-dumped. If $fsfile is undefined, current file is used. If $fh is
-undefined, STDOUT is used.
-
-=cut
-
-sub DumpFS {
-  my ($treelist, $fsfile, $fh)=@_;
-
-  $fsfile ||= $grp->{FSFile};
-  $fh ||= \*STDOUT;
-  $treelist ||= $fsfile->treeList;
-
-  return 0 unless ref($fsfile);
-
-  $fsfile->FS->writeTo($fh);
-  FSBackend::PrintFSFile($fh,$fsfile->FS,$treelist);
-  $fh->print($fsfile->tail);
-  return 1;
-}
-
-=item ChangingFile (0|1)
-
-If no argument given the default is 1. If C<$FileChanged> is already
-set to 1 already 1, does nothing. If C<$FileChanged> has not yet been
-assigned or is zero, sets it to the given value. Returns the resulting
-value. ChangingFile(1) also resets $forceFileSaved to 0.
-
-=cut
-
-sub ChangingFile {
-  my ($val)=@_;
-  $val=1 if !defined($val);
-  if ($FileChanged eq '?') {
-    $FileChanged=$val;
-  } elsif ($FileChanged==0) {
-    $FileChanged=$val;
-  }
-  $forceFileSaved=0 if ($val);
-  return $FileChanged;
-}
-
-=item PrintDialog (-option => value, ...)
+=item C<PrintDialog(-option =E<gt> value,...)>
 
 Display TrEd's standard print dialog. Possible options are:
 
@@ -2470,13 +2556,12 @@ sub PrintDialog {
   return 1;
 }
 
-=item Print (-option => value, ...)
+=item C<Print(-option =E<gt> value,...)>
 
 Print trees given from current file according to given printing options:
 
--command -toFile -filename -format -noRotate -sentenceInfo -imageMagickResolution
--colors -hidden -psFontFile -psFontAFMFile -ttFont -fontSize
--fmtWidth -hMargin -fmtHeight -vMargin -maximize -psMedia
+C<-command>, C<-toFile>, C<-filename>, C<-format>, C<-noRotate>, C<-sentenceInfo> C<-imageMagickResolution>, C<-colors>, C<-hidden>, C<-psFontFile>, C<-psFontAFMFile>, C<-ttFont>, C<-fontSize>,
+C<-fmtWidth>, C<-hMargin>, C<-fmtHeight>, C<-vMargin>, C<-maximize>, C<-psMedia>
 
 =cut
 
@@ -2537,39 +2622,103 @@ sub Print {
   }
 }
 
-=item SetupXPath ([ id         => \&find_node_by_id,
-                  pos        => \&node_position,
-                  attributes => \&node_attributes_hashref,
-                  name       => \&node_name,
-                  value      => \&node_value,
-                  children   => \&node_children,
-                  parent     => \&node_parent,
-                  lbrother   => \&node_left_sibling,
-                  rbrother   => \&node_right_sibling,
-                ])
+=back
 
-This macro requires XML::XPath module to be installed.  It returns a
-new object based on $node that allows for XPath searches relative to
-$node or any other node within the same tree.  Caller may optionally
-specify functions to override some of the methods used for XPath
-queries. By defalut, 'id' is defined to return nothing, 'pos' returns
-nodes sentence-ordering position (or tree-ordering position if sentord
+=head2 Implementation of TredMacro::import
+
+=over 4
+
+=item C<import(names?)>
+
+If specified without parameter, exports every symbol to the caller
+package (except for symbols already (re)defined in the caller
+packages). If parameters are given, exports only names specified by
+the parameters and the following few variables that every package
+derived from TredMacro (e.g. a context)  B<must> share: C<$libDir>,
+C<$grp>, C<$root>, C<$this> C<$_NoSuchTree> C<$Redraw>,
+C<$forceFileSaved>, C<$FileChanged>, C<$FileNotSaved>,
+C<$NodeClipboard>.
+
+=cut
+
+sub import {
+  # If specified without parameter, exports everything but
+  # names already defined in caller package
+  # If parameters are given, exports only names specified by the parameters
+  # and few variables that every TredMacro *must* share.
+
+  my $pkg=shift;
+  my $caller=caller;
+  my %stash=%{"${pkg}::"};
+  my ($type,$val);
+  my @exports;
+
+  @exports = $#_>=0 ? @_ : keys %stash;
+  push @exports,@FORCE_EXPORT;
+  foreach my $k (@exports) {
+    unless ($k =~ s/^(\W)//) {
+      *{"${caller}::$k"} = \&{"${pkg}::$k"} unless defined (&{"${caller}::$k"});
+       next;
+    }
+    $type = $1;
+    if ($type eq '&') {
+      *{"${caller}::$k"} = \&{"${pkg}::$k"};
+    } elsif ($type eq '$') {
+      *{"${caller}::$k"} = \${"${pkg}::$k"};
+    } elsif ($type eq '@') {
+      *{"${caller}::$k"} = \@{"${pkg}::$k"};
+    } elsif ($type eq '%') {
+      *{"${caller}::$k"} = \%{"${pkg}::$k"};
+    } elsif ($type eq '*') {
+      *{"${caller}::$k"} = \*{"${pkg}::$k"};
+    } else {
+#      do { warn("Can't export symbol: $type $pkg $k") };
+    }
+  }
+};
+
+
+=back
+
+=cut
+
+=head2 XPath extension (slow)
+
+=over 4
+
+=item C<SetupXPath(function-mapping...)>
+
+C<SetupXPath(
+            id         =E<gt> \&find_node_by_id,
+            pos        =E<gt> \&node_position,
+            attributes =E<gt> \&node_attributes_hashref,
+            name       =E<gt> \&node_name,
+            value      =E<gt> \&node_value,
+            children   =E<gt> \&node_children,
+            parent     =E<gt> \&node_parent,
+            lbrother   =E<gt> \&node_left_sibling,
+            rbrother   =E<gt> \&node_right_sibling,
+           )>
+
+This macro requires C<XML::XPath> module to be installed.  It adjusts
+FSNode API to match XPath model based on a given function mapping.  By
+defalut, 'id' is defined to return nothing, 'pos' returns nodes
+sentence-ordering position (or tree-ordering position if sentord
 attribute isn't defined), 'attributes' returs a hashref of node's
 attributes (actually a FSNode itself), 'name' returns "node", 'value'
-returns node's @V FS-attribute value, and 'children', 'parent',
-'lbrother', and 'rbrother' all default to the respective FSNode
-method.
+returns node's value of the special FS value attribute, and
+'children', 'parent', 'lbrother', and 'rbrother' all default to the
+respective FSNode methods.
 
 Usage example:
-SetupXPath(id    => sub { $hashed_ids{ $_[0] } },
-           name  => sub { $_[0]->{func} },
-           value => sub { $_[0]->{trlemma} });
 
-foreach ($node->findnodes(q{
-     //ACT/PAT[starts-with(@tag,"N") or .="cedule"]
-   })) {
-  # process matching nodes
-}
+C<SetupXPath(id    =E<gt> sub { $hashed_ids{ $_[0] } },
+           name  =E<gt> sub { $_[0]-E<gt>{functor} }
+           value =E<gt> sub { $_[0]-E<gt>{t_lemma} });>
+
+C<foreach ($node-E<gt>findnodes(q{//ACT/PAT[starts-with(@tag,"N") or .="ano"]})) {
+    # process matching nodes
+}>
 
 =cut
 
