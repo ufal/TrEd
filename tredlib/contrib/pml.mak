@@ -714,7 +714,7 @@ sub get_sentence_string_T {
   return get_sentence_string_A($a_tree);
 }#get_sentence_string_T
 
-=item dive_AuxCP ($node)
+=item dive_AuxCP($node)
 
 You can use this function as a C<through> argument to GetFathers_A and
 GetChildren_A. It skips all the prepositions and conjunctions when
@@ -798,7 +798,7 @@ sub GetFathers_T {
   return (expand_coord_T($node));
 } # GetFathers_T
 
-=item GetChildren_A($node, $dive)
+=item GetChildren_A($node,$dive)
 
 Return a list of nodes linguistically dependant on a given
 node. C<$dive> is a function which is called to test whether a given
