@@ -511,6 +511,8 @@ sub startMain {
 	_msg "Request $request{default} at client's request\n";
 	foreach my $f (grep /\S/,split /\n/,$request{default}) {
 	  next unless ($f);
+	  $f=~s{^ntred://}{};
+	  $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
 	  _msg "Dumping some tree $f at client's request\n";
 	  next unless openFile($grp,$f,-justpreloaded => 1);
 	  for my $fsfile ($grp->{FSFile}) {
@@ -753,7 +755,7 @@ sub openFile {
 }
 
 sub _has_suffix {
-  return $_[0]=~/##?[0-9A-Z]+(?:\.[0-9]+)?$/
+  return $_[0]=~/##?[0-9A-Z]+(?:\.\d+)?$/
 }
 
 sub applyFileSuffix {
