@@ -440,7 +440,7 @@ sub generateNewFrameId {
 sub addForms {
   my ($self, $elem,$string)=@_;
   my $doc=$self->doc();
-  foreach my $f (split /,/, $string) {
+  foreach my $f (split /\s*,\s*/, $string) {
     my $form=$doc->createElement("form");
     $form->setAttribute("abbrev",$f);
     $elem->appendChild($form);
