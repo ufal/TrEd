@@ -208,7 +208,7 @@ require TrEd::Basics;
 import TrEd::Basics;
 
 #load back-ends
-@backends=('FSBackend',ImportBackends(qw(AG2FS TrXMLBackend CSTS_SGML_SP_Backend)));
+@backends=('FSBackend',ImportBackends(qw(AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 use Exporter;
