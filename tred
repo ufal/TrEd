@@ -469,7 +469,7 @@ sub gotoFile {
   return 0 if doEvalHook($grp->{focusedWindow},"goto_file_hook") eq 'stop';
   return 0 if ($fn>=$grp->{currentFilelist}->file_count() or $fn<0);
   $grp->{focusedWindow}->{currentFileNo}=$fn;
-  openFile($grp,$grp->{currentFilelist}->file_at($fn),$no_recent);
+  openFile($grp,filelistFullFileName($grp,$fn),$no_recent);
   if ($grp->{Filelist} and
 	$grp->{filelistCurrentFilelist} eq $grp->{currentFilelist}) {
     my $path=filelistEntryPath($grp->{currentFilelist},$fn);
@@ -480,6 +480,22 @@ sub gotoFile {
   return 1;
 }
 
+sub filelistFullFileName {
+  my ($grp, $fn)=@_;
+  my $filename=$grp->{currentFilelist}->file_at($fn);
+  if ($filename!~/\// and
+      ($^O ne 'MSWin32' or $filename!~/\\/)) {
+    # relative filename
+    print "filelist name: ",$grp->{currentFilelist}->name(),"\n";
+    print "filelist file: ",$grp->{currentFilelist}->filename(),"\n";
+    print "Relative filename, prepending dir: ", dirname($grp->{currentFilelist}->filename()),"\n";
+    if (dirname($grp->{currentFilelist}->filename()) ne "") {
+      $filename=dirname($grp->{currentFilelist}->filename()).$filename;
+    }
+  }
+  return $filename;
+}
+
 sub nextOrPrevFile {
   my ($grp,$delta,$no_recent)=@_;
   return 0 if ($delta==0);
@@ -487,7 +503,7 @@ sub nextOrPrevFile {
   my $win=$grp->{focusedWindow};
   my $op=$grp->{noOpenFileError};
   $grp->{noOpenFileError}=1;
-  my $filename=$grp->{currentFilelist}->file_at($win->{currentFileNo}+$delta);
+  my $filename=filelistFullFileName($grp,$win->{currentFileNo}+$delta);
   my $result=gotoFile($grp,$win->{currentFileNo}+$delta,$no_recent);
   my $quiet=0;
   my $response;
@@ -1681,6 +1697,7 @@ sub filelistDialog {
 			    return unless (defined $file and $file ne "");
 			    my $fl=Filelist->new(undef,$file);
 			    return unless $fl;
+			    print "Loading filelist: $file\n";
 			    $fl->load();
 			    addNewFilelist($grp,$fl);
 			  },$grp,$d ])
