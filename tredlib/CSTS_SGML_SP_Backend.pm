@@ -5,12 +5,12 @@ use Fs2csts;
 
 use vars qw($zcat $gzip $sgmls $sgmlsopts $doctype);
 
-$zcat = "/bin/zcat";
-$gzip = "/usr/bin/gzip";
+$zcat = "/bin/zcat" unless $zcat;
+$gzip = "/usr/bin/gzip" unless $gzip;
 
-$sgmls = "nsgmls";
-$sgmlsopts = "-i preserve.gen.entities";
-$doctype = "csts.doctype";
+$sgmls = "nsgmls" unless $sgmls;
+$sgmlsopts = "-i preserve.gen.entities" unless $sgmlsopts;
+$doctype = "csts.doctype" unless $doctype;
 
 =item open_backend (filename,mode)
 
