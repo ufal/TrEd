@@ -276,12 +276,20 @@ sub set_config {
   $fontenc=~s/^iso-/iso/;
 
   print STDERR "FONTENC: $fontenc\n";
-  $font=(exists $confs->{font}) ? $confs->{font} :
-    (($^O=~/^MS/) ? 'family:Arial,size:10' : '-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc);
+  if (exists $config->{font}) {
+    $font=$confs->{font};
+  } else {
+    if ($^O=~/^MS/) { $font='family:Arial,size:10' }
+    elsif ($fontenc eq 'iso10646-1') {
+      $font='-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-iso10646-1'
+    } else {
+      $font='-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc;
+    }
+  }
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
-    (($^O=~/^MS/) ? $font : '-*-arial unicode ms-medium-r-*-*-*-*-*-*-*-*-'.$fontenc);
+    (($^O=~/^MS/) ? $font : '-*-helvetica-medium-r-*-*-*-*-*-*-*-*-'.$fontenc);
 
   $libDir=tilde_expand($confs->{libdir})
     if (exists $confs->{libdir});
