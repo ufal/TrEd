@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-07 16:41:02 pajas>
+# Time-stamp: <2001-02-07 17:37:55 pajas>
 #
-# TrEd ver. 0.5 - Copyright (C) 2000 by Petr Pajas
+# TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
 # Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
 #
@@ -2693,7 +2693,8 @@ sub redraw_tree {
 				-msg => { map 
 					  {
 					    if (defined($_)) {
-					      my $msg=$grp->{'BalloonPattern'};
+					      my $msg=InterpolateTextField($grp->{'pinfo'}{$_},
+								      $grp->{'BalloonPattern'});
 					      $msg=~s/\${([^}]+)}/$grp->{'pinfo'}{$_}->{$1}/eg;
 					      $_ => $msg;
 					    }
@@ -3274,14 +3275,6 @@ sub PrepareTextField {
   return encode($text);
 }
 
-sub PrepareText {
-  my ($node,$str)=@_;
-    my $msg=InterpolateTextField($node,$displayAttrs[$str]);
-    $msg=~s/\#{[^}]+}//g;
-    $msg=~s/\${([^}]+)}/PrepareTextField($node,$1)/eg;
-    return encode($msg);
-}
-
 sub InterpolateTextField {
   my ($node,$text)=@_;
   $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval InterpolateRefs($node,$1)/eg;
@@ -3294,3 +3287,10 @@ sub InterpolateRefs {
   return $text;
 }
 
+sub PrepareText {
+  my ($node,$str)=@_;
+    my $msg=InterpolateTextField($node,$displayAttrs[$str]);
+    $msg=~s/\#{[^}]+}//g;
+    $msg=~s/\${([^}]+)}/PrepareTextField($node,$1)/eg;
+    return encode($msg);
+}
