@@ -94,6 +94,7 @@ BEGIN {
   $NoConvertWarning
   $lockFiles
   $noLockProto
+  $stippleInactiveWindows
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -200,6 +201,7 @@ sub set_config {
   $toolbarBalloonBackground=val_or_def($confs,"toolbarhintbackground",'#fff3b0');
 
   $activeTextColor=val_or_def($confs,"activetextcolor",'blue');
+  $stippleInactiveWindows=val_or_def($confs,"stippleinactivewindows",1);
 
   $highlightWindowColor=val_or_def($confs,"highlightwindowcolor",'black');
   $highlightWindowWidth=val_or_def($confs,"highlightwindowwidth",3);
@@ -292,7 +294,6 @@ sub set_config {
   $treeViewOpts->{drawEdgeBoxes}       = val_or_def($confs,"drawedgeboxes",0);
   $treeViewOpts->{highlightAttributes} = val_or_def($confs,"highlightattributes",1);
   $treeViewOpts->{showHidden} = val_or_def($confs,"showhidden",0);;
-
   $TrEd::Convert::inputenc = val_or_def($confs,"defaultfileencoding",$TrEd::Convert::inputenc);
   $TrEd::Convert::outputenc = val_or_def($confs,"defaultdisplayencoding",$TrEd::Convert::outputenc);
   $TrEd::Convert::lefttoright = val_or_def($confs,"displaynonasciilefttoright",$TrEd::Convert::lefttoright);

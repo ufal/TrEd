@@ -679,19 +679,19 @@ sub node_coords {
 sub node_options {
   my ($self,$node,$fs,$current_node)=@_;
   return (-outline => $self->get_nodeOutlineColor,
+	  -width => 1,
 	  -fill =>
 	  ($current_node eq $node) ?
 	  $self->get_currentNodeColor :
 	  ($fs->isHidden($node) ?
 	   $self->get_hiddenNodeColor :
-	   $self->get_nodeColor)
+	   $self->get_nodeColor),
 	 );
 }
 
 sub line_options {
   my ($self,$node,$fs,$can_dash)=@_;
   if ($fs->isHidden($node)) {
-    
     return (-fill => $self->get_hiddenLineColor,
 	    ($can_dash ? 
 	    ($self->get_dashHiddenLines ? ('-dash' => '-') : (-dash => $self->get_lineDash)) : ())
@@ -886,7 +886,7 @@ sub eval_coords_spec {
 }
 
 sub redraw {
-  my ($self,$fsfile,$currentNode,$nodes,$valtext)=@_;
+  my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple)=@_;
   my $node;
   my $style;
   my $parent;
@@ -916,6 +916,8 @@ sub redraw {
     @style_patterns=$self->get_label_patterns($fsfile,"style");
     @patterns=($self->patterns) ? @{$self->patterns} : $fsfile->patterns();
   }
+
+  my $canvas = $self->canvas;
 
   $self->clear_pinfo();
   $self->store_gen_pinfo("Opts",\%Opts);
@@ -1004,12 +1006,12 @@ sub redraw {
   #}
   #------------------------------------------------------------
 
-  $self->canvas->configure(-background => $self->get_backgroundColor) if (defined $self->get_backgroundColor);
-  $self->canvas->addtag('delete','all');
-  if ($self->canvas->find('withtag','bgimage')) {
-    $self->canvas->dtag('bgimage','delete');
+  $canvas->configure(-background => $self->get_backgroundColor) if (defined $self->get_backgroundColor);
+  $canvas->addtag('delete','all');
+  if ($canvas->find('withtag','bgimage')) {
+    $canvas->dtag('bgimage','delete');
   }
-  $self->canvas->delete('delete');
+  $canvas->delete('delete');
 
   $self->store_gen_pinfo('lastX' => 0);
   $self->store_gen_pinfo('lastY' => 0);
@@ -1030,7 +1032,7 @@ sub redraw {
       $vtext=$valtext;
     }
     $self->apply_style_opts(
-			    $self->canvas->
+			    $canvas->
 			    createText(0,
 				       $self->{canvasHeight},
 				       -font => $self->get_font,
@@ -1040,7 +1042,7 @@ sub redraw {
     $self->{canvasHeight}+=$fontHeight;
     $self->{canvasWidth}=max($self->{canvasWidth},$self->getTextWidth($ftext));
     $self->apply_style_opts(
-			    $self->canvas->
+			    $canvas->
 			    createLine(0,$self->{canvasHeight},
 				       $self->getTextWidth($ftext),
 				       $self->{canvasHeight}),
@@ -1052,7 +1054,7 @@ sub redraw {
     foreach (@lines) {
       if ($self->{reverseNodeOrder}) {
 	$self->apply_style_opts(
-				$self->canvas->
+				$canvas->
 				createText($self->{canvasWidth},
 					   $self->{canvasHeight},
 					   -font => $self->get_font,
@@ -1063,7 +1065,7 @@ sub redraw {
 				@{$Opts{SentenceFileInfo}});
       } else {
 	$self->apply_style_opts(
-				$self->canvas->
+				$canvas->
 				createText(0,$self->{canvasHeight},
 					   -font => $self->get_font,
 					   -tags => 'vline',
@@ -1075,13 +1077,13 @@ sub redraw {
       $self->{canvasHeight}+=$fontHeight;
     }
 
-#    $self->canvas->createRectangle(0,0, $self->{canvasWidth},$self->{canvasHeight},
+#    $canvas->createRectangle(0,0, $self->{canvasWidth},$self->{canvasHeight},
 #			      -outline => 'black',
 #			      -fill => undef,
 #				   -tags => 'vline'
 #			     );
   }
-  $self->canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
+  $canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
 
   my $lineHeight=$self->getFontHeight();
   my $edge_label_yskip= (scalar(@node_patterns) ? $self->get_edgeLabelSkipAbove : 0);
@@ -1113,7 +1115,7 @@ sub redraw {
       my $line="line_$objectno";
       my $l;
       eval {
-	$l=$self->canvas->
+	$l=$canvas->
 	  createLine(@c,
 		     $self->line_options($node,$fsfile->FS,$can_dash),
 		     -tags => [$line,'line'],
@@ -1146,9 +1148,10 @@ sub redraw {
     my @node_coords=$self->node_coords($node,$currentNode);
     $objectno++;
     my $oval="oval_$objectno";
-    my $o=$self->canvas->create($shape,
+    my $o=$canvas->create($shape,
 			  @node_coords,
 			  -tags => ['point',$oval],
+			  -outline => $self->get_nodeOutlineColor,
 			  $self->node_options($node,
 					      $fsfile->FS,
 					      $currentNode)
@@ -1229,7 +1232,7 @@ sub redraw {
       my $textWidth=$self->get_node_pinfo($node,"NodeLabelWidth");
       $objectno++;
       my $box="textbox_$objectno";
-      my $bid=$self->canvas->
+      my $bid=$canvas->
 	createRectangle($self->get_node_pinfo($node,"NodeLabel_XPOS")-
 			$self->get_xmargin,
 			$self->get_node_pinfo($node,"NodeLabel_YPOS")-
@@ -1261,7 +1264,7 @@ sub redraw {
       ## get maximum width stored here by recalculate_positions
       $objectno++;
       my $box="edgebox_$objectno";
-      my $bid=$self->canvas->
+      my $bid=$canvas->
 	createRectangle($self->get_node_pinfo($node,"EdgeLabel_XPOS")-
 			$self->get_xmargin,
 			$self->get_node_pinfo($node,"EdgeLabel_YPOS")
@@ -1311,7 +1314,6 @@ sub redraw {
       }
     }
   }
-
   ## Canvas Custom Balloons ##
   if ($fsfile) {
     my $hint=defined($self->hint) ? ${$self->hint} : $fsfile->hint;
@@ -1321,7 +1323,7 @@ sub redraw {
 #=pod
 
       $self->get_CanvasBalloon()->
-	attach($self->canvas->Subwidget('scrolled'),
+	attach($canvas->Subwidget('scrolled'),
 	       -balloonposition => 'mouse',
 	       -msg =>
 	       {
@@ -1342,25 +1344,37 @@ sub redraw {
     }
   }
   if (defined $self->get_backgroundImage) {
-    unless ($self->canvas->find('withtag','bgimage')) {
+    unless ($canvas->find('withtag','bgimage')) {
       my $img=$self->get_backgroundImage;
       print STDERR "Loading background image from $img...";
       eval {
-	$self->canvas->Photo("photo", -file => $img);
-	$self->canvas->createImage($self->get_backgroundImageX,
+	$canvas->Photo("photo", -file => $img);
+	$canvas->createImage($self->get_backgroundImageX,
 				   $self->get_backgroundImageY,
 				   -image =>"photo",
 				   -anchor => 'nw', -tags=>'bgimage');
       };
       print STDERR $@ ? "failed.\n" : "ok.\n";
     }
-    $self->realcanvas->lower('bgimage','all')  if ($self->canvas->find('withtag','bgimage'));
+    $self->realcanvas->lower('bgimage','all')  if ($canvas->find('withtag','bgimage'));
   }
   eval {
     $self->realcanvas->raise('text','TextBg');
     $self->realcanvas->raise('plaintext','TextBg');
   };
   undef $@;
+  ## Canvas grid - for inactive TreeView ##
+  ##  $canvas->createLine(0,0,$canvas->width, $canvas->height,-fill => 'green');
+  if ($stipple ne "") {
+    $canvas->createRectangle(-1000,-1000,
+			     max(5000,$self->{canvasWidth}),max(5000,$self->{canvasHeight}),
+			     -outline => undef,
+			     -fill=>'lightgray',
+			     -stipple => 'gray50',
+			     -activestipple => 'gray25',
+			     -tags => 'stipple',
+			     -state => $stipple);
+  }
 }
 
 
