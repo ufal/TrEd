@@ -684,7 +684,7 @@ sub draw_text_line {
       $self->canvas->addtag('text', 'withtag', $txt);
       $self->store_obj_pinfo($txt,$node);
       $self->store_node_pinfo($node,"Text[$1][$i][$j]",$txt);
-      print "Text[$1][$i][$j]\n";
+#      print "Text[$1][$i][$j]\n";
       $self->store_gen_pinfo("attr:$txt",$1);
     } elsif (/^\#{([^}]+)}$/) {
       unless ($self->get_noColor) {
