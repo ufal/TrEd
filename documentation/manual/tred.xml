@@ -2892,6 +2892,24 @@ root# <userinput>make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><literal>MaxUndo</literal></term>
+	  <listitem>
+	    <para>
+	      Maximum number of operations stored by Undo/Redo functions.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal>ReloadPreservesPatterns</literal></term>
+	  <listitem>
+	    <para>
+	      This option may be set to 0 to force the Reload function
+	      to use the file's attribute pattern setting rather than
+	      preserving the current one.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><literal>UseCzechLocales</literal></term>
 	  <listitem>
 	    <para>
