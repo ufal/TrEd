@@ -348,9 +348,11 @@ sub auto_coref {
   while ($node) {
     my @results = ACAP::autoAssignCorefs($node);
     if ($results[0]) {
-      print STDERR "ACAP result: ";
-      print STDERR join(", ",@results);
-      print STDERR "\n";
+      if ($main::macroDebug) {
+	print STDERR "ACAP result: ";
+	print STDERR join(", ",@results);
+	print STDERR "\n";
+      }
       unless ($node->{coref})
 	      {assign_coref($node,@results);}
     }
