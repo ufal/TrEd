@@ -147,24 +147,40 @@ sub setCurrent {
   &$on_current_change($win,$node,$prev,'setCurrent') if $on_current_change;
 }
 
+sub _messageBox {
+  my ($top,$title,$msg)=@_;
+  my $d= $top->DialogBox(-title=> $title,
+		      -buttons=> ['OK']);
+  my $t= $d->
+    Scrolled(qw/Text -relief sunken -borderwidth 2
+		-scrollbars oe/);
+  $t->Subwidget('scrolled')->menu->delete('File');
+  $t->pack(qw/-side top -expand yes -fill both/);
+#  disable_scrollbar_focus($t);
+  $t->BindMouseWheelVert();
+  $t->insert('0.0',$msg);
+  $d->Show;
+}
+
 sub errorMessage {
   my ($win,$msg)=@_;
   if ($on_error) {
     &$on_error(@_);
   } else {
+    my $top;
     if (ref($win)=~/^Tk::/) {
-      $win->toplevel->
-	messageBox(-icon=> 'error',
-		   -message=> $msg,
-		   -title=> 'Error', -type=> 'ok');
+      $top = $win->toplevel;
     } elsif (exists($win->{framegroup}) and
 	ref($win->{framegroup}) and
       exists($win->{framegroup}{top}) and
 	ref($win->{framegroup}{top})) {
-      $win->{framegroup}->{top}->toplevel->
-	messageBox(-icon=> 'error',
-		 -message=> $msg,
-		   -title=> 'Error', -type=> 'ok');
+      $top = $win->{framegroup}->{top}->toplevel;
+    }
+    if ($top) {
+      _messageBox($top,'Error',$msg);
+      #       $top->messageBox(-icon=> 'error',
+      # 		       -message=> $msg,
+      # 		       -title=> 'Error', -type=> 'ok');
     } else {
       print STDERR "$msg\n";
     }
