@@ -257,6 +257,7 @@ require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index $FSError);
 
+$tredDebug=1 if $opt_D;
 $Fslib::Debug=1 if $opt_D;
 
 # import min and max functions
@@ -391,13 +392,13 @@ ApplyGlobalConfig();
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
 # work, so I recommend not to use czech locales there, unless you
 # really want the decimal points to be replaced by commas in
-# postscript:)
+# postscript:-)
+use locale;
+use POSIX qw(locale_h);
+
 ($TrEd::Config::useLocales) && do {
-  use locale;
-  use POSIX qw(locale_h);
   $ENV{LC_ALL}=undef;
   setlocale(LC_ALL,undef);
-  setlocale(LC_NUMERIC,"C");
 
   if ($TrEd::Convert::support_unicode) {
     my $lc_collate=setlocale(LC_COLLATE);
@@ -408,14 +409,13 @@ ApplyGlobalConfig();
     $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
     setlocale(LC_CTYPE,$lc_collate);
   }
+  setlocale(LC_NUMERIC,"C");
 };
 
-($TrEd::Config::useCzechLocales) && do {
+($TrEd::Config::useCzechLocales or
+ setlocale('LANG') =~ /^cs_CZ|^czech/) && do {
   $ENV{LC_ALL}=undef;
-  use locale;
-  use POSIX qw(locale_h);
   setlocale(LC_ALL,undef);
-  setlocale(LC_NUMERIC,"C");
 
   if ($TrEd::Convert::support_unicode) {
     setlocale(LC_COLLATE,"cs_CZ.UTF-8");
@@ -425,6 +425,7 @@ ApplyGlobalConfig();
     setlocale(LC_COLLATE,"cs_CZ");
     setlocale('LANG',"cs_CZ");
   }
+  setlocale(LC_NUMERIC,"C");
 };
 
 {
@@ -433,7 +434,8 @@ ApplyGlobalConfig();
   foreach my $l (split /\s*,\s*/,$opt_l) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
     if (open(F,"<$l")) {
-      my @f=<F>; chomp @f;
+      my @f=<F>; 
+      chomp @f;
       push @fl_files,\@f;
       close(F);
     } else {
@@ -443,7 +445,8 @@ ApplyGlobalConfig();
   # define filelists Default, Default-2, etc.
   print STDERR "Creating filelists...\n" if $tredDebug;
   my $default= new Filelist('Default');
-  $default->add(0,absolutize(@ARGV, @fl_files ? @{shift @fl_files} : ()));
+  my @abs = absolutize(@ARGV, @fl_files ? @{shift @fl_files} : ());
+  $default->add(0,@abs);
   addNewFilelist(undef,$default);
   my $fl_no=-2;
   foreach (grep {@{$_}} @fl_files) {
@@ -499,7 +502,7 @@ exit;
 
 sub icon {
   my ($grp, $name)=@_;
-  unless (exists $grp->{"icon-".$name}) {
+  unless (exists $grp->{icon}{$name}) {
     my @extensions=qw(gif xpm);
     eval { require Tk::PNG };
     if (not($@)) {
@@ -523,12 +526,12 @@ sub icon {
 	if (-f $file) {
 	  if ($ext eq 'xpm') {
 	    print "Loading pixmap icon $file\n" if $tredDebug;
-	    $grp->{"icon-".$name} = 
+	    $grp->{icon}{$name} = 
 	      $grp->{top}->Pixmap(-file => $file);
 	  } else {
 	    require Tk::PNG if $ext eq 'png';
 	    print "Loading photo icon $file\n" if $tredDebug;
-	    $grp->{"icon-".$name} = 
+	    $grp->{icon}{$name} = 
 	      $grp->{top}->Photo(-format => $ext, -file => $file);
 	  }
 	  last DIR;
@@ -538,8 +541,8 @@ sub icon {
       }
     }
   }
-  print "No icon found for $name\n" if (not $grp->{"icon-".$name} and $tredDebug);
-  return $grp->{"icon-".$name};
+  print "No icon found for $name\n" if (not $grp->{icon}{$name} and $tredDebug);
+  return $grp->{icon}{$name};
 }
 
 sub __debug {
@@ -547,7 +550,7 @@ sub __debug {
 }
 
 sub absolutize {
-  return map { m(^[[:alnum:]]+://|^\s*\|) ? $_ : rel2abs($_) } @_;
+  return map { m(^[[:alnum:]]+://|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
 }
 
 sub get_open_filename {
@@ -590,6 +593,20 @@ sub get_save_filename {
   } else {
     $w->getSaveFile(%opts);
   }
+}
+
+sub get_widget_descendants {
+  my ($w)=@_;
+  if (UNIVERSAL::isa($w,'Tk::Widget')) {
+    return ($w,map { get_widget_descendants($_) } $w->children);
+  } else {
+    return ();
+  }
+}
+
+sub get_all_widgets {
+  my ($grp)=@_;
+  get_widget_descendants($grp->{top});
 }
 
 sub get_entry_type {
@@ -716,6 +733,20 @@ sub ApplyGlobalConfig {
 		       -highlightthickness  => $highlightWindowWidth,
 		       -highlightbackground => $highlightWindowColor);
   return unless $grp;
+
+  delete $grp->{icon};
+  foreach my $button (grep { UNIVERSAL::isa($_,'Tk::Button') } get_all_widgets($grp)) {
+    my $icon = $button->cget('-image');
+    if (defined $icon) {
+      my $f = filename($icon->cget('-file'));
+      $f=~s/\..*//;
+      my $new = icon($grp,$f);
+      Tk::catch {
+	$button->configure(-image => $new) if $new;
+      };
+    }
+  }
+
   Tk::catch {
     $grp->{valueLine}->configure(-height => $valueLineHeight,
 				 ($valueLineReverseLines ? () :
