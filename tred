@@ -187,8 +187,6 @@ use Tk::Listbox;
 use Tk::Balloon;
 use Tk::DialogBox;
 use Tk::Tiler;
-use locale;
-use POSIX qw(locale_h);
 
 
 push @INC,$libDir;
@@ -200,6 +198,8 @@ import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 my @macros=();
 
 if ($useCzechLocales) {
+  use locale;
+  use POSIX qw(locale_h);
   setlocale(LC_COLLATE,"cs_CZ");
   setlocale(LC_NUMERIC,"us_EN");
   setlocale(LANG,"czech");
@@ -262,6 +262,22 @@ sub max {
 }
 
 
+sub parseConfigLine {
+  local $_=shift;
+  my $confs=shift;
+  my $key;
+  unless (/^[;#]/ or /^$/) {
+    chomp;
+    if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
+      $confs->{$1}=$2;
+      $key=$1;
+      $confs->{$key}=~s/\\//g;
+      $confs->{$key}=$1 if ($confs->{$key}=~/^'(.*)'$/ or $confs->{$key}=~/^"(.*)"$/);
+      #print "$key=$confs->{$key};\n";
+    }
+  }
+}
+
 sub readConfig {
   #
   # Simple configuration file handling
@@ -270,22 +286,12 @@ sub readConfig {
   my $key, $f;
   local *F;
   my $openOk=0;
-  # open first existing file in config-file list
-#  print "\n\n",join(":",@configFileSearchList),"\n\n";
+
   foreach $f (@_,@configFileSearchList) {
     if (defined($f), open(F,"<$f")) {
       print "Using resource file $f\n";
       while (<F>) {
-	unless (/^[;#]/ or /^$/) {
-	  chomp;
-	  if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
-	    $confs{$1}=$2;
-	    $key=$1;
-	    $confs{$key}=~s/\\//g;
-	    $confs{$key}=$1 if ($confs{$key}=~/^'(.*)'$/ or $confs{$key}=~/^"(.*)"$/);
-	    #print "$key=$confs{$key};\n";
-	  }
-	}
+	parseConfigLine($_,\%confs);
       }
       close F;
       $openOk=1;
@@ -298,59 +304,74 @@ sub readConfig {
       "Warning: Cannot open any file in:\n",join(":",@configFileSearchList),"\n" .
       "         Using configuration defaults!\n";
   }
-#  print "\n\n",join(":",@configFileSearchList),"\n\n";
-  $appName=(exists $confs{AppName}) ? $confs{AppName} : "Tred ver. 0.3";
-  $baseXPos=(exists $confs{BaseXPos}) ? $confs{BaseXPos} : 15;
-  $baseYPos=(exists $confs{BaseYPos}) ? $confs{BaseYPos} : 15;
-  $nodeWidth=(exists $confs{NodeWidth}) ? $confs{NodeWidth} : 5;
-  $nodeHeight=(exists $confs{NodeHeight}) ? $confs{NodeHeight} : 5;
-  $nodeXSkip=(exists $confs{NodeXSkip}) ? $confs{NodeXSkip} : 5;
-  $nodeYSkip=(exists $confs{NodeYSkip}) ? $confs{NodeYSkip} : 10;
-  $xmargin=(exists $confs{Xmargin}) ? $confs{Xmargin} : 2;
-  $ymargin=(exists $confs{Ymargin}) ? $confs{Ymargin} : 2;
-  $buttonsRelief=(exists $confs{ButtonsRelief}) ? $confs{ButtonsRelief} : 'raised';
-  $menubarRelief=(exists $confs{MenubarRelief}) ? $confs{MenubarRelief} : 'raised';
-  $lineWidth=(exists $confs{LineWidth}) ? $confs{LineWidth} : 1;
-  $lineColor=(exists $confs{LineColor}) ? $confs{LineColor} : 'black';
-  $lineArrow=(exists $confs{LineArrow}) ? $confs{LineArrow} : 'none';  
-  $nodeColor=(exists $confs{NodeColor}) ? $confs{NodeColor} : 'yellow';  
-  # $activeNodeColor=(exists $confs{ActiveNodeColor}) ? $confs{ActiveNodeColor} : 'blue';
-  $currentNodeColor=(exists $confs{CurrentNodeColor}) ? $confs{CurrentNodeColor} : 'red';
-  $nearestNodeColor=(exists $confs{NearestNodeColor}) ? $confs{NearestNodeColor} : 'green';
-  $textColor=(exists $confs{TextColor}) ? $confs{TextColor} : 'black';
-  $textColorShadow=(exists $confs{TextColorShadow}) ? $confs{TextColorShadow} : 'darkgrey';
-  $textColorHilite=(exists $confs{TextColorHilite}) ? $confs{TextColorHilite} : 'darkgreen';
-  $textColorXHilite=(exists $confs{TextColorXHilite}) ? $confs{TextColorXHilite} : 'darkred';
-  $activeTextColor=(exists $confs{ActiveTextColor}) ? $confs{ActiveTextColor} : 'blue';
-  $boxColor=(exists $confs{BoxColor}) ? $confs{BoxColor} : 'wheat';
-  $currentBoxColor=(exists $confs{CurrentBoxColor}) ? $confs{CurrentBoxColor} : 'white';
-  $backgroundColor=(exists $confs{BackgroundColor}) ? $confs{BackgroundColor} : undef;
-  $font=(exists $confs{Font}) ? $confs{Font} : 
+  setConfig(\%confs);
+}
+
+sub applyConfig {
+  my %confs;
+  foreach (@_) {
+    parseConfigLine($_,\%confs);
+  }
+  setConfig(\%confs);
+}
+
+sub setConfig {
+  my $confs=shift;
+
+  $appName=(exists $confs->{AppName}) ? $confs->{AppName} : "Tred ver. 0.3";
+  $baseXPos=(exists $confs->{BaseXPos}) ? $confs->{BaseXPos} : 15;
+  $baseYPos=(exists $confs->{BaseYPos}) ? $confs->{BaseYPos} : 15;
+  $nodeWidth=(exists $confs->{NodeWidth}) ? $confs->{NodeWidth} : 5;
+  $nodeHeight=(exists $confs->{NodeHeight}) ? $confs->{NodeHeight} : 5;
+  $nodeXSkip=(exists $confs->{NodeXSkip}) ? $confs->{NodeXSkip} : 5;
+  $nodeYSkip=(exists $confs->{NodeYSkip}) ? $confs->{NodeYSkip} : 10;
+  $xmargin=(exists $confs->{Xmargin}) ? $confs->{Xmargin} : 2;
+  $ymargin=(exists $confs->{Ymargin}) ? $confs->{Ymargin} : 2;
+  $buttonsRelief=(exists $confs->{ButtonsRelief}) ? $confs->{ButtonsRelief} : 'raised';
+  $menubarRelief=(exists $confs->{MenubarRelief}) ? $confs->{MenubarRelief} : 'raised';
+  $buttonBorderWidth=(exists $confs->{ButtonsBorder}) ? $confs->{ButtonsBorder} : 2;
+  $lineWidth=(exists $confs->{LineWidth}) ? $confs->{LineWidth} : 1;
+  $lineColor=(exists $confs->{LineColor}) ? $confs->{LineColor} : 'black';
+  $lineArrow=(exists $confs->{LineArrow}) ? $confs->{LineArrow} : 'none';  
+  $nodeColor=(exists $confs->{NodeColor}) ? $confs->{NodeColor} : 'yellow';  
+  # $activeNodeColor=(exists $confs->{ActiveNodeColor}) ? $confs->{ActiveNodeColor} : 'blue';
+  $currentNodeColor=(exists $confs->{CurrentNodeColor}) ? $confs->{CurrentNodeColor} : 'red';
+  $nearestNodeColor=(exists $confs->{NearestNodeColor}) ? $confs->{NearestNodeColor} : 'green';
+  $textColor=(exists $confs->{TextColor}) ? $confs->{TextColor} : 'black';
+  $textColorShadow=(exists $confs->{TextColorShadow}) ? $confs->{TextColorShadow} : 'darkgrey';
+  $textColorHilite=(exists $confs->{TextColorHilite}) ? $confs->{TextColorHilite} : 'darkgreen';
+  $textColorXHilite=(exists $confs->{TextColorXHilite}) ? $confs->{TextColorXHilite} : 'darkred';
+  $activeTextColor=(exists $confs->{ActiveTextColor}) ? $confs->{ActiveTextColor} : 'blue';
+  $boxColor=(exists $confs->{BoxColor}) ? $confs->{BoxColor} : 'wheat';
+  $currentBoxColor=(exists $confs->{CurrentBoxColor}) ? $confs->{CurrentBoxColor} : 'white';
+  $backgroundColor=(exists $confs->{BackgroundColor}) ? $confs->{BackgroundColor} : undef;
+  $font=(exists $confs->{Font}) ? $confs->{Font} : 
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-*-2');
-  $type1font=(exists $confs{Type1Font}) ? $confs{Type1Font} :
+  $type1font=(exists $confs->{Type1Font}) ? $confs->{Type1Font} :
     (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2');
-  $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : $libDir;
-  $appIcon=(exists $confs{AppIcon}) ? <$confs{AppIcon}> : "$libDir/tred.xpm";
-  $psFontFile=(exists $confs{PsFontFile}) ? 
-    ((-d <$confs{PsFontFile}>) ? <$confs{PsFontFile}> : "$libDir/".$confs{PsFontFile}) : 
+  $libDir=(exists $confs->{LibDir}) ? <$$confs{LibDir}> : $libDir;
+  $appIcon=(exists $confs->{AppIcon}) ? <$$confs{AppIcon}> : "$libDir/tred.xpm";
+  $psFontFile=(exists $$confs{PsFontFile}) ? 
+    ((-d <$$confs{PsFontFile}>) ? <$$confs{PsFontFile}> : "$libDir/".$$confs{PsFontFile}) : 
       "$libDir/csarialm.pfa";
-  $psFontName=(exists $confs{PsFontName}) ? <$confs{PsFontName}> : "Arial-Medium";
-  $psFontSize=(exists $confs{PsFontSize}) ? <$confs{PsFontSize}> : "12";
-  $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : $macroFile;
-  $defaultMacroFile=(exists $confs{DefaultMacroFile}) ? <$confs{DefaultMacroFile}> : "$libDir/tred.def";
-  $prtFmtWidth=(exists $confs{PrtFmtWidth}) ? $confs{PrtFmtWidth} : '21c';
-  $prtFmtHeight=(exists $confs{PrtFmtHeight}) ? $confs{PrtFmtHeight} : '297m';
-  $prtVMargin=(exists $confs{PrtVMargin}) ? $confs{PrtVMargin} : '3c';
-  $prtHMargin=(exists $confs{PrtHMargin}) ? $confs{PrtHMargin} : '1c';
-  $psMedia=(exists $confs{PsMedia}) ? $confs{PsMedia} : '%%DocumentMedia: A4 595 842 white()';
-  $psFile=(exists $confs{PsFile}) ? <$confs{PsFile}> : 'tred.ps';
-  $drawBoxes=(exists $confs{DrawBoxes}) ? $confs{DrawBoxes} : 0;
-  $highlightAttributes=(exists $confs{HighlightAttributes}) ? $confs{HighlightAttributes} : 1;
-  $maximizePrintSize=(exists $confs{MaximizePrintSize}) ? $confs{MaximizePrintSize} : 0;
-  $showHidden=exists ($confs{ShowHidden}) ? $confs{ShowHidden} : 0;
-  $createMacroMenu=(exists $confs{CreateMacroMenu}) ? $confs{CreateMacroMenu} : 0;
-  $maxMenuLines=(exists $confs{MaxMenuLines}) ? $confs{MaxMenuLines} : 30;
-  $useCzechLocales=(exists $confs{UseCzechLocales}) ? $confs{UseCzechLocales} : 1;
+  $psFontName=(exists $$confs{PsFontName}) ? <$$confs{PsFontName}> : "Arial-Medium";
+  $psFontSize=(exists $$confs{PsFontSize}) ? <$$confs{PsFontSize}> : "12";
+  $macroFile=(exists $$confs{MacroFile}) ? <$$confs{MacroFile}> : $macroFile;
+  $defaultMacroFile=(exists $confs->{DefaultMacroFile}) ? <$$confs{DefaultMacroFile}> : "$libDir/tred.def";
+  $prtFmtWidth=(exists $confs->{PrtFmtWidth}) ? $confs->{PrtFmtWidth} : '21c';
+  $prtFmtHeight=(exists $confs->{PrtFmtHeight}) ? $confs->{PrtFmtHeight} : '297m';
+  $prtVMargin=(exists $confs->{PrtVMargin}) ? $confs->{PrtVMargin} : '3c';
+  $prtHMargin=(exists $confs->{PrtHMargin}) ? $confs->{PrtHMargin} : '1c';
+  $psMedia=(exists $confs->{PsMedia}) ? $confs->{PsMedia} : '%%DocumentMedia: A4 595 842 white()';
+  $psFile=(exists $confs->{PsFile}) ? <$$confs{PsFile}> : 'tred.ps';
+  $drawBoxes=(exists $confs->{DrawBoxes}) ? $confs->{DrawBoxes} : 0;
+  $highlightAttributes=(exists $confs->{HighlightAttributes}) ? $confs->{HighlightAttributes} : 1;
+  $maximizePrintSize=(exists $confs->{MaximizePrintSize}) ? $confs->{MaximizePrintSize} : 0;
+  $showHidden=exists ($confs->{ShowHidden}) ? $confs->{ShowHidden} : 0;
+  $createMacroMenu=(exists $confs->{CreateMacroMenu}) ? $confs->{CreateMacroMenu} : 0;
+  $maxMenuLines=(exists $confs->{MaxMenuLines}) ? $confs->{MaxMenuLines} : 30;
+  $useCzechLocales=(exists $confs->{UseCzechLocales}) ? $confs->{UseCzechLocales} : 1;
+  $Tk::strictMotif=(exists $confs->{StrictMotif}) ? $confs->{StrictMotif} : 0;
   print "finished reading ini-file\n";
 }
 
@@ -1116,7 +1137,7 @@ sub startMain {
 					       -relief => $buttonsRelief,
 					       -image => $group{top}->Pixmap(-file => 
 									     "$libDir/right.xpm"),
-					       -borderwidth => 2,
+					       -borderwidth => $buttonBorderWidth,
 
 			    -command => [sub { nextTree(@_) },\%group]);
   $group{Balloon}->attach($group{'nextButton'},
@@ -1126,7 +1147,7 @@ sub startMain {
 					       -relief => $buttonsRelief,
 					       -image => $group{top}->Pixmap(-file => 
 									     "$libDir/left.xpm"),
-					       -borderwidth => 2,
+					       -borderwidth => $buttonBorderWidth,
 					       -command => [sub { prevTree(@_) },\%group]);
   $group{Balloon}->attach($group{prevButton},
 		 -balloonmsg => "see the previous tree");
@@ -1136,7 +1157,7 @@ sub startMain {
   $group{'openButton'}=$group{'frame'}->Button(-text => "Open",
 					       -relief => $buttonsRelief,
 					       -image       => $group{top}->Pixmap(-file => "$libDir/fileopen.xpm"),
-					       -borderwidth => 2,
+					       -borderwidth => $buttonBorderWidth,
 			 -command => [sub { fileDialog(@_) },\%group])->pack(-side=>'left',-padx=>'1');
   $group{Balloon}->attach($group{openButton},
 		 -balloonmsg => "open file");
@@ -1146,7 +1167,7 @@ sub startMain {
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file =>
 							  "$libDir/filefloppy.xpm"),
-			    -borderwidth => 2,
+			    -borderwidth => $buttonBorderWidth,
 			    -command => [sub { 
 					   saveFile(@_) 
 					 },\%group])->pack(-side=>'left',-padx=>'1');
@@ -1159,7 +1180,7 @@ sub startMain {
 			    -relief => $buttonsRelief,
 			    -image       => $group{top}->Pixmap(-file => 
 								"$libDir/fileprint.xpm"),
-			    -borderwidth => 2,
+			    -borderwidth => $buttonBorderWidth,
 			    -command => [sub { printThis(@_) },\%group])->pack(-side=>'left',
 									       -padx=>'1');
   $group{Balloon}->attach($group{printButton},
@@ -1171,7 +1192,7 @@ sub startMain {
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file => 
 							  "$libDir/start.xpm"),
-			    -borderwidth => 2,
+			    -borderwidth => $buttonBorderWidth,
 			    -command => [sub { prevFile(@_); },\%group])->pack(-side=>'left',
 									       -padx=>'1');
   $group{Balloon}->attach($group{prevFileButton},
@@ -1183,7 +1204,7 @@ sub startMain {
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file => 
 							  "$libDir/finish.xpm"),
-			    -borderwidth => 2,
+			    -borderwidth => $buttonBorderWidth,
 			    -command => [sub { nextFile(@_); },\%group])->pack(-side=>'left',
 									       -padx=>'1');
   $group{Balloon}->attach($group{nextFileButton},
@@ -1197,7 +1218,7 @@ sub startMain {
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file => 
 							  "$libDir/tick.xpm"),
-			    -borderwidth => 2,
+			    -borderwidth => $buttonBorderWidth,
 			    -command => [sub { selectAttrs(@_) },\%group])->pack(-side=>'right',
 										 -padx=>'1');
   $group{Balloon}->attach($group{attrButton},
@@ -1227,9 +1248,16 @@ sub startMain {
 # here focus stays where it is.
 # Usage: my $dlg=DialogBox(); ...; ShowDialog($dlg);
 sub ShowDialog {
-    my ($cw, $grab) = @_;
+    my ($cw, $grab, $focus) = @_;
     my $old_focus = $cw->focusSave;
     my $old_grab = $cw->grabSave;
+
+    my $oldFocus = $cw->focusCurrent;
+    my $oldGrab = $cw->grabCurrent;
+    my $grabStatus = $oldGrab->grabStatus if ($oldGrab);
+
+    $cw->grab;
+    $focus->focus if ($focus);
 
     $cw->Popup();
 
@@ -1300,14 +1328,24 @@ sub askSaveFile {
 
 sub editConfig {
   my $grp=shift;
-  my $d = $grp->{'top'}->DialogBox(-title => "Edit Resource File", -width => "10c",
-				   -buttons => ["Save and Apply", "Cancel"]);
+  my $d = $grp->{'top'}->DialogBox(-title => "Edit Resource File ($configFile)" , -width => "10c",
+				   -buttons => ["Save and Apply"]);
   $d->resizable(0,0);
   $d->bind('<Return>' => [sub {1;}]);
   my $t = $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
 		     -height 30 -scrollbars e/);
   $t->pack(qw/-expand yes -fill both/);
+  my $b = $d->Subwidget('bottom')->Button(-text => "Apply",
+		     -command => [sub { 
+				    applyConfig(split(/\n/,shift->get("0.0","end"))); 
+				    redraw_tree(shift); 
+				  },$t,$grp]);
+  $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+  $b = $d->Subwidget('bottom')->
+    Button(-text => "Cancel", 
+	   -command => sub { $d->{'selected_button'} = "Cancel" } );
+  $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
   if (open(F,"<$configFile")) {
     $t->insert('0.0',join "",<F>);
     close(F);
@@ -1318,7 +1356,7 @@ sub editConfig {
     open(F,">$configFile");
     print F $t->get("0.0","end");
     close(F);
-    readConfig($configFile);
+    applyConfig(split(/\n/,$t->get("0.0","end")));
     redraw_tree($grp);
   }
   undef $d;
