@@ -65,13 +65,13 @@ foreach $f (@ARGV) {
   }
   $fs->changeBackend($backend);
 
-  if ($opt_s or $opt_a or $opt_p or $opt_r) {
-    $f=~s/$opt_s$/$opt_a/ if ($opt_s or $opt_a);
-    $f=~s/^$opt_p/$opt_r/ if ($opt_p or $opt_r);
-  } else {
+  my $out=$f;
+  $out=~s/$opt_s$/$opt_a/ if ($opt_s or $opt_a);
+  $out=~s/^$opt_p/$opt_r/ if ($opt_p or $opt_r);
+  if ($f eq $out) {
     unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
     rename $f, "$f~" || die "Cannot create backup file named $f~ for $f\n";
   }
-  $fs->writeFile($f);
+  $fs->writeFile($out);
   undef $fs;
 }
