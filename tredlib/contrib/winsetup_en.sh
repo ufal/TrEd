@@ -5,8 +5,6 @@ if [ "$OSTYPE" != "cygwin" ]; then
 fi
 
 PATH=.:`pwd`/bin:${PATH}
-PERLVERSION="This is perl, v5.6.1 built for MSWin32-x86-multi-thread"
-PERL8VERSION="This is perl, v5.8.0 built for MSWin32-x86-multi-thread"
 
 function ask {
   answer=""
@@ -29,6 +27,12 @@ function mkplbat {
 
 function findperlbin {
   PERLBIN=`which perl 2>/dev/null`
+  if [ ! -z $PERLBIN ]; then
+      if $PERLBIN -v | grep -q 'MSWin32'; then
+      else
+	  PERLBIN=""
+      fi
+  fi
   if [ -z $PERLBIN ]; then
     PERLBIN=`regtool get '\machine\Software\Perl\BinDir' 2>/dev/null`"/perl.exe"
     if [ ! -x $PERLBIN ]; then
@@ -104,20 +108,22 @@ function install_packages {
 function upgrade_perl {
   PERLINSTALLDIR=${PERLDIR%/BIN}
   PERLINSTALLDIR=${PERLINSTALLDIR%/bin}
-  echo Removing $PERLINSTALLDIR
-
-  $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat
-
-  read -e -n1 -r -p "Stisknete libovolnou klavesu pro pokracovani..."
-
-  rm -rf $PERLINSTALLDIR
+  if ask "Warning: do you realy want to remove $PERLINSTALLDIR?"; then
+      $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat
+      read -e -n1 -r -p "About to remove $PERLINSTALLDIR. Press any key to continue..."
+      rm -rf $PERLINSTALLDIR
+  else
+      echo "Installation aborted."
+      read -e -n1 -r -p "Press any key to exit..."
+      exit 1;
+  fi
   echo 
   echo Old version of Perl removed
   install_perl
 }
 
 function get_perl_install_dir {
-  read -e -p "Zadejte cilovy adresar [c:/perl]: " PERLINSTALLDIR
+  read -e -p "Enter target directory [c:/perl]: " PERLINSTALLDIR
   if [ -z $PERLINSTALLDIR ]; then
     PERLINSTALLDIR="c:/perl"
   fi
