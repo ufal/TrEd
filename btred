@@ -9,7 +9,7 @@
 # Usage: 
 #   btred [-m macro-file] [-e script] files...
 # or
-#   btred -h|--help      to show this help
+#   btred -h|-u      to show help or usage
 #
 #
 # This is a "batch mode" version of Tred (Tk Tree editor for FS files).
@@ -33,7 +33,7 @@
 #  $this         - current node - $root of the first tree at the beginning
 #  $root         - root node of current tree
 #  $currentFile  - current file name
-#  $FileNotSaved - change this to 1 if you need not to save the file at the end
+#  $FileNotSaved - change this to 0 if you need not to save the file at the end
 #  %attribs      - attribute definition hash 
 #  @atord        - (positional) attribute array
 #
@@ -64,38 +64,41 @@ if (exists $ENV{TREDHOME}) {
 } elsif (-d dirname($0).'../lib/tred') {
   $libDir=dirname($0).'../lib/tred';
 }
+print "Trying $libDir\n" if ($libDir);
+$macroFile=undef;
 
-$macroFile="$libDir/tred.mac";
 $macroname="autostart"; # this is the default macro name
 
-my $i;
 
-for ($i=0;$i<=$#ARGV;$i++) {
-  if ($ARGV[$i] eq '-m') {
-    $macroFile=$ARGV[$i+1];
-    splice @ARGV,$i--,2;
-  } elsif ($ARGV[$i] eq '-e') {
-    $macroName=$ARGV[$i+1];
-    splice @ARGV,$i--,2;
-  } elsif ($ARGV[$i] eq '-h') {
+use Getopt::Std;
+getopts('m:e:hu');
+if (defined $opt_m) {
+  $macroFile=$opt_m;
+}
+if (defined $opt_e) {
+  $macroName=$opt_e;
+}
+if ($opt_u) {
 
-    print <<EOH;
-Usage: 
+  print <<EOH;
+Usage:
   btred [-m macro-file] [-e script] files...
 or
-  btred -h          to show usage
-or 
-  btred --help      to show help
+  btred -u          to show usage
+or
+  btred -h          to show help
 EOH
-    exit;
-  } elsif ($ARGV[$i] eq '--help') {
-    print <<EOF;
-Usage: 
+  exit;
+}
+
+if ($opt_h) {
+  print <<EOF;
+Usage:
   btred [-m macro-file] [-e script] files...
 or
-  btred -h          to show usage
-or 
-  btred --help      to show help
+  btred -u          to show usage
+or
+  btred -h          to show help
 
 This is a "batch mode" version of Tred (Tk Tree editor for FS files).
 Runs given script or macro on each file.
@@ -117,20 +120,21 @@ You may use these variables in your macros and scripts:
 \$this         - current node - $root of the first tree at the beginning
 \$root         - root node of current tree
 \$currentFile  - current file name
-\$FileNotSaved - change this to 1 if you need not to save the file at the end
+\$FileNotSaved - change this to 0 if you need not to save the file at the end
 \%attribs      - attribute definition hash 
 \@atord        - (positional) attribute array
 
 You may also use all functions defined in default macro file tred.def
 as well as any function from Fslib (see Fslib documentation).
 EOF
-      exit;
-  }
+  exit;
 }
+
 
 # print @ARGV,"\n";
 
 readConfig();
+$macroFile="$libDir/tred.mac" unless (defined $macroFile);
 
 
 unless (-d $libDir) {
@@ -287,7 +291,7 @@ sub openFile {
     if (/^\[/) {
       print STDERR "#";
       STDERR->autoflush(1);
-      $root=GetTree($_,\@atord,\%attribs);
+      $root=GetTree2($_,\@atord,\%attribs);
       push(@trees, $root) if $root;
     } else { push(@rest, $_); }
   }
@@ -316,6 +320,7 @@ sub openFile {
 sub saveFile {
   my $f=$currentFile;
   my @atrIds=();
+  print "Saving file $f\n";
 
   return unless $f;
 
@@ -327,6 +332,15 @@ sub saveFile {
   close(FO);
   $FileNotSaved=0;
 }
+
+sub IsHidden {
+  # Tests if given node is hidden or not
+  # Returns the ancesor that hides it or undef
+  my $node=shift;
+  $node=Parent($node) while ($node and (Hide($node,\%attribs) ne 'hide'));
+  return ($node ? $node : undef);
+}
+
 
 sub getNodes {
   # prepare value line and @nodes list with deleted/saved hidden
