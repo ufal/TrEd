@@ -207,9 +207,17 @@ do {
 $TrEd::Config::treeViewOpts={
 			     drawSentenceInfo => 0,
 			     showHidden => 0,
-			     customColors	 => ['darkgreen','darkblue','darkmagenta',
-						     'orange','black','DodgerBlue4',
-						     'red','gold','cyan','midnightblue']
+			     customColors	 =>
+			       {0 => 'darkgreen',
+				1 => 'darkblue',
+				2 => 'darkmagenta',
+				3 => 'orange',
+				4 => 'black',
+				5 => 'DodgerBlue4',
+				6 => 'red',
+				7 => 'gold',
+				8 => 'cyan',
+				9 => 'midnightblue'}
 			    };
 
 if (defined $opt_c) {
@@ -1954,17 +1962,20 @@ sub saveFile {
   print STDERR $@;
   unless ($win->{FSFile}->writeFile($f)) {
     $win->toplevel->Unbusy() unless $insideEval;
-    errorMessage($win,"Error saving file to '$f', trying to recover the original from backup\n(".conv_from_locale($!)."\n");
+    errorMessage($win,"Error while saving file to '$f': $!\nI'll try to recover the original from backup.\n".conv_from_locale($!)."\n");
+    undef $!;
     eval {
       IOBackend::rename_uri($f."~",$f); # if (-f $f);
     };
-    return 0;
+    errorMessage($win,"Error while renaming backup file $f~ back to $f.\n".$@."\n".conv_from_locale($!)) if $@ or $!;
+    return -1;
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
   $win->toplevel->Unbusy() unless $insideEval;
   saveFileStateUpdate($win);
   my $autosave=autosave_filename($f);
   unlink $autosave if defined($autosave);
+  return 1;
 }
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
@@ -8601,9 +8612,9 @@ sub node_release {
 	    and $node->parent!=$tv->get_obj_pinfo($p)) {
 	  save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"));
 	  my $oldparent=$node->parent;
-	  Paste(Cut($node),
-		$tv->get_obj_pinfo($p),
-		$win->{FSFile}->FS);
+	  Fslib::Paste(Cut($node),
+		       $tv->get_obj_pinfo($p),
+		       $win->{FSFile}->FS);
 	  $win->{FSFile}->notSaved(1);
           doEvalHook($win,"node_moved_hook",$node,$oldparent);
 	  lastActionBookmark($grp);
