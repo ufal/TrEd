@@ -189,7 +189,7 @@ if ($opt_m) {
     if ($eval) {
       use Safe;
       my $compartment = new Safe;
-      $compartment->permit_only(qw(concat :base_core));
+      $compartment->permit_only(qw(concat padany subst substcont :base_core));
       $_=$out;
       $compartment->reval($eval);
       print STDERR $@ if $@;
