@@ -2431,7 +2431,7 @@ sub toggle_hide_subtree {
 }
 
 
-#bind join_with_mother_lemma to Ctrl+Shift+U menu Pripojit k matce (spojit, vhodne pro predlozky)
+#bind join_with_mother_lemma to Ctrl+Shift+U menu Pripojit k matce (spojit, vhodne pro sloz. predlozky)
 sub join_with_mother_lemma {
 
   $sPar1 = "1";
@@ -2461,7 +2461,7 @@ sub split_node_and_lemma {
 }
 
 
-#bind _key_Ctrl_Shift_Q to Ctrl+Shif+Q menu Odpojit pripojene fw od akt. vrcholu
+#bind _key_Ctrl_Shift_Q to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
 sub _key_Ctrl_Shift_Q {
 
   splitfw();
@@ -3400,9 +3400,13 @@ sub TreeToTR {
 
   Prepositions();
 
+  Conjunctions();
+
   Sentmod();
 
   TRVerbs();
+
+  Pnoms();
 
   ModalVerbs();
 
@@ -4557,23 +4561,22 @@ sub AuxPY {
 
   $pAct = $pNext;
 
-  if (Interjection($pAct->{'afun'},'AuxP') eq 'AuxP' ||
-      Interjection($pAct->{'afun'},'AuxY') eq 'AuxY' &&
+  if (Interjection($pAct->{'afun'},'AuxP') eq 'AuxP' &&
       Interjection($pAct->{'TR'},'hide') ne 'hide') {
 
     $pPrepParent = Parent($pAct);
 
     if (Interjection($pPrepParent->{'afun'},'AuxP') eq 'AuxP') {
 
-      $sPrepBody = ValNo(0,$pPrepParent->{'trlemma'});
+      $sPrepBody = ValNo(0,$pPrepParent->{'form'});
 
-      $sPrepTail = ValNo(0,$pAct->{'trlemma'});
+      $sPrepTail = ValNo(0,$pAct->{'form'});
 
       $BodyOrder = ValNo(0,$pPrepParent->{'ord'});
 
       $TailOrder = ValNo(0,$pAct->{'ord'});
 
-      if ($TailOrder>$BodyOrder) {
+      if ($TailOrder>=$BodyOrder) {
 
 	$sPomocny = (ValNo(0,$sPrepBody).ValNo(0,'_'));
 
@@ -4599,6 +4602,8 @@ sub AuxPY {
       ConnectID();
 
       $pPrepParent->{'AID'} = $sReturn;
+
+      $pPrepParent->{'reserve1'} = 'complex';
 
       $pSubtree = FirstSon($pAct);
 
@@ -4681,6 +4686,7 @@ sub TRVerbs {
   my $pSE;			# used as type "pointer"
   my $pCut;			# used as type "pointer"
   my $pD;			# used as type "pointer"
+  my $pPnomPar;			# used as type "pointer"
   my $sAfun;			# used as type "string"
   my $sTag;			# used as type "string"
   my $sVTagBeg;			# used as type "string"
@@ -4853,43 +4859,18 @@ sub TRVerbs {
 
 	  if ($sVTagBeg eq 'V') {
 
-	    $pPNOM = $pThisSon;
-
-	    $pCut = FirstSon($pPNOM);
-	  CutAllSubtrees:
-	    if ($pCut) {
-
-	      if (Interjection($pCut->{'ordorig'},'') eq '') {
-
-		$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-	      }
-
-	      $NodeClipboard=CutNode($pCut);
-
-	      $pD = PasteNode($NodeClipboard,Parent($pPNOM));
-
-	      $pCut = FirstSon($pPNOM);
-
-	      goto CutAllSubtrees;
-	    }
-
-	    $pPNOM->{'TR'} = 'hide';
-
-	    $sPar1 = ValNo(0,$pAct->{'AID'});
-
-	    $sPar2 = ValNo(0,$pPNOM->{'AID'});
-
-	    ConnectID();
-
-	    $pAct->{'AID'} = $sReturn;
+	    $pThisSon->{'reserve5'} = 'PNOM';
 	  }
 	}
 
-	if (RBrother($pThisSon)) {
+	if ($pThisSon) {
 
-	  $pThisSon = RBrother($pThisSon);
+	  if (RBrother($pThisSon)) {
 
-	  goto AllSons;
+	    $pThisSon = RBrother($pThisSon);
+
+	    goto AllSons;
+	  }
 	}
 
 	if ($pSE) {
@@ -4986,8 +4967,10 @@ sub ModalVerbs {
   my $pVerb;			# used as type "pointer"
   my $pJoin;			# used as type "pointer"
   my $pCut;			# used as type "pointer"
+  my $pCut1;			# used as type "pointer"
   my $pModal;			# used as type "pointer"
   my $pKoord;			# used as type "pointer"
+  my $pPossVerb;		# used as type "pointer"
   my $sLemma;			# used as type "string"
   my $sTag;			# used as type "string"
   my $sVTagBeg;			# used as type "string"
@@ -5103,12 +5086,21 @@ sub ModalVerbs {
 
       $pKoord = $pVerb;
 
-      $pVerb = FirstSon($pVerb);
+      $pPossVerb = FirstSon($pVerb);
 
-      goto ModalKoordination;
+      if ($pPossVerb) {
+
+	if (substr(ValNo(0,$pPossVerb->{'tag'}),0,1) eq 'V') {
+
+	  $pVerb = $pPossVerb;
+
+	  goto ModalKoordination;
+	}
+      }
     }
 
-    if ($pVerbTag eq 'Vf') {
+    if ($pVerbTag eq 'Vf' ||
+	$pVerbTag eq 'Vs') {
 
       $pJoin = $pVerb;
     } else {
@@ -5118,61 +5110,61 @@ sub ModalVerbs {
       goto AllSons;
     }
 
-  }
 
-  if ($pJoin) {
+    if ($pJoin) {
 
-    $pCut = $pJoin;
+      $pCut1 = $pJoin;
 
-    $NodeClipboard=CutNode($pCut);
+      $NodeClipboard=CutNode($pCut1);
 
-    $pD = PasteNode($NodeClipboard,Parent($pModal));
+      $pD = PasteNode($NodeClipboard,Parent($pModal));
 
-    $pVerb = $pD;
+      $pVerb = $pD;
 
-    $pCut = FirstSon($pModal);
-  CutAllSubtrees:
-    if ($pCut) {
+      $pCut = FirstSon($pModal);
+    CutAllSubtrees:
+      if ($pCut) {
 
-      if (Interjection($pCut->{'ordorig'},'') eq '') {
+	if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	}
+
+	$NodeClipboard=CutNode($pCut);
+
+	$pD = PasteNode($NodeClipboard,$pVerb);
+
+	$pCut = FirstSon($pModal);
+
+	goto CutAllSubtrees;
       }
 
-      $NodeClipboard=CutNode($pCut);
+      $sPar1 = ValNo(0,$pVerb->{'AID'});
+
+      $sPar2 = ValNo(0,$pModal->{'AID'});
+
+      ConnectID();
+
+      $pVerb->{'AID'} = $sReturn;
+
+      $NodeClipboard=CutNode($pModal);
 
       $pD = PasteNode($NodeClipboard,$pVerb);
 
-      $pCut = FirstSon($pModal);
+      $pD->{'TR'} = 'hide';
 
-      goto CutAllSubtrees;
-    }
+      $pVerb->{'deontmod'} = $sMod;
 
-    $sPar1 = ValNo(0,$pVerb->{'AID'});
+      $pAct = $pVerb;
 
-    $sPar2 = ValNo(0,$pModal->{'AID'});
+      if ($sKoord>"0") {
 
-    ConnectID();
+	$sKoord = $sKoord+"1";
 
-    $pVerb->{'AID'} = $sReturn;
+	$pVerb = RBrother($pVerb);
 
-    $NodeClipboard=CutNode($pModal);
-
-    $pD = PasteNode($NodeClipboard,$pVerb);
-
-    $pD->{'TR'} = 'hide';
-
-    $pVerb->{'deontmod'} = $sMod;
-
-    $pAct = $pVerb;
-
-    if ($sKoord>"0") {
-
-      $sKoord = $sKoord+"1";
-
-      $pVerb = RBrother($pVerb);
-
-      goto AllSons;
+	goto AllSons;
+      }
     }
   }
 
@@ -5196,15 +5188,26 @@ sub ModalVerbs {
 
       $pKoord = $pVerb;
 
-      $pVerb = FirstSon($pVerb);
+      $pPossVerb = FirstSon($pVerb);
 
-      goto ModalKoordinationObj;
+      if ($pPossVerb) {
+
+	if (substr(ValNo(0,$pPossVerb->{'tag'}),0,1) eq 'V') {
+
+	  $pVerb = $pPossVerb;
+
+	  goto ModalKoordinationObj;
+	}
+      }
     }
 
-    if ($pVerbTag eq 'Vf' &&
-	Interjection($pVerb->{'afun'},'Obj') eq 'Obj') {
+    if ($pVerbTag eq 'Vf' ||
+	$pVerbTag eq 'Vs') {
 
-      $pJoin = $pVerb;
+      if (Interjection($pVerb->{'afun'},'Obj') eq 'Obj') {
+
+	$pJoin = $pVerb;
+      }
     } else {
 
       $pVerb = RBrother($pVerb);
@@ -5212,61 +5215,61 @@ sub ModalVerbs {
       goto AllSonsObj;
     }
 
-  }
 
-  if ($pJoin) {
+    if ($pJoin) {
 
-    $pCut = $pJoin;
-
-    $NodeClipboard=CutNode($pCut);
-
-    $pD = PasteNode($NodeClipboard,Parent($pModal));
-
-    $pVerb = $pD;
-
-    $pCut = FirstSon($pModal);
-  CutAllSubtrees:
-    if ($pCut) {
-
-      if (Interjection($pCut->{'ordorig'},'') eq '') {
-
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-      }
+      $pCut = $pJoin;
 
       $NodeClipboard=CutNode($pCut);
 
-      $pD = PasteNode($NodeClipboard,$pVerb);
+      $pD = PasteNode($NodeClipboard,Parent($pModal));
+
+      $pVerb = $pD;
 
       $pCut = FirstSon($pModal);
+    CutAllSubtrees:
+      if ($pCut) {
 
-      goto CutAllSubtrees;
-    }
+	if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-    $sPar1 = ValNo(0,$pVerb->{'AID'});
+	  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+	}
 
-    $sPar2 = ValNo(0,$pModal->{'AID'});
+	$NodeClipboard=CutNode($pCut);
 
-    ConnectID();
+	$pD = PasteNode($NodeClipboard,$pVerb);
 
-    $pVerb->{'AID'} = $sReturn;
+	$pCut = FirstSon($pModal);
 
-    $NodeClipboard=CutNode($pModal);
+	goto CutAllSubtrees;
+      }
 
-    $pD = PasteNode($NodeClipboard,$pVerb);
+      $sPar1 = ValNo(0,$pVerb->{'AID'});
 
-    $pD->{'TR'} = 'hide';
+      $sPar2 = ValNo(0,$pModal->{'AID'});
 
-    $pVerb->{'deontmod'} = $sMod;
+      ConnectID();
 
-    $pAct = $pVerb;
+      $pVerb->{'AID'} = $sReturn;
 
-    if ($sKoord>"0") {
+      $NodeClipboard=CutNode($pModal);
 
-      $sKoord = $sKoord+"1";
+      $pD = PasteNode($NodeClipboard,$pVerb);
 
-      $pVerb = RBrother($pVerb);
+      $pD->{'TR'} = 'hide';
 
-      goto AllSonsObj;
+      $pVerb->{'deontmod'} = $sMod;
+
+      $pAct = $pVerb;
+
+      if ($sKoord>"0") {
+
+	$sKoord = $sKoord+"1";
+
+	$pVerb = RBrother($pVerb);
+
+	goto AllSonsObj;
+      }
     }
   }
 
@@ -5278,7 +5281,8 @@ sub ModalVerbs {
  AllSonsKoord:
   if ($pVerb) {
 
-    if ($pVerbTag eq 'Vf') {
+    if ($pVerbTag eq 'Vf' ||
+	$pVerbTag eq 'Vs') {
 
       $pJoin = $pVerb;
     } else {
@@ -5333,10 +5337,13 @@ sub ModalVerbs {
  AllSonsKoordObj:
   if ($pVerb) {
 
-    if ($pVerbTag eq 'Vf' &&
-	Interjection($pVerb->{'afun'},'Obj_Co') eq 'Obj_Co') {
+    if ($pVerbTag eq 'Vf' ||
+	$pVerbTag eq 'Vs') {
 
-      $pJoin = $pVerb;
+      if (Interjection($pVerb->{'afun'},'Obj_Co') eq 'Obj_Co') {
+
+	$pJoin = $pVerb;
+      }
     } else {
 
       $pVerb = RBrother($pVerb);
@@ -5697,6 +5704,60 @@ sub Prepositions {
     $pAct = $pParent;
   }
 
+  goto PruchodStromemDoHloubky;
+
+}
+
+
+sub Conjunctions {
+  my $pAct;			# used as type "pointer"
+  my $pNext;			# used as type "pointer"
+  my $pT;			# used as type "pointer"
+  my $pRoot;			# used as type "pointer"
+  my $pParent;			# used as type "pointer"
+  my $pPrep;			# used as type "pointer"
+  my $pConj;			# used as type "pointer"
+  my $pOnlyChild;		# used as type "pointer"
+  my $pCoordP;			# used as type "pointer"
+  my $pD;			# used as type "pointer"
+  my $pD1;			# used as type "pointer"
+  my $sAfun;			# used as type "string"
+  my $sTag;			# used as type "string"
+  my $sTRLema;			# used as type "string"
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  $pAct = $pRoot;
+ PruchodStromemDoHloubky:
+  $pNext = FirstSon($pAct);
+
+  if (!($pNext)) {
+
+    $pNext = RBrother($pAct);
+  }
+ LevelUp:
+  if (!($pNext)) {
+
+    $pNext = Parent($pAct);
+
+    if (!($pNext)) {
+
+      return;
+    } else {
+
+      $pAct = $pNext;
+
+      $pNext = RBrother($pNext);
+
+      goto LevelUp;
+    }
+
+  }
+
+  $pAct = $pNext;
+
   if (Interjection($pAct->{'afun'},'AuxC') eq 'AuxC') {
 
     if (Interjection($pAct->{'TR'},'hide') eq 'hide' &&
@@ -5718,7 +5779,8 @@ sub Prepositions {
 
     if (Interjection($pOnlyChild->{'afun'},'AuxX') eq 'AuxX' ||
 	Interjection($pOnlyChild->{'afun'},'AuxY') eq 'AuxY' ||
-	Interjection($pOnlyChild->{'afun'},'AuxZ') eq 'AuxZ') {
+	Interjection($pOnlyChild->{'afun'},'AuxZ') eq 'AuxZ' ||
+	Interjection($pOnlyChild->{'afun'},'AuxP') eq 'AuxP') {
 
       $pOnlyChild = RBrother($pOnlyChild);
 
@@ -5914,6 +5976,9 @@ sub JoinSubtree {
   my $pVerb;			# used as type "pointer"
   my $sJLema;			# used as type "string"
   my $sActLema;			# used as type "string"
+  my $sPriznak;			# used as type "string"
+
+  $sPriznak = $sPar1;
 
   ThisRoot();
 
@@ -5975,14 +6040,14 @@ sub JoinSubtree {
 
   $pAct->{'AID'} = $sReturn;
 
-  if ($sPar1 eq "1") {
+  if ($sPriznak eq "1") {
 
     $pAct->{'trlemma'} = $sJLema;
 
     $sPar1 = "0";
   }
 
-  if ($sPar1 eq "0") {
+  if ($sPriznak eq "0") {
 
     ifmodal();
 
@@ -6396,6 +6461,11 @@ sub FillEmpty {
       $pAct->{'trlemma'} = '&Period;';
     }
 
+    if ($sForma eq '/') {
+
+      $pAct->{'trlemma'} = '&Slash;';
+    }
+
     if ($sForma eq '(' ||
 	$sForma eq ')') {
 
@@ -6424,6 +6494,12 @@ sub FillEmpty {
   }
 
   if ($sAfunc eq 'AuxG') {
+
+    $pAct->{'TR'} = 'hide';
+  }
+
+  if ($sAfunc eq 'ExD' &&
+      Interjection($pAct->{'trlemma'},'&Lpar;') eq '&Lpar;') {
 
     $pAct->{'TR'} = 'hide';
   }
@@ -6889,8 +6965,6 @@ sub NewSubject {
   $pNew->{'sentmod'} = '???';
 
   $pNew->{'tfa'} = '???';
-
-  $pNew->{'func'} = '???';
 
   $pNew->{'gram'} = '???';
 
@@ -7380,8 +7454,6 @@ sub NewVerb {
 
   $pNew->{'tfa'} = '???';
 
-  $pNew->{'func'} = '???';
-
   $pNew->{'gram'} = '???';
 
   $pNew->{'memberof'} = '???';
@@ -7619,9 +7691,7 @@ sub CutAllSubtrees {
 
 sub ConnectID {
 
-  $sReturn = (ValNo(0,$sPar1).ValNo(0,'|'));
-
-  $sReturn = (ValNo(0,$sReturn).ValNo(0,$sPar2));
+  $sReturn = $sPar1.'|'.$sPar2;
 
 }
 
@@ -8564,6 +8634,122 @@ sub OpravaHlavy {
   }
 
   $pNext = FirstSon($pAct);
+
+  goto PruchodStromemDoHloubky;
+
+}
+
+
+sub Pnoms {
+  my $pPNOM;			# used as type "pointer"
+  my $pPnomPar;			# used as type "pointer"
+  my $pAct;			# used as type "pointer"
+  my $pNext;			# used as type "pointer"
+  my $pT;			# used as type "pointer"
+  my $pRoot;			# used as type "pointer"
+  my $pD;			# used as type "pointer"
+  my $pCut;			# used as type "pointer"
+  my $sTag;			# used as type "string"
+  my $sAdj;			# used as type "string"
+  my $sSuffix;			# used as type "string"
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  $pAct = $pRoot;
+ PruchodStromemDoHloubky:
+  $pNext = FirstSon($pAct);
+
+  if (!($pNext)) {
+
+    $pNext = RBrother($pAct);
+  }
+ LevelUp:
+  if (!($pNext)) {
+
+    $pNext = Parent($pAct);
+
+    if (!($pNext)) {
+
+      return;
+    } else {
+
+      $pAct = $pNext;
+
+      $pNext = RBrother($pNext);
+
+      goto LevelUp;
+    }
+
+  }
+
+  $pAct = $pNext;
+
+  $pCut = undef;
+
+  $pPNOM = undef;
+
+  $pPnomPar = undef;
+
+  if (Interjection($pAct->{'reserve5'},'PNOM') eq 'PNOM') {
+
+    $pAct->{'reserve5'} = '';
+
+    $pPNOM = $pAct;
+
+    $pPnomPar = Parent($pPNOM);
+
+    $pCut = $pPNOM;
+
+    if ($pCut) {
+
+      if (Interjection($pCut->{'ordorig'},'') eq '') {
+
+	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+      }
+
+      $NodeClipboard=CutNode($pCut);
+    }
+
+    $pD = PasteNode($NodeClipboard,Parent($pPnomPar));
+
+    $pPNOM = $pD;
+
+    $pCut = $pPnomPar;
+
+    if ($pCut) {
+
+      if (Interjection($pCut->{'ordorig'},'') eq '') {
+
+	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+      }
+
+      $NodeClipboard=CutNode($pCut);
+
+      $pD = PasteNode($NodeClipboard,$pPNOM);
+    }
+
+    $pPar1 = $pD;
+
+    $pPar2 = $pPNOM;
+
+    CutAllSubtrees();
+
+    $pD->{'TR'} = 'hide';
+
+    $pPnomPar = $pD;
+
+    $sPar1 = ValNo(0,$pPnomPar->{'AID'});
+
+    $sPar2 = ValNo(0,$pPNOM->{'AID'});
+
+    ConnectID();
+
+    $pPNOM->{'AID'} = $sReturn;
+
+    $pAct = $pPNOM;
+  }
 
   goto PruchodStromemDoHloubky;
 
