@@ -768,7 +768,6 @@ sub startMain {
 	  # create temporary file to store std output
 	  my $macro_stdout = IO::File->new_tmpfile();
 	  my $old_stdout = _redirect_stdout($macro_stdout);
-
 	  do {
 	    local $backend=$bkmap{$request{Format}} if exists $request{Format};
 	    local $strip_prefix=$request{"Strip-prefix"} if exists $request{"Strip-prefix"};
@@ -780,7 +779,7 @@ sub startMain {
 	    my $listed = 0;
 	    if ($request{FILELIST}) {
 	      $listed = 1;
-	      my %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
+	      %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
 		split /\n/,$request{FILELIST};
 	    }
 	    eval {
@@ -792,7 +791,11 @@ sub startMain {
 			     or $grp->{FSFile}->notSaved());
 		if (!$listed or $fl{ $grp->{'FSFile'}->filename }) {
 		  my $out = saveFile($grp);
-		  $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+		  if (defined($out)) {
+		    $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+		  } else {
+		    $macro_stdout->print("Error saving ",$grp->{'FSFile'}->filename,": $!\n");
+		  }
 		}
 		die $@ if $@;
 	      }} while (nextFile($grp));
@@ -812,7 +815,7 @@ sub startMain {
 	  my $listed = 0;
 	  if ($request{FILELIST}) {
 	    $listed = 1;
-	    my %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
+	    %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
 	      split /\n/,$request{FILELIST};
 	  }
 	  eval {
@@ -1375,7 +1378,7 @@ Strip strings matching a given regexp from the end of filenames.
 
 Append a given suffix to the filenames.
 
-=item B<--output-format|-f> [fs|csts|trxml|tei]
+=item B<--output-format|-f> [fs|csts|trxml|tei|storable]
 
 Format to use for files being saved.
 
