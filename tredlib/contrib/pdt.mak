@@ -245,7 +245,7 @@ sub assignARHeader {
 }
 
 
-=item PDT->assignTRHeader(declarations)
+=item PDT->appendFSHeader(declarations)
 
 Merge given FS header declarations with the present header
 of the current document.
