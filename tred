@@ -12,7 +12,8 @@ if ($^V lt v5.6.0) {
 }
 
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
-	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_n $opt_D
+	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
+	    $opt_n $opt_D
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
@@ -85,7 +86,7 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('qm:c:l:t:n:vhuW:GDB:RX:s:');
+getopts('qm:c:l:t:n:p:vhuW:GDB:RX:s:');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
@@ -129,6 +130,10 @@ Each filename may be followed by suffixes of the following forms:
 
 -n      allows to specify the default charset for FS files (useful
         with perl >= 5.7)
+
+-p      split window to given number of subwindows (horizontally if
+        positive, vertically if negative) and open n'th file
+        in n'th subwindow.
 
 
 Other options:
@@ -570,6 +575,7 @@ sub ApplyGlobalConfig {
 				);
   };
   update_value_line($grp);
+  update_status_line($grp->{focusedWindow});
   print STDERR $@ if $@;
   foreach (@{$grp->{treeWindows}}) {
     if ($_->{treeView} and $treeViewOpts->{backgroundColor}) {
@@ -1377,8 +1383,9 @@ sub set_value_line {
   return $v;
 }
 
-sub updateStatusLine {
+sub update_status_line {
   my ($win)=@_;
+  return unless $win;
   return unless $displayStatusLine;
   my $l=doEvalHook($win,"get_status_line_hook");
   set_status_line($win->{framegroup},$l);
@@ -1510,7 +1517,7 @@ sub selectFilelist {
   }
 
   # find current file
-  $grp->{focusedWindow}->{currentFileNo}=max(0,$fl->position())-1;
+  $grp->{focusedWindow}->{currentFileNo}=max(0,0,$fl->position())-1;
   nextFile($grp);
 #  gotoFile($grp,$grp->{focusedWindow}->{currentFileNo});
 
@@ -2017,9 +2024,11 @@ sub filelistDialog {
     my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{focusedWindow}->{currentFileNo});
     $t->selectionClear();
     if ($path ne "") {
-      $t->anchorSet($path);
-      $t->selectionSet($path);
-      $t->see($path);
+      eval {
+	$t->anchorSet($path);
+	$t->selectionSet($path);
+	$t->see($path);
+      };
     }
   }
   $t->focus;
@@ -2915,7 +2924,7 @@ sub onCurrentChange {
     $tv->apply_stored_style_opts("TextBox",$prev);
     $tv->apply_stored_style_opts("EdgeTextBox",$prev);
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
-    updateStatusLine($win);
+    update_status_line($win);
   }
 }
 
@@ -3086,6 +3095,7 @@ sub focusCanvas {
     $treeViewOpts->{highlightAttributes}=$newfocus->{treeView}->get_highlightAttributes;
     $grp->{focusedWindow}=$newfocus;
     update_value_line($grp);
+    update_status_line($grp->{focusedWindow});
     update_value_line_current($newfocus,$newfocus->{currentNode});
     updateTitle($grp);
     resetUndoStatus($newfocus);
@@ -3096,7 +3106,7 @@ sub focusCanvas {
 }
 
 sub splitWindow {
-  my ($grp,$dir)=@_;
+  my ($grp,$dir,$nofocus)=@_;
   my $twin     = newTrEdWindow($grp);
   my $canvas=$twin->canvas();
   $canvas->configure(@normal_win_opts);
@@ -3107,7 +3117,7 @@ sub splitWindow {
   applyWindowStylesheet($twin,$grp->{selectedStylesheet});
   get_nodes_win($twin);
   redraw_win($twin);
-  focusCanvas($canvas,$grp);
+  focusCanvas($canvas,$grp) unless $nofocus;
 }
 
 sub removeWindow {
@@ -4164,7 +4174,25 @@ sub startMain {
   my $stylesheet=$opt_s || STYLESHEET_FROM_FILE();
   $group{selectedStylesheet}=$stylesheet;
   applyWindowStylesheet($group{focusedWindow},$stylesheet);
+
+  if ($opt_p) {
+    my $dir=$opt_p>0 ? 'vert' : 'horiz';
+    for (my $i=1;$i<$opt_p;$i++) {
+      splitWindow(\%group,$dir);
+    }
+    focusCanvas($group{treeWindows}->[0]->canvas,\%group);
+  }
   selectFilelist(\%group,'Default');
+  if ($opt_p) {
+    my $dir=$opt_p>0 ? 'vert' : 'horiz';
+    for (my $i=1;$i<$opt_p;$i++) {
+      focusCanvas($group{treeWindows}->[$i]->canvas,\%group);
+      gotoFile(\%group,$i);
+    }
+    focusCanvas($group{treeWindows}->[0]->canvas,\%group);
+  }
+
+#  $group{noinsert} = ($group{currentFilelist}->count()>0);
 #    $group{currentFilelist}=$filelists[0];
 #    if ($group{currentFilelist}->file_at(0)) {
 #      openFile(\%group,$group{currentFilelist}->file_at(0));
@@ -5916,7 +5944,7 @@ sub redraw_win {
     saveFileStateUpdate($win);
     resetUndoStatus($win);
     resetTreePosStatus($win->{framegroup});
-    updateStatusLine($win);
+    update_status_line($win);
   }
   #------------------------------------------------------------
   #{
@@ -6386,7 +6414,7 @@ sub evalMacro {
 
     return 1;
   } else {
-    updateStatusLine($win);
+    update_status_line($win);
   }
   return undef;
 }
