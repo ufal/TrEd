@@ -129,6 +129,8 @@ sub MD2TagLemma {
     $node->{tag}=$node->{"tagMD_$src"};
     $node=$node->following($top);
   }
+  $root->{tag}||='Z#-------------';
+  $root->{lemma}||='#';
 }
 
 #
@@ -145,7 +147,7 @@ sub delTagLemma {
   }
 }
 
-sub AR2TR {
+sub MR2TR {
   my ($class,$src)=@_;
   $src='a' unless defined $src;
   $class->convertToTRHeader();
@@ -154,8 +156,6 @@ sub AR2TR {
     print "$root->{form}\n";
     print "MD2TagLemma\n";
     $class->MD2TagLemma($src);
-    $root->{tag}='Z#-------------';
-    $root->{lemma}='#';
     print "assign_afun_auto_tree\n";
     Analytic->assign_all_afun_auto();
     print "saveTreeAStructure\n";
@@ -169,6 +169,36 @@ sub AR2TR {
     print "DelTagLemma\n";
     $class->delTagLemma();
     print ">>NextTree\n\n";
+  } while NextTree();
+  GotoTree(1);
+}
+
+sub tree2AR {
+  my ($class,$src)=@_;
+  $src='a' unless defined $src;
+  GotoTree(1);
+  do {
+    print "$root->{form}\n";
+    $class->MD2TagLemma($src);
+    Analytic->assign_all_afun_auto();
+    $class->delTagLemma();
+  } while NextTree();
+  GotoTree(1);
+}
+
+sub AR2TR {
+  my ($class,$src)=@_;
+  $src='a' unless defined $src;
+  $class->convertToTRHeader();
+  GotoTree(1);
+  do {
+    print "$root->{form}\n";
+    $class->MD2TagLemma($src);
+    $class->saveTreeAStructure();
+    Tectogrammatic->InitTR();
+    Tectogrammatic->TreeToTR();
+    Tectogrammatic->assign_all_func_auto();
+    $class->delTagLemma();
   } while NextTree();
   GotoTree(1);
 }
