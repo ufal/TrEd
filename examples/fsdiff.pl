@@ -13,7 +13,7 @@ setlocale(LANG,"czech");
 
 use Getopt::Std;
 getopts('andflmesSqQRDKA:M:owh');
-
+use IO;
 
 $usenames=0;
 $hide=1;
@@ -62,7 +62,10 @@ if (exists $ENV{TREDHOME}) {
 print STDERR "Trying $libDir\n" if ($libDir and !$opt_q);
 unshift @INC,"$libDir";
 
-use Fslib;
+require Fslib;
+import Fslib;
+import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index &ImportBackends);
+
 use locale;
 use POSIX qw(locale_h);
 
