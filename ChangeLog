@@ -1,3 +1,324 @@
+2004-07-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak: - bind KP_Enter
+	- fixes
+
+	* tredlib/contrib/ValLex/Editor.pm: - bind KP_Enter
+
+	* tredlib/contrib/ValLex/Chooser.pm:
+	- approach to make chooser window smaller
+
+	* tredlib/contrib/tr_common.mak: - prev/next-file + choose frame
+
+	* tredlib/tred.mac: - Escape in questionQuery
+
+	* tred: - fiddling with locale
+	- icon-theme changes dynamically with Apply Config
+	- -D also sets tredDebug on
+
+	* ntred: utf8 is default term encoding
+
+	* tredlib/TrEd/Config.pm: don't enforce czech locale
+
+	* tredlib/TrEd/TreeView.pm: bblock, block now global
+
+2004-07-14  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pdt.mak, tredlib/contrib/ACAP.pm:
+	*** empty log message ***
+
+2004-07-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	use reusable toplevels with auto-focus rather than modal dialogs
+
+	* tredlib/contrib/ValLex/Chooser.pm:
+	added reusable dialogs, toplevels and improved dialog scaling
+
+	* tredlib/contrib/tr_coref_common.mak:
+	don't include a copy of ValLex/chooser, instead reuse Tectogrammatical bindings
+
+	* tredlib/contrib/arabic_Analytic.mak, tredlib/contrib/MorphoTrees.mak:
+	changes by Ota Smrz
+
+	* tredlib/tred.mac: added "Escape as Cancel" to questionQuery
+
+2004-07-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	use reusable toplevels with auto-focus rather than modal dialogs
+
+	* tredlib/contrib/ValLex/Chooser.pm:
+	added reusable dialogs, toplevels and improved dialog scaling
+
+	* tredlib/contrib/tr_coref_common.mak:
+	don't include a copy of ValLex/chooser, instead reuse Tectogrammatical bindings
+
+	* tredlib/contrib/arabic_Analytic.mak, tredlib/contrib/MorphoTrees.mak:
+	changes by Ota Smrz
+
+	* tredlib/tred.mac: added "Escape as Cancel" to questionQuery
+
+2004-07-08  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: icon handling fixes
+
+	* ntred: added --local
+
+	* tredlib/StorableBackend.pm: renew specials
+
+	* tredlib/Fslib.pm:
+	specials are updated directly on the Fslib level now
+
+	* tredlib/contrib/arabic_Analytic.mak, tredlib/contrib/MorphoTrees.mak, tredlib/contrib/PADT/Arab_afun_dec_tree.pm, tredlib/contrib/PADT/Assign_arab_afun.pm, tredlib/contrib/PADT/Extract_node_features.pm:
+	changes by Ota Smrz
+
+	* tredlib/TrEd/ArabicRemix.pm: removed extra " " after each token
+
+	* tredlib/TrEd/Config.pm: iconPath
+
+	* tredlib/filefloppy.xpm, tredlib/filenew.xpm, tredlib/fileopen.xpm, tredlib/fileprint.xpm, tredlib/filesaved.xpm, tredlib/find.xpm, tredlib/findnext.xpm, tredlib/findprev.xpm, tredlib/finish.xpm, tredlib/gray_belly3.xpm, tredlib/green_belly3.xpm, tredlib/hsplit.xpm, tredlib/left.xpm, tredlib/noleft.xpm, tredlib/noredo.xpm, tredlib/noright.xpm, tredlib/noundo.xpm, tredlib/redo.xpm, tredlib/reload.xpm, tredlib/right.xpm, tredlib/rmsplit.xpm, tredlib/start.xpm, tredlib/tick.xpm, tredlib/tiewins.xpm, tredlib/undo.xpm, tredlib/view_sent.xpm, tredlib/vsplit.xpm:
+	all icons actually moved under icons/default
+
+	* tredlib/icons/default/view_remove.xpm, tredlib/icons/default/view_top_bottom.xpm, tredlib/icons/default/viewmag+.xpm, tredlib/icons/default/viewmag-.xpm, tredlib/icons/default/wizard.xpm, tredlib/icons/default/redo.xpm, tredlib/icons/default/reload.xpm, tredlib/icons/default/start.xpm, tredlib/icons/default/tred.xpm, tredlib/icons/default/tred2.xpm, tredlib/icons/default/undo.xpm, tredlib/icons/default/view_left_right.xpm, tredlib/icons/default/green_belly.xpm, tredlib/icons/default/green_belly2.xpm, tredlib/icons/default/green_belly3.xpm, tredlib/icons/default/lock.xpm, tredlib/icons/default/noleft.xpm, tredlib/icons/default/noredo.xpm, tredlib/icons/default/noright.xpm, tredlib/icons/default/noundo.xpm, tredlib/icons/default/find.xpm, tredlib/icons/default/finish.xpm, tredlib/icons/default/folder.xpm, tredlib/icons/default/gray_belly.xpm, tredlib/icons/default/gray_belly2.xpm, tredlib/icons/default/gray_belly3.xpm, tredlib/icons/default/gray_belly4.xpm, tredlib/icons/default/1rightarrow.xpm, tredlib/icons/default/contents.xpm, tredlib/icons/default/document.xpm, tredlib/icons/default/filenew.xpm, tredlib/icons/default/fileopen.xpm, tredlib/icons/default/fileprint.xpm, tredlib/icons/default/filesave.xpm, tredlib/icons/default/filesaved.xpm, tredlib/icons/crystal/view_left_right.png, tredlib/icons/crystal/view_remove.png, tredlib/icons/crystal/view_top_bottom.png, tredlib/icons/crystal/viewmag+.png, tredlib/icons/crystal/viewmag-.png, tredlib/icons/crystal/wizard.png, tredlib/icons/default/1leftarrow.xpm, tredlib/icons/crystal/folder.png, tredlib/icons/crystal/lock.png, tredlib/icons/crystal/redo.png, tredlib/icons/crystal/reload.png, tredlib/icons/crystal/start.png, tredlib/icons/crystal/undo.png, tredlib/icons/crystal/document.png, tredlib/icons/crystal/filenew.png, tredlib/icons/crystal/fileopen.png, tredlib/icons/crystal/fileprint.png, tredlib/icons/crystal/filesave.png, tredlib/icons/crystal/find.png, tredlib/icons/crystal/finish.png, tredlib/icons/crystal/1leftarrow.png, tredlib/icons/crystal/1rightarrow.png, tredlib/icons/crystal/contents.png:
+	initial commit
+
+2004-07-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/TreeView.pm:
+	first privatize $block, then assign $block=qr(...(?{$block})...)
+
+2004-07-01  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/coref.mak:
+	fixed arrow direction for ID1 with a letter
+
+	* tredlib/contrib/ValLex/Data.pm: - handle specials properly
+
+	* tredlib/contrib/trdiff.mak: - added Alt+Space
+	- redraw
+
+	* tredlib/contrib/quotation.mak: - ZZ added getback
+	- PP added menu items
+
+	* tredlib/TrEd/TreeView.pm:
+	- slightly more robust #{...} parsing (hopefully not that much slower)
+
+	* tredlib/Fslib.pm: use strict;  - finally!
+	slightly optimized FS parsing by hashing attribute order - gained
+	10-30% speedup, yeah!!
+
+	* examples/fsdiff.pl: search in ../../ too
+
+	* documentation/Hooks.txt: get_backends_hook
+
+	* tred: - fixed a few tieing bugs
+	- implemented get_backends_hook (to allow dynamic IO backends)
+	- renamed Customize Attributes to Customize Tree
+
+	* btred: added --no-save
+
+	* documentation/btred_tutorial.xml: initial commit
+
+2004-06-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ntred: hopefully fixed -L -l with -e
+
+2004-06-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/ArabicRemix.pm:
+	avoid adding " " to the end of every attribute
+
+2004-06-17  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/TreeView.pm:
+	- MacOS X serializes "5.1" as "5,1" (sometimes?), so we have to round
+	  the values first
+
+2004-06-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred, ntred: *** empty log message ***
+
+	* btred: - if FILELIST is specified, allow empty file-list
+	- allow empty states
+
+	* ntred: fix in POD
+
+	* ntred: *** empty log message ***
+
+	* ntred: if -L is specified, allow empty file-list
+
+	* tredlib/contrib/tr_common.mak: fixed bug in disconnectAIDREFs
+
+2004-06-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: eval if using -state on Tk::Label
+
+2004-06-14  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Macros.pm:
+	use \s instead of [ \t] when parsing macros in order to avoid problems
+	with \r
+
+	* tred: - redraw trees when macros reloaded
+	- don't disable margins when printing to bitmap
+
+2004-06-11  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: moved Reload macros one level up in the menu hierarchy
+
+	* tred: - use POSIX::_exit when exiting from $SIG{TERM}
+	- added Help->Examine bindings
+	- modif+mouse hooks can be undone
+
+	* tredlib/contrib/tr_opravy.mak: added insert node macro
+
+	* tredlib/contrib/coref.mak:
+	redraw tree when switching into coref context
+
+2004-06-10  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: don't disable margins entries when printing to EPS
+
+	* tred: undo,redo provide comment with the last action
+
+	* tredlib/contrib/tr_opravy.mak: ClearARstruct before pasting subtree
+
+	* tredlib/contrib/tr_opravy.mak:
+	copy subtree with Ctrl+5, paste to another tree with Ctrl+6 (respects
+	both TR and AR structures)
+
+	* tredlib/Fslib.pm: - reverted children() to always return array
+	- made getChildNodes a wrapper which respects context
+
+2004-06-09  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred, ntred: - btred -O obeys locks
+	- ntred runs servers with -O
+
+	* tredlib/contrib/tr_opravy.mak: added JoinSubtreeToPrev (Ctrl+2)
+
+	* tredlib/contrib/pdt.mak: appendFSHeader calls renew_specials
+
+	* tredlib/TrEd/TreeView.pm: - ballance => balance
+
+	* tredlib/TrEd/Config.pm: - ballance => balance
+	- cleanup
+
+	* tredlib/Fslib.pm: - added DOM-like functions (for XPath)
+	- added FSFormat->renew_specials
+
+	* tredlib/contrib/tr_opravy.mak:
+	fixed Ctrl+4 join following tree to current
+
+	* tredlib/contrib/coref.mak:
+	- hash nodes in order to check that coref leads to the same tree
+	  (slower but allows re-joined trees)
+
+2004-06-08  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: Ctrl+4 join following tree to current
+	XPath: findnodes, TRXPath
+
+	* tredlib/contrib/ValLex/Extended.pm: search word by POS too
+
+2004-06-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: cleanup
+
+	* ntred: --dump can use --filelist
+
+	* tredlib/tred.def: Added XPathObject
+
+	* tredlib/Object/XPath.pm:
+	minor fixes, add findnodes, find, findvalue and matches
+
+	* tredlib/contrib/contrib.mac: include pdt_specific
+
+	* tredlib/contrib/pdt_specific.mak: initial commit
+
+2004-06-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Object/XPath.pm: initial commit
+
+2004-06-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred:
+	ported cleanup_macros from btred, so that reload macros finally works
+
+	* btred: removed redundant code
+
+2004-06-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_coref_common.mak: choose frame no assign
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	added no_assign flag to ChooseFrame
+
+	* tredlib/contrib/tr_coref_common.mak: added vallex chooser
+
+2004-05-31  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak:
+	added Alt+@ (sets trlemma=form and tag=X@--...)
+
+	* tredlib/Csts2fs.pm: added corinfo
+
+	* tredlib/contrib/coref.mak:
+	restrict frequent ACAP result messages to $macroDebug
+
+2004-05-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_quotation_anot_main.mak: *** empty log message ***
+
+	* tredlib/contrib/coref.mak: fixed heidth -> height
+
+	* tred: catch SIGINT to close all files (removes locks)
+
+2004-05-27  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/contrib.mac: added Quotation mode
+
+	* tredlib/contrib/quotation.mak, tredlib/contrib/tr_quotation_anot_main.mak, tredlib/contrib/tr_quotation_common.mak:
+	initial commit
+
+	* tred:
+	- preparing background for tred to close all files (and remove locks)
+	  on SIGINT
+
+	* tredlib/TrEd/TreeView.pm:
+	fixed (oops) swapped axes in asymetric Node-addwidth, Node-addheight
+
+	* tred: added lock file support
+
+	* tredlib/TrEd/Config.pm: added lockFiles options (default is 1)
+
+2004-05-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Csts2fs.pm, tredlib/contrib/tr_common.mak, tredlib/contrib/ValLex/Data.pm, tredlib/contrib/ValLex/vallex.dtd, tredlib/contrib/tredtr.mak:
+	added func=CONTRD
+
+2004-05-17  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred: fix a typo
+
+2004-05-16  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred:
+	expand wildcards on winshit32 (requested by a frustrated wincrap32 user:-))
+
+2004-05-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ChangeLog: updated
+
+	* tredlib/TrEd/Print.pm: - unmap information window before Pop
+
+	* tredlib/TrEd/Config.pm:
+	- option to disable ImageMagick convert on Win32
+
+	* tred: - added Save as HTML with Images
+	- added Alt+key shortcuts to various dialogs
+
 2004-05-15  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
 
 	* tredlib/TrEd/Print.pm: - unmap information window before Pop
