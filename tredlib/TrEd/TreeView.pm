@@ -26,7 +26,7 @@ use strict;
   edgeLabelSkipBelow pinfo textColor xmargin nodeOutlineColor
   nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
   textColorShadow textColorHilite textColorXHilite
-  useAdditionalEdgeLabelSkip reverseNodeOrder);
+  useAdditionalEdgeLabelSkip reverseNodeOrder ballanceTree);
 
 %DefaultNodeStyle = (
 	      Oval            =>  [],
@@ -306,6 +306,38 @@ sub getTextWidth {
   return $self->canvas->fontMeasure($self->get_font,$text);
 }
 
+# this routine computes node XPos in ballanced mode
+sub ballance_node {
+  my ($self, $baseX, $node, $visible) = @_;
+  my $last_baseX = $baseX;
+  my $xskip = $self->get_nodeXSkip;
+  my $i=0;
+  my @c = grep { exists $visible->{$_} } $node->children;
+  foreach my $c (@c) {
+    $last_baseX = $self->ballance_node($last_baseX,$c,$visible);
+    $last_baseX += $xskip;
+  }
+  $last_baseX -= $xskip if @c;
+  my $xpos;
+  if (scalar(@c) % 2 == 1) {
+    # odd: place just above the middle child
+    $xpos =$self->get_node_pinfo($c[$#c/2],"XPOS");
+  } elsif (@c) { # even: place to the middle of all children
+    $xpos =($self->get_node_pinfo($c[$#c],"XPOS")
+	    + $self->get_node_pinfo($c[0],"XPOS"))/2;
+  } else {
+    $xpos = $baseX+$self->get_node_pinfo($node,"XPOS");
+  }
+  my $add = $xpos-$self->get_node_pinfo($node,"XPOS");
+  $self->store_node_pinfo($node,"XPOS", $xpos);
+
+  $self->store_node_pinfo($node,"NodeLabel_XPOS",
+			  $self->get_node_pinfo($node,"NodeLabel_XPOS") +
+			  $add);
+  return max($last_baseX,$xpos+
+	     $self->get_node_pinfo($node,"After"));
+}
+
 sub recalculate_positions {
   my ($self,$fsfile,$nodes,$Opts)=@_;
   return unless ref($self);
@@ -361,6 +393,7 @@ sub recalculate_positions {
   }
 
   my @prevnode=();
+  my @zero_level=();
   my $parent;
   my $ypos;
   $maxlevel=0;
@@ -383,6 +416,9 @@ sub recalculate_positions {
 #       }
 #     }
 #   }
+  
+  my $ballance= exists($Opts->{ballance}) ? 
+    $Opts->{ballance} : $self->get_ballanceTree;
 
   foreach $node (@{$nodes}) {
     $level=0;
@@ -487,41 +523,35 @@ sub recalculate_positions {
     $self->store_node_pinfo($node,"NodeLabelWidth",$nodeLabelWidth);
     $self->store_node_pinfo($node,"EdgeLabelWidth",$edgeLabelWidth);
     $self->store_node_pinfo($node,"After",$xSkipAfter);
-    $minxpos=0;
-    if ($prevnode[$level]) {
-      $minxpos=
-	$self->get_node_pinfo($prevnode[$level],"XPOS")+
-	$self->get_node_pinfo($prevnode[$level],"After")+$xSkipBefore;
+    if ($ballance) {
+      $xpos = $xSkipBefore+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
     } else {
-      $minxpos=$baseXPos+$xSkipBefore;
+      $minxpos=0;
+      if ($prevnode[$level]) {
+	$minxpos=
+	  $self->get_node_pinfo($prevnode[$level],"XPOS")+
+	    $self->get_node_pinfo($prevnode[$level],"After")+$xSkipBefore;
+      } else {
+	$minxpos=$baseXPos+$xSkipBefore;
+      }
+      $xpos=max($xpos,$minxpos)+$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
+      $prevnode[$level]=$node
     }
-    $xpos=max($xpos,$minxpos)+$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
-
-#     my $child=$sameaschild{$node};
-#     $child=$node->parent if (!$child and $sameasparent{$node});
-#     print STDERR "$child\n";
-#     print STDERR "SAME: $node->{x_TNl}.$node->{x_TNT} - $child->{x_TNl}.$child->{x_TNT}\n" if $child;
-#     print STDERR $self->get_node_pinfo($child,'XPOS');
-#     undef $child if ($child and $self->get_node_pinfo($child,'XPOS') eq "");
-#     if ($child) {
-#       print STDERR "USING SAMEASCHILD/SAMEASPARENT\n";
-#       my $cxpos=$self->get_node_pinfo($child,'XPOS');
-#       if ($xpos>$cxpos) {
-# 	$self->store_node_pinfo($child,"NodeLabel_XPOS",
-# 				$self->get_node_pinfo($child,'NodeLabel_XPOS')+
-# 				$xpos-$cxpos);
-# 	$self->store_node_pinfo($child,"XPOS",$xpos);
-#       } else {
-# 	$xpos=$self->get_node_pinfo($child,'XPOS');
-#       }
-#     }
-
     $self->store_node_pinfo($node,"XPOS",$xpos);
     $self->store_node_pinfo($node,"NodeLabel_XPOS",$xpos+$nodeLabelXShift);
+    $canvasWidth = max($canvasWidth,
+		       $xpos+$xSkipAfter+$nodeWidth+2*$self->get_xmargin+$baseXPos);
+    $self->store_node_pinfo($node,"Level", $level);
+    push @zero_level, $node if ($level == 0);
+  }
 
-    $canvasWidth = max($canvasWidth,$xpos+$xSkipAfter+$nodeWidth+2*$self->get_xmargin+$baseXPos);
-
-    $prevnode[$level]=$node;
+  if ($ballance) {
+    my %nodes; @nodes{@$nodes}=();
+    my $baseX = $baseXPos;
+    foreach my $c (@zero_level) {
+      $baseX = $self->ballance_node($baseX,$c,\%nodes);
+    }
+    $canvasWidth = $baseX;
   }
 
   $self->{canvasWidth}=$canvasWidth;
@@ -741,6 +771,10 @@ sub redraw {
 	  } else {
 	    $Opts{"$1$2"}=[$3=>$4];
 	  }
+	} elsif (/^(.*?):(.*)$/) {
+	  $Opts{$1}=$2;
+	} else {
+	  $Opts{$_}=1;
 	}
       }
     }
