@@ -2423,7 +2423,7 @@ sub AllFuncAssign {
 }
 
 
-#bind toggle_hide_subtree to H menu Hide/Show current subtree
+#bind toggle_hide_subtree to h menu Hide/Show current subtree
 sub toggle_hide_subtree {
 
   HideSubtree();
@@ -2431,7 +2431,7 @@ sub toggle_hide_subtree {
 }
 
 
-#bind join_with_mother_lemma to Ctrl+Shift+U menu Pripojit k matce (spojit, vhodne pro sloz. predlozky)
+#bind join_with_mother_lemma to Ctrl+U menu Pripojit k matce (spojit, vhodne pro sloz. predlozky)
 sub join_with_mother_lemma {
 
   $sPar1 = "1";
@@ -2441,7 +2441,7 @@ sub join_with_mother_lemma {
 }
 
 
-#bind join_with_mother to Ctrl+Shift+N menu Pripojit k matce (nespojit, vhodne pro modal. sloveso)
+#bind join_with_mother to Ctrl+N menu Pripojit k matce (nespojit, vhodne pro modal. sloveso)
 sub join_with_mother {
 
   $sPar1 = "0";
@@ -2451,7 +2451,7 @@ sub join_with_mother {
 }
 
 
-#bind split_node_and_lemma to Ctrl+Shift+B menu Rozpojit uzel i lemmata
+#bind split_node_and_lemma to Ctrl+B menu Rozpojit uzel i lemmata
 sub split_node_and_lemma {
 
   $sPar1 = "1";
@@ -2461,7 +2461,7 @@ sub split_node_and_lemma {
 }
 
 
-#bind _key_Ctrl_Shift_Q to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
+#bind _key_Ctrl_Shift_Q to Ctrl+Q menu Odpojit pripojene fw od akt. vrcholu
 sub _key_Ctrl_Shift_Q {
 
   splitfw();
@@ -2469,7 +2469,7 @@ sub _key_Ctrl_Shift_Q {
 }
 
 
-#bind _key_Ctrl_Shift_M to Ctrl+Shift+M menu Zmenit uzel Neg na predponu ne-
+#bind _key_Ctrl_Shift_M to Ctrl+M menu Zmenit uzel Neg na predponu ne-
 sub _key_Ctrl_Shift_M {
 
   JoinNegation();
@@ -2517,7 +2517,7 @@ sub add_Forn_ACT {
 }
 
 
-#bind add_new_node to Ctrl+X menu Doplnit novy uzel (???) pod akt. vrchol
+#bind add_new_node to Ctrl+x menu Doplnit novy uzel (???) pod akt. vrchol
 sub add_new_node {
 
   $pPar1 = $this;
@@ -2527,7 +2527,7 @@ sub add_new_node {
 }
 
 
-#bind add_EV to Ctrl+V menu Doplnit prazdne sloveso Emp pod akt. vrchol
+#bind add_EV to Ctrl+v menu Doplnit prazdne sloveso Emp pod akt. vrchol
 sub add_EV {
 
   NewVerb();
@@ -2535,7 +2535,7 @@ sub add_EV {
 }
 
 
-#bind change_trlemma_to_lemma to Ctrl+Shift+W menu Zmenit trlemma na lemma
+#bind change_trlemma_to_lemma to Ctrl+W menu Zmenit trlemma na lemma
 sub change_trlemma_to_lemma {
 
   trtolemma();
@@ -2543,7 +2543,7 @@ sub change_trlemma_to_lemma {
 }
 
 
-#bind join_with_mother_as_fw to Ctrl+Shift+P menu Pripojit k matce jako fw
+#bind join_with_mother_as_fw to Ctrl+P menu Pripojit k matce jako fw
 sub join_with_mother_as_fw {
 
   joinfw();
@@ -2551,7 +2551,7 @@ sub join_with_mother_as_fw {
 }
 
 
-#bind add_questionmarks_func to Ctrl+Shift+X menu Pridat k funktoru ???
+#bind add_questionmarks_func to Ctrl+X menu Pridat k funktoru ???
 sub add_questionmarks_func {
 
   $sPar3 = ValNo(0,$this->{'func'});
@@ -2563,7 +2563,7 @@ sub add_questionmarks_func {
 }
 
 
-#bind memberof_co to Y menu Pridat memberof=CO
+#bind memberof_co to y menu Pridat memberof=CO
 sub memberof_co {
 
   $pPar1 = $this;
@@ -2573,7 +2573,7 @@ sub memberof_co {
 }
 
 
-#bind memberof_ap to Shift+Y menu Pridat memberof=AP
+#bind memberof_ap to Y menu Pridat memberof=AP
 sub memberof_ap {
 
   $pPar1 = $this;
@@ -2583,7 +2583,7 @@ sub memberof_ap {
 }
 
 
-#bind func_ACT to A menu ACT Actor, agens
+#bind func_ACT to a menu ACT Actor, agens
 sub func_ACT {
 
   $sPar1 = 'ACT';
@@ -2593,7 +2593,7 @@ sub func_ACT {
 }
 
 
-#bind func_ADDR to D menu ADDR Addressee
+#bind func_ADDR to d menu ADDR Addressee
 sub func_ADDR {
 
   $sPar1 = 'ADDR';
@@ -2603,7 +2603,7 @@ sub func_ADDR {
 }
 
 
-#bind func_PAT to P menu PAT Patient (prosli celý les.PAT)
+#bind func_PAT to p menu PAT Patient (prosli celý les.PAT)
 sub func_PAT {
 
   $sPar1 = 'PAT';
@@ -2613,7 +2613,7 @@ sub func_PAT {
 }
 
 
-#bind func_EFF to F menu EFF Effect, výsledek (zvolit kým)
+#bind func_EFF to f menu EFF Effect, výsledek (zvolit kým)
 sub func_EFF {
 
   $sPar1 = 'EFF';
@@ -2623,7 +2623,7 @@ sub func_EFF {
 }
 
 
-#bind func_ORIG to O menu ORIG Origin, pùvod (z èeho, NE odkud)
+#bind func_ORIG to o menu ORIG Origin, pùvod (z èeho, NE odkud)
 sub func_ORIG {
 
   $sPar1 = 'ORIG';
@@ -2633,7 +2633,7 @@ sub func_ORIG {
 }
 
 
-#bind func_ACMP to C menu ACMP  Accompaniment, doprovod (s, bez)
+#bind func_ACMP to c menu ACMP  Accompaniment, doprovod (s, bez)
 sub func_ACMP {
 
   $sPar1 = 'ACMP';
@@ -2643,7 +2643,7 @@ sub func_ACMP {
 }
 
 
-#bind func_ADVS to V menu ADVS Adversative, odporovací koord. (ale, vsak)
+#bind func_ADVS to v menu ADVS Adversative, odporovací koord. (ale, vsak)
 sub func_ADVS {
 
   $sPar1 = 'ADVS';
@@ -2653,7 +2653,7 @@ sub func_ADVS {
 }
 
 
-#bind func_AIM to M menu AIM Úèel (aby, pro nìco)
+#bind func_AIM to m menu AIM Úèel (aby, pro nìco)
 sub func_AIM {
 
   $sPar1 = 'AIM';
@@ -2673,7 +2673,7 @@ sub func_APP {
 }
 
 
-#bind func_APPS to S menu APPS Apposition (totiz, a to)
+#bind func_APPS to s menu APPS Apposition (totiz, a to)
 sub func_APPS {
 
   $sPar1 = 'APPS';
@@ -2683,7 +2683,7 @@ sub func_APPS {
 }
 
 
-#bind func_ATT to T menu ATT Attitude, postoj
+#bind func_ATT to t menu ATT Attitude, postoj
 sub func_ATT {
 
   $sPar1 = 'ATT';
@@ -2693,7 +2693,7 @@ sub func_ATT {
 }
 
 
-#bind func_BEN to B menu BEN Benefactive (pro koho, proti komu)
+#bind func_BEN to b menu BEN Benefactive (pro koho, proti komu)
 sub func_BEN {
 
   $sPar1 = 'BEN';
@@ -2703,7 +2703,7 @@ sub func_BEN {
 }
 
 
-#bind func_CAUS to Shift+C menu CAUS Cause, pøíèina
+#bind func_CAUS to C menu CAUS Cause, pøíèina
 sub func_CAUS {
 
   $sPar1 = 'CAUS';
@@ -2713,7 +2713,7 @@ sub func_CAUS {
 }
 
 
-#bind func_CNCS to Ctrl+C menu CNCS
+#bind func_CNCS to Ctrl+c menu CNCS
 sub func_CNCS {
 
   $sPar1 = 'CNCS';
@@ -2723,7 +2723,7 @@ sub func_CNCS {
 }
 
 
-#bind func_COMPL to Shift+L menu COMPL Complement, závisí na slovese
+#bind func_COMPL to L menu COMPL Complement, závisí na slovese
 sub func_COMPL {
 
   $sPar1 = 'COMPL';
@@ -2733,7 +2733,7 @@ sub func_COMPL {
 }
 
 
-#bind func_COND to Ctrl+D menu COND Condition, podmínka reálná (-li, jestlize, kdyz, az)
+#bind func_COND to Ctrl+d menu COND Condition, podmínka reálná (-li, jestlize, kdyz, az)
 sub func_COND {
 
   $sPar1 = 'COND';
@@ -2743,7 +2743,7 @@ sub func_COND {
 }
 
 
-#bind func_CONFR to Shift+O menu CONFR
+#bind func_CONFR to O menu CONFR
 sub func_CONFR {
 
   $sPar1 = 'CONFR';
@@ -2753,7 +2753,7 @@ sub func_CONFR {
 }
 
 
-#bind func_CONJ to J menu CONJ Conjunction, sluèovací koord. (a)
+#bind func_CONJ to j menu CONJ Conjunction, sluèovací koord. (a)
 sub func_CONJ {
 
   $sPar1 = 'CONJ';
@@ -2763,7 +2763,7 @@ sub func_CONJ {
 }
 
 
-#bind func_CPR to Shift+P menu CPR Porovnání (nez, jako, stejnì jako)
+#bind func_CPR to P menu CPR Porovnání (nez, jako, stejnì jako)
 sub func_CPR {
 
   $sPar1 = 'CPR';
@@ -2773,7 +2773,7 @@ sub func_CPR {
 }
 
 
-#bind func_CRIT to Ctrl+K menu CRIT Criterion, mìøítko (podle nìj, podle jeho slov)
+#bind func_CRIT to Ctrl+k menu CRIT Criterion, mìøítko (podle nìj, podle jeho slov)
 sub func_CRIT {
 
   $sPar1 = 'CRIT';
@@ -2783,7 +2783,7 @@ sub func_CRIT {
 }
 
 
-#bind func_CSQ to Q menu CSQ Consequence, dùsledek koord. (a proto, a tak, a tedy, proèez)
+#bind func_CSQ to q menu CSQ Consequence, dùsledek koord. (a proto, a tak, a tedy, proèez)
 sub func_CSQ {
 
   $sPar1 = 'CSQ';
@@ -2793,7 +2793,7 @@ sub func_CSQ {
 }
 
 
-#bind func_CTREF to Ctrl+F menu CTERF Counterfactual, ireálná podmínka (kdyby)
+#bind func_CTREF to Ctrl+f menu CTERF Counterfactual, ireálná podmínka (kdyby)
 sub func_CTREF {
 
   $sPar1 = 'CTERF';
@@ -2803,7 +2803,7 @@ sub func_CTREF {
 }
 
 
-#bind func_DENOM to N menu DENOM Pojmenování
+#bind func_DENOM to n menu DENOM Pojmenování
 sub func_DENOM {
 
   $sPar1 = 'DENOM';
@@ -2813,7 +2813,7 @@ sub func_DENOM {
 }
 
 
-#bind func_DES to Shift+D menu DES Deskr. pøívl., nerestr. (zlatá Praha, lidé mající ...)
+#bind func_DES to D menu DES Deskr. pøívl., nerestr. (zlatá Praha, lidé mající ...)
 sub func_DES {
 
   $sPar1 = 'DES';
@@ -2823,7 +2823,7 @@ sub func_DES {
 }
 
 
-#bind func_DIFF to Shift+F menu DIFF Difference, rozdíl (oè)
+#bind func_DIFF to F menu DIFF Difference, rozdíl (oè)
 sub func_DIFF {
 
   $sPar1 = 'DIFF';
@@ -2863,7 +2863,7 @@ sub func_DIR3 {
 }
 
 
-#bind func_DISJ to Shift+J menu DISJ Disjunction, rozluèovací koord. (nebo, anebo)
+#bind func_DISJ to J menu DISJ Disjunction, rozluèovací koord. (nebo, anebo)
 sub func_DISJ {
 
   $sPar1 = 'DISJ';
@@ -2873,7 +2873,7 @@ sub func_DISJ {
 }
 
 
-#bind func_DPHR to Shift+X menu DPHR zavisla cast frazemu
+#bind func_DPHR to X menu DPHR zavisla cast frazemu
 sub func_DPHR {
 
   $sPar1 = 'DPHR';
@@ -2883,7 +2883,7 @@ sub func_DPHR {
 }
 
 
-#bind func_ETHD to Shift+E menu ETHD Ethical Dative (já ti mám knih, dìti nám nechodí vèas)
+#bind func_ETHD to E menu ETHD Ethical Dative (já ti mám knih, dìti nám nechodí vèas)
 sub func_ETHD {
 
   $sPar1 = 'ETHD';
@@ -2893,7 +2893,7 @@ sub func_ETHD {
 }
 
 
-#bind func_EXT to X menu EXT Extent, míra (velmi, trochu)
+#bind func_EXT to x menu EXT Extent, míra (velmi, trochu)
 sub func_EXT {
 
   $sPar1 = 'EXT';
@@ -2913,7 +2913,7 @@ sub func_FPHR {
 }
 
 
-#bind func_GRAD to Ctrl+G menu GRAD Gradation, stupòovací koord (i, a také)
+#bind func_GRAD to Ctrl+g menu GRAD Gradation, stupòovací koord (i, a také)
 sub func_GRAD {
 
   $sPar1 = 'GRAD';
@@ -2923,7 +2923,7 @@ sub func_GRAD {
 }
 
 
-#bind func_HER to Shift+H menu HER heritage, dìdictví (po otci)
+#bind func_HER to H menu HER heritage, dìdictví (po otci)
 sub func_HER {
 
   $sPar1 = 'HER';
@@ -2933,7 +2933,7 @@ sub func_HER {
 }
 
 
-#bind func_ID to I menu ID Identity (pojem èasu, øeka Vltava)
+#bind func_ID to i menu ID Identity (pojem èasu, øeka Vltava)
 sub func_ID {
 
   $sPar1 = 'ID';
@@ -2943,7 +2943,7 @@ sub func_ID {
 }
 
 
-#bind func_INTF to Shift+I menu INTF falesný podmìt (To Karel jestì nepøisel?)
+#bind func_INTF to I menu INTF falesný podmìt (To Karel jestì nepøisel?)
 sub func_INTF {
 
   $sPar1 = 'INTF';
@@ -2953,7 +2953,7 @@ sub func_INTF {
 }
 
 
-#bind func_INTT to Shift+T menu INTT zámìr (šel se koupat)
+#bind func_INTT to T menu INTT zámìr (šel se koupat)
 sub func_INTT {
 
   $sPar1 = 'INTT';
@@ -2963,7 +2963,7 @@ sub func_INTT {
 }
 
 
-#bind func_LOC to L menu LOC Location, místo kde (jednání uvnitø koalice)
+#bind func_LOC to l menu LOC Location, místo kde (jednání uvnitø koalice)
 sub func_LOC {
 
   $sPar1 = 'LOC';
@@ -2993,7 +2993,7 @@ sub func_MAT {
 }
 
 
-#bind func_MEANS to Ctrl+M menu MEANS Prostøedek (psát rukou, tuzkou)
+#bind func_MEANS to Ctrl+m menu MEANS Prostøedek (psát rukou, tuzkou)
 sub func_MEANS {
 
   $sPar1 = 'MEANS';
@@ -3003,7 +3003,7 @@ sub func_MEANS {
 }
 
 
-#bind func_MOD to Shift+M menu MOD Adv. of modality (asi, mozná, to je myslím zlé)
+#bind func_MOD to M menu MOD Adv. of modality (asi, mozná, to je myslím zlé)
 sub func_MOD {
 
   $sPar1 = 'MOD';
@@ -3013,7 +3013,7 @@ sub func_MOD {
 }
 
 
-#bind func_NORM to Shift+N menu NORM Norma (ve shodì s, podle)
+#bind func_NORM to N menu NORM Norma (ve shodì s, podle)
 sub func_NORM {
 
   $sPar1 = 'NORM';
@@ -3023,7 +3023,7 @@ sub func_NORM {
 }
 
 
-#bind func_PAR to Ctrl+Z menu PAR Parenthesis, vsuvka (myslím, vìøím)
+#bind func_PAR to Ctrl+z menu PAR Parenthesis, vsuvka (myslím, vìøím)
 sub func_PAR {
 
   $sPar1 = 'PAR';
@@ -3033,7 +3033,7 @@ sub func_PAR {
 }
 
 
-#bind func_PARTL to Shift+A menu PARTL
+#bind func_PARTL to A menu PARTL
 sub func_PARTL {
 
   $sPar1 = 'PARTL';
@@ -3043,7 +3043,7 @@ sub func_PARTL {
 }
 
 
-#bind func_PREC to Ctrl+P menu PREC Ref. to prec. text(na zaè. vìty:tedy, tudíz, totiz,protoze, ..)
+#bind func_PREC to Ctrl+p menu PREC Ref. to prec. text(na zaè. vìty:tedy, tudíz, totiz,protoze, ..)
 sub func_PREC {
 
   $sPar1 = 'PREC';
@@ -3053,7 +3053,7 @@ sub func_PREC {
 }
 
 
-#bind func_PRED to E menu PRED Predikat
+#bind func_PRED to e menu PRED Predikat
 sub func_PRED {
 
   $sPar1 = 'PRED';
@@ -3063,7 +3063,7 @@ sub func_PRED {
 }
 
 
-#bind func_REAS to Ctrl+R menu REAS Reason, dùvod (nebot)
+#bind func_REAS to Ctrl+r menu REAS Reason, dùvod (nebot)
 sub func_REAS {
 
   $sPar1 = 'REAS';
@@ -3073,7 +3073,7 @@ sub func_REAS {
 }
 
 
-#bind func_REG to G menu REG Regard (se zøetelem, s ohledem)
+#bind func_REG to g menu REG Regard (se zøetelem, s ohledem)
 sub func_REG {
 
   $sPar1 = 'REG';
@@ -3083,7 +3083,7 @@ sub func_REG {
 }
 
 
-#bind func_RESL to Shift+S menu RESL Úèinek (takze)
+#bind func_RESL to S menu RESL Úèinek (takze)
 sub func_RESL {
 
   $sPar1 = 'RESL';
@@ -3093,7 +3093,7 @@ sub func_RESL {
 }
 
 
-#bind func_RESTR to Shift+R menu RESTR Omezení (kromì, mimo)
+#bind func_RESTR to R menu RESTR Omezení (kromì, mimo)
 sub func_RESTR {
 
   $sPar1 = 'RESTR';
@@ -3113,7 +3113,7 @@ sub func_RHEM {
 }
 
 
-#bind func_RSTR to R menu RSTR restriktivní pøívlastek
+#bind func_RSTR to r menu RSTR restriktivní pøívlastek
 sub func_RSTR {
 
   $sPar1 = 'RSTR';
@@ -3123,7 +3123,7 @@ sub func_RSTR {
 }
 
 
-#bind func_SUBS to Ctrl+U menu SUBS Zastoupení (místo koho-èeho)
+#bind func_SUBS to Ctrl+u menu SUBS Zastoupení (místo koho-èeho)
 sub func_SUBS {
 
   $sPar1 = 'SUBS';
@@ -3133,7 +3133,7 @@ sub func_SUBS {
 }
 
 
-#bind func_TFHL to Ctrl+H menu TFHL For how long, na jak dlouho (na vìky)
+#bind func_TFHL to Ctrl+h menu TFHL For how long, na jak dlouho (na vìky)
 sub func_TFHL {
 
   $sPar1 = 'TFHL';
@@ -3143,7 +3143,7 @@ sub func_TFHL {
 }
 
 
-#bind func_TFRWH to Shift+W menu TFRWH From when, zekdy (zbylo od vánoc cukroví)
+#bind func_TFRWH to W menu TFRWH From when, zekdy (zbylo od vánoc cukroví)
 sub func_TFRWH {
 
   $sPar1 = 'TFRWH';
@@ -3153,7 +3153,7 @@ sub func_TFRWH {
 }
 
 
-#bind func_THL to Ctrl+L menu THL How long, jak dlouho (èetl pùl hodiny)
+#bind func_THL to Ctrl+l menu THL How long, jak dlouho (èetl pùl hodiny)
 sub func_THL {
 
   $sPar1 = 'THL';
@@ -3163,7 +3163,7 @@ sub func_THL {
 }
 
 
-#bind func_THO to Ctrl+O menu THO How often (èasto, mnohokrát...)
+#bind func_THO to Ctrl+o menu THO How often (èasto, mnohokrát...)
 sub func_THO {
 
   $sPar1 = 'THO';
@@ -3173,7 +3173,7 @@ sub func_THO {
 }
 
 
-#bind func_TOWH to Ctrl+W menu TOWH To when, nakdy (pøelozí výuku na pátek)
+#bind func_TOWH to Ctrl+w menu TOWH To when, nakdy (pøelozí výuku na pátek)
 sub func_TOWH {
 
   $sPar1 = 'TOWH';
@@ -3183,7 +3183,7 @@ sub func_TOWH {
 }
 
 
-#bind func_TPAR to Ctrl+A menu TPAR Parallel (bìhem, zatímco, za celý zápas, mezitím co)
+#bind func_TPAR to Ctrl+a menu TPAR Parallel (bìhem, zatímco, za celý zápas, mezitím co)
 sub func_TPAR {
 
   $sPar1 = 'TPAR';
@@ -3193,7 +3193,7 @@ sub func_TPAR {
 }
 
 
-#bind func_TSIN to Ctrl+I menu TSIN Since, odkdy (od té doby co, ode dne podpisu)
+#bind func_TSIN to Ctrl+i menu TSIN Since, odkdy (od té doby co, ode dne podpisu)
 sub func_TSIN {
 
   $sPar1 = 'TSIN';
@@ -3203,7 +3203,7 @@ sub func_TSIN {
 }
 
 
-#bind func_TILL to Ctrl+T menu TTILL Till, dokdy (az do, dokud ne, nez)
+#bind func_TILL to Ctrl+t menu TTILL Till, dokdy (az do, dokud ne, nez)
 sub func_TILL {
 
   $sPar1 = 'TTILL';
@@ -3213,7 +3213,7 @@ sub func_TILL {
 }
 
 
-#bind func_TWHEN to W menu TWHEN When, kdy (loni, vstupuje v platnost dnem podpisu)
+#bind func_TWHEN to w menu TWHEN When, kdy (loni, vstupuje v platnost dnem podpisu)
 sub func_TWHEN {
 
   $sPar1 = 'TWHEN';
@@ -3223,7 +3223,7 @@ sub func_TWHEN {
 }
 
 
-#bind func_VOC to Shift+V menu VOC Vokativní vìta (Jirko!)
+#bind func_VOC to V menu VOC Vokativní vìta (Jirko!)
 sub func_VOC {
 
   $sPar1 = 'VOC';
@@ -3233,7 +3233,7 @@ sub func_VOC {
 }
 
 
-#bind func_VOCAT to Shift+K menu VOCAT Vokativ aponovaný (Pojï sem, Jirko!)
+#bind func_VOCAT to K menu VOCAT Vokativ aponovaný (Pojï sem, Jirko!)
 sub func_VOCAT {
 
   $sPar1 = 'VOCAT';
@@ -3243,7 +3243,7 @@ sub func_VOCAT {
 }
 
 
-#bind func_NA to Ctrl+N menu NA Not Applicable, toto slovo nemá funktor
+#bind func_NA to Ctrl+n menu NA Not Applicable, toto slovo nemá funktor
 sub func_NA {
 
   $sPar1 = 'NA';
@@ -3253,7 +3253,7 @@ sub func_NA {
 }
 
 
-#bind func_questionmarks to Ctrl+Y menu ???
+#bind func_questionmarks to Ctrl+y menu ???
 sub func_questionmarks {
 
   $sPar1 = '???';
@@ -3263,7 +3263,7 @@ sub func_questionmarks {
 }
 
 
-#bind tfa_topic to K menu tfa = topic
+#bind tfa_topic to k menu tfa = topic
 sub tfa_topic {
 
   $sPar1 = 'T';
@@ -3273,7 +3273,7 @@ sub tfa_topic {
 }
 
 
-#bind tfa_focus to U menu tfa = focus
+#bind tfa_focus to u menu tfa = focus
 sub tfa_focus {
 
   $sPar1 = 'F';
@@ -3283,7 +3283,7 @@ sub tfa_focus {
 }
 
 
-#bind shift_node_left to Shift+Q menu posun uzel doleva
+#bind shift_node_left to Q menu posun uzel doleva
 sub shift_node_left {
 
   $sPar1 = 'L';
@@ -3293,7 +3293,7 @@ sub shift_node_left {
 }
 
 
-#bind shift_node_right to Shift+U menu posun uzel doprava
+#bind shift_node_right to U menu posun uzel doprava
 sub shift_node_right {
 
   $sPar1 = 'R';
@@ -3303,7 +3303,7 @@ sub shift_node_right {
 }
 
 
-#bind sign_ZU to Ctrl+Shift+Z menu Podpis Zdena Uresova
+#bind sign_ZU to Ctrl+Z menu Podpis Zdena Uresova
 sub sign_ZU {
 
   $sPar1 = 'ZU/func_EB/tfa';
@@ -3313,7 +3313,7 @@ sub sign_ZU {
 }
 
 
-#bind sign_AB to Ctrl+Shift+A menu Podpis Alla Bemova
+#bind sign_AB to Ctrl+A menu Podpis Alla Bemova
 sub sign_AB {
 
   $sPar1 = 'AB/func_EB/tfa';
@@ -3323,7 +3323,7 @@ sub sign_AB {
 }
 
 
-#bind sign_EB to Ctrl+Shift+E menu Podpis Eva Buranova
+#bind sign_EB to Ctrl+E menu Podpis Eva Buranova
 sub sign_EB {
 
   $sPar1 = 'EB/func_EB/tfa';
@@ -3333,7 +3333,7 @@ sub sign_EB {
 }
 
 
-#bind sign_IK to Ctrl+Shift+K menu Podpis Ivona Kucerova
+#bind sign_IK to Ctrl+K menu Podpis Ivona Kucerova
 sub sign_IK {
 
   $sPar1 = 'IK/func_EB/tfa';
@@ -7948,7 +7948,7 @@ sub MoveNode {
 }
 
 
-#bind delete_node to Ctrl+Shift+D menu Smaze aktualni uzel, pokud nema deti.
+#bind delete_node to Ctrl+D menu Smaze aktualni uzel, pokud nema deti.
 sub delete_node {
 
   DeleteCurrentNode();
@@ -7987,7 +7987,7 @@ sub DeleteCurrentNode {
 }
 
 
-#bind cut_paste_all to Ctrl+Shift+I menu Cut a paste na vsechny uzly podle struktury. (Treba spustit vicekrat).
+#bind cut_paste_all to Ctrl+I menu Cut a paste na vsechny uzly podle struktury. (Treba spustit vicekrat).
 sub cut_paste_all {
 
   CutPasteAll();
@@ -8025,7 +8025,7 @@ sub CutPasteAll {
 }
 
 
-#bind ungap_dords to Ctrl+Shift+G menu Testuje poradi uzlu (dord) a rusi mezery v cislovani
+#bind ungap_dords to Ctrl+G menu Testuje poradi uzlu (dord) a rusi mezery v cislovani
 sub ungap_dords {
 
   UnGap();

@@ -30,14 +30,14 @@ sub file_resumed_hook {
 
 ## add few custom bindings to predefined subroutines
 
-# bind Save to F2 menu Save File
-# bind SaveAndPrevFile to F11 menu Save and Go to Next File
-# bind SaveAndNextFile to F12 menu Save and Go to Next File
-# bind Find to F3 menu Find
-# bind FindNext to F4 menu Find Next
-# bind FindPrev to Ctrl+F4 menu Find Prev
+#bind Save to F2 menu Save File
+#bind SaveAndPrevFile to F11 menu Save and Go to Next File
+#bind SaveAndNextFile to F12 menu Save and Go to Next File
+#bind Find to F3 menu Find
+#bind FindNext to F4 menu Find Next
+#bind FindPrev to Ctrl+F4 menu Find Prev
 
-# bind CutToClipboard to Ctrl+Insert menu Cut Subtree
+#bind CutToClipboard to Ctrl+Insert menu Cut Subtree
 
 sub CutToClipboard {
   return unless ($this and Parent($this));
@@ -46,7 +46,7 @@ sub CutToClipboard {
   CutNode($nodeClipboard);
 }
 
-# bind PasteFromClipboard to Shift+Insert menu Paste Subtree
+#bind PasteFromClipboard to Shift+Insert menu Paste Subtree
 sub PasteFromClipboard {
   return unless ($this and $nodeClipboard);
   PasteNode($nodeClipboard,$this);
@@ -55,7 +55,7 @@ sub PasteFromClipboard {
 }
 
 
-#bind GotoTreeAsk to key Alt+G menu Go to...
+#bind GotoTreeAsk to Alt+g menu Go to...
 sub GotoTreeAsk {
   my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
 
@@ -72,14 +72,14 @@ sub GotoTreeAsk {
   }
 }
 
-#bind LastTree to key Shift+greater menu Go to last tree
-#bind LastTree to key Ctrl+Next
+#bind LastTree to greater menu Go to last tree
+#bind LastTree to Ctrl+Next
 sub LastTree {
   GotoTree($grp->{FSFile}->lastTreeNo+1);
 }
 
-#bind FirstTree to key Shift+less menu Go to first tree
-#bind FirstTree to key Ctrl+Prior
+#bind FirstTree to less menu Go to first tree
+#bind FirstTree to Ctrl+Prior
 sub FirstTree {
   GotoTree(1);
 }

@@ -12,7 +12,7 @@ sub enable_attr_hook {
   return;
 }
 
-# bind insert_node_to_pos to key Alt+Shift+I
+#bind insert_node_to_pos to Alt+I
 
 sub insert_node_to_pos {
   # get nodes
@@ -28,7 +28,7 @@ sub insert_node_to_pos {
   NormalizeOrds(\@nodes);
 }
 
-# bind sentord_to_ord to key Alt+Shift+O
+#bind sentord_to_ord to Alt+O
 
 sub sentord_to_ord {
   my @nodes=GetNodes();
@@ -41,7 +41,7 @@ sub sentord_to_ord {
 
 
 
-# bind gotoNextFound to key Alt+N
+#bind gotoNextFound to Alt+n
 sub gotoNextFound {
   my $node;
   $FileNotSaved=0;
@@ -55,7 +55,7 @@ sub gotoNextFound {
   } while (NextTree and $node=$root);
 }
 
-# bind skipNextAuxK to key Alt+K
+#bind skipNextAuxK to Alt+k
 sub skipNextAuxK {
   my $node;
   $node=FirstSon($root);
@@ -64,7 +64,7 @@ sub skipNextAuxK {
   $this=$node if ($node);
 }
 
-# bind splitAfterNextAuxK to key Alt+\
+#bind splitAfterNextAuxK to Alt+\
 sub splitAfterNextAuxK {
   UnsetFound();
   skipNextAuxK();
@@ -82,7 +82,7 @@ sub LastNode {
   $FileNotSaved=0;
 }
 
-# bind gotoPrevFound to key Alt+P
+#bind gotoPrevFound to Alt+p
 sub gotoPrevFound {
   my $node;
   $node=Prev($this);
@@ -128,7 +128,7 @@ sub editQuery {
   }
 }
 
-#bind PerlSearch to key Alt+H menu Perl-Search
+#bind PerlSearch to Alt+h menu Perl-Search
 sub PerlSearch {
   my $label= "Any inserted perl code will be evaluated for each node from current ".
     "as long as it ends with zero or undefined value; the first node for which ".
@@ -158,14 +158,14 @@ sub PerlSearch {
   print $this->{'form'},"\n";
 }
 
-#bind GotoTreeAsk to key Alt+G menu Go to...
+#bind GotoTreeAsk to Alt+g menu Go to...
 sub GotoTreeAsk {
   my $to=QueryString($grp->{framegroup},"Give a Tree Number","Number");
   GotoTree($to+1) if defined $to;
   $FileNotSaved=0;
 }
 
-#bind PerlSearchNext to key Alt+Shift+H menu Perl-Search Next
+#bind PerlSearchNext to Alt+H menu Perl-Search Next
 sub PerlSearchNext {
   if ($macPerlSearchScript) {
     while ($this=Next($this) or NextTree()) {
@@ -177,28 +177,28 @@ sub PerlSearchNext {
   }
 }
 
-#bind LastTree to key Shift+greater menu Go to last tree
+#bind LastTree to greater menu Go to last tree
 sub LastTree {
   GotoTree($#trees);
 }
 
-# bind FirstTree to key Shift+less menu Go to first tree
+#bind FirstTree to less menu Go to first tree
 sub FirstTree {
   GotoTree(0);
 }
 
 
 
-# bind PrevTree to key comma
-# bind NextTree to key period
+#bind PrevTree to comma
+#bind NextTree to period
 
-# bind UnsetFound to key minus
+#bind UnsetFound to minus
 sub UnsetFound { $this->{'err2'}=''; }
-# bind SetFound to key Shift+plus
-# bind SetFound to key plus
+#bind SetFound to plus
+#bind SetFound to plus
 sub SetFound { $this->{'err2'}='Found'; }
 
-#bind SwapNodes to key Ctrl+9
+#bind SwapNodes to Ctrl+9
 sub SwapNodes {
 ## Swaps the current node with the one above
 
@@ -214,7 +214,7 @@ sub SwapNodes {
   $this=$parent;
 }
 
-#bind SwapNodesValues to key Ctrl+Prior menu Swap nodes (values only)
+#bind SwapNodesValues to Ctrl+Prior menu Swap nodes (values only)
 sub SwapNodesValues {
 ## Swaps the current node with the one above
 ## (actually swaps only attribute all values)
@@ -229,7 +229,7 @@ sub SwapNodesValues {
   $this=$parent;
 }
 
-#bind SwapNodesValuesButAfun to key Ctrl+Shift+Prior menu Swap nodes (values only but afun)
+#bind SwapNodesValuesButAfun to Ctrl+Shift+Prior menu Swap nodes (values only but afun)
 sub SwapNodesValuesButAfun {
 ## Swaps the current node with the one above
 ## (actually swaps only attribute all values but the one of afun)
@@ -247,7 +247,7 @@ sub SwapNodesValuesButAfun {
   $this=$parent;
 }
 
-# bind InsertSubtreeAsNewTreeAfter to key \ menu Split Analytical Tree Here
+#bind InsertSubtreeAsNewTreeAfter to \ menu Split Analytical Tree Here
 sub InsertSubtreeAsNewTreeAfter {
 # Inserts a new tree after the current tree and moves
 # current subtree under its root.
@@ -273,7 +273,7 @@ sub InsertSubtreeAsNewTreeAfter {
   }
 }
 
-#bind ReDord to key Alt+Shift+R menu Reorder
+#bind ReDord to Alt+R menu Reorder
 
 sub ReDord {
   my @nodes=GetNodes();
@@ -281,7 +281,7 @@ sub ReDord {
   NormalizeOrds(\@nodes);
 }
 
-#bind ReorderStructure to key Alt+Shift+S menu Reorder structure
+#bind ReorderStructure to Alt+S menu Reorder structure
 
 sub ReorderStructure {
   ReDord();
@@ -338,7 +338,7 @@ loop:
 
 }
 
-#bind thisToParent to key Alt+U menu Hang current node up one level
+#bind thisToParent to Alt+u menu Hang current node up one level
 sub thisToParent {
   return unless Parent($this) and Parent(Parent($this));
   my $act=$this;
@@ -347,7 +347,7 @@ sub thisToParent {
   $this=$act;
 }
 
-#bind thisToRBrother to key Alt+R menu Hang current node to RBrother
+#bind thisToRBrother to Alt+r menu Hang current node to RBrother
 sub thisToRBrother {
   return unless RBrother($this);
   my $act=$this;
@@ -356,7 +356,7 @@ sub thisToRBrother {
   $this=$act;
 }
 
-#bind thisToLBrother to key Alt+L menu Hang current node to LBrother
+#bind thisToLBrother to Alt+l menu Hang current node to LBrother
 sub thisToLBrother {
   return unless LBrother($this);
   my $act=$this;
@@ -368,13 +368,13 @@ sub thisToLBrother {
 
 #################### EJ
 
-#bind SetCase1 to key 1 menu Nominativ
-#bind SetCase2 to key 2 menu Genitiv
-#bind SetCase3 to key 3 menu Dativ
-#bind SetCase4 to key 4 menu Akuzativ
-#bind SetCase5 to key 5 menu Vokativ
-#bind SetCase6 to key 6 menu Lokal
-#bind SetCase7 to key 7 menu Instrumental
+#bind SetCase1 to 1 menu Nominativ
+#bind SetCase2 to 2 menu Genitiv
+#bind SetCase3 to 3 menu Dativ
+#bind SetCase4 to 4 menu Akuzativ
+#bind SetCase5 to 5 menu Vokativ
+#bind SetCase6 to 6 menu Lokal
+#bind SetCase7 to 7 menu Instrumental
 
 sub SetCase { 
   my $case=shift;
@@ -389,11 +389,11 @@ sub SetCase5 { SetCase(5); }
 sub SetCase6 { SetCase(6); }
 sub SetCase7 { SetCase(7); }
 
-#bind SetNumS to key Shift+G menu Singular
+#bind SetNumS to G menu Singular
 sub SetNumS {
   $this->{tag}=~s/^(...).(.*)$/$1S$2/g;
 }
-#bind SetNumP to key Shift+L menu Plural
+#bind SetNumP to L menu Plural
 sub SetNumP {
   $this->{tag}=~s/^(...).(.*)$/$1P$2/g;
 }
@@ -1710,7 +1710,7 @@ sub CreateNode {
 }
 
 
-#bind _key_Ctrl_Shift_9 to Ctrl+Shift+9
+#bind _key_Ctrl_Shift_9 to Ctrl+parenleft
 sub _key_Ctrl_Shift_9 {
   my $pAct;			# used as type "pointer"
   my $pNew;			# used as type "pointer"
@@ -1836,7 +1836,7 @@ sub _key_Ctrl_Shift_Space {
 }
 
 
-#bind _key_Ctrl_Shift_8 to Ctrl+Shift+8
+#bind _key_Ctrl_Shift_8 to Ctrl+asterisk
 sub _key_Ctrl_Shift_8 {
   my $pAct;			# used as type "pointer"
   my $pParent;			# used as type "pointer"
@@ -1879,7 +1879,7 @@ sub _key_Ctrl_Shift_8 {
 }
 
 
-#bind _key_Ctrl_Shift_7 to Ctrl+Shift+7
+#bind _key_Ctrl_Shift_7 to Ctrl+ampersand
 sub _key_Ctrl_Shift_7 {
 
   $this->{'afun'} = '---';
@@ -1889,7 +1889,7 @@ sub _key_Ctrl_Shift_7 {
 }
 
 
-#bind _key_Ctrl_Shift_6 to Ctrl+Shift+6
+#bind _key_Ctrl_Shift_6 to Ctrl+asciicircum
 sub _key_Ctrl_Shift_6 {
   my $pNew;			# used as type "pointer"
 
@@ -1924,7 +1924,7 @@ sub _key_Ctrl_Shift_6 {
 }
 
 
-#bind _key_Ctrl_Shift_5 to Ctrl+Shift+5
+#bind _key_Ctrl_Shift_5 to Ctrl+percent
 sub _key_Ctrl_Shift_5 {
   my $i;			# used as type "string"
   my $j;			# used as type "string"
@@ -1966,7 +1966,7 @@ sub _key_Ctrl_Shift_5 {
 }
 
 
-#bind _key_Ctrl_Shift_4 to Ctrl+Shift+4
+#bind _key_Ctrl_Shift_4 to Ctrl+dollar
 sub _key_Ctrl_Shift_4 {
   my $pAct;			# used as type "pointer"
   my $pParent;			# used as type "pointer"
@@ -2060,7 +2060,7 @@ sub MarkAtv {
 }
 
 
-#bind _key_Ctrl_Shift_3 to Ctrl+Shift+3
+#bind _key_Ctrl_Shift_3 to Ctrl+numbersign
 sub _key_Ctrl_Shift_3 {
   my $pAct;			# used as type "pointer"
   my $pThis;			# used as type "pointer"
@@ -2977,7 +2977,7 @@ sub ToLine {
 }
 
 
-#bind _key_2 to Shift+2
+#bind _key_2 to at
 sub _key_2 {
 
   ToLine();
@@ -2985,7 +2985,7 @@ sub _key_2 {
 }
 
 
-#bind _key_3 to Shift+3
+#bind _key_3 to numbersign
 sub _key_3 {
   my $pNewPapa;			# used as type "pointer"
   my $pParent;			# used as type "pointer"

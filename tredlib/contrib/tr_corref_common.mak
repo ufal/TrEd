@@ -7,7 +7,7 @@ package Corref;
 use base qw(TredMacro);
 import TredMacro;
 
-#bind default_tr_attrs F1
+#bind default_tr_attrs to F1
 #insert default_tr_attrs as menu Display default attributes
 sub default_tr_attrs {
   if ($grp->{FSFile}) {
@@ -46,8 +46,8 @@ sub about_file_hook {
   }
 }
 
-# bind edit_commentA to key exclam menu Edit annotator's comment
-# bind edit_commentA to key Shift+1
+#bind edit_commentA to exclam menu Edit annotator's comment
+#bind edit_commentA to exclam
 sub edit_commentA {
   if (not $grp->{FSFile}->FS->exists('commentA')) {
     $ToplevelFrame->messageBox
@@ -67,7 +67,7 @@ sub edit_commentA {
   }
 }
 
-#bind fill_empty_attrs to key Space
+#bind fill_empty_attrs to Space
 sub fill_empty_attrs {
   foreach (qw/coref gender number corsnt/) {
     $this->{$_} = '???' if ($this->{$_} eq "");
