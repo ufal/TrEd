@@ -1041,7 +1041,13 @@ sub tr_vallex_transform {
   TRValLexTransform::DoTransformTree();
 }
 
-sub status_line_doubleclick {
+sub status_line_doubleclick_hook { 
+  # status-line field double clicked
+  # there is also status_line_click_hook for single clicks
+
+  # @_ contains a list of style names associated with the clicked
+  # field. Style names may obey arbitrary user-defined convention.
+
   foreach (@_) {
     if (/^\{(.*)}$/) {
       if ($1 eq 'FRAME') {
@@ -1056,7 +1062,10 @@ sub status_line_doubleclick {
 }
 
 sub get_status_line_hook {
+  # get_status_line_hook may either return a string
+  # or a pair [ field-definitions, field-styles ]
   return [
+	  # status line field definitions ( field-text => [ field-styles ] )
 	  [
 	   "form: " => [qw(label)],
 	   $this->{form} => [qw({form} value)],
@@ -1079,11 +1088,14 @@ sub get_status_line_hook {
 	     "]" => [qw()]
 	    ) : ())
 	  ],
+
+	  # field styles
 	  [
 	   "label" => [-foreground => 'black' ],
 	   "value" => [-underline => 1 ],
 	   "{commentA}" => [ -foreground => 'red' ],
 	   "bg_white" => [ -background => 'white' ],
 	  ]
+
 	 ];
 }
