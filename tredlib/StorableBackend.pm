@@ -8,7 +8,6 @@ import ZBackend;
 use strict;
 
 BEGIN {
-  print "Loaded Storable backend;\n";
   @ISA=('ZBackend');
 };
 
