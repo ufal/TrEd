@@ -35,6 +35,8 @@ ADDR(.1), etc)
 
 =cut
 
+@actants = qw(ACT PAT EFF ORIG ADDR);
+
 sub _highest_coord {
   my ($node)=@_;
   while (PDT::is_valid_member_TR($node)) {
@@ -188,7 +190,10 @@ sub match_node_coord {
   my ($node, $fn,$aids,$loose_lemma) = @_;
   my $res = match_node($node,$fn,$aids,0,$loose_lemma);
   if (!$res and $node->{afun} =~ /^Coord|^Apos/) {
-    foreach (grep { $node->{lemma} ne 'a-1' or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ }
+    foreach (grep { $node->{lemma} ne 'a-1' or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ or
+		      ((first { $_->{lemma} =~ /^tak-3(_|$)/ } get_aidrefs_nodes($aids,$_)) and
+		       (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$_)))
+		  }
 	     with_AR{PDT::expand_coord_apos($node)}) {
       return 0 unless match_node($_,$fn,$aids,0,$loose_lemma);
     }
@@ -665,6 +670,17 @@ sub _filter_OPER_AP_and_jako_APPS {
 }
 
 
+sub _has_parent_coord_a {
+  my ($m) = @_;
+  my $res = with_AR {
+    $m->parent and
+    $m->parent->{lemma} eq 'a-1' and 
+    PDT::is_coord($m->parent) and $m->{afun}=~/_Co$/ and
+    not first { $_->{ord} > $m->{ord} } PDT::expand_coord_apos($m->parent)
+  };
+  return $res ? 1 :0
+}
+
 sub validate_frame {
   my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet) = @_;
   $frame = do_transform_frame($V,$trans_rules,$node, $frame,$aids,$quiet);
@@ -727,14 +743,12 @@ sub validate_frame {
     } elsif (_filter_OPER_AP_and_jako_APPS($m)) {
       $ignore{$m}=1;
       print "WW should ignore node: '$m->{trlemma}'\n" if (!$quiet and $V_verbose);
-    } elsif ($m->{lemma}=~/^(podobnì|daleko-1|dal¹í)(_|$)/
-	     and  $m->{AID} ne "" and
-             with_AR {
-	       $m->parent and
-	       $m->parent->{lemma} eq 'a-1'
-	       and PDT::is_coord($m->parent) and $m->{afun}=~/_Co$/
-	       and not first { $_->{ord} > $m->{ord} } PDT::expand_coord_apos($m->parent)
-	     }) {
+    } elsif ($m->{AID} ne "" and
+	     (($m->{lemma}=~/^(podobnì|daleko-1|dal¹í)(_|$)/
+	       and _has_parent_coord_a($m))
+	      or ( (first { $_->{lemma} =~ /^tak-3(_|$)/  } get_aidrefs_nodes($aids,$m)) and
+		   (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$m)) and
+		   (first { _has_parent_coord_a($_) } get_aidrefs_nodes($aids,$m))))) {
       $ignore{$m}=1;
       print "WW should ignore node: '$m->{trlemma}'\n" if (!$quiet and $V_verbose);
     }
