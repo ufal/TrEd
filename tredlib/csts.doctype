@@ -375,7 +375,7 @@ APPINFO    NONE
                           for detailed information see
                           "A Manual for Analytic Layer Tagging" --
           cphr  NMTOKEN   #IMPLIED
-          id    ID   #IMPLIED >
+          id    CDATA   #IMPLIED >
 <!ELEMENT w - O (#PCDATA)
                  --  original forms for normalized stuff (numbers, etc.) -->
 <!ATTLIST w
@@ -396,7 +396,7 @@ APPINFO    NONE
 >
 <!ATTLIST d
           type (std|gen) std
-          id    ID   #IMPLIED 
+          id    CDATA   #IMPLIED 
             -- used for manual corrections if <w spell> used --
 >
 
@@ -506,7 +506,7 @@ APPINFO    NONE
 >
 <!ATTLIST fadd
           del  (elid|elex|expn) elid 
-          id    ID   #IMPLIED 
+          id    CDATA   #IMPLIED 
 >
 
 <!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
