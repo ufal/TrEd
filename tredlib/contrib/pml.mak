@@ -32,7 +32,24 @@ sub switch_context_hook {
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
   print "SCHEMA: ",schema_name(),"\n";
   default_pml_attrs();
-  my@CustomColors=qw/error red func darkgreen text darkblue gram orange segment gold compl green member darkmagenta member_line black normal_line yellow comm_line magenta cm_line gray/;
+  my@CustomColors=qw/error red
+                     current red
+                     tfa_T white
+                     tfa_F yellow
+                     tfa_C green
+                     tfa_no #c0c0c0
+                     func #601808
+                     subfunc #a02818
+                     parenthesis #809080
+                     coref darkblue
+                     arrow_text #4C509F
+                     arrow_gram #C05633
+                     arrow_segment darkred
+                     arrow_compl #629F52
+                     arrow_exoph blue
+                     line_normal #707070
+                     line_member #a0a0a0
+                     line_comm #6F11EA/;
   while(@CustomColors){
     my$key=shift(@CustomColors);
     my$val=shift(@CustomColors);
@@ -40,25 +57,28 @@ sub switch_context_hook {
   }
   %arrow_colors = (
                  #should be converted to CustomColors
-                 textual => CustomColor('text'),
-                 grammatical => CustomColor('gram'),
-                 segment => CustomColor('segment'),
-                 compl => CustomColor('comp'));
+                 textual => CustomColor('arrow_text'),
+                 grammatical => CustomColor('arrow_gram'),
+                 segment => CustomColor('arrow_segment'),
+                 compl => CustomColor('arrow_compl'));
   Redraw_FSFile();
   return;
 }
 
 sub set_default_tdata_attrs {
   SetDisplayAttrs(split /\n/,<<'EOF');
-node:${t_lemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? '#{'.CustomColor('text')."}.$PMLTectogrammatic::coreflemmas{$${id}}" if $PMLTectogrammatic::coreflemmas{$${id}}ne'' ?>
-node:#{<? CustomColor('func') ?>}${functor}<? $${is_member} ? "_#{".CustomColor('member')."}".($this->parent->{functor}=~/^(AP)PS|^(OP)ER/ ? "\${is_member=$1$2}" : "\${is_member=CO}") : "" ?><? "#{#4C9CCD}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${subfunctor}" if $${subfunctor} ne "???" and $${subfunctor} ne ""?>
-style:<? "#{Oval-fill:".CustomColor('text')."}#{Node-shape:Rectangle}#{Node-addwidth:5}#{Node-addheight:5}"if(join '|',ListV($this->{coref_special}))=~/exoph/ ?>
-node:<? $${nodetype} ne 'complex' ? '#{darkblue}${nodetype}'  : ''?>#{darkred}<? local $_=$${gram/wordclass}; s/^sem([^.]+)(\..)?[^.]*(.*)$/$1$2$3/; '${gram/wordclass='.$_.'}' ?><? $${dsp_root} ? '#{black}.#{green}${dsp_root=DSP}' : '' ?><? $${quot_type} ne '' ? '.#{green}${quot_type}' : ''?>
-style:<? '#{Oval-fill:'.CustomColor(($this->{is_member})?((PMLTectogrammatic::is_coord_TR($this->parent))?'member_line':'error'):(PMLTectogrammatic::is_coord_TR($this->parent)?(($this->{functor}=~/^(?:RHEM|CM|PREC)$/)?'cm_line':'comm_line'):'normal_line')).'}' ?>#{CurrentOval-fill:red} 
-style:<? $${nodetype} eq 'coap' ? '#{Node-shape:rectangle}#{Node-currentwidth:7}#{Node-currentheight:7}#{CurrentOval-width:1}#{Node-width:5}#{Node-height:5}#{Oval-width:0}#{Oval-fill:black}#{CurrentOval-fill:red}' : '' ?>
+node:<? '#{customparenthesis}' if $${is_parenthesis} ?>${t_lemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?><? '#{customcoref}.'.$PMLTectogrammatic::coreflemmas{$${id}} if $PMLTectogrammatic::coreflemmas{$${id}}ne'' ?>
+node:#{customfunc}${functor}<? "#{#4C9CCD}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? "#{customsubfunc}".($${subfunctor}?".\${subfunctor}":'').($${is_state}?".\${is_state=state}":'') ?>
+node:<? $${nodetype} ne 'complex' ? '#{darkblue}${nodetype}'  : ''?>#{darkmagenta}<? local $_=$${gram/wordclass}; s/^sem([^.]+)(\..)?[^.]*(.*)$/$1$2$3/; '${gram/wordclass='.$_.'}'?>
+style:<? '#{Node-shape:Rectangle}'if$${is_generated} ?>
+style:<? if(($this->{functor}=~/^(?:PAR|PARTL|VOCAT|RHEM|CM|FPHR|PREC)$/)or($this->parent and $this->parent->{nodetype}eq'root')){'#{Line-width:1}#{Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal').'}'}elsif($${is_member}){if(PMLTectogrammatic::is_coord_TR($this)){'#{Line-width:1}#{Line-fill:'.CustomColor('line_normal').'}'}elsif($this->parent and PMLTectogrammatic::is_coord_TR($this->parent)){'#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:3&1}#{Line-fill:'.CustomColor('line_normal').'&'.CustomColor('line_member').'}'}else{'#{Line-fill:'.CustomColor('error').'}'}}elsif($this->parent and PMLTectogrammatic::is_coord_TR($this->parent)){'#{Line-width:1}#{Line-fill:'.CustomColor('line_comm').'}'}elsif(PMLTectogrammatic::is_coord_TR($this)){'#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:1&3}#{Line-fill:'.CustomColor('line_member').'&'.CustomColor('line_normal').'}'}else{'#{Line-width:2}#{Line-fill:'.CustomColor('line_normal').'}'} ?>
+style:<? if($${tfa}=~/^[TFC]$/){'#{Oval-fill:'.CustomColor('tfa_'.$${tfa}).'}${tfa}.'}else{'#{Oval-fill:'.CustomColor('tfa_no').'}'} ?>#{CurrentOval-width:3}#{CurrentOval-outline:<? CustomColor('current') ?>}
 EOF
-  SetBalloonPattern('');
+
+  SetBalloonPattern('<? my@hintlines;foreach my$gram(keys %{$this->{gram}}){push@hintlines,"gram/".$gram." : ".$this->{gram}->{$gram} if$this->{gram}->{$gram}};push@hintlines,"is_dsp_root : 1" if $${is_dsp_root};push@hintlines,"is_name_of_person : 1"if$${is_name_of_person};push@hintlines,"quot_set : ".join("|",ListV($this->{quot_set}))if$${quot_set};join"\n",@hintlines?>');
 }
+
+#JA: style:<?'#{'.((($this->{functor}=~/^(?:PAR|PARTL|VOCAT|RHEM|CM|FPHR|PREC)$/)or($this->parent and $this->parent->{nodetype}eq'root'))?'Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal'):($this->{is_member}?((PMLTectogrammatic::is_coord_TR( $this->parent))?'Line-width:1}#{Line-fill:'.CustomColor('line_member'):'Line-fill:'.CustomColor('error')):(PMLTectogrammatic::is_coord_TR($this->parent)?'Line-width:1}#{Line-fill:'.CustomColor('line_comm'):'Line-width:2}#{Line-fill:'.CustomColor('line_normal')))).'}'?>
 
 sub set_default_adata_attrs {
     SetDisplayAttrs(split /\n/, <<'EOF');
@@ -117,8 +137,6 @@ sub aids {
   }
   $fsfile->metaData('a-ids');
 }
-
-
 
 #bind analytical_tree to Ctrl+A menu Display analytical tree
 sub analytical_tree {
@@ -186,7 +204,6 @@ sub tectogrammatical_tree {
   ChangingFile(0);
 }
 
-
 sub ARstruct {
   my $fsfile = $grp->{FSFile};
   return 0 unless ($fsfile or $fsfile->metaData('struct') eq 'adata');
@@ -195,17 +212,6 @@ sub ARstruct {
   $ar_fs->changeMetaData('tdata',$fsfile);
   $ar_fs->changeMetaData('struct','adata');
   $grp->{FSFile} = $ar_fs;
-
-#  my $ar_header = $ar_fs->FS;
-#  my $header = $fsfile->FS;
-#  my @ar_trees = $ar_fs->trees();
-#  my @trees = $fsfile->trees();
-#   $fsfile->changeMetaData('a-fs',undef);
-#   $fsfile->changeMetaData('t-fs',$ar_fs);
-#   $fsfile->changeTrees(@ar_trees);
-#   $ar_fs->changeTrees(@trees);
-#   $fsfile->changeFS($ar_header);
-#   $ar_fs->changeFS($header);
   return 1;
 }
 
@@ -215,21 +221,8 @@ sub TRstruct {
   my $tr_fs = $fsfile->metaData('tdata');
   return 0 unless $tr_fs;
   $grp->{FSFile} = $tr_fs;
-  
-#   my $tr_header = $tr_fs->FS;
-#   my $header = $fsfile->FS;
-#   my @tr_trees = $tr_fs->trees();
-#   my @trees = $fsfile->trees();
-#   $fsfile->changeMetaData('struct','TR');
-#   $fsfile->changeMetaData('t-fs',undef);
-#   $fsfile->changeMetaData('a-fs',$tr_fs);
-#   $fsfile->changeTrees(@tr_trees);
-#   $tr_fs->changeTrees(@trees);
-#   $fsfile->changeFS($tr_header);
-#   $tr_fs->changeFS($header);
   return 1;
 }
-
 
 sub get_value_line_hook {
   my ($fsfile,$treeNo)=@_;
@@ -276,57 +269,6 @@ sub node_style_hook {
   my $ARstruct = (which_struct() =~ /AR/) ? 1 : 0;
   my %line = ref($styles->{Line}) ? @{$styles->{Line}} : ();
   my %my_line;
-  #'style:<? #diff ?><? "#{Line-fill:red}#{Line-dash:- -}" if $${_diff_dep_} ?>',
-  if ($node->{_diff_dep_}) {
-    $my_line{-fill}='red';
-    $my_line{-dash}='- -';
-  }
-  if ($node->{_diff_attrs_}) {
-    #'style:<? #diff ?><? "#{Oval-fill:darkorange}#{Node-addwidth:4}#{Node-addheight:4}" if $${_diff_attrs_} ?>',
-    AddStyle($styles,'Oval',
-	     -fill => 'darkorange');
-    AddStyle($styles,'Node',
-	     -addheight => 4,
-	     -addwidth => 4
-	    );
-    #'style:<? #diff ?><? join "",map{"#{Text[$_]-fill:orange}"} split  " ",$${_diff_attrs_} ?>',
-    AddStyle($styles,"Text[$_]", -fill => 'orange') for split " ",$node->{_diff_attrs_};
-    #'style:<? #diff ?><? "#{Line-fill:black}#{Line-dash:- -}" if $${_diff_attrs_}=~/ TR/ ?>',
-    if ($node->{_diff_attrs_}=~/ TR/) {
-      $my_line{-dash}='- -';
-      $my_line{-fill}='black';
-    }
-  } elsif ($node->{_diff_in_}) {
-    #'style:<? #diff ?><? "#{Oval-fill:cyan}#{Line-fill:cyan}#{Line-dash:- -}" if $${_diff_in_} ?>',
-    AddStyle($styles,'Oval',
-	     -fill => 'cyan');
-    AddStyle($styles,'Node',
-	     -addheight => 4,
-	     -addwidth => 4);
-
-  } elsif (!$ARstruct) {
-    if ($Coref::drawAutoCoref and $node->{corefMark}==1 and
-	  $node->{'coref_text.rf'} eq "" and $node->{'coref_gram.rf'} eq "") {
-      AddStyle($styles,'Node',
-	       -shape => 'rectangle',
-	       -addheight => 10,
-	       -addwidth => 10
-	      );
-      AddStyle($styles,'Oval',
-	       -fill => '#FF7D20');
-    }
-    if (($Coref::referent ne "") and
-	  (($node->{TID} eq $Coref::referent) or
-	     ($node->{AID} eq $Coref::referent))) {
-      AddStyle($styles,'Oval',
-	       -fill => $Coref::referent_color
-	      );
-      AddStyle($styles,'Node',
-	       -addheight => 6,
-	       -addwidth => 6
-	      );
-    }
-  }
 
   # make sure we only alter the very first line
   my $lines = scalar(split /&/,$line{coords});
@@ -340,7 +282,7 @@ sub node_style_hook {
     $line{$_}=$my_line{$_} for keys %my_line;
   }
 
-  if  (!$ARstruct and ($node->{'coref_text.rf'} or $node->{'coref_gram.rf'} or $node->{'compl.rf'})) {
+  if  (!$ARstruct and ($node->{'coref_text.rf'} or $node->{'coref_gram.rf'} or $node->{'compl.rf'} or $node->{coref_special})) {
     my @gram = grep {$_ ne "" } ListV($node->{'coref_gram.rf'});
     my @text = grep {$_ ne "" } ListV($node->{'coref_text.rf'});
     my @compl = grep {$_ ne "" } ListV($node->{'compl.rf'});
@@ -358,16 +300,12 @@ sub node_style_hook {
 
 sub draw_coref_arrows {
   my ($node,$styles,$line,$corefs,$cortypes,$cortype_colors)=@_;
-#  my $id1=$root->{id};
-#  $id1=~s/:/-/g;
-#  $id1=~s/-/:/;
   my (@coords,@colors);
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
   my $ids={};
   my $nd = $root; while ($nd) { $ids->{$nd->{id}}=1 } continue { $nd=$nd->following };
   foreach my $coref (@$corefs) {
     my $cortype=shift @$cortypes;
-#    next if (!$drawAutoCoref and $cortype =~ /auto/);
     if ($ids->{$coref}) { #index($coref,$id1)==0) {
       print STDERR "ref-arrows: Same sentence\n" if $main::macroDebug;
       # same sentence
@@ -387,48 +325,32 @@ x$T,y$T
 COORDS
       push @coords,$c;
 
-#&n,n,
-#(x$T+xn)/2 + $D*$Y,
-#(y$T+yn)/2 - $D*$X,
-#x$T,y$T
+    } else { # should be always the same document, if it exists at all
+      delete $coreflemmas{$node->{id}};
+      my($step_l,$step_r)=(1,1);
+      my $current=CurrentTreeNumber();
+      my $maxnum=scalar(GetTrees())-1;
+      my $orientation;
 
-
-#&n,n,
-#n + (x$T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
-#n + (y$T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
-#x$T,y$T
-
-
-#&n,n,
-#n + (x$T-n)/2, n,
-#n + (x$T-n)/2, y$T,
-#x$T,y$T
-      } else { # should be always the same document, if it exists at all
-        delete $coreflemmas{$node->{id}};
-        my($step_l,$step_r)=(1,1);
-        my $current=CurrentTreeNumber();
-        my $maxnum=scalar(GetTrees())-1;
-        my $orientation;
-
-        while($step_l!=0 or $step_r!=0){
-          if($step_l){
-            if (my$refed=first { $_->{id} eq $coref } (GetTrees())[$current-$step_l] -> descendants){
-              $orientation='left';
-              $coreflemmas{$node->{id}}=$refed->{t_lemma};
-              last;
-            }
-            $step_l=0 if ($current-(++$step_l))<0;
+      while($step_l!=0 or $step_r!=0){
+        if($step_l){
+          if (my$refed=first { $_->{id} eq $coref } (GetTrees())[$current-$step_l] -> descendants){
+            $orientation='left';
+            $coreflemmas{$node->{id}}.=$refed->{t_lemma};
+            last;
           }
-          if($step_r){
-            if (my$refed=first { $_->{id} eq $coref } (GetTrees())[$current+$step_r] -> descendants){
-              $coreflemmas{$node->{id}}=$refed->{t_lemma};
-              $orientation='right';
-              last;
-            }
-            $step_r=0 if ($current+(++$step_r))>$maxnum;
-          }
+          $step_l=0 if ($current-(++$step_l))<0;
         }
-        if($orientation){
+        if($step_r){
+          if (my$refed=first { $_->{id} eq $coref } (GetTrees())[$current+$step_r] -> descendants){
+            $coreflemmas{$node->{id}}.=$refed->{t_lemma};
+            $orientation='right';
+            last;
+          }
+          $step_r=0 if ($current+(++$step_r))>$maxnum;
+        }
+      }
+      if($orientation){
           if($orientation eq'left'){
 	    print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
 	    push @colors,$cortype_colors->{$cortype};
@@ -446,57 +368,19 @@ COORDS
 	  push @coords,"&n,n,n+$rotate_dfr_doc,n-20";
 	  $rotate_dfr_doc+=10;
         }
-
-# Old code:
-#
-# 	my ($d,$p,$s,$l)=($id1=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*)$/);
-# 	my ($cd,$cp,$cs,$cl)=($coref=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*).\d+/);
-# 	print STDERR "ref-arrows: $d,$p,$s,$l versus $cd,$cp,$cs,$cl\n" if $main::macroDebug;
-# 	if ($d eq $cd) {
-# 	  print STDERR "ref-arrows: Same document\n" if $main::macroDebug;
-# 	  # same document
-# 	  if ($cp<$p || $cp==$p && ($cs<$s or $cs == $s and $cl lt $l)) {
-# 	    # preceding sentence
-# 	    print STDERR "ref-arrows: Preceding sentence\n";
-# 	    push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
-# 	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
-# 	    $rotate_prv_snt+=10;
-# 	  } else {
-# 	    # following sentence
-# 	    print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
-# 	    push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
-# 	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
-# 	    $rotate_nxt_snt+=10;
-# 	  }
-# 	} else {
-# 	  # different document
-# 	  print STDERR "ref-arrows: Different document?\n" if $main::macroDebug;
-# 	  push @colors,$cortype_colors->{$cortype}; #'&#c53c00'
-# 	  push @coords,"&n,n,n+$rotate_dfr_doc,n-30";
-# 	  $rotate_dfr_doc+=10;
-# 	  print STDERR "ref-arrows: Different document sentence\n" if $main::macroDebug;
-# 	}
-       }
+    }
   }
-  if(join ('|',ListV($this->{coref_special}))=~ /sg/) { # pointer to an unspecified segment of preceeding sentences
+  if(join ('|',ListV($node->{coref_special}))=~ /sg/) { # pointer to an unspecified segment of preceeding sentences
     print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug;
-    push @colors,$cortype_colors->{segment};
+    push @colors,CustomColor('arrow_segment');
     push @coords,"&n,n,n-25,n";
-  }elsif(join ('|',ListV($this->{coref_special}))=~ /exoph/) {
-    print STDERR "ref-arrows: Exophora!\n" if $main::macroDebug;
-    push @colors,CustomColor('text');
+  }
+  if(join ('|',ListV($node->{coref_special}))=~ /exoph/) {
+    print STDERR "ref-arrows: Exophora\n" if $main::macroDebug;
+    push @colors,CustomColor('arrow_exoph');
     push @coords,"&n,n,n+$rotate_dfr_doc,n-20";
     $rotate_dfr_doc+=10;
   }
-#     AddStyle($styles,'Oval',
-# 	      -fill => $cortype_colors->{textual}
-# 	     );
-#     AddStyle($styles,'Node',
-# 	      -shape => 'rectangle',
-# 	      -addheight => '5',
-# 	      -addwidth => '5'
-# 	     );
-#   }
   $line->{-coords} ||= 'n,n,p,p';
 
   # make sure we don't alter any previous line
@@ -514,13 +398,6 @@ COORDS
 	     -smooth => $line->{-smooth}.('&1' x @coords));
   }
 }
-
-# sub get_nodelist_hook {
-#   my ($fs,$treeNo,$current)=@_;
-#   $current = $current->firstson unless $current->parent;
-#   return [[sort {$a->{deepord} <=> $b->{deepord}}
-#     $fs->treeList->[$treeNo]->descendants],$current];
-# }
 
 sub get_status_line_hook {
   # get_status_line_hook may either return a string
@@ -555,6 +432,29 @@ sub get_status_line_hook {
 	 ];
 }
 
+=item PMLTectogrammatic::goto
+
+Ask user for sentence identificator (number or id) and go to the
+sentence.
+
+=cut
+
+#bind goto_tree to Alt+g menu Goto Tree
+sub goto_tree {
+  my$to=QueryString("Give a Tree Number or ID","Tree Identificator");
+  if($to =~ /^[0-9]+$/){ # number
+    GotoTree($to) if $to <= scalar GetTrees() and $to != 0;
+  }else{ # id
+    for(my$i=0;$i<GetTrees();$i++){
+      if((GetTrees())[$i]->{id} =~ /\Q$to\E$/){
+        GotoTree($i+1);
+        last;
+      }
+    }
+  }
+  ChangingFile(0);
+}#goto_tree
+
 =item PMLTectogrammatic::is_coord_TR(node)
 
 Check if the given node is a coordination according to its TGTS
@@ -567,3 +467,26 @@ sub is_coord_TR {
   return 0 unless $node;
   return $node->{functor} =~ /CONJ|CONFR|DISJ|GRAD|ADVS|CSQ|REAS|CONTRA|APPS|OPER/;
 }
+
+=item PMLTectogrammatic::expand_coord_apos_TR(node,keep?)
+
+If the given node is coordination or aposition (according to its TGTS
+functor - attribute C<functor>) expand it to a list of coordinated
+nodes. Otherwise return the node itself. If the argument C<keep> is
+true, include the coordination/aposition node in the list as well.
+
+=cut
+
+sub expand_coord_TR {
+  my ($node,$keep)=@_;
+  return unless $node;
+  if (is_coord_TR($node)) {
+    return (($keep ? $node : ()),
+	    map { expand_coord_TR($_,$keep) }
+	    grep { $_->{is_member} } $node->children(FS()));
+  } else {
+    return ($node);
+  }
+} #expand_coord_TR
+
+#TODO: zkusit pulene hrany, jmena
