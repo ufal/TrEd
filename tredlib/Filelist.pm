@@ -343,6 +343,9 @@ Return the index of the pattern which has generated the n'th file
 sub file_pattern_index {
   my ($self,$index) = @_;
   return undef unless ref($self);
+  if ($index<0) {
+    return -1;
+  }
   return $self->files_ref->[$index]->[1];
 }
 
