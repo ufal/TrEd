@@ -10,12 +10,12 @@
 package main;
 
 use Getopt::Std;
-getopts('c:m:e:t:hu');
+getopts('c:m:e:t:huNHT');
 
 if ($opt_u) {
   print <<EOH;
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-t context] files...
+  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-N|-T] files...
 or
   btred -u          to show usage
 or
@@ -27,7 +27,7 @@ EOH
 if ($opt_h) {
   print <<EOF;
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-t context] files...
+  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-N|-H] [-T] files...
 or
   btred -u          to show usage
 or
@@ -43,6 +43,15 @@ script        - any script (may use macros); typically script is just
                 name of the macro to be run
 context       - start in the given macro context (package).
                 TredMacro is the default context.
+
+-N            - wrap 'while ($this) { ...; $this=$this->following; }
+                around the script
+-H            - same as -N but use following_visible instead, skipping
+                hidden nodes
+-T            - wrap 'do { ... } while NextTree();' around the script
+
+Flags -N and -H may not be combined. If both are used, -N has the
+precedence. However, both -N and -H may be used together with -T.
 
 If no macro-file is given, standard macro file (see TrEd
 documentation) is searched and used if found. If no script is
@@ -67,9 +76,9 @@ EOF
 }
 
 if (defined $opt_e) {
-  $macroName=$opt_e;
+  $script=$opt_e;
 } else {
-  $macroName="autostart"; # this is the default macro name
+  $script="autostart()"; # this is the default macro name
 }
 
 
@@ -228,10 +237,30 @@ sub startMain {
 
   my $filecount=@files;
 #  eval (join("",@macros)."\n return 1;");
+  my $context = $grp->{macroContext};
+  my $pre='';
+  $pre .= "do { " if ($opt_T);
+  $pre .= "while (\$this) {" if ($opt_N or $opt_H);
+  $post.= "\$this=\$this->following; \n}" if ($opt_N);
+  $post.= "\$this=\$this->following_visible(\$grp->{FSFile}->FS); \n}"
+    if (not $opt_N and $opt_H);
+  $post.= " } while NextTree();" if ($opt_T);
+
+  $premacro= <<EOL;
+package $context;
+sub _btred_eval_ {
+$pre
+$script;
+$post
+}
+EOL
+
+  doEvalMacro($grp,$premacro);
+
   openFile($grp,$files[$fileNo]);
   do {
     print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n";
-    doEvalMacro($grp,$macroName);
+    doEvalMacro($grp,"$context->_btred_eval_();");
     print STDERR "Done\n";
     saveFile() if $FileNotSaved;
   } while (nextFile());
@@ -351,26 +380,23 @@ sub doEvalHook {
 
 sub doEvalMacro {
   my ($grp,$macro)=(shift,shift);
-  return unless $macro and $grp->{'currentNode'};
+  return unless $macro;
 
   $this=$grp->{'currentNode'};
   $root=$grp->{'root'};
   $FileNotSaved=1;
   $forceFileSaved=0;
-  my $context=$grp->{macroContext};
-  $premacro= <<EOL;
-package $context;
-sub _btred_eval_ { $macro; }
-EOL
-  eval $premacro;
-  my $result=do_eval_macro($grp,"$context->_btred_eval_();");
 
-  if ($forceFileSaved) {
-    $grp->{FSFile}->notSaved($FileNotSaved);
-  } else {
-    $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
+  my $result=do_eval_macro($grp,$macro);
+
+  if ($grp->{FSFile}) {
+    if ($forceFileSaved) {
+      $grp->{FSFile}->notSaved($FileNotSaved);
+    } else {
+      $grp->{FSFile}->notSaved($grp->{FSFile}->notSaved or $FileNotSaved);
+    }
+    setCurrent($grp,$this) if ($this);
   }
-  setCurrent($grp,$this) if ($this);
 
   $this=undef;
   $root=undef;
