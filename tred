@@ -57,6 +57,7 @@ $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
 
 # Once we got rid of them we call getopt to read all the other options
 use Tk;
+use Tk::Config ();
 use Tk::Wm;
 use IO;
 
@@ -260,6 +261,12 @@ import TrEd::MinMax;
 # import encode and decode functions
 require TrEd::Convert;
 import TrEd::Convert;
+
+if ($TrEd::Convert::support_unicode) {
+  require Tk::Entry;
+  require Tk::Text;
+  require Tk::UCSKeyBind;
+}
 
 # import read_macros etc.
 require TrEd::Macros;
@@ -2997,11 +3004,9 @@ sub startMain {
   } else {
     $group{top}=MainWindow->new();
   }
-
   if ($TrEd::Convert::support_unicode) {
-    require Tk::UCSKeyBind;
+    $group{top}->useinputmethods(1);
   }
-
   readStyleSheets(\%group);
 
   $group{autoSaveCallback}=$group{top}->repeat($autoSave*60000,
