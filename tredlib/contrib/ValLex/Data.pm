@@ -421,7 +421,7 @@ sub addFrameLocalHistory {
   my $local_event=$doc->createElement("local_event");
   my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
   $local_event->setAttribute("time_stamp",sprintf('%d.%d.%d %02d:%02d:%02d',
-						 $mday,$mon,1900+$year,$hour,$min,$sec));
+						 $mday,$mon+1,1900+$year,$hour,$min,$sec));
   $local_event->setAttribute("type_of_event",$type);
   $local_event->setAttribute("author",$self->user());
   $local_history->appendChild($local_event);
@@ -455,16 +455,16 @@ sub generateNewFrameId {
   my $w=0;
   my $wid=$word->getAttribute("word_ID");
   my $forbidden=$self->getForbiddenIds();
-  $w=$1 if ($wid=~/^w-([0-9]+)/);
+  $w=$1 if ($wid=~/^.-(.+)/);
   foreach ($self->getFrameList($word)) {
-    if ($_->[1]=~/^f-$w-([0-9]+)/ and $i<$1) {
+    if ($_->[1]=~/-(\d+)\D*$/ and $i<$1) {
       $i=$1;
     }
   }
   $i++;
   my $user=$self->user;
-  $i++ while ($forbidden->{"f-$w-$i-$user"});
-  return "f-$w-$i-$user";
+  $i++ while ($forbidden->{"f-$wid-$i-$user"});
+  return "f-$wid-$i-$user";
 }
 
 sub addForms {
