@@ -1,3 +1,79 @@
+2003-08-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred, tred, tredlib/Fslib.pm:
+	- LWP::Simple based support for opening URLs
+
+2003-08-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/tred.def: POD fixes
+
+	* ntred: fixed POD
+
+	* tredlib/tred.def: POD fix
+
+	* btred: or $usage ;-)
+
+2003-08-14  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ntred: added --break into POD docu
+
+	* ntred: fixed POD
+
+2003-08-01  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak: fixed memory leak in F5-macro
+
+2003-07-29  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	copying converts frames only for substantives
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	quick copy of verb frames to substantive frames
+
+	* tredlib/contrib/ValLex/Widgets.pm, tredlib/contrib/ValLex/Editor.pm:
+	added keybindigs, etc.
+
+	* tredlib/tred.mac: global exit_hook support
+
+2003-07-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Widgets.pm: fixed bug
+
+	* tredlib/TEIXMLBackend.pm:
+	introduced AID as an alternative to id - grrrrrrr!!!!, hope will be
+	allowed to drop it again soon
+
+2003-07-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* btred:
+	- unless terminal encoding provided, setting STDOUT/STDERR output to
+	  current file's encoding to make btred work with perl 5.8 most the
+	  same as in 5.6.1
+
+	* ChangeLog: *** empty log message ***
+
+	* tredlib/contrib/ValLex/chooser.mak:
+	- OpenEditor opens a non-modal ValLex window
+	- some vallex macros on F3,F5,F7 (not yet fully functional)
+
+	* tredlib/contrib/ValLex/Widgets.pm: set_pos_filter
+
+	* tredlib/contrib/ValLex/Editor.pm: - new_dialog_window
+
+	* tredlib/tred.def: - documentation update
+
+	* tredlib/tred.def: - FileName() uses ## instead of #
+	- added ChangingFile() macro
+
+	* tredlib/Filelist.pm:
+	- bugfixes regarding values of @{$self->file_ref} being arrays
+
+	* tred: - fixed gotoFile
+	- sorting filelist alphabetically in the Session menu
+
+	* ntred: *** empty log message ***
+
 2003-07-24  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* tredlib/contrib/ValLex/chooser.mak:
