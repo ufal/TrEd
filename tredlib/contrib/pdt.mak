@@ -696,7 +696,7 @@ given node has no memberof and operand at all.
 sub valid_member_TR {
   my $node=$_[0] || $this;
   return 0 if (!$node->parent or !is_coord_TR($node->parent)) and
-    $node->{memberof} =~ /CO|AP/ and $node->{operand} =~ /OP/;
+    ($node->{memberof} =~ /CO|AP/ or $node->{operand} =~ /OP/);
   if ($node->parent) {
     return 0 if $node->parent->{func}=~/APPS/ and
       ($node->{memberof} =~ 'CO' or $node->{operand}=~ /OP/);
