@@ -359,6 +359,7 @@ sub ParseNode ($$$) {
       $v=~s/\\([,=\[\]\\])/$1/go;
       if ($FSTestListValidity) {
 	if (IsList($a,$attr)) {
+#	  @lv=('-',ListValues($a,$attr));
 	  @lv=ListValues($a,$attr);
 	  foreach $tmp (split /\|/,$v) {
 	    carp("Invalid list value $v of atribute $a at position ".pos($$lr)." in:\n".$$lr."\n" )
@@ -413,6 +414,7 @@ sub ParseNode2 ($$$) {
       #$v=~s/\\([,=\[\]\\])/$1/go;
       if ($FSTestListValidity) {
 	if (IsList($a,$attr)) {
+#	  @lv=('-',ListValues($a,$attr));
 	  @lv=ListValues($a,$attr);
 	  foreach $tmp (split /\|/,$v) {
 	    print("Invalid list value $v of atribute $a no in @lv:\n$nd\n" )
@@ -2624,7 +2626,7 @@ $VERSION = "0.1";
 @EXPORT = qw(&open_backend &close_backend);
 @EXPORT_OK = qw($gzip $zcat);
 
-use IO;
+eval('require IO;');
 
 =pod
 
