@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-07-31 17:06:51 pajas>
+# Time-stamp: <2001-08-11 09:50:52 paja>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1923,6 +1923,21 @@ sub treeList {
   my $self = shift;
   return ref($self) ? $self->[6] : undef;
 }
+
+=pod
+
+=item tree (n)
+
+Return a reference to the tree number n.
+
+=cut
+
+# returns a reference!!!
+sub tree {
+  my ($self,$n) = @_;
+  return ref($self) ? $self->[6]->[$n] : undef;
+}
+
 
 =pod
 

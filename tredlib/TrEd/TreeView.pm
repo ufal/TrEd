@@ -235,6 +235,7 @@ sub recalculate_positions {
   my $halign_edge;
   my $valign_edge;
   my $edge_ypos;
+  my ($pat_style,$pat);
   foreach $node (@{$nodes}) {
     $level=0;
     $parent=$node->parent;
@@ -285,7 +286,7 @@ sub recalculate_positions {
 
     ($nodeLabelWidth,$edgeLabelWidth)=(0,0);
     $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
-    my ($pat_style,$pat);
+
     for (my $i=0;$i<$pattern_count;$i++) {
       ($pat_style,$pat)=$self->parse_pattern($fsfile->pattern($i));
       if ($pat_style eq "edge") {
@@ -402,10 +403,6 @@ sub node_coords {
   my $x=$self->get_node_pinfo($node,"XPOS");
   my $y=$self->get_node_pinfo($node,"YPOS");
 
-#    return ($x+($self->get_nodeWidth-$nw)/2,
-#  	  $y+($self->get_nodeHeight-$nh)/2,
-#  	  $x+$nh,
-#  	  $y+$nw);
   return ($x-$nw/2,
 	  $y-$nh/2,
 	  $x+$nh/2,
@@ -536,6 +533,13 @@ sub redraw {
   $self->clear_pinfo();
   $self->store_gen_pinfo("Opts",\%Opts);
 
+  #------------------------------------------------------------
+  #{
+  #use Benchmark;
+  #my $t0= new Benchmark;
+  #for (my $i=0;$i<=50;$i++) {
+  #------------------------------------------------------------
+
   my $pstyle;
   $node=$nodes->[0];
   if ($node) {
@@ -555,8 +559,8 @@ sub redraw {
   # styling patterns should be interpolated here for each node and
   # the results stored within node_pinfo
 
-  foreach $node (@{$nodes}) {
-    foreach $style (@style_patterns) {
+  foreach $style (@style_patterns) {
+    foreach $node (@{$nodes}) {
       foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
 	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|EdgeTextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):(.+)$/) {
 	  $pstyle=$self->get_node_pinfo($node,"style-$1$2");
@@ -570,7 +574,31 @@ sub redraw {
     }
   }
 
+  #------------------------------------------------------------
+  #}
+  #my $t1= new Benchmark;
+  #my $td= timediff($t1, $t0);
+  #print "Applying styles the code took:",timestr($td),"\n";
+  #}
+  #------------------------------------------------------------
+
+
+  #------------------------------------------------------------
+  #{
+  #use Benchmark;
+  #my $t0= new Benchmark;
+  #for (my $i=0;$i<=50;$i++) {
+  #------------------------------------------------------------
+
   recalculate_positions($self,$fsfile,$nodes,\%Opts);
+
+  #------------------------------------------------------------
+  #}
+  #my $t1= new Benchmark;
+  #my $td= timediff($t1, $t0);
+  #print "recalculate_positions: the code took:",timestr($td),"\n";
+  #}
+  #------------------------------------------------------------
 
   $self->canvas->configure(-scrollregion =>['0c', '0c', $self->{canvasWidth}, $self->{canvasHeight}]);
   $self->canvas->configure(-background => $self->get_backgroundColor) if (defined $self->get_backgroundColor);
@@ -948,7 +976,7 @@ sub prepare_text {
   return "" unless ref($node);
   my $msg=$self->interpolate_text_field($node,$pattern);
   $msg=~s/\#{[^}]+}//g;
-  $msg=~s/\${([^}]+)}/$self->prepare_text_field($node,$1)/eg;
+  $msg=~s/\${([^}]+)}/$self->prepare_raw_text_field($node,$1)/eg;
   return encode($msg);
 }
 
@@ -1000,6 +1028,21 @@ sub prepare_text_field {
   my $text=$node->{$atr};
   $text=$1."*" if ($text =~/^([^\|]*)\|/);
   return encode($text);
+}
+
+=pod
+
+=item prepare_raw_text_field (node,attribute)
+
+As prepare_text_field but not recoding text to output encoding.
+
+=cut
+
+sub prepare_raw_text_field {
+  my ($self,$node,$atr)=@_;
+  my $text=$node->{$atr};
+  $text=$1."*" if ($text =~/^([^\|]*)\|/);
+  return $text;
 }
 
 1;
