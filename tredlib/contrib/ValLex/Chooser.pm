@@ -37,7 +37,7 @@ sub show_dialog {
 			       $frame_browser_wordlist_item_style,
 			       $frame_browser_framelist_item_style,
 			       $frame_editor_styles,
-			       undef, 1,-width => '15c');
+			       undef, 1,-width => '25c');
   $chooser->subwidget_configure($confs) if ($confs);
   ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
   $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
@@ -209,7 +209,7 @@ sub create_widget {
 						     $lexframe_frame,
 						     $item_style,
 						     -height => $size,
-						     qw/-width 50/,
+						     qw/-width 90/,
 						     -command => [
 								  \&item_chosen,
 								  $self
