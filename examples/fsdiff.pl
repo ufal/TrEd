@@ -134,10 +134,8 @@ sub align_other {
   # create groups of nodes added by anotators that correspond
   # dunno how to make it easily, so I'm working hard (looking for func)
 
-  # here node is aligned to the first unaligned son of the aligned parent
+  # a node is aligned here to the first unaligned son of the aligned parent
   # with the same func :) (hard to understand? look at the code bellow)
-
-  # well, wasn't so difficult :)
 
   my $grpid=0;
   my ($i_name,$j_name,$node,$grp);
@@ -173,7 +171,7 @@ sub align_other {
       }
       $node=$node->following();
     }
-  }
+  }   # well, wasn't so difficult :)
 }
 
 #require CSTS_SGML_SP_Backend;
