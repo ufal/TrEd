@@ -105,27 +105,6 @@ sub status_line_doubleclick_hook {
   }
 }
 
-#bind edit_functor to f menu Edit Functor
-sub edit_functor{
-  my$f=$this->{functor};
-  EditAttribute($this,'functor');
-  ChangingFile($f ne$this->{functor});
-}#edit_functor
-
-#bind edit_tfa to t menu Edit TFA
-sub edit_tfa{
-  my$t=$this->{tfa};
-  EditAttribute($this,'tfa');
-  ChangingFile($t ne$this->{tfa});
-}#edit_functor
-
-#bind edit_t_lemma to l menu Edit t_lemma
-sub edit_t_lemma{
-  my$l=$this->{t_lemma};
-  EditAttribute($this,'t_lemma');
-  ChangingFile($l ne$this->{t_lemma});
-}#edit_functor
-
 =item remember_node
 
 Remembers current node to be used later, e.g. with
@@ -153,6 +132,7 @@ sub text_arow_to_remembered{
 #bind forget_remembered to Shift+space menu Forget Remembered Node
 sub forget_remembered {
   undef $PML_T_Edit::remember;
+  delete $PML_T::show{$this->{id}};
   ChangingFile(0);
 }#forget_remembered
 
@@ -174,6 +154,41 @@ sub mark_for_arf {
 sub rotate_generated{
   $this->{is_generated}=!$this->{is_generated};
 }#rotate_generated
+
+#bind rotate_member to m menu Change is_member
+sub rotate_member{
+  $this->{is_member}=!$this->{is_member};
+}#rotate_member
+
+#bind rotate_parenthesis to p menu Change is_parenthesis
+sub rotate_parenthesis{
+  $this->{is_parenthesis}=!$this->{is_parenthesis};
+}#rotate_parenthesis
+
+#bind edit_functor to f menu Edit Functor
+sub edit_functor{
+  ChangingFile(EditAttribute($this,'functor'));
+}#edit_functor
+
+#bind edit_tfa to t menu Edit TFA
+sub edit_tfa{
+  ChangingFile(EditAttribute($this,'tfa'));
+}#edit_tfa
+
+#bind edit_t_lemma to l menu Edit t_lemma
+sub edit_t_lemma{
+  ChangingFile(EditAttribute($this,'t_lemma'));
+}#edit_t_lemma
+
+#bind edit_nodetype to N menu Edit Node Type
+sub edit_nodetype{
+  ChangingFile(EditAttribute($this,'nodetype'));
+}#edit_nodetype
+
+#bind edit_gram to G menu Edit Grammatemes
+sub edit_gram{
+  ChangingFile(EditAttribute($this,'gram'));
+}#edit_nodetype
 
 #bind annotate_segm to s menu Annotate Special Coreference - Segment
 sub annotate_segm{

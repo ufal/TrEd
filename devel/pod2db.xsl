@@ -26,15 +26,16 @@
 
 <xsl:template match="pod:list">
   <variablelist>
-    <xsl:apply-templates/>
+    <xsl:apply-templates select="pod:item"/>
   </variablelist>
 </xsl:template>
-
-<xsl:template match="pod:list/pod:item">
+ 
+<xsl:template match="pod:item">
   <varlistentry>
     <xsl:apply-templates select="pod:itemtext"/>
     <listitem>
       <xsl:apply-templates select="node()[local-name()!='itemtext']"/>
+      <xsl:apply-templates select="following-sibling::pod:*[not(self::pod:item) and (count(preceding-sibling::pod:item)=count(current()/preceding-sibling::pod:item)+1)]"/>
     </listitem>
   </varlistentry>
 </xsl:template>

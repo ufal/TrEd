@@ -130,6 +130,32 @@ sub remove_this_from_arf {
   $tr_fs->notSaved(1);
 }#add_this_from_arf
 
+#bind edit_mlemma to L menu Edit morphological lemma
+sub edit_mlemma{
+  ChangingFile(EditAttribute($this,'m/lemma'));
+}#edit_mlemma
+
+#bind edit_mtag to T menu Edit morphological tag
+sub edit_mtag{
+  ChangingFile(EditAttribute($this,'m/tag'));
+}#edit_mtag
+
+#bind edit_afun to a menu Edit afun
+sub edit_afun{
+  ChangingFile(EditAttribute($this,'afun'));
+}#edit_afun
+
+#bind rotate_member to m menu Change is_member
+sub rotate_member{
+  $this->{is_member}=!$this->{is_member};
+}#rotate_member
+
+#bind rotate_parenthesis_root to p menu Change is_parenthesis_root
+sub rotate_parenthesis_root{
+  $this->{is_parenthesis_root}=!$this->{is_parenthesis_root};
+}#rotate_parenthesis_root
+
+
 #bind tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree
 #bind goto_tree to Alt+g menu Goto Tree
 

@@ -26,7 +26,17 @@
 	of trees annotated on the Tectogrammatical Layer of the Prague
 	Dependency Treebank.
       </title>
-      <graphic fileref="pics/treddiff.png"/>
+      <mediaobject>
+	<imageobject>
+	  <imagedata fileref="pics/treddiff.png" format="PNG" role="html"/>
+	</imageobject>
+	<imageobject>
+	  <imagedata fileref="pics/treddiff.eps" format="EPS" role="latex" width="13cm"/>
+	</imageobject>
+	<imageobject>
+	  <imagedata fileref="pics/treddiff" format="linespecific"/>
+	</imageobject>
+      </mediaobject>
     </figure>
     <para><application moreinfo="none">TrEd</application> may be extended by <emphasis>user-defined
       macros</emphasis>, which are basically functions written in
@@ -490,7 +500,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <figure float="0">
 	      <title>Print dialog
 	      </title>
-	      <graphic fileref="pics/tredprint.png"/>
+	      <mediaobject><imageobject><imagedata fileref="pics/tredprint.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/tredprint.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/tredprint" format="linespecific"/></imageobject></mediaobject>
 	    </figure>
 	    <para>
 	      Encapsulated PostScript files (<literal moreinfo="none">EPS</literal>)
@@ -609,14 +619,14 @@ root# <userinput moreinfo="none">make install</userinput>
 		  tree numbers or ranges of tree numbers, that correspond to the
 		  desired trees in the active file, must be entered
 		  into the <guilabel moreinfo="none">Page range</guilabel> field.  The
-		  <inlinegraphic fileref="pics/left.png"/> button may be
+		  <inlinemediaobject><imageobject><imagedata fileref="pics/1rigtharrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> button may be
 		  used to automatically insert a page range
 		  corresponding to sentences selected via <link linkend="list_of_sentences"><menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">List of
 		  sentences...</guimenuitem> </menuchoice></link>. A
 		  different selection based on
 		  <quote>sentences</quote> can be made by pressing the
-		  <inlinegraphic fileref="pics/view_sent.png"/> button.
+		  <inlinemediaobject><imageobject><imagedata fileref="pics/contents.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/contents.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/contents" format="linespecific"/></imageobject></inlinemediaobject> button.
 		</para>
 	      </listitem>
 	      <listitem>
@@ -810,15 +820,15 @@ root# <userinput moreinfo="none">make install</userinput>
 	      (i.e. <literal moreinfo="none">@V</literal> attributes in FS format) of
 	      all nodes in the tree.
 	    </para>
-	    <para>The <inlinegraphic fileref="pics/right.png"/>
+	    <para>The <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject>
 	      button may be used to display the corresponding sentence
 	      in the current TrEd window.</para> <para>The
-	      <inlinegraphic fileref="pics/gray_belly3.png"/>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/gray_belly3.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3" format="linespecific"/></imageobject></inlinemediaobject>
 	      button may be used to select the current sentence.
 	      Selected sentences may be later inserted to the tree
 	      selection field in the <link linkend="print_command">Print dialog</link> as well as
 	      in the <link linkend="copytrees_command">Copy trees
-	      dialog</link> by pressing the <inlinegraphic fileref="pics/left.png"/> button.
+	      dialog</link> by pressing the <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> button.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1050,7 +1060,7 @@ root# <userinput moreinfo="none">make install</userinput>
 		If this option is checked, current attribute pattern setting is not
 		replaced with the one from the file when current file
 		is reloaded with by pressing the
-		<inlinegraphic fileref="pics/reload.png"/>
+		<inlinemediaobject><imageobject><imagedata fileref="pics/reload.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/reload.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/reload" format="linespecific"/></imageobject></inlinemediaobject>
 		(see also the <xref linkend="reloadpreservespatterns"/>
 		configuration option).
 	      </para>
@@ -1095,9 +1105,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	<para>
 	  If current file-list contains more than one file, user may use
 	  <menuchoice moreinfo="none"> <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Previous
-	      File</guimenuitem> </menuchoice> (or press <inlinegraphic fileref="pics/start.png"/>) and <menuchoice moreinfo="none">
+	      File</guimenuitem> </menuchoice> (or press <inlinemediaobject><imageobject><imagedata fileref="pics/start.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/start.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/start" format="linespecific"/></imageobject></inlinemediaobject>) and <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Next File</guimenuitem>
-	  </menuchoice> (or press <inlinegraphic fileref="pics/finish.png"/>) to open previous or
+	  </menuchoice> (or press <inlinemediaobject><imageobject><imagedata fileref="pics/finish.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/finish.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/finish" format="linespecific"/></imageobject></inlinemediaobject>) to open previous or
 	  next file in the file-list.
 	</para>
       </section>
@@ -1419,99 +1429,101 @@ root# <userinput moreinfo="none">make install</userinput>
       </para>
       <informaltable>
 	<tgroup cols="2">
+	  <colspec colnum="1" align="left"/>
+	  <colspec colnum="2" align="justify"/>
 	  <tbody>
 	    <row>
-	      <entry><graphic fileref="pics/fileopen.png"/></entry><entry><menuchoice moreinfo="none">
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/fileopen.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/fileopen.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/fileopen" format="linespecific"/></imageobject></inlinemediaobject></entry><entry><menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">File</guimenu>
 		  <guimenuitem moreinfo="none">Open ...</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/filefloppy.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/filefloppy.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filefloppy.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/filefloppy" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Save</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/reload.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/reload.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/reload.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/reload" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><para>Reload current file from disk.</para></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/redo.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/redo.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/redo.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/redo" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><para>Redo last undone operation on the current tree.</para></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/undo.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/undo.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/undo.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/undo" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><para>Undo last operation on the current
-		  tree. (See also <xref linkend="maxundo"/>
+		  tree. (See also <link linkend="maxundo">MaxUndo</link>
 	      configuration option.)</para></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/findprev.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/viewmag-.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/viewmag-.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/viewmag-" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find Previous</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/start.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/start.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/start.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/start" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Previous File</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/fileprint.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/fileprint.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/fileprint.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/fileprint" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Print ...</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/find.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/find.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/find.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/find" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find ...</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/findnext.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/viewmag+.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/viewmag+.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/viewmag+" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find Next</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/finish.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/finish.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/finish.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/finish" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Next File</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/left.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Previous Tree</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/right.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Next Tree</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/tick.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/tick.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/tick.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/tick" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Customize
 		    Tree...</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/view_sent.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/contents.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/contents.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/contents" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">List
 	      of sentences...</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/hsplit.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/view_top_bottom.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/view_top_bottom.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/view_top_bottom" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Split view horizontally</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/vsplit.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/view_left_right.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/view_left_right.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/view_left_right" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Split view vertically</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/rmsplit.png"/></entry>
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/view_remove.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/view_remove.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/view_remove" format="linespecific"/></imageobject></inlinemediaobject></entry>
 	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Close current view</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/tiewins.png"/></entry>
-	      <entry>This may have two states. If pressed,
+	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject></entry>
+	      <entry><para>This may have two states. If pressed,
 		all displayed views are tied together, so that
-		pressing <inlinegraphic fileref="pics/left.png"/> or
-		<inlinegraphic fileref="pics/right.png"/> buttons
+		pressing <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> or
+		<inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject> buttons
 		as well as invoking
 		<menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">View</guimenu>
@@ -1522,6 +1534,7 @@ root# <userinput moreinfo="none">make install</userinput>
 		  <guisubmenu moreinfo="none">Next tree</guisubmenu>
 		</menuchoice>
 		applies to all displayed views.
+		</para>
 	      </entry>
 	    </row>
 	  </tbody>
@@ -1608,7 +1621,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>Displayes the previous tree in the current file.
 	      Note, that this shorcuts operates on the focused
-	      view only, even if button <inlinegraphic fileref="pics/tiewins.png"/> is pressed and all views are tied.
+	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject> is pressed and all views are tied.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1620,7 +1633,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>Displayes the next tree in the current file.
 	      Note, that this shorcuts operates on the focused
-	      view only, even if button <inlinegraphic fileref="pics/tiewins.png"/> is pressed and all views are tied.
+	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject> is pressed and all views are tied.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1648,7 +1661,7 @@ root# <userinput moreinfo="none">make install</userinput>
       stylesheet is to click on the stylesheet menu-button shown on
       the picture <xref linkend="fig_patternset"/> below. This button
       can be found on the right side of the toolbar next to the
-      <inlinegraphic fileref="pics/tick.png"/> button.
+      <inlinemediaobject><imageobject><imagedata fileref="pics/wizard.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/wizard.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/wizard" format="linespecific"/></imageobject></inlinemediaobject> button.
       Another way to select a stylesheet is using 
       <menuchoice moreinfo="none">
 	<guimenu moreinfo="none">View</guimenu>
@@ -1658,7 +1671,7 @@ root# <userinput moreinfo="none">make install</userinput>
 
     <figure float="0" id="fig_patternset">
       <title>Switching between stylesheets</title>
-      <graphic fileref="pics/patternset.png"/>
+      <mediaobject><imageobject><imagedata fileref="pics/patternset.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/patternset.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/patternset" format="linespecific"/></imageobject></mediaobject>
     </figure>
 
     <para>
@@ -1689,13 +1702,13 @@ root# <userinput moreinfo="none">make install</userinput>
     </para>
     <para>
       Selected stylesheet can be edited in a stylesheet editor which
-      appears when <inlinegraphic fileref="pics/tick.png"/> button is pressed or <menuchoice moreinfo="none">
+      appears when <inlinemediaobject><imageobject><imagedata fileref="pics/wizard.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/wizard.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/wizard" format="linespecific"/></imageobject></inlinemediaobject> button is pressed or <menuchoice moreinfo="none">
       <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">Edit stylesheet...</guimenuitem></menuchoice>
       menu command issued.
     </para>
     <figure float="0">
       <title>Stylesheet editor</title>
-      <graphic fileref="pics/customatt.png"/>
+      <mediaobject><imageobject><imagedata fileref="pics/customatt.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/customatt.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/customatt" format="linespecific"/></imageobject></mediaobject>
     </figure>
     <para>
       The dialog window contains two main elemens: a list of node
@@ -1733,7 +1746,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term>edge:</term>
+	  <term><literal moreinfo="none">edge:</literal></term>
 	  <listitem>
 	  <para>
 	    defines a line of text displayed across (or beside)
@@ -1939,8 +1952,10 @@ root# <userinput moreinfo="none">make install</userinput>
     </variablelist>
     <table id="style-instructions">
       <title>Styling instructions</title>
-      <tgroup cols="2">
-	<thead>
+	<tgroup cols="2">
+	  <colspec colnum="1" align="left"/>
+	  <colspec colnum="2" align="justify"/>
+	  <thead>
 	  <row>
 	    <entry><replaceable>object</replaceable>-<replaceable>feature</replaceable></entry>
 	    <entry>Description and a list of possible values</entry>
@@ -2470,15 +2485,15 @@ root# <userinput moreinfo="none">make install</userinput>
       <application moreinfo="none">TrEd</application>'s window.
       If current file-list contains more than one file, 
       the command <menuchoice moreinfo="none"> <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Previous
-	  File</guimenuitem> </menuchoice> (or <inlinegraphic fileref="pics/start.png"/> button) and  <menuchoice moreinfo="none">
+	  File</guimenuitem> </menuchoice> (or <inlinemediaobject><imageobject><imagedata fileref="pics/start.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/start.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/start" format="linespecific"/></imageobject></inlinemediaobject> button) and  <menuchoice moreinfo="none">
 	<guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Next File</guimenuitem>
     </menuchoice>
-      (or <inlinegraphic fileref="pics/finish.png"/> button)
+      (or <inlinemediaobject><imageobject><imagedata fileref="pics/finish.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/finish.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/finish" format="linespecific"/></imageobject></inlinemediaobject> button)
       may be used to open previous or next file in the file-list.
     </para>
     <figure float="0">
       <title>Creating file-lists</title>
-      <graphic fileref="pics/filelist.png"/>
+      <mediaobject><imageobject><imagedata fileref="pics/filelist.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filelist.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/filelist" format="linespecific"/></imageobject></mediaobject>
     </figure>
     <para>
       There are two default file-lists always present:
@@ -3903,7 +3918,7 @@ Property        Type    Description
 	    <para>
 	      Turn on/off displaying status line. Default is off.
 	      Currently, status line content can only be controlled
-	      from macros, via <xref linkend="get_status_line_hook"/>.
+	      from macros, via <link linkend="get_status_line_hook"><literal moreinfo="none">get_status_line_hook</literal></link>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -4607,7 +4622,7 @@ Property        Type    Description
 	displayed tress according to the value of the
 	<literal moreinfo="none">$Redraw</literal> variable changes file status to
 	<literal moreinfo="none">modified</literal> (as indicated by the state of the
-	<inlinegraphic fileref="pics/filefloppy.png"/> button) unless
+	<inlinemediaobject><imageobject><imagedata fileref="pics/filefloppy.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filefloppy.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/filefloppy" format="linespecific"/></imageobject></inlinemediaobject> button) unless
 	variable <literal moreinfo="none">$FileChanged</literal> is altered in the
 	way described below (both variables are definded in
 	<filename moreinfo="none">tred.def</filename>, see <xref linkend="defaultmacros"/>).
@@ -4770,6 +4785,8 @@ Property        Type    Description
 	<table>
 	  <title><classname>FSNode</classname> methods</title>
 	  <tgroup cols="2">
+	    <colspec colnum="1" align="left"/>
+	    <colspec colnum="2" align="justify"/>
 	    <thead>
 	      <row>
 		<entry>Method name</entry>
@@ -4894,6 +4911,8 @@ Property        Type    Description
 	<table>
 	  <title><classname>FSFile</classname> class methods</title>
 	  <tgroup cols="2">
+	    <colspec colnum="1" align="left"/>
+	    <colspec colnum="2" align="justify"/>
 	    <thead>
 	      <row>
 		<entry>Method name</entry>
@@ -4974,6 +4993,9 @@ Property        Type    Description
 	<table>
 	  <title><classname>FSFormat</classname> class methods</title>
 	  <tgroup cols="2">
+	    <colspec colnum="1" align="left"/>
+	    <colspec colnum="2" align="justify"/>
+
 	    <thead>
 	      <row>
 		<entry>Method name</entry>
@@ -5258,6 +5280,9 @@ sub MakeSentence {
       <table>
 	<title>Hooks</title>
 	<tgroup cols="3">
+	  <colspec colnum="1" align="left"/>
+	  <colspec colnum="2" align="center"/>
+	  <colspec colnum="3" align="justify"/>
 	  <thead>
 	    <row>
 	      <entry>Name</entry>

@@ -121,6 +121,7 @@ displayed tectogrammatical tree.
 sub analytical_tree {
   return unless schema_name() eq 'tdata';
   return unless switch_to_afile();
+  $PML_T::laststylesheet=GetCurrentStylesheet();
   if (CurrentContext() eq 'PML_T_Edit') {
     SwitchContext('PML_A_Edit');
   } else {
@@ -230,6 +231,17 @@ sub node_style_hook {
   }
   1;
 }
+
+=item draw_coref_arrows
+
+Called from C<node_style_hook>. Draws coreference arrows using
+following properties: textual arrows in CustomColor C<arrow_textual>,
+grammatical in <arrow_grammatical> (and dashed in Full stylesheet),
+complement arrow in C<arrow_compl> (and dot-dashed in Full
+stylesheet), segment arrow in C<arrow_segm> and exophora arrow in
+C<arrow_exoph>.
+
+=cut
 
 sub draw_coref_arrows {
   my ($node,$styles,$line,$corefs,$cortypes)=@_;
@@ -605,7 +617,71 @@ sub modal_verb_lemma ($) {
 =item create_stylesheets
 
 Creates default stylesheets for PML tectogrammatic files unless
-already defined.
+already defined. Most of the colors they use can be redefined in the
+tred config file C<.tredrc> by adding a line of the form
+
+  CustomColorsomething = ...
+
+The stylesheets are named C<PML_T_Compact> and C<PML_T_Full>. Compact
+stylesheet is suitable to be used on screen because it pictures many
+features by means of colours whilst the Full stylesheet is better for
+printing because it lists the values of almost all the attributes.
+
+The stylesheets have the following features (if the stylesheet is not
+mentioned, the description talks about the Compact one):
+
+=over 4
+
+1. C<t_lemma> is displayed on the first line. If the node's
+C<is_parenthesis> is set to 1, the C<t_lemma> is displayed in
+CustomColor C<parenthesis>. If there is a coreference leading to a
+different sentence, the C<t_lemma> of the refered node is displayed in
+CustomColor C<coref>.
+
+2. Node's functor is displayed in CustomColor C<func>. If the node's
+C<subfunctor> or C<is_state> are defined, they are indicated in
+CustomColor C<subfunc>. In the Full stylesheet, C<is_member> is also
+displayed as "M" in CustomColor C<coappa> and C<is_parenthesis> as
+"P"in CustomColor C<parenthesis>.
+
+3. For nodes of all types other than complex, C<nodetype> is displayed
+in CustomColor C<nodetype>. For complex nodes, their C<gram/sempos> is
+displayed in CustomColor C<complex>. In the Full stylesheet, all the
+non-empty values of grammatemes are listed in CustomColor C<complex>,
+and for ambiguous values the names of the attributes are displayed in
+CustomColor C<detail>.
+
+4. Generated nodes are displayed as squares, non-generated ones as
+ovals.
+
+5. Current node is displayed as bigger and with outline in CustomColor
+C<current>.
+
+6. Edges from nodes to roots or from nodes with C<functor> C<PAR,
+PARTL, VOCAT, RHEM, CM, FPHR,> and C<PREC> to their parents are thin,
+dashed and have the CustomColor C<line_normal>. Edges from
+coordination heads with C<is_member> are thin and displayed in
+CustomColor C<line_member>. Edges from other nodes with C<is_member>
+to their coordination parents are displayed with the lower half thick
+in CustomColor C<line_normal> and upper half thin in CustomColor
+C<line_member>. Edges from nodes without C<is_member> to their
+coordination parents are displayed thin in CustomColor C<line_comm>.
+Edges from coordination nodes without C<is_member> to their parents
+are displayed with the lower half thin in CustomColor C<line_member>
+and upper half thick in CustomColor C<line_normal>. All other edges
+are displayed half-thick in CustomColor C<line_normal>.
+
+7. The attribute C<tfa> is reflected by the colour of the node.
+CustomColors C<tfa_c, tfa_f, tfa_c>, and C<tfa_no> are used. In the
+Full stylesheet, the value is also displayed before the functor in
+C<tfa_text>.
+
+8. Attributes C<gram, is_dsp_root, is_name_of_person,> and C<quot> are
+listed in the hint box when the mouse cursor is over the node. In the
+Full stylesheet, they are diplayed at the last line in CustomColor
+C<detail>.
+
+=back
 
 =cut
 
@@ -643,7 +719,7 @@ style:<?
      '#{Line-width:1}#{Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal').'}'
   } elsif ($${is_member}) {
     if (PML_T::is_coord($this)and PML_T::is_coord($this->parent)) {
-      '#{Line-width:1}#{Line-fill:'.CustomColor('line_normal').'}'
+      '#{Line-width:1}#{Line-fill:'.CustomColor('line_member').'}'
     } elsif ($this->parent and PML_T::is_coord($this->parent)) {
       '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:3&1}#{Line-fill:'.
        CustomColor('line_normal').'&'.CustomColor('line_member').'}'
@@ -700,7 +776,7 @@ node:<? $${nodetype} !~/^(?:complex|root)$/
   ?>
 
 node: <? $${nodetype} eq 'complex' ?
-  '#{customcomplex}'.join'.',map{(($this->{gram}{$_}=~/^(?:nr|inher)$/)?"#{customdetail}$_:#{customcomplex}":'')."\${gram/$_}" } sort grep{$this->{gram}->{$_}&&$_ !~/sempos|mod/}keys%{$this->{gram}}
+  join'.',map{(($this->{gram}{$_}=~/^(?:nr|inher)$/)?"#{customdetail}$_:":'')."#{customcomplex}\${gram/$_}" } sort grep{$this->{gram}->{$_}&&$_ !~/sempos|mod/}keys%{$this->{gram}}
   :''?>
 
 style:#{Node-width:7}#{Node-height:7}#{Node-currentwidth:9}#{Node-currentheight:9}
@@ -715,7 +791,7 @@ style:<?
      '#{Line-width:1}#{Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal').'}'
   } elsif ($${is_member}) {
     if (PML_T::is_coord($this)and PML_T::is_coord($this->parent)) {
-      '#{Line-width:1}#{Line-fill:'.CustomColor('line_normal').'}'
+      '#{Line-width:1}#{Line-fill:'.CustomColor('line_member').'}'
     } elsif ($this->parent and PML_T::is_coord($this->parent)) {
       '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:3&1}#{Line-fill:'.
        CustomColor('line_normal').'&'.CustomColor('line_member').'}'
