@@ -668,6 +668,11 @@ sub startMain {
 	    $hub->print("OK\n");
 	  }
 	  _end_response($control,$hub);
+	} elsif ($request{REQUEST_TYPE} eq 'COUNT') {
+	  _msg "Counting all open files at client's request\n";
+	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  $hub->print("$host:$port has ",scalar(@files)," files\n");
+	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST') {
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");

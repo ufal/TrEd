@@ -26,6 +26,7 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
 	    $version $print_version $listedfiles $list_options
+            $olddist $count_files
 	   );
 
 $version='$Revision$ ';
@@ -60,6 +61,7 @@ Getopt::Long::Configure ("bundling");
 	 "close-files"     => \$request_close,
 	 "load-files"      => \$request_load,
 	 "list-files"      => \$request_list,
+	 "count-files"      => \$count_files,
 	 "list-changed-files" => \$request_list_changed,
 	 "save-files"      => \$request_save,
 	 "save-changed-files" => \$request_save_changed,
@@ -86,7 +88,8 @@ Getopt::Long::Configure ("bundling");
 	 "output-encoding|d=s" => \$term_encoding,
 	 "preload-module|M=s" => \@preload_modules,
 	 "version|v" => \$print_version,
-         "list-options" => \$list_options
+         "list-options" => \$list_options,
+	 "old-dist-method"        => \$olddist
 	);
 GetOptions(%optmap) or $usage=1;
 
@@ -409,25 +412,34 @@ if (defined($init) || defined($kill) || defined($break)) {
     msg " - $_->{fullname}\n"
   }
 
-  # Benchmark the servers
-  foreach my $server (@running) {
-    send_request($control,$server->{socket},'BENCHMARK',$server_key);
-  }
-  foreach my $server (@running) {
-    my $response;
-    unless (forward_response($control,$server->{socket},\$response)) {
-      msg "Communication with $server->{fullname} seems broken; skipping.\n";
-      next;
+  if ($olddist) {
+    # Benchmark the servers
+    foreach my $server (@running) {
+      send_request($control,$server->{socket},'BENCHMARK',$server_key);
     }
-    chomp $response;
-    msg "$server->{fullname} benchmark: $response\n";
-    $server->{benchmark}=$response;
+    foreach my $server (@running) {
+      my $response;
+      unless (forward_response($control,$server->{socket},\$response)) {
+	msg "Communication with $server->{fullname} seems broken; skipping.\n";
+	next;
+      }
+      chomp $response;
+      msg "$server->{fullname} benchmark: $response\n";
+      $server->{benchmark}=$response;
+    }
   }
 
   # --------------------------------------------------------------
   # --------------- optimal file distribution  -------------------
-  distribute_files($control,\@running,\@files,1,$server_key);
-
+  use Benchmark;
+  my $t0 = Benchmark->new();
+  if ($olddist) {
+    distribute_files($control,\@running,\@files,1,$server_key);
+  } else {
+    distribute_files2($control,\@running,\@files,1,$server_key);
+  }
+  my $t1 = Benchmark->new();
+  msg ("Distribution took ",Benchmark::timestr(Benchmark::timediff($t1,$t0))."\n");
   # save client key
   save_block($server_key,$client_key_file);
 
@@ -493,7 +505,11 @@ if (defined($init) || defined($kill) || defined($break)) {
       }
       if (md5_sign($server_key,join "\n",@files) eq $md5) {
 	shift @files; pop @files; # get rid of the controls
-	distribute_files($control,\@running,\@files,0,$server_key);
+	if ($olddist) {
+	  distribute_files($control,\@running,\@files,0,$server_key);
+	} else {
+	  distribute_files2($control,\@running,\@files,0,$server_key);
+	}
       } else {
 	print $client "Request MD5 signature failed!\n";
       }
@@ -593,6 +609,8 @@ if (defined($init) || defined($kill) || defined($break)) {
     if ($macro_file) {
       $request="$control STATE=Filename\n".$macro_file."\n";
     }
+  } elsif ($count_files) {
+    $request_type="COUNT";
   } elsif ($request_list) {
     $request_type="LIST";
     if ($listedfiles) {
@@ -774,6 +792,65 @@ sub distribute_files {
       msg "Communication with $server->{fullname} seems broken\n";
     }
     msg "$server->{fullname} $response\n";
+  }
+}
+
+
+sub distribute_files2 {
+  my ($control,$servers,$files,$close_empty,$key) = @_;
+  my @totalfilelist=@$files;
+
+  my $files_per_request = 16;
+  $files_per_request /= 2 while ($files_per_request>=2 and
+				 @$servers * $files_per_request > @totalfilelist);
+
+  require IO::Select;
+  my $select = IO::Select->new();
+  # Distribute files
+  foreach my $server (@$servers) {
+    my @f=splice @totalfilelist,0,$files_per_request;
+    if (@f) {
+      msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
+      send_request($control,$server->{socket},'LOAD_FILES',$key,@f);
+      $select->add($server->{socket});
+    } elsif ($close_empty) {
+      msg "No files for server $server->{fullname}, closing it.\n";
+      send_request($control,$server->{socket},'QUIT',$key,@f);
+      my $response;
+      unless (forward_response($control,$server->{socket},\$response)) {
+	msg "Communication with $server->{fullname} seems broken\n";
+      }
+      msg "$server->{fullname} $response\n";
+    }
+  }
+
+  msg "Please wait ...\n";
+  # get responses
+  my @can_read;
+  while (@can_read = $select->can_read()) {
+    $files_per_request /= 2 while ($files_per_request>=2 and
+				   @can_read * $files_per_request > @totalfilelist);
+    foreach my $socket (@can_read) {
+      my $response;
+      my ($server) = grep { $_->{socket} eq $socket } @$servers;
+      unless (forward_response($control,$socket,\$response)) {
+	msg "Communication with $server->{fullname} seems broken\n";
+	}
+	chomp $response;
+      msg "$server->{fullname} $response\n";
+      my @f=splice @totalfilelist,0,$files_per_request;
+      if (@f) {
+	msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
+	send_request($control,$socket,'LOAD_FILES',$key,@f);
+      } else {
+	$select->remove($socket);
+      }
+    }
+  }
+  if (@totalfilelist) {
+    msg "Error: ".scalar(@totalfilelist)." files left in the filelist ...oooops?\n";
+  } else {
+    msg "All files distributed\n";
   }
 }
 
@@ -1149,6 +1226,10 @@ would never notice.
 
 Apply request only on listed files (currently only works for queries
 and C<--reload-files> request).
+
+=item B<--count-files>
+
+Query number of files open on each server.
 
 =item B<--reload-files>
 
