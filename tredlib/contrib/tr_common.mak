@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-10-19 17:56:47 pajas>
+## Time-stamp: <2001-10-26 16:32:42 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -11,13 +11,16 @@
 #include contrib/AFA.mak
 #include contrib/ValLex/chooser.mak
 
-#insert default_tr_attrs as menu Display default attributes
+#bind default_tr_attrs to key F12 menu Display default attributes
 sub default_tr_attrs {
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
-		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
+		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
+		      '<?"\nframe:\t\${framere}" if $${framere} ne "" ?>'.
+		      '<?"\nframe_id:\t\${frameid}" if $${frameid} ne "" ?>');
+  return 1;
 }
 
 sub sort_attrs_hook {
@@ -72,14 +75,20 @@ sub QueryTrlemma {
   my ($node,$assign_func)=@_;
   my @trs=
     #disp  trlemma gender number
+    #
+    # Predelat na entity: &Comma; &Colon; atd.
+    #
     (['Comma','Comma','???','???','Coord'],
      ['Colon','Colon','???','???','Coord'],
+     ['Dash','Dash','???','???','Coord'],
+     ['Brackl','Brackl','???','???'],
      ['Forn','Forn','???','???'],
-     ['RCP','RCP','???','???','PAT'],
+     ['Rcp','Rcp','???','???','PAT'],
      ['Neg','Neg','???','???'],
      ['Cor','Cor','???','???'],
      ['Emp','Emp','???','???'],
      ['Gen','Gen','???','???'],
+     ['stejnì','stejnì','???','???'],
      ['???','???','???','???'],
      ['já','já','???','SG'],
      ['ty','ty','???','SG'],
@@ -87,7 +96,7 @@ sub QueryTrlemma {
      ['on-ne¾iv.','on','INAN','SG'],
      ['ona','on','FEM','SG'],
      ['ono','on','NEUT','SG'],
-     ['my','já','???','PL'],
+     ['my','my','???','PL'],
      ['vy','vy','???','PL'],
      ['oni-¾iv.','on','ANIM','PL'],
      ['ony-ne¾iv','on','INAN','PL'],

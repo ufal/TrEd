@@ -83,10 +83,8 @@ sub subwidget_configure {
     next unless $sub;
     if ($sub->isa("TrEd::ValLex::FramedWidget") and
 	ref($conf->{$_}) eq "HASH") {
-      print "subconfiguring $_\n";
       $sub->subwidget_configure($conf->{$_});
     } elsif(ref($conf->{$_}) eq "ARRAY") {
-      print "configuring $_\n";
       $sub->configure(@{$conf->{$_}});
     } else {
       print STDERR "bad configuration options $conf->{$_}\n";
@@ -174,19 +172,43 @@ sub fetch_data {
 		      -image => $self->pixmap($entry->[3]),
 		      -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
 		      -style => $self->style($entry->[3]));
+    print "fetching $i: $entry->[0]\n";
   }
 }
 
 sub focus {
   my ($self,$frame)=@_;
+  print "Frame; $frame\n";
   my $h=$self->widget();
   foreach my $t ($h->infoChildren()) {
-    if ($h->infoData($t) == $frame) {
+    print "trying $t ",$h->infoData($t),"\n";
+    if ($self->data()->isEqual($h->infoData($t),$frame)) {
+      print "got $t\n";
       $h->anchorSet($t);
       $h->selectionClear();
       $h->selectionSet($t);
       $h->see($t);
       return $t;
+    }
+  }
+}
+
+sub select_frames {
+  my ($self,@frames)=@_;
+  my $frames=" ".join(" ",@frames)." ";
+  my $h=$self->widget();
+  my $data=$self->data();
+  my $have=0;
+  $h->selectionClear();
+  foreach my $t ($h->infoChildren()) {
+    $id = $data->getFrameId($h->infoData($t));
+    if (index($frames," $id ")>=0) {
+      unless ($have) {
+	$have=1;
+	$h->anchorSet($t);
+	$h->see($t);
+      }
+      $h->selectionSet($t);
     }
   }
 }
@@ -206,14 +228,14 @@ sub create_widget {
   my ($self, $data, $field, $top, $item_style, @conf) = @_;
 
   my $frame = $top->Frame(-takefocus => 0);
-  my $ef = $frame->Frame(-takefocus => 0)->pack(qw/-pady 5 -side top -expand yes -fill x/);
+  my $ef = $frame->Frame(-takefocus => 0)->pack(qw/-pady 5 -side top -fill x/);
   my $l = $ef->Label(-text => "Search: ")->pack(qw/-side left/);
   my $e = $ef->Entry(qw/-background white -validate key/,
 		     -validatecommand => [\&quick_search,$self]
 		    )->pack(qw/-expand yes -fill x/);
 
   ## Word List
-  my $w = $frame->Scrolled(qw/HList -columns 1 -background white
+  my $w = $frame->Scrolled(qw/HList -columns 2 -background white
                               -selectmode browse
                               -header 1
                               -relief sunken
@@ -227,7 +249,6 @@ sub create_widget {
 
   $w->configure(@conf) if (@conf);
   $w->BindMouseWheelVert() if $w->can('BindMouseWheelVert');
-  print @{$item_style},"\n";
   $item_style = [] unless(ref($item_style) eq "ARRAY");
   my $itemStyle = $w->ItemStyle("text",
 				-foreground => 'black',
@@ -255,23 +276,29 @@ sub fetch_data {
   my $t=$self->widget();
   my $e;
   $t->delete('all');
-  $t->headerCreate(0,-itemtype=>'text', -text=>'lemma');
+  $t->headerCreate(0,-itemtype=>'text', -text=>'');
+  $t->headerCreate(1,-itemtype=>'text', -text=>'lemma');
   $t->columnWidth(0,'');
+  $t->columnWidth(1,'');
 
   foreach my $entry (sort { $a->[2] cmp $b->[2] } $self->data()->getWordList())
     {
       $e= $t->addchild("",-data => $entry->[0]);
       $t->itemCreate($e, 0, -itemtype=>'text',
+		     -text=> $entry->[3],
+		     -style => $self->style());
+      $t->itemCreate($e, 1, -itemtype=>'text',
 		     -text=> $entry->[2],
 		     -style => $self->style());
     }
 }
 
 sub focus_by_text {
-  my ($self,$text)=@_;
+  my ($self,$text,$pos)=@_;
   my $h=$self->widget();
   foreach my $t ($h->infoChildren()) {
-    if (index($h->itemCget($t,0,'-text'),$text)==0) {
+    if (index($h->itemCget($t,1,'-text'),$text)==0 and
+	($pos eq "" || $pos eq $h->itemCget($t,0,'-text'))) {
       $h->anchorSet($t);
       $h->selectionClear();
       $h->selectionSet($t);
@@ -283,9 +310,11 @@ sub focus_by_text {
 }
 sub focus {
   my ($self,$word)=@_;
+  print "Word: $word\n";
   my $h=$self->widget();
   foreach my $t ($h->infoChildren()) {
-    if ($h->infoData($t) == $word) {
+    if ($self->data()->isEqual($h->infoData($t),$word)) {
+      print "Have $t\n";
       $h->anchorSet($t);
       $h->selectionClear();
       $h->selectionSet($t);
@@ -452,7 +481,7 @@ sub validate {
 
 sub bell {
   my ($self)=@_;
-  $self->widget()->toplevel()->messageBox(-message => 'Invalid frame elements!\n',
+  $self->widget()->toplevel()->messageBox(-message => 'Invalid frame elements!',
 					  -title => 'Error',
 					  -type => 'OK');
   $self->widget()->focus();
@@ -478,7 +507,7 @@ sub create_widget {
 			  -borderwidth => 4);
   my $w=$frame->Label(-textvariable => \$value,
 		      qw/-anchor nw -justify left/)
-    ->pack(qw/-expand yes -fill x/);
+    ->pack(qw/-fill x/);
 
   $w->configure(@conf) if (@conf);
 

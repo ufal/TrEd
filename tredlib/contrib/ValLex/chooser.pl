@@ -51,7 +51,7 @@ my $conv= TrEd::CPConvert->new("utf-8",
 print $conv->encoding_to()," encoding\n";
 print $conv->decoding_to()," decoding\n";
 
-my $data=TrEd::ValLex::Data->new("vallex.xml",$conv);
+my $data=TrEd::ValLex::Data->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv);
 #print $data->doc()->toString;
 
 my $font = "-adobe-helvetica-medium-r-*-*-14-*-*-*-*-*-iso8859-2";
@@ -115,6 +115,7 @@ if ($new_word) {
   $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
 }
 $chooser->pack(qw/-expand yes -fill both -side left/);
+$chooser->subwidget("framelist")->select_frames($ARGV[1]);
 
 print "Starting mainloop\n";
 
