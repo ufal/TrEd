@@ -62,10 +62,14 @@ APPINFO    NONE
 >
 <!DOCTYPE csts [
 <!-- ...................................................................... -->
-<!-- CSTS DTD V1.03 ....................................................... -->
+<!-- CSTS DTD V1.04 ....................................................... -->
 <!-- File csts.dtd ........................................................ -->
 
 <!-- ChangeLog: -->
+<!-- ver 1.04 (Nov 5,2002) by Petr Pajas                       -->
+<!--        - added Tframeid, Tframeref elem. (valency frame)  -->
+<!--        - added wds (word sense disambiguation) element    -->
+<!--        - added Slash and Semicolon entitites              -->
 <!-- ver 1.03 (Sep 30,2002) by Petr Pajas                      -->
 <!--        - added PADT (arabic) specific attributes          -->
 <!--        - added Top                                        -->
@@ -384,7 +388,7 @@ APPINFO    NONE
 >
 
 <!ELEMENT f - O (#PCDATA & P* & Ct? & l* & MMl* & MDl* &
-                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & x*)
+                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & wsd* & x*)
                  -- word forms; text: form itself, rest: annotation -->
 <!ATTLIST f
           case  (lower|cap|upper|mixed|gen|num|num.gen
@@ -421,7 +425,7 @@ APPINFO    NONE
 		     -->
 
 <!ELEMENT d - O (#PCDATA & P* & Ct? & l* & MMl* & MDl* &
-                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & x*)
+                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & wsd* & x*)
                  -- punctuation / delimiters;
                     display "word-form-like" behavior --
 >
@@ -532,7 +536,7 @@ APPINFO    NONE
 <!-- 09/12/2000 A. Bohmova, B. Hladka, P. Pajas, D. Zeman          -->
 <!-- ============================================================= -->
 
-<!ELEMENT fadd - O (TRl* & MTRl* & r? & g* & x*)
+<!ELEMENT fadd - O (TRl* & MTRl* & r? & g* & wsd* & x*)
                  -- nodes added on the tectogrammatical level;
                  --
 >
@@ -542,7 +546,7 @@ APPINFO    NONE
 >
 
 <!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
-                    TRg? & coref* )
+                    Tframeid? & Tframere? & TRg? & coref*)
                 -- tectogrammatical lemma id. 
                 --
 >
@@ -555,7 +559,7 @@ APPINFO    NONE
 >
 
 <!ELEMENT TRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
-                    TRg? & coref* )
+                   Tframeid? & Tframere? & TRg? & coref* )
                 -- tectogrammatical lemma id. 
                 --
 >
@@ -698,6 +702,30 @@ APPINFO    NONE
           w       NUTOKEN #IMPLIED -- weight / probability --
           src     CDATA   #IMPLIED -- parser id            --
 >
+
+<!ELEMENT Tframeid - O (#PCDATA)
+                -- valency frame identifier
+                --
+>
+
+<!ELEMENT Tframere - O (#PCDATA)
+                -- valency frame realization
+                --
+>
+
+<!ELEMENT wsd - O EMPTY
+                -- word sense disambiguation;
+                --
+>
+
+<!ATTLIST wsd
+          s             NUTOKEN #IMPLIED
+          ewn           NUTOKEN #IMPLIED
+          ili           NUTOKEN #IMPLIED
+          iliOffset     CDATA #IMPLIED
+>
+
+
 <!ELEMENT idioms - O (idiom*)
                  -- list of idioms by reference --
 >
@@ -750,6 +778,8 @@ APPINFO    NONE
 <!ENTITY Gen CDATA "&#38;Gen;" -- "Gen" -->
 <!ENTITY Idph CDATA "&#38;Idph;" -- "Idph" -->
 <!ENTITY Hyphen CDATA "&#38;Hyphen;" -- "Hyphen" -->
+<!ENTITY Slash CDATA "&#38;Slash;" -- "Slash" -->
+<!ENTITY Semicolon CDATA "&#38;Semicolon;" -- "Semicolon" -->
 ]]>
 
 
@@ -791,4 +821,6 @@ APPINFO    NONE
 <!ENTITY Gen CDATA "Gen" -- "Gen" -->
 <!ENTITY Idph CDATA "Idph" -- "Idph" -->
 <!ENTITY Hyphen CDATA "-" -- "Hyphen" -->
+<!ENTITY Slash CDATA "/" -- "Slash" -->
+<!ENTITY Semicolon CDATA ";" -- "Semicolon" -->
 ]>
