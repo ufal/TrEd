@@ -11,10 +11,11 @@ use vars qw(
 	    $hubname $hubport $init $nocheck $noservers
 	    $nohub $client_key_file $verbose $srvlist
 	    $kill $filelist $srvlistfile $request_quit
-	    $unrestricted $help $usage $manpage
+	    $unrestricted $help $usage $manpage $ssh
 	   );
 
 $usage=1 unless @ARGV;
+$ssh='ssh';
 
 ## Passing -o args... -- to TredMacro
 @TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
@@ -32,6 +33,7 @@ GetOptions ("all-trees|T"    => \$opt_T,
 	    "hub=s"          => \$hubname,
 	    "port=i"         => \$hubport,
 	    "init|i"           => \$init,
+	    "ssh=s"           => \$ssh,
 	    "kill|k"           => \$kill,
 	    "quit"           => \$request_quit,
 	    "servers=s"    => \$srvlist,
@@ -167,8 +169,8 @@ if (defined($init) || defined($kill)) {
     msg "Killing all servers\n";
     foreach (@servers) {
       my ($machine)=split /:/;
-      msg "ssh $machine killall btred\n";
-      system("ssh $machine killall btred");   #'$btred'
+      msg "$ssh $machine killall btred\n";
+      system("$ssh $machine killall btred");   #'$btred'
     }
     msg "Killing hub\n";
     local $SIG{TERM}=sub {}; # protecting myself :-)
@@ -209,7 +211,7 @@ if (defined($init) || defined($kill)) {
     $port ||= 1600;
     msg "checking $server\n";
     unless ($nocheck) {
-      my $cmd = "ssh $server 'echo -n running 2>/dev/null'";
+      my $cmd = "$ssh $server 'echo -n running 2>/dev/null'";
       msg "$cmd\n";
       msg "Server $server - ";
       my $result=`$cmd`;
@@ -247,7 +249,7 @@ if (defined($init) || defined($kill)) {
       msg "Running btred server on $_->{host}\n";
       # as for now, we only make use of the secure pipe to the server
       # in order to pass it the session key
-      my $cmd = "ssh $_->{host} '$btred -P".
+      my $cmd = "$ssh $_->{host} '$btred -P".
 	($unrestricted ? "" : "F")."L $_->{port}' ".
 	" 2> $logdir/ntred-server-$_->{host}.log";
       msg "$cmd\n";
@@ -761,6 +763,11 @@ Prints the help page and exits.
 =item B<--man>
 
 Displays the help as manual page.
+
+=item B<--ssh> command
+
+This option may be used to specify the ssh/rsh command to use to
+connect to remote servers. Default value is `ssh'.
 
 =back
 
