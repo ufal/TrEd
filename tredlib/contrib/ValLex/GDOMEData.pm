@@ -86,7 +86,7 @@ sub save {
 
 sub isEqual {
   my ($self,$a,$b)=@_;
-  return unless ref($a);
+  return unless(ref($a) and ref($b));
   return $a->gdome_ref == $b->gdome_ref
 }
 
