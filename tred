@@ -3984,13 +3984,13 @@ sub startMain {
 	 [Button=> 'New Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
 					       my $win=$grp->{focusedWindow};
-					       save_undo($win,prepare_undo($win));
+					       save_undo($win,prepare_undo($win,"New Node"));
 					       newNode($win);
 					     },\%group]],
 	 [Button=> 'Remove Active Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
 					       my $win=$grp->{focusedWindow};
-					       save_undo($win,prepare_undo($win));
+					       save_undo($win,prepare_undo($win,'Remove Active Node'));
 					       pruneNode($win,$win->{currentNode});
 					     },\%group]],
 	 [Button=> 'Insert New Tree', -underline=> 0, -command=> [sub {
@@ -5890,7 +5890,7 @@ sub editAttrsDialog {
 
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win));
+    save_undo($win,prepare_undo($win,'Edit Attributes'));
     lastActionBookmark($win->{framegroup});
     foreach $a (@atord) {
       $node->setAttribute($a,decode($e{$a}->get));
@@ -6596,7 +6596,7 @@ sub doEditAttr {
     if (defined($newvalue)) {
       $win->toplevel->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
-      save_undo($win,prepare_undo($win));
+      save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
       lastActionBookmark($grp);
       $node->setAttribute($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -6614,7 +6614,7 @@ sub doEditAttr {
     if (defined $newvalue) {
       $grp->{top}->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
-      save_undo($win,prepare_undo($win));
+      save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
       lastActionBookmark($grp);
       $node->setAttribute($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -6654,7 +6654,7 @@ sub doEditAttr {
   if ($result=~ /OK/) {
     get_grp_history($grp,$e, "attr-$attr");
     $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win));
+    save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
     lastActionBookmark($grp);
     $node->setAttribute($attr,decode($newvalue));
     doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
@@ -7045,7 +7045,7 @@ sub doEvalMacro {
   ${"TredMacro::FileNotSaved"}='?';
   ${"TredMacro::forceFileSaved"}=0;
   ${"TredMacro::Redraw"}='file';
-  my $undo=prepare_undo($win);
+  my $undo=prepare_undo($win,"Macro $macro");
   my $result=do_eval_macro($win,$macro);
   my $current=${"TredMacro::this"};
   my $file_not_saved=${"TredMacro::FileNotSaved"};
@@ -7338,7 +7338,7 @@ sub node_release {
 	}
 	if ($p and $tv->get_obj_pinfo($p) 
 	    and $node->parent!=$tv->get_obj_pinfo($p)) {
-	  save_undo($win,prepare_undo($win));
+	  save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"));
 	  my $oldparent=$node->parent;
 	  Paste(Cut($node),
 		$tv->get_obj_pinfo($p),
@@ -7385,7 +7385,7 @@ sub node_release_modif {
 }
 
 sub prepare_undo {
-  my ($win,$phase_only)=@_;
+  my ($win,$message,$phase_only)=@_;
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
   return undef unless $fsfile;
@@ -7397,10 +7397,10 @@ sub prepare_undo {
 		     $fsfile->FS->list,
 		     $fsfile->FS->defs,
 		     \$tree);
-    return ['FS',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$phase_only];
+    return ['FS',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
   } else {
     $tree = Storable::freeze($win->{root});
-    return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$phase_only];
+    return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
   }
 #  local $Data::Dump::Purity = 1;
 #  return Data::Dumper->Dump([$win->{treeNo},$win->{root},$win->{currentNode}],
@@ -7451,7 +7451,7 @@ sub undo {
   my $undo=$stack->[$stackpos];
   if ($undo) {
     my $new_undo;
-    $new_undo=prepare_undo($win) if (!$redo and $#$stack == $stackpos);
+    $new_undo=prepare_undo($win,$undo->[$stackpos][4]) if (!$redo and $#$stack == $stackpos);
     my $type = $undo->[0];
     my $treeNo=$undo->[1];
     my $tree=$undo->[2];
@@ -7487,7 +7487,8 @@ sub undo {
 sub resetUndoStatus {
   my ($win)=@_;
   my $fsfile=$win->{FSFile};
-  my ($undostatus,$redostatus);
+  my $grp = $win->{framegroup};
+  my ($undostatus,$redostatus,$undomessage,$redomessage);
 
   if ($maxUndo!=0 and ref($fsfile) and $fsfile->userData()) {
     my $stack=$fsfile->userData()->{undostack};
@@ -7496,17 +7497,23 @@ sub resetUndoStatus {
     $undostatus=(ref($stack) && (@$stack>0));
     $redostatus=($undostatus && (@$stack>$stackpos+2));
     $undostatus &&= (($stackpos>=0) && ($stackpos <= $#$stack));
+    $undomessage = ": ".$stack->[$stackpos]->[4] if ($undostatus);
+    $redomessage = ": ".$stack->[$stackpos+1]->[4] if ($redostatus);
   } else {
     $undostatus=0;
     $redostatus=0;
   }
-  if ($win->{framegroup}->{undoButton}) {
-    $win->{framegroup}->{undoButton}->
+  if ($grp->{undoButton}) {
+    $grp->{undoButton}->
       configure(-state => ($undostatus ? 'normal' : 'disabled'));
+    $grp->{Balloon}->attach($grp->{undoButton},
+			    -balloonmsg=> "Undo".$undomessage);
   }
-  if ($win->{framegroup}->{redoButton}) {
-    $win->{framegroup}->{redoButton}->
+  if ($grp->{redoButton}) {
+    $grp->{redoButton}->
       configure(-state => ($redostatus ? 'normal' : 'disabled'));
+    $grp->{Balloon}->attach($grp->{redoButton},
+			    -balloonmsg=> "Redo".$redomessage);
   }
 }
 
