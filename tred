@@ -4135,9 +4135,16 @@ sub startMain {
 	 ],
 	 [
 	  Button=> 'Examine bindings',
-	  -underline=> 8,
+	  -underline=> 0,
 	  -command=> [\&examineBindingsDialog,\%group]
 	 ],
+	 [Button => 'Reload macros', -underline => 0,
+	  -command => [sub {
+			 my ($grp)=@_;
+			 cleanup_tredmacro($grp);
+			 read_macros($macroFile,$libDir);
+		       },\%group]],
+	 
 	 [
 	  Cascade=> 'Debugging messages',
 	  -underline => 0,
@@ -4152,12 +4159,6 @@ sub startMain {
 			  -variable => \$keyboardDebug],
 			 [Checkbutton => 'backend', -underline => 0,
 			  -variable => \$Fslib::Debug],
-			 [Button => 'Reload macros', -underline => 0,
-			  -command => [sub {
-			    my ($grp)=@_;
-			    cleanup_tredmacro($grp);
-			    read_macros($macroFile,$libDir);
-			  },\%group]]
 			]
 	 ]
 	])->pack(qw/-side left/);
