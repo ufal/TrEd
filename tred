@@ -661,7 +661,7 @@ sub get_grp_histories {
 
 sub saveStyleSheets {
   my ($grp)=@_;
-  open my $f, '>'.$ENV{HOME}."/.tred-stylesheets" || do {
+  open my $f, '>:utf8',$ENV{HOME}."/.tred-stylesheets" || do {
     print STDERR "can't write to stylesheet file: $ENV{HOME}/.tred-stylesheets\n" if $debug;
     return 0;
   };
@@ -681,7 +681,7 @@ sub saveStyleSheets {
 
 sub readStyleSheets {
   my ($grp)=@_;
-  open my $f, $ENV{HOME}."/.tred-stylesheets" || do {
+  open my $f, '<:utf8',$ENV{HOME}."/.tred-stylesheets" || do {
     print STDERR "no stylesheet file: $ENV{HOME}/.tred-stylesheets\n" if $debug;
     return 0;
   };
