@@ -23,7 +23,7 @@ $V_backend = 'JHXML';
 #$V_backend = 'LibXML';
 
 $V_module = 'ValLex::Extended'.$V_backend;
-
+*V = \$Tectogrammatic::ValencyLexicon;
 
 sub init_vallex {
   $TrEd::ValLex::Editor::reviewer_can_modify=1;
@@ -41,8 +41,8 @@ sub init_vallex {
     $Tectogrammatic::framere_attr="framere";
 
     Tectogrammatic::init_XMLDataClass();
-    Tectogrammatic::InitFrameData() || return;
-    $V=$Tectogrammatic::FrameData;
+    Tectogrammatic::InitValencyLexicon() || return;
+#    $V=$Tectogrammatic::ValencyLexicon;
 #else
     $V_vallex = "$libDir/contrib/ValLex/vallex.xml";
     require ValLex::DummyConv;
@@ -60,7 +60,7 @@ sub reload_macros_hook {
   if ($V) {
     $V->doc_free();
     $V = undef;
-    $FrameData = undef;
+    $ValencyLexicon = undef;
   }
 }
 
