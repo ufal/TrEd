@@ -12,8 +12,8 @@ Known issues:
 - There is a KDO-RULE for (usually object or subject) subclauses
 starting with "kdo" or "co".  It tries to verify the form of "kdo" or
 "co" instead of the original node (which would be the root of the
-subclause). This behaviour may/may not be incorrect, needs more
-research.
+subclause). This behaviour is probably incorrect: instead we should allow
+nodes satisfying KDO-RULE at all places where direct 1. or .4 are present.
 
 - KDO-RULE is only applied if the subclause is NOT analytically
 governed by "ten".
@@ -29,6 +29,7 @@ layer is often required.
 - A rule that would handle "po jablicku" is missing.
 
 - distinguish between:
+TODO:
 "Marie ma pro Petra uvareno" (where no transformation rules applies) and
 "Petr ma od Marie uvareno" (where transformation changes ADDR(.3) to
 ADDR(.1), etc)
@@ -133,9 +134,11 @@ sub has_auxR {
     sub { my ($node,$aids) = @_;
 	  ($node->{tag}=~/^Vs/ and
 	   not (
+	     # eliminate "ma", "bude mit" or even "mel by mit"
 		first { $_->{AID} ne "" and $_->{lemma} =~ /^být$|^bývat_/ and $_->{tag} !~ /Vc/ } get_aidrefs_nodes($aids,$node) and
 		first { $_->{AID} ne "" and $_->{lemma} eq 'mít' } get_aidrefs_nodes($aids,$node)
-		and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node))
+		and not first { $_->{AID} ne "" and $_->{lemma} ne 'mít' and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node)
+	       )
 	  ) ? 1:0;
 	} =>
     # frame transformation rules:
@@ -147,7 +150,7 @@ sub has_auxR {
    ],
    # 4.
    [# dispmod
-    sub { $_[0]->{dispmod} eq "DISPMOD" } =>
+    sub { $_[0]->{dispmod} eq "DISP" } =>
     # frame transformation rules:
     # frame test
     [ 'ACT(.1)', 'PAT(.4)' ] =>
@@ -193,12 +196,15 @@ sub has_auxR {
 	($node) = first { $_->{AID} ne "" and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node);
 	return 0 unless $node;
       }
-      my ($p) = with_AR { PDT::GetFather_AR($node,sub{ ($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0 }) };
-      return 0 unless $p and
-	$p->{trlemma}=~/^nechat$|^dát$/
-      } =>
-    [ 'ACT(.1)' ] =>
-    [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ]
+      # get analytic parent, but only in case that no AuxC/AuxP are in the way
+      my ($p) = with_AR {
+	(climb_auxcp($node)->{afun} =~ /Aux[CP]/) ? undef :
+	  PDT::GetFather_AR($node,sub{ ($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0 })
+	  };
+      return 0 unless $p and $p->{trlemma}=~/^nechat$|^dát$/
+    } =>
+      [ 'ACT(.1)' ] =>
+      [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ]
    ],
    # 8. imperative
    [
@@ -264,7 +270,7 @@ sub get_aidrefs_nodes {
 
 sub is_numeric_expression {
   my ($node)=@_;
-  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|trochu|plno|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
+  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|tolik-1|trochu|plno|hodnì|spousta|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
 }
 
 sub climb_auxcp {
@@ -356,7 +362,7 @@ sub check_node_case {
 }
 
 sub match_node {
-  my ($node, $fn, $aids,$no_case,$loose_lemma) = @_;
+  my ($node, $fn, $aids,$no_case,$loose_lemma,$toplevel) = @_;
   my ($lemma,$form,$pos,$case,$gen,$num,$deg,$neg,$agreement,$afun)=map {$fn->getAttribute($_)} qw(lemma form pos case gen num deg neg agreement afun);
   if ($V_verbose) {
     print "TEST [tag=$node->{tag}, lemma=$node->{lemma}]  ==>  ";
@@ -407,6 +413,23 @@ sub match_node {
   if ($afun ne "" and $afun ne 'unspecified') {
     return 0 unless $node->{afun}=~/^\Q${afun}\E($|_)/;
   }
+
+  # KDO-RULE:
+  my $kdo;
+#  print "KDO-RULE: step 1: case $case rest '$lemma$form$pos$gen$num$deg' a '$agreement' N '$neg' top $toplevel tag $node->{tag}\n" if $V_verbose;
+  if ($toplevel # no nodes above
+      and $case =~ /^[14]$/
+      and !$agreement
+      and (!$neg or $neg eq 'unspecified')
+      and "$lemma$form$pos$gen$num$deg" eq ""
+      and $node->{tag}=~/^V/
+      and not first { $_->{lemma} eq 'ten' and IsHidden($_) and $_->{func} ne 'INTF' }
+	with_AR { PDT::GetFather_AR($node,sub{0}) }) {
+#    print "KDO-RULE: step 2\n" if $V_verbose;
+    $kdo = first { $_->{lemma} eq 'kdo' or $_->{lemma} eq 'co-1' } PDT::GetChildren_TR($node);
+  }
+  print "KDO-RULE: $kdo->{form} on $node->{form}\n" if $kdo and $V_verbose;
+
   if ($pos ne '') {
     if ($pos eq 'a' and ($case==1 and $node->{tag}=~/^Vs..[-1]/ or
 			 $case==4 and $node->{tag}=~/^Vs..4/)) {
@@ -423,13 +446,13 @@ sub match_node {
       return 0 unless $node->{tag}=~/^V/;
     }
   } elsif (!$no_case and $case ne '') { # assume $tag =~ /^[CNP]/
-    unless ($node->{tag}=~/^[CNPAX]/ or
+    unless ($kdo or $node->{tag}=~/^[CNPAX]/ or
 	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|málo-3|dost|do-1|kolem-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
       return 0;
     }
   }
-  if (!$no_case and $case ne '') {
+  if (!$kdo and !$no_case and $case ne '') {
     return 0 unless ($pos eq 'a' and ($case==1 and $node->{tag}=~/^Vs..[-1]/ or
 				      $case==4 and $node->{tag}=~/^Vs..4/))
       or check_node_case($node,$case);
@@ -461,7 +484,7 @@ sub match_node {
     }
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
-    unless (first { match_node_coord($_,$ffn,$aids,$loose_lemma) }
+    unless (first { match_node_coord($_,$ffn,$aids,$loose_lemma,0) }
 	    get_children_include_auxcp($node)
 	    # $node->children
 	   ) {
@@ -493,25 +516,25 @@ sub match_form {
 	push @ok_a,$_;
       }
     }
-    # add "kdo" of "kdo" subclauses
-    @ok_a = map {
-      if ($_->{tag}=~/^V/ and
-	  not first { $_->{lemma} eq 'ten' and IsHidden($_) and
-		      $_->{func} ne 'INTF' }
-	  with_AR { PDT::GetFather_AR($_,sub{0}) }) {
-	my $kdo = first { $_->{lemma} eq 'kdo' or $_->{lemma} eq 'co-1' }
-	  PDT::GetChildren_TR($_);
-	if ($kdo) {
-	  print "KDO-RULE: found $kdo->{form}\n" if $V_verbose;
-	}
-	$kdo ? ($kdo,$_) : $_;
-      } else { $_ }
-    } @ok_a;
+#     # add "kdo" of "kdo" subclauses
+#     @ok_a = map {
+#       if ($_->{tag}=~/^V/ and
+# 	  not first { $_->{lemma} eq 'ten' and IsHidden($_) and
+# 		      $_->{func} ne 'INTF' }
+# 	  with_AR { PDT::GetFather_AR($_,sub{0}) }) {
+# 	my $kdo = first { $_->{lemma} eq 'kdo' or $_->{lemma} eq 'co-1' }
+# 	  PDT::GetChildren_TR($_);
+# 	if ($kdo) {
+# 	  print "KDO-RULE: found $kdo->{form}\n" if $V_verbose;
+# 	}
+# 	$kdo ? ($kdo,$_) : $_;
+#       } else { $_ }
+#     } @ok_a;
     my ($parent) = $form->getChildrenByTagName('parent');
     my ($pnode) = $parent->getChildrenByTagName('node') if $parent;
     if ($pnode) {
       foreach my $p (PDT::GetFather_TR($node)) {
-	unless (match_node($p,$pnode,$aids,0,$loose_lemma)) {
+	unless (match_node($p,$pnode,$aids,0,$loose_lemma,1)) {
 	  print "PARENT-CONSTRAINT MISMATCH: [$p->{lemma} $p->{form} $p->{tag}] ==> ",$V->serialize_form($pnode),"\n" if $V_verbose;
 	  return 0;
 	}
@@ -520,7 +543,7 @@ sub match_form {
     my @form_nodes = $form->getChildrenByTagName('node');
     if (@form_nodes) {
       foreach my $fn (@form_nodes) {
-	unless (first { match_node($_,$fn,$aids,$no_case,$loose_lemma) } @ok_a) {
+	unless (first { match_node($_,$fn,$aids,$no_case,$loose_lemma,1) } @ok_a) {
 	  print "MISMATCH: $node->{lemma} $node->{form} $node->{tag} ==> ",$V->serialize_form($fn),"\n"
 	    if $V_verbose;
 	  return 0;
@@ -692,7 +715,10 @@ sub do_transform_frame {
 	  print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
 	  $frame = $V->user_cache->{$cache_key};
 	  print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
-	  last TRANS;
+
+#TODO: check if we better stop here or continue
+#  possibly: make each rule have a parameter for this: i.e. "filter"-like rules
+#  last TRANS;
 	} else {
 	  my ($frame_test,$frame_trans)=(shift @frame_tests, shift @frame_tests);
 	  # print "testing rule $cache_key\n" if (!$quiet and $V_verbose);
@@ -860,6 +886,7 @@ sub validate_frame {
     } elsif ($m->{AID} ne "" and
 	     (($m->{lemma}=~/^(podobnì|daleko-1|dal¹í)(_|$)/
 	       and _has_parent_coord_a($m))
+              or ($m->{lemma}=~/^(apod-1)(_|$)/)
 	      or ( (first { $_->{lemma} =~ /^tak-3(_|$)/  } get_aidrefs_nodes($aids,$m)) and
 		   (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$m)) and
 		   (first { _has_parent_coord_a($_) } get_aidrefs_nodes($aids,$m))))) {
