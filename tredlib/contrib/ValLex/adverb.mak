@@ -37,10 +37,22 @@ sub ChooseAdverbFunc {
 
 sub parse_advxml {
   my ($file)=@_;
-  require XML::LibXML;
-  my $parser=XML::LibXML->new();
+  my $parser;
+  eval { require XML::JHXML; };
+  if ($@) {
+    require XML::LibXML;
+    $parser=XML::LibXML->new();
+    print STDERR "Using LibXML\n";
+    $XMLDataClass="TrEd::ValLex::LibXMLData";
+  } else {
+    print STDERR "Using JHXML\n";
+    require XML::JHXML;
+    $parser=XML::JHXML->new();
+  }
+
   return undef unless $parser;
   my $doc;
+  print "parsing $file\n";
   eval {
     $doc=$parser->parse_file($file);
   };
@@ -56,34 +68,43 @@ sub parse_advxml {
 
 sub listAdverbs {
   my ($doc,$conv)=@_;
-  return map { $conv->decode($_->getAttributeNode("lemma")->value()) }
-    $doc->getDocumentElement()->findnodes("/adverbs/adverb");
+  return map { $conv->decode($_->getAttribute("lemma")) }
+    $doc->getDocumentElement()->getChildrenByTagName("adverb");
 }
 
 sub adverb_get_text {
   my ($element)=@_;
-  my ($text)=$element->findnodes("text()");
-  if ($text) {
-    my $data=$text->getData();
-    $data=~s/^\s+//;
-    $data=~s/\s*;\s*/\n/g;
-    $data=~s/[\s\n]+$//g;
-    return $data;
+  my $text=$element->firstChild();
+  my $ret="";
+  while ($text) {
+    if ($text) {
+      my $data=$text->getData();
+      $data=~s/^\s+//;
+      $data=~s/\s*;\s*/\n/g;
+      $data=~s/[\s\n]+$//g;
+      $ret.=$data;
+    }
+    $text = $text->nextSibling();
   }
-  return "";
+  return $ret;
 }
 
 sub get_adverbs {
   my ($doc,$conv)=@_;
   my @adverbs=();
-  foreach my $adv ($doc->getDocumentElement()->findnodes("/adverbs/adverb")) {
-    push @adverbs,[
-		   $conv->decode($adv->getAttributeNode("lemma")->value()),
-		   $conv->decode($adv->getAttributeNode("author")->value()),
-		   map { $conv->decode($_->getAttributeNode("functor")->value()),
-		         $conv->decode(adverb_get_text($_)),
-		       } $adv->findnodes("example")
-		  ];
+  my $adv=$doc->getDocumentElement()->firstChild();
+  while ($adv) {
+    if ($adv->nodeName eq "adverb") {
+      push @adverbs,[
+		     $conv->decode($adv->getAttribute("lemma")),
+		     $conv->decode($adv->getAttribute("author")),
+		     map { $conv->decode($_->getAttribute("functor")),
+			     $conv->decode(adverb_get_text($_)),
+			   } $adv->getElementsByTagName("example")
+		    ];
+    }
+    $adv=$adv->nextSibling();
+
   }
   return @adverbs;
 }
