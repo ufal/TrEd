@@ -286,7 +286,7 @@ sub climb_auxcp {
   return $node;
 }
 
-sub get_chilren_include_auxcp {
+sub get_children_include_auxcp {
   my ($node)=@_;
   if ($node->{afun} =~ /^Aux[CP]/) {
     return with_AR { map { PDT::expand_coord_apos($_) } $node->children };
@@ -318,11 +318,11 @@ sub check_node_case {
   print "   CASE: Checking 'kolem|okolo'+Num\n"  if $V_verbose;
   # kolem milionu (lidí)
   return 1 if $node->{lemma} =~ /^(?:do1|kolem-1|okolo-1)$/ and $node->{afun}=~/^AuxP/ and
-    first { $_->{tag}=~/^....2/ and is_numeric_expression($_) } get_chilren_include_auxcp($node);
+    first { $_->{tag}=~/^....2/ and is_numeric_expression($_) } get_children_include_auxcp($node);
   print "   CASE: Checking 'pres|na'+Num\n"  if $V_verbose;
   # pøes milion (lidí)
   return 1 if $node->{lemma} =~ /^(pøes-1|na-1)$/ and $node->{afun}=~/^AuxP/ and
-    first { $_->{tag}=~/^....4/ and is_numeric_expression($_) } get_chilren_include_auxcp($node);
+    first { $_->{tag}=~/^....4/ and is_numeric_expression($_) } get_children_include_auxcp($node);
   print "   CASE: Checking num+2 construct\n"  if $V_verbose;
   # a number has the right case (or no case at all) and is analytically governing the node
   return 1 if ($node->{tag}=~/^....2/ and
@@ -345,7 +345,7 @@ sub check_node_case {
   return 1 if ($node->{tag}=~/^....2/ and
 	       first {
 		 is_numeric_expression($_) and (($_->{tag}!~/^....(\d)/) or ($case eq $1))
-	       } get_chilren_include_auxcp($node));
+	       } get_children_include_auxcp($node));
   print "   CASE: All checks failed\n"  if $V_verbose;
   return 0;
 }
@@ -431,7 +431,7 @@ sub match_node {
 #     return 0 if ((($node->{tag}=~/^[NCPA]...(\d)/ and $case ne $1) or
 # 		  ($node->{tag}!~/^[NCPAX]/ and $node->{lemma} !~ /^(?:&percnt;|trochu|plno|hodnì|málo-3|dost)(?:\`|$|_)/))
 # 		 and
-# 		 not ($node->{tag}=~/^C...\D/ and not get_chilren_include_auxcp($node) and
+# 		 not ($node->{tag}=~/^C...\D/ and not get_children_include_auxcp($node) and
 # 		 not ($node->{tag}=~/^....2/ and
 # 		      (print("CASE2: $node->{lemma}\n"),1) and
 # 		      first {
@@ -457,7 +457,7 @@ sub match_node {
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
     unless (first { match_node_coord($_,$ffn,$aids,$loose_lemma) }
-	    get_chilren_include_auxcp($node)
+	    get_children_include_auxcp($node)
 	    # $node->children
 	   ) {
       print "CHILDMISMATCH: ",$V->serialize_form($ffn),"\n" if $V_verbose;
