@@ -57,6 +57,7 @@ $lastupdate=$1 if ($timestamp=~/\<([0-9-: ]+) /);
 # Once we got rid of them we call getopt to read all the other options
 use Tk;
 use Tk::Wm;
+use IO;
 
 package Tk::Wm;
 # overwriting the original Tk::Wm::Post:
@@ -278,7 +279,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 #load back-ends
 #require CSTS_SGML_SP_Backend;
 @backends=('FSBackend',ImportBackends(split(/,/,$opt_B),
-				      qw/AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend/
+				      qw/NTREDBackend AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend/
 				     ));
 # CSTSBackend not used any more
 #$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
@@ -292,7 +293,7 @@ require Tk::Balloon;
 # different namespace only to load local rather than system files
 # (rel2abs is not supported in all instalations)
 use File::Spec;
-if (not File::Spec->can(rel2abs)) {
+if (not File::Spec->can('rel2abs')) {
   print "Using TFile::Spec\n" if $tredDebug;
   require TFile::Spec;
   require TFile::Spec::Functions;
@@ -318,7 +319,8 @@ use Exporter;
 	   fs => 'FSBackend',
 	   csts => 'CSTS_SGML_SP_Backend',
 	   trxml => 'TrXMLBackend',
-	   teixml => 'TEIXMLBackend'
+	      teixml => 'TEIXMLBackend',
+	      ntred => 'NTREDBackend'
 	 );
 
 @open_types=
@@ -396,7 +398,7 @@ sub bookmarkFilelist {
   }
   push(@files, @ARGV);
 
-  @files= map { rel2abs($_) } @files;
+  @files= map { m(^[[:alnum:]]+://) ? $_ : rel2abs($_) } @files;
 
   $default->add(0,@files);
   addNewFilelist(undef,$default);
@@ -525,6 +527,9 @@ sub gotoFile {
 sub filelistFullFileName {
   my ($grp, $fn)=@_;
   my $filename=$grp->{currentFilelist}->file_at($fn);
+
+  return $filename if $filename =~ m(^[[:alnum:]]+://);
+
   if ($filename!~/^\s*[\/~]/ and
       ($^O ne 'MSWin32' or $filename!~/^\s*([[:alpha:]]:)?\\/)) {
     # relative filename
@@ -668,8 +673,8 @@ sub userQuery {
 	  -wraplength => 300)->pack();
   $d->bind('<Return>', [sub { my $w=shift; my $f=$w->focusCurrent;
 			     $f->Invoke if ($f and $f->isa('Tk::Button')) }] );
-  if (exists($opts->{-buttons}) and 
-      grep { $_ eq 'Cancel' } @{$opts->{-buttons}}) {
+  if (exists($opts{-buttons}) and 
+      grep { $_ eq 'Cancel' } @{$opts{-buttons}}) {
     $d->bind('<Escape>', [sub { my $w=shift;
 			       $w->{selected_button}= "Cancel";
 			     }] );
@@ -683,9 +688,8 @@ sub userQuery {
 
 sub addToRecent {
   my ($grp,$f)=@_;
-
   if (defined($f)) {
-    $f=rel2abs($f);
+    $f=($f=~m(^[[:alnum:]]+://) ? $f : rel2abs($f));
     @recentFiles=grep { $_ ne $f } @recentFiles;
     unshift @recentFiles,$f;
   }
@@ -787,7 +791,6 @@ sub updateBookmarks {
 
 sub updatePostponed {
   my ($grp)=@_;
-
   if ($grp->{PostponedFileMenu}) {
     print STDERR "Updating session menu\n"  if $tredDebug;
     my $menu= $grp->{PostponedFileMenu}->menu;
@@ -1382,7 +1385,7 @@ sub get_nodes_all {
 sub selectFilelist {
   my ($grp,$list_name)=@_;
   my $fl=switchFilelist($grp,$list_name);
-  print "Switching filelist to $list_name\n"  if $tredDebug;
+  print "Switching filelist to $list_name\n" if $tredDebug;
   return unless defined($fl);
 
   if ($fl ne $grp->{currentFilelist}) {
@@ -1485,7 +1488,7 @@ sub createFilelistBrowseEntry {
      [ sub {
 	 my ($w, $grp, $fl)=@_;
 	 my $text=$w->get;
-	 if (defined Index(\@filelists, $text)) {
+	 if (findFilelist($text)) {
 	   switchFilelist($grp,$text);
 	 } else {
 	   return unless $text ne "";
@@ -1499,7 +1502,7 @@ sub createFilelistBrowseEntry {
 				      $f->Invoke if ($f and $f->isa('Tk::Button')) }] );
 	   my $answer=$d->Show();
 	   if ($answer eq 'Create') {
-	     push @filelists, Filelist->new($text);
+	     addFilelist(Filelist->new($text));
 	     switchFilelist($grp,$text);
 	     updatePostponed($grp);
 	   } elsif ($answer eq 'Rename') {
@@ -1518,6 +1521,13 @@ sub createFilelistBrowseEntry {
   $ll->Subwidget('entry')->Subwidget('entry')->configure(qw/-background white -foreground black/);
   $ll->Subwidget('slistbox')->configure(qw/-background white -foreground black/);
   return $ll;
+}
+
+sub addFilelist {
+  my ($fl)=@_;
+  push @filelists, $fl;
+  print "adding filelist ".$fl->name()."\n";
+  return $fl;
 }
 
 sub getFilelistLinePosition {
@@ -1539,7 +1549,7 @@ sub insertToFilelist {
   return if ($#_==0 and $filelist->position($_[0])>=0);
   # this is the case when we add a file which is actually already there
 
-  my @list=map { rel2abs($_) } @_;
+  my @list=map { m(^[[:alnum:]]+://) ? $_ : rel2abs($_) } @_;
   my $tmp;
   my $toplevel= $grp->{Filelist} ? $grp->{Filelist}->toplevel : $grp->{top};
   @list= map {
@@ -6264,3 +6274,4 @@ sub list_isearch {
     }
   }
 }
+
