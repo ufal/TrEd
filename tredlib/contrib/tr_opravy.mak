@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-12-08 14:36:10 pajas>
+## Time-stamp: <2004-12-17 14:57:45 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -911,6 +911,7 @@ sub insert_node {
   $new->{afun}='???';
   $new->{func}='???';
   $new->{origfkind}='spell';
+  $this=$new;
 }#insert_node
 
 
@@ -1260,6 +1261,7 @@ sub show_tag {
 #bind DiffTRFiles_with_summary to Ctrl+plus  menu Compare trees with summary
 #bind TR_Diff->DiffTRFiles_select_attrs to Ctrl+equal menu Choose attributes to compare
 #bind find_next_difference_in_file to Alt+space menu Goto next difference in file
+#bind TR_Diff->clear_diff_attrs to Alt+- menu Clear TRDiff attributes
 
 sub find_next_difference_in_file {
   local $TR_Diff::compare_all = 1;
