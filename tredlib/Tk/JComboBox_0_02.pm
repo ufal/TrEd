@@ -42,7 +42,7 @@ Tk::Widget->Construct('JComboBox_0_02');
 
 my $BITMAP;
 
-sub ClassInit {
+sub ClassInit { # print STDERR "SUB: ClassInit\n";
   my($class,$mw) = @_;
 
   unless(defined($BITMAP)) {
@@ -73,7 +73,7 @@ sub ClassInit {
   }
 }
 
-sub Populate {
+sub Populate { # print STDERR "SUB: Populate\n";
   my ($cw ,$args) = @_;
 
   $cw->SUPER::Populate($args);
@@ -229,7 +229,7 @@ sub Populate {
 
 
 
-sub choices {
+sub choices { # print STDERR "SUB: choices\n";
   my ($cw, $listAR) = @_;
  
   return if (!$listAR || ref($listAR) ne "ARRAY");
@@ -249,7 +249,7 @@ sub choices {
   }
 }
 
-sub gap {
+sub gap { # print STDERR "SUB: gap\n";
   my ($cw, $gap) = @_;
   return $cw->{Configure}{-gap} unless defined($gap);
   $cw->{_gap} = $gap;
@@ -258,7 +258,7 @@ sub gap {
   }
 }
 
-sub listhighlight {
+sub listhighlight { # print STDERR "SUB: listhighlight\n";
   my ($cw, $val) = @_;
 
   if (!defined($val)) { return $cw->{Configure}{-listhighlighting} }
@@ -285,7 +285,7 @@ sub listhighlight {
 
 
 
-sub mode {
+sub mode { # print STDERR "SUB: mode\n";
   my ($cw, $mode) = @_;
 
   return ($cw->{Configure}->{-mode}) unless $mode;
@@ -323,7 +323,7 @@ sub mode {
 #  $sf->gridColumnconfigure(1, -weight => 1); 
 }
 
-sub validate {
+sub validate { # print STDERR "SUB: validate\n";
   my ($cw, $mode) = @_;
 
   return $cw->{Configure}{-validate} unless $mode;
@@ -345,9 +345,9 @@ sub validate {
 ## JComboBox - Public methods   
 #######################################################
 
-sub addItem { shift->insertItemAt('end', @_) };
+sub addItem { # print STDERR "SUB: addItem\n"; shift->insertItemAt('end', @_) };
 
-sub clearSelection {
+sub clearSelection { # print STDERR "SUB: clearSelection\n";
   my $cw = shift;
   $cw->Subwidget('Listbox')->selectionClear(0, 'end');
   $cw->{_selIndex} = undef;
@@ -362,7 +362,7 @@ sub clearSelection {
   $e->configure(-state => $state);  
 }
 
-sub getItemIndex { 
+sub getItemIndex { # print STDERR "SUB: getItemIndex\n"; 
   my ($cw, $item, %args) = @_;
 
   my $mode = lc($args{-mode}) || "exact";
@@ -388,9 +388,9 @@ sub getItemIndex {
   return undef;
 }
 
-sub getItemCount { return scalar(@{$_[0]->{_list}}) }
+sub getItemCount { # print STDERR "SUB: getItemCount\n"; return scalar(@{$_[0]->{_list}}) }
 
-sub getSelectedIndex { 
+sub getSelectedIndex { # print STDERR "SUB: getSelectedIndex\n"; 
    my $cw = shift;
    my $index = $cw->{_selIndex};
    if (!defined($index) || $cw->cget('-mode') ne 'editable') {
@@ -403,7 +403,7 @@ sub getSelectedIndex {
    return undef;
 }
 
-sub getSelectedValue { 
+sub getSelectedValue { # print STDERR "SUB: getSelectedValue\n"; 
   my $cw = shift;
   my $index = $cw->getSelectedIndex;
   if (!defined($index)) {
@@ -412,14 +412,14 @@ sub getSelectedValue {
   return $cw->getItemValueAt($index);
 }
 
-sub getItemNameAt {
+sub getItemNameAt { # print STDERR "SUB: getItemNameAt\n";
   my ($cw, $index) = @_;
   return undef if (!defined($index));
   $index = $cw->index($index);
   return $cw->{_list}->[$index]->name;
 }
 
-sub getItemValueAt { 
+sub getItemValueAt { # print STDERR "SUB: getItemValueAt\n"; 
   my ($cw, $index) = @_;
   return undef if (!defined($index));
 
@@ -431,7 +431,7 @@ sub getItemValueAt {
   return $item->name;
 }
 
-sub hidePopup { 
+sub hidePopup { # print STDERR "SUB: hidePopup\n"; 
     my ($cw) = @_;
     my $tl = $cw->Subwidget('Popup');
 
@@ -441,7 +441,7 @@ sub hidePopup {
     }
 }
 
-sub index { 
+sub index { # print STDERR "SUB: index\n"; 
   my ($cw, $index) = @_;
   my $lb = $cw->Subwidget('Listbox');
 
@@ -462,7 +462,7 @@ sub index {
   return $index;
 }
    
-sub insertItemAt { 
+sub insertItemAt { # print STDERR "SUB: insertItemAt\n"; 
   my ($cw, $i, $name, %args) = @_;
 
   if (!defined($name)) {
@@ -503,7 +503,7 @@ sub insertItemAt {
   $cw->_updateWidth('add', $name);
 }    
 
-sub removeAllItems { 
+sub removeAllItems { # print STDERR "SUB: removeAllItems\n"; 
   my $cw = shift;
   $cw->{_selIndex} = undef;
   $cw->{_entryWidth} = 0;
@@ -514,7 +514,7 @@ sub removeAllItems {
 }
 
 
-sub removeItemAt { 
+sub removeItemAt { # print STDERR "SUB: removeItemAt\n"; 
   my ($cw, $index) = @_;
   $index = $cw->index($index);
   if ($index == $cw->getSelectedIndex) {
@@ -531,7 +531,7 @@ sub removeItemAt {
 
 }
 
-sub setSelected {
+sub setSelected { # print STDERR "SUB: setSelected\n";
   my ($cw, $str, %args) = @_; 
   my $index = $cw->getItemIndex($str, %args);
   $cw->setSelectedIndex($index) if defined($index);
@@ -539,7 +539,7 @@ sub setSelected {
   return 0;
 }
 
-sub setSelectedIndex { 
+sub setSelectedIndex { # print STDERR "SUB: setSelectedIndex\n"; 
   my ($cw, $index) = @_;
 
   return if ($cw->cget('-state') =~ /disabled/);
@@ -579,7 +579,7 @@ sub setSelectedIndex {
   }
 }
 
-sub popupIsVisible {
+sub popupIsVisible { # print STDERR "SUB: popupIsVisible\n";
   my $cw = shift;
   if ($cw->Subwidget('Popup')->ismapped) {
     return 1;
@@ -587,7 +587,7 @@ sub popupIsVisible {
   return 0;
 }
 
-sub see {
+sub see { # print STDERR "SUB: see\n";
   my ($cw, $index) = @_;
   $index = $cw->index($index);
   my $lb = $cw->Subwidget('Listbox');
@@ -596,7 +596,7 @@ sub see {
   $lb->see($index);
 }
 
-sub showPopup { 
+sub showPopup { # print STDERR "SUB: showPopup\n"; 
   my $cw = shift;
   my $tl = $cw->Subwidget('Popup');
 
@@ -664,7 +664,7 @@ sub showPopup {
 ## JComboBox - Private methods and Event Handlers 
 #######################################################
 
-sub _updateWidth { 
+sub _updateWidth { # print STDERR "SUB: _updateWidth\n"; 
   my ($cw, $action, $name) = @_;
 
   my $edEntry = $cw->Subwidget('ED_Entry');
@@ -696,13 +696,13 @@ sub _updateWidth {
 ## JComboBox Event Handler Routines
 #############################################################
 
-sub AutoScan {
+sub AutoScan { # print STDERR "SUB: AutoScan\n";
   my $lb = shift;
   my $Ev = $lb->XEvent;
   $lb->AutoScan($Ev->x, $Ev->y);
 }
   
-sub ButtonDown {
+sub ButtonDown { # print STDERR "SUB: ButtonDown\n";
   my ($cw) = shift;
 
 #  return if ($cw->cget('-state') =~ /disabled/);
@@ -731,7 +731,7 @@ sub ButtonDown {
   }
 }
 
-sub ButtonUp {
+sub ButtonUp { # print STDERR "SUB: ButtonUp\n";
   my $cw = shift;
 
 #  return unless $cw->{_buttonPressed};
@@ -751,19 +751,19 @@ sub ButtonUp {
   }
 }
 
-sub CancelAutoScan {
+sub CancelAutoScan { # print STDERR "SUB: CancelAutoScan\n";
   my $lb = shift;
   $lb->CancelRepeat;
 }
 
-sub Motion {
+sub Motion { # print STDERR "SUB: Motion\n";
   my $lb = shift;
   my $Ev = $lb->XEvent;
   my $index = $lb->index($Ev->xy);
   $lb->Motion($index);
 }
 
-sub NonSelect {
+sub NonSelect { # print STDERR "SUB: NonSelect\n";
   my $cw = shift;
 
   return unless $cw->popupIsVisible;
@@ -775,7 +775,7 @@ sub NonSelect {
 
 }
     
-sub SelectEntry { 
+sub SelectEntry { # print STDERR "SUB: SelectEntry\n"; 
   my ($cw, $index) = @_;
 
   if ($cw->Subwidget('Popup')->ismapped) { 
@@ -784,7 +784,7 @@ sub SelectEntry {
   $cw->hidePopup;
 }
 
-sub ValidateCmd {
+sub ValidateCmd { # print STDERR "SUB: ValidateCmd\n";
   my ($cw, $str, $chars, $currval, $i, $action) = @_;
 
 
@@ -799,7 +799,7 @@ sub ValidateCmd {
   my $mode = $cw->cget('-validate');
   my $lb = $cw->Subwidget('Listbox');
  
-  if (!$str || $str eq "") {
+  if ($str eq "") {
     $lb->selectionClear(0, 'end');
     return 1;
   }
@@ -824,7 +824,7 @@ sub ValidateCmd {
   return 1;
 } 
 
-sub EntryEnter {
+sub EntryEnter { # print STDERR "SUB: EntryEnter\n";
   my $cw = shift;
   return unless $cw->cget('-validate') =~ /cs-match|match/;
   my $lb = $cw->Subwidget('Listbox');
@@ -837,27 +837,29 @@ sub EntryEnter {
   }
 }
 
-sub EntryUpDown {
+sub EntryUpDown { # print STDERR "SUB: EntryUpDown\n";
   my ($cw, $modifier) = @_;
+  print STDERR "EntryUpDown: $modifier\n";
   return unless $cw->cget('-validate') =~ /cs-match|match/;
   $cw->showPopup unless
     $cw->popupIsVisible;
   my $lb = $cw->Subwidget('Listbox');
   my $index = $lb->curselection;
+  print STDERR "EntryUpDown: $index+$modifier\n";
   $lb->activate($index+$modifier);
   $lb->selectionClear(0, 'end');
   $lb->selectionSet('active');
   $lb->see($index+$modifier);
 }
 
-sub SetFocus {
+sub SetFocus { # print STDERR "SUB: SetFocus\n";
   my $cw = shift;
   if ($cw->cget('-mode') eq 'editable') {
     $cw->Subwidget('ED_Entry')->focus;
   }
 }
 
-sub CurSelection {
+sub CurSelection { # print STDERR "SUB: CurSelection\n";
   my $cw = shift;
   my $lb = $cw->Subwidget('Listbox');
   my $sel = $lb->curselection;
