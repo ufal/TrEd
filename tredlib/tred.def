@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-21 10:13:46 pajas>
+## Time-stamp: <2002-12-04 14:37:58 pajas>
 
 package TredMacro;
 
@@ -664,7 +664,7 @@ sub NewRBrother {
     $node=Next($node);
   }
   PasteNode($nd,Parent($ref));
-  $this=$nd unless ($_[0]);
+  $this=$nd unless ref($_[0]);
   return $nd;
 }
 
@@ -693,7 +693,7 @@ sub NewLBrother {
     $node=Next($node);
   }
   PasteNode($nd,Parent($ref));
-  $this=$nd unless ($_[0]);
+  $this=$nd unless ref($_[0]);
   return $nd;
 }
 
@@ -723,9 +723,53 @@ sub NewSon {
     $node=Next($node);
   }
   PasteNode($nd,$ref);
-  $this=$nd unless ($_[0]);
+  $this=$nd unless ref($_[0]);
   return $nd;
 }
+
+=item NewParent (node)
+
+Create a node between given node and its parent and recalculate the
+special FS numbering attribute values in the whole tree so that the
+new node is the first node left to the given node. 
+
+If no node is given, this function operates on C<$this> and
+B<resets> C<$this> to the newly created node. If a parent node is
+given the value of C<$this> is preserved.
+
+=cut
+sub NewParent {
+  my $ref=ref($_[0]) ? $_[0] : $this;
+  return unless ($ref);
+  my $nd=FSNode->new();
+  my $ord=$grp->{FSFile}->FS->order;
+  $nd->{$ord}=$ref->{$ord};
+  my $node=$root;
+  while ($node) {
+    $node->{$ord}++ if ($node->{$ord}>=$ref->{$ord});
+    $node=Next($node);
+  }
+  if ($ref->parent) {
+    PasteNode($nd,$ref->parent);
+    CutNode($ref);
+    PasteNode($ref,$nd);
+  } else { # root of the tree
+    $trees=$grp->{FSFile}->treeList();
+    my $n;
+    for ($n=0;$n<=$#$trees;$n++) {
+      last if ($trees->[$n] == $ref);
+    }
+    if ($n>$#$trees) {
+      die "tree not found in current FSFile";
+    } else {
+      $grp->{FSFile}->set_tree($nd,$n);
+    }
+    PasteNode($ref,$nd);
+  }
+  $this=$nd unless ref($_[0]);
+  return $nd;
+}
+
 
 =item DeleteThisNode
 
@@ -1099,6 +1143,7 @@ sub SubStr {
 Get a list of all nodes in the current tree of (if top is given) in
 the subtree of top (the root of the tree is icluded as well). The list
 returned is ordered in the natural structure ordering.
+(This function automatically returns array reference in scalar context.)
 
 =cut
 sub GetNodes {
@@ -1109,7 +1154,7 @@ sub GetNodes {
     push @n,$node;
     $node=$node->following($top);
   }
-  return @n;
+  return wantarray ? @n : \@n;
 }
 
 =item GetVisibleNodes (top?)
