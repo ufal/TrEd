@@ -1,4 +1,4 @@
-## This is macro file for Tred                           -*-perl-*-
+## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
 ## created: Fri Mar 17 14:48:42 CET 2000
 
@@ -64,11 +64,16 @@ sub PlainDeleteNode {
 
 sub PrintToFile {
   my $file=shift;
+  return unless( defined($file) and $file ne '' );
+  my @a=@_;
+
   if (open(PTF,">>$file")) {
-    print PTF join("",map { s/\\\|/\|/g } @_);
-    print PTF "\n";
+    print PTF (join("",(map {
+      s/\\\|/|/g;
+      s/\\n/\n/g;
+      $_} @a)));
     close(PTF);
-  }
+} else { print STDERR "Could not open file $file\n"; }
 }
 
 sub ValNo {
@@ -117,7 +122,16 @@ sub Interjection {
 
 sub ListSplit {
 # split |-delimited string to a list
- return split(/\|/, shift);
+  my $s=shift;
+  my $j=0,$i=0;
+  my @a=();
+  while (($j=index($s,'|',$j))>=0) {
+    $j++,next if ($j>0 and substr($s,$j-1,1) eq "\\");
+    push @a, substr($s,$i,$j-$i);
+    $i=++$j; $j=$i;
+  }
+  push @a, substr($s,$i,length($s)-$i) if ($i<length($s));
+  return @a;
 }
 
 sub ListJoin {
