@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-08-06 17:50:14 pajas>
+# Time-stamp: <2001-08-09 15:11:40 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -146,65 +146,76 @@ sub apply_config {
   set_config(\%confs);
 }
 
+sub val_or_def {
+  my ($confs,$key,$def)=@_;
+  return ((exists $confs->{$key}) ? $confs->{$key} : $def);
+}
+
 sub set_config {
   my ($confs)=@_;
 
-  $appName=(exists $confs->{appname}) ? $confs->{appname} : "TrEd ver. 0.5";
-  $buttonsRelief=(exists $confs->{buttonsrelief}) ? $confs->{buttonsrelief} : 'flat';
-  $menubarRelief=(exists $confs->{menubarrelief}) ? $confs->{menubarrelief} : 'flat';
-  $buttonBorderWidth=(exists $confs->{buttonsborder}) ? $confs->{buttonsborder} : 2;
-  $canvasBalloonInitWait=(exists $confs->{hintwait}) ? $confs->{hintwait} : 1000;
-  $activeTextColor=(exists $confs->{activetextcolor}) ? $confs->{activetextcolor} : 'blue';
+  $appName=val_or_def($confs,"appname","TrEd ver. 0.5");
+  $buttonsRelief=val_or_def($confs,"buttonsrelief",'flat');
+  $menubarRelief=val_or_def($confs,"menubarrelief",'flat');
+  $buttonBorderWidth=val_or_def($confs,"buttonsborder",2);
+  $canvasBalloonInitWait=val_or_def($confs,"hintwait",1000);
+  $activeTextColor=val_or_def($confs,"activetextcolor",'blue');
 
-  $treeViewOpts->{baseXPos}=(exists $confs->{basexpos}) ? $confs->{basexpos} : 15;
-  $treeViewOpts->{baseYPos}=(exists $confs->{baseypos}) ? $confs->{baseypos} : 15;
-  $treeViewOpts->{nodeWidth}=(exists $confs->{nodewidth}) ? $confs->{nodewidth} : 7;
-  $treeViewOpts->{nodeHeight}=(exists $confs->{nodeheight}) ? $confs->{nodeheight} : 7;
-  $treeViewOpts->{currentNodeWidth}=(exists $confs->{currentnodewidth}) ? $confs->{currentnodewidth} : $nodeWidth;
-  $treeViewOpts->{currentNodeHeight}=(exists $confs->{currentnodeheight}) ? $confs->{currentnodeheight} : $nodeHeight;
-  $treeViewOpts->{nodeXSkip}=(exists $confs->{nodexskip}) ? $confs->{nodexskip} : 5;
-  $treeViewOpts->{nodeYSkip}=(exists $confs->{nodeyskip}) ? $confs->{nodeyskip} : 10;
-  $treeViewOpts->{xmargin}=(exists $confs->{xmargin}) ? $confs->{xmargin} : 2;
-  $treeViewOpts->{ymargin}=(exists $confs->{ymargin}) ? $confs->{ymargin} : 2;
-  $treeViewOpts->{lineWidth}=(exists $confs->{linewidth}) ? $confs->{linewidth} : 1;
-  $treeViewOpts->{lineColor}=(exists $confs->{linecolor}) ? $confs->{linecolor} : 'black';
-  $treeViewOpts->{lineArrow}=(exists $confs->{linearrow}) ? $confs->{linearrow} : 'none';
-  $treeViewOpts->{nodeColor}=(exists $confs->{nodecolor}) ? $confs->{nodecolor} : 'yellow';
-  $TrEd::Print::bwModeNodeColor=(exists $confs->{bwprintnodecolor}) ? $confs->{bwprintnodecolor} : 'white';
-  $treeViewOpts->{nodeOutlineColor}=(exists $confs->{nodeoutlinecolor}) ? $confs->{nodeoutlinecolor} : 'black';
-  $treeViewOpts->{hiddenNodeColor}=(exists $confs->{hiddennodecolor}) ? $confs->{hiddennodecolor} : 'black';
-  # $activeNodeColor=(exists $confs->{activenodecolor}) ? $confs->{activenodecolor} : 'blue';
-  $treeViewOpts->{currentNodeColor}=(exists $confs->{currentnodecolor}) ? $confs->{currentnodecolor} : 'red';
-  $treeViewOpts->{nearestNodeColor}=(exists $confs->{nearestnodecolor}) ? $confs->{nearestnodecolor} : 'green';
-  $treeViewOpts->{textColor}=(exists $confs->{textcolor}) ? $confs->{textcolor} : 'black';
-  $treeViewOpts->{textColorShadow}=(exists $confs->{textcolorshadow}) ? $confs->{textcolorshadow} : 'darkgrey';
-  $treeViewOpts->{textColorHilite}=(exists $confs->{textcolorhilite}) ? $confs->{textcolorhilite} : 'darkgreen';
-  $treeViewOpts->{textColorXHilite}=(exists $confs->{textcolorxhilite}) ? $confs->{textcolorxhilite} : 'darkred';
+  $treeViewOpts->{baseXPos}	      =	 val_or_def($confs,"basexpos",15);
+  $treeViewOpts->{baseYPos}	      =	 val_or_def($confs,"baseypos",15);
+  $treeViewOpts->{nodeWidth}	      =	 val_or_def($confs,"nodewidth",7);
+  $treeViewOpts->{nodeHeight}	      =	 val_or_def($confs,"nodeheight",7);
+  $treeViewOpts->{useAdditionalEdgeLabelSkip}
+                                      =
+					 val_or_def($confs,"useadditionaledgelabelskip",1);
+  $treeViewOpts->{currentNodeWidth}   =	 val_or_def($confs,"currentnodewidth",$nodeWidth);
+  $treeViewOpts->{currentNodeHeight}  =	 val_or_def($confs,"currentnodeheight",$nodeHeight);
+  $treeViewOpts->{nodeXSkip}	      =	 val_or_def($confs,"nodexskip",10);
+  $treeViewOpts->{nodeYSkip}	      =	 val_or_def($confs,"nodeyskip",10);
+  $treeViewOpts->{edgeLabelSkipAbove} =	 val_or_def($confs,"edgelabelskipabove",10);
+  $treeViewOpts->{edgeLabelSkipBelow} =	 val_or_def($confs,"edgelabelskipbelow",10);
+  $treeViewOpts->{xmargin}	      =	 val_or_def($confs,"xmargin",2);
+  $treeViewOpts->{ymargin}	      =	 val_or_def($confs,"ymargin",2);
+  $treeViewOpts->{lineWidth}	      =	 val_or_def($confs,"linewidth",1);
+  $treeViewOpts->{lineColor}	      =	 val_or_def($confs,"linecolor",'black');
+  $treeViewOpts->{lineArrow}	      =	 val_or_def($confs,"linearrow",'none');
+  $treeViewOpts->{nodeColor}	      =	 val_or_def($confs,"nodecolor",'yellow');
+  $TrEd::Print::bwModeNodeColor	      =	 val_or_def($confs,"bwprintnodecolor",'white');
+  $treeViewOpts->{nodeOutlineColor}   =	 val_or_def($confs,"nodeoutlinecolor",'black');
+  $treeViewOpts->{hiddenNodeColor}    =	 val_or_def($confs,"hiddennodecolor",'black');
+  # $activeNodeColor		      =	 val_or_def($confs,"activenodecolor",'blue');
+  $treeViewOpts->{currentNodeColor}   =	 val_or_def($confs,"currentnodecolor",'red');
+  $treeViewOpts->{nearestNodeColor}   =	 val_or_def($confs,"nearestnodecolor",'green');
+  $treeViewOpts->{textColor}	      =	 val_or_def($confs,"textcolor",'black');
+  $treeViewOpts->{textColorShadow}    =	 val_or_def($confs,"textcolorshadow",'darkgrey');
+  $treeViewOpts->{textColorHilite}    =	 val_or_def($confs,"textcolorhilite",'darkgreen');
+  $treeViewOpts->{textColorXHilite}   =	 val_or_def($confs,"textcolorxhilite",'darkred');
 
   foreach (0..9) {
     $treeViewOpts->{customColors}->[$_]=$confs->{"customcolor$_"} if $confs->{"customcolor$_"};
   }
 
-  $treeViewOpts->{boxColor}=(exists $confs->{boxcolor}) ? $confs->{boxcolor} : 'LightYellow';
-  $treeViewOpts->{currentBoxColor}=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'yellow';
-  $treeViewOpts->{hiddenBoxColor}=(exists $confs->{hiddenboxcolor}) ? $confs->{hiddenboxcolor} : 'gray';
+  $treeViewOpts->{boxColor}	       = val_or_def($confs,"boxcolor",'LightYellow');
+  $treeViewOpts->{currentBoxColor}     = val_or_def($confs,"currentboxcolor",'yellow');
+  $treeViewOpts->{hiddenBoxColor}      = val_or_def($confs,"hiddenboxcolor",'gray');
 
-  $treeViewOpts->{edgeBoxColor}=(exists $confs->{edgeboxcolor}) ? $confs->{edgeboxcolor} : "#fff0e0";
-  $treeViewOpts->{currentEdgeBoxColor}=(exists $confs->{edgecurrentboxcolor}) ? $confs->{edgecurrentboxcolor} : "#ffe68c";
-  $treeViewOpts->{hiddenEdgeBoxColor}=(exists $confs->{edgehiddenboxcolor}) ? $confs->{edgehiddenboxcolor} : "DarkGrey";
+  $treeViewOpts->{edgeBoxColor}	       = val_or_def($confs,"edgeboxcolor",'#fff0e0');
+  $treeViewOpts->{currentEdgeBoxColor} = val_or_def($confs,"edgecurrentboxcolor",'#ffe68c');
+  $treeViewOpts->{hiddenEdgeBoxColor}  = val_or_def($confs,"edgehiddenboxcolor","DarkGrey");
 
-  $treeViewOpts->{clearTextBackground}=(exists $confs->{cleartextbackground}) ? $confs->{cleartextbackground} : 1;
+  $treeViewOpts->{clearTextBackground} = val_or_def($confs,"cleartextbackground",1);
 
-  $treeViewOpts->{backgroundColor}=(exists $confs->{backgroundcolor}) ? $confs->{backgroundcolor} : undef;
-  $treeViewOpts->{noColor}=(exists $confs->{allowcustomcolors}) ? $confs->{allowcustomcolors} : 0;
-  $treeViewOpts->{drawBoxes}=(exists $confs->{drawboxes}) ? $confs->{drawboxes} : 0;
-  $treeViewOpts->{drawEdgeBoxes}=(exists $confs->{drawedgeboxes}) ? $confs->{drawedgeboxes} : 0;
-  $treeViewOpts->{highlightAttributes}=(exists $confs->{highlightattributes}) ? $confs->{highlightattributes} : 1;
-  $treeViewOpts->{showHidden}=exists ($confs->{showhidden}) ? $confs->{showhidden} : 0;
+  $treeViewOpts->{backgroundColor}     = val_or_def($confs,"backgroundcolor",undef);
+  $treeViewOpts->{noColor}	       = val_or_def($confs,"allowcustomcolors",0);
+  $treeViewOpts->{drawBoxes}	       = val_or_def($confs,"drawboxes",0);
+  $treeViewOpts->{drawEdgeBoxes}       = val_or_def($confs,"drawedgeboxes",0);
+  $treeViewOpts->{highlightAttributes} = val_or_def($confs,"highlightattributes",1);
+  $treeViewOpts->{showHidden} = val_or_def($confs,"showhiddne",0);;
+
   $font=(exists $confs->{font}) ? $confs->{font} :
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
   $treeViewOpts->{font}=$font;
-  $vLineFont=(exists $confs->{vlinefont}) ? $confs->{vlinefont} : $font;
+  $vLineFont=val_or_def($confs,"vlinefont",$font);
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
     (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2');
 
@@ -229,41 +240,45 @@ sub set_config {
   }
 
   $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
-  $sortAttrs=(exists $confs->{sortattributes}) ? $confs->{sortattributes} : 1;
-  $psFontName=(exists $confs->{psfontname}) ? $confs->{psfontname} : "Arial-Medium";
-  $psFontSize=(exists $confs->{psfontsize}) ? $confs->{psfontsize} : ($^O=~/^MS/) ? "14" : "12";
   $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
-  $prtFmtWidth=(exists $confs->{prtfmtwidth}) ? $confs->{prtfmtwidth} : '595';
-  $prtFmtHeight=(exists $confs->{prtfmtheight}) ? $confs->{prtfmtheight} : '842';
-  $prtVMargin=(exists $confs->{prtvmargin}) ? $confs->{prtvmargin} : '3c';
-  $prtHMargin=(exists $confs->{prthmargin}) ? $confs->{prthmargin} : '2c';
-  $psMedia=(exists $confs->{psmedia}) ? $confs->{psmedia} : '%%DocumentMedia: A4 595 842 white()';
-  $psFile=(exists $confs->{psfile}) ? tilde_expand($confs->{psfile}) : 'tred.ps';
-  $maximizePrintSize=(exists $confs->{maximizeprintsize}) ? $confs->{maximizeprintsize} : 0;
-  $createMacroMenu=(exists $confs->{createmacromenu}) ? $confs->{createmacromenu} : 0;
-  $maxMenuLines=(exists $confs->{maxmenulines}) ? $confs->{maxmenulines} : 20;
-  $useCzechLocales=(exists $confs->{useczechlocales}) ? $confs->{useczechlocales} : ($^O !~ /^MS/);
-  $Tk::strictMotif=(exists $confs->{strictmotif}) ? $confs->{strictmotif} : 0;
-  $printColors=(exists $confs->{printcolors}) ? $confs->{printcolors} : 0;
 
-  $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
-  $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip);
+  $sortAttrs	     =	val_or_def($confs,"sortattributes",1);
+  $psFontName	     =	val_or_def($confs,"psfontname","Arial-Medium");
+  $psFontSize	     =	val_or_def($confs,"psfontsize",($^O=~/^MS/) ? "14" : "12");
+
+  $prtFmtWidth	     =	val_or_def($confs,"prtfmtwidth",'595');
+  $prtFmtHeight	     =	val_or_def($confs,"prtfmtheight",'842');
+  $prtVMargin	     =	val_or_def($confs,"prtvmargin",'3c');
+  $prtHMargin	     =	val_or_def($confs,"prthmargin",'2c');
+
+  $psMedia	     =	val_or_def($confs,"psmedia",'%%DocumentMedia: A4 595 842 white()');
+  $psFile=(exists $confs->{psfile}) ? tilde_expand($confs->{psfile}) : 'tred.ps';
+
+  $maximizePrintSize  =	 val_or_def($confs,"maximizeprintsize",0);
+  $createMacroMenu    =	 val_or_def($confs,"createmacromenu",0);
+  $maxMenuLines	      =	 val_or_def($confs,"maxmenulines",20);
+  $useCzechLocales    =	 val_or_def($confs,"useczechlocales",($^O !~ /^MS/));
+  $Tk::strictMotif    =	 val_or_def($confs,"strictmotif",0);
+  $printColors	      =	 val_or_def($confs,"printcolors",0);
+
+  $gzip=val_or_def($confs,"gzip",(-x "/bin/gzip" ? "/bin/gzip -c" : undef));
+  $zcat=val_or_def($confs,"zcat",(-x "/bin/zcat" ? "/bin/zcat" : $gzip));
 
   $ZBackend::gzip = $gzip;
   $ZBackend::zcat = $zcat;
 
-  $cstsToFs=(exists $confs->{cststofs}) ? $confs->{cststofs} : undef;
-  $fsToCsts=(exists $confs->{fstocsts}) ? $confs->{fstocsts} : undef;
+  $cstsToFs = val_or_def($confs,"cststofs",undef);
+  $fsToCsts = val_or_def($confs,"fstocsts",undef);
 
   $CSTSBackend::gzip = $gzip;
   $CSTSBackend::zcat = $zcat;
   $CSTSBackend::csts2fs=$cstsToFs;
   $CSTSBackend::fs2csts=$fsToCsts;
 
-  $sgmls=(exists $confs->{sgmls}) ? $confs->{sgmls} : undef;
-  $sgmlsopts=(exists $confs->{sgmlsopts}) ? $confs->{sgmlsopts} : undef;
-  $cstsdoctype=(exists $confs->{cstsdoctype}) ? $confs->{cstsdoctype} : "$libDir/csts.doctype";
+  $sgmls       = val_or_def($confs,"sgmls",undef);
+  $sgmlsopts   = val_or_def($confs,"sgmlsopts",undef);
+  $cstsdoctype = val_or_def($confs,"cstsdoctype","$libDir/csts.doctype");
 
   $CSTS_SGML_SP_Backend::gzip=$gzip;
   $CSTS_SGML_SP_Backend::zcat=$zcat;
@@ -271,18 +286,18 @@ sub set_config {
   $CSTS_SGML_SP_Backend::sgmlsopts=$sgmlsopts;
   $CSTS_SGML_SP_Backend::doctype=$cstsdoctype;
 
-  $keyboardDebug=(exists $confs->{keyboarddebug}) ? $confs->{keyboarddebug} : 0;
-  $hookDebug=(exists $confs->{hookdebug}) ? $confs->{hookdebug} : 0;
-  $macroDebug=(exists $confs->{macrodebug}) ? $confs->{macrodebug} : 0;
-  $tredDebug=(exists $confs->{treddebug}) ? $confs->{treddebug} : 0;
-  $defaultTemplateMatchMethod=(exists $confs->{searchmethod}) ? $confs->{searchmethod} : 'Exhaustive regular expression';
-  $defaultMacroListOrder=(exists $confs->{macrolistorder}) ? $confs->{macrolistorder} : 'M';
-  $defCWidth=(exists $confs->{canvaswidth}) ? $confs->{canvaswidth} : '18c';
-  $defCHeight=(exists $confs->{canvasheight}) ? $confs->{canvasheight} : '12c';
-  $geometry=(exists $confs->{geometry}) ? $confs->{geometry} : undef;
-  $maxDisplayedValues=(exists $confs->{maxdisplayedvalues}) ? $confs->{maxdisplayedvalues} : 30;
-  $maxDisplayedAttributes=(exists $confs->{maxdisplayedattributes}) ? $confs->{maxdisplayedattributes} : 20;
-  $lastAction=(exists $confs->{lastaction}) ? $confs->{lastaction} : undef;
+  $keyboardDebug	      =	val_or_def($confs,"keyboarddebug",0);
+  $hookDebug		      =	val_or_def($confs,"hookdebug",0);
+  $macroDebug		      =	val_or_def($confs,"macrodebug",0);
+  $tredDebug		      =	val_or_def($confs,"treddebug",0);
+  $defaultTemplateMatchMethod =	val_or_def($confs,"searchmethod",'Exhaustive regular expression');
+  $defaultMacroListOrder      =	val_or_def($confs,"macrolistorder",'M');
+  $defCWidth		      =	val_or_def($confs,"canvaswidth",'18c');
+  $defCHeight		      =	val_or_def($confs,"canvasheight",'12c');
+  $geometry		      =	val_or_def($confs,"geometry",undef);
+  $maxDisplayedValues	      =	val_or_def($confs,"maxdisplayedvalues",30);
+  $maxDisplayedAttributes     =	val_or_def($confs,"maxdisplayedattributes",20);
+  $lastAction		      =	val_or_def($confs,"lastaction",undef);
 
   &$set_user_config($confs) if (ref($set_user_config));
 }

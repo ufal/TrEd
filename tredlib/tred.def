@@ -1,14 +1,18 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-06 17:45:38 pajas>
+## Time-stamp: <2001-08-10 17:43:22 pajas>
 
 package TredMacro;
 
 use base qw(main);
 use vars qw(@FORCE_EXPORT);
-@FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree
+@FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw
                    $forceFileSaved $FileNotSaved $NodeClipboard);
 use vars @FORCE_EXPORT;
+
+# set $Redraw to one of "file|tree|win|all|tie"; file is default
+# tie means redraw all if windows are tied. Otherwise redraw only
+# current window
 
 #  $_NoSuchTree=0;
 #  $grp=undef
@@ -63,7 +67,28 @@ sub import {
 sub Redraw {
   my $ie=$main::insideEval;
   $main::insideEval=0;
-  &main::redraw_tree($grp);
+  &main::redraw_win($grp);
+  $main::insideEval=$ie;
+}
+
+sub Redraw_FSFile {
+  my $ie=$main::insideEval;
+  $main::insideEval=0;
+  &main::redraw_fsfile($grp->{framegroup},$grp->{FSFile});
+  $main::insideEval=$ie;
+}
+
+sub Redraw_FSFile_Tree {
+  my $ie=$main::insideEval;
+  $main::insideEval=0;
+  &main::redraw_fsfile($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
+  $main::insideEval=$ie;
+}
+
+sub Redraw_All {
+  my $ie=$main::insideEval;
+  $main::insideEval=0;
+  &main::redraw_all($grp->{framegroup});
   $main::insideEval=$ie;
 }
 
@@ -73,6 +98,14 @@ sub SetDisplayAttrs {
 
 sub SetBalloonPattern {
   $grp->{FSFile}->changeHint(join "\n",@_);
+}
+
+sub GetDisplayAttrs {
+  return $grp->{FSFile}->patterns();
+}
+
+sub GetBalloonPattern {
+  return $grp->{FSFile}->hint();
 }
 
 sub SwitchContext {
@@ -92,6 +125,23 @@ sub GotoTree {
   return $result;
 }
 
+sub TieNextTree {
+  my $result=main::tieNextTree($grp->{framegroup});
+  $root=$grp->{root};
+  $this=$root;
+  $Redraw='tie';
+  return $result;
+}
+
+sub TiePrevTree {
+  my $result=main::tiePrevTree($grp->{framegroup});
+  $root=$grp->{root};
+  $this=$root;
+  $Redraw='tie';
+  return $result;
+}
+
+
 sub NextTree {
   my $result=main::nextTree($grp);
   $root=$grp->{root};
@@ -103,7 +153,7 @@ sub NextTree {
 sub PrevTree { 
   my $result=main::prevTree($grp);
   $root=$grp->{root};
-  $this=$root; 
+  $this=$root;
   $_NoSuchTree=!$result; # for compatibility with Graph2Tred
   return $result;
 }
