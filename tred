@@ -2363,17 +2363,23 @@ sub copyTreesDialog {
   }
 }
 
-
-
+sub initTTFonts {
+  my ($grp)=@_;
+  print STDERR "Collecting TTF fonts\n" if $tredDebug;
+  $grp->{ttfonts}=TrEd::Print::get_ttf_fonts(map TrEd::Config::tilde_expand($_),
+					     split /,/,$ttFontPath)
+    unless $grp->{ttfonts};
+}
 
 sub printDialog {
   my ($grp)=@_;
-
-  return unless $grp->{focusedWindow}->{FSFile};
+  my $win = $grp->{focusedWindow};
+  return unless $win->{FSFile};
 
   my $com=$grp->{printCommand};
   my $fil=$grp->{printPsFile};
-  $fil=$grp->{focusedWindow}->{FSFile}->filename;
+  $fil =doEvalHook($win,"print_tree_filename_hook");
+  $fil=$win->{FSFile}->filename if $fil eq "";
   my $printFileExtension=$grp->{printFileExtension} || "ps";
   $fil=~s/\.[^.]*$/.$printFileExtension/;
   my $toFile=$grp->{printToFile};
@@ -2381,17 +2387,13 @@ sub printDialog {
   my $imageMagickResolution=$grp->{printImageMagickResolution} || 80;
 #  my $useType1Font=$grp->{printUseType1Font};
 #  my $printRange=$grp->{printRange};
-  my $printRange=$grp->{focusedWindow}->{treeNo}+1;# unless $printRange ne "";
+  my $printRange=$win->{treeNo}+1;# unless $printRange ne "";
   my $snt=$grp->{printSentenceInfo};
   my $noRotate=$grp->{printNoRotate};
-
   my $defaultPrtFmtWidth=$prtFmtWidth;
   my $defaultPrtFmtHeight=$prtFmtHeight;
 
-  print STDERR "Collecting TTF fonts\n" if $tredDebug;
-  $grp->{ttfonts}=TrEd::Print::get_ttf_fonts(map TrEd::Config::tilde_expand($_),
-					     split /,/,$ttFontPath)
-    unless $grp->{ttfonts};
+  initTTFonts($grp);
   $ttFont = '' unless exists($grp->{ttfonts}->{$ttFont});
   print STDERR "done.\n" if $tredDebug;
 
@@ -2505,6 +2507,15 @@ sub printDialog {
 		     -width=> 50,
 		     -font=> $font,
 		     -textvariable=> \$fil)->pack(qw/-padx 10 -side left -expand yes -fill x/);
+  if ($fil ne "") {
+    my $start = rindex($fil,"/")+1;
+    my $end = rindex($fil,".");
+    if ($start<$end) {
+      $fe->selectionClear();
+      $fe->selectionRange($start,$end);
+      $fe->icursor($start);
+    }
+  }
   my $sf= $d->Frame();
   my $re=$sf->Entry(-relief=> 'sunken',
 		    -width=> 20,
@@ -2602,8 +2613,8 @@ sub printDialog {
 				    $b->configure(-state=> 'normal');
 				    $c->configure(-state=> 'disabled',
 						  -background=> $disabledBg);
-				    $r->configure(-state=> 'disabled',
-						  -background=> $disabledBg);
+#				    $r->configure(-state=> 'disabled',
+#						  -background=> $disabledBg);
 				    if ($$fmt eq 'PDF') {
 				      $e->configure(-state=> 'readonly',
 						    -background=> $defaultBg);
@@ -2619,8 +2630,8 @@ sub printDialog {
 				    $b->configure(-state=> 'disabled');
 				    $c->configure(-state=> 'normal',
 						  -background=> $defaultBg);
-				    $r->configure(-state=> 'normal',
-						  -background=> $defaultBg);
+#				    $r->configure(-state=> 'normal',
+#						  -background=> $defaultBg);
 				    $e->configure(-state=> 'disabled',
 						  -background=> $disabledBg);
 				    foreach (keys %$fmtbut) {
@@ -2728,19 +2739,19 @@ sub printDialog {
   $sf->Button(-image=> $grp->{top}->Pixmap(-file=>
 					   "$libDir/view_sent.xpm"),
 	      -command=> [sub {
-			    my ($grp,$d,$rng)=@_;
+			    my ($grp,$win,$d,$rng)=@_;
 			    my $list=[];
 			    foreach (TrEd::Print::parse_print_list(
-					  $grp->{focusedWindow}->{FSFile},
+					  $win->{FSFile},
 					   $$rng)) {
 			      $list->[$_-1]=1;
 			    }
 			    $$rng=
 			      sentViewGetSelection($grp,
 				 viewSentencesDialog($grp,$d,
-				 $grp->{focusedWindow}->{FSFile},
+				 $win->{FSFile},
 				 $list));
-			  },$grp,$d,\$printRange ])->pack(qw/-padx 10 -side left/);
+			  },$grp,$win,$d,\$printRange ])->pack(qw/-padx 10 -side left/);
 
   $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
   $ff->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
@@ -3161,7 +3172,9 @@ sub newTreeView {
 
   my $baloon=$grp->{top}->Balloon(-initwait=> $canvasBalloonInitWait,
 				  -state=> 'balloon',
-				  -background=> '#fff3b0');
+				  -background=> '#fff3b0'
+				 );
+  $baloon->Tk::Toplevel::configure(-background=> '#fff3b0');
   $baloon->Subwidget('message')->configure(-justify=> 'left',-font=> $font);
   my $treeView=new TrEd::TreeView($canvas,'CanvasBalloon'=> $baloon);
   $treeView->apply_options($treeViewOpts);
@@ -4073,7 +4086,7 @@ sub startMain {
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&splitWindow,\%group,'vert'])->pack(-side=>'right',
 									   -padx=>'1');
-  $group{Balloon}->attach($group{hsplitButton},
+  $group{Balloon}->attach($group{vsplitButton},
 			  -balloonmsg=> "split view vertically");
 
 
