@@ -161,6 +161,18 @@ sub print_trees {
 
   return if (not defined($printRange));
 
+  local $TrEd::Convert::support_unicode = $TrEd::Convert::support_unicode;
+  local $TrEd::Convert::lefttoright = $TrEd::Convert::lefttoright;
+  # A hack to support correct Arabic rendering under Tk800
+  if (1000*$] >= 5008 and
+      !$TrEd::Convert::support_unicode and
+      $TrEd::Convert::inputenc eq 'iso-8859-6' or
+      $TrEd::Convert::inputenc eq 'windows-1256') {
+    $TrEd::Convert::lefttoright=1; # arabjoin does this
+    $TrEd::Convert::support_unicode=1;
+  }
+
+
   print STDERR "Printing (TO-FILE=$toFile, PDF=$toPDF, EPS=$toEPS, FIL=$fil, CMD=$cmd, MEDIA=$Media=$prtFmtWidth x $prtFmtHeight)\n";
   my $pagewidth;
   my $pageheight;
