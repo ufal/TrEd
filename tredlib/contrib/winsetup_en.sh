@@ -21,7 +21,7 @@ function ask {
 
 function mkplbat {
   PERLBIN=`echo "$PERLBIN" | sed 's!^/cygdrive/\(.\)!\1:!' | sed -e 's!/!\\\\\\\\!g'`
-  sed "s!_PERLBIN_!$PERLBIN!" < bat | sed "s!_CMD_!${TREDDIR}/$1!" > "${TREDDIR}/$1.bat"
+  sed "s!_PERLBIN_!$PERLBIN!" < bat | sed "s!_CMD_!${TREDDIR}/$1!g" | sed "s!_TREDDIR_!${TREDDIR}!g" > "${TREDDIR}/$1.bat"
   return $?
 }
 
@@ -239,7 +239,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     mkplbat any2any); then 
     
     if (test -d "${TREDDIR}/bin" || mkdir "${TREDDIR}/bin"); then
-      cp bin/*.dll bin/gunzip.exe bin/gzip.exe bin/zcat.exe "${TREDDIR}/bin"
+      cp bin/prfile32.exe bin/*.dll bin/gunzip.exe bin/gzip.exe bin/zcat.exe "${TREDDIR}/bin"
     else 
       echo "Cannot create" "${TREDDIR}/bin" "!"
     fi
