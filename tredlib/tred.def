@@ -6,8 +6,6 @@
 # Default macro definitions to make
 # calls to global subroutines less humble
 
-my $_NoSuchTree; # for compatibility with Graph2Tred
-
 sub GotoTree {
   my $to=shift;
   $_NoSuchTree=($to != max(0,min($to,$#trees)));
@@ -19,14 +17,14 @@ sub GotoTree {
 sub NextTree {
   my $result=nextTree($grp);
   $this=$root;
-  $_NoSuchTree=!$result;
+  $_NoSuchTree=!$result; # for compatibility with Graph2Tred
   return $result;
 }
 
 sub PrevTree { 
   my $result=prevTree($grp);
   $this=$root; 
-  $_NoSuchTree=!$result;
+  $_NoSuchTree=!$result; # for compatibility with Graph2Tred
   return $result;
 }
 
@@ -40,8 +38,36 @@ sub CutNode {
   return $result;
 }
 
+sub NewTree {
+  newTree($grp);
+  $this=$root;
+}
+
+sub NewTreeAfter {
+  newTreeAfter($grp);
+  $this=$root;
+}
+
+sub Save {
+  saveFile($grp);
+  $FileNotSaved=0;
+}
+
+sub SaveAndNextFile {
+  Save();
+  nextFile($grp);
+  $FileNotSaved=0;
+}
+
+sub SaveAndPrevFile {
+  Save();
+  prevFile($grp);
+  $FileNotSaved=0;
+}
+
 ###########################################################
 # Macros used by Graph2Tred macro convertor
+
 
 sub PlainNewSon {
 ## Adds new son to a given parent
@@ -49,7 +75,7 @@ sub PlainNewSon {
   return unless ($parent);
   my $nd={};
   NewNode($nd); # blessing NewNode
-  PasteNode($nd,$this);
+  PasteNode($nd,$parent);
   return $this=$nd;
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #
 # Usage: 
-# foreachnode.pl files
+# foreachnode.pl files [- script-parameters]
 #
 # Rreads a perl script from stdin and evals it for every tree in files 
 #
@@ -30,7 +30,8 @@ setlocale(LANG,"czech");
 
 $SCRIPT.=$_ while <STDIN>;
 
-@files=@ARGV;
+push(@files, shift(@ARGV)) while (defined($ARGV[0]) and $ARGV[0] ne '-');
+shift if ($ARGV[0] eq '-');
 %tree = ();
 
 $filecount=$#files+1;

@@ -16,7 +16,7 @@ $VERSION = "0.91";
 @EXPORT = qw(&ReadAttribs &ReadTree &GetTree &PrintNode &PrintTree &PrintFS &NewNode 
 	     &Parent &LBrother &RBrother &FirstSon &Next &Prev &DeleteTree &DeleteLeaf
 	     &Cut &Paste &Set &Get &DrawTree &IsList &ListValues);
-@EXPORT_OK = qw(&Index &ParseNode &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial);
+@EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial);
 
 use Carp;
 use vars qw(
@@ -37,7 +37,7 @@ $parent="_P_";
 $firstson="_S_";
 $lbrother="_L_";
 $rbrother="_R_";
-
+$FSTestListValidity=0;
 
 sub NewNode ($) {
   my $node = shift;
@@ -115,15 +115,27 @@ sub Prev {
 
 sub IsList ($$) {
   my ($attrib, $href)=@_;
-  return ($$href{$attrib}=~/ L/);
+  return (index($$href{$attrib}," L")>=0);
 }
 
 sub ListValues ($$) {
   my ($attrib, $href)=@_;
 
-  if ($$href{$attrib}=~/ L=([^ ]+)/) { # only lists may have preset values
-    return split /\|/,$1;
-  } else { return (); }
+# pokus o zrychleni
+    my $I,$b,$e;
+    $b=index($$href{$attrib}," L=");
+    if ($b>=0) {
+      $e=index($$href{$attrib}," ",$b+1);
+      if ($e>=0) {
+        return split /\|/,substr($$href{$attrib},$b+3,$e-$b-3);
+      } else {
+        return split /\|/,substr($$href{$attrib},$b+3);
+      }
+    } else { return (); }
+
+#  if ($$href{$attrib}=~/ L=([^ ]+)/) { # only lists may have preset values
+#    return split /\|/,$1;
+#  } else { return (); }
 }
 
 sub Special ($$$) {
@@ -131,7 +143,7 @@ sub Special ($$$) {
 
   if ($node and $href) {
     foreach (keys(%$href)) {
-      return $$node{$_} if $$href{$_}=~/ $defchar/;
+      return $$node{$_} if (index($$href{$_}," $defchar")>=0);
     }
   }
   return undef;
@@ -142,7 +154,7 @@ sub ASpecial ($$) {
 
   if ($href) {
     foreach (keys(%$href)) {
-      return $_ if $$href{$_}=~/ $defchar/;
+      return $_ if (index($$href{$_}," $defchar")>=0);
     }
   }
   return undef;
@@ -220,15 +232,14 @@ sub DeleteTree ($) {
 #  print "Deleting tree\n";
   $top=$node=shift;
   while ($node) {
-    if ($node!=$top 
-	and !$$node{$firstson} 
-	and !$$node{$lbrother} 
+    if ($node!=$top
+	and !$$node{$firstson}
+	and !$$node{$lbrother}
 	and !$$node{$rbrother}) {
       $next=$$node{$parent};
     } else {
       $next=Next($node,$top);
     }
-    
     DeleteLeaf($node);
     $node=$next;
   }
@@ -247,6 +258,7 @@ sub DeleteLeaf ($) {
     }
 #    print " leaf ",$$node{"form"},"\n";
     undef %$node;
+    undef $node;
     return 1;
   }
 #  print " nothing\n";
@@ -255,21 +267,16 @@ sub DeleteLeaf ($) {
 
 
 sub Index ($$) {
-  my $ar = shift;
-  my @a = @{$ar};
-  my $i = shift;
+  my ($ar,$i) = @_;
   my $result=undef;
-  for (my $n=0;$n<=$#a;$n++) {
-    $result=$n, last if ($a[$n] eq $i);
+  for (my $n=0;$n<=$#$ar;$n++) {
+    $result=$n, last if ($ar->[$n] eq $i);
   }
   return $result;
 }
 
 sub ReadAttribs  {
-  my $handle = shift;
-  my $order = shift;
-  my $DO_PRINT = shift;
-  my $out = shift;
+  my ($handle,$order,$DO_PRINT,$out) = @_;
   my $outfile = ($out ? $out : \*STDOUT);
 
   my %result;
@@ -281,12 +288,15 @@ sub ReadAttribs  {
 #    print $_;
     print $outfile $_ if $DO_PRINT==1;
     push @$out, $_ if $DO_PRINT==2; 
-    if (/^\@([KPOVNWLH])[A-Z0-9]* ([A-Za-z0-9]+)(?:\|(.*))?/o) {
-      $ {$order}[$count++]=$2 if (!defined($result{$2}));
-      if ($3) {
-	$result{$2}.=" $1=$3"; # so we create a list of defchars separated by spaces
+    if (/^\@([KPOVNWLH])([A-Z0-9])* ([A-Za-z0-9]+)(?:\|(.*))?/o) {
+      $ {$order}[$count++]=$3 if (!defined($result{$3}));
+      if ($4) {
+	$result{$3}.=" $1=$4"; # so we create a list of defchars separated by spaces
       } else {                 # a value-list may follow the equation mark
-	$result{$2}.=" $1";
+	$result{$3}.=" $1";
+      }
+      if ($2) {
+	$result{$3}.=" $2"; # we add a special defchar being the color
       }
       next;
     }
@@ -296,16 +306,14 @@ sub ReadAttribs  {
 }
 
 sub ParseNode ($$$) {
-  my $lr = shift;
-  my $ordr=shift;
-  my $attr=shift;
-  my @ord=@ {$ordr};
+  my ($lr,$ord,$attr) = @_;
   my $n = 0;
   my %node;
   my $pos = 1;
   my $a=0;
   my $v=0;
   my $tmp;
+  my @lv;
 
   NewNode(\%node);
   if ($ {$lr}=~/\G\[/gsco) {
@@ -314,29 +322,32 @@ sub ParseNode ($$$) {
       if ($ {$lr}=~/\G([A-Za-z0-9]+)=($field)/gsco) {
 	$a=$1;
 	$v=$2;
-	$tmp=Index($ordr,$a);
+	$tmp=Index($ord,$a);
 	$n = $tmp if (defined($tmp));
       } elsif ($ {$lr}=~/\G($field)/gsco) {
 	$v=$1;
-        $n++ while ( $n<=$#ord and $attr->{$ord[$n]}!~/ [PNW]/);
-	if ($n>$#ord) {
+        $n++ while ( $n<=$#$ord and $attr->{$ord->[$n]}!~/ [PNW]/);
+	if ($n>$#$ord) {
 	  croak "No more positional attribute for value $v at position ".pos($$lr)." in:\n".$$lr."\n";
 	}
-	$a=$ord[$n];
+	$a=$ord->[$n];
 
       } 
       $v=~s/\\([,=\[\]\\])/$1/go;
-      if (IsList($a,$attr)) {
-	foreach (split /\|/,$v) {
-	  carp("Invalid list value $v of atribute $a at position ".pos($$lr)." in:\n".$$lr."\n" )
-	    unless (defined(Index([ ListValues($a,$attr) ],$_)));
-	}
-      }      
+      if ($FSTestListValidity) {
+	if (IsList($a,$attr)) {
+	  @lv=ListValues($a,$attr);
+	  foreach $tmp (split /\|/,$v) {
+	    carp("Invalid list value $v of atribute $a at position ".pos($$lr)." in:\n".$$lr."\n" )
+	      unless (defined(Index(\@lv,$tmp))); 
+	    #(0<grep($_ eq $tmp, @lv)); # this seems to be slower
+	  }
+	}    
+      }  
       $node{$a}=$v;
     }
   } else { croak $ {$lr}," not node!\n"; }
   return { %node };
-
 }
 
 sub ReadTree (*) {
@@ -352,9 +363,7 @@ sub ReadTree (*) {
 }
 
 sub GetTree ($$$) {
-  my $l=shift;
-  my $ord=shift;                       # ref. to a attribut order array 
-  my $atr=shift;                       # ref. to a attribut type hash
+  my ($l,$ord,$atr)=@_;
   my $root;
   my $curr;
   if ($l=~/^\[/o) {
@@ -393,31 +402,27 @@ sub GetTree ($$$) {
 sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
                      # 2nd scalar is a reference to the ord-array
                      # 3rd scalar is a reference to the attribute-hash
-  my $node=shift;
-  my $rord=shift;
-  my $ratr=shift;
-  my $output=shift;
-  my @ord= @$rord;
-  my %atr= %$ratr;
+  my ($node,$ord,$atr,$output)=@_;
   my $v;
-  my $lastprinted=0;
+  my $lastprinted=1;
 
   if ($node) {
     print $output "[";
-    for (my $n=0; $n<=$#ord; $n++) {
-      $v=$ {$node}{$ord[$n]};
+    for (my $n=0; $n<=$#$ord; $n++) {
+      $v=$ {$node}{$ord->[$n]};
       $v=~s/[,\[\]=\\]/\\$&/go if (defined($v));      
-      if (index($atr{$ord[$n]}, " O")>=0) {
+      if (index($atr->{$ord->[$n]}, " O")>=0) {
 	print $output "," if $n;
-	unless ($lastprinted && index($atr{$ord[$n]}," P")>=0) # N could match here too probably
-	  { print $output $ord[$n],"="; }
+	unless ($lastprinted && index($atr->{$ord->[$n]}," P")>=0) # N could match here too probably
+	  { print $output $ord->[$n],"="; }
+	$v='-' if ($v eq '' or not defined($v));
 	print $output $v;
 	$lastprinted=1;
       }
-      elsif (defined($node->{$ord[$n]}) and $node->{$ord[$n]} ne '') {
+      elsif (defined($node->{$ord->[$n]}) and $node->{$ord->[$n]} ne '') {
 	print $output "," if $n;
-	unless ($lastprinted && index($atr{$ord[$n]}," P")>=0) # N could match here too probably
-	  { print $output $ord[$n],"="; }
+	unless ($lastprinted && index($atr->{$ord->[$n]}," P")>=0) # N could match here too probably
+	  { print $output $ord->[$n],"="; }
 	print $output $v;
 	$lastprinted=1;
       } else {
@@ -431,10 +436,10 @@ sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
 }
 
 sub PrintTree { 
-  my $curr=shift;  # 1st scalar is a reference to the root-node
-  my $rord=shift;  # 2nd scalar is a reference to the ord-array
-  my $ratr=shift;  # 3rd scalar is a reference to the attribute-hash
-  my $output=shift;
+  my ($curr,  # a reference to the root-node
+      $rord,  # a reference to the ord-array
+      $ratr,  # a reference to the attribute-hash
+      $output)=@_;
   my $root=$curr;
 
   $output=\*STDOUT unless $output;
@@ -496,8 +501,7 @@ sub DrawTree ($@){
 }
 
 sub PrintFS ($$$$$) {
-  my ($FS,$header,$trees,$atord,$attribs)=
-      (shift,shift,shift,shift,shift);
+  my ($FS,$header,$trees,$atord,$attribs)=@_;
   my $t;
 
   print FO @$header;
@@ -647,19 +651,19 @@ with attribute names and are stored in the following scalar variables:
 
 =item *
 
-$parent
+Fslib::$parent
 
 =item *
 
-$firstson
+Fslib::$firstson
 
 =item *
 
-$lbrother
+Fslib::$lbrother
 
 =item *
 
-$rbrother
+Fslib::$rbrother
 
 =back
 
@@ -692,6 +696,13 @@ a construct like:
 
 Note, that Cut function also deletes a subree from the tree but
 keeps the TNS in memory and returns a reference to it.
+
+There is also a global variable Fslib::$FSTestListValidity, which may
+be set to 1 to make Fslib::ParseNode check if value assigned to a list
+attribute is one of the possible values declared in FS file
+header. Because this may slow the process of parsing significantly
+(especially when there is a lot of list attributes) the default value
+is 0 (no check is performed).
 
 =head1 REFERENCE
 
