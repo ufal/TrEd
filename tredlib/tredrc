@@ -19,20 +19,20 @@ BackgroundColor  	= white
 TextColor	 	= black			;; normal color for attribute
 ActiveTextColor	= blue			;; when mouse is over
   ;; ---- Graph-like colors ----
-TextColorShadow	= darkgrey		;; shadow attribute color 
-TextColorHilite	= darkgreen		;; highlited attribute color
-TextColorXHilite	= darkred			;; extra-highlited attribute color
+;;TextColorShadow	= darkgrey		;; shadow attribute color 
+;;TextColorHilite	= darkgreen		;; highlited attribute color
+;;TextColorXHilite	= darkred			;; extra-highlited attribute color
   ;; ---- 10 more colors for attributes in TrEd ----
-CustomColor1	= darkblue 		;; 1st custom attribute color 
-CustomColor2	= darkmagenta		;; 2nd custom attribute color 
-CustomColor3	= orange			;; 3rd custom attribute color 
-CustomColor4	= darkred 		;; 4th custom attribute color 
-CustomColor5	= green1  		;; 5th custom attribute color 
-CustomColor6	= slategray1		;; 6th custom attribute color
-CustomColor7	= gold			;; 7th custom attribute color 
-CustomColor8	= cyan			;; 8th custom attribute color 
-CustomColor9	= midnightblue		;; 9th custom attribute color 
-CustomColor0	= darkgreen		;; 10th custom attribute color 
+;;CustomColor1	= darkblue 		;; 1st custom attribute color 
+;;CustomColor2	= darkmagenta		;; 2nd custom attribute color 
+;;CustomColor3	= orange			;; 3rd custom attribute color 
+;;CustomColor4	= black 		;; 4th custom attribute color 
+;;CustomColor5	= DodgerBlue4  		;; 5th custom attribute color 
+;;CustomColor6	= red			;; 6th custom attribute color
+;;CustomColor7	= gold			;; 7th custom attribute color 
+;;CustomColor8	= cyan			;; 8th custom attribute color 
+;;CustomColor9	= midnightblue		;; 9th custom attribute color 
+;;CustomColor0	= darkgreen		;; 10th custom attribute color 
 
 ;; --------- Other view options ---------
 
@@ -130,6 +130,16 @@ SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive r
 ; CstsToFs="2804.x"		;; give a csts (or any other format) to fs convertor here
 ; FsToCsts="2804.x -oformat=csts"	;; give a fs to csts (or any other format) convertor here
 
-Geometry	=	1009x536+140+361
+LastAction	=	/export/homelin/pajas/tmp/xmlparse/ln.fs##1.17
+Geometry	=	1009x536+99+40
 CanvasHeight	=	412
 CanvasWidth	=	990
+RecentFile0	=	/export/homelin/pajas/tmp/xmlparse/ln.fs
+RecentFile1	=	/export/homelin/pajas/tmp/xmlparse/ln.xml.gz
+RecentFile2	=	/export/homelin/pajas/tmp/xmlparse/ln.fs.gz
+RecentFile3	=	/export/homelin/pajas/tmp/xmlparse/ca01am.gz
+RecentFile4	=	/export/homelin/pajas/tmp/xmlparse/ca01.am
+RecentFile5	=	/export/homelin/pajas/tmp/xmlparse/lnxx.xml
+RecentFile6	=	/export/homelin/pajas/tmp/xmlparse/ln.xml
+RecentFile7	=	/mnt/h/treebank/FS-REV/testovaci/ln2/ln39tra.fs
+filelist0	=	/home/pajas/.tred_bookmarks
