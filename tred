@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2000-12-05 09:32:33 pajas>
+# Time-stamp: <2001-01-09 18:05:57 pajas>
 #
 # TrEd ver. 0.5 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -427,6 +427,8 @@ sub setConfig {
   $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
   $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip." -c");
   $keyboardDebug=(exists $confs->{keyboarddebug}) ? $confs->{keyboarddebug} : 0;
+  $defCWidth=(exists $confs->{canvasWidth}) ? $confs->{canvasWidth} : '18c';
+  $defCHeight=(exists $confs->{canvasHeight}) ? $confs->{canvasHeight} : '12c';
   print STDERR "Applying configuration.\n";
 }
 
@@ -621,7 +623,7 @@ sub openFile {
 
   $treeNo=0;
 
-  # -- smells like proprietary code, at least the second case
+  # -- smells like PDT-specific code, at least the second case
   if (defined $goto) {
     if ($goto=~/^##([0-9]+)$/) {
       $treeNo=min(max(0,$1),$#trees);
@@ -634,7 +636,10 @@ sub openFile {
   if ($grp) {
     $grp->{'currentFile'}=$f;
     $grp->{'currentFileFormat'}=$gz.$fs;
-    $grp->{'top'}->title("$appName $f");
+    $grp->{'top'}->title("$appName $f (".($fileNo+1)."/".@files.")");
+    if ($grp->{currentNode}) {
+      centerToXY($grp,0,0);
+    }
     getNodes($grp);
     $FileNotSaved=0;
     redraw_tree($grp);
@@ -766,7 +771,7 @@ sub getNodes {
   } else {
     @sent = sort { Ord($a,\%attribs) <=> Ord($b,\%attribs) } @sent;
   }
-  $valueLine = encode(join(" ", map { Value($_,\%attribs) } @sent));
+  $valueLine = ($treeNo+1)."/".@trees.": ".encode(join(" ", map { Value($_,\%attribs) } @sent));
 
   $node=$root;
   while($node)
@@ -878,7 +883,7 @@ sub printDialog {
   $ff->pack(-side => 'bottom', -pady => '5m');
 
 #  $toFile ? $fe->focus : $ce->focus;
-  my $result = ShowDialog($d,$toFile ? $fe : $ce);
+  my $result = ShowDialog($d,$toFile ? $fe : $ce,$grp->{top});
   $grp->{'printRange'}=$printRange;
 #  $grp->{'printSelection'}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
   $grp->{'printToFile'}=$toFile;
@@ -886,6 +891,7 @@ sub printDialog {
   $grp->{'printPsFile'}=$fil;
   $grp->{'printCommand'}=$com;
   $grp->{'printUseType1Font'}=$useType1Font;
+  $d->destroy;
   undef $d;
   return ($result =~ /OK/);
 }
@@ -1090,6 +1096,7 @@ sub gotoTree {
   @nodes=();
   $treeNo=$no;
   getNodes($grp);
+  centerToXY($grp,0,0);
   redraw_tree($grp);
   return $no;
 }
@@ -1100,6 +1107,7 @@ sub nextTree {
   @nodes=();
   $treeNo++;
   getNodes($grp);
+  centerToXY($grp,0,0);
   redraw_tree($grp);
   return 1;
 }
@@ -1110,6 +1118,7 @@ sub prevTree {
   @nodes=();
   $treeNo--;
   getNodes($grp);
+  centerToXY($grp,0,0);
   redraw_tree($grp);
   return 1;
 }
@@ -1123,6 +1132,7 @@ sub newTree {
 
   @nodes=();
   getNodes($grp);
+  centerToXY($grp,0,0);
   redraw_tree($grp);
   return 1;
 }
@@ -1136,6 +1146,7 @@ sub newTreeAfter {
 
   @nodes=();
   getNodes($grp);
+  centerToXY($grp,0,0);
   redraw_tree($grp);
   return 1;
 }
@@ -1152,6 +1163,7 @@ sub pruneTree {
   undef $root;
   @nodes=();
   getNodes($grp);
+  centerToXY($grp,0,0);
   redraw_tree($grp);
   return 1;
 }
@@ -1208,7 +1220,7 @@ sub prepareFont {
       # and I'm lazy to remember or find out how to check
       # :)
     $grp->{top}->fontCreate($fn,@b);
-    $$font='C_normal';
+    $$font=$fn;
   }
   #
   # There were problems with the following lines, so I'm skipping them  
@@ -1238,7 +1250,6 @@ sub startMain {
   my %group;
 
   $group{top}=MainWindow->new;
-
   print STDERR "Main window created.\n";
 
   if (-f $appIcon) {
@@ -1402,8 +1413,9 @@ sub startMain {
 						$uM)->pack(qw/-side left/);
   }
   addBindTags($group{'frame'},'my');
-  my $canvas = $group{'top'}->Scrolled(qw/Canvas -width 20c -height 20c -relief sunken
-			   -borderwidth 2 -scrollbars se -scrollregion/ =>
+  my $canvas = $group{'top'}->Scrolled('Canvas', -width => $defCWidth,
+				       -height => $defCHeight, qw /-relief sunken
+			   -borderwidth 2 -scrollbars se/, -scrollregion =>
 				       [qw/0c 0c 100c 100c/],
 				       $backgroundColor ? (-background => $backgroundColor) : ());
 
@@ -1565,7 +1577,7 @@ sub startMain {
   }
   
   print STDERR "done.\nStarting main loop.\n";
-
+  
   MainLoop;
     
 }
@@ -1575,24 +1587,35 @@ sub startMain {
 # here focus stays where it is.
 # Usage: my $dlg=DialogBox(); ...; ShowDialog($dlg);
 sub ShowDialog {
-  my ($cw, $focus) = @_;
+  my ($cw, $focus, $oldFocus) = @_;
 
-  my $oldFocus = $cw->focusCurrent;
+  $oldFocus = $cw->focusCurrent unless $oldFocus;
   my $oldGrab = $cw->grabCurrent;
+#  my $old_grab = $cw->grabSave;
+#  my $old_focus = $cw->grabSave;
   my $grabStatus = $oldGrab->grabStatus if ($oldGrab);
 
-  $cw->grab;
-  $focus->focus if ($focus);
+#  $cw->grab;
 
   $cw->Popup();
 
+
+  Tk::catch {
+    $cw->grab;
+  };
+  $focus->focusForce if ($focus);
+  
   $cw->Wait;
 
   eval {
-    $oldFocus->focus if $oldFocus;
+    $oldFocus->focusForce;
   };
-  $cw->grabRelease;
+  #&$old_grab;
+  #&$old_focus;
+  
+
   $cw->withdraw;
+  $cw->grabRelease;
   if ($oldGrab) {
     if ($grabStatus eq 'global') {
       $oldGrab->grabGlobal;
@@ -1651,7 +1674,7 @@ sub saveFileAs {
      				     -initialfile => filename($file));
   if (defined $file and $file ne '') {
     $grp->{currentFile}=$file;
-    $grp->{'top'}->title("$appName $file");
+    $grp->{'top'}->title("$appName $file (".($fileNo+1)."/".@files.")");
     return saveFile($grp);
   }
   return 0;
@@ -1700,7 +1723,7 @@ sub editConfig {
     close(F);
   }
   $t->mark(qw/set insert 0.0/);
-  my $result=ShowDialog($d);
+  my $result=ShowDialog($d,undef,$grp->{top});
   if ($result eq 'Save and Apply') {
     if (open(F,">$configFile")) {
       print F $t->get("0.0","end");
@@ -1745,6 +1768,7 @@ sub editConfig {
     $grp->{valueLine}->configure(-font => $vLineFont);
     redraw_tree($grp);
   }
+  $d->destroy;
   undef $d;
 }
 
@@ -1765,7 +1789,7 @@ sub selectAttrs {
   $d = $grp->{'top'}->DialogBox(-title => "Select", -width => "10c",
 			     -buttons => ["OK", "Cancel"]);
   $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
-  $d->resizable(0,0);
+  $d->resizable(0,1);
   my $f = $d->Scrolled('Tiler',
 		       -columns =>1,
 		       -rows =>$rows,
@@ -1814,16 +1838,17 @@ sub selectAttrs {
     $e{$_}->select if ($datr{$_});
   }
   $f->Manage(@r);
-  $f->pack();
+  $f->pack(qw/-expand y -fill y/);
   $grp->{'top'}->Unbusy();
 #  $e{$atord[0]}->focus if $atord[0];
-  my $result = ShowDialog($d, ($atord[0]) ? $e{$atord[0]}->focus : undef);
+  my $result = ShowDialog($d, ($atord[0]) ? $e{$atord[0]}->focus : undef,$grp->{top});
 #  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
     @displayAttrs = grep { $datr{$_} } @atord;
     redraw_tree($grp);
   }
-  $d=undef;
+  $d->destroy;
+  undef $d;
 #  $grp->{'top'}->Unbusy();
 }
 
@@ -1847,7 +1872,9 @@ sub QueryString {
   $e->pack(-side=>'right');
   $d->resizable(0,0);
 #  $e->focus;
-  my $result = ShowDialog($d,$e);
+  my $result = ShowDialog($d,$e,$grp->{top});
+  $d->destroy;
+  undef $d;
   if ($result =~ /OK/) {
     return decode($newvalue);
   } else {
@@ -1857,7 +1884,7 @@ sub QueryString {
 
 
 sub selectValuesDialog {
- my ($grp, $vals, $selected, $may_add)=@_;
+ my ($grp, $vals, $selected, $may_add, $lastFocus)=@_;
  my $a;
  my $multi=0;
 
@@ -1910,7 +1937,8 @@ sub selectValuesDialog {
  }
  $grp->{'top'}->Unbusy();
 # $l->focus;
- my $result = ShowDialog($d,$l);
+ my $result = ShowDialog($d,$l,$lastFocus);
+ $d->destroy;
  undef $d;
  if ($result =~ /OK/) {
    @$selected = (map { $$vals[$_] } ( grep { $l->selectionIncludes($_) } (0 .. $l->size-1) ));
@@ -1920,13 +1948,13 @@ sub selectValuesDialog {
 }
 
 sub editListAttr {
-  my ($grp, $value, $attr) =@_;
+  my ($grp, $value, $attr,$d) =@_;
   my @vals = map { encode($_) } ListValues($attr,\%attribs);
   #print "splitting ",$value{$attr},"\n";
   my @selected = map { encode($_) } split /\|/,$value;
   #print "splitted to ", join ('-',@selected),"\n";
 
-  if (selectValuesDialog($grp,\@vals,\@selected,0)) {
+  if (selectValuesDialog($grp,\@vals,\@selected,0,$d)) {
     return decode(join('|',@selected));
   }
   return undef;
@@ -1936,7 +1964,7 @@ sub editAmbiguousAttr {
   my ($grp, $value, $attr) =@_;
   my @vals = map { encode($_) }split /\|/,$value;
   my @selected = @vals;
-  if (selectValuesDialog($grp,\@vals,\@selected,1)) {
+  if (selectValuesDialog($grp,\@vals,\@selected,1,$grp->{top})) {
     return decode(join('|',@selected));
   }
   return undef;
@@ -1950,6 +1978,7 @@ sub editAttrsDialog {
   my @vals;
   my $rows=min(10,$#atord+1);
   my @r=();
+
   $grp->{'top'}->Busy(-recurse =>1);
   my $d=$grp->{'top'}->DialogBox(-title => "Edit Node Attributes", -width => '10c',
 				 -buttons => ["OK", "Cancel"]);
@@ -1960,6 +1989,7 @@ sub editAttrsDialog {
 		       -rows =>$rows,
 		       -relief => 'groove',
 		       -scrollbars => 'e');
+
   sub focusxDn {
     my ($w,$i,$e,$f,$rows,$cnt)=@_;
     if ($i+1>$#atord) {
@@ -2006,18 +2036,18 @@ sub editAttrsDialog {
 			 -font => $font)->pack(qw/-expand yes -fill both -side left/);
       $b=$r->Button(-text => "...", -takefocus => 0,
 		    -command => [sub {
-				my ($e,$grp,$node,$attr)=@_;
+				my ($e,$grp,$node,$attr,$d)=@_;
 				my $result =
 				  (IsList($attr,\%attribs)
 				   ? editListAttr($grp,$e->get,$attr)
-				   : editAmbiguousAttr($grp,$e->get,$attr));
+				   : editAmbiguousAttr($grp,$e->get,$attr,$d));
 				if (defined $result) {
 				  $e->configure(-state => 'normal');
 				  $e->delete(0,length($e->get));
 				  $e->insert(0,$result);
 				  $e->configure(-state => 'disabled');
 				}
-			      },$e{$_},$grp,$node,$_])->pack(-side => 'right');
+			      },$e{$_},$grp,$node,$_,$d])->pack(-side => 'right');
       $e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
       $e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
       $e{$_}->insert(0,encode($$node{$_}));
@@ -2038,9 +2068,9 @@ sub editAttrsDialog {
   $f->Manage(@r);
   $f->pack();
   $grp->{'top'}->Unbusy();
-#  $e{$atord[0]}->focus if $atord[0];
-  my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef));
-#  $grp->{'top'}->Busy(-recurse =>1);
+
+  my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
+
   if ($result =~ /OK/) {
     $FileNotSaved=1;
     foreach $a (@atord) {
@@ -2049,8 +2079,13 @@ sub editAttrsDialog {
     getNodes($grp);
     redraw_tree($grp);
   }
-  $d=undef;
-#  $grp->{'top'}->Unbusy();
+  undef %e;
+  foreach $_ (@r) {$_->destroy;}
+  @r=();
+  $f->destroy;
+  $d->destroy;
+  undef $d;
+
 }
 
 sub findNodeDialog {
@@ -2126,7 +2161,7 @@ sub findNodeDialog {
   $f->Manage(@r);
   $f->pack();
   $grp->{'top'}->Unbusy();
-  my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef));
+  my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result =~ /Find/) {
     #    $FileNotSaved=1;
     foreach $a (@atord) {
@@ -2141,7 +2176,8 @@ sub findNodeDialog {
     #    getNodes($grp);
     #    redraw_tree($grp);
   }
-  $d=undef;
+  $d->destroy;
+  undef $d;
 }
 
 sub findFirstTemplated {
@@ -2187,7 +2223,7 @@ sub editAttr {
   $attr=$displayAttrs[$1];
 
   if (IsList($attr,\%attribs)) {
-    $newvalue = editListAttr($grp,$$node{$attr},$attr);
+    $newvalue = editListAttr($grp,$$node{$attr},$attr,$grp->{top});
     if (defined $newvalue) {
       $grp->{'top'}->Busy(-recurse => 1);
       $FileNotSaved=1;
@@ -2232,7 +2268,7 @@ sub editAttr {
   $e->icursor('end');
 #  $e->focus;
   $grp->{'top'}->Unbusy();
-  my $result = ShowDialog($d,$e);
+  my $result = ShowDialog($d,$e,$grp->{top});
 #  $grp->{'top'}->Busy(-recurse => 1);
   if ($result =~ /OK/) {
     $FileNotSaved=1;
@@ -2241,7 +2277,8 @@ sub editAttr {
     redraw_tree($grp);
   }
 #  $grp->{'top'}->Unbusy();
-  $d=undef;
+  $d->destroy;
+  undef $d;
 }
 
 
