@@ -39,7 +39,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
 	    $version $lib $extra_backends $file_list
-	    $_ERR %optmap
+	    $_ERR %optmap $no_required
 	   );
 
 $version='$Revision$ ';
@@ -78,6 +78,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "no-save" => \$nosave,
 	    "safe-mode|F" => \$safe_mode,
 	    "obey-locks|O" => \$obey_locks,
+	    "no-required|U" => \$no_required,
 	    "csts-tree-attributes|X" => \$csts_tree_attrs,
 	    "tectogrammatical-trees|R" => \$csts_tecto,
 	    "preload-files|P" => \$preload,
@@ -693,11 +694,9 @@ sub startMain {
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
 	  if (exists $request{FILELIST}) {
 	    _msg "Reloading files at client's request\n";
-	    my @fl =
-	      grep { ref($grp->{preloaded}->{$_}) }
-		split /\n/,$request{FILELIST};
+	    my @fl = grep { ref($grp->{preloaded}->{$_}) } split /\n/,$request{FILELIST};
 	    foreach my $file (@fl) {
-	      delete $grp->{preloaded}->{$file};
+	      closePreloadedFile($grp,$file);
 	    }
 	    eval {
 	      preloadFiles($grp,\@fl,$hub);
@@ -705,7 +704,7 @@ sub startMain {
 	    };
 	  } else {
 	    _msg "Reloading all open files at client's request\n";
-	    %{$grp->{preloaded}}=();
+	    closeAllPreloaded($grp);
 	    eval {
 	      preloadFiles($grp,\@files,$hub);
 	      die $@ if $@ ;
@@ -723,7 +722,7 @@ sub startMain {
 				 $grp->{preloaded}->{$_}->notSaved()
 			       } @files;
 	  foreach my $file (@changed) {
-	    delete $grp->{preloaded}->{$file};
+	    closePreloadedFile($grp,$file);
 	  }
 	  eval {
 	    preloadFiles($grp,\@changed,$hub);
@@ -928,10 +927,10 @@ sub startMain {
 		closeFile($grp);
 	      }
 	      die $@ if $@;
-	      }} while (nextFile($grp));
+	    }} while (nextFile($grp));
 	    die $@ if $@;
 	  };
-	  %{$grp->{preloaded}}=();
+	  closeAllPreloaded($grp);
 	  @files=();
 	  $hub->print("OK\n");
 	  _end_response($control,$hub);
@@ -1090,9 +1089,36 @@ sub openFile {
   } elsif ($opts{-justpreloaded}) {
     return 0;
   } else {
-    $grp->{FSFile} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
-    $grp->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{FSFile}->backend);
-    $grp->{preloaded}->{$f}=$grp->{FSFile} if ($grp->{FSFile} and exists($grp->{preloaded}));
+    my $fsfile =  FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+    $grp->{FSFile} = $fsfile;
+    $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
+    $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
+
+    # open files required by this one
+    unless ($no_required) {
+      my $requires = $fsfile->metaData('fs-require');
+      if ($requires) {
+	for my $req (@$requires) {
+	  print STDERR "Pre-loading dependent $req->[1] as metaData('ref')->{$req->[0]}\n" if $tredDebug;
+	  unless ($grp->{'secondary'}->{$req->[1]}) {
+	    if ($grp->{preloaded}->{$req->[1]}) {
+	      $grp->{'secondary'}->{$req->[1]} = $grp->{'preloaded'}->{$req->[1]};
+	    } else {
+	      my $req_fs = FSFile->newFSFile($req->[1],$TrEd::Convert::inputenc,@backends);
+	      $req_fs->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
+	      _msg "empty or corrupt secondary file $req->[1] required by $f!\n" if ($req_fs->lastTreeNo<0);
+	      $grp->{'secondary'}->{$req->[1]} = $req_fs;
+	      $req_fs->changeUserData({}) unless defined $req_fs->userData();
+	      push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
+	      $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
+	      $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
+	    }
+	  }
+	}
+      }
+    }
+    $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
+    $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
   }
   _msg "empty or corrupt file: $f!\n" if ($grp->{FSFile}->lastTreeNo<0);
 
@@ -1194,10 +1220,62 @@ sub closeFile {
   doEvalHook($grp,"file_close_hook");
   no strict qw(refs);
   undef ${macro_variable('TredMacro::NodeClipboard')};
+  # close required files too, unless file remains pre-loaded
+
+  closeSecondaryFilesOf($grp,$grp->{FSFile});
   $grp->{root}=undef;
   $grp->{FSFile}=undef;
   $grp->{treeNo}=undef;
+
   delete $grp->{'currentNode'} if (exists $grp->{'currentNode'});
+}
+
+# in oreder for a file to close it's dependencies, it
+# has to be removed from preloaded first
+sub closeSecondaryFilesOf {
+  my ($grp,$fsfile)=@_;
+  if ($fsfile and
+      $grp->{preloaded}->{$fsfile->filename} != $fsfile) {
+    my $requires = $fsfile->metaData('fs-require');
+    for my $req (@$requires) {
+      my $secondary = $grp->{'secondary'}->{$req->[1]};
+      if ($secondary) {
+	my $part_of = $secondary->userData()->{'fs-part-of'};
+	@$part_of = grep { $_ == $fsfile } @$part_of;
+	unless (@$part_of) {
+	  # close secondary file
+	  delete $grp->{'secondary'}->{$req->[1]};
+	  delete $fsfile->metaData('ref')->{$req->[0]};
+	}
+      }
+    }
+  }
+}
+
+sub closePreloadedFile {
+  my ($grp,$f)=@_;
+  my ($fsfile,$filename);
+  if (ref($f)) {
+    # it's a FSFile
+    $fsfile = $f;
+    $filename = $f->filename;
+  } else {
+    $fsfile = $grp->{preloaded};
+    $filename = $f->filename;
+  }
+  delete $grp->{preloaded}->{$filename};
+  closeSecondaryFilesOf($grp,$fsfile)
+}
+
+sub closeAllPreloaded {
+  my ($grp)=@_;
+  my @preloaded = values %{$grp->{preloaded}};
+  # first clear preloaded hash
+  %{$grp->{preloaded}}=();
+  # then close secondary files
+  for my $fsfile (@preloaded) {
+    closeSecondaryFilesOf($grp,$fsfile)
+  }
 }
 
 sub doEvalHook {
