@@ -213,7 +213,8 @@ sub value_line_list {
     }
     @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
     my @vl=();
-    my $block=qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
+    my $block;
+    $block=qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
     foreach $node (@sent) {
       my %styles;
       foreach my $style (@patterns) {
@@ -1387,8 +1388,10 @@ sub draw_text_line {
   my $at_text;
   my $j=0;
   my $color=undef;
-  my $bblock=qr/\{(?:(?> [^{}]* )|(??{ $bblock }))*\}/x;
-  my $block=qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
+  my $bblock;
+  $bblock=qr/\{(?:(?> [^{}]* )|(??{ $bblock }))*\}/x;
+  my $block;
+  $block=qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
   foreach (grep {$_ ne ""} split(m/([#\$]$bblock)/,$msg)) {
     if (/^\$${block}$/) {
       $j++;
@@ -1499,7 +1502,8 @@ sub prepare_text {
   my ($self,$node,$pattern)=@_;
   return "" unless ref($node);
   my $msg=$self->interpolate_text_field($node,$pattern);
-  my $block = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
+  my $block;
+  $block = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
   $msg=~s/\#${block}//g;
   $msg=~s/\$${block}/$self->prepare_raw_text_field($node,$1)/eg;
   return encode($msg);
