@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-06-29 12:33:15 pajas>
+# Time-stamp: <2001-06-29 14:24:08 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1604,7 +1604,7 @@ sub writeFile {
   return unless ref($self);
 
   my $backend=$self->backend || 'FSBackend';
-  print "Writing to $filename using backend $backend\n";
+  print STDERR "Writing to $filename using backend $backend\n";
   my $ret=eval {
 #    require $backend;
     my $fh;
@@ -1635,7 +1635,7 @@ sub writeTo {
   return unless ref($self);
 
   my $backend=$self->backend || 'FSBackend';
-  print "Writing using backend $backend\n";
+  print STDERR "Writing using backend $backend\n";
   my $ret=eval {
 #    require $backend;
     return $backend->can('write')  && &{"${backend}::write"}($fileref,$self);
