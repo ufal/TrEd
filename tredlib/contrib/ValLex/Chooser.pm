@@ -42,7 +42,6 @@ sub show_dialog {
   ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
   $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
-#  $chooser->widget()->focus();
   if (ref($field) eq "ARRAY") {
     foreach my $fl (@{$chooser->subwidget('framelists')}) {
       $fl->show_obsolete(!$$show_obsolete_ref);
@@ -53,28 +52,36 @@ sub show_dialog {
     if (ref($select_frame) eq "ARRAY") {
       if (@$select_frame) {
 	foreach (@{$chooser->subwidget("framelists")}) {
-	  $_->select_frames(@$select_frame);
+	  $_->widget()->focus() if $_->select_frames(@$select_frame);
 	}
       } else {
 	if ($chooser->widget()->infoExists(0)) {
 	  $chooser->widget()->anchorSet(0);
 	  $chooser->widget()->selectionSet(0);
+	  $chooser->widget()->focus();
 	}
       }
     } else {
       foreach (@{$chooser->subwidget("framelists")}) {
-	$_->select_frames($select_frame);
+	$_->widget()->focus() if $_->select_frames($select_frame);
       }
     }
   } else {
     if ($chooser->widget()->infoExists(0)) {
       $chooser->widget()->anchorSet(0);
       $chooser->widget()->selectionSet(0);
+      $chooser->widget()->focus();
     }
   }
-  $chooser->subwidget('framelists')->[0]->widget()->focus();
+
   if ($start_editor) {
-    $d->afterIdle([sub { $_[0]->edit_button_pressed($start_editor) },$chooser]);
+    unless ($chooser->focused_framelist()) {
+      my ($fl) = grep { $_->field()->[0] eq $start_editor->[0] and
+			  $_->field()->[1] eq $start_editor->[1]
+		      } @{$chooser->subwidget('framelists')};
+      $chooser->focus_framelist($fl) if ($fl);
+    }
+    $d->afterIdle([sub { $_[0]->edit_button_pressed(1) },$chooser]);
   }
 
   if ($d->Show() eq 'Choose') {
@@ -176,9 +183,10 @@ sub create_widget {
   my @lexframelists=();
   my @lexframelistlabels=();
   my $focused_framelist;
+  my $size=20/$count;
   for (my $i=0; $i<$count; $i++) {
     # List of Frames
-    $lexframe_frame->Frame(qw/-height 12/)->pack();
+    $lexframe_frame->Frame(-height => 12)->pack();
     my $lexframelistlab=$lexframe_frame->Label(-text => $self->field()->[2*$i],
 			   qw/-anchor nw -justify left/)
       ->pack(qw/-fill x -padx 4/);
@@ -189,18 +197,14 @@ sub create_widget {
 						     ],
 						     $lexframe_frame,
 						     $item_style,
-						     qw/-height 15 -width 50/,
+						     -height => $size,
+						     qw/-width 50/,
 						     -command => [
 								  \&item_chosen,
 								  $self
-								 ]);
-    $lexframelist->widget()->bind('<FocusIn>',[sub {
-				       my ($w,$chooser,$fl,$ff)=@_;
-				       $$ff=$lexframelist;
-				       $chooser->unselect_other_framelists($fl);
-				     },$self,$lexframelist,\$focused_framelist]);
-    $focused_framelist=$lexframelist if ($i==0);
-    $lexframelist->widget()->focus();
+								 ]
+						    );
+    $lexframelist->widget()->bind('<FocusIn>',[\&focus_framelist,$self,$lexframelist]);
     $lexframelist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
     $lexframelists[$i]=$lexframelist;
     $lexframelistlabels[$i]=$lexframelistlab;
@@ -209,13 +213,13 @@ sub create_widget {
 					   ]);
   }
 
-  my $lexframenote=TrEd::ValLex::TextView->new($data, undef, $lexframe_frame, "Note",
-					    qw/ -height 2
-						-width 20
-						-spacing3 5
-						-wrap word
-						-scrollbars oe /);
-  $lexframenote->pack(qw/-fill x/);
+#  my $lexframenote=TrEd::ValLex::TextView->new($data, undef, $lexframe_frame, "Note",
+#					    qw/ -height 2
+#						-width 20
+#						-spacing3 5
+#						-wrap word
+#						-scrollbars oe /);
+#  $lexframenote->pack(qw/-fill x/);
 
   return $lexframelists[0]->widget(),{
 	     callback     => $cb,
@@ -225,7 +229,7 @@ sub create_widget {
 	     framelist_labels    => \@lexframelistlabels,
 	     focused_framelist => \$focused_framelist,
 	     hide_obsolete => \$hide_obsolete,
-	     framenote    => $lexframenote
+#	     framenote    => $lexframenote
 #	     frameproblem => $lexframeproblem,
 	    }, {
 		items => $item_style,
@@ -236,15 +240,27 @@ sub create_widget {
 	       };
 }
 
+sub focus_framelist {
+  my ($w,$self,$framelist);
+  if ($_[0]->isa('Tk::Widget')) {
+    ($w,$self,$framelist)=@_;
+  } else {
+    ($self,$framelist)=@_;
+  }
+  return unless ref($framelist);
+  $self->unselect_other_framelists($framelist);
+  ${$self->subwidget('focused_framelist')}=$framelist;
+}
+
 sub framelist_item_changed {
-  my ($self,$item)=@_;
-  my $h=$self->focused_framelist()->widget();
-  my $frame;
-  my $e;
-  $item = $item || $h->infoAnchor();
-  $frame=$h->infoData($item) if defined($item);
-  $frame=undef unless ref($frame);
-  $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
+#  my ($self,$item)=@_;
+#  my $h=$self->focused_framelist()->widget();
+#  my $frame;
+#  my $e;
+#  $item = $item || $h->infoAnchor();
+#  $frame=$h->infoData($item) if (defined($item) and $h->infoExists($item));
+#  $frame=undef unless ref($frame);
+#  $self->subwidget('framenote')->set_data($self->data()->getSubElementNote($frame));
 }
 
 sub destroy {
@@ -270,7 +286,7 @@ sub callback {
 
 sub get_selected_element_string {
   my ($self)=@_;
-  my $f=${$self->subwidget('focused_framelist')};
+  my $f=$self->focused_framelist();
   return "" unless ref($f);
   my $fl=$f->widget();
   my @selection=$fl->infoSelection();
@@ -291,7 +307,7 @@ sub get_selected_element_string {
 sub get_selected_frames {
   my ($self)=@_;
   my @frames;
-  my $f=${$self->subwidget('focused_framelist')};
+  my $f=$self->focused_framelist();
   return () unless ref($f);
   my $fl=$f->widget();
   my $data;
@@ -358,7 +374,6 @@ sub find_framelist_index {
 sub edit_button_pressed {
   my ($self,$start_frame_editor)=@_;
   my $fl=$self->focused_framelist();
-  print "EDIT: $fl\n";
   return unless defined($fl);
   my ($frame)= $self->get_selected_frames();
   $frame= ref($frame) ? $self->data()->getFrameId($frame) : undef;
@@ -380,7 +395,13 @@ sub edit_button_pressed {
       $f->fetch_data($self->data()->findWordAndPOS(
 						   @{$f->field()}
 						  ));
-      $f->select_frames($frame);
+    }
+    $self->widget()->toplevel()->update();
+    foreach my $f (@{$self->subwidget('framelists')}) {
+      if ($f->select_frames($frame)) {
+	$f->widget()->focus();
+	$self->focus_framelist($f);
+      }
     }
     $self->framelist_item_changed();
   }
