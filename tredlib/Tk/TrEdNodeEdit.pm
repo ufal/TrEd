@@ -700,7 +700,13 @@ sub add_member {
 	$alt_no++;
 	$hlist->add_alt_member($path,$mtype,$val,$alt_no);
       }
-    } elsif($allow_empty) {
+    } elsif (!ref($attr_val) and $attr_val =~ /\|/ and
+	       $mtype->{alt}{-flat}) {
+      foreach my $val (split /\|/,$attr_val) {
+	$alt_no++;
+	$hlist->add_alt_member($path,$mtype,$val,$alt_no);
+      }
+    } elsif(!$attr_val and $allow_empty) {
       $alt_no++;
       $hlist->add_alt_member($path,$mtype,$attr_val,$alt_no);
     } else {
@@ -846,6 +852,8 @@ sub dump_child {
     }
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       push @$ref, $new_ref;
+    } elsif (ref($new_ref) and $mtype->{alt}{-flat}) {
+      $ref->{$data->{name}} = join '|',@$new_ref;
     } else {
       $ref->{$data->{name}} = $new_ref;
     }
