@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-11-06 18:31:54 pajas>
+# Time-stamp: <2001-11-20 11:15:03 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -57,7 +57,7 @@ sub Get ($$) {
 }
 
 sub Parent {
-  my ($node,$p) = @_;
+  my ($node) = @_;
   return $node->{$parent};
 }
 
@@ -769,7 +769,7 @@ Return node's parent node (C<undef> if none).
 =cut
 
 sub parent {
-  my $self = shift;
+  my ($self) = @_;
   return ref($self) ? Fslib::Parent($self) : undef;
 }
 
