@@ -604,8 +604,11 @@ sub ConnectAIDREFS {
   my $node = shift || $pPar1;
   my $dnode = shift || $pPar2;
 
-  $node->{AIDREFS}=getAIDREF($node).'|'.getAIDREF($dnode)
-    unless (getAIDREF($dnode) eq '');
+  if (getAIDREF($dnode) ne '') {
+    my %a; @a{ getAIDREFs($node) }=();
+    $node->{AIDREFS}=getAIDREF($node).'|'.getAIDREF($dnode)
+      unless exists $a{getAIDREF($dnode)};
+  }
 }
 
 sub DisconnectAIDREFS {
@@ -1104,7 +1107,11 @@ sub get_status_line_hook {
 	   ($this->{fw} ne "" ?
 	    ("     fw: " => [qw(label)],
 	     $this->{fw} => [qw({fw} value)]) : ()),
-
+	   "     A/TID: " => [qw(label)],
+	   $this->{AID} => [qw({AID} value)],
+	   $this->{TID} => [qw({TID} value)],
+	   "     AIDREFS: " => [qw(label)],
+	   (join ", ",split /\|/,$this->{AIDREFS}) => [qw({AIDREFS} value)],
 	   ($this->{framere} ne "" ?
 	    ("     frame: " => [qw(label)],
 	     $this->{framere} => [qw({FRAME} value)],
