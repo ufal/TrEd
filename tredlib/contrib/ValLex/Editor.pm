@@ -708,11 +708,11 @@ sub addframe_button_pressed {
 				    $wl->itemCget($item,2,'-text'),
 				    $self->frame_editor_confs,
 				    ($wl->itemCget($item,1,'-text') eq 'V') ?
-				    "ACT(1) " :
+				    "ACT(.1) " :
 				    ($wl->itemCget($item,1,'-text') eq 'A') ?
-				    "ACT(7) " :
+				    "ACT(.7) " :
 				    ($wl->itemCget($item,1,'-text') eq 'N') ?
-				    "ACT(2,p,7) " : ""
+				    "ACT(.2;.u;.7) " : ""
 				   );
 
   if ($ok) {
