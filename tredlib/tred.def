@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-04-30 12:30:26 pajas>
+## Time-stamp: <2003-05-26 14:14:17 pajas>
 
 package TredMacro;
 
@@ -1623,6 +1623,24 @@ sub AddStyle {
   }
 }
 
+=item DefaultInputEncoding()
+
+Return's TrEd's/bTrEd's default IO encoding.
+
+=cut
+sub DefaultInputEncoding {
+  return $TrEd::Convert::inputenc;
+}
+
+
+=item SetDefaultInputEncoding($encoding)
+
+Set TrEd's/bTrEd's default IO encoding.
+
+=cut
+sub SetDefaultInputEncoding {
+  $TrEd::Convert::inputenc = $_[0];
+}
 
 =back
 
