@@ -23,7 +23,7 @@ if ($^V lt v5.6.0) {
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:huNHSTX:RPWV');
+getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:hd:ENHSTFX:RPWVL:b:');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u || $opt_h) {
@@ -33,7 +33,7 @@ Usage:
         [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
         [-f out-fmt]  [-x extra_attribs] [-n encoding]
         [-i init-code] [-t context] [-W] [-q|-Q] [-D] [-N|-H] [-V]
-        [-S] [-T] [-o script options -- ] files...
+        [-S] [-T] [-P] [-F] [-L port] [-b hub] [-o script options -- ] files...
 or
   btred -u          to show usage
 or
@@ -81,6 +81,10 @@ encoding      - allows to specify the default charset for FS files (useful
 -D            - enable debugging messages on stderr
 -W            - do not die on errors (warn only)
 -V            - force Fslib to test validity of values of list attributes in FS
+-F            - run macros in safe compartment
+-L <port>     - start btred server, listening on given port; implies -P
+-b <host>     - make btred server allow only connections from <host>
+-d <encoding> - convert stdout and stderr into given encoding (only Perl >= 5.8)
 
 Flags -N and -H may not be combined. If both are used, -N has the
 precedence. However, both -N and -H may be used together with -T.
@@ -113,7 +117,14 @@ if (defined $opt_e) {
   $script="autostart()"; # this is the default macro name
 }
 
-
+if (defined($opt_d) and $]>=5.008) {
+  eval {
+    _msg("forcing encoding $opt_d for STDERR and STDOUT\n") if $opt_D;
+    binmode STDERR,":encoding($opt_d)";
+    binmode STDOUT,":encoding($opt_d)";
+  };
+  _msg $@ if $@;
+}
 
 # in Windows, if HOME not defined, use user's AppData folder instaed
 if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
@@ -142,7 +153,7 @@ if (exists $ENV{TREDHOME}) {
 } elsif (-d "$FindBin::RealBin/../lib/tred") {
   $libDir="$FindBin::RealBin/../lib/tred";
 }
-print STDERR "Trying $libDir\n" if ($libDir and !$opt_q);
+_msg("Trying $libDir\n") if ($libDir and !$opt_q);
 
 $macroFile=undef;
 
@@ -167,6 +178,7 @@ if (defined $opt_c) {
 }
 
 my $configFile=read_config();
+my $safe=$opt_F; # so that it cannot be changed from outside
 
 $macroFile="$libDir/tred.mac" unless (defined $macroFile);
 if (defined $opt_m) {
@@ -187,6 +199,8 @@ EOL
 
 use Cwd;
 unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+
+use Benchmark;
 
 
 require Fslib;
@@ -213,10 +227,13 @@ import TrEd::Basics;
 @backends=('FSBackend',ImportBackends(qw(AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
+$stdout=\*STDOUT;
+$stderr=\*STDERR;
+
 use Exporter;
 @ISA=qw(Exporter);
 # This is default export to macros
-@EXPORT = qw($libDir &min &max);
+@EXPORT = qw($libDir &min &max $stdout $stderr);
 
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
 # work, so I recommend not to use czech locales there, unless you
@@ -249,6 +266,10 @@ $NodeClipboard=undef;
 
 $fileNo=0;
 
+#$TrEd::Basics::on_tree_change= \&updateTredMacroGlobals;
+#$TrEd::Basics::on_node_change= \&updateTredMacroGlobals;
+#$TrEd::Basics::on_current_change= \&updateTredMacroGlobals;
+
 $Fslib::Debug=$opt_D;
 if ($opt_q) {
   $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
@@ -256,9 +277,9 @@ if ($opt_q) {
   $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
 }
 
-print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
+_msg("Reading macros from $macroFile...\n") unless $opt_q;
 read_macros($macroFile,$libDir);	# read macros
-print STDERR "done.\n" unless $opt_q;
+_msg("done.\n") unless $opt_q;
 
 @files=@ARGV;
 @ARGV=@TredMacro::ARGV;
@@ -296,6 +317,25 @@ exit;
 ############################
 ############################
 ############################
+sub _msg { print STDERR "BTRED: ",@_; }
+sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
+sub _benchmark () {
+  my $number_of_iters=50000;
+  my $i;
+  my %a;
+  my $benchmark_code='$a{$i++}=(join("",map uc,split "(..)","afa${i}sd ${i}fsd1f2 asf${i}1sdfdsf fsasf")=~/\s+\d+/);';
+  (timestr timeit ($number_of_iters,$benchmark_code))=~/(\S+) CPU/;
+#  return 200;
+  return $1*1000; # miliseconds
+}
+sub _threads () { 1 };
+
+sub _end_response {
+  my ($control,$client)=@_;
+  $client->print("$control END_OF_SERVER_RESPONSE\n");
+}
+
+
 sub startMain {
   my $grp={
 	   treeNo => 0,
@@ -304,19 +344,168 @@ sub startMain {
 	   currentNode => undef,
 	   root => undef
 	  };
-
   my $filecount=@files;
-#  eval (join("",@macros)."\n return 1;");
+  #  eval (join("",@macros)."\n return 1;");
   my $context = $grp->{macroContext};
-  my $pre='';
-  $pre .= "do { " if ($opt_T);
-  $pre .= "while (\$this) {" if ($opt_N or $opt_H);
-  $post.= "\$this=\$this->following; \n}" if ($opt_N);
-  $post.= "\$this=\$this->following_visible(\$grp->{FSFile}->FS); \n}"
-    if (not $opt_N and $opt_H);
-  $post.= " } while NextTree();" if ($opt_T);
 
-  $premacro= <<EOL;
+  # initialize Safe compartment
+
+  if ($opt_L) {
+    require TrEd::Cipher;
+    # Start btred server
+    preloadFiles($grp,\@files);
+
+    my $control="@@@"; # @@@ marks the beginning of control lines
+
+    my $key = readline(*STDIN);
+#    close STDIN;
+    if ($key =~ /^$control SESSION-KEY=([0-9A-Z]+)$/) {
+      $key = TrEd::Cipher::hex_to_block($1);
+      /(.)/; # clean-up :-)
+    } else {
+      die "Was expecting the session key!\n";
+    }
+
+    my $port=$opt_L;
+    chomp (my $host=`/bin/hostname`); #$ENV{HOSTNAME};
+    my $server = new IO::Socket::INET (LocalHost => $host,
+				       LocalPort => $port,
+				       Proto => 'tcp',
+				       Listen => 5,
+				       Reuse => 1,
+					     );
+    die "Cannot open socket at $host:$port!\n" unless $server;
+    _msg("Waiting for hub on $host:$port\n");
+    $opt_b=~s/\s//g;
+    # resolve peer IP
+    if ($opt_b) {
+      ($opt_b) = (`LC_ALL=C host "$opt_b"` =~ / has address (.*)$/) if ($opt_b =~/[^:.0-9]/);
+      print "Awaiting connection from $opt_b\n";
+    }
+    my ($hub,$peer);
+    do {
+      $hub = $server->accept();
+      $peer=$hub->peerhost();
+      if ($hub and $opt_b and $peer ne $opt_b) {
+	_msg("Denying connection to peer $peer!\n");
+	$hub->close();
+	undef $hub;
+      } elsif ($hub and TrEd::Cipher::Authentify($key,$hub,$control)!=1) {
+	$hub->close();
+	undef $hub;
+      }
+    } while (!$hub);
+    _msg("Connection to the hub on $peer established.\n");
+    my $request_no=0;
+    _msg("Waiting for a request from the hub...\n\n");
+    $hub->autoflush(1);
+    while (1) {
+      my $state='default';
+      my %request;
+      # --- reading request from hub ---
+      while (<$hub>) {
+        if (/^$control REQUEST_TYPE=(.*)/) {
+	  $request_no++;
+	  _msg("Receiving request $request_no: $1\n");
+	  $request{REQUEST_TYPE}=$1;
+        } elsif (/^$control STATE=(.*)/) {
+	  $state=$1;
+        } elsif (!/^$control/) {
+	  $request{$state}.=$_;
+        } elsif (/$control END_OF_REQUEST/) {
+          $state='END_OF_REQUEST';
+	  last
+        }
+      }
+      ($state eq 'END_OF_REQUEST') || die "Broken request $request{REQUEST_TYPE}!\n";
+      _msg "Request received from the hub: $request{REQUEST_TYPE}\n";
+
+      # --- performing the request on the trees ----
+      _msg("Performing the hub request...\n");
+
+      if ($request{REQUEST_TYPE} eq 'LOAD_FILES') {
+	eval { preloadFiles($grp,[split /\n/,$request{default}]); die $@ if $@ };
+	@files = (@files, grep /\S/,split /\n/,$request{default});
+        _make_uniq(\@files);
+	if ($@) {
+	  $hub->print("$@\n");
+	} else {
+	  $hub->print("OK\n");
+	}
+	_end_response($control,$hub);
+      } elsif ($request{REQUEST_TYPE} eq 'BENCHMARK') {
+	$hub->print(_benchmark(),",",_threads(),"\n"); # benchmark,threads
+	_end_response($control,$hub);
+      } elsif ($request{REQUEST_TYPE} eq 'EVAL_CODE') {
+	_msg("Initializing safe compartment...\n") if $safe;
+	init_safe_mode($grp) if $safe;
+	gotoFile($grp,0); # neither goto_file_hook nor file_open_hook in server-mode
+
+	# create temporary file to store macro output
+	my $macro_stdout = IO::File->new_tmpfile();
+	*MOUT=*$macro_stdout;
+	#open OLDSTDOUT, ">&STDOUT" or die "Can't dup STDOUT: $!";
+	open(STDOUT, "+>&MOUT") or die "Can't redirect STDOUT: $!";
+	STDOUT->autoflush();
+	# load macro
+	_msg "COMPILING MACRO\n";
+	doEvalMacro($grp,"package $context;\n"."#line 1 \"$request{REQUEST_TYPE}\"\n".$request{MACRO});
+	# execute hooks and the code of the query
+	my $time;
+	if (!$@ and keys(%{$grp->{preloaded}}) and
+	    doEvalHook($grp,"start_hook") ne 'stop' and
+	    doEvalHook($grp,"preload_hook") ne 'stop') { # for compatibility
+	  _msg "RUNNING CODE: $request{CODE}\n";
+	  my $t0 = new Benchmark;
+	  do {
+	    print STDERR $grp->{currentNode}->{form},"\n";
+	    doEvalMacro($grp,"package $context;".$request{CODE});
+	  } while (!$@ and nextFile($grp));
+	  my $t1 = new Benchmark;
+	  $time = timediff($t1, $t0);
+	  doEvalHook($grp,"exit_hook") unless $@;
+	}
+	$hub->print("$control SERVER_RESPONSE_STDERR\n");
+	$hub->print("$@\n") if $@;
+	msg($@) if $@;
+	$hub->print("Total Time: ",timestr($time),"\n");
+	$hub->print("No files to process at btred server $host:$port\n") if (!keys(%{$grp->{preloaded}}));
+	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	# send macro's output from tmp file to client
+	seek($macro_stdout,0,0);
+	my $space;
+	while (<$macro_stdout>) {
+	  print $hub $_;
+	  $space=chomp;
+	}
+	print $hub "\n" unless $space;
+	$macro_stdout->close;
+	undef $macro_stdout;
+	#open STDOUT, ">&OLDSTDOUT" or die "Can't dup OLDSTDOUT: $!";
+
+	_end_response($control,$hub);
+	_msg("The processing of request $request_number completely finished.\n");
+      } elsif ($request{REQUEST_TYPE} eq 'QUIT') {
+	_msg "Quitting on client's request\n";
+	$hub->print("OK\n");
+	_end_response($control,$hub);
+	exit 0;
+      } else {
+	$hub->print("ERROR: UNKNOWN REQUEST TYPE\n");
+	_end_response($control,$hub);
+      }
+      _msg("Waiting for a new request from the hub...\n\n");
+    }
+  } else {
+    init_safe_mode($grp) if $safe;
+    my $pre='';
+    $pre .= "do { " if ($opt_T);
+    $pre .= "while (\$this) {" if ($opt_N or $opt_H);
+    $post.= "\$this=\$this->following; \n}" if ($opt_N);
+    $post.= "\$this=\$this->following_visible(\$grp->{FSFile}->FS); \n}"
+      if (not $opt_N and $opt_H);
+    $post.= " } while NextTree();" if ($opt_T);
+    $premacro= <<EOL;
 package $context;
 sub _btred_eval_ {
 $pre
@@ -327,21 +516,28 @@ $post
 $opt_i;
 EOL
 
-  print STDERR "<script>\n$premacro;\n</script>\n" unless $opt_q;
-  doEvalMacro($grp,$premacro);
-  exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
-  preloadFiles($grp,\@files) if $opt_P;
-  exit if $opt_P and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
-  openFile($grp,$files[$fileNo]) if $fileNo <= $#files;
-  do {
-    print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $opt_Q;
-    doEvalMacro($grp,"$context->_btred_eval_();");
-    STDOUT->flush();
-    STDERR->flush();
-    print STDERR "Done.\n" unless $opt_q;
-    saveFile($grp) if ($grp->{FSFile}->notSaved or $opt_S);
-  } while (nextFile($grp));
-  doEvalHook($grp,"exit_hook");
+    _msg "<script>\n$premacro;\n</script>\n" unless $opt_q;
+    doEvalMacro($grp,$premacro);
+
+    exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
+    preloadFiles($grp,\@files) if $opt_P; # -P : load all files into memory
+
+    exit if $opt_P and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
+    openFile($grp,$files[$fileNo]) if $fileNo <= $#files; # goto first file
+    if (@files) {
+      do {
+	_msg "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $opt_Q;
+	doEvalMacro($grp,"$context->_btred_eval_();");
+	STDOUT->flush();
+	STDERR->flush();
+	_msg "Done.\n" unless $opt_q;
+	saveFile($grp) if ($grp->{FSFile}->notSaved or $opt_S);
+      } while (nextFile($grp));
+    } else {
+      _msg "No files to process!\n" unless $opt_Q;
+    }
+    doEvalHook($grp,"exit_hook");
+  }
 }
 
 
@@ -355,12 +551,13 @@ sub currentFileNo {
 
 sub gotoFile {
   my ($grp,$fn)=@_;
-  return 0 if doEvalHook($grp,"goto_file_hook") eq 'stop';
-  return 0 if ($fn>=$#files or $fn<0);
+  return 0 unless $opt_L or doEvalHook($grp,"goto_file_hook") ne 'stop';
+  return 0 if ($fn>$#files or $fn<0);
   $fileNo=$fn;
   openFile($grp,$files[$fileNo]);
   return 1;
 }
+
 
 sub nextFile {
   my ($grp)=@_;
@@ -381,13 +578,13 @@ sub prevFile {
 sub preloadFiles {
   my ($grp, $filelist)=@_;
   my $filecount=@$filelist;
-  my $fno;
+  my $fno=1;
   foreach my $f (@$filelist) {
     if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
       $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
     }
     next if exists($grp->{preloaded}->{$f});
-    print STDERR "Preloading: $f (",$fno+1,"/$filecount)\n" unless $opt_Q;
+    _msg "Preloading: $f (",$fno++,"/$filecount)\n" unless $opt_Q;
     my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f} = $fsfile;
@@ -405,7 +602,7 @@ sub openFile {
   if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
     $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
       $goto=$1;
-    print STDERR "Goto suffix is $goto\n" if $tredDebug;
+    _msg "Goto suffix is $goto\n" if $tredDebug;
   }
 
 # saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
@@ -419,17 +616,18 @@ sub openFile {
     $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
     $grp->{preloaded}->{$f}=$grp->{'FSFile'} if ($grp->{FSFile} and exists($grp->{preloaded}));
   }
-  print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
+  _msg "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
 
   $grp->{treeNo}=0;
   $grp->{currentNode}=undef;
   applyFileSuffix($grp,$goto);
-  doEvalHook($grp,"file_opened_hook");
+
+  doEvalHook($grp,"file_opened_hook") unless $opt_L;
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
   }
-
+#  updateTredMacroGlobals($grp);
   return 1;
 }
 
@@ -457,7 +655,6 @@ sub applyFileSuffix {
     }
     $grp->{currentNode}=$root if ($root);
   }
-  # hey, caller, you should redraw after this!
 }
 
 sub saveFile {
@@ -474,11 +671,11 @@ sub saveFile {
     rename $f, "$f~" if (-f $f);
   }
 
-  print STDERR "Saving $f as $out\n" unless $opt_Q;
+  _msg "Saving $f as $out\n" unless $opt_Q;
 
 
   unless ($grp->{FSFile}->writeFile($out)) {
-    print STDERR "Error saving file to '$out'\n($!)\n";
+    _msg "Error saving file to '$out'\n($!)\n";
     return 0;
   }
 }
@@ -501,9 +698,11 @@ sub doEvalHook {
   $TredMacro::root=$group->{root};
   $TredMacro::libDir=$libDir;
   $TredMacro::FileNotSaved='?';
-  $TredMacro::forceFileSaved=0;  
+  $TredMacro::forceFileSaved=0;
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
-  exit 1 if ($@ and !$opt_W);
+  _msg "$@" if $@;
+  exit 1 if ($@ and !$opt_W and !$opt_L);
+
   if ($group->{FSFile}) {
     if ($TredMacro::FileNotSaved eq '?') {
       $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
@@ -511,11 +710,11 @@ sub doEvalHook {
     $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
   }
 
-  $TredMacro::this=undef;
-  $TredMacro::root=undef;
-  $TredMacro::grp=undef;
+#  $TredMacro::this=undef;
+#  $TredMacro::root=undef;
+#  $TredMacro::grp=undef;
 
-  print STDERR "Hook $hook resulted with $result\n" if $hookDebug;
+  _msg "Hook $hook resulted with $result\n" if $hookDebug;
   return $result;
 }
 
@@ -530,7 +729,9 @@ sub doEvalMacro {
   $TredMacro::forceFileSaved=0;
 
   my $result=do_eval_macro($group,$macro);
-  exit 1 if ($@ and !$opt_W);
+
+  _msg "$@" if $@;
+  exit 1 if ($@ and !$opt_W and !$opt_L);
 
   if ($group->{FSFile}) {
     $TredMacro::FileNotSaved=0 if $TredMacro::FileNotSaved eq '?';
@@ -547,7 +748,48 @@ sub doEvalMacro {
   return $result;
 }
 
+sub init_safe_mode {
+  my ($grp)=@_;
+  require Safe;
+  $macrosEvaluated=0;
+  $TrEd::Macros::safeCompartment=undef;
+  my $compartment;
+
+  $compartment = Safe->new('TredMacro');
+  $compartment->reval("package TredMacro;\n");
+  $compartment->deny_only(qw()); # everything allowed for the first initialization
+  $compartment->share(qw(&do_eval_macro &do_eval_hook &min &max @INC 
+                         &nextTree &prevTree &gotoTree &lastFileNo &currentFileNo $stderr $stdout));
+  $compartment->share_from('TrEd::Config',[qw($libDir)]);
+
+  $TrEd::Macros::safeCompartment=$compartment;
+  TrEd::Macros::initialize_macros($grp);
+
+# OPCODES ALLOWED IN SAFE MODE
+
+#			       :base_io :base_orig :filesys_read :filesys_open
+#			       :filesys_write
+  $compartment->permit_only(qw(:base_core :base_mem :base_loop :base_math :base_orig
+			       entereval caller do
+			       print entertry leavetry tie untie bless
+			       sprintf localtime gmtime sort require));
+  $compartment->deny(qw(getppid getpgrp setpgrp getpriority setpriority
+			pipe_op sselect select dbmopen dbmclose tie untie
+		       ));
+			
+  $TrEd::Macros::safeCompartment=$compartment;
+}
+
 sub switchContext {}
+
+sub updateTredMacroGlobals {
+  my ($grp)=@_;
+  $TredMacro::root=$grp->{root};
+  $TredMacro::this=$grp->{currentNode};
+  print "updateTredMacroGlobals: $TredMacro::root->{form}\n";
+}
+
 
 ### Local Variables:
 ### mode: cperl
+
