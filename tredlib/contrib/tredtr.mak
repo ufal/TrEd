@@ -5252,7 +5252,11 @@ sub ModalVerbs {
       if (Interjection($pVerb->{'afun'},'Obj') eq 'Obj') {
 
 	$pJoin = $pVerb;
+      } else {
+
+	$pJoin = undef;
       }
+
     } else {
 
       $pVerb = $pVerbRBrother;
