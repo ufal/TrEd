@@ -676,7 +676,7 @@ sub addword_button_pressed {
   my $poslab=$d->add(qw/Label -wraplength 6i -justify left -text POS/);
   $poslab->pack(qw/-padx 5 -side left/);
 
-  my $pos=$d->Optionmenu(-options => [qw/V N A/], -variable => \$POS);
+  my $pos=$d->Optionmenu(-options => [qw/V N A D/], -variable => \$POS);
   $pos->pack(qw/-padx 5 -expand yes -fill x -side left/);
 
   my $label=$d->add(qw/Label -wraplength 6i -justify left -text Lemma/);
