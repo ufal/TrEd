@@ -6,7 +6,7 @@
 package TEIXMLBackend;
 use Fslib;
 use XML::LibXML;
-use XML::LibXML::SAX::Parser;
+use XML::LibXML::SAX;
 use strict;
 
 sub test {
@@ -53,7 +53,7 @@ sub read {
   my ($input,$fsfile) = @_;
   #my $handler = XML::SAX::Writer->new();
   my $handler = XML::Handler::TEIXML2FS->new(FSFile => $fsfile);
-  my $p = XML::LibXML::SAX::Parser->new(Handler => $handler);
+  my $p = XML::LibXML::SAX->new(Handler => $handler);
   if (ref($input)) {
     $p->parse_fh($input);
   } else {
@@ -175,7 +175,7 @@ sub end_document {
 
 sub xml_decl {
   my ($self,$data) = @_;
-  $self->{FSFile}->changeEncoding($data->{Encoding});
+  $self->{FSFile}->changeEncoding($data->{Encoding} || 'iso-8859-2');
   $self->{FSFile}->changeMetaData('xmldecl_version' => $data->{Version});
   $self->{FSFile}->changeMetaData('xmldecl_standalone' => $data->{Standalone});
 }
