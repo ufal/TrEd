@@ -4663,14 +4663,14 @@ sub startMain {
     }
     focusCanvas($group{treeWindows}->[0]->canvas,\%group);
   }
-
-#   $SIG{INT}=sub {
-#     print STDERR "Caught SIGINT, closing all files\n";
-#     closeAllFiles(\%group);
-#     print STDERR "Good bye!\n";
-#     $group{top}->destroy;
-#     exit 1;
-#   };
+  $group{top}->repeat(1000,sub {1}); # otherwise SIGINT would wait till next focus
+  $SIG{INT}=sub {
+    print STDERR "Caught SIGINT, closing all files\n";
+    closeAllFiles(\%group);
+    print STDERR "Good bye!\n";
+    $group{top}->destroy;
+    exit 1;
+  };
 
   selectFilelist(\%group,'Default');
   if ($opt_p) {
