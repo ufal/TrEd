@@ -8,6 +8,82 @@ package PDT;
 use base qw(TredMacro);
 import TredMacro;
 
+
+sub is_noun {
+  return $_[0]->{tag}=~/^N../;
+}
+
+sub is_verb {
+  return $_[0]->{tag}=~/^V../;
+}
+
+sub is_coord {
+  my ($node)=@_;
+  return $node->{afun} =~ /^Coord/;
+}
+
+sub is_coord_TR {
+  my ($node)=@_;
+  return $node->{func} =~ /^(?:CONJ|DISJ|GRAD|ADVS|CSQ|REAS)$/;
+}
+
+sub is_apos {
+  my ($node)=@_;
+  return $node->{afun} eq '^Apos';
+}
+
+sub is_apos_TR {
+  my ($node)=@_;
+  return $node->{func} eq 'APPS';
+}
+
+sub is_pronoun_possessive {
+  my ($node)=@_;
+  return $node->{tag}=~/^PS../;
+}
+
+
+#
+# if the given node is coordination or aposition expand it to a list
+# of coordinated nodes. if the second argument is true, preserves the
+# coordination/aposition node in the list too.
+#
+
+sub expand_coord_apos {
+  my ($node,$keep)=@_;
+  if (is_coord($node)) {
+    return (($keep ? $node : ()),map { expand_coord_apos($_,$keep) }
+      grep { $_->{afun} =~ '_Co' }
+	$node->children());
+  } elsif (is_apos($node)) {
+    return (($keep ? $node : ()), map { expand_coord_apos($_,$keep) }
+      grep { $_->{afun} =~ '_Co' }
+	$node->children());
+  } else {
+    return $node;
+  }
+}
+
+sub expand_coord_apos_TR {
+  my ($node,$keep)=@_;
+  if (is_coord_TR($node)) {
+    return (($keep ? $node : ()),map { expand_coord_apos_TR($_,$keep) }
+      grep { $_->{memberof} eq 'CO' or $_->{reltype} eq 'CO' }
+	$node->children());
+  } elsif (is_apos_TR($node)) {
+    return (($keep ? $node : ()), map { expand_coord_apos_TR($_,$keep) }
+      grep { $_->{memberof} eq 'CO' or $_->{reltype} eq 'CO' }
+	$node->children());
+  } else {
+    return $node;
+  }
+}
+
+
+#
+# Save governing node's ord to given attribute
+#
+
 sub saveTreeStructureToAttr {
   my ($class,$atr,$top)=@_;
   $top||=$root;
