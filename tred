@@ -3394,31 +3394,86 @@ sub createCanvasBindings {
 					$tv->get_node_pinfo($node,"SaveColor"));
 		    }, $grp]);
 
+  # Button-1
   $canvas->bind('point', '<1>'=> [sub {node_down(@_) },$grp,0]);
-
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-Button-1>"=> [sub {node_click_modif(@_)},$grp,$_]);
+  }
   $canvas->bind('point', '<ButtonRelease-1>'=> [sub {node_release(@_)},$grp,0]);
-  $canvas->bind('point', '<B1-Motion>'=> [sub {node_move(@_)},$grp]);
-  $canvas->bind('point','<3>'=> [sub {node_down(@_)},$grp,1]);
-  $canvas->bind('point', '<ButtonRelease-3>'=> [sub {node_release(@_)},$grp]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('point', "<$_-ButtonRelease-1>"=> [sub {node_release_modif(@_)},$grp,$_]);
   }
+  $canvas->bind('point', '<B1-Motion>'=> [sub {node_move(@_)},$grp]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-B1-Motion>"=> [sub {node_motion_modif(@_)},$grp]);
+  }
+
+  # Button-3
+  $canvas->bind('point','<3>'=> [sub {node_down(@_)},$grp,1]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-Button-3>"=> [sub {node_click_modif(@_)},$grp,$_."-3"]);
+  }
+  $canvas->bind('point', '<ButtonRelease-3>'=> [sub {node_release(@_)},$grp,3]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-ButtonRelease-3>"=> [sub {node_release_modif(@_)},$grp."-3"]);
+  }
   $canvas->bind('point','<B3-Motion>'=> [sub {node_move(@_)},$grp,1]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-B3-Motion>"=> [sub {node_motion_modif(@_)},$grp."-3"]);
+  }
+
+  # Button-2
   $canvas->CanvasBind('<2>'=> [sub {follow_mouse_press(@_)},$grp]);
   $canvas->CanvasBind('<B2-Motion>'=> [sub {follow_mouse(@_)},$grp]);
+
+  # Button-2
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-Button-2>"=> [sub {node_click_modif(@_)},$grp,$_."-2"]);
+  }
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-ButtonRelease-2>"=> [sub {node_release_modif(@_)},$grp."-2"]);
+  }
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-B2-Motion>"=> [sub {node_motion_modif(@_)},$grp."-2"]);
+  }
+
+
+  # Double-1
+  $canvas->bind('point', '<Double-1>'=> [sub { editAttrs(@_); Tk->break; },$grp]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('point', "<$_-Double-1>"=> [sub {node_doubleclick_modif(@_)},$grp,$_]);
   }
-  $canvas->bind('point', '<Double-1>'=> [sub { editAttrs(@_); Tk->break; },$grp]);
+
+  # Text 1
   $canvas->bind('text', '<1>'=> [sub {node_down(@_) },$grp,0]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('text', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
+  }
+
+  # Text Dobule-1
+  $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
   }
-  $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+
+  # TextBg
+  $canvas->bind('textbg', '<1>'=> [sub {node_down(@_) },$grp,0]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('textbg', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
+  }
+  $canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('textbg', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
   }
-  $canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+
+  # TextBg 3
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('textbg', "<$_-Button-3>"=> [sub {text_click_modif(@_)},$grp,$_."-3"]);
+  }
+  # TextBg Double-3
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('textbg', "<$_-Double-3>"=> [sub {text_doubleclick_modif(@_)},$grp,$_."-3"]);
+  }
 }
 
 sub startMain {
@@ -6069,7 +6124,23 @@ sub node_doubleclick_modif {
   my $win=findCanvasWindow($grp,$w);
   my $tv=$win->{treeView};
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
-  doEvalHook($win,"node_doubleclick_hook",$node,$mod);
+  doEvalHook($win,"node_doubleclick_hook",$node,$mod, $w->XEvent);
+}
+
+sub node_click_modif {
+  my ($w,$grp,$mod)=@_;
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
+  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
+  doEvalHook($win,"node_click_hook",$node,$mod, $w->XEvent);
+}
+
+sub node_motion_modif {
+  my ($w,$grp,$mod)=@_;
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
+  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
+  doEvalHook($win,"node_motion_hook",$node,$mod, $w->XEvent);
 }
 
 sub text_doubleclick_modif {
@@ -6086,7 +6157,24 @@ sub text_doubleclick_modif {
   setCurrent($win,$node);
   $attr=$tv->get_gen_pinfo("attr:$t");
 
-  doEvalHook($win,"text_doubleclick_hook",$node,$attr,$mod);
+  doEvalHook($win,"text_doubleclick_hook",$node,$attr,$mod, $w->XEvent);
+}
+
+sub text_doubleclick_modif {
+  my ($w,$grp,$mod)=@_;
+  my $win=findCanvasWindow($grp,$w);
+  return unless($win and $win->{FSFile});
+  my $attr;
+  my $newvalue;
+
+  my $tv=$win->{treeView};
+  my ($t)=$tv->find_item('withtag','current');
+  my $node=$tv->get_obj_pinfo($t);
+  my $d;
+  setCurrent($win,$node);
+  $attr=$tv->get_gen_pinfo("attr:$t");
+
+  doEvalHook($win,"text_click_hook",$node,$attr,$mod, $w->XEvent);
 }
 
 sub editAttrs {
@@ -6839,7 +6927,7 @@ sub node_move {
 }				# end plot_move
 
 sub node_release {
-  my($w,$grp)= @_;
+  my($w,$grp,$button)= @_;
   my $win=findCanvasWindow($grp,$w);
   my $tv=$win->{treeView};
   return unless $win->{FSFile};
@@ -6858,7 +6946,7 @@ sub node_release {
       $parent=$tv->get_obj_pinfo($p);
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
-      if (doEvalHook($win,"node_release_hook",$node,$parent,"") ne 'stop') {
+      if (doEvalHook($win,"node_release_hook",$node,$parent,"$button") ne 'stop') {
 	while ($parent) {
 	  $p=0, last if ($node eq $parent);
 	  $parent=$parent->parent;
@@ -6904,7 +6992,7 @@ sub node_release_modif {
       $parent=$tv->get_obj_pinfo($p);
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
-      doEvalHook($win,"node_release_hook",$node,$parent,$mod);
+      doEvalHook($win,"node_release_hook",$node,$parent,$mod,$e);
     }
     # returning node to its position
     $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
