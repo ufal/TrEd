@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-06-10 12:21:28 pajas>
+## Time-stamp: <2004-08-25 14:19:48 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -24,9 +24,12 @@ sub file_save_hook {
 	and
 	questionQuery("Save file", "You realy want to save with AR structure only?\nReally, really?",qw(Yes No)) eq 'Yes') {
       return;
-    } elsif ($answ eq 'Switch to TR and save') {
-    } else {
+    } elsif ($answ eq 'No') {
       return "stop";
+    } else {
+      PDT::TRstruct();
+      Redraw();
+      return;
     }
   }
 }
