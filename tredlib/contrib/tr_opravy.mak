@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-08 20:31:48 pajas>
+## Time-stamp: <2003-07-15 11:57:16 pajas>
 
 
 package TR_Correction;
@@ -63,4 +63,11 @@ sub reorder_ord {
 
 sub remove_ord_patterns {
   SetDisplayAttrs(grep { !/ \#corr / } GetDisplayAttrs());
+}
+
+sub add_commentA {
+  my ($comment,$node)=@_;
+  $node = $this unless ref($node);
+  $node->{commentA}.='|' if $node->{commentA} ne "";
+  $node->{commentA}.=$comment;
 }
