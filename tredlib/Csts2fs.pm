@@ -298,8 +298,16 @@ my %att = (
 			       &to_composed_node_attr($s,'hide','_','|','src','MTR')
 				 if ($data eq 'hidden');
 			     }],
-	   'TRl origin' => [\&to_node_attr,'','AIDREFS'],
-	   'MTRl origin' => [\&to_composed_node_attr,'_','','src','MAIDREFS'],
+	   'TRl origin' => [sub {
+			      my ($s,$data)=@_;
+			      $data=~s/\s+/|/g;
+			      &to_node_attr($s,$data,'','AIDREFS');
+			    }];
+	   'MTRl origin' => [sub {
+			       my ($s,$data)=@_;
+			       $data=~s/\s+/|/g;
+			       &to_composed_node_attr($s,$data,'_','','src','MAIDREFS');
+			     }],
 	   'x name' => [sub {
 			  my ($s,$data)=@_;
 			  $s->{node}->{X_hide}='' if ($data eq 'TNT');
@@ -392,6 +400,8 @@ my %pcdata = (
 	      tfr => [\&to_node_attr,'|','dord'],
 	      fw => [\&to_node_attr,'|','fw'],
 	      phr => [\&to_node_attr,'|','phraseme'],
+	      Tframeid => [\&to_node_attr,'|','frameid'],
+	      Tframere => [\&to_node_attr,'|','framere'],
 	      g => [sub{
 		      my ($s,$data)=@_;
 		      to_node_attr(@_);
@@ -458,7 +468,6 @@ my %pcdata = (
 '@P lemauto',
 '@P AID',
 '@P AIDREFS',
-'@P TID',
 );
 
 @minTRheader = (
@@ -509,6 +518,9 @@ my %pcdata = (
 '@P funcauto',
 '@P funcprec',
 '@P funcaux',
+'@P TID',
+'@P frameid',
+'@P framere'
 );
 
 @ARspecial = (
