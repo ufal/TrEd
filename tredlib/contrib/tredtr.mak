@@ -3376,17 +3376,13 @@ sub _key_Ctrl_Shift_F1 {
 
 }
 
-
-#bind tree_to_tr to F10
 sub tree_to_tr {
-
   foreach ($root,$root->descendants) {
     $_->{TR}='';
   }
   $root->{reserve1}='';
   InitFileTR();
   TreeToTR();
-
 }
 
 
