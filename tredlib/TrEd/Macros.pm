@@ -8,7 +8,7 @@ BEGIN {
 
   use TrEd::Convert;
   use Exporter  ();
-  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros
+  use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros $useEncoding
               $macrosEvaluated $safeCompartment %defines);
 
   @ISA=qw(Exporter);
@@ -23,6 +23,7 @@ BEGIN {
     @macros
     $macrosEvaluated
   );
+  $useEncoding = ($]>=5.008);
   use strict;
 }
 
@@ -255,7 +256,7 @@ sub read_macros {
 sub set_encoding {
   my $fh = shift;
   my $enc = shift || $defaultMacroEncoding;
-  if ($enc and $]>=5.008) {
+  if ($useEncoding and $enc) {
     eval {
       $fh->flush();
       binmode $fh;  # first get rid of all I/O layers
@@ -296,7 +297,7 @@ sub initialize_macros {
                         # which should in this way be made visible
                         # to macros
   my $result = 2;
-  my $utf = ($]>=5.008) ? "use utf8;\n" : "";
+  my $utf = ($useEncoding) ? "use utf8;\n" : "";
   unless ($macrosEvaluated) {
     my $macros=$utf.join("",@macros)."\n return 1;";
     if (defined($safeCompartment)) {
@@ -335,7 +336,7 @@ sub do_eval_macro {
 				# which should in this way be made visible
 				# to macros
   return 0,0,$TredMacro::this unless $macro;
-  my $utf = ($]>=5.008) ? "use utf8;\n" : "";
+  my $utf = ($useEncoding) ? "use utf8;\n" : "";
   my $result;
   initialize_macros($win);
   print STDERR "Running $macro\n" if $macroDebug;
@@ -366,7 +367,7 @@ sub do_eval_hook {
 				# to hooks
   print STDERR "about to run the hook: '$hook' (in $context context)\n" if $hookDebug;
   return undef unless $hook; # and $TredMacro::this;
-  my $utf = ($]>=5.008) ? "use utf8;\n" : "";
+  my $utf = ($useEncoding) ? "use utf8;\n" : "";
   initialize_macros($win);
   my $result=undef;
 
