@@ -1051,7 +1051,6 @@ sub reverseWrapLines {
   my @toks;
   if (ref($text)) {
     @toks = @$text;
-    print STDERR "TOKENS $#toks\n";
   } else {
     @toks = map { [$_,''] } split /\s+/, $text;
   }
@@ -1084,7 +1083,6 @@ sub set_value_line {
   if ($valueLineWrap eq 'word' and
       $valueLineReverseLines) {
     $vl->configure(qw(-wrap none));
-    print STDERR "Using reverse wrap-lines\n";
     $v=reverseWrapLines($grp->{valueLine},$vLineFont,$v,
 			$grp->{valueLine}->width()-15);
   }
