@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-02 11:34:57 pajas>
+## Time-stamp: <2002-09-13 10:07:40 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -51,6 +51,35 @@ sub GotoTreeAsk {
   }
 }
 
+#bind TieGotoTreeAsk to Ctrl+Alt+g menu Go to... (tied)
+sub TieGotoTreeAsk {
+  my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
+
+  $FileNotSaved=0;
+  if ($to=~/#/) {
+    for (my $i=$grp->{treeNo}+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {
+      TieGotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
+    }
+    for (my $i=0; $i<$grp->{treeNo}; $i++) {
+      TieGotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
+    }
+  } else {
+    TieGotoTree($to) if defined $to;
+  }
+}
+
+#bind TieLastTree to Ctrl+End menu Go to last tree (tied)
+sub TieLastTree {
+  $FileNotSaved=0;
+  TieGotoTree($grp->{FSFile}->lastTreeNo+1);
+}
+
+#bind TieFirstTree to Ctrl+Home menu Go to first tree (tied)
+sub TieFirstTree {
+  $FileNotSaved=0;
+  TieGotoTree(1);
+}
+
 #bind LastTree to greater menu Go to last tree
 #bind LastTree to Ctrl+Next
 sub LastTree {
@@ -61,6 +90,32 @@ sub LastTree {
 #bind FirstTree to Ctrl+Prior
 sub FirstTree {
   GotoTree(1);
+}
+
+#bind GotoNextNodeLin to Ctrl+greater
+sub GotoNextNodeLin {
+  $FileNotSaved=0;
+  my $sentord=$grp->{FSFile}->FS->sentord;
+  my $next=NextNodeLinear($this,$sentord);
+  unless (HiddenVisible()) {
+    while ($next and IsHidden($next)) {
+      $next=NextNodeLinear($next,$sentord);
+    }
+  }
+  $this=$next if $next;
+}
+
+#bind GotoPrevNodeLin to Ctrl+less
+sub GotoPrevNodeLin {
+  $FileNotSaved=0;
+  my $sentord=$grp->{FSFile}->FS->sentord;
+  my $next=PrevNodeLinear($this,$sentord);
+  unless (HiddenVisible()) {
+    while ($next and IsHidden($next)) {
+      $next=PrevNodeLinear($next,$sentord);
+    }
+  }
+  $this=$next if $next;
 }
 
 sub editQuery {
