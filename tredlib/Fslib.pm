@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-05-31 11:14:05 pajas>
+# Time-stamp: <2001-06-04 16:52:17 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -828,6 +828,28 @@ sub following {
 
 =pod
 
+=item following_visible (fsformat,top?)
+
+Return the next visible node of the subtree in the order given by
+structure (C<undef> if none). A node is considered visible if it has
+no hidden ancestor. Requires FSFormat object as the first parameter.
+
+=cut
+
+sub following_visible {
+  my ($self,$fsformat,$top) = @_;
+  return undef unless ref($self);
+  my $node=Fslib::Next($self,$top);
+  return $node unless ref($fsformat);
+  while ($node) {
+    return $node unless ($fsformat->isHidden($node));
+    $node=Fslib::Next($node,$top);
+  }
+}
+
+
+=pod
+
 =item previous (top?)
 
 Return the previous node of the subtree in the order given by
@@ -840,6 +862,29 @@ sub previous {
   my ($self,$top) = @_;
   return ref($self) ? Fslib::Prev($self,$top) : undef;
 }
+
+=pod
+
+=item previous_visible (fsformat,top?)
+
+Return the next visible node of the subtree in the order given by
+structure (C<undef> if none). A node is considered visible if it has
+no hidden ancestor. Requires FSFormat object as the first parameter.
+
+=cut
+
+sub previous_visible {
+  my ($self,$fsformat,$top) = @_;
+  return undef unless ref($self);
+  my $node=Fslib::Prev($self,$top);
+  my $hiding;
+  return $node unless ref($fsformat);
+  while ($node) {
+    return $node unless ($hiding=$fsformat->isHidden($node));
+    $node=Fslib::Prev($hiding,$top);
+  }
+}
+
 
 =pod
 
