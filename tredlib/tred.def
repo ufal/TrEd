@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-24 18:00:50 pajas>
+## Time-stamp: <2003-07-24 18:17:30 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -23,7 +23,7 @@ tred.def - This package implements default macros for TrEd/bTred
 
 =over 4
 
-=item $FileNotSaved (alias $FileChanged)
+=item $FileChanged (alias $FileNotSaved - still valid but obsolete)
 
 If this variable is set to 1, TrEd/bTrEd considers the current file to
 be modified and in case of bTrEd makes the program to save it before
@@ -33,7 +33,10 @@ change the file status, while TrEd still assumes that the file B<was>
 modified. In other words, set this variable to 1 in bTrEd if you want
 the file to be saved at last, and set this variable to 0 in TrEd if
 you are sure you did not make any change to the file that would be
-worth saving it.
+worth saving it. As there is a danger that calling one macro from
+another may result in a mess in the value of C<$FileChanged> it is
+adviced to use the default macro C<ChangingFile()> which tries to set
+the file status only if really intended (see below).
 
 =item $Redraw
 
@@ -1415,6 +1418,10 @@ sub ShiftNodeLeft {
   RepasteNode($node);
 }
 
+=head Miscelaneous macros
+
+=cut
+
 =item HiddenVisible
 
 Return true if TrEd presently displays hidden nodes.
@@ -1769,10 +1776,10 @@ sub DumpFS {
 
 =item ChangingFile (0|1)
 
-If no argument given, sets C<$FileChanged> to 1. If C<$FileChanged> is
-already set to 1 already 1, does nothing. If C<$FileChanged> has not
-yet been assigned or is zero, sets it to the given value. Returns the
-resulting value.
+If no argument given the default is 1. If C<$FileChanged> is already
+set to 1 already 1, does nothing. If C<$FileChanged> has not yet been
+assigned or is zero, sets it to the given value. Returns the resulting
+value. ChangingFile(1) also resets $forceFileSaved to 0.
 
 =cut
 
@@ -1784,6 +1791,7 @@ sub ChangingFile {
   } elsif ($FileChanged==0) {
     $FileChanged=$val;
   }
+  $forceFileSaved=0 if ($val);
   return $FileChanged;
 }
 
