@@ -1039,6 +1039,8 @@ sub _set_encoding {
   if ($enc and $]>=5.008) {
     eval {
       _msg("forcing encoding $enc for $what\n") if $debug;
+      $fh->flush();
+      binmode $fh,":raw";
       binmode $fh,":encoding($enc)";
     };
     _msg $@ if $@;
