@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-11-26 09:35:16 pajas>
+# Time-stamp: <2002-01-16 09:40:16 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1002,6 +1002,22 @@ sub children {
   return @children;
 }
 
+=item descendants
+
+Return all recursively dependent nodes (C<undef> if none).
+
+=cut
+
+sub descendants {
+  my $self = $_[0];
+  my @kin=();
+  my $desc=$self->following($self);
+  while ($desc) {
+    push @kin, $desc;
+    $desc=$desc->following($self);
+  }
+  return @kin;
+}
 
 =pod
 
