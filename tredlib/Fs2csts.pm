@@ -388,10 +388,12 @@ sub write {
 	#
       }
       print $fileref "<r>",$node->{ord} if ($node->{ord} ne "");
-      if ($fsfile->FS->order eq 'dord') {
-	print $fileref "<g>",$node->{ordorig} if $node->{ordorig} ne "";
-      } else {
-	print $fileref "<g>",int($node->parent->{ord}) if (($export_dependency || $node->parent->{ord} ne "0") and $node->parent->{ord} ne "");
+      if ($node->{TID} eq '') {
+	if ($fsfile->FS->order eq 'dord') {
+	  print $fileref "<g>",$node->{ordorig} if $node->{ordorig} ne "";
+	} else {
+	  print $fileref "<g>",int($node->parent->{ord}) if (($export_dependency || $node->parent->{ord} ne "0") and $node->parent->{ord} ne "");
+	}
       }
       unless (index($node->{ord},'.')>=$[) {
 	#not allowed in DTD for some reason
