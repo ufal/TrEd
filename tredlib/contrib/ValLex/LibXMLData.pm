@@ -59,32 +59,31 @@ sub save {
   return 1;
 }
 
-sub findWord {
-  my ($self,$find,$nearest)=@_;
-  my $doc=$self->doc();
-  return unless $doc;
-  my $docel=$doc->getDocumentElement();
-  my $lemma = $self->conv->encode($find);
-  if ($nearest) {
-    my ($word) = $docel->findnodes(".//word[starts-with(\@lemma,'$lemma')]");
-    return $word;
-  } else {
-    my ($word) = $docel->findnodes(".//word[\@lemma='$lemma']");
-    return $word;
-  }
-  return undef;
-}
+# sub findWord {
+#   my ($self,$find,$nearest)=@_;
+#   my $doc=$self->doc();
+#   return unless $doc;
+#   my $docel=$doc->getDocumentElement();
+#   my $lemma = $self->conv->encode($find);
+#   if ($nearest) {
+#     my ($word) = $docel->findnodes(".//word[starts-with(\@lemma,'$lemma')]");
+#     return $word;
+#   } else {
+#     my ($word) = $docel->findnodes(".//word[\@lemma='$lemma']");
+#     return $word;
+#   }
+#   return undef;
+# }
 
-sub findWordAndPOS {
-  my ($self,$find,$pos)=@_;
-  my $doc=$self->doc();
-  return unless $doc;
-  my $docel=$doc->getDocumentElement();
-  my $lemma = $self->conv->encode($find);
-  print ".//word[\@lemma='$lemma' and \@POS='$pos']\n";
-  my ($word) = $docel->findnodes(".//word[\@lemma='$lemma' and \@POS='$pos']");
-  return $word;
-}
+# sub findWordAndPOS {
+#   my ($self,$find,$pos)=@_;
+#   my $doc=$self->doc();
+#   return unless $doc;
+#   my $docel=$doc->getDocumentElement();
+#   my $lemma = $self->conv->encode($find);
+#   my ($word) = $docel->findnodes(".//word[\@lemma='$lemma' and \@POS='$pos']");
+#   return $word;
+# }
 
 sub isEqual {
   my ($self,$a,$b)=@_;

@@ -21,8 +21,8 @@ sub InfoDialog {
 }
 
 sub ChooseFrame {
-  print "macro started\n";
   my $top=ToplevelFrame();
+  $top->Busy(-recurse=>1);
 
   require ValLex::Data;
   require ValLex::LibXMLData;
@@ -37,18 +37,19 @@ sub ChooseFrame {
   if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
     $lemma=~s/^ne//;
   }
-  print "lemma $lemma\n";
   return unless $tag=~/^([VNA])/;
   my $pos=$1;
   $lemma=~s/_/ /g;
-  $top->Busy(-recurse=>1);
-  print "busy\n";
   unless ($FrameData) {
     my $conv= TrEd::CPConvert->new("utf-8",
 				   ($^O eq "MSWin32") ?
 				   "windows-1250":
 				   "iso-8859-2");
-    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
+
+#### we may leave this commented out since 1. LibXML is fast enough and
+#### 2. it does not work always well under windows
+#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
+
     if ($^O eq "MSWin32") {
       $FrameData=
 	TrEd::ValLex::LibXMLData->new("$libDir/contrib/ValLex/vallex.xml",$conv);
@@ -58,11 +59,10 @@ sub ChooseFrame {
 				      "$libDir/contrib/ValLex/vallex.xml.gz" :
 				      "$libDir/contrib/ValLex/vallex.xml",$conv);
     }
-    $info->destroy();
+#    $info->destroy();
   }
   my $new_word=0;
   {
-    print "find word $FrameData\n";
     my $word=$FrameData->findWordAndPOS($lemma,$pos);
     $top->Unbusy(-recurse=>1);
     unless ($word) {
@@ -75,10 +75,8 @@ sub ChooseFrame {
 	return;
       }
     }
-    print "undefining $word\n";
 #    undef $word;
   }
-  print "ok\n";
   my $font = $main::font;
   my $fc=[-font => $font];
   my $fe_conf={ elements => $fc,
@@ -100,7 +98,6 @@ sub ChooseFrame {
 		      framelist => $fc
 		     };
 
-  print "displaying choser\n";
   my ($frame,$real)=TrEd::ValLex::Chooser::show_dialog($lemma,$top,
 					       $chooser_conf,
 					       $fc,
