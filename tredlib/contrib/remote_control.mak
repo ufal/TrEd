@@ -1,5 +1,4 @@
 # -*- cperl -*-
-
 #insert connectToRemoteControl as menu Connect to Remote Control
 #insert disconnectFromRemoteControl as menu Disconnect from Remote Control
 
