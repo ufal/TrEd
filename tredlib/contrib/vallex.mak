@@ -1,6 +1,8 @@
 # -*- cperl -*-
 
-package ValLex;
+package Vallex;
+use base qw(TredMacro);
+import TredMacro;
 
 sub new {
   my ($class,$url,$validate)=@_;
@@ -21,7 +23,9 @@ sub load {
     $parser->load_ext_dtd(0);
     $parser->expand_entities(0);
   }
-  return $parser->parse_file($url);
+  my $doc = $parser->parse_file($url);
+  $doc->indexElements() if ref($doc) and $doc->can('indexElements');
+  return $doc;
 }
 
 sub doc { $_[0]->[0] }
@@ -53,13 +57,18 @@ sub valid_frames {
 
 sub frame_status {
   my ($self,$frame)=@_;
-  return $frame->getAttribute('@status');
+  return $frame->getAttribute('status');
+}
+
+sub frame_id {
+  my ($self,$frame)=@_;
+  return $frame->getAttribute('frame_ID');
 }
 
 sub valid_frame_for {
   my ($self,$frame)=@_;
   my $with;
-  while ($with=$self->getAttribute('substituted_with')) {
+  while ($with=$frame->getAttribute('substituted_with')) {
     $frame=$self->by_id($with);
   }
   if ($self->is_valid_frame($frame)) {
@@ -67,4 +76,29 @@ sub valid_frame_for {
   } else {
     return undef;
   }
+}
+
+sub elements {
+  my ($self,$frame)=@_;
+  return $frame->findnodes(q{frame_elements/element})
+}
+
+sub oblig {
+  my ($self,$frame)=@_;
+  return $frame->findnodes(q{frame_elements/element[@type='oblig']})
+}
+
+sub nonoblig {
+  my ($self,$frame)=@_;
+  return $frame->findnodes(q{frame_elements/element[@type='non-oblig']})
+}
+
+sub func {
+  my ($self,$e)=@_;
+  return $e->getAttribute('functor');
+}
+
+sub forms {
+  my ($self,$element)=@_;
+  return map { $_->value } $element->findnodes(q{form/@abbrev});
 }

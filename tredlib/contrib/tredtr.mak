@@ -3373,6 +3373,7 @@ sub _key_Ctrl_B {
 
 #bind _key_Ctrl_Shift_F1 to Ctrl+q menu paste node
 #bind _key_Ctrl_Shift_F1 to Ctrl+Shift+F1 menu paste node
+#bind _key_Ctrl_Shift_F1 to Ctrl+Shift+F1 menu paste node
 sub _key_Ctrl_Shift_F1 {
 
   FPaste();
