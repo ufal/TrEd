@@ -331,7 +331,7 @@ sub create_widget {
   my $ef = $frame->Frame(-takefocus => 0)->pack(qw/-pady 5 -side top -fill x/);
   my $l = $ef->Label(-text => "Search: ",-underline => 3)->pack(qw/-side left/);
   my $posfilter='*';
-  my $pose = $ef->Entry(qw/-background white -width 2/,
+  my $pose = $ef->Entry(qw/-background white -width 3/,
 			-textvariable => \$posfilter,
 		       )->pack(qw/-expand yes -side left -fill x/);
   my $e = $ef->Entry(qw/-background white -validate key/,
