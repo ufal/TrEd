@@ -271,5 +271,4 @@ else
   echo "Behem instalace doslo k neocekavane chybe."
   echo
   read -e -n1 -r -p "Stisknete libovolnou klavesu, program se ukonci..."
-
 fi
