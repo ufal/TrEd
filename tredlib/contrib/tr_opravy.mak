@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-07 16:53:41 pajas>
+## Time-stamp: <2005-02-09 16:50:25 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -143,15 +143,15 @@ sub file_save_hook {
     if ( $answ eq 'Yes'
 	and
 	questionQuery("Save file", "You realy want to save with AR structure only?\nReally, really?",qw(Yes No)) eq 'Yes') {
-      return;
     } elsif ($answ eq 'No') {
       return "stop";
     } else {
       PDT::TRstruct();
       Redraw();
-      return;
     }
   }
+  &TredMacro::file_save_hook if TrEd::Macros::context_can('TredMacro','file_save_hook');
+  return;
 }
 
 # permitting all attributes modification
