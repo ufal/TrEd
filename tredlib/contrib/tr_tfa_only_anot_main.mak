@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-09 16:04:10 pajas>
+## Time-stamp: <2002-11-05 17:48:33 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -37,6 +37,8 @@ sub file_resumed_hook {
 
 
 #include <contrib/tred_mac_common.mak>
+sub CutToClipboard {}
+sub PasteFromClipboard {}
 
 #binding-context Tectogrammatic
 #include <contrib/tr.mak>
@@ -44,7 +46,9 @@ sub file_resumed_hook {
 #binding-context TR_Diff
 #include <contrib/trdiff.mak>
 
+sub node_release_hook { return 'stop'; }
+
 #binding-context TFA
 #include <contrib/tfa.mak>
 
-
+sub node_release_hook { return 'stop'; }
