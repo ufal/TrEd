@@ -38,7 +38,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
-	    $version $lib $extra_backends
+	    $version $lib $extra_backends $file_list
 	    $_ERR %optmap
 	   );
 
@@ -56,6 +56,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "very-quiet|Q" => \$Quiet,
 	    "debugging|D" => \$debug,
 	    "fs2csts-attributes|x=s" => \$csts_xargs,
+	    "filelist|l=s" => \$file_list,
 	    "strip-prefix|p=s" => \$strip_prefix,
 	    "add-prefix|r=s" => \$add_prefix,
 	    "strip-suffix|s=s" => \$strip_suffix,
@@ -244,6 +245,21 @@ import TrEd::Basics;
   qw(NTREDBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
 $CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
+# different namespace only to load local rather than system files
+# (rel2abs is not supported in all instalations)
+use File::Spec;
+if (not File::Spec->can('rel2abs')) {
+  print "Using TFile::Spec\n" if $tredDebug;
+  require TFile::Spec;
+  require TFile::Spec::Functions;
+  import TFile::Spec::Functions qw(rel2abs);
+} else {
+  print "Using File::Spec\n" if $tredDebug;
+  require File::Spec;
+  require File::Spec::Functions;
+  import File::Spec::Functions qw(rel2abs);
+}
+
 # these are for macros
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
@@ -294,12 +310,26 @@ _msg("Reading macros from $macroFile...\n") unless $quiet;
 read_macros($macroFile,$libDir);	# read macros
 _msg("done.\n") unless $quiet;
 
-if ($^O eq 'MSWin32') {
-  @files=map glob, @ARGV;
-} else {
-  @files=@ARGV;
+if ($file_list) {
+  foreach my $l (split /\s*,\s*/,$file_list) {
+    print STDERR "Reading -l filelist $l...\n" if $tredDebug;
+    if (open(F,"<$l")) {
+      @files=<F>;
+      shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f absolutize($files[0]));
+      close(F);
+    } else {
+      print STDERR "Warning: Can't open filelist $l: $!\n";
+    }
+  }
 }
-s/[\n\r]+$// for @files;
+
+if ($^O eq 'MSWin32') {
+  push @files,map glob, @ARGV;
+} else {
+  push @files,@ARGV;
+}
+s/\s+$// for @files;
+
 @ARGV=@TredMacro::ARGV;
 
 
@@ -342,6 +372,12 @@ exit;
 ############################
 ############################
 ############################
+
+sub absolutize {
+  return map { m(^[[:alnum:]]+:/|^\s*\||^\s*/) ? $_ : rel2abs($_) } grep { !/^\s*$/ } @_;
+}
+
+
 sub _msg { $_ERR->print("BTRED: ",@_); }
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
 sub sign_md5 ($$) {
@@ -1360,7 +1396,7 @@ btred - non-interactive scriptable version of the tree editor TrEd
         [-f out-fmt] [-n file-encoding] [-d terminal-encoding]
         [-W] [-q|-Q] [-D] [-V] [-L port] [-b hub]
         [-x extra_attribs] [-X gov,ord] [-R]
-        [-o script options -- ] files...
+        [-o script options -- ] [-l file-list] files...
 or
   btred -u          for usage
   btred -h          for help
@@ -1429,6 +1465,12 @@ The default context is `TredMacro'.
 Preload a given Perl module at btred startup so as it is available to
 all macros (even if running in a safe compartment).  This option may
 be specified more than once with different modules.
+
+=item B<--filelist|-l> file-list
+
+Read a list of filenames to process from a given file (one filename
+per line). Files specified in a file-list are processed prior to files
+specified on the command-line.
 
 =item B<--strip-prefix|-p> regexp
 
