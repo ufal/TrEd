@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-08-25 15:52:49 pajas>
+## Time-stamp: <2004-09-09 10:59:20 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -415,6 +415,25 @@ sub light_ar_children {
   ChangingFile(0);
 }
 
+#bind light_ar_children to Ctrl+i menu Mark true analytic parent(s) of current node with _light = _LIGHT_
+sub light_ar_children {
+  my $node = $root;
+  while ($node) {
+    delete $node->{_light};
+    $node=$node->following;
+  }
+  with_AR {
+    foreach (
+	grep { $_->{afun} !~ /Aux[CPYZXG]/ }
+	     PDT::GetFather_AR($this,
+				 sub { $_[0]{afun}=~/Aux[PC]/ })
+	    ) { $_->{_light}='_LIGHT_'; 
+		print "PARENT: $_\n";
+	      }
+  };
+  ChangingFile(0);
+}
+
 
 #bind light_tr_children to Ctrl+t menu Mark true tectogramatic children of current node with _light = _LIGHT_
 sub light_tr_children {
@@ -450,6 +469,7 @@ sub remove_from_aidrefs {
 sub only_parent_aidrefs {
   remove_from_aidrefs();
   join_AIDREFS();
+  ChangingFile();
   light_aidrefs_reverse();
 }
 
@@ -753,6 +773,63 @@ sub insert_node {
   $new->{func}='???';
   $new->{origfkind}='spell';
 }#insert_node
+
+
+#bind join_with_mother to asciicircum menu Join with mother
+sub rehang_children_to_mother{
+  print STDERR "rctmacf called from $this->{trlemma}\n";
+  my$parent=$this->parent;
+  print STDERR ('CHILDREN: ',(map{$_->{trlemma}}$this->children),"\n");
+  foreach my$child($this->children){
+    CutPaste($child,$parent);
+    print STDERR "Rehanging $child->{trlemma} to $parent->{trlemma}\n";
+  }
+}#rehang_children_to_mother
+
+sub join_with_mother {
+  ChangingFile(0);
+  return unless($this->{AID}
+                and$this->parent
+                and$this->parent->{AID}
+                and with_AR{$this->parent}==$this->parent
+                and$this->{ord}==$this->parent->{ord}+1);
+  rehang_children_to_mother;
+  PDT::ARstruct();
+  rehang_children_to_mother;
+  tectogrammatical_tree_store_AR();
+
+  my$parent=$this->parent;
+  $parent->{form}.=$this->{form};
+  my($sentord,$ord,$dord)=map{$this->{$_}}qw/sentord ord dord/;
+  Cut($this);
+  with_AR{Cut($this)};
+  if($parent->{origfkind}!~/spell/){
+    $parent->{origfkind}=($parent->{origfkind}?$parent->{origfkind}.'|':'').'spell';
+  }
+  foreach my$node (grep{
+    $_->{sentord}>$sentord and$_->{AID}
+  }$root->descendants()){
+    $node->{sentord}--;
+  }
+  foreach my$node (grep{
+    $_->{ordorig}>$ord and$_->{AID}
+  }$root->descendants()){
+    $node->{ordorig}--;
+  }
+  foreach my$node(grep{
+    $_->{ord}>$ord and$_->{AID}
+  }$root->descendants()){
+    $node->{ord}--;
+  }
+  foreach my$node(grep{
+    $_->{dord}>$dord
+  }$root->descendants()){
+    $node->{dord}--;
+  }
+  $this=$parent;
+  ChangingFile(1);
+}#join_with_mother
+
 
 
 ############# XPath #############
