@@ -2828,11 +2828,15 @@ sub startMain {
 	[
 	 [Button=> 'New Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
-					       newNode($grp->{focusedWindow});
+					       my $win=$grp->{focusedWindow};
+					       save_undo($win,prepare_undo($win));
+					       newNode($win);
 					     },\%group]],
 	 [Button=> 'Remove Active Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
-					       pruneNode($grp->{focusedWindow},$grp->{focusedWindow}->{currentNode});
+					       my $win=$grp->{focusedWindow};
+					       save_undo($win,prepare_undo($win));
+					       pruneNode($win,$win->{currentNode});
 					     },\%group]],
 	 [Button=> 'Insert New Tree', -underline=> 0, -command=> [sub {
 						      my ($grp)=@_;
