@@ -826,7 +826,7 @@ sub GetTrueSiblings_TR {
   my $coord = highest_coord_TR($node);
   return
     grep { highest_coord_TR($_) != $coord }
-    map { PDT::GetChildren_TR($node) }
+    map { PDT::GetChildren_TR($_) }
     PDT::GetFather_TR($node)
 } # GetTrueSiblings_TR
 
