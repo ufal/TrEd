@@ -354,13 +354,13 @@ sub create_widget {
   ## Word List
   my $w = $frame->Scrolled(qw/HList -columns 3 -background white
                               -selectmode browse
+                              -scrollbars osoe
                               -header 1
-                              -relief sunken
-                              -scrollbars osoe/)->pack(qw/-side top -expand yes -fill both/);
+                              -relief sunken/)->pack(qw/-side top -expand yes -fill both/);
   for ($w->Subwidget('scrolled')) {
     $_->bind($_,'<ButtonRelease-1>',sub { Tk->break });
     $_->bind(ref($_),'<ButtonRelease-1>',sub { Tk->break });
-#    $_->bind(ref($_),'<ButtonRelease-1>',sub { Tk->break; });
+##    $_->bind(ref($_),'<ButtonRelease-1>',sub { Tk->break; });
      $_->bind($_,'<Double-1>',
 	     [sub {
 	       my ($h,$self)=@_;
@@ -370,7 +370,7 @@ sub create_widget {
 	       $self->focus($word);
 	       Tk->break;
 	     },$self]);
-  }
+   }
   $e->bind('<Return>',[
 			  sub {
 			    my ($cw,$w,$self)=@_;
@@ -382,16 +382,6 @@ sub create_widget {
   $e->bind('<Down>',[$w,'UpDown', 'next']);
   $e->bind('<Up>',[$w,'UpDown', 'prev']);
 
-  $pose->bind('<Return>',[
-			  sub {
-			    my ($cw,$self)=@_;
-			    my $h=$self->subwidget('wordlist');
-			    my $word=$h->infoData($h->infoAnchor()) if ($h->infoAnchor());
-			    $self->fetch_data($word);
-			    $self->focus($word);
-			    Tk->break;
-			  },$self
-			 ]);
   $pose->bind('<Return>',[
 			  sub {
 			    my ($cw,$self)=@_;
@@ -449,8 +439,8 @@ sub fetch_data {
   my $t=$self->widget();
   my $e;
   $t->delete('all');
-  $t->headerCreate(0,-itemtype=>'text', -text=>'');
-  $t->headerCreate(1,-itemtype=>'text', -text=>'');
+  $t->headerCreate(0,-itemtype=>'text', -text=>' ');
+  $t->headerCreate(1,-itemtype=>'text', -text=>' ');
   $t->headerCreate(2,-itemtype=>'text', -text=>'lemma');
   $t->columnWidth(0,'');
   $t->columnWidth(1,'');
