@@ -466,8 +466,6 @@ sub build_tree {
   foreach (@_) {
     if ($_->{$ord} ne "" and !exists($ordered{$_->{$ord}})) {
       $ordered{$_->{$ord}}=$_;
-    } else {
-      push @unordered,$_;
     }
   }
   foreach (@_) {
@@ -478,7 +476,7 @@ sub build_tree {
     }
   }
 
-  foreach (@_) {
+  foreach (reverse @_) {
     if (ref($_) and ! $_->parent) {
       Paste($_,$root,{ $ord => ' N'}); # paste using $ord as the numbering attribute
 #        {
