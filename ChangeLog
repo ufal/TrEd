@@ -1,3 +1,106 @@
+2002-09-20  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tredtr.mak: 2x fix ConnetID to ConnectID
+
+	* tredlib/contrib/tred_mac_common.mak:
+	some new functions for moving in the tree
+
+	* tredlib/contrib/coref.mak, tredlib/contrib/README: initial commit
+
+	* tredlib/contrib/tr_corref_common.mak:
+	- default attributes now on F8 (not F1) (as in other contexts)
+	- include coref.mak
+
+	* tredlib/contrib/tr_corr_anot_main.mak: no change
+
+	* tredlib/contrib/tr_common.mak:
+	new TID and AID handling support and upgrade added
+
+	* tredlib/contrib/tr_anot_main.mak, tredlib/contrib/tr.mak:
+	support for patterns:force special pattern
+
+	* tredlib/contrib/arabic_common.mak:
+	- reread config (so that -*-* fontspec might be replaced with iso8859-6)
+
+	* tredlib/TrEd/TreeView.pm:
+	- strange line-messing bug fixed/work-arounded
+	- added support for embedded perl node-test expressions [? ?] in
+	  coords
+
+	* tredlib/TrEd/Macros.pm:
+	allow incomplete path to macros from command-line
+
+	* tredlib/TrEd/Config.pm: - automatically fill -*-* in fontspec
+
+	* tredlib/tred.mac: support for mode:<context> special pattern
+
+	* tredlib/tred.def: - new FileNotSaved support
+	- new functions: GetSpecialPattern, SetFileSaveStatus,
+	  GetFileSaveStatus, GetNodeIndexGetNodeIndex, CurrentTreeNumber,
+	  FileName, GetTrees
+
+	* tredlib/csts.doctype: Top, fadd/@id added
+
+	* tredlib/Fslib.pm: minor change
+
+	* tredlib/Csts2fs.pm, tredlib/Fs2csts.pm: - oper (Top) support
+	- TID, AID, AIDREFS support
+
+	* tredlib/AG2FS.pm: initial commit
+
+	* tred: - added AG2FS support
+	- new FileNotSaved handling
+	- minor fix in suffix ## handling
+	- new reconfigure function, complete reconfiguration on Reload config...
+
+	* btred: validation and AG2FS support, new FileNotSaved handling
+
+	* any2any: PADT and AG2FS support
+
+2002-09-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Macros.pm: fixed #include "filename"
+
+	* tredlib/contrib/tr_common.mak:
+	fixed menu entry for Z, removed lost Ctrl+Y for PA
+
+2002-09-18  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Macros.pm: fixed #include "filename"
+
+	* tredlib/contrib/tr_common.mak:
+	fixed menu entry for Z, removed lost Ctrl+Y for PA
+
+2002-09-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_anot_main.mak: fix
+
+	* ChangeLog: initial commit
+
+	* tredlib/contrib/tr_common.mak: - some new values for gram
+	- new _PA handling
+	- new _OP suffix grammateme
+
+	* tredlib/contrib/draw.mak: import TredMacro
+
+	* tred: - resurrected some CSTS extensions in the filedialog
+	- fixed problem with Optionsmenu
+
+2002-09-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_anot_main.mak: fix
+
+	* ChangeLog: initial commit
+
+	* tredlib/contrib/tr_common.mak: - some new values for gram
+	- new _PA handling
+	- new _OP suffix grammateme
+
+	* tredlib/contrib/draw.mak: import TredMacro
+
+	* tred: - resurrected some CSTS extensions in the filedialog
+	- fixed problem with Optionsmenu
+
 2002-09-02  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* tredlib/contrib/tr_common.mak: - some new values for gram
