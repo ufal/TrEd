@@ -467,7 +467,7 @@ sub draw_canvas {
       $outlinecolor=$color if !defined($outlinecolor);
 
       if ($opts{-grayscale}) {
-	$color = color2gray($color);
+	$color = color2gray($color) if defined $color;
 	$outlinecolor = color2gray($outlinecolor);
       }
 
@@ -478,18 +478,31 @@ sub draw_canvas {
       $draw->linejoin($join{$join});
       $draw->strokecolor($outlinecolor) if defined($color);
       $draw->fillcolor($color) if defined($color);
-      __debug "Polygon: @coords";
+      __debug "Polygon: @c\n";
       if ($smooth) {
-	$draw->move(@coords[0,1]);
-	$draw->curve(@coords);
+	no integer;
+	my @c=(@coords,@coords[0..3]);
+	my $first=1;
+ 	while (@c>5) {
+	  my @d = (($c[2]+$c[0])/2,($c[3]+$c[1])/2,$c[2],$c[3],($c[4]+$c[2])/2,($c[5]+$c[3])/2);
+	  $draw->move(@d[0,1]) if $first;
+ 	  $draw->curve(@d[2,3,2,3,4,5]);
+ 	  splice @c,0,2;
+	  $first = 0;
+ 	}
 	$draw->close();
+	if (defined $color) {
+	  $draw->fillstroke(0);
+	} else {
+	  $draw->stroke;
+	}
       } else {
-	$draw->rect(@coords);
-      }
-      if (defined $color) {
-	$draw->fillstroke;
-      } else {
-	$draw->stroke;
+	$draw->poly(@coords,@coords[0,1]);
+	if (defined $color) {
+	  $draw->fillstroke(0);
+	} else {
+	  $draw->stroke;
+	}
       }
     } elsif ($type eq 'rectangle') {
       my $width=$canvas->itemcget($item,'-width');
