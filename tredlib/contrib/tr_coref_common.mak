@@ -1,16 +1,16 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-21 14:11:12 pajas>
+## Time-stamp: <2004-07-09 11:15:37 pajas>
 
 package Coref;
 
 use base qw(TredMacro);
 import TredMacro;
 
-#include <contrib/ValLex/chooser.mak>
+sub OpenEditor { Tectogrammatic::OpenEditor(@_) }
+sub ChooseFrameNoAssign { Tectogrammatic::ChooseFrame(1) }
 #bind OpenEditor to Ctrl+Shift+Return menu Zobraz valencni ramce
 #bind ChooseFrameNoAssign to Ctrl+Return menu Zobraz valencni ramce pro sloveso
-sub ChooseFrameNoAssign { ChooseFrame(1); }
 
 #bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
