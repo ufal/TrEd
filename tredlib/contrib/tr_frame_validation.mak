@@ -248,6 +248,7 @@ sub get_value_line_hook {
 
 sub node_style_hook {
   my ($node, $style)=@_;
+  TR_Correction::node_style_hook(@_);
   if ($node->{_light} eq '_LIGHT_') {
     push @{$style->{Oval}}, -fill => 'cyan';
     push @{$style->{Node}}, -addwidth => 7, -addheight => 7;
