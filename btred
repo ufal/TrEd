@@ -11,6 +11,13 @@ package main;
 
 use Getopt::Std;
 
+if ($^V lt v5.6.0) {
+  print STDERR '-' x 50,"\n";
+  print STDERR "WARNING: Your version of perl is older than v5.6.0\n";
+  print STDERR "THINGS MAY NOT WORK AS EXPECTED!\n";
+  print STDERR '-' x 50,"\n\n";
+}
+
 ## Passing -o args... -- to TredMacro
 @TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;

@@ -4,6 +4,13 @@
 ################################################################################
 #use strict;
 
+if ($^V lt v5.6.0) {
+  print STDERR '-' x 50,"\n";
+  print STDERR "WARNING: Your version of perl is older than v5.6.0\n";
+  print STDERR "THINGS MAY NOT WORK AS EXPECTED!\n";
+  print STDERR '-' x 50,"\n\n";
+}
+
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
