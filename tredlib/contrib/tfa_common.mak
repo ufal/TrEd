@@ -170,13 +170,11 @@ sub AskCzEn ($$$$) {
   my ($titleCz, $messageCz, $titleEn, $messageEn) = @_;
   my ($title, $message, $yes, $no);
 
-  use POSIX qw(locale_h);
-
-    if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech/i) {
-      ($yes, $no, $title, $message) = ("Ano", "Ne", $titleCz, $messageCz);
-    } else {
-      ($yes, $no, $title, $message) = ("Yes", "No", $titleEn, $messageEn);
-    }
+  if (eval "use POSIX qw(locale_h); setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech/i") {
+    ($yes, $no, $title, $message) = ("Ano", "Ne", $titleCz, $messageCz);
+  } else {
+    ($yes, $no, $title, $message) = ("Yes", "No", $titleEn, $messageEn);
+  }
 
   my $d = ToplevelFrame()->DialogBox(-title => $title,
 				       -buttons => [$yes, $no]
@@ -200,9 +198,7 @@ sub MessageCzEn ($$) {
 
   my ($title, $message);
 
-  use POSIX qw(locale_h);
-
-  if (setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech/i) {
+  if (eval "use POSIX qw(locale_h); setlocale(LC_MESSAGES) =~ /^cs_CZ$|^czech/i") {
     ($title, $message) = ("Zpráva", $messageCz);
   } else {
     ($title, $message) = ("Message", $messageEn);
@@ -370,8 +366,7 @@ sub OrderByTFA {
 sub OrderSTByTFA {
 # orders the passed node's sons' subtrees according to the tfa value
 
-  my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node whos
-e subtree is to be projectivized
+  my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node whose subtree is to be projectivized
 
   return unless ProjectivizeSubTree($top);
 
