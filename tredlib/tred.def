@@ -1635,7 +1635,7 @@ or reload, 0 otherwise.
 =cut
 
 sub GetFileSaveStatus {
-  return $grp->{FSFile}->notSaved;
+  return $grp->{FSFile} ? $grp->{FSFile}->notSaved : 0;
 }
 
 =item SetFileSaveStatus
@@ -1647,7 +1647,7 @@ macro (and TrEd/bTrEd would not notice that).
 =cut
 
 sub SetFileSaveStatus {
-  $grp->{FSFile}->notSaved($_[0]);
+  $grp->{FSFile}->notSaved($_[0]) if $grp->{FSFile};
 }
 
 
