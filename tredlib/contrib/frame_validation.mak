@@ -412,7 +412,7 @@ sub match_node {
     } elsif ($pos eq 'f') {
       return 0 unless $node->{tag}=~/^Vf/;
     } elsif ($pos eq 'u') {
-      return 0 unless $node->{tag}=~/^AU|^PS/;
+      return 0 unless $node->{tag}=~/^AU|^PS|^P8/;
     } else {
       # TODO: c s
       return 0 unless $node->{tag}=~/^V/;
@@ -1011,7 +1011,7 @@ sub check_nounadj_frames {
 
   my $func = get_func($node);
   my $pos = substr($node->{tag},0,1);
-  next if $pos!~/[NA]/ or $func =~ /[DF]PHR/;
+  return if $pos!~/[NA]/ or $func =~ /[DF]PHR/;
   my $lemma = $node->{trlemma};
   $lemma =~ s/_/ /g;
   $V->user_cache->{$lemma} = $V->word($lemma,$pos) unless exists($V->user_cache->{$lemma});
@@ -1044,9 +1044,9 @@ sub check_nounadj_frames {
 		@word_frames == 1) {
 	      my @els = $V->elements($possible_frames[0]);
 	      if (@els == 0) {
-		print "10 unresloved frame, but verb has only EMPTY frame, which matches: $fi\t";
+		print "10 unresloved frame, but word has only EMPTY frame, which matches: $fi\t";
 	      } else {
-		print "11 unresloved frame, but verb has only one frame, which matches: $fi\t";
+		print "11 unresloved frame, but word has only one frame, which matches: $fi\t";
 	      }
 	    } elsif (@possible_frames==1) {
 	      print "12 unresloved frame, but one matching frame: $fi\t";
@@ -1090,9 +1090,9 @@ sub check_nounadj_frames {
 	    @word_frames == 1) {
 	  my @els = $V->elements($possible_frames[0]);
 	  if (@els == 0) {
-	    print "16 no frame assigned, but verb has only EMPTY frame, which matches: $fi\t";
+	    print "16 no frame assigned, but word has only EMPTY frame, which matches: $fi\t";
 	  } else {
-	    print "17 no frame assigned, but verb has only one frame, which matches: $fi\t";
+	    print "17 no frame assigned, but word has only one frame, which matches: $fi\t";
 	  }
 	} elsif (@possible_frames==1) {
 	  print "18 no frame assigned, but one matching frame: $fi\t";
