@@ -643,6 +643,10 @@ sub startMain {
 	_msg "Request $f at client's request\n";
 	$f=~s{^ntred://}{};
 	$f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
+	if ($] >= 5.008) {
+	  require Encode;
+	  $request{FSFile} = encode($TrEd::Convert::inputenc,$request{FSFile});
+	}
 	my @fs=map {$_."\n"} split /\n/,$request{FSFile};
 	if ($f and openFile($grp,$f,-justpreloaded => 1) and ref($grp->{FSFile})) {
 	  _msg "Uploading $f at client's request\n";
@@ -1101,14 +1105,14 @@ sub updateTredMacroGlobals {
 
 sub _set_encoding {
   my ($fh, $enc, $what)=@_;
-  if ($enc and $]>=5.008) {
+  if ($]>=5.008) {
     eval {
       _msg("forcing encoding $enc for $what\n") if $debug;
       $fh->flush();
       binmode $fh; # first get rid of all I/O layers
       if ($enc =~ /^:/) {
 	binmode $fh,$enc;
-      } else {
+      } elsif ($enc ne "") {
 	binmode $fh,":encoding($enc)";
       }
     };
