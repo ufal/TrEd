@@ -3,8 +3,6 @@
 ## created: Wed Mar 15 14:50:16 CET 2000
 
 
-#include contrib/remote_control.mak
-
 sub file_opened_hook {
   if (exists $grp->{FSFile}->FS->defs->{TR}) {
     SwitchContext('Tectogrammatic');
