@@ -400,7 +400,11 @@ sub write {
 	  print_split_attr_with_num_attr($fileref,$node,"govMD_$1","wMDg_$1","MDg src=\"$1\"",'w');
 	}
       }
-
+      if (join("",map { $node->{"wsd$_"} } qw(s ewn ili iliOffset)) ne "") {
+	print $fileref "<g",
+	  join ("",map { " $_='".$node->{"wsd$_"}."'" } grep { $node->{"wsd$_"} ne "" }
+	    qw(s ewn ili iliOffset)),">";
+      }
       # get a list of <x> unique attributes
       my %xtra;
       @xtra{
