@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-05-27 16:21:00 pajas>
+## Time-stamp: <2004-05-28 12:37:29 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -26,9 +26,19 @@ sub file_opened_hook {
   SwitchContext('Quotation');
   $FileNotSaved=0;
 }
-#endif
 
-#ifdef TRED
+#bind GotoFileAsk to Alt+G menu Go to file...
+sub GotoFileAsk {
+  my $to=main::QueryString($grp->{framegroup},"Give a File Number","Number");
+  return unless $to=~/^\s*\d+\s*$/;
+  if (GotoFileNo($to-1)) {
+    $FileNotSaved = GetFileSaveStatus();
+  } else {
+    ChangingFile(0);
+  }
+}
+
+
 sub file_resumed_hook {
   SwitchContext('Quotation');
 }
