@@ -543,6 +543,43 @@ sub get_save_filename {
   }
 }
 
+sub get_entry_type {
+  my $Entry = "Entry";
+  my @Eopts;
+  eval {
+    require Tk::HistEntry;
+    $Entry = "SimpleHistEntry";
+    @Eopts = qw(-case 0 -match 1);
+  };
+  undef $@;
+  return ($Entry,@Eopts);
+}
+
+sub set_grp_history {
+  my ($grp,$e,$h,$list)=@_;
+  if ($e->can('history')){
+    push @$list,[$e,$h] if (ref($list));
+    $grp->{"hist_$h"}=[] unless ref($grp->{"hist_$h"});
+    $e->history($hist);
+  }
+}
+
+sub get_grp_history {
+  my ($grp,$e,$h)=@_;
+  if ($e->can('historyAdd')) {
+    $grp->{"hist_$h"}=[] unless ref($grp->{"hist_$h"});
+    my $v = $e->get;
+    $e->historyAdd($v) if $v ne "";
+    @{$grp->{"hist_$h"}} = $e->history();
+  }
+}
+
+sub get_grp_histories {
+  my ($grp,$list)=@_;
+  foreach my $E (@$list) {
+    get_grp_history($grp,@$E);
+  }
+}
 
 sub saveStyleSheets {
   my ($grp)=@_;
@@ -1823,7 +1860,8 @@ sub insertToFilelist {
   my $toplevel= $grp->{Filelist} ? $grp->{Filelist}->toplevel : $grp->{top};
   @list= map {
     if (-d $_) {
-      $tmp=Query($toplevel,"Selection Pattern","Insert pattern for directory $_","*.*");
+      $grp->{'hist-fileListPattern'}=[] unless $grp->{'hist-fileListPattern'};
+      $tmp=Query($toplevel,"Selection Pattern","Insert pattern for directory $_","*.*",1,$grp->{'hist-fileListPattern'});
       $_= defined($tmp) ? File::Spec->catfile($_,$tmp) : undef;
     }
     $_;
@@ -2079,8 +2117,9 @@ sub filelistDialog {
 				  # pattern -> edit
 				  my $position=
 				    $grp->{filelistCurrentFilelist}->find_pattern($data);
+				  $grp->{'hist-fileListPattern'}=[] unless $grp->{'hist-fileListPattern'};
 				  $data=Query($grp->{Filelist}->toplevel,"Selection Pattern",
-					"Edit directory pattern for $data",$data);
+					"Edit directory pattern for $data",$data,1,$grp->{'hist-fileListPattern'});
 				  if (defined($data)) {
 				    print "Removing ",$grp->{Filelist}->info('data',$anchor),"\n" if $tredDebug;
 				    $grp->{filelistCurrentFilelist}->remove($grp->{Filelist}->info('data',$anchor));
@@ -2329,8 +2368,8 @@ sub macrolistDialog {
 
 sub copyTreesDialog {
   my ($grp)=@_;
-  
   return unless $grp->{focusedWindow}->{FSFile};
+  my ($Entry, @Entry) = get_entry_type();
   my $range=$grp->{focusedWindow}->{treeNo}+1;
   my $source=$grp->{focusedWindow}->{FSFile};
   my $destination=$grp->{focusedWindow}->{FSFile};
@@ -2360,10 +2399,12 @@ sub copyTreesDialog {
 		 )->pack(qw/-side left -padx 10/);
   $ff->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
   my $sf= $d->Frame();
-  my $re=$sf->Entry(-relief=> 'sunken',
-		 -width=> 20,
-		 -font=> $font,
-		 -textvariable=> \$range);
+  my $re=$sf->$Entry(@Entry,
+		     -relief=> 'sunken',
+		     -width=> 20,
+		     -font=> $font,
+		     -textvariable=> \$range);
+  set_grp_history($grp, $re, 'treeRange');
   $sf->Label(-text=> 'Trees selection (range):',
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
@@ -2392,6 +2433,7 @@ sub copyTreesDialog {
 
 
   my $result= ShowDialog($d,$re,$grp->{top});
+  get_grp_history($grp, $re, 'treeRange') if ($result=~ /OK/);
   $d->destroy();
   undef $d;
   if ($result=~ /OK/) {
@@ -2429,7 +2471,8 @@ sub printDialog {
   my ($grp)=@_;
   my $win = $grp->{focusedWindow};
   return unless $win->{FSFile};
-
+  my ($Entry,@Entry) = get_entry_type();
+  my $e_hist;
   my $com=$grp->{printCommand};
   my $fil=$grp->{printPsFile};
   $fil =doEvalHook($win,"print_tree_filename_hook");
@@ -2467,11 +2510,12 @@ sub printDialog {
 		     -anchor=> 'w',
 		     -justify=> 'right')->pack(-side=> 'left');
 
-  my $ce= $cf->Entry(-relief=> 'sunken',
+  my $ce= $cf->$Entry(@Entry,
+		      -relief=> 'sunken',
 		     -width=> 20,
 		     -font=> $font,
 		     -textvariable=> \$com)->pack(qw/-padx 10 -side left -expand yes -fill x/);
-
+  set_grp_history($grp, $ce, 'printCommand', $e_hist);
   my $defaultBg=$ce->cget('-background');
   my $disabledBg=$d->cget('-background');
 
@@ -2485,14 +2529,18 @@ sub printDialog {
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
 
-  my $mex = $mf->Entry(-textvariable => \$prtFmtWidth,
+  my $mex = $mf->$Entry(@Entry,
+			-textvariable => \$prtFmtWidth,
 		       -width => 5,
 		       -validate => 'key',
 		       -validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
-  my $mey = $mf->Entry(-textvariable => \$prtFmtHeight,
+  set_grp_history($grp, $mex, 'printFmtWidth',$e_hist);
+  my $mey = $mf->$Entry(@Entry,
+			-textvariable => \$prtFmtHeight,
 		       -width => 5,
 		       -validate => 'key',
 		       -validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
+  set_grp_history($grp, $mey, 'printFmtHeight',$e_hist);
   for ($mey,$mex) {
     $_->configure(($format eq 'ImageMagick' || $psMedia ne 'User')
 		  ? (-state=> 'disabled',-background=> $disabledBg)
@@ -2539,29 +2587,38 @@ sub printDialog {
 	     -padx => 10,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-  $mf->Entry(-textvariable => \$prtHMargin,
-	     -width => 5,
-	     -validate => 'key',
-	     -validatecommand => sub { shift =~ /^\s*\d*[cimp]?\s*$/ })
-    ->pack(-side=> 'left');
+  my $ehm = $mf->$Entry(@Entry,
+			-textvariable => \$prtHMargin,
+			-width => 5,
+			-validate => 'key',
+			-validatecommand => 
+			sub { shift =~ /^\s*\d*[cimp]?\s*$/ });
+  set_grp_history($grp, $ehm, 'printHMargin',$e_hist);
+  $ehm->pack(-side=> 'left');
   $mf->Label(-text=> 'Y margin:',
 	     -padx => 10,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-  $mf->Entry(-textvariable => \$prtVMargin,
-	     -width => 5,
-	     -validate => 'key',
-	     -validatecommand => sub { shift =~ /^\s*\d*[cimp]?\s*$/ })
-    ->pack(-side=> 'left');
+  my $evm=$mf->$Entry(@Entry,
+		      -textvariable => \$prtVMargin,
+		      -width => 5,
+		      -validate => 'key',
+		      -validatecommand => 
+		      sub { shift =~ /^\s*\d*[cimp]?\s*$/ });
+  set_grp_history($grp, $evm, 'printVMargin',$e_hist);
+  $evm->pack(-side=> 'left');
   my $ff=$d->Frame();
   my $fl= $ff->Label(-text=> 'File name:',
 		     -anchor=> 'w',
 		     -justify=> 'right')->pack(-side=> 'left');
 
-  my $fe= $ff->Entry(-relief=> 'sunken',
-		     -width=> 50,
-		     -font=> $font,
-		     -textvariable=> \$fil)->pack(qw/-padx 10 -side left -expand yes -fill x/);
+  my $fe= $ff->$Entry(@Entry,
+		      -relief=> 'sunken',
+		      -width=> 50,
+		      -font=> $font,
+		      -textvariable=> \$fil)
+    ->pack(qw/-padx 10 -side left -expand yes -fill x/);
+  set_grp_history($grp, $fe, 'printFile',$e_hist);
   if ($fil ne "") {
     my $start = rindex($fil,"/")+1;
     my $end = rindex($fil,".");
@@ -2572,10 +2629,12 @@ sub printDialog {
     }
   }
   my $sf= $d->Frame();
-  my $re=$sf->Entry(-relief=> 'sunken',
-		    -width=> 20,
-		    -font=> $font,
-		    -textvariable=> \$printRange);
+  my $re=$sf->$Entry(@Entry,
+		     -relief=> 'sunken',
+		     -width=> 20,
+		     -font=> $font,
+		     -textvariable=> \$printRange);
+  set_grp_history($grp, $re, 'printRange',$e_hist);
   my $fb= $ff->Button(-text => '...',
 		      -command =>
 		      [sub {
@@ -2851,6 +2910,7 @@ sub printDialog {
   }
 #  $grp->{printUseType1Font}=$useType1Font;
   $grp->{printNoRotate}=$noRotate;
+  get_grp_histories($grp,$e_hist) if ($result =~ /OK/);
   $d->destroy;
   undef $d;
   if ($result=~ /OK/) {
@@ -3486,7 +3546,8 @@ sub startMain {
   } else {
     $group{top}=MainWindow->new();
   }
-  for (qw(ROText Text Entry Listbox HList CodeText)) {
+  for (qw(ROText Text Entry HistEntry SimpleHistEntry
+	  Listbox HList CodeText)) {
     $group{top}->option('add',"\*$_.background","white");
     $group{top}->option('add',"\*$_.foreground","black");
     $group{top}->option('add',"\*$_.disabledBackground","lightgray");
@@ -4668,7 +4729,8 @@ sub urlDialog {
       defined($grp->{focusedWindow}->{FSFile})) {
     $grp->{lastURL} = $grp->{focusedWindow}->{FSFile}->filename();
   }
-  my $file = QueryString($grp,"Enter URL", "URL: ",$grp->{lastURL});
+  $grp->{urlHist} = [] unless ref($grp->{urlHist});
+  my $file = QueryString($grp,"Enter URL", "URL: ",$grp->{lastURL},1,$grp->{urlHist});
   if (defined $file and $file ne '') {
     $grp->{lastURL} = $file;
     return openFile($grp,$file,-justheader => $header_only);
@@ -4895,7 +4957,7 @@ sub editConfig {
 }
 
 sub QueryString {
-  my ($grp, $title, $label,$default_text)=@_;
+  my ($grp, $title, $label,$default_text, $select, $hist)=@_;
   my $newvalue=encode($default_text);
   my $d=$grp->{top}->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
@@ -4906,11 +4968,18 @@ sub QueryString {
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
 
   addBindTags($d,'dialog');
-  my $e=$d->add('Entry',-relief=> 'sunken',
-		    -width=> 70,
-		    -takefocus=> 1,
-		    -font=> $font,
-		    -textvariable=> \$newvalue);
+  my ($Entry,@Eopts) = get_entry_type();
+  my $e=$d->add($Entry,
+		@Eopts,
+		-relief=> 'sunken',
+		-width=> 70,
+		-takefocus=> 1,
+		-font=> $font,
+		-textvariable=> \$newvalue);
+  if ($e->can('history') and ref($hist)) {
+    $e->history($hist);
+  }
+  $e->selectionRange(qw(0 end)) if ($select);
   my $l= $d->Label(-text=> encode($label),
 		    -anchor=> 'e',
 		    -justify=> 'right');
@@ -4920,28 +4989,37 @@ sub QueryString {
   $d->resizable(0,0);
 #  $e->focus;
   my $result= ShowDialog($d,$e,$grp->{top});
-  $d->destroy;
-  undef $d;
   if ($result=~ /OK/) {
+    if (ref($hist) and $e->can('historyAdd')) {
+      $e->historyAdd($newvalue) if $newvalue ne "";
+      @$hist = $e->history();
+    }
+    $d->destroy; undef $d;
     return decode($newvalue);
   } else {
+    $d->destroy; undef $d;
     return undef;
   }
 }
 
 sub Query {
-  my ($w, $title, $label,$default_text)=@_;
+  my ($w, $title, $label,$default_text,$select, $hist)=@_;
   my $newvalue=encode($default_text);
   my $d=$w->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
   $d->bind('<Return>', \&dlgReturn );
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   addBindTags($d,'dialog');
-  my $e=$d->add('Entry',-relief=> 'sunken',
+  my ($Entry,@Eopts) = get_entry_type();
+  my $e=$d->add($Entry,-relief=> 'sunken',
 		    -width=> 40,
 		    -takefocus=> 1,
 		    -font=> $font,
 		    -textvariable=> \$newvalue);
+  if ($e->can('history') and ref($hist)) {
+    $e->history($hist);
+  }
+  $e->selectionRange(qw(0 end)) if ($select);
   my $l= $d->Label(-text=> encode($label),
 		    -anchor=> 'e',
 		    -justify=> 'right');
@@ -4950,6 +5028,12 @@ sub Query {
   $d->resizable(0,0);
 #  $e->focus;
   my $result= ShowDialog($d,$e,$w);
+  if ($result=~/OK/) {
+    if (ref($hist) and $e->can('historyAdd')) {
+      $e->historyAdd($newvalue) if $newvalue ne "";
+      @$hist = $e->history();
+    }
+  }
   $d->destroy;
   undef $d;
   if ($result=~ /OK/) {
@@ -5045,6 +5129,7 @@ sub selectStylesheet {
 	    getStylesheetMenuList($grp),
 	    $selection) || return;
   if (@$selection) {
+    $grp->{selectedStylesheet} = $selection->[0];
     switchStylesheet($grp,$selection->[0]);
   }
 }
@@ -5107,14 +5192,19 @@ sub selectValuesDialog {
    if ($may_add) {
      $d->Button(-text=> 'Add',
 		-command=> [sub {
-			       my ($grp,$l,$vals)=@_;
-			       my $val=QueryString($grp,"Add new value","Value");
+			       my ($grp,$l,$vals,$attr)=@_;
+			       $grp->{"histValue:$attr"}=[]
+				 unless $grp->{"histValue:$attr"};
+			       my $val=
+				 QueryString($grp,"Add new value","Value",
+					     undef,
+					     0,$grp->{"histValue:$attr"});
 			       return unless defined $val;
 			       push @$vals,$val;
 			       $l->insert('end',$val);
 			       $l->selectionClear(0,$l->size-1) unless $multi;
 			       $l->selectionSet($l->size-1);
-			     },$grp,$l,$vals])->pack();
+			     },$grp,$l,$vals,$attr])->pack();
    }
  }
  $top->Unbusy();
@@ -6227,6 +6317,7 @@ sub doEditAttr {
   my $grp=$win->{framegroup};
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
+  my ($Entry,@Eopts) = get_entry_type();
   my $newvalue;
   if ($win->{FSFile}->FS->isList($attr)) {
     $newvalue= editListAttr($win,$node->getAttribute($attr),$attr,$grp->{top});
@@ -6277,16 +6368,19 @@ sub doEditAttr {
   my $l= $d->Label(-text=> $attr,
 		    -anchor=> 'e',
 		    -justify=> 'right')->pack(-side=>'left');
-  my $e= $d->Entry(-relief=> 'sunken',
+  my $e= $d->$Entry(@Entry,
+		    -relief=> 'sunken',
 		    -width=> 40,
 		    -state=> $enabled ? 'normal' : 'disabled',
 		    -takefocus=> 1,
 		    -font=> $font,
 		    -textvariable=> \$newvalue)->pack();
+  set_grp_history($grp, $e, "attr-$attr");
   $e->icursor('end');
   $grp->{top}->Unbusy();
   $result= ShowDialog($d,$e,$grp->{top});
   if ($result=~ /OK/) {
+    get_grp_history($grp,$e, "attr-$attr");
     $win->{FSFile}->notSaved(1);
     save_undo($win,prepare_undo($win));
     lastActionBookmark($grp);
