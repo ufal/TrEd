@@ -56,7 +56,8 @@ sub assign_CPHR_and_add_QCor {
     foreach my $p (PDT::GetFather_TR($this)) {
       if ($p->{trlemma} eq 'mít') {
 	print "ADDING coref\n";
-	foreach my $act (grep { $_->{func} eq 'ACT' } PDT::GetChildren_TR($p)) {
+	foreach my $act (uniq map { _highest_coord($_) } 
+			 grep { $_->{func} eq 'ACT' } PDT::GetChildren_TR($p)) {
 	  my $coref = $act->{AID}.$act->{TID};
 	  print "ADDING coref to $coref\n";
 	  Coref::assign_coref($qcor,$coref,'grammatical');
@@ -143,7 +144,7 @@ sub discover_cphr_dphr {
 				} $V->valid_frames($cache{$lemma})]
       unless exists($cache{"FRAMES:".$lemma});
     foreach my $frame (@{$cache{"FRAMES:".$lemma}}) {
-      $tframe = do_transform_frame($V,$trans_rules,$node,$frame,$aids,0);
+      $tframe = do_transform_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,0);
       foreach my $e (grep { $V->func($_) =~ /^[DC]PHR$/ } $V->elements($tframe)) {
 	my @forms = $V->forms($e);
 	my $func = $V->func($e);
