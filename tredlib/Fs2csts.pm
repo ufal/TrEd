@@ -274,7 +274,7 @@ sub write {
 
 	  print_split_attr_with_num_attr($fileref,$node,'tag','wt','t','w');
 	}
-	foreach (grep(/lemmaMM_/,$fsfile->FS->attributes)) {
+	foreach (grep(/^lemmaMM_/,$fsfile->FS->attributes)) {
 	  /lemmaMM_(.*)$/;
 	  my $suf=$1;
 	  print_split_attr($fileref,$node->{$_},"MMl src=\"$suf\"");
@@ -283,7 +283,7 @@ sub write {
 	  print $fileref "<E>",$node->{"endingMM_$suf"} if ($node->{"rootMM_$suf"} ne "");
 	  print_split_attr($fileref,$node->{"tagMM_$suf"},"MMt src=\"$suf\"");
 	}
-	foreach (grep(/lemmaMD_/,$fsfile->FS->attributes)) {
+	foreach (grep(/^lemmaMD_/,$fsfile->FS->attributes)) {
 	  /lemmaMD_(.*)$/;
 	  my $suf=$1;
 	  print_split_attr_with_num_attr($fileref,$node,"lemmaMD_$suf","wMDl_$suf","MDl src=\"$suf\"",'w');
@@ -295,7 +295,7 @@ sub write {
 	if ($node->{afun} and $node->{afun} ne "???") {
 	  print_split_attr($fileref,$node->{afun},'A');
 	}
-	foreach (grep(/afunMD_/,$fsfile->FS->attributes)) {
+	foreach (grep(/^afunMD_/,$fsfile->FS->attributes)) {
 	  /afunMD_(.*)$/;
 	  print_split_attr_with_num_attr($fileref,$node,"afunMD_$1","wMDA_$1","MDA src=\"$1\"",'w');
 	}
@@ -352,8 +352,8 @@ sub write {
 	print $fileref "<corr>",$node->{corr} if ($node->{corr} !~ /^(?:---|\?\?\?)?$/);
 	print $fileref "<cors>",$node->{cors} if ($node->{cors} !~ /^(?:---|\?\?\?)?$/);
       }
-      foreach (grep(/trlemmaM_/,$fsfile->FS->attributes)) {
-	/trlemmaM_(.*)$/;
+      foreach (grep(/^trlemmaM_/,$fsfile->FS->attributes)) {
+	/^trlemmaM_(.*)$/;
 	print $fileref "<MTRl ";
 	print $fileref " hidden" if ($node->{"MTR_$1"} eq "hide");
 	print $fileref " src=\"$1\"";
@@ -373,13 +373,21 @@ sub write {
       }
       unless (index($node->{ord},'.')>=$[) {
 	#not allowed in DTD for some reason
-	foreach (grep(/MDg_/,$fsfile->FS->attributes)) {
+	foreach (grep(/^MDg_/,$fsfile->FS->attributes)) {
 	  /govMD_(.*)$/;
 	  print_split_attr_with_num_attr($fileref,$node,"govMD_$1","wMDg_$1","MDg src=\"$1\"",'w');
 	}
       }
-      foreach (@extra_attributes) {
-	print $fileref "<x name=\"$_\">",translate_to_entities($node->{$_}) 
+
+      # get a list of <x> unique attributes
+      my %xtra;
+      @xtra{
+	@extra_attributes,
+	grep(/^x_/,$fsfile->FS->attributes())
+      }=();
+      foreach (sort {$a cmp $b} keys %xtra) {
+	my $name=$_; $name=~s/^x_//;
+	print $fileref "<x name=\"$name\">",translate_to_entities($node->{$_})
 	  if $node->{$_} ne "";
       }
       if ($preserve_err1 and $node->{err1} ne "") {

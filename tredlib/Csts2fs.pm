@@ -379,7 +379,7 @@ my %pcdata = (
 	      r => [\&to_node_attr,'|','ord'],
 	      x => [sub {
 		      my ($s,$data)=@_;
-		      to_composed_node_attr($s,$data,"","","name","");
+		      to_composed_node_attr($s,$data,"x_","","name","");
 		    }],
 	     );
 
