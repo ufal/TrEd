@@ -45,8 +45,14 @@ sub doc_reload {
   my $parser=$self->parser();
   return unless $parser;
   $parser->load_ext_dtd(1);
-  $parser->validation(1);
-  $self->set_doc($parser->parse_file($self->file));
+  $parser->validation(0);
+  print STDERR "parsing file ",$self->file,"\n";
+  eval {
+    my $doc=$parser->parse_file($self->file);
+    $self->set_doc($doc);
+
+  };
+  print STDERR "$@\ndone\n";
 }
 
 sub save {
@@ -63,6 +69,11 @@ sub save {
   unless ($no_backup || rename $file, $backup) {
     warn "Couldn't create backup file, aborting save!\n";
     return 0;
+  }
+  if ($self->doc()->can('toFile')) {
+    $self->doc()->toFile($file,$indent);
+    $self->set_change_status(0);
+    return 1;
   }
   my $output;
   if ($file=~/.gz$/) {
@@ -83,6 +94,38 @@ sub save {
   return 1;
 }
 
+sub getNextWordNode {
+  my ($self,$n)=@_;
+
+  $n=$n->nextSibling();
+  while ($n) {
+    last if ($n and $n->nodeName() eq 'word');
+    $n=$n->nextSibling();
+  }
+
+  return $n;
+}
+
+sub getFirstWordNode {
+  my ($self)=@_;
+  my $doc=$self->doc();
+  return unless $doc;
+  my $docel=$doc->documentElement();
+  my $body=$docel->firstChild();
+  while ($body) {
+    last if ($body->nodeName() eq 'body');
+    $body=$body->nextSibling();
+  }
+  die "didn't find vallency_lexicon body?" unless $body;
+  my @w;
+  my $n=$body->firstChild();
+  while ($n) {
+    last if ($n->nodeName() eq 'word');
+    $n=$n->nextSibling();
+  }
+  return $n;
+}
+
 sub getWordNodes {
   my ($self)=@_;
   my $doc=$self->doc();
@@ -90,14 +133,14 @@ sub getWordNodes {
   my $docel=$doc->getDocumentElement();
   my $body=$docel->firstChild();
   while ($body) {
-    last if ($body->localname() eq 'body');
+    last if ($body->nodeName() eq 'body');
     $body=$body->nextSibling();
   }
   die "didn't find vallency_lexicon body?" unless $body;
   my @w;
   my $n=$body->firstChild();
   while ($n) {
-    push @w,$n if ($n->localname() eq 'word');
+    push @w,$n if ($n->nodeName() eq 'word');
     $n=$n->nextSibling();
   }
   return @w;
@@ -132,7 +175,7 @@ sub getWordNodes {
 sub isEqual {
   my ($self,$a,$b)=@_;
   return unless ref($a);
-  return $a->isEqual($b);
+  return $a->isSameNode($b);
 }
 
 #############################################
@@ -145,7 +188,7 @@ sub getChildElementsByTagName {
   my $n=$self->firstChild();
   my @n;
   while ($n) {
-    push @n,$n if ($n->localname() eq $name);
+    push @n,$n if ($n->nodeName() eq $name);
     $n=$n->nextSibling();
   }
   return @n;
@@ -162,7 +205,7 @@ sub getDescendantElementsByTagName {
     my $c=$iter->current();
     last if ($i>100);
     last if $c->isSameNode($self);
-    push @n, $c if $c->localname() eq $name;
+    push @n, $c if $c->nodeName() eq $name;
   }
   return @n;
 }
