@@ -365,6 +365,9 @@ sub preloadFiles {
   my $filecount=@$filelist;
   my $fno;
   foreach my $f (@$filelist) {
+    if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
+      $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
+    }
     print STDERR "Preloading: $f (",$fno+1,"/$filecount)\n" unless $opt_Q;
     my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
