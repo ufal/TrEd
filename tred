@@ -2871,12 +2871,12 @@ sub printDialog {
   undef $d;
   if ($result=~ /OK/) {
     return ($s{printRange},
-	    ($s{printTo} ne 'convert') ? 1 : 0,
+	    ($s{printTo} eq 'file') ? 1 : 0,
 	    ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
 	    ($s{format} eq 'PDF') ? 1 : 0,
 	    $s{file},$s{printSentence},
 	    (($s{printTo} eq 'convert') ?
-	     "$imageMagickConvert -density $s{resolution} - $s{file}" : $com),
+	     "$imageMagickConvert -density $s{resolution} - $s{file}" : $s{command}),
 	    $s{printColors},$s{noRotate});
   } else {
     return ();
