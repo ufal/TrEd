@@ -560,8 +560,7 @@ sub ask_save_data {
 					-bitmap=> 'question',
 					-title=> 'Question',
 					-buttons=> ['Yes','No']);
-  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
-			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  $d->bind('<Return>', \&dlgReturn);
   my $answer=$d->Show();
   if ($answer eq 'Yes') {
     $self->save_data($top);
@@ -639,6 +638,7 @@ sub addword_button_pressed {
   my $d=$top->DialogBox(-title => "Add word",
 				-buttons => ["OK","Cancel"]);
 
+  $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
 
@@ -830,12 +830,7 @@ sub show_frame_editor_dialog {
   my $top=$self->widget()->toplevel;
   my $d=$top->DialogBox(-title => $title,
 				-buttons => ["OK","Cancel"]);
-  $d->bind($d,'<Return>', sub {
-	     my $w=shift;
-	     my $f=$w->focusCurrent;
-	     $f->Invoke if ($f and $f->isa('Tk::Button'));
-	     Tk->break;
-	   } );
+  $d->bind($d,'<Return>', \&dlgReturn);
   my $ed=TrEd::ValLex::FrameElementEditor->new($self->data(), undef, $d);
   $ed->subwidget_configure($confs) if ($confs);
   $ed->pack(qw/-expand yes -fill both/);

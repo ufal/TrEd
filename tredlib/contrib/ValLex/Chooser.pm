@@ -29,6 +29,7 @@ sub show_dialog {
 			  -buttons => ['Choose', 'Cancel'],
 			  -default_button => 'Choose'
 			 );
+  $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $chooser =
