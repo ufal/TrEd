@@ -6,7 +6,7 @@
 package TEIXMLBackend;
 use Fslib;
 use XML::LibXML;
-use XML::LibXML::SAX;
+use XML::LibXML::SAX::Parser;
 use strict;
 
 sub test {
@@ -52,9 +52,8 @@ Read TEI XML file used in SDT for morphological and analytical annotation.
 
 sub read {
   my ($input,$fsfile) = @_;
-  #my $handler = XML::SAX::Writer->new();
   my $handler = XML::Handler::TEIXML2FS->new(FSFile => $fsfile);
-  my $p = XML::LibXML::SAX->new(Handler => $handler);
+  my $p = XML::LibXML::SAX::Parser->new(Handler => $handler);
   if (ref($input)) {
     $p->parse_fh($input);
   } else {
@@ -167,7 +166,7 @@ sub write {
     print $output ">\n";
 
     foreach my $node (sort { $a->{ord} <=> $b->{ord} } $tree->descendants) {
-      my $type=$node->{type} || "w";
+      my $type=$node->{tei_type} || "w";
       print $output "<$type";
       foreach (grep { exists($node->{$_}) and
 		      defined($node->{$_}) and 
@@ -176,7 +175,7 @@ sub write {
 	print $output " $_=\"".xml_quote($node->{$_})."\"";
       }
       print $output " dep=\"".
-	xml_quote($node->parent->parent ? $rootdep : $node->parent->{id})."\"";
+	xml_quote($node->parent->parent ? $node->parent->{id} : $rootdep )."\"";
       print $output ">";
       print $output xml_quote_pcdata($node->{form});
       print $output "</$type>\n";
@@ -235,8 +234,8 @@ sub xml_decl {
 sub characters {
   my ($self,$hash) = @_;
   return unless $self->{Node};
-  if (($self->{Node}{type} eq 'w') or
-      ($self->{Node}{type} eq 'c')) {
+  if (($self->{Node}{tei_type} eq 'w') or
+      ($self->{Node}{tei_type} eq 'c')) {
     my $str = $hash->{Data};
     if ($]>=5.008) {
       # leave data in the UTF-8 encoding
@@ -268,7 +267,7 @@ sub start_element {
     $self->{Node} = $self->{Tree};
     $self->{Node}->{ord} = 0;
     $self->{LastOrd} = 0;
-    $self->{Node}->{type}=$elem;
+    $self->{Node}->{tei_type}=$elem;
     $self->{Node}->{form}='#'.($self->{FSFile}->lastTreeNo+1);
     if (ref($attr)) {
       foreach (values %$attr) {
@@ -289,7 +288,7 @@ sub start_element {
     }
   } elsif ($elem eq 'w' or $elem eq 'c') {
     $self->{Node} = FSNode->new();
-    $self->{Node}->{type}=$elem;
+    $self->{Node}->{tei_type}=$elem;
     $self->{Node}->{ord} = ++($self->{LastOrd});
     Fslib::Paste($self->{Node},$self->{Tree},{ ord => ' N'});
     if (ref($attr)) {
@@ -306,7 +305,7 @@ sub start_element {
 
 sub end_element {
   my ($self) = @_;
-  if ($self->{Node} and $self->{Node}->{type} eq 's') {
+  if ($self->{Node} and $self->{Node}->{tei_type} eq 's') {
     # build the tree (no consistency checks at all)
     my @nodes=$self->{Tree}->descendants;
     foreach my $node (@nodes) {
@@ -320,11 +319,21 @@ sub end_element {
   $self->{Node} = $self->{Node}->parent if ($self->{Node});
 }
 
+sub start_entity {
+  # just hoping some parser would support these
+  print "START ENTITY: @{$_[1]}\n";
+}
+
+
+sub end_entity {
+  print "END ENTITY: @{$_[1]}\n";
+}
+
 sub entity_reference {
   my $self = $_[0];
   my $name = $_[1]->{Name};
-  if ($self->{Node}->{type} eq 'w' or
-      $self->{Node}->{type} eq 'c') {
+  if ($self->{Node}->{tei_type} eq 'w' or
+      $self->{Node}->{tei_type} eq 'c') {
     $self->{Node}->{form}.='&'.$name.';';
   }
 }
