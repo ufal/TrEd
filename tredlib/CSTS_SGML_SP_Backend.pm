@@ -17,17 +17,20 @@ sub default_settings {
   $z_sgmls_command='%z < %f | %s %o %d -' unless $z_sgmls_command;
 }
 
-=item open_backend (filename,mode)
+=item open_backend (filename,mode, encoding?)
 
 Open given file for reading or writing (depending on mode which may be
 one of "r" or "w"); Return the corresponding object blessed to
 File::Pipe. Only files the filename of which ends with `.gz' are
 considered to be gz-commpressed.
 
+Optionally, in perl ver. >= 5.8, you may also specify file character
+encoding.
+
 =cut
 
 sub open_backend {
-  my ($filename, $mode)=@_;
+  my ($filename, $mode, $encoding)=@_;
   my $fh = undef;
   my $cmd = "";
 
@@ -36,11 +39,17 @@ sub open_backend {
       eval {
 	$fh = new IO::Pipe();
 	$fh && $fh->writer("$gzip > $filename");
+	if ($]>=5.008 and defined($encoding)) {
+	  binmode $fh,":encoding($encoding)";
+	}
       } || return undef;
 	print STDERR "[w $cmd]\n" if $Fslib::Debug;
     } else {
       eval { $fh = new IO::File(); } || return undef;
       $fh->open($filename,$mode) || return undef;
+      if ($]>=5.008 and defined($encoding)) {
+	binmode $fh,":encoding($encoding)";
+      }
     }
   } else {
     if ($filename and -r $filename) {
@@ -57,15 +66,29 @@ sub open_backend {
       $cmd=~s/\%d/$doctype/g;
       $cmd=~s/\%z/$zcat/g;
       print STDERR "[r $cmd]\n" if $Fslib::Debug;
+
+      no integer;
+#      if ($]>=5.008 and defined $encoding) {
+#	eval 'use open ":encoding($encoding)"';
+#	print STDERR $@ if $@;
+#      }
       eval {
-	if ($^O eq 'MSWin32') {
-	  $fh = new IO::File();
-	  $fh && $fh->open("$cmd |");
-	} else {
-	  $fh = new IO::Pipe();
-	  $fh && $fh->reader($cmd);
+	my $ok=open($fh,"-|", $cmd) && $fh;
+	if ($]>=5.008 and defined($encoding)) {
+	  binmode $fh,":encoding($encoding)";
 	}
-      } || return undef;
+	$ok
+#	if ($^O eq 'MSWin32') {
+#	  $fh = new IO::File();
+#	  $fh && $fh->open("$cmd |");
+#	} else {
+#	  $fh = new IO::Pipe();
+#	  $fh && $fh->reader($cmd);
+#	}
+      } || do {
+	print STDERR "error: $!\n" if $!;
+	return undef;
+      }
     }
   }
   return $fh;
@@ -108,7 +131,7 @@ sub write {
 
 =pod
 
-=item test (filehandle | filename)
+=item test (filehandle | filename, encoding?)
 
 =cut
 
@@ -123,15 +146,15 @@ sub test_nsgmls {
 }
 
 sub test {
-  my ($f)=@_;
+  my ($f,$encoding)=@_;
 
   return 0 unless test_nsgmls();
-
   if (ref($f)) {
-    return $f->getline()=~/^Alang|\(csts/;
+    my $line=$f->getline();
+    return $line=~/^Alang|\(csts/;
   } else {
-    my $fh = open_backend($f,"r");
-    my $test = $fh && test($fh);
+    my $fh = open_backend($f,"r",$encoding);
+    my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;
   }
