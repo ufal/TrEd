@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-01-07 09:42:01 pajas>
+## Time-stamp: <2002-01-18 11:32:32 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -9,7 +9,18 @@
 ## or tr_anot_main.mak which are used for various purposes
 
 #include contrib/AFA.mak
+
 #include contrib/ValLex/chooser.mak
+#include contrib/ValLex/adverb.mak
+#bind choose_frame_or_advfunc to Ctrl+Return menu Vyber ramec pro sloveso, funktor pro adverbium
+
+sub choose_frame_or_advfunc {
+  if ($this->{tag}=~/^D/) {
+    ChooseAdverbFunc();
+  } else {
+    ChooseFrame();
+  }
+}
 
 #bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
