@@ -226,6 +226,7 @@ sub value_line_list {
 
     foreach $node (@sent) {
       my %styles;
+      my $add_space=0;
       foreach my $style (@patterns) {
 	my $msg=$self->interpolate_text_field($node,$style,$grp);
 	foreach (split(m/([\#\$]${bblock})/,$msg)) {
@@ -235,6 +236,7 @@ sub value_line_list {
 	    if ($val ne "") {
 	      push @vl,[$val,$node, map { encode("$_ => $styles{$_}") }
 			keys %styles];
+	      $add_space=1;
 	    }
 	  } elsif (/^\#${block}$/) {
 	    #attr
@@ -250,12 +252,13 @@ sub value_line_list {
 	    } else {
 	      $styles{-foreground} = $style
 	    }
-	  } else {
+	  } elsif ($_ ne '') {
 	    push @vl,[$_,$node,'text',map { encode("$_ => $styles{$_}") } keys %styles];
+	    $add_space=1;
 	  }
 	}
       }
-      push @vl,[" ",'space',];
+      push @vl,[" ",'space'] if $add_space;
     }
     return @vl;
   } else {
@@ -1139,6 +1142,8 @@ sub redraw {
 
     ## Lines ##
     my @arrow=split '&',$self->get_style_opt($node,"Line","-arrow",\%Opts);
+    my @arrowshape=map { $_=~/^(\d+),(\d+),(\d+)$/ ? [split /,/] : undef } 
+      split '&',$self->get_style_opt($node,"Line","-arrowshape",\%Opts);
     my @fill=split '&',$self->get_style_opt($node,"Line","-fill",\%Opts);
     my @width=split '&',$self->get_style_opt($node,"Line","-width",\%Opts);
     my @dash=map { /\d/ ? [split /,/,$_] : $_ } 
@@ -1157,12 +1162,14 @@ sub redraw {
       $objectno++;
       my $line="line_$objectno";
       my $l;
+      my $arrow_shape = $arrowshape[$lin] || $self->get_lineArrowShape;
       eval {
 	$l=$canvas->
 	  createLine(@c,
 		     $self->line_options($node,$fsfile->FS,$can_dash),
 		     -tags => [$line,'line'],
 		     -arrow =>  $arrow[$lin] || $self->get_lineArrow,
+                     (defined($arrow_shape) ? (-arrowshape => $arrow_shape) : ()),
 		     -width =>  $width[$lin] || $self->get_lineWidth,
 		     ($fill[$lin] ? ('-fill'  => $fill[$lin]) : ()),
 		     (($dash[$lin] && $can_dash) ? ('-dash'  => $dash[$lin]) : ()),
@@ -1267,7 +1274,7 @@ sub redraw {
       $self->get_drawBoxes 
       && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-nodrawbox",\%Opts) ne "yes")
       || !$self->get_drawBoxes
-      && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-drawbox",\%Opts) eq "yes");
+      && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-dodrawbox",\%Opts) eq "yes");
     $self->store_node_pinfo($node,"NodeHasBox",$node_has_box);
     ## Boxes around attributes
     if ($node_has_box) {
@@ -1301,7 +1308,7 @@ sub redraw {
 	($self->get_drawEdgeBoxes &&
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-nodrawbox",\%Opts) ne "yes") ||
 	 !$self->get_drawEdgeBoxes &&
-	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-drawbox",\%Opts) eq "yes"));
+	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-dodrawbox",\%Opts) eq "yes"));
     $self->store_node_pinfo($node,"EdgeHasBox",$edge_has_box);
     if ($edge_has_box) {
       ## get maximum width stored here by recalculate_positions
@@ -1345,14 +1352,16 @@ sub redraw {
 	  $x=$self->get_node_pinfo($node,"EdgeLabel_XPOS");
 	  $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
 	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
-				!$edge_has_box, \%Opts,$grp);
+				!$edge_has_box,
+				\%Opts,$grp);
 	  $e_i++;
 	}
       } elsif ($pat_class eq "node") {
 	$x=$self->get_node_pinfo($node,"NodeLabel_XPOS");
 	$y=$self->get_node_pinfo($node,"NodeLabel_YPOS")+$n_i*$lineHeight;
 	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
-			      !$node_has_box, \%Opts,$grp);
+			      !$node_has_box,
+			      \%Opts,$grp);
 	$n_i++;
       }
     }
@@ -1401,10 +1410,10 @@ sub redraw {
     }
     $self->realcanvas->lower('bgimage','all')  if ($canvas->find('withtag','bgimage'));
   }
-  eval {
-    $self->realcanvas->raise('text','TextBg');
-    $self->realcanvas->raise('plaintext','TextBg');
-  };
+  eval { $self->realcanvas->raise('TextBg','TextBox') };
+  eval { $self->realcanvas->raise('TextBg','EdgeTextBox') };
+  eval { $self->realcanvas->raise('text','TextBg') };
+  eval { $self->realcanvas->raise('plaintext','TextBg') };
   undef $@;
   ## Canvas grid - for inactive TreeView ##
   ##  $canvas->createLine(0,0,$canvas->width, $canvas->height,-fill => 'green');
@@ -1655,11 +1664,15 @@ sub _present_attribute {
     } elsif (ref($val)) {
       $val = $val->{$step};
     } elsif (defined($val)) {
-#      warn "Can't follow attribute path '$path' (step '$step')\n";
+      #warn "Can't follow attribute path '$path' (step '$step')\n";
       return undef; # ERROR
     } else {
       return '';
     }
+  }
+  if (ref($val) eq 'Fslib::List' or ref($val) eq 'Fslib::Alt') {
+    $append="*" if @$val > 1;
+    $val = $val->[0];
   }
   return $val.$append;
 }
