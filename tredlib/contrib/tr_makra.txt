@@ -1,3 +1,15 @@
+default_tr_attrs		 		
+rotate_func		Ctrl+space		Rotate Functor Values
+edit_commentA		exclam		Edit annotator's comment
+edit_commentA		Shift+1		
+Find		F3		Find
+FindNext		F4		Find Next
+AddNewLoc		Ctrl+Shift+L		Doplnit mistní doplnìní pod akt. vrchol
+add_questionmarks_func		Ctrl+Shift+X		Pridat k funktoru ???
+ShiftLeft		Ctrl+Left		posun uzel doleva
+shift_node_left		Shift+Q		posun uzel doleva
+ShiftRight		Ctrl+Right		posun uzel doprava
+shift_node_right		Shift+U		posun uzel doprava
 previous_node		Shift+Tab		previous word (linear order)
 next_node		Tab		next word (linear order)
 all_func_assign		Ctrl+Shift+F9		

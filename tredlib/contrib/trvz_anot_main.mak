@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-04-12 18:41:29 pajas>
+## Time-stamp: <2001-04-25 16:22:33 pajas>
 
 #
 # This file defines default macros for TR annotators for so called
@@ -9,12 +9,12 @@
 # attribute are allowed.
 #
 
-#include remote_control.mak
-#include tr_anot_main.mak
+#include contrib/remote_control.mak
+#include contrib/tr_anot_main.mak
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:func|coref|commentA|reltype|aspect|tfa|err1|degcmp|iterativeness|verbmod|deontmod|sentmod|gram|memberof|phraseme|del|quoted|dsp|cornum|sorsnt|antec|parenthesis)$/) {
+  if ($atr=~/^(?:lemma|tag|form|afun|ID1|ID2|origf|gap1|gap2|ord|ordtf|afunprev|warning|err1|err2|semPOS|tagauto|lemauto|ordorig|dord|sentord|reserve1|reserve2)$/) {
     return "stop";
   }
 }
