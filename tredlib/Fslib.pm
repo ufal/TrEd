@@ -2513,6 +2513,7 @@ sub value_line_list {
   my @sent=();
 
   my $attr=$fsfile->FS->sentord();
+  my $val=$fsfile->FS->value();
   $attr=$fsfile->FS->order() unless (defined($attr));
   while ($node) {
     push @sent,$node unless ($node->getAttribute($val) eq '???' or
@@ -2520,12 +2521,10 @@ sub value_line_list {
     $node=$node->following();
   }
   @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
-  $attr=$fsfile->FS->value();
-  my $line = $no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ";
   if ($wantnodes) {
-    return (map { [$_->getAttribute($attr),$_] } @sent);
+    return (map { [$_->getAttribute($val),$_] } @sent);
   } else {
-    return (map { $_->getAttribute($attr) } @sent);
+    return (map { $_->getAttribute($val) } @sent);
   }
 }
 

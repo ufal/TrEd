@@ -170,6 +170,59 @@ sub options {
   return { map {$_ => $self->{$_} } @Options };
 }
 
+sub value_line_list {
+  my ($self,$fsfile,$tree_no,$no_numbers,$tags)=@_;
+  return () unless $fsfile;
+
+  my @patterns = $self->get_label_patterns($fsfile,"text");
+  if (@patterns and $tags) {
+    my $node=$fsfile->treeList->[$tree_no];
+    my @sent=();
+    my $attr=$fsfile->FS->sentord();
+    $attr=$fsfile->FS->order() unless (defined($attr));
+    while ($node) {
+      push @sent,$node unless ($node->getAttribute($attr)>=999); # this is TR specific stuff
+      $node=$node->following();
+    }
+    @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
+    my @vl=();
+    foreach $node (@sent) {
+      my %styles;
+      foreach my $style (@patterns) {
+	my $msg=$self->interpolate_text_field($node,$style);
+	foreach (split(m'([#$]{[^}]+})',$msg)) {
+	  if (/^\${([^}]+)}$/) {
+	    #attr
+	    if (exists($node->{$1})) {
+	      push @vl,[$node->{$1},$node, map { "$_ => $styles{$_}" } keys %styles];
+	    }
+	  } elsif (/^\#{([^}]+)}$/) {
+	    #attr
+	    my $style=$1;
+	    if ($style =~ /(-[a-z0-9]+):\s*(.*\S)\s*$/) {
+	      $styles{$1} = $2;
+	    } else {
+	      $styles{-foreground} = $style
+	    }
+	  } else {
+	    push @vl,[$_,$node,'text'];
+	  }
+	}
+      }
+      push @vl,[" ",'space'];
+    }
+    return @vl;
+  } else {
+    if ($tags) {
+      return map { ($_,
+		    $_->[0] ne "\n" ? ([' ','space']) : ())
+		 } $fsfile->value_line_list($tree_no,$no_numbers,$tags);
+    } else {
+      return $fsfile->value_line_list($tree_no,$no_numbers,$tags);
+    }
+  }
+}
+
 sub value_line {
   my ($self,$fsfile,$tree_no,$no_numbers,$tags)=@_;
 
@@ -181,21 +234,21 @@ sub value_line {
     if ($self->{reverseNodeOrder}) {
       return [[$prfx,'prefix'],
 	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
-	      reverse $fsfile->value_line_list($tree_no,$no_numbers,1)];
+	      reverse $self->value_line_list($fsfile,$tree_no,$no_numbers,1)];
     } else {
       return [[$prfx,'prefix'],
 	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
-	      $fsfile->value_line_list($tree_no,$no_numbers,1)];
+	      $self->value_line_list($fsfile,$tree_no,$no_numbers,1)];
     }
   } else {
     if ($self->{reverseNodeOrder}) {
       return $prfx.join " ",
 	map { encode($_) } grep { $_ ne "" }
-	  reverse $fsfile->value_line_list($tree_no,$no_numbers);
+	  reverse $self->value_line_list($fsfile,$tree_no,$no_numbers);
     } else {
       return $prfx.join " ",
 	map { encode($_) } grep { $_ ne "" }
-	  $fsfile->value_line_list($tree_no,$no_numbers);
+	  $self->value_line_list($fsfile,$tree_no,$no_numbers);
     }
   }
 }

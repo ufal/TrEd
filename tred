@@ -936,7 +936,7 @@ sub openFile {
 			 $f.$goto);
 	updateTitle($grp);
 	applyFileSuffix($win,$goto);
-	get_nodes_win($win);
+	get_nodes_win($win, $opts{-noredraw});
 	doEvalHook($win,"file_resumed_hook") unless $opts{-nohook};
 	unless ($opts{-noredraw}) {
 	  redraw_win($win);
@@ -1019,8 +1019,8 @@ sub openFile {
 
   applyFileSuffix($win,$goto);
 
-  get_nodes_win($win);
   doEvalHook($win,"file_opened_hook") if ($win->{FSFile} and !$opts{-nohook});
+  get_nodes_win($win,$opts{-noredraw});
   unless ($opts{-noredraw}) {
     redraw_win($win);
     centerTo($win,$win->{currentNode});
@@ -1215,14 +1215,38 @@ sub set_value_line {
     $vl->tagDelete(@oldtags);
   }
   if (ref($v)) {
+    my %tags;
+    @tags{ map { @$_[1..$#$_] } @$v }=();
+    foreach my $tag (keys(%tags)) {
+      if ($tag=~/^\s*-/) {
+	eval {
+	  $vl->tagConfigure(
+			    $tag => (map { (/^\s*(-[[:alnum:]]+)\s*=>\s*(.*\S)\s*$/) }  split(/,/,$tag)));
+	};
+	print $@ if $@;
+      }
+    }
     $vl->Subwidget('scrolled')->insert('end','',undef,
-				       map { ($_->[0], $_->[1], $_->[0] ne "\n" ? (' ','space') : ()) } @$v);
+				       map { ($_->[0], [@$_[1..$#$_]]) } @$v);
   } else {
     $vl->Subwidget('scrolled')->insert('0.0',$v);
   }
   $vl->tagAdd('all','0.0','end');
   $vl->tagConfigure('all',-justify => $valueLineAlign);
   $vl->configure(qw(-state disabled));
+#   print "<dump>\n";
+#   my @dump=$vl->dump('0.0','end');
+#   while (@dump) {
+#     my ($K,$V,$I) = (shift @dump, shift @dump, shift @dump);
+#     if ($K eq 'tagon') { 
+#       print "<tag value=\"$V\">";
+#     } elsif ($K eq 'tagoff') {
+#       print "</tag>";
+#     } else {
+#       print $V;
+#     }
+#   }
+#   print "\n</dump>\n";
   return $v;
 }
 
@@ -1281,7 +1305,7 @@ sub update_value_line {
 ### Get Nodes
 
 sub get_nodes_win {
-  my ($win)=@_;
+  my ($win,$noredraw)=@_;
   if ($win->{FSFile}) {
     $win->{treeNo}=0 if ($win->{treeNo}<0 and $win->{FSFile}->lastTreeNo>=0);
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
@@ -1306,7 +1330,7 @@ sub get_nodes_win {
     $win->{Nodes}=[];
     $win->{currentNode}=undef;
   }
-  update_value_line($win->{framegroup}) if (isFocused($win));
+  update_value_line($win->{framegroup}) if (isFocused($win) and !$noredraw);
 }
 
 sub get_nodes_fsfile {
@@ -2366,6 +2390,7 @@ sub switchContext {
   $win->{macroContext}=$context;
   $win->{framegroup}{selectedContext}=$context if (isFocused($win));
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
+  get_nodes_win($win);
   redraw_win($win);		# something should be done with display attrs vs windows maybe
 }
 
@@ -4297,7 +4322,6 @@ sub reloadSentenceView {
   $t->delete('0.0','end'); #something smells here!! 
   $grp->{sentDialog}=$d;
   my $filename=$grp->{focusedWindow}->{FSFile}->filename();
-  $t->tagConfigure('line',-lmargin2 => 50);
   for (my $i=0; $i<=$grp->{focusedWindow}->{FSFile}->lastTreeNo();$i++) {
     $t->window('create', 'end', -window =>
 	       $t->Checkbutton(-selectcolor => undef,
@@ -4317,11 +4341,32 @@ sub reloadSentenceView {
 							"$libDir/right.xpm"),
 			  -command => [\&openFile, $grp, "$filename##".($i+1)]
 			 ));
-    $t->insert('end',"(".($i+1).") ".
-	       get_value_line($grp->{focusedWindow},
-			      $grp->{focusedWindow}->{FSFile},$i,1).
-	       "\n",'line');
+
+    my $v = get_value_line($grp->{focusedWindow},
+			   $grp->{focusedWindow}->{FSFile},$i,1,1);
+    my %tags;
+    @tags{ map { @$_[1..$#$_] } @$v }=();
+    foreach my $tag (keys(%tags)) {
+      if ($tag=~/^\s*-/) {
+	eval {
+	  $t->tagConfigure(
+			   $tag => (map { (/^\s*(-[[:alnum:]]+)\s*=>\s*(.*\S)\s*$/) }  
+				    split(/,/,$tag)));
+	};
+	print $@ if $@;
+      }
+    }
+
+
+    $t->insert('end',"(".($i+1).") ",'treeno',
+	       map { ($_->[0], [@$_[1..$#$_]]) } @$v);
+    $t->insert('end',"\n",'newline');
+	       #	       get_value_line($grp->{focusedWindow},
+	       #			      $grp->{focusedWindow}->{FSFile},$i,1),'tline',
+    #	       "\n",'newline');
   }
+  $t->tagAdd('all','0.0','end');
+  $t->tagConfigure('all',-lmargin2 => 50);
 }
 
 sub sentViewSelectAll {
@@ -4398,6 +4443,47 @@ sub viewSentencesDialog {
   return $selref;
 }
 
+sub dumpSentView {
+  my ($grp, $fsfile, $t)=@_;
+  my $file=$fsfile->filename;
+  $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml|fs)/.html/i;
+  $file= $grp->{top}->getSaveFile(-filetypes=>
+				  [["HTML",           [qw/.html .htm .HTM .HTML/]],
+				   ["All files",        '*']],
+				  -title=> "Save Sentences As HTML ...",
+				  -d $initdir ? (-initialdir=> $initdir) : (),
+				  $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
+  open my $html, ">$file" ||
+    errorMessage($grp->{focusedWindow},"Cannot write to \"$file\"!"."\n($!)\n".
+		 "\nSentences could not be saved!");
+
+  print $html "<html>\n";
+  print $html "<head>\n";
+  print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=iso-8859-2\" />\n";
+  print $html "</head>\n";
+  print $html "<body>\n";
+  my @dump=$t->dump('0.0','end');
+  while (@dump) {
+    my ($K,$V,$I) = (shift @dump, shift @dump, shift @dump);
+    if ($K eq 'tagon') {
+      print $html "<p>" if $V eq 'treeno';
+      print $html "<u>" if $t->tagCget($V,'-underline');
+      print $html "<font color=\"".$t->tagCget($V,'-foreground')."\">" if $t->tagCget($V,'-foreground');
+    } elsif ($K eq 'tagoff') {
+      print $html "</p>\n" if $V eq 'newline';
+      print $html "</font>" if $t->tagCget($V,'-foreground');
+      print $html "</u>" if $t->tagCget($V,'-underline');
+    } elsif ($K eq 'text') {
+      print $html $V;
+    } else {
+      #print $html "<other key=\"$K\" value=\"$V\"/>";
+    }
+  }
+  print $html "\n</body>\n";
+  print $html "\n</html>\n";
+  close($html);
+}
+
 sub populateSentencesDialog {
   my ($grp,$d,$fsfile,$selref,$close_button)=@_;
   return unless $grp and $fsfile;
@@ -4425,6 +4511,8 @@ sub populateSentencesDialog {
   $bottom->Button(-text=> "Select All", -command=>[ \&sentViewSelectAll,$grp,$selref])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "Clear selection", -command=>[ \&sentViewSelectNone,$grp,$selref])
+    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
+  $bottom->Button(-text=> "Save As HTML", -command=>[ \&dumpSentView,$grp,$fsfile,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
   reloadSentenceView($grp,$t,$selref);
@@ -4845,6 +4933,7 @@ sub customAttrsDialog {
   if ($result=~ /OK/) {
     $win->{FSFile}->changeHint($t->get('0.0','end - 1 chars'));
     $win->{FSFile}->changePatterns($cl->get(0,$cl->index('end')-2));
+    update_value_line($grp);
     redraw_fsfile($grp,$win->{FSFile});
   }
   $d->destroy;
