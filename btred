@@ -83,6 +83,7 @@ if (defined $opt_e) {
 }
 
 
+
 # in Windows, if HOME not defined, use user's AppData folder instaed
 if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
   require Win32::Registry;
@@ -258,6 +259,8 @@ EOL
   do {
     print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n";
     doEvalMacro($grp,"$context->_btred_eval_();");
+    STDOUT->flush();
+    STDERR->flush();
     print STDERR "Done.\n";
     saveFile($grp) if ($FileNotSaved or $opt_S);
   } while (nextFile($grp));
