@@ -137,12 +137,19 @@ sub node_style_hook {
 	     );
   }
 
-  draw_coref_arrows($node,$styles,{},
-		    [split /\|/,$node->{coref}],
-		    [split /\|/,$node->{cortype}],
-		    \%cortype_colors
-		   );
-
+  if (IsSeq($node->{coref})) {
+    draw_coref_arrows($node,$styles,{},
+		      [map {$_->{rf}} $node->{coref}->values],
+		      [map {$_->{type}} $node->{coref}->values],
+		      \%cortype_colors
+		     );
+  } else {
+    draw_coref_arrows($node,$styles,{},
+		      [split /\|/,$node->{coref}],
+		      [split /\|/,$node->{cortype}],
+		      \%cortype_colors
+		     );
+  }
   1;
 }
 
@@ -155,14 +162,19 @@ sub draw_coref_arrows {
   my (@coords,@colors);
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
   my $ids={};
-  my $nd = $root; while ($nd) { $ids->{$nd->{AID}.$nd->{TID}}=1 } continue { $nd=$nd->following };
+  my $nd = $root;
+  while ($nd) {
+    $ids->{$nd->{AID}.$nd->{TID}}=1;
+    $ids->{$nd->{id}}=1;
+  } continue { $nd=$nd->following };
   foreach my $coref (@$corefs) {
     my $cortype=shift @$cortypes;
     next if (!$drawAutoCoref and $cortype =~ /auto/);
     if ($ids->{$coref}) { #index($coref,$id1)==0) {
       print STDERR "ref-arrows: Same sentence\n" if $main::macroDebug;
       # same sentence
-      my $T="[?\$node->{AID} eq '$coref' or \$node->{TID} eq '$coref'?]";
+      my $T="[?\$node->{id} eq '$coref' or
+               \$node->{AID} eq '$coref' or \$node->{TID} eq '$coref'?]";
       my $X="(x$T-xn)";
       my $Y="(y$T-yn)";
       my $D="sqrt($X**2+$Y**2)";
