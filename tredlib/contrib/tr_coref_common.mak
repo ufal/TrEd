@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-01-24 11:09:01 pajas>
+## Time-stamp: <2003-01-27 14:17:53 pajas>
 
 package Coref;
 
@@ -49,7 +49,7 @@ sub sort_attrs_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:corlemma|gender|number)$/) {
+  if ($atr!~/^(?:trlemma|corlemma|gender|number)$/) {
     return "stop";
   }
 }
