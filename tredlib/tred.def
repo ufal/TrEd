@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-07-11 21:57:50 pajas>
+## Time-stamp: <2002-09-19 12:17:13 pajas>
 
 package TredMacro;
 
@@ -318,7 +318,7 @@ Display the n'th tree in the current file.
 
 =cut
 sub GotoTree {
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');
   my $to=shift()-1;
   $_NoSuchTree=($to != main::max(0,min($to,$#trees)));
   my $result=main::gotoTree($grp,$to);
@@ -333,7 +333,7 @@ Go to n'th tree in all tied windows.
 
 =cut
 sub TieGotoTree {
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $to=shift()-1;
   my $result=main::tieGotoTree($grp->{framegroup},$to);
   $root=$grp->{root};
@@ -349,7 +349,7 @@ Display the next tree in all tied windows.
 
 =cut
 sub TieNextTree {
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $result=main::tieNextTree($grp->{framegroup});
   $root=$grp->{root};
   $this=$root;
@@ -363,7 +363,7 @@ Display the previous tree in all tied windows.
 
 =cut
 sub TiePrevTree {
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $result=main::tiePrevTree($grp->{framegroup});
   $root=$grp->{root};
   $this=$root;
@@ -377,7 +377,7 @@ Display the next tree in the current file.
 
 =cut
 sub NextTree {
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $result=main::nextTree($grp);
   $root=$grp->{root};
   $this=$root;
@@ -391,7 +391,7 @@ Display the previous tree in the current file.
 
 =cut
 sub PrevTree { 
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
   my $result=main::prevTree($grp);
   $root=$grp->{root};
   $this=$root;
@@ -498,7 +498,7 @@ Save the current file.
 sub Save {
   main::saveFile($grp);
   $forceFileSaved=1;
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item SaveAndNextFile
@@ -542,7 +542,7 @@ Open the Find Node by Attributes GUI dialog.
 sub Find {
   $grp->{framegroup}->{findButton}->invoke();
   $this=$grp->{currentNode};
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item FindNext
@@ -554,7 +554,7 @@ of the Find... menu command or FindNode macro usage.
 sub FindNext {
   $grp->{framegroup}->{findNextButton}->invoke();
   $this=$grp->{currentNode};
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item FindPrev
@@ -566,7 +566,7 @@ use of the Find... menu command or FindNode macro usage.
 sub FindPrev {
   $grp->{framegroup}->{findPrevButton}->invoke();
   $this=$grp->{currentNode};
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item ToplevelFrame
@@ -719,7 +719,7 @@ sub CopyValues {
   undef %ValuesClipboard;
   %ValuesClipboard = map { $_ => $this->{$_} } $grp->{FSFile}->FS->attributes;
   delete $ValuesClipboard{$grp->{FSFile}->FS->order}; # we do not copy this
-  $FileNotSaved=0;
+  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item PasteValues
@@ -1330,6 +1330,17 @@ sub NextNodeLinear {
 }
 
 
+=item GetTrees
+
+Return a list of trees in current FSFile. Equivallent to
+$grp->{FSFile}->trees.
+
+=cut
+
+sub GetTrees {
+  return $grp->{FSFile}->trees;
+}
+
 =item FS
 
 Return FSFormat object associated with the current FSFile.
@@ -1338,6 +1349,87 @@ Return FSFormat object associated with the current FSFile.
 
 sub FS {
   return $grp->{FSFile}->FS;
+}
+
+=item FileName
+
+Return current file's name.
+
+=cut
+
+sub FileName {
+  return $grp->{FSFile}->filename if $grp->{FSFile};
+}
+
+=item CurrentTreeNumber
+
+Return current tree number.
+
+=cut
+
+sub CurrentTreeNumber {
+  return $grp->{treeNo};
+}
+
+=item GetNodeIndex
+
+Return given node's position in the deep-first tree ordering.
+
+=cut
+
+sub GetNodeIndex {
+  my $node = $_[0] || $this;
+  my $i=-1;
+  while ($node) {
+    $node=$node->previous();
+    $i++;
+  }
+  return $i;
+}
+
+
+=item GetFileSaveStatus
+
+Return 1 if some file modification was noticed by TrEd untill last save
+or reload, 0 otherwise.
+
+=cut
+
+sub GetFileSaveStatus {
+  return $grp->{FSFile}->notSaved;
+}
+
+=item SetFileSaveStatus
+
+Use SetFileSaveStatus(1) to declare that some modification was made to
+the file. Use SetFileSaveStatus(0) after the file was saved from a
+macro (and TrEd/bTrEd would not notice that).
+
+=cut
+
+sub SetFileSaveStatus {
+  $grp->{FSFile}->notSaved($_[0]);
+}
+
+
+=item GetSpecialPattern (prefix)
+
+Return value of the first pattern prefixed with given prefix.
+Note, that only some prefixes (such as node, edge, style, or rootstyle)
+are used by TrEd. All other patterns are ignored, so feel free to
+use them for other purposes.
+
+=cut
+
+sub GetSpecialPattern {
+  my ($patname)=@_;
+  my $pat;
+  foreach ($grp->{FSFile}->patterns()) {
+    if (/^$patname:\s*(\S+)\s*$/) {
+      $pat=$1,last;
+    }
+  }
+  return $pat;
 }
 
 =back
