@@ -426,7 +426,6 @@ Remove given patterns from the list and update file-list
 sub remove {
   my ($self)=shift;
   return undef unless ref($self);
-  $count=1 unless defined($count);
 
   print "Filelist.pm: removing @_\n";
 
@@ -437,6 +436,23 @@ sub remove {
   $self->expand();
   return 1;
 }
+
+=pod
+
+=item clear
+
+Remove all patterns from a filelist
+
+=cut
+
+sub clear {
+  my ($self)=shift;
+  return undef unless ref($self);
+  @{ $self->list_ref }=();
+  $self->expand();
+  return 1;
+}
+
 
 =pod
 
