@@ -66,13 +66,14 @@ sub switch_context_hook {
   return "1";
 }
 
-sub enable_attr_hook {
-  my ($atr,$type)=@_;
-  return if ($atr eq 'func' and $this->{func} eq 'RHEM');
-  if ($atr!~/^(?:tfa|commentA)$/) {
-    return "stop";
-  }
-}
+# allow everything
+# sub enable_attr_hook {
+#   my ($atr,$type)=@_;
+#   return if ($atr eq 'func' and $this->{func} eq 'RHEM');
+#   if ($atr!~/^(?:tfa|commentA)$/) {
+#     return "stop";
+#   }
+# }
 
 sub ShiftLeft {
   return unless (GetOrd($this)>1);
