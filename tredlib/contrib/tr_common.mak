@@ -57,6 +57,9 @@ sub upgrade_file {
   if (exists($defs->{antec}) and $defs->{func} !~ /OPER/) {
     $defs->{antec}=~s/(NORM)/NORM|OPER/;
   }
+  if (exists($defs->{func}) and $defs->{func} !~ /CONTRD/) {
+    $defs->{func}=~s/(CONTRA)/CONTRA|CONTRD/;
+  }
   if (exists($defs->{memberof}) and $defs->{memberof} =~ /CO\|AP\|PA/) {
     $defs->{memberof}=~s/CO\|AP\|PA/CO|AP/;
   }

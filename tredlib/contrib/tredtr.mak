@@ -2772,6 +2772,14 @@ sub func_CONFR {
 
 }
 
+#bind func_CONTRD to Ctrl+O menu CONTRD
+sub func_CONTRD {
+
+  $sPar1 = 'CONTRD';
+
+  FuncAssign();
+
+}
 
 #bind func_CONJ to j menu CONJ Conjunction, sluèovací koord. (a)
 sub func_CONJ {
