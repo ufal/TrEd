@@ -58,7 +58,7 @@ sub switch_context_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:tfa|err1)$/) {
+  if ($atr!~/^(?:tfa|commentA)$/) {
     return "stop";
   }
 }
