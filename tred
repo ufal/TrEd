@@ -13,6 +13,8 @@ use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
             $savedSavePixmap $normalSavePixmap $NewFileNo
 	    $normalUndoPixmap $disabledUndoPixmap
 	    $normalRedoPixmap $disabledRedoPixmap
+	    $normalNextPixmap $disabledNextPixmap
+	    $normalPrevPixmap $disabledPrevPixmap
            );
 
 $version='$Revision$ ';
@@ -3005,6 +3007,7 @@ sub startMain {
 			  -text=> "Next",
 			  -relief=> $buttonsRelief,
 			  -image=> $disabledNextPixmap,
+			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
 			  [sub { tieNextTree($_[0]) },\%group]);
@@ -3019,6 +3022,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0, -text=> "Prev",
 			  -relief=> $buttonsRelief,
 			  -image=> $disabledPrevPixmap,
+			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
 			  [sub { tiePrevTree($_[0]) },\%group]);
@@ -3078,6 +3082,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0, -text=> "Undo",
 			  -relief=> $buttonsRelief,
 			  -image=> $disabledUndoPixmap,
+			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub {
 					undo($_[0]->{focusedWindow})
@@ -3094,6 +3099,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0, -text=> "Redo",
 			  -relief=> $buttonsRelief,
 			  -image=> $disabledRedoPixmap,
+			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [sub {
 					re_do($_[0]->{focusedWindow})
