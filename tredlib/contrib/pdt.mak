@@ -212,7 +212,6 @@ sub saveTreeTStructure {
   saveTreeStructureToAttr($class,"govTR");
 }
 
-
 =item PDT->substituteFSHeader(declarations)
 
 Substitute a new FS header for current document. A list of valid FS
