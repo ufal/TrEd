@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-09-30 10:23:53 pajas>
+## Time-stamp: <2002-09-30 18:15:02 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -679,11 +679,11 @@ sub upgrade_file_to_tid_aidrefs {
   my $defs=FS()->defs;
   return if (exists($defs->{TID}) && exists($defs->{AIDREFS}));
   print "TID and AIDREF don't exist!\n";
-  if (questionQuery('Automatická oprava',
-		    "Tento soubor neobsahuje deklarace atributu AIDREFS nebo TID,\n".
-		    "do nich¾ se ukládají dùle¾ité identifikátory uzlù.\n\n".
-		    "Pøejete si tyto atributy pøidat a aktualizovat soubor (doporuèeno)?\n\n",
-		    qw{Ano Ne}) eq 'Ano') {
+  if (!GUI() || questionQuery('Automatická oprava',
+			      "Tento soubor neobsahuje deklarace atributu AIDREFS nebo TID,\n".
+			      "do nich¾ se ukládají dùle¾ité identifikátory uzlù.\n\n".
+			      "Pøejete si tyto atributy pøidat a aktualizovat soubor (doporuèeno)?\n\n",
+			      qw{Ano Ne}) eq 'Ano') {
     generate_tids_whole_file();
     move_aid_to_aidrefs();
   }
