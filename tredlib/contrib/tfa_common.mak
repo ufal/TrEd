@@ -432,8 +432,8 @@ sub PreSetTFArecursive {
     }
   }
 
-  print STDERR "+\n=== DELKA POLE:  ".scalar(@$all);
-  print STDERR "      UZEL:  ".$node->{'trlemma'}."      HODNOTA:  ".$value."    FLAG:  ".$flag."\n+\n";
+  # print STDERR "+\n=== DELKA POLE:  ".scalar(@$all);
+  # print STDERR "      UZEL:  ".$node->{'trlemma'}."      HODNOTA:  ".$value."    FLAG:  ".$flag."\n+\n";
 
   # set the attribute
   if ($flag and ($node != $root)) {
@@ -441,7 +441,7 @@ sub PreSetTFArecursive {
   }
 
   # do not recurse on coordination nodes !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  print STDERR "--- nezanoruje se v rekurzi!!!\n" if (PDT::is_coord_TR($node));
+  # print STDERR "--- nezanoruje se v rekurzi!!!\n" if (PDT::is_coord_TR($node));
   return if PDT::is_coord_TR($node);
 
   # all visible children, including expanded coordinations and appositions
@@ -449,9 +449,9 @@ sub PreSetTFArecursive {
                  map { expand_coord_apos($_,1) } $node->children();
   SortByOrd(\@children);
 
-     print STDERR "!!! children: ";
-     print STDERR join " ", map $_->{'trlemma'}, @children;
-     print STDERR "\n";
+     # print STDERR "!!! children: ";
+     # print STDERR join " ", map $_->{'trlemma'}, @children;
+     # print STDERR "\n";
 
   my $verb = 0; # a flag (whether a finite verb is being processed)
   if ($node->{'tag'}=~/^V[^f].*/ or $node->{'func'}=~/PRED/) {
@@ -463,17 +463,17 @@ sub PreSetTFArecursive {
 
   foreach my $child (@children) {  # go through all children
 
-    print STDERR "================== zanoruju se na:  ".$child->{'trlemma'}." : ";
+    # print STDERR "================== zanoruju se na:  ".$child->{'trlemma'}." : ";
 
     if (PDT::is_coord_TR($child)) { # non-applicable (coordination and apposition)
-      print STDERR "coord prirazuju NA\n";
+      # print STDERR "coord prirazuju NA\n";
       PreSetTFArecursive($all, $top, $child, "NA", $flag);
       next;
     }
 
     # "linguistic" root(s) of the tree
     if ($node==$root) { # "skip" the root of the whole tree
-      print STDERR "setting TFA value to linguistic root: F\n";
+      # print STDERR "setting TFA value to linguistic root: F\n";
       PreSetTFArecursive($all, $top, $child, "F", $flag);
       next;
     }
@@ -483,7 +483,7 @@ sub PreSetTFArecursive {
 
     # negation
     if ($child->{'func'} =~ /RHEM/ and $child->{'trlemma'} =~ /^(&)?Neg(;)?$/) {
-      print STDERR "   negation F\n";
+      # print STDERR "   negation F\n";
       PreSetTFArecursive($all, $top, $child, "F", $flag);
       if ($flag and Parent($child) == $node and $node != $root) {
  	push @neg, @{Projectivize($child)};
@@ -491,7 +491,7 @@ sub PreSetTFArecursive {
     }
     # certain modifiers are to be put immediately after their parent node
     elsif ($child->{'func'} =~ /MOD|MANN|EXT/) {
-      print STDERR "  modifiers F\n";
+      # print STDERR "  modifiers F\n";
       PreSetTFArecursive($all, $top, $child, "F", $flag);
       if ($flag and Parent($child) == $node and $node != $root) {
  	push @rightmovedchildren, @{Projectivize($child)};
@@ -499,7 +499,7 @@ sub PreSetTFArecursive {
     }
     # restored leaf nodes to be put to the left of the governing node
     elsif ($child->{'ord'} =~ /\./ and not($child->firstson)) {
-      print STDERR "  restored nodes T\n";
+      # print STDERR "  restored nodes T\n";
       PreSetTFArecursive($all, $top, $child, "T", $flag);
       if ($flag and Parent($child) == $node and $node != $root) {
  	push @leftmovedchildren, @{Projectivize($child)};
@@ -507,7 +507,7 @@ sub PreSetTFArecursive {
     }
     # nodes with functors ATT pr PREC
     elsif ($child->{'func'} =~ /ATT|PREC/) {
-      print STDERR "  PREC or ATT nodes T\n";
+      # print STDERR "  PREC or ATT nodes T\n";
       PreSetTFArecursive($all, $top, $child, "T", $flag);
       if ($flag and $node != $root) {
 	push @prec, @{Projectivize($child)}
@@ -517,34 +517,34 @@ sub PreSetTFArecursive {
     elsif ($verb) {
       # actants
       if ($child->{'func'} =~ /ACT|PAT|ADDR|ORIG|EFF/) {
-      print STDERR "  verbal actants";
+      # print STDERR "  verbal actants";
 	if (GetOrd($child) < GetOrd($node)) {
-	  print STDERR "  T\n";
+	  # print STDERR "  T\n";
 	  PreSetTFArecursive($all, $top, $child, "T", $flag);
 	}
 	else {
-	  print STDERR "  F\n";
+	  # print STDERR "  F\n";
 	  PreSetTFArecursive($all, $top, $child, "F", $flag);
 	}
       }
       # other nodes
       else {
-	print STDERR "  other verbal complements  T\n";
+	# print STDERR "  other verbal complements  T\n";
 	PreSetTFArecursive($all, $top, $child, "T", $flag);
       }
     }
     # nodes depending on a nominal phrase
     # (all those not depending on a finite verb and not pertaining to the above categories
     else {
-      print STDERR " NP - ";
+      # print STDERR " NP - ";
       # pronouns (TODO subtypes)
       if (($child->{'tag'} =~ /^P.*/) or ($child->{'trlemma'} eq "tento")) {
-	print STDERR "pronouns T\n";
+	# print STDERR "pronouns T\n";
 	PreSetTFArecursive($all, $top, $child, "T", $flag);
       }
       # other nodes
       else {
-	print STDERR "other F\n";
+	# print STDERR "other F\n";
 	PreSetTFArecursive($all, $top, $child, "F", $flag);
       }
     }
