@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-10 13:03:19 pajas>
+## Time-stamp: <2001-11-26 19:17:13 pajas>
 
 package Tectogrammatic;
 
@@ -13,7 +13,7 @@ sub switch_context_hook {
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
 
-  unless (!$grp->{FSFile} or $grp->{FSFile}->hint()) {
+  if ($grp->{FSFile} and !$grp->{FSFile}->hint()) {
     default_tr_attrs();
   }
   $FileNotSaved=0;
