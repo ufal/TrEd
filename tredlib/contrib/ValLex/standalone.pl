@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -I.. -I../..
 
 use Tk;
 use Tk::Wm;

@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -I.. -I../..
 use FindBin;
 my $binDir=$FindBin::RealBin;
 my $libDir;
@@ -52,6 +52,7 @@ my $conv= TrEd::CPConvert->new("utf-8",
 			       "windows-1250" :
 			       "iso-8859-2");
 my $data_file=$ARGV[0];
+die "Usage: $0 <file>\n" if $ARGV[0] eq "";
 my $data=TrEd::ValLex::LibXMLData->new($data_file,$conv);
 
 my $font = "-adobe-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-2";
@@ -106,7 +107,8 @@ my $save_button=
 			   $f->data()->reload();
 			   $f->fetch_data();
 			   if ($field) {
-			     my $word=$f->data()->findWordAndPOS(@{$field});
+			     my
+			       $word=$f->data()->findWordAndPOS(@{$field});
 			     $f->wordlist_item_changed($f->subwidget("wordlist")->focus($word));
 
 			   }
