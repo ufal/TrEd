@@ -10,6 +10,8 @@ $vallexEditor=undef;
 $vallex_validate = 0;
 $vallex_file = "$libDir/contrib/ValLex/vallex.xml";
 
+$chooserDialog=undef;
+
 #$XMLDataClass="TrEd::ValLex::JHXMLData";
 #$XMLDataClass="TrEd::ValLex::LibXMLData";
 
@@ -19,10 +21,10 @@ sub init_XMLDataClass {
   eval <<'EOF';
     require POSIX;
     # ensure czech collating locale
-    print STDERR "LC_COLLATE:",
-      $TrEd::Convert::support_unicode ? "cs_CZ.UTF8" : "cs_CZ";
+    #    print STDERR "LC_COLLATE:",
+    #      $TrEd::Convert::support_unicode ? "cs_CZ.UTF-8" : "cs_CZ";
     POSIX::setlocale(POSIX::LC_COLLATE,
-		     $TrEd::Convert::support_unicode ? "cs_CZ.UTF8" : "cs_CZ");
+		     $TrEd::Convert::support_unicode ? "cs_CZ.UTF-8" : "cs_CZ");
 EOF
   unless (defined $XMLDataClass) {
     eval { require XML::JHXML; };
@@ -358,9 +360,9 @@ sub ChooseFrame {
   my $pos=$1;
   $lemma=~s/_/ /g;
   my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
-  my $field;
   my $title;
   InitFrameData() || do { ChangingFile(0); return; };
+  my $field;
   my $new_word=0;
   {
     my $word=$FrameData->findWordAndPOS($lemma,$pos);
@@ -394,70 +396,111 @@ sub ChooseFrame {
 	return;
       }
     }
+    $title= join ("/",$word ? $lemma : (), $base_word ? $base : ());
     $field=[
 	    $word ? ($lemma,$pos) : (),
 	    $base_word ? ($base,"V") : ()
 	   ];
-    $title= join ("/",$word ? $lemma : (), $base_word ? $base : ());
   }
-  my $font = $main::font;
-  my $fc=[-font => $font];
-  my $bfont;
-  if (ref($font)) {
-    $bfont = $font->Clone(-weight => 'bold');
-  } else {
-    $bfont=$font;
-    $bfont=~s/-medium-/-bold-/;
-  }
-  my $fb=[-font => $bfont];
-  my $fe_conf={ elements => $fc,
-		example => $fc,
-		note => $fc,
-		problem => $fc,
-		addword => $fc
-	      };
-  my $vallex_conf = {
-		     framelist => $fc,
-		     framenote => $fc,
-		     frameproblem => $fc,
-		     wordlist => { wordlist => $fc, search => $fc},
-		     wordnote => $fc,
-		     wordproblem => $fc,
-		     infoline => { label => $fc }
-		    };
+  my ($frame,$real);
 
-  my $chooser_conf = {
-		      framelists => $fc,
-		      framelist_labels => $fb,
-		     };
-
-  my ($frame,$real)=
-    TrEd::ValLex::Chooser::show_dialog($title,
-				       $top,
-				       $chooser_conf,
-				       $fc,
-				       $vallex_conf,
-				       $fc,
-				       $fc,
-				       $fe_conf,
-				       \$ChooserHideObsolete,
-				       $FrameData,
-				       $field,
-				       [split /\|/,
-					$this->{$frameid_attr}],
-				       $new_word);
-  if ($frame and $no_assign!=1) {
-    my $fmt=$grp->{FSFile}->FS();
-    $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
-    $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
-    $this->{$frameid_attr}=$frame;
-    $this->{$framere_attr}=TrEd::Convert::decode($real);
-  } else {
-    ChangingFile(0);
+  if (ref($chooserDialog) and
+      scalar(@{$chooserDialog->subwidget('framelists')}) !=
+      scalar(@{$field}/2)) {
+    $chooserDialog->destroy_dialog();
+    undef $chooserDialog;
   }
-  if (ref($bfont)) {
-    $top->fontDelete($bfont);
+  if (not ref($chooserDialog)) {
+    my $font = $main::font;
+    my $fc=[-font => $font];
+    my $bfont;
+    if (ref($font)) {
+      $bfont = $font->Clone(-weight => 'bold');
+    } else {
+      $bfont=$font;
+      $bfont=~s/-medium-/-bold-/;
+    }
+    my $fb=[-font => $bfont];
+    my $fe_conf={ elements => $fc,
+		  example => $fc,
+		  note => $fc,
+		  problem => $fc,
+		  addword => $fc
+		};
+    my $vallex_conf = {
+		       framelist => $fc,
+		       framenote => $fc,
+		       frameproblem => $fc,
+		       wordlist => { wordlist => $fc, search => $fc},
+		       wordnote => $fc,
+		       wordproblem => $fc,
+		       infoline => { label => $fc }
+		      };
+
+    my $chooser_conf = {
+			framelists => $fc,
+			framelist_labels => $fb,
+		       };
+    $chooserDialog=
+      TrEd::ValLex::Chooser::create_toplevel($title,
+					     $top,
+					     $chooser_conf,
+					     $fc,
+					     $vallex_conf,
+					     $fc,
+					     $fc,
+					     $fe_conf,
+					     \$ChooserHideObsolete,
+					     $FrameData,
+					     $field,
+					     [split /\|/, $this->{$frameid_attr}],
+					     $new_word,
+					     ($no_assign ? undef :
+					      [\&frame_chosen, $grp->{framegroup}]),
+					     sub {
+					       $chooserDialog->destroy_dialog();
+					       undef $chooserDialog;
+					     }
+					    );
+  } else {
+    $chooserDialog->reuse($title,
+			  \$ChooserHideObsolete,
+			  $field,
+			  [split /\|/, $this->{$frameid_attr}],
+			  $new_word,
+			  0);
   }
   return 1;
 }
 
+sub frame_chosen {
+  my ($grp,$chooser)=@_;
+  return unless $grp and $grp->{focusedWindow};
+  my $win = $grp->{focusedWindow};
+  if ($win->{FSFile} and
+      $win->{currentNode}) {
+    my $field = $chooser->focused_framelist()->field();
+    my $node = $win->{currentNode};
+    my $lemma = $node->{trlemma}; $lemma=~s/_/ /g;
+    my ($pos) = $node->{tag}=~/^(.)/;
+    if (ref($field) and $field->[0] eq $lemma and
+	$field->[1] eq $pos) {
+      my @frames=$chooser->get_selected_frames();
+      my $real=$chooser->get_selected_element_string();
+      my $ids = $chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames));
+      
+      my $fmt  = $win->{FSFile}->FS();
+      $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
+      $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
+      $node->{$frameid_attr}=$ids;
+      $node->{$framere_attr}=TrEd::Convert::decode($real);
+      $win->{framegroup}{top}->focus();
+      $win->{framegroup}{top}->raise();
+      main::onTreeChange($win);
+    } else {
+      TrEd::Basics::errorMessage($win,"Can't assign frame for $field->[0].$field->[1] to $lemma.$pos\n");
+    }
+  } else {
+    TrEd::Basics::errorMessage($win,"No node to assign selected frame $ids to!\n");
+  }
+}
