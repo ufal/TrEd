@@ -1,31 +1,42 @@
-tkfs ver. 0.1 beta
-==================
-by Petr Pajas, 2000
+tkdisplaytree.pl aka tkfs ver. 0.2
+==================================
 
-You only need perl5 and working Perl/Tk to run tkfs.
-This means that tkfs may run on following platforms:
+author:
+  Petr Pajas (pajas@ufal.ms.mff.cuni.cz)
+
+What is tkfs
+------------
+
+tkdisplaytree.pl also refered to as tkfs is a perl-based graphical
+editor for tree structures in the Fs format (for description see
+http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html) used for
+working with syntactical and tectogramatical trees in The Prague
+Dependency Treebang. Because the format is a bit more general, this
+program may also find some other applications.
+
+What it requires
+----------------
+You only need perl5 with Perl/Tk ver. 800.015 library to run tkfs
+(tkdisplaytree.pl).  This means that tkfs may run on following
+platforms:
 
   Windows 9x,NT (download perl and perlTk from ActivePerl)
   Linux (with glibc2 = libc.6, otherwise you will probably 
-         not be able to run Perl/Tk:( )
+         not be able to compile Perl/Tk)
   Possibly other platforms (other UN*X platforms as Perl5
          and perlTk should be abailable for them;
 	 AFAIK there is perl5 and perlTk on MacOS too)
 
+Pleas NOTE that this program was tested and developed under Linux, so
+all other platform support is moreless experimental or even
+theoretical.
 
 	 
-Please make sure you have installed:
--------------------------------------
+Installation
+------------
 
-- Tkfs.pm into some directory of perl includes (theese you may 
-set by PERLLIB or PERL5LIB variable)
+This topic is described in the INSTALL file.
 
-- tkdisplaytree.pl (and optionaly tkfs as a link or copy/rename of it) to
-your prefered bin directory
-
-- make copy of tkfsrc named .tkfsrc in you home directory
-(under Windows you may either set the HOME variable or
-change its default location in tkdisplaytree.pl manually).
 
 Also note that:
 ---------------
@@ -56,4 +67,16 @@ To rearange nodes in the tree you may use macros CutNode/Cut and PasteNode
 Also, you may find useful macros NextTree,PrevTree,GotoTree to move
 between trees and Next/Prev macros to trace along the current tree.
 
-For more info on macros see Fslib man-page/documentation.
+For more info on macros see Fslib documentation (in
+tkfslib/documentation directory).
+
+TODO
+----
+
+There is a plenty of reasonable features still missing. Those include:
+
+LICENSE
+-------
+
+This software is covered by GNU General Public License (GPL).
+Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
