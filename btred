@@ -10,12 +10,13 @@
 package main;
 
 use Getopt::Std;
-getopts('c:m:e:t:huNHST');
+getopts('qQc:m:e:t:huNHST');
+$opt_q=1 if $opt_Q;
 
 if ($opt_u) {
   print <<EOH;
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-H|-N] [-S] [-T] files...
+  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-q|-Q] [-H|-N] [-S] [-T] files...
 or
   btred -u          to show usage
 or
@@ -27,7 +28,7 @@ EOH
 if ($opt_h) {
   print <<EOF;
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-N|-H] [-S] [-T] files...
+  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-q|-Q] [-N|-H] [-S] [-T] files...
 or
   btred -u          to show usage
 or
@@ -50,6 +51,8 @@ context       - start in the given macro context (package).
                 hidden nodes
 -T            - wrap 'do { ... } while NextTree();' around the script
 -S            - always save file
+-q            - quiet
+-Q            - by *very* quiet
 
 Flags -N and -H may not be combined. If both are used, -N has the
 precedence. However, both -N and -H may be used together with -T.
@@ -111,7 +114,7 @@ if (exists $ENV{TREDHOME}) {
 } elsif (-d "$FindBin::RealBin/../lib/tred") {
   $libDir="$FindBin::RealBin/../lib/tred";
 }
-print STDERR "Trying $libDir\n" if ($libDir);
+print STDERR "Trying $libDir\n" if ($libDir and !$opt_q);
 
 $macroFile=undef;
 
@@ -209,13 +212,16 @@ $NodeClipboard=undef;
 
 $fileNo=0;
 
-print STDERR "Reading macros from $macroFile...\n";
+print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
 read_macros($macroFile,$libDir);	# read macros
-print STDERR "done.\n";
+print STDERR "done.\n" unless $opt_q;
 
 @files=@ARGV;
 
-$Fslib::Debug=1;
+$Fslib::Debug=!$opt_q;
+if ($opt_q) {
+  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
+}
 
 startMain();
 
@@ -255,14 +261,14 @@ $post
 EOL
 
   doEvalMacro($grp,$premacro);
-  print STDERR "<script>\n$premacro;\n</script>\n";
+  print STDERR "<script>\n$premacro;\n</script>\n" unless $opt_q;
   openFile($grp,$files[$fileNo]);
   do {
-    print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n";
+    print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $opt_Q;
     doEvalMacro($grp,"$context->_btred_eval_();");
     STDOUT->flush();
     STDERR->flush();
-    print STDERR "Done.\n";
+    print STDERR "Done.\n" unless $opt_q;
     saveFile($grp) if ($grp->{FSFile}->notSaved or $opt_S);
   } while (nextFile($grp));
 }
@@ -346,7 +352,7 @@ sub saveFile {
   my $grp=shift;
   return unless $grp->{'FSFile'};
   my $f=$grp->{'FSFile'}->filename;
-  print STDERR "Saving $f, $f~ is a backup\n";
+  print STDERR "Saving $f, $f~ is a backup\n" unless $opt_Q;
   rename $f,$f."~" if (-f $f);
 
   unless ($grp->{FSFile}->writeFile($f)) {
