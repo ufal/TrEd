@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
-"http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
 <?xml-stylesheet href="docbook-css-0.4/driver.css" type="text/css"?>
 <article lang="en">
   <articleinfo>
@@ -917,10 +916,10 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><guimenuitem moreinfo="none">Edit Attributes</guimenuitem></term>
+	  <term><guimenuitem moreinfo="none">Edit Node ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Displays the <guilabel moreinfo="none">Edit Node Attributes</guilabel> 
+	      Displays the <guilabel moreinfo="none">Edit Node</guilabel> 
 	      dialog box with the list of all attributes defined
 	      for the file and the values assigned to them in the active node.
 	      There are two types of attributes and therefore two ways to edit
@@ -1132,7 +1131,7 @@ root# <userinput moreinfo="none">make install</userinput>
     <sect2 id="usercommands">
       <title><guimenu moreinfo="none">User-defined</guimenu></title>
       <para>
-	This menu is devoted for user-defined commands. The new
+	This menu contains user-defined commands. The new
 	commands may be defined in the macro file. <!-- See sections on
 	macros below for details. --> Here is a brief description of the
 	few default macros defined by author of
@@ -1556,7 +1555,7 @@ root# <userinput moreinfo="none">make install</userinput>
       <para>
       <keycap moreinfo="none">Enter</keycap> runs the <menuchoice moreinfo="none">
 	  <guimenu moreinfo="none">Node</guimenu>
-	  <guimenuitem moreinfo="none">Edit Attributes</guimenuitem></menuchoice> command.
+	  <guimenuitem moreinfo="none">Edit Node ...</guimenuitem></menuchoice> command.
     </para>
     <para>
       To edit the tree structure with keyboard only, use the shortcuts
@@ -1651,9 +1650,9 @@ root# <userinput moreinfo="none">make install</userinput>
       can be found on the right side of the toolbar next to the
       <inlinegraphic fileref="pics/tick.png"/> button.
       Another way to select a stylesheet is using 
-      <menuchoice>
-	<guimenu>View</guimenu>
-	<guimenuitem>Select stylesheet...</guimenuitem>
+      <menuchoice moreinfo="none">
+	<guimenu moreinfo="none">View</guimenu>
+	<guimenuitem moreinfo="none">Select stylesheet...</guimenuitem>
       </menuchoice>.
     </para>
 
@@ -1682,20 +1681,16 @@ root# <userinput moreinfo="none">make install</userinput>
     </para>
     <para>
       While a file-specific stylesheet is stored directly in the FS
-      file, named stylesheets are all saved in a file called <filename
-      moreinfo="none">.tred-stylesheets</filename> in user's home
+      file, named stylesheets are all saved in a file called <filename moreinfo="none">.tred-stylesheets</filename> in user's home
       directory.  This file is updated every time a named stylesheet
       is added removed or edited. Currently selected named stylesheet
-      can be completely removed from the list by selecting <guilabel
-      moreinfo="none">&lt;Delete Current&gt;</guilabel> item from the
+      can be completely removed from the list by selecting <guilabel moreinfo="none">&lt;Delete Current&gt;</guilabel> item from the
       pattern-set list.
     </para>
     <para>
       Selected stylesheet can be edited in a stylesheet editor which
-      appears when <inlinegraphic
-      fileref="pics/tick.png"/> button is pressed or <menuchoice moreinfo="none">
-      <guimenu moreinfo="none">View</guimenu> <guimenuitem
-      moreinfo="none">Edit stylesheet...</guimenuitem></menuchoice>
+      appears when <inlinegraphic fileref="pics/tick.png"/> button is pressed or <menuchoice moreinfo="none">
+      <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">Edit stylesheet...</guimenuitem></menuchoice>
       menu command issued.
     </para>
     <figure float="0">
@@ -1720,20 +1715,17 @@ root# <userinput moreinfo="none">make install</userinput>
       <para>
 	TrEd recognizes the following pattern prefixes (described in
 	detail below): <literal moreinfo="none">node</literal>,
-	<literal moreinfo="none">edge</literal>, <literal
-	moreinfo="none">style</literal>, <literal
-	moreinfo="none">text</literal> and <literal
-	moreinfo="none">rootstyle</literal>.
+	<literal moreinfo="none">edge</literal>, <literal moreinfo="none">style</literal>, <literal moreinfo="none">text</literal> and <literal moreinfo="none">rootstyle</literal>.
 	If any other prefix is used, TrEd ignores the pattern.
       </para>
       <variablelist>
 	<varlistentry>
-	  <term><literal>node:</literal></term>
+	  <term><literal moreinfo="none">node:</literal></term>
 	  <listitem>
 	    <para>
 	      defines a line of text to be
 	      displayed under each node of the tree. A stylesheet may
-	      contain one or more <literal>node:</literal> patterns,
+	      contain one or more <literal moreinfo="none">node:</literal> patterns,
 	      in which case the lines are displayed in the tree one
 	      under another in the order as they appear in the
 	      stylesheet.
@@ -1747,20 +1739,19 @@ root# <userinput moreinfo="none">make install</userinput>
 	    defines a line of text displayed across (or beside)
 	    the edge connecting each node with its parent. Of course, this
 	    label is not rendered for the root node.
-	      Likewise <literal>node:</literal> patterns, several
-	    <literal>edge:</literal> patterns may be specified.
-	      Note however, that <literal>edge:</literal> patterns
+	      Likewise <literal moreinfo="none">node:</literal> patterns, several
+	    <literal moreinfo="none">edge:</literal> patterns may be specified.
+	      Note however, that <literal moreinfo="none">edge:</literal> patterns
 	      make the tree look quite wide and it is usually better
 	    to avoid them.
 	  </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>style:</literal></term>
+	  <term><literal moreinfo="none">style:</literal></term>
 	  <listitem>
 	    <para>defines a pattern affecting the visual
-	      representation of various components of a tree. <literal
-	      moreinfo="none">style:</literal> patterns do not result
+	      representation of various components of a tree. <literal moreinfo="none">style:</literal> patterns do not result
 	      in any text visible on the screen but may contain
 	      special tree styling instructions described below. These
 	      instructions may dynamically alter the appearance (such
@@ -1770,7 +1761,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>text:</literal></term>
+	  <term><literal moreinfo="none">text:</literal></term>
 	  <listitem>
 	    <para>defines a portion of the text representing each node
 	      in the text window above the tree.
@@ -1778,7 +1769,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>rootstyle:</literal></term>
+	  <term><literal moreinfo="none">rootstyle:</literal></term>
 	  <listitem>
 	    <para>defines a pattern which behaves quite the same as a
 	    <literal moreinfo="none">style:</literal> pattern but is
@@ -1790,12 +1781,12 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>hint:</literal></term>
+	  <term><literal moreinfo="none">hint:</literal></term>
 	  <listitem>
 	    <para>
 	      defines the content of a tool-tip shown when mouse pointer
 	      lingers over a node.  No styling instructions are
-	      allowed in the <literal>hint:</literal> patterns.
+	      allowed in the <literal moreinfo="none">hint:</literal> patterns.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1816,8 +1807,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </para>
 	  <para>
 	    Note that the returned value may contain other special
-	    sequences, but can't contain another <literal
-	    moreinfo="none">&lt;?<replaceable>...</replaceable>?&gt;</literal>
+	    sequences, but can't contain another <literal moreinfo="none">&lt;?<replaceable>...</replaceable>?&gt;</literal>
 	    sequences.
 	  </para>
 	  <para>Within the <replaceable>code</replaceable>, 
@@ -1832,13 +1822,13 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <literal moreinfo="none">$this-&gt;parent</literal>).
 	    Regardless of what context is currently selected,
 	    the code occuring in the styling patterns is always 
-	    evaluated within the <literal>TredMacro</literal> namespace.
+	    evaluated within the <literal moreinfo="none">TredMacro</literal> namespace.
 	    In order to call a user-defined macro from another
 	    namespace, it is therefore necessary to use a complete namespace
 	    (package name) prefix. So, a call to
-	      a macro named <literal>bar</literal> from a package
-	      (context) <literal>Foo</literal> should look like
-	      <literal>Foo::bar(<replaceable>arguments...</replaceable>)</literal>.
+	      a macro named <literal moreinfo="none">bar</literal> from a package
+	      (context) <literal moreinfo="none">Foo</literal> should look like
+	      <literal moreinfo="none">Foo::bar(<replaceable>arguments...</replaceable>)</literal>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -1850,10 +1840,10 @@ root# <userinput moreinfo="none">make install</userinput>
 	      replaced by current node's value of attribute named
 	      <replaceable>attr</replaceable>.  Using attribute
 	      references only makes sense in the
-	      <literal>node:</literal>, <literal>edge:</literal>,
-	      <literal>text:</literal> and <literal>hint:</literal>
+	      <literal moreinfo="none">node:</literal>, <literal moreinfo="none">edge:</literal>,
+	      <literal moreinfo="none">text:</literal> and <literal moreinfo="none">hint:</literal>
 	      patterns. In the labels rendered from
-	      <literal>node:</literal>, <literal>edge:</literal>
+	      <literal moreinfo="none">node:</literal>, <literal moreinfo="none">edge:</literal>
 	      patterns, this reference is actually linked with the
 	      corresponding node's attribute, so double-clicking on the
 	      displayed value in the tree shows a dialog where the
@@ -1866,8 +1856,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	<listitem>
 	  <para>
 	      This is a special form of an attribute reference, which
-	      is only useful in <literal>node:</literal>,
-	      <literal>edge:</literal> patterns.  It always renders as
+	      is only useful in <literal moreinfo="none">node:</literal>,
+	      <literal moreinfo="none">edge:</literal> patterns.  It always renders as
 	      <replaceable>value</replaceable>, but still retains the
 	      reference to the attribute
 	      <replaceable>attr</replaceable> of the corresponding
@@ -1888,13 +1878,12 @@ root# <userinput moreinfo="none">make install</userinput>
 	    either an english name of a color,
 	    such as <literal moreinfo="none">black</literal>, <literal moreinfo="none">red</literal> or
 	    <literal moreinfo="none">darkblue</literal>, or one of
-	      user defined colors <literal
-		moreinfo="none">custom<replaceable>XXX</replaceable></literal>
+	      user defined colors <literal moreinfo="none">custom<replaceable>XXX</replaceable></literal>
 	    (that can be defined in the configuration file using 
-	    <literal>CustomColor<replaceable>XXX</replaceable></literal>
+	    <literal moreinfo="none">CustomColor<replaceable>XXX</replaceable></literal>
 	    configuration option), or
 	    an RGB value specified as
-	    <literal>#<replaceable>RRGGBB</replaceable></literal>,
+	    <literal moreinfo="none">#<replaceable>RRGGBB</replaceable></literal>,
 	    where <replaceable>RR</replaceable>,
 	    <replaceable>GG</replaceable>,
 	    <replaceable>BB</replaceable> are hexadecimal numbers
@@ -1926,13 +1915,13 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Any other text occuring within a
-	      <literal>node:</literal>, <literal>edge:</literal>,
-	      <literal>text:</literal>, or <literal>hint:</literal>
+	      <literal moreinfo="none">node:</literal>, <literal moreinfo="none">edge:</literal>,
+	      <literal moreinfo="none">text:</literal>, or <literal moreinfo="none">hint:</literal>
 	      pattern is render as is (using the default font and
 	      the default or previously selected color and styling).
 	      Plain text occuring in a 
-	      <literal>style:</literal> or
-	      <literal>root-style:</literal>
+	      <literal moreinfo="none">style:</literal> or
+	      <literal moreinfo="none">root-style:</literal>
 	      pattern is ignored (note however, that this may change
 	      in the future versions).
 	    </para>
@@ -1959,7 +1948,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	</thead>
 	<tbody>
 	  <row>
-	    <entry><literal>Node-shape</literal></entry>
+	    <entry><literal moreinfo="none">Node-shape</literal></entry>
 	    <entry>
 	      <para>The shape of the point representing the node in
 		the tree. Possible values are <literal moreinfo="none">oval</literal>,
@@ -1970,7 +1959,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Node-polygon</literal></entry>
+	    <entry><literal moreinfo="none">Node-polygon</literal></entry>
 	    <entry><para>
 		Specifies the relative coordinates for three or
 		more points that define a closed polygon. The
@@ -1979,40 +1968,40 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
 	  </row>
 	  <row>
-	    <entry><literal>Node-width</literal></entry>
+	    <entry><literal moreinfo="none">Node-width</literal></entry>
 	    <entry>
 	      <para>Width of an oval- or rectangle-shaped node.</para>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Node-height</literal></entry>
+	    <entry><literal moreinfo="none">Node-height</literal></entry>
 	    <entry>
 	      <para>Height of an oval- or rectangle-shaped node.</para>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Node-currentwidth</literal></entry>
+	    <entry><literal moreinfo="none">Node-currentwidth</literal></entry>
 	    <entry>
 	      <para>Width of an oval- or rectangle-shaped node
 	      when current.</para>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Node-currentheight</literal></entry>
+	    <entry><literal moreinfo="none">Node-currentheight</literal></entry>
 	    <entry>
 	      <para>Height of the node an oval- or
 	      rectangle-shaped node when current.</para>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Node-addwidth</literal></entry>
+	    <entry><literal moreinfo="none">Node-addwidth</literal></entry>
 	    <entry>
 	      <para>Increase width of an oval- or rectangle-shaped node
 	      by a given amount.</para>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Node-addheight</literal></entry>
+	    <entry><literal moreinfo="none">Node-addheight</literal></entry>
 	    <entry>
 	      <para>Increase height of an oval- or rectangle-shaped
 	      node by a given
@@ -2020,14 +2009,14 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Node-rellevel</literal></entry> <entry><para> Allows altering
+	    <entry><literal moreinfo="none">Node-rellevel</literal></entry> <entry><para> Allows altering
 		the default vertical position of a subtree. 
 		The values are multiples of one default level height.
 		Positive values move the subtree down, while negative values
 		move the subtree up. </para></entry>
 	  </row>
 	  <row>
-	    <entry><literal>Node-level</literal></entry> <entry>
+	    <entry><literal moreinfo="none">Node-level</literal></entry> <entry>
 	      <para>
 		Very similar to <literal moreinfo="none">Node-rellevel</literal>
 		above, except that this option affects one node only 
@@ -2036,17 +2025,17 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
 	  </row>
 	  <row>
-	    <entry><literal>Node-addbeforeskip</literal></entry>
+	    <entry><literal moreinfo="none">Node-addbeforeskip</literal></entry>
             <entry><para>Additional horizontal space before node
 		in pixels</para></entry>
 	  </row>
 	  <row>
-	    <entry><literal>Node-addafterskip</literal></entry>
+	    <entry><literal moreinfo="none">Node-addafterskip</literal></entry>
 	    <entry><para>Additional horizontal space after node
 		in pixels</para></entry>
           </row>
 	  <row>
-	    <entry><literal>Node-disableedgelabelspace</literal></entry>
+	    <entry><literal moreinfo="none">Node-disableedgelabelspace</literal></entry>
 	    <entry><para>If set the value is <quote><literal moreinfo="none">yes</literal></quote>
 		no additional horizontal skip for
 		edge labels is added during
@@ -2054,7 +2043,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>NodeLabel-valign</literal></entry>
+	    <entry><literal moreinfo="none">NodeLabel-valign</literal></entry>
 	    <entry><para>This instruction
 		may be used only within <literal moreinfo="none">rootstyle</literal>
 		patterns.
@@ -2076,7 +2065,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>NodeLabel-halign</literal></entry>
+	    <entry><literal moreinfo="none">NodeLabel-halign</literal></entry>
 	    <entry><para>One of the following values
 		may be used: <quote><literal moreinfo="none">left</literal></quote>,
 		<quote><literal moreinfo="none">center</literal></quote>,
@@ -2089,13 +2078,13 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>NodeLabel-yadj</literal></entry>
+	    <entry><literal moreinfo="none">NodeLabel-yadj</literal></entry>
 	    <entry><para>Adjust vertical position of node labels
 		by extra amount of pixels.
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>NodeLabel-dodrawbox</literal></entry>
+	    <entry><literal moreinfo="none">NodeLabel-dodrawbox</literal></entry>
 	    <entry><para>If <menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Draw boxes around labels</guimenuitem>
@@ -2107,7 +2096,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>NodeLabel-nodrawbox</literal></entry>
+	    <entry><literal moreinfo="none">NodeLabel-nodrawbox</literal></entry>
 	    <entry><para>
 		If <menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">View</guimenu>
@@ -2120,27 +2109,26 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>EdgeLabel-yadj</literal></entry>
+	    <entry><literal moreinfo="none">EdgeLabel-yadj</literal></entry>
 	    <entry><para>Adjust vertical position of edge labels
 		by extra amount of pixels.
 		The horizontal position is adjusted automatically.
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>EdgeLabel-coords</literal></entry> 
+	    <entry><literal moreinfo="none">EdgeLabel-coords</literal></entry> 
 	    <entry><para> This option
 		can be used to specify custom (non-standard) positioning
 		of the edge label by specifying the exact point to which
 		the edge label is anchored.  The format of this option is
-		similar to <literal>Line-coords</literal>, except that
-		only one pair of coordinates (X,Y) is allowed. See <link
-		  linkend="Line-coords">Line-coords</link> for more
+		similar to <literal moreinfo="none">Line-coords</literal>, except that
+		only one pair of coordinates (X,Y) is allowed. See <link linkend="Line-coords">Line-coords</link> for more
 		information.
 	      </para>
 	    </entry>
 	  </row>
 	  <row>
-	    <entry><literal>EdgeLabel-halign</literal></entry>
+	    <entry><literal moreinfo="none">EdgeLabel-halign</literal></entry>
 	    <entry><para>One of 
 		the values <quote><literal moreinfo="none">right</literal></quote>,
 		<quote><literal moreinfo="none">center</literal></quote>,
@@ -2150,7 +2138,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>EdgeLabel-valign</literal></entry>
+	    <entry><literal moreinfo="none">EdgeLabel-valign</literal></entry>
 	    <entry><para>One of 
 		the values <quote><literal moreinfo="none">top</literal></quote>,
 		<quote><literal moreinfo="none">center</literal></quote>,
@@ -2160,7 +2148,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>EdgeLabel-dodrawbox</literal></entry>
+	    <entry><literal moreinfo="none">EdgeLabel-dodrawbox</literal></entry>
 	    <entry><para>If <menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Draw boxes around edge
@@ -2173,7 +2161,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>EdgeLabel-nodrawbox</literal></entry>
+	    <entry><literal moreinfo="none">EdgeLabel-nodrawbox</literal></entry>
 	    <entry><para>If <menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">View</guimenu>
 		  <guimenuitem moreinfo="none">Draw boxes around edge
@@ -2185,7 +2173,7 @@ root# <userinput moreinfo="none">make install</userinput>
 		no box is drawn around the node's edge labels.</para></entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-dash</literal></entry>
+	    <entry><literal moreinfo="none">Oval-dash</literal></entry>
 	    <entry><para>Dash pattern for the outline
 	      of the point representing the node of the tree.
 	      A dash pattern is either a sequence of arbitrary
@@ -2198,7 +2186,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-activedash</literal></entry>
+	    <entry><literal moreinfo="none">Oval-activedash</literal></entry>
 	    <entry><para>Dash pattern for the outline
 	      of the point when mouse is over the point. See
 	      description of <literal moreinfo="none">Oval-dash</literal>
@@ -2206,48 +2194,48 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-dashoffset</literal></entry>
+	    <entry><literal moreinfo="none">Oval-dashoffset</literal></entry>
 	    <entry><para>The starting offset (in pixels)
 		into the pattern provided by the
 		<literal moreinfo="none">Oval-dash</literal> instruction.		
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-fill</literal></entry>
+	    <entry><literal moreinfo="none">Oval-fill</literal></entry>
 	    <entry><para>The color that fills the
 		node.
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-activefill</literal></entry>
+	    <entry><literal moreinfo="none">Oval-activefill</literal></entry>
 	    <entry><para>The color to fill the node
 	      when mouse is over it.</para></entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-outline</literal></entry>
+	    <entry><literal moreinfo="none">Oval-outline</literal></entry>
 	    <entry><para>The color of the outline
 		of the node.
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-activeoutline</literal></entry>
+	    <entry><literal moreinfo="none">Oval-activeoutline</literal></entry>
 	    <entry><para>The color of the outline
 		of the node when mouse is over it.
 	      </para>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-width</literal></entry>
+	    <entry><literal moreinfo="none">Oval-width</literal></entry>
 	    <entry><para>Width of the outline
 		of the node.</para></entry>
           </row>
 	  <row>
-	    <entry><literal>Oval-activewidth</literal></entry>
+	    <entry><literal moreinfo="none">Oval-activewidth</literal></entry>
 	    <entry><para>Width of the outline
 		of the node when mouse is over it.</para></entry>
           </row>
 	  <row id="Line-coords">
-	    <entry><literal>Line-coords</literal></entry>
+	    <entry><literal moreinfo="none">Line-coords</literal></entry>
 	    <entry><para>
 		This, very complex, option allows to setup
 		one or more lines leading from the node. Unless this
@@ -2345,7 +2333,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Line-arrow</literal></entry>
+	    <entry><literal moreinfo="none">Line-arrow</literal></entry>
 	    <entry><para>One of the values
 		<quote><literal moreinfo="none">first</literal></quote>,
 		<quote><literal moreinfo="none">both</literal></quote>,
@@ -2357,7 +2345,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>Line-smooth</literal></entry>
+	    <entry><literal moreinfo="none">Line-smooth</literal></entry>
 	    <entry><para>Values are 1 or 0.
               It indicates whether or not the line should be drawn as a curve.  If
               so, the line is rendered as a set of parabolic splines: one spline
@@ -2369,7 +2357,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
 	  </row>
 	  <row>
-	    <entry><literal>Line-</literal><replaceable>feature</replaceable></entry>
+	    <entry><literal moreinfo="none">Line-</literal><replaceable>feature</replaceable></entry>
 	    <entry><para>Features
 		<literal moreinfo="none">dash</literal>,
 		<literal moreinfo="none">activedash</literal>,
@@ -2383,7 +2371,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>Text<replaceable>&lt;position&gt;</replaceable>-fill</literal></entry>
+	    <entry><literal moreinfo="none">Text<replaceable>&lt;position&gt;</replaceable>-fill</literal></entry>
 	    <entry><para>
 		This feature may be used to set the color of a certain
 		text object. The object is determined by its
@@ -2402,7 +2390,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>Text<replaceable>&lt;position&gt;</replaceable>-activefill</literal></entry>
+	    <entry><literal moreinfo="none">Text<replaceable>&lt;position&gt;</replaceable>-activefill</literal></entry>
 	    <entry><para>This feature may be used to set the color of a certain
 		text object when mouse is over it.
 		The syntax of <replaceable>position</replaceable>
@@ -2410,7 +2398,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>TextBg<replaceable>&lt;position&gt;</replaceable>-<replaceable>feature</replaceable></literal></entry>
+	    <entry><literal moreinfo="none">TextBg<replaceable>&lt;position&gt;</replaceable>-<replaceable>feature</replaceable></literal></entry>
 	    <entry><para>This instruction may be used to set features
 		of an underlying rectangle of certain
 		text object.
@@ -2431,7 +2419,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      </para></entry>
           </row>
 	  <row>
-	    <entry><literal>TextBox-<replaceable>feature</replaceable></literal></entry>
+	    <entry><literal moreinfo="none">TextBox-<replaceable>feature</replaceable></literal></entry>
 	    <entry><para>This instruction may be used to set features
 		of the frame drawn around the group of node labels.
 		The following features are supported:
@@ -2448,7 +2436,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
           </row>
 	  <row>
-	    <entry><literal>EdgeTextBox-<replaceable>feature</replaceable></literal></entry>
+	    <entry><literal moreinfo="none">EdgeTextBox-<replaceable>feature</replaceable></literal></entry>
 	    <entry><para>This instruction may be used to set features
 		of the frame drawn around the group of node's edge
 		labels. The list of supported features is the same as
@@ -2524,8 +2512,7 @@ root# <userinput moreinfo="none">make install</userinput>
       confirm the creation by pressing the
       <guibutton moreinfo="none">Create</guibutton> button in the
       window that appears.
-      Alternativelly, press the <guibutton
-      moreinfo="none">New</guibutton> button,
+      Alternativelly, press the <guibutton moreinfo="none">New</guibutton> button,
       fill the name of the new file-list to the entry in the displayed
       dialog and press <guibutton moreinfo="none">OK</guibutton>.
     </para>
@@ -2709,9 +2696,9 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><literal moreinfo="none">BWPrintNodeColor</literal></term>
 	  <listitem>
 	    <para>Color used to fill nodes when printing in
-	      black-and-white. Defaults to <literal>white</literal>,
+	      black-and-white. Defaults to <literal moreinfo="none">white</literal>,
 	      which results in nodes with only black outline. 
-	      If set to <literal>black</literal>, nodes are printed
+	      If set to <literal moreinfo="none">black</literal>, nodes are printed
 	      as all-black objects without a visible outline.</para>
 	  </listitem>
 	</varlistentry>
@@ -2876,7 +2863,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>LineArrow</literal></term>
+	  <term><literal moreinfo="none">LineArrow</literal></term>
 	  <listitem>
 	    <para>One of the values
 	      <quote><literal moreinfo="none">first</literal></quote>,
@@ -3121,7 +3108,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="allowcustomcolors">
-	  <term><literal>AllowCustomColors</literal></term>
+	  <term><literal moreinfo="none">AllowCustomColors</literal></term>
 	  <listitem>
 	    <para>
 	      This option takes one of the values <literal moreinfo="none">0</literal>
@@ -3145,7 +3132,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="hintwait">
-	  <term><literal>HintWait</literal></term>
+	  <term><literal moreinfo="none">HintWait</literal></term>
 	  <listitem>
 	    <para>
 	      This option controls time interval
@@ -3158,7 +3145,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="toolbarhintwait">
-	  <term><literal>ToolbarHintWait</literal></term>
+	  <term><literal moreinfo="none">ToolbarHintWait</literal></term>
 	  <listitem>
 	    <para>
 	      This option controls time interval
@@ -3172,7 +3159,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>SearchMethod</literal></term>
+	  <term><literal moreinfo="none">SearchMethod</literal></term>
 	  <listitem>
 	    <para>
 	      This option lets you define the default method used when
@@ -3193,7 +3180,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>MacroListOrder</literal></term>
+	  <term><literal moreinfo="none">MacroListOrder</literal></term>
 	  <listitem>
 	    <para>This option defines the default ordering of macros
 	      when <menuchoice moreinfo="none">
@@ -3208,7 +3195,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>MaxDisplayedValues</literal></term>
+	  <term><literal moreinfo="none">MaxDisplayedValues</literal></term>
 	  <listitem>
 	    <para>
 	      This option may be used to tell
@@ -3223,7 +3210,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>MaxDisplayedAttributes</literal></term>
+	  <term><literal moreinfo="none">MaxDisplayedAttributes</literal></term>
 	  <listitem>
 	    <para>
 	      This option may be used to tell
@@ -3394,7 +3381,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>SortAttributes</literal></term>
+	  <term><literal moreinfo="none">SortAttributes</literal></term>
 	  <listitem>
 	    <para>If <literal moreinfo="none">1</literal>, all lists where attribute names
 	      or values are displayed are sorted
@@ -3433,7 +3420,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      PNG icons on X11 with present versions of Tk804,
 	      due to a severe bug causing occasional crashes).
 	      Relative paths relate to 
-	      <literal><replaceable>libDir</replaceable>/icons</literal>
+	      <literal moreinfo="none"><replaceable>libDir</replaceable>/icons</literal>
 	      directory.
 	    </para>
 	  </listitem>
@@ -3452,13 +3439,13 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      TrEd's main window geometry 
-	      (<literal>HxW[+-]x[+-]y</literal>,
-	      where <literal>H</literal> is window's height,
-	      <literal>W</literal> is window's width,
-	      <literal>x</literal> is window's horizontal
+	      (<literal moreinfo="none">HxW[+-]x[+-]y</literal>,
+	      where <literal moreinfo="none">H</literal> is window's height,
+	      <literal moreinfo="none">W</literal> is window's width,
+	      <literal moreinfo="none">x</literal> is window's horizontal
 	      position from the left if positive and
 	      from the right if negative, 
-	      and <literal>y</literal>
+	      and <literal moreinfo="none">y</literal>
 	      is window's vertical
 	      position from the top of the screen if positive and
 	      from the bottom of the screen if negative).
@@ -3509,11 +3496,11 @@ root# <userinput moreinfo="none">make install</userinput>
 		    possible to use font patterns as specified by the
 		    <ulink url="http://freedesktop.org/software/fontconfig">fontconfig</ulink>
 		    library. These font patterns take the form:
-<literallayout>&lt;families&gt;-&lt;point sizes&gt;:&lt;name1&gt;=&lt;values1&gt;:&lt;name2&gt;=&lt;values2&gt;...</literallayout>
+<literallayout format="linespecific" class="normal">&lt;families&gt;-&lt;point sizes&gt;:&lt;name1&gt;=&lt;values1&gt;:&lt;name2&gt;=&lt;values2&gt;...</literallayout>
 	      Where <replaceable>names</replaceable> and 
 	      <replaceable>values</replaceable>
 	      refer to the floowing table
-	      <literallayout>
+	      <literallayout format="linespecific" class="normal">
 Property        Type    Description
   --------------------------------------------------------------
   family          String  Font family name
@@ -3536,7 +3523,7 @@ Property        Type    Description
   rasterizer      String  Which rasterizer is in use
   outline         Bool    Whether the glyphs are outlines
   scalable        Bool    Whether glyphs can be scaled
-  scale           Double  Scale factor for point->pixel conversions
+  scale           Double  Scale factor for point-&gt;pixel conversions
   dpi             Double  Target dots per inch
   rgba            Int     unknown, rgb, bgr, vrgb, vbgr,
                           none - subpixel geometry
@@ -3592,7 +3579,7 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="ttfontpath">
-	  <term><literal>TTFontPath</literal></term>
+	  <term><literal moreinfo="none">TTFontPath</literal></term>
 	  <listitem>
 	    <para>
 	      A comma-separated list of directories to look into
@@ -3715,7 +3702,7 @@ Property        Type    Description
 	  <listitem>
 	    <para>
 	      Specifies the default 
-	      horizontal print margin. Default is <literal>2c</literal>
+	      horizontal print margin. Default is <literal moreinfo="none">2c</literal>
 	      (c = centimeters).
 	    </para>
 	  </listitem>
@@ -3726,7 +3713,7 @@ Property        Type    Description
 	    <para>
 	      Specifies the default 
 	      vertical print margin.
-	      Default is <literal>3c</literal>
+	      Default is <literal moreinfo="none">3c</literal>
 	      (c = centimeters).
 	    </para>
 	  </listitem>
@@ -3838,7 +3825,7 @@ Property        Type    Description
 	      If <literal moreinfo="none">1</literal> is set here, 
 	      <application moreinfo="none">TrEd</application> 
 	      uses locales. This is especially useful in macros 
-	      e.g. for sorting. <literal>LC_CTYPE</literal> 
+	      e.g. for sorting. <literal moreinfo="none">LC_CTYPE</literal> 
 	      locale settings may also affect keyboard input and other
 	      charset-related stuff in the GUI.
 	    </para>
@@ -3941,16 +3928,16 @@ Property        Type    Description
 	    <para>This option may be used 
 	      to provide a custom command for displaying Open File dialogs.
 	      In the command specification,
-	      <literal>%t</literal> is replaced with
+	      <literal moreinfo="none">%t</literal> is replaced with
 	      the dialog title, 
-	      <literal>%m</literal> with a list of file-types (patterns),
-	      <literal>%t</literal> with the initial filename
+	      <literal moreinfo="none">%m</literal> with a list of file-types (patterns),
+	      <literal moreinfo="none">%t</literal> with the initial filename
 	      (only for save dialogs, see the 
 	      <link linkend="savefilenamecommand">SaveFileNameCommand</link>
 	      option below), and
-	      <literal>%d</literal> with the initial directory.
+	      <literal moreinfo="none">%d</literal> with the initial directory.
 	      For example, setting this option to 
-	      <literal>kdialog --title %t --getopenfilename %d %m</literal>
+	      <literal moreinfo="none">kdialog --title %t --getopenfilename %d %m</literal>
 	      in a KDE 3.3.x environment makes TrEd use
 	      the default KDE Open File dialog.
 	      This option is unused by default.
@@ -3964,7 +3951,7 @@ Property        Type    Description
 	      to provide a custom command for displaying Save File dialogs.
 	      See the <link linkend="openfilenamecommand">SaveFileNameCommand</link> option above
 	      for more detail. For example, setting this option to 
-	      <literal>kdialog --title %t --getopenfilename %d%f %m</literal>
+	      <literal moreinfo="none">kdialog --title %t --getopenfilename %d%f %m</literal>
 	      in a KDE 3.3.x environment makes TrEd use
 	      the default KDE Open File dialog.
 	      This option is unused by default.
@@ -4035,7 +4022,7 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>gzip</literal></term>
+	  <term><literal moreinfo="none">gzip</literal></term>
 	  <listitem>
 	    <para>This option may be used to point
 	      <application moreinfo="none">TrEd</application> to a
@@ -4051,7 +4038,7 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="zcat">
-	  <term><literal>zcat</literal></term>
+	  <term><literal moreinfo="none">zcat</literal></term>
 	  <listitem>
 	    <para>This option may be used to point
 	      <application moreinfo="none">TrEd</application> to a
@@ -4068,7 +4055,7 @@ Property        Type    Description
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>nsgmls</literal></term>
+	  <term><literal moreinfo="none">nsgmls</literal></term>
 	  <listitem>
 	    <para>This option may be used to point
 	      <application moreinfo="none">TrEd</application> to
@@ -4083,31 +4070,31 @@ Property        Type    Description
       <title>Debugging options</title>
       <variablelist>
 	<varlistentry>
-	  <term><literal>backenddebug</literal></term>
+	  <term><literal moreinfo="none">backenddebug</literal></term>
 	  <listitem>
 	    <para>Print debugging information for I/O backends.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>hookdebug</literal></term>
+	  <term><literal moreinfo="none">hookdebug</literal></term>
 	  <listitem>
 	    <para>Print debugging information when hooks are called.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>keyboarddebug</literal></term>
+	  <term><literal moreinfo="none">keyboarddebug</literal></term>
 	  <listitem>
 	    <para>Print debugging on keyboard events.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>macrodebug</literal></term>
+	  <term><literal moreinfo="none">macrodebug</literal></term>
 	  <listitem>
 	    <para>Print debugging when macros are invoked.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><literal>treddebug</literal></term>
+	  <term><literal moreinfo="none">treddebug</literal></term>
 	  <listitem>
 	    <para>Print various debugging information not covered
 	      by the debugging options listed above.</para>
@@ -4298,8 +4285,8 @@ Property        Type    Description
     <title>User Macros</title>
     <para>
       This section describes in detail
-      <application moreinfo="none">TrEd</application>'s support for user macros. It is
-      devoted mainly to programmers.
+      <application moreinfo="none">TrEd</application>'s support for user macros
+      and is dedicated mainly to programmers.
     </para>
     <para>
       As was already mentioned, <application moreinfo="none">TrEd</application> is
@@ -4455,7 +4442,7 @@ Property        Type    Description
 	By default, <application moreinfo="none">TrEd</application> 
 	expects UTF-8 encoded macro code (unless specified
 	otherwise using the <link linkend="defaultmacroencoding">
-	  <literal>defaultMacroEncoding</literal> configuration option</link>).
+	  <literal moreinfo="none">defaultMacroEncoding</literal> configuration option</link>).
 	Any other character encoding must be indicated using
 	<literal moreinfo="none">#encoding</literal> directive, followed by name of
 	the encoding, such as <literal moreinfo="none">utf-8</literal>,
@@ -4995,14 +4982,14 @@ Property        Type    Description
 	    </thead>
 	    <tbody>
 	      <row id="FS.order">
-		<entry><literal>order</literal></entry>
+		<entry><literal moreinfo="none">order</literal></entry>
 		<entry>Return the name of the special numerical FS attribute
 		  responsible for providing the tree order. This
 		  attribute is declared in the FS file as <literal moreinfo="none">@N</literal>.
 		</entry>
 	      </row>
 	      <row id="FS.sentord">
-		<entry><literal>sentord</literal></entry>
+		<entry><literal moreinfo="none">sentord</literal></entry>
 		<entry>Return the name of the special numerical FS attribute
 		  responsible for providing the order of the values
 		  to form a <quote>sentence</quote>. This
@@ -5011,7 +4998,7 @@ Property        Type    Description
 		</entry>
 	      </row>
 	      <row id="FS.value">
-		<entry><literal>value</literal></entry>
+		<entry><literal moreinfo="none">value</literal></entry>
 		<entry>Return the name of the special FS attribute
 		  providing a descriptive value of the node used when
 		  forming a <quote>sentence</quote>. This
@@ -5019,7 +5006,7 @@ Property        Type    Description
 		  <literal moreinfo="none">@V</literal>.</entry>
 	      </row>
 	      <row>
-		<entry><literal>hide</literal></entry>
+		<entry><literal moreinfo="none">hide</literal></entry>
 		<entry>Return the name of the special FS attribute
 		  which can be used to hide several subtrees. This
 		  attribute is declared in the FS file as
@@ -5028,13 +5015,13 @@ Property        Type    Description
 		  attribute is <literal moreinfo="none">'hide'</literal>.</entry>
 	      </row>
 	      <row>
-		<entry><literal>isHidden(<replaceable>node</replaceable>)</literal></entry>
+		<entry><literal moreinfo="none">isHidden(<replaceable>node</replaceable>)</literal></entry>
 		<entry>Return true if the given <classname>FSNode</classname>
 		<replaceable>node</replaceable> belongs to a hidden subtree.
 		</entry>
 	      </row>
 	      <row>
-		<entry><literal>isList(<replaceable>attr</replaceable>)</literal></entry>
+		<entry><literal moreinfo="none">isList(<replaceable>attr</replaceable>)</literal></entry>
 		<entry>Return true if the given attribute is of list
 		  type with a strictly defined set of possible
 		  values. This type of attributes is declared by
@@ -5042,7 +5029,7 @@ Property        Type    Description
 		</entry>
 	      </row>
 	      <row>
-		<entry><literal>listValues(<replaceable>attr</replaceable>)</literal></entry>
+		<entry><literal moreinfo="none">listValues(<replaceable>attr</replaceable>)</literal></entry>
 		<entry>Return a list of all possible values for the
 		given attribute <replaceable>attr</replaceable>. Empty
 		list is retured in case the attribute is not of the
@@ -5050,7 +5037,7 @@ Property        Type    Description
 		</entry>
 	      </row>
 	      <row>
-		<entry><literal>color(<replaceable>attr</replaceable>)</literal></entry>
+		<entry><literal moreinfo="none">color(<replaceable>attr</replaceable>)</literal></entry>
 		<entry>
 		  Return one of the <literal moreinfo="none">Shadow</literal>,
 		  <literal moreinfo="none">Hilite</literal>,
@@ -5061,19 +5048,19 @@ Property        Type    Description
 		</entry>
 	      </row>
 	      <row>
-		<entry><literal>attributes</literal></entry>
+		<entry><literal moreinfo="none">attributes</literal></entry>
 		<entry>Return a list containing names of all the
 		attributes declared in the FS file header.</entry>
 	      </row>
 	      <row>
-		<entry><literal>atno(<replaceable>n</replaceable>)</literal></entry>
+		<entry><literal moreinfo="none">atno(<replaceable>n</replaceable>)</literal></entry>
 		<entry>Return name of the
 		  <replaceable>n</replaceable>'th
 		  attribute.
 		</entry>
 	      </row>
 	      <row>
-		<entry><literal>indexOf(<replaceable>attr</replaceable>)</literal></entry>
+		<entry><literal moreinfo="none">indexOf(<replaceable>attr</replaceable>)</literal></entry>
 		<entry>Return index of the attribute named 
 		  <replaceable>attr</replaceable>, according
 		  to the order in which attributes are defined in the
@@ -5081,18 +5068,18 @@ Property        Type    Description
 		</entry>
 	      </row>
 	      <row>
-		<entry><literal>count</literal></entry>
+		<entry><literal moreinfo="none">count</literal></entry>
 		<entry>Return the number of attributes defined in the FS file.</entry>
 	      </row>
 	      <row>
-		<entry><literal>exists(<replaceable>attr</replaceable>)</literal></entry>
+		<entry><literal moreinfo="none">exists(<replaceable>attr</replaceable>)</literal></entry>
 		<entry>Return true if attribute named
 		  <replaceable>attr</replaceable> exists for the FS
 		  file. If it is not the case, false (i.e. zero) is returned.
 		</entry>
 	      </row>
 	      <row>
-		<entry><literal>make_sentence(<replaceable>root_node</replaceable>)</literal></entry>
+		<entry><literal moreinfo="none">make_sentence(<replaceable>root_node</replaceable>)</literal></entry>
 		<entry>Return a string forming a
 		  <quote>sentence</quote> for the given node's subtree. 
 		  The sentence is formed in the following way:
@@ -5680,12 +5667,25 @@ sub MakeSentence {
 	influenced, for example the execution of a planned action may
 	be aborted.
       </para>
+      <warning>
+	<para>Writing hooks correctly is a little bit more difficult than
+	  writing simple macros. An incorrectly written hook may result
+	  in errorneous behavior of <application moreinfo="none">TrEd</application>,
+	  which in some cases may even lead to a crash. When in doubt
+	  about where exactly is a particular hook called, with what parameters
+	  and what it is expected to do, it is best to peek directly
+	  into <filename moreinfo="none">tred</filename> or <filename moreinfo="none">btred</filename>
+	  sources. The possibility of doing so is one of the nice
+	  advantages of dealing with free software - in the Richard Stallman's
+	  sense - the joy of which I feel obliged not to deprive you of.
+	</para>
+      </warning>
       <para>
 	Hooks differ from other macros in the following aspects:
 	<orderedlist continuation="restarts" inheritnum="ignore">
 	  <listitem>
 	    <para>User cannot choose a name for a hook; on the
-	      contrary hook is recognized as a macro having a
+	      contrary, hook is recognized as a macro having a
 	      special name identifying it as being a certain hook.
 	    </para>
 	  </listitem>
@@ -5703,8 +5703,9 @@ sub MakeSentence {
 	  <listitem>
 	    <para>
 	      Unlike macros, hooks are not expected to modify
-	      the tree unless they explicitly state that by setting the
-	      <literal moreinfo="none">$FileChanged</literal> to <literal moreinfo="none">1</literal>.
+	      the tree unless they explicitly state that, typically
+	      by calling 
+	      <literal moreinfo="none">ChangingFile(1)</literal>.
 	    </para>
 	  </listitem>
 	</orderedlist>
@@ -5733,13 +5734,19 @@ sub MakeSentence {
 	    </row>
 	  </thead>
 	  <tbody>
-	    <row>
+	    <row id="start_hook">
 	      <entry><literal moreinfo="none">start_hook</literal></entry>
 	      <entry>yes</entry>
 	      <entry>Executed on start-up, before the main event loop
 		is entered.</entry>
 	    </row>
-	    <row>
+	    <row id="init_hook">
+	      <entry><literal moreinfo="none">init_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry>Executed on start-up, before the first file specified on
+		the command-line is opened (i.e. also before the <literal moreinfo="none">start_hook</literal>).</entry>
+	    </row>
+	    <row id="exit_hook">
 	      <entry><literal moreinfo="none">exit_hook</literal></entry>
 	      <entry>no</entry>
 	      <entry>Executed when the main window
@@ -5747,18 +5754,65 @@ sub MakeSentence {
 		before the user is prompted to save the modified files.
 	      </entry>
 	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">do_edit_attrs_hook(<replaceable>attr</replaceable>,<replaceable>node</replaceable>)</literal></entry>
+	    <row id="event_hook">
+	      <entry><literal moreinfo="none">event_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry>Executed before a dialog window for editing an
-		attribute value is displayed (usually when the 
-		user double-clicks the displayed attribute value).</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>Tk-XEvent</replaceable>,<replaceable>Tk-win</replaceable>,<replaceable>shortcuts...</replaceable></literal></para><para>This is a very low-level hook, executed when a non-predefined keyboard shortcut
+		was issued. It can be used to block certain keyboard events
+		(in which case it should return <literal moreinfo="none">stop</literal>) or 
+		to provide <quote>on-the-fly</quote> bindings (by returning
+		the name of a macro to be executed).
+		The first argument is an Tk::XEvent object which can be used to
+		obtain a detailed information of the event. The second argument
+		is a Tk::Widget that caught the event and the rest of the
+		arguments are keyboard-binding shortcuts computed from the event
+		(these are the shortcuts that TrEd would try to look up in the current context
+		bindings if this hook returns no macro name).
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal moreinfo="none">enable_attr_hook(<replaceable>attr</replaceable>,
-		  <replaceable>type</replaceable>)</literal></entry>
+	    <row id="do_edit_node_hook">
+	      <entry><literal moreinfo="none">do_edit_node_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable></literal></para><para>Executed before the <guilabel moreinfo="none">Edit Node</guilabel>
+		dialog is displayed, i.e. when the user
+		double-clicks a node, presses <keysym>Enter</keysym> in the
+		main window or issues <menuchoice moreinfo="none">
+		  <guimenu moreinfo="none">Node</guimenu>
+		  <guimenuitem moreinfo="none">Edit Node ...</guimenuitem></menuchoice>.
+		If the hook returns <literal moreinfo="none">stop</literal>, the dialog is suppressed.
+	      </para></entry>
+	    </row>
+	    <row id="enable_edit_node_hook">
+	      <entry><literal moreinfo="none">enable_edit_node_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable></literal></para><para>Executed before the <guilabel moreinfo="none">Edit Node</guilabel>
+		dialog is displayed, i.e. when the user
+		double-clicks a node, presses <keysym>Enter</keysym> in the
+		main window or issues <menuchoice moreinfo="none">
+		  <guimenu moreinfo="none">Node</guimenu>
+		  <guimenuitem moreinfo="none">Edit Node ...</guimenuitem></menuchoice>, but
+		after <literal moreinfo="none">do_edit_node_hook</literal> was called (and
+		only if it didn't return <literal moreinfo="none">stop</literal>). 
+		If this hook returns <literal moreinfo="none">stop</literal>, the dialog is
+		displayed, but only with a <guibutton moreinfo="none">Cancel</guibutton>
+		button, i.e. making it impossible to confirm and save the edits.
+	      </para></entry>
+	    </row>
+	    <row id="do_edit_attr_hook">
+	      <entry><literal moreinfo="none">do_edit_attr_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>attr</replaceable>,<replaceable>node</replaceable></literal></para><para>
+		Executed before a dialog window for editing an
+		attribute value is displayed (usually when the 
+		user double-clicks the displayed attribute value).
+		If <literal moreinfo="none">stop</literal> is returned,
+		the dialog is suppressed.
+	      </para></entry>
+	    </row>
+	    <row id="enable_attr_hook">
+	      <entry><literal moreinfo="none">enable_attr_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>attr</replaceable>,<replaceable>type</replaceable></literal></para><para>
 		Executed before any text field for an attribute value
 		modification or list of possible values
 		is created. If the hook returns
@@ -5770,10 +5824,15 @@ sub MakeSentence {
 		of multiple values or an attribute with
 		a given list of possible values) or
 		<literal moreinfo="none">normal</literal>.
-	      </entry>
+		If this hook returns <literal moreinfo="none">stop</literal>, the 
+		corresponding edit fields in a displayed dialog are
+		disabled (read-only) and if the dialog only displays
+		the particular attribute, then the confirmation 
+		<guibutton moreinfo="none">OK</guibutton> button is removed from it.
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal>goto_file_hook</literal></entry>
+	    <row id="goto_file_hook">
+	      <entry><literal moreinfo="none">goto_file_hook</literal></entry>
 	      <entry>yes</entry>
 	      <entry>
 		Executed before the next or previous file in the current
@@ -5787,52 +5846,133 @@ sub MakeSentence {
 		Executed before a different tree is displayed.
 	      </entry>
 	    </row -->
-	    <row>
-	      <entry><literal>file_opened_hook</literal></entry>
+	    <row id="file_opened_hook">
+	      <entry><literal moreinfo="none">file_opened_hook</literal></entry>
 	      <entry>no</entry>
 	      <entry>Executed after a file is opened but before the first
 		tree is displayed.
 	      </entry>
 	    </row>
-	    <row>
-	      <entry><literal>file_resumed_hook</literal></entry>
+	    <row id="preload_hook">
+	      <entry><literal moreinfo="none">preload_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry>Only used by <application moreinfo="none">btred</application>.
+		Executed before a file is preloaded.
+	      </entry>
+	    </row>
+	    <row id="file_resumed_hook">
+	      <entry><literal moreinfo="none">file_resumed_hook</literal></entry>
 	      <entry>no</entry>
 	      <entry>Executed after an already open (kept) file is resumed.</entry>
 	    </row>
-	    <row>
-	      <entry><literal>pre_switch_context_hook(<replaceable>previous</replaceable>,<replaceable>next</replaceable>)</literal></entry>
+	    <row id="file_save_hook">
+	      <entry><literal moreinfo="none">file_save_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry>Executed before the macro 
+	      <entry><para>Arguments: <literal role="params"><replaceable>output_filename</replaceable></literal></para><para>Executed before TrEd attempts to save a file.</para></entry>
+	    </row>
+	    <row id="file_close_hook">
+	      <entry><literal moreinfo="none">file_close_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry>Executed before TrEd attempts to close a file
+		(this hook is called even if the file remains open
+		but postponed if the close fails e.g. because
+		the file being closed is required by another open file).</entry>
+	    </row>
+	    <row id="file_autosave_hook">
+	      <entry><literal moreinfo="none">file_autosave_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>fsfile</replaceable></literal></para><para>Executed before TrEd attempts to create an auto-save file
+		for the given<replaceable>fsfile</replaceable>. Note, that
+		this is not necessarily the file displayed in the
+		active view and accessible via the <literal moreinfo="none">$grp</literal> variable.
+	      </para></entry>
+	    </row>
+	    <row id="get_backends_hook">
+	      <entry><literal moreinfo="none">get_backends_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>backends...</replaceable></literal></para><para>Executed before a new file is opened. It receives a list 
+		of available backends known by TrEd as arguments. It should
+		return a new array-ref consisting of backends that TrEd
+		should actually try to use. This may be used both to
+		add custom backends to the list or to prevent some
+		standard backends from being used (by omitting them in the
+		returned array-ref).
+	      </para></entry>
+	    </row>
+	    <row id="allow_switch_context_hook">
+	      <entry><literal moreinfo="none">allow_switch_context_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the new context, but before the macro 
+		context is actually changed (see <xref linkend="contexts"/>)
+		and before <literal moreinfo="none">pre_switch_context_hook</literal>
+		is called (in the old-context).
+		The <replaceable>previous</replaceable> argument
+		contains the name of the current context while
+		<replaceable>next</replaceable> contains the name of the
+		target context.
+	      </para></entry>
+	    </row>
+	    <row id="pre_switch_context_hook">
+	      <entry><literal moreinfo="none">pre_switch_context_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed in the old context before the macro 
 		context is changed (see <xref linkend="contexts"/>).
 		The <replaceable>previous</replaceable> argument
 		contains the name of the
 		current context while
 		<replaceable>next</replaceable> contains the name of the
-		future mode.
-	      </entry>
+		target context.
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal>about_file_hook(<replaceable>stringref</replaceable>)</literal></entry>
+	    <row id="switch_context_hook">
+	      <entry><literal moreinfo="none">switch_context_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>This hook is executed before the
+	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>current</replaceable></literal></para><para>Executed just after a context is changed (see <xref linkend="contexts"/>).
+		The <replaceable>previous</replaceable> argument
+		contains the name of the previous context while
+		<replaceable>next</replaceable> contains the name of the
+		new current context.
+	      </para></entry>
+	    </row>
+	    <row id="pre_switch_stylesheet_hook">
+	      <entry><literal moreinfo="none">pre_switch_stylesheet_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>next</replaceable></literal></para><para>Executed when user attempts to switch the current
+		stylesheet from <replaceable>previous</replaceable> to
+		<literal moreinfo="none">next</literal>.
+	      </para></entry>
+	    </row>
+	    <row id="switch_stylesheet_hook">
+	      <entry><literal moreinfo="none">switch_stylesheet_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>previous</replaceable>,<replaceable>current</replaceable></literal></para><para>Executed after switching stylesheets.
+		The fist argument is the previous stylesheet.
+		The second argument is the newly selected current stylesheet.
+	      </para></entry>
+	    </row>
+
+	    <row id="about_file_hook">
+	      <entry><literal moreinfo="none">about_file_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>stringref</replaceable></literal></para><para>This hook is executed before the
 		<guilabel moreinfo="none">About</guilabel> window is displayed.
 		The hook takes one argument: a reference to a scalar
 		variable. The hook may populate the referenced
 		variable with any information which is then displayed
 		as a part of the <guilabel moreinfo="none">About</guilabel> window message.
-	      </entry>
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal>customize_attrs_hook</literal></entry>
+	    <row id="customize_attrs_hook">
+	      <entry><literal moreinfo="none">customize_attrs_hook</literal></entry>
 	      <entry>yes</entry>
 	      <entry>Executed before the dialog for customizing attribute
 		patterns is displayed.
 	      </entry>
 	    </row>
-	    <row>
-	      <entry><literal>sort_attrs_hook(<replaceable>attibsref</replaceable>)</literal></entry>
+	    <row id="sort_attrs_hook">
+	      <entry><literal moreinfo="none">sort_attrs_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed when attribute names are pre-sorted
+	      <entry><para>Arguments: <literal role="params"><replaceable>attibsref</replaceable></literal></para><para>Executed when attribute names are pre-sorted
 		(see <literal moreinfo="none">SortAttributes</literal>
 		configuration options). The
 		<replaceable>attribsref</replaceable>
@@ -5844,12 +5984,12 @@ sub MakeSentence {
 		If then non-zero value is returned by the hook,
 		the (possibly modified) list is used for displaying purposes 
 		without any further sorting.
-	      </entry>
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal>after_edit_node_hook(<replaceable>node</replaceable>,<replaceable>result</replaceable>)</literal></entry>
+	    <row id="after_edit_node_hook">
+	      <entry><literal moreinfo="none">after_edit_node_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed after a node's attribute values were edited
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>result</replaceable></literal></para><para>Executed after a node's attribute values were edited
 		in the <guilabel moreinfo="none">Edit Node Attributes</guilabel>
 		dialog window. The <replaceable>result</replaceable>
 		argument contains <literal moreinfo="none">1</literal> if the user pressed
@@ -5857,10 +5997,10 @@ sub MakeSentence {
 		and it contains <literal moreinfo="none">0</literal> if the user
 		closed the dialog with the
 	      <guibutton moreinfo="none">Close</guibutton> button.
-	      </entry> 
+	      </para></entry> 
 	    </row>
-	    <row>
-	      <entry><literal>after_edit_attr_hook</literal></entry>
+	    <row id="after_edit_attr_hook">
+	      <entry><literal moreinfo="none">after_edit_attr_hook</literal></entry>
 	      <entry>no</entry>
 	      <entry>Executed after a node's attribute was edited
 		in the <guilabel moreinfo="none">Edit Attribute</guilabel>
@@ -5872,10 +6012,10 @@ sub MakeSentence {
 	      <guibutton moreinfo="none">Close</guibutton> button.
 	      </entry> 
 	    </row>
-	    <row>
-	      <entry><literal>get_value_line_hook (<replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>)</literal></entry>
+	    <row id="get_value_line_hook">
+	      <entry><literal moreinfo="none">get_value_line_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Supply custom value-line content based on given
+	      <entry><para>Arguments: <literal role="params"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable></literal></para><para>Supply custom value-line content based on given
 		<replaceable>fsfile</replaceable> and
 		<replaceable>treeNo</replaceable>.
 		The value returned from the hook may be either 
@@ -5901,32 +6041,29 @@ sub MakeSentence {
 		they are used to alter visual appearance
 		of the corresponding part of the text displayed on the
 		value-line. All other strings are ignored.
-	      </entry>
+	      </para></entry>
 	    </row>
-	    <row>
+	    <row id="highlight_value_line_tag_hook">
 	      <entry><literal moreinfo="none">highlight_value_line_tag_hook</literal></entry>
 	      <entry>no</entry>
 	      <entry>Invoked every time a node is selected. The hook should
 		return a tag associated with some text in the value
 		line. The text is then highlighted in the value line.</entry>
 	    </row>
-	    <row>
-	      <entry><literal>get_nodelist_hook (<replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replaceable>show_hidden</replaceable>)</literal></entry>
-	      <entry>no</entry> <entry>This hook may be used to supply
+	    <row id="get_nodelist_hook">
+	      <entry><literal moreinfo="none">get_nodelist_hook</literal></entry>
+	      <entry>no</entry> <entry><para>Arguments: <literal role="params"><replaceable>fsfile</replaceable>,<replaceable>treeNo</replaceable>,<replaceable>show_hidden</replaceable></literal></para><para>This hook may be used to supply
 	      custom node ordering given a fsfile, treeNo and hidden
 	      node visibility state.  If used, it should return a
 	      two-element array reference with the first element being
 	      a array reference to a list of nodes to be displayed (in
 	      a left-to-right order) and the second element being a
 	      node to be set up as the initial active node.
-	      </entry>
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal>node_release_hook
-		(<replaceable>node</replaceable>,
-		<replaceable>target-node</replaceable>,
-		<replaceable>mod</replaceable>)</literal></entry>
-		<entry>yes</entry> <entry>Called when a node is released
+	    <row id="node_release_hook">
+	      <entry><literal moreinfo="none">node_release_hook</literal></entry>
+		<entry>yes</entry> <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>target-node</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when a node is released
 		over another node after a mouse
 		drag. <replaceable>mod</replaceable> is a keyboard
 		modifier string, such as <literal moreinfo="none">Control</literal>,
@@ -5942,14 +6079,12 @@ sub MakeSentence {
 		reorganize the tree in arbitrary way, but
 		it should call <literal moreinfo="none">Redraw_FSFile_Tree()</literal>
 		and set <literal moreinfo="none">$FileChanged=1</literal> if needed.
-	      </entry>
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal>node_doubleclick_hook
-		(<replaceable>node</replaceable>,
-		<replaceable>mod</replaceable>)</literal></entry>
+	    <row id="node_doubleclick_hook">
+	      <entry><literal moreinfo="none">node_doubleclick_hook</literal></entry>
 		<entry>no</entry> 
-	      <entry>Called when a node is double-clicked
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when a node is double-clicked
 		  while a modifier key was pressed.
 		  <replaceable>mod</replaceable> is a keyboard
 		modifier string, such as <literal moreinfo="none">Control</literal>,
@@ -5960,15 +6095,12 @@ sub MakeSentence {
 		<literal moreinfo="none">Redraw_FSFile_Tree()</literal> or
 		similar default macro to redraw the tree as well as for 
 		setting <literal moreinfo="none">$FileChanged=1</literal> if needed.
-	      </entry>
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal>text_doubleclick_hook
-		(<replaceable>node</replaceable>,
-		  <replaceable>attr</replaceable>,
-		<replaceable>mod</replaceable>)</literal></entry>
+	    <row id="text_doubleclick_hook">
+	      <entry><literal moreinfo="none">text_doubleclick_hook</literal></entry>
 		<entry>no</entry> 
-	      <entry>Called when an attribute in a displayed
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>attr</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when an attribute in a displayed
 		  node or edge label is double-clicked
 		  while a modifier key was pressed.
 		  <replaceable>mod</replaceable> is a keyboard
@@ -5984,16 +6116,20 @@ sub MakeSentence {
 		<literal moreinfo="none">Redraw_FSFile_Tree()</literal> or
 		similar default macro to redraw the tree as well as for 
 		setting <literal moreinfo="none">$FileChanged=1</literal> if needed.
-	      </entry>
+	      </para></entry>
 	    </row>
-	    <row>
-	      <entry><literal>node_moved_hook (<replaceable>node</replaceable>,
-		<replaceable>old-parent)</replaceable></literal></entry>
+	    <row id="node_moved_hook">
+	      <entry><literal moreinfo="none">node_moved_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>called after a node is moved using a mouse</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>old-parent)</replaceable></literal></para><para>called after a node is moved using a mouse</para></entry>
 	    </row>
-	    <row>
-	      <entry id="get_status_line_hook">get_status_line_hook</entry>
+	    <row id="current_node_change_hook">
+	      <entry><literal moreinfo="none">current_node_change_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>current_node</replaceable>,<replaceable>prev_current_node</replaceable></literal></para><para>executed when a new active node is selected.</para></entry>
+	    </row>
+	    <row id="get_status_line_hook">
+	      <entry>get_status_line_hook</entry>
 	      <entry>no</entry>
 	      <entry>Supply status-line content.
 		Status line is an experimental feature which can be
@@ -6032,17 +6168,157 @@ sub MakeSentence {
 		<literal moreinfo="none">-background</literal> and <literal moreinfo="none">-underline</literal>.
 	      </entry>
 	    </row>
-	    <row>
-	      <entry><literal>status_line_doubleclick_hook <replaceable>tags...</replaceable></literal></entry>
+	    <row id="value_line_doubleclick_hook">
+	      <entry><literal moreinfo="none">value_line_doubleclick_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Called when users double-clicks the status-line.
-		Arguments are a list of tags associated with
+	      <entry><para>Arguments: <literal role="params"><replaceable>tags...</replaceable></literal></para><para>Called when the user double-clicks the text
+		in the value-line, i.e. text field displayed above the tree.
+		Arguments are the tags associated with
+		the clicked part of the text. Tag may be arbitrary
+		strings associated with the text in the
+		<literal moreinfo="none">value_line_hook</literal> or
+		a serialized form of a node reference
+		if the text is associated with a particular node.
+		(More specifically,
+		the Perl expression <literal moreinfo="none">$tag eq $node</literal> is
+		true for one of the tags and the corresponding node,
+		where <literal moreinfo="none">$tag</literal> is a simple scalar, i.e. astring.
+		Hence, if necessary, the macro has to iterated through the tree
+		in order to find the corresponding node.)
+	      </para></entry>
+	    </row>
+	    <row id="status_line_doubleclick_hook">
+	      <entry><literal moreinfo="none">status_line_doubleclick_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>tags...</replaceable></literal></para><para>Called when the user double-clicks the status-line.
+		Arguments are the tags associated with
 		the clicked field (see above). Tag may be arbitrary
 		strings and it is up to user's will to
 		set up some useful convention for tagging text of
 		the status-line.
+	      </para></entry>
+	    </row>
+	    <row id="status_line_click_hook">
+	      <entry><literal moreinfo="none">status_line_click_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>tags...</replaceable></literal></para><para>Called when the user clicks the status-line
+		with the same arguments as
+		<literal moreinfo="none">status_line_doubleclick_hook</literal>
+		above.
+	      </para></entry>
+	    </row>
+
+	    <row id="reload_macros_hook">
+	      <entry><literal moreinfo="none">reload_macros_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry>Executed before macros are re-loaded
+		(i.e. when the user issues <menuchoice moreinfo="none">
+		  <guimenu moreinfo="none">Help</guimenu>
+		  <guimenuitem moreinfo="none">Reload macros</guimenuitem>
+		</menuchoice>).
+		This macro may be used to do clean-up (e.g. cleanly deallocate
+		non-perl resources, break circular dependences, etc.) before TrEd sweeps away
+		the memory and code currently occupied and used by macros.</entry>
+	    </row>
+	    <row id="macros_reloaded_hook">
+	      <entry><literal moreinfo="none">macros_reloaded_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry>Executed after macros has been re-loaded
+		(i.e. after the user issued <menuchoice moreinfo="none">
+		  <guimenu moreinfo="none">Help</guimenu>
+		  <guimenuitem moreinfo="none">Reload macros</guimenuitem>
+		</menuchoice>). At the moment of the call to this hook,
+		the newly loaded macros are already in effect.
 	      </entry>
 	    </row>
+	    <row id="node_click_hook">
+	      <entry><literal moreinfo="none">node_click_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed when the user clicks on a node
+		with a mouse button while holding a keyboard modifier
+		(one of <keycap moreinfo="none">Shift</keycap>, <keycap moreinfo="none">Control</keycap>,
+		<keycap moreinfo="none">Alt</keycap>, <keycap moreinfo="none">Meta</keycap>).
+		The first argument is a node the user clicked on.
+		The second argument is the keyboard modifier
+		to which the suffix <literal moreinfo="none">-2</literal> or
+		<literal moreinfo="none">-3</literal> has been appended 
+		if the user pressed mouse button <mousebutton moreinfo="none">2</mousebutton>
+		or <mousebutton moreinfo="none">3</mousebutton> respectivelly.
+		The third argument is the raw Tk-XEvent object
+		which can be used to obtain detailed information
+		(such as coordinates) of the event.
+	      </para></entry>
+	    </row>
+	    <row id="node_motion_hook">
+	      <entry><literal moreinfo="none">node_motion_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed repeatedly while the user drags 
+		a node while holding a keyboard modifier.
+		Arguments passed to this hook
+		are same as for the <literal moreinfo="none">node_click_hook</literal>.
+	      </para></entry>
+	    </row>
+	    <row id="text_click_hook">
+	      <entry><literal moreinfo="none">text_click_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>attribute</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed when the user double-clicks on
+		a node label linked to a particular node attribute.
+		The <replaceable>modifier</replaceable> and 
+		<replaceable>Tk-Event</replaceable> arguments are 
+		as described in <literal moreinfo="none">node_click_hook</literal> above.
+	      </para></entry>
+	    </row>
+	    <row id="node_style_hook">
+	      <entry><literal moreinfo="none">node_style_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>node</replaceable>,<replaceable>syles</replaceable></literal></para><para>This hook is called for every node of a tree every time
+		the tree is being drawn. It may be used to provide
+		additional styling information on top of
+		the information provided by a current stylesheet.
+		The first argument is the particular
+		node. The second argument is a hash-reference containing
+		current styling information provided by defaults 
+		and the current stylesheet.
+		It consists of key - value pairs, where key is 
+		a styled object
+		(<literal moreinfo="none">Node</literal>,<literal moreinfo="none">NodeLabel</literal>,
+		<literal moreinfo="none">EdgeLabel</literal>, <literal moreinfo="none">Oval</literal>,
+		<literal moreinfo="none">Line</literal>, <literal moreinfo="none">Text</literal>,
+		<literal moreinfo="none">TextBg</literal>, <literal moreinfo="none">TextBox</literal>)
+		and values are array-references consisting
+		of feature - value pairs for these objects.
+		The hook may alter this hash-reference and thus
+		the styling of the particular node. It is recommended
+		to take the advantage of the <literal moreinfo="none">AddStyle</literal>
+		default macro when altering the content of the
+		<replaceable>styles</replaceable> hash-ref.
+	      </para></entry>
+	    </row>
+	    <row id="root_style_hook">
+	      <entry><literal moreinfo="none">root_style_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Arguments: <literal role="params"><replaceable>root-node</replaceable>,<replaceable>syles</replaceable></literal></para><para>This hook is executed once every time
+		the tree is being drawn before
+		the content of a currently selected stylesheet
+		is applied and before <literal moreinfo="none">node_style_hook</literal>
+		is called. The first argument is the root-node of
+		the tree and <replaceable>styles</replaceable> are
+		as in <literal moreinfo="none">node_style_hook</literal> above.
+	      </para></entry>
+	    </row>
+	    <row id="print_tree_filename_hook">
+	      <entry><literal moreinfo="none">print_tree_filename_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry>Executed when
+		<menuchoice moreinfo="none">
+		  <guimenu moreinfo="none">File</guimenu>
+		  <guimenuitem moreinfo="none">Print ...</guimenuitem>
+		</menuchoice>
+		command is invoked in order to obtain a suggestion for
+		the target file-name used when printing to file.
+	      </entry>
+	    </row>
+	    	    
 	  </tbody>
 	</tgroup>
       </table>
@@ -6149,9 +6425,9 @@ MyPackage::my_macro();   # call to a macro defined in MyPackage
 	in the <guimenuitem moreinfo="none">User-defined</guimenuitem> menu. 
 	For contexts with a large number of menu bindings it
 	is usually more comfortable to select a macro 
-	using <menuchoice>
-	  <guimenuitem>View</guimenuitem>
-	  <guimenuitem>List of Named Macros</guimenuitem>
+	using <menuchoice moreinfo="none">
+	  <guimenuitem moreinfo="none">View</guimenuitem>
+	  <guimenuitem moreinfo="none">List of Named Macros</guimenuitem>
 	</menuchoice>.</para>
       <para> If a keyboard shortcut
 	is pressed, <application moreinfo="none">TrEd</application> first searches for a
