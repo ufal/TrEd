@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-05-30 15:01:42 pajas>";
+$timestamp="Time-stamp: <2001-06-01 10:35:14 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -119,16 +119,6 @@ EOF
   exit;
 }
 
-# platform specific stuff
-$inputenc="iso-8859-2";
-if ($^O eq "MSWin32") {
-  $outputenc="windows-1250";
-  $Ds="\\"; # how filenames and directories are separated
-} else {
-  $Ds='/';
-  $outputenc="iso-8859-2";
-}
-
 use FindBin;
 
 # in Windows, if HOME not defined, use user's AppData folder instaed
@@ -223,6 +213,9 @@ unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 require Fslib;
 import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
+require TrEd::Charsets;
+import TrEd::Charsets;
+import TrEd::Charsets qw($Ds);
 
 #load back-ends
 
@@ -359,34 +352,6 @@ sub tilde_expand {
   $a=~s/([^\\])\~/\1$ENV{HOME}/g;
   return $a;
 }
-
-##################### character encoding functions ########################
-
-%encodings = (
-    'iso-8859-2' => "ì¹èø¾ýáíéìúùóò»ïµà¶å¼æñÌ©ÈØ®ÝÁÍÉÌÚÙÓÒ«Ï¥À¦Å¬ÆÑ",
-	      'ascii' => "escrzyaieeuuontdlrslzcnESCRZYAIEEUUONTDLRSLZCN",
-	      'iso-8859-1' => "escrzýáíéeúuóntdlrslzcnESCRZÝÁÍÉEÚUÓNTDLRSLZCN",
-	      'windows-1250' => "ìšèøžýáíéìúùóòï¾àœåŸæñÌŠÈØŽÝÁÍÉÌÚÙÓÒÏ¼ÀŒÅÆÑ"
-	     );
-
-sub encode {
-  return join("",@_) if ($inputenc eq $outputenc);
-
-  local $_=join "",@_;
-  eval " tr/$encodings{$inputenc}/$encodings{$outputenc}/";
-  return $_;
-}
-
-sub decode {
-  return join("",@_) if ($inputenc eq $outputenc);
-
-  local $_=join "",@_;
-  eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
-  return $_;
-}
-
-################ end of character encoding functions ########################
-
 
 print STDERR "Reading macros from $macroFile...\n";
 readMacros($macroFile);		# read macros
@@ -1915,7 +1880,7 @@ sub printDialog {
 #  $grp->{'printSelection'}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
   $grp->{'printToFile'}=$toFile;
   $grp->{'printToEPS'}=$toEPS;
-  $grp->{'printPsFile'}=$fil;
+  $grp->{'printPsFile'}=$ fil;
   $grp->{'printSentenceInfo'}=$snt;
   $grp->{'printCommand'}=$com;
   $grp->{'printUseType1Font'}=$useType1Font;
@@ -1946,11 +1911,9 @@ sub printTrees {
   my @printList=();
   my %pso;
 
-  if (not printDialog($grp)) {
-    return;
-  }
+  return if (not defined($printRange));
 
-  $backgroundColor=$grp->{canvas}->cget('-background');
+  $backgroundColor=$grp->{'canvas'}->cget('-background');
   {
     local $outputenc='iso-88859-2';
     local ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
@@ -2022,7 +1985,7 @@ sub printTrees {
       print "Printing $printList[$t]\n";
       $font=$type1font if ($useType1Font);      
       $printList[$t]!=$grp->{treeNo}+1 ? gotoTree($grp,$printList[$t]-1) : redraw_tree($grp);
-      my $rotate = ( ! $grp->{printToEPS} 
+      my $rotate = ( ! $toEPS
 	and $grp->{canvasHeight}<$grp->{canvasWidth});
       print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
       if (not $rotate) {
@@ -4207,6 +4170,9 @@ sub editAttr {
 }
 
 
+#############################################
+# redraw_tree etc.
+#############################################
 
 sub whichTextColor {
   my ($grp,$arg)=@_;
@@ -4358,7 +4324,7 @@ sub redraw_tree {
     }
 
     ## Texts of attributes
-    for ($i=0;$i<=$#displayAttrs;$i++) {
+    for (my $i=0;$i<=$#displayAttrs;$i++) {
 
       ## Clear background
       $$node{"_tkTextBg".$i."_"}=
@@ -4554,7 +4520,8 @@ sub recalculate_positions {
   my $fontHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
 
   #print "Calculating positions ...\n";
-  %prevnode=();
+  my %prevnode=();
+  my $parent;
   $maxypos=0;
   foreach $node (@{$grp->{Nodes}}) {
     $ypos=0;
@@ -4574,7 +4541,7 @@ sub recalculate_positions {
     my $textWidth=0;
     my $m;
 
-    for ($i=0;$i<$pattern_count;$i++) {
+    for (my $i=0;$i<$pattern_count;$i++) {
       $m=$grp->{'canvas'}->fontMeasure($font,PrepareText($grp,$node,$i));
       $$node{"_tkX_$i"}=$m;
       $textWidth=$m if $m>$textWidth;
@@ -5022,7 +4989,7 @@ sub node_release {
 
 sub PrepareTextField {
   my ($node,$atr)=@_;
-  $text=$node->{$atr};
+  my $text=$node->{$atr};
   $text=$1."*" if ($text =~/^([^\|]*)\|/);
   return encode($text);
 }
@@ -5038,6 +5005,7 @@ sub InterpolateRefs {
   $text=~s/\$\${([^}]+)}/"'".$node->{$1}."'"/eg;
   return $text;
 }
+
 
 sub PrepareText {
   my ($grp,$node,$index)=@_;
