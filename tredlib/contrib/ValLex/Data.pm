@@ -354,7 +354,7 @@ sub getSuperFrameList {
 			 (grep {
 			   $_->getAttribute('type') ne 'oblig' and # but
 			     $_->getAttribute('functor') =~
-			       /^(?:ACT|PAT|EFF|ORIG|ADDR)$/
+			       /^(?:---|ACT|PAT|EFF|ORIG|ADDR)$/
 			     } @element_nodes)
 			 # this is in two greps so that we
 			 # do not have to sort it
@@ -399,6 +399,7 @@ sub getOneFrameElementString {
   my ($self,$element)=@_;
 
   my $functor = $self->conv->decode($element->getAttribute ("functor"));
+  $functor = '' if $functor eq '---';
   my $type = $self->conv->decode($element->getAttribute("type"));
   my $forms = $self->getFrameElementFormsString($element);
   return ($type eq "oblig" ? "" : "?")."$functor($forms)";
@@ -451,8 +452,23 @@ sub getFirstWordNode {
   return $n;
 }
 
+sub serializeFormNodes {
+  my ($node)=@_;
+  my $ret = "";
+  foreach my $element (grep { $_->isElementNode } $node->childNodes) {
+    if ($element->nodeName() eq 'parentpos') {
+      $ret.='&';
+    } else {
+      $ret .= "," if $ret ne "" and $ret !~ /\&$/;
+      $ret .= serializeForm($element);
+    }
+  }
+  return $ret;
+}
+
 sub serializeForm {
   my ($node)=@_;
+
   if ($node->nodeName() eq 'form') {
     if ($node->getChildElementsByTagName('elided')) {
       return "!";
@@ -463,23 +479,35 @@ sub serializeForm {
     } elsif ($node->getChildElementsByTagName('recip')) {
       return "%";
     } else {
-      return join(",",map { serializeForm($_) } grep { defined }
-		  $node->getChildElementsByTagName('parent'),$node->getChildElementsByTagName('node'));
+      return serializeFormNodes($node);
     }
   } elsif ($node->nodeName() eq 'parent') {
-    return "^".join(",",map { serializeForm($_) }
-		    $node->getChildElementsByTagName('node'));
-  } else {
-    my $ret = $node->getAttribute('lemma');
-    my $morph = join "",map { $node->getAttribute($_) } qw(pos gen num case);
+    my $ret="^".serializeFormNodes($node);
+  } elsif ($node->nodeName() eq 'node') {
+    my $ret;
+    if ($node->getAttribute('form')) {
+      $ret = '"'.$node->getAttribute('form').'"';
+    } else {
+      $ret = $node->getAttribute('lemma');
+    }
+    my $morph="";
+    $morph='~' if $node->getAttribute('neg') eq "negative";
+    $morph.= join "",map { $node->getAttribute($_) } qw(pos gen num case);
     $morph.='@'.$node->getAttribute('deg') if $node->getAttribute('deg') ne "";
     $morph.='#' if $node->getAttribute('agreement') == 1;
+    foreach (1..15) {
+      if (my $tag = $node->getAttribute('tagpos'.$_)) {
+	$morph.="\$$_\<${tag}\>";
+      }
+    }
     my $inherits = $node->getAttribute('inherits');
     $ret.=($inherits==1 ? '.' : ':').$morph if ($inherits==1 or $morph ne "");
     if ($node->getChildElementsByTagName('node')) {
       $ret.="[".join(",",map { serializeForm($_) } $node->getChildElementsByTagName('node'))."]";
     }
     return $ret;
+  } elsif (!$node->nodeName() eq 'parentpos') {
+    die "Can't serialize unknown node-type ",$node->nodeName(),"\n";
   }
 }
 
@@ -507,22 +535,24 @@ sub parseFormPart {
   my $pos='';
   if ($form =~
       m{^(\^? #1
-	  ( $lem | (?:{ $lem , (?: , $lem )* (?: , ...)?}) )? # $2: lemma
+	  ( "$lem" | $lem | (?:{ $lem (?: , $lem )* (?: , ...)?}) )? # $2: lemma
 	  (                  # $3
             ([.:])           # $4
- 	    ([adinjvufsc])?   # $5 pos
-	    ([FMIN])?        # $6 gen
-            ([PS])?          # $7 num
-            ([1-7])?         # $8 case
-            (?: @([1-3]))?   # $9 deg
-            (\#)?            # $10
+	    (~)?             # $5
+ 	    ([adinjvufsc])?   # $6 pos
+	    ([FMIN])?        # $7 gen
+            ([PS])?          # $8 num
+            ([1-7])?         # $9 case
+            (?: @([1-3]))?   # $10 deg
+            (\#)?            # $11
+	    ((?: \$ (?:\d|1[01234]) [<]  (?:[^][>()\{\};,]|\\[,;*!%=~\#])+  [>]  )*) # $12
           )?                 #
-          | ([*!%=])         # $11 typical,elided,recip,state
+          | ([*!%=])         # $13 typical,elided,recip,state
          )                   #
-         ( [][,;].* | $ ) # $12 <3> tokens to parse
+         ( [][&,;].* | $ ) # $14 <3> tokens to parse
       }x and $1 ne "" and $1 ne "^" and $3 ne ":") {
-    my ($match,$lemma,$sep,$pos,$gen,$num,$case,$deg,$agreement,$special,$next) =
-       ($1,    $2,    $4,  $5,  $6,  $7,  $8,   $9,  $10,       $11,     $12);
+    my ($match,$lemma,$sep,$neg,$pos,$gen,$num,$case,$deg,$agreement,$tagpos,$special,$next) =
+       ($1,    $2,    $4,  $5,  $6,  $7,  $8,  $9,   $10, $11,      ,$12    ,$13,     $14);
     if ($special ne "") {
       if ($next=~/^\[/) {
 	die "Can't use [ ] after '$special'\n";
@@ -544,7 +574,12 @@ sub parseFormPart {
       }
       $node = $self->doc()->createElement('node');
       $dom->appendChild($node);
-      $node->setAttribute('lemma',$lemma) if $lemma ne "";
+      if ($lemma =~ /^"(.*)"$/) {
+	$node->setAttribute('form',$1) if $1;
+      } elsif ($lemma ne "") {
+	$node->setAttribute('lemma',$lemma);
+      }
+      $node->setAttribute('neg','negative') if $neg ne "";
       $node->setAttribute('pos',$pos) if $pos ne "";
       $node->setAttribute('gen',$gen) if $gen ne "";
       $node->setAttribute('num',$num) if $num ne "";
@@ -552,13 +587,29 @@ sub parseFormPart {
       $node->setAttribute('deg',$deg) if $deg ne "";
       $node->setAttribute('agreement','1') if $agreement ne "";
       $node->setAttribute('inherits','1') if $sep eq ".";
+      if ($tagpos) {
+	foreach my $tag (split /\$/,$tagpos) {
+	  my ($pos,$value) = $tag =~ /^(\d+)\<(.*)\>$/;
+	  $node->setAttribute('tag'.$pos,$value);
+	}
+      }
     }
-    if ($next =~ /^\[/) {
-      do {{
-	$next = $self->parseFormPart(substr($next,1),1,$node);
-      }} while ($next =~ /^,/);
-      if ($next =~ /^\]/) {
-	return substr($next,1);
+    if ($next =~ s/^\[//) {
+      unless ($next =~ /^\&/) {
+	do {{
+	  $next = $self->parseFormPart($next,1,$node);
+	}} while ($next =~ s/^,//);
+      }
+      if ($next =~ s/^\&//) {
+	$dom->appendChild($self->doc()->createElement('parentpos')) if $dom;
+	unless ($next =~ /^\]/) {
+	  do {{
+	    $next = $self->parseFormPart($next,1,$node);
+	  }} while ($next =~ s/^,//);
+	}
+      }
+      if ($next =~ s/^\]//) {
+	return $next;
       } else {
 	die "Expected ] or , near '$next'\n";
       }
@@ -574,7 +625,7 @@ sub parseSerializedFrame {
   my ($self, $elements, $dom)=@_;
   $elements = expandFormAbbrevs($self->conv->encode($elements));
   return 1 if ($elements=~/^\s*EMPTY\s*$/);
-  my $func = 'ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|AUTH|ATT|BEN|CAUS|CNCS|COMPL|COND|CONJ|CONFR|CONTRA|CONTRD|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|CPHR|DPHR|ETHD|EXT|FPHR|GRAD|HER|ID|INTF|INTT|LOC|MANN|MAT|MEANS|MOD|NA|NORM|OPER|PAR|PARTL|PN|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT';
+  my $func = '|ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|AUTH|ATT|BEN|CAUS|CNCS|COMPL|COND|CONJ|CONFR|CONTRA|CONTRD|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|CPHR|DPHR|ETHD|EXT|FPHR|GRAD|HER|ID|INTF|INTT|LOC|MANN|MAT|MEANS|MOD|NA|NORM|OPER|PAR|PARTL|PN|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT';
   my @members = grep { $_ ne "" } split /\s+/,$elements;
   unless (@members) {
     warn "No members in $elements\n";
@@ -584,6 +635,7 @@ sub parseSerializedFrame {
   foreach my $member (@members) {
     if ($member =~ /^(\?)?($func)\(([^)]*)\)$/) {
       my ($type,$functor,$forms) = ($1,$2,$3);
+      $functor = '---' if $functor eq "";
       if ($dom) {
 	$eldom = $self->doc()->createElement('element');
 	$dom->appendChild($eldom);
@@ -597,13 +649,28 @@ sub parseSerializedFrame {
 	  $formdom = $self->doc()->createElement('form');
 	  $eldom->appendChild($formdom);
 	}
-	do {{
-	  $form = eval { $self->parseFormPart($form,0,$formdom) };
-	  if ($@) {
-	    warn $@;
-	    return undef;
+	unless ($form=~/^\&/) {
+	  do {{
+	    $form = eval { $self->parseFormPart($form,0,$formdom) };
+	    if ($@) {
+	      warn $@;
+	      return undef;
+	    }
+	  }} while ($form =~ s/^,//);
+	}
+	if ($form =~ s/^\&//) {
+	  $formdom->appendChild($self->doc()->createElement('parentpos')) if $dom;
+	  if ($form ne "") {
+	    do {{
+	      $form = eval { $self->parseFormPart($form,0,$formdom) };
+	      if ($@) {
+		warn $@;
+		return undef;
+	      }
+	    }} while ($form =~ s/^,//);
 	  }
-	}} while ($form =~ s/^,//);
+	}
+
 	if ($form ne "") {
 	  warn "Unexpected tokens near '$form'\n";
 	  return undef;
@@ -615,7 +682,6 @@ sub parseSerializedFrame {
     }
   }
   if ($dom) {
-    print "$dom\n";
     print $dom->toString();
   }
   return 1;
@@ -1028,7 +1094,9 @@ sub moveFrameAfter {
 
 
 =item findNextFrame ($refframe, $status)
+
   Searches for the next frame following $refframe with the given $status
+
 =cut
 
 sub findNextFrame {
