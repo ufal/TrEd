@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-03-01 16:29:23 pajas>
+# Time-stamp: <2001-03-02 09:01:26 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -649,8 +649,25 @@ sub closeFile {
   @nodes=();
   undef $NodeClipboard;
   undef $root;
-  delete $grp->{'currentNode'} if (exists $grp->{'currentNode'});
-  undef %{$grp->{pinfo}} if ($grp->{pinfo});
+  if ($grp) {
+    $grp->{currentFile}=undef;
+    $grp->{'currentFileFormat'}=undef;
+    delete $grp->{'currentNode'} if (exists $grp->{'currentNode'});
+    undef %{$grp->{pinfo}} if ($grp->{pinfo});
+    $grp->{'top'}->title("$appName");
+    if ($grp->{Filelist}) {
+      $fileNo = min($fileNo,$#files);
+      $grp->{Filelist}->delete(0,'end');
+      $grp->{Filelist}->insert('end',@files);
+      $grp->{Filelist}->activate($fileNo);
+      $grp->{Filelist}->selectionClear(0,'end');
+      $grp->{Filelist}->selectionSet($fileNo) if ($fileNo>=0);
+    }
+    $valueLine="";
+    redraw_tree($grp);
+  }
+
+
   foreach (@trees) { DeleteTree($_); }
   undef @trees;
   undef @header;
@@ -797,6 +814,21 @@ sub openFile {
     }
   }
   # --
+
+  # add file to filelist
+  $fileNo = max(0,$fileNo);
+  unless ($files[$fileNo] eq $f) {
+    splice @files,$fileNo,0,$f;
+    if ($grp->{Filelist}) {
+      $grp->{Filelist}->delete(0,'end');
+      $grp->{Filelist}->insert('end',@files);
+      $grp->{Filelist}->activate($fileNo);
+      $grp->{Filelist}->selectionClear(0,'end');
+      $grp->{Filelist}->selectionSet($fileNo);
+    }
+  }
+
+
   if ($grp) {
     $grp->{'currentFile'}=$f;
     $grp->{'currentFileFormat'}=$gz.$fs;
@@ -973,10 +1005,10 @@ sub filelistDialog {
   return if ($grp->{Filelist});
   my $d = $grp->{'top'}->Toplevel(-title => "Filelist");
   $d->withdraw;
-  $d->resizable(0,0);
+#  $d->resizable(0,0);
   my $t = $d->Scrolled(qw/Listbox -relief sunken 
                      -borderwidth 2 -setgrid true
-		     -height 15 -scrollbars e/);
+		     -height 15 -width 0 -scrollbars e/);
   $grp->{Filelist}=$t;
   $t->pack(qw/-expand yes -fill both/);
   $t->insert('end',@files);
@@ -1626,6 +1658,13 @@ sub startMain {
 
   $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0/);
   $group{FileMenu}->command(-label=> 'Open ...', -underline => 0,   -command => [\&fileDialog, \%group]);
+  $group{FileMenu}->command(-label=> 'Close', -underline => 0, 
+			    -command => [ sub {
+					    my ($grp)=@_;
+					    splice @files,$fileNo,1;
+					    closeFile($grp);
+					  }
+					 , \%group]);
   $group{FileMenu}->command(-label => 'File List...', -underline => 5, -command => [\&filelistDialog, \%group]);
 #	 [Button => 'New',         -command => [\&menus_error2, 'New']],
   $group{FileMenu}->command(-label => 'Save', -underline => 0, -command => [\&saveFile,\%group]);
@@ -2329,9 +2368,11 @@ sub saveConfig {
 
 sub editConfig {
   my $grp=shift;
-  my $d = $grp->{'top'}->DialogBox(-title => "Edit Resource File ($configFile)" , -width => "10c",
+  return unless $grp;
+  $grp->{'configDialog'} = $grp->{'top'}->DialogBox(-title => "Edit Resource File ($configFile)" , -width => "10c",
 				   -buttons => ["  Save and Apply  "]);
-  $d->resizable(0,0);
+  my $d=$grp->{'configDialog'};
+#  $d->resizable(0,0);
   $d->bind('<Return>' => [sub {1;}]);
   my $t = $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
@@ -2359,7 +2400,6 @@ sub editConfig {
   my $result=ShowDialog($d,undef,$grp->{top});
   if ($result eq '  Save and Apply  ') {
     saveConfig($grp,$t->get("0.0","end"));
-
     applyConfig(split(/\n/,$t->get("0.0","end")));
     prepareFonts($grp);
     $grp->{valueLine}->configure(-font => $vLineFont);
@@ -3064,7 +3104,6 @@ sub redraw_tree {
 
   if ($drawSentenceInfo) {
     my $valtext=$valueLine;
-    my $width=$grp->{canvasWidth};
     my $currentfile=filename($grp->{currentFile});
     my $fontHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
     $valtext=~s/ +([.,!:;])|(\() |(\)) /\1/g;
@@ -3073,17 +3112,17 @@ sub redraw_tree {
       my $ftext="File: $currentfile, tree $1 of $2";
       my $vtext=$3;
       $grp->{'canvas'}->createText(0,$grp->{canvasHeight},-font => $font,-text => $ftext,
-				   -justify => left, -anchor => nw,
-				   -width => $width);
-      $grp->{canvasHeight}+=$fontHeight*wrappedLines($grp,$font,$ftext,$width);
+				   -justify => left, -anchor => nw);
+      $grp->{canvasHeight}+=$fontHeight;
+      $grp->{canvasWidth}=max($grp->{canvasWidth},$grp->{'canvas'}->fontMeasure($font,$ftext));
       $grp->{'canvas'}->createLine(0,$grp->{canvasHeight},
-				   min($width,$grp->{'canvas'}->fontMeasure($font,$ftext)),
+				   $grp->{'canvas'}->fontMeasure($font,$ftext),
 				   $grp->{canvasHeight});
       $grp->{canvasHeight}+=$fontHeight;
       $grp->{'canvas'}->createText(0,$grp->{canvasHeight},-font => $font,-text => $vtext,
 				   -justify => left, -anchor => nw,
-				   -width => $width);
-      $grp->{canvasHeight}+=$fontHeight*(wrappedLines($grp,$font,$vtext,$width)+1);
+				   -width => $grp->{canvasWidth});
+      $grp->{canvasHeight}+=$fontHeight*(wrappedLines($grp,$font,$vtext,$grp->{canvasWidth})+1);
 #      $grp->{'canvas'}->createLine(0,$grp->{canvasHeight},$grp->{canvasWidth},$grp->{canvasHeight});
     
     }
