@@ -513,7 +513,9 @@ sub redraw {
 	      Oval            =>  [],
 	      TextBox         =>  [],
 	      EdgeTextBox     =>  [],
-	      Line            =>  [],
+	      Line            =>  [
+				   -coords => "0,0,p,p"
+				  ],
 	      SentenceText    =>  [],
 	      SentenceLine    =>  [],
 	      SentenceFileInfo=>  [],
@@ -658,34 +660,45 @@ sub redraw {
     # Something like draw_node_hook should be called here
     $parent=$node->parent;
     use integer;
-    if ($parent) {
-      my $line=
-	($self->get_style_opt($node,"Node","-rightanglededge",\%Opts))
-	?
-	  $self->canvas->createLine($self->get_node_pinfo($node,"XPOS"),
-				    $self->get_node_pinfo($node,"YPOS"),
-				    $self->get_node_pinfo($node,"XPOS"),
-				    $self->get_node_pinfo($parent,"YPOS"),
-				    $self->get_node_pinfo($parent,"XPOS"),
-				    $self->get_node_pinfo($parent,"YPOS"),
-				    '-arrow' =>  $self->get_lineArrow,
-				    '-width' =>  $self->get_lineWidth,
-				    '-fill' =>   $self->get_lineColor)
-	:
-	  $self->canvas->createLine($self->get_node_pinfo($node,"XPOS"),
-				    $self->get_node_pinfo($node,"YPOS"),
-				    $self->get_node_pinfo($parent,"XPOS"),
-				    $self->get_node_pinfo($parent,"YPOS"),
-				    '-arrow' =>  $self->get_lineArrow,
-				    '-width' =>  $self->get_lineWidth,
-				    '-fill' =>   $self->get_lineColor);
-
-      $self->apply_style_opts($line,@{$Opts{Line}},
-				  $self->get_node_style($node,"Line"));
-      $self->store_node_pinfo($node,"Line",$line);
+    my @coords=split '&',$self->get_style_opt($node,"Line","-coords",\%Opts);
+    my @arrow=split '&',$self->get_style_opt($node,"Line","-arrow",\%Opts);
+    my @fill=split '&',$self->get_style_opt($node,"Line","-fill",\%Opts);
+    my @width=split '&',$self->get_style_opt($node,"Line","-width",\%Opts);
+    my @dash=split '&',$self->get_style_opt($node,"Line","-dash",\%Opts);
+    my $lin="";
+    print "@coords\n";
+    foreach my $coords (@coords) {
+      print "Coords: $coords\n";
+      my @c=split ',',$coords;
+      my $x=1;
+      print "@c\n";
+      next if (!$parent and $coords=~/p/);
+      foreach (@c) {
+	if (/^p((?:[+-][0-9]*)?)/) {
+	  $_=$1+
+	    $self->get_node_pinfo($parent,$x ? "XPOS" : "YPOS");
+	} elsif (/^w((?:[+-][0-9]*)?)/) {
+	  $_=$1;
+	} elsif (/^n?((?:[+-][0-9]*)?)/) {
+	  $_=$1+
+	    $self->get_node_pinfo($node,$x ? "XPOS" : "YPOS");
+	}
+	$x=!$x;
+      }
+      print "@c\n";
+      my $line=$self->canvas->createLine(@c,
+					 '-arrow' =>  shift @arrow || $self->get_lineArrow,
+					 '-width' =>  shift @width || $self->get_lineWidth,
+					 '-fill'  =>  shift @fill || $self->get_lineColor,
+					 '-dash'  =>  shift @dash || $self->get_lineDash);
+      $self->store_node_pinfo($node,"Line$lin",$line);
       $self->store_obj_pinfo($line,$node);
       $self->realcanvas->lower($line,'all');
+      $lin++;
     }
+
+#    $self->apply_style_opts($line,@{$Opts{Line}},
+#			    $self->get_node_style($node,"Line"));
 
     ## The Nodes ##
     my $oval=$self->canvas->createOval($self->node_coords($node,$currentNode),
