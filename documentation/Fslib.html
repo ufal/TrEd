@@ -1,1013 +1,1180 @@
 <HTML>
 <HEAD>
-<TITLE>../tredlib/Fslib.pm</TITLE>
-<LINK REV="made" HREF="mailto:root@porky.devel.redhat.com">
+<TITLE>Fslib.pm</TITLE>
+<LINK REV="made" HREF="mailto:bhcompile@daffy.perf.redhat.com">
 </HEAD>
 
 <BODY>
 
+<A NAME="__index__"></A>
 <!-- INDEX BEGIN -->
 
 <UL>
 
-	<LI><A HREF="#FSNode">FSNode</A>
+	<LI><A HREF="#fsnode">FSNode</A></LI>
 	<UL>
 
-		<LI><A HREF="#REFERENCE">REFERENCE</A>
+		<LI><A HREF="#reference">REFERENCE</A></LI>
 	</UL>
 
-	<LI><A HREF="#FSFormat">FSFormat</A>
+	<LI><A HREF="#fsformat">FSFormat</A></LI>
 	<UL>
 
-		<LI><A HREF="#REFERENCE">REFERENCE</A>
+		<LI><A HREF="#reference">REFERENCE</A></LI>
 	</UL>
 
-	<LI><A HREF="#FSFile">FSFile</A>
+	<LI><A HREF="#fsfile">FSFile</A></LI>
 	<UL>
 
-		<LI><A HREF="#SYNOPSIS">SYNOPSIS</A>
-		<LI><A HREF="#REFERENCE">REFERENCE</A>
+		<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+		<LI><A HREF="#reference">REFERENCE</A></LI>
 	</UL>
 
-	<LI><A HREF="#Fslib">Fslib</A>
+	<LI><A HREF="#zbackend">ZBackend</A></LI>
 	<UL>
 
-		<LI><A HREF="#SYNOPSIS">SYNOPSIS</A>
-		<LI><A HREF="#DESCRIPTION">DESCRIPTION</A>
-		<LI><A HREF="#USAGE">USAGE</A>
-		<LI><A HREF="#PARSING_FS_FILES">PARSING FS FILES</A>
-		<LI><A HREF="#MODIFYING_OR_EXAMINING_TREES">MODIFYING OR EXAMINING TREES</A>
-		<LI><A HREF="#REFERENCE">REFERENCE</A>
+		<LI><A HREF="#reference">REFERENCE</A></LI>
 	</UL>
 
-	<LI><A HREF="#SEE_ALSO">SEE ALSO</A>
+	<LI><A HREF="#fsbackend">FSBackend</A></LI>
+	<UL>
+
+		<LI><A HREF="#reference">REFERENCE</A></LI>
+	</UL>
+
+	<LI><A HREF="#fslib">Fslib</A></LI>
+	<UL>
+
+		<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+		<LI><A HREF="#description">DESCRIPTION</A></LI>
+		<LI><A HREF="#usage">USAGE</A></LI>
+		<LI><A HREF="#parsing fs files">PARSING FS FILES</A></LI>
+		<LI><A HREF="#modifying or examining trees">MODIFYING OR EXAMINING TREES</A></LI>
+		<LI><A HREF="#reference">REFERENCE</A></LI>
+	</UL>
+
+	<LI><A HREF="#see also">SEE ALSO</A></LI>
 </UL>
 <!-- INDEX END -->
 
 <HR>
 <P>
 <HR>
-<H1><A NAME="FSNode">FSNode</A></H1>
+<H1><A NAME="fsnode">FSNode</A></H1>
+<P>FSNode - Simple OO interface to tree structures of Fslib.pm</P>
 <P>
-FSNode - Simple OO interface to tree structures of Fslib.pm
-
-<P>
-<HR>
-<H2><A NAME="REFERENCE">REFERENCE</A></H2>
+<H2><A NAME="reference">REFERENCE</A></H2>
 <DL>
-<DT><STRONG><A NAME="item_new">new</A></STRONG><DD>
-<P>
-Create a new FSNode object. FSNode is basicly a hash reference, which means
-that you may simply acces node's attributes as <CODE>$node-</CODE>{attribute}&gt;
-
-<DT><STRONG><A NAME="item_initialize">initialize</A></STRONG><DD>
-<P>
+<DT><STRONG><A NAME="item_new">new</A></STRONG><BR>
+<DD>
+Create a new FSNode object. FSNode is basicly a hash reference, which
+means that you may simply acces node's attributes as <CODE>$node-</CODE>&gt;<CODE>{attribute}</CODE>
+<P></P>
+<DT><STRONG><A NAME="item_initialize">initialize</A></STRONG><BR>
+<DD>
 This function inicializes FSNode. It is called by the constructor new.
-
-<DT><STRONG><A NAME="item_parent">parent</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_parent">parent</A></STRONG><BR>
+<DD>
 Return node's parent node (<CODE>undef</CODE> if none).
-
-<DT><STRONG><A NAME="item_lbrother">lbrother</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_lbrother">lbrother</A></STRONG><BR>
+<DD>
 Return node's left brother node (<CODE>undef</CODE> if none).
-
-<DT><STRONG><A NAME="item_rbrother">rbrother</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_rbrother">rbrother</A></STRONG><BR>
+<DD>
 Return node's right brother node (<CODE>undef</CODE> if none).
-
-<DT><STRONG><A NAME="item_firstson">firstson</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_firstson">firstson</A></STRONG><BR>
+<DD>
 Return node's first dependent node (<CODE>undef</CODE> if none).
-
-<DT><STRONG><A NAME="item_following">following (top?)</A></STRONG><DD>
-<P>
-Return the next node of the subtree in the order given by structure (<CODE>undef</CODE> if none). If any descendant exists, the first one is returned. Otherwise,
-right brother is returned, if any. If the given node has neither a
-descendant nor a right brother, the right brother of the first (lowest)
-ancestor for which right brother exists, is returned.
-
-<DT><STRONG><A NAME="item_previous">previous (top?)</A></STRONG><DD>
-<P>
-Return the previous node of the subtree in the order given by structure (<CODE>undef</CODE> if none). The way of searching described in
-<A HREF="#item_following">following</A> is used here in reversed order.
-
-</DL>
+<P></P>
+<DT><STRONG><A NAME="item_following">following (top?)</A></STRONG><BR>
+<DD>
+Return the next node of the subtree in the order given by structure
+(<CODE>undef</CODE> if none). If any descendant exists, the first one is
+returned. Otherwise, right brother is returned, if any.  If the given
+node has neither a descendant nor a right brother, the right brother
+of the first (lowest) ancestor for which right brother exists, is
+returned.
+<P></P>
+<DT><STRONG><A NAME="item_following_visible">following_visible (fsformat,top?)</A></STRONG><BR>
+<DD>
+Return the next visible node of the subtree in the order given by
+structure (<CODE>undef</CODE> if none). A node is considered visible if it has
+no hidden ancestor. Requires FSFormat object as the first parameter.
+<P></P>
+<DT><STRONG><A NAME="item_following_right_or_up">following_right_or_up (top?)</A></STRONG><BR>
+<DD>
+Return the next visible node of the subtree in the order given by
+structure (<CODE>undef</CODE> if none), but not descending.
+<P></P>
+<DT><STRONG><A NAME="item_previous">previous (top?)</A></STRONG><BR>
+<DD>
+Return the previous node of the subtree in the order given by
+structure (<CODE>undef</CODE> if none). The way of searching described in
+<A HREF="#item_following"><CODE>following</CODE></A> is used here in reversed order.
+<P></P>
+<DT><STRONG><A NAME="item_previous_visible">previous_visible (fsformat,top?)</A></STRONG><BR>
+<DD>
+Return the next visible node of the subtree in the order given by
+structure (<CODE>undef</CODE> if none). A node is considered visible if it has
+no hidden ancestor. Requires FSFormat object as the first parameter.
+<P></P>
+<DT><STRONG><A NAME="item_rightmost_descendant">rightmost_descendant (node)</A></STRONG><BR>
+<DD>
+Return the rightmost lowest descendant of the node (or
+the node itself if the node is a leaf).
+<P></P>
+<DT><STRONG><A NAME="item_leftmost_descendant">leftmost_descendant (node)</A></STRONG><BR>
+<DD>
+Return the leftmost lowest descendant of the node (or
+the node itself if the node is a leaf).
+<P></P>
+<DT><STRONG><A NAME="item_getAttribute">getAttribute (name)</A></STRONG><BR>
+<DD>
+Return value of the given attribute.
+<P></P>
+<DT><STRONG><A NAME="item_setAttribute">setAttribute (name)</A></STRONG><BR>
+<DD>
+Set value of the given attribute.
+<P></P>
+<DT><STRONG><A NAME="item_children">children</A></STRONG><BR>
+<DD>
+Return a list of dependent nodes.
+<P></P>
+<DT><STRONG><A NAME="item_visible_children"><CODE>visible_children(fsformat)</CODE></A></STRONG><BR>
+<DD>
+Return a list of visible dependent nodea.
+<P></P>
+<DT><STRONG><A NAME="item_descendants">descendants</A></STRONG><BR>
+<DD>
+Return a list recursively dependent nodes.
+<P></P>
+<DT><STRONG><A NAME="item_visible_descendants"><CODE>visible_descendants(fsformat)</CODE></A></STRONG><BR>
+<DD>
+Return a list recursively dependent visible nodes.
+<P></P></DL>
 <P>
 <HR>
-<H1><A NAME="FSFormat">FSFormat</A></H1>
+<H1><A NAME="fsformat">FSFormat</A></H1>
+<P>FSFormat - Simple OO interface for FS instance of Fslib.pm</P>
 <P>
-FSFormat - Simple OO interface for FS instance of Fslib.pm
-
-<P>
-<HR>
-<H2><A NAME="REFERENCE">REFERENCE</A></H2>
+<H2><A NAME="reference">REFERENCE</A></H2>
 <DL>
-<DT><STRONG>new (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)</STRONG><DD>
-<P>
-Create a new FS format instance object and <A HREF="#item_initialize">initialize</A> it with the optional values.
-
-<DT><STRONG>initialize (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)</STRONG><DD>
-<P>
-Initialize a new FS format instance with given values. See <A HREF="#Fslib">Fslib</A>
-for more information about attribute hash, ordered names list and unparsed
-headers.
-
-<DT><STRONG><A NAME="item_readFrom">readFrom (source,output?)</A></STRONG><DD>
-<P>
-Reads FS format instance definition from given source, optionally echoing
-the unparsed input on the given output. The obligatory argument <CODE>source</CODE> must be either a GLOB or list reference. Argument <CODE>output</CODE> is optional and if given, it must be a GLOB reference.
-
-<DT><STRONG><A NAME="item_sentord">sentord, order, value, hide</A></STRONG><DD>
-<P>
-Return names of special attributes declared in FS format as @W, @N, @V,
-<CODE>@H</CODE> respectively.
-
-<DT><STRONG><A NAME="item_isHidden">isHidden (node)</A></STRONG><DD>
-<P>
+<DT><STRONG><A NAME="item_create">create (@header)</A></STRONG><BR>
+<DD>
+Create a new FS format instance object by parsing each of the parameters
+passed as one FS header line.
+<P></P>
+<DT><STRONG>new (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)</STRONG><BR>
+<DD>
+Create a new FS format instance object and <A HREF="#item_initialize"><CODE>initialize</CODE></A> it with the
+optional values.
+<P></P>
+<DT><STRONG><A NAME="item_clone">clone</A></STRONG><BR>
+<DD>
+Duplicate FS format instance object.
+<P></P>
+<DT><STRONG>initialize (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)</STRONG><BR>
+<DD>
+Initialize a new FS format instance with given values. See <A HREF="#fslib">Fslib</A>
+for more information about attribute hash, ordered names list and unparsed headers.
+<P></P>
+<DT><STRONG><A NAME="item_addNewAttribute">addNewAttribute (type, colour, name, list)</A></STRONG><BR>
+<DD>
+Adds a new attribute definition to the FSFormat. Type must be one of
+the letters [KPOVNWLH], colour one of characters [A-Z0-9]. If the type
+is L, the fourth parameter is a string containing a list of possible
+values separated by |.
+<P></P>
+<DT><STRONG><A NAME="item_readFrom">readFrom (source,output?)</A></STRONG><BR>
+<DD>
+Reads FS format instance definition from given source, optionally
+echoing the unparsed input on the given output. The obligatory
+argument <CODE>source</CODE> must be either a GLOB or list reference.
+Argument <CODE>output</CODE> is optional and if given, it must be a GLOB reference.
+<P></P>
+<DT><STRONG><A NAME="item_toArray">toArray</A></STRONG><BR>
+<DD>
+Return FS declaration as an array of FS header declarations.
+<P></P>
+<DT><STRONG><A NAME="item_writeTo">writeTo (glob_ref)</A></STRONG><BR>
+<DD>
+Write FS declaration to a given file (file handle open for
+reading must be passed as a GLOB reference).
+<P></P>
+<DT><STRONG><A NAME="item_sentord_%3Ditem_order_%3Ditem_value_%3Ditem_hide">sentord
+=item order
+=item value
+=item hide</A></STRONG><BR>
+<DD>
+Return names of special attributes declared in FS format as @W, @N,
+@V, @H respectively.
+<P></P>
+<DT><STRONG><A NAME="item_isHidden">isHidden (node)</A></STRONG><BR>
+<DD>
 Return the lowest ancestor-or-self of the given node marked by
-<CODE>'hide'</CODE> in the FS attribute declared as @H. Return undef, if no such node exists.
-
-<DT><STRONG><A NAME="item_parseFSTree">parseFSTree (line)</A></STRONG><DD>
-<P>
-Parse a given line in FS format (using <CODE>Fslib::GetTree2</CODE>) and return the root of the resulting FS tree as an FSNode object.
-
-<DT><STRONG><A NAME="item_defs">defs</A></STRONG><DD>
-<P>
+<CODE>'hide'</CODE> in the FS attribute declared as @H. Return undef, if no such
+node exists.
+<P></P>
+<DT><STRONG><A NAME="item_parseFSTree">parseFSTree (line)</A></STRONG><BR>
+<DD>
+Parse a given line in FS format (using <CODE>Fslib::GetTree2</CODE>) and return
+the root of the resulting FS tree as an FSNode object.
+<P></P>
+<DT><STRONG><A NAME="item_defs">defs</A></STRONG><BR>
+<DD>
 Return a reference to the internally stored attribute hash.
-
-<DT><STRONG><A NAME="item_list">list</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_list">list</A></STRONG><BR>
+<DD>
 Return a reference to the internally stored attribute names list.
-
-<DT><STRONG><A NAME="item_unparsed">unparsed</A></STRONG><DD>
-<P>
-Return a reference to the internally stored unparsed FS header. Note, that
-this header must <STRONG>not</STRONG> correspond to the defs and attributes if any changes are made to the
-definitions or names at run-time by hand.
-
-<DT><STRONG><A NAME="item_attributes">attributes</A></STRONG><DD>
-<P>
-Return a list of all attribute names (in the order given by FS instance
-declaration).
-
-<DT><STRONG><A NAME="item_atno">atno (n)</A></STRONG><DD>
-<P>
-Return the n'th attribute name (in the order given by FS instance
-declaration).
-
-<DT><STRONG>atno (attribute_name)</STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_unparsed">unparsed</A></STRONG><BR>
+<DD>
+Return a reference to the internally stored unparsed FS header. Note,
+that this header must <STRONG>not</STRONG> correspond to the defs and attributes if
+any changes are made to the definitions or names at run-time by hand.
+<P></P>
+<DT><STRONG><A NAME="item_attributes">attributes</A></STRONG><BR>
+<DD>
+Return a list of all attribute names (in the order given by FS
+instance declaration).
+<P></P>
+<DT><STRONG><A NAME="item_atno">atno (n)</A></STRONG><BR>
+<DD>
+Return the n'th attribute name (in the order given by FS
+instance declaration).
+<P></P>
+<DT><STRONG>atno (attribute_name)</STRONG><BR>
+<DD>
 Return the definition string for the given attribute.
-
-<DT><STRONG><A NAME="item_count">count</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_count">count</A></STRONG><BR>
+<DD>
 Return the number of declared attributes.
-
-<DT><STRONG><A NAME="item_isList">isList (attribute_name)</A></STRONG><DD>
-<P>
-Return true if given attribute is assigned a list of all possible values.
-
-<DT><STRONG><A NAME="item_listValues">listValues (attribute_name)</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_isList">isList (attribute_name)</A></STRONG><BR>
+<DD>
+Return true if given attribute is assigned a list of all possible
+values.
+<P></P>
+<DT><STRONG><A NAME="item_listValues">listValues (attribute_name)</A></STRONG><BR>
+<DD>
 Return the list of all possible values for the given attribute.
-
-<DT><STRONG><A NAME="item_color">color (attribute_name)</A></STRONG><DD>
-<P>
-Return one of <CODE>Shadow</CODE>, <CODE>Hilite</CODE> and <CODE>XHilite</CODE> depending on the color assigned to the given attribute in the FS format
-instance.
-
-<DT><STRONG><A NAME="item_special">special (letter)</A></STRONG><DD>
-<P>
-Return name of a special attribute declared in FS definition with a given
-letter. See also <A HREF="#sentord_order_value_hide">sentord, order, value, hide</A>.
-
-<DT><STRONG><A NAME="item_indexOf">indexOf (attribute_name)</A></STRONG><DD>
-<P>
-Return index of the given attribute (in the order given by FS instance
-declaration).
-
-</DL>
-<P>
-<HR>
-<H1><A NAME="FSFile">FSFile</A></H1>
-<P>
-FSFile - Simple OO interface for FS files.
-
-<P>
-<HR>
-<H2><A NAME="SYNOPSIS">SYNOPSIS</A></H2>
-<P>
-<PRE>  use Fslib;
-</PRE>
-<P>
-<PRE>  open (F,&quot;&lt;trees.fs&quot;) ||
-    die &quot;Cannot open trees.fs: $!\n&quot;;
-  my $fs = FSFile-&gt;newFSFile(\*F);
-  close (F);
-</PRE>
-<P>
-<PRE>  die &quot;File is empty or corrupted!\n&quot; 
-    if ($fs-&gt;{FSFile}-&gt;lastTreeNo&lt;0);
-</PRE>
-<P>
-<PRE>  foreach my $tree ($fs-&gt;trees) {
-</PRE>
-<P>
-<PRE>    ...    # do something on the trees
-</PRE>
-<P>
-<PRE>  }
-</PRE>
-<P>
-<PRE>  open (F,&quot;&gt;trees_out.fs&quot;) 
-    || die &quot;Cannot open trees.fs: $!\n&quot;;
-  $fs-&gt;writeTo(\*F);
-  close (F);
-</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_color">color (attribute_name)</A></STRONG><BR>
+<DD>
+Return one of <CODE>Shadow</CODE>, <CODE>Hilite</CODE> and <CODE>XHilite</CODE> depending on the
+color assigned to the given attribute in the FS format instance.
+<P></P>
+<DT><STRONG><A NAME="item_special">special (letter)</A></STRONG><BR>
+<DD>
+Return name of a special attribute declared in FS definition with a
+given letter. See also <A HREF="#sentord">sentord</A> and similar.
+<P></P>
+<DT><STRONG><A NAME="item_indexOf">indexOf (attribute_name)</A></STRONG><BR>
+<DD>
+Return index of the given attribute (in the order given by FS
+instance declaration).
+<P></P>
+<DT><STRONG><A NAME="item_exists">exists (attribute_name)</A></STRONG><BR>
+<DD>
+Return true if an attribute of the given name exists.
+<P></P>
+<DT><STRONG><A NAME="item_make_sentence">make_sentence (root_node,separator)</A></STRONG><BR>
+<DD>
+Return a string containing the content of value (special) attributes
+of the nodes of the given tree, separted by separator string, sorted by
+value of the (special) attribute sentord or (if sentord does not exist) by
+(special) attribute order.
+<P></P>
+<DT><STRONG><A NAME="item_clone_node">clone_node</A></STRONG><BR>
+<DD>
+Create a copy of the given node.
+<P></P>
+<DT><STRONG><A NAME="item_clone_subtree">clone_subtree</A></STRONG><BR>
+<DD>
+Create a deep copy of the given subtree.
+<P></P></DL>
 <P>
 <HR>
-<H2><A NAME="REFERENCE">REFERENCE</A></H2>
+<H1><A NAME="fsfile">FSFile</A></H1>
+<P>FSFile - Simple OO interface for FS files.</P>
+<P>
+<H2><A NAME="synopsis">SYNOPSIS</A></H2>
+<PRE>
+  use Fslib;</PRE>
+<PRE>
+  my $file=&quot;trees.fs&quot;);
+  my $fs = FSFile-&gt;newFSFile($file);</PRE>
+<PRE>
+  if ($fs-&gt;lastTreeNo&lt;0) { die &quot;File is empty or corrupted!\n&quot; }</PRE>
+<PRE>
+  foreach my $tree ($fs-&gt;trees) {</PRE>
+<PRE>
+    ...    # do something on the trees</PRE>
+<PRE>
+  }</PRE>
+<PRE>
+  $fs-&gt;writeFile(&quot;$file.out&quot;);</PRE>
+<P>
+<H2><A NAME="reference">REFERENCE</A></H2>
 <DL>
-<DT><STRONG>new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?)</STRONG><DD>
-<P>
-Create a new FS file object and <A HREF="#item_initialize">initialize</A> it with the optional values.
-
-<DT><STRONG>initialize (name?,format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?)</STRONG><DD>
-<P>
+<DT><STRONG>new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?)</STRONG><BR>
+<DD>
+Create a new FS file object and <A HREF="#item_initialize"><CODE>initialize</CODE></A> it with the optional values.
+<P></P>
+<DT><STRONG>create</STRONG><BR>
+<DD>
+Same as <A HREF="#item_new"><CODE>new</CODE></A> but accepts name =&gt; value pairs as arguments. The
+following argument names are available:
+<P>filename, format, FS, hint, patterns, tail, trees, save_status, backend</P>
+<P>See <A HREF="#item_initialize"><CODE>initialize</CODE></A> for more detail.</P>
+<P></P>
+<DT><STRONG>initialize (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?)</STRONG><BR>
+<DD>
 Initialize a FS file object. Argument description:
-
 <DL>
-<DT><STRONG><A NAME="item_name">name (scalar)</A></STRONG><DD>
-<P>
-File name 
-
-<DT><STRONG><A NAME="item_format">format (scalar)</A></STRONG><DD>
-<P>
+<DT><STRONG><A NAME="item_name">name (scalar)</A></STRONG><BR>
+<DD>
+File name
+<P></P>
+<DT><STRONG><A NAME="item_file_format">file_format (scalar)</A></STRONG><BR>
+<DD>
 File format indentifier (user-defined string). TrEd, for example, uses
 <CODE>FS format</CODE>, <CODE>gzipped FS format</CODE> and <CODE>any non-specific format</CODE> strings as identifiers.
-
-<DT><STRONG><A NAME="item_FS">FS (FSFormat)</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_FS">FS (FSFormat)</A></STRONG><BR>
+<DD>
 FSFormat object associated with the file
-
-<DT><STRONG><A NAME="item_hint_pattern">hint_pattern (scalar)</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_hint_pattern">hint_pattern (scalar)</A></STRONG><BR>
+<DD>
 TrEd's hint pattern definition
-
-<DT><STRONG><A NAME="item_attribs_patterns">attribs_patterns (list reference)</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_attribs_patterns">attribs_patterns (list reference)</A></STRONG><BR>
+<DD>
 TrEd's display attributes pattern definition
-
-<DT><STRONG><A NAME="item_unparsed_tail">unparsed_tail (list reference)</A></STRONG><DD>
-<P>
-The rest of the file, which is not parsed by Fslib, i.e. Graph's embedded
-macros
-
-<DT><STRONG><A NAME="item_trees">trees (list reference)</A></STRONG><DD>
-<P>
-List of FSNode objects representing root nodes of all trees in the FSFiled.
-
-<DT><STRONG><A NAME="item_save_status">save_status (scalar)</A></STRONG><DD>
-<P>
-File save status indicator, 0=file is saved, 1=file is not saved (TrEd uses
-this field).
-
-</DL>
-<DT><STRONG>readFrom (glob_ref)</STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_unparsed_tail">unparsed_tail (list reference)</A></STRONG><BR>
+<DD>
+The rest of the file, which is not parsed by Fslib, i.e. Graph's embedded macros
+<P></P>
+<DT><STRONG><A NAME="item_trees">trees (list reference)</A></STRONG><BR>
+<DD>
+List of FSNode objects representing root nodes of all trees in the FSFile.
+<P></P>
+<DT><STRONG><A NAME="item_save_status">save_status (scalar)</A></STRONG><BR>
+<DD>
+File save status indicator, 0=file is saved, 1=file is not saved (TrEd uses this field).
+<P></P>
+<DT><STRONG><A NAME="item_backend">backend (scalar)</A></STRONG><BR>
+<DD>
+IO Backend used to open/save the file.
+<P></P>
+<DT><STRONG><A NAME="item_encoding">encoding (scalar)</A></STRONG><BR>
+<DD>
+IO character encoding for perl 5.8 I/O filters
+<P></P></DL>
+<DT><STRONG><A NAME="item_readFile">readFile (filename, [backends...])</A></STRONG><BR>
+<DD>
+Read FS declaration and trees from a given file.  The first argument
+must be a file-name.  If a list of backend modules is specified,
+<A HREF="#item_test"><CODE>test</CODE></A> methods of the modules are invoked as long as one of them
+succeeds. That module is than used as a backend for opening and
+parsing the file.
+<P>Note: this function sets noSaved to zero.</P>
+<P></P>
+<DT><STRONG>readFrom (glob_ref, [backends...])</STRONG><BR>
+<DD>
 Read FS declaration and trees from a given file (file handle open for
-reading must be passed as a GLOB reference).
-
-<DT><STRONG><A NAME="item_writeTo">writeTo (glob_ref)</A></STRONG><DD>
-<P>
-Write FS declaration, trees and unparsed tail to a given file (file handle
-open for reading must be passed as a GLOB reference).
-
-<DT><STRONG><A NAME="item_newFSFile">newFSFile (glob_ref)</A></STRONG><DD>
-<P>
-Create a new FSFile object based on the content of a given file (file
-handle open for reading must be passed as a GLOB reference).
-
-<DT><STRONG><A NAME="item_filename">filename</A></STRONG><DD>
-<P>
+reading must be passed as a GLOB reference).  
+This function is limited to use FSBackend only.
+Sets noSaved to zero.
+<P></P>
+<DT><STRONG><A NAME="item_writeFile">writeFile (filename)</A></STRONG><BR>
+<DD>
+Write FS declaration, trees and unparsed tail to a given file. Sets
+noSaved to zero.
+<P></P>
+<DT><STRONG>writeTo (glob_ref)</STRONG><BR>
+<DD>
+Write FS declaration, trees and unparsed tail to a given file (file handle open for
+reading must be passed as a GLOB reference). Sets noSaved to zero.
+<P></P>
+<DT><STRONG><A NAME="item_newFSFile">newFSFile (filename,encoding?,[backends...])</A></STRONG><BR>
+<DD>
+Create a new FSFile object based on the content of a given file.
+If a list of backend
+modules is specified, <A HREF="#item_read"><CODE>read</CODE></A> methods of the modules are invoked
+as long as one of them succeeds to open and parse the file.
+<P>Optionally, in perl ver. &gt;= 5.8, you may also specify file character
+encoding.</P>
+<P></P>
+<DT><STRONG><A NAME="item_filename">filename</A></STRONG><BR>
+<DD>
 Return the FS file's file name.
-
-<DT><STRONG><A NAME="item_changeFilename">changeFilename (new_filename)</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_changeFilename">changeFilename (new_filename)</A></STRONG><BR>
+<DD>
 Change the FS file's file name.
-
-<DT><STRONG><A NAME="item_fileFormat">fileFormat</A></STRONG><DD>
-<P>
-Return file format indentifier (user-defined string). TrEd, for example,
-uses <CODE>FS format</CODE>, <CODE>gzipped FS format</CODE> and <CODE>any
+<P></P>
+<DT><STRONG><A NAME="item_fileFormat">fileFormat</A></STRONG><BR>
+<DD>
+Return file format indentifier (user-defined string). TrEd, for
+example, uses <CODE>FS format</CODE>, <CODE>gzipped FS format</CODE> and <CODE>any
 non-specific format</CODE> strings as identifiers.
-
-<DT><STRONG><A NAME="item_changeFileFormat">changeFileFormat</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_changeFileFormat">changeFileFormat</A></STRONG><BR>
+<DD>
 Change file format indentifier.
-
-<DT><STRONG>FS</STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG>backend</STRONG><BR>
+<DD>
+Return IO backend module name. The default backend is FSBackend, used
+to save files in the FS format.
+<P></P>
+<DT><STRONG><A NAME="item_changeBackend">changeBackend</A></STRONG><BR>
+<DD>
+Change file backend.
+<P></P>
+<DT><STRONG>encoding</STRONG><BR>
+<DD>
+Return file character encoding (used by Perl 5.8 input/output filters).
+<P></P>
+<DT><STRONG><A NAME="item_changeEncoding">changeEncoding</A></STRONG><BR>
+<DD>
+Change file character encoding (used by Perl 5.8 input/output filters).
+<P></P>
+<DT><STRONG><A NAME="item_userData">userData</A></STRONG><BR>
+<DD>
+Return user data associated with the file
+<P></P>
+<DT><STRONG><A NAME="item_changeUserData">changeUserData</A></STRONG><BR>
+<DD>
+Change user data associated with the file
+<P></P>
+<DT><STRONG>FS</STRONG><BR>
+<DD>
 Return a reference to the associated FSFormat object.
-
-<DT><STRONG><A NAME="item_changeFS">changeFS</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_changeFS">changeFS</A></STRONG><BR>
+<DD>
 Associate FS file with a new FSFormat object.
-
-<DT><STRONG><A NAME="item_hint">hint</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_hint">hint</A></STRONG><BR>
+<DD>
 Return the Tred's hint pattern declared in the FSFile.
-
-<DT><STRONG><A NAME="item_changeHint">changeHint</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_changeHint">changeHint</A></STRONG><BR>
+<DD>
 Change the Tred's hint pattern associated with this FSFile.
-
-<DT><STRONG><A NAME="item_patterns">patterns</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_pattern_count">pattern_count</A></STRONG><BR>
+<DD>
+Return the number of display attribute patterns associated with this FSFile.
+<P></P>
+<DT><STRONG><A NAME="item_pattern">pattern (n)</A></STRONG><BR>
+<DD>
+Return n'th the display pattern associated with this FSFile.
+<P></P>
+<DT><STRONG><A NAME="item_patterns">patterns</A></STRONG><BR>
+<DD>
 Return a list of display attribute patterns associated with this FSFile.
-
-<DT><STRONG><A NAME="item_changePatterns">changePatterns</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_changePatterns">changePatterns</A></STRONG><BR>
+<DD>
 Change the list of display attribute patterns associated with this FSFile.
-
-<DT><STRONG><A NAME="item_tail">tail</A></STRONG><DD>
-<P>
-Return the unparsed tail of the FS file (i.e. Graph's embedded macros). 
-
-<DT><STRONG>tail</STRONG><DD>
-<P>
-Modify the unparsed tail of the FS file (i.e. Graph's embedded macros). 
-
-<DT><STRONG>trees</STRONG><DD>
-<P>
-Return a list of all trees (e.g. their roots represented by FSNode
-objects).
-
-<DT><STRONG>trees</STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_tail">tail</A></STRONG><BR>
+<DD>
+Return the unparsed tail of the FS file (i.e. Graph's embedded macros).
+<P></P>
+<DT><STRONG>tail</STRONG><BR>
+<DD>
+Modify the unparsed tail of the FS file (i.e. Graph's embedded macros).
+<P></P>
+<DT><STRONG>trees</STRONG><BR>
+<DD>
+Return a list of all trees (i.e. their roots represented by FSNode objects).
+<P></P>
+<DT><STRONG>trees</STRONG><BR>
+<DD>
 Assign a new list of trees.
-
-<DT><STRONG>trees</STRONG><DD>
-<P>
-Return a reference to the internal array of all trees (e.g. their roots
-represented by FSNode objects).
-
-<DT><STRONG><A NAME="item_changeTreeList">changeTreeList (new_trees)</A></STRONG><DD>
-<P>
-Associate a new reference to a list of trees with the this FSFile. The
-referenced array must be a list of FSNode objects representing all the new
-trees.
-
-<DT><STRONG><A NAME="item_lastTreeNo">lastTreeNo</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_treeList">treeList</A></STRONG><BR>
+<DD>
+Return a reference to the internal array of all trees (e.g. their
+roots represented by FSNode objects).
+<P></P>
+<DT><STRONG><A NAME="item_tree">tree (n)</A></STRONG><BR>
+<DD>
+Return a reference to the tree number n.
+<P></P>
+<DT><STRONG><A NAME="item_changeTreeList">changeTreeList (new_trees)</A></STRONG><BR>
+<DD>
+Associate a new reference to a list of trees with the this FSFile.
+The referenced array must be a list of FSNode objects representing all
+the new trees.
+<P></P>
+<DT><STRONG><A NAME="item_lastTreeNo">lastTreeNo</A></STRONG><BR>
+<DD>
 Return number of associated trees minus one.
-
-<DT><STRONG><A NAME="item_notSaved">notSaved (value?)</A></STRONG><DD>
-<P>
+<P></P>
+<DT><STRONG><A NAME="item_notSaved">notSaved (value?)</A></STRONG><BR>
+<DD>
 Return/assign file saving status (this is completely user-driven).
-
-</DL>
+<P></P>
+<DT><STRONG><A NAME="item_currentTreeNo">currentTreeNo (value?)</A></STRONG><BR>
+<DD>
+Return/assign index of current tree (this is completely user-driven).
+<P></P>
+<DT><STRONG><A NAME="item_currentNode">currentNode (value?)</A></STRONG><BR>
+<DD>
+Return/assign current node (this is completely user-driven).
+<P></P>
+<DT><STRONG><A NAME="item_nodes">nodes (tree_no, prev_current, include_hidden)</A></STRONG><BR>
+<DD>
+Get list of nodes for given tree. Returns two value list ($nodes,$current),
+where $nodes is a reference to a list of nodes for the tree and
+current is either root of the tree or the same node as prev_current if
+prev_current belongs to the tree. The list is sorted according to
+the FS-&gt;order attribute and inclusion of hidden nodes depends on the
+boolean value of include_hidden.
+<P></P>
+<DT><STRONG><A NAME="item_value_line">value_line (tree_no, no_tree_numbers?)</A></STRONG><BR>
+<DD>
+Return a sentence string for the given tree. Sentence string is a
+string of chained value attributes (FS-&gt;value) ordered according to
+the FS-&gt;sentord or FS-&gt;order if FS-&gt;sentord attribute is not defined.
+<P>Unless no_tree_numbers is non-zero, prepend the resulting string with
+a ``tree number/tree count: '' prefix.</P>
+<P></P>
+<DT><STRONG><A NAME="item_value_line_list">value_line_list (tree_no)</A></STRONG><BR>
+<DD>
+Return a list of value (FS-&gt;value) attributes for the given tree
+ordered according to the FS-&gt;sentord or FS-&gt;order if FS-&gt;sentord
+attribute is not defined.
+<P></P>
+<DT><STRONG><A NAME="item_insert_tree">insert_tree (root,position)</A></STRONG><BR>
+<DD>
+Insert new tree at given position.
+<P></P>
+<DT><STRONG><A NAME="item_new_tree">new_tree (position)</A></STRONG><BR>
+<DD>
+Create a new tree at given position and return pointer to its root.
+<P></P>
+<DT><STRONG><A NAME="item_delete_tree">delete_tree (position)</A></STRONG><BR>
+<DD>
+Delete the tree at given position and return pointer to its root.
+<P></P>
+<DT><STRONG><A NAME="item_destroy_tree">destroy_tree (position)</A></STRONG><BR>
+<DD>
+Delete the tree at given position and return pointer to its root.
+<P></P></DL>
 <P>
 <HR>
-<H1><A NAME="Fslib">Fslib</A></H1>
+<H1><A NAME="zbackend">ZBackend</A></H1>
+<P>ZBackend - generic IO backend for reading/writing gz-compressed files
+using either IO::Zlib module or external zcat utility.  Only
+open_backend and close_backend functions are implemented as this
+backend is meant to be base-class for all other backends which wish to
+open gz-compressed files.</P>
 <P>
-Fslib.pm - Simple low-level API for treebank files in .fs format. See
-<A HREF="#FSFile">FSFile</A>, <A HREF="#FSFormat">FSFormat</A> and <A HREF="#FSNode">FSNode</A> for an object-oriented abstraction over this module.
-
+<H2><A NAME="reference">REFERENCE</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_%24ZBackend%3A%3Azcat">$ZBackend::zcat</A></STRONG><BR>
+<DD>
+This variable may be used to set-up the zcat external utility. This
+utility must be able to compress standard input to standard output. If
+empty, this backend tries to open the given file using the IO::Zlib
+module.
+<P></P>
+<DT><STRONG><A NAME="item_%24ZBackend%3A%3Agzip">$ZBackend::gzip</A></STRONG><BR>
+<DD>
+This variable may be used to set-up the gzip external utility. This
+utility must be able to compress standard input to standard output.
+If empty, this backend tries to open the given file using the IO::Zlib
+module.
+<P></P>
+<DT><STRONG><A NAME="item_open_backend">open_backend (filename,mode,encoding?)</A></STRONG><BR>
+<DD>
+Open given file for reading or writing (depending on mode which may be
+one of ``r'' or ``w''); Return the corresponding object based on
+File::Handle class. Only files the filename of which ends with `.gz'
+are considered to be gz-commpressed. All other files are opened using
+IO::File.
+<P>Optionally, in perl ver. &gt;= 5.8, you may also specify file character
+encoding.</P>
+<P></P>
+<DT><STRONG><A NAME="item_close_backend">close_backend (filehandle)</A></STRONG><BR>
+<DD>
+Close given filehandle opened by previous call to <A HREF="#item_open_backend"><CODE>open_backend</CODE></A>
+<P></P></DL>
 <P>
 <HR>
-<H2><A NAME="SYNOPSIS">SYNOPSIS</A></H2>
+<H1><A NAME="fsbackend">FSBackend</A></H1>
+<P>FSBackend - IO backend for reading/writing FS files using FSFile class.</P>
 <P>
-<PRE>  use Fslib;
+<H2><A NAME="reference">REFERENCE</A></H2>
+<DL>
+<DT><STRONG><A NAME="item_test">test (filehandle | filename, encoding?)</A></STRONG><BR>
+<DD>
+Test if given filehandle or filename is in FSFormat. If the argument
+is a file-handle the filehandle is supposed to be open by previous
+call to <A HREF="#item_open_backend"><CODE>open_backend</CODE></A>. In this case, the calling application may
+need to close the handle and reopen it in order to seek the beginning
+of the file after the test has read few characters or lines from it.
+<P>Optionally, in perl ver. &gt;= 5.8, you may also specify file character
+encoding.</P>
+<P></P>
+<DT><STRONG><A NAME="item_read">read (handle_ref,fsfile)</A></STRONG><BR>
+<DD>
+Read FS declaration and trees from a given file in FS format (file
+handle open for reading must be passed as a GLOB reference).
+Return 1 on success 0 on fail.
+<P></P>
+<DT><STRONG><A NAME="item_write">write (handle_ref,$fsfile)</A></STRONG><BR>
+<DD>
+Write FS declaration, trees and unparsed tail to a given file to a
+given file in FS format (file handle open for reading must be passed
+as a GLOB reference).
+<P></P></DL>
+<P>
+<HR>
+<H1><A NAME="fslib">Fslib</A></H1>
+<P><STRONG>WARNING: THIS DOCUMENTATION IS VERY OBSOLETE.</STRONG></P>
+<P><STRONG>YOU SHOULD RATHER USE THE OO INTERFACE DESCRIBED ABOVE
+  AND THINK OF FSLIB AS LOW-LEVEL</STRONG></P>
+<P>Fslib.pm - Simple low-level API for treebank files in .fs format.  See
+<A HREF="#fsfile">FSFile</A>, <A HREF="#fsformat">FSFormat</A> and <A HREF="#fsnode">FSNode</A> for an object-oriented
+abstraction over this module.</P>
+<P>
+<H2><A NAME="synopsis">SYNOPSIS</A></H2>
+<PRE>
+  use Fslib;
   use locale;
-  use POSIX qw(locale_h);
-</PRE>
-<P>
-<PRE>  setlocale(LC_ALL,&quot;cs_CZ&quot;);
-  setlocale(LANG,&quot;czech&quot;);
-</PRE>
-<P>
-<PRE>  %attribs = ();
+  use POSIX qw(locale_h);</PRE>
+<PRE>
+  setlocale(LC_ALL,&quot;cs_CZ&quot;);
+  setlocale(LANG,&quot;czech&quot;);</PRE>
+<PRE>
+  %attribs = ();
   @atord = ();
-  @trees = ();
-</PRE>
-<P>
-<PRE>  # read the header
-  %attribs=ReadAttribs(\*STDIN,\@atord,2,\@header);
-</PRE>
-<P>
-<PRE>  # read the raw tree
+  @trees = ();</PRE>
+<PRE>
+  # read the header
+  %attribs=ReadAttribs(\*STDIN,\@atord,2,\@header);</PRE>
+<PRE>
+  # read the raw tree
   while ($_=ReadTree(\*F)) {
     if (/^\[/) {
       $root=GetTree($_,\@atord,\%attribs);  # parse the tree
       push(@trees, $root) if $root;         # store the structure
     } else { push(@rest, $_); }             # keep the rest of the file
-  }
-</PRE>
-<P>
-<PRE>  # do some changes 
-  ...
-</PRE>
-<P>
-<PRE>  # save the tree
+  }</PRE>
+<PRE>
+  # do some changes 
+  ...</PRE>
+<PRE>
+  # save the tree
   print @header;      # print header
   PrintFS(\*STDOUT,
           \@header,
           \@trees,
           \@atord,
           \%attribs); # print the trees
-  print @rest;        # print the rest of the file
-</PRE>
-<P>
-<PRE>  # destroy trees and free memory
+  print @rest;        # print the rest of the file</PRE>
+<PRE>
+  # destroy trees and free memory
   foreach (@trees) { DeleteTree($_); }
-  undef @header;
-</PRE>
+  undef @header;</PRE>
 <P>
-<HR>
-<H2><A NAME="DESCRIPTION">DESCRIPTION</A></H2>
+<H2><A NAME="description">DESCRIPTION</A></H2>
+<P>This package has the ambition to be a simple and usable perl API for manipulating the
+treebank files in the .fs format (which was designed by Michal Kren
+and is the only format supported by his Windows application GRAPH.EXE
+used to interractively edit treebank analytical or tectogramatical
+trees). See also Dan Zeman's review of this format in Czech at</P>
+<P><A HREF="http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html">http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html</A></P>
+<P>The Fslib package defines functions for parsing .fs files, extracting
+headers, reading trees and representing them in memory using simple
+hash structures, manipulate the values of node attributes (either
+``directly'' or via <STRONG>Get</STRONG> and <STRONG>Set</STRONG> functions) and even modify the structure
+of the trees (via <STRONG>Cut</STRONG>, <STRONG>Paste</STRONG> and <STRONG>DeleteTree</STRONG> functions or ``directly'').</P>
 <P>
-This package has the ambition to be a simple and usable perl API for
-manipulating the treebank files in the .fs format (which was designed by
-Michal Kren and is the only format supported by his Windows application
-GRAPH.EXE used to interractively edit treebank analytical or
-tectogramatical trees). See also Dan Zeman's review of this format in czech
-at
-
+<H2><A NAME="usage">USAGE</A></H2>
+<P>There are many ways to benefit from this package, I note here the most
+typical one.
+Assume, you want to read the .fs file from the STDIN (or whatever),
+then make some changes either to the structure of the trees or to the
+values of the attributes (or both) and write it again. (Maybe you
+only want to examine the structure, find something of your interest
+and write some output about it -- it's up to you). For this purpose
+you may use the code similar to the one mentioned in SYNOPSIS of this
+document. Let's see how to manage the appropriate tasks (also watch the
+example in SYNOPSIS while reading):</P>
 <P>
-<A
-HREF="http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html">http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html</A>
-
-
-<P>
-The Fslib package defines functions for parsing .fs files, extracting
-headers, reading trees and representing them in memory using simple hash
-structures, manipulate the values of node attributes (either ``directly''
-or via <STRONG>Get</STRONG> and <STRONG>Set</STRONG> functions) and even modify the structure of the trees (via <STRONG>Cut</STRONG>, <STRONG>Paste</STRONG> and <STRONG>DeleteTree</STRONG> functions or ``directly'').
-
-<P>
-<HR>
-<H2><A NAME="USAGE">USAGE</A></H2>
-<P>
-There are many ways to benefit from this package, I note here the most
-typical one. Assume, you want to read the .fs file from the STDIN (or
-whatever), then make some changes either to the structure of the trees or
-to the values of the attributes (or both) and write it again. (Maybe you
-only want to examine the structure, find something of your interest and
-write some output about it -- it's up to you). For this purpose you may use
-the code similar to the one mentioned in SYNOPSIS of this document. Let's
-see how to manage the appropriate tasks (also watch the example in SYNOPSIS
-while reading):
-
-<P>
-<HR>
-<H2><A NAME="PARSING_FS_FILES">PARSING FS FILES</A></H2>
-<P>
-First you should read the header of the .fs file using
-<STRONG>ReadAttribs()</STRONG> function, passing it as parameters the reference to the input file
-descriptor (like \*STDIN), reference to an array, that will contain the
-list of attribute names positionaly ordered and storing its return value to
-a hash. The returned hash will then have the attribute names as keys and
-their type character definitions as values. (see ReadAttribs description
-for detail).
-
-<P>
-Note, that no Read... function from this package performs any seeking, only
-reads the file on. So, it's expected, that you are at the beggining of the
-file when you call ReadAttribs, and that you have read the header before
-you parse the trees.
-
-<P>
-Anyway, having the attribute definitions read you probbably want to
-continue and parse the trees. This is done in two steps. First you call the <STRONG>ReadTree()</STRONG> function (passing it only a reference to the input file descriptor) to
-obtain (on return) a scalar (string), containing a linear representation of
-the next tree on input in the .fs format (except for line-breaks). You
-should store it. Now you should test, that it was really a tree that was
-read and not something else, which may be some environmetal or macro
-definition for GRAPH.EXE which is allowed by .fs format. This may be done
-simply by matching the result of <STRONG>ReadTree()</STRONG> with the pattern /^\[/ because trees and only trees begin with the square
-bracket `['. If it is so, you may continue by parsing the tree with <STRONG>GetTree()</STRONG>. This function parses the linear .fs representation of the tree and
-re-represents it as a structure of references to perl hashes (this I call a
-tree node structure - TNS). For more about TNS's see chapter called
-MODIFYING AND EXAMINING TREES and the REFERENCE item Tree Node Structure.
-On return of <STRONG>GetTree()</STRONG> you get a reference to the tree's TNS. You may store it (by pushing it to
-an array, i.e.) and continue by reading next tree, or do any other job on
-it.
-
-<P>
-When you are finished with reading the trees and also had made all the
+<H2><A NAME="parsing fs files">PARSING FS FILES</A></H2>
+<P>First you should read the header of the .fs file using
+<STRONG>ReadAttribs()</STRONG> function, passing it as parameters the reference to
+the input file descriptor (like \*STDIN), reference to an array, that
+will contain the list of attribute names positionaly ordered and
+storing its return value to a hash. The returned hash will then have the
+attribute names as keys and their type character definitions as
+values. (see ReadAttribs description for detail).</P>
+<P>Note, that no Read... function from this package performs any seeking,
+only reads the file on. So, it's expected, that you are at the
+beggining of the file when you call ReadAttribs, and that you have
+read the header before you parse the trees.</P>
+<P>Anyway, having the attribute definitions read you probbably want to
+continue and parse the trees. This is done in two steps. First you
+call the <STRONG>ReadTree()</STRONG> function (passing it only a reference to the
+input file descriptor) to obtain (on return) a scalar (string),
+containing a linear representation of the next tree on input in the
+.fs format (except for line-breaks). You should store it. Now you
+should test, that it was really a tree that was read and not something
+else, which may be some environmetal or macro definition for GRAPH.EXE
+which is allowed by .fs format. This may be done simply by matching
+the result of <STRONG>ReadTree()</STRONG> with the pattern /^\[/ because trees and
+only trees begin with the square bracket `['. If it is so, you may
+continue by parsing the tree with <STRONG>GetTree()</STRONG>. This function parses
+the linear .fs representation of the tree and re-represents it as a
+structure of references to perl hashes (this I call a tree node
+structure - TNS). For more about TNS's see chapter called MODIFYING
+AND EXAMINING TREES and the REFERENCE item Tree Node Structure. On
+return of <STRONG>GetTree()</STRONG> you get a reference to the tree's TNS. You may
+store it (by pushing it to an array, i.e.) and continue by reading
+next tree, or do any other job on it.</P>
+<P>When you are finished with reading the trees and also had made all the
 changes you wanted, you may want to write the trees back. This is done
-using the <STRONG>PrintFS()</STRONG> function (see its description bellow). To create a corect .fs file, you
-probably should write back the header before writing the trees, and also
-write that messy environmetal stuff after the trees are written.
-
+using the <STRONG>PrintFS()</STRONG> function (see its description bellow). To
+create a corect .fs file, you probably should write back the header
+before writing the trees, and also write that messy environmetal stuff
+after the trees are written.</P>
 <P>
-<HR>
-<H2><A NAME="MODIFYING_OR_EXAMINING_TREES">MODIFYING OR EXAMINING TREES</A></H2>
-<P>
-TNS represents both a node and the whole subtree having root in this node.
-So whole trees are represented by their roots. TNS is actualy just a
-reference to a hash. The keys of the hashes may be either some of attribute
-names or some `special' keys, serving to hold the tree structure. Suppose
-<CODE>$node</CODE> is a TNS and `lemma' is an attribute defined in the
-appropriate .fs file. Than $node-&gt;{``lemma''} is value of the attribute
-for the node represented by TNS $node. You may obtain this value also as <STRONG>Get</STRONG>($node,``lemma''). From the <CODE>$node</CODE> TNS you may obtain also the
-node's parent, sons and brothers (both left and right). This may be done in
-several equivalent ways. TNS's of a nodes relatives are stored under values
-of those `special' keys mentioned above. These keys are chosen in such a
-way that they should not colide with attribute names and are stored in the
-following scalar variables:
-
+<H2><A NAME="modifying or examining trees">MODIFYING OR EXAMINING TREES</A></H2>
+<P>TNS represents both a node and the whole subtree having root in this
+node. So whole trees are represented by their roots. TNS is actualy
+just a reference to a hash. The keys of the hashes may be either some
+of attribute names or some `special' keys, serving to hold the tree
+structure. Suppose $node is a TNS and `lemma' is an attribute defined
+in the appropriate .fs file. Than $node-&gt;<A HREF="#item_getAttribute"><CODE>getAttribute(``lemma'')</CODE></A> is value of the
+attribute for the node represented by TNS $node. You may obtain this
+value also as Get($node,``lemma''). From the $node TNS you may
+obtain also the node's parent, sons and brothers (both left and
+right). This may be done in several equivalent ways. TNS's of a nodes
+relatives are stored under values of those `special' keys mentioned
+above. These keys are chosen in such a way that they should not colide
+with attribute names and are stored in the following scalar variables:</P>
 <UL>
 <LI>
-<P>
 Fslib::$parent
-
+<P></P>
 <LI>
-<P>
 Fslib::$firstson
-
+<P></P>
 <LI>
-<P>
 Fslib::$lbrother
-
+<P></P>
 <LI>
-<P>
 Fslib::$rbrother
-
-</UL>
+<P></P></UL>
+<P>(You may change these variables if you want, but note, that modifying
+them once the trees are read may lead to problems:-)</P>
+<P>So, to obtain $node's parent's TNS you may use either
+$node-&gt;{$parent} or <STRONG>Get</STRONG>($node,$parent) or even special
+function <STRONG>Parent</STRONG>($node). The same holds for the first son, left and right
+brothers while you may also prefere to use the <STRONG>FirstSon()</STRONG>, <STRONG>LBrother()</STRONG> and
+<STRONG>RBrother()</STRONG> functions respectively. If the node's relative (say
+first son) does not exist, the value obtained in either of the mentioned
+ways <EM>is</EM> still <EM>defined but zero</EM>.</P>
+<P>To create a new node, you usually create a new hash and call
+<STRONG>NewNode()</STRONG> passing it a reference to the new hash as a parameter.</P>
+<P>To modify a node's value for a certain attribute (say 'lemma'), you
+symply type <CODE>$node-</CODE>setAttribute(``lemma'',``bar'')&gt; (supposed you want the value to
+become 'bar') or use the <STRONG>Set()</STRONG> function like
+<STRONG>Set</STRONG><CODE>($node,&quot;bar&quot;);</CODE>.</P>
+<P>To modify the tree's structure, you may use <STRONG>Cut</STRONG> and <STRONG>Paste</STRONG>
+function as described bellow or to delete a whole subtree you may use
+the <STRONG>DeleteTree</STRONG> function. This also frees memory used by the TNS.
+If you want to delete a subtree of $node, but still keep its root, you may use
+a construct like:</P>
+<PRE>
+  DeleteTree(FirstSon($node)) while(FirstSon($node));</PRE>
+<P>Note, that Cut function also deletes a subree from the tree but
+keeps the TNS in memory and returns a reference to it.</P>
+<P>There is also a global variable Fslib::$FSTestListValidity, which may
+be set to 1 to make Fslib::ParseNode check if value assigned to a list
+attribute is one of the possible values declared in FS file
+header. Because this may slow the process of parsing significantly
+(especially when there is a lot of list attributes) the default value
+is 0 (no check is performed).</P>
 <P>
-(You may change these variables if you want, but note, that modifying them
-once the trees are read may lead to problems:-)
-
-<P>
-So, to obtain $node's parent's TNS you may use either $node-&gt;{$parent}
-or <STRONG>Get</STRONG>($node,$parent) or even special function <STRONG>Parent</STRONG>($node). The same holds for the first son, left and right brothers while
-you may also prefere to use the <STRONG>FirstSon()</STRONG>, <STRONG>LBrother()</STRONG> and
-<STRONG>RBrother()</STRONG> functions respectively. If the node's relative (say first son) does not
-exist, the value obtained in either of the mentioned ways <EM>is</EM> still <EM>defined but zero</EM>.
-
-<P>
-To create a new node, you usually create a new hash and call
-<STRONG>NewNode()</STRONG> passing it a reference to the new hash as a parameter.
-
-<P>
-To modify a node's value for a certain attribute (say 'lemma'), you symply
-type <CODE>$node-</CODE>{``lemma''}=``bar''&gt; (supposed you want the value to become 'bar') or
-use the <STRONG>Set()</STRONG> function like
-<STRONG>Set</STRONG><CODE>($node,&quot;bar&quot;);</CODE>.
-
-<P>
-To modify the tree's structure, you may use <STRONG>Cut</STRONG> and <STRONG>Paste</STRONG>
-function as described bellow or to delete a whole subtree you may use the <STRONG>DeleteTree</STRONG> function. This also frees memory used by the TNS. If you want to delete a
-subtree of $node, but still keep its root, you may use a construct like:
-
-<P>
-<PRE>  DeleteTree(FirstSon($node)) while(FirstSon($node));
-</PRE>
-<P>
-Note, that Cut function also deletes a subree from the tree but keeps the
-TNS in memory and returns a reference to it.
-
-<P>
-There is also a global variable Fslib::$FSTestListValidity, which may be
-set to 1 to make Fslib::ParseNode check if value assigned to a list
-attribute is one of the possible values declared in FS file header. Because
-this may slow the process of parsing significantly (especially when there
-is a lot of list attributes) the default value is 0 (no check is
-performed).
-
-<P>
-<HR>
-<H2><A NAME="REFERENCE">REFERENCE</A></H2>
+<H2><A NAME="reference">REFERENCE</A></H2>
 <DL>
-<DT><STRONG><A NAME="item_ReadAttribs">ReadAttribs (FILE,$aref[,$DO_PRINT[,OUTFILE]])</A></STRONG><DD>
-<P>
-<PRE> Params
-</PRE>
-<P>
-<PRE>   FILE      - file handle reference, like \*STDIN
+<DT><STRONG><A NAME="item_ReadAttribs">ReadAttribs (FILE,$aref[,$DO_PRINT[,OUTFILE]])</A></STRONG><BR>
+<DD>
+<PRE>
+ Params</PRE>
+<PRE>
+   FILE      - file handle reference, like \*STDIN
    $aref     - reference to array
    $DO_PRINT - if 1, read input is also copied to
                $OUTFILE (which must be a filehandle reference, like
                \*STDOUT).
                if 0, read input is also stored to the @$OUTFILE
                array (in this case $OUTFILE is a reference to an array).
-   $OUTFILE - output file handle or array reference , \*STDIN if ommited
-</PRE>
-<P>
-<PRE> Returns:
+   $OUTFILE - output file handle or array reference , \*STDIN if ommited</PRE>
+<PRE>
+ Returns:
    A hash, having fs-attribute names as keys
-   and strings containing characters identifying 
-   types as corresponding values   
+   and strings containing characters identifying
+   types as corresponding values
    The characters may be some of following
-   (as given by the .fs format):
-</PRE>
-<P>
-<PRE>       K        Key attribute
+   (as given by the .fs format):</PRE>
+<PRE>
+       K        Key attribute
        P        Positional attribute
        O        Obligatory attribute
        L        List attribute
        N        Numerical attribute
-       V        Value atribute (for displaying in GRAPH.EXE)
-</PRE>
-<P>
-<PRE>   The $aref should be on input a reference to
+       V        Value atribute (for displaying in GRAPH.EXE)</PRE>
+<PRE>
+   The $aref should be on input a reference to
    an empty array. On return the array contains
    the key values of the returned hash (the attributes)
    orderd as thay are defined in FS file, i.e. in
-   their positional order.
-</PRE>
-<DT><STRONG><A NAME="item_ReadTree">ReadTree (FILE)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   FILE - file handle, like STDIN
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   A string containing the next tree read form FILE
-   in its source form (only with concatenated lines).
-</PRE>
-<DT><STRONG><A NAME="item_GetTree">GetTree ($tree,$aref,$href)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $tree - the source form of a tree with concatenated lines
-   $aref - a reference to an array of attributes in their 
+   their positional order.</PRE>
+<DT><STRONG><A NAME="item_ReadTree">ReadTree (FILE)</A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   FILE - file handle, like STDIN</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   A string containing the next tree read form FILE
+   in its source form (only with concatenated lines).</PRE>
+<DT><STRONG><A NAME="item_GetTree">GetTree ($tree,$aref,$href)</A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $tree - the source form of a tree with concatenated lines
+   $aref - a reference to an array of attributes in their
+           positional order (see ReadAttributes)
+   $href - a reference to a hash, containing attributes as keys
+           and corresponding type strigs as values</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   A reference to a tree hash-structure described below.</PRE>
+<DT><STRONG><A NAME="item_PrintNode">PrintNode ($node,$aref,$href,$output?)</A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a tree hash-structure
+   $aref - a reference to an array of attributes in their
            positional order (see ReadAttributes)
    $href - a reference to a hash, containing attributes as keys
            and corresponding type strigs as values
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   A reference to a tree hash-structure described below.
-   
-</PRE>
-<DT><STRONG><A NAME="item_PrintNode">PrintNode ($node,$aref,$href)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a tree hash-structure
-   $aref - a reference to an array of attributes in their 
+   $output - output filehandle</PRE>
+<PRE>
+  Returns:</PRE>
+<PRE>
+   Not specified.</PRE>
+<PRE>
+ Descrption:</PRE>
+<PRE>
+   Prints the node structure referenced by $node
+   to $output (or STDOUT) in the source format.</PRE>
+<DT><STRONG><A NAME="item_PrintTree">PrintTree ($node,$aref,$href,$output?)</A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a tree hash-structure
+   $aref - a reference to an array of attributes in their
            positional order (see ReadAttributes)
    $href - a reference to a hash, containing attributes as keys
            and corresponding type strigs as values
-  Returns:
-</PRE>
-<P>
-<PRE>   Unknown.
-</PRE>
-<P>
-<PRE> Descrption:
-</PRE>
-<P>
-<PRE>   Prints the node structure referenced by $node 
-   to STDOUT in a source format
-</PRE>
-<DT><STRONG><A NAME="item_PrintTree">PrintTree ($node,$aref,$href)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a tree hash-structure
-   $aref - a reference to an array of attributes in their 
-           positional order (see ReadAttributes)
-   $href - a reference to a hash, containing attributes as keys
-           and corresponding type strigs as values
- 
- Returns:
-</PRE>
-<P>
-<PRE>   Unknown.
-</PRE>
-<P>
-<PRE> Descrption:
-</PRE>
-<P>
-<PRE>   Prints the tree having its root-node referenced by $node 
-   to STDOUT in a source format
-</PRE>
-<DT><STRONG><A NAME="item_Parent">Parent($node), FirstSon($node), LBrother($node), RBrother($node)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a tree hash-structure
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   Parent, first son, left brother or right brother resp. of
-   the node referenced by $node
-</PRE>
-<DT><STRONG><A NAME="item_Next">Next($node,[$top]), Prev($node,[$top])</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a tree hash-structure
+   $output - output filehandle</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   Not specified.</PRE>
+<PRE>
+ Descrption:</PRE>
+<PRE>
+   Prints the tree having its root-node referenced by $node
+   to STDOUT in the source format</PRE>
+<DT><STRONG><A NAME="item_Parent">Parent($node), FirstSon($node), LBrother($node), <CODE>RBrother($node)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a tree hash-structure</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   Parent, first son, left brother or right brother resp. of
+   the node referenced by $node</PRE>
+<DT><STRONG><A NAME="item_Next">Next($node,[$top]), <CODE>Prev($node,[$top])</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a tree hash-structure
    $top  - a reference to a tree hash-structure, containing
-           the node referenced by $node
-</PRE>
-<P>
-<PRE> Return:
-</PRE>
-<P>
-<PRE>   Reference to the next or previous node of $node on 
+           the node referenced by $node</PRE>
+<PRE>
+ Return:</PRE>
+<PRE>
+   Reference to the next or previous node of $node on
    the backtracking way along the tree having its root in $top.
    The $top parameter is NOT obligatory and may be omitted.
-   Return zero, if $top of root of the tree reached.
-</PRE>
-<DT><STRONG><A NAME="item_Cut">Cut($node)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a node
-</PRE>
-<P>
-<PRE>  Description:
-</PRE>
-<P>
-<PRE>   Cuts (disconnets) $node from its parent and brothers
- 
-  Returns:
-</PRE>
-<P>
-<PRE>   $node
-</PRE>
-<DT><STRONG><A NAME="item_Paste">Paste($node,$newparent,$href)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node      - a reference to a (cutted or new) node
+   Return zero, if $top of root of the tree reached.</PRE>
+<DT><STRONG><A NAME="item_Cut"><CODE>Cut($node)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a node</PRE>
+<PRE>
+  Description:</PRE>
+<PRE>
+   Cuts (disconnets) $node from its parent and brothers</PRE>
+<PRE>
+  Returns:</PRE>
+<PRE>
+   $node</PRE>
+<DT><STRONG><A NAME="item_Paste"><CODE>Paste($node,$newparent,$href)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node      - a reference to a (cutted or new) node
    $newparent - a reference to the new parent node
    $href      - a reference to a hash, containing attributes as keys
                 and corresponding type strigs as values
- Description:
-</PRE>
-<P>
-<PRE>   connetcs $node to $newparent and links it
+ Description:</PRE>
+<PRE>
+   connetcs $node to $newparent and links it
    with its new brothers, placing it to position
    corresponding to its numerical-argument value
-   obtained via call to an Ord function.  
-</PRE>
-<P>
-<PRE> Returns $node
-</PRE>
-<DT><STRONG><A NAME="item_Special">Special($node,$href,$defchar)</A></STRONG><DD>
-<P>
-<PRE> Exported with EXPORT_OK
-</PRE>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node    - a reference to a tree hash-structure
+   obtained via call to an Ord function.</PRE>
+<PRE>
+ Returns $node</PRE>
+<DT><STRONG><A NAME="item_Special"><CODE>Special($node,$href,$defchar)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Exported with EXPORT_OK</PRE>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node    - a reference to a tree hash-structure
    $href    - a reference to a hash, containing attributes as keys
               and corresponding type strigs as values
-   $defchar - a type string pattern
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   Value of the first $node attribute of type matching $defchar pattern
-</PRE>
-<DT><STRONG><A NAME="item_ASpecial">ASpecial($href,$defchar)</A></STRONG><DD>
-<P>
-<PRE> Exported with EXPORT_OK
-</PRE>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $href    - a reference to a hash, containing attributes as keys
+   $defchar - a type string pattern</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   Value of the first $node attribute of type matching $defchar pattern</PRE>
+<DT><STRONG><A NAME="item_ASpecial"><CODE>ASpecial($href,$defchar)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Exported with EXPORT_OK</PRE>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $href    - a reference to a hash, containing attributes as keys
               and corresponding type strigs as values
-   $defchar - a type string pattern
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   Name of the first attribute of type matching $defchar pattern
-</PRE>
-<DT><STRONG><A NAME="item_AOrd">AOrd, ASentOrd, AValue, AHide ($href)</A></STRONG><DD>
-<P>
-<PRE> Exported wiht EXPORT_OK
-</PRE>
-<P>
-<PRE> Params:
-</PRE>
-<P>
-<PRE>   $href    - a reference to a hash, containing attributes as keys
-              and corresponding type strigs as values
-</PRE>
-<P>
-<PRE> Description:
-</PRE>
-<P>
-<PRE> Are all like Ord, SentOrd, Value, Hide only except for
+   $defchar - a type string pattern</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   Name of the first attribute of type matching $defchar pattern</PRE>
+<DT><STRONG><A NAME="item_AHide">AOrd, ASentOrd, AValue, AHide ($href)</A></STRONG><BR>
+<DD>
+<PRE>
+ Exported wiht EXPORT_OK</PRE>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $href    - a reference to a hash, containing attributes as keys
+              and corresponding type strigs as values</PRE>
+<PRE>
+ Description:</PRE>
+<PRE>
+ Are all like Ord, SentOrd, Value, Hide only except for
  they do not get $node as parameter and return attribute
- name rather than its value.
-</PRE>
-<DT><STRONG><A NAME="item_Ord">Ord($node,$href)</A></STRONG><DD>
-<P>
-<PRE> Exported with EXPORT_OK
-</PRE>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a tree hash-structure
+ name rather than its value.</PRE>
+<DT><STRONG><A NAME="item_Ord"><CODE>Ord($node,$href)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Exported with EXPORT_OK</PRE>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a tree hash-structure
    $href - a reference to a hash, containing attributes as keys
-           and corresponding type strigs as values
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   $node's ord (value of attribute declared by type character N)
-   Same as Special($node,$href,'N')
-</PRE>
-<DT><STRONG><A NAME="item_Value">Value($node,$href)</A></STRONG><DD>
-<P>
-<PRE> Exported with EXPORT_OK
-</PRE>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a tree hash-structure
+           and corresponding type strigs as values</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   $node's ord (value of attribute declared by type character N)
+   Same as Special($node,$href,'N')</PRE>
+<DT><STRONG><A NAME="item_Value"><CODE>Value($node,$href)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Exported with EXPORT_OK</PRE>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a tree hash-structure
    $href - a reference to a hash, containing attributes as keys
-           and corresponding type strigs as values
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   $node's value attribut (value of attribute declared by type character V)
-   Same as Special($node,$href,'V')
-</PRE>
-<DT><STRONG><A NAME="item_SentOrd">SentOrd($node,$href)</A></STRONG><DD>
-<P>
-<PRE> Exported with EXPORT_OK
-</PRE>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a tree hash-structure
+           and corresponding type strigs as values</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   $node's value attribut (value of attribute declared by type character V)
+   Same as Special($node,$href,'V')</PRE>
+<DT><STRONG><A NAME="item_SentOrd"><CODE>SentOrd($node,$href)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Exported with EXPORT_OK</PRE>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a tree hash-structure
    $href - a reference to a hash, containing attributes as keys
-           and corresponding type strigs as values
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   $node's sentence ord (value of attribute declared by type character W)
-   Same as Special($node,$href,'W')
-</PRE>
-<DT><STRONG><A NAME="item_Hide">Hide($node,$href)</A></STRONG><DD>
-<P>
-<PRE> Exported with EXPORT_OK
-</PRE>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node - a reference to a tree hash-structure
+           and corresponding type strigs as values</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   $node's sentence ord (value of attribute declared by type character W)
+   Same as Special($node,$href,'W')</PRE>
+<DT><STRONG><A NAME="item_Hide"><CODE>Hide($node,$href)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Exported with EXPORT_OK</PRE>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node - a reference to a tree hash-structure
    $href - a reference to a hash, containing attributes as keys
-           and corresponding type strigs as values
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   &quot;hide&quot; if $node is hidden (actually the value of attribute declared
+           and corresponding type strigs as values</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   &quot;hide&quot; if $node is hidden (actually the value of attribute declared
    by type character H)
-   Same as Special($node,$href,'H')
-</PRE>
-<DT><STRONG><A NAME="item_IsList">IsList($attr,$href)</A></STRONG><DD>
-<P>
-<PRE> Params:
-</PRE>
-<P>
-<PRE>   $attr - an atribute name
+   Same as Special($node,$href,'H')</PRE>
+<DT><STRONG><A NAME="item_IsList"><CODE>IsList($attr,$href)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $attr - an atribute name
    $href - a reference to a hash, containing attributes as keys
-           and corresponding type strigs as values
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   1 if attribut $attr is declared as a list (L) in hash of attribute defs
+           and corresponding type strigs as values</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   1 if attribut $attr is declared as a list (L) in hash of attribute defs
    (referenced in) $href
-   0 otherwise
-</PRE>
-<DT><STRONG><A NAME="item_ListValues">ListValues($attr,$href)</A></STRONG><DD>
-<P>
-<PRE> Params:
-</PRE>
-<P>
-<PRE>   $attr - an atribute name
+   0 otherwise</PRE>
+<DT><STRONG><A NAME="item_ListValues"><CODE>ListValues($attr,$href)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $attr - an atribute name
    $href - a reference to a hash, containing attributes as keys
-           and corresponding type strigs as values
-</PRE>
-<P>
-<PRE> Returns:
-</PRE>
-<P>
-<PRE>   a list of allowed values for attribute $attr as defined in
-   the hash of attribyte defs $href
-</PRE>
-<DT><STRONG><A NAME="item_Set">Set($node,$attribute,$value)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node      - a reference to a node
+           and corresponding type strigs as values</PRE>
+<PRE>
+ Returns:</PRE>
+<PRE>
+   a list of allowed values for attribute $attr as defined in
+   the hash of attribyte defs $href</PRE>
+<DT><STRONG><A NAME="item_Set"><CODE>Set($node,$attribute,$value)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node      - a reference to a node
    $attribute - attribute
-   $value     - value to fill $node's $attribute with
-</PRE>
-<P>
-<PRE> Description:
-</PRE>
-<P>
-<PRE>   Does the same as $node-&gt;{$attribute}=$value
-</PRE>
-<DT><STRONG><A NAME="item_Get">Get($node,$attribute)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node      - a reference to a node
-   $attribute - attribute
-</PRE>
-<P>
-<PRE> Return:
-</PRE>
-<P>
-<PRE>   Returns $node-&gt;{$attribute}
-</PRE>
-<DT><STRONG><A NAME="item_DrawTree">DrawTree($node,@attrs)</A></STRONG><DD>
-<P>
-<PRE> Params: 
-</PRE>
-<P>
-<PRE>   $node      - a reference to a node
-   $attrs     - list of attributes to display
-</PRE>
-<P>
-<PRE> Description:
-</PRE>
-<P>
-<PRE>   Draws a tree on standard output using character graphics. (May be
+   $value     - value to fill $node's $attribute with</PRE>
+<PRE>
+ Description:</PRE>
+<PRE>
+   Does the same as $node-&gt;setAttribute($attribute,$value)</PRE>
+<DT><STRONG><A NAME="item_Get"><CODE>Get($node,$attribute)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node      - a reference to a node
+   $attribute - attribute</PRE>
+<PRE>
+ Return:</PRE>
+<PRE>
+   Returns $node-&gt;getAttribute($attribute)</PRE>
+<DT><STRONG><A NAME="item_DrawTree"><CODE>DrawTree($node,@attrs)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   $node      - a reference to a node
+   $attrs     - list of attributes to display</PRE>
+<PRE>
+ Description:</PRE>
+<PRE>
+   Draws a tree on standard output using character graphics. (May be
    particulary useful on systems with no GUI - for real graphical
    representation of FS trees look for Michal Kren's GRAPH.EXE or
-   Perl/Tk based program &quot;tred&quot; by Petr Pajas.
-</PRE>
-<DT><STRONG><A NAME="item_THE">THE TREE NODE-STRUCTURE (TNS)</A></STRONG><DD>
-<P>
-<PRE> Description:
-</PRE>
-<P>
-<PRE> TNS is a normal hash, whose keys are names of attribute
- and whose values are strings, values of the correspoding 
- attributes (as they are given in the FS format source). 
-</PRE>
-<P>
-<PRE> In addtion, few other keys and values are added to each node:
-</PRE>
-<P>
-<PRE>   &quot;Parent&quot;    which is a reference to the parent node (or zero if N/A)
+   Perl/Tk based program &quot;tred&quot; by Petr Pajas.</PRE>
+<DT><STRONG><A NAME="item_ImportBackends"><CODE>ImportBackends(@backends)</CODE></A></STRONG><BR>
+<DD>
+<PRE>
+ Params:</PRE>
+<PRE>
+   @backends  - a list of backend names</PRE>
+<PRE>
+ Description:</PRE>
+<PRE>
+   Demand to load the given backends and return a list of
+   backends for which the demand was fulfilled. These
+   backends may then be freely used in FSFile IO calls.</PRE>
+<DT><STRONG><A NAME="item_STRUCTURE">THE TREE NODE-STRUCTURE (TNS)</A></STRONG><BR>
+<DD>
+<PRE>
+ Description:</PRE>
+<PRE>
+ TNS is a normal hash, whose keys are names of attribute
+ and whose values are strings, values of the correspoding
+ attributes (as they are given in the FS format source).</PRE>
+<PRE>
+ In addtion, few other keys and values are added to each node:</PRE>
+<PRE>
+   &quot;Parent&quot;    which is a reference to the parent node (or zero if N/A)
    $firstson  a reference to the first son's node (or zero)
    &quot;RBrother&quot;  a reference to the first right brother (or zero)
-   $lbrother  a reference to the first left brother (or zero)
-</PRE>
-<P>
-<PRE> You may initialize a new node by calling NewNode($node),
- where $node is a reference to some (existing and rather empty) hash.
-</PRE>
+   $lbrother  a reference to the first left brother (or zero)</PRE>
+<PRE>
+ You may initialize a new node by calling NewNode($node),
+ where $node is a reference to some (existing and rather empty) hash.</PRE>
 </DL>
 <P>
 <HR>
-<H1><A NAME="SEE_ALSO">SEE ALSO</A></H1>
-<P>
-<A
-HREF="http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html">http://ufal.mff.cuni.cz/local/trees/format_fs.html</A>
-
+<H1><A NAME="see also">SEE ALSO</A></H1>
+<P><A HREF="http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html">http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html</A></P>
 
 </BODY>
 
