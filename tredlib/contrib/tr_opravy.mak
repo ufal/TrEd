@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-15 19:08:58 pajas>
+## Time-stamp: <2004-03-15 20:21:58 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -9,6 +9,15 @@ import Tectogrammatic;
 # permitting all attributes modification
 sub enable_attr_hook {
   return;
+}
+
+sub node_release_hook {
+  my ($node,$p, $mod) = @_;
+  if ($mod eq 'Shift') {
+    ConnectAID($p,$node);
+    light_aidrefs_reverse();
+    Redraw_FSFile_Tree();
+  }
 }
 
 sub which_struct {
