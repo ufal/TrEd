@@ -388,7 +388,7 @@ APPINFO    NONE
 >
 
 <!ELEMENT f - O (#PCDATA & P* & Ct? & l* & MMl* & MDl* &
-                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & wsd* & x*)
+                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & wsd? & x*)
                  -- word forms; text: form itself, rest: annotation -->
 <!ATTLIST f
           case  (lower|cap|upper|mixed|gen|num|num.gen
@@ -410,7 +410,7 @@ APPINFO    NONE
                           for detailed information see
                           "A Manual for Analytic Layer Tagging" --
           cphr  NMTOKEN   #IMPLIED
-          id    CDATA   #IMPLIED >
+          id    ID   #IMPLIED >
 <!ELEMENT w - O (#PCDATA)
                  --  original forms for normalized stuff (numbers, etc.) -->
 <!ATTLIST w
@@ -425,13 +425,13 @@ APPINFO    NONE
 		     -->
 
 <!ELEMENT d - O (#PCDATA & P* & Ct? & l* & MMl* & MDl* &
-                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & wsd* & x*)
+                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & wsd? & x*)
                  -- punctuation / delimiters;
                     display "word-form-like" behavior --
 >
 <!ATTLIST d
           type (std|gen) std
-          id    CDATA   #IMPLIED 
+          id    ID   #IMPLIED 
             -- used for manual corrections if <w spell> used --
 >
 
@@ -536,13 +536,13 @@ APPINFO    NONE
 <!-- 09/12/2000 A. Bohmova, B. Hladka, P. Pajas, D. Zeman          -->
 <!-- ============================================================= -->
 
-<!ELEMENT fadd - O (TRl* & MTRl* & r? & g* & wsd* & x*)
+<!ELEMENT fadd - O (TRl* & MTRl* & r? & g* & wsd? & x*)
                  -- nodes added on the tectogrammatical level;
                  --
 >
 <!ATTLIST fadd
           del  (elid|elex|expn|transf) elid 
-          id    CDATA   #IMPLIED 
+          id    ID   #IMPLIED 
 >
 
 <!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
@@ -714,15 +714,15 @@ APPINFO    NONE
 >
 
 <!ELEMENT wsd - O EMPTY
-                -- word sense disambiguation;
+                -- word sense disambiguation; 
                 --
 >
 
 <!ATTLIST wsd
-          s             NUTOKEN #IMPLIED
-          ewn           NUTOKEN #IMPLIED
-          ili           NUTOKEN #IMPLIED
-          iliOffset     CDATA #IMPLIED
+          s             NUTOKEN #IMPLIED -- id of sense of the given EWN-literal -- 
+          ewn           NUTOKEN #IMPLIED -- id of the EWN-synset -- 
+          ili           NUTOKEN #IMPLIED -- id of the ILI-record -- 
+          iliOffset     CDATA #IMPLIED -- offset of the ILI-record in ILI-database -- 
 >
 
 
