@@ -65,7 +65,7 @@ Installs default display patterns for vieweing tectogrammatical trees in TrEd.
 
 sub set_default_tdata_patterns {
   SetDisplayAttrs(split /\n\s*-------*\s*\n/,<<'EOF');
-node:<? '#{customparenthesis}' if $${is_parenthesis} ?><?$${nodetype}eq'root' ? '${id}' : '${t_lemma}'?><? '#{customcoref}.'.$coreflemmas{$${id}} if $coreflemmas{$${id}}ne'' ?>
+node:<? '#{customparenthesis}' if $${is_parenthesis} ?><?$${nodetype}eq'root' ? '${id}' : '${t_lemma}'?><? '#{customcoref}.'.$PMLTectogrammatic::coreflemmas{$${id}} if $PMLTectogrammatic::coreflemmas{$${id}}ne'' ?>
 
 -------------------
 
@@ -96,17 +96,17 @@ style:<?
      ($this->parent and $this->parent->{nodetype}eq'root')) {
      '#{Line-width:1}#{Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal').'}'
   } elsif ($${is_member}) {
-    if (is_coord_T($this)) {
+    if (PMLTectogrammatic::is_coord_T($this)) {
       '#{Line-width:1}#{Line-fill:'.CustomColor('line_normal').'}'
-    } elsif ($this->parent and is_coord_T($this->parent)) {
+    } elsif ($this->parent and PMLTectogrammatic::is_coord_T($this->parent)) {
       '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:3&1}#{Line-fill:'.
        CustomColor('line_normal').'&'.CustomColor('line_member').'}'
     } else {
       '#{Line-fill:'.CustomColor('error').'}'
     }
-  } elsif ($this->parent and is_coord_T($this->parent)) {
+  } elsif ($this->parent and PMLTectogrammatic::is_coord_T($this->parent)) {
     '#{Line-width:1}#{Line-fill:'.CustomColor('line_comm').'}'
-  } elsif (is_coord_T($this)) {
+  } elsif (PMLTectogrammatic::is_coord_T($this)) {
     '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:1&3}#{Line-fill:'.
     CustomColor('line_member').'&'.CustomColor('line_normal').'}'
   } else {
@@ -140,7 +140,7 @@ EOF
 
 }
 
-#JA: style:<?'#{'.((($this->{functor}=~/^(?:PAR|PARTL|VOCAT|RHEM|CM|FPHR|PREC)$/)or($this->parent and $this->parent->{nodetype}eq'root'))?'Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal'):($this->{is_member}?((is_coord_T( $this->parent))?'Line-width:1}#{Line-fill:'.CustomColor('line_member'):'Line-fill:'.CustomColor('error')):(is_coord_T($this->parent)?'Line-width:1}#{Line-fill:'.CustomColor('line_comm'):'Line-width:2}#{Line-fill:'.CustomColor('line_normal')))).'}'?>
+#JA: style:<?'#{'.((($this->{functor}=~/^(?:PAR|PARTL|VOCAT|RHEM|CM|FPHR|PREC)$/)or($this->parent and $this->parent->{nodetype}eq'root'))?'Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal'):($this->{is_member}?((PMLTectogrammatic::is_coord_T( $this->parent))?'Line-width:1}#{Line-fill:'.CustomColor('line_member'):'Line-fill:'.CustomColor('error')):(PMLTectogrammatic::is_coord_T($this->parent)?'Line-width:1}#{Line-fill:'.CustomColor('line_comm'):'Line-width:2}#{Line-fill:'.CustomColor('line_normal')))).'}'?>
 
 =item set_default_adata_patterns()
 
