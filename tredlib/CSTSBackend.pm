@@ -123,7 +123,7 @@ sub read {
 
 =pod
 
-=item read (handle_ref,fsfile)
+=item write (handle_ref,fsfile)
 
 =cut
 

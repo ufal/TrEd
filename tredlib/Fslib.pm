@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-06-07 20:51:54 pajas>
+# Time-stamp: <2001-06-29 12:33:15 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -18,21 +18,18 @@ use Exporter;
 @ISA=(Exporter);
 $VERSION = "1.2";
 
-@EXPORT = qw(&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode
+@EXPORT = qw/&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode
 	     &PrintTree &PrintFS &NewNode &Parent &LBrother &RBrother
 	     &FirstSon &Next &Prev &DeleteTree &DeleteLeaf &Cut &Paste
-	     &Set &Get &DrawTree &IsList &ListValues);
+	     &Set &Get &DrawTree &IsList &ListValues &ImportBackends/;
 
-@EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &ParseNode2 &Ord
+@EXPORT_OK = qw/$FSTestListValidity &Index &ParseNode &ParseNode2 &Ord
                 &Value &Hide &SentOrd &Special &AOrd &AValue &AHide
                 &ASentOrd &ASpecial &SetParent &SetLBrother
-                &SetRBrother &SetFirstSon);
+                &SetRBrother &SetFirstSon/;
 
 use Carp;
-use vars qw(
-	    $VERSION @EXPORT @EXPORT_OK
-	    $field
-	    );
+use vars qw/$VERSION @EXPORT @EXPORT_OK $field $parent $firstson $lbrother $FSTestListValidity/;
 
 
 $field='(?:\\\\[\\]\\,]|[^\\,\\]])*';
@@ -44,7 +41,6 @@ $FSTestListValidity=0;
 
 sub NewNode ($) {
   my $node = shift;
- 
   $node->{$firstson}=0;
   $node->{$lbrother}=0;
   $node->{$rbrother}=0;
@@ -686,6 +682,16 @@ sub PrintFS ($$$$$) {
   }
 }
 
+sub ImportBackends {
+  my @backends=();
+  foreach my $backend (@_) {
+    if (eval { require $backend.".pm"; } ) {
+      push @backends,$backend;
+    }
+  }
+  return @backends;
+}
+
 ############################################################
 ############################################################
 
@@ -842,9 +848,32 @@ sub following_visible {
   return undef unless ref($self);
   my $node=Fslib::Next($self,$top);
   return $node unless ref($fsformat);
+  my $hiding;
   while ($node) {
-    return $node unless ($fsformat->isHidden($node));
-    $node=Fslib::Next($node,$top);
+    return $node unless ($hiding=$fsformat->isHidden($node));
+#    $node=Fslib::Next($node,$top);
+    $node=$hiding->following_right_or_up($top);
+  }
+}
+
+=pod
+
+=item following_right_or_up (top?)
+
+Return the next visible node of the subtree in the order given by
+structure (C<undef> if none), but not descending.
+
+=cut
+
+sub following_right_or_up {
+  my ($self,$top) = @_;
+  return undef unless ref($self);
+
+  my $node=$self;
+  while ($node) {
+    return 0 if ($node==$top or !$node->parent);
+    return $node->rbrother if $node->rbrother;
+    $node = $node->parent;
   }
 }
 
@@ -884,6 +913,49 @@ sub previous_visible {
     return $node unless ($hiding=$fsformat->isHidden($node));
     $node=Fslib::Prev($hiding,$top);
   }
+}
+
+
+=pod
+
+=item rightmost_descendant (node)
+
+Return the rightmost lowest descendant of the node (or
+the node itself if the node is a leaf).
+
+=cut
+
+sub rightmost_descendant {
+  my ($self) = @_;
+  return undef unless ref($self);
+  $node=$self;
+ DIGDOWN: while ($node->firstson) {
+    $node = $node->firstson;
+  LASTBROTHER: while ($node->rbrother) {
+      $node = $node->rbrother;
+      next LASTBROTHER;
+    }
+    next DIGDOWN;
+  }
+  return $node;
+}
+
+
+=pod
+
+=item leftmost_descendant (node)
+
+Return the leftmost lowest descendant of the node (or
+the node itself if the node is a leaf).
+
+=cut
+
+sub leftmost_descendant {
+  my ($self) = @_;
+  return undef unless ref($self);
+  $node=$self;
+  $node=$node->firstson while ($node->firstson);
+  return $node;
 }
 
 
@@ -977,7 +1049,7 @@ sub readFrom {
     } else {
       push @{$self->unparsed}, $_;
     }
-    if (/^\@([KPOVNWLH])([A-Z0-9])* ([A-Za-z0-9]+)(?:\|(.*))?/o) {
+    if (/^\@([KPOVNWLH])([A-Z0-9])* ([-_A-Za-z0-9]+)(?:\|(.*))?/o) {
       $self->list->[$count++]=$3 if (!defined($self->defs->{$3}));
       if ($4) {
 	$self->defs->{$3}.=" $1=$4"; # so we create a list of defchars separated by spaces
@@ -1481,7 +1553,7 @@ sub readFile {
 	}) {
       $self->changeBackend($backend);
       $self->changeFilename($filename);
-      print STDER "success\n";
+      print STDERR "success\n";
       eval {
 	my $fh;
 	$fh = &{"${backend}::open_backend"}($filename,"r");
@@ -2791,6 +2863,18 @@ is 0 (no check is performed).
    particulary useful on systems with no GUI - for real graphical
    representation of FS trees look for Michal Kren's GRAPH.EXE or
    Perl/Tk based program "tred" by Petr Pajas.
+
+=item ImportBackends(@backends)
+
+ Params:
+
+   @backends  - a list of backend names
+
+ Description:
+
+   Demand to load the given backends and return a list of
+   backends for which the demand was fulfilled. These
+   backends may then be freely used in FSFile IO calls.
 
 =item THE TREE NODE-STRUCTURE (TNS)
 
