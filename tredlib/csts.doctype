@@ -734,6 +734,7 @@ APPINFO    NONE
 <!ENTITY EmpNoun CDATA "&#38;EmpNoun;" -- "EmpNoun" -->
 <!ENTITY Gen CDATA "&#38;Gen;" -- "Gen" -->
 <!ENTITY Idph CDATA "&#38;Idph;" -- "Idph" -->
+<!ENTITY Hyphen CDATA "&#38;Hyphen;" -- "Hyphen" -->
 ]]>
 
 
@@ -771,4 +772,5 @@ APPINFO    NONE
 <!ENTITY EmpNoun CDATA "EmpNoun" -- "EmpNoun" -->
 <!ENTITY Gen CDATA "Gen" -- "Gen" -->
 <!ENTITY Idph CDATA "Idph" -- "Idph" -->
+<!ENTITY Hyphen CDATA "-" -- "Hyphen" -->
 ]>
