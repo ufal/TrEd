@@ -98,7 +98,9 @@ sub do_edit_attr_hook {
 sub describe_x_origa {
   my ($tag) = @_;
   my @sel;
-  my @val = map {
+  my @val =
+    map { TrEd::Convert::encode($_) }
+    map {
     if ($_ == 4) {
       if (substr($tag,3,2)=~/\S/) {
 	substr($tag,3,2)." = pozice øídícího slova";
@@ -154,7 +156,7 @@ sub get_x_origt_description {
 sub describe_x_origt {
   my ($tag) = @_;
   my @sel;
-  my @val = get_x_origt_description($tag);
+  my @val = map { TrEd::Convert::encode($_) } get_x_origt_description($tag);
   listQuery("$tag - detailed info",
 	    'browse',
 	    \@val,
@@ -173,7 +175,9 @@ sub describe_x_origs {
     $zacatek = "zaèátek";
     $num-=90;
   }
-  my @val = (substr($tag,0,2)." = ".int($num).". vìta v souvìtí ($zacatek)",
+  my @val =
+    map { TrEd::Convert::encode($_) }
+    (substr($tag,0,2)." = ".int($num).". vìta v souvìtí ($zacatek)",
 	     (map {
 	       if ( $_ <= length($tag) ) {
 		 my $v = substr($tag,$_-1,1);
