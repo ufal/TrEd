@@ -43,7 +43,7 @@ sub listAdverbs {
     $doc->getDocumentElement()->findnodes("/adverbs/adverb");
 }
 
-sub get_text {
+sub adverb_get_text {
   my ($element)=@_;
   my ($text)=$element->findnodes("text()");
   if ($text) {
@@ -62,13 +62,31 @@ sub get_adverbs {
     push @adverbs,[
 		   $conv->decode($adv->getAttribute("lemma")),
 		   map { $conv->decode($_->getAttribute("functor")),
-		         $conv->decode(get_text($_)),
+		         $conv->decode(adverb_get_text($_)),
 		       } $adv->findnodes("example")
 		  ];
   }
   return @adverbs;
 }
 
+sub adverb_focus_by_text {
+  my ($h,$text)=@_;
+  foreach my $e ($h->infoChildren("")) {
+    if (index($h->infoData($e),$text)==0) {
+      $h->anchorSet($e);
+      $h->selectionClear();
+      $h->selectionSet($e);
+      $h->see($e);
+      return $e;
+    }
+  }
+  return undef;
+}
+
+sub adverb_quick_search {
+  my ($hlist,$value)=@_;
+  return defined(adverb_focus_by_text($hlist,$value));
+}
 
 sub show_adverbs_dialog {
   my ($top,$data,$conv,$trlemma,$func)=@_;
@@ -91,7 +109,20 @@ sub show_adverbs_dialog {
 				-relief sunken
 				-width 0
 			        -height 20
-				-scrollbars osoe/)->pack(qw/-side top -expand yes -fill both/);
+				-scrollbars osoe/,
+			        -font => StandardTredFont()
+			);
+
+  $hlist->Subwidget('xscrollbar')->configure(-takefocus=>0) if ($hlist->Subwidget('xscrollbar'));
+  $hlist->Subwidget('yscrollbar')->configure(-takefocus=>0) if ($hlist->Subwidget('yscrollbar'));
+  $hlist->Subwidget('corner')->configure(-takefocus=>0) if ($hlist->Subwidget('corner'));
+
+  my $e = $d->Entry(qw/-background white -validate key/,
+		     -validatecommand => [\&adverb_quick_search,$hlist]
+		    )->pack(qw/-expand yes -fill x/);
+  $hlist->pack(qw/-side top -expand yes -fill both/);
+
+
   $hlist->BindMouseWheelVert() if $hlist->can('BindMouseWheelVert');
 
   $hlist->delete('all');
@@ -131,11 +162,11 @@ sub show_adverbs_dialog {
     }
   }
   $hlist->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
-  $hlist->bind('all','<space>'=> [sub { my ($w)=@_;
-					my $e=$w->infoAnchor();
+  $hlist->bind('all','<space>'=> [sub { my ($w,$h)=@_;
+					my $e=$h->infoAnchor();
 					if ($e ne "") {
-					  $w->getmode($e) eq "open" ? 
-					    $w->open($e) : $w->close($e);
+					  $h->getmode($e) eq "open" ? 
+					    $h->open($e) : $h->close($e);
 					}
 				      },$hlist ]);
   $hlist->focus();
