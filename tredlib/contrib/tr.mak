@@ -1,17 +1,54 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 ## author: Alena Bohmova
-## Time-stamp: <2001-04-18 11:06:10 pajas>
+## Time-stamp: <2001-04-26 17:20:13 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
 import TredMacro;
 import main;
 
+use AFA;
+
+#bind assign_func_auto to key F9
+sub assign_func_auto {
+  my $node=$_[1] || $this;
+  $node->{reserve2}='';
+  $node->{err1}='black';
+  return if IsHidden($node) 
+    || $node eq $root || 
+    $node->{afun}=~/Coord|Apos/i || index($node->{ord},'.')>=0;
+  my $p=$node->parent;
+  $p=$p->parent while ($p and $p->{afun}=~/Coord|Apos/i);
+  my $na=$node->{afun};
+  my $pa=$p->{afun};
+  $na=~s/_.*//g;
+  $pa=~s/_.*//g;
+  my $prec;
+  $node->{reserve2}="???";
+  ($node->{reserve2},$prec)=AFA::AutoFunctor($p->{tag},$node->{tag},$pa,$na,$node->{fw});
+  $node->{reserve1}=$prec;
+  $prec=~m!([0-9.]+)/([0-9.]+)!;
+  $prec=100*($1-$2)/$1;
+  $prec=~s/(\.[0-9][0-9]).*$/\1/;
+  $node->{err1} = $prec>90 ? "#{darkblue}" : ( $prec<70 ? "#{red}" : "#{darkgreen}");
+}
+
+#bind assign_all_func_auto to key F10
+sub assign_all_func_auto {
+  my $node=$root;
+  while ($node) {
+    Tectogrammatic->assign_func_auto($node);
+    $node=NextVisibleNode($node);
+  }
+}
+
 sub switch_context_hook {
 
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
-  unless ($grp->{BalloonPattern}) {
+
+  unless ($grp->{FSFile}->hint()) {
+    print "setting attr";
     default_tr_attrs();
   }
   $FileNotSaved=0;

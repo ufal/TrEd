@@ -149,6 +149,8 @@ sub FirstTree {
   GotoTree(1);
 }
 
+### require "contrib/AFA.pm";
+
 # binding-context Tectogrammatic
 # include contrib/tr.mak
 
@@ -161,4 +163,5 @@ sub FirstTree {
 # binding-context Analytic_Correction
 # key-binding-adopt Analytic
 # include contrib/a_opravy.mak
+
 

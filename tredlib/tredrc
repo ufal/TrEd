@@ -130,6 +130,7 @@ SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive r
 ; CstsToFs="2804.x"		;; give a csts (or any other format) to fs convertor here
 ; FsToCsts="2804.x -oformat=csts"	;; give a fs to csts (or any other format) convertor here
 
-Geometry	=	557x485+112+221
-CanvasHeight	=	361
-CanvasWidth	=	538
+Geometry	=	1009x536+116+241
+CanvasHeight	=	412
+CanvasWidth	=	990
+filelist0	=	/home/pajas/.tred_bookmarks

@@ -1,7 +1,7 @@
 ## This is macro file for Tred                             -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2001-04-06 12:34:34 pajas>
+## Time-stamp: <2001-04-26 08:48:40 pajas>
 
 package Analytic_Correction;
 @ISA=qw(Analytic TredMacro main);
@@ -106,7 +106,7 @@ sub PerlSearch {
   my $label= "Any inserted perl code will be evaluated for each node from current ".
     "as long as it ends with zero or undefined value; the first node for which ".
     "the code succeedes (returns defined non-zero value) will be selected.\n\n".
-    "Use \`\$node\' to refer to the current node, \`\$root\' to the root of the tree.\n".
+    "Use \`\$this\' to refer to the current node, \`\$root\' to the root of the tree.\n".
     "If \`\$n\' refers to some node, \`\$n->{attr}\' is its value of the attribute \`attr\'.\n".
     "The governor of a node \$n is refered to as \`Parent(\$n)\', nearest ".
     "left brother of \'\$n\' in the tree structure is \'LBrother(\$n)\'".
