@@ -16,7 +16,9 @@ sub test {
   if (ref($f)) {
     my $line1=$f->getline();
     my $line2=$f->getline();
-    return ($line1 =~ /^\s*<\?xml / and $line2 =~ /^\s*<p[\s>]/);
+    return ($line1 =~ /^\s*<\?xml / and ($line2 =~ /^\s*<p[\s>]/
+	   or $line2 =~ /^\s*<text>/ or $line2 =~/^<!DOCTYPE text /));
+    
   } else {
     my $fh = ZBackend::open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
@@ -108,6 +110,19 @@ sub write {
   }
   print $output "?>\n";
 
+  print $output "<text>\n";
+  if (ref($fsfile->metaData('fLib'))) {
+    my $flib=$fsfile->metaData('fLib');
+    foreach my $f (keys(%$flib)) {
+      print $output "<fLib>\n";
+      foreach (sort keys(%{$flib->{$f}})) {
+	print $output "<f id=\"$_\" name=\"$f\">",
+	  "<sym value=\"$flib->{$f}{$_}\"/></f>\n";
+      }
+      print $output "</fLib>\n";
+    }
+  }
+  print $output "<body>\n";
   print $output "<p";
   if ($fsfile->tree(0)) {
     my $tree0=$fsfile->tree(0);
@@ -145,6 +160,8 @@ sub write {
   }
 
   print $output "</p>\n";
+  print $output "</body>\n";
+  print $output "</text>\n";
 }
 
 
@@ -168,8 +185,17 @@ sub end_document {
   my @header = ('@V form','@V form','@N ord');
   foreach my $attr (keys(%{$self->{FSAttrs}})) {
     push @header, '@P '.$attr;
+    if (exists($self->{FSAttrSyms}->{$attr})
+	and ref($self->{FSAttrSyms}->{$attr})) {
+      my ($list);
+      while (my ($id,$value) = each %{$self->{FSAttrSyms}->{$attr}}) {
+	$list.="|$value";
+      }
+      push @header, '@L '.$attr.$list;
+    }
   }
   $self->{FSFile}->changeFS(FSFormat->create(@header));
+  $self->{FSFile}->changeMetaData('fLib' => $self->{FSAttrSyms});
   $self->{FSFile};
 }
 
@@ -204,6 +230,13 @@ sub start_element {
 
   if ($elem eq 'p') {
     $self->{DocAttributes}=$attr;
+  } elsif ($elem eq 'f') {
+    $self->{CurrentFSAttr}=$attr->{"{}name"}->{Value};
+    $self->{CurrentFSAttrID}=$attr->{"{}id"}->{Value};
+    $self->{FSAttrs}->{$attr->{"{}name"}->{Value}}=1;
+  } elsif ($elem eq 'sym') {
+    $self->{FSAttrSyms}->{$self->{CurrentFSAttr}}{$self->{CurrentFSAttrID}}=
+      $attr->{"{}value"}->{Value};
   } elsif ($elem eq 's') {
     $self->{Tree} = $self->{FSFile}->new_tree($self->{FSFile}->lastTreeNo+1);
     $self->{Node} = $self->{Tree};
