@@ -31,10 +31,10 @@ sub node_release_hook {
 
 sub get_nodelist_hook {
 
-    my ($fsfile, $tree_no, $recent, $show_hidden) = @_;
+    my ($fsfile, $index, $recent, $show_hidden) = @_;
     my ($nodes, $current);
 
-    my $tree = $fsfile->tree($tree_no);
+    my $tree = $fsfile->tree($index);
 
     if ($tree->{'type'} eq 'paragraph') {
 
@@ -83,7 +83,7 @@ sub get_nodelist_hook {
         }
     }
 
-    ($nodes, $current) = $fsfile->nodes($tree_no, $recent, $show_hidden);
+    ($nodes, $current) = $fsfile->nodes($index, $recent, $show_hidden);
 
     @{$nodes} = reverse @{$nodes} if $main::treeViewOpts->{reverseNodeOrder};
 
@@ -92,46 +92,44 @@ sub get_nodelist_hook {
 
 sub get_value_line_hook {
 
-    my ($fsfile, $tree_no) = @_;
-    my ($nodes, $words, $home, $end, $par, $rel);
+    my ($fsfile, $index) = @_;
+    my ($nodes, $words);
 
-    my $style = "-foreground => black, -background => yellow, -underline => 0";
-
-    my $tree = $fsfile->tree($tree_no);
+    my $tree = $fsfile->tree($index);
 
     if ($tree->{'type'} eq 'paragraph') {
 
-        ($nodes, undef) = $fsfile->nodes($tree_no, $this, 1);
+        ($nodes, undef) = $fsfile->nodes($index, $this, 1);
 
         $words = [ [ $tree->{'id'} . " " . $tree->{'input'}, $tree, '-foreground => darkmagenta' ],
-                   map { [ " " ],
-                         [ $_->{'input'}, (
+                   map {
+                            [ " " ],
+                            [ $_->{'input'}, (
 
-                            $_ == $this
-                                ? ( $_, $style )
-                                : ( $paragraph_hide_mode eq 'hidden'
-                                    ? ( $_->{'apply_m'} > 0
-                                        ? ( $fsfile->tree($_->{'ref'} - 1), '-foreground => gray' )
-                                        : ( $_, '-foreground => black' ) )
-                                    : ( $_->{'apply_m'} > 0
-                                        ? ( $_, '-foreground => red' )
-                                        : ( $_, '-foreground => black' ) )
+                                $paragraph_hide_mode eq 'hidden'
 
-                            ) ) ] } grep { $_->{'type'} eq 'word_node' } @{$nodes} ];
+                                      ? ( $_->{'apply_m'} > 0
+                                            ? ( $fsfile->tree($_->{'ref'} - 1), '-foreground => gray' )
+                                            : ( $_, '-foreground => black' ) )
+                                      : ( $_->{'apply_m'} > 0
+                                            ? ( $_, '-foreground => red' )
+                                            : ( $_, '-foreground => black' ) )
+
+                            ) ] } grep { $_->{'type'} eq 'word_node' } @{$nodes} ];
     }
     else {
 
-        $par = (split /[^0-9]+/, $fsfile->tree($tree->{'ref'} - 1)->{'par'})[1];
-        $home = $tree->{'ref'};
-        $end = $tree->{'ref'} == $par ? $grp->{FSFile}->lastTreeNo : $par - 2;
+        my $para = $fsfile->tree($tree->{'ref'} - 1);
 
-        $nodes = [ map { $fsfile->tree($_) } $home .. $end ];
+        my $last = (split /[^0-9]+/, $para->{'par'})[1];
+        my $next = 1;
 
-        $tree = $fsfile->tree($tree->{'ref'} - 1);
+        $nodes = [ map { $fsfile->tree($_) } $tree->{'ref'} .. ( $tree->{'ref'} == $last ? $grp->{FSFile}->lastTreeNo : $last - 2 ) ];
 
-        $words = [ [ $tree->{'id'} . " " . $tree->{'input'}, '#' . $home, '-foreground => purple' ],
-                   map { [ " " ],
-                         [ $_->{'input'}, '#' . ($home + ++$rel), $_ == $this ? ($_, $style) : () ],
+        $words = [ [ $para->{'id'} . " " . $para->{'input'}, '#' . $tree->{'ref'}, '-foreground => purple' ],
+                   map {
+                            [ " " ],
+                            [ $_->{'input'}, '#' . ( $tree->{'ref'} + $next++ ), $_ == $tree ? ( $_, '-underline => 1' ): () ],
 
                         } grep { $_->{'type'} eq 'entity' } @{$nodes} ];
     }
@@ -141,11 +139,26 @@ sub get_value_line_hook {
     return $words;
 }
 
+sub highlight_value_line_tag_hook {
+
+    return $grp->{root} if $grp->{root}->{'type'} eq 'entity';
+
+    my $node = $grp->{currentNode};
+
+    $node = $node->parent() until !$node or $node->{'type'} eq 'word_node' or $node->{'type'} eq 'paragraph';
+
+    return $node;
+}
+
 sub value_line_doubleclick_hook {
 
     return if $grp->{root}->{'type'} eq 'paragraph';
 
-    GotoTree(map { $_ =~ /^#([0-9]+)/ ? $1 : () } @_);
+    my ($index) = map { $_ =~ /^#([0-9]+)/ ? $1 : () } @_;
+
+    return 'stop' unless defined $index;
+
+    GotoTree($index);
     Redraw();
     main::centerTo($grp, $grp->{currentNode});
 
@@ -705,7 +718,11 @@ sub reflect_choice {
 
     switch_either_context('quick');
 
+#ifdef TRED
+
     main::save_undo($grp, main::prepare_undo($grp));
+
+#endif
 
     my $reflect = $this;
     my $twig = $leaf->parent();

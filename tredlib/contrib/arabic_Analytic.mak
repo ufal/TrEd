@@ -205,22 +205,30 @@ sub hooks_request_mode {
 
 sub get_value_line_hook {
 
-    my ($fsfile, $tree_no) = @_;
+    my ($fsfile, $index) = @_;
     my ($nodes, $words);
 
-    my $style = "-foreground => black, -background => yellow, -underline => 0";
-
-    ($nodes, undef) = $fsfile->nodes($tree_no, $this, 1);
+    ($nodes, undef) = $fsfile->nodes($index, $this, 1);
 
     $words = [ [ $nodes->[0]->{'origf'}, $nodes->[0], '-foreground => darkmagenta' ],
-               map { [ " " ],
-                     [ $_->{'origf'}, $_, $_ == $this ? $style : () ]
+               map {
+                        [ " " ],
+                        [ $_->{'origf'}, $_ ],
                }
                grep { defined $_->{'origf'} and $_->{'origf'} ne '' } @{$nodes}[1 .. $#{$nodes}] ];
 
     @{$words} = reverse @{$words} if $main::treeViewOpts->{reverseNodeOrder};
 
     return $words;
+}
+
+sub highlight_value_line_tag_hook {
+
+    my $node = $grp->{currentNode};
+
+    $node = PrevNodeLinear($node, 'ord') until !$node or defined $node->{'origf'} and $node->{'origf'} ne '';
+
+    return $node;
 }
 
 sub node_release_hook {
