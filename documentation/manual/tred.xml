@@ -2194,6 +2194,30 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </entry>
           </row>
 	  <row>
+	    <entry>Line-smooth</entry>
+	    <entry><para>Values are 1 or 0.
+              It indicates whether or not the line should be drawn as a curve.  If
+              so, the line is rendered as a set of parabolic splines: one spline
+              is drawn for the first and second line segments, one for the second
+              and third, and so on.  Straight-line segments can be generated
+              within a curve by duplicating the end-points of the desired line
+              segment.
+              </para>
+	    </entry>
+	  </row>
+	  <row>
+	    <entry>Line-arrow</entry>
+	    <entry><para>One of the values
+		<quote><literal moreinfo="none">first</literal></quote>,
+		<quote><literal moreinfo="none">both</literal></quote>,
+		<quote><literal moreinfo="none">last</literal></quote>,
+		may be used to make arrow to be drawn
+		on one or both sides of the edge connecting
+		the given node with its parent.
+	      </para>
+	    </entry>
+          </row>
+	  <row>
 	    <entry>Line-<replaceable>feature</replaceable></entry>
 	    <entry><para>Features
 		<literal moreinfo="none">dash</literal>,
