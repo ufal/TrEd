@@ -267,14 +267,11 @@ sub getSubElementProblemsList {
 
 sub findWord {
   my ($self,$find,$nearest)=@_;
-  print "find $find $nearest\n";
   my $doc=$self->doc();
-  print "find $find $nearest\n";
   return unless $doc;
   my $docel=$doc->getDocumentElement();
   foreach my $word ($docel->getDescendantElementsByTagName("word")) {
     my $lemma = $self->conv->decode($word->getAttribute("lemma"));
-    print "found $lemma\n";
     return $word if (($nearest and index($lemma,$find)==0) or $lemma eq $find);
   }
   return undef;
