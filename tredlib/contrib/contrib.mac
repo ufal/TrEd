@@ -1,0 +1,49 @@
+# -*- cperl-*-
+
+# This file is included by default in tred.mac and serves only as a
+# wrapper for other contributed macro packages inclusions
+
+#binding-context Tectogrammatic
+#include <contrib/tr.mak>
+
+#binding-context TFA
+#include <contrib/tfa.mak>
+
+#binding-context Analytic
+#include <contrib/ar.mak>
+
+#binding-context Analytic_Correction
+#key-binding-adopt Analytic
+#include <contrib/a_opravy.mak>
+
+#binding-context TR_Correction
+#key-binding-adopt Tectogrammatic
+#include <contrib/tr_opravy.mak>
+
+#binding-context TR_Diff
+#include <contrib/trdiff.mak>
+
+#binding-context Coref
+#include <contrib/tr_coref_common.mak>
+
+#binding-context PDT
+#include <contrib/pdt.mak>
+
+#binding-context Analytic
+#include <contrib/sdt.mak>
+
+#binding-context Transfer
+#include <contrib/transf.mak>
+
+#binding-context TREdit
+#include <contrib/edit.mak>
+
+#binding-context TR_Grammatemes
+#include <contrib/grammatemes.mak>
+
+package TredMacro;
+
+#binding-context TredMacro
+#include <contrib/ntred.mak>
+#bind ntred_query_box to key Shift+F10 menu Query BTrEd Servers
+
