@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-03-28 18:58:07 pajas>
+## Time-stamp: <2002-04-24 09:24:20 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -31,10 +31,10 @@ sub file_resumed_hook {
   SwitchContext('Tectogrammatic');
 }
 
-#include contrib/tred_mac_common.mak
+#include <contrib/tred_mac_common.mak>
 
-# binding-context Tectogrammatic
-# include contrib/tr.mak
+#binding-context Tectogrammatic
+#include <contrib/tr.mak>
 
-# binding-context TR_Diff
-#include contrib/trdiff.mak
+#binding-context TR_Diff
+#include <contrib/trdiff.mak>

@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-05-04 14:19:05 pajas>
+## Time-stamp: <2002-04-24 09:25:45 pajas>
 
 #
 # This file defines default macros for TR annotators for so called
@@ -9,8 +9,8 @@
 # attribute are allowed.
 #
 
-#include contrib/remote_control.mak
-#include contrib/tr_anot_main.mak
+#include <contrib/remote_control.mak>
+#include <contrib/tr_anot_main.mak>
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
