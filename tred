@@ -813,6 +813,7 @@ sub newFileFromCurrent {
 			     1,
 			     'FSBackend');
   $cur=undef;
+  $keep=$keep || askSaveFile($win,1);
   closeFile($win,-no_update => 1,-keep_postponed => $keep);
 #  $new->new_tree(0);
   $win->{FSFile}=$new;
@@ -846,7 +847,7 @@ sub reloadFile {
       while ($node) { $nodeidx++; $node=$node->previous() };
     };
     $nodeidx--;
-    askSaveFile($win);
+    askSaveFile($win,0);
     closeFile($win,-all_windows => 1);
     openFile($win->{framegroup},"$f##$no.$nodeidx",
 	     -noredraw => 1, -nohook=>1);
@@ -913,7 +914,7 @@ sub openFile {
   $win->{treeNo}=0;
 
   if ($win->{FSFile}) {
-    if ($just_header) {
+    if ($opts{-justheader}) {
       $f=sprintf('%03d',$NewFileNo++)."_new_".filename($f);
       $win->{FSFile}->changeFilename($f);
       $win->{FSFile}->changeTrees();
@@ -1034,7 +1035,7 @@ sub get_value_line {
     $vl=doEvalHook($win,"get_value_line_hook",$fsfile,$no);
     if (defined($vl)) {
       if (ref($vl)) {
-	$vl=[ map { $_->[0]=encode($_->[0]); $_ } grep { $_ ne "" } @$vl ];
+	$vl=[ map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" } @$vl ];
       } else {
 	$vl=encode($vl);
       }
@@ -2668,11 +2669,11 @@ sub startMain {
 			    [
 			     [Button => 'From Template ...',
 			      -underline=> 5,
-			      -command=> [\&fileDialog, \%group,1]
+			      -command=> [ \&fileDialog, \%group,1]
 			     ],
 			     [Button => 'From Current ...',
 			      -underline=> 5,
-			      -command=> [\&newFileFromCurrent, \%group,1]
+			      -command=> [\&newFileFromCurrent, \%group,]
 			     ]
 			    ]
 			   );
@@ -2684,7 +2685,7 @@ sub startMain {
 							       undef,
 							       undef,
 							       $grp->{currentFilelist}->list_ref->[$grp->{focusedWindow}->{currentFileNo}]);
-					    askSaveFile($grp->{focusedWindow});
+					    askSaveFile($grp->{focusedWindow},0);
 					    closeFile($grp->{focusedWindow},-all_windows => 1);
 					  }
 					 , \%group]);
@@ -3674,8 +3675,13 @@ sub askSaveFiles {
   }
 }
 
+
+# ask user whether the current file should be saved (and save it if yes)
+# if $keepbutton parameter is 1, allow user to keep the file
+# return 0 if file saved, 1 if file should be kept and undef if no
+
 sub askSaveFile {
-  my ($win,$keep)=@_;
+  my ($win,$keepbutton)=@_;
   return 0 unless
     ref($win->{FSFile}) and
       $win->{FSFile}->notSaved;
@@ -3684,7 +3690,7 @@ sub askSaveFile {
 			"\n\nFile may be changed!\nDo you want to save it?",
 			-bitmap=> 'question',
 			-title => "Should I save the file?",
-			-buttons => ['Yes', 'No', $keep ? 'Keep' : ()]);
+			-buttons => ['Yes', 'No', $keepbutton ? 'Keep' : ()]);
   if ($answer eq 'Yes') {
     saveFile($win);
     return 0;
