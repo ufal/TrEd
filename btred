@@ -962,6 +962,7 @@ sub saveFile {
 
 sub closeFile {
   my ($grp)=@_;
+  doEvalHook($grp,"file_close_hook");
   no strict qw(refs);
   undef ${macro_variable('TredMacro::NodeClipboard')};
   $grp->{root}=undef;

@@ -34,6 +34,9 @@ file_opened_hook			no	executed after a file
 						is opened but before 
 						first tree is redrawed
 
+file_close_hook                         no      executed before a file
+                                                is closed.
+
 file_resumed_hook			no	executed after a
 						postponed file
 						is resumed
