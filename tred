@@ -340,6 +340,8 @@ ApplyGlobalConfig();
 ($TrEd::Config::useLocales) || do {
   use locale;
   use POSIX qw(locale_h);
+  $ENV{LC_ALL}=undef;
+  setlocale(LC_ALL,undef);
   setlocale(LC_NUMERIC,"C");
 };
 
@@ -348,7 +350,9 @@ ApplyGlobalConfig();
   use POSIX qw(locale_h);
   setlocale(LC_NUMERIC,"C");
   setlocale(LC_COLLATE,"cs_CZ");
-  setlocale(LANG,"czech");
+  setlocale(LANG,"cs_CZ");
+  $ENV{LC_ALL}=undef;
+  setlocale(LC_ALL,undef);
 };
 
 sub bookmarkFilelist {
