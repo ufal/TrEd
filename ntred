@@ -15,7 +15,7 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $request_list $request_list_changed $request_save
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
-	    $config_file $start_context );
+	    $config_file $start_context @preload_modules $btred);
 
 $usage=1 unless @ARGV;
 $ssh='ssh';
@@ -35,6 +35,7 @@ GetOptions ("all-trees|T"    => \$all_trees,
 	    "port=i"         => \$hubport,
 	    "init|i"           => \$init,
 	    "ssh=s"           => \$ssh,
+	    "btred=s"           => \$btred,
 	    "kill|k"           => \$kill,
 	    "quit"           => \$request_quit,
 	    "reload-files"    => \$request_reload,
@@ -63,7 +64,8 @@ GetOptions ("all-trees|T"    => \$all_trees,
 	    "no-hub-start"   => \$nohub,
 	    "key-file=s"     => \$client_key_file,
 	    "verbose|v"      => \$verbose,
-	    "output-encoding|d=s" => \$term_encoding
+	    "output-encoding|d=s" => \$term_encoding,
+	    "preload-module|M=s" => \@preload_modules
 	   ) or $usage=1;
 
 $client_key_file ||= "$ENV{HOME}/.ntred_session_key";
@@ -186,7 +188,7 @@ import TrEd::Macros;
 
 if (defined($init) || defined($kill)) {
   # btred executable
-  my $btred = "$FindBin::RealBin/btred";
+  $btred ||= "$FindBin::RealBin/btred";
 
   # get list of servers
   my @servers;
@@ -290,6 +292,7 @@ if (defined($init) || defined($kill)) {
       my $cmd = "$ssh $_->{host} '$btred -P ".
 	($unrestricted ? "" : "-F ").
 	($server_debug ? "-D " : "").
+	(join "",map { "-M $_ " } @preload_modules).
 	($macro_file ? "-m \"".rel2abs($macro_file)."\"" : "").
 	($term_encoding ? "-d $term_encoding " : "").
 	"-L $_->{port} ".
@@ -480,7 +483,7 @@ if (defined($init) || defined($kill)) {
     $code = "while (\$this) { $code ; \$this=\$this->following }";
   }
   if ($all_trees) {
-    $code = "do { $code } while NextTree();";
+    $code = "do { $code } while TredMacro::NextTree();";
   }
 
   if ($macro_file) {
@@ -678,7 +681,7 @@ To start remote servers and a hub:
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--unrestricted] [--server-debug] [-m macro-file]
+           [--unrestricted] [--server-debug] [-m macro-file] [-M module]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 To close all remote servers and a hub:
@@ -765,7 +768,7 @@ The port on which the hub is listening (defaults to 1500).
 =item B<--all-trees|-T>
 
 Run the query code on all trees (wrapping the code into a
-C<do { CODE } while NextTree()> loop).
+C<do { CODE } while TredMacro::NextTree()> loop).
 
 =item B<--all-nodes|-N>
 
@@ -793,7 +796,7 @@ necessary for the authentication to the running hub. This defaults to
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num]
            [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--unrestricted] [--server-debug] [-m macro-file]
+           [--unrestricted] [--server-debug] [-m macro-file] [-M module]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
 =over 8
@@ -839,12 +842,13 @@ Start servers on the remote hosts but don't start a hub. The server
 session key required for authentication to the servers will be
 printed on the standard output.
 
-=item B<--unrestricted>
+=item B<--unrestricted|-U>
 
 Run unrestricted (unsafe) version of btred servers allowing user
 queries to execute arbitrary Perl code and thus have a full access to
-the hosts with the privileges of the user running the servers.  This
-mode may also lead to unexpected memory leaks on the btred servers.
+the hosts with the privileges of the user running the servers. In this
+mode it is also more likely that btred servers will suffer from memory
+leaks caused by improperly written macro or query code.
 
 In the restricted mode, only the following opcodes and opcode-sets are
 allowed (see L<Opcode>):
@@ -875,7 +879,7 @@ authentication will be stored. It defaults to ~/.ntred_session_key.
 
 =item B<--output-encoding|-d> encoding
 
-Automatically apllies given character encoding to all stdout output
+Automatically apllies a given character encoding to all stdout output
 operations on the servers. Works only with Perl >= 5.8.
 
 =item B<--hub> hostname
@@ -890,9 +894,19 @@ The port number the hub will be listening on (defaults to 1500).
 
 =back
 
-=head2 CONTROL MODE OPTIONS
+=item B<--preload-module|-M> module-name
 
-  ntred --list-files
+This option is passed to the btred command line when starting a btred
+server. It makes btred preload a given Perl module at btred startup so
+as it is available to all macros (DOES NOT WORK WITH RESTRICTED MODE).
+This option may be specified more than once with different modules.
+
+=back
+
+
+=head2 HUB CONTROL OPTIONS
+
+  ntred --list-files|--list-changed-files
 
   ntred --reload-files
 
@@ -900,8 +914,8 @@ The port number the hub will be listening on (defaults to 1500).
 
   ntred --close-files
 
-  ntred --save-files [-a append-sfx] [-p strip-prefix] [-r add-prefix]
-                     [-f out-fmt]
+  ntred --save-files|--save-changed-files [-a append-sfx]
+       [-p strip-prefix] [-r add-prefix] [-f out-fmt]
 
   ntred --quit
 
@@ -1048,7 +1062,60 @@ Displays the help as manual page.
 This option may be used to specify the ssh/rsh command to use to
 connect to remote servers. Default value is `ssh'.
 
+=item B<--btred> command
+
+This option may be used to specify the command to use to start a btred
+server on a remote host. The command must accept any btred parameters.
+
 =back
+
+=head1 SECURITY ISSUES
+
+USE AT YOUR OWN RISK. IF SECURITY IS A CRITICAL ISSUE OR IN DOUBT,
+DON'T USE IT AT ALL.
+
+Why is security an issue here? Because btred servers execute almost
+arbitrary Perl code provided by the client. In the C<--unrestricted>
+mode such code may contain arbitrary commands such as system() or
+open(). It is therefore desirable that the servers are not open for
+all parties.
+
+The following precautions have been taken to lower the potential
+security risks:
+
+1) In restricted mode (the default), some critical perl commands are
+   disabled on the servers by restricting the query code into a 'Safe'
+   compartment. In some cases, the restrictions may not be sufficient,
+   in other they may be too strict. See C<--unrestricted> above for
+   more discussion.
+
+2) Both btred servers and hub require an authorization based on
+   verification of a MD5 signature of a random data block (generated
+   by the server in case of the hub-to-btred-server communication and
+   by the hub in case of the client-to-hub communication) xor-ed with
+   an authorization key known to both parties. The rest of a
+   successfully authorized connection is unencrypted. 
+
+   There may be only one connection from a hub to server.  As soon as
+   it is closed, the server is terminated.
+
+   If the servers are started by the hub itself (using C<--init>) the
+   server-to-hub authorization key is created by the hub and is passed
+   to the btred server via a ssh encrypted pipe.
+
+   The client-to-hub key is also generated by the hub and is stored in
+   the user's home directory as C<~/.ntred_session_key> with
+   permissions set to 700 for cleint's disposal. This theoretically
+   limits the access to the hub and thus to the servers to the user
+   running the hub (and root). It may though obviously be abused by
+   root who may run some perl code on all machines running btred
+   servers. This might especially be undesirable if the hub is running
+   on a machine whose administrator would normaly have no user access
+   to the machines running btred servers.
+
+3) unless C<--hub> option is used, the hub runs on localhost and as
+   such is not (under normal circumstances) open for connections from
+   the outside world.
 
 =head1 FILES
 
