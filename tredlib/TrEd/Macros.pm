@@ -271,6 +271,7 @@ sub read_macros {
   }
   die "Missing #endif in $file line $line (".scalar(@conditions)." unmatched #if-pragmas)\n" if (@conditions);
   close(F);
+  print STDERR "Read ",scalar(@macros)." lines of code.\n" if !$keep and $macroDebug;
   return 1;
 }
 
