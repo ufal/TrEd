@@ -9,7 +9,8 @@ $cortypes='textual|grammatical';              # types of coreference
 
 %cortype_colors = (                           # colors of coreference arrows
 		   textual => '#6a85cd',
-		   grammatical => '#f6c27b'
+		   grammatical => '#f6c27b',
+		   segment => '#dd5555'
 		  );
 
 $referent_color = '#6a85cd';                  # color of the marked node
@@ -275,7 +276,12 @@ COORDS
 	}
       }
   }
-  if ($node->{corlemma} ne "") {
+  if ($node->{corlemma} eq "sg") { # pointer to an unspecified segment of preceeding sentences
+    print STDERR "Segment - unaimed arrow\n";
+    push @colors,$cortype_colors{segment};
+    push @coords,"&n,n,n-25,n";
+  }
+  elsif ($node->{corlemma} ne "") {
     AddStyle($styles,'Oval',
 	      -fill => $cortype_colors{'textual'}
 	     );
@@ -448,8 +454,11 @@ point, only the one that was last added will be removed.
 To annotate a coreference with an entity not represented by a node in
 the treebank, press "backslash" (\) and fill the text field with lemma
 or other description of the entity according to annotation guidelines.
-Nodes that have been assigned a coreference in this way are displayed
+If the filled text is equal to "sg", a red arrow standing for a reference to
+an unspecified segment of preceeding sentences occurs. In all other cases,
+nodes that have been assigned a coreference in this way are displayed
 as squares.
+
 
 =item Jump to the node in coreference relation
 
