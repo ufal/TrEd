@@ -1,7 +1,7 @@
 ## This is macro file for Tred                             -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2001-07-31 18:22:24 pajas>
+## $Id$
 
 package Analytic_Correction;
 use base qw(Analytic);
@@ -103,8 +103,8 @@ sub editQuery {
   my $d;
   my $ed;
 
-  $d=$grp->level->DialogBox(-title => shift,
-			   -buttons => ["OK","Cancel"]);
+  $d=$grp->toplevel->DialogBox(-title => shift,
+			    -buttons => ["OK","Cancel"]);
   addBindTags($d,'dialog');
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
