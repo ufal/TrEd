@@ -10,7 +10,7 @@
 package main;
 
 use Getopt::Std;
-getopts('qQc:i:m:e:t:huNHST');
+getopts('qQc:i:m:e:t:huNHSTR');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u) {
@@ -53,6 +53,7 @@ init-script   - any script to be run only once, before any input
                 hidden nodes
 -T            - wrap 'do { ... } while NextTree();' around the script
 -S            - always save file
+-R            - build tectogrammatic trees from CSTS files
 -q            - quiet
 -Q            - by *very* quiet
 
@@ -226,6 +227,14 @@ $Fslib::Debug=!$opt_q;
 if ($opt_q) {
   $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
 }
+
+
+if ($opt_R) {
+  $Csts2fs::gov = "govTR";
+  $Csts2fs::header = \@Csts2fs::TRheader;
+  $Csts2fs::initial_node_values{TR}='hide';
+}
+
 
 startMain();
 
