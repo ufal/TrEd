@@ -37,7 +37,7 @@ sub update_coref_file {
   Tectogrammatic->upgrade_file_to_tid_aidrefs();
   # no need for upgrade if cortype is declared with the $cortypes values
   return if (exists(FS()->defs->{cortype})
-	     and join('|',FS()->listValue('cortype')) eq $cortypes);
+	     and join('|',FS()->listValues('cortype')) eq $cortypes.'|---');
 
   # otherwise, let the use decide
   if (!GUI() || questionQuery('Automatic file update',
