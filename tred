@@ -85,7 +85,7 @@ EOH
   print <<EOF;
 This is `TrEd' - an interactive tool for editing tree graphs.
 
-Each filename may be followed by suffices of the following forms:
+Each filename may be followed by suffixes of the following forms:
 
 #N      where N is a number possibly followed by one or more
 	upper-case letters. In this case, #N tells TrEd to skip to the
@@ -97,17 +97,17 @@ Each filename may be followed by suffices of the following forms:
 ##N     where N is a number. This makes TrEd to go to the N-th tree in
 	the given file after the file is opened.
 
--m      specifies a macro file different from the one given in ~/.tredrc
-	(or whatsoever) configuration file
+-m      specifies a macro file different from the one given in your
+	configuration file.
 
 -c      specifies a config-file to be used (overrides
 	~/.tredrc and all the other files TrEd would otherwise try to
 	search for).
 
--l      specifies a file containing list of files to open
+-l      specifies a file containing a list of files to open
 
 -t      start in the given macro context (package). TredMacro is the
-        default context, and it is used also when given the context
+        default context, and it is used also when the given context
         is not found.
 
 EOF
@@ -771,7 +771,7 @@ sub saveFile {
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
   my ($win,$node,$show)=@_;
-  $show=$win->get_showHidden() unless defined $show;
+  $show=$win->{treeView}->get_showHidden() unless defined $show;
 
   return 0 unless ($node and $win->{FSFile});
   return 1 if $show or not defined($win->{FSFile}->FS->hide());
@@ -1413,6 +1413,7 @@ sub generateSortedMacroTable {
 
 sub macrolistCreateItems {
   my ($grp,$t)=@_;
+  my $e;
   $t->delete('all');
   foreach my $entry (generateSortedMacroTable($grp)) {
     $e= $t->addchild("");
