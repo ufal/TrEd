@@ -101,9 +101,8 @@ sub _loadafm ($) {
 
     # Read in the afm data.
     my $len = 0;
-
     unless ( ($len = $fh->sysread ($data, 4, 0)) == 4 ) {
-	die ("$fn: Expecting $sz bytes, got $len bytes\n");
+      die ("$fn: Expecting $sz bytes, got $len bytes\n") unless ($^O eq 'MSWin32');
     }
 
     $self->{origdataformat} = 'afm';
@@ -133,8 +132,9 @@ sub _loadafm ($) {
     }
     $fh->close;
     print STDERR ("Read $len bytes from $fn\n") if $trace;
+
     die ("$fn: Expecting $sz bytes, got $len bytes\n")
-      unless $sz == -1 || $sz == $len;
+	unless $^O eq 'MSWin32' || $sz == -1 || $sz == $len;
 
     # Normalise line endings. Get rid of trailing space as well.
     $data =~ s/\s*\015\012?/\n/g;
