@@ -83,7 +83,8 @@ sub current_node_change_hook {
       $r=$r->following();
     }
     SetCurrentNodeInOtherWin($win,$r) if ($r);
-  }  
+    CenterOtherWinTo($win,$r) if ($r);
+  }
   return;
 }
 
@@ -185,7 +186,7 @@ sub diff_trees {
     # create groups of corresponding old nodes, i.e. nodes not created
     # by anotators
     if ($T{$f}) {
-      $node=Next($T{$f}); # or NextVisibleNode if all are to be compared
+      $node=$T{$f}; # or NextVisibleNode if all are to be compared
       while ($node) {
 	if ($node->{$id}!~/\./) {
 	  if (! exists $G{$node->{$id}}) { 
@@ -207,7 +208,7 @@ sub diff_trees {
   my $son;
   for (my $i=0; $i < @names; $i++) {
     if ($T{$names[$i]}) {
-      $node=Next($T{$names[$i]});
+      $node=$T{$names[$i]};
       while ($node) {
        unless (exists $node->{_group_} and $node->{_group_} ne "") {
 	  $g="N$grpid";
