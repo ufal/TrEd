@@ -80,10 +80,10 @@
 	<application>Perl-Tk</application>,
 	<application>TrEd</application>, and a setup script called
 	<literal>setup.bat</literal> for easy installation of
-	all of them.
+	all of them (<emphasis>RECOMMENDED!</emphasis>).
       </para>
       <para>
-	If for some reason, you don't want to use the Windows installation
+	If, for some reason, you don't want to use the Windows installation
 	package, you may try the manual installation described below.
       </para>
       <orderedlist continuation="restarts" inheritnum="ignore">
@@ -103,82 +103,100 @@
 	    If you have installed <application>ActiveState
 	    Perl</application> 5.8 or higher, you may skip this step
 	    since <application>Tk</application> is already included.
-	    If you used older version, and
-	    you have on-line
-	    connection to the Internet you may install the latest
+	    If you use an older version, and
+	    you're connected to the Internet, you may install the latest
 	    <application moreinfo="none">Tk</application> toolkit from
-	    ActiveState's site in the following steps:
+	    ActiveState's site with the following steps:
 	  </para>
-	<orderedlist continuation="restarts" inheritnum="ignore">
-	  <listitem>
+	  <orderedlist continuation="restarts" inheritnum="ignore">
+	    <listitem>
 	      <para>Open a command prompt
 		(<application moreinfo="none">MS-DOS
 		  prompt</application> in <application moreinfo="none">Windows
-		9x/ME</application>)
+		  9x/ME</application>)
 	      </para>
 	    </listitem> 
 	    <listitem>
 	      <para>Type <command moreinfo="none">ppm</command> (press <keycap moreinfo="none">Enter</keycap>)</para></listitem>
-	  <listitem>
+	    <listitem>
 	      <para>Type <command moreinfo="none">install Tk</command> (press
-	      <keycap moreinfo="none">Enter</keycap>)</para>
+		<keycap moreinfo="none">Enter</keycap>)</para>
 	    </listitem>
-	  <listitem>
+	    <listitem>
 	      <para>When the installation of <application moreinfo="none">Tk library</application> is finished, type
-	    <command moreinfo="none">exit</command> (press
-	    <keycap moreinfo="none">Enter</keycap>)</para>
+		<command moreinfo="none">exit</command> (press
+		<keycap moreinfo="none">Enter</keycap>)</para>
 	    </listitem>
-	  <listitem>
-	      <para>Close the command prompt</para></listitem>
-	</orderedlist>
+	    <listitem>
+	      <para>Close the command prompt</para>
+	    </listitem>
+	  </orderedlist>
 	  <para>
 	    If you do <emphasis>not</emphasis> have
-	    <application>ActiveState Perl</application> 5.8 or higher,
-	    and you don't have on-line connection
+	    <application>ActiveState Perl</application> 5.8 or higher
+	    and you're <emphasis>not</emphasis> connected
 	    to the Internet, but you do have 
 	    <productname class="trade">Prague Dependency
-	    Treebank</productname>
+	      Treebank</productname>
 	    CD-ROM, please, follow these steps:
 	  </para>
-	<orderedlist continuation="restarts" inheritnum="ignore">
-	  <listitem>
+	  <orderedlist continuation="restarts" inheritnum="ignore">
+	    <listitem>
 	      <para>Open a command prompt (<application moreinfo="none">MS-DOS prompt</application> in
 		<application moreinfo="none">WindowsÅ†9x/ME</application>)</para>
 	    </listitem> 
-	  <listitem>
-	      <para>Change directory to <filename moreinfo="none">Tools\Tree_Editors\Tred\PerlTk</filename> on
-		the <productname class="trade">Prague Dependency Treebank
-		CD</productname>,
-		i.e. if your CD-ROM drive is <filename moreinfo="none">D:</filename>,
-		type		
-		<literallayout class="normal" format="linespecific"><userinput moreinfo="none">D:</userinput>
-		  <userinput moreinfo="none">cd D:\Tools\Tree_Editors\Tred\PerlTk</userinput></literallayout>
-		Under WindowsÅ†9x you may rather need to use command	    
-		<literallayout class="normal" format="linespecific"><userinput moreinfo="none">cd D:\Tools\Tree_~1\Tred\PerlTk</userinput></literallayout>
+	    <listitem>
+	      <para>Unzip the Windows <application>TrEd</application>
+		distribution package and change to the
+		<filename moreinfo="none">packages</filename> directory.
 	      </para>
-	  </listitem>
-	  <listitem>
-	      <para>Type <literal moreinfo="none"><userinput moreinfo="none">ppm install Tk.ppd</userinput></literal> (press
-	      <keycap moreinfo="none">Enter</keycap>)</para>
 	    </listitem>
-	  <listitem>
+	    <listitem>
+	      <para>Type <literal moreinfo="none"><userinput moreinfo="none">ppm install Tk.ppd</userinput></literal> (press
+		<keycap moreinfo="none">Enter</keycap>)</para>
+	    </listitem>
+	    <listitem>
 	      <para>Close the command prompt when the installation of
 		<application moreinfo="none">Tk library</application> is finished.
-	      </para></listitem>
-	</orderedlist>
-      </listitem>
-      <listitem>
-	  <para>In this step you install <application moreinfo="none">TrEd</application> itself. It is done by
-	    copying the whole <filename moreinfo="none">Tred</filename> folder from
-	    the <productname class="trade">Prague Dependency Treebank CD</productname>
-	    (<filename moreinfo="none">Tools\Tree_Editors\Tred\Tred</filename>) somewhere on your
-	    hard-disk, e.g. to folder <filename moreinfo="none">C:\Program Files</filename>.  To
-	    run <application moreinfo="none">TrEd</application> double-click the <filename moreinfo="none">tred.pl</filename> icon in the
-	    <filename moreinfo="none">Tred</filename> folder on your hard-disk. (You may also want
-	    to create a shortcut on your desktop).
+	      </para>
+	    </listitem>
+	  </orderedlist>
+	  <para>In this step you install
+	    <application moreinfo="none">TrEd</application> itself. 
+	    It is done by
+		copying the whole <filename moreinfo="none">tred</filename> 
+	    folder from the <application>TrEd</application>
+	    distribution anywhere you like on your
+	    hard-disk, e.g. to folder <filename moreinfo="none">C:\Program
+	      Files</filename>.</para>
+	  <para>
+	    To be able to run <application>TrEd</application>
+	    with just a double-click, you have to
+	    <orderedlist>
+	      <listitem>
+		<para>either rename the <filename>tred</filename> program
+		  to <filename>tred.pl</filename> and
+		  associate the <filename>.pl</filename> file-name extension
+		  with <application>Perl</application>, or
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  assuming you have installed <application>Perl</application>
+		      to <filename>c:\perl</filename> and
+		  <application>TrEd</application> to
+		  <filename>c:\Program Files</filename>,
+		  create a shortcut on your Desktop or in
+		  the Start menu for the following command
+		  <literallayout>c:\perl\bin\perl.exe "c:\Program Files\tred\tred"</literallayout>
+		</para>
+	      </listitem>
+	    </orderedlist>
+	    Refer to any Windows User's reference for
+	    more information on how to accomplish the above steps.
 	  </para>
-      </listitem>
-    </orderedlist>
+	</listitem>
+      </orderedlist>
     </sect2>
     <sect2 id="install-unix">
       <title>Linux and UNIX-based systems</title>
@@ -197,9 +215,10 @@
 	    To install <application
 	      moreinfo="none">PerlTk</application> 
 	    toolkit, fetch the latest version of Perl-Tk library from 
-	    <ulink url="http://search.cpan.org/modlist/User_Interfaces/Tk">CPAN</ulink>, 
-	    archive to some temporary directory, e.g. with the
-	    following command (substituting your Tk version number):
+	    <ulink
+	      url="http://search.cpan.org/modlist/User_Interfaces/Tk">CPAN</ulink>, and extract the archive to some temporary directory, e.g
+	    using the following command (substituting 804.025 with your Tk version 
+	    number):
 	    <literallayout class="normal" format="linespecific">
 	      $ <userinput moreinfo="none">gunzipÅ†-cÅ†Tk-804.025.tar.gzÅ†|Å†tarÅ†-x</userinput>
 	    </literallayout>
@@ -217,7 +236,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <calloutlist>
 	      <callout arearefs="co-makefilepl">
 		<para>the XFT=1 option turns on support for FreeType anti-aliasing.
-		  If this step fails, restart without <literal>XFT=1</literal>
+		  If this step fails, restart without <literal>XFT=1</literal>.
 		</para>
 	      </callout>
 	      <callout arearefs="co-test">
@@ -236,19 +255,26 @@ root# <userinput moreinfo="none">make install</userinput>
  	    moreinfo="none">TrEd</application>, simply
 	    untar/ungzip the <filename>tred</filename> directory
 	    from the <application>TrEd</application>
- 	    installation package to any directory you like
-	    (e.g. to your home directory or <filename moreinfo="none">/opt</filename>
+ 	    installation package to any directory 
+	    you like
+	    (e.g. to your home directory or,
+	    with root privileges, to <filename moreinfo="none">/opt</filename>
  	    directory).
  	  </para>
  	  <note>
  	    <para>
- 	      You may also wish to install the <command moreinfo="none">tred</command>
+ 	      You may also wish to symling the <command moreinfo="none">tred</command>
  	      executable to some directory on your
- 	      <varname>PATH</varname>. The simpliest way to do so is to make a
- 	      symbolic link in <filename>/usr/bin/tred</filename>
-	      to <filename>/opt/tred/tred</filename> (supposing you have unpacked the
- 	      <application>TrEd</application> distribution to
- 	      <filename>/opt</filename>).
+ 	      <varname>PATH</varname>. Assuming you
+	      have extracted the <application>TrEd</application>
+	      distribution to <filename>/opt</filename> directory,
+	      you can achieve this with the following command:
+	      <literallayout>root# ln -s /opt/tred/tred /usr/local/bin</literallayout>.
+	    Use similar commands for <command
+ 	    moreinfo="none">btred</command> 
+	    and other tools included with
+ 	    <application>TrEd</application> distribution you
+	      wish to use.
  	    </para>
  	  </note>
  	</listitem>
@@ -257,10 +283,6 @@ root# <userinput moreinfo="none">make install</userinput>
  	    Run <application moreinfo="none">TrEd</application> by issuing the command
  	    <command moreinfo="none">tred</command>. (See <xref
  	    linkend="commandline"/>.)
-	    The same holds for the <command
- 	    moreinfo="none">btred</command> executable
-	    and other tools included with
- 	    <application>TrEd</application> distribution.
  	  </para>
 	  <note>
 	    <para>Ifthe <command moreinfo="none">tred</command>
@@ -438,12 +460,19 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Print ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Opens a Print Dialog. <application moreinfo="none">TrEd</application> is
-	      able to render trees containing iso-8859-2 (and
-	      windows-1250) characters only into PostScript,
-	      Encapsulated PostScript (EPS), and arbitrary trees
-	      (containing arbitrary Unicode characters) into Portable
-	      Document Format (PDF). If <ulink url="http://www.imagemagick.org">ImageMagick</ulink>
+	      Opens a Print Dialog.</para>
+	    <para>
+	      <application moreinfo="none">TrEd</application> is
+	      able to render trees to PostScript,
+	      Encapsulated PostScript (EPS), and Portable
+	      Document Format (PDF). 
+	      Should the trees contain non-latin
+	      (iso-8859-1, iso-8859-2, windows-1250, etc.) characters,
+	      such as Arabic, the PDF might be the only option,
+	      because it allows using TrueType fonts.
+	    </para>
+	    <para>
+	      If <ulink url="http://www.imagemagick.org">ImageMagick</ulink>
 	      toolkit is installed, TrEd can also automatically
 	      convert the result into one of many image formats.
 	      While PostScript is the default printing format on most
