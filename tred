@@ -7355,16 +7355,17 @@ sub redraw_win {
   if ($win->{FSFile} and $win->{treeView}->get_drawSentenceInfo) {
     $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,0);
   }
+  local $TredMacro::grp = $win;
   $win->{treeView}->
-      redraw($win->{FSFile},
-	     $win->{currentNode},
-	     $win->{Nodes},
-	     # CHANGE THIS (this is just for printing) :
-	     (defined($vl) ? $vl : ""),
-	     ($stippleInactiveWindows ?
-		(($win == $win->{framegroup}->{focusedWindow}) ? 'hidden' : 'normal')
-		  : undef)
-	    );
+    redraw($win->{FSFile},
+	   $win->{currentNode},
+	   $win->{Nodes},
+	   # CHANGE THIS (this is just for printing) :
+	   (defined($vl) ? $vl : ""),
+	   ($stippleInactiveWindows ?
+	      (($win == $win->{framegroup}->{focusedWindow}) ? 'hidden' : 'normal')
+		: undef)
+	  );
   setCurrent($win,$win->{currentNode}) if $win->{FSFile};
   $TrEd::TreeView::on_tree_redraw= undef; #forget the reference on $win
   $TrEd::TreeView::on_node_redraw= undef;
