@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-07-26 16:52:18 pajas>
+# Time-stamp: <2001-07-31 14:56:43 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -2042,7 +2042,7 @@ sub nodes {
   undef @unsorted;
   # this is actually a workaround for TR, where two different nodes
   # may have the same Ord
-  return $nodes,$current;
+  return ($nodes,$current);
 }
 
 =pod
