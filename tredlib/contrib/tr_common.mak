@@ -36,11 +36,11 @@
     #  display         trlemma      gender  number  func
     ([ 'Comma',        '&Comma;',   '???',  '???', 'CONJ'   ],
      [ 'Colon',        '&Colon;',   '???',  '???', 'CONJ'   ],
-     [ 'Dash',         '&Dash;',    '???',  '???', 'CONJ'   ],
+     [ 'Hyphen',       '&Hyphen;',    '???',  '???', 'CONJ'   ],
      [ 'Lpar',         '&Lpar;',    '???',  '???', '???'    ],
      [ 'Forn',         '&Forn;',    '???',  '???', '???'    ],
      [ 'Rcp',          '&Rcp;',     '???',  '???', 'PAT'    ],
-     [ 'Neg',          '&Neg;',     '???',  '???', '???'    ],
+     [ 'Neg',          '&Neg;',     '???',  '???', 'RHEM'    ],
      [ 'Cor',          '&Cor;',     '???',  '???', '???'    ],
      [ 'Emp',          '&Emp;',     '???',  '???', '???'    ],
      [ 'EmpNoun',      '&EmpNoun;', '???',  '???', '???'    ],
@@ -643,11 +643,26 @@ sub getAIDREF {
   return ($node->{AIDREFS} ne "") ? $node->{AIDREFS} : $node->{AID};
 }
 
+=item getAIDREFs(node?)
+
+Returns a list of AIDs the node points to. This includes AID of the
+node itself if it has any. If no node is specified, $this is used.
+
+=cut
+
 sub getAIDREFs {
   my $node = $_[0] || $this;
   my $aidref=($node->{AIDREFS} ne "") ? $node->{AIDREFS} : $node->{AID};
   return split /\|/,$aidref;
 }
+
+=item getAIDREFs(node?)
+
+Returns a hash-ref whose keys are AIDs the node points to (all values
+are 1) . AID of the node itself is included too (if the node has
+any). If no node is specified, $this is used.
+
+=cut
 
 sub getAIDREFsHash {
   my $node = $_[0] || $this;

@@ -44,21 +44,18 @@ sub parse_advxml {
   if ($@) {
     require XML::LibXML;
     $parser=XML::LibXML->new();
-    print STDERR "Using LibXML\n";
-    $XMLDataClass="TrEd::ValLex::LibXMLData";
   } else {
-    print STDERR "Using JHXML\n";
     require XML::JHXML;
     $parser=XML::JHXML->new();
   }
 
   return undef unless $parser;
   my $doc;
-  print "parsing $file\n";
+  print STDERR "parsing $file\n";
   eval {
     $doc=$parser->parse_file($file);
   };
-  print "done\n";
+  print STDERR "done\n";
   if ($@ or !$doc) {
     print STDERR "$@\n";
     return undef;
