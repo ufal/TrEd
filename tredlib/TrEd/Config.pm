@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-07-31 16:24:51 pajas>
+# Time-stamp: <2001-08-06 10:47:32 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -95,7 +95,7 @@ sub parse_config_line {
   local $_=shift;
   my $confs=shift;
   my $key;
-  unless (/^[;#]/ or /^$/) {
+  unless (/^[;\#]/ or /^$/) {
     chomp;
     if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
       $key=lc($1);
@@ -170,6 +170,7 @@ sub set_config {
   $treeViewOpts->{lineColor}=(exists $confs->{linecolor}) ? $confs->{linecolor} : 'black';
   $treeViewOpts->{lineArrow}=(exists $confs->{linearrow}) ? $confs->{linearrow} : 'none';
   $treeViewOpts->{nodeColor}=(exists $confs->{nodecolor}) ? $confs->{nodecolor} : 'yellow';
+  $TrEd::Print::bwModeNodeColor=(exists $confs->{bwprintnodecolor}) ? $confs->{bwprintnodecolor} : 'white';
   $treeViewOpts->{nodeOutlineColor}=(exists $confs->{nodeoutlinecolor}) ? $confs->{nodeoutlinecolor} : 'black';
   $treeViewOpts->{hiddenNodeColor}=(exists $confs->{hiddennodecolor}) ? $confs->{hiddennodecolor} : 'black';
   # $activeNodeColor=(exists $confs->{activenodecolor}) ? $confs->{activenodecolor} : 'blue';
@@ -184,12 +185,20 @@ sub set_config {
     $treeViewOpts->{customColors}->[$_]=$confs->{"customcolor$_"} if $confs->{"customcolor$_"};
   }
 
-  $treeViewOpts->{boxColor}=(exists $confs->{boxcolor}) ? $confs->{boxcolor} : 'wheat';
-  $treeViewOpts->{currentBoxColor}=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'white';
+  $treeViewOpts->{boxColor}=(exists $confs->{boxcolor}) ? $confs->{boxcolor} : 'LightYellow';
+  $treeViewOpts->{currentBoxColor}=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'yellow';
   $treeViewOpts->{hiddenBoxColor}=(exists $confs->{hiddenboxcolor}) ? $confs->{hiddenboxcolor} : 'gray';
+
+  $treeViewOpts->{edgeBoxColor}=(exists $confs->{edgeboxcolor}) ? $confs->{edgeboxcolor} : "#fff0e0";
+  $treeViewOpts->{currentEdgeBoxColor}=(exists $confs->{edgecurrentboxcolor}) ? $confs->{edgecurrentboxcolor} : "#ffe68c";
+  $treeViewOpts->{hiddenEdgeBoxColor}=(exists $confs->{edgehiddenboxcolor}) ? $confs->{edgehiddenboxcolor} : "DarkGrey";
+
+  $treeViewOpts->{clearTextBackground}=(exists $confs->{cleartextbackground}) ? $confs->{cleartextbackground} : 1;
+
   $treeViewOpts->{backgroundColor}=(exists $confs->{backgroundcolor}) ? $confs->{backgroundcolor} : undef;
   $treeViewOpts->{noColor}=(exists $confs->{allowcustomcolors}) ? $confs->{allowcustomcolors} : 0;
   $treeViewOpts->{drawBoxes}=(exists $confs->{drawboxes}) ? $confs->{drawboxes} : 0;
+  $treeViewOpts->{drawEdgeBoxes}=(exists $confs->{drawedgeboxes}) ? $confs->{drawedgeboxes} : 0;
   $treeViewOpts->{highlightAttributes}=(exists $confs->{highlightattributes}) ? $confs->{highlightattributes} : 1;
   $treeViewOpts->{showHidden}=exists ($confs->{showhidden}) ? $confs->{showhidden} : 0;
   $font=(exists $confs->{font}) ? $confs->{font} :
