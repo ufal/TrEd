@@ -383,8 +383,8 @@ sub getItemIndex { # print STDERR "SUB: getItemIndex\n";
     if    ($type eq 'value') { $field = $cw->getItemValueAt($i) }
     elsif ($type eq 'name')  { $field = $cw->{_list}->[$i]->name }
  
-    if    ($mode eq 'usecase')    { return $i if ($field =~ /^$item/)  }
-    elsif ($mode eq 'ignorecase') { return $i if ($field =~ /^$item/i) }
+    if    ($mode eq 'usecase')    { return $i if ($field =~ /^\Q$item\E/)  }
+    elsif ($mode eq 'ignorecase') { return $i if ($field =~ /^\Q$item\E/i) }
     elsif ($mode eq 'exact')      { return $i if ($field eq $item)     }
   }
   return undef;
