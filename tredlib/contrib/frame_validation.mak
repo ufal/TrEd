@@ -1421,7 +1421,7 @@ sub validate_frame_no_transform {
 
     # check, that all actants present in data are in the vallex
     # check, multiplicity
-    foreach my $ac (@actants) {
+    foreach my $ac (@actants,qw(DPHR CPHR)) {
       if (!$flags->{${ac}."_is_free"} and
 	    exists($c{$ac}) and !exists($all_elements{$ac})) {
 	unless ($quiet) {
