@@ -717,6 +717,39 @@ sub PasteMovedSubtree {
   $_->{ord} = int($_->parent->{ord}).".".(++$max{ord1}) for @$added;
 }
 
+#bind insert_node to Insert
+sub insert_node {
+  PDT::ClearARstruct();
+  my$aid=$this->{AID}.$this->{TID};
+  $aid=~s/[wa]\d+$/w/;
+  $aid.=max(map{$_->{AID}=~m/w(\d+)$/?$1:0}$root->descendants())+1;
+  foreach my$node (grep{
+    $_->{sentord}>$this->{sentord}
+      and$_->{AID}
+    }$root->descendants()){
+    $node->{sentord}++;
+  }
+  foreach my$node (grep{
+    $_->{ordorig}>$this->{ord}
+      and$_->{AID}
+    }$root->descendants()){
+    $node->{ordorig}++;
+  }
+  foreach my$node(grep{
+    $_->{ord}>$this->{ord}
+      and$_->{AID}
+    }$root->descendants()){
+    $node->{ord}++;
+  }
+  my$new=TredMacro::NewSon($this); #calculates dord
+  $new->{AID}=$aid;
+  $new->{ord}=$this->{ord}+1;
+  $new->{sentord}=$this->{sentord}+1;
+  $new->{ordorig}=$this->{ord};
+  $new->{afun}='???';
+  $new->{func}='???';
+  $new->{origfkind}='spell';
+}#insert_node
 
 
 ############# XPath #############
