@@ -34,6 +34,7 @@ BEGIN {
   $psFontSize
   $macroFile
   $defaultMacroFile
+  $defaultMacroEncoding
   $prtFmtWidth
   $prtFmtHeight
   $prtVMargin
@@ -376,7 +377,7 @@ sub set_config {
   $appIcon=(exists $confs->{appicon}) ? tilde_expand($confs->{appicon}) : "$libDir/tred.xpm";
   $macroFile=tilde_expand($confs->{macrofile}) if (exists $confs->{macrofile});
   $defaultMacroFile=(exists $confs->{defaultmacrofile}) ? tilde_expand($confs->{defaultmacrofile}) : "$libDir/tred.def";
-
+  $defaultMacroEncoding=val_or_def($confs,"defaultmacroencoding",'utf8');
   $sortAttrs	     =	val_or_def($confs,"sortattributes",1);
   $psFontSize	     =	val_or_def($confs,"psfontsize",($^O=~/^MS/) ? "14" : "12");
 
