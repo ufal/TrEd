@@ -656,8 +656,8 @@ sub node_coords {
     $nh+=$self->get_style_opt($node,'Node','-addheight',$Opts);
     return ($x-$nw/2,
 	    $y-$nh/2,
-	    $x+$nh/2,
-	    $y+$nw/2);
+	    $x+$nw/2,
+	    $y+$nh/2);
   } else {
     my $horiz=0;
     return map { $horiz=!$horiz; $_+($horiz ? $x : $y) } 
