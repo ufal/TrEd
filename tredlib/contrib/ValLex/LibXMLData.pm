@@ -31,7 +31,11 @@ sub parser_start {
   $parser->load_ext_dtd(1);
   $parser->validation(!$novalidation);
   my $doc;
-  $doc=$parser->parse_file($file);
+  print STDERR "parsing file $file\n";
+  eval {
+      $doc=$parser->parse_file($file);
+  };
+  print STDERR "$@\ndone\n";
   return ($parser,$doc);
 }
 
