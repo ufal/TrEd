@@ -24,7 +24,7 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $strip_suffix $append_suffix $output_format $term_encoding
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
-	    $version $print_version
+	    $version $print_version $listedfiles
 	   );
 
 $version='$Revision$ ';
@@ -74,6 +74,7 @@ Getopt::Long::Configure ("bundling");
 	 "serverlist=s"    => \$srvlistfile,
 	 "max-servers=i"    => \$maxservers,
 	 "filelist|l=s"    => \$filelist,
+	 "listed-files|L"    => \$listedfiles,
 	 "no-server-check" => \$nocheck,
 	 "no-server-start" => \$noservers,
 	 "server-debug|D" => \$server_debug,
@@ -604,8 +605,32 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.=join("",@fs)."\n";
   } else {
     $request_type="EVAL_CODE";
+    my @files;
+    if ($filelist) {
+      if (open(my $f, $filelist)) {
+	while (<$f>) {
+	  s/^\s+//;
+	  next if /^#/;
+	  s{^ntred://}{};
+	  s{@(\d+)##?1(\.\d+)?$}{##$1$2};
+	  chomp; push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
+	}
+	close $f;
+      }
+    }
+    if ($listedfiles) {
+      local $_;
+      while (@ARGV) {
+	$_=shift @ARGV;
+	last if ($ARGV[0] eq '--');
+	s{^ntred://}{};
+	s{@(\d+)##?1(\.\d+)?$}{##$1$2};
+	push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
+      }
+    }
     $request="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding,$code))."\n";
     $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
+    $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
     $request.="$control STATE=MACRO\n".
       _enc2bytes("utf8",join("",@TrEd::Macros::macros));
     $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding,join("\n",@ARGV)))."\n" if @ARGV;
@@ -736,12 +761,12 @@ sub get_file_list {
       while (<$f>) {
 	s/^\s+//;
 	next if /^#/;
-	chomp; push @files, (m{^/|^[[:alnum:]]://} ? $_ : rel2abs($_));
+	chomp; push @files, (m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_));
       }
       close $f;
     }
   }
-  @files = (@files, map { m{^/|^[[:alnum:]]://} ? $_ : rel2abs($_) } @ARGV);
+  @files = (@files, map { m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_) } @ARGV);
   make_uniq(\@files);
   return @files;
 }
@@ -758,7 +783,8 @@ ntred - controller/hub/client for remote btred servers
 To query the servers:
 
   ntred [-m macro-file] [-e code] [--hub hub] [--port port]
-        [-N|-H] [-T] [--key-file file] -- script-arguments
+        [-N|-H] [-T] [--key-file file] [--filelist file-list ] [-L files]
+        -- script-arguments
 
 To start remote servers and a hub:
 
@@ -868,6 +894,24 @@ Run the query code on all nodes that are not hidden (you still must
 use --all-trees or -T to process all trees). This wraps
 the code into a
 C<while ($this) { CODE ; $this=$this->following_visible(FS()) }";> loop).
+
+=item B<--listed-files|-L>
+
+Run the query code only on files specified on the command line
+(provided they are already present on some server, i.e. this option
+does I<not> make servers load files they don't already
+have). Filenames may contain ordinary TrEd suffixes of the form ##tree
+or ##tree.node to indicate that the processing should apply only on a
+single tree (use in combination with -N) or a single node (use without
+-T and -N). NTrEd URIs of the form ntred:// are also allowed. Relative
+file-names are expanded according to the current working directory
+before they are sent to ntred servers.
+
+=item B<--file-list|-l> filename
+
+Like C<--list-files|-L> but this time the files to be processed are
+listed in the given file rather than on the command line. Both options
+may be used togther in which case the file-lists are joined.
 
 =item B<--key-file>
 
