@@ -48,7 +48,7 @@ File::Pipe to corresponding ntred process.
 =cut
 
 sub open_backend {
-  my ($filename, $mode)=@_;
+  my ($filename, $mode, $encoding)=@_;
   my $fh = undef;
   my $cmd = "";
   return undef unless $filename=~m(^ntred://(.*)$);
@@ -72,6 +72,14 @@ sub open_backend {
 	open $fh,"$cmd";
       } || return undef;
     }
+  }
+  no integer;
+  if ($]>=5.008 and defined $encoding) {
+    eval {
+      print STDERR "USING PERL IO ENCODING: $encoding FOR MODE $mode\n" if $Fslib::Debug;
+      binmode $fh,":encoding($encoding)";
+    };
+    print STDERR $@ if $@;
   }
   return $fh;
 }
