@@ -229,8 +229,9 @@ if (defined($init) || defined($kill) || defined($break)) {
       my ($machine)=split /:/;
       next if $servers{$machine};
       $servers{$machine}=1;
-      msg "$ssh $machine killall $signal btred\n";
-      system("$ssh $machine killall $signal btred");   #'$btred'
+      $btred ||= 'btred';
+      msg "$ssh $machine killall $signal $btred\n";
+      system("$ssh $machine killall $signal $btred");   #'$btred'
     }
     msg "Killing hub\n";
     local $SIG{TERM}=sub {}; # protecting myself :-)
