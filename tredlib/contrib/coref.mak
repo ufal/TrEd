@@ -170,10 +170,20 @@ sub remember_this_node {
 
 #bind set_referent_to_coref to Ctrl+s menu Set coreference to previously marked node
 sub set_referent_to_coref {
+  return if $referent eq "";
   my $selection=['textual'];
   listQuery('single',[qw(textual grammatical)],$selection) || return;
   assign_coref($this,$referent,$selection->[0]);
 }
+
+#bind remove_last_coref to Ctrl+j menu Remove last coreference from the current node
+sub remove_last_coref {
+  shift @_ unless ref($_[0]);
+  my $node = ($_[0] || $this);
+  $node->{coref}=~s/(^|\|)[^\|]*$//;
+  $node->{cortype}=~s/(^|\|)[^\|]*$//;
+}
+
 
 # auxiliary funcion: add some style to given style-sheet
 sub add_style {
@@ -383,6 +393,11 @@ coreference from a list, press and hold Alt.
 
 You will see a dashed arrow representing the coreference relation.
 
+=item Removing a coreference relation using mouse
+
+To remove a coreference relation between two nodes within the same
+tree, proceed exactly as when creating a relation. 
+
 =item Adding a coreference relation using keyboard
 
 Coreference annotation by keyboard is especially useful to annotate
@@ -405,6 +420,12 @@ nodes in relation.
 
 Node, that it is possible to repeat Step 2 without repeating Step 1 as
 long as the end-node of the coreference relation remains the same.
+
+=item Removing a coreference relation using keyboard
+
+To remove a coreference relation that starts in the current node,
+press Ctrl+j. If there are more than one relation starting at the
+point, only the one that was last added will be removed.
 
 =item Coreference to non-nodes
 
