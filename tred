@@ -267,7 +267,7 @@ import TrEd::Convert;
 if ($TrEd::Convert::support_unicode) {
   require Tk::Entry;
   require Tk::Text;
-  require Tk::UCSKeyBind;
+#  require Tk::UCSKeyBind;
 }
 
 # import read_macros etc.
@@ -410,13 +410,14 @@ ApplyGlobalConfig();
 ($TrEd::Config::useCzechLocales) && do {
   $ENV{LC_ALL}=undef;
   use locale;
-   use POSIX qw(locale_h);
+  use POSIX qw(locale_h);
   setlocale(LC_ALL,undef);
   setlocale(LC_NUMERIC,"C");
+
   if ($TrEd::Convert::support_unicode) {
     setlocale(LC_COLLATE,"cs_CZ.UTF8");
     setlocale('LANG',"cs_CZ.UTF8");
-    setlocale('LC_CTYPE',"en_US");
+    setlocale('LC_CTYPE',"cs_CZ");
   } else {
     setlocale(LC_COLLATE,"cs_CZ");
     setlocale('LANG',"cs_CZ");
@@ -482,7 +483,6 @@ if ($opt_X ne "") {
 print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
 read_macros($macroFile,$libDir);		# read macros
 print STDERR "done.\n" unless $opt_q;
-
 
 startMain();	# display first tree
 
@@ -3553,11 +3553,13 @@ sub startMain {
   my $node;
   my $parent;
   my %group;
+
   if ($opt_W) {
     $group{top}=MainWindow->new(-use => $opt_W);
   } else {
     $group{top}=MainWindow->new();
   }
+
   for (qw(ROText Text Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
     $group{top}->option('add',"\*$_.background","white");
