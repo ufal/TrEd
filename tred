@@ -3972,6 +3972,7 @@ sub reconfigure {
   prepareFonts($grp);
   updateTitle($grp);
   $grp->{valueLine}->configure(-font=> $vLineFont);
+  $grp->{statusLine}->configure(-font=> $vLineFont) if $grp->{statusLine};
   foreach (@{$grp->{treeWindows}}) {
     $_->treeView->apply_options($treeViewOpts);
   }
