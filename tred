@@ -421,16 +421,43 @@ sub gotoFile {
     $grp->{Filelist}->selectionClear();
     $grp->{Filelist}->selectionSet($path);
   }
-  return $grp->{focusedWindow}->{FSFile}->lastTreeNo>=0;
+  return 1;
+}
+
+sub nextOrPrevFile {
+  my ($grp,$delta,$no_recent)=@_;
+  return 0 if ($delta==0);
+  my $win=$grp->{focusedWindow};
+  my $op=$grp->{noOpenFileError};
+  $grp->{noOpenFileError}=1;
+  my $filename=$grp->{currentFilelist}->file_at($win->{currentFileNo}+$delta);
+  my $result=gotoFile($grp,$win->{currentFileNo}+$delta,$no_recent);
+  my $quiet=0;
+  my $response;
+  while ( $filename ne "" or !$win->{FSFile} or $win->{FSFile}->lastTreeNo<0) {
+    unless ($quiet) {
+      my $f="$filename: empty or corrupt file!";
+      $response=userQuery($grp,"Error",
+			  $f,
+			  "Try next","Skip to next correct file","Cancel");
+      last if ($response eq "Cancel");
+      $quiet=1 if ($response eq "Skip to next correct file");
+    }
+    last unless $result;
+    $result=gotoFile($grp,$win->{currentFileNo}+$delta,$no_recent);
+  }
+  $grp->{noOpenFileError}=$op;
+  return $result;
 }
 
 sub nextFile {
   my ($grp,$no_recent)=@_;
-  return gotoFile($grp,$grp->{focusedWindow}->{currentFileNo}+1,$no_recent);
+  return nextOrPrevFile($grp,1,$no_recent);
 }
+
 sub prevFile {
   my ($grp,$no_recent)=@_;
-  return gotoFile($grp,$grp->{focusedWindow}->{currentFileNo}-1,$no_recent);
+  return nextOrPrevFile($grp,-1,$no_recent);
 }
 
 # TrEd::Window ?
@@ -504,6 +531,21 @@ sub ErrorMessage {
     print STDERR "$msg\n";
   }
 }
+
+sub userQuery {
+  my ($grp,$title, $message,@buttons) = @_;
+
+  my $d = $grp->{top}->DialogBox(-title => $title,
+				 -buttons => [@buttons]
+				);
+  $d->add('Label', -text => $message,
+	  -wraplength => 200)->pack();
+  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
+			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  return $d->Show;
+}
+
 
 sub addToRecent {
   my ($grp,$f)=@_;
@@ -697,7 +739,7 @@ sub openFile {
   $win->{FSFile}= FSFile->newFSFile($f,@backends);
   $win->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$win->{FSFile}->backend);
   ErrorMessage($grp,"$f: empty or corrupt file!")
-    if ($win->{FSFile}->lastTreeNo<0);
+    unless ($grp->{noOpenFileError} or $win->{FSFile}->lastTreeNo>=0);
 
   $win->{treeNo}=0;
 
