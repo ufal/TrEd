@@ -45,7 +45,7 @@ GetOptions ("all-trees|T"    => \$all_trees,
 	    "save-files"      => \$request_save,
 	    "save-changed-files" => \$request_save_changed,
 	    "dump-files"    => \$request_dump,
-	    "upload-files"    => \$request_upload,
+	    "upload-file"    => \$request_upload,
 	    "strip-prefix|p=s" => \$strip_prefix,
 	    "add-prefix|r=s" => \$add_prefix,
 	    "strip-suffix|s=s" => \$strip_suffix,
@@ -955,6 +955,32 @@ by some macro will be saved. Note, that a macro has to claim that the
 file was changed by setting C<$TredMacro::FileChanged> variable to 1,
 otherwise the btred server would never notice. See also
 L<--list-changed-files>.
+
+=item B<--dump-files>
+
+Dumps given files or trees to standard output in FS format as they are
+in memory of the btred servers. Individual dumps are separated with
+`//FSEND' preceded and followed by two newline characters.  To output
+a single tree, follow the filename with C<##n> suffix where C<n> is
+the absolute position of the tree in the file (starting from one).
+The following example shows how C<csplit> command can be used to
+save individual dumps into separate files:
+
+  ntred --dump <files> | csplit -z -f out -b '%d.fs' - '/\/\/FSEND/+2' '{*}'
+
+To merge these separate files into one huge FS file, use
+
+  any2any -m hugeout.fs out*.fs
+
+=item B<--upload-file>
+
+This command is kind of a reverse to dump. It takes a filename from
+the first command line argument and a FS file from the standard input
+and sends them to the btred servers. The server possessing the file
+with the given filename replaces its own in-memory copy of the file
+with the one provided on the standard input. To update a single tree,
+follow the filename with C<##n> suffix where C<n> is the absolute
+position of the tree in the file (starting from one).
 
 =back
 
