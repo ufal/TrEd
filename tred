@@ -85,7 +85,7 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('qm:c:l:t:n:huW:GDB:RX:s:');
+getopts('qm:c:l:t:n:vhuW:GDB:RX:s:');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
@@ -93,7 +93,7 @@ Usage:
  tred [-q] [-c <config-file>] [-m <macro-file>] [-t context]
       [-l <filelist>] [-n encoding] file1[##N|#N] [file2[##N|#N] [...]]
 or
- tred -u|-h    for usage/help
+ tred -u|-h|-v    for usage/help/version
 
 EOH
   exit unless $opt_h;
@@ -142,6 +142,13 @@ Other options:
 -B <backends>   Comma separated list of additional backends to import
 
 EOF
+  exit;
+}
+
+if ($opt_v) {
+  my $ver=$version;
+  $ver=~s/\$//g;
+  print "TrEd $ver\nTk: $Tk::VERSION\nLast update: $lastupdate","\n";
   exit;
 }
 
