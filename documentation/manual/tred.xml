@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
-"/home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
+"http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
 <article lang="en">
   <articleinfo>
     <title>Tree Editor Manual</title>
@@ -753,10 +753,10 @@ root# <userinput>make install</userinput>
 	      (i.e. <literal>@V</literal> attributes in FS format) of
 	      all nodes in the tree.
 	    </para>
-	    <para>The <inlinegraphic fileref="pics/right" scale="70"/>
+	    <para>The <inlinegraphic fileref="pics/right"/>
 	      button may be used to display the corresponding sentence
 	      in the current TrEd window.</para> <para>The
-	      <inlinegraphic fileref="pics/gray_belly3" scale="70"/>
+	      <inlinegraphic fileref="pics/gray_belly3"/>
 	      button may be used to select the current sentence.
 	      Selected sentences may be later inserted to the tree
 	      selection field in the <link
@@ -1003,10 +1003,10 @@ root# <userinput>make install</userinput>
 	If current file-list contains more than one file, user may use
 	<menuchoice> <guimenu>File</guimenu> <guimenuitem>Previous
 	File</guimenuitem> </menuchoice> (or press <inlinegraphic
-	fileref="pics/start" scale="70"/>) and <menuchoice>
+	fileref="pics/start"/>) and <menuchoice>
 	<guimenu>File</guimenu> <guimenuitem>Next File</guimenuitem>
 	</menuchoice> (or press <inlinegraphic
-	fileref="pics/finish" scale="70"/>) to open previous or
+	fileref="pics/finish"/>) to open previous or
 	next file in the file-list.
       </para>
     </sect2>
@@ -2051,10 +2051,10 @@ root# <userinput>make install</userinput>
       If current file-list contains more than one file, 
       the command <menuchoice> <guimenu>File</guimenu> <guimenuitem>Previous
 	  File</guimenuitem> </menuchoice> (or <inlinegraphic
-	fileref="pics/start" scale="70"/> button) and  <menuchoice>
+	fileref="pics/start"/> button) and  <menuchoice>
 	<guimenu>File</guimenu> <guimenuitem>Next File</guimenuitem>
     </menuchoice>
-      (or <inlinegraphic fileref="pics/finish" scale="70"/> button)
+      (or <inlinegraphic fileref="pics/finish"/> button)
       may be used to open previous or next file in the file-list.
     </para>
     <figure>
