@@ -86,7 +86,7 @@ sub get_nodelist_hook {
 #binding-context Analytic
 package Analytic;
 
-#bind afun_auxM to m
+#bind afun_auxM to m menu AuxM
 sub afun_auxM {AfunAssign('AuxM');}
 #bind afun_auxM_Co to Ctrl+m
 sub afun_auxM_Co {AfunAssign('AuxM_Co');}
@@ -95,7 +95,7 @@ sub afun_auxM_Ap { AfunAssign('AuxM_Ap');}
 #bind afun_auxM_Pa to Ctrl+M
 sub afun_auxM_Pa { AfunAssign('AuxM_Pa'); }
 
-#bind afun_auxE to f
+#bind afun_auxE to f menu AuxE
 sub afun_auxE {AfunAssign('AuxE')}
 #bind afun_auxE_Co to Ctrl+f
 sub afun_auxE_Co {AfunAssign('AuxE_Co')}
@@ -104,7 +104,7 @@ sub afun_auxE_Ap {AfunAssign('AuxE_Ap')}
 #bind afun_auxE_Pa to Ctrl+F
 sub afun_auxE_Pa {AfunAssign('AuxE_Pa')}
 
-#bind afun_Ref to r
+#bind afun_Ref to r menu Ref
 sub afun_Ref {AfunAssign('Ref')}
 #bind afun_Ref_Co to Ctrl+r
 sub afun_Ref_Co {AfunAssign('Ref_Co')}
@@ -113,7 +113,7 @@ sub afun_Ref_Ap {AfunAssign('Ref_Ap')}
 #bind afun_Ref_Pa to Ctrl+R
 sub afun_Ref_Pa {AfunAssign('Ref_Pa')}
 
-#bind afun_Ante to t
+#bind afun_Ante to t menu Ante
 sub afun_Ante {AfunAssign('Ante')}
 #bind afun_Ante_Co to Ctrl+t
 sub afun_Ante_Co {AfunAssign('Ante_Co')}
@@ -147,32 +147,25 @@ sub enable_attr_hook {
   }
 }
 
-#bind cycle_redraw to key Ctrl+)
-sub cycle_redraw {
-  use Benchmark;
-  my $t = timeit(50, 'Redraw();$grp->{framegroup}->{top}->update();');
-  print STDERR "$count loops of other code took:",timestr($t),"n";
-}
-
-#bind assign_paren to key 2
+#bind assign_paren to key 2 menu Suffix Paren
 sub assign_paren {
   $this->{paren}||='no-paren';
   EditAttribute($this,'paren');
 }
 
-#bind assign_arabfa to key 3
+#bind assign_arabfa to key 3 menu Suffix ArabFa
 sub assign_arabfa {
   $this->{arabfa}||='no-fa';
   EditAttribute($this,'arabfa');
 }
 
-#bind assign_arabspec to key 4
+#bind assign_arabspec to key 4 menu Suffix ArabSpec
 sub assign_arabspec {
   $this->{arabspec}||='no-spec';
   EditAttribute($this,'arabspec');
 }
 
-#bind assign_arabclause to key 5
+#bind assign_arabclause to key 5 menu Suffix ArabClause
 sub assign_arabclause {
   $this->{arabclause}||='no-clause';
   EditAttribute($this,'arabclause');
