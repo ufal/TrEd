@@ -84,13 +84,11 @@ sub value_line {
   my @sent=();
 
   my $attr=$fsfile->FS->sentord;
+  $attr=$fsfile->FS->order unless (defined($attr));
   while ($node) {
     push @sent,$node unless $node->{$attr}>=999; # this is TR specific
     $node=Next($node);
   }
-  my $defs = join ",", values %{$fsfile->FS->defs};
-
-  $attr=$fsfile->FS->order unless ($defs=~/W/);
   @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
 
   $attr=$fsfile->FS->value;
@@ -284,7 +282,7 @@ sub redraw {
     return unless $fsfile;
     my $currentfile=filename($fsfile->filename);
     my $fontHeight=$self->canvas->fontMetrics($self->get_font, -linespace);
-    $valtext=~s/ +([.,!:;])|(\() |(\)) /\1/g;
+    $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
 
     if ($valtext=~/^(.*)\/([^:]*):\s*(.*)/) {
       my $ftext="File: $currentfile, tree $1 of $2";
@@ -372,7 +370,7 @@ sub redraw {
       ##               to 'value'. \${attribute} is not interpolated before <?code?>,
       ##               but may be used in retur value and is interpolated later)
       my $msg=encode($self->interpolate_text_field($node,$displayAttrs[$i]));
-      $msg=~s/([\$\#]{[^}]+})/\#\#\#\1\#\#\#/g;
+      $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
       my $xskip=0;
       my $txt;
       my $at_text;

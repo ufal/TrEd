@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-06-05 14:02:38 pajas>
+# Time-stamp: <2001-06-07 20:51:13 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -83,7 +83,7 @@ sub set_default_config_file_search_list {
 sub tilde_expand {
   my $a=shift;
   $a=~s/$\~/$ENV{HOME}/;
-  $a=~s/([^\\])\~/\1$ENV{HOME}/g;
+  $a=~s/([^\\])\~/$1$ENV{HOME}/g;
   return $a;
 }
 
@@ -96,7 +96,7 @@ sub parse_config_line {
     if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
       $key=lc($1);
       $confs->{$key}=$2;
-      $confs->{$key}=~s/\\(.)/\1/g;
+      $confs->{$key}=~s/\\(.)/$1/g;
       $confs->{$key}=$1 if ($confs->{$key}=~/^'(.*)'$/ or $confs->{$key}=~/^"(.*)"$/);
     }
   }
@@ -107,14 +107,14 @@ sub read_config {
   # Simple configuration file handling
   #
   my %confs;
-  my $key, $f;
+  my ($key, $f);
   local *F;
   my $openOk=0;
   my $config_file;
 
   foreach $f (@_,@config_file_search_list) {
-    if (defined($f), open(F,"<$f")) {
-      print "Using resource file $f\n";
+    if (defined($f) and open(F,"<$f")) {
+      print STDERR "Using resource file $f\n";
       while (<F>) {
 	parse_config_line($_,\%confs);
       }
@@ -125,7 +125,7 @@ sub read_config {
     }
   }
   unless ($openOk) {
-    print
+    print STDERR
       "Warning: Cannot open any file in:\n",
       join(":",@config_file_search_list),"\n" .
       "         Using configuration defaults!\n";
