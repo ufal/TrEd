@@ -5797,8 +5797,12 @@ sub list_isearch {
     for (my $i=$active+1;$i<=$active+$count;$i++) {
       if ($items[$i % $count] =~ /^$A/i) {
 	$w->activate($i % $count);
-	$w->selectionClear(0,'end');
-	$w->selectionSet($i % $count);
+	unless ($w->isa('Tk::Listbox') and
+	    $w->cget('-selectmode') eq 'multiple' or
+	    $w->cget('-selectmode') eq 'extended') {
+	  $w->selectionClear(0,'end');
+	  $w->selectionSet($i % $count);
+	}
 	$w->see($i % $count);
 	Tk->break;
 	return;
