@@ -3803,7 +3803,7 @@ sub startMain {
 	 [Button=> "[3] Split view vertically", -underline=> 1,
 	  -command=> [\&splitWindow,\%group,'vert']],
 	 [Separator=> ''],
-	 [Button=> 'List of sentences ...', -underline=> 1,
+	 [Button=> 'List of sentences ...', -underline=> 8,
 	  -command=> [\&viewSentences,\%group]],
 	 [Button=> 'Select context ...', -underline=> 12,
 	  -command=> [\&selectContext,\%group]],
