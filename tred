@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-27 09:23:22 pajas>";
+$timestamp="Time-stamp: <2001-05-05 22:41:24 paja>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -180,6 +180,10 @@ if (defined $opt_c) {
 @filelists=();
 @openfiles=();
 
+
+my @customColors=('darkgreen','darkblue','darkmagenta',,'orange','darkred','green1',
+		  'slategray1','gold','cyan','midnightblue');
+
 my $configfile=readConfig();
 
 print "Resource file parsed\n";
@@ -243,10 +247,6 @@ if (not File::Spec->can(rel2abs)) {
              @openfiles @filelists &min &max);
 
 my @macros=();
-
-my @customColors=('darkgreen','darkblue','darkmagenta',,'orange','darkred','green1',
-		  'slategray1','gold','cyan','midnightblue');
-
 
 @open_types =
   (["Fs files",           [qw/.fs .FS .Fs/]],
@@ -546,7 +546,7 @@ sub setConfig {
   $cstsToFs=(exists $confs->{cststofs}) ? $confs->{cststofs} : undef;
   $fsToCsts=(exists $confs->{fstocsts}) ? $confs->{fstocsts} : undef;
   $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
-  $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip." -c");
+  $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip);
   $keyboardDebug=(exists $confs->{keyboarddebug}) ? $confs->{keyboarddebug} : 0;
   $hookDebug=(exists $confs->{hookdebug}) ? $confs->{hookdebug} : 0;
   $macroDebug=(exists $confs->{macrodebug}) ? $confs->{macrodebug} : 0;
@@ -691,7 +691,7 @@ sub readMacros {
 	my $mf=$1;
 	print STDERR "including $mf\n";
 	unless (-f $mf) {
-	  $mf=dirname($file).$m1;
+	  $mf=dirname($file).$mf;
 	  print STDERR "trying $mf\n";
 	  unless (-f $mf) {
 	    $mf="$libDir/$1";
@@ -3647,16 +3647,18 @@ sub editAttrsDialog {
   $grp->{'top'}->Unbusy();
 
   my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
-
   if ($result =~ /OK/) {
     $grp->{FSFile}->notSaved(1);
     lastActionBookmark($grp);
     foreach $a (@atord) {
       $$node{$a}=decode($e{$a}->get);
     }
+    doEvalHook($grp,"after_edit_node_hook",$node,1);
     getNodes($grp);
     redraw_tree($grp);
-  }
+  } else {
+     doEvalHook($grp,"after_edit_node_hook",$node,0);
+   }
   undef %e;
   foreach $_ (@r) {$_->destroy;}
   @r=();
@@ -4208,9 +4210,12 @@ sub editAttr {
       $grp->{FSFile}->notSaved(1);
       lastActionBookmark($grp);
       $$node{$attr}=$newvalue;
+      doEvalHook($grp,"after_edit_attr_hook",$node,$attr,1);
       getNodes($grp);
       redraw_tree($grp);
       $grp->{'top'}->Unbusy();
+    } else {
+      doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
     }
     return;
   }
@@ -4222,9 +4227,12 @@ sub editAttr {
       $grp->{FSFile}->notSaved(1);
       lastActionBookmark($grp);
       $$node{$attr}=$newvalue;
+      doEvalHook($grp,"after_edit_attr_hook",$node,$attr,1);
       getNodes($grp);
       redraw_tree($grp);
       $grp->{'top'}->Unbusy();
+    } else {
+      doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
     }
     return;
   }
@@ -4257,8 +4265,11 @@ sub editAttr {
     $grp->{FSFile}->notSaved(1);
     lastActionBookmark($grp);
     $$node{$attr}=decode($newvalue);
+    doEvalHook($grp,"after_edit_attr_hook",$node,$attr,1);
     getNodes($grp);
     redraw_tree($grp);
+  } else {
+    doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
   }
 #  $grp->{'top'}->Unbusy();
   $d->destroy;
