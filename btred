@@ -26,7 +26,7 @@ EOH
 }
 
 if ($opt_h) {
-  print <<EOF;
+  print <<'EOF';
 Usage:
   btred [-c config-file] [-m macro-file] [-e script] [-t context] [-q|-Q] [-N|-H] [-S] [-T] files...
 or
@@ -45,7 +45,7 @@ script        - any script (may use macros); typically script is just
 context       - start in the given macro context (package).
                 TredMacro is the default context.
 
--N            - wrap 'while ($this) { ...; \$this=\$this->following; }
+-N            - wrap 'while ($this) { ...; $this=$this->following; }
                 around the script
 -H            - same as -N but use following_visible instead, skipping
                 hidden nodes
@@ -65,13 +65,13 @@ in expectation that such a function is defined in the macro-file.
 As in TrEd, the following variables may be used in the macros and
 scripts:
 
-\$grp->{FSFile}       - current FSFile object (see section on FSFile in 
-                      - Fslib documentation)
-\$grp->{treeNo}       - current tree number
-\$grp->{macroContext} - current macro context
-\$this                - current node (root of the first tree at the beginning)
-\$root                - root node of current tree
-\$FileNotSaved        - change this to 1 if you want the file to be saved at the end
+$grp->{FSFile}       - current FSFile object (see section on FSFile in 
+                       Fslib documentation)
+$grp->{treeNo}       - current tree number
+$grp->{macroContext} - current macro context
+$this                - current node (root of the first tree at the beginning)
+$root                - root node of current tree
+$FileNotSaved        - change this to 1 if you want the file to be saved at the end
 
 Also all functions defined in default macro file tred.def
 as well as any function from Fslib (see Fslib documentation).
