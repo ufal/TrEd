@@ -308,7 +308,7 @@ sub expand {
   }
 
   my %saw;
-  @{ $self->files_ref } = grep( defined($_) && $_ ne "" && !$saw{$_}++, @{ $self->files_ref } );
+  @{ $self->files_ref } = grep( ref($_) && $_->[0] ne "" && !$saw{$_->[0]}++, @{ $self->files_ref } );
 
   return 1;
 }
@@ -407,7 +407,7 @@ sub add {
   # and add each element once only
   @_=grep {defined($_) and $_ ne ""} @_;
   do {
-    my %saw=map { $_ => 1 } @{ $self->list_ref },@{ $self->files_ref };
+    my %saw=map { $_ => 1 } @{ $self->list_ref },map {$_->[0]} @{ $self->files_ref };
     @_=grep(!$saw{$_}++,@_);
   };
   splice @{ $self->list_ref },$position,0,@_;
