@@ -1,18 +1,25 @@
+
 # -*- cperl -*-
+#encoding iso-8859-2
 
 # -------------------------------------------------------------------
 #
 # CONFIGURATION:
 #
 
-#encoding iso-8859-2
+unshift @INC,"$main::libDir/contrib" unless (grep($_ eq "$main::libDir/contrib", @INC));
+require ACAP;
+
+$drawAutoCoref = 1;
 
 $cortypes='textual|grammatical';              # types of coreference
 
 %cortype_colors = (                           # colors of coreference arrows
 		   textual => '#6a85cd',
 		   grammatical => '#f6c27b',
-		   segment => '#dd5555'
+		   segment => '#dd5555',
+		   autotextual => '#009900',
+		   autogrammatical => '#aaaaaa'
 		  );
 
 $referent_color = '#6a85cd';                  # color of the marked node
@@ -79,6 +86,7 @@ sub jump_to_referent { # modified by Zdenek Zabokrtsky, Jan 2003
   $id1=~s/:/-/g;
   my $coref;
   my @coref_list=split /\|/,$this->{coref};
+  print STDERR "Ahoj: @coref_list == $this->{coref} nazdar\n";
   if (@coref_list>1) {
     my $selection=[$coref_list[0]];
     listQuery("Multiple coreference",'single',
@@ -140,6 +148,14 @@ sub edit_corlemma {
 # remove it otherwise add it.
 sub assign_coref {
   my ($node,$ref,$type)=@_;
+  if ($type !~ /auto/) {
+    # don't assign auto corefs if manual corefs exist
+    return if $node->{coref} ne '';
+  } elsif ($node->{cortype}=~/auto/) {
+    # clear all corefs if assigning manual corefs to auto corefs
+    $node->{coref} = '';
+    $node->{cortype} = '';
+  }
   if ($ref eq get_ID_for_coref($node)) {
     $node->{coref}='';
     $node->{cortype}='';
@@ -190,7 +206,7 @@ sub node_release_hook {
 #bind remember_this_node to Ctrl+q menu Remeber current node for coreference
 sub remember_this_node {
   $referent = get_ID_for_coref($this);
-  #print STDERR "Remember:$referent $this->{AID}\n";
+  print STDERR "Remember:$referent $this->{AID}\n";
 }
 
 #bind set_referent_to_coref to Ctrl+s menu Set coreference to previously marked node
@@ -209,10 +225,27 @@ sub remove_last_coref {
   $node->{cortype}=~s/(^|\|)[^\|]*$//;
 }
 
+#bind toggle_draw_auto_corefs to Ctrl+a menu Toggle drawing automatically assigned coreference
+sub toggle_draw_auto_corefs {
+  $drawAutoCoref = !$drawAutoCoref;
+}
+
 
 # hook coref arrows drawing and custom coloring to node styling event
 sub node_style_hook {
   my ($node,$styles)=@_;
+
+  if ($drawAutoCoref and $node->{corefMark}==1 and
+      ($node->{coref} eq "" or $node->{cortype}=~/auto/)) {
+      AddStyle($styles,'Node',
+	       -shape => 'rectangle',
+	       -addheidht => '10',
+	       -addwidth => '10'
+	      );
+      AddStyle($styles,'Oval',
+	       -fill => '#FF7D20');
+  }
+
   if (($referent ne "") and
       (($node->{TID} eq $referent) or
        ($node->{AID} eq $referent))) {
@@ -232,8 +265,9 @@ sub node_style_hook {
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
   foreach my $coref (split /\|/,$node->{coref}) {
     my $cortype=shift @cortypes;
+    next if (!$drawAutoCoref and $cortype =~ /auto/);
     if (index($coref,$id1)==0) {
-      #print STDERR "Same sentence\n";
+      print STDERR "Same sentence\n";
       # same sentence
       my $T="[?\$node->{AID} eq '$coref' or \$node->{TID} eq '$coref'?]";
       push @colors,$cortype_colors{$cortype};
@@ -252,33 +286,33 @@ COORDS
 	my ($d,$p,$s)=($id1=~/^(.*?)-p(\d+)s([0-9A-Z]+)$/);
 	my ($cd,$cp,$cs)=($coref=~/^(.*?)-p(\d+)s([0-9A-Z]+).\d+/);
 	if ($d eq $cd) {
-	  #print STDERR "Same document\n";
+	  print STDERR "Same document\n";
 	  # same document
 	  if ($cp<$p || $cp==$p && $cs<$s) {
 	    # preceding sentence
-	    #print STDERR "Preceding sentence\n";
+	    print STDERR "Preceding sentence\n";
 	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
 	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
 	    $rotate_prv_snt+=10;
 	  } else {
 	    # following sentence
-	    #print STDERR "Following sentence\n";
+	    print STDERR "Following sentence\n";
 	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
 	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
 	    $rotate_nxt_snt+=10;
 	  }
 	} else {
 	  # different document
-	  #print STDERR "Different document?\n";
+	  print STDERR "Different document?\n";
 	  push @colors,$cortype_colors{$cortype}; #'&#c53c00'
 	  push @coords,"&n,n,n+$rotate_dfr_doc,n-30";
 	  $rotate_dfr_doc+=10;
-	  #print STDERR "Different document sentence\n";
+	  print STDERR "Different document sentence\n";
 	}
       }
   }
   if ($node->{corlemma} eq "sg") { # pointer to an unspecified segment of preceeding sentences
-    #print STDERR "Segment - unaimed arrow\n";
+    print STDERR "Segment - unaimed arrow\n";
     push @colors,$cortype_colors{segment};
     push @coords,"&n,n,n-25,n";
   }
@@ -305,88 +339,86 @@ COORDS
 }
 
 
-#bind auto_coref to Ctrl+e menu Automaticky dopln coref u vztaznych zajmen a nevyjadreneho aktora infinitivu
+# functions auto_coref, markPossibleCorefStarts, normalizeAutoCorefs
+# and ACAP package contributed by Oliver Culo 12/2003
+
+#bind auto_coref to Ctrl+e menu Automatically assign coreferences
 sub auto_coref {
-  auto_coref_subclause();
-  auto_coref_infinitive();
-}
-
-# automatically assign subclause coreference
-sub auto_coref_subclause {
-  my $node=$root;
+  shift @_ unless ref($_[0]);
+  my $node = ($_[0] || $root);
   while ($node) {
-    if ($node->{tag}=~/^P[149EJK]/) {
-      my $p=$node->parent;
-      $p=$p->parent while ($p and $p->{tag}!~/^V[^f]/);
-      if ($p) {
-	my $s=$p->parent;
-	$s=$s->parent while ($s and $s->{tag}!~/^[NP]/);
-	if ($s) {
-	  $node->{coref}=get_ID_for_coref($s);
-	  $node->{cortype}='grammatical';
-	}
-      }
+    my @results = ACAP::autoAssignCorefs($node);
+    if ($results[0]) {
+      print STDERR "ACAP result: ";
+      print STDERR join(", ",@results);
+      print STDERR "\n";
+      unless ($node->{coref})
+	      {assign_coref($node,@results);}
     }
-    $node=$node->following();
-  }
-
-}
-
-# find nearest depending node with given FUNC (skip coordinations and apositions)
-sub find_depending_func {
-  my ($node,$func,$memberof)=@_;
-  my $child=$node->firstson;
-  while ($child) {
-    if ($child->{func} eq $func and (!$memberof or $child->{memberof}=~/CO|AP/)) {
-      return $child;
-    } elsif ($child->{func} =~ /^(?:APOS|CONJ|DISJ)$/) {
-      if (find_depending_func($child,$func,1)) {
-	return $child;
-      }
-    }
-    $child=$child->rbrother;
-  }
-  return undef;
-}
-
-# automatically assign coreference to constructions with infinitive
-sub auto_coref_infinitive {
-
-  for ($node=$root;$node;$node=$node->following()) {
-    if ($node->{trlemma} eq '&Cor;') {
-      print "N: $node->{trlemma},$node->{func}\n";
-      next unless ($node->parent->{tag}=~/^V[fs]/ or
-		   ($node->parent->{func}=~/^(?:APOS|CONJ|DISJ)$/ and
-		    grep { $_->{tag}=~/^V[fs]/ and
-			     $_->{memberof}=~/CO|AP/ } $node->parent->children));
-
-      my $p=$node->parent->parent;
-      print "P1: $p->{trlemma},$p->{func}\n" if $p;
-      $p=$p->parent while ($p and $p->{tag}!~/^(?:V|AG)/);
-      if ($p) {
-	print "P2: $p->{trlemma},$p->{func}\n";
-	my $cor;
-	if ($p->{tag}=~/^AG/) {
-	  $cor=$p->parent;
-	  $cor=$cor->parent while ($cor and $cor->{func}=~/^(?:APOS|CONJ|DISJ)$/);
-	  $cor=undef unless ($cor->{tag}=~/^[ANCP]/);
-	} elsif ($p->{trlemma}=~/^(?:$inf_lemmas_pat)$/) {
-	  $cor=find_depending_func($p,'PAT');
-	} elsif ($p->{trlemma}=~/^(?:$inf_lemmas_addr)$/) {
-	  $cor=find_depending_func($p,'ADDR');
-	} else {
-	  $cor=find_depending_func($p,'ACT');
-	}
-	if ($cor and $cor != $node->parent) {
-	  print "C: $cor->{trlemma},$cor->{func}\n";
-	  $node->{coref}=get_ID_for_coref($cor);
-	  $node->{cortype}='grammatical';
-	}
-      }
-    }
+    $node = $node->following;
   }
 }
 
+sub switch_context_hook {
+#  SUPER::file_opened_hook();
+  default_tr_attrs();
+  foreach my $tree ($grp->{FSFile}->trees) {
+    markPossibleCorefStarts($tree);
+    auto_coref($tree);
+  }
+}
+
+
+#bind markPossibleCorefStarts to Ctrl+m menu Mark possible coreference start nodes
+sub markPossibleCorefStarts {
+  shift @_ unless ref($_[0]);
+  my $node = ($_[0] || $root);
+
+  while ($node) {
+    # if it is a hidden node, go to the next one,
+    # otherwise we would overgenerate 'se's:
+    if ($node->{TR} eq 'hide') {
+      $node = $node->following;
+      next;
+    }
+    if (
+	# typical trlemmata for coreference start:
+	($node->{trlemma} =~ 
+	 /^(který|jen¾|jak|Cor|\&Cor|\&Cor;|kdy|kam|kde|kdo|co¾|on|ten)$/)
+	||
+	# se that is not DPHR or ETHD:
+	($node->{trlemma} =~ /^se$/ &&
+	 $node->{func} !~ /^(DPHR|ETHD)/) 
+	||
+	# for COMPL, the rules have to be refined:
+	($node->{func} eq 'COMPL' && $node->{tag} !~ /^V/)
+	||
+	# a verb with functor COMPL is only then a coref node,
+	# when there's a jaky somewhere below it:
+	($node->{func} eq 'COMPL' && $node->{tag} =~ /^V/
+	 && grep {$_->{trlemma} eq 'jaký'} $node->descendants)
+       ) 
+    {
+      $node->{corefMark}=1;
+#      print STDERR "markPossibleCorefStart result: $node->{AID}\n";
+    } # end if
+    # process next node:
+    $node = $node->following;
+  }
+}
+
+#bind normalizeAutoCorefs to Ctrl+n menu Normalize automatically assigned Corefs
+sub normalizeAutoCorefs {
+  my $node = $root;
+  while ($node) {
+    if ($node->{cortype}) {
+      $node->{cortype} =~ s/auto//g;
+    }
+    $node = $node->following;
+  }
+}
+
+      
 =pod
 
 =head1 Coref
@@ -468,6 +500,13 @@ the current node, press '?'. Note, that this does not work for
 coreference between nodes that belong to different files.
 
 =item Automatic coreference assignment
+
+To toggle visualizing candidates for coreference relation start nodes
+and pre-assigning of easily detectible grammatical coreferences,
+press Ctrl+a.
+
+To confirm the pre-assigned grammatical coreferences in the whole
+tree, press Ctrl+n.
 
 Some simple cases of grammatical coreference in PDT tectogrammatical
 trees can be recognized automatically. To apply the automatic
@@ -552,4 +591,5 @@ no C<ref> attribute but contains the representation of the entity as
 PCDATA.
 
 =cut
+
 
