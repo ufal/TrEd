@@ -13,6 +13,8 @@ BoxColor	 		= wheat
 CurrentBoxColor	 	= white
 
 BackgroundColor  	= white
+HighlightWindowColor  	= black
+HighlightWindowWidth  	= 3
 
 ;; --------- Attribute Colors ---------
 
