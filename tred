@@ -1679,13 +1679,9 @@ sub switchContext {
   my $prevcontext=$win->{macroContext};
   return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context)
 	       eq 'stop');
-  print "Switching to $context\n";
   $win->{macroContext}=$context;
-  print "$win $win->{framegroup}->{focusedWindow} ",isFocused($win),"\n";
   $win->{framegroup}->{selectedContext}=$context if (isFocused($win));
-  print "Current context: $win->{macroContext}, $win->{framegroup}->{selectedContext}\n";
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
-  print "Current context: $win->{macroContext}, $win->{framegroup}->{selectedContext}\n";
   redraw_win($win);		# something should be done with display attrs vs windows maybe
 }
 
@@ -1708,21 +1704,24 @@ sub onCurrentChange {
   my ($win,$node,$prev)=@_;
   my $n;
   $tv=$win->{treeView};
-  foreach $n ($prev,$node) { 
+  foreach $n ($node,$prev) {
     $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"Oval"),
 			       nodeOptions($win,$n));
-    if ($tv->get_drawBoxes) {
+    if ($tv->get_node_pinfo($n,"NodeHasBox")) {
       #and defined($tv->get_node_pinfo($n,"TextBox")));
       $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"TextBox"),
 				 nodeBoxOptions($win,$n,0));
     }
-    if ($tv->get_drawEdgeBoxes) {
+    if ($tv->get_node_pinfo($n,"EdgeHasBox")) {
       $tv->canvas->itemconfigure($tv->get_node_pinfo($n,"EdgeTextBox"),
 				 nodeBoxOptions($win,$n,1));
     }
     $tv->canvas->coords($tv->get_node_pinfo($n,"Oval"),
 			$tv->node_coords($n,$win->{currentNode}));
   }
+  $tv->apply_stored_style_opts("Oval",$prev);
+  $tv->apply_stored_style_opts("TextBox",$prev);
+  $tv->apply_stored_style_opts("EdgeTextBox",$prev);
 }
 
 sub prepareFont {
@@ -1882,6 +1881,10 @@ sub focusCanvas {
   my $newfocus=findCanvasWindow($grp,$c);
   if ($newfocus) {
     $grp->{selectedContext}=$newfocus->{macroContext};
+    $treeViewOpts->{drawBoxes}=$newfocus->{treeView}->get_drawBoxes();
+    $treeViewOpts->{drawEdgeBoxes}=$newfocus->{treeView}->get_drawEdgeBoxes();
+    $treeViewOpts->{showHidden}=$newfocus->{treeView}->get_showHidden();
+    $treeViewOpts->{highlightAttributes}=$newfocus->{treeView}->get_highlightAttributes;
     $grp->{focusedWindow}=$newfocus;
     update_value_line($grp);
     updateTitle($grp);
@@ -2135,12 +2138,12 @@ sub startMain {
 	 [Button=> 'Previous Tree',
 	  -underline=> 0,
 	  -command=> [sub {
-			prevTree($_[0]->{focusedWindow});
+			tiePrevTree($_[0]);
 		      },\%group]],
 	 [Button=> 'Next Tree',
 	  -underline=> 0,
 	  -command=> [sub {
-			nextTree($_[0]->{focusedWindow});
+			tieNextTree($_[0]);
 		      },\%group]],
 	 [Separator=> ''],
 	 [Checkbutton=> 'Draw boxes around labels', -underline=> 0,
@@ -2151,7 +2154,7 @@ sub startMain {
 			 $grp->{focusedWindow}->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
 			 redraw_win($grp->{focusedWindow});
 		       },\%group]],
-	 [Checkbutton=> 'Draw boxes around edge labels', -underline=> 0,
+	 [Checkbutton=> 'Draw boxes around edge labels', -underline=> 1,
 	  -variable=> \$treeViewOpts->{drawEdgeBoxes},
 	  -command => [sub {
 			 my ($grp)=@_;
@@ -2361,7 +2364,7 @@ sub startMain {
 						       "$libDir/right.xpm"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
-			  [sub { nextTree($_[0]->{focusedWindow}) },\%group]);
+			  [sub { tieNextTree($_[0]) },\%group]);
   $group{Balloon}->attach($group{nextButton},
 		 -balloonmsg=> "see the next tree");
   addBindTags($group{nextButton},'my');
@@ -2372,7 +2375,7 @@ sub startMain {
 						       "$libDir/left.xpm"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
-			  [sub { prevTree($_[0]->{focusedWindow}) },\%group]);
+			  [sub { tiePrevTree($_[0]) },\%group]);
   $group{Balloon}->attach($group{prevButton},
 		 -balloonmsg=> "see the previous tree");
   addBindTags($group{prevButton},'my');
@@ -2500,6 +2503,20 @@ sub startMain {
   $group{Balloon}->attach($group{attrButton},
 			  -balloonmsg=> "select visible attributes");
 
+  $group{tieWinddowsButton}=
+    $group{frame}->Checkbutton(-takefocus=>0,
+			      -text=> "Tie Displayed Windows",
+			      -variable=> \$group{tieWindows},
+			       -relief=> $buttonsRelief,
+			      -indicatoron => 0,
+			      -image=>$group{top}->Pixmap(-file=>
+							  "$libDir/tiewins.xpm"),
+			      -borderwidth=> $buttonBorderWidth)->pack(-side=>'right',
+								       -padx=>'1');
+  $group{Balloon}->attach($group{tieWinddowsButton},
+			  -balloonmsg=> "tie all views");
+
+
   $group{rmsplitButton}=
     $group{frame}->Button(-takefocus=>0, 
 			  -text=> "Remove Current View",
@@ -2521,6 +2538,8 @@ sub startMain {
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&splitWindow,\%group,'horiz'])->pack(-side=>'right',
 									    -padx=>'1');
+
+
   $group{Balloon}->attach($group{hsplitButton},
 			  -balloonmsg=> "split view horizontally");
   $group{vsplitButton}=
@@ -2672,7 +2691,7 @@ sub startMain {
 			 Tk->break;
 		       },\%group]);
 
-  $group{focusedWindow}->{treeView}->focus;
+  $group{focusedWindow}->canvas->focus;
 
   $group{printToFile}=0;
   $group{printCommand}='lpr';
@@ -3242,12 +3261,29 @@ sub editAmbiguousAttr {
   return undef;
 }
 
+sub focusxEditDn {
+  my ($w,$i,$e,$f,$atord)=@_;
+  if ($i+1<@$atord) {
+    $f->see($e->{$atord->[$i+1]});
+    $e->{$atord->[$i+1]}->focus;
+  }
+  Tk->break;
+}
+
+sub focusxEditUp {
+  my ($w,$i,$e,$f,$atord)=@_;
+  if ($i>0) {
+    $f->see($e->{$atord->[$i-1]});
+    $e->{$atord->[$i-1]}->focus;
+  }
+  Tk->break;
+}
+
 sub editAttrsDialog {
   my ($win,$node)=@_;
   return if (doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
   return unless $win->{FSFile};
   my @vals;
-  my @r=();
   my %e=();
   my @atord=$win->{FSFile}->FS->attributes;
   if ($sortAttrs) {
@@ -3261,58 +3297,33 @@ sub editAttrsDialog {
   my $d=$win->toplevel->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
 				 -buttons=> ["OK", "Cancel"]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
-  $d->resizable(0,0);
-  my $f= $d->Scrolled('Tiler',
-		       -columns=>2,
-		       -rows=>$rows,
-		       -relief=> 'groove',
-		       -scrollbars=> 'e');
-  $f->BindMouseWheelVert();	# does not work here for some reason
-  sub focusxAtrEditDn {
-    my ($w,$i,$e,$f,$rows,$cnt,$atord)=@_;
-    if ($i+1>=@$atord) {
-      $w->focusNext if ($cnt);
-    } else {
-      $e->{$atord->[$i+1]}->focus;
-      $f->scroll(1,'pages')
-	if ($i+1>=($f->{SubWidget}{tiler}{Start}+$rows));
-      # D'ya like dirty tricks ? :)
-    }
-    Tk->break;
-  };
-  sub focusxAtrEditUp {
-    my ($w,$i,$e,$f,$cnt,$atord)=@_;
-    if ($i<=0) {
-      $w->focusPrev if ($cnt);
-    } else {
-      $e->{$atord->[$i-1]}->focus;
-      $f->scroll(-1,'pages')
-	if ($i-1<($f->{SubWidget}{tiler}{Start}));
-      # D'ya like dirty tricks ? :)
-    }
-    Tk->break;
-  };
+  my $ff=$d->Frame(-relief=> 'groove',
+		   -bd => 1);
+  my $f= $ff->Scrolled('Pane',
+		      -sticky => 'we',
+		      -scrollbars=> 'e');
+  $f->BindMouseWheelVert("","EditEntry");
 
-  $f->bind($f,'<Tab>',[sub {
-			     if ($e{$atord[0]}) {
-			       $e{$atord[0]}->focus;
-			       $f->moveto(0);
-			     } else {
-			       shift->focusNext;
-			     }
-			     Tk->break;
-			   }]);
+  my $lwidth;
+  foreach (@atord) {
+    $lwidth=max($lwidth,length($_));
+  }
+  my $height=0;
   for (my $i=0;$i<=$#atord;$i++) {
     $_=$atord[$i];
     # Reliefs: raised, sunken, flat, ridge, and groove.
-    push @r,$f->Label(-text=> $_, -anchor=> 'nw')->pack();
+    my $eef=$f->Frame()->pack(qw/-side top -expand yes -fill x/);
+    $eef->Label(-text=> $_,
+		-justify => 'left',
+		-width =>$lwidth,
+		-anchor=> 'nw')->pack(qw/-side left/);
 
     if  ($win->{FSFile}->FS->isList($_) or
 	 $$node{$_}=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
-      $r= $f->Frame;
+      $r= $eef->Frame();
       $e{$_}= $r->Entry(-relief=> 'sunken', -takefocus=> 1,
 			 -font=> $font)->pack(qw/-expand yes -fill both -side left/);
-#      unless (doEvalHook($win,'enable_attr_hook',$_,"ambiguous") eq 'stop') {
+      addBindTags($e{$_},"EditEntry");
 	$b=$r->Button(-text=> "...", -takefocus=> 0,
 		      -command=> [sub {
 				     my ($e,$win,$node,$attr,$d)=@_;
@@ -3326,31 +3337,34 @@ sub editAttrsDialog {
 				       $e->insert(0,$result);
 				       $e->configure(-state=> 'disabled');
 				     }
-				   },$e{$_},$win,$node,$_,$d])->pack(-side=> 'right');
+				   },$e{$_},$win,$node,$_,$d])
+	  ->pack(qw/-side right/);
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
-#      }
       $e{$_}->insert(0,encode($$node{$_}));
       $e{$_}->configure(-state=> 'disabled');
-      push @r, $r;
+      $r->pack(qw/side right -expand yes -fill both/);
+      $height += max($b->reqheight,$e{$_}->reqheight()) if ($i<$rows);
     } else {
-      $e{$_}= $f->Entry(-relief=> 'sunken', -takefocus=> 1,
-			 -font=> $font)->pack(qw/-expand yes -fill both/);
+      $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
+			 -font=> $font)->pack(qw/-side right -expand yes -fill both/);
+      addBindTags($e{$_},"EditEntry");
       $e{$_}->insert(0,encode($$node{$_}));
       if (doEvalHook($win,'enable_attr_hook',$_,"normal") eq 'stop') {
 	$e{$_}->configure(-state=> 'disabled');
       }
-
-      push @r, $e{$_};
+      $height += $e{$_}->reqheight() if ($i<$rows);
     }
-
-    $f->bind($e{$_},'<Tab>',[\&focusxAtrEditDn,$i,\%e,$f,$rows,1,\@atord]);
-    $f->bind($e{$_},'<Down>',[\&focusxAtrEditDn,$i,\%e,$f,$rows,0,\@atord]);
-    $f->bind($e{$_},'<Shift-Tab>',[\&focusxAtrEditUp,$i,\%e,$f,1,\@atord]);
-    $f->bind($e{$_},'<Up>',[\&focusxAtrEditUp,$i,\%e,$f,0,\@atord]);
+    $f->bind($e{$_}, '<Tab>',       [\&focusxEditDn,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Down>',      [\&focusxEditDn,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Shift-Tab>', [\&focusxEditUp,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Shift-ISO_Left_Tab>',
+	                            [\&focusxEditUp,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Up>',        [\&focusxEditUp,$i,\%e,$f,\@atord]);
   }
-  $f->Manage(@r);
-  $f->pack();
+  $f->configure(-height => $height);
+  $f->pack(qw/-expand yes -fill both/);
+  $ff->pack(qw/-expand yes -fill both/);
   $win->toplevel->Unbusy();
 
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$win->toplevel);
@@ -3493,10 +3507,6 @@ sub customAttrsDialog {
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
   $f->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
-#  $d->Label(-text => "Node styling pattern",
-#	    -anchor => 'nw',
-#	    -justify => 'left')->pack(qw/-side top -expand yes -fill x/);
-#  $d->Entry(qw/-relief sunken -borderwidth 2/)->pack(qw/-side top -expand yes -fill x/);
   my $eff=$d->Frame(qw/-relief sunken -bd 1/)->
     pack(qw/-padx 3 -pady 3 -side top -fill x/);
   $eff->Frame(qw/-height 6/)->pack();
@@ -3515,6 +3525,7 @@ sub customAttrsDialog {
 	     $e->delete('sel.first','sel.last')
 	       if ($e->selectionPresent);
 	     $e->insert('insert','${'.$al->get('active').'}');
+	     $e->focus();
 	   }
 	  );
   $cl->bind('<Double-1>'=> 
@@ -3524,6 +3535,7 @@ sub customAttrsDialog {
 	       $e->delete('sel.first','sel.last')
 	     }
 	     $e->insert('insert',$cl->get('active'));
+	     $e->focus();
 	   }
 	  );
   $d->bind('<Return>'=> [sub {1;}]);
@@ -3562,7 +3574,6 @@ sub findNodeDialog {
   my $b;
   my $a;
   my $rows=min($maxDisplayedAttributes,$#atord+1);
-  my @r=();
   my %e=();
   $grp->{top}->Busy(-recurse=>1);
   my $d=$grp->{top}->DialogBox(-title=> "Find Node By Attributes", -width=> '10c',
@@ -3581,68 +3592,42 @@ sub findNodeDialog {
   }
 
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
-  $d->resizable(0,0);
-  my $f= $d->Scrolled('Tiler',
-		       -columns=>2,
-		       -rows=>$rows,
-		       -relief=> 'groove',
-		       -scrollbars=> 'e');
-  $f->BindMouseWheelVert();	# does not work here for some reason
-  sub focusxFindDn {
-    my ($w,$i,$e,$f,$rows,$cnt,$atord)=@_;
-    if ($i+1>=@$atord) {
-      $w->focusNext if ($cnt);
-    } else {
-      $e->{$atord->[$i+1]}->focus;
-      $f->scroll(1,'pages')
-	if ($i+1>=($f->{SubWidget}{tiler}{Start}+$rows));
-      # D'ya like dirty tricks ? :)
-    }
-    Tk->break;
-  }
-  ;
-  sub focusxFindUp {
-    my ($w,$i,$e,$f,$cnt)=@_;
-    if ($i<=0) {
-      $w->focusPrev if ($cnt);
-    } else {
-      $e->{$atord->[$i-1]}->focus;
-      $f->scroll(-1,'pages')
-	if ($i-1<($f->{SubWidget}{tiler}{Start}));
-      # D'ya like dirty tricks ? :)
-    }
-    Tk->break;
-  }
-  ;
+  my $ff=$d->Frame(-relief=> 'groove',
+		   -bd => 1);
+  my $f= $ff->Scrolled('Pane',
+		      -sticky => 'we',
+		      -scrollbars=> 'e');
+  $f->BindMouseWheelVert("","EditEntry");
 
-  $f->bind($f,'<Tab>',[	sub {
-			  if ($e{$atord[0]}) {
-			    $e{$atord[0]}->focus;
-			    $f->moveto(0);
-			  } else {
-			    shift->focusNext;
-			  }
-			  Tk->break;
-			}]);
-
+  my $lwidth;
+  foreach (@atord) {
+    $lwidth=max($lwidth,length($_));
+  }
+  my $height=0;
   for (my $i=0;$i<=$#atord;$i++) {
     $_=$atord[$i];
     # Reliefs: raised, sunken, flat, ridge, and groove.
-    push @r,$f->Label(-text=> $_, -anchor=> 'nw')->pack();
-
-    $e{$_}= $f->Entry(-relief=> 'sunken', -takefocus=> 1,
-		       -font=> $font)->pack(qw/-expand yes -fill both/);
-    $e{$_}->insert(0,encode($template->{$_}));
-    push @r, $e{$_};
-
-    $e{$_}->bind($e{$_},'<Tab>',[\&focusxFindDn,$i,\%e,$f,$rows,1,\@atord]);
-    $e{$_}->bind($e{$_},'<Down>',[\&focusxFindDn,$i,\%e,$f,$rows,0,\@atord]);
-    $e{$_}->bind($e{$_},'<Shift-Tab>',[\&focusxFindUp,$i,\%e,$f,1,\@atord]);
-    $e{$_}->bind($e{$_},'<Up>',[\&focusxFindUp,$i,\%e,$f,0,\@atord]);
+    my $eef=$f->Frame()->pack(qw/-side top -expand yes -fill x/);
+    $eef->Label(-text=> $_,
+		-justify => 'left',
+		-width =>$lwidth,
+		-anchor=> 'nw')->pack(qw/-side left/);
+    $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
+			-font=> $font)->pack(qw/-side right -expand yes -fill both/);
+    addBindTags($e{$_},"EditEntry");
+    $e{$_}->insert(0,encode($$node{$_}));
+    $height += $e{$_}->reqheight() if ($i<$rows);
+    $f->bind($e{$_}, '<Tab>',       [\&focusxEditDn,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Down>',      [\&focusxEditDn,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Shift-Tab>', [\&focusxEditUp,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Shift-ISO_Left_Tab>',
+	                            [\&focusxEditUp,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Up>',        [\&focusxEditUp,$i,\%e,$f,\@atord]);
   }
-  $f->Manage(@r);
-  $f->pack();  # or shoud it be pack(qw/-expand yes -fill x/)?
-               # one may choose, but both have their plus and minus
+  $f->configure(-height => $height);
+  $f->pack(qw/-expand yes -fill both/);
+  $ff->pack(qw/-expand yes -fill both/);
+
   do {
     my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
     $of->Label(-text=> 'Search method: ')->pack(qw/-side left/);
@@ -4075,6 +4060,7 @@ sub redraw_fsfile_tree {
 sub redraw_all {
   my ($grp)=@_;
   foreach (@{ $grp->{treeWindows} }) {
+    print "REDRAWING $_\n";
     redraw_win($_);
   }
   return;
@@ -4300,7 +4286,7 @@ sub doEvalMacro {
   return unless $macro and $win->{currentNode};
 
   $win->toplevel->Busy(-recurse=> 1);
-  my $bookmark=bookmarkThis($grp->{framegroup});
+  my $bookmark=bookmarkThis($win->{framegroup});
 
   $insideEval=1;
 
@@ -4309,18 +4295,18 @@ sub doEvalMacro {
   $TredMacro::libDir=$libDir;
   $TredMacro::FileNotSaved=1;
   $TredMacro::forceFileSaved=0;
-
+  $TredMacro::Redraw='file';
   my $result=do_eval_macro($win,$macro);
 
   unless ($TredMacro::forceFileSaved) {
     print STDERR "Macro claims file untouched\n"
       unless ($TredMacro::FileNotSaved);
     $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $TredMacro::FileNotSaved);
-    lastActionBookmark($grp->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
+    lastActionBookmark($win->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
   } else {
     print STDERR "Macro forsly claims file saved.\n";
     $win->{FSFile}->notSaved($TredMacro::FileNotSaved);
-    lastActionBookmark($grp->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
+    lastActionBookmark($win->{framegroup},$bookmark) if $TredMacro::FileNotSaved;
   }
   $insideEval=0;
 
@@ -4331,7 +4317,22 @@ sub doEvalMacro {
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
-  redraw_fsfile($win->{framegroup},$win->{FSFile});  # ??? 4kb/50 runs memory leaks???, speed ok
+  print "REDRAW: $TredMacro::Redraw\n";
+  if ($TredMacro::Redraw eq 'all') {
+    redraw_all($win->{framegroup});
+  } elsif ($TredMacro::Redraw eq 'win') {
+    redraw_win($win);
+  } elsif ($TredMacro::Redraw eq 'tree') {
+    redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+  } elsif ($TredMacro::Redraw eq 'tie') {
+    if ($win->{framegroup}->{tieWindows}) {
+      redraw_all($win->{framegroup});
+    } else {
+      redraw_win($win);
+    }
+  } else {
+    redraw_fsfile($win->{framegroup},$win->{FSFile});  # ??? 4kb/50 runs memory leaks???, speed ok
+  }
   #------------------------------------------------------------
   #}
   #my $t1= new Benchmark;
@@ -4404,6 +4405,28 @@ sub evalMacro {
   return undef;
 }
 
+sub tieNextTree {
+  my ($grp)=@_;
+  if ($grp->{tieWindows}) {
+    foreach (@{$grp->{treeWindows}}) {
+      nextTree($_) if ($_->{FSFile});
+    }
+  } else {
+    nextTree($grp->{focusedWindow}) if ($grp->{focusedWindow}->{FSFile});
+  }
+}
+
+sub tiePrevTree {
+  my ($grp)=@_;
+  if ($grp->{tieWindows}) {
+    foreach (@{$grp->{treeWindows}}) {
+      prevTree($_) if ($_->{FSFile});
+    }
+  } else {
+    prevTree($grp->{focusedWindow}) if ($grp->{focusedWindow}->{FSFile});
+  }
+}
+
 sub currentNext {
   my ($win)=@_;
   my $next=HNext($win,$win->{currentNode});
@@ -4469,8 +4492,12 @@ sub node_move {
   my($cx, $cy)= ($w->canvasx($x),$w->canvasy($y));
   $w->move('selected',  $cx-$lcx, $cy-$lcy);
   $w->itemconfigure('selected', -fill=> $ncolor, -outline=> $ocolor ) if $scroll;
-  $w->itemconfigure('nearest', $tv->node_options($node,$win->{FSFile}->FS,undef));
-  $w->dtag('nearest');
+  my $nearest=$tv->get_obj_pinfo($w->find('withtag','nearest'));
+  if ($nearest) {
+    $w->itemconfigure('nearest',nodeOptions($win,$nearest));
+    $tv->apply_stored_style_opts("Oval",$nearest);
+    $w->dtag('nearest');
+  }
 
   my @dots= $w->find('withtag','point');
   my $nearestNode=0;
