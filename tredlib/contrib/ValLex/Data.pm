@@ -725,7 +725,7 @@ sub modifyFrame {
     $frame->replaceChild($ex,$old_ex);
     $self->dispose_node($old_ex);
   } else {
-    $frame->insertBefore($ex,undef);
+    $frame->insertBefore($ex,$frame->firstChild);
   }
   $ex->addText($self->conv->encode($example));
   undef $old_ex;
