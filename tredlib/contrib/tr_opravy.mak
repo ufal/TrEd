@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-11-28 19:07:41 pajas>
+## Time-stamp: <2003-12-12 18:36:54 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -96,6 +96,14 @@ sub add_commentA {
   $node->{commentA}.='|' if $node->{commentA} ne "";
   $node->{commentA}.=$comment;
 }
+
+sub prepend_commentA {
+  my ($comment,$node)=@_;
+  $node = $this unless ref($node);
+  $comment.='|' if $node->{commentA} ne "";
+  $node->{commentA}=$comment.$node->{commentA};
+}
+
 
 sub hash_AIDs {
   my %aids;
