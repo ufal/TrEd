@@ -7009,12 +7009,18 @@ sub prepare_undo {
   my $fsfile=$win->{FSFile};
   return undef unless $fsfile;
   my $tree;
-  require Data::Dumper;
-  Fslib::PrintTree($win->{root},
-	    $fsfile->FS->list,
-	    $fsfile->FS->defs,
-	    \$tree);
-  return [$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode})];
+  eval { require Storable; };
+  if ($@) {
+    undef $@;
+    Fslib::PrintTree($win->{root},
+		     $fsfile->FS->list,
+		     $fsfile->FS->defs,
+		     \$tree);
+    return ['FS',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode})];
+  } else {
+    $tree = Storable::freeze($win->{root});
+    return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode})];
+  }
 #  local $Data::Dump::Purity = 1;
 #  return Data::Dumper->Dump([$win->{treeNo},$win->{root},$win->{currentNode}],
 #			    [qw(treeNo root currentNode)]);
@@ -7067,12 +7073,17 @@ sub undo {
   if ($undo) {
     my $new_undo;
     $new_undo=prepare_undo($win) if (!$redo and $#$stack == $stackpos);
-    my $treeNo=$undo->[0];
-    my $tree=$undo->[1];
-    $fsfile->treeList->[$treeNo]=
-      GetTree2($tree,
-	       $fsfile->FS->list,
-	       $fsfile->FS->defs);
+    my $type = $undo->[0];
+    my $treeNo=$undo->[1];
+    my $tree=$undo->[2];
+    if ($type eq 'FS') {
+      $fsfile->treeList->[$treeNo]=
+	GetTree2($tree,
+		 $fsfile->FS->list,
+		 $fsfile->FS->defs);
+    } elsif ($type eq 'Storable') {
+      $fsfile->treeList->[$treeNo]=Storable::thaw($tree);
+    }
     if ($#$stack == $stackpos) {
       if ($redo) {
 	pop @$stack;
@@ -7085,8 +7096,8 @@ sub undo {
     resetUndoStatus($win);
     $fsfile->notSaved(1);
     $win->{treeNo}=$treeNo;
-    $win->{currentNode}=getNodeByNo($win,$undo->[2]);
-
+    $win->{currentNode}=getNodeByNo($win,$undo->[3]);
+    
 #    my ($treeNo,$root,$currentNode);
 #    print STDERR "$undo\n";
 #    eval $undo;
@@ -7096,6 +7107,7 @@ sub undo {
 #    $win->{currentNode}=$currentNode;
     get_nodes_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
     redraw_fsfile_tree($win->{framegroup},$fsfile,$treeNo);
+    centerTo($win,$win->{currentNode});
   } else {
     errorMessage($win,"Corrupted undo stack!");
   }
