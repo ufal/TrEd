@@ -305,6 +305,8 @@ Return the n'th file name in the list
 sub file_at {
   my ($self,$index) = @_;
   return undef unless ref($self);
+  return undef if $self->file_count() <= $index;
+  return undef unless ref($self->files_ref->[$index]);
   return $self->files_ref->[$index]->[0];
 }
 
