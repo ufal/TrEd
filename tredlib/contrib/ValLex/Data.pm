@@ -206,11 +206,11 @@ sub getWordSubList {
   }
   # get before list
   $i=0;
+  $posfilter=~s/\*/ANVD/;
   my $word = $milestone;
-  ($posfilter) = $posfilter=~/^\s*([a-z])/i;
   while ($word and $i<$before) {
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
-    if ($posfilter eq '' or $pos eq uc($posfilter)) {
+    if (index(uc($posfilter),uc($pos))>=0) {
       my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
       my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
       my $reviewed = $self->wordReviewed($word);
@@ -225,7 +225,7 @@ sub getWordSubList {
   $word=$milestone->nextSibling();
   while ($word and $word->nodeName eq 'word' and $i<$after) {
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
-    if ($posfilter eq '' or $pos eq uc($posfilter)) {
+    if (index(uc($posfilter),uc($pos))>=0) {
       my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
       my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
       my $reviewed = $self->wordReviewed($word);
@@ -822,7 +822,7 @@ sub moveFrameAfter {
 sub findNextFrame {
   my ($self,$frame, $status, $posfilter)=@_;
   my $word;
-  ($posfilter) = $posfilter=~/^\s*([a-z])/i;
+  $posfilter=~s/\*/ANVD/;
   unless ($frame) {
     $word=$self->getFirstWordNode();
     ($frame)=$self->getFrameNodes($word);
@@ -832,7 +832,7 @@ sub findNextFrame {
   }
   while ($word) {
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
-    if ($posfilter eq '' or $pos eq uc($posfilter)) {
+    if (index(uc($posfilter),uc($pos))>=0) {
       while ($frame) {
 	return $frame if $self->getFrameStatus($frame) =~ $status;
 	$frame = $frame->findNextSibling('frame');
@@ -847,7 +847,7 @@ sub findNextFrame {
 sub findPrevFrame {
   my ($self,$frame, $status, $posfilter)=@_;
   my $word;
-  ($posfilter) = $posfilter=~/^\s*([a-z])/i;
+  $posfilter=~s/\*/ANVD/;
   return $self->findNextFrame() unless ($frame);
 
   $word=$self->getWordForFrame($frame);
@@ -855,7 +855,7 @@ sub findPrevFrame {
 
   while ($word) {
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
-    if ($posfilter eq '' or $pos eq uc($posfilter)) {
+    if (index(uc($posfilter),uc($pos))>=0) {
       while ($frame) {
 	return $frame if $self->getFrameStatus($frame) =~ $status;
 	$frame = $frame->findPreviousSibling('frame');
