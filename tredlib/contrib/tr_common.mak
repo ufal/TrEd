@@ -594,6 +594,12 @@ sub getAIDREF {
   return ($node->{AIDREFS} ne "") ? $node->{AIDREFS} : $node->{AID};
 }
 
+sub getAIDREFs {
+  my $node = $_[0] || $this;
+  my $aidref=($node->{AIDREFS} ne "") ? $node->{AIDREFS} : $node->{AID};
+  return split /\|/,$aidref;
+}
+
 sub ConnectAIDREFS {
   my $node = shift || $pPar1;
   my $dnode = shift || $pPar2;
