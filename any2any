@@ -2,7 +2,7 @@
 #                                                          -*- cperl -*-
 
 use Getopt::Std;
-getopts('p:T:r:s:a:f:hu');
+getopts('p:r:s:a:f:Thu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
   print "Usage: $0 [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] [-T] file [file ...]\n";
@@ -81,6 +81,15 @@ foreach $f (@ARGV) {
     unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
     rename $f, "$f~" || die "Cannot create backup file named $f~ for $f\n";
   }
+
+  if ($opt_T) {
+    $fs->changePatterns('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
+                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+    $fs->changeHint('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
+		      "afun:\t\${afun}\ntag:\t\${tag}".
+		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
+  }
+
   $fs->writeFile($out);
   undef $fs;
 }
