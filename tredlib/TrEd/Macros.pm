@@ -126,6 +126,12 @@ sub read_macros {
       $ifok = $conditions[$#conditions];
     } else {
       if ($ifok) {
+	if (/^\s*__END__/) {
+	  last;
+	} elsif (/^\s*__DATA__/) {
+	  warn "Warning: __DATA__ has no meaning in TredMacro (ise __END__ instead) at $file line $line\n";
+	  last;
+	}
 	push @macros,$_;
 	if (/^\#!(.*)$/) {
 	  $exec_code=$1 unless defined $exec_code; # first wins
@@ -251,7 +257,7 @@ sub read_macros {
       }
     }
   }
-  die "Missing #endif in $file (".scalar(@conditions)." unmatched #if-pragmas)\n" if (@conditions);
+  die "Missing #endif in $file line $line (".scalar(@conditions)." unmatched #if-pragmas)\n" if (@conditions);
   close(F);
   return 1;
 }
@@ -302,7 +308,7 @@ sub initialize_macros {
   my $result = 2;
   my $utf = ($useEncoding) ? "use utf8;\n" : "";
   unless ($macrosEvaluated) {
-    my $macros="{\n".$utf.join("",@macros)."\n}; 1;";
+    my $macros="{\n".$utf.join("",@macros)."\n}; 1;\n";
     print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     if (defined($safeCompartment)) {
       ${macro_variable('TredMacro::grp')}=$win;
