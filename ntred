@@ -1,0 +1,768 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+use Pod::Usage;
+use IO::Socket;
+use IO::Select;
+
+use vars qw(
+	    $opt_T $opt_N $opt_H $opt_m $code
+	    $hubname $hubport $init $nocheck $noservers
+	    $nohub $client_key_file $verbose $srvlist
+	    $kill $filelist $srvlistfile $request_quit
+	    $unrestricted $help $usage $manpage
+	   );
+
+## Passing -o args... -- to TredMacro
+@TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
+shift @TredMacro::ARGV; pop @TredMacro::ARGV;
+@ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
+Getopt::Long::Configure ("bundling");
+GetOptions ("all-trees|T"    => \$opt_T,
+	    "all-nodes|N"    => \$opt_N,
+	    "all-nonhidden-nodes|H"  => \$opt_H,
+	    "help|h"         => \$help,
+	    "usage|u"        => \$usage,
+	    "man"            => \$manpage,
+	    "macro-file|m=s" => \$opt_m,
+	    "execute|e=s"    => \$code,
+	    "hub=s"          => \$hubname,
+	    "port=i"         => \$hubport,
+	    "init|i"           => \$init,
+	    "kill|k"           => \$kill,
+	    "quit"           => \$request_quit,
+	    "servers=s"    => \$srvlist,
+	    "unrestricted|U" => \$unrestricted,
+	    "serverlist|s=s"    => \$srvlistfile,
+	    "filelist|l=s"    => \$filelist,
+	    "no-server-check" => \$nocheck,
+	    "no-server-start" => \$noservers,
+	    "no-hub-start"   => \$nohub,
+	    "key-file=s"     => \$client_key_file,
+	    "verbose|v"      => \$verbose
+	   ) or $usage=1;
+
+$client_key_file ||= "$ENV{HOME}/.ntred_session_key";
+$hubport ||= 1500;
+$hubname ||= 'localhost'; # no remote connections by default
+
+if ($usage) {
+  pod2usage(-msg => 'ntred - controller/hub/client for remote btred servers');
+#  exit 0;
+}
+if ($help) {
+  pod2usage(-exitstatus => 0, -verbose => 1);
+}
+if ($manpage) {
+  pod2usage(-exitstatus => 0, -verbose => 2);
+}
+
+sub msg { print STDERR ($init ? "NTRED-HUB: " : "NTRED-CLIENT: "), @_; }
+
+# make given list (passes by reference) unique
+sub make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
+
+sub send_request {
+  my ($control, $server, $type)=(shift,shift,shift);
+  return 0 unless $server;
+  $server->print("$control REQUEST_TYPE=$type\n");
+  foreach (@_) {
+    chomp; $server->print("$_\n");
+    $server->flush;
+  }
+  $server->print("$control END_OF_REQUEST\n");
+  $server->flush;
+}
+sub forward_response {
+  my ($control, $server, $client)=@_;
+  if (ref($client) eq 'SCALAR') {
+    # store response to string
+    while (<$server>) {
+      if (/^$control END_OF_SERVER_RESPONSE/) {
+	return 1;
+      }
+      $$client.=$_;
+    }
+  } elsif (ref($client)) {
+    # forward response to client
+    while (<$server>) {
+      print $client $_;
+      if (/^$control END_OF_SERVER_RESPONSE/) {
+	$client->flush;
+	return 1;
+      }
+    }
+    $client->flush;
+  } else {
+    # spit response to stderr
+    while (<$server>) {
+      if (/^$control END_OF_SERVER_RESPONSE/) {
+	return 1;
+      }
+      msg "Server replies: $_";
+    }
+  }
+  return 0;
+}
+
+sub end_response {
+  my ($control,$client)=@_;
+  print $client "$control END_OF_HUB_RESPONSE\n";
+  $client->flush;
+}
+
+
+use FindBin;
+my $libDir;
+if (exists $ENV{TREDHOME}) {
+  $libDir=$ENV{TREDHOME};
+} elsif (-d "$FindBin::RealBin/tredlib") {
+  $libDir="$FindBin::RealBin/tredlib";
+} elsif (-d "$FindBin::RealBin/../lib/tredlib") {
+  $libDir="$FindBin::RealBin/../lib/tredlib";
+} elsif (-d "$FindBin::RealBin/../lib/tred") {
+  $libDir="$FindBin::RealBin/../lib/tred";
+}
+msg "Trying $libDir\n" if ($libDir);
+unshift @INC,$libDir if (-d $libDir);
+
+my $control = '@@@';
+require TrEd::Cipher;
+import TrEd::Cipher qw(generate_random_block block_to_hex hex_to_block
+		       Negotiate Authentify save_block);
+
+
+if (defined($init) || defined($kill)) {
+  # btred executable
+  my $btred = "$FindBin::RealBin/btred";
+
+  # get list of servers
+  my @servers;
+
+  if ($srvlist ne "") {
+    @servers = split /\s*,\s*/,$srvlist;
+  } else {
+    $srvlistfile ||= $ENV{HOME}."/.ntred_serverlist";
+    if (open(my $f, $srvlistfile)) {
+      while (<$f>) {
+	s/^\s+//;
+	next if /^#/;
+	chomp; push @servers,$_;
+      }
+      close $f;
+    }
+  }
+  make_uniq(\@servers);
+
+  die "No servers given!\n" unless @servers;
+
+
+  if (defined($kill)) {
+  # ==================================================
+  # kill servers and start a hub
+  # ==================================================
+    msg "Killing all servers\n";
+    foreach (@servers) {
+      my ($machine)=split /:/;
+      msg "ssh $machine killall btred\n";
+      system("ssh $machine killall btred");   #'$btred'
+    }
+    msg "Killing hub\n";
+    local $SIG{TERM}=sub {}; # protecting myself :-)
+    system("killall ntred");
+    msg "Finished\n";
+    exit 0;
+  }
+  # ==================================================
+  # run servers and start a hub
+  # ==================================================
+
+  chomp(my $cwd = `pwd`);
+
+  my @files;
+  if (defined($filelist) or !scalar(@ARGV)) {
+    $filelist ||= $ENV{HOME}."/.ntred_filelist";
+    if (open(my $f, $filelist)) {
+      while (<$f>) {
+	s/^\s+//;
+	next if /^#/;
+	chomp; push @files,$_;
+      }
+      close $f;
+    }
+  }
+  @files = (@files, map { m{^/} ? $_ : $cwd.$_ } @ARGV);
+  make_uniq(\@files);
+
+  die "No files given!\n" unless @files;
+
+  my $logdir=$ENV{TMP} || $ENV{TEMP} || "/tmp";
+
+  my @running;
+  # check that the server machines are actually running
+  foreach (@servers) {
+    my ($server,$port) = split /:/;
+    next unless $server =~ /\S/;
+    $port ||= 1600;
+    msg "checking $server\n";
+    unless ($nocheck) {
+      my $cmd = "ssh $server 'echo -n running 2>/dev/null'";
+      msg "$cmd\n";
+      msg "Server $server - ";
+      my $result=`$cmd`;
+      if ($result eq 'running') {
+	msg "\n";
+      } else {
+	msg "not-running.\n";
+	next;
+      }
+    }
+    push @running, { host => $server, port => $port };
+  }
+
+  die "No servers available - exit.\n" unless (@running);
+  my $server_key;
+
+  if ($noservers)  {
+    msg "Expecting SESSION-KEY on stdin\n";
+    # Read the server key from STDIN
+
+    $server_key = readline(*STDIN);
+    if ($server_key =~ /^$control SESSION-KEY=([0-9A-Z]+)$/) {
+      $server_key = $1;
+      /(.)/; # clean-up :-)
+    } else {
+      die "Error: no SESSION-KEY given!\n";
+    }
+  } else {
+    # Start servers
+
+    # generate the session key for servers
+    $server_key=generate_random_block();
+
+    foreach (@running) {
+      msg "Running btred server on $_->{host}\n";
+      # as for now, we only make use of the secure pipe to the server
+      # in order to pass it the session key
+      my $cmd = "ssh $_->{host} '$btred -P".
+	($unrestricted ? "" : "F")."L $_->{port}' ".
+	" 2> $logdir/ntred-server-$_->{host}.log";
+      msg "$cmd\n";
+      if (open ($_->{ssh},"| ".$cmd)) {
+	$_->{ssh}->autoflush(1);
+	STDERR->autoflush(1);
+	#	  print "@@@ SESSION-KEY=".block_to_hex($server_key)."\n";
+	print STDERR "sending session key\n";
+	$_->{ssh}->print("@@@ SESSION-KEY=".block_to_hex($server_key)."\n");
+	$_->{ssh}->flush;
+	#	  $_->{ssh}->close;
+	print STDERR "sent session key\n";
+	$_->{running}=1;
+      } else {
+	msg "Failed to start server on $_->{host}.\n";
+	$_->{running}=0;
+      }
+    }
+  }
+  if ($nohub) {
+    print "@@@ SESSION-KEY=".block_to_hex($server_key)."\n";
+    exit;
+  }
+
+  # ==================================================
+  # Operate as a hub
+  # ==================================================
+  msg "Opening connections to servers...\n";
+  foreach (@running) {
+    next unless $_->{running};
+    msg "Openning connection to $_->{host}:$_->{port}\n";
+    my $server;
+    do {
+      $server= new IO::Socket::INET (PeerAddr => $_->{host},
+				     PeerPort => $_->{port},
+				     Proto => 'tcp',
+				    );
+      if ($server and $server->connected) {
+	die "Authentification to $_->{host}:$_->{port} has been denied.\n"
+	  unless Negotiate($server_key,$server,$control);
+      } else {
+	msg("$_->{host} not ready\n");
+	sleep 2;
+      }
+    } while (!$server);
+    #  die "Can't open socket to $_->{host}:$_->{port}. $!\n" unless $server;
+    $_->{socket} = $server;
+    msg  " - connected to $_->{host}:$_->{port}\n";
+  }
+  undef $server_key;  # clean-up
+  @running = grep $_->{socket},@running;
+
+  msg "Connected to btred servers on the following hosts:\n";
+  foreach  (@running) {
+    msg " - $_->{host}:$_->{port}\n"
+  }
+
+  # Benchmark the servers
+  foreach my $server (@running) {
+    send_request($control,$server->{socket},'BENCHMARK');
+  }
+
+  # --------------------------------------------------------------
+  # --------------- optimal file distribution  -------------------
+  do {
+    my @totalfilelist=@files;
+    my %benchmark_time;
+    my %number_of_procs;
+    my %power;
+
+    my $totalpower;
+    foreach my $server (@running) {
+      my $response;
+      unless (forward_response($control,$server->{socket},\$response)) {
+	msg "Communication with $server->{host}:$server->{port} seems broken; skipping.\n";
+	next;
+      }
+      chomp $response;
+      msg "$server->{host}:$server->{port} benchmark: $response\n";
+      ($benchmark_time{$server}, $number_of_procs{$server})=split /,/,$response;
+      $power{$server}=$number_of_procs{$server}/($benchmark_time{$server}+1);
+      $totalpower+=$power{$server};
+    }
+
+    my (%files,%filescnt);
+    my $totalfilecnt=@totalfilelist;
+    my $remaining_power=$totalpower;
+    my $remaining_files=$totalfilecnt;
+    foreach my $server (sort {$power{$a}<=>$power{$b}} @running) {
+      $filescnt{$server}=
+	sprintf("%0.0f", $remaining_files*$power{$server}/$remaining_power);
+      $remaining_power-=$power{$server};
+      $remaining_files-=$filescnt{$server};
+    }
+
+    # Distribute files
+    foreach my $server (@running) {
+      my @f=splice @totalfilelist,0,$filescnt{$server};
+      if (@f) {
+	msg "Distributing ".scalar(@f)." files to $server->{host}:$server->{port}\n";
+	send_request($control,$server->{socket},'LOAD_FILES',@f);
+      } else {
+	msg "No files for server $server->{host}:$server->{port}, closing it.\n";
+	send_request($control,$server->{socket},'QUIT',@f);
+      }
+    }
+    # get responses
+    foreach my $server (@running) {
+      my $response;
+      unless (forward_response($control,$server->{socket},\$response)) {
+	msg "Communication with $server->{host}:$server->{port} seems broken\n";
+      }
+      msg "$server->{host}:$server->{port} $response";
+    }
+  };
+
+
+  # Generate client key
+  my $client_key = generate_random_block(1024);
+  save_block($client_key,$client_key_file);
+
+  # --------------------------------------------------------------
+  # -------------- prepare socket for clients  -------------------
+
+  msg "Preparing client connection...\n";
+
+  my $listening_socket =  new IO::Socket::INET (LocalHost => $hubname,
+						LocalPort => $hubport,
+						Proto => 'tcp',
+						Listen => 5,
+						Reuse => 1,
+					       );
+  die $! unless $listening_socket;
+  msg "Waiting for client requests on $hubname:$hubport\n\n";
+
+  # -------------------------------------------------------------------
+  # ------- main cycle: processing requests from clients --------------
+
+  my $request_number;
+
+  sub sigpipe {
+    msg "Communication to client interrupted (SIGPIPE).\n";
+  }
+  $SIG{PIPE} =\&sigpipe;
+
+  while (my $client = $listening_socket->accept()) {
+    unless (Authentify($client_key,$client,$control)==1) {
+      $client->close();
+      next;
+    }
+    #  $newclient->timeout(5);
+    $request_number++;
+
+    # ---------- reading the request ----------------
+    msg "Receiving request $request_number from a client...\n";
+    my $request;
+    my $request_type;
+    while (<$client>) {		#
+      $request.=$_;
+      if (/^$control REQUEST_TYPE=(.*)/) {
+	$request_type=$1;
+      } elsif (/^$control END_OF_REQUEST/) {
+	last;
+      }
+    }
+
+    if ($request_type eq 'QUIT') {
+      $SIG{PIPE} = sub {};
+    }
+    #print STDERR "Request: $request\n\n";
+    # ---------- distributing the request -------------
+    msg "Distributing the request to the servers...\n";
+    foreach my $server (@running) {
+      next unless $server->{socket};
+      msg " - to $server->{host}:$server->{port}\n";
+      $server->{socket}->print($request);
+      $server->{socket}->flush;
+    }
+
+    # ----------- reading and forwarding the response ---------------
+    msg "Waiting for server responses and forwarding them to the client...\n";
+    foreach my $server (@running) {
+      next unless $server->{socket};
+      msg " - from $server->{host}:$server->{port}\n";
+      print $client "\n$control Response from $server->{host}:$server->{port}\n";
+      forward_response($control,$server->{socket},$client);
+    }
+    end_response($control,$client);
+    msg "The processing of request $request_number completely finished.\n";
+    msg "Waiting for a new client request.\n\n";
+    if ($request_type eq 'QUIT') {
+      msg "Quitting on client's request.\n";
+      exit;
+    }
+  }
+  msg "Closing hub.\n";
+} else {
+  # ==================================================
+  # Operate as a client
+  # ==================================================
+
+  # Read the session key for authentification to hub
+  my $key;
+  do {
+    open my $tmp, $client_key_file;
+    $key = readline($tmp); chomp $key;
+    $key = hex_to_block($key);
+    close $tmp;
+  };
+
+  my $control="@@@";	    # @@@ marks the beginning of control lines
+
+  # ---------- composing and testing the request -----------
+
+  $code ||= 'autostart()';
+
+  if ($opt_H) {
+    $code = "while (\$this) { $code ; \$this=\$this->following_visible(\$grp->{FSFile}->FS)}";
+  } elsif ($opt_N) {
+    $code = "while (\$this) { $code ; \$this=\$this->following }";
+  }
+  if ($opt_T) {
+    $code = "do { $code } while NextTree();";
+  }
+
+  my $macro;
+  if ($opt_m) {
+    open my $m, $opt_m;
+    $macro=join "",<$m>;
+    close $m;
+  }
+
+  my $request;
+  my $request_type;
+  if ($request_quit) {
+    $request_type="QUIT";
+    $request="";
+  } else {
+    $request_type="EVAL_CODE";
+    $request="$control STATE=CODE\n$code\n$control STATE=MACRO\n$macro";
+  }
+
+  msg "Code: $code\n\n";
+
+  # ---------- open hub connection ----------------
+  msg "Opening connection to ntred-hub on $hubname:$hubport\n";
+  my $hub= new IO::Socket::INET (PeerAddr => $hubname,
+				 PeerPort => $hubport,
+				 Proto => 'tcp'
+				);
+  die "Can't open socket to $hubname:$hubport. $!\n" unless $hub;
+  $hub->autoflush(1);
+  $hub->timeout(5);
+
+  msg "Negotiating with the hub\n";
+
+  die "Authentification to $hubname:$hubport has been denied.\n"
+    unless Negotiate($key,$hub,$control);
+
+  # --------- sending the request to the hub ---------------
+  msg "Sending the request to the hub...\n";
+
+  send_request($control,$hub,$request_type,split /\n/,$request);
+
+  # --------- receiving the response from the hub -----------
+  msg "Waiting for responses forwarded by the hub...\n";
+  my $first=1;
+  my $real_response=0;
+  my $out=\*STDERR;
+
+  while (<$hub>) {
+    if ($first) {
+      msg "Receiving the server responses and printing it to STDOUT...\n";
+      $first=0;
+    }
+    if (/^$control Response from (\S+)/) { # prasim
+      msg "Receiving response from $1\n";
+      $real_response=1;
+    } elsif (/^$control SERVER_RESPONSE_STDERR/) {
+      $out = \*STDERR;
+    } elsif (/^$control SERVER_RESPONSE_STDOUT/) {
+      $out = \*STDOUT;
+    } elsif (/^$control/) {
+      print STDERR $_;
+    } else {
+      if ($real_response) {
+	print $out $_;
+      } else {
+	msg "Hub send: $_";
+      }
+    }
+    if (/^$control END_OF_HUB_RESPONSE/) {
+      last;
+    }
+  }
+
+  msg "Done.\n";
+}
+
+__END__
+
+=head1 ntred
+
+ntred - controller/hub/client for remote btred servers
+
+=head1 SYNOPSIS
+
+To query the servers:
+
+  ntred [-m macro-file] [-e code] [--hub hub] [--port port]
+        [-N|-H] [-T] [--key-file file]
+
+To close all remote servers and a hub:
+
+  ntred --quit
+
+To kill all remote servers and a hub:
+
+  ntred --kill
+
+To start remote servers and a hub:
+
+  ntred -i [--servers server[,server,...]] [--server-list server-list]
+           [--file-list file-list]
+           [--no-server-check] [--no-server-start] [--no-hub-start]
+           [--unrestricted]
+           [--key-file] [--hub hub] [--port port] file [...]
+
+Get help:
+
+  ntred -u          to show usage (synopsis)
+  ntred -h          to show help
+  ntred -m          to show man-page
+
+=head1 DESCRIPTION
+
+This program is able to start one or more btred servers on remote
+machines over SSH (it is highly recommended to use some authentication
+method that does not requre entering a password each time the SSH
+connection is needed), create a proxy hub to provide the communication
+between the servers and a client, distribute given files over the
+servers (provided the servers are able to load the files from given
+filenames (eg. they share the files over NFS), query the servers using
+a btred-macro and collect the answers.
+
+In the client mode, the standard output of the macro is printed to
+STDOUT of the client. STDERR is reserved for debugging and information
+messages as well as error messages caused by the macros on the
+servers. The rest of the error output from a server is stored in a
+file <logdir>/ntred-server-<host>.log (where <logdir> can be specified
+using --logdir and defaults to /tmp).
+
+=head1 OPTIONS
+
+=head2 QUERY MODE OPTIONS
+
+  ntred [-m macro-file] [-e code] [--hub hub] [--port port]
+        [-N|-H] [-T] [--key-file file]
+
+=over 8
+
+=item B<--execute|-e> code
+
+This is the query to be executed on the remote servers. It usually
+either of a name of the macro defined in the file given as
+--macro-file or some Perl one-liner. If omitted, it defaults to
+'autostart()' and a macro with this name must be defined in
+the macro file provided..
+
+=item B<--macro-file|-m> filename
+
+A file containing the macros to be executed on the servers. The exact
+code to be evaluated must be specified in --execute.
+
+=item B<--hub> hostname
+
+The hostname of the hub to connect to (defaults to localhost).
+
+=item B<--port> port
+
+The port on which the hub is listening (defaults to 1500).
+
+=item B<--all-nodes|-N>
+
+Run the query code on all nodes (you still must use --all-trees or -T
+to process all trees) (wrapping the code into a
+C<while ($this) { CODE ; $this=$this->following }";> loop).
+
+=item B<--all-nonhidden-nodes|-H>
+
+Run the query code on all nodes that are not hidden (you still must
+use --all-trees or -T to process all trees). This wraps
+the code into a
+C<while ($this) { CODE ; $this=$this->following_visible(FS()) }";> loop).
+
+=item B<--all-trees|-T>
+
+Run the query code on all trees (wrapping the code into a
+C<do { CODE } while NextTree()> loop).
+
+=item B<--key-file>
+
+This option may be used to provide a file with a session-key wich is
+necessary for the authentication to the running hub. This defaults to
+`~/.ntred_session_key'.
+
+=back
+
+=head2 HUB/SERVER MODE OPTIONS (-i or --init)
+
+  ntred -i [--servers server[,server,...]] [--server-list server-list]
+           [--file-list file-list]
+           [--no-server-check] [--no-server-start] [--no-hub-start]
+           [--unrestricted]
+           [--key-file] [--hub hub] [--port port] file [...]
+
+=over 8
+
+=item B<--servers> list of hosts
+
+A comma separated list of hosts to run btred servers. The hostname may
+be optionally followed by a comma and a port number thus making it
+possible to run several btred servers on one host. If the port number
+is omitted, it defaults to 1600. See also L<--server-list>
+
+=item B<--serverlist> filename
+
+This provides more convenient way to specify servers by providing a
+file containing a list of servers, one per line. If neither
+L<--servers> nor L<--server-list> is provided, then the list of
+servers is read from ~/.ntred_serverlist.
+
+=item B<--filelist> filename
+
+A list of files to distribute between servers (one filename per line).
+Additional files may be given as command-line arguments.
+
+=item B<--no-server-check>
+
+Skip an initial check for server hosts availability (a dummy attempt
+for SSH connection).
+
+=item B<--no-server-start>
+
+Don't start new btred servers on the remote hosts. Instead, start a
+hub and try to connect to the btred servers already running. This
+requres a server-session key to be given on the standard input.
+
+=item B<--no-hub-start>
+
+Start servers on the remote hosts but don't start a hub. The server
+session key required for authentification to the servers will be
+printed on the standard output.
+
+=item B<--unrestricted>
+
+Run unrestricted (unsafe) version of btred servers allowing user
+queries to execute arbitrary Perl code and thus have a full access to
+the hosts with the privileges of the user running the servers.  This
+mode may also lead to unexpected memory leaks on the btred servers.
+
+=item B<--key-file>
+
+Allows to specify a file where the the session-key for a client's
+authentification will be stored. It defaults to ~/.ntred_session_key.
+
+=item B<--hub> hostname
+
+The hostname of the local machine the hub will listen on (defaults to
+localhost but a machine's hostname may be given to allow remote access
+to the hub).
+
+=item B<--port> port
+
+The port number the hub will be listening on (defaults to 1500).
+
+=back
+
+=head2 CONTROL OPTIONS
+
+=over 8
+
+=item B<--init|-i>
+
+Start remote btred servers and a hub. See L<HUB/SERVER OPTIONS>.
+
+=item B<--quit>
+
+Sends the hub and all the servers a command to quit.
+
+=item B<--kill>
+
+Kills all ntred instances on the running machine and all btred
+instances on the servers listed with --servers, --serverlist, or 
+in ~/.ntred_serverlist.
+
+=back
+
+=head2 GENERAL OPTIONS
+
+=over 8
+
+=item B<--usage|-u>
+
+Print a brief help message on usage and exits.
+
+=item B<--help|-h>
+
+Prints the help page and exits.
+
+=item B<--man>
+
+Displays the help as manual page.
+
+=back
+
+=cut
+
+
+
