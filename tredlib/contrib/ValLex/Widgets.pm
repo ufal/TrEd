@@ -382,7 +382,7 @@ sub pos_filter { ${$_[0]->[6]} };
 
 sub quick_search {
   my ($self,$value)=@_;
-  return defined($self->focus_by_text($value));
+  return defined($self->focus_by_text($value,undef,1));
 }
 
 sub forget_data_pointers {
@@ -416,7 +416,7 @@ sub fetch_data {
 }
 
 sub focus_by_text {
-  my ($self,$text,$pos)=@_;
+  my ($self,$text,$pos,$caseinsensitive)=@_;
   my $h=$self->widget();
   use locale;
   for my $i (0,1) {
@@ -424,7 +424,9 @@ sub focus_by_text {
     # 2nd run asks Data server for more data
     $self->fetch_data($text) if $i;
     foreach my $t ($h->infoChildren()) {
-      if (index($h->itemCget($t,1,'-text'),$text)==0 and
+      if ((!$caseinsensitive and index($h->itemCget($t,1,'-text'),$text)==0 or
+	  $caseinsensitive and index(lc($h->itemCget($t,1,'-text')),lc($text))==0)
+	  and
 	  ($pos eq "" || $pos eq $h->itemCget($t,0,'-text'))) {
 	$h->anchorSet($t);
 	$h->selectionClear();
