@@ -51,22 +51,23 @@ Only reading is supported now!
 
 sub open_backend {
   my ($filename, $mode, $encoding)=@_;
-  my $fh = undef;
+  return $filename;
+#   my $fh = undef;
 
-  if ($mode =~/[w\>]/) {
-    print STDERR "Error: Writing not supported by this backend!\n";
-  } else {
-    eval {
-      my $ok=open($fh,$filename) && $fh;
-      binmode($fh,":utf8") if ($ok && $]>=5.008);
-      $ok
-    } || do {
-      print STDERR "AG2FS error while openning $filename\n" if $!;
-      print STDERR "error: $!\n" if $!;
-      return undef;
-    };
-  }
-  return $fh;
+#   if ($mode =~/[w\>]/) {
+#     print STDERR "Error: Writing not supported by this backend!\n";
+#   } else {
+#     eval {
+#       my $ok=open($fh,$filename) && $fh;
+#       binmode($fh,":utf8") if ($ok && $]>=5.008);
+#       $ok
+#     } || do {
+#       print STDERR "AG2FS error while openning $filename\n" if $!;
+#       print STDERR "error: $!\n" if $!;
+#       return undef;
+#     };
+#   }
+#   return $fh;
 }
 
 =pod
@@ -79,7 +80,7 @@ Close given filehandle opened by previous call to C<open_backend>
 
 sub close_backend {
   my ($fh)=@_;
-  return $fh && $fh->close();
+  return $fh->close() if ref($fh);
 }
 
 =pod
@@ -119,7 +120,8 @@ sub xp {
 }
 
 sub read {
-  my ($fh, $fsfile)=@_;
+  my ($input, $fsfile)=@_;
+  die "Filename required, not a reference ($input)!" if ref($input);
   return unless ref($fsfile);
 
   $fsfile->changeFS(FSFormat->create(@agformat));
@@ -131,20 +133,24 @@ sub read {
   my $parser = XML::LibXML->new();
   $parser->load_ext_dtd(1);
   $parser->validation(0);
-  my $agdom = eval { $parser->parse_fh($fh); };
+  my $agdom = eval { $parser->parse_file($input); };
   print STDERR "$@\n$agdom\n" if $Fslib::Debug;
   unless ($agdom) {
     print STDERR "Error parsing ",$fsfile->filename(),". Aborting!\n";
     return 0;
   }
   $agdom->validate();
-
-  my $sigfile = $agdom->findvalue( q{ string(//*[name()='Signal']/@xlink:href) } );
+  $agdom->getDocumentElement()->setAttribute('xmlns:ag','http://www.ldc.upenn.edu/atlas/ag/');
+  my $sigfile = $agdom->findvalue( q{ string(//ag:Signal/@xlink:href) } );
   unless (-f $sigfile) {
     ( $sigfile ) = ( $sigfile=~m{([^/]+)$} ); # strip the filename
   }
 
   my $sigfh;
+  if ($sigfile !~ m(/)) {
+    my ($input_dir)=($input=~m(^(.*?/)[^/]+$));
+    $sigfile=$input_dir.$sigfile;
+  }
   unless (open($sigfh,$sigfile)) {
     print STDERR "Can't open $sigfile. Aborting!\n";
     return 0;
@@ -162,16 +168,20 @@ sub read {
     return 0;
   }
 
-  foreach my $ag ($agdom->findnodes( q{ //*[name()='AG'] } )) {
+  foreach my $ag ($agdom->findnodes( q{ //ag:AG } )) {
     my $agid=decodeFromUTF8($encoding,$ag->getAttributeNode('id')->getValue);
-    my $tree=xp($ag,q{ string(descendant::*[name()='OtherMetadata' and @name='treebanking']) });
-    my $para=xp($ag,q{ string(descendant::*[name()='OtherMetadata' and @name='paragraph']) });
-    my $comment=xp($ag,q{ string(descendant::*[name()='OtherMetadata' and @name='tbcomment']) });
+    my $tree=xp($ag,q{ string(descendant::ag:OtherMetadata[@name='treebanking']|
+                              descendant::ag:MetadataElement[@name='treebanking']) });
+    my $para=xp($ag,q{ string(descendant::ag:OtherMetadata[@name='paragraph']|
+                              descendant::ag:MetadataElement[@name='paragrah']) });
+    my $comment=xp($ag,q{ string(descendant::ag:OtherMetadata[@name='tbcomment']|
+                                 descendant::ag:MetadataElement[@name='tbcomment']) });
+
     my $paratxt=xp($sigdom, qq{ string(//P[$para]) });
     $paratxt=~s/^\n//;
     my @nodes;
 
-    foreach my $annotation ($ag->findnodes( q{ descendant::*[name()='Annotation' and @type='word'] } )) {
+    foreach my $annotation ($ag->findnodes( q{ descendant::ag:Annotation[@type='word'] } )) {
       my $start=xp($annotation, q{ string(id(@start)/@offset) });
       my $end=xp($annotation, q{ string(id(@end)/@offset) });
       $start=~s/\.(\d+)$//;
@@ -182,16 +192,16 @@ sub read {
       $node->{start}=$start;
       $node->{end}=$end;
       $node->{origf}=~s/\s+$//;
-      $node->{lookup}=xp($annotation,q{ string(*[name()='Feature' and @name='lookup-word']) });
-      $node->{comment}=xp($annotation,q{ string(*[name()='Feature' and @name='comment']) });
+      $node->{lookup}=xp($annotation,q{ string(ag:Feature[@name='lookup-word']) });
+      $node->{comment}=xp($annotation,q{ string(ag:Feature[@name='comment']) });
       $node->{id}=decodeFromUTF8($encoding,$annotation->getAttributeNode('id')->getValue);
 
       my ($selection)=
-	$annotation->findnodes(q{ id(string(*[name()='Feature' and @name='selection'])) });
+	$annotation->findnodes(q{ id(string(ag:Feature[@name='selection'])) });
       if ($selection) {
-	$node->{gloss}=xp($selection,q{ string(*[name()='Feature' and @name='gloss']) });
-	$node->{solutionno}=xp($selection,q{ string(*[name()='Feature' and @name='number']) });
-	my $solution=xp($selection,q{ string(*[name()='Feature' and @name='solution']) });
+	$node->{gloss}=xp($selection,q{ string(ag:Feature[@name='gloss']) });
+	$node->{solutionno}=xp($selection,q{ string(ag:Feature[@name='number']) });
+	my $solution=xp($selection,q{ string(ag:Feature[@name='solution']) });
 	my $lemmatag;
 	($node->{translit},$lemmatag)=($solution=~m{^\(([^)]+)\)\s+(.*)$});
 	my @lemmatag=split /\+/,$lemmatag;
@@ -302,7 +312,7 @@ sub test {
     my $line2=$f->getline();
     return ($line1.$line2)=~/<!DOCTYPE AGSet/;
   } else {
-    my $fh = open_backend($f,"r",$encoding);
+    my $fh = ZBackend::open_backend($f,"r",$encoding);
     my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;
