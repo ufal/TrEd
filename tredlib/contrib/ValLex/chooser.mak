@@ -121,7 +121,7 @@ sub ChooseFrame {
 	$word=$FrameData->addWord($lemma,$pos);
 	$new_word=1;
       } elsif ($answer eq "Add $base") {
-	$base_word=$FrameData->addWord($base,$pos);
+	$base_word=$FrameData->addWord($base,"V");
 	$new_word=1;
       } elsif ($answer eq "Add both") {
 	$word=$FrameData->addWord($lemma,$pos);
