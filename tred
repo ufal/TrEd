@@ -22,7 +22,7 @@ use Tk;
 use Tk::LabFrame;
 use Tk::Listbox;
 use Fslib;
-use Fslib qw(&Ord &Value &Hide &SentOrd);
+use Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 use locale;
 use POSIX qw(locale_h);
 
@@ -87,7 +87,7 @@ sub readConfig {
   if (open(F,"<$dotConfigFile") or (open(F,"<$configFile"))) {
     while (<F>) {
       chomp;
-      $confs{$1}=$2 if (/^\s*([a-zA-Z_]+)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/);
+      $confs{$1}=$2 if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/);
       $key=$1;
       $confs{$key}=~s/\\//g;
       $confs{$key}=$1 if ($confs{$key}=~/^'(.*)'$/ or $confs{$key}=~/^"(.*)"$/);
@@ -119,7 +119,7 @@ sub readConfig {
   $currentBoxColor=(exists $confs{CurrentBoxColor}) ? $confs{CurrentBoxColor} : 'white';
   $font=(exists $confs{Font}) ? $confs{Font} : '-*-helvetica-medium-r-normal--*-120-*-*-*-*-*-2';
   #  $font=(exists $confs{Font}) ? $confs{Font} : '-misc-fixed-*-*-*-*-15-*-2';
-  #  $font=(exists $confs{Font}) ? $confs{Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
+  $type1font=(exists $confs{Type1Font}) ? $confs{Type1Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
   $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : "/home/pajas/share/tkfs";
   $psFontFile=(exists $confs{PsFontFile}) ? <$confs{PsFontFile}> : "$libDir/csarialm.pfa";
   $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : "$libDir/tkfs.mac";
@@ -358,6 +358,8 @@ sub printDialog {
   my $fil=$grp->{'printPsFile'};
   my $toFile=$grp->{'printToFile'};
   my $toEPS=$grp->{'printToEPS'};
+  my $useType1Font=$grp->{'printUseType1Font'};
+  my $printRange=$grp->{'printRange'};
 
   my $d = $grp->{'top'}->DialogBox(-title => "Print current tree",
 				-buttons => ["OK", "Cancel"]);
@@ -367,32 +369,33 @@ sub printDialog {
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   my $cf = $d->Frame();
   my $cl = $cf->Label(-text => 'Print command:',
-		     -anchor => 'e',
+		     -anchor => 'w',
 		     -justify => 'right')->pack(-side => left);
 
   my $ce = $cf->Entry(-relief => 'sunken',
 		     -width => 20,
 		     -font => $font,
 		     -state => $toFile ? 'disabled' : 'normal',
-		     -textvariable => \$com)->pack(-side => right);
+		     -textvariable => \$com)->pack(-side => left);
 
   $cf->pack(-pady => '5m', -side=>top);
   my $ff=$d->Frame();
   my $fl = $ff->Label(-text => 'File name:',
-		     -anchor => 'e',
+		     -anchor => 'w',
 		     -justify => 'right')->pack(-side => left);
 
   my $fe = $ff->Entry(-relief => 'sunken',
 		     -width => 20,
 		     -state => $toFile ? 'normal' : 'disabled' ,
 		     -font => $font,
-		     -textvariable => \$fil)->pack(-side => right);
+		     -textvariable => \$fil)->pack(-side => left);
 
   my $of=$d->Frame();
-  my $lt=$of->Scrolled(qw/Listbox -relief sunken -takefocus 1 -selectmode multiple -width 4 -height 5/,
-		       -font => $font)->pack(-side => left, -padx => '1c');
-  my $i=1;
-  $lt->insert('end',map { $i++ } @trees);
+
+#  my $lt=$of->Scrolled(qw/Listbox -relief sunken -takefocus 1 -selectmode multiple -width 4 -height 5/,
+#		       -font => $font)->pack(-side => left, -padx => '1c');
+#  my $i=1;
+#  $lt->insert('end',map { $i++ } @trees);
 
   my $bf=$of->Frame();
   $bf->Checkbutton(-text     => 'Print to file',
@@ -409,23 +412,39 @@ sub printDialog {
 				    $c->configure(-state => 'normal');
 				  }
 				},\$toFile,$ce,$fe,$te ],
-		   -relief   => 'flat')->pack(-fill => 'y', -pady => '2m');
+		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
 
   my $te=$bf->Checkbutton(-text     => 'Create EPS',
 			  -variable => \$toEPS,
-			  -relief   => 'flat')->pack(-fill => 'y');
+			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+
+  my $te=$bf->Checkbutton(-text     => 'Use Type1 Postscript Font',
+			  -state => $type1font ? 'normal' : 'disabled' ,
+			  -variable => \$useType1Font,
+			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
 
   $bf->pack(-side => right);
   $of->pack(-fill => 'x',-padx=>'1c');
+  my $sf = $d->Frame();
+  $sf->Label(-text => 'Page range:',
+	     -anchor => 'w',
+	     -justify => 'right')->pack(-side => left);
+  $sf->Entry(-relief => 'sunken',
+	     -width => 20,
+	     -font => $font,
+	     -textvariable => \$printRange)->pack(-side => left, -padx=>'2m');
+  $sf->pack(-side => bottom, -pady => '5m');
   $ff->pack(-side => bottom, -pady => '5m');
 
   $toFile ? $fe->focus : $ce->focus;
   my $result = $d->Show;
-  $grp->{'printSelection'}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
+  $grp->{'printRange'}=$printRange;
+#  $grp->{'printSelection'}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
   $grp->{'printToFile'}=$toFile;
   $grp->{'printToEPS'}=$toEPS;
   $grp->{'printPsFile'}=$fil;
   $grp->{'printCommand'}=$com;
+  $grp->{'printUseType1Font'}=$useType1Font;
   undef $d;
   return ($result =~ /OK/);
 }
@@ -434,53 +453,43 @@ sub printThis {
   my ($grp)=@_;
   my $i;
   my $c=$grp->{'canvas'};
+  my $saveTreeNo=$treeNo;
+  my $savefont=$font;
   my $pagewidth;
   my $pageheight;
+  my $printMultiple;
 
   if (not printDialog($grp)) {
     #print "Printing aborted!\n";
     return;
   }
 
-  
-
-  my $rotate =  !$grp->{printToEPS} and ($grp->{canvasHeight}<$grp->{canvasWidth});
-
-  if ($rotate) {
-    $pagewidth=$c->fpixels($prtFmtWidth)+$c->fpixels($prtVMargin);
-    $pageheight=$c->fpixels($prtFmtHeight)+$c->fpixels($prtHMargin);
-  } else {
-    $pagewidth=$c->fpixels($prtFmtHeight)+$c->fpixels($prtVMargin);
-    $pageheight=$c->fpixels($prtFmtWidth)+$c->fpixels($prtHMargin);
-  }
-  my %pso = (qw/-colormode mono -x 0 -y 0/,
-	     -fontmap => { $font => ['Arial-Medium', 12] },
-	     -width => $grp->{canvasWidth},
-	     -height => $grp->{canvasHeight},
-	     -rotate => $rotate);
-
-  if ($grp{printToEPS}) {
-    if ($c->fpixels($grp->{canvasWidth})>$c->fpixels($pagewidth) or
-	$c->fpixels($grp->{canvasHeight})>$c->fpixels($pageheight)) {
-      
-      if ($c->fpixels($grp->{canvasWidth})/$c->fpixels($pagewidth)*$c->fpixels($pageheight)
-	  >$c->fpixels($grp->{canvasHeight})) {
-	#print "Applying width\n";
-	$pso{-pagewidth} = $c->fpixels($prtFmtWidth)-2*$c->fpixels($prtVMargin);
-      } else {
-	#print "Applying height\n";
-	$pso{-pageheight} = $c->fpixels($prtFmtHeight)-2*$c->fpixels($prtHMargin);
-      }
+  my $pbeg;
+  my $pend;
+  foreach (split /,/,$grp->{'printRange'}) {
+    print "Parsing $_\n";
+    if (/^\s*([0-9]+)\s*$/ and $1<=$#trees) {
+      print "Prepairing $1\n";
+      push @printList,$1;
+      next;
+    }
+    if (/^\s*([0-9]*)\s*-\s*([0-9]*)\s*$/) {
+      print "Prepairing $1-$2\n";
+      ($pbeg,$pend)=($1,$2);
+      $pend=$#trees if ($pend eq '');
+      $pbeg=0 if ($pbeg eq '');
+      $pend=min($#trees,$pend);
+      next unless ($pbeg<=$pend);
+      push @printList,$pbeg..$pend;
     }
   }
+#  @printList=split ' ',$grp->{'printSelection'};
+  push @printList,$treeNo unless (@printList);
 
-  my @ps = split /\n/,$c->postscript(%pso);
-  
   unless (open(F,"<$psFontFile")) {
     print STDERR "Aborting: failed to open font file $psFontFile\n";
     return 0;
   }
-  
   if ($grp->{'printToFile'}) {
     #print "Trying to print to ",$grp->{'printPsFile'},"\n";
     return 0 unless open(O,">".$grp->{'printPsFile'});
@@ -492,46 +501,97 @@ sub printThis {
     #print "Pipe successfully opend!\n";
   }
 
+  $grp->{top}->Busy(-recurse => 1);
 
+  for (my $t=0;$t<=$#printList;$t++) {
+    print "Printing $printList[$t]\n";
+    $font=$type1font if ($grp->{printUseType1Font});
+    $t ? gotoTree($printList[$t],$grp) : redraw_tree($grp);
+    my $rotate =  (!$grp->{printToEPS} and ($grp->{canvasHeight}<$grp->{canvasWidth}));
+    print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
 
-  $i=0;
-  print "Lines:",$#ps,"\n";
-  unless ($grp->{printToEPS}) {
-    print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BoundingBox:/);
-    print "Bounding Box:\n";
-    print $ps[$i],"\n";
-    print O $ps[$i++],"\n";
-    print O $psMedia,"\n";
+    if ($rotate) {
+      $pagewidth=$c->fpixels($prtFmtWidth)+$c->fpixels($prtVMargin);
+      $pageheight=$c->fpixels($prtFmtHeight)+$c->fpixels($prtHMargin);
+    } else {
+      $pagewidth=$c->fpixels($prtFmtHeight)+$c->fpixels($prtVMargin);
+      $pageheight=$c->fpixels($prtFmtWidth)+$c->fpixels($prtHMargin);
+    }
+    my %pso = (qw/-colormode mono -x 0 -y 0/,
+	       -fontmap => { $font => ['Arial-Medium', 12] },
+	       -width => $grp->{canvasWidth},
+	       -height => $grp->{canvasHeight},
+	       -rotate => $rotate);
+
+    if ($grp{printToEPS}) {
+      if ($c->fpixels($grp->{canvasWidth})>$c->fpixels($pagewidth) or
+	  $c->fpixels($grp->{canvasHeight})>$c->fpixels($pageheight)) {
+
+	if ($c->fpixels($grp->{canvasWidth})/$c->fpixels($pagewidth)*$c->fpixels($pageheight)
+	    >$c->fpixels($grp->{canvasHeight})) {
+	  #print "Applying width\n";
+	  $pso{-pagewidth} = $c->fpixels($prtFmtWidth)-2*$c->fpixels($prtVMargin);
+	} else {
+	  #print "Applying height\n";
+	  $pso{-pageheight} = $c->fpixels($prtFmtHeight)-2*$c->fpixels($prtHMargin);
+	}
+      }
+    }
+
+    my @ps = split /\n/,$c->postscript(%pso);
+    $i=0;
+    if ($t>0) { 
+      $i++  while ($i<=$#ps and $ps[$i]!~/^%%Page:/);      
+      print O '%%Page: ',$t+1," ",$t+1,"\n";
+      my $now=localtime;
+      unless ($grp->{printToEPS}) {
+	print O "gsave\n",
+	  "/Arial-Medium findfont 12 scalefont setfont\n",
+	    "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
+	      "40 40 [\n",
+		"(File ",$grp->{currentFile},".    Printed by Tkfs on $now.)\n",
+		  "] 13 -0 0 0 false DrawText\ngrestore\n";
+      }
+      $i++;
+    } else {
+      $i=0;
+      print "Lines:",$#ps,"\n";
+      unless ($grp->{printToEPS}) {
+	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BoundingBox:/);
+	print "Bounding Box:\n";
+	print $ps[$i],"\n";
+	print O $ps[$i++],"\n";
+	print O $psMedia,"\n";	
+	print O '%%Pages: ',$#printList+1,"\n";
+	$i++;
+      }
+      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%%DocumentNeededResources: font Arial-Medium/);
+      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BeginProlog/);
+      print O $ps[$i++],"\n";
+      print O '%%beginFont arialm',"\n";
+      print O <F>;
+      print O '%%EndFont',"\n\n";
+      $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
+      print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%IncludeResource: font Arial-Medium/);
+      $i++;
+    }
+
+    # replacing ISOEncode
+    while ($i<=$#ps && $ps[$i]!~/^%%Trailer\w*$/) {
+      $ps[$i]=~s/ISOEncode //g;
+      print O $ps[$i++],"\n";
+    }
   }
-  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%%DocumentNeededResources: font Arial-Medium/);
-  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BeginProlog/);
-  print O $ps[$i++],"\n";
-  print O '%%beginFont arialm',"\n";
-  #print "$i: Including font\n";
-  print O <F>;
-  #print "done.\n";
-  print O '%%EndFont',"\n\n";
-  #print "$i: Skipping up to StrokeClip\n";
-  $i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
-  #print "done.\n";
-  #print "$i: Searching for IncludeResource:.\n";
-  print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%IncludeResource: font Arial-Medium/);
-  #print "$i: Skipping.\n";
-  $i++;
-  #print "Writing and replacing ISOEncode\n";
-  while ($i<=$#ps && $ps[$i]!~/^%%Trailer\w*$/) {
-    $ps[$i]=~s/ISOEncode //g;
-    print O $ps[$i++],"\n";
-  }
-  $i+=2; # skipping "end" too 
-  while ($i<=$#ps) {
-    print O $ps[$i++],"\n";
-  }
+  print O '%%EOF',"\n";
   #print "$i: Done.\n";
   close (F);
   close (O);
 
   #print "$psFile written!\n";
+
+  $font=$savefont;
+  gotoTree($saveTreeNo,$grp);
+  $grp->{top}->Unbusy();
 
   return 1;
 }
@@ -1317,7 +1377,7 @@ sub recalculate_positions {
   my $canvasWidth=0; 
   my $node;
 
-  my $fontHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);    
+  my $fontHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
   
   #print "Calculating positions ...\n";
   %prevnode=();
