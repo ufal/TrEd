@@ -31,8 +31,11 @@ sub import {
 
   @exports = $#_>=0 ? @_ : keys %stash;
   foreach my $k (@exports) {
-    (*{"${caller}::$k"} = \&{"${pkg}::$k"}, next)
-      unless $k =~ s/^(\W)//;
+    unless ($k =~ s/^(\W)//) {
+      *{"${caller}::$k"} = \&{"${pkg}::$k"}
+	unless defined (&{"${caller}::$k"});
+       next;
+    }
     $type = $1;
     if ($type eq '&') {
       *{"${caller}::$k"} = \&{"${pkg}::$k"} unless defined (&{"${caller}::$k"});
@@ -417,12 +420,22 @@ sub NormalizeOrds {
   for (my $i=0;$i<=$#$nodesref;$i++) {
     $nodesref->[$i]->{$ord}=$i;
   }
+  for (my $i=0;$i<=$#$nodesref;$i++) {
+    RepasteNode($nodesref->[$i]);
+  }
 }
 
 sub SortByOrd {
   my ($nodesref)=@_;
   my $ord=AOrd(\%attribs);
   @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
+}
+
+sub RepasteNode {
+  my ($node)=(@_);
+  my $parent=Parent($node);
+  return unless $parent;
+  Fslib::Paste(Fslib::Cut($node),$parent,\%attribs);
 }
 
 sub ShiftNodeRightSkipHidden {
@@ -437,14 +450,14 @@ sub ShiftNodeRightSkipHidden {
   NormalizeOrds(\@all);
   #
   #
-
+  print "$n\n";
   my $n=$node->{$ord};
-  return undef unless (defined($n));
   return $n if ($n == $#all);
 
   my @vis=GetVisibleNodes();
   SortByOrd(\@vis);
   my $m=Index(\@vis,$node);
+  return undef unless defined($m);
   my $x=min(Index(\@all,$vis[$m+1]),$#all);
   for (my $i=$n+1;$i<=$x;$i++) { $all[$i]->{$ord}--; }
   $node->{$ord}=$x;
@@ -452,3 +465,70 @@ sub ShiftNodeRightSkipHidden {
   Fslib::Paste(Fslib::Cut($node),$parent,\%attribs);
 }
 
+sub ShiftNodeLeftSkipHidden {
+  my ($node)=@_;
+  my $ord=AOrd(\%attribs);
+  return unless $node;
+  my @all=GetNodes();
+  SortByOrd(\@all);
+
+  # This is sideeffect, but
+  # whe want to do this anyway
+  NormalizeOrds(\@all);
+  #
+  #
+  print "$n\n";
+  my $n=$node->{$ord};
+  return $n if ($n == 0);
+
+  my @vis=GetVisibleNodes();
+  SortByOrd(\@vis);
+  my $m=Index(\@vis,$node);
+  return undef unless defined($m);
+  my $x=max(Index(\@all,$vis[$m-1]),0);
+  for (my $i=$n-1;$i>=$x;$i--) { $all[$i]->{$ord}++; }
+  $node->{$ord}=$x;
+  RepasteNode($node);
+}
+
+sub ShiftNodeRight {
+  my ($node)=@_;
+  my $ord=AOrd(\%attribs);
+  return unless $node;
+  my @all=GetNodes();
+  SortByOrd(\@all);
+
+  # This is sideeffect, but
+  # whe want to do this anyway
+  NormalizeOrds(\@all);
+  #
+  #
+
+  my $n=$node->{$ord};
+  return $n if ($n == $#all);
+
+  $all[$n+1]->{$ord}=$n;
+  $node->{$ord}=$n+1;
+  RepasteNode($node);
+}
+
+sub ShiftNodeLeft {
+  my ($node)=@_;
+  my $ord=AOrd(\%attribs);
+  return unless $node;
+  my @all=GetNodes();
+  SortByOrd(\@all);
+
+  # This is sideeffect, but
+  # whe want to do this anyway
+  NormalizeOrds(\@all);
+  #
+  #
+
+  my $n=$node->{$ord};
+  return $n if ($n == 0);
+
+  $all[$n-1]->{$ord}=$n;
+  $node->{$ord}=$n-1;
+  RepasteNode($node);
+}
