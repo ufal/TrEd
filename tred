@@ -1146,14 +1146,18 @@ sub closeFile {
 
 sub ErrorMessage {
   my ($grp,$msg)=@_;
-  if ($grp->{top}) {
-    $grp->{top}->toplevel->
-      messageBox(-icon=> 'error',
-		 -message=> $msg,
-		 -title=> 'Error', -type=> 'ok');
+  my $top;
+  if (ref($grp)=~/^Tk::/) {
+    $top = $grp->toplevel;
+  } elsif ($grp->{top}) {
+    $top = $grp->{top}->toplevel;
   } else {
     print STDERR "$msg\n";
+    return;
   }
+  $top->messageBox(-icon=> 'error',
+		   -message=> $msg,
+		   -title=> 'Error', -type=> 'ok');
 }
 
 sub dlgReturn {
@@ -2822,17 +2826,28 @@ sub macrolistDialog {
 		 -relief       => 'groove', #$menubarRelief,
 		 -borderwidth  => 2)->pack(qw/-side left -padx 5/);
 
+  $f->Button(-text=> 'Export as HTML',
+	     -underline => 0,
+	     -command=> [ sub {
+			    my ($w,$grp,$t,$ctxt)=@_;
+			    my $html = openSimpleHtml($t,$$ctxt.".html","Save list of $$ctxt macros",$ENV{HOME});
+			    if ($html) {
+			      print $html "<h2>TrEd Macros - $$ctxt</h2>\n";
+			      print $html "<table>\n";
+			      my $odd = 0;
+			      foreach my $child ($t->info('children','')) {
+				print $html "  <tr ",($odd ? 'bgcolor="#ffffff"' : 'bgcolor="#eeeeee"'),
+				  ,">\n    <td>",$t->itemCget($child,0,'-text'),
+				  "</td>\n    <td>", $t->itemCget($child,1,'-text'),"</td>\n  </tr>\n";
+				$odd = !$odd;
+			      }
+			      print $html "</table>\n";
+			      closeSimpleHtml($html);
+			    }
+			  },$d,$grp,$t,\$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
+
   $f->Radiobutton( -anchor  => 'nw',
-		   -text    => 'Sort by name',
-		   -variable=> \$grp->{macroListOrder},
-		   -relief  => 'flat',
-		   -command => [sub { #shift;
-				       my ($grp,$t,$ctxt)=@_;
-				       macrolistCreateItems($grp,$t,$$ctxt);
-				     },$grp,$t,\$context],
-		   -value   => 'M'
-		 )->pack(-side=> 'left',-padx=> 20);
-  $f->Radiobutton( -anchor  => 'nw',
+		   -underline => 8,
 		   -text    => 'Sort by keyboard shortcut',
 		   -variable=> \$grp->{macroListOrder},
 		   -relief  => 'flat',
@@ -2842,8 +2857,21 @@ sub macrolistDialog {
 				     },$grp,$t,\$context],
 		   -value   => 'K'
 		 )->pack(-side=> 'right',-padx=> 20);
+  $f->Radiobutton( -anchor  => 'nw',
+		   -underline => 8,
+		   -text    => 'Sort by name',
+		   -variable=> \$grp->{macroListOrder},
+		   -relief  => 'flat',
+		   -command => [sub { #shift;
+				       my ($grp,$t,$ctxt)=@_;
+				       macrolistCreateItems($grp,$t,$$ctxt);
+				     },$grp,$t,\$context],
+		   -value   => 'M'
+		 )->pack(-side=> 'right',-padx=> 20);
+
   my $botframe=$d->Frame();
   $botframe->Button(-text=> 'Run and Close',
+		    -underline => 0,
 	     -command=> [ sub {
 			     my ($w,$grp,$t,$ctxt)=@_;
 			     my $mac=$t->itemCget($t->info('anchor'),0,'-text');
@@ -2852,7 +2880,9 @@ sub macrolistDialog {
 					 $menuBindings{$$ctxt}->{$mac}->[0]);
 			   },$d,$grp,$t,\$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'left');
 
+
   $botframe->Button(-text=> 'Close',
+		    -underline => 0,
 		     -command=> [ sub {
 				     shift->destroy();
 				   },$d ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
@@ -2866,7 +2896,7 @@ sub macrolistDialog {
   $botframe->pack(qw/-side bottom -fill both/);
   $topframe->pack(qw/-side top -fill both -ipady 3 -ipadx 3 -expand 1/);
 
-
+  _bind_buttons($d,$d);
   $t->focus;
   $d->Popup;
 }
@@ -5954,6 +5984,46 @@ sub viewSentencesDialog {
   return $selref;
 }
 
+sub openSimpleHtml {
+  my ($top,$file,$title,$initdir) = @_;
+  $file= get_save_filename($top->toplevel,
+			   -filetypes=>
+			   [["HTML",  ['.html','.htm','.HTM','.HTML']],
+			    ["All files",        "*"]],
+			   -title=> $title,
+			   -d $initdir ? (-initialdir=> $initdir) : (),
+			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
+  if (defined($file) and $file ne "") {
+    open my $html, ">$file" ||
+      errorMessage($top,"Cannot write to \"$file\"!"."\n($!)\n".
+		     "\nSentences could not be saved!");
+    my $encoding=$TrEd::Convert::outputenc;
+    if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
+      _set_encoding($html,':bytes',"html-out");
+      __debug("HTML encoding $encoding, bytes output");
+    } else {
+      _set_encoding($html,$encoding,"html-out");
+      __debug("HTML encoding $encoding");
+    }
+    
+    print $html "<html>\n";
+    print $html "<head>\n";
+    print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=".$encoding."\" />\n";
+    print $html "</head>\n";
+    print $html "<body>\n";
+    return $html;
+  } else {
+    return undef;
+  }
+}
+
+sub closeSimpleHtml {
+  my ($html) = @_;
+  print $html "\n</body>\n";
+  print $html "\n</html>\n";
+  close($html);
+}
+
 sub dumpSentView {
   my ($grp, $fsfile, $t, $create_images)=@_;
 
@@ -5966,97 +6036,74 @@ sub dumpSentView {
   $initdir=cwd if ($initdir eq './');
   $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
-  $file= get_save_filename($t->toplevel,
-			   -filetypes=>
-			   [["HTML",  ['.html','.htm','.HTM','.HTML']],
-			    ["All files",        "*"]],
-			   -title=> "Save Sentences As HTML ...",
-			   -d $initdir ? (-initialdir=> $initdir) : (),
-			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
-  open my $html, ">$file" ||
-    errorMessage($grp->{focusedWindow},"Cannot write to \"$file\"!"."\n($!)\n".
-		 "\nSentences could not be saved!");
-  my $encoding=$TrEd::Convert::outputenc;
-  if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
-    _set_encoding($html,':bytes',"html-out");
-    __debug("HTML encoding $encoding, bytes output");
-  } else {
-    _set_encoding($html,$encoding,"html-out");
-    __debug("HTML encoding $encoding");
-  }
-
-  print $html "<html>\n";
-  print $html "<head>\n";
-  print $html "  <meta http-equiv=\"Content-Type\" content=\"text/html;charset=".$encoding."\" />\n";
-  print $html "</head>\n";
-  print $html "<body>\n";
-  my @dump=$t->dump('0.0','end');
-  @dump=$t->dump('0.0','end');
-  my $img;
-  while (@dump) {
-    my ($K,$V,$I) = splice @dump, 0, 3;
-    if ($K eq 'tagon') {
-      if ($V eq 'treeno') {
-	$img=1;
+  my $html = openSimpleHtml($t,$file,"Save Sentences As HTML ...",$initdir);
+  if (defined($html)) {
+    my @dump=$t->dump('0.0','end');
+    @dump=$t->dump('0.0','end');
+    my $img;
+    while (@dump) {
+      my ($K,$V,$I) = splice @dump, 0, 3;
+      if ($K eq 'tagon') {
 	if ($V eq 'treeno') {
-	  print $html "<div class=\"TREE\">";
-	  print $html "<p>";
+	  $img=1;
+	  if ($V eq 'treeno') {
+	    print $html "<div class=\"TREE\">";
+	    print $html "<p>";
+	  }
+	  print $html "<img src=\"" if ($create_images);
+	} else {
+	  print $html "<u>" if $t->tagCget($V,'-underline');
+	  print $html "<font color=\"".$t->tagCget($V,'-foreground')."\">"
+	    if $t->tagCget($V,'-foreground');
+	  print $html "<span class=\"$1\">" if $V =~ /^tag\s*=>\s*(.*)$/;
 	}
-	print $html "<img src=\"" if ($create_images);
+      } elsif ($K eq 'tagoff') {
+	print $html "</span>" if $V =~  /^tag\s*=>\s*.*$/ ;
+	print $html "</font>" if $t->tagCget($V,'-foreground');
+	print $html "</u>" if $t->tagCget($V,'-underline');
+	if ($V eq 'newline') {
+	  print $html "</p>\n";
+	  print $html "</div>\n";
+	  print $html "<hr />\n";
+	}
+	$img=0 if $img;
+      } elsif ($K eq 'text') {
+	if ($img and $create_images) {
+	  # create image filename
+	  my $img_file = $file;
+	  my $no = $V; $no =~ s/[()]|\s*//g;
+	  $img_file =~ s/\.[^.]*$/_${no}.png/;
+	  print $html filename($img_file)."\"/><br />\n";
+	  # create image
+	  my $canvas=$grp->{top}->Canvas();
+	  my $stylesheet = $win->{stylesheet};
+	  my $ss = undef;
+	  if ($stylesheet ne STYLESHEET_FROM_FILE()) {
+	    $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
+	  }
+	  TrEd::Print::print_trees
+	      ($fsfile,$grp->{top},$canvas,
+	       $no,0,1,0,$img_file,0,
+	       "$imageMagickConvert -density 75 - $img_file",
+	       1,1,
+	       $grp->{focusedWindow}->{treeView}->get_showHidden(),
+	       {
+		 'PS' => $psFontFile,
+		 'AFM' => $psFontAFMFile,
+		 'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
+		 'Size' => $psFontSize,
+	       },
+	       0,0,0,0,0,'BBox',$treeViewOpts,$ss);
+	  $canvas->destroy();
+	  $img=0;
+	}
+	print $html $V;
       } else {
-	print $html "<u>" if $t->tagCget($V,'-underline');
-	print $html "<font color=\"".$t->tagCget($V,'-foreground')."\">"
-	  if $t->tagCget($V,'-foreground');
-	print $html "<span class=\"$1\">" if $V =~ /^tag\s*=>\s*(.*)$/;
+	#print $html "<other key=\"$K\" value=\"$V\"/>";
       }
-    } elsif ($K eq 'tagoff') {
-      print $html "</span>" if $V =~  /^tag\s*=>\s*.*$/ ;
-      print $html "</font>" if $t->tagCget($V,'-foreground');
-      print $html "</u>" if $t->tagCget($V,'-underline');
-      if ($V eq 'newline') {
-	print $html "</p>\n";
-	print $html "</div>\n";
-	print $html "<hr />\n";
-      }
-      $img=0 if $img;
-    } elsif ($K eq 'text') {
-      if ($img and $create_images) {
-	# create image filename
-	my $img_file = $file;
-	my $no = $V; $no =~ s/[()]|\s*//g;
-	$img_file =~ s/\.[^.]*$/_${no}.png/;
-	print $html filename($img_file)."\"/><br />\n";
-	# create image
-	my $canvas=$grp->{top}->Canvas();
-	my $stylesheet = $win->{stylesheet};
-	my $ss = undef;
-	if ($stylesheet ne STYLESHEET_FROM_FILE()) {
-	  $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
-	}
-	TrEd::Print::print_trees
-	    ($fsfile,$grp->{top},$canvas,
-	     $no,0,1,0,$img_file,0,
-	     "$imageMagickConvert -density 75 - $img_file",
-	     1,1,
-	     $grp->{focusedWindow}->{treeView}->get_showHidden(),
-	     {
-	      'PS' => $psFontFile,
-	      'AFM' => $psFontAFMFile,
-	      'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
-	      'Size' => $psFontSize,
-	     },
-	     0,0,0,0,0,'BBox',$treeViewOpts,$ss);
-	$canvas->destroy();
-	$img=0;
-      }
-      print $html $V;
-    } else {
-      #print $html "<other key=\"$K\" value=\"$V\"/>";
     }
+    closeSimpleHtml($html);
   }
-  print $html "\n</body>\n";
-  print $html "\n</html>\n";
-  close($html);
 }
 
 sub populateSentencesDialog {
