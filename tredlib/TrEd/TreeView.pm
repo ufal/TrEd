@@ -242,6 +242,7 @@ sub recalculate_positions {
       $level++;
       $parent=$parent->parent;
     }
+    $level+=$self->get_style_opt($node,"Node","-level",$Opts);
     $self->store_node_pinfo($node,"EdgeLabelHeight", $edge_label_height);
 
     $maxlevel=max($maxlevel,$level);
@@ -343,7 +344,7 @@ sub recalculate_positions {
     } else {
       $minxpos=$baseXPos+$xSkipBefore;
     }
-    $xpos=max($xpos,$minxpos)+$nodeXSkip;
+    $xpos=max($xpos,$minxpos)+$nodeXSkip+$self->get_style_opt($node,"Node","-extrabeforeskip",$Opts);
     $self->store_node_pinfo($node,"XPOS",$xpos);
     $self->store_node_pinfo($node,"NodeLabel_XPOS",$xpos+$nodeLabelXShift);
 
@@ -666,12 +667,9 @@ sub redraw {
     my @width=split '&',$self->get_style_opt($node,"Line","-width",\%Opts);
     my @dash=split '&',$self->get_style_opt($node,"Line","-dash",\%Opts);
     my $lin="";
-    print "@coords\n";
     foreach my $coords (@coords) {
-      print "Coords: $coords\n";
       my @c=split ',',$coords;
       my $x=1;
-      print "@c\n";
       next if (!$parent and $coords=~/p/);
       foreach (@c) {
 	if (/^p((?:[+-][0-9]*)?)/) {
@@ -685,7 +683,6 @@ sub redraw {
 	}
 	$x=!$x;
       }
-      print "@c\n";
       my $line=$self->canvas->createLine(@c,
 					 '-arrow' =>  shift @arrow || $self->get_lineArrow,
 					 '-width' =>  shift @width || $self->get_lineWidth,
@@ -866,7 +863,7 @@ sub draw_text_line {
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
   
   ## Clear background
-  if ($clear) {
+  if ($clear and $self->get_node_pinfo($node,"X[$i]")>0) {
     my $bg=
       $self->canvas->
 	createRectangle($x,$y,
@@ -909,6 +906,7 @@ sub draw_text_line {
     if (/^\${([^}]+)}$/) {
       $j++;
       $at_text=$self->prepare_text_field($node,$1);
+      next if ($at_text) eq "";
       $txt=$self->canvas->
 	createText($x+$xskip, $y,
 		   -anchor => 'nw',
