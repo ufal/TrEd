@@ -1,11 +1,10 @@
 #!/bin/bash
 if [ "$OSTYPE" != "cygwin" ]; then 
-  echo Tento program je urcen vyhradne pro instalaci tredu
-  echo v prostredi MS Windows, je mi lito!
+  echo "Tento program je urcen vyhradne pro instalaci tredu"
+  echo "v prostredi MS Windows, je mi lito!"
 fi
 
 PATH=.:`pwd`/bin:${PATH}
-PERLVERSION="This is perl, v5.6.1 built for MSWin32-x86-multi-thread"
 
 function ask {
   answer=""
@@ -28,6 +27,12 @@ function mkplbat {
 
 function findperlbin {
   PERLBIN=`which perl 2>/dev/null`
+  if [ ! -z $PERLBIN ]; then
+      $PERLBIN -v | grep -q 'MSWin32';
+      if [ $? != 0 ]; then
+	  PERLBIN=""
+      fi
+  fi
   if [ -z $PERLBIN ]; then
     PERLBIN=`regtool get '\machine\Software\Perl\BinDir' 2>/dev/null`"/perl.exe"
     if [ ! -x $PERLBIN ]; then
@@ -66,7 +71,7 @@ function findtreddir {
 function perl_version_current {
   INSTVER=`$PERLBIN --version | grep "This is perl."`
   echo $INSTVER
-  if [ "$INSTVER" = "$PERLVERSION" ]; then
+  if $PERLBIN --version | grep -q 'This is perl.* v5\.[86]'; then
     return 0
   else 
     return 1
@@ -103,15 +108,17 @@ function install_packages {
 function upgrade_perl {
   PERLINSTALLDIR=${PERLDIR%/BIN}
   PERLINSTALLDIR=${PERLINSTALLDIR%/bin}
-  echo Odstranuji $PERLINSTALLDIR
-
-  $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat
-
-  read -e -n1 -r -p "Stisknete libovolnou klavesu pro pokracovani..."
-
-  rm -rf $PERLINSTALLDIR
+  if ask "Pozor: opravdu chcete smazat $PERLINSTALLDIR?"; then
+      $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat
+      read -e -n1 -r -p "Hodlam smazat $PERLINSTALLDIR. Stisknete libovolnou klavesu pro pokracovani..."
+      rm -rf $PERLINSTALLDIR
+  else
+      echo "Instalace prerusena."
+      read -e -n1 -r -p "Ukoncete proces stiskem klavesy... "
+      exit 1;
+  fi
   echo 
-  echo Stara verze perlu odinstalovana
+  echo "Puvodni verze perlu byla odinstalovana."
   install_perl
 }
 
@@ -184,50 +191,13 @@ else
   fi
 fi
 
+if $PERLBIN --version | grep -q 'This is perl.* v5\.6'; then
+upgrade_packages Tk Text::Iconv XML::JHXML Tie::IxHash
+# XML::SAX XML::LibXML  XML::LibXML::Iterator 
+else
+  echo U teto verze perlu preskakuji kontroly baliku.
+fi
 
-#echo -n "Ocekavam perl v $PERLBIN. Probiha test..."
-#TKTEST=`$PERLBIN -e 'print eval { require Tk; },"\n"'` || exit 0
-
-#echo " hotovo."
-#echo
-
-#if [ $OSTYPE = "cygwin" ]; then
-
-#    if [ "${TKTEST}" = "1" ]; then
-#      echo "Perl/Tk knihovna je jiz nainstalovana."
-#      #ask "Prejete si provest upgrade knihovny Perl/Tk"
-#      false
-#    else
-#      ask "Chcete nainstalovat knihovnu Perl/Tk"
-#    fi
-
-#    if [ $? -eq 0 ]; then
-
-#      if [ "${TKTEST}" = "1" ]; then
-#        echo $?
-#        echo "Pokus o odstraneni stavajici verze Perl/Tk"
-#        test "${TKTEST}" = "1" &&  $PPM remove Tk
-#      fi
-
-#      echo
-#      echo "Instalace aktualni verze Perl/Tk"
-#      cd PerlTk-cz
-#      $PPM install Tk.ppd ||\
-#        ( echo "Chyba pri instalaci Tk knihovny"; exit 1 )
-#    fi
-
-#  upgrade_package XML::Parser XML::DOM # XML::SAX XML::LibXML XML::LibXML::Iterator 
-  upgrade_packages Tk Text::Iconv XML::JHXML Tie::IxHash
-
-#else
-#  if [ "${TKTEST}" != "1" ]; then
-#    echo 
-#    echo "TrEd vyzaduje knihovnu Tk."
-#    echo "Nainstalujte Tk knihovnu a spustte tento skript znovu."
-#    exit 1
-#  fi
-#fi
-  
 findtreddir
 
 if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
@@ -283,7 +253,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     if (test -d "${TREDDIR}/bin" || mkdir "${TREDDIR}/bin"); then
       cp -f bin/prfile32.exe nsgmls/* bin/prfile32.exe bin/*.dll bin/gunzip.exe bin/gzip.exe bin/zcat.exe "${TREDDIR}/bin"
     else 
-      echo Nelze vytvorit adresar "${TREDDIR}/bin"!
+      echo "Nelze vytvorit adresar ${TREDDIR}/bin !"
     fi
     test "x$UPGRADE" = "x1" -a -f "${TREDDIR}/tredlib/tredrc.sav" && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
@@ -298,6 +268,8 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     echo
 else
   echo
-  echo Behem instalace doslo k chybe.
+  echo "Behem instalace doslo k neocekavane chybe."
   echo
+  read -e -n1 -r -p "Stisknete libovolnou klavesu, program se ukonci..."
+
 fi
