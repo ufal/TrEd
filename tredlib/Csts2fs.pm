@@ -507,6 +507,8 @@ my %pcdata = (
  @misc
 );
 
+%initial_root_values = ();
+
 %initial_node_values = (
   'afun' => '???',
   'gender' => '???',
@@ -538,11 +540,11 @@ sub build_tree {
 
   my %ordered=();
   my @unordered=();
+  # fill uninitialized node values
+  foreach my $t (keys %initial_root_values) {
+    $root->{$t} = $initial_root_values{$t} unless exists($root->{$t});
+  }
   foreach (@_) {
-    # fill uninitialized node values
-    foreach my $t (keys %initial_node_values) {
-      $_->{$t} = $initial_node_values{$t} unless exists($_->{$t});
-    }
     if ($_->{$ord} ne "" and !exists($ordered{$_->{$ord}})) {
       $ordered{$_->{$ord}}=$_;
     }
@@ -741,7 +743,7 @@ sub setupTR {
   $gov = "govTR";
   $header = \@TRheader;
   $initial_node_values{TR}='hide';
-  $initial_node_values{reserve1}='TR_TREE';
+  $initial_root_values{reserve1}='TR_TREE';
 }
 
 1;
