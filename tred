@@ -1817,18 +1817,21 @@ sub saveFile {
     }
   }
 
-  eval {
-    IOBackend::rename_uri($f,$f."~"); # if (-f $f);
-  };
-  print STDERR $@;
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   if (doEvalHook($win,"file_save_hook",$f) eq 'stop') {
     $win->toplevel->Unbusy() unless $insideEval;
     return;
   }
+  eval {
+    IOBackend::rename_uri($f,$f."~"); # if (-f $f);
+  };
+  print STDERR $@;
   unless ($win->{FSFile}->writeFile($f)) {
     $win->toplevel->Unbusy() unless $insideEval;
-    errorMessage($win,"Error saving file to '$f'\n($!)\n");
+    errorMessage($win,"Error saving file to '$f', trying to recover the original from backup\n($!)\n");
+    eval {
+      IOBackend::rename_uri($f."~",$f); # if (-f $f);
+    };
     return 0;
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
