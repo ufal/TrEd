@@ -656,7 +656,8 @@ APPINFO    NONE
 >
 <!ATTLIST MDg
           w       NUTOKEN #IMPLIED -- weight / probability --
-          src     CDATA   #IMPLIED -- parser id            -->
+          src     CDATA   #IMPLIED -- parser id            --
+>
 <!ELEMENT idioms - O (idiom*)
                  -- list of idioms by reference --
 >
