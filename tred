@@ -1220,6 +1220,45 @@ sub set_value_line {
   return $v;
 }
 
+sub updateStatusLine {
+  my ($win)=@_;
+  return unless $displayStatusLine;
+  my $l=doEvalHook($win,"get_status_line_hook");
+  set_status_line($win->{framegroup},$l);
+}
+
+sub set_status_line {
+  my ($grp,$text)=@_;
+  my $sl=$grp->{statusLine};
+  return unless $sl;
+  $sl->configure(qw(-state normal));
+  $sl->delete('0.0','end');
+  my @oldtags=$sl->tagNames();
+  if (@oldtags) {
+    $sl->tagDelete(@oldtags);
+  }
+  $sl->insert('end',encode($grp->{statusLineText}),undef)
+    unless ($grp->{statusLineText} eq "");
+  $sl->insert('end'," | ",undef) if ($text);
+
+  if (ref($text)) {
+    my ($fields,$styles)=@$text;
+    my $i=0;
+    $sl->insert('end',map { $i=!$i; $i ? encode($_) : $_ } @$fields);
+    while (@$styles) {
+      my $style=shift @$styles;
+      my $opts=shift @$styles;
+      $sl->tagConfigure($style, @$opts);
+    }
+  } else {
+    $sl->insert('0.0',encode($text));
+  }
+#  $sl->tagAdd('all','0.0','end');
+#  $sl->tagConfigure('all');
+  $sl->configure(qw(-state disabled));
+  return $text;
+}
+
 sub update_value_line {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow}; # only focused window uses the value line
@@ -2387,6 +2426,7 @@ sub onCurrentChange {
     $tv->apply_stored_style_opts("TextBox",$prev);
     $tv->apply_stored_style_opts("EdgeTextBox",$prev);
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
+    updateStatusLine($win);
   }
 }
 
@@ -3103,6 +3143,40 @@ sub startMain {
 		  -height => $valueLineHeight,
 	          ($valueLineReverseLines ? () : (-wrap => $valueLineWrap))
 	      );
+  if ($displayStatusLine) {
+    $group{statusLine}=
+      $group{top}->
+	ROText(qw(-takefocus 0
+		  -state disabled
+		  -borderwidth 2
+		  -background white
+		  -height 1
+		 ),
+	       -relief => 'sunken',
+	       -font => $vLineFont);
+
+    $group{statusLine}->bind('<1>',
+			    [sub {
+				my ($w,$grp)=@_;
+				my $Ev=$w->XEvent;
+				my $win=$grp->{focusedWindow};
+				doEvalHook($win,"status_line_click",
+					   $w->tagNames($w->index($Ev->xy)));
+				Tk->break;
+			      },\%group]
+			   );
+    $group{statusLine}->bind('<Double-1>',
+			    [sub {
+				my ($w,$grp)=@_;
+				my $Ev=$w->XEvent;
+				my $win=$grp->{focusedWindow};
+				doEvalHook($win,"status_line_doubleclick",
+					   $w->tagNames($w->index($Ev->xy)));
+				Tk->break;
+			      },\%group]
+			   );
+
+  }
   $group{valueLine}->tagConfigure('current',
 				  -background => $valueLineFocusBackground,
 				  -foreground => $valueLineFocusForeground,
@@ -3406,11 +3480,15 @@ sub startMain {
   $group{valueLine}->pack(qw/-side left -fill both -expand yes/);
   $group{vLineFrame}->pack(qw/-fill x -expand no/);
 
+
   $group{vLineSeparator}->packAfter($group{vLineFrame},-side => 'top');
+
+  $group{statusLine}->pack(qw/-pady 2 -side bottom -fill x -expand no/) if $group{statusLine};
 
   # frame canvas here
   $group{focusedWindow}->frame_widget($canvas,[],
 				      [qw/-side left/])->pack(qw/-expand yes -fill both/);
+#  $group{sLineFrame}->pack(qw/-fill x -expand yes/);
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
   $group{Menubar}->bind('Menubutton','<Escape>', [sub { shift->Leave(); }] );
@@ -5234,9 +5312,12 @@ sub nodeBoxOptions {
 sub redraw_win {
   my ($win)=@_;
   return if $insideEval;
-  saveFileStateUpdate($win);
-  resetUndoStatus($win);
-  resetTreePosStatus($win->{framegroup});
+  if ($win == $win->{framegroup}->{focusedWindow}) {
+    saveFileStateUpdate($win);
+    resetUndoStatus($win);
+    resetTreePosStatus($win->{framegroup});
+    updateStatusLine($win);
+  }
   #------------------------------------------------------------
   #{
   #use Benchmark;
@@ -5491,7 +5572,7 @@ sub currentDown {
 sub currentUp {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
-  if ($win->{currentNode}->parent) {
+  if ($win->{currentNode} && $win->{currentNode}->parent) {
     setCurrent($win,$win->{currentNode}->parent);
     centerTo($win,$win->{currentNode});
   }
@@ -5678,18 +5759,22 @@ sub evalMacro {
   push @possib, ($prefix.$A,$prefix.$K);
 
   $macro=resolveKey($grp,@possib);
+  $grp->{statusLineText}="$prefix$K" if $tredDebug;
   if (defined $macro) {
+    $grp->{statusLineText}.=", $macro" if $tredDebug;
 #    use Benchmark;
 #    my $t0= new Benchmark;
 #    # ... your code here ...
 #    for (my $i=0;$i<=50;$i++) {
-      doEvalMacro($win,$macro);
+    doEvalMacro($win,$macro);
 #    }
 #    my $t1= new Benchmark;
 #    my $td= timediff($t1, $t0);
 #    print "the code took:",timestr($td),"\n";
 
     return 1;
+  } else {
+    updateStatusLine($win);
   }
   return undef;
 }
