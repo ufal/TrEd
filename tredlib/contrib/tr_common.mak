@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-11-13 14:32:25 pajas>
+## Time-stamp: <2002-11-18 10:55:21 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -20,9 +20,12 @@
 
 sub choose_frame_or_advfunc {
   my $tag;
-  foreach $tag (qw(tag tagMD_a tagMD_b)) {
-    last if ($this->{$tag} ne "" and
-	     $this->{$tag} ne "-");
+  foreach (qw(tag tagMD_a tagMD_b)) {
+    if ($this->{$_} ne "" and
+	$this->{$_} ne "-") {
+      $tag=$_;
+      last;
+    }
   }
   if ($this->{$tag}=~/^[VAN]/) {	# co neni sloveso, subst ni adj, je adv :))))
     ChooseFrame();
@@ -36,6 +39,9 @@ sub upgrade_file {
   my $defs=$grp->{FSFile}->FS->defs;
   if (exists($defs->{func}) and $defs->{func} !~ /OPER/) {
     $fsfunc=$defs->{func}=~s/(NORM)/NORM|OPER/;
+  }
+  if (exists($defs->{func}) and $defs->{func} !~ /CONTRA/) {
+    $fsfunc=$defs->{func}=~s/(CONFR)/CONFR|CONTRA/;
   }
   if (exists($defs->{antec}) and $defs->{func} !~ /OPER/) {
     $fsfunc=$defs->{antec}=~s/(NORM)/NORM|OPER/;
@@ -356,9 +362,10 @@ sub GetNewOrd {
 
   if ($node) {
     $base=$1 if $node->{ord}=~/^([0-9]+)/;
+    $node=$node->root;
+  } else {
+    $node=$root;
   }
-
-  $node=$node->root;
   while ($node) {
     if ($node->{ord}=~/^$base\.([0-9]+)$/ and $1>$suff) {
       $suff=$1;
@@ -466,7 +473,6 @@ sub NewVerb {
 
   my $sNum;			# used as type "string"
 
-  print STDERR "Running NewVerb\n";
   return unless ($root->{'reserve1'}=~'TR_TREE');
 
   $pT = $this;
