@@ -125,14 +125,14 @@ sub ChooseFrame {
 
       if ($answer eq "Add $lemma") {
 	$word=$FrameData->addWord($lemma,$pos);
-	$new_word=1;
+	$new_word=[$lemma,$pos];
       } elsif ($answer eq "Add $base") {
 	$base_word=$FrameData->addWord($base,"V");
-	$new_word=1;
+	$new_word=[$base,"V"];
       } elsif ($answer eq "Add both") {
 	$word=$FrameData->addWord($lemma,$pos);
 	$base_word=$FrameData->addWord($base,"V");
-	$new_word=1;
+	$new_word=[$lemma,$pos];
       } elsif ($answer eq "Cancel") {
 	return;
       }
@@ -142,7 +142,6 @@ sub ChooseFrame {
 	    $base_word ? ($base,"V") : ()
 	   ];
     $title= join ("/",$word ? $lemma : (), $base_word ? $base : ());
-    #    undef $word;
   }
   my $font = $main::font;
   my $fc=[-font => $font];
