@@ -146,7 +146,7 @@ Return string representation of the given subtree
    my $top= $_[0]||$root;
    return undef unless $top;
    return substr(join("",
-		 map { ($_->{nospace} ? "" : " ").$_->{origf} }
+		 map { $_->{origf}.($_->{nospace} ? "" : " ") }
 		 sort { $a->{ord} <=> $b->{ord} }
 		 $top->descendants),1);
 }
