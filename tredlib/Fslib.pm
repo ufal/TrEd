@@ -1715,7 +1715,7 @@ See C<initialize> for more detail.
 sub create {
   my $self = shift;
   my %args=@_;
-  return $self->new(@args{qw(name format FS hint patterns tail trees save_status backend encoding user_data)});
+  return $self->new(@args{qw(name format FS hint patterns tail trees save_status backend encoding user_data meta_data)});
 }
 
 
@@ -1790,7 +1790,17 @@ IO Backend used to open/save the file.
 
 IO character encoding for perl 5.8 I/O filters
 
+=item user_data (arbitrary scalar type)
+
+Applicatoin specific data
+
+=item meta_data (hashref)
+
+Meta data (usually used by IO Backends to store additional information
+about the file).
+
 =back
+
 
 =cut
 
@@ -1811,7 +1821,7 @@ sub initialize {
   $self->[10] = $_[8] ? $_[8] : 'FSBackend'; # backend;
   $self->[11] = $_[9] ? $_[9] : undef; # encoding;
   $self->[12] = $_[10] ? $_[10] : undef; # user data
-
+  $self->[13] = $_[11] ? $_[11] : {}; # meta data
   return ref($self) ? $self : undef;
 }
 
@@ -2101,6 +2111,34 @@ sub changeUserData {
   return unless ref($self);
   return $self->[12]=$val;
 }
+
+=pod
+
+=item metaData(name)
+
+Return meta data stored into the object usually by IO backends.
+
+=cut
+
+sub metaData {
+  my ($self,$name) = @_;
+  return ref($self) ? $self->[13]->{$name} : undef;
+}
+
+=pod
+
+=item changeMetaData(name,value)
+
+Change meta information (usually used by IO backends).
+
+=cut
+
+sub changeMetaData {
+  my ($self,$name,$val) = @_;
+  return unless ref($self);
+  return $self->[13]->{$name}=$val;
+}
+
 
 =pod
 
@@ -2665,7 +2703,7 @@ Close given filehandle opened by previous call to C<open_backend>
 
 sub close_backend {
   my ($fh)=@_;
-  return $fh && $fh->close();
+  return ref($fh) && $fh->close();
 }
 
 =pod
