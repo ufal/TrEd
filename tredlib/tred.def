@@ -65,7 +65,7 @@ sub PlainDeleteNode {
 sub PrintToFile {
   my $file=shift;
   if (open(PTF,">>$file")) {
-    print PTF join("",@_);
+    print PTF join("",map { s/\\\|/\|/g } @_);
     print PTF "\n";
     close(PTF);
   }
