@@ -178,18 +178,25 @@ sub getSuperFrameList {
   tie my %super, 'Tie::IxHash';
 
   foreach my $frame ($word->getDescendantElementsByTagName("frame")) {
-
     my $base="";
     my @element_nodes=$frame->getDescendantElementsByTagName("element");
     foreach my $element (
 			 (
-			  grep { $_->getAttribute('type') eq 'oblig' or
-				   $_->getAttribute('functor') =~ /^(?:ACT|PAT|EFF|ORIG|ADDR)/
-				 }
-			  @element_nodes)
+			  grep { 
+			    $_->getAttribute('type') eq 'oblig'
+			  }
+			  @element_nodes),
+			  (grep {
+			    $_->getAttribute('type') ne 'oblig' and # but
+			    $_->getAttribute('functor') =~
+			      /^(?:ACT|PAT|EFF|ORIG|ADDR)$/
+			  } @element_nodes)
+			 # this is in two greps so that we
+			 # do not have to sort it
 			) {
       $base.=$self->getOneFrameElementString($element)." ";
     }
+    print "BASE: $base\n";
     if (exists $super{$base}) {
       push @{$super{$base}},$self->getFrame($frame);
     } else {
@@ -386,7 +393,7 @@ sub addFrameLocalHistory {
 
   my $local_event=$doc->createElement("local_event");
   my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
-  $local_event->setAttribute("timestamp",sprintf('%d.%d.%d %02d:%02d:%02d',
+  $local_event->setAttribute("time_stamp",sprintf('%d.%d.%d %02d:%02d:%02d',
 						 $mday,$mon,1900+$year,$hour,$min,$sec));
   $local_event->setAttribute("type_of_event",$type);
   $local_event->setAttribute("author",$self->user());

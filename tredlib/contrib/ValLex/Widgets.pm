@@ -224,6 +224,7 @@ sub fetch_data {
       $e="";
     }
     foreach my $entry (@{$super->{$sframe}}) {
+      next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
       $f = $t->addchild("$e",-data => $entry->[0]);
       $i=$t->itemCreate($f, 0,
 			-itemtype=>'imagetext',

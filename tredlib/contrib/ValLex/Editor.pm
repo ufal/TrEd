@@ -448,7 +448,7 @@ sub substitute_button_pressed {
   my $item=$fl->infoAnchor();
   return unless defined($item);
   my $frame=$fl->infoData($item);
-  return unless $frame;
+  return unless ref($frame);
   my $word=$self->data()->getWordForFrame($frame);
   my $top=$self->widget()->toplevel;
   my $elements=$self->data()->getFrameElementString($frame);
@@ -479,7 +479,7 @@ sub modify_button_pressed {
   my $item=$fl->infoAnchor();
   return unless defined($item);
   my $frame=$fl->infoData($item);
-  return unless $frame;
+  return unless ref($frame);
   my $word=$self->data()->getWordForFrame($frame);
   my $top=$self->widget()->toplevel;
   my $elements=$self->data()->getFrameElementString($frame);
@@ -554,7 +554,7 @@ sub confirm_button_pressed {
   my $item=$fl->infoAnchor();
   return if $item eq "";
   my $frame=$fl->infoData($item);
-
+  return unless ref($frame);
   $self->data()->changeFrameStatus($frame,'reviewed','review');
   $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
   $self->framelist_item_changed($self->subwidget('framelist')->focus($frame));
@@ -566,7 +566,7 @@ sub delete_button_pressed {
   my $item=$fl->infoAnchor();
   return if $item eq "";
   my $frame=$fl->infoData($item);
-
+  return unless ref($frame);
   $self->data()->changeFrameStatus($frame,'deleted','delete');
   $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
   my $fanchor=$self->subwidget('framelist')->focus($frame);
@@ -581,6 +581,7 @@ sub obsolete_button_pressed {
   my $item=$fl->infoAnchor();
   return if $item eq "";
   my $frame=$fl->infoData($item);
+  return unless ref($frame);
   if ($self->data()->getFrameStatus($frame) eq "active") {
     $self->data()->changeFrameStatus($frame,'obsolete','obsolete');
     $self->wordlist_item_changed($self->subwidget('wordlist')->widget()->infoAnchor());
