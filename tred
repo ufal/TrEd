@@ -4557,7 +4557,7 @@ sub editAttrsDialog {
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
       $e{$_}->insert(0,encode($node->getAttribute($_)));
       $e{$_}->configure(-state=> 'disabled');
-      $r->pack(qw/side right -expand yes -fill both/);
+      $r->pack(qw/-side right -expand yes -fill both/);
       $height += max($b->reqheight,$e{$_}->reqheight()) if ($i<$rows);
     } else {
       $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
