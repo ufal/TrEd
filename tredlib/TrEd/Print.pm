@@ -304,7 +304,7 @@ sub print_trees {
 	  $pagewidth=$width;
 	  $pageheight=$height;
 	  if (@printList == 1) {
-	    $P->{PDF}->mediabox(0,0,$pagewidth+2*$vMargin,$pageheight+2*$vMargin)
+	    $P->{PDF}->mediabox(0,0,$pagewidth+2*$hMargin,$pageheight+2*$vMargin)
 	  } else {
 	    $P->{current_page}->mediabox(0,0,$pagewidth+2*$vMargin,$pageheight+2*$vMargin);
 	  }
