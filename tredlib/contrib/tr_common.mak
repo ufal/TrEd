@@ -142,6 +142,9 @@ sub upgrade_file {
   if (exists($defs->{func}) and $defs->{func} !~ /CPHR/) {
     $defs->{func}=~s/(DPHR)/CPHR|DPHR/;
   }
+  if (exists($defs->{func}) and $defs->{func} !~ /CM/) {
+    $defs->{func}=~s/(CPHR)/CM|CPHR/;
+  }
   if (exists($defs->{func}) and $defs->{func} !~ /AUTH/) {
     $defs->{func}=~s/(APPS)/APPS|AUTH/;
   }
