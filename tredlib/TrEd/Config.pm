@@ -103,7 +103,7 @@ BEGIN {
 }
 
 sub find_exe {
-  local $_ = `/usr/bin/which $_[0]`; chomp; /\S/ ? $_ : undef
+  local $_ = `/usr/bin/which $_[0] 2>/dev/null`; chomp; /\S/ ? $_ : undef
 }
 
 sub set_default_config_file_search_list {
