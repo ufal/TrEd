@@ -79,6 +79,7 @@ sub get_adverbs {
   foreach my $adv ($doc->getDocumentElement()->findnodes("/adverbs/adverb")) {
     push @adverbs,[
 		   $conv->decode($adv->getAttributeNode("lemma")->value()),
+		   $conv->decode($adv->getAttributeNode("author")->value()),
 		   map { $conv->decode($_->getAttributeNode("functor")->value()),
 		         $conv->decode(adverb_get_text($_)),
 		       } $adv->findnodes("example")
@@ -147,10 +148,13 @@ sub show_adverbs_dialog {
   my ($e,$f);
   foreach my $adv (get_adverbs($data,$conv)) {
     my $lemma=shift @$adv;
+    my $author=shift @$adv;
+    $author=~s/buranova/EB/;
+    $author=~s/sidak/S/;
     $e=$hlist->addchild("", -data => $lemma);
     my $i=$hlist->itemCreate($e, 0,
 			     -itemtype => 'text',
-			     -text => $lemma,
+			     -text => "$lemma ($author)"
 			    );
     while (@$adv) {
       my ($fn,$example)=(shift @$adv, shift @$adv);
