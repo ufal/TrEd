@@ -4010,7 +4010,7 @@ sub populateSentencesDialog {
   use Tk::ROText;
   my $t= $d->
     Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
-                     -spacing3 6 -background white
+                     -spacing3 6 -background white -wrap word
 		     -height 20 -scrollbars oe/,
 	     -font=>$font
 	    );
