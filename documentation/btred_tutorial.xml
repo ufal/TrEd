@@ -72,8 +72,8 @@ sub find_childless_verbs {
       </literallayout></para>
 
     <para>To apply the above macros on a set of files, you simply type
-    <literallayout>btred -m my_macros -e find_orphan_verbs *.fs</literallayout>Let's
-    see what happens in the code: <literal>find_orphan_verbs</literal>
+    <literallayout>btred -m my_macros -e find_childless_verbs *.fs</literallayout>Let's
+    see what happens in the code: <literal>find_childless_verbs</literal>
     iterates over all trees by calling <literal>NextTree()</literal> to move
     to the next tree. Within each tree it iterates over all nodes, using
     <literal>following</literal> method on current node
@@ -92,7 +92,7 @@ sub find_childless_verbs {
     the first letter of the attribute <literal>tag</literal>, containing
     required morphological information.</para>
 
-    <para>It is quite apparent, that most of the code of
+    <para>It is quite apparent that most of the code of
     <literal>find_childless_verbs</literal> is spent on iterating over all
     nodes of all trees. <literal>btred</literal> can do this for you, if you
     use use the options <literal>-T</literal> (to iterate over all trees) and
@@ -102,7 +102,7 @@ sub find_childless_verbs {
 
     <para>Because it is rather easy to forget to put options like
     <literal>-T</literal> or <literal>-N</literal> to the command-line, you
-    may write them directly into the code as shown below. It is sometimes
+    can write them directly into the code as shown below. It is sometimes
     handy to include other options, such as <literal>-e
     find_childless_verbs</literal> indicating, which macro should be called on
     each iteration. The script then looks as follows: <literallayout>
@@ -123,8 +123,8 @@ sub find_childless_verbs {
 }
       </literallayout> and can be executed simply as <literallayout>$ btred -m my_macros *.fs</literallayout></para>
 
-    <para>If your script is that simple, that you don't bother openning an
-    editor, you may put your code directly on the command line. Here is an
+    <para>If your script is so simple that you don't bother openning an
+    editor, you can put your code directly on the command line. Here is an
     example equivalent to the code of <literal>my_macros</literal>.
     <literallayout>$ btred -TN -e 'print ThisAddress(),"\n" unless ($node-&gt;firstson() or $node-&gt;{tag}!~/^V/)' *.fs</literallayout></para>
   </sect1>
@@ -202,7 +202,7 @@ sub find_childless_verbs {
       <literallayout>$ ntred --list-files</literallayout>
 
       <para>On standard output, you'll see a list of open files, printed by
-      each btred server. Note, that the order of the files may be quite
+      each btred server. Note that the order of the files may be quite
       random. Standard error oputput contains various messages showing e.g.
       which server is being communicated by the hub etc. It's now time to run
       some more interesting code on the servers. We may start with the one
@@ -210,14 +210,14 @@ sub find_childless_verbs {
 
       <literallayout>$ ntred -TN -e 'print ThisAddress(),"\n" unless ($node-&gt;firstson() or $node-&gt;{tag}!~/^V/)'</literallayout>
 
-      <para>You may see, that this is almost identical to the btred example
+      <para>You may see that this is almost identical to the btred example
       above, except that this time we don't have to specify any filenames,
       since we already have files loaded on the server (an of course, this
       time it will be significantly faster, esp. in case of large amount of
       data files). </para>
 
       <para>Usually, btred scripts can be reused with ntred without changed.
-      You only have to remember, that:</para>
+      You only have to remember that:</para>
 
       <itemizedlist>
         <listitem>
@@ -400,7 +400,7 @@ sub find_childless_verbs {
       </varlistentry>
 
       <varlistentry>
-        <term>$ndoe-&gt;visible_descendants(FS())</term>
+        <term>$node-&gt;visible_descendants(FS())</term>
 
         <listitem>
           <para>Return all visible child nodes (i.e. not marked as hidden) of
