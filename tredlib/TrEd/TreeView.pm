@@ -558,6 +558,7 @@ sub get_style_opt {
 sub apply_style_opts {
   my ($self, $item)=(shift,shift);
   eval { $self->canvas->itemconfigure($item,@_); };
+  print STDERR $@ if $@ ne "";
   return $@;
 }
 
@@ -569,6 +570,7 @@ sub apply_stored_style_opts {
 	   itemconfigure($self->get_node_pinfo($node,"Oval"),
 			 @{$Opts->{$item}},
 			 $self->get_node_style($node,$item)); };
+  print STDERR $@ if $@ ne "";
   return $@;
 }
 
@@ -780,6 +782,7 @@ sub redraw {
 	      my $c=$code;
 	      $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$nodes->[$i]->{$1}'"]ge;
 	      last if eval $c; # not secure, not safe!!!
+	      print STDERR $@ if $@ ne "";
 	      $i++;
 	    }
 	    $nodehash{$code}=$i;
@@ -827,6 +830,7 @@ sub redraw {
 	 }ge;
 	if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
 	  $_=eval $_;
+	  print STDERR $@ if $@ ne "";
 	} else {
 	  $err=1;
 	  print STDERR "BAD: $_\n";
@@ -841,7 +845,7 @@ sub redraw {
 	my $l;
 	eval {
           $l=$self->canvas->createLine(@c,
-                                  -tags => [$line],
+                                  -tags => [$line,'line'],
 				  '-arrow' =>  $arrow[$lin] || $self->get_lineArrow,
 				  '-width' =>  $width[$lin] || $self->get_lineWidth,
 				  '-fill'  =>  $fill[$lin] || $self->get_lineColor,
@@ -849,10 +853,12 @@ sub redraw {
 				  $can_dash ? ('-dash'  => $dash[$lin] || $self->get_lineDash)
 				  : ());
 	};
+	print STDERR $@ if $@ ne "";
 	$self->store_id_pinfo($l,$line);
 	$self->store_node_pinfo($node,"Line$lin",$line);
 	$self->store_obj_pinfo($line,$node);
 	$self->realcanvas->lower($line,'all');
+	$self->realcanvas->raise($line,'line');
       }
       $lin++;
    }
@@ -1162,7 +1168,7 @@ sub draw_text_line {
 	    $self->canvas->
 	      itemconfigure($self->get_node_pinfo($node,$1),$2 => $3);
 	  };
-	  warn $@ if $@;
+	  print STDERR $@ if $@ ne "";
 	} else {
 	  $color=$c;
 	  $color=undef if ($color eq 'default');
