@@ -13,16 +13,50 @@ require Tk::Checkbutton;
 require Tk::Button;
 
 sub show_dialog {
-  my ($top,$data,$select_word,$autosave)=@_;
+  my ($top,$data,$select_word,$autosave,$confs,
+      $wordlist_item_style,
+      $framelist_item_style,
+      $fe_confs)=@_;
 
-  my $d = $top->DialogBox(-title => "Frame editor: ".$data->getUserName($data->user()),
-			  -buttons => ["Ok"],
+  my $d = $top->DialogBox(-title => "Frame editor: ".
+			  $data->getUserName($data->user()),
+			  -buttons => ["Save & Close", "Save", "Reload"],
 			 );
+
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind($d,'<Return>',[sub {  }]);
-  my $vallex= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,0);
+  my $vallex= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,0,
+					$wordlist_item_style,
+					$framelist_item_style,
+					$fe_confs);
+  $vallex->subwidget_configure($confs) if ($confs);
   $vallex->pack(qw/-expand yes -fill both -side left/);
-  $vallex->wordlist_item_changed($vallex->subwidget('wordlist')->focus($select_word));
+  $vallex->wordlist_item_changed($vallex->subwidget('wordlist')
+				 ->focus($select_word));
+
+  $d->Subwidget("B_Save & Close")->
+    configure(-command =>
+	      [sub {
+		 my ($d,$f)=@_;
+		 $d->{selected_button}='Save and Close';
+	       },$d,$vallex]);
+
+  $d->Subwidget("B_Save")->
+    configure(-command =>
+	      [sub {
+		 my ($d,$f)=@_;
+		 $f->save_data($d);
+	       },$d,$vallex]);
+
+  $d->Subwidget("B_Reload")->
+    configure(-command =>
+	      [sub {
+		 my ($d,$f)=@_;
+		 $d->Busy(-recurse=> 1);
+		 $f->data()->reload();
+		 $f->fetch_data();
+		 $d->Unbusy(-recurse=> 1);
+	       },$d,$vallex]);
 
   $d->Show();
   if ($vallex->data()->changed()) {
@@ -36,24 +70,28 @@ sub show_dialog {
 }
 
 sub create_widget {
-  my ($self, $data, $field, $top, $reverse, @conf) = @_;
+  my ($self, $data, $field, $top, $reverse,
+      $wordlist_item_style,
+      $framelist_item_style,
+      $fe_confs)= @_;
 
-  my $frame = $top->Frame();
-  my $top_frame = $frame->Frame()->pack(qw/-expand yes -fill both -side top/);
-  $frame->configure(@conf) if (@conf);
+  my $frame;
 
+  $frame = $top->Frame(-takefocus => 0);
+
+  my $top_frame = $frame->Frame(-takefocus => 0)->pack(qw/-expand yes -fill both -side top/);
 
   # Labeled frames
 
-  my $wf = $top_frame->Frame();
+  my $wf = $top_frame->Frame(-takefocus => 0);
 
 
-  my $lexlist_frame=$wf->LabFrame(-label => "Words",
+  my $lexlist_frame=$wf->LabFrame(-takefocus => 0,-label => "Words",
 				  -labelside => "acrosstop",
 				     qw/-relief raised/);
   $lexlist_frame->pack(qw/-expand yes -fill both -padx 4 -pady 4/);
 
-  my $button_frame=$lexlist_frame->Frame();
+  my $button_frame=$lexlist_frame->Frame(-takefocus => 0);
   $button_frame->pack(qw/-side top -fill x/);
 
   if ($self->data()->user_is_annotator() or
@@ -66,20 +104,22 @@ sub create_widget {
 
   my $adjuster = $top_frame->Adjuster();
 
-  my $ff = $top_frame->Frame();
+  my $ff = $top_frame->Frame(-takefocus => 0);
 
-  my $lexframe_frame=$ff->LabFrame(-label => "Frames",
+  my $lexframe_frame=$ff->LabFrame(-takefocus => 0,
+				   -label => "Frames",
 				      -labelside => "acrosstop",
 				      qw/-relief sunken/);
   $lexframe_frame->pack(qw/-expand yes -fill both -padx 4 -pady 4/);
 
-  my $fbutton_frame=$lexframe_frame->Frame();
+  my $fbutton_frame=$lexframe_frame->Frame(-takefocus => 0);
   $fbutton_frame->pack(qw/-side top -fill x/);
 
   # List of Frames
   my $lexframelist =
     TrEd::ValLex::FrameList->new($data, $field, $lexframe_frame,
-				 qw/-height 15 -width 50/);
+				 $framelist_item_style,
+				 qw/-height 10 -width 50/);
 
 
   # Buttons
@@ -146,7 +186,7 @@ sub create_widget {
 
   # Frame Problems
   my $lexframeproblem = TrEd::ValLex::FrameProblems->new($data, $field, $lexframe_frame,
-							 qw/-width 30 -height 4/);
+							 qw/-width 30 -height 3/);
   $lexframeproblem->pack(qw/-fill both/);
 
 
@@ -155,7 +195,9 @@ sub create_widget {
 					 ]);
 
   ## Word List
-  my $lexlist = TrEd::ValLex::WordList->new($data, $field, $lexlist_frame,qw/-height 15 -width 0/);
+  my $lexlist = TrEd::ValLex::WordList->new($data, $field, $lexlist_frame,
+					    $wordlist_item_style,
+					    qw/-height 10 -width 0/);
   $lexlist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
 
 
@@ -170,7 +212,7 @@ sub create_widget {
 
   # Word Problems
   my $lexproblem = TrEd::ValLex::FrameProblems->new($data, $field, $lexlist_frame,
-						   qw/-width 20 -height 4/);
+						   qw/-width 20 -height 3/);
   $lexproblem->pack(qw/-fill both/);
 
 
@@ -209,8 +251,13 @@ sub create_widget {
 	     wordnote     => $lexnote,
 	     wordproblem  => $lexproblem,
 	     infoline     => $info_line
-	    };
+	    },$fe_confs;
 }
+
+sub frame_editor_confs {
+  return $_[0]->[4];
+}
+
 
 sub ask_save_data {
   my ($self,$top)=@_;
@@ -309,7 +356,9 @@ sub addframe_button_pressed {
 
   my $top=$self->widget()->toplevel;
   my ($ok,$elements,$note,$example,$problem)=
-    $self->show_frame_editor_dialog("Add frame for ".$wl->itemCget($item,0,'-text'));
+    $self->show_frame_editor_dialog("Add frame for ".
+				    $wl->itemCget($item,0,'-text'),
+				    $self->frame_editor_confs);
 
   if ($ok) {
     my $new=$self->data()->addFrame(undef,$word,$elements,$note,$example,$problem,$self->data()->user());
@@ -338,6 +387,7 @@ sub substitute_button_pressed {
   my $problem="";
   ($ok,$elements,$note,$example,$problem)=
     $self->show_frame_editor_dialog("Substitute frame",
+				    $self->frame_editor_confs,
 				    $elements,$note,$example,$problem);
 
   if ($ok) {
@@ -367,6 +417,7 @@ sub modify_button_pressed {
   my $problem="";
   ($ok,$elements,$note,$example,$problem)=
     $self->show_frame_editor_dialog("Change frame",
+				    $self->frame_editor_confs,
 				    $elements,$note,$example,$problem);
 
   if ($ok) {
@@ -382,12 +433,13 @@ sub modify_button_pressed {
 
 
 sub show_frame_editor_dialog {
-  my ($self,$title,$elements,$note,$example,$problem)=@_;
+  my ($self,$title,$confs,$elements,$note,$example,$problem)=@_;
 
   my $top=$self->widget()->toplevel;
   my $d=$top->DialogBox(-title => $title,
 				-buttons => ["OK","Cancel"]);
   my $ed=TrEd::ValLex::FrameElementEditor->new($self->data(), $self->field(), $d);
+  $ed->subwidget_configure($confs) if ($confs);
   $ed->pack(qw/-expand yes -fill both/);
   $ed->subwidget('elements')->insert(0,$elements) unless $elements eq "";
   $ed->subwidget('note')->insert("0.0",$note) unless $note eq "";

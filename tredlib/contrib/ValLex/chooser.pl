@@ -26,6 +26,7 @@ use Data;
 use Widgets;
 use Editor;
 use Chooser;
+use TrEd::CPConvert;
 
 print "done\n";
 
@@ -43,8 +44,32 @@ sub questionQuery {
 }
 
 print "Reading data\n";
-my $data=TrEd::ValLex::Data->new("vallex.xml");
+my $conv= TrEd::CPConvert->new("utf-8",
+			       ($^O eq "MSWin32") ?
+			       "windows-1250" :
+			       "iso-8859-2");
+print $conv->encoding_to()," encoding\n";
+print $conv->decoding_to()," decoding\n";
+
+my $data=TrEd::ValLex::Data->new("vallex.xml",$conv);
 #print $data->doc()->toString;
+
+my $font = "-adobe-helvetica-medium-r-*-*-14-*-*-*-*-*-iso8859-2";
+my $fc=[-font => $font];
+my $fe_conf={ elements => $fc,
+	      example => $fc,
+	      note => $fc,
+	      problem => $fc
+	    };
+my $vallex_conf = {
+		   framelist => $fc,
+		   framenote => $fc,
+		   frameproblem => $fc,
+		   wordlist => { wordlist => $fc, search => $fc},
+		   wordnote => $fc,
+		   wordproblem => $fc,
+		   infoline => { label => $fc }
+		  };
 
 print "Creating main window\n";
 my $top=Tk::MainWindow->new();
@@ -69,8 +94,8 @@ unless ($word) {
 print "Continuing\n";
 
 sub close_and_return {
-  my ($chooser,$frame)=@_;
-  my $value=$frame->getAttribute('frame_ID');
+  my ($chooser,@frames)=@_;
+  my $value=join " ", map { $_->getAttribute('frame_ID') } @frames;
   print "value: $value\n";
   $top->destroy();
 }
@@ -79,7 +104,13 @@ sub close_and_return {
 
 #if ($word) {
 print "Creating chooser\n";
-my $chooser= TrEd::ValLex::Chooser->new($data, $word ,$top,\&close_and_return,0);
+my $chooser= TrEd::ValLex::Chooser->new($data, $word ,$top,
+					$fc,
+					$vallex_conf,
+					$fc,
+					$fc,
+					$fe_conf,
+					\&close_and_return,0);
 if ($new_word) {
   $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
 }
