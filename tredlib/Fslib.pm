@@ -2710,7 +2710,7 @@ sub open_backend {
   no integer;
   if ($]>=5.008 and defined $encoding) {
     eval {
-      print STDERR "USING PERL IO ENCODING: $encoding\n";
+      print STDERR "USING PERL IO ENCODING: $encoding FOR MODE $mode\n" if $Fslib::Debug;
       binmode $fh,":encoding($encoding)";
     };
     print STDERR $@ if $@;
