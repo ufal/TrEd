@@ -3044,7 +3044,7 @@ sub onCurrentChange {
 sub prepareFont {
   my ($grp,$font,$fn)=@_;
   print STDERR "Preparing fonts.\n" if $tredDebug;
-  if ($$font!~/^-/) {
+  if ($$font!~/^\s*-/ and $$font!~/^\s*\{/) {
     my @a=split(/\s*,\s*/,$$font);
     my ($option,$value);
     my @b;
