@@ -157,10 +157,10 @@ sub write {
 	print $fileref "<doc file=\"",$root->{doc},"\" id=\"",
 	  ($root->{docid}=~/^\d+$/ ? $root->{docid} : "0"),"\">\n";
 	print $fileref "<a>\n";
-	if ($root->{docmarkup} ne "") {
-	  print $fileref "<markup>\n";
-	  print $fileref $root->{docmarkup};
-	  print $fileref "</markup>\n";
+	if ($root->{docmarkup} =~ /\<m/) {
+	    print $fileref "<markup>\n";
+	    print $fileref $root->{docmarkup};
+	    print $fileref "</markup>\n";
 	}
 	my ($genre,$id,$authname)=("mix",$root->{docid},"y");
 	my ($mod,$txtype,$med,$temp,$opus)=
