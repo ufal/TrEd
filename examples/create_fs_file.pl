@@ -16,7 +16,9 @@ my $fs=
     hint => '${tag}',	        # co se ma zobrazovat, kdyz je mys nad uzlem
     patterns => ['${form}','${afun}'],  # jak se zobrazuji atributy
     trees => [],		# zatim zadne stromy
-    backend => 'FSBackend');	# ukladat budeme jako FS (default)
+    backend => 'FSBackend',     # ukladat budeme jako FS (default)
+    encoding => 'iso-8859-2'    # kodovani pro I/O v perlu 5.8
+  );
 
 # vytvorime 10 cvicnych stromu
 my ($root,$node);
