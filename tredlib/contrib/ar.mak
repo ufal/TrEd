@@ -1,7 +1,7 @@
 ## This is macro file for Tred                                   -*-cperl-*-
 ## It should be used for analytical trees editing
 ## author: Petr Pajas
-## Time-stamp: <2002-03-22 18:16:57 pajas>
+## Time-stamp: <2002-03-28 09:26:41 pajas>
 
 package Analytic;
 use base qw(TredMacro);
