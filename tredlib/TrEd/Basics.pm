@@ -151,6 +151,16 @@ sub _messageBox {
   my ($top,$title,$msg)=@_;
   my $d= $top->DialogBox(-title=> $title,
 		      -buttons=> ['OK']);
+  $d->Label(-text => "ERROR:",
+	    -justify => 'left',
+	    -foreground => 'red'
+	   )
+    ->pack(-pady => 5,-side => 'top', -fill => 'x');
+  $d->Label(-text => 
+	      "An error occured during a protected transaction.\n".
+	      "You may wish to copy the error message displayed below and report it to the author.",
+	    -justify => 'left'
+	   )->pack(-pady => 10,-side => 'top', -fill => 'x');
   my $t= $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2
 		-scrollbars oe/);
