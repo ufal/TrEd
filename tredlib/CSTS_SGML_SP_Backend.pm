@@ -11,7 +11,7 @@ sub default_settings {
   $sgmlsopts = "-i preserve.gen.entities" unless $sgmlsopts;
   $doctype = "csts.doctype" unless $doctype;
 
-  $sgmls_command='%s %o %d' unless $sgmls_command;
+  $sgmls_command='%s %o %d %f' unless $sgmls_command;
 }
 
 =item open_backend (filename,mode, encoding?)
