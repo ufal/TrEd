@@ -500,7 +500,9 @@ sub openFile {
   }
 
   # peep on the first character
-  $fs = $_=<F> and /^\@/; close(F);
+  $fs =($_=<F> and /^\@/); close(F);
+
+  print STDERR "file is fs: $fs\n";
 
   if ($fs) {
     # opening file again, know it is fs
@@ -517,7 +519,9 @@ sub openFile {
       return 0;
     }
   } elsif (defined($anyToFs) and -x $anyToFs) {
+    print STDERR "trying to run \`$anyToFs\'\n";
     unless (open(F,"$anyToFs $f |")) {
+      print STDERR "ok.\n";
       if ($grp->{top}) {
 	$grp->{top}->
 	  messageBox(-icon => 'error',
