@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-02-19 17:38:51 pajas>
+## Time-stamp: <2004-02-27 17:46:17 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -237,4 +237,5 @@ sub light_aidrefs {
       $this->{_light}=join'|',(split/\|/,$this->{_light}),$aid;
     }
   }
+  ChangingFile(0);
 }
