@@ -48,7 +48,9 @@ $TrEd::TreeView::DefaultNodeStyle{Node}=
 
 # reload config
 main::read_config();
-main::reconfigure($grp->{framegroup});
+eval {
+  main::reconfigure($grp->{framegroup});
+};
 
 # create the value_line
 # sub get_value_line_hook {
@@ -197,15 +199,7 @@ my $ante;
 # root style hook
 # here used only to check if the sentence contains a node with afun=Ante
 sub root_style_hook {
-  my ($node,$styles)=@_;
-  $ante=0;
-  while ($node) {
-    if ($node->{afun} eq 'Ante') {
-      $ante=1;
-      last;
-    }
-    $node=$node->following;
-  }
+
 }
 
 
@@ -215,28 +209,74 @@ sub node_style_hook {
 
   # Ref
   if ($node->{arabspec} eq 'Ref') {
-    my $T;
+      my $T;
 
-    # root_style_hook sets $ante if there is a node afun=Ante
-    if ($ante) {
-      # target of the arrow is this ante
-      # let TrEd search for it (using [ ... ])
-      $T="[afun=Ante]"; # target's afun eq Antec
-    } else {
-      # target of the arrow is the nearest ancestor adjective or top
-      # of a clause with afun=Atr
-
-      # we look for it since we know where (using [! ... !])
       $T=<<'TARGET';
 [!
-  $this=$this->parent
-    while $this and not($this->{afun} eq 'Atr' and
-              ($this->{arabclause}!~/^no-|^$/ or $this->{tag}=~/^ADJ/)
-          );
-  $this;
+    my $ante;
+    my $head=$this;
+
+    # search for the head of the clause
+    $head=$head->parent
+      until ( (not $head) or ($head->{afun} eq 'Atr' and ($head->{arabclause}!~/^no-|^$/ or $head->{tag}=~/VERB/))
+                          or ($head->{afun}=~/^(?:Pred|Pnom)/) );
+
+    # search for an Ante in the subtree, or point to the parent of the head
+    if ($head) {
+      $ante=$head;
+      $ante=$ante->following($head) until (not($ante) or $ante->{afun} eq 'Ante');
+    
+      $ante or $head->parent;
+    }
+    else { undef; }
 !]
 TARGET
-    }
+
+
+    # Instructions for TrEd on how to compute a simple 3-point
+    # multiline starting at the current node and ending at the node
+    # given by $T with middle point just between those two plus 40
+    # points either in the horizontal or vertical direction (depending
+    # on the direction of a greater distance)
+    my $coords=<<COORDS;
+n,n,
+n + (x$T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
+n + (y$T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
+x$T,y$T
+COORDS
+
+    # the ampersand & separates settings for the default line
+    # to the parent node and our line
+    AddStyle($styles,'Line',
+	     -coords => 'n,n,p,p&'. # coords for the default edge to parent
+	                $coords,    # coords for our line
+	     -arrow => '&last',
+	     -dash => '&_',
+	     -width => '&1',
+	     -fill => '&#8080a0',   # color
+	     -smooth => '&1'        # approximate our line with a smooth curve
+	    );
+
+  }
+
+
+  # Msd
+  if ($node->{arabspec} eq 'Msd') {
+      my $T;
+
+      $T=<<'TARGET';
+[!
+    my $ante;
+    my $head=$this;
+
+    # search for the verb, governing masdar or participle
+    $head=$head->parent
+      until ( (not $head) or ($head->{tag}=~/VERB|NOUN|ADJ/) );
+
+    $head;
+!]
+TARGET
+
 
     # Instructions for TrEd on how to compute a simple 3-point
     # multiline starting at the current node and ending at the node
