@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-12-03 17:30:31 pajas>
+## Time-stamp: <2004-04-07 16:45:01 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -38,7 +38,8 @@ sub PasteFromClipboard {
 sub GotoTreeAsk {
   my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
 
-  $FileNotSaved=0;
+
+  ChangingFile(0);
   if ($to=~/#/) {
     for (my $i=$grp->{treeNo}+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {
       GotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
@@ -55,7 +56,7 @@ sub GotoTreeAsk {
 sub TieGotoTreeAsk {
   my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
 
-  $FileNotSaved=0;
+  ChangingFile(0);
   if ($to=~/#/) {
     for (my $i=$grp->{treeNo}+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {
       TieGotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
@@ -70,13 +71,13 @@ sub TieGotoTreeAsk {
 
 #bind TieLastTree to Ctrl+End menu Go to last tree (tied)
 sub TieLastTree {
-  $FileNotSaved=0;
+  ChangingFile(0);
   TieGotoTree($grp->{FSFile}->lastTreeNo+1);
 }
 
 #bind TieFirstTree to Ctrl+Home menu Go to first tree (tied)
 sub TieFirstTree {
-  $FileNotSaved=0;
+  ChangingFile(0);
   TieGotoTree(1);
 }
 
@@ -84,17 +85,19 @@ sub TieFirstTree {
 #bind LastTree to Ctrl+Next
 sub LastTree {
   GotoTree($grp->{FSFile}->lastTreeNo+1);
+  ChangingFile(0);
 }
 
 #bind FirstTree to less menu Go to first tree
 #bind FirstTree to Ctrl+Prior
 sub FirstTree {
   GotoTree(1);
+  ChangingFile(0);
 }
 
 #bind GotoNextNodeLin to Ctrl+greater
 sub GotoNextNodeLin {
-  $FileNotSaved=0;
+  ChangingFile(0);
   my $sentord=$grp->{FSFile}->FS->sentord;
   my $next=NextNodeLinear($this,$sentord);
   unless (HiddenVisible()) {
@@ -107,7 +110,7 @@ sub GotoNextNodeLin {
 
 #bind GotoPrevNodeLin to Ctrl+less
 sub GotoPrevNodeLin {
-  $FileNotSaved=0;
+  ChangingFile(0);
   my $sentord=$grp->{FSFile}->FS->sentord;
   my $next=PrevNodeLinear($this,$sentord);
   unless (HiddenVisible()) {
