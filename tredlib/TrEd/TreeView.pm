@@ -661,9 +661,21 @@ sub node_coords {
   my $y=$self->get_node_pinfo($node,'YPOS');
   my $Opts=$self->get_gen_pinfo('Opts');
   if ($self->get_style_opt($node,'Node','-shape',$Opts) ne 'polygon') {
-    my ($nw,$nh)=
-      (($currentNode eq $node) ? $self->get_currentNodeWidth : $self->get_nodeWidth,
-       ($currentNode eq $node) ? $self->get_currentNodeHeight : $self->get_nodeHeight);
+
+    my ($nw,$nh);
+    if ($currentNode eq $node) {
+      $nw=$self->get_style_opt($node,'Node','-currentwidth',$Opts);
+      $nh=$self->get_style_opt($node,'Node','-currentheight',$Opts);
+      $nw=$self->get_style_opt($node,'Node','-width',$Opts) unless defined $nw;
+      $nh=$self->get_style_opt($node,'Node','-height',$Opts) unless defined $nh;
+      $nw=$self->get_currentNodeWidth unless defined $nw;
+      $nh=$self->get_currentNodeHeight unless defined $nh;
+    } else {
+      $nw=$self->get_style_opt($node,'Node','-width',$Opts);
+      $nh=$self->get_style_opt($node,'Node','-height',$Opts);
+      $nw=$self->get_nodeWidth unless defined $nw;
+      $nh=$self->get_nodeHeight unless defined $nh;
+    }
     $nw+=$self->get_style_opt($node,'Node','-addwidth',$Opts);
     $nh+=$self->get_style_opt($node,'Node','-addheight',$Opts);
     return ($x-$nw/2,
