@@ -525,6 +525,7 @@ my $headers = <<'EOF';
 '@P coref',
 '@P cortype',
 '@P corlemma',
+'@P corinfo',
 '@P commentA',
 '@P parenthesis',
 '@L parenthesis|---|PA|NIL|???',
