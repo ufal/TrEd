@@ -15,7 +15,9 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $request_list $request_list_changed $request_save
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
-	    $config_file $start_context @preload_modules $btred $break);
+	    $config_file $start_context @preload_modules $btred $break
+	    $request_reload_macros
+	   );
 
 $usage=1 unless @ARGV;
 $ssh='ssh';
@@ -40,6 +42,7 @@ GetOptions ("all-trees|T"    => \$all_trees,
 	    "break"           => \$break,
 	    "quit"           => \$request_quit,
 	    "reload-files"    => \$request_reload,
+	    "reload-macros"   => \$request_reload_macros,
 	    "close-files"     => \$request_close,
 	    "load-files"      => \$request_load,
 	    "list-files"      => \$request_list,
@@ -57,7 +60,7 @@ GetOptions ("all-trees|T"    => \$all_trees,
 	    "servers=s"    => \$srvlist,
 	    "unrestricted|U" => \$unrestricted,
 	    "serverlist=s"    => \$srvlistfile,
-	    "max-servers|M=i"    => \$maxservers,
+	    "max-servers=i"    => \$maxservers,
 	    "filelist|l=s"    => \$filelist,
 	    "no-server-check" => \$nocheck,
 	    "no-server-start" => \$noservers,
@@ -504,6 +507,11 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request_type="QUIT";
   } elsif ($request_reload) {
     $request_type="RELOAD";
+  } elsif ($request_reload_macros) {
+    $request_type="RELOAD_MACROS";
+    if ($macro_file) {
+      $request="$control STATE=Filename\n".$macro_file."\n";
+    }
   } elsif ($request_list) {
     $request_type="LIST";
   } elsif ($request_list_changed) {
@@ -702,6 +710,8 @@ To manage files on the servers:
 
   ntred --reload-files
 
+  ntred --reload-macros [-m macro-file]
+
   ntred --load-files [--filelist file-list] [file [...]]
 
   ntred --close-files
@@ -824,7 +834,7 @@ provided, then the list of servers is read from ~/.ntred_serverlist.
 A list of files to distribute between servers (one filename per line).
 Additional files may be given as command-line arguments.
 
-=item B<--max-servers|-M> number
+=item B<--max-servers> number
 
 Limit number of servers to start even if the list of servers contains
 more of them.
@@ -874,7 +884,8 @@ Run btred server with -D flag for some more debugging information.
 =item B<--macro-file|-m> filename
 
 A file containing the default set of macros to be prepared on btred
-servers.
+servers. The file (with exactly the same path) must be visible from
+all server hosts.
 
 =item B<--key-file>
 
@@ -913,6 +924,8 @@ This option may be specified more than once with different modules.
   ntred --list-files|--list-changed-files
 
   ntred --reload-files
+
+  ntred --reload-macros [-m macro_file]
 
   ntred --load-files [--filelist file-list] [file [...]]
 
@@ -960,6 +973,14 @@ would never notice.
 =item B<--reload-files>
 
 Send a command to the btred servers to reload all open files.
+
+=item B<--reload-macros>
+
+Send command to the btred servers to reload the initial macro file.
+If C<-m> (C<--macro-file>) is specified, the servers use the given
+macro-file instead of the original one (specified when initializing
+btred servers). Note, that the file (with exactly the same path) must
+be visible from all server hosts.
 
 =item B<--load-files>
 
