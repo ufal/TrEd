@@ -5,9 +5,22 @@ $ChooserHideObsolete=1;
 $frameid_attr="frameid";
 $framere_attr="framere";
 
-$XMLDataClass="TrEd::ValLex::LibXMLData";
+eval { require XML::JHXML; };
+if ($@) {
+  print STDERR "Using LibXML\n";
+  $XMLDataClass="TrEd::ValLex::LibXMLData";
+} else {
+  print STDERR "Using JHXML\n";
+  $XMLDataClass="TrEd::ValLex::JHXMLData";
+}
+
+#$XMLDataClass="TrEd::ValLex::JHXMLData";
+#$XMLDataClass="TrEd::ValLex::LibXMLData";
+
 sub init_XMLDataClass {
-  if ($XMLDataClass eq "TrEd::ValLex::LibXMLData") {
+  if ($XMLDataClass eq "TrEd::ValLex::JHXMLData") {
+    require ValLex::JHXMLData;
+  } elsif ($XMLDataClass eq "TrEd::ValLex::LibXMLData") {
     require ValLex::LibXMLData;
   } elsif ($XMLDataClass eq "TrEd::ValLex::GDOMEData") {
     require ValLex::GDOMEData;
@@ -45,8 +58,8 @@ sub parse_lemma {
       last;
     }
   }
-  if ((($tag=~/^N/ and $trlemma=~/[tn]í(?:$|\s)/) or
-       ($tag=~/^A/ and $trlemma=~/[tn]ý(?:$|\s)/)) 
+  if ((($tag=~/^N/ and $trlemma=~/[tn]‚í(?:$|\s)/) or
+       ($tag=~/^A/ and $trlemma=~/[tn]‚ý(?:$|\s)/)) 
       and $deriv=~/t$|ci$/) {
     $deriv=~s/-[0-9]+$//g;
     if ($trlemma=~/( s[ei])$/) {
@@ -65,6 +78,7 @@ sub InitFrameData {
 				   ($^O eq "MSWin32") ?
 				   "windows-1250":
 				   "iso-8859-2");
+    my $info;
     eval {
       if ($^O eq "MSWin32") {
 	#### we may leave this commented out since 1. LibXML is fast enough and
@@ -74,19 +88,20 @@ sub InitFrameData {
 	$FrameData=
 	  $XMLDataClass->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv);
       } else {
-	my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
+	$info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 	$FrameData=
 	  $XMLDataClass->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
 			     "$libDir/contrib/ValLex/vallex.xml.gz" :
 			     "$libDir/contrib/ValLex/vallex.xml",$conv);
-	$info->destroy();
       }
     };
-    if ($@ or !$FrameData->doc()) {
-      print STDERR "$@\n";
+    my $err=$@;
+    $info->destroy() if $info;
+    if ($err or !$FrameData->doc()) {
+      print STDERR "$err\n";
       $top->Unbusy(-recurse=>1);
       $FileNotSaved=0;
-      questionQuery("Valency lexicon not found.","Valency lexicon not found.\nPlease install!","Ok");
+      ErrorMessage("Valency lexicon not found or corrupted.\nPlease install!\n\n$err\n");
       return 0;
     } else {
       return 1;
@@ -223,7 +238,8 @@ sub ChooseFrame {
   my $fe_conf={ elements => $fc,
 		example => $fc,
 		note => $fc,
-		problem => $fc
+		problem => $fc,
+		addword => $fc
 	      };
   my $vallex_conf = {
 		     framelist => $fc,
@@ -234,7 +250,7 @@ sub ChooseFrame {
 		     wordproblem => $fc,
 		     infoline => { label => $fc }
 		    };
-  
+
   my $chooser_conf = {
 		      framelists => $fc,
 		      framelist_labels => $fb,
