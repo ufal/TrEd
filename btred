@@ -671,7 +671,12 @@ sub startMain {
 	} elsif ($request{REQUEST_TYPE} eq 'LIST') {
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	  $hub->print(join("\n",@files),"\n");
+	  if ($request{FILELIST}) {
+	    $hub->print(join("\n",map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
+	      split /\n/,$request{FILELIST}));
+	  } else {
+	    $hub->print(join("\n",@files),"\n");
+	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST_CHANGED') {
 	  _msg "Listing all open files at client's request\n";
@@ -770,6 +775,14 @@ sub startMain {
 	    local $strip_suffix=$request{"Strip-suffix"} if exists $request{"Strip-suffix"};
 	    local $add_prefix=$request{"Prefix"} if exists $request{"Prefix"};
 	    local $append_suffix=$request{"Suffix"} if exists $request{"Suffix"};
+
+	    my %fl;
+	    my $listed = 0;
+	    if ($request{FILELIST}) {
+	      $listed = 1;
+	      my %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
+		split /\n/,$request{FILELIST};
+	    }
 	    eval {
 	      gotoFile($grp,0);
 	      die $@ if $@;
@@ -777,11 +790,12 @@ sub startMain {
 		next unless ref($grp->{FSFile});
 		next unless ($request{REQUEST_TYPE} eq 'SAVE'
 			     or $grp->{FSFile}->notSaved());
-		my $out = saveFile($grp);
-		$macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+		if (!$listed or $fl{ $grp->{'FSFile'}->filename }) {
+		  my $out = saveFile($grp);
+		  $macro_stdout->print("Saved ",$grp->{'FSFile'}->filename," as $out\n");
+		}
 		die $@ if $@;
-	      }
-		} while (nextFile($grp));
+	      }} while (nextFile($grp));
 	      die $@ if $@;
 	    };
 	  };
@@ -793,8 +807,26 @@ sub startMain {
 	  _revert_redirect_stdout($old_stdout);
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
-	  _msg "Reloading all open files at client's request\n";
-	  closeFile($grp);
+	  _msg "Closing all open files at client's request\n";
+	  my %fl;
+	  my $listed = 0;
+	  if ($request{FILELIST}) {
+	    $listed = 1;
+	    my %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
+	      split /\n/,$request{FILELIST};
+	  }
+	  eval {
+	    gotoFile($grp,0);
+	    die $@ if $@;
+	    do {{
+	      next unless ref($grp->{FSFile});
+	      if (!$listed or $fl{ $grp->{'FSFile'}->filename }) {
+		closeFile($grp);
+	      }
+	      die $@ if $@;
+	      }} while (nextFile($grp));
+	    die $@ if $@;
+	  };
 	  %{$grp->{preloaded}}=();
 	  @files=();
 	  $hub->print("OK\n");

@@ -585,6 +585,14 @@ if (defined($init) || defined($kill) || defined($break)) {
     }
   } elsif ($request_list) {
     $request_type="LIST";
+    if ($listedfiles) {
+      my @files =  get_files();
+      foreach (@files) {
+	die "Error: File name contains tree suffix: $_\n" if
+	  /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
+      }
+      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
+    }
   } elsif ($request_list_changed) {
     $request_type="LIST_CHANGED";
   } elsif ($request_save || $request_save_changed) {
@@ -595,8 +603,24 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.="$control STATE=Prefix\n".$add_prefix."\n" if ($add_prefix ne "");
     $request.="$control STATE=Suffix\n".$append_suffix."\n" if ($append_suffix ne "");
     msg($request,"\n");
+    if ($listedfiles) {
+      my @files =  get_files();
+      foreach (@files) {
+	die "Error: File name contains tree suffix: $_\n" if
+	  /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
+      }
+      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
+    }
   } elsif ($request_close) {
     $request_type="CLOSE";
+    if ($listedfiles) {
+      my @files =  get_files();
+      foreach (@files) {
+	die "Error: File name contains tree suffix: $_\n" if
+	  /(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
+      }
+      $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if @files;
+    }
   } elsif ($request_load) {
     $request_type="HUB_DISTRIBUTE";
     my @files = get_file_list();
