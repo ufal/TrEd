@@ -114,7 +114,7 @@ sub expand_coord_apos {
 }
 
 
-=item real_parent (node)
+=item PDT::real_parent (node)
 
 Find the nearest autosemantic governor of the given node. By
 autosemantic we mean having the first letter of its morpholigical tag
@@ -148,7 +148,7 @@ sub get_subsentence_string_TR {
 }
 
 
-=item expand_coord_apos_TR(node,keep?)
+=item PDT::expand_coord_apos_TR(node,keep?)
 
 If the given node is coordination or aposition (according to its TGTS
 functor - attribute C<func>) expand it to a list of coordinated
