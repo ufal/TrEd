@@ -542,6 +542,7 @@ my $headers = <<'EOF';
 '@N ord',
 '@P dord',
 '@W sentord',
+'@P TR',
 '@P govTR',
 '@H ARhide',
 );
