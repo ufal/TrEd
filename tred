@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-16 16:38:13 pajas>
+# Time-stamp: <2001-02-22 13:14:10 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -193,6 +193,8 @@ use Cwd;
 
 use Tk::LabFrame;
 use Tk::Listbox;
+use Tk::HList;
+use Tk::ItemStyle;
 use Tk::Balloon;
 use Tk::DialogBox;
 use Tk::Tiler;
@@ -285,7 +287,7 @@ sub filename {
 }
 
 
-print STDERR "Reading macros from $macroFile...";
+print STDERR "Reading macros from $macroFile...\n";
 readMacros($macroFile);		# read macros
 print STDERR "done.\n";
 
@@ -442,9 +444,22 @@ sub setConfig {
   $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
   $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip." -c");
   $keyboardDebug=(exists $confs->{keyboarddebug}) ? $confs->{keyboarddebug} : 0;
+  $hookDebug=(exists $confs->{hookdebug}) ? $confs->{hookdebug} : 0;
+  $macroDebug=(exists $confs->{macrodebug}) ? $confs->{macrodebug} : 0;
+  $tredDebug=(exists $confs->{treddebug}) ? $confs->{treddebug} : 0;
+
   $defCWidth=(exists $confs->{canvaswidth}) ? $confs->{canvaswidth} : '18c';
   $defCHeight=(exists $confs->{canvasheight}) ? $confs->{canvasheight} : '12c';
-  print STDERR "Applying configuration.\n";
+
+  $geometry=(exists $confs->{geometry}) ? $confs->{geometry} : undef;
+
+  foreach (0..9) {
+    @recentFiles[$_]=$confs->{"recentfile$_"};
+    @recentFiles=grep {$_} @recentFiles;
+    addToRecent($grp);
+  }
+
+  print STDERR "Applying configuration.\n" if $tredDebug;
 }
 
 
@@ -534,7 +549,7 @@ sub readMacros {
       {
 	$macro=$1;
 	$key=uc($2);
-	$menu=$3;
+	$menu=encode($3);
 	#print "binding $key [$menu] => $macro\n";
 	foreach (@contexts) {
 	  $keyBindings{$_}={} unless exists($keyBindings{$_});
@@ -546,13 +561,14 @@ sub readMacros {
 	}
       } elsif (/\#[ \t]*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
 	$macro=$1;
-	$menu=$2;
+	$menu=encode($2);
 	foreach (@contexts) {
 	  $menuBindings{$_}={} unless exists($menuBindings{$_});
 	  $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
 	}
       } elsif (/\#[[ \t]*include[ \t]+(.+)/) {
 	my $mf=$1;
+	print STDERR "including $mf\n";
 	unless (-f $mf) {
 	  $mf=dirname($file).$m1;
 	  print STDERR "trying $mf\n";
@@ -575,7 +591,7 @@ sub gotoFile {
   my ($grp,$fn)=@_;
   return 0 if doEvalHook($grp,"goto_file_hook") eq 'stop';
   return 0 if ($fn > $#files or $fn<0);
-  askSaveFile($grp);
+#  askSaveFile($grp);
   $fileNo=$fn;
   openFile($files[$fileNo],$grp);
   if ($grp->{Filelist}) {
@@ -627,6 +643,26 @@ sub ErrorMessage {
   }
 }
 
+sub addToRecent {
+  my ($grp,$f)=@_;
+  
+  if ($f) {
+    @recentFiles=grep { $_ ne $f } @recentFiles;
+    unshift @recentFiles,$f;
+  }
+  @recentFiles=@recentFiles[0..min($#recentFiles,9)];
+
+  if ($grp->{RecentFileMenu}) {
+    my $menu = $grp->{RecentFileMenu}->cget(-menu);
+    $menu->delete(0,'end');
+
+    foreach (@recentFiles) {
+      $grp->{RecentFileMenu}->command(-label  => $_,
+				      -command => [\&openFile,$_,$grp]);
+    }
+  }
+}
+
 sub openFile {
   my $f = shift;
   my $grp = shift;
@@ -639,6 +675,7 @@ sub openFile {
 	  fgz => 'gzipped FS format', 
 	  any => 'unspecific format (csts?), using CstsToFs');
 
+  askSaveFile($grp) if ($grp);
   $grp->{top}->Busy(-recurse => 1) if ($grp->{top});
 
   closeFile($grp);
@@ -670,7 +707,7 @@ sub openFile {
   #########################################
 
 
-  print STDERR "File \'$f\' is in $gz", $fs{$fs},"\n";
+  print STDERR "File \'$f\' is in $gz", $fs{$fs},"\n" if $tredDebug;
 
   if ($fs eq 'any') {
     if ($in1 eq '<') {
@@ -680,7 +717,7 @@ sub openFile {
       $in2.=$cstsToFs." |";
     }
   }
-  print STDERR "Reading from $in1$f$in2\n";
+  print STDERR "Reading from $in1$f$in2\n" if $tredDebug;
   # opening file again, know it is fs
   unless (open(F,"$in1$f$in2")) {
     ErrorMessage($grp,"Cannot read from $in1$f$in2\n($!)\n");
@@ -740,6 +777,7 @@ sub openFile {
     redraw_tree($grp);
     $grp->{'top'}->Unbusy();
   }
+  addToRecent($grp,$f);
   return 1;
 }
 
@@ -782,7 +820,7 @@ sub saveFile {
     ErrorMessage($grp,"Cannot write to '$out > $f'\n($!)\n");
     return 0;
   }
-  print STDERR "Writing to $out> $f\n";
+  print STDERR "Writing to $out> $f\n" if $tredDebug;
   print FO @header;
   PrintFS(\*FO,\@header,\@trees,\@atord,\%attribs);
 
@@ -935,6 +973,72 @@ sub filelistDialog {
   $t->focus;
   $d->Popup;
 
+}
+
+sub macrolistDialog {
+  my $grp=shift;
+  my $context=$grp->{macroContext};
+  if ($grp->{Macrolist}) {
+    $grp->{Macrolist}->deiconify;
+    $grp->{Macrolist}->focus;
+    $grp->{Macrolist}->raise;
+    return;
+  }
+  my $d = $grp->{'top'}->Toplevel(-title => "List of available named macros");
+  $d->withdraw;
+  $d->resizable(0,1);
+  my $t = $d->Scrolled(qw/HList -columns 2 -background white -height 25 -relief sunken -scrollbars e/);
+  $grp->{Macrolist}=$d;
+  my $e;
+  my $maxw=0;
+  foreach my $entry (sort(keys %{$menuBindings{$context}})) {
+    $e = $t->addchild("");
+    $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry);
+    $t->itemCreate($e, 1, -itemtype=>'text',
+		       -text=>$menuBindings{$context}->{$entry}->[1]);
+  }
+  $t->columnWidth(0,'');
+  $t->columnWidth(1,'');
+
+  $t->configure(-width => 0);
+  $t->pack(qw/-expand yes -fill both/);
+  $d->bind('<Return>' =>
+	   [
+	    sub {
+	      my ($w,$grp,$t)=@_;
+	      doEvalMacro($grp,
+			  $menuBindings{$context}->
+			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
+	    },$grp,$t ]);
+  $d->bind('<Double-1>' => 
+	   [
+	    sub {
+	      my ($w,$grp,$t)=@_;
+	      doEvalMacro($grp,
+			  $menuBindings{$context}->
+			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
+	    },$grp,$t ]);
+
+  $d->Button(-text => 'Run and Close',
+	     -command => [ sub {
+			     my ($w,$grp,$t)=@_;
+			     doEvalMacro($grp,
+			       $menuBindings{$context}->
+				 {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
+			     $w->destroy();
+			   },$d,$grp,$t ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
+  $d->bind('<Destroy>' => [sub { shift; shift->{Macrolist}=undef; },$grp ]);
+  $d->bind('all','<Escape>' =>
+	   [sub {
+	      shift; shift->destroy();
+	    },$d ]);
+
+  $d->Button(-text => 'Close',
+		     -command => [ sub {
+				     shift->destroy();
+				   },$d ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
+  $t->focus;
+  $d->Popup;
 }
 
 sub printDialog {
@@ -1349,7 +1453,7 @@ sub pruneNode {
 
 sub prepareFont {
   my ($grp,$font,$fn)=@_;
-  print STDERR "Preparing fonts.\n";
+  print STDERR "Preparing fonts.\n" if $tredDebug;
   
   if ($$font!~/^-/) {
     my @a=split(/\s*,\s*/,$$font);
@@ -1410,17 +1514,17 @@ sub startMain {
 
   $group{top}=MainWindow->new;
   $group{macroContext}='TredMacro';
-  print STDERR "Main window created.\n";
+  print STDERR "Main window created.\n" if $tredDebug;
 
   if (-f $appIcon) {
-    print STDERR "adding icon-image.\n";
+    print STDERR "adding icon-image.\n" if $tredDebug;
     $group{top}->iconimage($group{top}->Pixmap(-file => "$appIcon"));
-    print STDERR "done.\n";
+    print STDERR "done.\n" if $tredDebug;
   }
 
   addBindTags($group{'top'},'my');
 
-  print STDERR "Asking wm for exit-hook.\n";
+  print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
 
   $group{top}->
     protocol('WM_DELETE_WINDOW' => 
@@ -1431,7 +1535,7 @@ sub startMain {
 		    $grp->{'top'}->destroy; },\%group]);
 
 
-  print STDERR "Exit hook created.\n";
+  print STDERR "Exit hook created.\n" if $tredDebug;
 
   $group{Balloon}=$group{'top'}->Balloon(-initwait => 450, -balloonposition => 'mouse',
 					-state => 'balloon', -background => '#fff3b0');
@@ -1439,38 +1543,43 @@ sub startMain {
 
 
 
-  print STDERR "Creating menubar.\n";
+  print STDERR "Creating menubar.\n" if $tredDebug;
 
 
   $group{Menubar}=$group{top}->Frame(-relief => $menubarRelief, -borderwidth => 2);
   $group{Menubar}->pack(qw/-fill x/);
   addBindTags($group{Menubar},'my');
 
-  $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0 -menuitems/ =>
-	[
-	 [Button => 'Open ...',    -command => [\&fileDialog, \%group]],
-	 [Button => 'File List...',-command => [\&filelistDialog, \%group]],
+  $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0/);
+  $group{FileMenu}->command(-label=> 'Open ...',    -command => [\&fileDialog, \%group]);
+  $group{FileMenu}->command(-label => 'File List...',-command => [\&filelistDialog, \%group]);
 #	 [Button => 'New',         -command => [\&menus_error2, 'New']],
-	 [Button => 'Save',        -command => [\&saveFile,\%group]],
-	 [Button => 'Save As ...', -command => [\&saveFileAs, \%group]],
-	 [Separator => ''],
-	 [Button => 'Previous File', -command => [\&prevFile,\%group]],
-	 [Button => 'Next File', -command => [\&nextFile,\%group]],
-	 [Separator => ''],
-#	 [Button => 'Setup ...',   -command => [\&menus_error2, 'Setup']],
-	 [Button => 'Print ...',   -command => [\&printThis,\%group]],
-	 [Separator => ''],
-	 [Button => 'Edit config file ...',   -command => [\&editConfig,\%group]],
-	 [Button => 'Reload config ...',   -command => [sub {
+  $group{FileMenu}->command(-label => 'Save',-command => [\&saveFile,\%group]);
+  $group{FileMenu}->command(-label => 'Save As ...', -command => [\&saveFileAs, \%group]);
+  $group{FileMenu}->separator();
+  $group{RecentFileMenu}=$group{FileMenu}->cascade(-label => "Recent Files");
+  foreach (@recentFiles) {
+    $group{RecentFileMenu}->command(-label  => $_,
+				    -command => [\&openFile,$_,\%group]);
+  }
+  $group{FileMenu}->separator();
+  $group{FileMenu}->command(-label => 'Previous File', -command => [\&prevFile,\%group]);
+  $group{FileMenu}->command(-label => 'Next File', -command => [\&nextFile,\%group]);
+  $group{FileMenu}->separator();
+  $group{FileMenu}->command(-label => 'Print ...',   -command => [\&printThis,\%group]);
+  $group{FileMenu}->separator();
+  $group{FileMenu}->command(-label =>'Edit config file ...',   -command => [\&editConfig,\%group]);
+  $group{FileMenu}->command(-label =>'Reload config ...',   -command => [sub {
 							  readConfig();
 							  redraw_tree(shift);
-							},\%group]],
-	 [Separator => ''],
-	 [Button => 'Quit',        -command => [sub { $grp=shift;
+							},\%group]);
+  $group{FileMenu}->separator();
+  $group{FileMenu}->command(-label =>'Quit',        -command => [sub { $grp=shift;
 						       askSaveFile($grp);
 						       $grp->{'top'}->destroy;
-						    },\%group]],
-	])->pack(qw/-side left/);
+						    },\%group]);
+	
+  $group{FileMenu}->pack(qw/-side left/);
 
   $group{ViewMenu}= $group{Menubar}->Menubutton(qw/-text View -underline 0 -menuitems/ =>
 	[
@@ -1491,7 +1600,9 @@ sub startMain {
 	 [Checkbutton => 'Sort Attributes in Dialogs',
 	  -variable => \$sortAttrs],
 	 [Separator => ''],
-	 [Button => 'Customize Attributes ...', -command => [\&customAttrsDialog,\%group]]
+	 [Button => 'Customize Attributes ...', -command => [\&customAttrsDialog,\%group]],
+	 [Separator => ''],
+	 [Button => 'List of Named Macros ...', -command => [\&macrolistDialog,\%group]]
 	])->pack(qw/-side left/);
   $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/ =>
 	[
@@ -1534,33 +1645,18 @@ sub startMain {
 			   if ($grp->{currentNode});
 		       },\%group,\%searchTemplate]],
 	])->pack(qw/-side left/);
-  print STDERR "Creating user menu.\n";
+  print STDERR "Creating user menu.\n" if $tredDebug;
 
+
+  $group{ContextsMenu}=$group{Menubar}->
+    Optionmenu(-textvariable => \$group{macroContext},
+	       -command => [sub { my $grp=shift;
+				  switchContext($grp,$grp->{macroContext}); },\%group],
+	       -underline => 0,
+	       -relief => $menubarRelief,
+	       -borderwidth => 2,
+	       -options => [sort(keys(%keyBindings))])->pack(qw/-side right/);
   my $cM=[];
-  foreach my $context (sort(keys(%menuBindings))) {
-   if ($context eq "TredMacro") { 
-     1;
-     push @$cM,
-       @{cascadeMenus(map ([Button => $_,
-			    -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
-			    ($menuBindings{$context}->{$_}->[1]) ?
-			    (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
-			   sort(keys(%{$menuBindings{$context}}))))};
-   } else {
-        push @$cM,
-  	[Cascade => $context,
-  	 -menuitems =>
-  	 cascadeMenus(map ([Button => $_,
-  			    -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
-  			    ($menuBindings{$context}->{$_}->[1]) ?
-  			    (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
-  			   sort(keys(%{$menuBindings{$context}}))))];
-      }
-  }
-  $group{UserMenu}=$group{Menubar}->
-    Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
-	       $cM)->pack(qw/-side left/);
-  $cM=[];
   if ($createMacroMenu) {
     foreach my $context (sort(keys(%keyBindings))) {
       if ($context eq "TredMacro") {
@@ -1586,18 +1682,33 @@ sub startMain {
     }
     $group{MacroMenu}=$group{Menubar}->
       Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
-		 $cM)->pack(qw/-side left/);
+		 $cM)->pack(qw/-side right/);
   }
 
-  $group{ContextsMenu}=$group{Menubar}->
-    Optionmenu(-textvariable => \$group{macroContext},
-	       -command => [sub { my $grp=shift;
-				  switchContext($grp,$grp->{macroContext}); },\%group],
-	       -underline => 0,
-	       -relief => $menubarRelief,
-	       -borderwidth => 2,
-	       -options => [sort(keys(%keyBindings))])->pack(qw/-side right/);
-
+  $cM=[];
+  foreach my $context (sort(keys(%menuBindings))) {
+   if ($context eq "TredMacro") { 
+     1;
+     push @$cM,
+       @{cascadeMenus(map ([Button => $_,
+			    -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
+			    ($menuBindings{$context}->{$_}->[1]) ?
+			    (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
+			   sort(keys(%{$menuBindings{$context}}))))};
+   } else {
+        push @$cM,
+  	[Cascade => $context,
+  	 -menuitems =>
+  	 cascadeMenus(map ([Button => $_,
+  			    -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
+  			    ($menuBindings{$context}->{$_}->[1]) ?
+  			    (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
+  			   sort(keys(%{$menuBindings{$context}}))))];
+      }
+  }
+  $group{UserMenu}=$group{Menubar}->
+    Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
+	       $cM)->pack(qw/-side right/);
 
   addBindTags($group{'frame'},'my');
   my $canvas = $group{'top'}->Scrolled('Canvas', -width => $defCWidth,
@@ -1607,9 +1718,10 @@ sub startMain {
 				       [qw/0c 0c 100c 100c/],
 				       $backgroundColor ? (-background => $backgroundColor) : ());
 
+  addBindTags($canvas->Subwidget('scrolled'),'canvas');
   prepareFonts(\%group);
 
-    print STDERR "Creating canvas.\n";
+    print STDERR "Creating canvas.\n" if $tredDebug;
 
   $group{'valueLine'}=$group{'top'}->Scrolled(qw/Entry -state disabled -relief sunken
 			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
@@ -1621,7 +1733,7 @@ sub startMain {
   addBindTags($canvas,'my');
 
 
-  print STDERR "Creating buttons.\n";
+  print STDERR "Creating buttons.\n" if $tredDebug;
 
   $group{'nextButton'}=$group{'frame'}->Button(-text => "Next",
 					       -relief => $buttonsRelief,
@@ -1701,8 +1813,14 @@ sub startMain {
 			    -borderwidth => $buttonBorderWidth,
 			    -command => [sub {
 					   my ($grp,$template)=@_;
-					   findFirstTemplated($grp,$template,1)
-					     if ($grp->{currentNode});
+					   if ($grp->{currentNode}) {
+					     $grp->{'top'}->toplevel->
+					       messageBox(-icon => 'warning',
+							  -message => "No matching node found!",
+							  -title => 'Find Next',
+							  -type => 'ok')
+						 unless( findFirstTemplated($grp,$template,1));
+					   }
 					 },\%group,\%searchTemplate])->pack(-side=>'left',
 									       -padx=>'1');
   $group{Balloon}->attach($group{findNextButton},
@@ -1749,7 +1867,7 @@ sub startMain {
   $group{'nextButton'}->pack(-side => 'right', -padx => '1');
   $group{'prevButton'}->pack(-side => 'right', -padx =>'1');
 
-  print STDERR "Packing widgets.\n";
+  print STDERR "Packing widgets.\n" if $tredDebug;
 
 
   $group{'frame'}->pack(-fill => 'x', -padx => '1', -pady => 1);
@@ -1764,18 +1882,49 @@ sub startMain {
   $group{'printCommand'}='lpr';
   $group{'printPsFile'}=$psFile;
 
-  print STDERR "GUI prepared.\nOpenning first file ....";
+  print STDERR "Binding canvas destroy...\n" if $tredDebug;
+  $group{'top'}->bind('canvas', '<Destroy>',
+		      [ sub {
+			  shift;
+			  my $grp=shift;
+			  my $canvas=$grp->{'canvas'}->Subwidget('scrolled');			  
+			  $defCWidth=$canvas->width();
+			  $defCHeight=$canvas->height();
+			  print "$defCHeight x $defCWidth\n";
+			  $geometry=$group{top}->geometry();
+			  print "geometry is $geometry\n";
+			},\%group ]);
+
+  print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
 
   if ($firstFile) {
     openFile($firstFile,\%group);
   }
   
-  print STDERR "done.\nStarting main loop.\n";
+  print STDERR "done.\nStarting main loop.\n" if $tredDebug;
 
   exit if doEvalHook(\%group,"start_hook") eq 'stop'; # run start_hook
 
+  print "Setting geometry to $geometry\n";  
+  $group{top}->geometry($geometry) if (defined($geometry));
+
   MainLoop;
 
+  # Save configuration
+  print STDERR "Saving some configuration options.\n" if $tredDebug;
+  my @conf;
+  my $ommit="canvasheight|canvaswidth|recentfile[0-9]+|geometry";
+  if (open(F,"<$configFile")) {
+    @conf= grep { !/^\s*(?:$ommit)\s*=/i } <F>;
+    close(F);
+  }
+  $geometry=~s/^[0-9]+x[0-9]+//;
+  push @conf,
+    "Geometry\t=\t".$geometry."\n",
+    "CanvasHeight\t=\t".$defCHeight."\n",
+    "CanvasWidth\t=\t".$defCWidth."\n",map { "RecentFile$_\t=\t$recentFiles[$_]\n"} 0..$#recentFiles;
+  saveConfig(\%group,@conf);
+  print STDERR "Done.\n" if $tredDebug;
 }
 
 
@@ -1890,6 +2039,49 @@ sub askSaveFile {
 		 ) =~ /yes/i);
 }
 
+sub saveConfig {
+ my $grp=shift;
+
+ if (open(F,">$configFile")) {
+   print F @_;
+   close(F);
+ } else {
+   my $lasterr=$!;
+   my ($trc)=<'~/.tredrc'>;
+   my ($dc,$ic)=stat($configFile);
+   my ($dh,$ih)=stat($trc);
+   if ($configFile ne $trc and ($dc != $dh or $ic != $ih) and
+       $grp->{'top'}->toplevel->
+       messageBox(-icon => 'warning',
+		  -message => "Cannot write configuration to $configFile\n($lasterr)\n\n".
+		  "Shell I try to save it to ~/.tredrc?\n",
+		  -title => 'Configuration cannot be saved',
+		  -type => 'YesNo',
+		  #			  -default => 'Yes' # problem: Windows 'yes', UNIX 'Yes'
+		 ) =~ /yes/i) {
+     if (open(F,">".$trc)) {
+       print F @_;
+       close(F);
+     } else {
+       $grp->{'top'}->toplevel->
+	 messageBox(-icon => 'error',
+		    -message => 'Cannot write to "'.$trc.'"!'."\n($!)\n".
+		    "\nConfiguration could not be saved!\n",
+		    -title => 'Configuration cannot be saved',
+		    -type => 'Ok');
+     }
+   } else {
+     $grp->{'top'}->toplevel->
+       messageBox(-icon => 'error',
+		  -message => "Cannot write to \"$configFile\"!"."\n($lasterr)\n".
+		  "\nConfiguration could not be saved!",
+		     -title => 'Configuration cannot be saved',
+		  -type => 'Ok',
+		  -default => 'Ok');
+   }
+ }
+}
+
 sub editConfig {
   my $grp=shift;
   my $d = $grp->{'top'}->DialogBox(-title => "Edit Resource File ($configFile)" , -width => "10c",
@@ -1921,44 +2113,8 @@ sub editConfig {
   $t->mark(qw/set insert 0.0/);
   my $result=ShowDialog($d,undef,$grp->{top});
   if ($result eq 'Save and Apply') {
-    if (open(F,">$configFile")) {
-      print F $t->get("0.0","end");
-      close(F);
-    } else {
-      my $lasterr=$!;
-      my ($trc)=<'~/.tredrc'>;
-      my ($dc,$ic)=stat($configFile);
-      my ($dh,$ih)=stat($trc);
-      if ($configFile ne $trc and ($dc != $dh or $ic != $ih) and
-	     $grp->{'top'}->toplevel->
-	       messageBox(-icon => 'warning',
-			  -message => "Cannot write configuration to $configFile\n($lasterr)\n\n".
-			  "Shell I try to save it to ~/.tredrc?\n",
-			  -title => 'Configuration cannot be saved',
-			  -type => 'YesNo',
-#			  -default => 'Yes' # problem: Windows 'yes', UNIX 'Yes'
-			 ) =~ /yes/i) {
-	if (open(F,">".$trc)) {
-	  print F $t->get("0.0","end");
-	  close(F);
-	} else {
-	  $grp->{'top'}->toplevel->
-	    messageBox(-icon => 'error',
-		       -message => 'Cannot write to "'.$trc.'"!'."\n($!)\n".
-		       "\nConfiguration could not be saved!\n",
-		       -title => 'Configuration cannot be saved',
-		       -type => 'Ok');
-	}
-      } else {
-      	$grp->{'top'}->toplevel->
-	  messageBox(-icon => 'error',
-		     -message => "Cannot write to \"$configFile\"!"."\n($lasterr)\n".
-		     "\nConfiguration could not be saved!",
-		     -title => 'Configuration cannot be saved',
-		     -type => 'Ok',
-		     -default => 'Ok');
-      }
-    }
+    saveConfig($grp,$t->get("0.0","end"));
+
     applyConfig(split(/\n/,$t->get("0.0","end")));
     prepareFonts($grp);
     $grp->{valueLine}->configure(-font => $vLineFont);
@@ -2001,18 +2157,18 @@ sub QueryString {
 
 
 sub selectValuesDialog {
- my ($grp, $attr, $vals, $selected, $may_add, $lastFocus)=@_;
+ my ($grp, $attr, $vals, $selected, $may_add, $lastFocus,$force)=@_;
  my $a;
  my $multi=0;
 
  $grp->{'top'}->Busy(-recurse => 1);
- my $enabled=doEvalHook($grp,'enable_attr_hook',$attr,"ambiguous") ne 'stop';
+ my $enabled=($force or doEvalHook($grp,'enable_attr_hook',$attr,"ambiguous") ne 'stop');
 
  my $d=$grp->{'top'}->DialogBox(-title => "$attr: select values", -width => '8c',
 				-buttons => $enabled ? ["OK", "Cancel"] : ["Cancel"]);
  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
  $d->resizable(0,0);
- my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1/,
+ my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars e/,
 		    -font => $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
 
@@ -2097,7 +2253,7 @@ sub editAmbiguousAttr {
 
 sub editAttrsDialog {
   my ($grp,$node)=@_;
-  return if (doEvalHook($grp,"do_edit_attrs_hook",$node) eq 'stop');
+  return if (doEvalHook($grp,"do_edit_node_hook",$node) eq 'stop');
   my @vals;
   my $rows=min(10,$#atord+1);
   my @r=();
@@ -2483,9 +2639,10 @@ sub editAttr {
   my $node=$grp->{'pinfo'}{$t};
   my $d;
   $attr= (grep {$$node{$_} eq $t} keys %$node)[0];
-
-  return unless ($attr=~/^_tkText\[([^]]+)\]/ or $1>$#displayAttrs);
+  return 0 unless ($attr=~/^_tkText\[([^]]+)\]/ or $1>$#displayAttrs);
   $attr=$1;
+  my $result = doEvalHook($grp,'do_edit_attr_hook',$attr,$node);
+  return 0 if $result eq 'stop';
 
   if (IsList($attr,\%attribs)) {
     $newvalue = editListAttr($grp,$$node{$attr},$attr,$grp->{top});
@@ -2527,9 +2684,7 @@ sub editAttr {
 		    -justify => 'right')->pack(-side=>'left');
   my $e = $d->Entry(-relief => 'sunken',
 		    -width => 40,
-		    -state =>
-		    (doEvalHook($grp,'enable_attr_hook',$_) eq 'stop')
-		    ? 'disabled' : 'normal',
+		    -state => (doEvalHook($grp,'enable_attr_hook',$_) eq 'stop') ? 'disabled' : 'normal',
 		    -takefocus => 1,
 		    -font => $font,
 		    -textvariable => \$newvalue)->pack();
@@ -3088,7 +3243,7 @@ sub setCurrent {
   my $prev=$grp->{currentNode};
   my $n;
   $grp->{'currentNode'}=$node;
-  foreach $n ($prev,$node) {    
+  foreach $n ($prev,$node) { 
     $grp->{'canvas'}->itemconfigure($n->{'_tkOval_'}, nodeOptions($grp,$n));
     $grp->{'canvas'}->itemconfigure($n->{'_tkTextBox_'},nodeBoxOptions($grp,$n))
       if ($drawBoxes and $n->{'_tkTextBox_'});
@@ -3115,7 +3270,7 @@ sub centerTo {
 
 sub doEvalHook {
   my ($grp,$hook)=(shift,shift);
-  my $hookparams=join ",", map { "\"$_\"" } @_;
+#  my $hookparams=join ",", map { "\"$_\"" } @_;
   my $context=$grp->{macroContext};
   return unless $hook;
 #  local $this;
@@ -3131,19 +3286,22 @@ sub doEvalHook {
     eval ("@macros\n return 1;");
     $macrosEvaluated=1;
     if ($result or $@) {
-      print STDERR "FirstEvaluation of macros\n";
-      print STDERR "Returned with: $result\n$@\n";
+      print STDERR "FirstEvaluation of macros\n" if $macroDebug;
+      print STDERR "Returned with: $result\n$@\n" if $macroDebug;
     }
   }
   if ($context->can($hook)) {
-    print "running hook $context\-\>$hook($hookparams);\n";
-    $result=eval("return $context\-\>$hook($hookparams);\n");
+    print STDERR "running hook $context\-\>$hook\n" if $hookDebug;
+    $result=eval { return &{"$context\:\:$hook"}(@_); };
   } elsif ($context ne "TredMacro" and TredMacro->can($hook)) {
-    print "running hook Tredmacro->$hook($hookparams);\n";
-    $result=eval("return TredMacro->$hook($hookparams);\n");
+    print STDERR "running hook Tredmacro->$hook\n" if $hookDebug;
+#    $result=eval("return TredMacro\:\:$hook($hookparams);\n");
+    $result=eval { return &{"TredMacro\:\:$hook"}(@_); };
   }
+  print "$@\n" if $@;
   $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
   $insideEval=0;
+  print STDERR "Hook resulted with $result\n" if $hookDebug;
   return $result;
 }
 
@@ -3167,16 +3325,16 @@ sub doEvalMacro {
     eval ("@macros\n return 1;");
     $macrosEvaluated=1;
     if ($result or $@) {
-      print STDERR "FirstEvaluation of macros\n";
-      print STDERR "Returned with: $result\n$@\n";
+      print STDERR "FirstEvaluation of macros\n" if $macroDebug;
+      print STDERR "Returned with: $result\n$@\n" if $macroDebug;
     }
   }
 #  $result=eval("return ".$macro."();\n@macros\n");  # this consumes memory!!!!
   print "Running $macro\n";
   $result=eval("return $macro;\n");
   if ($result or $@) {
-    print STDERR "Had run: ",$macro,"\n";
-    print STDERR "Returned with: $result\n$@\n";
+    print STDERR "Had run: ",$macro,"\n" if $macroDebug;
+    print STDERR "Returned with: $result\n$@\n" if $macroDebug;
   }
   unless ($forceFileSaved) {
     print "Macro claims file untouched\n"
@@ -3189,6 +3347,7 @@ sub doEvalMacro {
   $insideEval=0;
   $grp->{'top'}->Unbusy;
   setCurrent($grp,$this) if ($this);
+  currentUnhiden($grp);
   getNodes($grp);
   redraw_tree($grp);
   centerTo($grp,$grp->{currentNode});
