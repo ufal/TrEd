@@ -2134,9 +2134,7 @@ sub startMain {
 	 [Button=> 'Next Tree',
 	  -underline=> 0,
 	  -command=> [sub {
-			print STDERR "NextTree: ",$_[0]," ",$_[0]->{focusedWindow},
-			  $_[0]->{focusedWindow}->{FSFile},"\n";
-#			nextTree($_[0]->{focusedWindow});
+			nextTree($_[0]->{focusedWindow});
 		      },\%group]],
 	 [Separator=> ''],
 	 [Checkbutton=> 'Draw boxes', -underline=> 0,
