@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2004-06-08 12:46:24 pajas>
+## Time-stamp: <2004-11-16 16:29:47 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -189,7 +189,6 @@ sub Redraw {
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
   &main::get_nodes_win($grp);
-  print STDERR "WIN: $grp\n";
   &main::redraw_win($grp);
   $main::insideEval=$ie;
 }
@@ -2004,4 +2003,4 @@ sub SetupXPath {
 
 =cut
 
-
+sub noop { $noop++; }
