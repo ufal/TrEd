@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-02-22 14:34:31 pajas>
+# Time-stamp: <2001-03-01 15:44:47 pajas>
 #
 # TrEd - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -31,6 +31,26 @@
 
 # Once we got rid of them we call getopt to read all the other options
 use Tk;
+use Tk::Wm;
+
+package Tk::Wm;
+# overwriting the original Tk::Wm::Post:
+sub Post
+{
+ my ($w,$X,$Y) = @_;
+ $X = int($X);
+ $Y = int($Y);
+ $w->positionfrom('user');
+ #$w->geometry("+$X+$Y");
+ $w->MoveToplevelWindow($X,$Y);
+ $w->deiconify;
+## This causes the "slowness":
+# $w->raise;
+}
+
+package main;
+
+
 use Tk::Xrm;
 # process the standard arguments for X resources
 Tk::CmdLine::SetArguments();
@@ -212,6 +232,10 @@ use Exporter;
 
 my @macros=();
 
+my @customColors=('darkgreen','darkblue','darkmagenta',,'orange','darkred','green1',
+		  'slategray1','gold','cyan','midnightblue');
+
+
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
 # work, so I recommend not to use czech locales there, unless you
 # really want the decimal points to be replaced by commas in
@@ -255,6 +279,7 @@ $this=undef;
 $_NoSuchTree; # for compatibility with Graph2Tred
 $NodeClipboard;
 
+$drawSentenceInfo=0;
 $forceFileSaved=0;
 $insideEval=0;
 $FileNotSaved=0;
@@ -380,8 +405,8 @@ sub setConfig {
   $nodeYSkip=(exists $confs->{nodeyskip}) ? $confs->{nodeyskip} : 10;
   $xmargin=(exists $confs->{xmargin}) ? $confs->{xmargin} : 2;
   $ymargin=(exists $confs->{ymargin}) ? $confs->{ymargin} : 2;
-  $buttonsRelief=(exists $confs->{buttonsrelief}) ? $confs->{buttonsrelief} : 'raised';
-  $menubarRelief=(exists $confs->{menubarrelief}) ? $confs->{menubarrelief} : 'raised';
+  $buttonsRelief=(exists $confs->{buttonsrelief}) ? $confs->{buttonsrelief} : 'flat';
+  $menubarRelief=(exists $confs->{menubarrelief}) ? $confs->{menubarrelief} : 'flat';
   $buttonBorderWidth=(exists $confs->{buttonsborder}) ? $confs->{buttonsborder} : 2;
   $lineWidth=(exists $confs->{linewidth}) ? $confs->{linewidth} : 1;
   $lineColor=(exists $confs->{linecolor}) ? $confs->{linecolor} : 'black';
@@ -396,13 +421,18 @@ sub setConfig {
   $textColorShadow=(exists $confs->{textcolorshadow}) ? $confs->{textcolorshadow} : 'darkgrey';
   $textColorHilite=(exists $confs->{textcolorhilite}) ? $confs->{textcolorhilite} : 'darkgreen';
   $textColorXHilite=(exists $confs->{textcolorxhilite}) ? $confs->{textcolorxhilite} : 'darkred';
+
+  foreach (0..9) {
+    $customColors[$_]=$confs->{"customcolor$_"} if $confs->{"customcolor$_"};
+  }
+
   $canvasBalloonInitWait=(exists $confs->{hintwait}) ? $confs->{hintwait} : 1000;
   $activeTextColor=(exists $confs->{activetextcolor}) ? $confs->{activetextcolor} : 'blue';
   $boxColor=(exists $confs->{boxcolor}) ? $confs->{boxcolor} : 'wheat';
   $currentBoxColor=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'white';
   $hiddenBoxColor=(exists $confs->{hiddenboxcolor}) ? $confs->{hiddenboxcolor} : 'gray';
   $backgroundColor=(exists $confs->{backgroundcolor}) ? $confs->{backgroundcolor} : undef;
-  $noColor=(exists $confs->{allowecustomcolors}) ? $confs->{allowcustomcolors} : 0;
+  $noColor=(exists $confs->{allowcustomcolors}) ? $confs->{allowcustomcolors} : 0;
   $font=(exists $confs->{font}) ? $confs->{font} :
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
   $vLineFont=(exists $confs->{vlinefont}) ? $confs->{vlinefont} : $font;
@@ -452,6 +482,7 @@ sub setConfig {
   $defCHeight=(exists $confs->{canvasheight}) ? $confs->{canvasheight} : '12c';
 
   $geometry=(exists $confs->{geometry}) ? $confs->{geometry} : undef;
+  $maxDisplayedValues=(exists $confs->{maxDisplayedValues}) ? $confs->{maxDisplayedValues} : 30;
 
   foreach (0..9) {
     @recentFiles[$_]=$confs->{"recentfile$_"};
@@ -838,6 +869,7 @@ sub saveFile {
   print FO @rest;
   close(FO);
   $FileNotSaved=0;
+  saveFileStateUpdate($grp);
   #print STDERR "wrote $f, $f~ is a backup.\n";
 }
 
@@ -874,25 +906,15 @@ sub HPrev { # same as Next but obey $showHidden
   return 0;
 }
 
-
-sub getNodes {
-# prepare value line and @nodes list with deleted/saved hidden
-# and ordered by real Ord
-
+sub getValueLine {
   my ($grp)=@_;
-  my @unsorted=();
-  $treeNo=0 if ($treeNo<0);
-  $treeNo=$#trees if ($treeNo>$#trees);
-  @nodes=();
-  my @sent=();
-  $root=$trees[$treeNo];
   my $node=$root;
-  my $current=$root;
+  my @sent=();
 
-  $valueLine="";
+  #$valueLine="";
 
   while ($node) {
-    push @sent,$node;
+    push @sent,$node unless SentOrd($node,\%attribs)>=999; # this is TR specific
     $node=Next($node);
   }
   my $defs = join ",", values %attribs;
@@ -906,15 +928,31 @@ sub getNodes {
     @sent = sort { Ord($a,\%attribs) <=> Ord($b,\%attribs) } @sent;
   }
   $valueLine = ($treeNo+1)."/".@trees.": ".encode(join(" ", map { Value($_,\%attribs) } @sent));
+  undef @sent;
 
-  $node=$root;
+}
+
+
+sub getNodes {
+# prepare value line and @nodes list with deleted/saved hidden
+# and ordered by real Ord
+
+  my ($grp)=@_;
+  my @unsorted=();
+  $treeNo=0 if ($treeNo<0);
+  $treeNo=$#trees if ($treeNo>$#trees);
+  @nodes=();
+  $root=$trees[$treeNo];
+  my $node=$root;
+  my $current=$root;
+
+  getValueLine($grp);
+
   while($node)
   {
     push @unsorted, $node;
-
     $current=$node if (exists $grp->{currentNode} and
 		       $grp->{currentNode} eq $node);
-
     $node=HNext($node);  #skip also hidden subtrees unless showHidden
 
   }
@@ -922,7 +960,6 @@ sub getNodes {
   @nodes=sort { Ord($a,\%attribs) <=> Ord($b,\%attribs)} @unsorted;
 
   # just for sure
-  undef @sent;
   undef @unsorted;
 
   # this is actually a workaround for TR, where two different nodes
@@ -982,6 +1019,10 @@ sub macrolistDialog {
     $grp->{Macrolist}->deiconify;
     $grp->{Macrolist}->focus;
     $grp->{Macrolist}->raise;
+    return;
+  }
+  unless (scalar(keys %{$menuBindings{$context}})) {
+    ErrorMessage($grp,"No named macros in current context ($context)");
     return;
   }
   my $d = $grp->{'top'}->Toplevel(-title => "List of available named macros");
@@ -1055,6 +1096,7 @@ sub printDialog {
   my $toEPS=$grp->{'printToEPS'};
   my $useType1Font=$grp->{'printUseType1Font'};
   my $printRange=$grp->{'printRange'};
+  my $snt=$grp->{'printSentenceInfo'};
 
   my $d = $grp->{'top'}->DialogBox(-title => "Print",
 				-buttons => ["OK", "Cancel"]);
@@ -1071,8 +1113,14 @@ sub printDialog {
   my $ce = $cf->Entry(-relief => 'sunken',
 		     -width => 20,
 		     -font => $font,
-		     -state => $toFile ? 'disabled' : 'normal',
 		     -textvariable => \$com)->pack(-side => 'left');
+  my $defaultBg=$ce->cget('-background');
+  my $disabledBg=$d->cget('-background');
+
+  $ce->configure($toFile 
+		? (-state => 'disabled',-background => $disabledBg)
+		: (-state => 'normal', -background => $defaultBg));
+
 
   $cf->pack(-pady => '5m', -side=>'top');
   my $ff=$d->Frame();
@@ -1082,10 +1130,12 @@ sub printDialog {
 
   my $fe = $ff->Entry(-relief => 'sunken',
 		     -width => 20,
-		     -state => $toFile ? 'normal' : 'disabled' ,
 		     -font => $font,
 		     -textvariable => \$fil)->pack(-side => 'left');
 
+  $fe->configure($toFile 
+		? (-state => 'normal', -background => $defaultBg)
+		: (-state => 'disabled',-background => $disabledBg));
   my $of=$d->Frame();
   my $bf=$of->Frame();
   $bf->Checkbutton(-text     => 'Print to file',
@@ -1094,12 +1144,16 @@ sub printDialog {
 				  my ($t,$c,$f)=@_;
 				  if ($$t) {
 				    $f->focus;
-				    $c->configure(-state => 'disabled');
-				    $f->configure(-state => 'normal');
+				    $c->configure(-state => 'disabled',
+						  -background => $disabledBg);
+				    $f->configure(-state => 'normal',
+						  -background => $defaultBg);
 				  } else {
 				    $c->focus;
-				    $f->configure(-state => 'disabled');
-				    $c->configure(-state => 'normal');
+				    $f->configure(-state => 'disabled',
+						  -background => $disabledBg);
+				    $c->configure(-state => 'normal',
+						  -background => $defaultBg);
 				  }
 				},\$toFile,$ce,$fe ],
 		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
@@ -1116,8 +1170,10 @@ sub printDialog {
   $bf->Checkbutton(-text => 'Use colors',
 		   -variable => \$printColors,
 		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+  $bf->Checkbutton(-text => 'Print sentence',
+		   -variable => \$snt,
+		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
   
-
   $bf->pack(-side => 'right');
   $of->pack(-fill => 'x',-padx=>'1c');
   my $sf = $d->Frame();
@@ -1138,6 +1194,7 @@ sub printDialog {
   $grp->{'printToFile'}=$toFile;
   $grp->{'printToEPS'}=$toEPS;
   $grp->{'printPsFile'}=$fil;
+  $grp->{'printSentenceInfo'}=$snt;
   $grp->{'printCommand'}=$com;
   $grp->{'printUseType1Font'}=$useType1Font;
   $d->destroy;
@@ -1168,7 +1225,7 @@ sub printThis {
     local ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
 	   $currentNodeColor, $currentNodeWidth, $currentNodeHeight,
 	   $nearestNodeColor,
-	   $textColor , $textColorShadow, $textColorHilite, 
+	   $textColor , $textColorShadow, $textColorHilite,
 	   $textColorXHilite, $activeTextColor, $noColor)=
 	     ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
 	      $nodeColor, $nodeWidth, $currentNodeHeight,
@@ -1194,6 +1251,7 @@ sub printThis {
     local $backgroundColor='white';
     local $lineWidth=1;
     local $font=$savefont;
+    local $drawSentenceInfo=$grp->{printSentenceInfo};
 
     my $pbeg;
     my $pend;
@@ -1238,7 +1296,8 @@ sub printThis {
       print "Printing $printList[$t]\n";
       $font=$type1font if ($grp->{printUseType1Font});      
       $printList[$t]!=$treeNo+1 ? gotoTree($printList[$t]-1,$grp) : redraw_tree($grp);
-      my $rotate =  !$grp->{printToEPS} and ($grp->{canvasHeight}<$grp->{canvasWidth});
+      my $rotate = ( ! $grp->{printToEPS} 
+	and $grp->{canvasHeight}<$grp->{canvasWidth});
       print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
       if (not $rotate) {
 	$pagewidth=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
@@ -1277,7 +1336,7 @@ sub printThis {
 	  }
 	}
       }
-
+ 
 #    $grp->{top}->Busy(-recurse => 1);
 
       my @ps = split /\n/,$c->postscript(%pso);
@@ -1291,7 +1350,9 @@ sub printThis {
 	    "/Arial-Medium findfont 8 scalefont setfont\n",
 	      "0.000 0.000 0.000 setrgbcolor AdjustColor\n",
 		"40 40 [\n",
-		  "(File ",$grp->{currentFile},".    Printed by TrEd on $now.)\n",
+		  "(".
+#		    "File ",$grp->{currentFile},".    ".
+		    "Printed by TrEd on $now.)\n",
 		    "] 13 -0 0 0 false DrawText\ngrestore\n";
 	}
 	$i++;
@@ -1508,6 +1569,12 @@ sub cascadeMenus {
   return $uM;
 }
 
+sub saveFileStateUpdate {
+  my ($grp)=@_;
+  $grp->{'saveButton'}->configure(-image => $FileNotSaved ?
+				  $grp->{'normalSavePixmap'} : $grp->{'savedSavePixmap'});
+}
+
 
 sub startMain {
   my $firstFile=shift;
@@ -1551,6 +1618,7 @@ sub startMain {
 
   $group{Menubar}=$group{top}->Frame(-relief => $menubarRelief, -borderwidth => 2);
   $group{Menubar}->pack(qw/-fill x/);
+  $group{top}->Frame(-relief => sunken, -height=>2, -borderwidth => 2)->pack(qw/-fill x/);
   addBindTags($group{Menubar},'my');
 
   $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0/);
@@ -1661,22 +1729,21 @@ sub startMain {
 	       -command => [sub { my $grp=shift;
 				  switchContext($grp,$grp->{macroContext}); },\%group],
 	       -underline => 0,
-	       -relief => $menubarRelief,
+	       -relief => 'groove', #$menubarRelief,
 	       -borderwidth => 2,
 	       -options => [sort(keys(%keyBindings))])->pack(qw/-side right/);
   my $cM=[];
   if ($createMacroMenu) {
-    foreach my $context (sort(keys(%keyBindings))) {
-      if ($context eq "TredMacro") {
+    push @$cM, 
+      @{cascadeMenus(map { $keyBindings{TredMacro}->{$_}=~/$context\-\>(.*)/;
+			   [Button => $1,
+			    -command => [\&doEvalMacro,\%group,$keyBindings{TredMacro}->{$_}],
+			    -accelerator => "($_)"
+			   ]
+			 } sort(keys(%{$keyBindings{TredMacro}})))};
 
-	push @$cM, 
-	  @{cascadeMenus(map { $keyBindings{$context}->{$_}=~/$context\-\>(.*)/;
-			       [Button => $1,
-				-command => [\&doEvalMacro,\%group,$keyBindings{$context}->{$_}],
-				-accelerator => "($_)"
-			       ]
-			     } sort(keys(%{$keyBindings{$context}})))};
-      } else {
+    foreach my $context (sort(keys(%keyBindings))) {
+      if ($context ne "TredMacro") {
 	push @$cM, 
 	  [Cascade => $context,
 	   -menuitems =>
@@ -1688,21 +1755,22 @@ sub startMain {
 			    } sort(keys(%{$keyBindings{$context}})))];
       }
     }
+
     $group{MacroMenu}=$group{Menubar}->
       Menubutton(qw/-text Key-Macros -underline 0 -menuitems/ =>
-		 $cM)->pack(qw/-side right/);
+		 $cM)->pack(qw/-side left/);
   }
 
   $cM=[];
+  push @$cM,
+    @{cascadeMenus(map ([Button => $_,
+			 -command => [\&doEvalMacro,\%group,$menuBindings{TredMacro}->{$_}->[0]],
+			 ($menuBindings{TredMacro}->{$_}->[1]) ?
+			 (-accelerator => "(".$menuBindings{TredMacro}->{$_}->[1].")") : ()],
+			sort(keys(%{$menuBindings{TredMacro}}))))};
+
   foreach my $context (sort(keys(%menuBindings))) {
    if ($context eq "TredMacro") { 
-     1;
-     push @$cM,
-       @{cascadeMenus(map ([Button => $_,
-			    -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
-			    ($menuBindings{$context}->{$_}->[1]) ?
-			    (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
-			   sort(keys(%{$menuBindings{$context}}))))};
    } else {
         push @$cM,
   	[Cascade => $context,
@@ -1716,7 +1784,10 @@ sub startMain {
   }
   $group{UserMenu}=$group{Menubar}->
     Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
-	       $cM)->pack(qw/-side right/);
+	       $cM)->pack(qw/-side left/);
+
+
+
 
   addBindTags($group{'frame'},'my');
   my $canvas = $group{'top'}->Scrolled('Canvas', -width => $defCWidth,
@@ -1772,11 +1843,12 @@ sub startMain {
   $group{Balloon}->attach($group{openButton},
 		 -balloonmsg => "open file");
   addBindTags($group{'openButton'},'my');
+  $group{'normalSavePixmap'}=$group{top}->Pixmap(-file =>"$libDir/filefloppy.xpm");
+  $group{'savedSavePixmap'}=$group{top}->Pixmap(-file =>"$libDir/filesaved.xpm");
   $group{'saveButton'}=
     $group{'frame'}->Button(-text => "Save",
 			    -relief => $buttonsRelief,
-			    -image => $group{top}->Pixmap(-file =>
-							  "$libDir/filefloppy.xpm"),
+			    -image => $group{'savedSavePixmap'},
 			    -borderwidth => $buttonBorderWidth,
 			    -command => [sub {
 					   saveFile(@_)
@@ -1785,6 +1857,32 @@ sub startMain {
   $group{Balloon}->attach($group{saveButton},
 			  -balloonmsg => "save current file");
   addBindTags($group{'saveButton'},'my');
+
+  $group{'prevFileButton'}=
+    $group{'frame'}->Button(-text => "Prev file",
+			    -relief => $buttonsRelief,
+			    -image => $group{top}->Pixmap(-file =>
+							  "$libDir/start.xpm"),
+			    -borderwidth => $buttonBorderWidth,
+			    -command => [sub { prevFile(@_); },\%group])->pack(-side=>'left',
+									       -padx=>'1');
+  $group{Balloon}->attach($group{prevFileButton},
+			  -balloonmsg => "visit the previous open file");
+  addBindTags($group{'prevFileButton'},'my');
+
+  $group{'nextFileButton'}=
+    $group{'frame'}->Button(-text => "Next file",
+			    -relief => $buttonsRelief,
+			    -image => $group{top}->Pixmap(-file =>
+							  "$libDir/finish.xpm"),
+			    -borderwidth => $buttonBorderWidth,
+			    -command => [sub { nextFile(@_); },\%group])->pack(-side=>'left',
+									       -padx=>'1');
+  $group{Balloon}->attach($group{nextFileButton},
+		 -balloonmsg => "visit the next open file");
+  addBindTags($group{'nextFileButton'},'my');
+
+
   $group{'printButton'}=
     $group{'frame'}->Button(-text => "Print",
 			    -relief => $buttonsRelief,
@@ -1836,29 +1934,10 @@ sub startMain {
   addBindTags($group{'findNextButton'},'my');
 
 
-  $group{'prevFileButton'}=
-    $group{'frame'}->Button(-text => "Prev file",
-			    -relief => $buttonsRelief,
-			    -image => $group{top}->Pixmap(-file =>
-							  "$libDir/start.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub { prevFile(@_); },\%group])->pack(-side=>'left',
-									       -padx=>'1');
-  $group{Balloon}->attach($group{prevFileButton},
-			  -balloonmsg => "visit the previous open file");
-  addBindTags($group{'prevFileButton'},'my');
+  $group{'frame'}->Frame()->pack(-side => 'left', -padx =>'10');
+  $group{'prevButton'}->pack(-side => 'left', -padx =>'1');
+  $group{'nextButton'}->pack(-side => 'left', -padx => '1');
 
-  $group{'nextFileButton'}=
-    $group{'frame'}->Button(-text => "Next file",
-			    -relief => $buttonsRelief,
-			    -image => $group{top}->Pixmap(-file =>
-							  "$libDir/finish.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub { nextFile(@_); },\%group])->pack(-side=>'left',
-									       -padx=>'1');
-  $group{Balloon}->attach($group{nextFileButton},
-		 -balloonmsg => "visit the next open file");
-  addBindTags($group{'nextFileButton'},'my');
 
 
 
@@ -1872,8 +1951,6 @@ sub startMain {
 										 -padx=>'1');
   $group{Balloon}->attach($group{attrButton},
 		 -balloonmsg => "select visible attributes");
-  $group{'nextButton'}->pack(-side => 'right', -padx => '1');
-  $group{'prevButton'}->pack(-side => 'right', -padx =>'1');
 
   print STDERR "Packing widgets.\n" if $tredDebug;
 
@@ -1882,7 +1959,164 @@ sub startMain {
   $group{'valueLine'}->pack(qw/-fill x/);
   $group{'canvas'}->pack(qw/-expand yes -fill both/);
   addBindTags($group{'canvas'},'my');
-#  $group{'contextLed'}->pack(-side => 'bottom');
+  #  $group{'contextLed'}->pack(-side => 'bottom');
+  
+  print STDERR "Binding keystrokes...\n" if $tredDebug;
+  $group{'frame'}->bind('my','<KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group, '' ]);
+  #  $group{'frame'}->bind('my','<Control-x><KeyPress>' =>
+  #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
+  $group{'frame'}->bind('my','<Shift-KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group,'SHIFT+']);
+  $group{'frame'}->bind('my','<Control-KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group,'CTRL+']);
+  $group{'Menubar'}->bind('Menubutton','<Escape>', sub { shift->Leave(); } );
+  $group{'frame'}->
+    bind('my','<Alt-KeyPress>' =>
+	 [sub { 
+	    if (defined(evalMacro(@_))) {
+	      Tk->break;
+	    } else {
+	      # Actually, this should work by it self. And it realy
+	      # does, but not under windows :-) Well, do not laugh,
+	      # too early, Linux users. With menu (not menubutton)
+	      # this is the same there, only vice versa.
+	      my ($w,$grp,$mod)=@_;
+	      my $mbar=$grp->{Menubar};
+	      foreach my $child ($mbar->children) {
+		if ($child->class eq 'Menubutton' and $child->FindMenu($w->XEvent->K)) {
+		  $child->ButtonUp() if ($^O eq "MSWin32"); 
+		  # This ButtonUp is needed for some reason under
+		  # Windows, otherwise the button remains active even
+		  # when you leave the window! Window$ realy suck!!!!
+		  last;
+		}	      
+	      }	      
+	      Tk->break;	      
+	    }
+	  }, \%group,'ALT+']);
+  $group{'frame'}->bind('my','<Meta-KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group,'META+']);
+  $group{'frame'}->bind('my','<Control-Shift-KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group,'CTRL+SHIFT+']);
+  $group{'frame'}->bind('my','<Control-Alt-KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group,'CTRL+ALT+']);
+  $group{'frame'}->bind('my','<Control-Meta-KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group,'CTRL+META+']);
+  $group{'frame'}->bind('my','<Alt-Shift-KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group,'ALT+SHIFT+']);
+  $group{'frame'}->bind('my','<Meta-Shift-KeyPress>' =>
+			[sub { evalMacro(@_); Tk->break; }, \%group,'META+SHIFT+']);
+
+
+  #  $group{'frame'}->bind('all','<Tab>' => [sub {1;}]);
+  #  $group{'top'}->bind('dialog','<Tab>' => [sub { shift->focusNext(); }] );
+  #  $group{'top'}->bind('dialog','<Shift-Tab>' => [sub { shift->focusPrev(); }] );
+  #  $group{'frame'}->bind('all','<Shift-Tab>' => [sub {1;}]);
+  #  $group{'frame'}->bind('all','<Control-Tab>' => [sub {1;}]);
+  
+  $group{'frame'}->bind('my','<Tab>' => [sub { shift; currentNext(@_); Tk->break; },\%group]);
+  $group{'frame'}->bind('my','<Shift-ISO_Left_Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
+  $group{'frame'}->bind('my','<Shift-Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
+
+  $group{'frame'}->bind('my','<KeyPress-period>' => 
+			[sub { my $w=shift;
+			       $treeNo=max(0,min($treeNo+1,$#trees));
+			       getValueLine(@_);
+			       $w->afterCancel($myIdle) if ($myIdle);
+			       $_[0]->{valueLine}->idletasks();
+			       $myIdle=$w->afterIdle([ sub {
+						 my $no=$treeNo;
+						 $treeNo=-1; # this is to force getNodes & redraw
+						 gotoTree($no,@_);
+						 $myIdle=undef;
+					       },@_]);
+			       Tk->break;
+			     },\%group]);
+
+  $group{'frame'}->bind('my','<KeyPress-comma>' =>
+			[sub { 
+			   if ($treeNo>0) {
+			     my $w=shift;
+			     $treeNo--;
+			     getValueLine(@_);
+			     $w->afterCancel($myIdle) if ($myIdle);
+			     $_[0]->{valueLine}->idletasks();
+			     $myIdle=$w->afterIdle([ sub {
+						       my $no=$treeNo;
+						       $treeNo=-1; # this is to force getNodes & redraw
+						       gotoTree($no,@_);
+						       $myIdle=undef;
+						     },@_]);
+			   }
+			   Tk->break;
+			 },\%group]);
+
+#  $group{'frame'}->bind('my','<comma>' => [sub { shift; prevTree(@_); Tk->break; },\%group]);
+  $group{'frame'}->bind('my','<greater>' => [sub { shift; gotoTree($#trees,shift); Tk->break; },\%group]);
+  $group{'frame'}->bind('my','<less>' => [sub { shift; gotoTree(0,shift); Tk->break; },\%group]);
+
+  $group{'frame'}->bind('my','<Return>' => [sub {
+					      my ($w,$grp)=@_;
+					      editAttrsDialog($grp,$grp->{'currentNode'});
+					      Tk->break;
+					    },\%group]);
+  $group{'frame'}->bind('my','<Left>' => [sub {
+					   my ($w,$grp)=@_;
+					   currentLeft($grp);
+					   Tk->break;
+					 },\%group]);
+  $group{'frame'}->bind('my','<Right>' => [sub {
+					    my ($w,$grp)=@_;
+					    currentRight($grp);
+					   Tk->break;
+					  },\%group]);
+  $group{'frame'}->bind('my','<Up>' => [sub {
+					 my ($w,$grp)=@_;
+					 currentUp($grp);
+					 Tk->break;
+				       },\%group]);
+  $group{'frame'}->bind('my','<Down>' => [sub {
+					   my ($w,$grp)=@_;
+					   currentDown($grp);
+					   Tk->break;
+					 },\%group]);
+
+  ## Canvas bindings  
+  $group{'canvas'}->bind('text', '<Any-Enter>' => [sub{
+			       my $c=shift;
+			       my $grp=shift;
+			       my $t=$c->find('withtag','current');
+			       my $node=$grp->{'pinfo'}{$t};
+			       $node->{_tkSaveColor_}=$c->itemcget($t,'-fill');
+			       $c->itemconfigure($t,
+						 -fill => $activeTextColor);
+
+			     }, \%group]);
+
+  $group{'canvas'}->bind('text',
+			 '<Any-Leave>'
+			 => [sub{
+			       my $c=shift;
+			       my $grp=shift;
+			       my $t=$c->find('withtag','current');
+			       my $node=$grp->{'pinfo'}{$t};
+			       $c->itemconfigure('current',
+						 -fill => $node->{_tkSaveColor_});
+			     }, \%group]);
+
+  $group{'canvas'}->bind('point', '<1>' => [sub {node_down(@_) },\%group,0]);
+  $group{'canvas'}->bind('point', '<ButtonRelease-1>' => [sub {node_release(@_)},\%group,0]);
+  $group{'canvas'}->bind('point', '<B1-Motion>' => [sub {node_move(@_)},\%group]);
+  $group{'canvas'}->bind('point','<3>' => [sub {node_down(@_)},\%group,1]);
+  $group{'canvas'}->bind('point', '<ButtonRelease-3>' => [sub {node_release(@_)},\%group]);
+  $group{'canvas'}->bind('point','<B3-Motion>' => [sub {node_move(@_)},\%group,1]);
+  $group{'canvas'}->CanvasBind('<2>' => [sub {follow_mouse_press(@_)},\%group]);
+  $group{'canvas'}->CanvasBind('<B2-Motion>' => [sub {follow_mouse(@_)},\%group]);
+  $group{'canvas'}->bind('point', '<Double-1>' => [sub { editAttrs(@_); Tk->break; },\%group]);
+  $group{'canvas'}->bind('text', '<1>' => [sub {node_down(@_) },\%group,0]);
+  $group{'canvas'}->bind('text', '<Double-1>' => [sub { editAttr(@_); Tk->break; },\%group]);
+  $group{'canvas'}->bind('textbg', '<Double-1>' => [sub { editAttr(@_); Tk->break; },\%group]);
 
   $group{'canvas'}->focus;
 
@@ -2093,14 +2327,14 @@ sub saveConfig {
 sub editConfig {
   my $grp=shift;
   my $d = $grp->{'top'}->DialogBox(-title => "Edit Resource File ($configFile)" , -width => "10c",
-				   -buttons => ["Save and Apply"]);
+				   -buttons => ["  Save and Apply  "]);
   $d->resizable(0,0);
   $d->bind('<Return>' => [sub {1;}]);
   my $t = $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
 		     -height 30 -scrollbars e/);
   $t->pack(qw/-expand yes -fill both/);
-  my $b = $d->Subwidget('bottom')->Button(-text => "Apply",
+  my $b = $d->Subwidget('bottom')->Button(-text => "  Apply  ",
 		     -command => [sub {
 				    my $grp=shift;
 				    applyConfig(split(/\n/,shift->get("0.0","end")));
@@ -2110,8 +2344,8 @@ sub editConfig {
 				  },$grp,$t]);
   $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
   $b = $d->Subwidget('bottom')->
-    Button(-text => "Cancel",
-	   -command => sub { $d->{'selected_button'} = "Cancel" } );
+    Button(-text => "  Cancel  ",
+	   -command => sub { $d->{'selected_button'} = "  Cancel  " } );
   $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
   $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
   if (open(F,"<$configFile")) {
@@ -2120,7 +2354,7 @@ sub editConfig {
   }
   $t->mark(qw/set insert 0.0/);
   my $result=ShowDialog($d,undef,$grp->{top});
-  if ($result eq 'Save and Apply') {
+  if ($result eq '  Save and Apply  ') {
     saveConfig($grp,$t->get("0.0","end"));
 
     applyConfig(split(/\n/,$t->get("0.0","end")));
@@ -2177,6 +2411,7 @@ sub selectValuesDialog {
  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars e/,
+		    -height => min($maxDisplayedValues,scalar(@$vals)),
 		    -font => $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
 
@@ -2395,13 +2630,16 @@ sub customAttrsDialog {
 	      -buttons => ["OK", "Cancel"]);
 
   my $f = $d->Frame();
-  my $al = $f->Scrolled(qw/Listbox -relief sunken 
+  my $af = $f->Frame();
+  $af->Label(-text => 'Attributes')->pack();
+  my $al = $af->Scrolled(qw/Listbox -relief sunken 
                      -borderwidth 2 -setgrid true
 		     -height 15 -scrollbars e
-                     -exportselection 0/);
-  $al->pack(qw/-padx 5 -side left -expand yes -fill both/);
+                     -exportselection 0/)->pack();
   $al->insert('end',$sortAttrs ? (sort {uc($a) cmp uc($b)} @atord) : @atord);
+  $af->pack(qw/-padx 5 -side left -expand yes -fill both/);
   my $cf = $f->Frame();
+  $cf->Label(-text => 'Display patterns')->pack();
   my $cl =
     $cf->Scrolled(qw/Listbox -relief sunken
                      -borderwidth 2 -setgrid true
@@ -2412,11 +2650,12 @@ sub customAttrsDialog {
                             -fill both
                             -padx 3 -pady 3/);
   $cl->insert('end',@displayAttrs,'   ');
+  $cf->Label(-text => 'Hint pattern')->pack();
   my $t =
     $cf->Scrolled(qw/Text -relief sunken
                      -borderwidth 2 -setgrid true
 		     -height 4 -scrollbars se
-                     -width 10
+                     -width 50
                      -exportselection 1
                      -wrap none/
 		 )->pack(qw/-side top -expand yes
@@ -2428,7 +2667,7 @@ sub customAttrsDialog {
                        -borderwidth 2/);
 
   my $bf = $f->Frame();
-  $bf->Button(-text => "Add",
+  $bf->Button(-text => "Add/Paste",
 	      -command =>
 	      sub {
 		if ($e->get ne "") {
@@ -2589,6 +2828,17 @@ sub findNodeDialog {
   }
   $f->Manage(@r);
   $f->pack();
+
+  my $matchType='Regular expression';
+  foreach my $p ('Regular expression', 'Wildcard pattern', 'Literal') {
+    $d->Radiobutton(
+		       -text     => $p,
+		       -variable => \$matchType,
+		       -relief   => 'flat',
+		       -value    => $p,
+		      )->pack();
+  }
+
   $grp->{'top'}->Unbusy();
   my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result =~ /Find/) {
@@ -2646,6 +2896,7 @@ sub editAttr {
   my $t=$w->find('withtag','current');
   my $node=$grp->{'pinfo'}{$t};
   my $d;
+  setCurrent($grp,$node);
   $attr= (grep {$$node{$_} eq $t} keys %$node)[0];
   return 0 unless ($attr=~/^_tkText\[([^]]+)\]/ or $1>$#displayAttrs);
   $attr=$1;
@@ -2654,7 +2905,7 @@ sub editAttr {
 
   if (IsList($attr,\%attribs)) {
     $newvalue = editListAttr($grp,$$node{$attr},$attr,$grp->{top});
-    if (defined $newvalue) {
+    if (defined($newvalue)) {
       $grp->{'top'}->Busy(-recurse => 1);
       $FileNotSaved=1;
       $$node{$attr}=$newvalue;
@@ -2766,12 +3017,19 @@ sub nodeCoords {
 	  $node->{"_tkYPOS_"}+$nw);
 }
 
+sub wrappedLines {
+  my ($grp,$font,$text,$width)=@_;
+  use integer;
+  return $grp->{'canvas'}->fontMeasure($font,$text)/$width + 1;
+}
+
 sub redraw_tree {
   my ($grp)=@_;
   my $node;
   my $parent;
 
   return if $insideEval;
+  saveFileStateUpdate($grp);
   recalculate_positions($grp);
   $grp->{CanvasBalloon}->destroy() if $grp->{CanvasBalloon};
   #print $grp->{'canvasWidth'},'x',$grp->{'canvasHeight'},"\n";
@@ -2780,11 +3038,35 @@ sub redraw_tree {
   $grp->{'canvas'}->addtag('delete','all');
   $grp->{'canvas'}->delete('delete');
 
-#  undef %{$grp->{pinfo}} if (exists $grp->{pinfo});
-#  print keys(%{$grp->{pinfo}}),"---\n";
   $grp->{'pinfo'}={lastX => 0, lastY => 0};
-#  $grp->{'pinfo'}{'lastX'}=0;
-#  $grp->{'pinfo'}{'lastY'}=0;
+
+  if ($drawSentenceInfo) {
+    my $valtext=$valueLine;
+    my $width=$grp->{canvasWidth};
+    my $currentfile=filename($grp->{currentFile});
+    my $fontHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
+    $valtext=~s/ +([.,!:;])|(\() |(\)) /\1/g;
+
+    if ($valtext=~/^(.*)\/([^:]*):\s*(.*)/) {
+      my $ftext="File: $currentfile, tree $1 of $2";
+      my $vtext=$3;
+      $grp->{'canvas'}->createText(0,$grp->{canvasHeight},-font => $font,-text => $ftext,
+				   -justify => left, -anchor => nw,
+				   -width => $width);
+      $grp->{canvasHeight}+=$fontHeight*wrappedLines($grp,$font,$ftext,$width);
+      $grp->{'canvas'}->createLine(0,$grp->{canvasHeight},
+				   min($width,$grp->{'canvas'}->fontMeasure($font,$ftext)),
+				   $grp->{canvasHeight});
+      $grp->{canvasHeight}+=$fontHeight;
+      $grp->{'canvas'}->createText(0,$grp->{canvasHeight},-font => $font,-text => $vtext,
+				   -justify => left, -anchor => nw,
+				   -width => $width);
+      $grp->{canvasHeight}+=$fontHeight*(wrappedLines($grp,$font,$vtext,$width)+1);
+#      $grp->{'canvas'}->createLine(0,$grp->{canvasHeight},$grp->{canvasWidth},$grp->{canvasHeight});
+    
+    }
+  }
+
   foreach $node (@nodes) {
     foreach (keys(%$node)) {
       delete $node->{$_}
@@ -2883,7 +3165,10 @@ sub redraw_tree {
 	  $grp->{'pinfo'}{$txt}=$node;
 	  $$node{"_tkText[$1][$i][$j]_"}=$txt;
 	} elsif (/^\#{([^}]+)}$/) {
-	  $color=$1 unless $noColor;
+	  unless ($noColor) {
+	    $color=$1;
+	    $color=$customColors[$1] if ($color=~/^custom([0-9])$/);
+	  }
 	} else {
 	  if ($_ ne "") {
 	    $txt=$grp->{'canvas'}->
@@ -2923,100 +3208,6 @@ sub redraw_tree {
 					  } $grp->{'canvas'}->find('withtag','point')
 					});
 
-  ## Canvas bindings  
-  $grp->{'canvas'}->bind('text', '<Any-Enter>' => [sub{
-			       my $c=shift;
-			       my $grp=shift;
-			       my $t=$c->find('withtag','current');
-			       my $node=$grp->{'pinfo'}{$t};
-			       $node->{_tkSaveColor_}=$c->itemcget($t,'-fill');
-			       $c->itemconfigure($t,
-						 -fill => $activeTextColor);
-
-			     }, $grp]);
-
-  $grp->{'canvas'}->bind('text',
-			 '<Any-Leave>'
-			 => [sub{
-			       my $c=shift;
-			       my $grp=shift;
-			       my $t=$c->find('withtag','current');
-			       my $node=$grp->{'pinfo'}{$t};
-			       $c->itemconfigure('current',
-						 -fill => $node->{_tkSaveColor_});
-			     }, $grp]);
-
-  $grp->{'frame'}->bind('my','<KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp, '' ]);
-#  $grp->{'frame'}->bind('my','<Control-x><KeyPress>' =>
-#			[sub { evalMacro(@_); Tk->break; }, $grp, 'CTRL-X+' ]);
-  $grp->{'frame'}->bind('my','<Shift-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'SHIFT+']);
-  $grp->{'frame'}->bind('my','<Control-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'CTRL+']);
-  $grp->{'frame'}->bind('my','<Alt-KeyPress>' =>
-			[sub { Tk->break if defined(evalMacro(@_)); }, $grp,'ALT+']);
-  $grp->{'frame'}->bind('my','<Meta-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'META+']);
-  $grp->{'frame'}->bind('my','<Control-Shift-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'CTRL+SHIFT+']);
-  $grp->{'frame'}->bind('my','<Control-Alt-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'CTRL+ALT+']);
-  $grp->{'frame'}->bind('my','<Control-Meta-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'CTRL+META+']);
-  $grp->{'frame'}->bind('my','<Alt-Shift-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'ALT+SHIFT+']);
-  $grp->{'frame'}->bind('my','<Meta-Shift-KeyPress>' =>
-			[sub { evalMacro(@_); Tk->break; }, $grp,'META+SHIFT+']);
-
-
-#  $grp->{'frame'}->bind('all','<Tab>' => [sub {1;}]);
-#  $grp->{'top'}->bind('dialog','<Tab>' => [sub { shift->focusNext(); }] );
-#  $grp->{'top'}->bind('dialog','<Shift-Tab>' => [sub { shift->focusPrev(); }] );
-#  $grp->{'frame'}->bind('all','<Shift-Tab>' => [sub {1;}]);
-#  $grp->{'frame'}->bind('all','<Control-Tab>' => [sub {1;}]);
-
-  $grp->{'frame'}->bind('my','<Tab>' => [sub { currentNext(@_); Tk->break; },$grp]);
-  $grp->{'frame'}->bind('my','<Shift-ISO_Left_Tab>' => [sub { currentPrev(@_); Tk->break; },$grp]);
-  $grp->{'frame'}->bind('my','<Shift-Tab>' => [sub { currentPrev(@_); Tk->break; },$grp]);
-
-  $grp->{'frame'}->bind('my','<Return>' => [sub {
-					      my ($w,$grp)=@_;
-					      editAttrsDialog($grp,$grp->{'currentNode'});
-					      Tk->break;
-					    },$grp]);
-  $grp->{'frame'}->bind('my','<Left>' => [sub {
-					   my ($w,$grp)=@_;
-					   currentLeft($grp);
-					   Tk->break;
-					 },$grp]);
-  $grp->{'frame'}->bind('my','<Right>' => [sub {
-					    my ($w,$grp)=@_;
-					    currentRight($grp);
-					   Tk->break;
-					  },$grp]);
-  $grp->{'frame'}->bind('my','<Up>' => [sub {
-					 my ($w,$grp)=@_;
-					 currentUp($grp);
-					 Tk->break;
-				       },$grp]);
-  $grp->{'frame'}->bind('my','<Down>' => [sub {
-					   my ($w,$grp)=@_;
-					   currentDown($grp);
-					   Tk->break;
-					 },$grp]);
-
-  $grp->{'canvas'}->bind('point', '<1>' => [sub {node_down(@_) },$grp,0]);
-  $grp->{'canvas'}->bind('point', '<ButtonRelease-1>' => [sub {node_release(@_)},$grp,0]);
-  $grp->{'canvas'}->bind('point', '<B1-Motion>' => [sub {node_move(@_)},$grp]);
-  $grp->{'canvas'}->bind('point','<3>' => [sub {node_down(@_)},$grp,1]);
-  $grp->{'canvas'}->bind('point', '<ButtonRelease-3>' => [sub {node_release(@_)},$grp]);
-  $grp->{'canvas'}->bind('point','<B3-Motion>' => [sub {node_move(@_)},$grp,1]);
-  $grp->{'canvas'}->CanvasBind('<2>' => [sub {follow_mouse_press(@_)},$grp]);
-  $grp->{'canvas'}->CanvasBind('<B2-Motion>' => [sub {follow_mouse(@_)},$grp]);
-  $grp->{'canvas'}->bind('point', '<Double-ButtonPress-1>' => [sub { editAttrs(@_) },$grp]);
-  $grp->{'canvas'}->bind('text', '<Double-ButtonPress-1>' => [sub { editAttr(@_) },$grp]);
-  $grp->{'canvas'}->bind('textbg', '<Double-ButtonPress-1>' => [sub { editAttr(@_) },$grp]);
 }
 
 
@@ -3308,6 +3499,7 @@ sub doEvalHook {
   }
   print "$@\n" if $@;
   $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
+  saveFileStateUpdate($grp);
   $insideEval=0;
   print STDERR "Hook resulted with $result\n" if $hookDebug;
   return $result;
@@ -3398,7 +3590,7 @@ sub evalMacro {
 }
 
 sub currentNext {
-  my ($w,$grp)=@_;
+  my ($grp)=@_;
   my $next=HNext($grp->{'currentNode'});
   if ($next) {
     setCurrent($grp,$next);
@@ -3408,7 +3600,7 @@ sub currentNext {
 
 
 sub currentPrev {
-  my ($w,$grp)=@_;
+  my ($grp)=@_;
   my $prev=HPrev($grp->{'currentNode'});
   if ($prev) {
     setCurrent($grp,$prev);
@@ -3514,9 +3706,9 @@ sub node_release {
       if ($p and $grp->{'pinfo'}{$p} 
 	  and Parent($node)!=$grp->{'pinfo'}{$p}) {
 	Paste(Cut($node),$grp->{'pinfo'}{$p},\%attribs);
+	$FileNotSaved=1;
 	redraw_tree($grp);
 	centerTo($grp,$grp->{currentNode});
-	$FileNotSaved=1;
 	return;
       }
     }
