@@ -61,10 +61,17 @@ APPINFO    NONE
 >
 <!DOCTYPE csts [
 <!-- ...................................................................... -->
-<!-- CSTS DTD V1.00 ....................................................... -->
+<!-- CSTS DTD V1.02 ....................................................... -->
 <!-- File csts.dtd ........................................................ -->
 
 <!-- ChangeLog: -->
+<!-- ver 1.02 (Apr 3,2002) by Petr Pajas                       -->
+<!--        - added TR-specific entitites                      -->
+<!--        - added status attribute to (M)TRl                 -->
+<!--        - fix: added missing quot attribute to MTRl        -->
+<!--        - added IDREFS attribute origin to (M)TRl          -->
+<!--        - added general purpose element x                  -->
+<!--                                                           -->
 <!-- ver 1.00 (Aug 13, 2001) by Jan Hajic                      -->
 <!--        - documentation to all elements and attributes     -->
 <!--          in a format suitable for generation              --> 
@@ -352,8 +359,16 @@ APPINFO    NONE
           id   CDATA   #REQUIRED 
 >
 <!ELEMENT i - O (#PCDATA) -- formatting from source -->
+
+<!ATTLIST x
+          name   CDATA   #REQUIRED 
+>
+
+<!ELEMENT x - O (#PCDATA)
+>
+
 <!ELEMENT f - O (#PCDATA & P* & Ct? & l* & MMl* & MDl* &
-                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg*)
+                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & x*)
                  -- word forms; text: form itself, rest: annotation -->
 <!ATTLIST f
           case  (lower|cap|upper|mixed|gen|num|num.gen
@@ -390,7 +405,7 @@ APPINFO    NONE
 		     -->
 
 <!ELEMENT d - O (#PCDATA & P* & Ct? & l* & MMl* & MDl* &
-                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg*)
+                 A* & MDA* & TRl* & MTRl* & r? & g* & MDg* & x*)
                  -- punctuation / delimiters;
                     display "word-form-like" behavior --
 >
@@ -500,7 +515,7 @@ APPINFO    NONE
 <!-- 09/12/2000 A. Bohmova, B. Hladka, P. Pajas, D. Zeman          -->
 <!-- ============================================================= -->
 
-<!ELEMENT fadd - O (TRl* & MTRl* & r? & g*)
+<!ELEMENT fadd - O (TRl* & MTRl* & r? & g* & x*)
                  -- nodes added on the tectogrammatical level;
                  --
 >
@@ -515,8 +530,13 @@ APPINFO    NONE
                 -- tectogrammatical lemma id. 
                 --
 >
+
 <!ATTLIST MTRl
-          src      CDATA #IMPLIED -- tectogrammatical lemmatizer id -->
+          src      CDATA #IMPLIED -- tectogrammatical lemmatizer id --
+          quot (quot|dsp|dsp.quot|dspp|dspp.quot|dspi|dspi.quot) #IMPLIED 
+          status (sound|hidden) "sound" 
+          origin IDREFS #IMPLIED
+>
 
 <!ELEMENT TRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
                     TRg? & corl? & corT? & corr? &
@@ -526,6 +546,8 @@ APPINFO    NONE
 >
 <!ATTLIST TRl
           quot (quot|dsp|dsp.quot|dspp|dspp.quot|dspi|dspi.quot) #IMPLIED 
+          status (sound|hidden) "sound" 
+          origin IDREFS #IMPLIED
 >
 
 <!ELEMENT TRg - O (#PCDATA)
@@ -699,15 +721,14 @@ APPINFO    NONE
 
 <!ENTITY agrave CDATA "&#38;agrave;" -- "agrave" -->
 
+<!ENTITY Period CDATA "&#38;Period;" -- "Period" -->
 <!ENTITY Comma CDATA "&#38;Comma;" -- "Comma" -->
 <!ENTITY Neg CDATA "&#38;Neg;" -- "Neg" -->
-<!ENTITY Comma CDATA "&#38;Comma;" -- "Comma" -->
 <!ENTITY Colon CDATA "&#38;Colon;" -- "Colon" -->
 <!ENTITY Dash CDATA "&#38;Dash;" -- "Dash" -->
 <!ENTITY Lpar CDATA "&#38;Lpar;" -- "Lpar" -->
 <!ENTITY Forn CDATA "&#38;Forn;" -- "Forn" -->
 <!ENTITY Rcp CDATA "&#38;Rcp;" -- "Rcp" -->
-<!ENTITY Neg CDATA "&#38;Neg;" -- "Neg" -->
 <!ENTITY Cor CDATA "&#38;Cor;" -- "Cor" -->
 <!ENTITY Emp CDATA "&#38;Emp;" -- "Emp" -->
 <!ENTITY EmpNoun CDATA "&#38;EmpNoun;" -- "EmpNoun" -->
@@ -720,7 +741,6 @@ APPINFO    NONE
 <!ENTITY amp CDATA "&#38;" >
 <!ENTITY num CDATA "&#35;" >
 <!ENTITY ast CDATA "&#42;" >
-
 <!ENTITY dollar CDATA "&#36;" -- "$" -->
 <!ENTITY lt CDATA "&#60;" -- "<" -->
 <!ENTITY gt CDATA "&#62;" -- ">" -->
@@ -738,4 +758,17 @@ APPINFO    NONE
 
 <!ENTITY agrave CDATA "&#233;" -- "agrave" -->
 
+<!ENTITY Period CDATA "." -- "Period" -->
+<!ENTITY Comma CDATA "," -- "Comma" -->
+<!ENTITY Neg CDATA "Neg" -- "Neg" -->
+<!ENTITY Colon CDATA ":" -- "Colon" -->
+<!ENTITY Dash CDATA "-" -- "Dash" -->
+<!ENTITY Lpar CDATA "(" -- "Lpar" -->
+<!ENTITY Forn CDATA "Forn" -- "Forn" -->
+<!ENTITY Rcp CDATA "Rcp" -- "Rcp" -->
+<!ENTITY Cor CDATA "Cor" -- "Cor" -->
+<!ENTITY Emp CDATA "Emp" -- "Emp" -->
+<!ENTITY EmpNoun CDATA "EmpNoun" -- "EmpNoun" -->
+<!ENTITY Gen CDATA "Gen" -- "Gen" -->
+<!ENTITY Idph CDATA "Idph" -- "Idph" -->
 ]>

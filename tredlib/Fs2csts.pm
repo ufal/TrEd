@@ -6,6 +6,8 @@ $export_dependency=1;
 $compatibility_mode=0;
 $preserve_err1=0;
 
+@extra_attributes=();
+
 %TRt = (
 	gender_ANIM => 'M',
 	gender_INAN => 'I',
@@ -120,7 +122,7 @@ sub write {
   if ($root) {
     my $lang = $root->{cstslang} ? $root->{cstslang} : "cs";
     print $fileref "<csts lang=$lang>\n";
-    if ($root->{cstssource} ne "" or $root->{markup} ne "") {
+    if ($root->{cstssource} ne "" or $root->{cstsmarkup} ne "") {
       print $fileref "<h>\n";
       print $fileref "<source>";
       print $fileref $root->{cstssource};
@@ -305,42 +307,56 @@ sub write {
       if ($node->{quot} eq 'QUOT') {
 	$quot.= $quot ? ".quot" : " quot";
       }
-      if ($node->{TR} ne "hide") {
-	if (exists($node->{trlemma}) and $node->{trlemma} ne "") {
-	  print $fileref "<TRl$quot>",translate_to_entities($node->{trlemma});
-	  if ($node->{func} ne "") {
-	    print $fileref "<T>",$node->{func};
-	    print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
-	  }
-	  print $fileref "<Tmo>",$node->{memberof} if ($node->{memberof} ne "" and
-						       $node->{memberof} ne "???");
-	  my $TRt=make_TRt($node,0);
-	  print $fileref "<TRt>",$TRt unless ($TRt=~/^X*$/);
-	  print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
-	  print $fileref "<tfr>",$node->{dord} if ($node->{dord} ne "");
-	  print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
-	  print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
-	  if ($fsfile->FS->order eq 'dord') {
-	    print $fileref "<TRg>",$node->parent->{ord};
-	  } else {
-	    print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
-	  }
-	  print $fileref "<corl>",$node->{corl} if ($node->{corl} !~ /^(?:---|\?\?\?)?$/);
-	  print $fileref "<corT>",$node->{corT} if ($node->{corT} !~ /^(?:---|\?\?\?)?$/);
-	  print $fileref "<corr>",$node->{corr} if ($node->{corr} !~ /^(?:---|\?\?\?)?$/);
-	  print $fileref "<cors>",$node->{cors} if ($node->{cors} !~ /^(?:---|\?\?\?)?$/);
+
+      # we print <TRl> if there is a trlemma or dord orders nodes or
+      # there is a non-empty govTR
+      if (($fsfile->FS->exists('trlemma') and
+	   exists($node->{trlemma}) and
+	   $node->{trlemma} ne "") or 
+	  $fsfile->FS->order eq 'dord' or
+	  ($fsfile->FS->exists('govTR') and
+	   exists($node->{govTR}) and
+	   $node->{govTR} ne "")) {
+
+	print $fileref "<TRl$quot";
+	print $fileref " hidden" if ($node->{"TR"} eq "hide");
+	print $fileref " origin=\"".$node->{"AIDREFS"}."\"" if $node->{"AIDREFS"} ne "";
+	print $fileref ">",translate_to_entities($node->{trlemma});
+
+	if ($node->{func} ne "") {
+	  print $fileref "<T>",$node->{func};
+	  print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
 	}
+	print $fileref "<Tmo>",$node->{memberof} if ($node->{memberof} ne "" and
+						     $node->{memberof} ne "???");
+	my $TRt=make_TRt($node,0);
+	print $fileref "<TRt>",$TRt unless ($TRt=~/^X*$/);
+	print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
+	print $fileref "<tfr>",$node->{dord} if ($node->{dord} ne "");
+	print $fileref "<fw>",$node->{fw} if ($node->{fw} ne "");
+	print $fileref "<phr>",$node->{phraseme} if ($node->{phraseme} ne "");
+	if ($fsfile->FS->order eq 'dord') {
+	  print $fileref "<TRg>",$node->parent->{ord};
+	} else {
+	  print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
+	}
+	print $fileref "<corl>",$node->{corl} if ($node->{corl} !~ /^(?:---|\?\?\?)?$/);
+	print $fileref "<corT>",$node->{corT} if ($node->{corT} !~ /^(?:---|\?\?\?)?$/);
+	print $fileref "<corr>",$node->{corr} if ($node->{corr} !~ /^(?:---|\?\?\?)?$/);
+	print $fileref "<cors>",$node->{cors} if ($node->{cors} !~ /^(?:---|\?\?\?)?$/);
       }
       foreach (grep(/trlemmaM_/,$fsfile->FS->attributes)) {
 	/trlemmaM_(.*)$/;
-	if ($node->{"MTR_$1"} ne "hide") {
-	  print $fileref "<MTRl src=\"$1\">",$node->{$_};
-	  # actually, all the set of MTRl subelements should be
-	  # treated the same
-	  #
-	  # TODO: IMPLEMENTATION MISSING
-	  #
-	}
+	print $fileref "<MTRl ";
+	print $fileref " hidden" if ($node->{"MTR_$1"} eq "hide");
+	print $fileref " src=\"$1\"";
+	print $fileref " origin=\"".$node->{"MAIDREFS_$1"}."\"" if $node->{"MAIDREFS_$1"} ne "";;
+	print $fileref ">",$node->{$_};
+	# actually, all the set of MTRl subelements should be
+	# treated the same (plus hide
+	#
+	# TODO: IMPLEMENTATION MISSING
+	#
       }
       print $fileref "<r>",$node->{ord} if ($node->{ord} ne "");
       if ($fsfile->FS->order eq 'dord') {
@@ -354,6 +370,10 @@ sub write {
 	  /govMD_(.*)$/;
 	  print_split_attr_with_num_attr($fileref,$node,"govMD_$1","wMDg_$1","MDg src=\"$1\"",'w');
 	}
+      }
+      foreach (@extra_attributes) {
+	print $fileref "<x name=\"$_\">",translate_to_entities($node->{$_}) 
+	  if $node->{$_} ne "";
       }
       if ($preserve_err1 and $node->{err1} ne "") {
 	print $fileref "<err>",$node->{err1};
