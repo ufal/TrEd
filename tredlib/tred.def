@@ -2278,5 +2278,31 @@ sub ListV {
   ref($_[0]) eq 'Fslib::List' ? @{$_[0]} : ()
 }
 
+sub AddToAlt {
+  my ($node,$attr)=(shift,shift);
+  if ($node->{$attr} eq "") {
+    if (@_>1) {
+      $node->{$attr}=Fslib::Alt->new(uniq @_);
+    } else {
+      $node->{$attr}=$_[0];
+    }
+  } elsif (IsAlt($node->{$attr})) {
+    @{$node->{$attr}} = uniq(@{$node->{$attr}},@_);
+  } else {
+    @{$node->{$attr}} = Fslib::Alt->new($node->{$attr},@_);
+  }
+}
+
+sub AddToList {
+  my ($node,$attr)=(shift,shift);
+  if (IsList($node->{$attr})) {
+    push @{$node->{$attr}},@_;
+  } elsif ($node->{$attr} eq "") {
+    @{$node->{$attr}} = Fslib::List->new(@_);
+  } else {
+    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$value'!\n"
+  }
+}
+
 
 sub noop { $noop++; }
