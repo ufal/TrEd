@@ -8,7 +8,7 @@ if ($^V lt v5.6.0) {
 }
 
 use Getopt::Std;
-getopts('p:r:s:a:f:x:m:CETADRNGhu');
+getopts('p:r:s:a:f:x:m:n:CETADRNGhu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
   print <<EOF;
@@ -29,8 +29,16 @@ Parameters:
   -x extra_attribs   comma separated list of non-CSTS attributes to preserve when
                      converting to CSTS
 
-  -m outfile         merge all given files into one huge file. The implementation is
+  -m filename        Merge all given files into one huge file. The implementation is
                      rather imperfect since for instance CSTS headers are not merged.
+
+  -n number          this option may be used in combination with -m to merge all
+                     given files into one or more output files containing at most the
+                     given number of trees. If this option is used,
+                     the filename specified with -m must contain `%d'
+                     or similar sprintf format instruction which will
+                     be replaced by the number of the output file
+                     (starting from one).
 
   -T                 if converting from csts, build tectogrammatical tree structure
   -A                 when converting from csts, use header for Arabic PADT treebank
@@ -106,6 +114,14 @@ if ($opt_m) {
   # merge all given files into one large output file
   my $outfs;
   $out = $opt_m;
+  my $limit = $opt_n;
+  if ($limit) {
+    unless ($out =~ /(?:^|[^%])%[-#0 +'I]\d*[diu]/) {
+      die "Error: the output filename (-m filename) must contain sprintf\n".
+          "formatting specifiersuch as '%d' when -n is used\n";
+    }
+  }
+  my $outfileno=0;
   foreach $f (@files) {
     $fileno++;
     print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
@@ -114,31 +130,48 @@ if ($opt_m) {
       print STDERR "$f: empty or corrupt file!\n";
       next;
     }
-    if (defined($outfs)) {
-      # merge fs headers
-      my $newdefs=$fs->FS->defs();
-      my $fmt=$outfs->FS;
-      my $defs=$fmt->defs();
-      my $list=$fmt->list();
-      foreach ($fs->FS->attributes()) {
-	push @$list, $_ unless ($fmt->exists($_));
-	$defs->{$_}=$newdefs->{$_};
-      }
-      # append trees
-      push @{$outfs->treeList}, @{$fs->treeList};
-      @{$fs->treeList}=(); # prevent them from being destroyed
-    } else {
-      $outfs=$fs;
-      $outfs->changeFilename($out);
-      $outfs->changeBackend($backend);
+    unless (defined($outfs)) {
+      # create the output file according to the first file
+      $outfs = FSFile->create(
+			      name => ($limit ? sprintf($out,$outfileno++) : $out),
+			      format => $format,
+			      FS => FSFormat->clone($fs->FS),
+			      backend => $backend,
+			      encoding => $fs->encoding(),
+			     );
+      $outfs->changePatterns($fs->patterns());
+      $outfs->changeTail($fs->tail());
+      $outfs->changeHint($fs->hint());
+      print " -> ".$outfs->filename(),"\n";
     }
+
+    # merge fs headers
+    my $newdefs=$fs->FS->defs();
+    my $fmt=$outfs->FS;
+    my $defs=$fmt->defs();
+    my $list=$fmt->list();
+    foreach ($fs->FS->attributes()) {
+      push @$list, $_ unless ($fmt->exists($_));
+      $defs->{$_}=$newdefs->{$_};
+    }
+    # append trees
+    if ($limit) {
+      foreach my $tree (@{$fs->treeList}) {
+	push @{$outfs->treeList}, $tree;
+	if (@{$outfs->treeList}>=$limit) {
+	  save($outfs);
+	  $outfs->changeFilename(sprintf($out,$outfileno++));
+	  print " -> ".$outfs->filename(),"\n";
+	  @{$outfs->treeList}=();
+	}
+      }
+    } else {
+      push @{$outfs->treeList}, @{$fs->treeList};
+    }
+    @{$fs->treeList}=(); # prevent them from being destroyed with $fs
     undef $fs;
   }
-  if (-e $out) {
-    unlink "$out~" if (-e "$out~" ); # silly MS OSs need this
-    rename $out, "$out~" || die "Cannot create backup file named $out~ for $out\n";
-  }
-  $outfs->writeFile($out);
+  save($outfs);
 } else {
   foreach $f (@files) {
     $fileno++;
@@ -167,12 +200,18 @@ if ($opt_m) {
       next;
     }
     $fs->changeBackend($backend);
-
-    if (-e $out) {
-      unlink "$out~" if (-e "$out~" ); # silly MS OSs need this
-      rename $out, "$out~" || die "Cannot create backup file named $out~ for $out\n";
-    }
-    $fs->writeFile($out);
+    $fs->changeFilename($out);
+    save($fs);
     undef $fs;
   }
+}
+
+sub save {
+  my ($fs) = @_;
+  my $out=$fs->filename();
+  if (-e $out) {
+    unlink "$out~" if (-e "$out~" ); # silly MS OSs need this
+    rename $out, "$out~" || die "Cannot create backup file named $out~ for $out\n";
+  }
+  $fs->writeFile($out);
 }
