@@ -1609,7 +1609,7 @@ root# <userinput>make install</userinput>
 	    version of TrEd. These are <literal>node</literal>,
 	    <literal>edge</literal>,
 	    <literal>style</literal> and
-	    <literal>root-style</literal>.
+	    <literal>rootstyle</literal>.
 	    Patterns labeled with any other label are ignored.
 	  </para>
 	  <para>
@@ -1631,7 +1631,7 @@ root# <userinput>make install</userinput>
 	    text labels of the displayed trees.
 	  </para>
 	  <para>
-	    Patterns labeled as <literal>root-style</literal>
+	    Patterns labeled as <literal>rootstyle</literal>
 	    behave in much the same way as the
 	    <literal>style</literal> but are only interpolated
 	    once (for the root node) and the styling instructions
@@ -1647,7 +1647,7 @@ root# <userinput>make install</userinput>
 	    These instructions may affect appearence of
 	    all elements of the tree. They should be used within
 	    <literal>style</literal>
-	    and <literal>root-style</literal> labeled patterns only, but
+	    and <literal>rootstyle</literal> labeled patterns only, but
 	    may be created dynamically utilizing the <literal>&lt;?
 	    ... ?&gt;</literal> perl-code evaluation.
 	  </para>
@@ -1690,7 +1690,7 @@ root# <userinput>make install</userinput>
 	  <row>
 	    <entry>NodeLabel-valign</entry>
 	    <entry><para>This instruction
-		may be used only within <literal>root-style</literal>
+		may be used only within <literal>rootstyle</literal>
 		patterns.
 		It takes one of the following
 		values: <quote><literal>top</literal></quote>,
