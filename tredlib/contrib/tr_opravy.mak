@@ -1,11 +1,15 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-19 11:31:23 pajas>
+## Time-stamp: <2004-11-24 14:40:30 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
 import Tectogrammatic;
 import Coref qw(switch_context_hook); # node_style_hook);
+
+#bind FCopy to Ctrl+c menu copy node
+#bind FPaste to Ctrl+C menu paste node
+
 
 ######################### Hooks ######################
 
