@@ -9,7 +9,7 @@ BEGIN {
   use TrEd::Convert;
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK 
-              $macrosEvaluated);
+              $macrosEvaluated $safeCompartment);
 
   @ISA=qw(Exporter);
   $VERSION = "0.1";
@@ -221,27 +221,52 @@ sub read_macros {
 #                                that would need saving
 # $TredMacos::forceFileSaved ... if 1, macro claims it saved the file itself
 
-
+sub initialize_macros {
+  my ($win)=@_;		# $win is a reference
+                        # which should in this way be made visible
+                        # to macros
+  my $result = 2;
+  unless ($macrosEvaluated) {
+    if (defined($safeCompartment)) {
+      ${$safeCompartment->varglob('TredMacro::grp')}=$win;
+      my $macros=join("",@macros)."\n return 1;";
+      my %packages;
+      # dirty hack to support ->isa in safe compartment
+      $macros=~s/\n\s*package\s+(\S+?)\s*;/exists($packages{$1}) ? $1 : $&.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'/ge;
+      $result=
+	$safeCompartment
+	  ->reval($macros);
+#     print "running:\n",substr($macros,0,1000),"\n";
+    } else {
+      $TredMacro::grp=$win;
+      $result=eval (join("",@macros)."\n; return 1;");
+    }
+    $macrosEvaluated=1;
+    print STDERR "FirstEvaluation of macros\n" if $macroDebug;
+    print STDERR "Returned with: $result\n\n" if $macroDebug;
+    if ($result or $@) {
+      print STDERR $@ if $@;
+    }
+  }
+  $TredMacro::grp=$win;
+  return $result;
+}
 
 sub do_eval_macro {
   my ($win,$macro)=@_;		# $win is a reference
 				# which should in this way be made visible
 				# to macros
 
-  $TredMacro::grp=$win;
   return 0,0,$TredMacro::this unless $macro;
-
-  unless ($macrosEvaluated) {
-    eval (join("",@macros)."\n return 1;");
-    $macrosEvaluated=1;
-    if ($result or $@) {
-      print STDERR "FirstEvaluation of macros\n" if $macroDebug;
-      print STDERR "Returned with: $result\n\n" if $macroDebug;
-      print STDERR $@ if $@;
-    }
-  }
+  my $result;
+  initialize_macros($win);
   print STDERR "Running $macro\n" if $macroDebug;
-  my $result=eval("$macro");
+  if (defined($safeCompartment)) {
+    ${$safeCompartment->varglob('TredMacro::grp')}=$win;
+    $result = $safeCompartment->reval("$macro");
+  } else {
+    $result = eval("$macro");
+  }
   TrEd::Basics::errorMessage($win,$@) if ($@);
   print STDERR "Had run: ",$macro,"\n" if $macroDebug;
   print STDERR "Returned with: $result\n" if $macroDebug;
@@ -253,27 +278,26 @@ sub do_eval_hook {
 				# which should in this way be made visible
 				# to hooks
   print STDERR "about to run the hook: '$hook' (in $context context)\n" if $hookDebug;
-  $TredMacro::grp=$win;
   return undef unless $hook; # and $TredMacro::this;
+  initialize_macros($win);
+  my $result=undef;
 
-  unless ($macrosEvaluated) {
-    eval (join("",@macros)."\n return 1;");
-    $macrosEvaluated=1;
-    if ($result or $@) {
-      print STDERR "FirstEvaluation of macros\n" if $macroDebug;
-      print STDERR "Returned with: $result\n" if $macroDebug;
-      print STDERR $@ if $@;
+  if ($context->can($hook)) {
+    print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
+    if (defined($safeCompartment)) {
+      $safeCompartment->reval("\&$context\:\:$hook(\@_)");
+    } else {
+      $result=eval { return &{"$context\:\:$hook"}(@_); };
+    }
+  } elsif ($context ne "TredMacro" and TredMacro->can($hook)) {
+    print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
+    if (defined($safeCompartment)) {
+      $safeCompartment->reval("\&TredMacro\:\:$hook(\@_)");
+    } else {
+      $result=eval { return &{"TredMacro\:\:$hook"}(@_); };
     }
   }
 
-  my $result=undef;
-  if ($context->can($hook)) {
-    print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
-    $result=eval { return &{"$context\:\:$hook"}(@_); };
-  } elsif ($context ne "TredMacro" and TredMacro->can($hook)) {
-    print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
-    $result=eval { return &{"TredMacro\:\:$hook"}(@_); };
-  }
   return $result;
 }
 
