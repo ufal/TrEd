@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2002-04-03 19:08:26 pajas>
+## Time-stamp: <2002-07-23 09:19:18 pajas>
 
 unshift @INC,"$libDir/contrib/AutoAfun" unless (grep($_ eq "$libDir/contrib/AutoAfun", @INC));
 
@@ -67,7 +67,7 @@ sub assign_all_afun_auto {
   my $class=$_[0];
   my $node=$root;
   while ($node) {
-    assign_afun_auto($class,$node) if ($node->{afun} eq '???');
+    assign_afun_auto($class,$node) if ($node->{afun} eq '???' or $node->{afun} eq '');
     $node=$node->following();
   }
 }
