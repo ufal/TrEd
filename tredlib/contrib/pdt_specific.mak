@@ -11,6 +11,9 @@ sub file_opened_hook {
     } elsif (exists($grp->{FSFile}->FS->defs->{x_TNT})
 	     and $grp->{FSFile}->FS->hide eq 'X_hide') {
       return SwitchContext('Transfer');
+    } elsif (exists($grp->{FSFile}->FS->defs->{x_origt}) and
+	     exists($grp->{FSFile}->FS->defs->{x_origa})) {
+      return SwitchContext('AcademicTreebank');
     } elsif ($grp->{FSFile}->FS->hide eq 'TR') {
       return SwitchContext('Tectogrammatic') 
 	unless (CurrentContext eq 'TR_Correction' or
