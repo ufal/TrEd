@@ -57,17 +57,25 @@ sub connectToRemoteControl {
 
   print STDERR "Connecting to $remote on port $port\n";
 
-  $remote_control_socket
-    = new IO::Socket::INET( PeerAddr => $peer_addr,
-			    PeerPort => $peer_port,
-			    Proto => 'tcp' );
-  unless ($remote_control_socket) {
-    print STDERR "Couldn't open socket: $!\n";
-    return;
+  if ($^O eq "MSWin32") {
+    print STDERR "$^X $libDir/contrib/stupid_echoing_client.pl $peer_addr $peer_port |";
+    local *INPUT;
+    open INPUT,"$^X $libDir/contrib/stupid_echoing_client.pl $peer_addr $peer_port |" 
+      || die "cannot init echoing client\n";
+    $remote_control_socket=\*INPUT;
+    $grp->{top}->fileevent($remote_control_socket,'readable',\&onRemoteCommand);
+  } else {
+    $remote_control_socket
+      = new IO::Socket::INET( PeerAddr => $peer_addr,
+			      PeerPort => $peer_port,
+			      Proto => 'tcp' );
+    unless ($remote_control_socket) {
+      print STDERR "Couldn't open socket: $!\n";
+      return;
+    }
+
+    $grp->{top}->fileevent($remote_control_socket,'readable',\&onRemoteCommand);
   }
-
-  $grp->{top}->fileevent($remote_control_socket,'readable',\&onRemoteCommand);
-
 }
 
 
