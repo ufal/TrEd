@@ -1567,7 +1567,7 @@ root# <userinput>make install</userinput>
 	</listitem>
       </varlistentry>
     </variablelist>
-    <table>
+    <table id="style-instructions">
       <title>Styling instructions</title>
       <tgroup cols="2">
 	<thead>
