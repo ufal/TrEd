@@ -2492,16 +2492,14 @@ sub memberof_co {
   $pPar1 = $this;
 
   $pPar1->{'memberof'} = 'CO';
-
 }
 
 #bind memberof_ap to Shift+Y menu Pridat memberof=AP
-sub memberof_co {
+sub memberof_ap {
 
   $pPar1 = $this;
 
   $pPar1->{'memberof'} = 'AP';
-
 }
 
 #bind split_fw to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
@@ -6143,6 +6141,9 @@ sub NewSubject {
   my $pPredch;			# used as type "pointer"
   my $sPoradi;			# used as type "string"
   my $sDord;			# used as type "string"
+  my $trlemma;
+
+  $trlemma = $sPar1;
 
   UnGap();
 
@@ -6230,7 +6231,7 @@ sub NewSubject {
 
   $pNew->{'ordorig'} = '???';
 
-  $pNew->{'trlemma'} = $sPar1;
+  $pNew->{'trlemma'} = $trlemma;
 
   $pNew->{'gender'} = '???';
 
