@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-02-11 16:46:03 pajas>
+## Time-stamp: <2005-02-13 20:28:07 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -150,7 +150,7 @@ sub file_save_hook {
       Redraw();
     }
   }
-  &TredMacro::file_save_hook if TrEd::Macros::context_can('TredMacro','file_save_hook');
+  &{"TredMacro::"."file_save_hook"} if TrEd::Macros::context_can('TredMacro','file_save_hook');
   return;
 }
 
