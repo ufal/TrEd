@@ -37,8 +37,8 @@ tfa.mak
 tr_anot_main.mak
 transf.mak
 tr_common.mak
-tr_corr_anot_main.mak
-tr_corref_common.mak
+tr_coref_anot_main.mak
+tr_coref_common.mak
 trdiff.mak
 tred_arabic.mak
 tred_mac_common.mak
