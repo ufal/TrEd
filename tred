@@ -72,7 +72,7 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('m:c:l:t:huW:G');
+getopts('m:c:l:t:huW:GR');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
@@ -113,6 +113,7 @@ Each filename may be followed by suffixes of the following forms:
 
 Other options:
 
+-R              build tectogrammatic trees from CSTS files
 -G              Do not initially resize window to its last geomtery.
 -W <window_id>  Embed main window into the given window 
 
@@ -358,9 +359,16 @@ my %searchTemplate;
 			   bar=> 'backslash', asciitilde=> 'grave'
 			  );
 
+if ($opt_R) {
+  $Csts2fs::gov = "govTR";
+  $Csts2fs::header = \@Csts2fs::TRheader;
+  $Csts2fs::initial_node_values{TR}='hide';
+}
+
 print STDERR "Reading macros from $macroFile...\n";
 read_macros($macroFile,$libDir);		# read macros
 print STDERR "done.\n";
+
 
 startMain();	# display first tree
 
