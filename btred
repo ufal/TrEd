@@ -612,6 +612,7 @@ sub startMain {
 	  _msg "Dumping some tree $f at client's request\n";
 	  next unless openFile($grp,$f,-justpreloaded => 1);
 	  for my $fsfile ($grp->{FSFile}) {
+	    _set_encoding($hub,$fsfile->encoding(),undef);
 	    $fsfile->FS->writeTo($hub);
 	    Fslib::PrintFS($hub,undef,
 			   $f=_has_suffix($f) ? [$grp->{root}] :
@@ -632,6 +633,7 @@ sub startMain {
 	    $hub->print($fsfile->tail());
 	    $hub->print("\n\n//FSEND\n\n");
 	  }
+	  _set_encoding($hub,$term_encoding,"socket to hub");
 	}
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
