@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2001-01-09 18:05:57 pajas>
+# Time-stamp: <2001-02-02 15:06:23 pajas>
 #
 # TrEd ver. 0.5 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -278,6 +278,7 @@ sub filename {
 print STDERR "Reading macros from $macroFile...";
 readMacros($macroFile);		# read macros
 print STDERR "done.\n";
+
 startMain($files[$fileNo]);	# display first tree
 
 closeFile();
@@ -427,8 +428,8 @@ sub setConfig {
   $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
   $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip." -c");
   $keyboardDebug=(exists $confs->{keyboarddebug}) ? $confs->{keyboarddebug} : 0;
-  $defCWidth=(exists $confs->{canvasWidth}) ? $confs->{canvasWidth} : '18c';
-  $defCHeight=(exists $confs->{canvasHeight}) ? $confs->{canvasHeight} : '12c';
+  $defCWidth=(exists $confs->{canvaswidth}) ? $confs->{canvaswidth} : '18c';
+  $defCHeight=(exists $confs->{canvasheight}) ? $confs->{canvasheight} : '12c';
   print STDERR "Applying configuration.\n";
 }
 
@@ -485,6 +486,15 @@ sub readMacros {
     }
   }
   close(F);
+}
+
+sub gotoFile {
+  my ($grp,$fn)=@_;
+  return 0 if ($fn > $#files or $fn<0);
+  askSaveFile($grp);
+  $fileNo=$fn;
+  openFile($files[$fileNo],$grp);
+  return 1;
 }
 
 sub nextFile {
@@ -605,7 +615,7 @@ sub openFile {
   # reading trees
   while ($_=ReadTree(\*F)) {
     if (/^\[/) {
-      $root=GetTree($_,\@atord,\%attribs);
+      $root=GetTree2($_,\@atord,\%attribs);
       push(@trees, $root) if $root;
     } else { push(@rest, $_); }
   }
@@ -793,6 +803,27 @@ sub getNodes {
 
   # this is actually a workaround for TR, where two different nodes
   # may have the same Ord
+}
+
+sub filelistDialog {
+  my $grp=shift;
+  my $d = $grp->{'top'}->DialogBox(-title => "Filelist" ,
+				   -buttons => ["Go", "Cancel"]);
+  $d->resizable(0,0);
+  $d->bind('<Return>' => [sub {1;}]);
+  my $t = $d->
+    Scrolled(qw/Listbox -relief sunken -borderwidth 2 -setgrid true
+		     -height 15 -scrollbars e/);
+  $t->pack(qw/-expand yes -fill both/);
+  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
+  $t->insert('end',@files);
+  $t->activate($fileNo);
+  my $result=ShowDialog($d,undef,$grp->{top});
+  if ($result eq 'Go') {
+    gotoFile($grp,$t->index('active'));
+  }
+  $d->destroy;
+  undef $d;
 }
 
 sub printDialog {
@@ -1060,7 +1091,7 @@ sub printThis {
 	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i] !~ /^%%DocumentNeededResources: font Arial-Medium/);
 	print O $ps[$i++],"\n" while ($i<=$#ps and $ps[$i]!~/^%%BeginProlog/);
 	print O $ps[$i++],"\n";
-	print O '%%beginFont arialm',"\n";
+	print O '%%BeginFont arialm',"\n";
 	print O <F>;
 	print O '%%EndFont',"\n\n";
 	$i++ while ($i<=$#ps and $ps[$i]!~/% StrokeClip/);
@@ -1263,6 +1294,8 @@ sub startMain {
   print STDERR "Asking wm for exit-hook.\n";
 
   $group{top}->protocol('WM_DELETE_WINDOW' => [sub { $grp=shift;
+						       doEvalHook(\%group,"exit_hook");
+						                          # run user's exit_hook
 						       askSaveFile($grp);
 						       $grp->{'top'}->destroy; },\%group]);
 
@@ -1285,6 +1318,7 @@ sub startMain {
   $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0 -menuitems/ =>
 	[
 	 [Button => 'Open ...',    -command => [\&fileDialog, \%group]],
+	 [Button => 'File List...',-command => [\&filelistDialog, \%group]],
 #	 [Button => 'New',         -command => [\&menus_error2, 'New']],
 	 [Button => 'Save',        -command => [\&saveFile,\%group]],
 	 [Button => 'Save As ...', -command => [\&saveFileAs, \%group]],
@@ -1414,8 +1448,9 @@ sub startMain {
   }
   addBindTags($group{'frame'},'my');
   my $canvas = $group{'top'}->Scrolled('Canvas', -width => $defCWidth,
-				       -height => $defCHeight, qw /-relief sunken
-			   -borderwidth 2 -scrollbars se/, -scrollregion =>
+				       -height => $defCHeight, 
+				       qw /-relief sunken
+			                   -borderwidth 2 -scrollbars se/, -scrollregion =>
 				       [qw/0c 0c 100c 100c/],
 				       $backgroundColor ? (-background => $backgroundColor) : ());
 
@@ -1577,9 +1612,11 @@ sub startMain {
   }
   
   print STDERR "done.\nStarting main loop.\n";
-  
+
+  exit if doEvalHook(\%group,"start_hook") eq 'stop'; # run start_hook
+
   MainLoop;
-    
+
 }
 
 
@@ -1884,28 +1921,31 @@ sub QueryString {
 
 
 sub selectValuesDialog {
- my ($grp, $vals, $selected, $may_add, $lastFocus)=@_;
+ my ($grp, $attr, $vals, $selected, $may_add, $lastFocus)=@_;
  my $a;
  my $multi=0;
 
  $grp->{'top'}->Busy(-recurse => 1);
- my $d=$grp->{'top'}->DialogBox(-title => "Select Values", -width => '8c',
-				-buttons => ["OK", "Cancel"]);
+ my $enabled=doEvalHook($grp,'enable_attr_hook',$attr,"ambiguous") ne 'stop';
+
+ my $d=$grp->{'top'}->DialogBox(-title => "$attr: select values", -width => '8c',
+				-buttons => $enabled ? ["OK", "Cancel"] : ["Cancel"]);
  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1/,
 		    -font => $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
 
- $l->bind('<Double-ButtonPress-1>' =>
-	  [sub { my $w=shift;
-		 my $d=shift;
-		 my $e = $w->XEvent;
-		 $w->BeginSelect($w->index($e->xy));
-		 $d->{'selected_button'}='OK';
-	       },$d
-	  ]);
-
+ if ($enabled) {
+   $l->bind('<Double-ButtonPress-1>' =>
+	    [sub { my $w=shift;
+		   my $d=shift;
+		   my $e = $w->XEvent;
+		   $w->BeginSelect($w->index($e->xy));
+		   $d->{'selected_button'}='OK';
+		 },$d
+	    ]);
+ }
  my $act=0;
  for ($a=0;$a<@$vals;$a++)  {
    if (grep { $$vals[$a] eq $_ } @$selected) {
@@ -1917,33 +1957,37 @@ sub selectValuesDialog {
      }
    }
  }
- $d->Checkbutton(-text     => 'multiple select',
-		 -variable => \$multi,
-		 -command  => [sub {
-				 shift->configure(-selectmode => $multi ? 'multiple' : 'single');
+ if ($enabled) {
+   $d->Checkbutton(-text     => 'multiple select',
+		   -variable => \$multi,
+		   -command  => [sub {
+				   shift->configure(-selectmode => $multi ? 'extended' : 'browse');
 				 },$l],
-		 -relief   => 'flat')->pack();
- if ($may_add) {
-   $d->Button(-text => 'Add',
-	      -command => [sub {
-			     my ($grp,$l,$vals)=@_;
-			     my $val=QueryString($grp,"Add new value","Value");
-			     return unless defined $val;
-			     push @$vals,$val;
-			     $l->insert('end',$val);
-			   $l->selectionClear(0,$l->size-1) unless $multi;
-			     $l->selectionSet($l->size-1);
-			   },$grp,$l,$vals])->pack();
+		   -relief   => 'flat')->pack();
+   if ($may_add) {
+     $d->Button(-text => 'Add',
+		-command => [sub {
+			       my ($grp,$l,$vals)=@_;
+			       my $val=QueryString($grp,"Add new value","Value");
+			       return unless defined $val;
+			       push @$vals,$val;
+			       $l->insert('end',$val);
+			       $l->selectionClear(0,$l->size-1) unless $multi;
+			       $l->selectionSet($l->size-1);
+			     },$grp,$l,$vals])->pack();
+   }
  }
  $grp->{'top'}->Unbusy();
 # $l->focus;
  my $result = ShowDialog($d,$l,$lastFocus);
- $d->destroy;
- undef $d;
  if ($result =~ /OK/) {
    @$selected = (map { $$vals[$_] } ( grep { $l->selectionIncludes($_) } (0 .. $l->size-1) ));
+   $d->destroy;
+   undef $d;
    return 1;
  }
+ $d->destroy;
+ undef $d;
  return 0;
 }
 
@@ -1954,7 +1998,7 @@ sub editListAttr {
   my @selected = map { encode($_) } split /\|/,$value;
   #print "splitted to ", join ('-',@selected),"\n";
 
-  if (selectValuesDialog($grp,\@vals,\@selected,0,$d)) {
+  if (selectValuesDialog($grp,$attr,\@vals,\@selected,0,$d)) {
     return decode(join('|',@selected));
   }
   return undef;
@@ -1964,7 +2008,8 @@ sub editAmbiguousAttr {
   my ($grp, $value, $attr) =@_;
   my @vals = map { encode($_) }split /\|/,$value;
   my @selected = @vals;
-  if (selectValuesDialog($grp,\@vals,\@selected,1,$grp->{top})) {
+  
+  if (selectValuesDialog($grp,$attr,\@vals,\@selected,1,$grp->{top})) {
     return decode(join('|',@selected));
   }
   return undef;
@@ -1972,6 +2017,7 @@ sub editAmbiguousAttr {
 
 sub editAttrsDialog {
   my ($grp,$node)=@_;
+  return if (doEvalHook($grp,"do_edit_attrs_hook",$node) eq 'stop');
   my $r;
   my $b;
   my $a;
@@ -2034,22 +2080,24 @@ sub editAttrsDialog {
       $r = $f->Frame;
       $e{$_} = $r->Entry(-relief => 'sunken', -takefocus => 1,
 			 -font => $font)->pack(qw/-expand yes -fill both -side left/);
-      $b=$r->Button(-text => "...", -takefocus => 0,
-		    -command => [sub {
-				my ($e,$grp,$node,$attr,$d)=@_;
-				my $result =
-				  (IsList($attr,\%attribs)
-				   ? editListAttr($grp,$e->get,$attr)
-				   : editAmbiguousAttr($grp,$e->get,$attr,$d));
-				if (defined $result) {
-				  $e->configure(-state => 'normal');
-				  $e->delete(0,length($e->get));
-				  $e->insert(0,$result);
-				  $e->configure(-state => 'disabled');
-				}
-			      },$e{$_},$grp,$node,$_,$d])->pack(-side => 'right');
-      $e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
-      $e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
+#      unless (doEvalHook($grp,'enable_attr_hook',$_,"ambiguous") eq 'stop') {
+	$b=$r->Button(-text => "...", -takefocus => 0,
+		      -command => [sub {
+				     my ($e,$grp,$node,$attr,$d)=@_;
+				     my $result =
+				       (IsList($attr,\%attribs)
+					? editListAttr($grp,$e->get,$attr)
+					: editAmbiguousAttr($grp,$e->get,$attr,$d));
+				     if (defined $result) {
+				       $e->configure(-state => 'normal');
+				       $e->delete(0,length($e->get));
+				       $e->insert(0,$result);
+				       $e->configure(-state => 'disabled');
+				     }
+				   },$e{$_},$grp,$node,$_,$d])->pack(-side => 'right');
+	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
+	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
+#      }
       $e{$_}->insert(0,encode($$node{$_}));
       $e{$_}->configure(-state => 'disabled');
       push @r, $r;
@@ -2057,6 +2105,10 @@ sub editAttrsDialog {
       $e{$_} = $f->Entry(-relief => 'sunken', -takefocus => 1,
 			 -font => $font)->pack(qw/-expand yes -fill both/);
       $e{$_}->insert(0,encode($$node{$_}));
+      if (doEvalHook($grp,'enable_attr_hook',$_,"normal") eq 'stop') {
+	$e{$_}->configure(-state => 'disabled');
+      }
+
       push @r, $e{$_};
     }
 
@@ -2262,6 +2314,9 @@ sub editAttr {
 		    -justify => 'right')->pack(-side=>'left');
   my $e = $d->Entry(-relief => 'sunken',
 		    -width => 40,
+		    -state =>
+		    (doEvalHook($grp,'enable_attr_hook',$_) eq 'stop')
+		    ? 'disabled' : 'normal',
 		    -takefocus => 1,
 		    -font => $font,
 		    -textvariable => \$newvalue)->pack();
@@ -2779,8 +2834,34 @@ sub centerTo {
   centerToXY($grp,$$node{'_tkXPOS_'},$$node{'_tkYPOS_'});
 }
 
+sub doEvalHook {
+  my ($grp,$hook)=(shift,shift);
+  my $hookparams=join ",",@_;
+  return unless $hook;
+  local $this;
+  $this=$grp->{'currentNode'};
+  my $result;
+  my $FileNotSavedOrig=$FileNotSaved;
+
+  return unless $this;
+  $FileNotSaved=0; # Macro may want to override this :)
+  $insideEval=1;
+
+  unless ($macrosEvaluated) {
+    eval ("@macros\n return 1;");
+    $macrosEvaluated=1;
+  }
+  $result=eval("return $hook($hookparams);\n");
+  $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
+  $insideEval=0;
+  return $result;
+}
+
+
 sub doEvalMacro {
-  my ($grp,$macro)=@_;
+  my ($grp,$macro)=(shift,shift);
+  my $macroparams=join ",",@_;
+  return unless $macro;
   print "$macro\n";
   local $this;
   $this=$grp->{'currentNode'};
@@ -2797,7 +2878,7 @@ sub doEvalMacro {
     $macrosEvaluated=1;
   }
 #  $result=eval("return ".$macro."();\n@macros\n");  # this consumes memory!!!!
-    $result=eval("return ".$macro."();\n");
+    $result=eval("return $macro($macroparams);\n");
   if (!$result or $@) {
     print STDERR "Had run: ",$macro,"\n";
     print STDERR "Returned with: $result\n$@\n";
@@ -2811,6 +2892,7 @@ sub doEvalMacro {
   getNodes($grp);
   redraw_tree($grp);
   centerTo($grp,$grp->{currentNode});
+  return $result;
 }
 
 sub evalMacro {
