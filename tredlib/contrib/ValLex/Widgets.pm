@@ -3,6 +3,7 @@
 #
 
 package TrEd::ValLex::Widget;
+use locale;
 
 sub new {
   my ($self, $data, $field, @widget_options)= @_;
@@ -72,7 +73,7 @@ sub pack {
 sub configure {
   my $self=shift;
   return undef unless ref($self);
-  return $self->frame()->pack(@_);
+  return $self->widget()->configure(@_);
 }
 
 #
@@ -98,14 +99,13 @@ sub create_widget {
   $w->configure(@conf) if (@conf);
   $w->BindMouseWheelVert() if $w->can('BindMouseWheelVert');
   $w->headerCreate(0,-itemtype=>'text', -text=>'Elements');
-  print "INC: ",Tk::findINC("ValLex/stop.xpm"),"\n";
   return $w, {
 	      obsolete => $w->ItemStyle("imagetext", -foreground => '#707070',
 					-background => 'white'),
 	      substituted => $w->ItemStyle("imagetext", -foreground => '#707070',
 					   -background => 'white'),
 	      reviewed => $w->ItemStyle("imagetext", -foreground => 'black',
-					-background => '#d0e0f0'),
+					-background => 'white'),
 	      active => $w->ItemStyle("imagetext", -foreground => 'black',
 				      -background => 'white'),
 	      deleted => $w->ItemStyle("imagetext", -foreground => '#707070',
@@ -113,10 +113,10 @@ sub create_widget {
 	     },{
 		obsolete => $w->Pixmap(-file => Tk::findINC("ValLex/stop.xpm")),
 		substituted => $w->Pixmap(-file => Tk::findINC("ValLex/red.xpm")),
-		reviewed => $w->Pixmap(-file => Tk::findINC("ValLex/green.xpm")),
+		reviewed => $w->Pixmap(-file => Tk::findINC("ValLex/finished.xpm")),
 		active => $w->Pixmap(-file => Tk::findINC("ValLex/help.xpm")),
 		deleted => $w->Pixmap(-file => Tk::findINC("ValLex/error.xpm"))
-	       };
+	       },0;
 }
 
 sub style {
@@ -125,6 +125,17 @@ sub style {
 
 sub pixmap {
   return $_[0]->[4]->{$_[1]};
+}
+
+sub SHOW_DELETED { 5 }
+
+
+sub show_deleted {
+  my ($self,$value)=@_;
+  if (defined($value)) {
+    $self->[SHOW_DELETED]=$value;
+  }
+  return $self->[SHOW_DELETED];
 }
 
 sub fetch_data {
@@ -136,39 +147,69 @@ sub fetch_data {
 
   $t->delete('all');
   foreach my $entry ($self->data()->getFrameList($word)) {
-    next if ($entry->[3] eq 'deleted');
+    next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
     $e = $t->addchild("",-data => $entry->[0]);
     $t->itemCreate($e, 0,
 		   -itemtype=>'imagetext',
 		   -image => $self->pixmap($entry->[3]),
-		   -text=> $entry->[2]."\n".$entry->[4],
+		   -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
 		   -style => $self->style($entry->[3]));
   }
-
-
 }
+
+sub focus {
+  my ($self,$frame)=@_;
+  my $h=$self->widget();
+  foreach my $t ($h->infoChildren()) {
+    if ($h->infoData($t) == $frame) {
+      $h->anchorSet($t);
+      $h->selectionClear();
+      $h->selectionSet($t);
+      $h->see($t);
+      return $t;
+    }
+  }
+}
+
 
 #
 # LexWordList widget
 #
 
 package TrEd::ValLex::WordList;
-use base qw(TrEd::ValLex::Widget);
+use base qw(TrEd::ValLex::FramedWidget);
 
 require Tk::HList;
 
 sub create_widget {
   my ($self, $data, $field, $top, @conf) = @_;
 
+  my $frame = $top->Frame();
+  my $ef = $frame->Frame()->pack(qw/-pady 5 -side top -expand yes -fill x/);
+  my $l = $ef->Label(-text => "Search: ")->pack(qw/-side left/);
+  my $e = $ef->Entry(qw/-background white -validate key/,
+		     -validatecommand => [\&quick_search,$self]
+		    )->pack(qw/-expand yes -fill x/);
   ## Word List
-  my $w = $top->Scrolled(qw/HList -columns 1 -background white
+  my $w = $frame->Scrolled(qw/HList -columns 1 -background white
                               -selectmode browse
                               -header 1
                               -relief sunken
-                              -scrollbars osoe/);
+                              -scrollbars osoe/)->pack(qw/-side top -expand yes -fill both/);
   $w->configure(@conf) if (@conf);
   $w->BindMouseWheelVert() if $w->can('BindMouseWheelVert');
-  return $w;
+  return $w, {
+	      frame => $frame,
+	      wordlist => $w,
+	      search => $e,
+	      label => $l
+	     };
+}
+
+sub quick_search {
+  my ($self,$value)=@_;
+  print "got @_\n";
+  return defined($self->focus_by_text($value));
 }
 
 sub fetch_data {
@@ -178,9 +219,39 @@ sub fetch_data {
   $t->delete('all');
   $t->headerCreate(0,-itemtype=>'text', -text=>'lemma');
   $t->columnWidth(0,'');
-  foreach my $entry ($self->data()->getWordList()) {
-    $e= $t->addchild("",-data => $entry->[0]);
-    $t->itemCreate($e, 0, -itemtype=>'text', -text=> $entry->[2]);
+
+  foreach my $entry (sort { $a->[2] cmp $b->[2] } $self->data()->getWordList())
+    {
+      $e= $t->addchild("",-data => $entry->[0]);
+      $t->itemCreate($e, 0, -itemtype=>'text', -text=> $entry->[2]);
+    }
+}
+
+sub focus_by_text {
+  my ($self,$text)=@_;
+  my $h=$self->widget();
+  foreach my $t ($h->infoChildren()) {
+    if (index($h->itemCget($t,0,'-text'),$text)==0) {
+      $h->anchorSet($t);
+      $h->selectionClear();
+      $h->selectionSet($t);
+      $h->see($t);
+      return $t;
+    }
+  }
+  return undef;
+}
+sub focus {
+  my ($self,$word)=@_;
+  my $h=$self->widget();
+  foreach my $t ($h->infoChildren()) {
+    if ($h->infoData($t) == $word) {
+      $h->anchorSet($t);
+      $h->selectionClear();
+      $h->selectionSet($t);
+      $h->see($t);
+      return $t;
+    }
   }
 }
 
@@ -265,6 +336,152 @@ sub set_data {
   my $w=$self->widget();
   $w->delete('0.0','end');
   $w->insert('0.0',$data);
+}
+
+#
+# AddFrame widget
+#
+
+package TrEd::ValLex::FrameElementEditor;
+use base qw(TrEd::ValLex::FramedWidget);
+
+require Tk::LabFrame;
+
+sub create_widget {
+  my ($self, $data, $field, $top, @conf) = @_;
+
+  my $frame = $top->LabFrame(-label => "Edit Frame",
+			     -labelside => "acrosstop",
+			     -relief => 'raised'
+			    );
+
+  my $label=$frame->Label(-text => "Frame Elements",
+			  qw/-anchor nw -justify left/)
+    ->pack(qw/-expand yes -fill x -padx 6/);
+  my $w=$frame->Entry(qw/-background white/,
+		      -validate => 'focusout',
+#		      -vcmd => [\&validate,$self]
+		     );
+#  $w->configure(-invcmd => [\&bell,$self]);
+  $w->pack(qw/-padx 6 -fill x -expand yes/);
+  $frame->Frame(qw/-height 6/)->pack();
+  my $ex_label=$frame->Label(qw/-text Example -anchor nw -justify left/)
+    ->pack(qw/-expand yes -fill x -padx 6/);
+  my $example=$frame->Text(qw/-width 40 -height 5 -background white/);
+  $example->pack(qw/-padx 6 -expand yes -fill both/);
+  $example->bind($example,'<Tab>',[sub { shift->focusNext; Tk->break;}]);
+  $frame->Frame(qw/-height 6/)->pack();
+
+  my $note_label=$frame->Label(qw/-text Note -anchor nw -justify left/)
+    ->pack(qw/-expand yes -fill x -padx 6/);
+  my $note=$frame->Text(qw/-width 40 -height 5 -background white/);
+  $note->pack(qw/-padx 6 -expand yes -fill both/);
+  $note->bind($note,'<Tab>',[sub { shift->focusNext; Tk->break;}]);
+  $frame->Frame(qw/-height 6/)->pack();
+
+  my $problem_label=$frame->Label(qw/-text Problem -anchor nw -justify left/)
+    ->pack(qw/-expand yes -fill x -padx 6/);
+  my $problem=$frame->Entry(qw/-background white/);
+  $problem->pack(qw/-padx 6 -expand yes -fill x/);
+
+  foreach my $b ($w, $example, $note, $problem) {
+    $b->bindtags([$b,ref($b),$b->toplevel,'all']);
+  }
+
+  $w->focus();
+
+  return $w, {
+	      frame => $frame,
+	      elements => $w,
+	      example => $example,
+	      note => $note,
+	      problem => $problem
+	     };
+
+}
+
+sub validate {
+  my ($self,$elements)=@_;
+  if (!defined($elements)) {
+    $elements=$self->subwidget('elements')->get();
+  }
+  $elements=" $elements";
+  return $elements=~m{^(?:\s+([A-Z][A-Z0-9]+)(?:[[(][^])]*[])])?)+\s*$};
+}
+
+sub bell {
+  my ($self)=@_;
+  $self->widget()->toplevel()->messageBox(-message => 'Invalid frame elements!\n',
+					  -title => 'Error',
+					  -type => 'OK');
+  $self->widget()->focus();
+  return 0;
+}
+
+#
+# Frame Info Line
+#
+
+package TrEd::ValLex::InfoLine;
+use base qw(TrEd::ValLex::FramedWidget);
+
+require Tk::HList;
+
+sub LINE_CONTENT { 4 }
+
+sub create_widget {
+  my ($self, $data, $field, $top, @conf) = @_;
+
+  my $value="";
+  my $frame = $top->Frame(-relief => 'sunken',
+			  -borderwidth => 4);
+  my $w=$frame->Label(-textvariable => \$value,
+		      qw/-anchor nw -justify left/)
+    ->pack(qw/-expand yes -fill x/);
+
+  $w->configure(@conf) if (@conf);
+
+  return $w, {
+	      frame => $frame,
+	      label => $w
+	     }, \$value;
+}
+
+
+sub line_content {
+  my ($self,$value)=@_;
+  if (defined($value)) {
+    ${$self->[LINE_CONTENT]}=$value;
+  }
+  return ${$self->[LINE_CONTENT]};
+}
+
+sub fetch_word_data {
+  my ($self,$word)=@_;
+  return unless $self;
+  if (!$word) {
+    $self->line_content("");
+  }
+  my $w_id=$self->data()->getWordId($word);
+
+  $self->line_content("word: $w_id");
+}
+
+sub fetch_frame_data {
+  my ($self,$frame)=@_;
+  return unless $self;
+  if (!$frame) {
+    $self->line_content("");
+  }
+  my $word=$self->data()->getWordForFrame($frame);
+  my $w_id=$self->data()->getWordId($word);
+  my $f_id=$self->data()->getFrameId($frame);
+  my $subst=$self->data()->getSubstitutingFrame($frame);
+  my $status=$self->data->getFrameStatus($frame);
+
+  $self->line_content("word: $w_id      frame: $f_id   status: $status ".
+		      (($status eq 'substituted') ? "with $subst" : "")
+		     );
 }
 
 1;

@@ -18,6 +18,8 @@ sub Post
 
 package main;
 
+print "Start, finding modules\n";
+
 use strict;
 use Tk::Adjuster;
 use Data;
@@ -25,13 +27,46 @@ use Widgets;
 use Editor;
 use Chooser;
 
+print "done\n";
 
-my $data=TrEd::ValLex::Data->new("pokus.xml");
+sub questionQuery {
+  my ($top,$title, $message,@buttons) = @_;
+
+  my $d = $top->DialogBox(-title => $title,
+				       -buttons => [@buttons]
+				      );
+  $d->add('Label', -text => $message, -wraplength => 200)->pack;
+  $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
+			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  return $d->Show;
+}
+
+print "Reading data\n";
+my $data=TrEd::ValLex::Data->new("vallex.xml");
 #print $data->doc()->toString;
 
+print "Creating main window\n";
 my $top=Tk::MainWindow->new();
 my $find=$ARGV[0];
+$top->title("Choose frame: $find");
+print "Looking up word $find\n";
 my $word=$data->findWord($find);
+my $new_word=0;
+
+print "Checking $find\n";
+unless ($word) {
+  if (questionQuery($top,"Word does not exist",
+		    "Do you want to add this word to the lexicon?",
+		    "Yes", "No") eq "Yes") {
+    $word=$data->addWord($find,"V");
+    $new_word=1;
+  } else {
+    print "No such word in the lexicon\n";
+    exit;
+  }
+}
+print "Continuing\n";
 
 sub close_and_return {
   my ($chooser,$frame)=@_;
@@ -40,11 +75,18 @@ sub close_and_return {
   $top->destroy();
 }
 
-TrEd::ValLex::Chooser::show_dialog($find, $top,$data,$word);
+#TrEd::ValLex::Chooser::show_dialog($find, $top,$data,$word);
 
 #if ($word) {
-#  my $chooser= TrEd::ValLex::Chooser->new($data, $word ,$top,\&close_and_return,0);
-#  $chooser->pack(qw/-expand yes -fill both -side left/);
+print "Creating chooser\n";
+my $chooser= TrEd::ValLex::Chooser->new($data, $word ,$top,\&close_and_return,0);
+if ($new_word) {
+  $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
+}
+$chooser->pack(qw/-expand yes -fill both -side left/);
+
+print "Starting mainloop\n";
+
 #}
 
 #  my $button_bar = $top->Frame()->pack(qw/ -expand no -side left/);;
@@ -58,5 +100,6 @@ TrEd::ValLex::Chooser::show_dialog($find, $top,$data,$word);
 #  $vallex2->pack(qw/-expand yes -fill both -side left/);
 
 MainLoop;
+
 
 1;
