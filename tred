@@ -1540,6 +1540,7 @@ sub filelistDialog {
 			    -separator=> "\t"
 			   )
     ->pack(qw/-expand yes -fill both -side top/);
+  disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
   $grp->{Filelist}=$t;
   feedHListWithFilelist($grp,$t,$grp->{currentFilelist});
@@ -1767,6 +1768,7 @@ sub macrolistDialog {
   my $t= $d->Scrolled(qw/HList -columns 2 -background white 
            -selectmode browse
            -height 25 -relief sunken -scrollbars oe/);
+  disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
   $grp->{Macrolist}=$d;
   my $e;
@@ -1857,6 +1859,7 @@ sub copyTreesDialog {
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
+  $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
   my $ff= $d->Frame();
   $ff->Label(-text=> 'Destination file:',
 	     -anchor=> 'w',
@@ -1987,6 +1990,7 @@ sub printDialog {
   addBindTags($d,'dialog');
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   my $cf= $d->Frame();
   my $cl= $cf->Label(-text=> 'Print command:',
@@ -3369,6 +3373,7 @@ sub startMain {
   $group{top}->Tk::bind('Busy','<Any-ButtonPress>',[\&Tk::Widget::_busy => 1]);
   $group{top}->Tk::bind('Busy','<Any-ButtonRelease>',[\&Tk::Widget::_busy => 0]);
   $group{top}->Tk::bind('Busy','<Any-Motion>',[\&Tk::Widget::_busy => 0]);
+  $group{top}->bind('Tk::Listbox','<KeyPress>',\&list_isearch);
 
   $group{top}->bind('my', '<Tab>'=>
 		    [sub { currentNext($_[1]->{focusedWindow});
@@ -3769,7 +3774,28 @@ sub editConfig {
   my $t= $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2
 		     -height 20 -scrollbars oe/);
+  $t->bind('<Alt-f>'  => sub {
+	     my ($w)=@_;
+	     my $pop=$w->FindPopUp();
+	     my ($entry) = grep { $_->isa('Tk::Entry') } $pop->children();
+	     $pop->bind('all','<Tab>',[sub { shift->focusNext; }]);
+	     $pop->bind('all','<Escape>',[sub { shift; shift->destroy; },$pop]);
+	     if (ref($entry)) {
+	       $entry->focus();
+	     }
+	   });
+  $t->bind('<Alt-r>'  => sub {
+	     my ($w)=@_;
+	     my $pop=$w->FindAndReplacePopUp();
+	     my ($entry) = grep { $_->isa('Tk::Entry') } $pop->children();
+	     $pop->bind('all','<Tab>',[sub { shift->focusNext; }]);
+	     $pop->bind('all','<Escape>',[sub { shift; shift->destroy; },$pop]);
+	     if (ref($entry)) {
+	       $entry->focus();
+	     }
+	   });
   $t->pack(qw/-side top -expand yes -fill both/);
+  disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-side bottom -fill x/);
   $bottom->
@@ -3801,6 +3827,7 @@ sub editConfig {
     close(F);
   }
   $t->mark(qw/set insert 0.0/);
+  $t->focus();
   $d->Popup;
 }
 
@@ -3883,6 +3910,7 @@ sub selectValuesDialog {
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars oe/,
 		    -height=> min($maxDisplayedValues,scalar(@$vals)),
 		    -font=> $font)->pack(qw/-expand yes -fill both/);
+ disable_scrollbar_focus($l);
  $l->insert('end',@$vals);
  $l->BindMouseWheelVert();
  if ($enabled) {
@@ -4073,6 +4101,7 @@ sub populateSentencesDialog {
 		     -height 20 -scrollbars oe/,
 	     -font=>$font
 	    );
+  disable_scrollbar_focus($t);
   $t->pack(qw/-expand yes -fill both/);
   $t->BindMouseWheelVert();
   $grp->{sentDialogText}=$t;
@@ -4137,6 +4166,24 @@ sub focusxEditUp {
   Tk->break;
 }
 
+sub focusxFind {
+  my ($w,$i,$e,$f,$atord)=@_;
+  my $ev= $w->XEvent;
+  my $A= $ev->A;
+  if ($A ne "") {
+    my $count=scalar(@$atord);
+    for (my $j=$i+1;$j<=$i+$count;$j++) {
+      if (($atord->[$j % $count]) =~ /^$A/i) {
+	$f->see($e->{$atord->[$j % $count]});
+	$e->{$atord->[$j % $count]}->focus();
+	Tk->break;
+	return;
+      }
+    }
+  }
+}
+
+
 sub editAttrsDialog {
   my ($win,$node)=@_;
   return if (doEvalHook($win,"do_edit_node_hook",$node) eq 'stop');
@@ -4162,6 +4209,7 @@ sub editAttrsDialog {
   my $f= $ff->Scrolled('Pane',
 		      -sticky => 'we',
 		      -scrollbars=> 'oe');
+  disable_scrollbar_focus($f);
   $f->BindMouseWheelVert("","EditEntry");
 
   my $lwidth;
@@ -4224,6 +4272,7 @@ sub editAttrsDialog {
     $f->bind($e{$_}, '<Shift-ISO_Left_Tab>',
 	                            [\&focusxEditUp,$i,\%e,$f,\@atord]);
     $f->bind($e{$_}, '<Up>',        [\&focusxEditUp,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Alt-KeyPress>', [\&focusxFind,$i,\%e,$f,\@atord]);
   }
 
   $f->configure(-height => $height);
@@ -4253,6 +4302,12 @@ sub editAttrsDialog {
   $d->destroy;
 }
 
+sub disable_scrollbar_focus {
+  my ($scrolled)=@_;
+  $scrolled->Subwidget('xscrollbar')->configure(qw(-takefocus 0));
+  $scrolled->Subwidget('yscrollbar')->configure(qw(-takefocus 0));
+}
+
 sub customAttrsDialog {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
@@ -4266,13 +4321,30 @@ sub customAttrsDialog {
 	      -width=> '10c',
 	      -buttons=> ["OK", "Cancel"]);
 
+  $d->Subwidget('top')->configure(qw(-takefocus 0));
+  $d->Subwidget('bottom')->configure(qw(-takefocus 0));
+
+  # Pattern Editor
+  my $e= $d->Scrolled(qw/Text -scrollbars osoe -height 4
+                              -relief sunken -borderwidth 2/);
+  disable_scrollbar_focus($e);
+  my $eff=$d->Frame(qw/-relief sunken -bd 1 -takefocus 0/)->
+    pack(qw/-padx 3 -pady 3 -side top -fill x/);
+  $eff->Frame(qw/-height 6 -takefocus 0/)->pack();
+  $d->Label(-text => "Edit attribute pattern (press ^I to insert tab)",
+	    -anchor => 'nw', -justify => 'left')
+    ->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+  $e->pack(-in => $eff,qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
+  $e->raise($eff);
+
+
   # All wrapping frame with attribute selection and buttons
-  my $f= $d->Frame(qw/-relief sunken -bd 1/);
-  $f->Frame(qw/-height 6/)->pack(qw/-side bottom/);
+  my $f= $d->Frame(qw/-relief sunken -bd 1 -takefocus 0/);
+  $f->Frame(qw/-height 6 -takefocus 0/)->pack(qw/-side bottom/);
 
   # Frame with attribute selection
-  my $af= $f->Frame();
-  $af->Frame(qw/-height 6/)->pack();
+  my $af= $f->Frame(qw(-takefocus 0));
+  $af->Frame(qw/-height 6 -takefocus 0/)->pack();
   # Attributes listbox
   $af->Label(qw/-text Attributes -anchor nw -justify left/)->pack(qw/-fill both/);
   my $al= $af->Scrolled(qw/Listbox
@@ -4282,6 +4354,7 @@ sub customAttrsDialog {
                      -borderwidth 2 -setgrid true
                      -scrollbars oe
                      -exportselection 0/)->pack(qw/-pady 3 -expand yes -fill y/);
+  disable_scrollbar_focus($al);
   $al->BindMouseWheelVert();
   my @atord=$win->{FSFile}->FS->attributes;
   if ($sortAttrs) {
@@ -4296,8 +4369,8 @@ sub customAttrsDialog {
   $af->pack(qw/-padx 5 -side left -fill y/);
 
   # Frame with pattenrs listbox
-  my $cf= $f->Frame();
-  $cf->Frame(qw/-height 6/)->pack();
+  my $cf= $f->Frame(qw(-takefocus 0));
+  $cf->Frame(qw/-height 6 -takefocus 0/)->pack();
   $cf->Label(-text=> 'Display patterns',qw/-anchor nw -justify left/)->pack(qw/-fill x/);
   my $cl=
     $cf->Scrolled(qw/Listbox -relief sunken
@@ -4310,11 +4383,12 @@ sub customAttrsDialog {
 		 )->pack(qw/-side top -expand yes
                             -fill both
                             -padx 3 -pady 3/);
+  disable_scrollbar_focus($cl);
   $cl->BindMouseWheelVert();
   $cl->insert('end',$win->{FSFile}->patterns,'   ');
   $cl->activate('end');
   $cl->selectionSet('end');
-  $cf->Frame(qw/-height 6/)->pack();
+  $cf->Frame(qw/-height 6 -takefocus 0/)->pack();
   $cf->Label(-text=> 'Hint pattern',qw/-anchor nw -justify left/)->pack(qw/-fill x/);
   # Hint box
   my $t=
@@ -4327,15 +4401,12 @@ sub customAttrsDialog {
 		 )->pack(qw/-side top -expand yes
                             -fill both
                             -padx 3 -pady 3/);
+  disable_scrollbar_focus($t);
   $t->insert('0.0',$win->{FSFile}->hint);
   $t->BindMouseWheelVert();
 
-  # Pattern Editor
-  my $e= $d->Scrolled(qw/Text -scrollbars osoe -height 4
-                              -relief sunken -borderwidth 2/);
-
   # Frame with buttons
-  my $bf= $f->Frame();
+  my $bf= $f->Frame(qw(-takefocus 0));
   $bf->Button(-text=> "Add/Paste",
 	      -command=>
 	      sub {
@@ -4410,24 +4481,33 @@ sub customAttrsDialog {
   $bf->pack(qw/-padx 5 -side left -fill y/);
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
-  my $eff=$d->Frame(qw/-relief sunken -bd 1/)->
-    pack(qw/-padx 3 -pady 3 -side top -fill x/);
-  $eff->Frame(qw/-height 6/)->pack();
-  $d->Label(-text => "Edit attribute pattern",
-	    -anchor => 'nw', -justify => 'left')
-    ->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
-  $e->pack(-in => $eff,qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
-  $e->raise($eff);
-
 
   $f->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
 
-
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  $e->bind('Tk::Text','<Tab>',[sub { shift->focusNext; }]);
+  $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
+  $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Escape>'=>
 	   [sub { shift;
 		  shift->{selected_button}='Cancel';
 		},$d ]);
-  $al->bind('<Double-1>'=> 
+  $al->bind('<Double-1>'=>
+	   [sub {
+	     $e->delete('sel.first','sel.last') 
+	       if ($e->tagNextrange('sel','0.0'));
+	     $e->insert('insert','${'.$al->get('active').'}');
+	     $e->focus();
+	   }]
+	  );
+  $al->bind('<space>'=>
+	   [sub {
+	     $e->delete('sel.first','sel.last') 
+	       if ($e->tagNextrange('sel','0.0'));
+	     $e->insert('insert','${'.$al->get('active').'}');
+	   }]
+	  );
+  $al->bind('<Return>'=>
 	   [sub {
 	     $e->delete('sel.first','sel.last') 
 	       if ($e->tagNextrange('sel','0.0'));
@@ -4446,9 +4526,9 @@ sub customAttrsDialog {
 	   }]
 	  );
   $d->bind('<Return>'=> [sub {1;}]);
+  $e->focus();
 #  $d->resizable(0,0);
   $grp->{top}->Unbusy();
-
   my $result= ShowDialog($d,$e,$grp->{top});
 
   if ($result=~ /OK/) {
@@ -4504,6 +4584,7 @@ sub findNodeDialog {
   my $f= $ff->Scrolled('Pane',
 		      -sticky => 'we',
 		      -scrollbars=> 'oe');
+  disable_scrollbar_focus($f);
   $f->BindMouseWheelVert("","EditEntry");
 
   my $lwidth;
@@ -4530,6 +4611,7 @@ sub findNodeDialog {
     $f->bind($e{$_}, '<Shift-ISO_Left_Tab>',
 	                            [\&focusxEditUp,$i,\%e,$f,\@atord]);
     $f->bind($e{$_}, '<Up>',        [\&focusxEditUp,$i,\%e,$f,\@atord]);
+    $f->bind($e{$_}, '<Alt-KeyPress>', [\&focusxFind,$i,\%e,$f,\@atord]);
   }
   $f->configure(-height => $height);
   $f->pack(qw/-expand yes -fill both/);
@@ -5696,5 +5778,27 @@ sub resetTreePosStatus {
   if ($win->{framegroup}->{prevButton}) {
     $win->{framegroup}->{prevButton}->
       configure(-state => ($prevstatus ? 'normal' : 'disabled'));
+  }
+}
+
+
+sub list_isearch {
+  my ($w)=@_;
+  my $e= $w->XEvent;
+  my $A= $e->A;
+  if ($A ne "") {
+    my @items=$w->get(0,'end');
+    my $count=$w->index('end');
+    my $active=$w->index('active');
+    for (my $i=$active+1;$i<=$active+$count;$i++) {
+      if ($items[$i % $count] =~ /^$A/i) {
+	$w->activate($i % $count);
+	$w->selectionClear(0,'end');
+	$w->selectionSet($i % $count);
+	$w->see($i % $count);
+	Tk->break;
+	return;
+      }
+    }
   }
 }
