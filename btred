@@ -253,12 +253,12 @@ $post
 EOL
 
   doEvalMacro($grp,$premacro);
-  print "Running $premacro;\n";
+  print STDERR "<script>\n$premacro;\n</script>\n";
   openFile($grp,$files[$fileNo]);
   do {
     print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n";
     doEvalMacro($grp,"$context->_btred_eval_();");
-    print STDERR "Done";
+    print STDERR "Done.\n";
     saveFile($grp) if ($FileNotSaved or $opt_S);
   } while (nextFile($grp));
 }
