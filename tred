@@ -1204,9 +1204,8 @@ sub closeFile {
 	    @{$req_fs->userData()->{'fs-part-of'}} =
 	      grep { $_ != $fsfile } @{$req_fs->userData()->{'fs-part-of'}};
 	    unless (fsfileDisplayingWindows($win->{framegroup},$req_fs)) {
-	      print STDERR "Trying to close dependent ".$req_fs->filename."\n";
+	      print STDERR "Attepmpting to close dependent ".$req_fs->filename."\n" if $tredDebug;
 	      closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0);
-	      print STDERR "Done\n";
 	    }
 	  }
 	}
@@ -1780,10 +1779,9 @@ sub openFile {
 	  closeFile($win, -fsfile => $req_fs, -no_update => 1);
 	  last;
 	} else {
-	  print "Got: $req_fs\n";
 	  push @{ $req_fs->userData()->{'fs-part-of'} }, $fsfile; # is this a good idea?
 	  $fsfile->changeMetaData('ref',{}) unless $fsfile->metaData('ref');
-	  print "Setting metaData('ref')->{$req->[0]} to $req_fs\n";
+	  __debug("Setting metaData('ref')->{$req->[0]} to $req_fs");
 	  $fsfile->metaData('ref')->{$req->[0]}=$req_fs;
 	}
       }
@@ -4348,7 +4346,7 @@ sub startMain {
 		    doEvalHook($grp->{focusedWindow},"exit_hook");
 		    # run user's exit_hook
 		    return if askSaveFiles($grp,1) == -1;
-		    closeFile($grp->{focusedWindow}, -all_windows => 1);
+		    #closeFile($grp->{focusedWindow}, -all_windows => 1);
 		    $grp->{top}->destroy;
 		    $grp->{top}=undef;
 		  },\%group]);
@@ -5606,16 +5604,18 @@ sub askSaveFiles {
   @{$grp->{treeWindows}} = grep { $_ ne $grp->{focusedWindow} } @{$grp->{treeWindows}};
   unshift @{$grp->{treeWindows}},$grp->{focusedWindow};
   my $win;
+  my %asked;
   foreach $win (@{ $grp->{treeWindows} }) {
     if ($win->{FSFile}) {
+      $asked{$win->{FSFile}}=1;
       focusCanvas($win->canvas(),$win->{framegroup});
       return -1 if askSaveFile($win,0,$cancelbutton) == -1;
       closeFile($win,-no_update => 1,-all_windows => 1);
     }
   }
 
-  while (@openfiles) {
-    resumeFile($grp->{focusedWindow},shift @openfiles);
+  for my $fsfile (grep { !$asked{$_} and ref($_) and $_->notSaved } @openfiles) {
+    resumeFile($grp->{focusedWindow},$fsfile);
     updateTitle($grp);
     get_nodes_win($grp->{focusedWindow});
     redraw_win($grp->{focusedWindow});
@@ -5623,6 +5623,7 @@ sub askSaveFiles {
     $grp->{top}->update();
     return -1 if askSaveFile($grp->{focusedWindow},0,$cancelbutton) == -1;
   }
+  closeAllFiles($grp);
 }
 
 sub closeAllFiles {
@@ -5643,18 +5644,22 @@ sub closeAllFiles {
    # part of
    if ($fsfile and ref($fsfile->userData()->{'fs-part-of'})) {
      foreach (@{$fsfile->userData()->{'fs-part-of'}}) {
+       __debug("Closing all parts of ".$fsfile->filename);
        closeFile($grp->{focusedWindow},-fsfile => $_,
 		 -no_update => 1, -all_windows => 1);
      }
    }
+   __debug("Now closing file ".$fsfile->filename);
    closeFile($grp->{focusedWindow},
 	     -fsfile => $fsfile,
 	     -no_update => 1,
 	     -all_windows => 1);
    if (grep {$_==$fsfile} @openfiles) {
      # still there?
+     __debug("File still open, pushing it to the end: $fsfile: ".$fsfile->filename);
      shift @openfiles;
      push @openfiles, $fsfile;
+     __debug("Open files: @openfiles");
    }
   }
 }
@@ -6617,7 +6622,7 @@ sub editAttrsDialog_schema {
       my $val = {};
       $edit->dump_to_node($val);
       $node->set_attr($attr_path,$val->{$attr_name});
-      print Dumper($val),"\n";
+#      print Dumper($val),"\n";
     }
     doEvalHook($win,"after_edit_node_hook",$node,1);
     get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
@@ -8064,7 +8069,7 @@ sub doEvalHookWithUndo {
   ${"TredMacro::root"}=$oldroot;
   ${"TredMacro::grp"}=$oldgrp;
 
-  print STDERR "Hook $hook resulted with $result\n" if $hookDebug;
+  print STDERR "Hook $hook returned $result\n" if $hookDebug;
   return $result;
 }
 
@@ -8107,7 +8112,7 @@ sub doEvalHook {
   ${"TredMacro::root"}=$oldroot;
   ${"TredMacro::grp"}=$oldgrp;
 
-  print STDERR "Hook $hook resulted with $result\n" if $hookDebug;
+  print STDERR "Hook $hook returned $result\n" if $hookDebug;
   return $result;
 }
 
