@@ -1015,7 +1015,7 @@ root# <userinput>make install</userinput>
 	  files open. In case the user tries to open a file 
 	  while another file is already open, modified, and yet not
 	  saved
-	  (and the <xref linkend="dontcloseonopen"/> option is not checked)
+	  (and the <link linkend="dontcloseonopen">Don't close on open</link> option is not checked)
 	  <application>TrEd</application> offers the user to save
 	  changes in the current file and close it, close it withought
 	  saving or to <emphasis>keep</emphasis> the file open. In the
