@@ -16,7 +16,7 @@ use Getopt::Std;
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-getopts('qQDx:p:r:s:a:f:c:i:m:e:t:huNHSTRW');
+getopts('qQDx:p:r:s:a:f:c:i:m:e:t:huNHSTX:RW');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u || $opt_h) {
@@ -65,6 +65,8 @@ extra_attribs - comma separated list of non-CSTS attributes to preserve when
 -T            - wrap 'do { ... } while NextTree();' around the script
 -S            - always save file
 -R            - build tectogrammatic trees from CSTS files
+-X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
+                and <ord> to order nodes
 -q            - quiet
 -Q            - by *very* quiet
 -D            - enable debugging messages on stderr
@@ -254,6 +256,9 @@ print STDERR "done.\n" unless $opt_q;
        );
 
 $opt_R && Csts2fs::setupTR();
+if ($opt_X ne "") {
+  Csts2fs::setupSpec(split ',',$opt_X);
+}
 
 @Fs2csts::extra_attributes=split /,/,$opt_x;
 
