@@ -2,7 +2,26 @@
 
 # Macros for comunnicating with a BTrEd Server
 
-sub Position { print ThisAddressNTRED(),"\n"; }
+sub Position { print ThisAddressNTRED(@_),"\n"; }
+
+my $perl_syntax_highlighting =
+  [
+   ['Comment_Normal', -foreground => 'red'],
+   ['Comment_Pod', -foreground => 'red'],
+   ['Directive', -foreground => 'darkblue'],
+   ['Label', -foreground => 'cyan'],
+   ['Quote', -foreground => 'brown'],
+   ['String', -foreground => 'brown'],
+   ['Variable_Scalar', -foreground => 'DarkOrange'],
+   ['Variable_Array', -foreground => 'DarkOrange2'],
+   ['Variable_Hash', -foreground => 'DarkOrange3'],
+   ['Subroutine', -foreground => 'blue'],
+   ['Character', -foreground => 'magenta'],
+   ['Keyword', -foreground => 'magenta4'],
+   ['Builtin_Operator', -foreground => 'darkgreen'],
+   ['Operator', -foreground => 'green3'],
+   ['Number', -foreground => 'darkblue'],
+  ];
 
 sub ntred_query {
   my ($query,$T,$N,$args)=@_;
@@ -48,18 +67,20 @@ sub ntred_query_box {
   my @normalTextWidget = qw(Text);
   my @textWidget;
   if (eval { require Tk::CodeText }) {
-    @textWidget = qw(CodeText -syntax Perl);
+    @textWidget = (qw(CodeText -syntax Perl),
+		   -rules => $perl_syntax_highlighting);
   } else {
     @textWidget = @normalTextWidget;
   }
   my $t= $d->Scrolled(@textWidget,qw/-relief sunken -borderwidth 2 -height 15 -scrollbars oe/,
 		      -font => StandardTredFont()
 		     );
+  $t->insert('end',"# insert your query here\n\n");
   my $tm=$d->Adjuster(-widget => $m ,-side => 'bottom');
   my $m= $d->Scrolled(@textWidget,qw/-relief sunken -borderwidth 2 -height 10 -scrollbars oe/,
 		      -font => StandardTredFont()
 		     );
-  $m->insert('end','sub Position { print ThisAddressNTRED(),"\n"; }'."\n");
+  $m->insert('end','# insert macros here'."\n\n");
   my $mr=$d->Adjuster(-widget=>$m, -side => 'top');
   my $r= $d->Scrolled(@normalTextWidget,qw/-relief sunken -borderwidth 2 -height 20 -scrollbars oe/,
 		      -font => StandardTredFont()
