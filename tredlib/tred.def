@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-04-26 16:39:04 pajas>
+## Time-stamp: <2002-04-26 17:01:44 pajas>
 
 package TredMacro;
 
@@ -76,7 +76,7 @@ variable to access that information.
 
 =item $grp->{FSFile}
 
-This field stores the FSFile object of the current file.  See L<Fslib>
+This field stores the FSFile object of the current file.  See Fslib
 or manual to TrEd (section Accessing other trees) for more info.
 
 =item $grp->{treeNo}
@@ -102,9 +102,11 @@ import main;
 
 =head3 Auxiliary functions
 
+=over 4
+
 =item Index (array-ref, item)
 
-This is an auxiliary function imported from L<Fslib> which returns the
+This is an auxiliary function imported from Fslib which returns the
 first occurence of the item in the array.
 
 =cut
@@ -156,11 +158,17 @@ sub import {
   }
 };
 
+=back
+
+=cut
+
 ###########################################################
 # Default macro definitions to make
 # calls to global subroutines less humble
 
 =head3 Basic TrEd-related macros
+
+=over 4
 
 =item Redraw
 
@@ -766,10 +774,16 @@ sub Hide {
   return 0;
 }
 
+=back
+
+=cut
+
 ###########################################################
 # Macros for backward compatibility with Graph
 
 =head3 Macros used by Graph2Tred macro convertor
+
+=over 4
 
 =item PlainNewSon (parent)
 
@@ -975,7 +989,11 @@ sub SubStr {
   return substr($str,$pos,$len);
 }
 
+=back
+
 =head3 Node shifting macros
+
+=over 4
 
 =item GetNodes (top?)
 
@@ -1193,3 +1211,9 @@ Return true if TrEd presently displays hidden nodes.
 sub HiddenVisible {
   return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
 }
+
+=back
+
+=cut
+
+

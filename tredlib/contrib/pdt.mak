@@ -148,7 +148,7 @@ sub get_subsentence_string_TR {
 }
 
 
-=item PDT::expand_coord_apos_TR(node,keep?)
+=item expand_coord_apos_TR(node,keep?)
 
 If the given node is coordination or aposition (according to its TGTS
 functor - attribute C<func>) expand it to a list of coordinated
