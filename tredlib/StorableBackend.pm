@@ -1,8 +1,6 @@
 package StorableBackend;
 use Fslib;
 use Storable qw(nstore_fd fd_retrieve);
-use IO::Pipe;
-use Data::Dumper;
 use IOBackend qw(open_backend close_backend);
 use strict;
 
