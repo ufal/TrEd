@@ -1,4 +1,16 @@
 #!/bin/bash
+
+if [ "x$1" = "xperl58" ]; then
+  REQPERLVER=8
+  REQPERLINSTDIR=win32_perl58
+else
+  REQPERLVER="[68]"
+  REQPERLINSTDIR=win32_perl
+fi
+
+PACKAGES56="Tk Text::Iconv XML::JHXML Tie::IxHash"
+PACKAGES58="Text::Iconv XML::JHXML Tie::IxHash"
+
 if [ "$OSTYPE" != "cygwin" ]; then 
   echo "This program may only be used to install TrEd in MS Windows environment."
   echo "Read the documentation to get install instructions for other systems."
@@ -87,18 +99,49 @@ function get_version {
 }
 
 function upgrade_packages {
-  for s in $*; do 
-    echo
-    echo Checking package $s
-    QUERY=`$PPM query "^$s\$"`
-    if [ -n "$QUERY" ]; then
-      $PPM verify --location=packages --upgrade "$s"
-    else
-      install_packages $s
-      echo $s installed.
-      echo
-    fi
-  done
+  if $PERLBIN --version | grep -q 'This is perl.* v5\.6'; then
+      for s in $PACKAGES56; do 
+	echo
+	echo Checking version of $s
+	QUERY=`$PPM query "^$s\$"`
+	if [ -n "$QUERY" ]; then
+	  $PPM verify --location=packages --upgrade "$s"
+	else
+	  install_packages $s
+	fi
+      done
+  else
+      echo Temporarily re-configuring PPM3 ...
+      $PPM rep del tredsetup 2>/dev/null >/dev/null
+      REPS="$($PPM rep | grep -E '^\[[0-9]+\]' | sed 's/^\[[0-9]*\] *//')"
+      OLDIFS="$IFS";
+      IFS=$'\n\t\n';
+      for rep in $REPS; do
+           IFS="$OLDIFS";
+           $PPM rep off $rep 2>/dev/null >/dev/null
+      done
+      IFS="$OLDIFS";
+      $PPM rep add tredsetup packages-ap58 2>/dev/null >/dev/null
+      echo Done.
+      for s in $PACKAGES58; do 
+	echo
+        echo Probing $s
+	ppd="${s//::/-}";
+	if ! $PPM install "$ppd" 2>/dev/null >/dev/null; then
+          $PPM upgrade -install "$ppd"
+        fi
+      done
+      echo Restoring original PPM3 configuration...
+      $PPM rep del tredsetup 2>/dev/null >/dev/null
+      OLDIFS="$IFS";
+      IFS=$'\n\t\n';
+      for rep in $REPS; do
+           IFS="$OLDIFS";
+           $PPM rep on $rep 2>/dev/null >/dev/null
+      done
+      IFS="$OLDIFS";
+      echo Done.
+  fi
 }
 
 function install_packages {
@@ -109,7 +152,7 @@ function upgrade_perl {
   PERLINSTALLDIR=${PERLDIR%/BIN}
   PERLINSTALLDIR=${PERLINSTALLDIR%/bin}
   if ask "Warning: do you realy want to remove $PERLINSTALLDIR?"; then
-      $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat
+      $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat  >/dev/null 2>/dev/null
       read -e -n1 -r -p "About to remove $PERLINSTALLDIR. Press any key to continue..."
       rm -rf $PERLINSTALLDIR
   else
@@ -130,16 +173,14 @@ function get_perl_install_dir {
 }
 
 function install_perl {
-#    APi522e.exe
   test -d "$PERLINSTALLDIR" || mkdir "$PERLINSTALLDIR"
   DIR=$PWD
-  echo Extracting package "$DIR/win32_perl/perl561.tgz"
+  echo Extracting package "$DIR/$REQPERLINSTDIR"/perl*.tgz
   (cd "$PERLINSTALLDIR" &&\
-  tar -xzf "$DIR/win32_perl/perl561.tgz" &&\
+  tar -xzf "$DIR/$REQPERLINSTDIR/"perl*.tgz &&\
   echo "Starting ActiveState Perl installation script"
   "$PERLINSTALLDIR/install.bat") || \
   (echo; echo Unknown error occured during Perl installation!; exit 1)
-#  install_packages Tk XML::DOM Text::Iconv
 }
 
 echo
