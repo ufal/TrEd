@@ -21,6 +21,12 @@ sub Tk::Widget::BindMouseWheelVert {
 		    $_[1]->yview('scroll', 3, 'units')
 		      unless $Tk::strictMotif;
 		  },$w]);
+	if ($modifier eq "") {
+	  $w->bind("<6>", sub { $_[0]->xview('scroll', -3, 'units')
+				  unless $Tk::strictMotif; });
+	  $w->bind("<7>", sub { $_[0]->xview('scroll', 3, 'units')
+				  unless $Tk::strictMotif; });
+	}
     }
 }
 
