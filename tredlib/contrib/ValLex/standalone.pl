@@ -1,7 +1,7 @@
 #!/usr/bin/perl -I.. -I../..
 use Getopt::Std;
 
-getopts('m:pc:h');
+getopts('m:pc:hMD');
 
 if ($opt_h) {
   print "Usage: $0 [options] <vallex.xml>\n";
@@ -9,6 +9,8 @@ if ($opt_h) {
   print "   -p          profiling run (do not enter Mainloop)\n";
   print "   -c <count>  number of time to re-run initialization (use with -p)\n";
   print "   -h          this help\n";
+  print "   -D          reviewer may delete existing frames (brutal force)\n";
+  print "   -M          reviewer may modify existing frames (brutal force)\n";
   exit 0;
 }
 
@@ -88,6 +90,10 @@ my $data_file=$ARGV[0] || "vallex.xml";
 my $data=$XMLDataClass->new($data_file,$conv,1);
 
 $opt_c = 1 unless defined($opt_c);
+
+$TrEd::ValLex::Editor::reviewer_can_delete = $opt_D;
+$TrEd::ValLex::Editor::reviewer_can_modify = $opt_M;
+
 
 while ($opt_c--) {
   my $top;
