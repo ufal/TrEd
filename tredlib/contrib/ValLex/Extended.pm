@@ -161,6 +161,12 @@ sub frame_word {
   return $frame->parentNode->parentNode;
 }
 
+sub element_frame {
+  my ($self,$e) = @_;
+  return $e->parentNode->parentNode;
+}
+
+
 sub word_lemma {
   my ($self,$word) = @_;
   return $word->getAttribute("lemma");
