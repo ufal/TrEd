@@ -12,9 +12,13 @@
 # See complete help in POD format at the end of this file
 
 package Fslib;
-
+use strict;
+use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION
+            $field 
+            $parent $firstson $lbrother $rbrother $special
+            $SpecialTypes $FSTestValidity $FSError);
 use Exporter;
-@ISA=(Exporter);
+@ISA=qw(Exporter);
 $VERSION = "1.2";
 
 @EXPORT = qw/&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode
@@ -102,7 +106,7 @@ sub SetFirstSon ($$) {
 }
 
 sub Next {
-  my ($node,$top) = (shift, shift);
+  my ($node,$top) = @_;
   $top=0 if !$top;
 
   if ($node->{$firstson}) {
@@ -119,7 +123,7 @@ sub Next {
 sub Prev {
   my ($node,$top) = (shift, shift);
   $top=0 if !$top;
-  
+
   if ($node->{$lbrother}) {
     $node = $node->{$lbrother};
   DIGDOWN: while ($node->{$firstson}) {
@@ -258,7 +262,7 @@ sub Paste ($$$) {
 }
 
 sub DeleteTree ($) {
-#  print "Deleting tree\n";
+  my ($top,$node,$next);
   $top=$node=shift;
   while ($node) {
     if ($node!=$top
@@ -275,8 +279,7 @@ sub DeleteTree ($) {
 }
 
 sub DeleteLeaf ($) {
-#  print "Deleting";
-  $node=shift;
+  my $node = shift;
   if (!$node->{$firstson}) {
     $node->{$rbrother}->{$lbrother}=$node->{$lbrother} if ($node->{$rbrother});
 
@@ -317,7 +320,7 @@ sub ReadAttribs  {
     s/\r$//o;
 
     print $outfile $_ if $DO_PRINT==1;
-    push @$out, $_ if $DO_PRINT==2; 
+    push @$out, $_ if $DO_PRINT==2;
     if (/^\@([KPOVNWLH])([A-Z0-9])* ([-_A-Za-z0-9]+)(?:\|(.*))?/o) {
       if (index($SpecialTypes, $1)+1) {
 	$result{$special}->{$1}=$3;
@@ -365,7 +368,7 @@ sub ParseNode ($$$) {
 	}
 	$a=$ord->[$n];
 
-      } 
+      }
       $v=~s/\\([,=\[\]\\])/$1/go;
       if ($FSTestListValidity) {
 	if (IsList($a,$attr)) {
@@ -373,7 +376,7 @@ sub ParseNode ($$$) {
 	  @lv=ListValues($a,$attr);
 	  foreach $tmp (split /\|/,$v) {
 	    carp("Invalid list value $v of atribute $a at position ".pos($$lr)." in:\n".$$lr."\n" )
-	      unless (defined(Index(\@lv,$tmp))); 
+	      unless (defined(Index(\@lv,$tmp)));
 	    #(0<grep($_ eq $tmp, @lv)); # this seems to be slower
 	  }
 	}
@@ -384,8 +387,8 @@ sub ParseNode ($$$) {
   return $node;
 }
 
-sub ParseNode2 ($$$) {
-  my ($lr,$ord,$attr) = @_;
+sub ParseNode2 ($$$;$) {
+  my ($lr,$ord,$attr,$ordhash) = @_;
   my $n = 0;
   my $node;
   my @ats=();
@@ -397,6 +400,11 @@ sub ParseNode2 ($$$) {
   my $nd;
   my $i;
   my $w;
+
+  unless ($ordhash) {
+    my $i = 0;
+    $ordhash = { map { $_ => $i++ } @$ord };
+  }
 
   $node = FSNode->new();
   if ($$lr=~/^\[/) {
@@ -411,7 +419,7 @@ sub ParseNode2 ($$$) {
       if ($i>=0) {
 	$a=substr($w,0,$i);
 	$v=substr($w,$i+1);
-	$tmp=Index($ord,$a);
+	$tmp=$ordhash->{$a};
 	$n = $tmp if (defined($tmp));
       } else {
 	$v=$w;
@@ -428,7 +436,7 @@ sub ParseNode2 ($$$) {
 	  @lv=ListValues($a,$attr);
 	  foreach $tmp (split /\|/,$v) {
 	    print("Invalid list value $v of atribute $a no in @lv:\n$nd\n" )
-	      unless (defined(Index(\@lv,$tmp))); 
+	      unless (defined(Index(\@lv,$tmp)));
 	    #(0<grep($_ eq $tmp, @lv)); # this seems to be slower
 	  }
 	}
@@ -462,7 +470,7 @@ sub ReadTree {
   local $_;
   while ($_=ReadLine($handle)) {
     if (s/\\\r*\n?$//og) {
-      $l.=$_; next; 
+      $l.=$_; next;
     } # if backslashed eol, concatenate
     $l.=$_;
 #    use Devel::Peek;
@@ -472,11 +480,16 @@ sub ReadTree {
   return $l;
 }
 
-sub GetTree2 ($$$) {
-  my ($l,$ord,$atr)=@_;
+sub GetTree2 ($$$;$) {
+  my ($l,$ord,$atr,$ordhash)=@_;
   my $root;
   my $curr;
   my $c;
+
+  unless ($ordhash) {
+    my $i = 0;
+    $ordhash = { map { $_ => $i++ } @$ord };
+  }
 
   if ($l=~/^\[/o) {
     $l=~s/\\,/&comma;/g;
@@ -485,13 +498,13 @@ sub GetTree2 ($$$) {
     $l=~s/\\\\/&backslash;/g;
     $l=~s/\\=/&eq;/g;
     $l=~s/\r//g;
-    $curr=$root=ParseNode2(\$l,$ord,$atr);   # create Root
+    $curr=$root=ParseNode2(\$l,$ord,$atr,$ordhash);   # create Root
 
     while ($l) {
       $c = substr($l,0,1);
       $l = substr($l,1);
       if ( $c eq '(' ) { # Create son (go down)
-	$curr->{$firstson} = ParseNode2(\$l,$ord,$atr);
+	$curr->{$firstson} = ParseNode2(\$l,$ord,$atr,$ordhash);
 	$curr->{$firstson}->{$parent}=$curr; 
 	$curr=$curr->{$firstson};
 	next;
@@ -502,7 +515,7 @@ sub GetTree2 ($$$) {
 	next;
       }
       if ( $c eq ',' ) { # Create right brother (go right);
-	$curr->{$rbrother} = ParseNode2(\$l,$ord,$atr);
+	$curr->{$rbrother} = ParseNode2(\$l,$ord,$atr,$ordhash);
 	$curr->{$rbrother}->{$lbrother}=$curr;
 	$curr->{$rbrother}->{$parent}=$curr->{$parent}; 
 	$curr=$curr->{$rbrother};
@@ -605,7 +618,7 @@ sub PrintNode($$$$) {
   }
 }
 
-sub PrintTree { 
+sub PrintTree {
   my ($curr,  # a reference to the root-node
       $rord,  # a reference to the ord-array
       $ratr,  # a reference to the attribute-hash
@@ -673,13 +686,13 @@ sub DrawTree ($@){
   my $older;
   my $l;
   my @attrs=@_;
-  return unless $top;  
+  return unless $top;
   print "(",$top->getAttribute("form"),")\n";
   $node=FirstSon($top);
   while ($node) {
     $l='';
     $older=Parent($node);
-    while ($older and $older!=$top) { 
+    while ($older and $older!=$top) {
       if (RBrother($older)) {
 	$l='| '.$l;
       } else {
@@ -741,6 +754,7 @@ sub ImportBackends {
 #
 
 package FSNode;
+use strict;
 
 =pod
 
@@ -786,8 +800,7 @@ This function inicializes FSNode. It is called by the constructor new.
 sub initialize {
   my $self = shift;
   return undef unless ref($self);
-  Fslib::NewNode($self);
-  return $new;
+  return Fslib::NewNode($self);
 }
 
 sub DESTROY {
@@ -993,7 +1006,7 @@ the node itself if the node is a leaf).
 sub rightmost_descendant {
   my ($self) = @_;
   return undef unless ref($self);
-  $node=$self;
+  my $node=$self;
  DIGDOWN: while ($node->firstson) {
     $node = $node->firstson;
   LASTBROTHER: while ($node->rbrother) {
@@ -1018,7 +1031,7 @@ the node itself if the node is a leaf).
 sub leftmost_descendant {
   my ($self) = @_;
   return undef unless ref($self);
-  $node=$self;
+  my $node=$self;
   $node=$node->firstson while ($node->firstson);
   return $node;
 }
@@ -1220,9 +1233,8 @@ sub getNamespace { undef }
 #
 
 package FSFormat;
-
-=pod
-
+use strict;
+use vars qw(%Specials $AUTOLOAD);
 
 =head1 FSFormat
 
@@ -1362,7 +1374,7 @@ sub readFrom {
     }
     if (/^\@([KPOVNWLH])([A-Z0-9])* ([-_A-Za-z0-9]+)(?:\|(.*))?/o) {
       if (index($Fslib::SpecialTypes, $1)+1) {
-	$self->defs->{$special}->{$1}=$3;
+	$self->defs->{$Fslib::special}->{$1}=$3;
       }
       $self->list->[$count++]=$3 if (!defined($self->defs->{$3}));
       if ($4) {
@@ -1476,9 +1488,9 @@ the root of the resulting FS tree as an FSNode object.
 =cut
 
 sub parseFSTree {
-  my ($self,$line)=@_;
+  my ($self,$line,$ordhash)=@_;
   return undef unless ref($self);
-  return Fslib::GetTree2($line,$self->list,$self->defs);
+  return Fslib::GetTree2($line,$self->list,$self->defs,$ordhash);
 }
 
 =pod
@@ -1533,7 +1545,7 @@ Refresh special attribute hash.
 
 sub renew_specials {
   my ($self)=@_;
-  delete $self->[0]->{$special};
+  delete $self->[0]->{$Fslib::special};
   $self->specials();
 }
 
@@ -1549,9 +1561,9 @@ of the hash are special attribute types and values are their names.
 sub specials {
   my $self = shift;
   return undef unless ref($self);
-  my $spec = $self->[0]->{$special};
+  my $spec = $self->[0]->{$Fslib::special};
   unless (ref($spec)) {
-    $self->[0]->{$special} = $spec =
+    $self->[0]->{$Fslib::special} = $spec =
       { map { $_ => Fslib::FindSpecialDef($self->[0],$_) } split '',$Fslib::SpecialTypes };
   }
   return $spec;
@@ -1674,7 +1686,7 @@ given letter. See also L<"sentord"> and similar.
 
 sub special {
   my ($self,$defchar)=@_;
-  return 
+  return
     ref($self) ? $self->specials->{$defchar} : undef;
 }
 
@@ -1689,7 +1701,7 @@ instance declaration).
 
 sub indexOf {
   my ($self,$arg)=@_;
-  return 
+  return
     ref($self) ? Fslib::Index($self->list,$arg) : undef;
 }
 
@@ -1762,6 +1774,7 @@ Create a deep copy of the given subtree.
 
 sub clone_subtree {
   my ($self,$node)=@_;
+  my $nc;
   return 0 unless $node;
   my $prev_nc=0;
   my $nd=$self->clone_node($node);
@@ -1796,8 +1809,7 @@ sub clone_subtree {
 #
 
 package FSFile;
-
-=pod
+use strict;
 
 =head1 FSFile
 
@@ -1924,7 +1936,7 @@ Initialize a FS file object. Argument description:
 
 =item name (scalar)
 
-File name 
+File name
 
 =item file_format (scalar)
 
@@ -2032,6 +2044,7 @@ sub readFile {
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
     if (eval {
+ 	  no strict 'refs';
           $backend->can('test') &&
           $backend->can('protocol_filter') &&
           &{"${backend}::test"}($filename,$self->encoding);
@@ -2045,6 +2058,7 @@ sub readFile {
       redo;
     }
     if (eval {
+ 	  no strict 'refs';
 	  $backend->can('test')
 	  && $backend->can('read')
 	  && $backend->can('open_backend')
@@ -2054,6 +2068,7 @@ sub readFile {
       $self->changeFilename($url);
       print STDERR "success\n" if $Fslib::Debug;
       eval {
+	no strict 'refs';
 	my $fh;
 	$fh = &{"${backend}::open_backend"}($filename,"r",$self->encoding);
 	&{"${backend}::read"}($fh,$self);
@@ -2083,7 +2098,7 @@ sub readFile {
 =item readFrom (glob_ref, [backends...])
 
 Read FS declaration and trees from a given file (file handle open for
-reading must be passed as a GLOB reference).  
+reading must be passed as a GLOB reference).
 This function is limited to use FSBackend only.
 Sets noSaved to zero.
 
@@ -2125,6 +2140,7 @@ sub writeFile {
   print STDERR "Writing to $filename using backend $backend\n" if $Fslib::Debug;
   my $ret;
   eval {
+    no strict 'refs';
 #    require "$backend.pm";
     my $fh;
     $ret=( $backend->can('write')
@@ -2158,6 +2174,7 @@ sub writeTo {
   print STDERR "Writing using backend $backend\n" if $Fslib::Debug;
   my $ret;
   eval {
+    no strict 'refs';
 #    require $backend;
     $ret=$backend->can('write')  && &{"${backend}::write"}($fileref,$self);
   };
@@ -2820,9 +2837,10 @@ sub destroy_tree {
 #
 
 package ZBackend;
-
+use strict;
 use Exporter;
-@ISA=(Exporter);
+use vars qw(@ISA $VERSION @EXPORT @EXPORT_OK);
+@ISA=qw(Exporter);
 $VERSION = "0.1";
 @EXPORT = qw(&open_backend &close_backend);
 @EXPORT_OK = qw($gzip $zcat);
@@ -2951,7 +2969,8 @@ sub close_backend {
 #
 
 package FSBackend;
-
+use strict;
+use vars qw(@ISA);
 @ISA=qw(ZBackend);
 import ZBackend;
 
@@ -2984,7 +3003,9 @@ encoding.
 
 sub test {
   my ($f,$encoding)=@_;
-  if (ref($f)) {
+  if (ref($f) eq 'ARRAY') {
+    return $f->[0]=~/^@/; 
+  } elsif (ref($f)) {
     return $f->getline()=~/^@/;
   } else {
     my $fh = open_backend($f,"r",$encoding);
@@ -3013,9 +3034,17 @@ sub read {
 
   my ($root,$l,@rest);
   $fsfile->changeTrees();
+
+  # this could give us some speedup.
+  my $ordhash;
+  {
+    my $i = 0;
+    $ordhash = { map { $_ => $i++ } $fsfile->FS->attributes };
+  }
+
   while ($l=Fslib::ReadTree($fileref)) {
     if ($l=~/^\[/) {
-      $root=$fsfile->FS->parseFSTree($l);
+      $root=$fsfile->FS->parseFSTree($l,$ordhash);
       push @{$fsfile->treeList}, $root if $root;
     } else { push @rest, $l; }
   }
@@ -3094,14 +3123,15 @@ __END__
 
 =head1 Fslib
 
-B<WARNING: THIS DOCUMENTATION IS VERY OBSOLETE.>
+B<WARNING: THIS DOCUMENTATION IS VERY OUTDATED.>
 
 B<YOU SHOULD RATHER USE THE OO INTERFACE DESCRIBED ABOVE
   AND THINK OF FSLIB AS LOW-LEVEL>
 
 Fslib.pm - Simple low-level API for treebank files in .fs format.  See
 L<"FSFile">, L<"FSFormat"> and L<"FSNode"> for an object-oriented
-abstraction over this module.
+abstraction over this module which allows for using other formats
+to be represented by the same Perl data structures and objects.
 
 =head2 SYNOPSIS
 
@@ -3127,7 +3157,7 @@ abstraction over this module.
     } else { push(@rest, $_); }		    # keep the rest of the file
   }
 
-  # do some changes 
+  # do some changes
   ...
 
   # save the tree
