@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-29 18:39:28 pajas>
+## Time-stamp: <2002-01-03 14:41:09 pajas>
 
 package TredMacro;
 
@@ -179,7 +179,13 @@ sub PrevTree {
 }
 
 sub GetOrd { return shift->{$grp->{FSFile}->FS->order}; }
-sub PasteNode { my $node=shift; Fslib::Paste($node,shift,$grp->{FSFile}->FS->defs); return $node; }
+
+sub PasteNode {
+  my ($node,$p)=@_; 
+  Fslib::Paste($node,$p,$grp->{FSFile}->FS->defs); 
+  return $node;
+}
+
 sub CutNode {
   my $node=shift;
   my $parent=Fslib::Parent($node);
