@@ -144,6 +144,12 @@ if (defined $config_file) {
   set_default_config_file_search_list();
 }
 
+if ($quiet) {
+  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
+} elsif ($debug) {
+  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
+}
+
 my $configFile=read_config();
 my $safe=$safe_mode; # so that it cannot be changed from outside
 
@@ -172,7 +178,8 @@ use Benchmark;
 
 require Fslib;
 import Fslib;
-import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index);
+import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index &ImportBackends);
+$Fslib::Debug=1 if $debug;
 
 # import min and max functions
 require TrEd::MinMax;
@@ -238,13 +245,6 @@ $fileNo=0;
 #$TrEd::Basics::on_node_change= \&updateTredMacroGlobals;
 #$TrEd::Basics::on_current_change= \&updateTredMacroGlobals;
 
-$Fslib::Debug=$debug;
-if ($quiet) {
-  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=0;
-} elsif ($debug) {
-  $tredDebug=$keyboardDebug=$hookDebug=$macroDebug=1;
-}
-
 _msg("Reading macros from $macroFile...\n") unless $quiet;
 read_macros($macroFile,$libDir);	# read macros
 _msg("done.\n") unless $quiet;
@@ -258,7 +258,7 @@ _msg("done.\n") unless $quiet;
 	fs => 'FSBackend',
 	csts => 'CSTS_SGML_SP_Backend',
 	trxml => 'TrXMLBackend',
-	tei => 'TEIXMLBackend'
+	tei => 'TEIXMLBackend',
        );
 
 $Fslib::FSTestListValidity=$validate_fs;
@@ -392,9 +392,12 @@ sub startMain {
       _msg("Performing the hub request...\n");
 
       if ($request{REQUEST_TYPE} eq 'LOAD_FILES') {
-	eval { preloadFiles($grp,[split /\n/,$request{default}]); die $@ if $@ };
-	@files = (@files, grep /\S/,split /\n/,$request{default});
-        _make_uniq(\@files);
+	my @new=split /\n/,$request{default};
+	@files=(@files,@new);
+	eval {
+	  preloadFiles($grp,[@new],$hub);
+	  die $@ if $@ ;
+	};
 	if ($@) {
 	  $hub->print("$@\n");
 	} else {
@@ -420,9 +423,9 @@ sub startMain {
 
 	# script command-line arguments
 	if (exists($request{ARGS})) {
-	  @TredMacro::ARGV=split "\n",$request{ARGS};
+	  @{macro_variable('TredMacro::ARGV')}=split "\n",$request{ARGS};
 	} else {
-	  @TredMacro::ARGV=();
+	  @{macro_variable('TredMacro::ARGV')}=();
 	}
 
 	STDOUT->autoflush();
@@ -474,13 +477,68 @@ sub startMain {
       } elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
 	_msg "Reloading all open files at client's request\n";
 	%{$grp->{preloaded}}=();
-	preloadFiles($grp,\@files);
-	$hub->print("OK\n");
+	eval {
+	  preloadFiles($grp,\@files,$hub);
+	  die $@ if $@ ;
+	};
+	if ($@) {
+	  $hub->print("$@\n");
+	} else {
+	  $hub->print("OK\n");
+	}
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'LIST') {
 	_msg "Listing all open files at client's request\n";
 	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	$hub->print(join("\n",@files),"\n");
+	_end_response($control,$hub);
+      } elsif ($request{REQUEST_TYPE} eq 'DUMP') {
+	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	_msg "Request $request{default} at client's request\n";
+	foreach my $f (grep /\S/,split /\n/,$request{default}) {
+	  next unless ($f);
+	  _msg "Dumping some tree $f at client's request\n";
+	  next unless openFile($grp,$f,-justpreloaded => 1);
+	  for my $fsfile ($grp->{FSFile}) {
+	    $fsfile->FS->writeTo($hub);
+	    Fslib::PrintFS($hub,undef,
+			   $f=_has_suffix($f) ? [$grp->{root}] :
+			   $fsfile->treeList,
+			   $fsfile->FS->list,
+			   $fsfile->FS->defs);
+	  }
+	  $hub->print("(2,3)\n\n//FSEND\n\n");
+	}
+	_end_response($control,$hub);
+      } elsif ($request{REQUEST_TYPE} eq 'UPLOAD') {
+	$hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	_msg "Request $request{Filename} at client's request\n";
+	my $f=$request{Filename};
+	chomp $f;
+	my @fs=map {$_."\n"} split /\n/,$request{FSFile};
+	if ($f and openFile($grp,$f,-justpreloaded => 1) and ref($grp->{FSFile})) {
+	  _msg "Uploading $f at client's request\n";
+	  my $fsfile=FSFile->new();
+	  local $Fslib::Debug=1;
+#	  _msg "received @fs\n";
+	  if (FSBackend::read(\@fs,$fsfile) and ref($fsfile->treeList()->[0])) {
+	    if (_has_suffix($f)) {
+	      _msg "Updated tree $grp->{treeNo} ($f)\n";
+	      # change only one tree
+	      $grp->{FSFile}->treeList()->[$grp->{treeNo}]=$fsfile->treeList()->[0];
+	      $fsfile->changeTreeList([]);
+	      closeFile($grp);
+	    } else {
+	      _msg "Updated whole file ($f)\n";
+	      # change the whole file
+	      $grp->{FSFile}->changeTreeList($fsfile->treeList());
+	      $fsfile->changeTreeList([]);
+	      closeFile($grp);
+	    }
+	  } else {
+	    _msg "read failed\n";
+	  }
+	}
 	_end_response($control,$hub);
       } elsif ($request{REQUEST_TYPE} eq 'SAVE') {
 	for (qw(Format Strip-suffix Strip-prefix Prefix Suffix)) {
@@ -599,7 +657,7 @@ sub prevFile {
 }
 
 sub preloadFiles {
-  my ($grp, $filelist)=@_;
+  my ($grp, $filelist, $errlog)=@_;
   my $filecount=@$filelist;
   my $fno=1;
   foreach my $f (@$filelist) {
@@ -609,13 +667,20 @@ sub preloadFiles {
     next if exists($grp->{preloaded}->{$f});
     _msg "Preloading: $f (",$fno++,"/$filecount)\n" unless $Quiet;
     my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+    if ($fsfile->lastTreeNo<0) {
+      _msg "empty or corrupt file: $f!\n";
+      $errlog->print("ERROR: Empty or corrupt file: $f!\n") if ($errlog);
+      next;
+    }
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f} = $fsfile;
   }
+  @files=grep { exists($grp->{preloaded}->{$_}) } @files;
+  _make_uniq(\@files);
 }
 
 sub openFile {
-  my ($grp,$f) = @_;
+  my ($grp,$f,%opts) = @_;
   my $goto = undef;
   my %fs=(fs => 'FS format',
 	  fgz => 'gzipped FS format',
@@ -634,24 +699,31 @@ sub openFile {
   if (exists($grp->{preloaded}) and
       exists($grp->{preloaded}->{$f})) {
     $grp->{'FSFile'} = $grp->{preloaded}->{$f};
+  } elsif ($opts{-justpreloaded}) {
+    return 0;
   } else {
     $grp->{'FSFile'} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
     $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
     $grp->{preloaded}->{$f}=$grp->{'FSFile'} if ($grp->{FSFile} and exists($grp->{preloaded}));
   }
-  _msg "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
+  _msg "empty or corrupt file: $f!\n" if ($grp->{FSFile}->lastTreeNo<0);
 
   $grp->{treeNo}=0;
   $grp->{currentNode}=undef;
   applyFileSuffix($grp,$goto);
 
-  doEvalHook($grp,"file_opened_hook") unless $start_server;
+  doEvalHook($grp,"file_opened_hook") unless ($opts{-justpreloaded} or $start_server);
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
   }
+
 #  updateTredMacroGlobals($grp);
   return 1;
+}
+
+sub _has_suffix {
+  return $_[0]=~/##?[0-9A-Z]+(?:\.[0-9]+)?$/
 }
 
 sub applyFileSuffix {
@@ -707,7 +779,7 @@ sub saveFile {
 sub closeFile {
   my ($grp)=@_;
 
-  undef $TredMacro::NodeClipboard;
+  undef ${macro_variable('TredMacro::NodeClipboard')};
   $grp->{root}=undef;
   $grp->{FSFile}=undef;
   $grp->{treeNo}=undef;
@@ -716,27 +788,28 @@ sub closeFile {
 
 sub doEvalHook {
   my ($group,$hook)=(shift,shift);
+  no strict qw(refs);
   return unless $hook;# and $group->{'currentNode'};
 
-  $TredMacro::this=$group->{currentNode};
-  $TredMacro::root=$group->{root};
-  $TredMacro::libDir=$libDir;
-  $TredMacro::FileNotSaved='?';
-  $TredMacro::forceFileSaved=0;
+  ${macro_variable('TredMacro::this')}=$group->{currentNode};
+  ${macro_variable('TredMacro::root')}=$group->{root};
+  ${macro_variable('TredMacro::libDir')}=$libDir;
+  ${macro_variable('TredMacro::FileNotSaved')}='?';
+  ${macro_variable('TredMacro::forceFileSaved')}=0;
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
   _msg "$@" if $@;
   exit 1 if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
-    if ($TredMacro::FileNotSaved eq '?') {
-      $TredMacro::FileNotSaved=$group->{FSFile}->notSaved;
+    if (${macro_variable('TredMacro::FileNotSaved')} eq '?') {
+      ${macro_variable('TredMacro::FileNotSaved')}=$group->{FSFile}->notSaved;
     }
-    $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
+    $group->{FSFile}->notSaved($group->{FSFile}->notSaved or ${macro_variable('TredMacro::FileNotSaved')});
   }
 
-#  $TredMacro::this=undef;
-#  $TredMacro::root=undef;
-#  $TredMacro::grp=undef;
+#  ${macro_variable('TredMacro::this')}=undef;
+#  ${macro_variable('TredMacro::root')}=undef;
+#  ${macro_variable('TredMacro::grp')}=undef;
 
   _msg "Hook $hook resulted with $result\n" if $hookDebug;
   return $result;
@@ -745,12 +818,12 @@ sub doEvalHook {
 sub doEvalMacro {
   my ($group,$macro)=(shift,shift);
   return unless $macro;
-
-  $TredMacro::this=$group->{currentNode};
-  $TredMacro::root=$group->{root};
-  $TredMacro::libDir=$libDir;
-  $TredMacro::FileNotSaved='?';
-  $TredMacro::forceFileSaved=0;
+  no strict qw(refs);
+  ${macro_variable('TredMacro::this')}=$group->{currentNode};
+  ${macro_variable('TredMacro::root')}=$group->{root};
+  ${macro_variable('TredMacro::libDir')}=$libDir;
+  ${macro_variable('TredMacro::FileNotSaved')}='?';
+  ${macro_variable('TredMacro::forceFileSaved')}=0;
 
   my $result=do_eval_macro($group,$macro);
 
@@ -758,17 +831,17 @@ sub doEvalMacro {
   exit 1 if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
-    $TredMacro::FileNotSaved=0 if $TredMacro::FileNotSaved eq '?';
-    if ($TredMacro::forceFileSaved) {
-      $group->{FSFile}->notSaved($TredMacro::FileNotSaved);
+    ${macro_variable('TredMacro::FileNotSaved')}=0 if ${macro_variable('TredMacro::FileNotSaved')} eq '?';
+    if (${macro_variable('TredMacro::forceFileSaved')}) {
+      $group->{FSFile}->notSaved(${macro_variable('TredMacro::FileNotSaved')});
     } else {
-      $group->{FSFile}->notSaved($group->{FSFile}->notSaved or $TredMacro::FileNotSaved);
+      $group->{FSFile}->notSaved($group->{FSFile}->notSaved or ${macro_variable('TredMacro::FileNotSaved')});
     }
-    setCurrent($group,$TredMacro::this) if ($TredMacro::this);
+    setCurrent($group,${macro_variable('TredMacro::this')}) if (${macro_variable('TredMacro::this')});
   }
-  $TredMacro::this=undef;
-  $TredMacro::root=undef;
-  $TredMacro::grp=undef;
+  ${macro_variable('TredMacro::this')}=undef;
+  ${macro_variable('TredMacro::root')}=undef;
+  ${macro_variable('TredMacro::grp')}=undef;
   return $result;
 }
 
@@ -787,7 +860,6 @@ sub init_safe_mode {
 
   $TrEd::Macros::safeCompartment=$compartment;
   TrEd::Macros::initialize_macros($grp);
-
 # OPCODES ALLOWED IN SAFE MODE
 
 #			       :base_io :base_orig :filesys_read :filesys_open
@@ -807,9 +879,8 @@ sub switchContext {}
 
 sub updateTredMacroGlobals {
   my ($grp)=@_;
-  $TredMacro::root=$grp->{root};
-  $TredMacro::this=$grp->{currentNode};
-  print "updateTredMacroGlobals: $TredMacro::root->{form}\n";
+  ${macro_variable('TredMacro::root')}=$grp->{root};
+  ${macro_variable('TredMacro::this')}=$grp->{currentNode};
 }
 
 sub _set_encoding {
