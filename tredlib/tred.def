@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-07-11 12:46:07 pajas>
+## Time-stamp: <2003-07-17 15:06:29 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1716,17 +1716,19 @@ sub SetDefaultInputEncoding {
 
 =item stdout
 
-Return current standard output filehandle
+If called without arguments return current standard output filehandle.
+Otherwise call print the arguments to standard output.
 
 =cut
-sub stdout { $::stdout }
+sub stdout { @_ ? $::stdout && $::stdout->print(@_) : $::stdout }
 
 =item stderr
 
-Return current standard error output filehandle
+If called without arguments return current standard error output
+filehandle.  Otherwise call print the arguments to standard output.
 
 =cut
-sub stderr { $::stderr }
+sub stderr { @_ ? $::stderr && $::stderr->print(@_) : $::stderr}
 
 =item tmpFileName
 
