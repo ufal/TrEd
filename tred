@@ -2,7 +2,7 @@
 # -*- cperl -*-
 #
 $version="1.48";
-$timestamp="Time-stamp: <2001-03-06 12:37:50 pajas>";
+$timestamp="Time-stamp: <2001-03-06 13:27:42 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -3379,6 +3379,7 @@ sub redraw_tree {
 	} elsif (/^\#{([^}]+)}$/) {
 	  unless ($noColor) {
 	    $color=$1;
+	    $color=undef if ($color eq 'default');
 	    $color=$customColors[$1] if ($color=~/^custom([0-9])$/);
 	  }
 	} else {
