@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-08-15 14:04:30 pajas>
+## Time-stamp: <2003-08-15 14:12:35 pajas>
 package TredMacro;
 use Exporter;
 use Fslib;
@@ -1418,6 +1418,8 @@ sub ShiftNodeLeft {
   RepasteNode($node);
 }
 
+=back
+
 =head3 Miscelaneous macros
 
 =over 4
@@ -1720,8 +1722,6 @@ Set TrEd's/bTrEd's default IO encoding.
 sub SetDefaultInputEncoding {
   $TrEd::Convert::inputenc = $_[0];
 }
-
-=back
 
 =item stdout
 
