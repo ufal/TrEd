@@ -173,19 +173,31 @@ sub read_macros {
 	    next unless exists($keyBindings{$_});
 	    delete $keyBindings{$_}{$key};
 	  }
-	} elsif (/^\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
+	} elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
 	  $macro=$1;
 	  $key=$2;
 	  $menu=TrEd::Convert::encode($3);
 	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
 	  $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
 	  #print "binding $key [$menu] => $macro\n";
-	  foreach (@contexts) {
-	    $keyBindings{$_}={} unless exists($keyBindings{$_});
-	    $keyBindings{$_}->{$key}="$_"."->"."$macro";
-	    if ($menu) {
-	      $menuBindings{$_}={} unless exists($menuBindings{$_});
-	      $menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
+	  if ($macro =~ s/^(\w+)-\>//) {
+	    my $package = $1;
+	    foreach (@contexts) {
+	      $keyBindings{$_}={} unless exists($keyBindings{$_});
+	      $keyBindings{$_}->{$key}="$package"."->"."$macro";
+	      if ($menu) {
+		$menuBindings{$_}={} unless exists($menuBindings{$_});
+		$menuBindings{$_}->{$menu}=["$package"."->"."$macro",$key] if ($menu);
+	      }
+	    }
+	  } else {
+	    foreach (@contexts) {
+	      $keyBindings{$_}={} unless exists($keyBindings{$_});
+	      $keyBindings{$_}->{$key}="$_"."->"."$macro";
+	      if ($menu) {
+		$menuBindings{$_}={} unless exists($menuBindings{$_});
+		$menuBindings{$_}->{$menu}=["$_"."->"."$macro",$key] if ($menu);
+	      }
 	    }
 	  }
 	} elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
