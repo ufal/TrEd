@@ -788,6 +788,8 @@ means that you may simply acces node's attributes as C<$node->>C<{attribute}>
 
 =cut
 
+#'
+
 sub new {
   my $self = shift;
   my $class = ref($self) || $self;
@@ -828,6 +830,8 @@ Return node's parent node (C<undef> if none).
 
 =cut
 
+#'
+
 sub parent {
   my ($self) = @_;
   return ref($self) ? Fslib::Parent($self) : undef;
@@ -838,6 +842,8 @@ sub parent {
 Find and return the root of the node's tree.
 
 =cut
+
+#'
 
 sub root {
   my ($self) = @_;
@@ -871,6 +877,8 @@ Return node's left brother node (C<undef> if none).
 
 =cut
 
+#'
+
 sub lbrother {
   my $self = shift;
   return ref($self) ? Fslib::LBrother($self) : undef;
@@ -884,6 +892,7 @@ Return node's right brother node (C<undef> if none).
 
 =cut
 
+#'
 
 sub rbrother {
   my $self = shift;
@@ -897,6 +906,8 @@ sub rbrother {
 Return node's first dependent node (C<undef> if none).
 
 =cut
+
+#'
 
 sub firstson {
   my $self = shift;
@@ -1602,6 +1613,8 @@ instance declaration).
 
 =cut
 
+#'
+
 sub atno {
   my ($self,$index) = @_;
   return ref($self) ? $self->list->[$index] : undef;
@@ -1995,6 +2008,7 @@ about the file).
 
 =back
 
+#'
 
 =cut
 
@@ -2189,6 +2203,8 @@ Return the FS file's file name.
 
 =cut
 
+#'
+
 sub filename {
   my $self = shift;
   return ref($self) ? $self->[0] : undef;
@@ -2201,6 +2217,8 @@ sub filename {
 Change the FS file's file name.
 
 =cut
+
+#'
 
 sub changeFilename {
   my ($self,$val) = @_;
@@ -2398,6 +2416,7 @@ Return the Tred's hint pattern declared in the FSFile.
 
 =cut
 
+#'
 
 sub hint {
   my $self = shift;
@@ -2411,6 +2430,8 @@ sub hint {
 Change the Tred's hint pattern associated with this FSFile.
 
 =cut
+
+#'
 
 sub changeHint {
   my ($self,$val) = @_;
@@ -2436,6 +2457,8 @@ sub pattern_count {
 Return n'th the display pattern associated with this FSFile.
 
 =cut
+
+#'
 
 sub pattern {
   my ($self,$index) = @_;
@@ -2475,6 +2498,8 @@ Return the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
 =cut
 
+#'
+
 sub tail {
   my $self = shift;
   return ref($self) ? @{$self->[5]} : undef;
@@ -2487,6 +2512,8 @@ sub tail {
 Modify the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
 =cut
+
+#'
 
 sub changeTail {
   my $self = shift;
@@ -2955,6 +2982,31 @@ sub write {
 =back
 
 =cut
+
+############################################################
+
+package Fslib::Seq;
+
+sub new {
+  my $class = shift;
+  return bless [@_],$class;
+}
+
+sub values {
+  return @{$_[0]};
+}
+
+
+package Fslib::Alt;
+
+sub new {
+  my $class = shift;
+  return bless [@_],$class;
+}
+
+sub values {
+  return @{$_[0]};
+}
 
 1;
 
