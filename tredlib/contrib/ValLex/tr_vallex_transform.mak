@@ -1,3 +1,7 @@
+# -*- cperl -*-
+
+#encoding iso-8859-2
+
 package TRValLexTransform;
 use base qw(TredMacro);
 import TredMacro;
