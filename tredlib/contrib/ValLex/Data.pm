@@ -507,7 +507,7 @@ sub parseFormPart {
   my $pos='';
   if ($form =~
       m{^(\^? #1
-	  ( $lem | (?:{ $lem , $lem (?: , $lem )* (?: , ...)?}) )? # $2: lemma
+	  ( $lem | (?:{ $lem , (?: , $lem )* (?: , ...)?}) )? # $2: lemma
 	  (                  # $3
             ([.:])           # $4
  	    ([adinjvufsc])?   # $5 pos
@@ -517,21 +517,21 @@ sub parseFormPart {
             (?: @([1-3]))?   # $9 deg
             (\#)?            # $10
           )?                 #
-          | [*!%=]            # $1 typical,elided,recip,state
+          | ([*!%=])         # $11 typical,elided,recip,state
          )                   #
-         ( [][,;].* | $ ) # $11 <3> tokens to parse
+         ( [][,;].* | $ ) # $12 <3> tokens to parse
       }x and $1 ne "" and $1 ne "^" and $3 ne ":") {
-    my ($match,$lemma,$sep,$pos,$gen,$num,$case,$deg,$agreement,$next) =
-       ($1,    $2,    $4,  $5,  $6,  $7,  $8,   $9,  $10,       $11);
-    if ($match =~ /^[*!%]$/) {
+    my ($match,$lemma,$sep,$pos,$gen,$num,$case,$deg,$agreement,$special,$next) =
+       ($1,    $2,    $4,  $5,  $6,  $7,  $8,   $9,  $10,       $11,     $12);
+    if ($special ne "") {
       if ($next=~/^\[/) {
-	die "Can't use [ ] after '$match'\n";
+	die "Can't use [ ] after '$special'\n";
       } elsif ($nested) {
-	die "Can't '$match' within [ ]\n";
+	die "Can't use '$special' within [ ]\n";
       }
       my %map = ('*' => 'typical', '!' => 'elided', '%' => 'recip', '=' => 'state');
       if ($dom) {
-	$dom->appendChild($self->doc()->createElement($map{$match}));
+	$dom->appendChild($self->doc()->createElement($map{$special}));
       }
       return $next;
     }
