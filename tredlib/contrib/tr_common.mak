@@ -600,6 +600,12 @@ sub getAIDREFs {
   return split /\|/,$aidref;
 }
 
+sub getAIDREFsHash {
+  my $node = $_[0] || $this;
+  return { map { $_ => 1 } getAIDREFs(@_) };
+}
+
+
 sub ConnectAIDREFS {
   my $node = shift || $pPar1;
   my $dnode = shift || $pPar2;
