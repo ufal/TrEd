@@ -2755,30 +2755,32 @@ sub startMain {
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
   $group{Menubar}->bind('Menubutton','<Escape>', sub { shift->Leave(); } );
-  $group{frame}->
-    bind('my','<Alt-KeyPress>'=>
-	 [sub {
-	    if (defined(evalMacro(@_))) {
-	      Tk->break;
-	    } else {
-	      # Actually, this should work by it self. And it realy
-	      # does, but not under windows :-) Well, do not laugh,
-	      # too early, Linux users. With menu (not menubutton)
-	      # this is the same there, only vice versa.
-	      my ($w,$grp,$mod)=@_;
-	      my $mbar=$grp->{Menubar};
-	      foreach my $child ($mbar->children) {
-		if ($child->class eq 'Menubutton' and $child->FindMenu($w->XEvent->K)) {
-		  $child->ButtonUp() if ($^O eq "MSWin32"); 
-		  # This ButtonUp is needed for some reason under
-		  # Windows, otherwise the button remains active even
-		  # when you leave the window! Window$ realy suck!!!!
-		  last;
+  foreach my $prefix ('Alt','Meta') {
+    $group{frame}->
+      bind('my',"<$prefix-KeyPress>"=>
+	   [sub {
+	      if (defined(evalMacro(@_))) {
+		Tk->break;
+	      } else {
+		# Actually, this should work by it self. And it realy
+		# does, but not under windows :-) Well, do not laugh,
+		# too early, Linux users. With menu (not menubutton)
+		# this is the same there, only vice versa.
+		my ($w,$grp,$mod)=@_;
+		my $mbar=$grp->{Menubar};
+		foreach my $child ($mbar->children) {
+		  if ($child->class eq 'Menubutton' and $child->FindMenu($w->XEvent->K)) {
+		    $child->ButtonUp() if ($^O eq "MSWin32"); 
+		    # This ButtonUp is needed for some reason under
+		    # Windows, otherwise the button remains active even
+		    # when you leave the window! Window$ suck anyway!
+		    last;
+		  }
 		}
+		Tk->break;
 	      }
-	      Tk->break;
-	    }
-	  }, \%group,'ALT+']);
+	    }, \%group,uc($prefix).'+']);
+  }
 
   #  $group{frame}->bind('my','<Control-x><KeyPress>'=>
   #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
@@ -2795,7 +2797,7 @@ sub startMain {
       $group{frame}->bind('my',"<$_-$event>"=>
 			    [sub { evalMacro(@_); Tk->break; },
 			     \%group, keyBind($_)."+"])
-	unless ("$_-$event" eq "Alt-KeyPress")
+	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress")
     }
   }
 
