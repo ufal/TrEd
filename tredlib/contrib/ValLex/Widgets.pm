@@ -215,7 +215,7 @@ sub fetch_data {
 #		      -image => $self->pixmap($entry->[3]),
 #		      -text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
 #		      -style => $self->style($entry->[3]));
-#    
+#
 #  }
   my $super=$self->data()->getSuperFrameList($word);
   foreach my $sframe (sort {
@@ -242,7 +242,9 @@ sub fetch_data {
       $i=$t->itemCreate($f, 0,
 			-itemtype=>'imagetext',
 			-image => $self->pixmap($entry->[3]),
-			-text=> $entry->[2].($entry->[4] ? "\n".$entry->[4] : "")." (".$entry->[5].")",
+			-text=> $entry->[2].($entry->[6].$entry->[4] ? "\n" : "").
+			($entry->[6] ? "(".$entry->[6].") " : "").
+			$entry->[4]." (".$entry->[5].")",
 			-style => $self->style($entry->[3]));
     }
   }
@@ -277,13 +279,15 @@ sub select_frames {
     $id = $data->getFrameId($h->infoData($t));
     if (index($frames," $id ")>=0) {
       unless ($have) {
-	$have=1;
+	print "$id\n";
 	$h->anchorSet($t);
 	$h->see($t);
       }
+      $have++;
       $h->selectionSet($t);
     }
   }
+  return $have;
 }
 
 
