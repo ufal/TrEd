@@ -147,15 +147,15 @@ sub value_line {
   my $attr=$fsfile->FS->sentord;
   $attr=$fsfile->FS->order unless (defined($attr));
   while ($node) {
-    push @sent,$node unless $node->{$attr}>=999; # this is TR specific
+    push @sent,$node unless $node->getAttribute($attr)>=999; # this is TR specific
     $node=Next($node);
   }
-  @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
+  @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
 
   $attr=$fsfile->FS->value;
   my $line =
     ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ".
-    encode(join(" ", map { $_->{$attr} } @sent));
+    encode(join(" ", map { $_->getAttribute($attr) } @sent));
   undef @sent;
   return $line;
 }
@@ -314,7 +314,7 @@ sub recalculate_positions {
       $xSkipAfter=max($xSkipAfter,$nodeLabelWidth-$nodeWidth/2);
       $nodeLabelXShift=-$nodeWidth/2;
     }
-
+    $nodeLabelXShift+=$self->get_style_opt($node,"NodeLabel","-xadj",$Opts);
     # Try to add reasonable skip so that the edge labels do
     # not overlap. (this code however cannot ensure that!!)
     if ($self->get_useAdditionalEdgeLabelSkip() and
@@ -353,11 +353,14 @@ sub recalculate_positions {
   }
 
   $self->{canvasWidth}=$canvasWidth;
-  $self->{canvasHeight}=$self->get_baseYPos
-		     + ($maxlevel+1)*(2*($nodeYSkip +
-					 $self->get_ymargin)
-		     + ($node_pattern_count+$edge_pattern_count)*$fontHeight
-		     + $nodeHeight);
+  $self->{canvasHeight}=$self->get_baseYPos+
+		     + ($maxlevel+1)*$levelHeight+$self->get_ymargin;
+#		     + $nodeHeight + $self->get_ymargin
+#		     + $node_pattern_count*$fontHeight;
+#		       (2*($nodeYSkip +
+#					 $self->get_ymargin)
+#		     + ($node_pattern_count+$edge_pattern_count)*$fontHeight
+#		     + $nodeHeight);
 }
 
 sub which_text_color {
@@ -657,13 +660,26 @@ sub redraw {
     use integer;
     if ($parent) {
       my $line=
-	$self->canvas->createLine($self->get_node_pinfo($node,"XPOS"),
-				  $self->get_node_pinfo($node,"YPOS"),
-				  $self->get_node_pinfo($parent,"XPOS"),
-				  $self->get_node_pinfo($parent,"YPOS"),
-				  '-arrow' =>  $self->get_lineArrow,
-				  '-width' =>  $self->get_lineWidth,
-				  '-fill' =>   $self->get_lineColor);
+	($self->get_style_opt($node,"Node","-rightanglededge",\%Opts))
+	?
+	  $self->canvas->createLine($self->get_node_pinfo($node,"XPOS"),
+				    $self->get_node_pinfo($node,"YPOS"),
+				    $self->get_node_pinfo($node,"XPOS"),
+				    $self->get_node_pinfo($parent,"YPOS"),
+				    $self->get_node_pinfo($parent,"XPOS"),
+				    $self->get_node_pinfo($parent,"YPOS"),
+				    '-arrow' =>  $self->get_lineArrow,
+				    '-width' =>  $self->get_lineWidth,
+				    '-fill' =>   $self->get_lineColor)
+	:
+	  $self->canvas->createLine($self->get_node_pinfo($node,"XPOS"),
+				    $self->get_node_pinfo($node,"YPOS"),
+				    $self->get_node_pinfo($parent,"XPOS"),
+				    $self->get_node_pinfo($parent,"YPOS"),
+				    '-arrow' =>  $self->get_lineArrow,
+				    '-width' =>  $self->get_lineWidth,
+				    '-fill' =>   $self->get_lineColor);
+
       $self->apply_style_opts($line,@{$Opts{Line}},
 				  $self->get_node_style($node,"Line"));
       $self->store_node_pinfo($node,"Line",$line);
@@ -713,6 +729,7 @@ sub redraw {
 	$x_edge_delta+=(($edgeLabelHeight*$x_edge_length)/$y_edge_length)/2;
       }
     }
+    $x_edge_delta+=$self->get_style_opt($node,"EdgeLabel","-xadj",\%Opts);
     $node_has_box=
       $self->get_drawBoxes 
       && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-nodrawbox",\%Opts) ne "yes")
@@ -817,7 +834,7 @@ sub redraw {
 		    my $msg=
 		      $self->interpolate_text_field($node,
 						    $hint);
-		    $msg=~s/\${([^}]+)}/$node->{$1}/eg;
+		    $msg=~s/\${([^}]+)}/$node->getAttribute($1)/eg;
 		    $_ => encode($msg);
 		  }
 		} $self->canvas->find('withtag','point')
@@ -1009,7 +1026,7 @@ in the text with the single-quotted value.
 
 sub interpolate_refs {
   my ($self,$node,$text)=@_;
-  $text=~s/\$\${([^}]+)}/"'".$node->{$1}."'"/eg;
+  $text=~s/\$\${([^}]+)}/"'".$node->getAttribute($1)."'"/eg;
   return $text;
 }
 
@@ -1025,7 +1042,7 @@ exist.
 
 sub prepare_text_field {
   my ($self,$node,$atr)=@_;
-  my $text=$node->{$atr};
+  my $text=$node->getAttribute($atr);
   $text=$1."*" if ($text =~/^([^\|]*)\|/);
   return encode($text);
 }
@@ -1040,7 +1057,7 @@ As prepare_text_field but not recoding text to output encoding.
 
 sub prepare_raw_text_field {
   my ($self,$node,$atr)=@_;
-  my $text=$node->{$atr};
+  my $text=$node->getAttribute($atr);
   $text=$1."*" if ($text =~/^([^\|]*)\|/);
   return $text;
 }
