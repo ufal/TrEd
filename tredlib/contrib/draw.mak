@@ -1,8 +1,6 @@
 # -*- cperl -*-
 #binding-context Draw
-package Draw; # package for the annotation of topic-focus articulation
-use base qw(Draw);
-import Tectogrammatic;
+package Draw; # simple drawing package
 
 #bind F11 to node_release_hook menu "Node Release"
 sub node_release_hook {
@@ -27,7 +25,7 @@ sub add_style {
   if (exists($styles->{$style})) {
     push @{$styles->{$style}},@_
   } else {
-    $styles->{$style}=[];
+    $styles->{$style}=[@_];
   }
 }
 
