@@ -60,6 +60,13 @@ sub canvas {
   return $self->{canvas};
 }
 
+sub realcanvas {
+  my $self = shift;
+  return undef unless ref($self);
+  return $self->{canvas}->isa("Tk::Canvas") ? $self->{canvas} : $self->{canvas}->Subwidget("scrolled");
+}
+
+
 sub pinfo {
   my $self = shift;
   return undef unless ref($self);
@@ -472,7 +479,7 @@ sub redraw {
 				 );
       $self->store_node_pinfo($node,"Line",$line);
       $self->store_obj_pinfo($line,$node);
-      $self->canvas->Subwidget('scrolled')->lower($line,'all');
+      $self->realcanvas->lower($line,'all');
     }
 
     ## The Nodes ##
