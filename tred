@@ -14,7 +14,7 @@ if ($^V lt v5.6.0) {
 use vars qw($version $timestamp $about $lastupdate $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_n $opt_D
             $libDir $macroFile @filelists @openfiles $treeViewOpts $opt_m
-            @backends @ISA @EXPORT @open_types @save_types $opt_l
+            @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName %menuBindings %keyBindings
             $savedSavePixmap $normalSavePixmap $NewFileNo $stderr $stdout
@@ -84,7 +84,7 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('qm:c:l:t:n:huW:GDB:RX:');
+getopts('qm:c:l:t:n:huW:GDB:RX:s:');
 
 if ($opt_u || $opt_h) {
   print <<EOH;
@@ -123,6 +123,8 @@ Each filename may be followed by suffixes of the following forms:
 -t      start in the given macro context (package). TredMacro is the
         default context, and it is used also when the given context
         is not found.
+
+-s      start with the given pattern stylesheet.
 
 -n      allows to specify the default charset for FS files (useful
         with perl >= 5.7)
@@ -389,6 +391,10 @@ ApplyGlobalConfig();
 #  setlocale(LC_ALL,undef);
 };
 
+sub __debug {
+  print STDERR @_,"\n";
+}
+
 sub saveStyleSheets {
   my ($grp)=@_;
   open my $f, '>'.$ENV{HOME}."/.tred-stylesheets" || do {
@@ -601,7 +607,6 @@ sub filelistFullFileName {
 sub nextOrPrevFile {
   my ($grp,$delta,$no_recent)=@_;
   return 0 if ($delta==0);
-
   my $win=$grp->{focusedWindow};
   my $op=$grp->{noOpenFileError};
   $grp->{noOpenFileError}=1;
@@ -620,6 +625,7 @@ sub nextOrPrevFile {
     }
     $result=gotoFile($grp,$win->{currentFileNo}+$delta,$no_recent);
   }
+
   $grp->{noOpenFileError}=$op;
   return $result;
 }
@@ -1193,7 +1199,6 @@ $top->title("Autosaving...");
 sub saveFile {
   my ($win)=@_;
   return unless $win->{FSFile};
-
   my $f=$win->{FSFile}->filename;
 
 ## you may have wr-perms on directory but not on the file
@@ -1205,7 +1210,6 @@ sub saveFile {
 # 			      -buttons => ["Try","Cancel"]) eq 'Try';
 #   }
   rename $f,$f."~" if (-f $f);
-
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   unless ($win->{FSFile}->writeFile($f)) {
     $win->toplevel->Unbusy() unless $insideEval;
@@ -2532,8 +2536,9 @@ sub setWindowHint {
 
 sub applyWindowStylesheet {
   my ($win,$stylesheet)=@_;
+  return unless $win;
   my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
-  if ($win) {
+  if ($s) {
     if ($stylesheet eq STYLESHEET_FROM_FILE()) {
       $win->treeView()->set_patterns(undef);
       $win->treeView()->set_hint(undef);
@@ -3937,8 +3942,9 @@ sub startMain {
 			},\%group ]);
 
   print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
-  $group{selectedStylesheet}=STYLESHEET_FROM_FILE();
-  applyWindowStylesheet($group{focusedWindow},STYLESHEET_FROM_FILE());
+  my $stylesheet=$opt_s || STYLESHEET_FROM_FILE();
+  $group{selectedStylesheet}=$stylesheet;
+  applyWindowStylesheet($group{focusedWindow},$stylesheet);
   selectFilelist(\%group,'Default');
 #    $group{currentFilelist}=$filelists[0];
 #    if ($group{currentFilelist}->file_at(0)) {
