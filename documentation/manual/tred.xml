@@ -3039,9 +3039,13 @@ root# <userinput>make install</userinput>
       The general usage is:      
       <cmdsynopsis>
 	<command>tred</command>
-	<arg>-c <replaceable>config-file</replaceable></arg>
-	<arg>-m <replaceable>macro-file</replaceable></arg>
-	<arg>-l <replaceable>file-list</replaceable></arg>
+	<arg choice="opt">-R</arg>
+	<arg choice="opt">-c <replaceable>config-file</replaceable></arg>
+	<arg choice="opt">-m <replaceable>macro-file</replaceable></arg>
+	<arg choice="opt">-t <replaceable>context</replaceable></arg>
+	<arg choice="opt">-l
+	<replaceable>file-list</replaceable></arg>
+	<arg choice="opt">-W <replaceable>window-id</replaceable></arg>
 	<arg rep="repeat">file<group>
 	    <arg>##<replaceable>N</replaceable></arg>
 	    <arg>#<replaceable>N</replaceable></arg>
@@ -3080,12 +3084,48 @@ root# <userinput>make install</userinput>
 	</listitem>
       </varlistentry>
       <varlistentry>
+	<term><parameter>-t</parameter></term>
+	<listitem>
+	  <para>Start in the given macro context.
+	    This context may be however overriden by some hooks such as
+	    <literal>start_hook</literal>
+	    or <literal>file_opened_hook</literal>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
 	<term><parameter>-l</parameter></term>
 	<listitem>
 	  <para>Use this parameter to pass a file-list to TrEd. Each
 	    file-name given in the file-list must be on a separate line.
 	    This feature may be particulary useful under Windows, where
 	    maximum length of the command-line is usually very limited.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-W</parameter></term>
+	<listitem>
+	  <para>Under X Window System, embed TrEd's main window into 
+	    the window with given <replaceable>window-id</replaceable>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-G</parameter></term>
+	<listitem>
+	  <para>Do not resize TrEd's main window to its last saved
+	    geomtery on startup (this option is useful when using
+	    <parameter>-W</parameter> to embed TrEd into other
+	    applications).</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter>-R</parameter></term>
+	<listitem>
+	  <para>When parsing CSTS files, try to restore structure from
+	    <literal>&lt;TRg&gt;</literal> tags rather than from
+	    <literal>&lt;g&gt;</literal>.
 	  </para>
 	</listitem>
       </varlistentry>
