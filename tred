@@ -486,9 +486,6 @@ sub filelistFullFileName {
   if ($filename!~/\// and
       ($^O ne 'MSWin32' or $filename!~/\\/)) {
     # relative filename
-    print "filelist name: ",$grp->{currentFilelist}->name(),"\n";
-    print "filelist file: ",$grp->{currentFilelist}->filename(),"\n";
-    print "Relative filename, prepending dir: ", dirname($grp->{currentFilelist}->filename()),"\n";
     if (dirname($grp->{currentFilelist}->filename()) ne "") {
       $filename=dirname($grp->{currentFilelist}->filename()).$filename;
     }
@@ -1687,7 +1684,7 @@ sub filelistDialog {
 
   $d->Button(-text=> 'Load',
 	     -command=> [sub {
-			    my ($grp,$d)=@_;
+			    my ($grp,$d,$filelistref)=@_;
 			    my $file= $d->getOpenFile(-filetypes=> 
 						      [["Filelists",           ['.fl']]],
 						      -title=> "Load filelist ...");
@@ -1700,7 +1697,8 @@ sub filelistDialog {
 			    print "Loading filelist: $file\n";
 			    $fl->load();
 			    addNewFilelist($grp,$fl);
-			  },$grp,$d ])
+			    $$filelistref=$fl->name();
+			  },$grp,$d,\$filelist ])
     ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
 
   $d->Button(-text=> 'Delete',
