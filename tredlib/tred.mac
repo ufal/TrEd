@@ -135,12 +135,12 @@ sub PerlSearch {
   "Press Ctrl+Enter to start search\n\n"
     ;
 
-  my $script = editQuery("Search: insert perl expression:",$macPerlSearchScript,$label);
+  my $script = editQuery("Search: insert perl expression:",$TrEd::MacroStorage::macPerlSearchScript,$label);
   unless ($script) {
     $FileNotSaved=0;
     return;
   }
-  $macPerlSearchScript=$script;
+  $TrEd::MacroStorage::macPerlSearchScript=$script;
   while ($this=NextNode($this) or NextTree()) {
     last if eval($script);
     if ($@) {
@@ -169,12 +169,12 @@ Use:
 When finished, press Ctrl+Enter to execute your script.
 EOF
 
-  my $script = editQuery("Insert perl expression:",$macPerlEvalScript,$label);
+  my $script = editQuery("Insert perl expression:",$TrEd::MacroStorage::macPerlEvalScript,$label);
   unless ($script) {
     $FileNotSaved=0;
     return;
   }
-  $macPerlEvalScript=$script;
+  $TrEd::MacroStorage::macPerlEvalScript=$script;
   eval("package ".CurrentContext().";\n#line 1\n".$script);
   die $@ if $@;
 }
@@ -229,9 +229,9 @@ sub TieGotoTreeAsk {
 
 #bind PerlSearchNext to Alt+H menu Perl-Search Next
 sub PerlSearchNext {
-  if ($macPerlSearchScript) {
+  if ($TrEd::MacroStorage::macPerlSearchScript) {
     while ($this=Next($this) or NextTree()) {
-      last if eval($macPerlSearchScript);
+      last if eval($TrEd::MacroStorage::macPerlSearchScript);
     }
   } else {
     PerlSearch();
