@@ -1445,9 +1445,12 @@ in the text with the single-quotted value.
 
 =cut
 
+sub _quote_quote { my ($q) = @_; $q =~ s/'/\\'/g; $q }
+
 sub interpolate_refs {
   my ($self,$node,$text)=@_;
-  $text=~s/\$\${([^}]+)}/"'".$node->getAttribute($1)."'"/eg;
+  my $atr = $node->getAttribute($1);
+  $text=~s/\$\${([^}]+)}/"'"._quote_quote($node->getAttribute($1))."'"/eg;
   return $text;
 }
 
