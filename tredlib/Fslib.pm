@@ -1,8 +1,7 @@
-package Fslib;
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-05-05 20:50:59 paja>
+# Time-stamp: <2001-05-25 10:15:41 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -12,6 +11,8 @@ package Fslib;
 # Description:
 # Several Perl Routines to handle files in treebank FS format
 # See complete help in POD format at the end of this file
+
+package Fslib;
 
 use Exporter;
 @ISA=(Exporter);
@@ -55,8 +56,8 @@ sub Get ($$) {
   return $node->{$atribute};
 }
 
-sub Parent ($) {
-  my $node = shift;
+sub Parent {
+  my ($node,$p) = @_;
   return $node->{$parent};
 }
 
@@ -293,6 +294,8 @@ sub Index ($$) {
   return undef;
 }
 
+## FS format IO backend
+
 sub ReadAttribs  {
   my ($handle,$order,$DO_PRINT,$out) = @_;
   my $outfile = ($out ? $out : \*STDOUT);
@@ -306,7 +309,7 @@ sub ReadAttribs  {
 
     print $outfile $_ if $DO_PRINT==1;
     push @$out, $_ if $DO_PRINT==2; 
-    if (/^\@([KPOVNWLH])([A-Z0-9])* ([A-Za-z0-9]+)(?:\|(.*))?/o) {
+    if (/^\@([KPOVNWLH])([A-Z0-9])* ([-_A-Za-z0-9]+)(?:\|(.*))?/o) {
       $order->[$count++]=$3 if (!defined($result{$3}));
       if ($4) {
 	$result{$3}.=" $1=$4"; # so we create a list of defchars separated by spaces
@@ -337,7 +340,7 @@ sub ParseNode ($$$) {
   if ($$lr=~/\G\[/gsco) {
     while ($$lr !~ /\G\]/gsco) {
       $n++,next if ($$lr=~/\G\,/gsco);
-      if ($$lr=~/\G([A-Za-z0-9]+)=($field)/gsco) {
+      if ($$lr=~/\G([-_A-Za-z0-9]+)=($field)/gsco) {
 	$a=$1;
 	$v=$2;
 	$tmp=Index($ord,$a);
@@ -534,10 +537,12 @@ sub GetTree ($$$) {
   return $root;
 }
 
-sub PrintNode($$$$) { # 1st scalar is a reference to the root-node
-                     # 2nd scalar is a reference to the ord-array
-                     # 3rd scalar is a reference to the attribute-hash
-  my ($node,$ord,$atr,$output)=@_;
+sub PrintNode($$$$) {
+  my ($node,			# a reference to the root-node
+      $ord,			# a reference to the ord-array
+      $atr,			# a reference to the attribute-hash
+      $output			# output stream
+     )=@_;
   my $v;
   my $lastprinted=1;
 
@@ -599,6 +604,11 @@ sub PrintTree {
   }
   print $output "\n";
 }
+
+
+## End of Fs-format specific functions
+
+## DrawTree output backend
 
 sub DrawTree ($@){
   my $top=shift;
@@ -1370,15 +1380,14 @@ sub readFrom {
   $self->changeTail(@rest);
 
   #parse Rest
-  $self->changePatterns( map { /^\/\/Tred:Custom-Attribute:(.*)$/ ? $1 : () } $self->tail);
+  $self->changePatterns( map { /^\/\/Tred:Custom-Attribute:(.*\S)\s+$/ ? $1 : () } $self->tail);
   unless ($self->patterns) {
     my ($peep)=$self->tail;
     $self->changePatterns( map { "\$\{".$self->FS->atno($_)."\}" } 
 		    ($peep=~/[,\(]([0-9]+)/g));
   }
   $self->changeHint(join "\n",
-		    map { /^\/\/Tred:Balloon-Pattern:(.*)$/ ? $1 : () } $self->tail);
-
+		    map { /^\/\/Tred:Balloon-Pattern:(.*\S)\s+$/ ? $1 : () } $self->tail);
   $self->notSaved(0);
 }
 

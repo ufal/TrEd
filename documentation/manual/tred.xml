@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
-"file:///home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
+"/home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
 <article lang="en">
   <articleinfo>
     <title>Tree Editor Manual</title>
@@ -4048,3 +4048,4 @@ sgml-local-catalogs:("/home/pajas/lib/sgml-tools/dtd/catalog" "/home/pajas/lib/s
 sgml-local-ecat-files:nil
 End:
 -->
+

@@ -1,90 +1,12 @@
-# Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
-## author: Alena Bohmova
-## Time-stamp: <2001-05-07 13:07:14 pajas>
+## author: Petr Pajas
+## Time-stamp: <2001-05-17 17:26:35 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
 import TredMacro;
 import main;
 
-require AFA;
-
-sub after_edit_attr_hook {
-  my ($node,$attr,$result)=@_;
-  if ($attr eq 'func' and $result) {
-    $node->{funcaux}='';
-  }
-}
-
-sub after_edit_node_hook {
-  my ($node,$result)=@_;
-  if ($result) {
-    $node->{funcaux}='';
-  }
-}
-
-#bind clear_funcaux to key Space
-sub clear_funcaux {
-  my $node=$_[1] || $this;
-  $node->{funcaux}='';
-}
-
-#bind assign_func_auto to key F9
-sub assign_func_auto {
-  my $node=$_[1] || $this;
-  foreach (qw/funcauto funcprec funcaux/) {
-    $node->{$_}='';
-  }
-  $node->{funcaux}='black';
-  if ($node->{afun}=~/Coord/) {
-    if ($node->{lemma} eq 'a-1') {
-      $node->{func}='CONJ';
-    } elsif ($node->{lemma} eq 'v¹ak') {
-      $node->{func}='PREC';
-    } elsif ($node->{lemma} eq 'ale') {
-      $node->{func}='ADVS';
-    } elsif ($node->{lemma} eq ',') {
-      $node->{func}='CONJ';
-    } elsif ($node->{lemma} eq 'nebo') {
-      $node->{func}='DISJ';
-    } else {
-      $node->{func}='CONJ';
-    }
-    $node->{funcauto}=$node->{func};
-    $node->{funcaux}="#{custom5}";
-  } elsif ($node->{afun}=~/Apos/) {
-    $node->{func}='APPS';
-    $node->{funcaux}="#{custom5}";
-    $node->{funcauto}=$node->{func};
-  }
-  return if IsHidden($node)
-    || $node eq $root ||
-    $node->{afun}=~/Coord|Apos/i || index($node->{ord},'.')>=0;
-  my $p=$node->parent;
-  $p=$p->parent while ($p and $p->{afun}=~/Coord|Apos/i);
-  my $na=$node->{afun};
-  my $pa=$p->{afun};
-  $na=~s/_.*//g;
-  $pa=~s/_.*//g;
-  my $prec;
-  $node->{funcauto}="???";
-  ($node->{funcauto},$prec)=AFA::AutoFunctor($p->{tag},$node->{tag},$pa,$na,$node->{fw});
-  $node->{funcprec}=$prec;
-  $prec=~m!([0-9.]+)/([0-9.]+)!;
-  eval { $prec=100*($1-$2)/$1; };
-  $prec=~s/(\.[0-9][0-9]).*$/\1/;
-  $node->{funcaux} = $prec>90 ? "#{custom4}" : ( $prec<50 ? "#{custom6}" : "#{custom5}");
-  $node->{func}=$node->{funcauto};
-}
-
-#bind assign_all_func_auto to key F10
-sub assign_all_func_auto {
-  my $node=$root;
-  while ($node) {
-    Tectogrammatic->assign_func_auto($node);
-    $node=NextVisibleNode($node);
-  }
-}
+#include AFA.mak
 
 sub switch_context_hook {
 
