@@ -15,6 +15,7 @@ import TredMacro;
 
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require Assign_german_grammatemes;
+require Assign_czech_grammatemes;
 
 # ---------------------------------------------------
 # --------------- color settings --------------------
@@ -25,14 +26,16 @@ my %color = (
 	     'memberof' => 'black',
 	     'syntgramm' => 'blue',
 	     'wordclass' => 'red',
-	     'morphgramm' => 'blue'
+	     'morphgramm' => 'blue',
+	     'statusline_key' => 'red',
+	     'statusline_caption' => 'darkblue'
 	    );
 
 # ----------------------------------------------------------------
 # --------------- customizing displayed attributes ---------------
 
 my %relevant_gramms = (
-		       'N' => ['number','determination'],
+		       'N' => ['number'],  # and determination in German?
 		       'V' => ['sentmod','deontmod','tense','aspect'],
 		       'ADJ' => ['degcmp'],
 		       'ADV' => ['degcmp']
@@ -96,12 +99,13 @@ sub update_gramm_file {
 #  }
 }
 
-# ----------------------------------------------------------------------------------
-# --------- automatic assignment of grammatemes based on Negra tags ----------------
+# ---------------------------------------------------------------
+# --------- automatic assignment of grammatemes  ----------------
 
-#bind assign_german_grammatemes to F8
-sub assign_german_grammatemes {
-  Assign_german_grammatemes::assign_grammatemes($root);
+#bind assign_czech_grammatemes to F8
+sub assign_czech_grammatemes {
+#  Assign_german_grammatemes::assign_grammatemes($root);
+  Assign_czech_grammatemes::assign_grammatemes($root);
 }
 
 
@@ -109,7 +113,7 @@ sub assign_german_grammatemes {
 # ----------------------------------------------------------------
 # --------- keyboard shortcuts for manual annotation -------------
 
-my $attrname;
+my $attrname='wordclass';
 
 my %gram_values = (
 		   'wordclass' => 'V|N|ADJ|ADV|NUM',
@@ -136,6 +140,14 @@ my %syntgram_values = (
 
 # ---- shortcuts for selecting the attribute to be changed ------------
 
+my %shortcuts = (
+		 'wordclass' => 'w', 'sentmod' => 's',
+		 'deontmod' => 'm', 'aspect' => 'a',
+		 'tense' => 't', 'number' => 'n',
+		 'degcmp' => 'd', 'gender' => 'g',
+		 'gram' => 'G'
+		);
+
 #bind select_wordclass to w
 #bind select_sentmod to s
 #bind select_deontmod to m
@@ -149,7 +161,18 @@ my %syntgram_values = (
 
 foreach my $attr ('wordclass','sentmod','deontmod','aspect','tense',
 		  'number', 'determination', 'degcmp', 'gender', 'gram') {
-  eval "sub select_$attr {\$attrname='$attr'; print  \"Attribute $attr selected\n\"}";
+  eval "
+    sub select_$attr {
+      \$FileNotSaved=0;
+      if (relevant(\"$attr\")) {
+         \$attrname='$attr';
+         print  \"Attribute $attr selected\n\";
+	 RedrawStatusLine();
+      }
+      else { print \"Irrelevant attribute $attr, wordclass=\$this->{wordclass}\n\" }
+      \$Redraw='none';
+    }
+  ";
 }
 
 
@@ -202,4 +225,58 @@ sub toggle_subject {
     $this->{subject}="";
     print "subject unmarked\n";
   };
+}
+
+# -------- statusline ---------------
+
+sub relevant ($) {
+  my ($attrname)=@_;
+  return  (
+	   $attrname eq "wordclass"
+	   or
+	   grep {$_ eq $attrname} @{$relevant_gramms{$this->{wordclass}}}
+	   or
+	   ($attrname eq "gram" and $syntgram_values{$this->{func}})
+	  );
+}
+
+sub get_status_line_hook {
+  return [
+	  [ # status line content
+	   'Attributes:' => ['caption'],
+	   ' ' => [],
+	   $shortcuts{'wordclass'} => ['key'],
+	   '-wordclass ' => [],
+	   (
+	    map {(
+		  $shortcuts{$_} => ['key'],
+		  "-$_ " => []
+		  )}
+	    (@{$relevant_gramms{$this->{wordclass}}},
+	     grep {relevant('gram')} ('gram'))
+#	    (grep {relevant($_)} keys %gram_values)
+	   ),
+	   ' ' => [],
+
+	   "Values:" => ['caption'],
+	   ' ' => [],
+	   eval {
+	     return () unless relevant($attrname);
+	     my @values;
+	     if ($attrname ne 'gram') {@values=split /\|/,$gram_values{$attrname}}
+	     else {@values=split /\|/,$syntgram_values{$this->{func}}};
+	     unshift @values, "NA";
+	     return map {($_ => ['key'],
+			  "-$values[$_] " => []
+			  )}
+	       (0..$#values);
+	   }
+	  ],
+
+	  [ # status line styles
+	   'caption' => [ -foreground => $color{statusline_caption},
+		          -underline => 1],
+	   'key' => [ -foreground => $color{statusline_key}]
+	  ]
+	 ];
 }
