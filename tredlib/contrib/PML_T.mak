@@ -233,6 +233,7 @@ sub node_style_hook {
 
 sub draw_coref_arrows {
   my ($node,$styles,$line,$corefs,$cortypes)=@_;
+  delete $coreflemmas{$node->{id}};
   my (@coords,@colors,@dash);
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
   my $ids={};
@@ -260,7 +261,6 @@ COORDS
       push @coords,$c;
 
     } else { # should be always the same document, if it exists at all
-      delete $coreflemmas{$node->{id}};
       my($step_l,$step_r)=(1,1);
       my $current=CurrentTreeNumber();
       my @trees=GetTrees();
@@ -303,22 +303,23 @@ COORDS
           print STDERR "ref-arrows: Not found!\n" if $main::macroDebug;
           push @colors,CustomColor('error');
             push @dash,1;
-	  push @coords,"&n,n,n+$rotate_dfr_doc,n-20";
+	  push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
 	  $rotate_dfr_doc+=10;
         }
     }
   }
-  if(join ('|',ListV($node->{coref_special}))=~ /segm/) { # pointer to an unspecified segment of preceeding sentences
+  if($node->{coref_special}eq'segm') { # pointer to an unspecified segment of preceeding sentences
     print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug;
     push @colors,CustomColor('arrow_segment');
     push @dash,1;
-    push @coords,"&n,n,n-25,n";
+    push @coords,"&n,n,n-25,n+$rotate_prv_snt";
+    $rotate_prv_snt+=10;
   }
-  if(join ('|',ListV($node->{coref_special}))=~ /exoph/) {
+  if($node->{coref_special}eq'exoph') {
     print STDERR "ref-arrows: Exophora\n" if $main::macroDebug;
     push @colors,CustomColor('arrow_exoph');
     push @dash,1;
-    push @coords,"&n,n,n+$rotate_dfr_doc,n-20";
+    push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
     $rotate_dfr_doc+=10;
   }
   $line->{-coords} ||= 'n,n,p,p';
@@ -348,19 +349,14 @@ sub get_status_line_hook {
 	  # status line field definitions ( field-text => [ field-styles ] )
 	  [
 	   "     id: " => [qw(label)],
-	   $this->{id} => [qw({AID} value)],
+	   $this->{id} => [qw({id} value)],
 	   "     a.rf: " => [qw(label)],
-	   (join ", ",ListV($this->{'a.rf'})) => [qw({'a.rf'} value)],
-	   ($this->attr('valency/rf') ne "" ?
+	   (join ", ",ListV($this->{'a.rf'})) => [qw({a.rf} value)],
+           ,
+	   ($this->{'val_frame.rf'} ?
 	    ("     frame: " => [qw(label)],
-	     $this->attr('valency/comment') => [qw({FRAME} value)],
-	     "     {".$this->attr('valency/rf')."}" => [qw({FRAME} value)],
-	   ) : ()),
-	   ($this->{commentA} ne "" ?
-	    ("     [" => [qw()],
-	     $this->{commentA} => [qw({commentA})],
-	     "]" => [qw()]
-	    ) : ())
+	     join(",",AltV($this->{'val_frame.rf'})) => [qw({FRAME} value)]
+	    ) : ()),
 	  ],
 
 	  # field styles
@@ -372,6 +368,7 @@ sub get_status_line_hook {
 	  ]
 	 ];
 }
+
 
 =item is_coord($node?)
 
@@ -678,7 +675,7 @@ hint:<?
    }
    push@hintlines, "is_dsp_root : 1" if $${is_dsp_root};
    push@hintlines, "is_name_of_person : 1" if $${is_name_of_person};
-   push@hintlines, "quot_set : ". join("|",ListV($this->{quot_set})) if $${quot_set};
+   push@hintlines, "quot : ". join(",",map{$_->{type}}ListV($this->{quot})) if $${quot};
    join"\n", @hintlines
 ?>
 EOF
@@ -746,7 +743,7 @@ style:<?
 node: #{customdetail}<? join'.',grep{$_}(
     ($${is_dsp_root}?'${is_dsp_root=dsp_root}':''),
     ($${is_name_of_person}?'${is_name_of_person=person_name}':''),
-    ($${quot_set}?'${quot_set=quot_set:'.join("|",ListV($this->{quot_set})).'}':'')
+    ($${quot}?'${quot=quot/type:'.join(",",map{$_->{type}}ListV($this->{quot})).'}':'')
   )
   ?>
 
@@ -757,7 +754,7 @@ hint:<?
    }
    push@hintlines, "is_dsp_root : 1" if $${is_dsp_root};
    push@hintlines, "is_name_of_person : 1" if $${is_name_of_person};
-   push@hintlines, "quot_set : ". join("|",ListV($this->{quot_set})) if $${quot_set};
+   push@hintlines, "quot : ". join(",",map{$_->{type}.'('.$_->{set_id}.')'}ListV($this->{quot})) if $${quot};
    join"\n", @hintlines
 ?>
 EOF
@@ -770,6 +767,7 @@ sub allow_switch_context_hook {
 sub switch_context_hook {
   create_stylesheets();
   SetCurrentStylesheet('PML_T_Compact') if GetCurrentStylesheet() eq STYLESHEET_FROM_FILE();
+  undef$PML::arf;
 }
 
 ## Show suite ##
@@ -828,19 +826,6 @@ sub ShowNearestNonMember {
   ChangingFile(0);
 }#ShowNearestNonMember
 
-=item recount_deepord ($from,nodes...)
-
-Sorts the given nodes according to their deepord and assigns them the
-deepord starting at $from with incremental step of +1.
-
-=cut
-
-sub recount_deepord{
-  my$from=shift;
-  my@sorted=sort{$a->{deepord}<=>$b->{deepord}}@_;
-  for(my$i=0;$i<@sorted;$i++){$sorted[$i]->{deepord}=$from+$i;}
-}#recount_deepord
-
 =item delete_node (node?)
 
 Deletes $node or $this, attaches all its children to its parent and
@@ -856,8 +841,7 @@ sub delete_node{
   foreach my$child($node->children){
     CutPaste($child,$parent);
   }
-  PlainDeleteNode($node);
-  recount_deepord(0,$parent->root,$parent->root->descendants);
+  DeleteLeafNode($node);
   $this=$parent unless@_;
   ChangingFile(1);
 }#delete_node
@@ -875,10 +859,25 @@ sub delete_subtree{
   ChangingFile(0),return unless $node->parent;
   my$parent=$node->parent;
   DeleteSubtree($node);
-  recount_deepord(0,$parent->root,$parent->root->descendants);
   $this=$parent unless@_;
   ChangingFile(1);
 }#delete_subtree
+
+=item new_node (node?)
+
+Add new node as a son of the given node or current node.
+
+=cut
+
+sub new_node{
+  shift unless ref $_[0];
+  my$node=$_[0]||$this;
+  my$new=NewSon($node);
+  $new->{id}=$new->root->{id}.'a'.
+    ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$root->descendants)[0]+1);
+  my $type = first {$_->{name} eq 't-node' } schema()->node_types;
+  $new->set_type(schema()->type($type))
+}#new_node
 
 1;
 
