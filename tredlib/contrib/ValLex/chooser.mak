@@ -5,6 +5,16 @@ $ChooserHideObsolete=1;
 $frameid_attr="frameid";
 $framere_attr="framere";
 
+$XMLDataClass="TrEd::ValLex::LibXMLData";
+sub init_XMLDataClass {
+  if ($XMLDataClass eq "TrEd::ValLex::LibXMLData") {
+    require ValLex::LibXMLData;
+  } elsif ($XMLDataClass eq "TrEd::ValLex::GDOMEData") {
+    require ValLex::GDOMEData;
+  }
+}
+
+
 sub InfoDialog {
   my ($top,$text)=@_;
 
@@ -62,13 +72,13 @@ sub InitFrameData {
 	#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 
 	$FrameData=
-	  TrEd::ValLex::LibXMLData->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv);
+	  $XMLDataClass->new("$libDir\\contrib\\ValLex\\vallex.xml",$conv);
       } else {
 	my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
 	$FrameData=
-	  TrEd::ValLex::LibXMLData->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
-					"$libDir/contrib/ValLex/vallex.xml.gz" :
-					"$libDir/contrib/ValLex/vallex.xml",$conv);
+	  $XMLDataClass->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
+			     "$libDir/contrib/ValLex/vallex.xml.gz" :
+			     "$libDir/contrib/ValLex/vallex.xml",$conv);
 	$info->destroy();
       }
     };
@@ -91,7 +101,7 @@ sub OpenEditor {
   $top->Busy(-recurse=>1);
 
   require ValLex::Data;
-  require ValLex::LibXMLData;
+  init_XMLDataClass();
   require ValLex::Widgets;
   require ValLex::Editor;
   require TrEd::CPConvert;
@@ -139,7 +149,7 @@ sub ChooseFrame {
   $top->Busy(-recurse=>1);
 
   require ValLex::Data;
-  require ValLex::LibXMLData;
+  init_XMLDataClass();
   require ValLex::Widgets;
   require ValLex::Editor;
   require ValLex::Chooser;
