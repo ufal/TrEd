@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-01 12:44:21 pajas>
+## Time-stamp: <2002-10-10 15:14:15 pajas>
 
 package TredMacro;
 
@@ -1444,25 +1444,25 @@ sub GUI {
 }
 
 
-=item substituteFSHeader(declarations)
+=item SubstituteFSHeader(declarations)
 
 Substitute a new FS header for current document. A list of valid FS
 declarations must be passed to this function.
 
 =cut
 
-sub substituteFSHeader {
+sub SubstituteFSHeader {
   $grp->{FSFile}->changeFS(FSFormat->create(@_));
 }
 
 
-=item appendFSHeader(declarations)
+=item AppendFSHeader(declarations)
 
 Merge given FS header declarations with the present header
 of the current document.
 
 =cut
-sub appendFSHeader {
+sub AppendFSHeader {
   my $new=FSFormat->create(@_);
   my $newdefs=$new->defs();
   my $fs=$grp->{FSFile}->FS;
@@ -1475,13 +1475,13 @@ sub appendFSHeader {
   @{$fs->unparsed}=$fs->toArray() if $fs->unparsed;
 }
 
-=item undeclareAttributes(@attributes)
+=item UndeclareAttributes(@attributes)
 
 Remove declarations of given attributes from the FS header
 
 =cut
 
-sub undeclareAttributes {
+sub UndeclareAttributes {
   my $fs=$grp->{FSFile}->FS;
   my $defs=$grp->{FSFile}->FS->defs();
   my $list=$grp->{FSFile}->FS->list();
@@ -1494,6 +1494,21 @@ sub undeclareAttributes {
 }
 
 
+=item AddStyle($styles,$object,%styles)
+
+Auxiliary funcion: add styles for an object to given style-sheet (can
+be used e.g. from node_style_hook).
+
+=cut
+sub AddStyle {
+  my $styles=shift;
+  my $style=shift;
+  if (exists($styles->{$style})) {
+    push @{$styles->{$style}},@_
+  } else {
+    $styles->{$style}=[@_];
+  }
+}
 
 
 =back
