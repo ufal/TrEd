@@ -1,10 +1,10 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-10-14 13:00:48 pajas>
+## Time-stamp: <2004-11-01 14:00:06 pajas>
 
 package EN_Tectogrammatic;
 
-use base qw(Coref Tectogrammatic TredMacro);
+use base qw(Tectogrammatic Coref TredMacro);
 import TredMacro;
 import Tectogrammatic;
 import Coref;
@@ -25,7 +25,6 @@ sub switch_context_hook {
 }
 
 sub upgrade_file {
-  # Add new functor OPER if not present in header
   my $defs=$grp->{FSFile}->FS->defs;
   unless (exists($defs->{comparison_type})) {
     AppendFSHeader('@P comparison_type',
@@ -58,7 +57,7 @@ sub upgrade_file {
 
 sub QueryTrlemma {
   local @Tectogrammatic::special_trlemmas = @en_special_trlemmas;
-  Tectogrammatic::QueryTrlemma();
+  Tectogrammatic::QueryTrlemma($this,1);
 }
 
 sub do_edit_attr_hook {
@@ -79,3 +78,16 @@ sub do_edit_attr_hook {
   }
   return 1;
 }
+
+sub enable_attr_hook {
+  my ($atr,$type)=@_;
+  return 1;
+}
+
+sub node_release_hook {
+  my ($node,$target,$mod)=@_;
+  print "Mod: $mod\n";
+  return 1 unless $mod;
+  &Coref::node_release_hook(@_);
+}
+

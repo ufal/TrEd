@@ -1,7 +1,7 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
 ## $Id$
-## Time-stamp: <2004-10-14 12:59:37 pajas>
+## Time-stamp: <2004-11-01 13:59:46 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -72,9 +72,10 @@ sub file_resumed_hook {
 #include <contrib/tr_coref_common.mak>
 
 #binding-context EN_Tectogrammatic
-#key-binding-adopt Tectogrammatic
 #key-binding-adopt Coref
+#key-binding-adopt Tectogrammatic
 #include <contrib/tr_en.mak>
+#unbind-key Space
 
 #binding-context TR_Diff
 #include <contrib/trdiff.mak>
