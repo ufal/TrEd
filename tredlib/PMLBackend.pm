@@ -234,7 +234,7 @@ sub read_node ($$$;$) {
     if ($type->{attribute}) {
       foreach my $atr (keys %{$type->{attribute}}) {
 	die "Missing required attribute '$atr' of "._element_address($node)
-	  unless $type->{attribute}{$atr}{optional} or $node->hasAttribute($atr);
+	  if $type->{attribute}{$atr}{required} and !$node->hasAttribute($atr);
 	$hash->{$atr} = $node->getAttribute($atr);
       }
     }
@@ -331,7 +331,7 @@ sub read_node ($$$;$) {
     foreach (keys %{$type->{member}}) {
       die "Missing required member '$_' of '".
 	$node->localname."' at line ".$node->line_number."\n"
-	  unless exists($hash->{$_}) or $type->{member}{$_}{optional};
+	  if !exists($hash->{$_}) and $type->{member}{$_}{required};
     }
     return $hash;
   } elsif ($type->{choice}) {
@@ -412,25 +412,25 @@ sub read_trees {
     }
   }
 
+  my $root_type = $fsfile->metaData('schema')->{root};
   my $types = $fsfile->metaData('schema')->{type};
-  my %roles;
-  foreach my $t (keys %$types) {
-    _debug($t);
-    $roles{$types->{$t}->{role}}{$t}=1 if ($types->{$t}->{role});
-  }
 
-  _debug("reading trees ".join(",",%{$roles{'#TREES'}}),"\n");
+  unless ($dom_root->namespaceURI eq PML_NS and
+	  $dom_root->localname eq $root_type->{name}) {
+    die "Expected root element '$root_type->{name}'\n";
+  }
 
 
   for my $child ($dom_root->childNodes) {
     if ($child->nodeType == ELEMENT_NODE and
 	$child->namespaceURI eq PML_NS and
-	$roles{'#TREES'}{$child->localname}) {
+        $root_type->{member}->{$child->localname}->{role} eq '#TREES') {
       _debug("found tree ",$child->localname);
-      my $type = $types->{$child->localname};
+      my $type = resolve_type($types,$root_type->{member}->{$child->localname});
       if ($type->{list}) {
-	if ($type->{list} and
-	    $roles{'#NODE'}{$type->{list}{type}}) {
+	my $node_type = resolve_type($types,$type->{list});
+	if ($type->{list} and ref($node_type) and
+	      $node_type->{role} eq '#NODE') {
 # rework as: read List incl. the blessed object
 # and turn it into a simple list
 
@@ -448,7 +448,11 @@ sub read_trees {
 #	  }
 
 	} else {
-	  die "Expected 'list' of #NODE types in role #TREES\n";
+	  use Data::Dumper;
+	  my $dump = ref($node_type) ? Dumper($node_type) : $node_type;
+	  $dump =~ s/\s+/ /g;
+	  $dump =~ s/^\$VAR1 = //;
+	  die "Expected 'list' of #NODE types in role #TREES (got $dump)\n";
 	}
       } else {
 	die "Expected 'list' in role #TREES\n";
@@ -475,16 +479,17 @@ sub write {
   unless (ref($fsfile->metaData('schema'))) {
     die "Can't write - document isn't associated with a schema\n";
   }
+
+  my $root_type = $fsfile->metaData('schema')->{root};
   my $types = $fsfile->metaData('schema')->{type};
-  my %roles;
-  foreach my $t (keys %$types) {
-    _debug($t);
-    $roles{$types->{$t}->{role}}{$t}=1 if ($types->{$t}->{role});
+
+  my ($trees) = grep { $root_type->{member}{$_}{role} eq '#TREES' } keys %{$root_type->{member}};
+  unless (defined($trees)) {
+    die "Can't write - schema doesn't seem to contain #TREES member of 'root'\n";
   }
-  my ($data) = keys (%{$roles{'#DATA'}});
 
   $xml->xmlDecl("utf-8");
-  $xml->startTag($data,xmlns => PML_NS);
+  $xml->startTag($root_type->{name},xmlns => PML_NS);
   $xml->startTag('head');
   $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
   $xml->startTag('references');
@@ -502,10 +507,10 @@ sub write {
   }
   $xml->endTag('references');
   $xml->endTag('head');
-  my ($trees) = keys (%{$roles{'#TREES'}});
+
   my $tree_list = bless [$fsfile->trees],'Fslib::List';
-  write_object($xml, $fsfile, $types,$types->{$trees},$trees,$tree_list);
-  $xml->endTag($data);
+  write_object($xml, $fsfile, $types,resolve_type($types,$root_type->{member}{$trees}),$trees,$tree_list);
+  $xml->endTag($root_type->{name});
   $xml->end;
 
   # write embedded DOM documents
@@ -555,7 +560,7 @@ sub write_object ($$$$) {
       my %attribs;
       if ($type->{attribute}) {
 	foreach my $atr (sort keys %{$type->{attribute}}) {
-	  if ($type->{attribute}{$atr}{optional} or $object->{$atr} ne "") {
+	  if ($type->{attribute}{$atr}{required} or $object->{$atr} ne "") {
 	    $attribs{$atr} = $object->{$atr};
 	  }
 	}
@@ -566,7 +571,7 @@ sub write_object ($$$$) {
 #	  _debug("Writing children to $member");
 	  if ($type->{member}{$member}{role} eq '#CHILDNODES') {
 	    if (ref($object) eq 'FSNode') {
-	      if ($object->firstson or !$type->{member}{$member}{optional}) {
+	      if ($object->firstson or $type->{member}{$member}{required}) {
 		write_object($xml, $fsfile, $types,$type->{member}{$member},$member,
 			     bless([ $object->children ],'Fslib::List'));
 	      }
@@ -618,7 +623,7 @@ sub write_object ($$$$) {
 	#	warn "Didn't find $name on the object! ",join(" ",%$object),"\n";
 	#      }
 	    }
-	  } elsif ($object->{$member} ne "" or !$type->{member}{$member}{optional}) {
+	  } elsif ($object->{$member} ne "" or $type->{member}{$member}{required}) {
 	    write_object($xml, $fsfile, $types,$type->{member}{$member},$member,$object->{$member});
 	  }
 	}
