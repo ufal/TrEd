@@ -266,7 +266,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 
 #load back-ends
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(qw/TrXMLBackend CSTS_SGML_SP_Backend/));
+@backends=('FSBackend',ImportBackends(qw/AG2FS TrXMLBackend CSTS_SGML_SP_Backend/));
 # CSTSBackend not used any more
 #$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
 
@@ -862,8 +862,8 @@ sub openFile {
   my $win=$grp->{focusedWindow};
   my $goto= undef;
 
-  if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
-    $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
+  if ($f=~/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$/) {
+    $f=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$//;
       $goto=$1;
     print "Goto suffix is $goto\n" if $tredDebug;
   }
@@ -1032,7 +1032,7 @@ sub get_value_line {
     $vl=doEvalHook($win,"get_value_line_hook",$fsfile,$no);
     if (defined($vl)) {
       if (ref($vl)) {
-	$vl=[ map { $_->[0]=encode($_->[0]); $_ } @$vl ];
+	$vl=[ map { $_->[0]=encode($_->[0]); $_ } grep { $_ ne "" } @$vl ];
       } else {
 	$vl=encode($vl);
       }
@@ -2739,7 +2739,8 @@ sub startMain {
 			    -underline=> 3,
 			    -command=> [sub {
 					  read_config();
-					  redraw_all(shift);
+					  reconfigure($_[0]);
+					  redraw_all($_[0]);
 					},\%group]);
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label=>'Quit',
@@ -3728,6 +3729,18 @@ sub saveConfig {
  }
 }
 
+sub reconfigure {
+  my ($grp)=@_;
+  addToRecent($grp);
+  prepareFonts($grp);
+  updateTitle($grp);
+  $grp->{valueLine}->configure(-font=> $vLineFont);
+  foreach (@{$grp->{treeWindows}}) {
+    $_->treeView->apply_options($treeViewOpts);
+  }
+  ApplyGlobalConfig($grp);
+}
+
 sub editConfig {
   my ($grp)=@_;
   return unless $grp;
@@ -3755,14 +3768,7 @@ sub editConfig {
 			  my ($grp,$d,$t)=@_;
 			  saveConfig($grp,$t->get("0.0","end"));
 			  apply_config(split(/\n/,$t->get("0.0","end")));
-			  addToRecent($grp);
-			  prepareFonts($grp);
-			  updateTitle($grp);
-			  $grp->{valueLine}->configure(-font=> $vLineFont);
-			  foreach (@{$grp->{treeWindows}}) {
-			    $_->treeView->apply_options($treeViewOpts);
-			  }
-			  ApplyGlobalConfig($grp);
+			  reconfigure($grp);
 			  redraw_all($grp);
 			},$grp,$d,$t])
       ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
@@ -3770,14 +3776,7 @@ sub editConfig {
 		  -command=> [sub {
 				 my ($grp,$w)=@_;
 				 apply_config(split(/\n/,$w->get("0.0","end")));
-				 addToRecent($grp);
-				 prepareFonts($grp);
-				 updateTitle($grp);
-				 $grp->{valueLine}->configure(-font=> $vLineFont);
-				 foreach (@{$grp->{treeWindows}}) {
-				   $_->treeView->apply_options($treeViewOpts);
-				 }
-				 ApplyGlobalConfig($grp);
+				 reconfigure($grp);
 				 redraw_all($grp);
 			       },$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
@@ -5151,7 +5150,7 @@ sub doEvalHook {
   if ($win) {
     $TredMacro::this=$win->{currentNode};
     $TredMacro::root=$win->{root};
-    $FileNotSaved=$win->{FSFile}->notSaved if $win->{FSFile};
+    $FileNotSaved='?';
     $context=$win->{macroContext};
   }
   $TredMacro::libDir=$libDir;
@@ -5162,8 +5161,11 @@ sub doEvalHook {
   warn "$@\n" if $@;
 
   if ($win) {
-    lastActionBookmark($win->{framegroup},$bookmark) if $FileNotSaved and !$win->{FSFile}->notSaved;
-    $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved) if $win->{FSFile};
+    if ($win->{FSFile}) {
+      $FileNotSaved=$win->{FSFile}->notSaved if $FileNotSaved eq '?';
+      lastActionBookmark($win->{framegroup},$bookmark) if $FileNotSaved and !$win->{FSFile}->notSaved;
+      $win->{FSFile}->notSaved($win->{FSFile}->notSaved or $FileNotSaved);
+    }
     saveFileStateUpdate($win);
   }
 
@@ -5186,7 +5188,7 @@ sub doEvalMacro {
   $TredMacro::this=$win->{currentNode};
   $TredMacro::root=$win->{root};
   $TredMacro::libDir=$libDir;
-  $TredMacro::FileNotSaved=1;
+  $TredMacro::FileNotSaved='?';
   $TredMacro::forceFileSaved=0;
   $TredMacro::Redraw='file';
   my $undo=prepare_undo($win);
@@ -5516,7 +5518,6 @@ sub prepare_undo {
   return unless $maxUndo;
   my $fsfile=$win->{FSFile};
   return undef unless $fsfile;
-
   my $tree;
   require Data::Dumper;
   Fslib::PrintTree($win->{root},
