@@ -40,7 +40,7 @@ BEGIN {
 
 sub gotoTree {
   my $grp=shift;
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   my $no = max(0,min(shift,$grp->{FSFile}->lastTreeNo));
   return $no if ($no == $grp->{treeNo});
   $grp->{treeNo}=$no;
@@ -88,7 +88,7 @@ sub newTreeAfter {
 sub pruneTree {
   my ($grp)=@_;
 
-  return unless ($grp->{'FSFile'} and $grp->{FSFile}->treeList->[$grp->{treeNo}]);
+  return unless ($grp->{FSFile} and $grp->{FSFile}->treeList->[$grp->{treeNo}]);
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   splice(@{$grp->{FSFile}->treeList}, $grp->{treeNo}, 1);
   DeleteTree($grp->{root});
@@ -105,7 +105,7 @@ sub newNode {
   ## Adds new son to current node
   my ($grp)=@_;
   my $parent=$grp->{currentNode};
-  return unless ($grp->{'FSFile'} and $parent);
+  return unless ($grp->{FSFile} and $parent);
 
   my $nd=FSNode->new();
 
@@ -123,7 +123,7 @@ sub pruneNode {
   ## Deletes given node
   my ($grp,$node)=@_;
   my $t;
-  return undef unless ($grp->{'FSFile'} and $node and $node->parent);
+  return undef unless ($grp->{FSFile} and $node and $node->parent);
 
   Paste(Cut($t),$node->parent,$grp->{FSFile}->FS->defs)
     while ($t=$node->firstson);
@@ -138,7 +138,7 @@ sub pruneNode {
 sub setCurrent {
   my ($grp,$node)=@_;
   my $prev=$grp->{currentNode};
-  $grp->{'currentNode'}=$node;
+  $grp->{currentNode}=$node;
   &$on_current_change($grp,$node,$prev,'setCurrent') if $on_current_change;
 }
 
