@@ -14,8 +14,6 @@ $cortypes='textual|grammatical';              # types of coreference
 
 $referent_color = '#6a85cd';                  # color of the marked node
 
-$referent=""; # stores ID of the marked node (Cut-and-Paste style)
-
 # verbs with antecedent PAT (for automatic coreference assingment)
 $inf_lemmas_pat=
   'cítit|dát|dávat|lákat|nechat|nechávat|nutit|ponechat|ponechávat|poslat|'.
@@ -31,6 +29,8 @@ $inf_lemmas_addr=
 #
 # IMPLEMENTATION:
 #
+
+$referent=""; # stores ID of the marked node (Cut-and-Paste style)
 
 #bind update_coref_file to F7 menu Update coref attributes
 sub update_coref_file {
@@ -427,6 +427,68 @@ coreference recognition procedure on the current tree, press Ctrl+e.
 =item Reseting default display style
 
 Press F8 to apply the default display settings to the current file.
+
+=item Applying new-style coreference declarations
+
+Since there is a lot of files floating around which don't yet use
+the most recent annotations scheme for coreference annotation,
+there is a macro provided to upgrade those FS files.
+
+Press F7 to upgrade current file by applying the new FS header to
+it. Note that this macro may completely discard old-style
+coreference-related annotation in the file, since it removes all
+obsolete attributes for coreference markup.
+
+=back
+
+=head2 CUSTOMIZING
+
+This section describes how to customize coreference macros coref.mak
+in order to allow annotation of other relations between nodes.
+
+For this purpose, there is a set of variable assignments at the
+beginning of coref.mak, that can be altered.
+
+=over 4
+
+=item Adding other coreference types/classes
+
+To add new types of coreference to the annotation scheme, simply add
+new types to the $cortypes variable (separating items with the
+pipeline '|' character) and associate them with colors of arrows
+in the %cortype_colors variable by adding a
+
+C< name => '#rrggbb', >
+
+construction, where C<name> is a name of the new type and C<#rrggbb>
+is the color to be used in hexadecimal notation of RGB (red, green,
+blue).
+
+=back
+
+=head2 ANNOTATION SCHEME
+
+The coreference relation is represented using the following FS attributes:
+C<coref>, C<cortype>, and C<corlemma>.
+
+Each time a new coreference relation is created between two nodes A
+and B (respectively), a unique identifier of B is taken from its AID
+or TID attribute (whichever is available) and appended to the C<coref>
+attribute of the node A. At the same time, the type label of the
+coreference is added to the C<cortype> attribute of A. Individual
+identifiers in the C<coref> attribute as well as types of the
+relations in the C<cortype> attribute are separated with a pipeline
+character '|'.  The correspondence between the identifiers in C<coref>
+attribute and the types in C<cortype> is given by the order in which
+they appear in the respective attributes.
+
+The C<corlemma> attribute is used to mark coreference relation between
+a node and other entity/entities not represented by a node.  If a node
+is in relation with more than one entity, their individual
+representations in C<corlemma> attribute are separated with pipeline
+character '|'.  Coreference relations given by C<corlemma> attribute
+are not assigned any explicit type. In PDT they are automatically
+considered as textual coreference relations.
 
 =cut
 
