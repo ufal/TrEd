@@ -23,7 +23,7 @@ if ($^V lt v5.6.0) {
 shift @TredMacro::ARGV; pop @TredMacro::ARGV;
 @ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
 
-getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:huNHSTX:RWV');
+getopts('qQDx:p:r:s:a:f:c:i:m:e:t:n:huNHSTX:RPWV');
 $opt_q=1 if $opt_Q;
 
 if ($opt_u || $opt_h) {
@@ -72,6 +72,7 @@ encoding      - allows to specify the default charset for FS files (useful
                 hidden nodes
 -T            - wrap 'do { ... } while NextTree();' around the code
 -S            - always save file
+-P            - preload all given files into memory
 -R            - build tectogrammatic trees from CSTS files
 -X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
                 and <ord> to order nodes
@@ -329,6 +330,7 @@ EOL
   print STDERR "<script>\n$premacro;\n</script>\n" unless $opt_q;
   doEvalMacro($grp,$premacro);
   exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
+  preloadFiles($grp,\@files) if $opt_P;
   openFile($grp,$files[$fileNo]);
   do {
     print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $opt_Q;
@@ -357,6 +359,18 @@ sub prevFile {
   return 1;
 }
 
+sub preloadFiles {
+  my ($grp, $filelist)=@_;
+  my $filecount=@$filelist;
+  my $fno;
+  foreach my $f (@$filelist) {
+    print STDERR "Preloading: $f (",$fno+1,"/$filecount)\n" unless $opt_Q;
+    my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+    $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
+    $grp->{preloaded}->{$f} = $fsfile;
+  }
+}
+
 sub openFile {
   my ($grp,$f) = @_;
   my $goto = undef;
@@ -374,8 +388,14 @@ sub openFile {
 # saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
   closeFile($grp);
 
-  $grp->{'FSFile'} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
-  $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
+  if (exists($grp->{preloaded}) and
+      exists($grp->{preloaded}->{$f})) {
+    $grp->{'FSFile'} = $grp->{preloaded}->{$f};
+  } else {
+    $grp->{'FSFile'} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+    $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
+    $grp->{preloaded}->{$f}=$grp->{'FSFile'} if ($grp->{FSFile} and exists($grp->{preloaded}));
+  }
   print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
 
   $grp->{treeNo}=0;
