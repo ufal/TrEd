@@ -56,6 +56,14 @@ sub init_vallex {
   %{$V->user_cache}=() if defined($V) and defined($V->user_cache()); # clear cache
 }
 
+sub reload_macros_hook {
+  if ($V) {
+    $V->doc_free();
+    $V = undef;
+    $FrameData = undef;
+  }
+}
+
 
 sub frame_chosen {
   my ($grp,$chooser)=@_;
@@ -112,6 +120,12 @@ sub validate_assigned_frames_resolve {
   validate_assigned_frames($this,1);
 }
 
+#bind validate_assigned_frames_tolerant to Alt+m menu Validate against assigned frameid being tolerant to ExD
+sub validate_assigned_frames_tolerant {
+  local $ExD_tolerant = 1;
+  validate_assigned_frames(@_);
+}
+
 #bind validate_assigned_frames to Ctrl+m menu Validate against assigned frameid
 sub validate_assigned_frames {
   shift if @_ and !ref($_[0]);
@@ -121,7 +135,7 @@ sub validate_assigned_frames {
     delete $_->{_light};
   }
   init_vallex();
-  my $aids = hash_AIDs();
+  my $aids = hash_AIDs_file();
   eval {
     binmode STDOUT;
     if ($^O eq 'MSWin32') {
