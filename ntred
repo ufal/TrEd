@@ -520,6 +520,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	  distribute_files2($control,\@running,\@files,0,$server_key);
 	}
       } else {
+	print $client "$control HUB_RESPONSE_STDERR\n";
 	print $client "Request MD5 signature failed!\n";
       }
       end_response($control,$client);
@@ -721,6 +722,10 @@ if (defined($init) || defined($kill) || defined($break)) {
     if (/^$control Response from (\S+)/) { # prasim
       msg "Receiving response from $1\n";
       $real_response=1;
+    } elsif (/^$control HUB_RESPONSE_STDERR/) {
+      $out = \*STDERR;
+    } elsif (/^$control SERVER_RESPONSE_STDOUT/) {
+      $out = \*STDOUT;
     } elsif (/^$control SERVER_RESPONSE_STDERR/) {
       $out = \*STDERR;
     } elsif (/^$control SERVER_RESPONSE_STDOUT/) {
