@@ -387,14 +387,15 @@ sub memberof_pa_to_parenthesis {
 ## Overriding definitions of contrib/tredtr.mak
 
 sub DeleteCurrentNode {
-  my $node = $this;
+  shift unless ref($_[0]);
+  my $node = ref($_[0]) ? $_[0] : $this;
   $sPasteNow = '';
   UnGap();
   return unless $node->{ord}=~/\./; # forbid deleting Analytic nodes
   return if $node->firstson;
-  return unless $this->parent();
+  return unless $node->parent();
   my $dord = $node->{dord};
-  $this=$this->parent();
+  $this=$this->parent() if $node == $this;
   CutNode($node);
 
   $sPar1 = $dord;
