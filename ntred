@@ -716,8 +716,8 @@ To manage files on the servers:
 
   ntred --close-files
 
-  ntred --save-files|--save-changed-files [-a append-sfx]
-       [-p strip-prefix] [-r add-prefix] [-f out-fmt]
+  ntred --save-files|--save-changed-files [-s strip-sfx]
+       [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt]
 
   ntred --dump-files [--filelist file-list] [file [...]]
 
@@ -931,8 +931,8 @@ This option may be specified more than once with different modules.
 
   ntred --close-files
 
-  ntred --save-files|--save-changed-files [-a append-sfx]
-       [-p strip-prefix] [-r add-prefix] [-f out-fmt]
+  ntred --save-files|--save-changed-files [-s strip-sfx]
+       [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt]
 
   ntred --quit
 
