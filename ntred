@@ -27,7 +27,7 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
 	    $version $print_version $listedfiles $list_options
-            $olddist $count_files
+            $olddist $count_files $logdir
 	   );
 
 $version='$Revision$ ';
@@ -95,7 +95,8 @@ Getopt::Long::Configure ("bundling");
 	 "preload-module|M=s" => \@preload_modules,
 	 "version|v" => \$print_version,
          "list-options" => \$list_options,
-	 "old-dist-method"        => \$olddist
+	 "old-dist-method"        => \$olddist,
+	 "logdir"        => \$logdir
 	);
 GetOptions(%optmap) or $usage=1;
 
@@ -313,7 +314,7 @@ if (defined($init) || defined($kill) || defined($break)) {
   my @files = get_file_list();
   die "No files given!\n" unless @files;
 
-  my $logdir=$ENV{TMP} || $ENV{TEMP} || "/tmp";
+  my $logdir ||= $ENV{NTRED_LOGDIR} || $ENV{TMP} || $ENV{TEMP} || "/tmp";
 
   my @running;
   my %servers;
@@ -1016,7 +1017,8 @@ STDOUT of the client. STDERR is reserved for debugging and information
 messages as well as error messages caused by the macros on the
 servers. The rest of the error output from a server is stored in a
 file <logdir>/ntred-server-<host>.log (where <logdir> can be specified
-using C<--logdir> and defaults to /tmp).
+using C<--logdir>, NTRED_LOGDIR or TMP or TEMP environment variable
+and defaults to /tmp if none of the previous exists).
 
 =head1 OPTIONS
 
