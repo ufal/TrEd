@@ -2665,10 +2665,17 @@ sub _fs2members {
       $m->{structure}{member}{$part}{-name} = $part;
       $m=$m->{structure}{member}{$part};
     }
+    # allow ``alt'' values concatenated with |
     if ($fs->isList($attr)) {
-      $m->{choice} = [ $fs->listValues($attr) ];
+      $m->{alt} = {
+	-flat => 1,
+	choice => [ $fs->listValues($attr) ]
+      };
     } else {
-      $m->{type} = 'CDATA';
+      $m->{alt} = {
+	-flat => 1,
+	type => 'CDATA'
+      };
     }
   }
   return $mbr->{structure}{member};
