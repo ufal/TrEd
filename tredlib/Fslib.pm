@@ -1733,17 +1733,18 @@ sub readFile {
       last;
     }
     print STDERR "fail\n" if $Fslib::Debug;
-    eval {
-      no strict 'refs';
-      print STDERR "TEST",$backend->can('test'),"\n";
-      print STDERR "READ",$backend->can('read'),"\n";
-      print STDERR "OPEN",$backend->can('open_backend'),"\n";
-      print STDERR "REAL_TEST($file): ",&{"${backend}::test"}($file,$self->encoding),"\n";
-    } if $Fslib::Debug;
+#     eval {
+#       no strict 'refs';
+#       print STDERR "TEST",$backend->can('test'),"\n";
+#       print STDERR "READ",$backend->can('read'),"\n";
+#       print STDERR "OPEN",$backend->can('open_backend'),"\n";
+#       print STDERR "REAL_TEST($file): ",&{"${backend}::test"}($file,$self->encoding),"\n";
+#     } if $Fslib::Debug;
     print STDERR "$@\n" if $@;
   }
   if ($url ne $file and $remove_file) {
-    unlink $file || warn "couldn't unlink tmp file $file\n";
+    local $!;
+    unlink $file || warn "couldn't unlink tmp file $file: $!\n";
   }
   return $ret;
 }
@@ -2998,6 +2999,21 @@ sub schema {
 sub type_struct {
   my ($self)=@_;
   return $self->[1];
+}
+
+sub members {
+  my ($self,$path)=@_;
+  my $type = defined($path) ? $self->find($path) : $self->type_struct;
+  if (ref($type) and $type->{member}) {
+    return keys %$type;
+  } else {
+    return ();
+  }
+}
+
+sub attributes {
+  my ($self)=@_;
+  return $self->schema->attributes($self->type_struct);
 }
 
 sub find {
