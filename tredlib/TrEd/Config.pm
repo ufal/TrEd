@@ -1,8 +1,7 @@
 package TrEd::Config;
 
 #
-# $Revision$ '
-# Time-stamp: <2002-07-15 17:48:34 pajas>
+# $Id$ '
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
