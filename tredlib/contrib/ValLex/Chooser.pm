@@ -34,7 +34,7 @@ sub show_dialog {
 			       $frame_browser_wordlist_item_style,
 			       $frame_browser_framelist_item_style,
 			       $frame_editor_styles,
-			       undef, 1);
+			       undef, 1,-width => '15c');
   $chooser->subwidget_configure($confs) if ($confs);
   $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
