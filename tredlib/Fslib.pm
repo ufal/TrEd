@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-05-30 12:33:08 pajas>
+# Time-stamp: <2001-05-31 11:09:46 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -17,10 +17,16 @@ package Fslib;
 use Exporter;
 @ISA=(Exporter);
 $VERSION = "1.2";
-@EXPORT = qw(&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode &PrintTree &PrintFS &NewNode 
-	     &Parent &LBrother &RBrother &FirstSon &Next &Prev &DeleteTree &DeleteLeaf
-	     &Cut &Paste &Set &Get &DrawTree &IsList &ListValues);
-@EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &ParseNode2 &Ord &Value &Hide &SentOrd &Special &AOrd &AValue &AHide &ASentOrd &ASpecial &SetParent &SetLBrother &SetRBrother &SetFirstSon);
+
+@EXPORT = qw(&ReadAttribs &ReadTree &GetTree &GetTree2 &PrintNode
+	     &PrintTree &PrintFS &NewNode &Parent &LBrother &RBrother
+	     &FirstSon &Next &Prev &DeleteTree &DeleteLeaf &Cut &Paste
+	     &Set &Get &DrawTree &IsList &ListValues);
+
+@EXPORT_OK = qw($FSTestListValidity &Index &ParseNode &ParseNode2 &Ord
+                &Value &Hide &SentOrd &Special &AOrd &AValue &AHide
+                &ASentOrd &ASpecial &SetParent &SetLBrother
+                &SetRBrother &SetFirstSon);
 
 use Carp;
 use vars qw(
@@ -1490,8 +1496,12 @@ sub writeFile {
        and &{"${backend}::write"}($fh,$self)
        and &{"${backend}::close_backend"}($fh));
   };
-  print STDERR "Error: $@\n" if $@;
-  return $ret and not $@;
+  if $@ {
+    print STDERR "Error: $@\n";
+    return 0;
+  }
+  $self->notSaved(0) if $ret;
+  return $ret;
 }
 
 
