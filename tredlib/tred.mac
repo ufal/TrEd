@@ -13,20 +13,29 @@
 #bind PrevFile to Shift+F11 menu Go to Next File
 #bind NextFile to Shift+F12 menu Go to Next File
 
-#bind Find to F3 menu Find
-#bind FindNext to F4 menu Find Next
+#bind Find_nochange to F3 menu Find
+sub Find_nochange { Find(@_); ChangingFile(0) }
 
-#bind NewRBrother to F7 menu New Node (r-brother)
-#bind NewSon to Shift+F7 menu New Node (son)
-#bind DeleteThisNode to F8 menu Delete Node
-#bind CopyValues to F5 menu Copy Values
+#bind FindNext_nochange to F4 menu Find Next
+sub FindNext_nochange { FindNext(@_); ChangingFile(0); }
+#bind NewRBrother_nochange to F7 menu New Node (r-brother)
+#bind NewSon_nochange to Shift+F7 menu New Node (son)
+#bind DeleteThisNode_nochange to F8 menu Delete Node
+#bind CopyValues_nochange to F5 menu Copy Values
+sub CopyValues_nochange { CopyValues(@_); ChangingFile(0); }
 #bind PasteValues to F6 menu Paste Values
-#bind PrevTree to comma
-#bind NextTree to period
-#bind TiePrevTree to Ctrl+comma
-#bind TieNextTree to Ctrl+period
-#bind TiePrevTree to Ctrl+Prior
-#bind TieNextTree to Ctrl+Next
+#bind PrevTree_nochange to comma
+sub PrevTree_nochange { PrevTree(@_); ChangingFile(0); }
+#bind NextTree_nochange to period
+sub NextTree_nochange { NextTree(@_); ChangingFile(0); }
+#bind TiePrevTree_nochange to Ctrl+comma
+sub TiePrevTree_nochange { TiePrevTree(@_); ChangingFile(0); }
+#bind TieNextTree_nochange to Ctrl+period
+sub TieNextTree_nochange { TieNextTree(@_); ChangingFile(0); }
+#bind TiePrevTree_nochange to Ctrl+Prior
+sub TiePrevTree_nochange { TiePrevTree(@_); ChangingFile(0); }
+#bind TieNextTree_nochange to Ctrl+Next
+sub TieNextTree_nochange { TieNextTree(@_); ChangingFile(0); }
 
 #bind CutToClipboard to Ctrl+Insert menu Cut Subtree
 sub CutToClipboard {
@@ -181,6 +190,7 @@ sub GotoTreeAsk {
   } else {
     GotoTree($to) if defined $to;
   }
+  ChangingFile(0);
 }
 
 #bind GotoFileAsk to Alt+G menu Go to file...
@@ -189,6 +199,8 @@ sub GotoFileAsk {
   return unless $to=~/^\s*\d+\s*$/;
   if (GotoFileNo($to-1)) {
     $FileNotSaved = GetFileSaveStatus();
+  } else {
+    ChangingFile(0);
   }
 }
 
@@ -197,7 +209,6 @@ sub GotoFileAsk {
 sub TieGotoTreeAsk {
   my $to=main::QueryString($grp->{framegroup},"Give a Tree Number","Number");
 
-  $FileNotSaved=0;
   if ($to=~/#/) {
     for (my $i=$grp->{treeNo}+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {
       TieGotoTree($i+1), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
@@ -208,6 +219,7 @@ sub TieGotoTreeAsk {
   } else {
     TieGotoTree($to) if defined $to;
   }
+  ChangingFile(0);
 }
 
 #bind PerlSearchNext to Alt+H menu Perl-Search Next
@@ -223,13 +235,13 @@ sub PerlSearchNext {
 
 #bind TieLastTree to Ctrl+End menu Go to last tree (tied)
 sub TieLastTree {
-  $FileNotSaved=0;
+  ChangingFile(0);
   TieGotoTree($grp->{FSFile}->lastTreeNo+1);
 }
 
 #bind TieFirstTree to Ctrl+Home menu Go to first tree (tied)
 sub TieFirstTree {
-  $FileNotSaved=0;
+  ChangingFile(0);
   TieGotoTree(1);
 }
 
@@ -237,20 +249,20 @@ sub TieFirstTree {
 #bind LastTree to End menu Go to last tree
 #bind LastTree to greater
 sub LastTree {
-  $FileNotSaved=0;
+  ChangingFile(0);
   GotoTree($grp->{FSFile}->lastTreeNo+1);
 }
 
 #bind FirstTree to Home menu Go to first tree
 #bind FirstTree to less
 sub FirstTree {
-  $FileNotSaved=0;
+  ChangingFile(0);
   GotoTree(1);
 }
 
 #bind GotoNextNodeLin to Ctrl+greater
 sub GotoNextNodeLin {
-  $FileNotSaved=0;
+  ChangingFile(0);
   my $sentord=$grp->{FSFile}->FS->sentord;
   my $next=NextNodeLinear($this,$sentord);
   unless (HiddenVisible()) {
@@ -263,7 +275,7 @@ sub GotoNextNodeLin {
 
 #bind GotoPrevNodeLin to Ctrl+less
 sub GotoPrevNodeLin {
-  $FileNotSaved=0;
+  ChangingFile(0);
   my $sentord=$grp->{FSFile}->FS->sentord;
   my $next=PrevNodeLinear($this,$sentord);
   unless (HiddenVisible()) {
