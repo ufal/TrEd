@@ -130,6 +130,8 @@ do {
   $libDir=$ld;
 };
 
+$TrEd::Config::quiet=$opt_q;
+
 if (defined $opt_c) {
   @config_file_search_list=($opt_c); # override any other possible config files
 } else {
