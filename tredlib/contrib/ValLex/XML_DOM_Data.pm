@@ -192,6 +192,11 @@ sub findPreviousSibling {
 sub isTextNode {
   return $_[0]->getNodeType == TEXT_NODE;
 }
+
+sub isElementNode {
+  return $_[0]->getNodeType == ELEMENT_NODE;
+}
+
 package XML::DOM::Text;
 *nodeName = *getNodeName;
 package XML::DOM::Element;
