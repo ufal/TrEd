@@ -3,7 +3,7 @@
 ## created: Wed Mar 15 14:50:16 CET 2000
 
 sub file_opened_hook {
-  if (exists $attribs{TR}) {
+  if (exists $grp->{FSFile}->FS->defs->{TR}) {
     SwitchContext('Tectogrammatic');
   } else {
     SwitchContext('Analytic');
@@ -111,11 +111,11 @@ sub GotoTreeAsk {
 
   $FileNotSaved=0;
   if ($to=~/#/) {
-    for (my $i=$treeNo+1; $i<@trees; $i++) {
-      GotoTree($i), return if ($trees[$i]->{form} =~ $to);
+    for (my $i=$treeNo+1; $i<=$grp->{FSFile}->lastTreeNo; $i++) {
+      GotoTree($i), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
     }
     for (my $i=0; $i<$treeNo; $i++) {
-      GotoTree($i), return if ($trees[$i]->{form} =~ $to);
+      GotoTree($i), return if ($grp->{FSFile}->treeList->[$i]->{form} =~ $to);
     }
   } else {
     GotoTree($to-1) if defined $to;
@@ -137,13 +137,13 @@ sub PerlSearchNext {
 #bind LastTree to key Shift+greater menu Go to last tree
 #bind LastTree to key Ctrl+Next
 sub LastTree {
-  GotoTree($#trees);
+  GotoTree($grp->{FSFile}->lastTreeNo+1);
 }
 
 #bind FirstTree to key Shift+less menu Go to first tree
 #bind FirstTree to key Ctrl+Prior
 sub FirstTree {
-  GotoTree(0);
+  GotoTree(1);
 }
 
 # binding-context Tectogrammatic

@@ -1,6 +1,6 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
 ## author: Alena Bohmova
-## Time-stamp: <2001-03-06 11:28:45 pajas>
+## Time-stamp: <2001-03-06 14:41:42 pajas>
 
 package Tectogrammatic;
 @ISA=qw(TredMacro main);
@@ -90,7 +90,7 @@ sub do_edit_attr_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:func|coref|reltype|aspect|err1)$/) {
+  if ($atr!~/^(?:func|commentTR|coref|reltype|aspect|err1)$/) {
     return "stop";
   }
 }
