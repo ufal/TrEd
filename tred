@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-04-25 16:30:11 pajas>";
+$timestamp="Time-stamp: <2001-04-25 16:33:55 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -3495,7 +3495,7 @@ sub viewSentencesDialog {
     }
     $t->insert('end',
 	       join (" ",
-	       map { $_->{$value} }
+	       map { encode($_->{$value}) }
 	       sort { $a->{$sentord} <=> $b->{$sentord} } @nodes)."\n");
   }
   $d->Popup;
