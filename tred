@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-06-08 09:47:46 pajas>";
+$timestamp="Time-stamp: <2001-06-12 11:53:29 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -61,12 +61,12 @@ Tk::CmdLine::SetArguments();
 
 
 use Getopt::Std;
-getopts('m:c:l:hu');
+getopts('m:c:l:t:hu');
 
 if ($opt_u) {
   print <<EOH;
 Usage:
-  tred [-c config-file] [-m macro-file] [-l file-list] files...
+  tred [-c config-file] [-m macro-file] [-t context] [-l file-list] files...
 or
   tred -u          to show usage
 or
@@ -78,7 +78,7 @@ EOH
 if ($opt_h) {
   print <<EOF;
 Usage:
-tred [-c <config-file>] [-m <macro-file>] [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
+tred [-c <config-file>] [-m <macro-file>] [-t context] [-l <filelist>] file1[##N|#N] [file2[##N|#N] [...]]
 
 or
 
@@ -109,6 +109,10 @@ Each filename may be followed by suffices of the following forms:
 	search for).
 
 -l      specifies a file containing list of files to open
+
+-t      start in the given macro context (package). TredMacro is the
+        default context, and it is used also when given the context
+        is not found.
 
 EOF
   exit;
@@ -242,8 +246,10 @@ $on_current_change = \&onCurrentChange;
 #load back-ends
 
 @backends=('FSBackend');
-foreach (qw(TrXMLBackend CSTSBackend)) {
-  push @backends,$_ if eval { require $_; };
+foreach my $backend (qw(TrXMLBackend CSTSBackend)) {
+  if (eval { require $backend.".pm"; } ) {
+    push @backends,$backend;
+  }
 }
 
 require Filelist;
@@ -386,6 +392,9 @@ sub setConfig {
     print STDERR "Reading filelist ".$fl->name." from ".$fl->filename."\n" if $tredDebug;
     addNewFilelist(undef,$fl);
   }
+
+  $CSTSBackend::csts2fs=$cstsToFs;
+  $CSTSBackend::fs2csts=$fsToCsts;
 
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
@@ -1645,7 +1654,7 @@ sub prepareFonts {
 
 sub addBindTags {
   my $w=shift @_;
-  $w->bindtags([@_,$w,ref($w),$w->toplevel,'all']);
+  $w->bindtags([@_,$w,ref($w),$w,$w->toplevel,'all']);
 
 }
 
@@ -1730,7 +1739,8 @@ sub startMain {
     $group{top}->geometry($geometry);
   }
 
-  $group{macroContext}='TredMacro';
+  $group{macroContext}= $opt_t && exists($keyBindings{$opt_t}) ? $opt_t : 'TredMacro';
+  print "Starting in context $group{macroContext}\n" if $tredDebug;
   $group{templateMatchMethod}=$defaultTemplateMatchMethod;
   $group{macroListOrder}=$defaultMacroListOrder;
   print STDERR "Main window created.\n" if $tredDebug;
@@ -1741,7 +1751,8 @@ sub startMain {
     print STDERR "done.\n" if $tredDebug;
   }
 
-  addBindTags($group{'top'},'my');
+#  $group{'top'}->focusFollowsMouse;
+  addBindTags($group{'top'},'my','canvases');
 
   print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
 
@@ -1983,12 +1994,13 @@ sub startMain {
 				       $treeViewOpts->{backgroundColor} ?
 				       (-background => $treeViewOpts->{backgroundColor}) : ());
 
+  require Tk::Adjuster;
+  $group{canvasAdjuster}=$group{top}->Adjuster(-side => top, -widget => $canvas);
 
   $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -underline 0 -menuitems/ =>
 	[
 	 [Button => 'About', -underline => 0, -command => [\&About,\%group]]])->pack(qw/-side left/);
 
-  addBindTags($canvas->Subwidget('scrolled'),'canvas');
   prepareFonts(\%group);
 
   print STDERR "Creating canvas.\n" if $tredDebug;
@@ -2003,6 +2015,7 @@ sub startMain {
 				  -background => '#fff3b0');
   $baloon->Subwidget('message')->configure(-justify => 'left',-font => $font);
   addBindTags($canvas,'my');
+  addBindTags($canvas->Subwidget('scrolled'),'canvas');
 
   $group{'treeView'} = new TrEd::TreeView($canvas,'CanvasBalloon' => $baloon);
 #  TrEd::TreeView::apply_options($group{'treeView'},$treeViewOpts);
@@ -2011,7 +2024,7 @@ sub startMain {
 
   print STDERR "Creating buttons.\n" if $tredDebug;
 
-  $group{'nextButton'}=$group{'frame'}->Button(-text => "Next",
+  $group{'nextButton'}=$group{'frame'}->Button(-takefocus=>0, -text => "Next",
 					       -relief => $buttonsRelief,
 					       -image => $group{top}->Pixmap(-file =>
 									     "$libDir/right.xpm"),
@@ -2021,7 +2034,7 @@ sub startMain {
   $group{Balloon}->attach($group{'nextButton'},
 		 -balloonmsg => "see the next tree");
   addBindTags($group{'nextButton'},'my');
-  $group{'prevButton'}=$group{'frame'}->Button(-text => "Prev",
+  $group{'prevButton'}=$group{'frame'}->Button(-takefocus=>0, -text => "Prev",
 					       -relief => $buttonsRelief,
 					       -image => $group{top}->Pixmap(-file =>
 									     "$libDir/left.xpm"),
@@ -2031,7 +2044,7 @@ sub startMain {
 		 -balloonmsg => "see the previous tree");
   addBindTags($group{'prevButton'},'my');
 
-  $group{'openButton'}=$group{'frame'}->Button(-text => "Open",
+  $group{'openButton'}=$group{'frame'}->Button(-takefocus=>0, -text => "Open",
 					       -relief => $buttonsRelief,
 					       -image       => $group{top}->Pixmap(-file => "$libDir/fileopen.xpm"),
 					       -borderwidth => $buttonBorderWidth,
@@ -2042,7 +2055,7 @@ sub startMain {
   $group{'normalSavePixmap'}=$group{top}->Pixmap(-file =>"$libDir/filefloppy.xpm");
   $group{'savedSavePixmap'}=$group{top}->Pixmap(-file =>"$libDir/filesaved.xpm");
   $group{'saveButton'}=
-    $group{'frame'}->Button(-text => "Save",
+    $group{'frame'}->Button(-takefocus=>0, -text => "Save",
 			    -relief => $buttonsRelief,
 			    -image => $group{'savedSavePixmap'},
 			    -borderwidth => $buttonBorderWidth,
@@ -2055,7 +2068,7 @@ sub startMain {
   addBindTags($group{'saveButton'},'my');
 
   $group{'prevFileButton'}=
-    $group{'frame'}->Button(-text => "Prev file",
+    $group{'frame'}->Button(-takefocus=>0, -text => "Prev file",
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file =>
 							  "$libDir/start.xpm"),
@@ -2067,7 +2080,7 @@ sub startMain {
   addBindTags($group{'prevFileButton'},'my');
 
   $group{'nextFileButton'}=
-    $group{'frame'}->Button(-text => "Next file",
+    $group{'frame'}->Button(-takefocus=>0, -text => "Next file",
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file =>
 							  "$libDir/finish.xpm"),
@@ -2080,7 +2093,7 @@ sub startMain {
 
 
   $group{'printButton'}=
-    $group{'frame'}->Button(-text => "Print",
+    $group{'frame'}->Button(-takefocus=>0, -text => "Print",
 			    -relief => $buttonsRelief,
 			    -image       => $group{top}->Pixmap(-file =>
 								"$libDir/fileprint.xpm"),
@@ -2092,7 +2105,7 @@ sub startMain {
   addBindTags($group{'printButton'},'my');
 
   $group{'findButton'}=
-    $group{'frame'}->Button(-text => "Find",
+    $group{'frame'}->Button(-takefocus=>0, -text => "Find",
 			    -relief => $buttonsRelief,
 			    -image       => $group{top}->Pixmap(-file =>
 								"$libDir/find.xpm"),
@@ -2108,7 +2121,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
   addBindTags($group{'findButton'},'my');
 
   $group{'findNextButton'}=
-    $group{'frame'}->Button(-text => "Find Next",
+    $group{'frame'}->Button(-takefocus=>0, -text => "Find Next",
 			    -relief => $buttonsRelief,
 			    -image       => $group{top}->Pixmap(-file =>
 								"$libDir/findnext.xpm"),
@@ -2121,7 +2134,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 
 
   $group{'findPrevButton'}=
-    $group{'frame'}->Button(-text => "Find Previous",
+    $group{'frame'}->Button(-takefocus=>0, -text => "Find Previous",
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file =>
 								"$libDir/findprev.xpm"),
@@ -2141,7 +2154,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 
 
   $group{'attrButton'}=
-    $group{'frame'}->Button(-text => "Attributes",
+    $group{'frame'}->Button(-takefocus=>0, -text => "Attributes",
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file =>
 							  "$libDir/tick.xpm"),
@@ -2159,7 +2172,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 
   $group{'valueLine'}->pack(qw/-side left -fill x -expand yes/);
   $group{'sentButton'}=
-    $group{'vLineFrame'}->Button(-text => "Sentences",
+    $group{'vLineFrame'}->Button(-takefocus=>0, -text => "Sentences",
 			    -relief => $buttonsRelief,
 			    -image => $group{top}->Pixmap(-file =>
 							  "$libDir/view_sent.xpm"),
@@ -2167,8 +2180,9 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 			    -command => [sub { viewSentencesDialog(@_) },\%group])
       ->pack(qw/-side right -padx 1 -anchor n/);
   $group{'vLineFrame'}->pack(qw/-fill x -expand no/);
+
   $group{'treeView'}->canvas->pack(qw/-expand yes -fill both/);
-  addBindTags($group{'treeView'},'my');
+  addBindTags($canvas,'my','canvases');
   #  $group{'contextLed'}->pack(-side => 'bottom');
   
   print STDERR "Binding keystrokes...\n" if $tredDebug;
@@ -2215,11 +2229,14 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
   #  $group{'top'}->bind('dialog','<Shift-Tab>' => [sub { shift->focusPrev(); }] );
   #  $group{'frame'}->bind('all','<Shift-Tab>' => [sub {1;}]);
   #  $group{'frame'}->bind('all','<Control-Tab>' => [sub {1;}]);
+  $group{'top'}->bind('all','<Tab>',undef);
 
   $group{'frame'}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
   $group{'top'}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
 
-  $group{'frame'}->bind('my','<Tab>' => [sub { shift; currentNext(@_); Tk->break; },\%group]);
+  $group{'top'}->bind('my','<Tab>' => [sub { shift;
+					     currentNext(@_); 
+					     Tk->break; },\%group]);
   $group{'frame'}->bind('my','<Shift-ISO_Left_Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
   $group{'frame'}->bind('my','<Shift-Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
 
@@ -2280,6 +2297,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 			     }, \%group]);
 
   $group{'treeView'}->canvas->bind('point', '<1>' => [sub {node_down(@_) },\%group,0]);
+
   $group{'treeView'}->canvas->bind('point', '<ButtonRelease-1>' => [sub {node_release(@_)},\%group,0]);
   $group{'treeView'}->canvas->bind('point', '<B1-Motion>' => [sub {node_move(@_)},\%group]);
   $group{'treeView'}->canvas->bind('point','<3>' => [sub {node_down(@_)},\%group,1]);
@@ -4057,6 +4075,6 @@ sub node_release {
       }
     }
     # returning node to its position
-    $w->coords($sel, $grp->{treeView}->node_coords($node,$node->{currentNode}));
+    $w->coords($sel, $grp->{treeView}->node_coords($node,$grp->{currentNode}));
   } else { redraw_tree($grp); }
 }
