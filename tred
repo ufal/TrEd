@@ -4947,7 +4947,7 @@ sub dumpSentView {
 		 "\nSentences could not be saved!");
   $encoding=$TrEd::Convert::outputenc;
   if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
-    _set_encoding($html,'bytes',"html-out");
+    _set_encoding($html,':bytes',"html-out");
     __debug("HTML encoding $encoding, bytes output");
   } else {
     _set_encoding($html,$encoding,"html-out");
@@ -4966,7 +4966,8 @@ sub dumpSentView {
     if ($K eq 'tagon') {
       print $html "<p>" if $V eq 'treeno';
       print $html "<u>" if $t->tagCget($V,'-underline');
-      print $html "<font color=\"".$t->tagCget($V,'-foreground')."\">" if $t->tagCget($V,'-foreground');
+      print $html "<font color=\"".$t->tagCget($V,'-foreground')."\">"
+	if $t->tagCget($V,'-foreground');
       print $html "<span class=\"$1\">" if $V =~ /^tag\s*=>\s*(.*)$/;
     } elsif ($K eq 'tagoff') {
       print $html "</span>" if $V =~  /^tag\s*=>\s*.*$/ ;
@@ -6768,7 +6769,11 @@ sub _set_encoding {
   if ($enc and $]>=5.008) {
     eval {
       print STDERR ("forcing encoding $enc for $what\n") if $debug;
-      binmode $fh,":encoding($enc)";
+      if ($enc =~ /^:/) {
+	binmode $fh,$enc;
+      } else {
+	binmode $fh,":encoding($enc)";
+      }
     };
     _msg $@ if $@;
   }
