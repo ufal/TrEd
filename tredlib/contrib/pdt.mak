@@ -941,6 +941,18 @@ sub ClearARstruct {
   }
 }
 
+=item PDT::SetHidden ()
+
+If current node is hidden, set the hide flag on it.  Calling this on
+all trees may speedup the identification of hidden nodes.
+
+=cut
+
+sub SetHidden {
+  my $hid=FS()->hide;
+  $this->{$hid} = 'hide' if IsHidden($this);
+}
+
 
 1;
 

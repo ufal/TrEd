@@ -522,9 +522,11 @@ sub startMain {
 	  if (exists($request{ARGS})) {
 	    no strict qw(refs);
 	    @{macro_variable('TredMacro::ARGV')}=split "\n",$request{ARGS};
+	    @{macro_variable('ARGV')}=@{macro_variable('TredMacro::ARGV')};
 	  } else {
 	    no strict qw(refs);
 	    @{macro_variable('TredMacro::ARGV')}=();
+	    @{macro_variable('ARGV')}=();
 	  }
 
 	  STDOUT->autoflush(1);
