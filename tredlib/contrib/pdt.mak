@@ -840,6 +840,81 @@ sub transform_to_analytic {
   }
 }
 
+=item PDT::ARstruct ()
+
+Builds parallel analytical structure on all tectogrammatical trees in
+current file, using the ordorig attribute. This structure is stored in
+attributes _AP_,_AS_,_AL_,_AR_. Fslib is re-configured to use these
+structure attributes instead of the default ones, so that all common
+FSNode methods like parent, children, following, descendants, etc work
+on the new structure. Use L<PDT::TRstruct> to switch back to the
+tectogrammatical structure.
+
+=cut
+
+sub ARstruct {
+  foreach my $root ($grp->{FSFile}->trees) {
+    # build the parallel structure,
+    # unless already built
+    next if exists($root->{_AS_});
+    my @nodes = $root->descendants;
+    # hash parents
+    my %p = map { $_->{ord} => $_ } ($root,@nodes);
+    my %c;
+    # create children lists
+    for my $node (@nodes) {
+      if ($node->{ord}!~/\./ and $p{$node->{ordorig}}) {
+	push @{$c{ $p{ $node->{ordorig} }->{ord} }},$node;
+      }
+    }
+    # build the structure
+    foreach my $node ($root,@nodes) {
+      if ($node->{ord}!~/\./) {
+	$node->{_AP_} = $p{$node->{ordorig}};
+	my @ch = sort { $a->{ord} <=> $b->{ord} } @{ $c{ $node->{ord} } };
+	$node->{_AS_} = (ref($ch[0]) ? $ch[0] : 0);
+	my $i = 0;
+	my $prev = 0;
+	while (ref($ch[$i])) {
+	  $ch[$i]->{_AL_} = $prev;
+	  $prev->{_AR_} = $ch[$i] if ref($prev);
+	  $prev=$ch[$i];
+	  $i++;
+	}
+      } else {
+	for (qw(_AP_ _AS_ _AL_ _AR_)) {
+	  $node->{$_} = 0;
+	}
+      }
+    }
+  }
+  # mend file header
+  PDT->appendFSHeader('@N ord','@P dord','@P TR');
+  # configure Fslib
+  $Fslib::parent="_AP_";
+  $Fslib::firstson="_AS_";
+  $Fslib::lbrother="_AL_";
+  $Fslib::rbrother="_AR_";
+}
+
+=item PDT::TRstruct ()
+
+Setup Fslib to use default (tectogrammatical) tree structure
+(after ARstruct was called).
+
+=cut
+
+sub TRstruct {
+  # fix file header
+  PDT->appendFSHeader('@P ord','@N dord','@H TR');
+  # configure Fslib
+  $Fslib::parent="_P_";
+  $Fslib::firstson="_S_";
+  $Fslib::lbrother="_L_";
+  $Fslib::rbrother="_R_";
+}
+
+
 1;
 
 =back

@@ -1107,7 +1107,9 @@ sub status_line_doubleclick_hook {
 	ChooseFrame();
 	last;
       } else {
-	main::doEditAttr($grp,$this,$1);
+	if (main::doEditAttr($grp,$this,$1)) {
+	  ChangingFile(1);
+	}
 	last;
       }
     }

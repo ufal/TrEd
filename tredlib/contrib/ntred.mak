@@ -45,20 +45,23 @@ sub ntred_query_box {
   my $Nb=$topframe->Checkbutton(-text    => 'All nodes',
 			 -variable=> \$NTredQueryDialogAllNodes,
 			 -relief  => 'flat')->pack(qw(-fill y -anchor nw -side left));
-
-  my $t= $d->Scrolled(qw/Text -relief sunken -borderwidth 2
-			 -height 10 -scrollbars oe/,
+  my @normalTextWidget = qw(Text);
+  my @textWidget;
+  if (eval { require Tk::CodeText }) {
+    @textWidget = qw(CodeText -syntax Perl);
+  } else {
+    @textWidget = @normalTextWidget;
+  }
+  my $t= $d->Scrolled(@textWidget,qw/-relief sunken -borderwidth 2 -height 15 -scrollbars oe/,
 		      -font => StandardTredFont()
 		     );
   my $tm=$d->Adjuster(-widget => $m ,-side => 'bottom');
-  my $m= $d->Scrolled(qw/Text -relief sunken -borderwidth 2
-			 -height 4 -scrollbars oe/,
+  my $m= $d->Scrolled(@textWidget,qw/-relief sunken -borderwidth 2 -height 10 -scrollbars oe/,
 		      -font => StandardTredFont()
 		     );
   $m->insert('end','sub Position { print ThisAddressNTRED(),"\n"; }'."\n");
   my $mr=$d->Adjuster(-widget=>$m, -side => 'top');
-  my $r= $d->Scrolled(qw/Text -relief sunken -borderwidth 2
-			 -height 20 -scrollbars oe/,
+  my $r= $d->Scrolled(@normalTextWidget,qw/-relief sunken -borderwidth 2 -height 20 -scrollbars oe/,
 		      -font => StandardTredFont()
 		     );
   for ($t, $m, $r) {
