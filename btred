@@ -683,8 +683,8 @@ sub startMain {
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  if (exists $request{FILELIST}) {
-	    $hub->print(join("\n",map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
-	      split /\n/,$request{FILELIST}));
+	    my @f = grep { ref($grp->{preloaded}->{$_}) } split /\n/,$request{FILELIST};
+	    $hub->print(join("\n",@f,"\n")) if @f;
 	  } else {
 	    $hub->print(join("\n",@files),"\n");
 	  }
