@@ -19,6 +19,11 @@ BEGIN {
   $menubarRelief
   $buttonBorderWidth
   $canvasBalloonInitWait
+  $canvasBalloonForeground
+  $canvasBalloonBackground
+  $toolbarBalloonInitWait
+  $toolbarBalloonForeground
+  $toolbarBalloonBackground
   $activeTextColor
   $treeViewOpts
   $font
@@ -181,6 +186,12 @@ sub set_config {
   $menubarRelief=val_or_def($confs,"menubarrelief",'flat');
   $buttonBorderWidth=val_or_def($confs,"buttonsborder",2);
   $canvasBalloonInitWait=val_or_def($confs,"hintwait",1000);
+  $canvasBalloonForeground=val_or_def($confs,"hintforeground",'black');
+  $canvasBalloonBackground=val_or_def($confs,"hintbackground",'#fff3b0');
+  $toolbarBalloonInitWait=val_or_def($confs,"toolbarhintwait",450);
+  $toolbarBalloonForeground=val_or_def($confs,"toolbarhintforeground",'black');
+  $toolbarBalloonBackground=val_or_def($confs,"toolbarhintbackground",'#fff3b0');
+
   $activeTextColor=val_or_def($confs,"activetextcolor",'blue');
 
   $highlightWindowColor=val_or_def($confs,"highlightwindowcolor",'black');
