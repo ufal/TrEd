@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2002-12-04 14:37:58 pajas>
+## Time-stamp: <2003-01-30 12:21:49 pajas>
 
 package TredMacro;
 
@@ -1475,6 +1475,18 @@ sub GetNodeIndex {
     $i++;
   }
   return $i;
+}
+
+=item ThisAddress
+
+Return current node's address string in a form of filename#tree_no.index
+(tree_no starts from 1 to reflect TrEd's UI convention).
+
+=cut
+
+sub ThisAddress {
+  my $node = $_[0] || $this;
+  return FileName().'#'.(CurrentTreeNumber()+1).'.'.GetNodeIndex($node);
 }
 
 
