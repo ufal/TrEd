@@ -81,11 +81,15 @@ sub editQuery {
   $ed=$d->Scrolled(qw/Text -height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $main::font);
   $ed->insert('0.0',$var);
   $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
-  $d->bind('<Return>' => sub {1;});
-  $d->bind('<Control-Return>' => sub { shift->toplevel->{default_button}->Invoke });
+  $d->bind(ref($ed->Subwidget('scrolled')),'<Control-Return>' => sub {1;});
+  $d->bind('<Return>' => sub {Tk->break;});
+  $d->bind('<Control-Return>' => sub { shift->toplevel->{default_button}->Invoke; Tk->break;});
+  $d->bind('<Escape>', sub { my $w=shift; $w->{selected_button}= 'Cancel'; } );
+  $d->bind(ref($ed->Subwidget('scrolled')),'<Escape>', [sub { shift; my $w=shift; $w->{selected_button}= 'Cancel'; },$d] );
   $ed->focus;
   if (main::ShowDialog($d) =~ /OK/) {
     $var=$ed->get('0.0','end');
+    chomp($var);
     $d->destroy();
     return $var;
   } else {
