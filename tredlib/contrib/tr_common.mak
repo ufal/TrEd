@@ -649,7 +649,7 @@ sub DisconnectAIDREFS {
   my $node = shift || $pPar1;
   my $dnode = shift || $pPar2;
   my $aid=getAIDREF($dnode);
-  $node->{AIDREFS} =~ s/(?:^|\|)$aid(?:\||$)//g;
+  $node->{AIDREFS} =~ s/\|$aid|$aid\||^$aid$//g;
   $node->{AIDREFS} = "" if ($node->{AIDREFS} eq $node->{AID});
 }
 
@@ -666,7 +666,8 @@ sub ConnectFW {
 }
 
 sub DisconnectFW {
-  $pPar1->{fw} =~ s/(?:^|\|)$pPar2->{trlemma}(?:\||$)//g;
+  my $fw = $pPar2->{trlemma};
+  $pPar1->{fw} =~ s/\|$fw|$fw\||^$fw$//g;
 }
 
 
