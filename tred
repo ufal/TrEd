@@ -1051,7 +1051,9 @@ sub newFileFromCurrent {
 			     [$cur->tail()],
 			     [],
 			     1,
-			     'FSBackend');
+			     'FSBackend',
+		             $cur->encoding()
+		     );
   $cur=undef;
   $keep=$keep || askSaveFile($win,1);
   closeFile($win,-no_update => 1,-keep_postponed => $keep);
