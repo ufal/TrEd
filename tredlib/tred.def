@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2001-07-27 18:48:51 pajas>
+## Time-stamp: <2001-07-31 15:04:18 pajas>
 
 package TredMacro;
 @ISA=qw(main);
@@ -556,4 +556,8 @@ sub ShiftNodeLeft {
   $all[$n-1]->{$ord}=$n;
   $node->{$ord}=$n-1;
   RepasteNode($node);
+}
+
+sub HiddenVisible {
+  return ref($grp->{treeView}) and $grp->{treeView}->get_showHidden();
 }
