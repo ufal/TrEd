@@ -591,13 +591,13 @@ sub match_node {
 
 
 sub match_text_form {
-  my ($node,$serialized_form,$aids,$flags,$no_ignore)=@_;
+  my ($node,$serialized_form,$aids,$flags)=@_;
   $aids ||= TR_Correction::hash_AIDs_file();
   my $formdom = $V->doc()->createElement('form');
   $V->doc()->getDocumentElement()->appendChild($formdom);
 
   $V->parseFormPart($serialized_form,0,$formdom);
-  my $ret = match_form($node, $formdom, $aids, $flags,$no_ignore);
+  my $ret = match_form($node, $formdom, $aids, $flags);
 
   $formdom->parentNode->removeChild($formdom);
   $V->dispose_node($formdom);
@@ -643,7 +643,7 @@ my %fake_when_where = (
 );
 
 sub match_form {
-  my ($node, $form, $aids, $flags,$no_ignore) = @_;
+  my ($node, $form, $aids, $flags) = @_;
   print "match_node_FLAGS: ",join(" ",%$flags),"\n" if $V_verbose;
   print "\nFORM: ".$V->serialize_form($form)." ==> $node->{lemma}, $node->{tag}\n" if $V_verbose;
   my @a = get_aidrefs_nodes($aids,$node);
@@ -758,7 +758,7 @@ sub match_form {
     my @ok_a;
     my $node_aidrefs = getAIDREFsHash($node);
     foreach (@a) {
-      if (!$no_ignore and first { $_->{afun}=~/^Aux[CP]/
+      if (!$flags->{no_ignore} and first { $_->{afun}=~/^Aux[CP]/
 		  and $_->{lemma} !~ /^místo-2_/ and $node_aidrefs->{$_->{AID}} } with_AR { PDT::GetFather_AR($_,sub{0}) }) {
 	print "Ignoring AIDREF to $_->{form}\n" if $V_verbose;
       } else {
@@ -1041,7 +1041,7 @@ sub match_element ($$$$$$$) {
     print "ELEMENT: ",$V->serialize_element($e)."\n";
   }
   if (@forms) {
-    unless (first { match_form($c,$_,$aids,$flags,$quiet) } @forms) {
+    unless (first { match_form($c,$_,$aids,$flags) } @forms) {
       if ($V_verbose) {
 	print "\n09 no form matches: $c->{func},$c->{lemma},$c->{tag}\n";
       } elsif (!$quiet) {
@@ -1057,6 +1057,7 @@ sub match_element ($$$$$$$) {
 
 sub validate_frame {
   my ($V,$trans_rules,$node, $frame,$aids,$pj4,$quiet,$flags) = @_;
+
   my @transformed = do_transform_frame($V,$trans_rules,$node, $frame,$aids,$quiet);
   if (@transformed>1) {
     print "TRANSFORMATION RETURNED ".scalar(@transformed)." FRAMES, WILL CHECK ALL\n" if (!$quiet and $V_verbose);
@@ -1089,6 +1090,10 @@ sub validate_frame {
 
 sub validate_frame_no_transform {
   my ($V,$node, $frame,$aids,$pj4,$quiet, $flags) = @_;
+
+  local @actants = qw(ACT PAT EFF MAT ADDR) if ($V->getPOS($frame) eq 'N');
+  local $match_actants = '(?:'.join('|',@actants).')' if ($V->getPOS($frame) eq 'N');
+
   $flags ||= {};
   my %all_elements;
   # check over-all validity of the frame itself
@@ -1126,7 +1131,7 @@ sub validate_frame_no_transform {
     my @forms = $V->forms($word_form);
     print "WORD FORM: ",$V->serialize_element($word_form)."\n" if (!$quiet and $V_verbose);
     if (@forms) {
-      unless (grep { match_form($node,$_,$aids,$flags,1) } @forms) {
+      unless (grep { match_form($node,$_,$aids,{%$flags,no_ignore => 1}) } @forms) {
 	unless ($quiet) {
 	  print "11 no word form matches: $node->{lemma},$node->{tag}\t";
 	  Position($node);
@@ -1268,11 +1273,11 @@ sub validate_frame_no_transform {
       my $functors_to_delete = 0;
       foreach my $c (
 	grep { exists($group_matches{ $cgroups{$_} }) }
-	  grep { $_->{func}=~/^(?:ACT|PAT|EFF|ADDR|ORIG|DPHR|CPHR)$/ } @c) {
+	  grep { $_->{func}=~ /^[CD]PHR$|^$match_actants$/ } @c) {
 	$functors_to_delete ++;
       }
       my $children = @c;
-      my $actants = grep { $_->{func}=~/^(?:ACT|PAT|EFF|ADDR|ORIG|DPHR|CPHR)$/ } @c;
+      my $actants = grep { $_->{func}=~ /^[CD]PHR$|^$match_actants$/ } @c;
       my $elements = scalar(keys(%oblig));
       print "FUZZY-MATCH (frame-elements: $elements, func-changes: $functors_changed/$children, func-deletions: $functors_to_delete/$actants)\n" if $V_verbose;
       return [$V->frame_id($frame),$elements,$children,$actants,$functors_changed,$functors_to_delete];
@@ -1581,6 +1586,10 @@ sub check_nounadj_frames {
   my $pos = substr($node->{tag},0,1);
   $pos = 'A' if ($node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/);
   return if $pos!~/[NA]/ or $func =~ /[DF]PHR/;
+
+  local @actants = qw(ACT PAT EFF MAT ADDR) if ($pos eq 'N');
+  local $match_actants = '(?:'.join('|',@actants).')' if ($pos eq 'N');
+
   my $lemma = lc($node->{trlemma});
   $lemma =~ s/_/ /g;
   $V->user_cache->{$lemma} = $V->word($lemma,$pos) unless exists($V->user_cache->{$lemma});
