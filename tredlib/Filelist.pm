@@ -390,6 +390,9 @@ sub remove {
   my ($self)=shift;
   return undef unless ref($self);
   $count=1 unless defined($count);
+
+  print "Filelist.pm: removing @_\n";
+
   do {
     my %remove = map { $_ => 1 } @_;
     @{ $self->list_ref }=grep(!$remove{$_}++,@{ $self->list_ref }); #remove and uniq
