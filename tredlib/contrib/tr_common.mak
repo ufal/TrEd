@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-01-29 16:07:54 pajas>
+## Time-stamp: <2002-01-31 16:47:02 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -84,6 +84,47 @@ sub QuerySemtam {
   return 0;
 }
 
+sub QueryKdy {
+  my $node=shift;
+  my @trs=
+    (
+     ['kdy', 'kdy', 'TWHEN'],
+     ['odkdy', 'kdy', 'TSIN'],
+     ['dokdy', 'kdy', 'TTIL'],
+     ['jak dlouho', 'kdy', 'THL'],
+     ['na jak dlouho', 'kdy','TFHL'],
+     ['jak èasto', 'kdy', 'THO'],
+     ['bìhem', 'kdy', 'TPAR'],
+     ['ze kdy', 'kdy', 'TFRWH'],
+     ['na kdy', 'kdy', 'TOWH']
+    );
+  my @selected=grep { 
+    $node->{trlemma} eq $_->[1] and 
+      $node->{func} eq $_->[2]
+    }  @trs;
+  @selected=grep { 
+    $node->{trlemma} eq $_->[1]
+  }  @trs unless (@selected>0);
+  if (@selected>0) {
+    @selected=($selected[0]->[0]);
+  }
+  else {
+    @selected=($node->{trlemma});
+  }
+  if (main::selectValuesDialog($grp->{framegroup},$atr,
+			   [ map { $_->[0] } @trs ],
+			       \@selected,0,undef,1)) {
+
+    my ($vals)=(grep { $_->[0] eq $selected[0] } @trs);
+
+    $node->{trlemma}=$vals->[1];
+    $node->{func}=$vals->[2];
+    return 1;
+  }
+  return 0;
+}
+
+
 sub QueryTrlemma {
   my ($node,$assign_func)=@_;
   my @trs=
@@ -157,6 +198,8 @@ sub do_edit_attr_hook {
     if ($node->{trlemma} =~ /tady|tam/ or
 	$node->{func} =~ /DIR[1-3]|LOC/) {
       QuerySemtam($node);
+    } elsif ($node->{trlemma} eq 'kdy') {
+      QueryKdy($node);
     } else {
       QueryTrlemma($node);
     }
@@ -244,6 +287,20 @@ sub AddNewLoc {
   $this=$pReturn;
   $this->{trlemma}='tady';
   unless (QuerySemtam($this)) {
+   DeleteCurrentNode();
+  }
+}
+
+# this is new (not overriden)
+#bind AddNewTime to Ctrl+T menu Doplnit urèení èasu pod akt. vrchol
+sub AddNewTime {
+
+  $pPar1 = $this;
+
+  NewSon();
+  $this=$pReturn;
+  $this->{trlemma}='kdy';
+  unless (QueryKdy($this)) {
    DeleteCurrentNode();
   }
 }
