@@ -341,6 +341,7 @@ my %pcdata = (
 '@P formtype',
 "\@P $normal_gap",
 "\@P $no_node_gap",
+'@P para',
 '@P cstslang',
 '@P cstssource',
 '@P cstsmarkup',
@@ -488,6 +489,10 @@ sub build_tree {
   my %ordered=();
   my @unordered=();
   foreach (@_) {
+    # fill uninitialized node values
+    foreach my $t (keys %initial_node_values) {
+      $_->{$t} = $initial_node_values{$t} unless exists($_->{$t});
+    }
     if ($_->{$ord} ne "" and !exists($ordered{$_->{$ord}})) {
       $ordered{$_->{$ord}}=$_;
     }
@@ -563,9 +568,9 @@ sub make_new_node {
   push @{$s->{nodes}},$s->{node} if ref($s->{node});
   my $sentord=ref($s->{node}) ? $s->{node}->{sentord}+1 : 0;
   $s->{node} = FSNode->new();
-  foreach (keys %initial_node_values) {
-    $s->{node}->{$_} = $initial_node_values{$_};
-  }
+#    foreach (keys %initial_node_values) {
+#      $s->{node}->{$_} = $initial_node_values{$_};
+#    }
   $s->{node}->{sentord}=$sentord;
   foreach (keys %{$s->{following}}) {
     $s->{node}->{$_} = $s->{following}->{$_};

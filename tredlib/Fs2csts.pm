@@ -104,13 +104,16 @@ sub write {
     print $fileref "<csts lang=$lang>\n";
     if ($root->{cstssource} ne "" or $root->{markup} ne "") {
       print $fileref "<h>\n";
-      print $fileref "<source>\n";
+      print $fileref "<source>";
       print $fileref $root->{cstssource};
       print $fileref "</source>\n";
+      print $fileref "<markup>";
+      my $markup=$root->{cstsmarkup};
+      $markup=~s/(.)\<mauth/$1\<\/markup\>\<markup\>\<mauth/g;
+      $markup=~s/\</\n\</g;
+      print $fileref $markup;
+      print $fileref "\n</markup>\n";
       print $fileref "</h>\n";
-      print $fileref "<markup>\n";
-      print $fileref $root->{cstsmarkup};
-      print $fileref "</markup>\n";
     }
   }
   my $treeNo=0;
@@ -127,7 +130,10 @@ sub write {
     # print sentence information from root node
     if (ref($root)) {
       if ($treeNo==1 or $root->{doc}.$root->{docid} ne "") {
-	print $fileref "</doc>\n" if ($treeNo>1);
+	if ($treeNo>1) {
+	  print $fileref "</c>\n";
+	  print $fileref "</doc>\n";
+	}
 	print $fileref "<doc file=\"",$root->{doc},"\" id=\"",
 	  int($root->{docid}),"\">\n";
 	print $fileref "<a>\n";
@@ -173,11 +179,12 @@ sub write {
 	print $fileref "</a>\n";
       }
       if ($treeNo==1 or $root->{chap}) {
-	print $fileref "</c>\n" if ($treeNo>1);
+	print $fileref "</c>\n" unless ($treeNo==1 or $root->{doc}.$root->{docid} ne "");
 	print $fileref "<c>\n";
       }
       if ($root->{para} or $treeNo==1) {
 	my $n =	$root->{para}=~/\d+/ ? $& : 0;
+	print "PARA: $root->{para}\n";
 	print $fileref "<p n=$n>\n";
       }
 #      print $fileref make_gap($root->{gappre});
