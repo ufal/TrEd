@@ -491,6 +491,9 @@ sub startMain {
 	  $state=$1;
 	  $request.=$_;
 	  $request{$state}.="";
+	  if ($state eq 'FSFile' and $request{REQUEST_TYPE} eq 'UPLOAD') {
+	    _set_encoding($hub,undef,"socket to hub");
+	  }
         } elsif (!/^$control/) {
 	  $request.=$_;
 	  $request{$state}.=$_;
@@ -720,7 +723,7 @@ sub startMain {
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'DUMP') {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	  _msg "Request $request{default} at client's request\n";
+	  _msg "Dumping $request{default} at client's request\n";
 	  foreach my $f (grep /\S/,split /\n/,$request{default}) {
 	    next unless ($f);
 	    $f=~s{^ntred://}{};
@@ -756,7 +759,7 @@ sub startMain {
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  my $f=$request{Filename};
 	  chomp $f;
-	  _msg "Request $f at client's request\n";
+	  _msg "Uploading $f at client's request\n";
 	  $f=~s{^ntred://}{};
 	  $f=~s{@(\d+)##1(\.\d+)?\s*$}{##$1$2};
 	  if ($] >= 5.008) {
@@ -770,6 +773,17 @@ sub startMain {
 	    local $Fslib::Debug=1;
 	    #	  _msg "received @fs\n";
 	    if (FSBackend::read(\@fs,$fsfile) and ref($fsfile->treeList()->[0])) {
+	      {
+		my $newdefs=$fsfile->FS->defs();
+		my $fs=$grp->{FSFile}->FS;
+		my $defs=$grp->{FSFile}->FS->defs();
+		my $list=$grp->{FSFile}->FS->list();
+		foreach ($fsfile->FS->attributes()) {
+		  push @$list, $_ unless ($fs->exists($_));
+		  $defs->{$_}=$newdefs->{$_};
+		}
+		$grp->{FSFile}->FS->renew_specials();
+	      }
 	      if (_has_suffix($f)) {
 		_msg "Updated tree $grp->{treeNo} ($f)\n";
 		# change only one tree
