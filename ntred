@@ -680,6 +680,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     my @files =  get_files();
     $request="$control STATE=ENCODING\n"._enc2bytes('utf8',$term_encoding)."\n" if $term_encoding;
     $request.="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',$code))."\n";
+    $request.="$control STATE=QUIET\n1\n" if $quiet;
     $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
     $request.="$control STATE=MACRO\n".
