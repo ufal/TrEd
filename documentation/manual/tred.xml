@@ -203,7 +203,7 @@
 	      You may also wish to install the <command>tred</command>
 	      executable to some directory on your <varname>PATH</varname>. In that
 	      case you only have to provide a way for <application>TrEd</application> to find its
-	      library files. It can be done either by setting the
+	      library files. It can be achieved either by setting the
 	      <varname>TREDHOME</varname> variable to point to the location where
 	      you have made a copy of the <filename>Tred/Tredlib</filename> directory, or
 	      by copying the <command>tred</command> executable and the
@@ -236,7 +236,7 @@
 	  <para>
 	    To install <application>PerlTk</application> toolkit,
 	    untar the <ulink
-	    url="../Tk800.022.tar.gz"><filename>Tk800.022.tar.gz</filename></ulink>
+	    url="../PerlTk/Tk800.022.tar.gz"><filename>Tk800.022.tar.gz</filename></ulink>
 	    archive to some temporary directory, e.g. with the
 	    following command:
 	    <literallayout>
@@ -338,7 +338,7 @@ root# <userinput>make install</userinput>
 	      url="../../../../Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
 	      (usually a file with a <filename>.fs</filename>
 	      extension) or a file in the <ulink
-	      url="../../../../Corpora/PDT_1.0/Doc/csts.dtd">CSTS</ulink>
+	      url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
 	      SGML format. In the later case a conversion filter from
 	      CSTS to FS format (e.g.  <ulink
 	      url="../../../../Utilities/cstsfs/index.html"><command>cstsfs</command></ulink>)
@@ -382,7 +382,7 @@ root# <userinput>make install</userinput>
 	      created by appending a tilde `~' to the filename (which
 	      is a UNIX convention for naming backups). If the file
 	      was originally in <ulink
-	      url="../../../../Corpora/PDT_1.0/Doc/csts.dtd">CSTS</ulink>
+	      url="../../../../Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
 	      SGML format, a conversion tool specified in the
 	      <link linkend="fstocsts"><literal>FsToCsts</literal></link> configuration
 	      option is used for conversion.
@@ -872,10 +872,10 @@ root# <userinput>make install</userinput>
 	If current file-list contains more than one file, user may use
 	<menuchoice> <guimenu>File</guimenu> <guimenuitem>Previous
 	File</guimenuitem> </menuchoice> (or press <inlinegraphic
-	fileref="pics/start.png" scale="70"/>) and <menuchoice>
+	fileref="pics/start" scale="70"/>) and <menuchoice>
 	<guimenu>File</guimenu> <guimenuitem>Next File</guimenuitem>
 	</menuchoice> (or press <inlinegraphic
-	fileref="pics/finish.png" scale="70"/>) to open previous or
+	fileref="pics/finish" scale="70"/>) to open previous or
 	next file in the file-list.
       </para>
     </sect2>
@@ -1197,55 +1197,55 @@ root# <userinput>make install</userinput>
 	<tgroup cols="2">
 	  <tbody>
 	    <row>
-	      <entry><graphic fileref="pics/fileopen.png"/></entry><entry><menuchoice>
+	      <entry><graphic fileref="pics/fileopen"/></entry><entry><menuchoice>
 		  <guimenu>File</guimenu>
 		  <guimenuitem>Open ...</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/filefloppy.png"/></entry>
+	      <entry><graphic fileref="pics/filefloppy"/></entry>
 	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Save</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/fileprint.png"/></entry>
+	      <entry><graphic fileref="pics/fileprint"/></entry>
 	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Print ...</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/find.png"/></entry>
+	      <entry><graphic fileref="pics/find"/></entry>
 	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find ...</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/findnext.png"/></entry>
+	      <entry><graphic fileref="pics/findnext"/></entry>
 	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find Next</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/findprev.png"/></entry>
+	      <entry><graphic fileref="pics/findprev"/></entry>
 	      <entry><menuchoice><guimenu>Node</guimenu><guimenuitem>Find Previous</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/start.png"/></entry>
+	      <entry><graphic fileref="pics/start"/></entry>
 	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Previous File</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/finish.png"/></entry>
+	      <entry><graphic fileref="pics/finish"/></entry>
 	      <entry><menuchoice><guimenu>File</guimenu><guimenuitem>Next File</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/left.png"/></entry>
+	      <entry><graphic fileref="pics/left"/></entry>
 	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>Previous Tree</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/right.png"/></entry>
+	      <entry><graphic fileref="pics/right"/></entry>
 	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>Next Tree</guimenuitem></menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/tick.png"/></entry>
+	      <entry><graphic fileref="pics/tick"/></entry>
 	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>Customize
 		    Attributes...</guimenuitem>
 		</menuchoice></entry>
 	    </row>
 	    <row>
-	      <entry><graphic fileref="pics/view_sent.png"/></entry>
+	      <entry><graphic fileref="pics/view_sent"/></entry>
 	      <entry><menuchoice><guimenu>View</guimenu><guimenuitem>List
 	      of sentences...</guimenuitem>
 		</menuchoice></entry>
@@ -1343,7 +1343,7 @@ root# <userinput>make install</userinput>
     <title>Customizing Visible Attributes</title>
     <para>
       When user presses button <inlinegraphic
-      fileref="pics/tick.png"/>
+      fileref="pics/tick"/>
       or issues the <menuchoice>
 	<guimenu>View</guimenu>
 	<guimenuitem>Customize Attributes...</guimenuitem>
@@ -1352,7 +1352,7 @@ root# <userinput>make install</userinput>
     </para>
     <figure>
       <title>Customizing visible attributes</title>
-      <graphic fileref="pics/customatt.gif"/>
+      <graphic fileref="pics/customatt"/>
     </figure>
     <para>
       The dialog window contains four elemens: the attribute list,
@@ -1503,15 +1503,15 @@ root# <userinput>make install</userinput>
       If current file-list contains more than one file, 
       the command <menuchoice> <guimenu>File</guimenu> <guimenuitem>Previous
 	  File</guimenuitem> </menuchoice> (or <inlinegraphic
-	fileref="pics/start.png" scale="70"/> button) and  <menuchoice>
+	fileref="pics/start" scale="70"/> button) and  <menuchoice>
 	<guimenu>File</guimenu> <guimenuitem>Next File</guimenuitem>
     </menuchoice>
-      (or <inlinegraphic fileref="pics/finish.png" scale="70"/> button)
+      (or <inlinegraphic fileref="pics/finish" scale="70"/> button)
       may be used to open previous or next file in the file-list.
     </para>
     <figure>
       <title>Creating file-lists</title>
-      <graphic fileref="pics/filelist.gif"/>
+      <graphic fileref="pics/filelist"/>
     </figure>
     <para>
       There are two default file-lists always present:
@@ -2701,7 +2701,7 @@ root# <userinput>make install</userinput>
 	<application>TrEd</application> automatically redraws the tree
 	and activates the node referenced by variable <literal>$this</literal>.
 	Moreover, the file is also considered modifyed which may
-	toggle the state of the <inlinegraphic fileref="pics/filefloppy.png"/>
+	toggle the state of the <inlinegraphic fileref="pics/filefloppy"/>
 	button. This may be an unwanted behaviour for macros which
 	do not change the structure of the trees nor attribute
 	values. To prevent <application>TrEd</application> from
