@@ -3,6 +3,7 @@
 #bind ChooseFrame to Ctrl+Return menu Vyber ramec pro sloveso
 
 $FrameData=undef;
+$ChooserHideObsolete=0;
 
 sub InfoDialog {
   my ($top,$text)=@_;
@@ -167,10 +168,10 @@ sub ChooseFrame {
 		     wordproblem => $fc,
 		     infoline => { label => $fc }
 		    };
-
+  
   my $chooser_conf = {
 		      framelists => $fc,
-		      framelist_labels => $fb
+		      framelist_labels => $fb,
 		     };
 
   my ($frame,$real)=TrEd::ValLex::Chooser::show_dialog($title,
@@ -181,6 +182,7 @@ sub ChooseFrame {
 						       $fc,
 						       $fc,
 						       $fe_conf,
+						       \$ChooserHideObsolete,
 						       $FrameData,
 						       $field,
 						       [split /\|/,
