@@ -4785,6 +4785,7 @@ sub ListQuery {
   my $l=$d->Scrolled(qw/Listbox -relief sunken
                         -takefocus 1
                         -scrollbars e/,
+		     -font=> $font,
 		     -selectmode => $select_mode,
 		     -height=> min($maxDisplayedValues,scalar(@$vals))
 		    )->pack(qw/-expand yes -fill both/);
