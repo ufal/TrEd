@@ -41,6 +41,10 @@ $TrEd::TreeView::DefaultNodeStyle{NodeLabel}=
 $TrEd::TreeView::DefaultNodeStyle{Node}=
   [-textalign => 'right'];
 
+# reload config
+main::read_config();
+main::reconfigure($grp->{framegroup});
+
 # create the value_line
 # sub get_value_line_hook {
 #   my ($fsfile,$treeNo)=@_;
