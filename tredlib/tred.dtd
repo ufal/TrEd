@@ -21,35 +21,42 @@
 <!--                    types                                      -->
 <!--                    attribute types declaration                -->
 <!ELEMENT  types        (t*)                                         >
+<!--         full       all attributes are defined here, no parsing
+                        of custom DTD is needed                    -->
+<!ATTLIST  types
+             full       (0|1)                              0         >
+
 <!--                    t                                          -->
 <!--                    attribute type                             -->
 <!ELEMENT  t            EMPTY                                        >
 <!--         n          name
              v          value list
-             d          default-value                              -->
+             d          default-value
+             m          allow multiple values                      -->
 <!ATTLIST  t
              n          CDATA                              #REQUIRED
              v          CDATA                              #IMPLIED
-             d          CDATA                              #IMPLIED  >
+             d          CDATA                              #IMPLIED
+             m          (0|1)                              1         >
 
 
-<!--                    l                                          -->
-<!ELEMENT  l                                                         >
 <!--                    nd                                         -->
 <!--                    node                                       -->
-<!ELEMENT  nd           (nd,e)*                                      >
+<!ELEMENT  nd           (nd|e)*                                      >
 
 <!--         id         id
-             n          ordinal number                             -->
+             n          ordinal number
+             h          node is to be hidden                       -->
 <!ATTLIST  nd
              id         ID                                 #IMPLIED
              n          NMTOKEN                            #IMPLIED
-             %trxml.attributes;                                      >
+             %trxml.attributes;
+             h          (0|1)                              0         >
 
              
 <!--                    e                                          -->
 <!--                    general XML element wrapper                -->
-<!ELEMENT  e            (att?,(e|pi|c)*)                             >
+<!ELEMENT  e            (att?,(#PCDATA|e|pi|c)*)                     >
 <!--         n          element tag
              ns         element namespace                          -->
 <!ATTLIST  e
@@ -57,7 +64,7 @@
 
 <!--                    att                                        -->
 <!--                    general element attrubute list             -->
-<!ELEMENT  att          a+                                           >
+<!ELEMENT  att          (a)+                                         >
 <!--                    a                                          -->
 <!--                    general element attribute                  -->
 <!ELEMENT  a            (#PCDATA)                                    >
@@ -73,5 +80,3 @@
 <!--                    c                                          -->
 <!--                    general XML comment                        -->
 <!ELEMENT  c            (#PCDATA)                                    >
-
-
