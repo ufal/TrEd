@@ -1,6 +1,6 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2001-05-28 09:42:03 pajas>
+## Time-stamp: <2001-05-31 11:23:46 pajas>
 
 unshift @INC,"$libDir/contrib" unless (grep($_ eq "$libDir/contrib", @INC));
 require AFA;
@@ -37,6 +37,7 @@ do {
   open F,"<$libDir/contrib/adverb2functor.lex" || warn "cannot open $libDir/contrib/adverb2functor.lex: $!";
   my ($key,$func,$num,$of);
   while (<F>) {
+    s/[\r\n]//g;
     ($lemma,$func,$num,$of)=split "\t",$_;
     $advfunc{$lemma}=[ $func,$num,$of ];
   }

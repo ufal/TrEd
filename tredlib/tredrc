@@ -130,16 +130,18 @@ SearchMethod = R		;; R=Regular Expression, W=Wildcards, L=Literal E=Exhaustive r
 ; CstsToFs="2804.x"		;; give a csts (or any other format) to fs convertor here
 ; FsToCsts="2804.x -oformat=csts"	;; give a fs to csts (or any other format) convertor here
 
-LastAction	=	/export/homelin/pajas/tmp/xmlparse/ln.fs##1.17
-Geometry	=	1009x536+99+40
+LastAction	=	/home/pajas/pub/ln01tr.fs##1.0
+Geometry	=	1009x536+123+160
 CanvasHeight	=	412
 CanvasWidth	=	990
-RecentFile0	=	/export/homelin/pajas/tmp/xmlparse/ln.fs
-RecentFile1	=	/export/homelin/pajas/tmp/xmlparse/ln.xml.gz
-RecentFile2	=	/export/homelin/pajas/tmp/xmlparse/ln.fs.gz
-RecentFile3	=	/export/homelin/pajas/tmp/xmlparse/ca01am.gz
-RecentFile4	=	/export/homelin/pajas/tmp/xmlparse/ca01.am
-RecentFile5	=	/export/homelin/pajas/tmp/xmlparse/lnxx.xml
-RecentFile6	=	/export/homelin/pajas/tmp/xmlparse/ln.xml
-RecentFile7	=	/mnt/h/treebank/FS-REV/testovaci/ln2/ln39tra.fs
+RecentFile0	=	/home/pajas/pub/ln01tr.fs
+RecentFile1	=	/home/pajas/pub/ln01trz.fs
+RecentFile2	=	/export/homelin/pajas/tmp/xmlparse/ln.fs
+RecentFile3	=	/export/homelin/pajas/tmp/xmlparse/ln.xml.gz
+RecentFile4	=	/export/homelin/pajas/tmp/xmlparse/ln.fs.gz
+RecentFile5	=	/export/homelin/pajas/tmp/xmlparse/ca01am.gz
+RecentFile6	=	/export/homelin/pajas/tmp/xmlparse/ca01.am
+RecentFile7	=	/export/homelin/pajas/tmp/xmlparse/lnxx.xml
+RecentFile8	=	/export/homelin/pajas/tmp/xmlparse/ln.xml
+RecentFile9	=	/mnt/h/treebank/FS-REV/testovaci/ln2/ln39tra.fs
 filelist0	=	/home/pajas/.tred_bookmarks
