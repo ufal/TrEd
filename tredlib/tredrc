@@ -76,6 +76,12 @@ CurrentNodeHeight	= 9          		;; height of the oval
 ;; Miscelaneous Options
 ;; ------------------------------------------------------------
 
+;; maxUndo= 30                          ;; maximal number of undo levels
+
+;; reloadPreservesPatterns= 1           ;; when reloading a file, do not
+                                        ;; reload attribute patterns and
+                                        ;; but rather keep their current setting
+
 ;; maxDisplayedValues= 25	        ;; maximum number of rows in a dialog
 					;; for selecting attribute values
 
