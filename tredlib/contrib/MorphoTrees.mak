@@ -125,7 +125,7 @@ sub get_value_line_hook {
         $home = $tree->{'ref'};
         $end = $tree->{'ref'} == $par ? $grp->{FSFile}->lastTreeNo : $par - 2;
 
-        $nodes = [ map { $fsfile->tree($_) } $home..$end ];
+        $nodes = [ map { $fsfile->tree($_) } $home .. $end ];
 
         $tree = $fsfile->tree($tree->{'ref'} - 1);
 
@@ -810,7 +810,7 @@ sub restrict {
     my @restrict = split //, length $_[0] == $dim ? $_[0] : '-' x $dim;
     my @inherit = split //, $_[1];
 
-    return join '', map { $restrict[$_] eq '-' && defined $inherit[$_] ? $inherit[$_] : $restrict[$_] } 0..@restrict - 1;
+    return join '', map { $restrict[$_] eq '-' && defined $inherit[$_] ? $inherit[$_] : $restrict[$_] } 0 .. $#restrict;
 }
 
 
@@ -1147,7 +1147,7 @@ Perl is also designed to make the easy jobs not that easy ;)
 Copyright (C) 2004 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.2 or,
+it under the same terms as Perl itself, either Perl version 5.8 or,
 at your option, any later version of Perl 5 you may have available.
 
 
