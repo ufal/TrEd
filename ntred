@@ -287,10 +287,10 @@ if (defined($init) || defined($kill) || defined($break)) {
       $port ||= 1600;
       msg "checking $server\n";
       unless ($nocheck) {
-	my $cmd = "$ssh $server 'sh -c \"echo -n running 2>/dev/null\"'";
+	my $cmd = "$ssh $server 'sh -c \"echo -n RUNNING 2>/dev/null\"'";
 	msg "$cmd\n";
 	my $result=`$cmd`;
-	if ($result eq 'running') {
+	if ($result =~ /RUNNING$/) {
 	  msg "Server $server - running\n";
 	} else {
 	  msg "Server $server - down\n";
