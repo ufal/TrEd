@@ -321,8 +321,8 @@ sub set_config {
     my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
     $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or warn "Cannot read $shfolders $^E\n";
     $ShellFolders->GetValues(\%shf);
-    @fontpath = ($shf{Fonts}[2],
-		 qw(c:/windows/fonts/ c:/winnt/fonts/));
+    @fontpath = ($shf{Fonts}[2]);
+#		 qw(c:/windows/fonts/ c:/winnt/fonts/);
   } else {
     # use fontconfig here?
     if (open my $fc,'/etc/fonts/fonts.conf') {
