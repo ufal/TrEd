@@ -163,6 +163,7 @@ sub send_request {
   my ($control, $server, $type, $key)=(shift,shift,shift,shift);
   my $request = "";
   return 0 unless $server;
+
   $server->print("$control REQUEST_TYPE=$type\n");
   $server->flush;
   foreach (@_) {
@@ -174,7 +175,6 @@ sub send_request {
     $server->print("$control MD5_SIGNATURE ".sign_md5($key,$request)."\n");
   }
   $server->print("$control END_OF_REQUEST\n");
-  $server->flush;
 }
 sub forward_response {
   my ($control, $server, $client)=@_;
@@ -540,6 +540,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       }
     }
 
+    my $t0 = new Benchmark;
     if ($request{REQUEST_TYPE} eq 'QUIT') {
       $SIG{PIPE} = sub {};
     }
@@ -583,6 +584,10 @@ if (defined($init) || defined($kill) || defined($break)) {
       }
       end_response($control,$client);
       msg "The processing of request $request_number completely finished.\n";
+      my $t1 = new Benchmark;
+      my $time = timediff($t1, $t0) if ($t1 and $t0);
+      msg("Request processed in ",timestr($time),"\n");
+
       msg "Waiting for a new client request.\n\n";
       if ($request{REQUEST_TYPE} eq 'QUIT') {
 	msg "Quitting on client's request.\n";
@@ -718,6 +723,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     msg "DUMP @ARGV\n";
     my @files = get_file_list();
     $request=join("\n", @files)."\n";
+    $request.="$control STATE=format\nStorable-Base64\n";
     $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
   } elsif ($request_upload) {
     die "Too few parameters for --upload!" unless @ARGV;
