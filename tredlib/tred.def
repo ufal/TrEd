@@ -2011,4 +2011,26 @@ sub SetupXPath {
 
 =cut
 
+
+sub IsSeq {
+  return 1 if ref($_[0]) eq 'Fslib::Seq';
+}
+
+sub IsAlt {
+  return 1 if ref($_[0]) eq 'Fslib::Alt';
+}
+
+sub Seq {
+  Fslib::Seq->new(@_);
+}
+
+sub Alt {
+  Fslib::Alt->new(@_);
+}
+
+sub AltV {
+  ref($_[0]) eq 'Fslib::Alt' ? @{$_[0]} : $_[0]
+}
+
+
 sub noop { $noop++; }
