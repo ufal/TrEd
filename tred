@@ -1,34 +1,64 @@
 #!/usr/bin/perl
 #
-# Usage: 
-# foreachnode.pl files
+# This is "tkdisplaytree" AKA "tkfs" - a simple viewer/editor of tree
+# graphs in fs file-format used in Graph - program developed by
+# M. Kren. It is written entirely in Perl and for graphical output it
+# uses PerlTk library as a frontend to Tk toolkit
 #
-# Rreads a perl script from stdin and evals it for every tree in files 
+# Usage:
+# tkfs file1[##N|#N] [file2[##N|#N] [...]]
 #
-# You may use these variables in your SCRIPT:
+# Files file1,etc. given on the command-line must be in fs-format (for
+# not a little bit obsolete description see:
+# http://ufal.ms.mff.cuni.cz/local/doc/trees/format_fs.html)
 #
-#  @nodes        - ordered array of nodes of current tree 
-#  $root         - root node of current tree
-#  $f            - current file name
-#  $save         - if set to 1, file is saved after each its node is processed
-#  %attribs      - attribute definition hash 
-#  @atord        - (positional) attribute array
+# The name of each file may be followed by a suffices of the
+# following form:
 #
-#  If you want to save the file after each tree is processed, set the $save var. to 1
+# #N   where N is a number possibly followed by one or more upper-case
+#      letters
+# ##N  where N is a number
+#
+# In the firstcase, #N tells tkfs to skip, after opening the file, to
+# the first tree the root of which has #N as a value of attribute
+# called 'form' (this feature is optimized for specific instances of
+# fs-format used while working on The Prague Dependency Treebank)
+#
+# The later form '##N' simply makes tkfs to go to the N-th tree in the
+# given file.
 #
 #
 
+# this variable is used when searching for rc-file (i.e. the inicialisation file)
+@configFileSearchList=($ENV{HOME}.'/.tkfsrc',$ENV{TKFSHOME}.'/tkfsrc',dirname($0).'tkfsrc',
+		       '/usr/X11R6/lib/X11/app-defaults','/usr/local/lib/tkfs/tkfsrc',
+		       '/usr/lib/tkfs/tkfsrc','/opt/tkfs');
+
+# other configuration should be given in that file
+
+# Default values of $libDir used to search for macro-file (tkfs.mac)
+# and default-macro file (tkfs.def) are specified here. They may be
+# overriden by value of LibDir in tkfs resource file (tkfsrc or ~/.tkfsrc - see above).
+
+if (exists $ENV{TKFSHOME}) {
+  $libDir=$ENV{TKFSHOME};
+} else {
+  $libDir="/usr/local/lib/tkfs";
+}
+readConfig();
+push @INC,$libDir;
 use Tk;
 use Tk::LabFrame;
 use Tk::Listbox;
-use Fslib;
-use Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
 use locale;
 use POSIX qw(locale_h);
 
+require Fslib;
+import Fslib;
+import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd);
+
 
 @macros=();
-
 setlocale(LC_COLLATE,"cs_CZ");
 setlocale(LC_NUMERIC,"us_EN");
 setlocale(LANG,"czech");
@@ -45,9 +75,11 @@ $fileNo=0;
 $filecount=$#files+1;
 
 #
-$configFile='/usr/local/lib/tkfs/tkfsrc';
-$dotConfigFile=$ENV{'HOME'}.'/.tkfsrc';
-readConfig();
+sub dirname {
+  $_=@_;
+  return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : ".";
+}
+
 #
 #read macros
 readMacros($macroFile);
@@ -84,14 +116,25 @@ sub readConfig {
   my $key;
   local *F;
 
-  if (open(F,"<$dotConfigFile") or (open(F,"<$configFile"))) {
+  # open first existing file in config-file list
+  while ($_=shift @configFileSearchList) {
+    if (open(F,"<$_")) {
+      print "Using resource file $_\n";
+      last;
+    }
+  }
+  if (defined($_)) {
     while (<F>) {
-      chomp;
-      $confs{$1}=$2 if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/);
-      $key=$1;
-      $confs{$key}=~s/\\//g;
-      $confs{$key}=$1 if ($confs{$key}=~/^'(.*)'$/ or $confs{$key}=~/^"(.*)"$/);
-      print "$key=$confs{$key};\n";
+      unless (/^[;#]/ or /^$/) {
+	chomp;
+	if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
+	  $confs{$1}=$2;
+	  $key=$1;
+	  $confs{$key}=~s/\\//g;
+	  $confs{$key}=$1 if ($confs{$key}=~/^'(.*)'$/ or $confs{$key}=~/^"(.*)"$/);
+	  #print "$key=$confs{$key};\n";
+	}
+      }
     }
     close F;
   } else {
@@ -99,7 +142,6 @@ sub readConfig {
       "Warning: Cannot open $dotConfigFile nor $configFile,!\n" .
       "         Using configuration defaults!\n";
   }
-
   $appName=(exists $confs{AppName}) ? $confs{AppName} : "Tkfs ver. 1.0";
   $baseXPos=(exists $confs{BaseXPos}) ? $confs{BaseXPos} : 15;
   $baseYPos=(exists $confs{BaseYPos}) ? $confs{BaseYPos} : 15;
@@ -120,7 +162,7 @@ sub readConfig {
   $font=(exists $confs{Font}) ? $confs{Font} : '-*-helvetica-medium-r-normal--*-120-*-*-*-*-*-2';
   #  $font=(exists $confs{Font}) ? $confs{Font} : '-misc-fixed-*-*-*-*-15-*-2';
   $type1font=(exists $confs{Type1Font}) ? $confs{Type1Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
-  $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : "/home/pajas/share/tkfs";
+  $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : $libDir;
   $psFontFile=(exists $confs{PsFontFile}) ? <$confs{PsFontFile}> : "$libDir/csarialm.pfa";
   $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : "$libDir/tkfs.mac";
   $defaultMacroFile=(exists $confs{DefaultMacroFile}) ? <$confs{DefaultMacroFile}> : "$libDir/tkfs.def";
@@ -131,7 +173,9 @@ sub readConfig {
   $psMedia=(exists $confs{PsMedia}) ? $confs{PsMedia} : '%%DocumentMedia: A4 595 842 white()';
   $psFile=(exists $confs{PsFile}) ? <$confs{PsFile}> : 'tkfs.ps';
   $drawBoxes=(exists $confs{DrawBoxes}) ? $confs{DrawBoxes} : 0;
+  $maximizePrintSize=(exists $confs{MaximizePrintSize}) ? $confs{MaximizePrintSize} : 0;
   $showHidden=(exists $confs{ShowHidden}) ? $confs{ShowHidden} : 0;
+  print "finished reading ini-file\n";
 }
 
 
@@ -511,11 +555,11 @@ sub printThis {
     print $grp->{canvasHeight},"x",$grp->{canvasWidth}," $rotate\n";
 
     if ($rotate) {
-      $pagewidth=$c->fpixels($prtFmtWidth)+$c->fpixels($prtVMargin);
-      $pageheight=$c->fpixels($prtFmtHeight)+$c->fpixels($prtHMargin);
+      $pagewidth=$c->fpixels($prtFmtWidth)+2*$c->fpixels($prtVMargin);
+      $pageheight=$c->fpixels($prtFmtHeight)+2*$c->fpixels($prtHMargin);
     } else {
-      $pagewidth=$c->fpixels($prtFmtHeight)+$c->fpixels($prtVMargin);
-      $pageheight=$c->fpixels($prtFmtWidth)+$c->fpixels($prtHMargin);
+      $pagewidth=$c->fpixels($prtFmtHeight)+2*$c->fpixels($prtVMargin);
+      $pageheight=$c->fpixels($prtFmtWidth)+2*$c->fpixels($prtHMargin);
     }
     my %pso = (qw/-colormode mono -x 0 -y 0/,
 	       -fontmap => { $font => ['Arial-Medium', 12] },
@@ -523,8 +567,9 @@ sub printThis {
 	       -height => $grp->{canvasHeight},
 	       -rotate => $rotate);
 
-    if ($grp{printToEPS}) {
-      if ($c->fpixels($grp->{canvasWidth})>$c->fpixels($pagewidth) or
+    if ($grp->{printToEPS}) {
+      print "Maximizing: $maximizePrintSize\n";
+      if ($maximizePrintSize or $c->fpixels($grp->{canvasWidth})>$c->fpixels($pagewidth) or
 	  $c->fpixels($grp->{canvasHeight})>$c->fpixels($pageheight)) {
 
 	if ($c->fpixels($grp->{canvasWidth})/$c->fpixels($pagewidth)*$c->fpixels($pageheight)
@@ -590,7 +635,8 @@ sub printThis {
   #print "$psFile written!\n";
 
   $font=$savefont;
-  gotoTree($saveTreeNo,$grp);
+  if ($TreeNo eq $saveTreeNo) { redraw_tree($grp); }
+  else { gotoTree($saveTreeNo,$grp); }
   $grp->{top}->Unbusy();
 
   return 1;
@@ -881,7 +927,7 @@ sub selectValuesDialog {
 				-buttons => ["OK", "Cancel"]);
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1/, 
-		    -font => $font)->pack(qw/-expand yes -fill both/);      
+		    -font => $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
  for ($a=0;$a<@$vals;$a++)  {   
    $l->selectionSet($a) if grep { $$vals[$a] eq $_ } @$selected;
@@ -933,7 +979,6 @@ sub editAmbiguousAttr {
   return undef;
 }
 
-    
 sub editAttrsDialog {
   my ($grp,$node)=@_;
   my $r;
@@ -1510,7 +1555,7 @@ sub currentNext {
 }
 
 
-sub currentPrev {						      
+sub currentPrev {
   my ($w,$grp)=@_; 
   if (Prev($grp->{'currentNode'})) {
     setCurrent($grp,Prev($grp->{'currentNode'}));
