@@ -60,36 +60,14 @@ sub save {
   return 1;
 }
 
-sub getNextWordNode {
-  my ($self,$n)=@_;
-
-  $n=$n->nextSibling();
-  while ($n) {
-    last if ($n and $n->nodeName() eq 'word');
-    $n=$n->nextSibling();
-  }
-
-  return $n;
-}
-
 sub getFirstWordNode {
   my ($self)=@_;
   my $doc=$self->doc();
   return unless $doc;
   my $docel=$doc->documentElement();
-  my $body=$docel->firstChild();
-  while ($body) {
-    last if ($body->nodeName() eq 'body');
-    $body=$body->nextSibling();
-  }
+  my $body=$docel->findFirstChild('body');
   die "didn't find vallency_lexicon body?" unless $body;
-  my @w;
-  my $n=$body->firstChild();
-  while ($n) {
-    last if ($n->nodeName() eq 'word');
-    $n=$n->nextSibling();
-  }
-  return $n;
+  return $body->findFirstChild('word');
 }
 
 sub getWordNodes {
@@ -97,18 +75,13 @@ sub getWordNodes {
   my $doc=$self->doc();
   return unless $doc;
   my $docel=$doc->documentElement();
-  my $body=$docel->firstChild();
-  while ($body) {
-    last if ($body->nodeName() eq 'body');
-    $body=$body->nextSibling();
-  }
+  my $body=$docel->findFirstChild('body');
   die "didn't find vallency_lexicon body?" unless $body;
   my @w;
-  my $n=$body->firstChild();
-  my $aux;
+  my $n=$body->findFirstChild('word');
   while ($n) {
-    push @w,$n if ($n->nodeName() eq 'word');
-    $n=$n->nextSibling();
+    push @w,$n;
+    $n=$n->findNextSibling('word');
   }
   return @w;
 }
