@@ -75,20 +75,6 @@ sub Populate {
   $hlist->bind('<Double-1>', [ $cw, 'ChDir' ]);
   $hlist->bind('<Return>', [ $cw, 'ChDir' ]);
 
-  my $driveLetters;
-  if ($^O eq 'MSWin32') {
-    $cw->{driveLetters} = $driveLetters = $cw->BrowseEntry(
-		       -variable => \$cw->{cdrive},
-		       -browsecmd => [
-				      sub { my ($c,$e,$drive)=@_;
-					    $c->ChangeDir($drive);
-					  }, $cw
-				     ],
-		       -state    => 'readonly',
-		       -choices  => [ Win32API::File::getLogicalDrives() ])
-	->pack(qw /-side top -expand yes -pady 5 -fill x/);
-  }
-
   $cw->{'typeMenuBtn'} = my $typeMenuBtn =
     $cw->Menubutton(-indicatoron => 1, -tearoff => 0,
 		    -takefocus => 1,
@@ -102,7 +88,6 @@ sub Populate {
   $cw->Advertise(filelist => $hlist );
   $cw->Advertise(entry => $entry );
   $cw->Advertise(typeMenuBtn => $typeMenuBtn );
-  $cw->Advertise(drivelist => $driveLetters ) if ($driveLetters);
 
   if (defined $cw->{'fileTypes'}) {
     my $typeMenu = $typeMenuBtn->cget(-menu);
