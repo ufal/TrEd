@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-15 23:09:27 pajas>
+## Time-stamp: <2004-03-19 17:29:15 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -368,13 +368,16 @@ sub light_ar_children {
     delete $node->{_light};
     $node=$node->following;
   }
-  PDT::ARstruct();
-  foreach (PDT::GetChildren_AR($this,
-			       sub { 1 },
-			       sub { $_[0]{afun}=~/Aux[PC]/ })) {
-    $_->{_light}='_LIGHT_';
-  }
-  PDT::TRstruct();
+  with_AR {
+    foreach (
+	grep { $_->{afun} !~ /Aux[CPYZXG]/ }
+	     PDT::GetChildren_AR($this,
+				 sub { 1 },
+				 sub { $_[0]{afun}=~/Aux[PC]/ })
+	    ) { $_->{_light}='_LIGHT_'; 
+		print "SON: $_\n";
+	      }
+  };
   ChangingFile(0);
 }
 
@@ -531,6 +534,27 @@ sub make_lighten_be_aidrefs {
   }
   ChangingFile(1);
 }
+
+#bind make_lighten_be_children to Ctrl+s menu Make nodes marked with _light=_LIGHT_ children of active node and add them to ative node's AIDREFS
+sub make_lighten_be_children {
+  my $node = $root;
+  my $target;
+  foreach my $node ($root->descendants(FS())) {
+    if ($node->{_light} eq '_LIGHT_') {
+
+      my $p = $node;
+      $p = $p->parent while ($p and $p!=$this);
+      next if ($p == $this);
+
+      $node->{TR} = 'hide';
+      ConnectAID($this,$node);
+      PasteNode(Cut($node),$this);
+      delete $node->{_light};
+      ChangingFile(1);
+    }
+  }
+}
+
 
 #bind light_current to L menu Lighten current node
 sub light_current {
