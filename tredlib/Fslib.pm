@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-07-31 16:23:03 pajas>
+# Time-stamp: <2001-07-31 17:06:51 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -218,13 +218,13 @@ sub AValue ($) {
 sub Cut ($) {
   my $node=shift;
   return $node if (! $node);
-  
+
   if ($node->{$parent} and $node==$node->{$parent}->{$firstson}) {
-    $node->{$parent}->{$firstson}=$node->{$rbrother};    
+    $node->{$parent}->{$firstson}=$node->{$rbrother};
   }
-  $node->{$lbrother}->{$rbrother}=$node->{$rbrother} if ($node->{$lbrother}); 
-  $node->{$rbrother}->{$lbrother}=$node->{$lbrother} if ($node->{$rbrother}); 
-  
+  $node->{$lbrother}->{$rbrother}=$node->{$rbrother} if ($node->{$lbrother});
+  $node->{$rbrother}->{$lbrother}=$node->{$lbrother} if ($node->{$rbrother});
+
   $node->{$parent}=$node->{$lbrother}=$node->{$rbrother}=0;
   return $node;
 }
