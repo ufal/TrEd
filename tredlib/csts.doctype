@@ -334,6 +334,9 @@ APPINFO    NONE
                  A* & MDA* & TRl* & MTRl* & r? & g* & MDg*)
                  -- punctuation / delimiters;
                     display "word-form-like" behavior -->
+<!ATTLIST d
+	  type (std|gen) std>
+
 <!ELEMENT D - O EMPTY -- no space in original -->
 <!ELEMENT P - O (#PCDATA)
                  -- pronunciation hint (numbers, abbreviations) -->

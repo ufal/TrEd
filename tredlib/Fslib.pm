@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-06-29 14:24:08 pajas>
+# Time-stamp: <2001-06-29 14:24:36 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
