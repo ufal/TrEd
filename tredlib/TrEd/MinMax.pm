@@ -2,7 +2,7 @@ package TrEd::MinMax;
 
 #
 # $Revision$ '
-# Time-stamp: <2003-10-06 17:17:03 pajas>
+# Time-stamp: <2003-10-08 19:29:46 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -11,43 +11,34 @@ require Exporter;
 
 @ISA=qw(Exporter);
 $VERSION = "0.1";
-@EXPORT = qw(min max);
-@EXPORT_OK=qw(first min max minstr maxstr reduce sum shuffle);
-eval 'require List::Util; die if List::Util::min(0,-1)!=-1; import List::Util qw(first min max minstr maxstr reduce sum shuffle)';
+@EXPORT = qw(min max min2 max2);
+@EXPORT_OK=qw(min max minstr maxstr sum reduce first suffle);
 
-eval <<'ESQ' if $@ or not defined &reduce;
-
-# This code is only compiled if List::Util did not load
-
-use vars qw($a $b);
+# This code is similar to List::Util but uses @_ instead of $a and $b,
+# as it's very hard or impossible to locate those two correctly under
+# the Safe mode (because of the namespace mangling)
 
 sub reduce (&@) {
   my $code = shift;
 
   return shift unless @_ > 1;
-
-  my $caller = caller;
-  local(*{$caller."::a"}) = \my $a;
-  local(*{$caller."::b"}) = \my $b;
-
+  my ($a,$b);
   $a = shift;
   foreach (@_) {
     $b = $_;
-    $a = &{$code}();
+    $a = &{$code}($a,$b);
   }
-
   $a;
 }
 
-sub sum (@) { reduce { $a + $b } @_ }
+sub min2 ($$) { $_[0] < $_[1] ? $_[0] : $_[1] }
+sub max2 ($$) { $_[0] > $_[1] ? $_[0] : $_[1] }
 
-sub min (@) { reduce { $a < $b ? $a : $b } @_ }
-
-sub max (@) { reduce { $a > $b ? $a : $b } @_ }
-
-sub minstr (@) { reduce { $a lt $b ? $a : $b } @_ }
-
-sub maxstr (@) { reduce { $a gt $b ? $a : $b } @_ }
+sub sum (@) { reduce { $_[0] + $_[1] } @_ }
+sub min (@) { reduce \&min2, @_; }
+sub max (@) { reduce \&max2, @_; }
+sub minstr (@) { reduce { $_[0] lt $_[1] ? $_[0] : $_[1] } @_ }
+sub maxstr (@) { reduce { $_[0] gt $_[1] ? $_[0] : $_[1] } @_ }
 
 sub first (&@) {
   my $code = shift;
@@ -69,9 +60,4 @@ sub shuffle (@) {
   } @_;
 }
 
-ESQ
-
 1;
-
-
-
