@@ -186,8 +186,13 @@ else
   fi
 fi
 
+if $PERLBIN --version | grep -q 'This is perl.* v5\.6'; then
 upgrade_packages Tk Text::Iconv XML::JHXML Tie::IxHash
 # XML::SAX XML::LibXML  XML::LibXML::Iterator 
+else
+  echo Skipping package checks with this perl version.
+fi
+
 
 findtreddir
 
