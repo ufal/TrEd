@@ -482,6 +482,7 @@ sub startMain {
         } elsif (/^$control STATE=(.*)/) {
 	  $state=$1;
 	  $request.=$_;
+	  $request{$state}.="";
         } elsif (!/^$control/) {
 	  $request.=$_;
 	  $request{$state}.=$_;
@@ -562,7 +563,7 @@ sub startMain {
 	    _msg "RUNNING CODE: $request{CODE}\n";
 	    gotoFile($grp,0);
 	    my $t0 = new Benchmark;
-	    if ($request{FILELIST}) {
+	    if (exists $request{FILELIST}) {
 	      my @fl = split /\n/,$request{FILELIST};
 	      foreach my $file (@fl) {
 		# normalize urls
@@ -613,7 +614,7 @@ sub startMain {
 	  _end_response($control,$hub);
 	  exit 0;
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
-	  if ($request{FILELIST}) {
+	  if (exists $request{FILELIST}) {
 	    _msg "Reloading files at client's request\n";
 	    my @fl =
 	      grep { ref($grp->{preloaded}->{$_}) }
@@ -681,7 +682,7 @@ sub startMain {
 	} elsif ($request{REQUEST_TYPE} eq 'LIST') {
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
-	  if ($request{FILELIST}) {
+	  if (exists $request{FILELIST}) {
 	    $hub->print(join("\n",map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
 	      split /\n/,$request{FILELIST}));
 	  } else {
@@ -787,7 +788,7 @@ sub startMain {
 
 	    my %fl;
 	    my $listed = 0;
-	    if ($request{FILELIST}) {
+	    if (exists $request{FILELIST}) {
 	      $listed = 1;
 	      %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
 		split /\n/,$request{FILELIST};
@@ -823,7 +824,7 @@ sub startMain {
 	  _msg "Closing all open files at client's request\n";
 	  my %fl;
 	  my $listed = 0;
-	  if ($request{FILELIST}) {
+	  if (exists $request{FILELIST}) {
 	    $listed = 1;
 	    %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
 	      split /\n/,$request{FILELIST};
