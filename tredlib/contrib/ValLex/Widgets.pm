@@ -661,9 +661,12 @@ sub fetch_frame_data {
   my $f_id=$self->data()->getFrameId($frame);
   my $subst=$self->data()->getSubstitutingFrame($frame);
   my $status=$self->data->getFrameStatus($frame);
+  my $used=$self->data->getFrameUsed($frame);
+  my $hereditary_used=$self->data->getFrameHereditaryUsed($frame);
 
   $self->line_content("word: $w_id      frame: $f_id   status: $status ".
-		      (($status eq 'substituted') ? "with $subst" : "")
+		      (($status eq 'substituted') ? "with $subst" : "").
+                      "     used: $hereditary_used ($used )"
 		     );
 }
 
