@@ -7,7 +7,6 @@ use Text::Iconv;
 sub new {
   my ($self, $encoding1, $encoding2)=@_;
   my $class = ref($self) || $self;
-  print ($encoding1, $encoding2,"\n");
   my $conv1 = Text::Iconv->new($encoding1, $encoding2);
   my $conv2 = Text::Iconv->new($encoding2, $encoding1);
   return undef unless ($conv1 and $conv2);
