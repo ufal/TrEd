@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-07-24 16:22:33 pajas>";
+$timestamp="Time-stamp: <2001-07-26 12:06:52 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -41,9 +41,9 @@ package Tk::Wm;
 # overwriting the original Tk::Wm::Post:
 sub Post
 {
- my ($w,$X,$Y) = @_;
- $X = int($X);
- $Y = int($Y);
+ my ($w,$X,$Y)= @_;
+ $X= int($X);
+ $Y= int($Y);
  $w->positionfrom('user');
 # $w->geometry("+$X+$Y");
  $w->MoveToplevelWindow($X,$Y);
@@ -128,7 +128,7 @@ if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
   my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
   $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or die "Cannot read $shfolders $^E\n";
   $ShellFolders->GetValues(\%shf);
-  $ENV{HOME} = $shf{AppData}[2];
+  $ENV{HOME}= $shf{AppData}[2];
 }
 
 # Default values of $libDir used to search for macro-file (tred.mac)
@@ -169,8 +169,8 @@ do {
 };
 
 $treeViewOpts={
-	       drawSentenceInfo  => 0,
-	       customColors	  => ['darkgreen','darkblue','darkmagenta',
+	       drawSentenceInfo => 0,
+	       customColors	 => ['darkgreen','darkblue','darkmagenta',
 				      'orange','black','DodgerBlue4',
 				      'red','gold','cyan','midnightblue']
 	      };
@@ -233,20 +233,23 @@ import TrEd::Macros;
 # tree drawing module
 require TrEd::TreeView;
 
+# tree view windowing module
+#require TrEd::Window;
+
 # tree printing module
 require TrEd::Print;
 
 # basic tree operations
 require TrEd::Basics;
 import TrEd::Basics;
-$on_tree_change = \&onTreeChange;
-$on_node_change = \&onNodeChange;
-$on_current_change = \&onCurrentChange;
+$on_tree_change= \&onTreeChange;
+$on_node_change= \&onNodeChange;
+$on_current_change= \&onCurrentChange;
 
 #load back-ends
 #require CSTS_SGML_SP_Backend;
 @backends=('FSBackend',ImportBackends(qw/TrXMLBackend CSTS_SGML_SP_Backend CSTSBackend/));
-#$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
+#$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
 
 require Filelist;
 
@@ -270,17 +273,17 @@ if (not File::Spec->can(rel2abs)) {
 use Exporter;
 @ISA=qw(Exporter);
 # This is default export to macros
-@EXPORT = qw($root $this $_NoSuchTree $NodeClipboard
+@EXPORT= qw($root $this $_NoSuchTree $NodeClipboard
 	     $forceFileSaved $insideEval $FileNotSaved $libDir
              @openfiles @filelists &min &max);
 
-@open_types =
+@open_types=
   (["FS files",           [qw/.fs .FS .Fs/]],
    ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
    ["All files",        '*']
   );
 
-@save_types =
+@save_types=
   (["FS files",           [qw/.fs .FS .Fs/]],
    ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
    ["All files",        '*']
@@ -307,7 +310,7 @@ sub bookmarkFilelist {
 }
 
 {
-  my $default = new Filelist('Default');
+  my $default= new Filelist('Default');
   my @files;
 
   if ($opt_l and -f $opt_l) {
@@ -319,13 +322,13 @@ sub bookmarkFilelist {
   }
   push(@files, @ARGV);
 
-  @files = map { rel2abs($_) } @files;
+  @files= map { rel2abs($_) } @files;
 
   $default->add(0,@files);
   addNewFilelist(undef,$default);
   unless (bookmarkFilelist()) {
     print "Bookmarks: ".$ENV{HOME}.'/.tred_bookmarks'."\n";
-    my $bookmarks = new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
+    my $bookmarks= new Filelist('Bookmarks',$ENV{HOME}.'/.tred_bookmarks');
     addNewFilelist(undef,$bookmarks);
   }
 }
@@ -343,17 +346,17 @@ $insideEval=0;
 
 my %searchTemplate;
 
-%pckey_shift_translates = (exclam => 1, at => 2, numbersign => 3,
-			   dollar => 4, percent => 5, asciicircum => 6,
-			   ampersand => 7, asterisk => 8, parenleft => 9,
-			   parenright => 0, plus => 'equal',
-			   underscore => 'minus',
-			   less => 'comma', greater => 'period', 
-			   question => 'slash',
-			   colon => 'semicolon', quotedbl => 'apostroph',
-			   braceleft => 'bracketleft', 
-			   braceright => 'bracketright',
-			   bar => 'backslash', asciitilde => 'grave'
+%pckey_shift_translates= (exclam=> 1, at=> 2, numbersign=> 3,
+			   dollar=> 4, percent=> 5, asciicircum=> 6,
+			   ampersand=> 7, asterisk=> 8, parenleft=> 9,
+			   parenright=> 0, plus=> 'equal',
+			   underscore=> 'minus',
+			   less=> 'comma', greater=> 'period', 
+			   question=> 'slash',
+			   colon=> 'semicolon', quotedbl=> 'apostroph',
+			   braceleft=> 'bracketleft', 
+			   braceright=> 'bracketright',
+			   bar=> 'backslash', asciitilde=> 'grave'
 			  );
 
 print STDERR "Reading macros from $macroFile...\n";
@@ -430,7 +433,7 @@ sub resumeFile {
 
   $grp->{FSFile}=$fsfile;
   $grp->{treeNo}=$fsfile->currentTreeNo;
-  $grp->{'currentNode'}=$fsfile->currentNode;
+  $grp->{currentNode}=$fsfile->currentNode;
   @openfiles=grep { $_ ne $fsfile } @openfiles;
   updatePostponed($grp);
   saveFileStateUpdate($grp);
@@ -444,8 +447,8 @@ sub closeFile {
   $grp->{root}=undef;
   $grp->{FSFile}=undef;
   $grp->{treeNo}=undef;
-  delete $grp->{'currentNode'} if (exists $grp->{'currentNode'});
-  undef %{$grp->{'treeView'}->pinfo} if ($grp->{'treeView'}->pinfo);
+  delete $grp->{currentNode} if (exists $grp->{currentNode});
+  undef %{$grp->{treeView}->pinfo} if ($grp->{treeView}->pinfo);
   $valueLine="";
   unless ($no_update) {
     updateTitle($grp);
@@ -457,9 +460,9 @@ sub ErrorMessage {
   my ($grp,$msg)=@_;
   if ($grp->{top}) {
     $grp->{top}->toplevel->
-      messageBox(-icon => 'error',
-		 -message => $msg,
-		 -title => 'Error', -type => 'ok');
+      messageBox(-icon=> 'error',
+		 -message=> $msg,
+		 -title=> 'Error', -type=> 'ok');
   } else {
     print STDERR "$msg\n";
   }
@@ -476,13 +479,13 @@ sub addToRecent {
   @recentFiles=@recentFiles[0..min($#recentFiles,9)];
 
   if ($grp->{RecentFileMenu}) {
-    my $menu = $grp->{RecentFileMenu}->cget(-menu);
+    my $menu= $grp->{RecentFileMenu}->cget(-menu);
     $menu->delete(0,'end');
     my $i=0;
     foreach (@recentFiles) {
-      $grp->{RecentFileMenu}->command(-label  => "$i.  $_",
-				      -underline => 0,
-				      -command => [\&openFile,$grp,$_]);
+      $grp->{RecentFileMenu}->command(-label => "$i.  $_",
+				      -underline=> 0,
+				      -command=> [\&openFile,$grp,$_]);
       $i++;
     }
   }
@@ -533,16 +536,16 @@ sub updateBookmarks {
 
   if ($grp->{BookmarksFileMenu}) {
     print STDERR "Updating bookmark menu\n"  if $tredDebug;
-    my $menu = $grp->{BookmarksFileMenu}->menu;
+    my $menu= $grp->{BookmarksFileMenu}->menu;
     $menu->delete(0,'end');
-    $grp->{BookmarksFileMenu}->command(-label => 'Add to bookmarks',
-				       -underline => 0,
-				       -command => [ \&addBookmark,$grp ]);
+    $grp->{BookmarksFileMenu}->command(-label=> 'Add to bookmarks',
+				       -underline=> 0,
+				       -command=> [ \&addBookmark,$grp ]);
     $grp->{BookmarksFileMenu}->separator();
     if (defined($grp->{lastActionBookmark})) {
-      $grp->{BookmarksFileMenu}->command(-label  => "Last action",
-					 -underline => 0,
-					 -command => [ \&openFile,$grp,$grp->{lastActionBookmark} ]);
+      $grp->{BookmarksFileMenu}->command(-label => "Last action",
+					 -underline=> 0,
+					 -command=> [ \&openFile,$grp,$grp->{lastActionBookmark} ]);
     }
     $grp->{BookmarksFileMenu}->separator();
     my $i=0;
@@ -550,9 +553,9 @@ sub updateBookmarks {
     return unless ref ($bl);
     foreach (bookmarkFilelist->files()) {
       print STDERR "$_\n";
-      $grp->{BookmarksFileMenu}->command(-label  => "$i.  ".$_,
-				      -underline => 0,
-				      -command => [ \&openFile,$grp,$_ ]);
+      $grp->{BookmarksFileMenu}->command(-label => "$i.  ".$_,
+				      -underline=> 0,
+				      -command=> [ \&openFile,$grp,$_ ]);
       $i++;
     }
   }
@@ -563,32 +566,32 @@ sub updatePostponed {
 
   if ($grp->{PostponedFileMenu}) {
     print STDERR "Updating session menu\n"  if $tredDebug;
-    my $menu = $grp->{PostponedFileMenu}->menu;
+    my $menu= $grp->{PostponedFileMenu}->menu;
     $menu->delete(0,'end');
-    $grp->{PostponedFileMenu}->command(-label => 'Kept files',
-				       -state => 'disabled',
-				       -background => '#444444'
+    $grp->{PostponedFileMenu}->command(-label=> 'Kept files',
+				       -state=> 'disabled',
+				       -background=> '#444444'
 				      );
     my $i=0;
     foreach (@openfiles) {
-      $grp->{PostponedFileMenu}->command(-label  => "$i.  ".$_->filename(),
-				      -underline => 0,
-				      -command => [\&openFile,$grp,$_->filename()]);
+      $grp->{PostponedFileMenu}->command(-label => "$i.  ".$_->filename(),
+				      -underline=> 0,
+				      -command=> [\&openFile,$grp,$_->filename()]);
       $i++;
     }
-    $grp->{PostponedFileMenu}->command(-label => 'none',
-				       -state => 'disabled'
+    $grp->{PostponedFileMenu}->command(-label=> 'none',
+				       -state=> 'disabled'
 				      ) unless (@openfiles);
-    $grp->{PostponedFileMenu}->command(-label => 'File lists',
-				       -state => 'disabled',
-				       -background => '#444444'
+    $grp->{PostponedFileMenu}->command(-label=> 'File lists',
+				       -state=> 'disabled',
+				       -background=> '#444444'
 				      );
 
     $i='A';
     foreach (@filelists) { 
-      $grp->{PostponedFileMenu}->command(-label  => "$i.  ".$_->name(),
-					 -underline => 0,
-					 -command => [\&selectFilelist,$grp,$_->name()]);
+      $grp->{PostponedFileMenu}->command(-label => "$i.  ".$_->name(),
+					 -underline=> 0,
+					 -command=> [\&selectFilelist,$grp,$_->name()]);
       $i++;
     }
   }
@@ -600,22 +603,22 @@ sub updateTitle {
   if (defined($grp->{currentFileNo}) and 
       ref($grp->{FSFile}) and
       defined($grp->{currentFilelist})) {
-    $grp->{'top'}->title("$appName    ".
+    $grp->{top}->title("$appName    ".
 			 $grp->{currentFilelist}->name()."(".($grp->{currentFileNo}+1)."/".
 			 $grp->{currentFilelist}->file_count()."): ".$grp->{FSFile}->filename()
 			);
   } else {
-    $grp->{'top'}->title("$appName");
+    $grp->{top}->title("$appName");
   }
 }
 
 sub openFile {
-  my ($grp,$f,$no_recent) = @_;
-  my $goto = undef;
-  my %fs=(fs => 'FS format',
-	  fgz => 'gzipped FS format',
-	  trxml => 'tree XML format',
-	  any => 'any non-specific format (csts?), using CstsToFs');
+  my ($grp,$f,$no_recent)= @_;
+  my $goto= undef;
+  my %fs=(fs=> 'FS format',
+	  fgz=> 'gzipped FS format',
+	  trxml=> 'tree XML format',
+	  any=> 'any non-specific format (csts?), using CstsToFs');
 
   if ($f=~/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/) {
     $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
@@ -626,13 +629,13 @@ sub openFile {
   askSaveFile($grp,1)
     unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
 
-  $grp->{top}->Busy(-recurse => 1) unless $insideEval;
+  $grp->{top}->Busy(-recurse=> 1) unless $insideEval;
   foreach ($grp->{FSFile},@openfiles) {
     if (ref($_) and $_->filename() eq $f) {
       print "Opening postponed file\n"  if $tredDebug;
       resumeFile($grp,$_);
 
-      $grp->{currentFileNo} = max(0,$grp->{currentFileNo});
+      $grp->{currentFileNo}= max(0,$grp->{currentFileNo});
       insertToFilelist($grp,$grp->{currentFilelist},$grp->{currentFileNo},$f.$goto);
       updateTitle($grp);
       applyFileSuffix($grp,$goto);
@@ -643,21 +646,21 @@ sub openFile {
       }
       doEvalHook($grp,"file_resumed_hook");
       addToRecent($grp,$f) unless $no_recent;
-      $grp->{'top'}->Unbusy() unless $insideEval;
+      $grp->{top}->Unbusy() unless $insideEval;
       return 2;
     }
   }
 
   closeFile($grp,1);
 
-  $grp->{'FSFile'} = FSFile->newFSFile($f,@backends);
-  $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
+  $grp->{FSFile}= FSFile->newFSFile($f,@backends);
+  $grp->{FSFile}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{FSFile}->backend);
   print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
 
   $grp->{treeNo}=0;
 
   # add file to filelist
-  $grp->{currentFileNo} = max(0,$grp->{currentFileNo});
+  $grp->{currentFileNo}= max(0,$grp->{currentFileNo});
   insertToFilelist($grp,$grp->{currentFilelist},$grp->{currentFileNo},$f.$goto);
   updateTitle($grp);
 
@@ -668,14 +671,14 @@ sub openFile {
   if ($grp->{currentNode}) {
     centerToXY($grp,0,0);
   }
-  $grp->{'top'}->Unbusy() unless $insideEval;
+  $grp->{top}->Unbusy() unless $insideEval;
 
   addToRecent($grp,$f);
   return 1;
 }
 
 sub applyFileSuffix {
-  my ($grp,$goto) = @_;
+  my ($grp,$goto)= @_;
   return unless ref($grp) and defined($goto) and $goto ne "";
   # -- smells like PDT-specific code, at least the second case
   # but we want it, dont we:)
@@ -684,7 +687,7 @@ sub applyFileSuffix {
     $grp->{treeNo}=min(max(0,$1-1),$grp->{FSFile}->lastTreeNo);
   } elsif ($goto=~/^#([0-9]+)/) {
     for (my $i=0;$i<=$grp->{FSFile}->lastTreeNo;$i++) {
-      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{'form'} eq "#$1");
+      $grp->{treeNo}=$i,last if ($grp->{FSFile}->treeList->[$i]->{form} eq "#$1");
     }
   }
   # new: we're the dot in .[0-9]+ (TM)
@@ -704,19 +707,19 @@ sub applyFileSuffix {
 sub saveFile {
   my $grp=shift;
 
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
 
-  my $f=$grp->{'FSFile'}->filename;
+  my $f=$grp->{FSFile}->filename;
 
   rename $f,$f."~" if (-f $f);
 
-  $grp->{top}->Busy(-recurse => 1) unless $insideEval;
+  $grp->{top}->Busy(-recurse=> 1) unless $insideEval;
   unless ($grp->{FSFile}->writeFile($f)) {
-    $grp->{'top'}->Unbusy() unless $insideEval;
+    $grp->{top}->Unbusy() unless $insideEval;
     ErrorMessage($grp,"Error saving file to '$f'\n($!)\n");
     return 0;
   }
-  $grp->{'top'}->Unbusy() unless $insideEval;
+  $grp->{top}->Unbusy() unless $insideEval;
   saveFileStateUpdate($grp);
 
 }
@@ -725,7 +728,7 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
   my ($grp,$node,$show)=@_;
   $show=$showHidden unless defined $show;
 
-  return 0 unless ($node and $grp->{'FSFile'});
+  return 0 unless ($node and $grp->{FSFile});
   return 1 if $show or not defined($grp->{FSFile}->FS->hide());
   while ($node and ($node->{$grp->{FSFile}->FS->hide()} ne 'hide')) {
     $node=$node->parent;
@@ -734,7 +737,7 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
 }
 
 sub HNext { # same as Next but obey $showHidden
-  my ($grp,$node,$top) = @_;
+  my ($grp,$node,$top)= @_;
   $node=Next($node,$top);
   while ($node) {
     return $node if (isShown($grp,$node));
@@ -744,7 +747,7 @@ sub HNext { # same as Next but obey $showHidden
 }
 
 sub HPrev { # same as Next but obey $showHidden
-  my ($grp,$node,$top) = @_;
+  my ($grp,$node,$top)= @_;
   $node=Prev($node,$top);
   while ($node) {
     return $node if (isShown($grp,$node));
@@ -766,7 +769,7 @@ sub getNodes {
     $grp->{root}=undef;
   }
   getValueLine($grp);
-  ($grp->{Nodes},$grp->{currentNode}) = $grp->{FSFile}->nodes($grp->{treeNo},
+  ($grp->{Nodes},$grp->{currentNode})= $grp->{FSFile}->nodes($grp->{treeNo},
 							      $grp->{currentNode},
 							      $showHidden);
 }
@@ -855,18 +858,18 @@ sub switchFilelist {
 
 sub createFilelistBrowseEntry {
   my ($grp,$w,$filelistref)=@_;
-  my $ll = $w->BrowseEntry
+  my $ll= $w->BrowseEntry
     (
-     -label => 'File lists:',
-     -variable => $filelistref,
-     -browsecmd =>
+     -label=> 'File lists:',
+     -variable=> $filelistref,
+     -browsecmd=>
      [
       sub {
 	my ($grp,$list,$l)=@_;
 	switchFilelist($grp,$$list);
       },$grp,$filelistref
      ],
-     -listcmd =>
+     -listcmd=>
      [ sub {
 	 my $l=shift;
 	 $l->delete(0,'end');
@@ -885,11 +888,11 @@ sub createFilelistBrowseEntry {
 	 } else {
 	   return unless $text ne "";
 	   my $d=$w->toplevel->
-	     Dialog(-text => "File-list named $text does not exist.\n".
+	     Dialog(-text=> "File-list named $text does not exist.\n".
 		    "Do you want to create new filelist or rename current?",
-		    -bitmap => 'question',
-		    -title => 'Create/Rename?',
-		    -buttons => ['Create', 'Rename', 'Cancel']);
+		    -bitmap=> 'question',
+		    -title=> 'Create/Rename?',
+		    -buttons=> ['Create', 'Rename', 'Cancel']);
 	   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
 				      $f->Invoke if ($f and $f->isa('Tk::Button')) } );
 	   my $answer=$d->Show();
@@ -936,11 +939,11 @@ sub insertToFilelist {
 
   my @list=map { rel2abs($_) } @_;
   my $tmp;
-  my $toplevel = $grp->{Filelist} ? $grp->{Filelist}->toplevel : $grp->{top};
-  @list = map {
+  my $toplevel= $grp->{Filelist} ? $grp->{Filelist}->toplevel : $grp->{top};
+  @list= map {
     if (-d $_) {
       $tmp=Query($toplevel,"Selection Pattern","Insert pattern for directory $_","*.*");
-      $_ = defined($tmp) ? File::Spec->catfile($_,$tmp) : undef;
+      $_= defined($tmp) ? File::Spec->catfile($_,$tmp) : undef;
     }
     $_;
   } @list;
@@ -976,7 +979,7 @@ sub removeFromFilelist {
 
   $filelist->remove(@_);
   if ($filelist eq $grp->{currentFilelist}) {
-    $grp->{currentFileNo} = min($grp->{currentFileNo},
+    $grp->{currentFileNo}= min($grp->{currentFileNo},
 				$filelist->file_count-1);
   }
 
@@ -1002,7 +1005,7 @@ sub addNewFilelist {
     if ($_->name eq $fl->name) {
       print STDERR "Filelist ",$fl->name," already exists, replacing!\n"
 	if $tredDebug;
-      @{ $_->list_ref } = $fl->list;
+      @{ $_->list_ref }= $fl->list;
       $_->expand;
       if ($grp) {
 	$grp->{filelistCurrentFilelist}=undef;
@@ -1039,11 +1042,11 @@ sub deleteFilelist {
 }
 
 sub filelistEntryPath {
-  my ($fl,$index) = @_;
+  my ($fl,$index)= @_;
   return undef unless ref($fl);
 
-  my $f = $fl->file_at($index);
-  my $p = $fl->file_pattern($index);
+  my $f= $fl->file_at($index);
+  my $p= $fl->file_pattern($index);
   return $f eq $p ? $f : "$p\t$f";
 }
 
@@ -1059,24 +1062,24 @@ sub feedHListWithFilelist {
     next unless defined($pat) and defined($f);
     if ($pat eq $f) {
       $hl->add($f,
-	       -itemtype => 'imagetext',
-	       -image => $grp->{fileImage},
-	       -data => $f,
-	       -text => $f);
+	       -itemtype=> 'imagetext',
+	       -image=> $grp->{fileImage},
+	       -data=> $f,
+	       -text=> $f);
       next;
     }
     unless ( $hl->info('exists', $pat) ) {
       $hl->add("$pat",
-	       -itemtype => 'imagetext',
-	       -image => $grp->{folderImage},
-	       -data => $pat,
-	       -text => $pat);
+	       -itemtype=> 'imagetext',
+	       -image=> $grp->{folderImage},
+	       -data=> $pat,
+	       -text=> $pat);
     }
     $hl->add("$pat\t$f",
-	     -itemtype => 'imagetext',
-	     -image => $grp->{fileImage},
-	     -data => $f,
-	     -text => $f);
+	     -itemtype=> 'imagetext',
+	     -image=> $grp->{fileImage},
+	     -data=> $f,
+	     -text=> $f);
   }
 }
 
@@ -1102,16 +1105,16 @@ sub filelistDialog {
   }
   $grp->{filelistCurrentFilelist}=$grp->{currentFilelist};
   $filelist=$grp->{filelistCurrentFilelist}->name;
-  my $d = $grp->{'top'}->Toplevel(-title => "Filelist");
+  my $d= $grp->{top}->Toplevel(-title=> "Filelist");
   $d->withdraw;
-  $grp->{'filelistDialog'}=$d;
+  $grp->{filelistDialog}=$d;
 
   my $frame=$d->Frame();
-  my $labframe=$frame->LabFrame(-label => 'Files to add',
-				-labelside => 'acrosstop'
+  my $labframe=$frame->LabFrame(-label=> 'Files to add',
+				-labelside=> 'acrosstop'
 			       )->pack(qw/-expand yes -fill both -side left/);
-  my $fl = $labframe->MyFileSelect(-selectmode => extended,
-				   -filetypes => \@open_types)
+  my $fl= $labframe->MyFileSelect(-selectmode=> extended,
+				   -filetypes=> \@open_types)
     ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
 
   $fl->Subwidget('filelist')->configure(qw/-background white -foreground black/);
@@ -1119,15 +1122,15 @@ sub filelistDialog {
   my $midframe=$frame->Frame()->pack(qw/-side left/);
 
   my $lframe=$frame->Frame()->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
-  my $ll = createFilelistBrowseEntry($grp,$lframe,\$filelist);
+  my $ll= createFilelistBrowseEntry($grp,$lframe,\$filelist);
 
   $ll->pack(qw/-expand yes -fill both -side top/);
-  my $t = $lframe->Scrolled(qw/HList -relief sunken 
+  my $t= $lframe->Scrolled(qw/HList -relief sunken 
                      -selectmode extended
                      -width 60
                      -background white
 		     -height 15 -scrollbars e/,
-			    -separator => "\t"
+			    -separator=> "\t"
 			   )
     ->pack(qw/-expand yes -fill both -side top/);
   $t->BindMouseWheelVert();
@@ -1137,7 +1140,7 @@ sub filelistDialog {
   $frame->pack(qw/-expand yes -fill both -side top/);
 
   my $addbutton=
-    $midframe->Button(-text => 'Add -->',
+    $midframe->Button(-text=> 'Add -->',
 	       -command=>[
 			  sub {
 				my ($grp,$t,$l)=@_;
@@ -1150,9 +1153,9 @@ sub filelistDialog {
 				updateBookmarks($grp)
 				  if (ref($grp->{filelistCurrentFilelist}) and
 				      $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-			      },$grp,$t,$fl])->pack(-side => top);
+			      },$grp,$t,$fl])->pack(-side=> top);
   my $addbutton=
-    $midframe->Button(-text => 'Remove',
+    $midframe->Button(-text=> 'Remove',
 	       -command=>[
 			  sub { 
 				my ($grp,$t)=@_;
@@ -1164,10 +1167,10 @@ sub filelistDialog {
 				updateBookmarks($grp)
 				  if (ref($grp->{filelistCurrentFilelist}) and
 				      $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-			      },$grp,$t])->pack(-side => top);
+			      },$grp,$t])->pack(-side=> top);
 
   unless ($modal) {
-    $t->bind('<Return>' => [
+    $t->bind('<Return>'=> [
 			    sub {
 			      my ($w,$grp)=@_;
 			      my $anchor=$grp->{Filelist}->info('anchor');
@@ -1180,7 +1183,7 @@ sub filelistDialog {
 				selectFilelist($grp,$grp->{filelistCurrentFilelist});
 			      }
 			    },$grp]);
-    $t->bind('<Double-1>' => [
+    $t->bind('<Double-1>'=> [
 			      sub {
 				my ($w,$grp)=@_;
 				my $anchor=$grp->{Filelist}->info('anchor');
@@ -1206,8 +1209,8 @@ sub filelistDialog {
 				  selectFilelist($grp,$grp->{filelistCurrentFilelist});
 				}
 			      },$grp ]);
-    $d->Button(-text => 'Go',
-	     -command => [ sub {
+    $d->Button(-text=> 'Go',
+	     -command=> [ sub {
 			     my ($grp)=@_;
 			     $grp->{filelistCurrentFilelist}->
 			       set_current($grp->{Filelist}->
@@ -1215,38 +1218,38 @@ sub filelistDialog {
 			     selectFilelist($grp,$grp->{filelistCurrentFilelist});
 			   },$grp ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
   }
-  $d->bind('<Destroy>' => [sub { shift;
+  $d->bind('<Destroy>'=> [sub { shift;
 				 my $grp=shift;
 				 $grp->{Filelist}=undef;
 				 $grp->{filelistCurrentFilelist}=undef;
 			       },$grp ]);
-  $d->bind('all','<Escape>' =>
+  $d->bind('all','<Escape>'=>
 	   [sub { shift;
 		  $modal ?
-		    shift->{'selected_button'} = "Cancel" :
+		    shift->{selected_button}= "Cancel" :
 		      shift->destroy();
 		},$d ]);
 
-  $d->Button(-text => 'Close',
-	     -command => [sub {
+  $d->Button(-text=> 'Close',
+	     -command=> [sub {
 			    $modal ?
-			      shift->{'selected_button'} = "Cancel" :
+			      shift->{selected_button}= "Cancel" :
 				shift->destroy();
 			  },$d ])
     ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
 
-  $d->Button(-text => 'Save',
-	     -command => [sub {
+  $d->Button(-text=> 'Save',
+	     -command=> [sub {
 			    my ($grp,$d)=@_;
 			    my $file=$grp->{filelistCurrentFilelist}->filename;
 			    unless (defined ($file)  and $file ne "") {
 			      my $initdir=dirname($file);
 			      $initdir=cwd if ($initdir eq './');
-			      $file = $d->getSaveFile(-filetypes => 
+			      $file= $d->getSaveFile(-filetypes=> 
 								 [["Filelists",           ['.fl']]],
-								 -title => "Save filelist as ...",
-								 -initialdir => $initdir,
-								 -initialfile => filename($file));
+								 -title=> "Save filelist as ...",
+								 -initialdir=> $initdir,
+								 -initialfile=> filename($file));
 			      $d->deiconify;
 			      $d->focus;
 			      $d->raise;
@@ -1257,12 +1260,12 @@ sub filelistDialog {
 			  },$grp,$d ])
     ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
 
-  $d->Button(-text => 'Load',
-	     -command => [sub {
+  $d->Button(-text=> 'Load',
+	     -command=> [sub {
 			    my ($grp,$d)=@_;
-			    $file = $d->getOpenFile(-filetypes => 
+			    $file= $d->getOpenFile(-filetypes=> 
 						    [["Filelists",           ['.fl']]],
-						    -title => "Load filelist ...");
+						    -title=> "Load filelist ...");
 			    $d->deiconify;
 			    $d->focus;
 			    $d->raise;
@@ -1274,8 +1277,8 @@ sub filelistDialog {
 			  },$grp,$d ])
     ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
 
-  $d->Button(-text => 'Delete',
-	     -command => [sub {
+  $d->Button(-text=> 'Delete',
+	     -command=> [sub {
 			    my ($grp,$d)=@_;
 			    deleteFilelist($grp,$grp->{filelistCurrentFilelist});
 			  },$grp,$d ])
@@ -1302,7 +1305,7 @@ sub filelistDialog {
 
 sub generateSortedMacroTable {
   my ($grp)=@_;
-  @macroTable = map { [ 
+  @macroTable= map { [ 
 		       $_,
 		       $menuBindings{$grp->{macroContext}}->{$_}->[1],
 		      ] } keys %{$menuBindings{$grp->{macroContext}}};
@@ -1330,7 +1333,7 @@ sub macrolistCreateItems {
   my ($grp,$t)=@_;
   $t->delete('all');
   foreach my $entry (generateSortedMacroTable($grp)) {
-    $e = $t->addchild("");
+    $e= $t->addchild("");
     $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry->[0]);
     $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[1]);
   }
@@ -1349,10 +1352,10 @@ sub macrolistDialog {
     ErrorMessage($grp,"No named macros in current context ($context)");
     return;
   }
-  my $d = $grp->{'top'}->Toplevel(-title => "List of available named macros");
+  my $d= $grp->{top}->Toplevel(-title=> "List of available named macros");
   $d->withdraw;
   $d->resizable(0,1);
-  my $t = $d->Scrolled(qw/HList -columns 2 -background white 
+  my $t= $d->Scrolled(qw/HList -columns 2 -background white 
            -selectmode browse
            -height 25 -relief sunken -scrollbars e/);
   $t->BindMouseWheelVert();
@@ -1365,9 +1368,9 @@ sub macrolistDialog {
   $t->columnWidth(1,'');
   $t->anchorSet('0');
 
-  $t->configure(-width => 0);
+  $t->configure(-width=> 0);
   $t->pack(qw/-expand yes -fill both/);
-  $d->bind('<Return>' =>
+  $d->bind('<Return>'=>
 	   [
 	    sub {
 	      my ($w,$grp,$t,$context)=@_;
@@ -1375,7 +1378,7 @@ sub macrolistDialog {
 			  $menuBindings{$context}->
 			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
 	    },$grp,$t,$context ]);
-  $d->bind('<Double-1>' => 
+  $d->bind('<Double-1>'=> 
 	   [
 	    sub {
 	      my ($w,$grp,$t,$context)=@_;
@@ -1385,29 +1388,29 @@ sub macrolistDialog {
 	    },$grp,$t,$context ]);
 
   my $f=$d->Frame()->pack();
-  $f->Radiobutton( -anchor   => 'nw',
-		   -text     => 'Sort by name',
-		   -variable => \$grp->{macroListOrder},
-		   -relief   => 'flat',
-		   -command  => [sub { #shift;
+  $f->Radiobutton( -anchor  => 'nw',
+		   -text    => 'Sort by name',
+		   -variable=> \$grp->{macroListOrder},
+		   -relief  => 'flat',
+		   -command => [sub { #shift;
 				       my ($grp,$t)=@_;
 				       macrolistCreateItems($grp,$t);
 				     },$grp,$t],
-		   -value    => 'M'
-		 )->pack(-side => 'left',-padx => 20);
-  $f->Radiobutton( -anchor   => 'nw',
-		   -text     => 'Sort by keyboard shortcut',
-		   -variable => \$grp->{macroListOrder},
-		   -relief   => 'flat',
-		   -command  => [sub { #shift;
+		   -value   => 'M'
+		 )->pack(-side=> 'left',-padx=> 20);
+  $f->Radiobutton( -anchor  => 'nw',
+		   -text    => 'Sort by keyboard shortcut',
+		   -variable=> \$grp->{macroListOrder},
+		   -relief  => 'flat',
+		   -command => [sub { #shift;
 				       my ($grp,$t)=@_;
 				       macrolistCreateItems($grp,$t);
 				     },$grp,$t],
-		   -value    => 'K'
-		 )->pack(-side => 'right',-padx => 20);
+		   -value   => 'K'
+		 )->pack(-side=> 'right',-padx=> 20);
 
-  $d->Button(-text => 'Run and Close',
-	     -command => [ sub {
+  $d->Button(-text=> 'Run and Close',
+	     -command=> [ sub {
 			     my ($w,$grp,$t,$context)=@_;
 			     my $mac=$t->itemCget($t->info('anchor'),0,'-text');
 			     $w->destroy();
@@ -1415,14 +1418,14 @@ sub macrolistDialog {
 
 
 			   },$d,$grp,$t,$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>left);
-  $d->bind($d,'<Destroy>' => [sub { shift; shift->{Macrolist}=undef; },$grp ]);
-  $d->bind('all','<Escape>' =>
+  $d->bind($d,'<Destroy>'=> [sub { shift; shift->{Macrolist}=undef; },$grp ]);
+  $d->bind('all','<Escape>'=>
 	   [sub {
 	      shift; shift->destroy();
 	    },$d ]);
 
-  $d->Button(-text => 'Close',
-		     -command => [ sub {
+  $d->Button(-text=> 'Close',
+		     -command=> [ sub {
 				     shift->destroy();
 				   },$d ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>right);
   $t->focus;
@@ -1434,129 +1437,129 @@ sub printDialog {
 
   return unless $grp->{FSFile};
 
-  my $com=$grp->{'printCommand'};
-  my $fil=$grp->{'printPsFile'};
+  my $com=$grp->{printCommand};
+  my $fil=$grp->{printPsFile};
   $fil=$grp->{FSFile}->filename;
   $fil=~s/\.[^.]*$/.ps/;
-  my $toFile=$grp->{'printToFile'};
-  my $toEPS=$grp->{'printToEPS'};
-  my $useType1Font=$grp->{'printUseType1Font'};
-  my $printRange=$grp->{'printRange'};
-  my $snt=$grp->{'printSentenceInfo'};
-  my $noRotate=$grp->{'printNoRotate'};
+  my $toFile=$grp->{printToFile};
+  my $toEPS=$grp->{printToEPS};
+  my $useType1Font=$grp->{printUseType1Font};
+  my $printRange=$grp->{printRange};
+  my $snt=$grp->{printSentenceInfo};
+  my $noRotate=$grp->{printNoRotate};
 
-  my $d = $grp->{'top'}->DialogBox(-title => "Print",
-				-buttons => ["OK", "Cancel"]);
+  my $d= $grp->{top}->DialogBox(-title=> "Print",
+				-buttons=> ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
-  my $cf = $d->Frame();
-  my $cl = $cf->Label(-text => 'Print command:',
-		     -anchor => 'w',
-		     -justify => 'right')->pack(-side => 'left');
+  my $cf= $d->Frame();
+  my $cl= $cf->Label(-text=> 'Print command:',
+		     -anchor=> 'w',
+		     -justify=> 'right')->pack(-side=> 'left');
 
-  my $ce = $cf->Entry(-relief => 'sunken',
-		     -width => 20,
-		     -font => $font,
-		     -textvariable => \$com)->pack(-side => 'left');
+  my $ce= $cf->Entry(-relief=> 'sunken',
+		     -width=> 20,
+		     -font=> $font,
+		     -textvariable=> \$com)->pack(-side=> 'left');
   my $defaultBg=$ce->cget('-background');
   my $disabledBg=$d->cget('-background');
 
   $ce->configure($toFile 
-		? (-state => 'disabled',-background => $disabledBg)
-		: (-state => 'normal', -background => $defaultBg));
+		? (-state=> 'disabled',-background=> $disabledBg)
+		: (-state=> 'normal', -background=> $defaultBg));
 
 
-  $cf->pack(-pady => '5m', -side=>'top');
+  $cf->pack(-pady=> '5m', -side=>'top');
   my $ff=$d->Frame();
-  my $fl = $ff->Label(-text => 'File name:',
-		     -anchor => 'w',
-		     -justify => 'right')->pack(-side => 'left');
+  my $fl= $ff->Label(-text=> 'File name:',
+		     -anchor=> 'w',
+		     -justify=> 'right')->pack(-side=> 'left');
 
-  my $fe = $ff->Entry(-relief => 'sunken',
-		     -width => 50,
-		     -font => $font,
-		     -textvariable => \$fil)->pack(-side => 'left');
+  my $fe= $ff->Entry(-relief=> 'sunken',
+		     -width=> 50,
+		     -font=> $font,
+		     -textvariable=> \$fil)->pack(-side=> 'left');
 
   $fe->configure($toFile 
-		? (-state => 'normal', -background => $defaultBg)
-		: (-state => 'disabled',-background => $disabledBg));
+		? (-state=> 'normal', -background=> $defaultBg)
+		: (-state=> 'disabled',-background=> $disabledBg));
   my $of=$d->Frame();
   my $bf=$of->Frame();
-  $bf->Checkbutton(-text     => 'Print to file',
-		   -variable => \$toFile,
-		   -command  => [sub {
+  $bf->Checkbutton(-text    => 'Print to file',
+		   -variable=> \$toFile,
+		   -command => [sub {
 				  my ($t,$c,$f)=@_;
 				  if ($$t) {
 				    $f->focus;
-				    $c->configure(-state => 'disabled',
-						  -background => $disabledBg);
-				    $f->configure(-state => 'normal',
-						  -background => $defaultBg);
+				    $c->configure(-state=> 'disabled',
+						  -background=> $disabledBg);
+				    $f->configure(-state=> 'normal',
+						  -background=> $defaultBg);
 				  } else {
 				    $c->focus;
-				    $f->configure(-state => 'disabled',
-						  -background => $disabledBg);
-				    $c->configure(-state => 'normal',
-						  -background => $defaultBg);
+				    $f->configure(-state=> 'disabled',
+						  -background=> $disabledBg);
+				    $c->configure(-state=> 'normal',
+						  -background=> $defaultBg);
 				  }
 				},\$toFile,$ce,$fe ],
-		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
-  $bf->Checkbutton(-text     => 'Create EPS',
-			  -variable => \$toEPS,
-			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+  $bf->Checkbutton(-text    => 'Create EPS',
+			  -variable=> \$toEPS,
+			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
-  $bf->Checkbutton(-text     => 'Use Type1 Postscript Font',
-			  -state => $type1font ? 'normal' : 'disabled' ,
-			  -variable => \$useType1Font,
-			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+  $bf->Checkbutton(-text    => 'Use Type1 Postscript Font',
+			  -state=> $type1font ? 'normal' : 'disabled' ,
+			  -variable=> \$useType1Font,
+			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
-  $bf->Checkbutton(-text => 'Use colors',
-		   -variable => \$printColors,
-		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
-  $bf->Checkbutton(-text => 'Print sentence',
-		   -variable => \$snt,
-		   -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+  $bf->Checkbutton(-text=> 'Use colors',
+		   -variable=> \$printColors,
+		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+  $bf->Checkbutton(-text=> 'Print sentence',
+		   -variable=> \$snt,
+		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
-  $bf->Checkbutton(-text     => 'Disable landscape rotation of wide trees',
-			  -variable => \$noRotate,
-			  -relief   => 'flat')->pack(-fill => 'y',-anchor => 'nw');
+  $bf->Checkbutton(-text    => 'Disable landscape rotation of wide trees',
+			  -variable=> \$noRotate,
+			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   
-  $bf->pack(-side => 'right');
-  $of->pack(-fill => 'x',-padx=>'1c');
-  my $sf = $d->Frame();
-  $sf->Label(-text => 'Page range:',
-	     -anchor => 'w',
-	     -justify => 'right')->pack(-side => 'left');
-  $sf->Entry(-relief => 'sunken',
-	     -width => 20,
-	     -font => $font,
-	     -textvariable => \$printRange)->pack(-side => 'left', -padx=>'2m');
-  $sf->pack(-side => 'bottom', -pady => '5m');
-  $ff->pack(-side => 'bottom', -pady => '5m');
+  $bf->pack(-side=> 'right');
+  $of->pack(-fill=> 'x',-padx=>'1c');
+  my $sf= $d->Frame();
+  $sf->Label(-text=> 'Page range:',
+	     -anchor=> 'w',
+	     -justify=> 'right')->pack(-side=> 'left');
+  $sf->Entry(-relief=> 'sunken',
+	     -width=> 20,
+	     -font=> $font,
+	     -textvariable=> \$printRange)->pack(-side=> 'left', -padx=>'2m');
+  $sf->pack(-side=> 'bottom', -pady=> '5m');
+  $ff->pack(-side=> 'bottom', -pady=> '5m');
 
 #  $toFile ? $fe->focus : $ce->focus;
-  my $result = ShowDialog($d,$toFile ? $fe : $ce,$grp->{top});
-  $grp->{'printRange'}=$printRange;
-#  $grp->{'printSelection'}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
-  $grp->{'printToFile'}=$toFile;
-  $grp->{'printToEPS'}=$toEPS;
-  $grp->{'printPsFile'}=$ fil;
-  $grp->{'printSentenceInfo'}=$snt;
-  $grp->{'printCommand'}=$com;
-  $grp->{'printUseType1Font'}=$useType1Font;
-  $grp->{'printNoRotate'}=$noRotate;
+  my $result= ShowDialog($d,$toFile ? $fe : $ce,$grp->{top});
+  $grp->{printRange}=$printRange;
+#  $grp->{printSelection}= join(' ',grep { $lt->selectionIncludes($_) } (0 .. $lt->size-1));
+  $grp->{printToFile}=$toFile;
+  $grp->{printToEPS}=$toEPS;
+  $grp->{printPsFile}=$ fil;
+  $grp->{printSentenceInfo}=$snt;
+  $grp->{printCommand}=$com;
+  $grp->{printUseType1Font}=$useType1Font;
+  $grp->{printNoRotate}=$noRotate;
   $d->destroy;
   undef $d;
-  if ($result =~ /OK/) {
-    return ($printRange,$toFile,$toEPS,$fil,$snt,$com,$useType1Font,$printColors);
+  if ($result=~ /OK/) {
+    return ($printRange,$toFile,$toEPS,$fil,$snt,$com,$useType1Font,$printColors,$noRotate);
   } else {
     return ();
   }
-  return ($result =~ /OK/);
+  return ($result=~ /OK/);
 }
 
 sub printThis {
@@ -1612,11 +1615,11 @@ sub onCurrentChange {
   my ($grp,$prev,$node)=@_;
   my $n;
   foreach $n ($prev,$node) { 
-    $grp->{'treeView'}->canvas->itemconfigure($n->{'_tkOval_'}, nodeOptions($grp,$n));
-    $grp->{'treeView'}->canvas->itemconfigure($n->{'_tkTextBox_'},nodeBoxOptions($grp,$n))
-      if ($grp->{'treeView'}->get_drawBoxes and exists($n->{'_tkTextBox_'}));
-    $grp->{'treeView'}->canvas->coords($n->{'_tkOval_'},
-				       $grp->{'treeView'}->node_coords($n,$grp->{currentNode}));
+    $grp->{treeView}->canvas->itemconfigure($n->{_tkOval_}, nodeOptions($grp,$n));
+    $grp->{treeView}->canvas->itemconfigure($n->{_tkTextBox_},nodeBoxOptions($grp,$n))
+      if ($grp->{treeView}->get_drawBoxes and exists($n->{_tkTextBox_}));
+    $grp->{treeView}->canvas->coords($n->{_tkOval_},
+				       $grp->{treeView}->node_coords($n,$grp->{currentNode}));
   }
 }
 
@@ -1629,7 +1632,7 @@ sub prepareFont {
     my $option,$value;
     my @b;
     foreach (@a) {
-      ($option, $value) = split(/\s*:\s*/, $_, 2);
+      ($option, $value)= split(/\s*:\s*/, $_, 2);
       push @b, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
     }
       # try
@@ -1668,7 +1671,7 @@ sub cascadeMenus {
   $i=$maxMenuLines;
   while ($i<=$#_) {
     $_=[@_[$i..min($i+$maxMenuLines-1,$#_)]];
-    push @$uuM,[Cascade => 'More...', -menuitems => $_];
+    push @$uuM,[Cascade=> 'More...', -menuitems=> $_];
     $uuM=$_;
     $i+=$maxMenuLines;
   }
@@ -1677,10 +1680,10 @@ sub cascadeMenus {
 
 sub saveFileStateUpdate {
   my ($grp)=@_;
-  $grp->{'saveButton'}->
-    configure(-image =>
+  $grp->{saveButton}->
+    configure(-image=>
 	      ($grp->{FSFile} and $grp->{FSFile}->notSaved)
-	      ? $grp->{'normalSavePixmap'} : $grp->{'savedSavePixmap'});
+	      ? $grp->{normalSavePixmap} : $grp->{savedSavePixmap});
 }
 
 
@@ -1694,7 +1697,7 @@ sub About {
       "Current file:\n".
 	$grp->{FSFile}->filename."\n".
 	  "Format: ".$grp->{FSFile}->fileFormat.", ".$grp->{FSFile}->lastTreeNo." trees\n";
-    my %colinf=(Shadow => [], Hilite =>, XHilite => []);
+    my %colinf=(Shadow=> [], Hilite=>, XHilite=> []);
     foreach ($grp->{FSFile}->FS->attributes) {
       push @{$colinf{$grp->{FSFile}->FS->color($_)}},$_
 	unless ($grp->{FSFile}->FS->color($_) eq 'normal');
@@ -1708,15 +1711,36 @@ sub About {
   my $ver=$version;
   $ver=~s/\$//g;
   $grp->{top}->toplevel->
-    messageBox(-icon => 'info',
-			  -type => 'ok',
-			  -message =>
+    messageBox(-icon=> 'info',
+			  -type=> 'ok',
+			  -message=>
 			  "TrEd $ver\n\n$fileinfo$colinf$message\n$about\n\nLast update: $lastupdate",
-			  -title => 'About');
+			  -title=> 'About');
+}
+
+sub newTrEdCanvas {
+  my ($top)=@_;
+  
+  my $canvas= 
+    $top->Scrolled('Canvas', 
+		   -width=> $defCWidth,
+		   -height=> $defCHeight, 
+		   qw /-relief sunken
+		       -borderwidth 2 
+                       -scrollbars se/, 
+		   -scrollregion=> [qw/0c 0c 100c 100c/],
+		   $treeViewOpts->{backgroundColor} 
+		   ? (-background=> $treeViewOpts->{backgroundColor}) : ()
+		  );
+  canvasBindMouseWheelVert($canvas);
+  canvasBindMouseWheelHoriz($canvas,"Shift");
+  addBindTags($canvas,'my');
+  addBindTags($canvas->Subwidget('scrolled'),'canvas');
+  return $canvas;
 }
 
 sub Tk::Widget::BindMouseWheelVert {
-    my($w,$modifier) = @_;
+    my($w,$modifier)= @_;
     $modifier.="-" if ($modifier);
     $w->bind("<$modifier"."MouseWheel>",
               [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
@@ -1727,7 +1751,7 @@ sub Tk::Widget::BindMouseWheelVert {
 }
 
 sub Tk::Widget::BindMouseWheelHoriz {
-    my($w,$modifier) = @_;
+    my($w,$modifier)= @_;
     $modifier.="-" if ($modifier);
     $w->bind("<$modifier"."MouseWheel>",
               [ sub { $_[0]->xview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
@@ -1741,7 +1765,7 @@ sub Tk::Widget::BindMouseWheelHoriz {
 
 
 sub canvasBindMouseWheelVert {
-    my($w,$modifier) = @_;
+    my($w,$modifier)= @_;
     $modifier.="-" if ($modifier);
     $w->CanvasBind("<$modifier"."MouseWheel>",
               [ sub { $_[0]->yview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
@@ -1752,7 +1776,7 @@ sub canvasBindMouseWheelVert {
 }
 
 sub canvasBindMouseWheelHoriz {
-    my($w,$modifier) = @_;
+    my($w,$modifier)= @_;
     $modifier.="-" if ($modifier);
     $w->CanvasBind("<$modifier"."MouseWheel>",
               [ sub { $_[0]->xview('scroll',-($_[1]/120)*3,'units') }, Tk::Ev("D")]);
@@ -1779,14 +1803,14 @@ sub startMain {
 
   $group{top}=MainWindow->new;
 
-  $group{folderImage} = $group{top}->Pixmap(-file => Tk->findINC('folder.xpm'));
-  $group{fileImage}   = $group{top}->Pixmap(-file => Tk->findINC('file.xpm'));
-  $group{lastActionBookmark} = $lastAction;
+  $group{folderImage}= $group{top}->Pixmap(-file=> Tk->findINC('folder.xpm'));
+  $group{fileImage}  = $group{top}->Pixmap(-file=> Tk->findINC('file.xpm'));
+  $group{lastActionBookmark}= $lastAction;
 
   if (defined($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
         $geometry
-	  = "$1x$2+".min($3,$group{top}->vrootwidth-$1).
+	 = "$1x$2+".min($3,$group{top}->vrootwidth-$1).
 	    "+".min($4,$group{top}->vrootheight-$2);
     }
     $group{top}->geometry($geometry);
@@ -1800,47 +1824,47 @@ sub startMain {
 
   if (-f $appIcon) {
     print STDERR "adding icon-image.\n" if $tredDebug;
-    $group{top}->iconimage($group{top}->Pixmap(-file => "$appIcon"));
+    $group{top}->iconimage($group{top}->Pixmap(-file=> "$appIcon"));
     print STDERR "done.\n" if $tredDebug;
   }
 
-#  $group{'top'}->focusFollowsMouse;
-  addBindTags($group{'top'},'my','canvases');
+#  $group{top}->focusFollowsMouse;
+  addBindTags($group{top},'my','canvases');
 
   print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
 
   $group{top}->
-    protocol('WM_DELETE_WINDOW' => 
+    protocol('WM_DELETE_WINDOW'=> 
 	     [sub { $grp=shift;
 		    doEvalHook($grp,"exit_hook");
 		    # run user's exit_hook
 		    askSaveFiles($grp);
 		    closeFile($grp);
-		    $grp->{'top'}->destroy;
-		    $grp->{'top'}=undef;
+		    $grp->{top}->destroy;
+		    $grp->{top}=undef;
 		  },\%group]);
 
 
   print STDERR "Exit hook created.\n" if $tredDebug;
 
-  $group{Balloon}=$group{'top'}->Balloon(-initwait => 450, -balloonposition => 'mouse',
-					-state => 'balloon', -background => '#fff3b0');
-  $group{'frame'}=$group{'top'}->Frame;
+  $group{Balloon}=$group{top}->Balloon(-initwait=> 450, -balloonposition=> 'mouse',
+					-state=> 'balloon', -background=> '#fff3b0');
+  $group{frame}=$group{top}->Frame;
 
 
 
   print STDERR "Creating menubar.\n" if $tredDebug;
 
 
-  $group{Menubar}=$group{top}->Frame(-relief => $menubarRelief, -borderwidth => 2);
+  $group{Menubar}=$group{top}->Frame(-relief=> $menubarRelief, -borderwidth=> 2);
   $group{Menubar}->pack(qw/-fill x/);
-  $group{top}->Frame(-relief => sunken, -height=>2, -borderwidth => 2)->pack(qw/-fill x/);
+  $group{top}->Frame(-relief=> sunken, -height=>2, -borderwidth=> 2)->pack(qw/-fill x/);
   addBindTags($group{Menubar},'my');
 
-  $group{FileMenu} = $group{Menubar}->Menubutton(qw/-text File -underline 0/);
-  $group{FileMenu}->command(-label=> 'Open ...', -underline => 0,   -command => [\&fileDialog, \%group]);
-  $group{FileMenu}->command(-label=> 'Close', -underline => 0, 
-			    -command => [ sub {
+  $group{FileMenu}= $group{Menubar}->Menubutton(qw/-text File -underline 0/);
+  $group{FileMenu}->command(-label=> 'Open ...', -underline=> 0,   -command=> [\&fileDialog, \%group]);
+  $group{FileMenu}->command(-label=> 'Close', -underline=> 0, 
+			    -command=> [ sub {
 					    my ($grp)=@_;
 					    removeFromFilelist($grp,
 							       undef,
@@ -1849,405 +1873,389 @@ sub startMain {
 					    closeFile($grp);
 					  }
 					 , \%group]);
-  $group{FileMenu}->command(-label => 'File List...', -underline => 5, -command => [\&filelistDialog, \%group]);
-#	 [Button => 'New',         -command => [\&menus_error2, 'New']],
-  $group{FileMenu}->command(-label => 'Save', -underline => 0, -command => [\&saveFile,\%group]);
-  $group{FileMenu}->command(-label => 'Save As ...', -underline => 5 ,-command => [\&saveFileAs, \%group]);
+  $group{FileMenu}->command(-label=> 'File List...', -underline=> 5, -command=> [\&filelistDialog, \%group]);
+#	 [Button=> 'New',         -command=> [\&menus_error2, 'New']],
+  $group{FileMenu}->command(-label=> 'Save', -underline=> 0, -command=> [\&saveFile,\%group]);
+  $group{FileMenu}->command(-label=> 'Save As ...', -underline=> 5 ,-command=> [\&saveFileAs, \%group]);
   $group{FileMenu}->separator();
-  $group{RecentFileMenu}=$group{FileMenu}->cascade(-label => "Recent Files", -underline => 0);
+  $group{RecentFileMenu}=$group{FileMenu}->cascade(-label=> "Recent Files", -underline=> 0);
   my $i=0;
   foreach (@recentFiles) {
-    $group{RecentFileMenu}->command(-label  => "$i.  $_",
-				    -underline => 0,
-				    -command => [\&openFile,\%group,$_]);
+    $group{RecentFileMenu}->command(-label => "$i.  $_",
+				    -underline=> 0,
+				    -command=> [\&openFile,\%group,$_]);
     $i++;
   }
-#  $group{PostponedFileMenu}=$group{FileMenu}->cascade(-label => "Postponed Files", -underline => 0);
+#  $group{PostponedFileMenu}=$group{FileMenu}->cascade(-label=> "Postponed Files", -underline=> 0);
 
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label => 'Previous File', -underline => 3, -command => [\&prevFile,\%group]);
-  $group{FileMenu}->command(-label => 'Next File', -underline => 0, -command => [\&nextFile,\%group]);
+  $group{FileMenu}->command(-label=> 'Previous File', -underline=> 3, -command=> [\&prevFile,\%group]);
+  $group{FileMenu}->command(-label=> 'Next File', -underline=> 0, -command=> [\&nextFile,\%group]);
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label => 'Print ...', -underline => 0, -command => [\&printThis,\%group]);
+  $group{FileMenu}->command(-label=> 'Print ...', -underline=> 0, -command=> [\&printThis,\%group]);
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label =>'Edit config file ...', -underline => 0,  -command => [\&editConfig,\%group]);
-  $group{FileMenu}->command(-label =>'Reload config ...', -underline => 3, -command => [sub {
+  $group{FileMenu}->command(-label=>'Edit config file ...', -underline=> 0,  -command=> [\&editConfig,\%group]);
+  $group{FileMenu}->command(-label=>'Reload config ...', -underline=> 3, -command=> [sub {
 							  read_config();
 							  redraw_tree(shift);
 							},\%group]);
   $group{FileMenu}->separator();
-  $group{FileMenu}->command(-label =>'Quit', -underline => 0, -command => [sub { $grp=shift;
+  $group{FileMenu}->command(-label=>'Quit', -underline=> 0, -command=> [sub { $grp=shift;
 						       askSaveFiles($grp);
-						       $grp->{'top'}->destroy;
+						       $grp->{top}->destroy;
 						    },\%group]);
 	
   $group{FileMenu}->pack(qw/-side left/);
 
-  $group{ViewMenu}= $group{Menubar}->Menubutton(qw/-text View -underline 0 -menuitems/ =>
+  $group{ViewMenu}= $group{Menubar}->Menubutton(qw/-text View -underline 0 -menuitems/=>
 	[
-	 [Button => 'Previous Tree',
-	  -underline => 0,
-	  -command => [\&prevTree,\%group]],
-	 [Button => 'Next Tree', -underline => 0, -command => [\&nextTree,\%group]],
-	 [Separator => ''],
-	 [Checkbutton => 'Draw boxes', -underline => 0,
-	   -variable => \$treeViewOpts->{drawBoxes},
-	   -command  => [sub {
+	 [Button=> 'Previous Tree',
+	  -underline=> 0,
+	  -command=> [\&prevTree,\%group]],
+	 [Button=> 'Next Tree', -underline=> 0, -command=> [\&nextTree,\%group]],
+	 [Separator=> ''],
+	 [Checkbutton=> 'Draw boxes', -underline=> 0,
+	   -variable=> \$treeViewOpts->{drawBoxes},
+	   -command => [sub {
 			   my ($grp)=@_;
-			   $grp->{'treeView'}->set_drawBoxes($treeViewOpts->{drawBoxes});
+			   $grp->{treeView}->set_drawBoxes($treeViewOpts->{drawBoxes});
 			   redraw_tree($grp);
 			 },\%group]],
-	 [Checkbutton => 'Show Hidden Nodes', -underline => 0,
-	  -underline => 5,
-	  -variable => \$showHidden,
-	  -command  => [sub { getNodes(@_);
+	 [Checkbutton=> 'Show Hidden Nodes', -underline=> 0,
+	  -underline=> 5,
+	  -variable=> \$showHidden,
+	  -command => [sub { getNodes(@_);
 			      currentUnhiden(@_);
 			      redraw_tree(@_) },\%group]],
-	 [Checkbutton => 'Highlight Attributes', -underline => 1,
-	  -variable => \$treeViewOpts->{highlightAttributes},
-	  -command  => [sub {
+	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
+	  -variable=> \$treeViewOpts->{highlightAttributes},
+	  -command => [sub {
 			   my ($grp)=@_;
-			   $grp->{'treeView'}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
+			   $grp->{treeView}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
 			   redraw_tree($grp);
 			 },\%group]],
-	 [Checkbutton => 'Sort Attributes in Dialogs', -underline => 1,
-	  -variable => \$sortAttrs],
-	 [Separator => ''],
-	 [Button => 'List of sentences ...', -underline => 1,
-	  -command => [\&viewSentencesDialog,\%group]],
-	 [Separator => ''],
-	 [Button => 'Customize Attributes ...', -underline => 0,
-	  -command => [\&customAttrsDialog,\%group]],
-	 [Separator => ''],
-	 [Button => 'List of Named Macros ...', -underline => 0,
-	  -command => [\&macrolistDialog,\%group]]
+	 [Checkbutton=> 'Sort Attributes in Dialogs', -underline=> 1,
+	  -variable=> \$sortAttrs],
+	 [Separator=> ''],
+	 [Button=> 'List of sentences ...', -underline=> 1,
+	  -command=> [\&viewSentencesDialog,\%group]],
+	 [Separator=> ''],
+	 [Button=> 'Customize Attributes ...', -underline=> 0,
+	  -command=> [\&customAttrsDialog,\%group]],
+	 [Separator=> ''],
+	 [Button=> 'List of Named Macros ...', -underline=> 0,
+	  -command=> [\&macrolistDialog,\%group]]
 	])->pack(qw/-side left/);
-  $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/ =>
+  $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/=>
 	[
-	 [Button => 'New Node', -underline => 0, -command => [sub {
+	 [Button=> 'New Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
 					       newNode($grp);
 					     },\%group]],
-	 [Button => 'Remove Active Node', -underline => 0, -command => [sub {
+	 [Button=> 'Remove Active Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
 					       pruneNode($grp,$grp->{currentNode});
 					     },\%group]],
-	 [Button => 'Insert New Tree', -underline => 0, -command => [sub {
+	 [Button=> 'Insert New Tree', -underline=> 0, -command=> [sub {
 						      my ($grp)=@_;
 						      newTree($grp);
 						    },\%group]],
-	 [Button => 'Insert New Tree After', -underline => 16, -command => [sub {
+	 [Button=> 'Insert New Tree After', -underline=> 16, -command=> [sub {
 						      my ($grp)=@_;
 						      newTreeAfter($grp);
 						    },\%group]],
-	 [Button => 'Remove Whole Current Tree', -underline => 7, -command => [sub {
+	 [Button=> 'Remove Whole Current Tree', -underline=> 7, -command=> [sub {
 						      my ($grp)=@_;
 						      pruneTree($grp);
 						    },\%group]],
-	 [Separator => ''],
-	 [Button => 'Edit Attributes ...', -underline => 0, -command => [sub {
+	 [Separator=> ''],
+	 [Button=> 'Edit Attributes ...', -underline=> 0, -command=> [sub {
 						      my ($grp)=@_;
 						      editAttrsDialog($grp,$grp->{currentNode})
 							if ($grp->{currentNode});
 						    },\%group]],
-	 [Separator => ''],
-	 [Button => 'Find ...', -underline => 0,-command => [sub {
+	 [Separator=> ''],
+	 [Button=> 'Find ...', -underline=> 0,-command=> [sub {
 					      my ($grp,$template)=@_;
 					      findNodeDialog($grp,$template)
 						if ($grp->{currentNode});
 					    },\%group,\%searchTemplate]],
-	 [Button => 'Find Next', -underline => 7,
-	  -command => [\&doFindFirstTemplated,\%group,\%searchTemplate,1]],
-	 [Button => 'Find Previous', -underline => 5,
-	  -command => [\&doFindPrevTemplated,\%group,\%searchTemplate,1]]
+	 [Button=> 'Find Next', -underline=> 7,
+	  -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1]],
+	 [Button=> 'Find Previous', -underline=> 5,
+	  -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1]]
 
 	])->pack(qw/-side left/);
   print STDERR "Creating user menu.\n" if $tredDebug;
 
 
-  $group{PostponedFileMenu} = $group{Menubar}->Menubutton(qw/-text Session -underline 0/)
+  $group{PostponedFileMenu}= $group{Menubar}->Menubutton(qw/-text Session -underline 0/)
     ->pack(qw/-side left/);
   updatePostponed(\%group);
 
-  $group{BookmarksFileMenu} = $group{Menubar}->Menubutton(qw/-text Bookmarks -underline 0/)
+  $group{BookmarksFileMenu}= $group{Menubar}->Menubutton(qw/-text Bookmarks -underline 0/)
     ->pack(qw/-side left/);
   updateBookmarks(\%group);
 
 
   $group{ContextsMenu}=$group{Menubar}->
-    Optionmenu(-textvariable => \$group{macroContext},
-	       -command => [sub { my $grp=shift;
+    Optionmenu(-textvariable=> \$group{macroContext},
+	       -command=> [sub { my $grp=shift;
 				  switchContext($grp,$grp->{macroContext}); },\%group],
-	       -relief => 'groove', #$menubarRelief,
-	       -borderwidth => 2,
-	       -options => [sort(keys(%keyBindings))])->pack(qw/-side right/);
+	       -relief=> 'groove', #$menubarRelief,
+	       -borderwidth=> 2,
+	       -options=> [sort(keys(%keyBindings))])->pack(qw/-side right/);
   my $cM=[];
   if ($createMacroMenu) {
     push @$cM, 
       @{cascadeMenus(map { $keyBindings{TredMacro}->{$_}=~/$context\-\>(.*)/;
-			   [Button => $1,
-			    -command => [\&doEvalMacro,\%group,$keyBindings{TredMacro}->{$_}],
-			    -accelerator => "($_)"
+			   [Button=> $1,
+			    -command=> [\&doEvalMacro,\%group,$keyBindings{TredMacro}->{$_}],
+			    -accelerator=> "($_)"
 			   ]
 			 } sort(keys(%{$keyBindings{TredMacro}})))};
 
     foreach my $context (sort(keys(%keyBindings))) {
       if ($context ne "TredMacro") {
 	push @$cM, 
-	  [Cascade => $context,
-	   -menuitems =>
+	  [Cascade=> $context,
+	   -menuitems=>
 	   cascadeMenus(map { $keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
-			      [Button => $1,
-			       -command => [\&doEvalMacro,\%group,$keyBindings{$context}->{$_}],
-			       -accelerator => "($_)"
+			      [Button=> $1,
+			       -command=> [\&doEvalMacro,\%group,$keyBindings{$context}->{$_}],
+			       -accelerator=> "($_)"
 			      ]
 			    } sort(keys(%{$keyBindings{$context}})))];
       }
     }
 
     $group{MacroMenu}=$group{Menubar}->
-      Menubutton(qw/-text Shortcuts -underline 0 -menuitems/ =>
+      Menubutton(qw/-text Shortcuts -underline 0 -menuitems/=>
 		 $cM)->pack(qw/-side left/);
   }
 
   $cM=[];
   push @$cM,
-    @{cascadeMenus(map ([Button => $_,
-			 -command => [\&doEvalMacro,\%group,$menuBindings{TredMacro}->{$_}->[0]],
+    @{cascadeMenus(map ([Button=> $_,
+			 -command=> [\&doEvalMacro,\%group,$menuBindings{TredMacro}->{$_}->[0]],
 			 ($menuBindings{TredMacro}->{$_}->[1]) ?
-			 (-accelerator => "(".$menuBindings{TredMacro}->{$_}->[1].")") : ()],
+			 (-accelerator=> "(".$menuBindings{TredMacro}->{$_}->[1].")") : ()],
 			sort(keys(%{$menuBindings{TredMacro}}))))};
 
   foreach my $context (sort(keys(%menuBindings))) {
    if ($context eq "TredMacro") { 
    } else {
         push @$cM,
-  	[Cascade => $context,
-  	 -menuitems =>
-  	 cascadeMenus(map ([Button => $_,
-  			    -command => [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
+  	[Cascade=> $context,
+  	 -menuitems=>
+  	 cascadeMenus(map ([Button=> $_,
+  			    -command=> [\&doEvalMacro,\%group,$menuBindings{$context}->{$_}->[0]],
   			    ($menuBindings{$context}->{$_}->[1]) ?
-  			    (-accelerator => "(".$menuBindings{$context}->{$_}->[1].")") : ()],
+  			    (-accelerator=> "(".$menuBindings{$context}->{$_}->[1].")") : ()],
   			   sort(keys(%{$menuBindings{$context}}))))];
       }
   }
   $group{UserMenu}=$group{Menubar}->
-    Menubutton(qw/-text User-defined -underline 0 -menuitems/ =>
+    Menubutton(qw/-text User-defined -underline 0 -menuitems/=>
 	       $cM)->pack(qw/-side left/);
 
 
 
 
-  addBindTags($group{'frame'},'my');
-  my $canvas = $group{'top'}->Scrolled('Canvas', -width => $defCWidth,
-				       -height => $defCHeight, 
-				       qw /-relief sunken
-			                   -borderwidth 2 -scrollbars se/, -scrollregion =>
-				       [qw/0c 0c 100c 100c/],
-				       $treeViewOpts->{backgroundColor} ?
-				       (-background => $treeViewOpts->{backgroundColor}) : ());
-  canvasBindMouseWheelVert($canvas);
-  canvasBindMouseWheelHoriz($canvas,"Shift");
+  addBindTags($group{frame},'my');
 
-
-
-  require Tk::Adjuster;
-  $group{canvasAdjuster}=$group{top}->Adjuster(-side => top, -widget => $canvas);
-
-  $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -underline 0 -menuitems/ =>
+  $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -underline 0 -menuitems/=>
 	[
-	 [Button => 'About', -underline => 0, -command => [\&About,\%group]]])->pack(qw/-side left/);
+	 [Button=> 'About', -underline=> 0, -command=> [\&About,\%group]]])->pack(qw/-side left/);
 
   prepareFonts(\%group);
 
   print STDERR "Creating canvas.\n" if $tredDebug;
 
-  $group{'vLineFrame'}=$group{'top'}->Frame();
-  $group{'valueLine'}=$group{'vLineFrame'}->Scrolled(qw/Entry -state disabled -relief sunken
-			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
-  $group{'valueLine'}->BindMouseWheelHoriz();
+  $group{vLineFrame}=$group{top}->Frame();
+  $group{valueLine}=$group{vLineFrame}->Scrolled(qw/Entry -state disabled -relief sunken
+			   -borderwidth 2 -scrollbars s/, -font=> $vLineFont, -textvariable=> \$valueLine);
+  $group{valueLine}->BindMouseWheelHoriz();
   # creating Canvas balloon
-  my $baloon=$group{top}->Balloon(-initwait => $canvasBalloonInitWait,
-				  -state => 'balloon',
-				  -background => '#fff3b0');
-  $baloon->Subwidget('message')->configure(-justify => 'left',-font => $font);
-  addBindTags($canvas,'my');
-  addBindTags($canvas->Subwidget('scrolled'),'canvas');
-
-  $group{'treeView'} = new TrEd::TreeView($canvas,'CanvasBalloon' => $baloon);
-#  TrEd::TreeView::apply_options($group{'treeView'},$treeViewOpts);
-  $group{'treeView'}->apply_options($treeViewOpts);
-  print $group{'treeView'}->{font},"\n";
+  my $baloon=$group{top}->Balloon(-initwait=> $canvasBalloonInitWait,
+				  -state=> 'balloon',
+				  -background=> '#fff3b0');
+  $baloon->Subwidget('message')->configure(-justify=> 'left',-font=> $font);
 
   print STDERR "Creating buttons.\n" if $tredDebug;
 
-  $group{'nextButton'}=$group{'frame'}->Button(-takefocus=>0, -text => "Next",
-					       -relief => $buttonsRelief,
-					       -image => $group{top}->Pixmap(-file =>
+  $group{nextButton}=$group{frame}->Button(-takefocus=>0, -text=> "Next",
+					       -relief=> $buttonsRelief,
+					       -image=> $group{top}->Pixmap(-file=>
 									     "$libDir/right.xpm"),
-					       -borderwidth => $buttonBorderWidth,
+					       -borderwidth=> $buttonBorderWidth,
 
-			    -command => [sub { nextTree(@_) },\%group]);
-  $group{Balloon}->attach($group{'nextButton'},
-		 -balloonmsg => "see the next tree");
-  addBindTags($group{'nextButton'},'my');
-  $group{'prevButton'}=$group{'frame'}->Button(-takefocus=>0, -text => "Prev",
-					       -relief => $buttonsRelief,
-					       -image => $group{top}->Pixmap(-file =>
+			    -command=> [sub { nextTree(@_) },\%group]);
+  $group{Balloon}->attach($group{nextButton},
+		 -balloonmsg=> "see the next tree");
+  addBindTags($group{nextButton},'my');
+  $group{prevButton}=$group{frame}->Button(-takefocus=>0, -text=> "Prev",
+					       -relief=> $buttonsRelief,
+					       -image=> $group{top}->Pixmap(-file=>
 									     "$libDir/left.xpm"),
-					       -borderwidth => $buttonBorderWidth,
-					       -command => [sub { prevTree(@_) },\%group]);
+					       -borderwidth=> $buttonBorderWidth,
+					       -command=> [sub { prevTree(@_) },\%group]);
   $group{Balloon}->attach($group{prevButton},
-		 -balloonmsg => "see the previous tree");
-  addBindTags($group{'prevButton'},'my');
+		 -balloonmsg=> "see the previous tree");
+  addBindTags($group{prevButton},'my');
 
-  $group{'openButton'}=$group{'frame'}->Button(-takefocus=>0, -text => "Open",
-					       -relief => $buttonsRelief,
-					       -image       => $group{top}->Pixmap(-file => "$libDir/fileopen.xpm"),
-					       -borderwidth => $buttonBorderWidth,
-			 -command => [sub { fileDialog(@_) },\%group])->pack(-side=>'left',-padx=>'1');
+  $group{openButton}=$group{frame}->Button(-takefocus=>0, -text=> "Open",
+					       -relief=> $buttonsRelief,
+					       -image      => $group{top}->Pixmap(-file=> "$libDir/fileopen.xpm"),
+					       -borderwidth=> $buttonBorderWidth,
+			 -command=> [sub { fileDialog(@_) },\%group])->pack(-side=>'left',-padx=>'1');
   $group{Balloon}->attach($group{openButton},
-		 -balloonmsg => "open file");
-  addBindTags($group{'openButton'},'my');
-  $group{'normalSavePixmap'}=$group{top}->Pixmap(-file =>"$libDir/filefloppy.xpm");
-  $group{'savedSavePixmap'}=$group{top}->Pixmap(-file =>"$libDir/filesaved.xpm");
-  $group{'saveButton'}=
-    $group{'frame'}->Button(-takefocus=>0, -text => "Save",
-			    -relief => $buttonsRelief,
-			    -image => $group{'savedSavePixmap'},
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub {
+		 -balloonmsg=> "open file");
+  addBindTags($group{openButton},'my');
+  $group{normalSavePixmap}=$group{top}->Pixmap(-file=>"$libDir/filefloppy.xpm");
+  $group{savedSavePixmap}=$group{top}->Pixmap(-file=>"$libDir/filesaved.xpm");
+  $group{saveButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Save",
+			    -relief=> $buttonsRelief,
+			    -image=> $group{savedSavePixmap},
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [sub {
 					   saveFile(@_)
 					 },\%group])->pack(-side=>'left',-padx=>'1');
 
   $group{Balloon}->attach($group{saveButton},
-			  -balloonmsg => "save current file");
-  addBindTags($group{'saveButton'},'my');
+			  -balloonmsg=> "save current file");
+  addBindTags($group{saveButton},'my');
 
-  $group{'prevFileButton'}=
-    $group{'frame'}->Button(-takefocus=>0, -text => "Prev file",
-			    -relief => $buttonsRelief,
-			    -image => $group{top}->Pixmap(-file =>
+  $group{prevFileButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Prev file",
+			    -relief=> $buttonsRelief,
+			    -image=> $group{top}->Pixmap(-file=>
 							  "$libDir/start.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub { prevFile(@_); },\%group])->pack(-side=>'left',
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [sub { prevFile(@_); },\%group])->pack(-side=>'left',
 									       -padx=>'1');
   $group{Balloon}->attach($group{prevFileButton},
-			  -balloonmsg => "visit the previous open file");
-  addBindTags($group{'prevFileButton'},'my');
+			  -balloonmsg=> "visit the previous open file");
+  addBindTags($group{prevFileButton},'my');
 
-  $group{'nextFileButton'}=
-    $group{'frame'}->Button(-takefocus=>0, -text => "Next file",
-			    -relief => $buttonsRelief,
-			    -image => $group{top}->Pixmap(-file =>
+  $group{nextFileButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Next file",
+			    -relief=> $buttonsRelief,
+			    -image=> $group{top}->Pixmap(-file=>
 							  "$libDir/finish.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub { nextFile(@_); },\%group])->pack(-side=>'left',
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [sub { nextFile(@_); },\%group])->pack(-side=>'left',
 									       -padx=>'1');
   $group{Balloon}->attach($group{nextFileButton},
-		 -balloonmsg => "visit the next open file");
-  addBindTags($group{'nextFileButton'},'my');
+		 -balloonmsg=> "visit the next open file");
+  addBindTags($group{nextFileButton},'my');
 
 
-  $group{'printButton'}=
-    $group{'frame'}->Button(-takefocus=>0, -text => "Print",
-			    -relief => $buttonsRelief,
-			    -image       => $group{top}->Pixmap(-file =>
+  $group{printButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Print",
+			    -relief=> $buttonsRelief,
+			    -image      => $group{top}->Pixmap(-file=>
 								"$libDir/fileprint.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub { printThis(@_) },\%group])->pack(-side=>'left',
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [sub { printThis(@_) },\%group])->pack(-side=>'left',
 									       -padx=>'1');
   $group{Balloon}->attach($group{printButton},
-		 -balloonmsg => "print ...");
-  addBindTags($group{'printButton'},'my');
+		 -balloonmsg=> "print ...");
+  addBindTags($group{printButton},'my');
 
-  $group{'findButton'}=
-    $group{'frame'}->Button(-takefocus=>0, -text => "Find",
-			    -relief => $buttonsRelief,
-			    -image       => $group{top}->Pixmap(-file =>
+  $group{findButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Find",
+			    -relief=> $buttonsRelief,
+			    -image      => $group{top}->Pixmap(-file=>
 								"$libDir/find.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub {
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [sub {
 					   my ($grp,$template)=@_;
 					   findNodeDialog($grp,$template)
 					     if ($grp->{currentNode});
 o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 									    -padx=>'1');
   $group{Balloon}->attach($group{findButton},
-		 -balloonmsg => "Find node ...");
-  addBindTags($group{'findButton'},'my');
+		 -balloonmsg=> "Find node ...");
+  addBindTags($group{findButton},'my');
 
-  $group{'findNextButton'}=
-    $group{'frame'}->Button(-takefocus=>0, -text => "Find Next",
-			    -relief => $buttonsRelief,
-			    -image       => $group{top}->Pixmap(-file =>
+  $group{findNextButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Find Next",
+			    -relief=> $buttonsRelief,
+			    -image      => $group{top}->Pixmap(-file=>
 								"$libDir/findnext.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [\&doFindFirstTemplated,\%group,\%searchTemplate,1])
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1])
       ->pack(-side=>'left', -padx=>'1');
   $group{Balloon}->attach($group{findNextButton},
-		 -balloonmsg => "Find next ...");
-  addBindTags($group{'findNextButton'},'my');
+		 -balloonmsg=> "Find next ...");
+  addBindTags($group{findNextButton},'my');
 
 
-  $group{'findPrevButton'}=
-    $group{'frame'}->Button(-takefocus=>0, -text => "Find Previous",
-			    -relief => $buttonsRelief,
-			    -image => $group{top}->Pixmap(-file =>
+  $group{findPrevButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Find Previous",
+			    -relief=> $buttonsRelief,
+			    -image=> $group{top}->Pixmap(-file=>
 								"$libDir/findprev.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [\&doFindPrevTemplated,\%group,\%searchTemplate,1])
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1])
       ->pack(-side=>'left', -padx=>'1');
   $group{Balloon}->attach($group{findPrevButton},
-		 -balloonmsg => "Find previous ...");
-  addBindTags($group{'findPrevButton'},'my');
+		 -balloonmsg=> "Find previous ...");
+  addBindTags($group{findPrevButton},'my');
 
 
-  $group{'frame'}->Frame()->pack(-side => 'left', -padx =>'10');
-  $group{'prevButton'}->pack(-side => 'left', -padx =>'1');
-  $group{'nextButton'}->pack(-side => 'left', -padx => '1');
+  $group{frame}->Frame()->pack(-side=> 'left', -padx=>'10');
+  $group{prevButton}->pack(-side=> 'left', -padx=>'1');
+  $group{nextButton}->pack(-side=> 'left', -padx=> '1');
 
 
 
 
-  $group{'attrButton'}=
-    $group{'frame'}->Button(-takefocus=>0, -text => "Attributes",
-			    -relief => $buttonsRelief,
-			    -image => $group{top}->Pixmap(-file =>
+  $group{attrButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Attributes",
+			    -relief=> $buttonsRelief,
+			    -image=> $group{top}->Pixmap(-file=>
 							  "$libDir/tick.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub { customAttrsDialog(@_) },\%group])->pack(-side=>'right',
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [sub { customAttrsDialog(@_) },\%group])->pack(-side=>'right',
 										 -padx=>'1');
   $group{Balloon}->attach($group{attrButton},
-		 -balloonmsg => "select visible attributes");
+		 -balloonmsg=> "select visible attributes");
 
   print STDERR "Packing widgets.\n" if $tredDebug;
 
 
-  $group{'frame'}->pack(-fill => 'x', -padx => '1', -pady => 1);
+  $group{frame}->pack(-fill=> 'x', -padx=> '1', -pady=> 1);
 
 
-  $group{'valueLine'}->pack(qw/-side left -fill x -expand yes/);
-  $group{'sentButton'}=
-    $group{'vLineFrame'}->Button(-takefocus=>0, -text => "Sentences",
-			    -relief => $buttonsRelief,
-			    -image => $group{top}->Pixmap(-file =>
+  $group{valueLine}->pack(qw/-side left -fill x -expand yes/);
+  $group{sentButton}=
+    $group{vLineFrame}->Button(-takefocus=>0, -text=> "Sentences",
+			    -relief=> $buttonsRelief,
+			    -image=> $group{top}->Pixmap(-file=>
 							  "$libDir/view_sent.xpm"),
-			    -borderwidth => $buttonBorderWidth,
-			    -command => [sub { viewSentencesDialog(@_) },\%group])
+			    -borderwidth=> $buttonBorderWidth,
+			    -command=> [sub { viewSentencesDialog(@_) },\%group])
       ->pack(qw/-side right -padx 1 -anchor n/);
-  $group{'vLineFrame'}->pack(qw/-fill x -expand no/);
+  $group{vLineFrame}->pack(qw/-fill x -expand no/);
 
-  $group{'treeView'}->canvas->pack(qw/-expand yes -fill both/);
-  addBindTags($canvas,'my','canvases');
-  #  $group{'contextLed'}->pack(-side => 'bottom');
-  
+  print STDERR "Creating first tree window...\n" if $tredDebug;
+  my $canvas=newTrEdCanvas($group{top});
+  $group{treeView}= new TrEd::TreeView($canvas,'CanvasBalloon'=> $baloon);
+  $group{treeView}->apply_options($treeViewOpts);
+  $group{treeView}->canvas->pack(qw/-expand yes -fill both/);
+  # frame canvas here
+#  $group{treeWindow}= new TrEd::Window($group{treeView});
+
+
   print STDERR "Binding keystrokes...\n" if $tredDebug;
-  #  $group{'frame'}->bind('my','<Control-x><KeyPress>' =>
+  #  $group{frame}->bind('my','<Control-x><KeyPress>'=>
   #			[sub { evalMacro(@_); Tk->break; }, \%group, 'CTRL-X+' ]);
-  $group{'Menubar'}->bind('Menubutton','<Escape>', sub { shift->Leave(); } );
-  $group{'frame'}->
-    bind('my','<Alt-KeyPress>' =>
+  $group{Menubar}->bind('Menubutton','<Escape>', sub { shift->Leave(); } );
+  $group{frame}->
+    bind('my','<Alt-KeyPress>'=>
 	 [sub { 
 	    if (defined(evalMacro(@_))) {
 	      Tk->break;
@@ -2271,118 +2279,118 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 	    }
 	  }, \%group,'ALT+']);
 
-  $group{'frame'}->bind('my','<KeyPress>' =>
+  $group{frame}->bind('my','<KeyPress>'=>
 			[sub { evalMacro(@_); Tk->break; }, \%group, '' ]);
 
   foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
               Control-Meta Alt-Shift Meta-Shift)) {
     foreach my $event (qw(KeyPress Right Left Up Down
                           Return comma period Next Prior greater less)) {
-      $group{'frame'}->bind('my',"<$_-$event>" =>
+      $group{frame}->bind('my',"<$_-$event>"=>
 			    [sub { evalMacro(@_); Tk->break; },
 			     \%group, keyBind($_)."+"])
 	unless ("$_-$event" eq "Alt-KeyPress")
     }
   }
 
-  #  $group{'frame'}->bind('all','<Tab>' => [sub {1;}]);
-  #  $group{'top'}->bind('dialog','<Tab>' => [sub { shift->focusNext(); }] );
-  #  $group{'top'}->bind('dialog','<Shift-Tab>' => [sub { shift->focusPrev(); }] );
-  #  $group{'frame'}->bind('all','<Shift-Tab>' => [sub {1;}]);
-  #  $group{'frame'}->bind('all','<Control-Tab>' => [sub {1;}]);
-  $group{'top'}->bind('all','<Tab>',undef);
+  #  $group{frame}->bind('all','<Tab>'=> [sub {1;}]);
+  #  $group{top}->bind('dialog','<Tab>'=> [sub { shift->focusNext(); }] );
+  #  $group{top}->bind('dialog','<Shift-Tab>'=> [sub { shift->focusPrev(); }] );
+  #  $group{frame}->bind('all','<Shift-Tab>'=> [sub {1;}]);
+  #  $group{frame}->bind('all','<Control-Tab>'=> [sub {1;}]);
+  $group{top}->bind('all','<Tab>',undef);
 
-  $group{'frame'}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
-  $group{'top'}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+  $group{frame}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+  $group{top}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
 
-  $group{'top'}->bind('my','<Tab>' => [sub { shift;
+  $group{top}->bind('my','<Tab>'=> [sub { shift;
 					     currentNext(@_); 
 					     Tk->break; },\%group]);
-  $group{'frame'}->bind('my','<Shift-ISO_Left_Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
-  $group{'frame'}->bind('my','<Shift-Tab>' => [sub { shift; currentPrev(@_); Tk->break; },\%group]);
+  $group{frame}->bind('my','<Shift-ISO_Left_Tab>'=> [sub { shift; currentPrev(@_); Tk->break; },\%group]);
+  $group{frame}->bind('my','<Shift-Tab>'=> [sub { shift; currentPrev(@_); Tk->break; },\%group]);
 
-  $group{'frame'}->bind('my','<period>' => [\&onIdleNextTree,\%group]);
-  $group{'frame'}->bind('my','<comma>' => [\&onIdlePrevTree,\%group]);
-  $group{'frame'}->bind('my','<Next>' => [\&onIdleNextTree,\%group]);
-  $group{'frame'}->bind('my','<Prior>' => [\&onIdlePrevTree,\%group]);
-  $group{'frame'}->bind('my','<greater>' => [sub { shift; my $grp=shift; gotoTree($grp,$grp->{FSFile}->lastTreeNo); Tk->break; },\%group]);
-  $group{'frame'}->bind('my','<less>' => [sub { shift; my $grp=shift; gotoTree($grp,0); Tk->break; },\%group]);
+  $group{frame}->bind('my','<period>'=> [\&onIdleNextTree,\%group]);
+  $group{frame}->bind('my','<comma>'=> [\&onIdlePrevTree,\%group]);
+  $group{frame}->bind('my','<Next>'=> [\&onIdleNextTree,\%group]);
+  $group{frame}->bind('my','<Prior>'=> [\&onIdlePrevTree,\%group]);
+  $group{frame}->bind('my','<greater>'=> [sub { shift; my $grp=shift; gotoTree($grp,$grp->{FSFile}->lastTreeNo); Tk->break; },\%group]);
+  $group{frame}->bind('my','<less>'=> [sub { shift; my $grp=shift; gotoTree($grp,0); Tk->break; },\%group]);
 
-  $group{'frame'}->bind('my','<KeyPress-Return>' => [sub {
+  $group{frame}->bind('my','<KeyPress-Return>'=> [sub {
 					      my ($w,$grp)=@_;
-					      editAttrsDialog($grp,$grp->{'currentNode'});
+					      editAttrsDialog($grp,$grp->{currentNode});
 					      Tk->break;
 					    },\%group]);
-  $group{'frame'}->bind('my','<KeyPress-Left>' => [sub {
+  $group{frame}->bind('my','<KeyPress-Left>'=> [sub {
 					   my ($w,$grp)=@_;
 					   currentLeft($grp);
 					   Tk->break;
 					 },\%group]);
-  $group{'frame'}->bind('my','<KeyPress-Right>' => [sub {
+  $group{frame}->bind('my','<KeyPress-Right>'=> [sub {
 					    my ($w,$grp)=@_;
 					    currentRight($grp);
 					   Tk->break;
 					  },\%group]);
-  $group{'frame'}->bind('my','<KeyPress-Up>' => [sub {
+  $group{frame}->bind('my','<KeyPress-Up>'=> [sub {
 					 my ($w,$grp)=@_;
 					 currentUp($grp);
 					 Tk->break;
 				       },\%group]);
-  $group{'frame'}->bind('my','<KeyPress-Down>' => [sub {
+  $group{frame}->bind('my','<KeyPress-Down>'=> [sub {
 					   my ($w,$grp)=@_;
 					   currentDown($grp);
 					   Tk->break;
 					 },\%group]);
 
   ## Canvas bindings  
-  $group{'treeView'}->canvas->bind('text', '<Any-Enter>' => [sub{
+  $group{treeView}->canvas->bind('text', '<Any-Enter>'=> [sub{
 			       my $c=shift;
 			       my $grp=shift;
 			       my $t=$c->find('withtag','current');
-			       my $node=$grp->{'treeView'}->pinfo->{$t};
+			       my $node=$grp->{treeView}->pinfo->{$t};
 			       $node->{_tkSaveColor_}=$c->itemcget($t,'-fill');
 			       $c->itemconfigure($t,
-						 -fill => $activeTextColor);
+						 -fill=> $activeTextColor);
 
 			     }, \%group]);
 
-  $group{'treeView'}->canvas->bind('text',
+  $group{treeView}->canvas->bind('text',
 			 '<Any-Leave>'
-			 => [sub{
+			=> [sub{
 			       my $c=shift;
 			       my $grp=shift;
 			       my $t=$c->find('withtag','current');
-			       my $node=$grp->{'treeView'}->pinfo->{$t};
+			       my $node=$grp->{treeView}->pinfo->{$t};
 			       $c->itemconfigure('current',
-						 -fill => $node->{_tkSaveColor_});
+						 -fill=> $node->{_tkSaveColor_});
 			     }, \%group]);
 
-  $group{'treeView'}->canvas->bind('point', '<1>' => [sub {node_down(@_) },\%group,0]);
+  $group{treeView}->canvas->bind('point', '<1>'=> [sub {node_down(@_) },\%group,0]);
 
-  $group{'treeView'}->canvas->bind('point', '<ButtonRelease-1>' => [sub {node_release(@_)},\%group,0]);
-  $group{'treeView'}->canvas->bind('point', '<B1-Motion>' => [sub {node_move(@_)},\%group]);
-  $group{'treeView'}->canvas->bind('point','<3>' => [sub {node_down(@_)},\%group,1]);
-  $group{'treeView'}->canvas->bind('point', '<ButtonRelease-3>' => [sub {node_release(@_)},\%group]);
-  $group{'treeView'}->canvas->bind('point','<B3-Motion>' => [sub {node_move(@_)},\%group,1]);
-  $group{'treeView'}->canvas->CanvasBind('<2>' => [sub {follow_mouse_press(@_)},\%group]);
-  $group{'treeView'}->canvas->CanvasBind('<B2-Motion>' => [sub {follow_mouse(@_)},\%group]);
-  $group{'treeView'}->canvas->bind('point', '<Double-1>' => [sub { editAttrs(@_); Tk->break; },\%group]);
-  $group{'treeView'}->canvas->bind('text', '<1>' => [sub {node_down(@_) },\%group,0]);
-  $group{'treeView'}->canvas->bind('text', '<Double-1>' => [sub { editAttr(@_); Tk->break; },\%group]);
-  $group{'treeView'}->canvas->bind('textbg', '<Double-1>' => [sub { editAttr(@_); Tk->break; },\%group]);
+  $group{treeView}->canvas->bind('point', '<ButtonRelease-1>'=> [sub {node_release(@_)},\%group,0]);
+  $group{treeView}->canvas->bind('point', '<B1-Motion>'=> [sub {node_move(@_)},\%group]);
+  $group{treeView}->canvas->bind('point','<3>'=> [sub {node_down(@_)},\%group,1]);
+  $group{treeView}->canvas->bind('point', '<ButtonRelease-3>'=> [sub {node_release(@_)},\%group]);
+  $group{treeView}->canvas->bind('point','<B3-Motion>'=> [sub {node_move(@_)},\%group,1]);
+  $group{treeView}->canvas->CanvasBind('<2>'=> [sub {follow_mouse_press(@_)},\%group]);
+  $group{treeView}->canvas->CanvasBind('<B2-Motion>'=> [sub {follow_mouse(@_)},\%group]);
+  $group{treeView}->canvas->bind('point', '<Double-1>'=> [sub { editAttrs(@_); Tk->break; },\%group]);
+  $group{treeView}->canvas->bind('text', '<1>'=> [sub {node_down(@_) },\%group,0]);
+  $group{treeView}->canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },\%group]);
+  $group{treeView}->canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },\%group]);
 
-  $group{'treeView'}->focus;
+  $group{treeView}->focus;
 
-  $group{'printToFile'}=0;
-  $group{'printCommand'}='lpr';
-  $group{'printPsFile'}=$psFile;
+  $group{printToFile}=0;
+  $group{printCommand}='lpr';
+  $group{printPsFile}=$psFile;
 
   print STDERR "Binding canvas destroy...\n" if $tredDebug;
-  $group{'top'}->bind('canvas', '<Destroy>',
+  $group{top}->bind('canvas', '<Destroy>',
 		      [ sub {
 			  shift;
 			  my $grp=shift;
-			  my $canvas=$grp->{'treeView'}->canvas->Subwidget('scrolled');
+			  my $canvas=$grp->{treeView}->canvas->Subwidget('scrolled');
 			  $defCWidth=$canvas->width();
 			  $defCHeight=$canvas->height();
 			  print "$defCHeight x $defCWidth\n";
@@ -2456,7 +2464,7 @@ o					 },\%group,\%searchTemplate])->pack(-side=>'left',
 
 sub onIdleNextTree {
   my ($w,$grp)=@_;
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   $grp->{treeNo}=max(0,min($grp->{treeNo}+1,$grp->{FSFile}->lastTreeNo));
   getValueLine($grp);
   $w->afterCancel($myIdle) if ($myIdle);
@@ -2494,13 +2502,13 @@ sub onIdlePrevTree {
 # here focus stays where it is.
 # Usage: my $dlg=DialogBox(); ...; ShowDialog($dlg);
 sub ShowDialog {
-  my ($cw, $focus, $oldFocus) = @_;
+  my ($cw, $focus, $oldFocus)= @_;
 
-  $oldFocus = $cw->focusCurrent unless $oldFocus;
-  my $oldGrab = $cw->grabCurrent;
-#  my $old_grab = $cw->grabSave;
-#  my $old_focus = $cw->grabSave;
-  my $grabStatus = $oldGrab->grabStatus if ($oldGrab);
+  $oldFocus= $cw->focusCurrent unless $oldFocus;
+  my $oldGrab= $cw->grabCurrent;
+#  my $old_grab= $cw->grabSave;
+#  my $old_focus= $cw->grabSave;
+  my $grabStatus= $oldGrab->grabStatus if ($oldGrab);
 
 #  $cw->grab;
 
@@ -2519,7 +2527,6 @@ sub ShowDialog {
   #&$old_grab;
   #&$old_focus;
   
-
   $cw->withdraw;
   $cw->grabRelease;
   if ($oldGrab) {
@@ -2530,18 +2537,18 @@ sub ShowDialog {
     }
   }
 
-  return $cw->{'selected_button'};
+  return $cw->{selected_button};
 }
 
 sub fileDialog {
-  my $grp = shift;
+  my $grp= shift;
   my $file;
 
 #  use Tk::FileSelect;
-#  my $FSref = $grp->{top}->FileSelect(-selectmode => extended);
+#  my $FSref= $grp->{top}->FileSelect(-selectmode=> extended);
 #  print $FSref->Show;
 
-  $file = $grp->{'top'}->getOpenFile(-filetypes => \@open_types);
+  $file= $grp->{top}->getOpenFile(-filetypes=> \@open_types);
   if (defined $file and $file ne '') {
     return openFile($grp,$file);
   }
@@ -2549,7 +2556,7 @@ sub fileDialog {
 }
 
 sub saveFileAs {
-  my $grp = shift;
+  my $grp= shift;
   my $initdir;
   return unless $grp->{FSFile};
   my $file=$grp->{FSFile}->filename;
@@ -2558,10 +2565,10 @@ sub saveFileAs {
   $initdir=cwd if ($initdir eq './');
 
 
-  $file = $grp->{'top'}->getSaveFile(-filetypes => \@save_types,
-				     -title => "Save As ...",
-				     -d $initdir ? (-initialdir => $initdir) : (),
-     				     $^O eq 'MSWin32' ? () : (-initialfile => filename($file)));
+  $file= $grp->{top}->getSaveFile(-filetypes=> \@save_types,
+				     -title=> "Save As ...",
+				     -d $initdir ? (-initialdir=> $initdir) : (),
+     				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   if (defined $file and $file ne '') {
     $grp->{FSFile}->changeFilename($file);
     updateTitle($grp);
@@ -2571,7 +2578,7 @@ sub saveFileAs {
 }
 
 sub askSaveFiles {
-  my ($grp) = @_;
+  my ($grp)= @_;
 
   askSaveFile($grp,0);
   while (@openfiles) {
@@ -2594,10 +2601,10 @@ sub askSaveFile {
   my ($grp,$keep)=@_;
   return unless ref($grp) and ref($grp->{FSFile}) and $grp->{FSFile}->notSaved;
 
-  my $d=$grp->{top}->Dialog(-text => $grp->{FSFile}->filename()."\n\nFile may be changed!\nDo you want to save it?",
-				 -bitmap => 'question', 
-				 -title => 'Save File Dialog',
-				 -buttons => ['Yes','No', $keep ? 'Keep' : ()]);
+  my $d=$grp->{top}->Dialog(-text=> $grp->{FSFile}->filename()."\n\nFile may be changed!\nDo you want to save it?",
+				 -bitmap=> 'question', 
+				 -title=> 'Save File Dialog',
+				 -buttons=> ['Yes','No', $keep ? 'Keep' : ()]);
   $d->bind('<Return>', sub { my $w=shift; my $f=$w->focusCurrent;
 			     $f->Invoke if ($f and $f->isa('Tk::Button')) } );
   my $answer=$d->Show();
@@ -2624,15 +2631,15 @@ sub saveConfig {
    my ($dc,$ic)=stat($configFile);
    my ($dh,$ih)=stat($trc);
    if ($configFile ne $trc and ($dc != $dh or $ic != $ih) and
-       (!defined($grp->{'top'}) or
-       $grp->{'top'}->toplevel->
-       messageBox(-icon => 'warning',
-		  -message => "Cannot write configuration to $configFile\n($lasterr)\n\n".
+       (!defined($grp->{top}) or
+       $grp->{top}->toplevel->
+       messageBox(-icon=> 'warning',
+		  -message=> "Cannot write configuration to $configFile\n($lasterr)\n\n".
 		  "Shell I try to save it to ~/.tredrc?\n",
-		  -title => 'Configuration cannot be saved',
-		  -type => 'YesNo',
-		  #			  -default => 'Yes' # problem: Windows 'yes', UNIX 'Yes'
-		 ) =~ /yes/i)) {
+		  -title=> 'Configuration cannot be saved',
+		  -type=> 'YesNo',
+		  #			  -default=> 'Yes' # problem: Windows 'yes', UNIX 'Yes'
+		 )=~ /yes/i)) {
      if (open(F,">".$trc)) {
        print F @_;
        close(F);
@@ -2657,51 +2664,51 @@ sub editConfig {
     $grp->{configDialog}->raise;
     return;
   }
-  $grp->{configDialog} = $grp->{'top'}->Toplevel(-title => "Edit Resource File ($configFile)" , 
-						   -width => "10c");
+  $grp->{configDialog}= $grp->{top}->Toplevel(-title=> "Edit Resource File ($configFile)" , 
+						   -width=> "10c");
   my $d=$grp->{configDialog};
   $d->withdraw;
 #  $d->resizable(0,0);
-  $d->bind('<Return>' => [sub {1;}]);
-  my $t = $d->
+  $d->bind('<Return>'=> [sub {1;}]);
+  my $t= $d->
     Scrolled(qw/Text -relief sunken -borderwidth 2 -setgrid true
 		     -height 30 -scrollbars e/);
   $t->pack(qw/-expand yes -fill both/);
   $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
   $bottom->
-    Button(-text => "  Save and Apply  ",
-	   -command => [sub {
+    Button(-text=> "  Save and Apply  ",
+	   -command=> [sub {
 			  my ($grp,$d,$t)=@_;
 			  saveConfig($grp,$t->get("0.0","end"));
 			  apply_config(split(/\n/,$t->get("0.0","end")));
 			  addToRecent($grp);
 			  prepareFonts($grp);
 			  updateTitle($grp);
-			  $grp->{valueLine}->configure(-font => $vLineFont);
+			  $grp->{valueLine}->configure(-font=> $vLineFont);
 			  $grp->{treeView}->apply_options($treeViewOpts);
 			  redraw_tree($grp);
 #			  $d->destroy;
 			},$grp,$d,$t])
-      ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
-  $bottom->Button(-text => "  Apply  ",
-		  -command => [sub {
+      ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
+  $bottom->Button(-text=> "  Apply  ",
+		  -command=> [sub {
 				 my $grp=shift;
 				 apply_config(split(/\n/,shift->get("0.0","end")));
 				 addToRecent($grp);
 				 prepareFonts($grp);
 				 updateTitle($grp);
-				 $grp->{valueLine}->configure(-font => $vLineFont);
+				 $grp->{valueLine}->configure(-font=> $vLineFont);
 				 $grp->{treeView}->apply_options($treeViewOpts);
 				 redraw_tree($grp);
 			       },$grp,$t])
-    ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
-  $bottom->Button(-text => "  Close  ", -command => [sub { shift->destroy; },$d])
-    ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+  $bottom->Button(-text=> "  Close  ", -command=> [sub { shift->destroy; },$d])
+    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
-  $d->bind('<Destroy>' => [sub { shift; shift->{configDialog}=undef; },$grp ]);
-  $d->bind($d,'<Escape>' => [sub { shift; shift->destroy(); },$d]);
+  $d->bind('<Destroy>'=> [sub { shift; shift->{configDialog}=undef; },$grp ]);
+  $d->bind($d,'<Escape>'=> [sub { shift; shift->destroy(); },$d]);
   if (open(F,"<$configFile")) {
     $t->insert('0.0',join "",<F>);
     close(F);
@@ -2714,26 +2721,26 @@ sub editConfig {
 sub QueryString {
   my ($grp, $title, $label,$default_text)=@_;
   my $newvalue=encode($default_text);
-  my $d=$grp->{'top'}->DialogBox(-title => $title,
-				 -buttons => ["OK", "Cancel"]);
-  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
+  my $d=$grp->{top}->DialogBox(-title=> $title,
+				 -buttons=> ["OK", "Cancel"]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   addBindTags($d,'dialog');
-  my $e=$d->add(Entry,-relief => 'sunken',
-		    -width => 40,
-		    -takefocus => 1,
-		    -font => $font,
-		    -textvariable => \$newvalue);
-  my $l = $d->Label(-text => encode($label),
-		    -anchor => 'e',
-		    -justify => 'right');
+  my $e=$d->add(Entry,-relief=> 'sunken',
+		    -width=> 40,
+		    -takefocus=> 1,
+		    -font=> $font,
+		    -textvariable=> \$newvalue);
+  my $l= $d->Label(-text=> encode($label),
+		    -anchor=> 'e',
+		    -justify=> 'right');
   $l->pack(-side=>'left');
   $e->pack(-side=>'right');
   $d->resizable(0,0);
 #  $e->focus;
-  my $result = ShowDialog($d,$e,$grp->{top});
+  my $result= ShowDialog($d,$e,$grp->{top});
   $d->destroy;
   undef $d;
-  if ($result =~ /OK/) {
+  if ($result=~ /OK/) {
     return decode($newvalue);
   } else {
     return undef;
@@ -2743,26 +2750,26 @@ sub QueryString {
 sub Query {
   my ($w, $title, $label,$default_text)=@_;
   my $newvalue=encode($default_text);
-  my $d=$w->DialogBox(-title => $title,
-				 -buttons => ["OK", "Cancel"]);
-  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
+  my $d=$w->DialogBox(-title=> $title,
+				 -buttons=> ["OK", "Cancel"]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   addBindTags($d,'dialog');
-  my $e=$d->add(Entry,-relief => 'sunken',
-		    -width => 40,
-		    -takefocus => 1,
-		    -font => $font,
-		    -textvariable => \$newvalue);
-  my $l = $d->Label(-text => encode($label),
-		    -anchor => 'e',
-		    -justify => 'right');
+  my $e=$d->add(Entry,-relief=> 'sunken',
+		    -width=> 40,
+		    -takefocus=> 1,
+		    -font=> $font,
+		    -textvariable=> \$newvalue);
+  my $l= $d->Label(-text=> encode($label),
+		    -anchor=> 'e',
+		    -justify=> 'right');
   $l->pack(-side=>'top');
   $e->pack(-side=>'left');
   $d->resizable(0,0);
 #  $e->focus;
-  my $result = ShowDialog($d,$e,$w);
+  my $result= ShowDialog($d,$e,$w);
   $d->destroy;
   undef $d;
-  if ($result =~ /OK/) {
+  if ($result=~ /OK/) {
     return decode($newvalue);
   } else {
     return undef;
@@ -2775,25 +2782,25 @@ sub selectValuesDialog {
  my $multi=0;
  my @prevSelectionSet;
 
- $grp->{'top'}->Busy(-recurse => 1);
+ $grp->{top}->Busy(-recurse=> 1);
  my $enabled=($force or doEvalHook($grp,'enable_attr_hook',$attr,"ambiguous") ne 'stop');
 
- my $d=$grp->{'top'}->DialogBox(-title => "$attr: select values", -width => '8c',
-				-buttons => $enabled ? ["OK", "Cancel"] : ["Cancel"]);
- $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
+ my $d=$grp->{top}->DialogBox(-title=> "$attr: select values", -width=> '8c',
+				-buttons=> $enabled ? ["OK", "Cancel"] : ["Cancel"]);
+ $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars e/,
-		    -height => min($maxDisplayedValues,scalar(@$vals)),
-		    -font => $font)->pack(qw/-expand yes -fill both/);
+		    -height=> min($maxDisplayedValues,scalar(@$vals)),
+		    -font=> $font)->pack(qw/-expand yes -fill both/);
  $l->insert('end',@$vals);
  $l->BindMouseWheelVert();
  if ($enabled) {
-   $l->bind('<Double-ButtonPress-1>' =>
+   $l->bind('<Double-ButtonPress-1>'=>
 	    [sub { my $w=shift;
 		   my $d=shift;
-		   my $e = $w->XEvent;
+		   my $e= $w->XEvent;
 		   $w->BeginSelect($w->index($e->xy));
-		   $d->{'selected_button'}='OK';
+		   $d->{selected_button}='OK';
 		 },$d
 	    ]);
  }
@@ -2810,15 +2817,15 @@ sub selectValuesDialog {
    }
  }
  if ($enabled) {
-   $d->Checkbutton(-text     => 'multiple select',
-		   -variable => \$multi,
-		   -command  => [sub {
-				   shift->configure(-selectmode => $multi ? 'multiple' : 'browse');
+   $d->Checkbutton(-text    => 'multiple select',
+		   -variable=> \$multi,
+		   -command => [sub {
+				   shift->configure(-selectmode=> $multi ? 'multiple' : 'browse');
 				 },$l],
-		   -relief   => 'flat')->pack();
+		   -relief  => 'flat')->pack();
    if ($may_add) {
-     $d->Button(-text => 'Add',
-		-command => [sub {
+     $d->Button(-text=> 'Add',
+		-command=> [sub {
 			       my ($grp,$l,$vals)=@_;
 			       my $val=QueryString($grp,"Add new value","Value");
 			       return unless defined $val;
@@ -2829,10 +2836,10 @@ sub selectValuesDialog {
 			     },$grp,$l,$vals])->pack();
    }
  }
- $grp->{'top'}->Unbusy();
+ $grp->{top}->Unbusy();
  $l->focus;
- my $result = ShowDialog($d,$l,$lastFocus);
- if ($result =~ /OK/) {
+ my $result= ShowDialog($d,$l,$lastFocus);
+ if ($result=~ /OK/) {
    # Hajic wanted this (I wash my hands):
    # first we store the values, which were selected originaly and stayed selected
    foreach my $s (@$selected) { 
@@ -2866,32 +2873,32 @@ sub viewSentencesDialog {
     $grp->{sentDialog}->raise;
     return;
   }
-  $grp->{sentDialog} = 
-    $grp->{'top'}->Toplevel(-title => "List of sentences for ".$grp->{FSFile}->filename(),
-			    -width => "10c");
+  $grp->{sentDialog}= 
+    $grp->{top}->Toplevel(-title=> "List of sentences for ".$grp->{FSFile}->filename(),
+			    -width=> "10c");
   my $d=$grp->{sentDialog};
   $d->withdraw;
 #  $d->resizable(0,0);
-  $d->bind('<Return>' => [sub {1;}]);
+  $d->bind('<Return>'=> [sub {1;}]);
   use Tk::ROText;
-  my $t = $d->
+  my $t= $d->
     Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
                      -spacing3 6 -wrap word -background white
-		     -height 20 -scrollbars e/,-font =>$font);
+		     -height 20 -scrollbars e/,-font=>$font);
   $t->pack(qw/-expand yes -fill both/);
   $t->BindMouseWheelVert();
   my $bottom=$d->Frame()->pack(qw/-expand yes -fill both/);
 
-  $bottom->Button(-text => "  Close  ", -command => [sub { shift->destroy; },$d])
-    ->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+  $bottom->Button(-text=> "  Close  ", -command=> [sub { shift->destroy; },$d])
+    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
 
-  $d->bind('<Destroy>' => [sub { shift; shift->{sentDialog}=undef; },$grp ]);
-  $d->bind('all','<Escape>' => [sub { shift; shift->destroy(); },$d]);
+  $d->bind('<Destroy>'=> [sub { shift; shift->{sentDialog}=undef; },$grp ]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->destroy(); },$d]);
 
   foreach my $r ($grp->{FSFile}->trees()) {
     my @nodes=();
-    my $sentord = $grp->{FSFile}->FS->sentord || $grp->{FSFile}->FS->order;
-    my $value = $grp->{FSFile}->FS->value;
+    my $sentord= $grp->{FSFile}->FS->sentord || $grp->{FSFile}->FS->order;
+    my $value= $grp->{FSFile}->FS->value;
     while ($r) {
       push @nodes,$r;
       $r=$r->following();
@@ -2906,11 +2913,11 @@ sub viewSentencesDialog {
 
 
 sub editListAttr {
-  my ($grp, $value, $attr,$d) =@_;
-  return unless $grp->{'FSFile'};
-  my @vals = map { encode($_) } $grp->{FSFile}->FS->listValues($attr);
+  my ($grp, $value, $attr,$d)=@_;
+  return unless $grp->{FSFile};
+  my @vals= map { encode($_) } $grp->{FSFile}->FS->listValues($attr);
   #print "splitting ",$value{$attr},"\n";
-  my @selected = map { encode($_) } split /\|/,$value;
+  my @selected= map { encode($_) } split /\|/,$value;
   #print "splitted to ", join ('-',@selected),"\n";
 
   if (selectValuesDialog($grp,$attr,\@vals,\@selected,0,$d)) {
@@ -2920,9 +2927,9 @@ sub editListAttr {
 }
 
 sub editAmbiguousAttr {
-  my ($grp, $value, $attr) =@_;
-  my @vals = map { encode($_) }split /\|/,$value;
-  my @selected = @vals;
+  my ($grp, $value, $attr)=@_;
+  my @vals= map { encode($_) }split /\|/,$value;
+  my @selected= @vals;
   
   if (selectValuesDialog($grp,$attr,\@vals,\@selected,1,$grp->{top})) {
     return decode(join('|',@selected));
@@ -2933,7 +2940,7 @@ sub editAmbiguousAttr {
 sub editAttrsDialog {
   my ($grp,$node)=@_;
   return if (doEvalHook($grp,"do_edit_node_hook",$node) eq 'stop');
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   my @vals;
   my @r=();
   my %e=();
@@ -2945,16 +2952,16 @@ sub editAttrsDialog {
   my $rows=min($maxDisplayedAttributes,$#atord+1);
   my ($a,$b,$r);
 
-  $grp->{'top'}->Busy(-recurse =>1);
-  my $d=$grp->{'top'}->DialogBox(-title => "Edit Node Attributes", -width => '10c',
-				 -buttons => ["OK", "Cancel"]);
-  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
+  $grp->{top}->Busy(-recurse=>1);
+  my $d=$grp->{top}->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
+				 -buttons=> ["OK", "Cancel"]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->resizable(0,0);
-  my $f = $d->Scrolled('Tiler',
-		       -columns =>2,
-		       -rows =>$rows,
-		       -relief => 'groove',
-		       -scrollbars => 'e');
+  my $f= $d->Scrolled('Tiler',
+		       -columns=>2,
+		       -rows=>$rows,
+		       -relief=> 'groove',
+		       -scrollbars=> 'e');
   $f->BindMouseWheelVert();	# does not work here for some reason
   sub focusxAtrEditDn {
     my ($w,$i,$e,$f,$rows,$cnt)=@_;
@@ -2993,40 +3000,40 @@ sub editAttrsDialog {
   for (my $i=0;$i<=$#atord;$i++) {
     $_=$atord[$i];
     # Reliefs: raised, sunken, flat, ridge, and groove.
-    push @r,$f->Label(-text => $_, -anchor => 'nw')->pack();
+    push @r,$f->Label(-text=> $_, -anchor=> 'nw')->pack();
 
     if  ($grp->{FSFile}->FS->isList($_) or
 	 $$node{$_}=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
-      $r = $f->Frame;
-      $e{$_} = $r->Entry(-relief => 'sunken', -takefocus => 1,
-			 -font => $font)->pack(qw/-expand yes -fill both -side left/);
+      $r= $f->Frame;
+      $e{$_}= $r->Entry(-relief=> 'sunken', -takefocus=> 1,
+			 -font=> $font)->pack(qw/-expand yes -fill both -side left/);
 #      unless (doEvalHook($grp,'enable_attr_hook',$_,"ambiguous") eq 'stop') {
-	$b=$r->Button(-text => "...", -takefocus => 0,
-		      -command => [sub {
+	$b=$r->Button(-text=> "...", -takefocus=> 0,
+		      -command=> [sub {
 				     my ($e,$grp,$node,$attr,$d)=@_;
-				     my $result =
+				     my $result=
 				       ($grp->{FSFile}->FS->isList($attr)
 					? editListAttr($grp,$e->get,$attr)
 					: editAmbiguousAttr($grp,$e->get,$attr,$d));
 				     if (defined $result) {
-				       $e->configure(-state => 'normal');
+				       $e->configure(-state=> 'normal');
 				       $e->delete(0,length($e->get));
 				       $e->insert(0,$result);
-				       $e->configure(-state => 'disabled');
+				       $e->configure(-state=> 'disabled');
 				     }
-				   },$e{$_},$grp,$node,$_,$d])->pack(-side => 'right');
+				   },$e{$_},$grp,$node,$_,$d])->pack(-side=> 'right');
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
 #      }
       $e{$_}->insert(0,encode($$node{$_}));
-      $e{$_}->configure(-state => 'disabled');
+      $e{$_}->configure(-state=> 'disabled');
       push @r, $r;
     } else {
-      $e{$_} = $f->Entry(-relief => 'sunken', -takefocus => 1,
-			 -font => $font)->pack(qw/-expand yes -fill both/);
+      $e{$_}= $f->Entry(-relief=> 'sunken', -takefocus=> 1,
+			 -font=> $font)->pack(qw/-expand yes -fill both/);
       $e{$_}->insert(0,encode($$node{$_}));
       if (doEvalHook($grp,'enable_attr_hook',$_,"normal") eq 'stop') {
-	$e{$_}->configure(-state => 'disabled');
+	$e{$_}->configure(-state=> 'disabled');
       }
 
       push @r, $e{$_};
@@ -3039,10 +3046,10 @@ sub editAttrsDialog {
   }
   $f->Manage(@r);
   $f->pack();
-  $grp->{'top'}->Unbusy();
+  $grp->{top}->Unbusy();
 
-  my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
-  if ($result =~ /OK/) {
+  my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
+  if ($result=~ /OK/) {
     $grp->{FSFile}->notSaved(1);
     lastActionBookmark($grp);
     foreach $a (@atord) {
@@ -3066,19 +3073,19 @@ sub editAttrsDialog {
 sub customAttrsDialog {
   my ($grp)=@_;
   return if (doEvalHook($grp,"customize_attrs_hook",$node) eq 'stop');
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   my $e;
 
-  $grp->{'top'}->Busy(-recurse =>1);
-  my $d=$grp->{'top'}->
-    DialogBox(-title => "Customize Visible Attributes",
-	      -width => '10c',
-	      -buttons => ["OK", "Cancel"]);
+  $grp->{top}->Busy(-recurse=>1);
+  my $d=$grp->{top}->
+    DialogBox(-title=> "Customize Visible Attributes",
+	      -width=> '10c',
+	      -buttons=> ["OK", "Cancel"]);
 
-  my $f = $d->Frame();
-  my $af = $f->Frame();
-  $af->Label(-text => 'Attributes')->pack();
-  my $al = $af->Scrolled(qw/Listbox -relief sunken 
+  my $f= $d->Frame();
+  my $af= $f->Frame();
+  $af->Label(-text=> 'Attributes')->pack();
+  my $al= $af->Scrolled(qw/Listbox -relief sunken 
                      -borderwidth 2 -setgrid true
 		     -height 15 -scrollbars e
                      -exportselection 0/)->pack();
@@ -3090,9 +3097,9 @@ sub customAttrsDialog {
   }
   $al->insert('end',@atord);
   $af->pack(qw/-padx 5 -side left -expand yes -fill both/);
-  my $cf = $f->Frame();
-  $cf->Label(-text => 'Display patterns')->pack();
-  my $cl =
+  my $cf= $f->Frame();
+  $cf->Label(-text=> 'Display patterns')->pack();
+  my $cl=
     $cf->Scrolled(qw/Listbox -relief sunken
                      -borderwidth 2 -setgrid true
 		     -scrollbars se
@@ -3103,8 +3110,8 @@ sub customAttrsDialog {
                             -padx 3 -pady 3/);
   $cl->BindMouseWheelVert();
   $cl->insert('end',$grp->{FSFile}->patterns,'   ');
-  $cf->Label(-text => 'Hint pattern')->pack();
-  my $t =
+  $cf->Label(-text=> 'Hint pattern')->pack();
+  my $t=
     $cf->Scrolled(qw/Text -relief sunken
                      -borderwidth 2 -setgrid true
 		     -height 4 -scrollbars se
@@ -3116,12 +3123,12 @@ sub customAttrsDialog {
                             -padx 3 -pady 3/);
   $t->insert('0.0',$grp->{FSFile}->hint);
   $t->BindMouseWheelVert();
-  my $e = $d->Entry(qw/-relief sunken
+  my $e= $d->Entry(qw/-relief sunken
                        -borderwidth 2/);
 
-  my $bf = $f->Frame();
-  $bf->Button(-text => "Add/Paste",
-	      -command =>
+  my $bf= $f->Frame();
+  $bf->Button(-text=> "Add/Paste",
+	      -command=>
 	      sub {
 		if ($e->get ne "") {
 		  $cl->insert('active',$e->get);
@@ -3130,10 +3137,10 @@ sub customAttrsDialog {
 		}
 		$e->selectionRange(0,'end');
 	      }
-	     )->pack(-side => top, -expand => yes, -padx => 3, -pady => 3);
+	     )->pack(-side=> top, -expand=> yes, -padx=> 3, -pady=> 3);
 
-  $bf->Button(-text => "Cut",
-	      -command =>
+  $bf->Button(-text=> "Cut",
+	      -command=>
 	      sub {
 		$cl->selectionClear($cl->index('end')-1)
 		  if ($cl->selectionIncludes($cl->index('end')-1));
@@ -3143,9 +3150,9 @@ sub customAttrsDialog {
 		  $cl->delete(($cl->curselection)[0]);
 		}
 	      }
-	     )->pack(-side => top, expand => yes, -padx => 3, -pady => 3);
-  $bf->Button(-text => "Delete",
-	      -command =>
+	     )->pack(-side=> top, expand=> yes, -padx=> 3, -pady=> 3);
+  $bf->Button(-text=> "Delete",
+	      -command=>
 	      sub {
 		$cl->selectionClear($cl->index('end')-1)
 		  if ($cl->selectionIncludes($cl->index('end')-1));
@@ -3153,11 +3160,11 @@ sub customAttrsDialog {
 		  $cl->delete(($cl->curselection)[0]);
 		}
 	      }
-	     )->pack(-side => top, expand => yes, -padx => 3, -pady => 3);
+	     )->pack(-side=> top, expand=> yes, -padx=> 3, -pady=> 3);
 
 
-  $bf->Button(-text => "Add as hint",
-	      -command =>
+  $bf->Button(-text=> "Add as hint",
+	      -command=>
 	      sub {
 		if ($e->get ne "") {
 		  Tk::catch { $t->delete('sel.first','sel.last') };
@@ -3165,7 +3172,7 @@ sub customAttrsDialog {
 		}
 		$e->selectionRange(0,'end');
 	      }
-	     )->pack(-side => top, -expand => yes, -padx => 3, -pady => 3);
+	     )->pack(-side=> top, -expand=> yes, -padx=> 3, -pady=> 3);
 
 
   $bf->pack(qw/-padx 5 -side left -expand yes -fill both/);
@@ -3175,33 +3182,33 @@ sub customAttrsDialog {
   $f->pack(qw/-side top -expand yes -fill x/);
   $e->pack(qw/-side bottom -expand yes -fill x/);
 
-  $d->bind('all','<Escape>' =>
+  $d->bind('all','<Escape>'=>
 	   [sub { shift;
-		  shift->{'selected_button'}='Cancel';
+		  shift->{selected_button}='Cancel';
 		},$d ]);
-  $al->bind('<Double-1>' => 
+  $al->bind('<Double-1>'=> 
 	   sub {
 	     $e->delete('sel.first','sel.last')
 	       if ($e->selectionPresent);
 	     $e->insert('insert','${'.$al->get('active').'}');
 	   }
 	  );
-  $cl->bind('<Double-1>' => 
+  $cl->bind('<Double-1>'=> 
 	   sub {
-	     return if ($cl->index('active') == $cl->index('end')-1);
+	     return if ($cl->index('active')== $cl->index('end')-1);
 	     if ($e->selectionPresent) {
 	       $e->delete('sel.first','sel.last')
 	     }
 	     $e->insert('insert',$cl->get('active'));
 	   }
 	  );
-  $d->bind('<Return>' => [sub {1;}]);
+  $d->bind('<Return>'=> [sub {1;}]);
   $d->resizable(0,0);
-  $grp->{'top'}->Unbusy();
+  $grp->{top}->Unbusy();
 
-  my $result = ShowDialog($d,$e,$grp->{top});
+  my $result= ShowDialog($d,$e,$grp->{top});
 
-  if ($result =~ /OK/) {
+  if ($result=~ /OK/) {
     $grp->{FSFile}->changeHint($t->get('0.0','end - 1 chars'));
     $grp->{FSFile}->changePatterns($cl->get(0,$cl->index('end')-2));
     redraw_tree($grp);
@@ -3219,7 +3226,7 @@ sub customAttrsDialog {
 
 sub findNodeDialog {
   my ($grp,$template)=@_;
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   my $r;
   my @vals;
   my @atord=$grp->{FSFile}->FS->attributes;
@@ -3233,29 +3240,29 @@ sub findNodeDialog {
   my $rows=min($maxDisplayedAttributes,$#atord+1);
   my @r=();
   my %e=();
-  $grp->{'top'}->Busy(-recurse =>1);
-  my $d=$grp->{'top'}->DialogBox(-title => "Find Node By Attributes", -width => '10c',
-				 -buttons => ["Find"]);
-  my $bcl=$d->Subwidget('bottom')->Button(-text => "Clear",
-				  -command => [sub { my $e=shift;
+  $grp->{top}->Busy(-recurse=>1);
+  my $d=$grp->{top}->DialogBox(-title=> "Find Node By Attributes", -width=> '10c',
+				 -buttons=> ["Find"]);
+  my $bcl=$d->Subwidget('bottom')->Button(-text=> "Clear",
+				  -command=> [sub { my $e=shift;
 						     foreach (keys %$e) {
 						       $e->{$_}->delete(0,'end');
 						     }
 						   },\%e] );
-  my $bca=$d->Subwidget('bottom')->Button(-text => "Cancel", 
-				  -command => [sub { shift->{'selected_button'} = "Cancel"},$d] );
+  my $bca=$d->Subwidget('bottom')->Button(-text=> "Cancel", 
+				  -command=> [sub { shift->{selected_button}= "Cancel"},$d] );
   foreach ($bcl,$bca) {
-    $_->configure(-width => 10, -pady => 0) if ($Tk::platform eq 'MSWin32');
-    $_->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
+    $_->configure(-width=> 10, -pady=> 0) if ($Tk::platform eq 'MSWin32');
+    $_->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   }
 
-  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->resizable(0,0);
-  my $f = $d->Scrolled('Tiler',
-		       -columns =>2,
-		       -rows =>$rows,
-		       -relief => 'groove',
-		       -scrollbars => 'e');
+  my $f= $d->Scrolled('Tiler',
+		       -columns=>2,
+		       -rows=>$rows,
+		       -relief=> 'groove',
+		       -scrollbars=> 'e');
   $f->BindMouseWheelVert();	# does not work here for some reason
   sub focusxFindDn {
     my ($w,$i,$e,$f,$rows,$cnt)=@_;
@@ -3297,10 +3304,10 @@ sub findNodeDialog {
   for (my $i=0;$i<=$#atord;$i++) {
     $_=$atord[$i];
     # Reliefs: raised, sunken, flat, ridge, and groove.
-    push @r,$f->Label(-text => $_, -anchor => 'nw')->pack();
+    push @r,$f->Label(-text=> $_, -anchor=> 'nw')->pack();
 
-    $e{$_} = $f->Entry(-relief => 'sunken', -takefocus => 1,
-		       -font => $font)->pack(qw/-expand yes -fill both/);
+    $e{$_}= $f->Entry(-relief=> 'sunken', -takefocus=> 1,
+		       -font=> $font)->pack(qw/-expand yes -fill both/);
     $e{$_}->insert(0,encode($template->{$_}));
     push @r, $e{$_};
 
@@ -3314,31 +3321,31 @@ sub findNodeDialog {
                # one may choose, but both have their plus and minus
 
   my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
-  $of->Label(-text => 'Search method: ')->pack(qw/-side left/);
+  $of->Label(-text=> 'Search method: ')->pack(qw/-side left/);
 
-  $of->Optionmenu(-variable => \$grp->{templateMatchMethod},
-		  -textvariable => \$grp->{templateMatchMethod},
-		  -options => ['Regular expression',
+  $of->Optionmenu(-variable=> \$grp->{templateMatchMethod},
+		  -textvariable=> \$grp->{templateMatchMethod},
+		  -options=> ['Regular expression',
 			       'Exhaustive regular expression',
 			       'Wildcard pattern',
 			       'Literal'])->pack(qw/-side left/);
 
   my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
-  $of->Label(-text => 'Search file-list: ')->pack(qw/-side left/);
-  my $om=$of->Optionmenu(-textvariable => \$grp->{searchFilelist})->pack(qw/-side left/);
+  $of->Label(-text=> 'Search file-list: ')->pack(qw/-side left/);
+  my $om=$of->Optionmenu(-textvariable=> \$grp->{searchFilelist})->pack(qw/-side left/);
 
   $om->options(['[Current file only]', map { $_->name } @filelists]);
 
-  $of->Button(-text => 'Edit',
-	      -command => [ sub {
+  $of->Button(-text=> 'Edit',
+	      -command=> [ sub {
 			      my ($grp)=@_;
 			      my $name=filelistDialog($grp,1);
 			      $om->options(['[Current file only]',map { $_->name } @filelists]);
 			      $grp->{searchFilelist}=$name if (ref(findFilelist($name)));
 			    },$grp,$om])->pack(qw/-side left/);
-  $grp->{'top'}->Unbusy();
-  my $result = ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
-  if ($result =~ /Find/) {
+  $grp->{top}->Unbusy();
+  my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
+  if ($result=~ /Find/) {
     foreach $a (@atord) {
       $template->{$a}=decode($e{$a}->get);
     }
@@ -3383,7 +3390,7 @@ sub _quick_update {
   my $grp=shift;
   $grp->{top}->Unbusy();
   $grp->{top}->update();
-  $grp->{top}->Busy(-recurse => 1);
+  $grp->{top}->Busy(-recurse=> 1);
 }
 
 ######################################
@@ -3394,18 +3401,18 @@ sub doFindFirstTemplated {
   my ($grp,$template,$cont)=@_;
   return undef unless ($grp->{currentNode});
   my $result;
-  $grp->{'top'}->Busy(-recurse => 1);
+  $grp->{top}->Busy(-recurse=> 1);
 
   print "Starting search!\n"  if $tredDebug;
   unless ($result=findFirstTemplated($grp,$template,$cont)) {
     redraw_tree($grp);
-    $grp->{'top'}->toplevel->
-      messageBox(-icon => 'warning',
-		 -message => $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
-		 -title => 'Find',
-		 -type => 'ok');
+    $grp->{top}->toplevel->
+      messageBox(-icon=> 'warning',
+		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
+		 -title=> 'Find',
+		 -type=> 'ok');
   }
-  $grp->{'top'}->Unbusy();
+  $grp->{top}->Unbusy();
   return $result;
 }
 
@@ -3417,17 +3424,17 @@ sub doFindPrevTemplated {
   my ($grp,$template,$cont)=@_;
   return undef unless ($grp->{currentNode});
   my $result;
-  $grp->{'top'}->Busy(-recurse => 1);
+  $grp->{top}->Busy(-recurse=> 1);
 
   unless ($result=findPrevTemplated($grp,$template,$cont)) {
     redraw_tree($grp);
-    $grp->{'top'}->toplevel->
-      messageBox(-icon => 'warning',
-		 -message => $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
-		 -title => 'Find',
-		 -type => 'ok');
+    $grp->{top}->toplevel->
+      messageBox(-icon=> 'warning',
+		 -message=> $grp->{stopSearch} ? "Interrupted by user!" : "No matching node found!",
+		 -title=> 'Find',
+		 -type=> 'ok');
   }
-  $grp->{'top'}->Unbusy();
+  $grp->{top}->Unbusy();
   return $result;
 }
 
@@ -3437,14 +3444,14 @@ sub doFindPrevTemplated {
 sub cmpTemplateField {
   my ($grp,$val,$templ)=@_;
   my $method=substr($grp->{templateMatchMethod},0,1);
-  return $val =~ /^$templ$/ if ($method eq 'E');
-  return $val =~ /$templ/ if ($method eq 'R');
+  return $val=~ /^$templ$/ if ($method eq 'E');
+  return $val=~ /$templ/ if ($method eq 'R');
   return $val eq $templ if ($method eq 'L');
   if ($method eq 'W') {
     $templ=~s/[.^$(){}<>\\]/\\\&/g;
     $templ=~s/\*/.\*/g;
     $templ=~s/\?/./g;
-    return $val =~ /^$templ$/;
+    return $val=~ /^$templ$/;
   }
   return $val eq $templ;
 }
@@ -3478,8 +3485,8 @@ sub nextNodeInSearchFilelist {
 ######################################
 sub findFirstTemplated {
   my ($grp,$template,$skipfirst)=@_;
-  return unless $grp->{'FSFile'};
-  my $node=$grp->{'currentNode'};
+  return unless $grp->{FSFile};
+  my $node=$grp->{currentNode};
   my $tree=$grp->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
@@ -3549,8 +3556,8 @@ sub prevNodeInSearchFilelist {
 ######################################
 sub findPrevTemplated {
   my ($grp,$template,$skipfirst)=@_;
-  return unless $grp->{'FSFile'};
-  my $node=$grp->{'currentNode'};
+  return unless $grp->{FSFile};
+  my $node=$grp->{currentNode};
   my $tree=$grp->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
@@ -3580,37 +3587,37 @@ sub findPrevTemplated {
 
 sub editAttrs {
   my ($w,$grp)=@_;
-  my $node=$grp->{'treeView'}->pinfo->{$w->find('withtag','current')};
+  my $node=$grp->{treeView}->pinfo->{$w->find('withtag','current')};
   editAttrsDialog($grp,$node);
 }
 
 sub editAttr {
   my ($w,$grp)=@_;
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   my $attr;
   my $newvalue;
 
   my $t=$w->find('withtag','current');
-  my $node=$grp->{'treeView'}->pinfo->{$t};
+  my $node=$grp->{treeView}->pinfo->{$t};
   my $d;
   setCurrent($grp,$node);
   $attr= (grep {$$node{$_} eq $t} keys %$node)[0];
   return 0 unless ($attr=~/^_tkText\[([^]]+)\]/);
   $attr=$1;
-  my $result = doEvalHook($grp,'do_edit_attr_hook',$attr,$node);
+  my $result= doEvalHook($grp,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
   if ($grp->{FSFile}->FS->isList($attr)) {
-    $newvalue = editListAttr($grp,$$node{$attr},$attr,$grp->{top});
+    $newvalue= editListAttr($grp,$$node{$attr},$attr,$grp->{top});
     if (defined($newvalue)) {
-      $grp->{'top'}->Busy(-recurse => 1);
+      $grp->{top}->Busy(-recurse=> 1);
       $grp->{FSFile}->notSaved(1);
       lastActionBookmark($grp);
       $$node{$attr}=$newvalue;
       doEvalHook($grp,"after_edit_attr_hook",$node,$attr,1);
       getNodes($grp);
       redraw_tree($grp);
-      $grp->{'top'}->Unbusy();
+      $grp->{top}->Unbusy();
     } else {
       doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
     }
@@ -3618,47 +3625,47 @@ sub editAttr {
   }
 
   if ($$node{$attr}=~/^(?:[^\|\\]|\\.)*\|/) {
-    $newvalue = editAmbiguousAttr($grp,$$node{$attr},$attr);
+    $newvalue= editAmbiguousAttr($grp,$$node{$attr},$attr);
     if (defined $newvalue) {
-      $grp->{'top'}->Busy(-recurse => 1);
+      $grp->{top}->Busy(-recurse=> 1);
       $grp->{FSFile}->notSaved(1);
       lastActionBookmark($grp);
       $$node{$attr}=$newvalue;
       doEvalHook($grp,"after_edit_attr_hook",$node,$attr,1);
       getNodes($grp);
       redraw_tree($grp);
-      $grp->{'top'}->Unbusy();
+      $grp->{top}->Unbusy();
     } else {
       doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
     }
     return;
   }
 
-  $grp->{'top'}->Busy(-recurse => 1);
+  $grp->{top}->Busy(-recurse=> 1);
 
 
   $newvalue=encode($$node{$attr});
-  $d = $grp->{'top'}->DialogBox(-title => "Edit Node Attribute",
-				-buttons => ["OK", "Cancel"]);
-  $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
+  $d= $grp->{top}->DialogBox(-title=> "Edit Node Attribute",
+				-buttons=> ["OK", "Cancel"]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  my $l = $d->Label(-text => $attr,
-		    -anchor => 'e',
-		    -justify => 'right')->pack(-side=>'left');
-  my $e = $d->Entry(-relief => 'sunken',
-		    -width => 40,
-		    -state => (doEvalHook($grp,'enable_attr_hook',
+  my $l= $d->Label(-text=> $attr,
+		    -anchor=> 'e',
+		    -justify=> 'right')->pack(-side=>'left');
+  my $e= $d->Entry(-relief=> 'sunken',
+		    -width=> 40,
+		    -state=> (doEvalHook($grp,'enable_attr_hook',
 					  $attr,"normal") eq 'stop') ? 'disabled' : 'normal',
-		    -takefocus => 1,
-		    -font => $font,
-		    -textvariable => \$newvalue)->pack();
+		    -takefocus=> 1,
+		    -font=> $font,
+		    -textvariable=> \$newvalue)->pack();
   $e->icursor('end');
 #  $e->focus;
-  $grp->{'top'}->Unbusy();
-  my $result = ShowDialog($d,$e,$grp->{top});
-#  $grp->{'top'}->Busy(-recurse => 1);
-  if ($result =~ /OK/) {
+  $grp->{top}->Unbusy();
+  my $result= ShowDialog($d,$e,$grp->{top});
+#  $grp->{top}->Busy(-recurse=> 1);
+  if ($result=~ /OK/) {
     $grp->{FSFile}->notSaved(1);
     lastActionBookmark($grp);
     $$node{$attr}=decode($newvalue);
@@ -3668,7 +3675,7 @@ sub editAttr {
   } else {
     doEvalHook($grp,"after_edit_attr_hook",$node,$attr,0);
   }
-#  $grp->{'top'}->Unbusy();
+#  $grp->{top}->Unbusy();
   $d->destroy;
   undef $d;
 }
@@ -3693,7 +3700,7 @@ sub redraw_tree {
   return if $insideEval;
   saveFileStateUpdate($grp);
   return
-    $grp->{'treeView'}->
+    $grp->{treeView}->
       redraw(
 	     $grp->{FSFile},
 	     $grp->{currentNode},
@@ -3703,21 +3710,21 @@ sub redraw_tree {
 }
 
 sub follow_mouse {
-  my ($w, $grp) = @_;
-  my $e = $w->XEvent;
-  my($x, $y) = ($w->fpixels($e->x), $w->fpixels($e->y));
+  my ($w, $grp)= @_;
+  my $e= $w->XEvent;
+  my($x, $y)= ($w->fpixels($e->x), $w->fpixels($e->y));
   scrollCanvasToXY($w, $grp, $x, $y);
 }
 
 sub follow_mouse_press {
-  my ($w, $grp) = @_;
-  my $e = $w->XEvent;
-  my($x, $y) = ($w->fpixels($e->x), $w->fpixels($e->y));
+  my ($w, $grp)= @_;
+  my $e= $w->XEvent;
+  my($x, $y)= ($w->fpixels($e->x), $w->fpixels($e->y));
 
-  $grp->{'treeView'}->pinfo->{'lastX'}=$x;
-  $grp->{'treeView'}->pinfo->{'lastY'}=$y;
-  $grp->{'treeView'}->pinfo->{'lastCanvasX'}=$w->canvasx($x);
-  $grp->{'treeView'}->pinfo->{'lastCanvasY'}=$w->canvasy($y);
+  $grp->{treeView}->pinfo->{lastX}=$x;
+  $grp->{treeView}->pinfo->{lastY}=$y;
+  $grp->{treeView}->pinfo->{lastCanvasX}=$w->canvasx($x);
+  $grp->{treeView}->pinfo->{lastCanvasY}=$w->canvasy($y);
 }
 
 
@@ -3728,169 +3735,169 @@ sub scrollCanvasToXY {
   my ($ay,$by)=$w->yview;
   my $canvasX;
 
-  my $sizeX=$w->fpixels($grp->{'treeView'}->{'canvasWidth'})*($bx-$ax);
-  my $shiftX=($x-$grp->{'treeView'}->pinfo->{'lastX'});
+  my $sizeX=$w->fpixels($grp->{treeView}->{canvasWidth})*($bx-$ax);
+  my $shiftX=($x-$grp->{treeView}->pinfo->{lastX});
   if ($shiftX>0) {
-    if ($grp->{'treeView'}->pinfo->{'lastX'} == $sizeX) {
+    if ($grp->{treeView}->pinfo->{lastX}== $sizeX) {
       $shiftX=0;
     } else {
-      $shiftX/=$sizeX-$grp->{'treeView'}->pinfo->{'lastX'}; # a fraction of our right move in window
+      $shiftX/=$sizeX-$grp->{treeView}->pinfo->{lastX}; # a fraction of our right move in window
     }
     $canvasX=$shiftX*
-      ($w->fpixels($grp->{'treeView'}->{'canvasWidth'})-
-	$grp->{'treeView'}->pinfo->{'lastCanvasX'}); # this is where we should get on the canvas
+      ($w->fpixels($grp->{treeView}->{canvasWidth})-
+	$grp->{treeView}->pinfo->{lastCanvasX}); # this is where we should get on the canvas
   }
   else {
-    if ($grp->{'treeView'}->pinfo->{'lastX'} == 0) {
+    if ($grp->{treeView}->pinfo->{lastX}== 0) {
       $shiftX=0;
     } else{
-      $shiftX/=$grp->{'treeView'}->pinfo->{'lastX'}
+      $shiftX/=$grp->{treeView}->pinfo->{lastX}
     }
     $canvasX=$shiftX*
-	$grp->{'treeView'}->pinfo->{'lastCanvasX'}; # this is where we should get on the canvas
+	$grp->{treeView}->pinfo->{lastCanvasX}; # this is where we should get on the canvas
   }
-  $canvasX+=$grp->{'treeView'}->pinfo->{'lastCanvasX'};
-  $w->xview(moveto =>
+  $canvasX+=$grp->{treeView}->pinfo->{lastCanvasX};
+  $w->xview(moveto=>
 	    max(0,min(1,($canvasX-$x+1+$w->fpixels($w->cget('-borderwidth')))
-		      /$grp->{'treeView'}->{'canvasWidth'})));
+		      /$grp->{treeView}->{canvasWidth})));
 
   # the same for Y
-  my $sizeY=$w->fpixels($grp->{'treeView'}->{'canvasHeight'})*($by-$ay);
-  my $shiftY=($y-$grp->{'treeView'}->pinfo->{'lastY'});
+  my $sizeY=$w->fpixels($grp->{treeView}->{canvasHeight})*($by-$ay);
+  my $shiftY=($y-$grp->{treeView}->pinfo->{lastY});
   if ($shiftY>0) {
-    if ($grp->{'treeView'}->pinfo->{'lastY'} == $sizeY) {
+    if ($grp->{treeView}->pinfo->{lastY}== $sizeY) {
       $shiftY=0;
     } else {
-      $shiftY/=$sizeY-$grp->{'treeView'}->pinfo->{'lastY'}; # a fraction of our right move in window
+      $shiftY/=$sizeY-$grp->{treeView}->pinfo->{lastY}; # a fraction of our right move in window
     }
     $canvasY=$shiftY*
-      ($w->fpixels($grp->{'treeView'}->{'canvasHeight'})-
-	$grp->{'treeView'}->pinfo->{'lastCanvasY'}); # this is where we should get on the canvas
+      ($w->fpixels($grp->{treeView}->{canvasHeight})-
+	$grp->{treeView}->pinfo->{lastCanvasY}); # this is where we should get on the canvas
   }
   else {
-    if ($grp->{'treeView'}->pinfo->{'lastY'}==0) {
+    if ($grp->{treeView}->pinfo->{lastY}==0) {
       $shiftY=0;
     } else {
-      $shiftY/=$grp->{'treeView'}->pinfo->{'lastY'};
+      $shiftY/=$grp->{treeView}->pinfo->{lastY};
     }
     $canvasY=$shiftY*
-	$grp->{'treeView'}->pinfo->{'lastCanvasY'}; # this is where we should get on the canvas
+	$grp->{treeView}->pinfo->{lastCanvasY}; # this is where we should get on the canvas
   }
-  $canvasY+=$grp->{'treeView'}->pinfo->{'lastCanvasY'};
-  $w->yview(moveto =>
+  $canvasY+=$grp->{treeView}->pinfo->{lastCanvasY};
+  $w->yview(moveto=>
 	    max(0,min(1,($canvasY-$y+1+$w->fpixels($w->cget('-borderwidth')))
-		      /$grp->{'treeView'}->{'canvasHeight'})));
+		      /$grp->{treeView}->{canvasHeight})));
 
 
-  $grp->{'treeView'}->pinfo->{'lastX'}=$x;
-  $grp->{'treeView'}->pinfo->{'lastY'}=$y;
-  $grp->{'treeView'}->pinfo->{'lastCanvasX'}=$w->canvasx($x);
-  $grp->{'treeView'}->pinfo->{'lastCanvasY'}=$w->canvasy($y);
+  $grp->{treeView}->pinfo->{lastX}=$x;
+  $grp->{treeView}->pinfo->{lastY}=$y;
+  $grp->{treeView}->pinfo->{lastCanvasX}=$w->canvasx($x);
+  $grp->{treeView}->pinfo->{lastCanvasY}=$w->canvasy($y);
 }
 
 sub currentUnhiden {
   my $grp=shift;
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   unless ($showHidden) {
-    my $node=$grp->{FSFile}->FS->isHidden($grp->{'currentNode'});
+    my $node=$grp->{FSFile}->FS->isHidden($grp->{currentNode});
     setCurrent($grp,$node->parent) if ($node and $node->parent);
   }
 }
 
 sub currentLeft {
   my $grp=shift;
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   if ($showHidden) {
-    if ($grp->{'currentNode'}->lbrother) {
-      setCurrent($grp,$grp->{'currentNode'}->lbrother);
-      centerTo($grp,$grp->{'currentNode'});
+    if ($grp->{currentNode}->lbrother) {
+      setCurrent($grp,$grp->{currentNode}->lbrother);
+      centerTo($grp,$grp->{currentNode});
     }
   } else {
-    my $n=$grp->{'currentNode'}->lbrother;
+    my $n=$grp->{currentNode}->lbrother;
     $n=$n->lbrother while ($n and defined($grp->{FSFile}->FS->hide)
 			   and ($n->{$grp->{FSFile}->FS->hide} eq 'hide'));
     if ($n) {
       setCurrent($grp,$n);
-      centerTo($grp,$grp->{'currentNode'});
+      centerTo($grp,$grp->{currentNode});
     }
   }
 }
 
 sub currentRight {
   my $grp=shift;
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   if ($showHidden) {
-    if ($grp->{'currentNode'}->rbrother) {
-      setCurrent($grp,$grp->{'currentNode'}->rbrother);
-      centerTo($grp,$grp->{'currentNode'});
+    if ($grp->{currentNode}->rbrother) {
+      setCurrent($grp,$grp->{currentNode}->rbrother);
+      centerTo($grp,$grp->{currentNode});
     }
   } else {
-    my $n=$grp->{'currentNode'}->rbrother;
+    my $n=$grp->{currentNode}->rbrother;
 
     $n=$n->rbrother while ($n and defined($n->{$grp->{FSFile}->FS->hide})
 			   and ($n->{$grp->{FSFile}->FS->hide} eq 'hide'));
     if ($n) {
       setCurrent($grp,$n);
-      centerTo($grp,$grp->{'currentNode'});
+      centerTo($grp,$grp->{currentNode});
     }
   }
 }
 
 sub currentDown {
   my $grp=shift;
-  return unless $grp->{'FSFile'};
+  return unless $grp->{FSFile};
   if ($showHidden) {
-    if ($grp->{'currentNode'}->firstson) {
-      setCurrent($grp,$grp->{'currentNode'}->firstson);
-      centerTo($grp,$grp->{'currentNode'});
+    if ($grp->{currentNode}->firstson) {
+      setCurrent($grp,$grp->{currentNode}->firstson);
+      centerTo($grp,$grp->{currentNode});
     }
   } else {
-    my $n=$grp->{'currentNode'}->firstson;
+    my $n=$grp->{currentNode}->firstson;
     $n=$n->rbrother while ($n and defined($n->{$grp->{FSFile}->FS->hide})
 			   and $n->{$grp->{FSFile}->FS->hide} eq 'hide');
     if ($n) {
       setCurrent($grp,$n);
-      centerTo($grp,$grp->{'currentNode'});
+      centerTo($grp,$grp->{currentNode});
     }
   }
 }
 
 sub currentUp {
   my $grp=shift;
-  if ($grp->{'currentNode'}->parent) {
-    setCurrent($grp,$grp->{'currentNode'}->parent);
-    centerTo($grp,$grp->{'currentNode'});
+  if ($grp->{currentNode}->parent) {
+    setCurrent($grp,$grp->{currentNode}->parent);
+    centerTo($grp,$grp->{currentNode});
   }
 }
 
 sub centerToXY {
-  ($grp, $x, $y) = @_;
-  ($ax,$bx)=$grp->{'treeView'}->canvas->xview;
-  ($ay,$by)=$grp->{'treeView'}->canvas->yview;
+  ($grp, $x, $y)= @_;
+  ($ax,$bx)=$grp->{treeView}->canvas->xview;
+  ($ay,$by)=$grp->{treeView}->canvas->yview;
 
   $shiftx=($bx-$ax)/2;
   $shifty=($by-$ay)/2;
 
-  $grp->{'treeView'}->canvas->xview(moveto => min(max(0,$x/$grp->{'treeView'}->{'canvasWidth'}-$shiftx),1))
-    if ($grp->{'treeView'}->{'canvasWidth'}-$shiftx);
-  $grp->{'treeView'}->canvas->yview(moveto => min(max(0,$y/$grp->{'treeView'}->{'canvasHeight'}-$shifty),1))
-    if ($y/$grp->{'treeView'}->{'canvasHeight'}-$shifty);
+  $grp->{treeView}->canvas->xview(moveto=> min(max(0,$x/$grp->{treeView}->{canvasWidth}-$shiftx),1))
+    if ($grp->{treeView}->{canvasWidth}-$shiftx);
+  $grp->{treeView}->canvas->yview(moveto=> min(max(0,$y/$grp->{treeView}->{canvasHeight}-$shifty),1))
+    if ($y/$grp->{treeView}->{canvasHeight}-$shifty);
 }
 
 sub centerTo {
-  ($grp, $node) = @_;
-  centerToXY($grp,$$node{'_tkXPOS_'},$$node{'_tkYPOS_'});
+  ($grp, $node)= @_;
+  centerToXY($grp,$$node{_tkXPOS_},$$node{_tkYPOS_});
 }
 
 sub doEvalHook {
   my ($grp,$hook)=(shift,shift);
-  return unless $hook and $grp->{'currentNode'};
+  return unless $hook and $grp->{currentNode};
   my $bookmark=bookmarkThis($grp);        # Save current position (as last action position)
 
   local $insideEval=1;
 
-  $this=$grp->{'currentNode'};
-  $root=$grp->{'root'};
+  $this=$grp->{currentNode};
+  $root=$grp->{root};
   $FileNotSaved=$grp->{FSFile}->notSaved;
   my $result=do_eval_hook($grp,$grp->{macroContext},$hook,@_);
 
@@ -3908,15 +3915,15 @@ sub doEvalHook {
 
 sub doEvalMacro {
   my ($grp,$macro)=(shift,shift);
-  return unless $macro and $grp->{'currentNode'};
+  return unless $macro and $grp->{currentNode};
 
-  $grp->{'top'}->Busy(-recurse => 1);
+  $grp->{top}->Busy(-recurse=> 1);
   my $bookmark=bookmarkThis($grp);
 
   $insideEval=1;
 
-  $this=$grp->{'currentNode'};
-  $root=$grp->{'root'};
+  $this=$grp->{currentNode};
+  $root=$grp->{root};
   $FileNotSaved=1;
   $forceFileSaved=0;
 
@@ -3938,14 +3945,14 @@ sub doEvalMacro {
 
   #------------------------------------------------------------
   #use Benchmark;
-  #my $t0 = new Benchmark;
+  #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
   redraw_tree($grp);  # ??? 4kb/50 runs memory leaks???, speed ok
   #------------------------------------------------------------
   #}
-  #my $t1 = new Benchmark;
-  #my $td = timediff($t1, $t0);
+  #my $t1= new Benchmark;
+  #my $td= timediff($t1, $t0);
   #print "$FileNotSaved the code took:",timestr($td),"\n";
   #------------------------------------------------------------
 
@@ -3959,7 +3966,7 @@ sub doEvalMacro {
 
   centerTo($grp,$grp->{currentNode});
 
-  $grp->{'top'}->Unbusy;
+  $grp->{top}->Unbusy;
   return $result;
 }
 
@@ -3979,8 +3986,8 @@ sub resolveKey {
 sub evalMacro {
   my ($w,$grp,$prefix)=@_;
   my $key;
-  my $e = $w->XEvent;
-  my $A = uc($e->A);
+  my $e= $w->XEvent;
+  my $A= uc($e->A);
   my @possib=();
   my $macro=undef;
 
@@ -3991,20 +3998,20 @@ sub evalMacro {
 
   push @possib,
     ($prefix.$A,
-      ($prefix =~/SHIFT/ and exists($pckey_shift_translates{$e->K})) ?
+      ($prefix=~/SHIFT/ and exists($pckey_shift_translates{$e->K})) ?
 	$prefix.$pckey_shift_translates{$e->K} : ()),
 	$prefix.uc($e->K);
 
   $macro=resolveKey($grp,@possib);
   if (defined $macro) {
 #    use Benchmark;
-#    my $t0 = new Benchmark;
+#    my $t0= new Benchmark;
 #    # ... your code here ...
 #    for (my $i=0;$i<=50;$i++) {
       doEvalMacro($grp,$macro);
 #    }
-#    my $t1 = new Benchmark;
-#    my $td = timediff($t1, $t0);
+#    my $t1= new Benchmark;
+#    my $td= timediff($t1, $t0);
 #    print "the code took:",timestr($td),"\n";
 
     return 1;
@@ -4014,71 +4021,71 @@ sub evalMacro {
 
 sub currentNext {
   my ($grp)=@_;
-  my $next=HNext($grp,$grp->{'currentNode'});
+  my $next=HNext($grp,$grp->{currentNode});
   if ($next) {
     setCurrent($grp,$next);
-    centerTo($grp,$grp->{'currentNode'});
+    centerTo($grp,$grp->{currentNode});
   }
 }
 
 
 sub currentPrev {
   my ($grp)=@_;
-  my $prev=HPrev($grp,$grp->{'currentNode'});
+  my $prev=HPrev($grp,$grp->{currentNode});
   if ($prev) {
     setCurrent($grp,$prev);
-    centerTo($grp,$grp->{'currentNode'});
+    centerTo($grp,$grp->{currentNode});
   }
 }
 
 
 sub node_down {
 
-    my($w,$grp) = @_;
+    my($w,$grp)= @_;
 
-    my $e = $w->XEvent;
-    my($x, $y) = ($e->x, $e->y);
-    my $node=$grp->{'treeView'}->pinfo->{$w->find('withtag','current')};
+    my $e= $w->XEvent;
+    my($x, $y)= ($e->x, $e->y);
+    my $node=$grp->{treeView}->pinfo->{$w->find('withtag','current')};
 
     setCurrent($grp,$node);
     $w->dtag('selected');
     $w->addtag('selected', 'withtag', 'current');
     $w->raise('current');
-    $grp->{'treeView'}->pinfo->{'lastX'} = $x;
-    $grp->{'treeView'}->pinfo->{'lastY'} = $y;
-    $grp->{'treeView'}->pinfo->{'lastCanvasX'}=$w->canvasx($x);
-    $grp->{'treeView'}->pinfo->{'lastCanvasY'}=$w->canvasy($y);
+    $grp->{treeView}->pinfo->{lastX}= $x;
+    $grp->{treeView}->pinfo->{lastY}= $y;
+    $grp->{treeView}->pinfo->{lastCanvasX}=$w->canvasx($x);
+    $grp->{treeView}->pinfo->{lastCanvasY}=$w->canvasy($y);
 } # end plot_down
 
 sub node_move {
 
-    my($w,$grp,$scroll) = @_;
+    my($w,$grp,$scroll)= @_;
 
-    my $e = $w->XEvent;
-    my($x, $y) = ($e->x, $e->y);
-    my $node=$grp->{'treeView'}->pinfo->{$w->find('withtag','selected')};
+    my $e= $w->XEvent;
+    my($x, $y)= ($e->x, $e->y);
+    my $node=$grp->{treeView}->pinfo->{$w->find('withtag','selected')};
 
-    my $lcx=$grp->{'treeView'}->pinfo->{'lastCanvasX'};
-    my $lcy=$grp->{'treeView'}->pinfo->{'lastCanvasY'};
+    my $lcx=$grp->{treeView}->pinfo->{lastCanvasX};
+    my $lcy=$grp->{treeView}->pinfo->{lastCanvasY};
     my $ncolor,$ocolor;
 
     if ($scroll) {
       $ncolor=$w->itemcget('selected','-fill');
       $ocolor=$w->itemcget('selected','-outline');
       $w->itemconfigure('selected',
-			-fill => $grp->{'treeView'}->canvas->cget('-background'),
-			-outline => $grp->{'treeView'}->canvas->cget('-background')
+			-fill=> $grp->{treeView}->canvas->cget('-background'),
+			-outline=> $grp->{treeView}->canvas->cget('-background')
 		       );
       scrollCanvasToXY($w, $grp, $x, $y);
     } else {
-      $grp->{'treeView'}->pinfo->{'lastCanvasX'}=$w->canvasx($x);
-      $grp->{'treeView'}->pinfo->{'lastCanvasY'}=$w->canvasy($y);
+      $grp->{treeView}->pinfo->{lastCanvasX}=$w->canvasx($x);
+      $grp->{treeView}->pinfo->{lastCanvasY}=$w->canvasy($y);
     }
-    my($cx, $cy) = ($w->canvasx($x),$w->canvasy($y));
+    my($cx, $cy)= ($w->canvasx($x),$w->canvasy($y));
     $w->move('selected',  $cx-$lcx, $cy-$lcy);
-    $w->itemconfigure('selected', -fill => $ncolor, -outline => $ocolor ) if $scroll;
+    $w->itemconfigure('selected', -fill=> $ncolor, -outline=> $ocolor ) if $scroll;
     $w->itemconfigure('nearest', $grp->{treeView}->node_options($node,$grp->{FSFile}->FS,undef));
-#  		      -fill => (isShown($grp,$node,0) ?
+#  		      -fill=> (isShown($grp,$node,0) ?
 #  						     $grp->{treeView}->get_nodeColor :
 #  						     $grp->{treeView}->get_hiddenNodeColor));
     $w->dtag('nearest');
@@ -4088,50 +4095,50 @@ sub node_move {
     my $bestDist=10000;
     my $dist;
     foreach $p (@dots) {
-      if ($grp->{'treeView'}->pinfo->{$p} and $grp->{'treeView'}->pinfo->{$p}!=$node) {
+      if ($grp->{treeView}->pinfo->{$p} and $grp->{treeView}->pinfo->{$p}!=$node) {
 	$dist=
-	  ($cx-$grp->{'treeView'}->pinfo->{$p}{'_tkXPOS_'})*
-	    ($cx-$grp->{'treeView'}->pinfo->{$p}{'_tkXPOS_'})+
-	      ($cy-$grp->{'treeView'}->pinfo->{$p}{'_tkYPOS_'})*
-		($cy-$grp->{'treeView'}->pinfo->{$p}{'_tkYPOS_'});
+	  ($cx-$grp->{treeView}->pinfo->{$p}{_tkXPOS_})*
+	    ($cx-$grp->{treeView}->pinfo->{$p}{_tkXPOS_})+
+	      ($cy-$grp->{treeView}->pinfo->{$p}{_tkYPOS_})*
+		($cy-$grp->{treeView}->pinfo->{$p}{_tkYPOS_});
 	if ($bestDist>$dist) {
 	  $bestDist=$dist;
-	  $nearestNode=$grp->{'treeView'}->pinfo->{$p};
+	  $nearestNode=$grp->{treeView}->pinfo->{$p};
 	}
       }
     }
     if ($bestDist<800) {
       $w->addtag('nearest','withtag',$$nearestNode{"_tkOval_"});
       $w->itemconfigure($$nearestNode{"_tkOval_"}, 
-			-fill => $grp->{treeView}->get_nearestNodeColor);
+			-fill=> $grp->{treeView}->get_nearestNodeColor);
     }
 } # end plot_move
 
 sub node_release {
-  my($w,$grp) = @_;
-  return unless $grp->{'FSFile'};
-  my $e = $w->XEvent;
-  my($x, $y) = ($e->x, $e->y);
+  my($w,$grp)= @_;
+  return unless $grp->{FSFile};
+  my $e= $w->XEvent;
+  my($x, $y)= ($e->x, $e->y);
   my $parent;
   my $node;
   my $center=0;
   my $sel=$w->find('withtag','selected');
-  $node=$grp->{'treeView'}->pinfo->{$sel} if (defined ($sel));
+  $node=$grp->{treeView}->pinfo->{$sel} if (defined ($sel));
 
   if ($node) {
     $p=$w->find('withtag','nearest');
     $w->dtag('selected');
     if (defined $p) {
-      $parent=$grp->{'treeView'}->pinfo->{$p};
+      $parent=$grp->{treeView}->pinfo->{$p};
       $w->itemconfigure($parent->{"_tkOval_"}, 
 			  nodeOptions($grp,$parent));
       while ($parent) {
 	$p=0, last if ($node eq $parent);
 	$parent=$parent->parent;
       }
-      if ($p and $grp->{'treeView'}->pinfo->{$p} 
-	  and $node->parent!=$grp->{'treeView'}->pinfo->{$p}) {
-	Paste(Cut($node),$grp->{'treeView'}->pinfo->{$p},$grp->{FSFile}->FS->defs);
+      if ($p and $grp->{treeView}->pinfo->{$p} 
+	  and $node->parent!=$grp->{treeView}->pinfo->{$p}) {
+	Paste(Cut($node),$grp->{treeView}->pinfo->{$p},$grp->{FSFile}->FS->defs);
 	$grp->{FSFile}->notSaved(1);
 	lastActionBookmark($grp);
 	redraw_tree($grp);
