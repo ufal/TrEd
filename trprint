@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2002-01-18 17:21:42 pajas>";
+$timestamp="Time-stamp: <2002-09-30 17:15:10 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -109,6 +109,8 @@ if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
 
 # This is first used to find TrEd::Config.pm module.
 
+our $inputenc='iso-8859-2';
+
 use FindBin;
 if (exists $ENV{TREDHOME}) {
   $libDir=$ENV{TREDHOME};
@@ -187,6 +189,11 @@ if ($useCzechLocales) {
 
 my %pp;				# print options
 
+if ($opt_D) {
+  $Fslib::Debug=1;
+  $TredDebug=1;
+}
+
 startMain();	# print the trees
 
 print STDERR "TrPrint ended.\n";
@@ -235,7 +242,7 @@ sub processParam {
   my $n;
   my $v;
   $arg=shift @ARGV;
-  if ($arg =~ /^([\+\-])([huUNIHRTSME1C]+)/) {
+  if ($arg =~ /^([\+\-])([huUDNIHRTSME1C]+)/) {
     # T is not used anymore, but it is accepted for compatibility
     $v=$1;
     foreach (split //,$2) {
@@ -274,8 +281,8 @@ sub startMain {
     $file=shift @ARGV;
     print STDERR "Opening $file\n";
     $opt_r='-' unless ($opt_r);
-
-    $fsfile = FSFile->newFSFile($file,@backends);
+    print STDERR @backends,"\n";
+    $fsfile = FSFile->newFSFile($file,$inputenc,@backends);
     if ($fsfile->lastTreeNo<0) {
       print STDERR "error: $file: empty or corrupt!\n";
       undef $fsfile;
