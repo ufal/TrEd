@@ -1,22 +1,41 @@
 # -*- cperl -*-
 
 package TrEd::ValLex::Extended;
-use ValLex::LibXMLData;
-use base qw(TrEd::ValLex::LibXMLData);
+
+sub _index_by_id {
+  my ($self)=@_;
+  my $word = $self->getFirstWordNode();
+  while ($word) {
+    $self->[8]->{$word->getAttribute('word_ID')}=$word;
+    foreach my $frame ($self->getFrameNodes($word)) {
+      $self->[8]->{$frame->getAttribute('frame_ID')}=$frame;
+    }
+    $word = $word->findNextSibling('word');
+  }
+}
+
+sub _index_by_lemma {
+  my ($self)=@_;
+  my $word = $self->getFirstWordNode();
+  while ($word) {
+    push @{$self->[9]->{$word->getAttribute('lemma')}},$word;
+    $word = $word->findNextSibling('word');
+  }
+}
 
 sub by_id {
   my ($self,$id)=@_;
-  return $self->doc->findnodes("id('$id')")->[0];
+  $self->_index_by_id() unless (ref($self->[8]));
+  my @result = grep {defined($_)} map { $self->[8]->{$_} } split /\s+/,$id;
+  return wantarray ? @result : $result[0];
 }
 
 sub word {
   my ($self,$lemma,$pos)=@_;
-  return $self->doc->findnodes(qq(/valency_lexicon/body/word[\@lemma="$lemma" and \@POS="$pos"]))->[0];
-}
-
-sub frames {
-  my ($self,$word,$cond)=@_;
-  return $word->findnodes(qq(valency_frames/frame${cond}));
+  $self->_index_by_lemma() unless ($self->[9]);
+  my $words = $self->[9]->{$lemma};
+  return unless ref($words);
+  return (grep { $_->getAttribute('POS') eq $pos } @$words)[0];
 }
 
 sub is_valid_frame {
@@ -26,7 +45,11 @@ sub is_valid_frame {
 
 sub valid_frames {
   my ($self,$word)=@_;
-  return $word->findnodes(qq(valency_frames/frame[\@status='active' or \@status='reviewed']));
+  return
+    grep { $_->getAttribute('status') eq 'active' or
+    		$_->getAttribute('status') eq 'reviewed'
+    	      }
+    $self->getFrameNodes($word);
 }
 
 sub frame_status {
@@ -39,37 +62,64 @@ sub frame_id {
   return $frame->getAttribute('frame_ID');
 }
 
-sub valid_frame_for {
+sub _uniq { my %a; @a{@_}=@_; values %a }
+sub valid_frames_for {
   my ($self,$frame)=@_;
   my $with;
-  while ($frame and ($with=$frame->getAttribute('substituted_with')) ne "") {
-    $frame=$self->by_id($with);
+  my @frames = ($frame);
+  my @resolve;
+  my %resolved;
+
+#  print "Start: ",$self->frame_id($frame),"\n";
+  while (@resolve = grep { $_->getAttribute('substituted_with') ne "" } @frames) {
+#    foreach (@resolve) {
+#      print "resolving ",$self->frame_id($_)," to ",$_->getAttribute('substituted_with'),"\n";
+#    }
+    @resolved{map { $self->frame_id($_) } @resolve} = ();
+    @frames = _uniq grep { !exists($resolved{$self->frame_id($_)}) } (@frames, map { $self->by_id($_->getAttribute('substituted_with')) } @resolve);
+#    print "resolve: ",join(" ",map { $self->frame_id($_) } @resolve),"\n";
+#    @frames = (@frames, map { $self->by_id($_->getAttribute('substituted_with')) } @resolve);
+#    print "Step1: ",join(" ",map { $self->frame_id($_) } @frames),"\n";
+#    @frames = grep { !exists($resolved{$self->frame_id($_)}) } @frames;
+#    print "Step2: ",join(" ",map { $self->frame_id($_) } @frames),"\n";
+#    @frames = _uniq @frames;
+#    print "Step3: ",join(" ",map { $self->frame_id($_) } @frames),"\n";
   }
-  if ($frame and $self->is_valid_frame($frame)) {
-    return $frame;
-  } else {
-    return undef;
-  }
+#  print "Result: ",join(" ",map { $self->frame_id($_) } grep { $self->is_valid_frame($_) } @frames),"\n";
+  return grep { $self->is_valid_frame($_) } @frames;
 }
 
 sub elements {
   my ($self,$frame)=@_;
-  return $frame->findnodes(q{frame_elements/element})
+  my $fe = $frame->findFirstChild('frame_elements');
+  return unless $fe;
+  return $fe->getChildrenByTagName('element');
 }
 
 sub oblig {
   my ($self,$frame)=@_;
-  return $frame->findnodes(q{frame_elements/element[@type='oblig' and @functor!='---']})
+  my $fe = $frame->findFirstChild('frame_elements');
+  return unless $fe;
+  return grep { $_->getAttribute('type') eq 'oblig' and
+		  $_->getAttribute('functor') ne '---'
+	      } $fe->getChildrenByTagName('element');
 }
 
 sub nonoblig {
   my ($self,$frame)=@_;
-  return $frame->findnodes(q{frame_elements/element[@type='non-oblig' and @functor!='---']})
+  my $fe = $frame->findFirstChild('frame_elements');
+  return unless $fe;
+  return grep { $_->getAttribute('type') eq 'non-oblig' and
+		  $_->getAttribute('functor') ne '---'
+	      } $fe->getChildrenByTagName('element');
 }
 
 sub word_form {
   my ($self,$frame)=@_;
-  my @wf = $frame->findnodes(q{frame_elements/element[@functor='---']});
+  my $fe = $frame->findFirstChild('frame_elements');
+  return unless $fe;
+  my @wf = grep { $_->getAttribute('functor') eq '---'
+	      } $fe->getChildrenByTagName('element');
   return wantarray ? @wf : $wf[0];
 }
 
@@ -80,12 +130,12 @@ sub func {
 
 sub forms {
   my ($self,$element)=@_;
-  return $element->findnodes('form');
+  return $element->getChildrenByTagName('form');
 }
 
 sub frame_word {
   my ($self,$frame) = @_;
-  return $frame->findnodes(qw{(ancestor::word)[1]})->[0];
+  return $frame->parentNode->parentNode;
 }
 
 sub word_lemma {
@@ -95,7 +145,9 @@ sub word_lemma {
 
 sub remove_node {
   my ($self, $node) = @_;
-  $node->unbindNode();
+  if ($node->parentNode) {
+    $node->parentNode->removeChild($node);
+  }
 }
 
 sub split_serialized_forms {
@@ -165,7 +217,7 @@ sub serialize_forms {
   my ($self,$element)=@_;
   return unless $element;
   my @forms;
-  foreach my $form ($element->findnodes("form")) {
+  foreach my $form ($element->getChildElementsByTagName("form")) {
     push @forms,$self->serialize_form($form);
   }
   return join ";",@forms;
@@ -176,4 +228,8 @@ sub serialize_form {
   return TrEd::ValLex::Data::serializeForm($node);
 }
 
+
+sub clone_frame {}
+
 1;
+
