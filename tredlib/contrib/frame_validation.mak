@@ -54,7 +54,8 @@ sub has_auxR {
       $result ||= (first { $_->{afun} eq 'AuxR' and $_->{lemma}=~/^se_/ }
 		   PDT::GetChildren_AR($node,sub{1},sub{($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0})) ? 1 : 0;
       last if $result;
-      $node = first { $_->{TR} eq 'hide' } PDT::GetFather_AR($node,sub{0});
+      $node = first { $_->{TR} eq 'hide' or $_->{trlemma} =~ /^(zaèít|zaèínat|konèit|pøestat|stihnout)$/
+		    } PDT::GetFather_AR($node,sub{0});
     }
     if (!$result and $node and $node->{tag}=~/^V/) {
       $result = (first { $_->{afun} eq 'AuxR' and $_->{lemma}=~/^se_/ }
@@ -201,6 +202,28 @@ sub has_auxR {
    ]
   );
 
+
+# substantive frame transformation rules
+@fv_trans_rules_N =
+  (
+   [
+    sub { 1 } =>
+    [ 'ACT(.2;.u)', 'ADDR(s-1[.7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ],
+    [ 'ACT(:2;:u)', 'ADDR(s-1[:7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ],
+   ],
+   [
+    sub { 1 } =>
+    [ 'ACT(.2;.u)', 'PAT(s-1[.7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ],
+    [ 'ACT(:2;:u)', 'PAT(s-1[:7])' ] => [ '+ACT(mezi-1[.P7];mezi-1[.7],mezi-1[.7])' ],
+   ],
+   [
+    sub { 1 } =>
+    [ 'ACT(.2;.u)' ] => [ '+ACT(z-1[strana:2[.2]])' ],
+    [ 'ACT(:2;:u)' ] => [ '+ACT(z-1[strana:2[.2]])' ],
+   ]
+  );
+
+
 %lemma_normalization =
   qw(
      li jestli
@@ -216,7 +239,7 @@ sub match_node_coord {
   my ($node, $fn,$aids,$loose_lemma) = @_;
   my $res = match_node($node,$fn,$aids,0,$loose_lemma);
   if (!$res and $node->{afun} =~ /^Coord|^Apos/) {
-    foreach (grep { $node->{lemma} ne 'a-1' or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ or
+    foreach (grep { $node->{lemma} !~ /^a-1$|^nebo$/ or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ or
 		      ((first { $_->{lemma} =~ /^tak-3(_|$)/ } get_aidrefs_nodes($aids,$_)) and
 		       (first { $_->{lemma} =~ /^(?:dále-3|daleko-1)(_|$)/ } get_aidrefs_nodes($aids,$_)))
 		  }
@@ -280,6 +303,8 @@ sub check_node_case {
   # simple case
   print "   CASE: Checking simple case\n" if $V_verbose;
   return 1 if $node->{tag}=~/^[NCPA]...(\d)/ and $case eq $1;
+  print "   CASE: Checking case N..XX\n" if $V_verbose;
+  return 1 if $node->{tag}=~/^N..XX/;
   print "   CASE: Checking AC..- tag ('vinen', etc.)\n" if $V_verbose;
   return 1 if $node->{tag}=~/^AC..-/;
   print "   CASE: Checking case X\n" if $V_verbose;
@@ -658,9 +683,9 @@ sub do_transform_frame {
       while (@frame_tests) {
 	$j++;
 	my $cache_key = "r:$i t:$j f:".$V->frame_id($frame);
-	if ($cached_trans_frames{$cache_key}) {
+	if ($V->user_cache->{$cache_key}) {
 	  print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
-	  $frame = $cached_trans_frames{$cache_key};
+	  $frame = $V->user_cache->{$cache_key};
 	  print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
 	  last TRANS;
 	} else {
@@ -670,7 +695,7 @@ sub do_transform_frame {
 	    print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
 	    $frame = transform_frame($V,$frame,$frame_trans);
 	    print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
-	    $cached_trans_frames{$cache_key} = $frame;
+	    $V->user_cache->{$cache_key} = $frame;
 	  }
 	}
       }
@@ -899,8 +924,8 @@ sub check_verb_frames {
   #    return if $node->{tag}!~/^Vs/; # TODO: REMOVE ME!
   my $lemma = $node->{trlemma};
   $lemma =~ s/_/ /g;
-  $cache{$lemma} = $V->word($lemma,'V') unless exists($cache{$lemma});
-  if ($cache{$lemma}) {
+  $V->user_cache->{$lemma} = $V->word($lemma,'V') unless exists($V->user_cache->{$lemma});
+  if ($V->user_cache->{$lemma}) {
     if ($node->{$frameid} ne '') {
       my @frames;
       foreach my $fi (split /\|/, $node->{$frameid}) {
@@ -922,9 +947,9 @@ sub check_verb_frames {
 	    }
 	  } else {
 	    # frame not resolved
-	    if ($cache{$lemma}) {
+	    if ($V->user_cache->{$lemma}) {
 	      my @possible_frames =
-		grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,undef,1) } $V->valid_frames($cache{$lemma});
+		grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,undef,1) } $V->valid_frames($V->user_cache->{$lemma});
 	      $node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
 	      $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 
@@ -970,6 +995,126 @@ sub check_verb_frames {
   } else {
     print "05 lemma not in vallex: $lemma\t";
     Position($node);
+    return 0;
+  }
+  return 1;
+}
+
+
+
+sub check_nounadj_frames {
+  my ($node,$aids,$frameid,$pj4)=@_;
+
+#  if (@$pj4) {
+#    Position($pj4->[0]);
+#  }
+
+  my $func = get_func($node);
+  my $pos = substr($node->{tag},0,1);
+  next if $pos!~/[NA]/ or $func =~ /[DF]PHR/;
+  my $lemma = $node->{trlemma};
+  $lemma =~ s/_/ /g;
+  $V->user_cache->{$lemma} = $V->word($lemma,$pos) unless exists($V->user_cache->{$lemma});
+  if ($V->user_cache->{$lemma}) {
+    if ($node->{$frameid} ne '') {
+      my @frames;
+      foreach my $fi (split /\|/, $node->{$frameid}) {
+	my $frame = $V->by_id($fi);
+	if (ref($frame)) {
+	  my @valid = $V->valid_frames_for($frame);
+	  if (@valid) {
+	    foreach my $frame (@valid) {
+	      if ($V->word_lemma($V->frame_word($frame)) eq $lemma) {
+		push @frames, $frame;
+	      } else {
+		print "00 invalid lemma for: ",$V->frame_id($frame),"\t";
+		Position($node);
+		return 0;
+	      }
+	    }
+	  } else {
+	    # frame not resolved
+	    my @word_frames = $V->frames($V->user_cache->{$lemma},q([@status='active' or @status='reviewed']));
+	    my @possible_frames = 
+	      grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1) }
+		@word_frames;
+	    $node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
+	    $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+	    if (@possible_frames == 1 and
+		@word_frames == 1) {
+	      my @els = $V->elements($possible_frames[0]);
+	      if (@els == 0) {
+		print "10 unresloved frame, but verb has only EMPTY frame, which matches: $fi\t";
+	      } else {
+		print "11 unresloved frame, but verb has only one frame, which matches: $fi\t";
+	      }
+	    } elsif (@possible_frames==1) {
+	      print "12 unresloved frame, but one matching frame: $fi\t";
+	    } elsif (@possible_frames>1) {
+	      print "13 unresloved frame, but more matching frames: $fi\t";
+	    } elsif (@word_frames==0) {
+	      print "21 no frames: $fi\t";
+	    } else {
+	      print "14 unresloved frame, but no matching frame: $fi\t";
+	    }
+	    Position($node);
+	    return 0;
+	  }
+	} else {
+	  print "02 frame not found: $fi\t";
+	  Position($node);
+	  return 0;
+	}
+      }
+      if (@frames) {
+	$node->{$frameid}=join "|",map { $V->frame_id($_) } @frames;
+	$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @frames;
+	foreach my $frame (@frames) {
+	  return 0 unless validate_frame($V,\@fv_trans_rules_N,$node,$frame,$aids,$pj4,0);
+	}
+	# process frames
+      } else {
+	print "03 no valid frame for: $node->{$frameid} \t";
+	Position($node);
+	return 0;
+      }
+    } else {
+      if ($V->user_cache->{$lemma}) {
+	my @word_frames = $V->valid_frames($V->user_cache->{$lemma});
+	my @possible_frames = 
+	  grep { validate_frame($V,\@fv_trans_rules_N,$node,$_,$aids,$pj4,1) }
+	    @word_frames;
+	$node->{$frameid} = join "|", map { $V->frame_id($_) } @possible_frames;
+	$node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
+	if (@possible_frames == 1 and
+	    @word_frames == 1) {
+	  my @els = $V->elements($possible_frames[0]);
+	  if (@els == 0) {
+	    print "16 no frame assigned, but verb has only EMPTY frame, which matches: $fi\t";
+	  } else {
+	    print "17 no frame assigned, but verb has only one frame, which matches: $fi\t";
+	  }
+	} elsif (@possible_frames==1) {
+	  print "18 no frame assigned, but one matching frame: $fi\t";
+	} elsif (@possible_frames>1) {
+	  print "19 no frame assigned, but more matching frames: $fi\t";
+	} elsif (@word_frames==0) {
+	  print "21 no frames: $fi\t";
+	} else {
+	  print "20 no frame assigned, but no matching frame: $fi\t";
+	}
+      } else {
+	print "04 no frame assigned: $lemma\t";
+      }
+      Position($node);
+      return 0;
+    }
+  } else {
+    # report problem only if this instance has DPHR, CPHR or actant
+    if (grep { get_func($_) =~ /^[CD]PHR$|^$match_actants$/ } PDT::GetChildren_TR($node)) {
+      print "05 lemma not in vallex: $lemma\t";
+      Position($node);
+    }
     return 0;
   }
   return 1;
