@@ -1,7 +1,9 @@
 # -*- cperl -*-
 package TFA; # package for the annotation of topic-focus articulation
-use base qw(Tectogrammatic);
-import Tectogrammatic;
+use base qw(TredMacro);
+import TredMacro;
+#use base qw(Tectogrammatic);
+#import Tectogrammatic;
 
 
 #bind ShiftLeft to Ctrl+Left menu posun uzel doleva
@@ -31,7 +33,7 @@ sub default_tfa_attrs {
 
 #bind edit_commentA to exclam menu Edit annotator's comment
 sub edit_commentA {
-    if (not $grp->{FSFile}->FS->exists('commentA')) {
+    if (not FS()->exists('commentA')) {
     $ToplevelFrame->messageBox
       (
        -icon => 'warning',
@@ -60,6 +62,24 @@ sub enable_attr_hook {
   my ($atr,$type)=@_;
   if ($atr!~/^(?:tfa|commentA)$/) {
     return "stop";
+  }
+}
+
+sub ShiftLeft {
+  return unless (GetOrd($this)>1);
+  if (HiddenVisible()) {
+    ShiftNodeLeft($this);
+  } else {
+    ShiftNodeLeftSkipHidden($this,1);
+  }
+}
+
+sub ShiftRight {
+  return unless (Parent($this));
+  if (HiddenVisible()) {
+    ShiftNodeRight($this);
+  } else {
+    ShiftNodeRightSkipHidden($this);
   }
 }
 
