@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
-# Time-stamp: <2000-11-21 12:12:15 pajas>
+# Time-stamp: <2000-11-29 09:17:41 pajas>
 #
 # Tred ver. 0.3 - Copyright (C) 2000 by Petr Pajas
 # This software is covered by GPL - The General Public Licence
@@ -94,6 +94,16 @@ EOF
   exit;
 }
 
+# platform specific stuff
+$inputenc="iso-8859-2";
+if ($^O =~ /^MS/) {
+  $outputenc="windows-1250";
+  $Ds="\\"; # how filenames and directories are separated
+} else {
+  $Ds='/';
+  $outputenc="iso-8859-2";
+}
+
 
 # this variable is used when searching for rc-file (i.e. the inicialisation file)
 my @configFileSearchList=($ENV{HOME}.'/.tredrc',
@@ -102,7 +112,7 @@ my @configFileSearchList=($ENV{HOME}.'/.tredrc',
 			  dirname($0).'../lib/tredlib/tredrc',
 			  dirname($0).'tredlib/tredrc',
 			  dirname($0).'../lib/tred/tredrc',
-			  '/usr/X11R6/lib/X11/app-defaults');
+			  '/usr/usr/share/config/tredrc');
 
 my $configFile;
 # other configuration should be given in that file
@@ -177,12 +187,6 @@ sub decode {
   return $_;
 }
 
-$inputenc="iso-8859-2";
-if ($^O =~ /^MS/) {
-  $outputenc="windows-1250";
-} else {
-  $outputenc="iso-8859-2";
-}
 
 ################ end of character encoding functions ########################
 
@@ -222,7 +226,14 @@ if ($opt_l and -f $opt_l) {
   }
 }
 
-push @files, @ARGV;
+if ($^O =~ /^MS/) {
+  foreach (@ARGV) {
+    push @files, /[\*\?]/ ? glob : $_;
+  }
+} else {
+  push(@files, @ARGV);
+}
+
 my @trees=();
 my @header=();
 my @nodes=();
@@ -254,13 +265,13 @@ my %searchTemplate;
 			  );
 
 sub dirname {
-  $_=shift;
-  return (m!/!)? (substr($_,0,rindex($_,"/")+1)) : "./";
+  my $a=shift;  
+  return (index($a,$Ds)>=0)? substr($a,0,rindex($a,$Ds)+1) : ".$Ds";
 }
 
 sub filename {
-  $_=shift;
-  return (m!/!)? (substr($_,rindex($_,"/")+1)) : $_;
+  my $a=shift;
+  return (index($a,$Ds)>=0)? substr($a,rindex($a,$Ds)+1) : $a;
 }
 
 
@@ -350,6 +361,8 @@ sub setConfig {
   $baseYPos=(exists $confs->{baseypos}) ? $confs->{baseypos} : 15;
   $nodeWidth=(exists $confs->{nodewidth}) ? $confs->{nodewidth} : 5;
   $nodeHeight=(exists $confs->{nodeheight}) ? $confs->{nodeheight} : 5;
+  $currentNodeWidth=(exists $confs->{currentnodewidth}) ? $confs->{currentnodewidth} : $nodeWidth;
+  $currentNodeHeight=(exists $confs->{currentnodeheight}) ? $confs->{currentnodeheight} : $nodeHeight;
   $nodeXSkip=(exists $confs->{nodexskip}) ? $confs->{nodexskip} : 5;
   $nodeYSkip=(exists $confs->{nodeyskip}) ? $confs->{nodeyskip} : 10;
   $xmargin=(exists $confs->{xmargin}) ? $confs->{xmargin} : 2;
@@ -372,9 +385,11 @@ sub setConfig {
   $activeTextColor=(exists $confs->{activetextcolor}) ? $confs->{activetextcolor} : 'blue';
   $boxColor=(exists $confs->{boxcolor}) ? $confs->{boxcolor} : 'wheat';
   $currentBoxColor=(exists $confs->{currentboxcolor}) ? $confs->{currentboxcolor} : 'white';
+  $hiddenBoxColor=(exists $confs->{hiddenboxcolor}) ? $confs->{hiddenboxcolor} : 'gray';
   $backgroundColor=(exists $confs->{backgroundcolor}) ? $confs->{backgroundcolor} : undef;
   $font=(exists $confs->{font}) ? $confs->{font} :
     (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-iso8859-2');
+  $vLineFont=(exists $confs->{vlinefont}) ? $confs->{vlinefont} : $font;
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
     (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-iso8859-2');
 
@@ -408,6 +423,8 @@ sub setConfig {
   $Tk::strictMotif=(exists $confs->{strictmotif}) ? $confs->{strictmotif} : 0;
   $printColors=(exists $confs->{printcolors}) ? $confs->{printcolors} : 0;
   $anyToFs=(exists $confs->{anytofs}) ? $confs->{anytofs} : undef;
+  $gzip=(exists $confs->{gzip}) ? $confs->{gzip} : (-x "/bin/gzip" ? "/bin/gzip -c" : undef);
+  $zcat=(exists $confs->{zcat}) ? $confs->{zcat} : (-x "/bin/zcat" ? "/bin/zcat" : $gzip." -c");
   print STDERR "Applying configuration.\n";
 }
 
@@ -504,14 +521,30 @@ sub closeFile {
   %attribs=();
 }
 
+
+sub ErrorMessage {
+  my ($grp,$msg)=@_;
+  if ($grp->{top}) {
+    $grp->{top}->
+      messageBox(-icon => 'error',
+		 -message => $msg
+		 -title => 'Error', -type => 'Ok');
+  } else {
+    print STDERR "Cannot write to out ($!)\n";
+  }
+}
+
 sub openFile {
   my $f = shift;
   my $grp = shift;
   my $goto = undef;
   my $fs;
+  my %fs=(fs => 'FS format', 
+	  fgz => 'gzipped FS format', 
+	  any => 'unspecific format (csts?), using AnyToFs');
   my @d=();
 
-  $grp->{'top'}->Busy(-recurse => 1);
+  $grp->{top}->Busy(-recurse => 1) if ($grp->{top});
 
   closeFile($grp);
 
@@ -520,61 +553,51 @@ sub openFile {
       $goto=$1
   }
 
-  # opening file
+  #########################################
+  # opening file to find out the file type
+  #
   unless (open(F,"<$f")) {
-    print STDERR "cannot open $f!\n";
+    ErrorMessage($grp, "Cannot read from $f ($!)\n");
+    $grp->{top}->Unbusy() if ($grp);
     return 0;
   }
+  if ($f=~/\.f?gz$/i) {
+    $fs='fgz';
+  } else {
+    # peep on the first character
+    $fs=($_=<F> and /^\@/) ? 'fs' : 'any';
+  }
+  close(F);
+  #
+  #########################################
 
-  # peep on the first character
-  $fs =($_=<F> and /^\@/); close(F);
 
-  print STDERR "File is fs: ", $fs ? "yes.\n":"no.\n";
+  print STDERR "File \'$f\' is in ", $fs{$fs};
 
-  if ($fs) {
+  if ($fs eq 'fs') {
     # opening file again, know it is fs
     unless (open(F,"<$f")) {
-      if ($grp->{top}) {
-	$grp->{top}->
-	  messageBox(-icon => 'error',
-		     -message => "Cannot open $f!\n",
-		     -title => 'Error', -type => 'Ok');
-      } else {
-	print STDERR "Error: cannot open $f!\n";
-      }
-      $grp->{'top'}->Unbusy();
+      ErrorMessage($grp,"Cannot open $f ($!)\n");
+      $grp->{top}->Unbusy() if ($grp);
       return 0;
     }
-  } elsif (defined($anyToFs) and -x $anyToFs) {
-    print STDERR "Starting input filter \`$anyToFs\'\n";
-    unless (open(F,"$anyToFs $f |")) {
+  } else {
+    my $cmd = $fs eq 'fgz' ? $zcat : $anyToFs;
+    if (defined($cmd) and -x $cmd) {
+      print STDERR "Piping through \`$cmd\'\n";
+      unless (open(F,"$cmd $f |")) {
+	ErrorMessage($grp,"Cannot run filter \`$cmd\' on $f ($!)\n");
+	$grp->{top}->Unbusy() if ($grp);
+	return 0;
+      }
       print STDERR "ok.\n";
-      if ($grp->{top}) {
-	$grp->{top}->
-	  messageBox(-icon => 'error',
-		     -message => "Cannot run filter \`$anyToFs\' on $f!\n",
-		     -title => 'Error', -type => 'Ok');
-      } else {
-	print STDERR "Error: cannot run $anyToFs on $f!\n";
-      }
-      $grp->{'top'}->Unbusy();
+      $f.=".fs" if ($fs eq 'any');
+    } else {
+      ErrorMessage($grp,"Cannot open $f (bad $cmd or unknown format?)!\n");
+      $grp->{top}->Unbusy() if ($grp);
       return 0;
     }
-    $f.=".fs";
-  } else {   
-    if ($grp->{top}) {
-      $grp->{top}->
-	messageBox(-icon => 'error',
-		   -message => 
-		   "Cannot open $f (bad $anyToFs or unknown format?)!\n",
-		   -title => 'Error', -type => 'Ok');
-    } else {
-      print STDERR "cannot open $f (bad $anyToFs or unknown format?)!\n";
-    }
-    $grp->{'top'}->Unbusy();
-    return 0;
   }
-
   #reading attribs
   %attribs=ReadAttribs(\*F,\@atord,2,\@header);
 
@@ -621,11 +644,29 @@ sub saveFile {
   my $grp=shift;
   my $f=$grp->{'currentFile'};
   my @atrIds=();
+  my $out;
 
   return unless $grp->{'currentFile'};
 
   rename $f,$f."~";
-  die "cannot open $f for writing!\n" unless open(FO,">$f");
+  if ($f=~/\.f?gz$/i) {
+    if ($gzip) {
+      $out="| $gzip > $f";
+    } else {
+      ErrorMessage($grp,"Cannot write gzipped file (No gzip utility defined)\n".
+		   "Use Save As to save the file in a non-gzipped format\n"
+		  );
+      return 0;
+    }
+  } else {
+    $out = ">$f";
+  }
+
+  unless (open(FO,$out)) {
+    ErrorMessage($grp,"Cannot write to out ($!)\n");
+    return 0;
+  }
+  print STDERR "Writing to $out\n";
   print FO @header;
   PrintFS(\*FO,\@header,\@trees,\@atord,\%attribs);
   my $atrLine=shift @rest;
@@ -667,6 +708,16 @@ sub HNext { # same as Next but obey $showHidden
   return 0;
 }
 
+sub HPrev { # same as Next but obey $showHidden
+  my ($node,$top) = (shift, shift);
+  $node=Prev($node,$top);
+  while ($node) {
+    return $node if (isShown($node));
+    $node=Prev($node,$top);
+  }
+  return 0;
+}
+
 
 sub getNodes {
 # prepare value line and @nodes list with deleted/saved hidden
@@ -701,31 +752,20 @@ sub getNodes {
   $valueLine = encode(join(" ", map { Value($_,\%attribs) } @sent));
 
   $node=$root;
-  loop: while($node)
+  while($node)
   {
-    #skip hidden subtrees
-    if (not $showHidden and
-	defined(Hide($node,\%attribs)) and
-	(Hide($node,\%attribs) eq 'hide')) {
-      while ($node) {
-	if (RBrother($node)) {
-	  $node=RBrother($node);
-	  next loop;
-	}
-	$node = Parent($node);
-      }
-      next loop;
-    }
     push @unsorted, $node;
-    $node=Next($node);
 
-    $current=$node if (exists $grp->{'currentNode'} and
-		       $grp->{'currentNode'} eq $node);
+    $current=$node if (exists $grp->{currentNode} and
+		       $grp->{currentNode} eq $node);
+
+    $node=HNext($node);  #skip also hidden subtrees unless showHidden
+
   }
   $grp->{'currentNode'}=$current;
   @nodes=sort { Ord($a,\%attribs) <=> Ord($b,\%attribs)} @unsorted;
 
-  # jus for sure
+  # just for sure
   undef @sent;
   undef @unsorted;
 
@@ -853,11 +893,13 @@ sub printThis {
   {
     local $outputenc='iso-88859-2';
     local ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
-	   $currentNodeColor, $nearestNodeColor, 
+	   $currentNodeColor, $currentNodeWidth, $currentNodeHeight,
+	   $nearestNodeColor,
 	   $textColor , $textColorShadow, $textColorHilite, 
 	   $textColorXHilite, $activeTextColor)=
 	     ($lineColor, $nodeColor, $currentBoxColor, $boxColor, 
-	      $currentNodeColor, $nearestNodeColor, 
+	      $nodeColor, $nodeWidth, $currentNodeHeight,
+	      $nearestNodeColor,
 	      $textColor , $textColorShadow, $textColorHilite, 
 	      $textColorXHilite, $activeTextColor);
 
@@ -1130,12 +1172,12 @@ sub pruneNode {
   return $t;
 }
 
-sub prepareFonts {
-  my $grp=shift;
+sub prepareFont {
+  my ($grp,$font,$fn)=@_;
   print STDERR "Preparing fonts.\n";
   
-  if ($font!~/^-/) {
-    my @a=split(/\s*,\s*/,$font);
+  if ($$font!~/^-/) {
+    my @a=split(/\s*,\s*/,$$font);
     my $option,$value;
     my @b;
     foreach (@a) {
@@ -1143,20 +1185,26 @@ sub prepareFonts {
       push @b, "-".$option, $value if ($option=~/^(?:size|weight|family|slant|underline|overstrike)$/);
     }
       # try
-    eval { $grp->{top}->fontDelete('C_normal') }; 
+    eval { $grp->{top}->fontDelete($fn) }; 
       # error would be displayed otherwise if yet undefined
       # and I'm lazy to remember or find out how to check
       # :)
-    $grp->{top}->fontCreate('C_normal',@b);
-    $font='C_normal';
+    $grp->{top}->fontCreate($fn,@b);
+    $$font='C_normal';
   }
   #
   # There were problems with the following lines, so I'm skipping them  
   #
   # else {
-  #  $grp->{top}->fontCreate('C_normal',$grp->{top}->fontActual($font));
-  #  $font='C_normal';
+  #  $grp->{top}->fontCreate('C_normal',$grp->{top}->fontActual($$font));
+  #  $$font='C_normal';
   # }
+}
+
+sub prepareFonts {
+  my $grp=shift;
+  prepareFont($grp,\$font,'C_normal');
+  prepareFont($grp,\$vLineFont,'C_vline');
 }
 
 sub addBindTags {
@@ -1238,7 +1286,7 @@ sub startMain {
 	 [Checkbutton => 'Draw boxes',
 	   -variable => \$drawBoxes,
 	   -command  => [\&redraw_tree,\%group]],
-	 [Checkbutton => 'Show Hidden',
+	 [Checkbutton => 'Show Hidden Nodes',
 	  -variable => \$showHidden,
 	  -command  => [sub { getNodes(@_);
 			      currentUnhiden(@_);
@@ -1330,7 +1378,7 @@ sub startMain {
     print STDERR "Creating canvas.\n";
 
   $group{'valueLine'}=$group{'top'}->Scrolled(qw/Entry -state disabled -relief sunken
-			   -borderwidth 2 -scrollbars s/, -font => $font,-textvariable => \$valueLine);
+			   -borderwidth 2 -scrollbars s/, -font => $vLineFont, -textvariable => \$valueLine);
   $group{'canvas'}=$canvas;
   addBindTags($canvas,'my');
 
@@ -1532,8 +1580,10 @@ sub fileDialog {
 #  print $FSref->Show;
   @types =
     (["Fs files",           [qw/.fs .FS .Fs/]],
+     ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
      ["CSTS files",           [qw/.am .cst .csg .csts/]],
-     ["Backup Fs files",           [qw/.fs~ .fb .FB .Fb/]],     
+     ["Backup Fs files",           [qw/.fs~ .fb .FB .Fb/]],
+     ["Backup gzipped Fs files",           [qw/.fgz~ .fs.gz~ .FGZ~ .FS.gz~ .FS.GZ~/]],
      ["All files",        '*']
     );
   $file = $grp->{'top'}->getOpenFile(-filetypes => \@types);
@@ -1551,6 +1601,7 @@ sub saveFileAs {
 
   @types =
     (["Fs files",           [qw/.fs .FS .Fs/]],
+     ["Gzipped Fs files",   [qw/.fgz .fs.gz .FGZ .FS.gz .FS.GZ/]],
      ["All files",        '*']
     );
 
@@ -1598,7 +1649,7 @@ sub editConfig {
 				    my $grp=shift;
 				    applyConfig(split(/\n/,shift->get("0.0","end")));
 				    prepareFonts($grp);
-				    $grp->{valueLine}->configure(-font => $font);
+				    $grp->{valueLine}->configure(-font => $vLineFont);
 				    redraw_tree($grp);
 				  },$grp,$t]);
   $b->pack(-side => 'left', -expand => 1,  -padx => 1, -pady => 1);
@@ -1653,7 +1704,7 @@ sub editConfig {
     }
     applyConfig(split(/\n/,$t->get("0.0","end")));
     prepareFonts($grp);
-    $grp->{valueLine}->configure(-font => $font);
+    $grp->{valueLine}->configure(-font => $vLineFont);
     redraw_tree($grp);
   }
   undef $d;
@@ -2165,6 +2216,41 @@ sub whichTextColor {
   }
 }
 
+sub nodeOptions {
+  my ($grp,$node)=@_;
+  return (-fill =>
+	  ($grp->{'currentNode'} eq $node) ?
+	  $currentNodeColor :
+	  (isShown($node,0) ?
+	   $nodeColor :
+	   $hiddenNodeColor)
+	 );
+}
+
+sub nodeBoxOptions {
+  my ($grp,$node)=@_;
+  return (-fill =>
+	  ($grp->{'currentNode'} eq $node) ?
+	  $currentBoxColor :
+	  (isShown($node,0) ?
+	   $boxColor :
+	   $hiddenBoxColor)
+	 );
+}
+
+
+sub nodeCoords {
+  my ($grp,$node)=@_;
+  my ($nw,$nh)=
+    (($grp->{'currentNode'} eq $node) ? $currentNodeWidth : $nodeWidth,
+     ($grp->{'currentNode'} eq $node) ? $currentNodeHeight : $nodeHeight);
+
+  return ($node->{"_tkXPOS_"}+($nodeWidth-$nw)/2,
+	  $node->{"_tkYPOS_"}+($nodeHeight-$nh)/2,	  
+	  $node->{"_tkXPOS_"}+$nh,
+	  $node->{"_tkYPOS_"}+$nw);
+}
+
 sub redraw_tree {
   my ($grp)=@_;
   my $node;
@@ -2203,15 +2289,9 @@ sub redraw_tree {
   }
 #  print "drawing ovals and texts...\n";
   foreach $node (@nodes) {
-    $$node{"_tkOval_"}=$grp->{'canvas'}->createOval($$node{"_tkXPOS_"},$$node{"_tkYPOS_"},
-					   $$node{"_tkXPOS_"}+$nodeWidth,
-					   $$node{"_tkYPOS_"}+$nodeHeight,
-						    -fill =>
-						    ($grp->{'currentNode'} eq $node) ?
-						    $currentNodeColor : 
-						    (isShown($node,0) ?
-						     $nodeColor :
-						     $hiddenNodeColor));
+    $$node{"_tkOval_"}=$grp->{'canvas'}->createOval(nodeCoords($grp,$node),
+						    nodeOptions($grp,$node)
+						    );
     $grp->{'canvas'}->addtag('point', 'withtag', $$node{"_tkOval_"});
 
     my $lineHeight=$grp->{'canvas'}->fontMetrics($font, -linespace);
@@ -2229,8 +2309,7 @@ sub redraw_tree {
 						     $$node{"_tkYPOS_"}+
 						     ($#displayAttrs+1)*$lineHeight+
 						     $nodeHeight+$nodeYSkip+$ymargin,
-						     -fill => ($grp->{'currentNode'} eq $node) ?
-						    $currentBoxColor : $boxColor);
+						     nodeBoxOptions($grp,$node));
     }
     for ($i=0;$i<=$#displayAttrs;$i++) {
       $$node{"_tkTextBg".$i."_"}=
@@ -2311,7 +2390,9 @@ sub redraw_tree {
 #  $grp->{'frame'}->bind('all','<Control-Tab>' => [sub {1;}]);
 
   $grp->{'frame'}->bind('my','<Tab>' => [sub { currentNext(@_); Tk->break; },$grp]);
-  $grp->{'frame'}->bind('my','<Control-Tab>' => [sub { currentPrev(@_); Tk->break; },$grp]);
+  $grp->{'frame'}->bind('my','<Shift-ISO_Left_Tab>' => [sub { currentPrev(@_); Tk->break; },$grp]);
+  $grp->{'frame'}->bind('my','<Shift-Tab>' => [sub { currentPrev(@_); Tk->break; },$grp]);
+
   $grp->{'frame'}->bind('my','<Return>' => [sub {
 					      my ($w,$grp)=@_;
 					      editAttrsDialog($grp,$grp->{'currentNode'});
@@ -2580,20 +2661,15 @@ sub currentUp {
 
 sub setCurrent {
   my ($grp,$node)=@_;
-  $grp->{'canvas'}->itemconfigure($grp->{'currentNode'}->{'_tkOval_'},
-				  -fill => (isShown($grp->{'currentNode'},0) ?
-						     $nodeColor :
-						     $hiddenNodeColor));
-  $grp->{'canvas'}->itemconfigure($grp->{'currentNode'}->{'_tkTextBox_'},
-				  -fill => $boxColor)
-    if ($drawBoxes and $grp->{'currentNode'}->{'_tkTextBox_'});
-
+  my $prev=$grp->{currentNode};
+  my $n;
   $grp->{'currentNode'}=$node;
-  $grp->{'canvas'}->itemconfigure($grp->{'currentNode'}->{'_tkOval_'},
-				  -fill => $currentNodeColor);
-  $grp->{'canvas'}->itemconfigure($grp->{'currentNode'}->{'_tkTextBox_'},
-				  -fill => $currentBoxColor)
-    if ($drawBoxes and $grp->{'currentNode'}->{'_tkTextBox_'});
+  foreach $n ($prev,$node) {    
+    $grp->{'canvas'}->itemconfigure($n->{'_tkOval_'}, nodeOptions($grp,$n));
+    $grp->{'canvas'}->itemconfigure($n->{'_tkTextBox_'},nodeBoxOptions($grp,$n))
+      if ($drawBoxes and $n->{'_tkTextBox_'});
+    $grp->{'canvas'}->coords($n->{'_tkOval_'}, nodeCoords($grp,$n));
+  }
 }
 
 sub centerToXY {
@@ -2641,10 +2717,10 @@ sub doEvalMacro {
   $FileNotSaved=($FileNotSavedOrig or $FileNotSaved);
   $insideEval=0;
   $grp->{'top'}->Unbusy;
-  setCurrent($grp,$this);
+  setCurrent($grp,$this) if ($this);
   getNodes($grp);
   redraw_tree($grp);
-  centerTo($grp,$this);
+  centerTo($grp,$grp->{currentNode});
 }
 
 sub evalMacro {
@@ -2653,8 +2729,8 @@ sub evalMacro {
   my $e = $w->XEvent;
   my $A = uc($e->A);
 
-#  print STDERR "Pressed: ($A), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
-#  print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
+  #print STDERR "Pressed: (".ord($A)."), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
+  #print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
 
   if (defined $keyBindings{$prefix.$A}) {
     $key=$prefix.$A;
@@ -2673,8 +2749,9 @@ sub evalMacro {
 
 sub currentNext {
   my ($w,$grp)=@_;
-  if (Next($grp->{'currentNode'})) {
-    setCurrent($grp,Next($grp->{'currentNode'}));
+  my $next=HNext($grp->{'currentNode'});
+  if ($next) {
+    setCurrent($grp,$next);
     centerTo($grp,$grp->{'currentNode'});
   }
 }
@@ -2682,8 +2759,9 @@ sub currentNext {
 
 sub currentPrev {
   my ($w,$grp)=@_;
-  if (Prev($grp->{'currentNode'})) {
-    setCurrent($grp,Prev($grp->{'currentNode'}));
+  my $prev=HPrev($grp->{'currentNode'});
+  if ($prev) {
+    setCurrent($grp,$prev);
     centerTo($grp,$grp->{'currentNode'});
   }
 }
@@ -2770,6 +2848,8 @@ sub node_release {
     $w->dtag('selected');
     if (defined $p) {
       $parent=$grp->{'pinfo'}{$p};
+      $w->itemconfigure($parent->{"_tkOval_"}, 
+			  nodeOptions($grp,$parent));
       while ($parent) {
 	$p=0, last if ($node eq $parent);
 	$parent=Parent($parent);
@@ -2781,11 +2861,9 @@ sub node_release {
 	centerTo($grp,$grp->{currentNode});
 	$FileNotSaved=1;
 	return;
-      } 
+      }
     }
     # returning node to its position
-    $w->coords($sel, $node->{"_tkXPOS_"}, $node->{"_tkYPOS_"},
-	       $node->{"_tkXPOS_"}+$nodeWidth,
-	       $node->{"_tkYPOS_"}+$nodeHeight);
+    $w->coords($sel, nodeCoords($grp,$node));
   } else { redraw_tree($grp); }
 }
