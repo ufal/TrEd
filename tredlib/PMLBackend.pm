@@ -210,7 +210,7 @@ sub _element_address {
 sub read_node ($$$;$) {
   my ($node,$fsfile,$types,$type) = @_;
   my $defs = $fsfile->FS->defs;
-  if ($type eq 'REF' or $type eq 'CDATA') {
+  if ($type eq 'PMLREF' or $type eq 'CDATA' or $type eq 'nonNegativeInteger') {
     # pre-defined atomic types
     return $node->textContent;
   }
