@@ -355,7 +355,7 @@ sub openFile {
 # saveFile($grp) unless (ref($grp->{FSFile}) and $grp->{FSFile}->filename() eq $f);
   closeFile($grp);
 
-  $grp->{'FSFile'} = FSFile->newFSFile($f,@backends);
+  $grp->{'FSFile'} = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
   $grp->{'FSFile'}->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$grp->{'FSFile'}->backend);
   print STDERR "empty or corrupt file!\n" if ($grp->{FSFile}->lastTreeNo<0);
 
