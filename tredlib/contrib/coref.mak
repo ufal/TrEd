@@ -35,10 +35,9 @@ $referent=""; # stores ID of the marked node (Cut-and-Paste style)
 #bind update_coref_file to F7 menu Update coref attributes
 sub update_coref_file {
   Tectogrammatic->upgrade_file_to_tid_aidrefs();
-  my $fs=$grp->{FSFile}->FS;
   # no need for upgrade if cortype is declared with the $cortypes values
-  return if (exists($fs->defs->{cortype})
-	     and join('|',$fs->listValue('cortype')) eq $cortypes);
+  return if (exists(FS()->defs->{cortype})
+	     and join('|',FS()->listValue('cortype')) eq $cortypes);
 
   # otherwise, let the use decide
   if (!GUI() || questionQuery('Automatic file update',
@@ -105,7 +104,7 @@ sub jump_to_referent {
 #bind edit_corlemma to \ menu Edit textual coreference (corlemma)
 sub edit_corlemma {
   my $value=$this->{corlemma};
-  $value=main::QueryString($grp->{framegroup},"Edit textual coreference:","corlemma",$value);
+  $value=QueryString("Edit textual coreference","corlemma:",$value);
   if (defined($value)) {
     $this->{corlemma}=$value;
     $FileChanged=1;
@@ -211,14 +210,19 @@ sub node_style_hook {
     if (index($coref,$id1)==0) {
       print STDERR "Same sentence\n";
       # same sentence
-      my $T="[?\${AID} eq '$coref' or \${TID} eq '$coref'?]";
+      my $T="[?\$node->{AID} eq '$coref' or \$node->{TID} eq '$coref'?]";
       push @colors,$cortype_colors{$cortype};
       push @coords,<<COORDS;
 &n,n,
-n + ($T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
-n + ($T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
-$T,$T
+n + (x$T-n)/2 + (abs(xn-x$T)>abs(yn-y$T)?0:-40),
+n + (y$T-n)/2 + (abs(yn-y$T)>abs(xn-x$T) ? 0 : 40),
+x$T,y$T
+
 COORDS
+#&n,n,
+#n + (x$T-n)/2, n,
+#n + (x$T-n)/2, y$T,
+#x$T,y$T
       } else {
 	my ($d,$p,$s)=($id1=~/^(.*?)-p(\d+)s([0-9A-Z]+)$/);
 	my ($cd,$cp,$cs)=($coref=~/^(.*?)-p(\d+)s([0-9A-Z]+).\d+/);
@@ -276,7 +280,6 @@ sub auto_coref {
 
 # automatically assign subclause coreference
 sub auto_coref_subclause {
-
   my $node=$root;
   while ($node) {
     if ($node->{tag}=~/^P[149EJK]/) {
