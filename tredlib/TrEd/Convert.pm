@@ -2,7 +2,7 @@ package TrEd::Convert;
 
 #
 # $Revision$ '
-# Time-stamp: <2001-11-06 18:35:36 pajas>
+# Time-stamp: <2002-07-03 16:08:08 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -12,7 +12,7 @@ use strict;
 
 BEGIN {
   use Exporter  ();
-  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc $outputenc $Ds);
+  use vars      qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc $outputenc $lefttoright $Ds);
   use TrEd::MinMax;
   @ISA=qw(Exporter);
   $VERSION = "0.1";
@@ -25,9 +25,12 @@ BEGIN {
      'iso-8859-2'   => "ì¹èø¾ıáíéìúùóò»ïµà¶å¼æñÌ©ÈØ®İÁÍÉÌÚÙÓÒ«Ï¥À¦Å¬ÆÑ",
      'ascii'        => "escrzyaieeuuontdlrslzcnESCRZYAIEEUUONTDLRSLZCN",
      'iso-8859-1'   => "escrzıáíéeúuóntdlrslzcnESCRZİÁÍÉEÚUÓNTDLRSLZCN",
-     'windows-1250' => "ìšèøıáíéìúùóòï¾àœåŸæñÌŠÈØİÁÍÉÌÚÙÓÒÏ¼ÀŒÅÆÑ"
+     'windows-1250' => "ìšèøıáíéìúùóòï¾àœåŸæñÌŠÈØİÁÍÉÌÚÙÓÒÏ¼ÀŒÅÆÑ",
+     'windows-1256' => '¡ºØÙÚÛÜİŞßáãäåæìíğñòóõöøú',
+     'iso-8859-6' => '¬»×ØÙÚàáâãäåæçèéêëìíîïğñò'
     );
 
+  $lefttoright=1 unless defined($lefttoright);
   $inputenc="iso-8859-2" unless defined($inputenc);
   if ($^O eq "MSWin32") {
     $outputenc="windows-1250" unless defined($outputenc);
@@ -39,19 +42,20 @@ BEGIN {
 }
 
 sub encode {
-  return "" unless (@_);
-  return join("",@_) if ($inputenc eq $outputenc);
-
-  local $_=join "",@_;
+  my @a=@_;
+  return "" unless (@a);
+  return join("",@a) if ($inputenc eq $outputenc);
+  local $_=join "",@a;
   eval " tr/$encodings{$inputenc}/$encodings{$outputenc}/";
   return $_;
 }
 
 sub decode {
-  return "" unless (@_);
-  return join("",@_) if ($inputenc eq $outputenc);
+  my @a=@_;
+  return "" unless (@a);
+  return join("",@a) if ($inputenc eq $outputenc);
 
-  local $_=join "",@_;
+  local $_=join "",@a;
   eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
   return $_;
 }
