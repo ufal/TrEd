@@ -98,6 +98,9 @@ HintWait	 	= 1000			;; interval in ms before floating hint
 ;; is not specified, TrEd looks searches the font file's
 ;; directory and afm/ subdirectory for a file with the same
 ;; filename as the PFA file but with the '.afm' extension.
+;; So if you follow this naming convention, you only have to
+;; set the PsFontFile option bellow (and optionally PsFontSize).
+
 ;; The following are also default: 
 
 ; PsFontFile    = fonts/ariam___.pfa

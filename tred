@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2001-07-26 12:06:52 pajas>";
+$timestamp="Time-stamp: <2001-07-26 17:26:12 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -1443,7 +1443,7 @@ sub printDialog {
   $fil=~s/\.[^.]*$/.ps/;
   my $toFile=$grp->{printToFile};
   my $toEPS=$grp->{printToEPS};
-  my $useType1Font=$grp->{printUseType1Font};
+#  my $useType1Font=$grp->{printUseType1Font};
   my $printRange=$grp->{printRange};
   my $snt=$grp->{printSentenceInfo};
   my $noRotate=$grp->{printNoRotate};
@@ -1512,10 +1512,10 @@ sub printDialog {
 			  -variable=> \$toEPS,
 			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
-  $bf->Checkbutton(-text    => 'Use Type1 Postscript Font',
-			  -state=> $type1font ? 'normal' : 'disabled' ,
-			  -variable=> \$useType1Font,
-			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+#    $bf->Checkbutton(-text    => 'Use Type1 Postscript Font',
+#  			  -state=> $type1font ? 'normal' : 'disabled' ,
+#  			  -variable=> \$useType1Font,
+#  			  -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
   $bf->Checkbutton(-text=> 'Use colors',
 		   -variable=> \$printColors,
@@ -1550,16 +1550,17 @@ sub printDialog {
   $grp->{printPsFile}=$ fil;
   $grp->{printSentenceInfo}=$snt;
   $grp->{printCommand}=$com;
-  $grp->{printUseType1Font}=$useType1Font;
+#  $grp->{printUseType1Font}=$useType1Font;
   $grp->{printNoRotate}=$noRotate;
   $d->destroy;
   undef $d;
   if ($result=~ /OK/) {
-    return ($printRange,$toFile,$toEPS,$fil,$snt,$com,$useType1Font,$printColors,$noRotate);
+    return ($printRange,$toFile,$toEPS,$fil,$snt,$com,
+	    #$useType1Font,
+	    $printColors,$noRotate);
   } else {
     return ();
   }
-  return ($result=~ /OK/);
 }
 
 sub printThis {
@@ -1567,6 +1568,7 @@ sub printThis {
   return unless $grp->{FSFile};
   my $canvas=$grp->{top}->Canvas();
   my @print_opts=printDialog($grp);
+  return unless scalar(@print_opts)>2;
   $print_opts[0]=$grp->{treeNo}
     if (!defined($print_opts[0]) or $print_opts[0] eq "");
   TrEd::Print::print_trees($grp->{FSFile},
@@ -1575,7 +1577,8 @@ sub printThis {
 			   @print_opts,
 			   $showHidden,
 			   $psFontFile,
-			   $type1font,
+			   $psFontAFMFile,
+#			   $type1font,
 			   $prtFmtWidth,
 			   $prtHMargin,
 			   $prtFmtHeight,

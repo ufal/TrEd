@@ -1,8 +1,41 @@
+package TrEd::PrintTreeView;
+
+use TrEd::TreeView;
+use base qw(TrEd::TreeView);
+use PostScript::FontMetrics;
+
+sub setFontMetrics {
+  my ($self,$filename,$fontsize,$fontscale)=@_;
+  $self->{psFontSize} = $fontsize;
+  $self->{psFontScale} = $fontscale ? $fontscale : 1000;
+  $self->{psFontMetrics} = new PostScript::FontMetrics($filename);
+  return $self->{psFontMetrics};
+}
+
+sub getFontHeight {
+  my ($self)=@_;
+  return 0 unless $self->{psFontMetrics};
+  $ascent=$self->{psFontSize}*$self->{psFontMetrics}->FontBBox->[3]/1000;
+  $descent=-$self->{psFontSize}*$self->{psFontMetrics}->FontBBox->[1]/1000;
+  return sprintf("%.0f",$ascent+$descent);
+}
+
+sub getTextWidth {
+  my ($self,$text)=@_;
+  return 0 unless $self->{psFontMetrics};
+  return $self->{psFontMetrics}->stringwidth($text,$self->{psFontSize});
+}
+
+sub getFontName {
+  my ($self)=@_;
+  return "" unless $self->{psFontMetrics};
+  $self->{psFontMetrics}->FontName;
+}
+
 package TrEd::Print;
 
 use Tk;
 use Fslib;
-use TrEd::TreeView;
 
 use TrEd::Convert;
 import TrEd::Convert;
@@ -48,12 +81,13 @@ sub print_trees {
       $fil,			# output file-name
       $snt,			# boolean: print sentence
       $cmd,			# lpr command
-      $useType1Font,		# boolean: use Type1 font
+#      $useType1Font,		# boolean: use Type1 font
       $printColors,		# boolean: produce color output
       $noRotate,                # boolean: disable tree rotation
       $show_hidden,		# boolean: print hidden nodes too
       $psFontFile,		# postscript font
-      $type1font,		# Type1 font
+      $psFontAFMFile,		# postscript font
+#      $type1font,		# Type1 font
       $prtFmtWidth,		# paper width
       $prtHMargin,
       $prtFmtHeight,
@@ -65,16 +99,21 @@ sub print_trees {
       $canvas_opts		# color hash reference
      )=@_;
 
+
   return if (not defined($printRange));
 
-  my $treeView = new TrEd::TreeView($c);
+  my $treeView = new TrEd::PrintTreeView($c);
   my $i;
   my $pagewidth;
   my $pageheight;
   my $printMultiple;
   my %pso;
 
+  $treeView->setFontMetrics($psFontAFMFile,$psFontSize);
+  $psFontName=$treeView->getFontName();
   $treeView->apply_options($canvas_opts);
+  print "AFM: ",$psFontAFMFile,"\n";
+  print "Name: ",$psFontName,"\n";
   unless ($printColors) {
     $treeView->apply_options({
 			    lineColor	       => 'black',
@@ -123,17 +162,21 @@ sub print_trees {
 
   $toplevel->Busy(-recurse => 1) if ($toplevel);
   for (my $t=0;$t<=$#printList;$t++) {
-    print "Printing $printList[$t]\n";
-    $treeView->set_font($type1font) if ($useType1Font);
+    print STDERR "Printing $printList[$t]\n";
+#    $treeView->set_font($type1font) if ($useType1Font);
     do {
       my ($nodes) = $fsfile->nodes($printList[$t]-1,undef,$show_hidden);
       my ($valtext) = encode($fsfile->value_line($printList[$t]-1));
       $treeView->redraw($fsfile,undef,$nodes,$valtext);
     };
 
-    my $rotate = ( ! $toEPS and ! $noRotate
-		   and $treeView->get_canvasHeight < $treeView->get_canvasWidth);
-    #      print $treeView->get_canvasHeight,"x",$treeView->get_canvasWidth," $rotate\n";
+    my $rotate = !$toEPS && !$noRotate
+      && $treeView->get_canvasHeight<$treeView->get_canvasWidth;
+    print STDERR "Landscape : $rotate\n";
+    print STDERR "Canvas    : ",int($treeView->get_canvasWidth),"x",
+      int($treeView->get_canvasHeight),"\n";
+    print STDERR "Page      : ",int($c->fpixels($prtFmtWidth)),"x",
+      int($c->fpixels($prtFmtHeight)),"\n";
     if (not $rotate) {
       $pagewidth=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
       $pageheight=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
@@ -141,6 +184,7 @@ sub print_trees {
       $pagewidth=$c->fpixels($prtFmtHeight)-2*$c->fpixels($prtVMargin);
       $pageheight=$c->fpixels($prtFmtWidth)-2*$c->fpixels($prtHMargin);
     }
+    print STDERR "Real Page : ",int($pagewidth),"x",int($pageheight),"\n";
 
     %pso = (  -colormode => $printColors ? 'color' : 'gray',
 	      '-x'	 => 0,
