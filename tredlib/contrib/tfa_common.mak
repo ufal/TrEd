@@ -32,19 +32,20 @@ sub tfa_qm {
 
 sub GetNodesExceptST {
 # returns the reference to an array ordered according to the ordering attribute
-# containing the whole tree except the nodes depending on the given node
+# containing the whole tree except the nodes depending on the given nodes
 # the array contains all nodes or only visible nodes depending on the second parameter
 
-  my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node
+  # $tops contains the reference to a list containing reference to the nodes whose subtrees are to be skipped
+  my $tops=ref($_[0]->[0]) ? $_[0] : [$this];
 
   my @all;
 
   my $node=$root;
 
-  if ($_[1]) {
-    while ($node) {
+  if ($_[1]) {               # @all is filled with the the visible nodes of the whole tree
+    while ($node) {          # except for the nodes depending on the given node
       push @all, $node;
-      if ($node eq $top) {
+      if (defined(Index($tops,$node))) {
 	$node=$node->following_right_or_up;
 	$node=$node->following_visible($grp->{FSFile}->FS) if IsHidden($node);
       } else {
@@ -52,9 +53,9 @@ sub GetNodesExceptST {
       }
     }
   } else {
-    while ($node) {
-      push @all, $node;      # @all is filled with the nodes of the whole tree
-      if ($node eq $top) {   # except for the nodes depending on the given node
+    while ($node) {          # @all is filled with the nodes of the whole tree
+      push @all, $node;      # except for the nodes depending on the given node
+      if (defined(Index($tops,$node))) {
 	$node=$node->following_right_or_up;
       }
       else {
@@ -77,7 +78,7 @@ sub ProjectivizeSubTree {
   my $subtree=ContinueProjectivizing($top); # the ordered array of the projectivized subtree, or undef
   return undef unless @$subtree;
 
-  my $all=GetNodesExceptST($top);
+  my $all=GetNodesExceptST([$top]);
 
   splice @$all,Index($all,$top),1, @$subtree;   # the projectivized subtree is spliced at the right place
 
@@ -86,6 +87,26 @@ sub ProjectivizeSubTree {
   return 1
 }
 
+
+sub ProjectivizeCurrentSubTree {
+# interactively projectivizes current subtree
+  ProjectivizeSubTree($this)
+}
+
+
+sub ProjectivizeTree {
+# interactively projectivizes the whole tree
+  ProjectivizeSubTree($root)
+}
+
+sub ProjectivizeSubTreeWithoutAsking {
+# projectivizes (asks for no confirmation) subtree
+  my $top=ref($_[0]) ? $_[0] : $this; # $top contains the reference to the node whose subtree is to be projectivized
+  my $subtree=Projectivize($top);
+  my $all=GetNodesExceptST([$top]);
+  splice @$all,Index($all,$top),1, @$subtree;   # the projectivized subtree is spliced at the right place
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+}
 
 sub Projectivize {
 # returns an ordered array with the nodes of the projectivized subtree of a given node
@@ -141,7 +162,7 @@ sub Projectivize {
 
 
 sub AskCzEn ($$$$) {
-# asks a question in Czech and English, returns 1 if the answer is positive, 0 otherwise
+# asks a question in Czech or English, returns 1 if the answer is positive, 0 otherwise
 # if the locale language setting is Czech, it asks in Czech, otherwise English is used
 
   my ($titleCz, $messageCz, $titleEn, $messageEn) = @_;
@@ -195,14 +216,26 @@ sub MessageCzEn ($$) {
 }
 
 
-sub ContinueProjectivizing {
+sub AskProjectivityQuestion {
+# ask appropriate question (about the whole tree or some subtree)
+  my $top=ref($_[0]) ? $_[0] : $root;
+
+  if ($top == $root) {
+    AskCzEn("Varování", "Strom není projektivní. Chcete pokraèovat?", "Warning", "The tree is not projective. Continue anyway?")
+  }
+  else {
+    AskCzEn("Varování", "Podstrom není projektivní. Chcete pokraèovat?", "Warning", "The subtree is not projective. Continue anyway?")
+  }
+}
+
+sub CheckProjectivity {
 # checks whether the current visible subtree or the whole tree
 # (if no parameter is passed) is projective
-# returns the whole projectivized subtree (including the hidden nodes)
-# if the user wishes to continue, undef otherwise
+# returns 1 if the subtree is projective (according to the visibility status of hidden nodes)
+# 0 otherwise
 
   my $top=ref($_[0]) ? $_[0] : $root;
-  # $top contains the reference to the node whose subtree is to be checked for projectivity
+  # $top contains the reference to the node whose subtree is to be checked for projectivity (or roo)
 
   my $ProjectivizedSubTree=Projectivize($top,not(IsHidden($top)));  # projectivized subtree
   my $SubTree = IsHidden($top) ? [GetNodes($top)] : [GetVisibleNodes($top)] ;
@@ -212,19 +245,30 @@ sub ContinueProjectivizing {
   my $differ = 0;  # suppose they do not differ
 
   if ($proj != $sub) {  # compares the actual subtree with the projectivized one
-    $differ=1  ; # they differ
+    return 0; # they differ
   }
   else {
     for (my $i=0; $i<=$proj; $i++) {
       if ($$ProjectivizedSubTree[$i] != $$SubTree[$i]) {
-	$differ=1;  # they differ
-	last;
+	return 0;  # they differ
       }
     }
+    return 1
   }
+}
 
-  if ($differ) { # they are not the same !!!
-    if (AskCzEn("Varování", "Podstrom není projektivní. Chcete pokraèovat?", "Warning", "The subtree is not projective. Continue anyway?")) {
+sub ContinueProjectivizing {
+# checks whether the current visible subtree or the whole tree
+# (if no parameter is passed) is projective
+# if it is not, is asks whether it should be projectivized
+# if the user answers yes, it returns the whole projectivized subtree (including the hidden nodes)
+# undef otherwise
+
+  my $top=ref($_[0]) ? $_[0] : $root;
+  # $top contains the reference to the node whose subtree is to be checked for projectivity (or roo)
+
+  if (not(CheckProjectivity($top))) { # they are not the same !!!
+    if (AskProjectivityQuestion($top)) {
       return Projectivize($top);  # continue, return the whole projectivized subtree
     } else {
       return;  # do not continue
@@ -248,12 +292,10 @@ sub NotOrderableByTFA {
 sub OrderByTFA {
 # orders the current subtree according to the value of the tfa attribute
 # and returns an ordered array containing the subtree
-# checks for projectivity, then accordingly orders the subtrees of the top node
-# it only shuffles the whole sons' subtrees !!!
+# checks for projectivity, then orders the subtrees of the top node
 
-  my $top=$_[0];  # the reference to the node whose subtree is to be ordered according to tfa
 
-  return unless ref($top);  # no valid reference parameter was passed
+  my $top=ref($_[0]) ? $_[0] : $this;  # the reference to the node whose subtree is to be ordered according to tfa
 
   my $value=$top->{tfa};  # the tfa value for the top node
 
@@ -265,16 +307,6 @@ sub OrderByTFA {
 
   my (@subtree, @sons_C, @sons_T, @sons_F, @sons_hidden);
   my $ord=$grp->{FSFile}->FS->order;  # the ordering attribute
-
-  # place the top node appropriately among its sons
-  if (($value eq "C") or ($value eq "T")) {
-    push @sons_T, $top
-  } elsif ($value eq "F") {
-    push @sons_F, $top
-  } else {  # return if the top node's tfa value is not acceptable
-    NotOrderableByTFA;
-    return
-  }
 
   my $node;
   # now go through the sons
@@ -293,7 +325,7 @@ sub OrderByTFA {
 	# otherwise if there is at least one with T, place the current node among T nodes, return otherwise
 	my @nodes= HiddenVisible() ? GetNodes($node) : GetVisibleNodes($node);
 	# look at appropriate nodes according to the visibility-of-hidden-nodes status
-	my ($hasTorC, $hasF);
+	my ($hasTorC, $hasF) = (0,0);
 	while (@nodes) {  # checks whether at least some depending node has tfa value
 	  my $value=shift(@nodes)->{tfa};
 	  if (($value eq "C") or ($value eq "T")) {$hasTorC=1}
@@ -314,12 +346,12 @@ sub OrderByTFA {
     }
   }
 
-  @sons_C= sort {$a->{$ord} <=> $b->{$ord}} @sons_C;
-  @sons_T= sort {$a->{$ord} <=> $b->{$ord}} @sons_T;
-  @sons_F= sort {$a->{$ord} <=> $b->{$ord}} @sons_F;
-  @sons_hidden= sort {$a->{$ord} <=> $b->{$ord}} @sons_hidden;
+  SortByOrd(\@sons_C);
+  SortByOrd(\@sons_T);
+  SortByOrd(\@sons_F);
+  SortByOrd(\@sons_hidden);
 
-  foreach $node (@sons_C, @sons_T, @sons_F, @sons_hidden) {
+  foreach $node (@sons_C, @sons_T, $top, @sons_F, @sons_hidden) {
     # creates an ordered array with the subtree ordered according to tfa
     if ($node eq $top) {
       push @subtree, $node  # only the top node
@@ -344,7 +376,7 @@ e subtree is to be projectivized
   my $subtree=OrderByTFA($top);
   return unless $subtree;
 
-  my $all=GetNodesExceptST($top);
+  my $all=GetNodesExceptST([$top]);
 
   splice @$all,Index($all,$top),1, @$subtree;   # the subtree is spliced at the right place
 
@@ -371,6 +403,7 @@ sub Move {
 }
 
 
+#************************** shifting subtrees ****************************************************
 sub MoveST {
 # move the subtree specified by the first parameter right after the node specified in the second parameter
 
@@ -381,7 +414,7 @@ sub MoveST {
 
   my $after= ref($_[1]) ? $_[1] : $root;  # if no node to place after is specified, it is taken to be the root node
 
-  my $all=GetNodesExceptST($top);
+  my $all=GetNodesExceptST([$top]);
 
   splice @$all,Index($all,$top),1;   # the top node is cut off from the array
   splice @$all,Index($all,$after)+1,0,@$subtree;   # the subtree is spliced after the appropriate node
@@ -423,7 +456,7 @@ sub ShiftSubTreeLeft {
 
   return unless my $subtree=ContinueProjectivizing($top);
 
-  my $all=GetNodesExceptST($top);
+  my $all=GetNodesExceptST([$top]);
 
   my $i=Index($all,$top);  # locate the given node in the array @all
   if ($i>1) {  # check if there is place where to move (the root is always number zero)
@@ -448,7 +481,7 @@ sub ShiftSubTreeRight {
 
   return unless my $subtree=ContinueProjectivizing($top);
 
-  my $all=GetNodesExceptST($top);
+  my $all=GetNodesExceptST([$top]);
 
   my $i=Index($all,$top);
   if ($i<$#$all) {
@@ -472,9 +505,9 @@ sub ShiftSubTreeLeftSkipHidden {
 
   return unless my $subtree=ContinueProjectivizing($top);  # the projectivized subtree
 
-  my $all=GetNodesExceptST($top);  # all nodes except the nodes depending on the given node
+  my $all=GetNodesExceptST([$top]);  # all nodes except the nodes depending on the given node
 
-  my $allvis=GetNodesExceptST($top,1); # all visible (ie non-hidden) nodes except the nodes depending on the given node
+  my $allvis=GetNodesExceptST([$top],1); # all visible (ie non-hidden) nodes except the nodes depending on the given node
 
   my $i=Index($allvis,$top);  # locate the given node within the array @allvis
   if ($i>1) {  # if there is room where to move
@@ -499,9 +532,9 @@ sub ShiftSubTreeRightSkipHidden {
 
   return unless my $subtree=ContinueProjectivizing($top);
 
-  my $all=GetNodesExceptST($top);
+  my $all=GetNodesExceptST([$top]);
 
-  my $allvis=GetNodesExceptST($top,1);
+  my $allvis=GetNodesExceptST([$top],1);
 
   my $i=Index($allvis,$top);
   if ($i<$#$allvis) {
@@ -515,6 +548,279 @@ sub ShiftSubTreeRightSkipHidden {
   NormalizeOrds($all);
 
 }
+
+#************************** switching subtrees ****************************************************
+sub brothernodes {
+# return an array of all the brothers of the given node (including itself)
+# according to the visibility status
+  my $node = ref($_[0]) ? $_[0] : $this;  # if no parameter is passed,
+                                       # take $this to be the reference to the node to be processed
+  my @brothers;
+  while ($node->lbrother) {$node=$node->lbrother};  # get to the leftmost brother
+  if ($_[1]) {               # @brothers is filled only with the visible brothers
+    while ($node) {push @brothers,$node unless IsHidden($node); $node=$node->rbrother};
+  }
+  else {                     # @brothers is filled with all brothers
+    while ($node) {push @brothers,$node; $node=$node->rbrother};
+  };
+  SortByOrd(\@brothers);
+  return @brothers;
+}
+
+sub ShiftSToverSTLeft {
+# switches the (projectivized) subtree of the current node with the (projectivized) subtree to the left,
+# according to the visibility-of-hidden-nodes status
+  return unless (GetOrd($this)>0);
+  if (HiddenVisible()) {
+    ShiftSubTreeOverSubTreeLeft($this);
+  } else {
+    ShiftSubTreeOverSubTreeLeftSkipHidden($this);
+  }
+}
+
+
+sub ShiftSToverSTRight {
+# switches the (projectivized) subtree of the current node with the (projectivized) subtree to the right,
+# according to the visibility-of-hidden-nodes status
+  return unless (GetOrd($this)>0);
+  if (HiddenVisible()) {
+    ShiftSubTreeOverSubTreeRight($this);
+  } else {
+    ShiftSubTreeOverSubTreeRightSkipHidden($this);
+  }
+}
+
+
+sub ShiftSubTreeOverSubTreeLeft {
+  # moves the (projectivized) subtree of a given node one subtree left (with respect to all nodes)
+
+  my $top=ref($_[0]) ? $_[0] : $this;  # if no parameter is passed,
+                                       # take $this to be the reference to the node to be processed
+
+  my @brothers = brothernodes($top);
+
+  my $switch = $brothers[max(Index(\@brothers,$top)-1,0)];
+
+  my $all=GetNodesExceptST([$top,$switch]);
+  my $i=Index($all,$top);  # locate the given node in the array @all
+
+  if ($top == $switch) {
+    return unless my $subtree=ContinueProjectivizing($top);
+    splice @$all,$i,1, @$subtree;  # if there is no room where to move, just splice the proj. subtrees
+    # instead of the given nodes - thus the subtrees get projectivized
+  }
+
+  else {
+    return unless
+      (my $subtree=ContinueProjectivizing($top)) and (my $switchsubtree=ContinueProjectivizing($switch));
+
+    my $si=Index($all,$switch); # locate the switching node in the array @all
+
+      splice @$all,$i,1,@$switchsubtree;  # splice the projectivized switching subtree at the right place
+      splice @$all,$si,1,@$subtree;   # splice the projectivized moving subtree at the right place
+
+  }
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+
+}
+
+sub ShiftSubTreeOverSubTreeRight {
+# moves the (projectivized) subtree of a given node one node right (with respect to all nodes)
+# see ShiftSubTreeOverSubTreeLeft
+
+  my $top=ref($_[0]) ? $_[0] : $this;
+
+  my @brothers = brothernodes($top);
+
+  my $switch = $brothers[min(Index(\@brothers,$top)+1,$#brothers)];
+
+  my $all=GetNodesExceptST([$top,$switch]);
+  my $i=Index($all,$top);  # locate the given node in the array @all
+
+  if ($top == $switch) {
+    return unless my $subtree=ContinueProjectivizing($top);
+    splice @$all,$i,1, @$subtree;  # if there is no room where to move, just splice the proj. subtrees
+    # instead of the given nodes - thus the subtrees get projectivized
+  }
+
+  else {
+    return unless
+      (my $subtree=ContinueProjectivizing($top)) and (my $switchsubtree=ContinueProjectivizing($switch));
+
+    my $si=Index($all,$switch); # locate the switching node in the array @all
+
+    splice @$all,$si,1,@$subtree;   # splice the projectivized moving subtree at the right place
+    splice @$all,$i,1,@$switchsubtree;  # splice the projectivized switching subtree at the right place
+  }
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+
+}
+
+
+sub ShiftSubTreeOverSubTreeLeftSkipHidden {
+# moves the (projectivized) subtree of a given node one subtree left (with respect to non-hidden nodes only)
+
+  my $top=ref($_[0]) ? $_[0] : $this;  # if no parameter is passed,
+                                       # take $this to be the reference to the node to be processed
+
+  my @brothers = brothernodes($top,1);
+
+  my $switch = $brothers[max(Index(\@brothers,$top)-1,0)];
+
+  my $all=GetNodesExceptST([$top,$switch]);  # all nodes except the nodes depending on the given node
+
+#  my $allvis=GetNodesExceptST([$top,$switch],1); # all visible (ie non-hidden) nodes except the nodes depending on the given nodes
+  my $i=Index($all,$top);  # locate the given node in the array @all
+
+  if ($top == $switch) {
+    return unless my $subtree=ContinueProjectivizing($top);
+    splice @$all,$i,1, @$subtree;  # if there is no room where to move, just splice the proj. subtree back
+    #  - thus the subtree gets projectivized
+  }
+
+  else {
+    return unless
+      (my $subtree=ContinueProjectivizing($top)) and (my $switchsubtree=ContinueProjectivizing($switch));
+
+    my $si=Index($all,$switch); # locate the switching node in the array @all
+
+      splice @$all,$i,1,@$switchsubtree;  # splice the projectivized switching subtree at the right place
+      splice @$all,$si,1,@$subtree;   # splice the projectivized moving subtree at the right place
+
+  }
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+
+}
+
+
+sub ShiftSubTreeOverSubTreeRightSkipHidden {
+# moves the (projectivized) subtree of a given node one node right (with respect to non-hidden nodes only)
+# see ShiftSubTreeOverSubTreeLeftSkipHidden
+  my $top=ref($_[0]) ? $_[0] : $this;
+
+  my @brothers = brothernodes($top,1);
+
+  my $switch = $brothers[min(Index(\@brothers,$top)+1,$#brothers)];
+
+  my $all=GetNodesExceptST([$top,$switch]);
+  my $i=Index($all,$top);  # locate the given node in the array @all
+
+  if ($top == $switch) {
+    return unless my $subtree=ContinueProjectivizing($top);
+    splice @$all,$i,1, @$subtree;  # if there is no room where to move, just splice the proj. subtrees
+    # instead of the given nodes - thus the subtrees get projectivized
+  }
+
+  else {
+    return unless
+      (my $subtree=ContinueProjectivizing($top)) and (my $switchsubtree=ContinueProjectivizing($switch));
+
+    my $si=Index($all,$switch); # locate the switching node in the array @all
+
+    splice @$all,$si,1,@$subtree;   # splice the projectivized moving subtree at the right place
+    splice @$all,$i,1,@$switchsubtree;  # splice the projectivized switching subtree at the right place
+
+    }
+
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+
+}
+
+
+# *************************************************************************************
+# *************************************************************************************
+# *************************************************************************************
+# *************************************************************************************
+
+# sub OrderByTFA {
+# # orders the current subtree according to the value of the tfa attribute
+# # and returns an ordered array containing the subtree
+# # checks for projectivity, then accordingly orders the subtrees of the top node
+# # it only shuffles the whole sons' subtrees !!!
+
+#   my $top=$_[0];  # the reference to the node whose subtree is to be ordered according to tfa
+
+#   return unless ref($top);  # no valid reference parameter was passed
+
+#   my $value=$top->{tfa};  # the tfa value for the top node
+
+#   if ((IsHidden($top)) or ($value !~ /T|C|F/)) {
+#     # does not do anything on hidden nodes and on nodes with NA or no tfa value
+#     NotOrderableByTFA;
+#     return
+#   }
+
+#   my (@subtree, @sons_C, @sons_T, @sons_F, @sons_hidden);
+#   my $ord=$grp->{FSFile}->FS->order;  # the ordering attribute
+
+#   # place the top node appropriately among its sons
+#   if (($value eq "C") or ($value eq "T")) {
+#     push @sons_T, $top
+#   } elsif ($value eq "F") {
+#     push @sons_F, $top
+#   } else {  # return if the top node's tfa value is not acceptable
+#     NotOrderableByTFA;
+#     return
+#   }
+
+#   my $node;
+#   # now go through the sons
+#   for ($node=$top->firstson; $node; $node=$node->rbrother) {
+
+#     if (IsHidden($node)) {push @sons_hidden, $node}  # the node is hidden
+#     else {  # decide according to the tfa value of the node
+#       $value=$node->{tfa};  # the tfa value of the node
+
+#       if ($value eq "C") {push @sons_C, $node}
+#       elsif ($value eq "T") {push @sons_T, $node}
+#       elsif ($value eq "F") {push @sons_F, $node}
+#       elsif ($value eq "NA") {
+# 	# in this case decide according to the tfa value of depending nodes
+# 	# if there is at least one depending node with F, place the current node among F nodes
+# 	# otherwise if there is at least one with T, place the current node among T nodes, return otherwise
+# 	my @nodes= HiddenVisible() ? GetNodes($node) : GetVisibleNodes($node);
+# 	# look at appropriate nodes according to the visibility-of-hidden-nodes status
+# 	my ($hasTorC, $hasF);
+# 	while (@nodes) {  # checks whether at least some depending node has tfa value
+# 	  my $value=shift(@nodes)->{tfa};
+# 	  if (($value eq "C") or ($value eq "T")) {$hasTorC=1}
+# 	  elsif ($value eq "F") {$hasF=1}
+# 	}
+# 	if ($hasF or $hasTorC) {  # there is a depending node with tfa value
+# 	  if ($hasF) {push @sons_F, $node}
+# 	  else {push @sons_T, $node}
+# 	} else {  # no depending node has a tfa value, therefore return
+# 	  NotOrderableByTFA;
+# 	  return
+# 	}
+#       }
+#       else {  # return if there is a node that is visible and doesn't have tfa value
+# 	NotOrderableByTFA;
+# 	return
+#       }
+#     }
+#   }
+
+#   @sons_C= sort {$a->{$ord} <=> $b->{$ord}} @sons_C;
+#   @sons_T= sort {$a->{$ord} <=> $b->{$ord}} @sons_T;
+#   @sons_F= sort {$a->{$ord} <=> $b->{$ord}} @sons_F;
+#   @sons_hidden= sort {$a->{$ord} <=> $b->{$ord}} @sons_hidden;
+
+#   foreach $node (@sons_C, @sons_T, @sons_F, @sons_hidden) {
+#     # creates an ordered array with the subtree ordered according to tfa
+#     if ($node eq $top) {
+#       push @subtree, $node  # only the top node
+#     } else {
+#       my @sonssubtree=GetNodes($node);
+#       SortByOrd(\@sonssubtree);
+#       push @subtree, @sonssubtree  # push a son's subtree
+#     }
+#   }
+#   return \@subtree
+# }
 
 
 
