@@ -57,6 +57,7 @@ sub read {
   $fs->[13]=$restore->[3];
   $fs->changePatterns(@{$restore->[4]});
   $fs->changeHint($restore->[5]);
+  $fs->FS->renew_specials();
 }
 
 
