@@ -2877,11 +2877,11 @@ sub applyWindowStylesheet {
   my ($win,$stylesheet)=@_;
   return unless $win;
   my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
-  if ($s) {
-    if ($stylesheet eq STYLESHEET_FROM_FILE()) {
-      $win->treeView()->set_patterns(undef);
-      $win->treeView()->set_hint(undef);
-    } else {
+  if ($stylesheet eq STYLESHEET_FROM_FILE()) {
+    $win->treeView()->set_patterns(undef);
+    $win->treeView()->set_hint(undef);
+  } else {
+    if ($s) {
       $win->treeView()->set_patterns($s->{patterns});
       $win->treeView()->set_hint(\$s->{hint});
     }
