@@ -1,334 +1,13 @@
-## This is a XML backend for FSLib                           -*-cperl-*-
+## This is a simple XML backend for TEI files     -*-cperl-*-
 ## author: Petr Pajas
-# Time-stamp: <2003-03-05 12:30:42 pajas>
-
-#############################################################
-
-package TrXMLParser;
-
-use Unicode::MapUTF8 qw(from_utf8);
-use XML::LibXML;
-use vars qw($state %defs @attlist @trees $node $attr $parent);
-
-$state=0;
-%defs=();
-@attlist=();
-@trees=();
-$node=undef;
-$attr=undef;
-$parent=undef;
-
-sub StartDocument {
-}
-
-sub EndDocument {
-}
-
-sub Attlist {
-  my ($parser,$el,$at,$type,$def,$fixed)=@_;
-  if ($el eq 'nd') {
-    push @attlist,$at;
-  }
-}
-
-sub StartTag {
-  my ($parser,$elem)=(shift,shift);
-  if ($TrXMLParser::state==0 and $elem eq 'trees') {
-    $TrXMLParser::state=1;	# in trees
-    return;
-  }
-  if ($TrXMLParser::state==1 and $elem eq 'meta') {
-    $TrXMLParser::state=2;	# in meta
-    return;
-  }
-  if ($TrXMLParser::state==1 and $elem eq 'types') {
-    $TrXMLParser::state=3;	# in types
-    return;
-  }
-  if ($TrXMLParser::state==3) {
-    push @TrXMLParser::attlist,$_{n};
-    if ($elem eq 't') {
-#        if ($_{pos}) {
-#  	$TrXMLParser::defs{$_{n}}.=' P';
-#        }
-#        if ($_{obl}) {
-#  	$TrXMLParser::defs{$_{n}}.=' O';
-#        }
-#        if ($_{val}) {
-#  	$TrXMLParser::defs{$_{n}}.=' V';
-#        }
-#        if ($_{ordw}) {
-#  	$TrXMLParser::defs{$_{n}}.=' W';
-#        }
-#      $TrXMLParser::defs{$_{n}}=' K' unless $TrXMLParser::defs{$_{n}};
-#    } elsif ($elem eq 'l') {
-#      if ($_{pos}) {
-#  	$TrXMLParser::defs{$_{n}}.=' P';
-#        }
-#        if ($_{obl}) {
-#  	$TrXMLParser::defs{$_{n}}.=' O';
-#        }
-#        if ($_{v}) {
-#  	$TrXMLParser::defs{$_{n}}.=' L='.from_utf8({-string => $_{v}, -charset => 'ISO-8859-2'});
-#        }
-#        $TrXMLParser::defs{$_{n}}=' K' unless $TrXMLParser::defs{$_{n}};
-      $TrXMLParser::defs{$_{n}}.=' P';
-      if ($_{v} ne "") {
-	$TrXMLParser::defs{$_{n}}.=' L='.from_utf8({-string => $_{v}, -charset => 'ISO-8859-2'});
-      }
-    }
-  }
-  if ($TrXMLParser::state==1 || $TrXMLParser::state==4 and $elem eq 'nd') {
-    my $new = FSNode->new();
-    if ($TrXMLParser::node) {
-      #add new as a last son of node
-      my $n=$TrXMLParser::node->firstson;
-      Fslib::SetParent($new,$TrXMLParser::node);
-      if ($n) {
-	$n=$n->rbrother while ($n->rbrother);
-	Fslib::SetRBrother($n,$new);
-	Fslib::SetLBrother($new,$n);
-      } else {
-	Fslib::SetFirstSon($TrXMLParser::node,$new);
-      }
-    } else {
-      push @TrXMLParser::trees, $new;
-    }
-    $TrXMLParser::node=$new;
-    $TrXMLParser::node->{ORD}=$_{n};
-    $TrXMLParser::node->{HIDE}='hide'x$_{h};
-    $TrXMLParser::node->{ID}=$_{id};
-    foreach (keys(%_)) {
-      $node->{$_}=from_utf8({-string => $_{$_}, -charset => 'ISO-8859-2'})
-	unless ($_ eq "h" or $_ eq "id" or $_ eq "n");
-    }
-    $TrXMLParser::state=4;	# in nd
-    return;
-  }
-}
-
-sub EndTag {
-  my ($parser,$elem)=@_;
-  if ($TrXMLParser::state==1  and $elem eq 'trees') {
-    $TrXMLParser::state=0;	# end of trees
-    return;
-  }
-  if ($TrXMLParser::state==2 and $elem eq 'meta') {
-    $TrXMLParser::state=1;	# end of meta
-    return;
-  }
-  if ($TrXMLParser::state==3 and $elem eq 'types') {
-    $TrXMLParser::state=1;	# end of types
-    push @TrXMLParser::attlist, 'ORD','HIDE';
-    $TrXMLParser::defs{HIDE}.=' H';
-    $TrXMLParser::defs{ORD}.=' N';
-    return;
-  }
-  if ($TrXMLParser::state==4 and $elem eq 'nd') {
-    $TrXMLParser::node=$TrXMLParser::node->parent
-      if ($TrXMLParser::node);
-    $TrXMLParser::state=1 unless ($TrXMLParser::node);
-  }
-}
-
-sub Text {
-}
-
-sub pi {
-  # process tred's specific instructions, like attribute patterns,
-  # which attributes are used as @W and @V etc.
-}
-
-
+# $Id$ '
 #############################################################
 
 package TrXMLBackend;
-
 use Fslib;
-use XML::Writer;
-use XML::Parser;
-use Carp;
-
-@ISA=qw(ZBackend);
-import ZBackend;
-
-
-=item write (glob_ref,$fsfile)
-
-Write FSFile in a tree-XML format (file handle open for reading must be passed
-as a GLOB reference).
-
-=cut
-
-sub write {
-  my ($fileref,$fs) = @_;
-  return 0 unless ref($fileref) and ref($fs);
-
-  my $writer = new XML::Writer(OUTPUT => $fileref, DATA_MODE => 1, DATA_INDENT => 1);
-  $writer->{DOCTYPE} = sub {
-    my ($name, $publicId, $systemId, $localDTD) = (@_);
-    $fileref->print("<!DOCTYPE $name");
-    if ($publicId) {
-      $fileref->print(" PUBLIC \"$publicId\" \"$systemId\"");
-    } elsif ($systemId) {
-      $fileref->print(" SYSTEM \"$systemId\"");
-    }
-    if ($localDTD) {
-      $fileref->print(" [\n$localDTD\n]");
-    }
-    $fileref->print(">\n");
-  };
-
-  $writer->xmlDecl('iso-8859-2');
-  $writer->doctype("trees",
-		   "-//CKL.MFF.UK//DTD TrXML V1.0//EN",
-		   "http://ufal.mff.cuni.cz/~pajas/tred.dtd",
-                   "<!ENTITY % trxml.attributes \"".
-		   join("\n",map { "  $_ CDATA #IMPLIED" }
-			$fs->FS->attributes).
-		   "\">");
-  $writer->comment("Time-stamp: <".localtime()." TrXMLBackend>");
-  $writer->startTag("trees");
-  XMLPrintTypes($fs->FS->list, $fs->FS->defs,$writer);
-  foreach my $tree ($fs->trees) {
-    XMLPrintTree($tree,$fs->FS->list, $fs->FS->defs,$writer);
-  }
-  $writer->endTag("trees");
-  $writer->end();
-  return 1;
-}
-
-sub XMLPrintTypes {
-  my ($ord,			# a reference to the ord-array
-      $atr,			# a reference to the attribute-hash
-      $output			# XML Writer object reference
-     )=@_;
-
-  my $list;
-  my $atrs;
-  $output->startTag('types','full'=>1);
-  foreach (@$ord) {
-    %atrs=();
-    $list=Fslib::IsList($_,$atr);
-    $atrs{n}=$_;
-#    $atrs{obl}=1 if (index($atr->{$_}," O")>=0);
-#    $atrs{pos}=1 if (index($atr->{$_}," P")>=0);
-    if ($list) {
-      $atrs{v}=join"|",Fslib::ListValues($_,$atr);
-    } #else {
-# implement as TrEd's processing instructions?
-#      $atrs{val}=1 if (index($atr->{$_}," V")>=0);
-#      $atrs{ordw}=1 if (index($atr->{$_}," W")>=0);
-#    }
-    $output->emptyTag('t',%atrs);
-  }
-  $output->endTag('types');
-}
-
-sub XMLPrintNode {
-  my ($node,			# a reference to the root-node
-      $ord,			# a reference to the ord-array
-      $atr,			# a reference to the attribute-hash
-      $output			# XML Writer object reference
-     )=@_;
-  my $v;
-  my $natr=Fslib::ASpecial($atr,"N");
-  my $hatr=Fslib::ASpecial($atr,"H");
-
-  if ($node) {
-    $output->startTag('att');
-    for (my $n=0; $n<=$#$ord; $n++) {
-      $v=$node->{$ord->[$n]};
-      next if ($ord->[$n] eq $natr
-	       or
-	       $ord->[$n] eq $hatr and $v eq 'hide'
-	       or $v eq '' or not defined($v));
-      if (defined($v)) {
-	$output->startTag('a',n => $ord->[$n]);
-	$output->characters($v);
-	$output->endTag('a');
-      }
-    }
-    $output->endTag('att');
-  }
-}
-
-sub XMLPrintTree {
-  my ($curr,			# a reference to the root-node
-      $rord,			# a reference to the ord-array
-      $ratr,			# a reference to the attribute-hash
-      $output			# XML Writer object reference
-     )=@_;
-  my $natr=Fslib::ASpecial($ratr,"N");
-  my $hatr=Fslib::ASpecial($ratr,"H");
-  return unless $output;
-  my $root=$curr;
-  while ($curr) {
-    # id should be processed here
-    $output->startTag('nd',
-		      defined($curr->{$natr}) ?
-		      ('n' => $curr->{$natr}) : (),
-		      $curr->{$hatr} eq 'hide' ?
-		      ('h' => 1) : (),
-                      map { ($curr->{$_} eq "") ? () : ($_ => $curr->{$_}) } @$rord
-		     );
-#    XMLPrintNode($curr,$rord,$ratr,$output);
-    if ($curr->firstson) {
-      $curr = $curr->firstson;
-      redo;
-    }
-    $output->endTag('nd');
-    while ($curr && $curr != $root && !($curr->rbrother)) {
-      $output->endTag('nd');
-      $curr = $curr->parent;
-    }
-    croak "Error: NULL-node within the tree while printing\n" if !$curr;
-    last if ($curr == $root || !$curr);
-    $curr = $curr->rbrother;
-    redo;
-  }
-}
-
-=item read (glob_ref,$fsfile)
-
-Read FSFile from tree-XML file (file handle open for reading must be
-passed as a GLOB reference). Return 1 on success 0 on fail.
-
-=cut
-
-sub read {
-  my ($fileref,$fsfile) = @_;
-  return unless ref($fsfile);
-
-
-  my $parser=new XML::Parser(Style=>'Stream', Pkg => 'TrXMLParser',ProtocolEncoding=>'iso-8859-2');
-  $parser->parse(*$fileref);
-
-  $fsformat = new FSFormat({%TrXMLParser::defs},
-			   [@TrXMLParser::attlist], undef);
-  $fsfile->changeFS($fsformat);
-  $fsfile->changeTrees(@TrXMLParser::trees);
-
-  # forget it
-  $TrXMLParser::state=0;
-  %TrXMLParser::defs=();
-  @TrXMLParser::attlist=();
-  @TrXMLParser::trees=();
-  $TrXMLParser::node=undef;
-  $TrXMLParser::attr=undef;
-  $TrXMLParser::parent=undef;
-  return 1;
-}
-
-=item test (filehandle | filename)
-
-Test if given file is in Tree XML format. If the argument is a
-file-handle the filehandle is supposed to be open by previous call to
-C<open_backend>.  In this case, the calling application may need to
-close the handle and reopen it in order to seek the beginning of the
-file after the test has read few characters or lines from it.
-
-=cut
+use XML::LibXML;
+use XML::LibXML::SAX;
+use strict;
 
 sub test {
   my ($f)=@_;
@@ -336,12 +15,293 @@ sub test {
     return ($f->getline()=~/\s*\<\?xml / &&
 	    $f->getline()=~/\<!DOCTYPE trees[ >]|\<trees[ >]/i);
   } else {
-    my $fh = open_backend($f,"r");
+    my $fh = ZBackend::open_backend($f,"r");
     my $test = $fh && test($fh);
     close_backend($fh);
     return $test;
   }
 }
 
+sub open_backend {
+  my ($filename, $mode,$encoding)=@_;
+  if ($mode eq 'r') {
+    return $_[0];
+  } else {
+    return ZBackend::open_backend($filename, $mode, $encoding);
+  }
+}
+
+sub close_backend {
+  my ($fh)=@_;
+  if (ref($fh)) {
+    return $fh->close();
+  } else {
+    return 1;
+  }
+}
+
+=item read ($input,$fsfile)
+
+Read TEI XML file used in SDT for morphological and analytical annotation.
+
+=cut
+
+sub read {
+  my ($input,$fsfile) = @_;
+  #my $handler = XML::SAX::Writer->new();
+  print "read\n";
+  
+  my $handler = XML::Handler::TrXML2FS->new(FSFile => $fsfile);
+  my $p = XML::LibXML::SAX->new(Handler => $handler);
+  if (ref($input)) {
+    $p->parse_fh($input);
+  } else {
+    $p->parse_uri($input);
+  }
+
+  return 1;
+}
+
+sub xml_quote {
+  local $_=$_[0];
+  s/&/&amp;/g;
+  s/'/&apos;/g;
+  s/"/&quot;/g;
+  s/>/&gt;/g;
+  s/</&lt;/g;
+  return $_;
+}
+
+sub xml_quote_pcdata {
+  local $_=$_[0];
+  s/&/&amp;/g;
+  s/>/&gt;/g;
+  s/</&lt;/g;
+  return $_;
+}
+
+
+=item write ($output,$fsfile)
+
+Write TrXML file
+
+=cut
+
+sub write {
+  my ($output, $fsfile) = @_;
+
+  die "Require GLOB reference\n" unless ref($output);
+
+  # xml_decl
+  print $output "<?xml";
+  if ($fsfile->metaData('xmldecl_version') ne "") {
+    print $output " version=\"".$fsfile->metaData('xmldecl_version')."\"";
+  } else {
+    print $output " version=\"1.0\"";
+  }
+  if ($fsfile->encoding() ne "") {
+    print $output " encoding=\"".$fsfile->encoding()."\"";
+  }
+  if ($fsfile->metaData('xmldecl_standalone') ne "") {
+    print $output " standalone=\"".$fsfile->metaData('xmldecl_standalone')."\"";
+  }
+  print $output "?>\n";
+
+  print $output ("<!DOCTYPE trees PUBLIC \"-//CKL.MFF.UK//DTD TrXML V1.0//EN\"".
+		 " \"http://ufal.mff.cuni.cz/~pajas/tred.dtd\" [\n".
+		 "<!ENTITY % trxml.attributes \"".
+		 join("\n",map { "  $_ CDATA #IMPLIED" }
+		      grep { !/^(?:ORD|HIDE|ID)$/ } $fsfile->FS->attributes).
+		 "\">\n]>\n");
+  print $output "<!-- Time-stamp: <".localtime()." TrXMLBackend> -->\n";
+  print $output "<trees>\n";
+
+  my @meta=grep { !/^xmldecl_/ } $fsfile->listMetaData();
+  if (@meta) {
+    print $output "<info>\n";
+    foreach (@meta) {
+      print $output "  <meta name=\"$_\" content=\"".xml_quote($fsfile->metaData($_))."\"/>\n";
+    }
+    print $output "</info>\n";
+  }
+
+  print $output "<types full=\"1\">\n";
+  foreach my $atr (grep { !/^(?:ORD|HIDE|ID)$/ } $fsfile->FS->attributes) {
+    print $output "  <t n=\"$atr\"";
+    if ($fsfile->FS->isList($atr)) {
+      print $output " v=\"",xml_quote(join("|",$fsfile->FS->listValues($atr))),"\"";
+    }
+    print $output "/>\n";
+  }
+  print $output "</types>\n";
+
+  foreach my $tree ($fsfile->trees) {
+    my $node=$tree;
+    NODE: while ($node) {
+      print $output "<nd";
+      print $output
+	map { " $_=\"".xml_quote($node->{$_})."\"" }
+	  grep { $node->{$_} ne "" }
+	    grep { !/^(?:ORD|HIDE|ID)$/ } $fsfile->FS->attributes;
+      print $output ">\n";
+      if ($node->firstson) {
+	$node=$node->firstson;
+	next;
+      }
+      while ($node) {
+	print $output "</nd>\n";
+	if ($node->rbrother) {
+	  $node=$node->rbrother;
+	  next NODE;
+	}
+	$node=$node->parent;
+      }
+    }
+  }
+  print $output "</trees>\n";
+}
+
+
+# SAX TrXML to FSFile transducer
+package XML::Handler::TrXML2FS;
+use strict;
+use Fslib;
+
+sub decode {
+  my ($self, $str)=@_;
+  my $enc=$self->{FSFile}->encoding();
+  if ($]>=5.008 or $enc eq "") {
+    return $str;
+  } else {
+    print "encoding: $enc, $str\n";
+    eval {
+      $str = XML::LibXML::decodeFromUTF8($enc,$str);
+    };
+    print STDERR $@ if $@;
+    return $str;
+  }
+}
+
+sub new {
+  my ($class, %args) = @_;
+  bless \%args, $class;
+}
+
+sub start_document {
+  my ($self,$hash) = @_;
+  print "$hash, ",keys(%$hash),"\n";
+  print map {"$_ => $hash->{$_}\n"} keys %$hash;
+  $self->{FSFile} ||= FSFile->new();
+  $self->{FSAttrs} ||= [];
+}
+
+sub end_document {
+  my ($self) = @_;
+  $self->{FSFile}->changeFS(
+    FSFormat->create(
+		     @{$self->{FSAttrs}},
+		     '@N ORD', '@H HIDE', '@K ID'
+		    ));
+  $self->{FSFile};
+}
+
+sub xml_decl {
+  my ($self,$data) = @_;
+  $self->{FSFile}->changeEncoding($data->{Encoding});# || 'iso-8859-2');
+  $self->{FSFile}->changeMetaData('xmldecl_version' => $data->{Version});
+  $self->{FSFile}->changeMetaData('xmldecl_standalone' => $data->{Standalone});
+}
+
+sub characters {
+  # nothing to do so far
+}
+
+sub start_element {
+  my ($self, $hash) = @_;
+  my $elem = $hash->{Name};
+  my $attr = $hash->{Attributes};
+  my $fsfile = $self->{FSFile};
+#  my %attr = map { $_->{Name} => $_->{Value} } values %$attr;
+
+  # $elem eq 'tree' && do { } # nothing to do
+  # $elem eq 'info' && do { } # nothing to do
+  if ($elem eq 'meta') {
+
+    $fsfile->changeMetaData($self->decode($attr->{'{}name'}->{Value}) =>
+			    $self->decode($attr->{'{}content'}->{Value}));
+
+  } elsif ($elem eq 'types') {
+
+#    $fsfile->changeMetaData('TrXML types/@full' => $self->decode($attr->{'{}full'}->{Value}))
+#      if (exists($attr->{'{}full'}));
+
+  } elsif ($elem eq 't') {
+
+    my $atrname = $attr->{'{}n'}->{Value};
+    my $v = exists($attr->{'{}v'}) ? $self->decode($attr->{'{}v'}->{Value}) : "";
+
+    push @{$self->{FSAttrs}}, '@P '.$atrname;
+    push @{$self->{FSAttrs}}, '@L '.$atrname.'|'.$v if ($v ne "");
+    # d and m not implemented
+  } elsif ($elem eq 'nd') {
+
+    my $parent = $self->{Node};
+    my $new;
+    if ($parent) {
+      $self->{Node} = $new = FSNode->new();
+    } else {
+      undef $parent;
+      $self->{Tree} = $self->{FSFile}->new_tree($self->{FSFile}->lastTreeNo+1);
+      $self->{Node} = $new = $self->{Tree};
+    }
+    $new->{ORD}=$attr->{'{}n'}->{Value};
+    $new->{HIDE}='hide'x$attr->{'{}h'}->{Value};
+    $new->{ID}=$self->decode($attr->{'{}id'}->{Value});
+    foreach (grep { !/^{}(?:n|h|id)$/ } keys %$attr) {
+      $new->{$self->decode($attr->{$_}->{Name})} = $self->decode($attr->{$_}->{Value});
+    }
+    Paste($new,$parent,{ ORD => ' N'}) if ($parent);
+  }
+  $self->{attributes}=$attr;
+}
+
+sub end_element {
+  my ($self,$hash) = @_;
+
+  if ($hash->{Name} eq 'nd') {
+    $self->{Node}=$self->{Node}->parent;
+  } elsif ($hash->{Name} eq 'trees') {
+    $self->{Node}=undef;
+  }
+}
+
+sub entity_reference {
+}
+
+sub start_cdata { # not much use for this
+  my $self = shift;
+  $self->{InCDATA} = 1;
+}
+
+sub end_cdata { # not much use for this
+  my $self = shift;
+  $self->{InCDATA} = 0;
+}
+
+sub comment {
+  my $self = $_[0];
+  my $data = $_[1];
+  if ($self->{Node}) {
+    $self->{Node}->{xml_comment}.='<!--'.$data.'-->';
+  }
+}
+
+sub doctype_decl { # not use for this, so far
+  my ($self,$hash) = @_;
+  foreach (qw(Name SystemId PublicId Internal)) {
+    $self->{"DocType_$_"} = $hash->{$_};
+  }
+}
 
 1;
+
