@@ -308,6 +308,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 require Filelist;
 
 require Tk::MyFileSelect;
+require Tk::ImgButton;
 require Tk::BindMouseWheel;
 require Tk::Balloon;
 
@@ -428,13 +429,20 @@ use POSIX qw(locale_h);
   setlocale(LC_NUMERIC,"C");
 };
 
+print STDERR "Creating filelists...\n" if $tredDebug;
 {
+  my $default= new Filelist('Default');
+  $default->add(0,absolutize(@ARGV)) if @ARGV;
+  addNewFilelist(undef,$default);
+}
+
+if ($opt_l) {
   # create Default filelists
   my @fl_files;
   foreach my $l (split /\s*,\s*/,$opt_l) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
     if (open(F,"<$l")) {
-      my @f=<F>; 
+      my @f=<F>;
       chomp @f;
       push @fl_files,\@f;
       close(F);
@@ -442,15 +450,10 @@ use POSIX qw(locale_h);
       print STDERR "Warning: Can't open filelist $l: $!\n";
     }
   }
-  # define filelists Default, Default-2, etc.
-  print STDERR "Creating filelists...\n" if $tredDebug;
-  my $default= new Filelist('Default');
-  my @abs = absolutize(@ARGV, @fl_files ? @{shift @fl_files} : ());
-  $default->add(0,@abs);
-  addNewFilelist(undef,$default);
-  my $fl_no=-2;
+  # define filelists CmdLine-1, CmdLine-2, etc.
+  my $fl_no=-1;
   foreach (grep {@{$_}} @fl_files) {
-    my $fl = new Filelist('Default'.$fl_no);
+    my $fl = new Filelist('CmdLine'.$fl_no);
     $fl->add(0, absolutize(@{shift @fl_files}));
     addNewFilelist(undef,$fl);
     $fl_no--;
@@ -1275,10 +1278,12 @@ sub updatePostponed {
 				       -state=> 'disabled',
 				       -background=> '#444444'
 				      );
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Don\'t close on open',
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Don\'t close file when opening a new one',
 	  -variable=> \$grp->{keepfiles});
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Don\'t append file-list',
-	  -variable=> \$grp->{noinsert});
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Add open files to default file-list',
+	  -variable=> \$grp->{appenddefault});
+    $grp->{PostponedFileMenu}->checkbutton(-label => 'Preserve patterns on reload',
+	  -variable=> \$reloadKeepsPatterns);
     $grp->{PostponedFileMenu}->checkbutton(-label => 'Build TGTS from CSTS',
 					   -variable=> \$grp->{buildTGTSfromCSTS},
 					   -command => [sub {
@@ -1290,8 +1295,7 @@ sub updatePostponed {
 							  }
 							},$grp]
 					  );
-    $grp->{PostponedFileMenu}->checkbutton(-label => 'Preserve patterns on reload',
-	  -variable=> \$reloadKeepsPatterns);
+
     $grp->{PostponedFileMenu}->command(-label=> 'Open files',
 				       -state=> 'disabled',
 				       -background=> '#444444'
@@ -1329,9 +1333,14 @@ sub updateTitle {
   if (defined($win->{currentFileNo}) and 
       ref($win->{FSFile}) and
       defined($win->{currentFilelist})) {
+    my $filelist_info='';
+    if ($win->{currentFilelist}->position($win->{FSFile})>=0) {
+      $filelist_info=$win->{currentFilelist}->name()."(".($win->{currentFileNo}+1)."/".
+	$win->{currentFilelist}->file_count()."): ";
+    }
     $grp->{top}->title("$appName    ".
-		       $win->{currentFilelist}->name()."(".($win->{currentFileNo}+1)."/".
-		       $win->{currentFilelist}->file_count()."): ".$win->{FSFile}->filename()
+		       $filelist_info.
+		       $win->{FSFile}->filename()
 		      );
   } else {
     $grp->{top}->title("$appName");
@@ -1461,9 +1470,14 @@ sub openFile {
 	resumeFile($win,$of,$opts{-keep});
 	$win->{currentFileNo} =
 	  max(0,$win->{currentFileNo});
-	insertToFilelist($win,$win->{currentFilelist},
-			 $win->{currentFileNo},
-			 $f.$goto) unless $grp->{noinsert};
+	if ($grp->{appenddefault} and
+	    ref($win->{currentFilelist}) and
+	    $win->{currentFilelist}->name eq 'Default') {
+	  insertToFilelist($win,$win->{currentFilelist},
+			   $win->{currentFileNo},
+			   $f.$goto);
+	  $win->{currentFileNo}=$win->{currentFilelist}->position($win->{FSFile});
+	}
 	updateTitle($grp);
 	applyFileSuffix($win,$goto);
 	get_nodes_win($win, $opts{-noredraw});
@@ -1586,8 +1600,12 @@ sub openFile {
   updatePostponed($grp);
   # add file to filelist
   $win->{currentFileNo}= max(0,$win->{currentFileNo});
-  if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and !$grp->{noinsert}) {
+  if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and
+      $grp->{appenddefault} and
+      ref($win->{currentFilelist}) and
+      $win->{currentFilelist}->name eq 'Default') {
     insertToFilelist($win,$win->{currentFilelist},$win->{currentFileNo},$f.$goto);
+    $win->{currentFileNo}=$win->{currentFilelist}->position($win->{FSFile});
   }
   updateTitle($grp);
 
@@ -2009,8 +2027,13 @@ sub selectFilelist {
   }
 
   # find current file
-  $win->{currentFileNo}=max(0,0,$fl->position())-1;
-  nextFile($win);
+  $win->{currentFileNo}=max(0,$fl->position())-1;
+  if ($win->{currentFileNo}+1>=$fl->file_count()) {
+    closeFile($win);
+  } else {
+    nextFile($win);
+  }
+  updateTitle($grp);
 }
 
 # Find named filelist. Return undef if no such filelist exists
@@ -2325,19 +2348,27 @@ sub filelistDialog {
   my $labframe=$frame->LabFrame(-label=> 'Files to add',
 				-labelside=> 'acrosstop'
 			       )->pack(qw/-expand yes -fill both -side left/);
+  $labframe->Subwidget('label')->configure(-underline => 0);
   my $fl= $labframe->MyFileSelect(-selectmode=> 'extended',
-				   -filetypes=> \@open_types)
+				  -takefocus => 1,
+				  -filetypes=> \@open_types)
     ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
-
-#c  $fl->Subwidget('filelist')->configure(qw/-background white -foreground black/);
+  $fl->Subwidget('filelist')->configure(-background => 'white');
+  $d->bind("<Alt-f>",[$fl->Subwidget('filelist')->Subwidget('scrolled'),'focus']);
 
   my $midframe=$frame->Frame()->pack(qw/-side left/);
 
   my $lframe=$frame->Frame()->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
   my $ll= createFilelistBrowseEntry($grp,$lframe,\$filelist);
-
   $ll->pack(qw/-expand yes -fill both -side top/);
-#c                     -background white
+
+  # Bloody hell, how do I underline BrowseEntry labels?
+  foreach (grep { ref($_) and $_->isa('Tk::Label') } _descendant_widgets($ll)) {
+    $_->configure( -underline => 1 );
+  }
+  $d->bind("<Alt-i>",[$ll->Subwidget('entry'),'focus']);
+  $grp->{Balloon}->attach($ll,-balloonmsg=>
+			  "Select a file-list to display.\nTo rename the selected file-list, type in a new name and press Enter.");
 
   my $t= $lframe->Scrolled(qw/HList -relief sunken
                      -selectmode extended
@@ -2353,23 +2384,26 @@ sub filelistDialog {
 
   $frame->pack(qw/-expand yes -fill both -side top/);
 
+  my $b=$midframe->Button(-text=> 'Add -->',
+			  -underline=> 0,
+			  -command=>[
+				     sub {
+				       my ($grp,$t,$l)=@_;
+				       insertToFilelist($grp,
+							$grp->{filelistCurrentFilelist},
+							getFilelistLinePosition($grp->{filelistCurrentFilelist},
+										$t->info('anchor')),
+							$l->getSelectedFiles
+						       );
+				       updateBookmarks($grp)
+					 if (ref($grp->{filelistCurrentFilelist}) and
+					     $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
+				     },$grp,$t,$fl])->pack(-pady => '0.2c', -side=> 'top');
+  $grp->{Balloon}->attach($b,-balloonmsg=>
+			  "Add files selected on the left\nto the file-list on the right.");
 
-  $midframe->Button(-text=> 'Add -->',
-		    -command=>[
-			       sub {
-				 my ($grp,$t,$l)=@_;
-				 insertToFilelist($grp,
-						  $grp->{filelistCurrentFilelist},
-						  getFilelistLinePosition($grp->{filelistCurrentFilelist},
-									  $t->info('anchor')),
-						  $l->getSelectedFiles
-						 );
-				 updateBookmarks($grp)
-				   if (ref($grp->{filelistCurrentFilelist}) and
-				       $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-			       },$grp,$t,$fl])->pack(-side=> 'top');
-
-  $midframe->Button(-text=> 'Remove',
+  $b=$midframe->Button(-text=> '<-- Remove',
+		    -underline=> 4,
 		    -command=>[
 			       sub { 
 				 my ($grp,$t)=@_;
@@ -2381,9 +2415,23 @@ sub filelistDialog {
 				 updateBookmarks($grp)
 				   if (ref($grp->{filelistCurrentFilelist}) and
 				       $grp->{filelistCurrentFilelist}->name eq 'Bookmarks');
-			       },$grp,$t])->pack(-side=> 'top');
+			       },$grp,$t])->pack(-pady => '0.2c', -side=> 'top');
+  $grp->{Balloon}->attach($b,-balloonmsg=>
+			  "Remove selected files on the right from the file-list.");
 
   unless ($modal) {
+    $b=$midframe->Button(-text=> 'Show in TrEd',
+		      -underline=> 0,
+		      -command=> [ sub {
+				     my ($grp)=@_;
+				     $grp->{filelistCurrentFilelist}->
+				       set_current($grp->{Filelist}->
+						   info('data',$grp->{Filelist}->info('anchor')));
+				     selectFilelist($grp,$grp->{filelistCurrentFilelist});
+				   },$grp ])->pack(-pady => '0.2c', -side => 'top');
+    $grp->{Balloon}->attach($b,-balloonmsg=>
+			    "Open the file-list on the selected position.");
+
     $t->bind('<Return>'=> [
 			    sub {
 			      my ($w,$grp)=@_;
@@ -2424,14 +2472,6 @@ sub filelistDialog {
 				  selectFilelist($grp,$grp->{filelistCurrentFilelist});
 				}
 			      },$grp ]);
-    $d->Button(-text=> 'Go',
-	     -command=> [ sub {
-			     my ($grp)=@_;
-			     $grp->{filelistCurrentFilelist}->
-			       set_current($grp->{Filelist}->
-					   info('data',$grp->{Filelist}->info('anchor')));
-			     selectFilelist($grp,$grp->{filelistCurrentFilelist});
-			   },$grp ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side => 'left');
   }
   $d->bind('<Destroy>'=> [sub { shift;
 				 my $grp=shift;
@@ -2445,15 +2485,29 @@ sub filelistDialog {
 		      shift->destroy();
 		},$d ]);
 
-  $d->Button(-text=> 'Close',
+  $b=$d->Button(-text=> 'Close',
+	     -underline=> 0,
 	     -command=> [sub {
 			    $modal ?
 			      shift->{selected_button}= "Cancel" :
 				shift->destroy();
 			  },$d ])
-    ->pack(-padx=>'0.5c',-pady=>'0.2c',-side => 'right');
+    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side => 'right');
+  $grp->{Balloon}->attach($b,-balloonmsg=>
+			  "Close this window.");
 
-  $d->Button(-text=> 'Save',
+  $b=$d->Button(-text=> 'Delete',
+		-underline=> 0,
+		-command=> [sub {
+			      my ($grp,$d)=@_;
+			      deleteFilelist($grp,$grp->{filelistCurrentFilelist});
+			    },$grp,$d ])
+    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side=>'right');
+  $grp->{Balloon}->attach($b,-balloonmsg=>
+			  "Delete current file-list.");
+
+  $b=$d->Button(-text=> 'Save',
+	     -underline=> 0,
 	     -command=> [sub {
 			    my ($grp,$d)=@_;
 			    my $file=$grp->{filelistCurrentFilelist}->filename;
@@ -2477,35 +2531,57 @@ sub filelistDialog {
 			    }
 			    $grp->{filelistCurrentFilelist}->save;
 			  },$grp,$d ])
-    ->pack(-padx=>'0.5c',-pady=>'0.2c',-side => 'right');
+    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side => 'right');
+  $grp->{Balloon}->attach($b,-balloonmsg=>
+			     "Save current file-list to a file.");
 
-  $d->Button(-text=> 'Load',
+  $b=$d->Button(-text=> 'New',
+	     -underline=> 0,
 	     -command=> [sub {
-			    my ($grp,$d,$filelistref)=@_;
-			    my $file= get_open_filename($d,-filetypes=> 
-						      [["Filelists",           ['.fl']],
-						       ["All files",           ['*','*.*']]
-						      ],
-						      -title=> "Load filelist ...");
-			    $d->deiconify;
-			    $d->focus;
-			    $d->raise;
-			    return unless (defined $file and $file ne "");
-			    my $fl=Filelist->new(undef,$file);
-			    return unless $fl;
-			    print "Loading filelist: $file\n";
-			    $fl->load();
-			    addNewFilelist($grp,$fl);
-			    $$filelistref=$fl->name();
-			  },$grp,$d,\$filelist ])
-    ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
+			   my ($grp,$d,$filelistref)=@_;
+			   my $name = QueryString($d,"File-list name", "Name: ");
+			   $d->deiconify;
+			   $d->focus;
+			   $d->raise;
+			   if (findFilelist($name)) {
+			     userQuery($d,
+				       "File-list named '$name' already exists.\n",
+				       -title => "File-list already exists",
+				       -buttons => ["OK"]);
+			   } else {
+			     addFilelist(Filelist->new($name));
+			     $$filelistref=$name;
+			     switchFilelist($grp,$name);
+			     updatePostponed($grp);
+			   }
+			 },$grp,$d,\$filelist ])
+    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side=>'right');
+  $grp->{Balloon}->attach($b,-balloonmsg=>
+			     "Create a new (empty) file-list.");
 
-  $d->Button(-text=> 'Delete',
+  $b=$d->Button(-text=> 'Load',
+	     -underline=> 0,
 	     -command=> [sub {
-			    my ($grp,$d)=@_;
-			    deleteFilelist($grp,$grp->{filelistCurrentFilelist});
-			  },$grp,$d ])
-    ->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
+			   my ($grp,$d,$filelistref)=@_;
+			   my $file= get_open_filename($d,-filetypes=> 
+						       [["Filelists",           ['.fl']],
+							["All files",           ['*','*.*']]
+						       ],
+						       -title=> "Load filelist ...");
+			   $d->deiconify;
+			   $d->focus;
+			   $d->raise;
+			   return unless (defined $file and $file ne "");
+			   my $fl=Filelist->new(undef,$file);
+			   return unless $fl;
+			   print "Loading filelist: $file\n";
+			   $fl->load();
+			   addNewFilelist($grp,$fl);
+			   $$filelistref=$fl->name();
+			 },$grp,$d,\$filelist ])
+    ->pack(-padx=>'0.3c',-pady=>'0.2c',-side=>'right');
+  $grp->{Balloon}->attach($b,-balloonmsg=>
+			  "Load a file-list from a file.");
 
   if ($grp->{focusedWindow}->{currentFileNo}) {
     my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{focusedWindow}->{currentFileNo});
@@ -2519,6 +2595,7 @@ sub filelistDialog {
     }
   }
   $t->focus;
+  _bind_buttons($d,$d);
   if ($modal) {
     ShowDialog($d);
     $d->destroy();
@@ -3954,17 +4031,12 @@ sub startMain {
 			    -underline=> 0,
 			    -command=> [ sub {
 					    my ($grp)=@_;
-					    my $lr = $grp->{focusedWindow}->{currentFilelist}->list_ref;
-					    removeFromFilelist($grp,
-							       undef,
-							       undef,
-							       $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
 					    return if askSaveFile($grp->{focusedWindow},0,1) == -1;
 					    closeFile($grp->{focusedWindow},-all_windows => 1);
 					  }
 					 , \%group]);
   $group{FileMenu}->command(-label=> 'Close in Window',
-			    -underline=> 0,
+			    -underline=> 1,
 			    -command=> [ sub {
 					    my ($grp)=@_;
 					    my $keep;
@@ -3976,6 +4048,19 @@ sub startMain {
 					    closeFile($grp->{focusedWindow}, -keep_postponed => $keep);
 					  }
 					 , \%group]);
+  $group{FileMenu}->command(-label=> 'Close and remove from filelist',
+			    -command=> [ sub {
+					    my ($grp)=@_;
+					    my $lr = $grp->{focusedWindow}->{currentFilelist}->list_ref;
+					    removeFromFilelist($grp,
+							       undef,
+							       undef,
+							       $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
+					    return if askSaveFile($grp->{focusedWindow},0,1) == -1;
+					    closeFile($grp->{focusedWindow},-all_windows => 1);
+					  }
+					 , \%group]);
+
   $group{FileMenu}->command(-label=> 'File List...',
 			    -underline=> 5,
 			    -command=> [\&filelistDialog, \%group]);
@@ -4821,7 +4906,11 @@ sub startMain {
     POSIX::_exit 1;
   };
 
-  selectFilelist(\%group,'Default');
+  if (findFilelist('Default')->count == 0 and findFilelist('CmdLine-1')) {
+    selectFilelist(\%group,'CmdLine-1');
+  } else {
+    selectFilelist(\%group,'Default');
+  }
   if ($opt_p) {
     my $dir=$opt_p>0 ? 'vert' : 'horiz';
     my @fl = $opt_l=~/,/g;
@@ -4829,9 +4918,9 @@ sub startMain {
     if ($fl>1) {
       $fl=min($opt_p,$fl);
       my $i;
-      for (my $i=1;$i<$fl;$i++) {
+      for (my $i=0;$i<$fl;$i++) {
 	focusCanvas($group{treeWindows}->[$i]->canvas,\%group);
-	selectFilelist($group{treeWindows}->[$i],"Default-".($i+1));
+	selectFilelist($group{treeWindows}->[$i],"CmdLine-".($i+1));
 	gotoFile($group{treeWindows}->[$i],0);
       }
     } else {
@@ -4845,11 +4934,7 @@ sub startMain {
     $group{tieWindows}=1;
   }
 
-  $group{noinsert} = ($group{focusedWindow}{currentFilelist}->count()>0);
-#    $group{focusedWindow}{currentFilelist}=$filelists[0];
-#    if ($group{focusedWindow}{currentFilelist}->file_at(0)) {
-#      openFile(\%group,$group{focusedWindow}{currentFilelist}->file_at(0));
-#    }
+  $group{appenddefault} = 1; #($group{focusedWindow}{currentFilelist}->count()>0);
 
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
   # run start_hook
@@ -5284,8 +5369,9 @@ sub editConfig {
 
 sub QueryString {
   my ($grp, $title, $label,$default_text, $select, $hist)=@_;
+  my $top = (ref($grp) and UNIVERSAL::can($grp,'toplevel')) ? $grp->toplevel : $grp->{top};
   my $newvalue=encode($default_text);
-  my $d=$grp->{top}->DialogBox(-title=> $title,
+  my $d=$top->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
@@ -5314,7 +5400,7 @@ sub QueryString {
   $e->pack(-side=>'right');
   $d->resizable(0,0);
 #  $e->focus;
-  my $result= ShowDialog($d,$e,$grp->{top});
+  my $result= ShowDialog($d,$e,$top);
   if ($result=~ /OK/) {
     if (ref($hist) and $e->can('historyAdd')) {
       $e->historyAdd($newvalue) if $newvalue ne "";
