@@ -7,10 +7,6 @@ package PMLTectogrammatic;
 import TredMacro;
 sub first (&@);
 
-my %arrow_colors;
-
-undef *sort_attrs_hook;
-
 =pod
 
 =head1 PMLTectogrammatic
@@ -29,7 +25,7 @@ C<tdata> for tectogrammatical annotation.
 
 =cut
 
-sub schema_name {
+sub schema_name { # PML
   my $schema = &schema;
   return undef unless $schema;
   return $schema->{root}->{name};
@@ -42,12 +38,11 @@ Return PML schema associated with a given (or the current) file
 
 =cut
 
-sub schema {
+sub schema { # PML
   my $fsfile = $_[0] || $grp->{FSFile};
   return undef unless $fsfile;
   return $grp->{FSFile}->metaData('schema');
 }
-
 
 sub file_resumed_hook {
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
@@ -62,11 +57,6 @@ sub switch_context_hook {
   return unless $grp->{FSFile} and $grp->{FSFile}->metaData('schema');
   print "SCHEMA: ",schema_name(),"\n";
   default_pml_patterns();
-  %arrow_colors = (
-                 textual => CustomColor('arrow_text'),
-                 grammatical => CustomColor('arrow_gram'),
-                 segment => CustomColor('arrow_segment'),
-                 compl => CustomColor('arrow_compl'));
   Redraw_FSFile();
   return;
 }
@@ -77,7 +67,7 @@ Installs default display patterns for vieweing tectogrammatical trees in TrEd.
 
 =cut
 
-sub set_default_tdata_patterns {
+sub set_default_tdata_patterns { #PML_T
   SetDisplayAttrs(split /\n\s*-------*\s*\n/,<<'EOF');
 node:<? '#{customparenthesis}' if $${is_parenthesis} ?><?$${nodetype}eq'root' ? '${id}' : '${t_lemma}'?><? '#{customcoref}.'.$PMLTectogrammatic::coreflemmas{$${id}} if $PMLTectogrammatic::coreflemmas{$${id}}ne'' ?>
 
@@ -131,7 +121,7 @@ style:<?
 -------------------
 
 style:<?
-  if ($${tfa}=~/^[TFC]$/) {
+  if ($${tfa}=~/^[tfc]$/) {
     '#{Oval-fill:'.CustomColor('tfa_'.$${tfa}).'}${tfa}.'
   } else {
     '#{Oval-fill:'.CustomColor('tfa_no').'}'
@@ -162,9 +152,9 @@ Installs default display patterns for vieweing analytical trees in TrEd.
 
 =cut
 
-sub set_default_adata_patterns {
+sub set_default_adata_patterns { #PML_A
     SetDisplayAttrs(split /\n\s*-----*\s*\n/, <<'EOF');
-text:${m/w/token}
+text:<? $${m/w/token}eq$${m/form} ? '#{'.CustomColor('sentence').'}${m/w/token}' : '#{-over:1}#{'.CustomColor('spell').'}[${m/w/token}]#{-over:0}#{'.CustomColor('sentence').'}${m/form}' ?>
 
 --------------------
 
@@ -209,11 +199,11 @@ file. If no file is given, the current file is assumed.
 
 =cut
 
-sub AFile {
+sub AFile { #PML_T
   my $fsfile = $_[0] || $grp->{FSFile};
-  return undef unless ref($fsfile->metaData('refnames')) and ref($fsfile->userData->{'ref'});
+  return undef unless ref($fsfile->metaData('refnames')) and ref($fsfile->appData('ref'));
   my $refid = $fsfile->metaData('refnames')->{adata};
-  $fsfile->userData->{'ref'}->{$refid};
+  $fsfile->appData('ref')->{$refid};
 }
 
 =item getANodes($node?)
@@ -224,7 +214,7 @@ C<$this>.
 
 =cut
 
-sub getANodes {
+sub getANodes { #PML_T
   my $node = $_[0] || $this;
   return grep defined, map { s/^.*#//; getANodesHash()->{$_} } ListV($node->{'a.rf'});
 }
@@ -238,7 +228,7 @@ belongs to an analytical file associated with it.
 
 =cut
 
-sub getANodeByID {
+sub getANodeByID { #PML_T
   my ($arf)=@_;
   $arf =~ s/^.*#//;
   return getANodesHash()->{$arf};
@@ -251,7 +241,7 @@ PMLREF - i.e. the ID preceded by a file prefix of the form C<xy#>).
 
 =cut
 
-sub getNodeByID {
+sub getNodeByID { #PML
   my ($rf,$fsfile)=@_;
   $fsfile = $grp->{FSFile} unless defined $fsfile;
   $rf =~ s/^.*#//;
@@ -269,11 +259,11 @@ clear the hash.
 
 =cut
 
-sub getNodeHash {
+sub getNodeHash { #PML
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
   return {} unless ref($fsfile);
-  unless (ref($fsfile->userData->{'id-hash'})) {
+  unless (ref($fsfile->appData('id-hash'))) {
     my %ids;
     my $trees = $fsfile->treeList;
     for ($i=0;$i<=$#$trees;$i++) {
@@ -284,9 +274,9 @@ sub getNodeHash {
 	$node = $node->following;
       }
     }
-    $fsfile->userData->{'id-hash'}=\%ids;
+    $fsfile->changeAppData('id-hash',\%ids);
   }
-  $fsfile->userData->{'id-hash'};
+  $fsfile->appData('id-hash');
 }
 
 =item clearNodesHash($fsfile?)
@@ -296,10 +286,10 @@ file if called without an argument).
 
 =cut
 
-sub clearNodesHash {
+sub clearNodesHash { #PML
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
-  $fsfile->userData->{'id-hash'}=undef;
+  $fsfile->changeAppData('id-hash',undef);
 }
 
 =item getANodesHash()
@@ -312,12 +302,12 @@ C<getANodeByID>.
 
 =cut
 
-sub getANodesHash {
+sub getANodesHash { #PML_T
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
   return {} unless ref($fsfile);
   my $a_fs;
-  if ($fsfile->userData->{'struct'} eq 'adata') {
+  if ($fsfile->appData('struct') eq 'adata') {
     $a_fs = $fsfile;
   } else {
     $a_fs = AFile($fsfile);
@@ -333,11 +323,11 @@ file associated with the current tectogrammatical file.
 
 =cut
 
-sub clearANodesHash {
+sub clearANodesHash { #PML_T
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
   my $a_fs = AFile($fsfile);
-  $a_fs->userData->{'id-hash'}=undef if ref($a_fs);
+  $a_fs->changeAppData('id-hash',undef) if ref($a_fs);
 }
 
 
@@ -353,7 +343,7 @@ displayed tectogrammatical tree.
 
 =cut
 
-sub analytical_tree {
+sub analytical_tree { #PML_T
   if (which_struct() eq 'TR' and ARstruct()) {
     default_pml_patterns();
     my $fsfile = $grp->{FSFile};
@@ -381,13 +371,13 @@ sub analytical_tree {
   }
   ChangingFile(0);
 }
-sub ARstruct {
+sub ARstruct { #PML_T
   my $fsfile = $grp->{FSFile};
-  return 0 unless ($fsfile or $fsfile->userData->{'struct'} eq 'adata');
+  return 0 unless ($fsfile or $fsfile->appData('struct') eq 'adata');
   my $ar_fs = AFile($fsfile);
   return 0 unless $ar_fs;
-  $ar_fs->userData->{'tdata'}=$fsfile;
-  $ar_fs->userData->{'struct'}='adata';
+  $ar_fs->appData('tdata')=$fsfile;
+  $ar_fs->appData('struct')='adata';
   $grp->{FSFile} = $ar_fs;
   return 1;
 }
@@ -405,7 +395,7 @@ a tectogrammatical tree which refers to the current analytical tree.
 
 =cut
 
-sub tectogrammatical_tree {
+sub tectogrammatical_tree { #PML_A ! no binding
   if (which_struct() eq 'AR' and TRstruct()) {
     default_pml_patterns();
     my $fsfile = $grp->{FSFile};
@@ -439,10 +429,10 @@ sub tectogrammatical_tree {
   }
   ChangingFile(0);
 }
-sub TRstruct {
+sub TRstruct { #PML_A
   my $fsfile = $grp->{FSFile};
-  return 0 unless $fsfile or $fsfile->userData->{'struct'} ne 'adata';
-  my $tr_fs = $fsfile->userData->{'tdata'};
+  return 0 unless $fsfile or $fsfile->appData('struct') ne 'adata';
+  my $tr_fs = $fsfile->appData('tdata');
   return 0 unless $tr_fs;
   $grp->{FSFile} = $tr_fs;
   return 1;
@@ -451,7 +441,7 @@ sub TRstruct {
 #endif TRED
 
 
-sub get_value_line_hook {
+sub get_value_line_hook { #PML_T
   my ($fsfile,$treeNo)=@_;
   return unless $fsfile;
   return unless which_struct() eq 'TR';
@@ -471,24 +461,39 @@ sub get_value_line_hook {
   my @sent=();
   while ($node) {
     # this is TR specific stuff
-    push @sent,$node unless ($node->{'m'}{w}{token} eq '');
+    push @sent,$node;# unless ($node->{'m'}{w}{token} eq '');
     $node=$node->following();
   }
-  @sent = map { [" ","space"],[$_->{'m'}{w}{token},
-		@{$refers_to{$_->{id}}}] }
-    sort { $a->{ord} <=> $b->{ord} } @sent;
-  return \@sent;
+  my@out;
+#   @sent = map { [" ","space"],
+#                   [($_->{'m'}{form}eq$_->{'m'}{w}{token}
+#                     ?
+#                     $_->{'m'}{form}
+#                     :'['.$_->{'m'}{w}{token}.']'.$_->{'m'}{form}
+#                    ),
+#                    @{$refers_to{$_->{id}}} ] }
+#     sort { $a->{ord} <=> $b->{ord} } @sent;
+  my$first=1;
+  foreach $node (sort { $a->{ord} <=> $b->{ord} } @sent){
+    push@out,([" ","space"])unless$first;
+    $first=0;
+    if ($node->{'m'}{form}ne$node->{'m'}{w}{token}){
+      push@out,(['['.$node->{'m'}{w}{token}.']',@{$refers_to{$node->{id}}},'-over=>1','-foreground=>'.CustomColor('spell')]);
+    }
+    push@out,([$node->{'m'}{form},@{$refers_to{$node->{id}}}]);
+  }
+  return \@out;
 }
 
 sub which_struct {
   return unless ref($grp->{FSFile});
-  if ($grp->{FSFile}->userData->{'struct'} eq "adata") {
+  if ($grp->{FSFile}->appData('struct') eq "adata") {
     return 'AR';
   }
   return 'TR';
 }
 
-sub node_style_hook {
+sub node_style_hook { #PML_T
   my ($node,$styles)=@_;
   my $ARstruct = (which_struct() =~ /AR/) ? 1 : 0;
   my %line = ref($styles->{Line}) ? @{$styles->{Line}} : ();
@@ -515,15 +520,14 @@ sub node_style_hook {
 		      [(map 'grammatical',@gram),
 		       (map 'textual',@text),
 		       (map 'compl',@compl)
-		      ],
-		      \%arrow_colors
-		     );
+		      ]
+                     );
   }
   1;
 }
 
-sub draw_coref_arrows {
-  my ($node,$styles,$line,$corefs,$cortypes,$cortype_colors)=@_;
+sub draw_coref_arrows { #PML_T
+  my ($node,$styles,$line,$corefs,$cortypes)=@_;
   my (@coords,@colors);
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
   my $ids={};
@@ -537,7 +541,7 @@ sub draw_coref_arrows {
       my $X="(x$T-xn)";
       my $Y="(y$T-yn)";
       my $D="sqrt($X**2+$Y**2)";
-      push @colors,$cortype_colors->{$cortype};
+      push @colors,CustomColor('arrow_'.$cortype);
       my $c = <<COORDS;
 
 &n,n,
@@ -578,12 +582,12 @@ COORDS
       if($orientation){
           if($orientation eq'left'){
 	    print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
-	    push @colors,$cortype_colors->{$cortype};
+	    push @colors,CustomColor('arrow_'.$cortype);
 	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
 	    $rotate_prv_snt+=10;
           }else{ #right
 	    print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
-	    push @colors,$cortype_colors->{$cortype};
+	    push @colors,CustomColor('arrow_'.$cortype);
 	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
 	    $rotate_nxt_snt+=10;
           }
@@ -624,7 +628,7 @@ COORDS
   }
 }
 
-sub get_status_line_hook {
+sub get_status_line_hook { #PML_T
   # get_status_line_hook may either return a string
   # or a pair [ field-definitions, field-styles ]
   return unless $this;
@@ -665,7 +669,7 @@ sentence.
 =cut
 
 #bind goto_tree to Alt+g menu Goto Tree
-sub goto_tree {
+sub goto_tree { #PML ! no binding
   my$to=QueryString("Give a Tree Number or ID","Tree Identificator");
   my @trees = GetTrees();
   if($to =~ /^[0-9]+$/){ # number
@@ -688,7 +692,7 @@ functor (attribute C<functor>)
 
 =cut
 
-sub is_coord_T {
+sub is_coord_T { #PML_T
   my $node=$_[0] || $this;
   return 0 unless $node;
   return $node->{functor} =~ /CONJ|CONFR|DISJ|GRAD|ADVS|CSQ|REAS|CONTRA|APPS|OPER/;
@@ -704,7 +708,7 @@ as well.
 
 =cut
 
-sub expand_coord_A {
+sub expand_coord_A { #PML_A
   my ($node,$keep)=@_;
   return unless $node;
   if ($node->{afun}=~/Coord|Apos/) {
@@ -714,7 +718,7 @@ sub expand_coord_A {
   } else {
     return ($node);
   }
-} #expand_coord_T
+} #expand_coord_A
 
 =item expand_coord_T($node,$keep?)
 
@@ -725,7 +729,7 @@ true, include the coordination/aposition node in the list as well.
 
 =cut
 
-sub expand_coord_T {
+sub expand_coord_T { #PML_T
   my ($node,$keep)=@_;
   return unless $node;
   if (is_coord_T($node)) {
@@ -744,7 +748,7 @@ Analytical trees).
 
 =cut
 
-sub get_sentence_string_A {
+sub get_sentence_string_A { #PML_A
   my $node = $_[0]||$this;
   $node=$node->root->following;
   my @sent=();
@@ -764,7 +768,7 @@ Tectogrammatical trees).
 
 =cut
 
-sub get_sentence_string_T {
+sub get_sentence_string_T { #PML_T
   my $node=$_[0]||$this;
   my ($a_tree) = getANodes($node->root);
   return unless ($a_tree);
@@ -779,7 +783,7 @@ looking for nodes which is what you usually want.
 
 =cut
 
-sub dive_AuxCP ($){
+sub dive_AuxCP ($){ #PML_A
   $_[0]->{afun}=~/x[CP]/
 }#dive_AuxCP
 
@@ -793,7 +797,8 @@ provided in this package.
 
 =cut
 
-sub _expand_coord_GetFathers_A { # node through
+sub _expand_coord_GetFathers_A { #PML_A
+# node through
   my ($node,$through)=@_;
   my @toCheck = $node->children;
   my @checked;
@@ -808,7 +813,8 @@ sub _expand_coord_GetFathers_A { # node through
   return @checked;
 }# _expand_coord_GetFathers_A
 
-sub GetFathers_A { # node through
+sub GetFathers_A { #PML_A
+# node through
   my ($node,$through)=@_;
   my $init_node = $node; # only used for reporting errors
   if ($node->{is_member}) { # go to coordination head
@@ -841,7 +847,7 @@ Return linguistic parents of a given node as appear in a TG tree.
 
 =cut
 
-sub GetFathers_T {
+sub GetFathers_T { #PML_T
   my $node = $_[0] || $this;
   if ($node and $node->{is_member}) {
     while ($node and (!is_coord_T($node) or $node->{is_member})) {
@@ -867,7 +873,8 @@ for all arguments is used.
 
 =cut
 
-sub FilterSons_A{ # node dive suff from
+sub FilterSons_A{ #PML_A
+# node dive suff from
   my ($node,$dive,$suff,$from)=@_;
   my @sons;
   $node=$node->firstson;
@@ -889,7 +896,8 @@ sub FilterSons_A{ # node dive suff from
   @sons;
 } # FilterSons_A
 
-sub GetChildren_A{ # node dive
+sub GetChildren_A{ #PML_A
+# node dive
   my ($node,$dive)=@_;
   my @sons;
   my $from;
@@ -916,7 +924,8 @@ Return a list of nodes linguistically dependant on a given node.
 
 =cut
 
-sub FilterSons_T { # node suff from
+sub FilterSons_T { #PML_T
+# node suff from
   my ($node,$suff,$from)=(shift,shift,shift);
   my @sons;
   $node=$node->firstson;
@@ -940,7 +949,8 @@ sub FilterSons_T { # node suff from
   @sons;
 } # FilterSons_T
 
-sub GetChildren_T { # node
+sub GetChildren_T { #PML_T
+# node
   my $node=$_[0]||$this;
   return () if is_coord_T($node);
   my @sons;
@@ -969,7 +979,7 @@ Return a list of all nodes linguistically subordinated to a given node
 
 =cut
 
-sub GetDescendants_T {
+sub GetDescendants_T { #PML_T
   my $node = $_[0] || $this;
   return () unless ($node and $node->{nodetype} ne 'coap');
   return uniq(map { $_, GetDescendants_T($_) } GetChildren_T($node));
@@ -982,7 +992,7 @@ governing) a given node (not including the node itself).
 
 =cut
 
-sub GetAncestors_T {
+sub GetAncestors_T { #PML_T
   my $node = $_[0] || $this;
   return () unless ($node and $node->{nodetype} ne 'coap');
   return uniq(map { ($_, GetAncestors_T($_)) } GetFathers_T($node));
@@ -998,7 +1008,7 @@ coordination with the node.
 
 =cut
 
-sub GetTrueSiblings_T {
+sub GetTrueSiblings_T { #PML_T
   my $node = $_[0] || $this;
   my $coord = GetNearestNonMember_T($node);
   return
@@ -1015,7 +1025,7 @@ highest coordination $node is a member of.
 
 =cut
 
-sub GetNearestNonMember_T {
+sub GetNearestNonMember_T { #PML_T
  my $node = $_[0] || $this;
  while ($node->{is_member}) {
    $node=$node->parent;
@@ -1031,7 +1041,7 @@ return 1, else return 0.
 
 =cut
 
-sub isFiniteVerb_T {
+sub isFiniteVerb_T { #PML_T
   my $node = $_[0] || $this;
   return (first { $_->{'m'}{tag}=~/^V[^sf]/ } getANodes($node)) ? 1 : 0;
 }#isFiniteVerb_T
@@ -1043,7 +1053,7 @@ C<a.rf> information), return 1, else return 0.
 
 =cut
 
-sub isPassive_T {
+sub isPassive_T { #PML_T
   my $node = $_[0] || $this;
   my @anodes = grep { $_->{'m'}{tag} =~ /^V/ } getANodes($node);
   return( @anodes == 1 and $anodes[0]->{'m'}{tag} =~ /^Vs/)
@@ -1056,7 +1066,7 @@ C<a.rf> information), return 1, else return 0.
 
 =cut
 
-sub isInfinitive_T {
+sub isInfinitive_T { #PML_T
   my $node = $_[0] || $this;
   my @anodes = grep { $_->{'m'}{tag} =~ /^V/ } getANodes($node);
   @anodes and not(&isFiniteVerb_T or &isPassive_T);
@@ -1070,9 +1080,9 @@ lemmas (morfological lemma suffixes (/[-`_].*/) are ignored).
 
 =cut
 
-sub modal_verb_lemma ($) {
+sub modal_verb_lemma ($) { #PML_T
   $_[0]=~/^(?:dát|dovést|hodlat|chtít|mít|moci|mus[ei]t|smìt|umìt)($|[-`_].*)/;
-}#modal_verb_trlemmas
+}#modal_verb_lemma
 
 =item non_proj_edges($node?,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
 
@@ -1097,7 +1107,7 @@ representation), subordination in the technical sense, all nodes.
 
 =cut
 
-sub non_proj_edges {
+sub non_proj_edges { #PML
 # arguments are: root of the subtree to be projectivized
 # the ordering attribute
 # sub-ref to a filter accepting a node parameter (which nodes of the subtree should be skipped)
@@ -1177,9 +1187,11 @@ sub test {
 
 { my@CustomColors=qw/error red
                      current red
-                     tfa_T white
-                     tfa_F yellow
-                     tfa_C green
+                     sentence black
+                     spell gray
+                     tfa_t white
+                     tfa_f yellow
+                     tfa_c green
                      tfa_no #c0c0c0
                      func #601808
                      subfunc #a02818
@@ -1189,8 +1201,8 @@ sub test {
                      nodetype darkblue
                      complex darkmagenta
                      coref darkblue
-                     arrow_text #4C509F
-                     arrow_gram #C05633
+                     arrow_textual #4C509F
+                     arrow_grammatical #C05633
                      arrow_segment darkred
                      arrow_compl #629F52
                      arrow_exoph blue
