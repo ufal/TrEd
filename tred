@@ -282,7 +282,9 @@ sub readConfig {
   $type1font=(exists $confs{Type1Font}) ? $confs{Type1Font} : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-*-2';
   $libDir=(exists $confs{LibDir}) ? <$confs{LibDir}> : $libDir;
   $appIcon=(exists $confs{AppIcon}) ? <$confs{AppIcon}> : "$libDir/tred.xpm";
-  $psFontFile=(exists $confs{PsFontFile}) ? <$confs{PsFontFile}> : "$libDir/csarialm.pfa";
+  $psFontFile=(exists $confs{PsFontFile}) ? 
+    ((-d <$confs{PsFontFile}>) ? <$confs{PsFontFile}> : "$libDir/".$confs{PsFontFile}) : 
+      "$libDir/csarialm.pfa";
   $psFontName=(exists $confs{PsFontName}) ? <$confs{PsFontName}> : "Arial-Medium";
   $psFontSize=(exists $confs{PsFontSize}) ? <$confs{PsFontSize}> : "12";
   $macroFile=(exists $confs{MacroFile}) ? <$confs{MacroFile}> : $macroFile;
