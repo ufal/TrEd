@@ -32,6 +32,10 @@ $no_node_gap='gappre';
 
 $fill_empty_ord=0;
 
+$fs_tail='(2,3)';
+@fs_patterns=('${form}', '${afun}');
+$fs_hint="tag:\t".'${tag}';
+
 %composed_attrs=();
 
 sub assign_TRt {
@@ -731,10 +735,10 @@ sub read {
     push @header,"\@P $_";
   }
   $fsfile->changeFS(FSFormat->create(@header));
-  $fsfile->changeTail("(2,3)\n");
+  $fsfile->changeTail("$fstail\n");
   $fsfile->changeTrees(@{$state->{trees}});
-  $fsfile->changePatterns('${form}', '${afun}');
-  $fsfile->changeHint("tag:\t".'${tag}');
+  $fsfile->changePatterns(@fs_patterns);
+  $fsfile->changeHint($fs_hint);
 
   return 1;
 }
@@ -744,6 +748,20 @@ sub setupTR {
   $header = \@TRheader;
   $initial_node_values{TR}='hide';
   $initial_root_values{reserve1}='TR_TREE';
+  $fs_tail='(2,3)';
+  @fs_patterns=();		# proper patterns added by TrEd's hook
+  $fs_hint=undef;
+
+}
+
+sub setupAR {
+  $gov="ordorig";
+  $header = \@ARheader;
+  delete $initial_node_values{TR};
+  delete $initial_root_values{reserve1};
+  $fs_tail='(2,3)';
+  @fs_patterns='${form}', '${afun}';
+  $fs_hint="tag:\t".'${tag}';
 }
 
 1;
