@@ -29,8 +29,15 @@ sub parser_start {
     $parser=XML::LibXML->new();
   }
   return () unless $parser;
-  $parser->load_ext_dtd(1);
-  $parser->validation(!$novalidation);
+  if (!$novalidation) {
+    $parser->validation(1);
+    $parser->load_ext_dtd(1);
+    $parser->expand_entities(1);
+  } else {
+    $parser->validation(0);
+    $parser->load_ext_dtd(0);
+    $parser->expand_entities(0);
+  }
   my $doc;
   print STDERR "parsing file $file\n";
   eval {
@@ -38,6 +45,7 @@ sub parser_start {
   };
   print STDERR "$@\ndone\n";
   die "$@\n" if $@;
+  $doc->indexElements() if ref($doc) and $doc->can('indexElements');
   return ($parser,$doc);
 }
 

@@ -4,6 +4,40 @@
 
 package TrEd::ValLex::Data;
 use strict;
+use utf8;
+
+my %abbrev_forms = (
+'do+2' => 'do-1[.2]',
+'k+3' => 'k-1[.3]',
+'mezi+4' => 'mezi-1[.4]',
+'mezi+7' => 'mezi-1[.7]',
+'místo+2' => 'místo-2[.2]',
+'nad+7' => 'nad-1[.7]',
+'na+4' => 'na-1[.4]',
+'na+6' => 'na-1[.6]',
+'od+2' => 'od-1[.2]',
+'okolo+2' => 'okolo-1[.2]',
+'o+4' => 'o-1[.4]',
+'o+6' => 'o-1[.6]',
+'podle+2' => 'podle-2[.2]',
+'pod+4' => 'pod-1[.4]',
+'pod+7' => 'pod-1[.7]',
+'po+6' => 'po-1[.6]',
+'proti+3' => 'proti-1[.3]',
+'pro+4' => 'pro-1[.4]',
+'před+7' => 'před-1[.7]',
+'přes+4' => 'přes-1[.4]',
+'při+6' => 'při[.6]',
+'s+7' => 's-1[.7]',
+'u+2' => 'u-1[.2]',
+'včetně+2' => 'včetně-2[.2]',
+'vůči+3' => 'vůči[.3]',
+'v+4' => 'v-1[.4]',
+'v+6' => 'v-1[.6]',
+'za+4' => 'za-1[.4]',
+'za+7' => 'za-1[.7]',
+'z+2' => 'z-1[.2]'
+);
 
 sub new {
   my ($self, $file, $cpconvert,$novalidation)=@_;
@@ -367,7 +401,7 @@ sub getOneFrameElementString {
   my $functor = $self->conv->decode($element->getAttribute ("functor"));
   my $type = $self->conv->decode($element->getAttribute("type"));
   my $forms = $self->getFrameElementFormsString($element);
-  return $functor.($type eq "oblig" ? "($forms)" : "[$forms]");
+  return ($type eq "oblig" ? "" : "?")."$functor($forms)";
 }
 
 sub getFrameElementString {
@@ -417,16 +451,184 @@ sub getFirstWordNode {
   return $n;
 }
 
+sub serializeForm {
+  my ($node)=@_;
+  if ($node->nodeName() eq 'form') {
+    if ($node->getChildElementsByTagName('elided')) {
+      return "!";
+    } elsif ($node->getChildElementsByTagName('typical')) {
+      return "*";
+    } elsif ($node->getChildElementsByTagName('state')) {
+      return "=";
+    } elsif ($node->getChildElementsByTagName('recip')) {
+      return "%";
+    } else {
+      return join(",",map { serializeForm($_) } grep { defined }
+		  $node->getChildElementsByTagName('parent'),$node->getChildElementsByTagName('node'));
+    }
+  } elsif ($node->nodeName() eq 'parent') {
+    return "^".join(",",map { serializeForm($_) }
+		    $node->getChildElementsByTagName('node'));
+  } else {
+    my $ret = $node->getAttribute('lemma');
+    my $morph = join "",map { $node->getAttribute($_) } qw(pos gen num case);
+    $morph.='@'.$node->getAttribute('deg') if $node->getAttribute('deg') ne "";
+    $morph.='#' if $node->getAttribute('agreement') == 1;
+    my $inherits = $node->getAttribute('inherits');
+    $ret.=($inherits==1 ? '.' : ':').$morph if ($inherits==1 or $morph ne "");
+    if ($node->getChildElementsByTagName('node')) {
+      $ret.="[".join(",",map { serializeForm($_) } $node->getChildElementsByTagName('node'))."]";
+    }
+    return $ret;
+  }
+}
+
+sub applyFormAbbrevs {
+  my ($form) = @_;
+  print "PRE: $form\n";
+  foreach my $k (keys(%abbrev_forms)) {
+    my $v = $abbrev_forms{$k};
+    $form =~ s/\b\Q$v\E/$k/g;
+  }
+  print "POST: $form\n";
+  return $form;
+}
+
+sub expandFormAbbrevs {
+  my ($form) = @_;
+  foreach my $k (keys(%abbrev_forms)) {
+    $form =~ s/\b\Q$k\E/$abbrev_forms{$k}/g;
+  }
+  return $form;
+}
+
+sub parseFormPart {
+  my ($self,$form,$nested,$dom) = @_;
+  my $lem='([-[:alnum:]]|\\\\.)+';
+  my $pos='';
+  if ($form =~
+      m{^(\^?
+	  ( $lem | (?:{ $lem , $lem (?: , $lem )* (?: , ...)?}) )? # $2: lemma
+	  (                  # $3
+            ([.:])           # $4
+ 	    ([adinjvufs])?   # $5 pos
+	    ([FMIN])?        # $6 gen
+            ([PS])?          # $7 num
+            ([1-7])?         # $8 case
+            (?: @([1-3]))?   # $9 deg
+            (\#)?            # $10
+          )?                 #
+          | [*!%=]            # $1 typical,elided,recip,state
+         )                   #
+         ( [][,;].* | $ ) # $11 <3> tokens to parse
+      }x and $1 ne "" and $1 ne "^" and $3 ne "." and $3 ne ":") {
+    my ($match,$lemma,$sep,$pos,$gen,$num,$case,$deg,$agreement,$next) = ($1,$2,$4,$5,$6,$7,$8,$9,$10,$11);
+    if ($match =~ /^[*!%]$/) {
+      if ($next=~/^\[/) {
+	die "Can't use [ ] after '$match'\n";
+      } elsif ($nested) {
+	die "Can't '$match' within [ ]\n";
+      }
+      my %map = ('*' => 'typical', '!' => 'elided', '%' => 'recip', '=' => 'state');
+      if ($dom) {
+	$dom->appendChild($self->doc()->createElement($map{$match}));
+      }
+      return $next;
+    }
+    my $node;
+    if ($dom) {
+      if ($match =~ /^\^/) {
+	$node = $self->doc()->createElement('parent');
+	$dom->appendChild($node);
+	$dom = $node;
+      }
+      $node = $self->doc()->createElement('node');
+      $dom->appendChild($node);
+      $node->setAttribute('lemma',$lemma) if $lemma ne "";
+      $node->setAttribute('pos',$pos) if $pos ne "";
+      $node->setAttribute('gen',$gen) if $gen ne "";
+      $node->setAttribute('num',$num) if $num ne "";
+      $node->setAttribute('case',$case) if $case ne "";
+      $node->setAttribute('deg',$deg) if $deg ne "";
+      $node->setAttribute('agreement','1') if $agreement ne "";
+      $node->setAttribute('inherits','1') if $sep eq ".";
+    }
+    if ($next =~ /^\[/) {
+      do {{
+	$next = $self->parseFormPart(substr($next,1),1,$node);
+      }} while ($next =~ /^,/);
+      if ($next =~ /^\]/) {
+	return substr($next,1);
+      } else {
+	die "Expected ] or , near '$next'\n";
+      }
+    } else {
+      return $next;
+    }
+  } else {
+    die "Form syntax error near '$form'\n";
+  }
+}
+
+sub parseSerializedFrame {
+  my ($self, $elements, $dom)=@_;
+  $elements = expandFormAbbrevs($elements);
+  return 1 if ($elements=~/^\s*EMPTY\s*$/);
+  my $func = 'ACT|PAT|ADDR|EFF|ORIG|ACMP|ADVS|AIM|APP|APPS|AUTH|ATT|BEN|CAUS|CNCS|COMPL|COND|CONJ|CONFR|CONTRA|CPR|CRIT|CSQ|CTERF|DENOM|DES|DIFF|DIR1|DIR2|DIR3|DISJ|CPHR|DPHR|ETHD|EXT|FPHR|GRAD|HER|ID|INTF|INTT|LOC|MANN|MAT|MEANS|MOD|NA|NORM|OPER|PAR|PARTL|PN|PREC|PRED|REAS|REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT';
+  my @members = grep { $_ ne "" } split /\s+/,$elements;
+  unless (@members) {
+    warn "No members in $elements\n";
+    return undef;
+  }
+  my ($eldom,$formdom);
+  foreach my $member (@members) {
+    if ($member =~ /^(\?)?($func)\(([^)]*)\)$/) {
+      my ($type,$functor,$forms) = ($1,$2,$3);
+      if ($dom) {
+	$eldom = $self->doc()->createElement('element');
+	$dom->appendChild($eldom);
+	$eldom->setAttribute('functor',$functor);
+	$eldom->setAttribute('type',$type eq "?" ? 'non-oblig' : 'oblig');
+      }
+      my @forms = $forms=~m/\G((?:\\.|[^\\;]+)+)(?:;|^)/g;
+      return undef unless $forms ne join(";",@forms);
+      foreach my $form (@forms) {
+	if ($dom) {
+	  $formdom = $self->doc()->createElement('form');
+	  $eldom->appendChild($formdom);
+	}
+	do {{
+	  $form = eval { $self->parseFormPart($form,0,$formdom) };
+	  if ($@) {
+	    warn $@;
+	    return undef;
+	  }
+	}} while ($form =~ s/^,//);
+	if ($form ne "") {
+	  warn "Unexpected tokens near '$form'\n";
+	  return undef;
+	}
+      }
+    } else {
+      warn "Invalid element '$member'\n";
+      return undef;
+    }
+  }
+  if ($dom) {
+    print "$dom\n";
+    print $dom->toString();
+  }
+  return 1;
+}
 
 sub getFrameElementFormsString {
   my ($self,$element)=@_;
   return unless $element;
   my @forms;
   foreach my $form ($element->getChildElementsByTagName("form")) {
-    my $abbrev = $self->conv->decode($form->getAttribute ("abbrev"));
-    push @forms,"$abbrev";
+    push @forms,$self->conv->decode(applyFormAbbrevs(serializeForm($form)));
   }
-  return join ",",@forms;
+  return join ";",@forms;
 }
 
 sub getFrameExample {
@@ -687,38 +889,6 @@ sub generateNewFrameId {
   return "f-$wid-$i-$user";
 }
 
-sub addForms {
-  my ($self, $elem,$string)=@_;
-  my $doc=$self->doc();
-  foreach my $f (split /\s*,\s*/, $string) {
-    $f=~s/^\s+//;
-    if ($f ne "") {
-      my $form=$doc->createElement("form");
-      $elem->appendChild($form);
-      $form->setAttribute("abbrev",$f);
-    }
-  }
-  $self->set_change_status(1);
-}
-
-sub addFrameElements {
-  my ($self,$elems,$elements)=@_;
-  if ($elements=~/\S/ and $elements!~/EMPTY/) {
-    my $doc=$self->doc();
-    my @elements=$elements=~/(?:^\s*|\s+)[A-Z0-9]+(?:[[(][^])]*[])])?/g;
-    foreach (@elements) {
-      if (/^\s*([A-Z0-9]+)([[(])?([^])]*)[])]?$/) {
-	my $elem=$doc->createElement("element");
-	$elems->appendChild($elem);
-	$elem->setAttribute("functor",$self->conv->encode($1));
-	$elem->setAttribute("type", ($2 eq '(') ? "oblig" : "non-oblig");
-	$self->addForms($elem,$self->conv->encode($3));
-      }
-    }
-  }
-  $self->set_change_status(1);
-}
-
 sub addFrame {
   my ($self,$before,$word,$elements,$note,$example,$problem,$author)=@_;
   return unless $word and $elements;
@@ -727,8 +897,18 @@ sub addFrame {
   my $doc=$self->doc();
   my ($valency_frames)=$word->getChildElementsByTagName("valency_frames");
   return unless $valency_frames;
-  my $frame=$doc->createElement("frame");
 
+  # try parse elements
+  my $elems=$doc->createElement("frame_elements");
+  $doc->documentElement()->appendChild($elems);
+  unless ($self->parseSerializedFrame($elements,$elems)) {
+    $doc->documentElement()->removeChild($elems);
+    $self->dispose_node($elems);
+    return;
+  }
+  $doc->documentElement()->removeChild($elems);
+
+  my $frame=$doc->createElement("frame");
   if (ref($before)) {
     $valency_frames->insertBefore($frame,$before);
   } else {
@@ -755,9 +935,7 @@ sub addFrame {
     $probl->addText($self->conv->encode($problem));
     $probl->setAttribute("author",$author);
   }
-  my $elems=$doc->createElement("frame_elements");
   $frame->appendChild($elems);
-  $self->addFrameElements($elems,$elements);
   $self->addFrameLocalHistory($frame,"create");
   $self->set_change_status(1);
   return $frame;
@@ -766,8 +944,18 @@ sub addFrame {
 sub modifyFrame {
   my ($self,$frame,$elements,$note,$example,$problem,$author)=@_;
   return unless $frame and $elements ne "";
-
   my $doc=$self->doc();
+
+  # try parse elements
+  my $elems=$doc->createElement("frame_elements");
+  $doc->documentElement()->appendChild($elems);
+  unless ($self->parseSerializedFrame($elements,$elems)) {
+    $doc->documentElement()->removeChild($elems);
+    $self->dispose_node($elems);
+    return;
+  }
+  $doc->documentElement()->removeChild($elems);
+
   my ($old_ex)=$frame->getChildElementsByTagName("example");
   my $ex=$doc->createElement("example");
   if ($old_ex) {
@@ -811,12 +999,10 @@ sub modifyFrame {
     $probl->setAttribute("author",$author);
   }
 
-  my $elems=$doc->createElement("frame_elements");
   $frame->replaceChild($elems,$old_elems);
   $self->dispose_node($old_elems);
   undef $old_elems;
 
-  $self->addFrameElements($elems,$elements);
   $self->addFrameLocalHistory($frame,"modify");
   $self->set_change_status(1);
   return $frame;

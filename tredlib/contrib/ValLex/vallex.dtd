@@ -92,12 +92,34 @@ a je potreba ho nejak doresit-->
                  REG|RESL|RESTR|RHEM|RSTR|SUBS|TFHL|TFRWH|THL|THO|TOWH|
                  TPAR|TSIN|TTILL|TWHEN|VOC|VOCAT|SENT) #REQUIRED  
        type (oblig|non-oblig) "non-oblig"
+       forms CDATA #IMPLIED
        orig_type CDATA #IMPLIED
      > 
 
-<!ELEMENT form EMPTY>  
+<!ELEMENT form (typical | elided | recip | state | (parent?, node*))>  
 <!ATTLIST form 
        abbrev         CDATA #IMPLIED
+>
+
+<!ELEMENT typical EMPTY>
+<!ELEMENT elided EMPTY>
+<!ELEMENT recip EMPTY>
+<!ELEMENT state EMPTY>
+
+<!-- constrainty na rodice slovesa -->
+<!ELEMENT parent (node)>
+
+<!-- pos: f - infinitiv, pos: s - prima rec -->
+<!ELEMENT node (node*)>
+<!ATTLIST node
+        lemma         CDATA #IMPLIED
+        pos           (a|d|i|n|j|v|u|f|s|c) #IMPLIED
+        gen           (F|M|I|N) #IMPLIED
+        num           (S|P) #IMPLIED
+        deg           (1|2|3) #IMPLIED
+        case          (1|2|3|4|5|6|7) #IMPLIED
+        agreement     (0|1) #IMPLIED
+        inherits      (0|1) #IMPLIED
 >
 
 <!-- v XML datech se sice bude pouzivat cely morfologicky tag, ale na anotatora
