@@ -196,7 +196,7 @@ if (defined($init) || defined($kill)) {
       close $f;
     }
   }
-  @files = (@files, map { m{^/} ? $_ : $cwd.$_ } @ARGV);
+  @files = (@files, map { m{^/} ? $_ : $cwd.'/'.$_ } @ARGV);
   make_uniq(\@files);
 
   die "No files given!\n" unless @files;
@@ -588,7 +588,7 @@ Get help:
 
 This program is able to start one or more btred servers on remote
 machines over SSH (it is highly recommended to use some authentication
-method that does not requre entering a password each time the SSH
+method that does not require entering a password each time the SSH
 connection is needed), create a proxy hub to provide the communication
 between the servers and a client, distribute given files over the
 servers (provided the servers are able to load the files from given
@@ -652,7 +652,7 @@ C<do { CODE } while NextTree()> loop).
 
 =item B<--key-file>
 
-This option may be used to provide a file with a session-key wich is
+This option may be used to provide a file with a session-key which is
 necessary for the authentication to the running hub. This defaults to
 `~/.ntred_session_key'.
 
@@ -696,12 +696,12 @@ for SSH connection).
 
 Don't start new btred servers on the remote hosts. Instead, start a
 hub and try to connect to the btred servers already running. This
-requres a server-session key to be given on the standard input.
+requires a server-session key to be given on the standard input.
 
 =item B<--no-hub-start>
 
 Start servers on the remote hosts but don't start a hub. The server
-session key required for authentification to the servers will be
+session key required for authentication to the servers will be
 printed on the standard output.
 
 =item B<--unrestricted>
@@ -714,7 +714,7 @@ mode may also lead to unexpected memory leaks on the btred servers.
 =item B<--key-file>
 
 Allows to specify a file where the the session-key for a client's
-authentification will be stored. It defaults to ~/.ntred_session_key.
+authentication will be stored. It defaults to ~/.ntred_session_key.
 
 =item B<--hub> hostname
 
