@@ -156,6 +156,9 @@ sub normalize_ws {
 #############################################
 package XML::DOM::Node;
 
+*firstChild = *getFirstChild;
+*nextSibling = *getNextSibling;
+*nodeName = *getNodeName;
 sub getChildElementsByTagName {
   my ($self,$name)=@_;
   return ($self->getElementsByTagName($name,0));
@@ -169,7 +172,13 @@ sub getDescendantElementsByTagName {
 sub isTextNode {
   return $_[0]->getNodeType == TEXT_NODE;
 }
+package XML::DOM::Text;
+*nodeName = *getNodeName;
+package XML::DOM::Element;
+*nodeName = *getNodeName;
 
+package XML::DOM::Document;
+*documentElement = *getDocumentElement;
 
 ##################################################
 ## adding some features to XML::Handler::Composer
