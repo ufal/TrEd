@@ -1,10 +1,15 @@
 #!/usr/bin/perl
 #                                                          -*- cperl -*-
 use Getopt::Std;
-getopts('p:r:s:a:f:CETDNGhu');
+getopts('p:r:s:a:f:x:CETDNGhu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
-  print "Usage: $0 [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] [-T] [-N] [-G] [-D] file [file ...]\n";
+  print <<EOF;
+Usage: any2any [-s strip-sfx] [-a append-sfx] [-p strip-prefix]
+               [-r add-prefix] [-f out-fmt] [-x extra_attribs]
+               [-T] [-N] [-G] [-D] file [file ...]
+EOF
+
   if ($opt_h) {
     print <<EOF;
 Open a file and save it in FS format
@@ -14,6 +19,8 @@ Parameters:
   -a append          append given suffix to the filenames
   -p prefix_regexp   remove strings matching given regexp from the beginning of filenames
   -r prepend         prepend filenames with the given prefix
+  -x extra_attribs   comma separated list of non-CSTS attributes to preserve when
+                     converting to CSTS
 
   -T                 if converting from csts, build tectogrammatical tree structure
   -N                 if empty, initialize ordering attribute with sentence ordering
@@ -53,6 +60,8 @@ if ($opt_T) {
   $Csts2fs::header = \@Csts2fs::TRheader;
   $Csts2fs::initial_node_values{TR}='hide';
 }
+
+@Fs2csts::extra_attributes=split /,/,$opt_x;
 
 $Fslib::Debug=1 if $opt_D;  
 $Csts2fs::fill_empty_ord = 1 if $opt_N;

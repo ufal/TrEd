@@ -10,29 +10,30 @@
 package main;
 
 use Getopt::Std;
-getopts('qQc:i:m:e:t:huNHSTR');
+
+## Passing -o args... -- to TredMacro
+@TredMacro::ARGV=grep { /^-o$/.../^--$/ } @ARGV;
+shift @TredMacro::ARGV; pop @TredMacro::ARGV;
+@ARGV=grep { not(/^-o$/.../^--$/) } @ARGV;
+
+getopts('qQx:p:r:s:a:f:c:i:m:e:t:huNHSTR');
 $opt_q=1 if $opt_Q;
 
-if ($opt_u) {
+if ($opt_u || $opt_h) {
   print <<EOH;
 Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-t context] [-q|-Q] [-H|-N] [-S] [-T] files...
+  btred [-c config-file] [-m macro-file] [-e script]
+        [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
+        [-f out-fmt]  [-x extra_attribs]
+        [-i init-script] [-t context] [-q|-Q] [-N|-H]
+        [-S] [-T] [-o script options -- ] files...
 or
   btred -u          to show usage
 or
   btred -h          to show help
 EOH
-  exit;
-}
-
-if ($opt_h) {
-  print <<'EOF';
-Usage:
-  btred [-c config-file] [-m macro-file] [-e script] [-i init-script] [-t context] [-q|-Q] [-N|-H] [-S] [-T] files...
-or
-  btred -u          to show usage
-or
-  btred -h          to show help
+  if ($opt_h) {
+    print <<'EOF';
 
 This is a "batch mode" version of tree editor TrEd.
 BTrEd runs the given script or macro on each file in given context.
@@ -46,6 +47,16 @@ context       - start in the given macro context (package).
                 TredMacro is the default context.
 init-script   - any script to be run only once, before any input
                 file is loaded.
+
+format        - output format; one of: fs, csts, trxml. Default is csts.
+suffix_regexp - strip strings matching given regexp from the end of filenames
+append        - append given suffix to the filenames
+prefix_regexp - remove strings matching given regexp from
+                the beginning of filenames
+prepend       - prepend filenames with the given prefix
+extra_attribs - comma separated list of non-CSTS attributes to preserve when
+                converting to CSTS
+
 
 -N            - wrap 'while ($this) { ...; $this=$this->following; }
                 around the script
@@ -79,6 +90,7 @@ $FileNotSaved        - change this to 1 if you want the file to be saved at the 
 Also all functions defined in default macro file tred.def
 as well as any function from Fslib (see Fslib documentation).
 EOF
+  }
   exit;
 }
 
@@ -222,6 +234,7 @@ read_macros($macroFile,$libDir);	# read macros
 print STDERR "done.\n" unless $opt_q;
 
 @files=@ARGV;
+@ARGV=@TredMacro::ARGV;
 
 $Fslib::Debug=!$opt_q;
 if ($opt_q) {
@@ -229,12 +242,26 @@ if ($opt_q) {
 }
 
 
+%bkmap=(
+	fs => 'FSBackend',
+	csts => 'CSTS_SGML_SP_Backend',
+	trxml => 'TrXMLBackend'
+       );
+
 if ($opt_R) {
   $Csts2fs::gov = "govTR";
   $Csts2fs::header = \@Csts2fs::TRheader;
   $Csts2fs::initial_node_values{TR}='hide';
 }
 
+@Fs2csts::extra_attributes=split /,/,$opt_x;
+
+if ($opt_f) {
+  my $format=$opt_f ? lc($opt_f) : "";
+  unless ( $backend=$bkmap{$format} ) {
+    die "Unknown format $format. Use -f [fs|csts|trxml]\n";
+  }
+}
 
 startMain();
 
@@ -277,6 +304,7 @@ EOL
 
   doEvalMacro($grp,$premacro);
   print STDERR "<script>\n$premacro;\n</script>\n" unless $opt_q;
+  exit if doEvalHook($grp,"start_hook") eq 'stop'; # run start_hook
   openFile($grp,$files[$fileNo]);
   do {
     print STDERR "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $opt_Q;
@@ -286,6 +314,7 @@ EOL
     print STDERR "Done.\n" unless $opt_q;
     saveFile($grp) if ($grp->{FSFile}->notSaved or $opt_S);
   } while (nextFile($grp));
+  doEvalHook($grp,"exit_hook");
 }
 
 sub nextFile {
@@ -328,6 +357,7 @@ sub openFile {
   $grp->{treeNo}=0;
   $grp->{currentNode}=undef;
   applyFileSuffix($grp,$goto);
+  doEvalHook($grp,"file_opened_hook");
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
@@ -367,11 +397,21 @@ sub saveFile {
   my $grp=shift;
   return unless $grp->{'FSFile'};
   my $f=$grp->{'FSFile'}->filename;
-  print STDERR "Saving $f, $f~ is a backup\n" unless $opt_Q;
-  rename $f,$f."~" if (-f $f);
 
-  unless ($grp->{FSFile}->writeFile($f)) {
-    print STDERR "Error saving file to '$f'\n($!)\n";
+  $grp->{FSFile}->changeBackend($backend) if ($backend);
+  my $out=$f;
+  $out=~s/$opt_s$/$opt_a/ if ($opt_s or $opt_a);
+  $out=~s/^$opt_p/$opt_r/ if ($opt_p or $opt_r);
+  if ($f eq $out) {
+    unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
+    rename $f, "$f~" if (-f $f);
+  }
+
+  print STDERR "Saving $f as $out\n" unless $opt_Q;
+
+
+  unless ($grp->{FSFile}->writeFile($out)) {
+    print STDERR "Error saving file to '$out'\n($!)\n";
     return 0;
   }
 }
