@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-18 14:49:16 pajas>
+# Time-stamp: <2002-04-18 15:07:45 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -2619,6 +2619,11 @@ __END__
 
 =head1 Fslib
 
+B<WARNING: THIS DOCUMENTATION IS VERY OBSOLETE.>
+
+B<YOU SHOULD RATHER USE THE OO INTERFACE DESCRIBED ABOVE
+  AND THINK OF FSLIB AS LOW-LEVEL>
+
 Fslib.pm - Simple low-level API for treebank files in .fs format.  See
 L<"FSFile">, L<"FSFormat"> and L<"FSNode"> for an object-oriented
 abstraction over this module.
@@ -2670,7 +2675,7 @@ This package has the ambition to be a simple and usable perl API for manipulatin
 treebank files in the .fs format (which was designed by Michal Kren
 and is the only format supported by his Windows application GRAPH.EXE
 used to interractively edit treebank analytical or tectogramatical
-trees). See also Dan Zeman's review of this format in czech at
+trees). See also Dan Zeman's review of this format in Czech at
 
 http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html
 
@@ -2745,7 +2750,7 @@ of attribute names or some `special' keys, serving to hold the tree
 structure. Suppose $node is a TNS and `lemma' is an attribute defined
 in the appropriate .fs file. Than $node->getAttribute("lemma") is value of the
 attribute for the node represented by TNS $node. You may obtain this
-value also as B<Get>($node,"lemma"). From the $node TNS you may
+value also as Get($node,"lemma"). From the $node TNS you may
 obtain also the node's parent, sons and brothers (both left and
 right). This may be done in several equivalent ways. TNS's of a nodes
 relatives are stored under values of those `special' keys mentioned
