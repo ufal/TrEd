@@ -6,6 +6,18 @@ package TrEd::ValLex::Widget;
 use locale;
 use base qw(TrEd::ValLex::DataClient);
 
+sub dlgReturn {
+  my ($w,$no_default)=@_;
+  my $f=$w->focusCurrent;
+  if ($f and $f->isa('Tk::Button')) {
+    $f->Invoke();
+  } elsif (!$no_default) {
+    $w->toplevel->{default_button}->Invoke
+      if $w->toplevel->{default_button};
+  }
+  Tk->break;
+}
+
 sub new {
   my ($self, $data, $field, @widget_options)= @_;
 
