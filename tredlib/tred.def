@@ -1,4 +1,4 @@
-## This is macro file for tkdisplaytree                      -*-cperl-*-
+## This is macro file for tkdisplaytree                      -*-perl-*-
 ## author: Petr Pajas
 ## created: Fri Mar 17 14:48:42 CET 2000
 
@@ -8,16 +8,33 @@
 sub GotoTree { my $result=gotoTree(shift,$grp); $this=$root; return $result; }
 sub NextTree { my $result=nextTree($grp); $this=$root; return $result; }
 sub PrevTree { my $result=prevTree($grp); $this=$root; return $result; }
-sub GetOrd { return Ord(@_,\%attribs); }
+sub GetOrd { return Ord(shift,\%attribs); }
 sub PasteNode { return Paste(shift,shift,\%attribs); }
-sub CutNode { return Cut(@_); }
+sub CutNode { return Cut(shift); }
 
 # Common useful user-level subroutines 
 
 sub NewRBrother {
-## Adds New RBrother to current node and shifts
+## Adds new RBrother to current node and shifts
 ## ords of the other nodes appropriately
   return unless ($this and Parent($this));
+
+  my $nd={};
+  NewNode($nd); # blessing NewNode
+  Set($nd,AOrd(\%attribs),Ord($this,\%attribs)+1);
+  my $node=$root;
+  while ($node) {
+    $node->{AOrd(\%attribs)}++ if (Ord($node,\%attribs)>Ord($this,\%attribs));
+    $node=Next($node);
+  }
+  PasteNode($nd,Parent($this));
+  $this=$nd;
+}
+
+sub NewSon {
+## Adds new son to current node and shifts
+## ords of the other nodes appropriately
+  return unless ($this);
 
   my $nd={};
   NewNode($nd); # blessing NewNode
