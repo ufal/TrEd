@@ -4367,6 +4367,13 @@ sub startMain {
 			},\%group ]);
 
   print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
+  $group{top}->update;
+  $group{top}->Busy(-recurse=> 1);
+  if (doEvalHook($group{focusedWindow},"init_hook") eq 'stop') {
+    $group{top}->Unbusy;
+    print STDERR "Stopped by init_hook\n";
+    exit;
+  }
   my $stylesheet=$opt_s || STYLESHEET_FROM_FILE();
   $group{selectedStylesheet}=$stylesheet;
   applyWindowStylesheet($group{focusedWindow},$stylesheet);
@@ -4404,12 +4411,17 @@ sub startMain {
 #    if ($group{focusedWindow}{currentFilelist}->file_at(0)) {
 #      openFile(\%group,$group{focusedWindow}{currentFilelist}->file_at(0));
 #    }
-  
-  print STDERR "done.\nStarting main loop.\n" if $tredDebug;
 
-  exit if doEvalHook($group{focusedWindow},"start_hook") eq 'stop'; # run start_hook
+  print STDERR "done.\nStarting main loop.\n" if $tredDebug;
+  # run start_hook
+  if (doEvalHook($group{focusedWindow},"start_hook") eq 'stop') {
+    $group{top}->Unbusy;
+    print STDERR "Stopped by start_hook\n";
+    exit;
+  }
 
   # Starting ------------------------------------------
+  $group{top}->Unbusy;
 
   MainLoop;
 
