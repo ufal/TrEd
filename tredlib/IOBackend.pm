@@ -374,6 +374,66 @@ sub unlink_uri_posix {
   die "No handlers for protocol $proto\n";
 }
 
+sub rename_uri {
+  print "IOBackend: rename @_\n" if $Debug;
+  ($^O eq 'MSWin32') ? &rename_uri_win32 : &rename_uri_posix;
+}
+
+
+sub rename_uri_win32 {
+  my ($uri1,$uri2) = @_;
+  my $proto1 = get_protocol($uri1);
+  my $proto2 = get_protocol($uri2);
+  if ($proto1 eq 'file' and $proto2 eq 'file') {
+    my $uri1 = strip_protocol($uri1);
+    return undef unless -f $uri1;
+    rename $uri1, strip_protocol($uri2);
+  } else {
+    die "Can't rename file $uri1 to $uri2\n";
+  }
+}
+
+sub rename_uri_posix {
+  my ($uri1,$uri2) = @_;
+  my $proto = get_protocol($uri1);
+  my $proto2 = get_protocol($uri2);
+  if ($proto ne $proto2) {
+    die "Can't rename file $uri1 to $uri2\n";
+  }
+  if ($proto eq 'file') {
+    my $uri1 = strip_protocol($uri1);
+    return undef unless -f $uri1;
+    return rename $uri1, strip_protocol($uri2);
+  }
+  print "IOBackend: rename file $uri1 to $uri2 using protocol $proto\n" if $Debug;
+  if ($ssh and -x $ssh and $proto =~ /^(ssh|fish|sftp)$/) {
+    print "IOBackend: using plain ssh\n" if $Debug;
+    if ($uri1 =~ m{^\s*(?:ssh|sftp|fish):(?://)?([^-/][^/]*)(/.*)$}) {
+      my ($host,$file) = ($1,$2);
+      if ($uri2 =~ m{^\s*(?:ssh|sftp|fish):(?://)?([^-/][^/]*)(/.*)$} and $1 eq $host) {
+	my $file2 = $2;
+	return (system("$ssh $ssh_opts ".quote_filename($host)." /bin/mv ".
+		       quote_filename(quote_filename($file))." ".
+		       quote_filename(quote_filename($file2)))==0) ? 1 : 0;
+      } else {
+	die "failed to parse URI for ssh $uri2\n";
+      }
+    } else {
+      die "failed to parse URI for ssh $uri1\n";
+    }
+  }
+  if ($kioclient and -x $kioclient) {
+    # translate ssh protocol to fish protocol
+    if ($proto eq 'ssh') {
+      $uri1 =~ s{^\s*ssh:(?://)?([/:]*)[:/]}{fish://$1/};
+      $uri2 =~ s{^\s*ssh:(?://)?([/:]*)[:/]}{fish://$1/};
+    }
+    return (system("$kioclient $kioclient_opts mv ".quote_filename($uri1).
+		     " ".quote_filename($uri2))==0 ? 1 : 0);
+  }
+  die "No handlers for protocol $proto\n";
+}
+
 
 
 =item open_backend (filename,mode,encoding?)
