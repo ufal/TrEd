@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-04-05 11:06:48 pajas>
+# Time-stamp: <2002-04-09 18:47:19 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1220,7 +1220,10 @@ sub writeTo {
 
 =pod
 
-=item sentord, order, value, hide
+=item sentord
+=item order
+=item value
+=item hide
 
 Return names of special attributes declared in FS format as @W, @N,
 @V, @H respectively.
