@@ -49,6 +49,7 @@ QUANTITY   SGMLREF
 GRPGTCNT 253
 GRPLVL 253
 NAMELEN  32
+LITLEN 1024
 FEATURES
 MINIMIZE   DATATAG   NO   OMITTAG    YES          RANK       NO    SHORTTAG YES
 LINK       SIMPLE    NO   IMPLICIT   NO           EXPLICIT   NO
@@ -130,6 +131,16 @@ APPINFO    NONE
 <!--              + TEI header planned -->
 <!--         doc id=path changed -->
 <!-- 1.11.97 spec -> verse -->
+
+<!--                    A_attr_PADT                                -->
+<!ENTITY % A.attr.PADT 
+--                    PADT-specific attributes for A/MDA           --
+       "parallel  (Co|Ap|no-parallel) 'no-parallel'
+        paren     (Pa|no-paren)       'no-paren' 
+        arabfa    (Ca|Exp|Fi|no-fa)   'no-fa'
+        arabspec  (Ref|Msd|no-spec)  'no-spec'
+        arabclause (Pred|PredC|PredE|PredP|Pnom|no-clause) 'no-clause'"
+>
 
 <!ELEMENT csts - - (h?, doc*)
 -- el csts end --
@@ -500,6 +511,10 @@ APPINFO    NONE
                     at fairway.ms.mf.cuni.cz / Projects / Treebank / guide
                     --
 >
+<!ATTLIST A
+	         -- special attributes used in Arabic Treebank PADT --
+        %A.attr.PADT;
+>
 <!ELEMENT MDA - O (#PCDATA)
                  -- analytical (syntactic) function(s) as assigned by machine,
                     disambiguated, possibly with weight; if more than 1: n-best
@@ -508,6 +523,7 @@ APPINFO    NONE
 <!ATTLIST MDA
           w       NUTOKEN #IMPLIED -- weight / probability  --
           src     CDATA   #IMPLIED -- syntactical tagger id --
+        %A.attr.PADT;
 >
 
 <!-- ============================================================= -->
