@@ -3,6 +3,7 @@ package Fs2csts;
 use Fslib;
 
 $export_dependency=1;
+$compatibility_mode=0;
 
 %TRt = (
 	gender_ANIM => 'M',
@@ -233,7 +234,16 @@ sub write {
 	my $del=$node->{del}=~/^(?:ELID|ELEX|EXPN)/i ? " ".lc($node->{del}) : "";
 	print $fileref "<fadd$del>";
       } else {
-	if ($node->{form}=~/^([][!"'()+,-.\/:;=\?`]|&(?:amp|ast|bsol|circ|commat|dollar|gt|lcub|lowbar|lsqb|lt|macron|num|percnt|rcub|rsqb|verbar);)$/) {
+	if ($compatibility_mode) {
+	  if ($node->{gap1}) {
+	    my $tags=$node->{gap1};
+	    $tags=~s/\&nl;/\n/g;
+	    print $fileref $tags;
+	    print $fileref translate_to_entities($node->{form});
+	  } else {
+	    print $fileref "<f>",translate_to_entities($node->{form});
+	  }
+	} elsif ($node->{form}=~/^([][!"'()+,-.\/:;=\?`]|&(?:amp|ast|bsol|circ|commat|dollar|gt|lcub|lowbar|lsqb|lt|macron|num|percnt|rcub|rsqb|verbar);)$/) {
 	  my $case = $node->{formtype} eq 'gen' ? " ".$node->{formtype} : "";
 	  print $fileref "<d$case>",translate_to_entities($node->{form});
 	} else {
@@ -288,10 +298,12 @@ sub write {
       if ($node->{TR} ne "hide") {
 	if (exists($node->{trlemma}) and $node->{trlemma} ne "") {
 	  print $fileref "<TRl$quot>",translate_to_entities($node->{trlemma});
-	  print $fileref "<T>",$node->{func} if ($node->{func} ne "");
+	  if ($node->{func} ne "") {
+	    print $fileref "<T>",$node->{func};
+	    print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
+	  }
 	  print $fileref "<Tmo>",$node->{memberof} if ($node->{memberof} ne "" and
 						       $node->{memberof} ne "???");
-	  print $fileref "<grm>",$node->{gram} if ($node->{gram} !~ /^(?:---|\?\?\?)?$/);
 	  my $TRt=make_TRt($node,0);
 	  print $fileref "<TRt>",$TRt unless ($TRt=~/^X*$/);
 	  print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
