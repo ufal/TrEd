@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-06-09 16:35:17 pajas>
+## Time-stamp: <2004-06-10 12:13:43 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -649,25 +649,40 @@ sub __renumber_by {
 
 #bind JoinSubtreeToPrev to Ctrl+2 menu Join current subtree with the previous tree
 sub JoinSubtreeToPrev {
-  my $node = $this;
-  unless ($node->parent) {
+  unless ($this->parent) {
     return unless PrevTree();
     JoinNextTree();
+    return;
   }
 
-  my @subtree = ($node,$node->descendants());
+  CutSubtreeBeforeMove();
+  if (PrevTree()) {
+    PasteMovedSubtree();
+  } else {
+    undef $SubtreeToMove;
+  }
+}
+
+#bind CutSubtreeBeforeMove to Ctrl+5 menu Cut subtree to be moved to another tree or file
+sub CutSubtreeBeforeMove {
+  my @nodes;
+  if ($this->parent) {
+    @nodes = ($this);
+  } else {
+    @nodes = $this->children();
+  }
+  my @subtree = grep ref,map { ($_,$_->descendants()) } @nodes;
   my @anal  = grep $_->{AID}, @subtree;
   my @added = grep $_->{TID}, @subtree;
   my %astruct;
   with_AR { $astruct{$_} = $_->parent for @anal };
   PDT::ClearARstruct();
 
-  my %max;
   __renumber_by('dord',@subtree);
   __renumber_by('sentord',@anal);
   __renumber_by('ord',@anal);
 
-  Cut($node);
+  Cut($_) for @nodes;
 
   my @rest = $root->descendants();
   my @rest_anal = grep $_->{AID}, @rest;
@@ -675,8 +690,15 @@ sub JoinSubtreeToPrev {
   __renumber_by('sentord',$root,@rest_anal);
   __renumber_by('ord',$root,@rest_anal);
 
-  return unless PrevTree();
+  $SubtreeToMove = [ \@nodes,\@subtree,\@anal,\@added, \%astruct ];
+}
 
+#bind PasteMovedSubtree to Ctrl+6 menu PasteMovedSubtree
+sub PasteMovedSubtree {
+  return unless ref($SubtreeToMove);
+
+  my ($nodes, $subtree, $anal, $added, $astruct) = @$SubtreeToMove;
+  undef $SubtreeToMove;
   my @nodes = ($root->descendants());
   my %max;
   $max{ord1}   = max(map { $_->{ord}=~/\.(\d+)/ ? $1 : 0 } $root, @nodes);
@@ -684,16 +706,17 @@ sub JoinSubtreeToPrev {
   $max{dord}    = max(map { $_->{dord} } $root,@nodes);
   $max{sentord} = max(map { $_->{sentord} } $root, grep { $_->{AID} ne "" } @nodes);
 
-  PasteNode($node,$root);
+  PasteNode($_,$root) for @$nodes;
 
   foreach my $atr (qw(ord dord sentord)) {
-    foreach my $node ($atr eq 'dord' ? @subtree : @anal) {
+    foreach my $node ($atr eq 'dord' ? @$subtree : @$anal) {
       $node->{$atr} += $max{$atr}+1;
     }
   }
-  $_->{ordorig} = $astruct{$_}->{ord} for @anal;
-  $_->{ord} = int($_->parent->{ord}).".".(++$max{ord1}) for @added;
+  $_->{ordorig} = $astruct->{$_}->{ord} for @$anal;
+  $_->{ord} = int($_->parent->{ord}).".".(++$max{ord1}) for @$added;
 }
+
 
 
 ############# XPath #############
