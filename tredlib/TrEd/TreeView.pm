@@ -1613,7 +1613,7 @@ sub _present_attribute {
   my $val = $node;
   my $append = "";
   for my $step (split /\//, $path) {
-    if (ref($val) eq 'Fslib::Seq' or ref($val) eq 'Fslib::Alt') {
+    if (ref($val) eq 'Fslib::List' or ref($val) eq 'Fslib::Alt') {
       if ($step =~ /^\[(\d+)\]/) {
 	$val = $val->[$1-1];
       } else {
