@@ -15,6 +15,12 @@ $chooserDialog=undef;
 #$XMLDataClass="TrEd::ValLex::JHXMLData";
 #$XMLDataClass="TrEd::ValLex::LibXMLData";
 
+%sempos_map = (
+  semn => 'N',
+  semv => 'V',
+  semadj => 'A',
+  semadv => 'D'
+ );
 
 sub init_XMLDataClass {
 
@@ -152,7 +158,7 @@ sub OpenEditor {
   InitValencyLexicon() || return; #do { $top->Unbusy(-recurse=>1); return };
 
   my $pos='V';
-  $pos=$1 if $this->{tag}=~/^(.)/;
+  $pos=$sempos_map{$1} if $this->{g_wordclass}=~/^(sem([vn]|adj|adv))/;
   my $lemma=TrEd::Convert::encode($this->{trlemma});
 
   my $font = $main::font;
@@ -346,19 +352,19 @@ sub ChooseFrame {
   require ValLex::Chooser;
   require TrEd::CPConvert;
 
-  my $lemma=TrEd::Convert::encode($this->{trlemma});
+  my $lemma=TrEd::Convert::encode($this->{t_lemma});
   my $tag=$this->{tag};
   if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
     $lemma=~s/^ne//;
   }
-  unless ($tag=~/^([VNA])/) {
+  unless ($this->{g_wordclass}=~/^(sem([vn]|adj|adv))/) {
     questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
 		  "according to morphological tag.",
 		  "Ok");
     ChangingFile(0);
     return;
   }
-  my $pos=$1;
+  my $pos=$sempos_map{$1};
   $lemma=~s/_/ /g;
   my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
   my $title;
@@ -491,8 +497,9 @@ sub frame_chosen {
       $win->{currentNode}) {
     my $field = $chooser->focused_framelist()->field();
     my $node = $win->{currentNode};
-    my $lemma = TrEd::Convert::encode($node->{trlemma}); $lemma=~s/_/ /g;
-    my ($pos) = $node->{tag}=~/^(.)/;
+    my $lemma = TrEd::Convert::encode($node->{t_lemma}); $lemma=~s/_/ /g;
+    $node->{g_wordclass}=~/^(sem([vn]|adj|adv))/;
+    my ($pos) = $sempos_map{$1};
     if (ref($field) and ($field->[0] eq $lemma or $field->[0] eq lc($lemma)) and
 	$field->[1] eq $pos) {
       my @frames=$chooser->get_selected_frames();
