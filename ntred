@@ -13,7 +13,8 @@ use Pod::Usage;
 use IO::Socket;
 use IO::Select;
 
-use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
+use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
+	    $all_nonhidden_nodes $macro_file
 	    $code $hubname $hubport $init $nocheck $noservers $nohub
 	    $client_key_file $verbose $srvlist $kill $filelist
 	    $srvlistfile $request_quit $request_dump $request_upload
@@ -40,6 +41,8 @@ use POSIX qw(setlocale);
 Getopt::Long::Configure ("bundling");
 %optmap=("all-trees|T"    => \$all_trees,
 	 "all-nodes|N"    => \$all_nodes,
+	 "no-all-trees"    => \$no_all_trees,
+	 "no-all-nodes"    => \$no_all_nodes,
 	 "all-nonhidden-nodes|H"  => \$all_nonhidden_nodes,
 	 "help|h"         => \$help,
 	 "usage|u"        => \$usage,
@@ -588,6 +591,8 @@ if (defined($init) || defined($kill) || defined($break)) {
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
       msg "Applying macro options: @ARGV\n";
+      local $all_trees if $no_all_trees;
+      local $all_nodes if $no_all_nodes;
       GetOptions (map {$_ => $optmap{$_}}
 		  "all-trees|T",
 		  "all-nodes|N",
