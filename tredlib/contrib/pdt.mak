@@ -728,7 +728,7 @@ sub FilterSons_TR { # node filter suff from
 Return a list of nodes linguistically dependant
 on a given node. The list may be filtered by
 a given subroutine specified in C<$filter>.
-A fitler obtains one argument - the child node to be filtered - 
+A filter obtains one argument - the child node to be filtered - 
 and should return either true (the child node is permitted
 to the result list) or false (the child node
 is filtered out).
@@ -756,6 +756,26 @@ sub GetChildren_TR { # node filter
   }
   grep &$filter($_), grep { !IsHidden($_) } @sons;
 } # GetChildren_TR
+
+
+=item GetDescendants_TR
+
+Return a list of all nodes linguistically subordinated to a given node
+(not including the node itself).
+
+=cut
+
+sub GetDescendants_TR {
+  my ($node)=@_;
+  return () unless ($node and !is_coord_TR($node));
+  my @descendants;
+  @descendants = (map { $_, GetDescendants_TR($_,1) } GetChildren_TR($node));
+  my %uniq; # nodes can appear more than once
+  @uniq{@descendants}=@descendants; #uniqify them
+  return values %uniq
+}
+
+
 
 =item PDT::GetFather_TR ($node)
 
