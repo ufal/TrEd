@@ -1066,7 +1066,7 @@ sub children {
     push @children, $child;
     $child=$child->rbrother;
   }
-  return @children;
+  return wantarray ? @children : \@children;
 }
 
 =pod
@@ -1127,6 +1127,84 @@ sub visible_descendants($$) {
   }
   return @kin;
 }
+
+
+*getRootNode = *root;
+*getParentNode = *parent;
+*getNextSibling = *rbrother;
+*getPreviousSibling = *lbrother;
+*getChildNodes = *children;
+
+sub getElementById { }
+sub isElementNode { 1 }
+sub get_global_pos { 0 }
+sub getNamespaces { return wantarray ? () : []; }
+sub isTextNode { 0 }
+sub isPINode { 0 }
+sub isCommentNode { 0 }
+sub getNamespace { undef }
+sub getValue { undef }
+sub getName { "node" }
+*getLocalName = *getName;
+*string_value = *getValue;
+
+sub getAttributes {
+  my ($self) = @_;
+  my @attribs = map { 
+    FSAttribute->new($self,$_,$self->{$_})
+  } keys %$self;
+  return wantarray ? @attribs : \@attribs;
+}
+
+sub find {
+    my ($node,$path) = @_;
+    require XML::XPath;
+    local $_; # XML::XPath isn't $_-safe
+    my $xp = XML::XPath->new(); # new is v. lightweight
+    return $xp->find($path, $node);
+}
+
+sub findvalue {
+    my ($node,$path) = @_;
+    require XML::XPath;
+    local $_; # XML::XPath isn't $_-safe
+    my $xp = XML::XPath->new();
+    return $xp->findvalue($path, $node);
+}
+
+sub findnodes {
+    my ($node,$path) = @_;
+    require XML::XPath;
+    local $_; # XML::XPath isn't $_-safe
+    my $xp = XML::XPath->new();
+    return $xp->findnodes($path, $node);
+}
+
+sub matches {
+    my ($node,$path,$context) = @_;
+    require XML::XPath;
+    local $_; # XML::XPath isn't $_-safe
+    my $xp = XML::XPath->new();
+    return $xp->matches($node, $path, $context);
+}
+
+package FSAttribute;
+
+sub new { # node, name, value
+  my $class = shift;
+  return bless [@_],$class;
+}
+
+sub getElementById { $_[0]->getElementById($_[1]) }
+sub getLocalName { $_[0][1] }
+*getName = *getLocalName;
+sub string_value { $_[0][2] }
+*getValue = *string_value;
+
+sub getRootNode { $_[0][0]->getRootNode() }
+sub getParentNode { $_[0][0] }
+sub getNamespace { undef }
+
 
 =pod
 
@@ -1446,6 +1524,20 @@ sub unparsed {
 
 
 =pod
+
+=item renew_specials
+
+Refresh special attribute hash.
+
+=cut
+
+sub renew_specials {
+  my ($self)=@_;
+  delete $self->[0]->{$special};
+  $self->specials();
+}
+
+
 
 =item specials
 
