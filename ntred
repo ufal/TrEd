@@ -16,7 +16,7 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
 	    $config_file $start_context @preload_modules $btred $break
-	    $request_reload_macros
+	    $request_reload_macros %optmap
 	   );
 
 $usage=1 unless @ARGV;
@@ -24,53 +24,54 @@ $ssh='ssh';
 
 ## Passing -o args... -- to TredMacro
 Getopt::Long::Configure ("bundling");
-GetOptions ("all-trees|T"    => \$all_trees,
-	    "all-nodes|N"    => \$all_nodes,
-	    "all-nonhidden-nodes|H"  => \$all_nonhidden_nodes,
-	    "help|h"         => \$help,
-	    "usage|u"        => \$usage,
-	    "man"            => \$manpage,
-	    "macro-file|m=s" => \$macro_file,
-	    "execute|e=s"    => \$code,
-	    "context|t=s" => \$start_context,
-	    "hub=s"          => \$hubname,
-	    "port=i"         => \$hubport,
-	    "init|i"           => \$init,
-	    "ssh=s"           => \$ssh,
-	    "btred=s"           => \$btred,
-	    "kill|k"           => \$kill,
-	    "break"           => \$break,
-	    "quit"           => \$request_quit,
-	    "reload-files"    => \$request_reload,
-	    "reload-macros"   => \$request_reload_macros,
-	    "close-files"     => \$request_close,
-	    "load-files"      => \$request_load,
-	    "list-files"      => \$request_list,
-	    "list-changed-files" => \$request_list_changed,
-	    "save-files"      => \$request_save,
-	    "save-changed-files" => \$request_save_changed,
-	    "dump-files"    => \$request_dump,
-	    "upload-file"    => \$request_upload,
-	    "strip-prefix|p=s" => \$strip_prefix,
-	    "add-prefix|r=s" => \$add_prefix,
-	    "strip-suffix|s=s" => \$strip_suffix,
-	    "add-suffix|a=s" => \$append_suffix,
-	    "output-format|f=s" => \$output_format,
-	    "config-file|c=s" => \$config_file,
-	    "servers=s"    => \$srvlist,
-	    "unrestricted|U" => \$unrestricted,
-	    "serverlist=s"    => \$srvlistfile,
-	    "max-servers=i"    => \$maxservers,
-	    "filelist|l=s"    => \$filelist,
-	    "no-server-check" => \$nocheck,
-	    "no-server-start" => \$noservers,
-	    "server-debug|D" => \$server_debug,
-	    "no-hub-start"   => \$nohub,
-	    "key-file=s"     => \$client_key_file,
-	    "verbose|v"      => \$verbose,
-	    "output-encoding|d=s" => \$term_encoding,
-	    "preload-module|M=s" => \@preload_modules
-	   ) or $usage=1;
+%optmap=("all-trees|T"    => \$all_trees,
+	 "all-nodes|N"    => \$all_nodes,
+	 "all-nonhidden-nodes|H"  => \$all_nonhidden_nodes,
+	 "help|h"         => \$help,
+	 "usage|u"        => \$usage,
+	 "man"            => \$manpage,
+	 "macro-file|m=s" => \$macro_file,
+	 "execute|e=s"    => \$code,
+	 "context|t=s" => \$start_context,
+	 "hub=s"          => \$hubname,
+	 "port=i"         => \$hubport,
+	 "init|i"           => \$init,
+	 "ssh=s"           => \$ssh,
+	 "btred=s"           => \$btred,
+	 "kill|k"           => \$kill,
+	 "break"           => \$break,
+	 "quit"           => \$request_quit,
+	 "reload-files"    => \$request_reload,
+	 "reload-macros"   => \$request_reload_macros,
+	 "close-files"     => \$request_close,
+	 "load-files"      => \$request_load,
+	 "list-files"      => \$request_list,
+	 "list-changed-files" => \$request_list_changed,
+	 "save-files"      => \$request_save,
+	 "save-changed-files" => \$request_save_changed,
+	 "dump-files"    => \$request_dump,
+	 "upload-file"    => \$request_upload,
+	 "strip-prefix|p=s" => \$strip_prefix,
+	 "add-prefix|r=s" => \$add_prefix,
+	 "strip-suffix|s=s" => \$strip_suffix,
+	 "add-suffix|a=s" => \$append_suffix,
+	 "output-format|f=s" => \$output_format,
+	 "config-file|c=s" => \$config_file,
+	 "servers=s"    => \$srvlist,
+	 "unrestricted|U" => \$unrestricted,
+	 "serverlist=s"    => \$srvlistfile,
+	 "max-servers=i"    => \$maxservers,
+	 "filelist|l=s"    => \$filelist,
+	 "no-server-check" => \$nocheck,
+	 "no-server-start" => \$noservers,
+	 "server-debug|D" => \$server_debug,
+	 "no-hub-start"   => \$nohub,
+	 "key-file=s"     => \$client_key_file,
+	 "verbose|v"      => \$verbose,
+	 "output-encoding|d=s" => \$term_encoding,
+	 "preload-module|M=s" => \@preload_modules
+	);
+GetOptions(%optmap) or $usage=1;
 
 $client_key_file ||= "$ENV{HOME}/.ntred_session_key";
 $hubport ||= 1500;
@@ -482,6 +483,24 @@ if (defined($init) || defined($kill) || defined($break)) {
 
   # ---------- composing and testing the request -----------
 
+  if ($macro_file) {
+    msg("Reading macros from $macro_file ...\n");
+    $TrEd::Macros::defaultMacroFile='/dev/null'; # don't read this one
+    $TrEd::Config::macroDebug=1;
+    TrEd::Macros::read_macros($macro_file,$libDir) if $macro_file; # read macros
+    msg("done.\n");
+    if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
+      local @ARGV=split /\s+/,$1;
+      print STDERR "Applying macro options: @ARGV\n";
+      GetOptions (map {$_ => $optmap{$_}}
+		  "all-trees|T",
+		  "all-nodes|N",
+		  "all-nonhidden-nodes|H",
+		  $code ? () : ("execute|e=s"),
+		  $start_context ? () : ("context|t=s"));
+    }
+  }
+
   $code ||= 'autostart()';
 
   if ($all_nonhidden_nodes) {
@@ -493,13 +512,6 @@ if (defined($init) || defined($kill) || defined($break)) {
     $code = "do { $code } while TredMacro::NextTree();";
   }
 
-  if ($macro_file) {
-    msg("Reading macros from $macro_file ...\n");
-    $TrEd::Macros::defaultMacroFile='/dev/null'; # don't read this one
-    $TrEd::Config::macroDebug=1;
-    TrEd::Macros::read_macros($macro_file,$libDir) if $macro_file; # read macros
-    msg("done.\n");
-  }
 
   my $request="";
   my $request_type;
