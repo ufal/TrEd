@@ -241,7 +241,8 @@ sub write {
       # choosing between f d and fadd
       if (index($node->{ord},'.')>=$[) {
 	my $del=$node->{del}=~/^(?:ELID|ELEX|EXPN|TRANSF)/i ? " ".lc($node->{del}) : "";
-	print $fileref "<fadd$del>";
+	my $TID = $node->{TID} ne '' ? " id=\"$node->{TID}\"" : "";
+	print $fileref "<fadd${TID}${del}>";
       } else {
 	if ($compatibility_mode) {
 	  if ($node->{gap1}) {
@@ -342,6 +343,10 @@ sub write {
 	  }
 	  print $fileref "<Tmo>",$node->{memberof} if ($node->{memberof} ne "" and
 						       $node->{memberof} ne "???");
+	  print $fileref "<Tpa>",$node->{parenthesis} if ($node->{parenthesis} ne "" and
+						       $node->{parenthesis} ne "???");
+	  print $fileref "<Top>",$node->{operand} if ($node->{operand} ne "" and
+						       $node->{operand} ne "???");
 	  my $TRt=make_TRt($node,0);
 	  print $fileref "<TRt>",$TRt unless ($TRt=~/^X*$/);
 	  print $fileref "<tfa>",$node->{tfa}  if ($node->{tfa} !~ /^(?:---|\?\?\?)?$/);
