@@ -1,43 +1,45 @@
 # Automatically converted from Graph macros by graph2tred to Perl.         -*-cperl-*-.
-## author: Alena Bohmova
-## ----------------------------------------
 
-my $iPrevAfunAssigned;		# used as type "string"
-my $pPar1;			# used as type "pointer"
-my $pPar2;			# used as type "pointer"
-my $pPar3;			# used as type "pointer"
-my $pReturn;			# used as type "pointer"
-my $pDummy;			# used as type "pointer"
-my $sPar1;			# used as type "string"
-my $sPar2;			# used as type "string"
-my $sPar3;			# used as type "string"
-my $sReturn;			# used as type "string"
-my $iPar1;			# used as type "string"
-my $iPar2;			# used as type "string"
-my $iPar3;			# used as type "string"
-my $iReturn;			# used as type "string"
-my $lPar1;			# used as type "list"
-my $lPar2;			# used as type "list"
-my $lPar3;			# used as type "list"
-my $lReturn;			# used as type "list"
-my $_pDummy;			# used as type "pointer"
+  my $iPrevAfunAssigned; # used as type "string"
+  my $pPar1; # used as type "pointer"
+  my $pPar2; # used as type "pointer"
+  my $pPar3; # used as type "pointer"
+  my $pReturn; # used as type "pointer"
+  my $pDummy; # used as type "pointer"
+  my $sPar1; # used as type "string"
+  my $sPar2; # used as type "string"
+  my $sPar3; # used as type "string"
+  my $sReturn; # used as type "string"
+  my $iPar1; # used as type "string"
+  my $iPar2; # used as type "string"
+  my $iPar3; # used as type "string"
+  my $iReturn; # used as type "string"
+  my $lPar1; # used as type "list"
+  my $lPar2; # used as type "list"
+  my $lPar3; # used as type "list"
+  my $lReturn; # used as type "list"
+
+
+sub comments {
+
+}
+  my $_pDummy; # used as type "pointer"
 
 
 sub ThisRoot {
-  my $pT;			# used as type "pointer"
-  my $pPrev;			# used as type "pointer"
+  my $pT, $pPrev; # used as type "pointer"
 
   $pPrev = undef;
 
   $pT = $this;
- Cont1:
+Cont1:
   if ($pT) {
 
-    $pPrev = $pT;
+  $pPrev = $pT;
 
-    $pT = Parent($pT);
+  $pT = Parent($pT);
 
-    goto Cont1;
+  goto Cont1;
   }
 
   $pReturn = $pPrev;
@@ -45,31 +47,1334 @@ sub ThisRoot {
 }
 
 
+sub TagPrune {
+  my $lT; # used as type "list"
+  my $lTRet; # used as type "list"
+  my $sT; # used as type "string"
+  my $sT1; # used as type "string"
+  my $i; # used as type "string"
+  my $iLast; # used as type "string"
+
+  $lT = $lPar1;
+
+  $sT1 = ValNo(0,$lT);
+
+  $i = "0";
+
+  $lTRet = Interjection('q','a');
+
+  $iLast = scalar(split /\|/,$lT);
+TagPruneCont:
+  if ($i>=$iLast) {
+
+  goto TagPruneEnd;
+  }
+
+  $sT =  ValNo($i,$lT) ;
+
+  if (substr($sT,0,1) ne '-') {
+
+  $sT1 = $sT;
+
+  if (substr($sT,0,2) ne 'VM') {
+
+  $lTRet = Union($lTRet,$sT);
+  }
+  }
+
+  $i = $i+"1";
+
+  goto TagPruneCont;
+TagPruneEnd:
+  if (ListEq($lTRet,Interjection('q','a'))) {
+
+  $lTRet = $sT1;
+  }
+
+  $lReturn = $lTRet;
+
+}
+
+
+sub GetAfunSuffix {
+  my $sChar; # used as type "string"
+  my $i; # used as type "string"
+
+  $i = "0";
+GASLoopCont1:
+  $sChar = substr($sPar1,$i,1);
+
+  if ($sChar eq '') {
+
+  $sPar2 = $sPar1;
+
+  $sPar3 = '';
+
+  goto GASLoopEnd1;
+  }
+
+  if ($sChar eq '_' ||
+      $sChar eq '-' ||
+      $sChar eq '`' ||
+      $sChar eq '&') {
+
+  $sPar2 = substr($sPar1,0,$i);
+
+  $sPar3 = substr($sPar1,$i,40);
+
+  goto GASLoopEnd1;
+  }
+
+  $i = $i+"1";
+
+  goto GASLoopCont1;
+GASLoopEnd1:
+  return;
+
+}
+
+
+sub SubtreeAfunAssign {
+  my $pAct; # used as type "pointer"
+  my $pParAct; # used as type "pointer"
+  my $pParParAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pThis; # used as type "pointer"
+  my $fSubject; # used as type "string"
+  my $fObject; # used as type "string"
+  my $sT; # used as type "string"
+  my $sT1; # used as type "string"
+  my $sLemmaFull; # used as type "string"
+  my $sLemma; # used as type "string"
+  my $sParTag; # used as type "string"
+  my $sParParTag; # used as type "string"
+  my $sParLemma; # used as type "string"
+  my $sParParLemma; # used as type "string"
+  my $sPOS; # used as type "string"
+  my $sParPOS; # used as type "string"
+  my $sParParPOS; # used as type "string"
+  my $lT; # used as type "list"
+  my $lafun; # used as type "list"
+  my $lTag; # used as type "list"
+  my $lLemma; # used as type "list"
+  my $lForm; # used as type "list"
+  my $lParTag; # used as type "list"
+  my $sTag; # used as type "string"
+  my $fObj; # used as type "string"
+  my $i; # used as type "string"
+  my $iLast; # used as type "string"
+  my $sCo; # used as type "string"
+  my $sAp; # used as type "string"
+  my $sSuffAct; # used as type "string"
+  my $sParAfun; # used as type "string"
+  my $sParParAfun; # used as type "string"
+  my $sAfun; # used as type "string"
+  my $pTmp; # used as type "pointer"
+  my $cList; # used as type "string"
+  my $lPar; # used as type "list"
+  my $sPar; # used as type "string"
+  my $Return; # used as type "string"
+  my $fReturn; # used as type "string"
+
+  $pThis = $pPar1;
+
+  $sCo = '_Co';
+
+  $sAp = '_Ap';
+
+  $pParent = $pThis;
+
+  if (!(Parent($pThis))) {
+
+  $pAct = FirstSon($pThis);
+  } else {
+
+  $pAct = $pThis;
+  }
+
+
+  if (!($pAct)) {
+
+  return;
+  }
+ContLoop1:
+  if (Interjection($pAct->{'afun'},'???') ne '???') {
+
+  if (Interjection($pAct->{'form'},'se') ne 'se') {
+
+  goto ex;
+  }
+  }
+
+  $sSuffAct = '';
+
+  $lafun = $pAct->{'afun'};
+
+  $lLemma = $pAct->{'lemma'};
+
+  $sLemmaFull = ValNo(0,$lLemma);
+
+  $i = "0";
+
+  $sT = substr($sLemmaFull,$i,1);
+ContLoop4:
+  if ($sT eq '' ||
+      $sT eq '_') {
+
+  goto ExitLoop4;
+  }
+
+  $i = $i+"1";
+
+  $sT = substr($sLemmaFull,$i,1);
+
+  goto ContLoop4;
+ExitLoop4:
+  $sLemma = substr($sLemmaFull,0,$i);
+
+  $lPar1 = $pAct->{'tag'};
+
+  TagPrune();
+
+  $lTag = $lReturn;
+
+  $lForm = $pAct->{'form'};
+
+  $sTag = ValNo(0,$lTag);
+
+  if ($sTag eq 'NOMORPH') {
+
+  $lTag = 'NFXXA';
+
+  $sTag = 'NFXXA';
+  }
+
+  $sPOS = substr($sTag,0,1);
+
+  $pParAct = Parent($pAct);
+GoUp:
+  $lPar1 = $pParAct->{'tag'};
+
+  TagPrune();
+
+  $lParTag = $lReturn;
+
+  $sParTag = ValNo(0,$lParTag);
+
+  $sParPOS = substr($sParTag,0,1);
+
+  $sLemmaFull = ValNo(0,$pParAct->{'lemma'});
+
+  $sParAfun = ValNo(0,$pParAct->{'afun'});
+
+  $i = "0";
+
+  $sT = substr($sParAfun,$i,1);
+ContLoop5s:
+  if ($sT eq '' ||
+      $sT eq '_') {
+
+  goto ExitLoop5s;
+  }
+
+  $i = $i+"1";
+
+  $sT = substr($sParAfun,$i,1);
+
+  goto ContLoop5s;
+ExitLoop5s:
+  $sParAfun = substr($sParAfun,0,$i);
+
+  if ($sParAfun eq 'Coord' ||
+      $sParAfun eq 'Apos') {
+
+  $pParAct = Parent($pParAct);
+
+  if (!($pParAct)) {
+
+  goto ex;
+  }
+
+  if ($sSuffAct eq '') {
+
+  $sSuffAct = (ValNo(0,'_').ValNo(0,substr($sParAfun,0,2)));
+  }
+
+  goto GoUp;
+  }
+
+  if ($sLemmaFull eq '&percnt;') {
+
+  $sParPOS = 'N';
+
+  $lParTag = 'NNXXA';
+
+  $sParTag = ValNo(0,$lParTag);
+  }
+
+  $i = "0";
+
+  $sT = substr($sLemmaFull,$i,1);
+ContLoop5:
+  if ($sT eq '' ||
+      $sT eq '_') {
+
+  goto ExitLoop5;
+  }
+
+  $i = $i+"1";
+
+  $sT = substr($sLemmaFull,$i,1);
+
+  goto ContLoop5;
+ExitLoop5:
+  $sParLemma = substr($sLemmaFull,0,$i);
+
+  $pParParAct = Parent($pParAct);
+GoUpPar2:
+  if ($pParParAct) {
+
+  $lPar1 = $pParParAct->{'tag'};
+
+  TagPrune();
+
+  $sParParTag = ValNo(0,$lReturn);
+
+  $sParParPOS = substr($sParParTag,0,1);
+
+  $sLemmaFull = ValNo(0,$pParParAct->{'lemma'});
+
+  $sParParAfun = ValNo(0,$pParParAct->{'afun'});
+
+  if ($sLemmaFull eq '&percnt;') {
+
+  $sParParPOS = 'N';
+
+  $sParParTag = 'NNXXA';
+  }
+
+  $i = "0";
+
+  $sT = substr($sParParAfun,$i,1);
+ContLoop5ps:
+  if ($sT eq '' ||
+      $sT eq '_') {
+
+  goto ExitLoop5ps;
+  }
+
+  $i = $i+"1";
+
+  $sT = substr($sParParAfun,$i,1);
+
+  goto ContLoop5ps;
+ExitLoop5ps:
+  $sParParAfun = substr($sParParAfun,0,$i);
+
+  if ($sParParAfun eq 'Coord' ||
+      $sParParAfun eq 'Apos') {
+
+  $pParParAct = Parent($pParParAct);
+
+  if (!($pParParAct)) {
+
+  $sParParTag = '';
+
+  $sParParPOS = '';
+
+  $sParParLemma = '';
+
+  goto MakeSuff;
+  }
+
+  if (substr(ValNo(0,$pParAct->{'afun'}),0,3) eq 'Aux') {
+
+  if ($sSuffAct eq '') {
+
+  $sSuffAct = (ValNo(0,'_').ValNo(0,substr($sParParAfun,0,2)));
+  }
+  }
+
+  goto GoUpPar2;
+  }
+
+  $i = "0";
+
+  $sT = substr($sLemmaFull,$i,1);
+ContLoop6:
+  if ($sT eq '' ||
+      $sT eq '_') {
+
+  goto ExitLoop6;
+  }
+
+  $i = $i+"1";
+
+  $sT = substr($sLemmaFull,$i,1);
+
+  goto ContLoop6;
+ExitLoop6:
+  $sParParLemma = substr($sLemmaFull,0,$i);
+  } else {
+
+  $sParParTag = '';
+
+  $sParParPOS = '';
+
+  $sParParLemma = '';
+  }
+
+MakeSuff:
+  $i = $i;
+StartWork:
+  $pAct->{'afunprev'} = $pAct->{'afun'};
+
+  if (Interjection($lForm,'mo¾ná') eq 'mo¾ná' ||
+      Interjection($lForm,'prý') eq 'prý' ||
+      Interjection($lForm,'zøejmì') eq 'zøejmì' ||
+      Interjection($lForm,'patrnì') eq 'patrnì' ||
+      Interjection($lForm,'ostatnì') eq 'ostatnì' ||
+      Interjection($lForm,'toti¾') eq 'toti¾' ||
+      Interjection($lForm,'vlastnì') eq 'vlastnì' ||
+      Interjection($lForm,'pravdìpodobnì') eq 'pravdìpodobnì') {
+
+  $pAct->{'afun'} = 'AuxY';
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'jen') eq 'jen' ||
+      Interjection($lForm,'dokonce') eq 'dokonce' ||
+      Interjection($lForm,'pouze') eq 'pouze') {
+
+  $pAct->{'afun'} = 'AuxZ';
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'snad') eq 'snad') {
+
+  $pAct->{'afun'} = Union('AuxY','AuxZ');
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'vèetnì') eq 'vèetnì') {
+
+  if (FirstSon($pAct)) {
+
+  $sAfun = 'AuxP';
+
+  goto aa;
+  } else {
+
+  $pAct->{'afun'} = 'Adv';
+
+  goto ex;
+  }
+
+  }
+
+  if (substr($sLemma,0,6) eq 'podle-') {
+
+  $pAct->{'afun'} = 'AuxP';
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'mezi') eq 'mezi' ||
+      Interjection($lForm,'Mezi') eq 'Mezi' ||
+      Interjection($lForm,'MEZI') eq 'MEZI') {
+
+  $pAct->{'afun'} = 'AuxP';
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'V') eq 'V' &&
+      Interjection($pAct->{'ord'},"1") eq "1") {
+
+  if (scalar(split /\|/,$lTag) ne "1") {
+
+  $pAct->{'tag'} = Union('R4','R6');
+  }
+
+  $pAct->{'afun'} = 'AuxP';
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'Od') eq 'Od') {
+
+  if (scalar(split /\|/,$lTag) ne "1") {
+
+  $pAct->{'tag'} = 'R2';
+  }
+
+  $pAct->{'afun'} = 'AuxP';
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'kolem') eq 'kolem' ||
+      Interjection($lForm,'Kolem') eq 'Kolem' ||
+      Interjection($lForm,'KOLEM') eq 'KOLEM') {
+
+  $pAct->{'afun'} = 'AuxP';
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'pøi') eq 'pøi' ||
+      Interjection($lForm,'Pøi') eq 'Pøi' ||
+      Interjection($lForm,'PøI') eq 'PøI') {
+
+  $pAct->{'afun'} = 'AuxP';
+
+  goto ex;
+  }
+
+  if (Interjection($lForm,'&percnt;') eq '&percnt;') {
+
+  $sPOS = 'N';
+
+  $lTag = 'NNXXA';
+
+  $sTag = ValNo(0,$lTag);
+
+  $sAfun = 'Atr';
+
+  goto aa;
+  }
+
+  if (Interjection($lForm,'.') eq '.' ||
+      Interjection($lForm,';') eq ';' ||
+      Interjection($lForm,'!') eq '!' ||
+      Interjection($lForm,'?') eq '?' ||
+      Interjection($lForm,'-') eq '-' ||
+      Interjection($lForm,':') eq ':' ||
+      Interjection($lForm,')') eq ')' ||
+      Interjection($lForm,'}') eq '}' ||
+      Interjection($lForm,']') eq ']') {
+
+  if (!(RBrother($pAct))) {
+
+  if (Interjection($pParAct->{'afun'},'AuxS') eq 'AuxS') {
+
+  $pAct->{'afun'} = 'AuxK';
+  }
+  }
+
+  goto ex;
+  }
+
+  if ($sPOS eq 'R') {
+
+  $pAct->{'afun'} = 'AuxP';
+  }
+
+  if ($sTag eq 'ABBRX') {
+
+  $sPOS = 'N';
+
+  $lTag = 'NNXXA';
+
+  $sTag = ValNo(0,$lTag);
+  }
+
+  if (Interjection($pParAct->{'afun'},'AuxS') eq 'AuxS') {
+
+  if ($sPOS eq 'V' ||
+      Interjection($lLemma,'být') eq 'být' ||
+      Interjection('mít',$lLemma) eq 'mít') {
+
+  $sAfun = 'Pred';
+
+  goto aa;
+  }
+
+  if ($sPOS eq 'N' ||
+      $sPOS eq 'X') {
+
+  $sAfun = 'ExD';
+
+  goto aa;
+  }
+  }
+
+  if (Interjection($lTag,'JE') eq 'JE') {
+
+  if (FirstSon($pAct)) {
+
+  $sAfun = 'Coord';
+
+  goto aa;
+  } else {
+
+  $pAct->{'afun'} = 'AuxY';
+
+  goto ex;
+  }
+
+  }
+
+  if ($sPOS eq 'D') {
+
+  if ($sParPOS ne 'N') {
+
+  $sAfun = 'Adv';
+
+  goto aa;
+  } else {
+
+  $pAct->{'afun'} = 'AuxZ';
+
+  goto ex;
+  }
+
+  }
+
+  if (Interjection($pAct->{'form'},'se') eq 'se') {
+
+  if (!(FirstSon($pAct))) {
+
+  $pAct->{'afun'} = 'AuxT';
+
+  goto ex;
+  } else {
+
+  $pAct->{'afun'} = 'AuxP';
+
+  goto ex;
+  }
+
+  }
+
+  if ($sPOS eq 'R') {
+
+  $pAct->{'afun'} = 'AuxP';
+
+  goto ex;
+  }
+
+  if ($sLemma eq ',') {
+
+  if (!(FirstSon($pAct))) {
+
+  $pAct->{'afun'} = 'AuxX';
+
+  goto ex;
+  } else {
+
+  $sAfun = 'Apos';
+
+  goto aa;
+  }
+
+  }
+
+  if (substr(ValNo(0,$pAct->{'gap1'}),0,3) eq '<d>' ||
+      substr(ValNo(0,$pAct->{'gap1'}),0,10) eq '<D>&nl;<d>') {
+
+  if (Interjection($pParAct->{'afun'},'AuxS') eq 'AuxS') {
+
+  if (Interjection($pAct->{'form'},':') eq ':') {
+
+  $pAct->{'afun'} = 'Pred';
+
+  goto ex;
+  } else {
+
+  $pAct->{'afun'} = 'AuxK';
+
+  goto ex;
+  }
+
+  } else {
+
+  $pAct->{'afun'} = 'AuxG';
+
+  goto ex;
+  }
+
+  }
+
+  if (Interjection($lTag,'JS') eq 'JS') {
+
+  if (FirstSon($pAct)) {
+
+  $sAfun = 'AuxC';
+
+  goto aa;
+  } else {
+
+  $pAct->{'afun'} = 'AuxY';
+
+  goto ex;
+  }
+
+  }
+
+  if ($sPOS eq 'A' ||
+      $sPOS eq 'P') {
+
+  if ($sParPOS eq 'N' &&
+      Interjection($pParAct->{'afun'},'AuxP') ne 'AuxP') {
+
+  $sAfun = 'Atr';
+
+  goto aa;
+  }
+
+  if ($sPOS eq 'A' &&
+      ( $sParLemma eq 'být' ||
+      Interjection($pParAct->{'form'},'je') eq 'je' ||
+      Interjection($pParAct->{'form'},'Je') eq 'Je' ||
+      Interjection($pParAct->{'form'},'JE') eq 'JE' )) {
+
+  $sAfun = 'Pnom';
+
+  goto aa;
+  }
+  }
+
+  if ($sPOS eq 'P' &&
+      substr($sParTag,0,3) eq 'DG3') {
+
+  $sAfun = 'Adv';
+
+  goto aa;
+  }
+
+  $fSubject = "0";
+
+  $fObject = "0";
+
+  $pT = LBrother($pAct);
+ContLoop3:
+  if (!($pT)) {
+
+  goto ExitLoop3;
+  }
+
+  if (Interjection($pT->{'afun'},'Sb') eq 'Sb') {
+
+  $fSubject = "1";
+  }
+
+  if (Interjection($pT->{'afun'},'Obj') eq 'Obj') {
+
+  $fObject = "1";
+  }
+
+  $pT = LBrother($pT);
+
+  goto ContLoop3;
+ExitLoop3:
+  if ($sPOS eq 'N' ||
+      $sPOS eq 'P' ||
+      $sPOS eq 'C' ||
+      Interjection($lTag,'ZNUM') eq 'ZNUM') {
+
+  if (Interjection($pParAct->{'afun'},'AuxP') eq 'AuxP') {
+
+  goto ParentPossiblyAux;
+  }
+
+  if ($sParPOS eq 'C' ||
+      Interjection($lParTag,'ZNUM') eq 'ZNUM') {
+
+  $sAfun = 'Atr';
+
+  goto aa;
+  }
+
+  if ($sParPOS eq 'N') {
+
+  $sAfun = 'Atr';
+
+  goto aa;
+  }
+
+  if ($pParParAct) {
+
+  if (Interjection($pParAct->{'afun'},'AuxP') eq 'AuxP' &&
+      $sParParPOS eq 'N') {
+
+  $sAfun = 'Atr';
+
+  goto aa;
+  }
+  }
+
+  if (Interjection($pParAct->{'afun'},'Pred') eq 'Pred' ||
+      $sParPOS eq 'V' ||
+      $sParPOS eq 'A') {
+
+  if (Interjection($lTag,'NFS1A') eq 'NFS1A' ||
+      Interjection($lTag,'NFP1A') eq 'NFP1A' ||
+      Interjection($lTag,'NIS1A') eq 'NIS1A' ||
+      Interjection($lTag,'NIP1A') eq 'NIP1A' ||
+      Interjection($lTag,'NMS1A') eq 'NMS1A' ||
+      Interjection($lTag,'NMP1A') eq 'NMP1A' ||
+      Interjection($lTag,'NNS1A') eq 'NNS1A' ||
+      Interjection($lTag,'NNP1A') eq 'NNP1A' ||
+      Interjection($lTag,'NFS1N') eq 'NFS1N' ||
+      Interjection($lTag,'NFP1N') eq 'NFP1N' ||
+      Interjection($lTag,'NIS1N') eq 'NIS1N' ||
+      Interjection($lTag,'NIP1N') eq 'NIP1N' ||
+      Interjection($lTag,'NMS1N') eq 'NMS1N' ||
+      Interjection($lTag,'NMP1N') eq 'NMP1N' ||
+      Interjection($lTag,'NNS1N') eq 'NNS1N' ||
+      Interjection($lTag,'NNP1N') eq 'NNP1N' ||
+      Interjection($lTag,'PDNS1') eq 'PDNS1' ||
+      Interjection($lTag,'PDNP1') eq 'PDNP1' ||
+      Interjection($lTag,'PDFS1') eq 'PDFS1' ||
+      Interjection($lTag,'PDFP1') eq 'PDFP1' ||
+      Interjection($lTag,'PDMS1') eq 'PDMS1' ||
+      Interjection($lTag,'PDMP1') eq 'PDMP1' ||
+      Interjection($lTag,'PDIS1') eq 'PDIS1' ||
+      Interjection($lTag,'PDIP1') eq 'PDIP1' ||
+      Interjection($lTag,'NFXXA') eq 'NFXXA' ||
+      Interjection($lTag,'NMXXA') eq 'NMXXA' ||
+      Interjection($lTag,'NIXXA') eq 'NIXXA' ||
+      Interjection($lTag,'NNXXA') eq 'NNXXA' ||
+      Interjection($lTag,'ZNUM') eq 'ZNUM') {
+
+  if ($fSubject eq "0" &&
+      Interjection($pParAct->{'tag'},'VFA') ne 'VFA' &&
+      Interjection($pParAct->{'tag'},'VFN') ne 'VFN' &&
+      Interjection($pParAct->{'tag'},'VPP1A') ne 'VPP1A' &&
+      Interjection($pParAct->{'tag'},'VPP1N') ne 'VPP1N' &&
+      Interjection($pParAct->{'tag'},'VPS1A') ne 'VPS1A' &&
+      Interjection($pParAct->{'tag'},'VPS2N') ne 'VPS2N') {
+
+  $sAfun = 'Sb';
+
+  goto aa;
+  } else {
+
+  goto TryObj;
+  }
+
+  }
+TryObj:
+  $fObj = "0";
+
+  if (substr($sParLemma,0,10) eq 'financovat') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,9) eq 'dosahovat') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,6) eq 'vybrat') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,6) eq 'èerpat') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,6) eq 'mít') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,6) eq 'chtít') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,6) eq 'muset') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,6) eq 'smìt') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,6) eq 'zaèít') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+
+  if (substr($sParLemma,0,6) eq 'skonèit') {
+
+  $fObj = "1";
+
+  goto TDO;
+  }
+TDO:
+  if ($fObj eq "1") {
+
+  $sAfun = 'Obj';
+
+  goto aa;
+  } else {
+
+  if (Interjection($lTag,'NFS4A') eq 'NFS4A' ||
+      Interjection($lTag,'NFP4A') eq 'NFP4A' ||
+      Interjection($lTag,'NIS4A') eq 'NIS4A' ||
+      Interjection($lTag,'NIP4A') eq 'NIP4A' ||
+      Interjection($lTag,'NMS4A') eq 'NMS4A' ||
+      Interjection($lTag,'NMP4A') eq 'NMP4A' ||
+      Interjection($lTag,'NNS4A') eq 'NNS4A' ||
+      Interjection($lTag,'NNP4A') eq 'NNP4A' ||
+      Interjection($lTag,'NFS4N') eq 'NFS4N' ||
+      Interjection($lTag,'NFP4N') eq 'NFP4N' ||
+      Interjection($lTag,'NIS4N') eq 'NIS4N' ||
+      Interjection($lTag,'NIP4N') eq 'NIP4N' ||
+      Interjection($lTag,'NMS4N') eq 'NMS4N' ||
+      Interjection($lTag,'NMP4N') eq 'NMP4N' ||
+      Interjection($lTag,'NNS4N') eq 'NNS4N' ||
+      Interjection($lTag,'NNP4N') eq 'NNP4N' ||
+      Interjection($lTag,'PDNS4') eq 'PDNS4' ||
+      Interjection($lTag,'PDNP4') eq 'PDNP4' ||
+      Interjection($lTag,'PDFS4') eq 'PDFS4' ||
+      Interjection($lTag,'PDFP4') eq 'PDFP4' ||
+      Interjection($lTag,'PDMS4') eq 'PDMS4' ||
+      Interjection($lTag,'PDMP4') eq 'PDMP4' ||
+      Interjection($lTag,'PDIS4') eq 'PDIS4' ||
+      Interjection($lTag,'PDIP4') eq 'PDIP4' ||
+      Interjection($lTag,'NFXXA') eq 'NFXXA' ||
+      Interjection($lTag,'NMXXA') eq 'NMXXA' ||
+      Interjection($lTag,'NIXXA') eq 'NIXXA' ||
+      Interjection($lTag,'NNXXA') eq 'NNXXA' ||
+      Interjection($lTag,'ZNUM') eq 'ZNUM') {
+
+  $sAfun = 'Obj';
+
+  goto aa;
+  }
+
+  if (substr($sTag,0,2) eq 'PQ' ||
+      substr($sTag,0,2) eq 'PI' ||
+      substr($sTag,0,2) eq 'PD' ||
+      substr($sTag,0,2) eq 'PP' ||
+      substr($sTag,0,2) eq 'PN') {
+
+  $sAfun = 'Sb';
+
+  goto aa;
+  }
+
+  if (Interjection($pParAct->{'form'},'je') eq 'je' ||
+      Interjection($pParAct->{'form'},'Je') eq 'Je' ||
+      Interjection($pParAct->{'form'},'JE') eq 'JE' ||
+      Interjection($pParAct->{'form'},'jsou') eq 'jsou' ||
+      Interjection($pParAct->{'form'},'Jsou') eq 'Jsou' ||
+      Interjection($pParAct->{'form'},'JSOU') eq 'JSOU') {
+
+  $pAct->{'afunprev'} = $pAct->{'afun'};
+
+  $pAct->{'afun'} = 'Pnom';
+
+  goto ex;
+  } else {
+
+  $sAfun = 'Adv';
+
+  goto aa;
+  }
+
+  }
+
+  }
+ParentPossiblyAux:
+  if ($pParParAct) {
+
+  if (Interjection($pParAct->{'afun'},'AuxP') eq 'AuxP') {
+
+  if (Interjection($pParParAct->{'afun'},'Pred') eq 'Pred' ||
+      $sParParPOS eq 'V' ||
+      $sParParPOS eq 'A') {
+
+  $fObj = "0";
+
+  if (substr($sParLemma,0,3) eq 'bez') {
+
+  if (substr($sParParLemma,0,6) eq 'obejít') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+
+  if (substr($sParLemma,0,2) eq 'na') {
+
+  if (substr($sParParLemma,0,3) eq 'jít') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+
+  if (substr($sParParLemma,0,5) eq 'chtít') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+
+  if (substr($sParParLemma,0,5) eq 'dìlit') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+
+  if (substr($sParLemma,0,2) eq 'od') {
+
+  if (substr($sParParLemma,0,5) eq 'chtít') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+
+  if (substr($sParParLemma,0,7) eq 'odli¹it') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+
+  if (substr($sParLemma,0,2) eq 'za') {
+
+  if (substr($sParParLemma,0,4) eq 'moci') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+
+  if (substr($sParLemma,0,1) eq 's') {
+
+  if (substr($sParParLemma,0,6) eq 'jednat') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+
+  if (substr($sParLemma,0,1) eq 'o') {
+
+  if (substr($sParParLemma,0,10) eq 'informovat') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+
+  if (substr($sParParLemma,0,3) eq 'jít') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+
+  if (substr($sParLemma,0,1) eq 'z') {
+
+  if (substr($sParParLemma,0,10) eq 'financovat') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+
+  if (substr($sParLemma,0,1) eq 'k') {
+
+  if (substr($sParParLemma,0,5) eq 'dojít') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+
+  if (substr($sParLemma,0,1) eq 'v') {
+
+  if (substr($sParParLemma,0,10) eq 'pokraèovat') {
+
+  $fObj = "1";
+
+  goto TObj;
+  }
+  }
+TObj:
+  if ($fObj eq "1") {
+
+  $sAfun = 'Obj';
+
+  goto aa;
+  } else {
+
+  $sAfun = 'Adv';
+
+  goto aa;
+  }
+
+  }
+
+  if ($sParParPOS eq 'N' ||
+      $sParParPOS eq 'P' ||
+      $sParParPOS eq 'C') {
+
+  $sAfun = 'Atr';
+
+  goto aa;
+  }
+  }
+  }
+  }
+
+  if ($sPOS eq 'V' ||
+      Interjection('být',$lLemma) eq 'být' ||
+      Interjection('mít',$lLemma) eq 'mít') {
+
+  if (Interjection($lLemma,'být') eq 'být') {
+
+  if (!(FirstSon($pAct))) {
+
+  $pAct->{'afunprev'} = $pAct->{'afun'};
+
+  $pAct->{'afun'} = 'AuxV';
+
+  goto ex;
+  }
+  }
+
+  if ($sParPOS eq 'N' ||
+      $sParPOS eq 'P') {
+
+  $sAfun = 'Atr';
+
+  goto aa;
+  }
+
+  if (Interjection($pParAct->{'afun'},'AuxC') eq 'AuxC') {
+
+  $fObj = "0";
+
+  if ($sParLemma eq '¾e') {
+
+  $fObj = "1";
+  }
+
+  if ($fObj eq "1") {
+
+  $sAfun = 'Obj';
+
+  goto aa;
+  } else {
+
+  $sAfun = 'Adv';
+
+  goto aa;
+  }
+
+  }
+
+  if ($sParLemma eq 'øíkat' ||
+      $sParLemma eq 'utrousit' ||
+      $sParLemma eq 'myslet' ||
+      $sParLemma eq 'myslit' ||
+      $sParLemma eq 'øíci' ||
+      $sParLemma eq 'pronést' ||
+      $sParLemma eq 'sdìlit' ||
+      $sParLemma eq 'øíct' ||
+      $sParLemma eq 'povìdìt') {
+
+  $sAfun = 'Obj';
+
+  goto aa;
+  }
+
+  if (Interjection($lTag,'VFA') eq 'VFA' ||
+      Interjection($lTag,'VFN') eq 'VFN') {
+
+  if ($fSubject eq "1" ||
+      $sParLemma eq 'mít' ||
+      $sParLemma eq 'chtít' ||
+      $sParLemma eq 'zaèít' ||
+      $sParLemma eq 'pøestat' ||
+      $sParLemma eq 'smìt' ||
+      $sParLemma eq 'moci' ||
+      $sParLemma eq 'moct') {
+
+  $sAfun = 'Obj';
+
+  goto aa;
+  } else {
+
+  $sAfun = 'Sb';
+
+  goto aa;
+  }
+
+  }
+  }
+
+  if ($sParPOS eq 'N') {
+
+  $sAfun = 'Atr';
+
+  goto aa;
+  }
+
+  goto ex;
+aa:
+  $pAct->{'afun'} = (ValNo(0,$sAfun).ValNo(0,$sSuffAct));
+ex:
+  $pNext = FirstSon($pAct);
+
+  if (!($pNext)) {
+
+  $pNext = RBrother($pAct);
+  }
+ContLoop2:
+  if ($pNext) {
+
+  goto ExitLoop2;
+  }
+
+  $pAct = Parent($pAct);
+
+  if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
+
+  goto ExitLoop1;
+  }
+
+  $pNext = RBrother($pAct);
+
+  goto ContLoop2;
+ExitLoop2:
+  $pAct = $pNext;
+
+  goto ContLoop1;
+ExitLoop1:
+  return;
+
+}
+
+
+sub SubtreeUndefAfun {
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $sT; # used as type "string"
+
+  $pParent = $pPar1;
+
+  $pAct = FirstSon($pParent);
+
+  if (!($pAct)) {
+
+  return;
+  }
+ContLoop1:
+  $sT = ValNo(0,$pAct->{'afun'});
+
+  $pAct->{'afun'} = '???';
+
+  if ($sT ne '' &&
+      $sT ne '???') {
+
+  $pAct->{'afunprev'} = $sT;
+  }
+
+  $pNext = FirstSon($pAct);
+
+  if (!($pNext)) {
+
+  $pNext = RBrother($pAct);
+  }
+ContLoop2:
+  if ($pNext) {
+
+  goto ExitLoop2;
+  }
+
+  $pAct = Parent($pAct);
+
+  if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
+
+  goto ExitLoop1;
+  }
+
+  $pNext = RBrother($pAct);
+
+  goto ContLoop2;
+ExitLoop2:
+  $pAct = $pNext;
+
+  goto ContLoop1;
+ExitLoop1:
+  return;
+
+}
+
+
 sub GoNext {
-  my $pAct;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
 
   $pAct = $pPar1;
 
   if (FirstSon($pAct)) {
 
-    $pReturn = FirstSon($pAct);
+  $pReturn = FirstSon($pAct);
 
-    return;
+  return;
   }
- loopGoNext:
+loopGoNext:
   if ($pAct eq $pPar2 ||
       !(Parent($pAct))) {
 
-    $pReturn = undef;
+  $pReturn = undef;
 
-    return;
+  return;
   }
 
   if (RBrother($pAct)) {
 
-    $pReturn = RBrother($pAct);
+  $pReturn = RBrother($pAct);
 
-    return;
+  return;
   }
 
   $pAct = Parent($pAct);
@@ -80,52 +1385,52 @@ sub GoNext {
 
 
 sub GoNextVisible {
-  my $pAct;			# used as type "pointer"
-  my $n;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
+  my $n; # used as type "pointer"
 
   $pAct = $pPar1;
 
   if (FirstSon($pAct)) {
 
-    $n = FirstSon($pAct);
-  whileHidden:
-    if ($n) {
+  $n = FirstSon($pAct);
+whileHidden:
+  if ($n) {
 
-      if (Interjection($n->{'TR'},'hide') ne 'hide') {
+  if (Interjection($n->{'TR'},'hide') ne 'hide') {
 
-	$pReturn = $n;
+  $pReturn = $n;
 
-	return;
-      }
-
-      $n = RBrother($n);
-
-      goto whileHidden;
-    }
+  return;
   }
- lpGoNext:
+
+  $n = RBrother($n);
+
+  goto whileHidden;
+  }
+  }
+lpGoNext:
   if ($pAct eq $pPar2 ||
       !(Parent($pAct))) {
 
-    $pReturn = undef;
+  $pReturn = undef;
 
-    return;
+  return;
   }
 
   $n = RBrother($pAct);
- whileHiddenRBrother:
+whileHiddenRBrother:
   if ($n) {
 
-    if (Interjection($n->{'TR'},'hide') ne 'hide') {
+  if (Interjection($n->{'TR'},'hide') ne 'hide') {
 
-      $pReturn = $n;
+  $pReturn = $n;
 
-      return;
-    }
+  return;
+  }
 
-    $n = RBrother($n);
+  $n = RBrother($n);
 
-    goto whileHiddenRBrother;
+  goto whileHiddenRBrother;
   }
 
   $pAct = Parent($pAct);
@@ -136,46 +1441,46 @@ sub GoNextVisible {
 
 
 sub GoPrev {
-  my $pAct;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
 
   $pAct = $pPar1;
 
   if (LBrother($pAct)) {
 
-    $pAct = LBrother($pAct);
+  $pAct = LBrother($pAct);
 
-    if (FirstSon($pAct)) {
-    loopDigDown:
-      $pAct = FirstSon($pAct);
-    loopLastBrother:
-      if (RBrother($pAct)) {
+  if (FirstSon($pAct)) {
+loopDigDown:
+  $pAct = FirstSon($pAct);
+loopLastBrother:
+  if (RBrother($pAct)) {
 
-	$pAct = RBrother($pAct);
+  $pAct = RBrother($pAct);
 
-	goto loopLastBrother;
-      }
+  goto loopLastBrother;
+  }
 
-      if (FirstSon($pAct)) {
+  if (FirstSon($pAct)) {
 
-	goto loopDigDown;
-      }
+  goto loopDigDown;
+  }
 
-      $pReturn = $pAct;
+  $pReturn = $pAct;
 
-      return;
-    }
+  return;
+  }
 
-    $pReturn = $pAct;
+  $pReturn = $pAct;
 
-    return;
+  return;
   }
 
   if ($pAct eq $pPar2 ||
       !(Parent($pAct))) {
 
-    $pReturn = undef;
+  $pReturn = undef;
 
-    return;
+  return;
   }
 
   $pReturn = Parent($pAct);
@@ -185,8 +1490,8 @@ sub GoPrev {
 }
 
 
-#bind previous_node to Shift+Tab menu previous word (linear order)
-sub previous_node {
+#bind _key_Shift_Tab to Shift+Tab menu previous word (linear order)
+sub _key_Shift_Tab {
 
   $pPar1 = $this;
 
@@ -199,8 +1504,8 @@ sub previous_node {
 }
 
 
-#bind next_node to Tab menu next word (linear order)
-sub next_node {
+#bind _key_Tab to Tab menu next word (linear order)
+sub _key_Tab {
 
   $pPar1 = $this;
 
@@ -214,29 +1519,29 @@ sub next_node {
 
 
 sub ToLine {
-  my $pKing;			# used as type "pointer"
-  my $pPrince;			# used as type "pointer"
-  my $pInLaw;			# used as type "pointer"
+  my $pKing; # used as type "pointer"
+  my $pPrince; # used as type "pointer"
+  my $pInLaw; # used as type "pointer"
 
   if (Parent($pPar1)) {
 
-    $pKing = Parent($pPar1);
+  $pKing = Parent($pPar1);
 
-    $pPrince = $pPar1;
+  $pPrince = $pPar1;
   } else {
 
-    $pKing = $pPar1;
+  $pKing = $pPar1;
 
-    $pPrince = FirstSon($pKing);
+  $pPrince = FirstSon($pKing);
 
-    goto whileHasBrothers;
+  goto whileHasBrothers;
   }
 
- start:
+start:
   $pReturn = $pPrince;
 
   $pInLaw = $pPrince;
- minOrd:
+minOrd:
   $pPar1 = $pReturn;
 
   $pPar2 = $pPrince;
@@ -245,58 +1550,58 @@ sub ToLine {
 
   if (!($pReturn)) {
 
-    goto changeOrder;
+  goto changeOrder;
   }
 
   if (ValNo(0,$pReturn->{'ord'})<ValNo(0,$pInLaw->{'ord'})) {
 
-    $pInLaw = $pReturn;
+  $pInLaw = $pReturn;
   }
 
   goto minOrd;
- changeOrder:
+changeOrder:
   if ($pInLaw ne $pPrince) {
 
-    $pInLaw->{'warning'} = 'InLaw';
+  $pInLaw->{'warning'} = 'InLaw';
 
-    $NodeClipboard=CutNode($pInLaw);
+  $NodeClipboard=CutNode($pInLaw);
 
-    $pDummy = PasteNode($NodeClipboard,$pKing);
+  $pDummy = PasteNode($NodeClipboard,$pKing);
 
-    $pInLaw = FirstSon($pKing);
-  whileNotInLaw:
-    if (Interjection($pInLaw->{'warning'},'InLaw') ne 'InLaw') {
+  $pInLaw = FirstSon($pKing);
+whileNotInLaw:
+  if (Interjection($pInLaw->{'warning'},'InLaw') ne 'InLaw') {
 
-      $pInLaw = RBrother($pInLaw);
+  $pInLaw = RBrother($pInLaw);
 
-      goto whileNotInLaw;
-    }
+  goto whileNotInLaw;
+  }
 
-    $pInLaw->{'warning'} = '';
+  $pInLaw->{'warning'} = '';
 
-    $NodeClipboard=CutNode($pPrince);
+  $NodeClipboard=CutNode($pPrince);
 
-    $pDummy = PasteNode($NodeClipboard,$pInLaw);
+  $pDummy = PasteNode($NodeClipboard,$pInLaw);
 
-    $pPrince = $pInLaw;
+  $pPrince = $pInLaw;
   }
 
   $pKing = $pPrince;
 
   if (!(FirstSon($pKing))) {
 
-    return;
+  return;
   }
 
   $pPrince = FirstSon($pKing);
- whileHasBrothers:
+whileHasBrothers:
   if (RBrother($pPrince)) {
 
-    $NodeClipboard=CutNode(RBrother($pPrince));
+  $NodeClipboard=CutNode(RBrother($pPrince));
 
-    $pDummy = PasteNode($NodeClipboard,$pPrince);
+  $pDummy = PasteNode($NodeClipboard,$pPrince);
 
-    goto whileHasBrothers;
+  goto whileHasBrothers;
   }
 
   goto start;
@@ -305,11 +1610,11 @@ sub ToLine {
 
 
 sub Auxk {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $sT;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $sT; # used as type "string"
 
   ThisRoot();
 
@@ -321,12 +1626,12 @@ sub Auxk {
 
   if (!($pAct)) {
 
-    return;
+  return;
   }
- ContLoop1:
+ContLoop1:
   if (!(FirstSon($pAct))) {
 
-    goto AuxkStart;
+  goto AuxkStart;
   }
 
   $pParent = $pAct;
@@ -334,7 +1639,7 @@ sub Auxk {
   $pAct = FirstSon($pAct);
 
   goto ContLoop1;
- AuxkStart:
+AuxkStart:
   if (Interjection($pAct->{'form'},'.') eq '.' ||
       Interjection($pAct->{'form'},';') eq ';' ||
       Interjection($pAct->{'form'},':') eq ':' ||
@@ -347,20 +1652,20 @@ sub Auxk {
       Interjection($pAct->{'form'},'-') eq '-' ||
       Interjection($pAct->{'form'},';') eq ';') {
 
-    $NodeClipboard=CutNode($pAct);
+  $NodeClipboard=CutNode($pAct);
 
-    $pDummy = PasteNode($NodeClipboard,$pRoot);
+  $pDummy = PasteNode($NodeClipboard,$pRoot);
 
-    $pAct = $pParent;
+  $pAct = $pParent;
 
-    $pParent = Parent($pParent);
+  $pParent = Parent($pParent);
 
-    if (!($pAct)) {
+  if (!($pAct)) {
 
-      return;
-    }
+  return;
+  }
 
-    goto AuxkStart;
+  goto AuxkStart;
   }
 
   return;
@@ -369,46 +1674,46 @@ sub Auxk {
 
 
 sub LeftMost {
-  my $pAct;			# used as type "pointer"
-  my $iMin;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $iMin; # used as type "string"
 
   $pAct = $pPar1;
 
   $iMin = "29999";
- ContLoop1:
+ContLoop1:
   if (!($pAct)) {
 
-    goto ExitLoop1;
+  goto ExitLoop1;
   }
 
   if ($iMin>ValNo(0,$pAct->{'ord'})) {
 
-    $iMin = ValNo(0,$pAct->{'ord'});
+  $iMin = ValNo(0,$pAct->{'ord'});
   }
 
   $pAct = FirstSon($pAct);
 
   goto ContLoop1;
- ExitLoop1:
+ExitLoop1:
   $iReturn = $iMin;
 
 }
 
 
 sub ToChainNode {
-  my $pRoot;			# used as type "pointer"
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pEndChain;		# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $pPasted;			# used as type "pointer"
-  my $pFinalActive;		# used as type "pointer"
-  my $sT;			# used as type "string"
-  my $iAct;			# used as type "string"
-  my $iOrdParent;		# used as type "string"
-  my $iOrdRoot;			# used as type "string"
-  my $iEnd;			# used as type "string"
-  my $fJustPasted;		# used as type "string"
+  my $pRoot; # used as type "pointer"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pEndChain; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $pPasted; # used as type "pointer"
+  my $pFinalActive; # used as type "pointer"
+  my $sT; # used as type "string"
+  my $iAct; # used as type "string"
+  my $iOrdParent; # used as type "string"
+  my $iOrdRoot; # used as type "string"
+  my $iEnd; # used as type "string"
+  my $fJustPasted; # used as type "string"
 
   $pFinalActive = undef;
 
@@ -424,7 +1729,7 @@ sub ToChainNode {
 
   if ($iAct==$iOrdRoot) {
 
-    $pFinalActive = $pRoot;
+  $pFinalActive = $pRoot;
   }
 
   $pRoot->{'err2'} = 'reinited';
@@ -433,111 +1738,111 @@ sub ToChainNode {
 
   if (!($pParent)) {
 
-    $iOrdParent = "-1";
+  $iOrdParent = "-1";
 
-    $pEndChain = $pRoot;
+  $pEndChain = $pRoot;
 
-    $pAct = FirstSon($pRoot);
+  $pAct = FirstSon($pRoot);
 
-    $iAct = "1";
+  $iAct = "1";
   } else {
 
-    $iOrdParent = ValNo(0,$pParent->{'ord'});
+  $iOrdParent = ValNo(0,$pParent->{'ord'});
 
-    $pEndChain = $pParent;
+  $pEndChain = $pParent;
 
-    $pAct = $pRoot;
+  $pAct = $pRoot;
   }
 
 
   if (!($pAct)) {
 
-    return;
+  return;
   }
- ContLoop1:
+ContLoop1:
   $fJustPasted = 'n';
 
   if (ValNo(0,$pAct->{'ord'})==$iAct) {
 
-    if ($pFinalActive eq $pAct) {
+  if ($pFinalActive eq $pAct) {
 
-      $pFinalActive = undef;
-    }
-
-    $NodeClipboard=CutNode($pAct);
-
-    $pPasted = PasteNode($NodeClipboard,$pEndChain);
-
-    if (!($pFinalActive)) {
-
-      $pFinalActive = $pPasted;
-    }
-
-    $pEndChain = $pPasted;
-
-    $pAct = $pEndChain;
-
-    $iAct = $iAct+"1";
-
-    $fJustPasted = 'y';
+  $pFinalActive = undef;
   }
- ContLoop3:
+
+  $NodeClipboard=CutNode($pAct);
+
+  $pPasted = PasteNode($NodeClipboard,$pEndChain);
+
+  if (!($pFinalActive)) {
+
+  $pFinalActive = $pPasted;
+  }
+
+  $pEndChain = $pPasted;
+
+  $pAct = $pEndChain;
+
+  $iAct = $iAct+"1";
+
+  $fJustPasted = 'y';
+  }
+ContLoop3:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    if (ValNo(0,$pAct->{'ord'})==$iOrdRoot) {
+  if (ValNo(0,$pAct->{'ord'})==$iOrdRoot) {
 
-      goto ExitLoop1;
-    }
-
-    $pNext = RBrother($pAct);
-  } else {
-
-    if ($fJustPasted eq 'y') {
-
-      if (ValNo(0,$pNext->{'ord'})==$iAct) {
-
-	$pAct = $pNext;
-
-	$pEndChain = $pAct;
-
-	$iAct = $iAct+"1";
-
-	goto ContLoop3;
-      }
-    }
+  goto ExitLoop1;
   }
 
- ContLoop2:
+  $pNext = RBrother($pAct);
+  } else {
+
+  if ($fJustPasted eq 'y') {
+
+  if (ValNo(0,$pNext->{'ord'})==$iAct) {
+
+  $pAct = $pNext;
+
+  $pEndChain = $pAct;
+
+  $iAct = $iAct+"1";
+
+  goto ContLoop3;
+  }
+  }
+  }
+
+ContLoop2:
   if ($pNext) {
 
-    goto ExitLoop2;
+  goto ExitLoop2;
   }
 
   $pAct = Parent($pAct);
 
   if (!($pAct)) {
 
-    goto ExitLoop1;
+  goto ExitLoop1;
   }
 
   if (ValNo(0,$pAct->{'ord'})==$iOrdRoot) {
 
-    goto ExitLoop1;
+  goto ExitLoop1;
   }
 
   $pNext = RBrother($pAct);
 
   goto ContLoop2;
- ExitLoop2:
+ExitLoop2:
   $pAct = $pNext;
 
   goto ContLoop1;
- ExitLoop1:
+ExitLoop1:
   if ($iOrdParent=="-1") {
 
-    Auxk();
+  Auxk();
   }
 
   $this = $pFinalActive;
@@ -548,13 +1853,13 @@ sub ToChainNode {
 
 
 sub ToChain {
-  my $pRoot;			# used as type "pointer"
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $pEndChain;		# used as type "pointer"
-  my $sT;			# used as type "string"
-  my $iAct;			# used as type "string"
+  my $pRoot; # used as type "pointer"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $pEndChain; # used as type "pointer"
+  my $sT; # used as type "string"
+  my $iAct; # used as type "string"
 
   ThisRoot();
 
@@ -574,54 +1879,54 @@ sub ToChain {
 
   if (!($pAct)) {
 
-    return;
+  return;
   }
- ContLoop1:
+ContLoop1:
   if (ValNo(0,$pAct->{'ord'})==$iAct) {
 
-    $NodeClipboard=CutNode($pAct);
+  $NodeClipboard=CutNode($pAct);
 
-    $pDummy = PasteNode($NodeClipboard,$pEndChain);
+  $pDummy = PasteNode($NodeClipboard,$pEndChain);
 
-    $pEndChain = FirstSon($pEndChain);
+  $pEndChain = FirstSon($pEndChain);
 
-    $iAct = $iAct+"1";
+  $iAct = $iAct+"1";
 
-    $pAct = $pEndChain;
+  $pAct = $pEndChain;
   }
 
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- ContLoop2:
+ContLoop2:
   if ($pNext) {
 
-    goto ExitLoop2;
+  goto ExitLoop2;
   }
 
   $pAct = Parent($pAct);
 
   if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
-    goto ExitLoop1;
+  goto ExitLoop1;
   }
 
   $pNext = RBrother($pAct);
 
   goto ContLoop2;
- ExitLoop2:
+ExitLoop2:
   $pAct = $pNext;
 
   goto ContLoop1;
- ExitLoop1:
+ExitLoop1:
   if (RBrother($pAct)) {
 
-    $pAct = RBrother($pAct);
+  $pAct = RBrother($pAct);
 
-    goto ContLoop1;
+  goto ContLoop1;
   }
 
   Auxk();
@@ -632,17 +1937,17 @@ sub ToChain {
 
 
 sub NP {
-  my $pRoot;			# used as type "pointer"
-  my $pAct;			# used as type "pointer"
-  my $pActL3;			# used as type "pointer"
-  my $pActL2;			# used as type "pointer"
-  my $pActL1;			# used as type "pointer"
-  my $pActR1;			# used as type "pointer"
-  my $pActR2;			# used as type "pointer"
-  my $pActR3;			# used as type "pointer"
-  my $sPOSAct;			# used as type "string"
-  my $sCASEAct;			# used as type "string"
-  my $i;			# used as type "string"
+  my $pRoot; # used as type "pointer"
+  my $pAct; # used as type "pointer"
+  my $pActL3; # used as type "pointer"
+  my $pActL2; # used as type "pointer"
+  my $pActL1; # used as type "pointer"
+  my $pActR1; # used as type "pointer"
+  my $pActR2; # used as type "pointer"
+  my $pActR3; # used as type "pointer"
+  my $sPOSAct; # used as type "string"
+  my $sCASEAct; # used as type "string"
+  my $i; # used as type "string"
 
   return;
 
@@ -658,164 +1963,165 @@ sub NP {
 
   if (!($pAct)) {
 
-    return;
+  return;
   }
 
   $pAct = FirstSon($pAct);
 
   if (!($pAct)) {
 
-    return;
+  return;
   }
- ContLoop1:
+ContLoop1:
   $sPOSAct = substr(ValNo(0,$pAct->{'tag'}),0,1);
 
   if ($sPOSAct eq 'N') {
   } else {
 
-    if ($sPOSAct eq 'A') {
+  if ($sPOSAct eq 'A') {
 
-      $pActR1 = FirstSon($pAct);
+  $pActR1 = FirstSon($pAct);
 
-      if (!($pActR1)) {
+  if (!($pActR1)) {
 
-	goto GoDown;
-      }
+  goto GoDown;
+  }
 
-      $sPOSAct = substr(ValNo(0,$pActR1->{'tag'}),0,1);
+  $sPOSAct = substr(ValNo(0,$pActR1->{'tag'}),0,1);
 
-      if ($sPOSAct eq 'N') {
+  if ($sPOSAct eq 'N') {
 
-	$pActR2 = FirstSon($pActR1);
+  $pActR2 = FirstSon($pActR1);
 
-	if ($pActR2) {
+  if ($pActR2) {
 
-	  $pActR3 = FirstSon($pActR2);
+  $pActR3 = FirstSon($pActR2);
 
-	  $NodeClipboard=CutNode($pActR2);
+  $NodeClipboard=CutNode($pActR2);
 
-	  $pDummy = PasteNode($NodeClipboard,Parent($pAct));
+  $pDummy = PasteNode($NodeClipboard,Parent($pAct));
 
-	  if ($pActR3) {
+  if ($pActR3) {
 
-	    $pActR2 = Parent($pActR3);
-	  } else {
+  $pActR2 = Parent($pActR3);
+  } else {
 
-	    $pActR2 = undef;
+  $pActR2 = undef;
 
-	    $pAct = undef;
-	  }
-
-	}
-
-	$NodeClipboard=CutNode($pActR1);
-
-	$pDummy = PasteNode($NodeClipboard,Parent($pAct));
-
-	$NodeClipboard=CutNode($pAct);
-
-	$pDummy = PasteNode($NodeClipboard,$pActR1);
-
-	$pAct = $pActR2;
-
-	goto GoNext;
-      }
-    } else {
-
-      if ($sPOSAct eq 'R') {
-      }
-    }
+  $pAct = undef;
+  }
 
   }
 
- GoDown:
+  $NodeClipboard=CutNode($pActR1);
+
+  $pDummy = PasteNode($NodeClipboard,Parent($pAct));
+
+  $NodeClipboard=CutNode($pAct);
+
+  $pDummy = PasteNode($NodeClipboard,$pActR1);
+
+  $pAct = $pActR2;
+
+  goto GoNext;
+  }
+  } else {
+
+  if ($sPOSAct eq 'R') {
+  }
+  }
+
+  }
+
+GoDown:
   $pAct = FirstSon($pAct);
- GoNext:
+GoNext:
   if (!($pAct)) {
 
-    goto ExitLoop1;
+  goto ExitLoop1;
   }
- Rightmost:
+Rightmost:
   if (RBrother($pAct)) {
 
-    $pAct = RBrother($pAct);
+  $pAct = RBrother($pAct);
 
-    goto Rightmost;
+  goto Rightmost;
   }
 
   goto ContLoop1;
- ExitLoop1:
+ExitLoop1:
   return;
 
 }
 
-## This function is analytical and is obsolet
-#xbind previous_node2 to Backspace menu Jump to previous node (do *not* change afun)
-sub previous_node2 {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $sT;			# used as type "string"
-  my $pRoot;			# used as type "pointer"
+
+#bind _key_Backspace to Backspace menu Jump to previous node (do *not* change afun)
+sub _key_Backspace {
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $sT; # used as type "string"
+  my $pRoot; # used as type "pointer"
 
   if ($iPrevAfunAssigned ne '') {
 
-    ThisRoot();
+  ThisRoot();
 
-    $pRoot = $pReturn;
+  $pRoot = $pReturn;
 
-    $pParent = $pRoot;
+  $pParent = $pRoot;
 
-    $pAct = $pParent;
+  $pAct = $pParent;
 
-    if (!$pAct) {
-      return;
-    }
-  ContLoop1:
-    if (ValNo(0,$pAct->{'ord'})==$iPrevAfunAssigned) {
+  if (!($pAct)) {
 
-      goto ExitLoop1;
-    }
+  return;
+  }
+ContLoop1:
+  if (ValNo(0,$pAct->{'ord'})==$iPrevAfunAssigned) {
 
-    $pNext = FirstSon($pAct);
+  goto ExitLoop1;
+  }
 
-    if (!$pNext) {
+  $pNext = FirstSon($pAct);
 
-      $pNext = RBrother($pAct);
-    }
-  ContLoop2:
-    if ($pNext) {
+  if (!($pNext)) {
 
-      goto ExitLoop2;
-    }
+  $pNext = RBrother($pAct);
+  }
+ContLoop2:
+  if ($pNext) {
 
-    $pAct = Parent($pAct);
+  goto ExitLoop2;
+  }
 
-    if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
+  $pAct = Parent($pAct);
 
-      goto ExitLoop1;
-    }
+  if (ValNo(0,$pAct->{'ord'})==ValNo(0,$pParent->{'ord'})) {
 
-    $pNext = RBrother($pAct);
+  goto ExitLoop1;
+  }
 
-    goto ContLoop2;
-  ExitLoop2:
-    $pAct = $pNext;
+  $pNext = RBrother($pAct);
 
-    goto ContLoop1;
-  ExitLoop1:
-    $this = $pAct;
+  goto ContLoop2;
+ExitLoop2:
+  $pAct = $pNext;
+
+  goto ContLoop1;
+ExitLoop1:
+  $this = $pAct;
   }
 
 }
 
 
 sub DepSuffix {
-  my $pThis;			# used as type "pointer"
-  my $pDep;			# used as type "pointer"
-  my $sDepAfun;			# used as type "string"
-  my $sDepSuff;			# used as type "string"
-  my $sAfun;			# used as type "string"
+  my $pThis; # used as type "pointer"
+  my $pDep; # used as type "pointer"
+  my $sDepAfun; # used as type "string"
+  my $sDepSuff; # used as type "string"
+  my $sAfun; # used as type "string"
 
   $sAfun = $sPar1;
 
@@ -824,10 +2130,10 @@ sub DepSuffix {
   $pDep = FirstSon($this);
 
   AfunAssign();
- DSLoopCont1:
+DSLoopCont1:
   if (!($pDep)) {
 
-    goto DSLoopEnd1;
+  goto DSLoopEnd1;
   }
 
   $sPar1 = ValNo(0,$pDep->{'afun'});
@@ -841,15 +2147,15 @@ sub DepSuffix {
   if ($sDepSuff ne '' &&
       $sDepSuff ne '_Pa') {
 
-    $sDepSuff = (ValNo(0,'_').ValNo(0,substr($sAfun,0,2)));
+  $sDepSuff = (ValNo(0,'_').ValNo(0,substr($sAfun,0,2)));
 
-    $pDep->{'afun'} = (ValNo(0,$sDepAfun).ValNo(0,$sDepSuff));
+  $pDep->{'afun'} = (ValNo(0,$sDepAfun).ValNo(0,$sDepSuff));
   }
 
   $pDep = RBrother($pDep);
 
   goto DSLoopCont1;
- DSLoopEnd1:
+DSLoopEnd1:
   $this = $pThis;
 
   return;
@@ -858,132 +2164,132 @@ sub DepSuffix {
 
 
 sub AfunAssign {
-  my $t, $n;			# used as type "pointer"
+  my $t, $n; # used as type "pointer"
 
   $t = $this;
 
   if (Interjection($t->{'afun'},'AuxS') ne 'AuxS') {
 
-    if (Interjection($t->{'afun'},'???') ne '???') {
+  if (Interjection($t->{'afun'},'???') ne '???') {
 
-      $t->{'afunprev'} = $t->{'afun'};
-    }
+  $t->{'afunprev'} = $t->{'afun'};
+  }
 
-    $t->{'afun'} = $sPar1;
+  $t->{'afun'} = $sPar1;
 
-    $iPrevAfunAssigned = ValNo(0,$t->{'ord'});
+  $iPrevAfunAssigned = ValNo(0,$t->{'ord'});
 
-    if (FirstSon($t)) {
+  if (FirstSon($t)) {
 
-      $n = FirstSon($t);
-    } else {
+  $n = FirstSon($t);
+  } else {
 
-      $n = $t;
-    SearchForBrotherCont:
-      if (Interjection($n->{'afun'},'AuxS') ne 'AuxS') {
+  $n = $t;
+SearchForBrotherCont:
+  if (Interjection($n->{'afun'},'AuxS') ne 'AuxS') {
 
-	if (RBrother($n)) {
+  if (RBrother($n)) {
 
-	  $n = RBrother($n);
+  $n = RBrother($n);
 
-	  goto FoundBrother;
-	}
+  goto FoundBrother;
+  }
 
-	$n = Parent($n);
+  $n = Parent($n);
 
-	goto SearchForBrotherCont;
-      }
+  goto SearchForBrotherCont;
+  }
 
-      $n = $t;
-    FoundBrother:
-      $n = $n;
-    }
+  $n = $t;
+FoundBrother:
+  $n = $n;
+  }
 
 
-    $this = $n;
+  $this = $n;
   }
 
 }
 
 
 sub TFAAssign {
-  my $t;			# used as type "pointer"
+  my $t; # used as type "pointer"
 
   $t = $this;
 
   if (Interjection($t->{'afun'},'AuxS') ne 'AuxS') {
 
-    $t->{'tfa'} = $sPar1;
+  $t->{'tfa'} = $sPar1;
 
-    $pPar1 = $t;
+  $pPar1 = $t;
 
-    $pPar2 = undef;
+  $pPar2 = undef;
 
-    GoNextVisible();
+  GoNextVisible();
 
-    $this = $pReturn;
+  $this = $pReturn;
   }
 
 }
 
 
 sub FuncAssign {
-  my $t, $n;			# used as type "pointer"
+  my $t, $n; # used as type "pointer"
 
   $t = $this;
 
   if (Interjection($t->{'afun'},'AuxS') ne 'AuxS') {
 
-    $t->{'func'} = $sPar1;
+  $t->{'func'} = $sPar1;
 
-    if (FirstSon($t)) {
+  if (FirstSon($t)) {
 
-      $n = FirstSon($t);
-    } else {
+  $n = FirstSon($t);
+  } else {
 
-      $n = $t;
-    SearchForBrotherCont:
-      if (Interjection($n->{'afun'},'AuxS') ne 'AuxS') {
+  $n = $t;
+SearchForBrotherCont:
+  if (Interjection($n->{'afun'},'AuxS') ne 'AuxS') {
 
-	if (RBrother($n)) {
+  if (RBrother($n)) {
 
-	  $n = RBrother($n);
+  $n = RBrother($n);
 
-	  goto FoundBrother;
-	}
+  goto FoundBrother;
+  }
 
-	$n = Parent($n);
+  $n = Parent($n);
 
-	goto SearchForBrotherCont;
-      }
+  goto SearchForBrotherCont;
+  }
 
-      $n = $t;
-    FoundBrother:
-      if (Interjection($n->{'TR'},'hide') eq 'hide') {
+  $n = $t;
+FoundBrother:
+  if (Interjection($n->{'TR'},'hide') eq 'hide') {
 
-	$n = Parent($n);
-      }
+  $n = Parent($n);
+  }
 
-      $n = $n;
-    }
+  $n = $n;
+  }
 
 
-    $this = $n;
+  $this = $n;
   }
 
 }
 
 
 sub AllUndefAssign {
-  my $pRoot;			# used as type "pointer"
-  my $iStart;			# used as type "string"
+  my $pRoot; # used as type "pointer"
+  my $iStart; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $iStart = substr(ValNo(0,$pRoot->{'form'}),1,10);
- AUALoopCont1:
+AUALoopCont1:
   $pPar1 = $pRoot;
 
   SubtreeUndefAfun();
@@ -992,13 +2298,13 @@ sub AllUndefAssign {
 
   if ($_NoSuchTree=="1") {
 
-    goto AUALoopExit1;
+  goto AUALoopExit1;
   }
 
   $pRoot = $this;
 
   goto AUALoopCont1;
- AUALoopExit1:
+AUALoopExit1:
   GotoTree($iStart);
 
   return;
@@ -1007,7 +2313,7 @@ sub AllUndefAssign {
 
 
 sub FileUndefAssign {
-  my $sSaveCatchError;		# used as type "string"
+  my $sSaveCatchError; # used as type "string"
 
   $sSaveCatchError = $_CatchError;
 
@@ -1023,15 +2329,15 @@ sub FileUndefAssign {
 
 
 sub AllAfunAssign {
-  my $pRoot;			# used as type "pointer"
-  my $iStart;			# used as type "string"
+  my $pRoot; # used as type "pointer"
+  my $iStart; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $iStart = substr(ValNo(0,$pRoot->{'form'}),1,10);
- AAALoopCont1:
+AAALoopCont1:
   $pPar1 = $pRoot;
 
   SubtreeAfunAssign();
@@ -1040,13 +2346,13 @@ sub AllAfunAssign {
 
   if ($_NoSuchTree=="1") {
 
-    goto AAALoopExit1;
+  goto AAALoopExit1;
   }
 
   $pRoot = $this;
 
   goto AAALoopCont1;
- AAALoopExit1:
+AAALoopExit1:
   GotoTree($iStart);
 
   return;
@@ -1055,7 +2361,7 @@ sub AllAfunAssign {
 
 
 sub FileAfunAssign {
-  my $sSaveCatchError;		# used as type "string"
+  my $sSaveCatchError; # used as type "string"
 
   $sSaveCatchError = $_CatchError;
 
@@ -1069,7 +2375,7 @@ sub FileAfunAssign {
 
   if ($_NoSuchTree=="1") {
 
-    return;
+  return;
   }
 
   AllAfunAssign();
@@ -1079,8 +2385,8 @@ sub FileAfunAssign {
 }
 
 
-#bind all_func_assign to Ctrl+Shift+F9
-sub all_func_assign {
+#bind _key_Ctrl_Shift_F9 to Ctrl+Shift+F9
+sub _key_Ctrl_Shift_F9 {
 
   AllFuncAssign();
 
@@ -1088,15 +2394,15 @@ sub all_func_assign {
 
 
 sub AllFuncAssign {
-  my $pRoot;			# used as type "pointer"
-  my $iStart;			# used as type "string"
+  my $pRoot; # used as type "pointer"
+  my $iStart; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $iStart = substr(ValNo(0,$pRoot->{'form'}),1,10);
- AAALoopCont1:
+AAALoopCont1:
   $pPar1 = $pRoot;
 
   TreeToTR();
@@ -1105,28 +2411,28 @@ sub AllFuncAssign {
 
   if ($_NoSuchTree=="1") {
 
-    goto AAALoopExit1;
+  goto AAALoopExit1;
   }
 
   $pRoot = $this;
 
   goto AAALoopCont1;
- AAALoopExit1:
+AAALoopExit1:
   return;
 
 }
 
 
-#bind toggle_hide_subtree to H menu Hide/Show current subtree
-sub toggle_hide_subtree {
+#bind _key_H to H menu Hide/Show current subtree
+sub _key_H {
 
   HideSubtree();
 
 }
 
 
-#bind join_with_mother_lemma to Ctrl+Shift+U menu Pripojit akt. vrchol k matce (spojit lemmata, vhodne pro predlozky)
-sub join_with_mother_lemma {
+#bind _key_Ctrl_Shift_U to Ctrl+Shift+U menu Pripojit k matce (spojit, vhodne pro predlozky)
+sub _key_Ctrl_Shift_U {
 
   $sPar1 = "1";
 
@@ -1135,8 +2441,8 @@ sub join_with_mother_lemma {
 }
 
 
-#bind join_with_mother to Ctrl+Shift+N menu Pripojit akt. vrchol k matce (nespojit lemmata, vhodne pro modal. sloveso)
-sub join_with_mother {
+#bind _key_Ctrl_Shift_N to Ctrl+Shift+N menu Pripojit k matce (nespojit, vhodne pro modal. sloveso)
+sub _key_Ctrl_Shift_N {
 
   $sPar1 = "0";
 
@@ -1145,8 +2451,18 @@ sub join_with_mother {
 }
 
 
-#bind add_Gen_ACT to Ctrl+Shift+S menu Doplnit Gen.ACT pod akt. vrchol
-sub add_Gen_ACT {
+#bind _key_Ctrl_Shift_B to Ctrl+Shift+B menu Rozpojit uzel i lemmata
+sub _key_Ctrl_Shift_B {
+
+  $sPar1 = "1";
+
+  SplitJoined();
+
+}
+
+
+#bind _key_1 to 1 menu Doplnit Gen.ACT pod akt. vrchol
+sub _key_1 {
 
   $sPar1 = 'Gen';
 
@@ -1155,8 +2471,8 @@ sub add_Gen_ACT {
 }
 
 
-#bind add_Cor_ACT to Ctrl+Shift+K menu Doplnit Cor.ACT pod akt. vrchol
-sub add_Cor_ACT {
+#bind _key_2 to 2 menu Doplnit Cor.ACT pod akt. vrchol
+sub _key_2 {
 
   $sPar1 = 'Cor';
 
@@ -1165,8 +2481,8 @@ sub add_Cor_ACT {
 }
 
 
-#bind add_on_ACT to Ctrl+Shift+O menu Doplnit on.ACT pod akt. vrchol
-sub add_on_ACT {
+#bind _key_3 to 3 menu Doplnit on.ACT pod akt. vrchol
+sub _key_3 {
 
   $sPar1 = 'on';
 
@@ -1175,8 +2491,18 @@ sub add_on_ACT {
 }
 
 
-#bind add_new_node to Ctrl+Shift+X menu Doplnit novy uzel (???) pod akt. vrchol
-sub add_new_node {
+#bind _key_8 to 8 menu Doplnit Forn.ACT pod akt. vrchol
+sub _key_8 {
+
+  $sPar1 = 'Forn';
+
+  NewSubject();
+
+}
+
+
+#bind _key_Ctrl_X to Ctrl+X menu Doplnit novy uzel (???) pod akt. vrchol
+sub _key_Ctrl_X {
 
   $pPar1 = $this;
 
@@ -1185,49 +2511,62 @@ sub add_new_node {
 }
 
 
-#bind add_EV to Ctrl+Shift+V menu Doplnit prazdne sloveso EV pod akt. vrchol
-sub add_EV {
+#bind _key_Ctrl_V to Ctrl+V menu Doplnit prazdne sloveso EV pod akt. vrchol
+sub _key_Ctrl_V {
 
   NewVerb();
 
 }
 
 
-#bind change_trlemma_to_lemma to Ctrl+Shift+W menu Zmenit trlemma na lemma
-sub change_trlemma_to_lemma {
+#bind _key_Ctrl_Shift_W to Ctrl+Shift+W menu Zmenit trlemma na lemma
+sub _key_Ctrl_Shift_W {
 
   trtolemma();
 
 }
 
 
-#bind join_with_mother_as_fw to Ctrl+Shift+P menu Pripojit akt. vrchol k matce jako fw
-sub join_with_mother_as_fw {
+#bind _key_Ctrl_Shift_P to Ctrl+Shift+P menu Pripojit k matce jako fw
+sub _key_Ctrl_Shift_P {
 
   joinfw();
 
 }
 
 
-#bind add_questionmarks_func to Shift+X menu Pridat k funktoru ???
-sub add_questionmarks_func {
+#bind _key_Ctrl_Shift_X to Ctrl+Shift+X menu Pridat k funktoru ???
+sub _key_Ctrl_Shift_X {
 
-  $pPar1 = $this;
-  $sPar1 = ValNo(0,Union($pPar1->{'func'},'???'));
+  $sPar3 = ValNo(0,$this->{'func'});
+
+  $sPar1 = ValNo(0,Union($sPar3,'???'));
+
   FuncAssign();
+
 }
 
 
-#bind split_fw to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
-sub split_fw {
+#bind _key_Y to Y menu Pridat memberof=CO
+sub _key_Y {
+
+  $pPar1 = $this;
+
+  $pPar1->{'memberof'} = 'CO';
+
+}
+
+
+#bind _key_Ctrl_Shift_Q to Ctrl+Shift+Q menu Odpojit pripojene fw od akt. vrcholu
+sub _key_Ctrl_Shift_Q {
 
   splitfw();
 
 }
 
 
-#bind func_ACT to A menu ACT Actor, agens
-sub func_ACT {
+#bind _key_A to A menu ACT Actor, agens
+sub _key_A {
 
   $sPar1 = 'ACT';
 
@@ -1236,8 +2575,8 @@ sub func_ACT {
 }
 
 
-#bind func_ADDR to D menu ADDR Addressee
-sub func_ADDR {
+#bind _key_D to D menu ADDR Addressee
+sub _key_D {
 
   $sPar1 = 'ADDR';
 
@@ -1246,8 +2585,8 @@ sub func_ADDR {
 }
 
 
-#bind func_PAT to P menu PAT Patient (prosli celý les.PAT)
-sub func_PAT {
+#bind _key_P to P menu PAT Patient (prosli celý les.PAT)
+sub _key_P {
 
   $sPar1 = 'PAT';
 
@@ -1256,8 +2595,8 @@ sub func_PAT {
 }
 
 
-#bind func_EFF to F menu EFF Effect, výsledek (zvolit kým)
-sub func_EFF {
+#bind _key_F to F menu EFF Effect, výsledek (zvolit kým)
+sub _key_F {
 
   $sPar1 = 'EFF';
 
@@ -1266,8 +2605,8 @@ sub func_EFF {
 }
 
 
-#bind func_ORIG to O menu ORIG Origin, pùvod (z èeho, NE odkud)
-sub func_ORIG {
+#bind _key_O to O menu ORIG Origin, pùvod (z èeho, NE odkud)
+sub _key_O {
 
   $sPar1 = 'ORIG';
 
@@ -1276,8 +2615,8 @@ sub func_ORIG {
 }
 
 
-#bind func_ACMP to C menu ACMP  Accompaniment, doprovod (s, bez)
-sub func_ACMP {
+#bind _key_C to C menu ACMP  Accompaniment, doprovod (s, bez)
+sub _key_C {
 
   $sPar1 = 'ACMP';
 
@@ -1286,8 +2625,8 @@ sub func_ACMP {
 }
 
 
-#bind func_ADVS to V menu ADVS Adversative, odporovací koord. (ale, vsak)
-sub func_ADVS {
+#bind _key_V to V menu ADVS Adversative, odporovací koord. (ale, vsak)
+sub _key_V {
 
   $sPar1 = 'ADVS';
 
@@ -1296,8 +2635,8 @@ sub func_ADVS {
 }
 
 
-#bind func_AIM to M menu AIM Úèel (aby, pro nìco)
-sub func_AIM {
+#bind _key_M to M menu AIM Úèel (aby, pro nìco)
+sub _key_M {
 
   $sPar1 = 'AIM';
 
@@ -1306,8 +2645,8 @@ sub func_AIM {
 }
 
 
-#bind func_APP to Shift+P menu APP Appurtenance, pøinálezitost (èí, èeho)
-sub func_APP {
+#bind _key_5 to 5 menu APP Appurtenance, pøinálezitost (èí, èeho)
+sub _key_5 {
 
   $sPar1 = 'APP';
 
@@ -1316,8 +2655,8 @@ sub func_APP {
 }
 
 
-#bind func_APPS to Shift+A menu APPS Apposition (totiz, a to)
-sub func_APPS {
+#bind _key_S to S menu APPS Apposition (totiz, a to)
+sub _key_S {
 
   $sPar1 = 'APPS';
 
@@ -1326,8 +2665,8 @@ sub func_APPS {
 }
 
 
-#bind func_ATT to T menu ATT Attitude, postoj
-sub func_ATT {
+#bind _key_T to T menu ATT Attitude, postoj
+sub _key_T {
 
   $sPar1 = 'ATT';
 
@@ -1336,8 +2675,8 @@ sub func_ATT {
 }
 
 
-#bind func_BEN to N menu BEN Benefactive (pro koho, proti komu)
-sub func_BEN {
+#bind _key_B to B menu BEN Benefactive (pro koho, proti komu)
+sub _key_B {
 
   $sPar1 = 'BEN';
 
@@ -1346,8 +2685,8 @@ sub func_BEN {
 }
 
 
-#bind func_CAUS to Shift+C menu CAUS Cause, pøíèina
-sub func_CAUS {
+#bind _key_Shift_C to Shift+C menu CAUS Cause, pøíèina
+sub _key_Shift_C {
 
   $sPar1 = 'CAUS';
 
@@ -1356,8 +2695,8 @@ sub func_CAUS {
 }
 
 
-#bind func_CNCS to Ctrl+C menu CNCS
-sub func_CNCS {
+#bind _key_Ctrl_C to Ctrl+C menu CNCS
+sub _key_Ctrl_C {
 
   $sPar1 = 'CNCS';
 
@@ -1366,8 +2705,8 @@ sub func_CNCS {
 }
 
 
-#bind func_COMPL to Ctrl+P menu COMPL Complement, závisí na slovese
-sub func_COMPL {
+#bind _key_Shift_L to Shift+L menu COMPL Complement, závisí na slovese
+sub _key_Shift_L {
 
   $sPar1 = 'COMPL';
 
@@ -1376,8 +2715,8 @@ sub func_COMPL {
 }
 
 
-#bind func_COND to Ctrl+D menu COND Condition, podmínka reálná (-li, jestlize, kdyz, az)
-sub func_COND {
+#bind _key_Ctrl_D to Ctrl+D menu COND Condition, podmínka reálná (-li, jestlize, kdyz, az)
+sub _key_Ctrl_D {
 
   $sPar1 = 'COND';
 
@@ -1386,8 +2725,18 @@ sub func_COND {
 }
 
 
-#bind func_CONJ to J menu CONJ Conjunction, sluèovací koord. (a)
-sub func_CONJ {
+#bind _key_Shift_O to Shift+O menu CONFR
+sub _key_Shift_O {
+
+  $sPar1 = 'CONFR';
+
+  FuncAssign();
+
+}
+
+
+#bind _key_J to J menu CONJ Conjunction, sluèovací koord. (a)
+sub _key_J {
 
   $sPar1 = 'CONJ';
 
@@ -1396,8 +2745,8 @@ sub func_CONJ {
 }
 
 
-#bind func_CPR to Ctrl+Shift+R menu CPR Porovnání (nez, jako, stejnì jako)
-sub func_CPR {
+#bind _key_Shift_P to Shift+P menu CPR Porovnání (nez, jako, stejnì jako)
+sub _key_Shift_P {
 
   $sPar1 = 'CPR';
 
@@ -1406,8 +2755,8 @@ sub func_CPR {
 }
 
 
-#bind func_CRIT to I menu CRIT Criterion, mìøítko (podle nìj, podle jeho slov)
-sub func_CRIT {
+#bind _key_Ctrl_K to Ctrl+K menu CRIT Criterion, mìøítko (podle nìj, podle jeho slov)
+sub _key_Ctrl_K {
 
   $sPar1 = 'CRIT';
 
@@ -1416,8 +2765,8 @@ sub func_CRIT {
 }
 
 
-#bind func_CSQ to Q menu CSQ Consequence, dùsledek koord. (a proto, a tak, a tedy, proèez)
-sub func_CSQ {
+#bind _key_Q to Q menu CSQ Consequence, dùsledek koord. (a proto, a tak, a tedy, proèez)
+sub _key_Q {
 
   $sPar1 = 'CSQ';
 
@@ -1426,8 +2775,8 @@ sub func_CSQ {
 }
 
 
-#bind func_CTREF to Ctrl+Shift+C menu CTERF Counterfactual, ireálná podmínka (kdyby)
-sub func_CTREF {
+#bind _key_Ctrl_F to Ctrl+F menu CTERF Counterfactual, ireálná podmínka (kdyby)
+sub _key_Ctrl_F {
 
   $sPar1 = 'CTERF';
 
@@ -1436,8 +2785,8 @@ sub func_CTREF {
 }
 
 
-#bind func_DENOM to Ctrl+O menu DENOM Pojmenování
-sub func_DENOM {
+#bind _key_N to N menu DENOM Pojmenování
+sub _key_N {
 
   $sPar1 = 'DENOM';
 
@@ -1446,8 +2795,8 @@ sub func_DENOM {
 }
 
 
-#bind func_DES to S menu DES Deskr. pøívl., nerestr. (zlatá Praha, lidé mající ...)
-sub func_DES {
+#bind _key_Shift_D to Shift+D menu DES Deskr. pøívl., nerestr. (zlatá Praha, lidé mající ...)
+sub _key_Shift_D {
 
   $sPar1 = 'DES';
 
@@ -1456,8 +2805,8 @@ sub func_DES {
 }
 
 
-#bind func_DIFF to Shift+F menu DIFF Difference, rozdíl (oè)
-sub func_DIFF {
+#bind _key_Shift_F to Shift+F menu DIFF Difference, rozdíl (oè)
+sub _key_Shift_F {
 
   $sPar1 = 'DIFF';
 
@@ -1466,8 +2815,8 @@ sub func_DIFF {
 }
 
 
-#bind func_DIR1 to Shift+F1 menu DIR1 Odkud
-sub func_DIR1 {
+#bind _key_Shift_F1 to Shift+F1 menu DIR1 Odkud
+sub _key_Shift_F1 {
 
   $sPar1 = 'DIR1';
 
@@ -1476,8 +2825,8 @@ sub func_DIR1 {
 }
 
 
-#bind func_DIR2 to Shift+F2 menu DIR2 Kudy (prosli lesem)
-sub func_DIR2 {
+#bind _key_Shift_F2 to Shift+F2 menu DIR2 Kudy (prosli lesem)
+sub _key_Shift_F2 {
 
   $sPar1 = 'DIR2';
 
@@ -1486,8 +2835,8 @@ sub func_DIR2 {
 }
 
 
-#bind func_DIR3 to Shift+F3 menu DIR3 Kam
-sub func_DIR3 {
+#bind _key_Shift_F3 to Shift+F3 menu DIR3 Kam
+sub _key_Shift_F3 {
 
   $sPar1 = 'DIR3';
 
@@ -1496,8 +2845,8 @@ sub func_DIR3 {
 }
 
 
-#bind func_DISJ to Shift+J menu DISJ Disjunction, rozluèovací koord. (nebo, anebo)
-sub func_DISJ {
+#bind _key_Shift_J to Shift+J menu DISJ Disjunction, rozluèovací koord. (nebo, anebo)
+sub _key_Shift_J {
 
   $sPar1 = 'DISJ';
 
@@ -1506,8 +2855,8 @@ sub func_DISJ {
 }
 
 
-#bind func_DPHR to Ctrl+X menu DPHR zavisla cast frazemu
-sub func_DPHR {
+#bind _key_Shift_X to Shift+X menu DPHR zavisla cast frazemu
+sub _key_Shift_X {
 
   $sPar1 = 'DPHR';
 
@@ -1516,8 +2865,8 @@ sub func_DPHR {
 }
 
 
-#bind func_ETHD to Shift+E menu ETHD Ethical Dative (já ti mám knih, dìti nám nechodí vèas)
-sub func_ETHD {
+#bind _key_Shift_E to Shift+E menu ETHD Ethical Dative (já ti mám knih, dìti nám nechodí vèas)
+sub _key_Shift_E {
 
   $sPar1 = 'ETHD';
 
@@ -1526,18 +2875,8 @@ sub func_ETHD {
 }
 
 
-#bind func_EV to E menu EV Empty verb, elidovane sloveso
-sub func_EV {
-
-  $sPar1 = 'EV';
-
-  FuncAssign();
-
-}
-
-
-#bind func_EXT to X menu EXT Extent, míra (velmi, trochu)
-sub func_EXT {
+#bind _key_X to X menu EXT Extent, míra (velmi, trochu)
+sub _key_X {
 
   $sPar1 = 'EXT';
 
@@ -1546,8 +2885,8 @@ sub func_EXT {
 }
 
 
-#bind func_FPHR to Ctrl+U menu FPHR fraze v cizim jazyce
-sub func_FPHR {
+#bind _key_6 to 6 menu FPHR fraze v cizim jazyce
+sub _key_6 {
 
   $sPar1 = 'FPHR';
 
@@ -1556,8 +2895,8 @@ sub func_FPHR {
 }
 
 
-#bind func_GRAD to Ctrl+G menu GRAD Gradation, stupòovací koord (i, a také)
-sub func_GRAD {
+#bind _key_Ctrl_G to Ctrl+G menu GRAD Gradation, stupòovací koord (i, a také)
+sub _key_Ctrl_G {
 
   $sPar1 = 'GRAD';
 
@@ -1566,8 +2905,8 @@ sub func_GRAD {
 }
 
 
-#bind func_HER to Ctrl+Shift+H menu HER heritage, dìdictví (po otci)
-sub func_HER {
+#bind _key_Shift_H to Shift+H menu HER heritage, dìdictví (po otci)
+sub _key_Shift_H {
 
   $sPar1 = 'HER';
 
@@ -1576,8 +2915,8 @@ sub func_HER {
 }
 
 
-#bind func_ID to Shift+D menu ID Identity (pojem èasu, øeka Vltava)
-sub func_ID {
+#bind _key_I to I menu ID Identity (pojem èasu, øeka Vltava)
+sub _key_I {
 
   $sPar1 = 'ID';
 
@@ -1586,8 +2925,8 @@ sub func_ID {
 }
 
 
-#bind func_INTF to Ctrl+F menu INTF falesný podmìt (To Karel jestì nepøisel?)
-sub func_INTF {
+#bind _key_Shift_I to Shift+I menu INTF falesný podmìt (To Karel jestì nepøisel?)
+sub _key_Shift_I {
 
   $sPar1 = 'INTF';
 
@@ -1596,8 +2935,8 @@ sub func_INTF {
 }
 
 
-#bind func_INTT to Ctrl+Shift+T menu INTT zámìr (šel se koupat)
-sub func_INTT {
+#bind _key_Shift_T to Shift+T menu INTT zámìr (šel se koupat)
+sub _key_Shift_T {
 
   $sPar1 = 'INTT';
 
@@ -1606,8 +2945,8 @@ sub func_INTT {
 }
 
 
-#bind func_LOC to L menu LOC Location, místo kde (jednání uvnitø koalice)
-sub func_LOC {
+#bind _key_L to L menu LOC Location, místo kde (jednání uvnitø koalice)
+sub _key_L {
 
   $sPar1 = 'LOC';
 
@@ -1616,8 +2955,8 @@ sub func_LOC {
 }
 
 
-#bind func_MANN to Shift+N menu MANN Manner, zpùsob (ústnì, psát èesky)
-sub func_MANN {
+#bind _key_9 to 9 menu MANN Manner, zpùsob (ústnì, psát èesky)
+sub _key_9 {
 
   $sPar1 = 'MANN';
 
@@ -1626,8 +2965,8 @@ sub func_MANN {
 }
 
 
-#bind func_MAT to Ctrl+T menu MAT Partitiv (hrnek èaje)
-sub func_MAT {
+#bind _key_4 to 4 menu MAT Partitiv (hrnek èaje)
+sub _key_4 {
 
   $sPar1 = 'MAT';
 
@@ -1636,8 +2975,8 @@ sub func_MAT {
 }
 
 
-#bind func_MEANS to Ctrl+E menu MEANS Prostøedek (psát rukou, tuzkou)
-sub func_MEANS {
+#bind _key_Ctrl_M to Ctrl+M menu MEANS Prostøedek (psát rukou, tuzkou)
+sub _key_Ctrl_M {
 
   $sPar1 = 'MEANS';
 
@@ -1646,8 +2985,8 @@ sub func_MEANS {
 }
 
 
-#bind func_MOD to Ctrl+M menu MOD Adv. of modality (asi, mozná, to je myslím zlé)
-sub func_MOD {
+#bind _key_Shift_M to Shift+M menu MOD Adv. of modality (asi, mozná, to je myslím zlé)
+sub _key_Shift_M {
 
   $sPar1 = 'MOD';
 
@@ -1656,8 +2995,8 @@ sub func_MOD {
 }
 
 
-#bind func_NORM to Shift+M menu NORM Norma (ve shodì s, podle)
-sub func_NORM {
+#bind _key_Shift_N to Shift+N menu NORM Norma (ve shodì s, podle)
+sub _key_Shift_N {
 
   $sPar1 = 'NORM';
 
@@ -1666,8 +3005,8 @@ sub func_NORM {
 }
 
 
-#bind func_PAR to Shift+R menu PAR Parenthesis, vsuvka (myslím, vìøím)
-sub func_PAR {
+#bind _key_Ctrl_Z to Ctrl+Z menu PAR Parenthesis, vsuvka (myslím, vìøím)
+sub _key_Ctrl_Z {
 
   $sPar1 = 'PAR';
 
@@ -1676,8 +3015,18 @@ sub func_PAR {
 }
 
 
-#bind func_PREC to Ctrl+V menu PREC Ref. to prec. text(na zaè. vìty:tedy, tudíz, totiz,protoze, ..)
-sub func_PREC {
+#bind _key_Shift_A to Shift+A menu PARTL
+sub _key_Shift_A {
+
+  $sPar1 = 'PARTL';
+
+  FuncAssign();
+
+}
+
+
+#bind _key_Ctrl_P to Ctrl+P menu PREC Ref. to prec. text(na zaè. vìty:tedy, tudíz, totiz,protoze, ..)
+sub _key_Ctrl_P {
 
   $sPar1 = 'PREC';
 
@@ -1686,8 +3035,8 @@ sub func_PREC {
 }
 
 
-#bind func_PRED to R menu PRED Predikat
-sub func_PRED {
+#bind _key_E to E menu PRED Predikat
+sub _key_E {
 
   $sPar1 = 'PRED';
 
@@ -1696,8 +3045,8 @@ sub func_PRED {
 }
 
 
-#bind func_REAS to Ctrl+R menu REAS Reason, dùvod (nebo)
-sub func_REAS {
+#bind _key_Ctrl_R to Ctrl+R menu REAS Reason, dùvod (nebot)
+sub _key_Ctrl_R {
 
   $sPar1 = 'REAS';
 
@@ -1706,8 +3055,8 @@ sub func_REAS {
 }
 
 
-#bind func_REG to G menu REG Regard (se zøetelem, s ohledem)
-sub func_REG {
+#bind _key_G to G menu REG Regard (se zøetelem, s ohledem)
+sub _key_G {
 
   $sPar1 = 'REG';
 
@@ -1716,8 +3065,8 @@ sub func_REG {
 }
 
 
-#bind func_RESL to Shift+S menu RESL Úèinek (takze)
-sub func_RESL {
+#bind _key_Shift_S to Shift+S menu RESL Úèinek (takze)
+sub _key_Shift_S {
 
   $sPar1 = 'RESL';
 
@@ -1726,8 +3075,8 @@ sub func_RESL {
 }
 
 
-#bind func_RESTR to Ctrl+S menu RESTR Omezení (kromì, mimo)
-sub func_RESTR {
+#bind _key_Shift_R to Shift+R menu RESTR Omezení (kromì, mimo)
+sub _key_Shift_R {
 
   $sPar1 = 'RESTR';
 
@@ -1736,8 +3085,8 @@ sub func_RESTR {
 }
 
 
-#bind func_RHEM to Shift+H menu RHEM Rhematizer (i, také, jenom,vùbec, NEG, nikoli)
-sub func_RHEM {
+#bind _key_7 to 7 menu RHEM Rhematizer (i, také, jenom,vùbec, NEG, nikoli)
+sub _key_7 {
 
   $sPar1 = 'RHEM';
 
@@ -1746,8 +3095,8 @@ sub func_RHEM {
 }
 
 
-#bind func_RSTR to Shift+T menu RSTR restriktivní pøívlastek
-sub func_RSTR {
+#bind _key_R to R menu RSTR restriktivní pøívlastek
+sub _key_R {
 
   $sPar1 = 'RSTR';
 
@@ -1756,8 +3105,8 @@ sub func_RSTR {
 }
 
 
-#bind func_SUBS to B menu SUBS Zastoupení (místo koho-èeho)
-sub func_SUBS {
+#bind _key_Ctrl_U to Ctrl+U menu SUBS Zastoupení (místo koho-èeho)
+sub _key_Ctrl_U {
 
   $sPar1 = 'SUBS';
 
@@ -1766,8 +3115,8 @@ sub func_SUBS {
 }
 
 
-#bind func_TFHL to Ctrl+H menu TFHL For how long, na jak dlouho (na vìky)
-sub func_TFHL {
+#bind _key_Ctrl_H to Ctrl+H menu TFHL For how long, na jak dlouho (na vìky)
+sub _key_Ctrl_H {
 
   $sPar1 = 'TFHL';
 
@@ -1776,8 +3125,8 @@ sub func_TFHL {
 }
 
 
-#bind func_TFRWH to W menu TFRWH From when, zekdy (zbylo od vánoc cukroví)
-sub func_TFRWH {
+#bind _key_Shift_W to Shift+W menu TFRWH From when, zekdy (zbylo od vánoc cukroví)
+sub _key_Shift_W {
 
   $sPar1 = 'TFRWH';
 
@@ -1786,8 +3135,8 @@ sub func_TFRWH {
 }
 
 
-#bind func_THL to Shift+L menu THL How long, jak dlouho (èetl pùl hodiny)
-sub func_THL {
+#bind _key_Ctrl_L to Ctrl+L menu THL How long, jak dlouho (èetl pùl hodiny)
+sub _key_Ctrl_L {
 
   $sPar1 = 'THL';
 
@@ -1796,8 +3145,8 @@ sub func_THL {
 }
 
 
-#bind func_THO to Shift+O menu THO How often, jak dlouho (èetl dennì)
-sub func_THO {
+#bind _key_Ctrl_O to Ctrl+O menu THO How often (èasto, mnohokrát...)
+sub _key_Ctrl_O {
 
   $sPar1 = 'THO';
 
@@ -1806,8 +3155,8 @@ sub func_THO {
 }
 
 
-#bind func_TOWH to Ctrl+W menu TOWH To when, nakdy (pøelozí výuku na pátek)
-sub func_TOWH {
+#bind _key_Ctrl_W to Ctrl+W menu TOWH To when, nakdy (pøelozí výuku na pátek)
+sub _key_Ctrl_W {
 
   $sPar1 = 'TOWH';
 
@@ -1816,8 +3165,8 @@ sub func_TOWH {
 }
 
 
-#bind func_TPAR to Ctrl+A menu TPAR Parallel (bìhem, zatímco, za celý zápas, mezitím co)
-sub func_TPAR {
+#bind _key_Ctrl_A to Ctrl+A menu TPAR Parallel (bìhem, zatímco, za celý zápas, mezitím co)
+sub _key_Ctrl_A {
 
   $sPar1 = 'TPAR';
 
@@ -1826,8 +3175,8 @@ sub func_TPAR {
 }
 
 
-#bind func_TSIN to Ctrl+I menu TSIN Since, odkdy (od té doby co, ode dne podpisu)
-sub func_TSIN {
+#bind _key_Ctrl_I to Ctrl+I menu TSIN Since, odkdy (od té doby co, ode dne podpisu)
+sub _key_Ctrl_I {
 
   $sPar1 = 'TSIN';
 
@@ -1836,8 +3185,8 @@ sub func_TSIN {
 }
 
 
-#bind func_TILL to Shift+I menu TTILL Till, dokdy (az do, dokud ne, nez)
-sub func_TILL {
+#bind _key_Ctrl_T to Ctrl+T menu TTILL Till, dokdy (az do, dokud ne, nez)
+sub _key_Ctrl_T {
 
   $sPar1 = 'TTILL';
 
@@ -1846,8 +3195,8 @@ sub func_TILL {
 }
 
 
-#bind func_TWHEN to Shift+W menu TWHEN When, kdy (loni, vstupuje v platnost dnem podpisu)
-sub func_TWHEN {
+#bind _key_W to W menu TWHEN When, kdy (loni, vstupuje v platnost dnem podpisu)
+sub _key_W {
 
   $sPar1 = 'TWHEN';
 
@@ -1856,8 +3205,8 @@ sub func_TWHEN {
 }
 
 
-#bind func_VOC to Shift+V menu VOC Vokativní vìta (Jirko!)
-sub func_VOC {
+#bind _key_Shift_V to Shift+V menu VOC Vokativní vìta (Jirko!)
+sub _key_Shift_V {
 
   $sPar1 = 'VOC';
 
@@ -1866,8 +3215,8 @@ sub func_VOC {
 }
 
 
-#bind func_VOCAT to Shift+K menu VOCAT Vokativ aponovaný (Pojï sem, Jirko!)
-sub func_VOCAT {
+#bind _key_Shift_K to Shift+K menu VOCAT Vokativ aponovaný (Pojï sem, Jirko!)
+sub _key_Shift_K {
 
   $sPar1 = 'VOCAT';
 
@@ -1876,8 +3225,8 @@ sub func_VOCAT {
 }
 
 
-#bind func_NA to Ctrl+N menu NA Not Applicable, toto slovo nemá funktor
-sub func_NA {
+#bind _key_Ctrl_N to Ctrl+N menu NA Not Applicable, toto slovo nemá funktor
+sub _key_Ctrl_N {
 
   $sPar1 = 'NA';
 
@@ -1886,8 +3235,8 @@ sub func_NA {
 }
 
 
-#bind func_questionmarks to Ctrl+Y menu ???
-sub func_questionmarks {
+#bind _key_Ctrl_Y to Ctrl+Y menu ???
+sub _key_Ctrl_Y {
 
   $sPar1 = '???';
 
@@ -1896,8 +3245,8 @@ sub func_questionmarks {
 }
 
 
-#bind tfa_topic to K menu tfa = topic
-sub tfa_topic {
+#bind _key_K to K menu tfa = topic
+sub _key_K {
 
   $sPar1 = 'T';
 
@@ -1906,8 +3255,8 @@ sub tfa_topic {
 }
 
 
-#bind tfa_focus to U menu tfa = focus
-sub tfa_focus {
+#bind _key_U to U menu tfa = focus
+sub _key_U {
 
   $sPar1 = 'F';
 
@@ -1916,8 +3265,8 @@ sub tfa_focus {
 }
 
 
-#bind shift_node_left to Shift+Q menu posun uzel doleva
-sub shift_node_left {
+#bind _key_Shift_Q to Shift+Q menu posun uzel doleva
+sub _key_Shift_Q {
 
   $sPar1 = 'L';
 
@@ -1926,8 +3275,8 @@ sub shift_node_left {
 }
 
 
-#bind shift_node_right to Shift+U menu posun uzel doprava
-sub shift_node_right {
+#bind _key_Shift_U to Shift+U menu posun uzel doprava
+sub _key_Shift_U {
 
   $sPar1 = 'R';
 
@@ -1936,8 +3285,8 @@ sub shift_node_right {
 }
 
 
-#bind sign_ZU to Ctrl+Shift+Z menu Podpis Zdena Uresova
-sub sign_ZU {
+#bind _key_Ctrl_Shift_Z to Ctrl+Shift+Z menu Podpis Zdena Uresova
+sub _key_Ctrl_Shift_Z {
 
   $sPar1 = 'ZU/func_EB/tfa';
 
@@ -1946,8 +3295,8 @@ sub sign_ZU {
 }
 
 
-#bind sign_AB to Ctrl+Shift+A menu Podpis Alla Bemova
-sub sign_AB {
+#bind _key_Ctrl_Shift_A to Ctrl+Shift+A menu Podpis Alla Bemova
+sub _key_Ctrl_Shift_A {
 
   $sPar1 = 'AB/func_EB/tfa';
 
@@ -1956,8 +3305,8 @@ sub sign_AB {
 }
 
 
-#bind sign_EB to Ctrl+Shift+E menu Podpis Eva Buranova
-sub sign_EB {
+#bind _key_Ctrl_Shift_E to Ctrl+Shift+E menu Podpis Eva Buranova
+sub _key_Ctrl_Shift_E {
 
   $sPar1 = 'EB/func_EB/tfa';
 
@@ -1966,16 +3315,26 @@ sub sign_EB {
 }
 
 
-#bind tree_to_tr to Ctrl+Shift+F2
-sub tree_to_tr {
+#bind _key_Ctrl_Shift_K to Ctrl+Shift+K menu Podpis Ivona Kucerova
+sub _key_Ctrl_Shift_K {
+
+  $sPar1 = 'IK/func_EB/tfa';
+
+  SignatureAssign();
+
+}
+
+
+#bind _key_Ctrl_Shift_F2 to Ctrl+Shift+F2
+sub _key_Ctrl_Shift_F2 {
 
   TreeToTR();
 
 }
 
 
-#bind init_file_tr to Ctrl+Shift+F8
-sub init_file_tr {
+#bind _key_Ctrl_Shift_F8 to Ctrl+Shift+F8
+sub _key_Ctrl_Shift_F8 {
 
   InitFileTR();
 
@@ -1983,10 +3342,10 @@ sub init_file_tr {
 
 
 sub TreeToTR {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pThis;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pThis; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
 
   ThisRoot();
 
@@ -1994,7 +3353,7 @@ sub TreeToTR {
 
   if (Interjection($pRoot->{'reserve1'},'TR_TREE') eq 'TR_TREE') {
 
-    return;
+  return;
   }
 
   $pRoot->{'reserve1'} = 'TR_TREE';
@@ -2035,15 +3394,15 @@ sub TreeToTR {
 
 
 sub InitFileTR {
-  my $pRoot;			# used as type "pointer"
-  my $iStart;			# used as type "string"
+  my $pRoot; # used as type "pointer"
+  my $iStart; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $iStart = substr(ValNo(0,$pRoot->{'form'}),1,10);
- AAALoopCont1:
+AAALoopCont1:
   $pPar1 = $pRoot;
 
   InitTR();
@@ -2052,28 +3411,28 @@ sub InitFileTR {
 
   if ($_NoSuchTree=="1") {
 
-    goto AAALoopExit1;
+  goto AAALoopExit1;
   }
 
   $pRoot = $this;
 
   goto AAALoopCont1;
- AAALoopExit1:
+AAALoopExit1:
   return;
 
 }
 
 
 sub InitTR {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
-  my $sForm;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
+  my $sForm; # used as type "string"
 
   ThisRoot();
 
@@ -2082,27 +3441,27 @@ sub InitTR {
   $pAct = $pRoot;
 
   $pNext = $pAct;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -2122,7 +3481,7 @@ sub InitTR {
 
   if (Interjection($pAct->{'afun'},'AuxS') eq 'AuxS') {
 
-    $pAct->{'trlemma'} = $pAct->{'form'};
+  $pAct->{'trlemma'} = $pAct->{'form'};
   }
 
   if (Interjection($pAct->{'afun'},'Pred') eq 'Pred' ||
@@ -2130,7 +3489,7 @@ sub InitTR {
       Interjection($pAct->{'afun'},'Pred_Pa') eq 'Pred_Pa' ||
       Interjection($pAct->{'afun'},'Pred_Ap') eq 'Pred_Ap') {
 
-    $pAct->{'func'} = 'PRED';
+  $pAct->{'func'} = 'PRED';
   }
 
   $pNext = FirstSon($pAct);
@@ -2141,43 +3500,43 @@ sub InitTR {
 
 
 sub Init {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -2196,7 +3555,7 @@ sub Init {
       Interjection($pAct->{'afun'},'Pred_Pa') eq 'Pred_Pa' ||
       Interjection($pAct->{'afun'},'Pred_Ap') eq 'Pred_Ap') {
 
-    $pAct->{'func'} = 'PRED';
+  $pAct->{'func'} = 'PRED';
   }
 
   goto PruchodStromemDoHloubky;
@@ -2205,32 +3564,32 @@ sub Init {
 
 
 sub MorphGram {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTag1;			# used as type "string"
-  my $sVTag2;			# used as type "string"
-  my $sVTag3;			# used as type "string"
-  my $sVTag4;			# used as type "string"
-  my $sVTag5;			# used as type "string"
-  my $sVTag6;			# used as type "string"
-  my $sVTag7;			# used as type "string"
-  my $sVTag8;			# used as type "string"
-  my $i;			# used as type "string"
-  my $sGender;			# used as type "string"
-  my $sNumber;			# used as type "string"
-  my $sN;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTag1; # used as type "string"
+  my $sVTag2; # used as type "string"
+  my $sVTag3; # used as type "string"
+  my $sVTag4; # used as type "string"
+  my $sVTag5; # used as type "string"
+  my $sVTag6; # used as type "string"
+  my $sVTag7; # used as type "string"
+  my $sVTag8; # used as type "string"
+  my $i; # used as type "string"
+  my $sGender; # used as type "string"
+  my $sNumber; # used as type "string"
+  my $sN; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $sTag = '';
 
   $sVTag1 = '';
@@ -2253,24 +3612,24 @@ sub MorphGram {
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -2282,210 +3641,212 @@ sub MorphGram {
 
   if ($sVTag1 eq '') {
 
-    goto PruchodStromemDoHloubky;
+  goto PruchodStromemDoHloubky;
   }
 
   $sVTag2 = substr($sTag,1,1);
 
   if ($sVTag2 eq '') {
 
-    $i = "0";
+  $i = "0";
 
-    goto MGContinue;
+  goto MGContinue;
   }
 
   $sVTag3 = substr($sTag,2,1);
 
   if ($sVTag3 eq '') {
 
-    $i = "1";
+  $i = "1";
 
-    goto MGContinue;
+  goto MGContinue;
   }
 
   $sVTag4 = substr($sTag,3,1);
 
   if ($sVTag4 eq '') {
 
-    $i = "2";
+  $i = "2";
 
-    goto MGContinue;
+  goto MGContinue;
   }
 
   $sVTag5 = substr($sTag,4,1);
 
   if ($sVTag5 eq '') {
 
-    $i = "3";
+  $i = "3";
 
-    goto MGContinue;
+  goto MGContinue;
   }
 
   $sVTag6 = substr($sTag,5,1);
 
   if ($sVTag6 eq '') {
 
-    $i = "4";
+  $i = "4";
 
-    goto MGContinue;
+  goto MGContinue;
   }
 
   $sVTag7 = substr($sTag,6,1);
 
   if ($sVTag7 eq '') {
 
-    $i = "5";
+  $i = "5";
 
-    goto MGContinue;
+  goto MGContinue;
   }
 
   $sVTag8 = substr($sTag,7,1);
 
   if ($sVTag8 eq '') {
 
-    $i = "6";
+  $i = "6";
 
-    goto MGContinue;
+  goto MGContinue;
   } else {
 
-    $i = "7";
+  $i = "7";
   }
 
- MGContinue:
+MGContinue:
   if ($sVTag1 eq 'V') {
 
-    goto Verb;
+  goto Verb;
   }
 
   if ($sVTag1 eq 'N') {
 
-    goto Noun;
+  goto Noun;
   }
 
   if ($sVTag1 eq 'A') {
 
-    goto Adject;
+  goto Adject;
   }
 
   if ($sVTag1 eq 'P') {
 
-    goto Pronoun;
+  goto Pronoun;
   }
 
   goto PruchodStromemDoHloubky;
- Verb:
-  if (substr($sTag,11,1) eq 'N') {
+Verb:
+  if (substr($sTag,10,1) eq 'N') {
 
-    $pPar1 = $pAct;
+  $pPar1 = $pAct;
 
-    NewSon();
+  NewSon();
 
-    $pT = $pReturn;
+  $pT = $pReturn;
 
-    $pT->{'func'} = 'RHEM';
+  $pT->{'func'} = 'RHEM';
 
-    $pT->{'trlemma'} = 'Neg';
+  $pT->{'trlemma'} = 'Neg';
 
-    $pT->{'del'} = 'ELID';
+  $pT->{'form'} = 'NIL';
 
-    $pT->{'reserve2'} = 'Neg';
+  $pT->{'del'} = 'ELID';
+
+  $pT->{'reserve2'} = 'Neg';
   }
 
   goto PruchodStromemDoHloubky;
- Adject:
+Adject:
   goto Noun;
- Noun:
+Noun:
   if ($i eq "2" &&
       $sVTag2 eq 'A') {
 
-    goto PruchodStromemDoHloubky;
+  goto PruchodStromemDoHloubky;
   }
 
   if ($sVTag2 eq 'M') {
 
-    $sGender = 'ANIM';
+  $sGender = 'ANIM';
   }
 
   if ($sVTag2 eq 'I') {
 
-    $sGender = 'INAN';
+  $sGender = 'INAN';
   }
 
   if ($sVTag2 eq 'F') {
 
-    $sGender = 'FEM';
+  $sGender = 'FEM';
   }
 
   if ($sVTag2 eq 'N') {
 
-    $sGender = 'NEUT';
+  $sGender = 'NEUT';
   }
 
   if ($sVTag2 eq 'X') {
 
-    $sGender = '???';
+  $sGender = '???';
   }
 
   if ($sVTag2 eq 'Y') {
 
-    $sGender = ValNo(0,Union('ANIM','INAN'));
+  $sGender = ValNo(0,Union('ANIM','INAN'));
   }
 
   if ($sVTag2 eq 'H') {
 
-    $sGender = ValNo(0,Union('FEM','NEUT'));
+  $sGender = ValNo(0,Union('FEM','NEUT'));
   }
 
   if ($sVTag2 eq 'Q') {
 
-    $sGender = ValNo(0,Union('FEM','NEUT'));
+  $sGender = ValNo(0,Union('FEM','NEUT'));
   }
 
   if ($sVTag2 eq 'T') {
 
-    $sGender = ValNo(0,Union('INAN','FEM'));
+  $sGender = ValNo(0,Union('INAN','FEM'));
   }
 
   if ($sVTag2 eq 'Z') {
 
-    $sGender = ValNo(0,Union('ANIM','INAN'));
+  $sGender = ValNo(0,Union('ANIM','INAN'));
   }
 
   if ($sVTag2 eq 'W') {
 
-    $sGender = ValNo(0,Union('INAN','NEUT'));
+  $sGender = ValNo(0,Union('INAN','NEUT'));
   }
 
   $pAct->{'gender'} = $sGender;
 
   if ($sVTag3 eq 'S') {
 
-    $sNumber = 'SG';
+  $sNumber = 'SG';
   }
 
   if ($sVTag3 eq 'P') {
 
-    $sNumber = 'PL';
+  $sNumber = 'PL';
   }
 
   if ($sVTag3 eq 'D') {
 
-    $sNumber = '???';
+  $sNumber = '???';
   }
 
   if ($sVTag3 eq 'X') {
 
-    $sNumber = '???';
+  $sNumber = '???';
   }
 
   $pAct->{'number'} = $sNumber;
 
   goto PruchodStromemDoHloubky;
- Pronoun:
+Pronoun:
   if ($i eq "2" &&
       $sVTag2 eq 'A') {
 
-    goto PruchodStromemDoHloubky;
+  goto PruchodStromemDoHloubky;
   }
 
   $i = $i-"1";
@@ -2494,12 +3855,12 @@ sub MorphGram {
 
   if ($sN eq 'S') {
 
-    $sNumber = 'SG';
+  $sNumber = 'SG';
   }
 
   if ($sN eq 'P') {
 
-    $sNumber = 'PL';
+  $sNumber = 'PL';
   }
 
   $pAct->{'number'} = $sNumber;
@@ -2510,57 +3871,57 @@ sub MorphGram {
 
   if ($sN eq 'M') {
 
-    $sGender = 'ANIM';
+  $sGender = 'ANIM';
   }
 
   if ($sN eq 'I') {
 
-    $sGender = 'INAN';
+  $sGender = 'INAN';
   }
 
   if ($sN eq 'F') {
 
-    $sGender = 'FEM';
+  $sGender = 'FEM';
   }
 
   if ($sN eq 'N') {
 
-    $sGender = 'NEUT';
+  $sGender = 'NEUT';
   }
 
   if ($sN eq 'X') {
 
-    $sGender = '???';
+  $sGender = '???';
   }
 
   if ($sN eq 'Y') {
 
-    $sGender = ValNo(0,Union('ANIM','INAN'));
+  $sGender = ValNo(0,Union('ANIM','INAN'));
   }
 
   if ($sN eq 'H') {
 
-    $sGender = ValNo(0,Union('FEM','NEUT'));
+  $sGender = ValNo(0,Union('FEM','NEUT'));
   }
 
   if ($sN eq 'Q') {
 
-    $sGender = ValNo(0,Union('FEM','NEUT'));
+  $sGender = ValNo(0,Union('FEM','NEUT'));
   }
 
   if ($sN eq 'T') {
 
-    $sGender = ValNo(0,Union('INAN','FEM'));
+  $sGender = ValNo(0,Union('INAN','FEM'));
   }
 
   if ($sN eq 'Z') {
 
-    $sGender = ValNo(0,Union('ANIM','INAN'));
+  $sGender = ValNo(0,Union('ANIM','INAN'));
   }
 
   if ($sN eq 'W') {
 
-    $sGender = ValNo(0,Union('INAN','NEUT'));
+  $sGender = ValNo(0,Union('INAN','NEUT'));
   }
 
   $pAct->{'gender'} = $sGender;
@@ -2571,38 +3932,38 @@ sub MorphGram {
 
 
 sub Numeratives {
-  my $pAct;			# used as type "pointer"
-  my $pParAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pTisice;			# used as type "pointer"
-  my $pStovky;			# used as type "pointer"
-  my $pDesitky;			# used as type "pointer"
-  my $pJednotky;		# used as type "pointer"
-  my $sTisice;			# used as type "string"
-  my $sStovky;			# used as type "string"
-  my $sDesitky;			# used as type "string"
-  my $sJednotky;		# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sTag1;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pParAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pTisice; # used as type "pointer"
+  my $pStovky; # used as type "pointer"
+  my $pDesitky; # used as type "pointer"
+  my $pJednotky; # used as type "pointer"
+  my $sTisice; # used as type "string"
+  my $sStovky; # used as type "string"
+  my $sDesitky; # used as type "string"
+  my $sJednotky; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sTag1; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
 
   if (!($pNext)) {
 
-    return;
+  return;
   }
 
   $pAct = $pNext;
@@ -2611,26 +3972,26 @@ sub Numeratives {
 
   if (Interjection($pAct->{'form'},'tisíc') eq 'tisíc') {
 
-    $sTag = ValNo(0,$pParAct->{'tag'});
+  $sTag = ValNo(0,$pParAct->{'tag'});
 
-    $sTag1 = substr($sTag,0,1);
+  $sTag1 = substr($sTag,0,1);
 
-    if ($sTag1 eq 'C') {
+  if ($sTag1 eq 'C') {
 
-      $pT = FirstSon($pAct);
+  $pT = FirstSon($pAct);
 
-      if ($pT) {
+  if ($pT) {
 
-	if (Interjection($pT->{'ordorig'},'') eq '') {
+  if (Interjection($pT->{'ordorig'},'') eq '') {
 
-	  $pT->{'ordorig'} = Parent($pT)->{'ord'};
-	}
+  $pT->{'ordorig'} = Parent($pT)->{'ord'};
+  }
 
-	$NodeClipboard=CutNode($pT);
+  $NodeClipboard=CutNode($pT);
 
-	$pDummy = PasteNode($NodeClipboard,$pParAct);
-      }
-    }
+  $pDummy = PasteNode($NodeClipboard,$pParAct);
+  }
+  }
   }
 
   goto PruchodStromemDoHloubky;
@@ -2639,43 +4000,43 @@ sub Numeratives {
 
 
 sub PassiveVerb {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -2687,23 +4048,23 @@ sub PassiveVerb {
 
   if ($sVTagBeg eq 'Vs') {
 
-    $pVerb = $pAct;
+  $pVerb = $pAct;
 
-    $pT = FirstSon($pVerb);
-  PodstromVS:
-    if (!($pT)) {
+  $pT = FirstSon($pVerb);
+PodstromVS:
+  if (!($pT)) {
 
-      goto PruchodStromemDoHloubky;
-    }
+  goto PruchodStromemDoHloubky;
+  }
 
-    if (Interjection($pT->{'afun'},'Obj') eq 'Obj') {
+  if (Interjection($pT->{'afun'},'Obj') eq 'Obj') {
 
-      $pT->{'func'} = 'ACT';
-    }
+  $pT->{'func'} = 'ACT';
+  }
 
-    $pT = RBrother($pT);
+  $pT = RBrother($pT);
 
-    goto PodstromVS;
+  goto PodstromVS;
   }
 
   goto PruchodStromemDoHloubky;
@@ -2712,48 +4073,48 @@ sub PassiveVerb {
 
 
 sub NumAndNoun {
-  my $pAct;			# used as type "pointer"
-  my $pNum;			# used as type "pointer"
-  my $pSon;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pD1;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNum; # used as type "pointer"
+  my $pSon; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $pD; # used as type "pointer"
+  my $pD1; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -2766,50 +4127,50 @@ sub NumAndNoun {
   if ($sVTagBeg eq 'C' ||
       $sTag eq 'ZNUM') {
 
-    $pNum = $pAct;
+  $pNum = $pAct;
 
-    $pSon = FirstSon($pNum);
-  CheckSons:
-    if ($pSon) {
+  $pSon = FirstSon($pNum);
+CheckSons:
+  if ($pSon) {
 
-      $pParent = Parent($pNum);
+  $pParent = Parent($pNum);
 
-      $sTag = ValNo(0,$pSon->{'tag'});
+  $sTag = ValNo(0,$pSon->{'tag'});
 
-      $sVTagBeg = substr($sTag,0,1);
+  $sVTagBeg = substr($sTag,0,1);
 
-      if ($sVTagBeg eq 'N') {
+  if ($sVTagBeg eq 'N') {
 
-	if (Interjection($pSon->{'ordorig'},'') eq '') {
+  if (Interjection($pSon->{'ordorig'},'') eq '') {
 
-	  $pSon->{'ordorig'} = Parent($pSon)->{'ord'};
-	}
+  $pSon->{'ordorig'} = Parent($pSon)->{'ord'};
+  }
 
-	$NodeClipboard=CutNode($pSon);
+  $NodeClipboard=CutNode($pSon);
 
-	$pD = PasteNode($NodeClipboard,$pParent);
+  $pD = PasteNode($NodeClipboard,$pParent);
 
-	if (Interjection($pNum->{'ordorig'},'') eq '') {
+  if (Interjection($pNum->{'ordorig'},'') eq '') {
 
-	  $pNum->{'ordorig'} = Parent($pNum)->{'ord'};
-	}
+  $pNum->{'ordorig'} = Parent($pNum)->{'ord'};
+  }
 
-	$NodeClipboard=CutNode($pNum);
+  $NodeClipboard=CutNode($pNum);
 
-	$pD1 = PasteNode($NodeClipboard,$pD);
+  $pD1 = PasteNode($NodeClipboard,$pD);
 
-	$pAct = $pD;
-      } else {
+  $pAct = $pD;
+  } else {
 
-	if (RBrother($pSon)) {
+  if (RBrother($pSon)) {
 
-	  $pSon = RBrother($pSon);
+  $pSon = RBrother($pSon);
 
-	  goto CheckSons;
-	}
-      }
+  goto CheckSons;
+  }
+  }
 
-    }
+  }
   }
 
   goto PruchodStromemDoHloubky;
@@ -2818,45 +4179,45 @@ sub NumAndNoun {
 
 
 sub RelTyp {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
-  my $sSuffix;			# used as type "string"
-  my $sForm;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
+  my $sSuffix; # used as type "string"
+  my $sForm; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -2864,9 +4225,23 @@ sub RelTyp {
 
   if (Interjection($pAct->{'lemma'},',') eq ',') {
 
-    $pAct->{'trlemma'} = 'Comma';
+  $pAct->{'trlemma'} = 'Comma';
 
-    $pAct->{'reserve1'} = 'Comma';
+  $pAct->{'reserve1'} = 'Comma';
+  }
+
+  if (Interjection($pAct->{'lemma'},':') eq ':') {
+
+  $pAct->{'trlemma'} = 'Colon';
+
+  $pAct->{'reserve1'} = 'Colon';
+  }
+
+  if (Interjection($pAct->{'lemma'},';') eq ';') {
+
+  $pAct->{'trlemma'} = 'Semicolon';
+
+  $pAct->{'reserve1'} = 'Semicolon';
   }
 
   $sForm = ValNo(0,$pAct->{'lemma'});
@@ -2889,34 +4264,34 @@ sub RelTyp {
 
   if ($sSuffix eq '_Co') {
 
-    $pAct->{'reltype'} = 'CO';
+  $pAct->{'memberof'} = 'CO';
   } else {
 
-    if ($sSuffix eq '_Ap') {
+  if ($sSuffix eq '_Ap') {
 
-      $pAct->{'reltype'} = 'NIL';
+  Parent($pAct)->{'func'} = 'APPS';
 
-      Parent($pAct)->{'func'} = 'APPS';
-    } else {
+  $pAct->{'memberof'} = 'AP';
+  } else {
 
-      if ($sSuffix eq '_Pa') {
+  if ($sSuffix eq '_Pa') {
 
-	$pAct->{'reltype'} = 'PA';
+  $pAct->{'parenthesis'} = 'PA';
 
-	if (Interjection($pAct->{'afun'},'AuxY_Pa') eq 'AuxY_Pa') {
+  if (Interjection($pAct->{'afun'},'AuxY_Pa') eq 'AuxY_Pa') {
 
-	  $pAct->{'func'} = 'PAR';
-	} else {
+  $pAct->{'func'} = 'PAR';
+  } else {
 
-	  $pAct->{'func'} = 'PAR';
-	}
+  $pAct->{'func'} = 'PAR';
+  }
 
-      } else {
+  } else {
 
-	$pAct->{'reltype'} = 'NIL';
-      }
+  $pAct->{'memberof'} = 'NIL';
+  }
 
-    }
+  }
 
   }
 
@@ -2927,43 +4302,43 @@ sub RelTyp {
 
 
 sub TRAuxO {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sCase;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sCase; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -2971,17 +4346,17 @@ sub TRAuxO {
 
   if (Interjection($pAct->{'afun'},'AuxO') eq 'AuxO') {
 
-    $sTag = ValNo(0,$pAct->{'tag'});
+  $sTag = ValNo(0,$pAct->{'tag'});
 
-    $sCase = substr($sTag,4,1);
+  $sCase = substr($sTag,4,1);
 
-    if ($sCase eq "3") {
+  if ($sCase eq "3") {
 
-      $pAct->{'gram'} = 'ETHD';
-    } else {
+  $pAct->{'gram'} = 'ETHD';
+  } else {
 
-      $pAct->{'func'} = 'INTF';
-    }
+  $pAct->{'func'} = 'INTF';
+  }
 
   }
 
@@ -2991,46 +4366,46 @@ sub TRAuxO {
 
 
 sub DegofComp {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $pAdj;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
-  my $sVTagCase;		# used as type "string"
-  my $sVTagDeg;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $pAdj; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
+  my $sVTagCase; # used as type "string"
+  my $sVTagDeg; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -3046,25 +4421,25 @@ sub DegofComp {
 
   if ($sVTagBeg eq 'A') {
 
-    $pAdj = $pAct;
+  $pAdj = $pAct;
 
-    if ($sVTagDeg eq "1") {
+  if ($sVTagDeg eq "1") {
 
-      $pAdj->{'degcmp'} = 'POS';
-    }
+  $pAdj->{'degcmp'} = 'POS';
+  }
 
-    if ($sVTagDeg eq "2") {
+  if ($sVTagDeg eq "2") {
 
-      $pAdj->{'degcmp'} = 'COMP';
-    }
+  $pAdj->{'degcmp'} = 'COMP';
+  }
 
-    if ($sVTagDeg eq "3") {
+  if ($sVTagDeg eq "3") {
 
-      $pAdj->{'degcmp'} = 'SUP';
-    }
+  $pAdj->{'degcmp'} = 'SUP';
+  }
   } else {
 
-    $pAct->{'degcmp'} = 'NA';
+  $pAct->{'degcmp'} = 'NA';
   }
 
 
@@ -3074,44 +4449,44 @@ sub DegofComp {
 
 
 sub ActiveVerb {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg1;		# used as type "string"
-  my $sVTagBeg2;		# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg1; # used as type "string"
+  my $sVTagBeg2; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -3126,23 +4501,23 @@ sub ActiveVerb {
   if ($sVTagBeg1 eq 'V' &&
       $sVTagBeg2 ne 'S') {
 
-    $pVerb = $pAct;
+  $pVerb = $pAct;
 
-    $pT = FirstSon($pVerb);
-  PodstromVS:
-    if (!($pT)) {
+  $pT = FirstSon($pVerb);
+PodstromVS:
+  if (!($pT)) {
 
-      goto PruchodStromemDoHloubky;
-    }
+  goto PruchodStromemDoHloubky;
+  }
 
-    if (Interjection($pT->{'afun'},'Sb') eq 'Sb') {
+  if (Interjection($pT->{'afun'},'Sb') eq 'Sb') {
 
-      $pT->{'func'} = 'ACT';
-    }
+  $pT->{'func'} = 'ACT';
+  }
 
-    $pT = RBrother($pT);
+  $pT = RBrother($pT);
 
-    goto PodstromVS;
+  goto PodstromVS;
   }
 
   goto PruchodStromemDoHloubky;
@@ -3151,49 +4526,49 @@ sub ActiveVerb {
 
 
 sub AuxPY {
-  my $pAct;			# used as type "pointer"
-  my $pPrepParent;		# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pBlind;			# used as type "pointer"
-  my $pSubtree;			# used as type "pointer"
-  my $sTag;			# used as type "string"
-  my $sPrep;			# used as type "string"
-  my $sPrepBody;		# used as type "string"
-  my $sPrepTail;		# used as type "string"
-  my $BodyOrder;		# used as type "string"
-  my $TailOrder;		# used as type "string"
-  my $sPomocny;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pPrepParent; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pBlind; # used as type "pointer"
+  my $pSubtree; # used as type "pointer"
+  my $sTag; # used as type "string"
+  my $sPrep; # used as type "string"
+  my $sPrepBody; # used as type "string"
+  my $sPrepTail; # used as type "string"
+  my $BodyOrder; # used as type "string"
+  my $TailOrder; # used as type "string"
+  my $sPomocny; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -3202,83 +4577,83 @@ sub AuxPY {
   if (Interjection($pAct->{'afun'},'AuxP') eq 'AuxP' ||
       Interjection($pAct->{'afun'},'AuxY') eq 'AuxY') {
 
-    $pPrepParent = Parent($pAct);
+  $pPrepParent = Parent($pAct);
 
-    if (Interjection($pPrepParent->{'afun'},'AuxP') eq 'AuxP') {
+  if (Interjection($pPrepParent->{'afun'},'AuxP') eq 'AuxP') {
 
-      $sPrepBody = ValNo(0,$pPrepParent->{'trlemma'});
+  $sPrepBody = ValNo(0,$pPrepParent->{'trlemma'});
 
-      $sPrepTail = ValNo(0,$pAct->{'trlemma'});
+  $sPrepTail = ValNo(0,$pAct->{'trlemma'});
 
-      $BodyOrder = ValNo(0,$pPrepParent->{'ord'});
+  $BodyOrder = ValNo(0,$pPrepParent->{'ord'});
 
-      $TailOrder = ValNo(0,$pAct->{'ord'});
+  $TailOrder = ValNo(0,$pAct->{'ord'});
 
-      if ($TailOrder>$BodyOrder) {
+  if ($TailOrder>$BodyOrder) {
 
-	$sPomocny = (ValNo(0,$sPrepBody).ValNo(0,'_'));
+  $sPomocny = (ValNo(0,$sPrepBody).ValNo(0,'_'));
 
-	$sPrep = (ValNo(0,$sPomocny).ValNo(0,$sPrepTail));
-      } else {
+  $sPrep = (ValNo(0,$sPomocny).ValNo(0,$sPrepTail));
+  } else {
 
-	$sPomocny = (ValNo(0,'_').ValNo(0,$sPrepBody));
+  $sPomocny = (ValNo(0,'_').ValNo(0,$sPrepBody));
 
-	$sPrep = (ValNo(0,$sPrepTail).ValNo(0,$sPomocny));
-      }
+  $sPrep = (ValNo(0,$sPrepTail).ValNo(0,$sPomocny));
+  }
 
 
-      $pPrepParent->{'trlemma'} = $sPrep;
+  $pPrepParent->{'trlemma'} = $sPrep;
 
-      $pAct->{'TR'} = 'hide';
+  $pAct->{'TR'} = 'hide';
 
-      $pSubtree = FirstSon($pAct);
+  $pSubtree = FirstSon($pAct);
 
-      if ($pSubtree) {
+  if ($pSubtree) {
 
-	if (Interjection($pSubtree->{'ordorig'},'') eq '') {
+  if (Interjection($pSubtree->{'ordorig'},'') eq '') {
 
-	  $pSubtree->{'ordorig'} = Parent($pSubtree)->{'ord'};
-	}
+  $pSubtree->{'ordorig'} = Parent($pSubtree)->{'ord'};
+  }
 
-	$NodeClipboard=CutNode($pSubtree);
+  $NodeClipboard=CutNode($pSubtree);
 
-	$pBlind = PasteNode($NodeClipboard,$pPrepParent);
-      }
-    }
+  $pBlind = PasteNode($NodeClipboard,$pPrepParent);
+  }
+  }
   }
 
   if (Interjection($pAct->{'afun'},'AuxY') eq 'AuxY') {
 
-    $pPrepParent = Parent($pAct);
+  $pPrepParent = Parent($pAct);
 
-    if (Interjection($pPrepParent->{'afun'},'AuxC') eq 'AuxC' ||
-	Interjection($pPrepParent->{'afun'},'Coord') eq 'Coord') {
+  if (Interjection($pPrepParent->{'afun'},'AuxC') eq 'AuxC' ||
+      Interjection($pPrepParent->{'afun'},'Coord') eq 'Coord') {
 
-      $sPrepBody = ValNo(0,$pPrepParent->{'trlemma'});
+  $sPrepBody = ValNo(0,$pPrepParent->{'trlemma'});
 
-      $sPrepTail = ValNo(0,$pAct->{'trlemma'});
+  $sPrepTail = ValNo(0,$pAct->{'trlemma'});
 
-      $BodyOrder = ValNo(0,$pPrepParent->{'ord'});
+  $BodyOrder = ValNo(0,$pPrepParent->{'ord'});
 
-      $TailOrder = ValNo(0,$pAct->{'ord'});
+  $TailOrder = ValNo(0,$pAct->{'ord'});
 
-      if ($TailOrder>$BodyOrder) {
+  if ($TailOrder>$BodyOrder) {
 
-	$sPomocny = (ValNo(0,$sPrepBody).ValNo(0,'_'));
+  $sPomocny = (ValNo(0,$sPrepBody).ValNo(0,'_'));
 
-	$sPrep = (ValNo(0,$sPomocny).ValNo(0,$sPrepTail));
-      } else {
+  $sPrep = (ValNo(0,$sPomocny).ValNo(0,$sPrepTail));
+  } else {
 
-	$sPomocny = (ValNo(0,'_').ValNo(0,$sPrepBody));
+  $sPomocny = (ValNo(0,'_').ValNo(0,$sPrepBody));
 
-	$sPrep = (ValNo(0,$sPrepTail).ValNo(0,$sPomocny));
-      }
+  $sPrep = (ValNo(0,$sPrepTail).ValNo(0,$sPomocny));
+  }
 
 
-      $pPrepParent->{'trlemma'} = $sPrep;
+  $pPrepParent->{'trlemma'} = $sPrep;
 
-      $pAct->{'TR'} = 'hide';
-    }
+  $pAct->{'TR'} = 'hide';
+  }
   }
 
   goto PruchodStromemDoHloubky;
@@ -3287,58 +4662,58 @@ sub AuxPY {
 
 
 sub TRVerbs {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $pThisSon;			# used as type "pointer"
-  my $pBYT;			# used as type "pointer"
-  my $pBYT2;			# used as type "pointer"
-  my $pBY;			# used as type "pointer"
-  my $pPNOM;			# used as type "pointer"
-  my $pSE;			# used as type "pointer"
-  my $pCut;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
-  my $sXTag;			# used as type "string"
-  my $sXTagBeg;			# used as type "string"
-  my $sTrlema;			# used as type "string"
-  my $sAuxVlema;		# used as type "string"
-  my $sSuffix;			# used as type "string"
-  my $sVSuffix;			# used as type "string"
-  my $sSEForm;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $pThisSon; # used as type "pointer"
+  my $pBYT; # used as type "pointer"
+  my $pBYT2; # used as type "pointer"
+  my $pBY; # used as type "pointer"
+  my $pPNOM; # used as type "pointer"
+  my $pSE; # used as type "pointer"
+  my $pCut; # used as type "pointer"
+  my $pD; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
+  my $sXTag; # used as type "string"
+  my $sXTagBeg; # used as type "string"
+  my $sTrlema; # used as type "string"
+  my $sAuxVlema; # used as type "string"
+  my $sSuffix; # used as type "string"
+  my $sVSuffix; # used as type "string"
+  my $sSEForm; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -3350,199 +4725,199 @@ sub TRVerbs {
 
   if ($sVTagBeg eq 'V') {
 
-    $pVerb = $pAct;
+  $pVerb = $pAct;
 
-    if (Interjection($pVerb->{'afun'},'AuxV') ne 'AuxV') {
+  if (Interjection($pVerb->{'afun'},'AuxV') ne 'AuxV') {
 
-      $sPar1 = ValNo(0,$pVerb->{'lemma'});
+  $sPar1 = ValNo(0,$pVerb->{'lemma'});
 
-      GetAfunSuffix();
+  GetAfunSuffix();
 
-      $sVSuffix = $sPar3;
+  $sVSuffix = $sPar3;
 
-      if ($sVSuffix eq '_:T') {
+  if ($sVSuffix eq '_:T') {
 
-	$pVerb->{'aspect'} = 'PROC';
-      }
+  $pVerb->{'aspect'} = 'PROC';
+  }
 
-      if ($sVSuffix eq '_:W') {
+  if ($sVSuffix eq '_:W') {
 
-	$pVerb->{'aspect'} = 'CPL';
-      }
+  $pVerb->{'aspect'} = 'CPL';
+  }
 
-      if (FirstSon($pVerb)) {
+  if (FirstSon($pVerb)) {
 
-	$sVTagBeg = substr($sTag,0,2);
+  $sVTagBeg = substr($sTag,0,2);
 
-	$pThisSon = FirstSon($pVerb);
+  $pThisSon = FirstSon($pVerb);
 
-	$pBY = undef;
+  $pBY = undef;
 
-	$pBYT = undef;
+  $pBYT = undef;
 
-	$pBYT2 = undef;
+  $pBYT2 = undef;
 
-	$pPNOM = undef;
+  $pPNOM = undef;
 
-	$pSE = undef;
-      AllSons:
-	if (Interjection($pThisSon->{'afun'},'AuxV') eq 'AuxV') {
+  $pSE = undef;
+AllSons:
+  if (Interjection($pThisSon->{'afun'},'AuxV') eq 'AuxV') {
 
-	  if (Interjection($pThisSon->{'lemma'},'být') eq 'být' &&
-	      Interjection($pThisSon->{'form'},'by') ne 'by') {
+  if (Interjection($pThisSon->{'lemma'},'být') eq 'být' &&
+      Interjection($pThisSon->{'form'},'by') ne 'by') {
 
-	    if ($pBYT) {
+  if ($pBYT) {
 
-	      $pBYT2 = $pThisSon;
+  $pBYT2 = $pThisSon;
 
-	      $pThisSon->{'TR'} = 'hide';
-	    }
+  $pThisSon->{'TR'} = 'hide';
+  }
 
-	    if (!($pBYT)) {
+  if (!($pBYT)) {
 
-	      $pBYT = $pThisSon;
+  $pBYT = $pThisSon;
 
-	      $pThisSon->{'TR'} = 'hide';
-	    }
-	  }
+  $pThisSon->{'TR'} = 'hide';
+  }
+  }
 
-	  if (Interjection($pThisSon->{'form'},'by') eq 'by' ||
-	      Interjection($pThisSon->{'form'},'bych') eq 'bych' ||
-	      Interjection($pThisSon->{'form'},'bys') eq 'bys' ||
-	      Interjection($pThisSon->{'form'},'byste') eq 'byste' ||
-	      Interjection($pThisSon->{'form'},'bysme') eq 'bysme' ||
-	      Interjection($pThisSon->{'form'},'bychom') eq 'bychom') {
+  if (Interjection($pThisSon->{'form'},'by') eq 'by' ||
+      Interjection($pThisSon->{'form'},'bych') eq 'bych' ||
+      Interjection($pThisSon->{'form'},'bys') eq 'bys' ||
+      Interjection($pThisSon->{'form'},'byste') eq 'byste' ||
+      Interjection($pThisSon->{'form'},'bysme') eq 'bysme' ||
+      Interjection($pThisSon->{'form'},'bychom') eq 'bychom') {
 
-	    $pBY = $pThisSon;
+  $pBY = $pThisSon;
 
-	    $pThisSon->{'TR'} = 'hide';
-	  }
-	}
+  $pThisSon->{'TR'} = 'hide';
+  }
+  }
 
-	if (Interjection($pThisSon->{'afun'},'AuxT') eq 'AuxT') {
+  if (Interjection($pThisSon->{'afun'},'AuxT') eq 'AuxT') {
 
-	  $pSE = $pThisSon;
+  $pSE = $pThisSon;
 
-	  $sSEForm = ValNo(0,$pSE->{'form'});
+  $sSEForm = ValNo(0,$pSE->{'form'});
 
-	  $pSE->{'TR'} = 'hide';
-	}
+  $pSE->{'TR'} = 'hide';
+  }
 
-	if (Interjection($pThisSon->{'afun'},'Pnom') eq 'Pnom') {
+  if (Interjection($pThisSon->{'afun'},'Pnom') eq 'Pnom') {
 
-	  $sVTagBeg = substr(ValNo(0,$pThisSon->{'tag'}),0,1);
+  $sVTagBeg = substr(ValNo(0,$pThisSon->{'tag'}),0,1);
 
-	  if ($sVTagBeg eq 'V') {
+  if ($sVTagBeg eq 'V') {
 
-	    $pPNOM = $pThisSon;
+  $pPNOM = $pThisSon;
 
-	    $pCut = FirstSon($pPNOM);
-	  CutAllSubtrees:
-	    if ($pCut) {
+  $pCut = FirstSon($pPNOM);
+CutAllSubtrees:
+  if ($pCut) {
 
-	      if (Interjection($pCut->{'ordorig'},'') eq '') {
+  if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-		$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-	      }
+  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+  }
 
-	      $NodeClipboard=CutNode($pCut);
+  $NodeClipboard=CutNode($pCut);
 
-	      $pD = PasteNode($NodeClipboard,Parent($pPNOM));
+  $pD = PasteNode($NodeClipboard,Parent($pPNOM));
 
-	      $pCut = FirstSon($pPNOM);
+  $pCut = FirstSon($pPNOM);
 
-	      goto CutAllSubtrees;
-	    }
+  goto CutAllSubtrees;
+  }
 
-	    $pPNOM->{'TR'} = 'hide';
-	  }
-	}
+  $pPNOM->{'TR'} = 'hide';
+  }
+  }
 
-	if (RBrother($pThisSon)) {
+  if (RBrother($pThisSon)) {
 
-	  $pThisSon = RBrother($pThisSon);
+  $pThisSon = RBrother($pThisSon);
 
-	  goto AllSons;
-	}
+  goto AllSons;
+  }
 
-	if ($pSE) {
+  if ($pSE) {
 
-	  $sTrlema = ValNo(0,$pVerb->{'trlemma'});
+  $sTrlema = ValNo(0,$pVerb->{'trlemma'});
 
-	  $sSEForm = (ValNo(0,'_').ValNo(0,$sSEForm));
+  $sSEForm = (ValNo(0,'_').ValNo(0,$sSEForm));
 
-	  $pVerb->{'trlemma'} = (ValNo(0,$sTrlema).ValNo(0,$sSEForm));
-	}
+  $pVerb->{'trlemma'} = (ValNo(0,$sTrlema).ValNo(0,$sSEForm));
+  }
 
-	if (!($pBY)) {
+  if (!($pBY)) {
 
-	  if (!($pBYT)) {
+  if (!($pBYT)) {
 
-	    if ($sVTagBeg eq 'VR') {
+  if ($sVTagBeg eq 'VR') {
 
-	      $pVerb->{'tense'} = 'ANT';
-	    }
-	  }
+  $pVerb->{'tense'} = 'ANT';
+  }
+  }
 
-	  if ($pBYT) {
+  if ($pBYT) {
 
-	    $sXTag = ValNo(0,$pBYT->{'tag'});
+  $sXTag = ValNo(0,$pBYT->{'tag'});
 
-	    $sXTagBeg = substr($sXTag,0,2);
+  $sXTagBeg = substr($sXTag,0,2);
 
-	    if ($sXTagBeg eq 'VU') {
+  if ($sXTagBeg eq 'VU') {
 
-	      $pVerb->{'tense'} = 'POST';
-	    }
-	  }
-	}
+  $pVerb->{'tense'} = 'POST';
+  }
+  }
+  }
 
-	if ($pBY &&
-	    !($pBYT)) {
+  if ($pBY &&
+      !($pBYT)) {
 
-	  $pVerb->{'tense'} = 'SIM';
+  $pVerb->{'tense'} = 'SIM';
 
-	  $pVerb->{'verbmod'} = 'CDN';
-	}
+  $pVerb->{'verbmod'} = 'CDN';
+  }
 
-	if ($pBY &&
-	    $pBYT &&
-	    !($pBYT2)) {
+  if ($pBY &&
+      $pBYT &&
+      !($pBYT2)) {
 
-	  $pVerb->{'tense'} = 'ANT';
+  $pVerb->{'tense'} = 'ANT';
 
-	  $pVerb->{'verbmod'} = 'CDN';
-	}
-      } else {
+  $pVerb->{'verbmod'} = 'CDN';
+  }
+  } else {
 
-	if ($sVTagBeg eq 'VR') {
+  if ($sVTagBeg eq 'VR') {
 
-	  $pVerb->{'tense'} = 'ANT';
-	} else {
+  $pVerb->{'tense'} = 'ANT';
+  } else {
 
-	  if ($sVTagBeg eq 'VU') {
+  if ($sVTagBeg eq 'VU') {
 
-	    $pVerb->{'tense'} = 'POST';
-	  } else {
+  $pVerb->{'tense'} = 'POST';
+  } else {
 
-	    $pVerb->{'tense'} = 'SIM';
-	  }
+  $pVerb->{'tense'} = 'SIM';
+  }
 
-	}
+  }
 
-      }
+  }
 
 
-      $pBY = undef;
+  $pBY = undef;
 
-      $pBYT = undef;
+  $pBYT = undef;
 
-      $pBYT2 = undef;
+  $pBYT2 = undef;
 
-      $pPNOM = undef;
+  $pPNOM = undef;
 
-      $pSE = undef;
-    }
+  $pSE = undef;
+  }
   }
 
   goto PruchodStromemDoHloubky;
@@ -3551,51 +4926,51 @@ sub TRVerbs {
 
 
 sub ModalVerbs {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $pJoin;			# used as type "pointer"
-  my $pCut;			# used as type "pointer"
-  my $pModal;			# used as type "pointer"
-  my $sLemma;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
-  my $sMod;			# used as type "string"
-  my $sModLem;			# used as type "string"
-  my $sVerbLem;			# used as type "string"
-  my $pVerbTag;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pD; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $pJoin; # used as type "pointer"
+  my $pCut; # used as type "pointer"
+  my $pModal; # used as type "pointer"
+  my $sLemma; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
+  my $sMod; # used as type "string"
+  my $sModLem; # used as type "string"
+  my $sVerbLem; # used as type "string"
+  my $pVerbTag; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -3607,16 +4982,16 @@ sub ModalVerbs {
 
   if ($sPar2 eq 'chtít') {
 
-    $sMod = 'VOL';
+  $sMod = 'VOL';
 
-    goto ActNodeWasModalObjReq;
+  goto ActNodeWasModalObjReq;
   }
 
   if ($sPar2 eq 'muset') {
 
-    $sMod = 'DEB';
+  $sMod = 'DEB';
 
-    goto ActNodeWasModal;
+  goto ActNodeWasModal;
   }
 
   if ($sPar2 eq 'moci' ||
@@ -3624,142 +4999,142 @@ sub ModalVerbs {
       Interjection($pAct->{'trlemma'},'dát_by_se') eq 'dát_by_se' ||
       Interjection($pAct->{'trlemma'},'by_se_dát') eq 'by_se_dát') {
 
-    $sMod = 'POSS';
+  $sMod = 'POSS';
 
-    goto ActNodeWasModal;
+  goto ActNodeWasModal;
   }
 
   if ($sPar2 eq 'smìt') {
 
-    $sMod = 'PERM';
+  $sMod = 'PERM';
 
-    goto ActNodeWasModal;
+  goto ActNodeWasModal;
   }
 
   if ($sPar2 eq 'umìt' ||
       $sPar2 eq 'dovést') {
 
-    $sMod = 'FAC';
+  $sMod = 'FAC';
 
-    goto ActNodeWasModalObjReq;
+  goto ActNodeWasModalObjReq;
   }
 
   if ($sPar2 eq 'mít') {
 
-    $sMod = 'HRT';
+  $sMod = 'HRT';
 
-    goto ActNodeWasModalObjReq;
+  goto ActNodeWasModalObjReq;
   }
 
   goto PruchodStromemDoHloubky;
- ActNodeWasModal:
+ActNodeWasModal:
   $pJoin = undef;
 
   $pModal = $pAct;
 
   $pVerb = FirstSon($pModal);
- AllSons:
+AllSons:
   if ($pVerb) {
 
-    $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
+  $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
 
-    if ($pVerbTag eq 'Vf') {
+  if ($pVerbTag eq 'Vf') {
 
-      $pJoin = $pVerb;
+  $pJoin = $pVerb;
 
-      $pModal->{'ID1'} = $pVerbTag;
-    } else {
+  $pModal->{'ID1'} = $pVerbTag;
+  } else {
 
-      $pVerb = RBrother($pVerb);
+  $pVerb = RBrother($pVerb);
 
-      goto AllSons;
-    }
+  goto AllSons;
+  }
 
   }
 
   if ($pJoin) {
 
-    $pCut = FirstSon($pJoin);
-  CutAllSubtrees:
-    if ($pCut) {
+  $pCut = FirstSon($pJoin);
+CutAllSubtrees:
+  if ($pCut) {
 
-      if (Interjection($pCut->{'ordorig'},'') eq '') {
+  if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-      }
+  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+  }
 
-      $NodeClipboard=CutNode($pCut);
+  $NodeClipboard=CutNode($pCut);
 
-      $pD = PasteNode($NodeClipboard,$pModal);
+  $pD = PasteNode($NodeClipboard,$pModal);
 
-      $pCut = FirstSon($pJoin);
+  $pCut = FirstSon($pJoin);
 
-      goto CutAllSubtrees;
-    }
+  goto CutAllSubtrees;
+  }
 
-    $pJoin->{'TR'} = 'hide';
+  $pJoin->{'TR'} = 'hide';
 
-    $sVerbLem = ValNo(0,$pJoin->{'trlemma'});
+  $sVerbLem = ValNo(0,$pJoin->{'trlemma'});
 
-    $pModal->{'trlemma'} = $sVerbLem;
+  $pModal->{'trlemma'} = $sVerbLem;
 
-    $pModal->{'deontmod'} = $sMod;
+  $pModal->{'deontmod'} = $sMod;
   }
 
   goto PruchodStromemDoHloubky;
- ActNodeWasModalObjReq:
+ActNodeWasModalObjReq:
   $pJoin = undef;
 
   $pModal = $pAct;
 
   $pVerb = FirstSon($pModal);
- AllSonsObj:
+AllSonsObj:
   if ($pVerb) {
 
-    $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
+  $pVerbTag = substr(ValNo(0,$pVerb->{'tag'}),0,2);
 
-    if ($pVerbTag eq 'Vf' &&
-	Interjection($pVerb->{'afun'},'Obj') eq 'Obj') {
+  if ($pVerbTag eq 'Vf' &&
+      Interjection($pVerb->{'afun'},'Obj') eq 'Obj') {
 
-      $pJoin = $pVerb;
+  $pJoin = $pVerb;
 
-      $pModal->{'ID1'} = $pVerbTag;
-    } else {
+  $pModal->{'ID1'} = $pVerbTag;
+  } else {
 
-      $pVerb = RBrother($pVerb);
+  $pVerb = RBrother($pVerb);
 
-      goto AllSonsObj;
-    }
+  goto AllSonsObj;
+  }
 
   }
 
   if ($pJoin) {
 
-    $pCut = FirstSon($pJoin);
-  CutAllSubtreesObj:
-    if ($pCut) {
+  $pCut = FirstSon($pJoin);
+CutAllSubtreesObj:
+  if ($pCut) {
 
-      if (Interjection($pCut->{'ordorig'},'') eq '') {
+  if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-      }
+  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+  }
 
-      $NodeClipboard=CutNode($pCut);
+  $NodeClipboard=CutNode($pCut);
 
-      $pD = PasteNode($NodeClipboard,$pModal);
+  $pD = PasteNode($NodeClipboard,$pModal);
 
-      $pCut = FirstSon($pJoin);
+  $pCut = FirstSon($pJoin);
 
-      goto CutAllSubtreesObj;
-    }
+  goto CutAllSubtreesObj;
+  }
 
-    $pJoin->{'TR'} = 'hide';
+  $pJoin->{'TR'} = 'hide';
 
-    $sVerbLem = ValNo(0,$pJoin->{'trlemma'});
+  $sVerbLem = ValNo(0,$pJoin->{'trlemma'});
 
-    $pModal->{'trlemma'} = $sVerbLem;
+  $pModal->{'trlemma'} = $sVerbLem;
 
-    $pModal->{'deontmod'} = $sMod;
+  $pModal->{'deontmod'} = $sMod;
   }
 
   goto PruchodStromemDoHloubky;
@@ -3768,18 +5143,18 @@ sub ModalVerbs {
 
 
 sub Sentmod {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $pFirstWord;		# used as type "pointer"
-  my $pLastWord;		# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
-  my $sInterpunction;		# used as type "string"
-  my $sLastMod;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $pFirstWord; # used as type "pointer"
+  my $pLastWord; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
+  my $sInterpunction; # used as type "string"
+  my $sLastMod; # used as type "string"
 
   ThisRoot();
 
@@ -3788,200 +5163,200 @@ sub Sentmod {
   $pAct = $pRoot;
 
   $pFirstWord = $pRoot;
- FindFirstWord:
+FindFirstWord:
   if (FirstSon($pFirstWord)) {
 
-    $pFirstWord = FirstSon($pFirstWord);
+  $pFirstWord = FirstSon($pFirstWord);
 
-    goto FindFirstWord;
+  goto FindFirstWord;
   } else {
 
-    return;
+  return;
   }
 
 
   $pLastWord = FirstSon($pAct);
- FindInterpunction:
+FindInterpunction:
   if (RBrother($pLastWord)) {
 
-    $pLastWord = RBrother($pLastWord);
+  $pLastWord = RBrother($pLastWord);
 
-    goto FindInterpunction;
+  goto FindInterpunction;
   }
 
   $sInterpunction = ValNo(0,$pLastWord->{'form'});
- LookForVerbs:
+LookForVerbs:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    return;
+  return;
   }
 
   $pAct = $pNext;
 
   if (Interjection($pAct->{'afun'},'Pred') eq 'Pred') {
 
-    if ($sInterpunction eq '?') {
+  if ($sInterpunction eq '?') {
 
-      $pAct->{'sentmod'} = 'INTER';
-    }
+  $pAct->{'sentmod'} = 'INTER';
+  }
 
-    if ($sInterpunction eq '!') {
+  if ($sInterpunction eq '!') {
 
-      $pAct->{'sentmod'} = 'IMPER';
-    }
+  $pAct->{'sentmod'} = 'IMPER';
+  }
 
-    if ($sInterpunction eq '.') {
+  if ($sInterpunction eq '.') {
 
-      $pAct->{'sentmod'} = 'DECL';
-    }
+  $pAct->{'sentmod'} = 'DECL';
+  }
 
-    return;
+  return;
   }
 
   if (Interjection($pNext->{'afun'},'Coord') eq 'Coord') {
 
-    $pAct = FirstSon($pAct);
-  FindLast:
-    if (RBrother($pAct)) {
+  $pAct = FirstSon($pAct);
+FindLast:
+  if (RBrother($pAct)) {
 
-      $pAct = RBrother($pAct);
+  $pAct = RBrother($pAct);
 
-      goto FindLast;
-    }
-  FindCoordinated:
-    if (!($pAct)) {
+  goto FindLast;
+  }
+FindCoordinated:
+  if (!($pAct)) {
 
-      return;
-    }
+  return;
+  }
 
-    if (Interjection($pAct->{'reltype'},'CO') eq 'CO') {
+  if (Interjection($pAct->{'memberof'},'CO') eq 'CO') {
 
-      $pVerb = $pAct;
+  $pVerb = $pAct;
 
-      goto LastVerb;
-    } else {
+  goto LastVerb;
+  } else {
 
-      goto FindCoordinated;
-    }
+  goto FindCoordinated;
+  }
 
-  LastVerb:
-    if (Interjection($pVerb->{'afun'},'Pred_Co') ne 'Pred_Co') {
+LastVerb:
+  if (Interjection($pVerb->{'afun'},'Pred_Co') ne 'Pred_Co') {
 
-      return;
-    }
+  return;
+  }
 
-    if ($sInterpunction eq '?') {
+  if ($sInterpunction eq '?') {
 
-      $pAct->{'sentmod'} = 'INTER';
-    }
+  $pAct->{'sentmod'} = 'INTER';
+  }
 
-    if ($sInterpunction eq '!') {
+  if ($sInterpunction eq '!') {
 
-      $pAct->{'sentmod'} = 'IMPER';
-    }
+  $pAct->{'sentmod'} = 'IMPER';
+  }
 
-    if ($sInterpunction eq '.') {
+  if ($sInterpunction eq '.') {
 
-      $pAct->{'sentmod'} = 'DECL';
-    }
+  $pAct->{'sentmod'} = 'DECL';
+  }
 
-    $sLastMod = ValNo(0,$pAct->{'sentmod'});
-  AnyVerb:
-    if (!($pAct)) {
+  $sLastMod = ValNo(0,$pAct->{'sentmod'});
+AnyVerb:
+  if (!($pAct)) {
 
-      return;
-    }
+  return;
+  }
 
-    $pAct = LBrother($pAct);
+  $pAct = LBrother($pAct);
 
-    if (Interjection($pAct->{'reltype'},'CO') ne 'CO') {
+  if (Interjection($pAct->{'memberof'},'CO') ne 'CO') {
 
-      $pAct = LBrother($pAct);
+  $pAct = LBrother($pAct);
 
-      goto AnyVerb;
-    }
+  goto AnyVerb;
+  }
 
-    if ($sLastMod eq 'INTER') {
+  if ($sLastMod eq 'INTER') {
 
-      $pAct->{'sentmod'} = 'INTER';
-    } else {
+  $pAct->{'sentmod'} = 'INTER';
+  } else {
 
-      if (Interjection($pAct->{'verbmod'},'IMP') eq 'IMP') {
+  if (Interjection($pAct->{'verbmod'},'IMP') eq 'IMP') {
 
-	$pAct->{'sentmod'} = 'IMPER';
-      }
+  $pAct->{'sentmod'} = 'IMPER';
+  }
 
-      if (Interjection($pAct->{'verbmod'},'IND') eq 'IND') {
+  if (Interjection($pAct->{'verbmod'},'IND') eq 'IND') {
 
-	$pAct->{'sentmod'} = 'ENUNC';
-      }
+  $pAct->{'sentmod'} = 'ENUNC';
+  }
 
-      if (Interjection($pAct->{'verbmod'},'CDN') eq 'CDN') {
+  if (Interjection($pAct->{'verbmod'},'CDN') eq 'CDN') {
 
-	if (Interjection($pFirstWord->{'form'},'kéž') eq 'kéž') {
+  if (Interjection($pFirstWord->{'form'},'kéž') eq 'kéž') {
 
-	  $pAct->{'sentmod'} = 'DESID';
-	} else {
+  $pAct->{'sentmod'} = 'DESID';
+  } else {
 
-	  $pAct->{'sentmod'} = 'ENUNC';
-	}
+  $pAct->{'sentmod'} = 'ENUNC';
+  }
 
-      }
-    }
+  }
+  }
 
 
-    return;
+  return;
   }
 
 }
 
 
 sub Prepositions {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $pPrep;			# used as type "pointer"
-  my $pConj;			# used as type "pointer"
-  my $pOnlyChild;		# used as type "pointer"
-  my $pCoordP;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pD1;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sTRLema;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $pPrep; # used as type "pointer"
+  my $pConj; # used as type "pointer"
+  my $pOnlyChild; # used as type "pointer"
+  my $pCoordP; # used as type "pointer"
+  my $pD; # used as type "pointer"
+  my $pD1; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sTRLema; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -3989,141 +5364,141 @@ sub Prepositions {
 
   if (Interjection($pAct->{'afun'},'AuxP') eq 'AuxP') {
 
-    if (Interjection($pAct->{'TR'},'hide') eq 'hide') {
+  if (Interjection($pAct->{'TR'},'hide') eq 'hide') {
 
-      goto PruchodStromemDoHloubky;
-    }
+  goto PruchodStromemDoHloubky;
+  }
 
-    $pPrep = $pAct;
+  $pPrep = $pAct;
 
-    $pParent = Parent($pPrep);
+  $pParent = Parent($pPrep);
 
-    if (Interjection($pParent->{'afun'},'AuxP') eq 'AuxP') {
+  if (Interjection($pParent->{'afun'},'AuxP') eq 'AuxP') {
 
-      goto PruchodStromemDoHloubky;
-    }
+  goto PruchodStromemDoHloubky;
+  }
 
-    $pOnlyChild = FirstSon($pPrep);
-  FindNoun:
-    if (!($pOnlyChild)) {
+  $pOnlyChild = FirstSon($pPrep);
+FindNoun:
+  if (!($pOnlyChild)) {
 
-      goto PruchodStromemDoHloubky;
-    }
+  goto PruchodStromemDoHloubky;
+  }
 
-    if (Interjection($pOnlyChild->{'afun'},'AuxP') eq 'AuxP' ||
-	Interjection($pOnlyChild->{'afun'},'AuxG') eq 'AuxG') {
+  if (Interjection($pOnlyChild->{'afun'},'AuxP') eq 'AuxP' ||
+      Interjection($pOnlyChild->{'afun'},'AuxG') eq 'AuxG') {
 
-      $pOnlyChild = RBrother($pOnlyChild);
+  $pOnlyChild = RBrother($pOnlyChild);
 
-      goto FindNoun;
-    }
+  goto FindNoun;
+  }
 
-    if (!($pOnlyChild)) {
+  if (!($pOnlyChild)) {
 
-      goto PruchodStromemDoHloubky;
-    }
+  goto PruchodStromemDoHloubky;
+  }
 
-    if (Interjection($pOnlyChild->{'afun'},'Coord') eq 'Coord') {
+  if (Interjection($pOnlyChild->{'afun'},'Coord') eq 'Coord') {
 
-      $pCoordP = FirstSon($pOnlyChild);
-    CoordinationWPrep:
-      if ($pCoordP) {
+  $pCoordP = FirstSon($pOnlyChild);
+CoordinationWPrep:
+  if ($pCoordP) {
 
-	if (Interjection($pCoordP->{'reltype'},'CO') eq 'CO') {
+  if (Interjection($pCoordP->{'memberof'},'CO') eq 'CO') {
 
-	  $pCoordP->{'fw'} = $pPrep->{'trlemma'};
-	}
+  $pCoordP->{'fw'} = $pPrep->{'trlemma'};
+  }
 
-	$pCoordP = RBrother($pCoordP);
+  $pCoordP = RBrother($pCoordP);
 
-	goto CoordinationWPrep;
-      }
-    }
+  goto CoordinationWPrep;
+  }
+  }
 
-    $sTRLema = ValNo(0,$pPrep->{'trlemma'});
+  $sTRLema = ValNo(0,$pPrep->{'trlemma'});
 
-    $pOnlyChild->{'fw'} = $sTRLema;
+  $pOnlyChild->{'fw'} = $sTRLema;
 
-    $pPrep->{'TR'} = 'hide';
+  $pPrep->{'TR'} = 'hide';
 
-    if (Interjection($pOnlyChild->{'ordorig'},'') eq '') {
+  if (Interjection($pOnlyChild->{'ordorig'},'') eq '') {
 
-      $pOnlyChild->{'ordorig'} = Parent($pOnlyChild)->{'ord'};
-    }
+  $pOnlyChild->{'ordorig'} = Parent($pOnlyChild)->{'ord'};
+  }
 
-    $NodeClipboard=CutNode($pOnlyChild);
+  $NodeClipboard=CutNode($pOnlyChild);
 
-    $pD = PasteNode($NodeClipboard,$pParent);
+  $pD = PasteNode($NodeClipboard,$pParent);
 
-    if (Interjection($pPrep->{'ordorig'},'') eq '') {
+  if (Interjection($pPrep->{'ordorig'},'') eq '') {
 
-      $pPrep->{'ordorig'} = Parent($pPrep)->{'ord'};
-    }
+  $pPrep->{'ordorig'} = Parent($pPrep)->{'ord'};
+  }
 
-    $NodeClipboard=CutNode($pPrep);
+  $NodeClipboard=CutNode($pPrep);
 
-    $pD1 = PasteNode($NodeClipboard,$pD);
+  $pD1 = PasteNode($NodeClipboard,$pD);
 
-    $pAct = $pParent;
+  $pAct = $pParent;
   }
 
   if (Interjection($pAct->{'afun'},'AuxC') eq 'AuxC') {
 
-    if (Interjection($pAct->{'TR'},'hide') eq 'hide') {
+  if (Interjection($pAct->{'TR'},'hide') eq 'hide') {
 
-      goto PruchodStromemDoHloubky;
-    }
+  goto PruchodStromemDoHloubky;
+  }
 
-    $pConj = $pAct;
+  $pConj = $pAct;
 
-    $pParent = Parent($pConj);
+  $pParent = Parent($pConj);
 
-    $pOnlyChild = FirstSon($pConj);
-  FindNoun:
-    if (!($pOnlyChild)) {
+  $pOnlyChild = FirstSon($pConj);
+FindNoun:
+  if (!($pOnlyChild)) {
 
-      goto PruchodStromemDoHloubky;
-    }
+  goto PruchodStromemDoHloubky;
+  }
 
-    if (Interjection($pOnlyChild->{'afun'},'AuxX') eq 'AuxX') {
+  if (Interjection($pOnlyChild->{'afun'},'AuxX') eq 'AuxX') {
 
-      $pOnlyChild = RBrother($pOnlyChild);
+  $pOnlyChild = RBrother($pOnlyChild);
 
-      goto FindNoun;
-    }
+  goto FindNoun;
+  }
 
-    $sTRLema = ValNo(0,$pConj->{'trlemma'});
+  $sTRLema = ValNo(0,$pConj->{'trlemma'});
 
-    $pOnlyChild->{'fw'} = $sTRLema;
+  $pOnlyChild->{'fw'} = $sTRLema;
 
-    if (Interjection($pConj->{'ord'},"1") ne "1") {
+  if (Interjection($pConj->{'ord'},"1") ne "1") {
 
-      $pConj->{'TR'} = 'hide';
-    } else {
+  $pConj->{'TR'} = 'hide';
+  } else {
 
-      $pConj->{'func'} = 'PREC';
-    }
+  $pConj->{'func'} = 'PREC';
+  }
 
 
-    if (Interjection($pOnlyChild->{'ordorig'},'') eq '') {
+  if (Interjection($pOnlyChild->{'ordorig'},'') eq '') {
 
-      $pOnlyChild->{'ordorig'} = Parent($pOnlyChild)->{'ord'};
-    }
+  $pOnlyChild->{'ordorig'} = Parent($pOnlyChild)->{'ord'};
+  }
 
-    $NodeClipboard=CutNode($pOnlyChild);
+  $NodeClipboard=CutNode($pOnlyChild);
 
-    $pD = PasteNode($NodeClipboard,$pParent);
+  $pD = PasteNode($NodeClipboard,$pParent);
 
-    if (Interjection($pConj->{'ordorig'},'') eq '') {
+  if (Interjection($pConj->{'ordorig'},'') eq '') {
 
-      $pConj->{'ordorig'} = Parent($pConj)->{'ord'};
-    }
+  $pConj->{'ordorig'} = Parent($pConj)->{'ord'};
+  }
 
-    $NodeClipboard=CutNode($pConj);
+  $NodeClipboard=CutNode($pConj);
 
-    $pD1 = PasteNode($NodeClipboard,$pD);
+  $pD1 = PasteNode($NodeClipboard,$pD);
 
-    $pAct = $pParent;
+  $pAct = $pParent;
   }
 
   goto PruchodStromemDoHloubky;
@@ -4137,46 +5512,46 @@ sub Parentheses {
 
 
 sub Quot {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pLQuot;			# used as type "pointer"
-  my $pRQuot;			# used as type "pointer"
-  my $pLook;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
-  my $i;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pLQuot; # used as type "pointer"
+  my $pRQuot; # used as type "pointer"
+  my $pLook; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
+  my $i; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -4184,54 +5559,54 @@ sub Quot {
 
   if (Interjection($pAct->{'form'},'\"') eq '\"') {
 
-    if (Interjection($pAct->{'reserve2'},'SOLVED') ne 'SOLVED') {
+  if (Interjection($pAct->{'reserve2'},'SOLVED') ne 'SOLVED') {
 
-      $i = "0";
+  $i = "0";
 
-      $pLQuot = $pAct;
+  $pLQuot = $pAct;
 
-      $pLQuot->{'TR'} = 'hide';
+  $pLQuot->{'TR'} = 'hide';
 
-      $pRQuot = undef;
+  $pRQuot = undef;
 
-      $pLook = $pLQuot;
-    FindRight:
-      if (RBrother($pLook)) {
+  $pLook = $pLQuot;
+FindRight:
+  if (RBrother($pLook)) {
 
-	$pLook = RBrother($pLook);
+  $pLook = RBrother($pLook);
 
-	$i = $i+"1";
+  $i = $i+"1";
 
-	if (Interjection($pLook->{'form'},'\"') eq '\"') {
+  if (Interjection($pLook->{'form'},'\"') eq '\"') {
 
-	  $pRQuot = $pLook;
+  $pRQuot = $pLook;
 
-	  $pRQuot->{'reserve2'} = 'SOLVED';
+  $pRQuot->{'reserve2'} = 'SOLVED';
 
-	  $pRQuot->{'TR'} = 'hide';
-	} else {
+  $pRQuot->{'TR'} = 'hide';
+  } else {
 
-	  goto FindRight;
-	}
+  goto FindRight;
+  }
 
-      }
+  }
 
-      if (!($pRQuot)) {
+  if (!($pRQuot)) {
 
-	Parent($pLQuot)->{'dsp'} = 'DSPP';
-      } else {
+  Parent($pLQuot)->{'dsp'} = 'DSPP';
+  } else {
 
-	if ($i eq "2") {
+  if ($i eq "2") {
 
-	  RBrother($pLQuot)->{'quoted'} = 'QUOT';
-	} else {
+  RBrother($pLQuot)->{'quoted'} = 'QUOT';
+  } else {
 
-	  Parent($pLQuot)->{'dsp'} = 'DSP';
-	}
+  Parent($pLQuot)->{'dsp'} = 'DSP';
+  }
 
-      }
+  }
 
-    }
+  }
   }
 
   goto PruchodStromemDoHloubky;
@@ -4240,8 +5615,8 @@ sub Quot {
 
 
 sub HideSubtree {
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
 
   ThisRoot();
 
@@ -4251,10 +5626,10 @@ sub HideSubtree {
 
   if (Interjection($pT->{'TR'},'hide') eq 'hide') {
 
-    $pT->{'TR'} = '';
+  $pT->{'TR'} = '';
   } else {
 
-    $pT->{'TR'} = 'hide';
+  $pT->{'TR'} = 'hide';
   }
 
 
@@ -4262,17 +5637,17 @@ sub HideSubtree {
 
 
 sub JoinSubtree {
-  my $pAct;			# used as type "pointer"
-  my $pSubtree;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pCut;			# used as type "pointer"
-  my $pTatka;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sJLema;			# used as type "string"
-  my $sActLema;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pSubtree; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pD; # used as type "pointer"
+  my $pCut; # used as type "pointer"
+  my $pTatka; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sJLema; # used as type "string"
+  my $sActLema; # used as type "string"
 
   ThisRoot();
 
@@ -4280,7 +5655,7 @@ sub JoinSubtree {
 
   if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
 
-    return;
+  return;
   }
 
   $pAct = $this;
@@ -4291,6 +5666,11 @@ sub JoinSubtree {
 
   $sActLema = ValNo(0,$pAct->{'trlemma'});
 
+  if ($sActLema eq 'Gen') {
+
+  $sActLema = 'se';
+  }
+
   $sJLema = (ValNo(0,$sJLema).ValNo(0,'_'));
 
   $sJLema = (ValNo(0,$sJLema).ValNo(0,$sActLema));
@@ -4298,35 +5678,41 @@ sub JoinSubtree {
   $pCut = FirstSon($pAct);
 
   $pTatka = Parent($pAct);
- CutAllSubtrees:
+CutAllSubtrees:
   if ($pCut) {
 
-    if (Interjection($pCut->{'ordorig'},'') eq '') {
+  if (Interjection($pCut->{'ordorig'},'') eq '') {
 
-      $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-    }
+  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+  }
 
-    $NodeClipboard=CutNode($pCut);
+  $NodeClipboard=CutNode($pCut);
 
-    $pD = PasteNode($NodeClipboard,$pTatka);
+  $pD = PasteNode($NodeClipboard,$pTatka);
 
-    $pCut = FirstSon($pAct);
+  $pCut = FirstSon($pAct);
 
-    goto CutAllSubtrees;
+  goto CutAllSubtrees;
   }
 
   $pAct->{'TR'} = 'hide';
+
+  $pPar1 = $pAct;
 
   $pAct = Parent($pAct);
 
   if ($sPar1 eq "1") {
 
-    $pAct->{'trlemma'} = $sJLema;
+  $pAct->{'trlemma'} = $sJLema;
 
-    $sPar1 = "0";
+  $sPar1 = "0";
   }
 
   if ($sPar1 eq "0") {
+
+  ifmodal();
+
+  $pAct->{'deontmod'} = $sPar3;
   }
 
   $this = $pAct;
@@ -4334,10 +5720,55 @@ sub JoinSubtree {
 }
 
 
+sub ifmodal {
+
+  $sPar3 = '';
+
+  $sPar1 = ValNo(0,$pPar1->{'lemma'});
+
+  GetAfunSuffix();
+
+  if ($sPar2 eq 'chtít') {
+
+  $sPar3 = 'VOL';
+  }
+
+  if ($sPar2 eq 'muset') {
+
+  $sPar3 = 'DEB';
+  }
+
+  if ($sPar2 eq 'moci' ||
+      $sPar2 eq 'dát_se' ||
+      $sPar2 eq 'dát_by_se' ||
+      $sPar2 eq 'by_se_dát') {
+
+  $sPar3 = 'POSS';
+  }
+
+  if ($sPar2 eq 'smìt') {
+
+  $sPar3 = 'PERM';
+  }
+
+  if ($sPar2 eq 'umìt' ||
+      $sPar2 eq 'dovést') {
+
+  $sPar3 = 'FAC';
+  }
+
+  if ($sPar2 eq 'mít') {
+
+  $sPar3 = 'HRT';
+  }
+
+}
+
+
 sub joinfw {
-  my $pAct;			# used as type "pointer"
-  my $pParentW;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
+  my $pParentW; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
 
   ThisRoot();
 
@@ -4345,28 +5776,28 @@ sub joinfw {
 
   if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
 
-    return;
+  return;
   }
 
   $pAct = $this;
 
   if (!(FirstSon($pAct))) {
 
-    $pAct->{'TR'} = 'hide';
+  $pAct->{'TR'} = 'hide';
 
-    $pParentW = Parent($pAct);
+  $pParentW = Parent($pAct);
 
-    $pParentW->{'fw'} = $pAct->{'trlemma'};
+  $pParentW->{'fw'} = $pAct->{'trlemma'};
   }
 
 }
 
 
 sub splitfw {
-  my $pAct;			# used as type "pointer"
-  my $pSon;			# used as type "pointer"
-  my $sWLemma;			# used as type "string"
-  my $pRoot;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
+  my $pSon; # used as type "pointer"
+  my $sWLemma; # used as type "string"
+  my $pRoot; # used as type "pointer"
 
   ThisRoot();
 
@@ -4374,7 +5805,7 @@ sub splitfw {
 
   if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
 
-    return;
+  return;
   }
 
   $pAct = $this;
@@ -4383,47 +5814,103 @@ sub splitfw {
 
   if ($sWLemma eq '') {
 
-    return;
+  return;
   }
 
   $pSon = FirstSon($pAct);
- AllSons:
+AllSons:
   if (Interjection($pSon->{'trlemma'},$sWLemma) eq $sWLemma) {
 
-    $pSon->{'TR'} = '';
+  $pSon->{'TR'} = '';
 
-    $pAct->{'fw'} = '';
+  $pAct->{'fw'} = '';
   } else {
 
-    $pSon = RBrother($pSon);
+  $pSon = RBrother($pSon);
 
-    if ($pSon) {
+  if ($pSon) {
 
-      goto AllSons;
-    }
+  goto AllSons;
+  }
   }
 
 
 }
 
 
+sub SplitJoined {
+  my $pAct; # used as type "pointer"
+  my $pSon; # used as type "pointer"
+  my $sWLemma; # used as type "string"
+  my $sRestOfTrLemma; # used as type "string"
+  my $pRoot; # used as type "pointer"
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
+
+  return;
+  }
+
+  $pAct = $this;
+
+  $pSon = FirstSon($pAct);
+
+  $sRestOfTrLemma = ValNo(0,$pAct->{'trlemma'});
+AllParts:
+  $sPar1 = $sRestOfTrLemma;
+
+  GetAfunSuffix();
+
+  $sRestOfTrLemma = $sPar2;
+
+  $sWLemma = $sPar3;
+
+  if ($sWLemma eq '') {
+
+  $pAct->{'trlemma'} = $sRestOfTrLemma;
+
+  return;
+  }
+AllSons:
+  if (substr(ValNo(0,$pSon->{'trlemma'}),0,3) eq substr($sWLemma,1,3)) {
+
+  $pSon->{'TR'} = '';
+  } else {
+
+  $pSon = RBrother($pSon);
+
+  if ($pSon) {
+
+  goto AllSons;
+  }
+  }
+
+
+  goto AllParts;
+
+}
+
+
 sub FillEmpty {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $pCand1;			# used as type "pointer"
-  my $pCand2;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sTRlemma;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
-  my $sCandTag;			# used as type "string"
-  my $sCandTagBeg;		# used as type "string"
-  my $sEval;			# used as type "string"
-  my $sOrd1;			# used as type "string"
-  my $sOrd2;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $pCand1; # used as type "pointer"
+  my $pCand2; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sTRlemma; # used as type "string"
+  my $sVTagBeg; # used as type "string"
+  my $sCandTag; # used as type "string"
+  my $sCandTagBeg; # used as type "string"
+  my $sEval; # used as type "string"
+  my $sOrd1; # used as type "string"
+  my $sOrd2; # used as type "string"
 
   ThisRoot();
 
@@ -4432,29 +5919,29 @@ sub FillEmpty {
   $pAct = $pRoot;
 
   $pRoot->{'func'} = 'SENT';
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -4462,70 +5949,70 @@ sub FillEmpty {
 
   if (Interjection($pAct->{'afun'},'AuxR') eq 'AuxR') {
 
-    $pAct->{'trlemma'} = 'Gen';
+  $pAct->{'trlemma'} = 'Gen';
 
-    $pAct->{'func'} = 'ACT';
+  $pAct->{'func'} = 'ACT';
   }
 
   if (Interjection($pAct->{'afun'},'AuxK') eq 'AuxK') {
 
-    $pAct->{'TR'} = 'hide';
+  $pAct->{'TR'} = 'hide';
   }
 
   if (Interjection($pAct->{'afun'},'AuxG') eq 'AuxG') {
 
-    $pAct->{'TR'} = 'hide';
+  $pAct->{'TR'} = 'hide';
   }
 
   if (Interjection($pAct->{'form'},',') eq ',' &&
       Interjection($pAct->{'TR'},'hide') ne 'hide') {
 
-    $pAct->{'trlemma'} = 'Comma';
+  $pAct->{'trlemma'} = 'Comma';
 
-    if (!(FirstSon($pAct))) {
+  if (!(FirstSon($pAct))) {
 
-      $sEval = ValNo(0,$pAct->{'ord'})-"1";
+  $sEval = ValNo(0,$pAct->{'ord'})-"1";
 
-      $pCand1 = Parent($pAct);
+  $pCand1 = Parent($pAct);
 
-      $sOrd1 = ValNo(0,$pCand1->{'ord'});
+  $sOrd1 = ValNo(0,$pCand1->{'ord'});
 
-      $pCand2 = LBrother($pAct);
+  $pCand2 = LBrother($pAct);
 
-      if ($pCand2) {
+  if ($pCand2) {
 
-	$sOrd2 = ValNo(0,$pCand2->{'ord'});
-      }
+  $sOrd2 = ValNo(0,$pCand2->{'ord'});
+  }
 
-      if ($sOrd1 eq $sEval) {
+  if ($sOrd1 eq $sEval) {
 
-	$sCandTag = ValNo(0,$pCand1->{'tag'});
-      }
+  $sCandTag = ValNo(0,$pCand1->{'tag'});
+  }
 
-      if ($sOrd2 eq $sEval) {
+  if ($sOrd2 eq $sEval) {
 
-	$sCandTag = ValNo(0,$pCand2->{'tag'});
-      }
+  $sCandTag = ValNo(0,$pCand2->{'tag'});
+  }
 
-      $sCandTagBeg = substr($sCandTag,0,1);
+  $sCandTagBeg = substr($sCandTag,0,1);
 
-      if ($sCandTagBeg ne 'N') {
+  if ($sCandTagBeg ne 'N') {
 
-	$pAct->{'TR'} = 'hide';
-      }
-    }
+  $pAct->{'TR'} = 'hide';
+  }
+  }
   }
 
   $sTRlemma = ValNo(0,$pAct->{'trlemma'});
 
   if (Interjection($pAct->{'func'},'') eq '') {
 
-    $pAct->{'func'} = '???';
+  $pAct->{'func'} = '???';
   }
 
   if (Interjection($pAct->{'gender'},'') eq '') {
 
-    $pAct->{'gender'} = '???';
+  $pAct->{'gender'} = '???';
   }
 
   $pAct->{'tfa'} = 'T';
@@ -4536,17 +6023,17 @@ sub FillEmpty {
 
 
 sub GetNewOrd {
-  my $pNext;			# used as type "pointer"
-  my $sOrdnum;			# used as type "string"
-  my $sOrdB;			# used as type "string"
-  my $sBaseA;			# used as type "string"
-  my $sSufA;			# used as type "string"
-  my $sBaseB;			# used as type "string"
-  my $sSufB;			# used as type "string"
-  my $sChar;			# used as type "string"
-  my $i;			# used as type "string"
-  my $sBase;			# used as type "string"
-  my $sSuf;			# used as type "string"
+  my $pNext; # used as type "pointer"
+  my $sOrdnum; # used as type "string"
+  my $sOrdB; # used as type "string"
+  my $sBaseA; # used as type "string"
+  my $sSufA; # used as type "string"
+  my $sBaseB; # used as type "string"
+  my $sSufB; # used as type "string"
+  my $sChar; # used as type "string"
+  my $i; # used as type "string"
+  my $sBase; # used as type "string"
+  my $sSuf; # used as type "string"
 
   $pPar1->{'reserve2'} = 'Par1';
 
@@ -4562,135 +6049,135 @@ sub GetNewOrd {
 
   if (!($pPar2)) {
 
-    $sBaseB = "999";
+  $sBaseB = "999";
 
-    $sSufB = "9";
+  $sSufB = "9";
   } else {
 
-    $sOrdB = ValNo(0,$pPar2->{'ord'});
+  $sOrdB = ValNo(0,$pPar2->{'ord'});
 
-    $sBase = "0";
+  $sBase = "0";
 
-    $sSuf = "0";
+  $sSuf = "0";
 
-    $i = "0";
-  GNBLoopCont1:
-    $sChar = substr($sOrdB,$i,1);
-
-    if ($sChar eq '') {
-
-      $sBaseB = $sOrdB;
-
-      $sSufB = '';
-
-      goto GNBLoopEnd1;
-    }
-
-    if ($sChar eq '.') {
-
-      $sBaseB = substr($sOrdB,0,$i);
-
-      $i = $i+"1";
-
-      $sSufB = substr($sOrdB,$i,10);
-
-      goto GNBLoopEnd1;
-    }
-
-    $i = $i+"1";
-
-    goto GNBLoopCont1;
-  }
-
- GNBLoopEnd1:
   $i = "0";
- GNOLoopCont1:
-  $sChar = substr($sOrdnum,$i,1);
+GNBLoopCont1:
+  $sChar = substr($sOrdB,$i,1);
 
   if ($sChar eq '') {
 
-    $sBaseA = $sOrdnum;
+  $sBaseB = $sOrdB;
 
-    $sSufA = '';
+  $sSufB = '';
 
-    goto GNOLoopEnd1;
+  goto GNBLoopEnd1;
   }
 
   if ($sChar eq '.') {
 
-    $sBaseA = substr($sOrdnum,0,$i);
+  $sBaseB = substr($sOrdB,0,$i);
 
-    $i = $i+"1";
+  $i = $i+"1";
 
-    $sSufA = substr($sOrdnum,$i,10);
+  $sSufB = substr($sOrdB,$i,10);
 
-    goto GNOLoopEnd1;
+  goto GNBLoopEnd1;
+  }
+
+  $i = $i+"1";
+
+  goto GNBLoopCont1;
+  }
+
+GNBLoopEnd1:
+  $i = "0";
+GNOLoopCont1:
+  $sChar = substr($sOrdnum,$i,1);
+
+  if ($sChar eq '') {
+
+  $sBaseA = $sOrdnum;
+
+  $sSufA = '';
+
+  goto GNOLoopEnd1;
+  }
+
+  if ($sChar eq '.') {
+
+  $sBaseA = substr($sOrdnum,0,$i);
+
+  $i = $i+"1";
+
+  $sSufA = substr($sOrdnum,$i,10);
+
+  goto GNOLoopEnd1;
   }
 
   $i = $i+"1";
 
   goto GNOLoopCont1;
- GNOLoopEnd1:
+GNOLoopEnd1:
   if ($sSufB eq '') {
 
-    $sSufB = "9";
+  $sSufB = "9";
   }
 
   if ($sSufA eq '') {
 
-    $sSufA = "0";
+  $sSufA = "0";
   }
 
   if ($sBaseA<$sBaseB) {
 
-    $sBase = $sBaseA;
+  $sBase = $sBaseA;
 
-    if ($sSufA eq "9") {
+  if ($sSufA eq "9") {
 
-      $sBase = $sBase+"1";
+  $sBase = $sBase+"1";
 
-      $sSuf = "1";
-    } else {
+  $sSuf = "1";
+  } else {
 
-      $sSuf = $sSufA+"1";
-    }
+  $sSuf = $sSufA+"1";
+  }
 
   }
 
   if ($sBaseA>$sBaseB) {
 
-    $sBase = $sBaseB;
+  $sBase = $sBaseB;
 
-    $sSuf = $sSufB-"1";
+  $sSuf = $sSufB-"1";
 
-    if ($sBase==$sBaseA &&
-	$sSuf==$sSufA) {
+  if ($sBase==$sBaseA &&
+      $sSuf==$sSufA) {
 
-      $sSuf = $sSuf-"1";
-    }
+  $sSuf = $sSuf-"1";
+  }
 
-    if ($sSuf<"1") {
+  if ($sSuf<"1") {
 
-      $sSuf = (ValNo(0,$sSufA).ValNo(0,"5"));
-    }
+  $sSuf = (ValNo(0,$sSufA).ValNo(0,"5"));
+  }
   } else {
 
-    $sBase = $sBaseA;
+  $sBase = $sBaseA;
 
-    $sSuf = $sSufB-"1";
+  $sSuf = $sSufB-"1";
 
-    if ($sBase==$sBaseA &&
-	$sSuf==$sSufA) {
+  if ($sBase==$sBaseA &&
+      $sSuf==$sSufA) {
 
-      $sSuf = $sSuf-"1";
-    }
+  $sSuf = $sSuf-"1";
+  }
 
-    if ($sSuf<"1") {
+  if ($sSuf<"1") {
 
-      $sSufA = $sSufA+"1";
+  $sSufA = $sSufA+"1";
 
-      $sSuf = (ValNo(0,$sSufA).ValNo(0,"5"));
-    }
+  $sSuf = (ValNo(0,$sSufA).ValNo(0,"5"));
+  }
   }
 
 
@@ -4702,13 +6189,13 @@ sub GetNewOrd {
 
 
 sub NewSubject {
-  my $pT;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pNew;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pPredch;			# used as type "pointer"
-  my $sPoradi;			# used as type "string"
-  my $sDord;			# used as type "string"
+  my $pT; # used as type "pointer"
+  my $pD; # used as type "pointer"
+  my $pNew; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pPredch; # used as type "pointer"
+  my $sPoradi; # used as type "string"
+  my $sDord; # used as type "string"
 
   UnGap();
 
@@ -4718,7 +6205,7 @@ sub NewSubject {
 
   if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
 
-    return;
+  return;
   }
 
   $pT = $this;
@@ -4729,10 +6216,10 @@ sub NewSubject {
 
   if (!($pPar2)) {
 
-    if (RBrother($pT)) {
+  if (RBrother($pT)) {
 
-      $pPar2 = RBrother($pT);
-    }
+  $pPar2 = RBrother($pT);
+  }
   }
 
   GetNewOrd();
@@ -4741,10 +6228,10 @@ sub NewSubject {
 
   if (FirstSon($pT)) {
 
-    $sDord = ValNo(0,FirstSon($pT)->{'dord'});
+  $sDord = ValNo(0,FirstSon($pT)->{'dord'});
   } else {
 
-    $sDord = ValNo(0,$pT->{'dord'});
+  $sDord = ValNo(0,$pT->{'dord'});
   }
 
 
@@ -4822,7 +6309,7 @@ sub NewSubject {
 
   $pNew->{'gram'} = '???';
 
-  $pNew->{'reltype'} = '???';
+  $pNew->{'memberof'} = '???';
 
   $pNew->{'fw'} = '???';
 
@@ -4866,12 +6353,12 @@ sub NewSubject {
 
 
 sub NewSon {
-  my $pT;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pNew;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $sNum;			# used as type "string"
-  my $sDord;			# used as type "string"
+  my $pT; # used as type "pointer"
+  my $pD; # used as type "pointer"
+  my $pNew; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $sNum; # used as type "string"
+  my $sDord; # used as type "string"
 
   $pT = $pPar1;
 
@@ -4883,17 +6370,17 @@ sub NewSon {
 
   if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
 
-    return;
+  return;
   }
 
   $pPar2 = FirstSon($pT);
 
   if (!($pPar2)) {
 
-    if (RBrother($pT)) {
+  if (RBrother($pT)) {
 
-      $pPar2 = RBrother($pT);
-    }
+  $pPar2 = RBrother($pT);
+  }
   }
 
   GetNewOrd();
@@ -4902,10 +6389,10 @@ sub NewSon {
 
   if (FirstSon($pT)) {
 
-    $sDord = ValNo(0,FirstSon($pT)->{'dord'});
+  $sDord = ValNo(0,FirstSon($pT)->{'dord'});
   } else {
 
-    $sDord = ValNo(0,$pT->{'dord'});
+  $sDord = ValNo(0,$pT->{'dord'});
   }
 
 
@@ -4991,7 +6478,7 @@ sub NewSon {
 
   $pNew->{'gram'} = '???';
 
-  $pNew->{'reltype'} = '???';
+  $pNew->{'memberof'} = '???';
 
   $pNew->{'fw'} = '???';
 
@@ -5025,14 +6512,14 @@ sub NewSon {
 
 
 sub NewVerb {
-  my $pT;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pCut;			# used as type "pointer"
-  my $pTatka;			# used as type "pointer"
-  my $pNew;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $sNum;			# used as type "string"
-  my $sDord;			# used as type "string"
+  my $pT; # used as type "pointer"
+  my $pD; # used as type "pointer"
+  my $pCut; # used as type "pointer"
+  my $pTatka; # used as type "pointer"
+  my $pNew; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $sNum; # used as type "string"
+  my $sDord; # used as type "string"
 
   UnGap();
 
@@ -5042,7 +6529,7 @@ sub NewVerb {
 
   if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
 
-    return;
+  return;
   }
 
   $pT = $this;
@@ -5053,10 +6540,10 @@ sub NewVerb {
 
   if (!($pPar2)) {
 
-    if (RBrother($pT)) {
+  if (RBrother($pT)) {
 
-      $pPar2 = RBrother($pT);
-    }
+  $pPar2 = RBrother($pT);
+  }
   }
 
   GetNewOrd();
@@ -5065,10 +6552,10 @@ sub NewVerb {
 
   if (FirstSon($pT)) {
 
-    $sDord = ValNo(0,FirstSon($pT)->{'dord'});
+  $sDord = ValNo(0,FirstSon($pT)->{'dord'});
   } else {
 
-    $sDord = ValNo(0,$pT->{'dord'});
+  $sDord = ValNo(0,$pT->{'dord'});
   }
 
 
@@ -5140,11 +6627,11 @@ sub NewVerb {
 
   $pNew->{'tfa'} = '???';
 
-  $pNew->{'func'} = 'EV';
+  $pNew->{'func'} = 'PRED';
 
   $pNew->{'gram'} = '???';
 
-  $pNew->{'reltype'} = '???';
+  $pNew->{'memberof'} = '???';
 
   $pNew->{'fw'} = '???';
 
@@ -5185,26 +6672,31 @@ sub NewVerb {
   $pTatka = PasteNode($NodeClipboard,$pT);
 
   $pCut = RBrother($pTatka);
-   CutAllSubtrees:
-    if ($pCut) {
+CutAllSubtrees:
+  if ($pCut) {
 
-      if (Interjection($pCut->{'afun'},'ExD') eq 'ExD') {
-        if (Interjection($pCut->{'ordorig'},'') eq '') {
-  	$pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-        }
-        $NodeClipboard=CutNode($pCut);
-        $pD = PasteNode($NodeClipboard,$pTatka);
-      }
+  if (Interjection($pCut->{'afun'},'ExD') eq 'ExD') {
 
-      $pCut = RBrother($pTatka);
-      goto CutAllSubtrees;
-    }
+  if (Interjection($pCut->{'ordorig'},'') eq '') {
+
+  $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+  }
+
+  $NodeClipboard=CutNode($pCut);
+
+  $pD = PasteNode($NodeClipboard,$pTatka);
+  }
+
+  $pCut = RBrother($pTatka);
+
+  goto CutAllSubtrees;
+  }
 
 }
 
 
-#bind tr_lemma_form to Ctrl+Shift+F3
-sub tr_lemma_form {
+#bind _key_Ctrl_Shift_F3 to Ctrl+Shift+F3
+sub _key_Ctrl_Shift_F3 {
 
   TRLemaForm();
 
@@ -5212,43 +6704,43 @@ sub tr_lemma_form {
 
 
 sub TRLemaForm {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sAfun;			# used as type "string"
-  my $sTag;			# used as type "string"
-  my $sVTagBeg;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $pVerb; # used as type "pointer"
+  my $sAfun; # used as type "string"
+  my $sTag; # used as type "string"
+  my $sVTagBeg; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -5262,7 +6754,7 @@ sub TRLemaForm {
 
 
 sub trtolemma {
-  my $pRoot;			# used as type "pointer"
+  my $pRoot; # used as type "pointer"
 
   ThisRoot();
 
@@ -5270,7 +6762,7 @@ sub trtolemma {
 
   if (Interjection($pRoot->{'reserve1'},'TR_TREE') eq 'TR_TREE') {
 
-    return;
+  return;
   }
 
   $pAct->{'trlemma'} = $pAct->{'lemma'};
@@ -5279,28 +6771,28 @@ sub trtolemma {
 
 
 sub SignatureAssign {
-  my $pT;			# used as type "pointer"
- SignatureNext:
+  my $pT; # used as type "pointer"
+SignatureNext:
   ThisRoot();
 
   $pT = $pReturn;
 
   if (Interjection($pT->{'TR'},'') eq '') {
 
-    $pT->{'TR'} = $sPar1;
+  $pT->{'TR'} = $sPar1;
   }
 
   NextTree();
 
   if ($_NoSuchTree=="1") {
 
-    goto SignatureExit;
+  goto SignatureExit;
   } else {
 
-    goto SignatureNext;
+  goto SignatureNext;
   }
 
- SignatureExit:
+SignatureExit:
   GotoTree(1);
 
   return;
@@ -5309,17 +6801,17 @@ sub SignatureAssign {
 
 
 sub MaxDord {
-  my $pAct;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
 
   $sReturn = "0";
 
   $pAct = $pPar1;
 
   $pPar2 = $pPar1;
- loop:
+loop:
   if ($sReturn<ValNo(0,$pAct->{'dord'})) {
 
-    $sReturn = ValNo(0,$pAct->{'dord'});
+  $sReturn = ValNo(0,$pAct->{'dord'});
   }
 
   $pPar1 = $pAct;
@@ -5330,15 +6822,15 @@ sub MaxDord {
 
   if ($pAct) {
 
-    goto loop;
+  goto loop;
   }
 
 }
 
 
 sub ShiftDordsButFirst {
-  my $pAct;			# used as type "pointer"
-  my $one;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $one; # used as type "string"
 
   $one = "0";
 
@@ -5347,18 +6839,18 @@ sub ShiftDordsButFirst {
   $pAct = $pReturn;
 
   $pPar2 = undef;
- loopShiftDord:
+loopShiftDord:
   if (ValNo(0,$pAct->{'dord'})>$sPar1 ||
       ( ValNo(0,$pAct->{'dord'})==$sPar1 &&
-	$one=="1" )) {
+      $one=="1" )) {
 
-    $pAct->{'dord'} = ValNo(0,$pAct->{'dord'})+$sPar2;
+  $pAct->{'dord'} = ValNo(0,$pAct->{'dord'})+$sPar2;
   } else {
 
-    if (ValNo(0,$pAct->{'dord'})==$sPar1) {
+  if (ValNo(0,$pAct->{'dord'})==$sPar1) {
 
-      $one = "1";
-    }
+  $one = "1";
+  }
   }
 
 
@@ -5370,24 +6862,24 @@ sub ShiftDordsButFirst {
 
   if ($pAct) {
 
-    goto loopShiftDord;
+  goto loopShiftDord;
   }
 
 }
 
 
 sub ShiftDords {
-  my $pAct;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
 
   ThisRoot();
 
   $pAct = $pReturn;
 
   $pPar2 = undef;
- loopShiftDord:
+loopShiftDord:
   if (ValNo(0,$pAct->{'dord'})>=$sPar1) {
 
-    $pAct->{'dord'} = ValNo(0,$pAct->{'dord'})+$sPar2;
+  $pAct->{'dord'} = ValNo(0,$pAct->{'dord'})+$sPar2;
   }
 
   $pPar1 = $pAct;
@@ -5398,26 +6890,26 @@ sub ShiftDords {
 
   if ($pAct) {
 
-    goto loopShiftDord;
+  goto loopShiftDord;
   }
 
 }
 
 
 sub ShiftFirst {
-  my $pAct;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
 
   ThisRoot();
 
   $pAct = $pReturn;
 
   $pPar2 = undef;
- loopShiftDord:
+loopShiftDord:
   if (ValNo(0,$pAct->{'dord'})==$sPar1) {
 
-    $pAct->{'dord'} = ValNo(0,$pAct->{'dord'})+$sPar2;
+  $pAct->{'dord'} = ValNo(0,$pAct->{'dord'})+$sPar2;
 
-    return;
+  return;
   }
 
   $pPar1 = $pAct;
@@ -5428,19 +6920,19 @@ sub ShiftFirst {
 
   if ($pAct) {
 
-    goto loopShiftDord;
+  goto loopShiftDord;
   }
 
 }
 
 
 sub MoveNode {
-  my $pAct;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $sOrdNum;			# used as type "string"
-  my $sMaxDord;			# used as type "string"
-  my $pRoot;			# used as type "pointer"
-  my $sDir;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $sOrdNum; # used as type "string"
+  my $sMaxDord; # used as type "string"
+  my $pRoot; # used as type "pointer"
+  my $sDir; # used as type "string"
 
   $sDir = $sPar1;
 
@@ -5466,35 +6958,35 @@ sub MoveNode {
 
   if ($sOrdNum=="0") {
 
-    return;
+  return;
   }
 
   if ($sDir eq 'L') {
 
-    $sOrdNum = $sOrdNum-"1";
+  $sOrdNum = $sOrdNum-"1";
 
-    if ($sOrdNum<"1") {
+  if ($sOrdNum<"1") {
 
-      return;
-    }
+  return;
+  }
 
-    $sPar2 = "1";
+  $sPar2 = "1";
   } else {
 
-    if ($sDir eq 'R') {
+  if ($sDir eq 'R') {
 
-      $sOrdNum = $sOrdNum+"1";
+  $sOrdNum = $sOrdNum+"1";
 
-      if ($sOrdNum>$sMaxDord) {
+  if ($sOrdNum>$sMaxDord) {
 
-	return;
-      }
+  return;
+  }
 
-      $sPar2 = "-1";
-    } else {
+  $sPar2 = "-1";
+  } else {
 
-      return;
-    }
+  return;
+  }
 
   }
 
@@ -5512,8 +7004,8 @@ sub MoveNode {
 }
 
 
-#bind delete_node to Ctrl+Shift+D menu Smaze aktualni uzel, pokud nema deti.
-sub delete_node {
+#bind _key_Ctrl_Shift_D to Ctrl+Shift+D menu Smaze aktualni uzel, pokud nema deti.
+sub _key_Ctrl_Shift_D {
 
   DeleteCurrentNode();
 
@@ -5521,16 +7013,11 @@ sub delete_node {
 
 
 sub DeleteCurrentNode {
-  my $pAct;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
-  my $sDord;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pParent; # used as type "pointer"
+  my $sDord; # used as type "string"
 
   $pAct = $this;
-
-  return unless (ref($this) and
-		 $this->{del} eq 'ELID'
-		 and
-		 $this->{ord} =~/\./);
 
   $pParent = Parent($pAct);
 
@@ -5538,7 +7025,7 @@ sub DeleteCurrentNode {
 
   if (FirstSon($pAct)) {
 
-    return;
+  return;
   }
 
   $sDord = ValNo(0,$pAct->{'dord'});
@@ -5556,8 +7043,8 @@ sub DeleteCurrentNode {
 }
 
 
-#bind cut_paste_all to Ctrl+Shift+I menu Cut a paste na vsechny uzly podle struktury. (Treba spustit vicekrat).
-sub cut_paste_all {
+#bind _key_Ctrl_Shift_I to Ctrl+Shift+I menu Cut a paste na vsechny uzly podle struktury. (Treba spustit vicekrat).
+sub _key_Ctrl_Shift_I {
 
   CutPasteAll();
 
@@ -5565,37 +7052,37 @@ sub cut_paste_all {
 
 
 sub CutPasteAll {
-  my $pAct;			# used as type "pointer"
-  my $pParent;			# used as type "pointer"
+  my $pAct; # used as type "pointer"
+  my $pParent; # used as type "pointer"
 
   ThisRoot();
 
   $pAct = FirstSon($pReturn);
 
   $pPar2 = undef;
- forallnodes:
+forallnodes:
   if ($pAct) {
 
-    $pParent = Parent($pAct);
+  $pParent = Parent($pAct);
 
-    $NodeClipboard=CutNode($pAct);
+  $NodeClipboard=CutNode($pAct);
 
-    $pAct = PasteNode($NodeClipboard,$pParent);
+  $pAct = PasteNode($NodeClipboard,$pParent);
 
-    $pPar1 = $pAct;
+  $pPar1 = $pAct;
 
-    GoNext();
+  GoNext();
 
-    $pAct = $pReturn;
+  $pAct = $pReturn;
 
-    goto forallnodes;
+  goto forallnodes;
   }
 
 }
 
 
-#bind ungap_dords to Ctrl+Shift+G menu Testuje poradi uzlu (dord) a rusi mezery v cislovani
-sub ungap_dords {
+#bind _key_Ctrl_Shift_G to Ctrl+Shift+G menu Testuje poradi uzlu (dord) a rusi mezery v cislovani
+sub _key_Ctrl_Shift_G {
 
   UnGap();
 
@@ -5603,11 +7090,11 @@ sub ungap_dords {
 
 
 sub UnGap {
-  my $pAct;			# used as type "pointer"
-  my $lDords;			# used as type "list"
-  my $lEmpty;			# used as type "list"
-  my $sMaxDord;			# used as type "string"
-  my $sShift;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $lDords; # used as type "list"
+  my $lEmpty; # used as type "list"
+  my $sMaxDord; # used as type "string"
+  my $sShift; # used as type "string"
 
   $sShift = "0";
 
@@ -5620,95 +7107,95 @@ sub UnGap {
   $lDords = Interjection('q','a');
 
   $lEmpty = $lDords;
- forallnodes:
+forallnodes:
   if ($pAct) {
 
-    if (ListEq(Union($lDords,$pAct->{'dord'}),$lDords)) {
+  if (ListEq(Union($lDords,$pAct->{'dord'}),$lDords)) {
 
-      $sShift = 'Chyba v dord';
+  $sShift = 'Chyba v dord';
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $lDords = Union($lDords,$pAct->{'dord'});
+  $lDords = Union($lDords,$pAct->{'dord'});
 
-      if ($sMaxDord<ValNo(0,$pAct->{'dord'})) {
+  if ($sMaxDord<ValNo(0,$pAct->{'dord'})) {
 
-	$sMaxDord = ValNo(0,$pAct->{'dord'});
-      }
-    }
-
-
-    $pPar1 = $pAct;
-
-    GoNext();
-
-    $pAct = $pReturn;
-
-    goto forallnodes;
+  $sMaxDord = ValNo(0,$pAct->{'dord'});
   }
- foralldords:
+  }
+
+
+  $pPar1 = $pAct;
+
+  GoNext();
+
+  $pAct = $pReturn;
+
+  goto forallnodes;
+  }
+foralldords:
   if ($sMaxDord>"0") {
 
-    $sMaxDord = $sMaxDord-"1";
+  $sMaxDord = $sMaxDord-"1";
 
-    if (ListEq(Union($lDords,$sMaxDord),$lDords)) {
+  if (ListEq(Union($lDords,$sMaxDord),$lDords)) {
 
-      if ($sShift!="0") {
+  if ($sShift!="0") {
 
-	$sPar1 = $sMaxDord+"1";
+  $sPar1 = $sMaxDord+"1";
 
-	$sPar2 = $sShift;
+  $sPar2 = $sShift;
 
-	ShiftDords();
+  ShiftDords();
 
-	$sShift = "0";
-      }
-    } else {
+  $sShift = "0";
+  }
+  } else {
 
-      $sShift = $sShift-"1";
+  $sShift = $sShift-"1";
 
-      PrintToFile('c:\\log', map { ValNo(0,$_) } ($sMaxDord, '\n'));
-    }
+  PrintToFile('c:\\log', map { ValNo(0,$_) } ($sMaxDord, '\n'));
+  }
 
 
-    goto foralldords;
+  goto foralldords;
   }
 
   if ($sShift ne "0") {
 
-    $sPar1 = $sMaxDord+"1";
+  $sPar1 = $sMaxDord+"1";
 
-    $sPar2 = $sShift;
+  $sPar2 = $sShift;
 
-    ShiftDords();
+  ShiftDords();
   }
 
 }
 
 
 sub OpravBlb {
-  my $pRoot;			# used as type "pointer"
+  my $pRoot; # used as type "pointer"
 
   ThisRoot();
 
   $pRoot = $pReturn;
- AAALoopCont1:
+AAALoopCont1:
   $pPar1 = $pRoot;
 
-  Oprava1();
+  OpravaHlavy();
 
   NextTree();
 
   if ($_NoSuchTree=="1") {
 
-    goto AAALoopExit1;
+  goto AAALoopExit1;
   }
 
   $pRoot = $this;
 
   goto AAALoopCont1;
- AAALoopExit1:
+AAALoopExit1:
   GotoTree(1);
 
   return;
@@ -5717,41 +7204,41 @@ sub OpravBlb {
 
 
 sub Oprava {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $sTag;			# used as type "string"
-  my $sAdj;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $sTag; # used as type "string"
+  my $sAdj; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -5763,180 +7250,180 @@ sub Oprava {
 
   if (Interjection($pAct->{'lemma'},'') eq '') {
 
-    $pAct->{'lemma'} = '???';
+  $pAct->{'lemma'} = '???';
   }
 
   if (Interjection($pAct->{'tag'},'') eq '') {
 
-    $pAct->{'tag'} = 'NA';
+  $pAct->{'tag'} = 'NA';
   }
 
   if (Interjection($pAct->{'form'},'') eq '') {
 
-    $pAct->{'form'} = 'EV';
+  $pAct->{'form'} = 'EV';
   }
 
   if (Interjection($pAct->{'afun'},'') eq '') {
 
-    $pAct->{'afun'} = '???';
+  $pAct->{'afun'} = '???';
   }
 
   if (Interjection($pAct->{'ID1'},'') eq '') {
 
-    $pAct->{'ID1'} = '???';
+  $pAct->{'ID1'} = '???';
   }
 
   if (Interjection($pAct->{'ID2'},'') eq '') {
 
-    $pAct->{'ID2'} = '???';
+  $pAct->{'ID2'} = '???';
   }
 
   if (Interjection($pAct->{'origf'},'') eq '') {
 
-    $pAct->{'origf'} = '???';
+  $pAct->{'origf'} = '???';
   }
 
   if (Interjection($pAct->{'origap'},'???') eq '???') {
 
-    $pAct->{'origap'} = '';
+  $pAct->{'origap'} = '';
   }
 
   if (Interjection($pAct->{'gap1'},'???') eq '???') {
 
-    $pAct->{'gap1'} = '';
+  $pAct->{'gap1'} = '';
   }
 
   if (Interjection($pAct->{'gap2'},'???') eq '???') {
 
-    $pAct->{'gap2'} = '';
+  $pAct->{'gap2'} = '';
   }
 
   if (Interjection($pAct->{'gap3'},'???') eq '???') {
 
-    $pAct->{'gap3'} = '';
+  $pAct->{'gap3'} = '';
   }
 
   if (Interjection($pAct->{'ordtf'},'') eq '') {
 
-    $pAct->{'ordtf'} = '???';
+  $pAct->{'ordtf'} = '???';
   }
 
   if (Interjection($pAct->{'afunprev'},'') eq '') {
 
-    $pAct->{'afunprev'} = '???';
+  $pAct->{'afunprev'} = '???';
   }
 
   if (Interjection($pAct->{'ordorig'},'???') eq '???') {
 
-    $pAct->{'ordorig'} = '';
+  $pAct->{'ordorig'} = '';
   }
 
   if ($sAdj eq 'A') {
 
-    if (Interjection($pAct->{'gender'},'???') eq '???') {
+  if (Interjection($pAct->{'gender'},'???') eq '???') {
 
-      $pAct->{'gender'} = 'NA';
-    }
+  $pAct->{'gender'} = 'NA';
+  }
 
-    if (Interjection($pAct->{'number'},'???') eq '???') {
+  if (Interjection($pAct->{'number'},'???') eq '???') {
 
-      $pAct->{'number'} = 'NA';
-    }
+  $pAct->{'number'} = 'NA';
+  }
 
-    if (Interjection($pAct->{'degcmp'},'???') eq '???') {
+  if (Interjection($pAct->{'degcmp'},'???') eq '???') {
 
-      $pAct->{'degcmp'} = 'POS';
-    }
+  $pAct->{'degcmp'} = 'POS';
+  }
   }
 
   if ($sAdj eq 'D') {
 
-    if (Interjection($pAct->{'degcmp'},'???') eq '???') {
+  if (Interjection($pAct->{'degcmp'},'???') eq '???') {
 
-      $pAct->{'degcmp'} = 'NA';
-    }
+  $pAct->{'degcmp'} = 'NA';
+  }
   }
 
-  if (Interjection($pAct->{'reltype'},'') eq '' ||
-      Interjection($pAct->{'reltype'},'???') eq '???') {
+  if (Interjection($pAct->{'memberof'},'') eq '' ||
+      Interjection($pAct->{'memberof'},'???') eq '???') {
 
-    $pAct->{'reltype'} = 'NIL';
+  $pAct->{'memberof'} = 'NIL';
   }
 
   if (Interjection($pAct->{'del'},'') eq '' ||
       Interjection($pAct->{'del'},'???') eq '???') {
 
-    $pAct->{'del'} = 'NIL';
+  $pAct->{'del'} = 'NIL';
   }
 
   if (Interjection($pAct->{'quoted'},'') eq '' ||
       Interjection($pAct->{'quoted'},'???') eq '???') {
 
-    $pAct->{'quoted'} = 'NIL';
+  $pAct->{'quoted'} = 'NIL';
   }
 
   if (Interjection($pAct->{'dsp'},'') eq '' ||
       Interjection($pAct->{'dsp'},'???') eq '???') {
 
-    $pAct->{'dsp'} = 'NIL';
+  $pAct->{'dsp'} = 'NIL';
   }
 
   if (Interjection($pAct->{'degcmp'},'') eq '' ||
       Interjection($pAct->{'degcmp'},'???') eq '???') {
 
-    $pAct->{'degcmp'} = 'NA';
+  $pAct->{'degcmp'} = 'NA';
   }
 
   if (Interjection($pAct->{'tense'},'') eq '') {
 
-    $pAct->{'tense'} = 'NA';
+  $pAct->{'tense'} = 'NA';
   }
 
   if (Interjection($pAct->{'aspect'},'') eq '') {
 
-    $pAct->{'aspect'} = 'NA';
+  $pAct->{'aspect'} = 'NA';
   }
 
   if (Interjection($pAct->{'iterativeness'},'') eq '') {
 
-    $pAct->{'iterativeness'} = 'NA';
+  $pAct->{'iterativeness'} = 'NA';
   }
 
   if (Interjection($pAct->{'verbmod'},'') eq '') {
 
-    $pAct->{'verbmod'} = 'NA';
+  $pAct->{'verbmod'} = 'NA';
   }
 
   if (Interjection($pAct->{'deontmod'},'') eq '') {
 
-    $pAct->{'deontmod'} = 'NA';
+  $pAct->{'deontmod'} = 'NA';
   }
 
   if (Interjection($pAct->{'sentmod'},'') eq '') {
 
-    $pAct->{'sentmod'} = 'NA';
+  $pAct->{'sentmod'} = 'NA';
   }
 
   if (Interjection($pAct->{'func'},'ACT') eq 'ACT' ||
       Interjection($pAct->{'func'},'PAT') eq 'PAT') {
 
-    if (Interjection($pAct->{'gram'},'???') eq '???') {
+  if (Interjection($pAct->{'gram'},'???') eq '???') {
 
-      $pAct->{'gram'} = 'NIL';
-    }
+  $pAct->{'gram'} = 'NIL';
+  }
   } else {
 
-    if (Interjection($pAct->{'gram'},'???') eq '???') {
+  if (Interjection($pAct->{'gram'},'???') eq '???') {
 
-      $pAct->{'gram'} = 'NA';
-    }
+  $pAct->{'gram'} = 'NA';
+  }
   }
 
 
   if (Interjection($pAct->{'gram'},'') eq '' ||
       Interjection($pAct->{'gram'},'???') eq '???') {
 
-    $pAct->{'gram'} = 'NA';
+  $pAct->{'gram'} = 'NA';
   }
 
   $pNext = FirstSon($pAct);
@@ -5947,41 +7434,41 @@ sub Oprava {
 
 
 sub Oprava1 {
-  my $pAct;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $sTag;			# used as type "string"
-  my $sAdj;			# used as type "string"
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $sTag; # used as type "string"
+  my $sAdj; # used as type "string"
 
   ThisRoot();
 
   $pRoot = $pReturn;
 
   $pAct = $pRoot;
- PruchodStromemDoHloubky:
+PruchodStromemDoHloubky:
   $pNext = FirstSon($pAct);
 
   if (!($pNext)) {
 
-    $pNext = RBrother($pAct);
+  $pNext = RBrother($pAct);
   }
- LevelUp:
+LevelUp:
   if (!($pNext)) {
 
-    $pNext = Parent($pAct);
+  $pNext = Parent($pAct);
 
-    if (!($pNext)) {
+  if (!($pNext)) {
 
-      return;
-    } else {
+  return;
+  } else {
 
-      $pAct = $pNext;
+  $pAct = $pNext;
 
-      $pNext = RBrother($pNext);
+  $pNext = RBrother($pNext);
 
-      goto LevelUp;
-    }
+  goto LevelUp;
+  }
 
   }
 
@@ -6000,6 +7487,73 @@ sub Oprava1 {
   $pAct->{'cornum'} = '';
 
   $pAct->{'phraseme'} = '';
+
+  $pNext = FirstSon($pAct);
+
+  goto PruchodStromemDoHloubky;
+
+}
+
+
+sub OpravaHlavy {
+  my $pAct; # used as type "pointer"
+  my $pNext; # used as type "pointer"
+  my $pT; # used as type "pointer"
+  my $pRoot; # used as type "pointer"
+  my $sTag; # used as type "string"
+  my $sAdj; # used as type "string"
+  my $sSuffix; # used as type "string"
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  $pAct = $pRoot;
+PruchodStromemDoHloubky:
+  $pNext = FirstSon($pAct);
+
+  if (!($pNext)) {
+
+  $pNext = RBrother($pAct);
+  }
+LevelUp:
+  if (!($pNext)) {
+
+  $pNext = Parent($pAct);
+
+  if (!($pNext)) {
+
+  return;
+  } else {
+
+  $pAct = $pNext;
+
+  $pNext = RBrother($pNext);
+
+  goto LevelUp;
+  }
+
+  }
+
+  $pAct = $pNext;
+
+  if (Interjection($pAct->{'memberof'},'PA') eq 'PA') {
+
+  $pAct->{'memberof'} = 'NIL';
+
+  $pAct->{'parenthesis'} = 'PA';
+  }
+
+  $sPar1 = ValNo(0,$pAct->{'afun'});
+
+  GetAfunSuffix();
+
+  $sSuffix = substr($sPar3,0,3);
+
+  if ($sSuffix eq '_Ap') {
+
+  $pAct->{'memberof'} = 'AP';
+  }
 
   $pNext = FirstSon($pAct);
 
