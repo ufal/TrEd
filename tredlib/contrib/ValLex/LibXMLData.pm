@@ -248,6 +248,10 @@ sub addText {
   $_[0]->appendText($_[1])
 }
 
+sub findFirstChild {
+  $_[0]->findnodes($_[1].'[1]')->[0];
+}
+
 package XML::LibXML::SubTreeIterator;
 use strict;
 use base qw(XML::LibXML::Iterator);
