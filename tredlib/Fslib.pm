@@ -22,7 +22,7 @@ $VERSION = "1.2";
 	     &FirstSon &Next &Prev &DeleteTree &DeleteLeaf &Cut &Paste
 	     &Set &Get &DrawTree &IsList &ListValues &ImportBackends/;
 
-@EXPORT_OK = qw/$FSTestListValidity &Index &ParseNode &ParseNode2 &Ord
+@EXPORT_OK = qw/$FSTestListValidity $FSError &Index &ParseNode &ParseNode2 &Ord
                 &Value &Hide &SentOrd &Special &AOrd &AValue &AHide
                 &ASentOrd &ASpecial &SetParent &SetLBrother
                 &SetRBrother &SetFirstSon/;
@@ -37,6 +37,9 @@ $firstson="_S_";
 $lbrother="_L_";
 $rbrother="_R_";
 $FSTestListValidity=0;
+$FSError=0;
+
+
 
 sub NewNode ($) {
   my $node = shift;
@@ -1843,12 +1846,12 @@ Note: this function sets noSaved to zero.
 
 sub readFile {
   my ($self,$filename) = (shift,shift);
+  my $ret = 1;
   return unless ref($self);
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
-    if ($ret =
-	eval {
+    if (eval {
 	  return $backend->can('test')
 	      && $backend->can('read') 
 	      && $backend->can('open_backend')
@@ -1863,7 +1866,13 @@ sub readFile {
 	&{"${backend}::read"}($fh,$self);
 	&{"${backend}::close_backend"}($fh);
       };
-      print STDERR "$@\n" if $@;
+      if ($@) {
+	print STDERR "Error occured while reading '$filename':\n";
+	print STDERR "$@\n";
+	$ret = -1;
+      } else {
+	$ret = 0;
+      }
       $self->notSaved(0);
       last;
     }
@@ -1971,7 +1980,7 @@ sub newFSFile {
 
   my $new=$self->new();
   $new->changeEncoding($encoding);
-  $new->readFile($filename,@_);
+  $Fslib::FSError=$new->readFile($filename,@_);
   return $new;
 }
 
