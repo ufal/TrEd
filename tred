@@ -3871,7 +3871,7 @@ sub startMain {
 			  -image=> $group{top}->Pixmap(-file=>
 						       "$libDir/start.xpm"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [&tiePrevFile,\%group])->pack(-side=>'left',
+			  -command=> [\&tiePrevFile,\%group])->pack(-side=>'left',
 									    -padx=>'1');
   $group{Balloon}->attach($group{prevFileButton},
 			  -balloonmsg=> "visit the previous open file");
