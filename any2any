@@ -30,7 +30,7 @@ Parameters:
                      converting to CSTS
 
   -T                 if converting from csts, build tectogrammatical tree structure
-  -A                 when converting from fs, use header for Arabic PADT treebank
+  -A                 when converting to csts, use header for Arabic PADT treebank
   -R                 same as -T (for compatibility with TrEd/bTrEd)
   -N                 if empty, initialize ordering attribute with sentence ordering
   -G                 do not save dependency on the root of the tree in csts format
