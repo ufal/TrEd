@@ -324,7 +324,7 @@ sub test {
     my $line2=$f->getline();
     return ($line1.$line2)=~/<!DOCTYPE AGSet/;
   } else {
-    my $fh = IOBackend::open_backend($f,"r",$encoding);
+    my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;

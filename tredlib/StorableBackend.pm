@@ -28,7 +28,7 @@ sub test {
   if (ref($f)) {
     return $f->getline()=~/^pst0/;
   } else {
-    my $fh = open_backend($f,"r",$encoding);
+    my $fh = open_backend($f,"r");
     my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;

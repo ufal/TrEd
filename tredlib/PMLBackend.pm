@@ -868,7 +868,7 @@ sub test {
     1 while ($_=$f->getline() and !/\S/);
     return (/<[atxmw]data/) ? 1 : 0;
   } else {
-    my $fh = IOBackend::open_backend($f,"r",$encoding);
+    my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh,$encoding);
     close_backend($fh);
     return $test;
