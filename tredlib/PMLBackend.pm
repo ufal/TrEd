@@ -11,9 +11,14 @@ use XML::Writer;
   use Data::Dumper;
 
 
-use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $pml_ns $DEBUG);
+use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG);
+use constant {
+  LM => 'LM',
+  AM => 'AM',
+  PML_NS => "http://ufal.mff.cuni.cz/pdt/pml/"
+};
 
-$pml_ns = "http://ufal.mff.cuni.cz/pdt/pml/";
+
 
 $encoding='utf8';
 @pmlformat = (
@@ -134,11 +139,11 @@ sub read_references {
   my ($fsfile,$dom_root)=@_;
   my %references;
   my %named_references;
-  my ($head) = $dom_root->getElementsByTagNameNS($pml_ns,'head');
+  my ($head) = $dom_root->getElementsByTagNameNS(PML_NS,'head');
   if ($head) {
-    my ($references) = $head->getElementsByTagNameNS($pml_ns,'references');
+    my ($references) = $head->getElementsByTagNameNS(PML_NS,'references');
     if ($references) {
-      foreach my $reffile ($references->getElementsByTagNameNS($pml_ns,'reffile')) {
+      foreach my $reffile ($references->getElementsByTagNameNS(PML_NS,'reffile')) {
 	my $id = $reffile->getAttribute('id');
 	my $name = $reffile->getAttribute('name');
 	$named_references{ $name } = $id if $name;
@@ -146,7 +151,7 @@ sub read_references {
 	  absolutize_path($fsfile->filename,$reffile->getAttribute('href'));
       }
     }
-    my ($schema) = $head->getElementsByTagNameNS($pml_ns,'schema');
+    my ($schema) = $head->getElementsByTagNameNS(PML_NS,'schema');
     if ($schema) {
       my $schema_file = absolutize_path($fsfile->filename,$schema->getAttribute('href'));
       $fsfile->changeMetaData('schema-url',$schema_file);
@@ -167,7 +172,7 @@ otherwise return the node itself.
 sub read_List ($) {
   my ($node)=@_;
   return unless $node;
-  my $List = $node->getChildrenByTagNameNS($pml_ns,'S');
+  my $List = $node->getChildrenByTagNameNS(PML_NS,LM);
   return @$List ? @$List : $node;
 }
 
@@ -181,7 +186,7 @@ otherwise return the node itself.
 sub read_Alt ($) {
   my ($node)=@_;
   return unless $node;
-  my $Alt = $node->getChildrenByTagNameNS($pml_ns,'A');
+  my $Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
   return @$Alt ? @$Alt : $node;
 }
 
@@ -237,7 +242,7 @@ sub read_node ($$$;$) {
     while ($child) {
       if($child->nodeType == ELEMENT_NODE
 	 and
-	 $child->namespaceURI eq $pml_ns) {
+	 $child->namespaceURI eq PML_NS) {
 	my $name = $child->localname;
 	my $member = $type->{member}->{$name};
 	if ($member) {
@@ -313,7 +318,7 @@ sub read_node ($$$;$) {
 		and $child->data=~/\S/) {
 	warn "Ignoring text content '".$child->data."'.\n";
       } elsif ($child->nodeType == ELEMENT_NODE
-	       and $child->namespaceURI eq $pml_ns) {
+	       and $child->namespaceURI eq PML_NS) {
 	warn "Ignoring non-PML element '".$child->nodeName."'.\n";
       }
     } continue {
@@ -340,7 +345,7 @@ sub read_node ($$$;$) {
     return $data;
   } elsif ($type->{alt}) {
     # alt
-    my $Alt = $node->getChildrenByTagNameNS($pml_ns,'A');
+    my $Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
     if (@$Alt) {
       return bless [
 	map {
@@ -411,7 +416,7 @@ sub read_trees {
 
   for my $child ($dom_root->childNodes) {
     if ($child->nodeType == ELEMENT_NODE and
-	$child->namespaceURI eq $pml_ns and
+	$child->namespaceURI eq PML_NS and
 	$roles{'#TREES'}{$child->localname}) {
       my $type = $types->{$child->localname};
       if ($type->{list}) {
@@ -470,7 +475,7 @@ sub write {
   my ($data) = keys (%{$roles{'#DATA'}});
 
   $xml->xmlDecl("utf-8");
-  $xml->startTag($data,xmlns => $pml_ns);
+  $xml->startTag($data,xmlns => PML_NS);
   $xml->startTag('head');
   $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
   $xml->startTag('references');
@@ -581,8 +586,8 @@ sub write_object ($$$$) {
 		    if ($knit) {
 		      #_debug($knit->toString(1));
 		      my $knit_tag = $name;
-#		      $knit_tag = 'S' if ($knit->nodeName =~ /^(Alt|List)$/ and
-#				     $knit->parentNode->namespaceURI eq $pml_ns);
+#		      $knit_tag = LM if ($knit->nodeName =~ /^(Alt|List)$/ and
+#				     $knit->parentNode->namespaceURI eq PML_NS);
 		      my $dom_writer = MyDOMWriter->new(REPLACE => $knit);
 		      write_object($dom_writer, $fsfile, $types,
 				   resolve_type($types,$type->{member}{$member}),
@@ -624,7 +629,7 @@ sub write_object ($$$$) {
 	$xml->startTag($tag);
 #	$xml->startTag('List');
 	foreach my $member (@$object) {
-	  write_object($xml, $fsfile, $types,$type->{list},'S',$member);
+	  write_object($xml, $fsfile, $types,$type->{list},LM,$member);
 	}
 #	$xml->endTag('List');
 	$xml->endTag($tag);
@@ -642,7 +647,7 @@ sub write_object ($$$$) {
 	$xml->startTag($tag);
 #	$xml->startTag('Alt');
 	foreach my $member (@$object) {
-	  write_object($xml, $fsfile, $types,$type->{alt},'A',$member);
+	  write_object($xml, $fsfile, $types,$type->{alt},AM,$member);
 	}
 #	$xml->endTag('Alt');
 	$xml->endTag($tag);
