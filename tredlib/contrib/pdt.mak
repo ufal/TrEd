@@ -701,11 +701,11 @@ sub FilterSons_TR { # node filter suff from
   my @sons;
   $node=$node->firstson;
   while ($node) {
-    return @sons if $suff && @sons;
+#    return @sons if $suff && @sons;
     unless ($node==$from){ # on the way up do not go back down again
       if(($suff&&is_valid_member_TR($node))
 	 ||(!$suff&&!is_valid_member_TR($node))){ # this we are looking for
-	push @sons,$node if !$suff or $suff && &$filter($node);
+	push @sons,$node if (!is_coord_TR($node) and (!$suff or $suff && &$filter($node)));
       }
       push @sons,FilterSons_TR($node,$filter,1,0)
 	if (!$suff
@@ -751,7 +751,7 @@ sub GetChildren_TR { # node filter
       @sons=@oldsons;
     }
   }
-  grep &$filter($_),@sons;
+  grep &$filter($_), grep { !IsHidden($_) } @sons;
 } # GetChildren_TR
 
 =item PDT::GetFather_TR ($node)
