@@ -848,7 +848,9 @@ attributes _AP_,_AS_,_AL_,_AR_. Fslib is re-configured to use these
 structure attributes instead of the default ones, so that all common
 FSNode methods like parent, children, following, descendants, etc work
 on the new structure. Use L<PDT::TRstruct> to switch back to the
-tectogrammatical structure.
+tectogrammatical structure and L<PDT::CleanARstruct> to clean up
+the analytical structure to allow node-destruction by a garbage
+collector.
 
 =cut
 
@@ -912,6 +914,25 @@ sub TRstruct {
   $Fslib::firstson="_S_";
   $Fslib::lbrother="_L_";
   $Fslib::rbrother="_R_";
+}
+
+=item PDT::ClearARstruct ()
+
+Clear parallel analytical structure. This should be done at the end of
+processing in order to break cyclic node references and thus prevent
+memory leaks in Perl garbage collector.
+
+=cut
+
+sub ClearARstruct {
+  TRstruct();
+  foreach my $root ($grp->{FSFile}->trees) {
+    my $node=$root;
+    while ($node) {
+      delete $node->{$_} for qw(_AP_ _AS_ _AL_ _AR_);
+      $node = $node->following();
+    }
+  }
 }
 
 
