@@ -14,7 +14,7 @@ function ask {
 }
 
 function findperlbin {
-  PERLBIN=`which perl`
+  PERLBIN=`which perl 2>/dev/null`
   if [ -z $PERLBIN ]; then
     for d in c d e f g; do 
       if [ -x ${d}:/perl/bin ]; then
@@ -22,12 +22,7 @@ function findperlbin {
 	return 0
       fi
     done
-    PERLBIN=`regtool get '\machine\Software\Perl\BinDir'`
-    if [ -x "${PERLBIN}" ]; then
-      return 0
-    else
-      return 1
-    fi
+    PERLBIN=`regtool get '\machine\Software\Perl\BinDir'`"/perl"
   fi
 }
 
@@ -35,13 +30,28 @@ echo Toto je instalace programu TrEd
 
 ask "Chcete pokracovat" || exit 0;
 
-findperlbin
+until [ -f $PERLBIN -a -x $PERLBIN ]; do
+  echo "Na vasem pocitaci jsem nenasel instalaci perlu.\n"
+  echo "Muzete pokracovat bud instalaci ActiveState perlu"
+  echo "nebo musite rucne zadat uplnou cestu k programu 'perl'"
+  if test $OSTYPE = "cygwin" &&  ask "Chcete nainstalovat ActiveState Perl"; then
+    start /W APi522e.exe
+    findperlbin
+  else  
+    read -e -p "Path to perl binary executable: " PERLBIN
+  fi
+done
 
-echo $PERLBIN
+echo "Assuming perl in $PERLBIN. Testing..."
 
-ask "Chcete nainstalovat ActiveState Perl"
+$TKTEST=`$PERLBIN -e 'print eval { require Tk; },"\n"'` || exit 0
 
-ask "Chcete instalovat ci upgradovat PerlTk"
-
+if [ "${TKTEST}" = "1" ]; then
+    echo "Perl/Tk knihovna je jiz nainstalovana."
+    ask "Prejete si provest upgrade knihovny Perl/Tk"    
+else
+    ask "Chcete nainstalovat knihovnu Perl/Tk"
+fi
+    
 ask "TrEd je jiz nainstalovan. Chete provest aktualizaci?"
 
