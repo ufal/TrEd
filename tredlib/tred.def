@@ -65,7 +65,8 @@ sub PlainDeleteNode {
 sub PrintToFile {
   my $file=shift;
   if (open(PTF,">>$file")) {
-    print PTF join("\n",@_);
+    print PTF join("",@_);
+    print PTF "\n";
     close(PTF);
   }
 }
@@ -73,7 +74,7 @@ sub PrintToFile {
 sub ValNo {
 ## return n'th of given string (separated by |); 
   my $n=shift;
-  my @val=split /\|/, shift;
+  my @val=ListSplit(shift);
   return $val[$n];
 }
 
@@ -87,7 +88,7 @@ sub Union {
   my @c=();
   my $s;
   my $t;
-  element: foreach $s (split(/\|/, shift),split(/\|/, shift)) {
+  element: foreach $s (ListSplit(shift),ListSplit(shift)) {
     for ($t=0;$t<=$#c;$t++) {
       next element if ($c[$t] eq $s);
     }
@@ -99,11 +100,11 @@ sub Union {
 sub Interjection {
 # make interjection of two lists
 # ( strings with |-delimited elements )
-  my @a=split(/\|/, shift);
+  my @a=ListSplit(shift);
   my @c=();
   my $s;
   my $t;
-  element: foreach $s (split(/\|/, Union(shift,""))) {
+  element: foreach $s (ListSplit(Union(shift,""))) {
     for ($t=0;$t<=$#a;$t++) {
       if ($a[$t] eq $s) {
 	push(@c,$s);
@@ -114,6 +115,15 @@ sub Interjection {
   return join '|',@c;
 }
 
+sub ListSplit {
+# split |-delimited string to a list
+ return split(/\|/, shift);
+}
+
+sub ListJoin {
+# split |-delimited string to a list
+ return join '|', @_;
+}
 
 sub ListEq {
 # test if two given lists ( strings with |-delimited elements )
@@ -121,15 +131,35 @@ sub ListEq {
   my ($a,$b)=(shift,shift);
   $a=Union($a,""); # make them uniqe
   $b=Union($b,""); # make them uniqe
-  my @a=split(/\|/, $a);
-  my @b=split(/\|/, $b);
+  my @a=ListSplit($a);
+  my @b=ListSplit($b);
 
   return 0 unless ($#a == $#b);
 
-  my @c=split(/\|/,Union($a,$b));
+  my @c=ListSplit(Union($a,$b));
 
   return ($#a == $#c);
 }
+
+sub ListAssign {
+# args: list, n, value
+# assign (string) value to the n'th position in a list
+# represented as |-delimited string
+
+  my @a=ListSplit(shift);
+  my ($n,$value)=(shift,shift);
+
+  @a[$n]=ValNo(0,$value);
+  return join '|',@a;
+}
+
+sub SubStr {
+  my ($str, $pos, $len)=(shift, shift, shift);
+
+  return "" if ($pos > length($str));
+  return substr($str,$pos,$len);
+}
+
 
 #####################################################
 # Common useful user-level subroutines 
