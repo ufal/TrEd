@@ -142,7 +142,7 @@ sub create_widget {
 		reviewed => $w->Pixmap(-file => Tk::findINC("ValLex/ok.xpm")),
 		active => $w->Pixmap(-file => Tk::findINC("ValLex/filenew.xpm")),
 		deleted => $w->Pixmap(-file => Tk::findINC("ValLex/erase.xpm"))
-	       },0;
+	       },0,1;
 }
 
 sub style {
@@ -154,6 +154,7 @@ sub pixmap {
 }
 
 sub SHOW_DELETED { 5 }
+sub SHOW_OBSOLETE { 6 }
 
 sub show_deleted {
   my ($self,$value)=@_;
@@ -161,6 +162,14 @@ sub show_deleted {
     $self->[SHOW_DELETED]=$value;
   }
   return $self->[SHOW_DELETED];
+}
+
+sub show_obsolete {
+  my ($self,$value)=@_;
+  if (defined($value)) {
+    $self->[SHOW_OBSOLETE]=$value;
+  }
+  return $self->[SHOW_OBSOLETE];
 }
 
 sub forget_data_pointers {
@@ -226,6 +235,9 @@ sub fetch_data {
     }
     foreach my $entry (@{$super->{$sframe}}) {
       next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
+      next if (!$self->show_obsolete() and
+		   ($entry->[3] eq 'obsolete' or
+		    $entry->[3] eq 'substituted'));
       $f = $t->addchild("$e",-data => $entry->[0]);
       $i=$t->itemCreate($f, 0,
 			-itemtype=>'imagetext',
@@ -524,6 +536,7 @@ sub create_widget {
   my $example=$frame->Text(qw/-width 40 -height 5 -background white/);
   $example->pack(qw/-padx 6 -expand yes -fill both/);
   $example->bind($example,'<Tab>',[sub { shift->focusNext; Tk->break;}]);
+  $example->bind($example,'<Return>',[sub { shift->insert('insert',"\n"); Tk->break;}]);
   $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
 
   my $note_label=$frame->Label(qw/-text Note -anchor nw -justify left/)
@@ -531,6 +544,7 @@ sub create_widget {
   my $note=$frame->Text(qw/-width 40 -height 5 -background white/);
   $note->pack(qw/-padx 6 -expand yes -fill both/);
   $note->bind($note,'<Tab>',[sub { shift->focusNext; Tk->break;}]);
+  $note->bind($note,'<Return>',[sub { shift->insert('insert',"\n"); Tk->break;}]);
   $frame->Frame(-takefocus => 0,qw/-height 6/)->pack();
 
   my $problem_label=$frame->Label(qw/-text Problem -anchor nw -justify left/)
