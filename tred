@@ -4151,7 +4151,7 @@ sub scrollCanvasToXY {
 }
 
 sub currentUnhiden {
-  my $win=(@_);
+  my ($win)=@_;
   return unless $win->{FSFile};
   unless ($win->{treeView}->{showHidden}) {
     my $node=$win->{FSFile}->FS->isHidden($win->{currentNode});
