@@ -153,7 +153,8 @@ sub OpenEditor {
 
   print STDERR "EDITOR start at: $lemma,$pos,",$this->{$frameid_attr},"\n";
 
-  ($vallexEditor)=
+  my $d;
+  ($d,$vallexEditor)=
     TrEd::ValLex::Editor::new_dialog_window($top,
 					    $FrameData,
 					    [$lemma,$pos],    # select field
@@ -170,8 +171,13 @@ sub OpenEditor {
 					     '<F3>' => [\&open_frame_instance_in_tred,$grp->{framegroup}]
 					    }
 					   );               # start frame editor
-  $vallexEditor->bind('<Destroy>',sub { undef $vallexEditor; });
-  $vallexEditor->Popup;
+  $d->bind('<Destroy>',sub { undef $vallexEditor; });
+  TredMacro::register_exit_hook(sub {
+				  if (ref($vallexEditor)) {
+				    $vallexEditor->ask_save_data();
+				  }
+				});
+  $d->Popup;
   ChangingFile(0);
 }
 
@@ -210,6 +216,22 @@ sub copy_verb_frame {
     if (ref($focused)) {
       my ($lemma,$pos)= @$focused;
       print "lemma: $lemma, POS: $pos\n";
+      my $verb=$data->findWordAndPOS($lemma,$pos);
+      return unless $verb;
+      my $new;
+      foreach my $frame ($data->getFrameList($verb)) {
+	next unless ($frame->[3] =~ /^active$|^reviewed$/);
+	my $elements=$frame->[2];
+	$elements=~s/(ACT[\[\(])(1|[^\]\)]+,1)(\]|\)|,)/${1}p,2,7${3}/;
+	$elements=~s/(PAT[\[\(])(4|[^\]\)]+,4)(\]|\)|,)/${1}2${3}/;
+	$new=$data->addFrame(undef,$word,$elements,"<$lemma>",$frame->[4],"",$data->user());
+	print "$lemma: converting $frame->[2] => $elements\n";
+      }
+      if ($new) {
+	$editor->subwidget('framelist')->fetch_data($word);
+	$editor->wordlist_item_changed($editor->subwidget('wordlist')->focus($word));
+	$editor->framelist_item_changed($editor->subwidget('framelist')->focus($new));
+      }
     }
   }
   $d->destroy();
