@@ -1106,7 +1106,7 @@ sub applyFileSuffix {
 sub autosave_filename {
   my ($f)=@_;
   my $base=filename($f);
-  $f =~ s/${base}$/#$base#.#tred#/;
+  return undef unless ($f=~s/\Q${base}\E$/#$base#.#tred#/);
   return $f;
 }
 
@@ -4630,7 +4630,7 @@ sub focusxFind {
   if ($A ne "") {
     my $count=scalar(@$atord);
     for (my $j=$i+1;$j<=$i+$count;$j++) {
-      if (($atord->[$j % $count]) =~ /^$A/i) {
+      if (($atord->[$j % $count]) =~ /^\Q$A\E/i) {
 	$f->see($e->{$atord->[$j % $count]});
 	$e->{$atord->[$j % $count]}->focus();
 	Tk->break;
