@@ -17,13 +17,104 @@ require Tk::Optionmenu;
 
 sub limit { 100 }
 
+sub new_dialog_window {
+  my ($top,$data,$select_field,$autosave,$confs,
+      $wordlist_item_style,
+      $framelist_item_style,
+      $fe_confs,
+      $select_frame,
+      $start_frame_editor,
+      $bindings
+     )=@_;
+
+  my $d = $top->Toplevel(-title => "Frame editor: ".
+			 $data->getUserName($data->user())
+			);
+  $d->withdraw;
+
+  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  $d->bind($d,'<Return>',[sub {  }]);
+  my $button_frame=$d->Frame()->pack(qw(-fill x -side bottom));
+
+  my $vallex= TrEd::ValLex::Editor->new($data, $data->doc() ,$d,0,
+					$wordlist_item_style,
+					$framelist_item_style,
+					$fe_confs);
+
+  $vallex->subwidget_configure($confs) if ($confs);
+  $vallex->pack(qw/-expand 1 -fill both -side top/);
+  {
+    $vallex->wordlist_item_changed($vallex->subwidget('wordlist')
+				 ->focus($data->findWordAndPOS(@{$select_field})));
+    $vallex->subwidget('framelist')->select_frames($select_frame);
+  }
+  $d->Frame(qw/-height 3 -borderwidth 2 -relief sunken/)->
+    pack(qw(-fill x -side top -pady 6));
+  $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
+    Button(-text => 'Save & Close',
+	   -command =>
+	   [sub {
+	      my ($d,$f,$autosave,$top)=@_;
+	      if ($vallex->data()->changed()) {
+		if ($autosave) {
+		  $vallex->save_data($top);
+		} else {
+		  $vallex->ask_save_data($top);
+		}
+	      }
+	      $vallex->destroy();
+	      undef $vallex;
+	      $d->destroy();
+	      undef $d;
+	    },$d,$vallex,$autosave,$top]
+	  )->pack(qw(-padx 10 -expand 1));
+  $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
+    Button(-text => 'Save',
+	   -command =>
+	   [sub {
+	      my ($d,$f)=@_;
+	      $f->save_data($d);
+	    },$d,$vallex])->pack(qw(-padx 10 -expand 1));
+  $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
+    Button(-text => 'Undo Changes',
+	   -command =>[sub {
+			 my ($d,$f)=@_;
+			 $d->Busy(-recurse=> 1);
+			 my $field=$f->subwidget("wordlist")->focused_word();
+			 $f->data()->reload();
+			 if ($field) {
+			   my $word=$f->data()->findWordAndPOS(@{$field});
+			   $f->wordlist_item_changed($f->subwidget("wordlist")->focus($word));
+			 } else {
+			   $f->subwidget("wordlist")->fetch_data();
+			 }
+			 $d->Unbusy(-recurse=> 1);
+		       },$d,$vallex])->pack(qw(-padx 10 -expand 1));
+  if (ref($bindings)) {
+    while (my ($event, $command) = each %$bindings) {
+      if (ref($command) eq 'ARRAY') {
+	$d->bind($event, [@$command,$vallex]);
+      } else {
+	$d->bind($event, [$command,$vallex]);
+      }
+    }
+  }
+
+  if ($start_frame_editor) {
+    $d->afterIdle([$vallex => 'addframe_button_pressed']);
+  }
+
+  return ($d,$vallex);
+}
+
 sub show_dialog {
   my ($top,$data,$select_field,$autosave,$confs,
       $wordlist_item_style,
       $framelist_item_style,
       $fe_confs,
       $select_frame,
-      $start_frame_editor
+      $start_frame_editor,
+      $bindings
      )=@_;
 
   my $d = $top->DialogBox(-title => "Frame editor: ".
@@ -96,6 +187,15 @@ sub show_dialog {
 		 }
 		 $d->Unbusy(-recurse=> 1);
 	       },$d,$vallex]);
+  if (ref($bindings)) {
+    while (my ($event, $command) = each %$bindings) {
+      if (ref($command) eq 'ARRAY') {
+	$d->bind($event, [@$command,$vallex]);
+      } else {
+	$d->bind($event, [$command,$vallex]);
+      }
+    }
+  }
   if ($start_frame_editor) {
     $d->afterIdle([$vallex => 'addframe_button_pressed']);
   }
@@ -384,6 +484,8 @@ sub create_widget {
 	     wordproblem  => $lexproblem,
 	     infoline     => $info_line,
 	     framesearch  => $search_entry,
+	     wordlistitemstyle  => $wordlist_item_style,
+	     framelistitemstyle  => $framelist_item_style,
       	     hide_obsolete => \$hide_obsolete,
 	    },$fe_confs;
 }
