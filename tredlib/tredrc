@@ -38,6 +38,8 @@ ActiveTextColor	= blue			;; when mouse is over
 
 ;; --------- Other view options ---------
 
+StippleInactiveWindows 	= 1          	;; draw stipple pattern over inactive tree views
+
 DrawBoxes 	= 0          		;; default value for the View option
 ShowHidden 	= 0          		;; default value for the View option
 

@@ -773,17 +773,25 @@ sub ApplyGlobalConfig {
   update_value_line($grp);
   update_status_line($grp->{focusedWindow});
   print STDERR $@ if $@;
-  foreach my $w (@{$grp->{treeWindows}}) {
-    if ($grp->{focusedWindow} == $w) {
-      if ($w->{treeView}) {
-	$w->{treeView}->canvas->configure(@focused_win_opts);
-      }
-    } else {
-      $w->{treeView}->canvas->configure(@normal_win_opts);
-    }
-  }
+  update_treeviews($grp);
   $grp->{top}->afterCancel($grp->{autoSaveCallback});
   $grp->{autoSaveCallback}=$grp->{top}->repeat($autoSave*60000, [\&autoSaveAll,$grp]) if $autoSave>0;
+}
+
+sub update_treeviews {
+  my ($grp) = @_;
+  foreach my $w (@{$grp->{treeWindows}}) {
+    if ($w->{treeView}) {
+      my $c = $w->{treeView}->canvas;
+      if ($grp->{focusedWindow} == $w) {
+	$c->configure(@focused_win_opts);
+	$c->itemconfigure('stipple',-state=> 'hidden');
+      } else {
+	$c->configure(@normal_win_opts);
+	$c->itemconfigure('stipple',-state=> $stippleInactiveWindows ? 'normal' : 'hidden');
+      }
+    }
+  }
 }
 
 sub lastFileNo {
@@ -3898,10 +3906,12 @@ sub focusCanvas {
   if ($grp->{focusedWindow}) {
     return if $grp->{focusedWindow}->contains($c);
     $grp->{focusedWindow}->canvas()->configure(@normal_win_opts);
+    $grp->{focusedWindow}->canvas()->itemconfigure('stipple',-state=> $stippleInactiveWindows ? 'normal' : 'hidden');
     $grp->{focusedWindow}->canvas()->update();
   }
   if ($c) {
     $c->configure(@focused_win_opts);
+    $c->itemconfigure('stipple',-state=> 'hidden');
     $c->update();
   }
   my $newfocus=findCanvasWindow($grp,$c);
@@ -4332,6 +4342,9 @@ sub startMain {
 			tieNextTree($_[0]);
 		      },\%group]],
 	 [Separator=> ''],
+	 [Checkbutton=> 'Stipple Inactive Windows', -underline=> 17,
+	  -variable=> \$stippleInactiveWindows,
+	  -command => [\&update_treeviews,\%group]],
 	 [Checkbutton=> 'Draw boxes around labels', -underline=> 0,
 	  -variable=> \$treeViewOpts->{drawBoxes},
 	  -command => [sub {
@@ -5114,12 +5127,29 @@ sub startMain {
     focusCanvas($group{treeWindows}->[0]->canvas,\%group);
   }
   $group{top}->repeat(1000,sub {1}); # otherwise SIGINT would wait till next focus
+  $SIG{USR1}=sub {
+    if ($insideEval) {
+      print STDERR "Caught signal USR1: stopping current evaluation.\n";
+    } else {
+      print STDERR "Caught signal USR1: ignoring - not in a macro evaluation.\n";
+    }
+    print STDERR "Current call stack:\n",
+      map { my ($pkg, $f, $line) = caller($_); "  $_: file $f line $line\n" } 1..5;
+    $insideEval && die "Caught USR1: stopping current evaluation.\nSee the error output for details...\n"
+  };
   $SIG{INT}=sub {
-    print STDERR "Caught SIGINT, closing all files\n";
-    closeAllFiles(\%group);
-    print STDERR "Good bye!\n";
-    $group{top}->destroy;
-    POSIX::_exit 1;
+    if ($insideEval) {
+      print STDERR "Caught SIGINT, stopping current evaluation\n";
+      print STDERR "Current call stack:\n",
+	map { my ($pkg, $f, $line) = caller($_); "  $_: file $f line $line\n" } 1..5;
+      die "Caught SIGINT, stopping current evaluation.\nSee the error output for details...\n";
+    } else {
+      print STDERR "Caught SIGINT, closing all files\n";
+      closeAllFiles(\%group);
+      print STDERR "Good bye!\n";
+      $group{top}->destroy;
+      POSIX::_exit 1;
+    }
   };
 
   if (findFilelist('Default')->count == 0 and findFilelist('CmdLine-1')) {
@@ -7330,7 +7360,10 @@ sub redraw_win {
 	     $win->{currentNode},
 	     $win->{Nodes},
 	     # CHANGE THIS (this is just for printing) :
-	     (defined($vl) ? $vl : "")
+	     (defined($vl) ? $vl : ""),
+	     ($stippleInactiveWindows ?
+		(($win == $win->{framegroup}->{focusedWindow}) ? 'hidden' : 'normal')
+		  : undef)
 	    );
   setCurrent($win,$win->{currentNode}) if $win->{FSFile};
   $TrEd::TreeView::on_tree_redraw= undef; #forget the reference on $win
