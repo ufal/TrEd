@@ -23,6 +23,16 @@ $V_backend = 'JHXML';
 
 $V_module = 'ValLex::Extended'.$V_backend;
 
+eval {
+  if ($^O eq 'MSWin32') {
+    if ($::ENV{OS} eq 'Windows_NT') {
+      binmode STDOUT,":encoding(cp1250)";
+    } else {
+      binmode STDOUT,":encoding(cp852)";
+    }
+  }
+};
+
 sub init_vallex {
   $TrEd::ValLex::Editor::reviewer_can_modify=1;
 
