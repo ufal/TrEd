@@ -83,7 +83,7 @@ sub read_macros {
 #
 
   push @macros,"\n#line 1 \"$file\"\n";
-  my $line;
+  my $line=1;
   my @conditions;
   my $ifok=1;
   while (<F>) {
