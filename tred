@@ -258,6 +258,7 @@ import Fslib;
 import Fslib qw(&Ord &Value &Hide &SentOrd &AOrd &AValue &AHide &ASentOrd &Index $FSError);
 
 $tredDebug=1 if $opt_D;
+$TrEd::TreeView::Debug=1 if $opt_D;
 $Fslib::Debug=1 if $opt_D;
 $IOBackend::Debug=1 if $opt_D;
 
@@ -444,6 +445,7 @@ if ($opt_l) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
     if (open(F,"<$l")) {
       my @f=<F>;
+      shift @f if ($l=~/\.fl$/i and $f[0]!~m{[/.]} and ! -f absolutize($f[0]));
       s/\s+$// for @f;
       push @fl_files,\@f;
       close(F);
@@ -4561,6 +4563,8 @@ sub startMain {
 			  -variable => \$keyboardDebug],
 			 [Checkbutton => 'backend', -underline => 0,
 			  -variable => \$Fslib::Debug],
+			 [Checkbutton => 'view', -underline => 0,
+			  -variable => \$TrEd::TreeView::Debug],
 			]
 	 ]
 	])->pack(qw/-side left/);
