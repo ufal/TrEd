@@ -95,6 +95,11 @@ sub write {
 
   die "Require GLOB reference\n" unless ref($output);
 
+  my $rootdep='';
+  if ($fsfile->FS->exists('dep') &&
+      $fsfile->FS->isList('dep')) {
+    ($rootdep)=$fsfile->FS->listValues('dep');
+  }
   # xml_decl
   print $output "<?xml";
   if ($fsfile->metaData('xmldecl_version') ne "") {
@@ -110,17 +115,38 @@ sub write {
   }
   print $output "?>\n";
 
-  print $output "<text>\n";
-  if (ref($fsfile->metaData('fLib'))) {
-    my $flib=$fsfile->metaData('fLib');
-    foreach my $f (keys(%$flib)) {
-      print $output "<fLib>\n";
-      foreach (sort keys(%{$flib->{$f}})) {
-	print $output "<f id=\"$_\" name=\"$f\">",
-	  "<sym value=\"$flib->{$f}{$_}\"/></f>\n";
-      }
-      print $output "</fLib>\n";
+  if ($fsfile->metaData('xml_doctype')) {
+    my $properties=$fsfile->metaData('xml_doctype');
+    unless ($properties->{'Name'}) {
+      my $output = "DOCTYPE ".$properties->{'Name'};
+      $output .= ' SYSTEM "'.$properties->{'SystemId'}.'"' if $properties->{'SystemId'};
+      $output .= ' PUBLIC "'.$properties->{'PublicId'}.'"' if $properties->{'PublicId'};
+      $output .= ' '.$properties->{'Internal'} if $properties->{'Internal'};
+      print $output "<!",$output,">";
     }
+  }
+
+  print $output "<text>\n";
+  # declare all list attributes as fLib. If fLib info exists, use it
+  # to get value identifiers
+  foreach my $attr (grep { $fsfile->FS->isList($_) } $fsfile->FS->attributes) {
+    my %valids;
+    if (ref($fsfile->metaData('fLib'))) {
+      my $flib=$fsfile->metaData('fLib');
+      if (exists($flib->{$attr})) {
+	foreach (@{$flib->{$attr}}) {
+	  $valids{$_->[1]} = $_->[0];
+	}
+      }
+    }
+    print $output "<fLib>\n";
+    foreach ($fsfile->FS->listValues($attr)) {
+      print $output "<f";
+      print $output " id=\"$valids{$_}\"" if (exists($valids{$_}) and $valids{$_} ne "");
+      print $output " name=\"$attr\">",
+	"<sym value=\"$_\"/></f>\n";
+    }
+    print $output "</fLib>\n";
   }
   print $output "<body>\n";
   print $output "<p";
@@ -142,7 +168,8 @@ sub write {
     print $output ">\n";
 
     foreach my $node (sort { $a->{ord} <=> $b->{ord} } $tree->descendants) {
-      print $output "<$node->{type}";
+      my $type=$node->{type} || "w";
+      print $output "<$type";
       foreach (grep { exists($node->{$_}) and
 		      defined($node->{$_}) and 
 		      !/^[sp]_|^(?:form|type|ord|dep)$/ }
@@ -150,10 +177,10 @@ sub write {
 	print $output " $_=\"".xml_quote($node->{$_})."\"";
       }
       print $output " dep=\"".
-	xml_quote($node->parent->{type} eq 's' ? '' : $node->parent->{id})."\"";
+	xml_quote($node->parent->parent ? $rootdep : $node->parent->{id})."\"";
       print $output ">";
       print $output xml_quote_pcdata($node->{form});
-      print $output "</$node->{type}>\n";
+      print $output "</$type>\n";
     }
 
     print $output "</s>\n";
@@ -188,8 +215,8 @@ sub end_document {
     if (exists($self->{FSAttrSyms}->{$attr})
 	and ref($self->{FSAttrSyms}->{$attr})) {
       my ($list);
-      while (my ($id,$value) = each %{$self->{FSAttrSyms}->{$attr}}) {
-	$list.="|$value";
+      foreach (@{$self->{FSAttrSyms}->{$attr}}) {
+	$list.="|$_->[1]";
       }
       push @header, '@L '.$attr.$list;
     }
@@ -235,8 +262,8 @@ sub start_element {
     $self->{CurrentFSAttrID}=$attr->{"{}id"}->{Value};
     $self->{FSAttrs}->{$attr->{"{}name"}->{Value}}=1;
   } elsif ($elem eq 'sym') {
-    $self->{FSAttrSyms}->{$self->{CurrentFSAttr}}{$self->{CurrentFSAttrID}}=
-      $attr->{"{}value"}->{Value};
+    push @{$self->{FSAttrSyms}->{$self->{CurrentFSAttr}}},
+      [$self->{CurrentFSAttrID},$attr->{"{}value"}->{Value}];
   } elsif ($elem eq 's') {
     $self->{Tree} = $self->{FSFile}->new_tree($self->{FSFile}->lastTreeNo+1);
     $self->{Node} = $self->{Tree};
@@ -321,11 +348,9 @@ sub comment {
   }
 }
 
-sub doctype_decl { # not use for this, so far
+sub doctype_decl { # unfortunatelly, not called by the parser, so far
   my ($self,$hash) = @_;
-  foreach (qw(Name SystemId PublicId Internal)) {
-    $self->{"DocType_$_"} = $hash->{$_};
-  }
+  $self->{FSFile}->changeMetaData("xml_doctype" => $hash);
 }
 
 1;
