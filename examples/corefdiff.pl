@@ -18,7 +18,7 @@ if ($opt_h || !@files) {
   print <<EOL;
   Find differences in correference annotation of two given fs-files
 
-  Usage: corefdiff.pl file1, file2, ...
+  Usage: corefdiff.pl file1 file2 [...]
 
   -n print total number of differences for each node
   -t print total number of differences for each tree
@@ -60,7 +60,13 @@ my $differences=0;
 my $total_nodes=0;
 my $diffs_in_node=0;
 my $diffs_in_tree=0;
+my $diffs_in_cortype=0;
+my $node_differences=0;
+my $coreferences=0;
 my %coref_counts;
+my %diffs_in_spec_type;
+my %cortype_counts;
+my $nodes_with_coreference=0;
 
 foreach my $f (@files) {
   $fileno++;
@@ -92,37 +98,71 @@ for (my $tree_no; $tree_no<=$last_tree; $tree_no++) {
     print STDERR "Comparing node $id\n" if $opt_V;
     check_nodes($id,\%n);
     print STDERR "Ok, node ID's match with other attributes.\n" if $opt_V;
+
+    # get the arrows for the current node
     my %corefs;
     foreach my $f (@fs) {
       foreach (get_corefs($n{$f->filename}{$id})) {
-	print STDERR "Node ".$f->filename."#[id=$id]: coref $_\n" if $opt_v;
-	if (! exists($corefs{$_}) ) {
-	  $corefs{$_} = [$f->filename];
+	print STDERR "Node ".$f->filename."#[id=$id]: coref $_->[0].$_->[1]\n" if $opt_v;
+	if (! exists($corefs{$_->[1]}) ) {
+	  $corefs{$_->[1]} = [[$_->[0],$f->filename]];
 	  $coref_counts{$f->filename}++;
 	} else {
-	  push @{$corefs{$_}}, $f->filename;
+	  push @{$corefs{$_->[1]}}, [$_->[0],$f->filename];
 	  $coref_counts{$f->filename}++;
 	}
       }
     }
 
+    # compare the arrows for the current node
     foreach (keys(%corefs)) {
       print STDERR "Checking coref $_\n" if $opt_V;
       my @corefs=@{$corefs{$_}};
+      my $coref_reported=0;
       if (@corefs < @fs) {
 	print "##".($tree_no+1)." ".report_node($n{$fs[0]->filename()}{$id}).
 	  ": coreference ";
-	do {
-	  my $c=$_;
-	  $c=~s/^(?:[^.]*)\.//; # get rid of the prefix
-	  print report_node($n{$fs[0]->filename()}{$c});
-	};
-	print " only in: ", join(" ",@corefs),"\n";
+	print report_node($n{$fs[0]->filename()}{$_});
+	print " only in: ", join(" ",map { $_->[1] } @corefs),"\n";
+	$diffs_in_spec_type{$corefs[0][0]}++;
+	$coref_reported=1;
 	$differences++;
 	$diffs_in_tree++;
 	$diffs_in_node++;
       }
+
+      # compare types of the arrow
+      # the same method here
+      # get has of assigned types
+      my %cortypes;
+      foreach (@corefs) {
+	if (exists($cortypes{$_->[0]})) {
+	  push @{$cortypes{$_->[0]}}, $_->[1];
+	} else {
+	  $cortypes{$_->[0]} = [$_->[1]];
+	}
+      }
+      foreach my $cortype (keys %cortypes) {
+	my @cortypes=@{$cortypes{$cortype}};
+	$cortype_counts{$cortype}++;
+	# if not all of the arrows are of the same type
+	# report it as a difference
+	if (@cortypes < @corefs) {
+	  unless ($coref_reported) {
+	    print "##".($tree_no+1)." ".report_node($n{$fs[0]->filename()}{$id}).
+	      ": coreference ";
+	    print report_node($n{$fs[0]->filename()}{$_});
+	    print "\n";
+	    $coref_reported=1;
+	  }
+	  print "  of type $cortype only in: @cortypes\n";
+	}
+      }
+      $diffs_in_cortype += scalar(keys %cortypes)-1;
+      $coreferences++;
     }
+    $nodes_with_coreference++ if (keys(%corefs));
+    $node_differences++ if ($diffs_in_node);
     print "$diffs_in_node ".differences($diffs_in_node)." in node ".report_node($n{$fs[0]->filename()}{$id})."\n\n"
           if ($diffs_in_node and $opt_n);
     $node=$node->following_visible($fs[0]->FS);
@@ -135,7 +175,13 @@ print "\n";
 foreach my $file (@files) {
   print $coref_counts{$file}+0, " coreferences in $file\n";
 }
-print "\n$differences ".differences($differences)." in $total_nodes nodes\n";
+foreach (keys %diffs_in_spec_type) {
+  print $diffs_in_spec_type{$_}," ",differences($diffs_in_spec_type{$_}).
+    " in ".$cortype_counts{$_}." correferences of type $_\n";
+}
+print "\n$differences ".differences($differences)." in $coreferences coreferences\n";
+print "\n$diffs_in_cortype ".differences($diffs_in_cortype)." in cortype\n";
+print "$node_differences ".differences($node_differences)." in $nodes_with_coreference nodes with coreference of $total_nodes nodes\n";
 
 sub check_nodes {
   my ($id,$n)=@_;
@@ -161,7 +207,7 @@ sub get_corefs {
   my ($node)=@_;
   my @coref=split /\|/,$node->{coref};
   my @cortype=split /\|/,$node->{cortype};
-  return map { $cortype[$_].'.'.$coref[$_] } 0..$#coref;
+  return map { [ $cortype[$_], $coref[$_] ] } 0..$#coref;
 }
 
 sub get_ID {
@@ -252,5 +298,5 @@ sub report_node {
 }
 
 sub differences {
-  return 'difference'.($_[0]>1 ? 's' : '');
+  return 'difference'.($_[0]!=1 ? 's' : '');
 }
