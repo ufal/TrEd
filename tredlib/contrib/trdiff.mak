@@ -209,7 +209,7 @@ sub diff_trees {
     if ($T{$names[$i]}) {
       $node=Next($T{$names[$i]});
       while ($node) {
-	if (! exists $node->{_group_}) {
+       unless (exists $node->{_group_} and $node->{_group_} ne "") {
 	  $g="N$grpid";
 	  $grpid++;
 	  if (! exists $G{$g}) {
@@ -222,9 +222,8 @@ sub diff_trees {
 	    if (exists ($G{$parent_grp}->{$names[$j]})) {
 	      $son=FirstSon($G{$parent_grp}->{$names[$j]});
 	    SON: while ($son) {
-		if ((! exists $son->{_group_})
-		    and
-		    ($son->{"func"} eq $node->{"func"})) {
+		if ((!exists($son->{_group_}) or $son->{_group_} eq "")
+		    and ($son->{func} eq $node->{func})) {
 		  $son->{"_group_"}=$g;
 		  $G{$g}->{$names[$j]}=$son;
 		  last SON;
