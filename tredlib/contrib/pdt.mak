@@ -978,6 +978,7 @@ sub ARstruct {
     # build the parallel structure,
     # unless already built
     next if exists($r->{_AP_});
+    print STDERR "building tree ($single)\n";
     my @nodes = $r->descendants;
     # hash parents
     my %p = map { $_->{ord} => $_ } ($r,@nodes);
@@ -1014,6 +1015,7 @@ sub ARstruct {
   $defs->{ord}  = ' N';
   $defs->{dord} = ' P';
   $defs->{TR}   = ' P';
+  $grp->{FSFile}->FS->renew_specials();
   #  PDT->appendFSHeader('@N ord','@P dord','@P TR');
   # configure Fslib
   $Fslib::parent="_AP_";
@@ -1036,7 +1038,7 @@ sub TRstruct {
   $defs->{ord}  = ' P';
   $defs->{dord} = ' N';
   $defs->{TR}   = ' H';
-
+  $grp->{FSFile}->FS->renew_specials();
   # configure Fslib
   $Fslib::parent="_P_";
   $Fslib::firstson="_S_";
