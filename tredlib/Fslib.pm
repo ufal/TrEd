@@ -28,7 +28,7 @@ $VERSION = "1.2";
                 &SetRBrother &SetFirstSon/;
 
 use Carp;
-use vars qw/$VERSION @EXPORT @EXPORT_OK $field $parent $firstson $lbrother $FSTestListValidity $Debug/;
+use vars qw/$VERSION @EXPORT @EXPORT_OK $field $parent $firstson $lbrother $FSTestListValidity $Debug $special_attrs/;
 
 $Debug=0;
 $field='(?:\\\\[\\]\\,]|[^\\,\\]])*';
@@ -36,6 +36,8 @@ $parent="_P_";
 $firstson="_S_";
 $lbrother="_L_";
 $rbrother="_R_";
+$special=" _SPEC";
+$SpecialTypes='WNVH';
 $FSTestListValidity=0;
 $FSError=0;
 
@@ -159,26 +161,31 @@ sub ListValues ($$) {
 #  } else { return (); }
 }
 
-sub Special ($$$) {
-  my ($node,$href,$defchar)=@_;
-
-  if ($node and $href) {
-    foreach (keys(%$href)) {
-      return $node->getAttribute($_) if (index($href->{$_}," $defchar")>=0);
-    }
-  }
-  return undef;
-}
-
-sub ASpecial ($$) {
+sub FindSpecialDef ($$) {
   my ($href,$defchar)=@_;
-
   if ($href) {
     foreach (keys(%$href)) {
       return $_ if (index($href->{$_}," $defchar")>=0);
     }
   }
   return undef;
+
+}
+
+sub Special ($$$) {
+  my ($node,$href,$defchar)=@_;
+  my $atr = ASpecial($href,$defchar);
+  return defined($atr) ? $node->getAttribute($atr) : undef;
+}
+
+sub ASpecial ($$) {
+  my ($href,$defchar)=@_;
+  # use cache if possible
+  if (!exists($href->{$special}->{$defchar})) {
+    return $href->{$special}->{$defchar};
+  } else {
+    return $href->{$special}->{$defchar} = FindSpecialDef($href,$defchar);
+  }
 }
 
 sub ASentOrd ($) {
@@ -312,6 +319,9 @@ sub ReadAttribs  {
     print $outfile $_ if $DO_PRINT==1;
     push @$out, $_ if $DO_PRINT==2; 
     if (/^\@([KPOVNWLH])([A-Z0-9])* ([-_A-Za-z0-9]+)(?:\|(.*))?/o) {
+      if (index($SpecialTypes, $1)+1) {
+	$result{$special}->{$1}=$3;
+      }
       $order->[$count++]=$3 if (!defined($result{$3}));
       if ($4) {
 	$result{$3}.=" $1=$4"; # so we create a list of defchars separated by spaces
@@ -1146,6 +1156,8 @@ FSFormat - Simple OO interface for FS instance of Fslib.pm
 
 =cut
 
+%Specials = (sentord => 'W', order => 'N', value => 'V', hide => 'H');
+
 =pod
 
 =item create (@header)
@@ -1232,6 +1244,9 @@ values separated by |.
 sub addNewAttribute {
   my ($self,$type,$color,$name,$list)=@_;
   $self->list->[$self->count()]=$name if (!defined($self->defs->{$name}));
+  if (index($Fslib::SpecialTypes, $type)+1) {
+    $self->specials->{$type}=$name;
+  }
   if ($list) {
     $self->defs->{$name}.=" $type=$list"; # so we create a list of defchars separated by spaces
   } else {                 # a value-list may follow the equation mark
@@ -1268,6 +1283,9 @@ sub readFrom {
       push @{$self->unparsed}, $_;
     }
     if (/^\@([KPOVNWLH])([A-Z0-9])* ([-_A-Za-z0-9]+)(?:\|(.*))?/o) {
+      if (index($Fslib::SpecialTypes, $1)+1) {
+	$self->defs->{$special}->{$1}=$3;
+      }
       $self->list->[$count++]=$3 if (!defined($self->defs->{$3}));
       if ($4) {
 	$self->defs->{$3}.=" $1=$4"; # so we create a list of defchars separated by spaces
@@ -1327,16 +1345,13 @@ Return names of special attributes declared in FS format as @W, @N,
 
 =cut
 
-
-%Specials = (sentord => 'W', order => 'N', value => 'V', hide => 'H');
-
 sub AUTOLOAD {
   my ($self)=@_;
   return undef unless ref($self);
   my $sub = $AUTOLOAD;
   $sub =~ s/.*:://;
   if (exists($FSFormat::Specials{$sub})) {
-    return $self->special($FSFormat::Specials{$sub});
+    return $self->specials->{ $FSFormat::Specials{$sub} };
   } else {
     return undef;
   }
@@ -1366,8 +1381,10 @@ sub isHidden {
   # Returns the ancesor that hides it or undef
   my ($self,$node)=@_;
   return unless ref($self) and ref($node);
-  my $hid=$self->hide;
-  $node=$node->parent while (ref($node) && ($node->getAttribute($hid) ne 'hide'));
+  my $hid=$self->specials->{H};
+  while (ref($node) && ($node->{$hid} ne 'hide')) {
+    $node=$node->parent;
+  }
   return ($node ? $node : undef);
 }
 
@@ -1426,6 +1443,28 @@ sub unparsed {
   my $self = shift;
   return ref($self) ? $self->[2] : undef;
 }
+
+
+=pod
+
+=item specials
+
+Return a reference to a hash of attributes of special types. Keys
+of the hash are special attribute types and values are their names.
+
+=cut
+
+sub specials {
+  my $self = shift;
+  return undef unless ref($self);
+  my $spec = $self->[0]->{$special};
+  unless (ref($spec)) {
+    $self->[0]->{$special} = $spec =
+      { map { $_ => Fslib::FindSpecialDef($self->[0],$_) } split '',$Fslib::SpecialTypes };
+  }
+  return $spec;
+}
+
 
 =pod
 
@@ -1544,7 +1583,7 @@ given letter. See also L<"sentord"> and similar.
 sub special {
   my ($self,$defchar)=@_;
   return 
-    ref($self) ? Fslib::ASpecial($self->defs,$defchar) : undef;
+    ref($self) ? $self->specials->{$defchar} : undef;
 }
 
 =pod
