@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-01-30 12:21:49 pajas>
+## Time-stamp: <2003-04-23 11:45:53 pajas>
 
 package TredMacro;
 
@@ -39,7 +39,7 @@ worth saving it.
 This variable makes sense only in TrEd.  You may set it to one of
 C<file, tree, win, all, tie> to alter the mechanism of redrawing the
 screen. The default value is C<file> (redraw all windows displaying
-current file), while C<file> means redraw all windows displaying
+current file), while C<tree> means redraw all windows displaying
 current tree, C<win> means redraw only current window and C<tie> means
 redraw all if windows are tied or (if not) redraw only current window.
 
