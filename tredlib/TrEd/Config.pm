@@ -2,7 +2,7 @@ package TrEd::Config;
 
 #
 # $Revision$ '
-# Time-stamp: <2002-06-28 17:12:36 pajas>
+# Time-stamp: <2002-07-15 17:48:34 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -72,6 +72,15 @@ BEGIN {
   $highlightWindowWidth
   $lastAction
   $reverseNodeOrder
+  $valueLineHeight
+  $valueLineAlign
+  $valueLineWrap
+  $valueLineReverseLines
+  $valueLineFocusBackground
+  $valueLineFocusForeground
+  $valueLineBackground
+  $valueLineForeground
+  $maxUndo
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -162,7 +171,7 @@ sub val_or_def {
 sub set_config {
   my ($confs)=@_;
 
-  $appName=val_or_def($confs,"appname","TrEd ver. 0.5");
+  $appName=val_or_def($confs,"appname","TrEd ver. ".$main::VERSION);
   $buttonsRelief=val_or_def($confs,"buttonsrelief",'flat');
   $menubarRelief=val_or_def($confs,"menubarrelief",'flat');
   $buttonBorderWidth=val_or_def($confs,"buttonsborder",2);
@@ -172,7 +181,36 @@ sub set_config {
   $highlightWindowColor=val_or_def($confs,"highlightwindowcolor",'black');
   $highlightWindowWidth=val_or_def($confs,"highlightwindowwidth",3);
 
-  $treeViewOpts->{reverseNodeOrder}   =	val_or_def($confs,"reversenodeorder",0);
+  $valueLineHeight=val_or_def($confs,"vlineheight",
+			      defined($valueLineHeight) ? $valueLineHeight : 2);
+  $valueLineAlign=val_or_def($confs,"vlinealign",
+			     defined($valueLineAlign) ? $valueLineAlign : 'left');
+  $valueLineWrap=val_or_def($confs,"vlinewrap",
+			    defined($valueLineWrap) ? $valueLineWrap : 'word');
+  $valueLineReverseLines=val_or_def($confs,"vlinereverselines",
+				    defined($valueLineReverseLines) ?
+				    $valueLineReverseLines : 0
+				   );
+  $valueLineFocusForeground=val_or_def($confs,"vlinefocusforeground",
+				    defined($valueLineFocusForeground) ?
+				    $valueLineFocusForeground : 'black'
+				   );
+  $valueLineForeground=val_or_def($confs,"vlineforeground",
+				    defined($valueLineForeground) ?
+				    $valueLineForeground : 'black'
+				   );
+  $valueLineFocusBackground=val_or_def($confs,"vlinefocusbackground",
+				    defined($valueLineFocusBackground) ?
+				    $valueLineFocusBackground : 'yellow'
+				   );
+  $valueLineBackground=val_or_def($confs,"vlinebackground",
+				    defined($valueLineBackground) ?
+				    $valueLineBackground : 'white'
+				   );
+
+
+  $treeViewOpts->{reverseNodeOrder}   =	val_or_def($confs,"reversenodeorder",
+						   $treeViewOpts->{reverseNodeOrder});
 
   $treeViewOpts->{baseXPos}	      =	 val_or_def($confs,"basexpos",15);
   $treeViewOpts->{baseYPos}	      =	 val_or_def($confs,"baseypos",15);
@@ -181,8 +219,8 @@ sub set_config {
   $treeViewOpts->{useAdditionalEdgeLabelSkip}
                                       =
 					 val_or_def($confs,"useadditionaledgelabelskip",1);
-  $treeViewOpts->{currentNodeWidth}   =	 val_or_def($confs,"currentnodewidth",$nodeWidth);
-  $treeViewOpts->{currentNodeHeight}  =	 val_or_def($confs,"currentnodeheight",$nodeHeight);
+  $treeViewOpts->{currentNodeWidth}   =	 val_or_def($confs,"currentnodewidth",$treeViewOpts->{nodeWidth});
+  $treeViewOpts->{currentNodeHeight}  =	 val_or_def($confs,"currentnodeheight",$treeViewOpts->{nodeHeight});
   $treeViewOpts->{nodeXSkip}	      =	 val_or_def($confs,"nodexskip",10);
   $treeViewOpts->{nodeYSkip}	      =	 val_or_def($confs,"nodeyskip",10);
   $treeViewOpts->{edgeLabelSkipAbove} =	 val_or_def($confs,"edgelabelskipabove",10);
@@ -230,16 +268,21 @@ sub set_config {
   $treeViewOpts->{showHidden} = val_or_def($confs,"showhiddne",0);;
 
   $TrEd::Convert::inputenc = val_or_def($confs,"defaultfileencoding",$TrEd::Convert::inputenc);
+  print STDERR "Setting INPUTENC $TrEd::Convert::inputenc\n";
   $TrEd::Convert::outputenc = val_or_def($confs,"defaultdisplayencoding",$TrEd::Convert::outputenc);
+  $TrEd::Convert::lefttoright = val_or_def($confs,"displaynonasciilefttoright",$TrEd::Convert::lefttoright);
 
-  my $fontenc=$TrEd::Convert::outputenc || "iso-8859-2";
+  my $fontenc=$TrEd::Convert::outputenc 
+    || ($Tk::VERSION >= 804 and "iso-10646-1")  || "iso-8859-2";
   $fontenc=~s/^iso-/iso/;
+
+  print STDERR "FONTENC: $fontenc\n";
   $font=(exists $confs->{font}) ? $confs->{font} :
-    (($^O=~/^MS/) ? 'family:Helvetica,size:10' : '-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc);
+    (($^O=~/^MS/) ? 'family:Arial,size:10' : '-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc);
   $treeViewOpts->{font}=$font;
   $vLineFont=val_or_def($confs,"vlinefont",$font);
   $type1font=(exists $confs->{type1font}) ? $confs->{type1font} :
-    (($^O=~/^MS/) ? $font : '-ult1mo-arial-medium-r-*-*-*-*-*-*-*-*-'.$fontenc);
+    (($^O=~/^MS/) ? $font : '-*-arial unicode ms-medium-r-*-*-*-*-*-*-*-*-'.$fontenc);
 
   $libDir=tilde_expand($confs->{libdir})
     if (exists $confs->{libdir});
@@ -314,8 +357,8 @@ sub set_config {
   $CSTSBackend::csts2fs=$cstsToFs;
   $CSTSBackend::fs2csts=$fsToCsts;
 
-  $sgmls       = val_or_def($confs,"sgmls",undef);
-  $sgmlsopts   = val_or_def($confs,"sgmlsopts",undef);
+  $sgmls       = val_or_def($confs,"sgmls","nsgmls");
+  $sgmlsopts   = val_or_def($confs,"sgmlsopts","-i preserve.gen.entities");
   $cstsdoctype = val_or_def($confs,"cstsdoctype","$libDir/csts.doctype");
   $cstsparsecommand = val_or_def($confs,"cstsparsercommand","\%s \%o \%d \%f");
   $cstsparsezcommand = val_or_def($confs,"cstsparserzcommand","\%z < \%f | \%s \%o \%d -");
@@ -332,6 +375,7 @@ sub set_config {
   $hookDebug		      =	val_or_def($confs,"hookdebug",0);
   $macroDebug		      =	val_or_def($confs,"macrodebug",0);
   $tredDebug		      =	val_or_def($confs,"treddebug",0);
+  $Fslib::Debug               = val_or_def($confs,"backenddebug",0);
   $defaultTemplateMatchMethod =	val_or_def($confs,"searchmethod",'Exhaustive regular expression');
   $defaultMacroListOrder      =	val_or_def($confs,"macrolistorder",'M');
   $defCWidth		      =	val_or_def($confs,"canvaswidth",'18c');
@@ -342,6 +386,8 @@ sub set_config {
   $lastAction		      =	val_or_def($confs,"lastaction",undef);
 
   &$set_user_config($confs) if (ref($set_user_config));
+  $maxUndo		      =	val_or_def($confs,"maxundo",0);
+
 }
 
 1;
