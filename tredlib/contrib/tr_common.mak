@@ -634,6 +634,13 @@ sub DisconnectAIDREFS {
   $node->{AIDREFS} = "" if ($node->{AIDREFS} eq $node->{AID});
 }
 
+sub DisconnectAID {
+  my ($node,$dnode) = @_;
+  $node->{AIDREFS} = join '|', grep { $_ ne $dnode->{AID} }
+                               split /\|/,$node->{AIDREFS};
+  $node->{AIDREFS} = "" if ($node->{AIDREFS} eq $node->{AID});
+}
+
 sub ConnectFW {
   $pPar1->{fw}= join '|',grep { $_ ne "" }
     $pPar1->{fw},$pPar2->{trlemma},$pPar2->{fw};

@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-11 20:55:34 pajas>
+## Time-stamp: <2004-03-14 17:50:28 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -285,3 +285,81 @@ sub light_ar_children {
   ChangingFile(0);
 }
 
+
+#bind light_tr_children to Ctrl+t menu Mark true tectogramatic children of current node with _light = _LIGHT_
+sub light_tr_children {
+  my $node = $root;
+  while ($node) {
+    delete $node->{_light};
+    $node=$node->following;
+  }
+  foreach (PDT::GetChildren_TR($this)) {
+    $_->{_light}='_LIGHT_';
+  }
+  ChangingFile(0);
+}
+
+
+#bind remove_from_aidrefs to Ctrl+d menu Remove current node's AID from all nodes refering to it within the current tree
+sub remove_from_aidrefs {
+  my $node = $root;
+  ChangingFile(0);
+  while ($node) {
+    if ($node != $this and
+	getAIDREFsHash($node)->{$this->{AID}}) {
+	$node->{AIDREFS} = join '|', grep { $_ ne $this->{AID} } split /\|/,$node->{AIDREFS};
+	$node->{AIDREFS} = "" if ($node->{AIDREFS} eq $node->{AID});
+	ChangingFile(1);
+    }
+    $node->{_light}='';
+    $node=$node->following;
+  }
+}
+
+#bind only_parent_aidrefs to Ctrl+p menu Make only parent have the current node among its AIDREFS
+sub only_parent_aidrefs {
+  remove_from_aidrefs();
+  join_AIDREFS();
+  light_aidrefs_reverse();
+}
+
+
+sub which_struct {
+  if ($Fslib::parent eq "_AP_") {
+    return "AR";
+  } elsif ($Fslib::parent eq "_P_") {
+    return "TR";
+  } else {
+    return "unknown";
+  }
+}
+
+sub with_AR (&) {
+  my ($code) = @_;
+  if (which_struct() eq 'AR') {
+    my $ret = eval $code;
+    die $@ if $@;
+    return $ret;
+  } else {
+    PDT::ARstruct();
+    my $ret = eval $code;
+    die $@ if $@;
+    PDT::TRstruct();
+    return $ret;
+  }
+}
+
+sub with_TR (&) {
+  my ($code) = @_;
+  if (which_struct() eq 'AR') {
+    PDT::TRstruct();
+    my $ret = eval $code;
+    die $@ if $@;
+    PDT::ARstruct();
+    return $ret;
+  } else {
+    my $ret = eval $code;
+    die $@ if $@;
+    return $ret;
+  }
+}
