@@ -6014,104 +6014,6 @@ sub HideSubtree {
 
 }
 
-
-sub JoinSubtree {
-  my $pAct;			# used as type "pointer"
-  my $pSubtree;			# used as type "pointer"
-  my $pNext;			# used as type "pointer"
-  my $pT;			# used as type "pointer"
-  my $pD;			# used as type "pointer"
-  my $pCut;			# used as type "pointer"
-  my $pTatka;			# used as type "pointer"
-  my $pRoot;			# used as type "pointer"
-  my $pVerb;			# used as type "pointer"
-  my $sJLema;			# used as type "string"
-  my $sActLema;			# used as type "string"
-  my $sPriznak;			# used as type "string"
-
-  $sPasteNow = '';
-
-  $sPriznak = $sPar1;
-
-  ThisRoot();
-
-  $pRoot = $pReturn;
-
-  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
-
-    return;
-  }
-
-  $pAct = $this;
-
-  $pSubtree = $pAct;
-
-  $sJLema = ValNo(0,Parent($pAct)->{'trlemma'});
-
-  $sActLema = ValNo(0,$pAct->{'trlemma'});
-
-  if ($sActLema eq '&Gen;') {
-
-    $sActLema = 'se';
-  }
-
-  $sJLema = (ValNo(0,$sJLema).ValNo(0,'_'));
-
-  $sJLema = (ValNo(0,$sJLema).ValNo(0,$sActLema));
-
-  $pCut = FirstSon($pAct);
-
-  $sPar1 = ValNo(0,Parent($pAct)->{'AID'});
-
-  $sPar2 = ValNo(0,$pAct->{'AID'});
-
-  $pTatka = Parent($pAct);
- CutAllSubtrees:
-  if ($pCut) {
-
-    if (Interjection($pCut->{'ordorig'},'') eq '') {
-
-      $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
-    }
-
-    $NodeClipboard=CutNode($pCut);
-
-    $pD = PasteNode($NodeClipboard,$pTatka);
-
-    $pCut = FirstSon($pAct);
-
-    goto CutAllSubtrees;
-  }
-
-  $pAct->{'TR'} = 'hide';
-
-  $pPar1 = $pAct;
-
-  $pAct = Parent($pAct);
-
-  ConnectID();
-
-  $pAct->{'AID'} = $sReturn;
-
-  if ($sPriznak eq "1") {
-
-    $pAct->{'trlemma'} = $sJLema;
-
-    $sPar1 = "0";
-  }
-
-  if ($sPriznak eq "0") {
-
-    ifmodal();
-
-    $pAct->{'deontmod'} = $sPar3;
-  }
-
-  $this = $pAct;
-
-}
-
-
 sub ifmodal {
 
   $sPasteNow = '';
@@ -6366,80 +6268,6 @@ sub splitfw {
 
 }
 
-
-sub SplitJoined {
-  my $pAct;			# used as type "pointer"
-  my $pSon;			# used as type "pointer"
-  my $sWLemma;			# used as type "string"
-  my $sRestOfTrLemma;		# used as type "string"
-  my $pRoot;			# used as type "pointer"
-
-  $sPasteNow = '';
-
-  ThisRoot();
-
-  $pRoot = $pReturn;
-
-  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
-
-    return;
-  }
-
-  $pAct = $this;
-
-  $pSon = FirstSon($pAct);
-
-  $sRestOfTrLemma = ValNo(0,$pAct->{'trlemma'});
- AllParts:
-  $sPar1 = $sRestOfTrLemma;
-
-  GetAfunSuffix();
-
-  $sRestOfTrLemma = $sPar2;
-
-  $sWLemma = $sPar3;
-
-  if ($sWLemma eq '') {
-
-    $pAct->{'trlemma'} = $sRestOfTrLemma;
-
-    return;
-  }
- AllSons:
-  if (substr(ValNo(0,$pSon->{'trlemma'}),0,3) eq substr($sWLemma,1,3)) {
-
-    $sPar1 = ValNo(0,$pAct->{'AID'});
-
-    $sPar2 = ValNo(0,$pSon->{'AID'});
-
-    DisconnectID();
-
-    $pAct->{'AID'} = $sReturn;
-
-    $pSon->{'TR'} = '';
-
-    $pPar1 = $pSon;
-
-    ifmodal();
-
-    if ($sPar3 ne '') {
-
-      $pAct->{'deontmod'} = '';
-    }
-  } else {
-
-    $pSon = RBrother($pSon);
-
-    if ($pSon) {
-
-      goto AllSons;
-    }
-  }
-
-
-  goto AllParts;
-
-}
 
 
 sub FillEmpty {
@@ -9006,5 +8834,205 @@ sub FPaste {
   }
 
   $sPasteNow = '';
+
+}
+
+###################################
+###################################
+###################################
+
+sub JoinSubtree {
+  my $pAct;			# used as type "pointer"
+  my $pSubtree;			# used as type "pointer"
+  my $pNext;			# used as type "pointer"
+  my $pT;			# used as type "pointer"
+  my $pD;			# used as type "pointer"
+  my $pCut;			# used as type "pointer"
+  my $pTatka;			# used as type "pointer"
+  my $pRoot;			# used as type "pointer"
+  my $pVerb;			# used as type "pointer"
+  my $sJLema;			# used as type "string"
+  my $sActLema;			# used as type "string"
+  my $sPriznak;			# used as type "string"
+
+  $sPasteNow = '';
+
+  $sPriznak = $sPar1;
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
+
+    return;
+  }
+
+  $pAct = $this;
+
+  $pSubtree = $pAct;
+
+  $sJLema = ValNo(0,Parent($pAct)->{'trlemma'});
+
+  $sActLema = ValNo(0,$pAct->{'trlemma'});
+
+  if ($sActLema eq '&Gen;') {
+
+    $sActLema = 'se';
+  }
+
+  if ($sActLema eq 'se' &&
+      Interjection($pAct->{'form'},'si') eq 'si') {
+
+    $sActLema = 'si';
+  }
+
+  $sJLema = (ValNo(0,$sJLema).ValNo(0,'_'));
+
+  $sJLema = (ValNo(0,$sJLema).ValNo(0,$sActLema));
+
+  $pCut = FirstSon($pAct);
+
+  $sPar1 = ValNo(0,Parent($pAct)->{'AID'});
+
+  $sPar2 = ValNo(0,$pAct->{'AID'});
+
+  $pTatka = Parent($pAct);
+ CutAllSubtrees:
+  if ($pCut) {
+
+    if (Interjection($pCut->{'ordorig'},'') eq '') {
+
+      $pCut->{'ordorig'} = Parent($pCut)->{'ord'};
+    }
+
+    $NodeClipboard=CutNode($pCut);
+
+    $pD = PasteNode($NodeClipboard,$pTatka);
+
+    $pCut = FirstSon($pAct);
+
+    goto CutAllSubtrees;
+  }
+
+  $pAct->{'TR'} = 'hide';
+
+  $pPar1 = $pAct;
+
+  $pAct = Parent($pAct);
+
+  ConnectID();
+
+  $pAct->{'AID'} = $sReturn;
+
+  if ($sPriznak eq "1") {
+
+    $pAct->{'trlemma'} = $sJLema;
+
+    $sPar1 = "0";
+  }
+
+  if ($sPriznak eq "0") {
+
+    ifmodal();
+
+    $pAct->{'deontmod'} = $sPar3;
+  }
+
+  $this = $pAct;
+
+}
+
+
+sub SplitJoined {
+  my $pAct;			# used as type "pointer"
+  my $pSon;			# used as type "pointer"
+  my $sWLemma;			# used as type "string"
+  my $sRestOfTrLemma;		# used as type "string"
+  my $pRoot;			# used as type "pointer"
+  my $sCaseSi;			# used as type "string"
+
+  $sCaseSi = "0";
+
+  $sPasteNow = '';
+
+  ThisRoot();
+
+  $pRoot = $pReturn;
+
+  if (Interjection($pRoot->{'reserve1'},'TR_TREE') ne 'TR_TREE') {
+
+    return;
+  }
+
+  $pAct = $this;
+
+  $pSon = FirstSon($pAct);
+
+  $sRestOfTrLemma = ValNo(0,$pAct->{'trlemma'});
+ AllParts:
+  $sPar1 = $sRestOfTrLemma;
+
+  GetAfunSuffix();
+
+  $sRestOfTrLemma = $sPar2;
+
+  $sWLemma = $sPar3;
+
+  if ($sWLemma eq '') {
+
+    $pAct->{'trlemma'} = $sRestOfTrLemma;
+
+    return;
+  }
+
+  if ($sWLemma eq 'si') {
+
+    $sCaseSi = "1";
+  }
+ AllSons:
+  if ($sCaseSi eq "1") {
+
+    if (Interjection($pSon->{'trlemma'},'se') eq 'se' &&
+	Interjection($pSon->{'form'},'si') eq 'si') {
+
+      $sWLemma = 'se';
+    }
+
+    $sCaseSi = "0";
+  }
+
+  if (substr(ValNo(0,$pSon->{'trlemma'}),0,3) eq substr($sWLemma,1,3)) {
+
+    $sPar1 = ValNo(0,$pAct->{'AID'});
+
+    $sPar2 = ValNo(0,$pSon->{'AID'});
+
+    DisconnectID();
+
+    $pAct->{'AID'} = $sReturn;
+
+    $pSon->{'TR'} = '';
+
+    $pPar1 = $pSon;
+
+    ifmodal();
+
+    if ($sPar3 ne '') {
+
+      $pAct->{'deontmod'} = '';
+    }
+  } else {
+
+    $pSon = RBrother($pSon);
+
+    if ($pSon) {
+
+      goto AllSons;
+    }
+  }
+
+
+  goto AllParts;
 
 }
