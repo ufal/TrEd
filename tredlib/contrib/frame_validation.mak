@@ -51,7 +51,7 @@ ADDR(.1), etc)
 
 {
 use strict;
-use vars qw(@actants $ExD_tolerant $match_actants %lemma_normalization @fv_trans_rules_N @fv_trans_rules_V @fv_passivization_rules);
+use vars qw(@actants $match_actants %lemma_normalization @fv_trans_rules_N @fv_trans_rules_V @fv_passivization_rules);
 
 @actants = qw(ACT PAT EFF ORIG ADDR);
 $match_actants = '(?:'.join('|',@actants).')';
@@ -283,7 +283,7 @@ sub match_lemma {
 
 sub match_node_coord {
   my ($node, $fn,$aids,$no_case,$flags) = @_;
-  $flags ||= {};
+  $flags = {} unless defined($flags);
   my $res = match_node($node,$fn,$aids,$no_case,$flags);
   if (!$res and $node->{afun} =~ /^Coord|^Apos/) {
     foreach (grep { $node->{lemma} !~ /^a-1$|^nebo$/ or $_->{lemma}!~/^(podobnì|daleko-1|dal¹í)(_|$)/ or
@@ -575,11 +575,11 @@ sub match_node {
 	PDT::GetChildren_AR($node,
 			    sub{1},
 			    sub{ $_[0]{afun}=~/Aux[CP]/ }) };
-      unless ($ExD_tolerant and
+      unless ($flags->{ExD_tolerant} and
 	      (@nc and !first { $_->{afun}!~/ExD|AtvV|AuxG|AuxX/ } @nc
 	       or
                !@nc and $node->{afun}=~/Adv/ and $node->{lemma}=~/^pro-1$|^proti-1$/)) {
-      print "CHILDMISMATCH: $ExD_tolerant, $node->{lemma}"."[".join(",",map {$_->{form}} @nc)."] ... [",
+      print "CHILDMISMATCH: $flags->{ExD_tolerant}, $node->{lemma}"."[".join(",",map {$_->{form}} @nc)."] ... [",
 	  $V->serialize_form($ffn),"]\n" if $V_verbose;
 	return 0;
       }
@@ -732,7 +732,7 @@ sub match_form {
     } elsif ($node->{trlemma} eq 'ten') {
       $tag='PDXSX----------';
       push @a,$fake_node;
-    } elsif ($node->{trlemma} eq 'on') {
+    } elsif ($node->{trlemma} eq 'on' and $flags->{fake_perspron}) {
       my $gender = ($node->{gender} eq 'ANIM' ? 'M' : ($node->{gender}=~/^([INF])/ ? $1 : 'X'));
       my $number = ($node->{number}=~/^([PS])/ ? $1 : 'X');
       $tag='PP'.$gender.$number.'X--3-------';
@@ -1094,7 +1094,7 @@ sub validate_frame_no_transform {
   local @actants = qw(ACT PAT EFF MAT ADDR) if ($V->getPOS($frame) eq 'N');
   local $match_actants = '(?:'.join('|',@actants).')' if ($V->getPOS($frame) eq 'N');
 
-  $flags ||= {};
+  $flags = {} unless defined($flags);
   my %all_elements;
   # check over-all validity of the frame itself
   {
@@ -1442,7 +1442,7 @@ sub hash_pj4 {
 
 sub check_verb_frames {
   my ($node,$aids,$frameid,$fix,$flags)=@_;
-  my $flags ||= {};
+  $flags = {} unless defined($flags);
   my $func = get_func($node);
   return -1 if
     $node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/ or
@@ -1487,6 +1487,7 @@ sub check_verb_frames {
 		print "12 unresloved frame, but one matching frame: $fi\t";
 		print join("|",sort map { $V->frame_id($_) } @possible_frames)."\t";
 		if ($fix) {
+		  print "FIXED\t";
 		  $node->{frameid}=join "|",map { $V->frame_id($_) } @possible_frames;
 		  $node->{framere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 		  ChangingFile(1);
@@ -1513,6 +1514,7 @@ sub check_verb_frames {
       }
       if (@frames) {
 # 	if ($fix) {
+# 	print "FIXED\t";
 # 	  $node->{frameid}=join "|",map { $V->frame_id($_) } @frames;
 # 	  $node->{framere} = join " | ", map { $V->serialize_frame($_) } @frames;
 # 	  ChangingFile(1);
@@ -1545,6 +1547,7 @@ sub check_verb_frames {
 	    print "17 no frame assigned, but word has only one frame, which matches:\t";
 	  }
 	  if ($fix) {
+	    print "FIXED\t";
 	    $node->{frameid}=join "|",map { $V->frame_id($_) } @possible_frames;
 	    $node->{framere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 	    ChangingFile(1);
@@ -1553,6 +1556,7 @@ sub check_verb_frames {
 	  print "18 no frame assigned, but one matching frame:\t";
 	  print join (",",map { $V->frame_id($_) } @possible_frames)."\t";
 	  if ($fix) {
+	    print "FIXED\t";
 	    $node->{frameid}=join "|",map { $V->frame_id($_) } @possible_frames;
 	    $node->{framere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 	    ChangingFile(1);
@@ -1598,7 +1602,7 @@ sub check_verb_frames {
 
 sub check_nounadj_frames {
   my ($node,$aids,$frameid,$pj4,$flags)=@_;
-  my $flags ||= {};
+  $flags = {} unless defined($flags);
 #  if (@$pj4) {
 #    Position($pj4->[0]);
 #  }
@@ -1662,6 +1666,12 @@ sub check_nounadj_frames {
 	  }
 	} else {
 	  print "02 frame not found: $fi\t";
+	  if ($flags->{delete_not_found}) {
+	    $node->{frameid} = "";
+	    $node->{framere} = "";
+	    print "FIX: DELETED\n";
+	    ChangingFile(1);
+	  }
 	  Position($node);
 	  return 0;
 	}
