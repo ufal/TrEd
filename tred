@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 # -*- cperl -*-
 #
+# $Id$
+#
 ##############################################################################
 #
 # This is "TrEd" - a viewer and editor of tree graphs, such as
@@ -137,7 +139,7 @@ EOF
 if ($opt_v) {
   my $ver=$version;
   $ver=~s/\$//g;
-  print "TrEd $ver\nTk: $Tk::VERSION\nLast update: $lastupdate","\n";
+  print "TrEd $ver\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\nLast update: $lastupdate","\n";
   exit;
 }
 
