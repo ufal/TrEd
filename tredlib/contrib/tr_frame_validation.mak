@@ -157,11 +157,11 @@ sub validate_assigned_frames {
   if ($node->{tag}=~/^[NA]/
       or ($node->{tag}=~/^Vs/ and $node->{trlemma} =~ /[nt]ý$/)) {
     my $pj4 = hash_pj4($node->root);
-    if (check_nounadj_frames($node,$aids,'frameid',$pj4)==0) {
+    if (check_nounadj_frames($node,$aids,'frameid',$pj4,{strict_subclause=>1,ExD_tolerant => $ExD_tolerant})==0) {
       $node->{_light}='_LIGHT_';
     }
   } else {
-    if (check_verb_frames($node,$aids,'frameid',$fix)==0) {
+    if (check_verb_frames($node,$aids,'frameid',$fix,{strict_subclause=>1,ExD_tolerant => $ExD_tolerant})==0) {
       $node->{_light}='_LIGHT_';
     }
   }
