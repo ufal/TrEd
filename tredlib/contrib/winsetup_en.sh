@@ -259,7 +259,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     fi
     test "x$UPGRADE" = "x1" -a -f "${TREDDIR}/tredlib/tredrc.sav" && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
-    test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl
+    test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl --english
 
     echo "Creating Windows registry entry for TrEd"
     regtool add "\\machine\\Software\\TrEd"
