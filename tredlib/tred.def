@@ -1253,9 +1253,9 @@ sub DeleteLeafNode {
 
 =item C<DeleteSubtree(node)>
 
-Deletes a whole node's subtree and recalculate the special FS numbering attribute
-values in the whole tree so that there is no gap in the numbering. If
-a given node is not a leaf, this macro does nothing.
+Deletes a whole node's subtree and recalculate the special FS
+numbering attribute values in the whole tree so that there is no gap
+in the numbering.
 
 =cut
 
