@@ -304,7 +304,7 @@ sub ReadAttribs  {
 
   my %result;
   my $count=0;
-
+  local $_;
   while ($_=ReadTree($handle)) {
 
     s/\r$//o;
@@ -438,7 +438,7 @@ sub ParseNode2 ($$$) {
 
 sub ReadLine {
   my $handle=shift;
-
+  local $_;
   if (ref($handle) eq 'ARRAY') {
     $_=shift @$handle;
   } else { $_=<$handle>;
@@ -449,6 +449,7 @@ sub ReadLine {
 sub ReadTree {
   my $handle=shift;                # file handle or array reference
   my $l="";
+  local $_;
   while ($_=ReadLine($handle)) {
     if (s/\\\r*\n?$//og) {
       $l.=$_; next; 
@@ -1258,7 +1259,7 @@ sub readFrom {
 
   my %result;
   my $count=0;
-
+  local $_;
   while ($_=Fslib::ReadTree($handle)) {
     s/\r$//o;
     if (ref($out)) {
