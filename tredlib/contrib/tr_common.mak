@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-26 20:29:06 pajas>
+## Time-stamp: <2001-11-26 20:35:55 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
