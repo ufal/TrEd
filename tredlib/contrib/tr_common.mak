@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-19 11:04:14 pajas>
+## Time-stamp: <2001-11-26 19:20:16 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -13,6 +13,7 @@
 
 #bind default_tr_attrs to key F8 menu Display default attributes
 sub default_tr_attrs {
+  return unless $grp->{FSFile};
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".

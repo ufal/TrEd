@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-11-02 11:54:15 pajas>
+## Time-stamp: <2001-11-26 19:19:25 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -12,7 +12,7 @@ sub file_opened_hook {
   # if this file has no balloon pattern, I understand it as a reason to override
   # its display settings!
 
-  unless ($grp->{FSFile}->hint()) {
+  if ($grp->{FSFile} and !$grp->{FSFile}->hint()) {
     default_tr_attrs();
   }
 
