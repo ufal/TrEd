@@ -1161,12 +1161,12 @@ sub PrintToFile {
   return unless( defined($file) and $file ne '' );
   my @a=@_;
 
-  if (open(PTF,">>$file")) {
-    print PTF (join("",(map {
+  if (open($PTF,">>$file")) {
+    print $PTF (join("",(map {
       s/\\\|/|/g;
       s/\\n/\n/g;
       $_} @a)));
-    close(PTF);
+    close($PTF);
   } else { print STDERR "Could not open file $file\n"; }
 }
 
