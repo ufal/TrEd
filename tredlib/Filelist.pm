@@ -40,11 +40,12 @@ Create a new filelist object
 =cut
 
 sub new {
-  my ($self,$name) = @_;
+  my ($self,$name,$filename) = @_;
   my $class = ref($self) || $self;
   my $new =
     {
      name => $name,
+     filename => $filename,
      list => [],
      files => [],
      current => undef
@@ -62,7 +63,7 @@ Return name of the file-list
 =cut
 
 sub name {
-  my ($self,$position,$count)=@_;
+  my ($self)=@_;
   return ref($self) ? $self->{name} : undef;
 }
 
@@ -79,6 +80,72 @@ sub rename {
   my ($self,$new_name)=@_;
   return undef unless ref($self);
   return $self->{name}=$new_name;
+}
+
+=pod
+
+=item filename (new_name?)
+
+Return/change file name of the file-list (path to the file where the
+filelist is (or is to be) saved.
+
+=cut
+
+sub filename {
+  my ($self,$new_name)=@_;
+  return undef unless ref($self);
+  return defined($new_name) ? $self->{filename}=$new_name : $self->{filename};
+}
+
+=pod
+
+=item save
+
+Write the list of patterns to a file whose filename is stored/obtained via
+the filename method, or to standard output, if no filename is given.
+
+=cut
+
+sub save {
+  my ($self)=@_;
+  return undef unless ref($self);
+  do {
+    local *F;
+    print "Saving to: ",$self->filename,"\n";
+    if (defined ($self->filename) and $self->filename ne "") {
+      open F,">".$self->filename;
+    } else {
+      *F=*STDOUT;
+    }
+    print F $self->{name},"\n";
+    print F join("\n",$self->list),"\n";
+    close F;
+  }
+}
+
+=item load
+
+Read a file list form a file whose name is set/obtained via the
+filename method, or from the standard input, if no filename is given.
+
+=cut
+
+sub load {
+  my ($self)=@_;
+  return undef unless ref($self);
+  do {
+    local *F;
+    if (defined ($self->filename) and $self->filename ne "") {
+      open F,"<".$self->filename;
+    } else {
+      *F=*STDOUT;
+    }
+    chomp ($self->{name} = <F>);
+    @{ $self->list_ref } = <F>;
+    chomp @{ $self->list_ref };
+    close F;
+  };
+  $self->expand;
 }
 
 =pod
