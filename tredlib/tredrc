@@ -48,29 +48,58 @@ NodeHeight	= 7          		;; height of the oval
 CurrentNodeWidth	= 9          		;; width of the oval
 CurrentNodeHeight	= 9          		;; height of the oval
 
+;; ------------------------------------------------------------
+;; Set file/display character encodings 
+;; e.g. iso-8859-2/windows-1250 or iso-8859-6/windows-1256
+;; (see Convert.pm for a list of supported encodings)
+;; and text orientation of non-ascii characters (i.e. set
+;; DisplayNonAsciiLeftToRight=0 for Arabic on systems where
+;; arabic texts are not atomatically rendered right to left
+;; (such as Linux or English Windows 9x/ME)
+;; ------------------------------------------------------------
 
-;; --------- Miscelaneous Options ---------
+; DefaultFileEncoding='iso-8859-2'      ; (default is iso-8859-2)
+; DefaultDisplayEncoding='windows-1250' ; (default is iso-8859-2)
+; DisplayNonAsciiLeftToRight=1          ; (default is 1)
+
+
+;; ------------------------------------------------------------
+;; Value Line
+;; ------------------------------------------------------------
+
+; VLineHeight = 2                 ;; initial height in lines
+; VLineAlign = right              ;; one of left, center, right
+; VLineWrap = word                ;; one of none, char, word
+;; see also VLineFont bellow
+
+;; ------------------------------------------------------------
+;; Miscelaneous Options
+;; ------------------------------------------------------------
 
 maxDisplayedValues= 25			;; maximum number of rows in a dialog
 					;; for selecting attribute values
 
-HintWait	 	= 1000			;; interval in ms before floating hint
+HintWait	 	= 1000	        ;; interval in ms before floating hint
 					;; is displayed on a given node
 
-;; --------- Menubar look ---------
-;; possible values: reliefs are raised, sunken, flat, ridge, solid, and groove
+;; ------------------------------------------------------------
+;; Menubar look
+;; possible values: reliefs are raised, sunken, flat, ridge, solid,
+;; and groove
+;; ------------------------------------------------------------
 
 ; ButtonsRelief  	= flat     		
 ; MenubarRelief  	= flat
 
+;; ------------------------------------------------------------
+;; Fonts
+;; ------------------------------------------------------------
 
-;; --------- Fonts ---------
+;; Font may be specified in two ways: on X11 (Unix) platforms you may
+;; give a (possibly incomplete) X11 font-spec, i.e.:
 
-;; Font may be given in two ways: on X11 (Unix) platforms you may
-;; give a (possibly incomplete) X11 font-spec, i.e.: 
-;;
-;;  Font = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
-;;
+;  Font = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
+
 ;; The the font spec must in this case start with a dash `-'.
 ;;
 ;; You may also specify font attributes in the following way (works on
@@ -83,15 +112,15 @@ HintWait	 	= 1000			;; interval in ms before floating hint
 ;; values for weight: normal, bold
 ;; values for slant: roman, italic
 ;; values for underline and overstrake: 0,1
-;;
+
 ;; Example (Windows):
-;; 	Font = "family:Arial,size:10,weight:bold"
-;;
+;  Font = "family:Arial,size:10,weight:bold"
+
 ;; Example (UNIX):
-;; Font		 = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
+;  Font = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
 
 ;; Font used for value line
-; VLineFont	= "-*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2"
+; VLineFont = "-*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2"
 
 ;; --------- PostScript Printing Options ---------
 ;; PostScript font (in ascii PFA format) and postscript
