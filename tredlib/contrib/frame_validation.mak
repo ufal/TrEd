@@ -152,13 +152,22 @@ sub has_auxR {
     sub { my ($node,$aids) = @_;
 	  ($node->{tag}=~/^Vs/ and
 	   not (
-	     # eliminate "ma", "bude mit" or even "mel by mit"
+	     # eliminate "ma", "bude mit" or even "mel by mit" or "chtel by mit"
 		#first { $_->{AID} ne "" and $_->{lemma} =~ /^bıt$|^bıvat_/ and $_->{tag} !~ /Vc/ } get_aidrefs_nodes($aids,$node) 
 		#and 
-                first { $_->{AID} ne "" and $_->{lemma} =~ /^mít$|^mívat_/ } get_aidrefs_nodes($aids,$node)
-		and not first { $_->{AID} ne "" and $_->{lemma} !~ /^mít$|^mívat_/ and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node)
-		and not first { $_->{AID} ne "" and $_->{lemma} =~ /^bıt$|^bıvat_/ and $_->{tag} !~ /V[fc]/ } get_aidrefs_nodes($aids,$node)
-	       )
+#		and not first { $_->{AID} ne "" and $_->{lemma} !~ /^mít$|^mívat_/ and $_->{tag}=~/^Vf/ } get_aidrefs_nodes($aids,$node)
+#		and not first { $_->{AID} ne "" and $_->{lemma} =~ /^bıt$|^bıvat_/ and $_->{tag} !~ /V[fc]/ } get_aidrefs_nodes($aids,$node)
+
+	     # Here is what we eliminate:
+	     # -------------------------
+	     # there is some "mit"
+	     first { $_->{AID} ne "" and $_->{lemma} =~ /^mít$|^mívat_/ } get_aidrefs_nodes($aids,$node)
+	     and
+	     # there is some active hidden verb
+	     first { $_->{AID} ne "" and $_->{tag} =~ /V[^fc]/ } get_aidrefs_nodes($aids,$node)
+	     # there is no infinitive "byt"
+	     and !first { $_->{AID} ne "" and $_->{lemma} =~ /^bıt$|^bıvat_/ and $_->{tag} =~ /Vf/ } get_aidrefs_nodes($aids,$node)
+	    )
 	  ) ? 1:0;
 	} =>
     # frame transformation rules:
@@ -340,8 +349,8 @@ sub check_node_case {
   return 1 if $node->{tag}=~/^[NCPA]...(\d)/ and $case eq $1;
   print "   CASE: Checking case N..XX\n" if $V_verbose;
   return 1 if $node->{tag}=~/^N..XX/;
-#  print "   CASE: Checking AC..- tag ('vinen', etc.)\n" if $V_verbose;
-#  return 1 if $node->{tag}=~/^AC..-/;#
+  print "   CASE: Checking AC..- tag ('vinen', etc.)\n" if $V_verbose;
+  return 1 if $node->{tag}=~/^AC..-/ and $case=~/[14]/;#
   print "   CASE: Checking case X\n" if $V_verbose;
   return 1 if $node->{tag}=~/^[NCPA]...X/ or $node->{tag}=~/^X...-/;
   print "   CASE: Checking lemmas w/o case\n"  if $V_verbose;
@@ -721,8 +730,9 @@ sub match_form {
       $tag='PDXSX----------';
       push @a,$fake_node;
     } elsif ($node->{trlemma} eq 'on') {
-      my $gender = ($node->{gender} eq 'ANIM' ? 'M' : substr($node->{gender},0,1));
-      $tag='PP'.$gender.substr($node->{number},0,1).'X--3-------';
+      my $gender = ($node->{gender} eq 'ANIM' ? 'M' : ($node->{gender}=~/^([INF])/ ? $1 : 'X'));
+      my $number = ($node->{number}=~/^([PS])/ ? $1 : 'X');
+      $tag='PP'.$gender.$number.'X--3-------';
       push @a,$fake_node;
     }
     if (@a) {
