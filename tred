@@ -771,7 +771,7 @@ sub ApplyGlobalConfig {
 
 sub lastFileNo {
   my ($win)=@_;
-  return $win->{currentFilelist}->file_count()-1;
+  return $win->{currentFilelist} ? $win->{currentFilelist}->file_count()-1 : -1;x
 }
 
 sub currentFileNo {
@@ -845,12 +845,12 @@ sub nextOrPrevFile {
   if ($real and $win->{FSFile}) {
     my $prev_filename= $win->{FSFile}->filename;
     my $f = $filename = filelistFullFileName($win,$pos);
-    $prev_filename=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
-    $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
+    ($prev_filename) = parse_suffix($prev_filename);
+    ($f) = parse_suffix($f);
     while ($f eq $prev_filename) {
       $pos+=$delta;
       $f=$filename=filelistFullFileName($win,$pos);
-      $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
+      ($f) = parse_suffix($f);
     }
   } else {
     $filename=filelistFullFileName($win,$pos);
@@ -929,7 +929,6 @@ sub tieGotoFile {
 }
 
 
-# TrEd::Window ?
 sub resumeFile {
   my ($win,$fsfile,$keep)=@_;
   $keep||=$win->{framegroup}->{keepopen};
@@ -1182,7 +1181,7 @@ sub addToRecent {
     foreach my $rf (@recentFiles) {
       $grp->{RecentFileMenu}->command(-label => "$i.  $rf",
 				      -underline=> 0,
-				      -command=> [\&openFile,$grp,$rf]);
+				      -command=> [\&openStandaloneFile,$grp,$rf]);
       $i++;
     }
   }
@@ -1253,7 +1252,7 @@ sub updateBookmarks {
     if (defined($grp->{lastActionBookmark})) {
       $grp->{BookmarksFileMenu}->command(-label => "Last action",
 					 -underline=> 0,
-					 -command=> [ \&openFile,$grp,$grp->{lastActionBookmark} ]);
+					 -command=> [ \&openStandaloneFile,$grp,$grp->{lastActionBookmark} ]);
     }
     $grp->{BookmarksFileMenu}->separator();
     my $i=0;
@@ -1263,7 +1262,7 @@ sub updateBookmarks {
       print STDERR "$b\n" if $tredDebug;
       $grp->{BookmarksFileMenu}->command(-label => "$i.  ".$b,
 				      -underline=> 0,
-				      -command=> [ \&openFile,$grp,$b ]);
+				      -command=> [ \&openStandaloneFile,$grp,$b ]);
       $i++;
     }
   }
@@ -1305,7 +1304,7 @@ sub updatePostponed {
     foreach my $of (@openfiles) {
       $grp->{PostponedFileMenu}->command(-label => "$i.  ".$of->filename(),
 				      -underline=> 0,
-				      -command=> [\&openFile,$grp,
+				      -command=> [\&openStandaloneFile,$grp,
 						  $of->filename(),-keep => 1]);
       $i++;
     }
@@ -1332,10 +1331,9 @@ sub updateTitle {
   my $win = $grp->{focusedWindow};
   return unless ref($grp);
   if (defined($win->{currentFileNo}) and 
-      ref($win->{FSFile}) and
-      defined($win->{currentFilelist})) {
+      ref($win->{FSFile})) {
     my $filelist_info='';
-    if ($win->{currentFilelist}->position($win->{FSFile})>=0) {
+    if ($win->{currentFilelist}) {
       $filelist_info=$win->{currentFilelist}->name()."(".($win->{currentFileNo}+1)."/".
 	$win->{currentFilelist}->file_count()."): ";
     }
@@ -1392,13 +1390,47 @@ sub newFileFromCurrent {
   return 1;
 }
 
+sub parse_suffix {
+  my ($filename)=@_;
+  $filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$//;
+  return ($filename,$1);
+}
+
+
+# openStandaloneFile should be called whenever a file is opened via
+# a non-filelist operation (such as nextFile, or gotoFile)
+
+sub openStandaloneFile {
+  my ($grp_or_win,$file) = @_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  if ($grp->{appenddefault}) {
+    my $ret = openFile(@_);
+    if ($ret) {
+      my $fl=selectFilelistNoUpdate($grp,'Default');
+      print STDERR "$win->{currentFileNo}\n";
+      $win->{currentFileNo}=insertToFilelist($win,$win->{currentFilelist},
+					     $win->{currentFileNo},
+					     $file.$goto);
+    }
+    updateTitle($grp);
+    return $ret;
+  } else {
+    my $ret = openFile(@_);
+    undef $win->{currentFilelist};
+    $win->{currentFileNo} = -1;
+    updateTitle($grp);
+    return $ret;
+  }
+}
+
+
 sub reloadFile {
   my $win=cast_to_win(shift);
   if (ref($win->{FSFile}) and $win->{FSFile}->filename()) {
     my $f=$win->{FSFile}->filename();
     my @patterns=$win->{FSFile}->patterns();
     my $hint=$win->{FSFile}->hint();
-    $f=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//; # strip the suffix
+    ($f)=parse_suffix($f);
     my $no=$win->{treeNo}+1;
     my $nodeidx=0;
     do {			# $node is undefined after this block
@@ -1408,8 +1440,7 @@ sub reloadFile {
     $nodeidx--;
     return if askSaveFile($win,0,1) == -1;
     closeFile($win,-all_windows => 1);
-    openFile($win,"$f##$no.$nodeidx",
-	     -noredraw => 1, -nohook=>1);
+    openFile($win, "$f##$no.$nodeidx", -noredraw => 1, -nohook=>1);
     if ($win->{FSFile} and $reloadKeepsPatterns) {
       $win->{FSFile}->changePatterns(@patterns);
       $win->{FSFile}->changeHint($hint);
@@ -1421,16 +1452,13 @@ sub reloadFile {
 }
 
 sub openFile {
-  my ($grp_or_win,$f,%opts)= @_;
+  my ($grp_or_win,$fname,%opts)= @_;
   my ($grp,$win)=grp_win($grp_or_win);
-  my $goto= undef;
   my $no_err = $grp->{noOpenFileError};
 
-  if ($f=~/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$/) {
-    $f=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$//;
-      $goto=$1;
-    print "Goto suffix is $goto\n" if $tredDebug;
-  }
+  my ($f,$goto) = parse_suffix($fname);
+  print "Goto suffix is $goto\n" if defined($goto) and $tredDebug;
+
   $opts{-keep} ||= $grp->{keepfiles};
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
@@ -1469,16 +1497,6 @@ sub openFile {
       if (ref($of) and $of->filename() eq $f) {
 	print "Opening postponed file\n" if $tredDebug;
 	resumeFile($win,$of,$opts{-keep});
-	$win->{currentFileNo} =
-	  max(0,$win->{currentFileNo});
-	if ($grp->{appenddefault} and
-	    ref($win->{currentFilelist}) and
-	    $win->{currentFilelist}->name eq 'Default') {
-	  insertToFilelist($win,$win->{currentFilelist},
-			   $win->{currentFileNo},
-			   $f.$goto);
-	  $win->{currentFileNo}=$win->{currentFilelist}->position($win->{FSFile});
-	}
 	updateTitle($grp);
 	applyFileSuffix($win,$goto);
 	get_nodes_win($win, $opts{-noredraw});
@@ -1600,14 +1618,6 @@ sub openFile {
   }
   updatePostponed($grp);
   # add file to filelist
-  $win->{currentFileNo}= max(0,$win->{currentFileNo});
-  if ($win->{FSFile} and $win->{FSFile}->lastTreeNo>=0 and
-      $grp->{appenddefault} and
-      ref($win->{currentFilelist}) and
-      $win->{currentFilelist}->name eq 'Default') {
-    insertToFilelist($win,$win->{currentFilelist},$win->{currentFileNo},$f.$goto);
-    $win->{currentFileNo}=$win->{currentFilelist}->position($win->{FSFile});
-  }
   updateTitle($grp);
 
   applyFileSuffix($win,$goto);
@@ -2010,28 +2020,31 @@ sub get_nodes_all {
 # Filelists
 ############################################################
 
-sub selectFilelist {
+sub selectFilelistNoUpdate {
   my ($grp_or_win,$list_name)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $fl=switchFilelist($grp,$list_name);
   print "Switching filelist to $list_name\n" if $tredDebug;
   return unless defined($fl);
-
   if ($fl ne $win->{currentFilelist}) {
     # save file position in the current file-list
     # before switching
-    if (ref($win->{FSFile}) and
-	$win->{currentFilelist}->position($win->{FSFile}->filename())>=0) {
-      $win->{currentFilelist}->set_current($win->{FSFile}->filename());
-    }
+    $win->{currentFilelist}->set_current(filelistFullFileName($win,$win->{currentFileNo}))
+      if ref($win->{currentFilelist});
     $win->{currentFilelist}=$fl;
   }
+  $win->{currentFileNo}=max(0,$fl->position());
+  return $fl;
+}
 
-  # find current file
-  $win->{currentFileNo}=max(0,$fl->position())-1;
-  if ($win->{currentFileNo}+1>=$fl->file_count()) {
+sub selectFilelist {
+  my ($grp_or_win,$list_name)=@_;
+  my ($grp,$win)=grp_win($grp_or_win);
+  my $fl = selectFilelistNoUpdate(@_);
+  if ($win->{currentFileNo}>=$fl->file_count()) {
     closeFile($win);
   } else {
+    $win->{currentFileNo}--;
     nextFile($win);
   }
   updateTitle($grp);
@@ -2045,6 +2058,28 @@ sub findFilelist {
   }
   return undef;
 }
+
+sub looseFilePositionInFilelist {
+  my ($filelist,$fsfile) = @_;
+  return undef unless ref($filelist);
+  my $fname = ref($fsfile) ? $fsfile->filename() : $fsfile;
+  my $pos = $filelist->position($fsfile);
+  return $pos if $pos >= 0;
+
+  ($fname)=parse_suffix($fname);
+  my $files=$filelist->files_ref;
+  my $basedir=$filelist->dirname();
+  my $relfname=$fname;
+  if (index($fname,$basedir)==0) {
+    $relfname=substr($fname,length($basedir));
+  }
+  for (my $i=0; $i < $filelist->file_count; $i++) {
+    my ($fn) = parse_suffix($files->[$i]->[0]);
+    return $i if ($fname eq $fn or $relfname eq $fn);
+  }
+  return -1;
+}
+
 
 
 # this is only a local switch inside the file list dialog window,
@@ -2163,11 +2198,11 @@ sub insertToFilelist {
   my ($grp,$win)=grp_win($grp_or_win);
   $filelist=$win->{currentFilelist} unless defined($filelist);
   $position=$win->{currentFileNo} unless defined($position);
-  return unless ref($filelist);
+  return -1 unless ref($filelist);
 
 
   print "Insert: ",$#_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n"  if $tredDebug;
-  return if ($#_==0 and $filelist->position($_[0])>=0);
+  return -1 if ($#_==0 and $filelist->position($_[0])>=0);
   # this is the case when we add a file which is actually already there
 
   my @list=map absolutize($_),@_;
@@ -2203,6 +2238,7 @@ sub insertToFilelist {
       }
     }
   }
+  return $position+1;
 }
 
 sub removeFromFilelist {
@@ -2322,8 +2358,8 @@ sub feedHListWithFilelist {
 sub filelistDialog {
 
   use Tk::LabFrame;
-
   my ($grp,$modal)=@_;
+  my $win = $grp->{focusedWindow};
   if (defined($grp->{Filelist})) {
     if ($modal) {
       ShowDialog($grp->{Filelist}->toplevel);
@@ -2338,10 +2374,16 @@ sub filelistDialog {
 
   $grp->{top}->Busy(-recurse=>1);
   my $filelist;
-  if (!ref($grp->{focusedWindow}->{currentFilelist})) {
-    selectFilelist($grp,'Default');
+  if (!ref($win->{currentFilelist})) {
+    if ($win->{FSFile}) {
+      errorMessage($win,"Can't manage file-lists while visiting a file not belonging to any file-list! ".
+		   "Please, switch to a file-list (e.g. using Session->Default) and try again.");
+      return;
+    } else {
+      selectFilelist($grp,'Default');
+    }
   }
-  $grp->{filelistCurrentFilelist}=$grp->{focusedWindow}->{currentFilelist};
+  $grp->{filelistCurrentFilelist}=$win->{currentFilelist};
   $filelist=$grp->{filelistCurrentFilelist}->name;
   my $d= $grp->{top}->Toplevel(-title=> "Filelist");
   $d->withdraw;
@@ -2637,11 +2679,11 @@ sub filelistDialog {
 }
 
 sub generateSortedMacroTable {
-  my ($grp) = @_;
+  my ($grp,$context) = @_;
   my @macroTable= map { [ 
 			 $_,
-			 $menuBindings{$grp->{focusedWindow}->{macroContext}}->{$_}->[1],
-			] } keys %{$menuBindings{$grp->{focusedWindow}->{macroContext}}};
+			 $menuBindings{$context}->{$_}->[1],
+			] } keys %{$menuBindings{$context}};
   if ($grp->{macroListOrder} eq 'K') {
     return sort {
       my @a= split '\+',$a->[1];
@@ -2663,10 +2705,10 @@ sub generateSortedMacroTable {
 }
 
 sub macrolistCreateItems {
-  my ($grp,$t)=@_;
+  my ($grp,$t,$context)=@_;
   my $e;
   $t->delete('all');
-  foreach my $entry (generateSortedMacroTable($grp)) {
+  foreach my $entry (generateSortedMacroTable($grp,$context)) {
     $e= $t->addchild("");
     $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry->[0]);
     $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[1]);
@@ -2689,8 +2731,10 @@ sub macrolistDialog {
   my $d= $grp->{top}->Toplevel(-title=> "List of available named macros");
   $d->withdraw;
   $d->resizable(0,1);
+  $d->minsize('200','200');
 #c  -Background white
-  my $t= $d->Scrolled(qw/HList -columns 2
+  my $topframe = $d->Frame;
+  my $t= $topframe->Scrolled(qw/HList -columns 2
            -selectmode browse
            -height 25 -relief sunken -scrollbars oe/);
   disable_scrollbar_focus($t);
@@ -2698,40 +2742,49 @@ sub macrolistDialog {
   $grp->{Macrolist}=$d;
   my $e;
   my $maxw=0;
-  macrolistCreateItems($grp,$t);
+  macrolistCreateItems($grp,$t,$context);
 
   $t->columnWidth(0,'');
   $t->columnWidth(1,'');
   $t->anchorSet('0');
 
   $t->configure(-width=> 0);
-  $t->pack(qw/-expand yes -fill both/);
   $d->bind('<Return>'=>
 	   [
 	    sub {
-	      my ($w,$grp,$t,$context)=@_;
+	      my ($w,$grp,$t,$ctxt)=@_;
 	      doEvalMacro($grp->{focusedWindow},
-			  $menuBindings{$context}->
+			  $menuBindings{$ctxt}->
 			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
-	    },$grp,$t,$context ]);
+	    },$grp,$t,\$context ]);
   $d->bind('<Double-1>'=> 
 	   [
 	    sub {
-	      my ($w,$grp,$t,$context)=@_;
+	      my ($w,$grp,$t,$ctxt)=@_;
 	      doEvalMacro($grp->{focusedWindow},
-			  $menuBindings{$context}->
+			  $menuBindings{$$ctxt}->
 			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
-	    },$grp,$t,$context ]);
+	    },$grp,$t,\$context ]);
 
-  my $f=$d->Frame()->pack();
+  my $f=$topframe->Frame();
+  $f->Label(-text => "Context: ")->pack(qw/-side left/);
+  $f->Optionmenu(-options      => [sort(keys(%keyBindings))],
+		 -textvariable => \$context,
+		 -command      => [sub { my ($g,$list,$ctxt) = @_;
+					 print "$context ... $ctxt ... $list\n";
+					 macrolistCreateItems($g,$list,$ctxt);
+				       },$grp,$t],
+		 -relief       => 'groove', #$menubarRelief,
+		 -borderwidth  => 2)->pack(qw/-side left -padx 5/);
+
   $f->Radiobutton( -anchor  => 'nw',
 		   -text    => 'Sort by name',
 		   -variable=> \$grp->{macroListOrder},
 		   -relief  => 'flat',
 		   -command => [sub { #shift;
-				       my ($grp,$t)=@_;
-				       macrolistCreateItems($grp,$t);
-				     },$grp,$t],
+				       my ($grp,$t,$ctxt)=@_;
+				       macrolistCreateItems($grp,$t,$$ctxt);
+				     },$grp,$t,\$context],
 		   -value   => 'M'
 		 )->pack(-side=> 'left',-padx=> 20);
   $f->Radiobutton( -anchor  => 'nw',
@@ -2739,29 +2792,36 @@ sub macrolistDialog {
 		   -variable=> \$grp->{macroListOrder},
 		   -relief  => 'flat',
 		   -command => [sub { #shift;
-				       my ($grp,$t)=@_;
-				       macrolistCreateItems($grp,$t);
-				     },$grp,$t],
+				       my ($grp,$t,$ctxt)=@_;
+				       macrolistCreateItems($grp,$t,$$ctxt);
+				     },$grp,$t,\$context],
 		   -value   => 'K'
 		 )->pack(-side=> 'right',-padx=> 20);
-
-  $d->Button(-text=> 'Run and Close',
+  my $botframe=$d->Frame();
+  $botframe->Button(-text=> 'Run and Close',
 	     -command=> [ sub {
-			     my ($w,$grp,$t,$context)=@_;
+			     my ($w,$grp,$t,$ctxt)=@_;
 			     my $mac=$t->itemCget($t->info('anchor'),0,'-text');
 			     $w->destroy();
 			     doEvalMacro($grp->{focusedWindow},
-					 $menuBindings{$context}->{$mac}->[0]);
+					 $menuBindings{$$ctxt}->{$mac}->[0]);
+			   },$d,$grp,$t,\$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'left');
 
-
-			   },$d,$grp,$t,$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'left');
-  $d->bind($d,'<Destroy>'=> [sub { shift; shift->{Macrolist}=undef; },$grp ]);
-  $d->bind('all','<Escape>'=> [sub { shift; shift->destroy(); },$d ]);
-
-  $d->Button(-text=> 'Close',
+  $botframe->Button(-text=> 'Close',
 		     -command=> [ sub {
 				     shift->destroy();
 				   },$d ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
+  $d->bind($d,'<Destroy>'=> [sub { shift; shift->{Macrolist}=undef; },$grp ]);
+  $d->bind('all','<Escape>'=> [sub { shift; shift->destroy(); },$d ]);
+
+  $f->pack(qw/-side bottom -fill x/);
+  $t->pack(qw/-side top -fill both -expand 1/);
+
+
+  $botframe->pack(qw/-side bottom -fill both/);
+  $topframe->pack(qw/-side top -fill both -ipady 3 -ipadx 3 -expand 1/);
+
+
   $t->focus;
   $d->Popup;
 }
@@ -3640,13 +3700,14 @@ sub addBindTags {
 }
 
 sub cascadeMenus {
+  $maxMenuLines=max($maxMenuLines,3);
   my $uM=[ @_[0..min($maxMenuLines-1,$#_)] ];
   my $uuM=$uM;
   my $i=$maxMenuLines;
   while ($i<=$#_) {
-    $_=[@_[$i..min($i+$maxMenuLines-1,$#_)]];
-    push @$uuM,[Cascade=> 'More...', -menuitems=> $_];
-    $uuM=$_;
+    my $m = [@_[$i..min($i+$maxMenuLines-1,$#_)]];
+    push @$uuM,[Cascade=> 'More...', -menuitems=> $m];
+    $uuM=$m;
     $i+=$maxMenuLines;
   }
   return $uM;
@@ -4107,11 +4168,13 @@ sub startMain {
   $group{FileMenu}->command(-label=> 'Close and remove from filelist',
 			    -command=> [ sub {
 					    my ($grp)=@_;
-					    my $lr = $grp->{focusedWindow}->{currentFilelist}->list_ref;
-					    removeFromFilelist($grp,
-							       undef,
-							       undef,
-							       $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
+					    if (ref($grp->{focusedWindow}->{currentFilelist})) {
+					      my $lr = $grp->{focusedWindow}->{currentFilelist}->list_ref;
+					      removeFromFilelist($grp,
+								 undef,
+								 undef,
+								 $lr->[$grp->{focusedWindow}->{currentFileNo}]) if $lr;
+					    }
 					    return if askSaveFile($grp->{focusedWindow},0,1) == -1;
 					    closeFile($grp->{focusedWindow},-all_windows => 1);
 					  }
@@ -4134,7 +4197,7 @@ sub startMain {
   foreach (@recentFiles) {
     $group{RecentFileMenu}->command(-label => "$i.  $_",
 				    -underline=> 0,
-				    -command=> [\&openFile,\%group,$_]);
+				    -command=> [\&openStandaloneFile,\%group,$_]);
     $i++;
   }
 #  $group{PostponedFileMenu}=$group{FileMenu}->cascade(-label=> "Postponed Files", -underline=> 0);
@@ -5175,9 +5238,8 @@ sub fileDialog {
 #  print $FSref->Show;
 
   $file= get_open_filename($grp->{top},-filetypes=> \@open_types);
-  __debug "$file";
   if (defined $file and $file ne '') {
-    return openFile($grp,$file,-justheader => $header_only);
+    return openStandaloneFile($grp,$file,-justheader => $header_only);
   }
   return 0;
 }
@@ -5192,7 +5254,7 @@ sub urlDialog {
   my $file = QueryString($grp,"Enter URL", "URL: ",$grp->{lastURL},1,$grp->{urlHist});
   if (defined $file and $file ne '') {
     $grp->{lastURL} = $file;
-    return openFile($grp,$file,-justheader => $header_only);
+    return openStandaloneFile($grp,$file,-justheader => $header_only);
   }
   return 0;
 }
