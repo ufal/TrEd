@@ -14,8 +14,8 @@ function ask {
 }
 
 function mkplbat {
-  sed "s!_PERLBIN_!$PERLBIN!" < pl2bat > "${TREDDIR}/$1.bat" && \
-  cat "${TREDDIR}/$1" pl2batend >> "${TREDDIR}/$1.bat"
+  sed "s!_PERLBIN_!$PERLBIN!" < pl2bat.new > "${TREDDIR}/$1.bat" && \
+  cat "${TREDDIR}/$1" pl2batend.new >> "${TREDDIR}/$1.bat"
   return $?
 }
 
@@ -180,9 +180,4 @@ else
   echo Behem instalace doslo k chybe.
   echo
 fi
-
-
-
-
-
 
