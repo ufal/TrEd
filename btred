@@ -68,7 +68,7 @@ scripts:
 \$grp->{macroContext} - current macro context
 \$this                - current node (root of the first tree at the beginning)
 \$root                - root node of current tree
-\$FileNotSaved        - change this to 0 if you need not to save the file at the end
+\$FileNotSaved        - change this to 1 if you need to save the file at the end
 
 Also all functions defined in default macro file tred.def
 as well as any function from Fslib (see Fslib documentation).
@@ -383,12 +383,12 @@ sub doEvalMacro {
 
   $this=$grp->{'currentNode'};
   $root=$grp->{'root'};
-  $FileNotSaved=1;
   $forceFileSaved=0;
 
   my $result=do_eval_macro($grp,$macro);
 
   if ($grp->{FSFile}) {
+    $FileNotSaved=$grp->{FSFile}->notSaved;
     if ($forceFileSaved) {
       $grp->{FSFile}->notSaved($FileNotSaved);
     } else {
