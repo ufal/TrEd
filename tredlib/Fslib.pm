@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2002-03-28 16:39:19 pajas>
+# Time-stamp: <2002-04-03 11:45:37 paja>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -1049,6 +1049,24 @@ FSFormat - Simple OO interface for FS instance of Fslib.pm
 
 =pod
 
+=item create (@header)
+
+Create a new FS format instance object by parsing each of the parameters
+passed as one FS header line.
+
+=cut
+
+sub create {
+  my $self = shift;
+  my @header=@_;
+  my @attlist=();
+  my %defs=Fslib::ReadAttribs(\@header,\@attlist);
+  return $self->new({%defs},
+		    \@attlist,
+		    \@header);
+}
+
+
 =item new (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)
 
 Create a new FS format instance object and C<initialize> it with the
@@ -1171,6 +1189,19 @@ sub readFrom {
   }
   return 1;
 }
+
+=item toArray
+
+Return FS declaration as an array of FS header declarations.
+
+=cut
+
+sub toArray {
+  my ($self) = @_;
+  return unless ref($self);
+  return Fslib::CreateFSHeader($self->defs,$self->list);
+}
+
 
 =item writeTo (glob_ref)
 
@@ -1433,8 +1464,7 @@ sub indexOf {
 
 =item exists (attribute_name)
 
-Return index of the given attribute (in the order given by FS
-instance declaration).
+Return true if an attribute of the given name exists.
 
 =cut
 
