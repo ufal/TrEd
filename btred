@@ -567,6 +567,9 @@ sub startMain {
 	    }
 	    $hub->print("$@\n") if $@;
 	    _msg($@) if $@; undef $@;
+	    closeFile($grp);
+	    $hub->print("$@\n") if $@;
+	    _msg($@) if $@; undef $@;
 	    doEvalHook($grp,"exit_hook");
 	    $hub->print("$@\n") if $@;
 	    _msg($@) if $@;undef $@;
