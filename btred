@@ -29,7 +29,8 @@ use strict;
 use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $config_file
 	    $initial_code $macro $code $start_context $all_trees
-	    $all_nodes $all_nonhidden_nodes $file_encoding
+	    $all_nodes $no_all_trees $no_all_nodes
+	    $all_nonhidden_nodes $file_encoding
 	    $term_encoding $save $safe_mode $csts_tree_attrs
 	    $csts_tecto $preload $warn_only $validate_fs $allow_host
 	    $start_server $help $usage $manpage $obey_locks
@@ -66,7 +67,9 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "execute|e=s"    => \$code,
 	    "context|t=s" => \$start_context,
 	    "all-trees|T"    => \$all_trees,
+	    "no-all-trees"    => \$no_all_trees,
 	    "all-nodes|N"    => \$all_nodes,
+	    "no-all-nodes"    => \$no_all_nodes,
 	    "all-nonhidden-nodes|H"  => \$all_nonhidden_nodes,
 	    "file-encoding|n=s" => \$file_encoding,
 	    "terminal-encoding|d=s" => \$term_encoding,
@@ -896,6 +899,8 @@ sub startMain {
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
       print STDERR "Applying macro options: @ARGV\n" unless $quiet;
+      local $all_trees if $no_all_trees;
+      local $all_nodes if $no_all_nodes;
       $optparser->getoptions(
 		  map {$_ => $optmap{$_}}
 		  (
