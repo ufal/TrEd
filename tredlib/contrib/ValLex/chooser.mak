@@ -13,13 +13,14 @@ $vallexEditor=undef;
 
 sub init_XMLDataClass {
 
-  use POSIX qw(locale_h);
-  # ensure czech collating locale
-  print STDERR "LC_COLLATE:",
-    $TrEd::Convert::support_unicode ? "cs_CZ.UTF8" : "cs_CZ";
-  setlocale(LC_COLLATE,
-	    $TrEd::Convert::support_unicode ? "cs_CZ.UTF8" : "cs_CZ");
-
+  eval {
+    require POSIX;
+    # ensure czech collating locale
+    print STDERR "LC_COLLATE:",
+      $TrEd::Convert::support_unicode ? "cs_CZ.UTF8" : "cs_CZ";
+    POSIX::setlocale(POSIX::LC_COLLATE,
+		     $TrEd::Convert::support_unicode ? "cs_CZ.UTF8" : "cs_CZ");
+  };
   eval { require XML::JHXML; };
   if ($@) {
     print STDERR "Using LibXML\n" if $::tredDebug;
