@@ -699,6 +699,20 @@ APPINFO    NONE
 
 <!ENTITY agrave CDATA "&#38;agrave;" -- "agrave" -->
 
+<!ENTITY Comma CDATA "&#38;Comma;" -- "Comma" -->
+<!ENTITY Neg CDATA "&#38;Neg;" -- "Neg" -->
+<!ENTITY Comma CDATA "&#38;Comma;" -- "Comma" -->
+<!ENTITY Colon CDATA "&#38;Colon;" -- "Colon" -->
+<!ENTITY Dash CDATA "&#38;Dash;" -- "Dash" -->
+<!ENTITY Lpar CDATA "&#38;Lpar;" -- "Lpar" -->
+<!ENTITY Forn CDATA "&#38;Forn;" -- "Forn" -->
+<!ENTITY Rcp CDATA "&#38;Rcp;" -- "Rcp" -->
+<!ENTITY Neg CDATA "&#38;Neg;" -- "Neg" -->
+<!ENTITY Cor CDATA "&#38;Cor;" -- "Cor" -->
+<!ENTITY Emp CDATA "&#38;Emp;" -- "Emp" -->
+<!ENTITY EmpNoun CDATA "&#38;EmpNoun;" -- "EmpNoun" -->
+<!ENTITY Gen CDATA "&#38;Gen;" -- "Gen" -->
+<!ENTITY Idph CDATA "&#38;Idph;" -- "Idph" -->
 ]]>
 
 
@@ -706,6 +720,7 @@ APPINFO    NONE
 <!ENTITY amp CDATA "&#38;" >
 <!ENTITY num CDATA "&#35;" >
 <!ENTITY ast CDATA "&#42;" >
+
 <!ENTITY dollar CDATA "&#36;" -- "$" -->
 <!ENTITY lt CDATA "&#60;" -- "<" -->
 <!ENTITY gt CDATA "&#62;" -- ">" -->
