@@ -6342,7 +6342,10 @@ sub customAttrsDialog {
   my $d=$grp->{top}->
     DialogBox(-title=> "Customize Tree Appearance",
 	      -width=> '10c',
-	      -buttons=> ["OK", "Cancel"]);
+	      -buttons=> ["OK",
+			  (($win->{FSFile} and $win->{stylesheet} ne STYLESHEET_FROM_FILE()) ?
+			     "Store to current file" : ()),
+			  "Cancel"]);
 
   $d->Subwidget('top')->configure(qw(-takefocus 0));
   $d->Subwidget('bottom')->configure(qw(-takefocus 0));
@@ -6393,6 +6396,8 @@ B<RootStyles:>
   C<                    >  (can only be used in a rootstyle pattern)
   C<baseXPos            >- X-coordinate of the root node
   C<baseYPos            >- Y-coordinate of the root node
+  C<nodeXSkip           >- default horizontal skip between nodes
+  C<nodeYSkip           >- default vertical skip between nodes
 
 B<Styles:>
   C<#{object-feature:value}>
@@ -6657,7 +6662,12 @@ EOF
   _bind_buttons($d,$d);
   $grp->{top}->Unbusy();
   my $result= ShowDialog($d,$e,$grp->{top});
-
+  if ($result eq 'Store to current file') {
+    switchStylesheet($grp,STYLESHEET_FROM_FILE());
+    $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
+    $win->{FSFile}->notSaved(1);
+    $result = 'OK';
+  }
   if ($result=~ /OK/) {
     setWindowPatterns($win,$cl->get(0,$cl->index('end')-2));
     setWindowHint($win,$t->get('0.0','end - 1 chars'));
