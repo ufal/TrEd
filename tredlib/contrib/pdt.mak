@@ -142,7 +142,7 @@ Return string representation of the given subtree
 
 =cut
 
- sub get_sentence_string {
+sub get_sentence_string {
    shift @_ unless ref($_[0]);
    my $top= $_[0]||$root;
    return undef unless $top;
@@ -178,7 +178,7 @@ Return string representation of the given subtree
 
 =cut
 
- sub get_sentence_string_TR {
+sub get_sentence_string_TR {
    shift @_ unless ref($_[0]);
    my $top= $_[0]||$root;
    return undef unless $top;
