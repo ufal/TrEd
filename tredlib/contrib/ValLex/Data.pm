@@ -496,14 +496,38 @@ sub getSubElementProblemsList {
 
 sub findWord {
   my ($self,$find,$nearest)=@_;
-  my $doc=$self->doc();
-  return unless $doc;
-  my $docel=$doc->documentElement();
   foreach my $word ($self->getWordNodes()) {
     my $lemma = $self->conv->decode($word->getAttribute("lemma"));
     return $word if (($nearest and index($lemma,$find)==0) or $lemma eq $find);
   }
   return undef;
+}
+
+sub searchFrameMatching {
+  my ($self,$find,$posfilter,$word,$frame,$is_regexp) = @_;
+  $word ||= $self->getFirstWordNode();
+  $posfilter=~s/\*/ANVD/;
+  while ($word) {
+    next unless 1+index(uc($posfilter),uc($self->conv()->decode($word->getAttribute ("POS"))));
+    foreach my $entry ($self->getNormalFrameList($word)) {
+      if ($frame) {
+	# skip up to frame $frame
+	next if (!$entry->[0]->isSameNode($frame));
+	undef $frame;
+	next;
+      }
+      next if ($entry->[3] =~ /^(?:deleted|obsolete|substituted)$/);
+      my $text =$entry->[2].($entry->[6].$entry->[4] ? "\n" : "").
+	($entry->[6] ? "(".$entry->[6].") " : "").
+	  $entry->[4]." (".$entry->[5].")";
+      return $entry->[0]
+	if ($is_regexp and $text =~ m/$find/
+	    or !$is_regexp and index($text,$find)>=0);
+    }
+    undef $frame;
+  } continue {
+    $word = $word->findNextSibling('word');
+  }
 }
 
 sub findWordAndPOS {
