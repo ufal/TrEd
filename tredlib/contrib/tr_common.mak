@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-03 07:16:50 pajas>
+## Time-stamp: <2002-10-10 15:16:13 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -42,7 +42,7 @@ sub upgrade_file {
     $defs->{gram}=~s/LESS/LESS|MULT|RATIO/;
   }
   unless (exists($defs->{operand})) {
-    appendFSHeader('@P operand',
+    AppendFSHeader('@P operand',
 		   '@L operand|---|OP|NIL|???');
   }
   upgrade_file_to_tid_aidrefs();
@@ -643,7 +643,7 @@ sub generate_new_tid {
 sub generate_tids_whole_file {
   my $defs=FS()->defs;
   unless (exists($defs->{TID})) {
-    appendFSHeader('@P TID');
+    AppendFSHeader('@P TID');
   }
   foreach my $tree (GetTrees()) {
     my $node=$tree->following;
@@ -660,7 +660,7 @@ sub generate_tids_whole_file {
 sub move_aid_to_aidrefs {
   my $defs=FS()->defs;
   unless (exists($defs->{AIDREFS})) {
-    appendFSHeader('@P AIDREFS');
+    AppendFSHeader('@P AIDREFS');
   }
   foreach my $tree (GetTrees()) {
     my $node=$tree->following;
