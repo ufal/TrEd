@@ -3270,14 +3270,22 @@ root# <userinput>make install</userinput>
       </para>
       <para>
 	Other macro files may be included into any
-	<filename>tred.mac</filename> file by using the following
-	directive:
+	<filename>tred.mac</filename> file using one of the following
+	directives:
       </para>
-	<literallayout>#include&nbsp;<replaceable>filename</replaceable></literallayout>
+      <literallayout>#include&nbsp;"<replaceable>filename</replaceable>"
+#include&nbsp;&lt;<replaceable>filename</replaceable>&gt;
+#include&nbsp;<replaceable>filename</replaceable></literallayout>
       <para>
-	If the <replaceable>filename</replaceable> provides only a
-	relative path, then directories are searched in the following
-	way and order:
+	The <replaceable>filename</replaceable> should provide
+	absolute or relative path to the macro file, under the
+	following terms: In the first case, the path to the macro file
+	must be relative to the file from which it is included.  In
+	the second case, the <replaceable>filename</replaceable> must
+	be a relative path to the TrEd's library directory.  In the
+	third case, the <replaceable>filename</replaceable> may be
+	both absolute or relative. In the latter case the directories are
+	searched in the following order:
 	<orderedlist>
 	  <listitem>
 	    <para>Current directory is searched.</para>
