@@ -620,8 +620,14 @@ sub ConnectAID {
 
   if (getAIDREF($dnode) ne '') {
     my %a; @a{ getAIDREFs($node) }=();
-    $node->{AIDREFS}=getAIDREF($node).'|'.$dnode->{AID}
-      unless exists $a{ $dnode->{AID} };
+    unless (exists $a{ $dnode->{AID} }) {
+      my $aid = getAIDREF($node);
+      if ($aid eq "") {
+	$node->{AIDREFS}=$dnode->{AID};
+      } else {
+	$node->{AIDREFS}=$aid.'|'.$dnode->{AID};
+      }
+    }
   }
 }
 
