@@ -8,11 +8,11 @@ if ($^V lt v5.6.0) {
 }
 
 use Getopt::Std;
-getopts('p:r:s:a:f:x:CETADRNGhu');
+getopts('p:r:s:a:f:x:m:CETADRNGhu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
   print <<EOF;
-Usage: any2any [-s strip-sfx] [-a append-sfx] [-p strip-prefix]
+Usage: any2any [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-m merged-outfile]
                [-r add-prefix] [-f out-fmt] [-x extra_attribs]
                [ flags ] file1 [ file2 ... ]
 EOF
@@ -28,6 +28,9 @@ Parameters:
   -r prepend         prepend filenames with the given prefix
   -x extra_attribs   comma separated list of non-CSTS attributes to preserve when
                      converting to CSTS
+
+  -m outfile         merge all given files into one huge file. The implementation is
+                     rather imperfect since for instance CSTS headers are not merged.
 
   -T                 if converting from csts, build tectogrammatical tree structure
   -A                 when converting from csts, use header for Arabic PADT treebank
@@ -99,47 +102,77 @@ unless (  $backend = $bkmap{$format} ) {
   die "Unknown format $format. Use -f [fs|csts|trxml|teixml]\n";
 }
 
-foreach $f (@files) {
-  $fileno++;
-
-  my $out=$f;
-
-  my $eval;
-  $eval.="s%$opt_s\$%%;"  if ($opt_s);
-  $eval.="\$_.=\"$opt_a\";" if ($opt_a);
-  $eval.="s%^$opt_p%%;" if ($opt_p);
-  $eval.="\$_=\"$opt_r\".\$_;" if ($opt_r);
-  if ($eval) {
-    use Safe;
-    my $compartment = new Safe;
-    $compartment->permit_only(qw(concat :base_core));
-    $_=$out;
-    $compartment->reval($eval);
-    print STDERR $@ if $@;
-    $out=$_;
+if ($opt_m) {
+  # merge all given files into one large output file
+  my $outfs;
+  $out = $opt_m;
+  foreach $f (@files) {
+    $fileno++;
+    print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
+    $fs = FSFile->newFSFile($f,$inputenc,@backends);
+    if ($fs->lastTreeNo<0) {
+      print STDERR "$f: empty or corrupt file!\n";
+      next;
+    }
+    if (defined($outfs)) {
+      # merge fs headers
+      my $newdefs=$fs->FS->defs();
+      my $fmt=$outfs->FS;
+      my $defs=$fmt->defs();
+      my $list=$fmt->list();
+      foreach ($fs->FS->attributes()) {
+	push @$list, $_ unless ($fmt->exists($_));
+	$defs->{$_}=$newdefs->{$_};
+      }
+      # append trees
+      push @{$outfs->treeList}, @{$fs->treeList};
+      @{$fs->treeList}=(); # prevent them from being destroyed
+    } else {
+      $outfs=$fs;
+      $outfs->changeFilename($out);
+      $outfs->changeBackend($backend);
+    }
+    undef $fs;
   }
-
-  print STDERR "$f\t->\t$out\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
-  $fs = FSFile->newFSFile($f,$inputenc,@backends);
-  if ($fs->lastTreeNo<0) {
-    print STDERR "$f: empty or corrupt file!\n";
-    next;
+  if (-e $out) {
+    unlink "$out~" if (-e "$out~" ); # silly MS OSs need this
+    rename $out, "$out~" || die "Cannot create backup file named $out~ for $out\n";
   }
-  $fs->changeBackend($backend);
+  $outfs->writeFile($out);
+} else {
+  foreach $f (@files) {
+    $fileno++;
 
-  if ($f eq $out) {
-    unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
-    rename $f, "$f~" || die "Cannot create backup file named $f~ for $f\n";
+    my $out=$f;
+
+    my $eval;
+    $eval.="s%$opt_s\$%%;"  if ($opt_s);
+    $eval.="\$_.=\"$opt_a\";" if ($opt_a);
+    $eval.="s%^$opt_p%%;" if ($opt_p);
+    $eval.="\$_=\"$opt_r\".\$_;" if ($opt_r);
+    if ($eval) {
+      use Safe;
+      my $compartment = new Safe;
+      $compartment->permit_only(qw(concat :base_core));
+      $_=$out;
+      $compartment->reval($eval);
+      print STDERR $@ if $@;
+      $out=$_;
+    }
+
+    print STDERR "$f\t->\t$out\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
+    $fs = FSFile->newFSFile($f,$inputenc,@backends);
+    if ($fs->lastTreeNo<0) {
+      print STDERR "$f: empty or corrupt file!\n";
+      next;
+    }
+    $fs->changeBackend($backend);
+
+    if (-e $out) {
+      unlink "$out~" if (-e "$out~" ); # silly MS OSs need this
+      rename $out, "$out~" || die "Cannot create backup file named $out~ for $out\n";
+    }
+    $fs->writeFile($out);
+    undef $fs;
   }
-
-#   if ($opt_T || $opt_R) {
-#     $fs->changePatterns('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-#                     '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${reltype}\${memberof}" if "$${memberof}$${reltype}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
-#     $fs->changeHint('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
-# 		      "afun:\t\${afun}\ntag:\t\${tag}".
-# 		      '<?"\ncommentA:\t\${commentA}\n" if $${commentA} ne "" ?>');
-#   }
-
-  $fs->writeFile($out);
-  undef $fs;
 }
