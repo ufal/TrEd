@@ -206,11 +206,11 @@ sub show_adverbs_dialog {
     }
     print "done\n";
     $hlist->autosetmode();
-    $d->bind('all','<Double-1>'=> [sub {
-				     shift;
-				     shift->{selected_button}='Choose';
-				     Tk->break; 
-				   },$d ]);
+    $hlist->bind('<Double-1>'=> [sub {
+				   shift;
+				   shift->{selected_button}='Choose';
+				   Tk->break;
+				 },$d ]);
     $d->bind('all','<Up>'=> [sub { my ($w,$h)=@_;
 				   $h->UpDown('prev');
 				   Tk->break;
