@@ -7658,7 +7658,8 @@ sub redraw_win {
 	   (defined($vl) ? $vl : ""),
 	   ($stippleInactiveWindows ?
 	      (($win == $win->{framegroup}->{focusedWindow}) ? 'hidden' : 'normal')
-		: undef)
+		: undef),
+	   $win
 	  );
   setCurrent($win,$win->{currentNode}) if $win->{FSFile};
   $TrEd::TreeView::on_tree_redraw= undef; #forget the reference on $win

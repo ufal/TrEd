@@ -383,7 +383,7 @@ sub balance_node {
 }
 
 sub recalculate_positions {
-  my ($self,$fsfile,$nodes,$Opts)=@_;
+  my ($self,$fsfile,$nodes,$Opts,$grp)=@_;
   return unless ref($self);
 
   my $baseXPos=$Opts->{baseXPos} || $self->get_baseXPos;
@@ -531,11 +531,11 @@ sub recalculate_positions {
       if ($pat_style eq "edge") {
 	# this does not actually make
 	# the edge label not to overwrap, but helps a little
-	$m=$self->getTextWidth($self->prepare_text($node,$pat));
+	$m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
 	$self->store_node_pinfo($node,"X[$i]",$m);
 	$edgeLabelWidth=$m if $m>$edgeLabelWidth;
       } elsif ($pat_style eq "node") {
-	$m=$self->getTextWidth($self->prepare_text($node,$pat));
+	$m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
 	$self->store_node_pinfo($node,"X[$i]",$m);
 	$nodeLabelWidth=$m if $m>$nodeLabelWidth;
       }
@@ -887,7 +887,7 @@ sub eval_coords_spec {
 }
 
 sub redraw {
-  my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple)=@_;
+  my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple,$grp)=@_;
   my $node;
   my $style;
   my $parent;
@@ -935,7 +935,7 @@ sub redraw {
     $node=$node->parent() while ($node->parent());
     # only for root node if any
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
-      foreach ($self->interpolate_text_field($node,$style)=~/\#${block}/g) {
+      foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
   	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):'?(.+)'?$/) {
 	  if (exists $Opts{"$1$2"}) {
 	    push @{$Opts{"$1$2"}},$3=>$4;
@@ -962,7 +962,7 @@ sub redraw {
   foreach $node (@{$nodes}) {
     my %nopts=();
     foreach $style (@style_patterns) {
-      foreach ($self->interpolate_text_field($node,$style)=~/\#${block}/g) {
+      foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
 	if (/^(CurrentOval|Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+):(.+)$/) {
 	  if (exists $nopts{"$1$2"}) {
 	    push @{$nopts{"$1$2"}},$3=>$4;
@@ -997,7 +997,7 @@ sub redraw {
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
-  recalculate_positions($self,$fsfile,$nodes,\%Opts);
+  recalculate_positions($self,$fsfile,$nodes,\%Opts,$grp);
 
   #------------------------------------------------------------
   #}
@@ -1296,21 +1296,21 @@ sub redraw {
     for (my $i=0;$i<=$#patterns;$i++) {
 
       ($pat_class,$pat)=$self->parse_pattern($patterns[$i]);
-      $msg=$self->interpolate_text_field($node,$pat);
+      $msg=$self->interpolate_text_field($node,$pat,$grp);
       if ($pat_class eq "edge") {
 	if ($node->parent) {
 	  $msg =~ s!/!!g;		# should be done in interpolate_text_field
 	  $x=$self->get_node_pinfo($node,"EdgeLabel_XPOS");
 	  $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
 	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
-				!$edge_has_box, \%Opts);
+				!$edge_has_box, \%Opts,$grp);
 	  $e_i++;
 	}
       } elsif ($pat_class eq "node") {
 	$x=$self->get_node_pinfo($node,"NodeLabel_XPOS");
 	$y=$self->get_node_pinfo($node,"NodeLabel_YPOS")+$n_i*$lineHeight;
 	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
-			      !$node_has_box, \%Opts);
+			      !$node_has_box, \%Opts,$grp);
 	$n_i++;
       }
     }
@@ -1333,7 +1333,7 @@ sub redraw {
 		    my $node=$self->get_obj_pinfo($_);
 		    my $msg=
 		      $self->interpolate_text_field($node,
-						    $hint);
+						    $hint,$grp);
 		    $msg=~s/\${([^}]+)}/_present_attribute($node,$1)/eg;
 		    $_ => encode($msg);
 		  }
@@ -1383,7 +1383,7 @@ sub redraw {
 
 sub draw_text_line {
   my ($self,$fsfile,$node,$i,$msg,
-      $lineHeight,$x,$y,$clear,$Opts)=@_;
+      $lineHeight,$x,$y,$clear,$Opts,$grp)=@_;
 
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
   my $align=$self->get_style_opt($node,"Node","-textalign",$Opts);
@@ -1452,7 +1452,7 @@ sub draw_text_line {
 	$c=$1;
 	$at_text=$2;
       } else {
-	$at_text=$self->prepare_text_field($node,$c);
+	$at_text=$self->prepare_text_field($node,$c,$grp);
       }
       next if ($at_text) eq "";
       $objectno++;
@@ -1557,9 +1557,9 @@ formatting references of the form #{format}.
 =cut
 
 sub prepare_text {
-  my ($self,$node,$pattern)=@_;
+  my ($self,$node,$pattern,$grp)=@_;
   return "" unless ref($node);
-  my $msg=$self->interpolate_text_field($node,$pattern);
+  my $msg=$self->interpolate_text_field($node,$pattern,$grp);
   $msg=~s/\#${block}//g;
   $msg=~s/\$${block}/$self->prepare_raw_text_field($node,$1)/eg;
   return encode($msg);
@@ -1567,7 +1567,7 @@ sub prepare_text {
 
 =pod
 
-=item interpolate_text_field (node,text)
+=item interpolate_text_field (node,text,grp)
 
 Interpolate, evaluate and substitute the results for
 all code references of the form `<? code ?>' in the given
