@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-10-23 11:26:15 pajas>
+## Time-stamp: <2004-01-14 17:53:26 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -9,6 +9,7 @@
 
 #include <contrib/tred_mac_common.mak>
 
+#ifdef TRED
 sub file_opened_hook {
 
   # if this file has no balloon pattern, I understand it as a reason to override
@@ -26,10 +27,13 @@ sub file_opened_hook {
   Coref->update_coref_file();
   $FileNotSaved=0;
 }
+#endif
 
+#ifdef TRED
 sub file_resumed_hook {
   SwitchContext('Coref');
 }
+#endif
 
 ## add few custom bindings to predefined subroutines
 sub CutToClipboard {}

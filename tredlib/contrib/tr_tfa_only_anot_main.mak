@@ -1,12 +1,13 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-04-09 15:21:29 pajas>
+## Time-stamp: <2004-01-14 17:54:13 pajas>
 
 #
 # This file defines default macros for TR annotators.
 # Only TredMacro context is present here.
 #
 
+#ifdef TRED
 sub file_opened_hook {
 
   # if this file has no balloon pattern, I understand it as a reason to override
@@ -30,11 +31,13 @@ sub file_opened_hook {
   SwitchContext('TFA');
   $FileNotSaved=0;
 }
+#endif
 
+#ifdef TRED
 sub file_resumed_hook {
   SwitchContext('TFA');
 }
-
+#endif
 
 #include <contrib/tred_mac_common.mak>
 sub CutToClipboard {}
