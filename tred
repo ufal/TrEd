@@ -3388,13 +3388,18 @@ sub customAttrsDialog {
 	      -width=> '10c',
 	      -buttons=> ["OK", "Cancel"]);
 
-  my $f= $d->Frame();
+  my $f= $d->Frame(qw/-relief sunken -bd 1/);
+  $f->Frame(qw/-height 6/)->pack(qw/-side bottom/);
   my $af= $f->Frame();
-  $af->Label(-text=> 'Attributes')->pack();
-  my $al= $af->Scrolled(qw/Listbox -relief sunken 
+  $af->Frame(qw/-height 6/)->pack();
+  $af->Label(qw/-text Attributes -anchor nw -justify left/)->pack(qw/-fill both/);
+  my $al= $af->Scrolled(qw/Listbox
+                     -bg white
+                     -width 0
+                     -relief sunken
                      -borderwidth 2 -setgrid true
-		     -height 15 -scrollbars e
-                     -exportselection 0/)->pack();
+                     -scrollbars e
+                     -exportselection 0/)->pack(qw/-pady 3 -expand yes -fill y/);
   $al->BindMouseWheelVert();
   my @atord=$win->{FSFile}->FS->attributes;
   if ($sortAttrs) {
@@ -3402,12 +3407,15 @@ sub customAttrsDialog {
       unless (doEvalHook($win,"sort_attrs_hook",\@atord));
   }
   $al->insert('end',@atord);
-  $af->pack(qw/-padx 5 -side left -expand yes -fill both/);
+  $af->pack(qw/-padx 5 -side left -fill y/);
   my $cf= $f->Frame();
-  $cf->Label(-text=> 'Display patterns')->pack();
+  $cf->Frame(qw/-height 6/)->pack();
+  $cf->Label(-text=> 'Display patterns',qw/-anchor nw -justify left/)->pack(qw/-fill x/);
   my $cl=
     $cf->Scrolled(qw/Listbox -relief sunken
-                     -borderwidth 2 -setgrid true
+                     -bg white
+                     -borderwidth 2
+                     -setgrid true
 		     -scrollbars se
                      -selectmode extended
                      -exportselection 0/
@@ -3416,7 +3424,8 @@ sub customAttrsDialog {
                             -padx 3 -pady 3/);
   $cl->BindMouseWheelVert();
   $cl->insert('end',$win->{FSFile}->patterns,'   ');
-  $cf->Label(-text=> 'Hint pattern')->pack();
+  $cf->Frame(qw/-height 6/)->pack();
+  $cf->Label(-text=> 'Hint pattern',qw/-anchor nw -justify left/)->pack(qw/-fill x/);
   my $t=
     $cf->Scrolled(qw/Text -relief sunken
                      -borderwidth 2 -setgrid true
@@ -3480,15 +3489,17 @@ sub customAttrsDialog {
 	     )->pack(qw/-side top -expand yes -padx 3 -pady 3/);
 
 
-  $bf->pack(qw/-padx 5 -side left -expand yes -fill both/);
+  $bf->pack(qw/-padx 5 -side left -fill y/);
   $cf->pack(qw/-padx 5 -side left -expand yes -fill both/);
 
-  $f->pack(qw/-side top -expand yes -fill x/);
-  $d->Label(-text => "Node styling pattern", -anchor => 'nw', -justify => 'left')->pack(qw/-side top -expand yes -fill x/);
-  $d->Entry(qw/-relief sunken -borderwidth 2/)->pack(qw/-side top -expand yes -fill x/);
+  $f->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
+#  $d->Label(-text => "Node styling pattern",
+#	    -anchor => 'nw',
+#	    -justify => 'left')->pack(qw/-side top -expand yes -fill x/);
+#  $d->Entry(qw/-relief sunken -borderwidth 2/)->pack(qw/-side top -expand yes -fill x/);
   my $eff=$d->Frame(qw/-relief sunken -bd 1/)->
-    pack(qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
-
+    pack(qw/-padx 3 -pady 3 -side top -fill x/);
+  $eff->Frame(qw/-height 6/)->pack();
   $d->Label(-text => "Edit attribute pattern",
 	    -anchor => 'nw', -justify => 'left')
     ->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -expand yes -fill x/);
@@ -3516,7 +3527,7 @@ sub customAttrsDialog {
 	   }
 	  );
   $d->bind('<Return>'=> [sub {1;}]);
-  $d->resizable(0,0);
+#  $d->resizable(0,0);
   $grp->{top}->Unbusy();
 
   my $result= ShowDialog($d,$e,$grp->{top});
