@@ -83,7 +83,7 @@ sub valid_frames_for {
   my %resolved;
 
 #  print "Start: ",$self->frame_id($frame),"\n";
-  while (@resolve = grep { $_->getAttribute('substituted_with') ne "" } @frames) {
+  while (@resolve = grep { $_->getAttribute('status') eq 'substituted' and $_->getAttribute('substituted_with') ne "" } @frames) {
 #    foreach (@resolve) {
 #      print "resolving ",$self->frame_id($_)," to ",$_->getAttribute('substituted_with'),"\n";
 #    }
