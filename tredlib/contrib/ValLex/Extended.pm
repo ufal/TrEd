@@ -77,6 +77,7 @@ sub _uniq { my %a; @a{@_}=@_; values %a }
 sub valid_frames_for {
   my ($self,$frame)=@_;
   my $with;
+  return unless ref($frame);
   my @frames = ($frame);
   my @resolve;
   my %resolved;
