@@ -38,7 +38,7 @@ sub match_node {
     return 0 unless $lemma eq $l;
   }
   if ($agreement) {
-    my ($p)=with)AR{PDT::GetFather_AR($node,sub{shift->{afun}=~/Aux[CP]/?1:0})};
+    my ($p)=with_AR{PDT::GetFather_AR($node,sub{shift->{afun}=~/Aux[CP]/?1:0})};
     if ($p) {
       $p->{tag}=~/^....(\d)/;
       $case=$1 if ($case ne '' and $1);
@@ -240,18 +240,21 @@ sub validate_frame {
   my ($i, $j)=(0,0);
   TRANS:
   foreach my $rule (@$trans_rules) {
-    $i++;
+    $i++; $j=0;
     my ($verbtest,@frame_tests) = @$rule;
-    if ($verbtest->($node)) { # check if rule matches verb
+    if ($verbtest->($node,$aids)) { # check if rule matches verb
       while (@frame_tests) {
 	$j++;
 	my $cache_key = "r:$i t:$j $f:".$V->frame_id($frame);
 	if ($cached_trans_frames{$cache_key}) {
+	  print "applying rule $cache_key\n";
 	  $frame = $cached_trans_frames{$cache_key};
 	  last TRANS;
 	} else {
 	  my ($frame_test,$frame_trans)=(shift @frame_tests, shift @frame_tests);
+	  print "testing rule $cache_key\n" if (!$quiet and $V_verbose);
 	  if (frame_matches_rule($V,$frame,$frame_test)) {
+	    print "applying rule $cache_key\n" if (!$quiet and $V_verbose);
 	    $frame = transform_frame($V,$frame,$frame_trans);
 	    $cached_trans_frame{$cache_key} = $frame;
 	  }
@@ -265,7 +268,6 @@ sub validate_frame {
   my ($word_form) = $V->word_form($frame);
 
   if ($word_form) {
-    print "Matching word form\n";
     my @forms = $V->forms($word_form);
     print $word_form->toString()."\n" if (!$quiet and $V_verbose);
     if (@forms) {
@@ -334,7 +336,6 @@ sub validate_frame {
     }
   }
   foreach my $c (@c) {
-    print "Matching word form of '$c->{trlemma}'\n";
     my $e = $oblig{get_func($c)} || $nonoblig{get_func($c)};
     next unless ($e);
     my @forms = $V->forms($e);
