@@ -27,7 +27,8 @@ BEGIN {
   $libDir
   $psFontFile
   $psFontAFMFile
-  $ttFontFile
+  $ttFont
+  $ttFontPath
   $appIcon
   $sortAttrs
   $psFontSize
@@ -307,10 +308,11 @@ sub set_config {
   } else {
     $psFontFile="$libDir/fonts/ariam___.pfa";
   }
-  if (exists $confs->{ttfontfile}) {
-    $ttFontFile=tilde_expand($confs->{ttfontfile});
-    $ttFontFile="$libDir/".$ttFontFile if (not -f $ttFontFile and -f "$libDir/".$ttFontFile);
-  }
+#  if (exists $confs->{ttfontfile}) {
+#    $ttFontFile=tilde_expand($confs->{ttfontfile});
+#    $ttFontFile="$libDir/".$ttFontFile if (not -f $ttFontFile and -f "$libDir/".$ttFontFile);
+#  }
+  $ttFont=val_or_def($confs,"ttfont","Arial");
   my @fontpath;
   if ($^O eq "MSWin32") {
     require Win32::Registry;
@@ -322,21 +324,34 @@ sub set_config {
     @fontpath = ($shf{Fonts}[2],
 		 qw(c:/windows/fonts/ c:/winnt/fonts/));
   } else {
-    @fontpath = ("$ENV{HOME}/.fonts/",
-		 qw(
-		    /usr/X11R6/lib/X11/fonts/TTF/
-		    /usr/X11R6/lib/X11/fonts/TrueType/
-		    /usr/share/fonts/default/TrueType/
-		    /usr/share/fonts/default/TTF/
-		   )
-		);
+    # use fontconfig here?
+    if (open my $fc,'/etc/fonts/fonts.conf') {
+      while (<$fc>) {
+	push @fontpath,$1 if m{<dir>([^<]*)</dir>} and -d $1;
+        # naive, should subst. entities, etc.
+      }
+    }
+    unless (@fontpath) {
+      @fontpath = ("$ENV{HOME}/.fonts/",
+		   qw(
+		      /usr/X11R6/lib/X11/fonts/TTF/
+		      /usr/X11R6/lib/X11/fonts/TrueType/
+		      /usr/share/fonts/default/TrueType/
+		      /usr/share/fonts/default/TTF/
+		     )
+		  );
+    }
+  }
+  if (exists $confs->{ttfontpath}) {
+    $ttFontPath=tilde_expand($confs->{ttfontpath});
+  } else {
+    $ttFontPath = join ",",map tilde_expand($_),@fontpath;
   }
 
-
-  while (not(defined($ttFontFile) or -f $ttFontFile) and @fontpath) {
-    $ttFontFile = $fontpath[0]."arial.ttf" if -f $fontpath[0]."arial.ttf";
-    shift @fontpath;
-  }
+#  while (not(defined($ttFontFile) or -f $ttFontFile) and @fontpath) {
+#    $ttFontFile = $fontpath[0]."arial.ttf" if -f $fontpath[0]."arial.ttf";
+#    shift @fontpath;
+#  }
 
   if (exists $confs->{psfontafmfile}) {
     $psFontAFMFile=$confs->{psfontafmfile};

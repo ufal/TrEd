@@ -531,14 +531,20 @@ root# <userinput>make install</userinput>
 	      (<literal>times.ttf</literal>) or Bitstream Vera
 	      (<literal>vera.ttf</literal>) are sufficient while other
 	      languages, such as Arabic, require a fully featured
-	      Unicode font such as Arial Unicode MS
-	      (<literal>arialuni.ttf</literal>).  A file with a
-	      TrueType font to use can be specified either directly
+	      Unicode font such as <literal>Arial Unicode MS</literal>.
+	      The TrueType font can be specified either directly
 	      from the Print dialog or by setting <link
-	      linkend="ttfontfile"><literal>TTFontFile</literal></link>
-	      configuration option. If <literal>TTFontFile</literal>
-	      is not given, TrEd searches several paths common on Unix
-	      and Windows systems for <literal>arial.ttf</literal>.
+	      linkend="ttfont"><literal>TTFont</literal></link>
+	      configuration option. If <literal>TTFont</literal>
+	      is not given, it defaults to <literal>Arial</literal>. 
+	      TrEd searches for TrueType fonts in directories listed in
+	      <link
+		linkend="ttfontpath"><literal>TTFontPath</literal></link>
+              configuration option. If this option is not explicitly
+	      specified, TrEd uses directories listed in 
+	      fontconfig library configuration file
+              <literal>/etc/fonts/fonts.conf</literal> on Unix
+	      and Windows system font directory on Windows.
 	      If no usable font is found, PDF printing is disabled.
 	    </para>
 	    <para>
@@ -3179,13 +3185,26 @@ root# <userinput>make install</userinput>
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry id="ttfontfile">
-	  <term><literal>TTFontFile</literal></term>
+	<varlistentry id="ttfont">
+	  <term><literal>TTFont</literal></term>
 	  <listitem>
 	    <para>
-	      A file containing a TrueType font to be used
+	      Name of the TrueType font to be used
 	      when printing into Portable Document Format (PDF).
+	      Defaults to <literal>Arial</literal>.
 	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term>TTFontPath</term>
+	  <listitem>
+	    A comma-separated list of directories to look into
+	    for TrueType fonts.
+	    If this option is not explicitly
+	    specified, TrEd uses directories listed in 
+	    fontconfig library configuration file
+	    <literal>/etc/fonts/fonts.conf</literal> on Unix
+	    and Windows system font directory on Windows.
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="psfontfile">

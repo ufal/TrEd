@@ -2270,6 +2270,13 @@ sub printDialog {
   my $defaultPrtFmtWidth=$prtFmtWidth;
   my $defaultPrtFmtHeight=$prtFmtHeight;
 
+  print STDERR "Collecting TTF fonts\n" if $tredDebug;
+  $grp->{ttfonts}=TrEd::Print::get_ttf_fonts(map TrEd::Config::tilde_expand($_),
+					     split /,/,$ttFontPath)
+    unless $grp->{ttfonts};
+  $ttFont = '' unless exists($grp->{ttfonts}->{$ttFont});
+  print STDERR "done.\n" if $tredDebug;
+
   my $d= $grp->{top}->DialogBox(-title=> "Print",
 				-buttons=> ["OK", "Cancel"]);
   $d->resizable(0,0);
@@ -2413,34 +2420,47 @@ sub printDialog {
   my $pfl=$pbf->Label(-text=> 'Font (TTF):',
 		 -anchor=> 'sw',
 		 -justify=> 'right');
-  my $pe=$pbf->Entry(-relief=> 'sunken',
-		     -width=> 50,
-		     -font=> $font,
-		     ($format eq 'PDF') ?
-		     (-state => 'normal', -background=> $defaultBg ) :
-		     (-state => 'disabled', -background=> $disabledBg),
-		     -textvariable=> \$ttFontFile);
-  my $pfb= $pbf->Button(-text => '...',
-			-state => $format eq 'PDF' ? 'normal' : 'disabled',
-		       -command =>
-		       [sub {
-			  my ($d,$rfil)=@_;
-			  my $initdir=dirname($$rfil);
-			  $initdir=cwd() if ($initdir eq './');
-			  $initdir=~s!${TrEd::Convert::Ds}$!!m;
-			  my $file=
-			    $d->getOpenFile(-title => "TrueType Font ...",
-					    $^O eq 'MSWin32' ? () :
-					    (-initialfile=> filename($$rfil)),
-					    -d $initdir ? (-initialdir=> $initdir) : (),
-					    -filetypes=>
-					    [
-					     ["TrueType Font files", [qw/.ttf .TTF .tt2 .TT2/]],
-					     ["All files", '*']
-					    ]
-					   );
-			  $$rfil=$file if (defined $file and $file ne '');
-			},$d,\$ttFontFile]);
+#   my $pe=$pbf->Entry(-relief=> 'sunken',
+# 		     -width=> 50,
+# 		     -font=> $font,
+# 		     ($format eq 'PDF') ?
+# 		     (-state => 'normal', -background=> $defaultBg ) :
+# 		     (-state => 'disabled', -background=> $disabledBg),
+# 		     -textvariable=> \$ttFontFile);
+  my $pfbe=$pbf->BrowseEntry(
+			     -relief=> 'sunken',
+			     -width=> 30,
+			     ($toFile and $format eq 'PDF') ?
+			     (-state => 'readonly', -background=> $defaultBg ) :
+			     (-state => 'disabled', -background=> $disabledBg),
+			     -variable => \$ttFont,
+#			     -autolimitheight => 'yes',
+#			     -listheight => 10,
+#			     -style => 'MSWin32',
+			     -choices => [sort {$a cmp $b} keys %{$grp->{ttfonts}}]
+			    );
+  $pfbe->Subwidget('slistbox')->BindMouseWheelVert();
+#   my $pfb= $pbf->Button(-text => '...',
+# 			-state => $format eq 'PDF' ? 'normal' : 'disabled',
+# 		       -command =>
+# 		       [sub {
+# 			  my ($d,$rfil)=@_;
+# 			  my $initdir=dirname($$rfil);
+# 			  $initdir=cwd() if ($initdir eq './');
+# 			  $initdir=~s!${TrEd::Convert::Ds}$!!m;
+# 			  my $file=
+# 			    $d->getOpenFile(-title => "TrueType Font ...",
+# 					    $^O eq 'MSWin32' ? () :
+# 					    (-initialfile=> filename($$rfil)),
+# 					    -d $initdir ? (-initialdir=> $initdir) : (),
+# 					    -filetypes=>
+# 					    [
+# 					     ["TrueType Font files", [qw/.ttf .TTF .tt2 .TT2/]],
+# 					     ["All files", '*']
+# 					    ]
+# 					   );
+# 			  $$rfil=$file if (defined $file and $file ne '');
+# 			},$d,\$ttFontFile]);
   my $imf=$bf->Frame();
   my $imr=$imf->Optionmenu(
 			   -state => $format eq 'ImageMagick' ? 'normal' : 'disabled',
@@ -2453,7 +2473,7 @@ sub printDialog {
   my $bfb=$bf->Checkbutton(-text    => 'Print to file',
 		   -variable=> \$toFile,
 		   -command => [sub {
-				  my ($t,$fmtbut,$fmt,$c,$f,$b,$r)=@_;
+				  my ($t,$fmtbut,$fmt,$c,$f,$b,$r,$e)=@_;
 				  if ($$t) {
 				    $f->focus;
 				    $c->configure(-state=> 'disabled',
@@ -2463,9 +2483,15 @@ sub printDialog {
 				    $b->configure(-state=> 'normal');
 				    $c->configure(-state=> 'disabled',
 						  -background=> $disabledBg);
+				    $r->configure(-state=> 'disabled',
+						  -background=> $disabledBg);
+				    if ($$fmt eq 'PDF') {
+				      $e->configure(-state=> 'readonly',
+						    -background=> $defaultBg);
+				    }
 				    foreach (keys %$fmtbut) {
-				      $fmtbut->{$_}->configure(-state=> 'normal') unless
-					($_ eq 'PDF' and !$ttFontFile);
+				      $fmtbut->{$_}->configure(-state=> 'normal');
+#				      unless ($_ eq 'PDF' and !$ttFontFile);
 				    }
 				  } else {
 				    $c->focus;
@@ -2474,13 +2500,15 @@ sub printDialog {
 				    $b->configure(-state=> 'disabled');
 				    $c->configure(-state=> 'normal',
 						  -background=> $defaultBg);
-				    $re->configure(-state=> 'normal',
+				    $r->configure(-state=> 'normal',
 						  -background=> $defaultBg);
+				    $e->configure(-state=> 'disabled',
+						  -background=> $disabledBg);
 				    foreach (keys %$fmtbut) {
 				      $fmtbut->{$_}->configure(-state=> 'disabled');
 				    }
 				  }
-				},\$toFile,\%fmtbut,\$format,$ce,$fe,$fb,$re],
+				},\$toFile,\%fmtbut,\$format,$ce,$fe,$fb,$re,$pfbe],
 		   -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
   my %fmtbuttons = ( PS => [$bf,'Create PostScript','ps'],
@@ -2506,13 +2534,11 @@ sub printDialog {
 				       $f !~ /ImageMagick|EPS/ ?
 					'normal' : 'disabled');
 			 $P->configure( $f eq 'PDF' ?
-					(-state=> 'normal',
+					(-state=> 'readonly',
 					 -background=> $defaultBg) :
 					(-state=> 'disabled',
 					 -background=> $disabledBg) );
-			 $PB->configure( -state => $f eq 'PDF' ?
-					 'normal' : 'disabled' );
-		       },$_,\$fil,$fmtbuttons{$_}[2],$imr,$ml,$pe,$pfb]
+		       },$_,\$fil,$fmtbuttons{$_}[2],$imr,$ml,$pfbe]
 		 );
   }
   $imr->raise($fmtbut{ImageMagick});
@@ -2522,8 +2548,9 @@ sub printDialog {
   }
   $fmtbut{PDF}->pack(qw/-anchor w -side left -fill y -expand 1/);
   $pfl->pack(qw/-padx 10 -side left/);
-  $pe->pack(qw/-padx 10 -side left/);
-  $pfb->pack(qw/-padx 10 -side left/);
+#  $pe->pack(qw/-padx 10 -side left/);
+#  $pfb->pack(qw/-padx 10 -side left/);
+  $pfbe->pack(qw/-padx 10 -side left/);
   $pbf->raise($fmtbut{EPS});
   $imf->raise($pbf);
   $fmtbut{ImageMagick}->pack(qw/-anchor w -side left -fill y -expand 1/);
@@ -2601,8 +2628,8 @@ sub printDialog {
 
   foreach (qw(PS EPS PDF ImageMagick)) {
     if ($toFile) {
-      $fmtbut{$_}->configure(-state=> 'normal') unless
-	($_ eq 'PDF' and !$ttFontFile);
+      $fmtbut{$_}->configure(-state=> 'normal');
+#      unless ($_ eq 'PDF' and !$ttFontFile);
     } else {
       $fmtbut{$_}->configure(-state=> 'disabled');
     }
@@ -2644,8 +2671,14 @@ sub printThis {
   my ($grp)=@_;
   return unless $grp->{focusedWindow}->{FSFile};
   my $canvas=$grp->{top}->Canvas();
-  my @print_opts=printDialog($grp);
-  return unless scalar(@print_opts)>2;
+  my @print_opts;
+  my $err;
+  do {{
+    @print_opts=printDialog($grp);
+    return unless scalar(@print_opts)>2;
+    $err = ($print_opts[3] and not $grp->{ttfonts}->{$ttFont});
+    ErrorMessage($grp,"You must select TrueType font for PDF!") if $err;
+  }} while ($err);
   $print_opts[0]=$grp->{focusedWindow}->{treeNo}+1
     if (!defined($print_opts[0]) or $print_opts[0] eq "");
   TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
@@ -2656,7 +2689,7 @@ sub printThis {
 			   {
 			    'PS' => $psFontFile,
 			    'AFM' => $psFontAFMFile,
-			    'TTF' => $ttFontFile,
+			    'TTF' => $grp->{ttfonts}->{$ttFont},
 			    'Size' => $psFontSize,
 			   },
 			   $prtFmtWidth,
@@ -4797,7 +4830,7 @@ sub reloadSentenceView {
       if ($tag=~/^\s*-/) {
 	eval {
 	  $t->tagConfigure(
-			   $tag => (map { (/^\s*(-[[:alnum:]]+)\s*=>\s*(.*\S)\s*$/) }  
+			   $tag => (map { (/^\s*(-[[:alnum:]]+)\s*=>\s*(.*\S)\s*$/) }
 				    split(/,/,$tag)));
 	};
 	print $@ if $@;
