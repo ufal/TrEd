@@ -188,7 +188,7 @@ sub do_eval_macro {
 }
 
 sub do_eval_hook {
-  my ($grp,$context,$hook)=@_;  # $grp is a reference
+  my ($grp,$context,$hook)=(shift,shift,shift);  # $grp is a reference
 				# which should in this way be made visible
 				# to hooks
   return undef unless $hook and $this;
