@@ -97,6 +97,25 @@ sub filename {
   return defined($new_name) ? $self->{filename}=$new_name : $self->{filename};
 }
 
+sub max {
+  my ($a,$b)=@_;
+  return ($a<$b)?$b:$a;
+}
+
+sub dirname {
+  my ($self)=@_;
+  if ($^O eq "MSWin32") {
+    $Ds="\\"; # how filenames and directories are separated
+  } else {
+    $Ds='/';
+  }
+  my $f=$self->filename();
+  return (index($f,$Ds)+index($f,'/')>=0)? substr($f,0,
+				    max(rindex($f,$Ds),
+					rindex($f,'/'))+1) : ".$Ds";
+}
+
+
 =pod
 
 =item save
@@ -325,8 +344,14 @@ sub position {
   $fsfile=$self->current() unless defined($fsfile);
   my $files=$self->files_ref;
   my $fname=ref($fsfile) ? $fsfile->name() : $fsfile;
+  my $basedir=$self->dirname();
+  my $relfname=$fname;
+  $relfname=~s/^$basedir//;
   for (my $i=0; $i < $self->file_count; $i++) {
-    return $i if ($fname eq $files->[$i]->[0]);
+    return $i if ($fname eq $files->[$i]->[0]
+		  or
+		  $relfname eq $files->[$i]->[0]
+		 );
   }
   return -1;
 }
