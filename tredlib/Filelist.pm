@@ -321,11 +321,13 @@ file-list
 =cut
 
 sub remove {
-  my ($self,$position,$count)=@_;
+  my ($self)=shift;
   return undef unless ref($self);
   $count=1 unless defined($count);
-  splice @{ $self->list_ref },$position, $count;
-
+  do {
+    my %remove = map { $_ => 1 } @_;
+    @{ $self->list_ref }=grep(!$remove{$_}++,@{ $self->list_ref }); #remove and uniq
+  };
   $self->expand();
   return 1;
 }
