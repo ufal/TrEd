@@ -51,7 +51,7 @@ ADDR(.1), etc)
 
 {
 use strict;
-use vars qw(@actants $match_actants %lemma_normalization @fv_trans_rules_N @fv_trans_rules_V @fv_passivization_rules);
+use vars qw(@actants $ExD_tolerant $match_actants %lemma_normalization @fv_trans_rules_N @fv_trans_rules_V @fv_passivization_rules);
 
 @actants = qw(ACT PAT EFF ORIG ADDR);
 $match_actants = '(?:'.join('|',@actants).')';
@@ -96,10 +96,13 @@ sub has_auxR {
     # /3 ditto for CPHR
     [[ 'ACT(.1)', ['CPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['CPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]]],
-    # /4 frame test
+    # /4 ditto for DPHR
+    [[ 'ACT(.1)', ['DPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['DPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]]],
+    # /5 frame test
     [[ 'ACT(.1)', 'ADDR(.4)' ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.4)', '+ADDR(.1)' ]],
-    # /5 frame test
+    # /6 frame test
     [[ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?$/ ] ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
       ['EFF',
@@ -219,7 +222,7 @@ sub has_auxR {
 	(climb_auxcp($node)->{afun} =~ /Aux[CP]/) ? undef :
 	  PDT::GetFather_AR($node,sub{ ($_[0] and $_[0]->{afun}=~/Aux[CP]/)?1:0 })
 	  };
-      return 0 unless $p and $p->{trlemma}=~/^nechat$|^dát$/
+      return 0 unless $p and $p->{trlemma}=~/^nech(áv)?at$|^dát$/
     } =>
       [[ 'ACT(.1)', 'PAT(.7)' ] =>
        [ '-ACT(.1)', '+ACT(od-1[.2];.7)', '+PAT(.4)' ]],
@@ -290,7 +293,7 @@ sub get_aidrefs_nodes {
 
 sub is_numeric_expression {
   my ($node)=@_;
-  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|tolik-1|trochu|plno|hodnì|spousta|pùl-[12]|sto-[12]|tisíc-[12]|milión|miliarda|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
+  return ($node->{tag} =~ /^C/ or $node->{lemma} =~ /^(?:dost|málo-3|kolik|tolik-1|trochu|plno|hodnì|nesèetnì|spousta|pùl-[12]|sto-[12]|tisíc-[12]|milión|pùldruhý|miliarda|stovka|desítka|pár-[12]|pøíli¹)(?:\`|$|_)/) ? 1:0;
 }
 
 sub climb_auxcp {
@@ -383,6 +386,13 @@ sub check_node_case {
 		 $_->{lemma} eq 'za-1' and
 		   first { is_numeric_expression($_) } get_children_include_auxcp($_)
 		 } get_children_include_auxcp($node));
+  print "   CASE: Checking mezi-1 X /COORD Y Kc construct\n"  if $V_verbose;
+  return 1 if ($node->{lemma} eq 'mezi-1' and
+		 scalar(get_children_include_auxcp($node)) > 1 and
+		 !first { !is_numeric_expression($_) } get_children_include_auxcp($node));
+  print "   CASE: Checking po jablicku construct\n"  if $V_verbose;
+  return 1 if ($node->{lemma} eq 'po-1' and
+		 !first { $_->{tag}!=/^....6/ } get_children_include_auxcp($node));
   print "   CASE: All checks failed\n"  if $V_verbose;
   return 0;
 }
@@ -390,20 +400,53 @@ sub check_node_case {
 sub match_node {
   my ($node, $fn, $aids,$no_case,$loose_lemma,$toplevel) = @_;
   my ($lemma,$form,$pos,$case,$gen,$num,$deg,$neg,$agreement,$afun)=map {$fn->getAttribute($_)} qw(lemma form pos case gen num deg neg agreement afun);
+
+  my $l = $node->{lemma};
+  my $f = $node->{form};
+
+  if ($lemma ne '' or $form ne '') {
+    if ($node->{tag}=~/^PP/ or $node->{tag}=~/^PJ/ or
+	($node->{tag}=~/^P4/ and $node->{lemma}=~/^který$|^jaký$|^co-4/)) {
+      my @corefs = split /\|/,$node->{coref};
+      my @cortypes = split /\|/,$node->{cortype};
+      my $find_cortype = $node->{tag}=~/^PP/ ? 'textual' : 'grammatical';
+      if ($V_verbose) {
+	print "--------------------------\n";
+	print "EXPANDING DPHR/CPHR TO CO-REFERRED NODE (cortype $find_cortype)\n";
+      }
+      while (@corefs) {
+	my $coref = shift @corefs;
+	my $cortype = shift @cortypes;
+	if ($cortype eq $find_cortype) {
+	  # find referent
+	  print "FOUND GRAMMATICAL COREF $coref\n" if ($V_verbose);
+	  my $referent = $aids->{$coref} || first { $_->{AID}.$_->{TID} eq $coref } $node->root->descendants;
+	  if ($referent) {
+	    print "FOUND CO-REFERRED NODE\n" if ($V_verbose);
+	    $l = $referent->{lemma};
+	    $f = $referent->{form};
+	  } else {
+	    print "CANNOT FIND CO-REFERRED NODE\n" if ($V_verbose);
+	  }
+	  last;
+	}
+      }
+    }
+  }
+
   if ($V_verbose) {
-    print "TEST [no_case=$no_case, tag=$node->{tag}, lemma=$node->{lemma}]  ==>  ";
+    print "TEST [no_case=$no_case, tag=$node->{tag}, lemma=".$l."]  ==>  ";
     print join ", ", map { "$_->[0]=$_->[1]" } grep { $_->[1] ne "" } ([lemma => $lemma], [pos => $pos], [case => $case],
 								 [gen => $gen], [num => $num], [deg => $deg], [afun => $afun]);
     print "\n";
   }
 
   if ($lemma ne '') {
-    my $l = $node->{lemma};
     $l =~ s/[_\`&].*$//;
     if ($lemma=~/^\{(.*)\}$/) {
       my $list = $1;
       my @l = split /,/,$list;
-      return 0 unless (first { (!$loose_lemma and $_ eq '...')
+      return 0 unless (first { ($loose_lemma and $_ eq '...')
 			       or $_ eq $l or match_lemma($l,$_) } @l)
     } else {
       return 0 unless $lemma eq $l or match_lemma($l,$lemma);
@@ -425,9 +468,9 @@ sub match_node {
   }
   if ($form ne '') {
     if (lc($form) eq $form) { # form is lowercase => assume case insensitive
-      return 0 if $form ne lc($node->{form});
+      return 0 if $form ne lc($f);
     } else {
-      return 0 if $form ne $node->{form};
+      return 0 if $form ne $f;
     }
   }
   if ($gen ne '') {
@@ -473,7 +516,7 @@ sub match_node {
     }
   } elsif (!$no_case and $case ne '') { # assume $tag =~ /^[CNP]/
     unless ($kdo or $node->{tag}=~/^[CNPAX]/ or
-	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|málo-3|dost|do-1|kolem-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
+	    $node->{lemma} =~ /^(?:&percnt;|trochu|plno|hodnì|nemálo-1|málo-3|dost|do-1|mezi-1|kolem-1|po-1|okolo-1|pøes-1|na-1)(?:\`|$|_)/) {
       print "NON_EMPTY CASE + INVALID POS: $node->{lemma}, $node->{tag}\n" if $V_verbose;
       return 0;
     }
@@ -510,16 +553,38 @@ sub match_node {
     }
   }
   foreach my $ffn ($fn->getChildrenByTagName('node')) {
-    unless (first { match_node_coord($_,$ffn,$aids,$no_case,$loose_lemma) }
-	    get_children_include_auxcp($node)
-	    # $node->children
-	   ) {
-      print "CHILDMISMATCH: ",$V->serialize_form($ffn),"\n" if $V_verbose;
-      return 0;
+    unless (first { match_node_coord($_,$ffn,$aids,$no_case,$loose_lemma) } get_children_include_auxcp($node)) {
+      my @nc = with_AR {
+	PDT::GetChildren_AR($node,
+			    sub{1},
+			    sub{ $_[0]{afun}=~/Aux[CP]/ }) };
+      unless ($ExD_tolerant and
+	      (@nc and !first { $_->{afun}!~/ExD|AtvV|AuxG|AuxX/ } @nc
+	       or
+               !@nc and $node->{afun}=~/Adv/ and $node->{lemma}=~/^pro-1$|^proti-1$/)) {
+      print "CHILDMISMATCH: $ExD_tolerant, $node->{lemma}"."[".join(",",map {$_->{form}} @nc)."] ... [",
+	  $V->serialize_form($ffn),"]\n" if $V_verbose;
+	return 0;
+      }
     }
   }
-  print "MATCH: [$node->{lemma} $node->{form} $node->{tag}] ==> ",$V->serialize_form($fn),"\n" if $V_verbose;
+  print "MATCH: [$node->{lemma} $node->{form} $node->{tag} $node->{afun}] ==> ",$V->serialize_form($fn),"\n" if $V_verbose;
   return 1;
+}
+
+
+sub match_text_form {
+  my ($node,$serialized_form,$aids,$loose_lemma,$no_ignore)=@_;
+  $aids ||= TR_Correction::hash_AIDs_file();
+  my $formdom = $V->doc()->createElement('form');
+  $V->doc()->getDocumentElement()->appendChild($formdom);
+
+  $V->parseFormPart($serialized_form,0,$formdom);
+  my $ret = match_form($node, $formdom, $aids, $loose_lemma,$no_ignore);
+
+  $formdom->parentNode->removeChild($formdom);
+  $V->dispose_node($formdom);
+  return $ret;
 }
 
 sub match_form {
@@ -802,6 +867,8 @@ sub _has_parent_coord_a {
 
 sub match_element ($$$$$$) {
   my ($V,$c,$e,$node,$aids,$quiet) = @_;
+  print $V->func($e)." $c->{tag} $c->{lemma}\n"     if (!$quiet and $V_verbose);
+
   my @forms = $V->forms($e);
   if (!$quiet and $V_verbose) {
     print "--------------------------\n";
@@ -830,13 +897,14 @@ sub validate_frame {
   if (@transformed>1) {
     print "TRANSFORMATION RETURNED ".scalar(@transformed)." FRAMES, WILL CHECK ALL\n" if (!$quiet and $V_verbose);
     my @ok_frames = grep {
-      local $V_verbose;
+      local $V_verbose=0;
       validate_frame_no_transform($V, $node, $_, $aids, $pj4, 1)
     } @transformed;
     unless ($quiet) {
       # once more for the show
       print scalar(@ok_frames)." OF ".scalar(@transformed)." FRAMES MATCHED, HERE IS WHY:\n\n" if (!$quiet and $V_verbose);
       if (@ok_frames) {
+	return 1 unless $V_verbose;
 	foreach (@ok_frames) {
 	  print "FRAME ".$V->frame_id($_)."\n" if (!$quiet and $V_verbose);
 	  validate_frame_no_transform($V, $node, $_, $aids, $pj4, 0);
@@ -1160,7 +1228,7 @@ sub check_verb_frames {
 	    # frame not resolved
 	    if ($V->user_cache->{$lemma}) {
 	      my @possible_frames =
-		grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,undef,1) } $V->valid_frames($V->user_cache->{$lemma});
+		grep { validate_frame($V,\@fv_trans_rules_V,$node,$_,$aids,[],1) } $V->valid_frames($V->user_cache->{$lemma});
 	      $node->{rframeid} = join "|", map { $V->frame_id($_) } @possible_frames;
 	      $node->{rframere} = join " | ", map { $V->serialize_frame($_) } @possible_frames;
 
@@ -1190,7 +1258,7 @@ sub check_verb_frames {
 	  ChangingFile(1);
 	}
 	foreach my $frame (@frames) {
-	  return 0 unless validate_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,undef,0);
+	  return 0 unless validate_frame($V,\@fv_trans_rules_V,$node,$frame,$aids,[],0);
 	}
 	# process frames
       } else {
