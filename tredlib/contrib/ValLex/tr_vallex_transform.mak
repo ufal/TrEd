@@ -3,7 +3,7 @@ use base qw(TredMacro);
 import TredMacro;
 
 # Terminology: valency lexicon consists of headwords (which have their POS) and
-# their framesets. Each frameset consists of one or more frames. Each frame
+# their framesets. Each frameset consists of one or more frames. Each frames
 # consists of one or more slots, which are either obligatory or facultative
 # (i. e. optional). Each slot consists of (tectogrammatical) functor (func) and
 # zero or more morphemic realizations (MR).
@@ -58,6 +58,13 @@ sub SetAttrsNewNode($)
 	my %numbers = ("S" => "SG", "P" => "PL");
 	my $par = $node->parent;
 	$node->{'del'} = 'ELID';
+
+	# handling trlemma of DIRs and LOC
+	if ($node->{'func'} =~ /^(DIR.)|(LOC)$/) {
+		$node->{'trlemma'} = $node->{'func'} eq 'DIR3'? 'tady' : 'tam';
+		return;
+	}
+
 	$node->{'trlemma'} = ($par->{'x_finit'} &&
 		(($node->{'func'} eq 'ACT' && $par->{'x_voice'} eq 'ACT')
 		|| ($node->{'func'} eq 'PAT' && $par->{'x_voice'} eq 'PAS'))) ?
@@ -65,11 +72,138 @@ sub SetAttrsNewNode($)
 	if (!defined $par->{'x_finit'} && $par->{'tag'} =~ /^Vf/
 		 && $par->{'func'} ne 'ACT' && $node->{'func'} eq 'ACT') { $node->{'trlemma'} = "&Cor;"; }
 	if ($node->{'trlemma'} eq "on") {
-		my $gender = substr($par->{'x_finit'}, 1, 1);
 		my $number = substr($par->{'x_finit'}, 0, 1);
-		$node->{'gender'} = defined $genders{$gender}? $genders{$gender} : "ANIM";
+		my $gender = substr($par->{'x_finit'}, 1, 1);
+		my $person = substr($par->{'x_finit'}, 2, 1);
+		if ($person eq '1') {
+			if ($number eq 'S') { $node->{'trlemma'} = 'já'; }
+			if ($number eq 'P') { $node->{'trlemma'} = 'my'; }
+		}
+		if ($person eq '2') {
+			if ($number eq 'S') { $node->{'trlemma'} = 'ty'; }
+			if ($number eq 'P') { $node->{'trlemma'} = 'vy'; }
+		}
 		$node->{'number'} = defined $numbers{$number}? $numbers{$number} : "SG";
+		$node->{'gender'} = defined $genders{$gender}? $genders{$gender} : "ANIM";
 	}
+}
+
+
+###############################################################################
+
+sub Num ($) {
+	my ($node) = @_;
+	my $res = substr($node->{'tag'}, 3, 1);
+	$res eq 'D' and $res = 'P';
+	$res eq 'W' and $res = 'X';
+	return $res;
+}
+
+
+sub Gen ($) {
+	my ($node) = @_;
+	my $res = substr($node->{'tag'}, 2, 1);
+	if ($res =~ /[HQTZ]/) { $res = 'X'; }
+	return $res;
+}
+
+sub Per ($) {
+	my ($node) = @_;
+	my $res = substr($node->{'tag'}, 7, 1);
+	if ($res !~ /[123]/) { $res = 'X'; }
+	return $res;
+}
+
+
+sub Verb_Modality ($) {
+	my ($node) = @_;
+	my $node_t = substr($node->{'tag'}, 0, 2);
+
+	my @auxvs = grep { $_->{'afun'} eq 'AuxV' } $node->children;
+	my @budu = grep { $_->{'tag'} =~ /^VB/ && $_->{'form'} =~ /^b/ } @auxvs; # dirty trick -- just for 'budu', 'bude' etc.
+	my @jsem = grep { $_->{'tag'} =~ /^VB/ && $_->{'form'} =~ /^j/ } @auxvs; # dirty trick -- just for 'jsem', 'je' etc.
+	my @byl  = grep { $_->{'tag'} =~ /^Vp/ } @auxvs;
+	my @bych = grep { $_->{'tag'} =~ /^Vc/ } @auxvs;
+	my @refl_se = grep { $_->{'afun'} eq 'AuxR' } $node->children;
+
+	# imperative
+	if ($node_t eq 'Vi') {
+		$node->{'x_finit'} = undef;
+	}
+
+	# simple present (or future) form
+	elsif ($node_t eq 'VB') {
+		$node->{'x_finit'} = Num($node).Gen($node).Per($node);
+		$node->{'x_voice'} = 'ACT';
+	}
+
+	# infinitive
+	elsif ($node_t eq 'Vf') {
+		# compound future tense
+		if (@budu) {
+			$node->{'x_finit'} = Num($budu[0]).Gen($budu[0]).Per($budu[0]);
+			$node->{'x_voice'} = 'ACT';
+		}
+		# real infinitive
+		else {
+			$node->{'x_finit'} = undef;
+			# handling modal verbs
+			my @modals = grep { $_->{'afun'} =~ /^Pred/ } $node->children;
+			if (@modals) {
+				&Verb_Modality($modals[0]);
+				$node->{'x_finit'} = $modals[0]->{'x_finit'};
+				$node->{'x_voice'} = $modals[0]->{'x_voice'};
+			}
+		}
+	}
+
+	# past participle
+	elsif ($node_t eq 'Vp') {
+		# conditional
+		if (@bych) {
+			$node->{'x_finit'} = Num($bych[0]).Gen($node).Per($node);
+			$node->{'x_voice'} = 'ACT';
+		}
+		# compound past tense -- it don't need to be compound in 3rd person
+		else {
+			# in 3rd person there is no AuxV, so distinguishing according to the verb
+			# -- even it need not to be unique (e.g. "delala")
+			$node->{'x_finit'} = Num(@jsem? $jsem[0]:$node).Gen($node).(@jsem? Per($jsem[0]):'3');
+			$node->{'x_voice'} = 'ACT';
+		}
+	}
+
+	# passive participle
+	elsif ($node_t eq 'Vs') {
+		$node->{'x_voice'} = 'PAS';
+		# passive conditional
+		if (@bych) {
+			# assert @byl > 0
+			$node->{'x_finit'} = Num( Num($bych[0]) eq 'X'? $byl[0]:$bych[0] ).Gen($byl[0]).Per($bych[0]);
+		}
+		# passive indicative
+		else {
+			# future passive indicative
+			if (@budu) {
+				$node->{'x_finit'} = Num($budu[0]).Gen($budu[0]).Per($budu[0]);
+			}
+			# past passive indicative
+			elsif (@byl) {
+				# in 3rd person there is no AuxV, so distinguishing according to the verb
+				# -- even it need not to be unique (e.g. "delala")
+				$node->{'x_finit'} = Num(@jsem? $jsem[0]:$node).Gen($node).(@jsem? Per($jsem[0]):'3');
+			}
+			# present passive indicative
+			else {
+				# assert @jsem
+				$node->{'x_finit'} = Num($jsem[0]).Gen($jsem[0]).Per($jsem[0]);
+			}
+		}
+	}
+
+	# reflexive 'se' -> passive voice
+	if (@refl_se) { $node->{'x_voice'} = 'PAS'; }
+#	print "$node->{'form'}: FIN:$node->{'x_finit'} VOI:$node->{'x_voice'}\n";
 }
 
 
@@ -147,15 +281,15 @@ sub GetMR($)
 	}
 
 END:	
+	# trick: if subject and no realization assigned yet, return realization as if it is nominative
+	if ($node->{'afun'} =~ /^Sb/ && $mr eq "") { $mr = '1'; }
+
 	# trick: handling passivization
 	if ($node->parent->{'x_voice'} eq 'PAS') {
 		$mr eq '1' and $mr = '4';
 		$mr eq '7' and $mr = '1';
 	}
 	
-	# trick: if subject and no realization assigned yet, return realization as if it is nominative
-	if ($node->{'afun'} =~ /^Sb/ && $mr eq "") { $mr = '1'; }
-
 	return $mr;
 }
 
@@ -202,7 +336,10 @@ sub MatchFrame ($$)
 	for my $slot (@fr)
 	{
 #		if (defined $deter{$slot->[0]}) { print "DETERMINED $slot->[0]\n"; next; } #!
-		for my $mr (@$slot[1..@$slot-1])
+
+		# if there are no MR required, use the "standard" ones
+		for my $mr (scalar(grep { $_ } @$slot[1..@$slot-1])? grep { $_ } @$slot[1..@$slot-1] : @{$func2prep->{$slot->[0]}})
+#		for my $mr (grep { $_ } @$slot[1..@$slot-1])
 		{
 			$morph2func{$mr} = $slot->[0];
 		}
@@ -295,10 +432,13 @@ sub TransformNode ()
 #	$lemma ne 'být' or return; #!
 	$pos   = substr($this->{'tag'}, 0, 1);
 	$pos eq 'V' && $this->{'afun'} ne 'AuxV' or return;
+
+	&Verb_Modality($this);
+
 	print "[$root->{'form'}] $lemma,$pos: ";
 
 	### determine modifications of the given node
-	my @modifications = grep { !IsHidden($_) && $_->{'afun'} !~ /_Pa$/ } $this->children; 
+	my @modifications = grep { !IsHidden($_) && $_->{'afun'} !~ /_Pa$/ && $_->{'trlemma'} ne '&Neg;'} $this->children; 
 	for (my $node = $this; $node->{'afun'} =~ /_(Co|Ap)$/; $node = $node->parent)
 	{
 		push @modifications, grep { !IsHidden($_) && $_->{'afun'} !~ /_(Co|Ap)$/ } $node->parent->children;
@@ -316,11 +456,13 @@ sub TransformNode ()
 
 	### determine morphemic realizations of @modifications
 	my @mrs = (); # (morphemic realization, node)-pairs
+	my @elids = (); # existing modifications elided on the surface (and added by AB)
 	for my $mod (@modifications)
 	{
 		my $mr = &GetMR($mod);
 		print "$mod->{'func'}\{$mr\}\{$mod->{'trlemma'}\} ";
-		push @mrs, [$mr, $mod] if $mr ne "" || $mod->{'del'} eq 'ELID';
+		push @mrs, [$mr, $mod];
+		if ($mod->{'del'} eq 'ELID') { push @elids, $mod; }
 	}
 	print "\n";
 	undef @modifications;
@@ -472,15 +614,25 @@ sub TransformNode ()
 		# assign func and delete it from %ob (it has been assigned already)
 		for my $mod (@modifications)
 		{
+			@elids = grep { $_ ne $mod } @elids;
 			if (defined $mod->{'func'} && $mod->{'func'} ne '???')
 			{ 
 				$mod->{'func'} eq $func or print "  --- repairing $mod->{'func'} to $func {".&GetMR($mod)."}\n";
 			}
 			else { print "  --- assigning $func {".&GetMR($mod)."}\n"; }
-			$mod->{'func'} = $func; # if !defined $mod->{'func'} || $mod->{'func'} eq '???'; #!
+			$mod->{'func'} = $func; #  if !defined $mod->{'func'} || $mod->{'func'} eq '???'; #!
 			$mod->{'funcaux'} = $unreliable? "#{custom6}" : "#{custom5}";
 			delete $ob{ $func };
 		}
+	}
+
+	for (my $el_cnt = @elids, my $i = 0; $i < $el_cnt; $i++)
+	{
+		$el = shift @elids;
+		my $cnt_bef = keys %ob;
+		map { delete $ob{$_} } grep { $_ eq $el->{'func'} } keys %ob;
+		my $cnt_aft = keys %ob;
+		push @elids, $el if $cnt_bef == $cnt_aft;
 	}
 
 	### create new nodes for funcs remaining in %ob
@@ -488,9 +640,15 @@ sub TransformNode ()
 	{
 		# multiply assigned func *is* already there (we just don't know which node it is assigned to)
 		!defined $multi{$func} or next;
-		print "  === adding node $func\n";
-		my $new = NewSon($this);
-		$new->{'ord'} = GetNewOrd($this);
+		my $new = shift @elids;
+		if (defined $new) {
+			print "  --- repairing $new->{'func'} to $func {elided node}\n";
+		}
+		else {
+			print "  === adding node $func\n";
+			$new = NewSon($this);
+			$new->{'ord'} = GetNewOrd($this);
+		}
 		$new->{'func'} = $func;
 		$new->{'funcaux'} = "#{custom5}";
 		SetAttrsNewNode($new);
@@ -516,15 +674,37 @@ sub TransformTree ()
 
 
 ###############################################################################
-# LoadVallex
+# Transform
 #
-# Loads valency lexicon.
+# Main procedure.
+# Gets parametres, loads vallex, calls TransformTree() for each tree.
+#
+# Command line arguments: 
+#   src -- source ('src' attribute) of MDl and MDt tags
+#   vallex -- file with a valency lexicon
 
-#sub LoadVallex ($)
-#{
-#	do $_[0];
-#}
+sub Transform ()
+{
+	use Getopt::Long;
 
+	GetOptions('src=s', \$MD__src, 'vallex=s', \$VallexFileName, 'prep=s', \$PrepFileName);
+	#$MD__src='a';
+	do $VallexFileName;
+	do $PrepFileName;
+	do 
+	{
+		if (defined $MD__src)
+		{
+			PDT->SaveAttributes("save_", [qw(lemma tag)]);
+			PDT->MD2TagLemma($MD__src);
+		}
+		TransformTree();
+		if (defined $MD__src)
+		{
+			PDT->RestoreSavedAttributes("save_", [qw(lemma tag)]);
+		}
+	} while (NextTree());
+}
 
 ###############################################################################
 # DoTransformTree
@@ -543,27 +723,5 @@ sub DoTransformTree {
   if (defined $MD__src) {
     PDT->RestoreSavedAttributes("save_", [qw(lemma tag)]);
   }
-}
-
-###############################################################################
-# Transform
-#
-# Main procedure.
-# Gets parametres, loads vallex, calls DoTransformTree() for each tree.
-#
-# Command line arguments: 
-#   src -- source ('src' attribute) of MDl and MDt tags
-#   vallex -- file with a valency lexicon
-
-sub Transform
-{
-	use Getopt::Long;
-
-	GetOptions('src=s', \$MD__src, 'vallex=s', \$VallexFileName);
-	#$MD__src='a';
-	do $VallexFileName;
-	do {
-	  DoTransformTree($MD__src);
-	} while (NextTree());
 }
 
