@@ -217,7 +217,7 @@ fi
 #    fi
 
 #  upgrade_package XML::Parser XML::DOM
-  upgrade_packages Tk Text::Iconv XML::LibXML Tie::IxHash
+  upgrade_packages Tk Text::Iconv XML::SAX XML::LibXML Tie::IxHash
 
 #else
 #  if [ "${TKTEST}" != "1" ]; then
