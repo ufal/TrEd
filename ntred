@@ -692,17 +692,25 @@ To kill all remote servers and a hub:
 To manage files on the servers:
 
 ntred --list-files
+
 ntred --reload-files
+
 ntred --load-files [--filelist file-list] [file [...]]
+
 ntred --close-files
+
 ntred --save-files [-a append-sfx] [-p strip-prefix] [-r add-prefix]
                    [-f out-fmt]
 
+ntred --dump-files [--filelist file-list] [file [...]]
+
+ntred --upload-file filename < fs-file
+
 Get help:
 
-  ntred -u          to show usage (synopsis)
-  ntred -h          to show help
-  ntred -m          to show man-page
+  ntred -u          for usage (synopsis)
+  ntred -h          for help
+  ntred --man       for the manual page
 
 =head1 DESCRIPTION
 
@@ -898,6 +906,11 @@ The port number the hub will be listening on (defaults to 1500).
   ntred --quit
 
   ntred --kill [--servers server[,server,...]] [--serverlist server-list]
+
+  ntred --dump-files [--filelist file-list] [file [...]]
+
+  ntred --upload-file filename < fs-file
+
 
 =over 8
 
