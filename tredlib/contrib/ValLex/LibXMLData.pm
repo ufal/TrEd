@@ -37,6 +37,7 @@ sub parser_start {
       $doc=$parser->parse_file($file);
   };
   print STDERR "$@\ndone\n";
+  die "$@\n";
   return ($parser,$doc);
 }
 
