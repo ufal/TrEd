@@ -52,7 +52,6 @@ sub gotoTree {
 
 sub nextTree {
   my ($win)=@_;
-
   return 0 if ($win->{treeNo} >= $win->{FSFile}->lastTreeNo);
   gotoTree($win,$win->{treeNo}+1);
   return 1;
