@@ -44,6 +44,7 @@ BEGIN {
   $createMacroMenu
   $maxMenuLines
   $useCzechLocales
+  $useLocales
   $printColors
   $defaultPrintCommand
   $imageMagickConvert
@@ -342,6 +343,7 @@ sub set_config {
   $createMacroMenu    =	 val_or_def($confs,"createmacromenu",0);
   $maxMenuLines	      =	 val_or_def($confs,"maxmenulines",20);
   $useCzechLocales    =	 val_or_def($confs,"useczechlocales",($^O !~ /^MS/));
+  $useLocales         =	 val_or_def($confs,"uselocales",0);
   $Tk::strictMotif    =	 val_or_def($confs,"strictmotif",0);
   $printColors	      =	 val_or_def($confs,"printcolors",0);
   $defaultPrintCommand = val_or_def($confs,"defaultprintcommand",
