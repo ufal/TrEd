@@ -1,7 +1,7 @@
 # -*- cperl -*-
 
 $FrameData=undef;
-$ChooserHideObsolete=0;
+$ChooserHideObsolete=1;
 $frameid_attr="frameid";
 $framere_attr="framere";
 
@@ -122,7 +122,7 @@ sub OpenEditor {
   TrEd::ValLex::Editor::show_dialog($top,
                                     $FrameData,
 				    [$lemma,$pos],    # select field
-				    0,                # autosave
+				    1,                # autosave
 				    $vallex_conf,
 				    $fc,
 				    $fc,
