@@ -1,3 +1,6 @@
+# $Id$ '
+#
+# Copyright (c) 2001-2003 by Petr Pajas <pajas@matfyz.cz>
 #
 # ValLex Editor widget (the main component)
 #
@@ -59,14 +62,14 @@ sub show_dialog {
 	    $chooser->framelist_item_changed();
 	  }
 	}
-      } else {
+	      } else {
 	if ($chooser->widget()->infoExists(0)) {
 	  $chooser->widget()->anchorSet(0);
 	  $chooser->widget()->selectionSet(0);
 	  $chooser->widget()->focus();
 	  $chooser->framelist_item_changed(0);
 	}
-      }
+	      }
     } else {
       foreach (@{$chooser->subwidget("framelists")}) {
 	if ($_->select_frames($select_frame)) {
@@ -92,7 +95,6 @@ sub show_dialog {
     }
     $d->afterIdle([sub { $_[0]->edit_button_pressed(1) },$chooser]);
   }
-
   if ($d->Show() eq 'Choose') {
     my @frames=$chooser->get_selected_frames();
     my $real=$chooser->get_selected_element_string();
