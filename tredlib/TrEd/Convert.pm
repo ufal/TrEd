@@ -2,7 +2,7 @@ package TrEd::Convert;
 
 #
 # $Revision$ '
-# Time-stamp: <2002-10-10 17:09:33 pajas>
+# Time-stamp: <2002-10-25 11:34:10 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -58,6 +58,9 @@ sub encode {
       s{([^[:ascii:]]+)}{TrEd::ConvertArab::arabjoin($_)}eg;
     }
     return $_;
+  } elsif ($]>=5.008) {
+    eval "use Encode (); \$_=Encode::encode(\$outputenc,\$_);";
+    return $_;
   } else {
     return $_ if ($inputenc eq $outputenc);
     eval " tr/$encodings{$inputenc}/$encodings{$outputenc}/";
@@ -69,8 +72,16 @@ sub decode {
   local $_=join '',@_;
   $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
   no integer;
-  return $_ if ($support_unicode or $inputenc eq $outputenc);
-  eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
+  if ($support_unicode) {
+    return $_;
+  } elsif ($]>=5.008) {
+    eval "use Encode (); \$_=Encode::decode(\$outputenc,\$_);";
+    return $_;
+  } elsif ($inputenc eq $outputenc) {
+    return $_;
+  } else {
+    eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
+  }
   return $_;
 }
 
