@@ -49,7 +49,7 @@ my $conv= TrEd::CPConvert->new("utf-8",
 			       "windows-1250" :
 			       "iso-8859-2");
 
-my $data=TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vn2.xml",$conv,1);
+my $data=TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv,1);
 
 my $font = "-adobe-helvetica-medium-r-*-*-12-*-*-*-*-*-iso8859-2";
 my $fc=[-font => $font];
