@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-03-14 17:50:28 pajas>
+## Time-stamp: <2004-03-15 11:49:05 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -145,7 +145,7 @@ sub join_AIDREFS {
   my $node = $_[0] || $this;
   my $parent = $_[1] || $this->parent;
   return unless $parent;
-  ConnectAIDREFS($parent,$node);
+  ConnectAID($parent,$node);
 }
 
 
@@ -323,6 +323,102 @@ sub only_parent_aidrefs {
   light_aidrefs_reverse();
 }
 
+#################################################
+sub first (&@);
+
+sub expand_auxcp {
+  my ($node)=@_;
+  if ($node->{afun}=~/Aux[CP]/) {
+    my @c = $node->children();
+    if ($node->{afun}=~/_Co/ and $node->parent->{afun}=~/Coord/) {
+      push @c, grep { $_->{afun} !~ /_Co/ } $node->parent->children()
+    } elsif ($node->{afun}=~/_Ap/ and $node->parent->{afun}=~/Apos/) {
+      push @c, grep { $_->{afun} !~ /_Ap/ } $node->parent->children()
+    }
+    if ($node->{afun}=~/AuxC/) {
+      return
+	map { expand_auxcp($_) }
+	grep { $_->{afun} !~ /_Pa$/ and
+	      ($_->{afun} !~ /Aux[KGYZX]/ or $_->firstson) } @c;
+    } elsif ($node->{afun}=~/AuxP/) {
+      return
+	map { expand_auxcp($_) } # $_->{afun} !~ /_Pa$/ and
+	grep { ($_->{afun} !~ /Aux[KPGZX]/ or $_->firstson) } @c;
+    }
+  } else {
+    return $node;
+  }
+}
+
+sub is_a_to {
+  my ($node)=@_;
+  return ($_->{afun} =~ /AuxY/ and $_->{lemma} eq 'ten' and
+	  $_->firstson and !$_->firstson->rbrother and
+	  $_->firstson->{lemma} eq 'a-1') ? 1 : 0;
+}
+
+sub expand_coord_apos_auxcp {
+  my ($node,$keep)=@_;
+  if (PDT::is_coord($node)) {
+    return (($keep ? $node : ()),map { expand_coord_apos_auxcp($_,$keep) }
+      grep { $_->{afun} =~ '_Co' }
+	$node->children());
+  } elsif (PDT::is_apos($node)) {
+    return (($keep ? $node : ()), map { expand_coord_apos_auxcp($_,$keep) }
+	    grep { $_->{afun} =~ '_Ap' }
+	    $node->children());
+  } elsif ($node->{afun} =~ /AuxC/) {
+    return (($keep ? $node : ()), map { expand_coord_apos_auxcp($_,$keep) } 
+	    grep { $_->{afun} !~ /_Pa$/ and ($_->{afun} !~ /Aux[KGYZX]/ or $_->firstson)}
+	    $node->children());
+  } elsif ($node->{afun} =~ /AuxC/) {
+    return (($keep ? $node : ()), map { expand_coord_apos_auxcp($_,$keep) }
+	    # $_->{afun} !~ /_Pa$/ and 
+	    grep { ($_->{afun} !~ /Aux[KGPZX]/ or $_->firstson) }
+	    $node->children());
+  } else {
+    return $node;
+  }
+}
+
+sub children_of_auxcp {
+  my ($node) = @_;
+  my @c = expand_auxcp($node);
+  if (@c>1 and first { $_->{afun} !~ /ExD/ } @c) {
+    print "ERROR:\tAux[CP] with too many childnodes\t";
+    PDT::TRstruct();
+    print ThisAddressNTRED($node);
+    PDT::ARstruct();
+    my $af = ThisAddress($node);
+    $af=~s{.*/}{};
+    $af=~s{\.pls\.gz}{.fs};
+    $af="/net/su/h/pdt2004/Corpora/PDT_1.0/Data/fs/$af";
+    print "\t$af\n";
+  }
+  return map { expand_coord_apos_auxcp($_) } @c;
+}
+
+#bind light_auxcp_children to Ctrl+f menu Mark nodes expected to refer to current node
+sub light_auxcp_children {
+  my $node = $root;
+  while ($node) {
+    delete $node->{_light};
+    $node=$node->following;
+  }
+  $node=$this;
+  if ($node->{afun} =~ /Aux[P]/ and $node->{TR} eq 'hide') {
+    # get real analytic children of AuxP (skip coords, Aux[CPZYKG])
+    with_AR {
+      my @c = grep { $_->{afun}!~/AuxZ/ } children_of_auxcp($node);
+      foreach my $c (@c) {
+	$c->{_light}='_LIGHT_';
+      }
+    };
+  }
+  ChangingFile(0);
+}
+
+############################################
 
 sub which_struct {
   if ($Fslib::parent eq "_AP_") {
@@ -337,15 +433,15 @@ sub which_struct {
 sub with_AR (&) {
   my ($code) = @_;
   if (which_struct() eq 'AR') {
-    my $ret = eval $code;
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
     die $@ if $@;
-    return $ret;
+    return wantarray ? @$ret : $ret;
   } else {
     PDT::ARstruct();
-    my $ret = eval $code;
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
     die $@ if $@;
     PDT::TRstruct();
-    return $ret;
+    return wantarray ? @$ret : $ret;
   }
 }
 
@@ -353,13 +449,13 @@ sub with_TR (&) {
   my ($code) = @_;
   if (which_struct() eq 'AR') {
     PDT::TRstruct();
-    my $ret = eval $code;
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
     die $@ if $@;
     PDT::ARstruct();
-    return $ret;
+    return wantarray ? @$ret : $ret;
   } else {
-    my $ret = eval $code;
+    my $ret = wantarray ? [ eval { &$code } ] : eval { &$code };
     die $@ if $@;
-    return $ret;
+    return wantarray ? @$ret : $ret;
   }
 }
