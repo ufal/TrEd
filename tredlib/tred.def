@@ -1,6 +1,6 @@
 ## This is macro file for Tred                           -*-cperl-*-
 ## author: Petr Pajas
-## Time-stamp: <2003-05-26 14:14:17 pajas>
+## Time-stamp: <2003-06-26 16:54:07 pajas>
 
 package TredMacro;
 
@@ -522,6 +522,16 @@ sub NewTreeAfter {
   $root=$grp->{root};
   $this=$root;
   return $root;
+}
+
+
+=item Open
+
+Open given file.
+
+=cut
+sub Open {
+  main::openFile($grp,$_[0]);
 }
 
 =item Save
