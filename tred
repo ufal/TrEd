@@ -748,7 +748,6 @@ sub setConfig {
 #    $CSTSBackend::csts2fs=$cstsToFs;
 #    $CSTSBackend::fs2csts=$fsToCsts;
 
-#  doEvalHook(undef,"apply_config_hook",$confs); # TrEd::Macro not imported yet :(
   print STDERR "Applying configuration.\n" if $tredDebug;
 }
 
@@ -4627,7 +4626,7 @@ sub startMain {
 	 [Button=> 'Copy Trees ...', -underline=> 1,
 	  -command=> [\&copyTreesDialog,\%group]],
 	 [Separator=> ''],
-	 [Button=> 'Edit Attributes ...',
+	 [Button=> 'Edit Node ...',
 	  -underline=> 0,
 	  -command=> [sub {
 			my ($grp)=@_;
@@ -6599,7 +6598,7 @@ sub editAttrsDialog_schema {
 
   $win->toplevel->Busy(-recurse=>1);
 
-  if ($attr_path) {
+  if ($attr_path ne "") {
     $node_type = $node->type->find($attr_path);
     $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
     print "$node_type\n";
@@ -6607,8 +6606,9 @@ sub editAttrsDialog_schema {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
     $node_type = $node->type->type_struct;
   }
+  my $dlg_title = ($attr_path ne "" ? "Edit Attribute '$attr_path'" : "Edit Node");
   my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
-  my $d=$win->toplevel->DialogBox(-title=> "Edit Node",
+  my $d=$win->toplevel->DialogBox(-title=> $dlg_title,
 				  -buttons=> \@buttons
 				 );
  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
@@ -6642,7 +6642,7 @@ sub editAttrsDialog_schema {
       doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
     }, $win,$base_path
    ]);
-  if ($attr_path) {
+  if ($attr_path ne "") {
     $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
   } elsif (ref($node_type) and $node_type->{member}) {
     $edit->add_members('',$node_type,$node,1);
@@ -6650,7 +6650,7 @@ sub editAttrsDialog_schema {
     $edit->add_xmlnode('',$node_type,$node);
   }
 
-  if ($attr_path eq '') {
+  if ($attr_path eq "") {
     my $sf = $d->Frame->pack(qw(-fill x -side bottom));
     $sf->Label(-underline => 0,
 	       -text => 'Search name:')->pack(qw(-side left));
@@ -6728,9 +6728,9 @@ sub editAttrsDialog_schema {
   my $result = ShowDialog($d,$edit,$win->toplevel);
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win,'Edit Node'));
+    save_undo($win,prepare_undo($win,$dlg_title));
     lastActionBookmark($win->{framegroup});
-    if ($attr_path eq '') {
+    if ($attr_path eq "") {
       $edit->dump_to_node($node);
     } else {
       my $val = {};
@@ -6768,7 +6768,7 @@ sub editAttrsDialog {
   my $enabled=(doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop') ? 0 : 1;
   my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
   $win->toplevel->Busy(-recurse=>1);
-  my $d=$win->toplevel->DialogBox(-title=> "Edit Node Attributes", -width=> '10c',
+  my $d=$win->toplevel->DialogBox(-title=> "Edit Node", -width=> '10c',
 				  -buttons=> \@buttons
 				 );
   $d->bind('<Return>',\&dlgReturn);
@@ -6860,7 +6860,7 @@ sub editAttrsDialog {
 
   if ($result=~ /OK/) {
     $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win,'Edit Attributes'));
+    save_undo($win,prepare_undo($win,'Edit Node'));
     lastActionBookmark($win->{framegroup});
     foreach $a (@atord) {
       $node->setAttribute($a,decode($e{$a}->get));
