@@ -14,8 +14,8 @@ sub uniq { my %a; @a{@_}=@_; values %a }
 #bind light_aidrefs to Ctrl+a menu Mark AIDREFS nodes with _light = _LIGHT_
 #bind light_aidrefs_reverse to Ctrl+b menu Mark nodes pointing to current via AIDREFS with _light = _LIGHT_
 #bind analytical_tree to Ctrl+A menu Display analytical tree
-#bind tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree, discarding changes to analytical tree
-#bind tectogrammatical_tree_store_AR to Ctrl+B menu Display tectogrammatical tree, storing changes to analytical tree
+#bind TR_Correction->tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree, discarding changes to analytical tree
+#bind TR_Correction->tectogrammatical_tree_store_AR to Ctrl+B menu Display tectogrammatical tree, storing changes to analytical tree
 
 #include <contrib/frame_validation.mak>
 
