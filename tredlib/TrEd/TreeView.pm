@@ -914,7 +914,9 @@ sub draw_text_line {
 	} else {
 	  $color=$c;
 	  $color=undef if ($color eq 'default');
-	  $color=$self->get_customColors->[$color] if ($color=~/^custom([0-9])$/);
+	  print "Setting color to $color\n";
+	  $color=$self->get_customColors->[$1] if ($color=~/^custom([0-9])$/);
+	  print "Setting color to $color\n";
 	}
       }
     } else {
