@@ -257,6 +257,7 @@ sub set_config {
   # $activeNodeColor		      =	 val_or_def($confs,"activenodecolor",'blue');
   $treeViewOpts->{currentNodeColor}   =	 val_or_def($confs,"currentnodecolor",'red');
   $treeViewOpts->{nearestNodeColor}   =	 val_or_def($confs,"nearestnodecolor",'green');
+  $treeViewOpts->{ballanceTree}	      =	 val_or_def($confs,"ballancetree",0);
   $treeViewOpts->{textColor}	      =	 val_or_def($confs,"textcolor",'black');
   $treeViewOpts->{textColorShadow}    =	 val_or_def($confs,"textcolorshadow",'darkgrey');
   $treeViewOpts->{textColorHilite}    =	 val_or_def($confs,"textcolorhilite",'darkgreen');
