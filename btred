@@ -483,7 +483,7 @@ sub startMain {
       _msg("Verifying request signature...\n");
       if ($signature ne sign_md5($key,$request)) {
 	$hub->print("UNAUTHORIZED REQUEST: MD5 SIGNATURE FAILED\n");
-	$hub->print($request);
+	$hub->print("Signatures:\n$signature\n".sign_md5($key,$request)."\n");
 	_end_response($control,$hub);
       } else {
 	# --- performing the request on the trees ----
