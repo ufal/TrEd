@@ -1,7 +1,7 @@
 #
 # Revision: $Revision$
 # Checked-in: $Date$
-# Time-stamp: <2001-05-25 10:15:41 pajas>
+# Time-stamp: <2001-05-30 12:33:08 pajas>
 # See the bottom of this file for the POD documentation. Search for the
 # string '=head'.
 
@@ -435,11 +435,9 @@ sub ParseNode2 ($$$) {
 sub ReadLine {
   my $handle=shift;
 
-  if (ref($handle) eq 'GLOB') {
-    $_=<$handle>;
-  } elsif (ref($handle) eq 'ARRAY') {
+  if (ref($handle) eq 'ARRAY') {
     $_=shift @$handle;
-  } else { $_=''; return $_; }
+  } else { $_=<$handle>; return $_; }
   return $_;
 }
 
@@ -605,6 +603,33 @@ sub PrintTree {
   print $output "\n";
 }
 
+sub CreateFSHeader {
+  my ($defs, $attlist)=@_;
+  my @ad;
+  my @result;
+  my $l;
+  my $vals;
+  foreach (@$attlist) {
+    @ad=split ' ',$defs->{$_};
+    while (@ad) {
+      $l='@';
+      if ($ad[0]=~/^L=(.*)/) {
+	$vals=$1;
+	shift @ad;
+	$l.="L";
+	$l.=shift @ad if ($ad[0]=~/^[A0-3]/);
+	$l.=" $_|$vals\n";
+      } else {
+	$l.=shift @ad;
+	$l.=shift @ad if ($ad[0]=~/^[A0-3]/);
+	$l.=" $_\n";
+      }
+      push @result, $l;
+    }
+  }
+  push @result,"\n";
+  return @result;
+}
 
 ## End of Fs-format specific functions
 
@@ -632,7 +657,6 @@ sub DrawTree ($@){
     }
     $l=" ".$l;
     print $l,"| \n";
-    
     if (RBrother($node)) {
       $l.="+-[ ";
     } else {
@@ -642,7 +666,7 @@ sub DrawTree ($@){
     print map $node->{$_}." ",@attrs ;
     print "]\n";
     $node=Next($node,$top);
-  }   
+  }
 }
 
 sub PrintFS ($$$$$) {
@@ -912,11 +936,29 @@ sub readFrom {
 	$self->defs->{$3}.=" $2"; # we add a special defchar being the color
       }
       next;
+    } elsif (/^\r*$/o) {
+      last;
+    } else {
+      return 0;
     }
-    last if (/^\r*$/o);
   }
   return 1;
 }
+
+=item writeTo (glob_ref)
+
+Write FS declaration to a given file (file handle open for
+reading must be passed as a GLOB reference).
+
+=cut
+
+sub writeTo {
+  my ($self,$fileref) = @_;
+  return unless ref($self);
+  print $fileref Fslib::CreateFSHeader($self->defs,$self->list);
+  return 1;
+}
+
 
 =pod
 
@@ -1255,7 +1297,7 @@ FSFile - Simple OO interface for FS files.
 
 =pod
 
-=item new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?)
+=item new (name?,format?,FS?,hint_pattern?,attribs_pattern?,unparsed_tail?,trees?,save_status?,backend?)
 
 Create a new FS file object and C<initialize> it with the optional values.
 
@@ -1286,11 +1328,13 @@ sub DESTROY {
   $self->[6]=undef;
   $self->[7]=undef;
   $self->[8]=undef;
+  $self->[9]=undef;
+  $self->[10]=undef;
 }
 
 =pod
 
-=item initialize (name?,format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?)
+=item initialize (name?,format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?)
 
 Initialize a FS file object. Argument description:
 
@@ -1329,6 +1373,10 @@ List of FSNode objects representing root nodes of all trees in the FSFiled.
 
 File save status indicator, 0=file is saved, 1=file is not saved (TrEd uses this field).
 
+=item backend (scalar)
+
+IO Backend used to open/save the file.
+
 =back
 
 =cut
@@ -1347,51 +1395,105 @@ sub initialize {
   $self->[7] = $_[7] ? $_[7] : 0; # notsaved
   $self->[8] = undef; # storage for current tree number
   $self->[9] = undef; # storage fro current node
+  $self->[10] = $_[8] ? $_[8] : 'FSBackend'; # backend;
 
   return ref($self) ? $self : undef;
 }
 
 =pod
 
-=item readFrom (glob_ref)
+=item readFile (filename, [backends...])
+
+Read FS declaration and trees from a given file.  The first argument
+must be a file-name.  If a list of backend modules is specified,
+C<test> methods of the modules are invoked as long as one of them
+succeeds. This module is than used as a backend for opening and
+parsing the file.
+Sets noSaved to zero.
+
+=cut
+
+sub readFile {
+  my ($self,$filename) = (shift,shift);
+  return unless ref($self);
+
+  @_=qw/FSBackend/ unless @_;
+  foreach my $backend (@_) {
+    print "Trying backend $backend: ";
+    if ($ret =
+	eval {
+	  return $backend->can('test')
+	      && $backend->can('read') 
+	      && $backend->can('open_backend')
+	      && &{"${backend}::test"}($filename);
+	}) {
+      $self->changeBackend($backend);
+      $self->changeFilename($filename);
+      print "success\n";
+      eval {
+	my $fh;
+	$fh = &{"${backend}::open_backend"}($filename,"r");
+	&{"${backend}::read"}($fh,$self);
+	&{"${backend}::close_backend"}($fh);
+      };
+      print STDERR "$@\n" if $@;
+      $self->notSaved(0);
+      last;
+    }
+    print "fail\n";
+    print STDERR "$@\n" if $@;
+  }
+  return $ret;
+}
+
+=pod
+
+=item readFrom (glob_ref, [backends...])
 
 Read FS declaration and trees from a given file (file handle open for
-reading must be passed as a GLOB reference). Sets noSaved to zero.
+reading must be passed as a GLOB reference).  
+This function is limited to use FSBackend only.
+Sets noSaved to zero.
 
 =cut
 
 sub readFrom {
-  my ($self,$fileref) = @_;
+  my ($self,$fileref) = (shift,shift);
   return unless ref($self);
 
-  $self->changeFS( FSFormat->new() );
-  $self->FS->readFrom($fileref);
-
-  return undef unless $self->FS;
-
-  my ($root,$l,@rest);
-  $self->changeTrees();
-  while ($l=Fslib::ReadTree($fileref)) {
-    if ($l=~/^\[/) {
-      $root=$self->FS->parseFSTree($l);
-      push @{$self->treeList}, $root if $root;
-    } else { push @rest, $l; }
-  }
-  $self->changeTail(@rest);
-
-  #parse Rest
-  $self->changePatterns( map { /^\/\/Tred:Custom-Attribute:(.*\S)\s+$/ ? $1 : () } $self->tail);
-  unless ($self->patterns) {
-    my ($peep)=$self->tail;
-    $self->changePatterns( map { "\$\{".$self->FS->atno($_)."\}" } 
-		    ($peep=~/[,\(]([0-9]+)/g));
-  }
-  $self->changeHint(join "\n",
-		    map { /^\/\/Tred:Balloon-Pattern:(.*\S)\s+$/ ? $1 : () } $self->tail);
+  my $ret=FSBackend::read($fileref,$self);
   $self->notSaved(0);
+  return $ret;
 }
 
 =pod
+
+=item writeFile (filename)
+
+Write FS declaration, trees and unparsed tail to a given file. Sets
+noSaved to zero.
+
+=cut
+
+sub writeFile {
+  my ($self,$filename) = @_;
+  return unless ref($self);
+
+  my $backend=$self->backend || 'FSBackend';
+  print "Writing to $filename using backend $backend\n";
+  my $ret=eval {
+#    require $backend;
+    my $fh;
+    return( $backend->can('write')
+       and $backend->can('open_backend')
+       and ($fh=&{"${backend}::open_backend"}($filename,"w"))
+       and &{"${backend}::write"}($fh,$self)
+       and &{"${backend}::close_backend"}($fh));
+  };
+  print STDERR "Error: $@\n" if $@;
+  return $ret and not $@;
+}
+
 
 =item writeTo (glob_ref)
 
@@ -1404,37 +1506,32 @@ sub writeTo {
   my ($self,$fileref) = @_;
   return unless ref($self);
 
-  print $fileref @{$self->FS->unparsed};
-  Fslib::PrintFS($fileref,$self->FS->unparsed,
-		 $self->treeList,
-		 $self->FS->list,
-		 $self->FS->defs);
-
-  ## Tredish custom attributes:
-  $self->changeTail(
-		    (grep { $_!~/\/\/Tred:(?:Custom-Attribute|Balloon-Pattern):/ } $self->tail),
-		    (map {"//Tred:Custom-Attribute:$_\n"} $self->patterns),
-		    (map {"//Tred:Balloon-Pattern:$_\n"}
-		     split /\n/,$self->hint)
-		   );
-  print $fileref $self->tail;
-  $self->notSaved(0);
+  my $backend=$self->backend || 'FSBackend';
+  print "Writing using backend $backend\n";
+  my $ret=eval {
+#    require $backend;
+    return $backend->can('write')  && &{"${backend}::write"}($fileref,$self);
+  };
+  print STDERR "$@\n" if $@;
+  return $ret;
 }
 
 =pod
 
-=item newFSFile (glob_ref)
+=item newFSFile (filename,[backends...])
 
-Create a new FSFile object based on the content of a given file (file
-handle open for reading must be passed as a GLOB reference).
+Create a new FSFile object based on the content of a given file.
+If a list of backend
+modules is specified, C<read> methods of the modules are invoked
+as long as one of them succeeds to open and parse the file.
 
 =cut
 
 sub newFSFile {
-  my ($self,$fileref) = @_;
+  my ($self,$filename) = (shift,shift);
 
   my $new=$self->new();
-  $new->readFrom($fileref);
+  $new->readFile($filename,@_);
   return $new;
 }
 
@@ -1492,6 +1589,34 @@ sub changeFileFormat {
   my ($self,$val) = @_;
   return unless ref($self);
   return $self->[1]=$val;
+}
+
+=pod
+
+=item backend
+
+Return IO backend module name. The default backend is FSBackend, used
+to save files in the FS format.
+
+=cut
+
+sub backend {
+  my $self = shift;
+  return ref($self) ? $self->[10] : undef;
+}
+
+=pod
+
+=item changeBackend
+
+Change file backend.
+
+=cut
+
+sub changeBackend {
+  my ($self,$val) = @_;
+  return unless ref($self);
+  return $self->[10]=$val;
 }
 
 =pod
@@ -1748,8 +1873,252 @@ sub currentNode {
 
 =cut
 
-1;
+############################################################
+#
+# ZBackend
+# =========
+#
+#
 
+package ZBackend;
+
+use Exporter;
+@ISA=(Exporter);
+$VERSION = "0.1";
+@EXPORT = qw(&open_backend &close_backend);
+@EXPORT_OK = qw($zcat);
+
+use IO;
+
+=pod
+
+=head1 ZBackend
+
+ZBackend - generic IO backend for reading/writing gz-compressed files
+using either IO::Zlib module or external zcat utility.  Only
+open_backend and close_backend functions are implemented as this
+backend is meant to be base-class for all other backends which wish to
+open gz-compressed files.
+
+=head2 REFERENCE
+
+=over 4
+
+=cut
+
+=pod
+
+=item $ZBackend::zcat
+
+This variable may be used to set-up the zcat external utility. This
+utility must be able to compress standard input to standard output. If
+empty, this backend tries to open the given file using the IO::Zlib
+module.
+
+=item $ZBackend::gzip
+
+This variable may be used to set-up the gzip external utility. This
+utility must be able to compress standard input to standard output.
+If empty, this backend tries to open the given file using the IO::Zlib
+module.
+
+=cut
+
+
+$ZBackend::zcat = "/bin/zcat";
+$ZBackend::gzip = "/usr/bin/gzip";
+
+=pod
+
+=item open_backend (filename,mode)
+
+Open given file for reading or writing (depending on mode which may be
+one of "r" or "w"); Return the corresponding object based on
+File::Handle class. Only files the filename of which ends with `.gz'
+are considered to be gz-commpressed. All other files are opened using
+IO::File.
+
+=cut
+
+sub open_backend {
+  my ($filename, $mode)=@_;
+  my $fh = undef;
+  if ($filename) {
+    if ($filename=~/.gz$/) {
+      if (-x $ZBackend::zcat) {
+	if ($mode =~/[w\>]/) {
+	  eval {
+	    $fh = new IO::Pipe();
+	    $fh && $fh->writer("$ZBackend::gzip > \"$filename\"");
+	  } || return undef;
+	} else {
+	  eval {
+	    $fh = new IO::Pipe();
+	    $fh && $fh->reader("$ZBackend::zcat < \"$filename\"");
+	  } || return undef;
+	}
+	return $fh;
+      } else {
+	eval {
+	  require IO::Zlib;
+	  $fh = new IO::Zlib();
+	} && $fh || return undef;
+	$fh->open($filename,$mode."b") || return undef;
+      }
+    } else {
+      eval { $fh = new IO::File(); } || return undef;
+      $fh->open($filename,$mode) || return undef;
+    }
+  }
+  return $fh;
+}
+
+=pod
+
+=item close_backend (filehandle)
+
+Close given filehandle opened by previous call to C<open_backend>
+
+=cut
+
+sub close_backend {
+  my ($fh)=@_;
+  return $fh && $fh->close();
+}
+
+=pod
+
+=back
+
+=cut
+
+
+############################################################
+#
+# FSBackend
+# =========
+#
+#
+
+package FSBackend;
+
+@ISA=qw(ZBackend);
+import ZBackend;
+
+=pod
+
+=head1 FSBackend
+
+FSBackend - IO backend for reading/writing FS files using FSFile class.
+
+=head2 REFERENCE
+
+=over 4
+
+=cut
+
+=pod
+
+=item test (filehandle | filename)
+
+Test if given filehandle or filename is in FSFormat. If the argument
+is a file-handle the filehandle is supposed to be open by previous
+call to C<open_backend>. In this case, the calling application may
+need to close the handle and reopen it in order to seek the beginning
+of the file after the test has read few characters or lines from it.
+
+=cut
+
+sub test {
+  my ($f)=@_;
+  if (ref($f)) {
+    return $f->getline()=~/^@/;
+  } else {
+    my $fh = open_backend($f,"r");
+    my $test = $fh && test($fh);
+    close_backend($fh);
+    return $test;
+  }
+}
+
+=pod
+
+=item read (handle_ref,fsfile)
+
+Read FS declaration and trees from a given file in FS format (file
+handle open for reading must be passed as a GLOB reference).
+Return 1 on success 0 on fail.
+
+=cut
+
+sub read {
+  my ($fileref,$fsfile) = @_;
+  return unless ref($fsfile);
+
+  $fsfile->changeFS( FSFormat->new() );
+  $fsfile->FS->readFrom($fileref) || return 0;
+
+  my ($root,$l,@rest);
+  $fsfile->changeTrees();
+  while ($l=Fslib::ReadTree($fileref)) {
+    if ($l=~/^\[/) {
+      $root=$fsfile->FS->parseFSTree($l);
+      push @{$fsfile->treeList}, $root if $root;
+    } else { push @rest, $l; }
+  }
+  $fsfile->changeTail(@rest);
+
+  #parse Rest
+  $fsfile->changePatterns( map { /^\/\/Tred:Custom-Attribute:(.*\S)\s+$/ ? $1 : () } $fsfile->tail);
+  unless ($fsfile->patterns) {
+    my ($peep)=$fsfile->tail;
+    $fsfile->changePatterns( map { "\$\{".$fsfile->FS->atno($_)."\}" } 
+		    ($peep=~/[,\(]([0-9]+)/g));
+  }
+  $fsfile->changeHint(join "\n",
+		    map { /^\/\/Tred:Balloon-Pattern:(.*\S)\s+$/ ? $1 : () } $fsfile->tail);
+  return 1;
+}
+
+=pod
+
+=item write (handle_ref,$fsfile)
+
+Write FS declaration, trees and unparsed tail to a given file to a
+given file in FS format (file handle open for reading must be passed
+as a GLOB reference).
+
+=cut
+
+sub write {
+  my ($fileref,$fsfile) = @_;
+  return unless ref($fsfile);
+
+#  print $fileref @{$fsfile->FS->unparsed};
+  $fsfile->FS->writeTo($fileref);
+  Fslib::PrintFS($fileref,$fsfile->FS->unparsed,
+		 $fsfile->treeList,
+		 $fsfile->FS->list,
+		 $fsfile->FS->defs);
+
+  ## Tredish custom attributes:
+  $fsfile->changeTail(
+		    (grep { $_!~/\/\/Tred:(?:Custom-Attribute|Balloon-Pattern):/ } $fsfile->tail),
+		    (map {"//Tred:Custom-Attribute:$_\n"} $fsfile->patterns),
+		    (map {"//Tred:Balloon-Pattern:$_\n"}
+		     split /\n/,$fsfile->hint)
+		   );
+  print $fileref $fsfile->tail;
+  return 1;
+}
+
+=pod
+
+=back
+
+=cut
+
+1;
 
 
 ############################################################
