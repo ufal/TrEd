@@ -14,6 +14,8 @@ function ask {
 }
 
 function mkplbat {
+  PERLBIN=`echo "$PERLBIN" | sed 's!^/cygdrive/\(.\)!\1:!' | sed -e 's!/!\\\\\\\\!g'`
+  echo $PERLBIN
   sed "s!_PERLBIN_!$PERLBIN!" < pl2bat.new > "${TREDDIR}/$1.bat" && \
   cat "${TREDDIR}/$1" pl2batend.new >> "${TREDDIR}/$1.bat"
   return $?
@@ -36,19 +38,17 @@ function findperlbin {
 }
 
 function findtreddir {
-  TREDDIR=`which perl 2>/dev/null`
-  if [ -z $TREDDIR ]; then
     test $OSTYPE = "cygwin" || return 1
     TREDDIR=`regtool get '\machine\Software\TrEd\Dir' 2>/dev/null`
-    if [ ! -x ${TREDDIR}/tred ]; then
+    echo TREDDIR registry: $TREDDIR
+    if [ ! -f "${TREDDIR}/tred" ]; then
       for d in c d e f g; do 
-        if [ -x ${d}:/tred/tred ]; then
+        if [ -f ${d}:/tred/tred ]; then
           TREDDIR=${d}:/tred
 	  return 0
         fi
       done
     fi
-  fi
 }
 
 echo
@@ -114,7 +114,7 @@ else
 fi
   
 findtreddir
-
+echo TREDDIR: $TREDDIR
 if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
   UPGRADE=1
   echo
@@ -157,21 +157,22 @@ fi
 
 echo
 echo "Kopiruji TrEd do adresare $TREDDIR"
-if ((test $UPGRADE = 1 || mkdir "${TREDDIR}") && \
+if ((test "x$UPGRADE" = "x1" || mkdir "${TREDDIR}") && \
     cp -R tred/* "${TREDDIR}"             && \
     cp tred.mac "${TREDDIR}/tredlib"      && \
     mkplbat tred                          && \
     mkplbat btred                         && \
     mkplbat trprint                       && \
     mkplbat any2any                       && \
-    (test $UPGRADE = 1 -a -f "${TREDDIR}/tredlib/tredrc.sav" && \
+    (test "x$UPGRADE" = "x1" -a -f "${TREDDIR}/tredlib/tredrc.sav" && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc"
     ) && \
-    (test $UPGRADE = 1 || "$PERLBIN" trinstall.pl)); then
+    (test "x$UPGRADE" = "x1" || "$PERLBIN" trinstall.pl)); then
   echo "Upravuji polozku TrEdu v registrech Windows"
-  regtool -s set '\machine\Software\TrEd\Dir' $TREDDIR 
+  regtool add "\\machine\\Software\\TrEd"
+  regtool -s set "\\machine\\Software\\TrEd\\Dir" "$TREDDIR" 
   echo
-  echo "nstalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla"
+  echo "Instalace je uspesne dokoncena. Zkontrolujte, ze na plose pribyla"
   echo "ikona s obrazkem sileneho zvirete:)"
   echo
 
@@ -180,4 +181,3 @@ else
   echo Behem instalace doslo k chybe.
   echo
 fi
-
