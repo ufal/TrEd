@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2003-10-01 15:22:43 pajas>";
+$timestamp="Time-stamp: <2003-10-01 18:05:32 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -368,7 +368,7 @@ sub printThis {
   }
 
   TrEd::Print::print_trees($fsfile,
-			   $top,
+			   undef,
 			   $c,
 			   $range,
 			   !($opt_I||defined($opt_p)),
