@@ -270,6 +270,28 @@ sub wrappedLines {
   return $lines;
 }
 
+sub wrapLines {
+  my ($self,$text,$width)=@_;
+  use integer;
+  my @toks = split /\s+/, $text;
+  my $line=shift @toks;
+  my $wd=$self->getTextWidth($line);
+  my @lines=();
+  my $w;
+  foreach (@toks) {
+    $w=$self->getTextWidth(" $_");
+    if ($wd+$w<$width) {
+      $wd+=$w;
+      $line.=" $_";
+    } else {
+      $wd=$self->getTextWidth("$_");
+      push @lines,$line;
+      $line=$_;
+    }
+  }
+  return @lines,$line;
+}
+
 
 sub redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext)=@_;
@@ -310,10 +332,16 @@ sub redraw {
 				   $self->getTextWidth($ftext),
 				   $self->{canvasHeight});
       $self->{canvasHeight}+=$fontHeight;
-      $self->canvas->createText(0,$self->{canvasHeight},-font => $self->get_font,-text => $vtext,
-				   -justify => 'left', -anchor => 'nw',
-				   -width => $self->{canvasWidth});
-      $self->{canvasHeight}+=$fontHeight*($self->wrappedLines($vtext,$self->{canvasWidth})+1);
+      foreach ($self->wrapLines($vtext,$self->{canvasWidth})) {
+	print "Line: $_\n";
+	$self->canvas->createText(0,$self->{canvasHeight},
+				  -font => $self->get_font,
+				  -text => $_,
+				  -justify => 'left',
+				  -anchor => 'nw');
+	$self->{canvasHeight}+=$fontHeight;
+      }
+
     }
   }
 
