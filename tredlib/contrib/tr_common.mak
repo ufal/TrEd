@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2002-03-04 10:55:21 pajas>
+## Time-stamp: <2002-03-07 09:07:27 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -31,7 +31,7 @@ sub default_tr_attrs {
   return unless $grp->{FSFile};
   print "Using standard patterns\n";
     SetDisplayAttrs('${trlemma}<? ".#{custom1}\${aspect}" if $${aspect} =~/PROC|CPL|RES/ ?>',
-                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if "$${memberof}" =~ /CO|AP|PA/ ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
+                    '<?$${funcaux} if $${funcaux}=~/\#/?>${func}<? "_#{custom2}\${memberof}" if "$${memberof}" =~ /CO|AP|PA/ ?><? "#{custom2}-\${parenthesis}" if $${parenthesis} eq "PA" ?><? ".#{custom3}\${gram}" if $${gram} ne "???" and $${gram} ne ""?>');
     SetBalloonPattern('<?"fw:\t\${fw}\n" if $${fw} ne "" ?>form:'."\t".'${form}'."\n".
 		      "afun:\t\${afun}\ntag:\t\${tag}".
 		      '<?"\ncommentA:\t\${commentA}" if $${commentA} ne "" ?>'.
@@ -43,15 +43,18 @@ sub default_tr_attrs {
   if (exists($defs->{func}) and $defs->{func} !~ /OPER/) {
     $fsfunc=$defs->{func}=~s/(NORM)/NORM|OPER/;
   }
+  if (exists($defs->{memberof}) and $defs->{memberof} =~ /CO\|AP\|PA/) {
+    $defs->{memberof}=~s/CO\|AP\|PA/CO|AP/;
+  }
   return 1;
 }
 
 sub sort_attrs_hook {
   my ($ar)=@_;
   @$ar = (grep($grp->{FSFile}->FS->exists($_),
-	       'func','trlemma','form','afun','coref','memberof','aspect','commentA'),
+	       'func','trlemma','form','afun','coref','memberof','parenthesis','aspect','commentA'),
 	  sort {uc($a) cmp uc($b)}
-	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|memberof|aspect)$/,@$ar));
+	  grep(!/^(?:trlemma|func|form|afun|commentA|coref|memberof|aspect|parenthesis)$/,@$ar));
   return 1;
 }
 
@@ -225,7 +228,7 @@ sub do_edit_attr_hook {
 
 sub enable_attr_hook {
   my ($atr,$type)=@_;
-  if ($atr!~/^(?:func|coref|commentA|reltype|memberof|aspect|tfa|err1)$/) {
+  if ($atr!~/^(?:func|coref|commentA|reltype|memberof|aspect|tfa|err1|parenthesis)$/) {
     return "stop";
   }
 }
@@ -268,6 +271,13 @@ sub edit_commentA {
   $value=main::QueryString($grp->{framegroup},"Enter comment","commentA",$value);
   if (defined($value)) {
     $this->{commentA}=$value;
+  }
+}
+
+sub memberof_pa_to_parenthesis {
+  if ($this->{memberof} eq 'PA') {
+    $this->{memberof}='???';
+    $this->{parenthesis}='PA';
   }
 }
 
@@ -342,6 +352,12 @@ sub GetNewOrd {
 }
 
 
+#bind parenthesis_pa to Ctrl+Y menu Pridat parenthesis=PA
+sub parenthesis_pa {
+  $this->{'parenthesis'} = 'PA';
+}
+
+
 sub AfunAssign {
   my $t, $n;
 
@@ -364,7 +380,7 @@ sub GoNextVisible {
 }
 
 sub func_PAR {
-  $this->{memberof}='PA';
+  $this->{parenthesis}='PA';
   $sPar1 = 'PAR';
   FuncAssign();
 }
