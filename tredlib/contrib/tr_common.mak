@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2003-02-03 10:01:47 pajas>
+## Time-stamp: <2003-02-05 18:44:46 pajas>
 
 ## This file contains and imports most macros
 ## needed for Tectogrammatical annotation
@@ -1005,4 +1005,18 @@ sub tr_diff_all_windows {
     SwitchContextForWindow($win,'TR_Diff');
   }
   TR_Diff->DiffTRFiles(0);
+}
+
+#bind tr_vallex_transform to Alt+F10 menu Create missing nodes (based on ValLex)
+sub tr_vallex_transform {
+  unless ($simple_vallex_loaded) {
+    print "Loading simple_vallex $libDir/contrib/ValLex/simple_vallex.txt\n";
+    local $vallex;
+    do "$libDir/contrib/ValLex/simple_vallex.txt";
+    die "$@" if ($@);
+    $TRValLexTransform::vallex=$vallex;
+    print "Loaded ",scalar(keys %$vallex)," items\n";
+    $simple_vallex_loaded=1;
+  }
+  TRValLexTransform::DoTransformTree();
 }
