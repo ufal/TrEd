@@ -514,7 +514,7 @@ root# <userinput>make install</userinput>
 	    </para>
 	    <note>
 	      <para>
-		TrEd's ability to render into PostScript
+		TrEd's ability to render PostScript
 		and EPS is limitted to Eastern European character sets.
 		For other charsets and unicode (especially when TrEd
 		runs on a unicode aware versions of
