@@ -534,11 +534,11 @@ if (defined($init) || defined($kill) || defined($break)) {
   # ---------- composing and testing the request -----------
 
   if ($macro_file) {
-    msg("Reading macros from $macro_file ...\n");
+    #msg("Reading macros from $macro_file ...\n");
     $TrEd::Macros::defaultMacroFile='/dev/null'; # don't read this one
-    $TrEd::Config::macroDebug=1;
+    #$TrEd::Config::macroDebug=1;
     TrEd::Macros::read_macros($macro_file,$libDir) if $macro_file; # read macros
-    msg("done.\n");
+    #msg("done.\n");
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
       msg "Applying macro options: @ARGV\n";
