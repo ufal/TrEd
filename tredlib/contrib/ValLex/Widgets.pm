@@ -81,15 +81,17 @@ sub configure {
 sub subwidget_configure {
   my ($self,$conf)=@_;
   foreach (keys(%$conf)) {
-    my $sub=$self->subwidget($_);
-    next unless $sub;
-    if ($sub->isa("TrEd::ValLex::FramedWidget") and
-	ref($conf->{$_}) eq "HASH") {
-      $sub->subwidget_configure($conf->{$_});
-    } elsif(ref($conf->{$_}) eq "ARRAY") {
-      $sub->configure(@{$conf->{$_}});
-    } else {
-      print STDERR "bad configuration options $conf->{$_}\n";
+    my $subw=$self->subwidget($_);
+    next unless $subw;
+    foreach my $sub (ref($subw) eq 'ARRAY' ? @$subw : ($subw)) {
+      if ($sub->isa("TrEd::ValLex::FramedWidget") and
+	  ref($conf->{$_}) eq "HASH") {
+	$sub->subwidget_configure($conf->{$_});
+      } elsif(ref($conf->{$_}) eq "ARRAY") {
+	$sub->configure(@{$conf->{$_}});
+      } else {
+	print STDERR "bad configuration options $conf->{$_}\n";
+      }
     }
   }
 }
@@ -171,7 +173,6 @@ sub fetch_data {
   my ($e,$i);
   my $style;
   $t->delete('all');
-  my $myfont=$t->cget('-font');
   foreach my $entry ($self->data()->getFrameList($word)) {
     next if (!$self->show_deleted() and $entry->[3] eq 'deleted');
     $e = $t->addchild("",-data => $entry->[0]);

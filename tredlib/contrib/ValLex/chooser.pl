@@ -94,6 +94,7 @@ sub close_and_return {
 
 #if ($word) {
 my $chooser= TrEd::ValLex::Chooser->new($data, [$find,"V"], $top,
+					1,
 					$fc,
 					$vallex_conf,
 					$fc,
@@ -104,12 +105,12 @@ my $chooser= TrEd::ValLex::Chooser->new($data, [$find,"V"], $top,
 if ($new_word) {
   $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
 } else {
-  $chooser->subwidget("framelist")->fetch_data($word);
+  $chooser->subwidget("framelists")->[0]->fetch_data($word);
 }
 undef $word;
 
 $chooser->pack(qw/-expand yes -fill both -side left/);
-$chooser->subwidget("framelist")->select_frames(split '\|',$ARGV[1]);
+$chooser->subwidget("framelists")->[0]->select_frames(split '\|',$ARGV[1]);
 
 #}
 

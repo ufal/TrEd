@@ -29,6 +29,8 @@ sub show_dialog {
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $chooser =
     TrEd::ValLex::Chooser->new($data, $field, $d,
+			       ((ref($field) eq "ARRAY") ?
+				scalar(@$field)/2 : 1),
 			       $item_style,
 			       $frame_browser_styles,
 			       $frame_browser_wordlist_item_style,
@@ -38,14 +40,19 @@ sub show_dialog {
   $chooser->subwidget_configure($confs) if ($confs);
   $chooser->widget()->bind('all','<Double-1>'=> [sub { shift; shift->{selected_button}='Choose'; },$d ]);
   $chooser->pack(qw/-expand yes -fill both -side left/);
+  $chooser->widget()->focus();
   if (ref($field) eq "ARRAY") {
-    my $word=$chooser->data()->findWordAndPOS(@$field);
-    $chooser->subwidget('framelist')->fetch_data($word);
+    foreach my $fl (@{$chooser->subwidget('framelists')}) {
+      print "FL: ---- $fl\n";
+      $fl->fetch_data($chooser->data()->findWordAndPOS(@{$fl->field()}));
+    }
   }
   if ($select_frame) {
     if (ref($select_frame) eq "ARRAY") {
       if (@$select_frame) {
-	$chooser->subwidget("framelist")->select_frames(@$select_frame);
+	foreach (@{$chooser->subwidget("framelists")}) {
+	  $_->select_frames(@$select_frame);
+	}
       } else {
 	if ($chooser->widget()->infoExists(0)) {
 	  $chooser->widget()->anchorSet(0);
@@ -53,7 +60,9 @@ sub show_dialog {
 	}
       }
     } else {
-      $chooser->subwidget("framelist")->select_frames($select_frame);
+      foreach (@{$chooser->subwidget("framelists")}) {
+	$_->select_frames($select_frame);
+      }
     }
   } else {
     if ($chooser->widget()->infoExists(0)) {
@@ -61,7 +70,6 @@ sub show_dialog {
       $chooser->widget()->selectionSet(0);
     }
   }
-  $chooser->widget()->focus();
   if ($start_editor) {
     $chooser->widget()->afterIdle([\&TrEd::ValLex::Chooser::edit_button_pressed,$chooser]);
   }
@@ -84,6 +92,7 @@ sub show_dialog {
 
 sub create_widget {
   my ($self, $data, $field, $top,
+      $count,
       $item_style,
       $frame_browser_styles,
       $frame_browser_wordlist_item_style,
@@ -92,6 +101,7 @@ sub create_widget {
       $cb,
       $no_choose_button, @conf) = @_;
 
+  print "Count $count\n";
   my $frame = $top->Frame();
   $frame->configure(@conf) if (@conf);
 
@@ -124,39 +134,66 @@ sub create_widget {
   $editframes_button->pack(qw/-padx 5 -side left/); 
 
   my $multiselect_button=
-    $fbutton_frame->Checkbutton(-text => 'Multiple select',
-				-command => [
-					     sub {
-					       my ($self)=@_;
-					       my $fl=$self->subwidget('framelist')->widget();
-					       my $mode = $fl->cget('-selectmode');
-					       if ($mode eq 'extended') {
-						 $fl->configure(-selectmode => 'browse');
-					       } else {
-						 $fl->configure(-selectmode => 'extended');
-					       }
-					     },
-					     $self
-					    ]);
+    $fbutton_frame->
+      Checkbutton(-text => 'Multiple select',
+		  -command =>
+		  [
+		   sub {
+		     my ($self)=@_;
+		     foreach my $f (@{$self->subwidget('framelists')}) {
+		       my $fl=$f->widget();
+		       my $mode = $fl->cget('-selectmode');
+		       if ($mode eq 'extended') {
+			 $fl->configure(-selectmode => 'browse');
+		       } else {
+			 $fl->configure(-selectmode => 'extended');
+		       }
+		     }
+		   },
+		   $self
+		  ]);
 
   $multiselect_button->pack(qw/-padx 5 -side left/);
 
-  # List of Frames
-  my $lexframelist =  TrEd::ValLex::FrameList->new($data, undef,
-						   $lexframe_frame,
-						   $item_style,
-						   qw/-height 15 -width 50/,
-						   -command => [
-								\&item_chosen,
-								$self
-							       ]);
-  $lexframelist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
+  my @lexframelists=();
+  my @lexframelistlabels=();
+  my $focused_framelist;
+  for (my $i=0; $i<$count; $i++) {
+    print "$i\n";
+    # List of Frames
+    $lexframe_frame->Frame(qw/-height 12/)->pack();
+    my $lexframelistlab=$lexframe_frame->Label(-text => $self->field()->[2*$i],
+			   qw/-anchor nw -justify left/)
+      ->pack(qw/-fill x -padx 4/);
+    my $lexframelist =  TrEd::ValLex::FrameList->new($data,
+						     [
+						      $self->field()->[2*$i],
+						      $self->field()->[2*$i+1]
+						     ],
+						     $lexframe_frame,
+						     $item_style,
+						     qw/-height 15 -width 50/,
+						     -command => [
+								  \&item_chosen,
+								  $self
+								 ]);
+    $lexframelist->widget()->bind('<FocusIn>',[sub {
+				       my ($w,$chooser,$fl,$ff)=@_;
+				       $$ff=$lexframelist;
+				       $chooser->unselect_other_framelists($fl);
+				     },$self,$lexframelist,\$focused_framelist]);
+    $lexframelist->pack(qw/-expand yes -fill both -padx 6 -pady 6/);
+    $lexframelists[$i]=$lexframelist;
+    $lexframelistlabels[$i]=$lexframelistlab;
+  }
 
-  return $lexframelist->widget(),{
+  return $lexframelists[0]->widget(),{
 	     callback     => $cb,
 	     frame        => $frame,
 	     frame_frame  => $lexframe_frame,
-	     framelist    => $lexframelist,
+	     framelists    => \@lexframelists,
+	     framelist_labels    => \@lexframelistlabels,
+	     focused_framelist => \$focused_framelist
 #	     framenote    => $lexframenote,
 #	     frameproblem => $lexframeproblem,
 	    }, {
@@ -170,7 +207,9 @@ sub create_widget {
 
 sub destroy {
   my ($self)=@_;
-  $self->subwidget("framelist")->destroy();
+  foreach (@{$self->subwidget('framelists')}) {
+    $_->destroy();
+  }
   $self->SUPER::destroy();
 }
 
@@ -194,7 +233,9 @@ sub callback {
 sub get_selected_frames {
   my ($self)=@_;
   my @frames;
-  my $fl=$self->subwidget('framelist')->widget();
+  my $f=${$self->subwidget('focused_framelist')};
+  return () unless ref($f);
+  my $fl=$f->widget();
   foreach ($fl->infoSelection()) {
     push @frames,$fl->infoData($_);
   }
@@ -203,10 +244,13 @@ sub get_selected_frames {
 
 sub get_current_frame {
   my ($self,$item)=@_;
-  my $fl=$self->subwidget('framelist')->widget();
-  $item = $fl->infoAnchor() unless defined($item);
-  return undef unless defined($item);
-  return $fl->infoData($item);
+  foreach my $f (@{$self->subwidget('framelists')}) {
+    my $fl=$f->widget();
+    next unless $fl eq $fl->focusCurrent();
+      $item = $fl->infoAnchor() unless defined($item);
+    return $fl->infoData($item) if defined($item);
+  }
+  return undef;
 }
 
 sub item_chosen {
@@ -219,11 +263,46 @@ sub choose_button_pressed {
   $self->callback($self->get_selected_frames());
 }
 
+sub focused_framelist {
+  my ($self)=@_;
+  my $fl=$self->subwidget('focused_framelist');
+  return $$fl;
+}
+
+sub unselect_other_framelists {
+  my ($self,$framelist)=@_;
+  foreach my $f (@{$self->subwidget('framelists')}) {
+    if ($framelist ne $f) {
+      $f->widget()->selectionClear();
+      $f->widget()->anchorClear();
+    }
+  }
+}
+
+sub find_framelist_index {
+  my ($self,$fl)=@_;
+  my $i=0;
+  foreach my $f (@{$self->subwidget('framelists')}) {
+    return $i if ($fl eq $f);
+    $i++;
+  }
+  return undef;
+}
+
 sub edit_button_pressed {
   my ($self)=@_;
+  my $fl=$self->focused_framelist();
+  return unless defined($fl);
+  my $index=$self->find_framelist_index($fl);
+  print "focused is $fl, $index\n";
+  print "i.e. ",$fl->field()->[0],"\n";
   TrEd::ValLex::Editor::show_dialog($self->widget()->toplevel,
 				    $self->data(),
-				    $self->field(),
+				    $fl->field(),
+# 				    [
+# 				     $self->field()->[2*$index],
+# 				     $self->field()->[2*$index+1]
+# 				    ],
 				    1,
 				    $self->style('editor'),
 				    $self->style('editor_wordlist_items'),
@@ -233,7 +312,18 @@ sub edit_button_pressed {
 
   eval { Tk->break; };
   if (ref($self->field()) eq "ARRAY") {
-    $self->subwidget('framelist')->fetch_data($self->data()->findWordAndPOS(@{$self->field()}));
+    my $i=0;
+    foreach my $f (@{$self->subwidget('framelists')}) {
+#      print "Fetching ",
+#	$self->field()->[$i],
+#	  ",",$self->field()->[$i+1],"\n";
+      $f->fetch_data($self->data()->findWordAndPOS(
+						   @{$f->field()}
+						  # $self->field()->[$i],
+						  # $self->field()->[$i+1],
+						  ));
+#      $i+=2;
+    }
   }
 }
 
