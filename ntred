@@ -765,6 +765,7 @@ sub get_file_list {
 sub get_files {
   my @files;
   if ($filelist) {
+    local $_;
     if (open(my $f, $filelist)) {
       while (<$f>) {
 	s/^\s+//;
@@ -925,7 +926,7 @@ single tree (use in combination with -N) or a single node (use without
 file-names are expanded according to the current working directory
 before they are sent to ntred servers.
 
-=item B<--file-list|-l> filename
+=item B<--filelist|-l> filename
 
 Like C<--list-files|-L> but this time the files to be processed are
 listed in the given file rather than on the command line. Both options
