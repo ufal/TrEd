@@ -479,9 +479,8 @@ sub node_coords {
 
   my $x=$self->get_node_pinfo($node,'XPOS');
   my $y=$self->get_node_pinfo($node,'YPOS');
-
-  if ($self->get_style_opt($node,'Node','-shape') ne 'polygon') {
-    my $Opts=$self->get_gen_pinfo('Opts');
+  my $Opts=$self->get_gen_pinfo('Opts');
+  if ($self->get_style_opt($node,'Node','-shape') ne 'polygon',$Opts) {
     my ($nw,$nh)=
       (($currentNode eq $node) ? $self->get_currentNodeWidth : $self->get_nodeWidth,
        ($currentNode eq $node) ? $self->get_currentNodeHeight : $self->get_nodeHeight);
@@ -494,7 +493,7 @@ sub node_coords {
   } else {
     my $horiz=0;
     return map { $horiz=!$horiz; $_+($horiz ? $x : $y) } 
-      split(',',$self->get_style_opt($node,'Node','-polygon'))
+      split(',',$self->get_style_opt($node,'Node','-polygon',$Opts))
   }
 }
 
@@ -758,16 +757,43 @@ sub redraw {
     my @arrow=split '&',$self->get_style_opt($node,"Line","-arrow",\%Opts);
     my @fill=split '&',$self->get_style_opt($node,"Line","-fill",\%Opts);
     my @width=split '&',$self->get_style_opt($node,"Line","-width",\%Opts);
-    my @dash=split '&',$self->get_style_opt($node,"Line","-dash",\%Opts);
+    my @dash=map { /\d/ ? [split /,/,$_] : $_ } 
+      split '&',$self->get_style_opt($node,"Line","-dash",\%Opts);
     my @smooth=split '&',$self->get_style_opt($node,"Line","-smooth",\%Opts);
     my $lin=0;
     my %nodehash;
 
     foreach my $coords (@coords) {
       my @c=split ',',$coords;
-      my $x=1;
+      my $x=$1;
       my $err=0;
       COORD: foreach (@c) {
+	# perl inline
+	s{([xy]?)\[\?(.*?)\?\]}{
+	  my $i=0;
+	  my $xy=$1;
+	  my $code=$2;
+	  if (exists($nodehash{$code})) {
+	    $i=$nodehash{$code}
+	  } else {
+	    while ($i<@$nodes) {
+	      my $c=$code;
+	      $c=~s[\$\{([-_A-Za-z0-9]+)\}]["'$nodes->[$i]->{$1}'"]ge;
+	      last if eval $c; # not secure, not safe!!!
+	      $i++;
+	    }
+	    $nodehash{$code}=$i;
+	  }
+	  if ($i<@$nodes) { 
+	    $self->get_node_pinfo($nodes->[$i],(($x and ($xy ne 'y')) or $xy eq 'x') ?
+				  "XPOS" : "YPOS")
+	  } else {
+	    print STDERR "NOT-FOUND $code\n";
+	    $err=1; 0
+	  }
+	}ge;
+	last COORD if $err;
+	# simple comparison inline
 	s{([xy]?)\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\]}{
 	  my $i=0;
 	  if (exists($nodehash{$2,$3})) {
@@ -799,7 +825,7 @@ sub redraw {
 	  $self->get_node_pinfo($node,(($x and ($1 ne 'y')) or $1 eq 'x') ?
 				"XPOS" : "YPOS")
 	 }ge;
-	if (/^([- +\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
+	if (/^([-\s+\?:.\/*%\(\)0-9]|&&|\|\||!|\>|\<(?!>)|==|\>=|\<=|abs\()*$/) {
 	  $_=eval $_;
 	} else {
 	  $err=1;
@@ -820,7 +846,7 @@ sub redraw {
 				  '-width' =>  $width[$lin] || $self->get_lineWidth,
 				  '-fill'  =>  $fill[$lin] || $self->get_lineColor,
 				  '-smooth'  =>  $smooth[$lin] || 0,
-				  $can_dash ? ('-dash'  =>  $dash[$lin] || $self->get_lineDash)
+				  $can_dash ? ('-dash'  => $dash[$lin] || $self->get_lineDash)
 				  : ());
 	};
 	$self->store_id_pinfo($l,$line);
@@ -839,7 +865,7 @@ sub redraw {
     ## The Nodes ##
     my $shape=lc($self->get_style_opt($node,'Node','-shape',\%Opts));
 
-    $shape='oval' unless ($shape =~ /^(?:rectangle|polygon)$/o);
+    $shape='oval' unless ($shape eq 'rectangle' or $shape eq 'polygon');
     my @node_coords=$self->node_coords($node,$currentNode);
     $objectno++;
     my $oval="oval_$objectno";
