@@ -3406,9 +3406,18 @@ sub createCanvasBindings {
   $canvas->bind('point','<B3-Motion>'=> [sub {node_move(@_)},$grp,1]);
   $canvas->CanvasBind('<2>'=> [sub {follow_mouse_press(@_)},$grp]);
   $canvas->CanvasBind('<B2-Motion>'=> [sub {follow_mouse(@_)},$grp]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-Double-1>"=> [sub {node_doubleclick_modif(@_)},$grp,$_]);
+  }
   $canvas->bind('point', '<Double-1>'=> [sub { editAttrs(@_); Tk->break; },$grp]);
   $canvas->bind('text', '<1>'=> [sub {node_down(@_) },$grp,0]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
+  }
   $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('textbg', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
+  }
   $canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
 }
 
@@ -6055,6 +6064,30 @@ sub findPrevTemplated {
 #############################################
 
 
+sub node_doubleclick_modif {
+  my ($w,$grp,$mod)=@_;
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
+  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
+  doEvalHook($win,"node_doubleclick_hook",$node,$mod);
+}
+
+sub text_doubleclick_modif {
+  my ($w,$grp,$mod)=@_;
+  my $win=findCanvasWindow($grp,$w);
+  return unless($win and $win->{FSFile});
+  my $attr;
+  my $newvalue;
+
+  my $tv=$win->{treeView};
+  my ($t)=$tv->find_item('withtag','current');
+  my $node=$tv->get_obj_pinfo($t);
+  my $d;
+  setCurrent($win,$node);
+  $attr=$tv->get_gen_pinfo("attr:$t");
+
+  doEvalHook($win,"text_doubleclick_hook",$node,$attr,$mod);
+}
 
 sub editAttrs {
   my ($w,$grp)=@_;
