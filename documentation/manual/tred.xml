@@ -4429,7 +4429,7 @@ Property        Type    Description
       </para>
     </sect2>
     <sect2>
-      <title>Adding macros to menu, assigning shortcuts</title>
+      <title>Creating menu entries and keyboard shortcuts for user-defined macros</title>
       <para>
 	For convenience, two more directives are available for adding
 	a macro to <application moreinfo="none">TrEd</application>'s
@@ -6003,8 +6003,13 @@ MyPackage::my_macro();   # call to a macro defined in MyPackage
 </programlisting>
       </para>
       <para>
-	In the interactive work, name-space are combined with
+	In the interactive work, name-spaces are combined with
 	a concept of <emphasis>binding-contexts</emphasis>.
+	Only one context can be	active in TrEd at a time. 
+	The active context is displayed on and may be selected from a
+	menu on the right end of the menu bar.
+      </para>
+      <para>
 	Binding contexts usually correspond to the package names.
 	Analogously to the <literal moreinfo="none">package</literal> command, a
 	special directive exists for creating or switching a binding
@@ -6024,11 +6029,25 @@ MyPackage::my_macro();   # call to a macro defined in MyPackage
 	in the package named <literal moreinfo="none">MyContext</literal>.
       </para>
       <para>
+	A binding context may import
+	menu and keyboard bindings from other context(s) using
+	<literallayout class="normal" format="linespecific">#key-binding-adopt
+	  <replaceable>other_context(s)</replaceable></literallayout>
+	and
+	<literallayout class="normal" format="linespecific">#menu-binding-adopt
+	  <replaceable>other_context(s)</replaceable></literallayout>
+	directives.
+      </para>
+      <para>
 	There is a separate submenu created for each binding-context
-	in the <guimenuitem moreinfo="none">User-defined</guimenuitem> menu. In
-	<application moreinfo="none">TrEd</application> there may be only one context
-	active at one time. The active context may be choosen from the
-	menu on the right end of the menu bar. If a keyboard shortcut
+	in the <guimenuitem moreinfo="none">User-defined</guimenuitem> menu. 
+	For contexts with a large number of menu bindings it
+	is usually more comfortable to select a macro 
+	using <menuchoice>
+	  <guimenuitem>View</guimenuitem>
+	  <guimenuitem>List of Named Macros</guimenuitem>
+	</menuchoice>.</para>
+      <para> If a keyboard shortcut
 	is pressed, <application moreinfo="none">TrEd</application> first searches for a
 	macro bound to the shortcut within the active binding-context
 	and if such macro exists, <application moreinfo="none">TrEd</application>
