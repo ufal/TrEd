@@ -9,11 +9,12 @@ package Analytic_Correction;
 use base qw(Analytic);
 import Analytic;
 
-#bind edit_lemma_tag to Ctrl+T
+#bind edit_lemma_tag to Ctrl+T menu oprava lemmatu a tagu
 sub edit_lemma_tag {
   my $form = $this->{form};
   $form =~ s/\\/\\\\/g;
   $form =~ s/'/\\'/g;
+  $form = Encode::encode('iso-8859-2',$form) if ($]>=5.008);
   print STDERR "exec: morph '$form'\n";
   open my $fh,"morph '$form' |";
   binmode($fh,":encoding(iso-8859-2)") if ($]>=5.008);
