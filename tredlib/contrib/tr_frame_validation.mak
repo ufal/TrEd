@@ -24,6 +24,8 @@ $V_backend = 'JHXML';
 $V_module = 'ValLex::Extended'.$V_backend;
 
 sub init_vallex {
+  $TrEd::ValLex::Editor::reviewer_can_modify=1;
+
   require ValLex::Data;
   unless (defined($V)) {
     my $tredmodule = 'TrEd::'.$V_module;
