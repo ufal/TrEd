@@ -12,7 +12,7 @@ use XML::LibXML::Iterator;
 sub parser_start {
   my ($self, $file, $novalidation)=@_;
   my $parser;
-  if ($^O eq 'MSWin32') {
+  if ($^O eq 'MSWin32' and $XML::LibXML::VERSION lt '1.49') {
     $parser=XML::LibXML->new(
 			     ext_ent_handler => sub {
 			       my $f=$file;
