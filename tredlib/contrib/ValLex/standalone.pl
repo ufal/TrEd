@@ -107,7 +107,6 @@ $top->protocol('WM_DELETE_WINDOW'=>
 		    undef $top;
 		  },$vallex,$top]);
 
-exit 0;
 MainLoop;
 
 1;

@@ -300,10 +300,10 @@ sub findWord {
   return unless $doc;
   my $lemma = $self->conv->encode($find);
   if ($nearest) {
-    my ($word) = $doc->findnodes("./word[\@lemma='$lemma']");
+    my ($word) = $doc->findnodes(".//word[\@lemma='$lemma']");
     return $word;
   } else {
-    my ($word) = $doc->findnodes("./word[starts-with(\@lemma,'$lemma')]");
+    my ($word) = $doc->findnodes(".//word[starts-with(\@lemma,'$lemma')]");
     return $word;
   }
   return undef;

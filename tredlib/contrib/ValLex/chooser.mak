@@ -32,6 +32,9 @@ sub ChooseFrame {
   my $framere_attr="framere";
   my $lemma=$this->{trlemma};
   my $tag=$this->{tag};
+  if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
+    $lemma=~s/^ne//;
+  }
   return unless $tag=~/^([VNA])/;
   my $pos=$1;
   $lemma=~s/_/ /g;
@@ -42,8 +45,15 @@ sub ChooseFrame {
 				 "iso-8859-2");
   unless ($FrameData) {
     my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
-    $FrameData=
-      TrEd::ValLex::LibXMLData->new(-f "vallex.xml.gz" ? "vallex.xml.gz" : "vallex.xml",$conv);
+    if ($^O eq "MSWin32") {
+      $FrameData=
+	TrEd::ValLex::LibXMLData->new("$libDir/contrib/ValLex/vallex.xml",$conv);
+    } else {
+      $FrameData=
+	TrEd::ValLex::LibXMLData->new(-f "$libDir/contrib/ValLex/vallex.xml.gz" ?
+				      "$libDir/contrib/ValLex/vallex.xml.gz" :
+				      "$libDir/contrib/ValLex/vallex.xml",$conv);
+    }
     $info->destroy();
   }
   my $new_word=0;
