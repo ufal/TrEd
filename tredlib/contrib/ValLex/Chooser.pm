@@ -26,7 +26,8 @@ sub destroy_dialog {
 }
 
 sub create_toplevel {
-  my ($title,$top,
+  my ($title,
+      $top,
       $confs,
       $item_style,
       $frame_browser_styles,
@@ -59,7 +60,9 @@ sub create_toplevel {
 			       $frame_browser_wordlist_item_style,
 			       $frame_browser_framelist_item_style,
 			       $frame_editor_styles,
-			       undef, 1,-width => '25c');
+			       undef,
+			       $bot,
+			       -width => '25c');
   $chooser->subwidget_configure($confs) if ($confs);
   ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
   if (defined $assign_callback) {
@@ -68,13 +71,14 @@ sub create_toplevel {
     my $ab = $bot->Button(-text => 'Assign',
 			  -command => $assign_cb)->pack(-side => 'left',-expand => 1);
     $d->bind('<Return>',sub { $ab->flash; $ab->invoke });
+    $d->bind('<KP_Enter>',sub { $ab->flash; $ab->invoke });
     $chooser->widget()->bind('<Double-1>'=> sub { $ab->invoke });
   }
   $bot->Button(-text => 'Close',
 	       -command => [$destroy_callback,$d] )->pack(-side => 'right', -expand => 1);
   $d->protocol('WM_DELETE_WINDOW' => [$destroy_callback,$d]);
   $chooser->subwidget('frame')->pack(qw/-fill both -expand 1/);
-  $d->bind('all','<Escape>'=> [$destroy_callback,$d]);
+  $d->bind($d,'<Escape>'=> [$destroy_callback,$d]);
 
 
   $chooser->prepare($show_obsolete_ref, $field, $select_frame, $start_editor);
@@ -104,6 +108,7 @@ sub reusable_dialog {
 			  -default_button => 'Choose'
 			 );
   $d->bind('<Return>',\&TrEd::ValLex::Widget::dlgReturn);
+  $d->bind('<KP_Enter>',\&TrEd::ValLex::Widget::dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
   my $chooser =
@@ -239,7 +244,9 @@ sub create_widget {
       $frame_browser_framelist_item_style,
       $frame_editor_styles,
       $cb,
-      $no_choose_button, @conf) = @_;
+#      $no_choose_button,
+      $fbutton_frame,
+      @conf) = @_;
 
   my $frame = $top->Frame();
   $frame->configure(@conf) if (@conf);
@@ -250,25 +257,27 @@ sub create_widget {
 
   # Labeled frames
 
-  my $lexframe_frame=$frame->LabFrame(-label => "Frames",
-				   -labelside => "acrosstop",
-				   qw/-relief sunken/);
-  $lexframe_frame->pack(qw/-side top -expand 1 -fill both -padx 4 -pady 4/);
+#  my $lexframe_frame=$frame->LabFrame(-label => "Frames",
+#				   -labelside => "acrosstop",
+#				   qw/-relief sunken/);
+  my $lexframe_frame=$frame->Frame();
+
+  $lexframe_frame->pack(qw/-side top -expand 1 -fill both -padx 4/);
 
 
-
-  my $fbutton_frame=$lexframe_frame->Frame();
-  $fbutton_frame->pack(qw/-side top -expand 0 -fill x/);
-
-
-  unless ($no_choose_button) {
-    my $choose_button=$fbutton_frame->Button(-text => 'Choose',
-					     -command => [
-							  \&choose_button_pressed,
-							  $self
-							 ]);
-    $choose_button->pack(qw/-padx 5 -side left/);
+  unless (defined($fbutton_frame)) {
+    $fbutton_frame=$lexframe_frame->Frame();
+    $fbutton_frame->pack(qw/-side top -expand 0 -fill x/);
   }
+
+#   unless ($no_choose_button) {
+#     my $choose_button=$fbutton_frame->Button(-text => 'Choose',
+# 					     -command => [
+# 							  \&choose_button_pressed,
+# 							  $self
+# 							 ]);
+#     $choose_button->pack(qw/-padx 5 -side left/);
+#   }
 
   my $editframes_button=$fbutton_frame->Button(-text => 'Edit Frames',
 					       -command => [
@@ -344,7 +353,7 @@ sub create_widget {
 								 ]
 						    );
     $lexframelist->widget()->bind('<FocusIn>',[\&focus_framelist,$self,$lexframelist]);
-    $lexframelist->pack(qw/-expand 1 -fill both -padx 6 -pady 6/);
+    $lexframelist->pack(qw/-expand 1 -fill both -padx 6/);
     $lexframelists[$i]=$lexframelist;
     $lexframelistlabels[$i]=$lexframelistlab;
     $lexframelist->configure(-browsecmd => [\&framelist_item_changed,
