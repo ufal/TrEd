@@ -1,12 +1,2 @@
 
-Q1. I have KDE and dialog windows in Tred appear after an annoying timeout
-
-A1. I recommend using a slighltly hacked file Post.al of Perl/Tk
-module on Unix/Linux systems with KDE when you feel that dialog
-windows take too long time to popup. Just copy the Post.al file to
-/usr/lib/perl5/site_perl/auto/Tk/Wm/Post.al (or wheresoever original
-Post.al is in your installation).  Restart Tred. (Note: This problem
-is not caused by Tred at all, but is known to happen when KDE and Tk
-are used together. On which side the cause lays I cannot decide.).
-
 
