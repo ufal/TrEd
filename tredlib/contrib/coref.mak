@@ -86,7 +86,6 @@ sub jump_to_referent { # modified by Zdenek Zabokrtsky, Jan 2003
   $id1=~s/:/-/g;
   my $coref;
   my @coref_list=split /\|/,$this->{coref};
-  print STDERR "Ahoj: @coref_list == $this->{coref} nazdar\n";
   if (@coref_list>1) {
     my $selection=[$coref_list[0]];
     listQuery("Multiple coreference",'single',
@@ -284,12 +283,12 @@ COORDS
 #n + (x$T-n)/2, y$T,
 #x$T,y$T
       } else {
-	my ($d,$p,$s)=($id1=~/^(.*?)-p(\d+)s([0-9A-Z]+)$/);
-	my ($cd,$cp,$cs)=($coref=~/^(.*?)-p(\d+)s([0-9A-Z]+).\d+/);
+	my ($d,$p,$s,$l)=($id1=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*)$/);
+	my ($cd,$cp,$cs,$cl)=($coref=~/^(.*?)-p(\d+)s([0-9]+)([A-Z]*).\d+/);
 	if ($d eq $cd) {
 	  print STDERR "Same document\n";
 	  # same document
-	  if ($cp<$p || $cp==$p && $cs<$s) {
+	  if ($cp<$p || $cp==$p && ($cs<$s or $cs == $s and $cl lt $l)) {
 	    # preceding sentence
 	    print STDERR "Preceding sentence\n";
 	    push @colors,$cortype_colors{$cortype}; #'&#c53c00'
