@@ -1,4 +1,4 @@
-AppName		 = "TRee EDitor" ;; know any other program that lets you set this? 
+AppName		 = "TRee EDitor" 	;; do other programs let you set this? 
 NodeColor	 = yellow
 ActiveNodeColor	 = blue
 CurrentNodeColor = red
@@ -7,6 +7,11 @@ TextColor	 = black
 ActiveTextColor	 = blue
 BoxColor	 = wheat
 CurrentBoxColor	 = white
+
+HintWait	 = 3000
+
+; CanvasHeight	 = 12c
+; CanvasWidth   = 18c
 
 
 ;; Font may be given in two ways: on X11 (Unix) platforms you may
@@ -21,7 +26,7 @@ CurrentBoxColor	 = white
 ;; 
 ;;	"<attribut>:<value>,..."
 ;;
-;; attributs may be these: family, size, weight, slant, underline, overstrike
+;; attributes may be these: family, size, weight, slant, underline, overstrike
 ;; size is given in points (! not pixels !)
 ;; values for weight: normal, bold
 ;; values for slant: roman, italics
@@ -33,6 +38,9 @@ CurrentBoxColor	 = white
 
 Font		 = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
 
+;; Font used for value line
+; VLineFont        = "-*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2"
+
 ;; Type1Font is used when calculating postscript output when printing.
 ;; It should be the same font as PSFontPath, 
 ;; but here you must give a X11 font-spec. If no value set, Font is used
@@ -42,15 +50,16 @@ Font		 = -*-helvetica-medium-r-normal--12-*-*-*-*-*-iso8859-2
 
 ; LibDir	 = "/usr/local/lib/tred" 
 
-DrawBoxes	 = 0
-ShowHidden	 = 0
+DrawBoxes	 = 0          		;; default value for the View option
+ShowHidden	 = 0          		;; default value for the View option
 
 ; LineWidth	 = 2
 ; LineColor	 = gray
 ; BackgroundColor= seashell1
-; NodeWidth	 = 5          ;; width of the oval
-; NodeHeight	 = 5          ;; height of the oval
-; ButtonsRelief  = groove     ;; possible values: 
+; NodeWidth	 = 5          		;; width of the oval
+; NodeHeight	 = 5          		;; height of the oval
+; ButtonsRelief  = groove     		;; possible values: reliefs are raised, 
+;                             		;; sunken, flat, ridge, solid, and groove
 ; MenubarRelief  = groove
 
 
@@ -69,13 +78,17 @@ ShowHidden	 = 0
 ;; The following is also default: 
 
 ; PsFontFile = csarialm.pfa
-; PsFontName = Arial-Medium ;; this is used to force substitution of screenfont
-; PsFontSize = 12           ;; -- " --
+; PsFontName = Arial-Medium		;; this is used to force substitution of screenfont
+; PsFontSize = 12              		;; -- " --
 
-PrintColor = 0 ;; 1 if you want colors
+PrintColor = 0				;; 1 if you want colors
 
-; TextColorShadow = darkgrey   ;; or #rrggbb
+; TextColorShadow = darkgrey		;; or #rrggbb
 ; TextColorHilite = darkgreen
 ; TextColorXHilite = darkred
 
-; AnyToFS = 2804.x
+; ZCat = "/bin/zcat"			;; this value is default
+; GZip = "/bin/gzip -c"			;; -- " --
+
+; CstsToFs="2804.x"			;; give a csts (or any other format) to fs convertor here
+; FsToCsts="2804.x -oformat=csts"	;; give a fs to csts (or any other format) convertor here
