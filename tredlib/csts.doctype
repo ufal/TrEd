@@ -322,7 +322,7 @@ APPINFO    NONE
       -- opus possible contents: file name (up to 8 chars long)
              ex.: Lidove noviny denik: lndyyxxx (yy = year, xxx = day)
                   Lidove noviny ned.pr. lnnpyyxx (yy = year, xx = week)
-                  Mlada fronta denik: mfdxxxxxx (xxxxxx = full date)
+                  Mlada fronta denik: mfxxxxxx (xxxxxx = full date)
                   Bloudeni (Durych): bloudeni
              --
 >
