@@ -509,7 +509,7 @@ APPINFO    NONE
           id    ID   #IMPLIED 
 >
 
-<!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & TRt? & tfa? & tfr? & fw? & phr? &
+<!ELEMENT MTRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
                     TRg? & corl? & corT? & corr? &
                     cors? )
                 -- tectogrammatical lemma id. 
@@ -518,7 +518,7 @@ APPINFO    NONE
 <!ATTLIST MTRl
           src      CDATA #IMPLIED -- tectogrammatical lemmatizer id -->
 
-<!ELEMENT TRl - O (#PCDATA & T? & Tmo? & TRt? & tfa? & tfr? & fw? & phr? &
+<!ELEMENT TRl - O (#PCDATA & T? & Tmo? & Tpa? & TRt? & tfa? & tfr? & fw? & phr? &
                     TRg? & corl? & corT? & corr? &
                     cors? )
                 -- tectogrammatical lemma id. 
@@ -561,7 +561,11 @@ APPINFO    NONE
 >
 
 <!ELEMENT Tmo - O (#PCDATA)
-                -- member of (coordination, apposition, parenthesis) --
+                -- member of (coordination, apposition) --
+>
+
+<!ELEMENT Tpa - O (#PCDATA)
+                -- parenthesis --
 >
 
 <!ELEMENT TRt - O (#PCDATA)
