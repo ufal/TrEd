@@ -362,7 +362,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $server_key=generate_random_block();
 
     foreach (@running) {
-      msg "Running btred server on $_->{host} port $_->{port}\n";
+      msg "Starting btred server on $_->{host} port $_->{port}\n";
       # as for now, we only make use of the secure pipe to the server
       # in order to pass it the session key
 
@@ -550,7 +550,11 @@ if (defined($init) || defined($kill) || defined($break)) {
 	next unless $server->{socket};
 	msg " - from $server->{fullname}\n";
 	print $client "$control Response from $server->{fullname}\n";
-	forward_response($control,$server->{socket},$client);
+	unless (forward_response($control,$server->{socket},$client)) {
+	  print $client "$control HUB_RESPONSE_STDERR\n";
+	  print $client "Warning: server $server->{fullname} seems down!\n";
+	  msg "Warning: server $server->{fullname} seems down!\n";
+	}
       }
       end_response($control,$client);
       msg "The processing of request $request_number completely finished.\n";
