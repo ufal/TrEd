@@ -1,0 +1,304 @@
+<?xml version="1.0"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "file:///home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
+<article>
+  <articleinfo>
+    <title>TrPrint Manual</title>
+    <author>
+      <firstname>Petr</firstname>
+      <surname>Pajas</surname>
+      <affiliation>
+	<address><email>pajas@ckl.mff.cuni.cz</email></address>
+      </affiliation>
+    </author>
+  </articleinfo>
+  <sect1>
+    <title>Introduction</title>
+    <para><application>TrPrint</application> is a command-line utility
+    for printing selected FS-trees or exporting them to PostScript or
+    EPS or (if ImageMagick toolkit is present on the system) to other image
+    formats.
+    </para>
+  </sect1>
+  <sect1>
+    <title>Usage</title>
+    <para><cmdsynopsis>
+	<command>trprint</command>	
+	<arg>-c <replaceable>config-file</replaceable></arg>	
+	<arg>-r <replaceable>tree-selection</replaceable></arg>
+	<group>
+	  <arg>-o <replaceable>output-file</replaceable></arg>
+	  <arg>-p <replaceable>output-command</replaceable></arg>	    
+	</group>
+	<group choice="opt">
+	  <arg>[-+][HTMSCENUI1]</arg>
+	</group>
+	<arg choice="plain"
+	rep="repeat"><replaceable>input-file</replaceable></arg>
+      </cmdsynopsis>
+      or
+      <cmdsynopsis>
+	<command>trprint</command>
+	<group>
+	  <arg>-u</arg>
+	  <arg>-h</arg>
+	</group>
+      </cmdsynopsis>
+    </para>
+    
+    <para>
+      There may be more than one input-file specified on the
+      command-line. Moreover, parameter options <parameter>-r</parameter>,
+      <parameter>-p</parameter> and <parameter>-o</parameter>
+      as well as all flags (<parameter>[+-][HTMSCENUI1]</parameter>)
+      may be inter-mixed with the input file-names in which case they
+      only apply to the filenames that follow them. 	
+    </para>
+    
+    <formalpara>
+      <title>Parameters options</title>
+      <para>
+	<variablelist>
+	  <varlistentry>
+	    <term><parameter>-c</parameter></term>
+	    <listitem>
+	      <para>
+		Use this parameter to force
+		<application>TrPrint</application> to use certain
+		configuration file. If omitted, standard configuration
+		file of <application>TrEd</application> is
+		used.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-r</parameter></term>
+	    <listitem>
+	      <para>
+		This option may be used to select some trees of the
+		input-files. If ommited, all trees are printed or
+		exported. Parameter
+		<replaceable>tree-selection</replaceable> is a
+		comma-separated list of numbers or ranges of numbers,
+		that correspond to the desired trees or
+		tree-ranges. First tree in the file has number 1,
+		second has number 2, etc. Ranges are pairs of numbers
+		like <literal>3-20</literal> which in
+		this case for instance covers all trees starting from
+		the tree no. 3 to no. 20. If the first number in the
+		range is omitted, 1 is assumed. If the second number
+		in the range is ommited, the number of the last tree
+		in the active file is assumed.
+		<note>
+		  <title>Example:</title>
+		  <para>
+		    To print trees from 1 to 5, then trees no. 7, 11,
+		    12, use e.g. one of the following selections:
+		    <simplelist type="vert">
+		      <member><literal>1-5,7,11,12</literal></member>
+		      <member><literal>1-5,7,11-12</literal></member>
+		      <member><literal>-5,7,11-12</literal></member>
+		    </simplelist>
+		  </para>
+		</note>		
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry id="param_o">
+	    <term><parameter>-o</parameter></term>	    
+	    <listitem>
+	      <para>
+		Use this option to specify output filename.  If more
+		than one output file is to be created, the filename
+		given is used as a pattern for the output file names.
+		In such case, an integer number is inserted between
+		the filename and extension part of the given pattern.
+		The number used is either an ordinal number of the
+		output file or tree number if
+		<parameter>-N</parameter> flag is given. If
+		<parameter>-I</parameter> flag is used, the filename
+		extension indicates the output format.		
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-p</parameter></term>
+	    <listitem>
+	      <para>
+		This parameter causes
+		<application>TrPrint</application> to run the given
+		command and pipe the output to it each time when
+		otherwise an output file would be created.
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </para>
+    </formalpara>
+    <para>
+      Every flag may take two forms: positive
+      <parameter>-<replaceable>flag</replaceable></parameter> or
+      negative
+      <parameter>+<replaceable>flag</replaceable></parameter>.
+      (Think of
+      <parameter>+<replaceable>flag</replaceable></parameter>
+      as of crossed
+      <parameter>-<replaceable>flag</replaceable></parameter>).
+      The negative form of a flag has the opposite meaning to its
+      positive form.
+    </para>
+    <formalpara>
+      <title>Flags</title>
+      <para>
+	<variablelist>
+	  <varlistentry>
+	    <term><parameter>-H</parameter></term>
+	    <listitem>
+	      <para>Include hidden nodes.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-T</parameter></term>
+	    <listitem>
+	      <para>Use PostScript Type1 font for better kerning.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-M</parameter></term>
+	    <listitem>
+	      <para>Maximize tree size (span the tree across the page).</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-S</parameter></term>
+	    <listitem>
+	      <para>Print the 'sentence' and file-name
+	      below the tree.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-C</parameter></term>
+	    <listitem>
+	      <para>Create color output.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-1</parameter></term>
+	    <listitem>
+	      <para>Print each tree to a separate output file.
+		(See <link linkend="param_o">parameter -o</link>
+		for more detail on output files naming.)</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-E</parameter></term>
+	    <listitem>
+	      <para>Create Encapsulated PostScript output. (Implies -1).</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-N</parameter></term>
+	    <listitem>
+	      <para>Use tree numbers for labeling the of output
+	      files. (Implies -1).</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-U</parameter></term>
+	    <listitem>
+	      <para>Insert underscore before output file number suffix.</para>
+	    </listitem>
+	  </varlistentry>
+	  <varlistentry>
+	    <term><parameter>-I</parameter></term>
+	    <listitem>
+	      <para>Enable ImageMagick output filter (Implies -E and
+		-1). (See <xref linkend="image_magick"/> below).
+	      </para>
+	    </listitem>
+	  </varlistentry>
+	</variablelist>
+      </para>
+    </formalpara>
+  </sect1>
+  <sect1 id="image_magick">
+    <title>ImageMagick Extension</title>
+    <para>
+      <ulink url="http://www.imagemagick.org">ImageMagick</ulink> is a
+      robust collection of tools and libraries to read, write, and
+      manipulate an image in many image formats. TrPrint allows you to
+      utilize the conversion tool of the
+      <application>ImageMagick</application> package and thus to
+      create output in any format supported by
+      <application>ImageMagick</application>, including the popular
+      ones like TIFF, JPEG, PNG, PDF, PhotoCD, and GIF.  This package
+      is part of most <application>Linux</application> distributions,
+      but version for <productname>Microsoft Windows</productname>
+      exists as well. On <application>Windows</application> platform
+      the <application>GhostScript</application> is also
+      needed.
+    </para>
+    <para>
+      To use this extension, <application>ImageMagick</application>
+      must be installed on the system and its
+      <command>convert</command> utility must be installed either
+      somewhere in <varname>PATH</varname> or
+      <literal>ImageMagickConvert</literal>
+      configuration option must be set to point to it.
+    </para>
+    <para>
+      The output format is specified via the filename extension of the
+      output filename (parameter <parameter>-o</parameter>).
+    </para>
+  </sect1>
+  <sect1>
+    <title>Limitations</title>
+    <para>
+      TrPrint uses Tk library for creation of the core postscript
+      output. Therefore, on UNIX platform, X server must be running
+      for this program to work. The running X server display may be
+      specified via the standard
+      <parameter>--display <replaceable>DISPLAY</replaceable></parameter>
+      Xlib option.      
+    </para>
+  </sect1>
+  <sect1>
+    <title>Examples</title>    
+    <para>
+      To print trees no. 1 to 7 and tree no. 14 of
+      <filename>myfile.fs</filename>
+      on the default UNIX printer, use the following syntax:
+      <informalexample>
+	<blockquote><literal>trprint -T -r1-7,14 -p lpr myfile.fs</literal></blockquote>
+      </informalexample>
+    </para>
+    <para>
+      The following, more complex example converts trees no. 3 and 5 of
+      <filename>myfile.fs</filename> to <literal>GIF</literal> using
+      the <application>ImageMagick</application> extension.
+      Files <filename>tree.gif</filename> and
+      <filename>tree_5.gif</filename> are created and hidden
+      nodes are included in tree no. 3 but are excluded from tree
+      no. 5 and tree no. 5 uses colours.
+      <informalexample>
+	<blockquote><literal>trprint -TN -o tree.gif -r3 -H myfile.fs -r5 +H -CU myfile.fs</literal></blockquote>
+      </informalexample>
+    </para>
+  </sect1>
+</article>
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: xml
+sgml-omittag:nil
+sgml-shorttag:nil
+sgml-namecase-general:nil
+sgml-general-insert-case:lower
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:2
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-exposed-tags:nil
+sgml-local-catalogs:("/home/pajas/lib/sgml-tools/dtd/catalog" "/home/pajas/lib/sgml/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/docbook/3.1/docbook.cat /home/pajas/share/sgml/stylesheets/docbook/catalog /home/pajas/share/sgml/entities/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/jade/dsssl.cat /home/pajas/share/sgml/stylesheets/sgmltools/sgmltools.cat /home/pajas/share/sgml/dtd/sgmltools/catalog")
+sgml-local-ecat-files:nil
+End:
+-->
