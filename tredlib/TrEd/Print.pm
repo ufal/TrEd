@@ -288,6 +288,7 @@ sub print_trees {
   if ($toplevel) {
     $infotext="Printing";
     $infot=$toplevel->Toplevel();
+    $infot->UnmapWindow;
     my $f=$infot->Frame(qw/-relief raised -borderwidth 3/)->pack();
     $f->Label(-textvariable => \$infotext,
 	      -wraplength => 200
