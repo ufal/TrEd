@@ -12,6 +12,7 @@ package Tk::Canvas::PDF;
 
 BEGIN {
   use Exporter;
+  use Tk::rgb;
   use strict;
   use base qw(Tk::Canvas Exporter);
   use vars qw(%media %join %capstyle @EXPORT_OK);
@@ -124,6 +125,30 @@ output filename
 
 sub __debug {
 #  print join "",@_; print "\n";
+}
+
+sub color2gray {
+  my ($color)=@_;
+  unless (ref($color)) {
+    if (!defined($color)) {
+      return undef;
+    } elsif ($color =~ /^#(..)(..)(..)/) {
+      $color = [map hex,$1,$2,$3];
+    } elsif (exists($Tk::rgb::rgb{$color})) {
+      $color = $Tk::rgb::rgb{$color};
+    } else {
+      warn "unknown color $color\n";
+      return 0;
+    }
+  }
+  no integer;
+  foreach (@$color) {
+    $_=$_ / 255;
+    $_=1-(1 - $_ ** 1.5);
+    $_=$_ * 255;
+  }
+  my $gray = int(sqrt($color->[0]**2+$color->[1]**2+$color->[2]**2)/sqrt(3));
+  return ("#".(sprintf("%02x",$gray) x 3));
 }
 
 sub new {
@@ -292,6 +317,7 @@ sub draw_canvas {
       my $anchor=$canvas->itemcget($item,'-anchor') || 'center';
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined($color); # transparent text = no text
+      $color = color2gray($color) if $opts{-grayscale};
       my %canvasfont = $canvas->fontActual($canvas->itemcget($item,"-font"));
       __debug "FONT:", (map {" $_ => $canvasfont{$_}, "} keys %canvasfont),"\n";
       my $fn;
@@ -347,10 +373,11 @@ sub draw_canvas {
     } elsif ($type eq 'line') {
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined $color; # transparent line = no line
+      $color = color2gray($color) if $opts{-grayscale};
       my $join=$canvas->itemcget($item,'-joinstyle');
       my $capstyle=$canvas->itemcget($item,'-capstyle');
       my $width=$canvas->itemcget($item,'-width');
-      my @dash=_canvas_to_pdf_dash($canvas->itemcget($item,"-${state}dash"),$width);
+      my @dash=_canvas_to_pdf_dash($width,$canvas->itemcget($item,"-${state}dash"));
       @dash=() if @dash<2;
       my $smooth = $canvas->itemcget($item,"-smooth");
       my $arrow = $canvas->itemcget($item,"-arrow");
@@ -404,11 +431,16 @@ sub draw_canvas {
       }
     } elsif ($type eq 'oval') {
       my $width=$canvas->itemcget($item,'-width');
-      my @dash=_canvas_to_pdf_dash($canvas->itemcget($item,"-${state}dash"),$width);
+      my @dash=_canvas_to_pdf_dash($width,$canvas->itemcget($item,"-${state}dash"));
       @dash=() if @dash<2;
       my $color=$canvas->itemcget($item,"-${state}fill");
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
       $outlinecolor=$color if !defined($outlinecolor);
+
+      if ($opts{-grayscale}) {
+	$color = color2gray($color);
+	$outlinecolor = color2gray($outlinecolor);
+      }
 
       # TODO: dashoffset
 
@@ -428,11 +460,17 @@ sub draw_canvas {
     } elsif ($type eq 'polygon') {
       my $width=$canvas->itemcget($item,'-width');
       my $join=$canvas->itemcget($item,'-joinstyle');
-      my @dash=_canvas_to_pdf_dash($canvas->itemcget($item,"-${state}dash"),$width);
+      my @dash=_canvas_to_pdf_dash($width,$canvas->itemcget($item,"-${state}dash"));
       @dash=() if @dash<2;
       my $color=$canvas->itemcget($item,"-${state}fill");
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
       $outlinecolor=$color if !defined($outlinecolor);
+
+      if ($opts{-grayscale}) {
+	$color = color2gray($color);
+	$outlinecolor = color2gray($outlinecolor);
+      }
+
       my $smooth = $canvas->itemcget($item,"-smooth");
       # TODO: dashoffset
       $draw->linewidth($width);
@@ -455,11 +493,17 @@ sub draw_canvas {
       }
     } elsif ($type eq 'rectangle') {
       my $width=$canvas->itemcget($item,'-width');
-      my @dash=_canvas_to_pdf_dash($canvas->itemcget($item,"-${state}dash"),$width);
+      my @dash=_canvas_to_pdf_dash($width,$canvas->itemcget($item,"-${state}dash"));
       @dash=() if @dash<2;
       my $color=$canvas->itemcget($item,"-${state}fill");
       my $outlinecolor=$canvas->itemcget($item,"-${state}outline");
       $outlinecolor=$color if !defined($outlinecolor);
+
+      if ($opts{-grayscale}) {
+	$color = color2gray($color);
+	$outlinecolor = color2gray($outlinecolor);
+      }
+
       # TODO: dashoffset
       $draw->linewidth($width);
       $draw->linedash(@dash);
@@ -482,7 +526,8 @@ sub draw_canvas {
 }
 
 sub _canvas_to_pdf_dash {
-  my ($dash,$linewidth)=@_;
+  my ($linewidth,@dash)=@_;
+  my $dash = join " ",@dash;
   my %d=qw(. 40 - 120 , 80 _ 160);
   $dash =~ s/(\d+)/$1*$linewidth/ge;
   $dash =~ s/[-.,_]( *)/$d{$1}." ".40*(1+length($2))." "/ge;

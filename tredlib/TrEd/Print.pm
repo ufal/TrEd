@@ -214,7 +214,6 @@ sub print_trees {
 
   my $hMargin = $c->fpixels($prtHMargin);
   my $vMargin = $c->fpixels($prtVMargin);
-
   if ($Media eq 'User') {
     $prtFmtWidth = $c->fpixels($prtFmtWidth);
     $prtFmtHeight = $c->fpixels($prtFmtHeight);
@@ -247,7 +246,7 @@ sub print_trees {
     $treeView->setFontMetrics($fontSpec->{AFM},$fontSpec->{Size});
   }
 
-  unless ($printColors) {
+  unless ($toPDF or $printColors) {
     $treeView->apply_options({
 			      lineColor	       => 'black',
 			      currentNodeColor   => $bwModeNodeColor,
@@ -322,6 +321,7 @@ sub print_trees {
 	  $P->draw_canvas($c,
 			  -width => $width,
 			  -height => $height,
+			  -grayscale => !$printColors,
 			  -scale => [$scale,$scale],
 			  -rotate => -90,
 			  -translate => [$hMargin+
@@ -333,6 +333,7 @@ sub print_trees {
 	  $P->draw_canvas($c,
 			  -width => $width,
 			  -height => $height,
+			  -grayscale => !$printColors,
 			  #			-rotate => -90,
 			  -scale => [$scale,$scale],
 			  -translate => [$hMargin+
