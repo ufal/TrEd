@@ -215,8 +215,11 @@ sub errorMessage {
 sub absolutize_path ($$) {
   my ($orig, $href)=@_;
   if ($href !~ m{^[[:alnum:]]+:|^/}) {
-    $orig =~ m{^(.*\/)};
-    return $1.$href;
+    if ($orig =~ m{^(.*\/)}) {
+      return $1.$href;
+    } else {
+      return $href;
+    }
   } else {
     return $href;
   }
