@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-04-28 15:23:48 pajas>
+## Time-stamp: <2004-04-29 13:22:04 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -289,7 +289,7 @@ sub UnhideNode {
 #bind AssignTrLemma to Ctrl+L menu Regenerate trlemma from lemma
 sub AssignTrLemma {
   my $lemma = $this->{lemma};
-  $lemma =~ s/[-_`&].*$//;
+  $lemma =~ s/[-_`].*$//;
   $this->{trlemma}=$lemma;
 }
 
