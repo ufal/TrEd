@@ -4046,7 +4046,8 @@ sub MakeSentence {
 	    <row>
 	      <entry><literal>PlainNewSon(<replaceable>parent</replaceable>)</literal></entry>
 	      <entry>Add a new child node to the given
-		<replaceable>parent</replaceable>.
+	      <replaceable>parent</replaceable> and make it the
+	      current node (by setting <tt>$this</tt> to point to it).
 	      </entry>
 	    </row>
 	    <row>
@@ -4059,32 +4060,57 @@ sub MakeSentence {
 	    </row>
 	    <row>
 	      <entry><literal>NewRBrother(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>Create a new brother of the
-		given <replaceable>node</replaceable> and
-		recalculate the special FS numbering attribute values
-		in the whole tree so that the new node is
-		the first right sibling of the given
-		<replaceable>node</replaceable>.
+	      <entry><para>
+		  Create a new brother of the given
+		  <replaceable>node</replaceable> and recalculate the
+		  special FS numbering attribute values in the whole tree
+		  so that the new node is the first right sibling of the
+		  given <replaceable>node</replaceable>.
+		</para>
+		<para>
+		  If no node is given, this function operates on
+		  <tt>$this</tt> and <emphasis>resets</emphasis>
+		  <tt>$this</tt> to the newly created node. If some node is
+		  given the value of <tt>$this</tt> is preserved.
+		</para>
 	      </entry>
 	    </row>
 	    <row>
 	      <entry><literal>NewLBrother(<replaceable>node</replaceable>)</literal></entry>
-	      <entry>Create a new brother of the
-		given <replaceable>node</replaceable> and
-		recalculate the special FS numbering attribute values
-		in the whole tree so that the new node is
-		the first left sibling of the given
-		<replaceable>node</replaceable>.
+	      <entry>
+		<para>
+		  Create a new brother of the given
+		  <replaceable>node</replaceable> and recalculate the
+		  special FS numbering attribute values in the whole
+		  tree so that the new node is the first left sibling
+		  of the given <replaceable>node</replaceable>.
+		</para>
+		<para>
+		  If no node is given, this function operates on
+		  <tt>$this</tt> and <emphasis>resets</emphasis>
+		  <tt>$this</tt> to the newly created node. If some node is
+		  given the value of <tt>$this</tt> is preserved.
+		</para>
 	      </entry>
 	    </row>
 	    <row>
 	      <entry><literal>NewSon(<replaceable>parent</replaceable>)</literal></entry>
-	      <entry>Create a new child of the
-		given <replaceable>parent</replaceable> node and
-		recalculate the special FS numbering attribute values
-		in the whole tree so that the new node is
-		the first node left to the given
-		<replaceable>parent</replaceable>.
+	      <entry>
+		<para>
+		  Create a new child of the given
+		  <replaceable>parent</replaceable> node and
+		  recalculate the special FS numbering attribute
+		  values in the whole tree so that the new node is the
+		  first node left to the given
+		  <replaceable>parent</replaceable>.
+		</para>
+		<para>
+		  If no parent node is given, this function operates
+		  on <tt>$this</tt> and <emphasis>resets</emphasis>
+		  <tt>$this</tt> to the newly created node. If a
+		  parent node is given the value of <tt>$this</tt> is
+		  preserved.
+		</para>
 	      </entry>
 	    </row>
 	    <row>
