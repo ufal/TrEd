@@ -1,3 +1,143 @@
+2003-09-22  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Tk/Canvas/PDF.pm: copyright, license, etc.
+
+	* tredlib/Tk/Canvas/PDF.pm: initial commit
+
+	* tredlib/contrib/ValLex/chooser.mak: XML::LibXML evalled as well
+
+	* tredlib/contrib/arabic_common.mak:
+	don't load ArabicRemix (1st - it's not used anymore, 2nd - it contains
+	no encoding!!)
+
+	* tredlib/TrEd/TreeView.pm: - minor refinements
+
+	* tredlib/TrEd/Print.pm: - rewrite to support PDF output
+
+	* tredlib/TrEd/Convert.pm:
+	- hopefully more careful unicode support for arabic
+
+	* tredlib/TrEd/Config.pm: - psMedia format changed
+	- new ttFontFile option
+
+	* tred:
+	- rewritten print dialog to match new print system with PDF support
+
+	* any2any: strip ## and # location suffix
+
+2003-09-19  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pdt.mak: added get_sentence_string
+
+2003-09-15  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Print.pm: brutal partial workaround for bugs in Tk804
+	probably needs complete rewrite
+
+	* tredlib/TrEd/Convert.pm: *** empty log message ***
+
+	* tredlib/Tk/UCSKeyBind.pm:
+	only letters with caron now require special treatment
+
+	* tred: use input methods in X with unicode support
+
+2003-09-11  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ntred: minor msg adjustments for ZZ
+
+	* tred:
+	ensure correct x11 keycode to ucs character translation for Tk804
+
+	* tredlib/Tk/UCSKeyBind.pm: initial commit
+
+2003-09-08  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_opravy.mak: new AID/tr_lemma joining macros
+
+	* tredlib/contrib/tr_common.mak: joinAIDREFS check presence of AID
+
+	* tredlib/tred.mac: added GotoFileAsk
+
+	* tredlib/tred.def: Next/PrevFile fixes
+
+	* btred: fixed redirection bug
+
+	* tred: -s sets default stylesheet
+
+2003-09-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/SDT/Slovene_parser.pm: commented-out END section
+
+2003-09-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/tr_common.mak: added lemma to status-line
+
+2003-09-03  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/TreeView.pm:
+	- added support for custom (external) pattern stylesheets
+
+	* tredlib/TrEd/Config.pm, tredlib/tredrc, documentation/manual/tred.xml, tred:
+	- hiddenLineColor
+	- dashHiddenLines
+
+	* ntred: - parse and add $TrEd::Macro::exec_code command-line options
+
+	* btred: - server UPLOAD leaves notSaved status 1
+	- parse and add $TrEd::Macro::exec_code command-line options
+
+	* any2any: added NTREDBackend support
+
+	* tredlib/TrEd/Macros.pm: added $exec_code
+
+	* tredlib/tred.mac: added SDT specifics
+
+	* tredlib/contrib/tr_common.mak: getAIDREFs
+
+	* tredlib/contrib/ntred.mak: - fixed single-quote quoting of -e
+	- count lines of output result
+
+	* tredlib/contrib/sdt.mak: added menu items etc.
+
+	* tredlib/contrib/SDT/Assign_slovene_afun.pm, tredlib/contrib/SDT/Slovene_parser.pm:
+	initial commit
+
+	* tredlib/contrib/sdt.mak: F2
+
+	* tredlib/contrib/sdt.mak: initial commit
+
+2003-08-29  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/Editor.pm, tredlib/contrib/ValLex/Widgets.pm, tredlib/contrib/ValLex/chooser.mak:
+	- display data save status in the window title
+	- define Alt-* shortcuts for widgets in frame-add/subst/modify dialog
+	- default frames now respect POS (in both Add Frame and F7-macro)
+	- cleanup fields from trailing ws upon substitute
+
+2003-08-28  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tred: quote variable interpolation in regexps with \Q...\E !!!
+
+	* tredlib/contrib/ValLex/Data.pm, tredlib/contrib/ValLex/Widgets.pm:
+	new POS filter
+
+	* tredlib/contrib/tr_anot_main.mak: CVS Id tag
+
+	* tredlib/Fslib.pm: allow url
+
+	* tred: allow macros without a file
+
+	* tredlib/contrib/tr_anot_main.mak: added register_exit_hook etc.
+
+2003-08-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ar.mak: added Id tag to see version in the file
+
+	* ChangeLog: *** empty log message ***
+
+	* btred, tred, tredlib/Fslib.pm:
+	- LWP::Simple based support for opening URLs
+
 2003-08-25  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* btred, tred, tredlib/Fslib.pm:
