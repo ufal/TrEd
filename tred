@@ -390,16 +390,32 @@ ApplyGlobalConfig();
   $ENV{LC_ALL}=undef;
   setlocale(LC_ALL,undef);
   setlocale(LC_NUMERIC,"C");
+
+  if ($TrEd::Convert::support_unicode) {
+    my $lc_collate=setlocale(LC_COLLATE);
+    if ($lc_collate !~ /\.utf-?8/i) {
+      setlocale(LC_COLLATE,$lc_collate.".UTF8");
+    }
+    my $lc_ctype=setlocale(LC_CTYPE);
+    $lc_ctype=~s/\.utf-?8//i; # Tk doesn't support this
+    setlocale(LC_CTYPE,$lc_collate);
+  }
 };
 
 ($TrEd::Config::useCzechLocales) && do {
+  $ENV{LC_ALL}=undef;
   use locale;
   use POSIX qw(locale_h);
+  setlocale(LC_ALL,undef);
   setlocale(LC_NUMERIC,"C");
-  setlocale(LC_COLLATE,"cs_CZ");
-  setlocale('LANG',"cs_CZ");
-#  $ENV{LC_ALL}=undef;
-#  setlocale(LC_ALL,undef);
+  if ($TrEd::Convert::support_unicode) {
+    setlocale(LC_COLLATE,"cs_CZ.UTF8");
+    setlocale('LANG',"cs_CZ.UTF8");
+    setlocale('LC_CTYPE',"cs_CZ");
+  } else {
+    setlocale(LC_COLLATE,"cs_CZ");
+    setlocale('LANG',"cs_CZ");
+  }
 };
 
 {
@@ -1920,7 +1936,7 @@ sub filelistDialog {
 				   -filetypes=> \@open_types)
     ->pack(qw/-expand yes -fill both -side left -padx 5 -pady 5/);
 
-  $fl->Subwidget('filelist')->configure(qw/-background white -foreground black/);
+#c  $fl->Subwidget('filelist')->configure(qw/-background white -foreground black/);
 
   my $midframe=$frame->Frame()->pack(qw/-side left/);
 
@@ -1928,10 +1944,11 @@ sub filelistDialog {
   my $ll= createFilelistBrowseEntry($grp,$lframe,\$filelist);
 
   $ll->pack(qw/-expand yes -fill both -side top/);
-  my $t= $lframe->Scrolled(qw/HList -relief sunken 
+#c                     -background white
+
+  my $t= $lframe->Scrolled(qw/HList -relief sunken
                      -selectmode extended
                      -width 60
-                     -background white
 		     -height 15 -scrollbars oe/,
 			    -separator=> "\t"
 			   )
@@ -2168,7 +2185,8 @@ sub macrolistDialog {
   my $d= $grp->{top}->Toplevel(-title=> "List of available named macros");
   $d->withdraw;
   $d->resizable(0,1);
-  my $t= $d->Scrolled(qw/HList -columns 2 -background white 
+#c  -Background white
+  my $t= $d->Scrolled(qw/HList -columns 2
            -selectmode browse
            -height 25 -relief sunken -scrollbars oe/);
   disable_scrollbar_focus($t);
@@ -3298,6 +3316,12 @@ sub startMain {
   } else {
     $group{top}=MainWindow->new();
   }
+  for (qw(ROText Text Entry Listbox HList)) {
+    $group{top}->option('add',"\*$_.background","white");
+    $group{top}->option('add',"\*$_.foreground","black");
+    $group{top}->option('add',"\*$_.disabledBackground","lightgray");
+    $group{top}->option('add',"\*$_.disabledForeground","gray20");
+  }
   if ($TrEd::Convert::support_unicode) {
     $group{top}->useinputmethods(1);
   }
@@ -3728,12 +3752,12 @@ sub startMain {
 	          ($valueLineReverseLines ? () : (-wrap => $valueLineWrap))
 	      );
   if ($displayStatusLine) {
+#c		  -background white
     $group{statusLine}=
       $group{top}->
 	ROText(qw(-takefocus 0
 		  -state disabled
 		  -borderwidth 2
-		  -background white
 		  -height 1
 		 ),
 	       -relief => 'sunken',
@@ -5104,9 +5128,10 @@ sub populateSentencesDialog {
   return unless $grp and $fsfile;
 
   use Tk::ROText;
+#c -background white
   my $t= $d->
     Scrolled(qw/ROText -relief sunken -borderwidth 2 -setgrid true
-                     -spacing3 6 -background white -wrap word
+                     -spacing3 6 -wrap word
 		     -height 20 -scrollbars oe/,
 	     -font=>$font
 	    );
