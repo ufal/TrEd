@@ -64,7 +64,11 @@ sub ChooseFrame {
   if ($lemma=~/^ne/ and $this->{lemma}!~/^ne/) {
     $lemma=~s/^ne//;
   }
-  return unless $tag=~/^([VNA])/;
+  unless ($tag=~/^([VNA])/) {
+    questionQuery("Sorry!","Given word isn't a verb nor noun nor
+  adjective\naccording to morphological tag.","Ok");
+    return;
+  }
   my $pos=$1;
   $lemma=~s/_/ /g;
   my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($this->{lemma}),$tag);
