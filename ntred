@@ -15,7 +15,7 @@ use vars qw($all_trees $all_nodes $all_nonhidden_nodes $macro_file
 	    $request_list $request_list_changed $request_save
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
-	    $config_file $start_context @preload_modules $btred);
+	    $config_file $start_context @preload_modules $btred $break);
 
 $usage=1 unless @ARGV;
 $ssh='ssh';
@@ -37,6 +37,7 @@ GetOptions ("all-trees|T"    => \$all_trees,
 	    "ssh=s"           => \$ssh,
 	    "btred=s"           => \$btred,
 	    "kill|k"           => \$kill,
+	    "break"           => \$break,
 	    "quit"           => \$request_quit,
 	    "reload-files"    => \$request_reload,
 	    "close-files"     => \$request_close,
@@ -186,7 +187,9 @@ my $configFile=TrEd::Config::read_config();
 require TrEd::Macros;
 import TrEd::Macros;
 
-if (defined($init) || defined($kill)) {
+$TrEd::Macros::defines{NTRED}=1;
+
+if (defined($init) || defined($kill) || defined($break)) {
   # btred executable
   $btred ||= "$FindBin::RealBin/btred";
 
@@ -200,7 +203,7 @@ if (defined($init) || defined($kill)) {
     if (open(my $f, $srvlistfile)) {
       while (<$f>) {
 	s/^\s+//;
-	next if /^#/;
+	next if (/^#/ || !/\S/);
 	chomp; push @servers,$_;
       }
       close $f;
@@ -211,22 +214,23 @@ if (defined($init) || defined($kill)) {
   die "No servers given!\n" unless @servers;
 
 
-  if (defined($kill)) {
+  if (defined($kill) || defined($break)) {
   # ==================================================
   # kill servers and start a hub
   # ==================================================
     msg "Killing all servers\n";
     my %servers;
+    my $signal = defined($kill) ? '-TERM' : '-USR1';
     foreach (@servers) {
       my ($machine)=split /:/;
       next if $servers{$machine};
       $servers{$machine}=1;
-      msg "$ssh $machine killall btred\n";
-      system("$ssh $machine killall btred");   #'$btred'
+      msg "$ssh $machine killall $signal btred\n";
+      system("$ssh $machine killall $signal btred");   #'$btred'
     }
     msg "Killing hub\n";
     local $SIG{TERM}=sub {}; # protecting myself :-)
-    system("killall ntred");
+    system("killall ntred") if defined($kill);
     msg "Finished\n";
     exit 0;
   }
@@ -694,20 +698,20 @@ To kill all remote servers and a hub:
 
 To manage files on the servers:
 
-ntred --list-files
+  ntred --list-files|--list-changed-files
 
-ntred --reload-files
+  ntred --reload-files
 
-ntred --load-files [--filelist file-list] [file [...]]
+  ntred --load-files [--filelist file-list] [file [...]]
 
-ntred --close-files
+  ntred --close-files
 
-ntred --save-files [-a append-sfx] [-p strip-prefix] [-r add-prefix]
-                   [-f out-fmt]
+  ntred --save-files|--save-changed-files [-a append-sfx]
+       [-p strip-prefix] [-r add-prefix] [-f out-fmt]
 
-ntred --dump-files [--filelist file-list] [file [...]]
+  ntred --dump-files [--filelist file-list] [file [...]]
 
-ntred --upload-file filename < fs-file
+  ntred --upload-file filename < fs-file
 
 Get help:
 
