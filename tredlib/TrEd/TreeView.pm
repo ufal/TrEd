@@ -776,6 +776,7 @@ sub get_node_style {
 sub parse_coords_spec {
   my ($self,$node,$coords,$nodes,$nodehash)=@_;
   # perl inline search
+  print "print $coords\n";
   $coords =~
     s{([xy])\[\?((?:.|\n)*?)\?\]}{
       my $i=0;
@@ -931,7 +932,7 @@ sub redraw {
     $node=$node->parent() while ($node->parent());
     # only for root node if any
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
-      foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
+      foreach ($self->interpolate_text_field($node,$style)=~/\#${block}/g) {
   	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):'?(.+)'?$/) {
 	  if (exists $Opts{"$1$2"}) {
 	    push @{$Opts{"$1$2"}},$3=>$4;
@@ -958,7 +959,7 @@ sub redraw {
   foreach $node (@{$nodes}) {
     my %nopts=();
     foreach $style (@style_patterns) {
-      foreach ($self->interpolate_text_field($node,$style)=~/\#\{([^\}]+)\}/g) {
+      foreach ($self->interpolate_text_field($node,$style)=~/\#${block}/g) {
 	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+):(.+)$/) {
 	  if (exists $nopts{"$1$2"}) {
 	    push @{$nopts{"$1$2"}},$3=>$4;
