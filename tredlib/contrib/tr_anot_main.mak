@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2001-08-13 10:50:56 pajas>
+## Time-stamp: <2001-08-13 11:50:20 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -164,6 +164,8 @@ sub listQuery {
  return 0;  
 }
 
+# binding-context Tectogrammatic
+# include contrib/tr.mak
 
 package Tectogrammatic;
 
