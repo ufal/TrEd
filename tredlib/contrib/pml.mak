@@ -172,11 +172,11 @@ text:${m/w/token}
 
 --------------------
 
-node:#{blue}${afun}<?
+node:#{customafun}${afun}<?
   if ($${is_member}) {
     my $p=$this->parent;
     $p=$p->parent while $p and $p->{afun}=~/^Aux[CP]$/;
-    ($p and $p->{afun}=~/^(Ap)os|(Co)ord/ ? "_#{#4C9CCD}\${is_member=$1$2}" : "_#{red}\${is_member=ERR}")
+    ($p and $p->{afun}=~/^(Ap)os|(Co)ord/ ? "_#{customcoappa}\${is_member=$1$2}" : "_#{customerror}\${is_member=ERR}")
   } else { "" }
 ?>
 EOF
@@ -551,7 +551,7 @@ COORDS
         }
     }
   }
-  if(join ('|',ListV($node->{coref_special}))=~ /sg/) { # pointer to an unspecified segment of preceeding sentences
+  if(join ('|',ListV($node->{coref_special}))=~ /segm/) { # pointer to an unspecified segment of preceeding sentences
     print STDERR "ref-arrows: Segment - unaimed arrow\n" if $main::macroDebug;
     push @colors,CustomColor('arrow_segment');
     push @coords,"&n,n,n-25,n";
@@ -932,8 +932,8 @@ sub GetDescendants_T {
 
 =item GetAncestors_T($node?)
 
-Return a list of all nodes linguistically superordinated to (ie governing)a given node
-(not including the node itself).
+Return a list of all nodes linguistically superordinated to (ie
+governing) a given node (not including the node itself).
 
 =cut
 
@@ -1122,6 +1122,8 @@ sub non_proj_edges {
 } # sub non_proj_edges
 
 
+
+
 #bind test to t
 sub test {
   print "\n";
@@ -1136,6 +1138,8 @@ sub test {
                      tfa_no #c0c0c0
                      func #601808
                      subfunc #a02818
+                     afun darkblue
+                     coappa blue
                      parenthesis #809080
                      nodetype darkblue
                      complex darkmagenta
