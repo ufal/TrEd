@@ -241,7 +241,7 @@ sub Max {
 foreach $f (@files) {
   $fileno++;
   print STDERR "Reading $f\t($fileno/$filecount)\n" unless $opt_q;
-  my $fs = FSFile->newFSFile($f,@backends);
+  my $fs = FSFile->newFSFile($f,'iso-8859-2',@backends);
   $fs->lastTreeNo<0 && die "$f: empty or corrupt file!\n";
   die "cannot open $f!\n" unless open(F,"<$f");
 
