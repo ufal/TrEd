@@ -611,8 +611,7 @@ sub PrintNode($$$$) {
 	$v='-' if ($v eq '' or not defined($v));
 	Print($output,$v);
 	$lastprinted=1;
-      }
-      elsif (defined($node->getAttribute($ord->[$n])) and $node->getAttribute($ord->[$n]) ne '') {
+      } elsif (defined($node->getAttribute($ord->[$n])) and $node->getAttribute($ord->[$n]) ne '') {
 	Print($output,",") if $n;
 	unless ($lastprinted && index($atr->{$ord->[$n]}," P")>=0) # N could match here too probably
 	  { Print($output,$ord->[$n]."="); }
@@ -789,7 +788,6 @@ means that you may simply acces node's attributes as C<$node->>C<{attribute}>
 
 =cut
 
-#'
 
 sub new {
   my $self = shift;
@@ -831,7 +829,6 @@ Return node's parent node (C<undef> if none).
 
 =cut
 
-#'
 
 sub parent {
   my ($self) = @_;
@@ -844,7 +841,6 @@ Find and return the root of the node's tree.
 
 =cut
 
-#'
 
 sub root {
   my ($self) = @_;
@@ -878,7 +874,6 @@ Return node's left brother node (C<undef> if none).
 
 =cut
 
-#'
 
 sub lbrother {
   my $self = shift;
@@ -893,7 +888,6 @@ Return node's right brother node (C<undef> if none).
 
 =cut
 
-#'
 
 sub rbrother {
   my $self = shift;
@@ -908,7 +902,6 @@ Return node's first dependent node (C<undef> if none).
 
 =cut
 
-#'
 
 sub firstson {
   my $self = shift;
@@ -1070,6 +1063,86 @@ sub getAttribute {
   my ($self,$name) = @_;
   return $self->{$name};
 }
+
+
+=item attr (path)
+
+Return value of an attribute specified as a path of the form
+attr/subattr/[n]/subsubattr/[m], where [n] can be used to pick n-th
+element of a sequence or alternative.  If alternative or sequence is
+encountered but no index is given, then 1st element of the sequence or
+alternative is used (except for the case when sequence or alternative
+is found in the last path step, in which case the corresponding object
+- sequence or alternative - is returned as is).
+
+=cut
+
+sub attr {
+  my ($node,$path, $strict) = @_;
+  my $val = $node;
+  for my $step (split /\//, $path) {
+    if (ref($val) eq 'Fslib::Seq' or ref($val) eq 'Fslib::Alt') {
+      if ($step =~ /^\[(\d+)\]/) {
+	$val = $val->[$1-1];
+      } elsif ($strict) {
+#	warn "Can't follow attribute path '$path' (step '$step')\n";
+	return undef; # ERROR
+      } else {
+	$val = $val->[0]{$step};
+      }
+    } elsif (ref($val)) {
+      $val = $val->{$step};
+    } elsif (defined($val)) {
+#      warn "Can't follow attribute path '$path' (step '$step')\n";
+      return undef; # ERROR
+    } else {
+      return '';
+    }
+  }
+  return $val;
+}
+
+sub set_attr {
+  my ($node,$path, $value, $strict) = @_;
+  my $val = $node;
+  my @steps = split /\//, $path;
+  while (@steps) {
+    my $step = shift @steps;
+    if (ref($val) eq 'Fslib::Seq' or ref($val) eq 'Fslib::Alt') {
+      if ($step =~ /^\[(\d+)\]/) {
+	if (@steps) {
+	  $val = $val->[$1-1];
+	} else {
+	  $val->[$1-1] = $value;
+	  return $value;
+	}
+      } elsif ($strict) {
+	warn "Can't follow attribute path '$path' (step '$step')\n";
+	return undef; # ERROR
+      } else {
+	if (@steps) {
+	  $val = $val->[0]{$step};
+	} else {
+	  $val->[0]{$step} = $value;
+	  return $value;
+	}
+      }
+    } elsif (ref($val)) {
+      if (@steps) {
+	$val = $val->{$step};
+      } else {
+	$val->{$step} = $value;
+      }
+    } elsif (defined($val)) {
+      warn "Can't follow attribute path '$path' (step '$step')\n";
+      return undef; # ERROR
+    } else {
+      return '';
+    }
+  }
+  return undef;
+}
+
 
 =pod
 
@@ -1614,7 +1687,6 @@ instance declaration).
 
 =cut
 
-#'
 
 sub atno {
   my ($self,$index) = @_;
@@ -2009,7 +2081,6 @@ about the file).
 
 =back
 
-#'
 
 =cut
 
@@ -2204,7 +2275,6 @@ Return the FS file's file name.
 
 =cut
 
-#'
 
 sub filename {
   my $self = shift;
@@ -2219,7 +2289,6 @@ Change the FS file's file name.
 
 =cut
 
-#'
 
 sub changeFilename {
   my ($self,$val) = @_;
@@ -2417,7 +2486,6 @@ Return the Tred's hint pattern declared in the FSFile.
 
 =cut
 
-#'
 
 sub hint {
   my $self = shift;
@@ -2432,7 +2500,6 @@ Change the Tred's hint pattern associated with this FSFile.
 
 =cut
 
-#'
 
 sub changeHint {
   my ($self,$val) = @_;
@@ -2459,7 +2526,6 @@ Return n'th the display pattern associated with this FSFile.
 
 =cut
 
-#'
 
 sub pattern {
   my ($self,$index) = @_;
@@ -2499,7 +2565,6 @@ Return the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
 =cut
 
-#'
 
 sub tail {
   my $self = shift;
@@ -2514,7 +2579,6 @@ Modify the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
 =cut
 
-#'
 
 sub changeTail {
   my $self = shift;
@@ -2827,6 +2891,7 @@ sub destroy_tree {
   return 1;
 }
 
+
 =pod
 
 =back
@@ -2925,10 +2990,15 @@ sub read {
   #parse Rest
   my @patterns;
   foreach ($fsfile->tail) {
-    if (/^\/\/Tred:Custom-Attribute:(.*\S)\s+$/) {
+    if (/^\/\/Tred:Custom-Attribute:(.*\S)\s*$/) {
       push @patterns,$1;
-    } elsif (/^\/\/Tred:Custom-AttributeCont:(.*\S)\s+$/) {
+    } elsif (/^\/\/Tred:Custom-AttributeCont:(.*\S)\s*$/) {
       $patterns[$#patterns].="\n".$1;
+    } elsif (/^\/\/FS-REQUIRE:\s*(\S+)\s+(\S+)="([^"]+)"\s*$/) {
+      my $requires = $fsfile->metaData('fs-require') || $fsfile->changeMetaData('fs-require',[]);
+      push @$requires,[$2,$3];
+      my $refnames = $fsfile->metaData('refnames') || $fsfile->changeMetaData('refnames',{});
+      $refnames->{$1} = $2;
     }
   }
   $fsfile->changePatterns(@patterns);
@@ -2938,7 +3008,7 @@ sub read {
 		    ($peep=~/[,\(]([0-9]+)/g));
   }
   $fsfile->changeHint(join "\n",
-		    map { /^\/\/Tred:Balloon-Pattern:(.*\S)\s+$/ ? $1 : () } $fsfile->tail);
+		    map { /^\/\/Tred:Balloon-Pattern:(.*\S)\s*$/ ? $1 : () } $fsfile->tail);
   return 1;
 }
 
@@ -2972,9 +3042,16 @@ sub write {
 			 split /\n/,$_
 		       } $fsfile->patterns),
 		    (map {"//Tred:Balloon-Pattern:$_\n"}
-		     split /\n/,$fsfile->hint)
+		     split /\n/,$fsfile->hint),
 		   );
   print $fileref $fsfile->tail;
+  if (ref($fsfile->metaData('fs-require'))) {
+    my $refnames = $fsfile->metaData('refnames') || {};
+    foreach my $req ( @{ $fsfile->metaData('fs-require') } ) {
+      my ($name) = grep { $refnames->{$_} eq $req->[0] } keys(%$refnames);
+      print $fileref "//FS-REQUIRE:$name $req->[0]=\"$req->[1]\"\n";
+    }
+  }
   return 1;
 }
 
@@ -3008,6 +3085,130 @@ sub new {
 sub values {
   return @{$_[0]};
 }
+
+
+###########################################################
+
+package Fslib::Schema;
+
+sub new {
+  my ($self,$string)=@_;
+  my $class = ref($self) || $self;
+  require XML::Simple;
+  bless
+    XML::Simple::XMLin($string,
+	  ForceArray=>[ 'member', 'attribute', 'value', 'reference' ],
+	  KeyAttr => { "member" => "name",
+		       "attribute" =>"name",
+		       "type" => "name"
+		      },
+	  GroupTags => { "choice" => "value" }
+	 ), $class;
+}
+
+sub readFrom {
+  my ($self,$file)=@_;
+  print STDERR "parsing schema $file\n";
+  my $fh = IOBackend::open_backend($file,'r');
+  die "Couldn't open PML schema file '$file'\n" unless $fh;
+  local $/;
+  my $slurp = <$fh>;
+  close $fh;
+  $self->new($slurp);
+}
+
+sub node_type {
+  my ($self) = @_;
+  for (keys %{$self->{type}}) {
+    return $self->{type}{$_} if $self->{type}{$_}{role} eq '#NODE';
+  }
+}
+
+sub resolve_type {
+  my ($self,$type)=@_;
+  return $type unless ref($type);
+  if ($type->{type}) {
+    my $rtype = $self->{type}{$type->{type}};
+    return $rtype || $type->{type};
+  } else {
+    return $type;
+  }
+}
+
+sub find_type {
+  my ($self, $path) = @_;
+  # find node type
+  my $type = $self->node_type;
+  if ($path eq '') {
+    return $type;
+  } else {
+    for my $step (split /\//, $path) {
+      $type = $self->resolve_type($type);
+      if (ref($type)) {
+	if ($type->{knit}) {
+	  $type = $type->{knit};
+	  redo;
+	} elsif ($type->{seq} or $type->{alt}) {
+	  $type = $type->{seq} || $type->{alt};
+	  if ($step =~ /^\[(\d+)\]/) {
+	    next;
+	  } else {
+	    redo;
+	  }
+	} elsif ($type->{member} or $type->{attribute}) {
+	  $type = $type->{attribute}{$step} || $type->{member}{$step};
+	} else {
+	  return undef;
+	}
+      } else {
+#	warn "Can't follow type path '$path' (step '$step')\n";
+	return undef; # ERROR
+      }
+    }
+    return $self->resolve_type($type);
+  }
+}
+
+
+# emulate FSFormat->attributes to some extent
+
+sub attributes {
+  my ($self,$type) = @_;
+  # find node type
+  if ($type) {
+    $type = $self->resolve_type($type);
+  } else {
+    $type = $self->node_type;
+  }
+  while (ref($type) and ($type->{seq} and $type->{role} ne '#CHILDNODES'
+			   or $type->{alt}
+			     or $type->{knit})) {
+    use Data::Dumper;
+    print Dumper($type),"\n";
+    $type = $self->resolve_type($type->{seq}
+				  || $type->{alt}
+				    || $type->{knit})
+  }
+  
+  if (ref($type) and ($type->{member} or $type->{attribute})) {
+    my @result;
+    for my $member (sort (keys %{$type->{attribute}},
+			  keys %{$type->{member}})) {
+      my @subattrs = $self->attributes($type->{attribute}{$member} ||
+				       $type->{member}{$member});
+      print "$member\t@subattrs\n";
+      if (@subattrs) {
+	push @result, map { $member."/".$_ } @subattrs;
+      } else {
+	push @result,$member;
+      }
+    }
+    return @result;
+  } else {
+    return ();
+  }
+}
+
 
 1;
 
