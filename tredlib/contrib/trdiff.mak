@@ -6,11 +6,11 @@ import Tectogrammatic;
 
 #key-binding-adopt Tectogrammatic
 
-# bind TiePrevTree to key Ctrl+comma
-# bind TieNextTree to key Ctrl+period
+#bind TiePrevTree to Ctrl+comma
+#bind TieNextTree to Ctrl+period
 
-# bind PrevTree to key comma
-# bind NextTree to key period
+#bind PrevTree to comma
+#bind NextTree to period
 
 
 use vars qw($usenames $onlylemma $onlyfunc $onlydep $onlymissing
@@ -87,7 +87,7 @@ sub current_node_change_hook {
   return;
 }
 
-# bind find_next_difference to key space menu Goto next difference
+#bind find_next_difference to space menu Goto next difference
 sub find_next_difference {
   my $node=$this->following;
   while ($node and not
@@ -376,9 +376,9 @@ sub diff_trees {
   return @summary;
 }
 
-#bind DiffTRFiles to key equal menu Compare files
-#bind DiffTRFiles_select_attrs to key Ctrl+equal menu Choose attributes to compare
-#bind DiffTRFiles_with_summary to key Ctrl+Shift+equal menu Compare files with summary
+#bind DiffTRFiles to equal menu Compare files
+#bind DiffTRFiles_select_attrs to Ctrl+equal menu Choose attributes to compare
+#bind DiffTRFiles_with_summary to Ctrl+plus menu Compare files with summary
 
 sub DiffTRFiles_select_attrs {
   listQuery("multiple",$grp->{FSFile}->FS->list,\@standard_check_list);

@@ -34,7 +34,7 @@ sub thisAfun {
   $this=Next($this) if Next($this);
 }
 
-#bind thisRoot to key 9
+#bind thisRoot to 9
 sub thisRoot {
   $this=$root;
 }
@@ -1594,7 +1594,7 @@ sub _key_0 {
 }
 
 
-#bind _key_Shift_0 to Shift+0
+#bind _key_Shift_0 to parenright
 sub _key_Shift_0 {
   my $pAct;			# used as type "pointer"
   my $pNext;			# used as type "pointer"
@@ -1688,7 +1688,7 @@ sub SubtreeUndefAfun {
 }
 
 
-#bind _key_Ctrl_Shift_0 to Ctrl+Shift+0
+#bind _key_Ctrl_Shift_0 to Ctrl+parenright
 sub _key_Ctrl_Shift_0 {
 
   $_CatchError = "0";
@@ -1766,7 +1766,7 @@ sub _key_1 {
 }
 
 
-#bind _key_Shift_1 to Shift+1
+#bind _key_Shift_1 to exclam
 sub _key_Shift_1 {
   my $pAct;			# used as type "pointer"
   my $pNext;			# used as type "pointer"
@@ -1866,7 +1866,7 @@ sub _key_Ctrl_1 {
 }
 
 
-#bind _key_Ctrl_Shift_1 to Ctrl+Shift+1
+#bind _key_Ctrl_Shift_1 to Ctrl+exclam
 sub _key_Ctrl_Shift_1 {
   my $pAct;			# used as type "pointer"
   my $pNext;			# used as type "pointer"
@@ -2073,7 +2073,7 @@ sub DepSuffix {
 }
 
 
-#bind _key_Q to Q
+#bind _key_Q to q
 sub _key_Q {
 
   $sPar1 = 'Pred';
@@ -2083,7 +2083,7 @@ sub _key_Q {
 }
 
 
-#bind _key_N to N
+#bind _key_N to n
 sub _key_N {
 
   $sPar1 = 'Pnom';
@@ -2093,7 +2093,7 @@ sub _key_N {
 }
 
 
-#bind _key_V to V
+#bind _key_V to v
 sub _key_V {
 
   $sPar1 = 'AuxV';
@@ -2103,7 +2103,7 @@ sub _key_V {
 }
 
 
-#bind _key_S to S
+#bind _key_S to s
 sub _key_S {
 
   $sPar1 = 'Sb';
@@ -2113,7 +2113,7 @@ sub _key_S {
 }
 
 
-#bind _key_B to B
+#bind _key_B to b
 sub _key_B {
 
   $sPar1 = 'Obj';
@@ -2123,7 +2123,7 @@ sub _key_B {
 }
 
 
-#bind _key_A to A
+#bind _key_A to a
 sub _key_A {
 
   $sPar1 = 'Atr';
@@ -2133,7 +2133,7 @@ sub _key_A {
 }
 
 
-#bind _key_D to D
+#bind _key_D to d
 sub _key_D {
 
   $sPar1 = 'Adv';
@@ -2143,7 +2143,7 @@ sub _key_D {
 }
 
 
-#bind _key_I to I
+#bind _key_I to i
 sub _key_I {
 
   $sPar1 = 'Coord';
@@ -2153,7 +2153,7 @@ sub _key_I {
 }
 
 
-#bind _key_T to T
+#bind _key_T to t
 sub _key_T {
 
   $sPar1 = 'AuxT';
@@ -2163,7 +2163,7 @@ sub _key_T {
 }
 
 
-#bind _key_R to R
+#bind _key_R to r
 sub _key_R {
 
   $sPar1 = 'AuxR';
@@ -2173,7 +2173,7 @@ sub _key_R {
 }
 
 
-#bind _key_P to P
+#bind _key_P to p
 sub _key_P {
 
   $sPar1 = 'AuxP';
@@ -2183,7 +2183,7 @@ sub _key_P {
 }
 
 
-#bind _key_U to U
+#bind _key_U to u
 sub _key_U {
 
   $sPar1 = 'Apos';
@@ -2193,7 +2193,7 @@ sub _key_U {
 }
 
 
-#bind _key_C to C
+#bind _key_C to c
 sub _key_C {
 
   $sPar1 = 'AuxC';
@@ -2203,7 +2203,7 @@ sub _key_C {
 }
 
 
-#bind _key_O to O
+#bind _key_O to o
 sub _key_O {
 
   $sPar1 = 'AuxO';
@@ -2213,7 +2213,7 @@ sub _key_O {
 }
 
 
-#bind _key_H to H
+#bind _key_H to h
 sub _key_H {
 
   $sPar1 = 'Atv';
@@ -2223,7 +2223,7 @@ sub _key_H {
 }
 
 
-#bind _key_J to J
+#bind _key_J to j
 sub _key_J {
 
   $sPar1 = 'AtvV';
@@ -2233,7 +2233,7 @@ sub _key_J {
 }
 
 
-#bind _key_Z to Z
+#bind _key_Z to z
 sub _key_Z {
 
   $sPar1 = 'AuxZ';
@@ -2243,7 +2243,7 @@ sub _key_Z {
 }
 
 
-#bind _key_Y to Y
+#bind _key_Y to y
 sub _key_Y {
 
   $sPar1 = 'AuxY';
@@ -2253,7 +2253,7 @@ sub _key_Y {
 }
 
 
-#bind _key_G to G
+#bind _key_G to g
 sub _key_G {
 
   $sPar1 = 'AuxG';
@@ -2263,7 +2263,7 @@ sub _key_G {
 }
 
 
-#bind _key_K to K
+#bind _key_K to k
 sub _key_K {
 
   $sPar1 = 'AuxK';
@@ -2273,7 +2273,7 @@ sub _key_K {
 }
 
 
-#bind _key_X to X
+#bind _key_X to x
 sub _key_X {
 
   $sPar1 = 'AuxX';
@@ -2283,7 +2283,7 @@ sub _key_X {
 }
 
 
-#bind _key_E to E
+#bind _key_E to e
 sub _key_E {
 
   $sPar1 = 'ExD';
@@ -2293,7 +2293,7 @@ sub _key_E {
 }
 
 
-#bind _key_Ctrl_Q to Ctrl+Q
+#bind _key_Ctrl_Q to Ctrl+q
 sub _key_Ctrl_Q {
 
   $sPar1 = 'Pred_Co';
@@ -2303,7 +2303,7 @@ sub _key_Ctrl_Q {
 }
 
 
-#bind _key_Ctrl_N to Ctrl+N
+#bind _key_Ctrl_N to Ctrl+n
 sub _key_Ctrl_N {
 
   $sPar1 = 'Pnom_Co';
@@ -2313,7 +2313,7 @@ sub _key_Ctrl_N {
 }
 
 
-#bind _key_Ctrl_V to Ctrl+V
+#bind _key_Ctrl_V to Ctrl+v
 sub _key_Ctrl_V {
 
   $sPar1 = 'AuxV_Co';
@@ -2323,7 +2323,7 @@ sub _key_Ctrl_V {
 }
 
 
-#bind _key_Ctrl_S to Ctrl+S
+#bind _key_Ctrl_S to Ctrl+s
 sub _key_Ctrl_S {
 
   $sPar1 = 'Sb_Co';
@@ -2333,7 +2333,7 @@ sub _key_Ctrl_S {
 }
 
 
-#bind _key_Ctrl_B to Ctrl+B
+#bind _key_Ctrl_B to Ctrl+b
 sub _key_Ctrl_B {
 
   $sPar1 = 'Obj_Co';
@@ -2343,7 +2343,7 @@ sub _key_Ctrl_B {
 }
 
 
-#bind _key_Ctrl_A to Ctrl+A
+#bind _key_Ctrl_A to Ctrl+a
 sub _key_Ctrl_A {
 
   $sPar1 = 'Atr_Co';
@@ -2353,7 +2353,7 @@ sub _key_Ctrl_A {
 }
 
 
-#bind _key_Ctrl_D to Ctrl+D
+#bind _key_Ctrl_D to Ctrl+d
 sub _key_Ctrl_D {
 
   $sPar1 = 'Adv_Co';
@@ -2363,7 +2363,7 @@ sub _key_Ctrl_D {
 }
 
 
-#bind _key_Ctrl_I to Ctrl+I
+#bind _key_Ctrl_I to Ctrl+i
 sub _key_Ctrl_I {
 
   $sPar1 = 'Coord_Co';
@@ -2373,7 +2373,7 @@ sub _key_Ctrl_I {
 }
 
 
-#bind _key_Ctrl_T to Ctrl+T
+#bind _key_Ctrl_T to Ctrl+t
 sub _key_Ctrl_T {
 
   $sPar1 = 'AuxT_Co';
@@ -2383,7 +2383,7 @@ sub _key_Ctrl_T {
 }
 
 
-#bind _key_Ctrl_R to Ctrl+R
+#bind _key_Ctrl_R to Ctrl+r
 sub _key_Ctrl_R {
 
   $sPar1 = 'AuxR_Co';
@@ -2393,7 +2393,7 @@ sub _key_Ctrl_R {
 }
 
 
-#bind _key_Ctrl_P to Ctrl+P
+#bind _key_Ctrl_P to Ctrl+p
 sub _key_Ctrl_P {
 
   $sPar1 = 'AuxP_Co';
@@ -2403,7 +2403,7 @@ sub _key_Ctrl_P {
 }
 
 
-#bind _key_Ctrl_U to Ctrl+U
+#bind _key_Ctrl_U to Ctrl+u
 sub _key_Ctrl_U {
 
   $sPar1 = 'Apos_Co';
@@ -2413,7 +2413,7 @@ sub _key_Ctrl_U {
 }
 
 
-#bind _key_Ctrl_C to Ctrl+C
+#bind _key_Ctrl_C to Ctrl+c
 sub _key_Ctrl_C {
 
   $sPar1 = 'AuxC_Co';
@@ -2423,7 +2423,7 @@ sub _key_Ctrl_C {
 }
 
 
-#bind _key_Ctrl_O to Ctrl+O
+#bind _key_Ctrl_O to Ctrl+o
 sub _key_Ctrl_O {
 
   $sPar1 = 'AuxO_Co';
@@ -2433,7 +2433,7 @@ sub _key_Ctrl_O {
 }
 
 
-#bind _key_Ctrl_H to Ctrl+H
+#bind _key_Ctrl_H to Ctrl+h
 sub _key_Ctrl_H {
 
   $sPar1 = 'Atv_Co';
@@ -2443,7 +2443,7 @@ sub _key_Ctrl_H {
 }
 
 
-#bind _key_Ctrl_J to Ctrl+J
+#bind _key_Ctrl_J to Ctrl+j
 sub _key_Ctrl_J {
 
   $sPar1 = 'AtvV_Co';
@@ -2453,7 +2453,7 @@ sub _key_Ctrl_J {
 }
 
 
-#bind _key_Ctrl_Z to Ctrl+Z
+#bind _key_Ctrl_Z to Ctrl+z
 sub _key_Ctrl_Z {
 
   $sPar1 = 'AuxZ_Co';
@@ -2463,7 +2463,7 @@ sub _key_Ctrl_Z {
 }
 
 
-#bind _key_Ctrl_Y to Ctrl+Y
+#bind _key_Ctrl_Y to Ctrl+y
 sub _key_Ctrl_Y {
 
   $sPar1 = 'AuxY_Co';
@@ -2473,7 +2473,7 @@ sub _key_Ctrl_Y {
 }
 
 
-#bind _key_Ctrl_G to Ctrl+G
+#bind _key_Ctrl_G to Ctrl+g
 sub _key_Ctrl_G {
 
   $sPar1 = 'AuxG_Co';
@@ -2483,7 +2483,7 @@ sub _key_Ctrl_G {
 }
 
 
-#bind _key_Ctrl_K to Ctrl+K
+#bind _key_Ctrl_K to Ctrl+k
 sub _key_Ctrl_K {
 
   $sPar1 = 'AuxK_Co';
@@ -2493,7 +2493,7 @@ sub _key_Ctrl_K {
 }
 
 
-#bind _key_Ctrl_X to Ctrl+X
+#bind _key_Ctrl_X to Ctrl+x
 sub _key_Ctrl_X {
 
   $sPar1 = 'AuxX_Co';
@@ -2503,7 +2503,7 @@ sub _key_Ctrl_X {
 }
 
 
-#bind _key_Ctrl_E to Ctrl+E
+#bind _key_Ctrl_E to Ctrl+e
 sub _key_Ctrl_E {
 
   $sPar1 = 'ExD_Co';
@@ -2513,7 +2513,7 @@ sub _key_Ctrl_E {
 }
 
 
-#bind _key_Shift_Q to Shift+Q
+#bind _key_Shift_Q to Q
 sub _key_Shift_Q {
 
   $sPar1 = 'Pred_Ap';
@@ -2523,7 +2523,7 @@ sub _key_Shift_Q {
 }
 
 
-#bind _key_Shift_N to Shift+N
+#bind _key_Shift_N to N
 sub _key_Shift_N {
 
   $sPar1 = 'Pnom_Ap';
@@ -2533,7 +2533,7 @@ sub _key_Shift_N {
 }
 
 
-#bind _key_Shift_V to Shift+V
+#bind _key_Shift_V to V
 sub _key_Shift_V {
 
   $sPar1 = 'AuxV_Ap';
@@ -2543,7 +2543,7 @@ sub _key_Shift_V {
 }
 
 
-#bind _key_Shift_S to Shift+S
+#bind _key_Shift_S to S
 sub _key_Shift_S {
 
   $sPar1 = 'Sb_Ap';
@@ -2553,7 +2553,7 @@ sub _key_Shift_S {
 }
 
 
-#bind _key_Shift_B to Shift+B
+#bind _key_Shift_B to B
 sub _key_Shift_B {
 
   $sPar1 = 'Obj_Ap';
@@ -2563,7 +2563,7 @@ sub _key_Shift_B {
 }
 
 
-#bind _key_Shift_A to Shift+A
+#bind _key_Shift_A to A
 sub _key_Shift_A {
 
   $sPar1 = 'Atr_Ap';
@@ -2573,7 +2573,7 @@ sub _key_Shift_A {
 }
 
 
-#bind _key_Shift_D to Shift+D
+#bind _key_Shift_D to D
 sub _key_Shift_D {
 
   $sPar1 = 'Adv_Ap';
@@ -2583,7 +2583,7 @@ sub _key_Shift_D {
 }
 
 
-#bind _key_Shift_I to Shift+I
+#bind _key_Shift_I to I
 sub _key_Shift_I {
 
   $sPar1 = 'Coord_Ap';
@@ -2593,7 +2593,7 @@ sub _key_Shift_I {
 }
 
 
-#bind _key_Shift_T to Shift+T
+#bind _key_Shift_T to T
 sub _key_Shift_T {
 
   $sPar1 = 'AuxT_Ap';
@@ -2603,7 +2603,7 @@ sub _key_Shift_T {
 }
 
 
-#bind _key_Shift_R to Shift+R
+#bind _key_Shift_R to R
 sub _key_Shift_R {
 
   $sPar1 = 'AuxR_Ap';
@@ -2613,7 +2613,7 @@ sub _key_Shift_R {
 }
 
 
-#bind _key_Shift_P to Shift+P
+#bind _key_Shift_P to P
 sub _key_Shift_P {
 
   $sPar1 = 'AuxP_Ap';
@@ -2623,7 +2623,7 @@ sub _key_Shift_P {
 }
 
 
-#bind _key_Shift_U to Shift+U
+#bind _key_Shift_U to U
 sub _key_Shift_U {
 
   $sPar1 = 'Apos_Ap';
@@ -2633,7 +2633,7 @@ sub _key_Shift_U {
 }
 
 
-#bind _key_Shift_C to Shift+C
+#bind _key_Shift_C to C
 sub _key_Shift_C {
 
   $sPar1 = 'AuxC_Ap';
@@ -2643,7 +2643,7 @@ sub _key_Shift_C {
 }
 
 
-#bind _key_Shift_O to Shift+O
+#bind _key_Shift_O to O
 sub _key_Shift_O {
 
   $sPar1 = 'AuxO_Ap';
@@ -2653,7 +2653,7 @@ sub _key_Shift_O {
 }
 
 
-#bind _key_Shift_H to Shift+H
+#bind _key_Shift_H to H
 sub _key_Shift_H {
 
   $sPar1 = 'Atv_Ap';
@@ -2663,7 +2663,7 @@ sub _key_Shift_H {
 }
 
 
-#bind _key_Shift_J to Shift+J
+#bind _key_Shift_J to J
 sub _key_Shift_J {
 
   $sPar1 = 'AtvV_Ap';
@@ -2673,7 +2673,7 @@ sub _key_Shift_J {
 }
 
 
-#bind _key_Shift_Z to Shift+Z
+#bind _key_Shift_Z to Z
 sub _key_Shift_Z {
 
   $sPar1 = 'AuxZ_Ap';
@@ -2683,7 +2683,7 @@ sub _key_Shift_Z {
 }
 
 
-#bind _key_Shift_Y to Shift+Y
+#bind _key_Shift_Y to Y
 sub _key_Shift_Y {
 
   $sPar1 = 'AuxY_Ap';
@@ -2693,7 +2693,7 @@ sub _key_Shift_Y {
 }
 
 
-#bind _key_Shift_G to Shift+G
+#bind _key_Shift_G to G
 sub _key_Shift_G {
 
   $sPar1 = 'AuxG_Ap';
@@ -2703,7 +2703,7 @@ sub _key_Shift_G {
 }
 
 
-#bind _key_Shift_K to Shift+K
+#bind _key_Shift_K to K
 sub _key_Shift_K {
 
   $sPar1 = 'AuxK_Ap';
@@ -2713,7 +2713,7 @@ sub _key_Shift_K {
 }
 
 
-#bind _key_Shift_X to Shift+X
+#bind _key_Shift_X to X
 sub _key_Shift_X {
 
   $sPar1 = 'AuxX_Ap';
@@ -2723,7 +2723,7 @@ sub _key_Shift_X {
 }
 
 
-#bind _key_Shift_E to Shift+E
+#bind _key_Shift_E to E
 sub _key_Shift_E {
 
   $sPar1 = 'ExD_Ap';
@@ -2733,7 +2733,7 @@ sub _key_Shift_E {
 }
 
 
-#bind _key_Ctrl_Shift_Q to Ctrl+Shift+Q
+#bind _key_Ctrl_Shift_Q to Ctrl+Q
 sub _key_Ctrl_Shift_Q {
 
   $sPar1 = 'Pred_Pa';
@@ -2743,7 +2743,7 @@ sub _key_Ctrl_Shift_Q {
 }
 
 
-#bind _key_Ctrl_Shift_N to Ctrl+Shift+N
+#bind _key_Ctrl_Shift_N to Ctrl+N
 sub _key_Ctrl_Shift_N {
 
   $sPar1 = 'Pnom_Pa';
@@ -2753,7 +2753,7 @@ sub _key_Ctrl_Shift_N {
 }
 
 
-#bind _key_Ctrl_Shift_V to Ctrl+Shift+V
+#bind _key_Ctrl_Shift_V to Ctrl+V
 sub _key_Ctrl_Shift_V {
 
   $sPar1 = 'AuxV_Pa';
@@ -2763,7 +2763,7 @@ sub _key_Ctrl_Shift_V {
 }
 
 
-#bind _key_Ctrl_Shift_S to Ctrl+Shift+S
+#bind _key_Ctrl_Shift_S to Ctrl+S
 sub _key_Ctrl_Shift_S {
 
   $sPar1 = 'Sb_Pa';
@@ -2773,7 +2773,7 @@ sub _key_Ctrl_Shift_S {
 }
 
 
-#bind _key_Ctrl_Shift_B to Ctrl+Shift+B
+#bind _key_Ctrl_Shift_B to Ctrl+B
 sub _key_Ctrl_Shift_B {
 
   $sPar1 = 'Obj_Pa';
@@ -2783,7 +2783,7 @@ sub _key_Ctrl_Shift_B {
 }
 
 
-#bind _key_Ctrl_Shift_A to Ctrl+Shift+A
+#bind _key_Ctrl_Shift_A to Ctrl+A
 sub _key_Ctrl_Shift_A {
 
   $sPar1 = 'Atr_Pa';
@@ -2793,7 +2793,7 @@ sub _key_Ctrl_Shift_A {
 }
 
 
-#bind _key_Ctrl_Shift_D to Ctrl+Shift+D
+#bind _key_Ctrl_Shift_D to Ctrl+D
 sub _key_Ctrl_Shift_D {
 
   $sPar1 = 'Adv_Pa';
@@ -2803,7 +2803,7 @@ sub _key_Ctrl_Shift_D {
 }
 
 
-#bind _key_Ctrl_Shift_I to Ctrl+Shift+I
+#bind _key_Ctrl_Shift_I to Ctrl+I
 sub _key_Ctrl_Shift_I {
 
   $sPar1 = 'Coord_Pa';
@@ -2813,7 +2813,7 @@ sub _key_Ctrl_Shift_I {
 }
 
 
-#bind _key_Ctrl_Shift_T to Ctrl+Shift+T
+#bind _key_Ctrl_Shift_T to Ctrl+T
 sub _key_Ctrl_Shift_T {
 
   $sPar1 = 'AuxT_Pa';
@@ -2823,7 +2823,7 @@ sub _key_Ctrl_Shift_T {
 }
 
 
-#bind _key_Ctrl_Shift_R to Ctrl+Shift+R
+#bind _key_Ctrl_Shift_R to Ctrl+R
 sub _key_Ctrl_Shift_R {
 
   $sPar1 = 'AuxR_Pa';
@@ -2833,7 +2833,7 @@ sub _key_Ctrl_Shift_R {
 }
 
 
-#bind _key_Ctrl_Shift_P to Ctrl+Shift+P
+#bind _key_Ctrl_Shift_P to Ctrl+P
 sub _key_Ctrl_Shift_P {
 
   $sPar1 = 'AuxP_Pa';
@@ -2843,7 +2843,7 @@ sub _key_Ctrl_Shift_P {
 }
 
 
-#bind _key_Ctrl_Shift_U to Ctrl+Shift+U
+#bind _key_Ctrl_Shift_U to Ctrl+U
 sub _key_Ctrl_Shift_U {
 
   $sPar1 = 'Apos_Pa';
@@ -2853,7 +2853,7 @@ sub _key_Ctrl_Shift_U {
 }
 
 
-#bind _key_Ctrl_Shift_C to Ctrl+Shift+C
+#bind _key_Ctrl_Shift_C to Ctrl+C
 sub _key_Ctrl_Shift_C {
 
   $sPar1 = 'AuxC_Pa';
@@ -2863,7 +2863,7 @@ sub _key_Ctrl_Shift_C {
 }
 
 
-#bind _key_Ctrl_Shift_O to Ctrl+Shift+O
+#bind _key_Ctrl_Shift_O to Ctrl+O
 sub _key_Ctrl_Shift_O {
 
   $sPar1 = 'AuxO_Pa';
@@ -2873,7 +2873,7 @@ sub _key_Ctrl_Shift_O {
 }
 
 
-#bind _key_Ctrl_Shift_H to Ctrl+Shift+H
+#bind _key_Ctrl_Shift_H to Ctrl+H
 sub _key_Ctrl_Shift_H {
 
   $sPar1 = 'Atv_Pa';
@@ -2883,7 +2883,7 @@ sub _key_Ctrl_Shift_H {
 }
 
 
-#bind _key_Ctrl_Shift_J to Ctrl+Shift+J
+#bind _key_Ctrl_Shift_J to Ctrl+J
 sub _key_Ctrl_Shift_J {
 
   $sPar1 = 'AtvV_Pa';
@@ -2893,7 +2893,7 @@ sub _key_Ctrl_Shift_J {
 }
 
 
-#bind _key_Ctrl_Shift_Z to Ctrl+Shift+Z
+#bind _key_Ctrl_Shift_Z to Ctrl+Z
 sub _key_Ctrl_Shift_Z {
 
   $sPar1 = 'AuxZ_Pa';
@@ -2903,7 +2903,7 @@ sub _key_Ctrl_Shift_Z {
 }
 
 
-#bind _key_Ctrl_Shift_Y to Ctrl+Shift+Y
+#bind _key_Ctrl_Shift_Y to Ctrl+Y
 sub _key_Ctrl_Shift_Y {
 
   $sPar1 = 'AuxY_Pa';
@@ -2913,7 +2913,7 @@ sub _key_Ctrl_Shift_Y {
 }
 
 
-#bind _key_Ctrl_Shift_G to Ctrl+Shift+G
+#bind _key_Ctrl_Shift_G to Ctrl+G
 sub _key_Ctrl_Shift_G {
 
   $sPar1 = 'AuxG_Pa';
@@ -2923,7 +2923,7 @@ sub _key_Ctrl_Shift_G {
 }
 
 
-#bind _key_Ctrl_Shift_K to Ctrl+Shift+K
+#bind _key_Ctrl_Shift_K to Ctrl+K
 sub _key_Ctrl_Shift_K {
 
   $sPar1 = 'AuxK_Pa';
@@ -2933,7 +2933,7 @@ sub _key_Ctrl_Shift_K {
 }
 
 
-#bind _key_Ctrl_Shift_X to Ctrl+Shift+X
+#bind _key_Ctrl_Shift_X to Ctrl+X
 sub _key_Ctrl_Shift_X {
 
   $sPar1 = 'AuxX_Pa';
@@ -2943,7 +2943,7 @@ sub _key_Ctrl_Shift_X {
 }
 
 
-#bind _key_Ctrl_Shift_E to Ctrl+Shift+E
+#bind _key_Ctrl_Shift_E to Ctrl+E
 sub _key_Ctrl_Shift_E {
 
   $sPar1 = 'ExD_Pa';

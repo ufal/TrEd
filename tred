@@ -4594,20 +4594,18 @@ sub evalMacro {
   my $win=$grp->{focusedWindow};
   my $key;
   my $e= $w->XEvent;
-  my $A= uc($e->A);
+  my $A= $e->A;
+  my $K= $e->K;
   my @possib=();
   my $macro=undef;
 
+  print STDERR "Prefix: $prefix\n" if $keyboardDebug;
+  $prefix=~s/SHIFT\+//g unless ($K=~/^(?:left|right|up|down|next|prior|space|backspace|insert|delete|return|pause|escape|home|end|begin|select|print|execute|undo|redo|menu|find|cancel|help|break|F[0-9]+|L[0-9]+|R[0-9]+|ISO_Left_Tab)$/i);
   if ($keyboardDebug) {
-    print STDERR "Pressed: (".ord($A)."), prefix $prefix, keysym ",$e->K,"/",$e->N,"\n";
-    print STDERR "Maybe: ",$prefix.$pckey_shift_translates{$e->K},"\n";
+    print STDERR "Pressed: (".ord($A)."), prefix $prefix, keysym $K/",$e->N,"\n";
+    print STDERR "Maybe: $prefix$K\n";
   }
-
-  push @possib,
-    ($prefix.$A,
-      ($prefix=~/SHIFT/ and exists($pckey_shift_translates{$e->K})) ?
-	$prefix.uc($pckey_shift_translates{$e->K}) : ()),
-	$prefix.uc($e->K);
+  push @possib, ($prefix.$A,$prefix.$K);
 
   $macro=resolveKey($grp,@possib);
   if (defined $macro) {

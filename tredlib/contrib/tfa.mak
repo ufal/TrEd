@@ -6,15 +6,15 @@ import Tectogrammatic;
 
 #bind ShiftLeft to Ctrl+Left menu posun uzel doleva
 #bind ShiftRight to Ctrl+Right menu posun uzel doprava
-#bind tfa_focus to F menu tfa = focus
-#bind tfa_topic to T menu tfa = topic
-#bind tfa_C to C menu tfa = contrast
-#bind tfa_NA to A menu tfa = NA
-#bind tfa_qm to N menu tfa = ???
-#bind ProjectivizeSubTree to P menu Projectivize subtree
+#bind tfa_focus to f menu tfa = focus
+#bind tfa_topic to t menu tfa = topic
+#bind tfa_C to c menu tfa = contrast
+#bind tfa_NA to a menu tfa = NA
+#bind tfa_qm to n menu tfa = ???
+#bind ProjectivizeSubTree to p menu Projectivize subtree
 #bind ShiftSTLeft to Alt+Left menu Shift subtree to the left
 #bind ShiftSTRight to Alt+Right menu Shift subtree to the right
-#bind OrderSTByTFA to O menu Order subtree by TFA
+#bind OrderSTByTFA to o menu Order subtree by TFA
 
 
 sub switch_context_hook {

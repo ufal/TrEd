@@ -11,7 +11,7 @@
 #include contrib/AFA.mak
 #include contrib/ValLex/chooser.mak
 
-#bind default_tr_attrs to key F8 menu Display default attributes
+#bind default_tr_attrs to F8 menu Display default attributes
 sub default_tr_attrs {
   return unless $grp->{FSFile};
   print "Using standard patterns\n";
@@ -179,13 +179,13 @@ sub rotate_attrib {
   return join('|',@vals);
 }
 
-# bind rotate_func to Ctrl+space menu Rotate Functor Values
+#bind rotate_func to Ctrl+space menu Rotate Functor Values
 sub rotate_func {
   $this->{func}=rotate_attrib($this->{func});
 }
 
-# bind edit_commentA to key exclam menu Edit annotator's comment
-# bind edit_commentA to key Shift+1
+#bind edit_commentA to exclam menu Edit annotator's comment
+#bind edit_commentA to exclam
 sub edit_commentA {
   if (not $grp->{FSFile}->FS->exists('commentA')) {
     $ToplevelFrame->messageBox
@@ -224,7 +224,7 @@ sub add_new_node {
 }
 
 # this is new (not overriden)
-#bind AddNewLoc to key Ctrl+Shift+L menu Doplnit mistní doplnìní pod akt. vrchol
+#bind AddNewLoc to Ctrl+L menu Doplnit mistní doplnìní pod akt. vrchol
 sub AddNewLoc {
 
   $pPar1 = $this;
@@ -298,7 +298,7 @@ sub FuncAssign {
   }
 }
 
-#bind add_questionmarks_func to Ctrl+Shift+X menu Pridat k funktoru ???
+#bind add_questionmarks_func to Ctrl+X menu Pridat k funktoru ???
 sub add_questionmarks_func {
   $pPar1 = $this;
   $sPar1 = Union($pPar1->{'func'},'???');
@@ -309,9 +309,9 @@ sub add_questionmarks_func {
 # Node shifting
 
 #bind ShiftLeft to Ctrl+Left menu posun uzel doleva
-#bind ShiftLeft to Shift+Q menu posun uzel doleva
+#bind ShiftLeft to Q menu posun uzel doleva
 #bind ShiftRight to Ctrl+Right menu posun uzel doprava
-#bind ShiftRight to Shift+U menu posun uzel doprava
+#bind ShiftRight to U menu posun uzel doprava
 
 sub ShiftLeft {
   return unless ($this->{dord}>1);

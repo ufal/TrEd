@@ -110,8 +110,10 @@ sub read_macros {
     } elsif (/\#[ \t]*bind[ \t]+(\w*)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/)
       {
 	$macro=$1;
-	$key=uc($2);
+	$key=$2;
 	$menu=TrEd::Convert::encode($3);
+	$key=~s/\-/+/g;		     # convert ctrl-x to ctrl+x
+	$key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
 	#print "binding $key [$menu] => $macro\n";
 	foreach (@contexts) {
 	  $keyBindings{$_}={} unless exists($keyBindings{$_});

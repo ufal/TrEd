@@ -72,13 +72,13 @@ sub after_edit_node_hook {
   }
 }
 
-#bind clear_funcaux to key Space menu Clear functor color
+#bind clear_funcaux to Space menu Clear functor color
 sub clear_funcaux {
   my $node=$_[1] || $this;
   $node->{funcaux}='';
 }
 
-#bind assign_func_auto to key F9 menu Auto-assign functor to node
+#bind assign_func_auto to F9 menu Auto-assign functor to node
 sub assign_func_auto {
   my $node=$_[1] || $this;
   foreach (qw/funcauto funcprec funcaux/) {
@@ -146,7 +146,7 @@ sub assign_func_auto {
   $node->{func}=$node->{funcauto} if ($node->{funcauto});
 }
 
-#bind assign_all_func_auto to key F10 menu Auto-assign functors to tree
+#bind assign_all_func_auto to F10 menu Auto-assign functors to tree
 sub assign_all_func_auto {
   my $class=$_[0];
   my $node=$root;
