@@ -71,7 +71,8 @@ sub add_this_to_arf_original {
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
   return 0 unless ref($tr_fs);
-  AddToList($PML::arf,'a.rf',$this->{id});
+  my $refid = $tr_fs->metaData('refnames')->{adata};
+  AddToList($PML::arf,'a.rf',$refid."#".$this->{id});
   @{$PML::arf->{'a.rf'}}=uniq(ListV($PML::arf->{'a.rf'}));
   my$lemma=$this->{'m'}{lemma};
   my%specialEntity;
@@ -114,7 +115,8 @@ sub add_this_to_arf {
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
   return 0 unless ref($tr_fs);
-  AddToList($PML::arf,'a.rf','a#'.$this->{id});
+  my $refid = $tr_fs->metaData('refnames')->{adata};
+  AddToList($PML::arf,'a.rf',$refid.'#'.$this->{id});
   @{$PML::arf->{'a.rf'}}=uniq(ListV($PML::arf->{'a.rf'}));
   $tr_fs->notSaved(1);
 }#add_this_to_arf
@@ -126,7 +128,8 @@ sub remove_this_from_arf {
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
   return 0 unless ref($tr_fs);
-  @{$PML::arf->{'a.rf'}}=uniq(ListSubtract($PML::arf->{'a.rf'},List('a#'.$this->{id})));
+  my $refid = $tr_fs->metaData('refnames')->{adata};
+  @{$PML::arf->{'a.rf'}}=uniq(ListSubtract($PML::arf->{'a.rf'},List($refid.'#'.$this->{id})));
   $tr_fs->notSaved(1);
 }#add_this_from_arf
 
