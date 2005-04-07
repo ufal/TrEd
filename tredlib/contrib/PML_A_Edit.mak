@@ -58,15 +58,15 @@ sub status_line_doubleclick_hook {
 }
 
 
-=item add_this_to_arf_original
+=item AddThisToArfOriginal
 
-If called from analytical tree entered through C<PML_T_Edit::mark_for_arf>, adds
+If called from analytical tree entered through C<PML_T_Edit::MarkForArf>, adds
 this node's C<id> to C<a.rf> list of the marked tectogrammatical node.
 
 =cut
 
-#bind add_this_to_arf_original to Ctrl++ Add This to a.rf of Marked Node
-sub add_this_to_arf_original {
+#bind AddThisToArfOriginal to Ctrl++ Add This to a.rf of Marked Node
+sub AddThisToArfOriginal {
   ChangingFile(0);
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
@@ -100,17 +100,17 @@ sub add_this_to_arf_original {
   }
   $PML::arf->{t_lemma}=$lemma;
   $tr_fs->notSaved(1);
-}#add_this_to_arf
+}#AddThisToArf
 
-=item add_this_to_arf
+=item AddThisToArf
 
-If called from analytical tree entered through C<PML_T_Edit::mark_for_arf>, adds
+If called from analytical tree entered through C<PML_T_Edit::MarkForArf>, adds
 this node's C<id> to C<a.rf> list of the marked tectogrammatical node.
 
 =cut
 
-#bind add_this_to_arf to + menu Add This to a.rf of Marked Node
-sub add_this_to_arf {
+#bind AddThisToArf to + menu Add This to a.rf of Marked Node
+sub AddThisToArf {
   ChangingFile(0);
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
@@ -119,11 +119,11 @@ sub add_this_to_arf {
   AddToList($PML::arf,'a.rf',$refid.'#'.$this->{id});
   @{$PML::arf->{'a.rf'}}=uniq(ListV($PML::arf->{'a.rf'}));
   $tr_fs->notSaved(1);
-}#add_this_to_arf
+}#AddThisToArf
 
-#bind remove_this_from_arf to minus menu Remove This from a.rf of Marked Node
-#bind remove_this_from_arf to KP_Subtract
-sub remove_this_from_arf {
+#bind RemoveThisFromArf to minus menu Remove This from a.rf of Marked Node
+#bind RemoveThisFromArf to KP_Subtract
+sub RemoveThisFromArf {
   ChangingFile(0);
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
@@ -133,34 +133,34 @@ sub remove_this_from_arf {
   $tr_fs->notSaved(1);
 }#add_this_from_arf
 
-#bind edit_mlemma to L menu Edit morphological lemma
-sub edit_mlemma{
+#bind EditMLemma to L menu Edit morphological lemma
+sub EditMLemma{
   ChangingFile(EditAttribute($this,'m/lemma'));
-}#edit_mlemma
+}#EditMlemma
 
-#bind edit_mtag to T menu Edit morphological tag
-sub edit_mtag{
+#bind EditMTag to T menu Edit morphological tag
+sub EditMTag{
   ChangingFile(EditAttribute($this,'m/tag'));
-}#edit_mtag
+}#EditMtag
 
-#bind edit_afun to a menu Edit afun
-sub edit_afun{
+#bind EditAfun to a menu Edit afun
+sub EditAfun{
   ChangingFile(EditAttribute($this,'afun'));
-}#edit_afun
+}#EditAfun
 
-#bind rotate_member to m menu Change is_member
-sub rotate_member{
+#bind RotateMember to m menu Change is_member
+sub RotateMember{
   $this->{is_member}=!$this->{is_member};
-}#rotate_member
+}#RotateMember
 
-#bind rotate_parenthesis_root to p menu Change is_parenthesis_root
-sub rotate_parenthesis_root{
+#bind RotateParenthesisRoot to p menu Change is_parenthesis_root
+sub RotateParenthesisRoot{
   $this->{is_parenthesis_root}=!$this->{is_parenthesis_root};
-}#rotate_parenthesis_root
+}#RotateParenthesisRoot
 
 
-#bind tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree
-#bind goto_tree to Alt+g menu Goto Tree
+#bind TectogrammaticalTree to Ctrl+R menu Display tectogrammatical tree
+#bind GotoTree to Alt+g menu Goto Tree
 
 
 1;

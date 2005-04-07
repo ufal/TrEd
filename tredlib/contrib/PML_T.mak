@@ -41,7 +41,7 @@ sub AFile {
   $fsfile->appData('ref')->{$refid};
 }
 
-=item getANodes($node?)
+=item GetANodes($node?)
 
 Returns a list of analytical nodes referenced from a given
 tectogrammatical node. If no node is given, the function applies to
@@ -49,12 +49,12 @@ C<$this>.
 
 =cut
 
-sub getANodes {
+sub GetANodes {
   my $node = $_[0] || $this;
-  return grep defined, map { s/^.*#//; getANodesHash()->{$_} } ListV($node->{'a.rf'});
+  return grep defined, map { s/^.*#//; GetANodesHash()->{$_} } ListV($node->{'a.rf'});
 }
 
-=item getANodeByID($id_or_ref)
+=item GetANodeByID($id_or_ref)
 
 Looks up an analytical node by its ID (or PMLREF - i.e. the ID
 preceded by a file prefix of the form C<a#>). This function only works
@@ -63,23 +63,23 @@ belongs to an analytical file associated with it.
 
 =cut
 
-sub getANodeByID {
+sub GetANodeByID {
   my ($arf)=@_;
   $arf =~ s/^.*#//;
-  return getANodesHash()->{$arf};
+  return GetANodesHash()->{$arf};
 }
 
-=item getANodesHash()
+=item GetANodesHash()
 
 Return a reference to a hash indexing analytical nodes of the
 analytical file associated with the current tectogrammatical file. If
 such a hash was not yet created, it is created upon the first call to
-this function (or other functions calling it, such as C<getANodes> or
-C<getANodeByID>.
+this function (or other functions calling it, such as C<GetANodes> or
+C<GetANodeByID>.
 
 =cut
 
-sub getANodesHash {
+sub GetANodesHash {
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
   return {} unless ref($fsfile);
@@ -90,17 +90,17 @@ sub getANodesHash {
     $a_fs = AFile($fsfile);
     return {} unless ref($a_fs);
   }
-  return getNodeHash($a_fs);
+  return GetNodeHash($a_fs);
 }
 
-=item clearANodesHash()
+=item ClearANodesHash()
 
 Clear the internal hash indexing analytical nodes of the analytical
 file associated with the current tectogrammatical file.
 
 =cut
 
-sub clearANodesHash {
+sub ClearANodesHash {
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
   my $a_fs = AFile($fsfile);
@@ -110,7 +110,7 @@ sub clearANodesHash {
 
 #ifdef TRED
 
-=item analytical_tree()
+=item AnalyticalTree()
 
 This function is only available in TrEd (i.e. in GUI). It switches
 current view to an analytical tree associated with a currently
@@ -118,9 +118,9 @@ displayed tectogrammatical tree.
 
 =cut
 
-sub analytical_tree {
-  return unless schema_name() eq 'tdata';
-  return unless switch_to_afile();
+sub AnalyticalTree {
+  return unless SchemaName() eq 'tdata';
+  return unless SwitchToAFile();
   $PML_T::laststylesheet=GetCurrentStylesheet();
   if (CurrentContext() eq 'PML_T_Edit') {
     SwitchContext('PML_A_Edit');
@@ -137,25 +137,25 @@ sub analytical_tree {
       if ($trees->[$i]->{id} eq $a_rf) {
 	$grp->{treeNo} = $i;
 	$fsfile->currentTreeNo($i);
-	print "Found $a_rf at tree position $i\n";
+	# print "Found $a_rf at tree position $i\n";
 	last TREE;
       }
     }
   }
   $root = $fsfile->tree($grp->{treeNo});
-  my $a_ids = getANodesHash($fsfile);
+  my $a_ids = GetNodeHash($fsfile);
   my $first =
     first {
       ref($a_ids->{$_}) and ($a_ids->{$_}->root == $root) ? 1 : 0
     } map { my $s = $_; $s=~s/^.*\#//; $s; } ListV($this->{'a.rf'});
   $this = $a_ids->{$first};
-  print "New this: $this->{id}\n" if ref($this);
+  # print "New this: $this->{id}\n" if ref($this);
   ChangingFile(0);
 }
 
-sub switch_to_afile {
+sub SwitchToAFile {
   my $fsfile = $grp->{FSFile};
-  return 0 unless schema_name() eq 'tdata';
+  return 0 unless SchemaName() eq 'tdata';
   my $ar_fs = AFile($fsfile);
   return 0 unless $ar_fs;
   # remember the file we came from:
@@ -170,7 +170,7 @@ sub get_value_line_hook {
   my ($fsfile,$treeNo)=@_;
   return unless $fsfile;
   my $tree = $fsfile->tree($treeNo);
-  my ($a_tree) = getANodes($tree);
+  my ($a_tree) = GetANodes($tree);
   return unless ($a_tree);
   my $node = $tree->following;
   my %refers_to;
@@ -221,7 +221,7 @@ sub node_style_hook {
     my @gram = grep {$_ ne "" } ListV($node->{'coref_gram.rf'});
     my @text = grep {$_ ne "" } ListV($node->{'coref_text.rf'});
     my @compl = grep {$_ ne "" } ListV($node->{'compl.rf'});
-    draw_coref_arrows($node,$styles,\%line,
+    DrawCorefArrows($node,$styles,\%line,
 		      [@gram,@text,@compl],
 		      [(map 'grammatical',@gram),
 		       (map 'textual',@text),
@@ -232,7 +232,7 @@ sub node_style_hook {
   1;
 }
 
-=item draw_coref_arrows
+=item DrawCorefArrows
 
 Called from C<node_style_hook>. Draws coreference arrows using
 following properties: textual arrows in CustomColor C<arrow_textual>,
@@ -243,7 +243,7 @@ C<arrow_exoph>.
 
 =cut
 
-sub draw_coref_arrows {
+sub DrawCorefArrows {
   my ($node,$styles,$line,$corefs,$cortypes)=@_;
   delete $coreflemmas{$node->{id}};
   my (@coords,@colors,@dash);
@@ -273,30 +273,10 @@ COORDS
       push @coords,$c;
 
     } else { # should be always the same document, if it exists at all
-      my($step_l,$step_r)=(1,1);
-      my $current=CurrentTreeNumber();
-      my @trees=GetTrees();
-      my $maxnum=$#trees;
-      my $orientation;
-
-      while($step_l!=0 or $step_r!=0){
-        if($step_l){
-          if (my$refed=first { $_->{id} eq $coref } $trees[$current-$step_l] -> descendants){
-            $orientation='left';
-            $coreflemmas{$node->{id}}.=$refed->{t_lemma};
-            last;
-          }
-          $step_l=0 if ($current-(++$step_l))<0;
-        }
-        if($step_r){
-          if (my$refed=first { $_->{id} eq $coref } $trees[$current+$step_r] -> descendants){
-            $coreflemmas{$node->{id}}.=$refed->{t_lemma};
-            $orientation='right';
-            last;
-          }
-          $step_r=0 if ($current+(++$step_r))>$maxnum;
-        }
-      }
+      my($refed,$treeNo)=SearchForNodeById($coref);
+      my $orientation=$treeNo-CurrentTreeNumber()-1;
+      $orientation=$orientation>0 ? 'right' : ($orientation<0 ? 'left':0);
+      $coreflemmas{$node->{id}}.=' '.$refed->{t_lemma};
       if($orientation){
           if($orientation eq'left'){
 	    print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
@@ -353,6 +333,61 @@ COORDS
   }
 }
 
+sub _FollowArrows{
+  my$selected;
+  if(@_>1){
+    my$dialog=[];
+    listQuery('Arrow to follow:'
+              ,'browse'
+              ,[map{
+                my($type,$id,$node)=@$_;
+                join ' ',$node->{t_lemma}.'   ',$type,$id;
+              }@_],
+              $dialog) or return;
+    $selected=$dialog->[0];
+    $selected=~s/^.* (.*)$/$1/;
+  }else{
+    $selected=$_[0][1];
+    return 0 unless $selected;
+  }
+  my($found,$treeNo)=SearchForNodeById($selected);
+  return unless $found;
+  TredMacro::GotoTree($treeNo);
+  $this=$found;
+}#_FollowArrows
+
+sub JumpToAntecedent {
+  ChangingFile(0);
+  return unless GUI();
+  my@arrows;
+  foreach my$type(@_){
+    foreach my$arrow(ListV($this->{$type})){
+      push@arrows,[$type,$arrow,SearchForNodeById($arrow)];
+    }
+  }
+  _FollowArrows(@arrows)if@arrows;
+}#JumpToAntecedent
+
+sub JumpToAntecedentAll {
+  ChangingFile(0);
+  JumpToAntecedent('compl.rf','coref_text.rf','coref_gram.rf');
+}#JumpToAntecedentAll
+
+sub JumpToAntecedentCompl {
+  ChangingFile(0);
+  JumpToAntecedent('compl.rf');
+}#JumpToAntecedentCompl
+
+sub JumpToAntecedentText {
+  ChangingFile(0);
+  JumpToAntecedent('coref_text.rf');
+}#JumpToAntecedentText
+
+sub JumpToAntecedentGram {
+  ChangingFile(0);
+  JumpToAntecedent('coref_gram.rf');
+}#JumpToAntecedentGram
+
 sub get_status_line_hook {
   # get_status_line_hook may either return a string
   # or a pair [ field-definitions, field-styles ]
@@ -382,20 +417,20 @@ sub get_status_line_hook {
 }
 
 
-=item is_coord($node?)
+=item IsCoord($node?)
 
 Check if the given node is a coordination according to its TGTS
 functor (attribute C<functor>)
 
 =cut
 
-sub is_coord {
+sub IsCoord {
   my $node=$_[0] || $this;
   return 0 unless $node;
   return $node->{functor} =~ /CONJ|CONFR|DISJ|GRAD|ADVS|CSQ|REAS|CONTRA|APPS|OPER/;
 }
 
-=item expand_coord($node,$keep?)
+=item ExpandCoord($node,$keep?)
 
 If the given node is coordination or aposition (according to its TGTS
 functor - attribute C<functor>) expand it to a list of coordinated
@@ -404,59 +439,59 @@ true, include the coordination/aposition node in the list as well.
 
 =cut
 
-sub expand_coord {
+sub ExpandCoord {
   my ($node,$keep)=@_;
   return unless $node;
-  if (is_coord($node)) {
+  if (IsCoord($node)) {
     return (($keep ? $node : ()),
-	    map { expand_coord($_,$keep) }
+	    map { ExpandCoord($_,$keep) }
 	    grep { $_->{is_member} } $node->children);
   } else {
     return ($node);
   }
-} #expand_coord
+} #ExpandCoord
 
-=item get_sentence_string($tree?)
+=item GetSentenceString($tree?)
 
 Return string representation of the given tree (suitable for
 Tectogrammatical trees).
 
 =cut
 
-sub get_sentence_string {
+sub GetSentenceString {
   my $node=$_[0]||$this;
-  my ($a_tree) = getANodes($node->root);
+  my ($a_tree) = GetANodes($node->root);
   return unless ($a_tree);
   return get_sentence_string_A($a_tree);
-}#get_sentence_string
+}#GetSentenceString
 
-=item GetFathers($node)
+=item GetEParents($node)
 
 Return linguistic parents of a given node as appear in a TG tree.
 
 =cut
 
-sub GetFathers {
+sub GetEParents {
   my $node = $_[0] || $this;
   if ($node and $node->{is_member}) {
-    while ($node and (!is_coord($node) or $node->{is_member})) {
+    while ($node and (!IsCoord($node) or $node->{is_member})) {
       $node=$node->parent;
     }
   }
   return () unless $node;
   $node=$node->parent;
   return () unless $node;
-  return ($node) if !is_coord($node);
-  return (expand_coord($node));
-} # GetFathers
+  return ($node) if !IsCoord($node);
+  return (ExpandCoord($node));
+} # GetEParents
 
-=item GetChildren($node?)
+=item GetEChildren($node?)
 
 Return a list of nodes linguistically dependant on a given node.
 
 =cut
 
-sub FilterSons { # node suff from
+sub FilterChildren { # node suff from
   my ($node,$suff,$from)=(shift,shift,shift);
   my @sons;
   $node=$node->firstson;
@@ -465,34 +500,34 @@ sub FilterSons { # node suff from
     unless ($node==$from){ # on the way up do not go back down again
       if(($suff&&$node->{is_member})
 	 ||(!$suff&&!$node->{is_member})){ # this we are looking for
-	push @sons,$node unless is_coord($node);
+	push @sons,$node unless IsCoord($node);
       }
-      push @sons,FilterSons($node,1,0)
+      push @sons,FilterChildren($node,1,0)
 	if (!$suff
-	    &&is_coord($node)
+	    &&IsCoord($node)
 	    &&!$node->{is_member})
 	  or($suff
-	     &&is_coord($node)
+	     &&IsCoord($node)
 	     &&$node->{is_member});
     } # unless node == from
     $node=$node->rbrother;
   }
   @sons;
-} # FilterSons
+} # FilterChildren
 
-sub GetChildren { # node
+sub GetEChildren { # node
   my $node=$_[0]||$this;
-  return () if is_coord($node);
+  return () if IsCoord($node);
   my @sons;
   my $init_node=$node;# for error message
   my $from;
-  push @sons,FilterSons($node,0,0);
+  push @sons,FilterChildren($node,0,0);
   if($node->{is_member}){
     my @oldsons=@sons;
     while($node and $node->{nodetype}ne'root'
-	  and ($node->{is_member} || !is_coord($node))){
+	  and ($node->{is_member} || !IsCoord($node))){
       $from=$node;$node=$node->parent;
-      push @sons,FilterSons($node,0,$from) if $node;
+      push @sons,FilterChildren($node,0,$from) if $node;
     }
     if ($node->{nodetype}eq'root'){
       stderr("Error: Missing coordination head: $init_node->{id} $node->{id} ",ThisAddressNTRED($node),"\n");
@@ -500,36 +535,36 @@ sub GetChildren { # node
     }
   }
   @sons;
-} # GetChildren
+} # GetEChildren
 
-=item GetDescendants($node?)
+=item GetEDescendants($node?)
 
 Return a list of all nodes linguistically subordinated to a given node
 (not including the node itself).
 
 =cut
 
-sub GetDescendants {
+sub GetEDescendants {
   my $node = $_[0] || $this;
   return () unless ($node and $node->{nodetype} ne 'coap');
-  return uniq(map { $_, GetDescendants($_) } GetChildren($node));
+  return uniq(map { $_, GetEDescendants($_) } GetEChildren($node));
 }
 
-=item GetAncestors($node?)
+=item GetEAncestors($node?)
 
 Return a list of all nodes linguistically superordinated to (ie
 governing) a given node (not including the node itself).
 
 =cut
 
-sub GetAncestors {
+sub GetEAncestors {
   my $node = $_[0] || $this;
   return () unless ($node and $node->{nodetype} ne 'coap');
-  return uniq(map { ($_, GetAncestors($_)) } GetFathers($node));
+  return uniq(map { ($_, GetEAncestors($_)) } GetEParents($node));
 }
 
 
-=item GetTrueSiblings($node?)
+=item GetESiblings($node?)
 
 Return linguistic siblings of a given node as appears in a
 tectogrammatic tree. This doesn't include the node itself, neither
@@ -538,14 +573,14 @@ coordination with the node.
 
 =cut
 
-sub GetTrueSiblings {
+sub GetESiblings {
   my $node = $_[0] || $this;
   my $coord = GetNearestNonMember($node);
   return
     grep { GetNearestNonMember($_) != $coord }
-    map { GetChildren($_) }
-    GetFathers($node)
-} # GetTrueSiblings
+    map { GetEChildren($_) }
+    GetEParents($node)
+} # GetESiblings
 
 =item GetNearestNonMember($node?)
 
@@ -563,7 +598,7 @@ sub GetNearestNonMember {
  return $node;
 }
 
-=item isFiniteVerb($node?)
+=item IsFiniteVerb($node?)
 
 If the node is the head of a finite complex verb form (based on
 C<a.rf> information and m/tag of the corresponding analytical nodes),
@@ -571,50 +606,50 @@ return 1, else return 0.
 
 =cut
 
-sub isFiniteVerb {
+sub IsFiniteVerb {
   my $node = $_[0] || $this;
-  return (first { $_->{'m'}{tag}=~/^V[^sf]/ } getANodes($node)) ? 1 : 0;
-}#isFiniteVerb
+  return (first { $_->{'m'}{tag}=~/^V[^sf]/ } GetANodes($node)) ? 1 : 0;
+}#IsFiniteVerb
 
-=item isPassive($node?)
+=item IsPassive($node?)
 
 If the node is the head of a passive-only verb form, (based on
 C<a.rf> information), return 1, else return 0.
 
 =cut
 
-sub isPassive {
+sub IsPassive {
   my $node = $_[0] || $this;
-  my @anodes = grep { $_->{'m'}{tag} =~ /^V/ } getANodes($node);
+  my @anodes = grep { $_->{'m'}{tag} =~ /^V/ } GetANodes($node);
   return( @anodes == 1 and $anodes[0]->{'m'}{tag} =~ /^Vs/)
-}#isPassive
+}#IsPassive
 
-=item isInfinitive($node?)
+=item IsInfinitive($node?)
 
 If the node is the head of an infinitive complex verb form, (based on
 C<a.rf> information), return 1, else return 0.
 
 =cut
 
-sub isInfinitive {
+sub IsInfinitive {
   my $node = $_[0] || $this;
-  my @anodes = grep { $_->{'m'}{tag} =~ /^V/ } getANodes($node);
-  @anodes and not(&isFiniteVerb or &isPassive);
-}#isInfinitive
+  my @anodes = grep { $_->{'m'}{tag} =~ /^V/ } GetANodes($node);
+  @anodes and not(&IsFiniteVerb or &IsPassive);
+}#IsInfinitive
 
 
-=item modal_verb_lemma($lemma)
+=item ModalVerbLemma($lemma)
 
 Return 1 if trlemma is a member of the list of all possible modal verb
 lemmas (morfological lemma suffixes (/[-`_].*/) are ignored).
 
 =cut
 
-sub modal_verb_lemma ($) {
+sub ModalVerbLemma ($) {
   $_[0]=~/^(?:dát|dovést|hodlat|chtít|mít|moci|mus[ei]t|smìt|umìt)($|[-`_].*)/;
-}#modal_verb_lemma
+}#ModalVerbLemma
 
-=item create_stylesheets
+=item CreateStylesheets
 
 Creates default stylesheets for PML tectogrammatic files unless
 already defined. Most of the colors they use can be redefined in the
@@ -685,12 +720,12 @@ C<detail>.
 
 =cut
 
-sub create_stylesheets{
+sub CreateStylesheets{
   unless(StylesheetExists('PML_T_Compact')){
     SetStylesheetPatterns(<<'EOF','PML_T_Compact',1);
 node:<? '#{customparenthesis}' if $${is_parenthesis} 
   ?><?$${nodetype}eq'root' ? '${id}' : '${t_lemma}'
-  ?><? '#{customcoref}.'.$PML_T::coreflemmas{$${id}}
+  ?><? '#{customcoref}'.$PML_T::coreflemmas{$${id}}
     if $PML_T::coreflemmas{$${id}}ne'' ?>
 
 node:<?
@@ -718,17 +753,17 @@ style:<?
      ($this->parent and $this->parent->{nodetype}eq'root')) {
      '#{Line-width:1}#{Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal').'}'
   } elsif ($${is_member}) {
-    if (PML_T::is_coord($this)and PML_T::is_coord($this->parent)) {
+    if (PML_T::IsCoord($this)and PML_T::IsCoord($this->parent)) {
       '#{Line-width:1}#{Line-fill:'.CustomColor('line_member').'}'
-    } elsif ($this->parent and PML_T::is_coord($this->parent)) {
+    } elsif ($this->parent and PML_T::IsCoord($this->parent)) {
       '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:3&1}#{Line-fill:'.
        CustomColor('line_normal').'&'.CustomColor('line_member').'}'
     } else {
       '#{Line-fill:'.CustomColor('error').'}'
     }
-  } elsif ($this->parent and PML_T::is_coord($this->parent)) {
+  } elsif ($this->parent and PML_T::IsCoord($this->parent)) {
     '#{Line-width:1}#{Line-fill:'.CustomColor('line_comm').'}'
-  } elsif (PML_T::is_coord($this)) {
+  } elsif (PML_T::IsCoord($this)) {
     '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:1&3}#{Line-fill:'.
     CustomColor('line_member').'&'.CustomColor('line_normal').'}'
   } else {
@@ -790,17 +825,17 @@ style:<?
      ($this->parent and $this->parent->{nodetype}eq'root')) {
      '#{Line-width:1}#{Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal').'}'
   } elsif ($${is_member}) {
-    if (PML_T::is_coord($this)and PML_T::is_coord($this->parent)) {
+    if (PML_T::IsCoord($this)and PML_T::IsCoord($this->parent)) {
       '#{Line-width:1}#{Line-fill:'.CustomColor('line_member').'}'
-    } elsif ($this->parent and PML_T::is_coord($this->parent)) {
+    } elsif ($this->parent and PML_T::IsCoord($this->parent)) {
       '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:3&1}#{Line-fill:'.
        CustomColor('line_normal').'&'.CustomColor('line_member').'}'
     } else {
       '#{Line-fill:'.CustomColor('error').'}'
     }
-  } elsif ($this->parent and PML_T::is_coord($this->parent)) {
+  } elsif ($this->parent and PML_T::IsCoord($this->parent)) {
     '#{Line-width:1}#{Line-fill:'.CustomColor('line_comm').'}'
-  } elsif (PML_T::is_coord($this)) {
+  } elsif (PML_T::IsCoord($this)) {
     '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:1&3}#{Line-fill:'.
     CustomColor('line_member').'&'.CustomColor('line_normal').'}'
   } else {
@@ -835,14 +870,14 @@ hint:<?
 ?>
 EOF
   }
-}#create_stylesheets
+}#CreateStylesheets
 
 sub allow_switch_context_hook {
-  return 'stop' if schema_name() ne 'tdata';
+  return 'stop' if SchemaName() ne 'tdata';
 }
 sub switch_context_hook {
-  create_stylesheets();
-  SetCurrentStylesheet('PML_T_Compact') if GetCurrentStylesheet() eq STYLESHEET_FROM_FILE();
+  CreateStylesheets();
+  SetCurrentStylesheet('PML_T_Compact'),Redraw() if GetCurrentStylesheet() eq STYLESHEET_FROM_FILE();
   undef$PML::arf;
 }
 
@@ -853,47 +888,47 @@ sub NoShow {
   ChangingFile(0);
 }#NoShow
 
-sub ShowFathers {
+sub ShowEParents {
   my $node=$this;
   undef%PML_T::show;
-  $PML_T::show{$_}=1 foreach map{$_->{id}}GetFathers($node);
+  $PML_T::show{$_}=1 foreach map{$_->{id}}GetEParents($node);
   ChangingFile(0);
-}#ShowFathers
+}#ShowEParents
 
-sub ShowChildren {
+sub ShowEChildren {
   my $node=$this;
   undef%PML_T::show;
-  $PML_T::show{$_}=1 foreach map{$_->{id}}GetChildren($node);
+  $PML_T::show{$_}=1 foreach map{$_->{id}}GetEChildren($node);
   ChangingFile(0);
-}#ShowFathers
+}#ShowEParents
 
 sub ShowExpand {
   my $node=$this;
   undef%PML_T::show;
-  $PML_T::show{$_}=1 foreach map{$_->{id}}expand_coord($node);
+  $PML_T::show{$_}=1 foreach map{$_->{id}}ExpandCoord($node);
   ChangingFile(0);
 }#ShowExpand
 
-sub ShowDescendants {
+sub ShowEDescendants {
   my $node=$this;
   undef%PML_T::show;
-  $PML_T::show{$_}=1 foreach map{$_->{id}}GetDescendants($node);
+  $PML_T::show{$_}=1 foreach map{$_->{id}}GetEDescendants($node);
   ChangingFile(0);
-}#ShowDescendants
+}#ShowEDescendants
 
-sub ShowAncestors {
+sub ShowEAncestors {
   my $node=$this;
   undef%PML_T::show;
-  $PML_T::show{$_}=1 foreach map{$_->{id}}GetAncestors($node);
+  $PML_T::show{$_}=1 foreach map{$_->{id}}GetEAncestors($node);
   ChangingFile(0);
-}#ShowAncestors
+}#ShowEAncestors
 
-sub ShowTrueSiblings {
+sub ShowESiblings {
   my $node=$this;
   undef%PML_T::show;
-  $PML_T::show{$_}=1 foreach map{$_->{id}}GetTrueSiblings($node);
+  $PML_T::show{$_}=1 foreach map{$_->{id}}GetESiblings($node);
   ChangingFile(0);
-}#ShowTrueSiblings
+}#ShowESiblings
 
 sub ShowNearestNonMember {
   my $node=$this;
@@ -902,14 +937,14 @@ sub ShowNearestNonMember {
   ChangingFile(0);
 }#ShowNearestNonMember
 
-=item delete_node (node?)
+=item DeleteNode (node?)
 
 Deletes $node or $this, attaches all its children to its parent and
 recounts deepord. Cannot be used for the root.
 
 =cut
 
-sub delete_node{
+sub DeleteNode{
   shift unless ref $_[0];
   my$node=$_[0]||$this;
   ChangingFile(0),return unless $node->parent;
@@ -920,42 +955,42 @@ sub delete_node{
   DeleteLeafNode($node);
   $this=$parent unless@_;
   ChangingFile(1);
-}#delete_node
+}#DeleteNode
 
-=item delete_subtree (node?)
+=item DeleteSubtree (node?)
 
 Deletes $node or $this and its whole subtree and recounts
 deepord. Cannot be used for the root.
 
 =cut
 
-sub delete_subtree{
+sub DeleteSubtree{
   shift unless ref $_[0];
   my$node=$_[0]||$this;
   ChangingFile(0),return unless $node->parent;
   my$parent=$node->parent;
-  DeleteSubtree($node);
+  TredMacro::DeleteSubtree($node);
   $this=$parent unless@_;
   ChangingFile(1);
-}#delete_subtree
+}#DeleteSubtree
 
-=item new_node (node?)
+=item NewNode (node?)
 
 Add new node as a son of the given node or current node.
 
 =cut
 
-sub new_node{
+sub NewNode{
   shift unless ref $_[0];
   my$node=$_[0]||$this;
   my$new=NewSon($node);
   $new->{id}=$new->root->{id}.'a'.
     ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$root->descendants)[0]+1);
-  my $type = first {$_->{name} eq 't-node' } schema()->node_types;
-  $new->set_type(schema()->type($type))
-}#new_node
+  my $type = first {$_->{name} eq 't-node' } Schema()->node_types;
+  $new->set_type(Schema()->type($type))
+}#NewNode
 
-=item open_val_frame_list (node?, options...)
+=item OpenValFrameList (node?, options...)
 
 Open a window with a list of possible valency frames for a given node,
 highlighting frames currently assigned to the node. All given options
@@ -969,7 +1004,7 @@ forbid adding new words to the lexicon (also implied by C<-no-assign>.
 
 =cut
 
-sub open_val_frame_list {
+sub OpenValFrameList {
   shift unless @_ and ref($_[0]);
   my $node = shift || $this;
   my %opts = @_;
@@ -987,6 +1022,16 @@ sub open_val_frame_list {
     -assignfunc => sub{},
     %opts
    );
+}
+
+sub ShowAssignedValFrames {
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this;
+  my %opts = @_;
+  my $refid = FileMetaData('refnames')->{vallex};
+  my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
+  VallexGUI::ShowFrames(-frameid => $rf);
+  ChangingFile(0);
 }
 
 1;

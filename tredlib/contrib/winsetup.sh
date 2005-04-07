@@ -11,8 +11,8 @@
 
 packages_ap58=packages58_win32
 packages_ap56=packages56_win32
-PACKAGES56="Tk Text::Iconv XML::JHXML Tie::IxHash"
-PACKAGES58="Text::Iconv XML::JHXML Tie::IxHash"
+PACKAGES56="Tk Text::Iconv XML::JHXML Tie::IxHash XML::SAX::Base XML::NamespaceSupport XML::SAX XML::Filter::BufferText XML::NodeFilter XML::Writer XML::Simple XML::LibXML::Common XML::LibXML XML::LibXML::Iterator XML::LibXSLT"
+PACKAGES58="Text::Iconv XML::JHXML Tie::IxHash XML::SAX::Base XML::NamespaceSupport XML::SAX XML::Filter::BufferText XML::NodeFilter XML::Simple XML::LibXML::Common XML::LibXML XML::LibXML::Iterator XML::LibXSLT"
 
 INSTLANG=en
 INSTPERLVER=8

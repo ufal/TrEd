@@ -21,59 +21,94 @@ Treebank (PDT) 2.0
 
 =over 4
 
-=item schema_name()
+=item SchemaName()
 
 Return name of the PML schema associated with the current file. PDT
-typically uses PML schema named C<adata> for analytical annotation and
+typically uses PML Schema named C<adata> for analytical annotation and
 C<tdata> for tectogrammatical annotation.
 
 =cut
 
-sub schema_name {
-  my $schema = &schema;
+sub SchemaName {
+  my $schema = &Schema;
   return undef unless $schema;
   return $schema->{root}->{name};
-} #schema_name
+} #SchemaName
 
-=item schema($fsfile?)
+=item Schema($fsfile?)
 
 Return PML schema associated with a given (or the current) file
 (Fslib::Schema object).
 
 =cut
 
-sub schema {
+sub Schema {
   my $fsfile = $_[0] || $grp->{FSFile};
   return undef unless $fsfile;
   return $grp->{FSFile}->metaData('schema');
-} #schema
+} #Schema
 
-=item getNodeByID($id_or_ref,$fsfile?)
+=item GetNodeByID($id_or_ref,$fsfile?)
 
 Looks up a node from the current file (or given fsfile) by its ID (or
 PMLREF - i.e. the ID preceded by a file prefix of the form C<xy#>).
 
 =cut
 
-sub getNodeByID {
+sub GetNodeByID {
   my ($rf,$fsfile)=@_;
   $fsfile = $grp->{FSFile} unless defined $fsfile;
   $rf =~ s/^.*#//;
-  return getNodeHash($fsfile)->{$rf};
+  return GetNodeHash($fsfile)->{$rf};
 }
 
+=item SearchForNodeById
 
-=item getNodeHash($fsfile?)
+Searches for node with given id. Returns the node and the number of
+the tree.
+
+=cut
+
+sub SearchForNodeById ($){
+  my$id=$_[0];
+  my$found;
+  my$treeNo=CurrentTreeNumber();
+  unless($found=first{$_->{id}eq$id}$this->root->descendants,$root){
+    #we have to look into another trees
+    my($step_l,$step_r)=(1,1);
+    my @trees=GetTrees();
+    my $maxnum=$#trees;
+    while($step_l!=0 or $step_r!=0){
+      if($step_l){
+        if ($found=first { $_->{id} eq $id } $trees[$treeNo-$step_l] -> descendants){
+          $treeNo=$treeNo-$step_l;
+          last;
+        }
+        $step_l=0 if ($treeNo-(++$step_l))<0;
+      }
+      if($step_r){
+        if ($found=first { $_->{id} eq $id } $trees[$treeNo+$step_r] -> descendants){
+          $treeNo=$treeNo+$step_r;
+          last;
+        }
+        $step_r=0 if ($treeNo+(++$step_r))>$maxnum;
+      }
+    }
+  }
+  return($found,++$treeNo);
+}#SearchForNodeById
+
+=item GetNodeHash($fsfile?)
 
 Return a reference to a hash indexing nodes in a given file (or the
 current file if no argument is given). If such a hash was not yet
 created, it is built upon the first call to this function (or other
-functions calling it, such as C<getNodeByID>. Use C<clearNodeHash> to
+functions calling it, such as C<GetNodeByID>. Use C<clearNodeHash> to
 clear the hash.
 
 =cut
 
-sub getNodeHash {
+sub GetNodeHash {
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
   return {} unless ref($fsfile);
@@ -93,45 +128,44 @@ sub getNodeHash {
   $fsfile->appData('id-hash');
 }
 
-=item clearNodesHash($fsfile?)
+=item ClearNodesHash($fsfile?)
 
 Clear the internal hash indexing nodes of a given file (or the current
 file if called without an argument).
 
 =cut
 
-sub clearNodesHash {
+sub ClearNodesHash {
   shift unless ref($_[0]);
   my $fsfile = $_[0] || $grp->{FSFile};
   $fsfile->changeAppData('id-hash',undef);
 }
 
 
-=item goto_tree()
+=item GotoTree()
 
 Ask user for sentence identificator (number or id) and go to the
 sentence.
 
 =cut
 
-##bind goto_tree to Alt+g menu Goto Tree
-sub goto_tree {
+sub GotoTree {
   my$to=QueryString("Give a Tree Number or ID","Tree Identificator");
   my @trees = GetTrees();
   if($to =~ /^[0-9]+$/){ # number
-    GotoTree($to) if $to <= @trees and $to != 0;
+    TredMacro::GotoTree($to) if $to <= @trees and $to != 0;
   }else{ # id
     for(my$i=0;$i<@trees;$i++){
       if($trees[$i]->{id} =~ /\Q$to\E$/){
-        GotoTree($i+1);
+        TredMacro::GotoTree($i+1);
         last;
       }
     }
   }
   ChangingFile(0);
-}#goto_tree
+}#GotoTree
 
-sub non_proj_edges {
+sub NonProjEdges {
 # arguments are: root of the subtree to be projectivized
 # the ordering attribute
 # sub-ref to a filter accepting a node parameter (which nodes of the subtree should be skipped)
@@ -198,7 +232,7 @@ sub non_proj_edges {
 
   return \%npedges;
 
-} # sub non_proj_edges
+} # sub NonProjEdges
 
 #ifdef TRED
 
