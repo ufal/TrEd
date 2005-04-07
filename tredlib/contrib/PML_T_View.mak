@@ -63,6 +63,11 @@ sub pre_switch_context_hook {
 #bind ShowNearestNonMember to Ctrl+n menu Show Nearest Non-member
 #bind NoShow to Ctrl+N menu No Show
 
+#bind show_val_frames to Ctrl+Return menu Show valency frames and highlight assigned
+sub show_val_frame {
+  PML_T::open_val_frame_list(-noadd => 1,-no_assign => 1);
+}
+
 1;
 
 =back
