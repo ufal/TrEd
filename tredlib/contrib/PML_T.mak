@@ -955,6 +955,40 @@ sub new_node{
   $new->set_type(schema()->type($type))
 }#new_node
 
+=item open_val_frame_list (node?, options...)
+
+Open a window with a list of possible valency frames for a given node,
+highlighting frames currently assigned to the node. All given options
+are passed to the approporiate VallexGUI method. Most commonly used are
+C<-no_assign =E<gt> 1> to suppress the Assign button,
+C<-assign_func =E<gt> sub { my ($node,$frame_ids,$frame_text)=@_; ... }>
+to specify a custom code for assigning the selected frame_ids to a node,
+C<-lemma> and C<-pos> to override t_lemma and sempos of the node,
+C<-frameid> to frames currently assigned to the node, C<-noadd => 1> to
+forbid adding new words to the lexicon (also implied by C<-no-assign>.
+
+=cut
+
+sub open_val_frame_list {
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this;
+  my %opts = @_;
+
+  $VallexGUI::frameid_attr="val_frame.rf";
+  $VallexGUI::lemma_attr="t_lemma";
+  $VallexGUI::framere_attr=undef;
+  $VallexGUI::sempos_attr="gram/sempos";
+  my $refid = FileMetaData('refnames')->{vallex};
+  my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
+  VallexGUI::ChooseFrame(
+    -lemma => $node ? $node->{t_lemma} : undef,
+    -sempos => $node ? $node->{gram}{sempos} : undef,
+    -frameid => $rf,
+    -assignfunc => sub{},
+    %opts
+   );
+}
+
 1;
 
 =back
