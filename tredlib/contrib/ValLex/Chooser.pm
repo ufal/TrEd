@@ -40,7 +40,8 @@ sub create_toplevel {
       $select_frame,
       $start_editor,
       $assign_callback,
-      $destroy_callback
+      $destroy_callback,
+      $no_edit_button
      )=@_;
 
   my $d = $top->Toplevel(-title => $title);
@@ -70,8 +71,8 @@ sub create_toplevel {
       [ @$assign_callback, $chooser ] : [ $assign_callback,$chooser ];
     my $ab = $bot->Button(-text => 'Assign',
 			  -command => $assign_cb)->pack(-side => 'left',-expand => 1);
-    $d->bind('<Return>',sub { $ab->flash; $ab->invoke });
-    $d->bind('<KP_Enter>',sub { $ab->flash; $ab->invoke });
+    $d->bind('<Return>', sub { $ab->flash; $ab->invoke; });
+    $d->bind('<KP_Enter>', sub { $ab->flash; $ab->invoke });
     $chooser->widget()->bind('<Double-1>'=> sub { $ab->invoke });
   }
   $bot->Button(-text => 'Close',
@@ -107,10 +108,16 @@ sub reusable_dialog {
 			  -buttons => ['Choose', 'Cancel'],
 			  -default_button => 'Choose'
 			 );
-  $d->bind('<Return>',\&TrEd::ValLex::Widget::dlgReturn);
-  $d->bind('<KP_Enter>',\&TrEd::ValLex::Widget::dlgReturn);
+  $d->bind($_,[sub {
+		 $_[0]->Subwidget('B_Choose')->flash;
+		 $_[0]->Subwidget('B_Choose')->invoke;
+		 &TrEd::ValLex::Widget::dlgReturn() },$d])
+    for ('<Return>','<KP_Enter>');
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  $d->bind('all','<Escape>'=> [sub { shift;
+				     $_[0]->Subwidget('B_Cancel')->flash;
+				     $_[0]->Subwidget('B_Cancel')->invoke;
+				     $_[0]->{selected_button}='Cancel'; },$d ]);
   my $chooser =
     TrEd::ValLex::Chooser->new($data, $field, $d,
 			       ((ref($field) eq "ARRAY") ?
@@ -244,7 +251,6 @@ sub create_widget {
       $frame_browser_framelist_item_style,
       $frame_editor_styles,
       $cb,
-#      $no_choose_button,
       $fbutton_frame,
       @conf) = @_;
 
@@ -281,11 +287,10 @@ sub create_widget {
 
   my $editframes_button=$fbutton_frame->Button(-text => 'Edit Frames',
 					       -command => [
-							    \&edit_button_pressed,
-							    $self
-							   ]);
-
-  $editframes_button->pack(qw/-padx 5 -side left/); 
+						 \&edit_button_pressed,
+						 $self
+						]);
+  $editframes_button->pack(qw/-padx 5 -side left/);
   my $hide_obsolete=0;
   my $hide_obsolete_button=
     $fbutton_frame->

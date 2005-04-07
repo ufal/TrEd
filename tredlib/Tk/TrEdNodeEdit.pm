@@ -17,8 +17,8 @@ use Data::Dumper;
 use vars qw(%colors %bitmap);
 
 %colors = (
-  alt => "#FFFF00",
-  alt_flat => "#CDFFC3",
+  alt_flat => "#FFFF00",
+  alt => "#CDFFC3",
   list => "#FFCEA9",
   struct => "#FFFFA7",
   sequence => "#B0C1FF",
@@ -434,8 +434,7 @@ sub add_buttons {
       } elsif ($type->{alt}) {
 	# add alt buttons
 	$hlist->mini_button($f,'star',$path,
-			    -background => $type->{alt}{flat} ?
-			      $colors{alt_flat} : $colors{alt},
+			    -background => ($type->{alt}{-flat} ? $colors{alt_flat} : $colors{alt}),
 			    -command => [$hlist,'add_to_alt',$path]
 			   )->pack(-side => 'top');
       }
@@ -483,8 +482,7 @@ sub add_buttons {
   } elsif ($ptype and $ptype->{alt}) {
     # add alt member buttons
     $hlist->mini_button($f,'cross',$path,
-	  -background => $ptype->{alt}{flat} ? $colors{alt_flat}
-	    : $colors{alt},
+	  -background => ($ptype->{alt}{-flat} ? $colors{alt_flat} : $colors{alt}),
 	  -command => [$hlist,'remove_alt_member',$path]
 	   )->pack(-side => 'top');
   }
@@ -697,16 +695,14 @@ sub add_member {
   } elsif (exists $mtype->{alt}) {
     my $alt_no=0;
     $hlist->itemConfigure($path,0,-style => 
-			    $mtype->{alt}{flat} ?
-			    $hlist->{my_itemstyles}{alt_flat} :
-			      $hlist->{my_itemstyles}{alt});
+			    ($mtype->{alt}{-flat} ? $hlist->{my_itemstyles}{alt_flat} : $hlist->{my_itemstyles}{alt}));
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -style => 
-			 ($mtype->{alt}{flat} ?
+			 ($mtype->{alt}{-flat} ?
 			   $hlist->{my_itemstyles}{alt_flat} :
 			     $hlist->{my_itemstyles}{alt}),
 		       -text => 
-			 $mtype->{alt}{flat} ?
+			 $mtype->{alt}{-flat} ?
 			   'FS-Alternative' : 'Alternative');
 
     if (ref($attr_val) eq 'Fslib::Alt') {
