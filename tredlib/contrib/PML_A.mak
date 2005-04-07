@@ -206,7 +206,7 @@ for all arguments is used.
 
 =cut
 
-sub FilterChildren{ # node dive suff from
+sub _FilterEChildren{ # node dive suff from
   my ($node,$dive,$suff,$from)=@_;
   my @sons;
   $node=$node->firstson;
@@ -215,9 +215,9 @@ sub FilterChildren{ # node dive suff from
     unless ($node==$from){ # on the way up do not go back down again
       if (!$suff&&$node->{afun}=~/Coord|Apos/&&!$node->{is_member}
 	  or$suff&&$node->{afun}=~/Coord|Apos/&&$node->{is_member}) {
-	push @sons,FilterChildren($node,$dive,1,0)
+	push @sons,_FilterEChildren($node,$dive,1,0)
       } elsif (&$dive($node) and $node->firstson){
-	push @sons,FilterChildren($node,$dive,$suff,0);
+	push @sons,_FilterEChildren($node,$dive,$suff,0);
       } elsif(($suff&&$node->{is_member})
 	      ||(!$suff&&!$node->{is_member})){ # this we are looking for
 	push @sons,$node;
@@ -226,19 +226,19 @@ sub FilterChildren{ # node dive suff from
     $node=$node->rbrother;
   }
   @sons;
-} # FilterChildren
+} # _FilterEChildren
 
 sub GetEChildren{ # node dive
   my ($node,$dive)=@_;
   my @sons;
   my $from;
   $dive = sub { 0 } unless defined($dive);
-  push @sons,FilterChildren($node,$dive,0,0);
+  push @sons,_FilterEChildren($node,$dive,0,0);
   if($node->{is_member}){
     my @oldsons=@sons;
     while($node->{afun}!~/Coord|Apos|AuxS/ or $node->{is_member}){
       $from=$node;$node=$node->parent;
-      push @sons,FilterChildren($node,$dive,0,$from);
+      push @sons,_FilterEChildren($node,$dive,0,$from);
     }
     if ($node->{afun}eq'AuxS'){
       print STDERR "Error: Missing Coord/Apos: $node->{id} ".ThisAddress($node)."\n";

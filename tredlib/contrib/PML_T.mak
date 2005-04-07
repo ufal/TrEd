@@ -491,7 +491,7 @@ Return a list of nodes linguistically dependant on a given node.
 
 =cut
 
-sub FilterChildren { # node suff from
+sub _FilterEChildren { # node suff from
   my ($node,$suff,$from)=(shift,shift,shift);
   my @sons;
   $node=$node->firstson;
@@ -502,7 +502,7 @@ sub FilterChildren { # node suff from
 	 ||(!$suff&&!$node->{is_member})){ # this we are looking for
 	push @sons,$node unless IsCoord($node);
       }
-      push @sons,FilterChildren($node,1,0)
+      push @sons,_FilterEChildren($node,1,0)
 	if (!$suff
 	    &&IsCoord($node)
 	    &&!$node->{is_member})
@@ -513,7 +513,7 @@ sub FilterChildren { # node suff from
     $node=$node->rbrother;
   }
   @sons;
-} # FilterChildren
+} # _FilterEChildren
 
 sub GetEChildren { # node
   my $node=$_[0]||$this;
@@ -521,13 +521,13 @@ sub GetEChildren { # node
   my @sons;
   my $init_node=$node;# for error message
   my $from;
-  push @sons,FilterChildren($node,0,0);
+  push @sons,_FilterEChildren($node,0,0);
   if($node->{is_member}){
     my @oldsons=@sons;
     while($node and $node->{nodetype}ne'root'
 	  and ($node->{is_member} || !IsCoord($node))){
       $from=$node;$node=$node->parent;
-      push @sons,FilterChildren($node,0,$from) if $node;
+      push @sons,_FilterEChildren($node,0,$from) if $node;
     }
     if ($node->{nodetype}eq'root'){
       stderr("Error: Missing coordination head: $init_node->{id} $node->{id} ",ThisAddressNTRED($node),"\n");
