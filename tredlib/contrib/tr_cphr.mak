@@ -77,7 +77,7 @@ sub choose_frame_match_CPHR {
   if (@match) {
     $this->{frameid} = join '|',map { $_->getAttribute('frame_ID') } @match;
   }
-  ChooseFrame(\&TR_FrameValidation::frame_chosen);
+  choose_frame(\&TR_FrameValidation::frame_chosen);
 }
 
 

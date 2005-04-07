@@ -82,7 +82,7 @@ sub frame_chosen {
 #bind open_frame_editor to Ctrl+Shift+Return menu Edit valency lexicon
 sub open_frame_editor {
   init_vallex();
-  OpenEditor();
+  Tectogrammatic::open_editor();
 }
 
 #bind choose_frame_or_advfunc_validate to Ctrl+Return menu Select frame from valency lexicon

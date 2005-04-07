@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-11-17 12:47:00 pajas>
+## Time-stamp: <2005-04-07 09:22:36 pajas>
 
 #ifndef tr_coref_common
 #define tr_coref_common
@@ -83,7 +83,7 @@ sub status_line_doubleclick_hook {
   foreach (@_) {
     if (/^\{(.*)}$/) {
       if ($1 eq 'FRAME') {
-	ChooseFrame();
+	Tectogrammatic::choose_frame();
 	last;
       } else {
 	if (main::doEditAttr($grp,$this,$1)) {
@@ -142,9 +142,9 @@ sub get_status_line_hook {
 
 ################################ Macros ################################
 
-sub OpenEditor { Tectogrammatic::OpenEditor(@_) }
-sub ChooseFrameNoAssign { Tectogrammatic::ChooseFrame(1) }
-#bind OpenEditor to Ctrl+Shift+Return menu Zobraz valencni ramce
+sub open_editor { Tectogrammatic::open_editor(@_) }
+sub ChooseFrameNoAssign { Tectogrammatic::choose_frame($this,-no_assign=>1) }
+#bind open_editor to Ctrl+Shift+Return menu Zobraz valencni ramce
 #bind ChooseFrameNoAssign to Ctrl+Return menu Zobraz valencni ramce pro sloveso
 
 
