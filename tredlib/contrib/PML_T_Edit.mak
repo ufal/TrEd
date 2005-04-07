@@ -83,6 +83,17 @@ sub get_status_line_hook {
   return $statusline;
 }#get_status_line_hook
 
+#bind choose_val_frame to Ctrl+Return menu Select a and assign valency frame
+sub choose_val_frame {
+  PML_T::open_val_frame_list(
+    -assign_func => sub {
+      my ($n, $ids)=@_;
+      $n->{'val_frame.rf'} = undef;
+      AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
+    }
+   )
+}
+
 sub status_line_doubleclick_hook {
   # status-line field double clicked
 
@@ -92,10 +103,7 @@ sub status_line_doubleclick_hook {
   foreach (@_) {
     if (/^\{(.*)}$/) {
       if ($1 eq 'FRAME') {
-	$VallexGUI::frameid_attr="val_frame.rf";
-	$VallexGUI::lemma_attr="t_lemma";
-	$VallexGUI::framere_attr=undef;
-        ChooseFrame(); #TODO
+	choose_val_frame();
         last;
       } else {
         if (main::doEditAttr($grp,$this,$1)) {
