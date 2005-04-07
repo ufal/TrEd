@@ -87,7 +87,7 @@ sub InfoDialog {
 
 }
 
-sub InitValencyLexicon {
+sub init_ValencyLexicon {
   my $top=ToplevelFrame();
   unless ($ValencyLexicon) {
     my $support_unicode = ($Tk::VERSION ge 804.00);
@@ -120,6 +120,55 @@ sub InitValencyLexicon {
   return 1;
 }
 
+sub ShowFrames {
+  my %opts=@_;
+  unless ($ValencyLexicon) {
+    init_XMLDataClass();
+    init_VallexClasses();
+    init_ValencyLexicon();
+  }
+  my $msg;
+  if ($ValencyLexicon) {
+    my $frames = exists $opts{-frameid} ?
+      $opts{-frameid} : ($opts{-node} ? $opts{-node}->attr($frameid_attr) : undef);
+    my @frames;
+    @frames = $ValencyLexicon->by_id(join " ",split /\|/,$frames);
+    for my $f (@frames) {
+      $word=$ValencyLexicon->getWordForFrame($f);
+      unless (defined($msg)) {
+	$msg = ["Lexicon word item:",[qw(label)],"  ".$ValencyLexicon->getLemma($word)."\n\n",[qw(lemma)]];
+      }
+      my ($frame, $id, $elements, $status, $example, $auth, $note) = @{$ValencyLexicon->getFrame($f)};
+      push @$msg,
+	$elements."\n\n",[qw(elements)],
+	"Frame_ID:",[qw(label)],"  $id\n\n",[qw(id)],
+	"Examples:",[qw(label)],
+	 "\n".$example."\n\n",[qw(example)],
+	 ($note ne "" ? ("Note:",[qw(label)],"\n".$note."\n\n",[qw(note)]) : ()),
+	"---------------------------------------\n\n",[];
+    }
+    main::textDialog($grp,
+		     { -title => 'Assigned valency frame(s)', -buttons => ['OK'] },
+		     { -text => 'Assigned valency frame(s)', -justify => 'left', -foreground => 'darkblue' },
+ 		     undef,
+		     { -readonly => 1,
+		       -font => StandardTredValueLineFont(),
+		       -width => 80, -height => 30,
+		       -tags => {
+			 elements => [-background => '#dddddd'],
+			 label => [-underline => 1],
+			 id => [-foreground => '#999999'],
+			 lemma => [-foreground => 'darkblue'],
+			 example => [-foreground => 'black'],
+			 note => [-foreground => 'darkgreen']
+			}
+		     },
+		     $msg,
+		     { dialog => [
+		       ['<Escape>',sub { $_[0]->toplevel->{selected_button}= "Cancel" }]
+		      ] });
+  }
+}
 
 sub OpenEditor {
   my %opts=@_;
@@ -138,7 +187,7 @@ sub OpenEditor {
   require ValLex::Widgets;
   require ValLex::Editor;
   require TrEd::CPConvert;
-  InitValencyLexicon() || return; #do { $top->Unbusy(-recurse=>1); return };
+  init_ValencyLexicon() || return; #do { $top->Unbusy(-recurse=>1); return };
 
 
   my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ? 
@@ -394,7 +443,7 @@ sub ChooseFrame {
     return;
   }
   $lemma=~s/_/ /g;
-  InitValencyLexicon() || do { ChangingFile(0); return; };
+  init_ValencyLexicon() || do { ChangingFile(0); return; };
   my $field;
   my $new_word=0;
   my $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);

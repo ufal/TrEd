@@ -28,8 +28,8 @@ Prague Dependency Treebank (PDT) 2.0.
 
 =cut
 
-#bind tectogrammatical_tree to Ctrl+R menu Display tectogrammatical tree
-#bind goto_tree to Alt+g menu Goto Tree
+#bind TectogrammaticalTree to Ctrl+R menu Display tectogrammatical tree
+#bind GotoTree to Alt+g menu Goto Tree
 
 sub node_release_hook{
   return 'stop';

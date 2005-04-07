@@ -28,17 +28,17 @@ Dependency Treebank (PDT) 2.0.
 
 #ifdef TRED
 
-=item tectogrammatical_tree()
+=item TectogrammaticalTree()
 
 This function is only available in TrEd (i.e. in GUI). After a
-previous call to C<analytical_tree>, it switches current view back to
+previous call to C<AnalyticalTree>, it switches current view back to
 a tectogrammatical tree which refers to the current analytical tree.
 
 =cut
 
-sub tectogrammatical_tree {
-  return unless schema_name() eq 'adata';
-  return unless switch_to_tfile();
+sub TectogrammaticalTree {
+  return unless SchemaName() eq 'adata';
+  return unless SwitchToTFile();
   if (CurrentContext() eq 'PML_A_Edit') {
     SwitchContext('PML_T_Edit');
   } else {
@@ -57,7 +57,7 @@ sub tectogrammatical_tree {
       if ($a_rf eq $id) {
 	$grp->{treeNo} = $i;
 	$fsfile->currentTreeNo($i);
-	print "Found $a_rf at tree position $i\n";
+#	print "Found $a_rf at tree position $i\n";
 	last TREE;
       }
     }
@@ -76,9 +76,9 @@ sub tectogrammatical_tree {
   };
   ChangingFile(0);
 }
-sub switch_to_tfile {
+sub SwitchToTFile {
   my $fsfile = $grp->{FSFile};
-  return 0 unless $fsfile or schema_name() ne 'adata';
+  return 0 unless $fsfile or SchemaName() ne 'adata';
   my $tr_fs = $fsfile->appData('tdata');
   return 0 unless ref($tr_fs);
   $grp->{FSFile} = $tr_fs;
@@ -88,7 +88,7 @@ sub switch_to_tfile {
 #endif TRED
 
 
-=item expand_coord($node,$keep?)
+=item ExpandCoord($node,$keep?)
 
 If the given node is coordination or aposition (according to its
 Analytical function - attribute C<afun>) expand it to a list of
@@ -98,26 +98,26 @@ as well.
 
 =cut
 
-sub expand_coord {
+sub ExpandCoord {
   my ($node,$keep)=@_;
   return unless $node;
   if ($node->{afun}=~/Coord|Apos/) {
     return (($keep ? $node : ()),
-	    map { expand_coord($_,$keep) }
+	    map { ExpandCoord($_,$keep) }
 	    grep { $_->{is_member} } $node->children);
   } else {
     return ($node);
   }
-} #expand_coord
+} #ExpandCoord
 
-=item get_sentence_string($tree?)
+=item GetSentenceString($tree?)
 
 Return string representation of the given tree (suitable for
 Analytical trees).
 
 =cut
 
-sub get_sentence_string {
+sub GetSentenceString {
   my $node = $_[0]||$this;
   $node=$node->root->following;
   my @sent=();
@@ -128,46 +128,46 @@ sub get_sentence_string {
   return join('',map{
     $_->{'m'}{form}.($_->{'m'}{'w'}{no_space_after}?'':' ')
   } sort { $a->{ord} <=> $b->{ord} } @sent);
-}#get_sentence_string
+}#GetSentenceString
 
-=item dive_AuxCP($node)
+=item DiveAuxCP($node)
 
-You can use this function as a C<through> argument to GetFathers and
-GetChildren. It skips all the prepositions and conjunctions when
+You can use this function as a C<through> argument to GetEParents and
+GetEChildren. It skips all the prepositions and conjunctions when
 looking for nodes which is what you usually want.
 
 =cut
 
-sub dive_AuxCP ($){
+sub DiveAuxCP ($){
   $_[0]->{afun}=~/x[CP]/
-}#dive_AuxCP
+}#DiveAuxCP
 
-=item GetFathers($node,$through)
+=item GetEParents($node,$through)
 
 Return linguistic parent of a given node as appears in an analytic
 tree. The argument C<$through> should supply a function accepting one
 node as an argument and returning true if the node should be skipped
-on the way to parent or 0 otherwise. The most common C<dive_AuxCP> is
+on the way to parent or 0 otherwise. The most common C<DiveAuxCP> is
 provided in this package.
 
 =cut
 
-sub _expand_coord_GetFathers { # node through
+sub _ExpandCoordGetEParents { # node through
   my ($node,$through)=@_;
   my @toCheck = $node->children;
   my @checked;
   while (@toCheck) {
     @toCheck=map {
       if (&$through($_)) { $_->children() }
-      elsif($_->{afun}=~/Coord|Apos/&&$_->{is_member}){ _expand_coord_GetFathers($_,$through) }
+      elsif($_->{afun}=~/Coord|Apos/&&$_->{is_member}){ _ExpandCoordGetEParents($_,$through) }
       elsif($_->{is_member}){ push @checked,$_;() }
       else{()}
     }@toCheck;
   }
   return @checked;
-}# _expand_coord_GetFathers
+}# _ExpandCoordGetEParents
 
-sub GetFathers { # node through
+sub GetEParents { # node through
   my ($node,$through)=@_;
   my $init_node = $node; # only used for reporting errors
   if ($node->{is_member}) { # go to coordination head
@@ -175,11 +175,11 @@ sub GetFathers { # node through
       $node=$node->parent;
       if (!$node) {
 	print STDERR
-	  "GetFathers: Error - no coordination head $init_node->{AID}: ".ThisAddress($init_node)."\n";
+	  "GetEParents: Error - no coordination head $init_node->{AID}: ".ThisAddress($init_node)."\n";
         return();
       } elsif($node->{afun}eq'AuxS') {
 	print STDERR
-	  "GetFathers: Error - no coordination head $node->{AID}: ".ThisAddress($node)."\n";
+	  "GetEParents: Error - no coordination head $node->{AID}: ".ThisAddress($node)."\n";
         return();
       }
     }
@@ -191,22 +191,22 @@ sub GetFathers { # node through
   }
   $node=$node->parent;
   return $node if $node->{afun}!~/Coord|Apos/;
-  _expand_coord_GetFathers($node,$through);
-} # GetFathers
+  _ExpandCoordGetEParents($node,$through);
+} # GetEParents
 
-=item GetChildren($node,$dive)
+=item GetEChildren($node,$dive)
 
 Return a list of nodes linguistically dependant on a given
 node. C<$dive> is a function which is called to test whether a given
 node should be used as a terminal node (in which case it should return
 false) or whether it should be skipped and its children processed
 instead (in which case it should return true). Most usual treatment is
-provided in C<dive_AuxCP>. If C<$dive> is skipped, a function returning 0
+provided in C<DiveAuxCP>. If C<$dive> is skipped, a function returning 0
 for all arguments is used.
 
 =cut
 
-sub FilterSons{ # node dive suff from
+sub FilterChildren{ # node dive suff from
   my ($node,$dive,$suff,$from)=@_;
   my @sons;
   $node=$node->firstson;
@@ -215,9 +215,9 @@ sub FilterSons{ # node dive suff from
     unless ($node==$from){ # on the way up do not go back down again
       if (!$suff&&$node->{afun}=~/Coord|Apos/&&!$node->{is_member}
 	  or$suff&&$node->{afun}=~/Coord|Apos/&&$node->{is_member}) {
-	push @sons,FilterSons($node,$dive,1,0)
+	push @sons,FilterChildren($node,$dive,1,0)
       } elsif (&$dive($node) and $node->firstson){
-	push @sons,FilterSons($node,$dive,$suff,0);
+	push @sons,FilterChildren($node,$dive,$suff,0);
       } elsif(($suff&&$node->{is_member})
 	      ||(!$suff&&!$node->{is_member})){ # this we are looking for
 	push @sons,$node;
@@ -226,19 +226,19 @@ sub FilterSons{ # node dive suff from
     $node=$node->rbrother;
   }
   @sons;
-} # FilterSons
+} # FilterChildren
 
-sub GetChildren{ # node dive
+sub GetEChildren{ # node dive
   my ($node,$dive)=@_;
   my @sons;
   my $from;
   $dive = sub { 0 } unless defined($dive);
-  push @sons,FilterSons($node,$dive,0,0);
+  push @sons,FilterChildren($node,$dive,0,0);
   if($node->{is_member}){
     my @oldsons=@sons;
     while($node->{afun}!~/Coord|Apos|AuxS/ or $node->{is_member}){
       $from=$node;$node=$node->parent;
-      push @sons,FilterSons($node,$dive,0,$from);
+      push @sons,FilterChildren($node,$dive,0,$from);
     }
     if ($node->{afun}eq'AuxS'){
       print STDERR "Error: Missing Coord/Apos: $node->{id} ".ThisAddress($node)."\n";
@@ -246,9 +246,9 @@ sub GetChildren{ # node dive
     }
   }
   return@sons;
-} # GetChildren
+} # GetEChildren
 
-=item create_stylesheets()
+=item CreateStylesheets()
 
 Creates default stylesheet for PML analytical files unless already
 defined. Most of the colors it uses can be redefined in the tred
@@ -275,7 +275,7 @@ in the same color.
 
 =cut
 
-sub create_stylesheets {
+sub CreateStylesheets {
   unless(StylesheetExists('PML_A')){
     SetStylesheetPatterns(<<'EOF','PML_A',1);
 text:<? $${m/w/token}eq$${m/form} ? '#{'.CustomColor('sentence').'}${m/w/token}' : '#{-over:1}#{'.CustomColor('spell').'}[${m/w/token}]#{-over:0}#{'.CustomColor('sentence').'}${m/form}' ?>
@@ -320,10 +320,10 @@ sub get_status_line_hook {
 }
 
 sub allow_switch_context_hook {
-  return 'stop' if schema_name() ne 'adata';
+  return 'stop' if SchemaName() ne 'adata';
 }
 sub switch_context_hook {
-  create_stylesheets();
+  CreateStylesheets();
   SetCurrentStylesheet('PML_A') if GetCurrentStylesheet() eq STYLESHEET_FROM_FILE();
 }
 

@@ -9,9 +9,9 @@ sub file_opened_hook {
     return unless $grp->{FSFile};
     if (defined($mode)) {
       return SwitchContext($mode);
-    } elsif (PML::schema_name() eq 'tdata') {
+    } elsif (PML::SchemaName() eq 'tdata') {
       return SwitchContext('PML_T_View');
-    } elsif (PML::schema_name() eq 'adata') {
+    } elsif (PML::SchemaName() eq 'adata') {
       return SwitchContext('PML_A_View');
     } elsif (exists($grp->{FSFile}->FS->defs->{x_TNT})
 	     and $grp->{FSFile}->FS->hide eq 'X_hide') {
@@ -21,10 +21,10 @@ sub file_opened_hook {
       return SwitchContext('AcademicTreebank');
     } elsif ($grp->{FSFile}->FS->hide eq 'TR') {
       return SwitchContext('Tectogrammatic') 
-	unless (CurrentContext eq 'TR_Correction' or
-		CurrentContext eq 'TFA');
+	unless (CurrentContext() eq 'TR_Correction' or
+		CurrentContext() eq 'TFA');
     } else {
-      return SwitchContext('Analytic') unless CurrentContext eq 'Analytic_Correction';
+      return SwitchContext('Analytic') unless CurrentContext() eq 'Analytic_Correction';
     }
 }
 #endif

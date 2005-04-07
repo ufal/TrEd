@@ -41,10 +41,15 @@ sub init_vallex {
     $VallexGUI::framere_attr="framere";
 
     VallexGUI::init_XMLDataClass();
-    VallexGUI::InitValencyLexicon() || return;
+    VallexGUI::init_ValencyLexicon() || return;
 #    $V=$VallexGUI::ValencyLexicon;
 #else
-    my $V_vallex = "$libDir/contrib/ValLex/vallex.xml";
+#    my $V_vallex = "$libDir/contrib/ValLex/vallex.xml";
+    my $V_vallex = $ENV{VALLEX};
+    if ($V_vallex eq "") {
+      # try to find vallex in libDir (old-way) or in resources (new-way)
+      $V_vallex = ResolvePath("$libDir/contrib/ValLex/vallex.xml",'vallex.xml',1);
+    }
     require ValLex::DummyConv;
     $V = $tredmodule->new($V_vallex,TrEd::ValLex::DummyConv->new(),0);
 #endif
