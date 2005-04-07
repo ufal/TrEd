@@ -1,3 +1,123 @@
+2005-04-07  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/PML.mak, tredlib/contrib/PML_A.mak, tredlib/contrib/PML_A_Edit.mak, tredlib/contrib/PML_A_View.mak, tredlib/contrib/PML_T.mak, tredlib/contrib/PML_T_Edit.mak, tredlib/contrib/PML_T_View.mak, tredlib/contrib/ValLex/chooser.mak, tredlib/contrib/pdt_specific.mak, tredlib/contrib/tr_frame_validation.mak, tredlib/contrib/winsetup.sh:
+	- lots of renaming
+	- Jump* macros
+
+	* tred: added quite general textDialog
+
+	* tredlib/contrib/ValLex/chooser.mak, tredlib/contrib/ValLex/Widgets.pm, tredlib/contrib/ValLex/Chooser.pm:
+	*** empty log message ***
+
+	* tredlib/contrib/tr_frame_validation.mak, tredlib/contrib/tr_cphr.mak, tredlib/contrib/tr_coref_common.mak:
+	vallex API
+
+	* tredlib/contrib/tr_common.mak: *** empty log message ***
+
+	* tredlib/contrib/PML_T_View.mak: show_val_frame
+
+	* tredlib/contrib/PML_T_Edit.mak: choose_val_frame
+
+	* tredlib/contrib/PML_T.mak: open_val_frame_list added
+
+	* tredlib/contrib/PML_A_Edit.mak:
+	fixed a.rf assignment (handle prefix properly)
+
+	* tredlib/Tk/TrEdNodeEdit.pm: *** empty log message ***
+
+2005-04-06  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/contrib/ValLex/chooser.mak: VallexGUI, starting cleanup
+
+	* tredlib/contrib/tr_frame_validation.mak: VallexGUI
+
+	* tredlib/contrib/tr_common.mak:
+	import VallexGUI instead of loading chooser.mak
+
+	* tredlib/contrib/contrib.mac: load chooser (VallexGUI)
+
+	* tredlib/contrib/PML_T_Edit.mak:
+	chooser.mak now lives in VallexGUI package
+
+	* tredlib/TrEd/Config.pm: resourcePath
+
+	* tredlib/TrEd/Basics.pm: use Fslib Resources API
+
+	* tredlib/tred.def: Resources API
+
+	* tredlib/PMLBackend.pm:
+	use Fslib functions for filename resolving, allow schema in resources dir
+
+	* tredlib/Fslib.pm: Resources API
+
+	* tred: *** empty log message ***
+
+	* btred: fixed empty dump outputs
+
+	* tredlib/contrib/PML_A.mak, tredlib/contrib/PML_A_Edit.mak, tredlib/contrib/PML_T.mak, tredlib/contrib/PML_T_Edit.mak:
+	*** empty log message ***
+
+	* tredlib/tred.def: rearranged the documentation
+
+	* documentation/pics/1leftarrow.eps, documentation/pics/1leftarrow.gif, documentation/pics/1leftarrow.png, documentation/pics/1rightarrow.eps, documentation/pics/1rightarrow.gif, documentation/pics/1rightarrow.png, documentation/pics/button_cancel.eps, documentation/pics/button_cancel.gif, documentation/pics/button_cancel.png, documentation/pics/button_ok.eps, documentation/pics/button_ok.gif, documentation/pics/button_ok.png, documentation/pics/contents.eps, documentation/pics/contents.gif, documentation/pics/contents.png, documentation/pics/customatt.eps, documentation/pics/document.eps, documentation/pics/document.gif, documentation/pics/document.png, documentation/pics/editdelete.eps, documentation/pics/editdelete.gif, documentation/pics/editdelete.png, documentation/pics/filefloppy.eps, documentation/pics/filelist.eps, documentation/pics/filenew.eps, documentation/pics/fileopen.eps, documentation/pics/fileprint.eps, documentation/pics/filesave.eps, documentation/pics/filesave.gif, documentation/pics/filesave.png, documentation/pics/filesaved.eps, documentation/pics/filesaved.gif, documentation/pics/filesaved.png, documentation/pics/find.eps, documentation/pics/findnext.eps, documentation/pics/findprev.eps, documentation/pics/finish.eps, documentation/pics/folder.eps, documentation/pics/folder.gif, documentation/pics/folder.png, documentation/pics/lock.eps, documentation/pics/lock.gif, documentation/pics/lock.png, documentation/pics/patternset.eps, documentation/pics/redo.eps, documentation/pics/reload.eps, documentation/pics/start.eps, documentation/pics/treddiff.eps, documentation/pics/tredprint.eps, documentation/pics/undo.eps, documentation/pics/view_left_right.eps, documentation/pics/view_left_right.gif, documentation/pics/view_left_right.png, documentation/pics/view_remove.eps, documentation/pics/view_remove.gif, documentation/pics/view_remove.png, documentation/pics/view_sent.eps, documentation/pics/view_sent.xpm, documentation/pics/view_top_bottom.eps, documentation/pics/view_top_bottom.gif, documentation/pics/view_top_bottom.png, documentation/pics/viewmag+.eps, documentation/pics/viewmag+.gif, documentation/pics/viewmag+.png, documentation/pics/viewmag-.eps, documentation/pics/viewmag-.gif, documentation/pics/viewmag-.png, documentation/pics/wizard.eps, documentation/pics/wizard.gif, documentation/pics/wizard.png, documentation/pics/filenew.gif, documentation/pics/filenew.png, documentation/pics/fileopen.gif, documentation/pics/fileopen.png, documentation/pics/fileprint.gif, documentation/pics/fileprint.png, documentation/pics/find.gif, documentation/pics/find.png, documentation/pics/finish.gif, documentation/pics/finish.png, documentation/pics/gray_belly3.gif, documentation/pics/gray_belly3.png, documentation/pics/green_belly3.gif, documentation/pics/green_belly3.png, documentation/pics/redo.gif, documentation/pics/redo.png, documentation/pics/reload.gif, documentation/pics/reload.png, documentation/pics/start.gif, documentation/pics/start.png, documentation/pics/tred.gif, documentation/pics/tred.png, documentation/pics/tred2.gif, documentation/pics/tred2.png, documentation/pics/undo.gif, documentation/pics/undo.png, documentation/manual/tred_def.xml, documentation/manual/tred.xml, devel/make_doc_pics, devel/make_manual, devel/pod2db.xsl:
+	*** empty log message ***
+
+	* tred: use revision instead of last update
+
+	* tredlib/Tk/TrEdNodeEdit.pm: extra color for "flat" alternatives
+
+	* tredlib/Tk/JComboBox_0_02.pm: - quote $item in regexp matches
+
+	* tredlib/Tk/JComboBox_0_02.pm: *** empty log message ***
+
+	* tredlib/Tk/TrEdNodeEdit.pm: - support for "flat" alt attributes
+
+	* tredlib/Tk/JComboBox_0_02.pm:
+	- prepare usefull debug prints for tracing the module
+	- fix ValidateCmd behavior when "0" is among the allowed values
+
+	* tredlib/Fslib.pm:
+	create "flat" alt for every leaf attribute in the PML-emulation mode of FSFormat
+
+	* tred:
+	allow untyped nodes in files with a schema (provided that either the schema defines only one node_type or all node structures have name)
+
+2005-04-05  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm:
+	added PML emulation mode for FS files (so far read-only).
+
+	* tredlib/contrib/PML_A_Edit.mak: *** empty log message ***
+
+2005-04-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
+
+	* ChangeLog, tredlib/contrib/PML.mak: *** empty log message ***
+
+	* tredlib/contrib/PML_T_Edit.mak: improved annotation support
+
+	* tredlib/contrib/PML_T.mak: new_node
+
+	* tredlib/contrib/PML_A_Edit.mak: get_status_line, add_this_to_arf...
+
+	* tredlib/contrib/PML_A.mak: get_status_line
+
+	* tredlib/tred.def: docu
+
+	* tredlib/contrib/ValLex/chooser.mak, documentation/manual/tred.xml:
+	*** empty log message ***
+
+	* documentation/manual/tred_def.xml: initial commit
+
+	* tredlib/tred.def: reorganized POD
+
+	* documentation/manual/tred.xml:
+	replaced tred.def reference with xinclude of a file generated from POD
+
+	* documentation/manual/manual.xsl: *** empty log message ***
+
+	* devel/grep_hooks.sh, devel/make_manual, devel/obsolete_hooks.xsh, devel/pod2db.xsh, devel/pod2db.xsl, devel/undocumented_hooks.xsh:
+	initial commit
+
 2005-04-04  Petr Pajas  <pajas@ufal.ms.mff.cuni.cz>
 
 	* tredlib/contrib/PML.mak: *** empty log message ***
