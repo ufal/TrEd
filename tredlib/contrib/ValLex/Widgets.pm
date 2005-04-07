@@ -332,22 +332,24 @@ sub focus {
 
 sub select_frames {
   my ($self,@frames)=@_;
-  my $frames=" ".join(" ",@frames)." ";
+  my %frames; @frames{@frames}=();
   my $h=$self->widget();
   my $data=$self->data();
   my $have=0;
   $h->selectionClear();
+  my $first;
   foreach my $t (map { $_,$h->infoChildren($_) } $h->infoChildren()) {
     next unless ref($h->infoData($t));
     $id = $data->getFrameId($h->infoData($t));
-    if (index($frames," $id ")>=0) {
-      unless ($have) {
-	$h->anchorSet($t);
-	$h->see($t);
-      }
-      $have++;
+    if (exists $frames{$id}) {
+      $first = $t unless ($have);
       $h->selectionSet($t);
+      $have++;
     }
+  }
+  if (defined($first)) {
+    $h->anchorSet($first);
+    $h->see($first);
   }
   return $have;
 }

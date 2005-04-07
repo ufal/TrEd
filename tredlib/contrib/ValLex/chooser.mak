@@ -10,7 +10,7 @@ $ChooserHideObsolete=1;
 $frameid_attr="frameid";
 $framere_attr="framere";
 $lemma_attr="t_lemma";
-$wordclass_attr="g_wordclass";
+$sempos_attr="g_wordclass";
 $vallexEditor=undef;
 $vallex_validate = 0;
 $vallex_file = $ENV{VALLEX};
@@ -28,8 +28,20 @@ $chooserDialog=undef;
   semn   => 'N',
   semv   => 'V',
   semadj => 'A',
-  semadv => 'D'
+  semadv => 'D',
+  n   => 'N',
+  v   => 'V',
+  adj => 'A',
+  adv => 'D'
  );
+
+sub sempos {
+  my ($sempos)=@_;
+  if ($sempos=~/^((?:sem)?([vn]|adj|adv))/) {
+    return $sempos_map{$1}
+  }
+  return undef;
+}
 
 sub init_XMLDataClass {
   unless (defined $XMLDataClass) {
@@ -128,9 +140,18 @@ sub OpenEditor {
   require TrEd::CPConvert;
   InitValencyLexicon() || return; #do { $top->Unbusy(-recurse=>1); return };
 
+
+  my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ? 
+				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
+
   my $pos='V';
-  $pos=$sempos_map{$1} if $node->attr($wordclass_attr)=~/^(sem([vn]|adj|adv))/;
-  my $lemma=TrEd::Convert::encode($node->attr($lemma_attr));
+  if (exists($opts{-pos})) {
+    $pos = $opts{-pos};
+  } elsif (exists($opts{-sempos})) {
+    $pos = sempos($opts{-sempos});
+  } elsif ($node) {
+    $pos = sempos($node->attr($sempos_attr));
+  }
 
   my $font = $main::font;
   my $fc=[-font => $font];
@@ -164,11 +185,7 @@ sub OpenEditor {
 					    $fe_conf,
 					    $node->attr($frameid_attr),    # select frame
 					    0,
-					    {
-					     '<F5>' => [\&copy_verb_frame,$grp->{framegroup}],
-					     '<F7>' => [\&create_default_subst_frame,$grp->{framegroup}],
-					     '<F3>' => [\&open_frame_instance_in_tred,$grp->{framegroup}]
-					    }
+					    $opts{-bindings}
 					   );               # start frame editor
   $d->bind('<Destroy>',sub { undef $vallexEditor; });
   TredMacro::register_exit_hook(sub {
@@ -335,7 +352,6 @@ sub parse_lemma {
 sub ChooseFrame {
   my %opts=@_;
   my $node = $opts{-node} || $this;
-  my ($no_assign)=@_;
   if ($vallexEditor) {
     questionQuery("Sorry!","Valency editor already running.\n".
 		  "To assign frames, you have to close it first.",
@@ -348,25 +364,49 @@ sub ChooseFrame {
   init_XMLDataClass();
   init_VallexClasses();
 
-  my $lemma=TrEd::Convert::encode($node->attr($lemma_attr));
-  unless ($node->attr($wordclass_attr)=~/^(sem([vn]|adj|adv))/) {
-    questionQuery("Sorry!","Given word isn't a verb nor noun nor adjective\n".
-		  "according to g_wordclass.",
-		  "Ok");
+  my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ? 
+				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
+
+#  use Data::Dumper;
+#  print Dumper(\%opts);
+
+  my $pos;
+  if (exists($opts{-pos})) {
+    $pos = $opts{-pos};
+  } elsif (exists($opts{-sempos})) {
+    $pos = sempos($opts{-sempos});
+  } elsif ($node) {
+    $pos = sempos($node->attr($sempos_attr));
+  }
+
+
+  if ($lemma eq "") {
+    $top->Unbusy(-recurse=>1);
+    questionQuery("Sorry!","Can't determine t_lemma to use.", "Ok");
     ChangingFile(0);
     return;
   }
-  my $pos=$sempos_map{$1};
-  my ($morph_pos) = $node->{tag}=~/^(.)/;
-  my $morph_lemma = $node->{lemma};
+
+  unless ($pos=~/^[NVAD]$/) {
+    $top->Unbusy(-recurse=>1);
+    questionQuery("Sorry!","Can't determine semantic POS.\n", "Ok");
+    ChangingFile(0);
+    return;
+  }
   $lemma=~s/_/ /g;
-  my $title;
   InitValencyLexicon() || do { ChangingFile(0); return; };
   my $field;
   my $new_word=0;
-  unless ($opts{-noadd}) {
-    my ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($morph_lemma),$morf_pos);
-    my $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
+  my $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
+  if (!exists($opts{-frameid}) and $node) {
+    $opts{-frameid} = $node->attr($frameid_attr);
+  }
+  unless ($opts{-no_assign} and $opts{-noadd}) {
+    my ($l,$base);
+    if ($opts{-morph_lemma}) {
+      ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($opts{-morph_lemma}),
+				$opts{-morph_pos} || $pos);
+    }
     my $base_word;
     $base_word=$ValencyLexicon->findWordAndPOS($base,"V") if (defined($base));
     if (!$word and $lemma ne lc($lemma)) {
@@ -403,19 +443,24 @@ sub ChooseFrame {
 	return;
       }
     }
-    $title= join ("/",$word ? $lemma : (), $base_word ? $base : ());
     $field=[
 	    $word ? ($lemma,$pos) : (),
 	    $base_word ? ($base,"V") : ()
 	   ];
+  } else {
+    $field=[ $word ? ($lemma,$pos) : () ];
   }
-  DisplayFrame($field,$node->attr($frameid_attr),$new_word);
+  print "$word: $lemma $pos $opts{-frameid}\n";
+
+  DisplayFrame($field,$opts{-frameid},$new_word,($opts{-title} || 'Valency frames'),
+	       $opts{-no_assign},
+	       $opts{-assign_func});
 }
 
 sub DisplayFrame {
-  my ($field,$frameid,$new_word)=@_;
+  my ($field,$frameid,$new_word,$title,$no_assign,$assign_func)=@_;
   my ($frame,$real);
-
+  my $top=ToplevelFrame();
   if (ref($chooserDialog) and
       scalar(@{$chooserDialog->subwidget('framelists')}) !=
       scalar(@{$field}/2)) {
@@ -470,7 +515,7 @@ sub DisplayFrame {
 					     (ref($no_assign) ?
 					      [$no_assign, $grp->{framegroup}] :
 					      ($no_assign ? undef :
-					       [\&frame_chosen, $grp->{framegroup}])),
+					       [\&frame_chosen, $grp->{framegroup},$assign_func])),
 					     sub {
 					       $chooserDialog->destroy_dialog();
 					       undef $chooserDialog;
@@ -489,7 +534,7 @@ sub DisplayFrame {
 }
 
 sub frame_chosen {
-  my ($grp,$chooser)=@_;
+  my ($grp,$assign_func,$chooser)=@_;
   return unless $grp and $grp->{focusedWindow};
   my $win = $grp->{focusedWindow};
   if ($win->{FSFile} and
@@ -497,18 +542,20 @@ sub frame_chosen {
     my $field = $chooser->focused_framelist()->field();
     my $node = $win->{currentNode};
     my $lemma = TrEd::Convert::encode($node->attr($lemma_attr)); $lemma=~s/_/ /g;
-    $node->attr($wordclass_attr)=~/^(sem([vn]|adj|adv))/;
-    my ($pos) = $sempos_map{$1};
+    my $pos = sempos($node->attr($sempos_attr));
     if (ref($field) and ($field->[0] eq $lemma or $field->[0] eq lc($lemma)) and
 	$field->[1] eq $pos) {
       my @frames=$chooser->get_selected_frames();
       my $real=$chooser->get_selected_element_string();
       my $ids = $chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames));
       my $fmt  = $win->{FSFile}->FS();
-#      $fmt->addNewAttribute("P","",$frameid_attr) if $fmt->atdef($frameid_attr) eq "";
-#      $fmt->addNewAttribute("P","",$framere_attr) if $fmt->atdef($framere_attr) eq "";
-      $node->set_attr($frameid_attr)=$ids;
-      $node->set_attr($framere_attr)=TrEd::Convert::decode($real) if defined($framere_attr);
+
+      if (ref($assign_func)) {
+	$assign_func->($node,$ids,TrEd::Convert::decode($real));
+      } else {
+	$node->set_attr($frameid_attr,$ids);
+	$node->set_attr($framere_attr,TrEd::Convert::decode($real)) if defined($framere_attr);
+      }
       $win->{framegroup}{top}->focus();
       $win->{framegroup}{top}->raise();
       $win->{FSFile}->notSaved(1);

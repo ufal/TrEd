@@ -18,7 +18,7 @@ import VallexGUI;
 
 #include <contrib/ValLex/adverb.mak>
 
-#bind OpenEditor to Ctrl+Shift+Return menu Zobraz valenèní slovník
+#bind open_editor to Ctrl+Shift+Return menu Zobraz valenèní slovník
 
 #bind choose_frame_or_advfunc to Ctrl+Return menu Vyber ramec pro sloveso, funktor pro adverbium
 #bind choose_frame_or_advfunc to F1 menu Vyber ramec pro sloveso, funktor pro adverbium
@@ -97,6 +97,41 @@ sub first (&@);
     );
 
 
+sub open_editor {
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this || {};
+  my %opts = @_;
+  VallexGUI::OpenEditor(
+    -lemma => $node->{t_lemma},
+    -sempos => $node->{g_wordclass},
+    -bindings => {
+      '<F5>' => [\&VallexGUI::copy_verb_frame,$grp->{framegroup}],
+      '<F7>' => [\&VallexGUI::create_default_subst_frame,$grp->{framegroup}],
+      '<F3>' => [\&VallexGUI::open_frame_instance_in_tred,$grp->{framegroup}]
+     },
+    %opts
+   )
+}
+
+sub choose_frame {
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this;
+  my %opts = @_;
+  my ($morph_pos) = $node->{tag}=~/^(.)/;
+  $VallexGUI::frameid_attr="frameid";
+  $VallexGUI::lemma_attr="t_lemma";
+  $VallexGUI::framere_attr="framere";
+  $VallexGUI::sempos_attr="g_wordclass";
+  VallexGUI::ChooseFrame(
+    -morph_lemma => $node->{lemma},
+    -morph_pos => $1,
+    -lemma => $node->{t_lemma},
+    -sempos => $node->{g_wordclass},
+    -frameid => $node->{frameid},
+    %opts
+   );
+}
+
 sub choose_frame_or_advfunc {
   my $tag;
   foreach (qw(tag tagMD_a tagMD_b)) {
@@ -107,7 +142,7 @@ sub choose_frame_or_advfunc {
     }
   }
   if ($this->{$tag}=~/^[VAN]/) {	# co neni sloveso, subst ni adj, je adv :))))
-    ChooseFrame();
+    choose_frame();
   } else {
     ChooseAdverbFunc();
   }
@@ -118,9 +153,9 @@ sub prev_file_choose_frame {
   if ($this->{rframeid} ne "") {
     local $frameid_attr="rframeid";
     local $framere_attr="rframere";
-    ChooseFrame() if ($this->{tag}=~/^[VAN]/);
+    choose_frame() if ($this->{tag}=~/^[VAN]/);
   } else {
-    ChooseFrame() if ($this->{tag}=~/^[VAN]/);
+    choose_frame() if ($this->{tag}=~/^[VAN]/);
   }
 }
 
@@ -129,9 +164,9 @@ sub next_file_choose_frame {
   if ($this->{rframeid} ne "") {
     local $frameid_attr="rframeid";
     local $framere_attr="rframere";
-    ChooseFrame() if ($this->{tag}=~/^[VAN]/);
+    choose_frame() if ($this->{tag}=~/^[VAN]/);
   } else {
-    ChooseFrame() if ($this->{tag}=~/^[VAN]/);
+    choose_frame() if ($this->{tag}=~/^[VAN]/);
   }
 }
 
@@ -1247,7 +1282,7 @@ sub status_line_doubleclick_hook {
   foreach (@_) {
     if (/^\{(.*)}$/) {
       if ($1 eq 'FRAME') {
-	ChooseFrame();
+	choose_frame();
 	last;
       } else {
 	if (main::doEditAttr($grp,$this,$1)) {
