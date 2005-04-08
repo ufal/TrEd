@@ -76,12 +76,13 @@ sub create_toplevel {
     $chooser->widget()->bind('<Double-1>'=> sub { $ab->invoke });
   }
   $bot->Button(-text => 'Close',
+	       -underline => 0,
 	       -command => [$destroy_callback,$d] )->pack(-side => 'right', -expand => 1);
   $d->protocol('WM_DELETE_WINDOW' => [$destroy_callback,$d]);
   $chooser->subwidget('frame')->pack(qw/-fill both -expand 1/);
   $d->bind($d,'<Escape>'=> [$destroy_callback,$d]);
 
-
+  TrEd::ValLex::Widget::_bind_buttons($d);
   $chooser->prepare($show_obsolete_ref, $field, $select_frame, $start_editor);
   $chooser->widget->focus;
 #  $d->resizable(0,0);
@@ -284,8 +285,9 @@ sub create_widget {
 # 							 ]);
 #     $choose_button->pack(qw/-padx 5 -side left/);
 #   }
-
-  my $editframes_button=$fbutton_frame->Button(-text => 'Edit Frames',
+  my $can_edit = $data->user_is_annotator() or $data->user_is_reviewer();
+  my $editframes_button=$fbutton_frame->Button(-text => $can_edit ? 'Edit Frames' : 'Browse Lexicon',
+					       -underline => 0,
 					       -command => [
 						 \&edit_button_pressed,
 						 $self

@@ -27,6 +27,7 @@ sub new_dialog_window {
       $bindings
      )=@_;
 
+  my $can_edit = $data->user_is_annotator() or $data->user_is_reviewer();
   my $d = $top->Toplevel(-title => "Frame editor: ".
 			 $data->getUserName($data->user())
 			);
@@ -51,48 +52,68 @@ sub new_dialog_window {
   }
   $d->Frame(qw/-height 3 -borderwidth 2 -relief sunken/)->
     pack(qw(-fill x -side top -pady 6));
-  $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
-    Button(-text => 'Save & Close',
-	   -underline => 2,
-	   -command =>
-	   [sub {
-	      my ($d,$f,$autosave,$top)=@_;
-	      if ($vallex->data()->changed()) {
-		if ($autosave) {
-		  $vallex->save_data($top);
-		} else {
-		  $vallex->ask_save_data($top);
-		}
-	      }
-	      $vallex->destroy();
-	      undef $vallex;
-	      $d->destroy();
-	      undef $d;
-	    },$d,$vallex,$autosave,$top]
-	  )->pack(qw(-padx 10 -expand 1));
-  $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
-    Button(-text => 'Save',
-	   -underline => 0,
-	   -command =>
-	   [sub {
-	      my ($d,$f)=@_;
-	      $f->save_data($d);
-	    },$d,$vallex])->pack(qw(-padx 10 -expand 1));
-  $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
-    Button(-text => 'Undo Changes',
-	   -underline => 3,
-	   -command =>[sub {
-			 my ($d,$f)=@_;
-			 $f->reload_data($d);
-		       },$d,$vallex])->pack(qw(-padx 10 -expand 1));
-  _bind_buttons($button_frame);
-
-  $d->protocol('WM_DELETE_WINDOW' =>
+  if ($can_edit) {
+    $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
+      Button(-text => 'Save & Close',
+	     -underline => 2,
+	     -command =>
+	       [sub {
+		  my ($d,$f,$autosave,$top)=@_;
+		  if ($vallex->data()->changed()) {
+		    if ($autosave) {
+		      $vallex->save_data($top);
+		    } else {
+		      $vallex->ask_save_data($top);
+		    }
+		  }
+		  $vallex->destroy();
+		  undef $vallex;
+		  $d->destroy();
+		  undef $d;
+		},$d,$vallex,$autosave,$top]
+	      )->pack(qw(-padx 10 -expand 1));
+    $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
+      Button(-text => 'Save',
+	     -underline => 0,
+	     -command =>
 	       [sub {
 		  my ($d,$f)=@_;
-		  $f->ask_save_data($d);
-		  $d->destroy;
-		},$d,$vallex]);
+		  $f->save_data($d);
+		},$d,$vallex])->pack(qw(-padx 10 -expand 1));
+    $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
+      Button(-text => 'Undo Changes',
+	     -underline => 3,
+	     -command =>[sub {
+			   my ($d,$f)=@_;
+			   $f->reload_data($d);
+			 },$d,$vallex])->pack(qw(-padx 10 -expand 1));
+  } else {
+    $button_frame->Frame()->pack(qw(-expand 1 -fill x -side left))->
+      Button(-text => 'Close',
+	     -underline => 2,
+	     -command =>
+	       [sub {
+		  my ($d,$f,$autosave,$top)=@_;
+		  $vallex->destroy();
+		  undef $vallex;
+		  $d->destroy();
+		  undef $d;
+		},$d,$vallex,$autosave,$top]
+	      )->pack(qw(-padx 10 -expand 1));
+    $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Close'; },$d ]);
+  }
+  TrEd::ValLex::Widget::_bind_buttons($button_frame);
+  if ($can_edit) {
+    $d->protocol('WM_DELETE_WINDOW' =>
+		   [sub {
+		      my ($d,$f)=@_;
+		      $f->ask_save_data($d);
+		      $d->destroy;
+		    },$d,$vallex]);
+  } else {
+    $d->protocol('WM_DELETE_WINDOW' =>
+		   [$d,'destroy']);
+  }
   
   if (ref($bindings)) {
     while (my ($event, $command) = each %$bindings) {
@@ -121,9 +142,12 @@ sub show_dialog {
       $bindings
      )=@_;
 
+  my $can_edit = $data->user_is_annotator() or $data->user_is_reviewer();
+
   my $d = $top->DialogBox(-title => "Frame editor: ".
 			  $data->getUserName($data->user()),
-			  -buttons => ["Save & Close", "Save", "Undo Changes"],
+			  -buttons =>
+			    $can_edit ? ["Save & Close", "Save", "Reload (Undo Changes)"] : [ "Close" ]
 			 );
 
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
@@ -161,28 +185,34 @@ sub show_dialog {
 # 				      }
 # 				    },$d,$vallex,$vallex2,$adjuster,\$double])->pack(qw/-side left/);
 
-
-  $d->Subwidget("B_Save & Close")->
-    configure(-command =>
-	      [sub {
-		 my ($d,$f)=@_;
-		 $d->{selected_button}='Save & Close';
-	       },$d,$vallex]);
-
-  $d->Subwidget("B_Save")->
-    configure(-command =>
-	      [sub {
-		 my ($d,$f)=@_;
-		 $f->save_data($d);
-	       },$d,$vallex]);
-
-  $d->Subwidget("B_Undo Changes")->
-    configure(-command =>
-	      [sub {
-		 my ($d,$f)=@_;
-		 $f->reload_data($d);
-	       },$d,$vallex]);
-
+  if ($can_edit) {
+    $d->Subwidget("B_Save & Close")->
+      configure(-command =>
+		  [sub {
+		     my ($d,$f)=@_;
+		     $d->{selected_button}='Save & Close';
+		   },$d,$vallex]);
+    $d->Subwidget("B_Save")->
+      configure(-command =>
+		  [sub {
+		     my ($d,$f)=@_;
+		     $f->save_data($d);
+		   },$d,$vallex]);
+    $d->Subwidget("B_Reload (Undo Changes)")->
+      configure(-command =>
+		  [sub {
+		     my ($d,$f)=@_;
+		     $f->reload_data($d);
+		   },$d,$vallex]);
+  } else {
+    $d->Subwidget("B_Close")->
+      configure(-command =>
+		  [sub {
+		     my ($d,$f)=@_;
+		     $d->{selected_button}='Close';
+		   },$d,$vallex]);
+    $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  }
   if (ref($bindings)) {
     while (my ($event, $command) = each %$bindings) {
       if (ref($command) eq 'ARRAY') {
@@ -365,7 +395,7 @@ sub create_widget {
       $show_deleted->pack(qw/-padx 5 -side left/);
     }
   }
-  my $search_button=$fbutton_frame->Button(-text => 'Search Frames',
+  my $search_button=$fbutton_frame->Button(-text => 'Search Whole Lexicon',
 					      -underline => 0,
 					      -command => [\&show_frame_search_dialog,
 							   $self]);
@@ -508,7 +538,7 @@ sub create_widget {
   $info_line->pack(qw/-side bottom -fill x/);
 
   # Bind buttons
-  _bind_buttons($frame);
+  TrEd::ValLex::Widget::_bind_buttons($frame);
 
 
   return $lexlist->widget(),{
@@ -529,24 +559,6 @@ sub create_widget {
       	     hide_obsolete => \$hide_obsolete,
              search_params => ['',0,0],
 	    },$fe_confs;
-}
-
-sub _descendant_widgets {
-  return ($_[0],map {_descendant_widgets($_)} $_[0]->children);
-}
-
-sub _bind_buttons {
-  my ($w,$top)=@_;
-  $top||=$w->toplevel;
-  foreach my $button (grep { ref($_) and $_->isa('Tk::Button') } _descendant_widgets($w)) {
-    my $ul=$button->cget('-underline');
-    if (defined($ul) and $ul>=0) {
-      my $text=$button->cget('-text');
-      my $key=lc(substr($text,$ul,1));
-      print STDERR "binding Alt-$key to button $text\n";
-      $top->bind("<Alt-$key>", [sub { $_[1]->flash; $_[1]->invoke; },$button]);
-    }
-  }
 }
 
 sub destroy {
