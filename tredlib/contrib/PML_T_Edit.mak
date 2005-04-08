@@ -31,7 +31,7 @@ of Prague Dependency Treebank (PDT) 2.0.
 #key-binding-adopt PML_T_View
 #menu-binding-adopt PML_T_View
 
-=item AddCoref (node, target, coref)
+=item AddCoref(node,target,coref)
 
 If the node does not refer to target by the coref of type C<$coref>,
 make the reference, else delete the reference.
@@ -116,7 +116,7 @@ sub status_line_doubleclick_hook {
   }
 }
 
-=item RememberNode
+=item RememberNode()
 
 Remembers current node to be used later, e.g. with
 C<text_arrow_to_remembered>.
@@ -147,7 +147,7 @@ sub ForgetRemembered {
   ChangingFile(0);
 }#ForgetRemembered
 
-=item MarkForArf
+=item MarkForArf()
 
 Enter analytical layer with current node remembered. By calling
 C<AddThisToArf> you can make links between the layers.

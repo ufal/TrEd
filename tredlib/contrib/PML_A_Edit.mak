@@ -58,7 +58,7 @@ sub status_line_doubleclick_hook {
 }
 
 
-=item AddThisToArfOriginal
+=item AddThisToArfOriginal()
 
 If called from analytical tree entered through C<PML_T_Edit::MarkForArf>, adds
 this node's C<id> to C<a.rf> list of the marked tectogrammatical node.
@@ -102,7 +102,7 @@ sub AddThisToArfOriginal {
   $tr_fs->notSaved(1);
 }#AddThisToArf
 
-=item AddThisToArf
+=item AddThisToArf()
 
 If called from analytical tree entered through C<PML_T_Edit::MarkForArf>, adds
 this node's C<id> to C<a.rf> list of the marked tectogrammatical node.

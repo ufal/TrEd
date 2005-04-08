@@ -1274,6 +1274,8 @@ sub textDialog {
     }
   }
   $t->insert('0.0',ref($msg) ? @$msg : $msg);
+  $t->markUnset('insert');
+  $t->markSet('insert','0.0');
   if (ref($tags)) {
     foreach my $tag (keys %$tags) {
       $t->tagConfigure($tag,@{$tags->{$tag}})
