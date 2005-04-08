@@ -829,7 +829,39 @@ Goto previous file in the file-list.
 </section>
 <section>
 <title>General I/O macros</title>
-<variablelist><varlistentry><term><literal>writeln(string?,...)</literal></term><listitem>
+<variablelist><varlistentry><term><literal>ResourcePath()</literal></term><listitem>
+<para>
+Return a list of directories in a current resource path.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>AddToResourcePath(dirs)</literal></term><listitem>
+<para>
+Add given directories to the current resource path.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>RemoveFromResourcePath(dirs)</literal></term><listitem>
+<para>
+Remove given directories from the current resource path (directory
+names must exactly match those listed in the resource path).
+</para>
+</listitem></varlistentry><varlistentry><term><literal>SetResourcePath(dirs)</literal></term><listitem>
+<para>
+Set given list of directories as a current resource path (discarding
+the existing values of ResourcePath).
+</para>
+</listitem></varlistentry><varlistentry><term><literal>FindInResources(filename)</literal></term><listitem>
+<para>
+If a given filename is a relative path of a file found in TrEd's
+resource directory, return an absolute path for the
+resource. Otherwise return filename.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>ResolvePath(ref-filename,filename,use_resources?)</literal></term><listitem>
+<para>
+If a given filename is a relative path, try to find the file in the
+same directory as ref-filename. In case of success, return a path
+based on the directory part of ref-filename and filename.  If the file
+can't be located in this way and use_resources is true, return the
+value of <literal>FindInResources(filename)</literal>.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>writeln(string?,...)</literal></term><listitem>
 <para>
 Print the arguments to standard output appending a new-line if missing.
 </para>
