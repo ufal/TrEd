@@ -90,9 +90,9 @@ sub InfoDialog {
 sub init_ValencyLexicon {
   my $top=ToplevelFrame();
   unless ($ValencyLexicon) {
-    my $support_unicode = ($Tk::VERSION ge 804.00);
     my $conv= TrEd::CPConvert->new("utf-8", 
-				   $support_unicode ? "utf-8" : (($^O eq "MSWin32") ? "windows-1250" : "iso-8859-2"));
+				   $TrEd::Convert::support_unicode
+				     ? "utf-8" : (($^O eq "MSWin32") ? "windows-1250" : "iso-8859-2"));
     my $info;
     eval {
       if ($^O eq "MSWin32") {
