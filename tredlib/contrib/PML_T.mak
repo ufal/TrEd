@@ -232,7 +232,7 @@ sub node_style_hook {
   1;
 }
 
-=item DrawCorefArrows
+=item DrawCorefArrows()
 
 Called from C<node_style_hook>. Draws coreference arrows using
 following properties: textual arrows in CustomColor C<arrow_textual>,
@@ -649,7 +649,7 @@ sub ModalVerbLemma ($) {
   $_[0]=~/^(?:dát|dovést|hodlat|chtít|mít|moci|mus[ei]t|smìt|umìt)($|[-`_].*)/;
 }#ModalVerbLemma
 
-=item CreateStylesheets
+=item CreateStylesheets()
 
 Creates default stylesheets for PML tectogrammatic files unless
 already defined. Most of the colors they use can be redefined in the
@@ -937,7 +937,7 @@ sub ShowNearestNonMember {
   ChangingFile(0);
 }#ShowNearestNonMember
 
-=item DeleteNode (node?)
+=item DeleteNode(node?)
 
 Deletes $node or $this, attaches all its children to its parent and
 recounts deepord. Cannot be used for the root.
@@ -957,7 +957,7 @@ sub DeleteNode{
   ChangingFile(1);
 }#DeleteNode
 
-=item DeleteSubtree (node?)
+=item DeleteSubtree(node?)
 
 Deletes $node or $this and its whole subtree and recounts
 deepord. Cannot be used for the root.
@@ -974,7 +974,7 @@ sub DeleteSubtree{
   ChangingFile(1);
 }#DeleteSubtree
 
-=item NewNode (node?)
+=item NewNode(node?)
 
 Add new node as a son of the given node or current node.
 
@@ -990,7 +990,7 @@ sub NewNode{
   $new->set_type(Schema()->type($type))
 }#NewNode
 
-=item OpenValFrameList (node?, options...)
+=item OpenValFrameList(node?,options...)
 
 Open a window with a list of possible valency frames for a given node,
 highlighting frames currently assigned to the node. All given options

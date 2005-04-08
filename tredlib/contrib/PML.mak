@@ -62,7 +62,7 @@ sub GetNodeByID {
   return GetNodeHash($fsfile)->{$rf};
 }
 
-=item SearchForNodeById
+=item SearchForNodeById()
 
 Searches for node with given id. Returns the node and the number of
 the tree.
