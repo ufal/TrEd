@@ -91,7 +91,7 @@ CurrentNodeHeight	= 9          		;; height of the oval
 ;; Miscelaneous Options
 ;; ------------------------------------------------------------
 
-;; displayStatusLine = 1                ;; show status line (default 0)
+;; displayStatusLine = 1                ;; show status line (default 1)
 
 ;; maxUndo= 30                          ;; maximal number of undo levels
 

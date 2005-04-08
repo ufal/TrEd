@@ -341,9 +341,10 @@ sub set_config {
       $Fslib::resourcePath=~s/[\\\/](?:lib[\\\/]tred|tredlib)$//;
       $Fslib::resourcePath.="\\resources";
     } else {
-      $Fslib::resourcePath=~s/\/(?:lib\/tred|tredlib)$//;
-      $Fslib::resourcePath.="/resources";
-
+      unless ($Fslib::resourcePath=~s{/lib/tred$}{/share/tred}) {
+	$Fslib::resourcePath=~s/\/(?:tredlib)$//;
+	$Fslib::resourcePath.="/resources";
+      }
     }
   }
 
@@ -503,7 +504,7 @@ sub set_config {
   $maxUndo		      =	val_or_def($confs,"maxundo",30);
   $reloadKeepsPatterns	      =	val_or_def($confs,"reloadpreservespatterns",1);
   $autoSave	              =	val_or_def($confs,"autosave",5);
-  $displayStatusLine          =	val_or_def($confs,"displaystatusline",0);
+  $displayStatusLine          =	val_or_def($confs,"displaystatusline",1);
   $openFilenameCommand        =	val_or_def($confs,"openfilenamecommand",undef);
   $saveFilenameCommand        =	val_or_def($confs,"savefilenamecommand",undef);
   $lockFiles                  =	val_or_def($confs,"lockfiles",1);
