@@ -6,6 +6,24 @@ package TrEd::ValLex::Widget;
 #use locale;
 use base qw(TrEd::ValLex::DataClient);
 
+sub _bind_buttons {
+  my ($w,$top)=@_;
+  $top||=$w->toplevel;
+  foreach my $button (grep { ref($_) and $_->isa('Tk::Button') } _descendant_widgets($w)) {
+    my $ul=$button->cget('-underline');
+    if (defined($ul) and $ul>=0) {
+      my $text=$button->cget('-text');
+      my $key=lc(substr($text,$ul,1));
+      print STDERR "binding Alt-$key to button $text\n";
+      $top->bind("<Alt-$key>", [sub { $_[1]->flash; $_[1]->invoke; },$button]);
+    }
+  }
+}
+sub _descendant_widgets {
+  return ($_[0],map {_descendant_widgets($_)} $_[0]->children);
+}
+
+
 sub ShowDialog {
   my ($cw, $focus, $oldFocus)= @_;
   $oldFocus= $cw->focusCurrent unless $oldFocus;
