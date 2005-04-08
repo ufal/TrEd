@@ -3,14 +3,8 @@
 $AdvLexiconData=undef;
 $AdvLexiconDialog=undef;
 
-if ($^O eq "MSWin32") {
-  $AdvFile="$libDir\\contrib\\ValLex\\adverbs.xml";
-} else {
-  $AdvFile= -f "$libDir/contrib/ValLex/adverbs.xml.gz" ?
-    "$libDir/contrib/ValLex/adverbs.xml.gz" :
-      "$libDir/contrib/ValLex/adverbs.xml";
-}
 
+$AdvFile = ResolvePath("$libDir/contrib/ValLex/adverbs.xml",'adverbs.xml',1);
 
 sub ChooseAdverbFunc {
   my $top=ToplevelFrame();
@@ -26,10 +20,8 @@ sub ChooseAdverbFunc {
   return unless $AdvLexiconData;
   require TrEd::CPConvert;
   require TrEd::Convert;
-  my $conv= TrEd::CPConvert->new("utf-8",
-				 ($^O eq "MSWin32") ?
-				 "windows-1250":
-				 "iso-8859-2");
+  my $conv= TrEd::CPConvert->new("utf-8", 
+				 $TrEd::Convert::support_unicode ? "utf-8" : (($^O eq "MSWin32") ? "windows-1250" : "iso-8859-2"));
   my $lemma=TrEd::Convert::encode($this->{trlemma});
   my $func=show_adverbs_dialog($top,$AdvLexiconData,$conv,$lemma,$this->{func});
   if ($func) {
@@ -153,7 +145,7 @@ sub show_adverbs_dialog {
 			   -width 0
 			   -height 20
 			   -scrollbars osoe/,
-			-font => StandardTredFont()
+			-font => StandardTredValueLineFont()
 		       );
 
     $hlist->Subwidget('xscrollbar')->configure(-takefocus=>0) if ($hlist->Subwidget('xscrollbar'));
@@ -174,10 +166,10 @@ sub show_adverbs_dialog {
 
     my %styles=(EB => $hlist->ItemStyle('text',-foreground => 'black',
 					-background => 'white',
-					-font => StandardTredFont()),
+					-font => StandardTredValueLineFont()),
 		S => $hlist->ItemStyle('text',-foreground => '#707070',
 				       -background => 'white',
-				       -font => StandardTredFont()));
+				       -font => StandardTredValueLineFont()));
 
     print "populating list\n";
     foreach my $adv (get_adverbs($data,$conv)) {
