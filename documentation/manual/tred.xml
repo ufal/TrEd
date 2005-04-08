@@ -3916,7 +3916,7 @@ Property        Type    Description
 	  <term><literal moreinfo="none">displayStatusLine</literal></term>
 	  <listitem>
 	    <para>
-	      Turn on/off displaying status line. Default is off.
+	      Turn on/off displaying status line. Default is on.
 	      Currently, status line content can only be controlled
 	      from macros, via <link linkend="get_status_line_hook"><literal moreinfo="none">get_status_line_hook</literal></link>.
 	    </para>
@@ -5688,10 +5688,6 @@ sub MakeSentence {
 	      <entry>get_status_line_hook</entry>
 	      <entry>no</entry>
 	      <entry>Supply status-line content.
-		Status line is an experimental feature which can be
-		enabled by setting
-		<literal moreinfo="none">displayStatusLine</literal> configuration
-		option to <literal moreinfo="none">1</literal>.
 		This hook is responsible for providing the content for
 		a status-line. The value returned from 
 		<literal moreinfo="none">get_status_line_hook</literal> should
