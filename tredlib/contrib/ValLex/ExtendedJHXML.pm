@@ -27,7 +27,7 @@ sub addWord {
   my $self = shift;
   my $word = $self->SUPER::addWord(@_);
   if ($word) {
-    $self->[8]->{ $word->getAttribute('word_ID') } = $word if ref($self->[8]);
+    $self->[8]->{ $word->getAttribute('id') } = $word if ref($self->[8]);
     $self->[9]->{ $word->getAttribute('lemma') } = $word if ref($self->[9]);
   }
   return $word;
@@ -37,7 +37,7 @@ sub addFrame {
   print "Called extended addFrame\n";
   my $self = shift;
   my $frame = $self->SUPER::addFrame(@_);
-  $self->[8]->{ $frame->getAttribute('frame_ID') } = $frame if $frame and ref($self->[8]);
+  $self->[8]->{ $frame->getAttribute('id') } = $frame if $frame and ref($self->[8]);
   return $frame;
 }
 

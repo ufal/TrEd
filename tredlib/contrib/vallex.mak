@@ -62,7 +62,7 @@ sub frame_status {
 
 sub frame_id {
   my ($self,$frame)=@_;
-  return $frame->getAttribute('frame_ID');
+  return $frame->getAttribute('id');
 }
 
 sub valid_frame_for {

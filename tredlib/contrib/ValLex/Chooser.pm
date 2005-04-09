@@ -138,7 +138,7 @@ sub reusable_dialog {
     my @frames=$chooser->get_selected_frames();
     my $real=$chooser->get_selected_element_string();
     $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
-    return ($chooser,$chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames)),$real);
+    return ($chooser,$chooser->data->conv->decode(join("|",map { $_->getAttribute('id') } @frames)),$real);
   } else {
     $$show_obsolete_ref=${$chooser->subwidget('hide_obsolete')};
     return ($chooser);
@@ -230,7 +230,7 @@ sub reuse {
       my @frames=$self->get_selected_frames();
       my $real=$self->get_selected_element_string();
       $$show_obsolete_ref=${$self->subwidget('hide_obsolete')};
-    return ($self->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames)),$real);
+    return ($self->data->conv->decode(join("|",map { $_->getAttribute('id') } @frames)),$real);
     } else {
       $$show_obsolete_ref=${$self->subwidget('hide_obsolete')};
       return undef;

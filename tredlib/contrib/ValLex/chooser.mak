@@ -596,7 +596,7 @@ sub frame_chosen {
 	$field->[1] eq $pos) {
       my @frames=$chooser->get_selected_frames();
       my $real=$chooser->get_selected_element_string();
-      my $ids = $chooser->data->conv->decode(join("|",map { $_->getAttribute('frame_ID') } @frames));
+      my $ids = $chooser->data->conv->decode(join("|",map { $_->getAttribute('id') } @frames));
       my $fmt  = $win->{FSFile}->FS();
 
       if (ref($assign_func)) {

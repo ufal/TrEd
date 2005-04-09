@@ -178,7 +178,7 @@ sub loadListOfUsers {
     my ($list)=$head->getChildElementsByTagName("list_of_users");
     if ($list) {
       foreach my $user ($list->getChildElementsByTagName("user")) {
-	$users->{$user->getAttribute("user_ID")} =
+	$users->{$user->getAttribute("id")} =
 	  [
 	   $user->getAttribute("name"),
 	   $user->getAttribute("annotator") eq "YES",
@@ -307,7 +307,7 @@ sub getWordSubList {
   while ($word and $i<$before) {
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
     if (index(uc($posfilter),uc($pos))>=0) {
-      my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
+      my $id = $self->conv()->decode($word->getAttribute ("id"));
       my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
       my $reviewed = $self->wordReviewed($word);
       unshift @words, [$word,$id,$lemma,$pos,$reviewed];
@@ -322,7 +322,7 @@ sub getWordSubList {
   while ($word and $word->nodeName eq 'word' and $i<$after) {
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
     if (index(uc($posfilter),uc($pos))>=0) {
-      my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
+      my $id = $self->conv()->decode($word->getAttribute ("id"));
       my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
       my $reviewed = $self->wordReviewed($word);
       push @words, [$word,$id,$lemma,$pos,$reviewed];
@@ -348,7 +348,7 @@ sub getWordList {
   my $docel=$doc->documentElement();
   my $word = $self->getFirstWordNode();
   while ($word) {
-    my $id = $self->conv()->decode($word->getAttribute ("word_ID"));
+    my $id = $self->conv()->decode($word->getAttribute ("id"));
     my $lemma = $self->conv()->decode($word->getAttribute ("lemma"));
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
     my $reviewed = $self->wordReviewed($word);
@@ -366,7 +366,7 @@ sub getWordList {
 sub getFrame {
   my ($self,$frame)=@_;
 
-  my $id = $self->conv->decode($frame->getAttribute("frame_ID"));
+  my $id = $self->conv->decode($frame->getAttribute("id"));
   my $status = $self->conv->decode($frame->getAttribute("status"));
   my $elements = $self->getFrameElementString($frame);
   my $example=$self->getFrameExample($frame);
@@ -937,14 +937,14 @@ sub generateNewWordId {
   my $forbidden=$self->getForbiddenIds();
   foreach ($self->getWordList) {
     return undef if ($_->[2] eq $lemma and $_->[3] eq $pos);
-    if ($_->[1]=~/^w-([0-9]+)/ and $i<$1) {
+    if ($_->[1]=~/^v-w([0-9]+)/ and $i<$1) {
       $i=$1;
     }
   }
   $i++;
   my $user=$self->user;
-  $i++ while ($forbidden->{"w-$i-$user"});
-  return "w-$i-$user";
+  $i++ while ($forbidden->{"v-w$i$user"});
+  return "v-w$i$user";
 }
 
 sub addWord {
@@ -979,7 +979,7 @@ sub addWord {
   }
   $word->setAttribute("lemma",$self->conv->encode($lemma));
   $word->setAttribute("POS",$pos);
-  $word->setAttribute("word_ID",$new_id);
+  $word->setAttribute("id",$new_id);
 
   my $valency_frames=$doc->createElement("valency_frames");
   $word->appendChild($valency_frames);
@@ -1036,7 +1036,7 @@ sub substituteFrame {
   return unless $new;
   $self->changeFrameStatus($frame,"substituted","obsolete");
   my $subst=$frame->getAttribute("substituted_with");
-  my $new_id=$new->getAttribute("frame_ID");
+  my $new_id=$new->getAttribute("id");
   $subst= $subst eq "" ? $new_id : "$subst $new_id";
   $frame->setAttribute("substituted_with",$subst);
   $self->set_change_status(1);
@@ -1047,18 +1047,18 @@ sub generateNewFrameId {
   my ($self,$word)=@_;
   my $i=0;
 #  my $w=0;
-  my $wid=$word->getAttribute("word_ID");
+  my $wid=$word->getAttribute("id");
   my $forbidden=$self->getForbiddenIds();
 #  $w=$1 if ($wid=~/^.-(.+)/);
   foreach ($self->getFrameList($word)) {
-    if ($_->[1]=~/-(\d+)\D*$/ and $i<$1) {
+    if ($_->[1]=~/f(\d+)\D*$/ and $i<$1) {
       $i=$1;
     }
   }
   $i++;
   my $user=$self->user;
-  $i++ while ($forbidden->{"f-$wid-$i-$user"});
-  return "f-$wid-$i-$user";
+  $i++ while ($forbidden->{"v-${wid}f$i$user"});
+  return "v-${wid}f$i$user";
 }
 
 sub addFrame {
@@ -1086,7 +1086,7 @@ sub addFrame {
   } else {
     $valency_frames->appendChild($frame);
   }
-  $frame->setAttribute("frame_ID",$new_id);
+  $frame->setAttribute("id",$new_id);
   $frame->setAttribute("status","active");
 
   my $ex=$doc->createElement("example");
@@ -1265,13 +1265,13 @@ sub getWordForFrame {
 sub getFrameId {
   my ($self,$frame)=@_;
   return undef unless $frame;
-  return $self->conv->decode($frame->getAttribute("frame_ID"));
+  return $self->conv->decode($frame->getAttribute("id"));
 }
 
 sub getWordId {
   my ($self,$word)=@_;
   return undef unless $word;
-  return $self->conv->decode($word->getAttribute("word_ID"));
+  return $self->conv->decode($word->getAttribute("id"));
 }
 
 sub getSubstitutingFrame {
