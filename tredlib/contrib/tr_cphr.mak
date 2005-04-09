@@ -75,7 +75,7 @@ sub choose_frame_match_CPHR {
   return unless ($this->{tag}=~/^[VNA]/);
   my @match = filter_possible_cphr_frames($this);
   if (@match) {
-    $this->{frameid} = join '|',map { $_->getAttribute('frame_ID') } @match;
+    $this->{frameid} = join '|',map { $_->getAttribute('id') } @match;
   }
   choose_frame(\&TR_FrameValidation::frame_chosen);
 }
