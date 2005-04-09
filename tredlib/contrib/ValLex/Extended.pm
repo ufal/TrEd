@@ -24,9 +24,9 @@ sub _index_by_id {
   my $word = $self->getFirstWordNode();
   $self->[8]={};
   while ($word) {
-    $self->[8]->{$word->getAttribute('word_ID')}=$word;
+    $self->[8]->{$word->getAttribute('id')}=$word;
     foreach my $frame ($self->getFrameNodes($word)) {
-      $self->[8]->{$frame->getAttribute('frame_ID')}=$frame;
+      $self->[8]->{$frame->getAttribute('id')}=$frame;
     }
     $word = $word->findNextSibling('word');
   }
@@ -78,7 +78,7 @@ sub frame_status {
 
 sub frame_id {
   my ($self,$frame)=@_;
-  return $frame->getAttribute('frame_ID');
+  return $frame->getAttribute('id');
 }
 
 sub _uniq { my %a; @a{@_}=@_; values %a }
