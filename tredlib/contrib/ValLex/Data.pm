@@ -926,7 +926,7 @@ sub getForbiddenIds {
   return {} unless $tail;
   my %ids;
   foreach my $ignore ($tail->getChildElementsByTagName("forbid")) {
-    $ids{$self->conv->decode($ignore->getAttribute("forbidden_ID"))}=1;
+    $ids{$self->conv->decode($ignore->getAttribute("id"))}=1;
   }
   return \%ids;
 }
