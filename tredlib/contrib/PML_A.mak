@@ -65,9 +65,7 @@ sub TectogrammaticalTree {
   $root = $fsfile->tree($grp->{treeNo});
   my $node=$root;
   while ($node) {
-    if (first { $_ eq $this_id }
-	  map { local $_=$_; s/^.*\#//; $_ }
-	    ListV($node->{'a.rf'})) {
+    if (first { $_ eq $this_id } PML_T::GetANodeIDs($node)) {
       $this = $node;
       last;
     }
