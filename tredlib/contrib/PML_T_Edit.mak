@@ -154,7 +154,7 @@ C<AddThisToArf> you can make links between the layers.
 
 =cut
 
-#bind MarkForArf to + menu Mark Node for a.rf Changes
+#bind MarkForArf to + menu Mark Node for a-node reference Changes
 sub MarkForArf {
   $PML::arf=$this;
   ChangingFile(0);

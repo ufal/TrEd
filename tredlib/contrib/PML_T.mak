@@ -41,6 +41,35 @@ sub AFile {
   $fsfile->appData('ref')->{$refid};
 }
 
+=item GetANodeIDs($node?)
+
+Returns a list of IDs of analytical nodes referenced from a given
+tectogrammatical node. If no node is given, the function applies to
+C<$this>.
+
+=cut
+
+sub GetANodeIDs {
+  return map { my $id=$_; $id=~s/^.*#//; $id } &GetANodeREFs;
+}
+
+=item GetANodeREFs($node?)
+
+Returns a list of PMLREFs of analytical nodes referenced from a given
+tectogrammatical node. If no node is given, the function applies to
+C<$this>. This function is similar to C<GetANodeIDs()> but it doesn't
+strip the file-ref part of the reference.
+
+=cut
+
+sub GetANodeREFs {
+  my $node = $_[0] || $this;
+  return $node->{'atree.rf'} if $node->{'atree.rf'} ne "";
+  return () unless ref($node->{a});
+  my $lex = $node->{a}{'lex.rf'};
+  return (($lex ne "" ? $lex : ()), ListV($node->{a}{'aux.rf'}));
+}
+
 =item GetANodes($node?)
 
 Returns a list of analytical nodes referenced from a given
@@ -50,8 +79,7 @@ C<$this>.
 =cut
 
 sub GetANodes {
-  my $node = $_[0] || $this;
-  return grep defined, map { s/^.*#//; GetANodesHash()->{$_} } ListV($node->{'a.rf'});
+  return grep defined, map { GetANodesHash()->{$_} } &GetANodeIDs;
 }
 
 =item GetANodeByID($id_or_ref)
@@ -132,7 +160,7 @@ sub AnalyticalTree {
   #find current tree and new $this
   my $trees = $fsfile->treeList;
  TREE: for ($i=0;$i<=$#$trees;$i++) {
-    foreach my $a_rf (ListV($root->{'a.rf'})) {
+    foreach my $a_rf (GetANodeIDs($root)) {
       $a_rf =~ s/^.*\#//;
       if ($trees->[$i]->{id} eq $a_rf) {
 	$grp->{treeNo} = $i;
@@ -147,7 +175,7 @@ sub AnalyticalTree {
   my $first =
     first {
       ref($a_ids->{$_}) and ($a_ids->{$_}->root == $root) ? 1 : 0
-    } map { my $s = $_; $s=~s/^.*\#//; $s; } ListV($this->{'a.rf'});
+    } GetANodeIDs($this);
   $this = $a_ids->{$first};
   # print "New this: $this->{id}\n" if ref($this);
   ChangingFile(0);
@@ -175,8 +203,7 @@ sub get_value_line_hook {
   my $node = $tree->following;
   my %refers_to;
   while ($node) {
-    foreach (ListV($node->{'a.rf'})) {
-      s/^.*\#//;
+    foreach (GetANodeIDs($node)) {
       push @{$refers_to{$_}}, $node;
     }
     $node = $node->following;
@@ -397,8 +424,8 @@ sub get_status_line_hook {
 	  [
 	   "     id: " => [qw(label)],
 	   $this->{id} => [qw({id} value)],
-	   "     a.rf: " => [qw(label)],
-	   (join ", ",ListV($this->{'a.rf'})) => [qw({a.rf} value)],
+	   "     a: " => [qw(label)],
+	   (join ", ",GetANodeREFs($this)) => [($this->{nodetype} eq 'root' ? '{atree.rf}' : '{a}'), 'value'],
            ,
 	   ($this->{'val_frame.rf'} ?
 	    ("     frame: " => [qw(label)],
@@ -462,7 +489,7 @@ sub GetSentenceString {
   my $node=$_[0]||$this;
   my ($a_tree) = GetANodes($node->root);
   return unless ($a_tree);
-  return get_sentence_string_A($a_tree);
+  return GetSentenceString($a_tree);
 }#GetSentenceString
 
 =item GetEParents($node)
@@ -601,8 +628,7 @@ sub GetNearestNonMember {
 =item IsFiniteVerb($node?)
 
 If the node is the head of a finite complex verb form (based on
-C<a.rf> information and m/tag of the corresponding analytical nodes),
-return 1, else return 0.
+C<m/tag> of the referenced analytical nodes), return 1, else return 0.
 
 =cut
 
@@ -614,7 +640,7 @@ sub IsFiniteVerb {
 =item IsPassive($node?)
 
 If the node is the head of a passive-only verb form, (based on
-C<a.rf> information), return 1, else return 0.
+C<m/tag> of the referenced analytical nodes), return 1, else return 0.
 
 =cut
 
@@ -627,7 +653,7 @@ sub IsPassive {
 =item IsInfinitive($node?)
 
 If the node is the head of an infinitive complex verb form, (based on
-C<a.rf> information), return 1, else return 0.
+C<m/tag> of the referenced analytical nodes), return 1, else return 0.
 
 =cut
 

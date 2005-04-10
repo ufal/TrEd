@@ -32,7 +32,7 @@ sub get_status_line_hook {
   my $statusline=&PML_A::get_status_line_hook;
   push @{$statusline->[0]},
     ($PML::arf ?
-           ('   Changing a.rf of: ' => [qw(label)],
+           ('   Changing a.lex of: ' => [qw(label)],
             $PML::arf->{t_lemma} || $PML::arf->{id}=> [qw(status)]
            ):''
     );
