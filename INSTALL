@@ -7,9 +7,8 @@ UN*X-like system.
 
 REQUIRES
 --------
-  perl 5.6.1
-  perl/Tk ver. >= 800.022
-
+  perl 5.6.1              (>= 5.8.5 recommended)
+  perl/Tk ver. >= 800.025 (804.x recommended)
 
 INSTALLATION
 ------------
@@ -40,7 +39,7 @@ INSTALLING TO SEPARATE DIRECTORIES
 ----------------------------------
 
 You may wish to move the whole tredlib/ directory to a location of
-your choice, move both tred and treddisplaytree.pl files to some
+your choice, move tred files to some
 directory in your PATH and make a copy of tredrc named .tredrc in your
 home directory. To ensure that tred finds its lib-directory tredlib
 you may either set TREDHOME environment variable to the location of
