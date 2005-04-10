@@ -385,7 +385,7 @@ my %pcdata = (
 		      &to_node_attr(@_,'|','form');
 		      unless (exists($s->{node}->{origf})
 			      or
-			      $s->{node}->{formtype} =~ /^gen$/
+			      $s->{node}->{formtype} =~ /gen$/
 			     ) {
 			$s->{node}->{origf}=$data;
 		      }
@@ -396,7 +396,7 @@ my %pcdata = (
 		      &to_node_attr(@_,'|','form');
 		      unless (exists($s->{node}->{origf})
 			      or
-			      $s->{node}->{formtype} =~ /^gen$/
+			      $s->{node}->{formtype} =~ /gen$/
 			     ) {
 			$s->{node}->{origf}=$data;
 		      }
