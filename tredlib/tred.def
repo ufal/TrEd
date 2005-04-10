@@ -11,7 +11,7 @@ use base qw(main Exporter);
 use vars qw(@FORCE_EXPORT);
 @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
                    $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard);
-use vars @FORCE_EXPORT;
+use vars (@FORCE_EXPORT);
 
 *FileChanged=*FileNotSaved;	# alias
 
