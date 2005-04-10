@@ -233,7 +233,7 @@ sub resolve_type ($$) {
   return $type unless ref($type);
   if ($type->{type}) {
     my $rtype = $types->{$type->{type}};
-    return $rtype || $type->{type};
+    return $rtype; # || $type->{type};
   } else {
     return $type;
   }
@@ -300,15 +300,14 @@ sub read_element ($$$;$) {
 sub read_node ($$$;$) {
   my ($node,$fsfile,$types,$type) = @_;
   my $defs = $fsfile->FS->defs;
-  if ($type eq 'PMLREF' or $type eq 'CDATA' or $type eq 'nonNegativeInteger') {
-    # pre-defined atomic types
-    return $node->textContent;
-  }
   unless (ref($type)) {
     die "Unknown node type: $type\n";
   }
 
-  if (exists $type->{list}) {
+  if ($type->{cdata}) {
+    # pre-defined atomic types
+    return $node->textContent;
+  } elsif (exists $type->{list}) {
     return bless [
       map {
 	read_node($_,$fsfile,
@@ -677,8 +676,7 @@ sub write_object ($$$$$$) {
   my ($xml,$fsfile, $types,$type,$tag,$object)=@_;
   my $pre=$type;
   $type = resolve_type($types,$type);
-  if (!ref($type)) {
-    _debug("TYPE: $type (pre: $pre)\n");
+  if ($type->{cdata}) {
     $xml->startTag($tag) if defined($tag);
     $xml->characters($object);
     $xml->endTag($tag) if defined($tag);
