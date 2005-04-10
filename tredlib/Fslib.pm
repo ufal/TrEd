@@ -237,12 +237,15 @@ sub FindInResources {
 
 sub ResolvePath ($$;$) {
   my ($orig, $href,$use_resources)=@_;
+#  print "ResolvePath: $orig, $href,$use_resources\n" if $Fslib::Debug;
   if ($href !~ m{^[[:alnum:]]+:|^/} and
       !($^O eq 'MSWin32' and $href=~/^([[:alnum:]]+:)?\\/)) {
     if ($orig =~ m{^(.*\/)}) {
       if (-f $1.$href) {
 	return $1.$href;
       }
+    } elsif (-f $href) {
+      return $href;
     }
     return $use_resources ? FindInResources($href) : $href;
   } else {
@@ -2699,7 +2702,7 @@ sub _fs2members {
     } else {
       $m->{alt} = {
 	-flat => 1,
-	type => 'CDATA'
+	cdata => { format =>'any' }
       };
     }
   }
@@ -2818,7 +2821,9 @@ sub write {
   $fsfile->FS->writeTo($fileref);
   PrintFSFile($fileref,
 	      $fsfile->FS,
-	      $fsfile->treeList);
+	      $fsfile->treeList,
+	      ref($fsfile->metaData('schema')) ? 1 : 0
+	     );
 
   ## Tredish custom attributes:
   $fsfile->changeTail(
@@ -2854,22 +2859,24 @@ sub Print ($$) {
   }
 }
 
-sub PrintFSFile ($$$) {
-  my ($fh,$fsformat,$trees)=@_;
+sub PrintFSFile {
+  my ($fh,$fsformat,$trees,$emu_schema)=@_;
   foreach my $tree (@$trees) {
-    PrintFSTree($tree,$fsformat,$fh);
+    PrintFSTree($tree,$fsformat,$fh,$emu_schema);
   }
 }
 
 sub PrintFSTree {
   my ($root,  # a reference to the root-node
       $fsformat, # FSFormat object
-      $fh)=@_;
+      $fh,
+      $emu_schema
+     )=@_;
 
   $fh=\*STDOUT unless $fh;
   my $node=$root;
   while ($node) {
-    PrintFSNode($node,$fsformat,$fh);
+    PrintFSNode($node,$fsformat,$fh,$emu_schema);
     if ($node->{$Fslib::firstson}) {
       Print($fh, "(");
       $node = $node->{$Fslib::firstson};
@@ -2888,10 +2895,11 @@ sub PrintFSTree {
   Print($fh, "\n");
 }
 
-sub PrintFSNode($$$$) {
+sub PrintFSNode {
   my ($node,			# a reference to the root-node
       $fsformat,
-      $output			# output stream
+      $output,			# output stream
+      $emu_schema
      )=@_;
   my $v;
   my $lastprinted=1;
@@ -2903,7 +2911,7 @@ sub PrintFSNode($$$$) {
   if ($node) {
     Print($output, "[");
     for (my $n=0; $n<$attr_count; $n++) {
-      $v=$node->getAttribute($attrs->[$n]);
+      $v=$emu_schema ? $node->attr($attrs->[$n]) : $node->{$attrs->[$n]};
       $v=~s/([,\[\]=\\])/\\$&/go if (defined($v));
       if (index($defs->{$attrs->[$n]}, " O")>=0) {
 	Print($output,",") if $n;
@@ -2912,7 +2920,7 @@ sub PrintFSNode($$$$) {
 	$v='-' if ($v eq '' or not defined($v));
 	Print($output,$v);
 	$lastprinted=1;
-      } elsif (defined($node->getAttribute($attrs->[$n])) and $node->getAttribute($attrs->[$n]) ne '') {
+      } elsif ($v ne "") {
 	Print($output,",") if $n;
 	unless ($lastprinted && index($defs->{$attrs->[$n]}," P")>=0) # N could match here too probably
 	  { Print($output,$attrs->[$n]."="); }
