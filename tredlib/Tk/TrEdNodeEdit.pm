@@ -411,7 +411,8 @@ sub add_buttons {
   my $mtype = $hlist->info(data => $path)->{type};
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
 
-  return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt}) or ref($ptype) and ($ptype->{list} or $ptype->{alt}));
+  return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt}) or 
+		 ref($ptype) and ($ptype->{list} or $ptype->{alt}));
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
    );
@@ -552,7 +553,7 @@ sub add_member {
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => $attr_val,
 		       -style => $hlist->{my_itemstyles}{text});
-  } elsif (!ref($mtype)) {
+  } elsif (!ref($mtype) or $mtype->{cdata}) {
     my $w = $hlist->Frame(-background => 'white', #'gray',
 			  -borderwidth => 1
 			 );
@@ -564,7 +565,7 @@ sub add_member {
 		       -state => ($enabled ? 'normal' : 'disabled'),
 		       -foreground => 'black',
 		       -highlightcolor => 'black',
-		       ($mtype eq 'nonNegativeInteger' ?
+		       ((ref($mtype) and $mtype->{format} eq 'nonNegativeInteger') ?
 		       (-validate => 'all',
 			-validatecommand => sub { $_[0]=~/^\d+$/ ? 1 : 0 }) :
 		       ())
@@ -742,7 +743,7 @@ sub add_members {
     my $member = $members->{$attr};
     if (ref($member) and $member->{role} eq '#KNIT') {
       if (exists($node->{$attr})) {
-	$member='PMLREF'
+	$member={ cdata => {format => 'PMLREF'} };
       } else {
 	$attr=~s/\.rf$//;
       }
@@ -809,7 +810,7 @@ sub dump_child {
   my ($hlist, $path, $ref, $preserve_empty,$mtype)=@_;
   my $data = $hlist->info(data => $path);
   $mtype = $data->{type} unless defined $mtype;
-  if (!ref($mtype) or $mtype->{choice}) {
+  if (!ref($mtype) or $mtype->{cdata} or $mtype->{choice}) {
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       push @$ref, $data->{value} if $preserve_empty or defined $data->{value};
     } else {
