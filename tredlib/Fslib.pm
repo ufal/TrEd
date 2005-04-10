@@ -718,6 +718,9 @@ sub set_attr {
       }
     } elsif (ref($val)) {
       if (@steps) {
+	if (!defined($val->{$step}) and $steps[0]!~/^\[/) {
+	  $val->{$step}={};
+	}
 	$val = $val->{$step};
       } else {
 	$val->{$step} = $value;
