@@ -253,7 +253,8 @@ sub NonProjEdges {
                      parenthesis #809080
                      nodetype darkblue
                      complex darkmagenta
-                     detail #400040
+                     detail #670057
+                     detailheader #270037
                      coref darkblue
                      arrow_textual #4C509F
                      arrow_grammatical #C05633
