@@ -58,22 +58,24 @@ sub status_line_doubleclick_hook {
 }
 
 
-=item AddThisToArfOriginal()
+=item AddThisToALexRf()
 
-If called from analytical tree entered through C<PML_T_Edit::MarkForArf>, adds
-this node's C<id> to C<a.rf> list of the marked tectogrammatical node.
+If called from analytical tree entered through
+C<PML_T_Edit::MarkForARf>, adds this node's C<id> to C<a/lex.rf> list
+of the marked tectogrammatical node.
 
 =cut
 
-#bind AddThisToArfOriginal to Ctrl++ Add This to a.rf of Marked Node
-sub AddThisToArfOriginal {
+#bind AddThisToALexRf to Ctrl++ Add This to a/lex.rf of Marked Node
+sub AddThisToALexRf {
   ChangingFile(0);
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
   return 0 unless ref($tr_fs);
   my $refid = $tr_fs->metaData('refnames')->{adata};
-  AddToList($PML::arf,'a.rf',$refid."#".$this->{id});
-  @{$PML::arf->{'a.rf'}}=uniq(ListV($PML::arf->{'a.rf'}));
+  $PML::arf->{a}{'lex.rf'}=$refid."#".$this->{id};
+  @{$PML::arf->{a}{'aux.rf'}}=grep{ $_ ne $refid."#".$this->{id} }
+    uniq(ListV($PML::arf->{a}{'aux.rf'}));
   my$lemma=$this->{'m'}{lemma};
   my%specialEntity;
   %specialEntity=qw!. Period
@@ -100,38 +102,53 @@ sub AddThisToArfOriginal {
   }
   $PML::arf->{t_lemma}=$lemma;
   $tr_fs->notSaved(1);
-}#AddThisToArf
+}#AddThisToALexRf
 
-=item AddThisToArf()
+=item AddThisToAAuxRf()
 
-If called from analytical tree entered through C<PML_T_Edit::MarkForArf>, adds
-this node's C<id> to C<a.rf> list of the marked tectogrammatical node.
+If called from analytical tree entered through
+C<PML_T_Edit::MarkForARf>, adds this node's C<id> to C<a/aux.rf> list
+of the marked tectogrammatical node.
 
 =cut
 
-#bind AddThisToArf to + menu Add This to a.rf of Marked Node
-sub AddThisToArf {
+#bind AddThisToAAuxRf to + menu Add This to a/aux.rf of Marked Node
+sub AddThisToAAuxRf {
   ChangingFile(0);
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
   return 0 unless ref($tr_fs);
   my $refid = $tr_fs->metaData('refnames')->{adata};
-  AddToList($PML::arf,'a.rf',$refid.'#'.$this->{id});
-  @{$PML::arf->{'a.rf'}}=uniq(ListV($PML::arf->{'a.rf'}));
+  AddToList($PML::arf,'a/aux.rf',$refid.'#'.$this->{id});
+  @{$PML::arf->{a}{'aux.rf'}}=uniq(ListV($PML::arf->{a}{'aux.rf'}));
+  delete $PML::arf->{a}{'lex.rf'}
+    if $PML::arf->attr('a/lex.rf')eq$refid.'#'.$this->{id};
   $tr_fs->notSaved(1);
-}#AddThisToArf
+}#AddThisToAAuxRf
 
-#bind RemoveThisFromArf to minus menu Remove This from a.rf of Marked Node
-#bind RemoveThisFromArf to KP_Subtract
-sub RemoveThisFromArf {
+=item AddThisToAAuxRf()
+
+If called from analytical tree entered through
+C<PML_T_Edit::MarkForARf>, remove this node's C<id> from C<a/lex.rf>
+and C<a/aux.rf> of the marked tectogrammatical node.
+
+=cut
+
+#bind RemoveThisFromARf to minus menu Remove This from a/*.rf of Marked Node
+#bind RemoveThisFromARf to KP_Subtract
+sub RemoveThisFromARf {
   ChangingFile(0);
   return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
   return 0 unless ref($tr_fs);
   my $refid = $tr_fs->metaData('refnames')->{adata};
-  @{$PML::arf->{'a.rf'}}=uniq(ListSubtract($PML::arf->{'a.rf'},List($refid.'#'.$this->{id})));
+  if($PML::arf->attr('a/lex.rf')eq$refid.'#'.$this->{id}){
+    delete $PML::arf->{a}{'lex.rf'};
+  }
+  @{$PML::arf->{a}{'aux.rf'}}
+    =uniq(ListSubtract($PML::arf->{a}{'aux.rf'},List($refid.'#'.$this->{id})));
   $tr_fs->notSaved(1);
-}#add_this_from_arf
+}#RemoveThisFromARf
 
 #bind EditMLemma to L menu Edit morphological lemma
 sub EditMLemma{
