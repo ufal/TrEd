@@ -147,19 +147,19 @@ sub ForgetRemembered {
   ChangingFile(0);
 }#ForgetRemembered
 
-=item MarkForArf()
+=item MarkForARf()
 
 Enter analytical layer with current node remembered. By calling
-C<AddThisToArf> you can make links between the layers.
+C<PML_A_Edit::AddThisToA...> you can make links between the layers.
 
 =cut
 
-#bind MarkForArf to + menu Mark Node for a-node reference Changes
-sub MarkForArf {
+#bind MarkForARf to + menu Mark for reference changes and enter A-layer
+sub MarkForARf {
   $PML::arf=$this;
   ChangingFile(0);
   AnalyticalTree();
-}#MarkForArf
+}#MarkForARf
 
 #bind RotateGenerated to g menu Change is_generated
 sub RotateGenerated{
