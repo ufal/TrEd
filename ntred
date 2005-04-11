@@ -20,7 +20,7 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $srvlistfile $request_quit $request_dump $request_upload
 	    $safe_mode $help $usage $manpage $ssh $run_local $server_debug
 	    $maxservers $request_reload $request_reload_changed
-	    $request_load $request_close
+	    $request_load $request_close $glob
 	    $request_list $request_list_changed $request_save $request_list_secondary
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
@@ -86,6 +86,7 @@ Getopt::Long::Configure ("bundling");
 	 "serverlist=s"    => \$srvlistfile,
 	 "max-servers=i"    => \$maxservers,
 	 "filelist|l=s"    => \$filelist,
+	 "glob|g"          => \$glob,
 	 "listed-files|L"    => \$listedfiles,
 	 "no-server-check" => \$nocheck,
 	 "no-server-start" => \$noservers,
@@ -958,7 +959,8 @@ sub get_file_list {
       close $f;
     }
   }
-  @files = (@files, map { m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_) } @ARGV);
+  @files = (@files, map { m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_) } 
+	      { $glob ? glob($_) : $_ } @ARGV);
   make_uniq(\@files);
   return @files;
 }
@@ -1460,6 +1462,19 @@ to both the primary and secondary files).
 =head2 GENERAL OPTIONS
 
 =over 8
+
+=item B<--glob|-g>
+
+Apply Perl C<glob> function on the filename patterns given on the
+command-line.  This expands possible wild-card patterns on each of the
+filename command-line argument as the standard Unix shell /bin/csh
+would do. This can not only help in a situation where the shell used
+doesn't support wildcard expansion, but can also be used to reduce the
+number of the command-line arguments passed to the process in cases
+where the argument list would after the shell-expansion exceed a
+system limit. Note, that currently expansion is performed on the
+client regardless of the type of request. This may change in the
+future versions.
 
 =item B<--usage|-u>
 
