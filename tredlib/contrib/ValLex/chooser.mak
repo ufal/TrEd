@@ -450,21 +450,30 @@ sub ChooseFrame {
   if (!exists($opts{-frameid}) and $node) {
     $opts{-frameid} = $node->attr($frameid_attr);
   }
-  unless ($opts{-no_assign} and $opts{-noadd}) {
-    my ($l,$base);
-    if ($opts{-morph_lemma}) {
-      ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($opts{-morph_lemma}),
-				$opts{-morph_pos} || $pos);
-    }
-    my $base_word;
+  my ($l,$base);
+  if ($opts{-morph_lemma}) {
+    ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($opts{-morph_lemma}),
+			   $opts{-morph_pos} || $pos);
+  }
+  my $base_word;
+  $base_word=$ValencyLexicon->findWordAndPOS($base,"V") if (defined($base));
+  if (!$word and $lemma ne lc($lemma)) {
+    $lemma = lc($lemma);
+    $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
+    $base = lc($base);
     $base_word=$ValencyLexicon->findWordAndPOS($base,"V") if (defined($base));
-    if (!$word and $lemma ne lc($lemma)) {
-      $lemma = lc($lemma);
-      $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
-      $base = lc($base);
-      $base_word=$ValencyLexicon->findWordAndPOS($base,"V") if (defined($base));
+  }
+  $top->Unbusy(-recurse=>1);
+
+  if ($opts{-no_assign} or !$ValencyLexicon->user_is_annotator or $opts{-noadd}) {
+    if (!$word) {
+      ErrorMessage("Word $lemma was not found in the lexicon.\n".
+		   "ass".$opts{-no_assign}."\nann".$ValencyLexicon->user_is_annotator."\nadd".$opts{-noadd}
+		  );
+      return;
     }
-    $top->Unbusy(-recurse=>1);
+    $field=[ $word ? ($lemma,$pos) : () ];
+  } else {
     if (!$word) {
       my $answer= questionQuery("Word not found",
 				defined($base) && $base_word ?
@@ -496,8 +505,6 @@ sub ChooseFrame {
 	    $word ? ($lemma,$pos) : (),
 	    $base_word ? ($base,"V") : ()
 	   ];
-  } else {
-    $field=[ $word ? ($lemma,$pos) : () ];
   }
   print "$word: $lemma $pos $opts{-frameid}\n";
 
@@ -563,7 +570,7 @@ sub DisplayFrame {
 					     $new_word,
 					     (ref($no_assign) ?
 					      [$no_assign, $grp->{framegroup}] :
-					      ($no_assign ? undef :
+					      ((!$ValencyLexicon->user_is_annotator || $no_assign) ? undef :
 					       [\&frame_chosen, $grp->{framegroup},$assign_func])),
 					     sub {
 					       $chooserDialog->destroy_dialog();
