@@ -1249,7 +1249,11 @@ sub openFile {
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
   }
-  _msg "empty or corrupt file: $f!\n" if ($grp->{FSFile}->lastTreeNo<0);
+  my $return = 1;
+  if ($grp->{FSFile}->lastTreeNo<0) {
+    _msg "empty or corrupt file: $f!\n" ;
+    $return = 0;
+  }
 
   my $encoding=$grp->{FSFile}->encoding;
   if (!$term_encoding and $encoding ne "") {
@@ -1267,7 +1271,7 @@ sub openFile {
   }
 
 #  updateTredMacroGlobals($grp);
-  return 1;
+  return $return;
 }
 
 sub _has_suffix {
