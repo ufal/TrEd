@@ -124,7 +124,7 @@ sub GetSentenceString {
     $node=$node->following();
   }
   return join('',map{
-    $_->{'m'}{form}.($_->{'m'}{'w'}{no_space_after}?'':' ')
+    $_->{'m'}{form}.($_->{'m'}{'w'}{no_space_after}?'':' ') # TODO
   } sort { $a->{ord} <=> $b->{ord} } @sent);
 }#GetSentenceString
 
@@ -276,7 +276,11 @@ in the same color.
 sub CreateStylesheets {
   unless(StylesheetExists('PML_A')){
     SetStylesheetPatterns(<<'EOF','PML_A',1);
-text:<? $${m/w/token}eq$${m/form} ? '#{'.CustomColor('sentence').'}${m/w/token}' : '#{-over:1}#{'.CustomColor('spell').'}[${m/w/token}]#{-over:0}#{'.CustomColor('sentence').'}${m/form}' ?>
+text:<? $${m/w/token}eq$${m/form} ? 
+  '#{'.CustomColor('sentence').'}${m/w/token}' : 
+  '#{-over:1}#{'.CustomColor('spell').'}['.
+     join(" ",map { $_->{token} } ListV($this->attr('m/w'))).
+  ']#{-over:0}#{'.CustomColor('sentence').'}${m/form}' ?>
 
 node:<? $${afun} eq "AuxS" ? '${id}' : '${m/form}' ?>
 
