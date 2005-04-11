@@ -52,7 +52,7 @@ sub TectogrammaticalTree {
   #find current tree and new $this
   my $trees = $fsfile->treeList;
  TREE: for ($i=0;$i<=$#$trees;$i++) {
-    foreach my $a_rf (ListV($trees->[$i]->{'a.rf'})) {
+    foreach my $a_rf (PML_T::GetANodeIDs($node)) {
       $a_rf =~ s/^.*\#//;
       if ($a_rf eq $id) {
 	$grp->{treeNo} = $i;
