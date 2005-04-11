@@ -350,6 +350,7 @@ use Exporter;
 %backend_map=(
 	      fs => 'FSBackend',
 	      csts => 'CSTS_SGML_SP_Backend',
+	      pml => 'PMLBackend',
 	      trxml => 'TrXMLBackend',
 	      teixml => 'TEIXMLBackend',
 	      ntred => 'NTREDBackend',
@@ -357,12 +358,11 @@ use Exporter;
 	 );
 
 @open_types=
-  (["Supported",  [qw/.fs .csts .pls .pls.gz .fs.gz a.gz m.gz .csts.gz/]],
-   ["FS files",           [qw/.fs .FS .Fs/]],
-   ["CSTS files",           [qw/.cst .csts/]],
+  (["Supported",  [qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz/]],
+   ["FS files",           [qw/.fs .FS .Fs .fs.gz .FS.gz/]],
+   ["CSTS files",           [qw/.cst .csts .cst.gz .csts.gz/]],
    ["Perl Storable files",  [qw/.pls .pls.gz/]],
-   ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
-   ["gzipped CSTS files",   [qw/.cst.gz .csts.gz/]],
+   ["PDT-PML files",  [qw/.t .a .t.gz .a.gz .pml .pml.gz .xml .xml.gz/]],
    ["All files",        '*']
   );
 
@@ -370,6 +370,11 @@ use Exporter;
 	     fs =>
 	     [["FS files",           [qw/.fs .FS .Fs/]],
 	      ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
+	      ["All files",        '*']
+	     ],
+	     pml =>
+	     [["PML files",           [qw/.t .a .pml .xml/]],
+	      ["gzipped PML files",   [qw/.t.gz .a.gz .pml.gz .xml.gz/]],
 	      ["All files",        '*']
 	     ],
 	     csts =>
@@ -5639,7 +5644,7 @@ sub saveFileAs {
   $initdir=~s!${TrEd::Convert::Ds}$!!m;
 
   my $response=userQuery($win, "\nPlease,\nchoose one of the following output formats.\n\n".
-			 "\nWARNING:\nsome formats may be incompatible with current file.\n",
+			 "\nWARNING:\nsome formats may be incompatible with the current file.\n",
 			 -title => "Save As ...",
 			 -buttons => ["FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
   return if ($response eq "Cancel");
