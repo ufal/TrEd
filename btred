@@ -29,7 +29,7 @@ use strict;
 use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $config_file
 	    $initial_code $macro $code $start_context $all_trees
-	    $all_nodes $no_all_trees $no_all_nodes
+	    $all_nodes $no_all_trees $no_all_nodes $glob
 	    $all_nonhidden_nodes $file_encoding
 	    $term_encoding $save $safe_mode $csts_tree_attrs
 	    $csts_tecto $preload $warn_only $validate_fs $allow_host
@@ -57,6 +57,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "debugging|D" => \$debug,
 	    "fs2csts-attributes|x=s" => \$csts_xargs,
 	    "filelist|l=s" => \$file_list,
+	    "glob|g" => \$glob,
 	    "strip-prefix|p=s" => \$strip_prefix,
 	    "add-prefix|r=s" => \$add_prefix,
 	    "strip-suffix|s=s" => \$strip_suffix,
@@ -314,7 +315,7 @@ if ($file_list) {
   }
 }
 
-if ($^O eq 'MSWin32') {
+if ($glob or $^O eq 'MSWin32') {
   push @files,map glob, @ARGV;
 } else {
   push @files,@ARGV;
@@ -1707,6 +1708,18 @@ be specified more than once with different modules.
 Read a list of filenames to process from a given file (one filename
 per line). Files specified in a file-list are processed prior to files
 specified on the command-line.
+
+=item B<--glob|-g>
+
+Apply Perl C<glob> function on the filename patterns given on the
+command-line.  This expands possible wild-card patterns on each of the
+filename command-line argument as the standard Unix shell /bin/csh
+would do. This can not only help in a situation where the shell used
+doesn't support wildcard expansion, but can also be used to reduce the
+number of the command-line arguments passed to the process in cases
+where the argument list would after the shell-expansion exceed a
+system limit. By default, this flag is 'on' for the Windows platform
+and 'off' on all other systems.
 
 =item B<--strip-prefix|-p> regexp
 
