@@ -93,12 +93,12 @@ sub new_dialog_window {
 	     -underline => 2,
 	     -command =>
 	       [sub {
-		  my ($d,$f,$autosave,$top)=@_;
+		  my ($d,$f,$top)=@_;
 		  $vallex->destroy();
 		  undef $vallex;
 		  $d->destroy();
 		  undef $d;
-		},$d,$vallex,$autosave,$top]
+		},$d,$vallex,$top]
 	      )->pack(qw(-padx 10 -expand 1));
     $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Close'; },$d ]);
   }
@@ -227,7 +227,7 @@ sub show_dialog {
     $d->afterIdle([$vallex => 'addframe_button_pressed']);
   }
   $d->Show();
-  if ($vallex->data()->changed()) {
+  if ($can_edit and $vallex->data()->changed()) {
     if ($autosave) {
       $vallex->save_data($top);
     } else {
