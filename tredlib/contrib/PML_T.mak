@@ -219,8 +219,9 @@ sub get_value_line_hook {
   foreach $node (sort { $a->{ord} <=> $b->{ord} } @sent){
     push@out,([" ","space"])unless$first;
     $first=0;
-    if ($node->{'m'}{form}ne$node->{'m'}{w}{token}){
-      push@out,(['['.$node->{'m'}{w}{token}.']',@{$refers_to{$node->{id}}},'-over=>1','-foreground=>'.CustomColor('spell')]);
+    my $token = join(" ",map { $_->{token} } ListV($node->attr('m/w')));
+    if ($node->{'m'}{form} ne $token){
+      push@out,(['['.$token.']',@{$refers_to{$node->{id}}},'-over=>1','-foreground=>'.CustomColor('spell')]);
     }
     push@out,([$node->{'m'}{form},@{$refers_to{$node->{id}}}]);
   }
@@ -437,7 +438,6 @@ sub get_status_line_hook {
 	  [
 	   "label" => [-foreground => 'black' ],
 	   "value" => [-underline => 1 ],
-	   "{commentA}" => [ -foreground => 'red' ],
 	   "bg_white" => [ -background => 'white' ],
 	  ]
 	 ];
@@ -489,7 +489,7 @@ sub GetSentenceString {
   my $node=$_[0]||$this;
   my ($a_tree) = GetANodes($node->root);
   return unless ($a_tree);
-  return GetSentenceString($a_tree);
+  return PML_A::GetSentenceString($a_tree);
 }#GetSentenceString
 
 =item GetEParents($node)
@@ -708,9 +708,9 @@ displayed as "M" in CustomColor C<coappa> and C<is_parenthesis> as
 3. For nodes of all types other than complex, C<nodetype> is displayed
 in CustomColor C<nodetype>. For complex nodes, their C<gram/sempos> is
 displayed in CustomColor C<complex>. In the Full stylesheet, all the
-non-empty values of grammatemes are listed in CustomColor C<complex>,
+non-empty values of grammatemes are listed in CustomColor C<detail>,
 and for ambiguous values the names of the attributes are displayed in
-CustomColor C<detail>.
+CustomColor C<detailheader>.
 
 4. Generated nodes are displayed as squares, non-generated ones as
 ovals.
@@ -740,7 +740,7 @@ C<tfa_text>.
 8. Attributes C<gram, is_dsp_root, is_name_of_person,> and C<quot> are
 listed in the hint box when the mouse cursor is over the node. In the
 Full stylesheet, they are diplayed at the last line in CustomColor
-C<detail>.
+C<detail> (see 3).
 
 =back
 
@@ -833,11 +833,11 @@ node:<?
 
 node:<? $${nodetype} !~/^(?:complex|root)$/
         ? '#{customnodetype}${nodetype}'
-        : '#{customcomplex}${gram/sempos}'.join'',map{'.'.($this->{gram}{$_}eq'nr'?"#{customdetail}$_:#{customcomplex}":'')."\${gram/$_}" } sort grep{/mod/}keys%{$this->{gram}}
+        : '#{customcomplex}${gram/sempos}#{customdetail}'.join'',map{'.'.($this->{gram}{$_}=~/^(?:nr|nil)$/?"#{customdetailheader}$_:#{customdetail}":'')."\${gram/$_}" } sort grep{/mod/}keys%{$this->{gram}}
   ?>
 
 node: <? $${nodetype} eq 'complex' ?
-  join'.',map{(($this->{gram}{$_}=~/^(?:nr|inher)$/)?"#{customdetail}$_:":'')."#{customcomplex}\${gram/$_}" } sort grep{$this->{gram}->{$_}&&$_ !~/sempos|mod/}keys%{$this->{gram}}
+  join'.',map{(($this->{gram}{$_}=~/^(?:nil|nr|inher)$/)?"#{customdetailheader}$_:":'')."#{customdetail}\${gram/$_}" } sort grep{$this->{gram}->{$_}&&$_ !~/sempos|mod/}keys%{$this->{gram}}
   :''?>
 
 style:#{Node-width:7}#{Node-height:7}#{Node-currentwidth:9}#{Node-currentheight:9}

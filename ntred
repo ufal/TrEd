@@ -960,7 +960,7 @@ sub get_file_list {
     }
   }
   @files = (@files, map { m{^/|^[[:alnum:]]+://} ? $_ : rel2abs($_) } 
-	      { $glob ? glob($_) : $_ } @ARGV);
+	      map { $glob ? glob($_) : $_ } @ARGV);
   make_uniq(\@files);
   return @files;
 }
