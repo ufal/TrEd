@@ -3183,12 +3183,16 @@ sub attributes {
     }
     if (ref($type) and (exists($type->{member}) or exists($type->{structure}))) {
       my $members = exists($type->{member}) ? $type->{member} : $type->{structure}{member};
-      for my $member (sort (keys %{$members})) {
-	next if ($members->{$member} and
-		   $members->{$member}{role} eq '#CHILDNODES');
-	my @subattrs = $self->attributes($members->{$member});
-	my $name = $member;
-	if ($members->{$member} and $members->{$member}{role} eq '#KNIT') {
+      for my $m (sort (keys %{$members})) {
+	my $member = $members->{$m};
+	next if (ref($member) and $member->{role} eq '#CHILDNODES');
+	my @subattrs = $self->attributes($member);
+	my $name = $m;
+	my $mtype = $self->resolve_type($member);
+	if (ref($member) and
+	      ($member->{role} eq '#KNIT' or
+		 ref($mtype) and $mtype->{list} and $mtype->{list}{role} eq '#KNIT')) {
+	  # #KNIT PMLREF or a list of #KNIT PMLREFS
 	  $name=~s/\.rf$//;
 	}
 	if (@subattrs) {
