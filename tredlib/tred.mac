@@ -141,7 +141,7 @@ sub PerlSearch {
     return;
   }
   $TrEd::MacroStorage::macPerlSearchScript=$script;
-  while ($this=NextNode($this) or NextTree()) {
+  while ($this=$this->following or NextTree()) {
     last if eval($script);
     if ($@) {
       ErrorMessage($@);
