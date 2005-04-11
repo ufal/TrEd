@@ -741,7 +741,13 @@ sub add_members {
   my $members = $type->{member};
   foreach my $attr (sort(keys %$members)) {
     my $member = $members->{$attr};
-    if (ref($member) and $member->{role} eq '#KNIT') {
+    my $mtype = $hlist->schema->resolve_type($member);
+    if (ref($member) and
+	($member->{role} eq '#KNIT' or
+	 ref($mtype) and $mtype->{list} and
+	 $mtype->{list}{role} eq '#KNIT')
+       ) {
+      # #KNIT PMLREF or a list of #KNIT PMLREFS
       if (exists($node->{$attr})) {
 	$member={ cdata => {format => 'PMLREF'} };
       } else {
