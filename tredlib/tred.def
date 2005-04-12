@@ -2449,7 +2449,6 @@ sub Print {
 	 (($opts{-format} eq 'ImageMagick') ?
 	    "$main::imageMagickConvert -density $opts{-imageMagickResolution} - $opts{-filename}" : 
 	      $opts{-command}),
-	 $opts{-command},
 	 $opts{-colors},
 	 $opts{-noRotate},
 	 $opts{-hidden},
