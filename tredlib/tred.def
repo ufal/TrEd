@@ -2423,7 +2423,7 @@ sub Print {
 	$opts{$_} = $group->{"print".lcfirst($o)};
       }
     }
-    unless ($opts{-ttFont} and !$group->{ttfonts}) {
+    unless ($opts{-ttFont} or $group->{ttfonts}) {
       main::initTTFonts($group);
     }
 
