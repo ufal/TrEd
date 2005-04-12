@@ -2430,6 +2430,12 @@ sub Print {
     $TrEd::TreeView::on_get_root_style = [\&main::onGetRootStyle,$grp];
     $TrEd::TreeView::on_get_node_style = [\&main::onGetNodeStyle,$grp];
 
+    my $stylesheet = $grp->{stylesheet};
+    my $ss = undef;
+    if ($stylesheet ne STYLESHEET_FROM_FILE()) {
+      $ss=$grp->{framegroup}->{stylesheets}->{$stylesheet};
+    }
+
     TrEd::Print::print_trees
 	($grp->{FSFile},
 	 ToplevelFrame(),
@@ -2461,6 +2467,7 @@ sub Print {
 	 exists($opts{-maximize}) ? $opts{-maximize} : $main::maximizePrintSize,
 	 exists($opts{-psMedia}) ? $opts{-psMedia} : $main::psMedia,
 	 $main::treeViewOpts,
+	 $ss
 	);
 
     $TrEd::TreeView::on_get_root_style = undef;
