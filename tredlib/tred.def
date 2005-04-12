@@ -2399,8 +2399,11 @@ sub PrintDialog {
 
 Print trees given from current file according to given printing options:
 
-C<-command>, C<-toFile>, C<-filename>, C<-format>, C<-noRotate>, C<-sentenceInfo> C<-imageMagickResolution>, C<-colors>, C<-hidden>, C<-psFontFile>, C<-psFontAFMFile>, C<-ttFont>, C<-fontSize>,
-C<-fmtWidth>, C<-hMargin>, C<-fmtHeight>, C<-vMargin>, C<-maximize>, C<-psMedia>
+C<-range>, C<-command>, C<-toFile>, C<-filename>, C<-format>,
+C<-noRotate>, C<-sentenceInfo> C<-imageMagickResolution>, C<-colors>,
+C<-hidden>, C<-psFontFile>, C<-psFontAFMFile>, C<-ttFont>,
+C<-fontSize>, C<-fmtWidth>, C<-hMargin>, C<-fmtHeight>, C<-vMargin>,
+C<-maximize>, C<-psMedia>
 
 =cut
 
@@ -2423,6 +2426,10 @@ sub Print {
     unless ($opts{-ttFont}) {
       main::initTTFonts($group);
     }
+
+    $TrEd::TreeView::on_get_root_style = [\&main::onGetRootStyle,$grp];
+    $TrEd::TreeView::on_get_node_style = [\&main::onGetNodeStyle,$grp];
+
     TrEd::Print::print_trees
 	($grp->{FSFile},
 	 ToplevelFrame(),
@@ -2453,8 +2460,13 @@ sub Print {
 	 exists($opts{-vMargin}) ? $opts{-vMargin} : $main::prtVMargin,
 	 exists($opts{-maximize}) ? $opts{-maximize} : $main::maximizePrintSize,
 	 exists($opts{-psMedia}) ? $opts{-psMedia} : $main::psMedia,
-	 $main::treeViewOpts
+	 $main::treeViewOpts,
 	);
+
+    $TrEd::TreeView::on_get_root_style = undef;
+    $TrEd::TreeView::on_get_node_style = undef;
+
+
     $canvas->destroy();
   } else {
     die "Cannot call PrintDialog from non-GUI version TrEd\n";
