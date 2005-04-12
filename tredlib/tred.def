@@ -2446,6 +2446,9 @@ sub Print {
 	 ($opts{-toFile} and $opts{-format} eq 'PDF') ? 1 : 0,
 	 $opts{-filename},
 	 $opts{-sentenceInfo},
+	 (($opts{-format} eq 'ImageMagick') ?
+	    "$main::imageMagickConvert -density $opts{-imageMagickResolution} - $opts{-filename}" : 
+	      $opts{-command}),
 	 $opts{-command},
 	 $opts{-colors},
 	 $opts{-noRotate},
