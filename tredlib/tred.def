@@ -2423,7 +2423,7 @@ sub Print {
 	$opts{$_} = $group->{"print".lcfirst($o)};
       }
     }
-    unless ($opts{-ttFont}) {
+    unless ($opts{-ttFont} and !$group->{ttfonts}) {
       main::initTTFonts($group);
     }
 
@@ -2433,7 +2433,7 @@ sub Print {
     my $stylesheet = $grp->{stylesheet};
     my $ss = undef;
     if ($stylesheet ne STYLESHEET_FROM_FILE()) {
-      $ss=$grp->{framegroup}->{stylesheets}->{$stylesheet};
+      $ss=$group->{stylesheets}->{$stylesheet};
     }
 
     TrEd::Print::print_trees
