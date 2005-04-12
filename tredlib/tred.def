@@ -2436,6 +2436,8 @@ sub Print {
       $ss=$group->{stylesheets}->{$stylesheet};
     }
 
+    $opts{-imageMagickResolution} ||= 75;
+
     TrEd::Print::print_trees
 	($grp->{FSFile},
 	 ToplevelFrame(),
