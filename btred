@@ -34,7 +34,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $term_encoding $save $safe_mode $csts_tree_attrs
 	    $csts_tecto $preload $warn_only $validate_fs $allow_host
 	    $start_server $help $usage $manpage $obey_locks
-	    $NO_HOOKS $userlogin
+	    $NO_HOOKS $userlogin $reffiles_to_save
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
@@ -77,6 +77,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "file-encoding|n=s" => \$file_encoding,
 	    "terminal-encoding|d=s" => \$term_encoding,
 	    "save|S" => \$save,
+	    "knit|K=s" => \$reffiles_to_save,
 	    "no-save" => \$nosave,
 	    "safe-mode|F" => \$safe_mode,
 	    "obey-locks|O" => \$obey_locks,
@@ -98,6 +99,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	   );
 
 $optparser->getoptions(%optmap) or $usage=1;
+
 
 if ($print_version) {
   my $ver=$version;
@@ -806,6 +808,7 @@ sub startMain {
 	    use Storable;
 	    use MIME::Base64;
 	    my @dump;
+ 	    my @save_req;
 	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
 	      next unless ($f);
 	      chomp($f);
@@ -816,13 +819,13 @@ sub startMain {
 	      next unless ref($fsfile);
 	      _msg "Dumping the tree $f at client's request ($fsfile)\n";
 	      my $req = $fsfile->metaData('fs-require');
-	      my @save_req;
 	      if (ref($req)) {
+		push @save_req,[$fsfile,$req];
 		if ($no_secondary) {
-		  @save_req = @$req;
-		  @$req = ();
+		  $fsfile->changeMetaData('fs-require',undef);
 		} else {
-		  $_->[1]="ntred://".$_->[1] for @$req;
+		  $fsfile->changeMetaData('fs-require',[ map {
+		    [ $_->[0], "ntred://".Fslib::ResolvePath($fsfile->filename,$_->[1]) ] } @$req ]);
 		}
 	      }
 	      push @dump, [$fsfile->FS,
@@ -831,14 +834,6 @@ sub startMain {
 			   $fsfile->[13],
 			   [$fsfile->patterns],
 			   $fsfile->hint];
-	      # undo the change
-	      if (ref($req)) {
-		if ($no_secondary) {
-		  @$req = @save_req;
-		} else {
-		  $_->[1]=~s{^ntred://}{} for @$req;
-		}
-	      }
 	    }
 	    if (@dump) {
 	      eval {
@@ -850,6 +845,9 @@ sub startMain {
 		$hub->print("$@\n");
 	      }
 	    }
+	  foreach my $saved (@save_req) {
+	    $saved->[0]->changeMetaData('fs-require',$saved->[1]);
+	  }
 # 	  } else {
 # 	    # old-default was FS. We leave it here for backward compatibility
 # 	    foreach my $f (grep /\S/,split /\n/,$request{STATE_default}) {
@@ -976,6 +974,7 @@ sub startMain {
 	    local $strip_suffix=$request{"STATE_Strip-suffix"} if exists $request{"STATE_Strip-suffix"};
 	    local $add_prefix=$request{"STATE_Prefix"} if exists $request{"STATE_Prefix"};
 	    local $append_suffix=$request{"STATE_Suffix"} if exists $request{"STATE_Suffix"};
+	    local $reffiles_to_save=$request{"STATE_Knit"} if exists $request{"STATE_Knit"};
 
 	    my %fl;
 	    my $listed = 0;
@@ -1321,6 +1320,15 @@ sub checkLock {
   return $lockinfo;
 }
 
+sub save_transform_filename {
+  my ($out)=@_;
+  $out=~s/$strip_suffix$// if ($strip_suffix ne "");
+  $out.=$append_suffix;
+  $out=~s/^$strip_prefix// if ($strip_prefix ne "");
+  $out=$add_prefix.$out if ($add_prefix ne "");
+  return $out;
+}
+
 sub saveFile {
   my ($grp,$fsfile)=@_;
   return if $nosave;
@@ -1334,14 +1342,33 @@ sub saveFile {
     }
   }
   $fsfile->changeBackend($backend) if ($backend);
-  my $out=$f;
-  $out=~s/$strip_suffix$// if ($strip_suffix ne "");
-  $out.=$append_suffix;
-  $out=~s/^$strip_prefix// if ($strip_prefix ne "");
-  $out=$add_prefix.$out if ($add_prefix ne "");
-  if ($f eq $out) {
-    unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
-    rename $f, "$f~" if (-f $f);
+  my $out=save_transform_filename($f);
+  my $err = '';
+  eval {
+    IOBackend::rename_uri($out,$out."~") unless $f=~/^ntred:/; # if (-f $f);
+  };
+  $err.="Error creating backup $f~: $@\n" if $@;
+  #unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
+  #rename $f, "$f~" if (-f $f);
+  my $refs_to_save={};
+  _msg "Looking for resources $reffiles_to_save\n" unless $Quiet;
+  if ($reffiles_to_save eq 'ALL') {
+    $refs_to_save = undef;
+  } elsif ($fsfile->metaData('schema') and $reffiles_to_save ne 'NONE') {
+    my $refnames = $fsfile->metaData('refnames');
+    my $references = $fsfile->metaData('references');
+    if (ref($refnames) and ref($references)) {
+      foreach my $name (split /\s*,\s*/,$reffiles_to_save) {
+	_msg "Looking for resource '$name'\n" unless $Quiet;
+	my $refid = $refnames->{$name};
+	my $href = $references->{$refid};
+	if ($refid and $href) {
+	  $refs_to_save = {} unless defined $refs_to_save;
+	  $refs_to_save->{$refid} = save_transform_filename($href);
+	  _msg "Reference '$name' from file '$href' will be saved as ".$refs_to_save->{$refid}."\n" unless $Quiet;
+	}
+      }
+    }
   }
 
   if ($fsfile == $grp->{FSFile} and doEvalHook($grp,"file_save_hook",$out) eq 'stop') {
@@ -1349,8 +1376,18 @@ sub saveFile {
   } else {
     _msg "Saving $f as $out\n" unless $Quiet;
   }
-  unless ($fsfile->writeFile($out)) {
-    return ($out,"Error saving file to '$out'\n");
+
+  $fsfile->changeAppData('refs_save',$refs_to_save);
+  my $result = $fsfile->writeFile($out);
+  $fsfile->changeAppData('refs_save',undef);
+  unless ($result) {
+    $err.="Error saving file to '$out'\n";
+    # try revert backup
+    eval {
+      IOBackend::rename_uri($out."~",$out) unless $out=~/^ntred:/; # if (-f $f);
+    };
+    $err.="Error reverting $f from backup $f~ after saving error: $@\n" if $@;
+    return ($out,$err);
   }
   $fsfile->notSaved(0);
   return ($out, undef);
@@ -1638,8 +1675,8 @@ btred - non-interactive scriptable version of the tree editor TrEd
 =head1 SYNOPSIS
 
   btred [-c config-file]
-        [-t context] [-m macro-file] [-e code] [-i init-code]
-        [-N|-H] [-T] [-S | --no-save] [-P] [-F]
+        [-t context] [-m|-I macro-file] [-e code] [-i init-code]
+        [-N|-H] [-T] [-S | --no-save] [--knit] [-P] [-F]
         [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
         [-f out-fmt] [-n file-encoding] [-d terminal-encoding]
         [-W] [-q|-Q] [-D] [-V] [-L port] [-b hub]
@@ -1798,6 +1835,18 @@ stderr output operations. Works only with Perl >= 5.8.
 Unconditionally save files after macro code was applied.  By default,
 files are saved only if the C<$FileChanged> variable has been set to 1
 within the macro code.
+
+=item B<--knit|K> ALL|NONE|name1,name2,...
+
+If a file is saved, save/update also listed types of reffiles the file
+pulled data from. For the moment, this only makes sense with the
+C<PMLBackend> which supports so called B<knitting>, i.e. a method to
+pull certain data from external resources and push it back (with all
+changes) to the original position in the resource when saving the
+file. This option allows to list the types of resources (in PML the
+types are the reference names listed in the PML schema) which should
+be saved. Default is C<NONE>. This type of resources doesn't include
+so called secondary files.
 
 =item B<--no-save>
 
