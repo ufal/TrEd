@@ -39,7 +39,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
 	    $version $lib $extra_backends $file_list
-	    $_ERR %optmap $no_secondary
+	    $_ERR %optmap $no_secondary $include_macro
 	   );
 
 $version='$Revision$ ';
@@ -66,6 +66,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "config-file|c=s" => \$config_file,
 	    "initial-code|i=s" => \$initial_code,
 	    "macro-file|m=s" => \$macro,
+	    "include-macro-file|I=s" => \$include_macro,
 	    "execute|e=s"    => \$code,
 	    "context|t=s" => \$start_context,
 	    "all-trees|T"    => \$all_trees,
@@ -300,6 +301,12 @@ $fileNo=0;
 
 _msg("Reading macros from $macroFile...\n") unless $quiet;
 read_macros($macroFile,$libDir);	# read macros
+if ($include_macro) {
+  _msg("Reading additional macros from $include_macro...\n") unless $quiet;
+  push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+  read_macros($include_macro,$libDir,1);
+}
+
 _msg("done.\n") unless $quiet;
 
 if ($file_list) {
@@ -1655,7 +1662,15 @@ file.
 =item B<--macro-file|-m> filename
 
 File with macro definitions to load.  If no macro-file is given,
-standard macro file (see TrEd documentation) is used.
+standard macro file (by default F<tred.mac>) is used.
+
+=item B<--include-macro-file|-I> filename
+
+A file containing additional set of macros to load. This option is
+typically used instead of C<--macro-file> to allow loading macros
+B<both> from C<filename> B<and> the default macro set (F<tred.mac>).
+C<--macro-file> can still be used in combination with
+B<--include-macro-file> to supply a replacement for F<tred.mac>.
 
 =item B<--execute|-e> code
 
