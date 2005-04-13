@@ -918,7 +918,7 @@ sub nextOrPrevFile {
 		    "Error: open failed",
 		    "File is unreadable, empty, corrupted, or does not exist ($trees trees read)!"
 		      ."\nPossible problem was:",
-		    'Reading: '.$f."\n".
+		    'Trying to load: '.$f."\n".
 		    $grp->{lastOpenError},
 		    -buttons => ["Try next","Skip to next correct file","Cancel"]
 		   );
