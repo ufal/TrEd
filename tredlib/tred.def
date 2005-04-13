@@ -2380,6 +2380,8 @@ sub PrintDialog {
   my (%opts)=@_;
   if (GUI()) {
     local $main::insideEval = 0;
+    local $grp->{currentNode} = $this;
+    local $grp->{root} = $root;
 
     foreach (qw(-command -psFile -toFile -format -noRotate -sentenceInfo
                 -imageMagickResolution -fileExtension -colors)) {
@@ -2413,6 +2415,9 @@ sub Print {
   if (GUI()) {
     my $group=$grp->{framegroup};
     local $main::insideEval = 0;
+    local $grp->{currentNode} = $this;
+    local $grp->{root} = $root;
+
     my $canvas=ToplevelFrame()->Canvas();
     $opts{-range}=CurrentTreeNumber()+1 if ($opts{-range} eq "");
 
@@ -2423,7 +2428,7 @@ sub Print {
 	$opts{$_} = $group->{"print".lcfirst($o)};
       }
     }
-    unless ($opts{-ttFont} or $group->{ttfonts}) {
+    unless ($opts{-format} ne 'PDF' or $opts{-ttFont} or $group->{ttfonts}) {
       main::initTTFonts($group);
     }
 
