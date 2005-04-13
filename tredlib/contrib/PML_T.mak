@@ -1050,6 +1050,36 @@ sub OpenValFrameList {
    );
 }
 
+
+=item OpenValLexicon(options...)
+
+Open valency lexicon editor/browser GUI. All given options are passed
+to the approporiate VallexGUI method. Most commonly used are C<-lemma>
+and C<-pos> to override t_lemma and sempos of the node and C<-frameid>
+to frames currently assigned to the node.
+
+=cut
+
+sub OpenValLexicon {
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this;
+  my %opts = @_;
+
+  $VallexGUI::frameid_attr="val_frame.rf";
+  $VallexGUI::lemma_attr="t_lemma";
+  $VallexGUI::framere_attr=undef;
+  $VallexGUI::sempos_attr="gram/sempos";
+  my $refid = FileMetaData('refnames')->{vallex};
+  my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
+  VallexGUI::OpenEditor(
+    -lemma => $node ? $node->{t_lemma} : undef,
+    -sempos => $node ? $node->{gram}{sempos} : undef,
+    -frameid => $rf,
+    %opts
+   );
+}
+
+
 sub ShowAssignedValFrames {
   shift unless @_ and ref($_[0]);
   my $node = shift || $this;
