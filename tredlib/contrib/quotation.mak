@@ -32,7 +32,7 @@ sub newquot { # nahodi a ouvozovkuje novy podstrom
   return unless $grp->{FSFile};
   initquot() unless exists $grp->{FSFile}->FS->defs->{quot_start};
   my $selection = [$this->{quot_type} || 'primarec'];
-  listQuery('Select quotation type','browse',[split /\|/,$quottypes],$selection) || return;
+  ListQuery('Select quotation type','browse',[split /\|/,$quottypes],$selection) || return;
   $this->{quot_type}=$selection->[0];
   $last_color=shift @rotate_colors;
   push @rotate_colors,$last_color;

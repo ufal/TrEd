@@ -365,7 +365,7 @@ sub _FollowArrows{
   my$selected;
   if(@_>1){
     my$dialog=[];
-    listQuery('Arrow to follow:'
+    ListQuery('Arrow to follow:'
               ,'browse'
               ,[map{
                 my($type,$id,$node)=@$_;
