@@ -20,7 +20,7 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $srvlistfile $request_quit $request_dump $request_upload
 	    $safe_mode $help $usage $manpage $ssh $run_local $server_debug
 	    $maxservers $request_reload $request_reload_changed
-	    $request_load $request_close $glob
+	    $request_load $request_close $glob $reffiles_to_save
 	    $request_list $request_list_changed $request_save $request_list_secondary
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
@@ -74,6 +74,7 @@ Getopt::Long::Configure ("bundling");
 	 "list-changed-files" => \$request_list_changed,
 	 "save-files"      => \$request_save,
 	 "save-changed-files" => \$request_save_changed,
+	 "knit|K=s" => $reffiles_to_save,
 	 "dump-files"    => \$request_dump,
 	 "upload-file"    => \$request_upload,
 	 "strip-prefix|p=s" => \$strip_prefix,
@@ -384,6 +385,7 @@ if (defined($init) || defined($kill) || defined($break)) {
       my $cmd = "$btred -O -P ".
    	  ($safe_mode ? "-F " : "").
 	  ($no_secondary ? "-Y " : "").
+	  ($reffiles_to_save ne "" ? "-K $reffiles_to_save " : "").
 	  ($server_debug ? "-D " : "").
 	  (join "",map { "-M $_ " } @preload_modules).
 	  ($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
@@ -696,6 +698,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.="$control STATE=Strip-suffix\n".$strip_suffix."\n" if ($strip_suffix ne "");
     $request.="$control STATE=Prefix\n".$add_prefix."\n" if ($add_prefix ne "");
     $request.="$control STATE=Suffix\n".$append_suffix."\n" if ($append_suffix ne "");
+    $request.="$control STATE=Knit\n".$reffiles_to_save."\n" if ($reffiles_to_save ne "");
     $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
     msg($request,"\n");
     if ($listedfiles) {
@@ -1009,7 +1012,7 @@ ntred - controller/hub/client for remote btred servers
 
 To query the servers:
 
-  ntred [-m macro-file] [-e code] [--hub hub] [--port port]
+  ntred [-m|-I macro-file] [-e code] [--hub hub] [--port port]
         [-N|-H] [-T] [--key-file file] [--filelist file-list ] [-L files]
         -- script-arguments
 
@@ -1019,7 +1022,7 @@ To start remote servers and a hub:
            [--filelist file-list] [--max-servers num] [--no-secondary-files]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--old-dist-method] [--safe-mode] [--server-debug]
-           [-m macro-file] [-M module] [--btred path-to-btred]
+           [-m|-I macro-file] [-M module] [--btred path-to-btred]
            [--ssh ssh-command] [--local]
            [--key-file] [--hub hub] [--port port] [file [...]]
 
@@ -1309,7 +1312,7 @@ Use old benchmark-based distribution method.
   ntred --close-files
 
   ntred --save-files|--save-changed-files [-s strip-sfx]
-       [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt]
+       [-a append-sfx] [-p strip-prefix] [-r add-prefix] [-f out-fmt] [--knit]
 
   ntred --quit
 
@@ -1411,6 +1414,18 @@ by some macro will be saved. Note, that a macro has to claim that the
 file was changed by setting C<$TredMacro::FileChanged> variable to 1,
 otherwise the btred server would never notice. See also
 C<--list-changed-files>.
+
+=item B<--knit|K> ALL|NONE|name1,name2,...
+
+If a file is saved, save/update also listed types of reffiles the file
+pulled data from. For the moment, this only makes sense with the
+C<PMLBackend> which supports so called B<knitting>, i.e. a method to
+pull certain data from external resources and push it back (with all
+changes) to the original position in the resource when saving the
+file. This option allows to list the types of resources (in PML the
+types are the reference names listed in the PML schema) which should
+be saved. Default is C<NONE>. This type of resources doesn't include
+so called secondary files.
 
 =item B<--dump-files>
 
