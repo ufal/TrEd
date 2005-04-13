@@ -306,26 +306,26 @@ COORDS
       $orientation=$orientation>0 ? 'right' : ($orientation<0 ? 'left':0);
       $coreflemmas{$node->{id}}.=' '.$refed->{t_lemma};
       if($orientation=~/left|right/){
-          if($orientation eq'left'){
-	    print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
-	    push @colors,CustomColor('arrow_'.$cortype);
-            push @dash,1;
-	    push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
-	    $rotate_prv_snt+=10;
-          }else{ #right
-	    print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
-	    push @colors,CustomColor('arrow_'.$cortype);
-            push @dash,1;
-	    push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
-	    $rotate_nxt_snt+=10;
-          }
-        }else{
-          print STDERR "ref-arrows: Not found!\n" if $main::macroDebug;
-          push @colors,CustomColor('error');
-            push @dash,1;
-	  push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
-	  $rotate_dfr_doc+=10;
-        }
+	if($orientation eq'left'){
+	  print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
+	  push @colors,CustomColor('arrow_'.$cortype);
+	  push @dash,1;
+	  push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
+	  $rotate_prv_snt+=10;
+	}else{ #right
+	  print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
+	  push @colors,CustomColor('arrow_'.$cortype);
+	  push @dash,1;
+	  push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
+	  $rotate_nxt_snt+=10;
+	}
+      }else{
+	print STDERR "ref-arrows: Not found!\n" if $main::macroDebug;
+	push @colors,CustomColor('error');
+	push @dash,1;
+	push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
+	$rotate_dfr_doc+=10;
+      }
     }
   }
   if($node->{coref_special}eq'segm') { # pointer to an unspecified segment of preceeding sentences
