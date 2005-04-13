@@ -822,7 +822,7 @@ sub dump_child {
     } else {
       $ref->{$data->{name}} = $data->{value};
     }
-  } elsif ($mtype->{member} or $mtype->{attribute}) {
+  } elsif ($mtype->{structure}) {
     my $new_ref;
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       $new_ref = {};
