@@ -96,6 +96,14 @@ sub index_fs_by_id {
   return \%index;
 }
 
+sub xml_parser {
+  my $parser = XML::LibXML->new();
+  $parser->line_numbers(1);
+  $parser->load_ext_dtd(0);
+  $parser->validation(0);
+  return $parser;
+}
+
 sub read ($$) {
   my ($input, $fsfile)=@_;
   return unless ref($fsfile);
@@ -105,10 +113,7 @@ sub read ($$) {
   $fsfile->changePatterns(@pmlformat);
   $fsfile->changeHint($pmlhint);
 
-  my $parser = XML::LibXML->new();
-  $parser->line_numbers(1);
-  $parser->load_ext_dtd(0);
-  $parser->validation(0);
+  my $parser = xml_parser();
 
   my $dom = $parser->parse_fh($input);
   $dom->setBaseURI($fsfile->filename) if $dom and $dom->can('setBaseURI');
@@ -509,46 +514,70 @@ sub read_node ($$$;$) {
   }
 }
 
-sub read_trees {
-  my ($parser, $fsfile, $dom_root) = @_;
+sub readas_trees {
+  my ($parser,$fsfile,$refid,$href)=@_;
+  my $requires = ($fsfile->metaData('fs-require') || []);
+  push @$requires,[$refid,$href];
+  $fsfile->changeMetaData('fs-require',$requires);
+}
+sub readas_dom {
+  my ($parser,$fsfile,$refid,$href)=@_;
+  # embed DOM documents
+  my $ref_data;
+  my $ref_fh = open_backend($href,'r');
+  _debug("$href $ref_fh");
+  if ($ref_fh){
+    $ref_data = $parser->parse_fh($ref_fh);
+    $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
+    $parser->process_xincludes($ref_data);
+    close_backend($ref_fh);
+    $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
+    $fsfile->appData('ref')->{$refid}=$ref_data;
+    $fsfile->changeAppData('ref-index',{}) unless ref($fsfile->appData('ref-index'));
+    $fsfile->appData('ref-index')->{$refid}=index_by_id($ref_data);
+  } else {
+    die "Couldn't open '".$href."': $!\n";
+  }
+}
+
+sub get_references {
+  my ($fsfile)=@_;
   my $references = $fsfile->metaData('schema')->{reference};
+  my @refs;
   if ($references) {
     foreach my $reference (@$references) {
       my $refid = $fsfile->metaData('refnames')->{$reference->{name}};
       if ($refid) {
 	my $href = $fsfile->metaData('references')->{$refid};
-	if ($href and $reference->{readas} =~ /^(?:dom|trees)$/) {
+	if ($href) {
 	  _debug("Found '$reference->{name}' as $refid# = '$href'");
-	  if ($reference->{readas} eq 'trees') {
-	    my $requires = ($fsfile->metaData('fs-require') || []);
-	    push @$requires,[$refid,$href];
-	    $fsfile->changeMetaData('fs-require',$requires);
-	  } elsif ($reference->{readas} eq 'dom') {
-	    my $ref_data;
-	    my $ref_fh = open_backend($href,'r');
-	    _debug("$href $ref_fh");
-	    if ($ref_fh){
-	      $ref_data = $parser->parse_fh($ref_fh);
-	      $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
-	      $parser->process_xincludes($ref_data);
-	      close_backend($ref_fh);
-	      $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
-	      $fsfile->appData('ref')->{$refid}=$ref_data;
-	      $fsfile->changeAppData('ref-index',{}) unless ref($fsfile->appData('ref-index'));
-	      $fsfile->appData('ref-index')->{$refid}=index_by_id($ref_data);
-	      _debug("Stored meta 'ref' -> '$reference->{name}' = $ref_data");
-	    } else {
-	      die "Couldn't open '".$href."': $!\n";
-	    }
-	  }
-	} elsif ($href) {
-	  die "Unknown readas method '$reference->{readas}'\n"
+	  push @refs,{
+	    readas => $reference->{readas},
+	    name => $reference->{name},
+	    id => $refid,
+	    href => $href
+	   };
 	} else {
 	  die "No href for $refid# ($reference->{name})\n"
 	}
       } else {
 	warn "Didn't find any reference to '".$reference->{name}."'\n";
       }
+    }
+  }
+  return @refs;
+}
+
+sub read_trees {
+  my ($parser, $fsfile, $dom_root) = @_;
+
+  foreach my $ref (get_references($fsfile)) {
+    if ($ref->{readas} eq 'dom') {
+      readas_dom($parser,$fsfile,$ref->{id},$ref->{href});
+    } elsif($ref->{readas} eq 'trees') {
+      readas_trees($parser,$fsfile,$ref->{id},$ref->{href});
+    } else {
+      warn "Ignoring references with unknown readas method: '$ref->{readas}'";
     }
   }
 
@@ -611,12 +640,9 @@ sub read_trees {
 	# TODO: store all other elements here + all attributes
       }
     }
-
-
   } else {
     die "No #TREES found in PML schema\n";
   }
-
 }
 
 =pod
@@ -651,6 +677,18 @@ sub write {
     die "Can't write: didn't find any element or sequence with role #TREES\n";
   }
 
+  # dump embedded DOM documents
+  my $refs_to_save = $fsfile->appData('refs_save') || {};
+  my @refs_to_save =
+      (grep { $refs_to_save->{$_->{id}} }
+       grep { $_->{readas} eq 'dom' } get_references($fsfile));
+
+  # update all DOM trees to be saved
+  my $parser = xml_parser();
+  foreach my $ref (@refs_to_save) {
+    readas_dom($parser,$fsfile,$ref->{id},$ref->{href});
+  }
+
   $xml->xmlDecl("utf-8");
   $xml->startTag($root_type->{name},xmlns => PML_NS);
   $xml->startTag('head');
@@ -663,7 +701,7 @@ sub write {
     if ($references) {
       foreach (keys %$references) {
 	$xml->emptyTag('reffile', id => $_,
-		       href => $references->{$_},
+		       href => (exists($refs_to_save->{$_}) ? $refs_to_save->{$_} : $references->{$_}),
 		       (exists($names{$_}) ? (name => $names{$_}) : ()));
       }
     }
@@ -676,23 +714,23 @@ sub write {
   $xml->endTag($root_type->{name});
   $xml->end;
 
-  # write embedded DOM documents
-  my $references = $fsfile->metaData('schema')->{reference};
-  if ($references) {
-    foreach my $reference (@$references) {
-      my $refid = $fsfile->metaData('refnames')->{$reference->{name}};
-      if ($refid) {
-	my $href = $fsfile->metaData('references')->{$refid};
-	if ($href and $reference->{readas} eq 'dom' and
-	      ref($fsfile->appData('ref'))) {
-	  my $dom = $fsfile->appData('ref')->{$refid};
-	  if ($dom) {
-	    my $ref_fh = IOBackend::open_backend($href,"w");
-	    binmode $ref_fh;
-	    $dom->toFH($ref_fh,1);
-	    close $ref_fh;
-	  }
-	}
+  # dump DOM trees to save
+  if (ref($fsfile->appData('ref'))) {
+    foreach my $ref (@refs_to_save) {
+      my $dom = $fsfile->appData('ref')->{$ref->{id}};
+      my $href;
+      if (exists($refs_to_save->{$ref->{id}})) {
+	# effectively rename the file reference
+	$fsfile->metaData('references')->{$ref->{id}} = $refs_to_save->{$ref->{id}};
+	$href = $refs_to_save->{$ref->{id}};
+      } else {
+	$href = $ref->{href}
+      }
+      if (ref($dom)) {
+	my $ref_fh = IOBackend::open_backend($href,"w");
+	binmode $ref_fh;
+	$dom->toFH($ref_fh,1);
+	close $ref_fh;
       }
     }
   }
