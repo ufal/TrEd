@@ -220,7 +220,8 @@ sub OpenEditor {
 		     infoline => { label => $fc }
 		    };
 
-  print STDERR "EDITOR start at: $lemma,$pos,",$node->attr($frameid_attr),"\n";
+  my $frameid = $opts{-frameid} || $node->attr($frameid_attr);
+  print STDERR "EDITOR start at: $lemma,$pos,$frameid\n";
 
   my $d;
   ($d,$vallexEditor)=
@@ -232,10 +233,10 @@ sub OpenEditor {
 					    $fc,
 					    $fc,
 					    $fe_conf,
-					    $node->attr($frameid_attr),    # select frame
+					    $frameid,         # select frame
 					    0,
 					    $opts{-bindings}
-					   );               # start frame editor
+					   );                 # start frame editor
   $d->bind('<Destroy>',sub { undef $vallexEditor; });
   TredMacro::register_exit_hook(sub {
 				  if (ref($vallexEditor)) {
