@@ -330,6 +330,7 @@ require Tk::MyFileSelect;
 require Tk::ImgButton;
 require Tk::BindMouseWheel;
 require Tk::Balloon;
+require Tk::JComboBox_0_02;
 
 
 $stdout=\*STDOUT;
@@ -395,7 +396,10 @@ use Exporter;
 	     storable =>
 	     [["Perl Storable files",          [qw/.pls .pls.gz/]],
 	      ["All files",        '*']
-	     ]
+	     ],
+	     all =>
+	     [["All files",        '*']
+	     ],
 	    );
 
 ApplyGlobalConfig();
@@ -809,6 +813,11 @@ sub update_treeviews {
       }
     }
   }
+}
+
+sub fileSchema {
+  my ($fsfile)=@_;
+  return $fsfile->metaData('schema');
 }
 
 sub lastFileNo {
@@ -1360,10 +1369,7 @@ sub userQuery {
   $d->bind('<Return>', \&dlgReturn);
   if (exists($opts{-buttons}) and 
       grep { $_ eq 'Cancel' } @{$opts{-buttons}}) {
-    $d->bind('all','<Escape>', [sub { shift; my $w=shift;
-			       $w->{selected_button}= "Cancel";
-			     },$d] );
-    $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+    escapeButton($d,'Cancel',1);
 
   }
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
@@ -2005,7 +2011,11 @@ sub saveFile {
   }
 
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
-  if (doEvalHook($win,"file_save_hook",$f) eq 'stop') {
+
+  my $refs_to_save={};
+  if (!askSaveReferences($win,$win->{FSFile},$refs_to_save,$file) or
+      doEvalHook($win,"file_save_hook",$f) eq 'stop') {
+    updateTitle($win->{framegroup});
     $win->toplevel->Unbusy() unless $insideEval;
     return;
   }
@@ -2013,7 +2023,13 @@ sub saveFile {
     IOBackend::rename_uri($f,$f."~") unless $f=~/^ntred:/
   };
   print STDERR $@;
-  unless ($win->{FSFile}->writeFile($f)) {
+  #DEBUG:
+  use Data::Dumper;
+  __debug(Dumper($refs_to_save));
+  $win->{FSFile}->changeAppData('refs_save',$refs_to_save);
+  my $result = $win->{FSFile}->writeFile($f);
+  $win->{FSFile}->changeAppData('refs_save',undef);
+  unless ($result) {
     $win->toplevel->Unbusy() unless $insideEval;
     errorMessage($win,"Error while saving file to '$f': $!\nI'll try to recover the original from backup.\n".conv_from_locale($!)."\n");
     undef $!;
@@ -2091,7 +2107,11 @@ sub get_value_line {
     $vl=doEvalHook($win,"get_value_line_hook",$fsfile,$no);
     if (defined($vl)) {
       if (ref($vl)) {
-	$vl=[ map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" } @$vl ];
+	unless ($tags) {
+	  $vl = encode(join '',map { $_->[0] } @$vl);
+	} else {
+	  $vl=[ map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" } @$vl ];
+	}
       } else {
 	$vl=encode($vl);
       }
@@ -3153,8 +3173,7 @@ sub copyTreesDialog {
   $d->bind('<Return>',\&dlgReturn);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  escapeButton($d,'Cancel',1);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
@@ -3295,7 +3314,8 @@ sub updatePrintDialogState {
       $w->{font}->toplevel->Busy(-recurse => 1);
       initTTFonts($grp);
       foreach (sort {$a cmp $b} keys %{$grp->{ttfonts}}) {
-	$w->{font}->insert('end',$_);
+#	$w->{font}->insert('end',$_);
+	$w->{font}->addItem($_);
       }
       if (exists($grp->{ttfonts}->{$initTTFont})) {
 	$s->{ttFont} = $s->{initTTFont};
@@ -3324,16 +3344,18 @@ sub updatePrintDialogState {
       print "On: $widget: $w->{$widget}\n";
       eval { $w->{$widget}->configure(-state => 'normal') };
       eval { $w->{$widget}->configure(($w->{$widget}->isa('Tk::Entry') or
-				       $w->{$widget}->isa('Tk::BrowseEntry'))
-				      ?
+				       $w->{$widget}->isa('Tk::BrowseEntry') or
+				       $w->{$widget}->isa('JComboBox_0_02')
+				      ) ?
 				      (-background => $s->{defaultBg}) : ()
 				     ) };
     } else {
       print "Off: $widget: $w->{$widget}\n";
       eval { $w->{$widget}->configure(-state=> 'disabled') };
       eval { $w->{$widget}->configure(($w->{$widget}->isa('Tk::Entry') or
-				       $w->{$widget}->isa('Tk::BrowseEntry'))
-				      ?
+				       $w->{$widget}->isa('Tk::BrowseEntry') or
+				       $w->{$widget}->isa('JComboBox_0_02')
+				      ) ?
 				      (-background => $s->{disabledBg}) : ()
 				     ) };
     }
@@ -3381,8 +3403,7 @@ sub printDialog {
 				-buttons=> ["OK", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  escapeButton($d,'Cancel',1);
   $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
@@ -3534,13 +3555,35 @@ sub printDialog {
   $w{font_label}=$pbf->Label(-text=> 'Font (TTF):',
 			       -anchor=> 'sw',
 			       -justify=> 'right');
-  $w{font}=$pbf->BrowseEntry(
-				-relief=> 'sunken',
-				-width=> 30,
-				-variable => \$s{ttFont},
-				-choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()]
-			       );
-  $w{font}->Subwidget('slistbox')->BindMouseWheelVert();
+
+
+
+
+#   $w{font}=$pbf->BrowseEntry(
+# 				-relief=> 'sunken',
+# 				-width=> 30,
+# 				-variable => \$s{ttFont},
+# 				-choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()]
+# 			       );
+  $w{font}=$pbf->JComboBox_0_02(
+    -width => 30,
+    -relief => 'flat',
+    -textvariable => \$s{ttFont},
+    -choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()],
+    -mode => 'editable',
+    -validate => 'match',
+    -takefocus => 1,
+    -borderwidth => 0,
+    -highlightcolor => 'black',
+    -highlightbackground => 'gray',
+    -highlightthickness => 1,
+    -background => 'gray',
+    -popupbackground => 'black',
+    -borderwidth => 1,
+    -buttonrelief => 'ridge'
+#    -buttonbitmap => 'combo'
+   );
+
 
   # Bitmap Resolutions
   my $imf=$bf->Frame();
@@ -3617,7 +3660,7 @@ sub printDialog {
 
   $w{noRotate}=
     $bf->Checkbutton(-text    => 'Disable landscape rotation of wide trees',
-		     -underline => 0,
+		     -underline => 18,
 		     -variable=> \$s{noRotate},
 		     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   $bf->pack(-side=> 'left');
@@ -3689,7 +3732,8 @@ sub printDialog {
 	    ($s{printTo} eq 'file') ? 1 : 0,
 	    ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
 	    ($s{format} eq 'PDF') ? 1 : 0,
-	    $s{file},$s{printSentence},
+	    $s{file},
+	    $s{printSentence} ? sub { get_value_line($win,$_[0],$_[1],1,0) } : undef,
 	    (($s{printTo} eq 'convert') ?
 	     "$imageMagickConvert -density $s{resolution} - $s{file}" : $s{command}),
 	    $s{printColors},$s{noRotate});
@@ -5633,11 +5677,85 @@ sub urlDialog {
   return 0;
 }
 
+sub askSaveReferences {
+  # write embedded DOM documents
+  my ($win,$fsfile,$result,$filename)=@_;
+  $filename = $fsfile->filename unless defined $filename;
+  my (@refs);
+  my $schema = fileSchema($fsfile) || return 1;
+  my $references = $schema->{reference} || return 1;
+  foreach my $reference (@$references) {
+    my $name = $reference->{name};
+    my $refid = $fsfile->metaData('refnames')->{$name};
+    if ($refid) {
+      my $href = $fsfile->metaData('references')->{$refid};
+      if ($href and $reference->{readas} eq 'dom' and 
+	  ref($fsfile->appData('ref')) and $fsfile->appData('ref')->{$refid}) {
+	push @refs, $href." [$refid, $name]";
+      }
+    }
+  }
+  # CURSOR
+  return 1 unless @refs;
+  my $initdir = dirname($filename);
+  my $selection = [];
+  my $return =
+    listQuery(
+      $win->toplevel,'Select resources to save','multiple',
+      \@refs,$selection,
+      label => {
+	-text => <<'EOF'
+This document contains data obtained from external resources.
+Please select which of them should be updated:
+EOF
+       },
+      list => {
+	-exportselection => 0,
+      },
+      buttons => [{
+	-text => 'Change filename...',
+	-underline => 7,
+	-command => [sub {
+		       my ($l)=@_;
+		       my ($file,$rest) = split / \[/,$l->get('active'),2;
+		       $file = get_save_filename(
+			 $l->toplevel,
+			 -filetypes=> $save_types{all},
+			 -title=> "Save As ...",
+			 -d $initdir ? (-initialdir=> $initdir) : (),
+			 $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
+		       if ($file ne "") {
+			 my $index = $l->index('active');
+
+			 my %selected = map {$_=>1} grep { $l->selectionIncludes($_) } (0 .. $l->size-1);
+			 $l->insert($index,$file." [".$rest);
+			 $l->delete('active');
+			 $l->activate($index);
+			 foreach (0 .. $l->size-1) {
+			   if ($selected{$_}) {
+			     $l->selectionSet($_);
+			   } else {
+			     $l->selectionClear($_);
+			   }
+			 }
+		       }
+		       Tk->break;
+		     }]
+       }]
+     );
+  if ($return) {
+    %$result = map { /^(.*) \[([^,]+),/ ? ($2 => $1) : () } @$selection;
+  }
+  return $return;
+}
+
 sub saveFileAs {
   my ($win)= @_;
   my $initdir;
   return unless $win->{FSFile};
   my $file=$win->{FSFile}->filename;
+  my ($old_file,$old_backend,$old_format) = 
+    ($file,$win->{FSFile}->backend,$win->{FSFile}->fileFormat);
 
   $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
@@ -5646,10 +5764,9 @@ sub saveFileAs {
   my $response=userQuery($win, "\nPlease,\nchoose one of the following output formats.\n\n".
 			 "\nWARNING:\nsome formats may be incompatible with the current file.\n",
 			 -title => "Save As ...",
-			 -buttons => ["FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
+			 -buttons => ["Use current","FS","CSTS","TrXML","TEIXML","Storable","Cancel"]);
   return if ($response eq "Cancel");
 
-  $win->{FSFile}->changeBackend($backend_map{lc($response)});
   if ($response eq 'FS') {
     $file=~s/\.(?:csts|sgml|sgm|cst|trxml|trx|tei|xml)/.fs/i;
     $file=~s/\.(amt|am|m|a)/$1.fs/;
@@ -5661,12 +5778,26 @@ sub saveFileAs {
     $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx)/.xml/i;
   } elsif ($response eq 'Storable') {
     $file=~s/\.(?:csts|sgml|sgm|cst|fs|trxml|trx|tei|xml)/.pls/i;
+  } 
+
+  my $filetypes;
+  if ($response eq 'Use current') {
+    my ($backend) = grep { $backend_map{$_} eq $win->{FSFile}->backend} keys %backend_map;
+    if ($backend) {
+      $filetypes = $save_types{$backend};
+    } else {
+      $filetypes = $save_types{'all'};
+    }
+  } else {
+    $filetypes = $save_types{lc($response)};
   }
-  $file= get_save_filename($win->toplevel,-filetypes=> $save_types{lc($response)},
+
+  $file= get_save_filename($win->toplevel,-filetypes=> $filetypes,
 				     -title=> "Save As ...",
 				     -d $initdir ? (-initialdir=> $initdir) : (),
      				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
-  if (defined $file and $file ne '') {
+  my $lock_change=0;
+  if ($file ne '') {
     if ($file ne $win->{FSFile}->filename) {
       if ($lockFiles) {
 	my $lock = checkLock(undef,$file);
@@ -5687,17 +5818,28 @@ sub saveFileAs {
 	    return -1;
 	  }
 	}
-	removeLock($win->{FSFile});
+	$lock_change=1;
 	$win->{FSFile}->changeFilename($file);
 	setFSLockInfo($win->{FSFile}, setLock($file));
       } else {
 	$win->{FSFile}->changeFilename($file);
       }
     }
+    if ($response ne 'Use current') {
+      $win->{FSFile}->changeBackend($backend_map{lc($response)});
+    }
     $win->{FSFile}->changeFileFormat(($file=~/\.gz$/ ? "gz-compressed " : "").
 				     $win->{FSFile}->backend);
     updateTitle($win->{framegroup});
-    return saveFile($win);
+    if (saveFile($win)) {
+      removeLock($win->{FSFile},$old_file) if ($lock_change);
+    } else {
+      removeLock($win->{FSFile},$file) if ($lock_change);
+      $win->{FSFile}->changeFilename($old_file);
+      $win->{FSFile}->changeBackend($old_backend);
+      $win->{FSFile}->changeFileFormat($old_format);
+      return 0;
+    }
   }
   return 0;
 }
@@ -5966,8 +6108,7 @@ sub QueryString {
   my $newvalue=encode($default_text);
   my $d=$top->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  escapeButton($d,'Cancel',1);
   $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
@@ -6013,7 +6154,7 @@ sub Query {
   my $d=$w->DialogBox(-title=> $title,
 				 -buttons=> ["OK", "Cancel"]);
   $d->bind('<Return>', \&dlgReturn );
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  escapeButton($d,'Cancel');
   addBindTags($d,'dialog');
   my ($Entry,@Eopts) = get_entry_type();
   my $e=$d->add($Entry,-relief=> 'sunken',
@@ -6048,31 +6189,49 @@ sub Query {
   }
 }
 
-sub ListQuery {
-  my ($w,$title,$select_mode,$vals,$selected)=@_;
+sub _escapeButton {
+  my ($w,$d,$button)=@_;
+  if ($w->toplevel == $d) {
+    $d->{selected_button}=$button;
+  }
+  Tk->break;
+}
+sub _wmdeleteButton { $_[0]->{selected_button}=$_[1] }
+sub escapeButton {
+  my ($d,$button,$bind_wm)=@_;
+  $d->bind('all','<Escape>'=> [\&_escapeButton,$d,$button]);
+  $d->protocol('WM_DELETE_WINDOW' => [\&_wmdeleteButton,$d]) if $bind_wm;
+}
+
+sub listQuery {
+  my ($w,$title,$select_mode,$vals,$selected,%opts)=@_;
   my $top=$w->toplevel;
   my $d=$w->DialogBox(-title	  => $title,
 		      -width	  => '8c',
 		      -buttons  => ["OK", "Cancel"]);
   $d->bind('<Return>', \&dlgReturn );
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
-  $d->bind('all','<Escape>'=> [sub {
-				 shift;
-				 shift->{selected_button}='Cancel';
-			       },$d ]);
+  escapeButton($d,'Cancel',1);
+  if (ref($opts{label})) {
+    $d->Label(%{$opts{label}})->pack(qw/-side top/);
+  }
   my $l=$d->Scrolled(qw/Listbox -relief sunken
                         -takefocus 1
                         -width 0
                         -scrollbars e/,
 		     -font=> $font,
 		     -selectmode => $select_mode,
-		     -height=> min($maxDisplayedValues,scalar(@$vals))
+		     -height=> min($maxDisplayedValues,scalar(@$vals)),
+		     ref($opts{list}) ? %{$opts{list}} : ()
 		    )->pack(qw/-expand yes -fill both/);
   $l->insert('end',@$vals);
+  if (@$vals>0) {
+    $l->activate(0);
+  }
   $l->BindMouseWheelVert();
+  my $f=$d->Frame()->pack(qw/-fill x/);
   if ($select_mode eq 'multiple') {
-    my $f=$d->Frame()->pack(qw/-expand yes -fill both/);
     $f->Button(-text => 'All',
+	       -underline => 0,
 	       -command => [
 			    sub{
 			      my ($list)=@_;
@@ -6081,6 +6240,7 @@ sub ListQuery {
 			    $l
 			   ])->pack(-side => 'left');
     $f->Button(-text => 'None',
+	       -underline => 0,
 	       -command => [
 			    sub{
 			      my ($list)=@_;
@@ -6089,6 +6249,16 @@ sub ListQuery {
 			    $l
 			   ])->pack(-side => 'left');
   }
+  if (ref($opts{buttons})) {
+    foreach my $b (@{$opts{buttons}}) {
+      if (ref($b->{-command}) eq 'ARRAY') {
+	push @{$b->{-command}}, $l;
+      }
+      $f->Button(%$b)->pack(-side => 'left');
+    }
+  }
+
+  _bind_buttons($d,$d);
   my $act=0;
   my %selected = map { $_ => 1 } @$selected;
   for ($a=0;$a<@$vals;$a++)  {
@@ -6107,7 +6277,7 @@ sub ListQuery {
  if ($result=~ /OK/) {
    @$selected=();
    foreach (0 .. $l->size-1) {
-     push @$selected, $$vals[$_] if $l->selectionIncludes($_);
+     push @$selected, $l->get($_) if $l->selectionIncludes($_);
    }
    $d->destroy;
    return 1;
@@ -6119,7 +6289,7 @@ sub ListQuery {
 sub selectContext {
   my ($grp)=@_;
   my $selection = [$grp->{focusedWindow}->{macroContext}];
-  ListQuery($grp->{top},'Select Context','browse',[sort(keys(%keyBindings))],
+  listQuery($grp->{top},'Select Context','browse',[sort(keys(%keyBindings))],
 	    $selection) || return;
   if (@$selection) {
     switchContext($grp->{focusedWindow},$selection->[0]);
@@ -6131,7 +6301,7 @@ sub selectStylesheet {
   my $grp = cast_to_grp($grp_or_win);
   my $win = cast_to_grp($grp_or_win);
   my $selection = [$grp->{selectedStylesheet}];
-  ListQuery($grp->{top},'Select Context','browse',
+  listQuery($grp->{top},'Select Context','browse',
 	    getStylesheetMenuList($grp),
 	    $selection) || return;
   if (@$selection) {
@@ -6156,9 +6326,8 @@ sub selectValuesDialog {
  my $d=$top->DialogBox(-title=> ($enabled ? "$attr: select values" : "$attr: values"),
 		       -width=> '8c',
 		       -buttons=> ($enabled ? ["OK", "Cancel"] : ["Cancel"]));
-  $d->bind('<Return>', \&dlgReturn );
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
- $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+ $d->bind('<Return>', \&dlgReturn );
+ escapeButton($d,'Cancel',1);
  $d->resizable(0,0);
  my $l=$d->Scrolled(qw/Listbox -relief sunken -takefocus 1 -scrollbars oe/,
 		    -height=> min($maxDisplayedValues,scalar(@$vals)),
@@ -6357,8 +6526,7 @@ sub viewSentencesDialog {
 		    $fsfile->filename(),
 		    -width=> "10c");
   $d->bind('<Return>', \&dlgReturn );
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
-  $d->bind('all','<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
+  escapeButton($d,'Cancel',1);
   $selref||=[];
   populateSentencesDialog($grp,$d,$fsfile,$selref,0);
   ShowDialog($d,$top);
@@ -6655,7 +6823,7 @@ sub editAttrsDialog_schema {
   my $enabled = 1;
   my $node_type;
   unless (ref($base_type)) {
-    $schema = $win->{FSFile}->metaData('schema');
+    $schema = fileSchema($win->{FSFile});
     my @ntypes = $schema->node_types;
     if (@ntypes==1) {
       $base_type = $schema->type($ntypes[0]);
@@ -6666,7 +6834,7 @@ sub editAttrsDialog_schema {
       my $i = 1;
       my @types = map {($i++)." ".$_->{name}} @ntypes;
       my $selection = [$types[0]];
-      ListQuery($grp->{top},'Untyped node: select node-type','browse',
+      listQuery($grp->{top},'Untyped node: select node-type','browse',
 		\@types,$selection) || return;
       if ($selection->[0]=~/^(\d+) /) {
 	$node->set_type($schema->type($ntypes[$1-1]));
@@ -6843,7 +7011,7 @@ sub editAttrsDialog {
   return unless $win->{FSFile};
   return editAttrsDialog_schema($win,$node)
     if (ref($node->type) or
-	ref($win->{FSFile}->metaData('schema')));
+	ref(fileSchema($win->{FSFile})));
   my @vals;
   my %e=();
   my @atord=$win->{FSFile}->FS->attributes;
@@ -6863,9 +7031,7 @@ sub editAttrsDialog {
 				 );
   $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Control-Return>',\&dlgReturn);
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
-
+  escapeButton($d,'Cancel',1);
   my $ff=$d->Frame(-relief=> 'groove',
 		   -bd => 1);
   my $f= $ff->Scrolled('Pane',
@@ -7288,9 +7454,9 @@ EOF
   disable_scrollbar_focus($al);
   $al->BindMouseWheelVert();
   my @atord=();
-  if ($win->{FSFile}) { 
-    if ($win->{FSFile}->metaData('schema')) {
-      @atord = $win->{FSFile}->metaData('schema')->attributes;
+  if ($win->{FSFile}) {
+    if (fileSchema($win->{FSFile})) {
+      @atord = fileSchema($win->{FSFile})->attributes;
     } else {
       @atord = $win->{FSFile}->FS->attributes;
     }
@@ -7322,13 +7488,9 @@ EOF
   $e->bind('Tk::Text','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $e->bind(ref($e->Subwidget('scrolled')),'<Control-Return>',\&dlgReturn);
   $e->bind('<Return>',sub{ Tk->break; });
-  $d->bind('all','<Escape>'=>
-	   [sub { shift;
-		  shift->{selected_button}='Cancel';
-		},$d ]);
+  escapeButton($d,'Cancel',1);
   $al->bind('<Double-1>'=>
 	   [sub {
 	     $e->delete('sel.first','sel.last') 
@@ -7398,8 +7560,8 @@ sub findNodeDialog {
   my $r;
   my @vals;
   my @atord;
-  if ($win->{FSFile}->metaData('schema')) {
-    @atord = $win->{FSFile}->metaData('schema')->attributes;
+  if (fileSchema($win->{FSFile})) {
+    @atord = fileSchema($win->{FSFile})->attributes;
   } else {
     @atord = $win->{FSFile}->FS->attributes;
   }
@@ -7433,8 +7595,7 @@ sub findNodeDialog {
     $_->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   }
   $d->bind('<Return>', \&dlgReturn );
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+  escapeButton($d,'Cancel',1);
   my $ff=$d->Frame(-relief=> 'groove',
 		   -bd => 1);
   my $f= $ff->Scrolled('Pane',
@@ -7878,9 +8039,8 @@ sub doEditAttr {
   $newvalue=encode($node->getAttribute($attr));
   my $d= $grp->{top}->DialogBox(-title=> ($enabled ? "Edit Node Attribute" : "Disabled Node Attribute"),
 			     -buttons=> [($enabled ? ("OK", "Cancel") : "Cancel")]);
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->bind('<Return>', \&dlgReturn );
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d]);
+  escapeButton($d,'Cancel',1);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
   my $l= $d->Label(-text=> $attr,
@@ -7950,8 +8110,13 @@ sub redraw_win {
   $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
   my $vl;
+  $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
+  $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,1,$win);
+  $vl=get_value_line($win,$win->{FSFile},$win->{treeNo},1,0);
   if ($win->{FSFile} and $win->{treeView}->get_drawSentenceInfo) {
-    $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
+#    $vl=$win->{treeView}->value_line($win->{FSFile},$win->{treeNo},1,0,$win);
+  } else {
+    undef $vl;
   }
   local $TredMacro::grp = $win;
   $win->{treeView}->
@@ -8371,8 +8536,7 @@ sub examineBindingsDialog {
   $d->Label(-text=> $attr,
 		    -anchor=> 'e',
 		    -justify=> 'right')->pack(-side=>'left');
-  $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Close'; },$d]);
-
+  escapeButton($d,'Cancel');
   $d->Label(qw/-wraplength 6i -justify left -text/,
 	    "Press any key to see it's binding in the current context.")->
 	      pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
