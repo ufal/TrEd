@@ -27,7 +27,7 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
 	    $version $print_version $listedfiles $list_options
-            $olddist $count_files $logdir $userlogin $no_secondary
+            $olddist $count_files $logdir $userlogin $no_secondary $include_macro
 	   );
 
 $version='$Revision$ ';
@@ -50,6 +50,7 @@ Getopt::Long::Configure ("bundling");
 	 "quiet|q"        => \$quiet,
 	 "really-quiet|Q" => \$really_quiet,
 	 "macro-file|m=s" => \$macro_file,
+	 "include-macro-file|I=s" => \$include_macro,
 	 "execute|e=s"    => \$code,
 	 "context|t=s" => \$start_context,
 	 "hub=s"          => \$hubname,
@@ -386,6 +387,7 @@ if (defined($init) || defined($kill) || defined($break)) {
 	  ($server_debug ? "-D " : "").
 	  (join "",map { "-M $_ " } @preload_modules).
 	  ($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
+	  ($include_macro ? "-I \"".rel2abs($include_macro)."\" " : "").
 	  ($term_encoding ? "-d $term_encoding " : "").
 	  "-L $_->{port}";
       if ($run_local) {
@@ -622,6 +624,7 @@ if (defined($init) || defined($kill) || defined($break)) {
     $TrEd::Macros::defaultMacroFile='/dev/null'; # don't read this one
     #$TrEd::Config::macroDebug=1;
     TrEd::Macros::read_macros($macro_file,$libDir) if $macro_file; # read macros
+    TrEd::Macros::read_macros($include_macro,$libDir,) if $include_macro; # read macros
     #msg("done.\n");
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
@@ -1096,6 +1099,18 @@ preloaded on the servers before the particular query code is
 evaluated. The query code to be evaluated must be specified in
 C<--execute>.
 
+Note that servers already have the set of macros they obtained on
+startup (i.e. B<--init>): it is namely either the default set of
+macros (F<tred.mac>) or the set specified via B<--macro-file>, and beside one of
+these also the set specified via B<--include-macro-file>.
+
+=item B<--include-macro-file|-I> filename
+
+A file containing additional set of macros to be sent to the servers.
+In query mode, this option behaves just like C<--macro-file> and is
+only provided for compatibility with C<btred>. If both these options
+are used, both sets of macros are loaded.
+
 =item B<--hub> hostname
 
 The hostname of the hub to connect to (defaults to localhost).
@@ -1236,6 +1251,14 @@ Run btred server with -D flag for some more debugging information.
 A file containing the default set of macros to be prepared on btred
 servers. The file (with exactly the same path) must be visible from
 all server hosts.
+
+=item B<--include-macro-file|-I> filename
+
+A file containing additional set of macros to be prepared on btred
+servers. This option is typically used instead of C<--macro-file> to
+load macros from B<both> C<filename> B<and> the default macro set from
+(F<tred.mac>). C<--macro-file> can still be used in combination with
+B<--include-macro-file> to supply a replacement for F<tred.mac>.
 
 =item B<--key-file>
 
