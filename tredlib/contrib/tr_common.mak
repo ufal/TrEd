@@ -101,9 +101,14 @@ sub open_editor {
   shift unless @_ and ref($_[0]);
   my $node = shift || $this || {};
   my %opts = @_;
+  $VallexGUI::frameid_attr="frameid";
+  $VallexGUI::lemma_attr="t_lemma";
+  $VallexGUI::framere_attr="framere";
+  $VallexGUI::sempos_attr="g_wordclass";
   VallexGUI::OpenEditor(
     -lemma => $node->{t_lemma},
     -sempos => $node->{g_wordclass},
+    -frameid => $node->{frameid},
     -bindings => {
       '<F5>' => [\&VallexGUI::copy_verb_frame,$grp->{framegroup}],
       '<F7>' => [\&VallexGUI::create_default_subst_frame,$grp->{framegroup}],
