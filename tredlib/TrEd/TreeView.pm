@@ -212,7 +212,7 @@ sub value_line_list {
   return () unless $fsfile;
 
   my @patterns = $self->get_label_patterns($fsfile,"text");
-  if (@patterns and $tags) {
+  if (@patterns) {
     my $node=$fsfile->treeList->[$tree_no];
     my @sent=();
     my $attr=$fsfile->FS->sentord();
@@ -279,15 +279,15 @@ sub value_line {
 
   my $prfx=($no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ");
 
-  if ($tags) {
+  if ($tags or $self->get_label_patterns($fsfile,"text")) {
     if ($self->{reverseNodeOrder}) {
       return [[$prfx,'prefix'],
 	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
-	      reverse $self->value_line_list($fsfile,$tree_no,$no_numbers,1,$grp)];
+		reverse $self->value_line_list($fsfile,$tree_no,$no_numbers,1,$grp)];
     } else {
       return [[$prfx,'prefix'],
 	      map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" }
-	      $self->value_line_list($fsfile,$tree_no,$no_numbers,1,$grp)];
+		$self->value_line_list($fsfile,$tree_no,$no_numbers,1,$grp)];
     }
   } else {
     if ($self->{reverseNodeOrder}) {
