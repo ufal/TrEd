@@ -943,8 +943,9 @@ sub generateNewWordId {
   }
   $i++;
   my $user=$self->user;
-  $i++ while ($forbidden->{"v-w$i$user"});
-  return "v-w$i$user";
+  $user=~s/^v-//;
+  $i++ while ($forbidden->{"v-w${i}_$user"});
+  return "v-w${i}_$user";
 }
 
 sub addWord {
@@ -1057,8 +1058,9 @@ sub generateNewFrameId {
   }
   $i++;
   my $user=$self->user;
-  $i++ while ($forbidden->{"v-${wid}f$i$user"});
-  return "v-${wid}f$i$user";
+  $user=~s/^v-//;
+  $i++ while ($forbidden->{"${wid}f${i}_$user"});
+  return "${wid}f${i}_$user";
 }
 
 sub addFrame {
