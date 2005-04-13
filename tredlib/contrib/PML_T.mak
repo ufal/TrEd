@@ -305,7 +305,7 @@ COORDS
       my $orientation=$treeNo-CurrentTreeNumber()-1;
       $orientation=$orientation>0 ? 'right' : ($orientation<0 ? 'left':0);
       $coreflemmas{$node->{id}}.=' '.$refed->{t_lemma};
-      if($orientation){
+      if($orientation=~/left|right/){
           if($orientation eq'left'){
 	    print STDERR "ref-arrows: Preceding sentence\n"if $main::macroDebug;
 	    push @colors,CustomColor('arrow_'.$cortype);
