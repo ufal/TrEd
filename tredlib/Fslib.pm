@@ -3126,8 +3126,8 @@ sub new {
 sub readFrom {
   my ($self,$file)=@_;
   print STDERR "parsing schema $file\n" if $Fslib::Debug;
-  my $fh = IOBackend::open_backend($file,'r');
-  die "Couldn't open PML schema file '$file'\n" unless $fh;
+  my $fh = eval { IOBackend::open_backend($file,'r') };
+  die "Couldn't open PML schema file '$file'\n".$@ if (!$fh || $@);
   local $/;
   my $slurp = <$fh>;
   close $fh;
