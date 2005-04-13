@@ -275,7 +275,7 @@ sub print_trees {
   }
   $treeView->apply_options({
 			    lineWidth => 1,
-			    drawSentenceInfo => $snt
+			    drawSentenceInfo => $snt ? 1 : 0
 			   });
   if (defined($stylesheet)) {
     $treeView->set_patterns($stylesheet->{patterns});
@@ -309,7 +309,14 @@ sub print_trees {
 	do {
 	  $treeView->set_showHidden($show_hidden);
 	  my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
-	  my $valtext=$treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	  my $valtext;
+	  if (ref($snt) eq 'ARRAY') {
+	    $valtext = $snt->[$printList[$t]-1];
+	  } elsif (ref($snt) eq 'CODE') {
+	    $valtext = $snt->($fsfile,$printList[$t]-1);
+	  } else {
+	    $treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	  }
 	  $treeView->redraw($fsfile,undef,$nodes,$valtext);
 	};
 	my $width=$c->fpixels($treeView->get_canvasWidth);
@@ -420,7 +427,14 @@ sub print_trees {
 	do {
 	  $treeView->set_showHidden($show_hidden);
 	  my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
-	  my $valtext=$treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	  my $valtext;
+	  if (ref($snt) eq 'ARRAY') {
+	    $valtext = $snt->[$printList[$t]-1];
+	  } elsif (ref($snt) eq 'CODE') {
+	    $valtext = $snt->($fsfile,$printList[$t]-1);
+	  } else {
+	    $treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	  }
 	  $treeView->redraw($fsfile,undef,$nodes,$valtext);
 	};
 
