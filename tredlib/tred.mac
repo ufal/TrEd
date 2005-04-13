@@ -98,10 +98,10 @@ sub editQuery {
   }
 }
 
-sub listQuery {
+sub ListQuery {
   my ($title,$select_mode,$vals,$selected)=@_;
   my $top=ToplevelFrame();
-  main::ListQuery($top,$title,$select_mode,$vals,$selected);
+  main::listQuery($top,$title,$select_mode,$vals,$selected);
 }
 
 sub questionQuery {
