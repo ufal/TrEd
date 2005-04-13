@@ -308,7 +308,7 @@ sub read_node_knit {
   my ($node,$fsfile,$types,$type)=@_;
 
   my $ref = $node->textContent();
-  _debug("KNIT: '$ref'");
+#  _debug("KNIT: '$ref'");
   if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
     my ($reffile,$idref)=($1,$2);
     $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
@@ -525,7 +525,7 @@ sub readas_dom {
   # embed DOM documents
   my $ref_data;
   my $ref_fh = open_backend($href,'r');
-  _debug("$href $ref_fh");
+  _debug("readas_dom: $href $ref_fh");
   if ($ref_fh){
     $ref_data = $parser->parse_fh($ref_fh);
     $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
@@ -678,14 +678,18 @@ sub write {
   }
 
   # dump embedded DOM documents
-  my $refs_to_save = $fsfile->appData('refs_save') || {};
-  my @refs_to_save =
-      (grep { $refs_to_save->{$_->{id}} }
-       grep { $_->{readas} eq 'dom' } get_references($fsfile));
+  my $refs_to_save = $fsfile->appData('refs_save');
+  my @refs_to_save = grep { $_->{readas} eq 'dom' } get_references($fsfile);
+  if (ref($refs_to_save)) {
+    @refs_to_save = grep { $refs_to_save->{$_->{id}} } @refs_to_save;
+  } else {
+    $refs_to_save = {};
+  }
 
   # update all DOM trees to be saved
   my $parser = xml_parser();
   foreach my $ref (@refs_to_save) {
+    _debug("$ref->{id} => $ref->{href}\n");
     readas_dom($parser,$fsfile,$ref->{id},$ref->{href});
   }
 
@@ -727,10 +731,26 @@ sub write {
 	$href = $ref->{href}
       }
       if (ref($dom)) {
+	eval {
+	  IOBackend::rename_uri($href,$href."~") unless $href=~/^ntred:/;
+	};
 	my $ref_fh = IOBackend::open_backend($href,"w");
-	binmode $ref_fh;
-	$dom->toFH($ref_fh,1);
-	close $ref_fh;
+	my $ok = 0;
+	if ($ref_fh) {
+	  eval {
+	    binmode $ref_fh;
+	    $dom->toFH($ref_fh,1);
+	    close $ref_fh;
+	    $ok = 1;
+	  }
+	}
+	unless ($ok) {
+	  my $err = $@;
+	  eval {
+	    IOBackend::rename_uri($href."~",$href) unless $href=~/^ntred:/;
+	  };
+	  die $err."$@\n" if $err;
+	}
       }
     }
   }
@@ -813,7 +833,7 @@ sub write_object ($$$$$$) {
 	  }
 	} elsif ($members->{$member}{role} eq '#KNIT') {
 	  if ($object->{$member} ne "") {
-	    _debug("#KNIT.rf $member");
+#	    _debug("#KNIT.rf $member");
 	    $xml->startTag($member);
 	    $xml->characters($object->{$member});
 	    $xml->startTag($member);
