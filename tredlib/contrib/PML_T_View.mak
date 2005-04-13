@@ -59,6 +59,8 @@ sub ShowValFrames {
   PML_T::OpenValFrameList($this,-noadd => 1,-no_assign => 1);
 }
 
+#bind OpenValLexicon to Ctrl+Shift+Return menu Browse valency frame lexicon
+
 #bind ShowEParents to Ctrl+p menu Show effective parents
 #bind ShowEChildren to Ctrl+c menu Show effective children
 #bind ShowExpand to Ctrl+e menu Show expansion
