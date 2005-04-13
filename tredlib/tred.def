@@ -2436,19 +2436,19 @@ sub Print {
       $ss=$group->{stylesheets}->{$stylesheet};
     }
 
-    $opts{-imageMagickResolution} ||= 75;
+    $opts{-imageMagickResolution} ||= 80;
 
     TrEd::Print::print_trees
 	($grp->{FSFile},
 	 ToplevelFrame(),
 	 $canvas,
 	 $opts{-range},
-	 ($opts{-toFile} and $opts{-format} ne 'imageMagick') ? 1 : 0,
-	 $opts{-format} =~ /ImageMagick|EPS/ ? 1 : 0,
+	 ($opts{-toFile} and $opts{-format} !~ /ImageMagick/i) ? 1 : 0,
+	 $opts{-format} =~ /ImageMagick|EPS/i ? 1 : 0,
 	 ($opts{-toFile} and $opts{-format} eq 'PDF') ? 1 : 0,
 	 $opts{-filename},
 	 $opts{-sentenceInfo},
-	 (($opts{-format} eq 'ImageMagick') ?
+	 (($opts{-format} =~ /ImageMagick/i) ?
 	    "$main::imageMagickConvert -density $opts{-imageMagickResolution} - $opts{-filename}" : 
 	      $opts{-command}),
 	 $opts{-colors},
