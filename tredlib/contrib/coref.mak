@@ -99,7 +99,7 @@ sub node_release_hook {
     $type='textual';
   } elsif ($mod eq 'Alt') {
     my $selection=['textual'];
-    listQuery("Select cortype",'browse',[qw(textual grammatical)],$selection) || return;
+    ListQuery("Select cortype",'browse',[qw(textual grammatical)],$selection) || return;
     $type=$selection->[0];
   } else {
     # Ignoring this mode
@@ -280,7 +280,7 @@ sub jump_to_referent { # modified by Zdenek Zabokrtsky, Jan 2003
   my @coref_list=split /\|/,$this->{coref};
   if (@coref_list>1) {
     my $selection=[$coref_list[0]];
-    listQuery("Multiple coreference",'single',
+    ListQuery("Multiple coreference",'single',
         \@coref_list,$selection) || return;
     $coref=$selection->[0];
   }
@@ -380,7 +380,7 @@ sub remember_this_node {
 sub set_referent_to_coref {
   return if $referent eq "";
   my $selection=['textual'];
-  listQuery('Select cortype','single',[qw(textual grammatical)],$selection) || return;
+  ListQuery('Select cortype','single',[qw(textual grammatical)],$selection) || return;
   assign_coref($this,$referent,$selection->[0]);
 }
 

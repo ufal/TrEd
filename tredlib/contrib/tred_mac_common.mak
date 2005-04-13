@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-03-15 18:16:30 pajas>
+## Time-stamp: <2005-04-11 21:50:59 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -149,10 +149,10 @@ sub editQuery {
   }
 }
 
-sub listQuery {
+sub ListQuery {
   my ($title,$select_mode,$vals,$selected)=@_;
   my $top=ToplevelFrame();
-  main::ListQuery($top,$title,$select_mode,$vals,$selected);
+  main::listQuery($top,$title,$select_mode,$vals,$selected);
 }
 
 sub questionQuery {

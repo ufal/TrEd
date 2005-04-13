@@ -10,7 +10,7 @@ sub describe_tag {
       "$v = ".$PDT_TAGINFO{$_.$v}[1]
     } else {()}
   } 1..(length($tag));
-  listQuery("$tag - detailed info",
+  ListQuery("$tag - detailed info",
 	    'browse',
 	    \@val,
 	    \@sel);

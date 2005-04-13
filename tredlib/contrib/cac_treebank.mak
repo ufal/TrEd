@@ -119,7 +119,7 @@ sub describe_x_origa {
       }
     } else { () }
   } 1,2,3,4,6;
-  listQuery("$tag - detailed info",
+  ListQuery("$tag - detailed info",
 	    'browse',
 	    \@val,
 	    \@sel);
@@ -157,7 +157,7 @@ sub describe_x_origt {
   my ($tag) = @_;
   my @sel;
   my @val = map { TrEd::Convert::encode($_) } get_x_origt_description($tag);
-  listQuery("$tag - detailed info",
+  ListQuery("$tag - detailed info",
 	    'browse',
 	    \@val,
 	    \@sel);
@@ -191,7 +191,7 @@ sub describe_x_origs {
 	       } else { () }
 	     } 3..9)
 	    );
-  listQuery("$tag - detailed info",
+  ListQuery("$tag - detailed info",
 	    'browse',
 	    \@val,
 	    \@sel);

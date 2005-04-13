@@ -57,7 +57,7 @@ sub edit_lemma_tag {
     }
   }
   @sel=grep { $_ eq "$this->{tag} $this->{lemma}" } @val;
-  listQuery("Select tag for $this->{form}",
+  ListQuery("Select tag for $this->{form}",
 	    'browse',
 	    \@val,
 	    \@sel) || do { ChangingFile(0); return };

@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-03-09 22:38:53 pajas>
+## Time-stamp: <2005-04-11 21:50:50 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -167,7 +167,7 @@ sub node_release_hook {
 		   ["textual coreference" => 'Control'],
 		   ["add source AID to AIDREFS of target" => 'Super']);
     my $selection=[$choices[0][0]];
-    listQuery("What do you want to do",'browse',
+    ListQuery("What do you want to do",'browse',
 	      [map { $_->[0] } @choices],
 	      $selection) || return;
     ($mod) = map { $_->[1] } grep { $selection->[0] eq $_->[0] } @choices;
