@@ -124,7 +124,7 @@ sub GetSentenceString {
     $node=$node->following();
   }
   return join('',map{
-    $_->{'m'}{form}.($_->{'m'}{'w'}{no_space_after}?'':' ') # TODO
+    $_->{'m'}{form}.($_->attr('m/w/no_space_after')?'':' ') # TODO
   } sort { $a->{ord} <=> $b->{ord} } @sent);
 }#GetSentenceString
 
