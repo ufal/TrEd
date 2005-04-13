@@ -1071,7 +1071,7 @@ sub readLock {
   my $proto = IOBackend::get_protocol($f);
   if ($proto eq 'file') {
     $f=IOBackend::strip_protocol($f);
-    return undef unless -f $f;
+    return undef unless -f "$f.lock";
   }
 
   return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
@@ -1091,12 +1091,12 @@ sub readLock {
 }
 
 sub removeLock {
-  my ($fsfile,$f) = @_; # filename
+  my ($fsfile,$f,$force) = @_; # filename
   $f=$fsfile->filename() unless defined $f;
   my $proto = IOBackend::get_protocol($f);
   $f=IOBackend::strip_protocol($f) if ($proto eq 'file');
   return undef if ($proto eq 'ntred' or $proto =~ /$noLockProto/);
-  if (!$fsfile or checkLock($fsfile,$f) =~ /^my|^changed/) {
+  if ($force or !$fsfile or checkLock($fsfile,$f) =~ /^my|^changed/) {
     print STDERR "removing lock $f.lock\n" if $tredDebug;
     IOBackend::unlink_uri($f.".lock");
   }
@@ -1110,7 +1110,7 @@ sub checkLock {
   my $current_mtime = [stat($f)]->[9];
 #  return "none" if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
   my $lockinfo = readLock($f);
-  if ($lockinfo) {
+  if ($lockinfo ne "") {
     my ($user, $host, $pid) = $lockinfo =~ /^by user (.*?)@(.*?) pid (\d+)/;
     if ($fsfile and $fsfile->appData('lockinfo')) {
       my $ourlockinfo = $fsfile->appData('lockinfo');
@@ -1837,7 +1837,7 @@ sub openFile {
       if ($requires) {
 	for my $req (@$requires) {
 	  my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
-	  print STDERR "Pre-loading dependent $req_filename as appData('ref')->{$req->[0]}\n";
+	  print STDERR "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n";
 	  my $req_fs = openFile($win,$req_filename,-preload => 1);
 	  if (!(ref($req_fs) and $req_fs->lastTreeNo>=0 and $Fslib::FSError==0)) {
 	    undef $fsfile;
@@ -2023,9 +2023,6 @@ sub saveFile {
     IOBackend::rename_uri($f,$f."~") unless $f=~/^ntred:/
   };
   print STDERR $@;
-  #DEBUG:
-  use Data::Dumper;
-  __debug(Dumper($refs_to_save));
   $win->{FSFile}->changeAppData('refs_save',$refs_to_save);
   my $result = $win->{FSFile}->writeFile($f);
   $win->{FSFile}->changeAppData('refs_save',undef);
@@ -2036,8 +2033,8 @@ sub saveFile {
     eval {
       IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
     };
-    my $err = _last_err();
-    errorMessage($win,"Error while renaming backup file $f~ back to $f.\n".$err) if $err;
+    my $err = "Error while renaming backup file $f~ back to $f.\n"._last_err();
+    errorMessage($win,$err) if $err;
     return -1;
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
@@ -5831,13 +5828,66 @@ sub saveFileAs {
     $win->{FSFile}->changeFileFormat(($file=~/\.gz$/ ? "gz-compressed " : "").
 				     $win->{FSFile}->backend);
     updateTitle($win->{framegroup});
-    if (saveFile($win)) {
-      removeLock($win->{FSFile},$old_file) if ($lock_change);
+    if (saveFile($win)==1) {
+      removeLock($win->{FSFile},$old_file,1) if ($lock_change);
+
+      if ($file ne $old_file and 
+	  ref($win->{FSFile}->appData('fs-part-of'))) {
+	my @fs = @{$win->{FSFile}->appData('fs-part-of')};
+	if (@fs) {
+	  my $filenames = [map { $_->filename } @fs];
+	  my $selection=[@$filenames];
+	  listQuery(
+	    $win->toplevel,
+	    'Rename file also in...','multiple',
+	    $filenames,$selection,
+	    label => {
+	      -text => <<'EOF'
+You have renamed the current file, but it is referenced from the file(s) below.
+Please select files that should update their reference to the current file:
+EOF
+	     },
+	    list => {
+	      -exportselection => 0,
+	    }
+	   );
+	  if (@$selection) {
+	    my %selected = map { $_ => 1 } grep { $_ ne "" } @$selection;
+	    my @failed;
+	    foreach my $reff (grep { $selected{$_->filename} } @fs) {
+	      my $req = $reff->metaData('fs-require');
+	      my $references = $reff->metaData('references');
+	      my $match;
+	      if (ref($req)) {
+		for (@$req) {
+		  if ($_->[1] eq $old_file) {
+		    if (ref($references)) {
+		      $references->{$_->[0]}=$file;
+		      $_->[1] = $file;
+		      $reff->notSaved(1);
+		    }
+		    $match = 1;
+		  }
+		}
+	      }
+	      unless ($match) {
+		push @failed,$reff;
+	      }
+	    }
+	    errorMessage($win,
+			 "Couldn't find reference to the current file in the following files:\n\n".
+			   join("\n",map { $_->filename } @fs)
+			  ) if @failed;
+	  }
+	}
+      }
     } else {
-      removeLock($win->{FSFile},$file) if ($lock_change);
+      removeLock($win->{FSFile},$file,1) if ($lock_change);
       $win->{FSFile}->changeFilename($old_file);
+      setFSLockInfo($win->{FSFile}, setLock($old_file)) if $lock_change;
       $win->{FSFile}->changeBackend($old_backend);
       $win->{FSFile}->changeFileFormat($old_format);
+      updateTitle($win->{framegroup});
       return 0;
     }
   }
@@ -8665,12 +8715,12 @@ sub doEvalMacro {
   # memory ok, speed ok
   setCurrent($win,$current) if ($current);
   ensureCurrentIsDisplayed($win);
-
   ${"TredMacro::this"}=undef;
   ${"TredMacro::root"}=undef;
   ${"TredMacro::grp"}=undef;
 
   centerTo($win,$win->{currentNode});
+  updateTitle($win->{framegroup});
 
   $win->toplevel->Unbusy;
   return $result;
