@@ -476,7 +476,7 @@ sub LocateNode {
   }
 }
 
-=item C<ThisAddress()>
+=item C<ThisAddress(node?)>
 
 Return current node's address string in a form of filename#tree_no.index
 (tree_no starts from 1 to reflect TrEd's UI convention).
@@ -489,7 +489,7 @@ sub ThisAddress {
   return $f.'##'.$i.'.'.$n;
 }
 
-=item C<ThisAddressNTRED()>
+=item C<ThisAddressNTRED(node?)>
 
 Return current node's address string in a form of
 ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
@@ -502,6 +502,23 @@ sub ThisAddressNTRED {
   my ($f,$i,$n)=&LocateNode;
   return 'ntred://'.$f.'@'.$i.'##1.'.$n;
 }
+
+=item C<FPosition(node?)>
+
+Prints the result of C<ThisAddress> on stdout.
+
+=cut
+
+sub FPosition { print ThisAddress(@_),"\n"; }
+
+
+=item C<NPosition(node?)>
+
+Prints the result of C<ThisAddressNTRED> on stdout.
+
+=cut
+
+sub NPosition { print ThisAddressNTRED(@_),"\n"; }
 
 =back
 
