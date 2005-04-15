@@ -1438,7 +1438,7 @@ sub closeSecondaryFilesOf {
       my $secondary = $grp->{'secondary'}->{$req_filename};
       if ($secondary) {
 	my $part_of = $secondary->appData('fs-part-of');
-	@$part_of = grep { $_ == $fsfile } @$part_of;
+	@$part_of = grep { $_ != $fsfile } @$part_of;
 	unless (@$part_of) {
 	  # close secondary file
 	  delete $grp->{'secondary'}->{$req_filename};
