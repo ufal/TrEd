@@ -78,7 +78,7 @@ sub SearchForNodeById ($){
     #we have to look into another trees
     my @trees=GetTrees();
     my $maxnum=$#trees;
-    my($step_l,$step_r)=($treeNo>0 ? 1 : 0, $treeNo<$maxNum ? 1 : 0);
+    my($step_l,$step_r)=($treeNo>0 ? 1 : 0, $treeNo<$maxnum ? 1 : 0);
     while($step_l!=0 or $step_r!=0){
       if($step_l){
         if ($found=first { $_->{id} eq $id } $trees[$treeNo-$step_l]->descendants){
