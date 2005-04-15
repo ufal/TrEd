@@ -82,6 +82,16 @@ sub SwitchToTFile {
   $grp->{FSFile} = $tr_fs;
   return 1;
 }
+sub file_resumed_hook {
+  if (SchemaName() eq 'tdata') {
+    SetCurrentStylesheet(STYLESHEET_FROM_FILE());
+    if (CurrentContext() eq 'PML_A_Edit') {
+      SwitchContext('PML_T_Edit');
+    } else {
+      SwitchContext('PML_T_View');
+    }
+  }
+}
 
 #endif TRED
 
