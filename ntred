@@ -749,6 +749,10 @@ if (defined($init) || defined($kill) || defined($break)) {
     $request.="$control STATE=QUIET\n1\n" if $quiet;
     $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
+    $request.="$control STATE=Strip-prefix\n".$strip_prefix."\n" if ($strip_prefix ne "");
+    $request.="$control STATE=Strip-suffix\n".$strip_suffix."\n" if ($strip_suffix ne "");
+    $request.="$control STATE=Prefix\n".$add_prefix."\n" if ($add_prefix ne "");
+    $request.="$control STATE=Suffix\n".$append_suffix."\n" if ($append_suffix ne "");
     $request.="$control STATE=MACRO\n".
       _enc2bytes("utf8",join("",@TrEd::Macros::macros)."\n");
     $request.="$control STATE=ARGS\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',join("\n",@ARGV)))."\n";
