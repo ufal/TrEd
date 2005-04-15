@@ -342,7 +342,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     fi
     [[ $SAVED_TREDRC = 1 ]] && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
-    test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl $INSTLANG
+    test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl "$INSTLANG" "${TREDDIR}"
 
     echo $MSG038
     regtool add "\\machine\\Software\\TrEd" >/dev/null 2>/dev/null

@@ -132,14 +132,14 @@ sub node_style_hook {
 }
 
 sub file_close_hook {
-  if (which_struct() eq 'AR') {
+  if (which_struct() eq 'AR'and GUI()) {
     PDT::TRstruct();
     Redraw();
   }
 }
 
 sub file_save_hook {
-  if (which_struct() eq 'AR') {
+  if (which_struct() eq 'AR'and GUI()) {
     my $answ = questionQuery("Save file", "TrEd is currently displaying AR structure.\nReally save?",qw(Yes No),'Switch to TR and save');
     if ( $answ eq 'Yes'
 	and
