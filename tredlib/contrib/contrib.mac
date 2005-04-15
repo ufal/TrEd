@@ -10,9 +10,6 @@
 #binding-context Tectogrammatic
 #include <contrib/tr.mak>
 
-#binding-context PMLTectogrammatic
-#include <contrib/pml.mak>
-
 #binding-context PML_A_View
 #include <contrib/PML_A_View.mak>
 
