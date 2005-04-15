@@ -1697,7 +1697,7 @@ Set stylesheet for the active window.
 
 sub SetCurrentStylesheet {
   if (GUI()) {
-    if (StylesheetExists($_[0])) {
+    if (StylesheetExists($_[0]) or $_[0] eq STYLESHEET_FROM_FILE()) {
       $grp->{framegroup}{selectedStylesheet} = $_[0];
       return main::switchStylesheet($grp->{framegroup},$_[0]);
     }
