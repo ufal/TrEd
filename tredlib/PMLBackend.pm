@@ -288,8 +288,8 @@ sub read_element ($$$;$) {
     my $value = $attr->value;
     if (ref($type) and $type->{attribute}{$name}) {
       $hash->{$name} = $value;
-    } else {
-      warn "Undeclared attribute '$name' of "._element_address($node);
+#    } else {
+#      warn "Undeclared attribute '$name' of "._element_address($node);
     }
   }
   my $value = read_node($node,$fsfile,$types,$type);
