@@ -7,6 +7,7 @@ use Exporter;
 use Fslib;
 use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
 use base qw(main Exporter);
+use Carp;
 
 use vars qw(@FORCE_EXPORT);
 @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
@@ -1325,6 +1326,8 @@ sub GUI {
   return (ref($grp) eq 'TrEd::Window');
 }
 
+#ifdef TRED
+
 =item C<Redraw()>
 
 Force TrEd to immediately redraw the current window. Hence TrEd
@@ -1335,6 +1338,7 @@ from a hook).
 =cut
 
 sub Redraw {
+  confess "Can't call Redraw without a GUI\n" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1351,6 +1355,7 @@ file.
 =cut
 
 sub Redraw_FSFile {
+  confess "Can't call Redraw without a GUI\n" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1367,6 +1372,7 @@ tree.
 =cut
 
 sub Redraw_FSFile_Tree {
+  confess "Can't call Redraw without a GUI\n" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1382,6 +1388,7 @@ Force TrEd to immediately redraw all windows.
 =cut
 
 sub Redraw_All {
+  confess "Can't call Redraw without a GUI\n" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1397,6 +1404,7 @@ Force TrEd to immediately redraw status line.
 =cut
 
 sub RedrawStatusLine {
+  confess "Can't call Redraw without a GUI\n" unless GUI();
   local $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
   &main::updateStatusLine($grp);
@@ -1410,8 +1418,11 @@ Open edit attribute GUI.
 =cut
 
 sub EditAttribute {
+  confess "Can't call EditAttribute without a GUI\n" unless GUI();
   main::doEditAttr($grp,@_);
 }
+
+#endif TRED
 
 =item C<Find()>
 
@@ -1420,6 +1431,7 @@ Open the Find Node by Attributes GUI dialog.
 =cut
 
 sub Find {
+  confess "Can't call Find without a GUI\n" unless GUI();
   $grp->{framegroup}->{findButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
@@ -1433,6 +1445,7 @@ of the Find... menu command or FindNode macro usage.
 =cut
 
 sub FindNext {
+  confess "Can't call FindNext without a GUI\n" unless GUI();
   $grp->{framegroup}->{findNextButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
@@ -1446,6 +1459,7 @@ use of the Find... menu command or FindNode macro usage.
 =cut
 
 sub FindPrev {
+  confess "Can't call FindPrev without a GUI\n" unless GUI();
   $grp->{framegroup}->{findPrevButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
