@@ -259,7 +259,7 @@ sub write {
 	  my $AID = $node->{AID} ne '' ? " id=\"$node->{AID}\"" : "";
 	  print $fileref "<d$case$AID>",translate_to_entities($node->{form});
 	} else {
-	  my $case = $node->{formtype} =~m/^(?:cap|upper|mixed|gen|num|num.gen|gen.phrase|cap.gen.phrase|abbr|cap.abbr|cap.gen|upper.abbr|upper.gen|mixed.abbr)/ ? " ".$node->{formtype} : "";
+	  my $case = ($node->{formtype} ne "" and $node->{formtype} ne "lower") ? " ".$node->{formtype} : "";
 	  my $AID = $node->{AID} ne '' ? " id=\"$node->{AID}\"" : "";
 	  print $fileref "<f$case$AID>",$node->{form};
 	}
