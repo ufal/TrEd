@@ -9,7 +9,10 @@ BEGIN {
   use TrEd::Convert;
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK $exec_code @macros $useEncoding
-              $macrosEvaluated $safeCompartment %defines);
+              $macrosEvaluated $safeCompartment %defines
+	      %keyBindings
+	      %menuBindings
+	     );
 
   @ISA=qw(Exporter);
   $VERSION = "0.1";
@@ -24,8 +27,9 @@ BEGIN {
     $macrosEvaluated
   );
   $useEncoding = ($]>=5.008);
-  use strict;
 }
+
+use strict;
 
 sub read_macros {
   # This subroutine reads macro file. Macros are usual perl
@@ -224,14 +228,22 @@ sub read_macros {
 	  }
 	} elsif (/^\#\s*(if)?include\s+"(.+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my $enc = $3;
-	  $mf=dirname($file).$2;
-	  if (-f $mf) {
-	    read_macros($mf,$libDir,1,$enc,@contexts);
-	    push @macros,"\n#line $line \"$file\"\n";
-	  } elsif ($1 ne 'if') {
-	    die
-	      "Error including macros $mf\n from $file: ",
-		"file not found!\n";
+	  my $pattern = $2;
+	  my @includes;
+	  if ($pattern=~/^<(.*)>$/) {
+	    @includes = glob(dirname($file).$1);
+	  } else {
+	    @includes = (dirname($file).$pattern);
+	  }
+	  foreach my $mf (@includes) {
+	    if (-f $mf) {
+	      read_macros($mf,$libDir,1,$enc,@contexts);
+	      push @macros,"\n#line $line \"$file\"\n";
+	    } elsif ($1 ne 'if') {
+	      die
+		"Error including macros $mf\n from $file: ",
+		  "file not found!\n";
+	    }
 	  }
 	} elsif (/^\#\s*(if)?include\s+(.+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my ($if,$f,$enc) = ($1,$2,$3);
@@ -328,11 +340,13 @@ sub initialize_macros {
       $macros=~s{\n\s*package\s+(\S+?)\s*;}
 	{ exists($packages{$1}) ? $& : do { $packages{$1} = 1; $&.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'} }ge;
       $macrosEvaluated=1;
-      $result=
-	$safeCompartment
-	  ->reval($macros);
+      {
+	no strict;
+	$result = $safeCompartment->reval($macros);
+      }
       TrEd::Basics::errorMessage($win,$@) if $@;
     } else {
+      no strict;
       ${TredMacro::grp}=$win;
       $macrosEvaluated=1;
       $result=eval { my $res=eval ($macros); die $@ if $@; $res; };
@@ -340,6 +354,7 @@ sub initialize_macros {
     print STDERR "Returned with: $result\n\n" if $macroDebug;
     TrEd::Basics::errorMessage($win,$@) if $@;
   }
+  no strict 'refs';
   ${macro_variable('TredMacro::grp')}=$win;
   return $result;
 }
@@ -365,9 +380,11 @@ sub do_eval_macro {
   return undef if $@;
   print STDERR "Running $macro\n" if $macroDebug;
   if (defined($safeCompartment)) {
+    no strict;
     ${macro_variable('TredMacro::grp')}=$win;
     $result = $safeCompartment->reval($utf.$macro);
   } else {
+    no strict;
     $result = eval($utf.$macro);
   }
   TrEd::Basics::errorMessage($win,$@) if ($@);
@@ -379,7 +396,8 @@ sub do_eval_macro {
 sub context_can {
   my ($context,$sub)=@_;
   if (defined($safeCompartment)) {
-    return $safeCompartment->reval($utf."\${'${context}::'}{'$sub'}");
+    no strict;
+    return $safeCompartment->reval("\${'${context}::'}{'$sub'}");
   } else {
     return $context->can($sub);
   }
@@ -400,15 +418,19 @@ sub do_eval_hook {
   if (context_can($context,$hook)) {
     print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
     if (defined($safeCompartment)) {
+      no strict;
       $safeCompartment->reval($utf."\&$context\:\:$hook(\@_)");
     } else {
+      no strict;
       $result=eval($utf."\&$context\:\:$hook(\@_)");
     }
   } elsif ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
     print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
     if (defined($safeCompartment)) {
+      no strict;
       $safeCompartment->reval($utf."\&TredMacro\:\:$hook(\@_)");
     } else {
+      no strict;
       $result=eval($utf."\&TredMacro\:\:$hook(\@_)");
     }
   }
