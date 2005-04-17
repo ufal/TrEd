@@ -478,7 +478,7 @@ sub set_config {
 
   $sgmls       = val_or_def($confs,"sgmls","nsgmls");
   $sgmlsopts   = val_or_def($confs,"sgmlsopts","-i preserve.gen.entities");
-  $cstsdoctype = val_or_def($confs,"cstsdoctype","$libDir/csts.doctype");
+  $cstsdoctype = val_or_def($confs,"cstsdoctype",undef);
   $cstsparsecommand = val_or_def($confs,"cstsparsercommand","\%s \%o \%d \%f");
 
   $CSTS_SGML_SP_Backend::sgmls=$sgmls;

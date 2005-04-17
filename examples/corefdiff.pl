@@ -50,7 +50,6 @@ unshift @INC,"$libDir";
 use Fslib;
 
 my @backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend)));
-$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 $Fslib::Debug=$opt_D;
 
 my @fs;

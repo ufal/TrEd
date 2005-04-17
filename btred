@@ -252,7 +252,6 @@ import TrEd::Basics;
 @backends=('FSBackend',ImportBackends(
   split(/,/,$extra_backends),
   qw(NTREDBackend PMLBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
-$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 
 # these are for macros
