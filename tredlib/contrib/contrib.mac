@@ -3,80 +3,48 @@
 # This file is included by default in tred.mac and serves only as a
 # wrapper for other contributed macro packages inclusions
 
-#include <contrib/pdt_specific.mak>
-
-#include <contrib/ValLex/chooser.mak>
-
-#binding-context Tectogrammatic
-#include <contrib/tr.mak>
-
-#binding-context PML_A_View
-#include <contrib/PML_A_View.mak>
-
-#binding-context PML_A_Edit
-#include <contrib/PML_A_Edit.mak>
-
-#binding-context PML_T_View
-#include <contrib/PML_T_View.mak>
-
-#binding-context PML_T_Edit
-#include <contrib/PML_T_Edit.mak>
-
-#binding-context TFA
-#include <contrib/tfa.mak>
-
-#binding-context Analytic
-#include <contrib/ar.mak>
-
-#binding-context Analytic_Correction
-#key-binding-adopt Analytic
-#include <contrib/a_opravy.mak>
-
-#binding-context Coref
-#include <contrib/tr_coref_common.mak>
-
-#binding-context TR_Correction
-#key-binding-adopt TFA Tectogrammatic
-#menu-binding-adopt Coref TFA Tectogrammatic
-#include <contrib/tr_opravy.mak>
-
-#binding-context TR_FrameValidation
-#key-binding-adopt TR_Correction
-#include <contrib/tr_frame_validation.mak>
-
-#binding-context TR_Diff
-#include <contrib/trdiff.mak>
-
-#binding-context Quotation
-#include <contrib/tr_quotation_common.mak>
-
-#binding-context PDT
-#include <contrib/pdt.mak>
-
-#binding-context Analytic
-#include <contrib/sdt.mak>
-
-#binding-context Transfer
-#include <contrib/transf.mak>
-
-#binding-context TREdit
-#include <contrib/edit.mak>
-
-#binding-context TR_Grammatemes
-#include <contrib/grammatemes.mak>
-
-#binding-context TR_CPHR
-#key-binding-adopt Tectogrammatic
-#key-binding-adopt Coref
-#include <contrib/tr_cphr.mak>
-
-#binding-context AcademicTreebank
-#include <contrib/cac_treebank.mak>
+#include "<*/contrib.mac>"
 
 package TredMacro;
 
-#binding-context TredMacro
+# ------------------------------------
+# try guessing proper initial context
+# ------------------------------------
 
-#include <contrib/ntred.mak>
-#bind ntred_query_box to key Shift+F10 menu Query BTrEd Servers
+#ifdef TRED
 
+sub file_opened_hook {
+    my ($mode)= GetPatternsByPrefix('mode',STYLESHEET_FROM_FILE());
+    return unless $grp->{FSFile};
+    if (defined($mode)) {
+      return SwitchContext($mode);
+#ifdef pml
+    } elsif (PML::SchemaName() eq 'tdata') {
+      return SwitchContext('PML_T_View');
+    } elsif (PML::SchemaName() eq 'adata') {
+      return SwitchContext('PML_A_View');
+#endif pml
+#ifdef transf
+    } elsif (exists($grp->{FSFile}->FS->defs->{x_TNT})
+	     and $grp->{FSFile}->FS->hide eq 'X_hide') {
+      return SwitchContext('Transfer');
+#endif transf
+#ifdef cac
+    } elsif (exists($grp->{FSFile}->FS->defs->{x_origt}) and
+	     exists($grp->{FSFile}->FS->defs->{x_origa})) {
+      return SwitchContext('AcademicTreebank');
+#endif cac
+#ifdef pdt10_t
+    } elsif ($grp->{FSFile}->FS->hide eq 'TR') {
+      return SwitchContext('Tectogrammatic') 
+	unless (CurrentContext() eq 'TR_Correction' or
+		CurrentContext() eq 'TFA');
+#endif pdt10_t
+#ifdef pdt10_a
+    } else {
+      return SwitchContext('Analytic') unless CurrentContext() eq 'Analytic_Correction';
+#endif pdt10_a
+    }
+}
+
+#endif TRED
