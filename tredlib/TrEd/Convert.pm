@@ -45,47 +45,45 @@ BEGIN {
 }
 
 sub encode {
-
-  local $_ = join '', @_;
-
+  my $str = join '', @_;
   no integer;
 
   if ($support_unicode) { # we've got support for UNICODE in
     # perl5.8/Tk8004
-    if ($inputenc eq 'iso-8859-6' or $inputenc =~ /^utf-?8$/i or $inputenc eq 'windows-1256') {
+    if ($inputenc eq 'iso-8859-6' or $inputenc =~ /^utf-?8$/i 
+	or $inputenc eq 'windows-1256') {
       require TrEd::ConvertArab;
       require TrEd::ArabicRemix;
-      $_ = TrEd::ArabicRemix::remix(TrEd::ConvertArab::arabjoin($_));
+      $str = TrEd::ArabicRemix::remix(TrEd::ConvertArab::arabjoin($str));
     }
   } elsif ($]>=5.008) {
-    eval "use Encode (); \$_=Encode::encode(\$outputenc,\$_);";
+    eval "use Encode (); \$str=Encode::encode(\$outputenc,\$str);";
   } else {
     eval "tr/$encodings{$inputenc}/$encodings{$outputenc}/" unless ($inputenc eq $outputenc);
   }
 
   $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
 
-  return $_;
+  return $str;
 }
 
 sub decode {
-
-  local $_ = join '', @_;
+    my $str = join '', @_;
 
   $lefttoright or (s{([^[:ascii:]]+)}{reverse $1}eg);
 
   no integer;
 
   if ($support_unicode) {
-    return $_;
+    return $str;
   } elsif ($]>=5.008) {
-    eval "use Encode (); \$_=Encode::decode(\$outputenc,\$_);";
-    return $_;
+    eval "use Encode (); \$str=Encode::decode(\$outputenc,\$str);";
+    return $str;
   } elsif ($inputenc eq $outputenc) {
-    return $_;
+    return $str;
   } else {
     eval " tr/$encodings{$outputenc}/$encodings{$inputenc}/";
-    return $_;
+    return $str;
   }
 }
 
