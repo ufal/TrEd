@@ -1,0 +1,7 @@
+#ifndef cac
+#define cac
+
+#binding-context AcademicTreebank
+#include "cac_treebank.mak"
+
+#endif cac

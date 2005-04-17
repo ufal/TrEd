@@ -1,0 +1,9 @@
+#ifndef ntred
+#define ntred
+
+package TredMacro;
+#binding-context TredMacro
+#include "ntred.mak"
+#bind ntred_query_box to key Shift+F10 menu Query BTrEd Servers
+
+#endif

@@ -1,0 +1,7 @@
+#ifndef tfa
+#define tfa
+
+#binding-context TFA
+#include "tfa.mak"
+
+#endif tfa

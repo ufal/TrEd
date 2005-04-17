@@ -1,0 +1,7 @@
+#ifndef grammatemes
+#define grammatemes
+
+#binding-context TR_Grammatemes
+#include "grammatemes.mak"
+
+#endif grammatemes

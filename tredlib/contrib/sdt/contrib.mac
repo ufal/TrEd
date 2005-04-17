@@ -1,0 +1,13 @@
+#ifndef sdt
+#define sdt
+
+# Pre-requisities:
+
+#include <contrib/pdt10_a/contrib.mac>
+
+# Provides:
+
+#binding-context Analytic
+#include "sdt.mak"
+
+#endif
