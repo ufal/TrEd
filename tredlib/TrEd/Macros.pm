@@ -45,8 +45,6 @@ sub read_macros {
 
   my ($file,$libDir,$keep,$encoding)=(shift,shift,shift,shift);
   $macrosEvaluated=0;
-  my $macro;
-  my $key;
   local *F;
   my @contexts=@_;
   $encoding = $defaultMacroEncoding unless $encoding ne "";
@@ -166,7 +164,7 @@ sub read_macros {
 	    }
 	  }
 	} elsif (/^\#[ \t]*unbind-key[ \t]([^ \t\r\n]+)?/) {
-	  $key=$1;
+	  my $key=$1;
 	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
 	  $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
 	  foreach (@contexts) {
@@ -174,9 +172,9 @@ sub read_macros {
 	    delete $keyBindings{$_}{$key};
 	  }
 	} elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
-	  $macro=$1;
-	  $key=$2;
-	  $menu=TrEd::Convert::encode($3);
+	  my $macro=$1;
+	  my $key=$2;
+	  my $menu = TrEd::Convert::encode($3);
 	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
 	  $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
 	  #print "binding $key [$menu] => $macro\n";
@@ -201,14 +199,14 @@ sub read_macros {
 	    }
 	  }
 	} elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
-	  $macro=$1;
-	  $menu=TrEd::Convert::encode($2);
+	  my $macro=$1;
+	  my $menu=TrEd::Convert::encode($2);
 	  foreach (@contexts) {
 	    $menuBindings{$_}={} unless exists($menuBindings{$_});
 	    $menuBindings{$_}->{$menu}=["$_"."->"."$macro",undef] if ($menu);
 	  }
 	} elsif (/^\#\s*remove-menu[ \t]+(.+)/) {
-	  $menu=TrEd::Convert::encode($1);
+	  my $menu=TrEd::Convert::encode($1);
 	  foreach (@contexts) {
 	    next unless exists($menuBindings{$_});
 	    delete $menuBindings{$_}{$menu};
