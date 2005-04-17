@@ -1563,17 +1563,8 @@ sub newFileFromCurrent {
   return unless $win->{FSFile};
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
   my $cur=$win->{FSFile};
-  my $new=FSFile->new('unnamed'.sprintf('%03d',$NewFileNo++).'.fs',
-			     'FSBackend',
-			     $cur->FS->clone(),
-			     $cur->hint(),
-			     [$cur->patterns()],
-			     [$cur->tail()],
-			     [],
-			     1,
-			     'FSBackend',
-		             $cur->encoding()
-		     );
+  my $new=$cur->clone(0);
+  $new->changeFilename('unnamed'.sprintf('%03d',$NewFileNo++));
   $cur=undef;
   my $answer = askSaveFile($win,1,1);
   return 0 if $answer == -1;
@@ -4626,7 +4617,7 @@ sub startMain {
 			tieNextTree($_[0]);
 		      },\%group]],
 	 [Separator=> ''],
-	 [Checkbutton=> 'Stipple Inactive Windows', -underline=> 17,
+	 [Checkbutton=> 'Stipple Inactive Views', -underline=> 17,
 	  -variable=> \$stippleInactiveWindows,
 	  -command => [\&update_treeviews,\%group]],
 	 [Checkbutton=> 'Draw boxes around labels', -underline=> 0,
