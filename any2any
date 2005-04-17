@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #                                                          -*- cperl -*-
 if ($^V lt v5.6.0) {
   print STDERR '-' x 50,"\n";
