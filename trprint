@@ -1,9 +1,9 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 # -*- cperl -*-
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2005-04-18 01:15:05 pajas>";
+$timestamp="Time-stamp: <2005-04-18 04:32:16 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
