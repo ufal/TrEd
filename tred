@@ -4763,21 +4763,21 @@ sub startMain {
 
   my $cM=[];
   if ($createMacroMenu) {
-    push @$cM, 
-      @{cascadeMenus(map { $keyBindings{TredMacro}->{$_}=~/TredMacro\-\>(.*)/;
-			   [Button=> $1,
-			    -command=> [ sub {
-					   doEvalMacro($_[0]->{focusedWindow},
-						       $_[1]);
-					 },\%group,
-					 $keyBindings{TredMacro}->{$_}],
-			    -accelerator=> "($_)"
-			   ]
-			 } sort(keys(%{$keyBindings{TredMacro}})))};
+#     push @$cM, 
+#       @{cascadeMenus(map { $keyBindings{TredMacro}->{$_}=~/TredMacro\-\>(.*)/;
+# 			   [Button=> $1,
+# 			    -command=> [ sub {
+# 					   doEvalMacro($_[0]->{focusedWindow},
+# 						       $_[1]);
+# 					 },\%group,
+# 					 $keyBindings{TredMacro}->{$_}],
+# 			    -accelerator=> "($_)"
+# 			   ]
+# 			 } sort(keys(%{$keyBindings{TredMacro}})))};
 
     foreach my $context (sort(keys(%keyBindings))) {
-      if ($context ne "TredMacro") {
-	push @$cM, 
+#      if ($context ne "TredMacro") {
+	push @$cM,
 	  [Cascade=> $context,
 	   -menuitems=>
 	   cascadeMenus(map { $keyBindings{$context}->{$_}=~/(?:$context\-\>)?(.*)/;
@@ -4790,7 +4790,7 @@ sub startMain {
 			       -accelerator=> "($_)"
 			      ]
 			    } sort(keys(%{$keyBindings{$context}})))];
-      }
+#      }
     }
 
     $group{MacroMenu}=$group{Menubar}->
@@ -4798,24 +4798,24 @@ sub startMain {
 		 $cM)->pack(qw/-side left/);
   }
   $cM=[];
-  push @$cM,
-    @{cascadeMenus(map ([Button=> $_,
-			 -command=> [sub {
-				       doEvalMacro($_[0]->{focusedWindow},
-						   $_[1]);
-				     },
-				     \%group,$menuBindings{TredMacro}->{$_}->[0]],
-			 ($menuBindings{TredMacro}->{$_}->[1]) ?
-			 (-accelerator=> "(".$menuBindings{TredMacro}->{$_}->[1].")") : ()],
-			sort(keys(%{$menuBindings{TredMacro}}))))};
+#   push @$cM,
+#     @{cascadeMenus(map ([Button=> $_,
+# 			 -command=> [sub {
+# 				       doEvalMacro($_[0]->{focusedWindow},
+# 						   $_[1]);
+# 				     },
+# 				     \%group,$menuBindings{TredMacro}->{$_}->[0]],
+# 			 ($menuBindings{TredMacro}->{$_}->[1]) ?
+# 			 (-accelerator=> "(".$menuBindings{TredMacro}->{$_}->[1].")") : ()],
+# 			sort(keys(%{$menuBindings{TredMacro}}))))};
 
-  foreach my $context (sort(keys(%menuBindings))) {
-   if ($context eq "TredMacro") { 
-   } else {
+  foreach my $context ("TredMacro",grep { $_ ne "TredMacro" } sort(keys(%menuBindings))) {
+#   if ($context eq "TredMacro") { 
+#   } else {
         push @$cM,
   	[Cascade=> $context,
   	 -menuitems=>
-  	 cascadeMenus(map ([Button=> $_,
+  	 cascadeMenus(map ([Button=> "$_",
   			    -command=> [sub {
 					  doEvalMacro($_[0]->{focusedWindow},
 						      $_[1]);
@@ -4825,7 +4825,7 @@ sub startMain {
   			    ($menuBindings{$context}->{$_}->[1]) ?
   			    (-accelerator=> "(".$menuBindings{$context}->{$_}->[1].")") : ()],
   			   sort(keys(%{$menuBindings{$context}}))))];
-      }
+#      }
   }
   $group{UserMenu}=$group{Menubar}->
     Menubutton(qw/-text User-defined -underline 0 -menuitems/=>
@@ -5491,7 +5491,7 @@ sub startMain {
 
   # Starting ------------------------------------------
   $group{top}->Unbusy;
-
+  $group{top}->focus if ($^O eq 'MSWin32');
   MainLoop;
 
 
@@ -6916,7 +6916,8 @@ sub editAttrsDialog_schema {
   my $d=$win->toplevel->DialogBox(-title=> $dlg_title,
 				  -buttons=> \@buttons
 				 );
- $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
+  $d->maxsize(0,int(0.9*$d->screenheight));
 
 ## experiment with a persistent node editor
 #   my $d=$grp->{attrsDialog}=
@@ -6924,6 +6925,8 @@ sub editAttrsDialog_schema {
 #   $d->withdraw;
 #   $d->bind('<Destroy>' => [ sub {delete $_[1]->{attrsDialog};
 # 				 delete $_[1]->{attrsEditor}; },$grp ]);
+
+
 
   my $edit = # $grp->{attrsEditor} =
     $d->Scrolled('TrEdNodeEdit',
@@ -7017,17 +7020,16 @@ sub editAttrsDialog_schema {
   $d->bind('all','<Tab>','focusNext');
   $d->bind('all','<<LeftTab>>','focusPrev');
 
- for (@buttons) {
-   $d->Subwidget("B_$_")->configure(-underline => 0);
-   $d->bind('all','<Alt-'.lc(substr($_,0,1)).'>'
-	       => [sub { $_[1]->{selected_button}=$_[2] },$d,$_ ]);
- }
- $edit->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
- $d->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
- $d->bind('all','<Control-Return>',\&dlgReturn);
- $edit->bind('<Control-Return>',\&dlgReturn);
+  for (@buttons) {
+    $d->Subwidget("B_$_")->configure(-underline => 0);
+    $d->bind('all','<Alt-'.lc(substr($_,0,1)).'>'
+	     => [sub { $_[1]->{selected_button}=$_[2] },$d,$_ ]);
+  }
+  $edit->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
+  $d->bind('<Escape>'=> [sub { $_[1]->{selected_button}='Cancel'; },$d ]);
+  $d->bind('all','<Control-Return>',\&dlgReturn);
+  $edit->bind('<Control-Return>',\&dlgReturn);
 
-  #$d->minsize($edit->reqwidth+200,$edit->reqheight);
   $win->toplevel->Unbusy();
 
   my $result = ShowDialog($d,$edit,$win->toplevel);
