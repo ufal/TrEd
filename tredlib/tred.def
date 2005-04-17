@@ -10,8 +10,10 @@ use base qw(main Exporter);
 use Carp;
 
 use vars qw(@FORCE_EXPORT);
+BEGIN {
 @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
                    $forceFileSaved $FileChanged $FileNotSaved $NodeClipboard);
+}
 use vars (@FORCE_EXPORT);
 
 *FileChanged=*FileNotSaved;	# alias
@@ -128,8 +130,8 @@ Display the n'th tree in the current file.
 sub GotoTree {
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');
   my $to=shift()-1;
-  $_NoSuchTree=($to != main::max(0,min($to,$#trees)));
   my $result=main::gotoTree($grp,$to);
+  $_NoSuchTree= ($to != $result);
   $root=$grp->{root};
   $this=$root;
   return $result;
@@ -461,7 +463,7 @@ in the deep-first tee ordering.
 
 sub LocateNode {
   my $node = ref($_[0]) ? $_[0] : $this;
-  if ($tree eq $root) {
+  if ($node eq $root) {
     return (FileName(),CurrentTreeNumber()+1,GetNodeIndex($node));
   } else {
     my $tree = $node->root;
@@ -760,7 +762,7 @@ sub NewParent {
     CutNode($ref);
     PasteNode($ref,$nd);
   } else { # root of the tree
-    $trees=$grp->{FSFile}->treeList();
+    my $trees=$grp->{FSFile}->treeList();
     my $n;
     for ($n=0;$n<=$#$trees;$n++) {
       last if ($trees->[$n] == $ref);
@@ -854,6 +856,7 @@ attribute of the current node to a global hash variable named
 
 =cut
 
+my %ValuesClipboard;
 sub CopyValues {
   undef %ValuesClipboard;
   %ValuesClipboard = map { $_ => $this->{$_} } $grp->{FSFile}->FS->attributes;
@@ -1218,7 +1221,7 @@ sub AddToList {
     $val = Fslib::List->new(@_);
     $node->set_attr($attr,$val,1);
   } else {
-    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$value'!\n"
+    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$val'!\n"
   }
 }
 
@@ -1799,8 +1802,8 @@ sub CustomColor {
   if (defined($value)) {
     $TrEd::Config::treeViewOpts->{customColors}->{$color}=$value;
   } else {
-    $val = $TrEd::Config::treeViewOpts->{customColors}->{$color};
-    return $val;
+    $value = $TrEd::Config::treeViewOpts->{customColors}->{$color};
+    return $value;
   }
 #endif TRED
 }
@@ -2542,7 +2545,7 @@ sub PrintToFile {
   return unless( defined($file) and $file ne '' );
   my @a=@_;
 
-  if (open($PTF,">>$file")) {
+  if (open(my $PTF,">>$file")) {
     print $PTF (join("",(map {
       s/\\\|/|/g;
       s/\\n/\n/g;
@@ -2838,7 +2841,7 @@ sub SetupXPath {
 }
 
 
-sub noop { $noop++; }
+sub noop { 1 }
 
 
 =back

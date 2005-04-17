@@ -38,6 +38,7 @@ sub TiePrevTree_nochange { TiePrevTree(@_); ChangingFile(0); }
 sub TieNextTree_nochange { TieNextTree(@_); ChangingFile(0); }
 
 #bind CutToClipboard to Ctrl+Insert menu Cut Subtree
+use vars '$nodeClipboard';
 sub CutToClipboard {
   return unless ($this and $this->parent);
   $nodeClipboard=$this;
@@ -128,7 +129,7 @@ sub PerlSearch {
   "If \`\$n\' refers to some node, \`\$n->{attr}\' is its value of the attribute \`attr\'.\n".
   "The governor of a node \$n is \`\$n->parent\', nearest ".
   "left brother of \'\$n\' in the tree structure is \'\$n->lbrother\'".
-  "the right brother of \$n is \`\$n->rbrother\'. The first son of \'$n\' ".
+  "the right brother of \$n is \`\$n->rbrother\'. The first son of \'\$n\' ".
   "is referred to as \`\$->firstson\'. If no such node exists, all these functions ".
   "return zero (\`0\') or possibly \`undef\'.".
   "NOTE: \$n->lbrother and \$n->rbrother are not necesserilly displayed on left of \$n\n\n".
@@ -291,7 +292,7 @@ sub GotoPrevNodeLin {
   $this=$next if $next;
 }
 
-@global_exit_hooks=();
+use vars qw(@global_exit_hooks);
 
 # the hook may be either a sub name, CODE ref or ARRAY ref, where
 # the first element of the array is the name/CODE-ref to execute
