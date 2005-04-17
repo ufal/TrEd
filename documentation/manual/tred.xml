@@ -13,18 +13,52 @@
     </author>
   </articleinfo>
   <section id="intro">
-    <title>Introduction</title>
-    <para><application moreinfo="none">TrEd</application> is a graphical editor and
-    viewer of tree structures. It works with files in so called <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
-    developed by M. Kren (as a native format for his editor
-    Graph) and used for syntactical and tectogrammatical trees in The
-    Prague Dependency Treebank.  Since FS-format is a bit more
-      general, <application moreinfo="none">TrEd</application> may surely find other applications as well.
+    <title>Introduction</title> <para><application
+	moreinfo="none">TrEd</application> is a fully customizable and
+      programmable graphical editor and viewer of tree-like structures
+      such as dependency trees.  Among other projects, it was used as
+      the main annotation tool for syntactical and tectogrammatical
+      annotations of 
+      <ulink url="http://shadow.ms.mff.cuni.cz/pdt/index.html">The Prague Dependency Treebank</ulink>, as well as for
+      decision-tree based morphological annotation of
+      <ulink url="http://ckl.mff.cuni.cz/padt/">The Prague Arabic Dependency Treebank</ulink>.
+    </para>
+    <para>
+      TrEd provides various ways to customize the tree layout and
+      appearance. It's functionality may be further extended by
+      user-defined macros (small program subroutines written in Perl)
+      associated with keyboard shortcuts and/or menu items. TrEd also
+      provides wide range of pre-defined macros, which greatly
+      simplifies writing new macros. By writing a suitable set of
+      macros, TrEd may be easily turned from a general-purpose software
+      into a specialized tool for a particular purpose.
+    </para>
+    <para>
+      TrEd supports various input and output formats. Some of them
+      are of general nature (one of them is <ulink
+      url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+      developed by Michal Kren sufficient enough for most purposes),
+      while other are bound to a particular project. Support for other
+      formats can be added by writing a custom I/O Backend (a Perl
+      module able to convert data from their format-specific
+      representation into the internal representation used by TrEd,
+      and save them back in the original format).
+    </para>
+    <para>There is also a non-graphical (off-line) variant of TrEd,
+      usefull for batch processing of tree-like data. It is called
+      <command moreinfo="none">btred</command> &#8212;
+      <quote>Batch-mode Tree Editor</quote> and allows users to apply
+      TrEd macros on trees without having to enter the graphical
+      interface.  This tool is further acompanied by another tool,
+      named <command>ntred</command>. NTrEd allows for parallelizing
+      btred processing over a cluster of networked machines.  In
+      combination with TrEd, it can also be used as an extremely
+      powerful search engine over large base of data.
     </para>
     <figure float="0">
-      <title>TrEd with two views customized by a set of macros for visual comparison
-	of trees annotated on the Tectogrammatical Layer of the Prague
-	Dependency Treebank.
+      <title>TrEd's main window with two views highly customized for
+	visual comparison of trees of the Prague Dependency Treebank
+	project.
       </title>
       <mediaobject>
 	<imageobject>
@@ -38,18 +72,6 @@
 	</imageobject>
       </mediaobject>
     </figure>
-    <para><application moreinfo="none">TrEd</application> may be extended by <emphasis>user-defined
-      macros</emphasis>, which are basically functions written in
-      <application moreinfo="none">Perl</application> language, with many pre-defined
-      functions for handling FS-trees. Keyboard
-      shortcuts or user-defined menu items may be used to invoke macros.
-    </para>
-    <para>There is also an non-graphical (off-line) variant of TrEd
-      called <command moreinfo="none">btred</command> &#8212; which stands for
-      <quote>Batch-mode Tree Editor</quote> &#8212; which allows user
-      to run macros on trees without having to enter the graphical
-      interface.
-    </para>
     <para>
       <application moreinfo="none">TrEd</application> runs on the following platforms (see <xref linkend="chap1"/> for details):
     </para>
@@ -60,255 +82,274 @@
       <listitem>
 	<para><productname class="trade">Linux</productname></para></listitem>
       <listitem>
-	<para><productname class="trade">BSD</productname>, <productname class="trade">UNIX</productname>, <productname class="trade">Solaris</productname>
-	  and other UNIX-based systems</para>
-      </listitem>
+	<para>
+	    <productname class="trade">MacOS X</productname> (X11),
+	    <productname class="trade">BSD</productname>,
+	    <productname class="trade">UNIX</productname>,
+	    <productname class="trade">Solaris</productname> and other UNIX-based systems
+									     </para>
+    </listitem>
     </orderedlist>
   </section>
   <section id="chap1">
     <title>Installation and start up instructions</title>    
     <para>
-      On all supported platforms, 
-      <application moreinfo="none">TrEd</application> requires 
-      Perl interpreter and Perl-Tk toolkit (a GUI library for Perl). 
-      Installation of these tools is different on Unix-like
-      and Windows platforms. 
-      Installation of <application moreinfo="none">TrEd</application> itself,
-      though, is platform-independent.
+      On all supported platforms, <application
+      moreinfo="none">TrEd</application> requires a Perl language
+      interpreter, the Perl-Tk module (a GUI library for Perl), and
+      depending on the I/O Backends used also various XML related
+      modules. Installation of all these tools differs on Unix-like
+      and Windows platforms.
     </para>
     <para>
-      To install Perl/Tk on your system follow instructions for your
-      platform below:
+      To install TrEd on your system follow the instructions specific
+      for your platform below:
     </para>
     <section id="install-windows">
       <title>Windows</title>
       <para>
-	There is a windows-specific installation package available on
-	<ulink url="http://pajas.matfyz.cz/tred"><application moreinfo="none">TrEd</application>'s
-	homepage</ulink>. The package contains
-	<application moreinfo="none">ActiveState Perl</application>,
-	<application moreinfo="none">Perl-Tk</application>,
-	<application moreinfo="none">TrEd</application>, and a setup script called
-	<literal moreinfo="none">setup.bat</literal> for easy installation of
-	all of them (<emphasis>RECOMMENDED!</emphasis>).
+	For Windows installation it is recommended to use a
+	windows-specific installation package. This
+	single package contains installation of <application
+	moreinfo="none">ActivePerl</application>, Perl-Tk,
+	required XML modules, <application
+	moreinfo="none">TrEd</application> and is controlled by a
+	single setup script named <command>setup.bat</command>.
       </para>
-      <para>
-	If, for some reason, you don't want to use the Windows installation
-	package, you may try the manual installation described below.
-      </para>
-      <note>
-	<para>It is not recommended to use TrEd with CygWin Perl.
-	  First, because is is not being tested and second
-	  because Perl-Tk for CygWin Perl requires CygWin XFree86.
-	  It is therefore recommended that you install ActiveState
-	  Perl, even if you already have Perl from CygWin.
-	  If you still want to try TrEd with CygWin Perl,
-	  follow the instructions for setup on <link linkend="install-unix">UNIX-like systems</link>.
+      <note role="PDT20">
+	<para>
+	  If you have the <productname>Prague Dependency
+	    Treebank 2.0</productname> CD-ROM, you may
+	  start the installation directly from the CD-ROM
+	  by clicking <command>setup.bat</command> in the
+	  <filename>tools/tred/setup</filename> directory.
 	</para>
       </note>
-      <orderedlist continuation="restarts" inheritnum="ignore">
-      <listitem>
+      <para>
+	An up-to date version of the Windows installation package
+	is available on <ulink url="http://pajas.matfyz.cz/tred">the project's homepage</ulink>.
+      </para>
+      <para>
+	Unzip the installation package if necessary, run
+	<command>setup.bat</command>, and follow the instructions
+	(kindly ignore the very first line asking you to create the
+	directory <literal>/tmp</literal>).  The installation is
+	completely text-based and you will mostly be confronted with
+	only simple yes/no questions. The installation script will
+	safely guide you through the following steps:
+      </para>
+      <orderedlist>
+	<listitem>
 	  <para>
-	    Windows users first have to download and install <ulink url="http://www.activestate.com/Products/Download/Get.plex?id=ActivePerl">ActivePerl</ulink>
-	    by <ulink url="http://www.activestate.com">ActiveState</ulink>.
-	    Follow the instructions of the installation program.
-	    (When the installation is done, you may need to restart
-	    <application moreinfo="none">Windows</application>, so that all the
-	    changes take effect.)</para>
+	    Checking if a suitable Perl installation is already available
+	    on your system.
+	  </para>
 	</listitem>
 	<listitem>
 	  <para>
-	    In this step you add <application moreinfo="none">Tk library</application>
-	    to <application moreinfo="none">Perl</application>.  
-	    If you have installed <application moreinfo="none">ActiveState
-	    Perl</application> 5.8 or higher, you may skip this step
-	    since <application moreinfo="none">Tk</application> is already included.
-	    If you use an older version, and
-	    you're connected to the Internet, you may install the latest
-	    <application moreinfo="none">Tk</application> toolkit from
-	    ActiveState's site with the following steps:
+	    Starting the ActivePerl installer if no suitable Perl
+	    installation was found.
 	  </para>
-	  <orderedlist continuation="restarts" inheritnum="ignore">
-	    <listitem>
-	      <para>Open a command prompt
-		(<application moreinfo="none">MS-DOS
-		  prompt</application> in <application moreinfo="none">Windows
-		  9x/ME</application>)
-	      </para>
-	    </listitem> 
-	    <listitem>
-	      <para>Type <command moreinfo="none">ppm</command> (press <keycap moreinfo="none">Enter</keycap>)</para></listitem>
-	    <listitem>
-	      <para>Type <command moreinfo="none">install Tk</command> (press
-		<keycap moreinfo="none">Enter</keycap>)</para>
-	    </listitem>
-	    <listitem>
-	      <para>When the installation of <application moreinfo="none">Tk library</application> is finished, type
-		<command moreinfo="none">exit</command> (press
-		<keycap moreinfo="none">Enter</keycap>)</para>
-	    </listitem>
-	    <listitem>
-	      <para>Close the command prompt</para>
-	    </listitem>
-	  </orderedlist>
+	</listitem>
+	<listitem>
 	  <para>
-	    If you do <emphasis>not</emphasis> have
-	    <application moreinfo="none">ActiveState Perl</application> 5.8 or higher
-	    and you're <emphasis>not</emphasis> connected
-	    to the Internet, but you do have 
-	    <productname class="trade">Prague Dependency
-	      Treebank</productname>
-	    CD-ROM, please, follow these steps:
+	    Installing all necessary Perl modules using the ActiveState's
+	    PPM packaging system.
 	  </para>
-	  <orderedlist continuation="restarts" inheritnum="ignore">
-	    <listitem>
-	      <para>Open a command prompt (<application moreinfo="none">MS-DOS prompt</application> in
-		<application moreinfo="none">Windows 9x/ME</application>)</para>
-	    </listitem> 
-	    <listitem>
-	      <para>Unzip the Windows <application moreinfo="none">TrEd</application>
-		distribution package and change to the
-		<filename moreinfo="none">packages</filename> directory.
-	      </para>
-	    </listitem>
-	    <listitem>
-	      <para>Type <literal moreinfo="none"><userinput moreinfo="none">ppm install Tk.ppd</userinput></literal> (press
-		<keycap moreinfo="none">Enter</keycap>)</para>
-	    </listitem>
-	    <listitem>
-	      <para>Close the command prompt when the installation of
-		<application moreinfo="none">Tk library</application> is finished.
-	      </para>
-	    </listitem>
-	  </orderedlist>
-	  <para>In this step you install
-	    <application moreinfo="none">TrEd</application> itself. 
-	    It is done by
-		copying the whole <filename moreinfo="none">tred</filename> 
-	    folder from the <application moreinfo="none">TrEd</application>
-	    distribution anywhere you like on your
-	    hard-disk, e.g. to folder <filename moreinfo="none">C:\Program
-	      Files</filename>.</para>
+	</listitem>
+	<listitem>
 	  <para>
-	    To be able to run <application moreinfo="none">TrEd</application>
-	    with just a double-click, you have to
-	    <orderedlist inheritnum="ignore" continuation="restarts">
-	      <listitem>
-		<para>either rename the <filename moreinfo="none">tred</filename> program
-		  to <filename moreinfo="none">tred.pl</filename> and
-		  associate the <filename moreinfo="none">.pl</filename> file-name extension
-		  with <application moreinfo="none">Perl</application>, or
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>
-		  assuming you have installed <application moreinfo="none">Perl</application>
-		      to <filename moreinfo="none">c:\perl</filename> and
-		  <application moreinfo="none">TrEd</application> to
-		  <filename moreinfo="none">c:\Program Files</filename>,
-		  create a shortcut on your Desktop or in
-		  the Start menu for the following command
-		  <literallayout format="linespecific" class="normal">c:\perl\bin\perl.exe "c:\Program Files\tred\tred"</literallayout>
-		</para>
-	      </listitem>
-	    </orderedlist>
-	    Refer to any Windows User's reference for
-	    more information on how to accomplish the above steps.
+	    Detecting if TrEd is already installed on your system and
+	    offering either an upgrade or a completely new
+	    installation in a directory you select.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Creating a data directory where you can place your
+	    TrEd-specific data files (this is optional).
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Creating a desktop and Start Menu shortcuts for TrEd.
 	  </para>
 	</listitem>
       </orderedlist>
+      <warning>
+	<para>
+	  Although the TrEd setup program is CygWin-based, it is not
+	  recommended to run TrEd with the CygWin Perl (it is of
+	  course possible to use both TrEd+ActivePerl and CygWin
+	  separately on a single machine). The reason si firstly
+	  because this setup is not being tested and secondly because
+	  Perl/Tk for CygWin Perl requires CygWin XFree86 and
+	  according to author's opinion these don't play togheter well
+	  yet. It is therefore recommended that you install
+	  ActiveState Perl, even if you already have a Perl installation
+	  in CygWin. If you really must try running TrEd in CygWin,
+	  follow the instructions for setup on <link
+	  linkend="install-unix">UNIX-like systems</link>
+	  (but you have been warned).
+	</para>
+      </warning>
     </section>
     <section id="install-unix">
       <title>Linux and UNIX-based systems</title>
       <para>
-	Almost every modern 
-	<application moreinfo="none">UNIX/Linux</application> system
-	contains <application moreinfo="none">Perl</application> in default
-	installation, so we may expect that you have already
-	<application moreinfo="none">Perl</application> installed on your box and you
-	only need to install <application moreinfo="none">PerlTk</application> toolkit
-	and <application moreinfo="none">TrEd</application>:
-    </para>
-    <orderedlist continuation="restarts" inheritnum="ignore">
-      <listitem>
+	Almost every today's <application
+	moreinfo="none">UNIX/Linux</application> system contains a
+	<application moreinfo="none">Perl</application> installation,
+	so we expect that you already have a working <application
+	moreinfo="none">Perl</application> setup (version >= 5.8.2 is
+	recommended). 
+      </para>
+      <para>
+	<application>TrEd</application> further requires the following Perl
+	modules and their dependencies:
+	<itemizedlist>
+	  <listitem><simpara><literal>File-Temp</literal></simpara></listitem>
+	  <listitem><simpara><literal>File-Spec</literal></simpara></listitem>
+	  <listitem><simpara><literal>Text-Iconv</literal></simpara></listitem>
+	  <listitem><simpara><literal>Tie-IxHash</literal></simpara></listitem>
+	  <listitem><simpara><literal>Tk</literal> (for GUI)</simpara></listitem>
+	  <listitem><simpara><literal>Compress-Zlib</literal> (for printing to PDF)</simpara></listitem>
+	  <listitem><simpara><literal>XML-LibXML</literal> (for various I/O backends)</simpara></listitem>
+	  <listitem><simpara><literal>XML-Writer</literal></simpara></listitem>
+	</itemizedlist>
+	All the above modules and their dependencies can be obtained
+	and installed in a single step using the
+	<command>./install</command> script of the <ulink
+	url="http://ckl.mff.cuni.cz/pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
+	package as described below.
+	<note role="PDT20">
 	  <para>
-	    To install <application moreinfo="none">PerlTk</application> 
-	    toolkit, fetch the latest version of Perl-Tk library from 
-	    <ulink url="http://search.cpan.org/modlist/User_Interfaces/Tk">CPAN</ulink>, and extract the archive to some temporary directory, e.g
-	    using the following command (substituting 804.025 with your Tk version 
-	    number):
-	    <literallayout class="normal" format="linespecific">
-	      $ <userinput moreinfo="none">gunzip -c Tk-804.025.tar.gz | tar -x</userinput>
-	    </literallayout>
-	    
-	    and issue the following commands (see file <filename moreinfo="none">INSTALL</filename> file in the
-	    <filename moreinfo="none">Tk</filename> distribution directory for details):
-	    <literallayout class="normal" format="linespecific">bash$ <userinput moreinfo="none">cd Tk804.025</userinput>
-bash$ <userinput moreinfo="none">perl Makefile.PL XFT=1</userinput><co id="co-makefilepl"/>
-bash$ <userinput moreinfo="none">make</userinput>
-bash$ <userinput moreinfo="none">make test</userinput><co id="co-test"/>
-bash$ <userinput moreinfo="none">su</userinput><co id="co-su"/>
-root# <userinput moreinfo="none">make install</userinput>
-	    </literallayout>
-	    <calloutlist>
-	      <callout arearefs="co-makefilepl">
-		<para>the XFT=1 option turns on support for FreeType anti-aliasing.
-		  If this step fails, restart without <literal moreinfo="none">XFT=1</literal>.
-		</para>
-	      </callout>
-	      <callout arearefs="co-test">
-		<para>this is only to test the result of the compilation, you may
-		skip it, if you like</para></callout>
-	      <callout arearefs="co-su">
-		<para>gain <literal moreinfo="none">root</literal>'s privileges</para>
-	      </callout>
-	    </calloutlist>
+	    If you have the <productname>Prague
+	      Dependency Treebank 2.0</productname> CD-ROM, you may
+	    start the installation of these modules directly from
+	    the CD-ROM by running <command>./install</command> in
+	    the <filename>tools/tred/unix_packages</filename>
+	    directory. In this case you may skip steps
+	    1. and 2.
+	  </para>
+	</note>
+      </para>
+      <orderedlist continuation="restarts" inheritnum="ignore">
+	<listitem>
+	  <para>
+	    Fetch the  <ulink url="http://ckl.mff.cuni.cz/pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
+	    package</para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Unzip the package with
+	    <programlisting>$ <userinput>tar xzvf tred-dep-unix.tar.gz</userinput></programlisting>
+	  </para>
+	  <para>
+	    Change to the <literal>tred-dep-unix</literal> directory:
+	    <programlisting>$ <userinput>cd tred-dep-unix</userinput></programlisting>
 	  </para>
 	</listitem>
+	<listitem>
+	  <para>
+	    If you have a root account on the machine, switch to it, e.g.
+	    by issuing
+	    <programlisting>$ <userinput>su root</userinput>
+Password:
+</programlisting>
 
+	    If not, you may continue, but read carefully the following
+	    step.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Run the module installation script (you'll need a
+	    functional C compiler, <literal>make</literal>, etc., e.g. tools
+	    available on most Linux/UNIX setups):
+
+	    <programlisting>$ <userinput>./install</userinput></programlisting>
+
+
+	    This scripts compiles and installs all required modules to the
+	    directory prefix where the Perl installation resides. If
+	    you'd like to use a different prefix (e.g. because you
+	    don't have root permissions on the box), use
+	    
+	    <programlisting>$ <userinput>./install --prefix=<replaceable>directory-prefix</replaceable></userinput></programlisting>
+
+	    and ensure the environment variable settings suggested by
+	    the installation script at the end of the installation.
+	    You can review all options of the installation script with
+	    <command>./install --help</command>.
+	  </para>
+	</listitem>
  	<listitem>
  	  <para>
- 	    To install <application moreinfo="none">TrEd</application>, simply
-	    untar/ungzip the <filename moreinfo="none">tred</filename> directory
-	    from the <application moreinfo="none">TrEd</application>
- 	    installation package to any directory 
-	    you like
-	    (e.g. to your home directory or,
-	    with root privileges, to <filename moreinfo="none">/opt</filename>
- 	    directory).
+	    The last few and steps describe the installation of
+	    <application moreinfo="none">TrEd</application> itself.
+	    Start by fetching the latest <application>TrEd</application>
+	    distribution package <ulink url="http://ckl.mff.cuni.cz/pajas/tred/tred-current.tar.gz">tred-current.tar.gz</ulink>,
+	    unpack the package it using
+	    <programlisting>$ <userinput>tar xzvf tred-current.tar.gz</userinput></programlisting>
+	    and copy the resulting <filename>tred</filename> directory
+	    to a suitable locatoin on your system, e.g. with
+	    <programlisting>$ <userinput>cp -R tred /opt</userinput></programlisting>
+	    or 
+	    <programlisting>$ <userinput>cp -R tred /home/<replaceable>yourname</replaceable></userinput></programlisting>
+	    <note role="PDT20">
+	      <para>
+		If you have the <productname>Prague
+		  Dependency Treebank 2.0</productname> CD-ROM, you'll find the
+		unpacked installation package in the directory
+		<filename>tools/tred/tred</filename>
+		on the CD-ROM.
+	      </para>
+	    </note>
+	    Finally, create symlinks to <command moreinfo="none">tred</command>,
+	    <command moreinfo="none">btred</command>, and <command moreinfo="none">ntred</command>
+	    executables from the destination directory you have chosen to
+	    some directory in your path, e.g.
+	    <programlisting>$ <userinput>ln -s <replaceable>/opt/tred</replaceable>/*tred <replaceable>/usr/local/bin</replaceable> </userinput></programlisting>
  	  </para>
- 	  <note>
+	</listitem>
+	<listitem>
+	  <para>
+	    Check your installation with:
+	    <programlisting>$ <userinput>tred -v</userinput>
+TrEd Id: tred,v 1.337 2005/04/13 18:17:08 pajas Exp
+Perl: 5.008002
+Platform: linux
+Tk: 804.027
+</programlisting>
+	    If you get a similar output, you have successfully installed <application>TrEd</application> 
+	    on your system.
+	  </para>
+	  <note>
  	    <para>
- 	      You may also wish to symlink the <command moreinfo="none">tred</command>
- 	      executable to some directory on your
- 	      <varname>PATH</varname>. Assuming you
-	      have extracted the <application moreinfo="none">TrEd</application>
-	      distribution to <filename moreinfo="none">/opt</filename> directory,
-	      you can achieve this with the following command:
-	      <literallayout format="linespecific" class="normal">root# ln -s /opt/tred/tred /usr/local/bin</literallayout>
-	    Use similar commands for <command moreinfo="none">btred</command> 
-	    and other tools included with
- 	    <application moreinfo="none">TrEd</application> distribution you
-	      wish to use.
+	      Unfortunatelly, another commonly used package contains
+	      an executable named <command>tred</command>, namely the
+	      <application>GraphViz</application> package by AT&amp;T.
+	      Although we think we used the name first, we do not see
+	      much reason in arguing with them about renaming
+	      their program to something else. If you are affected
+	      by this name collision, simply rename one of the
+	      executables (either the one of
+	      <application>TrEd</application> of the one of
+	      <application>GraphViz</application>) to something else.
  	    </para>
  	  </note>
- 	</listitem>
- 	<listitem>
- 	  <para>
- 	    Run <application moreinfo="none">TrEd</application> by issuing the command
- 	    <command moreinfo="none">tred</command>. (See <xref linkend="commandline"/>.)
- 	  </para>
 	  <note>
 	    <para>If the <command moreinfo="none">tred</command>
-	      executable fails to start, try to changing the first line
-	      (<command moreinfo="none">#!/usr/bin/perl</command>) so
-	      that it points to your Perl executable. 
+	      executable fails to start at all, try changing the first line
+	      (<command moreinfo="none">#!/usr/bin/env perl</command>) so
+	      that it points directly to your Perl executable. 
 	      If you find <application moreinfo="none">TrEd</application> halting immediately,
-	      complaining about <filename moreinfo="none">Tk.pm</filename> module, check
-	      <application moreinfo="none">PerlTk</application> installation path. You
-	      may need to setup <varname>PERLLIB</varname> variable to point to
-	      the <filename moreinfo="none">site_perl</filename> directory on your system to which
-	      the <filename moreinfo="none">Tk.pm</filename> module was installed.
+	      complaining about not finding <filename moreinfo="none">Tk.pm</filename> or some
+	      other Perl module, make sure that the installation went fluently.
+	      You may also try to setup the environment variable <varname>PERLLIB</varname>
+	      to point to the directory/directories where the modules
+	      were installed.
 	    </para>
 	  </note>
 	</listitem>
@@ -332,28 +373,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Opens an existing file that the user chooses in the
-	      <guilabel moreinfo="none">Open</guilabel> dialog box. The file may be
-	      either in the <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
-	      (usually a file with a <filename moreinfo="none">.fs</filename>
-	      extension) or a file in the <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
-	      SGML format. In the later case, 
-	      James Clark's <ulink url="http://quest.ms.mff.cuni.cz/pdt/Support/nsgmls/index.html">SGML parser
-	      <application moreinfo="none">SP</application></ulink> must be installed and
-	      the <link linkend="sgmls"><literal moreinfo="none">sgmls</literal></link>
-	      configuration option must point to its binary
-	      executable <command moreinfo="none">nsgmls</command>, unless it can be found
-	      in <varname>PATH</varname>.
-	    </para>
-	    <para>
-	      By default, <application moreinfo="none">TrEd</application> expects
-	      files in the <literal moreinfo="none">ISO-8859-2</literal> (ISO Latin 2)
-	      encoding (which by <application moreinfo="none">TrEd</application> is
-	      transparently translated to Windows 1250 encoding and
-	      back on <productname class="trade">Microsoft Windows</productname>
-	      systems). For other encodings, see 
-	      <link linkend="defaultfileencoding"><literal moreinfo="none">defaultFileEncoding</literal></link>
-	      and <link linkend="defaultdisplayencoding"><literal moreinfo="none">defaultDisplayEncoding</literal></link>
-	      configuration options.
+	      <guilabel moreinfo="none">Open</guilabel> dialog box.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -362,17 +382,34 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Displays a dialog window with an entry into which the
-	      user can enter a URL or a filename. TrEd supports
-	      downloading and opening files using
-	      <literal moreinfo="none">http</literal>, <literal moreinfo="none">ftp</literal>, and
-	      (for compatibility) <literal moreinfo="none">file</literal>
-	      protocols. The network protocols
-	      (<literal moreinfo="none">http,ftp</literal>) are read-only. Moreover,
-	      TrEd supports a special protocol indicated by URLs
-	      starting with <literal moreinfo="none">ntred://</literal> which allows
-	      to inspect and change trees stored in memory of btred
-	      servers (ntred and btred are shipped with TrEd but
-	      are not covered by this document).
+	      user can enter a URL or a
+	      filename. <application>TrEd</application> can
+	      downloading and open files at least using <literal
+	      moreinfo="none">http</literal>, <literal
+	      moreinfo="none">ftp</literal>, and <literal
+	      moreinfo="none">file</literal> protocols. Network
+	      protocols (<literal moreinfo="none">http</literal> and
+	      <literal>ftp</literal>) are read-only.  On UNIX systems,
+	      <application>TrEd</application> also supports the SSH
+	      protocol with URLs of the form
+	      <literal>ssh://<optional><replaceable>user@</replaceable></optional><replaceable>host</replaceable>/<replaceable>remote-filename</replaceable></literal>.
+	    </para>
+	    <note>
+	      <para>
+		Since the current implementation of SSH remote file transfer
+		requires several subsequent login sessions each time a
+		remote file is accessed, it is highly recommended that a
+		password-less access (e.g. using Kerberos or SSH keys)
+		is set up before remote files are opened in TrEd using
+		the SSH protocol.</para>
+	    </note> 
+	    <para>Additionally to the
+	      protocols already mentioned, TrEd supports a special
+	      protocol indicated by the URL prefix <literal
+	      moreinfo="none">ntred://</literal> used for
+	      communication with BTrEd servers. This protocol allows
+	      to inspect and change trees stored in memory of BTrEd
+	      servers.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -383,7 +420,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </menuchoice></term>
 	  <listitem>
 	    <para>
-	      Creates a new empty file with the same header as
+	      Creates a new empty file with the same set of attributes as
 	      the file that the user chooses in the
 	      <guilabel moreinfo="none">Open</guilabel> dialog box.
 	    </para>
@@ -396,8 +433,8 @@ root# <userinput moreinfo="none">make install</userinput>
 	    </menuchoice></term>
 	  <listitem>
 	    <para>
-	      Creates a new empty file with the same header as
-	      the current open file.  Does nothing if no file is open.
+	      Creates a new empty file with the same set of attributes as
+	      the current open file. The command does nothing if no file is open.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -405,17 +442,38 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Close</guimenuitem></term>
 	  <listitem>
 	    <para>Closes current file. If the file is modified but not
-	      saved, user is prompted to save it.
+	      saved, the user is allowed to save it.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Close in Window</guimenuitem></term>
+	  <listitem>
+	    <para>Closes the view on the file in the current
+	      window. All other views on the file remain untouched.
+	      If no other view on the file exists, the file is closed.
+	      If the file is modified but not saved, the user is allowed
+	      to save it.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Close and remove from filelist</guimenuitem></term>
+	  <listitem>
+	    <para>Closes the current file and removes it from
+	      the current file-list. If the file is modified but not saved, the user is allowed
+	      to save it.
 	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Filelist</guimenuitem></term>
 	  <listitem>
-	    <para>Opens a <guilabel moreinfo="none">Filelist</guilabel> dialog window
-	      which allows user to create, load, modify and save lists 
-	      of files for browsing, editing or searching pruposes.
-	      See more detail in <xref linkend="filelists"/>.
+	    <para>Opens a <guilabel
+	      moreinfo="none">Filelist</guilabel> dialog window which
+	      allows the user to manage lists of files used for easy
+	      file-to-file navigation.  See more detail in <xref
+	      linkend="filelists"/>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -423,9 +481,10 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Save</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Saves the active file to the disk. A backup file is
-	      created by appending a tilde `~' to the filename (which
-	      is a UNIX convention for naming backups).
+	      Saves the active file to the disk.  The previous version
+	      of the file on the disk is renamed by appending `~' to
+	      the filename (according to the well-known UNIX convention for
+	      naming of backup files).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -434,7 +493,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <listitem>
 	    <para>This command first asks the user to choose a desired
 	      output format, then opens the standard file dialog where
-	      new name and location of the file can be specified and
+	      new name and location of the file can be specified, and
 	      finally runs the <guimenuitem moreinfo="none">Save</guimenuitem>
 	      command.
 	    </para>
@@ -444,7 +503,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Recent Files</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      This submenu displays ten most recently opened
+	      This submenu displays 10 most recently opened
 	      files. User may quickly reopen any of them by clicking
 	      on the corresponding item.
 	    </para>
@@ -454,9 +513,10 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Previous File</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Closes the active file (asking user to
-	      save it if modified) and opens the previous file in
-	      the current filelist (see <xref linkend="filelists"/>).
+	      Opens the previous file of the current filelist in the current view, if any 
+	      (see <xref linkend="filelists"/>).
+	      Unless displayed in some other view, the active file is closed
+	      (the user may be asked to save possible changes).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -464,9 +524,10 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Next File</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Closes the active file (asking user to
-	      save it if modified) and opens the next file in
-	      the current filelist (see <xref linkend="filelists"/>).
+	      Opens the next file of the current filelist in the current view, if any 
+	      (see <xref linkend="filelists"/>).
+	      Unless displayed in some other view, the active file is closed
+	      (the user may be asked to save possible changes).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -474,204 +535,35 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Print ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Opens a Print Dialog.</para>
-	    <para>
-	      <application moreinfo="none">TrEd</application> is
-	      able to render trees to PostScript,
-	      Encapsulated PostScript (EPS), and Portable
-	      Document Format (PDF). 
-	      Should the trees contain non-latin
-	      (iso-8859-1, iso-8859-2, windows-1250, etc.) characters,
-	      such as Arabic, the PDF might be the only option,
-	      because it allows using TrueType fonts.
+	      Opens the Print Dialog. See <xref linkend="printing"> for
+	      a detailed information.
 	    </para>
-	    <para>
-	      If <ulink url="http://www.imagemagick.org">ImageMagick</ulink>
-	      toolkit is installed, TrEd can also automatically
-	      convert the result into one of many image formats.
-	      While PostScript is the default printing format on most
-	      Unix/Linux systems (and can be printed using the
-	      standard <command moreinfo="none">lpr</command> command), Windows users
-	      may use for example <ulink url="http://www.adobe.com/products/acrobat/readermain.html">Adobe
-	      Acrobat Reader</ulink> to preview and print trees
-	      rendered into PDF. There are also some free PostScript
-	      interpreters for Windows (see <ulink url="http://www.cs.wisc.edu/~ghost/">GhostView</ulink>).
-	    </para>
-	    <figure float="0">
-	      <title>Print dialog
-	      </title>
-	      <mediaobject><imageobject><imagedata fileref="pics/tredprint.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/tredprint.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/tredprint" format="linespecific"/></imageobject></mediaobject>
-	    </figure>
-	    <para>
-	      Encapsulated PostScript files (<literal moreinfo="none">EPS</literal>)
-	      are especially useful for preparation of other printed
-	      materials e.g. <application moreinfo="none">PDF</application> of
-	      <application moreinfo="none">LaTeX</application> documents. Compared
-	      to bitmapped images, EPS images
-	      have the advantage of being scalable. EPS has limitted supported
-	      by most office suits (such as Microsoft Office and OpenOffice.org).
-	    </para>
-	    <note>
-	      <para>
-		TrEd's ability to render PostScript
-		and EPS is limitted to Eastern European character sets.
-		For other charsets and unicode (especially when TrEd
-		runs on a unicode aware versions of
-		<literal moreinfo="none">Perl</literal> and <literal moreinfo="none">Tk</literal>,
-		i.e. at least <literal moreinfo="none">Perl 5.8</literal> and
-		<literal moreinfo="none">Tk804</literal>), PDF print format is recommended.
-	      </para>
-	    </note>
-	    <para>
-	      Printing into PDF requires a TrueType font containing at
-	      least the glyphs used in the tree.  For most languages,
-	      the usual fonts such as Arial
-	      (<literal moreinfo="none">arial.ttf</literal>), Times New Roman
-	      (<literal moreinfo="none">times.ttf</literal>) or Bitstream Vera
-	      (<literal moreinfo="none">vera.ttf</literal>) are sufficient while other
-	      languages, such as Arabic, require a fully featured
-	      Unicode font such as <literal moreinfo="none">Arial Unicode MS</literal>.
-	      The TrueType font can be specified either directly
-	      from the Print dialog or by setting <link linkend="ttfont"><literal moreinfo="none">TTFont</literal></link>
-	      configuration option. If <literal moreinfo="none">TTFont</literal>
-	      is not given, it defaults to <literal moreinfo="none">Arial</literal>. 
-	      TrEd searches for TrueType fonts in directories listed in
-	      <link linkend="ttfontpath"><literal moreinfo="none">TTFontPath</literal></link>
-              configuration option. If this option is not explicitly
-	      specified, TrEd uses directories listed in 
-	      fontconfig library configuration file
-              <literal moreinfo="none">/etc/fonts/fonts.conf</literal> on Unix
-	      and Windows system font directory on Windows.
-	      If no usable font is found, PDF printing is disabled.
-	    </para>
-	    <para>
-	      For PostScript printing, <application moreinfo="none">TrEd</application>
-	      uses a Type1 font.  The file containing the font may be
-	      specified using the <link linkend="psfontfile"><literal moreinfo="none">PsFontFile</literal></link>
-	      (and optionally <link linkend="psfontafmfile"><literal moreinfo="none">PsFontAFMFile</literal></link>)
-	      configuration option.
-	    </para>
-	    <itemizedlist>
-	    <listitem>
-		<para>
-		  In the <guilabel moreinfo="none">Print</guilabel> dialog you can specify a printing command to
-		  be used or (if <guilabel moreinfo="none">Print to file</guilabel> is checked) a filename of the
-		  destination file.
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>
-		  You can also specify a media-type (paper format)
-		  (<guilabel moreinfo="none">Media</guilabel> roll-out menu), page
-		  width and height (in case of <literal moreinfo="none">User</literal>
-		  media-type), and horizontal and vertical margins.
-		  If the printed tree exceeds specified page
-		  boundaries, it is automatically shanked and/or
-		  (unless <guilabel moreinfo="none">Disable landscape rotation of wide
-		  trees</guilabel> is selected) rotated to fit on the
-		  page. See <link linkend="psmedia"><literal moreinfo="none">PSMedia</literal></link>
-		  configuration option for a list of supported media
-		  formats.
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>
-		  The output format is specified by
-		  selecting one of <guilabel moreinfo="none">Create PostScript</guilabel>,
-		  <guilabel moreinfo="none">Create EPS</guilabel>, <guilabel moreinfo="none">Create
-		  PDF</guilabel> and  <guilabel moreinfo="none">Convert according to
-		  ImageMagick</guilabel> buttons.
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>If <ulink url="http://www.imagemagick.org">ImageMagick</ulink>
-		utilities are installed on the system running TrEd,
-		then automatic conversion to one of many image formats
-		is supported. To use it, first check the
-		<guilabel moreinfo="none">Convert according to file
-		extension</guilabel> button, then select a desired
-		pixel resolution for conversion to bitmap, and finally
-		edit the filename giving it the usual extension of the
-		desired output file-format such as
-		<filename moreinfo="none">.png</filename> or
-		<filename moreinfo="none">.jpg</filename>.  When converting to bitmap,
-		<guilabel moreinfo="none">Resolution</guilabel> may be specified to
-		adjust the mapping between PostScript coordinate
-		system units (given in 1/72 inch) to raster pixels.
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>
-		  To print the <quote>sentence</quote> together with
-		  the tree, check the <guilabel moreinfo="none">Print
-		  sentence</guilabel> button. A
-		  <quote>sentence</quote> is actually a chain
-		  consisting of
-		  values of the value-attributes
-		  (i.e. <literal moreinfo="none">@V</literal> attributes in FS format)
-		  of all nodes in the tree.
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>
-		  It is possible to print more than one tree (each
-		  tree on a separate page).  To do so, a comma-separated list of
-		  tree numbers or ranges of tree numbers, that correspond to the
-		  desired trees in the active file, must be entered
-		  into the <guilabel moreinfo="none">Page range</guilabel> field.  The
-		  <inlinemediaobject><imageobject><imagedata fileref="pics/1rigtharrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> button may be
-		  used to automatically insert a page range
-		  corresponding to sentences selected via <link linkend="list_of_sentences"><menuchoice moreinfo="none">
-		  <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">List of
-		  sentences...</guimenuitem> </menuchoice></link>. A
-		  different selection based on
-		  <quote>sentences</quote> can be made by pressing the
-		  <inlinemediaobject><imageobject><imagedata fileref="pics/contents.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/contents.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/contents" format="linespecific"/></imageobject></inlinemediaobject> button.
-		</para>
-	      </listitem>
-	      <listitem>
-		<para id="page_range">
-		  If entered manually, the page range must be
-		  specified according to following rules:  First tree
-		  in the file has number 1, second has number 2,
-		  etc. Ranges are pairs of numbers like
-		  <quote><literal moreinfo="none">3-20</literal></quote> which covers
-		  all trees starting from the tree no. 3 to no. 20.
-		  If the first number in the range is omitted, 1 is
-		  assumed. If the second number in the range is
-		  ommited, the number of the last tree in the active
-		  file is assumed.  The order of the trees given in
-		  the list is preserved and also, one tree may be
-		  printed more than once.
-		  <note>
-		    <title>Example:</title>
-		    <para>
-		      To print trees from 1 to 5, then trees no. 7, 11, 12 and 5
-		      again, use e.g. one of the following lists:
-		      <simplelist type="vert">
-			<member><literal moreinfo="none">1-5,7,11,12,5</literal></member>
-			<member><literal moreinfo="none">1-5,7,11-12,5</literal></member>
-			<member><literal moreinfo="none">-5,7,11-12,5</literal></member>
-		      </simplelist>
-		    </para>
-		  </note>
-		</para>
-	      </listitem>
-	    </itemizedlist>
 	  </listitem>
-	  </varlistentry>
+	</itemizedlist>
+	</listitem>
+	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Edit config ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Opens a small configuration file editor
-	      (see <xref linkend="configuration"/> for the details about
-	      configuration options). To apply the new configuration, save
-	      the configuration file to disk and leave the editor
-	      press the <guibutton moreinfo="none">Save and Apply</guibutton>
-	      button. To apply changes without saving them, press <guibutton moreinfo="none">Apply</guibutton>. The
-	      <guibutton moreinfo="none">Close</guibutton> button closes the
-	      editor without making any changes to the present configuration.      
+	      Opens the configuration file in a simple text editor
+	      (see <xref linkend="configuration"/> for the details
+	      about configuration options).  To apply the new
+	      configuration, save the configuration file to disk and
+	      leave the editor press the <guibutton
+	      moreinfo="none">Save and Apply</guibutton> button. To
+	      apply changes without saving them, press <guibutton
+	      moreinfo="none">Apply</guibutton>. The <guibutton
+	      moreinfo="none">Close</guibutton> button closes the
+	      editor without making any changes to the present
+	      configuration.  A search entry on the bottom of the
+	      dialog window can be used for fast case-insensitive
+	      searches. When editing the configuration file, make sure
+	      you only define each configuration option once, since
+	      TrEd doesn't give you any warning about duplicated
+	      configuration entries. If an option occurs in the
+	      configuration file more than once, the latter occurrence
+	      has precedence.
 	    </para>
 	    <note>
 	      <para>
@@ -687,7 +579,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <para>
 	      Use this command to reload the configuration file from
 	      disk and apply the new options. This command is useful
-	      if you have changed the configuration file in some other
+	      if you have changed the configuration file in a text
 	      editor or in an another running instance of
 	      <application moreinfo="none">TrEd</application>. As above, note, that
 	      some configuration changes still take effect only after
@@ -696,10 +588,25 @@ root# <userinput moreinfo="none">make install</userinput>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Reload stylesheets ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Reloads display stylesheets from the file
+	      <filename>~/.tred-stylesheets</filename>.
+	      This command is useful
+	      if you have changed the stylesheets in a text
+	      editor or in an another running instance of
+	      <application moreinfo="none">TrEd</application>.
+	      For more information about stylesheets,
+	      see <xref linkend="stylesheets">.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Quit</guimenuitem></term>
 	  <listitem>
-	    <para>Exits the editor and in case that active file is modified and
-	      not yet saved, prompts the user to save it.
+	    <para>Quit TrEd.  The the user is allowed to save all open
+	      files containing unsaved changes.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -711,39 +618,55 @@ root# <userinput moreinfo="none">make install</userinput>
 	<varlistentry>
 	  <term><guisubmenu moreinfo="none">Previous Tree</guisubmenu></term>
 	  <listitem>
-	    <para>Display previous tree in the current file.
+	    <para>View the previous tree in the current file.
 	    </para>    
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Next Tree</guimenuitem></term>
 	  <listitem>
-	    <para>Display next tree in the current file.</para>
+	    <para>View the next tree in the current file.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Stipple Inactive Views</guimenuitem></term>
+	  <listitem>
+	    <para>If this item is checked, inactive views are covered
+	      with a semi-transparent stipple pattern. This may
+	      improve orientation if working with more than one view,
+	      but also slightly reduces the clarity of trees displayed
+	      in the inactive views.
+	      (See also <link linkend="stippleinactivewindows">StippleInactiveWindows</link>
+	      configuration option).
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Draw boxes around labels</guimenuitem></term>
 	  <listitem>
 	    <para>If this item is checked, square boxes are drawn
-	      around the group of node labels.</para>
+	      around groups of node labels.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><guimenuitem moreinfo="none">Draw boxes around edge labels</guimenuitem></term>
+	  <term>
+	    <guimenuitem moreinfo="none">Draw boxes around edge labels</guimenuitem></term>
 	  <listitem>
 	    <para>If this item is checked, square boxes are drawn
-	      around the group of edge attributes.</para>
+	      around groups of edge attributes.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Show Hidden Nodes</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Toggle displaying the hidden subtrees of the tree.
-	      If this item is checked, nodes makred as hidden using a special
-	      attribute (see 
+	      Toggle visibility the ``hidden'' subtrees of the tree.
+	      If this item is checked, subtrees of nodes makred as hidden
+	      using a special FS-attribute (see 
 	      <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format description</ulink>
-	      for details) and all their subtrees are also displayed.
+	      for details) and displayed. By default subtrees of 
+	      hidden nodes including the nodes themselves are not
+	      displayed.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -751,11 +674,15 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Highlight Attributes</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Toggle highlighting certain attributes with user-defined
-	      colors. See <xref linkend="configuration"/> for details on
-	      customizing colors and <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
-		description</ulink> to learn about how to specify which attributes
-		are highlighted.
+	      Toggle highlighting certain attributes with
+	      user-definable set of colors. See <xref
+	      linkend="configuration"/> for details on customizing
+	      colors and <ulink
+	      url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
+	      description</ulink> to learn about how to specify which
+	      attributes are highlighted. In general, it is better to
+	      avoid this approach of changing tree appearance in favor
+	      of stylesheets (see <xref linkend="stylesheets">).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -763,9 +690,14 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Sort Attributes in Dialogs</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Toggle sorting attributes by name in all dialog
-	      windows displaying any form of a list of attributes
-	      or attribute values.
+	      Toggle sorting attributes by name in all dialog windows
+	      displaying any form of a list of attributes or attribute
+	      values. By default, sorting is turned on. If turned off,
+	      depending on the format, attributes may be displayed in
+	      order of their declaration in the file. When this option
+	      is on, sorting of attributes may be further altered by
+	      the <link
+	      linkend="sort_attrs_hook"><literal>sort_attrs_hook</literal></link>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -773,7 +705,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <term><guimenuitem moreinfo="none">Close current view</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Closes focused view if more than one views are present.
+	      Closes the focused view if more than one views are present.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -782,18 +714,22 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Create and focus a new view by splitting the current
-	      view horizontally. Sizes of the new and old view
-	      may be adjusted by dragging the thin that separats them.
-	      User may switch between views by
-	      clicking into the view he or she wants to focus. All
-	      subsequent keyboard shorcuts as well as menu and button
-	      commands are applied to the focused view. The focused view
-	      is distinguished from other views by black border
-	      drawn around it (both color and width of this border
-	      may be customized, see
-	      <link linkend="highlightwindowcolor"><varname>HighlightWindowColor</varname></link>
-	      and <link linkend="highlightwindowwidth"><varname>HighlightWindowWidth</varname></link>
-	      configuration options described below).
+	      view horizontally. Sizes of the new and old view may be
+	      adjusted by dragging the bar between them. The user may
+	      focus a view by clicking into it.  Most keyboard
+	      shorcuts as well as menu and button commands only apply
+	      to the focused view. The focused view is distinguished
+	      from other views by black border drawn around it (both
+	      color and width of this border may be customized, see
+	      <link
+	      linkend="highlightwindowcolor"><varname>HighlightWindowColor</varname></link>
+	      and <link
+	      linkend="highlightwindowwidth"><varname>HighlightWindowWidth</varname></link>
+	      configuration options described below).  Inactive views
+	      may be further distiguished using a stipple pattern (see
+	      <link
+	      linkend="stippleinactivewindows">StippleInactiveWindows</link>
+	      configuration option).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -802,10 +738,11 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Create and focus a new view by splitting the current
-	      view vertically. Sizes of the new and old view
-	      may be adjusted by dragging the thin that separats them.
-	      See also little more detailed description of 
-	      <guimenuitem moreinfo="none">Split view horizontally</guimenuitem>.
+	      view vertically. Sizes of the new and old view may be
+	      adjusted by dragging the bar between them.  See also
+	      little more detailed description of <guimenuitem
+	      moreinfo="none">Split view horizontally</guimenuitem>
+	      above.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -814,21 +751,25 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para>
 	      Display a window containing a list of all
-	      <quote>sentences</quote> based on all trees in the
-	      current file. A <quote>sentence</quote> is a chain
-	      consisting of values of the value-attributes
-	      (i.e. <literal moreinfo="none">@V</literal> attributes in FS format) of
-	      all nodes in the tree.
+	      <quote>sentences</quote> of all trees in a current
+	      file. These <quote>sentences</quote> are computed in the
+	      same way as the content of the text line above the tree,
+	      e.g.  using a <link
+	      linkend="get_value_line_hook"><literal>get_value_line_hook</literal></link>
+	      or the <literal>text:</literal> stylesheet pattern (see
+	      <xref linkend="stylesheets">), or as a concatenation of
+	      special attribute values (i.e. attributes declared
+	      as <literal moreinfo="none">@V</literal> in the FS format).
 	    </para>
 	    <para>The <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject>
 	      button may be used to display the corresponding sentence
-	      in the current TrEd window.</para> <para>The
+	      in the current TrEd view.</para> <para>The
 	      <inlinemediaobject><imageobject><imagedata fileref="pics/gray_belly3.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3" format="linespecific"/></imageobject></inlinemediaobject>
-	      button may be used to select the current sentence.
-	      Selected sentences may be later inserted to the tree
-	      selection field in the <link linkend="print_command">Print dialog</link> as well as
+	      button may be used to select a sentence.
+	      Selected sentences may be later inserted to tree
+	      selection fields, e.g. in the <link linkend="print_command">Print dialog</link> and
 	      in the <link linkend="copytrees_command">Copy trees
-	      dialog</link> by pressing the <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> button.
+	      dialog</link>, by pressing the <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> button.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -838,7 +779,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	    <para>
 	      Open a dialog box in which the user can select the
 	      attributes that should be displayed and modify the way
-	      the tree is presented. See <xref linkend="attributes"/> for more detail.
+	      the tree is presented. See <xref linkend="stylesheets"/> for more detail.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1640,7 +1581,7 @@ root# <userinput moreinfo="none">make install</userinput>
       </variablelist>
     </section>
   </section>
-  <section id="attributes">
+  <section id="stylesheets">
     <title>Customizing Tree Appearance: Stylesheets</title>
     <para>
       In <application moreinfo="none">TrEd</application>, the way a
@@ -2464,6 +2405,193 @@ root# <userinput moreinfo="none">make install</userinput>
     </table>
     </section>
   </section>
+  <section id="printing">
+    <title>Printing Trees</title>
+    <para>
+      <application moreinfo="none">TrEd</application> is
+      able to render trees to PostScript,
+      Encapsulated PostScript (EPS), and Portable
+      Document Format (PDF). 
+      Should the trees contain non-latin
+      (iso-8859-1, iso-8859-2, windows-1250, etc.) characters,
+      such as Arabic, the PDF might be the only option,
+      because it allows using TrueType fonts.
+    </para>
+    <para>
+      If <ulink url="http://www.imagemagick.org">ImageMagick</ulink>
+      toolkit is installed, TrEd can also automatically
+      convert the result into one of many image formats.
+      While PostScript is the default printing format on most
+      Unix/Linux systems (and can be printed using the
+      standard <command moreinfo="none">lpr</command> command), Windows users
+      may use for example <ulink url="http://www.adobe.com/products/acrobat/readermain.html">Adobe
+	Acrobat Reader</ulink> to preview and print trees
+      rendered into PDF. There are also some free PostScript
+      interpreters for Windows (see <ulink url="http://www.cs.wisc.edu/~ghost/">GhostView</ulink>).
+    </para>
+    <figure float="0">
+      <title>Print dialog
+      </title>
+      <mediaobject><imageobject><imagedata fileref="pics/tredprint.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/tredprint.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/tredprint" format="linespecific"/></imageobject></mediaobject>
+    </figure>
+    <para>
+      Encapsulated PostScript files (<literal moreinfo="none">EPS</literal>)
+      are especially useful for preparation of other printed
+      materials e.g. <application moreinfo="none">PDF</application> of
+      <application moreinfo="none">LaTeX</application> documents. Compared
+      to bitmapped images, EPS images
+      have the advantage of being scalable. EPS has limitted supported
+      by most office suits (such as Microsoft Office and OpenOffice.org).
+    </para>
+    <note>
+      <para>
+	TrEd's ability to render PostScript
+	and EPS is limitted to Eastern European character sets.
+	For other charsets and unicode (especially when TrEd
+	runs on a unicode aware versions of
+	<literal moreinfo="none">Perl</literal> and <literal moreinfo="none">Tk</literal>,
+	i.e. at least <literal moreinfo="none">Perl 5.8</literal> and
+	<literal moreinfo="none">Tk804</literal>), PDF print format is recommended.
+      </para>
+    </note>
+    <para>
+      Printing into PDF requires a TrueType font containing at
+      least the glyphs used in the tree.  For most languages,
+      the usual fonts such as Arial
+      (<literal moreinfo="none">arial.ttf</literal>), Times New Roman
+      (<literal moreinfo="none">times.ttf</literal>) or Bitstream Vera
+      (<literal moreinfo="none">vera.ttf</literal>) are sufficient while other
+      languages, such as Arabic, require a fully featured
+      Unicode font such as <literal moreinfo="none">Arial Unicode MS</literal>.
+      The TrueType font can be specified either directly
+      from the Print dialog or by setting <link linkend="ttfont"><literal moreinfo="none">TTFont</literal></link>
+      configuration option. If <literal moreinfo="none">TTFont</literal>
+      is not given, it defaults to <literal moreinfo="none">Arial</literal>. 
+      TrEd searches for TrueType fonts in directories listed in
+      <link linkend="ttfontpath"><literal moreinfo="none">TTFontPath</literal></link>
+      configuration option. If this option is not explicitly
+      specified, TrEd uses directories listed in 
+      fontconfig library configuration file
+      <literal moreinfo="none">/etc/fonts/fonts.conf</literal> on Unix
+      and Windows system font directory on Windows.
+      If no usable font is found, PDF printing is disabled.
+    </para>
+    <para>
+      For PostScript printing, <application moreinfo="none">TrEd</application>
+      uses a Type1 font.  The file containing the font may be
+      specified using the <link linkend="psfontfile"><literal moreinfo="none">PsFontFile</literal></link>
+      (and optionally <link linkend="psfontafmfile"><literal moreinfo="none">PsFontAFMFile</literal></link>)
+      configuration option.
+    </para>
+    <itemizedlist>
+      <listitem>
+	<para>
+	  In the <guilabel moreinfo="none">Print</guilabel> dialog you can specify a printing command to
+	  be used or (if <guilabel moreinfo="none">Print to file</guilabel> is checked) a filename of the
+	  destination file.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  You can also specify a media-type (paper format)
+	  (<guilabel moreinfo="none">Media</guilabel> roll-out menu), page
+	  width and height (in case of <literal moreinfo="none">User</literal>
+	  media-type), and horizontal and vertical margins.
+	  If the printed tree exceeds specified page
+	  boundaries, it is automatically shanked and/or
+	  (unless <guilabel moreinfo="none">Disable landscape rotation of wide
+	    trees</guilabel> is selected) rotated to fit on the
+	  page. See <link linkend="psmedia"><literal moreinfo="none">PSMedia</literal></link>
+	  configuration option for a list of supported media
+	  formats.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  The output format is specified by
+	  selecting one of <guilabel moreinfo="none">Create PostScript</guilabel>,
+	  <guilabel moreinfo="none">Create EPS</guilabel>, <guilabel moreinfo="none">Create
+	    PDF</guilabel> and  <guilabel moreinfo="none">Convert according to
+	    ImageMagick</guilabel> buttons.
+	</para>
+      </listitem>
+      <listitem>
+	<para>If <ulink url="http://www.imagemagick.org">ImageMagick</ulink>
+	  utilities are installed on the system running TrEd,
+	  then automatic conversion to one of many image formats
+	  is supported. To use it, first check the
+	  <guilabel moreinfo="none">Convert according to file
+	    extension</guilabel> button, then select a desired
+	  pixel resolution for conversion to bitmap, and finally
+	  edit the filename giving it the usual extension of the
+	  desired output file-format such as
+	  <filename moreinfo="none">.png</filename> or
+	  <filename moreinfo="none">.jpg</filename>.  When converting to bitmap,
+	  <guilabel moreinfo="none">Resolution</guilabel> may be specified to
+	  adjust the mapping between PostScript coordinate
+	  system units (given in 1/72 inch) to raster pixels.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  To print the <quote>sentence</quote> together with
+	  the tree, check the <guilabel moreinfo="none">Print
+	    sentence</guilabel> button. A
+	  <quote>sentence</quote> is actually a chain
+	  consisting of
+	  values of the value-attributes
+	  (i.e. <literal moreinfo="none">@V</literal> attributes in FS format)
+	  of all nodes in the tree.
+	</para>
+      </listitem>
+      <listitem>
+	<para>
+	  It is possible to print more than one tree (each
+	  tree on a separate page).  To do so, a comma-separated list of
+	  tree numbers or ranges of tree numbers, that correspond to the
+	  desired trees in the active file, must be entered
+	  into the <guilabel moreinfo="none">Page range</guilabel> field.  The
+	  <inlinemediaobject><imageobject><imagedata fileref="pics/1rigtharrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> button may be
+	  used to automatically insert a page range
+	  corresponding to sentences selected via <link linkend="list_of_sentences"><menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">List of
+		sentences...</guimenuitem> </menuchoice></link>. A
+	  different selection based on
+	  <quote>sentences</quote> can be made by pressing the
+	  <inlinemediaobject><imageobject><imagedata fileref="pics/contents.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/contents.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/contents" format="linespecific"/></imageobject></inlinemediaobject> button.
+	</para>
+      </listitem>
+      <listitem>
+	<para id="page_range">
+	  If entered manually, the page range must be
+	  specified according to following rules:  First tree
+	  in the file has number 1, second has number 2,
+	  etc. Ranges are pairs of numbers like
+	  <quote><literal moreinfo="none">3-20</literal></quote> which covers
+	  all trees starting from the tree no. 3 to no. 20.
+	  If the first number in the range is omitted, 1 is
+	  assumed. If the second number in the range is
+	  ommited, the number of the last tree in the active
+	  file is assumed.  The order of the trees given in
+	  the list is preserved and also, one tree may be
+	  printed more than once.
+	  <note>
+	    <title>Example:</title>
+	    <para>
+	      To print trees from 1 to 5, then trees no. 7, 11, 12 and 5
+	      again, use e.g. one of the following lists:
+	      <simplelist type="vert">
+		<member><literal moreinfo="none">1-5,7,11,12,5</literal></member>
+		<member><literal moreinfo="none">1-5,7,11-12,5</literal></member>
+		<member><literal moreinfo="none">-5,7,11-12,5</literal></member>
+	      </simplelist>
+	    </para>
+	  </note>
+	</para>
+
+  </section>
+  
+
   <section id="filelists">
     <title>Using File-Lists</title>
     <para>
@@ -2758,7 +2886,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      <replaceable>n</replaceable>'th custom color use
 	      the sequence
 	      <literal moreinfo="none">#{custom<replaceable>n</replaceable>}</literal>
-	      in the pattern. For more information see <xref linkend="attributes"/>.
+	      in the pattern. For more information see <xref linkend="stylesheets"/>.
 	      See also the <link linkend="allowcustomcolors"><literal moreinfo="none">AllowCustomColors</literal></link>
 	      option which can be used to enable or disable the actual
 	      use of the custom colors.
@@ -3154,7 +3282,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      that mouse pointer needs to linger over a node 
 	      before the hint for the node is displayed. 
 	      The value is to be given in
-	      milliseconds.  See <xref linkend="attributes"/> for more
+	      milliseconds.  See <xref linkend="stylesheets"/> for more
 	      information about defining the content of the hints.
 	    </para>
 	  </listitem>
@@ -3168,7 +3296,7 @@ root# <userinput moreinfo="none">make install</userinput>
 	      button (or other widget with a tool-tip)
 	      before a tool-tip is displayed. 
 	      The value is to be given in
-	      milliseconds.  See <xref linkend="attributes"/> for more
+	      milliseconds.  See <xref linkend="stylesheets"/> for more
 	      information about defining the content of the hints.
 	    </para>
 	  </listitem>
@@ -3255,6 +3383,23 @@ root# <userinput moreinfo="none">make install</userinput>
 	  <listitem>
 	    <para><application moreinfo="none">TrEd</application>'s desktop and window
 	      icon (in <literal moreinfo="none">XPM</literal> format).</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="stippleinactivewindows">
+	  <term>StippleInactiveWindows</term>
+	  <listitem>
+	    <para>
+	      If set to <literal>1</literal>, inactive views are
+	      covered with a semi-transparent stipple pattern. This
+	      may improve orientation if working with more than one
+	      view, but also slightly reduces the clarity of trees
+	      displayed in the inactive views. This option can also be
+	      controlled in run-time using
+	      <menuchoice>
+		<guimenu>View</guimenu>
+		<guimenuitem>Stipple Inactive Views</guimenuitem>
+	      </menuchoice>.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -4280,7 +4425,7 @@ Property        Type    Description
 	    and displays the first tree in the file
 	    the root of which is assigned <literal moreinfo="none">#N</literal> as a value
 	    of the attribute <literal moreinfo="none">form</literal> (this feature works only for
-	    FS-files of <productname class="trade">The Prague Dependency Treebank</productname>).
+	    FS-files of <productname>The Prague Dependency Treebank</productname>).
 	  </para>
 	</listitem>
       </varlistentry>
