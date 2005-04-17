@@ -580,8 +580,18 @@ sub startMain {
 	  my $old_stdout = _redirect_stdout($macro_stdout);
 	  my $old_stderr = _redirect_stderr($macro_stderr);
 
-	  chomp $request{STATE_ENCODING};
+	  for (qw(ENCODING Strip-suffix Strip-prefix Prefix Suffix)) {
+	    if (exists $request{"STATE_".$_}) {
+	      $request{"STATE_".$_} =~ s/[\n\r]+$//;
+	    }
+	  }
+
 	  local $term_encoding=$request{STATE_ENCODING} if ($request{STATE_ENCODING});
+	  local $strip_prefix=$request{"STATE_Strip-prefix"} if exists $request{"STATE_Strip-prefix"};
+	  local $strip_suffix=$request{"STATE_Strip-suffix"} if exists $request{"STATE_Strip-suffix"};
+	  local $add_prefix=$request{"STATE_Prefix"} if exists $request{"STATE_Prefix"};
+	  local $append_suffix=$request{"STATE_Suffix"} if exists $request{"STATE_Suffix"};
+
 	  _set_encoding(\*STDOUT,$term_encoding);
 	  _set_encoding(\*STDERR,$term_encoding);
 
