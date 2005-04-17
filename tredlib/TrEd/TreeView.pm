@@ -1082,7 +1082,7 @@ sub redraw {
     $self->apply_style_opts(
 			    $canvas->
 			    createLine(0,$self->{canvasHeight},
-				       $self->getTextWidth($ftext),
+				       ($self->getTextWidth($ftext) || 0),
 				       $self->{canvasHeight}),
 			    @{$Opts{SentenceLine}});
     $self->{canvasHeight}+=$fontHeight;
