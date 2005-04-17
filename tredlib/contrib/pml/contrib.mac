@@ -1,0 +1,16 @@
+#ifndef pml
+#define pml
+
+#binding-context PML_A_View
+#include "PML_A_View.mak"
+
+#binding-context PML_A_Edit
+#include "PML_A_Edit.mak"
+
+#binding-context PML_T_View
+#include "PML_T_View.mak"
+
+#binding-context PML_T_Edit
+#include "PML_T_Edit.mak"
+
+#endif pml

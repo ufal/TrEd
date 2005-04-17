@@ -1,0 +1,42 @@
+#ifndef pdt10_t
+#define pdt10_t
+
+# Pre-requisities:
+
+#include <contrib/pdt10_a/contrib.mac>
+#include <contrib/tfa/contrib.mac>
+
+# Provide:
+
+#include "pdt.mak"
+
+#binding-context Tectogrammatic
+#include "tr.mak"
+
+#binding-context Coref
+#include "tr_coref_common.mak"
+
+#binding-context TR_Correction
+#key-binding-adopt TFA Tectogrammatic
+#menu-binding-adopt Coref TFA Tectogrammatic
+#include "tr_opravy.mak"
+
+#binding-context TR_FrameValidation
+#key-binding-adopt TR_Correction
+#include "tr_frame_validation.mak"
+
+#binding-context TR_CPHR
+#key-binding-adopt Tectogrammatic
+#key-binding-adopt Coref
+#include "tr_cphr.mak"
+
+#binding-context TR_Diff
+#include "trdiff.mak"
+
+#binding-context Quotation
+#include "tr_quotation_common.mak"
+
+#binding-context TREdit
+#include "edit.mak"
+
+#endif pdt10_t

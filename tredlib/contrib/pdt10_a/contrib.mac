@@ -1,0 +1,11 @@
+#ifndef pdt10_a
+#define pdt10_a
+
+#binding-context Analytic
+#include "ar.mak"
+
+#binding-context Analytic_Correction
+#key-binding-adopt Analytic
+#include "a_opravy.mak"
+
+#endif pdt10_a
