@@ -1,17 +1,18 @@
 package CSTS_SGML_SP_Backend;
 
+use Fslib;
 use IOBackend qw(set_encoding);
 use Csts2fs;
 use Fs2csts;
 
-use vars qw($sgmls $sgmlsopts $doctype);
+use vars qw($sgmls $sgmlsopts $doctype $csts_encoding);
 
 sub default_settings {
   $sgmls = "nsgmls" unless $sgmls;
   $sgmlsopts = "-i preserve.gen.entities" unless $sgmlsopts;
-  $doctype = "csts.doctype" unless $doctype;
-
+  $doctype = Fslib::FindInResources("csts.doctype") unless $doctype;
   $sgmls_command='%s %o %d %f' unless $sgmls_command;
+  $csts_encoding = 'iso-8859-2'; # this the encoding of CSTS by definition
 }
 
 =item open_backend (filename,mode, encoding?)
@@ -29,7 +30,7 @@ encoding.
 sub open_backend {
   my ($filename, $mode, $encoding)=@_;
   if ($mode eq 'w') {
-    return IOBackend::open_backend($filename,$mode,$encoding);
+    return IOBackend::open_backend($filename,$mode,$csts_encoding);
   } elsif ($mode eq 'r') {
     my $fh = undef;
     my $cmd = $sgmls_command;
@@ -40,7 +41,7 @@ sub open_backend {
     $cmd=~s/\%f/-/g;
     print STDERR "[r $cmd]\n"; # if $Fslib::Debug;
     no integer;
-    $fh = set_encoding(IOBackend::open_pipe($filename,'r',$cmd),$encoding);
+    $fh = set_encoding(IOBackend::open_pipe($filename,'r',$cmd),$csts_encoding);
   } else {
     die "unknown mode $mode\n";
   }

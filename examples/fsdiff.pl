@@ -186,7 +186,6 @@ sub align_other {
 
 #require CSTS_SGML_SP_Backend;
 @backends=('FSBackend',ImportBackends(qw(TrXMLBackend CSTS_SGML_SP_Backend)));
-$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 $opt_R && Csts2fs::setupTR();
 $Fslib::Debug=$opt_D;
 

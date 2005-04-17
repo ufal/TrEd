@@ -3,7 +3,7 @@
 #
 ################################################################################
 $version='$Revision$ ';
-$timestamp="Time-stamp: <2005-03-15 17:53:55 pajas>";
+$timestamp="Time-stamp: <2005-04-18 01:15:05 pajas>";
 $about=
   "Copyright (c) 2001 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -189,7 +189,6 @@ require TrEd::Print;
 
 #load back-ends
 @backends=('FSBackend',ImportBackends(qw(NTREDBackend AG2FS TrXMLBackend TEIXMLBackend CSTS_SGML_SP_Backend StorableBackend)));
-$CSTS_SGML_SP_Backend::doctype = "$libDir/csts.doctype";
 
 if ($useCzechLocales) {
   use locale;

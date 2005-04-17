@@ -321,8 +321,6 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 @backends=('FSBackend',ImportBackends(split(/,/,$opt_B),
 				      qw/NTREDBackend PMLBackend CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend AG2FS/
 				     ));
-# CSTSBackend not used any more
-#$CSTS_SGML_SP_Backend::doctype= "$libDir/csts.doctype";
 
 require Filelist;
 
