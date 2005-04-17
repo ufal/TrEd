@@ -1626,6 +1626,11 @@ sub clone {
 			   patterns => [ $self->patterns() ],
 			   tail => $self->tail
 			  );
+  # clone metadata
+  if (ref($self->[13])) {
+    my $val;
+    $new->[13] = eval Data::Dumper->new([$self->[13]],['val'])->Purity(1)->Dump;
+  }
   if ($deep) {
     @{$new->treeList} = map { $fs->clone_subtree($_) } $self->trees();
   }
@@ -1853,11 +1858,11 @@ sub writeFile {
   eval {
     no strict 'refs';
     my $fh;
-    $ret=( $backend->can('write')
-       and $backend->can('open_backend')
-       and ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding))
-       and &{"${backend}::write"}($fh,$self)
-       and &{"${backend}::close_backend"}($fh));
+    $ret=$backend->can('write') || die "cant write\n";
+    $backend->can('open_backend') || die "cant open\n";
+    ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding)) || die "cant do open\n";
+    &{"${backend}::write"}($fh,$self) || die "can't do write\n";
+    &{"${backend}::close_backend"}($fh) || die "can't close\n";
     print STDERR "Status: $ret\n" if $Fslib::Debug;
   };
   if ($@) {
