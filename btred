@@ -1556,16 +1556,33 @@ sub init_tredmacro {
 }
 
 
+sub packages_under {
+  my ($base)=@_;
+  no strict qw(refs);
+  my @pkgs = ($base.'::');
+  my %pkgs = map { $_ => 1 } @pkgs;
+  for (my $i=0; $i<=$#pkgs;$i++) {
+    foreach (keys %{$pkgs[$i]}) {
+      next if $_ eq 'main::';
+      if (/::$/ and !exists($pkgs{$pkgs[$i].$_})) {
+	push @pkgs,$pkgs[$i].$_;
+	$pkgs{ $pkgs[$i].$_ }=1;
+      }
+    }
+  }
+  return keys %pkgs;
+}
+
 sub cleanup_tredmacro {
   my ($grp,@macros)=@_;
   $TrEd::Macros::macrosEvaluated=0;
   # cleanup
-
   my %packages;
   @packages { ('TredMacro',
 	       grep {/\S/} grep { !/^main$|^TrEd::/ }
 	       map  { (/^package\s+([^;\s]+)\s*;/) } (@TrEd::Macros::macros,@macros))
 	    } = ();
+
   if ($safe) {
     if ($TrEd::Macros::safeCompartment) {
       $TrEd::Macros::safeCompartment->reval(<<'EOF');
@@ -1577,18 +1594,7 @@ EOF
       _msg($@) if $@;
       no strict qw(refs);
 
-      my @pkgs = ('TredMacroCompartment::', 
-		  map { 'TredMacroCompartment::'.$_.'::' } keys %packages );
-      my %pkgs = map { $_ => 1 } @pkgs;
-      for (my $i=0; $i<=$#pkgs;$i++) {
-	foreach (keys %{$pkgs[$i]}) {
-	  next if $_ eq 'main::';
-	  if (/::$/ and !exists($pkgs{$pkgs[$i].$_})) {
-	    push @pkgs,$pkgs[$i].$_;
-	    $pkgs{ $pkgs[$i].$_ }=1;
-	  }
-	}
-      }
+      my @pkgs = packages_under('TredMacroCompartment');
       foreach my $package (sort { length($b)<=>length($a) } @pkgs) {
 	$_ERR->flush();
 	%{$package}=();
@@ -1600,6 +1606,16 @@ EOF
     undef %{main::TredMacroCompartment::TredMacro};
     undef %{main::TredMacroCompartment::};
   } else {
+    # prune also all packages based on TredMacro:
+    foreach my $pkg ( grep { !exists($packages{$_}) and UNIVERSAL::isa($_,'TredMacro') }
+			map { /^::(.+)\:\:$/ ? $1 : () } packages_under('') ) {
+      my $pkg_file = $pkg;
+      $pkg_file =~ s{::}{/}g;
+      $pkg_file .= '.pm';
+      _msg "Discovered non-#included TredMacro-based package: ".$pkg."\n";
+      _msg "Trying to un-require the module: ".(delete $INC{$pkg_file})."\n";
+      $packages{$pkg}=undef;
+    }
     foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
       no strict qw(refs);
       _msg("Cleaning package $package\n");
