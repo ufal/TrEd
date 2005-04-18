@@ -1033,7 +1033,7 @@ sub NewNode{
 
 Open a window with a list of possible valency frames for a given node,
 highlighting frames currently assigned to the node. All given options
-are passed to the approporiate Vallex::GUI method. Most commonly used are
+are passed to the approporiate ValLex::GUI method. Most commonly used are
 C<-no_assign =E<gt> 1> to suppress the Assign button,
 C<-assign_func =E<gt> sub { my ($node,$frame_ids,$frame_text)=@_; ... }>
 to specify a custom code for assigning the selected frame_ids to a node,
@@ -1048,13 +1048,13 @@ sub OpenValFrameList {
   my $node = shift || $this;
   my %opts = @_;
 
-  $Vallex::GUI::frameid_attr="val_frame.rf";
-  $Vallex::GUI::lemma_attr="t_lemma";
-  $Vallex::GUI::framere_attr=undef;
-  $Vallex::GUI::sempos_attr="gram/sempos";
+  $ValLex::GUI::frameid_attr="val_frame.rf";
+  $ValLex::GUI::lemma_attr="t_lemma";
+  $ValLex::GUI::framere_attr=undef;
+  $ValLex::GUI::sempos_attr="gram/sempos";
   my $refid = FileMetaData('refnames')->{vallex};
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
-  Vallex::GUI::ChooseFrame(
+  ValLex::GUI::ChooseFrame(
     -lemma => $node ? $node->{t_lemma} : undef,
     -sempos => $node ? $node->{gram}{sempos} : undef,
     -frameid => $rf,
@@ -1067,7 +1067,7 @@ sub OpenValFrameList {
 =item OpenValLexicon(options...)
 
 Open valency lexicon editor/browser GUI. All given options are passed
-to the approporiate Vallex::GUI method. Most commonly used are C<-lemma>
+to the approporiate ValLex::GUI method. Most commonly used are C<-lemma>
 and C<-pos> to override t_lemma and sempos of the node and C<-frameid>
 to frames currently assigned to the node.
 
@@ -1078,13 +1078,13 @@ sub OpenValLexicon {
   my $node = shift || $this;
   my %opts = @_;
 
-  $Vallex::GUI::frameid_attr="val_frame.rf";
-  $Vallex::GUI::lemma_attr="t_lemma";
-  $Vallex::GUI::framere_attr=undef;
-  $Vallex::GUI::sempos_attr="gram/sempos";
+  $ValLex::GUI::frameid_attr="val_frame.rf";
+  $ValLex::GUI::lemma_attr="t_lemma";
+  $ValLex::GUI::framere_attr=undef;
+  $ValLex::GUI::sempos_attr="gram/sempos";
   my $refid = FileMetaData('refnames')->{vallex};
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
-  Vallex::GUI::OpenEditor(
+  ValLex::GUI::OpenEditor(
     -lemma => $node ? $node->{t_lemma} : undef,
     -sempos => $node ? $node->{gram}{sempos} : undef,
     -frameid => $rf,
@@ -1099,7 +1099,7 @@ sub ShowAssignedValFrames {
   my %opts = @_;
   my $refid = FileMetaData('refnames')->{vallex};
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
-  Vallex::GUI::ShowFrames(-frameid => $rf);
+  ValLex::GUI::ShowFrames(-frameid => $rf);
   ChangingFile(0);
 }
 
