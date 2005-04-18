@@ -196,17 +196,25 @@ Return current filename, index of a tree (starting from 1) in the file
 to which the node belongs (0 if not found) and node's position in the tree
 in the deep-first tee ordering.
 </para>
-</listitem></varlistentry><varlistentry><term><literal>ThisAddress()</literal></term><listitem>
+</listitem></varlistentry><varlistentry><term><literal>ThisAddress(node?)</literal></term><listitem>
 <para>
 Return current node's address string in a form of filename#tree_no.index
 (tree_no starts from 1 to reflect TrEd's UI convention).
 </para>
-</listitem></varlistentry><varlistentry><term><literal>ThisAddressNTRED()</literal></term><listitem>
+</listitem></varlistentry><varlistentry><term><literal>ThisAddressNTRED(node?)</literal></term><listitem>
 <para>
 Return current node's address string in a form of
 ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
 TrEd's UI convention). This address may be opened in TrEd to examine
 the tree in memory of a remote btred server.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>FPosition(node?)</literal></term><listitem>
+<para>
+Prints the result of <literal>ThisAddress</literal> on stdout.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>NPosition(node?)</literal></term><listitem>
+<para>
+Prints the result of <literal>ThisAddressNTRED</literal> on stdout.
 </para>
 </listitem></varlistentry></variablelist>
 </section>
@@ -896,8 +904,11 @@ Display TrEd's standard print dialog. Possible options are:
 Print trees given from current file according to given printing options:
 </para>
 <para>
-<literal>-command</literal>, <literal>-toFile</literal>, <literal>-filename</literal>, <literal>-format</literal>, <literal>-noRotate</literal>, <literal>-sentenceInfo</literal> <literal>-imageMagickResolution</literal>, <literal>-colors</literal>, <literal>-hidden</literal>, <literal>-psFontFile</literal>, <literal>-psFontAFMFile</literal>, <literal>-ttFont</literal>, <literal>-fontSize</literal>,
-<literal>-fmtWidth</literal>, <literal>-hMargin</literal>, <literal>-fmtHeight</literal>, <literal>-vMargin</literal>, <literal>-maximize</literal>, <literal>-psMedia</literal>
+<literal>-range</literal>, <literal>-command</literal>, <literal>-toFile</literal>, <literal>-filename</literal>, <literal>-format</literal>,
+<literal>-noRotate</literal>, <literal>-sentenceInfo</literal> <literal>-imageMagickResolution</literal>, <literal>-colors</literal>,
+<literal>-hidden</literal>, <literal>-psFontFile</literal>, <literal>-psFontAFMFile</literal>, <literal>-ttFont</literal>,
+<literal>-fontSize</literal>, <literal>-fmtWidth</literal>, <literal>-hMargin</literal>, <literal>-fmtHeight</literal>, <literal>-vMargin</literal>,
+<literal>-maximize</literal>, <literal>-psMedia</literal>
 </para>
 </listitem></varlistentry></variablelist>
 </section>
