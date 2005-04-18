@@ -535,12 +535,10 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Print ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Opens the Print Dialog. See <xref linkend="printing"> for
+	      Opens the Print Dialog. See <xref linkend="printing"/> for
 	      a detailed information.
 	    </para>
 	  </listitem>
-	</itemizedlist>
-	</listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Edit config ...</guimenuitem></term>
@@ -598,7 +596,7 @@ Tk: 804.027
 	      editor or in an another running instance of
 	      <application moreinfo="none">TrEd</application>.
 	      For more information about stylesheets,
-	      see <xref linkend="stylesheets">.
+	      see <xref linkend="stylesheets"/>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -682,7 +680,7 @@ Tk: 804.027
 	      description</ulink> to learn about how to specify which
 	      attributes are highlighted. In general, it is better to
 	      avoid this approach of changing tree appearance in favor
-	      of stylesheets (see <xref linkend="stylesheets">).
+	      of stylesheets (see <xref linkend="stylesheets"/>).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -757,7 +755,7 @@ Tk: 804.027
 	      e.g.  using a <link
 	      linkend="get_value_line_hook"><literal>get_value_line_hook</literal></link>
 	      or the <literal>text:</literal> stylesheet pattern (see
-	      <xref linkend="stylesheets">), or as a concatenation of
+	      <xref linkend="stylesheets"/>), or as a concatenation of
 	      special attribute values (i.e. attributes declared
 	      as <literal moreinfo="none">@V</literal> in the FS format).
 	    </para>
@@ -2588,7 +2586,8 @@ Tk: 804.027
 	    </para>
 	  </note>
 	</para>
-
+      </listitem>
+    </itemizedlist>
   </section>
   
 
