@@ -1,5 +1,5 @@
-Instalation of TrEd ver. 0.5
-============================
+Instalation of TrEd
+===================
 
 This text describes installation of tred under Linux or any other
 UN*X-like system.
@@ -7,8 +7,8 @@ UN*X-like system.
 
 REQUIRES
 --------
-  perl 5.6.1              (>= 5.8.5 recommended)
-  perl/Tk ver. >= 800.025 (804.x recommended)
+  perl >=5.8   (at least 5.8.5 recommended for various reasons)
+  perl/Tk ver. >= 804
 
 INSTALLATION
 ------------
