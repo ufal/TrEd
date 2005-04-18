@@ -14,7 +14,7 @@
 #encoding iso-8859-2
 
 #include <contrib/vallex/contrib.mac>
-import Vallex::GUI;
+import ValLex::GUI;
 
 #include <contrib/auto_func/AFA.mak>
 #include <contrib/vallex/ValLex/adverb.mak>
@@ -102,18 +102,18 @@ sub open_editor {
   shift unless @_ and ref($_[0]);
   my $node = shift || $this || {};
   my %opts = @_;
-  $Vallex::GUI::frameid_attr="frameid";
-  $Vallex::GUI::lemma_attr="t_lemma";
-  $Vallex::GUI::framere_attr="framere";
-  $Vallex::GUI::sempos_attr="g_wordclass";
-  Vallex::GUI::OpenEditor(
+  $ValLex::GUI::frameid_attr="frameid";
+  $ValLex::GUI::lemma_attr="t_lemma";
+  $ValLex::GUI::framere_attr="framere";
+  $ValLex::GUI::sempos_attr="g_wordclass";
+  ValLex::GUI::OpenEditor(
     -lemma => $node->{t_lemma},
     -sempos => $node->{g_wordclass},
     -frameid => $node->{frameid},
     -bindings => {
-      '<F5>' => [\&Vallex::GUI::copy_verb_frame,$grp->{framegroup}],
-      '<F7>' => [\&Vallex::GUI::create_default_subst_frame,$grp->{framegroup}],
-      '<F3>' => [\&Vallex::GUI::open_frame_instance_in_tred,$grp->{framegroup}]
+      '<F5>' => [\&ValLex::GUI::copy_verb_frame,$grp->{framegroup}],
+      '<F7>' => [\&ValLex::GUI::create_default_subst_frame,$grp->{framegroup}],
+      '<F3>' => [\&ValLex::GUI::open_frame_instance_in_tred,$grp->{framegroup}]
      },
     %opts
    )
@@ -124,11 +124,11 @@ sub choose_frame {
   my $node = shift || $this;
   my %opts = @_;
   my ($morph_pos) = $node->{tag}=~/^(.)/;
-  $Vallex::GUI::frameid_attr="frameid";
-  $Vallex::GUI::lemma_attr="t_lemma";
-  $Vallex::GUI::framere_attr="framere";
-  $Vallex::GUI::sempos_attr="g_wordclass";
-  Vallex::GUI::ChooseFrame(
+  $ValLex::GUI::frameid_attr="frameid";
+  $ValLex::GUI::lemma_attr="t_lemma";
+  $ValLex::GUI::framere_attr="framere";
+  $ValLex::GUI::sempos_attr="g_wordclass";
+  ValLex::GUI::ChooseFrame(
     -morph_lemma => $node->{lemma},
     -morph_pos => $1,
     -lemma => $node->{t_lemma},

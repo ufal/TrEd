@@ -25,7 +25,7 @@ $V_backend = 'JHXML';
 #$V_backend = 'LibXML';
 
 $V_module = 'ValLex::Extended'.$V_backend;
-*V = \$Vallex::GUI::ValencyLexicon;
+*V = \$ValLex::GUI::ValencyLexicon;
 
 sub init_vallex {
   $TrEd::ValLex::Editor::reviewer_can_modify=1;
@@ -36,15 +36,15 @@ sub init_vallex {
     eval "require ${V_module}"; die $@ if $@;
 #ifdef TRED
     require TrEd::CPConvert;
-#    $Vallex::GUI::vallex_file = $V_vallex;
-    $Vallex::GUI::vallex_validate = 1;
-    $Vallex::GUI::XMLDataClass = $tredmodule;
-    $Vallex::GUI::frameid_attr="frameid";
-    $Vallex::GUI::framere_attr="framere";
+#    $ValLex::GUI::vallex_file = $V_vallex;
+    $ValLex::GUI::vallex_validate = 1;
+    $ValLex::GUI::XMLDataClass = $tredmodule;
+    $ValLex::GUI::frameid_attr="frameid";
+    $ValLex::GUI::framere_attr="framere";
 
-    Vallex::GUI::init_XMLDataClass();
-    Vallex::GUI::init_ValencyLexicon() || return;
-#    $V=$Vallex::GUI::ValencyLexicon;
+    ValLex::GUI::init_XMLDataClass();
+    ValLex::GUI::init_ValencyLexicon() || return;
+#    $V=$ValLex::GUI::ValencyLexicon;
 #else
 #    my $V_vallex = "$libDir/contrib/ValLex/vallex.xml";
     my $V_vallex = $ENV{VALLEX};
