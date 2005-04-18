@@ -1,6 +1,7 @@
 # -*- cperl -*-
 
-package Vallex::GUI;
+package ValLex::GUI;
+use base qw(TredMacro);
 import TredMacro;
 use lib "$main::libDir/contrib/vallex";
 use utf8;

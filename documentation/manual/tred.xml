@@ -748,7 +748,7 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">List of sentences ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Display a window containing a list of all
+	      Display a window containing a list of
 	      <quote>sentences</quote> of all trees in a current
 	      file. These <quote>sentences</quote> are computed in the
 	      same way as the content of the text line above the tree,
@@ -757,27 +757,55 @@ Tk: 804.027
 	      or the <literal>text:</literal> stylesheet pattern (see
 	      <xref linkend="stylesheets"/>), or as a concatenation of
 	      special attribute values (i.e. attributes declared
-	      as <literal moreinfo="none">@V</literal> in the FS format).
-	    </para>
-	    <para>The <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject>
-	      button may be used to display the corresponding sentence
-	      in the current TrEd view.</para> <para>The
-	      <inlinemediaobject><imageobject><imagedata fileref="pics/gray_belly3.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3" format="linespecific"/></imageobject></inlinemediaobject>
-	      button may be used to select a sentence.
-	      Selected sentences may be later inserted to tree
+	      as <literal moreinfo="none">@V</literal> in the FS
+	      format).
+	      In the list, buttons <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject>
+	      display the corresponding sentence in the current TrEd view.
+	      Buttons <inlinemediaobject><imageobject><imagedata fileref="pics/gray_belly3.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3" format="linespecific"/></imageobject></inlinemediaobject>
+	      are used to select sentences. Selected sentences may be later inserted to tree
 	      selection fields, e.g. in the <link linkend="print_command">Print dialog</link> and
 	      in the <link linkend="copytrees_command">Copy trees
-	      dialog</link>, by pressing the <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> button.
+	      dialog</link>, by pressing the button <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject>
+		<textobject>with an arrow</textobject>
+	      </inlinemediaobject>.
 	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><guimenuitem moreinfo="none">Customize tree appearance</guimenuitem></term>
+	  <term><guimenuitem moreinfo="none">Select context ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Open a dialog box in which the user can select the
-	      attributes that should be displayed and modify the way
-	      the tree is presented. See <xref linkend="stylesheets"/> for more detail.
+	      Open a dialog window where the user can select a binding
+	      context. Binding contexts are groups of user defined
+	      macro-bindings, usually identified with macro
+	      packages. See also <xref linkend="macros"/>.  The
+	      current context can also be selected from the first list
+	      in the top right corner of the main window, but this
+	      makes changing contexts fully keyboard accessible.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Select stylesheet ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Open a dialog window where the user can select a display
+	      stylesheet. See <xref linkend="stylesheet"/>.  A
+	      stylesheet can also be selected from the second list in
+	      the top right corner of the main window, but this
+	      menu makes changing stylesheets fully keyboard accessible.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Edit stylesheet ...</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      Open a dialog box with a stylesheet editor for the
+	      currently selected stylesheet. A styleseet defines which
+	      attributes should be displayed and defines the tree's
+	      overall appearance. See <xref linkend="stylesheets"/>
+	      for more detail.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -2588,6 +2616,47 @@ Tk: 804.027
 	</para>
       </listitem>
     </itemizedlist>
+    <note>
+      <para>
+	Printing trees can also be automated by writing a suitable
+	macro. For this purpose, TrEd API offers the function
+	<literal>Print</literal> (see <xref
+	linkend="defaultmacros"/>). This function however requires
+	TrEd GUI, i.e. it cannot be run in <command>btred</command>.
+      </para>
+      <example>
+	<title>Printing trees from a user-defined macro</title>
+	<programlisting>
+	  <![CDATA[
+# bind key p to CreateImages menu Create bitmap images of all trees
+sub CreateImages {
+   GotoTree(1);
+   my $tree_no = 1;
+   my $name = FileName();
+   $name =~ s/\..*//; # strip filename suffix
+   do {{
+      TredMacro::Print(
+	 -toFile => 1,
+	 -format => 'ImageMagick',
+	 -imageMagickResolution => 90,
+	 -colors => 1,
+	 -sentenceInfo => 1,
+	 -filename => "${name}_${tree_no}.png"
+       );
+      $tree_no++;
+   }} while NextTree();
+}	  
+]]>
+
+	</programlisting>
+      </example>
+      <para>
+
+	
+	
+	
+      </para>
+    </note>
   </section>
   
 
