@@ -621,12 +621,12 @@ if (defined($init) || defined($kill) || defined($break)) {
 
   # ---------- composing and testing the request -----------
 
-  if ($macro_file) {
+  if ($macro_file || $include_macro) {
     #msg("Reading macros from $macro_file ...\n");
     $TrEd::Macros::defaultMacroFile='/dev/null'; # don't read this one
     #$TrEd::Config::macroDebug=1;
     TrEd::Macros::read_macros($macro_file,$libDir) if $macro_file; # read macros
-    TrEd::Macros::read_macros($include_macro,$libDir,) if $include_macro; # read macros
+    TrEd::Macros::read_macros($include_macro,$libDir) if $include_macro; # read macros
     #msg("done.\n");
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
