@@ -2648,7 +2648,7 @@ non-emulation mode.
 
 =cut
 
-$emulatePML=1;
+$emulatePML=0;
 
 
 =item test (filehandle | filename, encoding?)
@@ -3118,7 +3118,7 @@ sub new {
   require XML::Simple;
   bless
     XML::Simple::XMLin($string,
-	  ForceArray=>[ 'member', 'element', 'attribute', 'value', 'reference' ],
+	  ForceArray=>[ 'member', 'element', 'attribute', 'value', 'reference', 'type' ],
 	  KeyAttr => { "member"    => "-name",
 		       "attribute" => "-name",
 		       "element"   => "-name",
