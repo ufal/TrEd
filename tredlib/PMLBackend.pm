@@ -236,6 +236,7 @@ sub read_Alt ($) {
 
 sub resolve_type ($$) {
   my ($types,$type)=@_;
+  use Data::Dumper;
   return $type unless ref($type);
   if ($type->{type}) {
     my $rtype = $types->{$type->{type}};
@@ -341,7 +342,7 @@ sub read_node ($$$;$) {
   my ($node,$fsfile,$types,$type) = @_;
   my $defs = $fsfile->FS->defs;
   unless (ref($type)) {
-    die "Unknown node type: $type\n";
+    die "Schema implies unknown node type: '$type' for node "._element_address($node)."\n";
   }
 
   if ($type->{cdata}) {
@@ -956,9 +957,9 @@ sub test {
     local $_;
     1 while ($_=$f->getline() and !/\S/);
     return 0 unless (/^\s*<\?xml\s/);
-    return 1 if /<[atxmw]data/;
+    return 1 if /<[atxm]data/;
     1 while ($_=$f->getline() and !/\S/);
-    return (/<[atxmw]data/) ? 1 : 0;
+    return (/<[atxm]data/) ? 1 : 0;
   } else {
     my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh,$encoding);
