@@ -11,15 +11,6 @@
 
 PATH=.:`pwd`/bin:${PATH}
 
-packages_ap58=packages58_win32
-packages_ap56=packages56_win32
-PACKAGES56=`cat $packages_ap56/packages_list | sed s/-/::/`;
-PACKAGES58=`cat $packages_ap58/packages_list | sed s/-/::/`;
-
-#"Text::Iconv XML::JHXML Tie::IxHash XML::SAX::Base XML::NamespaceSupport XML::SAX XML::Filter::BufferText XML::NodeFilter XML::Simple XML::LibXML::Common XML::LibXML XML::LibXML::Iterator XML::LibXSLT"
-
-#"Tk Text::Iconv XML::JHXML Tie::IxHash XML::SAX::Base XML::NamespaceSupport XML::SAX XML::Filter::BufferText XML::NodeFilter XML::Writer XML::Simple XML::LibXML::Common XML::LibXML XML::LibXML::Iterator XML::LibXSLT"
-
 function debug {
   echo $@
 }
@@ -46,12 +37,17 @@ EOF
   esac
 done
 
+
 . "winsetup_${INSTLANG}.msg" || exit 1
 
 if [[ "$INSTPERLVER" = 6 ]]; then
   REQPERLVER="[68]"
   REQPERLINSTDIR=win32_perl56
+  packages_ap56=packages56_win32
+  PACKAGES56="$PACKAGES56 $(cat $packages_ap56/packages_list | sed s/-/::/)"
 else
+  packages_ap58=packages58_win32
+  PACKAGES58="$PACKAGES58 $(cat $packages_ap58/packages_list | sed s/-/::/)"
   REQPERLVER=8
   REQPERLINSTDIR=win32_perl58
 fi
@@ -371,7 +367,6 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
 
     # change tredrc to read-only so that users have to create
     # their own copy
-    echo attrib +R "${TREDDIR}/tredlib/tredrc"
     attrib +R "${TREDDIR}/tredlib/tredrc"
 
     echo $MSG038
