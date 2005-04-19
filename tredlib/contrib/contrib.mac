@@ -25,13 +25,13 @@ sub file_opened_hook {
       return SwitchContext('PML_A_View');
 #endif pml
 #ifdef transf
-    } elsif (exists($grp->{FSFile}->FS->defs->{x_TNT})
+    } elsif ($grp->{FSFile}->FS->exists->{x_TNT}
 	     and $grp->{FSFile}->FS->hide eq 'X_hide') {
       return SwitchContext('Transfer');
 #endif transf
 #ifdef cac
-    } elsif (exists($grp->{FSFile}->FS->defs->{x_origt}) and
-	     exists($grp->{FSFile}->FS->defs->{x_origa})) {
+    } elsif ($grp->{FSFile}->FS->exists->{x_origt} and
+	     $grp->{FSFile}->FS->exists->{x_origa}) {
       return SwitchContext('AcademicTreebank');
 #endif cac
 #ifdef pdt10_t
@@ -41,7 +41,7 @@ sub file_opened_hook {
 		CurrentContext() eq 'TFA');
 #endif pdt10_t
 #ifdef pdt10_a
-    } else {
+    } elsif($grp->{FSFile}->FS->exists->{afun}) {
       return SwitchContext('Analytic') unless CurrentContext() eq 'Analytic_Correction';
 #endif pdt10_a
     }
