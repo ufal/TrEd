@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <?xml-stylesheet href="docbook-css-0.4/driver.css" type="text/css"?>
 <article lang="en">
   <articleinfo>
@@ -766,7 +767,9 @@ Tk: 804.027
 	      selection fields, e.g. in the <link linkend="print_command">Print dialog</link> and
 	      in the <link linkend="copytrees_command">Copy trees
 	      dialog</link>, by pressing the button <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject>
-		<textobject>with an arrow</textobject>
+		<textobject>
+		  <phrase>with an arrow</phrase>
+		</textobject>
 	      </inlinemediaobject>.
 	    </para>
 	  </listitem>
@@ -790,7 +793,7 @@ Tk: 804.027
 	  <listitem>
 	    <para>
 	      Open a dialog window where the user can select a display
-	      stylesheet. See <xref linkend="stylesheet"/>.  A
+	      stylesheet. See <xref linkend="stylesheets"/>.  A
 	      stylesheet can also be selected from the second list in
 	      the top right corner of the main window, but this
 	      menu makes changing stylesheets fully keyboard accessible.
@@ -913,7 +916,7 @@ Tk: 804.027
 	      sub-dialog, which appears after clicking on the button
 	      labeled <guibutton>...</guibutton> beside them.
 	    </para>
-	    <figure>
+	    <figure id="fig-old-editnode">
 	      <title>Old Edit Node interface</title>
 	      <mediaobject>
 		<imageobject>
@@ -937,7 +940,7 @@ Tk: 804.027
 	      <firstterm>structured attributes</firstterm>
 	      (i.e. <quote>nesting</quote> of attributes).
 	    </para>
-	    <figure>
+	    <figure id="fig-new-editnode">
 	      <title>New Edit Node interface</title>
 	      <mediaobject>
 		<imageobject>
@@ -960,7 +963,7 @@ Tk: 804.027
 	      new members, removing members, and altering the order of members,
 	      as listed in <xref linkend="tab-editnode"/>.
 	    </para>
-	    <table>
+	    <table id="tab-editnode">
 	      <title>Buttons in the new <guilabel>Edit Node</guilabel>
 		interface</title>
 	      <tgroup cols="3">
@@ -980,7 +983,8 @@ Tk: 804.027
 			<imageobject><imagedata fileref="pics/edit_node_plus.eps"
 				       format="EPS"
 				       role="latex"/></imageobject>
-			<textobject><literal>+</literal></textobject>
+			<textobject>
+			  <phrase><literal>+</literal></phrase></textobject>
 		      </mediaobject>
 		    </entry>
 		    <entry><keycombo action="simul">
@@ -998,7 +1002,8 @@ Tk: 804.027
 			<imageobject><imagedata fileref="pics/edit_node_minus.eps"
 				       format="EPS"
 				       role="latex"/></imageobject>
-			<textobject><literal>-</literal></textobject>
+			<textobject>
+			  <phrase><literal>-</literal></phrase></textobject>
 		      </mediaobject>
 		    </entry>
 		    <entry><keycombo action="simul">
@@ -1015,7 +1020,8 @@ Tk: 804.027
 			<imageobject><imagedata fileref="pics/edit_node_up.eps"
 				       format="EPS"
 				       role="latex"/></imageobject>
-			<textobject><literal>up</literal></textobject>
+			<textobject>
+			  <phrase><literal>up</literal></phrase></textobject>
 		      </mediaobject>
 		    </entry>
 		    <entry><keycombo action="simul">
@@ -1032,7 +1038,8 @@ Tk: 804.027
 			<imageobject><imagedata fileref="pics/edit_node_down.eps"
 				       format="EPS"
 				       role="latex"/></imageobject>
-			<textobject><literal>down</literal></textobject>
+			<textobject>
+			  <phrase><literal>down</literal></phrase></textobject>
 		      </mediaobject>
 		    </entry>
 		    <entry><keycombo action="simul">
@@ -1049,7 +1056,8 @@ Tk: 804.027
 			<imageobject><imagedata fileref="pics/edit_node_star.eps"
 				       format="EPS"
 				       role="latex"/></imageobject>
-			<textobject><literal>*</literal></textobject>
+			<textobject>
+			  <phrase><literal>*</literal></phrase></textobject>
 		      </mediaobject>
 		    </entry>
 		    <entry><keycombo action="simul">
@@ -1066,7 +1074,8 @@ Tk: 804.027
 			<imageobject><imagedata fileref="pics/edit_node_cross.eps"
 				       format="EPS"
 				       role="latex"/></imageobject>
-			<textobject><literal>x</literal></textobject>
+			<textobject>
+			  <phrase><literal>x</literal></phrase></textobject>
 		      </mediaobject>
 		    </entry>
 		    <entry><keycombo action="simul">
@@ -1085,36 +1094,41 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Find ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      This command displays a dialog box in which user may
-	      specify a search criterion for a node search. The search
-	      is based on regular expressions, wild-card patterns or
-	      literal strings matching the desired nodes values. In
-	      the dialog, there is an entry for each defined attribute
-	      into which user may enter a <ulink url="regexps.html">regular expression</ulink>,
-	      exhaustive regular expression (i.e. the pattern must
-	      match the whole value being searched), wild-card pattern
-	      (where <literal moreinfo="none">?</literal> matches any character and
-	      <literal moreinfo="none">*</literal> matches any number of any
-	      characters) or a literal string (depending on the value
-	      of the <guilabel moreinfo="none">Search method</guilabel>
-	      option-menu).</para>
-	    <para>
-	      In the <guilabel moreinfo="none">Search file-list</guilabel> option-menu, 
-	      the user may choose a file-list to search through.	      
+	      This command displays a dialog box in which the user may
+	      specify a search criterion for a node search. The
+	      criterion is based on regular expressions, wild-card
+	      patterns or literal strings matches for attribute
+	      values. In the dialog, every permittable node attribute
+	      has an editable entry where the user specifies search
+	      criterion for the particular attribute.  The user may
+	      choose the type of the search criterions to be a <ulink
+	      url="regexps.html">regular expressions</ulink>,
+	      exhaustive regular expressions (when the whole value
+	      must match), wild-card pattern (where <literal
+	      moreinfo="none">?</literal> matches any character and
+	      <literal moreinfo="none">*</literal> matches any number
+	      of any characters) or a literal string. The type of the
+	      criterion is selected in the <guilabel
+	      moreinfo="none">Search method</guilabel> option-menu and
+	      applies to all entries.
 	    </para>
 	    <para>
-	      When user presses <guibutton moreinfo="none">Find</guibutton> button,
-	      <application moreinfo="none">TrEd</application> searches for the first
-	      matching node in the selected file-list (or current file
-	      in case the <guilabel moreinfo="none">[Current file only]</guilabel>
-	      option was selected from the <guilabel moreinfo="none">Search
-	      file-list</guilabel> menu). A node matches if and only
-	      if all its attributes match the given patterns.
-	      (If no pattern is given for a certain
-	      attributes, these attributes are always considered to
-	      match). 
-	      If a matching node is found, this node is displayed
-	      and made active.
+	      In the <guilabel moreinfo="none">Search file-list</guilabel> option-menu, 
+	      the user may choose a file-list to search through. By
+	      default, this menu displays entry <guilabel
+	      moreinfo="none">[Current file only]</guilabel>,
+	      which is a virtual file-list containing just the current file.
+	    </para>
+	    <para>
+	      When user presses <guibutton
+	      moreinfo="none">Find</guibutton> button, <application
+	      moreinfo="none">TrEd</application> searches for the
+	      first matching node in the selected file-list. A node
+	      matches the criterion if and only if every attribute of
+	      the node matches the criterion in the corresponding
+	      entry (empty criterions always match).  If a matching
+	      node is found, the search stops and the matching node is
+	      displayed and made active.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1122,8 +1136,9 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Find Next ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Searches for the first node matching the criteria of the
-	      previous use of the <guimenuitem moreinfo="none">Find ...</guimenuitem> command.
+	      Finds a next node matching criteria specified in the
+	      previous use of the <guimenuitem moreinfo="none">Find
+	      ...</guimenuitem> command.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1131,9 +1146,9 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Find Previous ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Searches for the first preceding node matching the
-	      criterion given in a previous use of the
-	      <guimenuitem moreinfo="none">Find ...</guimenuitem> command.
+	      Finds a preceding node matching the criterion specified
+	      in a previous use of the <guimenuitem
+	      moreinfo="none">Find ...</guimenuitem> command.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1142,9 +1157,9 @@ Tk: 804.027
     <section>
       <title>Session</title>
       <para>
-	This menu lets user switch between
-	currently open files, change current
-	file-list and setup file-related options.</para>
+	This menu lets user switch between currently open files,
+	change current file-list and toggle some file-related
+	options.</para>
       <section>
 	<title>Options</title>
 	<variablelist id="dontcloseonopen">
@@ -1157,12 +1172,20 @@ Tk: 804.027
 	    </listitem>
 	  </varlistentry>
 	  <varlistentry>
-	    <term><guimenuitem moreinfo="none">Build TGTS from CSTS</guimenuitem></term>
+	    <term><guimenuitem moreinfo="none">Add open files to default file-list</guimenuitem></term>
 	    <listitem>
 	      <para>
-		This PDT-specific option allows to choose whether
-		the Analytic or the Tectogrammatic tree structure
-		is built when parsing a file in the CSTS SGML format.
+		If this option is on, all opened files are added to
+		the file-list <literal>Default</literal> so that the user
+		could easily go back and forth using
+		<menuchoice>
+		  <guimenu>File</guimenu>
+		  <guimenuitem>Previous File</guimenuitem>
+		</menuchoice> and
+		<menuchoice>
+		  <guimenu>File</guimenu>
+		  <guimenuitem>Next File</guimenuitem>
+		</menuchoice>.
 	      </para>
 	    </listitem>
 	  </varlistentry>
@@ -1179,104 +1202,105 @@ Tk: 804.027
 	      </para>
 	    </listitem>
 	  </varlistentry>
+	  <varlistentry>
+	    <term><guimenuitem moreinfo="none">Build TGTS from CSTS</guimenuitem></term>
+	    <listitem>
+	      <para>
+		This CSTS-backend specific option allows to choose
+		which of the two tree structures stored in a CSTS file
+		should be presented as trees (the other is encoded in
+		node attributes as child-to-parent node references).
+	      </para>
+	    </listitem>
+	  </varlistentry>
 	</variablelist>
       </section>
       <section>
 	<title>Open Files</title>
 	<para>
-	  <application moreinfo="none">TrEd</application> allows having multiple
-	  files open. In case the user tries to open a file 
-	  while another file is already open, modified, and yet not
-	  saved
-	  (and the <link linkend="dontcloseonopen">Don't close on open</link> option is not checked)
-	  <application moreinfo="none">TrEd</application> offers the user to save
+	  <application moreinfo="none">TrEd</application> allows
+	  having multiple files open simultaneously. If the user
+	  tries to open a file while another file is already open,
+	  modified, and yet not saved (and the <link
+	  linkend="dontcloseonopen">Don't close on open</link> option
+	  is not checked) <application
+	  moreinfo="none">TrEd</application> offers the user to save
 	  changes in the current file and close it, close it withought
 	  saving or to <emphasis>keep</emphasis> the file open. In the
 	  latter case, the file is not closed nor any changes are
-	  discarded but the file stays open and remains in the
-	  <guimenu moreinfo="none">Session</guimenu> menu under the <guimenuitem moreinfo="none">Open
-	    files</guimenuitem> label. Any number of files can be
-	  simultaneously open in this way. User may resume
-	  any open file and display it
-	  in the current window by choosing the corresponding item in the
-	  <guimenu moreinfo="none">Session</guimenu> menu.
+	  discarded. The file remains open even if not displayed
+	  by any view. Kept files can be viewed instantly in the
+	  active view by selecting the corresponding item in the
+	  <guimenu moreinfo="none">Session</guimenu> menu under the
+	  <guimenuitem moreinfo="none">Open files</guimenuitem>
+	  label. Any number of files can be simultaneously open in
+	  this way. 
 	</para>
       </section>
       <section>
 	<title>File Lists</title>
 	<para>
-	  The <guimenuitem moreinfo="none">File lists</guimenuitem> contains a list of
-	  currently present file-lists. User may switch to another
-	  file-list by choosing the corresponding item. The lastly open
-	  file of the selected file-list is then re-opened and
-	  displayed. To edit an existing file-list, remove it or create
-	  new file-lists, user must use <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">File</guimenu>
-	    <guimenuitem moreinfo="none">File List ...</guimenuitem>
-	  </menuchoice>.
-	</para>
-	<para>
-	  If current file-list contains more than one file, user may use
-	  <menuchoice moreinfo="none"> <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Previous
-	      File</guimenuitem> </menuchoice> (or press <inlinemediaobject><imageobject><imagedata fileref="pics/start.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/start.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/start" format="linespecific"/></imageobject></inlinemediaobject>) and <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Next File</guimenuitem>
-	  </menuchoice> (or press <inlinemediaobject><imageobject><imagedata fileref="pics/finish.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/finish.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/finish" format="linespecific"/></imageobject></inlinemediaobject>) to open previous or
-	  next file in the file-list.
+	  The bottom part of the <guimenu>Session</guimenu> menu
+	  contains a section labeled <guimenuitem moreinfo="none">File
+	  lists</guimenuitem>, where file-list currently known to
+	  <application>TrEd</application> are listed. User may switch
+	  to another file-list by choosing the corresponding item.
+	  If the file-list was not accessed during the session,
+	  the first file on the list is opened and displayed.
+	  Otherwise, the file last accessed on that list
+	  is re-opened and displayed.
+	  See detailed information about file-lists
+	  in <xref linkend="filelists"/>.
 	</para>
       </section>
     </section>
     <section>
       <title><guimenu moreinfo="none">Bookmarks</guimenu></title>
       <para>
-	This menu maintains user's bookmarks. Bookmarks are stored
-	in an ordinary file-list named <literal moreinfo="none">Bookmarks</literal>
-	and consist of a file name, tree number suffix and node position.	
+	This menu contains user's bookmarks. Bookmarks are filenames
+	with tree-number and node position attached. The list
+	of user's bookmarks is maintained in a special file-list named <literal
+	moreinfo="none">Bookmarks</literal>. 
       </para>
       <para>
-	<guimenuitem moreinfo="none">Add Bookmars</guimenuitem> menu command
-	is used to bookmark the current position in the file and tree.
+	<guimenuitem moreinfo="none">Add to Bookmars</guimenuitem>
+	menu command adds bookmark for the current node.
       </para>
       <para>
-	The <guimenuitem moreinfo="none">Last action</guimenuitem> menu command
-	automatically opens and displayes the place where user made
-	last change to the tree structure or a node attribute. This is
-  	special feature is realized by a special hidden bookmark
-	which is maintained by <application moreinfo="none">TrEd</application> and
-	does not appear in the bookmark list or
-	<literal moreinfo="none">Bookmark</literal> file-list.
+	The <guimenuitem moreinfo="none">Last action</guimenuitem>
+	menu command automatically opens and shows the file tree and
+	node where the user made a last change to the tree structure
+	or a node attribute. This is extra position is stored in
+	TrEd's configuration file and does not appear among bookmarks.
       </para>
       <para>
-	The rest of the <guimenu moreinfo="none">Bookmarks</guimenu> menu lists all
-	defined bookmarks. User may follow a bookmark by choosing the
-	corresponding item.
+	The rest of the <guimenu moreinfo="none">Bookmarks</guimenu>
+	menu lists all defined bookmarks. User may follow a bookmark
+	by choosing the corresponding menu item.
       </para>
     </section>
     <section id="usercommands">
       <title><guimenu moreinfo="none">User-defined</guimenu></title>
       <para>
-	This menu contains user-defined commands. The new
-	commands may be defined in the macro file. <!-- See sections on
-	macros below for details. --> Here is a brief description of the
-	few default macros defined by author of
-	<application moreinfo="none">TrEd</application>. These macros may be used in
-	any context based on the default <literal moreinfo="none">TredMacro</literal>
-	context.
+	This menu contains user-defined commands in separate sub-menus
+	for every menu context. New commands may be defined as macros
+	(see <xref linkend="macros"/>).  Beside each menu entry is
+	shown the default keyboard short-cut for the corresponding
+	macro in the particular context. Here we give only a brief
+	description of the few macros defined by default in the
+	<application moreinfo="none">TredMacro</application> context
+	in the base macro file <filename>tred.mac</filename>.
       </para>
       <para>
-	In the menu, there is the default keyboard shortcut displayed
-	on the right of each command. The shortcut can be used to
-	invoke the corresponding macro command. 
-	The mapping of the shortcuts and macros is defined 
-	in the macro file.
       </para>
       <note>
 	<para>
-	  Note that, there are no keyboards shotrcuts assigned to the
-	  standard (non-macro) menu commands, except only a few. The
-	  aim of this is to give user maximum freedom of choice of
-	  shortcuts for his/her own macro commands. There is a
-	  possibility to define bindings for many of the standard menu
-	  commands within the macro file.
+	  Note that, only a few of non-macro commands in TrEd are
+	  associated with a keyboard shortcut (other than the standard
+	  menu navigation using <keycode>Alt</keycode> and the
+	  underlined letter). The aim is to give the user maximum
+	  freedom of choice of available shortcuts for his or her own
+	  macro commands.
 	</para>
       </note>
       <variablelist>
@@ -1292,13 +1316,34 @@ Tk: 804.027
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Paste Values</guimenuitem>
+	  (<keycap moreinfo="none">F8</keycap>)</term>
+	  <listitem>
+	    <para>
+	      Assignes the active nodes attribute values stored in an internal
+	      clipboard during the last call of the <guimenuitem moreinfo="none">Copy Values</guimenuitem> command.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Cut Subtree</guimenuitem> (<keycombo moreinfo="none" action="simul"><keycap moreinfo="none">Ctrl</keycap><keycap moreinfo="none">Insert</keycap></keycombo>)</term>
 	  <listitem>
-	    <para>Cuts the whole subtree of the active node and
-	      stores it in an iternal clipboard. It may be then pasted
-	      as a subtree of any of the remaining nodes with the
-	      <guimenuitem moreinfo="none">Paste Subtree</guimenuitem> command.
+	    <para>Cuts off a subtree of the active node and stores
+	      it in an iternal clipboard. The cut subtree may be attached later
+	      to another node using the <guimenuitem moreinfo="none">Paste Subtree</guimenuitem>
+	      command.
 	      </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Paste Subtree</guimenuitem>
+	    (<keycombo moreinfo="none" action="simul">
+	      <keycap moreinfo="none">Shift</keycap>
+	      <keycap moreinfo="none">Insert</keycap></keycombo>)</term>
+	  <listitem>
+	    <para>
+	      Ataches a previously cut subtree to the active node.      
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -1340,7 +1385,8 @@ Tk: 804.027
 	      <keycap moreinfo="none">G</keycap></keycombo>)</term> 
 	  <listitem>
 	    <para>
-	      Promts user to enter an ordinal number of a tree and displays it.
+	      Promts the user to enter an ordinal number of a tree in
+	      the file and displays that tree.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1349,8 +1395,8 @@ Tk: 804.027
 	  (<keycap moreinfo="none">F7</keycap>)</term> 
 	  <listitem>
 	    <para>
-	      Creates new node as a right brother of the active node (does
-	      nothing if the active node is root).      
+	      Creates a new node as a right sibling of the active node
+	      (this command is ignored if the active node is the root-node).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1360,30 +1406,7 @@ Tk: 804.027
 	      <keycap moreinfo="none">F7</keycap></keycombo>)</term>
 	  <listitem>
 	    <para>
-	      Creates new node as a son of the active node.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><guimenuitem moreinfo="none">Paste Subtree</guimenuitem>
-	    (<keycombo moreinfo="none" action="simul">
-	      <keycap moreinfo="none">Shift</keycap>
-	      <keycap moreinfo="none">Insert</keycap></keycombo>)</term>
-	  <listitem>
-	    <para>
-	      Pastes the tree saved in an internal clipboard during the last
-	      call of the <guimenuitem moreinfo="none">Cut Subtree</guimenuitem> command as a subtree of the
-	      active node.      
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><guimenuitem moreinfo="none">Paste Values</guimenuitem>
-	  (<keycap moreinfo="none">F8</keycap>)</term>
-	  <listitem>
-	    <para>
-	      Assignes the active nodes attribute values stored in an internal
-	      clipboard during the last call of the <guimenuitem moreinfo="none">Copy Values</guimenuitem> command.
+	      Creates a new child-node of the active node.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1393,52 +1416,33 @@ Tk: 804.027
 	      <keycap moreinfo="none">H</keycap></keycombo>)</term>
 	  <listitem>
 	    <para>
-	      When invoked, displays a window with a small editor for
-	      Perl code. The Perl code entered by user is then
-	      evaluated for every node of the tree in the natural
-	      ordering starting from the current node.  The evaluation
-	      stops on the first node for which the Perl code
-	      returns with true (i.e. a defined non-zero value).
-	      The node is then made active.
+	      When invoked, a dialog with an editor for a Perl code
+	      snippet is displayed. The Perl code entered by user is
+	      then evaluated for every node of the tree in their
+	      natural ordering starting from the current node.  The
+	      evaluation stops at first node for which the Perl code
+	      returns true (i.e. a defined non-zero value) and this
+	      node is activated.
 	    </para>
 	    <para>
-	      In the Perl code, the <literal moreinfo="none">$this</literal> variable
-	      may be used to refer to the current node and
-	      <literal moreinfo="none">$root</literal> variable may be used as a
-	      reference to the root of the tree.  If
-	      <literal moreinfo="none">$n</literal> refers to some node, then
-	      <literal moreinfo="none">$n-&gt;{attr}</literal> is value of
-	      <literal moreinfo="none">attr</literal> attribute for the node
-	      <literal moreinfo="none">$n</literal>.  The governor of a node
-	      <literal moreinfo="none">$n</literal> is refered to as to
-	      <literal moreinfo="none">Parent($n)</literal> or
-	      <literal moreinfo="none">$n-&gt;parent</literal>, nearest left brother of
-	      <literal moreinfo="none">$n</literal> in the tree structure is
-	      <literal moreinfo="none">LBrother($n)</literal> or
-	      <literal moreinfo="none">$n-&gt;lbrother</literal>; the right brother of
-	      <literal moreinfo="none">$n</literal> is <literal moreinfo="none">RBrother($n)</literal>
-	      or <literal moreinfo="none">$n-&gt;rbrother</literal>.  The first son of
-	      <literal moreinfo="none">$n</literal> is referred to as to
-	      <literal moreinfo="none">FirstSon($n)</literal> or
-	      <literal moreinfo="none">$n-&gt;firstson</literal>.
-	      The root of the tree containing node
-	      <literal moreinfo="none">$n</literal>
-	      can be reached with <literal moreinfo="none">$n-&gt;root</literal>.
-	      A perl list of all child-nodes of <literal moreinfo="none">$n</literal>
-	      may be obtained by <literal moreinfo="none">$n-&gt;children</literal> method.
-	      If no such nodes exist,
-	      all these functions return zero `0'.  Moreover, all the
-	      nodes of the tree are elements of the
-	      <literal moreinfo="none">@nodes</literal> array (list) with the same
-	      order as they are displayed on the screen from left to
-	      right.</para>
-	    <note>
-	      <para>
-		<literal moreinfo="none">$n-&gt;lbrother</literal> and
-		<literal moreinfo="none">$n-&gt;rbrother</literal> are not necesserilly
-		displayed on left of <literal moreinfo="none">$n</literal>.
-	      </para>
-	    </note>
+	      The Perl code conforms to the very same rules as a
+	      macro, i.e. in brief, the variables <literal
+	      moreinfo="none">$this</literal> and <literal
+	      moreinfo="none">$root</literal> refer to the active node
+	      and root of the tree respectively.  If <literal
+	      moreinfo="none">$n</literal> refers to some node, then
+	      <literal moreinfo="none">$n-&gt;{attr}</literal> is
+	      value of <literal moreinfo="none">attr</literal>
+	      attribute for the node <literal
+	      moreinfo="none">$n</literal>.  The parent-node of
+	      <literal>$n</literal> is accessed via <literal
+	      moreinfo="none">$n->parent</literal>, child-nodes of
+	      <literal>$n</literal> as <literal
+	      moreinfo="none">$n->childnodes</literal> (returns a
+	      list), etc. Macros from the current context may be
+	      called as Perl subroutines. See <xref linkend="macros"/>
+	      for details.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -1448,9 +1452,9 @@ Tk: 804.027
 	      <keycap moreinfo="none">H</keycap></keycombo>)</term>
 	  <listitem>
 	    <para>
-	      Searches for the next node for which the Perl-expression
-	      given during the last call of <guimenuitem moreinfo="none">Perl-Search</guimenuitem> command
-	      results in non-zero defined value.
+	      Searches the next node satisfying the Perl-expression
+	      specified in a previous usage of the command
+	      <guimenuitem moreinfo="none">Perl-Search</guimenuitem>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1461,8 +1465,8 @@ Tk: 804.027
 	      <keycap moreinfo="none">PageUp</keycap></keycombo>)</term> 
 	  <listitem>
 	    <para>
-	      Makes the active node exchange all attribute values with its
-	      governing node.
+	      Makes the active node exchange its attributes with its
+	      parent-node which effectively swaps the two nodes.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1484,16 +1488,428 @@ Tk: 804.027
       </variablelist>
     </section>
   </section>
-  <section id="chap3">
-    <title>Viewing and editing the tree structure and attributes</title>
+  <section>
+    <title>Toolbar</title>
     <para>
-      <application moreinfo="none">TrEd</application> can be controlled either by keyboard or mouse.
-      There are several pre-defined keyboard hotkeys
-      to move the active-node (cursor) along the tree, to
-      cut or paste subtrees and nodes (i.e modify the structure)
-      and to open the dialog where attributes for the active node can
-      be edited. Trees can also be easily modified by clicking and
-      drag-and-drop. Both of these approaches are described below:
+      Most of the toolbar buttons only provide mouse-oriented
+      shortcuts for standard menu-commands. 
+    </para>
+    <variablelist>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/fileopen.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/fileopen.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/fileopen" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">File</guimenu>
+	    <guimenuitem moreinfo="none">Open ...</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/filefloppy.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/filefloppy.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/filefloppy" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">File</guimenu>
+	    <guimenuitem moreinfo="none">Save</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/reload.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/reload.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/reload" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>Reload current file from disk.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/redo.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/redo.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/redo" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>Redo last undone operation on the current tree.</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/undo.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/undo.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/undo" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>Undo last operation on the current
+	    tree. (See also <link linkend="maxundo">MaxUndo</link>
+	    configuration option.)</para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/viewmag-.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/viewmag-.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/viewmag-" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">Node</guimenu>
+	    <guimenuitem moreinfo="none">Find Previous</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/start.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/start.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/start" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">File</guimenu>
+	    <guimenuitem moreinfo="none">Previous File</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/fileprint.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/fileprint.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/fileprint" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">File</guimenu>
+	    <guimenuitem moreinfo="none">Print ...</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/find.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/find.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/find" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">Node</guimenu>
+	    <guimenuitem moreinfo="none">Find ...</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/viewmag+.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/viewmag+.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/viewmag+" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">Node</guimenu>
+	    <guimenuitem moreinfo="none">Find Next</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/finish.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/finish.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/finish" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">File</guimenu>
+	    <guimenuitem moreinfo="none">Next File</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/1leftarrow" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">Previous Tree</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/1rightarrow" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">Next Tree</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/tick.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/tick.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/tick" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">Customize
+	      Tree...</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/contents.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/contents.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/contents" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">List
+	      of sentences...</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_top_bottom.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_top_bottom.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_top_bottom" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">Split view horizontally</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_left_right.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_left_right.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_left_right" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">Split view vertically</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_remove.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_remove.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/view_remove" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <menuchoice moreinfo="none">
+	    <guimenu moreinfo="none">View</guimenu>
+	    <guimenuitem moreinfo="none">Close current view</guimenuitem>
+	  </menuchoice>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>
+	  <inlinemediaobject>
+	    <imageobject>
+	      <imagedata fileref="pics/lock.png" format="PNG" role="html"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/lock.eps" format="EPS" role="latex"/>
+	    </imageobject>
+	    <imageobject>
+	      <imagedata fileref="pics/lock" format="linespecific"/>
+	    </imageobject>
+	  </inlinemediaobject>
+	</term>
+	<listitem>
+	  <para>This may have two states. If pressed,
+	    all displayed views are tied together, so that
+	    pressing <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> or
+	    <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject> buttons
+	    as well as invoking
+	    <menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guisubmenu moreinfo="none">Previous tree</guisubmenu></menuchoice> or
+	    <menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guisubmenu moreinfo="none">Next tree</guisubmenu></menuchoice>
+	    applies to all displayed views.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </section>
+  <section id="chap3">
+    <title>Mouse and keyboard control</title>
+    <para>
+      <application moreinfo="none">TrEd</application> can be
+      controlled both using keyboard and mouse.  There are several
+      pre-defined keyboard short-cuts. Most keyboard short-cuts relate
+      to the <firstterm>active</firstterm> node (by default, active
+      node is displayed in red, but both stylesheets and configuration
+      file can change its color and/or over-all appearance).  The
+      active node plays similar role to that of a cursor in a text
+      editor. Most of the usual editing commands (such as navigation
+      the active node along the tree, cut-paste operations on the
+      tree, editing node content, etc.)  have pre-defined keyboard and
+      mouse bindings. Other bindings may be added using macros.
     </para>
     <section>
     <title>Mouse Control</title>
@@ -1533,126 +1949,6 @@ Tk: 804.027
 	  </para>
 	</listitem>
       </itemizedlist>
-    </section>
-    <section>
-      <title>Toolbar buttons</title>
-      <para>
-	The following toolbar-buttons provide mouse-oriented shortcuts
-	for standard menu-commands:
-      </para>
-      <informaltable>
-	<tgroup cols="2">
-	  <colspec colnum="1" align="left"/>
-	  <colspec colnum="2" align="justify"/>
-	  <tbody>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/fileopen.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/fileopen.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/fileopen" format="linespecific"/></imageobject></inlinemediaobject></entry><entry><menuchoice moreinfo="none">
-		  <guimenu moreinfo="none">File</guimenu>
-		  <guimenuitem moreinfo="none">Open ...</guimenuitem>
-		</menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/filefloppy.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filefloppy.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/filefloppy" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Save</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/reload.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/reload.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/reload" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><para>Reload current file from disk.</para></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/redo.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/redo.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/redo" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><para>Redo last undone operation on the current tree.</para></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/undo.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/undo.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/undo" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><para>Undo last operation on the current
-		  tree. (See also <link linkend="maxundo">MaxUndo</link>
-	      configuration option.)</para></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/viewmag-.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/viewmag-.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/viewmag-" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find Previous</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/start.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/start.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/start" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Previous File</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/fileprint.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/fileprint.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/fileprint" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Print ...</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/find.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/find.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/find" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find ...</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/viewmag+.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/viewmag+.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/viewmag+" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">Node</guimenu><guimenuitem moreinfo="none">Find Next</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/finish.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/finish.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/finish" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">File</guimenu><guimenuitem moreinfo="none">Next File</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Previous Tree</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Next Tree</guimenuitem></menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/tick.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/tick.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/tick" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">Customize
-		    Tree...</guimenuitem>
-		</menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/contents.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/contents.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/contents" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guimenuitem moreinfo="none">List
-	      of sentences...</guimenuitem>
-		</menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/view_top_bottom.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/view_top_bottom.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/view_top_bottom" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
-		  <guimenuitem moreinfo="none">Split view horizontally</guimenuitem>
-		</menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/view_left_right.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/view_left_right.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/view_left_right" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
-		  <guimenuitem moreinfo="none">Split view vertically</guimenuitem>
-		</menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/view_remove.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/view_remove.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/view_remove" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu>
-		  <guimenuitem moreinfo="none">Close current view</guimenuitem>
-		</menuchoice></entry>
-	    </row>
-	    <row>
-	      <entry><inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject></entry>
-	      <entry><para>This may have two states. If pressed,
-		all displayed views are tied together, so that
-		pressing <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> or
-		<inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject> buttons
-		as well as invoking
-		<menuchoice moreinfo="none">
-		  <guimenu moreinfo="none">View</guimenu>
-		  <guisubmenu moreinfo="none">Previous tree</guisubmenu>
-		</menuchoice> or
-		<menuchoice moreinfo="none">
-		  <guimenu moreinfo="none">View</guimenu>
-		  <guisubmenu moreinfo="none">Next tree</guisubmenu>
-		</menuchoice>
-		applies to all displayed views.
-		</para>
-	      </entry>
-	    </row>
-	  </tbody>
-	</tgroup>
-      </informaltable>
     </section>
     <section>
       <title>Keyboard Shortcuts</title>
