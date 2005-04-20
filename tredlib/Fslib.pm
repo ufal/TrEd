@@ -2648,7 +2648,7 @@ non-emulation mode.
 
 =cut
 
-$emulatePML=0;
+$emulatePML=1;
 
 
 =item test (filehandle | filename, encoding?)
