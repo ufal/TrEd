@@ -696,10 +696,11 @@ tred config file C<.tredrc> by adding a line of the form
 
   CustomColorsomething = ...
 
-The stylesheets are named C<PML_T_Compact> and C<PML_T_Full>. Compact
-stylesheet is suitable to be used on screen because it pictures many
-features by means of colours whilst the Full stylesheet is better for
-printing because it lists the values of almost all the attributes.
+Default values can be found in C<PML.mak>. The stylesheets are named
+C<PML_T_Compact> and C<PML_T_Full>. Compact stylesheet is suitable to
+be used on screen because it pictures many features by means of
+colours whilst the Full stylesheet is better for printing because it
+lists the values of almost all the attributes.
 
 The stylesheets have the following features (if the stylesheet is not
 mentioned, the description talks about the Compact one):
@@ -708,15 +709,17 @@ mentioned, the description talks about the Compact one):
 
 1. C<t_lemma> is displayed on the first line. If the node's
 C<is_parenthesis> is set to 1, the C<t_lemma> is displayed in
-CustomColor C<parenthesis>. If there is a coreference leading to a
+CustomColor C<parenthesis> in the Compact stylesheet. If the node's
+C<sentmod> is non-empty, its value is displayed in CustomColor
+C<detail> after a dot. If there is a coreference leading to a
 different sentence, the C<t_lemma> of the refered node is displayed in
-CustomColor C<coref>.
+CustomColor C<coref>, too.
 
 2. Node's functor is displayed in CustomColor C<func>. If the node's
 C<subfunctor> or C<is_state> are defined, they are indicated in
 CustomColor C<subfunc>. In the Full stylesheet, C<is_member> is also
-displayed as "M" in CustomColor C<coappa> and C<is_parenthesis> as
-"P"in CustomColor C<parenthesis>.
+displayed as "M" in CustomColor C<coappa> and C<is_parenthesis> as "P"
+in CustomColor C<parenthesis>.
 
 3. For nodes of all types other than complex, C<nodetype> is displayed
 in CustomColor C<nodetype>. For complex nodes, their C<gram/sempos> is
@@ -762,8 +765,9 @@ C<detail> (see 3).
 sub CreateStylesheets{
   unless(StylesheetExists('PML_T_Compact')){
     SetStylesheetPatterns(<<'EOF','PML_T_Compact',1);
-node:<? '#{customparenthesis}' if $${is_parenthesis} 
-  ?><?$${nodetype}eq'root' ? '${id}' : '${t_lemma}'
+node:<? '#{customparenthesis}' if $${is_parenthesis}
+  ?><? $${nodetype}eq'root' ? '${id}' : '${t_lemma}'
+  ?><? '#{customdetail}.${sentmod}'if$${sentmod}
   ?><? '#{customcoref}'.$PML_T::coreflemmas{$${id}}
     if $PML_T::coreflemmas{$${id}}ne'' ?>
 
@@ -834,8 +838,9 @@ EOF
     SetStylesheetPatterns(<<'EOF','PML_T_Full',1);
 full:1
 
-node:<?$${nodetype}eq'root' ? '${id}' : '${t_lemma}'
-  ?><? '#{customcoref}.'.$PML_T::coreflemmas{$${id}}
+node:<? $${nodetype}eq'root' ? '${id}' : '${t_lemma}'
+  ?><? '#{customdetail}.${sentmod}'if$${sentmod}
+  ?><? ('#{customcoref}'.$PML_T::coreflemmas{$${id}})
     if $PML_T::coreflemmas{$${id}}ne'' ?>
 
 node:<?
