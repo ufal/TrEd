@@ -853,11 +853,6 @@ sub children_of_auxcp {
     PDT::TRstruct();
     print ThisAddressNTRED($node);
     PDT::ARstruct();
-    my $af = ThisAddress($node);
-    $af=~s{.*/}{};
-    $af=~s{\.pls\.gz}{.fs};
-    $af="/net/su/h/pdt2004/Corpora/PDT_1.0/Data/fs/$af";
-    print "\t$af\n";
   }
   return @c;
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
 <?xml-stylesheet href="docbook-css-0.4/driver.css" type="text/css"?>
 <article lang="en">
   <articleinfo>
@@ -813,15 +813,18 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">List of Named Macros...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Display a window containing a list of all user-defined
-	      macros in current context and the corresponding
-	      keyboard shortcuts.  User may immediately run a macro
-	      by double-clicking a corresponding item in the list, or
+	      Display a window listing all user-defined
+	      menu-bindings (macros) in a selected context and their
+	      keyboard shortcuts. 
+	      User may run a macro
+	      by double-clicking on a corresponding item in the list, or
 	      by pressing the <guibutton moreinfo="none">Run and Close</guibutton>
-	      button. In the latter case, the window is closed.  The
+	      button. In the latter case, the window is closed.  Two
+	      buttons (
 	      <guilabel moreinfo="none">Sort by name</guilabel> and <guilabel moreinfo="none">Sort by
-	      keyboard shortcuts</guilabel> radio-buttons let user to
-	      switch between the two modes of ordering the list.
+	      keyboard shortcuts</guilabel>) control the order in which
+	      macros are listed. The button <guibutton>Export as HTML</guibutton>
+	      creates a handy reference from the listing in form of a a HTML document.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -833,41 +836,32 @@ Tk: 804.027
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">New Node</guimenuitem></term>
 	  <listitem>
-	    <para>
-	      Creates a new node and connects it as a child of the
-	      active node. All the attribute values of this node are left
-	      empty.
-	    </para>
+	    <para>Creates a new node and connects it as a child of the
+	      active node. Initially, all attributes of the new node are empty.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Remove Active Node</guimenuitem></term>
 	  <listitem>
-	    <para>
-	      Passes all the children of the active node to its parent and
-	      deletes the active node. Does nothing if the active node is
-	      the root of the tree.
-	    </para>
+	    <para>Passes all children of the active node to its parent and
+	      deletes the active node. This command is ignored if the active node is
+	      the root of the tree.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Insert New Tree</guimenuitem></term>
 	  <listitem>
-	    <para>
-	      Inserts new tree <emphasis>before</emphasis> the current
-	      tree. The new tree consists of one empty node (its root)
-	      only.
-	    </para>
+	    <para>Inserts a new tree <emphasis>before</emphasis> the current
+	      tree. The new tree consists of a root-node only. Initially, attributes of
+	      this node are empty.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Insert New Tree After</guimenuitem></term>
 	  <listitem>
-	    <para>
-	      Inserts new tree <emphasis>after</emphasis> the current
-	      tree. The new tree consists of one empty node (its root)
-	      only.
-	    </para>
+	    <para>Inserts a new tree <emphasis>after</emphasis> the current
+	      tree. The new tree consists of a root-node only. Initially, attributes of
+	      this node are empty.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -876,7 +870,8 @@ Tk: 804.027
 	    <para>
 	      Removes the current tree from the file and displays the
 	      following tree (or the preceding tree, in case the
-	      current tree was the last one in the file).
+	      current tree was the last one in the file). The memory
+	      representation of the removed tree is destroyed.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -896,43 +891,194 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Edit Node ...</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Displays the <guilabel moreinfo="none">Edit Node</guilabel> 
-	      dialog box with the list of all attributes defined
-	      for the file and the values assigned to them in the active node.
-	      There are two types of attributes and therefore two ways to edit
-	      them:
+	      Displays the 
+	      dialog box <guilabel moreinfo="none">Edit Node</guilabel>,
+	      listing all attributes defined for the type of the node or
+	      for the file and their corresponding values at the active node.
+	      Depending on the type of the file, the dialog may have one
+	      of two possible interfaces, here refered to as the
+	      <firstterm>old interface</firstterm>
+	      (see <xref linkend="fig-old-editnode"/>)
+	      and the <firstterm>new interface</firstterm>
+	      (see <xref linkend="fig-new-editnode"/>).
 	    </para>
-	    <orderedlist continuation="restarts" inheritnum="ignore">
-	      <listitem>
-		<para>
-		  In case of an attribute where
-		  <emphasis>no</emphasis> fixed set of possible values
-		  is given (see <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
-		  description</ulink> for details about types of
-		  attributes) the values of the attributes are
-		  displayed in a editable line and user may change
-		  simply edit them. The usual keyboard-shortcuts for
-		  <guimenuitem moreinfo="none">Cut</guimenuitem> (<keycombo moreinfo="none" action="simul"><keycap moreinfo="none">Ctrl</keycap><keycap moreinfo="none">X</keycap></keycombo>),
-		  <guimenuitem moreinfo="none">Copy</guimenuitem> (<keycombo moreinfo="none" action="simul">
-		    <keycap moreinfo="none">Ctrl</keycap><keycap moreinfo="none">C</keycap></keycombo>)
-		  and <guimenuitem moreinfo="none">Paste</guimenuitem> (<keycombo moreinfo="none" action="simul"><keycap moreinfo="none">Ctrl</keycap><keycap moreinfo="none">V</keycap></keycombo>)
-		  operations may be used during the editing of the
-		  values.
-		</para>
-	      </listitem>
-	      <listitem>
-		<para>
-		  In case of attribute where a fixed set of possible values
-		  <emphasis>is</emphasis> given, user cannot simply edit the value entry, but
-		  to change it he/she must press the button <literal moreinfo="none">[...]</literal> on the
-		  right of the value entry.
-		  A dialog box displays where user may select one or more
-		  (depending on the status of the <guilabel moreinfo="none">multiple select</guilabel>
-		  check-box) values for the given attribute within the list of
-		  values from the predefined set.      
-		</para>
-	      </listitem>
-	    </orderedlist>
+	    <para>
+	      The old interface supports attributes of the following
+	      types: strings,
+	      <literal>|</literal>-separated lists of strings,
+	      enumerated values, and <literal>|</literal>-separated
+	      lists of enumerated values. In the old interface,
+	      only plain string values can be edited directly.
+	      Any other attribute value can be edited in a dedicated
+	      sub-dialog, which appears after clicking on the button
+	      labeled <guibutton>...</guibutton> beside them.
+	    </para>
+	    <figure>
+	      <title>Old Edit Node interface</title>
+	      <mediaobject>
+		<imageobject>
+		  <imagedata fileref="pics/edit_node_dialog_old.png" format="PNG"
+		    role="html"/>
+		</imageobject>
+		<imageobject>
+		  <imagedata fileref="pics/edit_node_dialog_old.eps" format="EPS"
+		    role="latex"/>
+		</imageobject>
+	      </mediaobject>
+	    </figure>
+	    <para>The new interface (now default for PML-based files
+	      and files in FS format) offers support for
+	      string attributes, enumerated attributes,
+	      constant attributes,
+	      lists (either <literal>|</literal>-separated lists of strings used
+	      by FS format files or generic ordered or unordered <literal>Fslib::List</literal>
+	      lists of arbitrary type and <literal>Fslib::Alt</literal>
+	      alternatives used by PML instances), and also for 
+	      <firstterm>structured attributes</firstterm>
+	      (i.e. <quote>nesting</quote> of attributes).
+	    </para>
+	    <figure>
+	      <title>New Edit Node interface</title>
+	      <mediaobject>
+		<imageobject>
+		  <imagedata fileref="pics/edit_node_dialog.png" format="PNG"
+		    role="html"/>
+		</imageobject>
+		<imageobject>
+		  <imagedata fileref="pics/edit_node_dialog.eps" format="EPS"
+		    role="latex"/>
+		</imageobject>
+	      </mediaobject>
+	    </figure>
+	    <para>In this interface, the hierarchy
+	      of attributes is presented as a collapsible tree.
+	      The leafs of the tree represent the editable
+	      (string or enumerated) values. Enumerated values
+	      can be selected from a combo-box with a search-as-you-type
+	      functionality. Lists, alternatives and/or their members have additional
+	      buttons beside their tree-entry for adding
+	      new members, removing members, and altering the order of members,
+	      as listed in <xref linkend="tab-editnode"/>.
+	    </para>
+	    <table>
+	      <title>Buttons in the new <guilabel>Edit Node</guilabel>
+		interface</title>
+	      <tgroup cols="3">
+		<thead>
+		  <row>
+		    <entry>Button</entry>
+		    <entry>Keyboard shortcut</entry>
+		    <entry>Description</entry>
+		  </row>
+		</thead>
+		<tbody>
+		  <row>
+		    <entry>
+		      <mediaobject>
+			<imageobject><imagedata fileref="pics/edit_node_plus.png"
+				       format="PNG" role="html"/></imageobject>
+			<imageobject><imagedata fileref="pics/edit_node_plus.eps"
+				       format="EPS"
+				       role="latex"/></imageobject>
+			<textobject><literal>+</literal></textobject>
+		      </mediaobject>
+		    </entry>
+		    <entry><keycombo action="simul">
+			<keysym>Ctrl</keysym>
+			<keysym>+</keysym>
+		      </keycombo>
+		    </entry>
+		    <entry>add new member to the list</entry>
+		  </row>
+		  <row>
+		    <entry>
+		      <mediaobject>
+			<imageobject><imagedata fileref="pics/edit_node_minus.png"
+				       format="PNG" role="html"/></imageobject>
+			<imageobject><imagedata fileref="pics/edit_node_minus.eps"
+				       format="EPS"
+				       role="latex"/></imageobject>
+			<textobject><literal>-</literal></textobject>
+		      </mediaobject>
+		    </entry>
+		    <entry><keycombo action="simul">
+			<keysym>Ctrl</keysym>
+			<keysym>-</keysym>
+		      </keycombo>
+		    </entry>
+		    <entry>remove current member from the list</entry>
+		  </row>
+		  <row>
+		    <entry>
+		      <mediaobject>
+			<imageobject><imagedata fileref="pics/edit_node_up.png" format="PNG" role="html"/></imageobject>
+			<imageobject><imagedata fileref="pics/edit_node_up.eps"
+				       format="EPS"
+				       role="latex"/></imageobject>
+			<textobject><literal>up</literal></textobject>
+		      </mediaobject>
+		    </entry>
+		    <entry><keycombo action="simul">
+			<keysym>Ctrl</keysym>
+			<keysym>up</keysym>
+		      </keycombo>
+		    </entry>
+		    <entry>move current member up in the list</entry>
+		  </row>
+		  <row>
+		    <entry>
+		      <mediaobject>
+			<imageobject><imagedata fileref="pics/edit_node_down.png" format="PNG" role="html"/></imageobject>
+			<imageobject><imagedata fileref="pics/edit_node_down.eps"
+				       format="EPS"
+				       role="latex"/></imageobject>
+			<textobject><literal>down</literal></textobject>
+		      </mediaobject>
+		    </entry>
+		    <entry><keycombo action="simul">
+			<keysym>Ctrl</keysym>
+			<keysym>down</keysym>
+		      </keycombo>
+		    </entry>
+		    <entry>move current member down in the list</entry>
+		  </row>
+		  <row>
+		    <entry>
+		      <mediaobject>
+			<imageobject><imagedata fileref="pics/edit_node_star.png" format="PNG" role="html"/></imageobject>
+			<imageobject><imagedata fileref="pics/edit_node_star.eps"
+				       format="EPS"
+				       role="latex"/></imageobject>
+			<textobject><literal>*</literal></textobject>
+		      </mediaobject>
+		    </entry>
+		    <entry><keycombo action="simul">
+			<keysym>Ctrl</keysym>
+			<keysym>*</keysym>
+		      </keycombo>
+		    </entry>
+		    <entry>add new alternative</entry>
+		  </row>
+		  <row>
+		    <entry>
+		      <mediaobject>
+			<imageobject><imagedata fileref="pics/edit_node_cross.png" format="PNG" role="html"/></imageobject>
+			<imageobject><imagedata fileref="pics/edit_node_cross.eps"
+				       format="EPS"
+				       role="latex"/></imageobject>
+			<textobject><literal>x</literal></textobject>
+		      </mediaobject>
+		    </entry>
+		    <entry><keycombo action="simul">
+			<keysym>Ctrl</keysym>
+			<keysym>/</keysym>
+		      </keycombo>
+		    </entry>
+		    <entry>remove current alternative</entry>
+		  </row>
+		</tbody>
+	      </tgroup>
+	    </table>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="find">
