@@ -1021,7 +1021,7 @@ __END__
 
 =head1 ntred
 
-ntred - controller/hub/client for remote btred servers
+ntred - controller/hub/client interface to a cluster of btred servers
 
 =head1 SYNOPSIS
 
@@ -1076,14 +1076,15 @@ Get help:
 
 =head1 DESCRIPTION
 
-This program is able to start one or more btred servers on remote
-machines over SSH (it is highly recommended to use some authentication
-method that does not require entering a password each time the SSH
-connection is needed), create a proxy hub to provide the communication
-between the servers and a client, distribute given files over the
-servers (provided the servers are able to load the files from given
-filenames (eg. they share the files over NFS), query the servers using
-a btred-macro and collect the answers.
+This program is able to start one or more btred servers on a set of
+host machines over SSH, create a proxy hub to provide the
+communication between the servers and a client, distribute given files
+over the servers (provided the servers are able to load the files from
+given filenames (eg. they share the files over NFS), query the servers
+using a btred-macro and collect the answers.  It is highly recommended
+to use some password-free authentication method for SSH (e.g. Kerberos
+or C<ssh-agent>), so that password input is not required each time the
+SSH connection is made (at least two per-host).
 
 In the client mode, the standard output of the macro is printed to
 STDOUT of the client. STDERR is reserved for debugging and information

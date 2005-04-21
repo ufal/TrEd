@@ -1725,8 +1725,7 @@ or
 
 =head1 DESCRIPTION
 
-BTrEd loads a given macro-file and executes a given code for each
-file.
+btred is an off-line TrEd macro processor which applies macros on given files
 
 =head1 OPTIONS
 
