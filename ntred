@@ -1181,7 +1181,7 @@ necessary for the authentication to the running hub. This defaults to
 
 =back
 
-=head2 HUB/SERVER MODE (-i or --init) OPTIONS
+=head2 HUB and SERVER MODE (-i or --init) OPTIONS
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
            [--filelist file-list] [--max-servers num] [--no-secondary-files]
@@ -1344,7 +1344,7 @@ Use old benchmark-based distribution method.
 
 =item B<--init|-i>
 
-Start remote btred servers and a hub. See L<"HUB/SERVER MODE"|"HUB/SERVER MODE (-i or --init) OPTIONS">.
+Start remote btred servers and a hub. See L<"HUB and SERVER MODE"|"HUB and SERVER MODE (-i or --init) OPTIONS">.
 
 =item B<--quit>
 
