@@ -1989,6 +1989,8 @@ Prints the help page and exits.
 
 Displays the help as manual page.
 
+=back
+
 =head1 AUTHOR
 
 Petr Pajas <pajas@matfyz.cz>
