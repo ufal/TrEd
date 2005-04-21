@@ -254,8 +254,8 @@ sub NonProjEdges {
                      coappa blue
                      parenthesis #809080
                      nodetype darkblue
-                     complex darkmagenta
-                     detail #670057
+                     complex #5B2199
+                     detail darkmagenta
                      detailheader #270037
                      coref darkblue
                      arrow_textual #4C509F
