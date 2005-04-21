@@ -37,8 +37,8 @@
     <para>
       TrEd supports various input and output formats. Some of them
       are of general nature (one of them is <ulink
-      url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
-      developed by Michal Kren sufficient enough for most purposes),
+      url="http://ufal.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+      developed by Michal Kren and sufficient enough for most purposes),
       while other are bound to a particular project. Support for other
       formats can be added by writing a custom I/O Backend (a Perl
       module able to convert data from their format-specific
@@ -895,199 +895,10 @@ Tk: 804.027
 	  <listitem>
 	    <para>
 	      Displays the 
-	      dialog box <guilabel moreinfo="none">Edit Node</guilabel>,
-	      listing all attributes defined for the type of the node or
-	      for the file and their corresponding values at the active node.
-	      Depending on the type of the file, the dialog may have one
-	      of two possible interfaces, here refered to as the
-	      <firstterm>old interface</firstterm>
-	      (see <xref linkend="fig-old-editnode"/>)
-	      and the <firstterm>new interface</firstterm>
-	      (see <xref linkend="fig-new-editnode"/>).
+	      dialog box <guilabel moreinfo="none">Edit
+	      Node</guilabel>, which is in detail described in 
+	      <xref linkend="editnode"/>.
 	    </para>
-	    <para>
-	      The old interface supports attributes of the following
-	      types: strings,
-	      <literal>|</literal>-separated lists of strings,
-	      enumerated values, and <literal>|</literal>-separated
-	      lists of enumerated values. In the old interface,
-	      only plain string values can be edited directly.
-	      Any other attribute value can be edited in a dedicated
-	      sub-dialog, which appears after clicking on the button
-	      labeled <guibutton>...</guibutton> beside them.
-	    </para>
-	    <figure id="fig-old-editnode">
-	      <title>Old Edit Node interface</title>
-	      <mediaobject>
-		<imageobject>
-		  <imagedata fileref="pics/edit_node_dialog_old.png" format="PNG"
-		    role="html"/>
-		</imageobject>
-		<imageobject>
-		  <imagedata fileref="pics/edit_node_dialog_old.eps" format="EPS"
-		    role="latex"/>
-		</imageobject>
-	      </mediaobject>
-	    </figure>
-	    <para>The new interface (now default for PML-based files
-	      and files in FS format) offers support for
-	      string attributes, enumerated attributes,
-	      constant attributes,
-	      lists (either <literal>|</literal>-separated lists of strings used
-	      by FS format files or generic ordered or unordered <literal>Fslib::List</literal>
-	      lists of arbitrary type and <literal>Fslib::Alt</literal>
-	      alternatives used by PML instances), and also for 
-	      <firstterm>structured attributes</firstterm>
-	      (i.e. <quote>nesting</quote> of attributes).
-	    </para>
-	    <figure id="fig-new-editnode">
-	      <title>New Edit Node interface</title>
-	      <mediaobject>
-		<imageobject>
-		  <imagedata fileref="pics/edit_node_dialog.png" format="PNG"
-		    role="html"/>
-		</imageobject>
-		<imageobject>
-		  <imagedata fileref="pics/edit_node_dialog.eps" format="EPS"
-		    role="latex"/>
-		</imageobject>
-	      </mediaobject>
-	    </figure>
-	    <para>In this interface, the hierarchy
-	      of attributes is presented as a collapsible tree.
-	      The leafs of the tree represent the editable
-	      (string or enumerated) values. Enumerated values
-	      can be selected from a combo-box with a search-as-you-type
-	      functionality. Lists, alternatives and/or their members have additional
-	      buttons beside their tree-entry for adding
-	      new members, removing members, and altering the order of members,
-	      as listed in <xref linkend="tab-editnode"/>.
-	    </para>
-	    <table id="tab-editnode">
-	      <title>Buttons in the new <guilabel>Edit Node</guilabel>
-		interface</title>
-	      <tgroup cols="3">
-		<thead>
-		  <row>
-		    <entry>Button</entry>
-		    <entry>Keyboard shortcut</entry>
-		    <entry>Description</entry>
-		  </row>
-		</thead>
-		<tbody>
-		  <row>
-		    <entry>
-		      <mediaobject>
-			<imageobject><imagedata fileref="pics/edit_node_plus.png"
-				       format="PNG" role="html"/></imageobject>
-			<imageobject><imagedata fileref="pics/edit_node_plus.eps"
-				       format="EPS"
-				       role="latex"/></imageobject>
-			<textobject>
-			  <phrase><literal>+</literal></phrase></textobject>
-		      </mediaobject>
-		    </entry>
-		    <entry><keycombo action="simul">
-			<keysym>Ctrl</keysym>
-			<keysym>+</keysym>
-		      </keycombo>
-		    </entry>
-		    <entry>add new member to the list</entry>
-		  </row>
-		  <row>
-		    <entry>
-		      <mediaobject>
-			<imageobject><imagedata fileref="pics/edit_node_minus.png"
-				       format="PNG" role="html"/></imageobject>
-			<imageobject><imagedata fileref="pics/edit_node_minus.eps"
-				       format="EPS"
-				       role="latex"/></imageobject>
-			<textobject>
-			  <phrase><literal>-</literal></phrase></textobject>
-		      </mediaobject>
-		    </entry>
-		    <entry><keycombo action="simul">
-			<keysym>Ctrl</keysym>
-			<keysym>-</keysym>
-		      </keycombo>
-		    </entry>
-		    <entry>remove current member from the list</entry>
-		  </row>
-		  <row>
-		    <entry>
-		      <mediaobject>
-			<imageobject><imagedata fileref="pics/edit_node_up.png" format="PNG" role="html"/></imageobject>
-			<imageobject><imagedata fileref="pics/edit_node_up.eps"
-				       format="EPS"
-				       role="latex"/></imageobject>
-			<textobject>
-			  <phrase><literal>up</literal></phrase></textobject>
-		      </mediaobject>
-		    </entry>
-		    <entry><keycombo action="simul">
-			<keysym>Ctrl</keysym>
-			<keysym>up</keysym>
-		      </keycombo>
-		    </entry>
-		    <entry>move current member up in the list</entry>
-		  </row>
-		  <row>
-		    <entry>
-		      <mediaobject>
-			<imageobject><imagedata fileref="pics/edit_node_down.png" format="PNG" role="html"/></imageobject>
-			<imageobject><imagedata fileref="pics/edit_node_down.eps"
-				       format="EPS"
-				       role="latex"/></imageobject>
-			<textobject>
-			  <phrase><literal>down</literal></phrase></textobject>
-		      </mediaobject>
-		    </entry>
-		    <entry><keycombo action="simul">
-			<keysym>Ctrl</keysym>
-			<keysym>down</keysym>
-		      </keycombo>
-		    </entry>
-		    <entry>move current member down in the list</entry>
-		  </row>
-		  <row>
-		    <entry>
-		      <mediaobject>
-			<imageobject><imagedata fileref="pics/edit_node_star.png" format="PNG" role="html"/></imageobject>
-			<imageobject><imagedata fileref="pics/edit_node_star.eps"
-				       format="EPS"
-				       role="latex"/></imageobject>
-			<textobject>
-			  <phrase><literal>*</literal></phrase></textobject>
-		      </mediaobject>
-		    </entry>
-		    <entry><keycombo action="simul">
-			<keysym>Ctrl</keysym>
-			<keysym>*</keysym>
-		      </keycombo>
-		    </entry>
-		    <entry>add new alternative</entry>
-		  </row>
-		  <row>
-		    <entry>
-		      <mediaobject>
-			<imageobject><imagedata fileref="pics/edit_node_cross.png" format="PNG" role="html"/></imageobject>
-			<imageobject><imagedata fileref="pics/edit_node_cross.eps"
-				       format="EPS"
-				       role="latex"/></imageobject>
-			<textobject>
-			  <phrase><literal>x</literal></phrase></textobject>
-		      </mediaobject>
-		    </entry>
-		    <entry><keycombo action="simul">
-			<keysym>Ctrl</keysym>
-			<keysym>/</keysym>
-		      </keycombo>
-		    </entry>
-		    <entry>remove current alternative</entry>
-		  </row>
-		</tbody>
-	      </tgroup>
-	    </table>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="find">
@@ -1291,8 +1102,6 @@ Tk: 804.027
 	<application moreinfo="none">TredMacro</application> context
 	in the base macro file <filename>tred.mac</filename>.
       </para>
-      <para>
-      </para>
       <note>
 	<para>
 	  Note that, only a few of non-macro commands in TrEd are
@@ -1304,6 +1113,71 @@ Tk: 804.027
 	</para>
       </note>
       <variablelist>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Save File</guimenuitem>
+	  (<keycap moreinfo="none">F2</keycap>)</term> 
+	  <listitem>
+	    <para>Provides a keyboard shortcut for the Save command.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Save and Go to Previous File</guimenuitem>
+	  (<keycap moreinfo="none">F11</keycap>)</term> 
+	  <listitem>
+	    <para>Save the current file and open the previous file on the
+	      current file-list.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Save and Go to Next File</guimenuitem>
+	  (<keycap moreinfo="none">F12</keycap>)</term> 
+	  <listitem>
+	    <para>Save the current file and open the next file on the
+	      current file-list.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Go to Previous File</guimenuitem>
+	  (<keycap moreinfo="none">Shift+F11</keycap>)</term> 
+	  <listitem>
+	    <para>Close the current file and open the previous file on the current
+	      file-list. If the current file contains unsaved changes,
+	      the user is allowed to save them.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Go to Next File</guimenuitem>
+	  (<keycap moreinfo="none">Shift+F12</keycap>)</term> 
+	  <listitem>
+	    <para>Close the current file and open the next file on the current
+	      file-list. If the current file contains unsaved changes,
+	      the user is allowed to save them.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Find</guimenuitem>
+	  (<keycap moreinfo="none">F3</keycap>)</term>
+	  <listitem>
+	    <para>
+	      Invoke <menuchoice>
+		<guimenu>Node</guimenu>
+		<guimenuitem>Find ...</guimenuitem>
+	      </menuchoice>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Find Next</guimenuitem>
+	  (<keycap moreinfo="none">F4</keycap>)</term>
+	  <listitem>
+	    <para>
+	      Invoke <menuchoice>
+		<guimenu>Node</guimenu>
+		<guimenuitem>Find Next</guimenuitem>
+	      </menuchoice>.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Copy Values</guimenuitem>
 	  (<keycap moreinfo="none">F5</keycap>)</term> 
@@ -1358,8 +1232,9 @@ Tk: 804.027
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><guimenuitem moreinfo="none">Goto to first tree</guimenuitem>
-	    (<keycombo moreinfo="none" action="simul">
+	  <term><guimenuitem moreinfo="none">Go to first tree</guimenuitem>
+	    (<keycap moreinfo="none">Home</keycap> or
+	    <keycombo moreinfo="none" action="simul">
 	      <keycap moreinfo="none">Shift</keycap>
 	      <keycap moreinfo="none">&lt;</keycap></keycombo>)</term> 
 	  <listitem>
@@ -1369,8 +1244,31 @@ Tk: 804.027
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><guimenuitem moreinfo="none">Goto to last tree</guimenuitem>
+	  <term><guimenuitem moreinfo="none">Go to first tree</guimenuitem>
 	    (<keycombo moreinfo="none" action="simul">
+	      <keycap moreinfo="none">Shift</keycap>
+	      <keycap moreinfo="none">Home</keycap></keycombo>)</term> 
+	  <listitem>
+	    <para>
+	      Like <guimenuitem>Go to first tree</guimenuitem>,
+	      only applies to all views, if <inlinemediaobject>
+		<imageobject>
+		  <imagedata fileref="pics/lock.png" format="PNG" role="html"/>
+		</imageobject>
+		<imageobject>
+		  <imagedata fileref="pics/lock.eps" format="EPS" role="latex"/>
+		</imageobject><imageobject>
+		  <imagedata fileref="pics/lock" format="linespecific"/>
+		</imageobject>
+	      </inlinemediaobject>
+	      is pressed.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Go to last tree</guimenuitem>
+	    (<keycap moreinfo="none">End</keycap> or
+	    <keycombo moreinfo="none" action="simul">
 	      <keycap moreinfo="none">Shift</keycap>
 	      <keycap moreinfo="none">&gt;</keycap></keycombo>)</term>  
 	  <listitem>
@@ -1380,13 +1278,59 @@ Tk: 804.027
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Go to to last tree (tied)</guimenuitem>
+	    (<keycombo moreinfo="none" action="simul">
+	      <keycap moreinfo="none">Shift</keycap>
+	      <keycap moreinfo="none">End</keycap></keycombo>)</term>  
+	  <listitem>
+	    <para>
+	      Like <guimenuitem>Go to last tree</guimenuitem>,
+	      only applies to all views, if <inlinemediaobject>
+		<imageobject>
+		  <imagedata fileref="pics/lock.png" format="PNG" role="html"/>
+		</imageobject>
+		<imageobject>
+		  <imagedata fileref="pics/lock.eps" format="EPS" role="latex"/>
+		</imageobject><imageobject>
+		  <imagedata fileref="pics/lock" format="linespecific"/>
+		</imageobject>
+	      </inlinemediaobject>
+	      is pressed.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Go to...</guimenuitem> (<keycombo moreinfo="none" action="simul">
 	      <keycap moreinfo="none">Alt</keycap>
-	      <keycap moreinfo="none">G</keycap></keycombo>)</term> 
+	      <keycap moreinfo="none">g</keycap></keycombo>)</term> 
 	  <listitem>
 	    <para>
 	      Promts the user to enter an ordinal number of a tree in
 	      the file and displays that tree.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Go to...(tied)</guimenuitem> (<keycombo moreinfo="none" action="simul">
+	      <keycap moreinfo="none">Alt</keycap>
+	      <keycap moreinfo="none">Shift</keycap>
+	      <keycap moreinfo="none">G</keycap></keycombo>)</term> 
+	  <listitem>
+	    <para>
+	      Promts the user to enter an ordinal number of a tree in
+	      the file and displays that tree (depending
+	      on the status of the button 
+	      <inlinemediaobject>
+		<imageobject>
+		  <imagedata fileref="pics/lock.png" format="PNG" role="html"/>
+		</imageobject>
+		<imageobject>
+		  <imagedata fileref="pics/lock.eps" format="EPS" role="latex"/>
+		</imageobject><imageobject>
+		  <imagedata fileref="pics/lock" format="linespecific"/>
+		</imageobject>
+	      </inlinemediaobject>
+	      either in the current view only or in all views).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1470,6 +1414,123 @@ Tk: 804.027
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Prev node linearly</guimenuitem>
+	      (<keycombo moreinfo="none" action="simul">
+	      <keycap moreinfo="none">Ctrl</keycap>
+	      <keycap moreinfo="none">&lt;</keycap></keycombo>)</term> 
+	  <listitem>
+	    <para>
+	      Activate the previous node in the horizontal linear ordering
+	      of the tree (i.e. usually the node corresponding to the
+	      previous token or word in a sentence).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Next node linearly</guimenuitem>
+	      (<keycombo moreinfo="none" action="simul">
+	      <keycap moreinfo="none">Ctrl</keycap>
+	      <keycap moreinfo="none">&gt;</keycap></keycombo>)</term> 
+	  <listitem>
+	    <para>
+	      Activate the next node in the horizontal linear ordering
+	      of the tree (i.e. usually the node corresponding to the
+	      next token or word in a sentence).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">View</guimenu>
+	      <guimenuitem moreinfo="none">Previous Tree</guimenuitem>
+	    </menuchoice>
+	    ignore ties
+	    (<keycap moreinfo="none">,</keycap> <quote>comma</quote>)</term>
+	  <listitem>
+	    <para>Displayes the previous tree in the current file.
+	      Note, that this shorcuts operates on the focused
+	      view only, even if button
+	      <inlinemediaobject><imageobject><imagedata
+	      fileref="pics/lock.png" format="PNG"
+	      role="html"/></imageobject><imageobject><imagedata
+	      fileref="pics/lock.eps" format="EPS"
+	      role="latex"/></imageobject><imageobject><imagedata
+	      fileref="pics/lock"
+	      format="linespecific"/></imageobject></inlinemediaobject>
+	      is pressed and all views are tied
+	      (and this is a feature).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">View</guimenu>
+	      <guimenuitem moreinfo="none">Next Tree</guimenuitem>
+	    </menuchoice>
+	    ignore ties
+	    (<keycap moreinfo="none">.</keycap> <quote>dot</quote> )</term>
+	  <listitem>
+	    <para>Displayes the next tree in the current file.
+	      Note, that this shorcuts operates on the focused
+	      view only, even if button
+	      <inlinemediaobject><imageobject><imagedata
+	      fileref="pics/lock.png" format="PNG"
+	      role="html"/></imageobject><imageobject><imagedata
+	      fileref="pics/lock.eps" format="EPS"
+	      role="latex"/></imageobject><imageobject><imagedata
+	      fileref="pics/lock"
+	      format="linespecific"/></imageobject></inlinemediaobject>
+	      is pressed and all views are tied
+	      (and this is a feature).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">View</guimenu>
+	      <guimenuitem moreinfo="none">Previous Tree</guimenuitem>
+	    </menuchoice>
+	    (<keycombo action="simul">
+	      <keycap>Ctrl</keycap>
+	      <keycap moreinfo="none">,</keycap>   
+	    </keycombo>)</term>
+	  <listitem>
+	    <para>Displayes the previous tree in the
+	      current view (or all views, if button
+	      <inlinemediaobject><imageobject><imagedata
+	      fileref="pics/lock.png" format="PNG"
+	      role="html"/></imageobject><imageobject><imagedata
+	      fileref="pics/lock.eps" format="EPS"
+	      role="latex"/></imageobject><imageobject><imagedata
+	      fileref="pics/lock"
+	      format="linespecific"/></imageobject></inlinemediaobject>
+	      is pressed).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">View</guimenu>
+	      <guimenuitem moreinfo="none">Next Tree</guimenuitem>
+	    </menuchoice> (<keycombo action="simul">
+	      <keycap>Ctrl</keycap>
+	      <keycap moreinfo="none">.</keycap>   
+	    </keycombo>)</term>
+	  <listitem>
+	    <para>Displayes the next tree in the
+	      current view (or all views, if button
+	      <inlinemediaobject><imageobject><imagedata
+	      fileref="pics/lock.png" format="PNG"
+	      role="html"/></imageobject><imageobject><imagedata
+	      fileref="pics/lock.eps" format="EPS"
+	      role="latex"/></imageobject><imageobject><imagedata
+	      fileref="pics/lock"
+	      format="linespecific"/></imageobject></inlinemediaobject>
+	      is pressed).
+	    </para>
+	  </listitem>
+	</varlistentry>
       </variablelist>
     </section>
     <section>
@@ -1510,10 +1571,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">File</guimenu>
-	    <guimenuitem moreinfo="none">Open ...</guimenuitem>
-	  </menuchoice>
+	  <para>
+	    <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">File</guimenu>
+	      <guimenuitem moreinfo="none">Open ...</guimenuitem>
+	    </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1531,10 +1594,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">File</guimenu>
-	    <guimenuitem moreinfo="none">Save</guimenuitem>
-	  </menuchoice>
+	  <para>
+	    <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">File</guimenu>
+	      <guimenuitem moreinfo="none">Save</guimenuitem>
+	    </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1608,10 +1673,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">Node</guimenu>
-	    <guimenuitem moreinfo="none">Find Previous</guimenuitem>
-	  </menuchoice>
+	  <para>
+	    <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">Node</guimenu>
+	      <guimenuitem moreinfo="none">Find Previous</guimenuitem>
+	    </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1629,10 +1696,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">File</guimenu>
-	    <guimenuitem moreinfo="none">Previous File</guimenuitem>
-	  </menuchoice>
+	  <para>
+	    <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">File</guimenu>
+	      <guimenuitem moreinfo="none">Previous File</guimenuitem>
+	    </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1650,10 +1719,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">File</guimenu>
-	    <guimenuitem moreinfo="none">Print ...</guimenuitem>
-	  </menuchoice>
+	  <para>
+	    <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">File</guimenu>
+	      <guimenuitem moreinfo="none">Print ...</guimenuitem>
+	    </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1671,10 +1742,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">Node</guimenu>
-	    <guimenuitem moreinfo="none">Find ...</guimenuitem>
-	  </menuchoice>
+	  <para>
+	    <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">Node</guimenu>
+	      <guimenuitem moreinfo="none">Find ...</guimenuitem>
+	    </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1692,10 +1765,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">Node</guimenu>
-	    <guimenuitem moreinfo="none">Find Next</guimenuitem>
-	  </menuchoice>
+	  <para>
+	    <menuchoice moreinfo="none">
+	      <guimenu moreinfo="none">Node</guimenu>
+	      <guimenuitem moreinfo="none">Find Next</guimenuitem>
+	    </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1713,10 +1788,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
+	  <para>
 	  <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">File</guimenu>
-	    <guimenuitem moreinfo="none">Next File</guimenuitem>
-	  </menuchoice>
+	      <guimenu moreinfo="none">File</guimenu>
+	      <guimenuitem moreinfo="none">Next File</guimenuitem>
+	    </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1734,10 +1811,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
+	  <para>
 	  <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">View</guimenu>
 	    <guimenuitem moreinfo="none">Previous Tree</guimenuitem>
 	  </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1755,10 +1834,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
+	  <para>
 	  <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">View</guimenu>
 	    <guimenuitem moreinfo="none">Next Tree</guimenuitem>
 	  </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1776,11 +1857,13 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
+	  <para>
 	  <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">View</guimenu>
 	    <guimenuitem moreinfo="none">Customize
 	      Tree...</guimenuitem>
 	  </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1798,11 +1881,13 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
+	  <para>
 	  <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">View</guimenu>
 	    <guimenuitem moreinfo="none">List
 	      of sentences...</guimenuitem>
 	  </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1820,10 +1905,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
+	  <para>
 	  <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">View</guimenu>
 	    <guimenuitem moreinfo="none">Split view horizontally</guimenuitem>
 	  </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1841,10 +1928,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
+	  <para>
 	  <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">View</guimenu>
 	    <guimenuitem moreinfo="none">Split view vertically</guimenuitem>
 	  </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1862,10 +1951,12 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
+	  <para>
 	  <menuchoice moreinfo="none">
 	    <guimenu moreinfo="none">View</guimenu>
 	    <guimenuitem moreinfo="none">Close current view</guimenuitem>
 	  </menuchoice>
+	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
@@ -1883,7 +1974,7 @@ Tk: 804.027
 	  </inlinemediaobject>
 	</term>
 	<listitem>
-	  <para>This may have two states. If pressed,
+	  <para>This button has two states. If pressed,
 	    all displayed views are tied together, so that
 	    pressing <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> or
 	    <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject> buttons
@@ -2048,6 +2139,234 @@ Tk: 804.027
 	</varlistentry>
       </variablelist>
     </section>
+  </section>
+  <section id="editnode">
+    <title>Editing node attributes</title>
+    <para>
+      Double-clicking any attribute value displayed in the tree shows
+      a simple value editor, where the value of the attribute can be
+      changed (note however, that some context disable editing certain
+      or all attributes - in that case, the value editor presentes the
+      attribute value as read-only).
+    </para>
+    <para>
+      Usually not all attributes are displayed in the tree.  In that
+      case it is necessary to use the <guilabel moreinfo="none">Edit
+      Node</guilabel> dialog, which can be invoked either by
+      double-clicking on the desired node in the tree, by activating the
+      node and pressing <keycap>Enter</keycap>, or by
+      activating the node and selecting <menuchoice>
+	<guimenu>Node</guimenu>
+	<guimenuitem>Edit Node ...</guimenuitem>
+      </menuchoice> from the menu.
+    </para>
+    <para>
+      The <guilabel>Edit Node</guilabel> dialog shows all attributes
+      defined for the type of the node or for the file and their
+      corresponding values at the selected node.
+      Depending on the type of the file, the dialog may have one
+      of two possible interfaces, here refered to as the
+      <firstterm>old interface</firstterm>
+      (see <xref linkend="fig-old-editnode"/>)
+      and the <firstterm>new interface</firstterm>
+      (see <xref linkend="fig-new-editnode"/>).
+    </para>    
+    <para>
+      Displays the 
+      dialog box <guilabel moreinfo="none">Edit Node</guilabel>,
+      listing all attributes defined for the type of the node or
+      for the file and their corresponding values at the active node.
+      Depending on the type of the file, the dialog may have one
+      of two possible interfaces, here refered to as the
+      <firstterm>old interface</firstterm>
+      (see <xref linkend="fig-old-editnode"/>)
+      and the <firstterm>new interface</firstterm>
+      (see <xref linkend="fig-new-editnode"/>).
+    </para>
+    <para>
+      The old interface supports attributes of the following
+      types: strings,
+      <literal>|</literal>-separated lists of strings,
+      enumerated values, and <literal>|</literal>-separated
+      lists of enumerated values. In the old interface,
+      only plain string values can be edited directly.
+      Any other attribute value can be edited in a dedicated
+      sub-dialog, which appears after clicking on the button
+      labeled <guibutton>...</guibutton> beside them.
+    </para>
+    <figure id="fig-old-editnode">
+      <title>Old Edit Node interface</title>
+      <mediaobject>
+	<imageobject>
+	  <imagedata fileref="pics/edit_node_dialog_old.png" format="PNG"
+	    role="html"/>
+	</imageobject>
+	<imageobject>
+	  <imagedata fileref="pics/edit_node_dialog_old.eps" format="EPS"
+	    role="latex"/>
+	</imageobject>
+      </mediaobject>
+    </figure>
+    <para>The new interface (now default for PML-based files
+      and files in FS format) offers support for
+      string attributes, enumerated attributes,
+      constant attributes,
+      lists (either <literal>|</literal>-separated lists of strings used
+      by FS format files or generic ordered or unordered <literal>Fslib::List</literal>
+      lists of arbitrary type and <literal>Fslib::Alt</literal>
+      alternatives used by PML instances), and also for 
+      <firstterm>structured attributes</firstterm>
+      (i.e. <quote>nesting</quote> of attributes).
+    </para>
+    <figure id="fig-new-editnode">
+      <title>New Edit Node interface</title>
+      <mediaobject>
+	<imageobject>
+	  <imagedata fileref="pics/edit_node_dialog.png" format="PNG"
+	    role="html"/>
+	</imageobject>
+	<imageobject>
+	  <imagedata fileref="pics/edit_node_dialog.eps" format="EPS"
+	    role="latex"/>
+	</imageobject>
+      </mediaobject>
+    </figure>
+    <para>In this interface, the hierarchy
+      of attributes is presented as a collapsible tree.
+      The leafs of the tree represent the editable
+      (string or enumerated) values. Enumerated values
+      can be selected from a combo-box with a search-as-you-type
+      functionality. Lists, alternatives and/or their members have additional
+      buttons beside their tree-entry for adding
+      new members, removing members, and altering the order of members,
+      as listed in <xref linkend="tab-editnode"/>.
+    </para>
+    <table id="tab-editnode">
+      <title>Buttons in the new <guilabel>Edit Node</guilabel>
+	interface</title>
+      <tgroup cols="3">
+	<thead>
+	  <row>
+	    <entry>Button</entry>
+	    <entry>Keyboard shortcut</entry>
+	    <entry>Description</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_plus.png"
+			       format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_plus.eps"
+			       format="EPS"
+			       role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal>+</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul">
+		<keysym>Ctrl</keysym>
+		<keysym>+</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>add new member to the list</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_minus.png"
+			       format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_minus.eps"
+			       format="EPS"
+			       role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal>-</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul">
+		<keysym>Ctrl</keysym>
+		<keysym>-</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>remove current member from the list</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_up.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_up.eps"
+			       format="EPS"
+			       role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal>up</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul">
+		<keysym>Ctrl</keysym>
+		<keysym>up</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>move current member up in the list</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_down.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_down.eps"
+			       format="EPS"
+			       role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal>down</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul">
+		<keysym>Ctrl</keysym>
+		<keysym>down</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>move current member down in the list</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_star.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_star.eps"
+			       format="EPS"
+			       role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal>*</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul">
+		<keysym>Ctrl</keysym>
+		<keysym>*</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>add new alternative</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_cross.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_cross.eps"
+			       format="EPS"
+			       role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal>x</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul">
+		<keysym>Ctrl</keysym>
+		<keysym>/</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>remove current alternative</entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </table>
+
   </section>
   <section id="stylesheets">
     <title>Customizing Tree Appearance: Stylesheets</title>
@@ -3869,7 +4188,7 @@ sub CreateImages {
 	      This option may be used to tell
 	      <application moreinfo="none">TrEd</application>
 	      how many fields should fit in one screen of the
-	      <guilabel moreinfo="none">Edit Node Attributes</guilabel>
+	      <guilabel moreinfo="none">Edit Node ...</guilabel>
 	      and
 	      <guilabel moreinfo="none">Find Node by Attributes</guilabel>
 	      dialog windows. (The greater the number, the taller
@@ -6201,7 +6520,7 @@ sub MakeSentence {
 	      <entry><literal moreinfo="none">after_edit_node_hook</literal></entry>
 	      <entry>no</entry>
 	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>result</replaceable></literal></para><para>Executed after a node's attribute values were edited
-		in the <guilabel moreinfo="none">Edit Node Attributes</guilabel>
+		in the <guilabel moreinfo="none">Edit Node ...</guilabel>
 		dialog window. The <replaceable>result</replaceable>
 		argument contains <literal moreinfo="none">1</literal> if the user pressed
 		<guibutton moreinfo="none">Ok</guibutton> button to close the dialog,
