@@ -26,15 +26,20 @@
   </sect1>
 
   <sect1>
-    <title>What BTrEd and NTrEd are and why do I need them?</title>
+    <title>What BTrEd and NTrEd are and why you may need them?</title>
 
-    <para>You only need these programs if you work with tree structures in FS
-    or other supported format and you want to process those structures
-    programatically without (much) user interaction. <literal>btred</literal>
-    can be used either directly from the command line or as a server which
-    keeps the trees in memory and evaluates macros on clients requests.
-    <literal>ntred</literal> is an interface between the client and one or
-    more <literal>btred</literal> servers.</para>
+    <para>You might find these programs useful if you need to
+    automatically process a larger amount of files you normally edit
+    in TrEd. By processing, we mean programatically editing the data
+    searching in the them, and so on, without user interaction.
+    </para>
+    <para>
+    <literal>btred</literal> provides a feature-rich environment for
+    all these types of tasks. It can be used either directly from the
+    command line or as a server which keeps the trees in memory and
+    evaluates macros on clients requests.  <literal>ntred</literal> is
+    the interface between the client and a cluster of one or more
+    <literal>btred</literal> servers.</para>
   </sect1>
 
   <sect1>
