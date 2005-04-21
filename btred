@@ -38,7 +38,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $libDir $macroFile $stdout $stderr @backends @ISA @EXPORT
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
-	    $version $lib $extra_backends $file_list
+	    $version $lib $extra_backends $file_list $list_options
 	    $_ERR %optmap $no_secondary $include_macro
 	   );
 
@@ -90,6 +90,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "allow-host|b=s" => \$allow_host,
 	    "server-port|L=i"  => \$start_server,
 	    "help|h" => \$help,
+	    "list-options" => \$list_options,
 	    "usage|u"        => \$usage,
 	    "man"            => \$manpage,
 	    "lib"            => \$lib,
@@ -133,6 +134,15 @@ if ($help) {
 if ($manpage) {
   pod2usage(-exitstatus => 0, -verbose => 2);
 }
+if ($list_options) {
+  foreach my $o (keys %optmap) {
+    $o=~s/=.$//;
+    foreach my $oo (split /\|/,$o) {
+      print sort ((length($oo)>1) ? "--$oo\n" : "-$oo\n");
+    }
+  }
+  exit;
+}
 
 _set_encoding($_ERR,':utf8',"_ERR");
 _set_encoding(\*STDERR,$term_encoding,"STDERR");
@@ -156,14 +166,16 @@ if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
 # It is also used to find TrEd::Config.pm module.
 
 use FindBin;
+my $rb = $FindBin::RealBin;
+$rb=~s{/$}{};
 if (exists $ENV{TREDHOME}) {
   $libDir=$ENV{TREDHOME};
-} elsif (-d "$FindBin::RealBin/tredlib") {
-  $libDir="$FindBin::RealBin/tredlib";
-} elsif (-d "$FindBin::RealBin/../lib/tredlib") {
-  $libDir="$FindBin::RealBin/../lib/tredlib";
-} elsif (-d "$FindBin::RealBin/../lib/tred") {
-  $libDir="$FindBin::RealBin/../lib/tred";
+} elsif (-d "$rb/tredlib") {
+  $libDir="$rb/tredlib";
+} elsif (-d "$rb/../lib/tredlib") {
+  $libDir="$rb/../lib/tredlib";
+} elsif (-d "$rb/../lib/tred") {
+  $libDir="$rb/../lib/tred";
 }
 _msg("Trying $libDir\n") if ($libDir and !$quiet);
 
