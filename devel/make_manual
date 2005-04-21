@@ -4,4 +4,4 @@ pod2xml tredlib/tred.def |xsltproc devel/pod2db.xsl - | devel/pod2db.xsh -P- > d
 pod2xml tredlib/Fslib.pm |xsltproc devel/pod2db.xsl - | devel/pod2db.xsh -P- > documentation/manual/Fslib.xml
 
 cd documentation/manual
-xsltproc --xinclude manual.xsl tred.xml
+xsltproc --xinclude --string-param root.filename tred manual.xsl tred.xml
