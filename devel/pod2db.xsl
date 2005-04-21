@@ -56,6 +56,31 @@
   <literal><xsl:apply-templates/></literal>
 </xsl:template>
 
+<xsl:template match="pod:verbatim[preceding-sibling::node()[not(self::text()[normalize-space(.)=''])][1][name()!='verbatim']]">
+  <literallayout>
+    <xsl:apply-templates/>
+    <xsl:apply-templates select="following-sibling::node()[not(self::text()[normalize-space(.)=''])][1][name()='verbatim']" mode="follow"/>
+  </literallayout>
+</xsl:template>
+
+<xsl:template match="pod:verbatim" mode="follow">
+  <xsl:apply-templates/>
+  <xsl:apply-templates select="following-sibling::node()[not(self::text()[normalize-space(.)=''])][1][name()='verbatim']" mode="follow"/>
+</xsl:template>
+
+<xsl:template match="pod:verbatim">
+</xsl:template>
+
+<xsl:template match="pod:xlink">
+  <ulink>
+    <xsl:attribute name="url">
+      <xsl:value-of select="."/>
+    </xsl:attribute>
+    <xsl:apply-templates/>
+  </ulink>
+</xsl:template>
+
+
 <xsl:template match="pod:*">
   <xsl:element name="{local-name()}">
     <xsl:apply-templates select="@*"/>
