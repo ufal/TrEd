@@ -1547,6 +1547,56 @@ Tk: 804.027
 	  </listitem>
 	</varlistentry>
       </variablelist>
+      <variablelist>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Examine bindings</guimenuitem></term>
+	  <listitem>
+	    <para>Displays a window where the user may safely test keyboard bindings.
+	      Every time a keyboard short-cut is pressed in the dialog, TrEd looks up
+	      if some macro is associated with the short-cut and displayes
+	      the result. No macros acrually executed.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+      <variablelist>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Reload macros</guimenuitem></term>
+	  <listitem>
+	    <para>Removes all macro code and variables from memory and
+	      reloads all macros. This command is useful when the user
+	      modifies the macros in a text editor and wants to check the
+	      result without having to restart <application>TrEd</application>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+      <variablelist>
+	<varlistentry>
+	  <term><guimenuitem moreinfo="none">Debugging messages</guimenuitem></term>
+	  <listitem>
+	    <para>In this submenu the user may turn on and off various sets of 
+	      debugging messages printed by <application>TrEd</application> on
+	      the standard or error output (e.g. in a terminal window).
+	      The following sets of debugging messages are defined:
+	      <guilabel>tred</guilabel> (messages produced by
+	      <application>TrEd</application>'s GUI),
+	      <guilabel>macro</guilabel>
+	      (messages issued by TrEd when a macro is evaluated),
+	      <guilabel>hooks</guilabel>
+	      (messages issued by TrEd when a hook is evaluated),
+	      <guilabel>keyboard</guilabel>
+	      (messages produced by TrEd when a keyboard short-cut is pressed),
+	      <guilabel>backend</guilabel>
+	      (messages produced by I/O backends),
+	      <guilabel>view</guilabel>
+	      (messages produced by the displaying engine and errors
+	      raised during style-sheet evaluation).
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+
     </section>
   </section>
   <section>
