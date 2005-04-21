@@ -8,9 +8,9 @@
 ## add few custom bindings to predefined subroutines
 
 #bind Save to F2 menu Save File
-#bind SaveAndPrevFile to F11 menu Save and Go to Next File
+#bind SaveAndPrevFile to F11 menu Save and Go to Previous File
 #bind SaveAndNextFile to F12 menu Save and Go to Next File
-#bind PrevFile to Shift+F11 menu Go to Next File
+#bind PrevFile to Shift+F11 menu Go to Previous File
 #bind NextFile to Shift+F12 menu Go to Next File
 
 #bind Find_nochange to F3 menu Find
@@ -266,7 +266,7 @@ sub FirstTree {
   GotoTree(1);
 }
 
-#bind GotoNextNodeLin to Ctrl+greater
+#bind GotoNextNodeLin to Ctrl+greater menu Next node linearly
 sub GotoNextNodeLin {
   ChangingFile(0);
   my $sentord=$grp->{FSFile}->FS->sentord;
@@ -279,7 +279,7 @@ sub GotoNextNodeLin {
   $this=$next if $next;
 }
 
-#bind GotoPrevNodeLin to Ctrl+less
+#bind GotoPrevNodeLin to Ctrl+less menu Prev node linearly
 sub GotoPrevNodeLin {
   ChangingFile(0);
   my $sentord=$grp->{FSFile}->FS->sentord;
