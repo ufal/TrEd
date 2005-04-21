@@ -148,7 +148,6 @@ sub BindResize {
 sub invoke_mini_button {
   my ($hlist,$name)=@_;
   my $path = $hlist->info('anchor');
-  _debug "Anchor $path";
   if ($path ne '' and
       $hlist->itemExists($path,2) and
       $hlist->itemCget($path,2,'-itemtype') eq 'window') {
@@ -284,7 +283,6 @@ sub up_or_down {
   return unless $parent;
   my $other = $hlist->next_sibling($path,
 				   ($where > 0 ? 'next' : 'prev'));
-  _debug "THIS: $path, OTHER: $other, PARENT: $parent";
   return unless ($other ne "" and $other ne $path and $hlist->info('parent',$other) eq $parent);
   my $mtype =
     $hlist->info(data => $parent)->{compressed_type} ||
@@ -323,25 +321,21 @@ sub add_to_alt {
   my $data = $hlist->info(data => $path);
   if (!$data->{compressed_type}) {
     #  simply add new item
-    _debug "simple add";
     $data->{alt_no}++;
     $hlist->select_entry(
 		 $hlist->add_alt_member($path,$data->{type},undef,
 					$data->{alt_no},0));
   } else {
-    _debug "create new alt";
     my $val = bless [],'Fslib::Alt';
     $hlist->dump_child($path, $val, 1);
     my $parent = $hlist->info(parent => $path);
     my $next = $hlist->next_sibling($path);
     $hlist->delete('entry',$path);
-    _debug "BASE: '$parent' (next: $next)";
     my $new_path =
       $hlist->add_member($parent ne '' ? $parent.'/' : '',
 		 $data->{type},
 		 $val,
 		 $data->{name},1,$next ? [-before => $next] : undef);
-    _debug "new $new_path";
     $hlist->select_entry($new_path);
   }
 #   print "$hlist\n";
@@ -363,16 +357,12 @@ sub remove_alt_member {
   my ($hlist,$path)=@_;
   my $parent = $hlist->info(parent => $path);
   $hlist->delete('entry',$path);
-  _debug "deleted $path";
   $path = $parent;
-  _debug "parent=path $path";
   if ($hlist->info(children => $path) == 0) {
     # no altrenative left -> replace with the usual type
-    _debug "replacing with normal type: $path";
     my $data = $hlist->info(data => $path);
     my $next = $hlist->next_sibling($path);
     $parent = $hlist->info(parent => $path);
-    _debug "parent $parent, next: $next";
     $hlist->delete('entry',$path);
     my $new_path = $hlist->add_member($parent ne "" ? $parent.'/' : '',
 				      $data->{type},undef,
@@ -847,7 +837,6 @@ sub dump_child {
   } elsif ($mtype->{alt}) {
     my $new_ref=bless [],'Fslib::Alt';
     if ($data->{compressed_type}) {
-      _debug "compressed";
       $hlist->dump_child($path,$new_ref,
 			 $preserve_empty,$data->{compressed_type});
       die "error: expected only single item in a compressed alt\n"
@@ -917,7 +906,6 @@ sub entry_insert {
   if ($hlist->itemExists($path,1)) {
     my $mode = $hlist->getmode($path);
     if ($what eq ' ' and $mode ne 'none') {
-      _debug $mode;
       $hlist->$mode($path);
     } else {
       return unless $hlist->itemCget($path,1,'-itemtype') eq 'window';
