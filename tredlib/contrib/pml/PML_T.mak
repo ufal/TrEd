@@ -851,7 +851,7 @@ node:<?
 
 node:<? $${nodetype} !~/^(?:complex|root)$/
         ? '#{customnodetype}${nodetype}'
-        : '#{customcomplex}${gram/sempos}#{customdetail}'.join'',map{'.'.($this->{gram}{$_}=~/^(?:nr|nil)$/?"#{customdetailheader}$_:#{customdetail}":'')."\${gram/$_}" } sort grep{/mod/}keys%{$this->{gram}}
+        : '#{customcomplex}${gram/sempos}#{customdetail} '.join'.',map{($this->{gram}{$_}=~/^(?:nr|nil)$/?"#{customdetailheader}$_:#{customdetail}":'')."\${gram/$_}" } sort grep{/mod/}keys%{$this->{gram}}
   ?>
 
 node: <? $${nodetype} eq 'complex' ?
