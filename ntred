@@ -1216,7 +1216,7 @@ Additional files may be given as command-line arguments.
 =item B<--no-secondary-files>
 
 Don't load "secondary" files along with normal files (a file may
-require other - secondary - file to load together with it; this is
+require other - secondary - file to load along with it; this is
 typical for stand-off annotation where one tree is built upon
 another).
 
@@ -1602,39 +1602,47 @@ security risks:
    by the server in case of the hub-to-btred-server communication and
    by the hub in case of the client-to-hub communication) xor-ed with
    an authorization key known to both parties. Although the
-   communication is unencrypted, the client must together with each
-   request send an MD5 checksum of the request XORed with the secret
+   communication is unencrypted, the client must with each
+   request send a MD5 checksum of the request XORed with the secret
    authorization key.  Only requests whose signature is verified
-   by the server, are responded.
+   by the server, are responded to.
 
-2) There may be only one connection from a hub to server.  As soon as
-   it is closed, the server is terminated.
+2) There may be only one connection from a hub to a server.  As soon as
+   it is closed, the server terminates.
 
 3) If the servers are started by the hub itself (using C<--init>) the
    authorization key is created by the hub and is passed to the btred
    server via a ssh encrypted pipe.
 
-4) The authorization key is also stored in user's home directory as
-   C<~/.ntred_session_key> with permissions set to 600 for cleint's
-   disposal. This theoretically (depending on general system security)
-   limits the access to the hub and thus to the servers to the user
-   running the hub (and root). It may though obviously be abused by
-   root who may run some perl code on all machines running btred
-   servers. This might especially be undesirable if the hub is running
-   on a machine whose administrator would normaly have no user access
-   to the machines running btred servers.
+4) For the client's disposal, the authorization key is stored in
+   user's home directory as C<~/.ntred_session_key> with permissions
+   set to 600 (only user can read or write). This theoretically
+   (depending on the general security of the system) limits the access
+   to the hub (and thus to the servers) to the user running the hub
+   only. It may, though, be obviously abused from the local root
+   account to execute arbitrary perl code on all btred server
+   hosts. This might especially be undesirable if the hub runs on a
+   machine whose administrator would normaly have no user access to
+   the machines running btred servers. Another possible security issue
+   might arise if user's home directory is on a remote NFS server, so
+   that NFS intervenes accessing the key file. Since NFS uses an
+   unencrypted protocol, network sniffing techniques may be used to
+   obtain the authorization key and hence run arbitrary code on btred
+   hosts. If such situations are likely to happen (e.g. in a large
+   network) it is advisable to use a different location for the
+   authorization key (see C<--key-file>), e.g. F</tmp>.
 
-5) It is possible to limit perl code evaluated on the servers within a
-   safer compartment, where some critical perl commands are disabled.
-   In some cases, the restrictions may not be sufficient, in other
+5) It is possible to restrict Perl code evaluated on the servers to a
+   safer compartment, where some critical Perl commands are disabled.
+   In some cases, these restrictions may not be sufficient, in other
    they may be too strict. Some memory leaks can appear when Safe
    compartment is used. See C<--safe-mode> above for more discussion.
 
 6) Unless C<--hub> option is used, the hub runs on localhost and as
    such is not (under normal circumstances) open for connections from
    the outside world. If you are considering making the hub listen on
-   a non-local interface, note that it is much better option to setup
-   a secure SSH tunnel.
+   a non-local interface, note that it is a much better option to
+   configure a secure SSH tunnel.
 
 =head1 FILES
 
@@ -1650,6 +1658,6 @@ Petr Pajas <pajas@matfyz.cz>
 
 Zdenek Zabokrtsky <zabokrtsky@ckl.mff.cuni.cz>
 
-Copyright 2003 Petr Pajas and Zdenek Zabokrtsky, All rights reserved.
+Copyright 2003-2005 Petr Pajas and Zdenek Zabokrtsky, All rights reserved.
 
 =cut
