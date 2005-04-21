@@ -292,8 +292,6 @@ use strict;
 
 FSNode - Simple OO interface to tree structures of Fslib.pm
 
-=head2 REFERENCE
-
 =over 4
 
 =cut
@@ -927,8 +925,6 @@ use vars qw(%Specials $AUTOLOAD $special);
 
 FSFormat - Simple OO interface for FS instance of Fslib.pm
 
-=head2 REFERENCE
-
 =over 4
 
 =cut
@@ -1549,15 +1545,10 @@ FSFile - Simple OO interface for FS files.
 
   my $file="trees.fs";
   my $fs = FSFile->newFSFile($file);
-
   if ($fs->lastTreeNo<0) { die "File is empty or corrupted!\n" }
-
   foreach my $tree ($fs->trees) {
-
     ...    # do something on the trees
-
   }
-
   $fs->writeFile("$file.out");
 
 =head2 REFERENCE
@@ -2618,8 +2609,6 @@ use Carp;
 
 FSBackend - IO backend for reading/writing FS files using FSFile class.
 
-=head2 REFERENCE
-
 =over 4
 
 =cut
@@ -3309,20 +3298,31 @@ abstraction over this module.
 
 =head2 DESCRIPTION
 
-This package has the ambition to be a simple and usable perl API for manipulating the
-treebank files in the .fs format (which was designed by Michal Kren
-and is the only format supported by his Windows application GRAPH.EXE
-used to interractively edit treebank analytical or tectogramatical
-trees). See also Dan Zeman's review of this format in Czech at
+This package has the ambition to be a simple and usable perl API for
+manipulating the treebank files in the .fs format (which was designed
+by Michal Kren and is the only format supported by his Windows
+application GRAPH.EXE used to interractively edit treebank analytical
+or tectogramatical trees). See also a description of this format at
 
-http://ufal.mff.cuni.cz/local/doc/trees/format_fs.html
+http://ufal.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html
 
 The Fslib package defines functions for parsing .fs files, extracting
 headers, reading trees and representing them in memory using simple
 hash structures blessed to the B<FSNode> class, manipulate the values
 of node attributes and modify the structure of the trees.
 
-=head2 REFERENCE
+=head2 DATA STRUCTURES REPRESENTING NODES AND TREES
+
+A tree is represented by it's root-node. A node a B<FSNode> object,
+which in turn is a usual Perl hash reference where hash keys are names
+of attributes and hash values are the corresponding attribute
+values. Four special keys (defined as global variables) are reserved
+for representing the tree structure. These are namely
+C<$Fslib::parent>, C<$Fslib::firstson>, C<$Fslib::rbrother>, and
+C<$Fslib::lbrother>. Another special key C<$Fslib::type> is sometimes
+used to store L<"Fslib::Type"> information.  It is highly recommended
+to use L<"FSNode"> API instead of accessing these hash keys and the
+corresponding C<$Fslib::...> variables directly.
 
 =over 4
 
@@ -3445,19 +3445,6 @@ of node attributes and modify the structure of the trees.
    backends for which the demand was fulfilled. These
    backends may then be freely used in FSFile IO calls.
 
-=item NODES AND TREES
-
- Description:
-
- A node a B<FSNode> object, which in turn is a usual Perl hash
- reference. It's keys are names of the node's attributes and it's
- values are their respective values. Four special keys (defined as
- global variables) are reserved for representing the tree structure.
- These are namely $parent, $firstson, $rbrother, and $lbrother.
- Thus $node->{$parent} is the parent-node of $node,
- $node->{$firstson} is the first of its child-nodes,
- $node->{$rbrother} and $node->{$lbrother} are
- it's right and left sibling-node, respectively.
 
 =back
 
