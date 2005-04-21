@@ -254,16 +254,16 @@ sub NonProjEdges {
                      coappa blue
                      parenthesis #809080
                      nodetype darkblue
-                     complex #5B2199
-                     detail darkmagenta
-                     detailheader #270037
+                     complex darkmagenta
+                     detail darkgreen
+                     detailheader #002416
                      coref darkblue
                      arrow_textual #4C509F
                      arrow_grammatical #C05633
                      arrow_segment darkred
                      arrow_compl #629F52
                      arrow_exoph blue
-                     line_normal #707070
+                     line_normal #7f7f7f
                      line_member #a0a0a0
                      line_comm #6F11EA/;
   while(@CustomColors){
