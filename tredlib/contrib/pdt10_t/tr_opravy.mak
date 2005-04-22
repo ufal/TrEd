@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-04-11 21:50:50 pajas>
+## Time-stamp: <2005-04-22 13:39:19 pajas>
 
 package TR_Correction;
 @ISA=qw(Tectogrammatic);
@@ -1165,7 +1165,7 @@ at given value and the increment in ord at AR and dord at TR is
 
 sub recountAll ($$@){
   my($shiftOrd,$shiftDord,@nodes)=@_;
-  print"RECOUNT $shiftOrd,$shiftDord,$nodes[0]->{trlemma}\n";
+  print"RECOUNT $shiftOrd,$shiftDord,$nodes[0]->{trlemma}\n" if @nodes;
   my$maxOrd;
   with_AR{
     NormalizeOrds(SortByOrd([grep{$_->{AID}}@nodes]));
