@@ -457,7 +457,7 @@ sub GetNodeIndex {
 
 Return current filename, index of a tree (starting from 1) in the file
 to which the node belongs (0 if not found) and node's position in the tree
-in the deep-first tee ordering.
+in the deep-first tree ordering.
 
 =cut
 
