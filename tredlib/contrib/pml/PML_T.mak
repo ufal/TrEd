@@ -22,8 +22,6 @@ sub first (&@);
 PML_T.mak - Miscelaneous macros for tectogrammatic layer of Prague
 Dependency Treebank (PDT) 2.0.
 
-=head2 REFERENCE
-
 =over 4
 
 =cut

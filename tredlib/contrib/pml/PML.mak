@@ -17,8 +17,6 @@ sub first (&@);
 PML.mak - Miscelaneous macros of general use in Prague Dependency
 Treebank (PDT) 2.0
 
-=head2 REFERENCE
-
 =over 4
 
 =item SchemaName()

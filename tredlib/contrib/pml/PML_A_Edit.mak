@@ -22,8 +22,6 @@ sub first (&@);
 PML_A_Edit.mak - Miscelaneous macros for editing analytic layer of
 Prague Dependency Treebank (PDT) 2.0.
 
-=head2 REFERENCE
-
 =over 4
 
 =cut
