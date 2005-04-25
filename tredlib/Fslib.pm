@@ -2627,8 +2627,9 @@ C<b/v/y> result in the following structure:
 
 C<{a => value_of_a,
    b => { u => { x => value_of_a/u/x },
-        { v => { x => value_of_a/v/x,
-                 y => value_of_a/v/y }}}
+          v => { x => value_of_a/v/x,
+                 y => value_of_a/v/y }
+        }
   }>
 
 In the PML schema emulation mode, it is forbidden to have both C<a>
