@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
-"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <?xml-stylesheet href="docbook-css-0.4/driver.css" type="text/css"?>
 <article lang="en">
   <articleinfo>
@@ -14,8 +13,7 @@
     </author>
   </articleinfo>
   <section id="intro">
-    <title>Introduction</title> <para><application
-	moreinfo="none">TrEd</application> is a fully customizable and
+    <title>Introduction</title> <para><application moreinfo="none">TrEd</application> is a fully customizable and
       programmable graphical editor and viewer of tree-like structures
       such as dependency trees.  Among other projects, it was used as
       the main annotation tool for syntactical and tectogrammatical
@@ -36,8 +34,7 @@
     </para>
     <para>
       TrEd supports various input and output formats. Some of them
-      are of general nature (one of them is <ulink
-      url="http://ufal.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
+      are of general nature (one of them is <ulink url="http://ufal.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format</ulink>
       developed by Michal Kren and sufficient enough for most purposes),
       while other are bound to a particular project. Support for other
       formats can be added by writing a custom I/O Backend (a Perl
@@ -51,7 +48,7 @@
       <quote>Batch-mode Tree Editor</quote> and allows users to apply
       TrEd macros on trees without having to enter the graphical
       interface.  This tool is further acompanied by another tool,
-      named <command>ntred</command>. NTrEd allows for parallelizing
+      named <command moreinfo="none">ntred</command>. NTrEd allows for parallelizing
       btred processing over a cluster of networked machines.  In
       combination with TrEd, it can also be used as an extremely
       powerful search engine over large base of data.
@@ -74,7 +71,7 @@
       </mediaobject>
     </figure>
     <para>
-      <application moreinfo="none">TrEd</application> runs on the following platforms (see <xref linkend="chap1"/> for details):
+      <application moreinfo="none">TrEd</application> runs on the following platforms (see <xref linkend="installation"/> for details):
     </para>
     <orderedlist continuation="restarts" inheritnum="ignore">
       <listitem>
@@ -92,11 +89,10 @@
     </listitem>
     </orderedlist>
   </section>
-  <section id="chap1">
+  <section id="installation">
     <title>Installation and start up instructions</title>    
     <para>
-      On all supported platforms, <application
-      moreinfo="none">TrEd</application> requires a Perl language
+      On all supported platforms, <application moreinfo="none">TrEd</application> requires a Perl language
       interpreter, the Perl-Tk module (a GUI library for Perl), and
       depending on the I/O Backends used also various XML related
       modules. Installation of all these tools differs on Unix-like
@@ -111,19 +107,17 @@
       <para>
 	For Windows installation it is recommended to use a
 	windows-specific installation package. This
-	single package contains installation of <application
-	moreinfo="none">ActivePerl</application>, Perl-Tk,
-	required XML modules, <application
-	moreinfo="none">TrEd</application> and is controlled by a
-	single setup script named <command>setup.bat</command>.
+	single package contains installation of <application moreinfo="none">ActivePerl</application>, Perl-Tk,
+	required XML modules, <application moreinfo="none">TrEd</application> and is controlled by a
+	single setup script named <command moreinfo="none">setup.bat</command>.
       </para>
       <note role="PDT20">
 	<para>
-	  If you have the <productname>Prague Dependency
+	  If you have the <productname class="trade">Prague Dependency
 	    Treebank 2.0</productname> CD-ROM, you may
 	  start the installation directly from the CD-ROM
-	  by clicking <command>setup.bat</command> in the
-	  <filename>tools/tred/setup</filename> directory.
+	  by clicking <command moreinfo="none">setup.bat</command> in the
+	  <filename moreinfo="none">tools/tred/setup</filename> directory.
 	</para>
       </note>
       <para>
@@ -132,14 +126,14 @@
       </para>
       <para>
 	Unzip the installation package if necessary, run
-	<command>setup.bat</command>, and follow the instructions
+	<command moreinfo="none">setup.bat</command>, and follow the instructions
 	(kindly ignore the very first line asking you to create the
-	directory <literal>/tmp</literal>).  The installation is
+	directory <literal moreinfo="none">/tmp</literal>).  The installation is
 	completely text-based and you will mostly be confronted with
 	only simple yes/no questions. The installation script will
 	safely guide you through the following steps:
       </para>
-      <orderedlist>
+      <orderedlist inheritnum="ignore" continuation="restarts">
 	<listitem>
 	  <para>
 	    Checking if a suitable Perl installation is already available
@@ -189,8 +183,7 @@
 	  yet. It is therefore recommended that you install
 	  ActiveState Perl, even if you already have a Perl installation
 	  in CygWin. If you really must try running TrEd in CygWin,
-	  follow the instructions for setup on <link
-	  linkend="install-unix">UNIX-like systems</link>
+	  follow the instructions for setup on <link linkend="install-unix">UNIX-like systems</link>
 	  (but you have been warned).
 	</para>
       </warning>
@@ -198,38 +191,35 @@
     <section id="install-unix">
       <title>Linux and UNIX-based systems</title>
       <para>
-	Almost every today's <application
-	moreinfo="none">UNIX/Linux</application> system contains a
+	Almost every today's <application moreinfo="none">UNIX/Linux</application> system contains a
 	<application moreinfo="none">Perl</application> installation,
-	so we expect that you already have a working <application
-	moreinfo="none">Perl</application> setup (version >= 5.8.2 is
+	so we expect that you already have a working <application moreinfo="none">Perl</application> setup (version &gt;= 5.8.2 is
 	recommended). 
       </para>
       <para>
-	<application>TrEd</application> further requires the following Perl
+	<application moreinfo="none">TrEd</application> further requires the following Perl
 	modules and their dependencies:
 	<itemizedlist>
-	  <listitem><simpara><literal>File-Temp</literal></simpara></listitem>
-	  <listitem><simpara><literal>File-Spec</literal></simpara></listitem>
-	  <listitem><simpara><literal>Text-Iconv</literal></simpara></listitem>
-	  <listitem><simpara><literal>Tie-IxHash</literal></simpara></listitem>
-	  <listitem><simpara><literal>Tk</literal> (for GUI)</simpara></listitem>
-	  <listitem><simpara><literal>Compress-Zlib</literal> (for printing to PDF)</simpara></listitem>
-	  <listitem><simpara><literal>XML-LibXML</literal> (for various I/O backends)</simpara></listitem>
-	  <listitem><simpara><literal>XML-Writer</literal></simpara></listitem>
+	  <listitem><simpara><literal moreinfo="none">File-Temp</literal></simpara></listitem>
+	  <listitem><simpara><literal moreinfo="none">File-Spec</literal></simpara></listitem>
+	  <listitem><simpara><literal moreinfo="none">Text-Iconv</literal></simpara></listitem>
+	  <listitem><simpara><literal moreinfo="none">Tie-IxHash</literal></simpara></listitem>
+	  <listitem><simpara><literal moreinfo="none">Tk</literal> (for GUI)</simpara></listitem>
+	  <listitem><simpara><literal moreinfo="none">Compress-Zlib</literal> (for printing to PDF)</simpara></listitem>
+	  <listitem><simpara><literal moreinfo="none">XML-LibXML</literal> (for various I/O backends)</simpara></listitem>
+	  <listitem><simpara><literal moreinfo="none">XML-Writer</literal></simpara></listitem>
 	</itemizedlist>
 	All the above modules and their dependencies can be obtained
 	and installed in a single step using the
-	<command>./install</command> script of the <ulink
-	url="http://ckl.mff.cuni.cz/pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
+	<command moreinfo="none">./install</command> script of the <ulink url="http://ckl.mff.cuni.cz/pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
 	package as described below.
 	<note role="PDT20">
 	  <para>
-	    If you have the <productname>Prague
+	    If you have the <productname class="trade">Prague
 	      Dependency Treebank 2.0</productname> CD-ROM, you may
 	    start the installation of these modules directly from
-	    the CD-ROM by running <command>./install</command> in
-	    the <filename>tools/tred/unix_packages</filename>
+	    the CD-ROM by running <command moreinfo="none">./install</command> in
+	    the <filename moreinfo="none">tools/tred/unix_packages</filename>
 	    directory. In this case you may skip steps
 	    1. and 2.
 	  </para>
@@ -244,18 +234,18 @@
 	<listitem>
 	  <para>
 	    Unzip the package with
-	    <programlisting>$ <userinput>tar xzvf tred-dep-unix.tar.gz</userinput></programlisting>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">tar xzvf tred-dep-unix.tar.gz</userinput></programlisting>
 	  </para>
 	  <para>
-	    Change to the <literal>tred-dep-unix</literal> directory:
-	    <programlisting>$ <userinput>cd tred-dep-unix</userinput></programlisting>
+	    Change to the <literal moreinfo="none">tred-dep-unix</literal> directory:
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">cd tred-dep-unix</userinput></programlisting>
 	  </para>
 	</listitem>
 	<listitem>
 	  <para>
 	    If you have a root account on the machine, switch to it, e.g.
 	    by issuing
-	    <programlisting>$ <userinput>su root</userinput>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">su root</userinput>
 Password:
 </programlisting>
 
@@ -266,10 +256,10 @@ Password:
 	<listitem>
 	  <para>
 	    Run the module installation script (you'll need a
-	    functional C compiler, <literal>make</literal>, etc., e.g. tools
+	    functional C compiler, <literal moreinfo="none">make</literal>, etc., e.g. tools
 	    available on most Linux/UNIX setups):
 
-	    <programlisting>$ <userinput>./install</userinput></programlisting>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">./install</userinput></programlisting>
 
 
 	    This scripts compiles and installs all required modules to the
@@ -277,33 +267,33 @@ Password:
 	    you'd like to use a different prefix (e.g. because you
 	    don't have root permissions on the box), use
 	    
-	    <programlisting>$ <userinput>./install --prefix=<replaceable>directory-prefix</replaceable></userinput></programlisting>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">./install --prefix=<replaceable>directory-prefix</replaceable></userinput></programlisting>
 
 	    and ensure the environment variable settings suggested by
 	    the installation script at the end of the installation.
 	    You can review all options of the installation script with
-	    <command>./install --help</command>.
+	    <command moreinfo="none">./install --help</command>.
 	  </para>
 	</listitem>
  	<listitem>
  	  <para>
 	    The last few and steps describe the installation of
 	    <application moreinfo="none">TrEd</application> itself.
-	    Start by fetching the latest <application>TrEd</application>
+	    Start by fetching the latest <application moreinfo="none">TrEd</application>
 	    distribution package <ulink url="http://ckl.mff.cuni.cz/pajas/tred/tred-current.tar.gz">tred-current.tar.gz</ulink>,
 	    unpack the package it using
-	    <programlisting>$ <userinput>tar xzvf tred-current.tar.gz</userinput></programlisting>
-	    and copy the resulting <filename>tred</filename> directory
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">tar xzvf tred-current.tar.gz</userinput></programlisting>
+	    and copy the resulting <filename moreinfo="none">tred</filename> directory
 	    to a suitable locatoin on your system, e.g. with
-	    <programlisting>$ <userinput>cp -R tred /opt</userinput></programlisting>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">cp -R tred /opt</userinput></programlisting>
 	    or 
-	    <programlisting>$ <userinput>cp -R tred /home/<replaceable>yourname</replaceable></userinput></programlisting>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">cp -R tred /home/<replaceable>yourname</replaceable></userinput></programlisting>
 	    <note role="PDT20">
 	      <para>
-		If you have the <productname>Prague
+		If you have the <productname class="trade">Prague
 		  Dependency Treebank 2.0</productname> CD-ROM, you'll find the
 		unpacked installation package in the directory
-		<filename>tools/tred/tred</filename>
+		<filename moreinfo="none">tools/tred/tred</filename>
 		on the CD-ROM.
 	      </para>
 	    </note>
@@ -311,33 +301,33 @@ Password:
 	    <command moreinfo="none">btred</command>, and <command moreinfo="none">ntred</command>
 	    executables from the destination directory you have chosen to
 	    some directory in your path, e.g.
-	    <programlisting>$ <userinput>ln -s <replaceable>/opt/tred</replaceable>/*tred <replaceable>/usr/local/bin</replaceable> </userinput></programlisting>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">ln -s <replaceable>/opt/tred</replaceable>/*tred <replaceable>/usr/local/bin</replaceable> </userinput></programlisting>
  	  </para>
 	</listitem>
 	<listitem>
 	  <para>
 	    Check your installation with:
-	    <programlisting>$ <userinput>tred -v</userinput>
+	    <programlisting format="linespecific">$ <userinput moreinfo="none">tred -v</userinput>
 TrEd Id: tred,v 1.337 2005/04/13 18:17:08 pajas Exp
 Perl: 5.008002
 Platform: linux
 Tk: 804.027
 </programlisting>
-	    If you get a similar output, you have successfully installed <application>TrEd</application> 
+	    If you get a similar output, you have successfully installed <application moreinfo="none">TrEd</application> 
 	    on your system.
 	  </para>
 	  <note>
  	    <para>
 	      Unfortunatelly, another commonly used package contains
-	      an executable named <command>tred</command>, namely the
-	      <application>GraphViz</application> package by AT&amp;T.
+	      an executable named <command moreinfo="none">tred</command>, namely the
+	      <application moreinfo="none">GraphViz</application> package by AT&amp;T.
 	      Although we think we used the name first, we do not see
 	      much reason in arguing with them about renaming
 	      their program to something else. If you are affected
 	      by this name collision, simply rename one of the
 	      executables (either the one of
-	      <application>TrEd</application> of the one of
-	      <application>GraphViz</application>) to something else.
+	      <application moreinfo="none">TrEd</application> of the one of
+	      <application moreinfo="none">GraphViz</application>) to something else.
  	    </para>
  	  </note>
 	  <note>
@@ -357,7 +347,302 @@ Tk: 804.027
       </orderedlist>
     </section>
   </section>
-  <section id="chap2">
+  <section id="terminology">
+    <title>Basic concepts and terminology</title>
+    <para>In this section we list and describe several concepts often used in this
+      manual without a further reference.</para>
+    <variablelist>
+      <varlistentry>
+	<term>file</term>
+	<listitem>
+	  <para>Files is a collections of trees (possibly acompanied with some
+	    meta data common to all trees). Although the in-memory
+	    representation of a file has always the same form,
+	    its <quote>physical representation</quote>  (called
+	    <firstterm>format</firstterm>) may vary. 
+	    The part of <application>TrEd</application> program
+	    responsible for reading and writing files in a specific
+	    format is called a <firstterm>I/O Backend</firstterm>.
+	    Depending on a format, files may differ in some features.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>I/O backend</term>
+	<listitem>
+	  <para>
+	    <firstterm>I/O backend</firstterm> is a module
+	    of <application>TrEd</application> responsible for
+	    reading and writing files in some particular data format.
+	    Thus, adding support for a new data format only requires
+	    writing a corresponding I/O backend.
+	    Different data formats not only represent the data (trees, nodes,
+	    meta data) differently, but often differ in the ability
+	    to interchange data with other I/O backends because of
+	    the nature of the data. For example, while some I/O backends
+	    are rather generic, other are tightly bound to the actual
+	    content of the data (hence loading a file using one I/O backend and
+	    saving it in another may not work as expected in all cases). 
+	    Nonetheless, most of the
+	    I/O backends used in <application>TrEd</application>
+	    are able to read the data and save them back without
+	    any loss of information. Detailed discussion of
+	    I/O backends can be found in <xref linkend="backends"/>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>tree</term>
+	<listitem>
+	  <para>
+	    A trees in this context is a rooted oriented cycle-free graph of nodes.
+	    In other words: it is a finite ordered set of objects called nodes (sometimes, but
+	    not in this manual, also called <firstterm>verteces</firstterm>),  
+	    each of the nodes but one is connected to another node
+	    called it's <firstterm>parent</firstterm>-node. This connection
+	    is called an <firstterm>edge</firstterm>. Such a structure is then called a tree if edges
+	    never form a cycle, i.e.
+	    by following an edge-path (e.g. a sequence of adjacent edges
+	    leading from a node to its parent-node) we
+	    never return to the node where we
+	    started. There is exactly one node without a parent-node,
+	    called the <firstterm>root</firstterm> of the tree.
+	    Every edge-path in the tree leads to this node.
+	    If <replaceable>A</replaceable> is a parent-node of
+	    <replaceable>B</replaceable>, then 
+	    <replaceable>B</replaceable> is a <firstterm>child-node</firstterm>
+	    of <replaceable>A</replaceable>. Nodes having the same
+	    node as their parent-node are called <firstterm>siblings</firstterm>.
+	    In <application>TrEd</application>'s internal
+	    representation of a tree, there are the following additional
+	    links between nodes:
+	    <itemizedlist>
+	      <listitem>
+		<para>
+		  a link from a parent-node to one of its child-nodes (usually but not necessarily this is the
+		  first of its child-nodes in the linear ordering
+		  of the tree). This child-node is called the
+		  <firstterm>first-son</firstterm> of the parent-node.</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  First son is linked with its next sibling (if any),
+		  called it's right-sibling node (or <firstterm>lbrother</firstterm>).
+		  This sibling is again connected to another
+		  sibling, etc, so that all siblings are connected and
+		  this connection contains no cycle.
+		  Hence child-nodes of each node form a (possibly empty) chain
+		  originating on the first-son and connecting all its
+		  siblings one after another. The last sibling in the chain
+		  is called the <firstterm>last-sibling</firstterm> or
+		  <firstterm>last-son</firstterm>.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>
+		  For easier tree traversal, nodes in
+		  <application>TrEd</application>
+		  also contain link representing a reversed version of the
+		  previous <quote>right-sibling</quote> relation,
+		  called left-sibling (or <firstterm>lbrother</firstterm>).
+		  So, if a node <replaceable>A</replaceable> is the
+		  right-sibling of <replaceable>B</replaceable>, then
+		  <replaceable>B</replaceable> is the
+		  left-sibling of <replaceable>A</replaceable>.
+		</para>
+	      </listitem>
+	    </itemizedlist>
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>node</term>
+	<listitem>
+	  <para>
+	    We have already describe a node as an object occuring in a tree and
+	    possibly connected to other nodes in the tree. Apart from that,
+	    every node may be associated with some data represented in form of
+	    an <firstterm>attribute-value structure</firstterm> (AVS or
+	    feature-structure if you like). Each members of this structure
+	    (also called an attribute) has a name and value. Each name
+	    may occure in AVS only once. The names of node's attributes and types
+	    of their values are file-specific (or in some cases I/O-backend
+	    specific). Generally, a value of an
+	    attribute may be of one of the following types (it must be noted, that
+	    not all of the types are supported by the I/O backends equally):
+	    <itemizedlist>
+	      <listitem>
+		<para>string</para></listitem>
+	      <listitem>
+		<para>enumerated type (a string value from a pre-defined
+		  list)</para></listitem>
+	      <listitem>
+		<para><quote>flat</quote> list of values of one of the above types,
+		  i.e. a string of <literal>|</literal>-separated items.
+		  This type is used e.g. by FS-backend. 
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>constant (usually not very useful, but sometimes handy)</para>
+	      </listitem>
+	      <listitem>
+		<para>attribute-value stucture (implemented as a Perl hash reference,
+		  fully supported by PML-backend and
+		  partially emulated by FS-backend)</para>
+	      </listitem>
+	      <listitem>
+		<para>ordered list of values of any type except list
+		  (implemented as a Perl array reference of the
+		  <literal>Fslib::List</literal> class). Currently
+		  only supported by PML-backend.
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>unordered list of values of any type except list
+		  (implemented and supported likewise).
+		</para>
+	      </listitem>
+	      <listitem>
+		<para>alternative of values of any type except alternative
+		  (implemented as a Perl array reference of the
+		  <literal>Fslib::Alt</literal> class).
+		  Alternative is very similar to unordered list but as long
+		  as it has only one single value,
+		  it is represented by that value (rather
+		  than a <literal>Fslib::Alt</literal> array reference containing that value).
+		  Alternatives are currently supported by PML-backend.
+		</para>
+	      </listitem>
+	    </itemizedlist>
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>file-list</term>
+	<listitem>
+	  <para>Files in <application>TrEd</application> are further
+	    organized into collections called
+	    <firstterm>file-lists</firstterm>.
+	    A file-list is basically a list of filenames of files
+	    belonging to the collection.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>view</term>
+	<listitem>
+	  <para>
+	    A view is the part of <application>TrEd</application> window where
+	    a tree is displayed. <application>TrEd</application> allows for
+	    multiple views (created by splitting a view in half either along
+	    the horizontal or vertical axis). Always, one of the views is
+	    focused. This view is called the <firstterm>active view</firstterm>
+	    (also the current view). All commands related to a file, tree and
+	    node usually only apply to the active view (or more specifically,
+	    to the objects it displays). The active view is visually
+	    distinguishable from the other views by its thick black border.
+	    Optionally, inactive views may also be stippled (see <xref
+	      linkend="stippleinactivewindows" />). Views can display trees from one file but also from several
+	    unrelated files. It is also possible to display a single tree in
+	    several views simultaneously. Each view is associated with a
+	    file-list and a in-memory representation of a single 
+	    file from that file-list (in case of the active
+	    view called the <firstterm>current file-list</firstterm>
+	    and the <firstterm>current file</firstterm>).
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>active (or current) node</term>
+	<listitem>
+	  <para>
+	    The <firstterm>active node</firstterm> plays a similar role to that
+	    of a cursor in a text editor. Each view remembers its active node.
+	    In general, if we refer to the active or current node, we usually
+	    mean the active node of the active view. In the default setup, the
+	    active node is by default visually differentiated from other nodes
+	    by its red color (other nodes are displayed as yellow or black).
+	    However, it must be noted that a stylesheet can (and often does)
+	    change the coloring of the tree, including definin its own way
+	    to distinguish the active node.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>macro</term>
+	<listitem>
+	  <para><application>TrEd</application> by default offers only a small
+	    set of fundamental and generic tree-editing commands.
+	    Commands specific to certain purpose or data are typically
+	    implemented as user-defined macros. A <firstterm>macro</firstterm> is
+	    a small program (more specifically a Perl subroutine), typically
+	    associated with a keyboard shortcut or a menu item.
+	    See <xref linkend="macros"/> for details.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>hook</term>
+	<listitem>
+	  <para>
+	    <firstterm>Hooks</firstterm> are similar to macros but
+	    they are called indirectly by <application>TrEd</application> 
+	    rather directly by the user, although they also 
+	    in a way response to a particular
+	    event or action performed by the user. For example, every time
+	    the user performs an action resulting in
+	    a file being opened, <application>TrEd</application>
+	    tries to locate and call a user-defined function
+	    named <link linkend="file_opened_hook"><literal>file_opened_hook</literal></link>
+	    in the current binding context (described below).
+	    See <xref linkend="hooks"/> for details.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>binding context</term>
+	<listitem>
+	  <para>
+	    Macros serving similar purpose and often related to
+	    some specific data may be organized to sets
+	    called <firstterm>binding context</firstterm>.
+	    Each view is associated with a binding context (called the
+	    <firstterm>current context</firstterm>) and
+	    the user may easilly switch from one context to another.
+	    If the user presses a keyboard shortcut,
+	    <application>TrEd</application> tries to find
+	    a binding for that shortcut in the current
+	    binding context. If it fails, tries the same
+	    with a default context called <literal>TredMacro</literal>.
+	    Similar lookup applies when the user performs an
+	    action which requires a <firstterm>hook</firstterm>
+	    to be called.
+	    See <xref linkend="contexts"/> for details.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term>stylesheet</term>
+	<listitem>
+	  <para>
+	    A stylesheet is a set of rules (called
+	    <firstterm>patterns</firstterm>) modifying the default appearance
+	    of trees in a view. Each view initially uses a stylesheet provided
+	    by the data file (which may be empty), but the user may instruct
+	    the view to use another stylesheet. The same tree may be viewed
+	    simultaneously in different views with completely different
+	    stylesheets. If a very 
+	    complex visual presentation is required, stylesheet rules may be accompanied by
+	    some further presentational code defined in a
+	    <link
+	      linkend="node_style_hook"><literal>node_style_hook</literal></link>.
+	    For more information see <xref linkend="stylesheets"/>.
+	  </para>
+	</listitem>
+      </varlistentry>
+    </variablelist>
+  </section>
+  <section id="menu">
     <title>Menu commands</title>    
     <para>
       The following paragraphs describe menu commands. Each submenu in
@@ -384,16 +669,13 @@ Tk: 804.027
 	    <para>
 	      Displays a dialog window with an entry into which the
 	      user can enter a URL or a
-	      filename. <application>TrEd</application> can
-	      downloading and open files at least using <literal
-	      moreinfo="none">http</literal>, <literal
-	      moreinfo="none">ftp</literal>, and <literal
-	      moreinfo="none">file</literal> protocols. Network
+	      filename. <application moreinfo="none">TrEd</application> can
+	      downloading and open files at least using <literal moreinfo="none">http</literal>, <literal moreinfo="none">ftp</literal>, and <literal moreinfo="none">file</literal> protocols. Network
 	      protocols (<literal moreinfo="none">http</literal> and
-	      <literal>ftp</literal>) are read-only.  On UNIX systems,
-	      <application>TrEd</application> also supports the SSH
+	      <literal moreinfo="none">ftp</literal>) are read-only.  On UNIX systems,
+	      <application moreinfo="none">TrEd</application> also supports the SSH
 	      protocol with URLs of the form
-	      <literal>ssh://<optional><replaceable>user@</replaceable></optional><replaceable>host</replaceable>/<replaceable>remote-filename</replaceable></literal>.
+	      <literal moreinfo="none">ssh://<optional><replaceable>user@</replaceable></optional><replaceable>host</replaceable>/<replaceable>remote-filename</replaceable></literal>.
 	    </para>
 	    <note>
 	      <para>
@@ -406,8 +688,7 @@ Tk: 804.027
 	    </note> 
 	    <para>Additionally to the
 	      protocols already mentioned, TrEd supports a special
-	      protocol indicated by the URL prefix <literal
-	      moreinfo="none">ntred://</literal> used for
+	      protocol indicated by the URL prefix <literal moreinfo="none">ntred://</literal> used for
 	      communication with BTrEd servers. This protocol allows
 	      to inspect and change trees stored in memory of BTrEd
 	      servers.
@@ -470,11 +751,9 @@ Tk: 804.027
 	<varlistentry>
 	  <term><guimenuitem moreinfo="none">Filelist</guimenuitem></term>
 	  <listitem>
-	    <para>Opens a <guilabel
-	      moreinfo="none">Filelist</guilabel> dialog window which
+	    <para>Opens a <guilabel moreinfo="none">Filelist</guilabel> dialog window which
 	      allows the user to manage lists of files used for easy
-	      file-to-file navigation.  See more detail in <xref
-	      linkend="filelists"/>.
+	      file-to-file navigation.  See more detail in <xref linkend="filelists"/>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -549,11 +828,8 @@ Tk: 804.027
 	      (see <xref linkend="configuration"/> for the details
 	      about configuration options).  To apply the new
 	      configuration, save the configuration file to disk and
-	      leave the editor press the <guibutton
-	      moreinfo="none">Save and Apply</guibutton> button. To
-	      apply changes without saving them, press <guibutton
-	      moreinfo="none">Apply</guibutton>. The <guibutton
-	      moreinfo="none">Close</guibutton> button closes the
+	      leave the editor press the <guibutton moreinfo="none">Save and Apply</guibutton> button. To
+	      apply changes without saving them, press <guibutton moreinfo="none">Apply</guibutton>. The <guibutton moreinfo="none">Close</guibutton> button closes the
 	      editor without making any changes to the present
 	      configuration.  A search entry on the bottom of the
 	      dialog window can be used for fast case-insensitive
@@ -591,7 +867,7 @@ Tk: 804.027
 	  <listitem>
 	    <para>
 	      Reloads display stylesheets from the file
-	      <filename>~/.tred-stylesheets</filename>.
+	      <filename moreinfo="none">~/.tred-stylesheets</filename>.
 	      This command is useful
 	      if you have changed the stylesheets in a text
 	      editor or in an another running instance of
@@ -674,10 +950,8 @@ Tk: 804.027
 	  <listitem>
 	    <para>
 	      Toggle highlighting certain attributes with
-	      user-definable set of colors. See <xref
-	      linkend="configuration"/> for details on customizing
-	      colors and <ulink
-	      url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
+	      user-definable set of colors. See <xref linkend="configuration"/> for details on customizing
+	      colors and <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format
 	      description</ulink> to learn about how to specify which
 	      attributes are highlighted. In general, it is better to
 	      avoid this approach of changing tree appearance in favor
@@ -695,8 +969,7 @@ Tk: 804.027
 	      depending on the format, attributes may be displayed in
 	      order of their declaration in the file. When this option
 	      is on, sorting of attributes may be further altered by
-	      the <link
-	      linkend="sort_attrs_hook"><literal>sort_attrs_hook</literal></link>.
+	      the <link linkend="sort_attrs_hook"><literal moreinfo="none">sort_attrs_hook</literal></link>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -720,14 +993,11 @@ Tk: 804.027
 	      to the focused view. The focused view is distinguished
 	      from other views by black border drawn around it (both
 	      color and width of this border may be customized, see
-	      <link
-	      linkend="highlightwindowcolor"><varname>HighlightWindowColor</varname></link>
-	      and <link
-	      linkend="highlightwindowwidth"><varname>HighlightWindowWidth</varname></link>
+	      <link linkend="highlightwindowcolor"><varname>HighlightWindowColor</varname></link>
+	      and <link linkend="highlightwindowwidth"><varname>HighlightWindowWidth</varname></link>
 	      configuration options described below).  Inactive views
 	      may be further distiguished using a stipple pattern (see
-	      <link
-	      linkend="stippleinactivewindows">StippleInactiveWindows</link>
+	      <link linkend="stippleinactivewindows">StippleInactiveWindows</link>
 	      configuration option).
 	    </para>
 	  </listitem>
@@ -739,8 +1009,7 @@ Tk: 804.027
 	      Create and focus a new view by splitting the current
 	      view vertically. Sizes of the new and old view may be
 	      adjusted by dragging the bar between them.  See also
-	      little more detailed description of <guimenuitem
-	      moreinfo="none">Split view horizontally</guimenuitem>
+	      little more detailed description of <guimenuitem moreinfo="none">Split view horizontally</guimenuitem>
 	      above.
 	    </para>
 	  </listitem>
@@ -753,9 +1022,8 @@ Tk: 804.027
 	      <quote>sentences</quote> of all trees in a current
 	      file. These <quote>sentences</quote> are computed in the
 	      same way as the content of the text line above the tree,
-	      e.g.  using a <link
-	      linkend="get_value_line_hook"><literal>get_value_line_hook</literal></link>
-	      or the <literal>text:</literal> stylesheet pattern (see
+	      e.g.  using a <link linkend="get_value_line_hook"><literal moreinfo="none">get_value_line_hook</literal></link>
+	      or the <literal moreinfo="none">text:</literal> stylesheet pattern (see
 	      <xref linkend="stylesheets"/>), or as a concatenation of
 	      special attribute values (i.e. attributes declared
 	      as <literal moreinfo="none">@V</literal> in the FS
@@ -826,7 +1094,7 @@ Tk: 804.027
 	      buttons (
 	      <guilabel moreinfo="none">Sort by name</guilabel> and <guilabel moreinfo="none">Sort by
 	      keyboard shortcuts</guilabel>) control the order in which
-	      macros are listed. The button <guibutton>Export as HTML</guibutton>
+	      macros are listed. The button <guibutton moreinfo="none">Export as HTML</guibutton>
 	      creates a handy reference from the listing in form of a a HTML document.
 	    </para>
 	  </listitem>
@@ -912,28 +1180,22 @@ Tk: 804.027
 	      values. In the dialog, every permittable node attribute
 	      has an editable entry where the user specifies search
 	      criterion for the particular attribute.  The user may
-	      choose the type of the search criterions to be a <ulink
-	      url="regexps.html">regular expressions</ulink>,
+	      choose the type of the search criterions to be a <ulink url="regexps.html">regular expressions</ulink>,
 	      exhaustive regular expressions (when the whole value
-	      must match), wild-card pattern (where <literal
-	      moreinfo="none">?</literal> matches any character and
+	      must match), wild-card pattern (where <literal moreinfo="none">?</literal> matches any character and
 	      <literal moreinfo="none">*</literal> matches any number
 	      of any characters) or a literal string. The type of the
-	      criterion is selected in the <guilabel
-	      moreinfo="none">Search method</guilabel> option-menu and
+	      criterion is selected in the <guilabel moreinfo="none">Search method</guilabel> option-menu and
 	      applies to all entries.
 	    </para>
 	    <para>
 	      In the <guilabel moreinfo="none">Search file-list</guilabel> option-menu, 
 	      the user may choose a file-list to search through. By
-	      default, this menu displays entry <guilabel
-	      moreinfo="none">[Current file only]</guilabel>,
+	      default, this menu displays entry <guilabel moreinfo="none">[Current file only]</guilabel>,
 	      which is a virtual file-list containing just the current file.
 	    </para>
 	    <para>
-	      When user presses <guibutton
-	      moreinfo="none">Find</guibutton> button, <application
-	      moreinfo="none">TrEd</application> searches for the
+	      When user presses <guibutton moreinfo="none">Find</guibutton> button, <application moreinfo="none">TrEd</application> searches for the
 	      first matching node in the selected file-list. A node
 	      matches the criterion if and only if every attribute of
 	      the node matches the criterion in the corresponding
@@ -958,8 +1220,7 @@ Tk: 804.027
 	  <listitem>
 	    <para>
 	      Finds a preceding node matching the criterion specified
-	      in a previous use of the <guimenuitem
-	      moreinfo="none">Find ...</guimenuitem> command.
+	      in a previous use of the <guimenuitem moreinfo="none">Find ...</guimenuitem> command.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -987,15 +1248,15 @@ Tk: 804.027
 	    <listitem>
 	      <para>
 		If this option is on, all opened files are added to
-		the file-list <literal>Default</literal> so that the user
+		the file-list <literal moreinfo="none">Default</literal> so that the user
 		could easily go back and forth using
-		<menuchoice>
-		  <guimenu>File</guimenu>
-		  <guimenuitem>Previous File</guimenuitem>
+		<menuchoice moreinfo="none">
+		  <guimenu moreinfo="none">File</guimenu>
+		  <guimenuitem moreinfo="none">Previous File</guimenuitem>
 		</menuchoice> and
-		<menuchoice>
-		  <guimenu>File</guimenu>
-		  <guimenuitem>Next File</guimenuitem>
+		<menuchoice moreinfo="none">
+		  <guimenu moreinfo="none">File</guimenu>
+		  <guimenuitem moreinfo="none">Next File</guimenuitem>
 		</menuchoice>.
 	      </para>
 	    </listitem>
@@ -1032,10 +1293,8 @@ Tk: 804.027
 	  <application moreinfo="none">TrEd</application> allows
 	  having multiple files open simultaneously. If the user
 	  tries to open a file while another file is already open,
-	  modified, and yet not saved (and the <link
-	  linkend="dontcloseonopen">Don't close on open</link> option
-	  is not checked) <application
-	  moreinfo="none">TrEd</application> offers the user to save
+	  modified, and yet not saved (and the <link linkend="dontcloseonopen">Don't close on open</link> option
+	  is not checked) <application moreinfo="none">TrEd</application> offers the user to save
 	  changes in the current file and close it, close it withought
 	  saving or to <emphasis>keep</emphasis> the file open. In the
 	  latter case, the file is not closed nor any changes are
@@ -1051,10 +1310,10 @@ Tk: 804.027
       <section>
 	<title>File Lists</title>
 	<para>
-	  The bottom part of the <guimenu>Session</guimenu> menu
+	  The bottom part of the <guimenu moreinfo="none">Session</guimenu> menu
 	  contains a section labeled <guimenuitem moreinfo="none">File
 	  lists</guimenuitem>, where file-list currently known to
-	  <application>TrEd</application> are listed. User may switch
+	  <application moreinfo="none">TrEd</application> are listed. User may switch
 	  to another file-list by choosing the corresponding item.
 	  If the file-list was not accessed during the session,
 	  the first file on the list is opened and displayed.
@@ -1070,8 +1329,7 @@ Tk: 804.027
       <para>
 	This menu contains user's bookmarks. Bookmarks are filenames
 	with tree-number and node position attached. The list
-	of user's bookmarks is maintained in a special file-list named <literal
-	moreinfo="none">Bookmarks</literal>. 
+	of user's bookmarks is maintained in a special file-list named <literal moreinfo="none">Bookmarks</literal>. 
       </para>
       <para>
 	<guimenuitem moreinfo="none">Add to Bookmars</guimenuitem>
@@ -1094,13 +1352,13 @@ Tk: 804.027
       <title><guimenu moreinfo="none">User-defined</guimenu></title>
       <para>
 	This menu contains user-defined commands in separate sub-menus
-	for every menu context. New commands may be defined as macros
+	for every binding context. New commands may be defined as macros
 	(see <xref linkend="macros"/>).  Beside each menu entry is
 	shown the default keyboard short-cut for the corresponding
 	macro in the particular context. Here we give only a brief
 	description of the few macros defined by default in the
 	<application moreinfo="none">TredMacro</application> context
-	in the base macro file <filename>tred.mac</filename>.
+	in the base macro file <filename moreinfo="none">tred.mac</filename>.
       </para>
       <note>
 	<para>
@@ -1159,9 +1417,9 @@ Tk: 804.027
 	  (<keycap moreinfo="none">F3</keycap>)</term>
 	  <listitem>
 	    <para>
-	      Invoke <menuchoice>
-		<guimenu>Node</guimenu>
-		<guimenuitem>Find ...</guimenuitem>
+	      Invoke <menuchoice moreinfo="none">
+		<guimenu moreinfo="none">Node</guimenu>
+		<guimenuitem moreinfo="none">Find ...</guimenuitem>
 	      </menuchoice>.
 	    </para>
 	  </listitem>
@@ -1171,9 +1429,9 @@ Tk: 804.027
 	  (<keycap moreinfo="none">F4</keycap>)</term>
 	  <listitem>
 	    <para>
-	      Invoke <menuchoice>
-		<guimenu>Node</guimenu>
-		<guimenuitem>Find Next</guimenuitem>
+	      Invoke <menuchoice moreinfo="none">
+		<guimenu moreinfo="none">Node</guimenu>
+		<guimenuitem moreinfo="none">Find Next</guimenuitem>
 	      </menuchoice>.
 	    </para>
 	  </listitem>
@@ -1250,7 +1508,7 @@ Tk: 804.027
 	      <keycap moreinfo="none">Home</keycap></keycombo>)</term> 
 	  <listitem>
 	    <para>
-	      Like <guimenuitem>Go to first tree</guimenuitem>,
+	      Like <guimenuitem moreinfo="none">Go to first tree</guimenuitem>,
 	      only applies to all views, if <inlinemediaobject>
 		<imageobject>
 		  <imagedata fileref="pics/lock.png" format="PNG" role="html"/>
@@ -1284,7 +1542,7 @@ Tk: 804.027
 	      <keycap moreinfo="none">End</keycap></keycombo>)</term>  
 	  <listitem>
 	    <para>
-	      Like <guimenuitem>Go to last tree</guimenuitem>,
+	      Like <guimenuitem moreinfo="none">Go to last tree</guimenuitem>,
 	      only applies to all views, if <inlinemediaobject>
 		<imageobject>
 		  <imagedata fileref="pics/lock.png" format="PNG" role="html"/>
@@ -1370,19 +1628,13 @@ Tk: 804.027
 	    </para>
 	    <para>
 	      The Perl code conforms to the very same rules as a
-	      macro, i.e. in brief, the variables <literal
-	      moreinfo="none">$this</literal> and <literal
-	      moreinfo="none">$root</literal> refer to the active node
-	      and root of the tree respectively.  If <literal
-	      moreinfo="none">$n</literal> refers to some node, then
+	      macro, i.e. in brief, the variables <literal moreinfo="none">$this</literal> and <literal moreinfo="none">$root</literal> refer to the active node
+	      and root of the tree respectively.  If <literal moreinfo="none">$n</literal> refers to some node, then
 	      <literal moreinfo="none">$n-&gt;{attr}</literal> is
 	      value of <literal moreinfo="none">attr</literal>
-	      attribute for the node <literal
-	      moreinfo="none">$n</literal>.  The parent-node of
-	      <literal>$n</literal> is accessed via <literal
-	      moreinfo="none">$n->parent</literal>, child-nodes of
-	      <literal>$n</literal> as <literal
-	      moreinfo="none">$n->childnodes</literal> (returns a
+	      attribute for the node <literal moreinfo="none">$n</literal>.  The parent-node of
+	      <literal moreinfo="none">$n</literal> is accessed via <literal moreinfo="none">$n-&gt;parent</literal>, child-nodes of
+	      <literal moreinfo="none">$n</literal> as <literal moreinfo="none">$n-&gt;childnodes</literal> (returns a
 	      list), etc. Macros from the current context may be
 	      called as Perl subroutines. See <xref linkend="macros"/>
 	      for details.
@@ -1451,13 +1703,7 @@ Tk: 804.027
 	    <para>Displayes the previous tree in the current file.
 	      Note, that this shorcuts operates on the focused
 	      view only, even if button
-	      <inlinemediaobject><imageobject><imagedata
-	      fileref="pics/lock.png" format="PNG"
-	      role="html"/></imageobject><imageobject><imagedata
-	      fileref="pics/lock.eps" format="EPS"
-	      role="latex"/></imageobject><imageobject><imagedata
-	      fileref="pics/lock"
-	      format="linespecific"/></imageobject></inlinemediaobject>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
 	      is pressed and all views are tied
 	      (and this is a feature).
 	    </para>
@@ -1474,13 +1720,7 @@ Tk: 804.027
 	    <para>Displayes the next tree in the current file.
 	      Note, that this shorcuts operates on the focused
 	      view only, even if button
-	      <inlinemediaobject><imageobject><imagedata
-	      fileref="pics/lock.png" format="PNG"
-	      role="html"/></imageobject><imageobject><imagedata
-	      fileref="pics/lock.eps" format="EPS"
-	      role="latex"/></imageobject><imageobject><imagedata
-	      fileref="pics/lock"
-	      format="linespecific"/></imageobject></inlinemediaobject>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
 	      is pressed and all views are tied
 	      (and this is a feature).
 	    </para>
@@ -1491,20 +1731,14 @@ Tk: 804.027
 	      <guimenu moreinfo="none">View</guimenu>
 	      <guimenuitem moreinfo="none">Previous Tree</guimenuitem>
 	    </menuchoice>
-	    (<keycombo action="simul">
-	      <keycap>Ctrl</keycap>
+	    (<keycombo action="simul" moreinfo="none">
+	      <keycap moreinfo="none">Ctrl</keycap>
 	      <keycap moreinfo="none">,</keycap>   
 	    </keycombo>)</term>
 	  <listitem>
 	    <para>Displayes the previous tree in the
 	      current view (or all views, if button
-	      <inlinemediaobject><imageobject><imagedata
-	      fileref="pics/lock.png" format="PNG"
-	      role="html"/></imageobject><imageobject><imagedata
-	      fileref="pics/lock.eps" format="EPS"
-	      role="latex"/></imageobject><imageobject><imagedata
-	      fileref="pics/lock"
-	      format="linespecific"/></imageobject></inlinemediaobject>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
 	      is pressed).
 	    </para>
 	  </listitem>
@@ -1513,20 +1747,14 @@ Tk: 804.027
 	  <term><menuchoice moreinfo="none">
 	      <guimenu moreinfo="none">View</guimenu>
 	      <guimenuitem moreinfo="none">Next Tree</guimenuitem>
-	    </menuchoice> (<keycombo action="simul">
-	      <keycap>Ctrl</keycap>
+	    </menuchoice> (<keycombo action="simul" moreinfo="none">
+	      <keycap moreinfo="none">Ctrl</keycap>
 	      <keycap moreinfo="none">.</keycap>   
 	    </keycombo>)</term>
 	  <listitem>
 	    <para>Displayes the next tree in the
 	      current view (or all views, if button
-	      <inlinemediaobject><imageobject><imagedata
-	      fileref="pics/lock.png" format="PNG"
-	      role="html"/></imageobject><imageobject><imagedata
-	      fileref="pics/lock.eps" format="EPS"
-	      role="latex"/></imageobject><imageobject><imagedata
-	      fileref="pics/lock"
-	      format="linespecific"/></imageobject></inlinemediaobject>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
 	      is pressed).
 	    </para>
 	  </listitem>
@@ -1566,7 +1794,7 @@ Tk: 804.027
 	    <para>Removes all macro code and variables from memory and
 	      reloads all macros. This command is useful when the user
 	      modifies the macros in a text editor and wants to check the
-	      result without having to restart <application>TrEd</application>.
+	      result without having to restart <application moreinfo="none">TrEd</application>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -1576,20 +1804,20 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Debugging messages</guimenuitem></term>
 	  <listitem>
 	    <para>In this submenu the user may turn on and off various sets of 
-	      debugging messages printed by <application>TrEd</application> on
+	      debugging messages printed by <application moreinfo="none">TrEd</application> on
 	      the standard or error output (e.g. in a terminal window).
 	      The following sets of debugging messages are defined:
-	      <guilabel>tred</guilabel> (messages produced by
-	      <application>TrEd</application>'s GUI),
-	      <guilabel>macro</guilabel>
+	      <guilabel moreinfo="none">tred</guilabel> (messages produced by
+	      <application moreinfo="none">TrEd</application>'s GUI),
+	      <guilabel moreinfo="none">macro</guilabel>
 	      (messages issued by TrEd when a macro is evaluated),
-	      <guilabel>hooks</guilabel>
+	      <guilabel moreinfo="none">hooks</guilabel>
 	      (messages issued by TrEd when a hook is evaluated),
-	      <guilabel>keyboard</guilabel>
+	      <guilabel moreinfo="none">keyboard</guilabel>
 	      (messages produced by TrEd when a keyboard short-cut is pressed),
-	      <guilabel>backend</guilabel>
+	      <guilabel moreinfo="none">backend</guilabel>
 	      (messages produced by I/O backends),
-	      <guilabel>view</guilabel>
+	      <guilabel moreinfo="none">view</guilabel>
 	      (messages produced by the displaying engine and errors
 	      raised during style-sheet evaluation).
 	    </para>
@@ -1599,7 +1827,7 @@ Tk: 804.027
 
     </section>
   </section>
-  <section>
+  <section id="toolbar">
     <title>Toolbar</title>
     <para>
       Most of the toolbar buttons only provide mouse-oriented
@@ -2037,20 +2265,19 @@ Tk: 804.027
       </varlistentry>
     </variablelist>
   </section>
-  <section id="chap3">
-    <title>Mouse and keyboard control</title>
+  <section id="mouse-and-keyboard">
+    <title>Basic tree editing using mouse and keyboard</title>
     <para>
       <application moreinfo="none">TrEd</application> can be
-      controlled both using keyboard and mouse.  There are several
-      pre-defined keyboard short-cuts. Most keyboard short-cuts relate
-      to the <firstterm>active</firstterm> node (by default, active
-      node is displayed in red, but both stylesheets and configuration
-      file can change its color and/or over-all appearance).  The
-      active node plays similar role to that of a cursor in a text
-      editor. Most of the usual editing commands (such as navigation
+      controlled both using keyboard and mouse. Most keyboard short-cuts relate
+      to the <firstterm>active node</firstterm>, which
+      plays a similar role to that of a cursor in a text
+      editor. Almost all of the basic tree editing operations (such as navigation
       the active node along the tree, cut-paste operations on the
-      tree, editing node content, etc.)  have pre-defined keyboard and
-      mouse bindings. Other bindings may be added using macros.
+      tree, editing node content, etc.) can be achieved both
+      using keyboard and mouse bindings. Custom bindings and commands
+      may be added using macros (see <xref linkend="macros"/>).
+      Here is a brief overview of the basic editing operations:
     </para>
     <section>
     <title>Mouse Control</title>
@@ -2070,23 +2297,26 @@ Tk: 804.027
       </listitem>
       <listitem>
 	  <para>
-	    Dragging active node with left mouse button moves that node with
-	    its subtree to the new location. If user releases the button near
-	    another node, the active node becomes son of that node.	
+	    Dragging a node with left mouse button and dropping
+	    it on another node cuts the dragged node and its subtree
+	    and pastes it on the target node.	
 	  </para>
       </listitem>
       <listitem>
 	  <para>
-	    Dragging active node with right mouse button has the same
-	    effect but if the tree is too large to fit the window, the
-	    window <quote>scrolls forward</quote> as user gets near its edges.
+	    Dragging and dropping a node with right mouse button has the same
+	    effect as above, but this time, if the tree is too large to fit the window, the
+	    window scrolls forward the direction of dragging so that when
+	    the dragged node reaches an edge of the window it meets
+	    the edge of the tree in that direction at the same time.
 	  </para>
       </listitem>
       <listitem>
 	  <para>
-	    Dragging mouse with the middle mouse button pressed has the
-	    same <quote>scrolling effect</quote> described above, but no node is
-	    moved.
+	    Pressing the middle button and moving the mouse pointer while
+	    the button is pressed has the
+	    same <quote>scrolling effect</quote> described above, but without
+	    actually dragging any node.
 	  </para>
 	</listitem>
       </itemizedlist>
@@ -2195,7 +2425,7 @@ Tk: 804.027
     <para>
       Double-clicking any attribute value displayed in the tree shows
       a simple value editor, where the value of the attribute can be
-      changed (note however, that some context disable editing certain
+      changed (note however, that some contexts disable editing certain
       or all attributes - in that case, the value editor presentes the
       attribute value as read-only).
     </para>
@@ -2204,14 +2434,14 @@ Tk: 804.027
       case it is necessary to use the <guilabel moreinfo="none">Edit
       Node</guilabel> dialog, which can be invoked either by
       double-clicking on the desired node in the tree, by activating the
-      node and pressing <keycap>Enter</keycap>, or by
-      activating the node and selecting <menuchoice>
-	<guimenu>Node</guimenu>
-	<guimenuitem>Edit Node ...</guimenuitem>
+      node and pressing <keycap moreinfo="none">Enter</keycap>, or by
+      activating the node and selecting <menuchoice moreinfo="none">
+	<guimenu moreinfo="none">Node</guimenu>
+	<guimenuitem moreinfo="none">Edit Node ...</guimenuitem>
       </menuchoice> from the menu.
     </para>
     <para>
-      The <guilabel>Edit Node</guilabel> dialog shows all attributes
+      The <guilabel moreinfo="none">Edit Node</guilabel> dialog shows all attributes
       defined for the type of the node or for the file and their
       corresponding values at the selected node.
       Depending on the type of the file, the dialog may have one
@@ -2236,24 +2466,22 @@ Tk: 804.027
     <para>
       The old interface supports attributes of the following
       types: strings,
-      <literal>|</literal>-separated lists of strings,
-      enumerated values, and <literal>|</literal>-separated
+      <literal moreinfo="none">|</literal>-separated lists of strings,
+      enumerated values, and <literal moreinfo="none">|</literal>-separated
       lists of enumerated values. In the old interface,
       only plain string values can be edited directly.
       Any other attribute value can be edited in a dedicated
       sub-dialog, which appears after clicking on the button
-      labeled <guibutton>...</guibutton> beside them.
+      labeled <guibutton moreinfo="none">...</guibutton> beside them.
     </para>
-    <figure id="fig-old-editnode">
+    <figure id="fig-old-editnode" float="0">
       <title>Old Edit Node interface</title>
       <mediaobject>
 	<imageobject>
-	  <imagedata fileref="pics/edit_node_dialog_old.png" format="PNG"
-	    role="html"/>
+	  <imagedata fileref="pics/edit_node_dialog_old.png" format="PNG" role="html"/>
 	</imageobject>
 	<imageobject>
-	  <imagedata fileref="pics/edit_node_dialog_old.eps" format="EPS"
-	    role="latex"/>
+	  <imagedata fileref="pics/edit_node_dialog_old.eps" format="EPS" role="latex"/>
 	</imageobject>
       </mediaobject>
     </figure>
@@ -2261,23 +2489,21 @@ Tk: 804.027
       and files in FS format) offers support for
       string attributes, enumerated attributes,
       constant attributes,
-      lists (either <literal>|</literal>-separated lists of strings used
-      by FS format files or generic ordered or unordered <literal>Fslib::List</literal>
-      lists of arbitrary type and <literal>Fslib::Alt</literal>
+      lists (either <literal moreinfo="none">|</literal>-separated lists of strings used
+      by FS format files or generic ordered or unordered <literal moreinfo="none">Fslib::List</literal>
+      lists of arbitrary type and <literal moreinfo="none">Fslib::Alt</literal>
       alternatives used by PML instances), and also for 
       <firstterm>structured attributes</firstterm>
       (i.e. <quote>nesting</quote> of attributes).
     </para>
-    <figure id="fig-new-editnode">
+    <figure id="fig-new-editnode" float="0">
       <title>New Edit Node interface</title>
       <mediaobject>
 	<imageobject>
-	  <imagedata fileref="pics/edit_node_dialog.png" format="PNG"
-	    role="html"/>
+	  <imagedata fileref="pics/edit_node_dialog.png" format="PNG" role="html"/>
 	</imageobject>
 	<imageobject>
-	  <imagedata fileref="pics/edit_node_dialog.eps" format="EPS"
-	    role="latex"/>
+	  <imagedata fileref="pics/edit_node_dialog.eps" format="EPS" role="latex"/>
 	</imageobject>
       </mediaobject>
     </figure>
@@ -2292,7 +2518,7 @@ Tk: 804.027
       as listed in <xref linkend="tab-editnode"/>.
     </para>
     <table id="tab-editnode">
-      <title>Buttons in the new <guilabel>Edit Node</guilabel>
+      <title>Buttons in the new <guilabel moreinfo="none">Edit Node</guilabel>
 	interface</title>
       <tgroup cols="3">
 	<thead>
@@ -2306,16 +2532,13 @@ Tk: 804.027
 	  <row>
 	    <entry>
 	      <mediaobject>
-		<imageobject><imagedata fileref="pics/edit_node_plus.png"
-			       format="PNG" role="html"/></imageobject>
-		<imageobject><imagedata fileref="pics/edit_node_plus.eps"
-			       format="EPS"
-			       role="latex"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_plus.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_plus.eps" format="EPS" role="latex"/></imageobject>
 		<textobject>
-		  <phrase><literal>+</literal></phrase></textobject>
+		  <phrase><literal moreinfo="none">+</literal></phrase></textobject>
 	      </mediaobject>
 	    </entry>
-	    <entry><keycombo action="simul">
+	    <entry><keycombo action="simul" moreinfo="none">
 		<keysym>Ctrl</keysym>
 		<keysym>+</keysym>
 	      </keycombo>
@@ -2325,16 +2548,13 @@ Tk: 804.027
 	  <row>
 	    <entry>
 	      <mediaobject>
-		<imageobject><imagedata fileref="pics/edit_node_minus.png"
-			       format="PNG" role="html"/></imageobject>
-		<imageobject><imagedata fileref="pics/edit_node_minus.eps"
-			       format="EPS"
-			       role="latex"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_minus.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_minus.eps" format="EPS" role="latex"/></imageobject>
 		<textobject>
-		  <phrase><literal>-</literal></phrase></textobject>
+		  <phrase><literal moreinfo="none">-</literal></phrase></textobject>
 	      </mediaobject>
 	    </entry>
-	    <entry><keycombo action="simul">
+	    <entry><keycombo action="simul" moreinfo="none">
 		<keysym>Ctrl</keysym>
 		<keysym>-</keysym>
 	      </keycombo>
@@ -2345,14 +2565,12 @@ Tk: 804.027
 	    <entry>
 	      <mediaobject>
 		<imageobject><imagedata fileref="pics/edit_node_up.png" format="PNG" role="html"/></imageobject>
-		<imageobject><imagedata fileref="pics/edit_node_up.eps"
-			       format="EPS"
-			       role="latex"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_up.eps" format="EPS" role="latex"/></imageobject>
 		<textobject>
-		  <phrase><literal>up</literal></phrase></textobject>
+		  <phrase><literal moreinfo="none">up</literal></phrase></textobject>
 	      </mediaobject>
 	    </entry>
-	    <entry><keycombo action="simul">
+	    <entry><keycombo action="simul" moreinfo="none">
 		<keysym>Ctrl</keysym>
 		<keysym>up</keysym>
 	      </keycombo>
@@ -2363,14 +2581,12 @@ Tk: 804.027
 	    <entry>
 	      <mediaobject>
 		<imageobject><imagedata fileref="pics/edit_node_down.png" format="PNG" role="html"/></imageobject>
-		<imageobject><imagedata fileref="pics/edit_node_down.eps"
-			       format="EPS"
-			       role="latex"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_down.eps" format="EPS" role="latex"/></imageobject>
 		<textobject>
-		  <phrase><literal>down</literal></phrase></textobject>
+		  <phrase><literal moreinfo="none">down</literal></phrase></textobject>
 	      </mediaobject>
 	    </entry>
-	    <entry><keycombo action="simul">
+	    <entry><keycombo action="simul" moreinfo="none">
 		<keysym>Ctrl</keysym>
 		<keysym>down</keysym>
 	      </keycombo>
@@ -2381,14 +2597,12 @@ Tk: 804.027
 	    <entry>
 	      <mediaobject>
 		<imageobject><imagedata fileref="pics/edit_node_star.png" format="PNG" role="html"/></imageobject>
-		<imageobject><imagedata fileref="pics/edit_node_star.eps"
-			       format="EPS"
-			       role="latex"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_star.eps" format="EPS" role="latex"/></imageobject>
 		<textobject>
-		  <phrase><literal>*</literal></phrase></textobject>
+		  <phrase><literal moreinfo="none">*</literal></phrase></textobject>
 	      </mediaobject>
 	    </entry>
-	    <entry><keycombo action="simul">
+	    <entry><keycombo action="simul" moreinfo="none">
 		<keysym>Ctrl</keysym>
 		<keysym>*</keysym>
 	      </keycombo>
@@ -2399,14 +2613,12 @@ Tk: 804.027
 	    <entry>
 	      <mediaobject>
 		<imageobject><imagedata fileref="pics/edit_node_cross.png" format="PNG" role="html"/></imageobject>
-		<imageobject><imagedata fileref="pics/edit_node_cross.eps"
-			       format="EPS"
-			       role="latex"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_cross.eps" format="EPS" role="latex"/></imageobject>
 		<textobject>
-		  <phrase><literal>x</literal></phrase></textobject>
+		  <phrase><literal moreinfo="none">x</literal></phrase></textobject>
 	      </mediaobject>
 	    </entry>
-	    <entry><keycombo action="simul">
+	    <entry><keycombo action="simul" moreinfo="none">
 		<keysym>Ctrl</keysym>
 		<keysym>/</keysym>
 	      </keycombo>
@@ -2420,6 +2632,8 @@ Tk: 804.027
   </section>
   <section id="stylesheets">
     <title>Customizing Tree Appearance: Stylesheets</title>
+    <section id="stylesheets_intro">
+      <title>Introduction to stylesheets</title>
     <para>
       In <application moreinfo="none">TrEd</application>, the way a
       tree is displayed is controlled by so called <firstterm>display
@@ -2494,6 +2708,7 @@ Tk: 804.027
       an attribute in the list inserts an attribute reference at the
       current cursor position in the pattern editor.
     </para>
+    </section>
     <section id="pattern_syntax">
       <title>Stylesheet syntax: the styling patterns</title>
       <para>
@@ -3431,13 +3646,12 @@ Tk: 804.027
       <para>
 	Printing trees can also be automated by writing a suitable
 	macro. For this purpose, TrEd API offers the function
-	<literal>Print</literal> (see <xref
-	linkend="defaultmacros"/>). This function however requires
-	TrEd GUI, i.e. it cannot be run in <command>btred</command>.
+	<literal moreinfo="none">Print</literal> (see <xref linkend="defaultmacros"/>). This function however requires
+	TrEd GUI, i.e. it cannot be run in <command moreinfo="none">btred</command>.
       </para>
       <example>
 	<title>Printing trees from a user-defined macro</title>
-	<programlisting>
+	<programlisting format="linespecific">
 	  <![CDATA[
 # bind key p to CreateImages menu Create bitmap images of all trees
 sub CreateImages {
@@ -3683,16 +3897,34 @@ sub CreateImages {
     <section>
     <title>Colors</title>
       <variablelist>
-	<varlistentry>
+	<varlistentry id="backgroundcolor">
 	  <term><literal moreinfo="none">BackgroundColor</literal></term>
 	  <listitem>
 	    <para>Background color of the tree-view canvas.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="backgroundimage">
 	  <term><literal moreinfo="none">BackgroundImage</literal></term>
 	  <listitem>
-	    <para>Background image file (JPG/GIF). Tiles are not supported.</para>
+	    <para>This option allows specifying a background image
+	      for the canvas on which trees are displayed. 
+	      At present, only GIF, XBM, XPM, BMP, JPEG, PNG and
+	      PPM/PGM files are supported.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="backgroundimagex">
+	  <term><literal moreinfo="none">BackgroundImageX</literal></term>
+	  <listitem>
+	    <para>Horizontal offset of the background image.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="backgroundimagey">
+	  <term><literal moreinfo="none">BackgroundImageY</literal></term>
+	  <listitem>
+	    <para>Vertical offset of the background image.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="highlightwindowcolor">
@@ -3701,20 +3933,20 @@ sub CreateImages {
 	    <para>Color of the frame drawn around the focused view.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="currentnodecolor">
 	  <term><literal moreinfo="none">CurrentNodeColor</literal></term>
 	  <listitem>
 	    <para>Color to draw the active node. Default is red.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="nearestnodecolor">
 	  <term><literal moreinfo="none">NearestNodeColor</literal></term>
 	  <listitem>
 	    <para>Color to highlight the nearest node to indicate the
 	      destination of a possible drop when dragging a node.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="bwprintnodecolor">
 	  <term><literal moreinfo="none">BWPrintNodeColor</literal></term>
 	  <listitem>
 	    <para>Color used to fill nodes when printing in
@@ -3724,26 +3956,26 @@ sub CreateImages {
 	      as all-black objects without a visible outline.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="textcolor">
 	  <term><literal moreinfo="none">TextColor</literal></term>
 	  <listitem>
 	    <para>Color used to display text of normal tree attributes.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="textcolorshadow">
 	  <term><literal moreinfo="none">TextColorShadow</literal></term>
 	  <listitem>
 	    <para>Color used to display text of shadowed tree attributes.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="textcolorhilite">
 	  <term><literal moreinfo="none">TextColorHilite</literal></term>
 	  <listitem>
 	    <para>Color used to display text of highlighted tree
 	      attributes.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="textcolorxhilite">
 	  <term><literal moreinfo="none">TextColorXHilite</literal></term>
 	  <listitem>
 	    <para>Color used to display text of extra-highlighted tree
@@ -3772,7 +4004,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="activetextcolor">
 	  <term><literal moreinfo="none">ActiveTextColor</literal></term>
 	  <listitem>
 	    <para>
@@ -3780,7 +4012,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="boxcolor">
 	  <term><literal moreinfo="none">BoxColor</literal></term>
 	  <listitem>
 	    <para>
@@ -3792,7 +4024,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="currentboxcolor">
 	  <term><literal moreinfo="none">CurrentBoxColor</literal></term>
 	  <listitem>
 	    <para>
@@ -3803,7 +4035,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="hiddenboxcolor">
 	  <term><literal moreinfo="none">HiddenBoxColor</literal></term>
 	  <listitem>
 	    <para>
@@ -3819,7 +4051,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="edgeboxcolor">
 	  <term><literal moreinfo="none">EdgeBoxColor</literal></term>
 	  <listitem>
 	    <para>
@@ -3831,7 +4063,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="edgecurrentboxcolor">
 	  <term><literal moreinfo="none">EdgeCurrentBoxColor</literal></term>
 	  <listitem>
 	    <para>
@@ -3842,7 +4074,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="edgehiddenboxcolor">
 	  <term><literal moreinfo="none">EdgeHiddenBoxColor</literal></term>
 	  <listitem>
 	    <para>
@@ -3858,7 +4090,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="linecolor">
 	  <term><literal moreinfo="none">LineColor</literal></term>
 	  <listitem>
 	    <para>Color used to draw the lines connecting dependent nodes in a
@@ -3867,7 +4099,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="hiddenlinecolor">
 	  <term><literal moreinfo="none">HiddenLineColor</literal></term>
 	  <listitem>
 	    <para>Color used to draw the lines connecting hidden
@@ -3875,7 +4107,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="dashhiddenlines">
 	  <term><literal moreinfo="none">dashHiddenLines</literal></term>
 	  <listitem>
 	    <para>Controls is lines connecting hidden nodes with
@@ -3884,7 +4116,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="linearrow">
 	  <term><literal moreinfo="none">LineArrow</literal></term>
 	  <listitem>
 	    <para>One of the values
@@ -3897,7 +4129,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="nodecolor">
 	  <term><literal moreinfo="none">NodeColor</literal></term>
 	  <listitem>
 	    <para>Color used to fill an ordinary node of the tree.
@@ -3905,7 +4137,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="nodeoutlinecolor">
 	  <term><literal moreinfo="none">NodeOutlineColor</literal></term>
 	  <listitem>
 	    <para>Color used to draw the outline of an ordinary node.
@@ -3913,35 +4145,11 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="hiddennodecolor">
 	  <term><literal moreinfo="none">HiddenNodeColor</literal></term>
 	  <listitem>
 	    <para>Color used to draw nodes marked as hidden, if shown. Default
 	      is black.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">BackgroundImage</literal></term>
-	  <listitem>
-	    <para>This option allows specifying a background image
-	      for the canvas on which trees are displayed. 
-	      At present, only GIF, XBM, XPM, BMP, JPEG, PNG and
-	      PPM/PGM files are supported.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">BackgroundImageX</literal></term>
-	  <listitem>
-	    <para>Horizontal offset of the background image.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">BackgroundImageY</literal></term>
-	  <listitem>
-	    <para>Vertical offset of the background image.
-	    </para>
 	  </listitem>
 	</varlistentry>
       </variablelist>
@@ -3958,19 +4166,56 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="skiphiddenlevels">
+	  <term><literal moreinfo="none">SkipHiddenLevels</literal></term>
+	  <listitem>
+	    <para>If the <link linkend="get_nodelist_hook"><literal>get_nodelist_hook</literal></link>
+	      provides an incomplete list of nodes of the tree, there
+	      may be nodes whose parent-node is not on the list.
+	      If this option is set to <literal>1</literal>,
+	      any such a orphan node <quote>skip levels</quote> and appears
+	      as if it was child-node of its nearest ancestor-node that belongs
+	      to the list. This option implies
+	      <link linkend="skiphiddenparents"><literal>SkipHiddenParents</literal></link>.
+	      (Note, that this only affects the way a tree is drawn,
+	      it does not relate in any way to tree-navigation and
+	      tree-traversal functions).
+	      Default is <literal>0</literal>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="skiphiddenparents">
+	  <term><literal moreinfo="none">SkipHiddenParents</literal></term>
+	  <listitem>
+	    <para>If the <link linkend="get_nodelist_hook"><literal>get_nodelist_hook</literal></link>
+	      provides an incomplete list of nodes of the tree, there
+	      may be nodes whose parent-node is not on the list.
+	      If this option is set to <literal>1</literal>,
+	      then any lines that would connect such an orphan node with its parent
+	      are instead connected to the nearest ancestor of the node that
+	      belongs to the list. The orphan node however remains on it's
+	      level in the tree (see also <link linkend="skiphiddenlevels"><literal>SkipHiddenLevels</literal></link>).
+	      (Note, that this only affects the way a tree is drawn,
+	      it does not relate in any way to tree-navigation and
+	      tree-traversal functions).
+	      Default is <literal>0</literal>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	
 	<varlistentry id="highlightwindowwidth">
 	  <term><literal moreinfo="none">HighlightWindowWidth</literal></term>
 	  <listitem>
 	    <para>Width of the frame drawn around the focused view.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="linewidth">
 	  <term><literal moreinfo="none">LineWidth</literal></term>
 	  <listitem>
 	    <para>Width of the lines connecting dependent nodes in a tree.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="nodewidth">
 	  <term><literal moreinfo="none">NodeWidth</literal></term>
 	  <listitem>
 	    <para>
@@ -3979,7 +4224,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="nodeheight">
 	  <term><literal moreinfo="none">NodeHeight</literal></term>
 	  <listitem>
 	    <para>
@@ -3988,7 +4233,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="currentnodewidth">
 	  <term><literal moreinfo="none">CurrentNodeWidth</literal></term>
 	  <listitem>
 	    <para>
@@ -3997,7 +4242,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="currentnodeheight">
 	  <term><literal moreinfo="none">CurrentNodeHeight</literal></term>
 	  <listitem>
 	    <para>
@@ -4006,21 +4251,21 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="nodexskip">
 	  <term><literal moreinfo="none">NodeXSkip</literal></term>
 	  <listitem>
 	    <para>The minimal horizontal distance between two nodes in a
 	      tree.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="nodeyskip">
 	  <term><literal moreinfo="none">NodeYSkip</literal></term>
 	  <listitem>
 	    <para>The minimal vertical distance between two nodes in a
 	      tree.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="xmargin">
 	  <term><literal moreinfo="none">XMargin</literal></term>
 	  <listitem>
 	    <para>Horizontal amount of space left around borders of the box
@@ -4028,7 +4273,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="ymargin">
 	  <term><literal moreinfo="none">YMargin</literal></term>
 	  <listitem>
 	    <para>Horizontal amount of space left around borders of the box
@@ -4036,7 +4281,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="basexpos">
 	  <term><literal moreinfo="none">BaseXPos</literal></term>
 	  <listitem>
 	    <para>
@@ -4045,7 +4290,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="baseypos">
 	  <term><literal moreinfo="none">BaseYPos</literal></term>
 	  <listitem>
 	    <para>
@@ -4054,7 +4299,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="drawboxes">
 	  <term><literal moreinfo="none">DrawBoxes</literal></term>
 	  <listitem>
 	    <para>
@@ -4065,7 +4310,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="drawedgeboxes">
 	  <term><literal moreinfo="none">DrawEdgeBoxes</literal></term>
 	  <listitem>
 	    <para>
@@ -4078,7 +4323,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="edgelabelskipabove">
 	  <term><literal moreinfo="none">EdgeLabelSkipAbove</literal></term>
 	  <listitem>
 	    <para>
@@ -4086,7 +4331,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="edgelabelskipbelow">
 	  <term><literal moreinfo="none">EdgeLabelSkipBelow</literal></term>
 	  <listitem>
 	    <para>
@@ -4094,7 +4339,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="useadditionaledgelabelskip">
 	  <term><literal moreinfo="none">UseAdditionalEdgeLabelSkip</literal></term>
 	  <listitem>
 	    <para>
@@ -4107,7 +4352,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="highlightattributes">
 	  <term><literal moreinfo="none">HighlightAttributes</literal></term>
 	  <listitem>
 	    <para>
@@ -4119,7 +4364,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="cleartextbackground">
 	  <term><literal moreinfo="none">ClearTextBackground</literal></term>
 	  <listitem>
 	    <para>
@@ -4141,7 +4386,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="showhidden">
 	  <term><literal moreinfo="none">ShowHidden</literal></term>
 	  <listitem>
 	    <para>
@@ -4180,7 +4425,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="searchmethod">
 	  <term><literal moreinfo="none">SearchMethod</literal></term>
 	  <listitem>
 	    <para>
@@ -4201,7 +4446,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="macrolistorder">
 	  <term><literal moreinfo="none">MacroListOrder</literal></term>
 	  <listitem>
 	    <para>This option defines the default ordering of macros
@@ -4216,7 +4461,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="maxdisplayedvalues">
 	  <term><literal moreinfo="none">MaxDisplayedValues</literal></term>
 	  <listitem>
 	    <para>
@@ -4231,7 +4476,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="maxdisplayedattributes">
 	  <term><literal moreinfo="none">MaxDisplayedAttributes</literal></term>
 	  <listitem>
 	    <para>
@@ -4251,13 +4496,13 @@ sub CreateImages {
     <section>
       <title>GUI options</title>
       <variablelist>
-	<varlistentry>
+	<varlistentry id="appname">
 	  <term><literal moreinfo="none">AppName</literal></term>
 	  <listitem>
 	    <para>The window title for the <application moreinfo="none">TrEd</application>'s main window.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="appicon">
 	  <term><literal moreinfo="none">AppIcon</literal></term>
 	  <listitem>
 	    <para><application moreinfo="none">TrEd</application>'s desktop and window
@@ -4268,34 +4513,34 @@ sub CreateImages {
 	  <term>StippleInactiveWindows</term>
 	  <listitem>
 	    <para>
-	      If set to <literal>1</literal>, inactive views are
+	      If set to <literal moreinfo="none">1</literal>, inactive views are
 	      covered with a semi-transparent stipple pattern. This
 	      may improve orientation if working with more than one
 	      view, but also slightly reduces the clarity of trees
 	      displayed in the inactive views. This option can also be
 	      controlled in run-time using
-	      <menuchoice>
-		<guimenu>View</guimenu>
-		<guimenuitem>Stipple Inactive Views</guimenuitem>
+	      <menuchoice moreinfo="none">
+		<guimenu moreinfo="none">View</guimenu>
+		<guimenuitem moreinfo="none">Stipple Inactive Views</guimenuitem>
 	      </menuchoice>.
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="vlineheight">
 	  <term><literal moreinfo="none">VLineHeight</literal></term>
 	  <listitem>
 	    <para>Initial height for the value line in lines. Default
 	    value is 2.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="vlinealign">
 	  <term><literal moreinfo="none">VLineAlign</literal></term>
 	  <listitem>
 	    <para>Specifies alignment for value line. Possible values
 	      are <literal moreinfo="none">left</literal>, <literal moreinfo="none">center</literal>, and <literal moreinfo="none">right</literal>.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="vlinewrap">
 	  <term><literal moreinfo="none">VLineWrap</literal></term>
 	  <listitem>
 	    <para>Specifies value line wrapping. Possible values
@@ -4305,13 +4550,13 @@ sub CreateImages {
 	      and <literal moreinfo="none">word</literal> (allow wrapping on word boundary).</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="vlinereverselines">
 	  <term><literal moreinfo="none">VLineReverseLines</literal></term>
 	  <listitem>
 	    <para>Draw wrapped value lines in reverse order (bottom-up).</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="vlineforeground">
 	  <term><literal moreinfo="none">VLineForeground</literal></term>
 	  <listitem>
 	    <para>
@@ -4319,7 +4564,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="vlinebackground">
 	  <term><literal moreinfo="none">VLineBackground</literal></term>
 	  <listitem>
 	    <para>
@@ -4327,7 +4572,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="vlinefocusforeground">
 	  <term><literal moreinfo="none">VLineFocusForeground</literal></term>
 	  <listitem>
 	    <para>
@@ -4336,7 +4581,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="vlinefocusbackground">
 	  <term><literal moreinfo="none">VLineFocusBackground</literal></term>
 	  <listitem>
 	    <para>
@@ -4345,7 +4590,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="hintbackground">
 	  <term><literal moreinfo="none">HintBackground</literal></term>
 	  <listitem>
 	    <para>
@@ -4354,7 +4599,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="hintforeground">
 	  <term><literal moreinfo="none">HintForeground</literal></term>
 	  <listitem>
 	    <para>
@@ -4363,7 +4608,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="toolbarhintbackground">
 	  <term><literal moreinfo="none">ToolbarHintBackground</literal></term>
 	  <listitem>
 	    <para>
@@ -4373,7 +4618,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="toolbarhintforeground">
 	  <term><literal moreinfo="none">ToolbarHintForeground</literal></term>
 	  <listitem>
 	    <para>
@@ -4383,7 +4628,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="buttonsrelief">
 	  <term><literal moreinfo="none">ButtonsRelief</literal></term>
 	  <listitem>
 	    <para>
@@ -4394,7 +4639,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="buttonsborder">
 	  <term><literal moreinfo="none">ButtonsBorder</literal></term>
 	  <listitem>
 	    <para>
@@ -4402,7 +4647,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="menubarrelief">
 	  <term><literal moreinfo="none">MenubarRelief</literal></term>
 	  <listitem>
 	    <para>
@@ -4411,7 +4656,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="maxmenulines">
 	  <term><literal moreinfo="none">MaxMenuLines</literal></term>
 	  <listitem>
 	    <para>Maximal number of User-menu lines. If more lines in the menu
@@ -4419,7 +4664,7 @@ sub CreateImages {
 	      menu continues.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="sortattributes">
 	  <term><literal moreinfo="none">SortAttributes</literal></term>
 	  <listitem>
 	    <para>If <literal moreinfo="none">1</literal>, all lists where attribute names
@@ -4429,7 +4674,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="createmacromenu">
 	  <term><literal moreinfo="none">CreateMacroMenu</literal></term>
 	  <listitem>
 	    <para>
@@ -4439,7 +4684,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="strictmotif">
 	  <term><literal moreinfo="none">StrictMotif</literal></term>
 	  <listitem>
 	    <para>
@@ -4448,7 +4693,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="iconpath">
 	  <term><literal moreinfo="none">IconPath</literal></term>
 	  <listitem>
 	    <para>
@@ -4464,7 +4709,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="lastaction">
 	  <term><literal moreinfo="none">LastAction</literal></term>
 	  <listitem>
 	    <para>
@@ -4473,7 +4718,7 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="geometry">
 	  <term><literal moreinfo="none">Geometry</literal></term>
 	  <listitem>
 	    <para>
@@ -4498,7 +4743,7 @@ sub CreateImages {
     <section>
       <title>Fonts</title>
       <variablelist>
-	<varlistentry>
+	<varlistentry id="font">
 	  <term><literal moreinfo="none">Font</literal></term>
 	  <listitem>
 	    <para>
@@ -4580,7 +4825,7 @@ Property        Type    Description
 		  </note>	  
 	  </listitem>
 	</varlistentry>      
-	<varlistentry>
+	<varlistentry id="vlinefont">
 	  <term><literal moreinfo="none">VLineFont</literal></term>
 	  <listitem>
 	    <para>
@@ -4595,7 +4840,7 @@ Property        Type    Description
     <section>
       <title>Printing options</title>
       <variablelist>
-	<varlistentry>
+	<varlistentry id="defaultprintcommand">
 	  <term><literal moreinfo="none">DefaultPrintCommand</literal></term>
 	  <listitem>
 	    <para>
@@ -4603,7 +4848,7 @@ Property        Type    Description
 	      the print spool. Default value is <command moreinfo="none">lpr</command>
 	      in UNIX systems and <command moreinfo="none">prfile32.exe /-</command>
 	      on Windows (<literal moreinfo="none">prfile32.exe</literal> is a
-	      freeware Windows printing utility available at <ulink url="http://www.lerup.com/printfile/">http://www.lerup.com/printfile/</ulink>.
+	      freeware Windows printing utility available at <ulink url="http://www.lerup.com/printfile/">http://www.lerup.com/printfile/</ulink>).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -4652,7 +4897,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="printcolors">
 	  <term><literal moreinfo="none">PrintColors</literal></term>
 	  <listitem>
 	    <para>
@@ -4664,7 +4909,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="psfontsize">
 	  <term><literal moreinfo="none">PsFontSize</literal></term>
 	  <listitem>
 	    <para>Size of the Postscript font to be substituted 
@@ -4672,7 +4917,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="prtfmtwidth">
 	  <term><literal moreinfo="none">PrtFmtWidth</literal></term>
 	  <listitem>
 	    <para>
@@ -4685,7 +4930,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="prtfmtheight">
 	  <term><literal moreinfo="none">PrtFmtHeight</literal></term>
 	  <listitem>
 	    <para>Width of the paper used for printing. Same format as
@@ -4718,7 +4963,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="psfile">
 	  <term><literal moreinfo="none">PSFile</literal></term>
 	  <listitem>
 	    <para>
@@ -4727,7 +4972,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="maximizeprintsize">
 	  <term><literal moreinfo="none">MaximizePrintSize</literal></term>
 	  <listitem>
 	    <para>
@@ -4736,7 +4981,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="prthmargin">
 	  <term><literal moreinfo="none">PrtHMargin</literal></term>
 	  <listitem>
 	    <para>
@@ -4746,7 +4991,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="prtvmargin">
 	  <term><literal moreinfo="none">PrtVMargin</literal></term>
 	  <listitem>
 	    <para>
@@ -4757,7 +5002,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="imagemagickconvert">
 	  <term><literal moreinfo="none">ImageMagickConvert</literal></term>
 	  <listitem>
 	    <para>
@@ -4772,39 +5017,16 @@ Property        Type    Description
       </variablelist>
     </section>
     <section>
-      <title>Miscelaneous options</title>
+      <title>I/O related options</title>
       <variablelist>
-	<varlistentry>
-	  <term><literal moreinfo="none">LibDir</literal></term>
+	<varlistentry id="resourcepath">
+	  <term><literal moreinfo="none">ResourcePath</literal></term>
 	  <listitem>
-	    <para>
-	      This option forces <application moreinfo="none">TrEd</application> to search for its library
-	      files in the specified directory.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">MacroFile</literal></term>
-	  <listitem>
-	    <para>
-	      Path to a file with macros for TrEd.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">DefaultMacroFile</literal></term>
-	  <listitem>
-	    <para>
-	      Path to a file with the default set of macros for TrEd.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry id="maxundo">
-	  <term><literal moreinfo="none">MaxUndo</literal></term>
-	  <listitem>
-	    <para>
-	      Maximum number of operations stored by Undo/Redo functions.
-	    </para>
+	    <para>This option can contain a (colon-separated on UNIX,
+	      comma-separated on Windows) list of directories
+	      where <application>TrEd</application>, it's
+	      I/O backends and macros should look for additional resources
+	      they might need (such as DTDs, XML/PML schemata, XSLT stylesheets, etc.).</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="autosave">
@@ -4828,17 +5050,6 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry id="noconvertwarning">
-	  <term><literal moreinfo="none">NoConvertWarning</literal></term>
-	  <listitem>
-	    <para>
-	      When a ImageMagick printing extension is used
-	      on Windows or with a black-listed version of ImageMagick,
-	      a warning dialog pops-up. This option can be set to 1 to
-	      disable this behaviour.
-	    </para>
-	  </listitem>
-	</varlistentry>
 	<varlistentry id="reloadpreservespatterns">
 	  <term><literal moreinfo="none">ReloadPreservesPatterns</literal></term>
 	  <listitem>
@@ -4846,38 +5057,6 @@ Property        Type    Description
 	      This option may be set to 0 to force the Reload function
 	      to use the file's attribute pattern setting rather than
 	      preserving the current one.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">ReverseNodeOrder</literal></term>
-	  <listitem>
-	    <para>
-	      Draw nodes (and value line values) in reverse order.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">UseLocales</literal></term>
-	  <listitem>
-	    <para>
-	      If <literal moreinfo="none">1</literal> is set here, 
-	      <application moreinfo="none">TrEd</application> 
-	      uses locales. This is especially useful in macros 
-	      e.g. for sorting. <literal moreinfo="none">LC_CTYPE</literal> 
-	      locale settings may also affect keyboard input and other
-	      charset-related stuff in the GUI.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">UseCzechLocales</literal></term>
-	  <listitem>
-	    <para>
-	      If <literal moreinfo="none">1</literal> is set here,
-	      <application moreinfo="none">TrEd</application> uses
-	      Czech (cs_CZ) locales. This option is present for rather
-	      historical reasons.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -4908,56 +5087,6 @@ Property        Type    Description
 	      and
 	      <literal moreinfo="none">iso-8859-6</literal> and
 	      <literal moreinfo="none">windows-1256</literal> for Arabic.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry id="displaynonasciilefttoright">
-	  <term><literal moreinfo="none">displayNonAsciiLeftToRight</literal></term>
-	  <listitem>
-	    <para>
-	      This option adds a poor-man's bidi-support.
-	      It reverses all non ASCII-strings before displaying.
-	      This option is not intended for Arabic, since
-	      TrEd already contains better arab-remixing
-	      algorigthms contributed by Ota Smrz.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry id="defaultmacroencoding">
-	  <term><literal moreinfo="none">defaultMacroEncoding</literal></term>
-	  <listitem>
-	    <para>
-	      The default encoding used when parsing TrEd macros.
-	      This option only takes effect for
-	      <literal moreinfo="none">Perl 5.8</literal> or higher.
-	      Default macro encoding can be overriden
-	      in the macro itself as described in 
-	      <xref linkend="macroencodings"/>. Defaults to UTF-8.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry id="displaystatusline">
-	  <term><literal moreinfo="none">displayStatusLine</literal></term>
-	  <listitem>
-	    <para>
-	      Turn on/off displaying status line. Default is on.
-	      Currently, status line content can only be controlled
-	      from macros, via <link linkend="get_status_line_hook"><literal moreinfo="none">get_status_line_hook</literal></link>.
-	    </para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry id="sgmls">
-	  <term><literal moreinfo="none">Sgmls</literal></term>
-	  <listitem>
-	    <para>
-	      This option may be used to provide a path to an
-	      SGML parser with support for ESIS output, such as
-	      James Clark's <ulink url="http://quest.ms.mff.cuni.cz/pdt/Support/nsgmls/index.html">SGML parser
-		<command moreinfo="none">nsgmls</command></ulink>.
-	      <application moreinfo="none">TrEd</application> may then use this
-	      parser to read SGML <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/csts.dtd">CSTS</ulink>
-	      files (used e.g. in the
-	      Prague Dependency Treebank 1.0).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -4997,6 +5126,16 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="sgmls">
+	  <term><literal moreinfo="none">sgmls</literal></term>
+	  <listitem>
+	    <para>This option may be used to point
+	      <application moreinfo="none">TrEd</application> to the
+	      <command moreinfo="none">nsgmls</command>
+	      SGML parser.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="sgmlsopts">
 	  <term><literal moreinfo="none">SgmlsOpts</literal></term>
 	  <listitem>
@@ -5032,7 +5171,7 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="cstsparserzcommand">
 	  <term><literal moreinfo="none">CstsParserZCommand</literal></term>
 	  <listitem>
 	    <para>
@@ -5060,13 +5199,13 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="gzip">
 	  <term><literal moreinfo="none">gzip</literal></term>
 	  <listitem>
 	    <para>This option may be used to point
 	      <application moreinfo="none">TrEd</application> to a
 	      GNU <command moreinfo="none">gzip</command>
-	      command, which may be used for transparent
+	      command, which is used for transparent
 	      saving files commpressed by GNU <command moreinfo="none">gzip</command>.
 	      The default value is <literal moreinfo="none">/bin/gzip -c</literal>
 	      if <filename moreinfo="none">/bin/gzip</filename> exists and is
@@ -5076,13 +5215,21 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="gzipopts">
+	  <term><literal moreinfo="none">gzipopts</literal></term>
+	  <listitem>
+	    <para>This option may provide additional
+	      command-line arguments for the <command>gzip</command> command.
+	    </para>
+	  </listitem>	  
+	</varlistentry>
 	<varlistentry id="zcat">
 	  <term><literal moreinfo="none">zcat</literal></term>
 	  <listitem>
 	    <para>This option may be used to point
 	      <application moreinfo="none">TrEd</application> to a
 	      GNU <command moreinfo="none">zcat</command>	      
-	      command, which may be used for transparent opening
+	      command, which is used for transparent opening
 	      files commpressed by GNU <command moreinfo="none">gzip</command>.
 	      (These files are recognized by the
 	      <filename moreinfo="none">.gz</filename>
@@ -5093,13 +5240,219 @@ Property        Type    Description
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
-	  <term><literal moreinfo="none">nsgmls</literal></term>
+	<varlistentry id="zcatopts">
+	  <term><literal moreinfo="none">zcatopts</literal></term>
 	  <listitem>
-	    <para>This option may be used to point
+	    <para>This option may provide additional
+	      command-line arguments for the <command>zcat</command> command.
+	    </para>
+	  </listitem>	  
+	</varlistentry>
+	<varlistentry id="ssh">
+	  <term><literal moreinfo="none">ssh</literal></term>
+	  <listitem>
+	    <para>This option can be used to point
 	      <application moreinfo="none">TrEd</application> to
-	      <command moreinfo="none">nsgmls</command>
-	      SGML parser.
+	      <command moreinfo="none">ssh</command> command,
+	      which (depending on setup) may be used 
+	      for transparent secure remote file-transfer.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="sshopts">
+	  <term><literal moreinfo="none">sshopts</literal></term>
+	  <listitem>
+	    <para>This option may provide additional
+	      command-line arguments for the <command>ssh</command> command.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="curl">
+	  <term><literal moreinfo="none">curl</literal></term>
+	  <listitem>
+	    <para>This option can be used to point
+	      <application moreinfo="none">TrEd</application> to
+	      the program <command moreinfo="none">curl</command>,
+	      which (depending on setup) may be used for transparent file-transfer over
+	      ftp and http.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="curlopts">
+	  <term><literal moreinfo="none">curlopts</literal></term>
+	  <listitem>
+	    <para>This option may provide additional
+	      command-line arguments for the <command>curl</command> command.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	
+	<varlistentry id="kioclient">
+	  <term><literal moreinfo="none">kioclient</literal></term>
+	  <listitem>
+	    <para>This option can be used to point
+	      <application moreinfo="none">TrEd</application> to
+	      the program <command moreinfo="none">kioclient</command>
+	      (part of recent KDE distribution)
+	      which (depending on setup) may be used for transparent file-transfer over
+	      <literal>ftp://</literal>, <literal>http://</literal>,
+	      <literal>fish://</literal> (ssh),
+	      and various other protocols.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="kioclientopts">
+	  <term><literal moreinfo="none">kioclientopts</literal></term>
+	  <listitem>
+	    <para>This option may provide additional
+	      command-line arguments for the <command>kioclient</command> command.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="nolockprotocols">
+	  <term><literal moreinfo="none">NoLockProtocols</literal></term>
+	  <listitem>
+	    <para>This option may provide <ulink url="regexps.html">regular expression</ulink>
+	      matching protocols for which lock-files should never be
+	      created. By default, it's value is set to
+	      <literal>^(https?|zip|tar)$</literal>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="rejectprotocols">
+	  <term><literal moreinfo="none">RejectProtocols</literal></term>
+	  <listitem>
+	    <para>This option may provide <ulink url="regexps.html">regular expression</ulink>
+	      matching protocols from which <application>TrEd</application>
+	      should never attempted to fetch files. .
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+      
+    </section>
+    <section>
+      <title>Miscelaneous options</title>
+      <variablelist>
+	<varlistentry id="libdir">
+	  <term><literal moreinfo="none">LibDir</literal></term>
+	  <listitem>
+	    <para>
+	      This option forces <application moreinfo="none">TrEd</application> to search for its library
+	      files in the specified directory.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="perllib">
+	  <term><literal moreinfo="none">PerlLib</literal></term>
+	  <listitem>
+	    <para>
+	      This option may contain a colon-separated (on Windows
+	      comma-separated) list of additional directories where Perl modules
+	      are located (this has similar effect as setting the
+	      environment variable <varname>PERLLIB</varname>).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="macrofile">
+	  <term><literal moreinfo="none">MacroFile</literal></term>
+	  <listitem>
+	    <para>
+	      Path to a file with macros for TrEd.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="defaultmacrofile">
+	  <term><literal moreinfo="none">DefaultMacroFile</literal></term>
+	  <listitem>
+	    <para>
+	      Path to a file with the default set of macros for TrEd.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="maxundo">
+	  <term><literal moreinfo="none">MaxUndo</literal></term>
+	  <listitem>
+	    <para>
+	      Maximum number of operations stored by Undo/Redo functions.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="noconvertwarning">
+	  <term><literal moreinfo="none">NoConvertWarning</literal></term>
+	  <listitem>
+	    <para>
+	      When a ImageMagick printing extension is used
+	      on Windows or with a black-listed version of ImageMagick,
+	      a warning dialog pops-up. This option can be set to 1 to
+	      disable this behaviour.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="reversenodeorder">
+	  <term><literal moreinfo="none">ReverseNodeOrder</literal></term>
+	  <listitem>
+	    <para>
+	      Draw nodes (and value line values) in reverse order.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="uselocales">
+	  <term><literal moreinfo="none">UseLocales</literal></term>
+	  <listitem>
+	    <para>
+	      If <literal moreinfo="none">1</literal> is set here, 
+	      <application moreinfo="none">TrEd</application> 
+	      uses locales. This is especially useful in macros 
+	      e.g. for sorting. <literal moreinfo="none">LC_CTYPE</literal> 
+	      locale settings may also affect keyboard input and other
+	      charset-related stuff in the GUI.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="useczechlocales">
+	  <term><literal moreinfo="none">UseCzechLocales</literal></term>
+	  <listitem>
+	    <para>
+	      If <literal moreinfo="none">1</literal> is set here,
+	      <application moreinfo="none">TrEd</application> uses
+	      Czech (cs_CZ) locales. This option is present for rather
+	      historical reasons.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="displaynonasciilefttoright">
+	  <term><literal moreinfo="none">displayNonAsciiLeftToRight</literal></term>
+	  <listitem>
+	    <para>
+	      This option adds a poor-man's bidi-support.
+	      It reverses all non ASCII-strings before displaying.
+	      This option is not intended for Arabic, since
+	      TrEd already contains better arab-remixing
+	      algorigthms contributed by Ota Smrz.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="defaultmacroencoding">
+	  <term><literal moreinfo="none">defaultMacroEncoding</literal></term>
+	  <listitem>
+	    <para>
+	      The default encoding used when parsing TrEd macros.
+	      This option only takes effect for
+	      <literal moreinfo="none">Perl 5.8</literal> or higher.
+	      Default macro encoding can be overriden
+	      in the macro itself as described in 
+	      <xref linkend="macroencodings"/>. Defaults to UTF-8.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="displaystatusline">
+	  <term><literal moreinfo="none">displayStatusLine</literal></term>
+	  <listitem>
+	    <para>
+	      Turn on/off displaying status line. Default is on.
+	      Currently, status line content can only be controlled
+	      from macros, via <link linkend="get_status_line_hook"><literal moreinfo="none">get_status_line_hook</literal></link>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -5108,31 +5461,31 @@ Property        Type    Description
     <section>
       <title>Debugging options</title>
       <variablelist>
-	<varlistentry>
+	<varlistentry id="backenddebug">
 	  <term><literal moreinfo="none">backenddebug</literal></term>
 	  <listitem>
 	    <para>Print debugging information for I/O backends.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="hookdebug">
 	  <term><literal moreinfo="none">hookdebug</literal></term>
 	  <listitem>
 	    <para>Print debugging information when hooks are called.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="keyboarddebug">
 	  <term><literal moreinfo="none">keyboarddebug</literal></term>
 	  <listitem>
 	    <para>Print debugging on keyboard events.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="macrodebug">
 	  <term><literal moreinfo="none">macrodebug</literal></term>
 	  <listitem>
 	    <para>Print debugging when macros are invoked.</para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry>
+	<varlistentry id="treddebug">
 	  <term><literal moreinfo="none">treddebug</literal></term>
 	  <listitem>
 	    <para>Print various debugging information not covered
@@ -5145,45 +5498,39 @@ Property        Type    Description
   <section id="commandline">
     <title>Command-line options</title>
     <para>
-      If running <application moreinfo="none">TrEd</application> from
-      the command-line you may use several
-      command-line options and also give <application moreinfo="none">TrEd</application> one or more files to
-      open. Each file-name may be also appended number of tree to
-      be displayed by <application moreinfo="none">TrEd</application> when the file is opened.      
-    </para>
-    <note>
-      <para>
-	You may need to replace <command moreinfo="none">tred</command> with
-	<command moreinfo="none">perl tred</command> in the following usage examples in Windows
-	or UNIX, if you cannot set <command moreinfo="none">tred</command> the execute permissions.
-      </para>
-    </note>
-    <para>
-      The general usage is:      
+      The general usage is as follows:
       <cmdsynopsis sepchar=" ">
 	<command moreinfo="none">tred</command>
-	<arg rep="norepeat" choice="opt">-R</arg>
+	<arg rep="norepeat" choice="opt">-q</arg>
+	<group choice="opt">
+	  <arg rep="norepeat" choice="plain">-R</arg>
+	  <arg rep="norepeat" choice="plain">-X
+	    <replaceable>gov</replaceable>,<replaceable>ord</replaceable></arg>
+	</group>
 	<arg rep="norepeat" choice="opt">-G</arg>
+	<arg rep="norepeat" choice="opt">-Y</arg>
+	<arg rep="norepeat" choice="opt">-H</arg>
 	<arg rep="norepeat" choice="opt">-c <replaceable>config-file</replaceable></arg>
 	<arg rep="norepeat" choice="opt">-m <replaceable>macro-file</replaceable></arg>
 	<arg rep="norepeat" choice="opt">-t <replaceable>context</replaceable></arg>
-	<arg rep="norepeat" choice="opt">-l
-	<replaceable>file-list</replaceable></arg>
-	<arg rep="norepeat" choice="opt">-W
-	<replaceable>window-id</replaceable></arg>
+	<arg rep="norepeat" choice="opt">-s <replaceable>stylesheet</replaceable></arg>
+	<arg rep="norepeat" choice="opt">-n <replaceable>FS-file-encoding</replaceable></arg>
+	<arg rep="norepeat" choice="opt">-p <replaceable>number-of-views</replaceable></arg>
 	<arg rep="norepeat" choice="opt">-B <replaceable>backends</replaceable></arg>
-	<arg choice="opt" rep="repeat">file<group choice="opt" rep="norepeat">
-	    <arg choice="opt" rep="norepeat">##<replaceable>N</replaceable></arg>
-	    <arg choice="opt" rep="norepeat">#<replaceable>N</replaceable></arg>
-	  </group>
-	</arg>
+	<arg rep="norepeat" choice="opt">-l <replaceable>file-list</replaceable></arg>
+	<arg rep="norepeat" choice="opt">-W <replaceable>window-id</replaceable></arg>
+	<group rep="repeat">
+	  <arg choice="plain"><replaceable>file</replaceable></arg>
+	  <arg choice="plain"><replaceable>file</replaceable>##<replaceable>N</replaceable></arg>
+	  <arg choice="plain"><replaceable>file</replaceable>##<replaceable>N</replaceable>.<replaceable>M</replaceable></arg>
+	</group>
       </cmdsynopsis>
       or
       <cmdsynopsis sepchar=" ">
 	<command moreinfo="none">tred</command>
 	<group choice="opt" rep="norepeat">
-	  <arg choice="opt" rep="norepeat">-u</arg>
-	  <arg choice="opt" rep="norepeat">-h</arg>
+	  <arg choice="plain" rep="norepeat">-u</arg>
+	  <arg choice="plain" rep="norepeat">-h</arg>
 	</group>
       </cmdsynopsis>
       to obtain short instructions on usage (<parameter moreinfo="none">-u</parameter>)
@@ -5212,7 +5559,8 @@ Property        Type    Description
       <varlistentry>
 	<term><parameter moreinfo="none">-t</parameter></term>
 	<listitem>
-	  <para>Start in the given macro context.
+	  <para>Prefer the given binding context as the initial context
+	    for every opened file.
 	    This context may be however overriden by some hooks such as
 	    <literal moreinfo="none">start_hook</literal>
 	    or <literal moreinfo="none">file_opened_hook</literal>.
@@ -5220,12 +5568,63 @@ Property        Type    Description
 	</listitem>
       </varlistentry>
       <varlistentry>
+	<term><parameter moreinfo="none">-s</parameter></term>
+	<listitem>
+	  <para>Use given stylesheet as the initial stylesheet for
+	    every view.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter moreinfo="none">-n</parameter></term>
+	<listitem>
+	  <para>Allows to specify character encoding for the
+	    <literal>FS</literal> backend (unlike e.g. XML
+	    files, FS files provide no means to 
+	    determine their character encoding).
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter moreinfo="none">-p</parameter></term>
+	<listitem>
+	  <para>A positive (or negative) integer value specifying the initial
+	    number of vertical (or horizontal) views. If this option is 
+	    used, TrEd automatically splits the window into that many views
+	    and displays the <replaceable>n</replaceable>'th file on the command-line in the
+	    <replaceable>n</replaceable>'th view (for
+	    <replaceable>n</replaceable> up to the number of views).
+	    If no files were specified on the command-line, but
+	    <parameter>-l</parameter> was used, then
+	    <replaceable>n</replaceable>'th view is associated with
+	    <replaceable>n</replaceable>'th file-list specified in <parameter>-l</parameter>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
 	<term><parameter moreinfo="none">-l</parameter></term>
 	<listitem>
-	  <para>Use this parameter to pass a file-list to TrEd. Each
-	    file-name given in the file-list must be on a separate line.
-	    This feature may be particulary useful under Windows, where
-	    maximum length of the command-line is usually very limited.
+	  <para>This parameter may contain a comma-separated
+	    list of files each containing one or more file-names
+	    (one per line). TrEd reads these files and 
+	    creates file-lists
+	    named <literal>CmdLine-1</literal>,
+	    <literal>CmdLine-2</literal>, etc. correspondingly.
+	    Note, that you may use <literal>-</literal>
+	    notation for the standard input, e.g. if
+	    called with <literal><command>tred</command> -l-</literal>,
+	    <application>TrEd</application> will
+	    expect file-names for <literal>CmdLine-1</literal>
+	    on the standard input.
+	    See also <xref linkend="filelists"/>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter moreinfo="none">-q</parameter></term>
+	<listitem>
+	  <para>Request quiet operation, with as little
+	    output from tred, as possible.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -5241,7 +5640,7 @@ Property        Type    Description
 	<term><parameter moreinfo="none">-B</parameter></term>
 	<listitem>
 	  <para>Comma separated list of additional 
-	    input/output <replaceable>backends</replaceable> to
+	    I/O <replaceable>backends</replaceable> to
 	    import.
 	  </para>
 	</listitem>
@@ -5256,11 +5655,39 @@ Property        Type    Description
 	</listitem>
       </varlistentry>
       <varlistentry>
+	<term><parameter moreinfo="none">-Y</parameter></term>
+	<listitem>
+	  <para>Do not pre-load so called secondary files,
+	    i.e. files with additional trees requested by main files (i.e. the
+	    files opened by the user). This doesn't apply to
+	    external resources loaded directly by I/O backends.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
 	<term><parameter moreinfo="none">-R</parameter></term>
 	<listitem>
-	  <para>When parsing CSTS files, try to restore structure from
+	  <para>
+	    This option is specific to the CSTS backend.
+	    When parsing CSTS files, try to restore structure from
 	    <literal moreinfo="none">&lt;TRg&gt;</literal> tags rather than from
 	    <literal moreinfo="none">&lt;g&gt;</literal>.
+	  </para>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
+	<term><parameter moreinfo="none">-X <replaceable>gov</replaceable>,<replaceable>ord</replaceable></parameter></term>
+	<listitem>
+	  <para>
+	    This option is specific to the CSTS backend.
+	    When parsing CSTS files, try to restore structure from tags
+	    <literal moreinfo="none">&lt;<replaceable>gov</replaceable>&gt;</literal> and
+	    <literal
+	      moreinfo="none">&lt;<replaceable>ord</replaceable>&gt;</literal>
+	    rather then from
+	    <literal moreinfo="none">&lt;<replaceable>g</replaceable>&gt;</literal> and
+	    <literal
+	      moreinfo="none">&lt;<replaceable>r</replaceable>&gt;</literal>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -5279,8 +5706,10 @@ Property        Type    Description
     </variablelist>
     <para>
       All other arguments passed to <application moreinfo="none">TrEd</application> on the command line
-      are considered file-names to open. (<application moreinfo="none">TrEd</application> actually opens only one
-      file at a time, but user may go to the next/previous file
+      are treated as file-names. 
+      Unless <parameter>-p</parameter> was used,
+      <application moreinfo="none">TrEd</application> opens the first of the
+      files and the user may navigate to the next file and back
       using the <menuchoice moreinfo="none">
 	<guimenu moreinfo="none">File</guimenu>
 	<guimenuitem moreinfo="none">Next File</guimenuitem>
@@ -5291,30 +5720,34 @@ Property        Type    Description
     </para>
     <para>
       Every file-name either on the command-line or in a file-list
-      may be given a number suffix which makes <application moreinfo="none">TrEd</application> open that file
-      on that tree. There are two possible formats for the suffices:
+      may be followed by a suffix specifying a particular tree or node in
+      the file. This node is activated when <application>TrEd</application>
+      opens the file (if no suffix is given then the root node of the first
+      tree in the file is activated). <application>TrEd</application>
+      recognizes the following suffix forms:
     </para>
     <variablelist>
       <varlistentry>
-	<term><literal moreinfo="none">#N</literal></term>
+	<term><literal moreinfo="none">##<replaceable>N</replaceable></literal></term>
 	<listitem>
 	  <para>
-	    where <literal moreinfo="none">N</literal> is a number possibly followed by one or more
-	    upper-case letters. In this case, <literal moreinfo="none">#N</literal> <application moreinfo="none">TrEd</application> searches
-	    and displays the first tree in the file
-	    the root of which is assigned <literal moreinfo="none">#N</literal> as a value
-	    of the attribute <literal moreinfo="none">form</literal> (this feature works only for
-	    FS-files of <productname>The Prague Dependency Treebank</productname>).
+	    where <replaceable>N</replaceable> is a positive integer number.
+	    This suffix specifies the root of the <replaceable>N</replaceable>'th
+	    tree in the file.
 	  </para>
 	</listitem>
       </varlistentry>
       <varlistentry>
-	<term><literal moreinfo="none">##N</literal></term>
+	<term><literal moreinfo="none">##<replaceable>N</replaceable>.<replaceable>M</replaceable></literal></term>
 	<listitem>
 	  <para>
-	    where <literal moreinfo="none">N</literal> is a number. This makes <application moreinfo="none">TrEd</application> to
-	    display the <literal moreinfo="none">N</literal>'th tree when the given
-	    file is opened.
+	    where <replaceable>N</replaceable> is a positive integer number
+	    and <replaceable>M</replaceable> is a non-negative integer number.
+	    This suffix specifies the <replaceable>M</replaceable>'th
+	    node of the <replaceable>N</replaceable>'th
+	    tree in the file. The ordering of nodes 
+	    <replaceable>M</replaceable> refers to is
+	    the ordering of the deep-first traversal.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -5785,7 +6218,7 @@ Property        Type    Description
 	<literallayout class="normal" format="linespecific">$node-&gt;{<replaceable>attr</replaceable>}='val';</literallayout>
       </section>
       <section>
-	<title>Accessing node neighbors</title>
+	<title>Accessing neighboring nodes</title>
 	<para>
 	  There is a few methods provided by every
 	  <classname>FSNode</classname> reference that can be used
@@ -6472,7 +6905,7 @@ sub MakeSentence {
 	      <entry><literal moreinfo="none">get_backends_hook</literal></entry>
 	      <entry>no</entry>
 	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>backends...</replaceable></literal></para><para>Executed before a new file is opened. It receives a list 
-		of available backends known by TrEd as arguments. It should
+		of available I/O backends known by TrEd as arguments. It should
 		return a new array-ref consisting of backends that TrEd
 		should actually try to use. This may be used both to
 		add custom backends to the list or to prevent some
@@ -7086,6 +7519,129 @@ sub SubtreeFuncAssign {
 </programlisting>
       </example>
     </section>
+  </section>
+  <section id="backends">
+    <title>I/O backends</title>
+    <para>This section briefly introduces the existing I/O backends
+      and then provides a quick introduction to writing a custom backend.
+    </para>
+    <section id="iobackend">
+      <title>IOBackend</title>
+      <para>
+	Actually, this is not a I/O backend per se. It is a base class
+	underlying most of the other I/O backends. It provides a simple
+	abstraction layer over some common low-level tasks, such as pipe-line redirection,
+	gzip-compression, URL resolving, as well as fetching and
+	uploading files using remote protocols. Due to this backend,
+	<application>TrEd</application> transparently handles
+	gzip-compression/de-compression of files with <filename>.gz</filename>
+	extension as well as remote file transfer over
+	<literal>ftp://</literal>,
+	<literal>http://</literal>,
+	<literal>ssh://</literal> and other protocols. Note however, that availability
+	of remote file transfer highly depends on a particular setup
+	(currently only UNIX systems are fully supported) and may require
+	some external tools, such as <link linkend="curl">curl</link>,
+	<link linkend="kioclient">kioclient</link>,
+	<link linkend="ssh">ssh</link>, 
+	<link linkend="gzip">gzip</link>.
+      </para>
+    </section>
+    <section id="fsbackend">
+      <title>FSBackend</title>
+      <para>
+	FSBackends deals with a format called FS (feature structure). FS-format
+	was the first format supported by tred, and for a long time also the only one.
+	As a result, some of the Perl structures such as <literal>FSNode</literal>,
+	<literal>FSFile</literal> used by <application>TrEd</application> as well as the underlying Perl library
+	<filename>Fslib.pm</filename> itself bear its name (even though they
+	are now equally used to represent data obtained from any other I/O
+	backend).
+      </para>
+      <para>
+	FS format provides a simple and effective way for storing trees.
+	In this format, each node of the
+	tree uses the same set of attributes declared in the FS-file header. 
+	FS format supports string values,
+	enumerated values and flat lists of these
+	(i.e. strings consisting of a <literal>|</literal>-separated list of
+	values of the first two types). There is no direct support
+	for nested AVS structures, complex lists and alternatives.
+      </para>
+      <para>
+	Recent versions of
+	<application>TrEd</application> and <literal>Fslib</literal>
+	provide a simple nested-AVS emulation
+	(attiribute-value structure) for FS attribute values, meaning the
+	following: an attribute whose name contains one
+	or more slashes is represented as a (possibly nested) AVS structure where
+	each slash represents one level of nesting. Attributes sharing a
+	common name-part followed by a slash are thus represented as members of
+	the same structure. For example, attirubtes <literal>a</literal>,
+	<literal>b/u/x</literal>,
+	<literal>b/v/x</literal> and
+	<literal>b/v/y</literal> result in the following structure:
+<literallayout>
+{
+  a => <replaceable>value-of-a</replaceable>,
+  b => { u => { x => <replaceable>value-of-a/u/x</replaceable> },
+         v => { x => <replaceable>value-of-a/v/x</replaceable>,
+                y => <replaceable>value-of-a/v/y</replaceable> 
+              }
+       }
+
+}
+</literallayout>
+	In case that attributes with names <literal>a</literal>
+	<literal>a/b</literal> would both exists, the nested-AVS emulation is
+	abandoned and all attributes are represented literally (i.e.
+	with slashes in their names).
+      </para>
+      <note>
+	<para>Even with the recently added nested-AVS emulation, FS format is not 
+	  in general fully capable of capturing data originating in other backends
+	  such as PML.
+	</para>
+      </note>
+      <para>
+	FS format is fully described in
+	<ulink url="http://ufal.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">http://ufal.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html</ulink>
+      </para>
+    </section>
+    <section id="storablebackend">
+      <title>StorableBackend</title>
+      <para>This backend is based on an excelent Perl module
+	<literal>Storable</literal>, which can store
+	and retrieve almost arbitrary Perl structure in an instant. Because of its
+	general	nature, this backend can save and keep intact files
+	originating from any other backend. Due to its speed
+	with which it saves and retrieves data, it is often
+	useful to transfer all data temporarily into this format
+	(e.g. using <command>btred</command>) and
+	revert to the original format only after all work on the data is done.
+      </para>
+    </section>
+    <section id="csts_sgml_sp_backend">
+      <title>CSTS_SGML_SP_Backend</title>
+      <para></para>
+    </section>
+    <section id="ntredbackend">
+      <title>NTREDBackend</title>
+      <para></para>
+    </section>
+    <section id="pmlbackend">
+      <title>PMLBackend</title>
+      <para></para>
+    </section>
+    <section id="trxmlbackend">
+      <title>TrXMLBackend</title>
+      <para></para>
+    </section>
+    <section id="teixmlbackend">
+      <title>TEIXMLBackend</title>
+      <para></para>
+    </section>
+
   </section>
 </article>
 <!-- Keep this comment at the end of the file
