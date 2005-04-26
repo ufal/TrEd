@@ -2403,10 +2403,56 @@ sub tmpFileName {
 
 =item C<PrintDialog(-option =E<gt> value,...)>
 
-Display TrEd's standard print dialog. Possible options are:
+Display TrEd's standard print dialog. Possible options providing
+substitutes for the default values in the print dialog are:
 
--command -psFile -toFile -format -imageMagickResolution
--fileExtension -useType1Font -sentenceInfo -noRotate -colors
+=over 3
+
+=item C<-command>
+
+System command to send the output to (e.g. C<lpr> to print on the
+default printer on UNIX platform).
+
+=item C<-toFile>
+
+If set to 1, the output is saved to a file specified in C<-filename>.
+
+=item C<-filename>
+
+Output filename.
+
+=item C<-fileExtension>
+
+Default output file extension.
+
+=item C<-format>
+
+One of PS, PDF, EPS, ImageMagick. Default is PS.
+
+=item C<-imageMagickResolution>
+
+This value is passed to the command C<convert> of the ImageMagick
+toolkit as C<-density>. It specifies the horizontal and vertical
+resolution in pixels of the image.
+
+=item C<-noRotate>
+
+Disable automatic landscape rotation of trees which are wider than
+taller.
+
+=item C<-sentenceInfo>
+
+If set to 1, this command prints also the text associated with the
+tree. Instead of 0 or 1, an CODE reference (subroutine) may be passed
+in this parameter. This CODE is then evaluated for every tree to
+produce the desired text. The CODE obtains two arguments: the current
+FSFile object and an integer position of the tree (starting from 0).
+
+=item C<-colors>
+
+Set to 1 for colour output.
+
+=back
 
 =cut
 
@@ -2417,10 +2463,11 @@ sub PrintDialog {
     local $grp->{currentNode} = $this;
     local $grp->{root} = $root;
 
-    foreach (qw(-command -psFile -toFile -format -noRotate -sentenceInfo
+    foreach (qw(-command -filename -psFile -toFile -format -noRotate -sentenceInfo
                 -imageMagickResolution -fileExtension -colors)) {
       if (exists($opts{$_})) {
 	my $o=$_; $o=~s/^-//;
+	$o='psFile' if $o eq 'filename';
 	$grp->{framegroup}->{"print".lcfirst($o)} = $opts{$_}
       }
       main::printDialog($grp->{framegroup});
@@ -2435,11 +2482,102 @@ sub PrintDialog {
 
 Print trees given from current file according to given printing options:
 
-C<-range>, C<-command>, C<-toFile>, C<-filename>, C<-format>,
-C<-noRotate>, C<-sentenceInfo> C<-imageMagickResolution>, C<-colors>,
-C<-hidden>, C<-psFontFile>, C<-psFontAFMFile>, C<-ttFont>,
-C<-fontSize>, C<-fmtWidth>, C<-hMargin>, C<-fmtHeight>, C<-vMargin>,
-C<-maximize>, C<-psMedia>
+=over 3
+
+=item C<-range>
+
+Lists trees to be printed (e.g. C<5,-3,9-12,15-> prints trees
+5,1,2,3,9,10,11,12,15,16,...)
+
+=item C<-command>
+
+System command to send the output to (e.g. C<lpr> to print on the
+default printer on UNIX platform).
+
+=item C<-toFile>
+
+If set to 1, the output is saved to a file specified in C<-filename>.
+
+=item C<-filename>
+
+Output filename (only when printing to file).
+
+=item C<-format>
+
+One of PS, PDF, EPS, ImageMagick. Default is PS.
+
+=item C<-noRotate>
+
+Disable automatic landscape rotation of trees which are wider than
+taller.
+
+=item C<-sentenceInfo>
+
+If set to 1, this command prints also the text associated with the
+tree. Instead of 0 or 1, an CODE reference (subroutine) may be passed
+in this parameter. This CODE is then evaluated for every tree to
+produce the desired text. The CODE obtains two arguments: the current
+FSFile object and an integer position of the tree (starting from 0).
+
+=item C<-imageMagickResolution>
+
+This value is passed to the command C<convert> of the ImageMagick
+toolkit as C<-density>. It specifies the horizontal and vertical
+resolution in pixels of the image.
+
+=item C<-colors>
+
+Set to 1 for colour output.
+
+=item C<-hidden>
+
+Set to 1 to print hidden nodes.
+
+=item C<-psFontFile>
+
+Specifies the PostScript font file to be used instead of the default
+one.
+
+=item C<--psFontAFMFile>
+
+Specifies the PostScript ASCII metric font file to be used instead of
+the default one.
+
+=item C<-ttFont>
+
+Specifies the TrueType font file to be used when printing via PDF.
+
+=item C<-fontSize>
+
+Font size.
+
+=item C<-fmtWidth>
+
+Page width.
+
+=item  C<-fmtHeight>
+
+Page height.
+
+=item C<-hMargin>
+
+The size of the left and right horizontal margins.
+
+=item C<-vMargin>
+
+The size of the top and bottom margins.
+
+=item C<-maximize>
+
+Expand small trees to fit the whole page size. (Shrinking is done
+automatically).
+
+=item C<-psMedia>
+
+PostScript media information used in the resulting PostScript file
+header (only when printing to PostScript).
+
+=back
 
 =cut
 
