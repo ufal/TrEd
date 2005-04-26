@@ -1,47 +1,30 @@
-TrEd ver. 0.5
-=============
+Tree Editor TrEd
+================
+Copyright (c) 2000-2005 by Petr Pajas
+This is a free software distributed under GPL - The General Public Licence
+Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
 
-author:
-  Petr Pajas (pajas@ufal.ms.mff.cuni.cz)
+About
+-----
 
-What is tred
-------------
+TrEd is a fully customizable and programmable graphical editor and
+viewer for tree-like structures. Among other projects, it was used as
+the main annotation tool for syntactical and tectogrammatical
+annotations in the Prague Dependency Treebank, and for decision-tree
+based morphological annotation of The Prague Arabic Dependency
+Treebank.
 
-TrEd stands for "Tree Editor". It is a Perl/Tk-based graphical editor
-of tree structures such as dependency trees. TrEd is the main
-annotation tool used for analytical and tectogramatical treebanking
-projects of The Prague Dependency Treebank. Due to its general nature,
-TrEd may also find some other applications. TrEd may be extended by
-writing user defined macros (using the Perl language - see
-the documentation for more detail).
+TrEd runs on the following platforms:
 
-There is also a batch (off-line) variant of TrEd called btred -
-"Batch-mode Tree Editor" - which allows you to run macros on trees
-without having to use the graphical environment and a related tool
-called "ntred" able to (almost) transparently paralelize btred
-computing over a cluster of machines.
-
-Requirements
-------------
-
-For the basic use, only Perl v5.6 or higher and Perl/Tk library
-v800.025 or higher are required. Depending on the I/O format used,
-some other Perl modules may be required, e.g. XML::LibXML and XML::Simple
-for the XML based formats. TrEd may run on following platforms:
-
-  Windows 95 up to Windows XP (with ActivePerl)
-  Linux
-  Possibly other platforms (such as MacOS X)
-
-Please NOTE that this program is being developed and tested under
-Linux and is also widely used on the Windows platform. From other
-platforms, TrEd was reported to run fine under MacOS X (as an X11
-client). We have no reports from users of other platforms.
+    * Windows 95/98/ME or Windows NT/2000/XP (TM)
+    * Linux
+    * BSD, OS X, UNIX, Solaris (TM) and other UNIX-based systems
 
 Installation
 ------------
 
-This topic is described in the INSTALL file.
+This topic is briefly described in the INSTALL file and in more detail
+described in the User's Manual.
 
 Configuration
 -------------
@@ -50,10 +33,4 @@ When the first change to the configuration is made, TrEd tries to save
 it to its default configuration path, usually tred/tredlib/tredrc. If
 this file is not writable, ~/.tredrc is created and used henceforth.
 This file may also by created manually by copying the default
-configuration file.
-
-LICENSE
--------
-
-This software is covered by GNU General Public License (GPL).
-Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html.
+configuration file (tredlib/tredrc).
