@@ -2611,10 +2611,6 @@ FSBackend - IO backend for reading/writing FS files using FSFile class.
 
 =over 4
 
-=cut
-
-=pod
-
 =item $emulatePML
 
 This variable controls whether a simple PML schema should be created
@@ -3074,49 +3070,141 @@ sub ParseFSNode {
 
 ############################################################
 
+=head1 Fslib::List
+
+This class implements the attribute value type 'list'.
+
+=over 3
+
+=cut
+
 package Fslib::List;
+
+=item new(value?,...)
+
+Create a new list (optionally populated with given values).
+
+=cut
 
 sub new {
   my $class = shift;
   return bless [@_],$class;
 }
 
+=item values()
+
+Retrurns a its values (i.e. the list members).
+
+=cut
+
 sub values {
   return @{$_[0]};
 }
 
+=back
+
+=head1 Fslib::Alt
+
+This class implements the attribute value type 'alternative'.
+
+=over 3
+
+=cut
 
 package Fslib::Alt;
 
+=item new(value?,...)
+
+Create a new alternative (optionally populated with given values).
+
+=cut
+
 sub new {
   my $class = shift;
   return bless [@_],$class;
 }
 
+=item values()
+
+Retrurns a its values (i.e. the alternatives).
+
+=cut
+
 sub values {
   return @{$_[0]};
 }
 
+=back
 
 ###########################################################
 
+=head1 Fslib::Schema
+
+This class implements elementary support for PML schemas. Although
+neither it's API nor implementation is stable, it is intended to fully
+replace the FSFormat class in the future. Currently it is only a
+C<XML::Simple> representation of a PML schema file. Whether this is
+favourable or not, is yet to be discovered.
+
+=over 3
+
+=cut
+
 package Fslib::Schema;
+
+use vars qw($preserve_order);
+
+=item $Fslib::Schema::preserve_order
+
+This global variable controls whether the schema should preserve order
+of structure elements and possibly other structures. The present
+implementation uses the module C<XML::IxSimple>, which is a modified
+version if C<XML::Simple> which always uses C<Tie::IxHash> instead of
+ordinary hashes. Setting this variable to 1 makes the schema to
+preserve the order of structure elements, but also makes the overall
+performance of C<Fslib::Schema> significantly slower, which heavily
+affects modules extensively using it, such as C<PMLBackend>, which in
+turn is about 50% slower.
+
+=cut
+
+$preserve_order = 0;
+
+
+=item new(string)
+
+Parses a given XML representation of the schema and returns a new
+C<Fslib::Schema> instance.
+
+=cut
 
 sub new {
   my ($self,$string)=@_;
   my $class = ref($self) || $self;
-  require XML::Simple;
-  bless
-    XML::Simple::XMLin($string,
-	  ForceArray=>[ 'member', 'element', 'attribute', 'value', 'reference', 'type' ],
-	  KeyAttr => { "member"    => "-name",
-		       "attribute" => "-name",
-		       "element"   => "-name",
-		       "type"      => "-name"
-		      },
-	  GroupTags => { "choice" => "value" }
-	 ), $class;
+  my @opts = (
+    ForceArray=>[ 'member', 'element', 'attribute', 'value', 'reference', 'type' ],
+    KeyAttr => { "member"    => "-name",
+		 "attribute" => "-name",
+		 "element"   => "-name",
+		 "type"      => "-name"
+		},
+    GroupTags => { "choice" => "value" }
+   );
+  if ($preserve_order) {
+    require XML::IxSimple;
+    bless XML::IxSimple::XMLin($string,@opts),$class;
+  } else {
+    require XML::Simple;
+    bless XML::Simple::XMLin($string,@opts),$class;
+  }
 }
+
+=item readFrom(filename)
+
+Reads schema from a given XML file and returns a new C<Fslib::Schema>
+object.
+
+=cut
 
 sub readFrom {
   my ($self,$file)=@_;
@@ -3129,17 +3217,37 @@ sub readFrom {
   $self->new($slurp);
 }
 
+=item find_role(type,role)
+
+Starting from a given schema type, locate and return a (possibly deeply nested)
+subtype of a given role.
+
+=cut
+
 sub find_role {
   my ($self,$type,$role)=@_;
   return() unless UNIVERSAL::isa($type,'HASH');
   return (($type->{role} eq $role ? $self->resolve_type($type) : ()),  map { $self->find_role($_,$role) } grep { UNIVERSAL::isa($_,'HASH') } values %$type);
 }
 
+=item node_type(type,role)
+
+Find all types with role C<#NODE>.
+
+=cut
+
 sub node_types {
   my ($self) = @_;
   my @result;
   return $self->find_role($self->{type},'#NODE');
 }
+
+=item resolve_type(type)
+
+Returns type, unless it is only a type-reference in which case it
+follows the reference and returns the resulting type.
+
+=cut
 
 sub resolve_type {
   my ($self,$type)=@_;
@@ -3152,6 +3260,14 @@ sub resolve_type {
   }
 }
 
+=item type(type)
+
+Wrap given schema type into a C<Fslib::Type> object and return the
+object. Both the current schema and the type can be retrieved from the
+C<Fslib::Type> object.
+
+=cut
+
 sub type {
   my ($self,$type)=@_;
   return Fslib::Type->new($self,$type);
@@ -3159,6 +3275,16 @@ sub type {
 
 
 # emulate FSFormat->attributes to some extent
+
+=item attributes([type...])
+
+Return attribute-paths to all atomic subtypes of given types.  If no
+types are given, then types with role C<#NODE> are assumed. In a way,
+this function tries to emulate the behavior of
+C<FSFormat-E<gt>attributes>.
+
+=cut
+
 
 sub attributes {
   my ($self,@types) = @_;
@@ -3202,22 +3328,63 @@ sub attributes {
   return grep { !$uniq{$_} && ($uniq{$_}=1) } @result;
 }
 
+=back
+
+=cut
+
+###############################################################3
+
 package Fslib::Type;
+
+=head1 Fslib::Type
+
+This is a wrapper class for a schema type.
+
+=over 3
+
+=cut
+
+=item new(schema,type)
+
+Return a new C<Fslib::Type> object containing a given type of a given
+C<Fslib::Schema>.
+
+=cut
 
 sub new {
   my ($class, $schema, $type)=@_;
   return bless [$schema,$type], $class;
 }
 
+=item schema()
+
+Retrieve the C<Fslib::Schema>.
+
+=cut
+
 sub schema {
   my ($self)=@_;
   return $self->[0];
 }
 
+=item schema()
+
+Retrieve the wrapped schema type itself.
+
+=cut
+
 sub type_struct {
   my ($self)=@_;
   return $self->[1];
 }
+
+=item members()
+
+If the wrapped schema type is an AVS structure type,
+return names of its members (attributes), except
+for a possible member with role C<#CHILDNODES>.
+
+=cut
 
 sub members {
   my ($self,$path)=@_;
@@ -3231,10 +3398,25 @@ sub members {
   }
 }
 
+=item attributes()
+
+Return attribute-paths to all atomic subtypes of the given type.
+
+=cut
+
 sub attributes {
   my ($self)=@_;
   return $self->schema->attributes($self->type_struct);
 }
+
+=item find(attribute-path)
+
+Locate a subtype specified by a given attribute-path. Attribute path
+is a /-separated sequence of member and/or element names which
+identifies a path to a certain nested sub-type in the nesting of
+structures and element sequences.
+
+=cut
 
 sub find {
   my ($self, $path) = @_;
@@ -3276,6 +3458,10 @@ sub find {
     return $schema->resolve_type($type);
   }
 }
+
+=back
+
+=cut
 
 1;
 
