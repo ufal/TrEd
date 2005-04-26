@@ -39,7 +39,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $fileNo $tredDebug $keyboardDebug $hookDebug $macroDebug
 	    @files $backend %bkmap $nosave @preload_modules $print_version
 	    $version $lib $extra_backends $file_list $list_options
-	    $_ERR %optmap $no_secondary $include_macro
+	    $_ERR %optmap $no_secondary $include_macro $ioBackends
 	   );
 
 $version='$Revision$ ';
@@ -263,6 +263,7 @@ import TrEd::Basics;
 #load back-ends
 @backends=('FSBackend',ImportBackends(
   split(/,/,$extra_backends),
+  split(/,/,$ioBackends),
   qw(NTREDBackend PMLBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
 
 
