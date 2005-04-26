@@ -636,9 +636,17 @@ sub read_trees {
       } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
 	       $child->localname eq 'head') {
 	# already read this one
-      } else {
-	warn("Ignoring element "._element_address($child),"\n");
-	# TODO: store all other elements here + all attributes
+      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
+	       $root_type->{element}{$child->localname}) {
+	my $name = $child->localname;
+	my $element = read_element($child,$fsfile,$types,resolve_type($types,$root_type->{element}{$name}));
+	if (ref($fsfile->metaData('pml_preface')) eq 'ARRAY') {
+	  push @{$fsfile->metaData('pml_preface')},$element;
+	} else {
+	  $fsfile->changeMetaData('pml_preface',[$element])
+	}
+      } elsif ($child->nodeType != TEXT_NODE or $child->textContent =~ /\S/) {
+	warn("Ignoring node "._element_address($child),"\n");
       }
     }
   } else {
@@ -670,9 +678,11 @@ sub write {
     ($trees) = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$root_type->{element}};
     if ($trees) {
       $trees_tag = $trees->{-name};
+    } elsif (UNIVERSAL::isa($root_type->{sequence},'HASH') and $root_type->{sequence}{role} eq '#TREES') {
+      $trees = $root_type;
     }
   } elsif (UNIVERSAL::isa($root_type->{sequence},'HASH') and $root_type->{sequence}{role} eq '#TREES') {
-    $trees = $root_type->{sequence};
+    $trees = $root_type;
   }
   unless ($trees) {
     die "Can't write: didn't find any element or sequence with role #TREES\n";
@@ -713,6 +723,13 @@ sub write {
   }
   $xml->endTag('references');
   $xml->endTag('head');
+
+  my $lead = $fsfile->metaData('pml_preface');
+  if (ref($lead) eq 'ARRAY') {
+    foreach my $element (@$lead) {
+      write_extra_element($xml,$fsfile,$types,$root_type,$element);
+    }
+  }
 
   my $tree_list = bless [$fsfile->trees],'Fslib::List';
   write_object($xml, $fsfile, $types,resolve_type($types,$trees),$trees_tag,$tree_list);
@@ -761,7 +778,9 @@ sub write {
 sub write_object_knit {
   my ($xml,$fsfile,$types,$type,$tag,$knit_tag,$object)=@_;
   my $ref = $object->{id};
-  $xml->startTag($tag);
+  my $attribs;
+  ($tag,$attribs)=@$tag if ref($tag);
+  $xml->startTag($tag,$attribs?%$attribs:());
   $xml->characters($object->{id});
   $xml->endTag($tag);
   if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
@@ -788,9 +807,12 @@ sub write_object_knit {
 sub write_object ($$$$$$) {
   my ($xml,$fsfile, $types,$type,$tag,$object)=@_;
   my $pre=$type;
+  my $attribs;
+  ($tag,$attribs)=@$tag if ref($tag);
+  $attribs = {} unless $attribs;
   $type = resolve_type($types,$type);
   if ($type->{cdata}) {
-    $xml->startTag($tag) if defined($tag);
+    $xml->startTag($tag,%$attribs) if defined($tag);
     $xml->characters($object);
     $xml->endTag($tag) if defined($tag);
   } elsif (exists $type->{choice}) {
@@ -802,26 +824,28 @@ sub write_object ($$$$$$) {
       }
     }
     warn "Invalid value for '$tag': $object\n" unless ($ok);
-    $xml->startTag($tag);
+    $xml->startTag($tag,%$attribs);
     $xml->characters($object);
     $xml->endTag($tag);
   } elsif (exists $type->{structure}) {
     my $struct = $type->{structure};
     my $members = $struct->{member};
     if (ref($object)) {
-      my %attribs;
       foreach my $atr (grep {$members->{$_}{as_attribute}}
-			 sort keys %$members) {
+			 #sort 
+			   keys %$members) {
 	if ($members->{$atr}{required} or $object->{$atr} ne "") {
-	  $attribs{$atr} = $object->{$atr};
+	  $attribs->{$atr} = $object->{$atr};
 	}
       }
-      if (%attribs and !defined($tag)) {
+      if (%$attribs and !defined($tag)) {
 	die "Can't write structure with attribute members without a tag";
       }
-      $xml->startTag($tag,%attribs) if defined($tag);
+      $xml->startTag($tag,%$attribs) if defined($tag);
       foreach my $member (
-	grep {!$members->{$_}{as_attribute}} sort keys %$members) {
+	grep {!$members->{$_}{as_attribute}} 
+	  #sort 
+	  keys %$members) {
 	my $mtype = resolve_type($types,$members->{$member});
 	if ($members->{$member}{role} eq '#CHILDNODES') {
 	  if (ref($object) eq 'FSNode') {
@@ -880,7 +904,7 @@ sub write_object ($$$$$$) {
       } elsif (@$object == 1) {
 	write_object($xml, $fsfile,  $types,$type->{list},$tag,$object->[0]);
       } else {
-	$xml->startTag($tag) if defined($tag);
+	$xml->startTag($tag,%$attribs) if defined($tag);
 	foreach my $member (@$object) {
 	  write_object($xml, $fsfile, $types,$type->{list},LM,$member);
 	}
@@ -896,7 +920,7 @@ sub write_object ($$$$$$) {
       } elsif (@$object == 1) {
 	write_object($xml, $fsfile, $types,$type->{alt},$tag,$object->[0]);
       } else {
-	$xml->startTag($tag) if defined($tag);
+	$xml->startTag($tag,%$attribs) if defined($tag);
 	foreach my $member (@$object) {
 	  write_object($xml, $fsfile, $types,$type->{alt},AM,$member);
 	}
@@ -906,7 +930,7 @@ sub write_object ($$$$$$) {
       write_object($xml, $fsfile, $types,$type->{alt},$tag,$object);
     }
   } elsif (exists $type->{sequence}) {
-    $xml->startTag($tag) if defined($tag);
+    $xml->startTag($tag,%$attribs) if defined($tag);
     if (UNIVERSAL::isa($object,'Fslib::List')) {
       foreach my $element (@$object) {
 	if ($element->{'#type'} eq 'text') {
@@ -918,20 +942,27 @@ sub write_object ($$$$$$) {
 	} elsif ($element->{'#type'} eq 'pml-element') {
 	  my $eltype = $type->{sequence}{element}{$element->{'#name'}};
 	  if ($eltype) {
+	    my $role = $eltype->{role};
+	    $eltype=resolve_type($types,$eltype);
+	    $role = $eltype->{role} if $role eq '';
 	    my %attribs;
 	    foreach my $atr (keys(%{$eltype->{attribute}})) {
-	      $attribs{$atr} = $object->{$atr};
+	      $attribs{$atr} = $element->{$atr};
 	    }
-	    $xml->startTag($element->{'#name'},%attribs);
-	    write_object($xml, $fsfile, $types,$eltype,undef,$object->{'#content'});
-	    $xml->endTag($element->{'#name'});
+	    if (UNIVERSAL::isa($element,'FSNode') and $element->firstson and
+		($eltype->{sequence} and $eltype->{sequence}{role} eq '#CHILDNODES' or
+		 $eltype->{list} and $eltype->{list}{role} eq '#CHILDNODES')) {
+	      write_object($xml, $fsfile, $types,$eltype,[$element->{'#name'},\%attribs],
+			   bless([ $element->children ],'Fslib::List'));
+	    } else {
+	      write_object($xml, $fsfile, $types,$eltype,[$element->{'#name'},\%attribs],$element->{'#content'});
+	    }
 	  } else {
 	    warn "PML-element '".$element->{'#name'}."' node is not allowed in sequence '$tag'\n";
 	  }
 	} elsif ($element->{'#type'} eq 'element') {
 	  # TODO:
 	  # similar but with a namespace, etc...
-
 	  warn "Writing non-pml elements not yet supported\n";
 	}
       }
@@ -939,7 +970,23 @@ sub write_object ($$$$$$) {
       warn "Unexpected content of sequence '$tag': $object\n";
     }
     $xml->endTag($tag) if defined($tag);
+  }
+}
 
+
+sub write_extra_element {
+  my ($xml,$fsfile,$types,$type,$element)=@_;
+  my $eltype = $type->{element}{$element->{'#name'}};
+  if ($eltype) {
+    my %attribs;
+    foreach my $atr (keys(%{$eltype->{attribute}})) {
+      $attribs{$atr} = $element->{$atr};
+    }
+    $xml->startTag($element->{'#name'},%attribs);
+    write_object($xml, $fsfile, $types,$eltype,undef,$element->{'#content'});
+    $xml->endTag($element->{'#name'});
+  } else {
+    warn "PML-element '".$element->{'#name'}."' node is not allowed in prolog/epilog\n";
   }
 }
 
