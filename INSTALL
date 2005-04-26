@@ -1,9 +1,10 @@
 Installation of TrEd
 ====================
 
-This text describes manual installation of tred under Linux or any
+This text briefly describes installation of tred under Linux or any
 other UNIX-like system. For Windows, an installation package can be
 download from the project home-page (http://pajas.matfyz.cz/tred).
+Detailed information can be found in TrEd User's Manual.
 
 REQUIREMENTS
 ------------
