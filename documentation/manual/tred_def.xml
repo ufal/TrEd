@@ -194,7 +194,7 @@ Return given node's position in the deep-first tree ordering.
 <para>
 Return current filename, index of a tree (starting from 1) in the file
 to which the node belongs (0 if not found) and node's position in the tree
-in the deep-first tee ordering.
+in the deep-first tree ordering.
 </para>
 </listitem></varlistentry><varlistentry><term><literal>ThisAddress(node?)</literal></term><listitem>
 <para>
