@@ -200,14 +200,15 @@
 	<application moreinfo="none">TrEd</application> further requires the following Perl
 	modules and their dependencies:
 	<itemizedlist>
-	  <listitem><simpara><literal moreinfo="none">File-Temp</literal></simpara></listitem>
-	  <listitem><simpara><literal moreinfo="none">File-Spec</literal></simpara></listitem>
-	  <listitem><simpara><literal moreinfo="none">Text-Iconv</literal></simpara></listitem>
-	  <listitem><simpara><literal moreinfo="none">Tie-IxHash</literal></simpara></listitem>
-	  <listitem><simpara><literal moreinfo="none">Tk</literal> (for GUI)</simpara></listitem>
-	  <listitem><simpara><literal moreinfo="none">Compress-Zlib</literal> (for printing to PDF)</simpara></listitem>
-	  <listitem><simpara><literal moreinfo="none">XML-LibXML</literal> (for various I/O backends)</simpara></listitem>
-	  <listitem><simpara><literal moreinfo="none">XML-Writer</literal></simpara></listitem>
+	  <listitem><simpara><literal>File-Temp</literal></simpara></listitem>
+	  <listitem><simpara><literal>File-Spec</literal></simpara></listitem>
+	  <listitem><simpara><literal>Text-Iconv</literal></simpara></listitem>
+	  <listitem><simpara><literal>Tie-IxHash</literal></simpara></listitem>
+	  <listitem><simpara><literal>Tk</literal> (for GUI)</simpara></listitem>
+	  <listitem><simpara><literal>Compress-Zlib</literal> (for printing to PDF)</simpara></listitem>
+	  <listitem><simpara><literal>XML-LibXML</literal> (for various I/O backends)</simpara></listitem>
+	  <listitem><simpara><literal>XML-Simple</literal></simpara></listitem>	  
+	  <listitem><simpara><literal>XML-Writer</literal></simpara></listitem>
 	</itemizedlist>
 	All the above modules and their dependencies can be obtained
 	and installed in a single step using the
@@ -2816,25 +2817,29 @@ Tk: 804.027
 	    sequences, but can't contain another <literal moreinfo="none">&lt;?<replaceable>...</replaceable>?&gt;</literal>
 	    sequences.
 	  </para>
-	  <para>Within the <replaceable>code</replaceable>, 
-	    one may refer to any attribute value 
-	    of the node currently being styled with either
-	    <literal moreinfo="none">$${<replaceable>attr</replaceable>}</literal>
-	    or
-	    <literal moreinfo="none">$this-&gt;{<replaceable>attr</replaceable>}</literal>.
-	    The current node object itself may be referrenced as
-	    <literal moreinfo="none">$this</literal> (so it is for example possible to
-	    access current node's parent by
-	    <literal moreinfo="none">$this-&gt;parent</literal>).
-	    Regardless of what context is currently selected,
-	    the code occuring in the styling patterns is always 
-	    evaluated within the <literal moreinfo="none">TredMacro</literal> namespace.
-	    In order to call a user-defined macro from another
-	    namespace, it is therefore necessary to use a complete namespace
-	    (package name) prefix. So, a call to
-	      a macro named <literal moreinfo="none">bar</literal> from a package
-	      (context) <literal moreinfo="none">Foo</literal> should look like
-	      <literal moreinfo="none">Foo::bar(<replaceable>arguments...</replaceable>)</literal>.
+	  <para>
+	    The <replaceable>code</replaceable> is subject to very
+	      similar rules as macros in TrEd (see <xref
+	      linkend="macros"/>). One may refer to any attribute
+	      value of the node currently being styled as either
+	      <literal
+	      moreinfo="none">$${<replaceable>attr</replaceable>}</literal>
+	      or <literal
+	      moreinfo="none">$this-&gt;{<replaceable>attr</replaceable>}</literal>.
+	      The current node object itself can be refered to as <literal
+	      moreinfo="none">$this</literal> (so e.g. <literal
+	      moreinfo="none">$this-&gt;parent</literal> gives access
+	      to its parent).  Regardless
+	      of what context is currently selected, the code occuring
+	      in the styling patterns is always evaluated within the
+	      <literal moreinfo="none">TredMacro</literal> namespace.
+	      In order to call a user-defined macro from another
+	      namespace, it is therefore necessary to use a complete
+	      namespace (package name) prefix. So, a call to a macro
+	      named <literal moreinfo="none">bar</literal> from a
+	      package (context) <literal moreinfo="none">Foo</literal>
+	      should look like <literal
+	      moreinfo="none">Foo::bar(<replaceable>arguments...</replaceable>)</literal>.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -3467,19 +3472,22 @@ Tk: 804.027
       Should the trees contain non-latin
       (iso-8859-1, iso-8859-2, windows-1250, etc.) characters,
       such as Arabic, the PDF might be the only option,
-      because it allows using TrueType fonts.
+      because of its support for TrueType fonts.
     </para>
     <para>
       If <ulink url="http://www.imagemagick.org">ImageMagick</ulink>
-      toolkit is installed, TrEd can also automatically
-      convert the result into one of many image formats.
-      While PostScript is the default printing format on most
-      Unix/Linux systems (and can be printed using the
-      standard <command moreinfo="none">lpr</command> command), Windows users
-      may use for example <ulink url="http://www.adobe.com/products/acrobat/readermain.html">Adobe
-	Acrobat Reader</ulink> to preview and print trees
-      rendered into PDF. There are also some free PostScript
-      interpreters for Windows (see <ulink url="http://www.cs.wisc.edu/~ghost/">GhostView</ulink>).
+      toolkit is installed, TrEd can also automatically convert the
+      result into one of many bitmap image formats supported by this
+      toolkit.</para>
+    <para>  While PostScript is the default printing format on
+      most Unix/Linux systems (and can be printed using the standard
+      <command moreinfo="none">lpr</command> command), Windows users
+      may use for example <ulink
+      url="http://www.adobe.com/products/acrobat/readermain.html">Adobe
+      Acrobat Reader</ulink> to preview and print trees rendered into
+      PDF. There are also some free PostScript interpreters for
+      Windows (see <ulink
+      url="http://www.cs.wisc.edu/~ghost/">GhostView</ulink>).
     </para>
     <figure float="0">
       <title>Print dialog
@@ -3487,13 +3495,16 @@ Tk: 804.027
       <mediaobject><imageobject><imagedata fileref="pics/tredprint.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/tredprint.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/tredprint" format="linespecific"/></imageobject></mediaobject>
     </figure>
     <para>
-      Encapsulated PostScript files (<literal moreinfo="none">EPS</literal>)
-      are especially useful for preparation of other printed
-      materials e.g. <application moreinfo="none">PDF</application> of
-      <application moreinfo="none">LaTeX</application> documents. Compared
-      to bitmapped images, EPS images
-      have the advantage of being scalable. EPS has limitted supported
-      by most office suits (such as Microsoft Office and OpenOffice.org).
+      Encapsulated PostScript files (<literal
+      moreinfo="none">EPS</literal>) are especially useful for
+      preparation of other printed materials e.g. <application
+      moreinfo="none">PDF</application> of <application
+      moreinfo="none">LaTeX</application> documents. Compared to
+      bitmapped images, EPS images have the advantage of being
+      scalable.  Most office suits (such as Microsoft Office and
+      OpenOffice.org) have at least limited support for EPS.  Similar
+      results can be obtained by using <application>PDF</application>
+      with <literal>BBox</literal> media size.
     </para>
     <note>
       <para>
@@ -3546,11 +3557,11 @@ Tk: 804.027
       <listitem>
 	<para>
 	  You can also specify a media-type (paper format)
-	  (<guilabel moreinfo="none">Media</guilabel> roll-out menu), page
+	  in the <guilabel moreinfo="none">Media</guilabel> roll-out menu, page
 	  width and height (in case of <literal moreinfo="none">User</literal>
 	  media-type), and horizontal and vertical margins.
 	  If the printed tree exceeds specified page
-	  boundaries, it is automatically shanked and/or
+	  boundaries, it is automatically shrunk and
 	  (unless <guilabel moreinfo="none">Disable landscape rotation of wide
 	    trees</guilabel> is selected) rotated to fit on the
 	  page. See <link linkend="psmedia"><literal moreinfo="none">PSMedia</literal></link>
@@ -3569,64 +3580,73 @@ Tk: 804.027
       </listitem>
       <listitem>
 	<para>If <ulink url="http://www.imagemagick.org">ImageMagick</ulink>
-	  utilities are installed on the system running TrEd,
+	  utilities are installed on the system,
 	  then automatic conversion to one of many image formats
 	  is supported. To use it, first check the
 	  <guilabel moreinfo="none">Convert according to file
 	    extension</guilabel> button, then select a desired
 	  pixel resolution for conversion to bitmap, and finally
-	  edit the filename giving it the usual extension of the
+	  edit the output filename extension to that of the
 	  desired output file-format such as
 	  <filename moreinfo="none">.png</filename> or
-	  <filename moreinfo="none">.jpg</filename>.  When converting to bitmap,
-	  <guilabel moreinfo="none">Resolution</guilabel> may be specified to
+	  <filename moreinfo="none">.jpg</filename>.  When converting
+	  to a bitmap, <guilabel moreinfo="none">Resolution</guilabel> may be specified to
 	  adjust the mapping between PostScript coordinate
 	  system units (given in 1/72 inch) to raster pixels.
 	</para>
       </listitem>
       <listitem>
 	<para>
-	  To print the <quote>sentence</quote> together with
-	  the tree, check the <guilabel moreinfo="none">Print
-	    sentence</guilabel> button. A
-	  <quote>sentence</quote> is actually a chain
-	  consisting of
-	  values of the value-attributes
-	  (i.e. <literal moreinfo="none">@V</literal> attributes in FS format)
-	  of all nodes in the tree.
+	  If you also want the <quote>sentence</quote> of the tree
+	  (i.e. the usual context of the text window above the tree)
+	  to be printed under the tree, check the <guilabel
+	  moreinfo="none">Print sentence</guilabel> button.
 	</para>
       </listitem>
       <listitem>
 	<para>
-	  It is possible to print more than one tree (each
-	  tree on a separate page).  To do so, a comma-separated list of
-	  tree numbers or ranges of tree numbers, that correspond to the
-	  desired trees in the active file, must be entered
-	  into the <guilabel moreinfo="none">Page range</guilabel> field.  The
-	  <inlinemediaobject><imageobject><imagedata fileref="pics/1rigtharrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> button may be
-	  used to automatically insert a page range
-	  corresponding to sentences selected via <link linkend="list_of_sentences"><menuchoice moreinfo="none">
-	      <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">List of
-		sentences...</guimenuitem> </menuchoice></link>. A
-	  different selection based on
-	  <quote>sentences</quote> can be made by pressing the
-	  <inlinemediaobject><imageobject><imagedata fileref="pics/contents.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/contents.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/contents" format="linespecific"/></imageobject></inlinemediaobject> button.
+	  It is possible to print more than one tree (each tree then
+	  appears on a separate page).  To do so, a comma-separated
+	  list of tree numbers or ranges of tree numbers, that
+	  correspond to the desired trees in the active file, must be
+	  entered into the <guilabel moreinfo="none">Page
+	  range</guilabel> field.  The
+	  <inlinemediaobject><imageobject><imagedata
+	  fileref="pics/1leftarrow.png" format="PNG"
+	  role="html"/></imageobject><imageobject><imagedata
+	  fileref="pics/1leftarrow.eps" format="EPS"
+	  role="latex"/></imageobject><imageobject><imagedata
+	  fileref="pics/1leftarrow"
+	  format="linespecific"/></imageobject></inlinemediaobject>
+	  button is be used to automatically insert a page range
+	  corresponding to sentences selected via <link
+	  linkend="list_of_sentences"><menuchoice moreinfo="none">
+	  <guimenu moreinfo="none">View</guimenu> <guimenuitem
+	  moreinfo="none">List of sentences...</guimenuitem>
+	  </menuchoice></link>. A different selection based on
+	  <quote>sentences</quote> can be made by pressing the button
+	  <inlinemediaobject><imageobject><imagedata
+	  fileref="pics/contents.png" format="PNG"
+	  role="html"/></imageobject><imageobject><imagedata
+	  fileref="pics/contents.eps" format="EPS"
+	  role="latex"/></imageobject><imageobject><imagedata
+	  fileref="pics/contents"
+	  format="linespecific"/></imageobject></inlinemediaobject>.
 	</para>
       </listitem>
       <listitem>
 	<para id="page_range">
-	  If entered manually, the page range must be
-	  specified according to following rules:  First tree
-	  in the file has number 1, second has number 2,
-	  etc. Ranges are pairs of numbers like
-	  <quote><literal moreinfo="none">3-20</literal></quote> which covers
-	  all trees starting from the tree no. 3 to no. 20.
-	  If the first number in the range is omitted, 1 is
-	  assumed. If the second number in the range is
-	  ommited, the number of the last tree in the active
-	  file is assumed.  The order of the trees given in
-	  the list is preserved and also, one tree may be
-	  printed more than once.
+	  If entered manually, the page range must be specified
+	  according to the following rules: Trees in the file are
+	  numbered starting from 1. Ranges are pairs of numbers of the
+	  form <quote><literal moreinfo="none">3-20</literal></quote>
+	  (which in this case covers all trees starting from the tree
+	  no. 3 to no. 20).  If the first number in the range is
+	  omitted, 1 is assumed. If the second number in the range is
+	  ommited, the number of the last tree in the active file is
+	  assumed.  The order of the tree numbers given in the list is
+	  strictly reflected in the output file, which also means that
+	  ceratin tree can be printed more than once.
 	  <note>
 	    <title>Example:</title>
 	    <para>
@@ -3672,15 +3692,8 @@ sub CreateImages {
    }} while NextTree();
 }	  
 ]]>
-
 	</programlisting>
       </example>
-      <para>
-
-	
-	
-	
-      </para>
     </note>
   </section>
   
@@ -3689,45 +3702,71 @@ sub CreateImages {
     <title>Using File-Lists</title>
     <para>
       File-list is simply a named list of file-name patterns or actual
-      file names (with an obligatory suffixes specifying a tree number
-      and possibly also a position in the tree). File-lists can be
-      created, modified, saved or deleted using a specialized dialog
-      displayed whe the <menuchoice moreinfo="none">
-	<guimenu moreinfo="none">File</guimenu>
-	<guimenuitem moreinfo="none">File List...</guimenuitem>
-      </menuchoice> menu-command is issued.
+      file names (possibly with extra suffixes attached to them
+      specifying certain tree or node by its position in the
+      file - see the file-name handling conventions described in <xref
+	linkend="commandline"/>). File-lists can be created, modified, saved or deleted in
+      a file-list editor accessible via <menuchoice moreinfo="none">
+      <guimenu moreinfo="none">File</guimenu> <guimenuitem
+      moreinfo="none">File List...</guimenuitem> </menuchoice>
+      menu-command.
     </para>
     <para>
-      File-lists may be used for many purposes, the most common of
-      which are searching and comfortable editing of a series of
-      files. There is always one file-list active. We call that 
-      file-list the current file-list. Name of the current-filelist
-      is displayed at the title of the main
-      <application moreinfo="none">TrEd</application>'s window.
-      If current file-list contains more than one file, 
-      the command <menuchoice moreinfo="none"> <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Previous
-	  File</guimenuitem> </menuchoice> (or <inlinemediaobject><imageobject><imagedata fileref="pics/start.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/start.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/start" format="linespecific"/></imageobject></inlinemediaobject> button) and  <menuchoice moreinfo="none">
-	<guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Next File</guimenuitem>
+      File-lists can serve several purposes, the most common of which
+      are searching and comfortable editing series of files.  Each
+      view is associated with a file-list. For the active view, we
+      call that file-list the current file-list. Name of the
+      current-filelist is displayed at the title of the main
+      <application moreinfo="none">TrEd</application>'s window.  If
+      current file-list contains more than one file, the commands
+      <menuchoice moreinfo="none"> <guimenu
+      moreinfo="none">File</guimenu> <guimenuitem
+      moreinfo="none">Previous File</guimenuitem> </menuchoice> (or
+      <inlinemediaobject><imageobject><imagedata
+      fileref="pics/start.png" format="PNG"
+      role="html"/></imageobject><imageobject><imagedata
+      fileref="pics/start.eps" format="EPS"
+      role="latex"/></imageobject><imageobject><imagedata
+      fileref="pics/start"
+      format="linespecific"/></imageobject></inlinemediaobject>
+      button) and <menuchoice moreinfo="none"> <guimenu
+      moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Next
+      File</guimenuitem>
     </menuchoice>
       (or <inlinemediaobject><imageobject><imagedata fileref="pics/finish.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/finish.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/finish" format="linespecific"/></imageobject></inlinemediaobject> button)
-      may be used to open previous or next file in the file-list.
+      can be used to open previous and next file in the file-list, respectively.
     </para>
     <figure float="0">
       <title>Creating file-lists</title>
       <mediaobject><imageobject><imagedata fileref="pics/filelist.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filelist.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/filelist" format="linespecific"/></imageobject></mediaobject>
     </figure>
     <para>
-      There are two default file-lists always present:
+      The following file-lists are created and managed automatically
+      by <application>TrEd</application>:
     </para>
     <variablelist>
       <varlistentry>
 	<term><literal moreinfo="none">Default</literal></term>
 	<listitem>
 	  <para>
-	    This file-list contains all the files specified on the
-	    command-line. All files opened while
-	    <literal moreinfo="none">Default</literal>
-	    is the current file-list are inserted to the file-list.	    
+	    This file-list contains files opened with <menuchoice>
+	    <guimenu>File</guimenu> <guimenuitem>Open
+	    ...</guimenuitem> </menuchoice> during the current session
+	    up to the moment.
+	  </para>
+	</listitem>	
+      </varlistentry>
+      <varlistentry>
+	<term><literal moreinfo="none">CmdLine-<replaceable>n</replaceable></literal></term>
+	<listitem>
+	  <para>
+	    This file-list contains files specified either directly on
+	    the command line or in file(s) following the command-line
+	    option <parameter>-l</parameter>. <replaceable>n</replaceable> is
+	    an integer number starting from 1 (files from the
+	    <replaceable>n</replaceable>-th file specified in
+	    <parameter>-l</parameter> appear in the file-list
+	    <literal>CmdLine-<replaceable>n</replaceable></literal>).
 	  </para>
 	</listitem>	
       </varlistentry>
@@ -3744,10 +3783,10 @@ sub CreateImages {
     <para>
       To create a user-defined file-list, open the <guilabel moreinfo="none">Filelist</guilabel> dialog, Type a name
       of the file-list into the <guilabel moreinfo="none">File lists</guilabel> field
-      (on the top right side) and press <keycap moreinfo="none">Enter</keycap> and
+      (on the top right side), press <keycap moreinfo="none">Enter</keycap> and
       confirm the creation by pressing the
       <guibutton moreinfo="none">Create</guibutton> button in the
-      window that appears.
+      confirmation dialog which pops up.
       Alternativelly, press the <guibutton moreinfo="none">New</guibutton> button,
       fill the name of the new file-list to the entry in the displayed
       dialog and press <guibutton moreinfo="none">OK</guibutton>.
@@ -3772,45 +3811,55 @@ sub CreateImages {
       press the <guibutton moreinfo="none">Remove</guibutton> button.
     </para>
     <para>
-      To make the chosen file-list the current file-list for
-      <application moreinfo="none">TrEd</application> double-click on any file in the
-      file-list or just select the file and press 
-      <guibutton moreinfo="none">Show in TrEd</guibutton>. The selected files is opend
-      and the file-list is made current. (You may of course switch between
-      file-lists also by selecting a file-list in the
-      <guimenu moreinfo="none">Session</guimenu> menu.)      
+      To make certain file-list the current file-list for <application
+      moreinfo="none">TrEd</application> double-click on any file in
+      the file-list or just select the file and press <guibutton
+      moreinfo="none">Show in TrEd</guibutton>. The selected file is
+      opened and the file-list is made current.
+    </para>
+    <note>
+      <para>It is possible to switch between several file-lists
+	without entering the file-list editor described in this
+	section, simply by selecting other file-list from the <guimenu
+	moreinfo="none">Session</guimenu> menu.
+      </para>
+    </note>
+    <para>
+      The button <guibutton moreinfo="none">Save</guibutton> is used
+      to save the chosen file-list to a file, so that it can be either
+      automatically or manually opened in the next <application
+      moreinfo="none">TrEd</application>'s session. Note that the
+      <literal moreinfo="none">Bookmark</literal> file-list is saved
+      automatically at the end of every
+      <application>TrEd</application> session.
     </para>
     <para>
-      The <guibutton moreinfo="none">Delete</guibutton> button may be used to delete
-      the complete file-list.
+      The button <guibutton moreinfo="none">Delete</guibutton> makes
+      <application>TrEd</application> forget about the selected
+      file-list.  Note that deleting a file-list does not delete the
+      file it was previously saved to.
+    </para>
+    <para>The <guibutton moreinfo="none">Load</guibutton> button can
+      be used to load a previously saved file-list. Note that all
+      saved file-lists that are known to <application
+      moreinfo="none">TrEd</application> at the end of a session are
+      automatically loaded at the start of the next <application
+      moreinfo="none">TrEd</application>'s session.
     </para>
     <para>
-      The <guibutton moreinfo="none">Save</guibutton> button may be used to save the chosen
-      file-list to a file, so that it may be either automatically or
-      manually opened in the next <application moreinfo="none">TrEd</application>'s
-      session. Note that saving a file-list and then deleting it does
-      not delete the file. Also note that the
-      <literal moreinfo="none">Bookmark</literal> file-list is saved automatically
-      when user leaves <application moreinfo="none">TrEd</application>.
-    </para>
-    <para>The <guibutton moreinfo="none">Load</guibutton> button may be used to load
-      a previously saved file-list. Note that all saved file-list that
-      are present when user leaves <application moreinfo="none">TrEd</application> are
-      automatically loaded on the next <application moreinfo="none">TrEd</application>'s startup.
-    </para>
-    <para>
-      The <guilabel moreinfo="none">Close</guilabel> button only closes the
+      The button <guilabel moreinfo="none">Close</guilabel> closes the
       <guilabel moreinfo="none">Filelist</guilabel> dialog window.
     </para>
   </section>
   <section id="configuration">
     <title>Configuration and customization</title>
     <para>
-      The configuration and customizing of
-      <application moreinfo="none">TrEd</application> is possible through the
-      configuration file. When started <application moreinfo="none">TrEd</application>
-      tries to search for its configuration file on several places and
-      uses the first configuraton file found:
+      The configuration and customization of <application
+      moreinfo="none">TrEd</application> is possible through modifying
+      its configuration file. At the start of a session, <application
+      moreinfo="none">TrEd</application> searches for its
+      configuration file on several places and uses the first
+      configuraton file found:
     </para>
     <orderedlist continuation="restarts" inheritnum="ignore">
       <listitem>
@@ -3822,8 +3871,11 @@ sub CreateImages {
       <listitem><para>    
 	If the <varname>HOME</varname> system variable is set (on UNIX/Linux this
 	  variable points to user's home directory) <application moreinfo="none">TrEd</application> searches for
-	<filename moreinfo="none">.tredrc</filename> (mind the dot here) file in that directory. 	
-      </para></listitem>
+	<filename moreinfo="none">.tredrc</filename> (mind the dot
+	  here) file in that directory. On Windows,
+	  <application>TrEd</application> uses the <filename>Application Data</filename> folder in user's profile.
+      </para>
+      </listitem>
       <listitem><para>
 	  If the <varname>TREDHOME</varname> system variable is set <application moreinfo="none">TrEd</application> searches for
 	<filename moreinfo="none">tredrc</filename> file in that directory. 	
@@ -3837,8 +3889,8 @@ sub CreateImages {
 	  <application moreinfo="none">TrEd</application> looks for a
 	  <filename moreinfo="none">tredrc</filename> file in directories
 	  <filename moreinfo="none">../lib/tred</filename>, <filename moreinfo="none">../lib/tredlib</filename> and
-	  <filename moreinfo="none">./tredlib/tredrc</filename> respectively, relatvely to the
-	  directory where the program file of <application moreinfo="none">TrEd</application> itself is located.
+	  <filename moreinfo="none">./tredlib/tredrc</filename> respectively, relative to the
+	  directory of the program file of <application moreinfo="none">TrEd</application>.
 	</para>
       </listitem>
       <listitem><para>
@@ -3851,48 +3903,57 @@ sub CreateImages {
       options are used.
     </para>
     <para>
-      <application moreinfo="none">TrEd</application>'s configuration file is a plain
-      text file with a very simple structure. It can be edited not
-      only in any editor (like <application moreinfo="none">vi</application>,
-      <application moreinfo="none">Emacs</application> or
-      <application moreinfo="none">Notepad</application>) and also directly from TrEd
-      when the <menuchoice moreinfo="none"> <guimenu moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Edit
-      Config</guimenuitem></menuchoice> menu command is issued. In
-      both cases there is a way to update the options used by a
-      running session of <application moreinfo="none">TrEd</application>: </para>
+      <application moreinfo="none">TrEd</application>'s configuration
+      file is a plain text file with a very simple structure. It can
+      be edited either in an external text editor (like <application
+      moreinfo="none">vi</application>, <application
+      moreinfo="none">Emacs</application> or <application
+      moreinfo="none">Notepad</application>) or directly from TrEd in
+      a built-in editor (<menuchoice moreinfo="none"> <guimenu
+      moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Edit
+      Config</guimenuitem></menuchoice>). In both cases
+      there is a way to update the options used by a running session
+      of <application moreinfo="none">TrEd</application>: </para>
     <itemizedlist>
-      <listitem><para>Use <menuchoice moreinfo="none">
-	    <guimenu moreinfo="none">File</guimenu>
-	    <guimenuitem moreinfo="none">Reload Config</guimenuitem></menuchoice> menu command to make TrEd
-	re-read the configuration file from disk.</para></listitem>
-      <listitem><para>
-	  In the <application moreinfo="none">TrEd</application>'s internal
-	    configuration editor use the
-	  <guibutton moreinfo="none">Save and Apply</guibutton> button to apply changes and save them or
-	  <guibutton moreinfo="none">Apply</guibutton> button to apply changes withought saving them.
-	  The first command aslo quits the configuration editor.
-	</para></listitem>
+      <listitem><para>Use <menuchoice moreinfo="none"> <guimenu
+	    moreinfo="none">File</guimenu> <guimenuitem
+	    moreinfo="none">Reload Config</guimenuitem></menuchoice>
+	    menu command to make TrEd re-read the configuration file
+	    from disk.</para></listitem> <listitem><para> In the
+	    <application moreinfo="none">TrEd</application>'s built-in
+	    configuration editor use the <guibutton
+	    moreinfo="none">Save and Apply</guibutton> button to apply
+	  changes and save them or <guibutton
+	    moreinfo="none">Apply</guibutton> button to apply changes
+	  withought saving them. In the latter case, all changes only apply for the 
+	  current session and the configuration file is
+	  untouched. As the built-in editor re-reads the configuration
+	  file every time, all such changes are lost when the editor
+	  is closed (although they still apply).
+	  The first command also quits the configuration editor.
+	</para>
+      </listitem>
     </itemizedlist>
     <note>
       <para>
-	Some configuration options even if applyed take effect only
-	after restarting <application moreinfo="none">TrEd</application>.
+	Some configuration options only take effect after restarting
+	<application moreinfo="none">TrEd</application>.
       </para>
     </note>
-    <para>The format of the configuration file is of this simple form:</para>
+    <para>Each line in the configuration file
+      has the following simple form:</para>
     <literallayout class="normal" format="linespecific"><replaceable>option_name</replaceable> = <replaceable>value</replaceable></literallayout>
     <para>
-      There may be any amount of white-space between the option name and
-      value but they must be both on the same line. Any characters
-      folowing a semi-colon (<literal moreinfo="none">;</literal>) to the end of line 
-      are considered as comment and are ignored. You may also need to
-      quote the value using either double-quotes (<literal moreinfo="none">"value"</literal>) or
-      simple quotes (<literal moreinfo="none">'value'</literal>) to preserve white-space or semi-colons.
-      The option names are case-insensitive.
-    </para>    
+      There may be any amount of white-space between the option name
+      and value but they must be both on the same line. Any characters
+      folowing a semi-colon (<literal moreinfo="none">;</literal>) to
+      the end of line are treated as a comment and hence ignored.
+      It is possible to quote any value using either quotes or
+      double-quotes, so that white-space and semi-colons are preserved
+      correctly. All option names are case-insensitive. 
+    </para>
     <para>
-      The available configuration options may be divided into several
-      categories:
+      Available configuration options may be divided into several categories:
     </para>
     <section>
     <title>Colors</title>
@@ -3987,17 +4048,17 @@ sub CreateImages {
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="customcolor">
-	  <term><literal moreinfo="none">CustomColor<replaceable>n</replaceable></literal></term>
+	  <term><literal moreinfo="none">CustomColor<replaceable>name</replaceable></literal></term>
 	  <listitem>
 	    <para>
-	      Here <replaceable>n</replaceable> stands for any number
-	      between <literal moreinfo="none">0..9</literal>.  These options define
-	      ten custom colors which may be symbolically refered to
-	      and used in the attribute patterns.  To refer to the
-	      <replaceable>n</replaceable>'th custom color use
-	      the sequence
-	      <literal moreinfo="none">#{custom<replaceable>n</replaceable>}</literal>
-	      in the pattern. For more information see <xref linkend="stylesheets"/>.
+	      Defines a custom color named
+	      <replaceable>name</replaceable>, 
+	      which may be refered to in a stylesheet pattern with
+	      <literal
+	      moreinfo="none">#{custom<replaceable>name</replaceable>}</literal>
+	      or queried in a macro with
+	      <literal>CustomColor("<replaceable>name</replaceable>")</literal>.
+	      For more information see <xref linkend="stylesheets"/>.
 	      See also the <link linkend="allowcustomcolors"><literal moreinfo="none">AllowCustomColors</literal></link>
 	      option which can be used to enable or disable the actual
 	      use of the custom colors.
@@ -7623,25 +7684,273 @@ sub SubtreeFuncAssign {
     </section>
     <section id="csts_sgml_sp_backend">
       <title>CSTS_SGML_SP_Backend</title>
-      <para></para>
+      <para>This backend provides
+	support for the CSTS format. CSTS stands for <quote>Czech
+	sentence tree structure</quote>. Since it is an application of SGML,
+	the backend requires an external sgml parser (namely
+	<command><link linkend="nsgmls">nsgmls</link></command>) and a
+	document type definition (DTD)
+	(<filename>csts.doctype</filename>).  This backend represents
+	CSTS data as trees with a fixed set of attributes, specific to
+	the purpose for which CSTS was created, namely morphological and
+	syntactical annotation of Czech texts.
+	CSTS has been the primary format of the Prague Dependency
+	Treebank 1.0.
+
+      </para>
     </section>
     <section id="ntredbackend">
-      <title>NTREDBackend</title>
-      <para></para>
+      <title>NTREDBackend</title> <para>This backend used for
+      exchanging of data between <application>TrEd</application> and
+	btred servers, or in other words to <quote>peek</quote>
+      into the memory of running btred servers.
+      This backend only accepts filenames (or we should rather
+      say URLs) starting with the <filename>ntred://</filename>
+      protocol specification and followed by a real file name.  When
+      this backend opens a file, it uses <command>ntred</command>
+      client to fetch the file from any currently running btred
+      server. If some btred server has a in-memory copy of
+      the specified file (possibly edited during previous
+      <command>ntred</command> requests), it sends this copy to the
+      client and via <literal>NTREDBackend</literal> to
+      <application>TrEd</application>. Saving is performed in a
+	reversed way, i.e. <command>ntred</command> client
+	is used to communicate the (possibly edited) file back
+      to the btred server replaces its previous in-memory copy of the
+      file with the file obtained in this way.
+      </para>
+      <para>
+	Instead of requesting a whole file from the 
+	servers, is also possible (and sometimes faster) to request
+	only a single tree. This can be achieved by appending
+	a suffix of the form
+	<literal>@<replaceable>N</replaceable></literal> to the
+	<literal>ntred://</literal> URL, where
+	<replaceable>N</replaceable> is the number of the requested
+	tree (counting from 1). In that case,
+	<application>TrEd</application> obtains a file containing only
+	the requested tree. So, such URL as
+	<literal>ntred://<replaceable>filename</replaceable>@3##1.4</literal>,
+	opens a file containing the 3rd tree in <replaceable>filename</replaceable> (as
+	represented in memory of a btred server) and opens that
+	file on the 4th node of its first and only tree. URLs of this
+	form are produced by the <literal>TredMacro</literal> 
+	function <literal>NPosition()</literal> (see <xref
+	linkend="defaultmacros"/>).
+      </para>
     </section>
     <section id="pmlbackend">
       <title>PMLBackend</title>
-      <para></para>
+      <para>
+	This backend provies partial support for a new 
+	generic XML-based format called PML (the Prague Markup
+	Language), used for capturing rich linguistic annotation.
+	This format is the primary format of the Prague Dependency
+	Treebank 2.0. Each application of PML is described using a
+	special XML file called <firstterm>PML schema</firstterm>. 
+	This schema file defines which elements and attributes
+	construe the nodes and structure of the tree, 
+	it defines value types of node attributes, etc.
+      </para>
+      <para>
+	Updated version of the full PML specification can be found on the
+	<ulink url="http://ufal.mff.cuni.cz/pml">PML project</ulink>
+	page. Note however, PML is an on-going project, so consider
+	it as <quote>work in progress</quote>.
+      </para>
+      <para>
+	Because of the generic nature of PML, the
+	<literal>PMLBackend</literal> of <application>TrEd</application>
+	is restricted only to those applications of PML which satisfy the
+	following criteria:
+	<itemizedlist>
+	  <listitem>
+	    <para>there is exactly one PML sequence or PML element of
+	      a list type with PML role <literal>#TREES</literal> and this element appears
+	      under the root element.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      If the entity with role <literal>#TREES</literal> is a
+	      PML sequence, then all its members are elements with 
+	      role <literal>#NODE</literal>. If it is a PML element
+	      of a list type, then all members of the list
+	      are PML structures with role <literal>#NODE</literal>.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Each PML element with role <literal>#NODE</literal> 
+	      may contain a sequence of it's child elements.
+	      This sequence must have PML role
+	      <literal>#CHILDNODES</literal>.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      Each PML structure with role <literal>#NODE</literal> 
+	      may contain a member of a list type, which construes the list of child-nodes.
+	      This member must have PML role <literal>#CHILDNODES</literal>.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+      </para>
+      <para>
+	<application>TrEd</application> represents PML data types
+	in a very natural way. PML structures are represented as AVS
+	structures, PML lists as <literal>Fslib::List</literal>
+	objects and PML alternatives as	<literal>Fslib::Alt</literal>
+	objects. Other non-atomic PML types, such as PML elements,
+	text data in mixed content, attributes, etc.,
+	are represented as AVS with the following four special members:
+	<literal>#type</literal> (type of the entity,
+	e.g. <literal>element</literal>,
+	<literal>text</literal>),
+	<literal>#name</literal> (name of the entity)
+	<literal>#ns</literal> (XML namespace),
+	<literal>#content</literal> (content of the entity).
+	Attributes of a PML element are represented as additional members
+	of the AVS representing the element.
+      </para>
+      <para>
+	If the PML schema declares a reference to an external resource
+	and this declaration bears the attribute
+	<literal>readas="dom"</literal>, then
+	<literal>PMLBackend</literal>
+	loads the corresponding resource for the PML instance
+	as a DOM (Document Object Model) tree (using the Perl module
+	<literal>XML::LibXML</literal>) and attaches this DOM tree
+	to the application data section of the in-memory
+	representation of the file.
+      </para>
+      <para>
+	If the PML schema declares a reference to an external resource
+	and this declaration bears the attribute
+	<literal>readas="trees"</literal>, then
+	<literal>PMLBackend</literal> passes the file-name 
+	of the corresponding resource to
+	<application>TrEd</application>
+	and <application>TrEd</application> loads it as an ordinary
+	file. This file can be edited and treated as any other file in
+	<application>TrEd</application>. In <command>btred</command>,
+	this file is opened as a so called
+	<firstterm>secondary</firstterm> file, i.e. a file
+	which is not implicitly processed by the macro specified by
+	user, but as it is loaded in memory, the macro may explicitly
+	choose to process it.
+      </para>
+      <para>
+	<literal>PMLBackend</literal> also supports so-called <quote>knitting</quote>
+	of PML instances, i.e. replacing certain type of PML
+	references with the content of the referenced entities
+	occurring in another PML instance.
+	Conversely, when a PML instance on which this
+	<quote>knitting</quote>
+	has been applied, the (possible edited) content 
+	replaces the content of the referenced entities
+	in its original PML instance.
+	Knitting only applies to:
+	<orderedlist>
+	  <listitem>
+	    <para>
+	members of PML structures containing a
+	PML reference and having PML role <literal>#KNIT</literal>,
+	</para>
+	  </listitem>
+	  <listitem>
+	    <para>to members of PML structures containing a list with PML
+	role <literal>#KNIT</literal>, with PML references as list
+	members.
+	    </para>
+	  </listitem>
+	</orderedlist>
+	If such a member is encountered, then a possible trailing
+	<literal>.rf</literal> part of its name is removed and its
+	content (one or more PML references) is replaced with the
+	corresponding entities in the referenced PML
+	instance. It is required that all such PML references refer to
+	resources specified in the PML schema as
+	<literal>readas="dom"</literal>.
+      </para>
     </section>
     <section id="trxmlbackend">
       <title>TrXMLBackend</title>
-      <para></para>
+      <para>
+	<literal>TrXMLBackend</literal> was intended as a XML
+	replacement of the FS format. Unfortunatelly, never fully
+	developed and thoroughly tested. This may still happen in the
+	future but untill then, it is not recommended for serious
+	work.
+      </para>
     </section>
     <section id="teixmlbackend">
       <title>TEIXMLBackend</title>
-      <para></para>
+      <para>
+	This backend reads and stores trees represented in a specific
+	subset of the TEI XML format. This format was (is?) used in
+	the <ulink url="http://nl.ijs.si/sdt/">Slovene Treebank
+	Project</ulink>.
+      </para>
     </section>
-
+    <section>
+      <title>Writing a new I/O backend</title>
+      <para>
+	An I/O backend is a Perl module defining at least the
+	following four subroutines:
+      </para>
+      <variablelist>
+	<varlistentry>
+	  <term><literal><function>test</function>(<replaceable>filename</replaceable>,<replaceable>encoding</replaceable>)</literal></term>
+	  <listitem>
+	    <para>
+	      This function should only quickly peek in the given file
+	      in order to determine if it is a file suitable by the
+	      backend. If this function accepts the file by returns a
+	      defined non-zero value (e.g. 1), then the file is
+	      processed by this backend. If the file is not suitable
+	      for the backend, this function must reject the file
+	      by returning 0 or <literal>undef</literal>,
+	      so that other backends in the list of backends could
+	      try their luck.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><funcsynopsis>
+	      <funcprototype>
+		<funcdef><function>open_backend</function></funcdef>
+		<paramdef>
+		  <parameter>filename</parameter>
+		  <parameter>mode</parameter>
+		  <parameter>encoding</parameter>
+		</paramdef>
+	      </funcprototype>
+	    </funcsynopsis>
+	  </term>
+	  <listitem>
+	    <para>
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><funcsynopsis>
+	      <funcprototype>
+		<funcdef><function>read</function></funcdef>
+		<paramdef>
+		  <parameter>fileref</parameter>
+		  <parameter>fsfile</parameter>
+		</paramdef>
+	      </funcprototype>
+	    </funcsynopsis>
+	  </term>
+	  <listitem>
+	    <para>
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+    </section>
   </section>
 </article>
 <!-- Keep this comment at the end of the file
