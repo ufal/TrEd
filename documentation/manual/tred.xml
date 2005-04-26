@@ -469,7 +469,7 @@ Tk: 804.027
 	    may occure in AVS only once. The names of node's attributes and types
 	    of their values are file-specific (or in some cases I/O-backend
 	    specific). Generally, a value of an
-	    attribute may be of one of the following types (it must be noted, that
+	    attribute may be of one of the following types (it must be noted that
 	    not all of the types are supported by the I/O backends equally):
 	    <itemizedlist>
 	      <listitem>
@@ -642,6 +642,91 @@ Tk: 804.027
 	</listitem>
       </varlistentry>
     </variablelist>
+  </section>
+  <section id="overview">
+    <title>Overview of <application>TrEd's</application> user
+    interface</title>
+    
+    <mediaobject>
+      <imageobject>
+	<imagedata fileref="pics/tred_overview.png" format="PNG"
+	  role="html"/>
+      </imageobject>
+      <imageobject>
+	<imagedata fileref="pics/tred_overview.eps" format="EPS"
+	  role="latex"/>
+      </imageobject>
+      <imageobject>
+	  <imagedata fileref="pics/tred_overview" format="linespecific"/>
+      </imageobject>
+    </mediaobject>
+    <para>
+      The picture above shows the <application>TrEd</application>'s
+      main window. The most importatnt elements of the user interface
+      are marked by numbers in the picture and briefly introducted
+      below:
+      <orderedlist>
+	<listitem>
+	  <para>
+	    This part of the window contains one or more views.
+	    Each view displays one tree. The black border
+	    distinguishes the active view (there is only one view
+	    pictured here).
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    This part of the window displays additional textual
+	    information associated with the tree displayed in the
+	    active view (e.g. the <quote>sentence</quote> represented by the tree).
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Status line. It displays various information provided by
+	    the current binding context.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Current binding context. You can change the context by clicking on this
+	    menu button and selecting a different one from the list.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Current style-sheet. It can be changed in the similar way as the
+	    context.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>Click here to edit the current stylesheet.</para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Click here to get the list of all <quote>sentences</quote>
+	    associated with trees in the current file. Above this
+	    button, you also see the index of the current tree in the
+	    current file.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Toolbar buttons provide shortcuts for the following
+	    actions:
+	    Open file, Save file, Reload file,
+	    Undo, Redo, Previous File, Next File, Print, Find, Find Next, Find Previous.
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    These two buttons move view to the previous and next tree
+	    in the current file.
+	    The four buttons that follow are used for view management. 
+	  </para>
+	</listitem>
+      </orderedlist>
+    </para>
   </section>
   <section id="menu">
     <title>Menu commands</title>    
@@ -857,7 +942,7 @@ Tk: 804.027
 	      disk and apply the new options. This command is useful
 	      if you have changed the configuration file in a text
 	      editor or in an another running instance of
-	      <application moreinfo="none">TrEd</application>. As above, note, that
+	      <application moreinfo="none">TrEd</application>. As above, note that
 	      some configuration changes still take effect only after
 	      restarting <application moreinfo="none">TrEd</application>.
 	    </para>
@@ -1702,7 +1787,7 @@ Tk: 804.027
 	    (<keycap moreinfo="none">,</keycap> <quote>comma</quote>)</term>
 	  <listitem>
 	    <para>Displayes the previous tree in the current file.
-	      Note, that this shorcuts operates on the focused
+	      Note that this shorcuts operates on the focused
 	      view only, even if button
 	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
 	      is pressed and all views are tied
@@ -1719,7 +1804,7 @@ Tk: 804.027
 	    (<keycap moreinfo="none">.</keycap> <quote>dot</quote> )</term>
 	  <listitem>
 	    <para>Displayes the next tree in the current file.
-	      Note, that this shorcuts operates on the focused
+	      Note that this shorcuts operates on the focused
 	      view only, even if button
 	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
 	      is pressed and all views are tied
@@ -2401,7 +2486,7 @@ Tk: 804.027
 	    </menuchoice>)</term>
 	  <listitem>
 	    <para>Displayes the previous tree in the current file.
-	      Note, that this shorcuts operates on the focused
+	      Note that this shorcuts operates on the focused
 	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject> is pressed and all views are tied.
 	    </para>
 	  </listitem>
@@ -2413,7 +2498,7 @@ Tk: 804.027
 	    </menuchoice>)</term>
 	  <listitem>
 	    <para>Displayes the next tree in the current file.
-	      Note, that this shorcuts operates on the focused
+	      Note that this shorcuts operates on the focused
 	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject> is pressed and all views are tied.
 	    </para>
 	  </listitem>
@@ -2426,7 +2511,7 @@ Tk: 804.027
     <para>
       Double-clicking any attribute value displayed in the tree shows
       a simple value editor, where the value of the attribute can be
-      changed (note however, that some contexts disable editing certain
+      changed (note however that some contexts disable editing certain
       or all attributes - in that case, the value editor presentes the
       attribute value as read-only).
     </para>
@@ -2676,7 +2761,7 @@ Tk: 804.027
       stylesheet information). These file-specific stylesheets are
       rather hard to maintain especially when one is working with
       hunderds of files. It is thus much more convenient to create a
-      named stylesheet, that can be used for any file at any time.
+      named stylesheet that can be used for any file at any time.
     </para>
     <para>
       To create a new named stylesheet (based on the current pattern
@@ -2748,7 +2833,7 @@ Tk: 804.027
 	    label is not rendered for the root node.
 	      Likewise <literal moreinfo="none">node:</literal> patterns, several
 	    <literal moreinfo="none">edge:</literal> patterns may be specified.
-	      Note however, that <literal moreinfo="none">edge:</literal> patterns
+	      Note however that <literal moreinfo="none">edge:</literal> patterns
 	      make the tree look quite wide and it is usually better
 	    to avoid them.
 	  </para>
@@ -2933,7 +3018,7 @@ Tk: 804.027
 	      Plain text occuring in a 
 	      <literal moreinfo="none">style:</literal> or
 	      <literal moreinfo="none">root-style:</literal>
-	      pattern is ignored (note however, that this may change
+	      pattern is ignored (note however that this may change
 	      in the future versions).
 	    </para>
 	  </listitem>
@@ -3607,7 +3692,7 @@ Tk: 804.027
 	<para>
 	  It is possible to print more than one tree (each tree then
 	  appears on a separate page).  To do so, a comma-separated
-	  list of tree numbers or ranges of tree numbers, that
+	  list of tree numbers or ranges of tree numbers that
 	  correspond to the desired trees in the active file, must be
 	  entered into the <guilabel moreinfo="none">Page
 	  range</guilabel> field.  The
@@ -4238,7 +4323,7 @@ sub CreateImages {
 	      as if it was child-node of its nearest ancestor-node that belongs
 	      to the list. This option implies
 	      <link linkend="skiphiddenparents"><literal>SkipHiddenParents</literal></link>.
-	      (Note, that this only affects the way a tree is drawn,
+	      (Note that this only affects the way a tree is drawn,
 	      it does not relate in any way to tree-navigation and
 	      tree-traversal functions).
 	      Default is <literal>0</literal>.
@@ -4256,7 +4341,7 @@ sub CreateImages {
 	      are instead connected to the nearest ancestor of the node that
 	      belongs to the list. The orphan node however remains on it's
 	      level in the tree (see also <link linkend="skiphiddenlevels"><literal>SkipHiddenLevels</literal></link>).
-	      (Note, that this only affects the way a tree is drawn,
+	      (Note that this only affects the way a tree is drawn,
 	      it does not relate in any way to tree-navigation and
 	      tree-traversal functions).
 	      Default is <literal>0</literal>.
@@ -4407,7 +4492,7 @@ sub CreateImages {
 	      This options controls whether the algorighm
 	      computing the tree-layout in TrEd should try to
 	      add a reasonable horizontal skip for the edge labels,
-	      to avoid their overlapping. Note, that
+	      to avoid their overlapping. Note that
 	      even with this option on, the algorithm cannot
 	      reliably ensure that. Defaults to 1.
 	    </para>
@@ -5080,6 +5165,19 @@ Property        Type    Description
     <section>
       <title>I/O related options</title>
       <variablelist>
+	<varlistentry id="iobackends">
+	  <term><literal moreinfo="none">IOBackends</literal></term>
+	  <listitem>
+	    <para>This option can be used to provide additional
+	      (user-defined) I/O backends (see <xref
+	      linkend="backends"/>). It consists of a comma separated
+	      list of Perl module names implementing the
+	      backends. <application>TrEd</application> will try to
+	      open a file using the backends defined here before trying
+	      any of default I/O backends.
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="resourcepath">
 	  <term><literal moreinfo="none">ResourcePath</literal></term>
 	  <listitem>
@@ -5671,7 +5769,7 @@ Property        Type    Description
 	    creates file-lists
 	    named <literal>CmdLine-1</literal>,
 	    <literal>CmdLine-2</literal>, etc. correspondingly.
-	    Note, that you may use <literal>-</literal>
+	    Note that you may use <literal>-</literal>
 	    notation for the standard input, e.g. if
 	    called with <literal><command>tred</command> -l-</literal>,
 	    <application>TrEd</application> will
@@ -5824,40 +5922,42 @@ Property        Type    Description
     <para>
       As was already mentioned, <application moreinfo="none">TrEd</application> is
       itself written in Perl and therefore it is natural that also
-      user macros are written in Perl language. The details of the
+      user macros are written in the Perl language. The details of the
       Perl language syntax are not described here. You may find
-      them in the literature on programming in Perl as well as in
+      them in various literature on programming in Perl as well as in
       manual pages of Perl language. A large volume of documentation
       on Perl and many specific Perl modules is collected for example
       by <ulink url="http://www.activestate.com/ASPN/Reference">ActiveState</ulink>.
       In this text, we concentrate on the 
-      <application moreinfo="none">TrEd</application>'s macro specifics.
+      <application moreinfo="none">TrEd</application>'s macro
+      specifics only.
     </para>
     <section>
-      <title>What is a macro</title>
+      <title>A Macro</title>
       <para>
-	A macro for <application moreinfo="none">TrEd</application> is simply any Perl
-	routine defined using the <literal moreinfo="none">sub { ... }</literal>
-	construct:	
+	A macro for <application moreinfo="none">TrEd</application> is simply a Perl
+	routine defined using the <literal moreinfo="none">sub
+	  <replaceable>name</replaceable> { ... }</literal>
+	construct, e.g.:
       </para>
       <programlisting format="linespecific">sub my_first_macro {
-	# any Perl code may come here
+ print "Hallo World\n";
 }</programlisting>
       <para>
 	Macros may be called from other macros in the same way as
 	any other sub-routines in Perl, for example:
       </para>
       <programlisting format="linespecific">sub my_first_macro {
-	my_second_macro();  # call another macro
+	my_second_macro();  # call to another macro
 }</programlisting>
       <para>
 	In this case, macros may use the usual Perl mechanisms
-	to pass the called macro any number of argumens.
+	to pass any number of argumens to the called macro.
       </para>
       <para>
 	To make the macro accessible from
 	<application moreinfo="none">TrEd</application>, two more things should be
-	done. First, a special <quote>directive</quote> should be added,
+	done. First, a special <quote>binding directive</quote> should be added,
 	so that the macro appears in the
 	<guimenu moreinfo="none">User-defined</guimenu> menu and thus may be
 	called interactively, second the macro
@@ -5868,8 +5968,7 @@ Property        Type    Description
       </para>      
     </section>
     <section>
-      <title>Where does <application moreinfo="none">TrEd</application> look for
-      macros</title>
+      <title>Macro files</title>
       <para>
 	On startup, <application moreinfo="none">TrEd</application>
 	looks for two files with macros.
@@ -5910,7 +6009,8 @@ Property        Type    Description
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must be
 	      relative to the directory of the file to which it is
-	      included.</para>
+	      included.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -5918,6 +6018,14 @@ Property        Type    Description
 	  <listitem>
 	    <para>The <replaceable>filename</replaceable> must
 	      be relative to the TrEd's library directory.</para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal moreinfo="none">#include "&lt;<replaceable>wildcard</replaceable>&gt;"</literal></term>
+	  <listitem>
+	    <para>Expands <replaceable>wildcard</replaceable> 
+	      relatively to the directory of the file containing the
+	      directive and includes all matching file.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -5958,7 +6066,7 @@ Property        Type    Description
       </para>
     </section>
     <section id="macroencodings">
-      <title>Writing macros in various character encodings</title>
+      <title>Using various character encodings</title>
       <note>
 	<para>This section applies only to <application moreinfo="none">TrEd</application>/<application moreinfo="none">bTrEd</application> running under Perl 5.8
 	and higher.</para>
@@ -6055,35 +6163,35 @@ Property        Type    Description
       </para>
     </section>
     <section>
-      <title>Creating menu entries and keyboard shortcuts for user-defined macros</title>
+      <title>Associating macros with menu entries and keyboard shortcuts</title>
       <para>
-	For convenience, two more directives are available for adding
-	a macro to <application moreinfo="none">TrEd</application>'s
-	<guimenu moreinfo="none">User-defined</guimenu> menu and for assigning a
-	keyboard shortcut to macro.	
+	The last set of directives is used for convenient adding
+	of macros to <application moreinfo="none">TrEd</application>'s
+	<guimenu moreinfo="none">User-defined</guimenu> menu and for
+	associating macros with keyboard shortcuts.
       </para>
       <para>
-	To connect the <literal moreinfo="none">my_first_macro</literal> with a 
+	To connect a macro named <literal moreinfo="none">my_first_macro</literal> with a 
 	new menu item labeled <guimenuitem moreinfo="none">My First
 	Macro</guimenuitem>
 	under the <guimenu moreinfo="none">User-defined</guimenu> menu,
 	the following directive should appear in some macro
 	file read by <application moreinfo="none">TrEd</application>:
       </para>
-      <literallayout class="normal" format="linespecific">#insert my_first_macro as menu My First Macro</literallayout>
+      <literallayout class="normal" format="linespecific">#insert <replaceable>my_first_macro</replaceable> as menu <replaceable>My First Macro</replaceable></literallayout>
       <para>
 	Actually the words <literal moreinfo="none">as</literal> and
 	<literal moreinfo="none">menu</literal> may be omitted, so it is
 	possible to write the above directive also as:
       </para>
-      <literallayout class="normal" format="linespecific">#insert my_first_macro as My First Macro</literallayout>
+      <literallayout class="normal" format="linespecific">#insert <replaceable>my_first_macro</replaceable> as <replaceable>My First Macro</replaceable></literallayout>
       <para>or even</para>
-      <literallayout class="normal" format="linespecific">#insert my_first_macro My First Macro</literallayout>
+      <literallayout class="normal" format="linespecific">#insert <replaceable>my_first_macro</replaceable> <replaceable>My First Macro</replaceable></literallayout>
       <para>
-	To make the macro accessible via a keyboard shortcut,
-	the <literal moreinfo="none">#bind</literal> directive may be used.
-	Thus, to <quote>bind</quote> the
-	<literal moreinfo="none">my_first_macro</literal> macro to say
+	Association between a macro and a keyboard shortcut is defined
+	using the directive <literal moreinfo="none">#bind</literal>.
+	For example, to <quote>bind</quote> a macro named
+	<literal moreinfo="none">my_first_macro</literal> to say
 	<keycombo moreinfo="none" action="simul">
 	  <keycap moreinfo="none">Ctrl</keycap>
 	  <keycap moreinfo="none">Alt</keycap>
@@ -6092,61 +6200,85 @@ Property        Type    Description
 	keyboard shortcut, the following line should appear somewhere
 	in the macro file:
       </para>
-      <literallayout class="normal" format="linespecific">#bind my_first_macro to key Ctrl+Alt+Del</literallayout>
+      <literallayout class="normal" format="linespecific">#bind <replaceable>my_first_macro</replaceable> to key <replaceable>Ctrl+Alt+Del</replaceable></literallayout>
       <para>
 	Again, the <literal moreinfo="none">to</literal> and
 	<literal moreinfo="none">key</literal> keywords may be omitted.	
       </para>
       <warning>
 	<para>
-	  Using the shortcut chosen here as an example is probbably
-	  not a good idea, as it is a shortcut that restarts the
-	  system on many computers.  Remember, that only shortcuts
-	  which are not interpreted by the operating system or desktop
-	  environment may be assigned to
-	  <application moreinfo="none">TrEd</application>'s macros and work correctly.
+	  Using the particular shortcut chosen here as a funny example
+	  is a silly idea indeed, since this very shortcut is typicaly
+	  used to restart the system. Remember that only shortcuts
+	  that are not interpreted by the operating system or the
+	  desktop environment can possibly work as expected.
 	</para>
       </warning>
-      <para>If both the menu item and keyboard shortcut are needed for
-	a macro, the following abbreviated form can be used:
+      <para>Both a menu item and a keyboard shortcut can be associated
+	with a macro in one step with a directive of the following :
       </para>
-      <literallayout class="normal" format="linespecific">#bind my_first_macro to key Ctrl+Alt+Del menu My First Macro</literallayout>
+      <literallayout class="normal" format="linespecific">#bind <replaceable>my_first_macro</replaceable> to key <replaceable>Ctrl+Alt+Del</replaceable> menu <replaceable>My First Macro</replaceable></literallayout>
       <para>
-	If more than one keyboard shortcuts or menu items are
-	connected with the same macro, any of them may be used to invoke the
-	macro. If more than one macro was assigned the same keyboard
-	shortcut, the latest binding appearing in the macro files
-	is used. Also, if two or more macros with the same name
-	appear in the loaded macro files, the last one is used.
+	If more than one keyboard shortcut or menu item are associated
+	with the same macro, any of them may be used to invoke the
+	macro. If more than one macro was associated with the same
+	keyboard shortcut, then the latest binding is used.  Also, if
+	two or more macros with the same name appear in the loaded
+	macro files (within the same package), the last one is used,
+	but that holds in general for any Perl subroutine.
       </para>
-      <literallayout class="normal" format="linespecific">#unbind-key Ctrl+Alt+Del</literallayout>
+      <literallayout class="normal" format="linespecific">#unbind-key <replaceable>Ctrl+Alt+Del</replaceable></literallayout>
+      <literallayout class="normal" format="linespecific">#remove-menu <replaceable>My First Macro</replaceable></literallayout>
       <para>
-	The above directive may be used to remove an existing
-	key-bindning from current binding context(s). It is especially
-	useful for disabling certain functionality and bindings of an
-	incuded macro file.
-      </para>
-      <literallayout class="normal" format="linespecific">#remove-menu My First Macro</literallayout>
-      <para>
-	The above directive may be used to remove an existing menu
-	item from current binding context(s). It is especially useful
-	for disabling certain functionality and bindings of an incuded
+	The first of the  directives above removes an existing key-bindning from
+	current binding context(s). The second one removes an existing menu
+	item from the submenu of <guimenu>User-defined</guimenu>
+	pertaining to the current binding context.
+	These directives is especially useful for disabling certain functionality and bindings of an incuded
 	macro file.
       </para>
+    </section>
+    <section>
+      <title>When macro ends</title>
       <para>
-	When an interactively invoked macro returns,
-	<application moreinfo="none">TrEd</application> automatically activates the
-	node referenced by variable <literal moreinfo="none">$this</literal>, redraws
-	displayed tress according to the value of the
-	<literal moreinfo="none">$Redraw</literal> variable changes file status to
-	<literal moreinfo="none">modified</literal> (as indicated by the state of the
-	<inlinemediaobject><imageobject><imagedata fileref="pics/filefloppy.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filefloppy.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/filefloppy" format="linespecific"/></imageobject></inlinemediaobject> button) unless
-	variable <literal moreinfo="none">$FileChanged</literal> is altered in the
-	way described below (both variables are definded in
-	<filename moreinfo="none">tred.def</filename>, see <xref linkend="defaultmacros"/>).
+	When an interactively invoked macro returns, <application
+	  moreinfo="none">TrEd</application> performs the following
+	steps:
+	<itemizedlist>
+	  <listitem>
+	    <para>the node referenced in <literal moreinfo="none">$this</literal>
+	      is activated in the current view (provided it belongs to
+	      the current tree)
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      all views are redrawn (unless specified otherwise in the
+	      variable<literal moreinfo="none">$Redraw</literal>), see
+	      below.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>
+	      unless the value of the variable <literal
+	      moreinfo="none">$FileChanged</literal> (see <xref linkend="defaultmacros"/>) is set to 0,
+	      the save-status of the current file is turned to <literal
+		moreinfo="none">modified</literal>
+	      (as indicated by the state of the
+		<inlinemediaobject><imageobject><imagedata
+		fileref="pics/filefloppy.png" format="PNG"
+		role="html"/></imageobject><imageobject><imagedata
+		fileref="pics/filefloppy.eps" format="EPS"
+		role="latex"/></imageobject><imageobject><imagedata
+		fileref="pics/filefloppy"
+		format="linespecific"/></imageobject></inlinemediaobject>
+		button). 
+	    </para>
+	  </listitem>
+	</itemizedlist>
       </para>
       <para>
-	The <literal moreinfo="none">$Redraw</literal> variable may has the following
+	The variable <literal moreinfo="none">$Redraw</literal> may have the following
 	values:
 	<variablelist>
 	  <varlistentry>
@@ -6188,28 +6320,37 @@ Property        Type    Description
 	</variablelist>
       </para>
       <para>
-	To prevent <application moreinfo="none">TrEd</application> from considering
-	the file modified by a specific macro, the macro must
-	explicitly set a special variable named
-	<literal moreinfo="none">$FileChanged</literal> to zero.
+	Because <application>TrEd</application> has no way to identify
+	whether the current file (or in fact any other file) was
+	actually modified by the macro, it always assumes it was.  To
+	prevent this and indicate that no actual changes which would
+	require the user to save the file were done to the current
+	file, the macro must explicitly set a special variable named
+	<literal moreinfo="none">$FileChanged</literal> to zero.  Even
+	better (to prevent accidental collisions between several
+	assignments to this variable), instead of directly assigning
+	to this variable, call the default macro
+	<literal>ChangingFile(0)</literal>.
       </para>
       <para>
-	To make things even more complicated,
-	<application moreinfo="none">btred</application>, the off-line variant of
+	To make things more complicated, it should be noted, that
+	<command>btred</command>, the off-line variant of
 	TrEd, never saves any processed file unless the variable
 	<literal moreinfo="none">$FileChanged</literal> has been explicitely set to
 	<literal moreinfo="none">1</literal> or <literal moreinfo="none">-S</literal> command-line
-	switch is used.
+	switch is used. So, conversely, in <command>btred</command>, a macro
+	should indicate making a change worth saving by calling <literal>ChangingFile(1)</literal>.
       </para>
       <note>
-	<para>If the state of the file was considered
+	<para>If the state of the file was already
 	  <emphasis>modified and not saved</emphasis> when a
-	  macro was interactively invoked, any changes to
+	  macro was interactively invoked, then any changes to
 	  the <literal moreinfo="none">$FileChanged</literal> variable made
-	  by the macro are ignored. Macro may force the
-	  file status to <emphasis>saved</emphasis>
-	  by setting <literal moreinfo="none">$forceFileSaved</literal>
-	  variable to <literal moreinfo="none">1</literal>.
+	  by the macro are ignored. Macro may however force the
+	  file status to return to <emphasis>saved</emphasis>
+	  by setting the variable <literal moreinfo="none">$forceFileSaved</literal>
+	  to <literal moreinfo="none">1</literal> (typically after an
+	  explicit call to <literal>Save()</literal>).
 	</para>
       </note>
       <note>
@@ -6221,43 +6362,40 @@ Property        Type    Description
       </note>
     </section>
     <section>
-      <title>Accessing tree nodes</title>
-      <para>In <application moreinfo="none">TrEd</application> macros as well as in 
-	<application moreinfo="none">TrEd</application> itself tree nodes are
-	represented by <classname>FSNode</classname> objects. They are
-	basically only references to hash tables where
-	the attribute-name/attribute-value information is stored
-	as a key/value pair. Moreover, the <classname>FSNode</classname>
-	object provide a few methods to access the node's neighbors in
-	the tree.
+      <title>Accessing tree nodes</title> <para>All tree nodes in
+      <application moreinfo="none">TrEd</application> are represented
+      by <classname>FSNode</classname> Perl objects. These objects are
+      basically only hash references where the
+      attribute-name/attribute-value information is stored as a
+      key/value pair (except that some hash keys are reserved for
+      representing the tree structure).  The
+      <classname>FSNode</classname> object provides several basic
+      methods, most of which are related to accessing its neighbouring nodes
+      in the tree.
       </para>
-      <para>The macro invoked by user action (e.g. pressing the
-	keyboard shortcut assigned to the macro) may use the following
+      <para>Macros may refer to nodes using the following
 	global variables (declared within the <literal moreinfo="none">TredMacro</literal>
-	namespace, but exported by default to other derived
-	contexts) to refer to the active node and to the root of the
-	active tree (how to access any tree in the file will be told
-	later):
+	package, but exported by default to other derived
+	packages):
       </para>
       <variablelist>
 	<varlistentry>
 	  <term><literal moreinfo="none">$this</literal></term>
 	  <listitem>
-	    <para>Points to the active node in the current tree.
-	      Macros may use this variable to access the active node as
-	      well as to make other node active (by assigning a
-	      different node reference to it).
+	    <para>Is the active node in the current tree.
+	      Macros may use this variable to access the active node,
+	      it's attributes, methods etc. They also may assign
+	      to this variable to activate a different node.
 	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term><literal moreinfo="none">$root</literal></term>
 	  <listitem>
-	    <para>Points to the root of the current tree.
-	      Macros may use this variable to access the root of
-	      the tree and (consequently) to access the whole tree.
-	      However, all assignments to this variable are ignored by
-	      <application moreinfo="none">TrEd</application>.
+	    <para>Is the root of the current tree.  Macros may use
+	      this variable to access the root of the tree and (by
+	      following the tree edges) to access the whole tree.
+	      Assigning to this variable has no visible effect.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -6265,18 +6403,60 @@ Property        Type    Description
       <section>
 	<title>Accessing node attributes</title>
 	<para>
-	  If
-	  <literal moreinfo="none">$node</literal> is a <classname>FSNode</classname> object
-	  reference, the value of the attribute
+	  Let <literal moreinfo="none">$node</literal> be a
+	  <classname>FSNode</classname> object, i.e. a node of the
+	  tree. Typically, nodes are attribute-value structures, so the
+	  attribute named <literal
+	  moreinfo="none"><replaceable>attr</replaceable></literal>
+	  is accessible as <literal moreinfo="none">$node-&gt;{<replaceable>attr</replaceable>}</literal>.
+	  Assigning a different value, say <replaceable>$val</replaceable>, to the attribute
 	  <literal moreinfo="none"><replaceable>attr</replaceable></literal> is
-	  returned by the
-	  <literal moreinfo="none">$node-&gt;{<replaceable>attr</replaceable>}</literal>
-	  expression. To give the node's
-	  <literal moreinfo="none"><replaceable>attr</replaceable></literal>
-	  attribute new value, say <replaceable>val</replaceable>,
-	  the following simple assignment may be used:
+	  as simple as this:
 	</para>
-	<literallayout class="normal" format="linespecific">$node-&gt;{<replaceable>attr</replaceable>}='val';</literallayout>
+	<literallayout class="normal"
+	format="linespecific">$node-&gt;{<replaceable>attr</replaceable>}=$val;</literallayout>
+	<para>
+	  Attribute values may not always be atomic, i.e. numbers or
+	  strings (although for most backends this is the case). They
+	  may also be AVS structures, lists and alternatives. So let's
+	  suppose for a while, that the value of <literal
+	  moreinfo="none">$node-&gt;{<replaceable>attr</replaceable>}</literal>
+	  is an AVS structure with attribute
+	  <replaceable>level2-attr</replaceable> and it's value is a
+	  list of structures with an attribute
+	  <replaceable>level3-attr</replaceable> whose value (of
+	  whatever type it is) we want to get and possibly change.  To
+	  access the attribute <replaceable>level3-attr</replaceable>,
+	  we may either use Perl-only syntax and proceed e.g. as
+	  follows:
+	  <literallayout>$node->{attr}{level2-attr}[0]{level3-attr}</literallayout>
+	  Notice, that from the list of structures in
+	  <replaceable>level2-attr</replaceable> we have only selected
+	  the first one (in Perl, array indexes start with 0).  This
+	  approach has a non-obvious drawback: if on some level the
+	  value is not defined, Perl <quote>auto-creates</quote> an
+	  empty structure on that level (this
+	  <quote>auto-creation</quote> continues also for all further
+	  levels of the expression). Hence, by querying a value, we
+	  have actually made a change. This typically is an
+	  undesirable effect. There are two ways to avoid it: first
+	  would be to follow the nesting of the Perl structures one
+	  level at a time and on every step first check that the value
+	  on that level is non-empty. This is however makes the code
+	  less readable and unnecessarily complex.  Second method
+	  provides the same functionality with a nice syntax using so
+	  called <firstterm>attribute-paths</firstterm>.  Attribute
+	  path is an expression similar to a directory path or XPath
+	  and expresses a path in the nesting of the Perl structures.
+	  Using attribute-paths, the expression
+	  <literallayout>$node->{attr}{level2-attr}[0]{level3-attr}</literallayout>
+	  could be rewritten as
+	  <literallayout>$node->attr('attr/level2-attr/[1]/level3-attr')</literallayout>
+	  
+
+	  
+
+	</para>
       </section>
       <section>
 	<title>Accessing neighboring nodes</title>
@@ -6666,7 +6846,7 @@ Property        Type    Description
 	  are useful especially in macros of
 	  general purposes, where names of the corresponding
 	  attributes are not known in advance. However, one should
-	  keep in mind, that calling these functions too often
+	  keep in mind that calling these functions too often
 	  may result in considerably worse performence. 
 	  The following example which actually re-implements the
 	  <literal moreinfo="none">make_sentence</literal> method shows usage
@@ -6957,7 +7137,7 @@ sub MakeSentence {
 	      <entry><literal moreinfo="none">file_autosave_hook</literal></entry>
 	      <entry>yes</entry>
 	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>fsfile</replaceable></literal></para><para>Executed before TrEd attempts to create an auto-save file
-		for the given<replaceable>fsfile</replaceable>. Note, that
+		for the given<replaceable>fsfile</replaceable>. Note that
 		this is not necessarily the file displayed in the
 		active view and accessible via the <literal moreinfo="none">$grp</literal> variable.
 	      </para></entry>
@@ -7599,7 +7779,7 @@ sub SubtreeFuncAssign {
 	extension as well as remote file transfer over
 	<literal>ftp://</literal>,
 	<literal>http://</literal>,
-	<literal>ssh://</literal> and other protocols. Note however, that availability
+	<literal>ssh://</literal> and other protocols. Note however that availability
 	of remote file transfer highly depends on a particular setup
 	(currently only UNIX systems are fully supported) and may require
 	some external tools, such as <link linkend="curl">curl</link>,
@@ -7688,7 +7868,7 @@ sub SubtreeFuncAssign {
 	support for the CSTS format. CSTS stands for <quote>Czech
 	sentence tree structure</quote>. Since it is an application of SGML,
 	the backend requires an external sgml parser (namely
-	<command><link linkend="nsgmls">nsgmls</link></command>) and a
+	<command><link linkend="sgmls">nsgmls</link></command>) and a
 	document type definition (DTD)
 	(<filename>csts.doctype</filename>).  This backend represents
 	CSTS data as trees with a fixed set of attributes, specific to
@@ -7755,7 +7935,7 @@ sub SubtreeFuncAssign {
       <para>
 	Updated version of the full PML specification can be found on the
 	<ulink url="http://ufal.mff.cuni.cz/pml">PML project</ulink>
-	page. Note however, PML is an on-going project, so consider
+	page. Note however that PML is an on-going project, so consider
 	it as <quote>work in progress</quote>.
       </para>
       <para>
@@ -7897,11 +8077,12 @@ sub SubtreeFuncAssign {
       <title>Writing a new I/O backend</title>
       <para>
 	An I/O backend is a Perl module defining at least the
-	following four subroutines:
+	following five subroutines (listed in the order in which they
+	are typically called by <application>TrEd</application>):
       </para>
       <variablelist>
 	<varlistentry>
-	  <term><literal><function>test</function>(<replaceable>filename</replaceable>,<replaceable>encoding</replaceable>)</literal></term>
+	  <term><literal><function>test</function>(<replaceable>$filename</replaceable>,<replaceable>$encoding</replaceable>)</literal></term>
 	  <listitem>
 	    <para>
 	      This function should only quickly peek in the given file
@@ -7917,39 +8098,101 @@ sub SubtreeFuncAssign {
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><funcsynopsis>
-	      <funcprototype>
-		<funcdef><function>open_backend</function></funcdef>
-		<paramdef>
-		  <parameter>filename</parameter>
-		  <parameter>mode</parameter>
-		  <parameter>encoding</parameter>
-		</paramdef>
-	      </funcprototype>
-	    </funcsynopsis>
-	  </term>
+	  <term><literal><function>open_backend</function>(<replaceable>$filename</replaceable>,<replaceable>$mode</replaceable>,<replaceable>$encoding</replaceable>)</literal></term>
 	  <listitem>
-	    <para>
+	    <para>This function should open and return a filehandle for a given
+	      file. If <replaceable>$mode</replaceable> is
+	      <literal>r</literal>, then this filehandle should be
+	      open for reading, if <replaceable>$mode</replaceable> is
+	      <literal>w</literal>, it should be open for writing.
+	      The third, <replaceable>$encoding</replaceable>, contains
+	      the encoding specified by the user in the <link
+	      linkend="defaultfileencoding">defaultFileEncoding</link>
+	      configuration option. This information may be ignored if
+	      the data format provides another way to determine the
+	      encoding. Most backends do not re-implement this
+	      function, but simply import (i.e. inherit) it from the
+	      base class <classname>IOBackend</classname>.
 	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><funcsynopsis>
-	      <funcprototype>
-		<funcdef><function>read</function></funcdef>
-		<paramdef>
-		  <parameter>fileref</parameter>
-		  <parameter>fsfile</parameter>
-		</paramdef>
-	      </funcprototype>
-	    </funcsynopsis>
-	  </term>
+	  <term><literal><function>read</function>(<replaceable>$filehandle</replaceable>,<replaceable>$fsfile</replaceable>)</literal></term>
 	  <listitem>
 	    <para>
+	      This is the key function that implements converting data
+	      from the specific data format to the corresponding
+	      memory representation in <application>TrEd</application>.
+	      This function obtains two arguments: the
+	      <replaceable>$filehandle</replaceable> previously
+	      obtained by a call to backend's <function>open_backend</function>, 
+	      and an empty <classname>FSFile</classname> object (i.e.
+	      with no trees). It is supposed to parse the data format,
+	      build tree representation of the data (usually using
+	      functions such as <literal>FSNode->new()</literal>,
+	      and <literal><function>FSlib::Paste</function>(<replaceable>$child</replaceable>,<replaceable>$parent</replaceable>,<replaceable>$fsfile</replaceable>->FS)</literal>
+	      and populate the <classname>FSFile</classname>
+	      with the resulting trees (e.g. using its
+	      <methodname>changeTrees</methodname> method).
+	      It should also setup <classname>FSFormat</classname>
+	      object associated with the
+	      <replaceable>$fsfile</replaceable>
+	      (<literal><replaceable>$fsfile</replaceable>->FS</literal>).
+	      Any additional information related to the file (but not representable
+	      as trees or <classname>FSFormat</classname>) may be attached to the file e.g. using 
+	      <literal><replaceable>$fsfile</replaceable>-><methodname>changeMetaData(<replaceable>$key</replaceable>,<replaceable>$value</replaceable>)</methodname></literal>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry>
+	  <term><literal><function>write</function>(<replaceable>$filehandle</replaceable>,<replaceable>$fsfile</replaceable>)</literal></term>
+	  <listitem>
+	    <para>
+	      This function somewhat reverses the process of
+	      <function>read</function>. By examining the
+	      <classname>FSFile</classname> object
+	      <replaceable>$fsfile</replaceable>
+	      (especially its trees and meta data),
+	      it should write the corresponding representation
+	      in the specific data format to the given
+	      <replaceable>$filehandle</replaceable>.
+	    </para>
+	  </listitem>
+	</varlistentry>	    
+	<varlistentry>
+	  <term><literal><function>close_backend</function>(<replaceable>$filehandle</replaceable>)</literal></term>
+	  <listitem>
+	    <para>This function should close a given filehandle
+	      created by a previous call to
+	      <function>open_backend</function>.  It usually only
+	      consists of applying a Perl function
+	      <function>close</function> on the filehandle, but if
+	      additional cleanup is necessary, it should be done here.
+	      Most backends do not re-implement this function, but
+	      simply import (i.e. inherit) it from the base class
+	      <classname>IOBackend</classname>.
 	    </para>
 	  </listitem>
 	</varlistentry>
       </variablelist>
+      <para>
+	There are several ways to make <application>TrEd</application>
+	know about a user-defined I/O backend, namely:
+	<itemizedlist>
+	  <listitem>
+	    <para>listing addtional backends in the <link linkend="iobackends">IOBackends</link> configuration option,</para>
+	  </listitem>
+	  <listitem>
+	    <para>listing addtional backends after
+	      <parameter>-B</parameter> on the command-line (see <xref
+	      linkend="commandline"/></para>
+	  </listitem>
+	  <listitem>
+	    <para>defining a 
+	      <link linkend="get_backends_hook">get_backends_hook</link></para>
+	  </listitem>
+	</itemizedlist>
+      </para>
     </section>
   </section>
 </article>

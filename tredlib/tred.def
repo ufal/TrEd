@@ -360,7 +360,7 @@ sub GetVisibleNodes {
   my @n;
   while ($node) {
     push @n,$node;
-    $node=$node->following_visible($top);
+    $node=$node->following_visible(FS(),$top);
   }
   return @n;
 }
@@ -2860,7 +2860,7 @@ sub SubStr {
 
 If specified without parameter, exports every symbol to the caller
 package (except for symbols already (re)defined in the caller
-packages). If parameters are given, exports only names specified by
+package). If parameters are given, exports only names specified by
 the parameters and the following few variables that every package
 derived from TredMacro (e.g. a context)  B<must> share: C<$libDir>,
 C<$grp>, C<$root>, C<$this> C<$_NoSuchTree> C<$Redraw>,

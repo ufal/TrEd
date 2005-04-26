@@ -26,7 +26,7 @@ use vars qw($version $about $opt_u $opt_h $opt_c
 	    $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
-            $valueLine $appName %menuBindings %keyBindings
+            $valueLine $appName $ioBackends %menuBindings %keyBindings
             $savedSavePixmap $normalSavePixmap $NewFileNo $stderr $stdout
 	    $userlogin
 	    %save_types %backend_map $debug @normal_win_opts @focused_win_opts
@@ -318,7 +318,7 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 
 #load back-ends
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(split(/,/,$opt_B),
+@backends=('FSBackend',ImportBackends(split(/,/,$opt_B),split(/,/,$ioBackends),
 				      qw/NTREDBackend PMLBackend CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend AG2FS/
 				     ));
 

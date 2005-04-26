@@ -893,24 +893,151 @@ Returns a temporary filename..
 <title>Printing trees</title>
 <variablelist><varlistentry><term><literal>PrintDialog(-option =&gt; value,...)</literal></term><listitem>
 <para>
-Display TrEd's standard print dialog. Possible options are:
+Display TrEd's standard print dialog. Possible options providing
+substitutes for the default values in the print dialog are:
 </para>
+<variablelist><varlistentry><term><literal>-command</literal></term><listitem>
 <para>
--command -psFile -toFile -format -imageMagickResolution
--fileExtension -useType1Font -sentenceInfo -noRotate -colors
+System command to send the output to (e.g. <literal>lpr</literal> to print on the
+default printer on UNIX platform).
 </para>
-</listitem></varlistentry><varlistentry><term><literal>Print(-option =&gt; value,...)</literal></term><listitem>
+</listitem></varlistentry><varlistentry><term><literal>-toFile</literal></term><listitem>
+<para>
+If set to 1, the output is saved to a file specified in <literal>-filename</literal>.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-filename</literal></term><listitem>
+<para>
+Output filename.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-fileExtension</literal></term><listitem>
+<para>
+Default output file extension.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-format</literal></term><listitem>
+<para>
+One of PS, PDF, EPS, ImageMagick. Default is PS.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-imageMagickResolution</literal></term><listitem>
+<para>
+This value is passed to the command <literal>convert</literal> of the ImageMagick
+toolkit as <literal>-density</literal>. It specifies the horizontal and vertical
+resolution in pixels of the image.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-noRotate</literal></term><listitem>
+<para>
+Disable automatic landscape rotation of trees which are wider than
+taller.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-sentenceInfo</literal></term><listitem>
+<para>
+If set to 1, this command prints also the text associated with the
+tree. Instead of 0 or 1, an CODE reference (subroutine) may be passed
+in this parameter. This CODE is then evaluated for every tree to
+produce the desired text. The CODE obtains two arguments: the current
+FSFile object and an integer position of the tree (starting from 0).
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-colors</literal></term><listitem>
+<para>
+Set to 1 for colour output.
+</para>
+</listitem></varlistentry></variablelist></listitem></varlistentry><varlistentry><term><literal>Print(-option =&gt; value,...)</literal></term><listitem>
 <para>
 Print trees given from current file according to given printing options:
 </para>
+<variablelist><varlistentry><term><literal>-range</literal></term><listitem>
 <para>
-<literal>-range</literal>, <literal>-command</literal>, <literal>-toFile</literal>, <literal>-filename</literal>, <literal>-format</literal>,
-<literal>-noRotate</literal>, <literal>-sentenceInfo</literal> <literal>-imageMagickResolution</literal>, <literal>-colors</literal>,
-<literal>-hidden</literal>, <literal>-psFontFile</literal>, <literal>-psFontAFMFile</literal>, <literal>-ttFont</literal>,
-<literal>-fontSize</literal>, <literal>-fmtWidth</literal>, <literal>-hMargin</literal>, <literal>-fmtHeight</literal>, <literal>-vMargin</literal>,
-<literal>-maximize</literal>, <literal>-psMedia</literal>
+Lists trees to be printed (e.g. <literal>5,-3,9-12,15-</literal> prints trees
+5,1,2,3,9,10,11,12,15,16,...)
 </para>
-</listitem></varlistentry></variablelist>
+</listitem></varlistentry><varlistentry><term><literal>-command</literal></term><listitem>
+<para>
+System command to send the output to (e.g. <literal>lpr</literal> to print on the
+default printer on UNIX platform).
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-toFile</literal></term><listitem>
+<para>
+If set to 1, the output is saved to a file specified in <literal>-filename</literal>.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-filename</literal></term><listitem>
+<para>
+Output filename (only when printing to file).
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-format</literal></term><listitem>
+<para>
+One of PS, PDF, EPS, ImageMagick. Default is PS.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-noRotate</literal></term><listitem>
+<para>
+Disable automatic landscape rotation of trees which are wider than
+taller.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-sentenceInfo</literal></term><listitem>
+<para>
+If set to 1, this command prints also the text associated with the
+tree. Instead of 0 or 1, an CODE reference (subroutine) may be passed
+in this parameter. This CODE is then evaluated for every tree to
+produce the desired text. The CODE obtains two arguments: the current
+FSFile object and an integer position of the tree (starting from 0).
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-imageMagickResolution</literal></term><listitem>
+<para>
+This value is passed to the command <literal>convert</literal> of the ImageMagick
+toolkit as <literal>-density</literal>. It specifies the horizontal and vertical
+resolution in pixels of the image.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-colors</literal></term><listitem>
+<para>
+Set to 1 for colour output.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-hidden</literal></term><listitem>
+<para>
+Set to 1 to print hidden nodes.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-psFontFile</literal></term><listitem>
+<para>
+Specifies the PostScript font file to be used instead of the default
+one.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>--psFontAFMFile</literal></term><listitem>
+<para>
+Specifies the PostScript ASCII metric font file to be used instead of
+the default one.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-ttFont</literal></term><listitem>
+<para>
+Specifies the TrueType font file to be used when printing via PDF.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-fontSize</literal></term><listitem>
+<para>
+Font size.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-fmtWidth</literal></term><listitem>
+<para>
+Page width.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-fmtHeight</literal></term><listitem>
+<para>
+Page height.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-hMargin</literal></term><listitem>
+<para>
+The size of the left and right horizontal margins.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-vMargin</literal></term><listitem>
+<para>
+The size of the top and bottom margins.
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-maximize</literal></term><listitem>
+<para>
+Expand small trees to fit the whole page size. (Shrinking is done
+automatically).
+</para>
+</listitem></varlistentry><varlistentry><term><literal>-psMedia</literal></term><listitem>
+<para>
+PostScript media information used in the resulting PostScript file
+header (only when printing to PostScript).
+</para>
+</listitem></varlistentry></variablelist></listitem></varlistentry></variablelist>
 </section>
 <section>
 <title>Compatibility macros used by the Graph2Tred macro convertor</title>
@@ -974,7 +1101,7 @@ beyond the end of the string.
 <para>
 If specified without parameter, exports every symbol to the caller
 package (except for symbols already (re)defined in the caller
-packages). If parameters are given, exports only names specified by
+package). If parameters are given, exports only names specified by
 the parameters and the following few variables that every package
 derived from TredMacro (e.g. a context)  <emphasis>must</emphasis> share: <literal>$libDir</literal>,
 <literal>$grp</literal>, <literal>$root</literal>, <literal>$this</literal> <literal>$_NoSuchTree</literal> <literal>$Redraw</literal>,
