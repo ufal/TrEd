@@ -96,6 +96,7 @@ BEGIN {
   $noLockProto
   $stippleInactiveWindows
   $userConf
+  $ioBackends
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
@@ -509,6 +510,7 @@ sub set_config {
   $saveFilenameCommand        =	val_or_def($confs,"savefilenamecommand",undef);
   $lockFiles                  =	val_or_def($confs,"lockfiles",1);
   $noLockProto                =	val_or_def($confs,"nolockprotocols",'^(https?|zip|tar)\$');
+  $ioBackends                 =	val_or_def($confs,"iobackends",undef);
 }
 
 1;
