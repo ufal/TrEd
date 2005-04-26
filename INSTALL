@@ -1,65 +1,65 @@
-Instalation of TrEd
-===================
+Installation of TrEd
+====================
 
-This text describes installation of tred under Linux or any other
-UN*X-like system.
+This text describes manual installation of tred under Linux or any
+other UNIX-like system. For Windows, an installation package can be
+download from the project home-page (http://pajas.matfyz.cz/tred).
 
+REQUIREMENTS
+------------
 
-REQUIRES
---------
-  perl >=5.8   (at least 5.8.5 recommended for various reasons)
-  perl/Tk ver. >= 804
+Perl >=5.8   (at least 5.8.5 recommended for various reasons)
+
+TrEd further requires the following Perl modules and their
+dependencies:
+
+File-Temp
+File-Spec
+Text-Iconv
+Tie-IxHash
+Tk            (for GUI)
+Compress-Zlib (for printing to PDF)
+XML-LibXML    (for various I/O backends)
+XML-Simple
+XML-Writer
+
+All the above modules are bundled in a package tred-dep-unix.tar.gz
+which can be fetched from the project homepage. This bundle also
+contains an install script which installs all the packages. If you
+want, you may also install these modules from CPAN.
 
 INSTALLATION
 ------------
 
-Untar the distribution tarball using the following command:
+1) install all dependencies (see above).
 
-	tar -xzf tred-current.tgz 
+2) unpack the distribution package, e.g. with
 
-A distribution directory named tred will be created.
+   tar xzvf tred-current.tar.gz
 
-In this directory you will find among others the following files and
-directories:
+  (as you read this README, it is likely you have already done so).
 
-	README              (a readme file)
-	INSTALL             (this file)
-	tred                (the program itself)
-	tredlib/            (other files necessary for running tred)
-	tredlib/tredrc      (configuration file)
+3) copy the resulting tred directory to a suitable locatoin on your
+system, e.g. with
 
+  cp -R tred /opt
+or 
+  cp -R tred $HOME/
 
-You may try to issue ./tred in this directory.
+4) Create symlinks to tred, btred, and ntred executables from the
+destination directory you have chosen to some directory in your path,
+e.g.
 
+  ln -s /opt/tred/*tred /usr/local/bin 
 
-If you prefer having executable files in a different directory than
-the libraries (tredlib), you may follow the instructions below.
+5) Check your installation with: 
 
-INSTALLING TO SEPARATE DIRECTORIES
-----------------------------------
+  tred -v
 
-You may wish to move the whole tredlib/ directory to a location of
-your choice, move tred files to some
-directory in your PATH and make a copy of tredrc named .tredrc in your
-home directory. To ensure that tred finds its lib-directory tredlib
-you may either set TREDHOME environment variable to the location of
-tredlib or edit your .tredrc and add a line similar to the following:
+You should obtain output like:
 
-LibDir  = "/my/favoured/location/for/tredlib"
+  TrEd Id: tred,v 1.337 2005/04/13 18:17:08 pajas Exp
+  Perl: 5.008005
+  Platform: linux
+  Tk: 804.027
 
-
-CUSTOMIZING TrEd
-----------------
-
-TrEd reads and uses a configuration file and macro-file (where user
-may define his/her own macros (in Perl) and bind them easily to
-keystrokes or menus). TrEd searches for the configuration file in in
-your home directory and also the directory from which it was
-started. To customize tred, you may wish to make a copy of the
-configuration file "tredrc" shipped with the distribution in your home
-directory. This copy must be named ".tredrc" (note the dot at the
-beginning). If you want TrEd to read your own set of macro (instead
-the default sample set "tredlib/tred.mac"), you should point to it by
-the option "macroFile" in your ".tredrc" like this:
-
-macroFile = "/my/favoured/macro.set"
