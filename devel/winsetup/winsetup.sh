@@ -232,6 +232,21 @@ function get_perl_install_dir {
 }
 
 function install_perl {
+  if [[ ! -f "$DIR/$REQPERLINSTDIR/"perl*.tgz ]]; then
+      echo "-------------------------------------------------------------------------------"
+      echo
+      echo "Due to licensing issues we cannot distribute ActivePerl 5.8 together with"
+      echo "this setup. Please download and install ActivePerl 5.8 for Windows from:"
+      echo
+      echo "http://www.activestate.com/Products/Download/Download.plex?id=ActivePerl"
+      echo "It is free of charge."
+      echo
+      echo "When finished, run setup.bat again."
+      echo
+      echo "Thank you!";
+      exit 1;
+  fi
+
   test -d "$PERLINSTALLDIR" || mkdir "$PERLINSTALLDIR"
   DIR=$PWD
   echo $MSG013 "$DIR/$REQPERLINSTDIR"/perl*.tgz
