@@ -174,7 +174,7 @@ sub find_childless_verbs {
       <literal>#</literal> are treated as comments. You may specify one
       hostname several times, provided you use different ports. This is
       particularly useful to utilize the whole power of multi-processor
-      systems. You may choose any port number above <literal>1000</literal>,
+      systems. You may choose any port number above <literal>1024</literal>,
       but you should try to avoid collisions with other services running on
       the remote machines, including <application>btred</application>
       instances run by other users.</para>
