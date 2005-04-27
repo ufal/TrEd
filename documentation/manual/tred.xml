@@ -6407,38 +6407,42 @@ Property        Type    Description
 	  <classname>FSNode</classname> object, i.e. a node of the
 	  tree. Typically, nodes are attribute-value structures, so the
 	  attribute named <literal
-	  moreinfo="none"><replaceable>attr</replaceable></literal>
-	  is accessible as <literal moreinfo="none">$node-&gt;{<replaceable>attr</replaceable>}</literal>.
+	  moreinfo="none"><replaceable>attrib</replaceable></literal>
+	  is accessible as <literal moreinfo="none">$node-&gt;{<replaceable>attrib</replaceable>}</literal>.
 	  Assigning a different value, say <replaceable>$val</replaceable>, to the attribute
-	  <literal moreinfo="none"><replaceable>attr</replaceable></literal> is
+	  <literal moreinfo="none"><replaceable>attrib</replaceable></literal> is
 	  as simple as this:
 	</para>
 	<literallayout class="normal"
-	format="linespecific">$node-&gt;{<replaceable>attr</replaceable>}=$val;</literallayout>
+	format="linespecific">$node-&gt;{<replaceable>attrib</replaceable>}=$val;</literallayout>
 	<para>
 	  Attribute values may not always be atomic, i.e. numbers or
 	  strings (although for most backends this is the case). They
-	  may also be AVS structures, lists and alternatives. So let's
+	  may also be AVS structures (represented as Perl hashes),
+	  lists (represented as Perl ARRAY references of the
+	  <classname>Fslib::List</classname> class) and 
+	  alternatives (represented as Perl ARRAY references of
+	  the <classname>Fslib::List</classname> class). So let's
 	  suppose for a while, that the value of <literal
-	  moreinfo="none">$node-&gt;{<replaceable>attr</replaceable>}</literal>
+	  moreinfo="none">$node-&gt;{<replaceable>attrib</replaceable>}</literal>
 	  is an AVS structure with attribute
-	  <replaceable>level2-attr</replaceable> and it's value is a
+	  <replaceable>level2-attrib</replaceable> and it's value is a
 	  list of structures with an attribute
-	  <replaceable>level3-attr</replaceable> whose value (of
+	  <replaceable>level3-attrib</replaceable> whose value (of
 	  whatever type it is) we want to get and possibly change.  To
-	  access the attribute <replaceable>level3-attr</replaceable>,
-	  we may either use Perl-only syntax and proceed e.g. as
-	  follows:
-	  <literallayout>$node->{attr}{level2-attr}[0]{level3-attr}</literallayout>
+	  access the attribute
+	  <replaceable>level3-attrib</replaceable>, we may either use
+	  Perl-only syntax and proceed e.g. as follows:
+	  <literallayout>$node->{attrib}{level2-attrib}[0]{level3-attrib}</literallayout>
 	  Notice, that from the list of structures in
-	  <replaceable>level2-attr</replaceable> we have only selected
-	  the first one (in Perl, array indexes start with 0).  This
-	  approach has a non-obvious drawback: if on some level the
-	  value is not defined, Perl <quote>auto-creates</quote> an
-	  empty structure on that level (this
-	  <quote>auto-creation</quote> continues also for all further
-	  levels of the expression). Hence, by querying a value, we
-	  have actually made a change. This typically is an
+	  <replaceable>level2-attrib</replaceable> we have only
+	  selected the first one (in Perl, array indexes start with
+	  0).  This approach has a non-obvious drawback: if on some
+	  level the value is not defined, Perl
+	  <quote>auto-creates</quote> an empty structure on that level
+	  (this <quote>auto-creation</quote> continues also for all
+	  further levels of the expression). Hence, by querying a
+	  value, we have actually made a change. This typically is an
 	  undesirable effect. There are two ways to avoid it: first
 	  would be to follow the nesting of the Perl structures one
 	  level at a time and on every step first check that the value
@@ -6449,14 +6453,39 @@ Property        Type    Description
 	  path is an expression similar to a directory path or XPath
 	  and expresses a path in the nesting of the Perl structures.
 	  Using attribute-paths, the expression
-	  <literallayout>$node->{attr}{level2-attr}[0]{level3-attr}</literallayout>
+	  <programlisting>$node->{<replaceable>attrib</replaceable>}{<replaceable>level2-attrib</replaceable>}[0]{<replaceable>level3-attrib</replaceable>}</programlisting>
 	  could be rewritten as
-	  <literallayout>$node->attr('attr/level2-attr/[1]/level3-attr')</literallayout>
-	  
-
-	  
-
+	  <programlisting>$node->attr('<replaceable>attrib</replaceable>/<replaceable>level2-attrib</replaceable>/[1]/<replaceable>level3-attrib</replaceable>')</programlisting>
+	  The method <methodname>attr</methodname> resolves
+	  attribute-paths safely, avoiding auto-creation of Perl
+	  structures on the way. Note, that in the attribute-path,
+	  list and alternative members are indexed starting from 1.
+	  In fact, if we want to access the 1st element, we may 
+	  completely skip the index specification and write:
+	  <programlisting>$node->attr(<replaceable>'attrib</replaceable>/<replaceable>level2-attrib</replaceable>/<replaceable>level3-attrib</replaceable>')</programlisting>
+	  Sometimes it is necessary to iterate over all list members
+	  of some attributes. The macro
+	  <literal>ListV</literal>
+	  (and its cousin macro <literal>AltV</literal> used for
+	  alternatives) can be used to produce a list of all values
+	  of a given attribute, e.g.
+	  <programlisting>foreach my $member (ListV($node->attr('<replaceable>attrib</replaceable>/<replaceable>level2-attrib</replaceable>'))) {
+  # process list member $member
+	    print $member->{<replaceable>level3-attrib</replaceable>},"\n";
+}</programlisting>
 	</para>
+	<para>Values of attributes can be changed by pure Perl
+	assignments, e.g.
+	  <programlisting>$node->{<replaceable>attrib</replaceable>} = <replaceable>new_value</replaceable>;</programlisting>
+	  or
+	  <programlisting>$node->{<replaceable>attrib</replaceable>}{<replaceable>level2-attrib</replaceable>}[0]{<replaceable>level3-attrib}</replaceable> = <replaceable>new_value</replaceable></programlisting>
+	  The previous assign ment may also be achieved using
+	  <programlisting>$node->set_attr('<replaceable>attrib</replaceable>/<replaceable>level2-attrib</replaceable>/[1]/<replaceable>level3-attrib</replaceable>',<replaceable>new_value</replaceable>);</programlisting>
+	</para>
+	<para>The macro <literal>List</literal> can be used to
+	  construct a new list value. Several other default macros for
+	  dealing with list and alternative values exists (see <xref
+	  linkend="defaultmacros"/>).</para>
       </section>
       <section>
 	<title>Accessing neighboring nodes</title>
@@ -6511,7 +6540,7 @@ Property        Type    Description
 		  the returned node need not necessarily be displayed to
 		  the right of the given node. This is because the
 		  ordering according to the special numbering attribute
-		  does not have to correspond to the natural structure
+		  does not have to correspond to the deep-first structure
 		  ordering of the tree.
 		</entry>
 	      </row>
@@ -6526,7 +6555,7 @@ Property        Type    Description
 		  the returned node need not necessarily be displayed to
 		  the left of the given node. This is because the
 		  ordering according to the special numbering attribute
-		  does not have to correspond to the natural structure
+		  does not have to correspond to the deep-first structure
 		  ordering of the tree.
 		</entry>
 	      </row>
@@ -6556,7 +6585,7 @@ Property        Type    Description
 		<entry><literal moreinfo="none">previous(<replaceable>top</replaceable>?)</literal></entry>
 		<entry>
 		  Return the previous node of the given node in the
-		  natural ordering of the tree provided by the tree
+		  deep-first ordering of the tree provided by the tree
 		  structure (see the above description of the
 		  <literal moreinfo="none">following</literal>
 		  method for more detail on the ordering).
@@ -6582,23 +6611,21 @@ Property        Type    Description
       <section>
 	<title>Accessing other trees</title>
 	<para>
-	  To be able to describe a method to access any tree in a file
-	  opened by <application moreinfo="none">TrEd</application> from macros we
-	  must first take a more detailed look on the
-	  <application moreinfo="none">TrEd</application>'s internal structures and
-	  classes.
-	</para>
-	<para>
-	  Macros have actually access to one of the most fundamental
-	  structure of <application moreinfo="none">TrEd</application>: the so called
-	  <quote>Grouping</quote> structure. This structure may be
-	  accessed using the <literal moreinfo="none">$grp</literal> variable.  There
-	  is really a lot of things that can be achieved by using this
-	  variable in a proper way, but since actually not many
-	  members of the <quote>Grouping</quote> structure are
-	  guaranteed to be present or unchanged in the future versions
-	  of <application moreinfo="none">TrEd</application>, here we pay our
-	  attention only to a few of the most important.
+	  For this purpose many default macros exist and we recommend
+	  read their documentation first (see <xref
+	  linkend="defaultmacros"/>). In this section we describe more
+	  low-level approach that utilizes one of the most fundamental
+	  internal structures used by <application>TrEd</application>,
+	  namely the <quote>grouping</quote> structure. This structure
+	  may be accessed using the <literal
+	  moreinfo="none">$grp</literal> variable.  There is really a
+	  lot of things that can be achieved by using this variable in
+	  a proper way, but because it is an open gate to
+	  <application>TrEd</application> internals, it may also be
+	  dangerous. Here, we only pay our attention to a few of the
+	  safe features of <literal>$grp</literal>. In most cases,
+	  using wrappers over this structure provided by default
+	  macros, is still a much safer option.
 	</para>
 	<para>
 	  The current file is accessed via the
@@ -6680,10 +6707,10 @@ Property        Type    Description
 	  macros directly, there is no reason to describe them here.
 	</para>
 	<para>
-	  The most important of the methods above is the
-	  <literal moreinfo="none">FS</literal> method which may be used to access the
-	  <classname>FSFormat</classname> class object associated with
-	  the given file. Similarly as in the case of
+	  The most important of the methods above is the <literal
+	  moreinfo="none">FS</literal> method which may be used to
+	  access the <classname>FSFormat</classname> class object
+	  associated with the given file. Similarly as in the case of
 	  <classname>FSFile</classname> class, only the most importand
 	  methods of the <classname>FSFormat</classname> class are
 	  described here.
