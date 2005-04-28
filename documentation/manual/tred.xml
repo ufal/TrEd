@@ -104,48 +104,64 @@
     </para>
     <section id="install-windows">
       <title>Windows</title>
+      <section>
+	<title>Step 1: installation of <application>ActivePerl for Windows</application></title>
       <para>
-	For Windows installation it is recommended to use a
-	windows-specific installation package. This
-	single package contains installation of <application moreinfo="none">ActivePerl</application>, Perl-Tk,
-	required XML modules, <application moreinfo="none">TrEd</application> and is controlled by a
-	single setup script named <command moreinfo="none">setup.bat</command>.
+	<application>TrEd</application> for Windows requires
+	<ulink url="http://www.activestate.com/Products/ActivePerl/">ActivePerl</ulink>.
+	Due to its re-distribution restrictions, the tool cannot be 
+	bundled with <application>TrEd</application> and you have to
+	download and install it separately from:
       </para>
-      <note role="PDT20">
+      <itemizedlist>
+	<listitem>
+	  <para><ulink url="http://www.activestate.com/Products/Download/Download.plex?id=ActivePerl">http://www.activestate.com/Products/Download/Download.plex?id=ActivePerl</ulink></para>
+	</listitem>
+      </itemizedlist>
+      </section>
+      <section>
+	<title>Step 2: installation of <application>TrEd</application></title>
 	<para>
-	  If you have the <productname class="trade">Prague Dependency
-	    Treebank 2.0</productname> CD-ROM, you may
-	  start the installation directly from the CD-ROM
-	  by clicking <command moreinfo="none">setup.bat</command> in the
-	  <filename moreinfo="none">tools/tred/setup</filename> directory.
+	  To finish the installation, obtain an up-to-date
+	  windows-specific installation package from <ulink
+	  url="http://pajas.matfyz.cz/tred">the project's
+	  homepage</ulink>.  This single package contains
+	  <application>TrEd</application> as well as all required Perl
+	  modules.  Unzip the installation package if necessary, run
+	  <command moreinfo="none">setup.bat</command>, and follow the
+	  instructions in the command-shell window (you may safely
+	  ignore the very first message which asks you about creating
+	  <filename moreinfo="none">/tmp</filename> directory).
 	</para>
-      </note>
-      <para>
-	An up-to date version of the Windows installation package
-	is available on <ulink url="http://pajas.matfyz.cz/tred">the project's homepage</ulink>.
-      </para>
-      <para>
-	Unzip the installation package if necessary, run
-	<command moreinfo="none">setup.bat</command>, and follow the instructions
-	(kindly ignore the very first line asking you to create the
-	directory <literal moreinfo="none">/tmp</literal>).  The installation is
-	completely text-based and you will mostly be confronted with
-	only simple yes/no questions. The installation script will
-	safely guide you through the following steps:
-      </para>
-      <orderedlist inheritnum="ignore" continuation="restarts">
+	<note role="PDT20">
+	  <para>
+	    If you have the <productname class="trade">Prague Dependency Treebank 2.0</productname> CD-ROM, you may
+	    start the installation directly from the CD-ROM
+	    by clicking <command moreinfo="none">setup.bat</command> in the
+	    <filename moreinfo="none">tools/tred/setup</filename> directory.
+	  </para>
+	</note>
+	<para>
+	  The installation is
+	  completely text-based and you will mostly be confronted with
+	  only simple yes/no questions. The setup script will
+	  safely guide you through the following steps:
+	</para>
+	<orderedlist inheritnum="ignore" continuation="restarts">
 	<listitem>
 	  <para>
-	    Checking if a suitable Perl installation is already available
-	    on your system.
+	    Checking if a suitable version ActivePerl is available on your
+	    system.
 	  </para>
 	</listitem>
+	  <!--
 	<listitem>
 	  <para>
 	    Starting the ActivePerl installer if no suitable Perl
 	    installation was found.
 	  </para>
 	</listitem>
+	  -->
 	<listitem>
 	  <para>
 	    Installing all necessary Perl modules using the ActiveState's
@@ -187,6 +203,7 @@
 	  (but you have been warned).
 	</para>
       </warning>
+      </section>
     </section>
     <section id="install-unix">
       <title>Linux and UNIX-based systems</title>
