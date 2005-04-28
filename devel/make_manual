@@ -4,4 +4,5 @@ pod2xml tredlib/tred.def |xsltproc devel/pod2db.xsl - | devel/pod2db.xsh -P- > d
 pod2xml tredlib/Fslib.pm |xsltproc devel/pod2db.xsl - | devel/pod2db.xsh -P- > documentation/manual/Fslib.xml
 
 cd documentation
-xsltproc --xinclude --stringparam root.filename tred manual/manual.xsl manual/tred.xml
+xsltproc --xinclude --stringparam html.stylesheet blue.css --stringparam root.filename tred manual/manual.xsl manual/tred.xml
+xsltproc -o bn-tutorial.html --xinclude --stringparam html.stylesheet blue.css manual/manual_one_page.xsl bn-tutorial.xml
