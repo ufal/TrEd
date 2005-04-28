@@ -416,8 +416,11 @@ relations is not a tree any more.
       illustrated on a simplified fragment of an analytical tree.</title>
       <mediaobject>
         <imageobject>
-          <imagedata fileref="pics/bn-effective.png" format="PNG" role="html"/>
-          <imagedata fileref="pics/bn-effective.eps" format="EPS" role="latex"/>
+          <imagedata fileref="pics/bn-effective.png" format="PNG"
+          role="html"/>
+	  </imageobject>
+	  <imageobject>
+	    <imagedata fileref="pics/bn-effective.eps" format="EPS" role="latex"/>
         </imageobject>
       </mediaobject>
     </figure>
@@ -542,8 +545,11 @@ tectogrammatical node can be obtained by calling <literal>PML_T::GetANodes($this
       sentence: <wordasword>Byl by šel dolesa.</wordasword>, lit. <wordasword>[He] would have gone intoforest.</wordasword>)</title>
       <mediaobject>
         <imageobject>
-          <imagedata fileref="pics/bn-layers.png" format="PNG" role="html"/>
-          <imagedata fileref="pics/bn-layers.eps" format="EPS" role="latex"/>
+          <imagedata fileref="pics/bn-layers.png" format="PNG"
+          role="html"/>
+	  </imageobject>
+	  <imageobject>
+	    <imagedata fileref="pics/bn-layers.eps" format="EPS" role="latex"/>
         </imageobject>
       </mediaobject>
     </figure>
@@ -754,6 +760,8 @@ of the ntred system is sketched in <xref linkend="i-ntred"/>.
       <mediaobject>
         <imageobject>
           <imagedata fileref="pics/bn-ntred.png" format="PNG" role="html"/>
+	</imageobject>
+	<imageobject>
           <imagedata fileref="pics/bn-ntred.eps" format="EPS" role="latex"/>
         </imageobject>
       </mediaobject>
@@ -837,16 +845,16 @@ prints some overall statistics, you get as many results as there are
     <para>
 When your work with ntred servers is finished, you can close the
 session by running <literal><command>ntred</command> --quit</literal>.
-If the servers hang (e.g. because of an accidental indefinite loop in
-your macro), you don't have to session and reload the files, but you
+If the servers hang (e.g. because of an accidental infinite loop in
+your macro), you usually don't have to restart the session: instead, you
 can try to "revive" the session by calling
-<literal><command>ntred</command> --break</literal>.
-When debugging your code, it may sometimes be useful to peek into
-ntred server log files, located in
+<literal><command>ntred</command> --break</literal>.  When debugging
+your code, it may sometimes be useful to peek into ntred server log
+files, located in
 <filename>/tmp/ntred-server-<replaceable>host</replaceable>-<replaceable>port</replaceable>.log</filename>.
-As a last resort, e.g when the ntred hub crashes, 
-you may finish the survivals of the last session with
-<literal><command>ntred</command> --kill</literal>.
+As a last resort, e.g when the ntred hub crashes, you may remove the
+surviving relicts of the last session with <literal><command>ntred</command>
+--kill</literal>.
 </para>
 
 </section>
@@ -873,6 +881,8 @@ and browse the detected positions in tred (as depicted in <xref linkend="i-searc
       <mediaobject>
         <imageobject>
           <imagedata fileref="pics/bn-search.png" format="PNG" role="html"/>
+	</imageobject>
+	<imageobject>
           <imagedata fileref="pics/bn-search.eps" format="EPS" role="latex"/>
         </imageobject>
       </mediaobject>
