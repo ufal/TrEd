@@ -193,7 +193,7 @@ sub read_Sequence ($$$$) {
       my $is_pml = ($ns eq PML_NS);
       if ($type->{element}{$name} and 
 	    ($ns eq "" or $is_pml or $type->{element}{$name}{ns} eq $ns)) {
-	my $element = read_element($child,$fsfile,$types,resolve_type($types,$type->{element}{$name}));
+	my $element = read_element($child,$fsfile,$types,$type->{element}{$name});
 	push @$list, $element;
       } else {
 	die "Undeclared ".
@@ -271,8 +271,11 @@ sub node_children {
 
 sub read_element ($$$;$) {
   my ($node,$fsfile,$types,$type) = @_;
+  my $role = ref($type) ? $type->{role} : undef;
+  $type = resolve_type($types,$type);
+  $role = $type->{role} unless $role;
   my $hash;
-  if (ref($type) and $type->{role} eq '#NODE') {
+  if (ref($type) and $role eq '#NODE' ) {
     $hash =  FSNode->new();
     $hash->set_type($fsfile->metaData('schema')->type($type));
   } else {
@@ -294,7 +297,7 @@ sub read_element ($$$;$) {
     }
   }
   my $value = read_node($node,$fsfile,$types,$type);
-  if (ref($type) and $type->{role} eq '#NODE' and
+  if (ref($type) and $role eq '#NODE' and
       ($type->{sequence} and $type->{sequence}{role} eq '#CHILDNODES' or
 	 $type->{list} and $type->{list}{role} eq '#CHILDNODES') and
 	   UNIVERSAL::isa($value,'Fslib::List')) {
@@ -372,9 +375,15 @@ sub read_node ($$$;$) {
     foreach my $attr ($node->attributes) {
       my $name  = $attr->nodeName;
       my $value = $attr->value;
-      if ($members->{$name} and 
-	  $members->{$name}{as_attribute}) {
+      my $member = $members->{$name};
+      if ($member ne "" and 
+	  $member->{as_attribute}) {
 	$hash->{$name} = $value;
+	if ($member->{role} eq "#ORDER") {
+	  $defs->{$name} = ' N' unless exists($defs->{$name});
+	} elsif ($member->{role} eq "#HIDE") {
+	  $defs->{$name} = ' H' unless exists($defs->{$name});
+	}
       } elsif ($members->{$name}) {
 	warn "Member '$name' not declared as attribute of "._element_address($node);
       } else {
@@ -598,10 +607,12 @@ sub read_trees {
       } values %{$root_type->{element}}) {
     _debug("Found member with role \#TREES\n");
 
+    my $found_trees = 0;
     for my $child ($dom_root->childNodes) {
       if ($child->nodeType == ELEMENT_NODE and
 	    $child->namespaceURI eq PML_NS and
 	      $root_type->{element}->{$child->localname}->{role} eq '#TREES') {
+	$found_trees=1;
 	_debug("found trees ",$child->localname);
 	my $type = resolve_type($types,$root_type->{element}->{$child->localname});
 	if ($type->{list}) {
@@ -615,8 +626,21 @@ sub read_trees {
 	} else {
 	  die "Expected 'list' in role #TREES\n";
 	}
-      } else {
-	# TODO: store all non-#TREES members as meta-data
+      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
+	       $child->localname eq 'head') {
+	# already read this one
+      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
+	       $root_type->{element}{$child->localname}) {
+	my $name = $child->localname;
+	my $element = read_element($child,$fsfile,$types,$root_type->{element}{$name});
+	my $what = $found_trees ? 'pml_epilog' : 'pml_prolog';
+	if (ref($fsfile->metaData($what)) eq 'ARRAY') {
+	  push @{$fsfile->metaData($what)},$element;
+	} else {
+	  $fsfile->changeMetaData($what,[$element])
+	}
+      } elsif ($child->nodeType != TEXT_NODE or $child->textContent =~ /\S/) {
+	warn("Ignoring node "._element_address($child),"\n");
       }
     }
   } elsif (
@@ -639,11 +663,11 @@ sub read_trees {
       } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
 	       $root_type->{element}{$child->localname}) {
 	my $name = $child->localname;
-	my $element = read_element($child,$fsfile,$types,resolve_type($types,$root_type->{element}{$name}));
-	if (ref($fsfile->metaData('pml_preface')) eq 'ARRAY') {
-	  push @{$fsfile->metaData('pml_preface')},$element;
+	my $element = read_element($child,$fsfile,$types,$root_type->{element}{$name});
+	if (ref($fsfile->metaData('pml_prolog')) eq 'ARRAY') {
+	  push @{$fsfile->metaData('pml_prolog')},$element;
 	} else {
-	  $fsfile->changeMetaData('pml_preface',[$element])
+	  $fsfile->changeMetaData('pml_prolog',[$element])
 	}
       } elsif ($child->nodeType != TEXT_NODE or $child->textContent =~ /\S/) {
 	warn("Ignoring node "._element_address($child),"\n");
@@ -724,15 +748,23 @@ sub write {
   $xml->endTag('references');
   $xml->endTag('head');
 
-  my $lead = $fsfile->metaData('pml_preface');
-  if (ref($lead) eq 'ARRAY') {
-    foreach my $element (@$lead) {
+  my $prolog = $fsfile->metaData('pml_prolog');
+  if (ref($prolog) eq 'ARRAY') {
+    foreach my $element (@$prolog) {
       write_extra_element($xml,$fsfile,$types,$root_type,$element);
     }
   }
 
   my $tree_list = bless [$fsfile->trees],'Fslib::List';
   write_object($xml, $fsfile, $types,resolve_type($types,$trees),$trees_tag,$tree_list);
+
+  my $epilog = $fsfile->metaData('pml_epilog');
+  if (ref($epilog) eq 'ARRAY') {
+    foreach my $element (@$epilog) {
+      write_extra_element($xml,$fsfile,$types,$root_type,$element);
+    }
+  }
+
   $xml->endTag($root_type->{name});
   $xml->end;
 
@@ -1004,9 +1036,10 @@ sub test {
     local $_;
     1 while ($_=$f->getline() and !/\S/);
     return 0 unless (/^\s*<\?xml\s/);
-    return 1 if /<[atxm]data/;
-    1 while ($_=$f->getline() and !/\S/);
-    return (/<[atxm]data/) ? 1 : 0;
+    do {{
+      return 1 if m{xmlns=(['"])http://ufal.mff.cuni.cz/pdt/pml/\1};
+    }} while ($_=$f->getline() and (!/\S/ or /^\s*<?[^>]+?>\s*$/ or !/[>]/));
+    return m{<[^>]+xmlns=(['"])http://ufal.mff.cuni.cz/pdt/pml/\1} ? 1 : 0;
   } else {
     my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh,$encoding);
