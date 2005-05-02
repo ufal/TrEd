@@ -6855,7 +6855,7 @@ sub editAttrsDialog_schema {
   require Tk::TrEdNodeEdit;
 
   use Data::Dumper;
-  __debug("PATH: '$attr_path'\n");
+  # __debug("PATH: '$attr_path'\n");
 
   my $base_type = $node->type;
   my $schema;
@@ -6895,6 +6895,7 @@ sub editAttrsDialog_schema {
 
   if ($attr_path ne "") {
     $node_type = $base_type->find($attr_path);
+    # __debug("NODETYPE: '$attr_path'\n",Dumper($base_type),"\n",Dumper($node_type),"\n");
     $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
   } else {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
@@ -6934,11 +6935,12 @@ sub editAttrsDialog_schema {
   $edit->set_enable_callback([
     sub {
       my ($win,$base_path,$path)=@_;
-      __debug("enable_attr_hook: $base_path, $path\n");
+      # __debug("enable_attr_hook: $base_path, $path\n");
       $path = $base_path.$path if $base_path ne "";
       doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
     }, $win,$base_path
    ]);
+  #__debug("ATTR-PATH:' $attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   if ($attr_path ne "") {
     $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
   } elsif (ref($node_type) and $node_type->{member}) {
