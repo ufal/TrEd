@@ -4946,39 +4946,48 @@ sub CreateImages {
 <literallayout format="linespecific" class="normal">&lt;families&gt;-&lt;point sizes&gt;:&lt;name1&gt;=&lt;values1&gt;:&lt;name2&gt;=&lt;values2&gt;...</literallayout>
 	      Where <replaceable>names</replaceable> and 
 	      <replaceable>values</replaceable>
-	      refer to the floowing table
-	      <literallayout format="linespecific" class="normal">
-Property        Type    Description
-  --------------------------------------------------------------
-  family          String  Font family name
-  style           String  Font style. Overrides weight and slant
-  slant           Int     Italic, oblique or roman
-  weight          Int     Light, medium, demibold, bold or black
-  size            Double  Point size
-  aspect          Double  Stretches glyphs horizontally before hinting
-  pixelsize       Double  Pixel size
-  spacing         Int     Proportional, monospace or charcell
-  foundry         String  Font foundry name
-  antialias       Bool    Whether glyphs can be antialiased
-  hinting         Bool    Whether the rasterizer should use hinting
-  verticallayout  Bool    Use vertical layout
-  autohint        Bool    Use autohinter instead of normal hinter
-  globaladvance   Bool    Use font global advance data
-  file            String  The filename holding the font
-  index           Int     The index of the font within the file
-  ftface          FT_Face Use the specified FreeType face object
-  rasterizer      String  Which rasterizer is in use
-  outline         Bool    Whether the glyphs are outlines
-  scalable        Bool    Whether glyphs can be scaled
-  scale           Double  Scale factor for point-&gt;pixel conversions
-  dpi             Double  Target dots per inch
-  rgba            Int     unknown, rgb, bgr, vrgb, vbgr,
-                          none - subpixel geometry
-  minspace        Bool    Eliminate leading from line spacing
-  charset         CharSet Unicode chars encoded by the font
-  lang            String  List of RFC-3066-style languages this
-                          font supports
-</literallayout></para>
+	      refer to the folowing table:
+		  </para>
+		    <informaltable>
+		      <tgroup cols="3">
+			<thead>
+			  <row>
+			    <entry>Name of a property</entry>
+			    <entry>Value type</entry>
+			    <entry>Description</entry>
+			  </row>
+			</thead>
+			<tbody>
+			  <row><entry><literal>family</literal></entry><entry>String</entry><entry><para>Font family name</para></entry></row>
+			  <row><entry><literal>style</literal></entry><entry>String</entry><entry><para>Font style. Overrides weight and slant</para></entry></row>
+			  <row><entry><literal>slant</literal></entry><entry>Int</entry><entry><para>Italic, oblique or roman</para></entry></row>
+			  <row><entry><literal>weight</literal></entry><entry>Int</entry><entry><para>Light, medium, demibold, bold or black</para></entry></row>
+			  <row><entry><literal>size</literal></entry><entry>Double</entry><entry><para>Point size</para></entry></row>
+			  <row><entry><literal>aspect</literal></entry><entry>Double</entry><entry><para>Stretches glyphs horizontally before hinting</para></entry></row>
+			  <row><entry><literal>pixelsize</literal></entry><entry>Double</entry><entry><para>Pixel size</para></entry></row>
+			  <row><entry><literal>spacing</literal></entry><entry>Int</entry><entry><para>Proportional, monospace or charcell</para></entry></row>
+			  <row><entry><literal>foundry</literal></entry><entry>String</entry><entry><para>Font foundry name</para></entry></row>
+			  <row><entry><literal>antialias</literal></entry><entry>Bool</entry><entry><para>Whether glyphs can be antialiased</para></entry></row>
+			  <row><entry><literal>hinting</literal></entry><entry>Bool</entry><entry><para>Whether the rasterizer should use hinting</para></entry></row>
+			  <row><entry><literal>verticallayout</literal></entry><entry>Bool</entry><entry><para>Use vertical layout</para></entry></row>
+			  <row><entry><literal>autohint</literal></entry><entry>Bool</entry><entry><para>Use autohinter instead of normal hinter</para></entry></row>
+			  <row><entry><literal>globaladvance</literal></entry><entry>Bool</entry><entry><para>Use font global advance data</para></entry></row>
+			  <row><entry><literal>file</literal></entry><entry>String</entry><entry><para>The filename holding the font</para></entry></row>
+			  <row><entry><literal>index</literal></entry><entry>Int</entry><entry><para>The index of the font within the file</para></entry></row>
+			  <row><entry><literal>ftface</literal></entry><entry>FT_Face</entry><entry><para>Use the specified FreeType face object</para></entry></row>
+			  <row><entry><literal>rasterizer</literal></entry><entry>String</entry><entry><para>Which rasterizer is in use</para></entry></row>
+			  <row><entry><literal>outline</literal></entry><entry>Bool</entry><entry><para>Whether the glyphs are outlines</para></entry></row>
+			  <row><entry><literal>scalable</literal></entry><entry>Bool</entry><entry><para>Whether glyphs can be scaled</para></entry></row>
+			  <row><entry><literal>scale</literal></entry><entry>Double</entry><entry><para>Scale factor for point-&gt;pixel conversions</para></entry></row>
+  <row><entry><literal>dpi</literal></entry><entry>Double</entry><entry><para>Target dots per inch</para></entry></row>
+			  <row><entry><literal>rgba</literal></entry><entry>Int</entry><entry><para>unknown, rgb, bgr, vrgb, vbgr, none - subpixel geometry</para></entry></row>
+			  <row><entry><literal>minspace</literal></entry><entry>Bool</entry><entry><para>Eliminate leading from line spacing</para></entry></row>
+			  <row><entry><literal>charset</literal></entry><entry>CharSet</entry><entry><para>Unicode chars encoded by the font</para></entry></row>
+			  <row><entry><literal>lang</literal></entry><entry>String</entry><entry><para>List of RFC-3066-style languages this font supports</para></entry></row>
+			</tbody>
+
+		      </tgroup>
+		    </informaltable>
 		</listitem>
 	      </orderedlist>	
 	    </para>
@@ -7036,22 +7045,22 @@ sub MakeSentence {
 	    <row id="start_hook">
 	      <entry><literal moreinfo="none">start_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry>Executed on start-up, before the main event loop
-		is entered.</entry>
+	      <entry><para>Executed on start-up, before the main event loop
+		is entered.</para></entry>
 	    </row>
 	    <row id="init_hook">
 	      <entry><literal moreinfo="none">init_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry>Executed on start-up, before the first file specified on
-		the command-line is opened (i.e. also before the <literal moreinfo="none">start_hook</literal>).</entry>
+	      <entry><para>Executed on start-up, before the first file specified on
+		the command-line is opened (i.e. also before the <literal moreinfo="none">start_hook</literal>).</para></entry>
 	    </row>
 	    <row id="exit_hook">
 	      <entry><literal moreinfo="none">exit_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed when the main window
+	      <entry><para>Executed when the main window
 		of <application moreinfo="none">TrEd</application> is destroyed,
 		before the user is prompted to save the modified files.
-	      </entry>
+	      </para></entry>
 	    </row>
 	    <row id="event_hook">
 	      <entry><literal moreinfo="none">event_hook</literal></entry>
@@ -7133,10 +7142,10 @@ sub MakeSentence {
 	    <row id="goto_file_hook">
 	      <entry><literal moreinfo="none">goto_file_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry>
+	      <entry><para>
 		Executed before the next or previous file in the current
 		file-list is opened.
-	      </entry>
+	      </para></entry>
 	    </row>
 	    <!-- row>
 	      <entry>goto_tree_hook</entry>
@@ -7148,21 +7157,21 @@ sub MakeSentence {
 	    <row id="file_opened_hook">
 	      <entry><literal moreinfo="none">file_opened_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed after a file is opened but before the first
+	      <entry><para>Executed after a file is opened but before the first
 		tree is displayed.
-	      </entry>
+	      </para></entry>
 	    </row>
 	    <row id="preload_hook">
 	      <entry><literal moreinfo="none">preload_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry>Only used by <application moreinfo="none">btred</application>.
+	      <entry><para>Only used by <application moreinfo="none">btred</application>.
 		Executed before a file is preloaded.
-	      </entry>
+	      </para></entry>
 	    </row>
 	    <row id="file_resumed_hook">
 	      <entry><literal moreinfo="none">file_resumed_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed after an already open (kept) file is resumed.</entry>
+	      <entry><para>Executed after an already open (kept) file is resumed.</para></entry>
 	    </row>
 	    <row id="file_save_hook">
 	      <entry><literal moreinfo="none">file_save_hook</literal></entry>
@@ -7172,10 +7181,10 @@ sub MakeSentence {
 	    <row id="file_close_hook">
 	      <entry><literal moreinfo="none">file_close_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed before TrEd attempts to close a file
+	      <entry><para>Executed before TrEd attempts to close a file
 		(this hook is called even if the file remains open
 		but postponed if the close fails e.g. because
-		the file being closed is required by another open file).</entry>
+		the file being closed is required by another open file).</para></entry>
 	    </row>
 	    <row id="file_autosave_hook">
 	      <entry><literal moreinfo="none">file_autosave_hook</literal></entry>
@@ -7263,9 +7272,9 @@ sub MakeSentence {
 	    <row id="customize_attrs_hook">
 	      <entry><literal moreinfo="none">customize_attrs_hook</literal></entry>
 	      <entry>yes</entry>
-	      <entry>Executed before the dialog for customizing attribute
+	      <entry><para>Executed before the dialog for customizing attribute
 		patterns is displayed.
-	      </entry>
+	      </para></entry>
 	    </row>
 	    <row id="sort_attrs_hook">
 	      <entry><literal moreinfo="none">sort_attrs_hook</literal></entry>
@@ -7300,7 +7309,7 @@ sub MakeSentence {
 	    <row id="after_edit_attr_hook">
 	      <entry><literal moreinfo="none">after_edit_attr_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed after a node's attribute was edited
+	      <entry><para>Executed after a node's attribute was edited
 		in the <guilabel moreinfo="none">Edit Attribute</guilabel>
 		dialog window. The <replaceable>result</replaceable>
 		argument contains <literal moreinfo="none">1</literal> if the user pressed
@@ -7308,7 +7317,7 @@ sub MakeSentence {
 		and it contains <literal moreinfo="none">0</literal> if the user
 		closed the dialog with the
 	      <guibutton moreinfo="none">Close</guibutton> button.
-	      </entry> 
+	      </para></entry> 
 	    </row>
 	    <row id="get_value_line_hook">
 	      <entry><literal moreinfo="none">get_value_line_hook</literal></entry>
@@ -7344,9 +7353,9 @@ sub MakeSentence {
 	    <row id="highlight_value_line_tag_hook">
 	      <entry><literal moreinfo="none">highlight_value_line_tag_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Invoked every time a node is selected. The hook should
+	      <entry><para>Invoked every time a node is selected. The hook should
 		return a tag associated with some text in the value
-		line. The text is then highlighted in the value line.</entry>
+		line. The text is then highlighted in the value line.</para></entry>
 	    </row>
 	    <row id="get_nodelist_hook">
 	      <entry><literal moreinfo="none">get_nodelist_hook</literal></entry>
@@ -7427,9 +7436,9 @@ sub MakeSentence {
 	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>current_node</replaceable>,<replaceable>prev_current_node</replaceable></literal></para><para>executed when a new active node is selected.</para></entry>
 	    </row>
 	    <row id="get_status_line_hook">
-	      <entry>get_status_line_hook</entry>
+	      <entry><literal>get_status_line_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Supply status-line content.
+	      <entry><para>Supply status-line content.
 		This hook is responsible for providing the content for
 		a status-line. The value returned from 
 		<literal moreinfo="none">get_status_line_hook</literal> should
@@ -7460,7 +7469,7 @@ sub MakeSentence {
 		where <replaceable>option</replaceable> may
 		be one of <literal moreinfo="none">-foreground</literal>,
 		<literal moreinfo="none">-background</literal> and <literal moreinfo="none">-underline</literal>.
-	      </entry>
+	      </para></entry>
 	    </row>
 	    <row id="value_line_doubleclick_hook">
 	      <entry><literal moreinfo="none">value_line_doubleclick_hook</literal></entry>
@@ -7505,25 +7514,25 @@ sub MakeSentence {
 	    <row id="reload_macros_hook">
 	      <entry><literal moreinfo="none">reload_macros_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed before macros are re-loaded
+	      <entry><para>Executed before macros are re-loaded
 		(i.e. when the user issues <menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">Help</guimenu>
 		  <guimenuitem moreinfo="none">Reload macros</guimenuitem>
 		</menuchoice>).
 		This macro may be used to do clean-up (e.g. cleanly deallocate
 		non-perl resources, break circular dependences, etc.) before TrEd sweeps away
-		the memory and code currently occupied and used by macros.</entry>
+		the memory and code currently occupied and used by macros.</para></entry>
 	    </row>
 	    <row id="macros_reloaded_hook">
 	      <entry><literal moreinfo="none">macros_reloaded_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed after macros has been re-loaded
+	      <entry><para>Executed after macros has been re-loaded
 		(i.e. after the user issued <menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">Help</guimenu>
 		  <guimenuitem moreinfo="none">Reload macros</guimenuitem>
 		</menuchoice>). At the moment of the call to this hook,
 		the newly loaded macros are already in effect.
-	      </entry>
+	      </para></entry>
 	    </row>
 	    <row id="node_click_hook">
 	      <entry><literal moreinfo="none">node_click_hook</literal></entry>
@@ -7603,16 +7612,15 @@ sub MakeSentence {
 	    <row id="print_tree_filename_hook">
 	      <entry><literal moreinfo="none">print_tree_filename_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry>Executed when
+	      <entry><para>Executed when
 		<menuchoice moreinfo="none">
 		  <guimenu moreinfo="none">File</guimenu>
 		  <guimenuitem moreinfo="none">Print ...</guimenuitem>
 		</menuchoice>
 		command is invoked in order to obtain a suggestion for
 		the target file-name used when printing to file.
-	      </entry>
-	    </row>
-	    	    
+	      </para></entry>
+	    </row>	    	    
 	  </tbody>
 	</tgroup>
       </table>
@@ -7707,11 +7715,9 @@ MyPackage::my_macro();   # call to a macro defined in MyPackage
       <para>
 	A binding context may import
 	menu and keyboard bindings from other context(s) using
-	<literallayout class="normal" format="linespecific">#key-binding-adopt
-	  <replaceable>other_context(s)</replaceable></literallayout>
+	<literallayout class="normal" format="linespecific">#key-binding-adopt <replaceable>other_context(s)</replaceable></literallayout>
 	and
-	<literallayout class="normal" format="linespecific">#menu-binding-adopt
-	  <replaceable>other_context(s)</replaceable></literallayout>
+	<literallayout class="normal" format="linespecific">#menu-binding-adopt <replaceable>other_context(s)</replaceable></literallayout>
 	directives.
       </para>
       <para>
