@@ -12,8 +12,12 @@ h5.title, h6.title {
 	color: #121244; /* 1-2 */
 }
 
-code, .programlisting {
-	color: #050530
+code, .programlisting, .literallayout, .literal {
+	color: #050530;
+}
+
+.programlisting, .literallayout {
+	background: #d5dee6;
 }
 
 /* navigace */
