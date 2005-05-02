@@ -3431,10 +3431,7 @@ sub find {
     for my $step (split /\//, $path) {
       $type = $schema->resolve_type($type);
       if (ref($type)) {
-	if ($type->{knit}) {
-	  $type = $type->{knit};
-	  redo;
-	} elsif ($type->{list} or $type->{alt}) {
+	if ($type->{list} or $type->{alt}) {
 	  $type = $type->{list} || $type->{alt};
 	  if ($step =~ /^\[(\d+)\]/) {
 	    next;
@@ -3442,7 +3439,25 @@ sub find {
 	    redo;
 	  }
 	} elsif ($type->{member}) {
-	  $type = $type->{member}{$step};
+	  unless (exists $type->{member}{$step}) {
+	    my $rf_type = $type->{member}{$step.'.rf'};
+	    my $is_knit =  ref($rf_type) and $rf_type->{role} eq '#KNIT';
+	    unless ($is_knit) {
+	      my $rf_type_resolved = $schema->resolve_type($rf_type);
+	      $is_knit = ref($rf_type_resolved) and
+		$rf_type_resolved->{role} eq '#KNIT';
+	      unless ($is_knit) {
+		$is_knit = (ref($rf_type_resolved) and
+			    ref($rf_type_resolved->{list}) and
+			    $rf_type_resolved->{list}{role} eq '#KNIT');
+	      }
+	    }
+	    if ($is_knit) {
+	      $type = $rf_type;
+	    }
+	  } else {
+	    $type = $type->{member}{$step};
+	  }
 	} elsif ($type->{element}) {
 	  $type = $type->{element}{$step};
 	} elsif ($type->{structure}) {
