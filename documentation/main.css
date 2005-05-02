@@ -3,9 +3,9 @@ body {
 	text-align: justify;
 }
 
-li>p {
-	margin: 0em;
-	padding: 0em;
+li>p, td>p {
+	margin: 0.3em;
+	padding: 0.3em;
 }
 
 body, th, td {
@@ -44,8 +44,8 @@ body, td, th {
 	font-size: 14px;
 }
 
-code, .programlisting {
-	font-family: Lucida console, Courier, monospace;
+code, .programlisting, .literallayout {
+	font-family: Courier, monospace;
 }
 
 /* obrazky */
@@ -98,6 +98,8 @@ td, th {
 	border: inset 1pt; 
 	_border: inset 2pt;
 	padding: 0.2em;
+        padding-top: 0em;
+        padding-bottom: 0em;
 }
 
 table[border="0"] td, table[border="0"] th {
