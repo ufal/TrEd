@@ -403,6 +403,8 @@ sub add_buttons {
 
   return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt}) or 
 		 ref($ptype) and ($ptype->{list} or $ptype->{alt}));
+  return if $mtype->{list}{role} eq '#CHILDNODES' or
+            $mtype->{role} eq '#CHILDNODES';
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
    );
@@ -645,29 +647,35 @@ sub add_member {
 		       -style => $hlist->{my_itemstyles}{struct});
     $hlist->add_members($path."/",$mtype->{structure},$attr_val);
   } elsif (exists $mtype->{list}) {
-    my $list_no=0;
-    $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
-    $hlist->itemCreate($path,1,-itemtype => 'text',
-		       -text => 
-			 $mtype->{list}{ordered} ?
-			   'Ordered list' : 'Unordered list',
-		       -style => $hlist->{my_itemstyles}{list});
+    if ($mtype->{list}{role} eq '#CHILDNODES' or $mtype->{role} eq '#CHILDNODES') { 
+      $hlist->itemCreate($path,1,-itemtype => 'text',
+			 -text => 'child nodes',
+			 -style => $hlist->{my_itemstyles}{list});
+    } else {
+      my $list_no=0;
+      $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
+      $hlist->itemCreate($path,1,-itemtype => 'text',
+			 -text => 
+			   $mtype->{list}{ordered} ?
+			     'Ordered list' : 'Unordered list',
+			 -style => $hlist->{my_itemstyles}{list});
 
 
-    if ($attr_val) {
-      foreach my $val (@{$attr_val}) {
+      if ($attr_val) {
+	foreach my $val (@{$attr_val}) {
+	  $list_no++;
+	  $hlist->add_list_member($path,$mtype,$val,$list_no);
+	}
+      } elsif (!$allow_empty) {
 	$list_no++;
-	$hlist->add_list_member($path,$mtype,$val,$list_no);
+	$hlist->add_list_member($path,$mtype,$attr_val,$list_no);
       }
-    } elsif (!$allow_empty) {
-      $list_no++;
-      $hlist->add_list_member($path,$mtype,$attr_val,$list_no);
+      $data->{list_no}=$list_no;
     }
-    $data->{list_no}=$list_no;
   } elsif (exists $mtype->{sequence}) {
     my $list_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
-    if ($mtype->{role} ne '#CHILDREN') {
+    if ($mtype->{role} ne '#CHILDNODES') {
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 'XML sequence',
 			 -style => $hlist->{my_itemstyles}{sequence});
