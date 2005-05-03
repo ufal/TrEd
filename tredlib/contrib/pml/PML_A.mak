@@ -16,7 +16,7 @@ sub first (&@);
 
 =head1 PML_A
 
-PML_A.mak - Miscelaneous macros for analytic layer of Prague
+PML_A.mak - Miscellaneous macros for the analytic layer of Prague
 Dependency Treebank (PDT) 2.0.
 
 =over 4

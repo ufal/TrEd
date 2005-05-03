@@ -19,7 +19,7 @@ sub first (&@);
 
 =head1 PML_A_Edit
 
-PML_A_Edit.mak - Miscelaneous macros for editing analytic layer of
+PML_A_Edit.mak - Miscellaneous macros for editing the analytic layer of
 Prague Dependency Treebank (PDT) 2.0.
 
 =over 4
