@@ -9,7 +9,7 @@ use vars qw($xslt_processor $xslt_stylesheet $xslt_processor_opts $encoding);
 sub default_settings {
   $xslt_processor = "xsltproc" unless $xslt_processor;
   $xslt_processor_opts = "%s -" unless $xslt_processor_opts;
-  $xslt_stylesheet = "/home/pajas/projects/pml/xml2xdata.xsl" unless $xslt_stylesheet;
+  $xslt_stylesheet = Fslib::FindInResources("xml2xdata.xsl") unless $xslt_stylesheet;
   $encoding = 'utf-8';
 }
 
