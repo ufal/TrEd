@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
     "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
 <article>
   <articleinfo>
@@ -294,7 +294,7 @@ types (see the <ulink url="../../data-formats/pml-markup/index.html">exhaustive 
   </listitem>
  </itemizedlist>
 
-Remember that there are different sets of attributes available on
+Remember that there are different sets of attributes available on
 different layers (as documented in the <ulink
 url="../../data-formats/pml-markup/index.html">exhaustive list of
 attributes</ulink>). Example - for each node of each analytical tree
