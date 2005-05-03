@@ -19,7 +19,7 @@ sub first (&@);
 
 =head1 PML_T
 
-PML_T.mak - Miscelaneous macros for tectogrammatic layer of Prague
+PML_T.mak - Miscellaneous macros for the tectogrammatic layer of Prague
 Dependency Treebank (PDT) 2.0.
 
 =over 4

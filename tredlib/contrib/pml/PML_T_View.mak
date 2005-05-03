@@ -19,7 +19,7 @@ sub first (&@);
 
 =head1 PML_T_View
 
-PML_T_View.mak - Miscelaneous macros for viewing tectogrammatic layer
+PML_T_View.mak - Miscellaneous macros for the viewing tectogrammatic layer
 of Prague Dependency Treebank (PDT) 2.0.
 
 =over 4

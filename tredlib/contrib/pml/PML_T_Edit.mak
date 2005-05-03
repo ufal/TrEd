@@ -19,7 +19,7 @@ sub first (&@);
 
 =head1 PML_T_Edit
 
-PML_T_Edit.mak - Miscelaneous macros for editing tectogrammatic layer
+PML_T_Edit.mak - Miscellaneous macros for editing the tectogrammatic layer
 of Prague Dependency Treebank (PDT) 2.0.
 
 =over 4

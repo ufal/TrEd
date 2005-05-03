@@ -19,7 +19,7 @@ sub first (&@);
 
 =head1 PML_A_View
 
-PML_A_View.mak - Miscelaneous macros for viewing analytic layer of
+PML_A_View.mak - Miscellaneous macros for viewing the analytic layer of
 Prague Dependency Treebank (PDT) 2.0.
 
 =over 4
