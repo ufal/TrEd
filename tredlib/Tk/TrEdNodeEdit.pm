@@ -403,8 +403,7 @@ sub add_buttons {
 
   return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt}) or 
 		 ref($ptype) and ($ptype->{list} or $ptype->{alt}));
-  return if $mtype->{list}{role} eq '#CHILDNODES' or
-            $mtype->{role} eq '#CHILDNODES';
+  return if ref($mtype) and (($mtype->{list} and $mtype->{list}{role} eq '#CHILDNODES') or $mtype->{role} eq '#CHILDNODES');
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
    );
