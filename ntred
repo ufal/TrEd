@@ -344,8 +344,8 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   foreach (@servers) {
     my ($server,$port) = split /:/;
     next if $server !~ /\S/;
-    unless ($servers{$server}) {
-      $servers{$server}=1;
+    unless (exists $servers{$server}) {
+      $servers{$server}=0;
       $port ||= 1600;
       unless ($nocheck or $run_local) {
 	msg "checking $server\n";
@@ -353,6 +353,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	msg "$cmd\n";
 	my $result=`$cmd`;
 	if ($result =~ /RUNNING$/) {
+	  $servers{$server}=1;
 	  msg "Server $server - running\n";
 	} else {
 	  msg "Server $server - down\n";
@@ -360,7 +361,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	}
       }
     }
-    push @running, { host => $server, port => $port, fullname => "$server:$port" };
+    push @running, { host => $server, port => $port, fullname => "$server:$port" } if $servers{$server};
     last if ($maxservers>0 && @running >= $maxservers);
   }
 
