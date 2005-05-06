@@ -541,7 +541,7 @@ sub icon {
     if (not($@)) {
       unshift @extensions,'png';
     } else {
-      warn "PNG icons not supported by running Tk\n";
+      warn "PNG icons not supported by running Tk\n" if $tredDebug;
     }
     # prepend $libDir to relative paths
     my $default=0;
@@ -6069,7 +6069,7 @@ sub editConfig {
     return;
   }
   $grp->{configDialog}= 
-    $grp->{top}->Toplevel(-title=> "Edit Resource File ($configFile)" , 
+    $grp->{top}->Toplevel(-title=> "Edit Config File ($configFile)" , 
 			  -width=> "10c");
   my $d=$grp->{configDialog};
   $d->withdraw;
