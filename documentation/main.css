@@ -128,3 +128,19 @@ a {
 	text-decoration: none
 }
 
+/* index */
+
+div.index a { 
+  font-weight: normal; 
+  text-decoration: none
+}
+
+div.index em { 
+  font-weight: bold; 
+  font-style: normal; 
+}
+
+div.index em a { 
+  font-weight: bold; 
+  text-decoration: none
+}

@@ -125,7 +125,7 @@ $_ERR->autoflush(1);
 
 # Help and usage
 if ($usage) {
-  pod2usage(-msg => 'ntred - controller/hub/client for remote btred servers');
+  pod2usage(-msg => 'btred - an off-line TrEd macro processor which applies macros on given files');
 #  exit 0;
 }
 if ($help) {
@@ -1997,3 +1997,4 @@ Petr Pajas <pajas@matfyz.cz>
 
 Copyright 2000-2003 Petr Pajas, All rights reserved.
 
+=cut
