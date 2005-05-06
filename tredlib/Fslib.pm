@@ -1132,10 +1132,7 @@ sub writeTo {
 
 =pod
 
-=item sentord
-=item order
-=item value
-=item hide
+=item sentord(), order(), value(), hide()
 
 Return names of special attributes declared in FS format as @W, @N,
 @V, @H respectively.
@@ -1392,7 +1389,7 @@ sub color {
 =item special (letter)
 
 Return name of a special attribute declared in FS definition with a
-given letter. See also L<"sentord"> and similar.
+given letter. See also sentord() and similar.
 
 =cut
 
