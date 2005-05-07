@@ -203,7 +203,7 @@ sub write {
 	print $fileref "<c>\n";
       }
       if ($root->{para} or $treeNo==1) {
-	my $n =	$root->{para}=~/\d+/ ? $& : 0;
+	my $n =	$root->{para}=~/(\d+)/ ? $1 : 0;
 	print $fileref "<p n=$n>\n";
       }
 #      print $fileref make_gap($root->{gappre});

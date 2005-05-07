@@ -2903,7 +2903,7 @@ sub PrintFSNode {
     Print($output, "[");
     for (my $n=0; $n<$attr_count; $n++) {
       $v=$emu_schema ? $node->attr($attrs->[$n]) : $node->{$attrs->[$n]};
-      $v=~s/([,\[\]=\\])/\\$&/go if (defined($v));
+      $v=~s/([,\[\]=\\])/\\$1/go if (defined($v));
       if (index($defs->{$attrs->[$n]}, " O")>=0) {
 	Print($output,",") if $n;
 	unless ($lastprinted && index($defs->{$attrs->[$n]}," P")>=0) # N could match here too probably

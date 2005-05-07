@@ -142,8 +142,8 @@ sub czcmp
 			{
 			while (not defined $ax and not $a_no)
 				{
-				$a =~ /$regexp[$level]/sg or $a_no = 1;
-				$ac = $&;
+				$a =~ /($regexp[$level])/sg or $a_no = 1;
+				$ac = $1;
 				$ax = ( length $ac == 1 ?
 					$table[$level][ord $ac]
 					: ${$multiple[$level]}{$ac} )
@@ -151,8 +151,8 @@ sub czcmp
 				}
 			while (not defined $bx and not $b_no)
 				{
-				$b =~ /$regexp[$level]/sg or $b_no = 1;
-				$bc = $&;
+				$b =~ /($regexp[$level])/sg or $b_no = 1;
+				$bc = $1;
 				$bx = ( length $bc == 1 ?
 					$table[$level][ord $bc]
 					: ${$multiple[$level]}{$bc} )
@@ -163,8 +163,8 @@ sub czcmp
 			{
 			while (not defined $ax and not $a_no)
 				{
-				$a1 =~ /$regexp[$level]/sg or $a_no = 1;
-				$ac = $&;
+				$a1 =~ /($regexp[$level])/sg or $a_no = 1;
+				$ac = $1;
 				$ax = ( length $ac == 1 ?
 					$table[$level][ord $ac]
 					: ${$multiple[$level]}{$ac} )
@@ -172,8 +172,8 @@ sub czcmp
 				}
 			while (not defined $bx and not $b_no)
 				{
-				$b1 =~ /$regexp[$level]/sg or $b_no = 1;
-				$bc = $&;
+				$b1 =~ /($regexp[$level])/sg or $b_no = 1;
+				$bc = $1;
 				$bx = ( length $bc == 1 ?
 					$table[$level][ord $bc]
 					: ${$multiple[$level]}{$bc} )
@@ -210,8 +210,8 @@ sub czcmp
 				= ('', '', 0, 0, undef, undef);
 			while (not defined $ax and not $a_no)
 				{
-				$a =~ /$regexp[$level]/sg or $a_no = 1;
-				$ac = $&;
+				$a =~ /($regexp[$level])/sg or $a_no = 1;
+				$ac = $1;
 				$ax = ( length $ac == 1 ?
 					$table[$level][ord $ac]
 					: ${$multiple[$level]}{$ac} )
@@ -219,8 +219,8 @@ sub czcmp
 				}
 			while (not defined $bx and not $b_no)
 				{
-				$b =~ /$regexp[$level]/sg or $b_no = 1;
-				$bc = $&;
+				$b =~ /($regexp[$level])/sg or $b_no = 1;
+				$bc = $1;
 				$bx = ( length $bc == 1 ?
 					$table[$level][ord $bc]
 					: ${$multiple[$level]}{$bc} )
