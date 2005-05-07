@@ -170,7 +170,7 @@ sub read_macros {
 	} elsif (/^\#[ \t]*unbind-key[ \t]([^ \t\r\n]+)?/) {
 	  my $key=$1;
 	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
-	  $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
+	  $key=~s/([^+]+[+-])/uc($1)/eg; # uppercase modifiers
 	  foreach (@contexts) {
 	    next unless exists($keyBindings{$_});
 	    delete $keyBindings{$_}{$key};
@@ -180,7 +180,7 @@ sub read_macros {
 	  my $key=$2;
 	  my $menu = TrEd::Convert::encode($3);
 	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
-	  $key=~s/[^+]+[+-]/uc($&)/eg; # uppercase modifiers
+	  $key=~s/([^+]+[+-])/uc($1)/eg; # uppercase modifiers
 	  #print "binding $key [$menu] => $macro\n";
 	  if ($macro =~ s/^(\w+)-\>//) {
 	    my $package = $1;
@@ -337,8 +337,8 @@ sub initialize_macros {
       ${macro_variable('TredMacro::grp')}=$win;
       my %packages;
       # dirty hack to support ->isa in safe compartment
-      $macros=~s{\n\s*package\s+(\S+?)\s*;}
-	{ exists($packages{$1}) ? $& : do { $packages{$1} = 1; $&.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'} }ge;
+      $macros=~s{(\n\s*package\s+(\S+?)\s*;)}
+	{ exists($packages{$2}) ? $1 : do { $packages{$2} = 1; $1.'sub isa {for(@ISA){return 1 if $_ eq $_[1]}}'} }ge;
       $macrosEvaluated=1;
       {
 	no strict;

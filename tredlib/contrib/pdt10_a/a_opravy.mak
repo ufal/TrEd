@@ -1338,7 +1338,7 @@ sub _key_Ctrl_5 {
   $this->{'ord'} = "0";
 
   my $letter='A';
-  $letter=$& if ($oform =~ /[A-Z]/);
+  $letter=$1 if ($oform =~ /([A-Z])/);
   $letter++;
   if (substr($oform,2,1) eq '') {
 

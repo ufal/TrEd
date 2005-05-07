@@ -610,7 +610,7 @@ sub new {
 
     # Force unqualified filehandles into caller's package
     my ($package) = caller;
-    $handle =~ s/^[^':]+$/$package\:\:$&/;
+    $handle =~ s/^([^':]+)$/$package\:\:$1/;
 
     return bless {
 	'handle' => $handle,

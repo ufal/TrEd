@@ -873,17 +873,17 @@ sub parse_coords_spec {
 
   # simple comparison inline
   $coords =~
-    s{([xy])\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\]}{
+    s{(([xy])\[([-_A-Za-z0-9]+)\s*=\s*((?:[^\]\\]|\\.)+)\])}{
       my $i=0;
-      if (exists($nodehash->{$&})) {
-	$i=$nodehash->{$&};
+      if (exists($nodehash->{$1})) {
+	$i=$nodehash->{$1};
       } else {
 	$i++ while ($i<@$nodes and
-		    !(exists($nodes->[$i]{$2}) and $nodes->[$i]{$2} eq $3));
-	$nodehash->{$&}=$i;
+		    !(exists($nodes->[$i]{$3}) and $nodes->[$i]{$3} eq $4));
+	$nodehash->{$1}=$i;
       }
       if ($i<@$nodes) { 
-	int($self->get_node_pinfo($nodes->[$i],($1 eq 'x') ? "XPOS" : "YPOS"))
+	int($self->get_node_pinfo($nodes->[$i],($2 eq 'x') ? "XPOS" : "YPOS"))
       } else {
 	"ERR"
       }
