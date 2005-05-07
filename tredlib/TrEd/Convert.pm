@@ -7,7 +7,6 @@ package TrEd::Convert;
 # This software covered by GPL - The General Public Licence
 #
 use strict;
-use English;
 #use TrEd::ConvertArab;
 
 
