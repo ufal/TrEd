@@ -3492,11 +3492,6 @@ Fslib.pm - Simple low-level API for treebank files in .fs format.  See
 L<"FSFile">, L<"FSFormat"> and L<"FSNode"> for an object-oriented
 abstraction over this module.
 
-=head2 SYNOPSIS
-
-  use Fslib;
-
-
 =head2 DESCRIPTION
 
 This package has the ambition to be a simple and usable perl API for
@@ -3541,7 +3536,7 @@ corresponding C<$Fslib::...> variables directly.
    characters removed.
 
 
-=item Parent($node), FirstSon($node), LBrother($node), RBrother($node)
+=item obsolete - FirstSon($node), Parent($node), LBrother($node), RBrother($node)
 
  Params:
 
