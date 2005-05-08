@@ -3536,21 +3536,6 @@ corresponding C<$Fslib::...> variables directly.
    characters removed.
 
 
-=item obsolete - FirstSon($node), Parent($node), LBrother($node), RBrother($node)
-
- Params:
-
-   $node - a FSNode object
-
- Returns:
-
-   Parent, first son, left brother or right brother resp. of the node
-   referenced by $node
-
-   There is no need to use these functions directly. You should
-   use FSNode methods instead.
-
-
 =item Next($node,[$top]), Prev($node,[$top])
 
  Params:
@@ -3641,6 +3626,21 @@ corresponding C<$Fslib::...> variables directly.
    backends for which the demand was fulfilled. These
    backends may then be freely used in FSFile IO calls.
 
+=item OBSOLETED functions
+
+ FirstSon($node), Parent($node), LBrother($node), RBrother($node)
+
+ Params:
+
+   $node - a FSNode object
+
+ Returns:
+
+   Parent, first son, left brother or right brother resp. of the node
+   referenced by $node
+
+   There is no need to use these functions directly. You should
+   use FSNode methods instead.
 
 =back
 
