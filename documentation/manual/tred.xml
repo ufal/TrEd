@@ -68,6 +68,9 @@
 	<imageobject>
 	  <imagedata fileref="pics/treddiff" format="linespecific"/>
 	</imageobject>
+	<textobject>
+	  <phrase>Screenshot</phrase>
+	</textobject>
       </mediaobject>
     </figure>
     <para>
@@ -676,6 +679,9 @@ Tk: 804.027
       <imageobject>
 	  <imagedata fileref="pics/tred_overview" format="linespecific"/>
       </imageobject>
+      <textobject>
+	<phrase>overview</phrase>
+      </textobject>
     </mediaobject>
     <para>
       The picture above shows the <application>TrEd</application>'s
@@ -1131,9 +1137,13 @@ Tk: 804.027
 	      special attribute values (i.e. attributes declared
 	      as <literal moreinfo="none">@V</literal> in the FS
 	      format).
-	      In the list, buttons <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject>
+	      In the list, buttons <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject>
+		<textobject><phrase>right-arrow</phrase></textobject>
+</inlinemediaobject>
 	      display the corresponding sentence in the current TrEd view.
-	      Buttons <inlinemediaobject><imageobject><imagedata fileref="pics/gray_belly3.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3" format="linespecific"/></imageobject></inlinemediaobject>
+	      Buttons <inlinemediaobject><imageobject><imagedata fileref="pics/gray_belly3.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/gray_belly3" format="linespecific"/></imageobject>
+		<textobject><phrase>gray-belly</phrase></textobject>
+</inlinemediaobject>
 	      are used to select sentences. Selected sentences may be later inserted to tree
 	      selection fields, e.g. in the <link linkend="print_command">Print dialog</link> and
 	      in the <link linkend="copytrees_command">Copy trees
@@ -1371,7 +1381,7 @@ Tk: 804.027
 		If this option is checked, current attribute pattern setting is not
 		replaced with the one from the file when current file
 		is reloaded with by pressing the
-		<inlinemediaobject><imageobject><imagedata fileref="pics/reload.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/reload.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/reload" format="linespecific"/></imageobject></inlinemediaobject>
+		<inlinemediaobject><imageobject><imagedata fileref="pics/reload.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/reload.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/reload" format="linespecific"/></imageobject><textobject><phrase>reload</phrase></textobject></inlinemediaobject>
 		(see also the <xref linkend="reloadpreservespatterns"/>
 		configuration option).
 	      </para>
@@ -1621,6 +1631,7 @@ Tk: 804.027
 		</imageobject><imageobject>
 		  <imagedata fileref="pics/lock" format="linespecific"/>
 		</imageobject>
+		<textobject><phrase>lock</phrase></textobject>
 	      </inlinemediaobject>
 	      is pressed.
 	    </para>
@@ -1655,6 +1666,7 @@ Tk: 804.027
 		</imageobject><imageobject>
 		  <imagedata fileref="pics/lock" format="linespecific"/>
 		</imageobject>
+		<textobject><phrase>lock</phrase></textobject>
 	      </inlinemediaobject>
 	      is pressed.
 	    </para>
@@ -1690,6 +1702,7 @@ Tk: 804.027
 		</imageobject><imageobject>
 		  <imagedata fileref="pics/lock" format="linespecific"/>
 		</imageobject>
+		<textobject><phrase>lock</phrase></textobject>
 	      </inlinemediaobject>
 	      either in the current view only or in all views).
 	    </para>
@@ -1806,7 +1819,7 @@ Tk: 804.027
 	    <para>Displayes the previous tree in the current file.
 	      Note that this shorcuts operates on the focused
 	      view only, even if button
-	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject><textobject><phrase>lock</phrase></textobject></inlinemediaobject>
 	      is pressed and all views are tied
 	      (and this is a feature).
 	    </para>
@@ -1823,7 +1836,7 @@ Tk: 804.027
 	    <para>Displayes the next tree in the current file.
 	      Note that this shorcuts operates on the focused
 	      view only, even if button
-	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject><textobject><phrase>lock</phrase></textobject></inlinemediaobject>
 	      is pressed and all views are tied
 	      (and this is a feature).
 	    </para>
@@ -1841,7 +1854,7 @@ Tk: 804.027
 	  <listitem>
 	    <para>Displayes the previous tree in the
 	      current view (or all views, if button
-	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject><textobject><phrase>lock</phrase></textobject></inlinemediaobject>
 	      is pressed).
 	    </para>
 	  </listitem>
@@ -1857,7 +1870,7 @@ Tk: 804.027
 	  <listitem>
 	    <para>Displayes the next tree in the
 	      current view (or all views, if button
-	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject>
+	      <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject><textobject><phrase>lock</phrase></textobject></inlinemediaobject>
 	      is pressed).
 	    </para>
 	  </listitem>
@@ -1949,6 +1962,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/fileopen" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>file-open</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -1972,6 +1986,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/filefloppy" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>file-save</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -1995,6 +2010,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/reload" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>reload</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2013,6 +2029,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/redo" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>redo</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2031,6 +2048,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/undo" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>undo</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2051,6 +2069,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/viewmag-" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>find-prev</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2074,6 +2093,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/start" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>start</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2097,6 +2117,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/fileprint" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>print</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2120,6 +2141,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/find" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>find</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2143,6 +2165,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/viewmag+" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>find-next</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2166,6 +2189,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/finish" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>end</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2189,6 +2213,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/1leftarrow" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>left-arrow</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2212,6 +2237,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/1rightarrow" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>right-arrow</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2235,6 +2261,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/tick" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>check</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2259,6 +2286,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/contents" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>contents</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2283,6 +2311,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/view_top_bottom" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>split-h</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2306,6 +2335,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/view_left_right" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>split-v</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2329,6 +2359,7 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/view_remove" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>remove-view</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
@@ -2352,13 +2383,14 @@ Tk: 804.027
 	    <imageobject>
 	      <imagedata fileref="pics/lock" format="linespecific"/>
 	    </imageobject>
+	    <textobject><phrase>lock</phrase></textobject>
 	  </inlinemediaobject>
 	</term>
 	<listitem>
 	  <para>This button has two states. If pressed,
 	    all displayed views are tied together, so that
-	    pressing <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject></inlinemediaobject> or
-	    <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject></inlinemediaobject> buttons
+	    pressing <inlinemediaobject><imageobject><imagedata fileref="pics/1leftarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1leftarrow" format="linespecific"/></imageobject><textobject><phrase>left-arrow</phrase></textobject></inlinemediaobject> or
+	    <inlinemediaobject><imageobject><imagedata fileref="pics/1rightarrow.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/1rightarrow" format="linespecific"/></imageobject><textobject><phrase>right-arrow</phrase></textobject></inlinemediaobject> buttons
 	    as well as invoking
 	    <menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guisubmenu moreinfo="none">Previous tree</guisubmenu></menuchoice> or
 	    <menuchoice moreinfo="none"><guimenu moreinfo="none">View</guimenu><guisubmenu moreinfo="none">Next tree</guisubmenu></menuchoice>
@@ -2504,7 +2536,7 @@ Tk: 804.027
 	  <listitem>
 	    <para>Displayes the previous tree in the current file.
 	      Note that this shorcuts operates on the focused
-	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject> is pressed and all views are tied.
+	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject><textobject><phrase>lock</phrase></textobject></inlinemediaobject> is pressed and all views are tied.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -2516,7 +2548,7 @@ Tk: 804.027
 	  <listitem>
 	    <para>Displayes the next tree in the current file.
 	      Note that this shorcuts operates on the focused
-	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject></inlinemediaobject> is pressed and all views are tied.
+	      view only, even if button <inlinemediaobject><imageobject><imagedata fileref="pics/lock.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/lock.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/lock" format="linespecific"/></imageobject><textobject><phrase>lock</phrase></textobject></inlinemediaobject> is pressed and all views are tied.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -2585,7 +2617,7 @@ Tk: 804.027
 	</imageobject>
 	<imageobject>
 	  <imagedata fileref="pics/edit_node_dialog_old.eps" format="EPS" role="latex"/>
-	</imageobject>
+	</imageobject><textobject><phrase>edit node dialog</phrase></textobject>
       </mediaobject>
     </figure>
     <para>The new interface (now default for PML-based files
@@ -2607,7 +2639,7 @@ Tk: 804.027
 	</imageobject>
 	<imageobject>
 	  <imagedata fileref="pics/edit_node_dialog.eps" format="EPS" role="latex"/>
-	</imageobject>
+	</imageobject><textobject><phrase>edit node dialog</phrase></textobject>
       </mediaobject>
     </figure>
     <para>In this interface, the hierarchy
@@ -2756,7 +2788,7 @@ Tk: 804.027
       stylesheet is to click on the stylesheet menu-button shown on
       the picture <xref linkend="fig_patternset"/> below. This button
       can be found on the right side of the toolbar next to the
-      <inlinemediaobject><imageobject><imagedata fileref="pics/wizard.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/wizard.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/wizard" format="linespecific"/></imageobject></inlinemediaobject> button.
+      <inlinemediaobject><imageobject><imagedata fileref="pics/wizard.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/wizard.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/wizard" format="linespecific"/></imageobject><textobject><phrase>wizard</phrase></textobject></inlinemediaobject> button.
       Another way to select a stylesheet is using 
       <menuchoice moreinfo="none">
 	<guimenu moreinfo="none">View</guimenu>
@@ -2766,7 +2798,7 @@ Tk: 804.027
 
     <figure float="0" id="fig_patternset">
       <title>Switching between stylesheets</title>
-      <mediaobject><imageobject><imagedata fileref="pics/patternset.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/patternset.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/patternset" format="linespecific"/></imageobject></mediaobject>
+      <mediaobject><imageobject><imagedata fileref="pics/patternset.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/patternset.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/patternset" format="linespecific"/></imageobject><textobject><phrase>stylesheet-menu</phrase></textobject></mediaobject>
     </figure>
 
     <para>
@@ -2797,13 +2829,13 @@ Tk: 804.027
     </para>
     <para>
       Selected stylesheet can be edited in a stylesheet editor which
-      appears when <inlinemediaobject><imageobject><imagedata fileref="pics/wizard.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/wizard.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/wizard" format="linespecific"/></imageobject></inlinemediaobject> button is pressed or <menuchoice moreinfo="none">
+      appears when <inlinemediaobject><imageobject><imagedata fileref="pics/wizard.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/wizard.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/wizard" format="linespecific"/></imageobject><textobject><phrase>wizard</phrase></textobject></inlinemediaobject> button is pressed or <menuchoice moreinfo="none">
       <guimenu moreinfo="none">View</guimenu> <guimenuitem moreinfo="none">Edit stylesheet...</guimenuitem></menuchoice>
       menu command issued.
     </para>
     <figure float="0">
       <title>Stylesheet editor</title>
-      <mediaobject><imageobject><imagedata fileref="pics/customatt.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/customatt.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/customatt" format="linespecific"/></imageobject></mediaobject>
+      <mediaobject><imageobject><imagedata fileref="pics/customatt.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/customatt.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/customatt" format="linespecific"/></imageobject><textobject><phrase>stylesheet editor</phrase></textobject></mediaobject>
     </figure>
     <para>
       The dialog window contains two main elemens: a list of node
@@ -3594,7 +3626,7 @@ Tk: 804.027
     <figure float="0">
       <title>Print dialog
       </title>
-      <mediaobject><imageobject><imagedata fileref="pics/tredprint.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/tredprint.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/tredprint" format="linespecific"/></imageobject></mediaobject>
+      <mediaobject><imageobject><imagedata fileref="pics/tredprint.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/tredprint.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/tredprint" format="linespecific"/></imageobject><textobject><phrase>print dialog</phrase></textobject></mediaobject>
     </figure>
     <para>
       Encapsulated PostScript files (<literal
@@ -3719,7 +3751,7 @@ Tk: 804.027
 	  fileref="pics/1leftarrow.eps" format="EPS"
 	  role="latex"/></imageobject><imageobject><imagedata
 	  fileref="pics/1leftarrow"
-	  format="linespecific"/></imageobject></inlinemediaobject>
+	  format="linespecific"/></imageobject><textobject><phrase>left-arrow</phrase></textobject></inlinemediaobject>
 	  button is be used to automatically insert a page range
 	  corresponding to sentences selected via <link
 	  linkend="list_of_sentences"><menuchoice moreinfo="none">
@@ -3733,7 +3765,7 @@ Tk: 804.027
 	  fileref="pics/contents.eps" format="EPS"
 	  role="latex"/></imageobject><imageobject><imagedata
 	  fileref="pics/contents"
-	  format="linespecific"/></imageobject></inlinemediaobject>.
+	  format="linespecific"/></imageobject><textobject><phrase>contents</phrase></textobject></inlinemediaobject>.
 	</para>
       </listitem>
       <listitem>
@@ -3830,17 +3862,17 @@ sub CreateImages {
       fileref="pics/start.eps" format="EPS"
       role="latex"/></imageobject><imageobject><imagedata
       fileref="pics/start"
-      format="linespecific"/></imageobject></inlinemediaobject>
+      format="linespecific"/></imageobject><textobject><phrase>start</phrase></textobject></inlinemediaobject>
       button) and <menuchoice moreinfo="none"> <guimenu
       moreinfo="none">File</guimenu> <guimenuitem moreinfo="none">Next
       File</guimenuitem>
     </menuchoice>
-      (or <inlinemediaobject><imageobject><imagedata fileref="pics/finish.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/finish.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/finish" format="linespecific"/></imageobject></inlinemediaobject> button)
+      (or <inlinemediaobject><imageobject><imagedata fileref="pics/finish.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/finish.eps" format="EPS" role="latex"/></imageobject><imageobject><imagedata fileref="pics/finish" format="linespecific"/></imageobject><textobject><phrase>end</phrase></textobject></inlinemediaobject> button)
       can be used to open previous and next file in the file-list, respectively.
     </para>
     <figure float="0">
       <title>Creating file-lists</title>
-      <mediaobject><imageobject><imagedata fileref="pics/filelist.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filelist.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/filelist" format="linespecific"/></imageobject></mediaobject>
+      <mediaobject><imageobject><imagedata fileref="pics/filelist.png" format="PNG" role="html"/></imageobject><imageobject><imagedata fileref="pics/filelist.eps" format="EPS" role="latex" width="13cm"/></imageobject><imageobject><imagedata fileref="pics/filelist" format="linespecific"/></imageobject><textobject><phrase>file list</phrase></textobject></mediaobject>
     </figure>
     <para>
       The following file-lists are created and managed automatically
@@ -6297,7 +6329,7 @@ sub CreateImages {
 		fileref="pics/filefloppy.eps" format="EPS"
 		role="latex"/></imageobject><imageobject><imagedata
 		fileref="pics/filefloppy"
-		format="linespecific"/></imageobject></inlinemediaobject>
+		format="linespecific"/></imageobject><textobject><phrase>save-file</phrase></textobject></inlinemediaobject>
 		button). 
 	    </para>
 	  </listitem>
