@@ -6426,12 +6426,12 @@ sub CreateImages {
       basically only hash references where the
       attribute-name/attribute-value information is stored as a
       key/value pair (except that some hash keys are reserved for
-      representing the tree structure).  The
-      <classname>FSNode</classname> object provides several basic
-      methods, most of which are related to accessing its neighbouring nodes
+      representing the tree structure).  
+      <classname>FSNode</classname> objects provide several basic
+      methods, most of which are related to accessing their neighbouring nodes
       in the tree.
       </para>
-      <para>Macros may refer to nodes using the following
+      <para>Macros usually start from the nodes accessible via
 	global variables (declared within the <literal moreinfo="none">TredMacro</literal>
 	package, but exported by default to other derived
 	packages):
@@ -6440,7 +6440,7 @@ sub CreateImages {
 	<varlistentry>
 	  <term><literal moreinfo="none">$this</literal></term>
 	  <listitem>
-	    <para>Is the active node in the current tree.
+	    <para>is the active node in the current tree.
 	      Macros may use this variable to access the active node,
 	      it's attributes, methods etc. They also may assign
 	      to this variable to activate a different node.
@@ -6450,7 +6450,7 @@ sub CreateImages {
 	<varlistentry>
 	  <term><literal moreinfo="none">$root</literal></term>
 	  <listitem>
-	    <para>Is the root of the current tree.  Macros may use
+	    <para>is the root of the current tree.  Macros may use
 	      this variable to access the root of the tree and (by
 	      following the tree edges) to access the whole tree.
 	      Assigning to this variable has no visible effect.
