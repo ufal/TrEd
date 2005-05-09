@@ -65,8 +65,27 @@ if (exists $ENV{TREDHOME}) {
 } elsif (-d "$rb/../lib/tred") {
   $libDir="$rb/../lib/tred";
 }
-print STDERR "Trying $libDir\n" if ($libDir);
+print STDERR "Trying $libDir\n" if ($opt_D and $libDir);
 unshift @INC,"$libDir";
+
+do {
+  my $ld=$libDir;
+  require TrEd::Config;
+  import TrEd::Config;
+  import TrEd::Config qw(&read_config &set_default_config_file_search_list $defaultMacroFile);
+  $libDir=$ld;
+};
+
+$TrEd::Config::quiet=1;
+
+if (defined $config_file) {
+  @TrEd::Config::config_file_search_list=($config_file); 
+  # override any other possible config files
+} else {
+  set_default_config_file_search_list();
+}
+
+my $configFile=read_config();
 
 require Fslib;
 import Fslib;
