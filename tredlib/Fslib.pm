@@ -226,9 +226,11 @@ sub ReadEscapedLine {
 
 sub FindInResources {
   my ($filename)=@_;
-  unless ($filename =~ m(^\s*([[:alnum:]]+:)?(?:/|\Q${TrEd::Convert::Ds}\E))) {
+  my $Ds = ($^O eq "MSWin32") ? '\\' : '/';
+  unless ($filename =~ m(^\s*([[:alnum:]]+:)?(?:/|\Q$Ds\E))) {
     for my $dir (split /\Q${Fslib::resourcePathSplit}\E/o,$resourcePath) {
-      my $f = "$dir${TrEd::Convert::Ds}$filename";
+      $dir=~s/\Q$Ds\E\s*$//;
+      my $f = "$dir${Ds}$filename";
       return $f if $f;
     }
   }
@@ -1846,10 +1848,10 @@ sub writeFile {
   eval {
     no strict 'refs';
     my $fh;
-    $ret=$backend->can('write') || die "cant write\n";
+    $backend->can('write') || die "cant write\n";
     $backend->can('open_backend') || die "cant open\n";
     ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding)) || die "cant do open\n";
-    &{"${backend}::write"}($fh,$self) || die "can't do write\n";
+    $ret=&{"${backend}::write"}($fh,$self) || die "can't do write\n";
     &{"${backend}::close_backend"}($fh) || die "can't close\n";
     print STDERR "Status: $ret\n" if $Fslib::Debug;
   };
