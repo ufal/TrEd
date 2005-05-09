@@ -6432,9 +6432,8 @@ sub CreateImages {
       in the tree.
       </para>
       <para>Macros usually start from the nodes accessible via
-	global variables (declared within the <literal moreinfo="none">TredMacro</literal>
-	package, but exported by default to other derived
-	packages):
+	global variables (these variables are declared in the <literal moreinfo="none">TredMacro</literal>
+	package, but exported by default to any other derived package):
       </para>
       <variablelist>
 	<varlistentry>
