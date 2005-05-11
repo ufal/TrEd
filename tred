@@ -1848,8 +1848,8 @@ sub openFile {
       my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
       errorDialog($win,
 		  "Error: open failed",
-		  "File '$f' is unreadable, empty, corrupted, or does not exist ($trees trees read)!"
-		  ."\nPossible problem was:",
+		  "File '$f' is unreadable, empty, corrupted, or does not exist ($trees trees read)!".
+		  "\nPossible problem was:",
 		  $grp->{lastOpenError});
 
     }
@@ -2017,7 +2017,7 @@ sub saveFile {
   $win->{FSFile}->changeAppData('refs_save',undef);
   unless ($result) {
     $win->toplevel->Unbusy() unless $insideEval;
-    errorMessage($win,"Error while saving file to '$f': $!\nI'll try to recover the original from backup.\n".conv_from_locale($!)."\n",1);
+    errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n".conv_from_locale($!)."\n"."Check file and directory permissions.\nSee also the console error output.",1);
     undef $!;
     eval {
       IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
@@ -6003,11 +6003,11 @@ sub saveConfig {
        $configFile=$trc;
      } else {
        errorMessage($grp->{focusedWindow},'Cannot write to "'.$trc.'"!'."\n($lasterr)\n".
-		    "\nConfiguration could not be saved!\n",1);
+		    "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
      }
    } else {
      errorMessage($grp->{focusedWindow},"Cannot write to \"$configFile\"!"."\n($lasterr)\n".
-		  "\nConfiguration could not be saved!",1);
+		  "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
    }
  }
 }
@@ -6584,7 +6584,7 @@ sub openSimpleHtml {
 			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   if (defined($file) and $file ne "") {
     open my $html, ">$file" ||
-      errorMessage($top,"Cannot write to \"$file\"!"."\n(".conv_from_locale($!)."\n".
+      errorMessage($top,"Cannot write to \"$file\"!"."\n(".conv_from_locale($!)."\nCheck file and directory permissions.\n".
 		     "\nSentences could not be saved!",1);
     my $encoding=$TrEd::Convert::outputenc;
     if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
