@@ -2017,13 +2017,13 @@ sub saveFile {
   $win->{FSFile}->changeAppData('refs_save',undef);
   unless ($result) {
     $win->toplevel->Unbusy() unless $insideEval;
-    errorMessage($win,"Error while saving file to '$f': $!\nI'll try to recover the original from backup.\n".conv_from_locale($!)."\n");
+    errorMessage($win,"Error while saving file to '$f': $!\nI'll try to recover the original from backup.\n".conv_from_locale($!)."\n",1);
     undef $!;
     eval {
       IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
     };
     my $err = "Error while renaming backup file $f~ back to $f.\n"._last_err();
-    errorMessage($win,$err) if $err;
+    errorMessage($win,$err,1) if $err;
     return -1;
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
@@ -2671,7 +2671,7 @@ sub filelistDialog {
   if (!ref($win->{currentFilelist})) {
     if ($win->{FSFile}) {
       errorMessage($win,"Can't manage file-lists while visiting a file not belonging to any file-list! ".
-		   "Please, switch to a file-list (e.g. using Session->Default) and try again.");
+		   "Please, switch to a file-list (e.g. using Session->Default) and try again.",1);
       return;
     } else {
       selectFilelist($grp,'Default');
@@ -3020,7 +3020,7 @@ sub macrolistDialog {
     return;
   }
   unless (scalar(keys %{$menuBindings{$context}})) {
-    errorMessage($grp->{focusedWindow},"No named macros in current context ($context)");
+    errorMessage($grp->{focusedWindow},"No named macros in current context ($context)",1);
     return;
   }
   my $d= $grp->{top}->Toplevel(-title=> "List of available named macros");
@@ -3864,7 +3864,7 @@ sub switchStylesheet {
       $stylesheet=$prevstylesheet;
     } elsif (exists($grp->{stylesheets}->{$stylesheet})) {
       errorMessage($win,
-		   "Stylesheet named '$stylesheet' already exists!\n");
+		   "Stylesheet named '$stylesheet' already exists!\n",1);
       $stylesheet=$prevstylesheet;
     } else {
       $grp->{stylesheets}->{$stylesheet}->{patterns}=[getWindowPatterns($win)];
@@ -5865,8 +5865,7 @@ EOF
 	    }
 	    errorMessage($win,
 			 "Couldn't find reference to the current file in the following files:\n\n".
-			   join("\n",map { $_->filename } @fs)
-			  ) if @failed;
+			   join("\n",map { $_->filename } @fs),1) if @failed;
 	  }
 	}
       }
@@ -6004,11 +6003,11 @@ sub saveConfig {
        $configFile=$trc;
      } else {
        errorMessage($grp->{focusedWindow},'Cannot write to "'.$trc.'"!'."\n($lasterr)\n".
-		    "\nConfiguration could not be saved!\n");
+		    "\nConfiguration could not be saved!\n",1);
      }
    } else {
      errorMessage($grp->{focusedWindow},"Cannot write to \"$configFile\"!"."\n($lasterr)\n".
-		  "\nConfiguration could not be saved!");
+		  "\nConfiguration could not be saved!",1);
    }
  }
 }
@@ -6586,7 +6585,7 @@ sub openSimpleHtml {
   if (defined($file) and $file ne "") {
     open my $html, ">$file" ||
       errorMessage($top,"Cannot write to \"$file\"!"."\n(".conv_from_locale($!)."\n".
-		     "\nSentences could not be saved!");
+		     "\nSentences could not be saved!",1);
     my $encoding=$TrEd::Convert::outputenc;
     if ($]>=5.008 and not $TrEd::Convert::support_unicode) {
       _set_encoding($html,':bytes',"html-out");
@@ -6627,7 +6626,7 @@ sub dumpSentView {
 
   my @selref = split /,/,sentViewGetSelection($grp,$selref);
   unless (@selref) {
-    errorMessage($t->toplevel,"No sentences selected. Select requested sentences and try again. To select a sentence, click the round button in front of it.");
+    errorMessage($t->toplevel,"No sentences selected. Select requested sentences and try again. To select a sentence, click the round button in front of it.",1);
     return;
   }
 
@@ -6883,8 +6882,8 @@ sub editAttrsDialog_schema {
       }
     } else {
       errorMessage($win,"Untyped node: can't edit untyped node in a file with a schema defining un-named node-types...\n".
-      join "\n",map { Dumper($_) } grep {!(UNIVERSAL::isa($_,'HASH') and 
-	  exists $_->{name} and $_->{name} ne "")} @ntypes);
+      join("\n",map { Dumper($_) } grep {!(UNIVERSAL::isa($_,'HASH') and 
+	  exists $_->{name} and $_->{name} ne "")} @ntypes),1);
       return;
     }
   } else {
