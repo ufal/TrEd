@@ -163,7 +163,7 @@ sub setCurrent {
 }
 
 sub _messageBox {
-  my ($top,$title,$msg)=@_;
+  my ($top,$title,$msg,$nobug)=@_;
   my $d= $top->DialogBox(-title=> $title,
 		      -buttons=> ['OK']);
   $d->Label(-text => "ERROR",
@@ -172,8 +172,10 @@ sub _messageBox {
 	   )
     ->pack(-pady => 5,-side => 'top', -fill => 'x');
   $d->Label(-text => 
+	    $nobug ? "Operation failed - full error message follows.\n" :
 	      "An error occured during a protected transaction.\n".
-	      "You may wish to copy the error message displayed below and report it to the author.",
+	      "If you believe that it was caused by a bug in TrEd, you may wish to\n".
+	      "copy the error message displayed below and report it to the author.",
 	    -justify => 'left'
 	   )->pack(-pady => 10,-side => 'top', -fill => 'x');
   my $t= $d->
@@ -188,7 +190,7 @@ sub _messageBox {
 }
 
 sub errorMessage {
-  my ($win,$msg)=@_;
+  my ($win,$msg,$nobug)=@_;
   if ($on_error) {
     &$on_error(@_);
   } else {
@@ -202,7 +204,7 @@ sub errorMessage {
       $top = $win->{framegroup}->{top}->toplevel;
     }
     if ($top) {
-      _messageBox($top,'Error',$msg);
+      _messageBox($top,'Error',$msg,$nobug);
       #       $top->messageBox(-icon=> 'error',
       # 		       -message=> $msg,
       # 		       -title=> 'Error', -type=> 'ok');
