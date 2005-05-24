@@ -100,6 +100,10 @@ in <ulink url="btred.html">btred</ulink> and <ulink url="ntred.html">ntred</ulin
 manual pages.
 </para>
 
+<para>Note that some of the examples in this tutorial are specific to
+PDT 2.0 data only and need not be directly applicable to other data
+formats even if supported by TrEd.
+</para>
 
 
 
