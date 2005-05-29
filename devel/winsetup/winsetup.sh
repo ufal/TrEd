@@ -363,7 +363,9 @@ fi
 if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     cp -R tred/* "${TREDDIR}"             && \
     ([[ ! -f tred.mac ]] || cp tred.mac "${TREDDIR}/tredlib")  && \
-    ([[ ! -d resources ]] || cp -R resources "${TREDDIR}/")  && \
+    ([[ ! -d resources ]] || \
+       ([[ -d "${TREDDIR}/resources" ]] || mkdir "${TREDDIR}/resources";\
+        cp -R resources/* "${TREDDIR}/resources"))  && \
     ([[ $SAVED_TREDRC = 1 || "$TREDRC" = "" || ! -f "$TREDRC" ]] || \
      (echo "$MSG044 $TREDRC $MSG045"; cp $TREDRC "${TREDDIR}/tredlib/tredrc"))  && \
     mkplbat tred                          && \
