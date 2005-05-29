@@ -66,7 +66,7 @@ sub index_by_id {
     my $next;
     if ($node->nodeType == ELEMENT_NODE) {
       my $id = $node->getAttribute('id');
-      $index{$id}=$node if defined($id);
+      $index{$id}=$node if defined $id;
       $next = $node->firstChild || $node->nextSibling;
     } else {
       $next = $node->nextSibling;
@@ -157,6 +157,7 @@ sub read_references {
   }
   $fsfile->changeMetaData('references',\%references);
   $fsfile->changeMetaData('refnames',\%named_references);
+  1;
 }
 
 =item read_List($node)
@@ -267,6 +268,7 @@ sub node_children {
     $prev = $son;
   }
   $node->{$Fslib::firstson} = $list->[0];
+  1;
 }
 
 sub read_element ($$$;$) {
@@ -529,6 +531,7 @@ sub readas_trees {
   my $requires = ($fsfile->metaData('fs-require') || []);
   push @$requires,[$refid,$href];
   $fsfile->changeMetaData('fs-require',$requires);
+  1;
 }
 sub readas_dom {
   my ($parser,$fsfile,$refid,$href)=@_;
@@ -548,6 +551,7 @@ sub readas_dom {
   } else {
     die "Couldn't open '".$href."': $!\n";
   }
+  1;
 }
 
 sub get_references {
@@ -676,6 +680,7 @@ sub read_trees {
   } else {
     die "No #TREES found in PML schema\n";
   }
+  1;
 }
 
 =pod
@@ -1003,6 +1008,7 @@ sub write_object ($$$$$$) {
     }
     $xml->endTag($tag) if defined($tag);
   }
+  1;
 }
 
 
@@ -1020,6 +1026,7 @@ sub write_extra_element {
   } else {
     warn "PML-element '".$element->{'#name'}."' node is not allowed in prolog/epilog\n";
   }
+  1;
 }
 
 
@@ -1083,6 +1090,7 @@ sub test {
     for (my $i=0; $i<@attrs; $i+=2) {
       $self->{ELEMENT}->setAttribute( $attrs[$i] => $attrs[$i+1] );
     }
+    1;
   }
   sub endTag {
     my ($self,$name)=@_;
@@ -1095,6 +1103,7 @@ sub test {
 	    " with </$name>\n";
       }
     }
+    1;
   }
   sub characters {
     my ($self,$pcdata) = @_;
@@ -1105,6 +1114,7 @@ sub test {
     } else {
       $self->{ELEMENT}->appendTextNode($pcdata);
     }
+    1;
   }
   sub cdata {
     my ($self,$pcdata) = @_;
@@ -1115,5 +1125,6 @@ sub test {
     } else {
       $self->{ELEMENT}->appendChild($self->{DOM}->createCDATASection($pcdata));
     }
+    1;
   }
 1;
