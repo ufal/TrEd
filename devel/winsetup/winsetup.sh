@@ -48,7 +48,7 @@ if [[ "$INSTPERLVER" = 6 ]]; then
 else
   packages_ap58=packages58_win32
   PACKAGES58="$PACKAGES58 $(cat $packages_ap58/packages_list | sed s/-/::/)"
-  REQPERLVER=8
+  REQPERLVER="8\.[3-9]|9|1[0-9]"
   REQPERLINSTDIR=win32_perl58
 fi
 
@@ -133,7 +133,7 @@ function findtreddir {
 function perl_version_current {
   INSTVER=`$PERLBIN --version | grep "This is perl."`
   echo $INSTVER
-  if $PERLBIN --version | grep -q 'This is perl.* v5\.'${REQPERLVER}; then
+  if $PERLBIN --version | grep -Eq 'This is perl.* v5\.'"${REQPERLVER}"; then
     return 0
   else 
     return 1
