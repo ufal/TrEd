@@ -318,7 +318,11 @@ Password:
 		on the CD-ROM.
 	      </para>
 	    </note>
-	    Finally, create symlinks to <command moreinfo="none">tred</command>,
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    Create symlinks to <command moreinfo="none">tred</command>,
 	    <command moreinfo="none">btred</command>, and <command moreinfo="none">ntred</command>
 	    executables from the destination directory you have chosen to
 	    some directory in your path, e.g.

@@ -14,8 +14,8 @@ use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_g
 
 our $objectno;
 our ($block, $bblock);
-$block=qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
-$bblock=qr/\{(?:(?> [^{}]* )|(??{ $bblock }))*\}/x;
+$block  = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
+$bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
 
 
 use strict;
