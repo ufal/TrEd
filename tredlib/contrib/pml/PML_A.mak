@@ -91,6 +91,7 @@ sub file_resumed_hook {
   }
 }
 
+
 #endif TRED
 
 
@@ -334,7 +335,10 @@ sub allow_switch_context_hook {
 }
 sub switch_context_hook {
   CreateStylesheets();
-  SetCurrentStylesheet('PML_A') if GetCurrentStylesheet() eq STYLESHEET_FROM_FILE();
+  my $cur_stylesheet = GetCurrentStylesheet();
+  SetCurrentStylesheet('PML_A')
+    if $cur_stylesheet eq STYLESHEET_FROM_FILE() or
+       $cur_stylesheet =~ /^PML_T(?:_|\b)/;
 }
 
 
