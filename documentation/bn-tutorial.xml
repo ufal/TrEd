@@ -235,7 +235,7 @@ the btred environment. The most important ones are:
   <listitem><simpara><literal>$root</literal> &ndash; root of the current tree.</simpara></listitem>
 </itemizedlist>
 
-See <ulink url="rewrite:tred_manual#defaultmacros"/> to see them all. Remember that these variables should not be re-declared in your code;
+See Section <ulink url="rewrite:tred_manual#defaultmacros"/> in the <ulink url="rewrite:tred_manual"/> to see them all. Remember that these variables should not be re-declared in your code;
 if you use the <literal>strict</literal> module  in your code to restrict
 unsafe constructions (including the usage of undeclared variables),
 you have to introduce these variables by the following line:
@@ -360,7 +360,7 @@ Nodes, as Perl objects, have attributes and methods.
 The methods can be accessed using the
 <literal>$node->method(arguments)</literal> syntax.
 
- All the available methods are documented in table <ulink url="rewrite:tred_manual#fsnode_methods">FSNode
+ All the available methods are documented in Table <ulink url="rewrite:tred_manual#fsnode_methods">FSNode
  methods</ulink> in the <ulink url="rewrite:tred_manual"/>.
 
 
@@ -642,8 +642,9 @@ miliónů korun také na jeho opravy a rekonstrukci.
 <title>Hooks</title>
 
 <para>There is a special set of subroutines, called hooks, that have
-pre-defined names and are executed on certain occasions (see
-<ulink url="rewrite:tred_manual#hooks"/> for detailed
+pre-defined names and are executed on certain occasions (see Section
+<ulink url="rewrite:tred_manual#hooks"/> in the <ulink
+url="rewrite:tred_manual"/> for detailed
 information).
 For instance, <literal>file_opened_hook()</literal> hook is executed
 for each file before starting the iterations over its content.
