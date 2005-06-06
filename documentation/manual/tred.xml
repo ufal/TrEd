@@ -233,7 +233,8 @@
 	All the above modules and their dependencies can be obtained
 	and installed in a single step using the
 	<command moreinfo="none">./install</command> script of the <ulink url="http://ckl.mff.cuni.cz/pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
-	package as described below.
+	package as described below. The install script compiles and
+	installs all required modules.	
 	<note role="PDT20">
 	  <para>
 	    If you have the <productname class="trade">Prague
@@ -6694,7 +6695,7 @@ sub CreateImages {
 	  is a pointer to an object of the <classname>FSFile</classname>
 	  class. The following methods are provided for the class:
 	</para>
-	<table>
+	<table id="fsnode_methods">
 	  <title><classname>FSFile</classname> class methods</title>
 	  <tgroup cols="2">
 	    <colspec colnum="1" align="left"/>
