@@ -235,8 +235,7 @@ the btred environment. The most important ones are:
   <listitem><simpara><literal>$root</literal> &ndash; root of the current tree.</simpara></listitem>
 </itemizedlist>
 
-See section "Global variables" in the <ulink url="ar01s12.html">tred
-documentation</ulink> to see them all. Remember that these variables should not be re-declared in your code;
+See <ulink url="rewrite:tred_manual#defaultmacros"/> to see them all. Remember that these variables should not be re-declared in your code;
 if you use the <literal>strict</literal> module  in your code to restrict
 unsafe constructions (including the usage of undeclared variables),
 you have to introduce these variables by the following line:
@@ -361,9 +360,8 @@ Nodes, as Perl objects, have attributes and methods.
 The methods can be accessed using the
 <literal>$node->method(arguments)</literal> syntax.
 
- All the available methods are documented in table "FSNode
- methods" in the <ulink url="ar01s12.html">tred documentation</ulink>.
-
+ All the available methods are documented in table <ulink url="rewrite:tred_manual#fsnode_methods">FSNode
+ methods</ulink> in the <ulink url="rewrite:tred_manual"/>.
 
 
 The most important methods for traversing the tree are
@@ -645,8 +643,7 @@ miliónů korun také na jeho opravy a rekonstrukci.
 
 <para>There is a special set of subroutines, called hooks, that have
 pre-defined names and are executed on certain occasions (see
-section "Hooks: automatically executed macros" in the
-<ulink url="ar01s12.html">tred documentation</ulink> for detailed
+<ulink url="rewrite:tred_manual#hooks"/> for detailed
 information).
 For instance, <literal>file_opened_hook()</literal> hook is executed
 for each file before starting the iterations over its content.
