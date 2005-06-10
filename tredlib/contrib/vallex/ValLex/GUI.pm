@@ -193,6 +193,7 @@ sub OpenEditor {
 
   my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ? 
 				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
+  $lemma=~s/_/ /g;
 
   my $pos='V';
   if (exists($opts{-pos})) {
