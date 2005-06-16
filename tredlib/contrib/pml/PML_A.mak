@@ -255,6 +255,70 @@ sub GetEChildren{ # node dive
   return@sons;
 } # GetEChildren
 
+=item ANodeToALexRf(a_node,t_node,t_file)
+
+Adds given a-node's C<id> to C<a/lex.rf> of the given t-node and
+adjusts C<t_lemma> of the t-node accordingly. The third argument
+t_file specifies the C<FSFile> object to which the given t-node
+belongs.
+
+=cut
+
+sub ANodeToALexRf {
+  my ($a_node,$t_node,$t_file)=@_;
+  return unless ref($t_node) && ref($a_node) && ref($t_file);
+  my $refid = $t_file->metaData('refnames')->{adata};
+  $t_node->{a}{'lex.rf'}=$refid."#".$a_node->{id};
+  @{$t_node->{a}{'aux.rf'}}=grep{ $_ ne $refid."#".$a_node->{id} }
+    uniq(ListV($t_node->{a}{'aux.rf'}));
+  my$lemma=$this->{'m'}{lemma};
+  my%specialEntity;
+  %specialEntity=qw!. Period
+                    , Comma
+                    &amp; Amp
+                    - Dash
+                    / Slash
+                    ( Bracket
+                    ) Bracket
+                    ; Semicolon
+                    : Colon
+                    &ast; Ast
+                    &verbar; Verbar
+                    &percnt; Percnt
+                    !;
+  if($lemma=~/^.*`([^0-9_-]+)/){
+    $lemma=$1;
+  }else{
+    $lemma=~s/(.+?)[-_`].*$/$1/;
+    if($lemma =~/^(?:(?:[ts]v|m)ùj|já|ty|jeho|se)$/){
+      $lemma='#PersPron';
+    }
+    $lemma="#$specialEntity{$lemma}"if exists$specialEntity{$lemma};
+  }
+  $t_node->{t_lemma}=$lemma;
+} #ANodeToALexRf
+
+=item ANodeToALexRf(a_node,t_node,t_file)
+
+Appends given a-node's C<id> to C<a/aux.rf> of the given t-node. The
+third argument t_file specifies the C<FSFile> object to which the
+given t-node belongs.
+
+=cut
+
+sub ANodeToAAuxRf {
+  my ($a_node,$t_node,$t_file)=@_;
+  return unless $t_node && $a_node;
+  return unless ref($t_file);
+  my $refid = $t_file->metaData('refnames')->{adata};
+  AddToList($t_node,'a/aux.rf',$refid.'#'.$a_node->{id});
+  @{$t_node->{a}{'aux.rf'}}=uniq(ListV($t_node->{a}{'aux.rf'}));
+  delete $t_node->{a}{'lex.rf'}
+    if $t_node->attr('a/lex.rf')eq$refid.'#'.$a_node->{id};
+}#ANodeToAAuxRf
+
+
+
 =item CreateStylesheets()
 
 Creates default stylesheet for PML analytical files unless already
