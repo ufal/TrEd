@@ -24,14 +24,8 @@ use constant {
 
 
 $encoding='utf8';
-@pmlformat = (
-);
-
-@pmlpatterns = (
-'<?$${form} unless $${form} eq \'???\' ?>${trace}${label}',
-'style:#{Line-coords:n,n,n,p&n,p,p,p}'
-);
-
+@pmlformat = ();
+@pmlpatterns = ();
 $pmlhint="";
 
 sub _debug {
