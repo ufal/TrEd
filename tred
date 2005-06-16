@@ -21,7 +21,7 @@ if ($^V lt v5.6.0) {
 
 use vars qw($version $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
-	    $opt_n $opt_D $opt_v $opt_H
+	    $opt_n $opt_D $opt_v $opt_H $opt_I
             $libDir
 	    $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
@@ -78,12 +78,12 @@ Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
 use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GHDYB:RX:s:');
+getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:');
 
 if ($opt_u || $opt_h) {
   print <<'EOH';
 Usage:
- tred [-q] [-c <config-file>] [-m <macro-file>] [-t context]
+ tred [-q] [-c <config-file>] [-m|-I <macro-file>] [-t context]
       [-l <filelist>] [-n encoding] file1[##N|#N] [file2[##N|#N] [...]]
 or
  tred -u|-h|-v    for usage/help/version
@@ -106,7 +106,9 @@ Each filename may be followed by suffixes of the following forms:
 	the given file after the file is opened.
 
 -m      specifies a macro file different from the one given in your
-	configuration file.
+	configuration file (tred.mac by default)
+
+-I      specifies an additional macro file
 
 -c      specifies a config-file to be used (overrides
 	~/.tredrc and all the other files TrEd would otherwise try to
@@ -521,6 +523,12 @@ if ($opt_X ne "") {
 
 print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
 read_macros($macroFile,$libDir);		# read macros
+if ($opt_I) {
+  print STDERR ("Reading additional macros from $opt_I...\n") unless $opt_q;
+  push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+  read_macros($opt_I,$libDir,1);
+}
+
 print STDERR "done.\n" unless $opt_q;
 
 startMain();	# display first tree
@@ -1224,7 +1232,7 @@ sub closeFile {
 	      @{$req_fs->appData('fs-part-of')} = grep { $_ != $fsfile } @{$req_fs->appData('fs-part-of')};
 	    }
 	    unless (fsfileDisplayingWindows($win->{framegroup},$req_fs)) {
-	      print STDERR "Attepmpting to close dependent ".$req_fs->filename."\n" if $tredDebug;
+	      print STDERR "Attempting to close dependent ".$req_fs->filename."\n" if $tredDebug;
 	      closeFile($win,  %opts, -fsfile => $req_fs,-keep_postponed => 0);
 	    }
 	  }
