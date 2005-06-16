@@ -124,7 +124,7 @@ sub AddThisToAAuxRf {
   $tr_fs->notSaved(1);
 }#AddThisToAAuxRf
 
-=item AddThisToAAuxRf()
+=item RemoveThisFromARf()
 
 If called from analytical tree entered through
 C<PML_T_Edit::MarkForARf>, remove this node's C<id> from C<a/lex.rf>
