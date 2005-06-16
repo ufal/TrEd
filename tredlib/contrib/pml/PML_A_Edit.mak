@@ -64,41 +64,11 @@ of the marked tectogrammatical node.
 
 =cut
 
-#bind AddThisToALexRf to Ctrl++ Add This to a/lex.rf of Marked Node
+#bind AddThisToALexRf to Ctrl++ menu Add This to a/lex.rf of Marked Node
 sub AddThisToALexRf {
   ChangingFile(0);
-  return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
-  return 0 unless ref($tr_fs);
-  my $refid = $tr_fs->metaData('refnames')->{adata};
-  $PML::arf->{a}{'lex.rf'}=$refid."#".$this->{id};
-  @{$PML::arf->{a}{'aux.rf'}}=grep{ $_ ne $refid."#".$this->{id} }
-    uniq(ListV($PML::arf->{a}{'aux.rf'}));
-  my$lemma=$this->{'m'}{lemma};
-  my%specialEntity;
-  %specialEntity=qw!. Period
-                    , Comma
-                    &amp; Amp
-                    - Dash
-                    / Slash
-                    ( Bracket
-                    ) Bracket
-                    ; Semicolon
-                    : Colon
-                    &ast; Ast
-                    &verbar; Verbar
-                    &percnt; Percnt
-                    !;
-  if($lemma=~/^.*`([^0-9_-]+)/){
-    $lemma=$1;
-  }else{
-    $lemma=~s/(.+?)[-_`].*$/$1/;
-    if($lemma =~/^(?:(?:[ts]v|m)ùj|já|ty|jeho|se)$/){
-      $lemma='#PersPron';
-    }
-    $lemma="#$specialEntity{$lemma}"if exists$specialEntity{$lemma};
-  }
-  $PML::arf->{t_lemma}=$lemma;
+  ANodeToALexRf($this,$PML::arf,$tr_fs);
   $tr_fs->notSaved(1);
 }#AddThisToALexRf
 
@@ -113,14 +83,8 @@ of the marked tectogrammatical node.
 #bind AddThisToAAuxRf to + menu Add This to a/aux.rf of Marked Node
 sub AddThisToAAuxRf {
   ChangingFile(0);
-  return unless $PML::arf;
   my $tr_fs = $grp->{FSFile}->appData('tdata');
-  return 0 unless ref($tr_fs);
-  my $refid = $tr_fs->metaData('refnames')->{adata};
-  AddToList($PML::arf,'a/aux.rf',$refid.'#'.$this->{id});
-  @{$PML::arf->{a}{'aux.rf'}}=uniq(ListV($PML::arf->{a}{'aux.rf'}));
-  delete $PML::arf->{a}{'lex.rf'}
-    if $PML::arf->attr('a/lex.rf')eq$refid.'#'.$this->{id};
+  ANodeToAAuxRf($this,$PML::arf,$tr_fs);
   $tr_fs->notSaved(1);
 }#AddThisToAAuxRf
 
