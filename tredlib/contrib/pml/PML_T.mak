@@ -1019,20 +1019,31 @@ sub DeleteSubtree{
   ChangingFile(1);
 }#DeleteSubtree
 
-=item NewNode(node?)
+=item NewNode(node?,id?)
 
-Add new node as a son of the given node or current node.
+Add new node as a son of the given node or current node.  Unless id is
+given, a new unique ID for the node is computed.
 
 =cut
 
 sub NewNode{
-  shift unless ref $_[0];
-  my$node=$_[0]||$this;
+  shift unless ref($_[0]);
+  my ($node,$id);
+  $node ||= $this;
   my$new=NewSon($node);
-  $new->{id}=$new->root->{id}.'a'.
-    ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$root->descendants)[0]+1);
-  my $type = first {$_->{name} eq 't-node' } Schema()->node_types;
-  $new->set_type(Schema()->type($type))
+  my $schema;
+  if (ref($node) and $node->type) {
+    $schema = $node->type->schema;
+  } else {
+    $schema = Schema();
+  }
+  $id = $new->root->{id}.'a'.
+    ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$root->descendants)[0]+1)
+      if $id eq "";
+  $new->{id}=$id;
+  my $type = first {$_->{name} eq 't-node' } $schema->node_types;
+  $new->set_type($schema->type($type));
+  $new;
 }#NewNode
 
 =item OpenValFrameList(node?,options...)
