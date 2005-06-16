@@ -43,7 +43,7 @@ Return PML schema associated with a given (or the current) file
 sub Schema {
   my $fsfile = $_[0] || $grp->{FSFile};
   return undef unless $fsfile;
-  return $grp->{FSFile}->metaData('schema');
+  return $fsfile->metaData('schema');
 } #Schema
 
 =item GetNodeByID($id_or_ref,$fsfile?)
