@@ -64,7 +64,11 @@ sub CreateTFile {
 					vallex => 'v'
 				      });
 
-  push @{ $a_file->appData('fs-part-of') }, $fsfile;
+  if (ref($a_file->appData('fs-part-of'))) {
+    push @{ $a_file->appData('fs-part-of') }, $fsfile;
+  } else {
+    $a_file->changeAppData('fs-part-of', [$fsfile]);
+  }
   $fsfile->changeAppData('ref',{a => $a_file});
   $fsfile->changeMetaData('fs-require',[['a',$a_file->filename]]);
   $a_file->changeAppData('tdata',$fsfile);
