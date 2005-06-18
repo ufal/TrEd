@@ -271,7 +271,7 @@ sub ANodeToALexRf {
   $t_node->set_attr('a/lex.rf',$refid."#".$a_node->{id});
   $t_node->set_attr('a/aux.rf',List(grep{ $_ ne $refid."#".$a_node->{id} }
     uniq(ListV($t_node->{a}{'aux.rf'}))));
-  my$lemma=$this->attr('m/lemma');
+  my$lemma=$a_node->attr('m/lemma');
   my%specialEntity;
   %specialEntity=qw!. Period
                     , Comma
