@@ -1028,7 +1028,7 @@ given, a new unique ID for the node is computed.
 
 sub NewNode{
   shift unless ref($_[0]);
-  my ($node,$id);
+  my ($node,$id)=@_;
   $node ||= $this;
   my$new=NewSon($node);
   my $schema;
