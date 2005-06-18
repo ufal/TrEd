@@ -268,10 +268,10 @@ sub ANodeToALexRf {
   my ($a_node,$t_node,$t_file)=@_;
   return unless ref($t_node) && ref($a_node) && ref($t_file);
   my $refid = $t_file->metaData('refnames')->{adata};
-  $t_node->{a}{'lex.rf'}=$refid."#".$a_node->{id};
-  @{$t_node->{a}{'aux.rf'}}=grep{ $_ ne $refid."#".$a_node->{id} }
-    uniq(ListV($t_node->{a}{'aux.rf'}));
-  my$lemma=$this->{'m'}{lemma};
+  $t_node->set_attr('a/lex.rf',$refid."#".$a_node->{id});
+  $t_node->set_attr('a/aux.rf',List(grep{ $_ ne $refid."#".$a_node->{id} }
+    uniq(ListV($t_node->{a}{'aux.rf'}))));
+  my$lemma=$this->attr('m/lemma');
   my%specialEntity;
   %specialEntity=qw!. Period
                     , Comma
