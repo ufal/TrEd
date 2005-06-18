@@ -295,7 +295,7 @@ sub ANodeToALexRf {
     }
     $lemma="#$specialEntity{$lemma}"if exists$specialEntity{$lemma};
   }
-  $t_node->{t_lemma}=$lemma;
+  $t_node->{'t_lemma'}=$lemma;
 } #ANodeToALexRf
 
 =item ANodeToALexRf(a_node,t_node,t_file)
