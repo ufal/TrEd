@@ -57,11 +57,11 @@ sub open_backend {
   $filename=~s/@/##/;
   if ($filename) {
     if ($mode eq 'w') {
-      $cmd = "| $ntred --upload-file \"$filename\" 2>/dev/null";
+      $cmd = "| $ntred -Q --upload-file \"$filename\" ";
       print STDERR "[w $cmd]\n" if $Fslib::Debug;
       eval { open $fh,"$cmd"; } || return undef;
     } else {
-      $cmd = "$ntred --dump-files \"$filename\" 2>/dev/null |";
+      $cmd = "$ntred -Q --dump-files \"$filename\" |";
       print STDERR "[r $cmd]\n" if $Fslib::Debug;
       eval { open $fh,"$cmd"; } || return undef;
     }
