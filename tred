@@ -6951,9 +6951,11 @@ sub editAttrsDialog_schema {
   if ($attr_path ne "") {
     $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
   } elsif (ref($node_type) and $node_type->{member}) {
-    $edit->add_members('',$node_type,$node);
+    # 1=allow empty (don't create empty structures)
+    $edit->add_members('',$node_type,$node,1);
   } else {
-    $edit->add_xmlnode('',$node_type,$node);
+    # 1=allow empty (don't create empty structures)
+    $edit->add_xmlnode('',$node_type,$node,1);
   }
 
   if ($attr_path eq "") {
