@@ -714,7 +714,7 @@ sub add_member {
 	$alt_no++;
 	$hlist->add_alt_member($path,$mtype,$val,$alt_no);
       }
-    } elsif(!$attr_val and $allow_empty) {
+    } elsif(!$attr_val and !$allow_empty) {
       $alt_no++;
       $hlist->add_alt_member($path,$mtype,$attr_val,$alt_no);
     } else {
