@@ -8,6 +8,7 @@
 
 
 package PML_T;
+use Carp;
 
 #encoding iso-8859-2
 
@@ -1021,8 +1022,10 @@ sub DeleteSubtree{
 
 =item NewNode(node?,id?)
 
-Add new node as a son of the given node or current node.  Unless id is
-given, a new unique ID for the node is computed.
+Add new node as a son of the given node or current node, initializes
+the new node using InitNode. If id is specified, it is assigned to the
+new node. Otherwise, a unique ID is computed and assigned to the node
+using NewID.
 
 =cut
 
@@ -1030,21 +1033,49 @@ sub NewNode{
   shift unless ref($_[0]);
   my ($node,$id)=@_;
   $node ||= $this;
-  my$new=NewSon($node);
-  my $schema;
-  if (ref($node) and $node->type) {
-    $schema = $node->type->schema;
-  } else {
-    $schema = Schema();
-  }
-  $id = $new->root->{id}.'a'.
-    ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$root->descendants)[0]+1)
-      if $id eq "";
-  $new->{id}=$id;
-  my $type = first {$_->{name} eq 't-node' } $schema->node_types;
-  $new->set_type($schema->type($type));
+  my $new = InitNode(NewSon($node),$node);
+  $new->{id} = defined($id) ? $id : NewID($new);
   $new;
 }#NewNode
+
+=item InitNode(node,obj?)
+
+Initialize already existing FSNode object as a t-node by associating
+it with t-node PML schema type. If the node belongs to a different
+file than the current one, the FSFile or some already initialized node
+of that file must be specified as the second argument. Returns the
+initialized node.
+
+=cut
+
+sub InitNode{
+  shift unless ref($_[0]);
+  my ($node,$obj)=@_;
+  croak("InitNode: no node specified") unless ref($node);
+  my $schema = Schema($obj);
+  croak("InitNode: Couldn't derive PML schema") unless (ref($schema));
+  my $type = first {$_->{name} eq 't-node' } $schema->node_types;
+  $node->set_type($schema->type($type));
+  $node;
+}#InitNode
+
+=item NewID(node?)
+
+Tries to compute a new unique ID based on the ID's in the tree to
+which the given node belongs. If no node is specified, the
+global variable $root is used. Returns the computed ID.
+
+=cut
+
+sub NewID {
+  shift unless ref($_[0]);
+  my $top = ref($_[0]) ? $_[0]->root : $root;
+  my $id = $top->{id}.'a'.
+    ((sort {$b<=>$a} map{$_->{id}=~/a([0-9]+)$/;$1}$top->descendants)[0]+1)
+      if $id eq "";
+  $id;
+}#NewNode
+
 
 =item OpenValFrameList(node?,options...)
 
