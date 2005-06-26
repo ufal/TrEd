@@ -383,7 +383,7 @@ sub PrevNodeLinear {
   my $best_v;
 
   my $nv;
-  $node=$top || $root; # reusing variable $node
+  $node=$top || $node->root; # reusing variable $node
   while ($node) {
     $nv=$node->{$attr};
     if ($nv < $v and
@@ -414,7 +414,7 @@ sub NextNodeLinear {
   my $best_v;
 
   my $nv;
-  $node=$top || $root; # reusing the variable
+  $node=$top || $node->root; # reusing the variable
   while ($node) {
     $nv=$node->{$attr};
     if ($nv > $v and
@@ -642,6 +642,20 @@ sub NewTreeAfter {
   return $root;
 }
 
+#
+# Try heuristically identify the ordering attribute
+#
+
+sub _node_ord {
+  my ($node)=@_;
+  my $type = $node ? $node->type : undef;
+  if ($type) {
+    my @ord = $node->type->schema->find_role($node->type->type_struct(),'#ORDER');
+    return $ord[0]{-name} if (@ord and ref($ord[0]) and exists($ord[0]{-name}));
+  }
+  $grp->{FSFile}->FS->order;
+}
+
 =item C<NewRBrother(node)>
 
 Create a new brother of the given node and recalculate the special FS
@@ -661,9 +675,10 @@ sub NewRBrother {
 
   return unless ($ref and $ref->parent);
   my $nd=FSNode->new();
-  my $ord=$grp->{FSFile}->FS->order;
+  my $ord = _node_ord($ref);
+
   $nd->{$ord}=$ref->{$ord}+1;
-  my $node=$root;
+  my $node=$ref->root;
   while ($node) {
     $node->{$ord}++ if ($node ne $nd and $node->{$ord}>$ref->{$ord});
     $node=$node->following;
@@ -691,9 +706,9 @@ sub NewLBrother {
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref and $ref->parent);
   my $nd=FSNode->new();
-  my $ord=$grp->{FSFile}->FS->order;
+  my $ord=_node_ord($ref);
   $nd->{$ord}=$ref->{$ord};
-  my $node=$root;
+  my $node=$ref->root;
   while ($node) {
     $node->{$ord}++ if ($node ne $nd and $node->{$ord}>=$ref->{$ord});
     $node=$node->following;
@@ -721,10 +736,10 @@ sub NewSon {
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref);
   my $nd=FSNode->new();
-  my $ord=$grp->{FSFile}->FS->order;
+  my $ord=_node_ord($ref);
   $nd->{$ord}=$ref->{$ord}+1;
 
-  my $node=$root;
+  my $node=$ref->root;
   while ($node) {
     $node->{$ord}++ if ($node->{$ord}>$ref->{$ord});
     $node=$node->following;
@@ -750,9 +765,9 @@ sub NewParent {
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref);
   my $nd=FSNode->new();
-  my $ord=$grp->{FSFile}->FS->order;
+  my $ord=_node_ord($ref);
   $nd->{$ord}=$ref->{$ord};
-  my $node=$root;
+  my $node=$ref->root;
   while ($node) {
     $node->{$ord}++ if ($node->{$ord}>=$ref->{$ord});
     $node=$node->following;
@@ -809,11 +824,11 @@ sub DeleteLeafNode {
   shift unless ref($_[0]);
   my $n = $_[0] || $this;
   return unless ($n);
-  my $ord=$grp->{FSFile}->FS->order;
+  my $ord=_node_ord($n);
   my $order=$n->{$ord};
 
+  my $node = $n->root;
   if (DeleteLeaf($n)) {
-    my $node=$root;
     while ($node) {
       $node->{$ord}-- if ($node->{$ord}>$order);
       $node=$node->following;
@@ -837,7 +852,7 @@ sub DeleteSubtree {
   my $n = $_[0] || $this;
   my $top = $n->root;
   if (PlainDeleteSubtree($n)) {
-    my $ord=$grp->{FSFile}->FS->order;
+    my $ord=_node_ord($top);
     if ($ord ne "") {
       my $i=0;
       for my $node (sort { $a->{$ord} <=> $b->{$ord} } $top,$top->descendants) {
@@ -860,7 +875,7 @@ my %ValuesClipboard;
 sub CopyValues {
   undef %ValuesClipboard;
   %ValuesClipboard = map { $_ => $this->{$_} } $grp->{FSFile}->FS->attributes;
-  delete $ValuesClipboard{$grp->{FSFile}->FS->order}; # we do not copy this
+  delete $ValuesClipboard{_node_ord($this)}; # we do not copy this
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
@@ -936,7 +951,7 @@ corresponds to the order of the node in the list.
 sub NormalizeOrds {
   my ($nodesref)=@_;
 
-  my $ord=$grp->{FSFile}->FS->order;
+  my $ord=_node_ord($nodesref[0]);
   for (my $i=0;$i<=$#$nodesref;$i++) {
     $nodesref->[$i]->{$ord}=$i;
   }
@@ -954,7 +969,7 @@ the values of the special FS numbering attribute.
 
 sub SortByOrd {
   my ($nodesref)=@_;
-  my $ord=$grp->{FSFile}->FS->order;
+  my $ord=_node_ord($nodesref[0]);
   local ($a,$b);
   @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
   return $nodesref;
@@ -985,8 +1000,8 @@ special FS numbering attribute appropriately.
 
 sub ShiftNodeRightSkipHidden {
   my ($node)=@_;
-  my $ord=$grp->{FSFile}->FS->order;
   return unless $node;
+  my $ord=_node_ord($node);
   my @all=GetNodes();
   SortByOrd(\@all);
 
@@ -1020,8 +1035,8 @@ ordering attribute of node.
 
 sub ShiftNodeLeftSkipHidden {
   my ($node,$min)=@_;          # min sets the minimum left...
-  my $ord=$grp->{FSFile}->FS->order;     # ... boundary for Ord
   return unless $node;
+  my $ord=_node_ord($node);     # ... boundary for Ord
   my @all=GetNodes();
   SortByOrd(\@all);
 
@@ -1053,7 +1068,7 @@ appropriately.
 
 sub ShiftNodeRight {
   my ($node)=@_;
-  my $ord=$grp->{FSFile}->FS->order;
+  my $ord=_node_ord($node);
   return unless $node;
   my @all=GetNodes();
   SortByOrd(\@all);
@@ -1082,8 +1097,8 @@ appropriately.
 
 sub ShiftNodeLeft {
   my ($node)=@_;
-  my $ord=$grp->{FSFile}->FS->order;
   return unless $node;
+  my $ord=_node_ord($node);
   my @all=GetNodes();
   SortByOrd(\@all);
 
@@ -1913,7 +1928,7 @@ C<$node-E<gt>{$grp-E<gt>{FSFile}-E<gt>FS-E<gt>order()}>
 
 =cut
 
-sub GetOrd { return $_[0]->{$grp->{FSFile}->FS->order}; }
+sub GetOrd { return $_[0]->{_node_ord($_[0])}; }
 
 
 =item C<Attributes()>
