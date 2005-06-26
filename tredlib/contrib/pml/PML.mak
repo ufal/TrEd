@@ -8,6 +8,7 @@ package PML;
 #encoding iso-8859-2
 
 import TredMacro;
+use Carp;
 sub first (&@);
 
 =pod
@@ -33,17 +34,27 @@ sub SchemaName {
   return $schema->{root}->{name};
 } #SchemaName
 
-=item Schema($fsfile?)
+=item Schema($object?)
 
-Return PML schema associated with a given (or the current) file
-(Fslib::Schema object).
+For a FSNode object returns PML schema associated with that object.
+If the object is a FSFile, return PML schema associated with the given
+file. If no object is given, the current FSFile is used.
+
+The PML schema is returned in form of a Fslib::Schema object.
 
 =cut
 
 sub Schema {
-  my $fsfile = $_[0] || $grp->{FSFile};
-  return undef unless $fsfile;
-  return $fsfile->metaData('schema');
+  my $obj = $_[0] || $grp->{FSFile};
+  if (UNIVERSAL::isa($obj,'FSNode')) {
+    return $obj->type ? $obj->type->schema : undef;
+  } elsif (UNIVERSAL::isa($obj,'FSFile')) {
+    return $obj->metaData('schema');
+  } elsif (!defined($obj)) {
+    return $grp->{FSFile}->metaData('schema');
+  } else {
+    croak("PML::Schema: Can't derive schema from $obj\n");
+  }
 } #Schema
 
 =item GetNodeByID($id_or_ref,$fsfile?)
