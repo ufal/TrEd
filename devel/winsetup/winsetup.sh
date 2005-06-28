@@ -265,7 +265,7 @@ ask "$MSG017" || exit 0
 
 echo
 findperlbin
-until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $PERLBIN"; do
+until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dosdirname $PERLBIN)"; do
   echo $MSG019
   echo $MSG020
   echo $MSG021
