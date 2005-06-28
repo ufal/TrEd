@@ -298,7 +298,7 @@ sub ANodeToALexRf {
   $t_node->{'t_lemma'}=$lemma;
 } #ANodeToALexRf
 
-=item ANodeToALexRf(a_node,t_node,t_file)
+=item ANodeToAAuxRf(a_node,t_node,t_file)
 
 Appends given a-node's C<id> to C<a/aux.rf> of the given t-node. The
 third argument t_file specifies the C<FSFile> object to which the
