@@ -318,7 +318,7 @@ sub getWordSubList {
 
   # get after list
   $i=0;
-  $word=$milestone->nextSibling();
+  $word=$milestone->findNextSibling('word');
   while ($word and $word->nodeName eq 'word' and $i<$after) {
     my $pos = $self->conv()->decode($word->getAttribute ("POS"));
     if (index(uc($posfilter),uc($pos))>=0) {
