@@ -3440,11 +3440,11 @@ sub find {
 	} elsif ($type->{member}) {
 	  unless (exists $type->{member}{$step}) {
 	    my $rf_type = $type->{member}{$step.'.rf'};
-	    my $is_knit =  ref($rf_type) and $rf_type->{role} eq '#KNIT';
+	    my $is_knit =  (ref($rf_type) and $rf_type->{role} eq '#KNIT');
 	    unless ($is_knit) {
 	      my $rf_type_resolved = $schema->resolve_type($rf_type);
-	      $is_knit = ref($rf_type_resolved) and
-		$rf_type_resolved->{role} eq '#KNIT';
+	      $is_knit = (ref($rf_type_resolved) and
+		$rf_type_resolved->{role} eq '#KNIT');
 	      unless ($is_knit) {
 		$is_knit = (ref($rf_type_resolved) and
 			    exists $rf_type_resolved->{list} and
