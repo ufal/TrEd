@@ -286,7 +286,7 @@ sub getWordSubList {
   } elsif ($item eq "") {
     $milestone = $self->getFirstWordNode();
     $after = 2*$slen;
-    $before = 0;
+    $before = 1;
   } else {
     # search by lemma
     my $word = $self->getFirstWordNode();
