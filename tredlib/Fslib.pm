@@ -3393,7 +3393,30 @@ sub members {
   my $struct = ref($type) ? (exists($type->{structure}) ? $type->{structure} : $type) : undef;
   if ($struct) {
     my $members = $struct->{member};
-    return grep { !(ref($members->{$_}) and $members->{$_}{role} eq '#CHILDNODES') } keys %$members;
+    map {
+      my $member = $members->{$_};
+       if (ref($member)) {
+ 	if ($member->{role} eq '#CHILDNODES') {
+ 	  ()
+ 	} elsif ($member->{role} eq '#KNIT') {
+ 	  my $name = $_;
+       	  $name=~s/\.rf$//;
+ 	  $name;
+ 	} else {
+ 	  my $mtype = $self->schema->resolve_type($member);
+ 	  if (ref($mtype) and exists $mtype->{list} and
+ 	      $mtype->{list}{role} eq '#KNIT') {
+ 	    my $name = $_;
+ 	    $name=~s/\.rf$//;
+ 	    $name;
+ 	  } else {
+	    $_
+	  }
+	}
+      } else {
+ 	$_
+      }
+    } keys %$members;
   } else {
     return ();
   }
