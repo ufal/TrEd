@@ -1095,6 +1095,7 @@ sub startMain {
 		   "all-nodes|N",
 		   "all-nonhidden-nodes|H",
 		   "safe-mode|F",
+		   "preload-files|P",
 		   $initial_code ? () : ("initial-code|i=s"),
 		   $code ? () : ("execute|e=s"),
 		   $start_context ? () : ("context|t=s")));
