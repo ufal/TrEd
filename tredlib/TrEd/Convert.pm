@@ -13,7 +13,7 @@ use strict;
 BEGIN {
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc
-	      $outputenc $lefttoright $Ds $support_unicode);
+              $outputenc $lefttoright $Ds $support_unicode);
   use TrEd::MinMax;
   @ISA=qw(Exporter);
   $VERSION = "0.1";
@@ -47,10 +47,11 @@ sub encode {
   my $str = join '', @_;
   no integer;
 
-  if ($support_unicode) { # we've got support for UNICODE in
-    # perl5.8/Tk8004
-    if ($inputenc eq 'iso-8859-6' or $inputenc =~ /^utf-?8$/i 
-	or $inputenc eq 'windows-1256') {
+  if ($support_unicode) { # we've got support for UNICODE in perl5.8/Tk8004
+    if ($^O ne 'MSWin32' and (
+            $inputenc =~ /^utf-?8$/i or
+            $inputenc eq 'iso-8859-6' or
+            $inputenc eq 'windows-1256' )) {
       require TrEd::ConvertArab;
       require TrEd::ArabicRemix;
       $str = TrEd::ArabicRemix::remix(TrEd::ConvertArab::arabjoin($str));
@@ -92,18 +93,16 @@ sub dirname {
   # both slash and backslash may be uzed
   # (i'd sure use File::Spec::Functions had it support
   # for this also in 5.005 perl distro).
-  return (index($a,$Ds)+index($a,'/')>=0)? substr($a,0,
-				    max(rindex($a,$Ds),
-					rindex($a,'/'))+1) : ".$Ds";
+  return (index($a,$Ds)+index($a,'/')>=0) ?
+          substr($a,0,max(rindex($a,$Ds),rindex($a,'/'))+1) : ".$Ds";
 }
 
 sub filename {
   my $a=shift;
   # this is for the sh*tty winz where
   # both slash and backslash may be uzed
-  return (index($a,$Ds)+index($a,'/')>=0)? 
-    substr($a,max(rindex($a,$Ds),
-		  rindex($a,'/'))+1) : $a;
+  return (index($a,$Ds)+index($a,'/')>=0) ?
+          substr($a,max(rindex($a,$Ds),rindex($a,'/'))+1) : $a;
 }
 
 1;
