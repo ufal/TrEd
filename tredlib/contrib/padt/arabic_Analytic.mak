@@ -1,4 +1,3 @@
-# -*- cperl -*-
 # ########################################################################## Otakar Smrz, 2004/03/05
 #
 # Arabic Analytic Context for TrEd by Petr Pajas ###################################################
@@ -205,81 +204,81 @@ sub assign_arabclause {
 
 #bind thisToParent to Alt+Up menu Annotate: Current node up one level to grandparent
 sub thisToParent {
-  return unless $this->parent and $this->parent->parent;
-  my $act=$this;
-  my $p=$act->parent->parent;
-  CutPaste($act,$p);
-  $this=$act;
+  return unless $this->parent() and $this->parent()->parent();
+  my $act = $this;
+  my $p = $act->parent()->parent();
+  CutPaste($act, $p);
+  $this = $act;
 }
 
 #bind thisToRBrother to Alt+Left menu Annotate: Current node to brother on the left
 sub thisToRBrother {
-  return unless $this->rbrother;
-  my $act=$this;
-  my $p=$this->rbrother;
-  CutPaste($act,$p);
-  $this=$act;
+  return unless $this->rbrother();
+  my $act = $this;
+  my $p = $this->rbrother();
+  CutPaste($act, $p);
+  $this = $act;
 }
 
 #bind thisToLBrother to Alt+Right menu Annotate: Current node to brother on the right
 sub thisToLBrother {
-  return unless $this->lbrother;
-  my $act=$this;
-  my $p=$this->lbrother;
-  CutPaste($act,$p);
-  $this=$act;
+  return unless $this->lbrother();
+  my $act = $this;
+  my $p = $this->lbrother();
+  CutPaste($act, $p);
+  $this = $act;
 }
 
 #bind thisToParentRBrother to Alt+Shift+Left menu Annotate: Current node to uncle on the left
 sub thisToParentRBrother {
-  return unless $this->parent and $this->parent->rbrother;
-  my $act=$this;
-  my $p=$this->parent->rbrother;
-  CutPaste($act,$p);
-  $this=$act;
+  return unless $this->parent() and $this->parent()->rbrother();
+  my $act = $this;
+  my $p = $this->parent()->rbrother();
+  CutPaste($act, $p);
+  $this = $act;
 }
 
 #bind thisToParentLBrother to Alt+Shift+Right menu Annotate: Current node to uncle on the right
 sub thisToParentLBrother {
-  return unless $this->parent and $this->parent->lbrother;
-  my $act=$this;
-  my $p=$this->parent->lbrother;
-  CutPaste($act,$p);
-  $this=$act;
+  return unless $this->parent() and $this->parent()->lbrother();
+  my $act = $this;
+  my $p = $this->parent()->lbrother();
+  CutPaste($act, $p);
+  $this = $act;
 }
 
 #bind thisToEitherBrother to Alt+Down menu Annotate: Current node to either side brother if unique
 sub thisToEitherBrother {
-  my $lb = $this->lbrother;
-  my $rb = $this->rbrother;
+  my $lb = $this->lbrother();
+  my $rb = $this->rbrother();
   return unless $lb xor $rb;
-  my $act=$this;
+  my $act = $this;
   my $p = $lb || $rb;
-  CutPaste($act,$p);
-  $this=$act;
+  CutPaste($act, $p);
+  $this = $act;
 }
 
 #bind SwapNodesUp to Alt+Shift+Up menu Annotate: Current node exchanged with parent
 sub SwapNodesUp {
   return unless $this;
-  my $parent=$this->parent;
+  my $parent = $this->parent();
   return unless $parent;
-  my $grandParent=$parent->parent;
+  my $grandParent = $parent->parent();
   return unless $grandParent;
-  CutPaste($this,$grandParent);
-  CutPaste($parent,$this);
-  $this=$parent;
+  CutPaste($this, $grandParent);
+  CutPaste($parent, $this);
+  $this = $parent;
 }
 
 #bind SwapNodesDown to Alt+Shift+Down menu Annotate: Current node exchanged with son if unique
 sub SwapNodesDown {
   return unless $this;
   my @childs = $this->children();
-  my $parent = $this->parent;
+  my $parent = $this->parent();
   return unless @childs == 1 and $parent;
-  CutPaste($childs[0],$parent);
-  CutPaste($this,$childs[0]);
-  $this=$childs[0];
+  CutPaste($childs[0], $parent);
+  CutPaste($this, $childs[0]);
+  $this = $childs[0];
 }
 
 # ##################################################################################################
@@ -498,7 +497,7 @@ sub referring_Ref {
 
     my $this = defined $_[0] ? $_[0] : $this;
 
-    my $head = $this->parent;
+    my $head = $this->parent();
 
     until ( (not $head) or (#$head->{afun} =~ /^(?:Atr|Atv)$/ and
                             ($head->{arabclause} !~ /^no-|^$/ or $head->{tag} =~ /^V/))
