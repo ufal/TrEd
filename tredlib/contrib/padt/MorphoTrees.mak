@@ -18,7 +18,7 @@ our $VERSION = do { my @r = q$Revision$ =~ /\d+/g; sprintf "%d." . "%02d" x $#r,
 
 import TredMacro;
 
-our ($paragraph_hide_mode, $entity_hide_mode);
+our ($paragraph_hide_mode, $entity_hide_mode, $level_guide_mode);
 
 # ##################################################################################################
 #
@@ -364,6 +364,30 @@ sub tree_hide_mode {
     ChangingFile(0);
 }
 
+#bind level_guide_mode_none Ctrl+F1 menu Level Guide Mode Normal
+sub level_guide_mode_none {
+
+    $level_guide_mode = 0;
+
+    ChangingFile(0);
+}
+
+#bind level_guide_mode_fine Ctrl+F2 menu Level Guide Mode Strict
+sub level_guide_mode_fine {
+
+    $level_guide_mode = 1;
+
+    ChangingFile(0);
+}
+
+#bind level_guide_mode_high Ctrl+F3 menu Level Guide Mode Xtreme
+sub level_guide_mode_high {
+
+    $level_guide_mode = 2;
+
+    ChangingFile(0);
+}
+
 #bind move_to_root Shift+Up menu Move Up to Root
 sub move_to_root {
 
@@ -702,6 +726,26 @@ sub annotate_morphology {
                     }
                 }
             }
+        }
+    }
+    elsif (defined $level_guide_mode and $level_guide_mode > 0) {
+
+        if ($level_guide_mode > 1) {
+
+            $this = defined $tips[0] && ( grep { $tips[0] == $_ } @children )
+                        ? $tips[0]
+                        : $children[0]->{'type'} eq 'lemma_id' ||
+                          $children[0]->{'type'} eq 'partition' && @children > 1
+                            ? $node
+                            : $children[0];
+        }
+        else {
+
+            $this = defined $tips[0] && ( grep { $tips[0] == $_ } @children )
+                        ? $tips[0]
+                        : $children[0]->{'type'} eq 'lemma_id'
+                            ? $node
+                            : $children[0];
         }
     }
     else {
@@ -1140,14 +1184,22 @@ MorphoTrees - Context for Annotation of Morphology in the TrEd Environment
 
 =head1 DESCRIPTION
 
-In the next release ;)
+General description is given in L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/papers/2004-nemlar-tred.pdf>.
 
-Anyway, see the list of MorphoTrees macros and key-bindings in the User-defined menu item in TrEd.
+Examples of MorphoTrees include L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/morpho_fhm.gif>,
+L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AfrAd.gif>, or
+L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AmA.gif>.
+
+Paragraph annotation trees look like L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/morpho_view.gif>.
+
+For reference, see the list of MorphoTrees macros and key-bindings in the User-defined menu item in TrEd.
 
 
 =head1 SEE ALSO
 
-TrEd L<http://ckl.mff.cuni.cz/pajas/tred/>
+TrEd Tree Editor L<http://ckl.mff.cuni.cz/pajas/tred/>
+
+Prague Arabic Dependency Treebank L<http://ckl.mff.cuni.cz/padt/>
 
 
 =head1 AUTHOR
@@ -1161,7 +1213,7 @@ Perl is also designed to make the easy jobs not that easy ;)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2004 by Otakar Smrz
+Copyright (C) 2004, 2005 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8 or,
