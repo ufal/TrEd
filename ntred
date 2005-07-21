@@ -314,7 +314,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
       my $cmd;
       if (defined($ps_kill) or defined($ps_break)) {
 	$btred ||= '[b]tred';
-	$cmd = 'ps x -o pid,command --no-headers |sed "s/^\s*//"|grep -e "'.$btred.'" | cut -f1 -d" " | xargs -r kill '.$signal;
+	$cmd = 'ps x -o pid,command --no-headers |sed "s/^[ \t]*//"|grep -e "'.$btred.'" | cut -f1 -d" " | xargs -r kill '.$signal;
       } else {
 	$btred ||= 'btred';
 	$cmd = "killall $signal $btred";
