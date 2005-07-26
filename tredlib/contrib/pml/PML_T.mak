@@ -823,8 +823,10 @@ style:<?
 
 hint:<?
    my @hintlines;
-   foreach my $gram (sort keys %{$this->{gram}}) {
-     push @hintlines, "gram/".$gram." : ".$this->{gram}->{$gram} if $this->{gram}->{$gram}
+   if (ref($this->{gram})) {
+     foreach my $gram (sort keys %{$this->{gram}}) {
+       push @hintlines, "gram/".$gram." : ".$this->{gram}->{$gram} if $this->{gram}->{$gram}
+     }
    }
    push@hintlines, "is_dsp_root : 1" if $${is_dsp_root};
    push@hintlines, "is_name_of_person : 1" if $${is_name_of_person};
@@ -850,11 +852,11 @@ node:<?
 
 node:<? $${nodetype} !~/^(?:complex|root)$/
         ? '#{customnodetype}${nodetype}'
-        : '#{customcomplex}${gram/sempos}#{customdetail} '.join'.',map{($this->{gram}{$_}=~/^(?:nr|nil)$/?"#{customdetailheader}$_:#{customdetail}":'')."\${gram/$_}" } sort grep{/mod/}keys%{$this->{gram}}
+        : '#{customcomplex}${gram/sempos}#{customdetail} '.join'.',map{($this->{gram}{$_}=~/^(?:nr|nil)$/?"#{customdetailheader}$_:#{customdetail}":'')."\${gram/$_}" } (ref($this->{gram}) ? sort grep{/mod/}keys%{$this->{gram}} : ())
   ?>
 
 node: <? $${nodetype} eq 'complex' ?
-  join'.',map{(($this->{gram}{$_}=~/^(?:nil|nr|inher)$/)?"#{customdetailheader}$_:":'')."#{customdetail}\${gram/$_}" } sort grep{$this->{gram}->{$_}&&$_ !~/sempos|mod/}keys%{$this->{gram}}
+  join'.',map{(($this->{gram}{$_}=~/^(?:nil|nr|inher)$/)?"#{customdetailheader}$_:":'')."#{customdetail}\${gram/$_}" } sort grep{$this->{gram}->{$_}&&$_ !~/sempos|mod/} (ref($this->{gram}) ? sort grep{/mod/}keys%{$this->{gram}} : ())
   :''?>
 
 style:#{Node-width:7}#{Node-height:7}#{Node-currentwidth:9}#{Node-currentheight:9}
@@ -903,8 +905,10 @@ node: #{customdetail}<? join'.',grep{$_}(
 
 hint:<?
    my @hintlines;
-   foreach my $gram (sort keys %{$this->{gram}}) {
-     push @hintlines, "gram/".$gram." : ".$this->{gram}->{$gram} if $this->{gram}->{$gram}
+   if (ref($this->{gram})) {
+     foreach my $gram (sort keys %{$this->{gram}}) {
+       push @hintlines, "gram/".$gram." : ".$this->{gram}->{$gram} if $this->{gram}->{$gram}
+     }
    }
    push@hintlines, "is_dsp_root : 1" if $${is_dsp_root};
    push@hintlines, "is_name_of_person : 1" if $${is_name_of_person};
