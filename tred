@@ -25,6 +25,7 @@ use vars qw($version $about $opt_u $opt_h $opt_c
             $libDir
 	    $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
+            $stylesheetFile $opt_S
             $insideEval %pckey_shift_translates @recentFiles $tredDebug
             $valueLine $appName $ioBackends %menuBindings %keyBindings
             $savedSavePixmap $normalSavePixmap $NewFileNo $stderr $stdout
@@ -78,7 +79,7 @@ Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
 use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:');
+getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:S:');
 
 if ($opt_u || $opt_h) {
   print <<'EOH';
@@ -119,6 +120,8 @@ Each filename may be followed by suffixes of the following forms:
 -t      start in the given macro context (package). TredMacro is the
         default context, and it is used also when the given context
         is not found.
+
+-S      stylesheet file (overrides ~/.tred-stylesheets)
 
 -s      start with the given pattern stylesheet.
 
@@ -191,11 +194,12 @@ $macroFile=undef;
 _set_encoding(\*STDERR,':utf8',"STDERR");
 _set_encoding(\*STDOUT,':utf8',"STDOUT");
 
+$stylesheetFile = $opt_S ne '' ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
+
 ########## Config file #############
 # this must be done before readconfig is first used
 @filelists=();
 @openfiles=();
-
 
 # We *must* at least find TrEd::Config module to learn the correct libDir!!.
 print "First I'm trying $libDir\n" unless $opt_q;
@@ -687,8 +691,8 @@ sub get_grp_histories {
 
 sub saveStyleSheets {
   my ($grp)=@_;
-  open my $f, '>:utf8',$ENV{HOME}."/.tred-stylesheets" || do {
-    print STDERR "can't write to stylesheet file: $ENV{HOME}/.tred-stylesheets\n" if $debug;
+  open my $f, '>:utf8',$stylesheetFile || do {
+    print STDERR "can't write to stylesheet file: $stylesheetFile\n" if $debug;
     return 0;
   };
   foreach my $stylesheet (keys (%{$grp->{stylesheets}})) {
@@ -707,9 +711,9 @@ sub saveStyleSheets {
 
 sub readStyleSheets {
   my ($grp,$filename)=@_;
-  $filename = $ENV{HOME}."/.tred-stylesheets" unless defined $filename;
+  $filename = $stylesheetFile unless defined $filename;
   open my $f, '<:utf8',$filename || do {
-    print STDERR "no stylesheet file: $ENV{HOME}/.tred-stylesheets\n" if $debug;
+    print STDERR "no stylesheet file: $filename\n" if $debug;
     return 0;
   };
   my $stylesheet="Default";
