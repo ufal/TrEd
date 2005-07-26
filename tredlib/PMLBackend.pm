@@ -861,7 +861,11 @@ sub write_object ($$$$$$) {
   } elsif (exists $type->{structure}) {
     my $struct = $type->{structure};
     my $members = $struct->{member};
-    if (ref($object)) {
+    if (!ref($object)) {
+      # what do we do now?
+      warn "Unexpected content structure '$tag': $object\n";
+    } elsif (keys(%$object)) {
+      # ok, non-empty structure
       foreach my $atr (grep {$members->{$_}{as_attribute}}
 			 #sort 
 			   keys %$members) {
@@ -924,9 +928,6 @@ sub write_object ($$$$$$) {
 	}
       }
       $xml->endTag($tag) if defined($tag);
-    } else {
-      # what do we do now?
-      warn "Unexpected content structure '$tag': $object\n";
     }
   } elsif (exists $type->{list}) {
     if (ref($object) eq 'Fslib::List') {
