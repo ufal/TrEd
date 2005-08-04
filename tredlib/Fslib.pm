@@ -392,7 +392,11 @@ Find and return the root of the node's tree.
 
 sub root {
   my ($self) = @_;
-  my $root=$self; $root=Fslib::Parent($root) while ($root->parent);
+  my $root=$self; 
+  my $p;
+  while ($p=Fslib::Parent($root)) {
+    $root=$p 
+  }
   return $root;
 }
 
