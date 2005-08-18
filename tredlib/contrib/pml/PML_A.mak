@@ -43,24 +43,24 @@ sub TectogrammaticalTree {
     SwitchContext('PML_T_View');
   }
   SetCurrentStylesheet($PML_T::laststylesheet || 'PML_T_Compact');
-  undef$PML_T::laststylesheet;
+  undef $PML_T::laststylesheet;
   my $fsfile = $grp->{FSFile};
   my $id = $root->{id};
   my $this_id = $this->{id};
   #find current tree and new $this
   my $trees = $fsfile->treeList;
- TREE: for ($i=0;$i<=$#$trees;$i++) {
+  # low-level stuff here
+  my $treeNo = $fsfile->currentTreeNo+0;
+ TREE: for (my $i=0;$i<=$#$trees;$i++) {
     foreach my $a_rf (PML_T::GetANodeIDs($node)) {
       $a_rf =~ s/^.*\#//;
       if ($a_rf eq $id) {
-	$grp->{treeNo} = $i;
-	$fsfile->currentTreeNo($i);
-#	print "Found $a_rf at tree position $i\n";
+	$treeNo = $i;
 	last TREE;
       }
     }
   }
-  $root = $fsfile->tree($grp->{treeNo});
+  TredMacro::GotoTree($treeNo+1); # changes $root
   my $node=$root;
   while ($node) {
     if (first { $_ eq $this_id } PML_T::GetANodeIDs($node)) {
@@ -72,6 +72,7 @@ sub TectogrammaticalTree {
   };
   ChangingFile(0);
 }
+
 sub SwitchToTFile {
   my $fsfile = $grp->{FSFile};
   return 0 unless $fsfile or SchemaName() ne 'adata';
@@ -80,6 +81,7 @@ sub SwitchToTFile {
   $grp->{FSFile} = $tr_fs;
   return 1;
 }
+
 sub file_resumed_hook {
   if (SchemaName() eq 'tdata') {
     SetCurrentStylesheet(STYLESHEET_FROM_FILE());
