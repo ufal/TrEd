@@ -347,14 +347,16 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     unless (exists $servers{$server}) {
       $servers{$server}=0;
       $port ||= 1600;
-      unless ($nocheck or $run_local) {
+      if ($nocheck or $run_local) {
+	$servers{$server}=1;
+      } else {
 	msg "checking $server\n";
 	my $cmd = "$ssh $server 'sh -c \"echo -n RUNNING 2>/dev/null\"'";
 	msg "$cmd\n";
 	my $result=`$cmd`;
 	if ($result =~ /RUNNING$/) {
 	  $servers{$server}=1;
-	  msg "Server $server - running\n";
+	    msg "Server $server - running\n";
 	} else {
 	  msg "Server $server - down\n";
 	  next;
