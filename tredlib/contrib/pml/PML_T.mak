@@ -160,25 +160,25 @@ sub AnalyticalTree {
   my $fsfile = $grp->{FSFile};
   #find current tree and new $this
   my $trees = $fsfile->treeList;
- TREE: for ($i=0;$i<=$#$trees;$i++) {
-    foreach my $a_rf (GetANodeIDs($root)) {
+  my $treeNo = $fsfile->currentTreeNo+0;
+  my $t_root = $root;
+  my $t_node = $this;
+ TREE: for (my $i=0;$i<=$#$trees;$i++) {
+    foreach my $a_rf (GetANodeIDs($t_root)) {
       $a_rf =~ s/^.*\#//;
       if ($trees->[$i]->{id} eq $a_rf) {
-	$grp->{treeNo} = $i;
-	$fsfile->currentTreeNo($i);
-	# print "Found $a_rf at tree position $i\n";
+	$treeNo = $i;
 	last TREE;
       }
     }
   }
-  $root = $fsfile->tree($grp->{treeNo});
+  TredMacro::GotoTree($treeNo+1); # changes $root and $this
   my $a_ids = GetNodeHash($fsfile);
   my $first =
     first {
       ref($a_ids->{$_}) and ($a_ids->{$_}->root == $root) ? 1 : 0
-    } GetANodeIDs($this);
+    } GetANodeIDs($t_node);
   $this = $a_ids->{$first};
-  # print "New this: $this->{id}\n" if ref($this);
   ChangingFile(0);
 }
 
@@ -210,6 +210,7 @@ sub get_value_line_hook {
   my ($fsfile,$treeNo)=@_;
   return unless $fsfile;
   my $tree = $fsfile->tree($treeNo);
+  die "Tree $treeNo doesn't exist\n";
   my ($a_tree) = GetANodes($tree);
   return unless ($a_tree);
   my $node = $tree->following;
