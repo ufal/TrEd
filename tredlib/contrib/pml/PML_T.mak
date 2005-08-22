@@ -210,7 +210,7 @@ sub get_value_line_hook {
   my ($fsfile,$treeNo)=@_;
   return unless $fsfile;
   my $tree = $fsfile->tree($treeNo);
-  die "Tree $treeNo doesn't exist\n";
+  return unless $tree;
   my ($a_tree) = GetANodes($tree);
   return unless ($a_tree);
   my $node = $tree->following;

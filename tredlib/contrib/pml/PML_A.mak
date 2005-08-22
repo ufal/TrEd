@@ -52,7 +52,7 @@ sub TectogrammaticalTree {
   # low-level stuff here
   my $treeNo = $fsfile->currentTreeNo+0;
  TREE: for (my $i=0;$i<=$#$trees;$i++) {
-    foreach my $a_rf (PML_T::GetANodeIDs($node)) {
+    foreach my $a_rf (PML_T::GetANodeIDs($trees->[$i])) {
       $a_rf =~ s/^.*\#//;
       if ($a_rf eq $id) {
 	$treeNo = $i;
