@@ -51,7 +51,7 @@ C<$this>.
 =cut
 
 sub GetANodeIDs {
-  return map { my $id=$_; $id=~s/^.*#//; $id } &GetANodeREFs;
+  return map { my $id=$_; $id=~s/^.*?#//; $id } &GetANodeREFs;
 }
 
 =item GetANodeREFs($node?)
@@ -94,7 +94,7 @@ belongs to an analytical file associated with it.
 
 sub GetANodeByID {
   my ($arf)=@_;
-  $arf =~ s/^.*#//;
+  $arf =~ s/^.*?#//;
   return GetANodesHash()->{$arf};
 }
 
@@ -165,7 +165,7 @@ sub AnalyticalTree {
   my $t_node = $this;
  TREE: for (my $i=0;$i<=$#$trees;$i++) {
     foreach my $a_rf (GetANodeIDs($t_root)) {
-      $a_rf =~ s/^.*\#//;
+      $a_rf =~ s/^.*?#//;
       if ($trees->[$i]->{id} eq $a_rf) {
 	$treeNo = $i;
 	last TREE;
