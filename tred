@@ -4855,6 +4855,10 @@ sub startMain {
 			 doEvalHook($grp->{focusedWindow},"reload_macros_hook");
 			 cleanup_tredmacro($grp);
 			 read_macros($macroFile,$libDir);
+			 if ($opt_I) {
+                           push @TrEd::Macros::macros,"\n","package TredMacro;\n";
+                           read_macros($opt_I,$libDir,1);
+                         }
 			 doEvalHook($grp->{focusedWindow},"macros_reloaded_hook");
 			 redraw_all($grp);
 		       },\%group]],
