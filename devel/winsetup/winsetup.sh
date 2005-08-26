@@ -117,6 +117,8 @@ function cygdirname {
   echo $cygdirname
 }
 
+
+
 function findtreddir {
     TREDDIR=`regtool get '\machine\Software\TrEd\Dir' 2>/dev/null`
     INSTTRED=`dosdirname ${PWD}/tred`
@@ -333,7 +335,7 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
       TREDDIR="$HOME/tred"
     fi    
     read -e -p "$MSG034 $TREDDIR]: " DIR
-    test -z $DIR || TREDDIR=$DIR
+    test -z "$DIR" || TREDDIR="${DIR//\\//}"
   fi
 else 
   echo
@@ -344,7 +346,7 @@ else
     TREDDIR="$HOME/tred"
   fi    
   read -e -p "$MSG036 $TREDDIR]: " DIR
-  test -z $DIR || TREDDIR=$DIR
+  test -z "$DIR" || TREDDIR="${DIR//\\//}"
 fi
 
 if [ $OSTYPE = "cygwin" ]; then
