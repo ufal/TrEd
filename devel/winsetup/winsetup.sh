@@ -227,7 +227,7 @@ function upgrade_perl {
 }
 
 function get_perl_install_dir {
-  read -e -p "$MSG036 c:/perl]: " PERLINSTALLDIR
+  read -e -r -p "$MSG036 c:/perl]: " PERLINSTALLDIR
   if [ -z $PERLINSTALLDIR ]; then
     PERLINSTALLDIR="c:/perl"
   fi
@@ -278,7 +278,7 @@ until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dos
 #    findperlbin
     PERLBIN="$PERLINSTALLDIR/bin/perl.exe"
   else  
-    read -e -p "$MSG023" PERLBIN
+    read -e -r -p "$MSG023" PERLBIN
   fi
 done
 
@@ -334,8 +334,8 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
     else 
       TREDDIR="$HOME/tred"
     fi    
-    read -e -p "$MSG034 $TREDDIR]: " DIR
-    test -z "$DIR" || TREDDIR="${DIR//\\//}"
+    read -e -r -p "$MSG034 $TREDDIR]: " DIR
+    test -z "$DIR" || TREDDIR="${DIR//\\\\//}"
   fi
 else 
   echo
@@ -345,8 +345,8 @@ else
   else 
     TREDDIR="$HOME/tred"
   fi    
-  read -e -p "$MSG036 $TREDDIR]: " DIR
-  test -z "$DIR" || TREDDIR="${DIR//\\//}"
+  read -e -r -p "$MSG036 $TREDDIR]: " DIR
+  test -z "$DIR" || TREDDIR="${DIR//\\\\//}"
 fi
 
 if [ $OSTYPE = "cygwin" ]; then
