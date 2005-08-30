@@ -20,6 +20,8 @@ use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $field_re $attr_name_re
             $SpecialTypes $FSError $Debug $resourcePath $resourcePathSplit);
 
 use Exporter;
+use File::Spec;
+
 @ISA=qw(Exporter);
 $VERSION = "1.5";
 
@@ -224,14 +226,21 @@ sub ReadEscapedLine {
   return $l;
 }
 
+
+sub _is_url {
+  return ($_[0] =~ m(^\s*[[:alnum:]]+://)) ? 1 : 0;
+}
+sub _is_absolute {
+  my ($path) = @_;
+  return (_is_url($path) or File::Spec->file_name_is_absolute($path));
+}
+
 sub FindInResources {
   my ($filename)=@_;
-  my $Ds = ($^O eq "MSWin32") ? '\\' : '/';
-  unless ($filename =~ m(^\s*([[:alnum:]]+:)?(?:/|\Q$Ds\E))) {
+  unless (_is_absolute($filename)) {
     for my $dir (split /\Q${Fslib::resourcePathSplit}\E/o,$resourcePath) {
-      $dir=~s/\Q$Ds\E\s*$//;
-      my $f = "$dir${Ds}$filename";
-      return $f if $f;
+      my $f = File::Spec->catfile($dir,$filename);
+      return $f if -f $f;
     }
   }
   return $filename;
@@ -239,18 +248,48 @@ sub FindInResources {
 
 sub ResolvePath ($$;$) {
   my ($orig, $href,$use_resources)=@_;
-#  print "ResolvePath: $orig, $href,$use_resources\n" if $Fslib::Debug;
-  if ($href !~ m{^[[:alnum:]]+:|^/} and
-      !($^O eq 'MSWin32' and $href=~/^([[:alnum:]]+:)?\\/)) {
-    if ($orig =~ m{^(.*\/)}) {
-      if (-f $1.$href) {
-	return $1.$href;
+  print STDERR "ResolvePath: '$href' base='$orig' use_resources=$use_resources\n" if $Fslib::Debug;
+  unless (_is_absolute($href)) {
+    if (_is_url($orig)) {
+      print "ResolvePath: as URL:\n" if $Fslib::Debug;
+      # for URLs, reverse the process a bit:
+      # 1st, try a local relative path
+      if (-f $href) {
+	$href = File::Spec->rel2abs($href);
+	print STDERR "ResolvePath: (URL-local) result='$href'\n" if $Fslib::Debug;
+	return $href;
       }
-    } elsif (-f $href) {
-      return $href;
+      # 2nd, try resource path
+      if ($use_resources) {
+	my $res = FindInResources($href);
+	if ($res ne $href) {
+	  print STDERR "ResolvePath: (URL-resources) result='$res'\n" if $Fslib::Debug;
+	  return $res;
+	}
+      }
+      # 3rd
+      # strip filename part from the $orig URL and append $href to it
+      $orig =~ s{/[^/]*$}{};
+      print STDERR "ResolvePath: (URL) result='$orig/$href'\n" if $Fslib::Debug;
+      return $orig.'/'.$href;
+    } else {
+      my ($vol,$dir) = File::Spec->splitpath(File::Spec->rel2abs($orig));
+      my $rel = File::Spec->rel2abs($href,File::Spec->catfile($vol,$dir));
+      print "ResolvePath: trying rel: $rel, based on: ",File::Spec->catfile($vol,$dir),"\n" 
+	if $Fslib::Debug;
+      if (-f $rel) {
+	print STDERR "ResolvePath: (1) result='$rel'\n" if $Fslib::Debug;
+	return $rel;
+      } elsif (-f $href) {
+	print STDERR "ResolvePath: (2) result='$href'\n" if $Fslib::Debug;
+	return $href;
+      }
     }
-    return $use_resources ? FindInResources($href) : $href;
+    my $result = $use_resources ? FindInResources($href) : $href;
+    print STDERR "ResolvePath: (3) result='$result'\n" if $Fslib::Debug;
+    return $result;
   } else {
+    print STDERR "ResolvePath: (4) result='$href'\n" if $Fslib::Debug;
     return $href;
   }
 }
