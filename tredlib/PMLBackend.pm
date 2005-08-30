@@ -7,8 +7,9 @@ use XML::Simple; # for PML schema
 use XML::LibXML;
 use XML::LibXML::Common qw(:w3c :encoding);
 use XML::Writer;
+use File::Spec;
 
-  use Data::Dumper;
+use Data::Dumper;
 
 
 use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG);
@@ -140,17 +141,21 @@ sub read_references {
 	my $name = $reffile->getAttribute('name');
 	$named_references{ $name } = $id if $name;
 	$references{ $id } = Fslib::ResolvePath($fsfile->filename,$reffile->getAttribute('href'),0);
+      _debug("read_references: $id => $references{$id}");
+
       }
     }
     my ($schema) = $head->getElementsByTagNameNS(PML_NS,'schema');
     if ($schema) {
-      my $schema_file = Fslib::ResolvePath($fsfile->filename,$schema->getAttribute('href'),1);
+      my $schema_file = $schema->getAttribute('href');
+      # store the original URL, not the resolved one!
       $fsfile->changeMetaData('schema-url',$schema_file);
+      $schema_file = Fslib::ResolvePath($fsfile->filename,$schema_file,1);
       $fsfile->changeMetaData('schema',Fslib::Schema->readFrom($schema_file));
     }
   }
   $fsfile->changeMetaData('references',\%references);
-  $fsfile->changeMetaData('refnames',\%named_references);
+  $fsfile->changeMetaData('refnames',\%named_references );
   1;
 }
 
@@ -531,7 +536,9 @@ sub readas_dom {
   my ($parser,$fsfile,$refid,$href)=@_;
   # embed DOM documents
   my $ref_data;
-  my $ref_fh = open_backend($href,'r');
+
+  my ($local_file,$remove_file) = IOBackend::fetch_file($href);
+  my $ref_fh = open_backend($local_file,'r');
   _debug("readas_dom: $href $ref_fh");
   if ($ref_fh){
     $ref_data = $parser->parse_fh($ref_fh);
@@ -542,7 +549,15 @@ sub readas_dom {
     $fsfile->appData('ref')->{$refid}=$ref_data;
     $fsfile->changeAppData('ref-index',{}) unless ref($fsfile->appData('ref-index'));
     $fsfile->appData('ref-index')->{$refid}=index_by_id($ref_data);
+    if ($href ne $local_file and $remove_file) {
+      local $!;
+      unlink $local_file || warn "couldn't unlink tmp file $local_file: $!\n";
+    }
   } else {
+    if ($href ne $local_file and $remove_file) {
+      local $!;
+      unlink $local_file || warn "couldn't unlink tmp file $local_file: $!\n";
+    }
     die "Couldn't open '".$href."': $!\n";
   }
   1;
@@ -720,11 +735,20 @@ sub write {
     $refs_to_save = {};
   }
 
+  my $references = $fsfile->metaData('references');
+
   # update all DOM trees to be saved
   my $parser = xml_parser();
   foreach my $ref (@refs_to_save) {
-    _debug("$ref->{id} => $ref->{href}\n");
     readas_dom($parser,$fsfile,$ref->{id},$ref->{href});
+    # NOTE:
+    # if ($refs_to_save->{$ref->{id}} ne $ref->{href}),
+    # then the ref-file is going to be renamed.
+    # Although we don't parse it as PML, it can be a PML file.
+    # If it is, we might try to update it's references too,
+    # but the snag here is, that we don't know if the
+    # resources it references aren't moved along with it by
+    # other means (e.g. by user making the copy).
   }
 
   $xml->xmlDecl("utf-8");
@@ -733,14 +757,28 @@ sub write {
   $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
   $xml->startTag('references');
   {
-    my $references = $fsfile->metaData('references');
     my $named = $fsfile->metaData('refnames');
     my %names = $named ? (map { $named->{$_} => $_ } keys %$named) : ();
     if ($references) {
-      foreach (keys %$references) {
-	$xml->emptyTag('reffile', id => $_,
-		       href => (exists($refs_to_save->{$_}) ? $refs_to_save->{$_} : $references->{$_}),
-		       (exists($names{$_}) ? (name => $names{$_}) : ()));
+      foreach my $id (sort keys %$references) {
+	my $href;
+	if (exists($refs_to_save->{$id})) {
+	  # effectively rename the file reference
+	  $href = $references->{$id} = $refs_to_save->{$id}
+	} else {
+	  $href = $references->{$id};
+	}
+	if ($href !~ m(^[[:alnum:]]+//)) { 
+	  # not an URL
+	  # local paths are always relative
+	  # if you need absolute path, try file:// URL instead
+	  my ($vol,$dir) = File::Spec->splitpath(File::Spec->rel2abs($fsfile->filename));
+	  $href = File::Spec->abs2rel($href,File::Spec->catfile($vol,$dir));
+	}
+	$xml->emptyTag('reffile',
+		       id => $id,
+		       href => $href,
+		       (exists($names{$id}) ? (name => $names{$id}) : ()));
       }
     }
   }
@@ -773,8 +811,6 @@ sub write {
       my $dom = $fsfile->appData('ref')->{$ref->{id}};
       my $href;
       if (exists($refs_to_save->{$ref->{id}})) {
-	# effectively rename the file reference
-	$fsfile->metaData('references')->{$ref->{id}} = $refs_to_save->{$ref->{id}};
 	$href = $refs_to_save->{$ref->{id}};
       } else {
 	$href = $ref->{href}

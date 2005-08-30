@@ -1838,7 +1838,7 @@ sub openFile {
       if ($requires) {
 	for my $req (@$requires) {
 	  my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
-	  print STDERR "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n";
+	  print STDERR "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n" if $tredDebug;
 	  my $req_fs = openFile($win,$req_filename,-preload => 1);
 	  if (!(ref($req_fs) and $req_fs->lastTreeNo>=0 and $Fslib::FSError==0)) {
 	    undef $fsfile;
@@ -1977,9 +1977,10 @@ sub autoSaveAll {
 }
 
 sub saveFile {
-  my $win=cast_to_win(shift);
+  my ($win,$f)=@_;
+  $win=cast_to_win($win);
   return unless $win->{FSFile};
-  my $f=$win->{FSFile}->filename;
+  $f=$win->{FSFile}->filename unless defined($f);
 
   my $lock = checkLock($win->{FSFile},$f);
   if ($lock =~ /^locked|^stolen|^opened/) {
@@ -2518,6 +2519,7 @@ sub insertToFilelist {
     if (-d $_) {
       $grp->{'hist-fileListPattern'}=[] unless $grp->{'hist-fileListPattern'};
       $tmp=Query($toplevel,"Selection Pattern","Insert pattern for directory $_","*.*",1,$grp->{'hist-fileListPattern'});
+      use File::Spec;
       $_= defined($tmp) ? File::Spec->catfile($_,$tmp) : undef;
     }
     $_;
@@ -5720,11 +5722,14 @@ EOF
 	-command => [sub {
 		       my ($l)=@_;
 		       my ($file,$rest) = split / \[/,$l->get('active'),2;
+		       my $initdir2 = dirname($file);
+		       $initdir2 = File::Spec->catfile($initdir,$initdir2)
+			 unless File::Spec->file_name_is_absolute($initdir2);
 		       $file = get_save_filename(
 			 $l->toplevel,
 			 -filetypes=> $save_types{all},
 			 -title=> "Save As ...",
-			 -d $initdir ? (-initialdir=> $initdir) : (),
+			 -d $initdir2 ? (-initialdir=> $initdir2) : (),
 			 $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
 		       if ($file ne "") {
 			 my $index = $l->index('active');
@@ -5833,7 +5838,7 @@ sub saveFileAs {
     $win->{FSFile}->changeFileFormat(($file=~/\.gz$/ ? "gz-compressed " : "").
 				     $win->{FSFile}->backend);
     updateTitle($win->{framegroup});
-    if (saveFile($win)==1) {
+    if (saveFile($win,$file)==1) {
       removeLock($win->{FSFile},$old_file,1) if ($lock_change);
 
       if ($file ne $old_file and 
