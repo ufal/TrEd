@@ -77,7 +77,7 @@ sub quote_filename {
 
 sub strip_protocol {
   my ($uri)=@_;
-  $uri =~ s{^\s*([[:alnum:]][[:alnum:]]+):}{};
+  $uri =~ s{^\s*(?:[[:alnum:]][[:alnum:]]+):(?://)?}{};
   return $uri;
 }
 
