@@ -8184,7 +8184,7 @@ sub redraw_win {
   } else {
     undef $vl;
   }
-  local $TredMacro::grp = $win;
+
   $win->{treeView}->
     redraw($win->{FSFile},
 	   $win->{currentNode},
