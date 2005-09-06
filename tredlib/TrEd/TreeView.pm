@@ -1629,12 +1629,23 @@ text.
 =cut
 
 sub interpolate_text_field {
-  my ($self,$this,$text,$grp)=@_;
-  # make root visible for the evaluated expression
-  local $TredMacro::this = $this;
-  local $TredMacro::root = my $root = ($this ? $this->root : undef);
-  local $TredMacro::grp = $grp;
-  $text=~s/\<\?((?:[^?]|\?[^>])+)\?\>/eval "package TredMacro;\n".$self->interpolate_refs($this,$1)/eg;
+  my ($self,$node,$text,$grp_ctxt)=@_;
+  # make $this, $root, and $grp available for the evaluated expression
+  # as in TrEd::Macros
+  no strict 'refs';
+  my @save = (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'});
+  (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=
+    ($node,($node ? $node->root : undef),$grp_ctxt);
+  eval {
+    $text=~s{\<\?((?:[^?]|\?[^>])+)\?\>}
+      {
+	my $result = eval "package TredMacro;\n".
+	  $self->interpolate_refs($node,$1);
+	print STDERR $@ if $@ and $Debug;
+	$result;
+      }eg;
+  };
+  (${'TredMacro::this'},${'TredMacro::root'},${'TredMacro::grp'})=@save;
   return $text;
 }
 
