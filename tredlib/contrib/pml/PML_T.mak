@@ -851,13 +851,15 @@ node:<?
   '#{customfunc}${functor}').
   "#{customsubfunc}".($${subfunctor}?".\${subfunctor}":'').($${is_state}?".\${is_state=state}":'') ?><? '#{customcoappa}_${is_member=M}'if$${is_member} ?><? '#{customparenthesis}_${is_parenthesis=P}' if$${is_parenthesis} ?>
 
+
 node:<? $${nodetype} !~/^(?:complex|root)$/
         ? '#{customnodetype}${nodetype}'
-        : '#{customcomplex}${gram/sempos}#{customdetail} '.join'.',map{($this->{gram}{$_}=~/^(?:nr|nil)$/?"#{customdetailheader}$_:#{customdetail}":'')."\${gram/$_}" } (ref($this->{gram}) ? sort grep{/mod/}keys%{$this->{gram}} : ())
-  ?>
+        : '#{customcomplex}${gram/sempos}'.(
+        ref($this->{gram}) ?
+          '#{customdetail} '.join'.', map{($this->{gram}{$_}=~/^(?:nr|nil)$/?"#{customdetailheader}$_:#{customdetail}":'')."\${gram/$_}" } sort grep{/mod/}keys%{$this->{gram}} : '') ?>
 
-node: <? $${nodetype} eq 'complex' ?
-  join'.',map{(($this->{gram}{$_}=~/^(?:nil|nr|inher)$/)?"#{customdetailheader}$_:":'')."#{customdetail}\${gram/$_}" } sort grep{$this->{gram}->{$_}&&$_ !~/sempos|mod/} (ref($this->{gram}) ? sort grep{/mod/}keys%{$this->{gram}} : ())
+node: <? ($${nodetype} eq 'complex' and ref($this->{gram}))?
+  join'.',map{(($this->{gram}{$_}=~/^(?:nil|nr|inher)$/)?"#{customdetailheader}$_:":'')."#{customdetail}\${gram/$_}" } sort grep{$this->{gram}->{$_}&&$_ !~/sempos|mod/}keys%{$this->{gram}}
   :''?>
 
 style:#{Node-width:7}#{Node-height:7}#{Node-currentwidth:9}#{Node-currentheight:9}
