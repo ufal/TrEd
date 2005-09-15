@@ -2534,20 +2534,42 @@ sub value_line_list {
   my $node=$fsfile->treeList->[$tree_no];
   my @sent=();
 
-  my $attr=$fsfile->FS->sentord();
+  my $sentord=$fsfile->FS->sentord();
   my $val=$fsfile->FS->value();
-  $attr=$fsfile->FS->order() unless (defined($attr));
-  while ($node) {
-    push @sent,$node unless ($node->{$val} eq '' or
-			     $node->{$val} eq '???' or
-			     $node->{$attr}>=999); # this is TR specific stuff
-    $node=$node->following();
-  }
-  @sent = sort { $a->{$attr} <=> $b->{$attr} } @sent;
-  if ($wantnodes) {
-    return (map { [$_->{$val},$_] } @sent);
+  $sentord=$fsfile->FS->order() unless (defined($sentord));
+
+  # if PML schemas are in use and one of the attributes
+  # is an attr-path, we have to use $node->attr(...) instead of $node->{...}
+  # (otherwise we optimize and use hash keys).
+  if (($val=~m{/} or $sentord=~m{/}) and ref($fsfile->metaData('schema'))) {
+    while ($node) {
+      my $value = $node->attr($val);
+      push @sent,$node
+	unless ($value eq '' or
+		$value eq '???' or
+		$node->attr($sentord)>=999); # this is a PDT-TR specific hack
+      $node=$node->following();
+    }
+    @sent = sort { $a->attr($sentord) <=> $b->attr($sentord) } @sent;
+    if ($wantnodes) {
+      return (map { [$_->attr($val),$_] } @sent);
+    } else {
+      return (map { $_->attr($val) } @sent);
+    }
   } else {
-    return (map { $_->{$val} } @sent);
+    while ($node) {
+      push @sent,$node 
+	unless ($node->{$val} eq '' or
+		$node->{$val} eq '???' or
+		$node->{$sentord}>=999); # this is a PDT-TR specific hack
+      $node=$node->following();
+    }
+    @sent = sort { $a->{$sentord} <=> $b->{$sentord} } @sent;
+    if ($wantnodes) {
+      return (map { [$_->{$val},$_] } @sent);
+    } else {
+      return (map { $_->{$val} } @sent);
+    }
   }
 }
 
