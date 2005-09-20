@@ -25,6 +25,7 @@ use vars qw($usenames $onlylemma $onlyfunc $onlydep $onlymissing
             $summary
             $check_dependency $check_presence $check_attributes $id);
 
+{
 use integer;
 
 $compare_all=1;
@@ -521,4 +522,5 @@ sub DiffWholeTRFiles {
   } while (@T>2);
   $FileChanged=0;
   $Redraw='all';
+}
 }
