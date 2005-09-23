@@ -19,7 +19,7 @@ use vars (@FORCE_EXPORT);
 *FileChanged=*FileNotSaved;	# alias
 
 import Fslib;
-import Fslib qw(&Index &FindInResources &ResolvePath);
+import Fslib qw(&Index &FindInResources &FindDirInResources &ResolvePath);
 import main;
 
 =pod
@@ -1597,9 +1597,10 @@ across several lines) which starts with a pattern prefix of the form
 "something:", where "something" is hint for the hint pattern, or
 "node" for the node pattern, etc.
 
-Patterns can also be provided as an array reference containing two
-elements: the first one being a hint text and the second one an array
-reference whose each element is the text of an individual pattern.
+Patterns can also be provided as an array reference containing three
+elements: the first one being a hint text, the second the context
+pattern (regular expression), and the second one an array reference
+whose each element is the text of an individual pattern.
 
 The create flag can be set to 1 in order to create a new stylesheet in
 case that no stylesheet with the given exists.
@@ -1654,9 +1655,10 @@ sub ReloadStylesheets {
 
 For a given stylesheet, return it's patterns. In a scalar context,
 returns a string consisting of all patterns, including the hint.  In
-the array context returns two scalars: the first one containing the
-text of the hint pattern and the other a reference to a list
-containing the stylesheet patterns. Returns empty list if fail.
+the array context returns thre scalars: the first one containing the
+text of the hint pattern, the second the context pattern (regexp) and
+the other a reference to a list containing the stylesheet
+patterns. Returns empty list if fail.
 
 =cut
 
@@ -1674,9 +1676,11 @@ If no stylesheet name is given, a current stylesheet is used.
 
 sub GetPatternsByPrefix {
   my ($prefix,$stylesheet)=@_;
-  my ($hint,$patterns) = main::getStylesheetPatterns($grp,$stylesheet);
+  my ($hint,$context,$patterns) = main::getStylesheetPatterns($grp,$stylesheet);
   if ($prefix eq 'hint') {
     return $hint;
+  } elsif ($prefix eq 'context') {
+    return $context;
   } else {
     return map { /^\Q$prefix\E:\s*((?:.|\n)*?)\s*$/ ? $1 : () } @$patterns;
   }
@@ -2349,6 +2353,13 @@ sub SetResourcePath {
   $Fslib::resourcePath=join $Fslib::resourcePathSplit,@_;
 }
 
+=item C<FindDirInResources(dirname)>
+
+If a given dirname is a relative path of a directory found in TrEd's
+resource directory, return an absolute path for the
+resource. Otherwise return dirname.
+
+=cut
 
 =item C<FindInResources(filename)>
 
