@@ -13,6 +13,14 @@ package TredMacro;
 
 #ifdef TRED
 
+#
+# @TredMacro::AUTO_CONTEXT_GUESSING
+#
+# contributed macro packages may push their custom context guessing
+# functions into this variable. The function must return name of the
+# context to switch to or undef.
+#
+
 sub file_opened_hook {
     my ($mode)= GetPatternsByPrefix('mode',STYLESHEET_FROM_FILE());
     return unless $grp->{FSFile};
@@ -44,6 +52,13 @@ sub file_opened_hook {
     } elsif($grp->{FSFile}->FS->exists->{afun}) {
       return SwitchContext('Analytic') unless CurrentContext() eq 'Analytic_Correction';
 #endif pdt10_a
+    } else {
+      foreach my $sub (@TredMacro::AUTO_CONTEXT_GUESSING) {
+	my $ret = &$sub;
+	if (defined($ret)) {
+	  return SwitchContext($ret);
+	}
+      }
     }
 }
 
