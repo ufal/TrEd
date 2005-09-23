@@ -700,6 +700,9 @@ sub saveStyleSheets {
     print $f "#"x 50,"\n";
     print $f "stylesheet: $stylesheet\n";
     for ($grp->{stylesheets}->{$stylesheet}) {
+      if ($_->{context} =~ /\S/) {
+	print $f map { "context: ".$_."\n" } split /\n/, $_->{context};
+      }
       print $f map { local $_=$_; tr/\n/\013/; $_."\n" } 
 	map { /^#/ ? 'node:'.$_ : $_ } @{$_->{patterns}};
       print $f map { "hint: ".$_."\n" } split /\n/, $_->{hint};
@@ -724,14 +727,17 @@ sub readStyleSheets {
     next if /^#/;
     if (/^stylesheet:\s*(.*)/) {
       $stylesheet = $1;
-    } elsif (/^hint:\s*(.*)/) {
-      $grp->{stylesheets}->{$stylesheet}->{hint}.="\n" if
-	$grp->{stylesheets}->{$stylesheet}->{hint} ne "";
-      $grp->{stylesheets}->{$stylesheet}->{hint}.=$1;
+    } elsif (s/^(hint|context):\s*//) {
+      if ($grp->{stylesheets}->{$stylesheet}->{$1} ne "") {
+	$grp->{stylesheets}->{$stylesheet}->{$1}.="\n".$_;
+      } else {
+	$grp->{stylesheets}->{$stylesheet}->{$1}.=$_;
+      }
     } else {
       tr/\013/\n/;
       push @{$grp->{stylesheets}->{$stylesheet}->{patterns}},$_;
     }
+    chomp $grp->{stylesheets}{$stylesheet}{$_} for qw(hint context);
   }
   close $f;
 }
@@ -3826,21 +3832,14 @@ sub getWindowHint {
   }
 }
 
-sub setWindowPatterns {
-  my $win=shift;
-  if ($win->treeView->patterns()) {
-    @{$win->treeView->patterns()}=@_;
-  } elsif ($win->{FSFile}) {
-    $win->{FSFile}->changePatterns(@_);
-  }
-}
-
-sub setWindowHint {
-  my ($win,$hint)=@_;
-  if ($win->treeView->hint()) {
-    ${$win->treeView->hint()}=$hint;
-  } elsif ($win->{FSFile}) {
-    $win->{FSFile}->changeHint($hint);
+sub getWindowContextRE {
+  my ($win)=@_;
+  my $grp = cast_to_grp($win);
+  my $stylesheet = $win->{stylesheet};
+  if (exists($grp->{stylesheets}->{$stylesheet})) {
+    return $grp->{stylesheets}->{$stylesheet}->{context};
+  } else {
+    return undef;
   }
 }
 
@@ -3860,10 +3859,25 @@ sub applyWindowStylesheet {
   $win->{stylesheet}=$stylesheet;
 }
 
-sub getStylesheetMenuList {
+sub updateStylesheetMenu {
   my ($grp)=@_;
+  __debug("calling updateStylesheetMenu");
+    $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
+}
+
+sub getStylesheetMenuList {
+  my ($grp,$all)=@_;
+  my $context=$grp->{focusedWindow}->{macroContext};
+  undef $context if $context eq 'TredMacro';
+  my $match;
   [STYLESHEET_FROM_FILE(),NEW_STYLESHEET(),DELETE_STYLESHEET(),
-   sort keys %{$grp->{stylesheets}}];
+   grep { 
+     if ($all or !defined($context)) { 1 } else {
+       $match = $grp->{stylesheets}{$_}{context};
+       $match = '.*' unless $match =~ /\S/;
+       $context =~ /^${match}$/x ? 1 : 0;
+     }
+   } sort keys %{$grp->{stylesheets}}];
 }
 
 sub switchStylesheet {
@@ -3881,11 +3895,11 @@ sub switchStylesheet {
 		   "Stylesheet named '$stylesheet' already exists!\n",1);
       $stylesheet=$prevstylesheet;
     } else {
-      $grp->{stylesheets}->{$stylesheet}->{patterns}=[getWindowPatterns($win)];
-      $grp->{stylesheets}->{$stylesheet}->{hint}=getWindowHint($win);
-      $grp->{StylesheetMenu}->configure(-options =>
-					getStylesheetMenuList($grp));
-      # $grp->{StylesheetMenu}->addOptions($stylesheet);
+      my ($hint,$context,$patterns) = getStylesheetPatterns($win);
+      $grp->{stylesheets}->{$stylesheet}->{hint}=$hint;
+      $grp->{stylesheets}->{$stylesheet}->{context}=$context;
+      $grp->{stylesheets}->{$stylesheet}->{patterns}=$patterns;
+      updateStylesheetMenu($grp);
       saveStyleSheets($grp);
     }
     applyWindowStylesheet($win,$stylesheet);
@@ -3923,20 +3937,22 @@ sub switchStylesheet {
 
 sub switchContext {
   my ($win,$context,$noredraw)=@_;
+  my $grp = cast_to_grp($win);
   my $prevcontext=$win->{macroContext};
   $win->{macroContext}=$context;
   my $ret = doEvalHook($win,"allow_switch_context_hook",$prevcontext,$context);
   if ($ret eq 'stop') {
     $win->{macroContext}=$prevcontext;
-    $win->{framegroup}{selectedContext}=$prevcontext if (isFocused($win));
+    $grp->{selectedContext}=$prevcontext if (isFocused($win));
     return 0;
   }
   $win->{macroContext}=$prevcontext;
   return 0 if (doEvalHook($win,"pre_switch_context_hook",$prevcontext,$context) eq 'stop');
   $win->{macroContext}=$context;
-  $win->{framegroup}{selectedContext}=$context if (isFocused($win));
+  $grp->{selectedContext}=$context if (isFocused($win));
   doEvalHook($win,"switch_context_hook",$prevcontext,$context);
-  if ($noredraw) {
+  unless ($noredraw) {
+    updateStylesheetMenu($grp);
     get_nodes_win($win);
     redraw_win($win);		# something should be done with display attrs vs windows maybe
   }
@@ -5158,13 +5174,14 @@ sub startMain {
 			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
 
   $group{StylesheetMenu}=$group{frame}->
-    Optionmenu(-options => getStylesheetMenuList(\%group),
+    Optionmenu(-options => [],
 	       -textvariable=> \$group{selectedStylesheet},
 	       -command=> [sub { my ($grp,$stylesheet) = @_;
 				 switchStylesheet($grp, $stylesheet);
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
+  updateStylesheetMenu(\%group);
   $group{Balloon}->attach($group{StylesheetMenu},
 			  -balloonmsg=> "stylesheet (tree appearance)");
 
@@ -7243,6 +7260,7 @@ sub splitPatterns {
   my @lines = split /(\n)/,$text;
   my @result;
   my $pattern = '';
+  my ($hint,$context);
   while (@lines) {
     my $line = shift @lines;
     if ($line=~/^([a-z]+):/) {
@@ -7250,6 +7268,8 @@ sub splitPatterns {
 	chomp $pattern;
 	if ($pattern=~s/^hint:\s*//) {
 	  $hint = $pattern;
+	} elsif ($pattern=~s/^context:\s*//) {
+	  $context = $pattern;
 	} else {
 	  push @result, $pattern;
 	}
@@ -7268,13 +7288,13 @@ sub splitPatterns {
     }
 
   }
-  return $hint,\@result;
+  return $hint,$context,\@result;
 }
 
 sub deleteStylesheet {
   my ($grp,$stylesheet)=@_;
   delete $grp->{stylesheets}->{$stylesheet};
-  $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
+  updateStylesheetMenu($grp);
   foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
     if ($grp->{focusedWindow} == $win) {
       $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
@@ -7292,9 +7312,9 @@ sub setStylesheetPatterns {
   my $grp = $win->{framegroup};
   my ($hint,$patterns);
   if (ref($text)) {
-    ($hint,$patterns)=@$text;
+    ($hint,$context,$patterns)=@$text;
   } else {
-    ($hint,$patterns)=splitPatterns($text);
+    ($hint,$context,$patterns)=splitPatterns($text);
   }
   $stylesheet = $win->{stylesheet} unless defined $stylesheet;
   if ($stylesheet eq STYLESHEET_FROM_FILE()) {
@@ -7309,10 +7329,12 @@ sub setStylesheetPatterns {
     if (ref($s)) {
       @{$s->{patterns}} = @$patterns;
       $s->{hint} = $hint;
+      $s->{context} = $context;
     } elsif ($create) {
       $grp->{stylesheets}->{$stylesheet}->{patterns}=[@$patterns];
       $grp->{stylesheets}->{$stylesheet}->{hint}=$hint;
-      $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
+      $grp->{stylesheets}->{$stylesheet}->{context}=$context;
+      updateStylesheetMenu($grp);
     } else {
       return 0;
     }
@@ -7322,12 +7344,13 @@ sub setStylesheetPatterns {
 
 sub getStylesheetPatterns {
   my ($win,$stylesheet)=@_;
-  my ($hint,$patterns);
+  my ($hint,$context,$patterns);
   $patterns = [];
   $stylesheet = $win->{stylesheet} unless defined $stylesheet;
   if ($stylesheet eq STYLESHEET_FROM_FILE()) {
     if ($win->{FSFile}) {
       $hint = $win->{FSFile}->hint();
+      $context = undef;
       @$patterns = $win->{FSFile}->patterns()
     } else {
       return ();
@@ -7336,12 +7359,14 @@ sub getStylesheetPatterns {
     my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
     if (ref($s)) {
       $hint = $s->{hint};
+      $context = $s->{context};
+      $context = '.*' unless (wantarray or $context =~ /\S/);
       @$patterns = @{$s->{patterns}};
     } else {
       return ();
     }
   }
-  return wantarray ? ($hint,$patterns) : ("hint:\n".$hint."\n".$patterns);
+  return wantarray ? ($hint,$context,$patterns) : ("context: ".$context."\nhint:\n".$hint."\n".join("\n",@$patterns));
 }
 
 sub editStylesheetDialog {
@@ -7383,6 +7408,7 @@ I<In this dialog you may edit the current display stylesheet. Stylesheets are se
 B<PATTERN:> C<&lt;prefix&gt;:&lt;rules&gt;>
 
 B<Default prefixes:>
+  C<context>    - restrict stylesheet to contexts matching given regexp
   C<node>      	- define a node label (default if no prefix given)
   C<edge>      	- define an edge label
   C<style>     	- define node and edge appearance (for individual nodes)
@@ -7493,7 +7519,7 @@ EOF
     -command => [sub {
 		   my ($win,$e,$p)=@_;
 		   $$p = 1;
-		   my ($hint,$patterns)=getStylesheetPatterns($win);
+		   my ($hint,$context,$patterns)=getStylesheetPatterns($win);
 		   setStylesheetPatterns($win,$e->get('0.0','end'));
 		   update_value_line($grp);
 		   if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
@@ -7501,7 +7527,7 @@ EOF
 		   } else {
 		     redraw_stylesheet($grp,$win->{stylesheet});
 		   }
-		   setStylesheetPatterns($win,[$hint,$patterns]);
+		   setStylesheetPatterns($win,[$hint,$context,$patterns]);
 		 },$win,$e,\$preview_applied]);
 
   # Frame with attribute selection
@@ -7539,8 +7565,10 @@ EOF
 
    $af->pack(qw/-padx 5 -side left -fill y/);
 
-  # NEW:
-  $e->insert('0.0',join "\n",map { /^([a-z]+):/ ? $_ : "node:".$_ } getWindowPatterns($win),"hint:\n".getWindowHint($win));
+  {
+    my $patterns=getStylesheetPatterns($win);
+    $e->insert('0.0',$patterns);
+  }
   $e->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
   addTextSearchLine($cf,$e)->pack(qw(-fill x -side bottom));
 
@@ -7594,6 +7622,7 @@ EOF
   }
   if ($result=~ /OK/) {
     setStylesheetPatterns($win,$e->get('0.0','end'));
+    updateStylesheetMenu($grp);
     saveStyleSheets($grp) unless $win->{stylesheet} eq STYLESHEET_FROM_FILE();
     update_value_line($grp);
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
