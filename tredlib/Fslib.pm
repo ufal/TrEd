@@ -26,7 +26,7 @@ use File::Spec;
 $VERSION = "1.5";
 
 @EXPORT = qw/&Next &Prev &DeleteTree &DeleteLeaf &Cut &ImportBackends/;
-@EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon FindInResources ResolvePath/;
+@EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon FindInResources FindDirInResources ResolvePath/;
 
 use Carp;
 #use vars qw/$VERSION @EXPORT @EXPORT_OK $field_re $parent $firstson $lbrother/;
@@ -233,6 +233,17 @@ sub _is_url {
 sub _is_absolute {
   my ($path) = @_;
   return (_is_url($path) or File::Spec->file_name_is_absolute($path));
+}
+
+sub FindDirInResources {
+  my ($filename)=@_;
+  unless (_is_absolute($filename)) {
+    for my $dir (split /\Q${Fslib::resourcePathSplit}\E/o,$resourcePath) {
+      my $f = File::Spec->catfile($dir,$filename);
+      return $f if -d $f;
+    }
+  }
+  return $filename;
 }
 
 sub FindInResources {
