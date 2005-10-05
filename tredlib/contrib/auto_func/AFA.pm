@@ -12,6 +12,8 @@ $VERSION = "1.00";
 @EXPORT = qw(&AutoFunctor);
 use vars qw($VERSION @EXPORT);
 
+use utf8;
+
 #################
 # hlavicka funkce
 
@@ -26,7 +28,7 @@ sub AutoFunctor($$$$$) {
 ###################################
 # vyroba vstupnich atributu
 
- $prep_conj=~tr/αιμνύσϊωΎΉθψο»ς/aeeiyouuzscrdtn/;
+ $prep_conj=~tr/Γ΅Γ©Δ›Γ­Γ½Γ³ΓΊΕ―ΕΎΕ΅ΔΕ™ΔΕ¥Ε/aeeiyouuzscrdtn/;
 
  $tag_gov=~m/^(.)(.)..(.)......(.)/;
  my $pos_gov=lc($1); 
