@@ -1,10 +1,11 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2003-11-26 14:46:34 pajas>
+## Time-stamp: <2005-10-05 10:37:45 pajas>
 
 #encoding iso-8859-2
 
-use lib "$main::libDir/contrib/auto_func";
+my $AFA_dir = $main::libDir."/contrib/auto_func";
+use lib $AFA_dir;
 require AFA;
 
 my $init_AFA=0;
@@ -38,7 +39,7 @@ my %ntprep = (
 sub init_AFA {
   $init_AFA=1;
   my $f;
-  open $f,"<$libDir/contrib/adverb2functor.lex" || warn "cannot open $libDir/contrib/adverb2functor.lex: $!";
+  open $f,"<:encoding(iso-8859-2)","$AFA_dir/adverb2functor.lex" or warn "cannot open $AFA_dir/adverb2functor.lex: $!";
   my ($key,$func,$num,$of);
   while (<$f>) {
     s/[\r\n]//g;
@@ -46,14 +47,14 @@ sub init_AFA {
     $advfunc{$lemma}=[ $func,$num,$of ];
   }
   close $f;
-  open $f,"<$libDir/contrib/noun_time.list" || warn "cannot open $libDir/contrib/noun_time.list: $!";
+  open $f,"<:encoding(iso-8859-2)","$AFA_dir/noun_time.list" or warn "cannot open $AFA_dir/noun_time.list: $!";
   while (<$f>) {
     /(\S+)/;
     $_=$1;
     $ntime{$_}=1;
   }
   close $f;
-  open $f,"<$libDir/contrib/noun_place.list" || warn "cannot open $libDir/contrib/noun_place.list: $!";
+  open $f,"<:encoding(iso-8859-2)","$AFA_dir/noun_place.list" or warn "cannot open $AFA_dir/noun_place.list: $!";
   while (<$f>) {
     /(\S+)/;
     $_=$1;
