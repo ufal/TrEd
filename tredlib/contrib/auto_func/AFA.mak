@@ -1,11 +1,11 @@
 # -*- cperl -*-
 ## author: Petr Pajas, Zdenek Zabokrtsky
-## Time-stamp: <2005-10-05 10:44:20 pajas>
+## Time-stamp: <2005-10-05 10:49:05 pajas>
 
 #encoding iso-8859-2
 
 my $AFA_dir = $main::libDir."/contrib/auto_func";
-unshift(@INC, $AFA_dir) unless grep { $_ eq $AFA_dir } @INC;
+eval 'use lib $AFA_dir';
 require AFA;
 
 my $init_AFA=0;
