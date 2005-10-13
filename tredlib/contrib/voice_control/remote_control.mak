@@ -32,11 +32,17 @@ sub runCommand {
 
   print STDERR "Got $command command from remote control server\n";
   chop $command; chop $command;
-  my $macro=resolveRemoteCommand($grp,$command);
-  if (defined($macro)) {
-    main::doEvalMacro($grp,$macro);
+  if ($command=~s/^\!//) {
+    my $context = $grp->{macroContext};
+    print STDERR "Evaluating bare code in context $context: $command\n";
+    main::doEvalMacro($grp,"package $context; { $command }");
   } else {
-    print STDERR "Remote command $command not recognized!\n";
+    my $macro=resolveRemoteCommand($grp,$command);
+    if (defined($macro)) {
+      main::doEvalMacro($grp,$macro);
+    } else {
+      print STDERR "Remote command $command not recognized!\n";
+    }
   }
 }
 
@@ -89,11 +95,11 @@ sub connectToRemoteControl {
   if ($^O eq "MSWin32") {
     print STDERR "MSWin32 platform detected.\n";
     $remote_control_socket_sel = new IO::Select( $remote_control_socket );
-    $remote_control_notify=$grp->toplevel->
+    $remote_control_notify=ToplevelFrame()->
       repeat(100,[\&periodicSocketCanReadCheck, $grp ]);  
   } else {
     print STDERR "Non-MS platform: good choice!\n";
-    $grp->toplevel->fileevent($remote_control_socket,'readable',[\&onRemoteCommand,$grp]);
+    ToplevelFrame()->fileevent($remote_control_socket,'readable',[\&onRemoteCommand,$grp]);
   }
 }
 
@@ -105,16 +111,16 @@ sub disconnectFromRemoteControl {
   my $message=shift || "Disconnecting from remote control.";
   if (defined($remote_control_socket)) {
     if ($^O eq "MSWin32") {
-      $grp->toplevel->afterCancel($remote_control_notify);
+      ToplevelFrame()->afterCancel($remote_control_notify);
       $remote_control_socket_sel->remove($remote_control_socket) if ($^O eq 'MSWin32');
       undef $remote_control_socket_sel;
     } else {
-      $grp->toplevel->fileevent($remote_control_socket,'readable',undef);
+      ToplevelFrame()->fileevent($remote_control_socket,'readable',undef);
     }
     close $remote_control_socket;
     undef $remote_control_socket;
     print STDERR "$message\n";
-    $grp->toplevel->toplevel->
+    ToplevelFrame()->toplevel->
       messageBox(-icon => 'info',
 		 -message => $message,
 		 -title => 'Remote control', -type => 'ok');
@@ -126,7 +132,7 @@ sub askRemoteControlInfo {
   my $peer_port    = shift || $default_remote_port;
 
   print "creating dialog\n";
-  my $d=$grp->toplevel->DialogBox(-title => "Connect to remote control",
+  my $d=ToplevelFrame()->DialogBox(-title => "Connect to remote control",
 			       -buttons => ["Connect","Cancel"]);
   $d->bind('all','<Escape>' => [sub { shift; shift->{'selected_button'}='Cancel'; },$d ]);
 
@@ -147,7 +153,7 @@ sub askRemoteControlInfo {
   print "resizable 0,0\n";
   $d->resizable(0,0);
   print "Showing dialog\n";
-  $result = main::ShowDialog($d,$he,$grp->toplevel);
+  $result = main::ShowDialog($d,$he,ToplevelFrame());
   print "done\n";
   $d->destroy();
   undef $d;
