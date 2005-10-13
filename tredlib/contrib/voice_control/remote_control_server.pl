@@ -1,5 +1,21 @@
 #!/usr/bin/perl
 
+#
+# usage: $0 [--shell] [port]
+#
+# This is a simple server listening on a given port (default 2345)
+# and the localhost interface. When a client connects,
+# copy all standard input (or readline input) to the client.
+# Lines are terminated with \015\012.
+#
+# Run with --shell to get a readline when the client connects for
+# a more comfortable editing.
+#
+# When communicating to a client:
+# type \disconnect_client to disconnect from the client
+# type \quit to exit immediatelly.
+#
+
 use strict;
 use Socket;
 use IO::Socket;
