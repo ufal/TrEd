@@ -583,17 +583,14 @@ sub CloneSubtree {
 =item C<CopyNode(node)>
 
 Return an identical copy (except that only declared attributes are
-preserved) of the given node.
+preserved) of the given node. The input node must belong to the
+current file.
 
 =cut
 
 sub CopyNode {
   my ($node)=@_;
-  my $nd=FSNode->new();
-  foreach (Attributes()) {
-    $nd->{$_}=$node->{$_};
-  }
-  return $nd;
+  return FS()->clone_node($node);
 }
 
 =item C<CutNode(node)>
