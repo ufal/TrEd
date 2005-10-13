@@ -1,0 +1,13 @@
+# -*- cperl -*-
+
+#ifndef remote_control
+#define remote_control
+
+package RemoteControl;
+import TredMacro;
+
+
+#binding-context RemoteControl
+#include "remote_control.mak"
+
+#endif remote_control
