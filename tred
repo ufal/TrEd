@@ -415,6 +415,8 @@ if ($]>=5.008) {
   };
 }
 
+sub uniq { my %a; grep { !($a{$_}++) } @_ }
+
 sub conv_from_locale {
   my ($str)=@_;
   if ($locale_charset and $TrEd::Convert::support_unicode) {
@@ -2992,6 +2994,12 @@ sub filelistDialog {
 
 }
 
+sub getContexts {
+  return
+    uniq sort (keys(%menuBindings), 
+	       keys(%keyBindings))
+}
+
 sub generateSortedMacroTable {
   my ($grp,$context) = @_;
   my %macro_to_key = reverse %{$keyBindings{$context}};
@@ -3039,7 +3047,7 @@ sub macrolistDialog {
     $grp->{Macrolist}->raise;
     return;
   }
-  unless (scalar(keys %{$menuBindings{$context}})) {
+  unless (scalar(getContexts())) {
     errorMessage($grp->{focusedWindow},"No named macros in current context ($context)",1);
     return;
   }
@@ -3083,7 +3091,7 @@ sub macrolistDialog {
 
   my $f=$topframe->Frame();
   $f->Label(-text => "Context: ")->pack(qw/-side left/);
-  $f->Optionmenu(-options      => [sort(keys(%keyBindings))],
+  $f->Optionmenu(-options      => [getContexts()],
 		 -textvariable => \$context,
 		 -command      => [sub { my ($g,$list,$ctxt) = @_;
 					 macrolistCreateItems($g,$list,$ctxt);
@@ -4770,7 +4778,7 @@ sub startMain {
   updateBookmarks(\%group);
 
   $group{ContextsMenu}=$group{Menubar}->
-    Optionmenu(-options => [sort(keys(%keyBindings))],
+    Optionmenu(-options => [getContexts()],
 	       -textvariable=> \$group{selectedContext},
 	       -command=> [sub { my ($grp,$context) = @_;
 				 switchContext($grp->{focusedWindow}, $context);
@@ -6365,7 +6373,7 @@ sub listQuery {
 sub selectContext {
   my ($grp)=@_;
   my $selection = [$grp->{focusedWindow}->{macroContext}];
-  listQuery($grp->{top},'Select Context','browse',[sort(keys(%keyBindings))],
+  listQuery($grp->{top},'Select Context','browse',[getContexts()],
 	    $selection) || return;
   if (@$selection) {
     switchContext($grp->{focusedWindow},$selection->[0]);
