@@ -1,13 +1,15 @@
 # -*- cperl -*-
+
 #insert connectToRemoteControl as menu Connect to Remote Control
 #insert disconnectFromRemoteControl as menu Disconnect from Remote Control
 
 ###
-## This macro realises a communication with a remote control. It can be any
-## server accepting tcp communication and sending to its client (TrEd) commands. 
-## Command is simply a name of TrEd's macro to be executed. Each command must be
-## on one line, the usual socket end-of-line (\015\012) is expected (i.e. each
-## line of input is chopped twice).
+## This macro realises a communication with a remote control. It can
+## be any server accepting tcp communication and sending to its client
+## (TrEd) commands.  A command is simply a name of TrEd's macro to be
+## executed or ! followed by arbitrary perl code. Each command must be
+## on one line (including the perl code), the usual socket end-of-line
+## (\015\012) is expected (i.e. each line of input is chopped twice).
 ###
 
 $default_remote_addr='localhost';
@@ -15,37 +17,53 @@ $default_remote_port='2345';
 $remote_control_socket=undef;
 $remote_control_notify=undef;
 
+#
+# resolves the command from the remote server
+#
+# if the command starts with !, resolve it as Perl code
+# in the current context
+#
+# otherwise, check if the current context or TredMacro
+# know the command as a command and if yes, run it
+#
+
 sub resolveRemoteCommand {
-  my ($grp,$macro)=@_;
+  my ($grp,$command)=@_;
   my $context=$grp->{macroContext};
 
-  if ($context->can($macro)) {
-    return "$context\:\:$macro";
+  $command=~s/\s*//;
+  my ($macro) = split /\s|\(/, $command, 1;
+
+  if ($command=~s/^\!//) {
+    # !command is a bare perl code
+    return "package $context; { $command }";
+  } elsif ($context->can($macro)) {
+    return "$context\:\:$command";
   } elsif ($context ne "TredMacro" and TredMacro->can($macro)) {
-    return "Tredmacro->$macro";
+    return "Tredmacro->$command";
   }
   return undef;
 }
 
+# run the actual code
 sub runCommand {
   my ($grp,$command)=@_;
 
   print STDERR "Got $command command from remote control server\n";
-  chop $command; chop $command;
-  if ($command=~s/^\!//) {
-    my $context = $grp->{macroContext};
-    print STDERR "Evaluating bare code in context $context: $command\n";
-    main::doEvalMacro($grp,"package $context; { $command }");
+
+  # this is more generic than chopping
+  $command=~s/\s*$//g;
+  # chop $command; chop $command;
+
+  my $macro=resolveRemoteCommand($grp,$command);
+  if (defined($macro)) {
+    main::doEvalMacro($grp,$macro);
   } else {
-    my $macro=resolveRemoteCommand($grp,$command);
-    if (defined($macro)) {
-      main::doEvalMacro($grp,$macro);
-    } else {
-      print STDERR "Remote command $command not recognized!\n";
-    }
+    print STDERR "Remote command $command not recognized!\n";
   }
 }
 
+# handle an event from the socket
 sub onRemoteCommand {
   my $grp=shift;
   print "$remote_control_socket\n";
@@ -62,6 +80,7 @@ sub onRemoteCommand {
   }
 }
 
+# periodically check for socket events (used on Win32)
 sub periodicSocketCanReadCheck {
   my $grp=shift;
   my @can_read;
@@ -72,6 +91,7 @@ sub periodicSocketCanReadCheck {
   }
 }
 
+# create connection to the controlling server
 sub connectToRemoteControl {
 
   use IO::Socket;
@@ -93,16 +113,23 @@ sub connectToRemoteControl {
     unless ($remote_control_socket);
 
   if ($^O eq "MSWin32") {
+    # on Win32 platform, Tk's fileevents don't seem to work,
+    # we use Tk's repeat to periodically check for incomming
+    # events using select() syscall
     print STDERR "MSWin32 platform detected.\n";
     $remote_control_socket_sel = new IO::Select( $remote_control_socket );
     $remote_control_notify=ToplevelFrame()->
-      repeat(100,[\&periodicSocketCanReadCheck, $grp ]);  
+      repeat(100,[\&periodicSocketCanReadCheck, $grp ]);
   } else {
+    # on unix platform and the like, we can comfortably handle
+    # incomming events using Tk's fileevent that take place
+    # directly in Tk's event loop
     print STDERR "Non-MS platform: good choice!\n";
     ToplevelFrame()->fileevent($remote_control_socket,'readable',[\&onRemoteCommand,$grp]);
   }
 }
 
+# tell the server goodby when closing tred
 sub exit_hook {
   disconnectFromRemoteControl();
 }
@@ -126,6 +153,9 @@ sub disconnectFromRemoteControl {
 		 -title => 'Remote control', -type => 'ok');
   }
 }
+
+# dialog asking the user host and port info for the remote control
+# server
 
 sub askRemoteControlInfo {
   my $peer_addr  = shift || $default_remote_addr;
