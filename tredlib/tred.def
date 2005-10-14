@@ -19,7 +19,7 @@ use vars (@FORCE_EXPORT);
 *FileChanged=*FileNotSaved;	# alias
 
 import Fslib;
-import Fslib qw(&Index &FindInResources &FindDirInResources &ResolvePath);
+import Fslib qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
 import main;
 
 =pod
@@ -1128,6 +1128,18 @@ sub ShiftNodeLeft {
 =over 4
 
 =cut
+
+=item C<CloneValue(value)>
+
+Return an identical deep copy of a given scalar. Useful for copying
+attribute values (and any value below them), including structured
+attributes, lists or alternatives.
+
+Warning: don't apply this macro to an entire FSNode since otherwise
+you might result with a copy of the complete tree, schema, etc.
+
+=cut
+
 
 =item C<IsList(value)>
 
