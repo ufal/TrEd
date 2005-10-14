@@ -26,7 +26,7 @@ use File::Spec;
 $VERSION = "1.5";
 
 @EXPORT = qw/&Next &Prev &DeleteTree &DeleteLeaf &Cut &ImportBackends/;
-@EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon FindInResources FindDirInResources ResolvePath/;
+@EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon FindInResources FindDirInResources ResolvePath &CloneValue/;
 
 use Carp;
 #use vars qw/$VERSION @EXPORT @EXPORT_OK $field_re $parent $firstson $lbrother/;
