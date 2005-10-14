@@ -191,6 +191,14 @@ sub DeleteLeaf ($) {
   return 0;
 }
 
+sub CloneValue ($) {
+  if (ref $_[0]) {
+    my $val;
+    return eval Data::Dumper->new([$_[0]],['val'])->Purity(1)->Dump;
+  } else {
+    return $_[0]
+  }
+}
 
 sub Index ($$) {
   my ($ar,$i) = @_;
@@ -1528,8 +1536,7 @@ sub clone_node {
   if ($node->type) {
     foreach my $atr ($node->type->members) {
       if (ref($node->{$atr})) {
-	my $val;
-	$new->{$atr} = eval Data::Dumper->new([$node->{$atr}],['val'])->Purity(1)->Dump;
+	$new->{$atr} = CloneValue($node->{$atr});
       } else {
 	$new->{$atr} = $node->{$atr};
       }
@@ -1672,8 +1679,7 @@ sub clone {
 			  );
   # clone metadata
   if (ref($self->[13])) {
-    my $val;
-    $new->[13] = eval Data::Dumper->new([$self->[13]],['val'])->Purity(1)->Dump;
+    $new->[13] = CloneValue($self->[13]);
   }
   if ($deep) {
     @{$new->treeList} = map { $fs->clone_subtree($_) } $self->trees();
@@ -3686,6 +3692,21 @@ corresponding C<$Fslib::...> variables directly.
    obtained via $fsformat->order.
 
  Returns $node
+
+=item CloneValue($scalar)
+
+ Params:
+
+   $scalar - arbitrary Perl scalar
+
+  Description:
+
+   Returns a deep copy of the Perl structures containing
+   in a given scalar.
+
+  Returns:
+
+   a deep copy of $scalar
 
 =item C<FindInResources($filename)>
 
