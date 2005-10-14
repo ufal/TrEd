@@ -871,15 +871,19 @@ attribute of the current node to a global hash variable named
 my %ValuesClipboard;
 sub CopyValues {
   undef %ValuesClipboard;
-  %ValuesClipboard = map { $_ => $this->{$_} } $grp->{FSFile}->FS->attributes;
+  my @attrs = ($this->type) ? ($this->type->members) : ($grp->{FSFile}->FS->attributes);
+  foreach my $atr ($this->type->members) {
+    $ValuesClipboard{$atr} = Fslib::CloneValue($this->{$atr});
+  }
   delete $ValuesClipboard{_node_ord($this)}; # we do not copy this
-#  $FileNotSaved=0 if ($FileNotSaved eq '?');;
+  #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
 
 =item C<PasteValues()>
 
-Replace the values of the current node's attributes by those stored in
-the global hash variable named %ValuesClipboard.
+Replace existing values of the current node's attributes by all values
+stored in the global hash variable named %ValuesClipboard. The
+function does not perform any node-type validity checks.
 
 =cut
 
