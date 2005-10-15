@@ -1217,6 +1217,16 @@ sub preloadFiles {
   _make_uniq(\@files);
 }
 
+sub associateSecondary {
+  my ($secondary,$fsfile,$as) = @_;
+
+  $secondary->changeAppData('fs-part-of',[]) 
+    unless ref $secondary->appData('fs-part-of');
+  push @{ $secondary->appData('fs-part-of') }, $fsfile; # is this a good idea?
+  $fsfile->changeAppData('ref',{}) unless ref $fsfile->appData('ref');
+  $fsfile->appData('ref')->{$as}=$secondary;
+}
+
 sub openSecondary {
   my ($grp,$fsfile)=@_;
   unless ($no_secondary) {
@@ -1227,17 +1237,25 @@ sub openSecondary {
 	_msg("Pre-loading dependent $req_filename as appData('ref')->{$req->[0]}\n") if $tredDebug;
 	unless ($grp->{'secondary'}->{$req_filename}) {
 	  if (exists($grp->{preloaded}) and $grp->{preloaded}->{$req_filename}) {
-	    $grp->{'secondary'}->{$req_filename} = $grp->{'preloaded'}->{$req_filename};
+	    $grp->{'secondary'}->{$req_filename} =
+	      $grp->{'preloaded'}->{$req_filename};
+	    associateSecondary($grp->{'preloaded'}->{$req_filename},
+			       $fsfile,
+			       $req->[0])
 	  } else {
 	    my $req_fs = FSFile->newFSFile($req_filename,$TrEd::Convert::inputenc,@backends);
 	    $req_fs->changeFileFormat(($req_filename=~/\.gz$/ ? "gz-compressed " : "").$req_fs->backend);
 	    _msg "empty or corrupt secondary file $req_filename required by ".$fsfile->filename."!\n" if ($req_fs->lastTreeNo<0);
 	    $grp->{'secondary'}->{$req_filename} = $req_fs;
-	    $req_fs->changeAppData('fs-part-of',[]) unless ref $req_fs->appData('fs-part-of');
-	    push @{ $req_fs->appData('fs-part-of') }, $fsfile; # is this a good idea?
-	    $fsfile->changeAppData('ref',{}) unless ref $fsfile->appData('ref');
-	    $fsfile->appData('ref')->{$req->[0]}=$req_fs;
+	    associateSecondary($req_fs,
+			       $fsfile,
+			       $req->[0])
 	  }
+	} else {
+	  # secondary file is already loaded, just associate:
+	    associateSecondary($grp->{'secondary'}->{$req_filename},
+			       $fsfile,
+			       $req->[0])
 	}
       }
     }
