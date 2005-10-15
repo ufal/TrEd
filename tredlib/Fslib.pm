@@ -1536,7 +1536,7 @@ sub clone_node {
   if ($node->type) {
     foreach my $atr ($node->type->members) {
       if (ref($node->{$atr})) {
-	$new->{$atr} = CloneValue($node->{$atr});
+	$new->{$atr} = Fslib::CloneValue($node->{$atr});
       } else {
 	$new->{$atr} = $node->{$atr};
       }
@@ -1679,7 +1679,7 @@ sub clone {
 			  );
   # clone metadata
   if (ref($self->[13])) {
-    $new->[13] = CloneValue($self->[13]);
+    $new->[13] = Fslib::CloneValue($self->[13]);
   }
   if ($deep) {
     @{$new->treeList} = map { $fs->clone_subtree($_) } $self->trees();
