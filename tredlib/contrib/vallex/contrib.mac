@@ -1,9 +1,9 @@
 # -*- cperl -*-
 
-#ifndef vallex
-#define vallex
+#ifndef pdt_vallex
+#define pdt_vallex
 
 use lib "$main::libDir/contrib/vallex";
 require ValLex::GUI;
 
-#endif vallex
+#endif pdt_vallex
