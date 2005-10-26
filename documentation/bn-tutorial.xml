@@ -705,7 +705,8 @@ subroutines.
 Executing a btred macro on a large amount of data may take a very long
 time (even tens of minutes for the whole PDT&nbsp;2.0). There is a simple
 solution how this time can be significantly reduced:  change the
-format of the data files from PML to <filename>pls.gz</filename>. 
+format of the data files from PML to 
+Perl Storable Format (<literal>pls.gz</literal>).
 You can convert the data files in the following way (see the
 section about format conversions in the PDT&nbsp;Guide):
 
@@ -733,16 +734,17 @@ is completely avoided when working with <filename>pls.gz</filename> because
 into (from) the data file.
 </para>
 <para>
-The users of the CD PDT 2.0 do not have to perform
-the conversion themselves, since
-they are already provided with the full data
-converted into the <literal>pls.gz</literal> format and
-stored in the directory  <literal>data/binary/</literal>
-(which mirrors the 
-structure
-of subdirectories
-<literal>amw/</literal> and
-<literal>tamw/</literal> of the directory <literal>data/full/</literal>)  on the CD.
+The users of the CD PDT 2.0 are already provided with the full data
+from <litera>data/full/amw</literal> and
+<literal>data/full/tamw</literal>
+converted into the <literal>pls.gz</literal> format. The converted
+files are located in the directories
+<literal>data/binary/amw</literal>
+and <literal>data/binary/tamw</literal> on the CD. Both of these directories
+are further structured in the same way as those
+in <literal>data/full</literal>, but note that for each file the three annotations
+originally distributed in separate files representing the w-layer,
+m-layer, and a-layer of annotation are now knit into a single <literal>*.a.pls.gz</literal> file. 
 </para>
 </section>
 
