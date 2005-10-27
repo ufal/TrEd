@@ -231,7 +231,7 @@ sub read_macros {
 	  my $pattern = $2;
 	  my @includes;
 	  if ($pattern=~/^<(.*)>$/) {
-	    @includes = glob(dirname($file).$1);
+	    @includes = glob(quotemeta(dirname($file)).$1);
 	  } else {
 	    @includes = (dirname($file).$pattern);
 	  }
