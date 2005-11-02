@@ -51,6 +51,13 @@ $about=
 ($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
 
 use Tk;
+
+# work around a bug in Tk
+if (defined $Tk::encodeFallback and $Tk::encodeFallback == Encode::FB_PERLQQ() and
+    Encode::FB_PERLQQ() != Encode::PERLQQ()) {
+  $Tk::encodeFallback    = Encode::PERLQQ();
+}
+
 use Tk::Config ();
 use Tk::Wm;
 use IO;
