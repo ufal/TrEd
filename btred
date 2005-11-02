@@ -360,6 +360,7 @@ $FSBackend::CheckListValidity=$validate_fs;
 $csts_tecto && Csts2fs::setupTR();
 if ($csts_tree_attrs ne "") {
   Csts2fs::setupSpec(split ',',$csts_tree_attrs);
+  Fs2csts::setupSpec(split ',',$csts_tree_attrs);
 }
 
 @Fs2csts::extra_attributes=split /,/,$csts_xargs;
@@ -1736,7 +1737,7 @@ btred - non-interactive scriptable version of the tree editor TrEd
         [-s strip-sfx] [-a append-sfx] [-p strip-prefix] [-r add-prefix]
         [-f out-fmt] [-n file-encoding] [-d terminal-encoding]
         [-W] [-q|-Q] [-D] [-V] [-L port] [-b hub]
-        [-x extra_attribs] [-X gov,ord] [-R]
+        [-x extra_attribs] [-X gov,ord,hide?] [-R]
         [-o script options -- ] [-l file-list] files...
 or
   btred -u          for usage
@@ -1917,12 +1918,21 @@ user's environment and potentially the entire system. Most notably,
 this blocks most IO operations. NO WARRANTY! If unsure, don't run the
 macro code at all.
 
-=item B<--csts-tree-attributes|-X> gov,ord
+=item B<--csts-tree-attributes|-X> gov,ord,hide?
 
-Allows provide comma separated list consisting of two names for CSTS
-elements that contain the necessary information to build a tree out of
-a CSTS file. The first one shoud contain the index of the governing
-node and the second one the topological order of the node in the tree.
+CSTS format is "many in one"; there may be more tree structures in one
+file.  This option can be used to specify which tree structure should
+be used.  Provide a comma separated list consisting of names of node
+atributes corresponding to CSTS elements that contain the necessary
+information to build a tree out of a CSTS file. The first attribute
+should be an attribute containing the index of the governing node; the
+second one is the ordering attribute; the third one is optional and if
+specified, it should be the attribute used to mark hidden nodes with
+the string 'hide'. If the third argument is not specified and there
+is no trailing comma, default to 'X_hide'. Examples: govTR,dord
+(correspond to E<lt>TRgE<gt> and E<lt>tfr<gt> in CSTS);
+govMD_c,ord;x_MD_c_hide (correspond to E<lt>MDg src="c"E<lt>,
+E<lt>rE<lt>, and E<lt>x name="MD_c_hide"<lt>).
 
 =item B<--tectogrammatical-trees|-R>
 

@@ -8,7 +8,7 @@ if ($^V lt v5.6.0) {
 }
 
 use Getopt::Std;
-getopts('p:r:s:a:f:x:m:n:CETADRNGhu');
+getopts('p:r:s:a:f:x:X:m:n:CETADRNGhu');
 
 if (@ARGV<1 or $opt_h or $opt_u) {
   print <<EOF;
@@ -43,6 +43,11 @@ Parameters:
 
   -T                 if converting from csts, build tectogrammatical tree structure
   -R                 same as -T (for compatibility with TrEd/bTrEd)
+
+  -X <gov>,<ord>[,<hide>] - use attribute <gov> to build tree from CSTS
+                     files, <ord> to order nodes, <hide> to distinguish
+                     hidden nodes
+
   -A                 when converting from csts, use header for Arabic PADT treebank
   -N                 if empty, initialize ordering attribute with sentence ordering
   -G                 do not save dependency on the root of the tree in csts format
@@ -95,6 +100,10 @@ import Fslib;
 
 ($opt_T || $opt_R) && Csts2fs::setupTR();
 $opt_A && Csts2fs::setupPADTAR();
+if ($opt_X ne "") {
+  Csts2fs::setupSpec(split ',',$opt_X);
+  Fs2csts::setupSpec(split ',',$opt_X);
+}
 
 @Fs2csts::extra_attributes=split /,/,$opt_x;
 
