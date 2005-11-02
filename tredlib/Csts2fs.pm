@@ -902,19 +902,25 @@ sub setupPADTAR {
   $fs_hint="tag:\t\${tag}\nlemma:\t\${lemma}\ngloss:\t\${x_gloss}\ncommentA:\t\${commentA}";
 }
 
-# enormously hackish stuff...
-# people should stop using CSTS
+# hackish stuff follows...
+# people should stop using CSTS |-/
 sub setupSpec {
   $gov = $_[0];
-  if (defined($_[2])) {
-    if ($_[2] ne "") {
-      $header = [ (grep !/\@[NH]/,@TRheader), '@N '.$_[1], '@H '.$_[2]];
-    } else {
-      $header = [ (grep !/\@[N]/,@TRheader), '@N '.$_[1]];
+  if (@_>0) {
+    $header = [ @TRheader ];
+    if ($_[1] ne "") {
+      @$header = ((grep !/\@N/,@$header), '@N '.$_[1]);
     }
-  } else {
-    $header = [ (grep !/\@[NH]/,@TRheader), '@N '.$_[1], '@H X_hide'];
-    $initial_node_values{X_hide}='hide';
+    if (@_>1) {
+      if ($_[2] ne "") {
+	@$header = ((grep !/\@[H]/,@$header) , '@H '.$_[2]);
+      } else {
+	# backward in-compatibility: empty => use X_hide
+	# old behavior: always use X_hide
+	@$header = ((grep !/\@[H]/,@$header) , '@H X_hide');
+	$initial_node_values{X_hide}='hide';
+      }
+    }
   }
 }
 

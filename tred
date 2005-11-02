@@ -153,7 +153,7 @@ Options specific to CSTS backend:
 
 -R              build tectogrammatic trees from CSTS files
 
--X <gov>,<ord>[,<hide>] - use attribute <gov> to build tree from CSTS
+-X <gov>,[<ord>],[<hide>] - use attribute <gov> to build tree from CSTS
                 files, <ord> to order nodes, <hide> to distinguish
                 hidden nodes
 EOF
