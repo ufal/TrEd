@@ -902,11 +902,20 @@ sub setupPADTAR {
   $fs_hint="tag:\t\${tag}\nlemma:\t\${lemma}\ngloss:\t\${x_gloss}\ncommentA:\t\${commentA}";
 }
 
-
+# enormously hackish stuff...
+# people should stop using CSTS
 sub setupSpec {
   $gov = $_[0];
-  $header = [ (grep !/\@[NH]/,@TRheader), '@N '.$_[1], '@H X_hide'];
-  $initial_node_values{X_hide}='hide';
+  if (defined($_[2])) {
+    if ($_[2] ne "") {
+      $header = [ (grep !/\@[NH]/,@TRheader), '@N '.$_[1], '@H '.$_[2]];
+    } else {
+      $header = [ (grep !/\@[N]/,@TRheader), '@N '.$_[1]];
+    }
+  } else {
+    $header = [ (grep !/\@[NH]/,@TRheader), '@N '.$_[1], '@H X_hide'];
+    $initial_node_values{X_hide}='hide';
+  }
 }
 
 1;
