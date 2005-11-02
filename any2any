@@ -44,7 +44,7 @@ Parameters:
   -T                 if converting from csts, build tectogrammatical tree structure
   -R                 same as -T (for compatibility with TrEd/bTrEd)
 
-  -X <gov>,<ord>[,<hide>] - use attribute <gov> to build tree from CSTS
+  -X <gov>,[<ord>],[<hide>] - use attribute <gov> to build tree from CSTS
                      files, <ord> to order nodes, <hide> to distinguish
                      hidden nodes
 
