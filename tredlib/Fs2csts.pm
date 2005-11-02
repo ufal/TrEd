@@ -6,6 +6,8 @@ $export_dependency=1;
 $compatibility_mode=0;
 $preserve_err1=0;
 
+$gov = undef;
+
 @extra_attributes=();
 
 %TRt = (
@@ -51,6 +53,10 @@ $preserve_err1=0;
 	sentmod_INTER => '?',
 	sentmod_NA => '-',
        );
+
+sub setupSpec {
+  $gov = $_[0];
+}
 
 sub make_TRt {
   my ($node,$machine)=@_;
@@ -357,7 +363,8 @@ sub write {
 	  print $fileref "<Tframeid>",$node->{frameid} if ($node->{frameid} ne "");
 	  print $fileref "<Tframere>",translate_to_entities($node->{framere}) 
 	    if ($node->{framere} ne "");
-	  if ($fsfile->FS->order eq 'dord') {
+	  if($gov eq 'govTR' or
+	     !defined($gov) and $fsfile->FS->order eq 'dord') {
 	    print $fileref "<TRg>",$node->parent->{ord};
 	  } else {
 	    print $fileref "<TRg>",$node->{govTR} if ($node->{govTR} ne "");
@@ -389,7 +396,9 @@ sub write {
       }
       print $fileref "<r>",$node->{ord} if ($node->{ord} ne "");
       if ($node->{TID} eq '') {
-	if ($fsfile->FS->order eq 'dord') {
+	if (defined($gov) and $gov ne 'ordorig'
+	    or
+	    !defined($gov) and $fsfile->FS->order eq 'dord') {
 	  print $fileref "<g>",$node->{ordorig} if $node->{ordorig} ne "";
 	} else {
 	  print $fileref "<g>",int($node->parent->{ord}) if (($export_dependency || $node->parent->{ord} ne "0") and $node->parent->{ord} ne "");
@@ -397,9 +406,16 @@ sub write {
       }
       unless (index($node->{ord},'.')>=$[) {
 	#not allowed in DTD for some reason
-	foreach (grep(/^MDg_/,$fsfile->FS->attributes)) {
-	  /govMD_(.*)$/;
-	  print_split_attr_with_num_attr($fileref,$node,"govMD_$1","wMDg_$1","MDg src=\"$1\"",'w');
+	foreach (grep(/^govMD_/,$fsfile->FS->attributes)) {
+	  if ($gov ne $_) {
+	    /govMD_(.*)$/;
+	    print_split_attr_with_num_attr($fileref,$node,"govMD_$1","wMDg_$1","MDg src=\"$1\"",'w');
+	  }
+	}
+	if ($gov=~/^govMD_(.*)$/) {
+	  print $fileref "<MDg src=\"$1\"",
+	    ($node->{"wMDg_$1"} ne "" ? "w=".$node->{"wMDg_$1"} : ""),
+	      ">",$node->parent->{ord};
 	}
       }
       if (join("",map { $node->{"wsd$_"} } qw(s ewn ili iliOffset)) ne "") {
@@ -415,8 +431,13 @@ sub write {
       }=();
       foreach (sort {$a cmp $b} keys %xtra) {
 	my $name=$_; $name=~s/^x_//;
-	print $fileref "<x name=\"$name\">",translate_to_entities($node->{$_})
-	  if $node->{$_} ne "";
+	if ($gov ne "x_".$name) {
+	  print $fileref "<x name=\"$name\">",
+	    translate_to_entities($node->{$_}) if $node->{$_} ne "";
+	}
+      }
+      if ($gov =~ /^x_(.*)$/) {
+	print $fileref "<x name=\"$1\">",$node->parent->{ord};
       }
       if ($preserve_err1 and $node->{err1} ne "") {
 	print $fileref "<err>",$node->{err1};
