@@ -143,15 +143,19 @@ Each filename may be followed by suffixes of the following forms:
 Other options:
 
 -q              be quiet
--R              build tectogrammatic trees from CSTS files
--X <gov>,<ord>  use attribute <gov> to build tree from CSTS files
-                and <ord> to order nodes
 -H              Start with showing hidden nodes
 -G              Do not initially resize window to its last geomtery.
 -W <window_id>  Embed main window into the given window
 -Y              Don't load secondary files
 -B <backends>   Comma separated list of additional backends to import
 
+Options specific to CSTS backend:
+
+-R              build tectogrammatic trees from CSTS files
+
+-X <gov>,<ord>[,<hide>] - use attribute <gov> to build tree from CSTS
+                files, <ord> to order nodes, <hide> to distinguish
+                hidden nodes
 EOF
   exit;
 }
@@ -532,6 +536,7 @@ my %searchTemplate;
 $opt_R && Csts2fs::setupTR();
 if ($opt_X ne "") {
   Csts2fs::setupSpec(split ',',$opt_X);
+  Fs2csts::setupSpec(split ',',$opt_X);
 }
 
 print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
@@ -7381,7 +7386,13 @@ sub getStylesheetPatterns {
       return ();
     }
   }
-  return wantarray ? ($hint,$context,$patterns) : ("context: ".$context."\nhint:\n".$hint."\n".join("\n",@$patterns));
+  # try to fix old non-labeled patterns
+  @$patterns = map { /^([a-z]+):/ ? $_ : "node: ".$_ } @$patterns;
+  return wantarray ? ($hint,$context,$patterns) :
+    ("context: ".$context."\n".
+       # fix old non-labeled hints
+       (join "\n",map {"hint: ".$_} split /\n/,$hint)."\n".
+	join("\n",@$patterns));
 }
 
 sub editStylesheetDialog {
