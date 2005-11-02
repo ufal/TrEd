@@ -82,7 +82,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "safe-mode|F" => \$safe_mode,
 	    "obey-locks|O" => \$obey_locks,
 	    "no-secondary-files|Y" => \$no_secondary,
-	    "csts-tree-attributes|X" => \$csts_tree_attrs,
+	    "csts-tree-attributes|X=s" => \$csts_tree_attrs,
 	    "tectogrammatical-trees|R" => \$csts_tecto,
 	    "preload-files|P" => \$preload,
 	    "warn-only|W" => \$warn_only,
