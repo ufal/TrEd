@@ -735,7 +735,7 @@ into (from) the data file.
 </para>
 <para>
 The users of the CD PDT 2.0 are already provided with the full data
-from <litera>data/full/amw</literal> and
+from <literal>data/full/amw</literal> and
 <literal>data/full/tamw</literal>
 converted into the <literal>pls.gz</literal> format. The converted
 files are located in the directories
