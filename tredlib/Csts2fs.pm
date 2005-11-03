@@ -906,12 +906,12 @@ sub setupPADTAR {
 # people should stop using CSTS |-/
 sub setupSpec {
   $gov = $_[0];
-  if (@_>0) {
+  if (@_>1) {
     $header = [ @TRheader ];
     if ($_[1] ne "") {
       @$header = ((grep !/\@N/,@$header), '@N '.$_[1]);
     }
-    if (@_>1) {
+    if (@_>2) {
       if ($_[2] ne "") {
 	@$header = ((grep !/\@[H]/,@$header) , '@H '.$_[2]);
       } else {
