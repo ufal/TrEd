@@ -359,8 +359,8 @@ $FSBackend::CheckListValidity=$validate_fs;
 
 $csts_tecto && Csts2fs::setupTR();
 if ($csts_tree_attrs ne "") {
-  Csts2fs::setupSpec(split ',',$csts_tree_attrs);
-  Fs2csts::setupSpec(split ',',$csts_tree_attrs);
+  Csts2fs::setupSpec(split ',',$csts_tree_attrs,-1);
+  Fs2csts::setupSpec(split ',',$csts_tree_attrs,-1);
 }
 
 @Fs2csts::extra_attributes=split /,/,$csts_xargs;

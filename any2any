@@ -101,8 +101,8 @@ import Fslib;
 ($opt_T || $opt_R) && Csts2fs::setupTR();
 $opt_A && Csts2fs::setupPADTAR();
 if ($opt_X ne "") {
-  Csts2fs::setupSpec(split ',',$opt_X);
-  Fs2csts::setupSpec(split ',',$opt_X);
+  Csts2fs::setupSpec(split ',',$opt_X,-1);
+  Fs2csts::setupSpec(split ',',$opt_X,-1);
 }
 
 @Fs2csts::extra_attributes=split /,/,$opt_x;

@@ -535,8 +535,8 @@ my %searchTemplate;
 
 $opt_R && Csts2fs::setupTR();
 if ($opt_X ne "") {
-  Csts2fs::setupSpec(split ',',$opt_X);
-  Fs2csts::setupSpec(split ',',$opt_X);
+  Csts2fs::setupSpec(split ',',$opt_X,-1);
+  Fs2csts::setupSpec(split ',',$opt_X,-1);
 }
 
 print STDERR "Reading macros from $macroFile...\n" unless $opt_q;
