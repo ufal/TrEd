@@ -41,7 +41,7 @@ sub real_parent {
 
 sub normalize_afun {
   my ($afun)=@_;
-  return $LcAfuns{$afun} || "???";
+  return $LcAfuns{$afun} || "Atr";
 }
 
 #bind assign_afun_auto Ctrl+Shift+F9 menu Auto-assign analytical function to node
