@@ -131,8 +131,9 @@ sub get_ttf_fonts {
   my $ds=$TrEd::Convert::Ds;
   eval {
     require PDF::API2::TTF::Font;
-    foreach my $dir (map { _dirs($_) } @_) {
-      foreach my $font (grep { -f $_ } glob(quotemeta($dir).$ds.'*.*')) {
+    foreach my $path (map { _dirs($_) } @_) {
+      my ($vol,$dir) = File::Spec->splitpath($path);
+      foreach my $font (grep { -f $_ } glob(File::Spec->catpath($vol,quotemeta($dir),'*.*'))) {
 	my $f = PDF::API2::TTF::Font->open($font);
 	next unless $f;
 	$PDF::API2::TTF::Name::utf8 = 1;

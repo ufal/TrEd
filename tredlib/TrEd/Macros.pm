@@ -2,6 +2,7 @@ package TrEd::Macros;
 
 BEGIN {
   use Fslib;
+  use File::Spec;
   use TrEd::Config;
   use TrEd::Basics;
   import TrEd::Config qw($defaultMacroFile $defaultMacroEncoding $macroDebug $hookDebug);
@@ -231,7 +232,8 @@ sub read_macros {
 	  my $pattern = $2;
 	  my @includes;
 	  if ($pattern=~/^<(.*)>$/) {
-	    @includes = glob(quotemeta(dirname($file)).$1);
+	    my ($vol,$dir) = File::Spec->splitpath(dirname($file));
+	    @includes = glob(File::Spec->catpath($vol,quotemeta($dir),$1));
 	  } else {
 	    @includes = (dirname($file).$pattern);
 	  }
