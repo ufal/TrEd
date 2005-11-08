@@ -89,7 +89,7 @@ function findperlbin {
     if [ ! -x $PERLBIN ]; then
       for d in c d e f g; do 
         if [ -x ${d}:/perl/bin/perl.exe ]; then
-          PERLBIN=${d}:/perl/bin/perl.exe
+          PERLBIN="${d}:/perl/bin/perl.exe"
 	  return 0
         fi
       done
@@ -98,21 +98,21 @@ function findperlbin {
 }
 
 function dosdirname {
-  dirname=$1
-  dosdirname=${dirname#/cygdrive/}
+  dirname="$1"
+  dosdirname="${dirname#/cygdrive/}"
   if [ ${dirname} != ${dosdirname} ]; then
-    dosdirname=${dosdirname/\//:/}
+    dosdirname="${dosdirname/\//:/}"
   fi
   echo $dosdirname
 }
 
 function cygdirname {
-  dirname=$1
+  dirname="$1"
   if ! echo "$dirname" | grep -q '^/cygdrive/'; then
     cygdirname="/cygdrive/${dirname}";
-    cygdirname=${cygdirname/://}
+    cygdirname="${cygdirname/://}"
   else
-    cygdirname=$dirname;
+    cygdirname="$dirname";
   fi
   echo $cygdirname
 }
@@ -125,7 +125,7 @@ function findtreddir {
     if [ ! -f "${TREDDIR}/tred" ]; then
       for d in c d e f g; do 
         if [ -f ${d}:/tred/tred -a ! ${d}:/tred -ef "$INSTTRED" ]; then
-          TREDDIR=${d}:/tred
+          TREDDIR="${d}:/tred"
           return 0
         fi
       done
@@ -147,7 +147,7 @@ function test_version {
 }
 
 function get_version {
-  echo `$PPM $* | grep "\[[0-9.]*\]" | sed 's/^.*\[\([0-9.]*\).*$\]/\1/g'`
+  echo `"$PPM" $* | grep "\[[0-9.]*\]" | sed 's/^.*\[\([0-9.]*\).*$\]/\1/g'`
 }
 
 function upgrade_packages {
@@ -155,9 +155,9 @@ function upgrade_packages {
       for s in $PACKAGES56; do 
 	echo
 	echo $MSG002 $s
-	QUERY=`$PPM query "^$s\$"`
+	QUERY=`"$PPM" query "^$s\$"`
 	if [ -n "$QUERY" ]; then
-	  $PPM verify --location="$packages_ap56" --upgrade "$s"
+	  "$PPM" verify --location="$packages_ap56" --upgrade "$s"
 	else
 	  install_packages $s
 	  echo
@@ -165,49 +165,49 @@ function upgrade_packages {
       done
   else
       echo $MSG003
-      $PPM rep del tredsetup 2>/dev/null >/dev/null
-      $PPM rep
+      "$PPM" rep del tredsetup 2>/dev/null >/dev/null
+      "$PPM" rep
       REPS="$($PPM rep | grep -E '^\[[0-9]+\]')"
       REPS=`echo "$REPS" | sed 's/^\[[0-9]*\] *//'`
       OLDIFS="$IFS";
       IFS=$'\n\t\n';
       for rep in $REPS; do
 	  IFS="$OLDIFS";
-	  $PPM rep off $rep 2>/dev/null >/dev/null
+	  "$PPM" rep off $rep 2>/dev/null >/dev/null
       done
       IFS="$OLDIFS";
-      $PPM rep add tredsetup "$packages_ap58" 2>/dev/null >/dev/null
-      $PPM rep
+      "$PPM" rep add tredsetup "$packages_ap58" 2>/dev/null >/dev/null
+      "$PPM" rep
       echo $MSGDONE
       for s in $PACKAGES58; do 
 	echo
         echo "$MSG004 $s"
 	ppd="${s//::/-}";
-	if ! $PPM install "$ppd" 2>/dev/null >/dev/null; then
-          $PPM upgrade -install -precious "$ppd"
+	if ! "$PPM" install "$ppd" 2>/dev/null >/dev/null; then
+          "$PPM" upgrade -install -precious "$ppd"
         fi
       done
       echo $MSG005
-      $PPM rep del tredsetup 2>/dev/null >/dev/null
+      "$PPM" rep del tredsetup 2>/dev/null >/dev/null
       OLDIFS="$IFS";
       IFS=$'\n\t\n';
       for rep in $REPS; do
            IFS="$OLDIFS";
-           $PPM rep on $rep 2>/dev/null >/dev/null
+           "$PPM" rep on $rep 2>/dev/null >/dev/null
       done
-      $PPM rep
+      "$PPM" rep
       IFS="$OLDIFS";
       echo $MSGDONE
   fi
 }
 
 function install_packages {
-  $PPM install --location="$packages_ap58" $*
+  "$PPM" install --location="$packages_ap58" $*
 }
 
 function upgrade_perl {
-  PERLINSTALLDIR=${PERLDIR%/BIN}
-  PERLINSTALLDIR=${PERLINSTALLDIR%/bin}
+  PERLINSTALLDIR="${PERLDIR%/BIN}"
+  PERLINSTALLDIR="${PERLINSTALLDIR%/bin}"
   if ask "$MSG007 $PERLINSTALLDIR?"; then
       $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat >/dev/null 2>/dev/null
       echo
@@ -234,7 +234,7 @@ function get_perl_install_dir {
 }
 
 function install_perl {
-  DIR=$PWD
+  DIR="$PWD"
 
   if [[ ! -f "$DIR/$REQPERLINSTDIR/"perl*.tgz ]]; then
       echo "-------------------------------------------------------------------------------"
@@ -287,7 +287,7 @@ done
 PERLDIR=`dirname $PERLBIN 2>/dev/null`
 DOSPERLDIR=`dosdirname $PERLDIR`
 CYGPERLDIR=`cygdirname $PERLDIR`
-export PATH=$CYGPERLDIR:$PATH
+export PATH="$CYGPERLDIR:$PATH"
 PPM="$CYGPERLDIR/ppm.bat" #$DOSPERLDIR/ppm.bat
 
 
