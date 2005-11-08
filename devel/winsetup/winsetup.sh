@@ -78,17 +78,17 @@ function mkplbat {
 
 function findperlbin {
   PERLBIN=`which perl 2>/dev/null`
-  if [ ! -z $PERLBIN ]; then
-      $PERLBIN -v | grep -q 'MSWin32';
+  if [ ! -z "$PERLBIN" ]; then
+      "$PERLBIN" -v | grep -q 'MSWin32';
       if [ $? != 0 ]; then
 	  PERLBIN=""
       fi
   fi
-  if [ -z $PERLBIN ]; then
+  if [ -z "$PERLBIN" ]; then
     PERLBIN=`regtool get '\machine\Software\Perl\BinDir' 2>/dev/null`"/perl.exe"
-    if [ ! -x $PERLBIN ]; then
+    if [ ! -x "$PERLBIN" ]; then
       for d in c d e f g; do 
-        if [ -x ${d}:/perl/bin/perl.exe ]; then
+        if [ -x "${d}:/perl/bin/perl.exe" ]; then
           PERLBIN="${d}:/perl/bin/perl.exe"
 	  return 0
         fi
@@ -100,10 +100,10 @@ function findperlbin {
 function dosdirname {
   dirname="$1"
   dosdirname="${dirname#/cygdrive/}"
-  if [ ${dirname} != ${dosdirname} ]; then
+  if [ "$dirname" != "$dosdirname" ]; then
     dosdirname="${dosdirname/\//:/}"
   fi
-  echo $dosdirname
+  echo "$dosdirname"
 }
 
 function cygdirname {
@@ -114,7 +114,7 @@ function cygdirname {
   else
     cygdirname="$dirname";
   fi
-  echo $cygdirname
+  echo "$cygdirname"
 }
 
 
@@ -124,7 +124,7 @@ function findtreddir {
     INSTTRED=`dosdirname ${PWD}/tred`
     if [ ! -f "${TREDDIR}/tred" ]; then
       for d in c d e f g; do 
-        if [ -f ${d}:/tred/tred -a ! ${d}:/tred -ef "$INSTTRED" ]; then
+        if [ -f "${d}:/tred/tred" -a ! "${d}:/tred" -ef "$INSTTRED" ]; then
           TREDDIR="${d}:/tred"
           return 0
         fi
@@ -133,9 +133,9 @@ function findtreddir {
 }
 
 function perl_version_current {
-  INSTVER=`$PERLBIN --version | grep "This is perl."`
-  echo $INSTVER
-  if $PERLBIN --version | grep -Eq 'This is perl.* v5\.'"${REQPERLVER}"; then
+  INSTVER=`"$PERLBIN" --version | grep "This is perl."`
+  echo "$INSTVER"
+  if "$PERLBIN" --version | grep -Eq 'This is perl.* v5\.'"${REQPERLVER}"; then
     return 0
   else 
     return 1
@@ -151,7 +151,7 @@ function get_version {
 }
 
 function upgrade_packages {
-  if $PERLBIN --version | grep -q 'This is perl.* v5\.6'; then
+  if "$PERLBIN" --version | grep -q 'This is perl.* v5\.6'; then
       for s in $PACKAGES56; do 
 	echo
 	echo $MSG002 $s
@@ -159,7 +159,7 @@ function upgrade_packages {
 	if [ -n "$QUERY" ]; then
 	  "$PPM" verify --location="$packages_ap56" --upgrade "$s"
 	else
-	  install_packages $s
+	  install_packages "$s"
 	  echo
 	fi
       done
@@ -193,7 +193,7 @@ function upgrade_packages {
       IFS=$'\n\t\n';
       for rep in $REPS; do
            IFS="$OLDIFS";
-           "$PPM" rep on $rep 2>/dev/null >/dev/null
+           "$PPM" rep on "$rep" 2>/dev/null >/dev/null
       done
       "$PPM" rep
       IFS="$OLDIFS";
@@ -209,12 +209,12 @@ function upgrade_perl {
   PERLINSTALLDIR="${PERLDIR%/BIN}"
   PERLINSTALLDIR="${PERLINSTALLDIR%/bin}"
   if ask "$MSG007 $PERLINSTALLDIR?"; then
-      $PERLBIN uninst_p500.pl $DOSPERLDIR/p_uninst.dat >/dev/null 2>/dev/null
+      "$PERLBIN" uninst_p500.pl "$DOSPERLDIR/p_uninst.dat" >/dev/null 2>/dev/null
       echo
       echo "$MSG006 $PERLINSTALLDIR"
       read -e -n1 -r -p "$MSG008"
       echo "$MSG009 $PERLINSTALLDIR..."
-      rm -rf $PERLINSTALLDIR
+      rm -rf "$PERLINSTALLDIR"
       echo $MSGDONE
   else
       echo $MSG010
@@ -228,7 +228,7 @@ function upgrade_perl {
 
 function get_perl_install_dir {
   read -e -r -p "$MSG036 c:/perl]: " PERLINSTALLDIR
-  if [ -z $PERLINSTALLDIR ]; then
+  if [ -z "$PERLINSTALLDIR" ]; then
     PERLINSTALLDIR="c:/perl"
   fi
 }
@@ -252,26 +252,26 @@ function install_perl {
   fi
 
   test -d "$PERLINSTALLDIR" || mkdir "$PERLINSTALLDIR"
-  echo $MSG013 "$DIR/$REQPERLINSTDIR"/perl*.tgz
+  echo "$MSG013" "$DIR/$REQPERLINSTDIR"/perl*.tgz
   (cd "$PERLINSTALLDIR" &&\
   tar -xzf "$DIR/$REQPERLINSTDIR/"perl*.tgz &&\
-  echo $MSG014
+  echo "$MSG014"
   "$PERLINSTALLDIR/install.bat") || \
-  (echo; echo $MSG015; exit 1)
+  (echo; echo "$MSG015"; exit 1)
 }
 
 echo
 echo "-------------------------------------------------------------------------------"
 echo
-echo $MSG016
+echo "$MSG016"
 ask "$MSG017" || exit 0
 
 echo
 findperlbin
 until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dosdirname $PERLBIN)"; do
-  echo $MSG019
-  echo $MSG020
-  echo $MSG021
+  echo "$MSG019"
+  echo "$MSG020"
+  echo "$MSG021"
   echo
   if ask "$MSG022"; then
     get_perl_install_dir
@@ -284,17 +284,17 @@ until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dos
 done
 
 
-PERLDIR=`dirname $PERLBIN 2>/dev/null`
-DOSPERLDIR=`dosdirname $PERLDIR`
-CYGPERLDIR=`cygdirname $PERLDIR`
+PERLDIR=`dirname "$PERLBIN" 2>/dev/null`
+DOSPERLDIR=`dosdirname "$PERLDIR"`
+CYGPERLDIR=`cygdirname "$PERLDIR"`
 export PATH="$CYGPERLDIR:$PATH"
 PPM="$CYGPERLDIR/ppm.bat" #$DOSPERLDIR/ppm.bat
 
 
-echo $MSG024
+echo "$MSG024"
 
 if perl_version_current; then
-  echo $MSGOK
+  echo "$MSGOK"
 else 
   echo
   echo "$MSG025 5.${REQPERLVER}"
@@ -304,8 +304,8 @@ else
   else
     if ask "$MSG027"; then
      echo 
-     echo $MSG028
-     echo $MSG029
+     echo "$MSG028"
+     echo "$MSG029"
     else 
      exit 1
     fi
@@ -369,8 +369,8 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     ([[ ! -d resources ]] || \
        ([[ -d "${TREDDIR}/resources" ]] || mkdir "${TREDDIR}/resources";\
         cp -R resources/* "${TREDDIR}/resources"))  && \
-    ([[ $SAVED_TREDRC = 1 || "$TREDRC" = "" || ! -f "$TREDRC" ]] || \
-     (echo "$MSG044 $TREDRC $MSG045"; cp $TREDRC "${TREDDIR}/tredlib/tredrc"))  && \
+    ([[ "$SAVED_TREDRC" = 1 || "$TREDRC" = "" || ! -f "$TREDRC" ]] || \
+     (echo "$MSG044 $TREDRC $MSG045"; cp "$TREDRC" "${TREDDIR}/tredlib/tredrc"))  && \
     mkplbat tred                          && \
     mkplbat btred                         && \
     mkplbat trprint                       && \
@@ -389,16 +389,16 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     # their own copy
     attrib +R "${TREDDIR}/tredlib/tredrc"
 
-    echo $MSG038
+    echo "$MSG038"
     regtool add "\\machine\\Software\\TrEd" >/dev/null 2>/dev/null
     regtool -s set "\\machine\\Software\\TrEd\\Dir" "$TREDDIR" >/dev/null 2>/dev/null
     echo
-    echo $MSG040
-    echo $MSG041
+    echo "$MSG040"
+    echo "$MSG041"
     echo
 else
   echo
-  echo $MSG042
+  echo "$MSG042"
   echo
   read -e -n1 -r -p "$MSG043"
 fi
