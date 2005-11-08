@@ -234,6 +234,8 @@ function get_perl_install_dir {
 }
 
 function install_perl {
+  DIR=$PWD
+
   if [[ ! -f "$DIR/$REQPERLINSTDIR/"perl*.tgz ]]; then
       echo "-------------------------------------------------------------------------------"
       echo
@@ -250,7 +252,6 @@ function install_perl {
   fi
 
   test -d "$PERLINSTALLDIR" || mkdir "$PERLINSTALLDIR"
-  DIR=$PWD
   echo $MSG013 "$DIR/$REQPERLINSTDIR"/perl*.tgz
   (cd "$PERLINSTALLDIR" &&\
   tar -xzf "$DIR/$REQPERLINSTDIR/"perl*.tgz &&\
