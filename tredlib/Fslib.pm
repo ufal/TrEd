@@ -270,7 +270,7 @@ sub ResolvePath ($$;$) {
   print STDERR "ResolvePath: '$href' base='$orig' use_resources=$use_resources\n" if $Fslib::Debug;
   unless (_is_absolute($href)) {
     if (_is_url($orig)) {
-      print "ResolvePath: as URL:\n" if $Fslib::Debug;
+      print STDERR "ResolvePath: as URL:\n" if $Fslib::Debug;
       # for URLs, reverse the process a bit:
       # 1st, try a local relative path
       if (-f $href) {
@@ -294,7 +294,7 @@ sub ResolvePath ($$;$) {
     } else {
       my ($vol,$dir) = File::Spec->splitpath(File::Spec->rel2abs($orig));
       my $rel = File::Spec->rel2abs($href,File::Spec->catfile($vol,$dir));
-      print "ResolvePath: trying rel: $rel, based on: ",File::Spec->catfile($vol,$dir),"\n" 
+      print STDERR "ResolvePath: trying rel: $rel, based on: ",File::Spec->catfile($vol,$dir),"\n" 
 	if $Fslib::Debug;
       if (-f $rel) {
 	print STDERR "ResolvePath: (1) result='$rel'\n" if $Fslib::Debug;
