@@ -40,7 +40,7 @@ done
 
 . "winsetup_${INSTLANG}.msg" || exit 1
 
-if [[ "$INSTPERLVER" = 6 ]]; then
+if [ "$INSTPERLVER" = 6 ]; then
   REQPERLVER="[68]"
   REQPERLINSTDIR=win32_perl56
   packages_ap56=packages56_win32
@@ -133,9 +133,9 @@ function findtreddir {
 }
 
 function perl_version_current {
-  INSTVER=`"$PERLBIN" --version | grep "This is perl."`
+  INSTVER=`"$PERLBIN" --version | grep "This is perl,"`
   echo "$INSTVER"
-  if "$PERLBIN" --version | grep -Eq 'This is perl.* v5\.'"${REQPERLVER}"; then
+  if "$PERLBIN" --version | grep -E 'This is perl, v5\.'"(${REQPERLVER})"; then
     return 0
   else 
     return 1
@@ -235,8 +235,7 @@ function get_perl_install_dir {
 
 function install_perl {
   DIR="$PWD"
-
-  if [[ ! -f "$DIR/$REQPERLINSTDIR/"perl*.tgz ]]; then
+  if [ ! -f "$DIR/$REQPERLINSTDIR/"perl*.tgz ]; then
       echo "-------------------------------------------------------------------------------"
       echo
       echo "Due to licensing issues we cannot distribute ActivePerl 5.8 together with"
@@ -359,17 +358,17 @@ fi
 echo
 echo "$MSG037 $TREDDIR"
 
-if [[ "$UPGRADE" = 1 && -f "${TREDDIR}/tredlib/tredrc.sav" ]]; then
+if [ "$UPGRADE" = 1 ] && [ -f "${TREDDIR}/tredlib/tredrc.sav" ]; then
   SAVED_TREDRC=1
 fi
 
 if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     cp -R tred/* "${TREDDIR}"             && \
-    ([[ ! -f tred.mac ]] || cp tred.mac "${TREDDIR}/tredlib")  && \
-    ([[ ! -d resources ]] || \
-       ([[ -d "${TREDDIR}/resources" ]] || mkdir "${TREDDIR}/resources";\
+    ([ ! -f tred.mac ] || cp tred.mac "${TREDDIR}/tredlib")  && \
+    ([ ! -d resources ] || \
+       ([ -d "${TREDDIR}/resources" ] || mkdir "${TREDDIR}/resources";\
         cp -R resources/* "${TREDDIR}/resources"))  && \
-    ([[ "$SAVED_TREDRC" = 1 || "$TREDRC" = "" || ! -f "$TREDRC" ]] || \
+    ([ "$SAVED_TREDRC" = 1  -o "$TREDRC" = "" -o ! -f "$TREDRC" ] || \
      (echo "$MSG044 $TREDRC $MSG045"; cp "$TREDRC" "${TREDDIR}/tredlib/tredrc"))  && \
     mkplbat tred                          && \
     mkplbat btred                         && \
@@ -381,7 +380,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     else 
       echo "$MSG039 ${TREDDIR}/bin !"
     fi
-    [[ $SAVED_TREDRC = 1 ]] && \
+    [ $SAVED_TREDRC = 1 ] && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
     test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl "$INSTLANG" "${TREDDIR}"
 
