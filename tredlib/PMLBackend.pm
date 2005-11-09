@@ -4,6 +4,7 @@ use IOBackend qw(close_backend);
 use strict;
 
 use XML::Simple; # for PML schema
+use Encode;
 use XML::LibXML;
 use XML::LibXML::Common qw(:w3c :encoding);
 use XML::Writer;
@@ -140,14 +141,17 @@ sub read_references {
 	my $id = $reffile->getAttribute('id');
 	my $name = $reffile->getAttribute('name');
 	$named_references{ $name } = $id if $name;
-	$references{ $id } = Fslib::ResolvePath($fsfile->filename,$reffile->getAttribute('href'),0);
+	# Encode: all filenames must(!) be bytes
+	$references{ $id } = Fslib::ResolvePath($fsfile->filename,
+						Encode::encode_utf8($reffile->getAttribute('href')),0);
       _debug("read_references: $id => $references{$id}");
 
       }
     }
     my ($schema) = $head->getElementsByTagNameNS(PML_NS,'schema');
     if ($schema) {
-      my $schema_file = $schema->getAttribute('href');
+      # Encode: all filenames must(!) be bytes
+      my $schema_file = Encode::encode_utf8($schema->getAttribute('href'));
       # store the original URL, not the resolved one!
       $fsfile->changeMetaData('schema-url',$schema_file);
       $schema_file = Fslib::ResolvePath($fsfile->filename,$schema_file,1);
@@ -539,9 +543,13 @@ sub readas_dom {
 
   my ($local_file,$remove_file) = IOBackend::fetch_file($href);
   my $ref_fh = open_backend($local_file,'r');
+  die "Can't open $href for reading" unless $ref_fh;
   _debug("readas_dom: $href $ref_fh");
   if ($ref_fh){
-    $ref_data = $parser->parse_fh($ref_fh);
+    eval {
+      $ref_data = $parser->parse_fh($ref_fh);
+    };
+    die "Error parsing $href $ref_fh $local_file ($@)\n" if $@;
     $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
     $parser->process_xincludes($ref_data);
     close_backend($ref_fh);
