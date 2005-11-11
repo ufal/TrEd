@@ -64,7 +64,7 @@ of the marked tectogrammatical node.
 
 =cut
 
-#bind AddThisToALexRf to Ctrl++ menu Add This to a/lex.rf of Marked Node
+#bind AddThisToALexRf to Ctrl+plus menu Add This to a/lex.rf of Marked Node
 sub AddThisToALexRf {
   ChangingFile(0);
   my $tr_fs = $grp->{FSFile}->appData('tdata');
