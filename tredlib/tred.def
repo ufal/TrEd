@@ -463,10 +463,10 @@ in the deep-first tree ordering.
 
 sub LocateNode {
   my $node = ref($_[0]) ? $_[0] : $this;
-  if ($node eq $root) {
+  my $tree = $node->root;
+  if ($tree == $root) {
     return (FileName(),CurrentTreeNumber()+1,GetNodeIndex($node));
   } else {
-    my $tree = $node->root;
     my $i = 1;
     foreach my $t (GetTrees()) {
       if ($t == $tree) {
@@ -2908,20 +2908,17 @@ C<$NodeClipboard>.
 
 =cut
 
-sub import {
+sub _import {
   # If specified without parameter, exports everything but
   # names already defined in caller package
   # If parameters are given, exports only names specified by the parameters
   # and few variables that every TredMacro *must* share.
 
   my $pkg=shift;
-  my $caller=caller;
+  my $caller=shift;
   my %stash=%{"${pkg}::"};
-  my ($type,$val);
-  my @exports;
-
-  @exports = $#_>=0 ? @_ : keys %stash;
-  push @exports,@FORCE_EXPORT;
+  my $type;
+  my @exports = @_;
   foreach my $k (@exports) {
     unless ($k =~ s/^(\W)//) {
       *{"${caller}::$k"} = \&{"${pkg}::$k"} unless defined (&{"${caller}::$k"});
@@ -2942,6 +2939,22 @@ sub import {
 #      do { warn("Can't export symbol: $type $pkg $k") };
     }
   }
+};
+
+sub import {
+  # If specified without parameter, exports everything but
+  # names already defined in caller package
+  # If parameters are given, exports only names specified by the parameters
+  # and few variables that every TredMacro *must* share.
+
+  my $pkg=shift;
+  my %stash=%{"${pkg}::"};
+  _import($pkg,scalar(caller),($#_>=0 ? @_ : keys %stash),@FORCE_EXPORT)
+};
+
+sub import_only {
+  # exports only names specified by the parameters
+  _import(shift,scalar(caller),@_);
 };
 
 
