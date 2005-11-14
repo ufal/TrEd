@@ -571,7 +571,7 @@ sub next_sibling {
 }
 
 sub add_member {
-  my ($hlist,$base_path,$member,$attr_val,$attr_name,$allow_empty,$entry_opts)=@_;
+  my ($hlist,$base_path,$member,$attr_val,$attr_name,$allow_empty,$entry_opts,$required)=@_;
   my $mtype;
   if (!ref($member) and $member =~ /^#/) {
     $mtype = $member;
@@ -589,7 +589,7 @@ sub add_member {
 		       ($attr_name =~ /^\[\d+\]$/) ? ' ' : "  ".$attr_name,
 		     -style => 
 		       $hlist->{my_itemstyles}{
-			 (ref($member) and $member->{required}) ? 'required' : 'default'
+			 ($required or ref($member) and $member->{required}) ? 'required' : 'default'
 		       }
 		    );
   my $enabled = 1;
@@ -598,6 +598,7 @@ sub add_member {
   }
 
   if ($mtype eq '#type') {
+    $data->{value} = $attr_val;
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{text});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => $attr_val,
@@ -651,7 +652,7 @@ sub add_member {
       -textvariable => \$data->{value},
       -background => 'gray',
 
-      -choices => ($mtype->{required} ? $mtype->{choice} : ['',@{$mtype->{choice}}]),
+      -choices => (($required or $mtype->{required}) ? $mtype->{choice} : ['',@{$mtype->{choice}}]),
       -popupbackground => 'black',
       -borderwidth => 1,
       -relief => 'flat',
@@ -780,7 +781,9 @@ sub add_member {
     } else {
       $hlist->delete('entry' => $path);
       $path = $hlist->add_member($base_path,$mtype->{alt},
-				 $attr_val,$attr_name,0,$entry_opts);
+				 $attr_val,$attr_name,0,$entry_opts,
+				 $mtype->{required}
+				);
       my $new_data = $hlist->info('data' => $path);
       $new_data->{compressed_type}=$new_data->{type};
       $new_data->{$_} = $data->{$_} for qw(type name text);
@@ -879,25 +882,6 @@ sub dump_child {
     } else {
       $ref->{$data->{name}} = $data->{value};
     }
-  } elsif ($mtype->{structure}) {
-    my $new_ref;
-    my @children = $hlist->info(children => $path);
-    if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
-      if (@children) {
-	$new_ref = {};
-	push @$ref, $new_ref;
-      }
-    } else {
-      if (@children) {
-	$ref->{$data->{name}} = {} unless ref($ref->{$data->{name}});
-	$new_ref = $ref->{$data->{name}};
-      } else {
-	delete $ref->{$data->{name}};
-      }
-    }
-    for my $child (@children) {
-      $hlist->dump_child($child,$new_ref,$preserve_empty);
-    }
   } elsif ($mtype->{list}) {
     my $new_ref=bless [],'Fslib::List';
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
@@ -937,6 +921,29 @@ sub dump_child {
     } else {
       $ref->{$data->{name}} = $new_ref;
     }
+  } elsif (ref($mtype)) {
+    # either a $mtype->{structure} or a ...
+    # ... HACK: not sure, might be a sequence member
+    my $new_ref;
+    my @children = $hlist->info(children => $path);
+    if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
+      if (@children) {
+	$new_ref = {};
+	push @$ref, $new_ref;
+      }
+    } else {
+      if (@children) {
+	$ref->{$data->{name}} = {} unless ref($ref->{$data->{name}});
+	$new_ref = $ref->{$data->{name}};
+      } else {
+	delete $ref->{$data->{name}};
+      }
+    }
+    for my $child (@children) {
+      $hlist->dump_child($child,$new_ref,$preserve_empty);
+    }
+  } else {
+    warn "Can't dump $path type ",Dumper($mtype),"\n";
   }
 }
 
