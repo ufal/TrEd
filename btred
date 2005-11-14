@@ -298,14 +298,15 @@ if ($TrEd::Config::useCzechLocales) {
 }
 
 # These are used only in macros and hooks!!!
-$TredMacro::root=undef;
-$TredMacro::this=undef;
-$TrEd::Macros::FileNotSaved=0;
 $TrEd::Macros::defines{BTRED}=1;
-$TredMacro::forceFileSaved=0;
-
-$TredMacro::_NoSuchTree=0; # for compatibility with Graph2Tred
-$TredMacro::NodeClipboard=undef;
+set_macro_variable(root => undef,
+		   this => undef,
+		   FileNotSaved => 0,
+		   forceFileSaved => 0,
+		   # for compatibility with Graph2Tred
+		   _NoSuchTree => 0,
+		   NodeClipboard => undef
+		  );
 
 $fileNo=0;
 
@@ -616,12 +617,12 @@ sub startMain {
 	  # script command-line arguments
 	  if (exists($request{STATE_ARGS})) {
 	    no strict qw(refs);
-	    @{macro_variable('TredMacro::ARGV')}=split "\n",$request{STATE_ARGS};
-	    @{macro_variable('ARGV')}=@{macro_variable('TredMacro::ARGV')};
+	    @{macro_variable('ARGV')}=split "\n",$request{STATE_ARGS};
+	    @{macro_variable('::ARGV')}=@{macro_variable('ARGV')};
 	  } else {
 	    no strict qw(refs);
-	    @{macro_variable('TredMacro::ARGV')}=();
 	    @{macro_variable('ARGV')}=();
+	    @{macro_variable('::ARGV')}=();
 	  }
 
 	  STDOUT->autoflush(1);
@@ -1458,7 +1459,7 @@ sub closeFile {
   my ($grp)=@_;
   doEvalHook($grp,"file_close_hook");
   no strict qw(refs);
-  undef ${macro_variable('TredMacro::NodeClipboard')};
+  set_macro_variable('TredMacro::NodeClipboard' => undef);
   # close required files too, unless file remains pre-loaded
 
   closeSecondaryFilesOf($grp,$grp->{FSFile});
@@ -1525,25 +1526,24 @@ sub doEvalHook {
   no strict qw(refs);
   return unless $hook;# and $group->{'currentNode'};
 
-  ${macro_variable('TredMacro::this')}=$group->{currentNode};
-  ${macro_variable('TredMacro::root')}=$group->{root};
-  ${macro_variable('TredMacro::libDir')}=$libDir;
-  ${macro_variable('TredMacro::FileNotSaved')}='?';
-  ${macro_variable('TredMacro::forceFileSaved')}=0;
+  my $old_ctxt = TrEd::Macros::save_ctxt();
+  set_macro_variable('TredMacro::this' => $group->{currentNode},
+		     'TredMacro::root' => $group->{root},
+		     'TredMacro::libDir' => $libDir,
+		     'TredMacro::FileNotSaved' => '?',
+		     'TredMacro::forceFileSaved' => 0);
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
   _msg "$@" if $@;
   exit 1 if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
-    if (${macro_variable('TredMacro::FileNotSaved')} eq '?') {
-      ${macro_variable('TredMacro::FileNotSaved')}=$group->{FSFile}->notSaved;
+    if (get_macro_variable('FileNotSaved') eq '?') {
+      set_macro_variable('FileNotSaved' => $group->{FSFile}->notSaved);
     }
-    $group->{FSFile}->notSaved($group->{FSFile}->notSaved or ${macro_variable('TredMacro::FileNotSaved')});
+    $group->{FSFile}->notSaved($group->{FSFile}->notSaved or 
+		      get_macro_variable('FileNotSaved'));
   }
-
-#  ${macro_variable('TredMacro::this')}=undef;
-#  ${macro_variable('TredMacro::root')}=undef;
-#  ${macro_variable('TredMacro::grp')}=undef;
+  TrEd::Macros::restore_ctxt($old_ctxt);
 
   _msg "Hook $hook resulted with $result\n" if $hookDebug;
   return $result;
@@ -1553,27 +1553,32 @@ sub doEvalMacro {
   my ($group,$macro)=(shift,shift);
   return unless $macro;
   no strict qw(refs);
-  ${macro_variable('TredMacro::this')}=$group->{currentNode};
-  ${macro_variable('TredMacro::root')}=$group->{root};
-  ${macro_variable('TredMacro::libDir')}=$libDir;
-  ${macro_variable('TredMacro::FileNotSaved')}='?';
-  ${macro_variable('TredMacro::forceFileSaved')}=0;
+  set_macro_variable(
+    this => $group->{currentNode},
+    root => $group->{root},
+    libDir => $libDir,
+    FileNotSaved => '?',
+    forceFileSaved =>0);
 
   my $result=do_eval_macro($group,$macro);
   exit 1 if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
-    ${macro_variable('TredMacro::FileNotSaved')}=0 if ${macro_variable('TredMacro::FileNotSaved')} eq '?';
-    if (${macro_variable('TredMacro::forceFileSaved')}) {
-      $group->{FSFile}->notSaved(${macro_variable('TredMacro::FileNotSaved')});
+    set_macro_variable('FileNotSaved' => 0)
+      if get_macro_variable('FileNotSaved') eq '?';
+    if (get_macro_variable('forceFileSaved')) {
+      $group->{FSFile}->notSaved(get_macro_variable('FileNotSaved'));
     } else {
-      $group->{FSFile}->notSaved($group->{FSFile}->notSaved or ${macro_variable('TredMacro::FileNotSaved')});
+      $group->{FSFile}->notSaved($group->{FSFile}->notSaved or
+				 get_macro_variable('FileNotSaved'));
     }
-    setCurrent($group,${macro_variable('TredMacro::this')}) if (${macro_variable('TredMacro::this')});
+    setCurrent($group,get_macro_variable('this')) if (get_macro_variable('this'));
   }
-  ${macro_variable('TredMacro::this')}=undef;
-  ${macro_variable('TredMacro::root')}=undef;
-  ${macro_variable('TredMacro::grp')}=undef;
+  set_macro_variable(
+    this => undef,
+    root => undef,
+    grp => undef
+   );
   return $result;
 }
 
@@ -1701,8 +1706,8 @@ sub switchContext {}
 sub updateTredMacroGlobals {
   my ($grp)=@_;
   no strict qw(refs);
-  ${macro_variable('TredMacro::root')}=$grp->{root};
-  ${macro_variable('TredMacro::this')}=$grp->{currentNode};
+  set_macro_variable(root => $grp->{root},
+		     this => $grp->{currentNode});
 }
 
 
