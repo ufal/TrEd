@@ -24,7 +24,8 @@ use vars qw(%colors %bitmap);
   sequence => "#B0C1FF",
   constant => "#F6E9D1",
   fg => '#800000',
-  bg => '#F6E9D1'
+  bg => '#F6E9D1',
+  required_fg => '#0000cc'
  );
 
 sub _debug {
@@ -79,19 +80,26 @@ sub Populate {
    );
 
   $w->{my_itemstyles} = {
+    required => $w->ItemStyle('text', -foreground=>'#0000aa',
+			      -background => 'white',
+			      -pady => 0
+			     ),
     default => $w->ItemStyle('text', -foreground=>'#880000',
 			     -background => 'white',
 			     -pady => 0
 			    ),
-    list =>  $w->ItemStyle('text', -foreground=>'#800000',
+    list =>  $w->ItemStyle('text',
+			   -foreground=>'#800000',
 			  -background => $colors{list},
 			  -pady => 0
 			 ),
-    sequence =>  $w->ItemStyle('text', -foreground=>'#800000',
+    sequence =>  $w->ItemStyle('text',
+			       -foreground=>'#800000',
 			       -background => $colors{sequence},
 			       -pady => 0
 			      ),
-    struct => $w->ItemStyle('text', -foreground=>'#800000',
+    struct => $w->ItemStyle('text',
+			    -foreground=>'#800000',
 			    -background => $colors{struct},
 			   ),
     constant => $w->ItemStyle('text', -foreground=>'black',
@@ -116,6 +124,7 @@ sub Populate {
     plus plus
     KP_Add plus
     asterisk star
+    numbersign hash
     KP_Multiply star
     minus minus
     KP_Subtract minus
@@ -198,6 +207,20 @@ sub ClassInit {
 	 });
 
   %bitmap = (
+
+# 84218421
+#1    x x
+#2   xxxxx
+#3    x x
+#4   xxxxx
+#5    x x
+#6
+    hash =>
+      $mw->Bitmap(-data => <<'EOF'),
+#define x_width 6
+#define x_height 6
+static unsigned char x_bits[] = { 0x0a, 0x1f, 0x0a, 0x1f, 0x0a, 0x00 };
+EOF
     cross =>
       $mw->Bitmap(-data => <<'EOF'),
 #define x_width 6
@@ -304,6 +327,33 @@ sub up_or_down {
   $hlist->select_entry($path);
 }
 
+sub toggle_structure {
+  my ($hlist,$path)=@_;
+  my $data = $hlist->info(data => $path);
+  my @children = $hlist->info(children => $path);
+  if (@children == 0) {
+    # create data
+    $hlist->add_members($path ne "" ? $path."/" : $path,
+			$data->{type}{structure},{});
+  } else {
+    my $answer = 'Delete';
+    if (UNIVERSAL::can('main','userQuery')) {
+      $answer = main::userQuery($hlist,
+				"Do you really want to delete the structure '$path'?\n".
+				  "(All values in this structure will be lost!)",
+				-bitmap=> 'question',
+				-title => "Delete structure?",
+				-buttons => [$answer, 'Cancel']);
+    }
+    if ($answer eq 'Delete') {
+      foreach (@children) {
+	$hlist->delete('entry',$_);
+      }
+      $hlist->select_entry($path);
+    }
+  }
+}
+
 sub add_to_list {
   my ($hlist,$path)=@_;
   my $data = $hlist->info(data => $path);
@@ -401,7 +451,7 @@ sub add_buttons {
   my $mtype = $hlist->info(data => $path)->{type};
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
 
-  return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt}) or 
+  return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt} or $mtype->{structure}) or 
 		 ref($ptype) and ($ptype->{list} or $ptype->{alt}));
   return if ref($mtype) and (($mtype->{list} and $mtype->{list}{role} eq '#CHILDNODES') or $mtype->{role} eq '#CHILDNODES');
   my $f = $hlist->Frame(
@@ -429,10 +479,15 @@ sub add_buttons {
 			    -background => ($type->{alt}{-flat} ? $colors{alt_flat} : $colors{alt}),
 			    -command => [$hlist,'add_to_alt',$path]
 			   )->pack(-side => 'top');
+      } elsif ($type->{structure}) {
+	# add sequence button
+	$hlist->mini_button($f,'hash',$path,
+			    -background => $colors{struct},
+			    -command => [$hlist,'toggle_structure',$path]
+			   )->pack(-side => 'top');
       }
     }
   }
-
 
   if ($parent ne "") {
     $ptype = (($hlist->info(data => $parent)->{compressed_type}) || $ptype)
@@ -532,7 +587,10 @@ sub add_member {
   $hlist->itemCreate($path,0,-itemtype => 'text',
 		     -text => 
 		       ($attr_name =~ /^\[\d+\]$/) ? ' ' : "  ".$attr_name,
-		     -style => $hlist->{my_itemstyles}{default}
+		     -style => 
+		       $hlist->{my_itemstyles}{
+			 (ref($member) and $member->{required}) ? 'required' : 'default'
+		       }
 		    );
   my $enabled = 1;
   if (ref($hlist->{my_enable_callback})) {
@@ -644,7 +702,9 @@ sub add_member {
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => 'Structure',
 		       -style => $hlist->{my_itemstyles}{struct});
-    $hlist->add_members($path."/",$mtype->{structure},$attr_val);
+    if (ref($attr_val)) {
+      $hlist->add_members($path."/",$mtype->{structure},$attr_val);
+    }
   } elsif (exists $mtype->{list}) {
     if ($mtype->{list}{role} eq '#CHILDNODES' or $mtype->{role} eq '#CHILDNODES') { 
       $hlist->itemCreate($path,1,-itemtype => 'text',
@@ -821,14 +881,21 @@ sub dump_child {
     }
   } elsif ($mtype->{structure}) {
     my $new_ref;
+    my @children = $hlist->info(children => $path);
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
-      $new_ref = {};
-      push @$ref, $new_ref;
+      if (@children) {
+	$new_ref = {};
+	push @$ref, $new_ref;
+      }
     } else {
-      $ref->{$data->{name}} = {} unless ref($ref->{$data->{name}});
-      $new_ref = $ref->{$data->{name}};
+      if (@children) {
+	$ref->{$data->{name}} = {} unless ref($ref->{$data->{name}});
+	$new_ref = $ref->{$data->{name}};
+      } else {
+	delete $ref->{$data->{name}};
+      }
     }
-    for my $child ($hlist->info(children => $path)) {
+    for my $child (@children) {
       $hlist->dump_child($child,$new_ref,$preserve_empty);
     }
   } elsif ($mtype->{list}) {
