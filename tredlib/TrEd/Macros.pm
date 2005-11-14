@@ -22,6 +22,8 @@ BEGIN {
     &do_eval_macro
     &do_eval_hook
     &macro_variable
+    &get_macro_variable
+    &set_macro_variable
     %keyBindings
     %menuBindings
     @macros
@@ -336,7 +338,7 @@ sub initialize_macros {
     my $macros="{\n".$utf.join("",@macros)."\n}; 1;\n";
     print STDERR "FirstEvaluation of macros\n" if $macroDebug;
     if (defined($safeCompartment)) {
-      ${macro_variable('TredMacro::grp')}=$win;
+      set_macro_variable('grp',$win);
       my %packages;
       # dirty hack to support ->isa in safe compartment
       $macros=~s{(\n\s*package\s+(\S+?)\s*;)}
@@ -357,17 +359,41 @@ sub initialize_macros {
     TrEd::Basics::errorMessage($win,$@) if $@;
   }
   no strict 'refs';
-  ${macro_variable('TredMacro::grp')}=$win;
+  set_macro_variable('grp',$win);
   return $result;
 }
 
 sub macro_variable {
-  my ($name)=@_;
+  my $prefix = ($_[0] =~ /::/) ? '' : 'TredMacro::';
   if (defined($safeCompartment)) {
-    $safeCompartment->varglob($name);
+    $safeCompartment->varglob($prefix.$_[0]);
   } else {
-    $name
+    $prefix.$_[0]
   }
+}
+
+sub get_macro_variable {
+  no strict 'refs';
+  ${ &macro_variable };
+}
+
+sub set_macro_variable {
+  no strict 'refs';
+  while (@_) {
+    ${ &macro_variable } = $_[1];
+    shift; shift;
+  }
+}
+
+sub save_ctxt {
+  return [get_macro_variable("grp"),
+	  get_macro_variable("this"),
+	  get_macro_variable("root")];
+}
+sub restore_ctxt ($) {
+  set_macro_variable("grp",$_[0][0]);
+  get_macro_variable("this",$_[0][1]);
+  get_macro_variable("root",,$_[0][2]);
 }
 
 sub do_eval_macro {
@@ -380,10 +406,17 @@ sub do_eval_macro {
   undef $@;
   initialize_macros($win);
   return undef if $@;
+  if ($macro=~/^\s*([_[:alpha:]][_[:alnum:]]*)-[>]([_[:alpha:]][_[:alnum:]]*)$/) {
+    my ($context,$call)=($1,$2);
+    if (context_isa($context,'TrEd::Context')) {
+      # experimental new-style calling convention
+      $macro = $context.'->global->'.$call;
+    }
+  }
   print STDERR "Running $macro\n" if $macroDebug;
   if (defined($safeCompartment)) {
     no strict;
-    ${macro_variable('TredMacro::grp')}=$win;
+    set_macro_variable('grp',$win);
     $result = $safeCompartment->reval($utf.$macro);
   } else {
     no strict;
@@ -405,6 +438,16 @@ sub context_can {
   }
 }
 
+sub context_isa {
+  my ($context,$package)=@_;
+  if (defined($safeCompartment)) {
+    no strict;
+    return grep { $_ eq $package } $safeCompartment->reval("\@${context}::ISA") ? 1 : undef;
+  } else {
+    return UNIVERSAL::isa($context,$package);
+  }
+}
+
 sub do_eval_hook {
   my ($win,$context,$hook)=(shift,shift,shift);  # $win is a reference
 				# which should in this way be made visible
@@ -417,23 +460,35 @@ sub do_eval_hook {
   return undef if $@;
   my $result=undef;
 
-  if (context_can($context,$hook)) {
-    print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
+  if (context_isa($context,'TrEd::Context') and context_can($context,$hook)) {
+    # experimental new-style calling convention
+    print STDERR "running hook $context".'->global->'.$hook."\n" if $hookDebug;
     if (defined($safeCompartment)) {
       no strict;
-      $safeCompartment->reval($utf."\&$context\:\:$hook(\@_)");
+      $safeCompartment->reval($utf."$context\-\>global\-\>$hook(\@_)");
     } else {
       no strict;
-      $result=eval($utf."\&$context\:\:$hook(\@_)");
+      $result=eval($utf."$context\-\>global\-\>$hook(\@_)");
     }
-  } elsif ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
-    print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
-    if (defined($safeCompartment)) {
-      no strict;
-      $safeCompartment->reval($utf."\&TredMacro\:\:$hook(\@_)");
-    } else {
-      no strict;
-      $result=eval($utf."\&TredMacro\:\:$hook(\@_)");
+  } else {
+    if (context_can($context,$hook)) {
+      print STDERR "running hook $context"."::"."$hook\n" if $hookDebug;
+      if (defined($safeCompartment)) {
+	no strict;
+	$safeCompartment->reval($utf."\&$context\:\:$hook(\@_)");
+      } else {
+	no strict;
+	$result=eval($utf."\&$context\:\:$hook(\@_)");
+      }
+    } elsif ($context ne "TredMacro" and context_can('TredMacro',$hook)) {
+      print STDERR "running hook Tredmacro"."::"."$hook\n" if $hookDebug;
+      if (defined($safeCompartment)) {
+	no strict;
+	$safeCompartment->reval($utf."\&TredMacro\:\:$hook(\@_)");
+      } else {
+	no strict;
+	$result=eval($utf."\&TredMacro\:\:$hook(\@_)");
+      }
     }
   }
 
