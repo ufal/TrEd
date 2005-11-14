@@ -7082,25 +7082,79 @@ sub editAttrsDialog_schema {
   $edit->bind('<Control-Return>',\&dlgReturn);
 
   $win->toplevel->Unbusy();
+  my $redo=1;
+  DIALOG: while ($redo) {
+    my $result = ShowDialog($d,$edit,$win->toplevel);
+    if ($result=~ /OK/) {
+      $win->{FSFile}->notSaved(1);
+      save_undo($win,prepare_undo($win,$dlg_title));
+      lastActionBookmark($win->{framegroup});
 
-  my $result = ShowDialog($d,$edit,$win->toplevel);
-  if ($result=~ /OK/) {
-    $win->{FSFile}->notSaved(1);
-    save_undo($win,prepare_undo($win,$dlg_title));
-    lastActionBookmark($win->{framegroup});
-    if ($attr_path eq "") {
-      $edit->dump_to_node($node);
+      # validate first
+      my $val = undef;
+      if (UNIVERSAL::can('PMLBackend','validate_object')) {
+	$val = ($attr_path eq "") ? FSNode->new : {};
+	$edit->dump_to_node($val);
+	my $log=[];
+	__debug("Validating node\n");
+	my $type;
+	if ($attr_path eq "") {
+	  # This is a hack. The validation procedure
+	  # requires an object type, but as we only have the object
+	  # value type
+	  if (ref($node_type) and $node_type->{member}) {
+	    $type = { structure => $node_type };
+	  } else {
+	    # we could use parent's #CHILDNODES type here
+	    # but if the structure or name of the element is wrong,
+	    # there is nothing the user can do about it anyway
+	    $type = {
+	      sequence => {
+	      element => {$node->{'#name'} => $node_type } }
+	     };
+	    $val = Fslib::List->new($val);
+	  }
+	  PMLBackend::validate_object($log,'',$schema->{type}, $type, '', $val);
+	} else {
+	  PMLBackend::validate_object($log,$attr_path,$schema->{type},
+				      $node_type, '', $val->{$attr_name});
+	}
+	if (@$log and
+	      errorDialog($win,
+			  "Invalid attribute values",
+			"Validation of the following attributes failed.\n".
+			  "Don't save your file in this state, you may not be able to open it again.",
+			  join("\n",@$log),
+			  -buttons => ["Edit attributes","Ignore these errors"]
+			 ) !~ /Ignore/) {
+	  my ($path) = split /:/,$log->[0];
+	  $path =~ s{^/}{};
+	  if ($path ne "") {
+	    eval { 
+	      $edit->select_entry($path);
+	      $edit->focus;
+	    };
+	    print STDERR $@ if $@;
+	  }
+	  redo DIALOG;
+	}
+      }
+      if ($attr_path eq "") {
+	$edit->dump_to_node($node);
+      } else {
+	unless (defined($val)) { # otherwise we use val from validation above
+	  $val = {};
+	  $edit->dump_to_node($val);
+	}
+	$node->set_attr($attr_path,$val->{$attr_name});
+      }
+      doEvalHook($win,"after_edit_node_hook",$node,1);
+      get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+      redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     } else {
-      my $val = {};
-      $edit->dump_to_node($val);
-      $node->set_attr($attr_path,$val->{$attr_name});
-#      print Dumper($val),"\n";
+      doEvalHook($win,"after_edit_node_hook",$node,0);
     }
-    doEvalHook($win,"after_edit_node_hook",$node,1);
-    get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-    redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-  } else {
-     doEvalHook($win,"after_edit_node_hook",$node,0);
+    $redo = 0;
   }
   $d->destroy;
 ## for persistent dialog
@@ -8529,6 +8583,7 @@ sub centerTo {
 	     $tv->get_node_pinfo($node,"YPOS"));
 }
 
+
 sub doEvalHookWithUndo {
   my ($win,$hook)=(shift,shift);
 
@@ -8538,21 +8593,22 @@ sub doEvalHookWithUndo {
   my $undo=prepare_undo($win,"Hook $context"."->".$hook) if ($win and $win->{FSFile});
 
   local $insideEval=1;
-  my $oldgrp=${"TredMacro::grp"};
-  my $oldthis=${"TredMacro::this"};
-  my $oldroot=${"TredMacro::root"};
+  my $old_ctxt = TrEd::Macros::save_ctxt();
   my $context='TredMacro';
-  ${"TredMacro::FileNotSaved"}='?';
+  set_macro_variable(
+    FileNotSaved => '?',
+    libDir => $libDir,
+    forceFileSaved => 0);
   if ($win) {
-    ${"TredMacro::this"}=$win->{currentNode};
-    ${"TredMacro::root"}=$win->{root};
+    set_macro_variable(
+      this => $win->{currentNode},
+      root => $win->{root}
+     );
     $context=$win->{macroContext} || 'TredMacro';
   }
-  ${"TredMacro::libDir"}=$libDir;
-  ${"TredMacro::forceFileSaved"}=0;
   my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
-  my $file_changed=${"TredMacro::FileNotSaved"};
+  my $file_changed=get_macro_variable("FileNotSaved");
 
   if ($win) {
     if ($win->{FSFile}) {
@@ -8564,10 +8620,7 @@ sub doEvalHookWithUndo {
     }
     saveFileStateUpdate($win);
   }
-
-  ${"TredMacro::this"}=$oldthis;
-  ${"TredMacro::root"}=$oldroot;
-  ${"TredMacro::grp"}=$oldgrp;
+  TrEd::Macros::restore_ctxt($old_ctxt);
 
   print STDERR "Hook $hook returned $result\n" if $hookDebug;
   return $result;
@@ -8582,21 +8635,23 @@ sub doEvalHook {
   # Save current position (as last action position)
 
   local $insideEval=1;
-  my $oldgrp=${"TredMacro::grp"};
-  my $oldthis=${"TredMacro::this"};
-  my $oldroot=${"TredMacro::root"};
+  my $old_ctxt = TrEd::Macros::save_ctxt();
   my $context='TredMacro';
-  ${"TredMacro::FileNotSaved"}='?';
+  set_macro_variable(
+    FileNotSaved => '?',
+    libDir => $libDir,
+    forceFileSaved => 0
+   );
   if ($win) {
-    ${"TredMacro::this"}=$win->{currentNode};
-    ${"TredMacro::root"}=$win->{root};
-    $context=$win->{macroContext} || 'TredMacro';
+    set_macro_variable(
+      this => $win->{currentNode},
+      root => $win->{root}
+     );
+    $context = $win->{macroContext} || 'TredMacro';
   }
-  ${"TredMacro::libDir"}=$libDir;
-  ${"TredMacro::forceFileSaved"}=0;
   my $result=do_eval_hook($win,$context,$hook,@_);
   warn "$@\n" if $@;
-  my $file_changed=${"TredMacro::FileNotSaved"};
+  my $file_changed=get_macro_variable("FileNotSaved");
 
   if ($win) {
     if ($win->{FSFile}) {
@@ -8608,10 +8663,7 @@ sub doEvalHook {
     saveFileStateUpdate($win);
   }
 
-  ${"TredMacro::this"}=$oldthis;
-  ${"TredMacro::root"}=$oldroot;
-  ${"TredMacro::grp"}=$oldgrp;
-
+  TrEd::Macros::restore_ctxt($old_ctxt);
   print STDERR "Hook $hook returned $result\n" if $hookDebug;
   return $result;
 }
@@ -8717,21 +8769,21 @@ sub doEvalMacro {
   $win->toplevel->Busy(-recurse=> 1);
   $insideEval=1;
 
-  ${"TredMacro::this"}=$win->{currentNode};
-  ${"TredMacro::root"}=$win->{root};
-  ${"TredMacro::libDir"}=$libDir;
-  ${"TredMacro::FileNotSaved"}='?';
-  ${"TredMacro::forceFileSaved"}=0;
-  ${"TredMacro::Redraw"}='file';
-
+  set_macro_variable(
+    this => $win->{currentNode},
+    root => $win->{root},
+    libDir => $libDir,
+    FileNotSaved => '?',
+    forceFileSaved => 0,
+    Redraw => 'file');
 
   my $undo=prepare_undo($win,findMacroDescription($macro));
   my $result=do_eval_macro($win,$macro);
-  my $current=${"TredMacro::this"};
-  my $file_not_saved=${"TredMacro::FileNotSaved"};
+  my $current=get_macro_variable("this");
+  my $file_not_saved=get_macro_variable("FileNotSaved");
   $file_not_saved=1 if $file_not_saved eq '?';
   if ($win->{FSFile}) {
-    if (${"TredMacro::forceFileSaved"}) {
+    if (get_macro_variable("forceFileSaved")) {
       print STDERR "Macro forsly claims file saved.\n";
       $win->{FSFile}->notSaved($file_not_saved ? 1 : 0);
       lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
@@ -8752,16 +8804,16 @@ sub doEvalMacro {
   #for (my $i=0;$i<=50;$i++) {
   ### ??? 4kb/50 runs memory leaks in redraw (probably in Tk)
   #------------------------------------------------------------
-  if (${"TredMacro::Redraw"} eq 'all') {
+  if (get_macro_variable("Redraw") eq 'all') {
     redraw_all($win->{framegroup});
     get_nodes_all($win->{framegroup});
-  } elsif (${"TredMacro::Redraw"} eq 'win') {
+  } elsif (get_macro_variable("Redraw") eq 'win') {
     get_nodes_win($win);
     redraw_win($win);
-  } elsif (${"TredMacro::Redraw"} eq 'tree') {
+  } elsif (get_macro_variable("Redraw") eq 'tree') {
     get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
-  } elsif (${"TredMacro::Redraw"} eq 'tie') {
+  } elsif (get_macro_variable("Redraw") eq 'tie') {
     if ($win->{framegroup}->{tieWindows}) {
       get_nodes_all($win->{framegroup});
       redraw_all($win->{framegroup});
@@ -8769,7 +8821,7 @@ sub doEvalMacro {
       get_nodes_win($win);
       redraw_win($win);
     }
-  } elsif (${"TredMacro::Redraw"} eq 'none') {
+  } elsif (get_macro_variable("Redraw") eq 'none') {
     # do nothing
   } else {
     get_nodes_fsfile($win->{framegroup},$win->{FSFile});
@@ -8786,9 +8838,12 @@ sub doEvalMacro {
   # memory ok, speed ok
   setCurrent($win,$current) if ($current);
   ensureCurrentIsDisplayed($win);
-  ${"TredMacro::this"}=undef;
-  ${"TredMacro::root"}=undef;
-  ${"TredMacro::grp"}=undef;
+
+  set_macro_variable(
+    this => undef,
+    root => undef,
+    grp => undef
+   );
 
   centerTo($win,$win->{currentNode});
   updateTitle($win->{framegroup});
