@@ -1032,7 +1032,7 @@ sub DeleteSubtree{
 Add new node as a son of the given node or current node, initializes
 the new node using InitNode. If id is specified, it is assigned to the
 new node. Otherwise, a unique ID is computed and assigned to the node
-using NewID.
+using NewID. Not all the required attributes are being set!
 
 =cut
 
@@ -1111,7 +1111,7 @@ sub OpenValFrameList {
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
   ValLex::GUI::ChooseFrame(
     -lemma => $node ? $node->{t_lemma} : undef,
-    -sempos => $node ? $node->{gram}{sempos} : undef,
+    -sempos => $node ? $node->attr('gram/sempos') : undef,
     -frameid => $rf,
     -assignfunc => sub{},
     %opts
@@ -1141,7 +1141,7 @@ sub OpenValLexicon {
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
   ValLex::GUI::OpenEditor(
     -lemma => $node ? $node->{t_lemma} : undef,
-    -sempos => $node ? $node->{gram}{sempos} : undef,
+    -sempos => $node ? $node->attr('gram/sempos') : undef,
     -frameid => $rf,
     %opts
    );
