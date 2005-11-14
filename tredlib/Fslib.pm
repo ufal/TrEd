@@ -191,7 +191,7 @@ sub DeleteLeaf ($) {
   return 0;
 }
 
-sub CloneValue ($) {
+sub CloneValue {
   if (ref $_[0]) {
     my $val;
     return eval Data::Dumper->new([$_[0]],['val'])->Purity(1)->Dump;
