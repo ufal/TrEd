@@ -240,7 +240,6 @@ sub read_Alt ($) {
 
 sub resolve_type ($$) {
   my ($types,$type)=@_;
-  use Data::Dumper;
   return $type unless ref($type);
   if ($type->{type}) {
     my $rtype = $types->{$type->{type}};
@@ -261,7 +260,6 @@ sub node_children {
   my $prev=0;
   foreach my $son (@{$list}) {
     unless (ref($son) eq 'FSNode') {
-      use Data::Dumper;
       die "non-#NODE child '".Dumper($son)."'\n";
       return;
     }
@@ -419,7 +417,6 @@ sub read_node ($$$;$) {
 		my $list = read_node($child,$fsfile, $types,$member);
 		node_children($hash, $list);
 	      } else {
-		use Data::Dumper;
 		die "#CHILDNODES member '$name' encountered in non-#NODE element ".
 		  _element_address($node,$child);
 	      }
@@ -940,7 +937,7 @@ sub write_object ($$$$$$) {
 #	    _debug("#KNIT.rf $member");
 	    $xml->startTag($member);
 	    $xml->characters($object->{$member});
-	    $xml->startTag($member);
+	    $xml->endTag($member);
 	  } else {
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
@@ -1050,7 +1047,6 @@ sub write_object ($$$$$$) {
   1;
 }
 
-
 sub write_extra_element {
   my ($xml,$fsfile,$types,$type,$element)=@_;
   my $eltype = $type->{element}{$element->{'#name'}};
@@ -1066,6 +1062,175 @@ sub write_extra_element {
     warn "PML-element '".$element->{'#name'}."' node is not allowed in prolog/epilog\n";
   }
   1;
+}
+
+
+sub validate_object_knit {
+  my ($log,$path,$types,$type,$tag,$knit_tag,$object)=@_;
+  my $ref = $object->{id};
+  _debug("validate_knit_object: $path/$knit_tag, $object");
+  if ($object->{id} eq "" or ref($object->{id})) {
+    push @$log, "$path/$knit_tag/id: invalid ID: $object->{id}\n";
+  }
+  if ($ref =~ /^.+#.|^[^#]+$/) {
+    validate_object($log, $path, $types, resolve_type($types,$type), $knit_tag, $object);
+  } else {
+    push @$log, "$path/$knit_tag/id: invalid PMLREF '$ref'";
+  }
+}
+
+sub validate_object ($$$$$$) {
+  my ($log, $path, $types, $type, $tag, $object)=@_;
+  my $pre=$type;
+  $path.="/".$tag if $tag ne "";
+  _debug("validate_object: $path, $object");
+  $type = resolve_type($types,$type);
+  unless (ref($type)) {
+    push @$log, "$path: Invalid type: $type";
+  }
+  if ($type->{cdata}) {
+    if (ref($object)) {
+      push @$log, "$path: expected CDATA, got: ",ref($object);
+    } elsif ($type->{cdata}{format} eq 'nonNegativeInteger') {
+      push @$log, "$path: CDATA value is not formatted as nonNegativeInteger: '$object'"
+	unless $object=~/^\s*\d+\s*$/;
+    }
+  } elsif (exists $type->{choice}) {
+    my $ok;
+    foreach (@{$type->{choice}}) {
+      if ($_ eq $object) {
+	$ok = 1;
+	last;
+      }
+    }
+    push @$log, "$path: Invalid value: '$object'" unless ($ok);
+  } elsif (exists $type->{structure}) {
+    my $struct = $type->{structure};
+    my $members = $struct->{member};
+    if (!ref($object)) {
+      push @$log, "$path: Unexpected content for a structure: '$object'";
+    } elsif (keys(%$object)) {
+      foreach my $atr (grep {$members->{$_}{as_attribute}} keys %$members) {
+	if ($members->{$atr}{required} or $object->{$atr} ne "") {
+	  if (ref($object->{$atr})) {
+	    push @$log, "$path/$atr: invalid content for member declared as attribute: ".ref($object->{$atr});
+	  }
+	}
+      }
+      foreach my $member (grep {!$members->{$_}{as_attribute}}
+			  keys %$members) {
+	my $mtype = resolve_type($types,$members->{$member});
+	if ($members->{$member}{role} eq '#CHILDNODES') {
+	  if (ref($object) ne 'FSNode') {
+	    push @$log, "$path/$member: #CHILDNODES member with a non-node value: '$object'";
+	  }
+	} elsif ($members->{$member}{role} eq '#KNIT') {
+	  my $knit_tag = $member;
+	  $knit_tag =~ s/\.rf$//;
+	  if ($object->{$member} ne "") {
+	    if (ref($object->{$member})) {
+	      push @$log, "$path/$member: invalid content for member with role #KNIT: ",ref($object->{$member});
+	    }
+	    if (ref($object->{$knit_tag}) or $object->{$knit_tag} ne "") {
+	      push @$log, "$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member";
+	    }
+	  } else {
+	    if (ref($object->{$knit_tag})) {
+	      validate_object_knit($log,$path,$types,$members->{$member},$member,$knit_tag,$object->{$knit_tag});
+	    } elsif ($object->{$knit_tag} ne '') {
+	      push @$log, "$path/$knit_tag: invalid value for a #KNIT member: '$object->{$knit_tag}'";
+	    }
+	  }
+	} elsif (ref($mtype) and $mtype->{list} and
+		 $mtype->{list}{role} eq '#KNIT') {
+	  # KNIT list
+	  my $knit_tag = $member;
+	  $knit_tag =~ s/\.rf$//;
+	  if ($object->{$member} ne "" and
+	      $object->{$knit_tag} ne "") {
+	    push @$log, "$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member";
+	  } elsif ($object->{$member} ne "") {
+	    _debug("validating as $member not $knit_tag");
+	    validate_object($log, $path, $types,$members->{$member},$member,$object->{$member});
+	  } else {
+	    my $list = $object->{$knit_tag};
+	    if (ref($list) eq 'Fslib::List') {
+	      for (my $i=1; $i<=@$list;$i++) {
+		validate_object_knit($log,$path."/$knit_tag",$types,$mtype->{list},$member,"[$i]",$list->[$i-1]);
+	      }
+	    } elsif ($list ne "") {
+	      push @$log, "$path/$knit_tag: not a list: ",ref($object->{$knit_tag});
+	    }
+	  }
+	} elsif ($object->{$member} ne "" or $members->{$member}{required}) {
+	  validate_object($log, $path, $types,$members->{$member},$member,$object->{$member});
+	}
+      }
+    } else {
+      push @$log, "$path: structure is empty";
+    }
+  } elsif (exists $type->{list}) {
+    if (ref($object) eq 'Fslib::List') {
+      for (my $i=1; $i<=@$object; $i++) {
+	validate_object($log, $path, $types,$type->{list},"[$i]",$object->[$i-1]);
+      }
+    } else {
+      push @$log, "$path: unexpected content of a list: $object\n";
+    }
+  } elsif (exists $type->{alt}) {
+    if ($object ne "" and ref($object) eq 'Fslib::Alt') {
+      for (my $i=1; $i<=@$object; $i++) {
+	validate_object($log, $path, $types,$type->{alt},"[$i]",$object->[$i-1]);
+      }
+    } else {
+      validate_object($log, $path, $types,$type->{alt},undef,$object);
+    }
+  } elsif (exists $type->{sequence}) {
+    if (UNIVERSAL::isa($object,'Fslib::List')) {
+      foreach my $element (@$object) {
+	if (!UNIVERSAL::isa($element,'HASH')) {
+	  push @$log, "$path: invalid sequence content: ",ref($element);
+	} elsif ($element->{'#type'} eq 'text') {
+	  if ($type->{sequence}{text}) {
+	    if (ref($element->{'#content'})) {
+	      push @$log, "$path: expected CDATA, got: ",ref($object);
+	    }
+	  } else {
+	    push @$log, "$path: text node not allowed here\n";
+	  }
+	} elsif ($element->{'#type'} eq 'pml-element') {
+	  my $eltype = $type->{sequence}{element}{$element->{'#name'}};
+	  if ($eltype) {
+	    my $role = $eltype->{role};
+	    $eltype=resolve_type($types,$eltype);
+	    $role = $eltype->{role} if $role eq '';
+	    foreach my $atr (keys(%{$eltype->{attribute}})) {
+	      if (ref($element->{$atr})) {
+		push @$log, "$path/$atr: invalid content for element attribute: ".ref($element->{$atr});
+	      }
+	    }
+	    if ($eltype->{sequence} and $eltype->{sequence}{role} eq '#CHILDNODES' or
+		  $eltype->{list} and $eltype->{list}{role} eq '#CHILDNODES') {
+	      unless (UNIVERSAL::isa($element,'FSNode')) {
+		push @$log, "$path/#content: #CHILDNODES element with a non-node value: '$element'";
+	      }
+	    } else {
+	      validate_object($log, $path, $types,$eltype,'#content',$element->{'#content'});
+	    }
+	  } else {
+	    push @$log, "$path/#content: undefined element '$element->{'#name'}'",Dumper($type);
+	  }
+	} else {
+	  push @$log, "$path/#content: unknown or unsupported node type '$element->{'#type'}'",Dumper($element);
+	}
+      }
+    } else {
+      push @$log, "$path: unexpected content of a sequence: $object\n";
+    }
+  } else {
+    push @$log, "$path: unknown type: ".Dumper($type);
+  }
+  return (@$log == 0);
 }
 
 
