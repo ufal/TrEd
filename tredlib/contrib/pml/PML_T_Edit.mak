@@ -217,9 +217,62 @@ sub AnnotateExoph{
   }
 }#AnnotateExoph
 
+sub AddNode {
+  my $type=questionQuery('New node',
+                         'Type of the new node:',
+                         ('Analytic','#-entity','Cancel'));
+  return if$type eq'Cancel';
+  if($type eq'Analytic'){
+    $this=NewNode($this);
+    $this->{t_lemma}='#NewNode';
+    $this->{functor}='PAR';
+    $this->{nodetype}='complex';
+    EditFunctor();
+    EditNodetype();
+    MarkForARf();
+  }else{
+    my$dialog=[];
+    my%lemmas=qw/AsMuch qcomplex
+                 Benef qcomplex
+                 Colon coap
+                 Comma coap
+                 Cor qcomplex
+                 Dash coap
+                 EmpNoun complex
+                 EmpVerb qcomplex
+                 Equal qcomplex
+                 Forn list
+                 Gen qcomplex
+                 Idph list
+                 Neg atom
+                 Oblfm qcomplex
+                 Percnt qcomplex
+                 PersPron complex
+                 QCor qcomplex
+                 Rcp qcomplex
+                 Separ coap
+                 Some qcomplex
+                 Total qcomplex
+                 Unsp qcomplex
+                /;
+    $tlemma=ListQuery('T-lemma',
+                      'browse',
+                      [sort keys%lemmas],
+                     $dialog) or return;
+    $this=NewNode($this);
+    $this->{functor}='PAR';
+    $this->{t_lemma}='#'.$dialog->[0];
+    $this->{nodetype}=$lemmas{$dialog->[0]};
+    $this->{is_generated}=1;
+    EditFunctor();
+    EditNodetype();
+  }
+} #AddNode
+
+
 #bind DeleteNode to Delete menu Delete Node
 #bind DeleteSubtree to Ctrl+Delete menu Delete Subtree
-#bind NewNode to Insert menu Insert New Node
+#bind AddNode to Insert menu Insert New Node
 
 1;
 

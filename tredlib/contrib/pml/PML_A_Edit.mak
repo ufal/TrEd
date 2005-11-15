@@ -32,7 +32,7 @@ sub get_status_line_hook {
     ($PML::arf ?
            ('   Changing a.lex of: ' => [qw(label)],
             $PML::arf->{t_lemma} || $PML::arf->{id}=> [qw(status)]
-           ):''
+           ):()
     );
   push @{$statusline->[1]},("status" => [ -foreground => CustomColor('status')]);
   return $statusline;
@@ -65,6 +65,7 @@ of the marked tectogrammatical node.
 =cut
 
 #bind AddThisToALexRf to Ctrl+plus menu Add This to a/lex.rf of Marked Node
+#bind AddThisToALexRf to Ctrl+KP_Add
 sub AddThisToALexRf {
   ChangingFile(0);
   my $tr_fs = $grp->{FSFile}->appData('tdata');

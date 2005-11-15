@@ -37,6 +37,7 @@ a tectogrammatical tree which refers to the current analytical tree.
 sub TectogrammaticalTree {
   return unless SchemaName() eq 'adata';
   return unless SwitchToTFile();
+  my$arf=$PML::arf;
   if (CurrentContext() eq 'PML_A_Edit') {
     SwitchContext('PML_T_Edit');
   } else {
@@ -44,32 +45,39 @@ sub TectogrammaticalTree {
   }
   SetCurrentStylesheet($PML_T::laststylesheet || 'PML_T_Compact');
   undef $PML_T::laststylesheet;
-  my $fsfile = $grp->{FSFile};
-  my $id = $root->{id};
-  my $this_id = $this->{id};
-  #find current tree and new $this
-  my $trees = $fsfile->treeList;
-  # low-level stuff here
-  my $treeNo = $fsfile->currentTreeNo+0;
- TREE: for (my $i=0;$i<=$#$trees;$i++) {
-    foreach my $a_rf (PML_T::GetANodeIDs($trees->[$i])) {
-      $a_rf =~ s/^.*\#//;
-      if ($a_rf eq $id) {
-	$treeNo = $i;
-	last TREE;
+  if(ref $arf){
+    $this=$grp->currentNode;
+    my($node,$treeno)=SearchForNodeById($arf->{id});
+    TredMacro::GotoTree($treeno);
+    $this=$node;
+  }else{
+    my $fsfile = $grp->{FSFile};
+    my $id = $root->{id};
+    my $this_id = $this->{id};
+    #find current tree and new $this
+    my $trees = $fsfile->treeList;
+    # low-level stuff here
+    my $treeNo = $fsfile->currentTreeNo+0;
+  TREE: for (my $i=0;$i<=$#$trees;$i++) {
+      foreach my $a_rf (PML_T::GetANodeIDs($trees->[$i])) {
+        $a_rf =~ s/^.*\#//;
+        if ($a_rf eq $id) {
+          $treeNo = $i;
+          last TREE;
+        }
       }
     }
+    TredMacro::GotoTree($treeNo+1); # changes $root
+    my $node=$root;
+    while ($node) {
+      if (first { $_ eq $this_id } PML_T::GetANodeIDs($node)) {
+        $this = $node;
+        last;
+      }
+    } continue {
+      $node = $node->following;
+    };
   }
-  TredMacro::GotoTree($treeNo+1); # changes $root
-  my $node=$root;
-  while ($node) {
-    if (first { $_ eq $this_id } PML_T::GetANodeIDs($node)) {
-      $this = $node;
-      last;
-    }
-  } continue {
-    $node = $node->following;
-  };
   ChangingFile(0);
 }
 
@@ -385,7 +393,7 @@ sub get_status_line_hook {
              $this->{'m'}{lemma} => [qw({m/lemma} value)],
              "     m/tag: " => [qw(label)],
              $this->{'m'}{tag} => [qw({m/tag} value)])
-            :''),
+            :()),
 	  ],
 
 	  # field styles
