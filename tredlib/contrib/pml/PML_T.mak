@@ -150,6 +150,8 @@ displayed tectogrammatical tree.
 sub AnalyticalTree {
   return unless SchemaName() eq 'tdata';
   return unless SwitchToAFile();
+  my $t_root = $root;
+  my $t_node = $this;
   $PML_T::laststylesheet=GetCurrentStylesheet();
   if (CurrentContext() eq 'PML_T_Edit') {
     SwitchContext('PML_A_Edit');
@@ -161,8 +163,6 @@ sub AnalyticalTree {
   #find current tree and new $this
   my $trees = $fsfile->treeList;
   my $treeNo = $fsfile->currentTreeNo+0;
-  my $t_root = $root;
-  my $t_node = $this;
  TREE: for (my $i=0;$i<=$#$trees;$i++) {
     foreach my $a_rf (GetANodeIDs($t_root)) {
       $a_rf =~ s/^.*?#//;

@@ -38,6 +38,9 @@ sub TectogrammaticalTree {
   return unless SchemaName() eq 'adata';
   return unless SwitchToTFile();
   my$arf=$PML::arf;
+  my $fsfile = $grp->{FSFile};
+  my $id = $root->{id};
+  my $this_id = $this->{id};
   if (CurrentContext() eq 'PML_A_Edit') {
     SwitchContext('PML_T_Edit');
   } else {
@@ -46,14 +49,11 @@ sub TectogrammaticalTree {
   SetCurrentStylesheet($PML_T::laststylesheet || 'PML_T_Compact');
   undef $PML_T::laststylesheet;
   if(ref $arf){
-    $this=$grp->currentNode;
+    $this=$grp->{currentNode};
     my($node,$treeno)=SearchForNodeById($arf->{id});
     TredMacro::GotoTree($treeno);
     $this=$node;
   }else{
-    my $fsfile = $grp->{FSFile};
-    my $id = $root->{id};
-    my $this_id = $this->{id};
     #find current tree and new $this
     my $trees = $fsfile->treeList;
     # low-level stuff here
