@@ -392,8 +392,8 @@ sub save_ctxt {
 }
 sub restore_ctxt ($) {
   set_macro_variable("grp",$_[0][0]);
-  get_macro_variable("this",$_[0][1]);
-  get_macro_variable("root",,$_[0][2]);
+  set_macro_variable("this",$_[0][1]);
+  set_macro_variable("root",$_[0][2]);
 }
 
 sub do_eval_macro {
