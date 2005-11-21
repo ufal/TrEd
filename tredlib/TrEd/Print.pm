@@ -1,4 +1,5 @@
 package TrEd::PSTreeView;
+use File::Spec;
 use TrEd::TreeView;
 use base qw(TrEd::TreeView);
 
@@ -126,14 +127,15 @@ sub _dirs {
   return $dir,@dirs;
 }
 
+
 sub get_ttf_fonts {
   my %result;
   my $ds=$TrEd::Convert::Ds;
   eval {
     require PDF::API2::TTF::Font;
     foreach my $path (map { _dirs($_) } @_) {
-      my ($vol,$dir) = File::Spec->splitpath($path);
-      foreach my $font (grep { -f $_ } glob(File::Spec->catpath($vol,quotemeta($dir),'*.*'))) {
+      opendir my $dh, $path || next;
+      foreach my $font (grep { -f $_ } map { File::Spec->catfile($path,$_) } readdir($dh)) {
 	my $f = PDF::API2::TTF::Font->open($font);
 	next unless $f;
 	$PDF::API2::TTF::Name::utf8 = 1;
@@ -145,6 +147,7 @@ sub get_ttf_fonts {
 	$result{$fn} = $font unless exists $result{$fn};
 	$f->release;
       }
+      closedir $dh;
     }
   };
   print STDERR $@ if $@;
