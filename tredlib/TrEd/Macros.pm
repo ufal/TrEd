@@ -1,6 +1,7 @@
 package TrEd::Macros;
 
 BEGIN {
+  use Cwd;
   use Fslib;
   use File::Spec;
   use TrEd::Config;
@@ -234,8 +235,13 @@ sub read_macros {
 	  my $pattern = $2;
 	  my @includes;
 	  if ($pattern=~/^<(.*)>$/) {
+	    my $glob = $1;
 	    my ($vol,$dir) = File::Spec->splitpath(dirname($file));
-	    @includes = glob(File::Spec->catpath($vol,quotemeta($dir),$1));
+	    $dir = File::Spec->catpath($vol,$dir); 
+	    my $cwd = cwd();
+	    chdir $dir;
+	    @includes = map { File::Spec->rel2abs($_) } glob($glob);
+	    chdir $cwd;
 	  } else {
 	    @includes = (dirname($file).$pattern);
 	  }
