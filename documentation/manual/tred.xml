@@ -18,7 +18,7 @@
       such as dependency trees.  Among other projects, it was used as
       the main annotation tool for syntactical and tectogrammatical
       annotations of 
-      <ulink url="http://shadow.ms.mff.cuni.cz/pdt/index.html">The Prague Dependency Treebank</ulink>, as well as for
+      <ulink url="http://ufal.mff.cuni.cz/pdt/index.html">The Prague Dependency Treebank</ulink>, as well as for
       decision-tree based morphological annotation of
       <ulink url="http://ufal.mff.cuni.cz/padt/">The Prague Arabic Dependency Treebank</ulink>.
     </para>
