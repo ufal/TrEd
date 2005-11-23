@@ -232,7 +232,7 @@
 	</itemizedlist>
 	All the above modules and their dependencies can be obtained
 	and installed in a single step using the
-	<command moreinfo="none">./install</command> script of the <ulink url="http://ufal.mff.cuni.cz/pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
+	<command moreinfo="none">./install</command> script of the <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
 	package as described below. The install script compiles and
 	installs all required modules.	
 	<note role="PDT20">
@@ -250,7 +250,7 @@
       <orderedlist continuation="restarts" inheritnum="ignore">
 	<listitem>
 	  <para>
-	    Fetch the  <ulink url="http://ufal.mff.cuni.cz/pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
+	    Fetch the  <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</ulink>
 	    package</para>
 	</listitem>
 	<listitem>
@@ -302,7 +302,7 @@ Password:
 	    The last few and steps describe the installation of
 	    <application moreinfo="none">TrEd</application> itself.
 	    Start by fetching the latest <application moreinfo="none">TrEd</application>
-	    distribution package <ulink url="http://ufal.mff.cuni.cz/pajas/tred/tred-current.tar.gz">tred-current.tar.gz</ulink>,
+	    distribution package <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz">tred-current.tar.gz</ulink>,
 	    unpack the package it using
 	    <programlisting format="linespecific">$ <userinput moreinfo="none">tar xzvf tred-current.tar.gz</userinput></programlisting>
 	    and copy the resulting <filename moreinfo="none">tred</filename> directory
