@@ -1184,29 +1184,29 @@ MorphoTrees - Context for Annotation of Morphology in the TrEd Environment
 
 =head1 DESCRIPTION
 
-General description is given in L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/papers/2004-nemlar-tred.pdf>.
+General description is given in L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/papers/2004-nemlar-tred.pdf>.
 
-Examples of MorphoTrees include L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/morpho_fhm.gif>,
-L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AfrAd.gif>, or
-L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AmA.gif>.
+Examples of MorphoTrees include L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_fhm.gif>,
+L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AfrAd.gif>, or
+L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AmA.gif>.
 
-Paragraph annotation trees look like L<http://ckl.mff.cuni.cz/padt/PADT_1.0/docs/morpho_view.gif>.
+Paragraph annotation trees look like L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_view.gif>.
 
 For reference, see the list of MorphoTrees macros and key-bindings in the User-defined menu item in TrEd.
 
 
 =head1 SEE ALSO
 
-TrEd Tree Editor L<http://ckl.mff.cuni.cz/pajas/tred/>
+TrEd Tree Editor L<http://ufal.mff.cuni.cz/pajas/tred/>
 
-Prague Arabic Dependency Treebank L<http://ckl.mff.cuni.cz/padt/>
+Prague Arabic Dependency Treebank L<http://ufal.mff.cuni.cz/padt/>
 
 
 =head1 AUTHOR
 
-Otakar Smrz, L<http://ckl.mff.cuni.cz/smrz/>
+Otakar Smrz, L<http://ufal.mff.cuni.cz/smrz/>
 
-    eval { 'E<lt>' . 'smrz' . "\x40" . ( join '.', qw 'ckl mff cuni cz' ) . 'E<gt>' }
+    eval { 'E<lt>' . 'smrz' . "\x40" . ( join '.', qw 'ufal mff cuni cz' ) . 'E<gt>' }
 
 Perl is also designed to make the easy jobs not that easy ;)
 
