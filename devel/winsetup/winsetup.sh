@@ -380,7 +380,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     else 
       echo "$MSG039 ${TREDDIR}/bin !"
     fi
-    [ $SAVED_TREDRC = 1 ] && \
+    [ "$SAVED_TREDRC" = 1 ] && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
     test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl "$INSTLANG" "${TREDDIR}"
 
