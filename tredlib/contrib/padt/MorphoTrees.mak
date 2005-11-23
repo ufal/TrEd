@@ -1197,7 +1197,7 @@ For reference, see the list of MorphoTrees macros and key-bindings in the User-d
 
 =head1 SEE ALSO
 
-TrEd Tree Editor L<http://ufal.mff.cuni.cz/pajas/tred/>
+TrEd Tree Editor L<http://ufal.mff.cuni.cz/~pajas/tred/>
 
 Prague Arabic Dependency Treebank L<http://ufal.mff.cuni.cz/padt/>
 
