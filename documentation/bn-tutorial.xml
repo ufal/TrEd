@@ -247,7 +247,7 @@ you have to introduce these variables by the following line:
 </para>
 
 <para>Nodes, represented as Perl objects, have attributes of several
-types (see the <ulink url="../../data-formats/pml-markup/index.html">exhaustive list of attributes</ulink>):
+types (see the <ulink url="rewrite:pml-markup">exhaustive list of attributes</ulink>):
 <itemizedlist>
   <listitem><para> Values of <emphasis>simple attributes</emphasis> are obtained
   directly using <literal>$node->{attr}</literal> syntax. 
@@ -299,7 +299,7 @@ types (see the <ulink url="../../data-formats/pml-markup/index.html">exhaustive 
 
 Remember that there are different sets of attributes available on
 different layers (as documented in the <ulink
-url="../../data-formats/pml-markup/index.html">exhaustive list of
+url="rewrite:pml-markup">exhaustive list of
 attributes</ulink>). Example - for each node of each analytical tree
 in the sample data, print its analytical function
 (<parameter>-q</parameter> is used to surpress btred progress messages):
