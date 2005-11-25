@@ -222,7 +222,7 @@ sub OpenEditor {
 		     infoline => { label => $fc }
 		    };
 
-  my $frameid = $opts{-frameid} || $node->attr($frameid_attr);
+  my $frameid = $opts{-frameid} || ($node ? $node->attr($frameid_attr) : undef);
   print STDERR "EDITOR start at: $lemma,$pos,$frameid\n";
 
   my $d;
