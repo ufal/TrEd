@@ -41,7 +41,8 @@ sub real_parent {
 
 sub normalize_afun {
   my ($afun)=@_;
-  return $LcAfuns{$afun} || "Atr";
+  if ($afun eq "???" or $afun eq "") {return "Atr"}
+  else {  return $LcAfuns{$afun} };
 }
 
 #bind assign_afun_auto Ctrl+Shift+F9 menu Auto-assign analytical function to node
