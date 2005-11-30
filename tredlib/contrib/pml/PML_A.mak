@@ -35,7 +35,7 @@ a tectogrammatical tree which refers to the current analytical tree.
 =cut
 
 sub TectogrammaticalTree {
-  return unless SchemaName() eq 'adata';
+  return unless SchemaName() =~ /^a(?:edit)?data$/;
   return unless SwitchToTFile();
   my$arf=$PML::arf;
   my $fsfile = $grp->{FSFile};
@@ -83,7 +83,7 @@ sub TectogrammaticalTree {
 
 sub SwitchToTFile {
   my $fsfile = $grp->{FSFile};
-  return 0 unless $fsfile or SchemaName() ne 'adata';
+  return 0 unless $fsfile or SchemaName() !~ /^a(?:edit)?data$/;
   my $tr_fs = $fsfile->appData('tdata');
   return 0 unless ref($tr_fs);
   $grp->{FSFile} = $tr_fs;
@@ -405,7 +405,7 @@ sub get_status_line_hook {
 }
 
 sub allow_switch_context_hook {
-  return 'stop' if SchemaName() ne 'adata';
+  return 'stop' if SchemaName() !~ /^a(?:edit)?data$/;
 }
 sub switch_context_hook {
   CreateStylesheets();
