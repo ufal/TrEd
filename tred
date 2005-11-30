@@ -5890,8 +5890,8 @@ sub saveFileAs {
 	    $filenames,$selection,
 	    label => {
 	      -text => <<'EOF'
-You have renamed the current file, but it is referenced from the file(s) below.
-Please select files that should update their reference to the current file:
+You have renamed the current file, but it is referred to by the file(s) below.
+Please select files that should update their references to the current file:
 EOF
 	     },
 	    list => {
