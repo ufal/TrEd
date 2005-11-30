@@ -194,7 +194,7 @@ sub SwitchToAFile {
 }
 
 sub file_resumed_hook {
-  if (SchemaName() eq 'adata') {
+  if (SchemaName() =~ /^a(?:edit)?data$/) {
     SetCurrentStylesheet(STYLESHEET_FROM_FILE());
     if (CurrentContext() eq 'PML_T_Edit') {
       SwitchContext('PML_A_Edit');
