@@ -31,6 +31,8 @@ sub file_opened_hook {
       return SwitchContext('PML_T_View');
     } elsif (PML::SchemaName() eq 'adata') {
       return SwitchContext('PML_A_View');
+    } elsif (PML::SchemaName() eq 'aeditdata') {
+      return SwitchContext('PML_A_Edit');
 #endif pml
 #ifdef transf
     } elsif ($grp->{FSFile}->FS->exists->{x_TNT}
