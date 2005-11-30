@@ -509,7 +509,7 @@ sub ChooseFrame {
 	    $base_word ? ($base,"V") : ()
 	   ];
   }
-  print "$word: $lemma $pos $opts{-frameid}\n";
+  #print "$word: $lemma $pos $opts{-frameid}\n";
 
   DisplayFrame($field,$opts{-frameid},$new_word,($opts{-title} || 'Valency frames'),
 	       $opts{-no_assign},
