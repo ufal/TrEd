@@ -311,7 +311,7 @@ sub IsHidden {
 
 =item C<Hide(node)>
 
-Hide the given node.
+Hide a given node.
 
 =cut
 
