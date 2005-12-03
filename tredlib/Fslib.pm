@@ -1228,9 +1228,9 @@ sub DESTROY {
 
 =item isHidden (node)
 
-Return the lowest ancestor-or-self of the given node marked by
-C<'hide'> in the FS attribute declared as @H. Return undef, if no such
-node exists.
+Return the lowest ancestor-or-self of the given node whose value of
+the FS attribute declared as @H is either C<'hide'> or 1. Return
+undef, if no such node exists.
 
 =cut
 
@@ -1241,7 +1241,8 @@ sub isHidden {
   return unless ref($self) and ref($node);
   my $hid=$self->specials->{H};
 
-  while (ref($node) && ($node->{$hid} eq '')) {
+  while (ref($node) && ($node->{$hid} != 1 and
+			$node->{$hid} ne 'hide')) {
     $node=$node->parent;
   }
   return ($node ? $node : undef);

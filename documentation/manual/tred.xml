@@ -6817,11 +6817,12 @@ sub CreateImages {
 	      <row>
 		<entry><literal moreinfo="none">hide</literal></entry>
 		<entry>Return the name of the special FS attribute
-		  which can be used to hide several subtrees. This
+		  which can be used for hiding subtrees. This
 		  attribute is declared in the FS file as
 		  <literal moreinfo="none">@H</literal>; a subtree is
 		  hidden if its governing node's value for this
-		  attribute is <literal moreinfo="none">'hide'</literal>.</entry>
+		  attribute is <literal moreinfo="none">'hide'</literal> or
+		  <literal>1</literal>.</entry>
 	      </row>
 	      <row>
 		<entry><literal moreinfo="none">isHidden(<replaceable>node</replaceable>)</literal></entry>
