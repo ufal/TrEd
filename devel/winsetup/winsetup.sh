@@ -18,19 +18,22 @@ function debug {
 INSTLANG=en
 INSTPERLVER=8
 TREDRC=""
+DATADIR=""
 
-while getopts "l:p:tr:h" o; do
+while getopts "l:p:tr:hd:" o; do
   case "$o" in
      l) INSTLANG="$OPTARG" ;;
      p) INSTPERLVER="$OPTARG" ;;
      t) PACKAGES58="Tk $PACKAGES58" ;;
      r) TREDRC="$OPTARG" ;;
+     d) DATADIR="$OPTARG" ;;
      h) cat <<EOF ;;
 usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r tredrc]
        -l language
        -p perl5 sub-version
        -t force Tk804 for perl 5.8
        -r use given file as the default tredrc
+       -d data-dir
 or
        winsetup.sh -h for this help
 EOF
@@ -382,7 +385,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     fi
     [ "$SAVED_TREDRC" = 1 ] && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
-    test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl "$INSTLANG" "${TREDDIR}"
+    test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl "$INSTLANG" "${TREDDIR}" "${DATADIR}"
 
     # change tredrc to read-only so that users have to create
     # their own copy
