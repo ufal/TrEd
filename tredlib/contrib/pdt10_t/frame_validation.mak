@@ -88,29 +88,37 @@ sub has_auxR {
     # /1
     [[ 'ACT(.1)', 'PAT(.4)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])$/ ]] =>
      [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-PAT(.4)', '+PAT(.1)',
-       ['EFF', sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])$/${1}1${2}/ } ]]],
+       ['EFF', sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])$/${1}1${2}/ } ]],
+     { LABEL => 'V_PASS_1' }
+    ],
     # /2 frame test
     [[ 'ACT(.1)', ['PAT', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])?$/ ]]  =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
-      ['PAT',sub { s/((?:^|,)\.a?)4((?:\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])?(?:,|$))/${1}1${2}/ } ]]],
+      ['PAT',sub { s/((?:^|,)\.a?)4((?:\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])?(?:,|$))/${1}1${2}/ } ]],
+     { LABEL => 'V_PASS_2' }],
     # /3 ditto for CPHR
     [[ 'ACT(.1)', ['CPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
-    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['CPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]]],
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['CPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]],
+     { LABEL => 'V_PASS_3' }],
     # /4 ditto for DPHR
     [[ 'ACT(.1)', ['DPHR', qr/^[^\[]*[.:][^\[,:.]*4/ ] ] =>
-    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['DPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]]],
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', ['DPHR',sub { s/^([^\[]*[.:][^\[,:.]*)4/${1}1/ }]],
+     { LABEL => 'V_PASS_4' }],
     # /5 frame test
     [[ 'ACT(.1)', 'ADDR(.4)' ] =>
-    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.4)', '+ADDR(.1)' ]],
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.4)', '+ADDR(.1)' ],
+     { LABEL => 'V_PASS_5' }],
     # /6 frame test
     [[ 'ACT(.1)', 'ADDR(.2)' ] =>
-    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.2)', '+ADDR(.1)' ]],
+    [ '-ACT(.1)', '+ACT(.7;od-1[.2])', '-ADDR(.2)', '+ADDR(.1)' ],
+     { LABEL => 'V_PASS_6' }],
     # /7 frame test
     [[ 'ACT(.1)', ['EFF', qr/^\.a?4(\[(jako|{jako,jako¾to})(\/AuxY)?[.:]?\])?$/ ] ] =>
     [ '-ACT(.1)', '+ACT(.7;od-1[.2])',
       ['EFF',
        sub { s/^(\.a?)4(\[(jako|{jako,jako¾to})(\/AuxY)?\])?[.:]?$/${1}1${2}/ }
-      ]]]);
+      ]],
+     { LABEL => 'V_PASS_7' }]);
 
 @fv_trans_rules_V =
   (
@@ -128,18 +136,24 @@ sub has_auxR {
 	  ) ? 1:0; # STOP
 	} =>
     [[ '(.$2<s>)', 'ACT(.1)' ] => 
-       ['-ACT(.1)', '+ACT(.4)' ]],
+       ['-ACT(.1)', '+ACT(.4)' ],
+     { LABEL => 'V_MA_UVARENO_PASS_FRAME' }
+    ],
     # frame transformation rules:
     # frame test
     [[ 'ACT(.1)', 'ADDR(.3)' ] =>
     # form transformation rules:
      [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])', '-ADDR(.3)','-ADDR(pro-1[.4])', '+ADDR(.1)' ],
-     { KEEP_ORIG => 1 } # try the original frame too
+     { KEEP_ORIG => 1, # try the original frame too
+       LABEL => 'V_MA_UVARENO_OD_ADDR'
+     } 
     ],
     [[ 'ACT(.1)' ] =>
     # form transformation rules:
      [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])' ],
-     { KEEP_ORIG => 1 } # try the original frame too
+     { KEEP_ORIG => 1,
+       LABEL => 'V_MA_UVARENO'
+     } # try the original frame too
     ]
    ],
    # 2.
@@ -148,7 +162,9 @@ sub has_auxR {
     sub { my ($node) = @_;
 	  ($node->{tag}=~/^Vf/ and first { $_->{lemma} eq 'být' or $_->{lemma} eq 'jít' } PDT::GetFather_TR($node)) ? 1:0;
 	} =>
-    [[ 'PAT(.4)' ] => [ '+PAT(.1)' ]],
+    [[ 'PAT(.4)' ] => [ '+PAT(.1)' ],
+     { LABEL => 'V_JDE_UDELAT' }
+    ],
    ],
    # 3.
    [# verb test: passive verb
@@ -176,12 +192,18 @@ sub has_auxR {
 	  ) ? 1:0;
 	} =>
     # frame transformation rules:
-    [[ '(.$2<s>)' ] => []],
-    [[ '(.v[se/AuxR])' ] => []],
+    [[ '(.$2<s>)' ] => [],
+     { LABEL => 'V_PASS_FRAME_NOTRANS' }
+    ],
+    [[ '(.v[se/AuxR])' ] => [],
+     { LABEL => 'V_REFLEX_PASS_FRAME_NOTRANS' }
+    ],
     @fv_passivization_rules,
     # frame test
     [[ 'ACT(.1)' ] =>
-     [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])']],
+     [ '-ACT(.1)', '+ACT(.7)', '+ACT(od-1[.2])'],
+     { LABEL => 'V_PASS_ACT' }
+    ],
    ],
    # 4.
    [# dispmod
@@ -189,14 +211,18 @@ sub has_auxR {
     # frame transformation rules:
     # frame test
     [[ 'ACT(.1)', 'PAT(.4)' ] =>
-     [ '-ACT(.1)', '+ACT(.3)', '-PAT(.4)', '+PAT(.1)', '+(.[se])', '+MANN(*)' ]],
+     [ '-ACT(.1)', '+ACT(.3)', '-PAT(.4)', '+PAT(.1)', '+(.[se])', '+MANN(*)' ],
+     { LABEL => 'V_DISPMOD_PAT' }
+    ],
     # frame test
     [[ 'ACT(.1)' ] =>
     # form transformation rules:
-     [ '-ACT(.1)', '+ACT(.3)', '+(.[se])', '+MANN(*)' ]]
+     [ '-ACT(.1)', '+ACT(.3)', '+(.[se])', '+MANN(*)' ],
+     { LABEL => 'V_DISPMOD' }
+    ]
    ],
    # 5.
-   [ # chce se mu riskovat
+   [ # chce se mu riskovat prohra/prohru (zachtelo se mu zazpivat pisnicku, pisnicka se mu zachtela zazpivat)
     sub {
       my ($node,$aids) = @_;
       return 0 unless $node->{tag}=~/^Vf/;
@@ -208,8 +234,14 @@ sub has_auxR {
       return 0 unless $p and
 	$p->{trlemma}=~/^chtít$/ and has_auxR($p);
       } =>
+    [[ 'ACT(.1)', 'PAT(.4)' ] =>
+     [ '-ACT(.1)', '+ACT(.3)', '+PAT(.#)' ],
+     { LABEL => 'V_CHCE_SE_PAT' }
+    ],
     [[ 'ACT(.1)' ] =>
-     [ '-ACT(.1)', '+ACT(.3)' ]]
+     [ '-ACT(.1)', '+ACT(.3)' ],
+     { LABEL => 'V_CHCE_SE' }
+    ]
    ],
    # 6.
    [# verb test: verb treated as passive due to "se".AuxR
@@ -241,14 +273,20 @@ sub has_auxR {
       return 0 unless $p and $p->{trlemma}=~/^nech(áv)?at$|^dát$/
     } =>
       [[ 'ACT(.1)', 'PAT(.7)' ] =>
-       [ '-ACT(.1)', '+ACT(od-1[.2];.7)', '+PAT(.4)' ]],
+       [ '-ACT(.1)', '+ACT(od-1[.2];.7)', '+PAT(.4)' ],
+       { LABEL => 'V_NECHAT_SI_UDELAT_PAT' }
+      ],
       [[ 'ACT(.1)' ] =>
-       [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ]]
+       [ '-ACT(.1)', '+ACT(od-1[.2];.7)' ],
+       { LABEL => 'V_NECHAT_SI_UDELAT' }
+      ]
    ],
    # 8. imperative
    [
     sub { $_[0]->{tag}=~/^Vi/ ? 1 : 0 } =>
-    [[ 'ACT(.1)' ] => [ '+ACT(.5)' ]]
+    [[ 'ACT(.1)' ] => [ '+ACT(.5)' ],
+     { LABEL => 'V_IMPERATIVE' }
+    ]
    ],
    # 9. agreement between EFF and PAT in "mit tisic aut koupenych"
    [
@@ -265,7 +303,9 @@ sub has_auxR {
 		$_->{tag}=~/^V/ and first { $_->{lemma} eq "¾e" } get_aidrefs_nodes($aids,$_))
 	      } PDT::GetChildren_TR($node)
 	} =>
-    [[ 'PAT(.4)','EFF(.4)' ] => [ '+EFF(.a2)' ]]
+    [[ 'PAT(.4)','EFF(.4)' ] => [ '+EFF(.a2)' ],
+     { LABEL => 'V_SHODA_EFF_DOPLNKU' }
+    ]
    ]
   );
 
@@ -300,6 +340,23 @@ sub has_auxR {
   qw(
      li jestli
     );
+
+# check if genders in given tags/nodes match
+sub match_gender {
+  my ($g1,$g2)= @_;
+  my $g=$g1.$g2;
+  return (($g1 eq $g2) or
+          ($g=~/-|X|^(?:Q[FN]|[FN]Q|T[IF]|[IF]T|H[NF]|[NF]H|Y[IMZ]|[ZIM]Y|Z[IMN]|[IMN]Z)$/)
+         ) ? 1 : 0;
+}
+
+sub match_number {
+  my ($n1,$n2)= @_;
+  my $n=$n1.$n2;
+  return (($n1 eq $n2) or
+          ($n=~/^-|X|^DP$|^PD$|W/)
+         ) ? 1 : 0;
+}
 
 sub match_lemma {
   my ($l1,$l2)=@_;
@@ -489,16 +546,6 @@ sub check_node_case {
   return 0;
 }
 
-# check if genders in given tags/nodes match
-sub match_gender {
-  my ($g1,$g2)= @_;
-  my $g=$g1.$g2;
-  return (($g1 eq $g2) or
-          ($g=~/-|X|^(?:H[NF]|[NF]H|Y[IMZ]|[ZIM]Y|Z[IMN]|[IMN]Z)$/)
-         ) ? 1 : 0;
-}
-
-
 sub match_node {
   my ($node, $tnode, $fn, $aids,$no_case,$flags,$toplevel) = @_;
 
@@ -562,12 +609,12 @@ sub match_node {
     if ($p) {
       $p->{tag}=~/^....(\d)/;
       $case=$1 if ($case eq '' and $1);
-      $p->{tag}=~/^...([SP])/;
+      $p->{tag}=~/^...([DWSP])/;
       $num=$1 if ($num eq '' and $1);
-      $p->{tag}=~/^..([FMINHZY])/;
+      $p->{tag}=~/^..([TQFMINHZY])/;
       $gen=$1 if ($gen eq '' and $1);
       if ($V_verbose) {
-	print "AGREEMENT [no_case=$no_case, tag=$node->{tag}, lemma=".$l."]  ==>  ";
+	print "AGREEMENT [no_case=$no_case, tag=$node->{tag}, lemma=".$l.", p-lemma=".$p->{lemma}.", p-tag=".$p->{tag}."]  ==>  ";
 	print join ", ", map { "$_->[0]=$_->[1]" } grep { $_->[1] ne "" } ([lemma => $lemma], [pos => $pos], [case => $case],
 									   [gen => $gen], [num => $num], [deg => $deg], [afun => $afun]);
 	print "\n";
@@ -585,7 +632,7 @@ sub match_node {
     }
   }
   if ($gen ne '') {
-    return 0 if $node->{tag}=~/^..([FMINHZY])/ and !match_gender($gen,$1);
+    return 0 if $node->{tag}=~/^..([TQFMINHZY])/ and !match_gender($gen,$1);
   }
   if ($neg eq 'negative') {
     return 0 unless $node->{tag}=~/^..........N/;
@@ -692,7 +739,7 @@ sub match_node {
 #    );
   }
   if ($num ne '') {
-    return 0 if $node->{tag}=~/^...([SP])/ and $num ne $1;
+    return 0 if $node->{tag}=~/^...([DWSP])/ and not match_number($num,$1);
   }
   if ($deg ne '') {
     return 0 if $node->{tag}=~/^........([123])/ and $deg ne $1;
@@ -1011,8 +1058,13 @@ sub frame_matches_rule ($$$) {
 }
 
 sub transform_frame {
-  my ($V,$old_frame,$frame_trans) = @_;
+  my ($V,$old_frame,$frame_trans,$label) = @_;
   my $new = $V->clone_frame($old_frame);
+  if ($new->getAttribute('transformations') ne "") {
+    $new->setAttribute('transformations', $new->getAttribute('transformations')." ".$label);
+  } else {
+    $new->setAttribute('transformations',$label);
+  }
   foreach my $trans (@$frame_trans) {
     if (ref($trans)) { # match a regexp
       my ($func, $code)=@$trans;
@@ -1113,11 +1165,11 @@ sub do_transform_frame {
 	  if (frame_matches_rule($V,$frame,$frame_test)) {
 	    print "TRANSFORMING FRAME ".$V->frame_id($frame)." (rule $i/$j): ".$V->serialize_frame($frame)."\n" if (!$quiet and $V_verbose);
 	    if ($opts->{KEEP_ORIG}) {
-	      push @transformed, transform_frame($V,$frame,$frame_trans);
+	      push @transformed, transform_frame($V,$frame,$frame_trans,"r${i}t${j}:".$opts->{LABEL});
 	      print "RESULT: ".$V->serialize_frame($transformed[$#transformed])."\n\n" if (!$quiet and $V_verbose);
 	      print "WILL TRY ORIGINAL FRAME TOO\n" if (!$quiet and $V_verbose);
 	    } else {
-	      $frame = transform_frame($V,$frame,$frame_trans);
+	      $frame = transform_frame($V,$frame,$frame_trans,"r${i}t${j}:".$opts->{LABEL});
 	      print "RESULT: ".$V->serialize_frame($frame)."\n\n" if (!$quiet and $V_verbose);
 	      $V->user_cache->{$cache_key} = $frame unless $filter_applied; # only cache if no filter was applied so far
 	    }
@@ -1615,8 +1667,11 @@ sub validate_frame_no_transform {
 	Position($c);
       }
     }
-
     print "\nOK - frame matches!\n" if ($V_verbose and !$quiet);
+    if ($flags->{report_ok_transformations}) {
+      print "OK ",$V->frame_id($frame),"\t", $node->{trlemma},"\t",$frame->getAttribute('transformations'),"\t";
+      Position($node);
+    }
   }
   return 1;
 }
