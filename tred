@@ -773,7 +773,7 @@ sub setConfig {
 
   require Filelist;
   my $fl;
-  foreach (grep /^filelist[0-9]+/, keys %$confs) {
+  foreach (sort { substr($a,8)<=>substr($b,8) } grep /^filelist[0-9]+/, keys %$confs) {
     print "Reading $_\n"  if $tredDebug;
     $fl=Filelist->new(undef,$confs->{$_});
     next unless $fl;
