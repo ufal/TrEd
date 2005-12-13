@@ -330,7 +330,7 @@ if ($file_list) {
     if (open(F,"<$l")) {
       @files=<F>;
       chomp @files;
-      shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f absolutize($files[0]));
+      shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f Fslib::ResolvePath($l,$files[0]));
       if ($l=~/\.fl$/i) {
 	# make realtive filenames absolute relative to the .fl file
 	@files=map { Fslib::ResolvePath($l,$_) } @files;
@@ -1829,7 +1829,10 @@ be specified more than once with different modules.
 
 Read a list of filenames to process from a given file (one filename
 per line). Files specified in a file-list are processed prior to files
-specified on the command-line.
+specified on the command-line. If file-list is a file with .fl
+extension, then the first line may contain a file-list name (as in
+TrEd). Moreover, unlike in other file-lists, filenames in .fl
+file-lists are asssumed to be relative to the file-list file location.
 
 =item B<--glob|-g>
 
