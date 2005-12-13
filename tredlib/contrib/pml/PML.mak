@@ -247,6 +247,9 @@ sub NonProjEdges {
 #ifdef TRED
 
 { my@CustomColors=qw/error red
+                     mlemma blue
+                     form black
+                     tag darkgreen
                      lemma black
                      current red
                      sentence black

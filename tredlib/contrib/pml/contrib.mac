@@ -1,6 +1,9 @@
 #ifndef pml
 #define pml
 
+#binding-context PML_M
+#include "PML_M.mak"
+
 #binding-context PML_A_View
 #include "PML_A_View.mak"
 
