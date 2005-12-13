@@ -329,7 +329,12 @@ if ($file_list) {
     print STDERR "Reading -l filelist $l...\n" if $tredDebug;
     if (open(F,"<$l")) {
       @files=<F>;
+      chomp @files;
       shift @files if ($l=~/\.fl$/i and $files[0]!~m{[/.]} and ! -f absolutize($files[0]));
+      if ($l=~/\.fl$/i) {
+	# make realtive filenames absolute relative to the .fl file
+	@files=map { Fslib::ResolvePath($l,$_) } @files;
+      }
       close(F);
     } else {
       print STDERR "Warning: Can't open filelist $l: $!\n";
