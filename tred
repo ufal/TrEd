@@ -903,16 +903,7 @@ sub filelistFullFileName {
   return undef unless $win->{currentFilelist};
   my $filename=$win->{currentFilelist}->file_at($fn);
 
-  return $filename if $filename =~ m(^[[:alnum:]]+:/) or $filename =~ m(^\s*\|);
-
-  if ($filename!~/^\s*[\/~]/ and
-      ($^O ne 'MSWin32' or $filename!~/^\s*([[:alpha:]]:)?\\/)) {
-    # relative filename
-    if (dirname($win->{currentFilelist}->filename()) ne "") {
-      $filename=dirname($win->{currentFilelist}->filename()).$filename;
-    }
-  }
-  return $filename;
+  return  Fslib::ResolvePath($win->{currentFilelist}->filename(),$filename);
 }
 
 sub nextOrPrevFile {
