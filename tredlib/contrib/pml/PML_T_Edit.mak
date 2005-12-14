@@ -82,6 +82,7 @@ sub get_status_line_hook {
 
 #bind ChooseValFrame to Ctrl+Return menu Select a and assign valency frame
 sub ChooseValFrame {
+  my $refid = FileMetaData('refnames')->{vallex};
   PML_T::OpenValFrameList(
     $this,
     -assign_func => sub {
