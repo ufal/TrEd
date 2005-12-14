@@ -27,6 +27,7 @@ while getopts "l:p:tr:hd:" o; do
      t) PACKAGES58="Tk $PACKAGES58" ;;
      r) TREDRC="$OPTARG" ;;
      d) DATADIR="$OPTARG" ;;
+     f) FILELISTS="$OPTARG" ;;
      h) cat <<EOF ;;
 usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r tredrc]
        -l language
@@ -34,6 +35,7 @@ usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r tredrc]
        -t force Tk804 for perl 5.8
        -r use given file as the default tredrc
        -d data-dir
+       -f dir - add all <dir>/*.fl as filelists
 or
        winsetup.sh -h for this help
 EOF
@@ -388,6 +390,19 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     fi
     [ "$SAVED_TREDRC" = 1 ] && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
+
+    if [ -n "${FILELIST}" -a -d "${FILELIST}" ]; then
+      if ! grep '^\s*filelist[0-9]*\s*=' "${TREDDIR}/tredlib/tredrc"; then
+        # pridej filelisty
+        i=0
+        for s in "${FILELIST}"/*.fl; do
+	  echo >> "${TREDDIR}/tredlib/tredrc"
+          echo "filelist${i}=\"$s\"" >> "${TREDDIR}/tredlib/tredrc"
+          i=$((i+1))
+        done
+      fi
+    fi
+    
     test "x$UPGRADE" != "x1" && "$PERLBIN" trinstall.pl "$INSTLANG" "${TREDDIR}" "${DATADIR}"
 
     # change tredrc to read-only so that users have to create
