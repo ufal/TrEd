@@ -272,7 +272,7 @@ ask "$MSG017" || exit 0
 
 echo
 findperlbin
-until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dosdirname $PERLBIN)"; do
+until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dosdirname $PERLBIN) $MSG018"; do
   echo "$MSG019"
   echo "$MSG020"
   echo "$MSG021"
@@ -391,11 +391,11 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     [ "$SAVED_TREDRC" = 1 ] && \
      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
 
-    if [ -n "${FILELIST}" -a -d "${FILELIST}" ]; then
+    if [ -n "${FILELISTS}" -a -d "${FILELISTS}" ]; then
       if ! grep '^\s*filelist[0-9]*\s*=' "${TREDDIR}/tredlib/tredrc"; then
         # pridej filelisty
         i=0
-        for s in "${FILELIST}"/*.fl; do
+        for s in "${FILELISTS}"/*.fl; do
 	  echo >> "${TREDDIR}/tredlib/tredrc"
           echo "filelist${i}=\"$s\"" >> "${TREDDIR}/tredlib/tredrc"
           i=$((i+1))
