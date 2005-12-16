@@ -141,7 +141,6 @@ function findtreddir {
 
 function perl_version_current {
   INSTVER=`"$PERLBIN" --version | grep "This is perl,"`
-  echo "$INSTVER"
   if "$PERLBIN" --version | grep -E 'This is perl, v5\.'"(${REQPERLVER})"; then
     return 0
   else 
@@ -399,11 +398,12 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
 
     if [ -n "${FILELISTS}" -a -d "${FILELISTS}" ]; then
       if ! grep '^\s*filelist[0-9]*\s*=' "${TREDDIR}/tredlib/tredrc"; then
+        attrib -R "${TREDDIR}/tredlib/tredrc"
         # pridej filelisty
         i=0
         for s in "${FILELISTS}"/*.fl; do
 	  echo >> "${TREDDIR}/tredlib/tredrc"
-          echo "filelist${i}=\"$s\"" >> "${TREDDIR}/tredlib/tredrc"
+          echo "filelist${i}=\"${s//\\\\//}\"" >> "${TREDDIR}/tredlib/tredrc"
           i=$((i+1))
         done
       fi
