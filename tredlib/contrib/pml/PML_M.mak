@@ -108,7 +108,7 @@ sub switch_context_hook {
   my $cur_stylesheet = GetCurrentStylesheet();
   SetCurrentStylesheet('PML_M')
     if $cur_stylesheet eq STYLESHEET_FROM_FILE() or
-       $cur_stylesheet =~ /^PML_T(?:_|\b)/;
+       $cur_stylesheet =~ /^PML_[^M](?:_|\b)/;
 }
 
 1;
