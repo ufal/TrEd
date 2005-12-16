@@ -20,7 +20,7 @@ INSTPERLVER=8
 TREDRC=""
 DATADIR=""
 
-while getopts "l:p:tr:hd:" o; do
+while getopts "l:p:tr:hd:f:" o; do
   case "$o" in
      l) INSTLANG="$OPTARG" ;;
      p) INSTPERLVER="$OPTARG" ;;
