@@ -367,7 +367,9 @@ if [ "$UPGRADE" = 1 ] && [ -f "${TREDDIR}/tredlib/tredrc.sav" ]; then
   SAVED_TREDRC=1
 else
   SAVED_TREDRC=0
-  mv "${TREDDIR}/tredlib/tredrc" "${TREDDIR}/tredlib/tredrc.bak"
+  if [ -f "${TREDDIR}/tredlib/tredrc.bak" ]; then
+    mv "${TREDDIR}/tredlib/tredrc" "${TREDDIR}/tredlib/tredrc.bak"
+  fi
 fi
 
 if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
