@@ -317,7 +317,7 @@ else
   fi
 fi
 
-if [ -z "$SKIPPKGUPGRADE" ];
+if [ -z "$SKIPPKGUPGRADE" ]; then
   upgrade_packages
 fi
 
