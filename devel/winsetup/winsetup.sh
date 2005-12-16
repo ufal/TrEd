@@ -20,7 +20,7 @@ INSTPERLVER=8
 TREDRC=""
 DATADIR=""
 
-while getopts "l:p:tr:hd:f:" o; do
+while getopts "l:p:tr:hd:f:n" o; do
   case "$o" in
      l) INSTLANG="$OPTARG" ;;
      p) INSTPERLVER="$OPTARG" ;;
@@ -28,6 +28,7 @@ while getopts "l:p:tr:hd:f:" o; do
      r) TREDRC="$OPTARG" ;;
      d) DATADIR="$OPTARG" ;;
      f) FILELISTS="$OPTARG" ;;
+     n) SKIPPKGUPGRADE="$OPTARG" ;;
      h) cat <<EOF ;;
 usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r tredrc]
        -l language
@@ -36,6 +37,7 @@ usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r tredrc]
        -r use given file as the default tredrc
        -d data-dir
        -f dir - add all <dir>/*.fl as filelists
+       -n skip perl package upgrade
 or
        winsetup.sh -h for this help
 EOF
@@ -316,7 +318,9 @@ else
   fi
 fi
 
-upgrade_packages
+if [ -z "$SKIPPKGUPGRADE" ];
+  upgrade_packages
+fi
 
 findtreddir
 
