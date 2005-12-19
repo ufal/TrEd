@@ -245,7 +245,7 @@ function get_perl_install_dir {
   fi
 }
 
-function install_perl {
+function fail_install_perl {
   DIR="$PWD"
   if [ ! -f "$DIR/$REQPERLINSTDIR/"perl*.tgz ]; then
       echo "-------------------------------------------------------------------------------"
@@ -261,7 +261,11 @@ function install_perl {
       echo "Thank you!";
       exit 1;
   fi
+}
 
+function install_perl {
+  DIR="$PWD"
+  fail_install_perl
   test -d "$PERLINSTALLDIR" || mkdir "$PERLINSTALLDIR"
   echo "$MSG013" "$DIR/$REQPERLINSTDIR"/perl*.tgz
   (cd "$PERLINSTALLDIR" &&\
@@ -285,6 +289,8 @@ until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dos
   echo "$MSG021"
   echo
   if ask "$MSG022"; then
+    fail_install_perl
+    # ok, we do provide a perl installation here
     get_perl_install_dir
     install_perl
 #    findperlbin
