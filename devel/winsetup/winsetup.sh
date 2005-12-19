@@ -285,6 +285,7 @@ until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dos
     PERLBIN="$PERLINSTALLDIR/bin/perl.exe"
   else  
     read -e -r -p "$MSG023" PERLBIN
+    PERLBIN="${PERLBIN//\\\\//}"
   fi
 done
 
