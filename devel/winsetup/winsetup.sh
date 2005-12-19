@@ -114,7 +114,7 @@ function dosdirname {
 }
 
 function cygdirname {
-  dirname="$1"
+  dirname="${1//\\\\//}"
   if ! echo "$dirname" | grep -q '^/cygdrive/'; then
     cygdirname="/cygdrive/${dirname}";
     cygdirname="${cygdirname/://}"
@@ -273,7 +273,7 @@ ask "$MSG017" || exit 0
 
 echo
 findperlbin
-until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dosdirname $PERLBIN) $MSG046"; do
+until [ -n "$PERLBIN" -a  -f "$PERLBIN" -a -x "$PERLBIN" ] && ask "$MSG018 $(dosdirname "$PERLBIN") $MSG046"; do
   echo "$MSG019"
   echo "$MSG020"
   echo "$MSG021"
