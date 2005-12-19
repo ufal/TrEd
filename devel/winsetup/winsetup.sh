@@ -5,7 +5,7 @@
 # (intended for use with cygwin bash)
 #
 
-# usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r]
+# usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r tredrc] [-f filelists-dir] [-n] [-d datadir]
 # or
 # winsetup.sh -h
 
@@ -44,6 +44,10 @@ EOF
   esac
 done
 
+if [ $# != 0 ]; then
+  echo "Warning: following arguments were not parsed correctly:"
+  echo "$@"
+fi
 
 . "winsetup_${INSTLANG}.msg" || exit 1
 
