@@ -44,8 +44,10 @@ EOF
   esac
 done
 
-if [ $# != 0 ]; then
-  echo "Warning: following arguments were not parsed correctly:"
+shift $(( $OPTIND - 1 ))
+
+if [ -n "$1" ]; then
+  echo "Warning: unknown non-option arguments remain on the command-line:"
   echo "$@"
 fi
 
