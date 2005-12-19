@@ -28,7 +28,7 @@ while getopts "l:p:tr:hd:f:n" o; do
      r) TREDRC="$OPTARG" ;;
      d) DATADIR="$OPTARG" ;;
      f) FILELISTS="$OPTARG" ;;
-     n) SKIPPKGUPGRADE="$OPTARG" ;;
+     n) SKIPPKGUPGRADE="1" ;;
      h) cat <<EOF ;;
 usage: winsetup.sh [-l en|cz] [-p 6|8] [-t] [-r tredrc]
        -l language
