@@ -1054,13 +1054,15 @@ sub startMain {
 	  _revert_redirect_stdout($old_stdout);
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'CLOSE') {
-	  _msg "Closing all open files at client's request\n";
 	  my %fl;
 	  my $listed = 0;
 	  if (exists $request{STATE_FILELIST}) {
+	    _msg "Closing some open of files at client's request\n";
 	    $listed = 1;
 	    %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
 	      split /\n/,$request{STATE_FILELIST};
+	  } else {
+	    _msg "Closing all open files at client's request\n";
 	  }
 	  eval {
 	    gotoFile($grp,0);
