@@ -173,7 +173,7 @@ function upgrade_packages {
       echo $MSG003
       "$PPM" rep del tredsetup 2>/dev/null >/dev/null
       "$PPM" rep
-      REPS="$($PPM rep | grep -E '^\[[0-9]+\]')"
+      REPS="$("$PPM" rep | grep -E '^\[[0-9]+\]')"
       REPS=`echo "$REPS" | sed 's/^\[[0-9]*\] *//'`
       OLDIFS="$IFS";
       IFS=$'\n\t\n';
@@ -269,7 +269,7 @@ echo
 echo "-------------------------------------------------------------------------------"
 echo
 echo "$MSG016"
-ask "$MSG017" || exit 0
+ask "$MSG017" || exit 127
 
 echo
 findperlbin
@@ -337,7 +337,7 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
     fi  
   else
     echo
-    ask "$MSG033" || exit 0
+    ask "$MSG033" || exit 127
     if [ "$OSTYPE" = "cygwin" ]; then
       TREDDIR="c:/tred"
     else 
@@ -348,7 +348,7 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
   fi
 else 
   echo
-  ask "$MSG035" || exit 0
+  ask "$MSG035" || exit 127
   if [ "$OSTYPE" = "cygwin" ]; then
     TREDDIR="c:/tred"
   else 
@@ -417,8 +417,8 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     attrib +R "${TREDDIR}/tredlib/tredrc"
 
     echo "$MSG038"
-    regtool add "\\machine\\Software\\TrEd" >/dev/null 2>/dev/null
-    regtool -s set "\\machine\\Software\\TrEd\\Dir" "$TREDDIR" >/dev/null 2>/dev/null
+    ((regtool add "\\machine\\Software\\TrEd" && regtool -s set "\\machine\\Software\\TrEd\\Dir" "$TREDDIR" ) ||
+     (regtool add "\\user\\Software\\TrEd" && regtool -s set "\\user\\Software\\TrEd\\Dir" "$TREDDIR" )) >/dev/null 2>/dev/null;
     echo
     echo "$MSG040"
     echo "$MSG041"
