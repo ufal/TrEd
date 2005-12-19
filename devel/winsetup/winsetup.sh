@@ -427,4 +427,5 @@ else
   echo "$MSG042"
   echo
   read -e -n1 -r -p "$MSG043"
+  exit 1
 fi
