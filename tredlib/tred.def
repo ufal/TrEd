@@ -1668,10 +1668,10 @@ sub ReloadStylesheets {
 
 For a given stylesheet, return it's patterns. In a scalar context,
 returns a string consisting of all patterns, including the hint.  In
-the array context returns thre scalars: the first one containing the
+the array context returns three scalars: the first one containing the
 text of the hint pattern, the second the context pattern (regexp) and
 the other a reference to a list containing the stylesheet
-patterns. Returns empty list if fail.
+patterns. Returns empty list in case of failure.
 
 =cut
 
