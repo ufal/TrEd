@@ -882,6 +882,8 @@ sub dump_child {
     } else {
       $ref->{$data->{name}} = $data->{value};
     }
+  } elsif ($mtype->{constant}) {
+    $ref->{ $data->{name} } = $mtype->{constant};
   } elsif ($mtype->{list}) {
     my $new_ref=bless [],'Fslib::List';
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
