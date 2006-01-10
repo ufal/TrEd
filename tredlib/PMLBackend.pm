@@ -1095,6 +1095,10 @@ sub validate_object ($$$$$$) {
       push @$log, "$path: CDATA value is not formatted as nonNegativeInteger: '$object'"
 	unless $object=~/^\s*\d+\s*$/;
     }
+  } elsif (exists $type->{constant}) {
+    if ($object ne $type->{constant}) {
+      push @$log, "$path: invalid constant, should be '$type->{constant}', got: ",$object;
+    }
   } elsif (exists $type->{choice}) {
     my $ok;
     foreach (@{$type->{choice}}) {
