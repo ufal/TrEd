@@ -1882,14 +1882,14 @@ C<do {{ CODE }} while TredMacro::NextTree()> loop).
 
 Apply the macro code tn all nodes (you still must use --all-trees or
 -T to aplly to all trees in a file) (wrapping the code into a C<while
-($this) { CODE ; $this=$this->following }";> loop).
+($this) { CODE ; $this=$this-E<gt>following }";> loop).
 
 =item B<--all-nonhidden-nodes|-H>
 
 Apply the macro code to all nodes except the hidden ones (you still
 must use --all-trees or -T to process all trees in a file). This
 option wraps the code into a C<while ($this) { CODE ;
-$this=$this->following_visible(FS()) }";> loop).
+$this=$this-E<gt>following_visible(FS()) }";> loop).
 
 =item B<--file-encoding|-n> encoding
 
