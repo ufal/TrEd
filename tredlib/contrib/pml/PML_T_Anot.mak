@@ -33,13 +33,16 @@ sub switch_context_hook {
   PML_T::switch_context_hook();
   my$pattern=GetStylesheetPatterns('PML_T_Compact');
   if($pattern=~
-     s/(t_lemma}')\n/$1?><?'#{customerror}'.('!'x scalar(ListV(\$this->{annot_comment}))) if \$\${annot_comment} ?><? '#{customdetail}"' if \$\${is_dsp_root}/){
+     s/(t_lemma}')\s*\n/$1?><?'#{customerror}'.('!'x scalar(ListV(\$this->{annot_comment}))) if \$\${annot_comment} ?><? '#{customdetail}"' if \$\${is_dsp_root}/){
+    $pattern=~s/(hint:\s*my\s*\Q@\Ehintlines;)\s*\n/$1push \@hintlines,map{'! '.\$_->{type}.':'.\$_->{text}}ListV(\$this->{annot_comment});\n/;
     SetStylesheetPatterns($pattern,'PML_T_Compact');
   }
   $pattern=GetStylesheetPatterns('PML_T_Full');
   if($pattern=~
-     s/(t_lemma}')\n/$1?><?'#{customerror}'.('!'x scalar(ListV(\$this->{annot_comment}))).'#{default}' if \$\${annot_comment}/
+     s/(t_lemma}')\s*\n/$1?><?'#{customerror}'.('!'x scalar(ListV(\$this->{annot_comment}))).'#{default}' if \$\${annot_comment}/
     ){
+    $pattern=~s/(hint:\s*my\s*\Q@\Ehintlines;)\s*\n/$1push \@hintlines,map{'! '.\$_->{type}.':'.\$_->{text}}ListV(\$this->{annot_comment});\n/;
+    print$pattern,"\n";
     SetStylesheetPatterns($pattern,'PML_T_Full');
   }
 } #switch_context_hook
@@ -129,12 +132,14 @@ sub status_line_doubleclick_hook {
 
 #bind AddComment to ! menu Add Annotator's comment
 sub AddComment {
-  my$dialog=[];
+  my $list=$this->type->schema->resolve_type($this->type->find('annot_comment/type'))->{choice};
+  my$dialog=[$list->[0]];
   ListQuery('Comment type',
             'browse',
-            $this->type->schema->resolve_type($this->type->find('annot_comment/type'))->{choice},
+            $list,
             $dialog) or return;
-  (my$text=QueryString('Comment text','Text:'))or return;
+  (my$text=QueryString('Comment text','Text:'));
+  return unless defined $text;
   my%comment=(type=>$dialog->[0],
               text=>$text);
   AddToList($this,'annot_comment',\%comment);
