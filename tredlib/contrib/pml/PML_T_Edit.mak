@@ -141,8 +141,8 @@ sub TextArowToRemembered{
 
 #bind ForgetRemembered to Shift+space menu Forget Remembered Node
 sub ForgetRemembered {
+  delete $PML_T::show{$PML_T_Edit::remember->{id}};
   undef $PML_T_Edit::remember;
-  delete $PML_T::show{$this->{id}};
   ChangingFile(0);
 }#ForgetRemembered
 
@@ -230,6 +230,7 @@ sub AddNode {
     $this->{nodetype}='complex';
     EditFunctor();
     EditNodetype();
+    ChangingFile(EditAttribute($this,'is_generated'));
     MarkForARf();
   }else{
     my$dialog=[];
@@ -256,10 +257,10 @@ sub AddNode {
                  Total qcomplex
                  Unsp qcomplex
                 /;
-    $tlemma=ListQuery('T-lemma',
-                      'browse',
-                      [sort keys%lemmas],
-                     $dialog) or return;
+    ListQuery('T-lemma',
+              'browse',
+              [sort keys%lemmas],
+              $dialog) or return;
     $this=NewNode($this);
     $this->{functor}='PAR';
     $this->{t_lemma}='#'.$dialog->[0];
@@ -269,6 +270,72 @@ sub AddNode {
     EditNodetype();
   }
 } #AddNode
+
+#bind MoveNodeLeft to Ctrl+Left menu Move node to the left
+sub MoveNodeLeft {
+  return unless (GetOrd($this)>1);
+  ShiftNodeLeft($this);
+}
+
+#bind MoveNodeRight to Ctrl+Right menu Move node to the right
+sub MoveNodeRight {
+  return unless ($this->parent);
+  ShiftNodeRight($this);
+}
+
+#bind MoveSTLeft to Alt+Left menu Move subtree to the left
+sub MoveSTLeft {
+# moves the subtree of a given node one node left (with respect to all other nodes)
+# (if the subtree is not contiguous, the user is asked how to proceed)
+  my $top=$this;
+  my @subtree=GetNodes($top);
+  SortByOrd(\@subtree);
+  if ( (GetOrd($subtree[-1])-GetOrd($subtree[0])) != $#subtree ) {
+    return if ("No" eq questionQuery('Non-contiguous subtree',
+				     'The subtree you want to move is non-contiguous. Proceed anyway?',
+				     ('Yes','No')));
+
+  };
+  my $all=GetNodesExceptSubtree([$top]);
+  SortByOrd($all);
+  my $i=Index($all,$top);  # locate the given node in the array @all
+  if ($i>1) {  # check if there is place where to move (the root is always number zero)
+    splice @$all,$i,1;  # cut out the given node
+    splice @$all,$i-1,0, @subtree;  # splice the projectivized subtree at the right (ie left ;-) place
+  }
+  else {
+    splice @$all,$i,1, @subtree;  # if there is no room where to move, just splice the proj. subtree
+                                 # instead of the given node - thus the subtree gets projectivized
+  }
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+}
+
+#bind MoveSTRight to Alt+Right menu Move subtree to the right
+sub MoveSTRight {
+# moves the subtree of a given node one node right (with respect to all other nodes)
+# (if the subtree is not contiguous, the user is asked how to proceed)
+  my $top=$this;
+  my @subtree=GetNodes($top);
+  SortByOrd(\@subtree);
+  if ( (GetOrd($subtree[-1])-GetOrd($subtree[0])) != $#subtree ) {
+    return if ("No" eq questionQuery('Non-contiguous subtree',
+				     'The subtree you want to move is non-contiguous. Proceed anyway?',
+				     ('Yes','No')));
+
+  };
+  my $all=GetNodesExceptSubtree([$top]);
+  SortByOrd($all);
+  my $i=Index($all,$top);  # locate the given node in the array @all
+  if ($i<$#$all) {  # check if there is place where to move
+    splice @$all,$i,1;  # cut out the given node
+    splice @$all,$i+1,0, @subtree;  # splice the projectivized subtree at the right (ie left ;-) place
+  }
+  else {
+    splice @$all,$i,1, @subtree;  # if there is no room where to move, just splice the proj. subtree
+                                 # instead of the given node - thus the subtree gets projectivized
+  }
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
+}
 
 
 #bind DeleteNode to Delete menu Delete Node
