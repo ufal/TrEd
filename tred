@@ -7325,14 +7325,16 @@ sub splitPatterns {
   my @lines = split /(\n)/,$text;
   my @result;
   my $pattern = '';
-  my ($hint,$context);
+  my $hint = '';
+  my $context;
   while (@lines) {
     my $line = shift @lines;
     if ($line=~/^([a-z]+):/) {
       if ($pattern =~ /\S/) {
 	chomp $pattern;
 	if ($pattern=~s/^hint:\s*//) {
-	  $hint = $pattern;
+	  $hint .= "\n" if $hint ne '';
+	  $hint .= $pattern;
 	} elsif ($pattern=~s/^context:\s*//) {
 	  $context = $pattern;
 	} else {
@@ -7347,7 +7349,8 @@ sub splitPatterns {
   if ($pattern =~ /\S/) {
     chomp $pattern;
     if ($pattern=~s/^hint:\s*//) {
-      $hint = $pattern;
+      $hint .= "\n" if $hint ne '';
+      $hint .= $pattern;
     } else {
       push @result, $pattern;
     }
