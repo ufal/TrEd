@@ -153,11 +153,15 @@ sub AnalyticalTree {
   my $t_root = $root;
   my $t_node = $this;
   $PML_T::laststylesheet=GetCurrentStylesheet();
-  if (CurrentContext() eq 'PML_T_Edit') {
+  my $desiredcontext=CurrentContext();
+  if($PML::desiredcontext=~/^PML_A_/){
+    SwitchContext($PML::desiredcontext);
+  }elsif (CurrentContext() eq 'PML_T_Edit') {
     SwitchContext('PML_A_Edit');
   } else {
     SwitchContext('PML_A_View');
   }
+  $PML::desiredcontext=$desiredcontext;
   SetCurrentStylesheet('PML_A');
   my $fsfile = $grp->{FSFile};
   #find current tree and new $this
