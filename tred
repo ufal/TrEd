@@ -7375,7 +7375,7 @@ sub deleteStylesheet {
 sub setStylesheetPatterns {
   my ($win,$text,$stylesheet,$create)=@_;
   my $grp = $win->{framegroup};
-  my ($hint,$patterns);
+  my ($hint,$context,$patterns);
   if (ref($text)) {
     ($hint,$context,$patterns)=@$text;
   } else {
