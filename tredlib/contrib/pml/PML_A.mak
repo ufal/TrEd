@@ -41,11 +41,14 @@ sub TectogrammaticalTree {
   my $fsfile = $grp->{FSFile};
   my $id = $root->{id};
   my $this_id = $this->{id};
-  if (CurrentContext() eq 'PML_A_Edit') {
+  if ($PML::desiredcontext=~/^PML_T_/){
+    SwitchContext($PML::desiredcontext);
+  }elsif (CurrentContext() eq 'PML_A_Edit') {
     SwitchContext('PML_T_Edit');
   } else {
     SwitchContext('PML_T_View');
   }
+  undef $PML::desiredcontext;
   SetCurrentStylesheet($PML_T::laststylesheet || 'PML_T_Compact');
   undef $PML_T::laststylesheet;
   if(ref $arf){

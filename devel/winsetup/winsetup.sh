@@ -343,7 +343,8 @@ if [ -n "$TREDDIR" -a  -x "$TREDDIR/tred" ]; then
     UPGRADE=1
     if ask "$MSG032"; then
       test -f "$TREDDIR/tredlib/tredrc" && \
-        mv "$TREDDIR/tredlib/tredrc" "$TREDDIR/tredlib/tredrc.sav"
+	( attrib -R "${TREDDIR}/tredlib/tredrc";
+	  mv "$TREDDIR/tredlib/tredrc" "$TREDDIR/tredlib/tredrc.sav")
     else
       rm -f "$TREDDIR/tredlib/tredrc.sav"
     fi  
@@ -384,10 +385,12 @@ if [ "$UPGRADE" = 1 ] && [ -f "${TREDDIR}/tredlib/tredrc.sav" ]; then
 else
   SAVED_TREDRC=0
   if [ -f "${TREDDIR}/tredlib/tredrc.bak" ]; then
+    attrib -R "${TREDDIR}/tredlib/tredrc"
     mv "${TREDDIR}/tredlib/tredrc" "${TREDDIR}/tredlib/tredrc.bak"
   fi
 fi
 
+attrib -R "${TREDDIR}/tredlib/tredrc" >/dev/null 2>/dev/null
 if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
     cp -R tred/* "${TREDDIR}"             && \
     ([ ! -f tred.mac ] || cp tred.mac "${TREDDIR}/tredlib")  && \
@@ -407,7 +410,7 @@ if ((test -d "${TREDDIR}" || mkdir "${TREDDIR}") && \
       echo "$MSG039 ${TREDDIR}/bin !"
     fi
     [ "$SAVED_TREDRC" = 1 ] && \
-     mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
+      mv "${TREDDIR}/tredlib/tredrc.sav" "${TREDDIR}/tredlib/tredrc";
 
     if [ -n "${FILELISTS}" -a -d "${FILELISTS}" ]; then
       if ! grep '^\s*filelist[0-9]*\s*=' "${TREDDIR}/tredlib/tredrc"; then
