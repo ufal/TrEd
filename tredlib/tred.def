@@ -1041,8 +1041,8 @@ sub ShiftNodeLeftSkipHidden {
   my @all=GetNodes();
   SortByOrd(\@all);
 
-  # This is sideeffect, but
-  # whe want to do this anyway
+  # This is a side-effect, but
+  # we want to do it anyway
   NormalizeOrds(\@all);
   #
   #
@@ -1074,8 +1074,8 @@ sub ShiftNodeRight {
   my @all=GetNodes();
   SortByOrd(\@all);
 
-  # This is sideeffect, but
-  # whe want to do this anyway
+  # This is a side-effect, but
+  # we want to do it anyway
   NormalizeOrds(\@all);
   #
   #
@@ -1115,6 +1115,71 @@ sub ShiftNodeLeft {
   $all[$n-1]->{$ord}=$n;
   $node->{$ord}=$n-1;
   RepasteNode($node);
+}
+
+=item C<GetNodesExceptSubtree(node)>
+
+Returns the reference to an array containing the whole tree except the
+nodes strictly in the subtrees of nodes given in an array referenced
+by the parameter. (The returned array does contain the nodes passed in
+the parameter.)
+
+=cut
+
+sub GetNodesExceptSubtree ($) {
+  my $tops=shift;
+  return unless ref($tops->[0]);
+  my @all;
+  my $node=$root;
+  # @all is filled the the visible nodes of the whole tree
+  while ($node) {          # except for the nodes depending on the given node
+    push @all, $node;
+    if (defined(Index($tops,$node))) {
+      $node=$node->following_right_or_up;
+    } else {
+      $node=$node->following;
+    }
+  }#while
+  return \@all;
+}
+
+=item C<MoveNode>
+
+Move the node specified by the first parameter after the node specified by
+the second parameter in the ordering on nodes.
+
+=cut
+
+sub MoveNode ($$) {
+  my ($top, $after) = @_;
+  return unless (ref($top) and ref($after) and ($top != $after));
+  my $all = [GetNodes($top)];
+  SortByOrd($all);
+  splice @$all,Index($all,$top),1;   # the top node is cut off from the array
+  splice @$all,Index($all,$after)+1,0,$top;   # the top node is spliced after the appropriate node
+  NormalizeOrds($all);  # the ordering attribute is modified accordingly
+}
+
+=item C<MoveSubtree>
+
+Move the subtree of the node specified by the first parameter after
+the node specified by the second parameter in the ordering on
+nodes. The subtree of the first argument is made contiguous in the
+ordering on nodes, if it happens not to be so. (We use the fact that
+the technical root node is always first in the ordering.)
+
+=cut
+
+sub MoveSubtree ($$) {
+  my ($top, $after) = @_;
+  return unless (ref($top) and ref($after) and ($top != $after));
+  my $all=GetNodesExceptSubtree([$top]);
+  SortByOrd($all);
+  splice @$all,Index($all,$top),1;   # the top node is cut off from the array
+  my $subtree=[GetNodes($top)];
+  SortByOrd($subtree);
+  splice @$all,Index($all,$after)+1,0,@$subtree;   # the subtree is spliced after the appropriate node
+  NormalizeOrds($all);  # the ordering attributes are modified accordingly
 }
 
 =back
