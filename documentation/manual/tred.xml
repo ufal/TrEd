@@ -241,7 +241,7 @@
 	      Dependency Treebank 2.0</productname> CD-ROM, you may
 	    start the installation of these modules directly from
 	    the CD-ROM by running <command moreinfo="none">./install</command> in
-	    the <filename moreinfo="none">tools/tred/unix_packages</filename>
+	    the <filename moreinfo="none">tools/tred/packages_unix</filename>
 	    directory. In this case you may skip steps
 	    1. and 2.
 	  </para>
