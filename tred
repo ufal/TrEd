@@ -7074,8 +7074,9 @@ sub editAttrsDialog_schema {
 
   $win->toplevel->Unbusy();
   my $redo=1;
+  my $result;
   DIALOG: while ($redo) {
-    my $result = ShowDialog($d,$edit,$win->toplevel);
+    $result = ShowDialog($d,$edit,$win->toplevel);
     if ($result=~ /OK/) {
       $win->{FSFile}->notSaved(1);
       save_undo($win,prepare_undo($win,$dlg_title));
