@@ -1464,7 +1464,7 @@ sub secondaryFSFiles ($$) {
 
 sub closeFile {
   my ($grp)=@_;
-  doEvalHook($grp,"file_close_hook");
+  doEvalHook($grp,"file_close_hook") if $grp->{FSFile};
   no strict qw(refs);
   set_macro_variable('TredMacro::NodeClipboard' => undef);
   # close required files too, unless file remains pre-loaded
