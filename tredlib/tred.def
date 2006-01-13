@@ -1291,7 +1291,7 @@ sub AddToAlt {
   } elsif (IsAlt($node->{$attr})) {
     @{$node->{$attr}} = uniq(@{$node->{$attr}},@_);
   } else {
-    @{$node->{$attr}} = Fslib::Alt->new($node->{$attr},@_);
+    $node->{$attr} = Fslib::Alt->new($node->{$attr},@_);
   }
 }
 
