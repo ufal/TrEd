@@ -403,6 +403,7 @@ sub parse_lemma {
 
 sub ChooseFrame {
   my %opts=@_;
+
   my $node = $opts{-node} || $this;
   if ($vallexEditor) {
     questionQuery("Sorry!","Valency editor already running.\n".
@@ -416,11 +417,8 @@ sub ChooseFrame {
   init_XMLDataClass();
   init_VallexClasses();
 
-  my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ? 
+  my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ?
 				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
-
-#  use Data::Dumper;
-#  print Dumper(\%opts);
 
   my $pos;
   if (exists($opts{-pos})) {
@@ -510,14 +508,13 @@ sub ChooseFrame {
 	   ];
   }
   #print "$word: $lemma $pos $opts{-frameid}\n";
-
-  DisplayFrame($field,$opts{-frameid},$new_word,($opts{-title} || 'Valency frames'),
-	       $opts{-no_assign},
-	       $opts{-assign_func});
+  $opts{-title}=($opts{-title} || 'Valency frames');
+  DisplayFrame($field,$new_word,\%opts);
 }
 
 sub DisplayFrame {
-  my ($field,$frameid,$new_word,$title,$no_assign,$assign_func)=@_;
+  my ($field,$new_word,$opts_ref)=@_;
+
   my ($frame,$real);
   my $top=ToplevelFrame();
   if (ref($chooserDialog) and
@@ -569,12 +566,12 @@ sub DisplayFrame {
 					     \$ChooserHideObsolete,
 					     $ValencyLexicon,
 					     $field,
-					     [split /\|/, $frameid],
+					     [split /\|/, $opts_ref->{-frameid}],
 					     $new_word,
-					     (ref($no_assign) ?
-					      [$no_assign, $grp->{framegroup}] :
-					      ((!$ValencyLexicon->user_is_annotator || $no_assign) ? undef :
-					       [\&frame_chosen, $grp->{framegroup},$assign_func])),
+					     (ref($opts_ref->{-no_assign}) ?
+					      [$opts_ref->{-no_assign}, $grp->{framegroup}] :
+					      ((!$ValencyLexicon->user_is_annotator || $opts_ref->{-no_assign}) ? undef :
+					       [\&frame_chosen, $grp->{framegroup},$opts_ref])),
 					     sub {
 					       $chooserDialog->destroy_dialog();
 					       undef $chooserDialog;
@@ -584,7 +581,7 @@ sub DisplayFrame {
     $chooserDialog->reuse($title,
 			  \$ChooserHideObsolete,
 			  $field,
-			  [split /\|/, $frameid],
+			  [split /\|/, $opts_ref->{-frameid}],
 			  $new_word,
 			  0);
   }
@@ -593,15 +590,28 @@ sub DisplayFrame {
 }
 
 sub frame_chosen {
-  my ($grp,$assign_func,$chooser)=@_;
+  my ($grp,$opts_ref,$chooser)=@_;
+
   return unless $grp and $grp->{focusedWindow};
   my $win = $grp->{focusedWindow};
   if ($win->{FSFile} and
       $win->{currentNode}) {
     my $field = $chooser->focused_framelist()->field();
     my $node = $win->{currentNode};
-    my $lemma = TrEd::Convert::encode($node->attr($lemma_attr)); $lemma=~s/_/ /g;
-    my $pos = sempos($node->attr($sempos_attr));
+    #my $lemma = TrEd::Convert::encode($node->attr($lemma_attr)); 
+    #my $pos = sempos($node->attr($sempos_attr));
+    my $lemma=TrEd::Convert::encode(exists $opts_ref->{-lemma} ?
+				    $opts_ref->{-lemma} : $node ? $node->attr($lemma_attr) : undef);
+    $lemma=~s/_/ /g;
+    my $pos;
+    if (ref $opts_ref and exists($opts_ref->{-pos})) {
+      $pos = $opts_ref->{-pos};
+    } elsif (ref $opts_ref and exists($opts_ref->{-sempos})) {
+      $pos = sempos($opts_ref->{-sempos});
+    } elsif ($node) {
+      $pos = sempos($node->attr($sempos_attr));
+    }
+
     if (ref($field) and ($field->[0] eq $lemma or $field->[0] eq lc($lemma)) and
 	$field->[1] eq $pos) {
       my @frames=$chooser->get_selected_frames();
@@ -609,8 +619,8 @@ sub frame_chosen {
       my $ids = $chooser->data->conv->decode(join("|",map { $_->getAttribute('id') } @frames));
       my $fmt  = $win->{FSFile}->FS();
 
-      if (ref($assign_func)) {
-	$assign_func->($node,$ids,TrEd::Convert::decode($real));
+      if (ref($opts_ref->{-assign_func})) {
+	$opts_ref->{-assign_func}->($node,$ids,TrEd::Convert::decode($real));
       } else {
 	$node->set_attr($frameid_attr,$ids);
 	$node->set_attr($framere_attr,TrEd::Convert::decode($real)) if defined($framere_attr);
