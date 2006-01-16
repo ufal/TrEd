@@ -80,7 +80,7 @@ sub get_status_line_hook {
   return $statusline;
 }#get_status_line_hook
 
-#bind ChooseValFrame to Ctrl+Return menu Select a and assign valency frame
+#bind ChooseValFrame to Ctrl+Return menu Select and assign valency frame
 sub ChooseValFrame {
   my $refid = FileMetaData('refnames')->{vallex};
   PML_T::OpenValFrameList(
@@ -90,7 +90,8 @@ sub ChooseValFrame {
       $n->{'val_frame.rf'} = undef;
       AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
     }
-   )
+   );
+  ChangingFile(0);
 }
 
 sub status_line_doubleclick_hook {
@@ -231,6 +232,7 @@ sub AddNode {
     EditFunctor();
     EditNodetype();
     ChangingFile(EditAttribute($this,'is_generated'));
+    $PML::desiredcontext='PML_A_Edit';
     MarkForARf();
   }else{
     my$dialog=[];

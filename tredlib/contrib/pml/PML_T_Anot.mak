@@ -29,6 +29,8 @@ tectogrammatic layer in the way of Prague Dependency Treebank (PDT)
 #key-binding-adopt PML_T_Edit
 #menu-binding-adopt PML_T_Edit
 
+#remove-menu Show valency frames and highlight assigned
+
 sub switch_context_hook {
   PML_T::switch_context_hook();
   my$pattern=GetStylesheetPatterns('PML_T_Compact');
@@ -42,7 +44,6 @@ sub switch_context_hook {
      s/(t_lemma}')\s*\n/$1?><?'#{customerror}'.('!'x scalar(ListV(\$this->{annot_comment}))).'#{default}' if \$\${annot_comment}/
     ){
     $pattern=~s/(hint:\s*my\s*\Q@\Ehintlines;)\s*\n/$1push \@hintlines,map{'! '.\$_->{type}.':'.\$_->{text}}ListV(\$this->{annot_comment});\n/;
-    print$pattern,"\n";
     SetStylesheetPatterns($pattern,'PML_T_Full');
   }
 } #switch_context_hook
@@ -109,7 +110,7 @@ sub status_line_doubleclick_hook {
   foreach (@_) {
     if (/^\{(.*)}$/) {
       if ($1 eq 'FRAME') {
-	PML_T_Edit::ChooseValFrame();
+	ChooseValFrame();
         last;
       } elsif($1 eq 'REF'){
         my $aref=@_[-1];
@@ -174,20 +175,60 @@ sub RotateDsp{
     $this->{is_dsp_root}=!$this->{is_dsp_root};
 }#RotateDsp
 
-#bind ChooseValFrame to Ctrl+Return menu Select a and assign valency frame
-sub ChooseValFrame {
-  my$sempos=[];
-  ListQuery('Semantical POS','browse',[qw(v n)],$sempos);
+## strip vallex PML-ref prefix from a given frame_rf
+sub _stripped_frame_rf {
+  my $frame_rf = shift;
   my $refid = FileMetaData('refnames')->{vallex};
-  PML_T::OpenValFrameList(
-    $this,
-    -sempos=>$sempos->[0],
-    -assign_func => sub {
-      my ($n, $ids)=@_;
-      $n->{'val_frame.rf'} = undef;
-      AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
+  my @rf = map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($frame_rf);
+  return wantarray ? @rf : join '|',$frame_rf;
+}
+
+## get POS of the frame assigned to a given node
+sub _assigned_frame_pos_of {
+  my $node = shift || $this;
+  return unless $node;
+  if ($node->{'val_frame.rf'} ne q()) {
+    my $V = ValLex::GUI::Init();
+    if ($V) {
+      my $pos = 
+	first {
+	  my $frame = $V->by_id( $_ );
+	  $frame ? $V->getPOS($V->getWordForFrame($frame)) : undef
+	} _stripped_frame_rf($node->{'val_frame.rf'});
+      return lc($pos);
     }
-   )
+  }
+  return;
+}
+
+#bind OpenValLexicon to Ctrl+Shift+Return menu Browse valency frame lexicon
+sub OpenValLexicon {
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this;
+  my %opts = @_;
+  $opts{-sempos}  ||= $this->attr('gram/sempos') || _assigned_frame_pos_of($node);
+  PML_T::OpenValLexicon($node,%opts);
+  ChangingFile(0);
+}
+
+#bind ChooseValFrame to Ctrl+Return menu Select and assign valency frame
+sub ChooseValFrame {
+  my $sempos = [ $this->attr('gram/sempos') || _assigned_frame_pos_of($this) ];
+  if (!$sempos->[0]) {
+    $sempos=['v'];
+    ListQuery('Semantical POS','browse',[qw(v n)],$sempos) or return;
+  }
+  my $refid = FileMetaData('refnames')->{vallex};
+  OpenValFrameList(
+                   $this,
+                   -sempos=>$sempos->[0],
+                   -assign_func => sub {
+                     my ($n, $ids)=@_;
+                     $n->{'val_frame.rf'} = undef;
+                     AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
+                   }
+                  );
+  ChangingFile(0);
 }
 
 #bind MarkForARf to + menu Mark for reference changes and enter A-layer
@@ -198,6 +239,16 @@ sub MarkForARf {
   AnalyticalTree();
 }#MarkForARf
 
+#bind EditTLemma to l menu Edit t_lemma
+sub EditTLemma{
+  my$status=EditAttribute($this,'t_lemma');
+  ChangingFile($status);
+  if($status and $this->{'val_frame.rf'}){
+    questionQuery('T-lemma changed',
+                  'T-lemma has changed. Verify that the vallex reference is correct.',
+                  'OK');
+  }
+}#EditTLemma
 
 1;
 
