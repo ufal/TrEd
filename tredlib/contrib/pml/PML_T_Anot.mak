@@ -213,21 +213,20 @@ sub OpenValLexicon {
 
 #bind ChooseValFrame to Ctrl+Return menu Select and assign valency frame
 sub ChooseValFrame {
-  my $sempos = [ $this->attr('gram/sempos') || _assigned_frame_pos_of($this) ];
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this;
+  my %opts = @_;
+
+  my $sempos = [ $node->attr('gram/sempos') || _assigned_frame_pos_of($node) ];
   if (!$sempos->[0]) {
     $sempos=['v'];
     ListQuery('Semantical POS','browse',[qw(v n)],$sempos) or return;
   }
-  my $refid = FileMetaData('refnames')->{vallex};
-  OpenValFrameList(
-                   $this,
-                   -sempos=>$sempos->[0],
-                   -assign_func => sub {
-                     my ($n, $ids)=@_;
-                     $n->{'val_frame.rf'} = undef;
-                     AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
-                   }
-                  );
+  PML_T_Edit::ChooseValFrame(
+    $node,
+    -sempos=>$sempos->[0],
+    %opts
+   );
   ChangingFile(0);
 }
 
