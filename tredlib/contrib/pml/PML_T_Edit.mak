@@ -82,14 +82,18 @@ sub get_status_line_hook {
 
 #bind ChooseValFrame to Ctrl+Return menu Select and assign valency frame
 sub ChooseValFrame {
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this;
+  my %opts = @_;
   my $refid = FileMetaData('refnames')->{vallex};
   PML_T::OpenValFrameList(
-    $this,
+    $node,
     -assign_func => sub {
       my ($n, $ids)=@_;
       $n->{'val_frame.rf'} = undef;
       AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
-    }
+    },
+    %opts
    );
   ChangingFile(0);
 }
