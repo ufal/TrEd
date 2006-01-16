@@ -42,8 +42,7 @@ sub init_vallex {
     $ValLex::GUI::frameid_attr="frameid";
     $ValLex::GUI::framere_attr="framere";
 
-    ValLex::GUI::init_XMLDataClass();
-    ValLex::GUI::init_ValencyLexicon() || return;
+    ValLex::GUI::Init() || return;
 #    $V=$ValLex::GUI::ValencyLexicon;
 #else
 #    my $V_vallex = "$libDir/contrib/ValLex/vallex.xml";

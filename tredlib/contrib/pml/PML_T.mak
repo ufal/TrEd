@@ -1107,10 +1107,10 @@ sub OpenValFrameList {
   my $node = shift || $this;
   my %opts = @_;
 
-  $ValLex::GUI::frameid_attr="val_frame.rf";
-  $ValLex::GUI::lemma_attr="t_lemma";
-  $ValLex::GUI::framere_attr=undef;
-  $ValLex::GUI::sempos_attr="gram/sempos";
+  local $ValLex::GUI::frameid_attr="val_frame.rf";
+  local $ValLex::GUI::lemma_attr="t_lemma";
+  local $ValLex::GUI::framere_attr=undef;
+  local $ValLex::GUI::sempos_attr="gram/sempos";
   my $refid = FileMetaData('refnames')->{vallex};
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
   ValLex::GUI::ChooseFrame(
@@ -1120,6 +1120,7 @@ sub OpenValFrameList {
     -assignfunc => sub{},
     %opts
    );
+  ChangingFile(0);
 }
 
 
@@ -1137,10 +1138,10 @@ sub OpenValLexicon {
   my $node = shift || $this;
   my %opts = @_;
 
-  $ValLex::GUI::frameid_attr="val_frame.rf";
-  $ValLex::GUI::lemma_attr="t_lemma";
-  $ValLex::GUI::framere_attr=undef;
-  $ValLex::GUI::sempos_attr="gram/sempos";
+  local $ValLex::GUI::frameid_attr="val_frame.rf";
+  local $ValLex::GUI::lemma_attr="t_lemma";
+  local $ValLex::GUI::framere_attr=undef;
+  local $ValLex::GUI::sempos_attr="gram/sempos";
   my $refid = FileMetaData('refnames')->{vallex};
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
   ValLex::GUI::OpenEditor(
@@ -1149,6 +1150,7 @@ sub OpenValLexicon {
     -frameid => $rf,
     %opts
    );
+  ChangingFile(0);
 }
 
 

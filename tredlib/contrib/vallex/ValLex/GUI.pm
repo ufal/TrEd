@@ -72,6 +72,7 @@ sub init_VallexClasses {
   require TrEd::CPConvert;
 }
 
+
 sub InfoDialog {
   my ($top,$text)=@_;
 
@@ -110,65 +111,68 @@ sub init_ValencyLexicon {
     if ($err or !$ValencyLexicon->doc()) {
       print STDERR "$err\n";
       $top->Unbusy(-recurse=>1);
-      ChangingFile(0);
       ErrorMessage("Valency lexicon not found or corrupted.\nPlease, make sure that the following file is installed correctly: ${vallex_file}!\n\n$err\n");
-      return 0;
+      return;
     } else {
-      return 1;
+      return $ValencyLexicon;
     }
   }
   %{$ValencyLexicon->user_cache}=() if defined($ValencyLexicon) and defined($ValencyLexicon->user_cache()); # clear cache
-  return 1;
+  return $ValencyLexicon;
+}
+
+sub Init {
+  return $ValencyLexicon if ref($ValencyLexicon);
+  init_XMLDataClass();
+  init_VallexClasses();
+  return init_ValencyLexicon();
 }
 
 sub ShowFrames {
   my %opts=@_;
-  unless ($ValencyLexicon) {
-    init_XMLDataClass();
-    init_VallexClasses();
-    init_ValencyLexicon();
-  }
   my $msg;
-  if ($ValencyLexicon) {
-    my $frames = exists $opts{-frameid} ?
-      $opts{-frameid} : ($opts{-node} ? $opts{-node}->attr($frameid_attr) : undef);
-    my @frames;
-    @frames = $ValencyLexicon->by_id(join " ",split /\|/,$frames);
-    for my $f (@frames) {
-      $word=$ValencyLexicon->getWordForFrame($f);
-      unless (defined($msg)) {
-	$msg = ["Lexicon word item:",[qw(label)],"  ".$ValencyLexicon->getLemma($word)."\n\n",[qw(lemma)]];
-      }
-      my ($frame, $id, $elements, $status, $example, $auth, $note) = @{$ValencyLexicon->getFrame($f)};
-      push @$msg,
-	$elements."\n\n",[qw(elements)],
-	"Frame_ID:",[qw(label)],"  $id\n\n",[qw(id)],
-	"Examples:",[qw(label)],
-	 "\n".$example."\n\n",[qw(example)],
-	 ($note ne "" ? ("Note:",[qw(label)],"\n".$note."\n\n",[qw(note)]) : ()),
-	"---------------------------------------\n\n",[];
+  Init() or return;
+  my $frames = exists $opts{-frameid} ?
+    $opts{-frameid} : ($opts{-node} ? $opts{-node}->attr($frameid_attr) : undef);
+  my @frames;
+  @frames = $ValencyLexicon->by_id(join " ",split /\|/,$frames);
+  for my $f (@frames) {
+    $word=$ValencyLexicon->getWordForFrame($f);
+    unless (defined($msg)) {
+      $msg = ["Lexicon word item:",[qw(label)],"  ".$ValencyLexicon->getLemma($word)."\n\n",[qw(lemma)]];
     }
-    main::textDialog($grp,
-		     { -title => 'Assigned valency frame(s)', -buttons => ['OK'] },
-		     { -text => 'Assigned valency frame(s)', -justify => 'left', -foreground => 'darkblue' },
- 		     undef,
-		     { -readonly => 1,
-		       -font => StandardTredValueLineFont(),
-		       -width => 80, -height => 30,
-		       -tags => {
-			 elements => [-background => '#dddddd'],
-			 label => [-underline => 1],
-			 id => [-foreground => '#999999'],
-			 lemma => [-foreground => 'darkblue'],
-			 example => [-foreground => 'black'],
-			 note => [-foreground => 'darkgreen']
-			}
-		     },
-		     $msg,
-		     { dialog => [
-		       ['<Escape>',sub { $_[0]->toplevel->{selected_button}= "Cancel" }]
-		      ] });
+    my ($frame, $id, $elements, $status, $example, $auth, $note) = @{$ValencyLexicon->getFrame($f)};
+    push @$msg,
+      $elements."\n\n",[qw(elements)],
+	"Frame_ID:",[qw(label)],"  $id\n\n",[qw(id)],
+	  "Examples:",[qw(label)],
+	    "\n".$example."\n\n",[qw(example)],
+	      ($note ne "" ? ("Note:",[qw(label)],"\n".$note."\n\n",[qw(note)]) : ()),
+		"---------------------------------------\n\n",[];
   }
+  main::textDialog($grp,
+		   {
+		     -title => 'Assigned valency frame(s)', -buttons => ['OK'] },
+		   {
+		     -text => 'Assigned valency frame(s)', -justify => 'left', -foreground => 'darkblue' },
+		   undef,
+		   { -readonly => 1,
+		     -font => StandardTredValueLineFont(),
+		     -width => 80, -height => 30,
+		     -tags => {
+		       elements => [-background => '#dddddd'],
+		       label => [-underline => 1],
+		       id => [-foreground => '#999999'],
+		       lemma => [-foreground => 'darkblue'],
+		       example => [-foreground => 'black'],
+		       note => [-foreground => 'darkgreen']
+		      }
+		    },
+		   $msg,
+		   { dialog => [
+		     ['<Escape>',sub { $_[0]->toplevel->{selected_button}= "Cancel" }]
+		    ] });
+  return 1;
 }
 
 sub OpenEditor {
@@ -183,13 +187,8 @@ sub OpenEditor {
   $vallexEditor=1;
   my $top=ToplevelFrame();
 #  $top->Busy(-recurse=>1);
-  require ValLex::Data;
-  init_XMLDataClass();
-  require ValLex::Widgets;
-  require ValLex::Editor;
-  require TrEd::CPConvert;
-  init_ValencyLexicon() || return; #do { $top->Unbusy(-recurse=>1); return };
-
+  
+  Init() or return;
 
   my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ? 
 				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
@@ -246,7 +245,7 @@ sub OpenEditor {
 				  }
 				});
   $d->Popup;
-  ChangingFile(0);
+  return 1;
 }
 
 sub copy_verb_frame {
@@ -414,9 +413,6 @@ sub ChooseFrame {
   my $top=ToplevelFrame();
   $top->Busy(-recurse=>1);
 
-  init_XMLDataClass();
-  init_VallexClasses();
-
   my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ?
 				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
 
@@ -433,18 +429,17 @@ sub ChooseFrame {
   if ($lemma eq "") {
     $top->Unbusy(-recurse=>1);
     questionQuery("Sorry!","Can't determine t_lemma to use.", "Ok");
-    ChangingFile(0);
     return;
   }
 
   unless ($pos=~/^[NVAD]$/) {
     $top->Unbusy(-recurse=>1);
     questionQuery("Sorry!","Can't determine semantic POS.\n", "Ok");
-    ChangingFile(0);
     return;
   }
   $lemma=~s/_/ /g;
-  init_ValencyLexicon() || do { ChangingFile(0); return; };
+
+  Init() or return;
   my $field;
   my $new_word=0;
   my $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
@@ -498,7 +493,6 @@ sub ChooseFrame {
 	$base_word=$ValencyLexicon->addWord($base,"V");
 	$new_word=[$lemma,$pos];
       } elsif ($answer eq "Cancel") {
-	ChangingFile(0);
 	return;
       }
     }
@@ -509,7 +503,7 @@ sub ChooseFrame {
   }
   #print "$word: $lemma $pos $opts{-frameid}\n";
   $opts{-title}=($opts{-title} || 'Valency frames');
-  DisplayFrame($field,$new_word,\%opts);
+  return DisplayFrame($field,$new_word,\%opts);
 }
 
 sub DisplayFrame {
@@ -585,7 +579,6 @@ sub DisplayFrame {
 			  $new_word,
 			  0);
   }
-  ChangingFile(0);
   return 1;
 }
 
