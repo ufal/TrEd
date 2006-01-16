@@ -15,7 +15,7 @@ use Data::Dumper;
 
 use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG);
 
-$DEBUG=0;
+$DEBUG=1;
 
 use constant {
   LM => 'LM',
@@ -238,7 +238,7 @@ sub read_Alt ($) {
 }
 
 
-sub resolve_type ($$) {
+sub resolve_type {
   my ($types,$type)=@_;
   return $type unless ref($type);
   if ($type->{type}) {
@@ -877,12 +877,14 @@ sub write_object_knit {
 }
 
 sub write_object ($$$$$$) {
-  my ($xml,$fsfile, $types,$type,$tag,$object)=@_;
+  my ($xml,$fsfile, $types,$type,$tag,$object,$no_resolve)=@_;
   my $pre=$type;
   my $attribs;
   ($tag,$attribs)=@$tag if ref($tag);
   $attribs = {} unless $attribs;
-  $type = resolve_type($types,$type);
+  unless ($no_resolve) {
+    $type = resolve_type($types,$type)
+  }
   if ($type->{cdata}) {
     $xml->startTag($tag,%$attribs) if defined($tag);
     $xml->characters($object);
@@ -934,11 +936,13 @@ sub write_object ($$$$$$) {
 	  }
 	} elsif ($members->{$member}{role} eq '#KNIT') {
 	  if ($object->{$member} ne "") {
+	    # un-knit data
 #	    _debug("#KNIT.rf $member");
 	    $xml->startTag($member);
 	    $xml->characters($object->{$member});
 	    $xml->endTag($member);
 	  } else {
+	    # knit data
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
 	    if (ref($object->{$knit_tag})) {
@@ -947,21 +951,47 @@ sub write_object ($$$$$$) {
 	    #	warn "Didn't find $knit_tag on the object! ",join(" ",%$object),"\n";
 	    #      }
 	  }
-	} elsif ($object->{$member} eq "" and ref($mtype) and $mtype->{list} and $mtype->{list}{role} eq '#KNIT') {
-	  # KNIT list
-	  my $knit_tag = $member;
-	  $knit_tag =~ s/\.rf$//;
-	  my $list = $object->{$knit_tag};
-	  if (ref($list) eq 'Fslib::List') {
-	    if (@$list == 0) {
-	    } elsif (@$list == 1) {
-	      write_object_knit($xml,$fsfile,$types,$mtype->{list},$member,$knit_tag,$list->[0]);
-	    } else {
-	      $xml->startTag($member);
-	      foreach my $knit_value (@$list) {
-		write_object_knit($xml,$fsfile,$types,$mtype->{list},LM,$knit_tag,$knit_value);
+	} elsif (ref($mtype) and $mtype->{list} and $mtype->{list}{role} eq '#KNIT') {
+	  if ($object->{$member} ne "") {
+	    # un-knit list
+	    my $list = $object->{$member};
+	    # _debug("#KNIT.rf $member @$list");
+	    if (ref($list) eq 'Fslib::List') {
+	      if (@$list == 0) {
+	      } elsif (@$list == 1) {
+		write_object($xml,$fsfile,$types,$mtype->{list},$member,$list->[0],
+			     1 # don't resolve type
+			    );
+	      } else {
+		$xml->startTag($member);
+		foreach my $value (@$list) {
+		  write_object($xml,$fsfile,$types,$mtype->{list},LM,$value,
+			       1 # don't resolve type
+			      );
+		}
+		$xml->endTag($member);
 	      }
-	      $xml->endTag($member);
+	    } else {
+	      warn "Unexpected content of un-knit List '$member': $list\n";
+	    }
+	  } else {
+	    # KNIT list
+	    my $knit_tag = $member;
+	    $knit_tag =~ s/\.rf$//;
+	    my $list = $object->{$knit_tag};
+	    if (ref($list) eq 'Fslib::List') {
+	      if (@$list == 0) {
+	      } elsif (@$list == 1) {
+		write_object_knit($xml,$fsfile,$types,$mtype->{list},$member,$knit_tag,$list->[0]);
+	      } else {
+		$xml->startTag($member);
+		foreach my $knit_value (@$list) {
+		  write_object_knit($xml,$fsfile,$types,$mtype->{list},LM,$knit_tag,$knit_value);
+		}
+		$xml->endTag($member);
+	      }
+	    } elsif ($list ne '') {
+	      warn "Unexpected content of knit List '$knit_tag': $list\n";
 	    }
 	  }
 	} elsif ($object->{$member} ne "" or $members->{$member}{required}) {
@@ -978,8 +1008,8 @@ sub write_object ($$$$$$) {
 	write_object($xml, $fsfile,  $types,$type->{list},$tag,$object->[0]);
       } else {
 	$xml->startTag($tag,%$attribs) if defined($tag);
-	foreach my $member (@$object) {
-	  write_object($xml, $fsfile, $types,$type->{list},LM,$member);
+	foreach my $value (@$object) {
+	  write_object($xml, $fsfile, $types,$type->{list},LM,$value);
 	}
 	$xml->endTag($tag) if defined($tag);
       }
