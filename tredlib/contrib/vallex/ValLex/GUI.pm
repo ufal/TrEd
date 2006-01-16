@@ -463,7 +463,7 @@ sub ChooseFrame {
 
   if ($opts{-no_assign} or !$ValencyLexicon->user_is_annotator or $opts{-noadd}) {
     if (!$word) {
-      ErrorMessage("Word $lemma.$pos was not found in the lexicon.\n".
+      ErrorMessage("The word $lemma.$pos was not found in the lexicon.\n".
 		   "ass".$opts{-no_assign}."\nann".$ValencyLexicon->user_is_annotator."\nadd".$opts{-noadd}
 		  );
       return;
@@ -473,10 +473,10 @@ sub ChooseFrame {
     if (!$word) {
       my $answer= questionQuery("Word not found",
 				defined($base) && $base_word ?
-				("Word $lemma.$pos was not found in the lexicon.\n",
+				("The word $lemma.$pos was not found in the lexicon.\n",
 				 "Add $lemma", "Use $base", "Cancel") :
 				(!defined($base) ?
-				("Word $lemma.$pos was not found in the lexicon.\n".
+				("The word $lemma.$pos was not found in the lexicon.\n".
 				 "Do you want to add it?","Add $lemma", "Cancel") :
 				("Neither $lemma.$pos nor $base.V was found in the lexicon.\n".
 				 "Do you want to add them?","Add $lemma",
