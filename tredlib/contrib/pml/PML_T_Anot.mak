@@ -206,8 +206,8 @@ sub OpenValLexicon {
   shift unless @_ and ref($_[0]);
   my $node = shift || $this;
   my %opts = @_;
-  $opts{-sempos}  ||= $this->attr('gram/sempos') || _assigned_frame_pos_of($node);
-  PML_T::OpenValLexicon($node,%opts);
+  $opts{-sempos}  ||= $node->attr('gram/sempos') || _assigned_frame_pos_of($node);
+  PML_T::OpenValLexicon($node, %opts);
   ChangingFile(0);
 }
 
@@ -217,16 +217,13 @@ sub ChooseValFrame {
   my $node = shift || $this;
   my %opts = @_;
 
-  my $sempos = [ $node->attr('gram/sempos') || _assigned_frame_pos_of($node) ];
+  my $sempos = [ $opts{-sempos} || $node->attr('gram/sempos') || _assigned_frame_pos_of($node) ];
   if (!$sempos->[0]) {
     $sempos=['v'];
     ListQuery('Semantical POS','browse',[qw(v n)],$sempos) or return;
   }
-  PML_T_Edit::ChooseValFrame(
-    $node,
-    -sempos=>$sempos->[0],
-    %opts
-   );
+  $opts{-sempos} = $sempos->[0];
+  PML_T_Edit::ChooseValFrame($node, %opts);
   ChangingFile(0);
 }
 
