@@ -15,7 +15,7 @@ use Data::Dumper;
 
 use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG);
 
-$DEBUG=1;
+$DEBUG=0;
 
 use constant {
   LM => 'LM',
