@@ -190,12 +190,12 @@ sub _assigned_frame_pos_of {
   if ($node->{'val_frame.rf'} ne q()) {
     my $V = ValLex::GUI::Init();
     if ($V) {
-      my $pos = 
-	first {
-	  my $frame = $V->by_id( $_ );
-	  $frame ? $V->getPOS($V->getWordForFrame($frame)) : undef
-	} _stripped_frame_rf($node->{'val_frame.rf'});
-      return lc($pos);
+      for my $id (_stripped_frame_rf($node->{'val_frame.rf'})) {
+	my $frame = $V->by_id( $id );
+	if ($frame) {
+	  return lc($V->getPOS($V->getWordForFrame($frame)));
+	}
+      }
     }
   }
   return;
