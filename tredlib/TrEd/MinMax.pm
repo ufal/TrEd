@@ -2,7 +2,6 @@ package TrEd::MinMax;
 
 #
 # $Revision$ '
-# Time-stamp: <2006-01-18 18:19:18 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
