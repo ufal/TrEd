@@ -2,7 +2,7 @@ package TrEd::MinMax;
 
 #
 # $Revision$ '
-# Time-stamp: <2003-10-08 19:29:46 pajas>
+# Time-stamp: <2006-01-18 18:19:18 pajas>
 #
 # Copyright (c) 2001 by Petr Pajas <pajas@matfyz.cz>
 # This software covered by GPL - The General Public Licence
@@ -12,7 +12,7 @@ require Exporter;
 @ISA=qw(Exporter);
 $VERSION = "0.1";
 @EXPORT = qw(min max min2 max2);
-@EXPORT_OK=qw(min max minstr maxstr sum reduce first suffle);
+@EXPORT_OK=qw(min max min2 max2 minstr maxstr sum reduce first suffle);
 
 # This code is similar to List::Util but uses @_ instead of $a and $b,
 # as it's very hard or impossible to locate those two correctly under
