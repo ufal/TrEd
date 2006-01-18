@@ -136,6 +136,8 @@ sub color2gray {
       $color = [map hex,$1,$2,$3];
     } elsif (exists($Tk::rgb::rgb{$color})) {
       $color = $Tk::rgb::rgb{$color};
+    } elsif (exists($Tk::rgb::rgb{lc($color)})) {
+      $color = $Tk::rgb::rgb{lc($color)};
     } else {
       warn "unknown color $color\n";
       return 0;
@@ -317,7 +319,11 @@ sub draw_canvas {
       my $anchor=$canvas->itemcget($item,'-anchor') || 'center';
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined($color); # transparent text = no text
-      $color = color2gray($color) if $opts{-grayscale};
+      if ($opts{-grayscale}) {
+	$color = color2gray($color)
+      } else {
+	$color = lc($color);
+      }
       my %canvasfont = $canvas->fontActual($canvas->itemcget($item,"-font"));
       __debug "FONT:", (map {" $_ => $canvasfont{$_}, "} keys %canvasfont),"\n";
       my $fn;
@@ -373,7 +379,11 @@ sub draw_canvas {
     } elsif ($type eq 'line') {
       my $color=$canvas->itemcget($item,"-${state}fill");
       next unless defined $color; # transparent line = no line
-      $color = color2gray($color) if $opts{-grayscale};
+      if ($opts{-grayscale}) {
+	$color = color2gray($color);
+      } else {
+	$color = lc($color);
+      }
       my $join=$canvas->itemcget($item,'-joinstyle');
       my $capstyle=$canvas->itemcget($item,'-capstyle');
       my $width=$canvas->itemcget($item,'-width');
@@ -440,6 +450,9 @@ sub draw_canvas {
       if ($opts{-grayscale}) {
 	$color = color2gray($color);
 	$outlinecolor = color2gray($outlinecolor);
+      } else {
+	$color = lc($color) if defined $color;
+	$outlinecolor = lc($outlinecolor) if defined $outlinecolor;
       }
 
       # TODO: dashoffset
@@ -469,6 +482,9 @@ sub draw_canvas {
       if ($opts{-grayscale}) {
 	$color = color2gray($color) if defined $color;
 	$outlinecolor = color2gray($outlinecolor);
+      } else {
+	$color = lc($color) if defined $color;
+	$outlinecolor = lc($outlinecolor) if defined $outlinecolor;
       }
 
       my $smooth = $canvas->itemcget($item,"-smooth");
@@ -515,6 +531,9 @@ sub draw_canvas {
       if ($opts{-grayscale}) {
 	$color = color2gray($color);
 	$outlinecolor = color2gray($outlinecolor);
+      } else {
+	$color = lc($color) if defined $color;
+	$outlinecolor = lc($outlinecolor) if defined $outlinecolor;
       }
 
       # TODO: dashoffset
