@@ -299,6 +299,9 @@ $IOBackend::Debug=1 if $opt_D;
 # import min and max functions
 require TrEd::MinMax;
 import TrEd::MinMax;
+sub first (&@); # prototype it for compile-time
+import TrEd::MinMax qw(first);
+
 
 # import encode and decode functions
 require TrEd::Convert;
@@ -1630,11 +1633,12 @@ sub openStandaloneFile {
   if ($grp->{appenddefault}) {
     my $ret = openFile(@_);
     if ($ret) {
-      my $fl=selectFilelistNoUpdate($grp,'Default');
-      print STDERR "$win->{currentFileNo}\n";
-      $win->{currentFileNo}=insertToFilelist($win,$win->{currentFilelist},
-					     $win->{currentFileNo},
-					     $file.$goto);
+      my $fl=selectFilelistNoUpdate($grp,'Default',1);
+      my $pos=insertToFilelist($win,
+			       $win->{currentFilelist},
+			       $win->{currentFileNo},
+			       $file.$goto);
+      $win->{currentFileNo} = $pos if $pos >= 0;
     }
     updateTitle($grp);
     return $ret;
@@ -2339,7 +2343,7 @@ sub get_nodes_all {
 ############################################################
 
 sub selectFilelistNoUpdate {
-  my ($grp_or_win,$list_name)=@_;
+  my ($grp_or_win,$list_name,$noResetPosition)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $fl=switchFilelist($grp,$list_name);
   print "Switching filelist to $list_name\n" if $tredDebug;
@@ -2351,14 +2355,14 @@ sub selectFilelistNoUpdate {
       if ref($win->{currentFilelist});
     $win->{currentFilelist}=$fl;
   }
-  $win->{currentFileNo}=max(0,$fl->position());
+  $win->{currentFileNo}=max(0,$fl->position()) unless $noResetPosition;
   return $fl;
 }
 
 sub selectFilelist {
   my ($grp_or_win,$list_name)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
-  my $fl = selectFilelistNoUpdate(@_);
+  my $fl = selectFilelistNoUpdate($grp_or_win,$list_name);
   if ($win->{currentFileNo}>=$fl->file_count()) {
     closeFile($win);
   } else {
@@ -2519,8 +2523,8 @@ sub insertToFilelist {
   return -1 unless ref($filelist);
 
 
-  print "Insert: ",$#_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n"  if $tredDebug;
-  return -1 if ($#_==0 and $filelist->position($_[0])>=0);
+  print "Insert: ",@_," ",$_[0]," is at position ",$filelist->position($_[0]),"\n"  if $tredDebug;
+  return -1 if (@_==1 and $filelist->position($_[0])>=0);
   # this is the case when we add a file which is actually already there
 
   my @list=map absolutize($_),@_;
@@ -2535,13 +2539,13 @@ sub insertToFilelist {
     }
     $_;
   } @list;
-  print "Inserting @list\n" if $tredDebug;
+  print "Inserting @list to position ",$position+1,"\n" if $tredDebug;
   $filelist->add($position+1,@list);
 
   if ($grp->{Filelist} and 
       $grp->{filelistCurrentFilelist} eq $filelist) {
     feedHListWithFilelist($grp,$grp->{Filelist},$filelist);
-      $position=max(0,$filelist->position($_[0]));
+    $position = max(0,$filelist->position($list[0]));
     my $path=filelistEntryPath($filelist,$position);
 
     $grp->{Filelist}->selectionClear();
@@ -2552,7 +2556,7 @@ sub insertToFilelist {
     }
     # select all files resulting from added patterns
     for (my $i=0 ; $i<$filelist->file_count ; $i++) {
-      if (defined(Index(\@_,$filelist->file_pattern($i)))) {
+      if (defined(Index(\@list,$filelist->file_pattern($i)))) {
 	$grp->{Filelist}->selectionSet(filelistEntryPath($filelist,$i));
       }
     }
@@ -7817,15 +7821,35 @@ sub findNodeDialog {
   };
   my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
   $of->Label(-text=> 'Search file-list: ')->pack(qw/-side left/);
-  my $om=$of->Optionmenu(-textvariable=> \$grp->{searchFilelist})->pack(qw/-side left/);
+  my $ot = $of->Optionmenu(-variable=> \$grp->{searchFilelistTraverse},
+			   -textvariable=> \$grp->{searchFilelistTraverseText},
+			   # -textvariable is only used here to preserve last state
+			   -options=> [ [ 'Whole files' => 'all' ],
+					[ 'Particular tree' => 'tree' ],
+					[ 'Particular node' => 'node' ] ]);
+  my $oe = $of->Button(-text=> 'Edit');
+  my $om=$of->Optionmenu(-textvariable=> \$grp->{searchFilelist},
+			 -command => [
+			   sub {
+			     my $opt = pop;
+			     my $state = $opt eq '[Current file only]' ? 'disabled' : 'normal';
+			     for my $w (@_) {
+			       $w->configure(-state => $state)
+			     }
+			   },
+			   $ot,$oe
+			  ]
+			)->pack(qw/-side left/);
   $om->options(['[Current file only]', map { $_->name } @filelists]);
-  $of->Button(-text=> 'Edit',
-	      -command=> [ sub {
-			      my ($grp)=@_;
-			      my $name=filelistDialog($grp,1);
-			      $om->options(['[Current file only]',map { $_->name } @filelists]);
-			      $grp->{searchFilelist}=$name if (ref(findFilelist($name)));
-			    },$grp,$om])->pack(qw/-side left/);
+  $oe->configure(
+    -command=> [ sub {
+		   my ($grp)=@_;
+		   my $name=filelistDialog($grp,1);
+		   $om->options(['[Current file only]',map { $_->name } @filelists]);
+		   $grp->{searchFilelist}=$name if (ref(findFilelist($name)));
+		 },$grp,$om]);
+  $oe->pack(qw/-side left/);
+  $ot->pack(qw/-side left/);
   $grp->{top}->Unbusy();
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result=~ /Find/) {
@@ -7943,27 +7967,45 @@ sub cmpTemplateField {
 sub nextNodeInSearchFilelist {
   my ($grp,$node,$tree)=@_;
   my $win=$grp->{focusedWindow};
-
-  $node=(HNext($win,$node) || 
-	 $win->{FSFile}->treeList->[(++$$tree)]);
-  return $node if ($node or !defined($grp->{searchFilelist}));
+  my $haveSearchFL = defined($grp->{searchFilelist});
+  my $traverse = $haveSearchFL ? $grp->{searchFilelistTraverse} || 'all' : 'all';
+  if ($traverse ne 'node') {
+    $node = (HNext($win,$node)
+      || ($traverse eq 'all' ? $win->{FSFile}->treeList->[(++$$tree)] : undef));
+    return $node if $node || !$haveSearchFL;
+  }
 
   # this realises filelist search
   local $insideEval=1;
-  my $result=nextRealFile($grp,1);
-  $win->{treeNo}=-1; # force redraw in gotoTree
-  $$tree=0;
-  # we especially wait for Escape
+  my $result = nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
   _quick_update($grp);
+  # wait for Escape
   while (!$grp->{stopSearch} and $result and !$win->{currentNode}) {
-    $result=nextRealFile($grp,1);
-    # we especially wait for Escape
+    $result = nextOrPrevFile($grp,1,1,$traverse eq 'all' ? 1 : 0);
+    # wait for Escape
     _quick_update($grp);
-    $win->{treeNo}=-1; # force redraw in gotoTree
   }
-  return (!$grp->{stopSearch} and $result) ? $win->{currentNode} : undef;
-}
 
+  if ($result and !$grp->{stopSearch}) {
+    if ($traverse eq 'all') {
+      $win->{currentNode} = $win->{FSFile}->treeList->[0];
+      $$tree = 0;
+    }
+    elsif ($traverse eq 'tree') {
+      $win->{currentNode} = $win->{root};
+      $$tree = $win->{treeNo};
+    }
+    elsif  ($traverse eq 'node') {
+      $$tree = $win->{treeNo};
+    }
+    $win->{treeNo} = -1; # to force redraw in gotoTree
+    return $win->{currentNode};
+  }
+  else {
+    #$win->{treeNo} = -1 if ($traverse eq 'all'); # to force redraw in gotoTree
+    return undef;
+  }
+}
 ######################################
 # find next matching node
 ######################################
@@ -7977,16 +8019,16 @@ sub findFirstTemplated {
   my $tree=$win->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
-
   $node=nextNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
   while ($node) {
-    unless (grep (!cmpTemplateField($grp,$node->attr($_),$template->{$_}), keys (%$template)))
-      {
-	gotoTree($win,$tree);
-	setCurrent($win, $node);
-	centerTo($win,$node);
-	return $node;
-      }
+    unless (first {
+                    !cmpTemplateField($grp,$node->attr($_),$template->{$_})
+		  } keys (%$template)) {
+      gotoTree($win,$tree);
+      setCurrent($win, $node);
+      centerTo($win,$node);
+      return $node;
+    }
     $node=nextNodeInSearchFilelist($grp,$node,\$tree);
   }
   return undef;
@@ -8010,32 +8052,51 @@ sub lastSubtreeNode {
 ######################################
 sub prevNodeInSearchFilelist {
   my ($grp,$node,$tree)=@_;
-  $node=HPrev($grp->{focusedWindow},$node);
-  unless ($node or $$tree==0) {
-    $node=lastSubtreeNode($grp->{focusedWindow}->{FSFile}->treeList->[(--$$tree)]);
-    $node=HPrev($grp->{focusedWindow},$node) unless (isShown($grp->{focusedWindow},$node));
+  my $win = $grp->{focusedWindow};
+  my $haveSearchFL = defined($grp->{searchFilelist});
+  my $traverse = $haveSearchFL ? $grp->{searchFilelistTraverse} || 'all' : 'all';
+
+  if ($traverse ne 'node') {
+    $node=HPrev($win,$node);
+    if (!$node and $$tree!=0 and $traverse eq 'all') {
+      $node=lastSubtreeNode($win->{FSFile}->treeList->[(--$$tree)]);
+      $node=HPrev($win,$node) unless (isShown($win,$node));
+    }
+    return $node if $node or !$haveSearchFL;
   }
-  return $node if $node or !defined($grp->{searchFilelist});
 
   # this realises filelist search
   local $insideEval=1;
-  my $result=prevRealFile($grp,1);
-  # we especially wait for Escape
+  my $result = nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
+
+  # wait for Escape
   _quick_update($grp);
-  $grp->{focusedWindow}->{treeNo}=-1; # force redraw in gotoTree
   while ($result and !$grp->{stopSearch}
-	 and !$grp->{focusedWindow}->{FSFile} || $grp->{focusedWindow}->{FSFile}->lastTreeNo<0) {
-    $result=prevRealFile($grp,1);
-    # we especially wait for Escape
+	 and !$win->{FSFile} || $win->{FSFile}->lastTreeNo<0) {
+    $result = nextOrPrevFile($grp,-1,1,$traverse eq 'all' ? 1 : 0);
+    # wait for Escape
     _quick_update($grp);
-    $grp->{focusedWindow}->{treeNo}=-1; # force redraw in gotoTree
   }
+
   if ($result and !$grp->{stopSearch}) {
-    $$tree=$grp->{focusedWindow}->{FSFile}->lastTreeNo;
-    $node=lastSubtreeNode($grp->{focusedWindow}->{FSFile}->treeList->[$$tree]);
-    return $node;
+    if ($traverse eq 'all') {
+      $$tree=$win->{FSFile}->lastTreeNo;
+      $win->{currentNode}=lastSubtreeNode($win->{FSFile}->treeList->[$$tree]);
+    }
+    elsif ($traverse eq 'tree') {
+      $win->{currentNode} = lastSubtreeNode($win->{root});
+      $$tree = $win->{treeNo};
+    }
+    elsif  ($traverse eq 'node') {
+      $$tree = $win->{treeNo};
+    }
+    $win->{treeNo} = -1; # to force redraw in gotoTree
+    return $win->{currentNode};
   }
-  return undef;
+  else  {
+    #$win->{treeNo} = -1 if ($traverse eq 'all'); # to force redraw in gotoTree
+    return undef;
+  }
 }
 
 ######################################
@@ -8043,9 +8104,10 @@ sub prevNodeInSearchFilelist {
 ######################################
 sub findPrevTemplated {
   my ($grp,$template,$skipfirst)=@_;
-  return unless $grp->{focusedWindow}->{FSFile};
-  my $node=$grp->{focusedWindow}->{currentNode};
-  my $tree=$grp->{focusedWindow}->{treeNo};
+  my $win = $grp->{focusedWindow};
+  return unless $win->{FSFile};
+  my $node=$win->{currentNode};
+  my $tree=$win->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
 
@@ -8054,9 +8116,9 @@ sub findPrevTemplated {
   while ($node) {
     unless (grep (!cmpTemplateField($grp,$node->attr($_),$template->{$_}), keys (%$template)))
       {
-	gotoTree($grp->{focusedWindow}, $tree);
-	setCurrent($grp->{focusedWindow}, $node);
-	centerTo($grp->{focusedWindow},$node);
+	gotoTree($win, $tree);
+	setCurrent($win, $node);
+	centerTo($win,$node);
 	return $node;
       }
     $node=prevNodeInSearchFilelist($grp,$node,\$tree);
