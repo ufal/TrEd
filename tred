@@ -420,6 +420,115 @@ use Exporter;
 	     ],
 	    );
 
+my %default_binding = (
+  '<Tab>' => 
+    [ sub { currentNext($_[1]->{focusedWindow}); 
+	    Tk->break; }, 
+      'select next node',
+      'top',
+     ],
+  '<Shift-ISO_Left_Tab>' => 
+    [sub { currentPrev($_[1]->{focusedWindow});
+	   Tk->break; },
+     'select previous node',
+    ],
+  '<Shift-Tab>'=>
+    [sub { currentPrev($_[1]->{focusedWindow});
+	   Tk->break; },
+     'select previous node',
+    ],
+  '<period>'=> 
+    [sub { onIdleNextTree($_[1]->{focusedWindow}); },
+      
+     'go to next tree',
+    ],
+  '<comma>'=> 
+    [sub { onIdlePrevTree($_[1]->{focusedWindow}); },
+      
+     'go to previous tree',
+    ],
+  '<Next>'=> 
+    [sub { onIdleNextTree($_[1]->{focusedWindow}); },
+     'go to next tree',
+    ],
+  '<Prior>'=> 
+    [sub { onIdlePrevTree($_[1]->{focusedWindow}); },
+     'go to previous tree',
+    ],
+  '<greater>'=>
+    [sub { my $fw=$_[1]->{focusedWindow};
+	   gotoTree($fw,
+		    $fw->{FSFile}->lastTreeNo);
+	   Tk->break;
+	 },
+     'go to last tree in file',
+    ],
+  '<less>'=> 
+    [sub { gotoTree($_[1]->{focusedWindow},0);
+	   Tk->break;
+	 },
+     'go to first tree in file',
+    ],
+  '<KeyPress-Return>'=>
+    [sub { editAttrsDialog($_[1]->{focusedWindow},
+			   $_[1]->{focusedWindow}->{currentNode});
+	   Tk->break;
+	 },
+     'view/edit attributes',
+    ],
+  '<KeyPress-Left>'=>
+    [sub {
+       $treeViewOpts->{reverseNodeOrder}
+	 ? currentRight($_[1])
+	 : currentLeft($_[1]);
+       Tk->break;
+     },
+     'select left sibling',
+    ],
+  '<Shift-Left>'=>
+    [sub {
+       $treeViewOpts->{reverseNodeOrder} 
+	 ? currentRightWholeLevel($_[1]) 
+	 : currentLeftWholeLevel($_[1]);
+       Tk->break;
+     },
+     'select node on the left',
+    ],
+  '<KeyPress-Right>'=>
+    [sub {
+       $treeViewOpts->{reverseNodeOrder}
+	 ? currentLeft($_[1])
+	 : currentRight($_[1]);
+       Tk->break;
+     },
+     'select right sibling',
+    ],
+  '<Shift-Right>'=>
+    [sub {
+       $treeViewOpts->{reverseNodeOrder}
+	 ? currentLeftWholeLevel($_[1])
+	 : currentRightWholeLevel($_[1]);
+       Tk->break;
+     },
+     'select node on the right',
+    ],
+  '<KeyPress-Up>'=>
+    [sub {
+       currentUp($_[1]);
+       Tk->break;
+     },
+     'select parent node',
+    ],
+  '<KeyPress-Down>'=>
+    [sub {
+       currentDown($_[1]);
+       Tk->break;
+     },
+     'select first child-node',
+    ],
+ );
+   
+
 ApplyGlobalConfig();
 
 if ($]>=5.008) {
@@ -3003,30 +3112,39 @@ sub filelistDialog {
 
 sub getContexts {
   return
-    uniq sort (keys(%menuBindings), 
+    uniq sort (keys(%menuBindings),
 	       keys(%keyBindings))
 }
 
 sub generateSortedMacroTable {
-  my ($grp,$context) = @_;
-  my %macro_to_key = reverse %{$keyBindings{$context}};
+  my ($grp,$context,$include_anonymous) = @_;
+
+  my $Keys = $keyBindings{$context};
+  my $Menus = $menuBindings{$context};
+  my %macro_to_key = reverse %{ $Keys };
+  my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
+
   my @macroTable= map {
-    my ($macro,$key) = @{ $menuBindings{$context}{$_} };
-    [ $_, ($keyBindings{$context}{$key} eq $macro ? $key : $macro_to_key{$macro}) ]
-  } keys %{$menuBindings{$context}};
+    my ($macro,$key) = @{ $Menus->{$_} };
+    [ $_, ($Keys{$key} eq $macro ? $key : $macro_to_key{$macro}), $macro ]
+  } keys %{ $Menus };
+  if ($include_anonymous) {
+    push @macroTable,
+      map {
+	my $macro = $Keys->{$_};
+	exists($macro_to_menu{ $macro }) ? () : [ undef, $_, $macro ];
+      } keys %{ $Keys };
+  }
   if ($grp->{macroListOrder} eq 'K') {
     return sort {
       my @a= split '\+',$a->[1];
       my @b= split '\+',$b->[1];
       return $#a <=> $#b if ($#a != $#b);
-      return length($a[0]) cmp length($b[0]) if (length($a[0]) ne length($b[0]));
-      return $a[0] cmp $b[0] if ($a[0] ne $b[0]);
-      return length($a[1]) cmp length($b[1]) if (length($a[1]) ne length($b[1]));
-      return $a[1] cmp $b[1] if ($a[1] ne $b[1]);
-      return length($a[2]) cmp length($b[2]) if (length($a[2]) ne length($b[2]));
-      return $a[2] cmp $b[2] if ($a[2] ne $b[2]);
-      return length($a[3]) cmp length($b[3]) if (length($a[3]) ne length($b[3]));
-      return $a[3] cmp $b[3] if ($a[2] ne $b[3]);
+      for my $i (0..$#a) {
+	my ($ak,$bk) = ($a[$i],$b[$i]);
+	return length($ak) cmp length($bk) if (length($ak) != length($bk));
+	return $ak cmp $bk if ($ak ne $bk);
+      }
       return $a cmp $b;
     } @macroTable;
   } else {
@@ -3035,13 +3153,15 @@ sub generateSortedMacroTable {
 }
 
 sub macrolistCreateItems {
-  my ($grp,$t,$context)=@_;
+  my ($grp,$t,$context,$include_anonymous,$see_macro)=@_;
   my $e;
   $t->delete('all');
-  foreach my $entry (generateSortedMacroTable($grp,$context)) {
-    $e= $t->addchild("");
-    $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry->[0]);
-    $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[1]);
+  $t->columnWidth(1,$see_macro ? q() : 0);
+  foreach my $entry (generateSortedMacroTable($grp,$context,$include_anonymous)) {
+    $e= $t->addchild("", -data => $entry->[2]);
+    $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry->[1]);
+    $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[2]) if $see_macro;
+    $t->itemCreate($e, 2, -itemtype=>'text', -text=> (defined($entry->[0]) ? $entry->[0] : 'ANONYMOUS'));
   }
 }
 
@@ -3058,13 +3178,13 @@ sub macrolistDialog {
     errorMessage($grp->{focusedWindow},"No named macros in current context ($context)",1);
     return;
   }
-  my $d= $grp->{top}->Toplevel(-title=> "List of available named macros");
+  my $d= $grp->{top}->Toplevel(-title=> "List of available macros");
   $d->withdraw;
   $d->resizable(0,1);
   $d->minsize('200','200');
 #c  -Background white
   my $topframe = $d->Frame;
-  my $t= $topframe->Scrolled(qw/HList -columns 2
+  my $t= $topframe->Scrolled(qw/HList -columns 3
            -selectmode browse
            -height 25 -relief sunken -scrollbars oe/);
   disable_scrollbar_focus($t);
@@ -3072,36 +3192,36 @@ sub macrolistDialog {
   $grp->{Macrolist}=$d;
   my $e;
   my $maxw=0;
-  macrolistCreateItems($grp,$t,$context);
+  macrolistCreateItems($grp,$t,$context,
+		       $grp->{macroListAnonymous},
+		       $grp->{macroListCalls});
 
-  $t->columnWidth(0,'');
-  $t->columnWidth(1,'');
+  $t->columnWidth(0,q());
+  $t->columnWidth(1,0);
+  $t->columnWidth(2,q());
+
   $t->anchorSet('0');
 
   $t->configure(-width=> 0);
-  $d->bind('<Return>'=>
-	   [
-	    sub {
-	      my ($w,$grp,$t,$ctxt)=@_;
-	      doEvalMacro($grp->{focusedWindow},
-			  $menuBindings{$ctxt}->
-			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
-	    },$grp,$t,\$context ]);
-  $d->bind('<Double-1>'=> 
-	   [
-	    sub {
-	      my ($w,$grp,$t,$ctxt)=@_;
-	      doEvalMacro($grp->{focusedWindow},
-			  $menuBindings{$$ctxt}->
-			  {$t->itemCget($t->info('anchor'),0,'-text')}->[0]);
-	    },$grp,$t,\$context ]);
+  my $callback
+    = [
+       sub {
+	 my ($w,$grp,$t,$ctxt)=@_;
+	 my $macro = $t->info( data => $t->info('anchor') );
+	 doEvalMacro($grp->{focusedWindow},$macro);
+       },$grp,$t,\$context,
+      ];
+  $d->bind('<Return>'   => $callback);
+  $d->bind('<Double-1>' => $callback);
 
   my $f=$topframe->Frame();
   $f->Label(-text => "Context: ")->pack(qw/-side left/);
   $f->Optionmenu(-options      => [getContexts()],
 		 -textvariable => \$context,
 		 -command      => [sub { my ($g,$list,$ctxt) = @_;
-					 macrolistCreateItems($g,$list,$ctxt);
+					 macrolistCreateItems($g,$list,$ctxt,
+							      $grp->{macroListAnonymous},
+							      $grp->{macroListCalls});
 				       },$grp,$t],
 		 -relief       => 'groove', #$menubarRelief,
 		 -borderwidth  => 2)->pack(qw/-side left -padx 5/);
@@ -3117,8 +3237,10 @@ sub macrolistDialog {
 			      my $odd = 0;
 			      foreach my $child ($t->info('children','')) {
 				print $html "  <tr ",($odd ? 'bgcolor="#ffffff"' : 'bgcolor="#eeeeee"'),
-				  ,">\n    <td>",$t->itemCget($child,0,'-text'),
-				  "</td>\n    <td>", $t->itemCget($child,1,'-text'),"</td>\n  </tr>\n";
+				  ">\n    <td>",$t->itemCget($child,0,'-text'),"</td>\n",
+				  ($grp->{macroListCalls} ? "<td>".$t->itemCget($child,1,'-text')."</td>\n" : ""),
+				  "<td>", $t->itemCget($child,2,'-text'),"</td>\n",
+				  "  </tr>\n";
 				$odd = !$odd;
 			      }
 			      print $html "</table>\n";
@@ -3126,28 +3248,60 @@ sub macrolistDialog {
 			    }
 			  },$d,$grp,$t,\$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
 
-  $f->Radiobutton( -anchor  => 'nw',
+  my $rf = $f->Frame()->pack(-side=> 'right',-padx=> 20);
+  $rf->Radiobutton( -anchor  => 'nw',
 		   -underline => 8,
 		   -text    => 'Sort by keyboard shortcut',
 		   -variable=> \$grp->{macroListOrder},
 		   -relief  => 'flat',
 		   -command => [sub { #shift;
 				       my ($grp,$t,$ctxt)=@_;
-				       macrolistCreateItems($grp,$t,$$ctxt);
+				       macrolistCreateItems($grp,$t,$$ctxt,
+							    $grp->{macroListAnonymous},
+							    $grp->{macroListCalls});
 				     },$grp,$t,\$context],
 		   -value   => 'K'
-		 )->pack(-side=> 'right',-padx=> 20);
-  $f->Radiobutton( -anchor  => 'nw',
+		 )->pack(-side=> 'top', -fill => 'x');
+  $rf->Radiobutton( -anchor  => 'nw',
 		   -underline => 8,
 		   -text    => 'Sort by name',
 		   -variable=> \$grp->{macroListOrder},
 		   -relief  => 'flat',
 		   -command => [sub { #shift;
 				       my ($grp,$t,$ctxt)=@_;
-				       macrolistCreateItems($grp,$t,$$ctxt);
+				       macrolistCreateItems($grp,$t,$$ctxt,
+							    $grp->{macroListAnonymous},
+							    $grp->{macroListCalls});
 				     },$grp,$t,\$context],
 		   -value   => 'M'
-		 )->pack(-side=> 'right',-padx=> 20);
+		 )->pack(-side=> 'top', -fill => 'x');
+
+  my $chf = $f->Frame()->pack(-side=> 'right',-padx=> 20);
+  $chf->Checkbutton( -anchor  => 'nw',
+		   -underline => 0,
+		   -text    => 'Include anonymous macros',
+		   -variable=> \$grp->{macroListAnonymous},
+		   -relief  => 'flat',
+		   -command => [sub { #shift;
+				       my ($grp,$t,$ctxt)=@_;
+				       macrolistCreateItems($grp,$t,$$ctxt,
+							    $grp->{macroListAnonymous},
+							    $grp->{macroListCalls});
+				     },$grp,$t,\$context],
+		 )->pack(-side=> 'top', -fill => 'x');
+
+  $chf->Checkbutton( -anchor  => 'nw',
+		   -underline => 4,
+		   -text    => 'See Perl names',
+		   -variable=> \$grp->{macroListCalls},
+		   -relief  => 'flat',
+		   -command => [sub { #shift;
+				       my ($grp,$t,$ctxt)=@_;
+				       macrolistCreateItems($grp,$t,$$ctxt,
+							    $grp->{macroListAnonymous},
+							    $grp->{macroListCalls});
+				     },$grp,$t,\$context],
+		 )->pack(-side=> 'top', -fill => 'x');
 
   my $botframe=$d->Frame();
   $botframe->Button(-text=> 'Run and Close',
@@ -4718,7 +4872,7 @@ sub startMain {
 	 [Button=> 'Edit stylesheet ...', -underline=> 0,
 	  -command=> [\&editStylesheetDialog,\%group]],
 	 [Separator=> ''],
-	 [Button=> 'List of Named Macros ...', -underline=> 0,
+	 [Button=> 'List of available macros ...', -underline=> 0,
 	  -command=> [\&macrolistDialog,\%group]]
 	])->pack(qw/-side left/);
   $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/=>
@@ -5341,86 +5495,10 @@ sub startMain {
   $group{top}->Tk::bind('Busy','<Any-Motion>',[\&Tk::Widget::_busy => 0]);
   $group{top}->bind('Tk::Listbox','<KeyPress>',\&list_isearch);
 
-  $group{top}->bind('my', '<Tab>'=>
-		    [sub { currentNext($_[1]->{focusedWindow});
-			   Tk->break; },\%group]);
-  $group{frame}->bind('my',
-		      '<Shift-ISO_Left_Tab>'=>
-		      [sub { currentPrev($_[1]->{focusedWindow});
-			     Tk->break; },\%group]);
-  $group{frame}->bind('my',
-		      '<Shift-Tab>'=>
-		      [sub { currentPrev($_[1]->{focusedWindow});
-			     Tk->break; },\%group]);
-
-  $group{frame}->bind('my',
-		      '<period>'=> 
-		      [sub { onIdleNextTree($_[1]->{focusedWindow}); },
-		       \%group]);
-  $group{frame}->bind('my','<comma>'=> 
-		      [sub { onIdlePrevTree($_[1]->{focusedWindow}); },
-		       \%group]);
-  $group{frame}->bind('my','<Next>'=> 
-		      [sub { onIdleNextTree($_[1]->{focusedWindow}); },
-		       \%group]);
-  $group{frame}->bind('my','<Prior>'=> 
-		      [sub { onIdlePrevTree($_[1]->{focusedWindow}); }
-		       ,\%group]);
-  $group{frame}->bind('my','<greater>'=>
-		      [sub { my $fw=$_[1]->{focusedWindow};
-			     gotoTree($fw,
-				      $fw->{FSFile}->lastTreeNo);
-			     Tk->break;
-			   },\%group]);
-  $group{frame}->bind('my','<less>'=> 
-		      [sub { gotoTree($_[1]->{focusedWindow},0);
-			     Tk->break;
-			   },\%group]);
-
-  $group{frame}->bind('my',
-		      '<KeyPress-Return>'=>
-		      [sub { editAttrsDialog($_[1]->{focusedWindow},
-			     $_[1]->{focusedWindow}->{currentNode});
-			 Tk->break;
-		       },\%group]);
-  $group{frame}->bind('my','<KeyPress-Left>'=>
-		      [sub {
-			 $treeViewOpts->{reverseNodeOrder} ?
-			 currentRight($_[1]) :
-			 currentLeft($_[1]);
-			 Tk->break;
-		       },\%group]);
-  $group{frame}->bind('my','<Shift-Left>'=>
-		      [sub {
-			 $treeViewOpts->{reverseNodeOrder} ?
-			 currentRightWholeLevel($_[1]) :
-			 currentLeftWholeLevel($_[1]);
-			 Tk->break;
-		       },\%group]);
-  $group{frame}->bind('my','<KeyPress-Right>'=>
-		      [sub {
-			 $treeViewOpts->{reverseNodeOrder} ?
-			 currentLeft($_[1]) :
-			 currentRight($_[1]);
-			 Tk->break;
-		       },\%group]);
-  $group{frame}->bind('my','<Shift-Right>'=>
-		      [sub {
-			 $treeViewOpts->{reverseNodeOrder} ?
-			 currentLeftWholeLevel($_[1]) :
-			 currentRightWholeLevel($_[1]);
-			 Tk->break;
-		       },\%group]);
-  $group{frame}->bind('my','<KeyPress-Up>'=>
-		      [sub {
-			 currentUp($_[1]);
-			 Tk->break;
-		       },\%group]);
-  $group{frame}->bind('my','<KeyPress-Down>'=>
-		      [sub {
-			 currentDown($_[1]);
-			 Tk->break;
-		       },\%group]);
+  # setup default binding
+  while (my ($key, $def) = each %default_binding) {
+    $group{ $def->[2] || 'frame' }->bind('my', $key => [ $def->[0], \%group ]);
+  }
 
   $group{focusedWindow}->canvas->focus;
 
@@ -8786,22 +8864,10 @@ sub examineBindingsDialog {
       }
   }
 
-  $d->bind('<Tab>'		  => [ sub { $bindings='builtin - select next node'; Tk->break; }]);
-  $d->bind('<Shift-ISO_Left_Tab>' => [ sub { $bindings='builtin - select previous node'; Tk->break; }]);
-  $d->bind('<Shift-Tab>'	  => [ sub { $bindings='builtin - select previous node'; Tk->break; }]);
-  $d->bind('<period>'		  => [ sub { $bindings='builtin - go to next tree'; Tk->break; }]);
-  $d->bind('<comma>'		  => [ sub { $bindings='builtin - go to previous tree'; Tk->break; }]);
-  $d->bind('<Next>'		  => [ sub { $bindings='builtin - go to next tree'; Tk->break; }]);
-  $d->bind('<Prior>'		  => [ sub { $bindings='builtin - go to previous tree'; Tk->break; }]);
-  $d->bind('<greater>'		  => [ sub { $bindings='builtin - go to last tree in file'; Tk->break; }]);
-  $d->bind('<less>'		  => [ sub { $bindings='builtin - go to first tree in file'; Tk->break; }]);
-  $d->bind('<KeyPress-Return>'	  => [ sub { $bindings='builtin - view/edit attributes'; Tk->break; }]);
-  $d->bind('<KeyPress-Left>'	  => [ sub { $bindings='builtin - select left sibling'; Tk->break; }]);
-  $d->bind('<Shift-Left>'	  => [ sub { $bindings='builtin - select node on the left'; Tk->break; }]);
-  $d->bind('<KeyPress-Right>'	  => [ sub { $bindings='builtin - select right sibling'; Tk->break; }]);
-  $d->bind('<Shift-Right>'	  => [ sub { $bindings='builtin - select node on the right'; Tk->break; }]);
-  $d->bind('<KeyPress-Up>'	  => [ sub { $bindings='builtin - select parent node'; Tk->break; }]);
-  $d->bind('<KeyPress-Down>'	  => [ sub { $bindings='builtin - select first child-node'; Tk->break; }]);
+  my $set_bindings_func = sub { $bindings = 'builtin - '.$_[1]; Tk->break; };
+  while (my ($key, $def) = each %default_binding) {
+    $d->bind($key => [ $set_bindings_func, $def->[1] ]);
+  }
 
   ShowDialog($d,$e,$grp->{top});
   $d->destroy;
@@ -8912,7 +8978,7 @@ sub doEvalMacro {
 sub resolveKey {
   my $grp=$_[0];
  context:
-  foreach my $context ($grp->{focusedWindow}->{macroContext},$grp->{focusedWindow}->{macroContext} eq "TredMacro" ? () : "TredMacro") {
+  foreach my $context (uniq($grp->{focusedWindow}->{macroContext},"TredMacro")) {
     foreach my $key (@_) {
       if (exists ($keyBindings{$context}->{$key})) {
 	return($keyBindings{$context}->{$key},$key)
