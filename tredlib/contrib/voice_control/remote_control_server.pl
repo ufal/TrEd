@@ -1,22 +1,28 @@
 #!/usr/bin/perl
 
-#
-# usage: $0 [--shell] [port]
-#
-# This is a simple server listening on a given port (default 2345)
-# and the localhost interface. When a client connects,
-# copy all standard input (or readline input) to the client.
-# Lines are terminated with \015\012.
-#
-# Run with --shell to get a readline when the client connects for
-# a more comfortable editing.
-#
-# When communicating to a client:
-# type \disconnect_client to disconnect from the client
-# type \quit to exit immediatelly.
-#
-
 use strict;
+
+sub help {
+  print <<'END_HELP';
+Usage: remote_control_server.pl [--shell|-s] [port]
+or
+       remote_control_server.pl --help|-h
+
+This is a simple server listening on a given port (default 2345)
+and the localhost interface. When a client connects,
+copy all standard input (or readline input) to the client.
+Lines are terminated with \015\012.
+
+Run with --shell to get a readline when the client connects for
+a more comfortable editing.
+
+When communicating to a client:
+type \disconnect_client to disconnect from the client
+type \quit to exit immediatelly.
+
+END_HELP
+}
+
 use Socket;
 use IO::Socket;
 use Carp;
@@ -29,10 +35,19 @@ use lib ("$FindBin::RealBin", "$FindBin::RealBin/../lib",
 
 
 use Getopt::Long;
-use vars qw($shell $OUT $term);
+use vars qw($shell $help $OUT $term);
 GetOptions(
-  "shell|s" => \$shell
- );
+  "shell|s" => \$shell,
+  "help|h" => \$help,
+ ) || do {
+   help();
+   die "Command-line error!\n";
+};
+
+if ($help) {
+  help();
+  exit 0;
+}
 
 if ($shell) {
   $ENV{PERL_READLINE_NOWARN}=1;
@@ -63,6 +78,7 @@ die "Socket not created: $!" unless $sock;
 sub logmsg { print STDERR "$0 $$: @_ at ", scalar localtime, "\n" }
 
 logmsg "server started on port $port";
+logmsg "awaiting client connection";
 
 my ($new_sock,$peer_addr);
 
