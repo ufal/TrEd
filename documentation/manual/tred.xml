@@ -1199,20 +1199,25 @@ Tk: 804.027
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
-	  <term><guimenuitem moreinfo="none">List of Named Macros...</guimenuitem></term>
+	  <term><guimenuitem moreinfo="none">List of available macros...</guimenuitem></term>
 	  <listitem>
 	    <para>
 	      Display a window listing all user-defined
-	      menu-bindings (macros) in a selected context and their
-	      keyboard shortcuts. 
+	      menus and keyboard shortcuts (macros) in a selected context.
 	      User may run a macro
 	      by double-clicking on a corresponding item in the list, or
 	      by pressing the <guibutton moreinfo="none">Run and Close</guibutton>
-	      button. In the latter case, the window is closed.  Two
-	      buttons (
-	      <guilabel moreinfo="none">Sort by name</guilabel> and <guilabel moreinfo="none">Sort by
+	      button. In the latter case, the window is closed. 
+              There are several other buttons in the window.
+	      The first button,
+	      <guilabel moreinfo="none">Include anonymous macros</guilabel>, controls
+	      whether macros available only via keyboard shortcut are displayed,
+              the second button, <guilabel moreinfo="none">See Perl names</guilabel>,
+	      toggles displaying of a column containing raw Perl name of macros,
+	      and another two
+	      buttons (<guilabel moreinfo="none">Sort by name</guilabel> and <guilabel moreinfo="none">Sort by
 	      keyboard shortcuts</guilabel>) control the order in which
-	      macros are listed. The button <guibutton moreinfo="none">Export as HTML</guibutton>
+	      macros are listed. Finally, the button <guibutton moreinfo="none">Export as HTML</guibutton>
 	      creates a handy reference from the listing in form of a a HTML document.
 	    </para>
 	  </listitem>
@@ -4652,7 +4657,7 @@ sub CreateImages {
 	    <para>This option defines the default ordering of macros
 	      when <menuchoice moreinfo="none">
 		<guimenu moreinfo="none">View</guimenu>
-		<guimenuitem moreinfo="none">List of Named Macros...</guimenuitem>
+		<guimenuitem moreinfo="none">List of available macros...</guimenuitem>
 	      </menuchoice>
 	      menu command is used. Possible values are letters
 	      <literal moreinfo="none">M</literal> (sort by macro menu label)
@@ -7764,7 +7769,7 @@ MyPackage::my_macro();   # call to a macro defined in MyPackage
 	is usually more comfortable to select a macro 
 	using <menuchoice moreinfo="none">
 	  <guimenuitem moreinfo="none">View</guimenuitem>
-	  <guimenuitem moreinfo="none">List of Named Macros</guimenuitem>
+	  <guimenuitem moreinfo="none">List of available macros</guimenuitem>
 	</menuchoice>.</para>
       <para> If a keyboard shortcut
 	is pressed, <application moreinfo="none">TrEd</application> first searches for a
