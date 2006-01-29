@@ -61,16 +61,18 @@ sub create_toplevel {
 			       $frame_browser_wordlist_item_style,
 			       $frame_browser_framelist_item_style,
 			       $frame_editor_styles,
-			       undef,
+			       [],
+			       #undef,
 			       $bot,
 			       -width => '25c');
+  $chooser->set_reusable_assign_callback($assign_callback);
   $chooser->subwidget_configure($confs) if ($confs);
   ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
   if (defined $assign_callback) {
-    my $assign_cb = ref($assign_callback) eq 'ARRAY' ?
-      [ @$assign_callback, $chooser ] : [ $assign_callback,$chooser ];
     my $ab = $bot->Button(-text => 'Assign',
-			  -command => $assign_cb)->pack(-side => 'left',-expand => 1);
+			  -command =>
+			    [ sub { $_[0]->reusable_assign_callback; }, $chooser ]
+			 )->pack(-side => 'left',-expand => 1);
     $d->bind('<Return>', sub { $ab->flash; $ab->invoke; });
     $d->bind('<KP_Enter>', sub { $ab->flash; $ab->invoke });
     $chooser->widget()->bind('<Double-1>'=> sub { $ab->invoke });
@@ -88,6 +90,27 @@ sub create_toplevel {
 #  $d->resizable(0,0);
   $d->Popup;
   return $chooser;
+}
+
+sub set_reusable_assign_callback {
+  my ($self, $assign_callback)=@_;
+  my $cb=$self->subwidget('callback');
+  @$cb = ref($assign_callback) eq 'ARRAY' ?
+    ( @$assign_callback, $self ) : ( $assign_callback,$self );
+  return $cb;
+}
+
+sub reusable_assign_callback {
+  my ($self)=@_;
+  my $cb=$self->subwidget('callback');
+  return unless ref($cb) eq 'ARRAY';
+  no strict 'refs';
+  my ($func, @args) = @$cb;
+  if (ref($func) eq 'CODE') {
+    $func->(@args);
+  } else {
+    die "Callback isn't CODE: @$cb\n";
+  }
 }
 
 sub reusable_dialog {
@@ -207,6 +230,7 @@ sub reuse {
       $field,
       $select_frame,
       $start_editor,
+      $assign_callback,
       $modal
      )=@_;
   my $d = $self->widget()->toplevel();
@@ -223,6 +247,7 @@ sub reuse {
 	($field->[2*$i], $field->[2*$i+1]);
     }
   }
+  $self->set_reusable_assign_callback($assign_callback);
   $self->prepare($show_obsolete_ref, $field, $select_frame, $start_editor);
   $self->widget()->focus();
   if ($modal) {

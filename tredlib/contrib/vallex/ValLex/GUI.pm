@@ -413,6 +413,7 @@ sub ChooseFrame {
   my $top=ToplevelFrame();
   $top->Busy(-recurse=>1);
 
+
   my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ?
 				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
 
@@ -438,6 +439,7 @@ sub ChooseFrame {
     return;
   }
   $lemma=~s/_/ /g;
+
 
   Init() or return;
   my $field;
@@ -517,6 +519,13 @@ sub DisplayFrame {
     $chooserDialog->destroy_dialog();
     undef $chooserDialog;
   }
+
+  my $callback =
+    (ref($opts_ref->{-no_assign}) ?
+       [$opts_ref->{-no_assign}, $grp->{framegroup}] :
+	 ((!$ValencyLexicon->user_is_annotator || $opts_ref->{-no_assign}) ? undef :
+	    [\&frame_chosen, $grp->{framegroup},$opts_ref]));
+
   if (not ref($chooserDialog)) {
     my $font = $main::font;
     my $fc=[-font => $font];
@@ -562,10 +571,7 @@ sub DisplayFrame {
 					     $field,
 					     [split /\|/, $opts_ref->{-frameid}],
 					     $new_word,
-					     (ref($opts_ref->{-no_assign}) ?
-					      [$opts_ref->{-no_assign}, $grp->{framegroup}] :
-					      ((!$ValencyLexicon->user_is_annotator || $opts_ref->{-no_assign}) ? undef :
-					       [\&frame_chosen, $grp->{framegroup},$opts_ref])),
+					     $callback,
 					     sub {
 					       $chooserDialog->destroy_dialog();
 					       undef $chooserDialog;
@@ -577,6 +583,7 @@ sub DisplayFrame {
 			  $field,
 			  [split /\|/, $opts_ref->{-frameid}],
 			  $new_word,
+			  $callback,
 			  0);
   }
   return 1;
@@ -584,6 +591,7 @@ sub DisplayFrame {
 
 sub frame_chosen {
   my ($grp,$opts_ref,$chooser)=@_;
+
 
   return unless $grp and $grp->{focusedWindow};
   my $win = $grp->{focusedWindow};
