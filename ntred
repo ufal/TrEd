@@ -19,21 +19,22 @@ use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
 	    $client_key_file $verbose $srvlist $kill $ps_kill $ps_break $filelist
 	    $srvlistfile $request_quit $request_dump $request_upload
 	    $safe_mode $help $usage $manpage $ssh $run_local $server_debug
-	    $maxservers $request_reload $request_reload_changed
+	    $maxservers $max_server_retries $request_reload $request_reload_changed
 	    $request_load $request_close $glob $reffiles_to_save
 	    $request_list $request_list_changed $request_save $request_list_secondary
 	    $request_save_changed $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $term_encoding
 	    $config_file $start_context @preload_modules $btred $break
 	    $request_reload_macros $quiet $really_quiet %optmap
-	    $version $print_version $listedfiles $list_options
+	    $version $print_version $listedfiles $regexp_files $list_options
             $olddist $count_files $logdir $userlogin $no_secondary $include_macro
 	   );
 
 $version='$Revision$ ';
 
 $usage=1 unless @ARGV;
-$ssh='ssh';
+$ssh='ssh -o ConnectTimeout=10';
+$max_server_retries = 10;
 
 use POSIX qw(setlocale);
 
@@ -92,6 +93,7 @@ Getopt::Long::Configure ("bundling");
 	 "filelist|l=s"    => \$filelist,
 	 "glob|g"          => \$glob,
 	 "listed-files|L"    => \$listedfiles,
+	 "regexp-files|R=s"    => \$regexp_files,
 	 "no-server-check" => \$nocheck,
 	 "no-server-start" => \$noservers,
 	 "server-debug|D" => \$server_debug,
@@ -103,9 +105,11 @@ Getopt::Long::Configure ("bundling");
 	 "version|v" => \$print_version,
          "list-options" => \$list_options,
 	 "old-dist-method"        => \$olddist,
-	 "logdir"        => \$logdir
+	 "logdir"        => \$logdir,
+	 "max-retries=i"   => \$max_server_retries,
 	);
 GetOptions(%optmap) or $usage=1;
+
 
 if ($print_version) {
   my $ver=$version;
@@ -145,11 +149,13 @@ if ($really_quiet) {
   open(STDERR, ">/dev/null") or die "Can't redirect STDERR to /dev/null: $!";
 }
 
+#my $IDENT = $init ? "NTRED-HUB($$)" : "NTRED-CLIENT($$)";
+
 sub msg {
   return if $quiet;
   my $msg = join '',@_;
   return if $msg eq '';
-  print STDERR (($init ? "NTRED-HUB: " : "NTRED-CLIENT: "), $msg);
+  print STDERR (($init ? "NTRED-HUB($$): " : "NTRED-CLIENT($$): "), $msg);
 }
 
 # make given list (passes by reference) unique
@@ -271,6 +277,15 @@ import TrEd::Macros;
 
 $TrEd::Macros::defines{NTRED}=1;
 
+sub kill_srv {
+  my ($srv,$signal)=@_;
+  if ($srv->{pid}) {
+    $signal = 'TERM' unless defined($signal);
+    #msg "Sending signal $signal to ssh connection to $srv->{host}.$srv->{port} (pid $srv->{pid})\n";
+    kill $signal, $srv->{pid};
+  }
+}
+
 if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) || defined($break)) {
   # get list of servers
   my @servers;
@@ -387,8 +402,8 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     # generate the session key for servers
     $server_key=generate_random_block();
 
-    foreach (@running) {
-      msg "Starting btred server on $_->{host} port $_->{port}\n";
+    foreach my $srv (@running) {
+      msg "Starting btred server on $srv->{host} port $srv->{port}\n";
       # as for now, we only make use of the secure pipe to the server
       # in order to pass it the session key
 
@@ -405,24 +420,32 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	  ($macro_file ? "-m \"".rel2abs($macro_file)."\" " : "").
 	  ($include_macro ? "-I \"".rel2abs($include_macro)."\" " : "").
 	  ($term_encoding ? "-d $term_encoding " : "").
-	  "-L $_->{port}";
+	  "-L $srv->{port}";
       if ($run_local) {
-	$cmd = "$cmd 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
+	$cmd = "$cmd 2> $logdir/ntred-server-$srv->{host}-$srv->{port}.log";
       } else {
-	$cmd = "$ssh '$_->{host}' '$cmd' 2> $logdir/ntred-server-$_->{host}-$_->{port}.log";
+	$cmd = "$ssh '$srv->{host}' '$cmd' 2> $logdir/ntred-server-$srv->{host}-$srv->{port}.log";
       }
-      msg "$cmd\n";
-      if (open ($_->{ssh},"| ".$cmd)) {
-	$_->{ssh}->autoflush(1);
-	STDERR->autoflush(1);
-	msg "sending session key\n";
-	$_->{ssh}->print("$control SESSION-KEY=".block_to_hex($server_key)."\n");
-	$_->{ssh}->flush;
-	msg "sent session key\n";
-	$_->{running}=1;
-      } else {
-	msg "Failed to start server on $_->{host}.\n";
-	$_->{running}=0;
+      {
+	# fork in order to avoid getting stuck waiting towrite into a dead pipe
+	$srv->{pid} = fork;
+	if (!defined($srv->{pid})) {
+	  die "Fatal error: couldn't fork: $!\n";
+	} elsif ($srv->{pid} == 0) {
+	  # this child is only responsible for starting the server and
+	  # passing it the session key via a pipe
+	  msg "$cmd\n";
+	  if (open ($srv->{ssh},"| ".$cmd)) {
+	    $srv->{ssh}->autoflush(1);
+	    $srv->{ssh}->print("$control SESSION-KEY=".block_to_hex($server_key)."\n");
+	    close $srv->{ssh};
+	    exit 0;
+	  } else {
+	    exit 1;
+	  }
+	} else {
+	  $srv->{running}=1;
+	}
       }
     }
   }
@@ -435,28 +458,49 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   # Operate as a hub
   # ==================================================
   msg "Opening connections to servers...\n";
-  foreach (@running) {
-    next unless $_->{running};
-    msg "Openning connection to $_->{fullname}\n";
+ SERVER:
+  foreach my $srv (@running) {
+    next unless $srv->{running};
+    my $not_ready = 0;
+    msg "Openning connection to $srv->{fullname}\n";
     my $server;
-    do {
-      $server= new IO::Socket::INET (PeerAddr => $_->{host},
-				     PeerPort => $_->{port},
+    do {{
+      $server= new IO::Socket::INET (PeerAddr => $srv->{host},
+				     PeerPort => $srv->{port},
 				     Proto => 'tcp',
 				    );
       if ($server and $server->connected) {
-	die "Authentification to $_->{fullname} has been denied.\n"
-	  unless Negotiate($server_key,$server,$control);
-      } else {
-	msg("$_->{fullname} not ready\n");
+	unless (Negotiate($server_key,$server,$control)) {
+	  warn "Authentification to $srv->{fullname} has been denied - exiting.\n".
+	    "Hint: kill all servers with ntred --kill or ntred --ps-kill and try again.\n";
+	  for (@running) {
+	    kill_srv($_);
+	  }
+	  exit 1;
+	}
+      } 
+      elsif ($not_ready>=$max_server_retries) {
+	msg("$srv->{fullname} not ready - giving up.\n");
+	if ($srv->{pid}) {
+	  kill_srv($srv);
+	}
+	$srv->{socket} = undef;
+	$srv->{pid} = undef;
+	next SERVER;
+      } 
+      else {
+	msg("$srv->{fullname} not ready\n");
+	$not_ready++;
 	sleep 2;
       }
-    } while (!$server);
-    $_->{socket} = $server;
-    msg  " - connected to $_->{fullname}\n";
+    }} while (!$server);
+    $srv->{socket} = $server;
+    msg  " - connected to $srv->{fullname}\n";
   }
-  @running = grep $_->{socket},@running;
-
+  @running = grep { defined($_->{socket}) } @running;
+  unless (@running) {
+    die "Couldn't connect to any btred server - exiting.\n";
+  }
   msg "Connected to btred servers on the following hosts:\n";
   foreach  (@running) {
     msg " - $_->{fullname}\n"
@@ -682,6 +726,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
     }
     $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
+    $request.="$control STATE=REGEXP_FILES\n"._enc2bytes('utf8',$regexp_files)."\n" if ($regexp_files);
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
   } elsif ($request_reload_macros) {
     $request_type="RELOAD_MACROS";
@@ -692,6 +737,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     $request_type="COUNT";
   } elsif ($request_list) {
     $request_type="LIST";
+    $request.="$control STATE=REGEXP_FILES\n"._enc2bytes('utf8',$regexp_files)."\n" if ($regexp_files);
     if ($listedfiles) {
       my @files =  get_files();
       foreach (@files) {
@@ -714,6 +760,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     $request.="$control STATE=Suffix\n".$append_suffix."\n" if ($append_suffix ne "");
     $request.="$control STATE=Knit\n".$reffiles_to_save."\n" if ($reffiles_to_save ne "");
     $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
+    $request.="$control STATE=REGEXP_FILES\n"._enc2bytes('utf8',$regexp_files)."\n" if ($regexp_files);
     msg($request,"\n");
     if ($listedfiles) {
       my @files =  get_files();
@@ -725,6 +772,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     }
   } elsif ($request_close) {
     $request_type="CLOSE";
+    $request.="$control STATE=REGEXP_FILES\n"._enc2bytes('utf8',$regexp_files)."\n" if ($regexp_files);
     if ($listedfiles) {
       my @files =  get_files();
       foreach (@files) {
@@ -762,6 +810,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     $request.="$control STATE=CODE\n"._enc2bytes('utf8',_enc2utf8($term_encoding || 'utf8',$code))."\n";
     $request.="$control STATE=QUIET\n1\n" if $quiet;
     $request.="$control STATE=CONTEXT\n"._enc2bytes('utf8',$start_context)."\n";
+    $request.="$control STATE=REGEXP_FILES\n"._enc2bytes('utf8',$regexp_files)."\n" if ($regexp_files);
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
     $request.="$control STATE=Strip-prefix\n".$strip_prefix."\n" if ($strip_prefix ne "");
     $request.="$control STATE=Strip-suffix\n".$strip_suffix."\n" if ($strip_suffix ne "");
@@ -911,11 +960,16 @@ sub distribute_files2 {
   my $select = IO::Select->new();
   # Distribute files
   my @servers_to_respond;
+  my $all_files_count = @totalfilelist;
+  my $distributed_files = 0;
   foreach my $server (@$servers) {
     my @f=splice @totalfilelist,0,$files_per_request;
+    $distributed_files += @f;
     if (@f) {
       push @servers_to_respond,$server;
-      msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
+      msg "Distributing ".scalar(@f)." files to $server->{fullname} ".
+	"(".int((100*$distributed_files)/$all_files_count)."%)".
+	"\n";
 
       send_request($control,$server->{socket},'LOAD_FILES',$key,
 		   ($request_no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
@@ -950,8 +1004,11 @@ sub distribute_files2 {
 	chomp $response;
       msg "$server->{fullname} $response\n";
       my @f=splice @totalfilelist,0,$files_per_request;
+      $distributed_files += @f;
       if (@f) {
-	msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
+	msg "Distributing ".scalar(@f)." files to $server->{fullname} ".
+	  "(".int((100*$distributed_files)/$all_files_count)."%)".
+	  "\n";
 	send_request($control,$server->{socket},'LOAD_FILES',$key,
 		     ($request_no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
 		     "$control STATE=FILELIST", @f);
@@ -1186,6 +1243,11 @@ single tree (use in combination with -N) or a single node (use without
 file-names are expanded according to the current working directory
 before they are sent to ntred servers.
 
+=item B<--regexp-files|-R> regular-expression
+
+Run the query code only on files whose filenames match a given regular
+expression.
+
 =item B<--filelist|-l> filename
 
 Like C<--listed-files|-L> but this time the files to be processed are
@@ -1203,12 +1265,13 @@ necessary for the authentication to the running hub. This defaults to
 =head2 HUB and SERVER MODE (-i or --init) OPTIONS
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
-           [--filelist file-list] [--max-servers num] [--no-secondary-files]
-           [--no-server-check] [--no-server-start] [--no-hub-start]
-           [--old-dist-method] [--safe-mode] [--server-debug]
+           [--filelist file-list] [--max-servers num]
+           [--no-secondary-files] [--no-server-check]
+           [--no-server-start] [--no-hub-start] [--old-dist-method]
+           [--safe-mode] [--server-debug] [--max-retries num]
            [-m macro-file] [-M module] [--btred path-to-btred]
-           [--ssh ssh-command] [--local]
-           [--key-file] [--hub hub] [--port port] [file [...]]
+           [--ssh ssh-command] [--local] [--key-file file]
+           [--hub hub] [--port port] [file [...]]
 
 =over 8
 
@@ -1242,6 +1305,11 @@ another).
 
 Limit number of servers to start even if the list of servers contains
 more of them.
+
+=item B<--max-retries> number
+
+Specifies how many times the hub tries to connect to a btred server
+before it gives up.
 
 =item B<--no-server-check>
 
@@ -1585,7 +1653,7 @@ Redirect all std error output to /dev/null.
 =item B<--ssh> command
 
 This option may be used to specify the ssh/rsh command to use to
-connect to remote servers. Default value is `ssh'.
+connect to remote servers. Default value is `ssh -o ConnectTimeout=10'.
 
 =item B<--local>
 
