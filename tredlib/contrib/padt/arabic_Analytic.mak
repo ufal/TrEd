@@ -633,13 +633,13 @@ sub default_ar_attrs {
 
     return unless $grp->{FSFile};
 
-    my $pattern = '#{custom2}${tag}';
+    my $pattern = 'node:#{custom2}${tag}';
 
-    my @original = GetDisplayAttrs();
+    my ($hint, $style) = GetStylesheetPatterns();
 
-    my @filtered = grep { $_ ne $pattern } @original;
+    my @filter = grep { $_ ne $pattern } @{$style};
 
-    SetDisplayAttrs( @filtered, @original == @filtered ? $pattern : () );
+    SetStylesheetPatterns([ $hint, [ @filter, @{$style} == @filter ? $pattern : () ] ]);
 
     ChangingFile(0);
 
