@@ -558,6 +558,11 @@ sub startMain {
 	  last
         }
       }
+      for (qw(ENCODING Strip-suffix Strip-prefix Prefix Suffix REGEXP_FILES)) {
+	if (exists $request{"STATE_".$_}) {
+	  $request{"STATE_".$_} =~ s/[\n\r]+$//;
+	}
+      }
       ($state eq 'END_OF_REQUEST') || die "Broken request $request{REQUEST_TYPE}!\n";
       _msg "Request received from the hub: $request{REQUEST_TYPE}\n";
 
@@ -598,12 +603,6 @@ sub startMain {
 
 	  my $old_stdout = _redirect_stdout($macro_stdout);
 	  my $old_stderr = _redirect_stderr($macro_stderr);
-
-	  for (qw(ENCODING Strip-suffix Strip-prefix Prefix Suffix)) {
-	    if (exists $request{"STATE_".$_}) {
-	      $request{"STATE_".$_} =~ s/[\n\r]+$//;
-	    }
-	  }
 
 	  local $term_encoding=$request{STATE_ENCODING} if ($request{STATE_ENCODING});
 	  local $strip_prefix=$request{"STATE_Strip-prefix"} if exists $request{"STATE_Strip-prefix"};
@@ -653,8 +652,9 @@ sub startMain {
 	      _msg "RUNNING CODE: $request{STATE_CODE}\n";
 	      gotoFile($grp,0);
 	      my $t0 = new Benchmark;
+	      my $regexp = $request{STATE_REGEXP_FILES};
 	      if (exists $request{STATE_FILELIST}) {
-		my @fl = split /\n/,$request{STATE_FILELIST};
+		my @fl = grep { $_=~$regexp } split /\n/,$request{STATE_FILELIST};
 		foreach my $file (@fl) {
 		  # normalize urls
 		  my $goto;
@@ -668,7 +668,10 @@ sub startMain {
 		}
 	      } else {
 		do {
-		  doEvalMacro($grp,"package $context;".$request{STATE_CODE});
+		  if (!defined($regexp) or 
+		      $grp->{FSFile} and $grp->{FSFile}->filename =~ $regexp) {
+		    doEvalMacro($grp,"package $context;".$request{STATE_CODE});
+		  }
 		} while (!$@ and nextFile($grp) and !$@);
 	      }
 	      $hub->print("$@\n") if $@;
@@ -711,9 +714,20 @@ sub startMain {
 	  exit 0;
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
 	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+	  my $regexp = $request{STATE_REGEXP_FILES};
 	  if (exists $request{STATE_FILELIST}) {
 	    _msg "Reloading files at client's request\n";
-	    my @fl = grep { ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
+	    my @fl = grep { $_=~$regexp and ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
+	    foreach my $file (@fl) {
+	      closePreloadedFile($grp,$file);
+	    }
+	    eval {
+	      preloadFiles($grp,\@fl,$hub);
+	      die $@ if $@ ;
+	    };
+	  } elsif (defined($regexp)) {
+	    _msg "Reloading files matching /$regexp/ at client's request\n";
+	    my @fl = grep { $_=~$regexp and ref($grp->{preloaded}->{$_}) } keys %{$grp->{preloaded}};
 	    foreach my $file (@fl) {
 	      closePreloadedFile($grp,$file);
 	    }
@@ -780,22 +794,25 @@ sub startMain {
 	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
+	  my $regexp = $request{STATE_REGEXP_FILES};
+	  _msg "regexp: /$regexp/\n" if $regexp;
 	  if (exists $request{STATE_FILELIST}) {
-	    my @f = grep { ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
+	    my @f = grep { $_=~$regexp and ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	    $hub->print(join("\n",@f),"\n") if @f;
 	  } else {
-	    $hub->print(join("\n",@files),"\n");
+	    $hub->print(join("\n",grep { $_=~$regexp } @files),"\n");
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST_SECONDARY') {
 	  _msg "Listing secondary files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  if (ref($grp->{secondary})) { 
+	    my $regexp = $request{STATE_REGEXP_FILES};
 	    if (exists $request{STATE_FILELIST}) {
-	      my @f = grep { ref($grp->{secondary}->{$_}) } split /\n/,$request{STATE_FILELIST};
+	      my @f = grep { $_=~$regexp and ref($grp->{secondary}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	      $hub->print(join("\n",@f),"\n") if @f;
 	    } else {
-	      $hub->print(join("\n",sort keys %{$grp->{secondary}}),"\n");
+	      $hub->print(join("\n",sort grep { $_=~$regexp } keys %{$grp->{secondary}}),"\n");
 	    }
 	  }
 	  _end_response($control,$hub);
@@ -1012,12 +1029,14 @@ sub startMain {
 	      %fl = map { $_ => 1 } grep { ref($grp->{preloaded}->{$_}) }
 		split /\n/,$request{STATE_FILELIST};
 	    }
+	    my $regexp = $request{STATE_REGEXP_FILES};
 	    eval {
 	      gotoFile($grp,0);
 	      die $@ if $@;
 	      do {{
 		next unless ref($grp->{FSFile});
-		if (!$listed or $fl{ $grp->{'FSFile'}->filename }) {
+		if (($grp->{'FSFile'}->filename =~ $regexp) and 
+		    (!$listed or $fl{ $grp->{'FSFile'}->filename })) {
 		  if ($request{REQUEST_TYPE} eq 'SAVE' or $grp->{FSFile}->notSaved()) {
 		    my ($out,$error) = saveFile($grp);
 		    if (!defined($error)) {
@@ -1064,12 +1083,14 @@ sub startMain {
 	  } else {
 	    _msg "Closing all open files at client's request\n";
 	  }
+	  my $regexp = $request{STATE_REGEXP_FILES};
 	  eval {
 	    gotoFile($grp,0);
 	    die $@ if $@;
 	    do {{
 	      next unless ref($grp->{FSFile});
-	      if (!$listed or $fl{ $grp->{'FSFile'}->filename }) {
+	      if (($grp->{'FSFile'}->filename =~ $regexp)
+		  and (!$listed or $fl{ $grp->{'FSFile'}->filename })) {
 		closeFile($grp);
 	      }
 	      die $@ if $@;
