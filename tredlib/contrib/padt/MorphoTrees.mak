@@ -1184,7 +1184,8 @@ MorphoTrees - Context for Annotation of Morphology in the TrEd Environment
 
 =head1 DESCRIPTION
 
-General description is given in L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/papers/2004-nemlar-tred.pdf>.
+General description is given in L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/papers/2004-nemlar-tred.pdf> and
+L<http://ufal.mff.cuni.cz/~smrz/CSLI2006/csli-prague.pdf>.
 
 Examples of MorphoTrees include L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_fhm.gif>,
 L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AfrAd.gif>, or
@@ -1204,16 +1205,16 @@ Prague Arabic Dependency Treebank L<http://ufal.mff.cuni.cz/padt/>
 
 =head1 AUTHOR
 
-Otakar Smrz, L<http://ufal.mff.cuni.cz/smrz/>
+Otakar Smrz, L<http://ufal.mff.cuni.cz/~smrz/>
 
-    eval { 'E<lt>' . 'smrz' . "\x40" . ( join '.', qw 'ufal mff cuni cz' ) . 'E<gt>' }
+    eval { 'E<lt>' . ( join '.', qw 'otakar smrz' ) . "\x40" . ( join '.', qw 'mff cuni cz' ) . 'E<gt>' }
 
 Perl is also designed to make the easy jobs not that easy ;)
 
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2004, 2005 by Otakar Smrz
+Copyright (C) 2004-2006 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8 or,
