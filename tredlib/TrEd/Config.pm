@@ -332,7 +332,7 @@ sub set_config {
       unshift @INC,$perllib unless (grep($_ eq $perllib, @INC));
     }
   }
-  $Fslib::resourcePath=tilde_expand($confs->{resourcepath}) if (exists $confs->{libdir});
+  $Fslib::resourcePath=tilde_expand($confs->{resourcepath}) if (exists $confs->{resourcepath});
   $libDir=tilde_expand($confs->{libdir}) if (exists $confs->{libdir});
   unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
