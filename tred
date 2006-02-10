@@ -3856,7 +3856,9 @@ sub printDialog {
 	      -command =>
 	      [sub {
 		 my ($grp,$w)=@_;
-		 $w->{printRange}=sentViewGetSelection($grp,$grp->{sentDialogSelection});
+		 my $rng = sentViewGetSelection($grp,$grp->{sentDialogSelection});
+		 $w->{printRange}->delete(0,'end');
+		 $w->{printRange}->insert(0,$rng);
 	       },$grp,\%w])->pack(qw/-padx 10 -side left/);
   $sf->Button(-image=> icon($grp,'contents'),
 	      -command=> [sub {
@@ -3867,11 +3869,12 @@ sub printDialog {
 					   $w->{printRange})) {
 			      $list->[$_-1]=1;
 			    }
-			    $w->{printRange}=
-			      sentViewGetSelection($grp,
-				 viewSentencesDialog($grp,$d,
-				 $win->{FSFile},
-				 $list));
+			    my $rng = sentViewGetSelection($grp,
+							   viewSentencesDialog($grp,$d,
+									       $win->{FSFile},
+									       $list));
+			    $w->{printRange}->delete(0,'end');
+			    $w->{printRange}->insert(0,$rng);
 			  },$grp,$win,$d,\%w ])->pack(qw/-padx 10 -side left/);
 
   $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
