@@ -962,9 +962,11 @@ sub distribute_files2 {
   my @servers_to_respond;
   my $all_files_count = @totalfilelist;
   my $distributed_files = 0;
+  my $success = 0;
   foreach my $server (@$servers) {
     my @f=splice @totalfilelist,0,$files_per_request;
     $distributed_files += @f;
+    $server->{last_batch} = @f;
     if (@f) {
       push @servers_to_respond,$server;
       msg "Distributing ".scalar(@f)." files to $server->{fullname} ".
@@ -983,6 +985,7 @@ sub distribute_files2 {
       unless (forward_response($control,$server->{socket},\$response)) {
 	msg "Communication with $server->{fullname} seems broken\n";
       }
+      chomp $response;
       msg "$server->{fullname} $response\n";
     } else {
       print "Noop: $server->{fullname}\n";
@@ -1000,9 +1003,10 @@ sub distribute_files2 {
       my ($server) = grep { $_->{socket} eq $socket } @$servers;
       unless (forward_response($control,$socket,\$response)) {
 	msg "Communication with $server->{fullname} seems broken\n";
-	}
-	chomp $response;
+      }
+      chomp $response;
       msg "$server->{fullname} $response\n";
+      $success+=$server->{last_batch} if ($response eq 'OK');
       my @f=splice @totalfilelist,0,$files_per_request;
       $distributed_files += @f;
       if (@f) {
@@ -1022,7 +1026,13 @@ sub distribute_files2 {
   if (@totalfilelist) {
     msg "Error: ".scalar(@totalfilelist)." files left in the filelist ...oooops?\n";
   } else {
-    msg "All files distributed\n";
+    if ($success == $all_files_count) {
+      msg "All $all_files_count files have been successfully loaded :-)\n";
+    } else {
+      msg(("*"x75)."\n");
+      msg "PROBLEM: loading of some files (of $all_files_count) has failed!\n";
+      msg(("*"x75)."\n");
+    }
   }
 }
 
