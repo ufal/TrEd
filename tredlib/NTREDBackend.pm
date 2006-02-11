@@ -90,7 +90,7 @@ sub close_backend {
 
 sub read {
   my ($fd,$fs)=@_;
-  my $fs_files = Storable::thaw(decode_base64(join "",<$fd>));
+  my $fs_files = Storable::thaw(decode_base64(do{{   local $/; <$fd> }}));
   my $restore = $fs_files->[0];
   if (ref($restore)) {
     $fs->changeFS($restore->[0]);
