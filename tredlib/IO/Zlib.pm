@@ -307,6 +307,9 @@ sub opened
     return defined tied(*{$self})->{'file'};
 }
 
+sub BINMODE {1}
+sub FILENO {undef}
+
 sub AUTOLOAD
 {
     my $self = shift;
