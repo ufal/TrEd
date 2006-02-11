@@ -2,7 +2,7 @@
 
 package IOBackend;
 use Exporter;
-require File::Temp;
+use File::Temp 0.14 qw();
 use IO::File;
 use IO::Pipe;
 use strict;
@@ -108,25 +108,36 @@ sub open_pipe {
   return $fh;
 }
 
-sub open_file_posix {
+# open_file_zcat:
+#
+# This function represents the original strategy used on POSIX
+# systems. It turns out, however, that the calls to zcat/gzip cause
+# serious penalty on btred when loading large amount of files and also
+# cause the process' priority to lessen. It also turns out that we
+# cannot use IO::Zlib filehandles directly with some backends, such as
+# StorableBackend.
+#
+# I'm leaving the function here, but it is not used anymore.
+
+sub open_file_zcat {
   my ($file,$rw) = @_;
   my $fh;
   if (_is_gzip($file)) {
-    if (-x $gzip) {
+   if (-x $gzip) {
       $fh = new IO::Pipe();
       if ($rw eq 'w') {
 	$fh->writer("$gzip $gzip_opts > ".quote_filename($file)) || undef $fh;
       } else {
 	$fh->reader("$zcat $zcat_opts < ".quote_filename($file)) || undef $fh;
       }
-    }
-    unless ($fh) {
-      eval {
-	require IO::Zlib;
-	$fh = new IO::Zlib();
-      } || return undef;
-      $fh->open($file,$rw."b") || undef $fh;
-    }
+   }
+   unless ($fh) {
+     eval {
+       require IO::Zlib;
+       $fh = new IO::Zlib;
+     } || return undef;
+     $fh->open($file,$rw."b") || undef $fh;
+   }
   } else {
     $fh = new IO::File();
     $fh->open($file,$rw) || undef $fh;
@@ -134,13 +145,15 @@ sub open_file_posix {
   return $fh;
 }
 
-sub open_file_win32 {
+sub open_file {
   my ($file,$rw) = @_;
   my $fh;
   if (_is_gzip($file)) {
     eval {
-      $fh = new File::Temp(UNLINK => 1);
-    } && $fh || return undef;
+      $fh = File::Temp->new(UNLINK => 1);
+    };
+    die if $@;
+    return undef unless $fh;
     if ($rw eq 'w') {
       print "IOBackend: Storing ZIPTOFILE: $rw\n" if $Debug;
       ${*$fh}{'ZIPTOFILE'}=$file;
@@ -161,10 +174,6 @@ sub open_file_win32 {
     $fh->open($file,$rw) || return undef;
   }
   return $fh;
-}
-
-sub open_file {
-  ($^O eq 'MSWin32') ? &open_file_win32 : &open_file_posix;
 }
 
 sub fetch_file {
@@ -482,10 +491,11 @@ sub close_backend {
       my $tmp = new IO::Zlib();
       $tmp->open($filename,"wb") || die "Cannot write to $filename: $!\n";
       # binmode $tmp;
-      binmode $fh;
+      $fh->binmode;# $fh;
       $tmp->print(<$fh>);
       $tmp->close;
     }
   }
+  return 1 if UNIVERSAL::isa($fh,'IO::Zlib');
   return ref($fh) && $fh->close();
 }
