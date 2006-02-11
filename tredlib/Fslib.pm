@@ -2737,7 +2737,7 @@ sub test {
   if (ref($f) eq 'ARRAY') {
     return $f->[0]=~/^@/; 
   } elsif (ref($f)) {
-    binmode $f;
+    binmode $f unless UNIVERSAL::isa($f,'IO::Zlib');
     my $test = ($f->getline()=~/^@/);
     return $test;
   } else {
