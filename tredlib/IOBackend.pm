@@ -110,7 +110,7 @@ sub open_pipe {
 
 # open_file_zcat:
 #
-# This function represents the original strategy used on POSIX
+# Note: This function represents the original strategy used on POSIX
 # systems. It turns out, however, that the calls to zcat/gzip cause
 # serious penalty on btred when loading large amount of files and also
 # cause the process' priority to lessen. It also turns out that we
