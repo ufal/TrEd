@@ -264,7 +264,7 @@ import TrEd::Basics;
 @backends=('FSBackend',ImportBackends(
   split(/,/,$extra_backends),
   split(/,/,$ioBackends),
-  qw(NTREDBackend PMLBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend StorableBackend)));
+  qw(NTREDBackend StorableBackend PMLBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend)));
 
 
 # these are for macros
@@ -579,9 +579,10 @@ sub startMain {
 	if ($request{REQUEST_TYPE} eq 'LOAD_FILES') {
 	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
 	  my @new=split /\n/,$request{STATE_FILELIST};
-	  @files=(@files,@new);
+	  push @files,@new;
+
 	  eval {
-	    preloadFiles($grp,[@new],$hub);
+	    preloadFiles($grp,\@new,$hub);
 	    die $@ if $@ ;
 	  };
 	  if ($@) {
@@ -654,7 +655,7 @@ sub startMain {
 	      my $t0 = new Benchmark;
 	      my $regexp = $request{STATE_REGEXP_FILES};
 	      if (exists $request{STATE_FILELIST}) {
-		my @fl = grep { $_=~$regexp } split /\n/,$request{STATE_FILELIST};
+		my @fl = grep { !defined($regexp) or $_=~$regexp } split /\n/,$request{STATE_FILELIST};
 		foreach my $file (@fl) {
 		  # normalize urls
 		  my $goto;
@@ -717,7 +718,7 @@ sub startMain {
 	  my $regexp = $request{STATE_REGEXP_FILES};
 	  if (exists $request{STATE_FILELIST}) {
 	    _msg "Reloading files at client's request\n";
-	    my @fl = grep { $_=~$regexp and ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
+	    my @fl = grep { (!defined($regexp) or $_=~$regexp) and ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	    foreach my $file (@fl) {
 	      closePreloadedFile($grp,$file);
 	    }
@@ -727,7 +728,7 @@ sub startMain {
 	    };
 	  } elsif (defined($regexp)) {
 	    _msg "Reloading files matching /$regexp/ at client's request\n";
-	    my @fl = grep { $_=~$regexp and ref($grp->{preloaded}->{$_}) } keys %{$grp->{preloaded}};
+	    my @fl = grep { (!defined($regexp) or $_=~$regexp) and ref($grp->{preloaded}->{$_}) } keys %{$grp->{preloaded}};
 	    foreach my $file (@fl) {
 	      closePreloadedFile($grp,$file);
 	    }
@@ -795,12 +796,12 @@ sub startMain {
 	  _msg "Listing all open files at client's request\n";
 	  $hub->print("$control SERVER_RESPONSE_STDOUT\n");
 	  my $regexp = $request{STATE_REGEXP_FILES};
-	  _msg "regexp: /$regexp/\n" if $regexp;
 	  if (exists $request{STATE_FILELIST}) {
-	    my @f = grep { $_=~$regexp and ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
+	    my @f = grep { (!defined($regexp) or $_=~$regexp) and ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	    $hub->print(join("\n",@f),"\n") if @f;
 	  } else {
-	    $hub->print(join("\n",grep { $_=~$regexp } @files),"\n");
+	    $hub->print(join("\n",grep { !defined($regexp) or $_=~$regexp } 
+			       @files),"\n");
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST_SECONDARY') {
@@ -812,7 +813,7 @@ sub startMain {
 	      my @f = grep { $_=~$regexp and ref($grp->{secondary}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	      $hub->print(join("\n",@f),"\n") if @f;
 	    } else {
-	      $hub->print(join("\n",sort grep { $_=~$regexp } keys %{$grp->{secondary}}),"\n");
+	      $hub->print(join("\n",sort grep { !defined($regexp) or $_=~$regexp } keys %{$grp->{secondary}}),"\n");
 	    }
 	  }
 	  _end_response($control,$hub);
@@ -1035,7 +1036,7 @@ sub startMain {
 	      die $@ if $@;
 	      do {{
 		next unless ref($grp->{FSFile});
-		if (($grp->{'FSFile'}->filename =~ $regexp) and 
+		if ((!defined($regexp) or $grp->{'FSFile'}->filename =~ $regexp) and 
 		    (!$listed or $fl{ $grp->{'FSFile'}->filename })) {
 		  if ($request{REQUEST_TYPE} eq 'SAVE' or $grp->{FSFile}->notSaved()) {
 		    my ($out,$error) = saveFile($grp);
@@ -1089,7 +1090,7 @@ sub startMain {
 	    die $@ if $@;
 	    do {{
 	      next unless ref($grp->{FSFile});
-	      if (($grp->{'FSFile'}->filename =~ $regexp)
+	      if ((!defined($regexp) or $grp->{'FSFile'}->filename =~ $regexp)
 		  and (!$listed or $fl{ $grp->{'FSFile'}->filename })) {
 		closeFile($grp);
 	      }
@@ -1225,6 +1226,7 @@ sub prevFile {
 
 sub preloadFiles {
   my ($grp, $filelist, $errlog)=@_;
+  $errlog = \*STDERR unless ref($errlog);
   my $filecount=@$filelist;
   my $fno=1;
   foreach my $f (@$filelist) {
