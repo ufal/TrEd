@@ -421,13 +421,15 @@ sub _copy_output {
   my ($macro_stdout,$hub)=@_;
   $macro_stdout->flush();
   seek($macro_stdout,0,0);
-  my $space=1;
   _set_encoding($hub,$term_encoding,"socket to hub");
-  while (<$macro_stdout>) {
-    $hub->print($_);
-    $space=chomp;
+  $hub->autoflush(0);
+  my $l;
+  while ($l=<$macro_stdout>) {
+    $hub->print($l);
   }
-  $hub->print("\n") unless $space;
+  $hub->print("\n") unless chomp($l);
+  $hub->flush();
+  $hub->autoflush(1);
 }
 
 sub _revert_redirect_stdout {
@@ -446,7 +448,7 @@ sub _redirect_stdout {
   my $old;
   open $old, ">&STDOUT" or die "Can't dup STDOUT: $!";
   open(STDOUT, "+>&MOUT") or die "Can't redirect STDOUT: $!";
-  $new_out->autoflush(1);
+#  $new_out->autoflush(1);
   return $old;
 }
 
@@ -630,7 +632,7 @@ sub startMain {
 	    @{macro_variable('::ARGV')}=();
 	  }
 
-	  STDOUT->autoflush(1);
+	  #STDOUT->autoflush(1);
 	  # load macro
 	  _msg "COMPILING MACRO\n";
 	  chomp($request{STATE_CONTEXT});
