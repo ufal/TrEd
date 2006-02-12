@@ -851,28 +851,27 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
       msg "Receiving the server responses and printing it to STDOUT...\n";
       $first=0;
     }
-    if (/^\Q$control\E Response from (\S+)/) { # prasim
-      msg "Receiving response from $1\n";
-      $real_response=1;
-    } elsif (/^\Q$control\E HUB_RESPONSE_STDERR/) {
-      $out = \*STDERR;
-    } elsif (/^\Q$control\E SERVER_RESPONSE_STDOUT/) {
-      $out = \*STDOUT;
-    } elsif (/^\Q$control\E SERVER_RESPONSE_STDERR/) {
-      $out = \*STDERR;
-    } elsif (/^\Q$control\E SERVER_RESPONSE_STDOUT/) {
-      $out = \*STDOUT;
-    } elsif (/^\Q$control\E/) {
-      print STDERR $_ unless $quiet;
-    } else {
+    if (!/^\Q$control\E/o) {
       if ($real_response) {
 	print $out $_;
       } else {
 	msg "Hub send: $_";
       }
-    }
-    if (/^\Q$control\E END_OF_HUB_RESPONSE/) {
+    } elsif (/^\Q$control\E Response from (\S+)/o) {
+      msg "Receiving response from $1\n";
+      $real_response=1;
+    } elsif (/^\Q$control\E HUB_RESPONSE_STDERR/o) {
+      $out = \*STDERR;
+    } elsif (/^\Q$control\E SERVER_RESPONSE_STDOUT/o) {
+      $out = \*STDOUT;
+    } elsif (/^\Q$control\E SERVER_RESPONSE_STDERR/o) {
+      $out = \*STDERR;
+    } elsif (/^\Q$control\E SERVER_RESPONSE_STDOUT/o) {
+      $out = \*STDOUT;
+    } elsif (/^\Q$control\E END_OF_HUB_RESPONSE/) {
       last;
+    } else {
+      print STDERR $_ unless $quiet;
     }
   }
 
@@ -1009,6 +1008,7 @@ sub distribute_files2 {
       $success+=$server->{last_batch} if ($response eq 'OK');
       my @f=splice @totalfilelist,0,$files_per_request;
       $distributed_files += @f;
+      $server->{last_batch}= @f;
       if (@f) {
 	msg "Distributing ".scalar(@f)." files to $server->{fullname} ".
 	  "(".int((100*$distributed_files)/$all_files_count)."%)".
@@ -1030,7 +1030,7 @@ sub distribute_files2 {
       msg "All $all_files_count files have been successfully loaded :-)\n";
     } else {
       msg(("*"x75)."\n");
-      msg "PROBLEM: loading of some files (of $all_files_count) has failed!\n";
+      msg "PROBLEM: loading of some files (of $all_files_count) has failed! (Only $success confirmed as OK)\n";
       msg(("*"x75)."\n");
     }
   }
