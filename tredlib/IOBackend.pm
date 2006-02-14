@@ -490,8 +490,8 @@ sub close_backend {
       require IO::Zlib;
       my $tmp = new IO::Zlib();
       $tmp->open($filename,"wb") || die "Cannot write to $filename: $!\n";
-      # binmode $tmp;
-      $fh->binmode;# $fh;
+      # binmode $fh;
+      local $/;
       $tmp->print(<$fh>);
       $tmp->close;
     }
