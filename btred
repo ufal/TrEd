@@ -428,7 +428,7 @@ sub _copy_output {
     $l=<$macro_stdout>;
     $hub->print($l);
   }
-  $hub->print("\n") if defined($l) and !chomp($l);
+  $hub->print("\n") if $l ne "" and !chomp($l);
   $hub->flush();
   $hub->autoflush(1);
 }
