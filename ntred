@@ -698,10 +698,8 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 		  "all-nonhidden-nodes|H",
 		  $code ? () : ("execute|e=s"),
 		  $start_context ? () : ("context|t=s"),
-		  
 		 );
     }
-    print STDERR "All-trees: $all_trees,$no_all_trees\n"
   }
 
   $code ||= 'autostart()';
