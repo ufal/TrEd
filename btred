@@ -424,10 +424,11 @@ sub _copy_output {
   _set_encoding($hub,$term_encoding,"socket to hub");
   $hub->autoflush(0);
   my $l;
-  while ($l=<$macro_stdout>) {
+  while (!eof($macro_stdout)) {
+    $l=<$macro_stdout>;
     $hub->print($l);
   }
-  $hub->print("\n") unless chomp($l);
+  $hub->print("\n") if defined($l) and !chomp($l);
   $hub->flush();
   $hub->autoflush(1);
 }
