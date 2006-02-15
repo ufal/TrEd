@@ -689,15 +689,19 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     if ($TrEd::Macros::exec_code=~/^\S*[nb]tred\s(.*)$/) {
       local @ARGV=split /\s+/,$1;
       msg "Applying macro options: @ARGV\n";
-      local $all_trees if $no_all_trees;
-      local $all_nodes if $no_all_nodes;
+      local $optmap{"all-trees|T"} if $no_all_trees;
+      local $optmap{"all-nodes|N"} if $no_all_nodes;
+      local $optmap{"all-nonhidden-nodes|H"} if $no_all_nodes;
       GetOptions (map {$_ => $optmap{$_}}
 		  "all-trees|T",
 		  "all-nodes|N",
 		  "all-nonhidden-nodes|H",
 		  $code ? () : ("execute|e=s"),
-		  $start_context ? () : ("context|t=s"));
+		  $start_context ? () : ("context|t=s"),
+		  
+		 );
     }
+    print STDERR "All-trees: $all_trees,$no_all_trees\n"
   }
 
   $code ||= 'autostart()';
