@@ -343,6 +343,7 @@ sub ImportBackends {
 #
 
 package FSNode;
+use Carp;
 use strict;
 
 =pod
@@ -564,7 +565,7 @@ sub following {
 
 =pod
 
-=item following_visible (fsformat,top?)
+=item following_visible (FSFormat_object,top?)
 
 Return the next visible node of the subtree in the order given by
 structure (C<undef> if none). A node is considered visible if it has
@@ -624,7 +625,7 @@ sub previous {
 
 =pod
 
-=item previous_visible (fsformat,top?)
+=item previous_visible (FSFormat_object,top?)
 
 Return the next visible node of the subtree in the order given by
 structure (C<undef> if none). A node is considered visible if it has
@@ -689,7 +690,7 @@ sub leftmost_descendant {
 
 =pod
 
-=item getAttribute (name)
+=item getAttribute (attr_name)
 
 Return value of the given attribute.
 
@@ -753,6 +754,22 @@ sub flat_attr {
   }
 }
 
+=item set_attr (path,value,strict?)
+
+Set value of an attribute specified by a path of the form
+attr/subattr/[n]/subsubattr/[m], where [n] can be used to pick n-th
+element of a list or alternative.  If strict==0 and an alternative or
+list is encountered but no index is given, then 1st element of the
+list or alternative is used (except for the case when list or
+alternative is found in the last path step, in which case the entire
+list or alternative is overwritten by the given value). If strict==1
+and a list or an alternative is encountered in the value tree but no
+step of the form [n] is given, a warning is issued and undef is
+returned. If strict==2, the same approach as with strict==1 is taken,
+only errors are reported via a croak.
+
+=cut
+
 sub set_attr {
   my ($node,$path, $value, $strict) = @_;
   my $val = $node;
@@ -768,7 +785,9 @@ sub set_attr {
 	  return $value;
 	}
       } elsif ($strict) {
-	warn "Can't follow attribute path '$path' (step '$step')\n";
+	my $msg = "Can't follow attribute path '$path' (step '$step')";
+	croak $msg if ($strict==2);
+	warn $msg."\n";
 	return undef; # ERROR
       } else {
 	if (@steps) {
@@ -789,7 +808,9 @@ sub set_attr {
 	return $value;
       }
     } elsif (defined($val)) {
-      warn "Can't follow attribute path '$path' (step '$step')\n";
+      my $msg = "Can't follow attribute path '$path' (step '$step')";
+      croak $msg if ($strict==2);
+      warn $msg."\n";
       return undef; # ERROR
     } else {
       return '';
@@ -842,7 +863,7 @@ Return a list of visible dependent nodea.
 
 sub visible_children {
   my ($self,$fsformat) = @_;
-  die "required parameter missing for visible_children(fsformat)" unless $fsformat;
+  croak "required parameter missing for visible_children(fsformat)" unless $fsformat;
   my @children=();
   unless ($fsformat->isHidden($self)) {
     my $hid=$fsformat->hide;
@@ -881,7 +902,7 @@ Return a list recursively dependent visible nodes.
 
 sub visible_descendants($$) {
   my ($self,$fsformat) = @_;
-  die "required parameter missing for visible_descendants(fsfile)" unless $fsformat;
+  croak "required parameter missing for visible_descendants(fsfile)" unless $fsformat;
   my @kin=();
   my $desc=$self->following_visible($fsformat,$self);
   while ($desc) {
@@ -951,6 +972,7 @@ sub matches {
 }
 
 package FSAttribute;
+use Carp;
 
 sub new { # node, name, value
   my $class = shift;
@@ -982,6 +1004,7 @@ sub getNamespace { undef }
 #
 
 package FSFormat;
+use Carp;
 use strict;
 use vars qw(%Specials $AUTOLOAD $special);
 
@@ -1594,6 +1617,7 @@ sub clone_subtree {
 #
 
 package FSFile;
+use Carp;
 use strict;
 
 =head1 FSFile
@@ -1843,8 +1867,9 @@ sub readFile {
 	&{"${backend}::close_backend"}($fh);
       };
       if ($@) {
-	print STDERR "Error occured while reading '$file':\n";
-	print STDERR "$@\n";
+	print STDERR "Error occured while reading '$file' using backend ${backend}:\n";
+	my $err = $@; chomp $err;
+	print STDERR "$err\n";
 	$ret = -1;
       } else {
 	$ret = 0;
@@ -1860,7 +1885,13 @@ sub readFile {
 #       print STDERR "OPEN",$backend->can('open_backend'),"\n";
 #       print STDERR "REAL_TEST($file): ",&{"${backend}::test"}($file,$self->encoding),"\n";
 #     } if $Fslib::Debug;
-    print STDERR "$@\n" if $@;
+    if ($@) {
+      my $err = $@; chomp $err;
+      print STDERR "$err\n";
+    }
+  }
+  if ($ret == 1) {
+    print STDERR "Unknown file type (all IO backends failed): $file\n";
   }
   if ($url ne $file and $remove_file) {
     local $!;
@@ -1909,11 +1940,11 @@ sub writeFile {
   eval {
     no strict 'refs';
     my $fh;
-    $backend->can('write') || die "cant write\n";
-    $backend->can('open_backend') || die "cant open\n";
-    ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding)) || die "cant do open\n";
-    $ret=&{"${backend}::write"}($fh,$self) || die "can't do write\n";
-    &{"${backend}::close_backend"}($fh) || die "can't close\n";
+    $backend->can('write') || die "Backend $backend does not support writing\n";
+    $backend->can('open_backend') || die "Backend $backend does not support open\n";
+    ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding)) || die "Open failed on '$filename' using backend $backend\n";
+    $ret=&{"${backend}::write"}($fh,$self) || die "Write to '$filename' failed using backend $backend\n";
+    &{"${backend}::close_backend"}($fh) || die "Closing file '$filename' failed using backend $backend\n";
     print STDERR "Status: $ret\n" if $Fslib::Debug;
   };
   if ($@) {
@@ -2017,7 +2048,7 @@ sub fileFormat {
 
 =pod
 
-=item changeFileFormat
+=item changeFileFormat(string)
 
 Change file format indentifier.
 
@@ -2045,7 +2076,7 @@ sub backend {
 
 =pod
 
-=item changeBackend
+=item changeBackend(string)
 
 Change file backend.
 
@@ -2072,7 +2103,7 @@ sub encoding {
 
 =pod
 
-=item changeEncoding
+=item changeEncoding(string)
 
 Change file character encoding (used by Perl 5.8 input/output filters).
 
@@ -2102,7 +2133,7 @@ sub userData {
 
 =pod
 
-=item changeUserData
+=item changeUserData(value)
 
 Change user data associated with the file. User data are not supposed
 to be persistent and IO backends should ignore it.
@@ -2216,7 +2247,7 @@ sub FS {
 
 =pod
 
-=item changeFS
+=item changeFS(FSFormat_object)
 
 Associate FS file with a new FSFormat object.
 
@@ -2245,7 +2276,7 @@ sub hint {
 
 =pod
 
-=item changeHint
+=item changeHint(string)
 
 Change the Tred's hint pattern associated with this FSFile.
 
@@ -2296,7 +2327,7 @@ sub patterns {
 
 =pod
 
-=item changePatterns
+=item changePatterns(list)
 
 Change the list of display attribute patterns associated with this FSFile.
 
@@ -2324,7 +2355,7 @@ sub tail {
 
 =pod
 
-=item tail
+=item changeTail(list)
 
 Modify the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
@@ -2353,7 +2384,7 @@ sub trees {
 
 =pod
 
-=item trees
+=item changeTrees (list)
 
 Assign a new list of trees.
 
@@ -2397,7 +2428,7 @@ sub tree {
 
 =pod
 
-=item changeTreeList (new_trees)
+=item changeTreeList (list_ref)
 
 Associate a new reference to a list of trees with the this FSFile.
 The referenced array must be a list of FSNode objects representing all
@@ -2680,6 +2711,7 @@ sub destroy_tree {
 #
 
 package FSBackend;
+use Carp;
 use vars qw($CheckListValidity $emulatePML);
 use strict;
 use IOBackend qw(open_backend close_backend);
@@ -3161,6 +3193,7 @@ This class implements the attribute value type 'list'.
 =cut
 
 package Fslib::List;
+use Carp;
 
 =item new(value?,...)
 
@@ -3194,6 +3227,7 @@ This class implements the attribute value type 'alternative'.
 =cut
 
 package Fslib::Alt;
+use Carp;
 
 =item new(value?,...)
 
@@ -3235,6 +3269,7 @@ favourable or not, is yet to be discovered.
 =cut
 
 package Fslib::Schema;
+use Carp;
 
 use vars qw($preserve_order);
 
@@ -3294,7 +3329,7 @@ sub readFrom {
   my ($self,$file)=@_;
   print STDERR "parsing schema $file\n" if $Fslib::Debug;
   my $fh = eval { IOBackend::open_backend($file,'r') };
-  die "Couldn't open PML schema file '$file'\n".$@ if (!$fh || $@);
+  croak "Couldn't open PML schema file '$file'\n".$@ if (!$fh || $@);
   local $/;
   my $slurp = <$fh>;
   close $fh;
@@ -3419,6 +3454,7 @@ sub attributes {
 ###############################################################3
 
 package Fslib::Type;
+use Carp;
 
 =head1 Fslib::Type
 
