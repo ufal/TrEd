@@ -1139,12 +1139,12 @@ sub startMain {
     $code||="autostart()"; # this is the default macro name
     init_safe_mode($grp) if $safe;
     my $pre='';
-    $pre .= "do { " if ($all_trees);
-    $pre .= "while (\$this) {" if ($all_nodes or $all_nonhidden_nodes);
-    my $post.= "\$this=\$this->following; \n}" if ($all_nodes);
-    $post.= "\$this=\$this->following_visible(\$grp->{FSFile}->FS); \n}"
+    $pre .= q[if ($root) { do {{ ] if ($all_trees);
+    $pre .= q[while ($this) {] if ($all_nodes or $all_nonhidden_nodes);
+    my $post.= q[$this=$this->following; ]."\n}" if ($all_nodes);
+    $post.= q[$this=$this->following_visible($grp->{FSFile}->FS); ]."\n}"
       if (not $all_nodes and $all_nonhidden_nodes);
-    $post.= " } while TredMacro::NextTree();" if ($all_trees);
+    $post.= q[ }} while TredMacro::NextTree(); }] if ($all_trees);
     my $premacro= <<EOL;
 package $context;
 sub _btred_eval_ {
@@ -1902,7 +1902,7 @@ TrEd configuration file.
 =item B<--all-trees|-T>
 
 Apply the macro code to all trees (wrapping the code into a
-C<do {{ CODE }} while TredMacro::NextTree()> loop).
+C<if ($root) { do {{ CODE }} while TredMacro::NextTree() }> loop).
 
 =item B<--all-nodes|-N>
 
