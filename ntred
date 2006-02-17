@@ -710,7 +710,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     $code = "while (\$this) { $code ; \$this=\$this->following }";
   }
   if ($all_trees) {
-    $code = "do { $code } while TredMacro::NextTree();";
+    $code = "if (\$root) { do {{ $code }} while TredMacro::NextTree() }";
   }
 
   my $request="";
@@ -1228,7 +1228,7 @@ The port on which the hub is listening (defaults to 1500).
 =item B<--all-trees|-T>
 
 Run the query code on all trees (wrapping the code into a
-C<do { CODE } while TredMacro::NextTree()> loop).
+C<if ($root) { do {{ CODE }} while TredMacro::NextTree() }> loop).
 
 =item B<--all-nodes|-N>
 
