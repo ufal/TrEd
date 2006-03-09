@@ -3067,11 +3067,13 @@ sub ParseFSTree {
   }
 
   if ($l=~/^\[/o) {
+    $l=~s/&/&amp;/g;
+    $l=~s/\\\\/&backslash;/g;
     $l=~s/\\,/&comma;/g;
     $l=~s/\\\[/&lsqb;/g;
     $l=~s/\\]/&rsqb;/g;
-    $l=~s/\\\\/&backslash;/g;
     $l=~s/\\=/&eq;/g;
+    $l=~s/\\//g;
     $l=~s/\r//g;
     $curr=$root=ParseFSNode($fsformat,\$l,$ordhash,$emu_schema_type);   # create Root
 
@@ -3162,8 +3164,9 @@ sub ParseFSNode {
       $v=~s/&comma;/,/g;
       $v=~s/&lsqb;/[/g;
       $v=~s/&rsqb;/]/g;
-      $v=~s/&backslash;/\\/g;
       $v=~s/&eq;/=/g;
+      $v=~s/&backslash;/\\/g;
+      $v=~s/&amp;/&/g;
       if ($emu_schema_type and $a=~/\//) {
 	$node->set_attr($a,$v);
       } else {
