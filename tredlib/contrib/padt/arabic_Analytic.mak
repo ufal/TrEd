@@ -633,13 +633,13 @@ sub default_ar_attrs {
 
     return unless $grp->{FSFile};
 
-    my $pattern = 'node:#{custom2}${tag}';
+    my ($type, $pattern) = ('node:', '#{custom2}${tag}');
 
-    my ($hint, $style) = GetStylesheetPatterns();
+    my ($hint, $cntxt, $style) = GetStylesheetPatterns();
 
-    my @filter = grep { $_ ne $pattern } @{$style};
+    my @filter = grep { $_ !~ /^(?:\Q${type}\E\s*)?\Q${pattern}\E$/ } @{$style};
 
-    SetStylesheetPatterns([ $hint, [ @filter, @{$style} == @filter ? $pattern : () ] ]);
+    SetStylesheetPatterns([ $hint, $cntxt, [ @filter, @{$style} == @filter ? $type . ' ' . $pattern : () ] ]);
 
     ChangingFile(0);
 

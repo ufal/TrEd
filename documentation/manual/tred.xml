@@ -8301,7 +8301,6 @@ sgml-indent-step:2
 sgml-indent-data:t
 sgml-parent-document:nil
 sgml-exposed-tags:nil
-sgml-local-catalogs:("/home/pajas/lib/sgml-tools/dtd/catalog" "/home/pajas/lib/sgml/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/docbook/3.1/docbook.cat /home/pajas/share/sgml/stylesheets/docbook/catalog /home/pajas/share/sgml/entities/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/jade/dsssl.cat /home/pajas/share/sgml/stylesheets/sgmltools/sgmltools.cat /home/pajas/share/sgml/dtd/sgmltools/catalog")
 sgml-local-ecat-files:nil
 End:
 -->

@@ -702,10 +702,6 @@ sub GetChildren_AR{ # node filter dive
   grep &$filter($_),@sons;
 } # GetChildren_AR
 
-
-
-#####include /home/stepanek/objsearch/tgsearch.btred
-
 sub FilterSons_TR { # node filter suff from
   my ($node,$filter,$suff,$from)=(shift,shift,shift,shift);
   my @sons;

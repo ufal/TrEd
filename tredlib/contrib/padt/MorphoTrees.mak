@@ -208,7 +208,7 @@ sub switch_either_context {
 
     $Redraw = 'win' if $_[0] eq __PACKAGE__;
 
-    my $quick = shift;
+    my $quick = $_[0];
     my @refs;
 
     if ($root->{'type'} eq 'paragraph') {
@@ -441,8 +441,8 @@ sub follow_apply_m_up {
 
     { do {
 
-        $node = main::HNext($grp, $node) until not $node or $node->level() == $level;
-        $done = main::HPrev($grp, $done) until not $done or $done->level() == $level;
+        $node = main::NextDisplayed($grp, $node) until not $node or $node->level() == $level;
+        $done = main::PrevDisplayed($grp, $done) until not $done or $done->level() == $level;
 
         if ($node) {
 
@@ -452,7 +452,7 @@ sub follow_apply_m_up {
                 last;
             }
 
-            $node = main::HNext($grp, $node);
+            $node = main::NextDisplayed($grp, $node);
         }
 
         if ($done) {
@@ -463,7 +463,7 @@ sub follow_apply_m_up {
                 last;
             }
 
-            $done = main::HPrev($grp, $done);
+            $done = main::PrevDisplayed($grp, $done);
         }
     }
     while $node or $done; }
@@ -521,7 +521,7 @@ sub ctrl_currentRightWholeLevel {    # modified copy of main::currentRightWholeL
 
     do {
 
-        $node = main::HNext($grp, $node);
+        $node = main::NextDisplayed($_[0], $node);
     }
     until not $node or $level == $node->level() and $node->{'apply_m'} > 0;
 
@@ -537,7 +537,7 @@ sub ctrl_currentLeftWholeLevel {     # modified copy of main::currentLeftWholeLe
 
     do {
 
-        $node = main::HPrev($grp, $node);
+        $node = main::PrevDisplayed($_[0], $node);
     }
     until not $node or $level == $node->level() and $node->{'apply_m'} > 0;
 
@@ -588,6 +588,10 @@ sub edit_comment {
         return;
     }
 
+    my $switch = $this->{'type'} eq 'token_node' || $this->{'type'} eq 'lemma_id';
+
+    switch_either_context() if $switch;
+
     my $value = $this->{$comment};
 
     $value = main::QueryString($grp->{framegroup}, "Enter comment", $comment, $value);
@@ -599,6 +603,10 @@ sub edit_comment {
         $Redraw = 'tree';
         ChangingFile(1);
     }
+
+    switch_either_context() if $switch;
+
+    $this->{$comment} = $value if defined $value;
 }
 
 # ##################################################################################################
@@ -792,7 +800,7 @@ sub reflect_choice {
 
         unless ($node->{'ref'} eq $twig->{'ord'}) {
 
-            $node->{$_} = $twig->{$_} for qw 'form id type';
+            $node->{$_} = $twig->{$_} for qw 'form id type comment';
             $node->{'ref'} = $twig->{'ord'};
             $node->{'apply_m'} = 1;
         }
@@ -801,7 +809,7 @@ sub reflect_choice {
 
         unless ($node->{'ref'} eq $leaf->{'ord'}) {
 
-            $node->{$_} = $leaf->{$_} for qw 'form id type tag gloss apply_t';
+            $node->{$_} = $leaf->{$_} for qw 'form id type comment gloss apply_t tag';
             $node->{'ref'} = $leaf->{'ord'};
             $node->{'apply_m'} = 1;
         }
@@ -1200,7 +1208,7 @@ For reference, see the list of MorphoTrees macros and key-bindings in the User-d
 
 TrEd Tree Editor L<http://ufal.mff.cuni.cz/~pajas/tred/>
 
-Prague Arabic Dependency Treebank L<http://ufal.mff.cuni.cz/padt/>
+Prague Arabic Dependency Treebank L<http://ufal.mff.cuni.cz/padt/online/>
 
 
 =head1 AUTHOR
