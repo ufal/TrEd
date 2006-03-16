@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "file:///home/pajas/share/sgml/dtd/docbookx/docbookx.dtd">
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN" "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <article>
   <articleinfo>
     <title>Converting between SGML and FS</title>
@@ -325,7 +325,6 @@ sgml-indent-step:2
 sgml-indent-data:t
 sgml-parent-document:nil
 sgml-exposed-tags:nil
-sgml-local-catalogs:("/home/pajas/lib/sgml-tools/dtd/catalog" "/home/pajas/lib/sgml/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/docbook/3.1/docbook.cat /home/pajas/share/sgml/stylesheets/docbook/catalog /home/pajas/share/sgml/entities/iso-entities-8879.1986/iso-entities.cat /home/pajas/share/sgml/dtd/jade/dsssl.cat /home/pajas/share/sgml/stylesheets/sgmltools/sgmltools.cat /home/pajas/share/sgml/dtd/sgmltools/catalog")
 sgml-local-ecat-files:nil
 End:
 -->
