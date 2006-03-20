@@ -1191,7 +1191,7 @@ sub setLock {
     warn "Error creating lock-file: "._last_err()."\n";
     return undef;
   };
-  chmod 644, $lock if $proto eq 'file';
+  chmod 0644, $lock if ($^O ne "MSWin32" and $proto eq 'file');
   my $mtime = [stat($f)]->[9];
   my $lockinfo = "by user ".$userlogin.'@'.$ENV{HOSTNAME}." pid ".$$." at ".localtime()." mtime: $mtime";
   $lock->print($lockinfo)."\n";
