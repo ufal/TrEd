@@ -90,22 +90,10 @@ sub valid_frames_for {
   my @resolve;
   my %resolved;
 
-#  print "Start: ",$self->frame_id($frame),"\n";
   while (@resolve = grep { $_->getAttribute('status') eq 'substituted' and $_->getAttribute('substituted_with') ne "" } @frames) {
-#    foreach (@resolve) {
-#      print "resolving ",$self->frame_id($_)," to ",$_->getAttribute('substituted_with'),"\n";
-#    }
     @resolved{map { $self->frame_id($_) } @resolve} = ();
     @frames = _uniq grep { !exists($resolved{$self->frame_id($_)}) } (@frames, map { $self->by_id($_->getAttribute('substituted_with')) } @resolve);
-#    print "resolve: ",join(" ",map { $self->frame_id($_) } @resolve),"\n";
-#    @frames = (@frames, map { $self->by_id($_->getAttribute('substituted_with')) } @resolve);
-#    print "Step1: ",join(" ",map { $self->frame_id($_) } @frames),"\n";
-#    @frames = grep { !exists($resolved{$self->frame_id($_)}) } @frames;
-#    print "Step2: ",join(" ",map { $self->frame_id($_) } @frames),"\n";
-#    @frames = _uniq @frames;
-#    print "Step3: ",join(" ",map { $self->frame_id($_) } @frames),"\n";
   }
-#  print "Result: ",join(" ",map { $self->frame_id($_) } grep { $self->is_valid_frame($_) } @frames),"\n";
   return grep { $self->is_valid_frame($_) } @frames;
 }
 
