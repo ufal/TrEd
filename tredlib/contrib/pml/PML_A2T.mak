@@ -54,7 +54,7 @@ sub CreateTFile {
 
   my $schema_file = Fslib::ResolvePath($fsfile->filename,
 				       'tdata_schema.xml',1);
-  $fsfile->changeMetaData('schema-url',$schema_file);
+  $fsfile->changeMetaData('schema-url','tdata_schema.xml');
   $fsfile->changeMetaData('schema',Fslib::Schema->readFrom($schema_file));
 
   $fsfile->changeMetaData('references',{ a => $a_file->filename,
