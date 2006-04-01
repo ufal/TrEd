@@ -7671,9 +7671,10 @@ B<Features:>
   C<Oval-width          >- width of the outline of a node shape
   C<Oval-activewidth    >- width of the outline of an active node shape
   C<Line-coords         >- coordinations of the edge(s) to be drawn.
-  C<                    >  Default: n,n,p,p. (See the documentation for more info.)
+  C<                    >  Default: n,n,p,p (see the documentation)
   C<Line-arrow          >- side of an edge to put an arrow on: first, both, last
   C<Line-smooth         >- 1 if the line should be drawn as a curve, 0 otherwise.
+  C<Line-tag            >- tags passed to line_click_hook (see the documentation)
   C<Line-...            >- ...=dash, activedash, dashoffset, fill, activefill,
   C<Line-...            >  width, activewidth
   C<TextBox-...         >- ...=dash, activedash, dashoffset, fill, activefill,
