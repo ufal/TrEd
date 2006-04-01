@@ -146,6 +146,11 @@ text_doubleclick_hook node,attr,mod    no       called when an attribute is
                                                 double-clicked with a modifier
                                                 Ctrl/Alt/Shift/Meta/...
 
+line_click_hook node,tag,button,double,mod,ev	no    called when an edge is
+                                                clicked. node=origin, 
+						tag=value of #{Line-tag:} style,
+						button=1,2,3, double=0,1,
+                                                modif=Control,Alt,Shift,Meta, ev=Tk::XEvent
 
 node_moved_hook		node,old-parent	no      called after a node is
                                                 moved using a mouse
