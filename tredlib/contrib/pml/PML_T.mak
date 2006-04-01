@@ -316,7 +316,7 @@ x$T,y$T
 
 COORDS
       push @coords,$c;
-
+      push @tags,$cortype;
     } else { # should be always the same document, if it exists at all
       my($refed,$treeNo)=SearchForNodeById($coref);
       my $orientation=$treeNo-CurrentTreeNumber()-1;
@@ -328,12 +328,14 @@ COORDS
 	  push @colors,CustomColor('arrow_'.$cortype);
 	  push @dash,1;
 	  push @coords,"\&n,n,n-30,n+$rotate_prv_snt";
+	  push @tags,$cortype;
 	  $rotate_prv_snt+=10;
 	}else{ #right
 	  print STDERR "ref-arrows: Following sentence\n" if $main::macroDebug;
 	  push @colors,CustomColor('arrow_'.$cortype);
 	  push @dash,1;
 	  push @coords,"\&n,n,n+30,n+$rotate_nxt_snt";
+	  push @tags,$cortype;
 	  $rotate_nxt_snt+=10;
 	}
       }else{
@@ -341,6 +343,7 @@ COORDS
 	push @colors,CustomColor('error');
 	push @dash,1;
 	push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
+	push @tags,$cortype;
 	$rotate_dfr_doc+=10;
       }
     }
@@ -350,6 +353,7 @@ COORDS
     push @colors,CustomColor('arrow_segment');
     push @dash,1;
     push @coords,"&n,n,n-25,n+$rotate_prv_snt";
+    push @tags,'segm';
     $rotate_prv_snt+=10;
   }
   if($node->{coref_special}eq'exoph') {
@@ -357,6 +361,7 @@ COORDS
     push @colors,CustomColor('arrow_exoph');
     push @dash,1;
     push @coords,"&n,n,n+$rotate_dfr_doc,n-25";
+    push @tags,'exoph';
     $rotate_dfr_doc+=10;
   }
   $line->{-coords} ||= 'n,n,p,p';
@@ -374,6 +379,7 @@ COORDS
 	     -dash => $line->{-dash}.join('&','',@dash),
 	     -width => $line->{-width}.('&1' x @coords),
 	     -fill => $line->{-fill}.join("&","",@colors),
+	     -tag => $line->{-tag}.join("&","",@tags),
 	     -smooth => $line->{-smooth}.('&1' x @coords));
   }
 }
