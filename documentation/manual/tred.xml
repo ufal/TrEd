@@ -3498,9 +3498,26 @@ Tk: 804.027
 		may be used to make arrow to be drawn
 		on one or both sides of the edge connecting
 		the given node with its parent.
+		If multiple lines pertain to a node,
+		values for individual lines should be separated by
+		<literal moreinfo="none">&amp;</literal>
+		  in the same order in which lines are specified in <literal>Line-coords</literal>.
+	      </para>
 	      </para>
 	    </entry>
           </row>
+	  <row>
+	    <entry><literal moreinfo="none">Line-tag</literal></entry>
+	    <entry><para>Values are arbitrary strings
+		  that will be passed to <literal>line_click_hook</literal>
+		  if the line is clicked.
+		If multiple lines pertain to a node,
+		values for individual lines should be separated by
+		<literal moreinfo="none">&amp;</literal>
+		  in the same order in which lines are specified in <literal>Line-coords</literal>.
+              </para>
+	    </entry>
+	  </row>
 	  <row>
 	    <entry><literal moreinfo="none">Line-smooth</literal></entry>
 	    <entry><para>Values are 1 or 0.
@@ -3510,6 +3527,10 @@ Tk: 804.027
               and third, and so on.  Straight-line segments can be generated
               within a curve by duplicating the end-points of the desired line
               segment.
+		If multiple lines pertain to a node,
+		values for individual lines should be separated by
+		<literal moreinfo="none">&amp;</literal>
+		  in the same order in which lines are specified in <literal>Line-coords</literal>.
               </para>
 	    </entry>
 	  </row>
@@ -3525,6 +3546,10 @@ Tk: 804.027
 		may be used to style the edge. Their values and
 		meaning is similar to those of <literal moreinfo="none">Oval</literal>,
 		as described above.
+		If multiple lines pertain to a node,
+		values for individual lines should be separated by
+		<literal moreinfo="none">&amp;</literal>
+		  in the same order in which lines are specified in <literal>Line-coords</literal>.
 	      </para></entry>
           </row>
 	  <row>
