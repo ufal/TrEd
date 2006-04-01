@@ -4474,32 +4474,33 @@ sub createCanvasBindings {
 
   ## Canvas bindings 
   $canvas->CanvasBind('<ButtonPress>',[\&focusCanvas,$grp]);
-  $canvas->bind('text',
-		'<Any-Enter>'
-		=> [sub{
-		      my ($c,$grp)=@_;
-		      my $win=findCanvasWindow($grp,$c);
-		      my $tv=$win->{treeView};
-		      my ($t)=$tv->find_item('withtag','current');
-		      my $node=$tv->get_obj_pinfo($t);
-		      $tv->store_node_pinfo($node,"SaveColor",
-					    $c->itemcget($t,'-fill'));
-		      $c->itemconfigure($t,-fill=> $activeTextColor);
-		    }, $grp]);
+  foreach my $tag (qw(text line)) {
+    $canvas->bind($tag,
+		  '<Any-Enter>'
+		    => [sub{
+			  my ($c,$grp)=@_;
+			  my $win=findCanvasWindow($grp,$c);
+			  my $tv=$win->{treeView};
+			  my ($t)=$tv->find_item('withtag','current');
+			  my $node=$tv->get_obj_pinfo($t);
+			  $tv->store_node_pinfo($node,"SaveColor",
+						$c->itemcget($t,'-fill'));
+			  $c->itemconfigure($t,-fill=> $activeTextColor);
+			}, $grp]);
 
-  $canvas->bind('text',
-		'<Any-Leave>'
-		=> [sub{
-		      my ($c,$grp)=@_;
-		      my $win=findCanvasWindow($grp,$c);
-		      my $tv=$win->{treeView};
-		      my ($t)=$tv->find_item('withtag','current');
-		      my $node=$tv->get_obj_pinfo($t);
-		      $c->itemconfigure('current',
-					-fill=>
-					$tv->get_node_pinfo($node,"SaveColor"));
-		    }, $grp]);
-
+    $canvas->bind($tag,
+		  '<Any-Leave>'
+		    => [sub{
+			  my ($c,$grp)=@_;
+			  my $win=findCanvasWindow($grp,$c);
+			  my $tv=$win->{treeView};
+			  my ($t)=$tv->find_item('withtag','current');
+			  my $node=$tv->get_obj_pinfo($t);
+			  $c->itemconfigure('current',
+					    -fill=>
+					      $tv->get_node_pinfo($node,"SaveColor"));
+			}, $grp]);
+  }
   # Button-1
   $canvas->bind('point', '<1>'=> [sub {node_down(@_) },$grp,0]);
   foreach (qw(Shift Control Alt Meta)) {
@@ -4580,6 +4581,38 @@ sub createCanvasBindings {
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('textbg', "<$_-Double-3>"=> [sub {text_doubleclick_modif(@_)},$grp,$_."-3"]);
   }
+
+  # Line clicks
+  for my $modif (undef,qw(Shift Control Alt Meta)) {
+    for my $clicktype ('Button','Double') {
+      for my $button (1..3) {
+	my $event = join '-',grep {defined} ($modif, $clicktype, $button);
+	$canvas->bind('line', "<$event>"=> 
+			[
+			  sub {line_click(@_)},$grp,
+			  $button,
+			  $clicktype eq 'Double' ? 1 : 0,
+			  $modif
+			 ]);
+      }
+    }
+  }
+  
+  
+  # Text 1
+  $canvas->bind('text', '<1>'=> [sub {node_down(@_) },$grp,0]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('text', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
+  }
+
+  # Text Dobule-1
+  $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
+  }
+
+
+
 }
 
 sub startMain {
@@ -8243,35 +8276,47 @@ sub text_doubleclick_modif {
   my $win=findCanvasWindow($grp,$w);
   return unless($win and $win->{FSFile});
   my $attr;
-  my $newvalue;
 
   my $tv=$win->{treeView};
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
-  my $d;
   setCurrent($win,$node);
   $attr=$tv->get_gen_pinfo("attr:$t");
 
   doEvalHookWithUndo($win,"text_doubleclick_hook",$node,$attr,$mod, $w->XEvent);
 }
 
-sub text_doubleclick_modif {
+sub text_click_modif {
   my ($w,$grp,$mod)=@_;
   my $win=findCanvasWindow($grp,$w);
   return unless($win and $win->{FSFile});
   my $attr;
-  my $newvalue;
 
   my $tv=$win->{treeView};
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
-  my $d;
   setCurrent($win,$node);
   ensureCurrentIsDisplayed($win);
   $attr=$tv->get_gen_pinfo("attr:$t");
 
   doEvalHookWithUndo($win,"text_click_hook",$node,$attr,$mod, $w->XEvent);
 }
+
+sub line_click {
+  my ($w,$grp,$button,$double,$modif)=@_;
+  my $win=findCanvasWindow($grp,$w);
+  return unless($win and $win->{FSFile});
+
+  my $tv=$win->{treeView};
+  my ($t)=$tv->find_item('withtag','current');
+  my $node=$tv->get_obj_pinfo($t);
+  setCurrent($win,$node);
+  ensureCurrentIsDisplayed($win);
+  my $tag=$tv->get_gen_pinfo("tag:$t");
+    
+  doEvalHookWithUndo($win,"line_click_hook",$node,$tag,$button, $double,$modif, $w->XEvent);
+}
+
 
 sub editAttrs {
   my ($w,$grp)=@_;
@@ -8286,16 +8331,12 @@ sub editAttr {
   my ($w,$grp)=@_;
   my $win=findCanvasWindow($grp,$w);
   return unless($win and $win->{FSFile});
-  my $attr;
-  my $newvalue;
-
   my $tv=$win->{treeView};
   my ($t)=$tv->find_item('withtag','current');
   my $node=$tv->get_obj_pinfo($t);
-  my $d;
   setCurrent($win,$node);
   ensureCurrentIsDisplayed($win);
-  $attr=$tv->get_gen_pinfo("attr:$t");
+  my $attr=$tv->get_gen_pinfo("attr:$t");
 
   doEditAttr($win,$node,$attr);
 }
