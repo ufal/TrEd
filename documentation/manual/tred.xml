@@ -7494,7 +7494,7 @@ sub MakeSentence {
 	    <row id="line_click_hook">
 	      <entry><literal moreinfo="none">line_click_hook</literal></entry>
 		<entry>no</entry> 
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>tag</replaceable>,<replaceable>button</replaceable>,<replaceable>double</replaceable>,<replaceable>mod</replaceable></literal></para><para>Called when a line (segment of an edge) is clicked or double-clicked. Argument values are as follows:
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>tag</replaceable>,<replaceable>button</replaceable>,<replaceable>double</replaceable>,<replaceable>mod</replaceable>,<replaceable>XEvent</replaceable></literal></para><para>Called when a line (segment of an edge) is clicked or double-clicked. Argument values are as follows:
 		  <replaceable>node</replaceable> is the node the line pertains to (i.e. the one whose stylesheet specification caused the line to be drawn); <replaceable>tag</replaceable>
 		  is the part of the stylesheet value <literal>Line-tag</literal>
 		  corresponding to the particular segment of the  line;
@@ -7504,7 +7504,10 @@ sub MakeSentence {
 		  is a keyboard modifier (<literal moreinfo="none">Control</literal>,
 		<literal moreinfo="none">Shift</literal>,
 		<literal moreinfo="none">Alt</literal>, or
-		<literal moreinfo="none">Meta</literal>).		  
+		<literal moreinfo="none">Meta</literal>);
+		  <replaceable>XEvent</replaceable> is a <literal>Tk::XEvent</literal> object
+		  which can be used to obtain detailed information
+		  of the event (such as position of the mouse pointer, etc.).
 		  The hook is responsible for calling
 		<literal moreinfo="none">Redraw_FSFile_Tree()</literal> or
 		similar default macro to redraw the tree as well as for 
@@ -7514,7 +7517,7 @@ sub MakeSentence {
 	    <row id="node_moved_hook">
 	      <entry><literal moreinfo="none">node_moved_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>old-parent)</replaceable></literal></para><para>called after a node is moved using a mouse</para></entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>old-parent</replaceable></literal></para><para>called after a node is moved using a mouse</para></entry>
 	    </row>
 	    <row id="current_node_change_hook">
 	      <entry><literal moreinfo="none">current_node_change_hook</literal></entry>
@@ -7623,7 +7626,7 @@ sub MakeSentence {
 	    <row id="node_click_hook">
 	      <entry><literal moreinfo="none">node_click_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed when the user clicks on a node
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>XEvent</replaceable></literal></para><para>Executed when the user clicks on a node
 		with a mouse button while holding a keyboard modifier
 		(one of <keycap moreinfo="none">Shift</keycap>, <keycap moreinfo="none">Control</keycap>,
 		<keycap moreinfo="none">Alt</keycap>, <keycap moreinfo="none">Meta</keycap>).
@@ -7633,15 +7636,15 @@ sub MakeSentence {
 		<literal moreinfo="none">-3</literal> has been appended 
 		if the user pressed mouse button <mousebutton moreinfo="none">2</mousebutton>
 		or <mousebutton moreinfo="none">3</mousebutton> respectivelly.
-		The third argument is the raw Tk-XEvent object
-		which can be used to obtain detailed information
-		(such as coordinates) of the event.
+		The last argument is a raw <literal>Tk::XEvent</literal> object
+		  which can be used to obtain details about 
+		  the event (such as position of the mouse pointer, etc.).
 	      </para></entry>
 	    </row>
 	    <row id="node_motion_hook">
 	      <entry><literal moreinfo="none">node_motion_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed repeatedly while the user drags 
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>modifier</replaceable>,<replaceable>XEvent</replaceable></literal></para><para>Executed repeatedly while the user drags 
 		a node while holding a keyboard modifier.
 		Arguments passed to this hook
 		are same as for the <literal moreinfo="none">node_click_hook</literal>.
@@ -7650,10 +7653,10 @@ sub MakeSentence {
 	    <row id="text_click_hook">
 	      <entry><literal moreinfo="none">text_click_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>attribute</replaceable>,<replaceable>modifier</replaceable>,<replaceable>Tk-Event</replaceable></literal></para><para>Executed when the user double-clicks on
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>attribute</replaceable>,<replaceable>modifier</replaceable>,<replaceable>XEvent</replaceable></literal></para><para>Executed when the user double-clicks on
 		a node label linked to a particular node attribute.
 		The <replaceable>modifier</replaceable> and 
-		<replaceable>Tk-Event</replaceable> arguments are 
+		<replaceable>XEvent</replaceable> arguments are 
 		as described in <literal moreinfo="none">node_click_hook</literal> above.
 	      </para></entry>
 	    </row>
