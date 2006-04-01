@@ -390,7 +390,9 @@ sub read_node ($$$;$) {
       } elsif ($members->{$name}) {
 	warn "Member '$name' not declared as attribute of "._element_address($node);
       } else {
-	warn "Undeclared attribute '$name' of "._element_address($node);
+	unless ($name =~ /^xml(?:ns)?(?:$|:)/) {
+	  warn "Undeclared attribute '$name' of "._element_address($node);
+	}
       }
     }
 
