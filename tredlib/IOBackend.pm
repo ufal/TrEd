@@ -6,6 +6,7 @@ use File::Temp 0.14 qw();
 use IO::File;
 use IO::Pipe;
 use strict;
+use Carp;
 
 use vars qw(@ISA $VERSION @EXPORT @EXPORT_OK
 	    $Debug
@@ -466,8 +467,10 @@ sub open_backend {
   $filename =~ s/^\s*|\s*$//g;
   if ($rw eq 'r') {
     set_encoding(open_file($filename,$rw),$encoding);
-  } else {
+  } elsif ($rw eq 'w') {
     set_encoding(get_store_fh($filename),$encoding);
+  } else {
+    croak "2nd argument to open_backend must be 'r' or 'w'!";
   }
 }
 
