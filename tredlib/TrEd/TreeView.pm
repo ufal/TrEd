@@ -1141,6 +1141,7 @@ sub redraw {
     use integer;
 
     ## Lines ##
+    my @tag=split '&',$self->get_style_opt($node,"Line","-tag",\%Opts);
     my @arrow=split '&',$self->get_style_opt($node,"Line","-arrow",\%Opts);
     my @arrowshape=map { $_=~/^(\d+),(\d+),(\d+)$/ ? [split /,/] : undef } 
       split '&',$self->get_style_opt($node,"Line","-arrowshape",\%Opts);
@@ -1180,6 +1181,7 @@ sub redraw {
       $self->store_id_pinfo($l,$line);
       $self->store_node_pinfo($node,"Line$lin",$line);
       $self->store_obj_pinfo($line,$node);
+      $self->store_gen_pinfo('tag:'.$line,$tag[$lin]);
       $self->realcanvas->lower($line,'all');
       $self->realcanvas->raise($line,'line');
 
