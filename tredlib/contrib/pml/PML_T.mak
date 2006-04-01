@@ -291,7 +291,7 @@ C<arrow_exoph>.
 sub DrawCorefArrows {
   my ($node,$styles,$line,$corefs,$cortypes)=@_;
   delete $coreflemmas{$node->{id}};
-  my (@coords,@colors,@dash);
+  my (@coords,@colors,@dash,@tags);
   my ($rotate_prv_snt,$rotate_nxt_snt,$rotate_dfr_doc)=(0,0,0);
   my $ids={};
   my $nd = $root; while ($nd) { $ids->{$nd->{id}}=1 } continue { $nd=$nd->following };
