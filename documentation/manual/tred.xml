@@ -7499,7 +7499,7 @@ sub MakeSentence {
 		  is the part of the stylesheet value <literal>Line-tag</literal>
 		  corresponding to the particular segment of the  line;
 		  <replaceable>button</replaceable> is the number of mouse button (1,2,3);
-		  <replaceable>double</replaceable> is 1 if the event was was a double-click
+		  <replaceable>double</replaceable> is 1 if the event was a double-click
 		  and 0 otherwise; <replaceable>mod</replaceable>
 		  is a keyboard modifier (<literal moreinfo="none">Control</literal>,
 		<literal moreinfo="none">Shift</literal>,
