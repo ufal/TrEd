@@ -278,8 +278,11 @@ sub read_element ($$$;$) {
   $type = resolve_type($types,$type);
   $role = $type->{role} unless $role;
   my $hash;
-  if (ref($type) and $role eq '#NODE' ) {
+  my $is_node = (ref($type) and $role eq '#NODE') ? 1 : 0;
+  my $childnodes_taker;
+  if ($is_node) {
     $hash =  FSNode->new();
+    $childnodes_taker = $hash;
     $hash->set_type($fsfile->metaData('schema')->type($type));
   } else {
     $hash={};
@@ -299,12 +302,15 @@ sub read_element ($$$;$) {
 #      warn "Undeclared attribute '$name' of "._element_address($node);
     }
   }
-  my $value = read_node($node,$fsfile,$types,$type);
-  if (ref($type) and $role eq '#NODE' and
-      ($type->{sequence} and $type->{sequence}{role} eq '#CHILDNODES' or
-	 $type->{list} and $type->{list}{role} eq '#CHILDNODES') and
-	   UNIVERSAL::isa($value,'Fslib::List')) {
-    node_children($hash,$value);
+  my $value = read_node($node,$fsfile,$types,$type,$childnodes_taker);
+  if ($is_node) {
+    if (($type->{sequence} and $type->{sequence}{role} eq '#CHILDNODES' or
+	   $type->{list} and $type->{list}{role} eq '#CHILDNODES') and
+	     UNIVERSAL::isa($value,'Fslib::List')) {
+      node_children($hash,$value);
+    } else {
+      $hash->{'#content'}=$value;
+    }
   } else {
     $hash->{'#content'}=$value;
   }
@@ -345,7 +351,7 @@ sub read_node_knit {
 }
 
 sub read_node ($$$;$) {
-  my ($node,$fsfile,$types,$type) = @_;
+  my ($node,$fsfile,$types,$type,$childnodes_taker) = @_;
   my $defs = $fsfile->FS->defs;
   unless (ref($type)) {
     die "Schema implies unknown node type: '$type' for node "._element_address($node)."\n";
@@ -371,6 +377,7 @@ sub read_node ($$$;$) {
     my $hash;
     if ($type->{role} eq '#NODE' or $struct->{role} eq '#NODE') {
       $hash=FSNode->new();
+      $childnodes_taker = $hash;
       $hash->set_type($fsfile->metaData('schema')->type($type->{structure}));
     } else {
       $hash={}
@@ -415,9 +422,9 @@ sub read_node ($$$;$) {
 	  $role ||= $member->{role} if ref($member);
 	  if (ref($member) and $role eq '#CHILDNODES') {
 	    if ($member->{list} or $member->{sequence}) {
-	      if (ref($hash) eq 'FSNode') {
+	      if (ref $childnodes_taker) {
 		my $list = read_node($child,$fsfile, $types,$member);
-		node_children($hash, $list);
+		node_children($childnodes_taker, $list);
 	      } else {
 		die "#CHILDNODES member '$name' encountered in non-#NODE element ".
 		  _element_address($node,$child);
