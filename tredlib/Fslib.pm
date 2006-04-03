@@ -3293,6 +3293,180 @@ turn is about 50% slower.
 $preserve_order = 0;
 
 
+# compare schema revision number with a given revision number
+sub _match_revision {
+  my ($self,$revision)=@_;
+  my $my_revision=$self->{revision} || 0;
+  
+  my @my_revision = split(/\./,$my_revision);
+  my @revision = split(/\./,$revision);
+  my $cmp;
+  while ($cmp==0 and (@my_revision or @revision)) {
+    $cmp = (shift(@my_revision) <=> shift(@revision));
+  }
+  return $cmp;
+}
+
+# traverse type data structure and collect types referred via
+# type="type-name" declarations in the refferred hash
+sub _get_referred_types {
+  my ($self,$type,$referred) = @_;
+  if (ref($type)) {
+    if (UNIVERSAL::isa($type,'HASH')) {
+      if ($type->{type} ne "" and !exists($referred->{$type->{type}})) {
+	# this type declaration reffers to another type - get it
+	my $resolved = $self->resolve_type($type);
+	$referred->{$type->{type}} = $resolved;
+	$self->_get_referred_types($resolved,$referred);
+      } else {
+	# traverse descendant type declarations
+	if (ref $type->{member}) {
+	  foreach (values %{$type->{member}}) {
+	    $self->_get_referred_types($_,$referred);
+	  }
+	} elsif (exists $type->{list}) {
+	  $self->_get_referred_types($type->{list},$referred);
+	} elsif (exists $type->{alt}) {
+	  $self->_get_referred_types($type->{list},$referred);
+	} elsif (exists $type->{structure}) {
+	  $self->_get_referred_types($type->{structure},$referred);
+	} else {
+	  if (exists $type->{element}) {
+	    $self->_get_referred_types($type->{element},$referred);
+	  }
+	  if (exists $type->{sequence}) {
+	    $self->_get_referred_types($type->{sequence},$referred);
+	  }
+	}
+      }
+    } elsif (UNIVERSAL::isa($type,'ARRAY')) {
+      foreach (@$type) {
+	$self->_get_referred_types($_,$referred);
+      }
+    }
+  }
+}
+
+# import given named type and all named types it requires
+# from src_schema into the current schema (self)
+sub _import_type {
+  my ($self,$src_schema, $name) = @_;
+  my $type = $src_schema->{type}{$name};
+  my %referred = ($name => $type);
+  $src_schema->_get_referred_types($type,\%referred);
+  foreach my $n (keys %referred) {
+    unless (exists $self->{type}{$n}) {
+      $self->{type}{$n}=Fslib::CloneValue($referred{$n});
+    }
+  }
+}
+
+sub _overload {
+  my ($self)=@_;
+  if (ref $self->{overload}) {
+    foreach my $overload (@{$self->{overload}}) {
+      my $name = $overload->{name};
+      my $type;
+      my $source = $overload->{source};
+      if ($source) {
+	if (exists ($self->{type}{$name})) {
+	  croak "Refusing to overload existing type '$name' with type derived from '$source' in $self->{URL}\n";
+	}
+	$type = $self->{type}{$name} = Fslib::CloneValue($self->{type}{$source});
+      } else {
+	$type = $self->{type}{$name};
+      }
+      # overloading possible for structures, sequences and choices
+      if ($overload->{structure}) {
+	if ($type->{structure}) {
+	  my $new_structure = $overload->{structure};
+	  my $orig_structure = $type->{structure};
+	  foreach my $attr (qw(role name)) {
+	    $orig_structure->{$attr} = $new_structure->{$attr} if exists $new_structure->{$attr};
+	  }
+	  $orig_structure->{member} ||= {};
+	  my $members = $orig_structure->{member};
+	  while (my ($member,$value) = each %{$new_structure->{member}}) {
+	    $members->{$member} = Fslib::CloneValue($value); # FIXME: no need if we remove overloads in the end
+	  }
+	  if (ref $new_structure->{delete}) {
+	    for my $member (@{$new_structure->{delete}}) {
+	      delete $members->{$member};
+	    }
+	  }
+	} else {
+	  croak "Cannot overload non-structure type '$name' into a structure\n";
+	}
+      } elsif ($overload->{sequence}) {
+	if ($type->{sequence}) {
+	  my $new_sequence = $overload->{sequence};
+	  my $orig_sequence = $type->{sequence};
+	  $orig_sequence->{role} = $new_sequence->{role} if exists $new_sequence->{role};
+	  $new_sequence->{element} ||= {};
+	  my $elements = $orig_sequence->{element};
+	  while (my ($element,$value) = each %{$new_sequence->{element}}) {
+	    $elements->{$element} = Fslib::CloneValue($value); # FIXME: no need if we remove overloads in the end
+	  }
+	  if (ref $new_sequence->{delete}) {
+	    for my $element (@{$new_sequence->{delete}}) {
+	      delete $elements->{$element};
+	    }
+	  }
+	} else {
+	  croak "Cannot overload non-structure type '$name' into a structure\n";
+	}
+      } elsif ($overload->{choice}) {
+	my $choice = $overload->{choice};
+	if ($type->{choice}) {
+	  my (@add,%delete);
+	  if (UNIVERSAL::isa($choice,'HASH')) {
+	    @add = @{$choice->{value}} if ref $choice->{value};
+	    @delete{ @{$choice->{delete}} }=() if ref $choice->{delete};
+	  } else {
+	    @add = @$choice;
+	  }
+	  my %seen;
+	  @{$type->{choice}} = 
+	    grep { !($seen{$_}++) and ! exists $delete{$_} } (@{$type->{choice}},@add);
+	} else {
+	  croak "Cannot overload non-choice type '$name' into a choice type\n";
+	}
+      } else {
+	croak "Overloading of '$name' has no effect in $self->{filename}\n";
+      }
+    }
+  }
+}
+
+sub __fmt {
+  my ($string,$fmt) =@_;
+  $string =~ s{%(.)}{ $1 eq "%" ? "%" : 
+			exists($fmt->{$1}) ? $fmt->{$1} : "%$1" }eg;
+  return $string;
+}
+
+sub check_revision {
+  my ($self,$opts)=@_;
+  
+  my $error = $opts->{revision_error} || 'Error: wrong schema revision of %f: %e';
+  if ($opts->{revision} and
+	$self->_match_revision($opts->{revision})!=0) {
+    croak(__fmt($error, { 'e' => "required $opts->{revision}, got $self->{revision}",
+			  'f' => $self->{URL}}));
+  } else {
+    if ($opts->{minimal_revision} and
+	  $self->_match_revision($opts->{minimal_revision})<0) {
+      croak(__fmt($error, { 'e' => "required at least $opts->{minimal_revision}, got $self->{revision}",
+			    'f' => $self->{URL}}));
+    }
+    if ($opts->{maximal_revision} and
+	  $self->_match_revision($opts->{maximal_revision})>0) {
+      croak(__fmt($error, { 'e' => "required at most $opts->{maximal_revision}, got $self->{revision}",
+			    'f' => $self->{URL}}));
+    }
+  }
+}
+
 =item new(string)
 
 Parses a given XML representation of the schema and returns a new
@@ -3301,25 +3475,83 @@ C<Fslib::Schema> instance.
 =cut
 
 sub new {
-  my ($self,$string)=@_;
+  my ($self,$string,$opts)=@_;
   my $class = ref($self) || $self;
-  my @opts = (
-    ForceArray=>[ 'member', 'element', 'attribute', 'value', 'reference', 'type' ],
+  if ($opts) {
+    croak "Usage: Fslib::Schema->new(string,{ param => value,...})" unless UNIVERSAL::isa($opts,'HASH');
+  } else {
+    $opts={}
+  }
+  my @xml_simple_opts = (
+    ForceArray=>[ 'delete', 'member', 'element', 'attribute', 'value', 'reference', 'type', 'overload', 'import', 'import_type' ],
     KeyAttr => { "member"    => "-name",
 		 "attribute" => "-name",
 		 "element"   => "-name",
-		 "type"      => "-name"
+		 "type"      => "-name",
 		},
     GroupTags => { "choice" => "value" }
    );
+  my $new;
   if ($preserve_order) {
     require XML::IxSimple;
-    bless XML::IxSimple::XMLin($string,@opts),$class;
+    $new = bless XML::IxSimple::XMLin($string,@xml_simple_opts),$class;
   } else {
     require XML::Simple;
-    bless XML::Simple::XMLin($string,@opts),$class;
+    $new = bless XML::Simple::XMLin($string,@xml_simple_opts),$class;
   }
+  $new->{URL} = $opts->{filename} || '<string>';
+  $new->check_revision($opts);
+
+  $opts->{schemas} = {} unless ref($opts->{schemas});
+  my $schemas = $opts->{schemas};
+  my $imports = $new->{import};
+  if (ref($imports)) {
+    foreach my $import (@$imports) {
+      if (exists($import->{type})) {
+	my $schema = Fslib::Schema->readFrom($import->{schema} ,
+					     { %$opts, 
+					       base_url => $new->{URL},
+					       (map {
+						 if (exists($import->{$_})) {
+						   $_ => $import->{$_} 
+						 }
+					       } qw(revision minimal_revision maximal_revision)),
+					       revision_error => "Error importing type '$import->{type}' from schema %f to $new->{URL} - revision mismatch: %e"
+					      });
+	$opts->{schemas}{ $schema->{URL} } = $schema;
+	my $name = $import->{type};
+	if (ref($schema->{type})) {
+	  $new->_import_type($schema,$name);
+	}
+      } else {
+	my $schema = Fslib::Schema->readFrom($import->{schema} ,{ %$opts, 
+								  base_url => $new->{URL},
+								  (map {
+								    if (exists($import->{$_})) {
+								      $_ => $import->{$_} 
+								    }
+								  } qw(revision minimal_revision maximal_revision)),
+								  revision_error => "Error importing schema %f to $new->{URL} - revision mismatch: %e",
+								});
+	$opts->{schemas}{ $schema->{URL} } = $schema;
+	if (!exists($new->{root}) and $schema->{root}) {
+	  $new->{root} = Fslib::CloneValue($schema->{root});
+	}
+	if (ref $schema->{type}) {
+	  $new->{type}={} unless $new->{type};
+	  foreach my $name (keys(%{$schema->{type}})) {
+	    unless (exists $new->{type}{$name}) {
+	      $new->{type}{$name}=Fslib::CloneValue($schema->{type}{$name});
+	    }
+	  }
+	}
+      } 
+    }
+  }
+  $new->_overload();
+  return $new;
 }
+
 
 =item readFrom(filename)
 
@@ -3329,14 +3561,33 @@ object.
 =cut
 
 sub readFrom {
-  my ($self,$file)=@_;
-  print STDERR "parsing schema $file\n" if $Fslib::Debug;
-  my $fh = eval { IOBackend::open_backend($file,'r') };
-  croak "Couldn't open PML schema file '$file'\n".$@ if (!$fh || $@);
-  local $/;
-  my $slurp = <$fh>;
-  close $fh;
-  $self->new($slurp);
+  my ($self,$file,$opts)=@_;
+  if ($opts) {
+    croak "Usage: Fslib::Schema->new(string,{ param => value,...})" unless UNIVERSAL::isa($opts,'HASH');
+  } else {
+    $opts={}
+  }
+   
+  if ($opts->{base_url} ne "") {
+    $file = Fslib::ResolvePath($opts->{base_url},$file,$opts->{use_resources});
+  } elsif ($opts->{use_resources}) {
+    $file = Fslib::FindInResources($file);
+  }
+  my $schema;
+  if (ref $opts->{schemas}{$file}) {
+    print STDERR "schema $file already hashed\n" if $Fslib::Debug;
+    $schema = $opts->{schemas}{$file};
+    $schema->check_revision($opts);
+  } else {
+    print STDERR "parsing schema $file\n" if $Fslib::Debug;
+    my $fh = eval { IOBackend::open_backend($file,'r') };
+    croak "Couldn't open PML schema file '$file'\n".$@ if (!$fh || $@);
+    local $/;
+    my $slurp = <$fh>;
+    close $fh;
+    $schema = $self->new($slurp,{ %$opts, filename => $file });
+  }
+  return $schema;
 }
 
 =item find_role(type,role)
