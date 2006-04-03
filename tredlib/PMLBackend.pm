@@ -152,10 +152,21 @@ sub read_references {
     if ($schema) {
       # Encode: all filenames must(!) be bytes
       my $schema_file = Encode::encode_utf8($schema->getAttribute('href'));
+      my %revision_opts;
+      for my $attr (qw(revision maximal_revision minimal_revision)) {
+	$revision_opts{$attr}=$schema->getAttribute($attr) if $schema->hasAttribute($attr);
+      }
       # store the original URL, not the resolved one!
       $fsfile->changeMetaData('schema-url',$schema_file);
-      $schema_file = Fslib::ResolvePath($fsfile->filename,$schema_file,1);
-      $fsfile->changeMetaData('schema',Fslib::Schema->readFrom($schema_file));
+      $fsfile->changeMetaData('schema',
+			      Fslib::Schema->readFrom($schema_file,
+						      { base_url => $fsfile->filename,
+							use_resources => 1,
+							revision_error => 
+							  "Error: ".$fsfile->filename." requires different revision of PML schema %f: %e\n",
+							%revision_opts,
+						      }
+						     ));
     }
   }
   $fsfile->changeMetaData('references',\%references);
