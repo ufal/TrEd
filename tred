@@ -7034,16 +7034,21 @@ sub editAttrsDialog_schema {
     if (@ntypes==1) {
       $base_type = $schema->type($ntypes[0]);
     } elsif (!grep {!(UNIVERSAL::isa($_,'HASH') and 
-	              exists $_->{name} and 
-		      $_->{name} ne "")
+	              (exists($_->{name}) and $_->{name} ne "") or
+		      (exists($_->{-name}) and $_->{-name} ne ""))
 		  } @ntypes) {
       my $i = 1;
-      my @types = map {($i++)." ".$_->{name}} @ntypes;
+      my @types = map {($i++)." ".($_->{name} || $_->{-name})} @ntypes;
       my $selection = [$types[0]];
       listQuery($grp->{top},'Untyped node: select node-type','browse',
 		\@types,$selection) || return;
       if ($selection->[0]=~/^(\d+) /) {
-	$node->set_type($schema->type($ntypes[$1-1]));
+	my $type = $ntypes[$1-1];
+	$node->set_type($schema->type($type));
+	if (exists $type->{-name}) { # HACK HERE
+	  $node->{'#type'} = 'pml-element'; 
+	  $node->{'#name'} = $type->{-name};
+	}
 	$base_type=$node->type;
       } else {
 	return;
