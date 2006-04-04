@@ -7445,9 +7445,9 @@ sub MakeSentence {
 		<literal moreinfo="none">Meta</literal>.
 		  It can also be empty.  If
 		<literal moreinfo="none">mod</literal> is empty, the hook should
-		either result 'stop', to disable rehanging
-		<replaceable>node</replaceable> on
-		<replaceable>target-node</replaceable> or 
+		either result 'stop', to disable the default action
+		of cutting <replaceable>node</replaceable> and pasting it on
+		<replaceable>target-node</replaceable>, or 
 		take no action. In all other cases, the hook may
 		reorganize the tree in arbitrary way, but
 		it should call <literal moreinfo="none">Redraw_FSFile_Tree()</literal>
