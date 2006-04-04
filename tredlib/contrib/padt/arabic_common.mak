@@ -1,4 +1,5 @@
 # -*- cperl -*-
+
 use lib "$main::libDir/contrib/padt";
 use lib "$main::libDir/contrib/padt/PADT";
 
@@ -56,7 +57,7 @@ sub init_hook {
 
 # if arabic text is not rendered ok, use this function to provide a
 # reversed nodelist for both value_line and the tree (since
-# reverseNodeOrder is intenden only for the tree)
+# reverseNodeOrder is intended only for the tree)
 
 sub get_nodelist_hook {
   my ($fsfile,$tree_no,$prevcurrent,$show_hidden)=@_;

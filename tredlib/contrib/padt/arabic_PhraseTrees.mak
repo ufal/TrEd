@@ -8,9 +8,9 @@ package TredMacro;
 
 sub file_opened_hook {
 
-    SwitchContext('MorphoTrees');
+    SwitchContext('PhraseTrees');
 }
 
 #include "arabic_common.mak"
 
-#include "MorphoTrees.mak"
+#include "PhraseTrees.mak"
