@@ -849,9 +849,7 @@ sub write {
 	  my $ref_fh = IOBackend::open_backend($href,"w");
 	  if ($ref_fh) {
 	    binmode $ref_fh;
-	    print STDERR "Debug: writing $href to $ref_fh: ",
 	    $dom->toFH($ref_fh,1);
-	    print STDERR "\n";
 	    IOBackend::close_backend($ref_fh);
 	    $ok = 1;
 	  }
