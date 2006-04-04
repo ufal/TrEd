@@ -63,7 +63,7 @@ Close given filehandle opened by previous call to C<open_backend>
 
 sub close_backend {
   my ($fh)=@_;
-  return $fh->close() if ref($fh);
+  return IOBackend::close_backend($fh) if ref($fh);
 }
 
 =pod

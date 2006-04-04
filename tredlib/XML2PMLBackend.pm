@@ -60,7 +60,7 @@ sub test {
   } else {
     my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh,$encoding);
-    close_backend($fh);
+    IOBackend::close_backend($fh);
     return $test;
   }
 }

@@ -559,7 +559,7 @@ sub readas_dom {
   my $ref_data;
 
   my ($local_file,$remove_file) = IOBackend::fetch_file($href);
-  my $ref_fh = open_backend($local_file,'r');
+  my $ref_fh = IOBackend::open_backend($local_file,'r');
   die "Can't open $href for reading" unless $ref_fh;
   _debug("readas_dom: $href $ref_fh");
   if ($ref_fh){
@@ -569,7 +569,7 @@ sub readas_dom {
     die "Error parsing $href $ref_fh $local_file ($@)\n" if $@;
     $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
     $parser->process_xincludes($ref_data);
-    close_backend($ref_fh);
+    IOBackend::close_backend($ref_fh);
     $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
     $fsfile->appData('ref')->{$refid}=$ref_data;
     $fsfile->changeAppData('ref-index',{}) unless ref($fsfile->appData('ref-index'));
@@ -844,16 +844,18 @@ sub write {
 	eval {
 	  IOBackend::rename_uri($href,$href."~") unless $href=~/^ntred:/;
 	};
-	my $ref_fh = IOBackend::open_backend($href,"w");
 	my $ok = 0;
-	if ($ref_fh) {
-	  eval {
+	eval {
+	  my $ref_fh = IOBackend::open_backend($href,"w");
+	  if ($ref_fh) {
 	    binmode $ref_fh;
+	    print STDERR "Debug: writing $href to $ref_fh: ",
 	    $dom->toFH($ref_fh,1);
-	    close $ref_fh;
+	    print STDERR "\n";
+	    IOBackend::close_backend($ref_fh);
 	    $ok = 1;
 	  }
-	}
+	};
 	unless ($ok) {
 	  my $err = $@;
 	  eval {
@@ -1308,7 +1310,7 @@ sub test {
   } else {
     my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh,$encoding);
-    close_backend($fh);
+    IOBackend::close_backend($fh);
     return $test;
   }
 }

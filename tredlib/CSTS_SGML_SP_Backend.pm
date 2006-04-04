@@ -1,7 +1,7 @@
 package CSTS_SGML_SP_Backend;
 
 use Fslib;
-use IOBackend qw(set_encoding);
+use IOBackend qw(set_encoding close_backend);
 use Csts2fs;
 use Fs2csts;
 
@@ -55,11 +55,6 @@ Close given filehandle opened by previous call to C<open_backend>
 
 =cut
 
-sub close_backend {
-  my ($fh)=@_;
-  return $fh && $fh->close();
-}
-
 
 =pod
 
@@ -108,7 +103,7 @@ sub test {
   } else {
     my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh);
-    close_backend($fh);
+    IOBackend::close_backend($fh);
     return $test;
   }
 }
