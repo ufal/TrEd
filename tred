@@ -2361,7 +2361,8 @@ sub set_status_line {
   if (ref($text)) {
     my ($fields,$styles)=@$text;
     my $i=0;
-    $sl->insert('end',map { $i=!$i; $i ? encode($_) : $_ } @$fields);
+    my @fields = map { $i=!$i; $i ? encode($_) : $_ } @$fields;
+    $sl->insert('end',@fields) if @fields;
     while (@$styles) {
       my $style=shift @$styles;
       my $opts=shift @$styles;
