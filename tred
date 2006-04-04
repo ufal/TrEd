@@ -2090,7 +2090,15 @@ sub autoSaveAll {
     $win = $grp->{focusedWindow} unless $win;
     return if doEvalHook($win,"file_autosave_hook",$fsfile) eq 'stop';
 
-    unless ($fsfile->writeFile($f)) {
+    my $ok = 0;
+    eval {
+      $fsfile->changeAppData('refs_save',{});
+      $fsfile->writeFile($f);
+      $fsfile->changeAppData('refs_save',undef);
+      $ok = 1;
+    };
+    unless ($ok) {
+      $fsfile->changeAppData('refs_save',undef);
       print STDERR "Error auto-saving file to '$f'\n(".conv_from_locale($!)."\n";
       next;
     }
@@ -9334,15 +9342,18 @@ sub node_release_modif {
   if ($node) {
     my ($p)=$tv->find_item('withtag','nearest');
     $w->dtag('nearest');
-    $w->dtag('selected');
     if (defined $p) {
       $parent=$tv->get_obj_pinfo($p);
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
       doEvalHookWithUndo($win,"node_release_hook",$node,$parent,$mod,$e);
     }
-    # returning node to its position
-    $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
+    # try to detect that the tree was redrawn
+    if ($tv->find_item('withtag','selected')) {
+      # returning selected node to its position
+      $w->dtag('selected');
+      $w->coords($sel, $tv->node_coords($node,$win->{currentNode}));
+    }
   } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
 }
 
