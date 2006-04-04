@@ -580,8 +580,8 @@ sub edit_comment {
 
         ToplevelFrame()->messageBox (
             -icon => 'warning',
-            -message => "No 'comment' attribute in this file",
-            -title => 'Sorry',
+            -message => "There is no 'comment' attribute in this file's format!\t",
+            -title => 'Error',
             -type => 'OK',
         );
 
@@ -590,11 +590,23 @@ sub edit_comment {
 
     my $switch = $this->{'type'} eq 'token_node' || $this->{'type'} eq 'lemma_id';
 
+    if ($switch and not $this->{'apply_m'} > 0) {
+
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "This node must be annotated in order to receive comments!\t",
+            -title => 'Error',
+            -type => 'OK',
+        );
+
+        return;
+    }
+
     switch_either_context() if $switch;
 
     my $value = $this->{$comment};
 
-    $value = main::QueryString($grp->{framegroup}, "Enter comment", $comment, $value);
+    $value = main::QueryString($grp->{framegroup}, "Enter the comment", $comment, $value);
 
     if (defined $value) {
 
