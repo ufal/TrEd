@@ -3361,26 +3361,26 @@ sub _import_type {
   }
 }
 
-sub _adapt {
+sub _derive {
   my ($self)=@_;
-  if (ref $self->{adapt}) {
-    foreach my $adapt (@{$self->{adapt}}) {
-      my $name = $adapt->{name};
+  if (ref $self->{derive}) {
+    foreach my $derive (@{$self->{derive}}) {
+      my $name = $derive->{name};
       my $type;
-      my $source = $adapt->{source};
+      my $source = $derive->{type};
       if ($source ne "") {
 	if (exists ($self->{type}{$name})) {
-	  croak "Refusing to adapt existing type '$name' with type derived from '$source' in $self->{URL}\n";
+	  croak "Refusing to derive already existing type '$name' from '$source' in $self->{URL}\n";
 	}
 	$type = $self->{type}{$name} = Fslib::CloneValue($self->{type}{$source});
       } else {
 	$type = $self->{type}{$name};
 	$source = $name;
       }
-      # adapting possible for structures, sequences and choices
-      if ($adapt->{structure}) {
+      # deriving possible for structures, sequences and choices
+      if ($derive->{structure}) {
 	if ($type->{structure}) {
-	  my $new_structure = $adapt->{structure};
+	  my $new_structure = $derive->{structure};
 	  my $orig_structure = $type->{structure};
 	  foreach my $attr (qw(role name)) {
 	    $orig_structure->{$attr} = $new_structure->{$attr} if exists $new_structure->{$attr};
@@ -3388,7 +3388,7 @@ sub _adapt {
 	  $orig_structure->{member} ||= {};
 	  my $members = $orig_structure->{member};
 	  while (my ($member,$value) = each %{$new_structure->{member}}) {
-	    $members->{$member} = Fslib::CloneValue($value); # FIXME: no need if we remove adapts in the end
+	    $members->{$member} = Fslib::CloneValue($value); # FIXME: no need if we remove derives in the end
 	  }
 	  if (ref $new_structure->{delete}) {
 	    for my $member (@{$new_structure->{delete}}) {
@@ -3396,17 +3396,17 @@ sub _adapt {
 	    }
 	  }
 	} else {
-	  croak "Cannot adapt non-structure type '$source' into a structure '$name'\n";
+	  croak "Cannot derive structure type '$name' from a non-structure '$source'\n";
 	}
-      } elsif ($adapt->{sequence}) {
+      } elsif ($derive->{sequence}) {
 	if ($type->{sequence}) {
-	  my $new_sequence = $adapt->{sequence};
+	  my $new_sequence = $derive->{sequence};
 	  my $orig_sequence = $type->{sequence};
 	  $orig_sequence->{role} = $new_sequence->{role} if exists $new_sequence->{role};
 	  $new_sequence->{element} ||= {};
 	  my $elements = $orig_sequence->{element};
 	  while (my ($element,$value) = each %{$new_sequence->{element}}) {
-	    $elements->{$element} = Fslib::CloneValue($value); # FIXME: no need if we remove adapts in the end
+	    $elements->{$element} = Fslib::CloneValue($value); # FIXME: no need if we remove derives in the end
 	  }
 	  if (ref $new_sequence->{delete}) {
 	    for my $element (@{$new_sequence->{delete}}) {
@@ -3414,10 +3414,10 @@ sub _adapt {
 	    }
 	  }
 	} else {
-	  croak "Cannot adapt non-structure type '$source' into a structure '$name'\n";
+	  croak "Cannot derive structure type '$name' from a non-structure '$source'\n";
 	}
-      } elsif ($adapt->{choice}) {
-	my $choice = $adapt->{choice};
+      } elsif ($derive->{choice}) {
+	my $choice = $derive->{choice};
 	if ($type->{choice}) {
 	  my (@add,%delete);
 	  if (UNIVERSAL::isa($choice,'HASH')) {
@@ -3430,11 +3430,11 @@ sub _adapt {
 	  @{$type->{choice}} =
 	    grep { !($seen{$_}++) and ! exists $delete{$_} } (@{$type->{choice}},@add);
 	} else {
-	  croak "Cannot adapt non-choice type '$source' into a choice type\n";
+	  croak "Cannot derive a choice type '$name' from a non-choice type '$source'\n";
 	}
       } else {
 	unless ($name ne $source) {
-	  croak "Adapting '$source' has no effect in $self->{URL}\n";
+	  croak "<derive type='$source'> has no effect in $self->{URL}\n";
 	}
       }
     }
@@ -3486,7 +3486,7 @@ sub new {
     $opts={}
   }
   my @xml_simple_opts = (
-    ForceArray=>[ 'delete', 'member', 'element', 'attribute', 'value', 'reference', 'type', 'adapt', 'import', 'import_type' ],
+    ForceArray=>[ 'delete', 'member', 'element', 'attribute', 'value', 'reference', 'type', 'derive', 'import', 'import_type' ],
     KeyAttr => { "member"    => "-name",
 		 "attribute" => "-name",
 		 "element"   => "-name",
@@ -3556,7 +3556,7 @@ sub new {
       } 
     }
   }
-  $new->_adapt();
+  $new->_derive();
   return $new;
 }
 
