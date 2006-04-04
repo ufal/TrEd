@@ -3584,7 +3584,7 @@ sub readFrom {
     croak "Couldn't open PML schema file '$file'\n".$@ if (!$fh || $@);
     local $/;
     my $slurp = <$fh>;
-    close $fh;
+    IOBackend::close_backend($fh);
     $schema = $self->new($slurp,{ %$opts, filename => $file });
   }
   return $schema;
