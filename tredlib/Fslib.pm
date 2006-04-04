@@ -3368,13 +3368,14 @@ sub _adapt {
       my $name = $adapt->{name};
       my $type;
       my $source = $adapt->{source};
-      if ($source) {
+      if ($source ne "") {
 	if (exists ($self->{type}{$name})) {
 	  croak "Refusing to adapt existing type '$name' with type derived from '$source' in $self->{URL}\n";
 	}
 	$type = $self->{type}{$name} = Fslib::CloneValue($self->{type}{$source});
       } else {
 	$type = $self->{type}{$name};
+	$source = $name;
       }
       # adapting possible for structures, sequences and choices
       if ($adapt->{structure}) {
@@ -3395,7 +3396,7 @@ sub _adapt {
 	    }
 	  }
 	} else {
-	  croak "Cannot adapt non-structure type '$name' into a structure\n";
+	  croak "Cannot adapt non-structure type '$source' into a structure '$name'\n";
 	}
       } elsif ($adapt->{sequence}) {
 	if ($type->{sequence}) {
@@ -3413,7 +3414,7 @@ sub _adapt {
 	    }
 	  }
 	} else {
-	  croak "Cannot adapt non-structure type '$name' into a structure\n";
+	  croak "Cannot adapt non-structure type '$source' into a structure '$name'\n";
 	}
       } elsif ($adapt->{choice}) {
 	my $choice = $adapt->{choice};
@@ -3429,10 +3430,12 @@ sub _adapt {
 	  @{$type->{choice}} =
 	    grep { !($seen{$_}++) and ! exists $delete{$_} } (@{$type->{choice}},@add);
 	} else {
-	  croak "Cannot adapt non-choice type '$name' into a choice type\n";
+	  croak "Cannot adapt non-choice type '$source' into a choice type\n";
 	}
       } else {
-	croak "Adapting '$name' has no effect in $self->{filename}\n";
+	unless ($name ne $source) {
+	  croak "Adapting '$source' has no effect in $self->{URL}\n";
+	}
       }
     }
   }
