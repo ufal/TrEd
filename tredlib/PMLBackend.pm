@@ -628,13 +628,14 @@ sub read_trees {
       warn "Ignoring references with unknown readas method: '$ref->{readas}'";
     }
   }
-
-  my $root_type = $fsfile->metaData('schema')->{root};
-  my $types = $fsfile->metaData('schema')->{type};
+  my $schema = $fsfile->metaData('schema');
+  my $types = $schema->{type};
+  my $root_name = $schema->{root}{name};
+  my $root_type = resolve_type($types,$schema->{root});
 
   unless ($dom_root->namespaceURI eq PML_NS and
-	  $dom_root->localname eq $root_type->{name}) {
-    die "Expected root element '$root_type->{name}'\n";
+	  $dom_root->localname eq $root_name) {
+    die "Expected root element '$root_name'\n";
   }
 
   # schema type 1: #TREES form a PML list
@@ -730,12 +731,15 @@ sub write {
   my $xml =  new XML::Writer(OUTPUT => $fh,
 			   DATA_MODE => 1,
 			   DATA_INDENT => 1);
-  unless (ref($fsfile->metaData('schema'))) {
+  my $schema = $fsfile->metaData('schema');
+  unless (ref($schema)) {
     die "Can't write - document isn't associated with a schema\n";
   }
 
-  my $root_type = $fsfile->metaData('schema')->{root};
-  my $types = $fsfile->metaData('schema')->{type};
+  my $types = $schema->{type};
+  my $root_name = $schema->{root}{name};
+  my $root_type = resolve_type($types,$schema->{root});
+
   my ($trees,$trees_tag);
   if (UNIVERSAL::isa($root_type->{element},'HASH')) {
     ($trees) = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$root_type->{element}};
@@ -777,7 +781,7 @@ sub write {
   }
 
   $xml->xmlDecl("utf-8");
-  $xml->startTag($root_type->{name},xmlns => PML_NS);
+  $xml->startTag($root_name,xmlns => PML_NS);
   $xml->startTag('head');
   $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
   $xml->startTag('references');
@@ -827,7 +831,7 @@ sub write {
     }
   }
 
-  $xml->endTag($root_type->{name});
+  $xml->endTag($root_name);
   $xml->end;
 
   # dump DOM trees to save
