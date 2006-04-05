@@ -3368,14 +3368,17 @@ sub _derive {
       my $name = $derive->{name};
       my $type;
       my $source = $derive->{type};
-      if ($source ne "") {
+      if ($source eq "") {
+	croak "Derive must specify source type in the attribute 'type' in $self->{URL}\n";
+      }
+      if ($name ne "") {
 	if (exists ($self->{type}{$name})) {
 	  croak "Refusing to derive already existing type '$name' from '$source' in $self->{URL}\n";
 	}
 	$type = $self->{type}{$name} = Fslib::CloneValue($self->{type}{$source});
       } else {
+	$name = $source;
 	$type = $self->{type}{$name};
-	$source = $name;
       }
       # deriving possible for structures, sequences and choices
       if ($derive->{structure}) {
