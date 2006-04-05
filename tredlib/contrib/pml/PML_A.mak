@@ -41,7 +41,7 @@ sub TectogrammaticalTree {
   my $fsfile = $grp->{FSFile};
   my $id = $root->{id};
   my $this_id = $this->{id};
-  if ($PML::desiredcontext=~/^PML_T_/){
+  if ($PML::desiredcontext=~/^PML_(?:.*_)?T_/){
     SwitchContext($PML::desiredcontext);
   }elsif (CurrentContext() eq 'PML_A_Edit') {
     SwitchContext('PML_T_Edit');

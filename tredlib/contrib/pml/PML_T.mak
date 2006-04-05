@@ -154,7 +154,7 @@ sub AnalyticalTree {
   my $t_node = $this;
   $PML_T::laststylesheet=GetCurrentStylesheet();
   my $desiredcontext=CurrentContext();
-  if($PML::desiredcontext=~/^PML_A_/){
+  if($PML::desiredcontext=~/^PML_(?:.*_)?A_/){
     SwitchContext($PML::desiredcontext);
   }elsif (CurrentContext() eq 'PML_T_Edit') {
     SwitchContext('PML_A_Edit');

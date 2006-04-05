@@ -22,9 +22,10 @@ Treebank (PDT) 2.0
 
 =item SchemaName()
 
-Return name of the PML schema associated with the current file. PDT
-typically uses PML Schema named C<adata> for analytical annotation and
-C<tdata> for tectogrammatical annotation.
+Return name of the root element of a PML instance as specified in the
+PML schema associated with the current file. PDT uses root element
+named C<adata> for analytical layer annotation and C<tdata> for
+tectogrammatical layer annotation.
 
 =cut
 
@@ -33,6 +34,20 @@ sub SchemaName {
   return undef unless $schema;
   return $schema->{root}->{name};
 } #SchemaName
+
+=item SchemaDescription()
+
+Return the content of the element C<description> of the PML schema
+associated with the current file.
+
+=cut
+
+sub SchemaDescription {
+  my $schema = &Schema;
+  return undef unless $schema;
+  return $schema->{description};
+} #SchemaName
+
 
 =item Schema($object?)
 
