@@ -77,7 +77,7 @@ Getopt::Long::Configure ("bundling");
 	 "list-changed-files" => \$request_list_changed,
 	 "save-files"      => \$request_save,
 	 "save-changed-files" => \$request_save_changed,
-	 "knit|K=s" => $reffiles_to_save,
+	 "knit|K=s" => \$reffiles_to_save,
 	 "dump-files"    => \$request_dump,
 	 "upload-file"    => \$request_upload,
 	 "strip-prefix|p=s" => \$strip_prefix,
