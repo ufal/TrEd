@@ -34,6 +34,9 @@ sub _debug {
   print "PMLBackend: ",@_,"\n" if $DEBUG;
 }
 
+sub _warn {
+  print STDERR "PMLBackend: WARNING: ",@_;
+}
 
 =item open_backend (filename,mode)
 
@@ -196,7 +199,7 @@ Text child-nodes are converted to { type => 'text', value => $cdata }.
 
 =cut
 
-sub read_Sequence ($$$$) {
+sub read_Sequence {
   my ($child,$fsfile,$types,$type)=@_;
   my $list=[];
   bless($list, 'Fslib::List');
@@ -220,7 +223,7 @@ sub read_Sequence ($$$$) {
     } elsif (($child->nodeType == TEXT_NODE or $child->nodeType == CDATA_SECTION_NODE)
 	       and $child->getData =~ /\S/) {
       if ($type->{role} eq '#CHILDNODES') {
-	warn "Ignoring text node '".$child->getData."' in #CHILDNODES sequence in "._element_address($child->parentNode);
+	_warn("Ignoring text node '".$child->getData."' in #CHILDNODES sequence in "._element_address($child->parentNode));
       } elsif ($type->{text}) {
 	push @$list, {
 	  '#type' => 'text',
@@ -283,7 +286,7 @@ sub node_children {
   1;
 }
 
-sub read_element ($$$;$) {
+sub read_element {
   my ($node,$fsfile,$types,$type) = @_;
   my $role = ref($type) ? $type->{role} : undef;
   $type = resolve_type($types,$type);
@@ -304,16 +307,22 @@ sub read_element ($$$;$) {
   $hash->{'#type'} = ($ns eq PML_NS ? 'pml-element' : 'element');
   $hash->{'#ns'} = $ns unless ($ns eq "" or $is_pml);
   $hash->{'#name'} = $name;
+  my %attrs;
   foreach my $attr ($node->attributes) {
     my $name  = $attr->nodeName;
     my $value = $attr->value;
     if (ref($type) and $type->{attribute}{$name}) {
       $hash->{$name} = $value;
-#    } else {
-#      warn "Undeclared attribute '$name' of "._element_address($node);
+    } else {
+      $attrs{$name} = $value;
     }
   }
-  my $value = read_node($node,$fsfile,$types,$type,$childnodes_taker);
+  foreach my $name (keys %attrs) {
+    unless ($name =~ /^xml(?:ns)?(?:$|:)/) {
+      _warn("Undeclared attribute '$name' of "._element_address($node));
+    }
+  }
+  my $value = read_node($node,$fsfile,$types,$type,$childnodes_taker,\%attrs);
   if ($is_node) {
     if (($type->{sequence} and $type->{sequence}{role} eq '#CHILDNODES' or
 	   $type->{list} and $type->{list}{role} eq '#CHILDNODES') and
@@ -349,11 +358,11 @@ sub read_node_knit {
 	}
 	return [1,$ret];
       } else {
-	warn "warning: ID $idref not found in '$reffile'\n";
+	_warn("warning: ID $idref not found in '$reffile'\n");
 	return [0,$ref];
       }
     } else {
-      warn "Reference to $ref cannot be resolved - document '$reffile' not loaded\n";
+      _warn("Reference to $ref cannot be resolved - document '$reffile' not loaded\n");
       return [0,$ref];
     }
   } else {
@@ -361,8 +370,8 @@ sub read_node_knit {
   }
 }
 
-sub read_node ($$$;$) {
-  my ($node,$fsfile,$types,$type,$childnodes_taker) = @_;
+sub read_node {
+  my ($node,$fsfile,$types,$type,$childnodes_taker,$attrs) = @_;
   my $defs = $fsfile->FS->defs;
   unless (ref($type)) {
     die "Schema implies unknown node type: '$type' for node "._element_address($node)."\n";
@@ -395,7 +404,13 @@ sub read_node ($$$;$) {
     }
     foreach my $attr ($node->attributes) {
       my $name  = $attr->nodeName;
-      my $value = $attr->value;
+      my $value;
+      if ($attrs) {
+	$value = delete $attrs->{$name};
+	next unless defined $value;
+      } else {
+	$value = $attr->value;
+      }
       my $member = $members->{$name};
       if ($member ne "" and 
 	  $member->{as_attribute}) {
@@ -406,10 +421,10 @@ sub read_node ($$$;$) {
 	  $defs->{$name} = ' H' unless exists($defs->{$name});
 	}
       } elsif ($members->{$name}) {
-	warn "Member '$name' not declared as attribute of "._element_address($node);
+	_warn("Member '$name' not declared as attribute of "._element_address($node));
       } else {
 	unless ($name =~ /^xml(?:ns)?(?:$|:)/) {
-	  warn "Undeclared attribute '$name' of "._element_address($node);
+	  _warn("Undeclared attribute '$name' of "._element_address($node));
 	}
       }
     }
@@ -465,7 +480,7 @@ sub read_node ($$$;$) {
 	      } read_List($child);
 	      if (grep { !$_->[0] } @knit) {
 		# one of the elements didn't knit correctly
-		warn "Knit failed on list "._element_address($child)."\n";
+		_warn("Knit failed on list "._element_address($child)."\n");
 		# read the whole node again as data references
 		$hash->{$name} = read_node($child,$fsfile,$types,{cdata=>{format=>'PMLREF'}});
 	      } else {
@@ -483,10 +498,10 @@ sub read_node ($$$;$) {
      } elsif (($child_nodeType == TEXT_NODE
 		or $child_nodeType == CDATA_SECTION_NODE)
 		and $child->data=~/\S/) {
-	warn "Ignoring text content '".$child->data."'.\n";
+	_warn("Ignoring text content '".$child->data."'.\n");
      } elsif ($child_nodeType == ELEMENT_NODE
 	       and $child->namespaceURI eq PML_NS) {
-	warn "Ignoring non-PML element '".$child->nodeName."'.\n";
+	_warn("Ignoring non-PML element '".$child->nodeName."'.\n");
      }
 #    } continue {
 #      $child = $child->nextSibling;
@@ -509,7 +524,8 @@ sub read_node ($$$;$) {
   } elsif (exists $type->{choice}) {
     my $data = $node->textContent();
     my $ok;
-    warn "$type->{choice} at ".$node->nodeName."\n" unless ref($type->{choice}) eq 'ARRAY';
+    _warn("$type->{choice} at ".$node->nodeName."\n")
+      unless ref($type->{choice}) eq 'ARRAY';
     foreach (@{$type->{choice}}) {
       if ($_ eq $data) {
 	$ok = 1;
@@ -576,12 +592,12 @@ sub readas_dom {
     $fsfile->appData('ref-index')->{$refid}=index_by_id($ref_data);
     if ($href ne $local_file and $remove_file) {
       local $!;
-      unlink $local_file || warn "couldn't unlink tmp file $local_file: $!\n";
+      unlink $local_file || _warn("couldn't unlink tmp file $local_file: $!\n");
     }
   } else {
     if ($href ne $local_file and $remove_file) {
       local $!;
-      unlink $local_file || warn "couldn't unlink tmp file $local_file: $!\n";
+      unlink $local_file || _warn("couldn't unlink tmp file $local_file: $!\n");
     }
     die "Couldn't open '".$href."': $!\n";
   }
@@ -609,12 +625,13 @@ sub get_references {
 	  die "No href for $refid# ($reference->{name})\n"
 	}
       } else {
-	warn "Didn't find any reference to '".$reference->{name}."'\n";
+	_warn("Didn't find any reference to '".$reference->{name}."'\n");
       }
     }
   }
   return @refs;
 }
+
 
 sub read_trees {
   my ($parser, $fsfile, $dom_root) = @_;
@@ -625,7 +642,7 @@ sub read_trees {
     } elsif($ref->{readas} eq 'trees') {
       readas_trees($parser,$fsfile,$ref->{id},$ref->{href});
     } else {
-      warn "Ignoring references with unknown readas method: '$ref->{readas}'";
+      _warn("Ignoring references with unknown readas method: '$ref->{readas}'\n");
     }
   }
   my $schema = $fsfile->metaData('schema');
@@ -645,7 +662,6 @@ sub read_trees {
 	$_->{role} eq '#TREES'
       } values %{$root_type->{element}}) {
     _debug("Found member with role \#TREES\n");
-
     my $found_trees = 0;
     for my $child ($dom_root->childNodes) {
       if ($child->nodeType == ELEMENT_NODE and
@@ -662,6 +678,8 @@ sub read_trees {
 	    die "Expected 'Fslib::List', got $trees\n";
 	    @{$fsfile->treeList} = ($trees);
 	  }
+	  _warn("Tree-list contains non-node members: "._element_address($child)."\n")
+	    if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$fsfile->treeList});
 	} else {
 	  die "Expected 'list' in role #TREES\n";
 	}
@@ -679,7 +697,7 @@ sub read_trees {
 	  $fsfile->changeMetaData($what,[$element])
 	}
       } elsif ($child->nodeType != TEXT_NODE or $child->textContent =~ /\S/) {
-	warn("Ignoring node "._element_address($child),"\n");
+	_warn("Ignoring node "._element_address($child),"\n");
       }
     }
   } elsif (
@@ -695,6 +713,8 @@ sub read_trees {
 	_debug("found tree ",$child->localname);
 	my $list  = read_Sequence($child,$fsfile,$types,$root_type->{sequence});
 	@{$fsfile->treeList} = @$list;
+	_warn("Sequence contains non-node members - sequence starts by element "._element_address($child)."\n")
+	  if (grep {!UNIVERSAL::isa($_,'FSNode')} @$list);
 	last;
       } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
 	       $child->localname eq 'head') {
@@ -709,7 +729,7 @@ sub read_trees {
 	  $fsfile->changeMetaData('pml_prolog',[$element])
 	}
       } elsif ($child->nodeType != TEXT_NODE or $child->textContent =~ /\S/) {
-	warn("Ignoring node "._element_address($child),"\n");
+	_warn("Ignoring node "._element_address($child),"\n");
       }
     }
   } else {
@@ -890,17 +910,17 @@ sub write_object_knit {
 	my $new = $dom_writer->end;
 	$new->setAttribute('id',$idref);
       } else {
-	warn "Didn't find ID $idref in $reffile - can't knit back!\n";
+	_warn("Didn't find ID $idref in $reffile - can't knit back!\n");
       }
     } else {
-      warn "Knit-file $reffile has no index - can't knit back!\n";
+      _warn("Knit-file $reffile has no index - can't knit back!\n");
     }
   } else {
-    warn "Can't parse '$tag' href '$ref' - can't knit back!\n";
+    _warn("Can't parse '$tag' href '$ref' - can't knit back!\n");
   }
 }
 
-sub write_object ($$$$$$) {
+sub write_object {
   my ($xml,$fsfile, $types,$type,$tag,$object,$no_resolve)=@_;
   my $pre=$type;
   my $attribs;
@@ -921,7 +941,8 @@ sub write_object ($$$$$$) {
 	last;
       }
     }
-    warn "Invalid value for '$tag': $object\n" unless ($ok);
+    _warn("Invalid value for '$tag': $object\n")
+      unless ($ok);
     $xml->startTag($tag,%$attribs);
     $xml->characters($object);
     $xml->endTag($tag);
@@ -930,7 +951,7 @@ sub write_object ($$$$$$) {
     my $members = $struct->{member};
     if (!ref($object)) {
       # what do we do now?
-      warn "Unexpected content structure '$tag': $object\n";
+      _warn("Unexpected content structure '$tag': $object\n");
     } elsif (keys(%$object)) {
       # ok, non-empty structure
       foreach my $atr (grep {$members->{$_}{as_attribute}}
@@ -956,7 +977,7 @@ sub write_object ($$$$$$) {
 			   bless([ $object->children ],'Fslib::List'));
 	    }
 	  } else {
-	    warn "Found #CHILDNODES member '$tag/$member' on a non-node value: $object\n";
+	    _warn("Found #CHILDNODES member '$tag/$member' on a non-node value: $object\n");
 	  }
 	} elsif ($members->{$member}{role} eq '#KNIT') {
 	  if ($object->{$member} ne "") {
@@ -972,7 +993,7 @@ sub write_object ($$$$$$) {
 	    if (ref($object->{$knit_tag})) {
 	      write_object_knit($xml,$fsfile,$types,$members->{$member},$member,$knit_tag,$object->{$knit_tag});
 	    }# else {
-	    #	warn "Didn't find $knit_tag on the object! ",join(" ",%$object),"\n";
+	    #	_warn("Didn't find $knit_tag on the object! ",join(" ",%$object),"\n");
 	    #      }
 	  }
 	} elsif (ref($mtype) and $mtype->{list} and $mtype->{list}{role} eq '#KNIT') {
@@ -996,7 +1017,7 @@ sub write_object ($$$$$$) {
 		$xml->endTag($member);
 	      }
 	    } else {
-	      warn "Unexpected content of un-knit List '$member': $list\n";
+	      _warn("Unexpected content of un-knit List '$member': $list\n");
 	    }
 	  } else {
 	    # KNIT list
@@ -1015,7 +1036,7 @@ sub write_object ($$$$$$) {
 		$xml->endTag($member);
 	      }
 	    } elsif ($list ne '') {
-	      warn "Unexpected content of knit List '$knit_tag': $list\n";
+	      _warn("Unexpected content of knit List '$knit_tag': $list\n");
 	    }
 	  }
 	} elsif ($object->{$member} ne "" or $members->{$member}{required}) {
@@ -1038,7 +1059,7 @@ sub write_object ($$$$$$) {
 	$xml->endTag($tag) if defined($tag);
       }
     } else {
-      warn "Unexpected content of List '$tag': $object\n";
+      _warn("Unexpected content of List '$tag': $object\n");
     }
   } elsif (exists $type->{alt}) {
     if ($object ne "" and ref($object) eq 'Fslib::Alt') {
@@ -1064,7 +1085,7 @@ sub write_object ($$$$$$) {
 	  if ($type->{sequence}{text}) {
 	    $xml->characters($element->{'#content'});
 	  } else {
-	    warn "Text node is not allowed in sequence '$tag'\n";
+	    _warn("Text node is not allowed in sequence '$tag'\n");
 	  }
 	} elsif ($element->{'#type'} eq 'pml-element') {
 	  my $eltype = $type->{sequence}{element}{$element->{'#name'}};
@@ -1085,16 +1106,16 @@ sub write_object ($$$$$$) {
 	      write_object($xml, $fsfile, $types,$eltype,[$element->{'#name'},\%attribs],$element->{'#content'});
 	    }
 	  } else {
-	    warn "PML-element '".$element->{'#name'}."' node is not allowed in sequence '$tag'\n";
+	    _warn("PML-element '".$element->{'#name'}."' node is not allowed in sequence '$tag'\n");
 	  }
 	} elsif ($element->{'#type'} eq 'element') {
 	  # TODO:
 	  # similar but with a namespace, etc...
-	  warn "Writing non-pml elements not yet supported\n";
+	  _warn("Writing non-pml elements not yet supported\n");
 	}
       }
     } else {
-      warn "Unexpected content of sequence '$tag': $object\n";
+      _warn("Unexpected content of sequence '$tag': $object\n");
     }
     $xml->endTag($tag) if defined($tag);
   }
@@ -1113,7 +1134,7 @@ sub write_extra_element {
     write_object($xml, $fsfile, $types,$eltype,undef,$element->{'#content'});
     $xml->endTag($element->{'#name'});
   } else {
-    warn "PML-element '".$element->{'#name'}."' node is not allowed in prolog/epilog\n";
+    _warn("PML-element '".$element->{'#name'}."' node is not allowed in prolog/epilog\n");
   }
   1;
 }
