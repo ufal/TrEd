@@ -317,12 +317,12 @@ sub read_element {
       $attrs{$name} = $value;
     }
   }
+  my $value = read_node($node,$fsfile,$types,$type,$childnodes_taker,\%attrs);
   foreach my $name (keys %attrs) {
     unless ($name =~ /^xml(?:ns)?(?:$|:)/) {
       _warn("Undeclared attribute '$name' of "._element_address($node));
     }
   }
-  my $value = read_node($node,$fsfile,$types,$type,$childnodes_taker,\%attrs);
   if ($is_node) {
     if (($type->{sequence} and $type->{sequence}{role} eq '#CHILDNODES' or
 	   $type->{list} and $type->{list}{role} eq '#CHILDNODES') and
