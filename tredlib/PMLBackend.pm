@@ -12,6 +12,7 @@ use File::Spec;
 
 use Data::Dumper;
 
+use Carp;
 
 use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG);
 
@@ -30,12 +31,33 @@ $encoding='utf8';
 @pmlpatterns = ();
 $pmlhint="";
 
+sub _die {
+  my $msg = join '',@_;
+  chomp $msg;
+  if ($DEBUG) {
+    local $Carp::CarpLevel=1;
+    confess($msg);
+  } else {
+    die $msg."\n";
+  }
+}
+
 sub _debug {
-  print "PMLBackend: ",@_,"\n" if $DEBUG;
+  return unless $DEBUG;
+  my $level = 1;
+  if (ref($_[0])) {
+    $level=$_[0]->{level};
+    shift;
+  }
+  my $msg=join '',@_;
+  chomp $msg;
+  print STDERR "PMLBackend: $msg\n" if $DEBUG>=$level;
 }
 
 sub _warn {
-  print STDERR "PMLBackend: WARNING: ",@_;
+  my $msg = join '',@_;
+  chomp $msg;
+  warn "PMLBackend: WARNING: $msg\n";
 }
 
 =item open_backend (filename,mode)
@@ -124,7 +146,7 @@ sub read ($$) {
   read_references($fsfile,$dom_root);
 
   unless (ref($fsfile->metaData('schema'))) {
-    die "Unknown XML data: ",$dom_root->localname()," ",$dom_root->namespaceURI(),"\n";
+    _die("Unknown XML data: ".$dom_root->localname()." ".$dom_root->namespaceURI());
   }
   $return = read_trees($parser, $fsfile,$dom_root);
 #  @{$fsfile->FS->list} = grep {$_ ne $Fslib::special } sort keys %{$fsfile->FS->defs};
@@ -200,12 +222,13 @@ Text child-nodes are converted to { type => 'text', value => $cdata }.
 =cut
 
 sub read_Sequence {
-  my ($child,$fsfile,$types,$type)=@_;
-  my $list=[];
+  my ($child,$fsfile,$types,$type,$list)=@_;
+  $list = [] unless ref($list);
   bless($list, 'Fslib::List');
   return $list unless $child;
   while ($child) {
-    if ($child->nodeType == ELEMENT_NODE) {
+    my $child_nodeType = $child->nodeType;
+    if ($child_nodeType == ELEMENT_NODE) {
       my $name = $child->localName;
       my $ns = $child->namespaceURI;
       my $is_pml = ($ns eq PML_NS);
@@ -214,14 +237,15 @@ sub read_Sequence {
 	my $element = read_element($child,$fsfile,$types,$type->{element}{$name});
 	push @$list, $element;
       } else {
-	die "Undeclared ".
+	_die("Undeclared ".
 	  ($is_pml 
 	     ? "pml-element "
 	       : ($ns ne "" ? "element {$ns} " : "element"))." ".
-		 _element_address($child);
+		 _element_address($child));
       }
-    } elsif (($child->nodeType == TEXT_NODE or $child->nodeType == CDATA_SECTION_NODE)
-	       and $child->getData =~ /\S/) {
+    } elsif (($child_nodeType == TEXT_NODE or $child_nodeType == CDATA_SECTION_NODE)
+	       and $child->getData =~ /\S/
+	    ) {
       if ($type->{role} eq '#CHILDNODES') {
 	_warn("Ignoring text node '".$child->getData."' in #CHILDNODES sequence in "._element_address($child->parentNode));
       } elsif ($type->{text}) {
@@ -273,8 +297,8 @@ sub node_children {
   my ($node,$list)=@_;
   my $prev=0;
   foreach my $son (@{$list}) {
-    unless (ref($son) eq 'FSNode') {
-      die "non-#NODE child '".Dumper($son)."'\n";
+    unless (UNIVERSAL::isa($son,'FSNode')) {
+      _die("non-#NODE child '".Dumper($son)."'");
       return;
     }
     $son->{$Fslib::parent} = $node;
@@ -317,21 +341,73 @@ sub read_element {
       $attrs{$name} = $value;
     }
   }
-  my $value = read_node($node,$fsfile,$types,$type,$childnodes_taker,\%attrs);
-  foreach my $name (keys %attrs) {
-    unless ($name =~ /^xml(?:ns)?(?:$|:)/) {
-      _warn("Undeclared attribute '$name' of "._element_address($node));
+
+  # FIXME:
+  #    Here we first attempt to handle the case when element contains other element or text nodes,
+  #    possibly followed by a sequence. However, a correct implementation requires the knowledge
+  #    of the order of elements and text declarations in the pml schema, which XML::Simple
+  #    cannot provide.
+  #
+  my $value;
+  my $list;
+  if ($type->{element} or $type->{text}) {
+    _debug("ELEMENT has subelements: $name");
+    $value = bless [],'Fslib::List';
+    my $first = 1;
+    for my $child ($node->childNodes) {
+      my $child_nodeType = $child->nodeType;
+      if ($child_nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and 
+	    $type->{element}{$child->localname}) {
+	my $child_name = $child->localname;
+	my $element = read_element($child,$fsfile,$types,$type->{element}{$child_name});
+	push @$value,$element;
+      } elsif ((($child_nodeType == TEXT_NODE or $child_nodeType == CDATA_SECTION_NODE)
+		 and $child->textContent !~ /\S/) or
+		   $child_nodeType == COMMENT_NODE
+		) {
+	$first = 2 if $first;
+      } else {
+	if ($type->{sequence} and
+	  $child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and 
+	    $type->{sequence}{element}->{$child->localname}) {
+	  $list = read_Sequence($child,$fsfile,$types,$type->{sequence});
+	  if ($type->{sequence}{role} eq '#CHILDNODES') {
+	    _debug("NODE-ELEMENT: $name - all children $value");
+	    _warn("Sequence contains non-node members - sequence starts by element "._element_address($child)."\n")
+	      if (grep {!UNIVERSAL::isa($_,'FSNode')} @$list);
+	    node_children($hash,$list);
+	  } else {
+	    push @$value, @$list;
+	  }
+	  last; # no further processing
+	} else {
+	  _warn("Ignoring unexpected node "._element_address($child),"\n");
+	}
+      }
+      $first = 0 unless $first == 2;
+    }
+  } else {
+    _debug("ELEMENT hasn't subelements: $name");
+    $list = $value = read_node($node,$fsfile,$types,$type,$childnodes_taker,\%attrs);
+  }
+  foreach my $atr_name (keys %attrs) {
+    unless ($atr_name =~ /^xml(?:ns)?(?:$|:)/) {
+      _warn("Undeclared attribute '$atr_name' of "._element_address($node));
     }
   }
   if ($is_node) {
     if (($type->{sequence} and $type->{sequence}{role} eq '#CHILDNODES' or
 	   $type->{list} and $type->{list}{role} eq '#CHILDNODES') and
-	     UNIVERSAL::isa($value,'Fslib::List')) {
-      node_children($hash,$value);
+	     UNIVERSAL::isa($list,'Fslib::List')) {
+      _debug("NODE-ELEMENT: $name - all children $list");
+      node_children($hash,$list);
+      $hash->{'#content'}=$value if $value != $list;
     } else {
+      _debug("NODE-ELEMENT: $name - content $value");
       $hash->{'#content'}=$value;
     }
   } else {
+    _debug("NON-NODE-ELEMENT: $name - content $value");
     $hash->{'#content'}=$value;
   }
   return $hash;
@@ -372,15 +448,18 @@ sub read_node_knit {
 
 sub read_node {
   my ($node,$fsfile,$types,$type,$childnodes_taker,$attrs) = @_;
+  _debug({level => 6},"Reading node "._element_address($node)."\n");
   my $defs = $fsfile->FS->defs;
   unless (ref($type)) {
-    die "Schema implies unknown node type: '$type' for node "._element_address($node)."\n";
+    _die("Schema implies unknown node type: '$type' for node "._element_address($node));
   }
 
   if ($type->{cdata}) {
+    _debug({level => 6},"CDATA type\n");
     # pre-defined atomic types
     return $node->textContent;
   } elsif (exists $type->{list}) {
+    _debug({level => 6},"list type\n");
     my $list_type = resolve_type($types,$type->{list});
     return bless [
       map {
@@ -389,8 +468,12 @@ sub read_node {
       } read_List($node)
     ], 'Fslib::List';
   } elsif (exists $type->{sequence}) {
-    return read_Sequence($node->firstChild,$fsfile,$types,$type->{sequence});
+    _debug({level => 6},"sequence type\n");
+    my $list = [];
+    read_Sequence($node->firstChild,$fsfile,$types,$type->{sequence},$list);
+    return $list;
   } elsif (exists $type->{structure}) {
+    _debug({level => 6},"structure type\n");
     # structure
     my $struct = $type->{structure};
     my $members = $struct->{member};
@@ -452,12 +535,12 @@ sub read_node {
 		my $list = read_node($child,$fsfile, $types,$member);
 		node_children($childnodes_taker, $list);
 	      } else {
-		die "#CHILDNODES member '$name' encountered in non-#NODE element ".
-		  _element_address($node,$child);
+		_die("#CHILDNODES member '$name' encountered in non-#NODE element ".
+		  _element_address($node,$child));
 	      }
 	    } else {
-		die "#CHILDNODES member '$name' is neither a list nor a sequence in ".
-		  _element_address($node,$child);
+		_die("#CHILDNODES member '$name' is neither a list nor a sequence in ".
+		  _element_address($node,$child));
 	    }
 	  } elsif (ref($member) and $role eq '#KNIT') {
 	    my $ret = read_node_knit($child,$fsfile,$types,$member);
@@ -492,12 +575,12 @@ sub read_node {
 	    }
 	  }
 	} else {
-	  die "Undeclared member '$name' encountered in ".
-	    _element_address($node,$child);
+	  _die("Undeclared member '$name' encountered in ".
+	    _element_address($node,$child));
 	}
-     } elsif (($child_nodeType == TEXT_NODE
+     } elsif ((($child_nodeType == TEXT_NODE
 		or $child_nodeType == CDATA_SECTION_NODE)
-		and $child->data=~/\S/) {
+		and $child->data=~/\S/)) {
 	_warn("Ignoring text content '".$child->data."'.\n");
      } elsif ($child_nodeType == ELEMENT_NODE
 	       and $child->namespaceURI eq PML_NS) {
@@ -510,8 +593,8 @@ sub read_node {
       if (!exists($hash->{$_})) {
 	my $member = $members->{$_};
 	if ($member->{required}) {
-	  die "Missing required member '$_' of ".
-	    _element_address($node);
+	  _die("Missing required member '$_' of ".
+	    _element_address($node));
 	} else {
 	  my $mtype = resolve_type($types,$member);
 	  if (ref($mtype) and exists($mtype->{constant})) {
@@ -522,6 +605,13 @@ sub read_node {
     }
     return $hash;
   } elsif (exists $type->{choice}) {
+    _debug({level => 6},"choice type\n");
+    if (grep { $_->nodeName !~ m{^xml(?:ns)?:} } $node->attributes) {
+      _warn("Ignoring attributes on element "._element_address($node));
+    }
+    if (grep { $_->nodeType == ELEMENT_NODE } $node->childNodes) {
+      _die("Invalid non-cdata content of "._element_address($node))
+    }
     my $data = $node->textContent();
     my $ok;
     _warn("$type->{choice} at ".$node->nodeName."\n")
@@ -533,16 +623,18 @@ sub read_node {
       }
     }
     unless ($ok) {
-      die "Invalid value '$data' for '".$node->localname."' (expected one of: ".join(',',@{$type->{choice}}).")\n";
+      _die("Invalid value '$data' for '".$node->localname."' (expected one of: ".join(',',@{$type->{choice}}).")");
     }
     return $data;
   } elsif (exists $type->{constant}) {
+    _debug({level => 6},"constant type\n");
     my $data = $node->textContent();
     if ($data ne "" and $data ne $type->{constant}) {
-      die "Invalid value '$data' for constant '".$node->localname."' (expected $type->{constant})\n";
+      _die("Invalid value '$data' for constant '".$node->localname."' (expected $type->{constant})");
     }
     return $data;
   } elsif (exists $type->{alt}) {
+    _debug({level => 6},"alt type\n");
     # alt
     my $Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
     if (@$Alt) {
@@ -558,7 +650,15 @@ sub read_node {
 				   resolve_type($types,$type->{alt}));
     }
 
-
+  } elsif ($type->{element}) {
+    _die("Type declaration error: element type not allowed for data construction in ".
+	   _element_address($node));
+  } elsif ($type->{member}) {
+    _die("Type declaration error: AVS member type not applicable for data construction in ".
+	   _element_address($node));
+  } else {
+    _die("Type declaration error: cannot determine data type of ".
+	   _element_address($node)."Parsed type declaration:\n".Dumper($type));
   }
 }
 
@@ -576,13 +676,13 @@ sub readas_dom {
 
   my ($local_file,$remove_file) = IOBackend::fetch_file($href);
   my $ref_fh = IOBackend::open_backend($local_file,'r');
-  die "Can't open $href for reading" unless $ref_fh;
+  _die("Can't open $href for reading") unless $ref_fh;
   _debug("readas_dom: $href $ref_fh");
   if ($ref_fh){
     eval {
       $ref_data = $parser->parse_fh($ref_fh);
     };
-    die "Error parsing $href $ref_fh $local_file ($@)\n" if $@;
+    _die("Error parsing $href $ref_fh $local_file ($@)") if $@;
     $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
     $parser->process_xincludes($ref_data);
     IOBackend::close_backend($ref_fh);
@@ -599,7 +699,7 @@ sub readas_dom {
       local $!;
       unlink $local_file || _warn("couldn't unlink tmp file $local_file: $!\n");
     }
-    die "Couldn't open '".$href."': $!\n";
+    _die("Couldn't open '".$href."': $!");
   }
   1;
 }
@@ -622,7 +722,7 @@ sub get_references {
 	    href => $href
 	   };
 	} else {
-	  die "No href for $refid# ($reference->{name})\n"
+	  _die("No href for $refid# ($reference->{name})")
 	}
       } else {
 	_warn("Didn't find any reference to '".$reference->{name}."'\n");
@@ -652,7 +752,7 @@ sub read_trees {
 
   unless ($dom_root->namespaceURI eq PML_NS and
 	  $dom_root->localname eq $root_name) {
-    die "Expected root element '$root_name'\n";
+    _die("Expected root element '$root_name'");
   }
 
   # schema type 1: #TREES form a PML list
@@ -663,8 +763,11 @@ sub read_trees {
       } values %{$root_type->{element}}) {
     _debug("Found member with role \#TREES\n");
     my $found_trees = 0;
+    my $first = 1;
     for my $child ($dom_root->childNodes) {
-      if ($child->nodeType == ELEMENT_NODE and
+      if ($first and $child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and $child->localname eq 'head') {
+	# already read this one
+      } elsif ($child->nodeType == ELEMENT_NODE and
 	    $child->namespaceURI eq PML_NS and
 	      $root_type->{element}->{$child->localname}->{role} eq '#TREES') {
 	$found_trees=1;
@@ -675,17 +778,14 @@ sub read_trees {
 	  if (ref($trees) eq 'Fslib::List') {
 	    @{$fsfile->treeList} = @$trees
 	  } else {
-	    die "Expected 'Fslib::List', got $trees\n";
+	    _die("Expected 'Fslib::List', got $trees");
 	    @{$fsfile->treeList} = ($trees);
 	  }
 	  _warn("Tree-list contains non-node members: "._element_address($child)."\n")
 	    if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$fsfile->treeList});
 	} else {
-	  die "Expected 'list' in role #TREES\n";
+	  _die("Expected 'list' in role #TREES");
 	}
-      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
-	       $child->localname eq 'head') {
-	# already read this one
       } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
 	       $root_type->{element}{$child->localname}) {
 	my $name = $child->localname;
@@ -696,9 +796,12 @@ sub read_trees {
 	} else {
 	  $fsfile->changeMetaData($what,[$element])
 	}
-      } elsif ($child->nodeType != TEXT_NODE or $child->textContent =~ /\S/) {
+      } elsif ($child->nodeType == TEXT_NODE and $child->textContent !~ /\S/) {
+	$first=2 if $first;
+      } else {
 	_warn("Ignoring node "._element_address($child),"\n");
       }
+      $first=0 unless $first==2;
     }
   } elsif (
     $root_type->{sequence} and
@@ -707,20 +810,13 @@ sub read_trees {
    ) {
     _debug("Found sequence with role \#TREES\n");
     # schema type 2: #TREES form a PML list
+    my $first = 1;
+    my $in_sequence = 0;
     for my $child ($dom_root->childNodes) {
-      if ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
-	  $root_type->{sequence}{element}->{$child->localname}) {
-	_debug("found tree ",$child->localname);
-	my $list  = read_Sequence($child,$fsfile,$types,$root_type->{sequence});
-	@{$fsfile->treeList} = @$list;
-	_warn("Sequence contains non-node members - sequence starts by element "._element_address($child)."\n")
-	  if (grep {!UNIVERSAL::isa($_,'FSNode')} @$list);
-	last;
-      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
-	       $child->localname eq 'head') {
+      if ($first and $child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
+	    $child->localname eq 'head') {
 	# already read this one
-      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
-	       $root_type->{element}{$child->localname}) {
+      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and $root_type->{element}{$child->localname}) {
 	my $name = $child->localname;
 	my $element = read_element($child,$fsfile,$types,$root_type->{element}{$name});
 	if (ref($fsfile->metaData('pml_prolog')) eq 'ARRAY') {
@@ -728,12 +824,23 @@ sub read_trees {
 	} else {
 	  $fsfile->changeMetaData('pml_prolog',[$element])
 	}
-      } elsif ($child->nodeType != TEXT_NODE or $child->textContent =~ /\S/) {
-	_warn("Ignoring node "._element_address($child),"\n");
+      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and $root_type->{sequence}{element}->{$child->localname}) {
+	_debug("found tree ",$child->localname);
+	my $list = [];
+	read_Sequence($child,$fsfile,$types,$root_type->{sequence},$list);
+	@{$fsfile->treeList} = @$list;
+	_warn("Sequence contains non-node members - sequence starts by element "._element_address($child)."\n")
+	  if (grep {!UNIVERSAL::isa($_,'FSNode')} @$list);
+	last; # no further processing
+      } elsif ($child->nodeType == TEXT_NODE and $child->textContent !~ /\S/) {
+	$first = 2 if $first;
+      } else {
+	_warn("Ignoring unexpected node "._element_address($child),"\n");
       }
+      $first = 0 unless $first == 2;
     }
   } else {
-    die "No #TREES found in PML schema\n";
+    _die("No #TREES found in PML schema");
   }
   1;
 }
@@ -753,7 +860,7 @@ sub write {
 			   DATA_INDENT => 1);
   my $schema = $fsfile->metaData('schema');
   unless (ref($schema)) {
-    die "Can't write - document isn't associated with a schema\n";
+    _die("Can't write - document isn't associated with a schema");
   }
 
   my $types = $schema->{type};
@@ -772,7 +879,7 @@ sub write {
     $trees = $root_type;
   }
   unless ($trees) {
-    die "Can't write: didn't find any element or sequence with role #TREES\n";
+    _die("Can't write: didn't find any element or sequence with role #TREES");
   }
 
   # dump embedded DOM documents
@@ -883,7 +990,7 @@ sub write {
 	  eval {
 	    IOBackend::rename_uri($href."~",$href) unless $href=~/^ntred:/;
 	  };
-	  die $err."$@\n" if $err;
+	  _die($err."$@") if $err;
 	}
       }
     }
@@ -962,7 +1069,7 @@ sub write_object {
 	}
       }
       if (%$attribs and !defined($tag)) {
-	die "Can't write structure with attribute members without a tag";
+	_die("Can't write structure with attribute members without a tag");
       }
       $xml->startTag($tag,%$attribs) if defined($tag);
       foreach my $member (
@@ -1344,7 +1451,7 @@ sub test {
     $class = ref($class) || $class;
 
     unless ($args{DOM} || $args{ELEMENT} || $args{REPLACE} ) {
-      die "Usage: $class->new(ELEMENT => XML::LibXML::Document)\n";
+      _die("Usage: $class->new(ELEMENT => XML::LibXML::Document)");
     }
     if ($args{ELEMENT}) {
       $args{DOM} ||= $args{ELEMENT}->ownerDocument;
@@ -1381,9 +1488,9 @@ sub test {
       if ($self->{ELEMENT} and $self->{ELEMENT}->nodeName eq $name) {
 	$self->{ELEMENT} = $self->{ELEMENT}->parentNode;
       } else {
-	die "Can't end ".
+	_die ("Can't end ".
 	  ($self->{ELEMENT} ? '<'.$self->{ELEMENT}->nodeName.'>' : 'none').
-	    " with </$name>\n";
+	    " with </$name>");
       }
     }
     1;
