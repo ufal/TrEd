@@ -12,9 +12,9 @@
 
 #use strict;
 
-if ($^V lt v5.6.0) {
+if ($^V lt v5.8.5) {
   print STDERR '-' x 50,"\n";
-  print STDERR "WARNING: Your version of perl is older than v5.6.0\n";
+  print STDERR "WARNING: Your version of perl is older than v5.8.5\n";
   print STDERR "THINGS MAY NOT WORK AS EXPECTED OR NOT AT ALL!\n";
   print STDERR '-' x 50,"\n\n";
 }
@@ -41,7 +41,7 @@ use vars qw($version $about $opt_u $opt_h $opt_c
 
 $version='$Id$';
 $about=
-  "Copyright (c) 2000-2003 by Petr Pajas\n".
+  "Copyright (c) 2000-2006 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 
@@ -4043,7 +4043,9 @@ sub applyWindowStylesheet {
 sub updateStylesheetMenu {
   my ($grp)=@_;
   __debug("calling updateStylesheetMenu");
+  if (ref($grp->{StylesheetMenu})) {
     $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
+  }
 }
 
 sub getStylesheetMenuList {
@@ -4660,7 +4662,7 @@ sub startMain {
   $group{folderImage}= icon(\%group,'folder');
   $group{fileImage}  = icon(\%group,'document');
   $group{lastActionBookmark}= $lastAction;
-  $group{selectedContext}=$opt_t || 'TredMacro';
+  $group{selectedContext}=  $opt_t || 'TredMacro';
   $group{buildTGTSfromCSTS}=$opt_R;
 
   if (not $opt_G and defined($geometry)) {
@@ -4982,7 +4984,7 @@ sub startMain {
   $group{BookmarksFileMenu}= $group{Menubar}->Menubutton(qw/-text Bookmarks -underline 0/)
     ->pack(qw/-side left/);
   updateBookmarks(\%group);
-
+  $group{selectedContext} =  'TredMacro' unless exists($keyBindings{ $group{selectedContext} });
   $group{ContextsMenu}=$group{Menubar}->
     Optionmenu(-options => [getContexts()],
 	       -textvariable=> \$group{selectedContext},
@@ -7038,34 +7040,106 @@ sub editAttrsDialog_schema {
   my $enabled = 1;
   my $node_type;
   unless (ref($base_type)) {
+    # FIXME - setting new type should be strictly based on the #CHILDNODES wrapper
+    # of the parent node
     $schema = fileSchema($win->{FSFile});
-    my @ntypes = $schema->node_types;
-    if (@ntypes==1) {
-      $base_type = $schema->type($ntypes[0]);
-    } elsif (!grep {!(UNIVERSAL::isa($_,'HASH') and 
-	              (exists($_->{name}) and $_->{name} ne "") or
-		      (exists($_->{-name}) and $_->{-name} ne ""))
-		  } @ntypes) {
+    my $ntype;
+    my @ntypes;
+    if ($node->parent) {
+      # is parent's type known?
+      my $parent_type = $node->parent->type;
+      if (ref($parent_type)) {
+	# ok, find #CHILDNODES
+	$parent_decl = $parent_type->type_decl;
+	if ($parent_decl->{member}) {
+	  my ($member_decl) =  
+	    map { $schema->resolve_type($_) } 
+	    grep { ref($_) and $_->{role} eq '#CHILDNODES' } values %{$parent_decl->{member}};
+	  if (ref($member_decl)) {
+	    if ($member_decl->{list}) {
+	      $ntype = $schema->resolve_type($member_decl->{list});
+	      $ntype = ($ntype->{structure} || $ntype->{container});
+	      undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
+	    } elsif ($member_decl->{sequence}) {
+	      my $elements = $member_decl->{sequence}{element};
+	      @ntypes =  grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
+		map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
+	    } else {
+	      warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
+		Dumper($member_decl);
+	    }
+	  }
+	} elsif ($parent_decl->{list} or $parent_decl->{sequence}) {
+	  if ($parent_decl->{list} and $parent_decl->{list}{role} eq '#CHILDNODES') {
+	    $ntype = $schema->resolve_type($parent_decl->{list});
+	    $ntype = ($ntype->{structure} || $ntype->{container});
+	    undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
+	  } elsif ($parent_decl->{sequence} and $parent_decl->{sequence}{role} eq '#CHILDNODES') {
+	    my $elements = $parent_decl->{sequence}{element};
+	    @ntypes = 
+	    grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
+	    map { [ $_->[0] => ($_->[1]{structure} || $_->[1]{container}) ] }
+	    map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
+	  }
+	}
+      } else {
+	# ask the user to set the type of the parent first
+	plainErrorMessage($grp,"Parent node type is unknown.\nYou must edit the parent node first!");
+	return;
+      }
+    } else {
+      # find #TREES sequence representing the tree list
+      my @tree_types;
+      my $pml_trees_type = $win->{FSFile}->metaData('pml_trees_type');
+      if (ref $pml_trees_type) {
+	@tree_types = ($pml_trees_type->type_decl);
+      } else {
+	@tree_types = $schema->find_role('#TREES');
+      }
+      __debug("types: ".Dumper(\@tree_types));
+      foreach my $tt (@tree_types) {
+	if (!UNIVERSAL::isa($tt,'HASH')) {
+	  warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
+	    		Dumper($member_decl);
+        } elsif ($tt->{list}) {
+	  $ntype = $schema->resolve_type($tt->{list});
+	  $ntype = ($ntype->{structure} || $ntype->{container});
+	  undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
+	} elsif ($tt->{sequence}) {
+	  my $elements = $tt->{sequence}{element};
+	  @ntypes = 
+	    grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
+	    map { [ $_->[0] => ($_->[1]{structure} || $_->[1]{container}) ] }
+	    map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
+	} else {
+	  warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
+	    		Dumper($member_decl);
+	}
+      }
+    }
+    if ($ntype) {
+      $base_type = $schema->type($ntype);
+      $node->set_type($base_type);
+    } elsif (@ntypes == 1) {
+      $node->{'#name'} = $ntypes[0][0];
+      $base_type = $schema->type($ntypes[0][1]);
+      $node->set_type($base_type);
+    } elsif (@ntypes > 1) {
       my $i = 1;
-      my @types = map {($i++)." ".($_->{name} || $_->{-name})} @ntypes;
+      my @types = map {($i++)." ".($_->[0])} @ntypes;
       my $selection = [$types[0]];
       listQuery($grp->{top},'Untyped node: select node-type','browse',
 		\@types,$selection) || return;
       if ($selection->[0]=~/^(\d+) /) {
 	my $type = $ntypes[$1-1];
-	$node->set_type($schema->type($type));
-	if (exists $type->{-name}) { # HACK HERE
-	  $node->{'#type'} = 'pml-element'; 
-	  $node->{'#name'} = $type->{-name};
-	}
+	$node->set_type($schema->type($type->[1]));
+	$node->{'#name'} = $type->[0];
 	$base_type=$node->type;
       } else {
 	return;
       }
     } else {
-      errorMessage($win,"Untyped node: can't edit untyped node in a file with a schema defining un-named node-types...\n".
-      join("\n",map { Dumper($_) } grep {!(UNIVERSAL::isa($_,'HASH') and 
-	  exists $_->{name} and $_->{name} ne "")} @ntypes),1);
+      plainErrorMessage($grp,"Cannot edit node: schema doesn't allow nodes on this level...\n");
       return;
     }
   } else {
@@ -7080,7 +7154,7 @@ sub editAttrsDialog_schema {
     $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
   } else {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
-    $node_type = $base_type->type_struct;
+    $node_type = $base_type->type_decl;
   }
   my $dlg_title = ($attr_path ne "" ? "Edit Attribute '$attr_path'" : "Edit Node");
   my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
@@ -7124,12 +7198,12 @@ sub editAttrsDialog_schema {
   #__debug("ATTR-PATH:' $attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   if ($attr_path ne "") {
     $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
-  } elsif (ref($node_type) and $node_type->{member}) {
-    # 1=allow empty (don't create empty structures)
-    $edit->add_members('',$node_type,$node,1);
+#  } elsif (ref($node_type) and $node_type->{member}) {
+#    # 1=allow empty (don't create empty structures)
+#    $edit->add_members('',$node_type,$node,1);
   } else {
-    # 1=allow empty (don't create empty structures)
-    $edit->add_xmlnode('',$node_type,$node,1);
+#    # 1=allow empty (don't create empty structures)
+    $edit->add_members('',$node_type,$node,1);
   }
 
   if ($attr_path eq "") {
@@ -7220,23 +7294,15 @@ sub editAttrsDialog_schema {
 	$val = ($attr_path eq "") ? FSNode->new : {};
 	$edit->dump_to_node($val);
 	my $log=[];
-	__debug("Validating node\n");
+	__debug("Validating node $val\n");
 	my $type;
 	if ($attr_path eq "") {
 	  # This is a hack. The validation procedure
-	  # requires an object type, but as we only have the object
-	  # value type
+	  # requires the wrapper type, but as we only have the inner declaration
 	  if (ref($node_type) and $node_type->{member}) {
 	    $type = { structure => $node_type };
 	  } else {
-	    # we could use parent's #CHILDNODES type here
-	    # but if the structure or name of the element is wrong,
-	    # there is nothing the user can do about it anyway
-	    $type = {
-	      sequence => {
-	      element => {$node->{'#name'} => $node_type } }
-	     };
-	    $val = Fslib::List->new($val);
+	    $type = { container => $node_type };
 	  }
 	  PMLBackend::validate_object($log,'',$schema->{type}, $type, '', $val);
 	} else {

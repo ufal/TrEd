@@ -980,7 +980,7 @@ sub startMain {
 			my $node = $trees->[$i];
 			while ($node) {
 			  my $type;
-			  next unless ($node->type and ($type = $node->type->type_struct));
+			  next unless ($node->type and ($type = $node->type->type_decl));
 			  next unless $type;
 			  if (exists $types{$type->{name}}) {
 			    $node->set_type($schema->type($types{$type->{name}}));

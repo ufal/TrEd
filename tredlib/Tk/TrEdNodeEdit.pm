@@ -333,8 +333,9 @@ sub toggle_structure {
   my @children = $hlist->info(children => $path);
   if (@children == 0) {
     # create data
+    my $type = $data->{type};
     $hlist->add_members($path ne "" ? $path."/" : $path,
-			$data->{type}{structure},{});
+			$type->{structure}||$type->{container},{});
   } else {
     my $answer = 'Delete';
     if (UNIVERSAL::can('main','userQuery')) {
@@ -451,7 +452,8 @@ sub add_buttons {
   my $mtype = $hlist->info(data => $path)->{type};
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
 
-  return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt} or $mtype->{structure}) or 
+  return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt} or 
+				 $mtype->{structure} or $mtype->{container}) or 
 		 ref($ptype) and ($ptype->{list} or $ptype->{alt}));
   return if ref($mtype) and (($mtype->{list} and $mtype->{list}{role} eq '#CHILDNODES') or $mtype->{role} eq '#CHILDNODES');
   my $f = $hlist->Frame(
@@ -467,19 +469,19 @@ sub add_buttons {
 
   for my $type ($mtype, $ctype) {
     if (ref($type)) {
-      if ($type->{list}) {
+      if (exists $type->{list}) {
 	# add list buttons
 	$hlist->mini_button($f,'plus',$path,
 			    -background => $colors{list},
 			    -command => [$hlist,'add_to_list',$path]
 			   )->pack();
-      } elsif ($type->{alt}) {
+      } elsif (exists $type->{alt}) {
 	# add alt buttons
 	$hlist->mini_button($f,'star',$path,
 			    -background => ($type->{alt}{-flat} ? $colors{alt_flat} : $colors{alt}),
 			    -command => [$hlist,'add_to_alt',$path]
 			   )->pack(-side => 'top');
-      } elsif ($type->{structure}) {
+      } elsif (exists($type->{structure}) or exists($type->{container})) {
 	# add sequence button
 	$hlist->mini_button($f,'hash',$path,
 			    -background => $colors{struct},
@@ -597,13 +599,15 @@ sub add_member {
     $enabled = $hlist->enable_callback($path);
   }
 
-  if ($mtype eq '#type') {
+  if ($mtype eq '#name') {
+    $data->{dump} = 'none';
     $data->{value} = $attr_val;
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{text});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => $attr_val,
 		       -style => $hlist->{my_itemstyles}{text});
   } elsif (!ref($mtype) or $mtype->{cdata}) {
+    $data->{dump} = 'string';
     my $w = $hlist->Frame(-background => 'white', #'gray',
 			  -borderwidth => 1
 			 );
@@ -639,6 +643,7 @@ sub add_member {
 		       -style => $hlist->{my_itemstyles}{entries}
 		      );
   } elsif (exists $mtype->{choice}) {
+    $data->{dump} = 'string';
     $data->{value} = $attr_val;
     my $w = $hlist->JComboBox_0_02(
 
@@ -694,11 +699,13 @@ sub add_member {
 		       -style => $hlist->{my_itemstyles}{entries}
 		      );
   } elsif (exists $mtype->{constant}) {
+    $data->{dump} = 'constant';
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{constant});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => $mtype->{constant},
 		       -style => $hlist->{my_itemstyles}{constant});
-  } elsif (exists $mtype->{structure}) {
+  } elsif ($mtype->{structure}) {
+    $data->{dump} = 'structure';
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => 'Structure',
@@ -706,12 +713,23 @@ sub add_member {
     if (ref($attr_val)) {
       $hlist->add_members($path."/",$mtype->{structure},$attr_val);
     }
+  } elsif ($mtype->{container}) {
+    $data->{dump} = 'container';
+    $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
+    $hlist->itemCreate($path,1,-itemtype => 'text',
+		       -text => 'Container',
+		       -style => $hlist->{my_itemstyles}{struct});
+    if (ref($attr_val)) {
+      $hlist->add_members($path."/",$mtype->{container},$attr_val);
+    }
   } elsif (exists $mtype->{list}) {
     if ($mtype->{list}{role} eq '#CHILDNODES' or $mtype->{role} eq '#CHILDNODES') { 
+      $data->{dump} = 'none';
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 'child nodes',
 			 -style => $hlist->{my_itemstyles}{list});
     } else {
+      $data->{dump} = 'list';
       my $list_no=0;
       $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
       $hlist->itemCreate($path,1,-itemtype => 'text',
@@ -735,9 +753,10 @@ sub add_member {
   } elsif (exists $mtype->{sequence}) {
     my $list_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
-    if ($mtype->{role} ne '#CHILDNODES') {
+    if ($mtype->{sequence}{role} ne '#CHILDNODES') {
+      $data->{dump} = 'sequence';
       $hlist->itemCreate($path,1,-itemtype => 'text',
-			 -text => 'XML sequence',
+			 -text => 'Sequence',
 			 -style => $hlist->{my_itemstyles}{sequence});
       if ($attr_val) {
 	foreach my $element (@{$attr_val}) {
@@ -746,13 +765,15 @@ sub add_member {
 	}
       }
     } else {
+      $data->{dump} = 'none';
       $hlist->itemCreate($path,1,-itemtype => 'text',
-			 -text => 'child nodes',
+			 -text => 'Sequence of child nodes',
 			 -style => $hlist->{my_itemstyles}{sequence});
     }
     $data->{list_no}=$list_no;
   } elsif (exists $mtype->{alt}) {
     my $alt_no=0;
+    $data->{dump} = 'alt';
     $hlist->itemConfigure($path,0,-style => 
 			    ($mtype->{alt}{-flat} ? $hlist->{my_itemstyles}{alt_flat} : $hlist->{my_itemstyles}{alt}));
     $hlist->itemCreate($path,1,-itemtype => 'text',
@@ -798,11 +819,20 @@ sub add_member {
 
 sub add_members {
   my ($hlist,$base_path,$type,$node,$allow_empty)=@_;
-  my $members = $type->{member};
+  my ($members,$structure);
+  if ($type->{member}) {
+    $members = $type->{member};
+    $structure = 1;
+  } else {
+    $members = $type->{attribute};
+  }
+  # FIXME - we should know by other means if there is a #name
+  $hlist->add_member($base_path,'#name',$node->{'#name'}, '#name') if ($node->{'#name'} ne '');
   foreach my $attr (sort(keys %$members)) {
     my $member = $members->{$attr};
     my $mtype = $hlist->schema->resolve_type($member);
-    if (ref($member) and
+    if ($structure and 
+	ref($member) and
 	($member->{role} eq '#KNIT' or
 	 ref($mtype) and $mtype->{list} and
 	 $mtype->{list}{role} eq '#KNIT')
@@ -816,21 +846,7 @@ sub add_members {
     }
     $hlist->add_member($base_path,$member,($node ? $node->{$attr} : undef), $attr,$allow_empty);
   }
-}
-
-sub add_xmlnode {
-  my ($hlist,$base_path,$type,$node)=@_;
-  if ($node) {
-    $hlist->add_member($base_path,'#type',$node->{'#type'}, '#type');
-    if ($node->{'#type'} =~ /element/) {
-      $hlist->add_member($base_path,'#name',$node->{'#name'}, '#name');
-      $hlist->add_member($base_path,'#ns',$node->{'#ns'}, '#ns') if $node->{'#type'} eq 'element';
-      if ($type->{attribute}) {
-	foreach my $atr (sort keys (%{$type->{attribute}})) {
-	  $hlist->add_member($base_path,$type->{attribute}{$atr},$node->{$atr},$atr);
-	}
-      }
-    }
+  unless ($structure) {
     $hlist->add_member($base_path,$type,$node->{'#content'}, '#content');
   }
 }
@@ -875,16 +891,24 @@ sub adjust_size {
 sub dump_child {
   my ($hlist, $path, $ref, $preserve_empty,$mtype)=@_;
   my $data = $hlist->info(data => $path);
+  my $dump = $data->{dump};
+
   $mtype = $data->{type} unless defined $mtype;
-  if (!ref($mtype) or $mtype->{cdata} or $mtype->{choice}) {
+
+#  if (!ref($mtype) or $mtype->{cdata} or $mtype->{choice}) {
+  if ($dump eq 'string') {
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       push @$ref, $data->{value} if $preserve_empty or defined $data->{value};
     } else {
       $ref->{$data->{name}} = $data->{value};
     }
-  } elsif ($mtype->{constant}) {
-    $ref->{ $data->{name} } = $mtype->{constant};
-  } elsif ($mtype->{list}) {
+  } elsif ($dump eq 'constant') {
+    if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
+      push @$ref, $mtype->{constant};
+    } else {
+      $ref->{$data->{name}} = $mtype->{constant};
+    }
+  } elsif ($dump eq 'list') {
     my $new_ref=bless [],'Fslib::List';
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       push @$ref, $new_ref;
@@ -894,7 +918,7 @@ sub dump_child {
     for my $child ($hlist->info(children => $path)) {
       $hlist->dump_child($child,$new_ref,$preserve_empty);
     }
-  } elsif ($mtype->{alt}) {
+  } elsif ($dump eq 'alt') {
     my $new_ref=bless [],'Fslib::Alt';
     if ($data->{compressed_type}) {
       $hlist->dump_child($path,$new_ref,
@@ -923,9 +947,9 @@ sub dump_child {
     } else {
       $ref->{$data->{name}} = $new_ref;
     }
-  } elsif (ref($mtype)) {
-    # either a $mtype->{structure} or a ...
-    # ... HACK: not sure, might be a sequence member
+  } elsif ($dump eq 'none') {
+    # nothing to do
+  } elsif ($dump eq 'structure' or $dump eq 'container') {
     my $new_ref;
     my @children = $hlist->info(children => $path);
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
@@ -945,7 +969,7 @@ sub dump_child {
       $hlist->dump_child($child,$new_ref,$preserve_empty);
     }
   } else {
-    warn "Can't dump $path type ",Dumper($mtype),"\n";
+    warn "Can't dump $path as $dump. Type ",Dumper($mtype),"\n";
   }
 }
 

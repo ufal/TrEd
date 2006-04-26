@@ -647,7 +647,7 @@ sub _node_ord {
   my ($node)=@_;
   my $type = $node ? $node->type : undef;
   if ($type) {
-    my @ord = $node->type->schema->find_role($node->type->type_struct(),'#ORDER');
+    my @ord = $node->type->schema->find_role($node->type->type_decl(),'#ORDER');
     return $ord[0]{-name} if (@ord and ref($ord[0]) and exists($ord[0]{-name}));
   }
   $grp->{FSFile}->FS->order;
