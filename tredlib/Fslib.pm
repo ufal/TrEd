@@ -3209,6 +3209,29 @@ sub new {
   return bless [@_],$class;
 }
 
+=item new_from_ref(array_ref, reuse)
+
+Create a new list consisting of values in a given array reference.
+Use this constructor instead of new() for large lists by reference. If
+reuse is true, then the same array_ref scalar is reused within the
+Fslib::List object (i.e. blessed). Otherwise, a copy is created within
+the constructor.
+
+=cut
+
+sub new_from_ref {
+  my ($class,$array,$reuse) = @_;
+  if ($reuse) {
+    if (UNIVERSAL::isa($array,'ARRAY')) {
+      return bless $array,$class;
+    } else {
+      croak("Usage: new_from_ref(ARRAY_REF,1) - arg 1 is not an ARRAY reference!");
+    }
+  } else {
+    return bless [@$array],$class;
+  }
+}
+
 =item values()
 
 Retrurns a its values (i.e. the list members).
@@ -3256,6 +3279,223 @@ sub values {
 =back
 
 =cut
+
+
+=head1 Fslib::Seq
+
+This class implements the attribute value type 'sequence'.  A sequence
+consists of items called elements. Each element is a name-value
+pair. Unlike hashes, sequences are ordered and may contain more than
+one element with a given name.
+
+=over 3
+
+=cut
+
+package Fslib::Seq;
+use Carp;
+  
+=item new([element_array_ref?, content_pattern?)
+
+Create a new sequence (optionally populated with elements from a given
+array_ref).  Each element should be a [ name, value ] pair. The second
+optional argument is a regular expression constraint which can be
+stored in the object and used later for validating content (see
+validate() method below).
+
+=cut
+  
+  sub new {
+    my ($class,$array,$content_pattern) = @_;
+    $array = [] unless defined($array);
+    return bless [Fslib::List->new_from_ref($array), # a list consisting of [name,value] pairs
+		  $content_pattern             # a content_pattern constraint
+		 ],$class;
+  }
+
+=item elements()
+
+Return a list of [ name, value ] pairs representing the sequence
+elements.
+
+=cut
+  
+  sub elements {
+    return @{$_[0]->[0]};
+  }
+
+=item elements_list()
+
+Like C<elements>, only this method returns a Fslib::List object.
+
+=cut
+  
+  sub elements_list {
+    return $_[0]->[0];
+  }
+
+
+=item content_pattern()
+
+Return the regular expression constraint stored in the sequence object (if any).
+
+=cut
+
+  sub content_pattern {
+    return $_[0]->[1];
+  }
+
+=item set_content_pattern()
+
+Store a regular expression constraint in the sequence object. This
+expressoin can be used later to validate sequence content (see
+validate() method).
+
+=cut
+
+  sub set_content_pattern {
+    $_[0]->[1] = $_[1];
+  }
+
+
+=item values()
+
+Return a list of values of all elements of the sequence. In array
+context, the returned value is a list, in scalar context the result is
+a Fslib::List object.
+
+=cut
+
+  sub values {
+    my @values = map { $_->[1] } $_[0][0]->values;
+    return wantarray ? @values : Fslib::List->new_from_ref(\@values,1);
+  }
+
+=item names()
+
+Return a list of names of all elements of the sequence. In array
+context, the returned value is a list, in scalar context the result is
+a Fslib::List object.
+
+=cut
+
+  sub names {
+    my @names = map { $_->[0] } $_[0][0]->values;
+    return wantarray ? @names : Fslib::List->new_from_ref(\@names,1);
+  }
+
+=item element_at(index)
+
+Return the element of the sequence on the position specified by a
+given index. Elements in the sequece are indexed as elements in Perl
+arrays, i.e. starting from $[, which defaults to 0 and nobody sane
+should ever want to change it.
+
+=cut
+
+  sub element_at {
+    my ($self, $index)=@_;
+    return $self->[0][$index];
+  }
+
+
+=item name_at(index)
+
+Return the name of the element on a given position.
+
+=cut
+
+  sub name_at {
+    my ($self, $index)=@_;
+    return $self->[0][$index][0];
+  }
+
+=item name_at(index)
+
+Return the value of the element on a given position.
+
+=cut
+
+  sub value_at {
+    my ($self, $index)=@_;
+    return $self->[0][$index][1];
+  }
+
+=item delegate_names(key?)
+
+If all element values are HASH-references, then it is possible to
+store each element's name in its value under a given key (that is, to
+delegate the name to the HASH value). The default valeu for key is
+C<#name>. It is a fatal error to try to delegate names if some of the
+values is not a HASH reference.
+
+=cut
+
+  sub delegate_names {
+    my ($self,$key) = @_;
+    $key = '#name' unless defined $key;
+    if (grep { !UNIVERSAL::isa($_->[1],'HASH') } @{$self->[0]}) {
+      croak("Error: sequence contains a non-HASH element (Fslib::Seq can only delegate names to values if all values are HASH refs)!");
+    }
+    foreach my $element (@{$self->[0]}) {
+      $element->[1]{$key} = $element->[0]; # store element's name in key $key of its value
+    }
+  }
+
+=item validate(content_pattern?)
+
+Check that content of the sequence statisfies a constraint specified
+by means of a regular expression C<content_pattern>. If no content_pattern is
+given, the one stored with the object is used (if any; otherwise undef
+is returned).
+
+Returns 1 if the content satisfies the constraint, otherwise returns
+0.
+
+=cut
+
+  sub validate {
+    my ($self,$re) = @_;
+    $re = $self->content_pattern if !defined($re);
+    return undef unless defined $re;
+    my $content = join "",map { "<$_>"} $self->names;
+    $re=~s/\#/\\\#/g;
+    $re=~s/,/ /g;
+    $re=~s/\s+/ /g;
+    $re=~s/([^()?+*,\s]+)/(?:<$1>)/g;
+    # warn "'$content' VERSUS /$re/\n";
+    return $content=~m/^$re$/x ? 1 : 0;
+  }
+
+=item push_element(name, value)
+
+Append a given name-value pair to the sequence.
+
+=cut
+
+  sub push_element {
+    my ($self,$name,$value)=@_;
+    push @{$self->[0]},[$name,$value];
+  }
+
+
+  sub splice {
+    # TODO
+  }
+  sub delete_element_at {
+    # TODO
+  }
+  sub store_element_at {
+    # TODO
+  }
+  sub insert_at {
+    # TODO
+  }
+
+=back
+
+=cut
+
 
 ###########################################################
 
@@ -3752,13 +3992,14 @@ sub schema {
   return $self->[0];
 }
 
-=item schema()
+=item type_decl()
 
-Retrieve the wrapped schema type itself.
+Return the raw Perl structure which resulted from parsing the PML
+schema declaration by C<XML::Simple>.
 
 =cut
 
-sub type_struct {
+sub type_decl {
   my ($self)=@_;
   return $self->[1];
 }
@@ -3773,7 +4014,7 @@ for a possible member with role C<#CHILDNODES>.
 
 sub members {
   my ($self,$path)=@_;
-  my $type = defined($path) ? $self->find($path) : $self->type_struct;
+  my $type = defined($path) ? $self->find($path) : $self->type_decl;
   my $struct = ref($type) ? (exists($type->{structure}) ? $type->{structure} : $type) : undef;
   if ($struct) {
     my $members = $struct->{member};
@@ -3814,7 +4055,7 @@ Return attribute-paths to all atomic subtypes of the given type.
 
 sub attributes {
   my ($self)=@_;
-  return $self->schema->attributes($self->type_struct);
+  return $self->schema->attributes($self->type_decl);
 }
 
 =item find(attribute-path)
@@ -3829,7 +4070,7 @@ structures and element sequences.
 sub find {
   my ($self, $path) = @_;
   # find node type
-  my $type = $self->type_struct;
+  my $type = $self->type_decl;
   my $schema = $self->schema;
   if ($path eq '') {
     return $type;

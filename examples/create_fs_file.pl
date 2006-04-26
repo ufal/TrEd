@@ -30,7 +30,7 @@ foreach (1..10) {
     $node=FSNode->new();	# novy uzel
     $node->{form}="uzel-$_";
     $node->{ord}=$_;
-    Paste($node,$root,$fs->FS->defs()); # vrazime ho pod koren
+    Fslib::Paste($node,$root,$fs->FS->defs()); # vrazime ho pod koren
   }
 }
 

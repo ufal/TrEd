@@ -21,7 +21,8 @@ $DEBUG=0;
 use constant {
   LM => 'LM',
   AM => 'AM',
-  PML_NS => "http://ufal.mff.cuni.cz/pdt/pml/"
+  PML_NS => "http://ufal.mff.cuni.cz/pdt/pml/",
+  SUPPORTED_VERSIONS => " 1.1 ",
 };
 
 
@@ -144,9 +145,15 @@ sub read ($$) {
   my $return;
 #  $fsfile->FS->defs->{id}=' K';
   read_references($fsfile,$dom_root);
-
-  unless (ref($fsfile->metaData('schema'))) {
+  my $schema = $fsfile->metaData('schema');
+  unless (ref($schema)) {
     _die("Unknown XML data: ".$dom_root->localname()." ".$dom_root->namespaceURI());
+  }
+  if ($schema->{version} eq "") {
+    _die("PML Schema file ".$fsfile->metaData('schema-url')." does not specify version!");
+  }
+  if (index(SUPPORTED_VERSIONS," ".$schema->{version}." ")<0) {
+    _die("Unsupported PML Schema version ".$schema->{version}." in ".$fsfile->metaData('schema-url'));
   }
   $return = read_trees($parser, $fsfile,$dom_root);
 #  @{$fsfile->FS->list} = grep {$_ ne $Fslib::special } sort keys %{$fsfile->FS->defs};
@@ -215,17 +222,13 @@ sub read_List ($) {
 
 =item read_Sequence($node)
 
-Child-elements of a given DOM nodes are mapped to
-{ type => 'element', name => $name, value => $value } hashes. 
-Text child-nodes are converted to { type => 'text', value => $cdata }.
-
 =cut
 
 sub read_Sequence {
-  my ($child,$fsfile,$types,$type,$list)=@_;
-  $list = [] unless ref($list);
-  bless($list, 'Fslib::List');
-  return $list unless $child;
+  my ($child,$fsfile,$types,$type,$seq)=@_;
+  $seq ||= Fslib::Seq->new();
+  $seq->set_content_pattern($type->{content_pattern});
+  my $node = $child->parentNode;
   while ($child) {
     my $child_nodeType = $child->nodeType;
     if ($child_nodeType == ELEMENT_NODE) {
@@ -234,31 +237,29 @@ sub read_Sequence {
       my $is_pml = ($ns eq PML_NS);
       if ($type->{element}{$name} and 
 	    ($ns eq "" or $is_pml or $type->{element}{$name}{ns} eq $ns)) {
-	my $element = read_element($child,$fsfile,$types,$type->{element}{$name});
-	push @$list, $element;
+	my $value = read_node($child,$fsfile,$types,$type->{element}{$name});
+	$seq->push_element($name,$value);
       } else {
-	_die("Undeclared ".
-	  ($is_pml 
-	     ? "pml-element "
-	       : ($ns ne "" ? "element {$ns} " : "element"))." ".
-		 _element_address($child));
+	_die("Undeclared element of a sequence "._element_address($child));
       }
-    } elsif (($child_nodeType == TEXT_NODE or $child_nodeType == CDATA_SECTION_NODE)
-	       and $child->getData =~ /\S/
-	    ) {
-      if ($type->{role} eq '#CHILDNODES') {
-	_warn("Ignoring text node '".$child->getData."' in #CHILDNODES sequence in "._element_address($child->parentNode));
-      } elsif ($type->{text}) {
-	push @$list, {
-	  '#type' => 'text',
-	  '#content' => read_node($child,$fsfile,$types,resolve_type($types,$type->{text}))
-	 }
+    } elsif (($child_nodeType == TEXT_NODE or $child_nodeType == CDATA_SECTION_NODE)) {
+      if ($type->{text}) {
+	if ($type->{role} eq '#CHILDNODES') {
+	  _warn("Ignoring text node '".$child->getData."' in #CHILDNODES sequence in "._element_address($node));
+	} else {
+	  $seq->push_element('#TEXT',$child->getData);
+	}
+      } elsif ($child->getData =~ /\S/) {
+	_die("Text content '".$child->getData."'not allowed in sequence of "._element_address($node));
       }
     }
   } continue {
     $child = $child->nextSibling;
   };
-  return $list;
+  if (defined($type->{content_pattern}) and !$seq->validate()) {
+    _warn("Sequence content (".join(",",$seq->names).") does not follow the pattern ".$type->{content_pattern}." in "._element_address($node));
+  }
+  return $seq;
 }
 
 =item read_Alt($node)
@@ -310,109 +311,6 @@ sub node_children {
   1;
 }
 
-sub read_element {
-  my ($node,$fsfile,$types,$type) = @_;
-  my $role = ref($type) ? $type->{role} : undef;
-  $type = resolve_type($types,$type);
-  $role = $type->{role} unless $role;
-  my $hash;
-  my $is_node = (ref($type) and $role eq '#NODE') ? 1 : 0;
-  my $childnodes_taker;
-  if ($is_node) {
-    $hash =  FSNode->new();
-    $childnodes_taker = $hash;
-    $hash->set_type($fsfile->metaData('schema')->type($type));
-  } else {
-    $hash={};
-  }
-  my $name = $node->localName;
-  my $ns = $node->namespaceURI;
-  my $is_pml = ($ns eq PML_NS);
-  $hash->{'#type'} = ($ns eq PML_NS ? 'pml-element' : 'element');
-  $hash->{'#ns'} = $ns unless ($ns eq "" or $is_pml);
-  $hash->{'#name'} = $name;
-  my %attrs;
-  foreach my $attr ($node->attributes) {
-    my $name  = $attr->nodeName;
-    my $value = $attr->value;
-    if (ref($type) and $type->{attribute}{$name}) {
-      $hash->{$name} = $value;
-    } else {
-      $attrs{$name} = $value;
-    }
-  }
-
-  # FIXME:
-  #    Here we first attempt to handle the case when element contains other element or text nodes,
-  #    possibly followed by a sequence. However, a correct implementation requires the knowledge
-  #    of the order of elements and text declarations in the pml schema, which XML::Simple
-  #    cannot provide.
-  #
-  my $value;
-  my $list;
-  if ($type->{element} or $type->{text}) {
-    _debug("ELEMENT has subelements: $name");
-    $value = bless [],'Fslib::List';
-    my $first = 1;
-    for my $child ($node->childNodes) {
-      my $child_nodeType = $child->nodeType;
-      if ($child_nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and 
-	    $type->{element}{$child->localname}) {
-	my $child_name = $child->localname;
-	my $element = read_element($child,$fsfile,$types,$type->{element}{$child_name});
-	push @$value,$element;
-      } elsif ((($child_nodeType == TEXT_NODE or $child_nodeType == CDATA_SECTION_NODE)
-		 and $child->textContent !~ /\S/) or
-		   $child_nodeType == COMMENT_NODE
-		) {
-	$first = 2 if $first;
-      } else {
-	if ($type->{sequence} and
-	  $child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and 
-	    $type->{sequence}{element}->{$child->localname}) {
-	  $list = read_Sequence($child,$fsfile,$types,$type->{sequence});
-	  if ($type->{sequence}{role} eq '#CHILDNODES') {
-	    _debug("NODE-ELEMENT: $name - all children $value");
-	    _warn("Sequence contains non-node members - sequence starts by element "._element_address($child)."\n")
-	      if (grep {!UNIVERSAL::isa($_,'FSNode')} @$list);
-	    node_children($hash,$list);
-	  } else {
-	    push @$value, @$list;
-	  }
-	  last; # no further processing
-	} else {
-	  _warn("Ignoring unexpected node "._element_address($child),"\n");
-	}
-      }
-      $first = 0 unless $first == 2;
-    }
-  } else {
-    _debug("ELEMENT hasn't subelements: $name");
-    $list = $value = read_node($node,$fsfile,$types,$type,$childnodes_taker,\%attrs);
-  }
-  foreach my $atr_name (keys %attrs) {
-    unless ($atr_name =~ /^xml(?:ns)?(?:$|:)/) {
-      _warn("Undeclared attribute '$atr_name' of "._element_address($node));
-    }
-  }
-  if ($is_node) {
-    if (($type->{sequence} and $type->{sequence}{role} eq '#CHILDNODES' or
-	   $type->{list} and $type->{list}{role} eq '#CHILDNODES') and
-	     UNIVERSAL::isa($list,'Fslib::List')) {
-      _debug("NODE-ELEMENT: $name - all children $list");
-      node_children($hash,$list);
-      $hash->{'#content'}=$value if $value != $list;
-    } else {
-      _debug("NODE-ELEMENT: $name - content $value");
-      $hash->{'#content'}=$value;
-    }
-  } else {
-    _debug("NON-NODE-ELEMENT: $name - content $value");
-    $hash->{'#content'}=$value;
-  }
-  return $hash;
-}
-
 sub read_node_knit {
   my ($node,$fsfile,$types,$type)=@_;
 
@@ -447,31 +345,56 @@ sub read_node_knit {
 }
 
 sub read_node {
-  my ($node,$fsfile,$types,$type,$childnodes_taker,$attrs) = @_;
+  my ($node,$fsfile,$types,$type,$childnodes_taker,$attrs,$first_child) = @_;
   _debug({level => 6},"Reading node "._element_address($node)."\n");
   my $defs = $fsfile->FS->defs;
   unless (ref($type)) {
     _die("Schema implies unknown node type: '$type' for node "._element_address($node));
   }
 
+  # CDATA ------------------------------------------------------------
   if ($type->{cdata}) {
     _debug({level => 6},"CDATA type\n");
     # pre-defined atomic types
     return $node->textContent;
+  # LIST ------------------------------------------------------------
   } elsif (exists $type->{list}) {
     _debug({level => 6},"list type\n");
     my $list_type = resolve_type($types,$type->{list});
-    return bless [
-      map {
-	read_node($_,$fsfile,
-		  $types,$list_type)
-      } read_List($node)
-    ], 'Fslib::List';
+
+    my $List = $node->getChildrenByTagNameNS(PML_NS,LM);
+    return bless
+      [
+	@$List 
+	  ? (map {
+	      read_node($_,$fsfile, $types,$list_type)
+	     } read_List($node)) 
+	  : read_node($node,$fsfile, $types, $list_type,undef,$attrs) 
+      ], 'Fslib::List';
+  # ALT ------------------------------------------------------------
+  } elsif (exists $type->{alt}) {
+    _debug({level => 6},"alt type\n");
+    my $alt_type = resolve_type($types,$type->{alt});
+    # alt
+    my $Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
+    if (@$Alt) {
+      return bless [
+	map {
+	  read_node($_,$fsfile,$types,$alt_type)
+	} @$Alt,
+       ], 'Fslib::Alt';
+    } else {
+      return read_node($node,$fsfile,$types,$alt_type,undef,$attrs);
+    }
+  # SEQUENCE ------------------------------------------------------------
   } elsif (exists $type->{sequence}) {
     _debug({level => 6},"sequence type\n");
-    my $list = [];
-    read_Sequence($node->firstChild,$fsfile,$types,$type->{sequence},$list);
-    return $list;
+    my $seq = read_Sequence($node->firstChild,$fsfile,$types,$type->{sequence});
+    if ($type->{sequence}{role} eq '#CHILDNODES' and $childnodes_taker) {
+      $seq->delegate_names('#name');
+      node_children($childnodes_taker, scalar($seq->values));    
+    }
+  # STRUCTURE ------------------------------------------------------------
   } elsif (exists $type->{structure}) {
     _debug({level => 6},"structure type\n");
     # structure
@@ -515,9 +438,9 @@ sub read_node {
 #    foreach my $child ($node->findnodes('*')) {
 #    foreach my $child ($node->getChildrenByTagNameNS(PML_NS,'*')) {
 #    foreach my $child ($node->findnodes('*[namespace-uri()="'.PML_NS.'"]')) {
-    foreach my $child ($node->childNodes) {
-#    my $child = $node->firstChild;
-#    while ($child) {
+#    foreach my $child ($node->childNodes) {
+    my $child = $first_child || $node->firstChild;
+    while ($child) {
       my $child_nodeType = $child->nodeType;
       if($child_nodeType == ELEMENT_NODE
 	 and
@@ -582,12 +505,12 @@ sub read_node {
 		or $child_nodeType == CDATA_SECTION_NODE)
 		and $child->data=~/\S/)) {
 	_warn("Ignoring text content '".$child->data."'.\n");
-     } elsif ($child_nodeType == ELEMENT_NODE
+      } elsif ($child_nodeType == ELEMENT_NODE
 	       and $child->namespaceURI eq PML_NS) {
 	_warn("Ignoring non-PML element '".$child->nodeName."'.\n");
-     }
-#    } continue {
-#      $child = $child->nextSibling;
+      }
+    } continue {
+      $child = $child->nextSibling;
     }
     foreach (keys %{$members}) {
       if (!exists($hash->{$_})) {
@@ -604,6 +527,43 @@ sub read_node {
       }
     }
     return $hash;
+  # CONTAINER ------------------------------------------------------------
+  } elsif (exists $type->{container}) {
+    _debug({level => 6},"container type\n");
+    # container
+    my $container = $type->{container};
+    my $attributes = $container->{attribute};
+    my $hash;
+    if ($type->{role} eq '#NODE' or $container->{role} eq '#NODE') {
+      $hash=FSNode->new();
+      $childnodes_taker = $hash;
+      $hash->set_type($fsfile->metaData('schema')->type($container));
+    } else {
+      $hash={}
+    }
+
+    unless ($attrs) {
+      $attrs = {};
+      foreach my $attr ($node->attributes) {
+	$attrs->{$attr->nodeName} = $attr->value;
+      }
+    }
+    foreach my $atr_name (keys %$attributes) {
+      if (exists($attrs->{$atr_name})) {
+	$hash->{$atr_name} = delete $attrs->{$atr_name};
+      } elsif ($attributes->{$atr_name}{required}) {
+	_die("Required attribute '$atr_name' missing in container ".
+	       _element_address($node));
+      }
+    }
+    $hash->{'#content'} = read_node($node,$fsfile,$types,$container,$childnodes_taker,$attrs);
+    foreach my $atr_name (keys %$attrs) {
+      unless ($atr_name =~ /^xml(?:ns)?(?:$|:)/) {
+	_warn("Undeclared attribute '$atr_name' of "._element_address($node));
+      }
+    }
+    return $hash;
+  # CHOICE ------------------------------------------------------------
   } elsif (exists $type->{choice}) {
     _debug({level => 6},"choice type\n");
     if (grep { $_->nodeName !~ m{^xml(?:ns)?:} } $node->attributes) {
@@ -626,6 +586,7 @@ sub read_node {
       _die("Invalid value '$data' for '".$node->localname."' (expected one of: ".join(',',@{$type->{choice}}).")");
     }
     return $data;
+  # CONSTANT ------------------------------------------------------------
   } elsif (exists $type->{constant}) {
     _debug({level => 6},"constant type\n");
     my $data = $node->textContent();
@@ -633,23 +594,7 @@ sub read_node {
       _die("Invalid value '$data' for constant '".$node->localname."' (expected $type->{constant})");
     }
     return $data;
-  } elsif (exists $type->{alt}) {
-    _debug({level => 6},"alt type\n");
-    # alt
-    my $Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
-    if (@$Alt) {
-      return bless [
-	map {
-	  read_node($_,$fsfile,
-				$types,resolve_type($types,$type->{alt}))
-	} @$Alt,
-       ], 'Fslib::Alt';
-    } else {
-      return read_node($node,$fsfile,
-				   $types,
-				   resolve_type($types,$type->{alt}));
-    }
-
+  # OTHER ------------------------------------------------------------
   } elsif ($type->{element}) {
     _die("Type declaration error: element type not allowed for data construction in ".
 	   _element_address($node));
@@ -660,6 +605,7 @@ sub read_node {
     _die("Type declaration error: cannot determine data type of ".
 	   _element_address($node)."Parsed type declaration:\n".Dumper($type));
   }
+  return undef;
 }
 
 sub readas_trees {
@@ -732,6 +678,27 @@ sub get_references {
   return @refs;
 }
 
+# return the first child after <head>
+sub _skip_head {
+  my ($node, $child)=@_;
+  my $child = $node->firstChild;
+  while ($child) {
+    if ($child->nodeType == ELEMENT_NODE) {
+      if ($child->namespaceURI eq PML_NS and $child->localname eq 'head') {
+	$child = $child->nextSibling;
+	last;
+      } else {
+	_warn("Expected <head> instead of "._element_address($child));
+	last;
+      }
+    } elsif (($child->nodeType == TEXT_NODE or $child->nodeType == CDATA_SECTION_NODE) and $child->textContent =~ /\S/) {
+      _die("Unexpected text content '".$child->textContent."' in "._element_address($node));
+    }
+  } continue {
+    $child = $child->nextSibling;
+  };
+  return $child;
+}
 
 sub read_trees {
   my ($parser, $fsfile, $dom_root) = @_;
@@ -754,95 +721,88 @@ sub read_trees {
 	  $dom_root->localname eq $root_name) {
     _die("Expected root element '$root_name'");
   }
-
-  # schema type 1: #TREES form a PML list
-  if (UNIVERSAL::isa($root_type->{element},'HASH') and
-      grep {
-	UNIVERSAL::isa($_,'HASH') and
-	$_->{role} eq '#TREES'
-      } values %{$root_type->{element}}) {
-    _debug("Found member with role \#TREES\n");
-    my $found_trees = 0;
-    my $first = 1;
-    for my $child ($dom_root->childNodes) {
-      if ($first and $child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and $child->localname eq 'head') {
-	# already read this one
-      } elsif ($child->nodeType == ELEMENT_NODE and
-	    $child->namespaceURI eq PML_NS and
-	      $root_type->{element}->{$child->localname}->{role} eq '#TREES') {
-	$found_trees=1;
-	_debug("found trees ",$child->localname);
-	my $type = resolve_type($types,$root_type->{element}->{$child->localname});
-	if ($type->{list}) {
-	  my $trees = read_node($child,$fsfile,$types,$type);
-	  if (ref($trees) eq 'Fslib::List') {
-	    @{$fsfile->treeList} = @$trees
-	  } else {
-	    _die("Expected 'Fslib::List', got $trees");
-	    @{$fsfile->treeList} = ($trees);
-	  }
-	  _warn("Tree-list contains non-node members: "._element_address($child)."\n")
-	    if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$fsfile->treeList});
-	} else {
-	  _die("Expected 'list' in role #TREES");
-	}
-      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
-	       $root_type->{element}{$child->localname}) {
-	my $name = $child->localname;
-	my $element = read_element($child,$fsfile,$types,$root_type->{element}{$name});
-	my $what = $found_trees ? 'pml_epilog' : 'pml_prolog';
-	if (ref($fsfile->metaData($what)) eq 'ARRAY') {
-	  push @{$fsfile->metaData($what)},$element;
-	} else {
-	  $fsfile->changeMetaData($what,[$element])
-	}
-      } elsif ($child->nodeType == TEXT_NODE and $child->textContent !~ /\S/) {
-	$first=2 if $first;
-      } else {
-	_warn("Ignoring node "._element_address($child),"\n");
-      }
-      $first=0 unless $first==2;
-    }
-  } elsif (
-    $root_type->{sequence} and
-    UNIVERSAL::isa($root_type->{sequence},'HASH') and
-    $root_type->{sequence}{role} eq '#TREES'
-   ) {
-    _debug("Found sequence with role \#TREES\n");
-    # schema type 2: #TREES form a PML list
-    my $first = 1;
-    my $in_sequence = 0;
-    for my $child ($dom_root->childNodes) {
-      if ($first and $child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and
-	    $child->localname eq 'head') {
-	# already read this one
-      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and $root_type->{element}{$child->localname}) {
-	my $name = $child->localname;
-	my $element = read_element($child,$fsfile,$types,$root_type->{element}{$name});
-	if (ref($fsfile->metaData('pml_prolog')) eq 'ARRAY') {
-	  push @{$fsfile->metaData('pml_prolog')},$element;
-	} else {
-	  $fsfile->changeMetaData('pml_prolog',[$element])
-	}
-      } elsif ($child->nodeType == ELEMENT_NODE and $child->namespaceURI eq PML_NS and $root_type->{sequence}{element}->{$child->localname}) {
-	_debug("found tree ",$child->localname);
-	my $list = [];
-	read_Sequence($child,$fsfile,$types,$root_type->{sequence},$list);
-	@{$fsfile->treeList} = @$list;
-	_warn("Sequence contains non-node members - sequence starts by element "._element_address($child)."\n")
-	  if (grep {!UNIVERSAL::isa($_,'FSNode')} @$list);
-	last; # no further processing
-      } elsif ($child->nodeType == TEXT_NODE and $child->textContent !~ /\S/) {
-	$first = 2 if $first;
-      } else {
-	_warn("Ignoring unexpected node "._element_address($child),"\n");
-      }
-      $first = 0 unless $first == 2;
-    }
-  } else {
-    _die("No #TREES found in PML schema");
+  unless (UNIVERSAL::isa($root_type,'HASH')) {
+    _die("PML schema error - invalid root element declaration");
   }
-  1;
+
+  # In PML 1.0, root can either be a sequence or a structure
+
+  if ($root_type->{structure}) {
+    my $struct = $root_type->{structure};
+    if ($struct->{member} and
+	my @trees = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$struct->{member}}) {
+      _debug("Found AVS member(s) with role \#TREES: ".join(',',map { $_->{-name} } @trees));
+      
+
+      my $root_struct = read_node($dom_root,$fsfile,$types,$root_type,undef,undef,
+				  _skip_head($dom_root) # the child after <head>
+				 );
+      if (@trees>1) {
+	_warn("Warning: Found more then one member with role #TREES, using $trees[0]->{-name}\n");
+      }
+#      _debug("TREES:",Dumper($root_struct));
+      my $trees_member = $trees[0]->{-name};
+      my $trees = delete($root_struct->{$trees_member});
+      $fsfile->changeMetaData('pml_root',$root_struct);
+      $fsfile->changeMetaData('pml_trees_member',$trees_member);
+      $fsfile->changeMetaData('pml_trees_type',$schema->type(resolve_type($types,$struct->{member}{$trees_member})));
+
+      if (ref($trees) eq 'Fslib::List') {
+	@{$fsfile->treeList} = $trees->values;
+      } elsif (ref($trees) eq 'Fslib::Seq') {
+	$trees->delegate_names;
+	@{$fsfile->treeList} = $trees->values;
+      } else {
+	_die("Member '$trees[0]->{-name}' with role #TREES is not a list/sequence");
+      }
+      _warn("Member '$trees[0]->{-name}' with role #TREES contains non-#NODE list members in "._element_address($dom_root))
+	if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$fsfile->treeList});
+    } else {
+      _die("Root AVS contains no member with role \#TREES:"._element_address($dom_root));
+    }
+  } elsif ($root_type->{sequence}) {
+    my $sequence = $root_type->{sequence};
+    unless ($sequence->{role} eq '#TREES') {
+      _die("Cannot load this file: root sequence is not of role \#TREES:"._element_address($dom_root));
+      # FIXME: eventually we should also support sequences containing one (or more) elements
+      # of role #TREES and load the first one as #TREES, while preserving the rest in
+      # prolog and epilog.
+    }
+    $fsfile->changeMetaData('pml_trees_type',$root_type);
+    # the child after <head>
+    my $seq = read_Sequence(_skip_head($dom_root),$fsfile,$types,$root_type->{sequence});
+
+    # split sequence into a prolog and an epliog:
+    my $prolog = $fsfile->metaData('pml_prolog') || Fslib::Seq->new;
+    $fsfile->changeMetaData('pml_prolog',$prolog);
+    my $epilog = $fsfile->metaData('pml_epilog') || Fslib::Seq->new;
+    $fsfile->changeMetaData('pml_epilog',$epilog);
+    my $trees=$fsfile->treeList;
+    my $phase = 0; # prolog
+    foreach my $element ($seq->elements) {
+      if (UNIVERSAL::isa($element->[1],'FSNode')) {
+	if ($phase == 0) {
+	  $phase = 1;
+	}
+	if ($phase == 1) {
+	  $element->[1]{'#name'} = $element->[0]; # manually delegate_name on this element
+	  push @$trees, $element->[1];
+	} else {
+	  $prolog->push_element(@$element);
+	}
+      } else {
+	if ($phase == 1) {
+	  $phase = 2; # start epilog
+	}
+	if ($phase == 0) {
+	  $prolog->push_element(@$element);
+	} else {
+	  $epilog->push_element(@$element);
+	}
+      }
+    }
+  }
+  return 1;
 }
 
 =pod
@@ -867,20 +827,20 @@ sub write {
   my $root_name = $schema->{root}{name};
   my $root_type = resolve_type($types,$schema->{root});
 
-  my ($trees,$trees_tag);
-  if (UNIVERSAL::isa($root_type->{element},'HASH')) {
-    ($trees) = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$root_type->{element}};
-    if ($trees) {
-      $trees_tag = $trees->{-name};
-    } elsif (UNIVERSAL::isa($root_type->{sequence},'HASH') and $root_type->{sequence}{role} eq '#TREES') {
-      $trees = $root_type;
-    }
-  } elsif (UNIVERSAL::isa($root_type->{sequence},'HASH') and $root_type->{sequence}{role} eq '#TREES') {
-    $trees = $root_type;
-  }
-  unless ($trees) {
-    _die("Can't write: didn't find any element or sequence with role #TREES");
-  }
+#   my ($trees,$trees_tag);
+#   if (UNIVERSAL::isa($root_type->{element},'HASH')) {
+#     ($trees) = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$root_type->{element}};
+#     if ($trees) {
+#       $trees_tag = $trees->{-name};
+#     } elsif (UNIVERSAL::isa($root_type->{sequence},'HASH') and $root_type->{sequence}{role} eq '#TREES') {
+#       $trees = $root_type;
+#     }
+#   } elsif (UNIVERSAL::isa($root_type->{sequence},'HASH') and $root_type->{sequence}{role} eq '#TREES') {
+#     $trees = $root_type;
+#   }
+#   unless ($trees) {
+#     _die("Can't write: didn't find any element or sequence with role #TREES");
+#   }
 
   # dump embedded DOM documents
   my $refs_to_save = $fsfile->appData('refs_save');
@@ -941,23 +901,45 @@ sub write {
   $xml->endTag('references');
   $xml->endTag('head');
 
-  my $prolog = $fsfile->metaData('pml_prolog');
-  if (ref($prolog) eq 'ARRAY') {
-    foreach my $element (@$prolog) {
-      write_extra_element($xml,$fsfile,$types,$root_type,$element);
+  if ($root_type->{structure}) {
+    my $struct = $root_type->{structure};
+    my $root_struct = $fsfile->metaData('pml_root');
+    my @trees = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$struct->{member}};
+    if (@trees) {
+      my %copy = %$root_struct;
+      my $trees_type = resolve_type($types,$trees[0]);
+      my $trees_name = $trees[0]->{-name};
+      if ($trees_type->{list}) {
+	$copy{$trees_name}=Fslib::List->new_from_ref($fsfile->treeList,0);
+	write_object($xml, $fsfile, $types,$root_type,undef,\%copy);
+      } elsif ($trees_type->{sequence}) {
+	$copy{$trees_name}=Fslib::Seq->new([map { [$_->{'#name'},$_] } @{$fsfile->treeList}]);
+	write_object($xml, $fsfile, $types,$root_type,undef,\%copy);
+      } else {
+	_warn("Cannot write tree list: data type of $trees_name is neither a list nor a sequence!\n");
+      }
+    } else {
+      _warn("Cannot write tree list: no AVS member with role #TREES!\n");
     }
-  }
-
-  my $tree_list = bless [$fsfile->trees],'Fslib::List';
-  write_object($xml, $fsfile, $types,resolve_type($types,$trees),$trees_tag,$tree_list);
-
-  my $epilog = $fsfile->metaData('pml_epilog');
-  if (ref($epilog) eq 'ARRAY') {
-    foreach my $element (@$epilog) {
-      write_extra_element($xml,$fsfile,$types,$root_type,$element);
+  } elsif ($root_type->{sequence}) {
+#	if (defined($type->{content_pattern}) and !$seq->validate()) {
+#	_warn("#TREES sequence '$trees_name' (".join(",",$copy{$trees_name}->names).") does not follow the pattern ".$trees_type->{sequence}{content_pattern});
+#      }
+    my $sequence = $root_type->{sequence};
+    unless ($sequence->{role} eq '#TREES') {
+      _warn("Cannot write tree list - root sequence is not of role \#TREES");
+      # FIXME: eventually we should also support sequences containing one (or more) elements
+      # of role #TREES and load the first one as #TREES, while preserving the rest in
+      # prolog and epilog.
     }
+    my $prolog = $fsfile->metaData('pml_prolog');
+    my $epilog = $fsfile->metaData('pml_epilog');
+    my $copy = Fslib::Seq->new(
+      [(UNIVERSAL::isa($prolog,'Fslib::Seq') ? $prolog->elements : ()),
+       (map { [$_->{'#name'},$_] } @{$fsfile->treeList}),
+       (UNIVERSAL::isa($epilog,'Fslib::Seq') ? $epilog->elements : ())]);
+    write_object($xml, $fsfile, $types,$root_type,undef,$copy);
   }
-
   $xml->endTag($root_name);
   $xml->end;
 
@@ -1185,67 +1167,68 @@ sub write_object {
       write_object($xml, $fsfile, $types,$type->{alt},$tag,$object);
     }
   } elsif (exists $type->{sequence}) {
+    my $sequence = $type->{sequence};
     $xml->startTag($tag,%$attribs) if defined($tag);
-    if (UNIVERSAL::isa($object,'Fslib::List')) {
-      foreach my $element (@$object) {
-	if ($element->{'#type'} eq 'text') {
-	  if ($type->{sequence}{text}) {
-	    $xml->characters($element->{'#content'});
-	  } else {
-	    _warn("Text node is not allowed in sequence '$tag'\n");
+    if (UNIVERSAL::isa($object,'Fslib::Seq')) {
+      if (exists $sequence->{content_pattern}) {
+	unless ($object->validate($sequence->{content_pattern})) {
+	  _warn("Sequence '$tag' (".join(",",$object->names).") does not follow the pattern ".$sequence->{content_pattern});
+	}
+      }
+      foreach my $element (@{$object->elements_list}) {
+	if ($element->[0] eq '#TEXT') {
+	  unless ($type->{sequence}{text}) {
+	    _warn("Text not allowed in sequence '$tag', writing it anyway\n");
 	  }
-	} elsif ($element->{'#type'} eq 'pml-element') {
-	  my $eltype = $type->{sequence}{element}{$element->{'#name'}};
+	  $xml->characters($element->[1]);
+	} elsif ($element->[0] ne '') {
+	  my $eltype = $sequence->{element}{$element->[0]};
 	  if ($eltype) {
-	    my $role = $eltype->{role};
-	    $eltype=resolve_type($types,$eltype);
-	    $role = $eltype->{role} if $role eq '';
-	    my %attribs;
-	    foreach my $atr (keys(%{$eltype->{attribute}})) {
-	      $attribs{$atr} = $element->{$atr};
-	    }
-	    if (UNIVERSAL::isa($element,'FSNode') and $element->firstson and
-		($eltype->{sequence} and $eltype->{sequence}{role} eq '#CHILDNODES' or
-		 $eltype->{list} and $eltype->{list}{role} eq '#CHILDNODES')) {
-	      write_object($xml, $fsfile, $types,$eltype,[$element->{'#name'},\%attribs],
-			   bless([ $element->children ],'Fslib::List'));
-	    } else {
-	      write_object($xml, $fsfile, $types,$eltype,[$element->{'#name'},\%attribs],$element->{'#content'});
-	    }
+	    write_object($xml, $fsfile, $types,$eltype,$element->[0],$element->[1]);
 	  } else {
-	    _warn("PML-element '".$element->{'#name'}."' node is not allowed in sequence '$tag'\n");
+	    _warn("Element '".$element->[0]."' not allowed in sequence '$tag', skipping\n");
 	  }
-	} elsif ($element->{'#type'} eq 'element') {
-	  # TODO:
-	  # similar but with a namespace, etc...
-	  _warn("Writing non-pml elements not yet supported\n");
+	} else {
+	  _warn("Sequence '$tag' contains element with no name, skipping\n");
 	}
       }
     } else {
-      _warn("Unexpected content of sequence '$tag': $object\n");
+      _die("Unexpected content of sequence '$tag': $object\n");
     }
     $xml->endTag($tag) if defined($tag);
-  }
-  1;
-}
-
-sub write_extra_element {
-  my ($xml,$fsfile,$types,$type,$element)=@_;
-  my $eltype = $type->{element}{$element->{'#name'}};
-  if ($eltype) {
-    my %attribs;
-    foreach my $atr (keys(%{$eltype->{attribute}})) {
-      $attribs{$atr} = $element->{$atr};
+  } elsif (exists $type->{container}) {
+    unless (UNIVERSAL::isa($object,'HASH')) {
+      _die("Unexpected type of container object: $object\n");
     }
-    $xml->startTag($element->{'#name'},%attribs);
-    write_object($xml, $fsfile, $types,$eltype,undef,$element->{'#content'});
-    $xml->endTag($element->{'#name'});
+    my $container = $type->{container};
+    my %attribs;
+    foreach my $atr (keys(%{$container->{attribute}})) {
+      $attribs{$atr} = $object->{$atr};
+    }
+    if (%attribs and !defined($tag)) {
+      _warn("Internal error: too late to serialize attributes of a container");
+    }
+    my $content = $object->{'#content'};
+    if ($container->{role} eq '#NODE' and 
+	  UNIVERSAL::isa($object,'FSNode')) {
+      my $cont_type = resolve_type($types,$container);
+      if (ref($cont_type) and ref($cont_type->{sequence}) and $cont_type->{sequence}{role} eq '#CHILDNODES') {
+	if ($content ne "") {
+	  _warn("Discarding non-empty #content of a container of a #CHILDNODES sequence!");
+	}
+	$content = Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
+      }
+    }
+    write_object($xml, $fsfile, $types,$container,[$tag,{%$attribs,%attribs}],$content);
+  } elsif (exists $type->{constant}) {
+    if ($object ne $type->{constant}) {
+      _warn("Invalid constant, should be '$type->{constant}', got: ",$object);
+    }
   } else {
-    _warn("PML-element '".$element->{'#name'}."' node is not allowed in prolog/epilog\n");
+    _die("Type error: Unrecognized data type, object cannot be serialized in this context. Type declaration:\n".Dumper($type));
   }
   1;
 }
-
 
 sub validate_object_knit {
   my ($log,$path,$types,$type,$tag,$knit_tag,$object)=@_;
@@ -1308,7 +1291,7 @@ sub validate_object ($$$$$$) {
 	my $mtype = resolve_type($types,$members->{$member});
 	if ($members->{$member}{role} eq '#CHILDNODES') {
 	  if (ref($object) ne 'FSNode') {
-	    push @$log, "$path/$member: #CHILDNODES member with a non-node value: '$object'";
+	    push @$log, "$path/$member: #CHILDNODES member with a non-node value:\n".Dumper($object);
 	  }
 	} elsif ($members->{$member}{role} eq '#KNIT') {
 	  my $knit_tag = $member;
@@ -1371,47 +1354,66 @@ sub validate_object ($$$$$$) {
     } else {
       validate_object($log, $path, $types,$type->{alt},undef,$object);
     }
+  } elsif (exists $type->{container}) {
+    if (not UNIVERSAL::isa($object,'HASH')) {
+      push @$log, "$path: unexpected container (should be a HASH): $object";
+    } else {
+      my $container = $type->{container};
+      my $attributes = $container->{attribute};
+      foreach my $atr (keys %$attributes) {
+	if ($attributes->{$atr}{required} or $object->{$atr} ne "") {
+	  if (ref($object->{$atr})) {
+	    push @$log, "$path/$atr: invalid content for attribute: ".ref($object->{$atr});
+	  } else {
+	    validate_object($log, $path, $types,$attributes->{$atr},$atr,$object->{$atr});
+	  }
+	}
+      }
+      my $content = $object->{'#content'};
+      if ($container->{role} eq '#NODE') {
+	if (!UNIVERSAL::isa($object,'FSNode')) {
+	  push @$log, "$path: container declared as #NODE should be a FSNode object: $object";
+	} else {
+	  my $cont_type = resolve_type($types,$container);
+	  if (ref($cont_type) and ref($cont_type->{sequence}) and $cont_type->{sequence}{role} eq '#CHILDNODES') {
+	    if ($content ne "") {
+	      push @$log, "$path: #NODE container containing a #CHILDNODES should have empty #content: $content";
+	    }
+	    $content = Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
+	  }
+	}
+      }
+      validate_object($log, $path, $types,$container,'#content',$content);
+    }
   } elsif (exists $type->{sequence}) {
-    if (UNIVERSAL::isa($object,'Fslib::List')) {
-      foreach my $element (@$object) {
-	if (!UNIVERSAL::isa($element,'HASH')) {
+    if (UNIVERSAL::isa($object,'Fslib::Seq')) {
+      my $sequence=$type->{sequence};
+      foreach my $element ($object->elements) {
+	if (!(UNIVERSAL::isa($element,'ARRAY') and @$element==2)) {
 	  push @$log, "$path: invalid sequence content: ",ref($element);
-	} elsif ($element->{'#type'} eq 'text') {
-	  if ($type->{sequence}{text}) {
-	    if (ref($element->{'#content'})) {
-	      push @$log, "$path: expected CDATA, got: ",ref($object);
+	} elsif ($element->[0] eq '#TEXT') {
+	  if ($sequence->{text}) {
+	    if (ref($element->[1])) {
+	      push @$log, "$path: expected CDATA, got: ",ref($element->[1]);
 	    }
 	  } else {
 	    push @$log, "$path: text node not allowed here\n";
 	  }
-	} elsif ($element->{'#type'} eq 'pml-element') {
-	  my $eltype = $type->{sequence}{element}{$element->{'#name'}};
-	  if ($eltype) {
-	    my $role = $eltype->{role};
-	    $eltype=resolve_type($types,$eltype);
-	    $role = $eltype->{role} if $role eq '';
-	    foreach my $atr (keys(%{$eltype->{attribute}})) {
-	      if (ref($element->{$atr})) {
-		push @$log, "$path/$atr: invalid content for element attribute: ".ref($element->{$atr});
-	      }
-	    }
-	    if ($eltype->{sequence} and $eltype->{sequence}{role} eq '#CHILDNODES' or
-		  $eltype->{list} and $eltype->{list}{role} eq '#CHILDNODES') {
-	      unless (UNIVERSAL::isa($element,'FSNode')) {
-		push @$log, "$path/#content: #CHILDNODES element with a non-node value: '$element'";
-	      }
-	    } else {
-	      validate_object($log, $path, $types,$eltype,'#content',$element->{'#content'});
-	    }
-	  } else {
-	    push @$log, "$path/#content: undefined element '$element->{'#name'}'",Dumper($type);
-	  }
 	} else {
-	  push @$log, "$path/#content: unknown or unsupported node type '$element->{'#type'}'",Dumper($element);
+	  my $eltype = $sequence->{element}{$element->[0]};
+	  if ($eltype) {
+	    validate_object($log, $path, $types,$eltype,$element->[0],$element->[1]);
+	  } else {
+	    push @$log, "$path: undefined element '$element->[0]'",Dumper($type);
+	  }
 	}
+      }
+      if ($sequence->{content_pattern} and !$object->validate($sequence->{content_pattern})) {
+	push @$log, "$path: sequence content (".join(",",$object->names).") does not follow the pattern ".$sequence->{content_pattern};
       }
     } else {
       push @$log, "$path: unexpected content of a sequence: $object\n";
+      push @$log, Dumper($type);
     }
   } else {
     push @$log, "$path: unknown type: ".Dumper($type);

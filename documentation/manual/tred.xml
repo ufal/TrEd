@@ -8101,7 +8101,7 @@ sub SubtreeFuncAssign {
 	  <listitem>
 	    <para>
 	      Each PML element with role <literal>#NODE</literal> 
-	      may contain a sequence of it's child elements.
+	      may contain a sequence of its child elements.
 	      This sequence must have PML role
 	      <literal>#CHILDNODES</literal>.
 	    </para>
@@ -8109,7 +8109,7 @@ sub SubtreeFuncAssign {
 	  <listitem>
 	    <para>
 	      Each PML structure with role <literal>#NODE</literal> 
-	      may contain a member of a list type, which construes the list of child-nodes.
+	      may contain a member of a list type, which constitutes the list of child-nodes.
 	      This member must have PML role <literal>#CHILDNODES</literal>.
 	    </para>
 	  </listitem>
