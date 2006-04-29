@@ -49,10 +49,16 @@ sub read {
   my ($fd,$fs)=@_;
   binmode($fd);
   my $restore = fd_retrieve($fd);
+
+  my $api_version = $restore->[6];
+  if ($api_version ne $Fslib::API_VERSION) {
+    warn "Warning: the binary file ".$fs->filename." is a dump of structures created by possibly incompatible Fslib API version $api_version (the current Fslib API version is $Fslib::API_VERSION)\n";
+  }
+
   $fs->changeFS($restore->[0]);
   $fs->changeTrees(@{$restore->[1]});
   $fs->changeTail(@{$restore->[2]});
-  $fs->[13]=$restore->[3];
+  $fs->[13]=$restore->[3]; # metaData
   $fs->changePatterns(@{$restore->[4]});
   $fs->changeHint($restore->[5]);
   $fs->FS->renew_specials();
@@ -68,7 +74,14 @@ sub read {
 sub write {
   my ($fd,$fs)=@_;
   binmode($fd);
-  nstore_fd([$fs->FS,$fs->treeList,[$fs->tail],$fs->[13],[$fs->patterns],$fs->hint],$fd);
+  nstore_fd([$fs->FS,
+	     $fs->treeList,
+	     [$fs->tail],
+	     $fs->[13], # metaData
+	     [$fs->patterns],
+	     $fs->hint,
+	     $Fslib::API_VERSION
+	    ],$fd);
 }
 
 
