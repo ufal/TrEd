@@ -228,6 +228,7 @@ sub read_Sequence {
   my ($child,$fsfile,$types,$type,$seq)=@_;
   $seq ||= Fslib::Seq->new();
   $seq->set_content_pattern($type->{content_pattern});
+  return undef unless $child;
   my $node = $child->parentNode;
   while ($child) {
     my $child_nodeType = $child->nodeType;
@@ -237,7 +238,7 @@ sub read_Sequence {
       my $is_pml = ($ns eq PML_NS);
       if ($type->{element}{$name} and 
 	    ($ns eq "" or $is_pml or $type->{element}{$name}{ns} eq $ns)) {
-	my $value = read_node($child,$fsfile,$types,$type->{element}{$name});
+	my $value = read_node($child,$fsfile,$types,resolve_type($types,$type->{element}{$name}));
 	$seq->push_element($name,$value);
       } else {
 	_die("Undeclared element of a sequence "._element_address($child));
@@ -362,15 +363,21 @@ sub read_node {
     _debug({level => 6},"list type\n");
     my $list_type = resolve_type($types,$type->{list});
 
-    my $List = $node->getChildrenByTagNameNS(PML_NS,LM);
-    return bless
+    my $nodelist = $node->getChildrenByTagNameNS(PML_NS,LM);
+    my $list = bless
       [
-	@$List 
+	@$nodelist
 	  ? (map {
 	      read_node($_,$fsfile, $types,$list_type)
 	     } read_List($node)) 
 	  : read_node($node,$fsfile, $types, $list_type,undef,$attrs) 
       ], 'Fslib::List';
+    if ($type->{list}{role} eq '#CHILDNODES' and $childnodes_taker) {
+      node_children($childnodes_taker, $list) if $list;
+      return undef;
+    } else {
+      return $list;
+    }
   # ALT ------------------------------------------------------------
   } elsif (exists $type->{alt}) {
     _debug({level => 6},"alt type\n");
@@ -391,8 +398,13 @@ sub read_node {
     _debug({level => 6},"sequence type\n");
     my $seq = read_Sequence($node->firstChild,$fsfile,$types,$type->{sequence});
     if ($type->{sequence}{role} eq '#CHILDNODES' and $childnodes_taker) {
-      $seq->delegate_names('#name');
-      node_children($childnodes_taker, scalar($seq->values));    
+      if ($seq) {
+	$seq->delegate_names('#name');
+	node_children($childnodes_taker, scalar($seq->values));    
+      }
+      return undef;
+    } else {
+      return $seq;
     }
   # STRUCTURE ------------------------------------------------------------
   } elsif (exists $type->{structure}) {
@@ -601,6 +613,9 @@ sub read_node {
   } elsif ($type->{member}) {
     _die("Type declaration error: AVS member type not applicable for data construction in ".
 	   _element_address($node));
+  # UNRESOLVED ------------------------------------------------------------
+  } elsif  ($type->{type}) {
+    return read_node($node,$fsfile,$types,resolve_type($types,$type),$childnodes_taker,$attrs,$first_child);
   } else {
     _die("Type declaration error: cannot determine data type of ".
 	   _element_address($node)."Parsed type declaration:\n".Dumper($type));
@@ -758,7 +773,7 @@ sub read_trees {
       _warn("Member '$trees[0]->{-name}' with role #TREES contains non-#NODE list members in "._element_address($dom_root))
 	if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$fsfile->treeList});
     } else {
-      _die("Root AVS contains no member with role \#TREES:"._element_address($dom_root));
+      _die("Root AVS contains no member with role \#TREES: "._element_address($dom_root));
     }
   } elsif ($root_type->{sequence}) {
     my $sequence = $root_type->{sequence};
@@ -768,6 +783,7 @@ sub read_trees {
       # of role #TREES and load the first one as #TREES, while preserving the rest in
       # prolog and epilog.
     }
+    _debug("Found a sequence with role \#TREES");
     $fsfile->changeMetaData('pml_trees_type',$root_type);
     # the child after <head>
     my $seq = read_Sequence(_skip_head($dom_root),$fsfile,$types,$root_type->{sequence});
@@ -801,6 +817,11 @@ sub read_trees {
 	}
       }
     }
+    if ($phase == 0) {
+      _die("Couldn't find any object with role #NODE in the #TREES sequence!");
+    }
+  } else {
+    _die("Couldn't find any object with role #TREES in the root element: "._element_address($dom_root));
   }
   return 1;
 }
