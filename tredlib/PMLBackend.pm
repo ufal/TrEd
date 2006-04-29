@@ -155,7 +155,7 @@ sub read ($$) {
   if (index(SUPPORTED_VERSIONS," ".$schema->{version}." ")<0) {
     _die("Unsupported PML Schema version ".$schema->{version}." in ".$fsfile->metaData('schema-url'));
   }
-  $return = read_trees($parser, $fsfile,$dom_root);
+  $return = read_data($parser, $fsfile,$dom_root);
 #  @{$fsfile->FS->list} = grep {$_ ne $Fslib::special } sort keys %{$fsfile->FS->defs};
   return $return;
 }
@@ -715,7 +715,7 @@ sub _skip_head {
   return $child;
 }
 
-sub read_trees {
+sub read_data {
   my ($parser, $fsfile, $dom_root) = @_;
 
   foreach my $ref (get_references($fsfile)) {
@@ -740,7 +740,7 @@ sub read_trees {
     _die("PML schema error - invalid root element declaration");
   }
 
-  # In PML 1.0, root can either be a sequence or a structure
+  # In PML 1.1, root can either be a sequence or a structure
 
   if ($root_type->{structure}) {
     my $struct = $root_type->{structure};
