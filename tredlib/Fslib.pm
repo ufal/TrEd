@@ -1815,7 +1815,7 @@ sub initialize {
   $self->[3] = $_[3];  # hint pattern
   $self->[4] = ref($_[4]) eq 'ARRAY' ? $_[4] : []; # list of attribute patterns
   $self->[5] = ref($_[5]) eq 'ARRAY' ? $_[5] : []; # unparsed rest of a file
-  $self->[6] = ref($_[6]) eq 'ARRAY' ? $_[6] : []; # trees
+  $self->[6] = UNIVERSAL::isa($_[6],'ARRAY') ? Fslib::List->new_from_ref($_[6],1) : Fslib::List->new; # trees
   $self->[7] = $_[7] ? $_[7] : 0; # notsaved
   $self->[8] = undef; # storage for current tree number
   $self->[9] = undef; # storage fro current node
@@ -2428,22 +2428,6 @@ sub tree {
   return ref($self) ? $self->[6]->[$n] : undef;
 }
 
-
-=pod
-
-=item changeTreeList (list_ref)
-
-Associate a new reference to a list of trees with the this FSFile.
-The referenced array must be a list of FSNode objects representing all
-the new trees.
-
-=cut
-
-sub changeTreeList {
-  my ($self,$val) = @_;
-  return unless ref($self);
-  return $self->[6]=$val;
-}
 
 =pod
 
