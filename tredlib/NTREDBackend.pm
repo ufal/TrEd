@@ -93,10 +93,14 @@ sub read {
   my $fs_files = Storable::thaw(decode_base64(do{{   local $/; <$fd> }}));
   my $restore = $fs_files->[0];
   if (ref($restore)) {
+    my $api_version = $restore->[6];
+    if ($api_version ne $Fslib::API_VERSION) {
+      warn "Warning: the binary content obtained via NTREDBackend from ".$fs->filename." is a dump of structures created by possibly incompatible Fslib API version $api_version (the current Fslib API version is $Fslib::API_VERSION)\n";
+    }
     $fs->changeFS($restore->[0]);
     $fs->changeTrees(@{$restore->[1]});
     $fs->changeTail(@{$restore->[2]});
-    $fs->[13]=$restore->[3];
+    $fs->[13]=$restore->[3]; # metaData
     $fs->changePatterns(@{$restore->[4]});
     $fs->changeHint($restore->[5]);
     $fs->FS->renew_specials();
@@ -115,9 +119,11 @@ sub write {
   my $dump= [$fsfile->FS,
 	     $fsfile->treeList,
 	     [$fsfile->tail],
-	     $fsfile->[13],
+	     $fsfile->[13], # metaData
 	     [$fsfile->patterns],
-	     $fsfile->hint];
+	     $fsfile->hint,
+	     $Fslib::API_VERSION
+	    ];
   eval {
     print $fh (encode_base64(Storable::nfreeze([$dump])));
     print $fh ("\n");
