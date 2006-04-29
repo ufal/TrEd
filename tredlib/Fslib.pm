@@ -15,7 +15,7 @@ package Fslib;
 use strict;
 use Data::Dumper;
 
-use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $field_re $attr_name_re
+use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $API_VERSION $field_re $attr_name_re
             $parent $firstson $lbrother $rbrother $type
             $SpecialTypes $FSError $Debug $resourcePath $resourcePathSplit);
 
@@ -23,7 +23,10 @@ use Exporter;
 use File::Spec;
 
 @ISA=qw(Exporter);
-$VERSION = "1.5";
+$VERSION = "1.6";        # change when new functions are added etc
+
+$API_VERSION = "1.1";    # change when internal data structures change,
+                         # in a way that may prevent old binary dumps to work properly
 
 @EXPORT = qw/&Next &Prev &DeleteTree &DeleteLeaf &Cut &ImportBackends/;
 @EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon FindInResources FindDirInResources ResolvePath &CloneValue/;
@@ -3564,19 +3567,22 @@ sub _get_referred_types {
 	  foreach (values %{$type->{member}}) {
 	    $self->_get_referred_types($_,$referred);
 	  }
+	} elsif (ref $type->{attribute}) {
+	  foreach (values %{$type->{attribute}}) {
+	    $self->_get_referred_types($_,$referred);
+	  }
 	} elsif (exists $type->{list}) {
 	  $self->_get_referred_types($type->{list},$referred);
 	} elsif (exists $type->{alt}) {
 	  $self->_get_referred_types($type->{list},$referred);
 	} elsif (exists $type->{structure}) {
 	  $self->_get_referred_types($type->{structure},$referred);
-	} else {
-	  if (exists $type->{element}) {
-	    $self->_get_referred_types($type->{element},$referred);
-	  }
-	  if (exists $type->{sequence}) {
-	    $self->_get_referred_types($type->{sequence},$referred);
-	  }
+	} elsif (exists $type->{container}) {
+	  $self->_get_referred_types($type->{container},$referred);
+	} elsif (exists $type->{sequence}) {
+	  $self->_get_referred_types($type->{sequence},$referred);
+	} elsif (exists $type->{element}) {
+	  $self->_get_referred_types($type->{element},$referred);
 	}
       }
     } elsif (UNIVERSAL::isa($type,'ARRAY')) {
@@ -3658,6 +3664,24 @@ sub _derive {
 	  }
 	} else {
 	  croak "Cannot derive structure type '$name' from a non-structure '$source'\n";
+	}
+      } elsif ($derive->{container}) {
+	if ($type->{container}) {
+	  my $new_sequence = $derive->{container};
+	  my $orig_sequence = $type->{container};
+	  $orig_sequence->{role} = $new_sequence->{role} if exists $new_sequence->{role};
+	  $new_sequence->{attribute} ||= {};
+	  my $attributes = $orig_sequence->{attribute};
+	  while (my ($attribute,$value) = each %{$new_sequence->{attribute}}) {
+	    $attributes->{$attribute} = Fslib::CloneValue($value); # FIXME: no need if we remove derives in the end
+	  }
+	  if (ref $new_sequence->{delete}) {
+	    for my $attribute (@{$new_sequence->{delete}}) {
+	      delete $attributes->{$attribute};
+	    }
+	  }
+	} else {
+	  croak "Cannot derive a container '$name' from a different type '$source'\n";
 	}
       } elsif ($derive->{choice}) {
 	my $choice = $derive->{choice};
@@ -3837,6 +3861,7 @@ sub readFrom {
     my $slurp = <$fh>;
     IOBackend::close_backend($fh);
     $schema = $self->new($slurp,{ %$opts, filename => $file });
+    print STDERR "schema ok\n"  if $Fslib::Debug;
   }
   return $schema;
 }
@@ -3863,7 +3888,7 @@ Find all types with role C<#NODE>.
 sub node_types {
   my ($self) = @_;
   my @result;
-  return $self->find_role($self->{type},'#NODE');
+  return ($self->find_role($self->{type},'#NODE'),$self->find_role($self->{root},'#NODE'));
 }
 
 =item resolve_type(type)
@@ -3917,6 +3942,9 @@ sub attributes {
   unless (@types) {
     @types = $self->node_types;
   }
+  use Data::Dumper;
+  print STDERR Dumper(\@types);
+
   my @result;
   foreach my $type (@types) {
     $type = $self->resolve_type($type);
@@ -3926,8 +3954,20 @@ sub attributes {
     while (ref($type) and (exists $type->{list} or exists $type->{alt})) {
       $type = $self->resolve_type(exists $type->{list} ? $type->{list} : $type->{alt})
     }
-    if (ref($type) and (exists($type->{member}) or exists($type->{structure}))) {
-      my $members = exists($type->{member}) ? $type->{member} : $type->{structure}{member};
+    next unless ref($type);
+    my $members;
+    if (exists($type->{member})) {
+      $members = $type->{member};
+    } elsif (exists($type->{structure})) {
+      $members = $type->{structure}{member};
+    } elsif (exists($type->{attribute})) {
+      $members = $type->{attribute};
+      push @result, '#content';
+    } elsif (exists($type->{container})) {
+      $members = $type->{container}{attribute};
+      push @result, '#content';
+    }
+    if ($members) {
       for my $m (sort (keys %{$members})) {
 	my $member = $members->{$m};
 	next if (ref($member) and $member->{role} eq '#CHILDNODES');
@@ -4015,9 +4055,18 @@ for a possible member with role C<#CHILDNODES>.
 sub members {
   my ($self,$path)=@_;
   my $type = defined($path) ? $self->find($path) : $self->type_decl;
-  my $struct = ref($type) ? (exists($type->{structure}) ? $type->{structure} : $type) : undef;
+  my $struct;
+  my $members;
+  if (ref($type)) {
+    if (exists($type->{structure})) {
+      $struct = $type->{structure};
+      $members = $struct->{member};
+    } elsif (exists($type->{container})) {
+      $struct = $type->{container};
+      $members = $struct->{attribute};
+    }
+  }
   if ($struct) {
-    my $members = $struct->{member};
     map {
       my $member = $members->{$_};
        if (ref($member)) {
@@ -4105,12 +4154,12 @@ sub find {
 	  } else {
 	    $type = $type->{member}{$step};
 	  }
-	} elsif ($type->{element}) {
-	  $type = $type->{element}{$step};
 	} elsif ($type->{structure}) {
 	  $type = $type->{structure}{member}{$step};
 	} elsif ($type->{sequence}) {
 	  $type = $type->{sequence}{element}{$step};
+	} elsif ($type->{container}) {
+	  $type = $type->{container}{attribute}{$step};
 	} else {
 	  return undef;
 	}
