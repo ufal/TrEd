@@ -45,3 +45,16 @@ a:hover {
 	background: #C8FFE8; /* 3-3 */
 }
 
+div.added    {  background-color: #ddffdd; } 
+div.deleted  { text-decoration: line-through;
+               background-color: #FF9F9F; }
+div.changed  { 
+               background-color: #ffffdd;
+             }
+div.off      {  }
+
+span.added   { background-color: #ffffcc; }
+span.deleted { text-decoration: line-through;
+               background-color: #FF7F7F; }
+span.changed { background-color: #ccffcc; }
+span.off     {  }

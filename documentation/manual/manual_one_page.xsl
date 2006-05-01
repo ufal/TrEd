@@ -3,6 +3,7 @@
   version='1.0'>
 
 <xsl:import href="http://docbook.sourceforge.net/release/xsl/current/xhtml/docbook.xsl"/>
+<xsl:import href="http://docbook.sourceforge.net/release/xsl/current/xhtml/changebars.xsl"/>
 
 <xsl:param name="navig.graphics" select="0"/>
 <xsl:param name="navig.showtitles" select="1"/>
