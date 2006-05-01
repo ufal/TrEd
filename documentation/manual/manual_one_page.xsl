@@ -15,6 +15,8 @@
 <xsl:param name="section.label.includes.component.label" select="1"/>
 <xsl:param name="graphic.default.extension" select="'png'"/>
 
+<xsl:param name="appendix.autolabel" select="0"/>
+
 <xsl:template match="index">
   <xsl:if test="count(*)&gt;0 or $generate.index != '0'">
     <div class="{name(.)}">
