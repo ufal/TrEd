@@ -1,5 +1,7 @@
 # $Id$
 
+# For PMLBackend purposes only
+
 package XML::IxSimple;
 
 =head1 NAME
