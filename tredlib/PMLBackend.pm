@@ -1319,7 +1319,7 @@ sub validate_object ($$$$$$) {
     } elsif ($type->{cdata}{format} eq 'nonNegativeInteger') {
       push @$log, "$path: CDATA value is not formatted as nonNegativeInteger: '$object'"
 	unless $object=~/^\s*\d+\s*$/;
-    }
+    } # TODO - check validity of other formats
   } elsif (exists $type->{constant}) {
     if ($object ne $type->{constant}) {
       push @$log, "$path: invalid constant, should be '$type->{constant}', got: ",$object;
