@@ -295,7 +295,62 @@ sub _element_address {
   return "'".$node->localname."' at ".$line_node->ownerDocument->URI.":".$line_node->line_number."\n";
 }
 
-sub node_children {
+sub set_trees {
+  my ($fsfile,$data,$type,$node)=@_;
+  _debug("Found #TREES in "._element_address($node));
+  unless (defined $fsfile->metaData('pml_trees_type')) {
+    $fsfile->changeMetaData('pml_trees_type',$type);
+    if (UNIVERSAL::isa($data,'Fslib::List')) {
+      $fsfile->changeTrees($data->values);
+      _warn("Object with role #TREES contains non-#NODE list members in "._element_address($node))
+	if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$fsfile->treeList});
+      return undef; #$fsfile->treeList;
+    } elsif (UNIVERSAL::isa($data,'Fslib::Seq')) {
+      # in a #TREES sequence, we accept non-node elements, processing
+      # the sequence in the following way:
+      # - an initial contiguous block of non-node elements is stored
+      #   as a pml_prolog
+      # - the first contiguous block of node elements is used as the tree list
+      #   (and its elements are delegated)
+      # - the rest of the sequence is stored as pml_epilog
+      my $prolog = $fsfile->metaData('pml_prolog') || Fslib::Seq->new;
+      $fsfile->changeMetaData('pml_prolog',$prolog);
+      my $epilog = $fsfile->metaData('pml_epilog') || Fslib::Seq->new;
+      $fsfile->changeMetaData('pml_epilog',$epilog);
+      my $trees=$fsfile->treeList;
+      my $phase = 0; # prolog
+      foreach my $element ($data->elements) {
+	if (UNIVERSAL::isa($element->[1],'FSNode')) {
+	  if ($phase == 0) {
+	    $phase = 1;
+	  }
+	  if ($phase == 1) {
+	    $element->[1]{'#name'} = $element->[0]; # manually delegate_name on this element
+	    push @$trees, $element->[1];
+	  } else {
+	    $prolog->push_element(@$element);
+	  }
+	} else {
+	  if ($phase == 1) {
+	    $phase = 2; # start epilog
+	  }
+	  if ($phase == 0) {
+	    $prolog->push_element(@$element);
+	  } else {
+	    $epilog->push_element(@$element);
+	  }
+	}
+      }
+      return undef;
+    } else {
+      # should be undef - empty tree list
+      return $data;
+    }
+  }
+  return $data;
+}
+
+sub set_node_children {
   my ($node,$list)=@_;
   my $prev=0;
   foreach my $son (@{$list}) {
@@ -309,7 +364,7 @@ sub node_children {
     $prev = $son;
   }
   $node->{$Fslib::firstson} = $list->[0];
-  1;
+  return 1;
 }
 
 sub read_node_knit {
@@ -347,6 +402,7 @@ sub read_node_knit {
 
 sub read_node {
   my ($node,$fsfile,$types,$type,$childnodes_taker,$attrs,$first_child) = @_;
+  $first_child ||= $node->firstChild;
   _debug({level => 6},"Reading node "._element_address($node)."\n");
   my $defs = $fsfile->FS->defs;
   unless (ref($type)) {
@@ -372,9 +428,12 @@ sub read_node {
 	     } read_List($node)) 
 	  : read_node($node,$fsfile, $types, $list_type,undef,$attrs) 
       ], 'Fslib::List';
-    if ($type->{list}{role} eq '#CHILDNODES' and $childnodes_taker) {
-      node_children($childnodes_taker, $list) if $list;
+    my $role = $type->{list}{role};
+    if ($role eq '#CHILDNODES' and $childnodes_taker) {
+      set_node_children($childnodes_taker, $list) if $list;
       return undef;
+    } elsif ($role eq '#TREES' and $childnodes_taker) {
+      return set_trees($fsfile, $list, $type,$node);
     } else {
       return $list;
     }
@@ -396,13 +455,16 @@ sub read_node {
   # SEQUENCE ------------------------------------------------------------
   } elsif (exists $type->{sequence}) {
     _debug({level => 6},"sequence type\n");
-    my $seq = read_Sequence($node->firstChild,$fsfile,$types,$type->{sequence});
-    if ($type->{sequence}{role} eq '#CHILDNODES' and $childnodes_taker) {
+    my $seq = read_Sequence($first_child,$fsfile,$types,$type->{sequence});
+    my $role = $type->{sequence}{role};
+    if ($role eq '#CHILDNODES' and $childnodes_taker) {
       if ($seq) {
 	$seq->delegate_names('#name');
-	node_children($childnodes_taker, scalar($seq->values));    
+	set_node_children($childnodes_taker, scalar($seq->values));    
       }
       return undef;
+    } elsif ($role eq '#TREES') {
+      return set_trees($fsfile,$seq,$type,$node);
     } else {
       return $seq;
     }
@@ -451,7 +513,7 @@ sub read_node {
 #    foreach my $child ($node->getChildrenByTagNameNS(PML_NS,'*')) {
 #    foreach my $child ($node->findnodes('*[namespace-uri()="'.PML_NS.'"]')) {
 #    foreach my $child ($node->childNodes) {
-    my $child = $first_child || $node->firstChild;
+    my $child = $first_child;
     while ($child) {
       my $child_nodeType = $child->nodeType;
       if($child_nodeType == ELEMENT_NODE
@@ -468,7 +530,7 @@ sub read_node {
 	    if ($member->{list} or $member->{sequence}) {
 	      if (ref $childnodes_taker) {
 		my $list = read_node($child,$fsfile, $types,$member);
-		node_children($childnodes_taker, $list);
+		set_node_children($childnodes_taker, $list);
 	      } else {
 		_die("#CHILDNODES member '$name' encountered in non-#NODE element ".
 		  _element_address($node,$child));
@@ -476,6 +538,12 @@ sub read_node {
 	    } else {
 		_die("#CHILDNODES member '$name' is neither a list nor a sequence in ".
 		  _element_address($node,$child));
+	    }
+	  } elsif (ref($member) and $role eq '#TREES') {
+	    if ($member->{list} or $member->{sequence}) {
+	      $hash->{$name} = set_trees($fsfile,read_node($child,$fsfile, $types,$member),$member,$child);
+	    } else {
+	      _die("#TREES member '$name' is neither a list nor a sequence in "._element_address($node,$child));
 	    }
 	  } elsif (ref($member) and $role eq '#KNIT') {
 	    my $ret = read_node_knit($child,$fsfile,$types,$member);
@@ -717,7 +785,7 @@ sub _skip_head {
 
 sub read_data {
   my ($parser, $fsfile, $dom_root) = @_;
-
+  $fsfile->changeMetaData('pml_trees_type',undef);
   foreach my $ref (get_references($fsfile)) {
     if ($ref->{readas} eq 'dom') {
       readas_dom($parser,$fsfile,$ref->{id},$ref->{href});
@@ -742,86 +810,15 @@ sub read_data {
 
   # In PML 1.1, root can either be a sequence or a structure
 
-  if ($root_type->{structure}) {
-    my $struct = $root_type->{structure};
-    if ($struct->{member} and
-	my @trees = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$struct->{member}}) {
-      _debug("Found AVS member(s) with role \#TREES: ".join(',',map { $_->{-name} } @trees));
-      
-
-      my $root_struct = read_node($dom_root,$fsfile,$types,$root_type,undef,undef,
-				  _skip_head($dom_root) # the child after <head>
-				 );
-      if (@trees>1) {
-	_warn("Warning: Found more then one member with role #TREES, using $trees[0]->{-name}\n");
-      }
-#      _debug("TREES:",Dumper($root_struct));
-      my $trees_member = $trees[0]->{-name};
-      my $trees = delete($root_struct->{$trees_member});
-      $fsfile->changeMetaData('pml_root',$root_struct);
-      $fsfile->changeMetaData('pml_trees_member',$trees_member);
-      $fsfile->changeMetaData('pml_trees_type',$schema->type(resolve_type($types,$struct->{member}{$trees_member})));
-
-      if (ref($trees) eq 'Fslib::List') {
-	@{$fsfile->treeList} = $trees->values;
-      } elsif (ref($trees) eq 'Fslib::Seq') {
-	$trees->delegate_names;
-	@{$fsfile->treeList} = $trees->values;
-      } else {
-	_die("Member '$trees[0]->{-name}' with role #TREES is not a list/sequence");
-      }
-      _warn("Member '$trees[0]->{-name}' with role #TREES contains non-#NODE list members in "._element_address($dom_root))
-	if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$fsfile->treeList});
-    } else {
-      _die("Root AVS contains no member with role \#TREES: "._element_address($dom_root));
-    }
-  } elsif ($root_type->{sequence}) {
-    my $sequence = $root_type->{sequence};
-    unless ($sequence->{role} eq '#TREES') {
-      _die("Cannot load this file: root sequence is not of role \#TREES:"._element_address($dom_root));
-      # FIXME: eventually we should also support sequences containing one (or more) elements
-      # of role #TREES and load the first one as #TREES, while preserving the rest in
-      # prolog and epilog.
-    }
-    _debug("Found a sequence with role \#TREES");
-    $fsfile->changeMetaData('pml_trees_type',$root_type);
-    # the child after <head>
-    my $seq = read_Sequence(_skip_head($dom_root),$fsfile,$types,$root_type->{sequence});
-
-    # split sequence into a prolog and an epliog:
-    my $prolog = $fsfile->metaData('pml_prolog') || Fslib::Seq->new;
-    $fsfile->changeMetaData('pml_prolog',$prolog);
-    my $epilog = $fsfile->metaData('pml_epilog') || Fslib::Seq->new;
-    $fsfile->changeMetaData('pml_epilog',$epilog);
-    my $trees=$fsfile->treeList;
-    my $phase = 0; # prolog
-    foreach my $element ($seq->elements) {
-      if (UNIVERSAL::isa($element->[1],'FSNode')) {
-	if ($phase == 0) {
-	  $phase = 1;
-	}
-	if ($phase == 1) {
-	  $element->[1]{'#name'} = $element->[0]; # manually delegate_name on this element
-	  push @$trees, $element->[1];
-	} else {
-	  $prolog->push_element(@$element);
-	}
-      } else {
-	if ($phase == 1) {
-	  $phase = 2; # start epilog
-	}
-	if ($phase == 0) {
-	  $prolog->push_element(@$element);
-	} else {
-	  $epilog->push_element(@$element);
-	}
-      }
-    }
-    if ($phase == 0) {
-      _die("Couldn't find any object with role #NODE in the #TREES sequence!");
-    }
+  if ($root_type->{structure} or $root_type->{sequence}) {
+    $fsfile->changeMetaData(
+      'pml_root' =>
+      read_node($dom_root,$fsfile,$types,$root_type,undef,undef,
+		_skip_head($dom_root) # the child after <head>
+	       )
+     );
   } else {
-    _die("Couldn't find any object with role #TREES in the root element: "._element_address($dom_root));
+    _die("The root type must be a structure or a sequence: "._element_address($dom_root));
   }
   return 1;
 }
@@ -922,45 +919,47 @@ sub write {
   $xml->endTag('references');
   $xml->endTag('head');
 
-  if ($root_type->{structure}) {
-    my $struct = $root_type->{structure};
-    my $root_struct = $fsfile->metaData('pml_root');
-    my @trees = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$struct->{member}};
-    if (@trees) {
-      my %copy = %$root_struct;
-      my $trees_type = resolve_type($types,$trees[0]);
-      my $trees_name = $trees[0]->{-name};
-      if ($trees_type->{list}) {
-	$copy{$trees_name}=Fslib::List->new_from_ref($fsfile->treeList,0);
-	write_object($xml, $fsfile, $types,$root_type,undef,\%copy);
-      } elsif ($trees_type->{sequence}) {
-	$copy{$trees_name}=Fslib::Seq->new([map { [$_->{'#name'},$_] } @{$fsfile->treeList}]);
-	write_object($xml, $fsfile, $types,$root_type,undef,\%copy);
-      } else {
-	_warn("Cannot write tree list: data type of $trees_name is neither a list nor a sequence!\n");
-      }
-    } else {
-      _warn("Cannot write tree list: no AVS member with role #TREES!\n");
-    }
-  } elsif ($root_type->{sequence}) {
-#	if (defined($type->{content_pattern}) and !$seq->validate()) {
-#	_warn("#TREES sequence '$trees_name' (".join(",",$copy{$trees_name}->names).") does not follow the pattern ".$trees_type->{sequence}{content_pattern});
-#      }
-    my $sequence = $root_type->{sequence};
-    unless ($sequence->{role} eq '#TREES') {
-      _warn("Cannot write tree list - root sequence is not of role \#TREES");
-      # FIXME: eventually we should also support sequences containing one (or more) elements
-      # of role #TREES and load the first one as #TREES, while preserving the rest in
-      # prolog and epilog.
-    }
-    my $prolog = $fsfile->metaData('pml_prolog');
-    my $epilog = $fsfile->metaData('pml_epilog');
-    my $copy = Fslib::Seq->new(
-      [(UNIVERSAL::isa($prolog,'Fslib::Seq') ? $prolog->elements : ()),
-       (map { [$_->{'#name'},$_] } @{$fsfile->treeList}),
-       (UNIVERSAL::isa($epilog,'Fslib::Seq') ? $epilog->elements : ())]);
-    write_object($xml, $fsfile, $types,$root_type,undef,$copy);
-  }
+  write_object($xml, $fsfile, $types, $root_type, undef, $fsfile->metaData('pml_root'));
+  
+#   if ($root_type->{structure} or $root_type->{sequence}) {
+#     my $struct = $root_type->{structure};
+#     my $root_struct = $fsfile->metaData('pml_root');
+#     my @trees = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$struct->{member}};
+#     if (@trees) {
+#       my %copy = %$root_struct;
+#       my $trees_type = resolve_type($types,$trees[0]);
+#       my $trees_name = $trees[0]->{-name};
+#       if ($trees_type->{list}) {
+# 	$copy{$trees_name}=Fslib::List->new_from_ref($fsfile->treeList,0);
+# 	write_object($xml, $fsfile, $types,$root_type,undef,\%copy);
+#       } elsif ($trees_type->{sequence}) {
+# 	$copy{$trees_name}=Fslib::Seq->new([map { [$_->{'#name'},$_] } @{$fsfile->treeList}]);
+# 	write_object($xml, $fsfile, $types,$root_type,undef,\%copy);
+#       } else {
+# 	_warn("Cannot write tree list: data type of $trees_name is neither a list nor a sequence!\n");
+#       }
+#     } else {
+#       _warn("Cannot write tree list: no AVS member with role #TREES!\n");
+#     }
+#   } elsif ($root_type->{sequence}) {
+# #	if (defined($type->{content_pattern}) and !$seq->validate()) {
+# #	_warn("#TREES sequence '$trees_name' (".join(",",$copy{$trees_name}->names).") does not follow the pattern ".$trees_type->{sequence}{content_pattern});
+# #      }
+#     my $sequence = $root_type->{sequence};
+#     unless ($sequence->{role} eq '#TREES') {
+#       _warn("Cannot write tree list - root sequence is not of role \#TREES");
+#       # FIXME: eventually we should also support sequences containing one (or more) elements
+#       # of role #TREES and load the first one as #TREES, while preserving the rest in
+#       # prolog and epilog.
+#     }
+#     my $prolog = $fsfile->metaData('pml_prolog');
+#     my $epilog = $fsfile->metaData('pml_epilog');
+#     my $copy = Fslib::Seq->new(
+#       [(UNIVERSAL::isa($prolog,'Fslib::Seq') ? $prolog->elements : ()),
+#        (map { [$_->{'#name'},$_] } @{$fsfile->treeList}),
+#        (UNIVERSAL::isa($epilog,'Fslib::Seq') ? $epilog->elements : ())]);
+#     write_object($xml, $fsfile, $types,$root_type,undef,$copy);
+#   }
   $xml->endTag($root_name);
   $xml->end;
 
@@ -1030,6 +1029,33 @@ sub write_object_knit {
   }
 }
 
+sub get_write_trees {
+  my ($fsfile, $data, $type)=@_;
+  if ($fsfile->metaData('trees_written')) {
+    return $data
+  } else {
+    my $trees_type = $fsfile->metaData('pml_trees_type') || $type;
+    if (ref($trees_type)) {
+      if ($trees_type->{sequence}) {
+	my $prolog = $fsfile->metaData('pml_prolog');
+	my $epilog = $fsfile->metaData('pml_epilog');
+	return Fslib::Seq->new(
+	  [(UNIVERSAL::isa($prolog,'Fslib::Seq') ? $prolog->elements : ()),
+	   (map { [$_->{'#name'},$_] } @{$fsfile->treeList}),
+	   (UNIVERSAL::isa($epilog,'Fslib::Seq') ? $epilog->elements : ())]
+	 );
+      } elsif ($trees_type->{list}) {
+	return $fsfile->treeList;
+      } else {
+	_warn("#TREES are neither a list nor a sequence - can't save trees.\n");
+      }
+    } else {
+      _warn("Can't determine #TREES type - can't save trees.\n");
+    }
+    $fsfile->changeMetaData('trees_written',1);
+  }
+}
+
 sub write_object {
   my ($xml,$fsfile, $types,$type,$tag,$object,$no_resolve)=@_;
   my $pre=$type;
@@ -1064,10 +1090,9 @@ sub write_object {
       _warn("Unexpected content structure '$tag': $object\n");
     } elsif (keys(%$object)) {
       # ok, non-empty structure
-      foreach my $atr (grep {$members->{$_}{as_attribute}}
-			 #sort 
-			   keys %$members) {
-	if ($members->{$atr}{required} or $object->{$atr} ne "") {
+      foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
+	my $atr = $mdecl->{-name};
+	if ($mdecl->{required} or $object->{$atr} ne "") {
 	  $attribs->{$atr} = $object->{$atr};
 	}
       }
@@ -1075,21 +1100,25 @@ sub write_object {
 	_die("Can't write structure with attribute members without a tag");
       }
       $xml->startTag($tag,%$attribs) if defined($tag);
-      foreach my $member (
-	grep {!$members->{$_}{as_attribute}} 
-	  #sort 
-	  keys %$members) {
-	my $mtype = resolve_type($types,$members->{$member});
-	if ($members->{$member}{role} eq '#CHILDNODES') {
+      foreach my $mdecl (
+	grep {!$_->{as_attribute}} 
+	  sort { $a->{'-#'} <=> $b->{'-#'} }
+	  values %$members) {
+	my $member = $mdecl->{-name};
+	my $mtype = resolve_type($types,$mdecl);
+	if ($mdecl->{role} eq '#CHILDNODES') {
 	  if (ref($object) eq 'FSNode') {
-	    if ($object->firstson or $members->{$member}{required}) {
-	      write_object($xml, $fsfile, $types,$members->{$member},$member,
+	    if ($object->firstson or $mdecl->{required}) {
+	      write_object($xml, $fsfile, $types,$mdecl,$member,
 			   bless([ $object->children ],'Fslib::List'));
 	    }
 	  } else {
 	    _warn("Found #CHILDNODES member '$tag/$member' on a non-node value: $object\n");
 	  }
-	} elsif ($members->{$member}{role} eq '#KNIT') {
+	} elsif ($mdecl->{role} eq '#TREES') {
+	  my $data = get_write_trees($fsfile,$mdecl,$mtype);
+	  write_object($xml, $fsfile, $types,$mdecl,$member, $data);
+	} elsif ($mdecl->{role} eq '#KNIT') {
 	  if ($object->{$member} ne "") {
 	    # un-knit data
 #	    _debug("#KNIT.rf $member");
@@ -1101,7 +1130,7 @@ sub write_object {
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
 	    if (ref($object->{$knit_tag})) {
-	      write_object_knit($xml,$fsfile,$types,$members->{$member},$member,$knit_tag,$object->{$knit_tag});
+	      write_object_knit($xml,$fsfile,$types,$mdecl,$member,$knit_tag,$object->{$knit_tag});
 	    }# else {
 	    #	_warn("Didn't find $knit_tag on the object! ",join(" ",%$object),"\n");
 	    #      }
@@ -1149,22 +1178,26 @@ sub write_object {
 	      _warn("Unexpected content of knit List '$knit_tag': $list\n");
 	    }
 	  }
-	} elsif ($object->{$member} ne "" or $members->{$member}{required}) {
-	  write_object($xml, $fsfile, $types,$members->{$member},$member,$object->{$member});
+	} elsif ($object->{$member} ne "" or $mdecl->{required}) {
+	  write_object($xml, $fsfile, $types,$mdecl,$member,$object->{$member});
 	}
       }
       $xml->endTag($tag) if defined($tag);
     }
   } elsif (exists $type->{list}) {
+    my $list_type = $type->{list};
+    if (ref($list_type) and $list_type->{role} eq '#TREES') {
+      $object = get_write_trees($fsfile,$object,$type);
+    }
     if (ref($object) eq 'Fslib::List') {
       if (@$object == 0) {
 	# what do we do now?
       } elsif (@$object == 1) {
-	write_object($xml, $fsfile,  $types,$type->{list},$tag,$object->[0]);
+	write_object($xml, $fsfile,  $types,$list_type,$tag,$object->[0]);
       } else {
 	$xml->startTag($tag,%$attribs) if defined($tag);
 	foreach my $value (@$object) {
-	  write_object($xml, $fsfile, $types,$type->{list},LM,$value);
+	  write_object($xml, $fsfile, $types,$list_type,LM,$value);
 	}
 	$xml->endTag($tag) if defined($tag);
       }
@@ -1190,6 +1223,9 @@ sub write_object {
   } elsif (exists $type->{sequence}) {
     my $sequence = $type->{sequence};
     $xml->startTag($tag,%$attribs) if defined($tag);
+    if ($sequence->{role} eq '#TREES') {
+      $object = get_write_trees($fsfile,$object,$type);
+    }
     if (UNIVERSAL::isa($object,'Fslib::Seq')) {
       if (exists $sequence->{content_pattern}) {
 	unless ($object->validate($sequence->{content_pattern})) {
@@ -1245,6 +1281,9 @@ sub write_object {
     if ($object ne $type->{constant}) {
       _warn("Invalid constant, should be '$type->{constant}', got: ",$object);
     }
+    $xml->startTag($tag,%$attribs) if defined($tag);
+    $xml->characters($object);
+    $xml->endTag($tag) if defined($tag);
   } else {
     _die("Type error: Unrecognized data type, object cannot be serialized in this context. Type declaration:\n".Dumper($type));
   }
