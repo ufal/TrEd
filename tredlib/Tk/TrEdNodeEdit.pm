@@ -455,7 +455,9 @@ sub add_buttons {
   return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt} or 
 				 $mtype->{structure} or $mtype->{container}) or 
 		 ref($ptype) and ($ptype->{list} or $ptype->{alt}));
-  return if ref($mtype) and (($mtype->{list} and $mtype->{list}{role} eq '#CHILDNODES') or $mtype->{role} eq '#CHILDNODES');
+  return if ref($mtype) and (($mtype->{list} and 
+			      $mtype->{list}{role} =~ m/^\#(?:CHILDNODES|TREES)$/) or 
+			      $mtype->{role} =~ m/^\#(?:CHILDNODES|TREES)$/);
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
    );
@@ -580,7 +582,7 @@ sub add_member {
   } else {
     $mtype = $hlist->schema->resolve_type($member);
   }
-  return if ref($mtype) and $mtype->{role} eq '#CHILDNODES';
+  return if ref($mtype) and $mtype->{role} =~ m/^\#(?:CHILDNODES|TREES)$/;
   my $path = $base_path.$attr_name;
   my $data = {type => $mtype,
 	      name => $attr_name,
@@ -723,7 +725,8 @@ sub add_member {
       $hlist->add_members($path."/",$mtype->{container},$attr_val);
     }
   } elsif (exists $mtype->{list}) {
-    if ($mtype->{list}{role} eq '#CHILDNODES' or $mtype->{role} eq '#CHILDNODES') { 
+    if ($mtype->{list}{role}  =~ m/^\#(?:CHILDNODES|TREES)$/ or 
+	$mtype->{role}  =~ m/^\#(?:CHILDNODES|TREES)$/ ) {
       $data->{dump} = 'none';
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 'child nodes',
@@ -753,7 +756,7 @@ sub add_member {
   } elsif (exists $mtype->{sequence}) {
     my $list_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
-    if ($mtype->{sequence}{role} ne '#CHILDNODES') {
+    if ($mtype->{sequence}{role} =~ m/^\#(?:CHILDNODES|TREES)$/) {
       $data->{dump} = 'sequence';
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 'Sequence',
