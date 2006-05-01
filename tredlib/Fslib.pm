@@ -3501,25 +3501,6 @@ favourable or not, is yet to be discovered.
 package Fslib::Schema;
 use Carp;
 
-use vars qw($preserve_order);
-
-=item $Fslib::Schema::preserve_order
-
-This global variable controls whether the schema should preserve order
-of structure elements and possibly other structures. The present
-implementation uses the module C<XML::IxSimple>, which is a modified
-version if C<XML::Simple> which always uses C<Tie::IxHash> instead of
-ordinary hashes. Setting this variable to 1 makes the schema to
-preserve the order of structure elements, but also makes the overall
-performance of C<Fslib::Schema> significantly slower, which heavily
-affects modules extensively using it, such as C<PMLBackend>, which in
-turn is about 50% slower.
-
-=cut
-
-$preserve_order = 0;
-
-
 # compare schema revision number with a given revision number
 sub _match_revision {
   my ($self,$revision)=@_;
@@ -3558,7 +3539,7 @@ sub _get_referred_types {
 	} elsif (exists $type->{list}) {
 	  $self->_get_referred_types($type->{list},$referred);
 	} elsif (exists $type->{alt}) {
-	  $self->_get_referred_types($type->{list},$referred);
+	  $self->_get_referred_types($type->{alt},$referred);
 	} elsif (exists $type->{structure}) {
 	  $self->_get_referred_types($type->{structure},$referred);
 	} elsif (exists $type->{container}) {
@@ -3738,22 +3719,17 @@ sub new {
   }
   my @xml_simple_opts = (
     ForceArray=>[ 'delete', 'member', 'element', 'attribute', 'value', 'reference', 'type', 'derive', 'import', 'import_type' ],
-    KeyAttr => { "member"    => "-name",
-		 "attribute" => "-name",
-		 "element"   => "-name",
-		 "type"      => "-name",
+    KeyAttr => { "member"    => "=name",
+		 "attribute" => "=name",
+		 "element"   => "=name",
+		 "type"      => "=name",
 		},
     GroupTags => { "choice" => "value" }
    );
   my $new;
   eval {
-    if ($preserve_order) {
-      require XML::IxSimple;
-      $new = bless XML::IxSimple::XMLin($string,@xml_simple_opts),$class;
-    } else {
-      require XML::Simple;
-      $new = bless XML::Simple::XMLin($string,@xml_simple_opts),$class;
-    }
+    require XML::IxSimple;
+    $new = bless XML::IxSimple::XMLin($string,@xml_simple_opts),$class;
   };
   if ($@) {
     croak "Error occured when parsing PML schema ".$opts->{filename}.": $@";
@@ -3763,6 +3739,8 @@ sub new {
 
   $opts->{schemas} = {} unless ref($opts->{schemas});
   my $schemas = $opts->{schemas};
+
+  # apply imports
   my $imports = $new->{import};
   if (ref($imports)) {
     foreach my $import (@$imports) {
