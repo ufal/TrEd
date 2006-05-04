@@ -415,7 +415,7 @@ use Exporter;
 	     [["Perl Storable files",          [qw/.pls .pls.gz/]],
 	      ["All files",        ['*']]
 	     ],
-	     all => ["All files", ['*'],
+	     all => [["All files", ['*']],
 		     ["Recognized", [qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz .pml .pml.gz .xml .xml.gz/]],
 		    ]
 	    );
@@ -5884,7 +5884,7 @@ EOF
 			 unless File::Spec->file_name_is_absolute($initdir2);
 		       $file = get_save_filename(
 			 $l->toplevel,
-			 -filetypes=> $save_types{pml},
+			 -filetypes=> $save_types{all},
 			 -title=> "Save As ...",
 			 -d $initdir2 ? (-initialdir=> $initdir2) : (),
 			 $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
