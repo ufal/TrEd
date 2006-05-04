@@ -389,35 +389,35 @@ use Exporter;
 	     fs =>
 	     [["FS files",           [qw/.fs .FS .Fs/]],
 	      ["gzipped FS files",   [qw/.fs.gz .FS.gz .FS.GZ/]],
-	      ["All files",        '*']
+	      ["All files",        ['*']]
 	     ],
 	     pml =>
 	     [["PML files",           [qw/.t .a .pml .xml/]],
 	      ["gzipped PML files",   [qw/.t.gz .a.gz .pml.gz .xml.gz/]],
-	      ["All files",        '*']
+	      ["All files",        ['*']]
 	     ],
 	     csts =>
 	     [["CSTS files",           [qw/.cst .csts/]],
 	      ["gzipped CSTS files",   [qw/.cst.gz .csts.gz/]],
-	      ["All files",        '*']
+	      ["All files",        ['*']]
 	     ],
 	     trxml =>
 	     [["TrXML files",          [qw/.trx .trxml .xml/]],
 	      ["gzipped TrXML files",   [qw/.trx.gz .trxml.gz .xml.gz/]],
-	      ["All files",        '*']
+	      ["All files",        ['*']]
 	     ],
 	     teixml =>
 	     [["TEIXML files",          [qw/.tei .xml/]],
 	      ["gzipped TEIXML files",   [qw/.tei.gz .xml.gz/]],
-	      ["All files",        '*']
+	      ["All files",        ['*']]
 	     ],
 	     storable =>
 	     [["Perl Storable files",          [qw/.pls .pls.gz/]],
-	      ["All files",        '*']
+	      ["All files",        ['*']]
 	     ],
-	     all =>
-	     [["All files",        '*']
-	     ],
+	     all => ["All files", ['*'],
+		     ["Recognized", [qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz .pml .pml.gz .xml .xml.gz/]],
+		    ]
 	    );
 
 my %default_binding = (
@@ -5884,7 +5884,7 @@ EOF
 			 unless File::Spec->file_name_is_absolute($initdir2);
 		       $file = get_save_filename(
 			 $l->toplevel,
-			 -filetypes=> $save_types{all},
+			 -filetypes=> $save_types{pml},
 			 -title=> "Save As ...",
 			 -d $initdir2 ? (-initialdir=> $initdir2) : (),
 			 $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
