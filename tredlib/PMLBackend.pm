@@ -845,21 +845,6 @@ sub write {
   my $root_name = $schema->{root}{name};
   my $root_type = resolve_type($types,$schema->{root});
 
-#   my ($trees,$trees_tag);
-#   if (UNIVERSAL::isa($root_type->{element},'HASH')) {
-#     ($trees) = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$root_type->{element}};
-#     if ($trees) {
-#       $trees_tag = $trees->{-name};
-#     } elsif (UNIVERSAL::isa($root_type->{sequence},'HASH') and $root_type->{sequence}{role} eq '#TREES') {
-#       $trees = $root_type;
-#     }
-#   } elsif (UNIVERSAL::isa($root_type->{sequence},'HASH') and $root_type->{sequence}{role} eq '#TREES') {
-#     $trees = $root_type;
-#   }
-#   unless ($trees) {
-#     _die("Can't write: didn't find any element or sequence with role #TREES");
-#   }
-
   # dump embedded DOM documents
   my $refs_to_save = $fsfile->appData('refs_save');
   my @refs_to_save = grep { $_->{readas} eq 'dom' } get_references($fsfile);
@@ -920,46 +905,6 @@ sub write {
   $xml->endTag('head');
 
   write_object($xml, $fsfile, $types, $root_type, undef, $fsfile->metaData('pml_root'));
-  
-#   if ($root_type->{structure} or $root_type->{sequence}) {
-#     my $struct = $root_type->{structure};
-#     my $root_struct = $fsfile->metaData('pml_root');
-#     my @trees = grep { UNIVERSAL::isa($_,'HASH') and $_->{role} eq '#TREES' } values %{$struct->{member}};
-#     if (@trees) {
-#       my %copy = %$root_struct;
-#       my $trees_type = resolve_type($types,$trees[0]);
-#       my $trees_name = $trees[0]->{-name};
-#       if ($trees_type->{list}) {
-# 	$copy{$trees_name}=Fslib::List->new_from_ref($fsfile->treeList,0);
-# 	write_object($xml, $fsfile, $types,$root_type,undef,\%copy);
-#       } elsif ($trees_type->{sequence}) {
-# 	$copy{$trees_name}=Fslib::Seq->new([map { [$_->{'#name'},$_] } @{$fsfile->treeList}]);
-# 	write_object($xml, $fsfile, $types,$root_type,undef,\%copy);
-#       } else {
-# 	_warn("Cannot write tree list: data type of $trees_name is neither a list nor a sequence!\n");
-#       }
-#     } else {
-#       _warn("Cannot write tree list: no AVS member with role #TREES!\n");
-#     }
-#   } elsif ($root_type->{sequence}) {
-# #	if (defined($type->{content_pattern}) and !$seq->validate()) {
-# #	_warn("#TREES sequence '$trees_name' (".join(",",$copy{$trees_name}->names).") does not follow the pattern ".$trees_type->{sequence}{content_pattern});
-# #      }
-#     my $sequence = $root_type->{sequence};
-#     unless ($sequence->{role} eq '#TREES') {
-#       _warn("Cannot write tree list - root sequence is not of role \#TREES");
-#       # FIXME: eventually we should also support sequences containing one (or more) elements
-#       # of role #TREES and load the first one as #TREES, while preserving the rest in
-#       # prolog and epilog.
-#     }
-#     my $prolog = $fsfile->metaData('pml_prolog');
-#     my $epilog = $fsfile->metaData('pml_epilog');
-#     my $copy = Fslib::Seq->new(
-#       [(UNIVERSAL::isa($prolog,'Fslib::Seq') ? $prolog->elements : ()),
-#        (map { [$_->{'#name'},$_] } @{$fsfile->treeList}),
-#        (UNIVERSAL::isa($epilog,'Fslib::Seq') ? $epilog->elements : ())]);
-#     write_object($xml, $fsfile, $types,$root_type,undef,$copy);
-#   }
   $xml->endTag($root_name);
   $xml->end;
 
@@ -1077,8 +1022,10 @@ sub write_object {
 	last;
       }
     }
-    _warn("Invalid value for '$tag': $object\n")
-      unless ($ok);
+    unless ($ok) {
+      my $what = $tag || $type->{name} || $type->{'-name'};
+      _warn("Invalid value for '$what': $object\n")
+    }
     $xml->startTag($tag,%$attribs);
     $xml->characters($object);
     $xml->endTag($tag);
@@ -1087,7 +1034,8 @@ sub write_object {
     my $members = $struct->{member};
     if (!ref($object)) {
       # what do we do now?
-      _warn("Unexpected content structure '$tag': $object\n");
+      my $what = $tag || $type->{name} || $type->{'-name'};
+      _warn("Unexpected content of structure '$what': $object\n");
     } elsif (keys(%$object)) {
       # ok, non-empty structure
       foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
@@ -1202,7 +1150,8 @@ sub write_object {
 	$xml->endTag($tag) if defined($tag);
       }
     } else {
-      _warn("Unexpected content of List '$tag': $object\n");
+      my $what = $tag || $type->{name} || $type->{'-name'};
+      _warn("Unexpected content of List '$what': $object\n");
     }
   } elsif (exists $type->{alt}) {
     if ($object ne "" and ref($object) eq 'Fslib::Alt') {
@@ -1235,7 +1184,8 @@ sub write_object {
       foreach my $element (@{$object->elements_list}) {
 	if ($element->[0] eq '#TEXT') {
 	  unless ($type->{sequence}{text}) {
-	    _warn("Text not allowed in sequence '$tag', writing it anyway\n");
+	    my $what = $tag || $type->{name} || $type->{'-name'};
+	    _warn("Text not allowed in the sequence '$what', writing it anyway\n");
 	  }
 	  $xml->characters($element->[1]);
 	} elsif ($element->[0] ne '') {
@@ -1243,19 +1193,23 @@ sub write_object {
 	  if ($eltype) {
 	    write_object($xml, $fsfile, $types,$eltype,$element->[0],$element->[1]);
 	  } else {
-	    _warn("Element '".$element->[0]."' not allowed in sequence '$tag', skipping\n");
+	    my $what = $tag || $type->{name} || $type->{'-name'};
+	    _warn("Element '".$element->[0]."' not allowed in the sequence '$what', skipping\n");
 	  }
 	} else {
-	  _warn("Sequence '$tag' contains element with no name, skipping\n");
+	  my $what = $tag || $type->{name} || $type->{'-name'};
+	  _warn("The sequence '$what' contains element with no name, skipping\n");
 	}
       }
     } else {
-      _die("Unexpected content of sequence '$tag': $object\n");
+      my $what = $tag || $type->{name} || $type->{'-name'};
+      _die("Unexpected content of the sequence '$what': $object\n");
     }
     $xml->endTag($tag) if defined($tag);
   } elsif (exists $type->{container}) {
     unless (UNIVERSAL::isa($object,'HASH')) {
-      _die("Unexpected type of container object: $object\n");
+      my $what = $tag || $type->{name} || $type->{'-name'};
+      _die("Unexpected type of the container '$what': $object\n");
     }
     my $container = $type->{container};
     my %attribs;
@@ -1263,7 +1217,8 @@ sub write_object {
       $attribs{$atr} = $object->{$atr};
     }
     if (%attribs and !defined($tag)) {
-      _warn("Internal error: too late to serialize attributes of a container");
+      my $what = $type->{name} || $type->{'-name'};
+      _warn("Internal error: too late to serialize attributes of a container in '$what'");
     }
     my $content = $object->{'#content'};
     if ($container->{role} eq '#NODE' and 
@@ -1271,7 +1226,8 @@ sub write_object {
       my $cont_type = resolve_type($types,$container);
       if (ref($cont_type) and ref($cont_type->{sequence}) and $cont_type->{sequence}{role} eq '#CHILDNODES') {
 	if ($content ne "") {
-	  _warn("Discarding non-empty #content of a container of a #CHILDNODES sequence!");
+	  my $what = $tag || $type->{name} || $type->{'-name'};
+	  _warn("Discarding non-empty #content of the container '$what' of a #CHILDNODES sequence!");
 	}
 	$content = Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
       }
@@ -1279,7 +1235,8 @@ sub write_object {
     write_object($xml, $fsfile, $types,$container,[$tag,{%$attribs,%attribs}],$content);
   } elsif (exists $type->{constant}) {
     if ($object ne $type->{constant}) {
-      _warn("Invalid constant, should be '$type->{constant}', got: ",$object);
+      my $what = $tag || $type->{name} || $type->{'-name'};
+      _warn("Invalid constant '$what', should be '$type->{constant}', got: ",$object);
     }
     $xml->startTag($tag,%$attribs) if defined($tag);
     $xml->characters($object);
@@ -1337,7 +1294,7 @@ sub validate_object ($$$$$$) {
     my $struct = $type->{structure};
     my $members = $struct->{member};
     if (!ref($object)) {
-      push @$log, "$path: Unexpected content for a structure: '$object'";
+      push @$log, "$path: Unexpected content of a structure $struct->{name}: '$object'";
     } elsif (keys(%$object)) {
       foreach my $atr (grep {$members->{$_}{as_attribute}} keys %$members) {
 	if ($members->{$atr}{required} or $object->{$atr} ne "") {
