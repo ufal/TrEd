@@ -3574,8 +3574,9 @@ sub _import_type {
 
 sub _derive {
   my ($self)=@_;
-  if (ref $self->{derive}) {
-    foreach my $derive (@{$self->{derive}}) {
+  my $derives = delete $self->{derive};
+  if (ref $derives) {
+    foreach my $derive (@$derives) {
       my $name = $derive->{name};
       my $type;
       my $source = $derive->{type};
@@ -3741,7 +3742,7 @@ sub new {
   my $schemas = $opts->{schemas};
 
   # apply imports
-  my $imports = $new->{import};
+  my $imports = delete $new->{import};
   if (ref($imports)) {
     foreach my $import (@$imports) {
       if (exists($import->{type})) {
