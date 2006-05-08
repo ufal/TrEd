@@ -465,9 +465,7 @@ sub ChooseFrame {
 
   if ($opts{-no_assign} or !$ValencyLexicon->user_is_annotator or $opts{-noadd}) {
     if (!$word) {
-      ErrorMessage("The word $lemma.$pos was not found in the lexicon.\n".
-		   "ass".$opts{-no_assign}."\nann".$ValencyLexicon->user_is_annotator."\nadd".$opts{-noadd}
-		  );
+      ErrorMessage("The word $lemma.$pos was not found in the lexicon.\n");
       return;
     }
     $field=[ $word ? ($lemma,$pos) : () ];
