@@ -4740,7 +4740,7 @@ sub startMain {
 			    -underline=> 5,
 			    -command=> [\&urlDialog, \%group]);
   $group{FileMenu}->cascade(-label=> 'New',
-			    -underline=>2,
+			    -underline=>0,
 			    -menuitems=>
 			    [
 			     [Button => 'From Template ...',
@@ -4762,7 +4762,7 @@ sub startMain {
 					  }
 					 , \%group]);
   $group{FileMenu}->command(-label=> 'Close in Window',
-			    -underline=> 7,
+			    -underline=> 9,
 			    -command=> [ sub {
 					    my ($grp)=@_;
 					    my $keep;
@@ -4775,6 +4775,7 @@ sub startMain {
 					  }
 					 , \%group]);
   $group{FileMenu}->command(-label=> 'Close and remove from filelist',
+			    -underline => 12,
 			    -command=> [ sub {
 					    my ($grp)=@_;
 					    if (ref($grp->{focusedWindow}->{currentFilelist})) {
@@ -4816,7 +4817,7 @@ sub startMain {
 			    -underline=> 3,
 			    -command=> [\&tiePrevFile,\%group]);
   $group{FileMenu}->command(-label=> 'Next File',
-			    -underline=> 0,
+			    -underline=> 2,
 			    -command=> [\&tieNextFile,\%group]);
   $group{FileMenu}->separator();
   $group{FileMenu}->command(-label=> 'Print ...',
@@ -4834,7 +4835,7 @@ sub startMain {
 					  redraw_all($_[0]);
 					},\%group]);
   $group{FileMenu}->command(-label=>'Reload stylesheets ...',
-			    -underline=> 3,
+			    -underline=> 9,
 			    -command=> [sub {
 					  readStyleSheets($_[0]);
 					  redraw_all($_[0]);
