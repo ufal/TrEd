@@ -4027,37 +4027,46 @@ sub members {
     } elsif (exists($type->{container})) {
       $struct = $type->{container};
       $members = $struct->{attribute};
+    } elsif (exists($type->{member})) {
+      $struct = $type;
+      $members = $struct->{member};
+    } elsif (exists($type->{attribute})) {
+      $struct = $type;
+      $members = $struct->{attribute};
     }
   }
   if ($struct) {
+    return 
+    map { $_->[1] }
+    sort {$a->[0] <=> $b->[0]}
     map {
-      my $member = $members->{$_};
-       if (ref($member)) {
+      my $name = $_;
+      my $member = $members->{$name};
+      if (ref($member)) {
+	my $ord = $member->{'-#'};
  	if ($member->{role} eq '#CHILDNODES') {
  	  ()
  	} elsif ($member->{role} eq '#KNIT') {
- 	  my $name = $_;
        	  $name=~s/\.rf$//;
- 	  $name;
+ 	  [$ord, $name];
  	} else {
  	  my $mtype = $self->schema->resolve_type($member);
  	  if (ref($mtype) and exists $mtype->{list} and
  	      $mtype->{list}{role} eq '#KNIT') {
- 	    my $name = $_;
  	    $name=~s/\.rf$//;
- 	    $name;
+ 	    [$ord,$name];
  	  } else {
-	    $_
+	    [$ord,$name]
 	  }
 	}
       } else {
- 	$_
+ 	[0,$name]
       }
     } keys %$members;
   } else {
     return ();
   }
-}
+  }
 
 =item attributes()
 
