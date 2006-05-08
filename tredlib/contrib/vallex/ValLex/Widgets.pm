@@ -164,6 +164,25 @@ require Tk::Tree;
 require Tk::HList;
 require Tk::ItemStyle;
 
+sub UpDown { 
+  my ($tree,$dir) = @_;
+  my $anchor = $tree->info('anchor');
+  unless(defined $anchor) {
+    $anchor = 
+      $dir eq 'next' ? 
+	($tree->info('children'))[0] :
+	(reverse $tree->info('children'))[0];
+    if (defined $anchor) {
+      $tree->selectionClear;
+      $tree->anchorSet($anchor);
+      $tree->see($anchor);
+      $tree->selectionSet($anchor);
+    }
+  } else {
+    $tree->UpDown($dir);
+  }
+}
+
 sub create_widget {
   my ($self, $data, $field, $top, $common_style, @conf) = @_;
 
@@ -176,6 +195,11 @@ sub create_widget {
                               -relief sunken
                               -scrollbars osoe/,
 			  );
+  for ($w->Subwidget('scrolled')) {
+     $w->bind('Tk::Tree','<Up>', [\&UpDown,'prev'] );
+     $w->bind('Tk::Tree','<Down>', [\&UpDown,'next'] );
+  }
+
   $w->configure(-opencmd => [\&open_superframe,$w],
 		-closecmd => [\&close_superframe,$w]);
   $w->configure(@conf) if (@conf);
