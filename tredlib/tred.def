@@ -2618,7 +2618,7 @@ taller.
 =item C<-sentenceInfo>
 
 If set to 1, this command prints also the text associated with the
-tree. Instead of 0 or 1, an CODE reference (subroutine) may be passed
+tree. Instead of 0 or 1, a CODE reference (subroutine) may be passed
 in this parameter. This CODE is then evaluated for every tree to
 produce the desired text. The CODE obtains two arguments: the current
 FSFile object and an integer position of the tree (starting from 0).
