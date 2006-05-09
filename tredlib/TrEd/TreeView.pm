@@ -10,7 +10,7 @@ import TrEd::MinMax;
 use TrEd::Convert;
 import TrEd::Convert;
 
-use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style);
+use vars qw($AUTOLOAD @Options %DefaultNodeStyle $Debug $on_get_root_style $on_get_node_style $on_get_nodes);
 
 our $objectno;
 our ($block, $bblock);
@@ -305,11 +305,17 @@ sub value_line {
 
 sub nodes {
   my ($self,$fsfile,$tree_no,$prevcurrent)=@_;
-  my ($nodes,$current)=$fsfile->nodes($tree_no,$prevcurrent,$self->get_showHidden());
-  if ($self->{reverseNodeOrder}) {
-    return ([reverse @$nodes],$current);
+
+  my $l = callback($on_get_nodes,$self,$fsfile,$tree_no,$prevcurrent);
+  if (ref($l) eq 'ARRAY' and @$l==2) {
+    return @$l;
+  } else {
+    my ($nodes,$current)=$fsfile->nodes($tree_no,$prevcurrent,$self->get_showHidden());
+    if ($self->{reverseNodeOrder}) {
+      return ([reverse @$nodes],$current);
+    }
+    return ($nodes,$current);
   }
-  return ($nodes,$current);
 }
 
 sub getFontHeight {
@@ -923,6 +929,17 @@ sub eval_coords_spec {
   return $C;
 }
 
+sub callback {
+  my $func = shift;
+  if (ref($func) eq 'ARRAY') {
+    &{$func->[0]}(@_,@{$func}[1..$#$func]);
+  } elsif (ref($func) eq 'CODE') {
+    &$func(@_);
+  } else {
+    return ();
+  }
+}
+
 sub redraw {
   my ($self,$fsfile,$currentNode,$nodes,$valtext,$stipple,$grp)=@_;
   my $node;
@@ -987,11 +1004,7 @@ sub redraw {
       }
     }
     # root styling hook
-    if (ref($on_get_root_style) eq 'ARRAY') {
-      &{$on_get_root_style->[0]}($self,$node,\%Opts,@{$on_get_root_style}[1..$#$on_get_root_style]);
-    } elsif (ref($on_get_root_style) eq 'CODE') {
-      &$on_get_root_style($self,$node,\%Opts);
-    }
+    callback($on_get_root_style,$self,$node,\%Opts);
   }
 
   # styling patterns should be interpolated here for each node and
@@ -1010,11 +1023,7 @@ sub redraw {
       }
     }
     # external styling hook
-    if (ref($on_get_node_style) eq 'ARRAY') {
-      &{$on_get_node_style->[0]}($self,$node,\%nopts,@{$on_get_node_style}[1..$#$on_get_node_style]);
-    } elsif (ref($on_get_node_style) eq 'CODE') {
-      &$on_get_node_style($self,$node,\%nopts);
-    }
+    callback($on_get_node_style,$self,$node,\%nopts);
     foreach (keys %nopts) {
       $self->store_node_pinfo($node,"style-$_",$nopts{$_});
     }
