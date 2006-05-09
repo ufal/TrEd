@@ -3956,34 +3956,33 @@ sub printThis {
   if ($stylesheet ne STYLESHEET_FROM_FILE()) {
     $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
   }
-  $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
-  $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
+  local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
+  local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
+  local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
 
-  TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
-			   $grp->{top},
-			   $canvas,
-			   @print_opts,
-			   $grp->{focusedWindow}->{treeView}->get_showHidden(),
-			   {
-			    'PS' => $psFontFile,
-			    'AFM' => $psFontAFMFile,
-			    'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
-			    'Size' => $psFontSize,
-			   },
-			   $prtFmtWidth,
-			   $prtHMargin,
-			   $prtFmtHeight,
-			   $prtVMargin,
-			   $maximizePrintSize,
-			   $psMedia,
-			   $treeViewOpts,
-			   $ss
-			  );
-
-  $TrEd::TreeView::on_get_root_style = undef;
-  $TrEd::TreeView::on_get_node_style = undef;
-
-
+  eval {
+    TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
+			     $grp->{top},
+			     $canvas,
+			     @print_opts,
+			     $grp->{focusedWindow}->{treeView}->get_showHidden(),
+			     {
+			       'PS' => $psFontFile,
+			       'AFM' => $psFontAFMFile,
+			       'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
+			       'Size' => $psFontSize,
+			     },
+			     $prtFmtWidth,
+			     $prtHMargin,
+			     $prtFmtHeight,
+			     $prtVMargin,
+			     $maximizePrintSize,
+			     $psMedia,
+			     $treeViewOpts,
+			     $ss
+			    );
+  };
+  errorMessage($win, $@) if $@;
 ## uncomment to get preview (see also above)
 #  $canvas->pack();
 #  ShowDialog($dlg);
@@ -4148,6 +4147,15 @@ sub onGetNodeStyle {
 sub onGetRootStyle {
   my ($treeview,$node,$styles,$win)=@_;
   doEvalHook($win,"root_style_hook",$node,$styles);
+}
+
+sub onGetNodes {
+  my ($treeview,$fsfile,$tree_no,$current,$win)=@_;
+  doEvalHook($win,"get_nodelist_hook",
+	     $fsfile,
+	     $tree_no,
+	     $current,
+	     $treeview->get_showHidden());
 }
 
 sub onTreeChange {
@@ -6809,6 +6817,8 @@ sub dumpSentView {
     return;
   }
 
+  my $errors;
+
   (my $html,$file) = openSimpleHtml($t,$file,"Save Sentences As HTML ...",$initdir);
   if (defined($html)) {
     my @dump=$t->dump('0.0','end'); # to avoid a bug ??
@@ -6857,25 +6867,26 @@ sub dumpSentView {
 	    $ss=$win->{framegroup}->{stylesheets}->{$stylesheet};
 	  }
 
-	  $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
-	  $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
+	  local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
+	  local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
+	  local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
 
-	  TrEd::Print::print_trees
-	      ($fsfile,$grp->{top},$canvas,
-	       $no,0,1,0,$img_file,0,
-	       "$imageMagickConvert -density 75 - $img_file",
-	       1,1,
-	       $grp->{focusedWindow}->{treeView}->get_showHidden(),
-	       {
-		 'PS' => $psFontFile,
-		 'AFM' => $psFontAFMFile,
-		 'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
-		 'Size' => $psFontSize,
-	       },
-	       0,0,0,0,0,'BBox',$treeViewOpts,$ss);
-
-	  $TrEd::TreeView::on_get_root_style = undef;
-	  $TrEd::TreeView::on_get_node_style = undef;
+	  eval {
+	    TrEd::Print::print_trees
+		($fsfile,$grp->{top},$canvas,
+		 $no,0,1,0,$img_file,0,
+		 "$imageMagickConvert -density 75 - $img_file",
+		 1,1,
+		 $grp->{focusedWindow}->{treeView}->get_showHidden(),
+		 {
+		   'PS' => $psFontFile,
+		   'AFM' => $psFontAFMFile,
+		   'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
+		   'Size' => $psFontSize,
+		 },
+		 0,0,0,0,0,'BBox',$treeViewOpts,$ss);
+	  };
+	  $errors .= $@ if $@;
 
 	  $canvas->destroy();
 	  $img=0;
@@ -6887,6 +6898,8 @@ sub dumpSentView {
     }
     closeSimpleHtml($html);
   }
+  errorMessage($win,$errors) if defined $errors;
+
 }
 
 sub populateSentencesDialog {
