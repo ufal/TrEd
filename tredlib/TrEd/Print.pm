@@ -391,9 +391,9 @@ sub print_trees {
 	  close $fh;
 	  close $out;
 	} || do {
-	  print STDERR $@ if $@;
-	  print STDERR "Aborting: failed to open pipe to '$cmd': $!\n";
-	  return 0;
+	  #print STDERR $@ if $@;
+	  die $@."Print: aborting - failed to open pipe to '$cmd': $!\n";
+	  #return 0;
 	};
       }
       print STDERR "PDF done\n";
@@ -403,14 +403,14 @@ sub print_trees {
       my %pso;
       if ($toFile) {
 	unless (open(O,">".$fil)) {
-	  print STDERR "Aborting: failed to open file '$fil': $!\n";
-	  return 0;
+	  die "Print: aborting - failed to open file '$fil': $!\n";
+	  #return 0;
 	}
       } else {
 	$SIG{'PIPE'} = sub {};
 	unless (open(O, "| ".$cmd)) {
-	  print STDERR "Aborting: failed to open pipe to '$cmd': $!\n";
-	  return 0;
+	  die "Print: aborting - failed to open pipe to '$cmd': $!\n";
+	  #return 0;
 	}
       }
 
@@ -421,7 +421,7 @@ sub print_trees {
       print STDERR "Name: ",$psFontName,"\n";
       local $TrEd::Convert::outputenc='iso-8859-2';
       unless (open(F,"<$fontSpec->{PS}")) {
-	print STDERR "Aborting: failed to open file '$fontSpec->{PS}': $!\n";
+	die "Aborting: failed to open file '$fontSpec->{PS}': $!\n";
 	return 0;
       }
       for (my $t=0;$t<=$#printList;$t++) {
