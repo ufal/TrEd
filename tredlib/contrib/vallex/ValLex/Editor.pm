@@ -191,27 +191,33 @@ sub show_dialog {
 		  [sub {
 		     my ($d,$f)=@_;
 		     $d->{selected_button}='Save & Close';
-		   },$d,$vallex]);
+		   },$d,$vallex],
+                 -underline => 2);
     $d->Subwidget("B_Save")->
       configure(-command =>
 		  [sub {
 		     my ($d,$f)=@_;
 		     $f->save_data($d);
-		   },$d,$vallex]);
+		   },$d,$vallex],
+                 -underline => 0);
     $d->Subwidget("B_Reload (Undo Changes)")->
       configure(-command =>
 		  [sub {
 		     my ($d,$f)=@_;
 		     $f->reload_data($d);
-		   },$d,$vallex]);
+		   },$d,$vallex],
+                 -underline => 11);
+	TrEd::ValLex::Widget::_bind_buttons($d);
   } else {
     $d->Subwidget("B_Close")->
       configure(-command =>
 		  [sub {
 		     my ($d,$f)=@_;
 		     $d->{selected_button}='Close';
-		   },$d,$vallex]);
+		   },$d,$vallex],
+                 -underline => 2);
     $d->bind('all','<Escape>'=> [sub { shift; shift->{selected_button}='Cancel'; },$d ]);
+
   }
   if (ref($bindings)) {
     while (my ($event, $command) = each %$bindings) {
@@ -345,7 +351,7 @@ sub create_widget {
 
     if ($reviewer_can_modify) {
       my $modifyframe_button=$fbutton_frame->Button(-text => 'Modify',
-						    -underline => 0,
+						    -underline => 4,
 						    -command => [\&modify_button_pressed,
 								 $self]);
       $modifyframe_button->pack(qw/-padx 5 -side left/);
@@ -396,7 +402,7 @@ sub create_widget {
     }
   }
   my $search_button=$fbutton_frame->Button(-text => 'Search Whole Lexicon',
-					      -underline => 0,
+					      -underline => 15,
 					      -command => [\&show_frame_search_dialog,
 							   $self]);
   $search_button->pack(qw/-padx 5 -side left/);
