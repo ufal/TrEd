@@ -6,4 +6,6 @@
 use lib "$main::libDir/contrib/vallex";
 require ValLex::GUI;
 
+#include "non_gui.mak"
+
 #endif pdt_vallex
