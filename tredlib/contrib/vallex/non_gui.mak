@@ -13,9 +13,8 @@ sub new {
   require XML::JHXML;
   require ValLex::Data;
   require ValLex::ExtendedJHXML;
-  require ValLex::DummyConv;
   $file ||= $ENV{VALLEX} || FindInResources('vallex.xml');
-  return TrEd::ValLex::ExtendedJHXML->new($file, TrEd::ValLex::DummyConv->new(), 1);
+  return TrEd::ValLex::ExtendedJHXML->new($file);
 }
 
 1;
