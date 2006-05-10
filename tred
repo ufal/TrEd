@@ -12,9 +12,9 @@
 
 #use strict;
 
-if ($^V lt v5.8.5) {
+if ($^V lt v5.8.3) {
   print STDERR '-' x 50,"\n";
-  print STDERR "WARNING: Your version of perl is older than v5.8.5\n";
+  print STDERR "WARNING: Your version of perl is older than v5.8.3\n";
   print STDERR "THINGS MAY NOT WORK AS EXPECTED OR NOT AT ALL!\n";
   print STDERR '-' x 50,"\n\n";
 }
