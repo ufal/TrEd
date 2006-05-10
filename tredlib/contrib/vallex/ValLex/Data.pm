@@ -9,7 +9,7 @@ use strict;
 use utf8;
 
 require ValLex::Sort;
-
+require ValLex::DummyConv;
 
 my @abbrev_forms = (
 ['do+2' => 'do-1[.2]'],
@@ -48,6 +48,7 @@ my @abbrev_forms = (
 sub new {
   my ($self, $file, $cpconvert,$novalidation)=@_;
   my $class = ref($self) || $self;
+  $cpconvert = TrEd::ValLex::DummyConv->new() unless ref($cpconvert);
   my $new = bless [$class->parser_start($file,$novalidation),
 		   $file, undef, undef, 0, $cpconvert, []], $class;
   $new->loadListOfUsers();
