@@ -72,7 +72,7 @@ sub get_protocol {
 sub quote_filename {
   my ($uri)=@_;
   $uri =~ s{\\}{\\\\}g;
-  $uri =~ s{\"}{\\\"}g;
+  $uri =~ s{"}{\\"}g;
   return '"'.$uri.'"';
 }
 
