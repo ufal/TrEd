@@ -3478,7 +3478,7 @@ sub updatePrintDialogState {
   my %t=map { $_ => 1} keys %$w; # toggle
   my @disable;
   if ($s->{printTo} eq 'printer') {
-    @disable = qw(resolution file format_PDF);
+    @disable = qw(printOnePerFile resolution file format_PDF);
   } elsif ($s->{printTo} eq 'file') {
     @disable = qw(resolution command);
   } elsif ($s->{printTo} eq 'convert') {
@@ -3489,7 +3489,8 @@ sub updatePrintDialogState {
   }
 
   if ($s->{format} eq 'EPS') {
-    push @disable,qw(font printRange psMedia prtFmtWidth prtFmtHeight);
+    push @disable,qw(font psMedia prtFmtWidth prtFmtHeight);
+    push @disable,qw(printRange) unless $s->{printOnePerFile};
   } elsif ($s->{format} eq 'PS') {
     push @disable,qw(font);
   } elsif ($s->{format} eq 'PDF') {
@@ -3512,6 +3513,10 @@ sub updatePrintDialogState {
   $t{$_}=0 for (@disable);
   $s->{file}=~s/\.[^.]*$/.$extension/ if defined($extension) and
     not($s->{printTo} eq 'convert' and $extension =~ /^(?:pdf|e?ps)$/);
+
+  if ($s->{printOnePerFile}) {
+    $s->{file}=~s/\.([^.]*)$/_\%n.$1/ if $s->{file}!~/[%]\d*n/;
+  }
 
   if ($s->{psMedia} eq 'BBox') {
     $s->{prtFmtWidth} = '';
@@ -3567,6 +3572,7 @@ sub printDialog {
   $s{printRange}=$win->{treeNo}+1;# unless $printRange ne "";
   $s{printSentence}=$grp->{printSentenceInfo};
   $s{noRotate}=$grp->{printNoRotate};
+  $s{printOnePerFile}=$grp->{printOnePerFile};
   $s{printColors}=$grp->{printColors};
   $s{defaultPrtFmtWidth}=$prtFmtWidth;
   $s{defaultPrtFmtHeight}=$prtFmtHeight;
@@ -3842,9 +3848,15 @@ sub printDialog {
 				 -variable=> \$s{printSentence},
 				 -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
+  $w{printOnePerFile}=$bf->Checkbutton(-text=> 'one tree per file (use %n in the filename to place the tree number)',
+				       -underline => 0,
+				       -variable=> \$s{printOnePerFile},
+				       -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef],
+				       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+
   $w{noRotate}=
     $bf->Checkbutton(-text    => 'Disable landscape rotation of wide trees',
-		     -underline => 18,
+		     -underline => 30,
 		     -variable=> \$s{noRotate},
 		     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   $bf->pack(-side=> 'left');
@@ -3894,6 +3906,7 @@ sub printDialog {
   _bind_buttons($d,$d);
   my $result= ShowDialog($d,$s{printTo} eq "command" ? $w{command} : $w{file},$grp->{top});
   $grp->{printRange}=$s{printRange};
+  $grp->{printOnePerFile}=$s{printOnePerFile};
   $grp->{printToFile}=$s{printTo};
   $grp->{printFormat}=$s{format};
   $grp->{printPsFile}=$s{file};
@@ -3907,6 +3920,7 @@ sub printDialog {
   $ttFont=$s{ttFont};
   $prtHMargin=$s{prtHMargin};
   $prtVMargin=$s{prtVMargin};
+  my $one_per_file = 1 if $s{printOnePerFile};
   get_grp_histories($grp,$e_hist) if ($result =~ /OK/);
   $d->destroy;
   undef $d;
@@ -3915,7 +3929,8 @@ sub printDialog {
                  warnWin32PrintConvert($win) eq 'Cancel';
     return () if $s{printTo} eq 'convert' and
                  warn55PrintConvert($win) eq 'Cancel';
-    return ($s{printRange},
+    return ($one_per_file,
+	    $s{printRange},
 	    ($s{printTo} eq 'file') ? 1 : 0,
 	    ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
 	    ($s{format} eq 'PDF') ? 1 : 0,
@@ -3940,16 +3955,22 @@ sub printThis {
 #  my $canvas=$dlg->Scrolled('Canvas');
 
   my $canvas=$grp->{top}->Canvas();
-  my @print_opts;
+  my ($one_per_file,$range,@print_opts);
   my $err;
   do {{
-    @print_opts=printDialog($grp);
-    return unless scalar(@print_opts)>2;
-    $err = ($print_opts[3] and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$ttFont}));
-    plainErrorMessage($grp,"You must select TrueType font for PDF!") if $err;
+    $err = 0;
+    ($one_per_file,$range,@print_opts)=printDialog($grp);
+    return unless scalar(@print_opts)>1;
+    if ($print_opts[2] and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$ttFont})) {
+      plainErrorMessage($grp,"You must select TrueType font for PDF!");
+      $err = 1;
+    }
+    if ($one_per_file and ($print_opts[3]!~/[%]\d*n/) and ($range=~/[\-,]/)) {
+      plainErrorMessage($grp,"Use %n in the output filename if you need one tree per file!");
+      $err = 1;
+    }
   }} while ($err);
-  $print_opts[0]=$grp->{focusedWindow}->{treeNo}+1
-    if (!defined($print_opts[0]) or $print_opts[0] eq "");
+  $range=$grp->{focusedWindow}->{treeNo}+1 if (!defined($range) or $range eq "");
 
   my $stylesheet = $win->{stylesheet};
   my $ss = undef;
@@ -3959,11 +3980,22 @@ sub printThis {
   local $TrEd::TreeView::on_get_nodes = [\&onGetNodes,$win];
   local $TrEd::TreeView::on_get_root_style = [\&onGetRootStyle,$win];
   local $TrEd::TreeView::on_get_node_style = [\&onGetNodeStyle,$win];
-
-  eval {
-    TrEd::Print::print_trees($grp->{focusedWindow}->{FSFile},
+  
+  my $fsfile = $grp->{focusedWindow}->{FSFile};
+  my @range = ($one_per_file ? TrEd::Print::parse_print_list($fsfile,$range) : ($range));
+  my $filename = $print_opts[3];
+  my $command = $print_opts[5];
+  for my $r (@range) {
+    if ($one_per_file) {
+      $print_opts[3] = $filename;
+      $print_opts[3] =~ s/[%](\d*)n/sprintf("%".($1 ne "" ? '0'.int($1) : '')."d",$r)/e;
+      $print_opts[5] = $command;
+      $print_opts[5] =~ s/[%](\d*)n/sprintf("%".($1 ne "" ? '0'.int($1) : '')."d",$r)/e;
+    }
+    TrEd::Print::print_trees($fsfile,
 			     $grp->{top},
 			     $canvas,
+			     $r,
 			     @print_opts,
 			     $grp->{focusedWindow}->{treeView}->get_showHidden(),
 			     {
@@ -3981,7 +4013,7 @@ sub printThis {
 			     $treeViewOpts,
 			     $ss
 			    );
-  };
+  }
   errorMessage($win, $@) if $@;
 ## uncomment to get preview (see also above)
 #  $canvas->pack();
