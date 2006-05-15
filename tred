@@ -3922,7 +3922,7 @@ sub printDialog {
 	    $s{file},
 	    $s{printSentence} ? sub { get_value_line($win,$_[0],$_[1],1,0) } : undef,
 	    (($s{printTo} eq 'convert') ?
-	     "$imageMagickConvert -density $s{resolution} - $s{file}" : $s{command}),
+	     "$imageMagickConvert -density $s{resolution} - ".IOBackend::quote_filename($s{file}) : $s{command}),
 	    $s{printColors},$s{noRotate});
   } else {
     return ();
@@ -6875,7 +6875,7 @@ sub dumpSentView {
 	    TrEd::Print::print_trees
 		($fsfile,$grp->{top},$canvas,
 		 $no,0,1,0,$img_file,0,
-		 "$imageMagickConvert -density 75 - $img_file",
+		 "$imageMagickConvert -density 75 - ".IOBackend::quote_filename($img_file),
 		 1,1,
 		 $grp->{focusedWindow}->{treeView}->get_showHidden(),
 		 {
