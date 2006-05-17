@@ -353,6 +353,11 @@ sub set_trees {
 sub set_node_children {
   my ($node,$list)=@_;
   my $prev=0;
+  
+  if (UNIVERSAL::isa($list,'Fslib::Seq')) {
+    $list->delegate_names('#name');
+    $list = $list->values;
+  }
   foreach my $son (@{$list}) {
     unless (UNIVERSAL::isa($son,'FSNode')) {
       _die("non-#NODE child '".Dumper($son)."'");
@@ -459,8 +464,7 @@ sub read_node {
     my $role = $type->{sequence}{role};
     if ($role eq '#CHILDNODES' and $childnodes_taker) {
       if ($seq) {
-	$seq->delegate_names('#name');
-	set_node_children($childnodes_taker, scalar($seq->values));    
+	set_node_children($childnodes_taker, $seq);    
       }
       return undef;
     } elsif ($role eq '#TREES') {
