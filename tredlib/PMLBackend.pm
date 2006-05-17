@@ -1005,6 +1005,25 @@ sub get_write_trees {
   }
 }
 
+sub get_childnodes {
+  my ($object,$types,$container,$content,$what)=@_;
+  my $cont_type = resolve_type($types,$container);
+  return $content unless ref($cont_type);
+  if (ref($cont_type->{sequence}) and 
+	$cont_type->{sequence}{role} eq '#CHILDNODES') {
+    if ($content ne "") {
+      _warn("Replacing non-empty value '$content' of '$what' with the #CHILDNODES sequence!");
+    }
+    return Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
+  } elsif (ref($cont_type->{list}) and 
+	     $cont_type->{list}{role} eq '#CHILDNODES') {
+    if ($content ne "") {
+      _warn("Replacing non-empty value '$content' of '$what' with the #CHILDNODES list!");
+    }
+    return Fslib::List->new_from_ref([$object->children]);
+  }
+}
+
 sub write_object {
   my ($xml,$fsfile, $types,$type,$tag,$object,$no_resolve)=@_;
   my $pre=$type;
@@ -1061,11 +1080,24 @@ sub write_object {
 	if ($mdecl->{role} eq '#CHILDNODES') {
 	  if (ref($object) eq 'FSNode') {
 	    if ($object->firstson or $mdecl->{required}) {
-	      write_object($xml, $fsfile, $types,$mdecl,$member,
-			   bless([ $object->children ],'Fslib::List'));
+	      my $children;
+	      if (ref($mtype->{sequence})) {
+		if ($object->{$member} ne "") {
+		  _warn("Replacing non-empty value of member '$member' with the #CHILDNODES sequence!");
+		}
+		$children = Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
+	      } elsif (ref($mtype->{list})) {
+		if ($object->{$member} ne "") {
+		  _warn("Replacing non-empty value of member '$member' with the #CHILDNODES list!");
+		}
+		$children = Fslib::List->new_from_ref([$object->children]);
+	      } else {
+		_warn("The member '$member' with the role #CHILDNODES is neither a list nor a sequence - ignoring it!");
+	      }
+	      write_object($xml, $fsfile, $types,$mdecl,$member,$children);
 	    }
 	  } else {
-	    _warn("Found #CHILDNODES member '$tag/$member' on a non-node value: $object\n");
+	    _warn("Found #CHILDNODES member '$member' on a non-node value: $object\n");
 	  }
 	} elsif ($mdecl->{role} eq '#TREES') {
 	  my $data = get_write_trees($fsfile,$mdecl,$mtype);
@@ -1211,8 +1243,8 @@ sub write_object {
     }
     $xml->endTag($tag) if defined($tag);
   } elsif (exists $type->{container}) {
+    my $what = $tag || $type->{name} || $type->{'-name'};    
     unless (UNIVERSAL::isa($object,'HASH')) {
-      my $what = $tag || $type->{name} || $type->{'-name'};
       _die("Unexpected type of the container '$what': $object\n");
     }
     my $container = $type->{container};
@@ -1221,20 +1253,12 @@ sub write_object {
       $attribs{$atr} = $object->{$atr};
     }
     if (%attribs and !defined($tag)) {
-      my $what = $type->{name} || $type->{'-name'};
       _warn("Internal error: too late to serialize attributes of a container in '$what'");
     }
     my $content = $object->{'#content'};
     if ($container->{role} eq '#NODE' and 
 	  UNIVERSAL::isa($object,'FSNode')) {
-      my $cont_type = resolve_type($types,$container);
-      if (ref($cont_type) and ref($cont_type->{sequence}) and $cont_type->{sequence}{role} eq '#CHILDNODES') {
-	if ($content ne "") {
-	  my $what = $tag || $type->{name} || $type->{'-name'};
-	  _warn("Discarding non-empty #content of the container '$what' of a #CHILDNODES sequence!");
-	}
-	$content = Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
-      }
+      $content = get_childnodes($object,$types,$container,$content,$what);
     }
     write_object($xml, $fsfile, $types,$container,[$tag,{%$attribs,%attribs}],$content);
   } elsif (exists $type->{constant}) {
