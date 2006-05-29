@@ -21,7 +21,7 @@ if ($^V lt v5.8.3) {
 
 use vars qw($version $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
-	    $opt_n $opt_D $opt_v $opt_H $opt_I
+	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z
             $libDir
 	    $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
@@ -86,7 +86,7 @@ Tk::CmdLine::SetArguments();
 
 # Once we got rid of them we call getopt to read all the other options
 use Getopt::Std;
-getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:S:');
+getopts('qm:c:l:t:n:p:vhuW:GI:HDYB:RX:s:S:Z:');
 
 if ($opt_u || $opt_h) {
   print <<'EOH';
@@ -139,6 +139,7 @@ Each filename may be followed by suffixes of the following forms:
         positive, vertically if negative) and open n'th file
         in n'th subwindow.
 
+-Z dir  provide ResourcePath (overrides current setting in ~/.tredrc).      
 
 Other options:
 
@@ -290,6 +291,8 @@ unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 require Fslib;
 import Fslib;
 import Fslib qw(&Index $FSError);
+
+$Fslib::resourcePath=$opt_Z if $opt_Z;
 
 $tredDebug=1 if $opt_D;
 $TrEd::TreeView::Debug=1 if $opt_D;

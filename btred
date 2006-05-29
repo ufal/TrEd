@@ -40,6 +40,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    @files $backend %bkmap $nosave @preload_modules $print_version
 	    $version $lib $extra_backends $file_list $list_options
 	    $_ERR %optmap $no_secondary $include_macro $ioBackends
+	    @resource_paths
 	   );
 
 $version='$Revision$ ';
@@ -96,6 +97,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "lib"            => \$lib,
 	    "preload-module|M=s" => \@preload_modules,
 	    "extra-backends|B=s" => \$extra_backends,
+	    "resource-dir|Z=s" => \@resource_paths,
 	    "version|v"        => \$print_version
 	   );
 
@@ -243,6 +245,8 @@ require Fslib;
 import Fslib;
 import Fslib qw(&Index &ImportBackends);
 $Fslib::Debug=1 if $debug;
+$Fslib::resourcePath=join($Fslib::resourcePathSplit,@resource_paths) if @resource_paths;
+
 
 # import min and max functions
 require TrEd::MinMax;
@@ -1897,7 +1901,12 @@ Format to use for files being saved.
 
 =item B<--config-file|-c> filename
 
-TrEd configuration file.
+TrEd configuration file (overrides ~/.tredrc).
+
+=item B<--resource-dir|-Z> dirname
+
+Specifies resource path. This option can be repeated and overrides
+ResoucePath setting in the TrEd configuration file.
 
 =item B<--all-trees|-T>
 
