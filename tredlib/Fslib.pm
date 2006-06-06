@@ -543,9 +543,39 @@ sub set_firstson ($$) {
   $node->{$Fslib::firstson}=ref($p) ? $p : 0;
 }
 
+=item set_type(type)
+
+Associate FSNode object with a given Fslib::Type.
+
+=cut
+
 sub set_type ($$) {
   my ($node,$type) = @_;
   $node->{$Fslib::type}=$type;
+}
+
+=item set_type_by_name (schema,type-name)
+
+Lookup a structure or container declaration in the given Fslib::Schema
+by its type name and associate the corresponding Fslib::Type with the
+FSNode.
+
+=cut
+
+sub set_type_by_name ($$$) {
+  my ($node,$schema,$name) = @_;
+  my $type = $schema->get_type_by_name($name);
+  if (ref($type)) {
+    if (exists $type->{structure}) {
+      $node->set_type($schema->type($type->{structure}));
+    } elsif (exists $type->{container}) {
+      $node->set_type($schema->type($type->{container}));
+    } else {
+      die "Incompatible type '$name' (neither a structure nor a container)\n";
+    }
+  } else {
+    die "Type not found '$name'\n";
+  }
 }
 
 =pod
@@ -3853,6 +3883,20 @@ sub node_types {
   my @result;
   return ($self->find_role($self->{type},'#NODE'),$self->find_role($self->{root},'#NODE'));
 }
+
+
+=item get_type_by_name(name)
+
+Returns a HASH structure representing the declaration of the given
+named type.
+
+=cut
+
+sub get_type_by_name {
+  my ($self,$name) = @_;
+  return $self->{type}{$name};
+}
+
 
 =item resolve_type(type)
 
