@@ -3905,8 +3905,6 @@ sub attributes {
   unless (@types) {
     @types = $self->node_types;
   }
-  use Data::Dumper;
-  print STDERR Dumper(\@types);
 
   my @result;
   foreach my $type (@types) {
