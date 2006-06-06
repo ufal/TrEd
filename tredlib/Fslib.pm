@@ -1973,7 +1973,7 @@ sub writeFile {
   eval {
     no strict 'refs';
     my $fh;
-    $backend->can('write') || die "Backend $backend does not support writing\n";
+    $backend->can('write') || die "Backend $backend is not loaded or does not support writing\n";
     $backend->can('open_backend') || die "Backend $backend does not support open\n";
     ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding)) || die "Open failed on '$filename' using backend $backend\n";
     $ret=&{"${backend}::write"}($fh,$self) || die "Write to '$filename' failed using backend $backend\n";
