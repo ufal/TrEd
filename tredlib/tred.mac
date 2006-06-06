@@ -323,7 +323,7 @@ sub exit_hook {
   }
 }
 
-#ifinclude <contrib/contrib.mac>
+#ifinclude "contrib/contrib.mac"
 
 package TredMacro;
 #binding-context TredMacro
