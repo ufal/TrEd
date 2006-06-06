@@ -571,11 +571,50 @@ sub set_type_by_name ($$$) {
     } elsif (exists $type->{container}) {
       $node->set_type($schema->type($type->{container}));
     } else {
-      die "Incompatible type '$name' (neither a structure nor a container)\n";
+      croak "FSNode::set_type_by_name: Incompatible type '$name' (neither a structure nor a container)";
     }
   } else {
-    die "Type not found '$name'\n";
+    croak "FSNode::set_type_by_name: Type not found '$name'";
   }
+}
+
+=item validate (attr-path?,log?)
+
+Validates the content of the node according to the associated type and
+schema. If attr-path is non-empty, validate only attribute selected by
+the attribute path. An array reference may be passed as the 2nd
+argument C<log> to obtain a detailed report of all validation errors.
+
+Returns: 1 if the content conforms, 0 otherwise.
+
+Note: this method requires PMLBackend (use ImportBackend to load it).
+
+=cut
+
+sub validate {
+  my ($node, $path, $log) = @_;
+  if (defined $log and UNIVERSAL::isa('ARRAY',$log)) {
+    croak "FSNode::validate: log must be an ARRAY reference";
+  }
+
+  my $type = $node->type;
+  if (!ref($type)) {
+    croak "FSNode::validate: Cannot determine node data type!";
+  }
+  
+  my $schema = $type->schema;
+  if (!ref($type)) {
+    croak "FSNode::validate: Cannot determine schema!";
+  }
+
+  my $base_type = $type->type_decl;
+  if ($base_type->{member}) {
+    $base_type = { structure => $base_type };
+  } else {
+    $base_type = { container => $base_type };
+  }
+
+  return $schema->validate_field($node, $path, $base_type, $log);
 }
 
 =pod
@@ -851,7 +890,6 @@ sub set_attr {
   }
   return undef;
 }
-
 
 =pod
 
@@ -3466,8 +3504,7 @@ by means of a regular expression C<content_pattern>. If no content_pattern is
 given, the one stored with the object is used (if any; otherwise undef
 is returned).
 
-Returns 1 if the content satisfies the constraint, otherwise returns
-0.
+Returns: 1 if the content satisfies the constraint, 0 otherwise.
 
 =cut
 
@@ -3821,10 +3858,20 @@ sub new {
 }
 
 
-=item readFrom(filename)
+=item readFrom(filename,opts)
 
 Reads schema from a given XML file and returns a new C<Fslib::Schema>
 object.
+
+The 2nd argument, C<opts>, is an optional hash reference with parsing
+options.  The following options are recognized:
+
+C<base_url> - base URL for referred schemas
+
+C<use_resources> - if true, reffered schemas are also looked for in the $ResourcePath
+
+C<revision>, C<minimal_revision>, C<maximal_revision> - constraint the revision
+number of the schema
 
 =cut
 
@@ -3995,6 +4042,84 @@ sub attributes {
   }
   my %uniq;
   return grep { !$uniq{$_} && ($uniq{$_}=1) } @result;
+}
+
+=item validate_object (object, type, log)
+
+Validates the data content of the given object against a specified
+type.  The type may be either the name of a named type, or a
+Fslib::Type, or a HASH with a parsed declaration.  
+
+An array reference may be passed as the optional 3rd argument C<log>
+to obtain a detailed report of all validation errors.
+
+Returns: 1 if the content conforms, 0 otherwise.
+
+Note: this method requires PMLBackend (use ImportBackend to load it).
+
+=cut
+
+sub validate_object { # (path, base_type)
+  my ($schema, $object, $type,$log)=@_;
+  if (defined $log and UNIVERSAL::isa('ARRAY',$log)) {
+    croak "Fslib::Schema::validate_object: log must be an ARRAY reference";
+  }
+  $log ||= [];
+  if (!ref($type)) {
+    $type = $schema->get_type_by_name($type);
+  } elsif (UNIVERSAL::isa($type,'Fslib::Type')) {
+    $type = $type->type_decl;
+  }
+  if (!ref($type)) {
+    croak "Fslib::Schema::validate_object: Cannot determine data type";
+  }
+  PMLBackend::validate_object($log,'',$schema->{type}, $type, '', $object);
+  return @$log ? 0 : 1;
+}
+
+
+=item validate_field (object, attr-path, type, log)
+
+This method is similar to C<validate_object>, but in this case the
+validation is restricted to the data substructure of C<object>
+specified by the C<attr-path> argument.
+
+C<type> is the type of C<object> specified either by the name of a
+named type, or as a Fslib::Type, or as a HASH with a parsed
+declaration.
+
+An array reference may be passed as the optional 3rd argument C<log>
+to obtain a detailed report of all validation errors.
+
+Returns: 1 if the content conforms, 0 otherwise.
+
+Note: this method requires PMLBackend (use ImportBackend to load it).
+
+=cut
+
+sub validate_field {
+  my ($schema, $object, $path, $base_type, $log) = @_;
+  if (defined $log and UNIVERSAL::isa('ARRAY',$log)) {
+    croak "Fslib::Schema::validate_field: log must be an ARRAY reference";
+  }
+  if ($path eq '') {
+    return $schema->validate_object($object, $base_type, $log);
+  }
+
+  my $type;
+  if (!ref($base_type)) {
+    $type = $schema->type($schema->get_type_by_name($base_type));
+  } elsif (!UNIVERSAL::isa($base_type,'Fslib::Type')) {
+    $type = $schema->type($base_type);
+  }
+  if (!ref($type)) {
+    croak "Fslib::Schema::validate_field: Cannot determine base data type";
+  }
+  $type = $type->find($path);
+  if (!ref($type)) {
+    croak "Fslib::Schema::validate_field: Cannot determine data type for '$path'";
+  }
+  PMLBackend::validate_object($log,$path,$schema->{type}, $type, '', FSNode::attr($object,$path));
 }
 
 =back
