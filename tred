@@ -2187,8 +2187,11 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
   $show=$win->{treeView}->get_showHidden() unless defined $show;
 
   return 0 unless ($node and $win->{FSFile});
-  return 1 if $show or not defined($win->{FSFile}->FS->hide());
-  while ($node and ($node->getAttribute($win->{FSFile}->FS->hide()) eq 'hide')) {
+  my $hide = $win->{FSFile}->FS->hide();
+  return 1 if $show or not defined($hide);
+
+  # traverse up until we find a hidden ancestor or reach void
+  while ($node and ($node->getAttribute($hide) ne 'hide')) {
     $node=$node->parent;
   }
   return ($node ? 0 : 1)
@@ -8191,6 +8194,7 @@ sub doFindPrevTemplated {
 ######################################
 sub cmpTemplateField {
   my ($grp,$val,$templ)=@_;
+
   my $method=substr($grp->{templateMatchMethod},0,1);
   return $val=~ /^$templ$/ if ($method eq 'E');
   return $val=~ /$templ/ if ($method eq 'R');
@@ -8212,9 +8216,13 @@ sub nextNodeInSearchFilelist {
   my $win=$grp->{focusedWindow};
   my $haveSearchFL = defined($grp->{searchFilelist});
   my $traverse = $haveSearchFL ? $grp->{searchFilelistTraverse} || 'all' : 'all';
+
+
   if ($traverse ne 'node') {
-    $node = (HNext($win,$node)
-      || ($traverse eq 'all' ? $win->{FSFile}->treeList->[(++$$tree)] : undef));
+    $node = HNext($win,$node);
+    unless ($node) {
+      $node = $traverse eq 'all' ? $win->{FSFile}->treeList->[(++$$tree)] : undef;
+    }
     return $node if $node || !$haveSearchFL;
   }
 
@@ -8262,6 +8270,7 @@ sub findFirstTemplated {
   my $tree=$win->{treeNo};
   my $a;
   $grp->{stopSearch}=0;
+
   $node=nextNodeInSearchFilelist($grp,$node,\$tree) if ($skipfirst);
   while ($node) {
     unless (first {
