@@ -7145,7 +7145,6 @@ sub editAttrsDialog_schema {
       } else {
 	@tree_types = $schema->find_role('#TREES');
       }
-      __debug("types: ".Dumper(\@tree_types));
       foreach my $tt (@tree_types) {
 	if (!UNIVERSAL::isa($tt,'HASH')) {
 	  warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
