@@ -142,6 +142,7 @@ sub RotateParenthesisRoot{
 #bind TectogrammaticalTree to Ctrl+R menu Display tectogrammatical tree
 #bind GotoTree to Alt+g menu Goto Tree
 
+#bind OpenValFrameList to Ctrl+Return menu Show valency lexicon entry for the current word
 
 1;
 
