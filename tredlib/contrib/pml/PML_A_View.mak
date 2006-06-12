@@ -56,6 +56,33 @@ sub pre_switch_context_hook {
 }
 
 
+#bind OpenValFrameList to Ctrl+Return menu Show valency lexicon entry for a given word
+
+sub OpenValFrameList {
+  shift unless @_ and ref($_[0]);
+  my $node = shift || $this;
+  my %opts = @_;
+
+  local $ValLex::GUI::frameid_attr=undef;
+  local $ValLex::GUI::lemma_attr=undef;
+  local $ValLex::GUI::framere_attr=undef;
+  local $ValLex::GUI::sempos_attr=undef;
+  my $pos = substr($node->attr('m/tag'),0,1);
+  return unless ($pos=~/[NVAD]/);
+
+  my $lemma = $node->attr('m/lemma');
+  $lemma =~ s/[_\`&].*$//;
+
+  ValLex::GUI::ChooseFrame(
+    -lemma => $lemma,
+    -pos => $pos,
+    -assignfunc => sub{},
+    %opts
+   );
+  ChangingFile(0);
+}
+
+
 1;
 
 =back
