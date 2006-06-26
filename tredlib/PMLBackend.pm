@@ -640,7 +640,7 @@ sub read_node {
 	       _element_address($node));
       }
     }
-    $hash->{'#content'} = read_node($node,$fsfile,$types,$container,$childnodes_taker,$attrs);
+    $hash->{'#content'} = read_node($node,$fsfile,$types,$container,$childnodes_taker,$attrs, $first_child);
     foreach my $atr_name (keys %$attrs) {
       unless ($atr_name =~ /^xml(?:ns)?(?:$|:)/) {
 	_warn("Undeclared attribute '$atr_name' of "._element_address($node));
@@ -814,7 +814,7 @@ sub read_data {
 
   # In PML 1.1, root can either be a sequence or a structure
 
-  if ($root_type->{structure} or $root_type->{sequence}) {
+  if ($root_type->{structure} or $root_type->{sequence} or $root_type->{container}) {
     $fsfile->changeMetaData(
       'pml_root' =>
       read_node($dom_root,$fsfile,$types,$root_type,undef,undef,
@@ -875,7 +875,35 @@ sub write {
   }
 
   $xml->xmlDecl("utf-8");
-  $xml->startTag($root_name,xmlns => PML_NS);
+
+  # we need to collect structure/container attributes first
+  my %attribs;
+  if (exists $root_type->{structure}) {
+    my $struct = $root_type->{structure};
+    my $members = $struct->{member};
+    my $object = $fsfile->metaData('pml_root');
+    if (ref($object)) {
+      foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
+	my $atr = $mdecl->{-name};
+	if ($mdecl->{required} or $object->{$atr} ne "") {
+	  $attribs{$atr} = $object->{$atr};
+	}
+      }
+    }
+  } elsif (exists $root_type->{container}) {
+    my $container = $root_type->{container};
+    my $object = $fsfile->metaData('pml_root');
+    if (ref($object)) {
+      foreach my $attrib (values(%{$container->{attribute}})) {
+	my $atr = $attrib->{-name};
+	if ($attrib->{required} or  $object->{$atr} ne "") {
+	  $attribs{$atr} = $object->{$atr}
+	}
+      }
+    }
+  }
+
+  $xml->startTag($root_name,xmlns => PML_NS, %attribs);
   $xml->startTag('head');
   $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
   $xml->startTag('references');
@@ -908,7 +936,7 @@ sub write {
   $xml->endTag('references');
   $xml->endTag('head');
 
-  write_object($xml, $fsfile, $types, $root_type, undef, $fsfile->metaData('pml_root'));
+  write_object($xml, $fsfile, $types, $root_type, [undef,{},1], $fsfile->metaData('pml_root'));
   $xml->endTag($root_name);
   $xml->end;
 
@@ -1025,10 +1053,9 @@ sub get_childnodes {
 }
 
 sub write_object {
-  my ($xml,$fsfile, $types,$type,$tag,$object,$no_resolve)=@_;
+  my ($xml,$fsfile, $types,$type,$tag_spec,$object,$no_resolve)=@_;
   my $pre=$type;
-  my $attribs;
-  ($tag,$attribs)=@$tag if ref($tag);
+  my ($tag,$attribs,$no_attribs) = ref($tag_spec) ? @$tag_spec : ($tag_spec,undef,undef);
   $attribs = {} unless $attribs;
   unless ($no_resolve) {
     $type = resolve_type($types,$type)
@@ -1061,16 +1088,20 @@ sub write_object {
       _warn("Unexpected content of structure '$what': $object\n");
     } elsif (keys(%$object)) {
       # ok, non-empty structure
-      foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
-	my $atr = $mdecl->{-name};
-	if ($mdecl->{required} or $object->{$atr} ne "") {
-	  $attribs->{$atr} = $object->{$atr};
+      if ($no_attribs) {
+	$xml->startTag($tag) if defined($tag);
+      } else {
+	foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
+	  my $atr = $mdecl->{-name};
+	  if ($mdecl->{required} or $object->{$atr} ne "") {
+	    $attribs->{$atr} = $object->{$atr};
+	  }
 	}
+	if (%$attribs and !defined($tag)) {
+	  _die("Can't write structure with attribute members without a tag");
+	}
+	$xml->startTag($tag,%$attribs) if defined($tag);
       }
-      if (%$attribs and !defined($tag)) {
-	_die("Can't write structure with attribute members without a tag");
-      }
-      $xml->startTag($tag,%$attribs) if defined($tag);
       foreach my $mdecl (
 	grep {!$_->{as_attribute}} 
 	  sort { $a->{'-#'} <=> $b->{'-#'} }
@@ -1249,11 +1280,16 @@ sub write_object {
     }
     my $container = $type->{container};
     my %attribs;
-    foreach my $atr (keys(%{$container->{attribute}})) {
-      $attribs{$atr} = $object->{$atr};
-    }
-    if (%attribs and !defined($tag)) {
-      _warn("Internal error: too late to serialize attributes of a container in '$what'");
+    unless ($no_attribs) {
+      foreach my $attrib (values(%{$container->{attribute}})) {
+	my $atr = $attrib->{-name};
+	if ($attrib->{required} or  $object->{$atr} ne "") {
+	  $attribs{$atr} = $object->{$atr}
+	}
+      }
+      if (%attribs and !defined($tag)) {
+	_warn("Internal error: too late to serialize attributes of a container in '$what'");
+      }
     }
     my $content = $object->{'#content'};
     if ($container->{role} eq '#NODE' and 
