@@ -2890,7 +2890,19 @@ sub read {
   my $emu_schema_type;
   if ($emulatePML) {
     # fake a PML Schema:
-    my $node_type;
+    my $members = _fs2members($fsfile->FS);
+    $members->{'#childnodes'}={
+      role => '#CHILDNODES',
+      list => {
+	ordered => 1,
+	type => 'fs-node.type',
+      },
+    };
+    my $node_type = {
+      name => 'fs-node',
+      role => '#NODE',
+      member => $members,
+    };
     my $schema= bless {
       description => 'PML schema generated from FS header',
       root => { name => 'fs-data',
@@ -2909,11 +2921,7 @@ sub read {
       type => {
 	'fs-node.type' => {
 	  -name => 'fs-node.type',
-	  structure => ($node_type = {
-	    name => 'fs-node',
-	    role => '#NODE',
-	    member => _fs2members($fsfile->FS)
-	  })
+	  structure => $node_type,
 	}
       }
     },'Fslib::Schema';
