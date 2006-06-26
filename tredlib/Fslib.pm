@@ -3942,6 +3942,17 @@ sub node_types {
 
 =item get_type_by_name(name)
 
+Returns a HASH structure representing the declaration of the root type.
+
+=cut
+
+sub get_root_type {
+  my ($self,$name) = @_;
+  return $self->resolve_type($self->{root});
+}
+
+=item get_type_by_name(name)
+
 Returns a HASH structure representing the declaration of the given
 named type.
 
