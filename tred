@@ -7063,7 +7063,7 @@ sub focusxFind {
 # }
 
 sub editAttrsDialog_schema {
-  my ($win,$node,$attr_path)=@_;
+  my ($win,$node,$attr_path,$as_type)=@_;
   my $grp = $win->{framegroup};
 #   if ($grp->{attrsDialog}) {
 #     my $d=$grp->{attrsDialog};
@@ -7087,7 +7087,7 @@ sub editAttrsDialog_schema {
   use Data::Dumper;
   # __debug("PATH: '$attr_path'\n");
 
-  my $base_type = $node->type;
+  my $base_type = ref($as_type) ? $as_type : $node->type;
   my $schema;
   my $enabled = 1;
   my $node_type;
@@ -7194,7 +7194,7 @@ sub editAttrsDialog_schema {
       return;
     }
   } else {
-    $schema = $node->type->schema;
+    $schema = $base_type->schema;
   }
 
   $win->toplevel->Busy(-recurse=>1);
@@ -7248,7 +7248,7 @@ sub editAttrsDialog_schema {
    ]);
   #__debug("ATTR-PATH:' $attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   if ($attr_path ne "") {
-    $edit->add_member('',$node_type,$node->attr($attr_path), $attr_name);
+    $edit->add_member('',$node_type,FSNode::attr($node,$attr_path), $attr_name);
 #  } elsif (ref($node_type) and $node_type->{member}) {
 #    # 1=allow empty (don't create empty structures)
 #    $edit->add_members('',$node_type,$node,1);
@@ -7387,7 +7387,7 @@ sub editAttrsDialog_schema {
 	  $val = {};
 	  $edit->dump_to_node($val);
 	}
-	$node->set_attr($attr_path,$val->{$attr_name});
+	FSNode::set_attr($node,$attr_path,$val->{$attr_name});
       }
       doEvalHook($win,"after_edit_node_hook",$node,1);
       get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
@@ -8481,12 +8481,12 @@ sub editAttr {
 
 
 sub doEditAttr {
-  my ($win,$node,$attr)=@_;
+  my ($win,$node,$attr,$as_type)=@_;
   my $grp=$win->{framegroup};
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
-  return editAttrsDialog_schema($win,$node,$attr) if (ref($node->type));
+  return editAttrsDialog_schema($win,$node,$attr,$as_type) if (ref($as_type) or ref($node->type));
 
   my ($Entry,@Eopts) = get_entry_type();
   my $newvalue;
