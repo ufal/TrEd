@@ -1,3 +1,399 @@
+18:47:26 2006-06-09  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred:
+	fix a stupid bug in isShown causing it to return 0 most of the time
+
+18:24:35 2006-06-09  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: *** empty log message ***
+
+17:16:26 2006-06-06  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: added validation support (required PMLBackend)
+
+16:36:51 2006-06-06  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/tred.mac: include contrib from local dir not from tredlib
+
+14:45:55 2006-06-06  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: *** empty log message ***
+
+13:52:48 2006-06-06  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: added set_type_by_name
+
+13:00:06 2006-06-06  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: removed a nasty debug print
+
+12:35:59 2006-05-31  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml/PML_A.mak, tredlib/contrib/pml/PML_T.mak:
+	support for PML_XY_[AT]-named stylesheets
+
+13:34:58 2006-05-29  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* btred, tred: added -Z option overriding ResourcePath from .tredrc
+
+17:45:02 2006-05-17  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: fixed writing of #CHILDNODES sequences
+
+15:33:21 2006-05-17  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: fix handling #CHILDNODES sequences
+
+16:05:23 2006-05-15  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: print: added support for one image file per tree
+
+15:06:04 2006-05-15  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/IOBackend.pm: *** empty log message ***
+
+15:05:44 2006-05-15  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: quote filenames passed to imagemagick
+
+09:38:09 2006-05-10  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: require 5.8.3 instead of 5.8.5
+
+09:37:33 2006-05-10  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/non_gui.mak: *** empty log message ***
+
+09:37:22 2006-05-10  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/manual_one_page.xsl: *** empty log message ***
+
+09:28:59 2006-05-10  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/non_gui.mak: default vallex loading
+
+09:28:49 2006-05-10  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/contrib.mac: load non_gui.mak
+
+09:28:40 2006-05-10  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/ValLex/Data.pm: default to DummyConv
+
+17:37:54 2006-05-09  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/ValLex/Editor.pm: - keyboard shortcuts
+
+17:37:21 2006-05-09  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/TreeView.pm: - common callback handling
+	- new on_get_nodes callback
+
+17:36:36 2006-05-09  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/Print.pm: make IO errors fatal
+
+17:36:16 2006-05-09  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/tred.def: - a docu typo
+
+17:35:23 2006-05-09  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: - pass onGetNodes to TreeView (used by Print)
+	- catch and show print errors
+
+17:12:08 2006-05-08  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/tred.mac: add L1 and L2 aliases to F11 and F12 bindings
+
+15:12:33 2006-05-08  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: - fix bug in Fslib::Type->members() method
+	- Fslib::Type->members() now returns members ordered as in the schema
+
+14:54:19 2006-05-08  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/ValLex/Widgets.pm:
+	make up/down select a frame if none is selected
+
+14:53:54 2006-05-08  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/ValLex/GUI.pm: removed debug output
+
+14:53:43 2006-05-08  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/ValLex/Chooser.pm:
+	added shortcut Alt+A to Assing
+
+14:52:58 2006-05-08  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: fixed 'underline' shortcuts in File menu
+
+10:17:12 2006-05-06  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm:
+	delete imports and derives from the schema affter applying
+
+10:12:28 2006-05-06  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: cleanup, slightly improved error reporting
+
+10:11:52 2006-05-06  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml/PML_A2T.mak: provide pml_root
+
+10:03:09 2006-05-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: once again
+
+10:00:05 2006-05-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: lame work around of a Tk SaveDialog bug on Win32
+
+18:52:32 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: *** empty log message ***
+
+18:52:22 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/manual_one_page.xsl: *** empty log message ***
+
+09:50:24 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/XML/IxSimple.pm: *** empty log message ***
+
+09:43:09 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/XML/IxSimple.pm: initial commit
+
+09:39:51 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Tk/TrEdNodeEdit.pm: ignore types with role #TREES
+
+09:39:25 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: allow #TREES anywhere in the data structure
+
+09:38:52 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: use IxSimple to parse PML schemas
+
+09:38:10 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/manual_one_page.xsl: revision history styling
+
+09:37:57 2006-05-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/blue.css: revision history styling
+
+14:11:20 2006-04-29  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: *** empty log message ***
+
+14:10:39 2006-04-29  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm:
+	- remove changeTreeList from the FSFile API (instead, reset list content)
+
+14:07:22 2006-04-29  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: - bug fixes
+
+14:05:57 2006-04-29  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/NTREDBackend.pm, tredlib/StorableBackend.pm:
+	- check Fslib internal API versioning for binary compatibility
+
+14:02:54 2006-04-29  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm:
+	- fix attributes and members methods of Fslib::Schema
+	- added internal API versioning for Storable backend compatibility
+
+10:59:04 2006-04-26  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* btred, documentation/manual/tred.xml, examples/create_fs_file.pl, tred, tredlib/Fslib.pm, tredlib/PMLBackend.pm, tredlib/Tk/TrEdNodeEdit.pm, tredlib/tred.def:
+	adaptations for PML 1.1 (partially backward incompatible)
+
+21:04:47 2006-04-22  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm:
+	workaround some problems with element content but more work is still needed or maybe PML specs need to be fixed
+
+10:46:54 2006-04-21  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: *** empty log message ***
+
+10:40:41 2006-04-21  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm:
+	- fix handling PML elements with attributes and AVS content
+	- slightly improved error reporting (check that #TREES list consists of #NODE's, etc.)
+
+14:37:54 2006-04-19  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* ntred: fix --knit option
+
+16:03:53 2006-04-05  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml/PML.mak, tredlib/contrib/pml/PML_A.mak, tredlib/contrib/pml/PML_T.mak:
+	*** empty log message ***
+
+16:03:02 2006-04-05  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/contrib.mac: *** empty log message ***
+
+09:21:05 2006-04-05  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm:
+	PML schemata: fixed obligatorness of derive attributes
+
+19:13:39 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm:
+	allow PML schema <root> element to bear type element instead of content
+
+18:45:03 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm:
+	changing <adapt name="newtype" source="oldtype"> to <derive name="newtype" type="oldtype">, hopefully for the last time
+
+16:56:47 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: *** empty log message ***
+
+16:20:40 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/padt/Analytic.mak, tredlib/contrib/padt/DeepLevels.mak, tredlib/contrib/padt/MorphoTrees.mak, tredlib/contrib/padt/PhraseTrees.mak, tredlib/contrib/padt/arabic.mak, tredlib/contrib/padt/arabic_Analytic.mak, tredlib/contrib/padt/arabic_DeepLevels.mak, tredlib/contrib/padt/arabic_MorphoTrees.mak, tredlib/contrib/padt/arabic_PhraseTrees.mak, tredlib/contrib/padt/arabic_common.mak:
+	padt codebase updates by Ota Smrz
+
+13:02:22 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: - rename PML overload instruction to adapt
+	- provide more context for Fslib::Schema parsing error messages
+
+12:59:43 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/tred.mac: improve layout of Perl code window (Alt-e)
+
+12:59:08 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: remove a debug print
+
+12:58:47 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: fix empty status-line on reload bug
+
+12:51:16 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/AG2FS.pm, tredlib/CSTS_SGML_SP_Backend.pm, tredlib/Fslib.pm, tredlib/PMLBackend.pm, tredlib/TEIXMLBackend.pm, tredlib/TrXMLBackend.pm, tredlib/XML2PMLBackend.pm:
+	fix improper calls to close instead of IOBackend::close_backend
+
+12:49:45 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: *** empty log message ***
+
+12:34:54 2006-04-04  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: - trying to avoid failing auto-save to remove referred files
+	- fix redraw after node_release_hook
+
+15:59:54 2006-04-03  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml/PML_M.mak: disable edit items from Node menu
+
+15:59:35 2006-04-03  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: implemented revision control for PML schemas
+
+15:59:19 2006-04-03  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/Fslib.pm: implemented <import> and <overload> in PML schemas
+
+15:58:47 2006-04-03  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: improve support for element-typed PML nodes
+
+16:26:21 2006-04-02  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm:
+	fixed CHILDNODES role processing for seq/element[role=#NODE]/structure/member[role=#CHILDNODES] constallation
+
+18:41:12 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: *** empty log message ***
+
+18:37:18 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: XEvent documentation
+
+18:31:19 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: typo fixed
+
+18:19:25 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml/PML_T.mak: fixed missing my for @tags
+
+16:35:25 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: XML well-formedness fix
+
+16:25:38 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/IOBackend.pm: *** empty log message ***
+
+16:24:40 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: improved Line- documentation
+
+16:18:34 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: Line-tag hint
+
+16:17:28 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml/PML_T.mak: added Line-tag for coref arrows
+
+16:17:13 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/TrEd/TreeView.pm:
+	added support for Line-tag passing to line_click_hook
+
+16:16:40 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/PMLBackend.pm: fix xmlns attrs
+
+16:16:21 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/manual/tred.xml: line_click_hook
+
+16:15:49 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* documentation/Hooks.txt: *** empty log message ***
+
+16:15:01 2006-04-01  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: - added support for line clicking (line_click_hook)
+
+09:00:11 2006-03-29  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/pml/PML_A2T.mak: *** empty log message ***
+
+09:41:43 2006-03-24  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tredlib/contrib/vallex/ValLex/Extended.pm: cleanup
+
+14:58:56 2006-03-20  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* tred: - fix wrong permissions in chmod call on the .lock file
+	- disable chmod on Win32 platform (causes problems with AP 5.8.8)
+
+11:27:52 2006-03-16  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
+
+	* ChangeLog:
+	Cleanup absolute paths, e.g. in SYSTEM DOCTYPEs (replacing with URL)
+
 09:56:19 2006-03-16  Petr Pajas  <pajas@sup.ms.mff.cuni.cz>
 
 	* documentation/any2any/any2any.xml, documentation/btred_tutorial.xml, documentation/manual/tred.xml, documentation/trprint/trprint.xml, tredlib/contrib/padt/MorphoTrees.mak, tredlib/contrib/padt/arabic_Analytic.mak:
