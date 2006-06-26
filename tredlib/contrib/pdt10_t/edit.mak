@@ -8,9 +8,14 @@ package TREdit;
 
 use base qw(Tectogrammatic);
 import Tectogrammatic;
-import Coref qw(switch_context_hook node_style_hook node_release_hook);
+import Coref qw(switch_context_hook node_style_hook);
 
 my %menu_prevstate;
+
+sub node_release_hook {
+  &Coref::node_release_hook;
+  1;
+}
 
 sub FuncAssign {
   $this->{'func'} = $sPar1;
