@@ -134,9 +134,9 @@ sub parse_config_line {
   my $key;
   unless (/^[;\#]/ or /^$/) {
     chomp;
-    if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
-      $key=lc($1);
-      $confs->{$key}=$2;
+    if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*(::[a-zA-Z_]+[a-zA-Z_0-9:]*)?)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
+      $key = $2 ? $1 : lc($1);
+      $confs->{$key}=$3;
       $confs->{$key}=~s/\\(.)/$1/g;
       $confs->{$key}=$1 if ($confs->{$key}=~/^'(.*)'$/ or $confs->{$key}=~/^"(.*)"$/);
     }
@@ -279,7 +279,7 @@ sub set_config {
       $userConf->{$1}=$confs->{$_};
     }
   }
-
+  
   $treeViewOpts->{boxColor}	       = val_or_def($confs,"boxcolor",'LightYellow');
   $treeViewOpts->{currentBoxColor}     = val_or_def($confs,"currentboxcolor",'yellow');
   $treeViewOpts->{hiddenBoxColor}      = val_or_def($confs,"hiddenboxcolor",'gray');
@@ -511,6 +511,16 @@ sub set_config {
   $lockFiles                  =	val_or_def($confs,"lockfiles",1);
   $noLockProto                =	val_or_def($confs,"nolockprotocols",'^(https?|zip|tar)\$');
   $ioBackends                 =	val_or_def($confs,"iobackends",undef);
+
+  {
+    no strict qw(vars);
+    foreach (keys %$confs) {
+      if (/::/) {
+	${"$_"}=$confs->{$_};
+      }
+    }
+  }
+
 }
 
 1;
