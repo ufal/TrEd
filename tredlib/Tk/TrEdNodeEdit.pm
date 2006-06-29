@@ -457,6 +457,8 @@ sub add_buttons {
 		 ref($ptype) and ($ptype->{list} or $ptype->{alt}));
   return if ref($mtype) and (($mtype->{list} and 
 			      $mtype->{list}{role} =~ m/^\#(?:CHILDNODES|TREES)$/) or 
+			     ($mtype->{sequence} and 
+			      $mtype->{sequence}{role} =~ m/^\#(?:CHILDNODES|TREES)$/) or 
 			      $mtype->{role} =~ m/^\#(?:CHILDNODES|TREES)$/);
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
@@ -757,6 +759,11 @@ sub add_member {
     my $list_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
     if ($mtype->{sequence}{role} =~ m/^\#(?:CHILDNODES|TREES)$/) {
+      $data->{dump} = 'none';
+      $hlist->itemCreate($path,1,-itemtype => 'text',
+			 -text => 'Sequence of child nodes',
+			 -style => $hlist->{my_itemstyles}{sequence});
+    } else {
       $data->{dump} = 'sequence';
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 'Sequence',
@@ -767,11 +774,6 @@ sub add_member {
 	  $hlist->add_sequence_member($path,$mtype->{sequence},$element,$list_no);
 	}
       }
-    } else {
-      $data->{dump} = 'none';
-      $hlist->itemCreate($path,1,-itemtype => 'text',
-			 -text => 'Sequence of child nodes',
-			 -style => $hlist->{my_itemstyles}{sequence});
     }
     $data->{list_no}=$list_no;
   } elsif (exists $mtype->{alt}) {
