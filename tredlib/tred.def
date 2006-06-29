@@ -535,9 +535,10 @@ sub NPosition { print ThisAddressNTRED(@_),"\n"; }
 
 =item C<CutPaste(node,new-parent)>
 
-Cut given node and paste it to a new parent. This macro is safer than
-PasteNode since it checks that new-parent isn't a descendant of node
-or node itself. This macro dies on error before any change is made.
+Cut given node (including its subtree) and paste it to a new
+parent. This macro is safer than PasteNode since it checks that
+new-parent isn't a descendant of node or node itself. This macro dies
+on error before any change is made.
 
 =cut
 
@@ -550,7 +551,51 @@ sub CutPaste {
     }
     $p=$p->parent;
   }
-  PasteNode(Cut($cutted),$target);
+  PasteNode($cutted,$target);
+}
+
+=item C<CutPasteBefore(node,ref_node)>
+
+Cut given node (including its subtree) nd paste it on ref_node's
+parent node just before ref_node. This macro is safer than
+PasteNodeBefore since it checks that new-parent isn't a descendant of
+node or node itself. This macro dies on error before any change is
+made.
+
+=cut
+
+sub CutPasteBefore {
+  my($cutted,$ref_node)=@_;
+  my $p = $ref_node->parent;
+  while ($p) {
+    if( $p == $cutted ) {
+      die("Can't paste node to its descendant or self at ".ThisAddress($cutted));
+    }
+    $p=$p->parent;
+  }
+  PasteNodeBefore($cutted,$ref_node);
+}
+
+
+=item C<CutPasteAfter(node,ref_node)>
+
+Cut given node (including its subtree) and paste it on ref_node's parent node just after
+ref_node. This macro is safer than PasteNodeBefore since it checks
+that new-parent isn't a descendant of node or node itself. This macro
+dies on error before any change is made.
+
+=cut
+
+sub CutPasteAfter {
+  my($cutted,$ref_node)=@_;
+  my $p = $ref_node->parent;
+  while ($p) {
+    if( $p == $cutted ) {
+      die("Can't paste node to its descendant or self at ".ThisAddress($cutted));
+    }
+    $p=$p->parent;
+  }
+  PasteNodeAfter($cutted,$ref_node);
 }
 
 =item C<PasteNode(node,new-parent)>
@@ -563,10 +608,33 @@ the numbering attribute.
 
 sub PasteNode {
   my ($node,$p)=@_; 
-  Fslib::Paste($node,$p,$grp->{FSFile}->FS);
+  Fslib::Paste(Cut($node),$p,$grp->{FSFile}->FS);
   return $node;
 }
 
+=item C<PasteNodeBefore(node,ref_node)>
+
+Cut given node (including its subtree) and paste it on ref_node's
+parent node just before ref_node.
+
+=cut
+
+sub PasteNodeBefore {
+  my($node,$ref_node)=@_;
+  Fslib::PasteBefore(Cut($node),$ref_node);
+}
+
+=item C<PasteNodeAfter(node,ref_node)>
+
+Cut given node (including its subtree) and paste it on ref_node's
+parent node just after ref_node.
+
+=cut
+
+sub PasteNodeAfter {
+  my($node,$ref_node)=@_;
+  Fslib::PasteAfter(Cut($node),$ref_node);
+}
 
 =item C<CloneSubtree(node)>
 
