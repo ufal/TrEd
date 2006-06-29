@@ -127,7 +127,7 @@ sub Prev {
 
 sub Cut ($) {
   my ($node)=@_;
-  return $node if (! $node);
+  return $node unless $node;
 
   if ($node->{$parent} and $node==$node->{$parent}->{$firstson}) {
     $node->{$parent}->{$firstson}=$node->{$rbrother};
@@ -143,12 +143,12 @@ sub Paste ($$$) {
   my ($node,$p,$fsformat)=@_;
   my $aord=$fsformat->order;
   my $ordnum = $node->getAttribute($aord);
-
   my $b=$p->{$firstson};
   if ($b and $ordnum>$b->getAttribute($aord)) {
     $b=$b->{$rbrother} while ($b->{$rbrother} and $ordnum>$b->{$rbrother}->getAttribute($aord));
-    $node->{$rbrother}=$b->{$rbrother};
-    $b->{$rbrother}->{$lbrother}=$node if ($b->{$rbrother});
+    my $rb = $b->{$rbrother};
+    $node->{$rbrother}=$rb;
+    $rb->{$lbrother}=$node if $rb;
     $b->{$rbrother}=$node;
     $node->{$lbrother}=$b;
   } else {
@@ -157,6 +157,40 @@ sub Paste ($$$) {
     $node->{$lbrother}=0;
     $b->{$lbrother}=$node if ($b);
   }
+  $node->{$parent}=$p;
+}
+
+sub PasteAfter ($$) {
+  my ($node,$ref_node)=@_;
+
+  croak("Fslib::PasteAfter: ref_node undefined") unless $ref_node;
+  my $p = $ref_node->parent;
+  croak("Fslib::PasteAfter: ref_node has no parent") unless $p;
+
+  my $rb = $ref_node->{$rbrother};
+  $node->{$rbrother}=$rb;
+  $rb->{$lbrother}=$node if $rb;
+  $ref_node->{$rbrother}=$node;
+  $node->{$lbrother}=$ref_node;
+  $node->{$parent}=$p;
+}
+
+sub PasteBefore ($$) {
+  my ($node,$ref_node)=@_;
+
+  croak("Fslib::PasteBefore: ref_node undefined") unless $ref_node;
+  my $p = $ref_node->parent;
+  croak("Fslib::PasteBefore: ref_node has no parent") unless $p;
+
+  my $lb = $ref_node->{$lbrother};
+  $node->{$lbrother}=$lb;
+  if ($lb) {
+    $lb->{$rbrother}=$node;
+  } else {
+    $p->{$firstson}=$node;
+  }
+  $ref_node->{$lbrother}=$node;
+  $node->{$rbrother}=$ref_node;
   $node->{$parent}=$p;
 }
 
