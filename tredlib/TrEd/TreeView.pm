@@ -347,7 +347,8 @@ sub balance_xfix_node {
 sub balance_node {
   my ($self, $baseX, $node, $balanceOpts) = @_;
   my $last_baseX = $baseX;
-  my $xskip = $self->get_nodeXSkip;
+  my $xskip = $balanceOpts->[2];
+
   my $i=0;
   my $before = $self->get_node_pinfo($node,"Before");
 #  $last_baseX+=$self->get_node_pinfo($node,"Before");
@@ -487,7 +488,9 @@ sub recalculate_positions {
   my $skipHiddenLevels= exists($Opts->{skipHiddenLevels}) ? $Opts->{skipHiddenLevels} : $self->get_skipHiddenLevels;
 
   my $balanceOpts = [$balance =~ /^aboveMiddleChild(Odd$|$)/ ? 1 : 0,
-		      $balance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0];
+		     $balance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0,
+		     $nodeXSkip
+		    ];
 
   foreach $node (@{$nodes}) {
     $self->store_node_pinfo($node,"E",1);
