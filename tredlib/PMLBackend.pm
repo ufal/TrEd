@@ -27,7 +27,7 @@ use constant {
 
 
 
-$encoding='utf8';
+$encoding='utf-8';
 @pmlformat = ();
 @pmlpatterns = ();
 $pmlhint="";
@@ -906,11 +906,11 @@ sub write {
   $xml->startTag($root_name,xmlns => PML_NS, %attribs);
   $xml->startTag('head');
   $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
-  $xml->startTag('references');
   {
-    my $named = $fsfile->metaData('refnames');
-    my %names = $named ? (map { $named->{$_} => $_ } keys %$named) : ();
-    if ($references) {
+    if (ref($references) and keys(%$references)) {
+      my $named = $fsfile->metaData('refnames');
+      my %names = $named ? (map { $named->{$_} => $_ } keys %$named) : ();
+      $xml->startTag('references');
       foreach my $id (sort keys %$references) {
 	my $href;
 	if (exists($refs_to_save->{$id})) {
@@ -931,9 +931,9 @@ sub write {
 		       href => $href,
 		       (exists($names{$id}) ? (name => $names{$id}) : ()));
       }
+      $xml->endTag('references');
     }
   }
-  $xml->endTag('references');
   $xml->endTag('head');
 
   write_object($xml, $fsfile, $types, $root_type, [undef,{},1], $fsfile->metaData('pml_root'));
