@@ -29,7 +29,7 @@ sub xslt_commandline {
   my ($cmd, $stylesheet) = @_;
 
   print STDERR "$cmd\n" if $Fslib::Debug;
-  $cmd=~s/\%s/$in_stylesheet_path/g;
+  $cmd=~s/\%s/$stylesheet/g;
   $cmd=~s/\%f/-/g;
   return $cmd;
 }
@@ -40,11 +40,11 @@ sub xslt_commandline {
 sub open_backend {
   my ($filename, $mode, $encoding)=@_;
   if ($mode eq 'w') {
-    my $cmd = xslt_commandline_in($xslt_processor." ".$xslt_processor_opts,$in_stylesheet_path);
-    print STDERR "[r $cmd]\n" if $Fslib::Debug;
+    my $cmd = xslt_commandline_in($xslt_processor." ".$xslt_processor_opts,$out_stylesheet_path);
+    print STDERR "[w $cmd]\n" if $Fslib::Debug;
     my $fh = IOBackend::open_pipe($filename,'w',$cmd);
   } elsif ($mode eq 'r') {
-    my $cmd = xslt_commandline_out($xslt_processor." ".$xslt_processor_opts,$out_stylesheet_path);
+    my $cmd = xslt_commandline_out($xslt_processor." ".$xslt_processor_opts,$in_stylesheet_path);
     print STDERR "[r $cmd]\n" if $Fslib::Debug;
     my $fh = IOBackend::open_pipe($filename,'r',$cmd);
   } else {
