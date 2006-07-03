@@ -380,7 +380,7 @@ use Exporter;
 	 );
 
 @open_types=
-  (["Supported",  [qw/.fs .csts .pls .t .a .pls.gz .fs.gz .t.gz .a.gz .csts.gz/]],
+  (["Supported",  [qw/.fs .pls .t .a .xml .fs.gz .pls.gz .t.gz .a.gz .xml.gz/]],
    ["FS files",           [qw/.fs .FS .Fs .fs.gz .FS.gz/]],
    ["CSTS files",           [qw/.cst .csts .cst.gz .csts.gz/]],
    ["Perl Storable files",  [qw/.pls .pls.gz/]],
