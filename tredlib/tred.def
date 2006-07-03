@@ -742,13 +742,17 @@ sub NewRBrother {
   my $nd=FSNode->new();
   my $ord = _node_ord($ref);
 
-  $nd->{$ord}=$ref->{$ord}+1;
-  my $node=$ref->root;
-  while ($node) {
-    $node->{$ord}++ if ($node ne $nd and $node->{$ord}>$ref->{$ord});
-    $node=$node->following;
+  if (defined $ord) {
+    $nd->{$ord}=$ref->{$ord}+1;
+    my $node=$ref->root;
+    while ($node) {
+      $node->{$ord}++ if ($node ne $nd and $node->{$ord}>$ref->{$ord});
+      $node=$node->following;
+    }
+    PasteNode($nd,$ref->parent);
+  } else {
+    PasteNodeAfter($nd,$ref);
   }
-  PasteNode($nd,$ref->parent);
   $this=$nd unless ref($_[0]);
   return $nd;
 }
@@ -772,13 +776,17 @@ sub NewLBrother {
   return unless ($ref and $ref->parent);
   my $nd=FSNode->new();
   my $ord=_node_ord($ref);
-  $nd->{$ord}=$ref->{$ord};
-  my $node=$ref->root;
-  while ($node) {
-    $node->{$ord}++ if ($node ne $nd and $node->{$ord}>=$ref->{$ord});
-    $node=$node->following;
+  if (defined $ord) {
+    $nd->{$ord}=$ref->{$ord};
+    my $node=$ref->root;
+    while ($node) {
+      $node->{$ord}++ if ($node ne $nd and $node->{$ord}>=$ref->{$ord});
+      $node=$node->following;
+    }
+    PasteNode($nd,$ref->parent);
+  } else {
+    PasteNodeBefore($nd,$ref);
   }
-  PasteNode($nd,$ref->parent);
   $this=$nd unless ref($_[0]);
   return $nd;
 }
@@ -802,12 +810,14 @@ sub NewSon {
   return unless ($ref);
   my $nd=FSNode->new();
   my $ord=_node_ord($ref);
-  $nd->{$ord}=$ref->{$ord}+1;
-
-  my $node=$ref->root;
-  while ($node) {
-    $node->{$ord}++ if ($node->{$ord}>$ref->{$ord});
-    $node=$node->following;
+  if (defined $ord) {
+    $nd->{$ord}=$ref->{$ord}+1;
+      
+    my $node=$ref->root;
+    while ($node) {
+      $node->{$ord}++ if ($node->{$ord}>$ref->{$ord});
+      $node=$node->following;
+    }
   }
   PasteNode($nd,$ref);
   $this=$nd unless ref($_[0]);
@@ -831,11 +841,13 @@ sub NewParent {
   return unless ($ref);
   my $nd=FSNode->new();
   my $ord=_node_ord($ref);
-  $nd->{$ord}=$ref->{$ord};
-  my $node=$ref->root;
-  while ($node) {
-    $node->{$ord}++ if ($node->{$ord}>=$ref->{$ord});
-    $node=$node->following;
+  if (defined $ord) {
+    $nd->{$ord}=$ref->{$ord};
+    my $node=$ref->root;
+    while ($node) {
+      $node->{$ord}++ if ($node->{$ord}>=$ref->{$ord});
+      $node=$node->following;
+    }
   }
   if ($ref->parent) {
     PasteNode($nd,$ref->parent);
