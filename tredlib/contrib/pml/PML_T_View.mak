@@ -69,9 +69,9 @@ sub ShowValFrames {
 #bind NoShow to Ctrl+N menu No Show
 #bind ShowAssignedValFrames to Ctrl+v menu Show assigned valency frame(s)
 #bind JumpToAntecedentAll to j menu Jump to coreference antecedent
-#bind JumpToAntecedentCompl to Alt+j menu Jump to coreference antecedent
-#bind JumpToAntecedentText to Ctrl+j menu Jump to coreference antecedent
-#bind JumpToAntecedentGram to J menu Jump to coreference antecedent
+#bind JumpToAntecedentCompl to Alt+j menu Jump to complement coreference antecedent
+#bind JumpToAntecedentText to Ctrl+j menu Jump to textual coreference antecedent
+#bind JumpToAntecedentGram to J menu Jump to grammatical coreference antecedent
 
 1;
 
