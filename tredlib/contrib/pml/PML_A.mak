@@ -432,7 +432,13 @@ sub OpenValFrameList {
   return unless ($pos=~/[NVAD]/);
 
   my $lemma = $node->attr('m/lemma');
+
+  # this is specific for czech
   $lemma =~ s/[_\`&].*$//;
+  my $se = first { $_->{afun} eq 'AuxT' } GetEChildren($node,\&DiveAuxCP);
+  if ($se) {
+    $lemma .= $se->attr('m/tag')=~/^P7-X3/ ? '_si' : '_se';
+  }
 
   ValLex::GUI::ChooseFrame(
     -lemma => $lemma,
