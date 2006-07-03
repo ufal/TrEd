@@ -31,7 +31,129 @@ tectogrammatic layer in the way of Prague Dependency Treebank (PDT)
 
 #remove-menu Show valency frames and highlight assigned
 
+sub CreateStylesheets{
+  unless(StylesheetExists('PML_T_Anot')){
+    SetStylesheetPatterns(<<'EOF','PML_T_Anot',1);
+node:<? '#{customparenthesis}' if $${is_parenthesis}
+  ?><? $${nodetype}eq'root' ? '${id}' : '${t_lemma}' ?><? '#{customerror}'.('!'x scalar(ListV($this->{annot_comment}))) if $${annot_comment} ?><? '#{customdetail}"' if $${is_dsp_root}
+  ?><? '#{customdetail}.${sentmod}'if$${sentmod}
+  ?><? '#{customcoref}'.$PML_T::coreflemmas{$${id}}
+    if $PML_T::coreflemmas{$${id}}ne'' ?>
+
+node:<?
+  ($${nodetype} eq 'root' ? '#{customnodetype}${nodetype}' :
+  '#{customfunc}${functor}').
+  "#{customsubfunc}".($${subfunctor}?".\${subfunctor}":'').($${is_state}?".\${is_state=state}":'') ?>
+
+node:<? $${nodetype} ne 'complex' and $${nodetype} ne 'root'
+        ? '#{customnodetype}${nodetype}'
+        : ''
+     ?>#{customcomplex}<?
+        local $_=$${gram/sempos};
+        s/^sem([^.]+)(\..)?[^.]*(.*)$/$1$2$3/;
+        '${gram/sempos='.$_.'}'
+?>
+
+style:#{Node-width:7}#{Node-height:7}#{Node-currentwidth:9}#{Node-currentheight:9}
+
+style:<? '#{Node-shape:'.($this->{is_generated}?'rectangle':'oval').'}'?>
+
+style:<? exists $PML_T::show{$${id}} ?'#{Node-addwidth:10}#{Node-addheight:10}':''?>
+
+style:<?
+  if(($this->{functor}=~/^(?:PAR|PARTL|VOCAT|RHEM|CM|FPHR|PREC)$/) or
+     ($this->parent and $this->parent->{nodetype}eq'root')) {
+     '#{Line-width:1}#{Line-dash:2,4}#{Line-fill:'.CustomColor('line_normal').'}'
+  } elsif ($${is_member}) {
+    if (PML_T::IsCoord($this)and PML_T::IsCoord($this->parent)) {
+      '#{Line-width:1}#{Line-fill:'.CustomColor('line_member').'}'
+    } elsif ($this->parent and PML_T::IsCoord($this->parent)) {
+      '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:3&1}#{Line-fill:'.
+       CustomColor('line_normal').'&'.CustomColor('line_member').'}'
+    } else {
+      '#{Line-fill:'.CustomColor('error').'}'
+    }
+  } elsif ($this->parent and PML_T::IsCoord($this->parent)) {
+    '#{Line-width:1}#{Line-fill:'.CustomColor('line_comm').'}'
+  } elsif (PML_T::IsCoord($this)) {
+    '#{Line-coords:n,n,(n+p)/2,(n+p)/2&(n+p)/2,(n+p)/2,p,p}#{Line-width:1&3}#{Line-fill:'.
+    CustomColor('line_member').'&'.CustomColor('line_normal').'}'
+  } else {
+    '#{Line-width:2}#{Line-fill:'.CustomColor('line_normal').'}'
+  }
+?>
+
+style:<?
+  if ($${tfa}=~/^[tfc]$/) {
+    '#{Oval-fill:'.CustomColor('tfa_'.$${tfa}).'}${tfa}.'
+  } else {
+    '#{Oval-fill:'.CustomColor('tfa_no').'}'
+  }
+?>#{CurrentOval-width:3}#{CurrentOval-outline:<? CustomColor('current') ?>}
+
+hint:<?
+   my @hintlines;
+   if (ref($this->{gram})) {
+     foreach my $gram (sort keys %{$this->{gram}}) {
+       push @hintlines, "gram/".$gram." : ".$this->{gram}->{$gram} if $this->{gram}->{$gram}
+     }
+   }
+   push@hintlines, "is_dsp_root : 1" if $${is_dsp_root};
+   push@hintlines, "is_name_of_person : 1" if $${is_name_of_person};
+   push@hintlines, "quot : ". join(",",map{$_->{type}}ListV($this->{quot})) if $${quot};
+   push @hintlines,map{'! '.$_->{type}.':'.$_->{text}}ListV($this->{annot_comment});
+   join"\n", @hintlines
+?>
+EOF
+  }
+}#CreateStylesheets
+
+sub get_value_line_hook {
+  my ($fsfile,$treeNo)=@_;
+  return unless $fsfile;
+  my $tree = $fsfile->tree($treeNo);
+  return unless $tree;
+  my ($a_tree) = GetANodes($tree);
+  return unless ($a_tree);
+  my $node = $tree->following;
+  my %refers_to;
+  while ($node) {
+    foreach (GetANodeIDs($node)) {
+      push @{$refers_to{$_}}, $node;
+    }
+    $node = $node->following;
+  }
+  $node = $a_tree->following;
+  my @sent=();
+  while ($node) {
+    push @sent,$node;
+    $node=$node->following();
+  }
+  my@out;
+  my$first=1;
+  foreach $node (sort { $a->{ord} <=> $b->{ord} } @sent){
+    unless($first){
+      push@out,([" ","space"])
+    }
+    $first=0;
+    my $token = join(" ",map { $_->{token} } ListV($node->attr('m/w')));
+    if ($node->{'m'}{form} ne $token){
+      push@out,(['['.$token.']',@{$refers_to{$node->{id}}},'-over=>1','-foreground=>'.CustomColor('spell')]);
+    }
+    push@out,([$node->{'m'}{form},@{$refers_to{$node->{id}}}]);
+  }
+  push@out,(["\n".$tree->{eng_sentence},'-foreground=>lightblue']);
+  return \@out;
+}
+
 sub switch_context_hook {
+  CreateStylesheets();
+  my $cur_stylesheet = GetCurrentStylesheet();
+  SetCurrentStylesheet('PML_T_Anot'),Redraw();
+  undef$PML::arf;
+}
+
+sub old_switch_context_hook {
   PML_T::switch_context_hook();
   my$pattern=GetStylesheetPatterns('PML_T_Compact');
   if($pattern=~
@@ -131,6 +253,101 @@ sub status_line_doubleclick_hook {
   }
 }#status_line_doubleclick_hook
 
+#bind Reflexive to 3 menu Reflexive se/si
+sub Reflexive {
+  ChangingFile(0);
+  if($this->{t_lemma}=~/_s[ei](?:\b|_)/){
+    $this->{t_lemma}=~s/_s[ei](\b|_)/$1/;
+    ChangingFile(1);
+  }else{
+    my@anodes=grep{$_->attr('m/form')=~/^s[ei]$/i}GetANodes($this);
+    if(@anodes==0){
+      my$q=questionQuery
+        ('se/si',
+         'No "se" nor "si" found among analytical nodes.',
+         'Add se','Add si','Cancel');
+      if($q=~/Add (s[ei])/){
+        $this->{t_lemma}.='_'.$1;
+        ChangingFile(1);
+      }
+    }elsif(@anodes==1){
+      $this->{t_lemma}.='_'.lc($anodes[0]->attr('m/form'));
+      ChangingFile(1);
+    }else{ # more than 1 anodes
+      if(grep{$_->attr('m/form')=~/se/i}@anodes
+         and grep{$_->attr('m/form')=~/si/i}@anodes){
+        my$q=questionQuery
+          ('se/si',
+           'Both "se" and "si" found among analytical nodes.',
+           'Add se','Add si','Cancel');
+        if($q=~/Add (s[ei])/){
+          $this->{t_lemma}.='_'.$1;
+          ChangingFile(1);
+        }
+      }else{
+        $this->{t_lemma}.='_'.lc($anodes[0]->attr('m/form'));
+        ChangingFile(1);
+      }
+    }
+  }
+}#Reflexive
+
+sub _Perm{
+  my$pos=shift;
+  my$perm=shift;
+  if($pos<@_){
+    for(my$i=$pos;$i<@_;$i++){
+      if($i!=$pos){
+        my$j=$_[$i];
+        $_[$i]=$_[$pos];
+        $_[$pos]=$j;
+      }
+      _Perm($pos+1,$perm,@_);
+      if($i!=$pos){
+        my$j=$_[$i];
+        $_[$i]=$_[$pos];
+        $_[$pos]=$j;
+      }
+    }
+  }else{
+    push @{$perm},join"_",@_;
+  };
+}#_Perm
+
+sub _GenerateLemmaList{
+  my$perm=[];
+  _Perm(0,$perm,@_);
+  return$perm;
+}#_GenerateLemmaList
+
+#bind RegenerateTLemma to L menu Regenerate T-lemma
+sub RegenerateTLemma{
+  ChangingFile(0);
+  @anodes=GetANodes($this);
+  if(@anodes>1){
+    my@words=map{
+      my$l=$_->attr('m/lemma');$l=~s/(.+?)[-_`].*$/$1/;$l;
+    }@anodes;
+    my$d=[$words[0]];
+    ListQuery('Participating lemmas',
+              'multiple',
+              \@words,
+              $d);
+    my$possible=_GenerateLemmaList(@{$d});
+    my$d=[$possible->[0]];
+    ListQuery('New t-lemma','browse',
+              $possible,
+              $d) or return;
+    $this->{t_lemma}=$d->[0];
+    ChangingFile(1);
+  }elsif(@anodes==1){
+    my$l=$anodes[0]->attr('m/lemma');
+    $l=~s/(.+?)[-_`].*$/$1/;
+    $this->{t_lemma}=$l;
+    ChangingFile(1);
+  }
+}#RegenerateTLemma
+
 #bind AddComment to ! menu Add Annotator's comment
 sub AddComment {
   my $list=$this->type->schema->resolve_type($this->type->find('annot_comment/type'))->{choice};
@@ -139,7 +356,7 @@ sub AddComment {
             'browse',
             $list,
             $dialog) or return;
-  (my$text=QueryString('Comment text','Text:'));
+  my$text=QueryString('Comment text','Text:');
   return unless defined $text;
   my%comment=(type=>$dialog->[0],
               text=>$text);
@@ -159,6 +376,17 @@ sub AddNeg {
   $this->{nodetype}='atom';
   $this->{is_generated}=1;
 }#AddNeg
+
+#bind EditSubfunctor to F menu Edit Subfunctor
+sub EditSubfunctor{
+  ChangingFile(EditAttribute($this,'subfunctor'));
+}#EditSubfunctor
+
+#bind EditFunctor to f menu Edit Functor
+sub EditFunctor{
+  ChangingFile(EditAttribute($this,'functor'));
+  if(IsCoord($this)){$this->{nodetype}='coap'}
+}#EditFunctor
 
 #bind EditSemPOS to P menu Edit Semantical POS
 sub EditSemPOS{
