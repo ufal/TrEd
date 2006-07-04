@@ -4327,7 +4327,7 @@ sub find {
 	    redo;
 	  }
 	} elsif ($type->{member}) {
-	  unless (exists $type->{member}{$step}) {
+	  if (!exists $type->{member}{$step}) {
 	    my $rf_type = $type->{member}{$step.'.rf'};
 	    my $is_knit =  (ref($rf_type) and $rf_type->{role} eq '#KNIT');
 	    unless ($is_knit) {
@@ -4345,6 +4345,21 @@ sub find {
 	    }
 	  } else {
 	    $type = $type->{member}{$step};
+	  }
+	} elsif ($type->{attribute}) {
+	  if (!exists $type->{attribute}{$step}) {
+	    my $rf_type = $type->{attribute}{$step.'.rf'};
+	    my $is_knit =  (ref($rf_type) and $rf_type->{role} eq '#KNIT');
+	    unless ($is_knit) {
+	      my $rf_type_resolved = $schema->resolve_type($rf_type);
+	      $is_knit = (ref($rf_type_resolved) and
+		$rf_type_resolved->{role} eq '#KNIT');
+	    }
+	    if ($is_knit) {
+	      $type = $rf_type;
+	    }
+	  } else {
+	    $type = $type->{attribute}{$step};
 	  }
 	} elsif ($type->{structure}) {
 	  $type = $type->{structure}{member}{$step};
