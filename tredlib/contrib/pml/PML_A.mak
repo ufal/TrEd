@@ -440,12 +440,12 @@ sub OpenValFrameList {
     $lemma .= $se->attr('m/tag')=~/^P7-X3/ ? '_si' : '_se';
   }
 
-  ValLex::GUI::ChooseFrame(
+  ValLex::GUI::ChooseFrame({
     -lemma => $lemma,
     -pos => $pos,
     -assignfunc => sub{},
     %opts
-   );
+   });
   ChangingFile(0);
 }
 
