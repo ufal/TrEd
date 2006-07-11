@@ -7382,18 +7382,24 @@ sub editAttrsDialog_schema {
       }
       if ($attr_path eq "") {
 	$edit->dump_to_node($node);
+	doEvalHook($win,"after_edit_node_hook",$node,1);
       } else {
 	unless (defined($val)) { # otherwise we use val from validation above
 	  $val = {};
 	  $edit->dump_to_node($val);
 	}
 	FSNode::set_attr($node,$attr_path,$val->{$attr_name});
+	doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,1);
       }
-      doEvalHook($win,"after_edit_node_hook",$node,1);
+
       get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
       redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     } else {
-      doEvalHook($win,"after_edit_node_hook",$node,0);
+      if ($attr_path eq "") {
+	doEvalHook($win,"after_edit_node_hook",$node,0);
+      } else {
+	doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,0);
+      }
     }
     $redo = 0;
   }
