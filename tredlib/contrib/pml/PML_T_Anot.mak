@@ -151,28 +151,13 @@ sub switch_context_hook {
   my $cur_stylesheet = GetCurrentStylesheet();
   SetCurrentStylesheet('PML_T_Anot'),Redraw();
   undef$PML::arf;
+  my ($prefix,$file)=FindVallex();
+  ValLex::GUI::Init({-vallex_file => $file});
 }
-
-sub old_switch_context_hook {
-  PML_T::switch_context_hook();
-  my$pattern=GetStylesheetPatterns('PML_T_Compact');
-  if($pattern=~
-     s/(t_lemma}')\s*\n/$1?><?'#{customerror}'.('!'x scalar(ListV(\$this->{annot_comment}))) if \$\${annot_comment} ?><? '#{customdetail}"' if \$\${is_dsp_root}/){
-    $pattern=~s/(hint:\s*my\s*\Q@\Ehintlines;)\s*\n/$1push \@hintlines,map{'! '.\$_->{type}.':'.\$_->{text}}ListV(\$this->{annot_comment});\n/;
-    SetStylesheetPatterns($pattern,'PML_T_Compact');
-  }
-  $pattern=GetStylesheetPatterns('PML_T_Full');
-  if($pattern=~
-     s/(t_lemma}')\s*\n/$1?><?'#{customerror}'.('!'x scalar(ListV(\$this->{annot_comment}))).'#{default}' if \$\${annot_comment}/
-    ){
-    $pattern=~s/(hint:\s*my\s*\Q@\Ehintlines;)\s*\n/$1push \@hintlines,map{'! '.\$_->{type}.':'.\$_->{text}}ListV(\$this->{annot_comment});\n/;
-    SetStylesheetPatterns($pattern,'PML_T_Full');
-  }
-} #switch_context_hook
 
 sub enable_edit_node_hook { 'stop' }
 
-sub enable_attr_hook { 
+sub enable_attr_hook {
   if ($_[0]=~m!^(?:id|a|a/.*|compl\.rf.*|coref_gram\.rf.*|coref_text\.rf.*|deepord|quot|val_frame\.rf)$!)
     {'stop'} else {1}
 }#enable_attr_hook
@@ -213,7 +198,7 @@ sub get_status_line_hook {
   push @{$statusline->[0]},
     ($this->{'val_frame.rf'} ?
      ("     frame: " => [qw(label)],
-      join(",",AltV($this->{'val_frame.rf'})) => [qw({FRAME} value)]
+      join(",",map{_get_frame($_)}AltV($this->{'val_frame.rf'})) => [qw({FRAME} value)]
      ) : ());
   push @{$statusline->[0]},
     ($PML_T_Edit::remember ?
@@ -222,6 +207,15 @@ sub get_status_line_hook {
      ):'');
   return $statusline;
 }#get_status_line_hook
+
+sub _get_frame {
+  my$rf=shift;
+  my ($prefix,$file)=FindVallex();
+  $rf=~s/^\Q$prefix\E\#//;
+  my $frame = $ValLex::GUI::ValencyLexicon->by_id($rf);
+  return $ValLex::GUI::ValencyLexicon->serialize_frame($frame) if $frame;
+  'NOT FOUND!';
+}#_get_frame
 
 sub status_line_doubleclick_hook {
   # status-line field double clicked
@@ -259,6 +253,7 @@ sub Reflexive {
   if($this->{t_lemma}=~/_s[ei](?:\b|_)/){
     $this->{t_lemma}=~s/_s[ei](\b|_)/$1/;
     ChangingFile(1);
+    VallexWarning($this);
   }else{
     my@anodes=grep{$_->attr('m/form')=~/^s[ei]$/i}GetANodes($this);
     if(@anodes==0){
@@ -269,10 +264,12 @@ sub Reflexive {
       if($q=~/Add (s[ei])/){
         $this->{t_lemma}.='_'.$1;
         ChangingFile(1);
+        VallexWarning($this);
       }
     }elsif(@anodes==1){
       $this->{t_lemma}.='_'.lc($anodes[0]->attr('m/form'));
       ChangingFile(1);
+      VallexWarning($this);
     }else{ # more than 1 anodes
       if(grep{$_->attr('m/form')=~/se/i}@anodes
          and grep{$_->attr('m/form')=~/si/i}@anodes){
@@ -283,10 +280,12 @@ sub Reflexive {
         if($q=~/Add (s[ei])/){
           $this->{t_lemma}.='_'.$1;
           ChangingFile(1);
+          VallexWarning($this);
         }
       }else{
         $this->{t_lemma}.='_'.lc($anodes[0]->attr('m/form'));
         ChangingFile(1);
+        VallexWarning($this);
       }
     }
   }
@@ -340,11 +339,13 @@ sub RegenerateTLemma{
               $d) or return;
     $this->{t_lemma}=$d->[0];
     ChangingFile(1);
+    VallexWarning($this);
   }elsif(@anodes==1){
     my$l=$anodes[0]->attr('m/lemma');
     $l=~s/(.+?)[-_`].*$/$1/;
     $this->{t_lemma}=$l;
     ChangingFile(1);
+    VallexWarning($this);
   }
 }#RegenerateTLemma
 
@@ -385,7 +386,6 @@ sub EditSubfunctor{
 #bind EditFunctor to f menu Edit Functor
 sub EditFunctor{
   ChangingFile(EditAttribute($this,'functor'));
-  if(IsCoord($this)){$this->{nodetype}='coap'}
 }#EditFunctor
 
 #bind EditSemPOS to P menu Edit Semantical POS
@@ -416,7 +416,8 @@ sub _assigned_frame_pos_of {
   my $node = shift || $this;
   return unless $node;
   if ($node->{'val_frame.rf'} ne q()) {
-    my $V = ValLex::GUI::Init();
+    my ($refid,$vallex_file) = FindVallex();
+    my $V = ValLex::GUI::Init({-vallex_file=>$vallex_file});
     if ($V) {
       for my $id (_stripped_frame_rf($node->{'val_frame.rf'})) {
 	my $frame = $V->by_id( $id );
@@ -463,16 +464,86 @@ sub MarkForARf {
   AnalyticalTree();
 }#MarkForARf
 
-#bind EditTLemma to l menu Edit t_lemma
-sub EditTLemma{
-  my$status=EditAttribute($this,'t_lemma');
-  ChangingFile($status);
-  if($status and $this->{'val_frame.rf'}){
+sub VallexWarning {
+  if($_[0]->{'val_frame.rf'}){
     questionQuery('T-lemma changed',
                   'T-lemma has changed. Verify that the vallex reference is correct.',
                   'OK');
   }
+}#VallexWarning
+
+sub after_edit_attr_hook {
+  my($node,$attr,$result)=(shift,shift,shift);
+  return unless $result;
+  if($attr eq 't_lemma'){
+    if($node->{t_lemma}=~m/^#(.*)/
+       and not first{$1 eq $_}qw[Amp Ast AsMuch Benef Bracket Colon
+                                 Comma Cor Dash EmpNoun EmpVerb Equal
+                                 Forn Gen Idph Neg Oblfm Percnt
+                                 PersPron Period Period3 QCor Rcp
+                                 Slash Separ Some Total Unsp]){
+      questionQuery('Invalid entity',
+                    'Cannot change t-lemma to undefined #-entity. T-lemma not changed.',
+                    'OK');
+      Undo();
+    }else{
+      VallexWarning($node);
+    }
+    if($node->{t_lemma}=~m/^#(?:Idph|Forn)$/){
+      $node->{nodetype}='list';
+    }elsif(($node->{t_lemma}=~m/^#(?:Amp|Ast|AsMuch|Cor|EmpVerb|Equal|Gen|Oblfm|Percnt|Qcor|Rcp|Some|Total|Unsp)$/o)
+           or($node->{nodetype}ne'coap'
+              and $node->{t_lemma}=~m/^#(?:Bracket|Comma|Colon|Dash|Period|Period3|Slash)$/o)){
+      $node->{nodetype}='qcomplex';
+    }
+  }elsif($attr eq 'functor'){
+    if(IsCoord($node)){
+      $node->{nodetype}='coap';
+    }elsif($node->{functor}=~/^(?:ATT|CM|INTF|MOD|PARTL|PREC|RHEM)$/){
+      $node->{nodetype}='atom';
+    }elsif($node->{functor}=~m/^([FD]PHR)$/){
+      $node->{nodetype}=lc $1;
+    }
+  }
+}#after_edit_attr_hook
+
+#bind EditTLemma to l menu Edit t_lemma
+sub EditTLemma{
+  ChangingFile(EditAttribute($this,'t_lemma'));
+  # Because of Undo in hook:
+  $this=undef;
 }#EditTLemma
+
+#bind AddNode to Insert menu Insert New Node
+sub AddNode {
+  ChangingFile(0);
+  PML_T_Edit::_AddNode(1);
+}#AddNode
+
+=item DeleteNodeToAux(node?)
+
+Deletes $node or $this, attaches all its children and references from
+a/ to its parent and recounts deepord. Cannot be used for the root.
+
+=cut
+
+#bind DeleteNodeToAux to Shift+Delete menu Delete Node Moving to Aux
+sub DeleteNodeToAux{
+  shift unless ref $_[0];
+  my$node=$_[0]||$this;
+  ChangingFile(0),return unless $node->parent;
+  my$parent=$node->parent;
+  foreach my$child($node->children){
+    CutPaste($child,$parent);
+  }
+  AddToList($parent,'a/aux.rf',$node->attr('a/lex.rf'),ListV($node->attr('a/aux.rf')));
+  DeleteLeafNode($node);
+  $this=$parent unless@_;
+  ChangingFile(1);
+}#DeleteNodeToAux
+
+
+
 
 1;
 
