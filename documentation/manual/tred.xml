@@ -7375,7 +7375,7 @@ sub MakeSentence {
 	    <row id="after_edit_attr_hook">
 	      <entry><literal moreinfo="none">after_edit_attr_hook</literal></entry>
 	      <entry>no</entry>
-	      <entry><para>Executed after a node's attribute was edited
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>node</replaceable>,<replaceable>attr</replaceable>,<replaceable>result</replaceable></literal></para><para>Executed after a node's attribute was edited
 		in the <guilabel moreinfo="none">Edit Attribute</guilabel>
 		dialog window. The <replaceable>result</replaceable>
 		argument contains <literal moreinfo="none">1</literal> if the user pressed
