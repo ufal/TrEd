@@ -1598,6 +1598,54 @@ sub EditAttribute {
   main::doEditAttr($grp,@_);
 }
 
+=item C<Undo()>
+
+Act as if the user pressed the undo button. Note that this macro also
+changes $this and $root (since undo replaces the current tree with an
+in-memory copy).
+
+Warning: Be aware of a special case when Undo is called from a hook
+indirectly invoked by a macro. In this case, changes to $this and
+$root do not propagate to the macro, which in turn ends up working
+with incorrect nodes. Thus, if calling Undo() within a hook, make sure
+to reset $this from $grp->{currentNode} and $root from $this->root
+after all calls from your macros which may possibly invoke the hook.
+
+=cut
+
+sub Undo {
+  main::undo($grp);
+  $this = $grp->{currentNode};
+  $root = $this->root if $this;
+  ChangingFile(0);
+}
+
+=item C<Redo()>
+
+Act as if the user pressed the undo button. Note that this macro also
+changes $this and $root.
+
+=cut
+
+sub Redo {
+  main::re_do($grp);
+  $this = $grp->{currentNode};
+  $root = $this->root if $this;
+  ChangingFile(0);
+}
+
+=item C<SaveUndo(comment)>
+
+Save a snapshot of the current tree so that following operations on it
+can be reverted with Undo. The C<comment> argument should provide
+user-visible one-line diescription of the action following SaveUndo.
+
+=cut
+
+sub SaveUndo {
+  main::save_undo($grp, main::prepare_undo($grp,'Macro: '.$_[0]));
+}
+
 #endif TRED
 
 =item C<Find()>
