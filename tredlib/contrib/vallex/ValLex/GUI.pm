@@ -12,7 +12,10 @@ $frameid_attr="frameid";
 $framere_attr="framere";
 $lemma_attr="t_lemma";
 $sempos_attr="g_wordclass";
+
 $vallexEditor=undef;
+$chooserDialog=undef;
+
 $vallex_validate = 0;
 $vallex_file = $ENV{VALLEX};
 if ($vallex_file eq "") {
@@ -20,7 +23,6 @@ if ($vallex_file eq "") {
   $vallex_file = ResolvePath("$libDir/contrib/ValLex/vallex.xml",'vallex.xml',1);
 }
 
-$chooserDialog=undef;
 
 #$XMLDataClass="TrEd::ValLex::JHXMLData";
 #$XMLDataClass="TrEd::ValLex::LibXMLData";
@@ -89,7 +91,20 @@ sub InfoDialog {
 
 }
 
+sub close_ValencyLexicon {
+  if ($chooserDialog) {
+    $chooserDialog->destroy_dialog();
+    undef $chooserDialog;
+  }
+  if ($vallexEditor) {
+    $vallexEditor->destroy();
+    undef $vallexEditor;
+  }
+  undef $ValencyLexicon;
+}
+
 sub init_ValencyLexicon {
+  my $opts_ref = shift;
   my $top=ToplevelFrame();
   unless ($ValencyLexicon) {
     my $conv= TrEd::CPConvert->new("utf-8", 
@@ -102,7 +117,7 @@ sub init_ValencyLexicon {
 	#### we may leave this commented out since it does not work correctly under windows
 	#    my $info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
       } else {
-	$info=InfoDialog($top,"First run, loading lexicon. Please, wait...");
+	$info=InfoDialog($top,"First run, loading lexicon $vallex_file. Please, wait...");
       }
       $ValencyLexicon= $XMLDataClass->new($vallex_file,$conv,!$vallex_validate);
     };
@@ -122,18 +137,32 @@ sub init_ValencyLexicon {
 }
 
 sub Init {
-  return $ValencyLexicon if ref($ValencyLexicon);
+  my $opts_ref = shift;
+  $vallex_file = $opts_ref->{-vallex_file} if ($opts_ref->{-vallex_file} ne "");
+  if ( $ValencyLexicon ) {
+    my $current_file = $ValencyLexicon->file;
+    if (File::Spec->rel2abs($current_file) eq File::Spec->rel2abs($vallex_file)) {
+      return $ValencyLexicon;
+    } else {
+      close_ValencyLexicon();
+    }
+  }
   init_XMLDataClass();
   init_VallexClasses();
-  return init_ValencyLexicon();
+  return init_ValencyLexicon($opts_ref);
 }
 
 sub ShowFrames {
-  my %opts=@_;
+  if (@_ == 1 and UNIVERSAL::isa($_[0],'HASH')) {
+    $opts_ref = shift
+  } else {
+    my %opts = @_;
+    $opts_ref = \%opts;
+  }
   my $msg;
-  Init() or return;
-  my $frames = exists $opts{-frameid} ?
-    $opts{-frameid} : ($opts{-node} ? $opts{-node}->attr($frameid_attr) : undef);
+  Init($opts_ref) or return;
+  my $frames = exists $opts_ref->{-frameid} ?
+    $opts_ref->{-frameid} : ($opts_ref->{-node} ? $opts_ref->{-node}->attr(($opts_ref->{-frameid_attr} || $frameid_attr)) : undef);
   my @frames;
   @frames = $ValencyLexicon->by_id(join " ",split /\|/,$frames);
   for my $f (@frames) {
@@ -176,8 +205,14 @@ sub ShowFrames {
 }
 
 sub OpenEditor {
-  my %opts=@_;
-  my $node = $opts{-node} || $this;
+  my $opts_ref;
+  if (@_ == 1 and UNIVERSAL::isa($_[0],'HASH')) {
+    $opts_ref = shift
+  } else {
+    my %opts = @_;
+    $opts_ref = \%opts;
+  }
+  my $node = $opts_ref->{-node} || $this;
   if ($vallexEditor) {
     return unless ref($vallexEditor);
     $vallexEditor->toplevel->deiconify;
@@ -188,19 +223,19 @@ sub OpenEditor {
   my $top=ToplevelFrame();
 #  $top->Busy(-recurse=>1);
   
-  Init() or return;
+  Init($opts_ref) or return;
 
-  my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ? 
-				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
+  my $lemma=TrEd::Convert::encode(exists $opts_ref->{-lemma} ? 
+				    $opts_ref->{-lemma} : $node ? $node->attr($lemma_attr) : undef);
   $lemma=~s/_/ /g;
 
   my $pos='V';
-  if (exists($opts{-pos})) {
-    $pos = $opts{-pos};
-  } elsif (exists($opts{-sempos})) {
-    $pos = sempos($opts{-sempos});
+  if (exists($opts_ref->{-pos})) {
+    $pos = $opts_ref->{-pos};
+  } elsif (exists($opts_ref->{-sempos})) {
+    $pos = sempos($opts_ref->{-sempos});
   } elsif ($node) {
-    $pos = sempos($node->attr($sempos_attr));
+    $pos = sempos($node->attr(($opts_ref->{-sempos_attr} || $sempos_attr)));
   }
 
   my $font = $main::font;
@@ -221,7 +256,7 @@ sub OpenEditor {
 		     infoline => { label => $fc }
 		    };
 
-  my $frameid = $opts{-frameid} || ($node ? $node->attr($frameid_attr) : undef);
+  my $frameid = $opts_ref->{-frameid} || ($node ? $node->attr(($opts_ref->{-frameid_attr} || $frameid_attr)) : undef);
   print STDERR "EDITOR start at: $lemma,$pos,$frameid\n";
 
   my $d;
@@ -236,7 +271,7 @@ sub OpenEditor {
 					    $fe_conf,
 					    $frameid,         # select frame
 					    0,
-					    $opts{-bindings}
+					    $opts_ref->{-bindings}
 					   );                 # start frame editor
   $d->bind('<Destroy>',sub { undef $vallexEditor; });
   TredMacro::register_exit_hook(sub {
@@ -401,9 +436,15 @@ sub parse_lemma {
 }
 
 sub ChooseFrame {
-  my %opts=@_;
+  my $opts_ref;
+  if (@_ == 1 and UNIVERSAL::isa($_[0],'HASH')) {
+    $opts_ref = shift
+  } else {
+    my %opts = @_;
+    $opts_ref = \%opts;
+  }
 
-  my $node = $opts{-node} || $this;
+  my $node = $opts_ref->{-node} || $this;
   if ($vallexEditor) {
     questionQuery("Sorry!","Valency editor already running.\n".
 		  "To assign frames, you have to close it first.",
@@ -414,16 +455,16 @@ sub ChooseFrame {
   $top->Busy(-recurse=>1);
 
 
-  my $lemma=TrEd::Convert::encode(exists $opts{-lemma} ?
-				    $opts{-lemma} : $node ? $node->attr($lemma_attr) : undef);
+  my $lemma=TrEd::Convert::encode(exists $opts_ref->{-lemma} ?
+				    $opts_ref->{-lemma} : $node ? $node->attr(($opts_ref->{-lemma_attr} || $lemma_attr)) : undef);
 
   my $pos;
-  if (exists($opts{-pos})) {
-    $pos = $opts{-pos};
-  } elsif (exists($opts{-sempos})) {
-    $pos = sempos($opts{-sempos});
+  if (exists($opts_ref->{-pos})) {
+    $pos = $opts_ref->{-pos};
+  } elsif (exists($opts_ref->{-sempos})) {
+    $pos = sempos($opts_ref->{-sempos});
   } elsif ($node) {
-    $pos = sempos($node->attr($sempos_attr));
+    $pos = sempos($node->attr(($opts_ref->{-sempos_attr} || $sempos_attr)));
   }
 
 
@@ -441,17 +482,17 @@ sub ChooseFrame {
   $lemma=~s/_/ /g;
 
 
-  Init() or return;
+  Init($opts_ref) or return;
   my $field;
   my $new_word=0;
   my $word=$ValencyLexicon->findWordAndPOS($lemma,$pos);
-  if (!exists($opts{-frameid}) and $node) {
-    $opts{-frameid} = $node->attr($frameid_attr);
+  if (!exists($opts_ref->{-frameid}) and $node) {
+    $opts_ref->{-frameid} = $node->attr(($opts_ref->{-frameid_attr} || $frameid_attr));
   }
   my ($l,$base);
-  if ($opts{-morph_lemma}) {
-    ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($opts{-morph_lemma}),
-			   $opts{-morph_pos} || $pos);
+  if ($opts_ref->{-morph_lemma}) {
+    ($l,$base)=parse_lemma($lemma,TrEd::Convert::encode($opts_ref->{-morph_lemma}),
+			   $opts_ref->{-morph_pos} || $pos);
   }
   my $base_word;
   $base_word=$ValencyLexicon->findWordAndPOS($base,"V") if (defined($base));
@@ -463,7 +504,7 @@ sub ChooseFrame {
   }
   $top->Unbusy(-recurse=>1);
 
-  if ($opts{-no_assign} or !$ValencyLexicon->user_is_annotator or $opts{-noadd}) {
+  if ($opts_ref->{-no_assign} or !$ValencyLexicon->user_is_annotator or $opts_ref->{-noadd}) {
     if (!$word) {
       ErrorMessage("The word $lemma.$pos was not found in the lexicon.\n");
       return;
@@ -501,9 +542,9 @@ sub ChooseFrame {
 	    $base_word ? ($base,"V") : ()
 	   ];
   }
-  #print "$word: $lemma $pos $opts{-frameid}\n";
-  $opts{-title}=($opts{-title} || 'Valency frames');
-  return DisplayFrame($field,$new_word,\%opts);
+  #print "$word: $lemma $pos $opts_ref->{-frameid}\n";
+  $opts_ref->{-title}=($opts_ref->{-title} || 'Valency frames');
+  return DisplayFrame($field,$new_word,$opts_ref);
 }
 
 sub DisplayFrame {
@@ -597,13 +638,16 @@ sub frame_chosen {
       $win->{currentNode}) {
     my $field = $chooser->focused_framelist()->field();
     my $node = $win->{currentNode};
-    #my $lemma = TrEd::Convert::encode($node->attr($lemma_attr)); 
-    #my $pos = sempos($node->attr($sempos_attr));
-    my $lemma=TrEd::Convert::encode(exists $opts_ref->{-lemma} ?
-				    $opts_ref->{-lemma} : $node ? $node->attr($lemma_attr) : undef);
+    #my $lemma = TrEd::Convert::encode($node->attr(($opts_ref->{-lemma_attr} || $lemma_attr))); 
+    #my $pos = sempos($node->attr(($opts_ref->{-sempos_attr} || $sempos_attr)));
+    my $lemma=TrEd::Convert::encode( ($node and ref($opts_ref) and exists($opts_ref->{-lemma_attr})) 
+				       ? $node->attr($opts_ref->{-lemma_attr}) 
+				       : $opts_ref->{-lemma});
     $lemma=~s/_/ /g;
     my $pos;
-    if (ref $opts_ref and exists($opts_ref->{-pos})) {
+    if (ref $opts_ref and exists($opts_ref->{-sempos_attr})) {
+      $pos = sempos($node->attr($opts_ref->{-sempos_attr}));
+    } elsif (ref $opts_ref and exists($opts_ref->{-pos})) {
       $pos = $opts_ref->{-pos};
     } elsif (ref $opts_ref and exists($opts_ref->{-sempos})) {
       $pos = sempos($opts_ref->{-sempos});
@@ -619,10 +663,10 @@ sub frame_chosen {
       my $fmt  = $win->{FSFile}->FS();
 
       if (ref($opts_ref->{-assign_func})) {
-	$opts_ref->{-assign_func}->($node,$ids,TrEd::Convert::decode($real));
+	$opts_ref->{-assign_func}->($node,$ids,TrEd::Convert::decode($real),$win->{FSFile},$grp,$chooser,$opts_ref);
       } else {
-	$node->set_attr($frameid_attr,$ids);
-	$node->set_attr($framere_attr,TrEd::Convert::decode($real)) if defined($framere_attr);
+	$node->set_attr(($opts_ref->{-frameid_attr} || $frameid_attr),$ids);
+	$node->set_attr(($opts_ref->{-framere_attr} || $framere_attr),TrEd::Convert::decode($real)) if defined($opts_ref->{-framere_attr} || $framere_attr);
       }
       $win->{framegroup}{top}->focus();
       $win->{framegroup}{top}->raise();

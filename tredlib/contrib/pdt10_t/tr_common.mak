@@ -102,21 +102,25 @@ sub open_editor {
   shift unless @_ and ref($_[0]);
   my $node = shift || $this || {};
   my %opts = @_;
-  local $ValLex::GUI::frameid_attr="frameid";
-  local $ValLex::GUI::lemma_attr="t_lemma";
-  local $ValLex::GUI::framere_attr="framere";
-  local $ValLex::GUI::sempos_attr="g_wordclass";
-  ValLex::GUI::OpenEditor(
-    -lemma => $node->{t_lemma},
-    -sempos => $node->{g_wordclass},
-    -frameid => $node->{frameid},
+#  local $ValLex::GUI::frameid_attr="frameid";
+#  local $ValLex::GUI::lemma_attr="t_lemma";
+#  local $ValLex::GUI::framere_attr="framere";
+#  local $ValLex::GUI::sempos_attr="g_wordclass";
+  ValLex::GUI::OpenEditor({
+    -lemma_attr => 't_lemma',
+    -sempos_attr => 'g_wordclass',
+    -framere_attr => 'framere',
+    -frameid_attr => 'frameid',
+ #   -lemma => $node->{t_lemma},
+ #   -sempos => $node->{g_wordclass},
+ #   -frameid => $node->{frameid},
     -bindings => {
       '<F5>' => [\&ValLex::GUI::copy_verb_frame,$grp->{framegroup}],
       '<F7>' => [\&ValLex::GUI::create_default_subst_frame,$grp->{framegroup}],
       '<F3>' => [\&ValLex::GUI::open_frame_instance_in_tred,$grp->{framegroup}]
      },
     %opts
-   );
+   });
   ChangingFile(0);
 }
 
@@ -129,14 +133,18 @@ sub choose_frame {
   local $ValLex::GUI::lemma_attr="t_lemma";
   local $ValLex::GUI::framere_attr="framere";
   local $ValLex::GUI::sempos_attr="g_wordclass";
-  ValLex::GUI::ChooseFrame(
+  ValLex::GUI::ChooseFrame({
     -morph_lemma => $node->{lemma},
     -morph_pos => $1,
-    -lemma => $node->{t_lemma},
-    -sempos => $node->{g_wordclass},
-    -frameid => $node->{frameid},
+    -lemma_attr => 't_lemma',
+    -sempos_attr => 'g_wordclass',
+    -framere_attr => 'framere',
+    -frameid_attr => 'frameid',
+  #  -lemma => $node->{t_lemma},
+  #  -sempos => $node->{g_wordclass},
+  #  -frameid => $node->{frameid},
     %opts
-   );
+   });
 }
 
 sub choose_frame_or_advfunc {

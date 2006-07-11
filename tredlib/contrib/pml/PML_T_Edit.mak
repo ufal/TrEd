@@ -86,12 +86,21 @@ sub ChooseValFrame {
   my $node = shift || $this;
   my %opts = @_;
   my $refid = FileMetaData('refnames')->{vallex};
+
+  my $fsfile = $grp->{FSFile};
   PML_T::OpenValFrameList(
     $node,
     -assign_func => sub {
-      my ($n, $ids)=@_;
-      $n->{'val_frame.rf'} = undef;
-      AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
+      my ($n, $ids, $dummy, $current_fsfile, $dummy, $chooser)=@_;
+      if ($current_fsfile == $fsfile) {
+	$n->{'val_frame.rf'} = undef;
+	AddToAlt($n,'val_frame.rf',map { $refid."#".$_} split /\|/,$ids);
+      } else {
+	$chooser->widget->toplevel->
+	  messageBox(-icon=> 'error',
+		     -message=> "Use Ctrl+Return to assign frame!",
+		     -title=> 'Error', -type=> 'ok');
+      }
     },
     %opts
    );
@@ -203,7 +212,7 @@ sub EditNodetype{
 #bind EditGram to G menu Edit Grammatemes
 sub EditGram{
   ChangingFile(EditAttribute($this,'gram'));
-}#EditNodetype
+}#EditGram
 
 #bind AnnotateSegm to s menu Annotate Special Coreference - Segment
 sub AnnotateSegm{
@@ -223,18 +232,26 @@ sub AnnotateExoph{
   }
 }#AnnotateExoph
 
+#bind AddNode to Insert menu Insert New Node
 sub AddNode {
+  ChangingFile(0);
+  _AddNode(0);
+}#AddNode
+
+sub _AddNode {
+  my $autotype=shift;
   my $type=questionQuery('New node',
                          'Type of the new node:',
                          ('Analytic','#-entity','Cancel'));
   return if$type eq'Cancel';
   if($type eq'Analytic'){
     $this=NewNode($this);
+    ChangingFile(1);
     $this->{t_lemma}='#NewNode';
     $this->{functor}='PAR';
     $this->{nodetype}='complex';
     EditFunctor();
-    EditNodetype();
+    EditNodetype() unless $autotype;
     ChangingFile(EditAttribute($this,'is_generated'));
     $PML::desiredcontext='PML_A_Edit';
     MarkForARf();
@@ -263,6 +280,7 @@ sub AddNode {
                  Total qcomplex
                  Unsp qcomplex
                 /;
+    $lemmas{NewNode}='qcomplex'if$autotype;
     ListQuery('T-lemma',
               'browse',
               [sort keys%lemmas],
@@ -273,9 +291,9 @@ sub AddNode {
     $this->{nodetype}=$lemmas{$dialog->[0]};
     $this->{is_generated}=1;
     EditFunctor();
-    EditNodetype();
+    EditNodetype()unless $autotype;
   }
-} #AddNode
+} #_AddNode
 
 #bind MoveNodeLeft to Ctrl+Left menu Move node to the left
 sub MoveNodeLeft {
@@ -346,7 +364,6 @@ sub MoveSTRight {
 
 #bind DeleteNode to Delete menu Delete Node
 #bind DeleteSubtree to Ctrl+Delete menu Delete Subtree
-#bind AddNode to Insert menu Insert New Node
 
 1;
 
