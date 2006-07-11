@@ -65,7 +65,8 @@ sub QueryString {
   main::QueryString($grp->{framegroup},@_);
 }
 
-sub editQuery {
+*QueryString = \&StringQuery;
+sub EditBoxQuery {
   ## draws a dialog box with one Text widget and Ok/Cancel buttons
   ## expects dialog title and default text
   ## returns text of the Text widget
@@ -109,7 +110,7 @@ sub ListQuery {
   main::listQuery($top,$title,$select_mode,$vals,$selected);
 }
 
-sub questionQuery {
+sub QuestionQuery {
   my ($title, $message,@buttons) = @_;
 
   my $d = ToplevelFrame()->DialogBox(-title => $title,
@@ -122,7 +123,7 @@ sub questionQuery {
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   return $d->Show;
 }
-
+*questionQuery=\&QuestionQuery;
 
 #bind PerlSearch to Alt+H menu Perl-Search
 sub PerlSearch {
@@ -140,7 +141,7 @@ sub PerlSearch {
   "Press Ctrl+Enter to start search\n"
     ;
 
-  my $script = editQuery("Search: insert perl expression:",$TrEd::MacroStorage::macPerlSearchScript,$label);
+  my $script = EditBoxQuery("Search: insert perl expression:",$TrEd::MacroStorage::macPerlSearchScript,$label);
   unless ($script) {
     $FileNotSaved=0;
     return;
@@ -174,7 +175,7 @@ Use:
 When finished, press Ctrl+Enter to execute your script.
 EOF
 
-  my $script = editQuery("Insert perl expression:",$TrEd::MacroStorage::macPerlEvalScript,$label);
+  my $script = EditBoxQuery("Insert perl expression:",$TrEd::MacroStorage::macPerlEvalScript,$label);
   unless ($script) {
     $FileNotSaved=0;
     return;
