@@ -1190,6 +1190,113 @@ sub restrict_feminine {
 #
 # ##################################################################################################
 
+#bind open_level_first to Ctrl+Alt+1 menu Action: Edit MorphoTrees File
+sub open_level_first {
+
+    ChangingFile(0);
+}
+
+#bind open_level_second to Ctrl+Alt+2 menu Action: Edit Analytic File
+sub open_level_second {
+
+    require File::Basename;
+
+    my (@file, $path, $name, $tree, $node, @child, $hits);
+
+    $file[0] = FileName();
+
+    ($name, $path, undef) = File::Basename::fileparse($file[0], '.morpho.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = $path . 'morpho/' . $name . '.morpho.fs';
+    $file[1] = $path . 'syntax/' . $name . '.syntax.fs';
+
+    switch_either_context() unless $root->{'type'} eq 'paragraph';
+
+    $tree = substr $root->{'id'}, 1;
+    $node = 0;
+
+    unless ($this == $root) {
+
+        $this = $this->parent() until $this->{'type'} eq 'word_node';
+
+        @child = $root->children();
+
+        foreach $hits (@child) {
+
+            last if $hits == $this;
+            $node++;
+        }
+
+        if ($node == @child) {
+
+            $node = 0;
+        }
+        else {
+
+            $node++;
+        }
+    }
+
+    SwitchContext('Analytic');
+
+    my $success = Open($file[1]);
+
+    ChangingFile(0);
+
+    unless ($success) {
+
+        SwitchContext('MorphoTrees');
+
+        return;
+    }
+
+    GotoTree($tree);
+
+    unless ($node == 0) {
+
+        do {
+
+            $this = $this->following();
+
+            ($hits) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
+        }
+        until $hits == $node;
+    }
+}
+
+#bind open_level_third to Ctrl+Alt+3 menu Action: Edit DeepLevels File
+sub open_level_third {
+
+    require File::Basename;
+
+    my (@file, $path, $name, $tree, $node);
+
+    $file[0] = FileName();
+
+    ($name, $path, undef) = File::Basename::fileparse($file[0], '.morpho.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = $path . 'morpho/' . $name . '.morpho.fs';
+    $file[1] = $path . 'deeper/' . $name . '.deeper.fs';
+
+    ($tree) = $root->{'x_id_ord'} =~ /^\#[0-9]+\_([0-9]+)$/;
+    ($node) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
+
+    SwitchContext('DeepLevels');
+
+    Open($file[1]);
+    GotoTree($tree);
+
+    $this = ($this->children())[$node - 1];
+
+    ChangingFile(0);
+}
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
 1;
 
 
