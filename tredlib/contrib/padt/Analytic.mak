@@ -508,7 +508,7 @@ sub edit_commentA {
 
         ToplevelFrame()->messageBox (
             -icon => 'warning',
-            -message => "No attribute for annotator's comment in this file",
+            -message => "There is no 'comment' attribute in this file's format!\t",
             -title => 'Sorry',
             -type => 'OK',
         );
@@ -635,4 +635,144 @@ sub unset_request_afun {
 
         $Redraw = 'tree';
     }
+}
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+#bind synchronize_file to Ctrl+Alt+equal menu Action: Synchronize Annotations
+sub synchronize_file {
+
+    my $reply = main::userQuery($grp, "\nDo you wish to synchronize this file's annotations?\t",
+            -bitmap=> 'question',
+            -title => "Synchronizing",
+            -buttons => ['Yes', 'No']);
+
+    return unless $reply eq 'Yes';
+
+    print "Synchronizing ...\n";
+
+    require File::Basename;
+
+    my (@file, $path, $name, $tree, $node);
+
+    $file[0] = FileName();
+
+    ($name, $path, undef) = File::Basename::fileparse($file[0], '.syntax.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = $path . 'syntax/' . $name . '.syntax.fs';
+    $file[1] = $path . 'morpho/' . $name . '.morpho.fs';
+
+    $file[2] = $path . 'morpho/' . $name . '.syntax.fs';
+    $file[3] = $path . 'syntax/' . $name . '.syntax.fs.anno.fs';
+
+    $tree = CurrentTreeNumber() + 1;
+    $node = $this->{'ord'};
+
+    if ($^O eq 'MSWin32') {
+
+        $_ =~ s/\//\\/g foreach @file;
+
+        system 'copy ' . $file[0] . ' ' . $file[3];
+
+        system 'perl -X ' . $libDir . '/contrib/padt/lib/SyntaxFS.pl ' . $file[1];
+
+        system 'copy ' . $file[2] . ' ' . $file[0];
+
+        system 'btred -Qm ' . $libDir . '/contrib/padt/lib/migrate_annotation_syntax.btred ' . $file[0];
+
+        print " ... succeeded.\n";
+    }
+    else {
+
+        print " ... failed.\n";
+    }
+
+    main::reloadFile($grp);
+
+    GotoTree($tree);
+
+    $this = $this->following() until $this->{'ord'} == $node;
+
+    ChangingFile(0);
+}
+
+#bind open_level_first to Ctrl+Alt+1 menu Action: Edit MorphoTrees File
+sub open_level_first {
+
+    require File::Basename;
+
+    my (@file, $path, $name, $tree, $node);
+
+    $file[0] = FileName();
+
+    ($name, $path, undef) = File::Basename::fileparse($file[0], '.syntax.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = $path . 'syntax/' . $name . '.syntax.fs';
+    $file[1] = $path . 'morpho/' . $name . '.morpho.fs';
+
+    ($tree) = $root->{'x_id_ord'} =~ /^\#[0-9]+\_([0-9]+)$/;
+
+    unless ($this == $root) {
+
+        ($node) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
+    }
+    else {
+
+        $node = 0;
+    }
+
+    SwitchContext('MorphoTrees');
+
+    my $success = Open($file[1]);
+
+    ChangingFile(0);
+
+    unless ($success) {
+
+        SwitchContext('Analytic');
+
+        return;
+    }
+
+    GotoTree($tree);
+
+    $this = ($this->children())[$node - 1] unless $node == 0;
+}
+
+#bind open_level_second to Ctrl+Alt+2 menu Action: Edit Analytic File
+sub open_level_second {
+
+    ChangingFile(0);
+}
+
+#bind open_level_third to Ctrl+Alt+3 menu Action: Edit DeepLevels File
+sub open_level_third {
+
+    require File::Basename;
+
+    my (@file, $path, $name, $tree, $node);
+
+    $file[0] = FileName();
+
+    ($name, $path, undef) = File::Basename::fileparse($file[0], '.syntax.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = $path . 'syntax/' . $name . '.syntax.fs';
+    $file[1] = $path . 'deeper/' . $name . '.deeper.fs';
+
+    ($tree) = $root->{'x_id_ord'} =~ /^\#[0-9]+\_([0-9]+)$/;
+    ($node) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
+
+    SwitchContext('DeepLevels');
+
+    Open($file[1]);
+    GotoTree($tree);
+
+    $this = ($this->children())[$node - 1];
+
+    ChangingFile(0);
 }
