@@ -3834,7 +3834,9 @@ sub new {
 		 "element"   => "=name",
 		 "type"      => "=name",
 		},
-    GroupTags => { "choice" => "value" }
+    GroupTags => { "choice" => "value" },
+    NSExpand=>1, 
+    DefaultNS => "http://ufal.mff.cuni.cz/pdt/pml/schema/",
    );
   my $new;
   eval {
@@ -3855,6 +3857,7 @@ sub new {
   if (ref($imports)) {
     foreach my $import (@$imports) {
       if (exists($import->{type})) {
+
 	my $schema = Fslib::Schema->readFrom($import->{schema} ,
 					     { %$opts, 
 					       base_url => $new->{URL},
@@ -3924,7 +3927,6 @@ sub readFrom {
   } else {
     $opts={}
   }
-   
   if ($opts->{base_url} ne "") {
     $file = Fslib::ResolvePath($opts->{base_url},$file,$opts->{use_resources});
   } elsif ($opts->{use_resources}) {
