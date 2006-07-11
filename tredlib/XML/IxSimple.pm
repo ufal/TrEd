@@ -68,7 +68,7 @@ my %CacheScheme    = (
 my @KnownOptIn     = qw(keyattr keeproot forcecontent contentkey noattr
                         searchpath forcearray cache suppressempty parseropts
                         grouptags nsexpand datahandler varattr variables
-                        normalisespace normalizespace valueattr);
+                        normalisespace normalizespace valueattr defaultns);
 
 my @KnownOptOut    = qw(keyattr keeproot contentkey noattr
                         rootname xmldecl outputfile noescape suppressempty
@@ -1615,9 +1615,10 @@ sub start_element {
 
   my $name = $element->{Name};
   if($self->{opt}->{nsexpand}) {
+    my $ns = $element->{NamespaceURI};
     $name = $element->{LocalName} || '';
-    if($element->{NamespaceURI}) {
-      $name = '{' . $element->{NamespaceURI} . '}' . $name;
+    if ($ns ne $self->{opt}->{defaultns}) {
+      $name = '{' . $ns . '}' . $name;
     }
   }
   my $attributes = {};
@@ -1625,8 +1626,9 @@ sub start_element {
     foreach my $attr (values %{$element->{Attributes}}) {
       if($self->{opt}->{nsexpand}) {
         my $name = $attr->{LocalName} || '';
-        if($attr->{NamespaceURI}) {
-          $name = '{' . $attr->{NamespaceURI} . '}' . $name
+	my $ns = $attr->{NamespaceURI};
+        if($ns) {
+          $name = '{' . $ns . '}' . $name
         }
         $name = 'xmlns' if($name eq $bad_def_ns_jcn);
         $attributes->{$name} = $attr->{Value};
@@ -2422,6 +2424,12 @@ C<XMLout> will emit XML which is not well formed.
 
 I<Note: You must have the XML::NamespaceSupport module installed if you want
 C<XMLout()> to translate URIs back to prefixes>.
+
+=head2 DefaultNS => uri I<# in handy - SAX only>
+
+When used in combination with NSExpand, element (not attribute!!)
+names from a given namespace are translated to local-names, i.e.
+'{uri}name' becomes 'name'.
 
 =head2 NumericEscape => 0 | 1 | 2 I<# out - handy>
 
