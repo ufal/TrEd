@@ -1093,6 +1093,13 @@ sub NewID {
   $id;
 }#NewNode
 
+sub FindVallex {
+  my $refid = FileMetaData('refnames')->{vallex};
+  my $vallex_file = FileMetaData('references')->{$refid};
+  $vallex_file = ResolvePath(FileName(),$vallex_file,1);
+  return ($refid, $vallex_file);
+}
+
 
 =item OpenValFrameList(node?,options...)
 
@@ -1117,15 +1124,16 @@ sub OpenValFrameList {
   local $ValLex::GUI::lemma_attr="t_lemma";
   local $ValLex::GUI::framere_attr=undef;
   local $ValLex::GUI::sempos_attr="gram/sempos";
-  my $refid = FileMetaData('refnames')->{vallex};
+  my ($refid,$vallex_file) = FindVallex();
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
-  ValLex::GUI::ChooseFrame(
+  ValLex::GUI::ChooseFrame({
+    -vallex_file => $vallex_file,
     -lemma => $node ? $node->{t_lemma} : undef,
     -sempos => $node ? $node->attr('gram/sempos') : undef,
     -frameid => $rf,
     -assignfunc => sub{},
     %opts
-   );
+   });
   ChangingFile(0);
 }
 
@@ -1148,14 +1156,16 @@ sub OpenValLexicon {
   local $ValLex::GUI::lemma_attr="t_lemma";
   local $ValLex::GUI::framere_attr=undef;
   local $ValLex::GUI::sempos_attr="gram/sempos";
-  my $refid = FileMetaData('refnames')->{vallex};
+  my ($refid,$vallex_file) = FindVallex();
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
   ValLex::GUI::OpenEditor(
-    -lemma => $node ? $node->{t_lemma} : undef,
-    -sempos => $node ? $node->attr('gram/sempos') : undef,
-    -frameid => $rf,
-    %opts
-   );
+    {
+      -vallex_file => $vallex_file,
+      -lemma => $node ? $node->{t_lemma} : undef,
+      -sempos => $node ? $node->attr('gram/sempos') : undef,
+      -frameid => $rf,
+      %opts
+    });
   ChangingFile(0);
 }
 
@@ -1164,9 +1174,12 @@ sub ShowAssignedValFrames {
   shift unless @_ and ref($_[0]);
   my $node = shift || $this;
   my %opts = @_;
-  my $refid = FileMetaData('refnames')->{vallex};
+  my ($refid,$vallex_file) = FindVallex();
   my $rf = $node ? join('|',map { my $x=$_;$x=~s/^\Q$refid\E#//; $x } AltV($node->{'val_frame.rf'})) : undef;
-  ValLex::GUI::ShowFrames(-frameid => $rf);
+  ValLex::GUI::ShowFrames(
+    -vallex_file => $vallex_file,
+    -frameid => $rf
+   );
   ChangingFile(0);
 }
 
