@@ -1,4 +1,5 @@
 package PMLBackend;
+
 use Fslib;
 use IOBackend qw(close_backend);
 use strict;
@@ -14,26 +15,57 @@ use Data::Dumper;
 
 use Carp;
 
-use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG);
+use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG $config $config_file);
 
-$DEBUG=0;
+=for comment
+
+ TODO (XSLT):
+
+  - support for external xslt processors (maybe a common wrapper)
+  - with LibXSLT, cache the parsed stylesheets
+  - cache the transform rules from the config file
+  - allow parameters to be passed to the stylesheet  
+
+=cut
 
 use constant {
+  EMPTY => q(),
   LM => 'LM',
   AM => 'AM',
   PML_NS => "http://ufal.mff.cuni.cz/pdt/pml/",
+  CONF_NS => "http://ufal.mff.cuni.cz/pajas/tred/conf",
   SUPPORTED_VERSIONS => " 1.1 ",
 };
 
-
+$DEBUG=0;
 
 $encoding='utf-8';
 @pmlformat = ();
 @pmlpatterns = ();
-$pmlhint="";
+$pmlhint=EMPTY;
+$config = undef;
+$config_file = 'pmlbackend_conf.xml';
+
+eval {
+  configure();
+};
+
+print STDERR $@ if $@;
+
+sub configure {
+  return 0 unless eval { 
+    require XML::LibXSLT;
+  };
+
+  $config_file = Fslib::FindInResources($config_file);
+  if (-f $config_file) {
+    $config = xml_parser()->parse_file($config_file);
+  }
+  return $config;
+}
 
 sub _die {
-  my $msg = join '',@_;
+  my $msg = join EMPTY,@_;
   chomp $msg;
   if ($DEBUG) {
     local $Carp::CarpLevel=1;
@@ -50,13 +82,13 @@ sub _debug {
     $level=$_[0]->{level};
     shift;
   }
-  my $msg=join '',@_;
+  my $msg=join EMPTY,@_;
   chomp $msg;
   print STDERR "PMLBackend: $msg\n" if $DEBUG>=$level;
 }
 
 sub _warn {
-  my $msg = join '',@_;
+  my $msg = join EMPTY,@_;
   chomp $msg;
   warn "PMLBackend: WARNING: $msg\n";
 }
@@ -110,7 +142,7 @@ sub index_fs_by_id {
   my %index;
   foreach my $node ($fsfile->trees) {
     while ($node) {
-      $index{$node->{id}}=$node if $node->{id} ne "";
+      $index{$node->{id}}=$node if $node->{id} ne EMPTY;
     } continue {
       $node=$node->following;
     }
@@ -137,11 +169,44 @@ sub read ($$) {
 
   my $parser = xml_parser();
 
-  my $dom = $parser->parse_fh($input);
-  $dom->setBaseURI($fsfile->filename) if $dom and $dom->can('setBaseURI');
-  $parser->process_xincludes($dom);
-
+  my $dom = $parser->parse_fh($input, $fsfile->filename);
   my $dom_root = $dom->getDocumentElement();
+  $parser->process_xincludes($dom);
+  $dom->setBaseURI($fsfile->filename) if $dom and $dom->can('setBaseURI');
+  
+  # check NS
+  if ($dom_root->namespaceURI ne PML_NS) {
+    foreach my $transform ($config->getElementsByTagNameNS(CONF_NS,'transform')) {
+      my $id = $transform->getAttribute('id');
+      if ($id eq EMPTY) {
+	warn "PMLBackend: Skipping PML transform at ".$config_file.':'.$transform->line_number." (required attribute id missing)!";
+	next;
+      }
+      my ($in_xsl) = $transform->getChildrenByTagNameNS(CONF_NS,'in');
+      next unless ($in_xsl and $in_xsl->getAttribute('type') eq 'xslt');
+      my $in_xsl_href = $in_xsl->getAttribute('href');
+      my $test = $transform->getAttribute('test');
+      if ($in_xsl_href ne EMPTY and 
+	  $test ne EMPTY and 
+	  eval { $dom->find($test) }) {
+
+	$fsfile->changeMetaData('pml_transform',$id);
+	
+	my %params = map { $_->getAttribute('name') =>
+			   $_->textContent }
+	             $in_xsl->getChildrenByTagNameNS(CONF_NS,'param');
+	$in_xsl_href = Fslib::ResolvePath($config_file, $in_xsl_href, 1);
+	my $xslt = XML::LibXSLT->new;
+	my $in_xsl_parsed = $xslt->parse_stylesheet_file($in_xsl_href);
+	$dom = $in_xsl_parsed->transform($dom,%params);
+	$dom_root = $dom->getDocumentElement;
+	$dom->setBaseURI($fsfile->filename) if $dom and $dom->can('setBaseURI');
+	last;
+      }
+    }
+  }
+
+  
   my $return;
 #  $fsfile->FS->defs->{id}=' K';
   read_references($fsfile,$dom_root);
@@ -149,7 +214,7 @@ sub read ($$) {
   unless (ref($schema)) {
     _die("Unknown XML data: ".$dom_root->localname()." ".$dom_root->namespaceURI());
   }
-  if ($schema->{version} eq "") {
+  if ($schema->{version} eq EMPTY) {
     _die("PML Schema file ".$fsfile->metaData('schema-url')." does not specify version!");
   }
   if (index(SUPPORTED_VERSIONS," ".$schema->{version}." ")<0) {
@@ -237,7 +302,7 @@ sub read_Sequence {
       my $ns = $child->namespaceURI;
       my $is_pml = ($ns eq PML_NS);
       if ($type->{element}{$name} and 
-	    ($ns eq "" or $is_pml or $type->{element}{$name}{ns} eq $ns)) {
+	    ($ns eq EMPTY or $is_pml or $type->{element}{$name}{ns} eq $ns)) {
 	my $value = read_node($child,$fsfile,$types,resolve_type($types,$type->{element}{$name}));
 	$seq->push_element($name,$value);
       } else {
@@ -328,16 +393,16 @@ sub set_trees {
 	    $element->[1]{'#name'} = $element->[0]; # manually delegate_name on this element
 	    push @$trees, $element->[1];
 	  } else {
-	    $prolog->push_element(@$element);
+	    $prolog->push_element_obj($element);
 	  }
 	} else {
 	  if ($phase == 1) {
 	    $phase = 2; # start epilog
 	  }
 	  if ($phase == 0) {
-	    $prolog->push_element(@$element);
+	    $prolog->push_element_obj($element);
 	  } else {
-	    $epilog->push_element(@$element);
+	    $epilog->push_element_obj($element);
 	  }
 	}
       }
@@ -380,7 +445,7 @@ sub read_node_knit {
   if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
     my ($reffile,$idref)=($1,$2);
     $fsfile->changeAppData('ref',{}) unless ref($fsfile->appData('ref'));
-    my $refdom = ($reffile ne "") ? $fsfile->appData('ref')->{$reffile} : $node->ownerDocument;
+    my $refdom = ($reffile ne EMPTY) ? $fsfile->appData('ref')->{$reffile} : $node->ownerDocument;
     if (ref($refdom)) {
       $fsfile->changeAppData('ref-index',{}) unless ref($fsfile->appData('ref-index'));
       my $refnode =
@@ -484,7 +549,7 @@ sub read_node {
       $childnodes_taker = $hash;
       $hash->set_type($fsfile->metaData('schema')->type($type->{structure}));
     } else {
-      $hash={}
+      $hash=Fslib::Struct->new();
     }
     foreach my $attr ($node->attributes) {
       my $name  = $attr->nodeName;
@@ -496,7 +561,7 @@ sub read_node {
 	$value = $attr->value;
       }
       my $member = $members->{$name};
-      if ($member ne "" and 
+      if ($member ne EMPTY and 
 	  $member->{as_attribute}) {
 	$hash->{$name} = $value;
 	if ($member->{role} eq "#ORDER") {
@@ -623,7 +688,7 @@ sub read_node {
       $childnodes_taker = $hash;
       $hash->set_type($fsfile->metaData('schema')->type($container));
     } else {
-      $hash={}
+      $hash=Fslib::Container->new();
     }
 
     unless ($attrs) {
@@ -674,7 +739,7 @@ sub read_node {
   } elsif (exists $type->{constant}) {
     _debug({level => 6},"constant type\n");
     my $data = $node->textContent();
-    if ($data ne "" and $data ne $type->{constant}) {
+    if ($data ne EMPTY and $data ne $type->{constant}) {
       _die("Invalid value '$data' for constant '".$node->localname."' (expected $type->{constant})");
     }
     return $data;
@@ -713,7 +778,7 @@ sub readas_dom {
   _debug("readas_dom: $href $ref_fh");
   if ($ref_fh){
     eval {
-      $ref_data = $parser->parse_fh($ref_fh);
+      $ref_data = $parser->parse_fh($ref_fh, $href);
     };
     _die("Error parsing $href $ref_fh $local_file ($@)") if $@;
     $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
@@ -837,9 +902,52 @@ sub write {
   my ($fh,$fsfile)=@_;
   binmode $fh;
   binmode $fh,":utf8";
-  my $xml =  new XML::Writer(OUTPUT => $fh,
-			   DATA_MODE => 1,
-			   DATA_INDENT => 1);
+
+  my $transform_id = $fsfile->metaData('pml_transform');
+  if ($config and $transform_id ne EMPTY) {
+    # TODO: hash by ID
+    my ($transform) = grep { 
+      $_->getAttribute('id') eq $transform_id
+    } $config->getElementsByTagNameNS(CONF_NS,'transform');
+    if ($transform) {
+      my ($out_xsl) = $transform->getChildrenByTagNameNS(CONF_NS,'out');
+      my $out_xsl_href = $out_xsl ? $out_xsl->getAttribute('href') : undef;
+      $out_xsl_href = Fslib::ResolvePath($config_file, $out_xsl_href, 1);
+      if ($out_xsl_href eq EMPTY) {
+	_die("PMLBackend: no output transformation defined for $transform_id");
+      } elsif ($out_xsl->getAttribute('type') ne 'xslt') {
+	_die("PMLBackend: unsupported output transformation $transform_id (only type='xslt') transformations are supported)"); 
+      }
+      my $xml = new MyDOMWriter(DOM => XML::LibXML::Document->new);
+      write_data($xml,$fsfile);
+      my $dom = $xml->end;
+      my $xslt = XML::LibXSLT->new;
+      my %params = map { $_->getAttribute('name') => $_->textContent 
+		       } $out_xsl->getChildrenByTagNameNS(CONF_NS,'param');
+
+      my $out_xsl_parsed = $xslt->parse_stylesheet_file($out_xsl_href);
+      my $result = $out_xsl_parsed->transform($dom,%params);
+      
+      if (UNIVERSAL::can($result,'toFH')) {
+	$result->toFH($fh,1);
+      } else {
+	$out_xsl_parsed->output_fh($result,$fh);
+      }
+      return 1;
+    } else {
+      _die("PMLBackend: Couldn't find PML transform with ID $transform_id");
+    }
+  } else {
+    my $xml =  new XML::Writer(OUTPUT => $fh,
+			       DATA_MODE => 1,
+			       DATA_INDENT => 1);
+    write_data($xml,$fsfile);
+  }
+
+}
+
+sub write_data {
+  my ($xml,$fsfile) = @_;
   my $schema = $fsfile->metaData('schema');
   unless (ref($schema)) {
     _die("Can't write - document isn't associated with a schema");
@@ -885,7 +993,7 @@ sub write {
     if (ref($object)) {
       foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
 	my $atr = $mdecl->{-name};
-	if ($mdecl->{required} or $object->{$atr} ne "") {
+	if ($mdecl->{required} or $object->{$atr} ne EMPTY) {
 	  $attribs{$atr} = $object->{$atr};
 	}
       }
@@ -896,14 +1004,14 @@ sub write {
     if (ref($object)) {
       foreach my $attrib (values(%{$container->{attribute}})) {
 	my $atr = $attrib->{-name};
-	if ($attrib->{required} or  $object->{$atr} ne "") {
+	if ($attrib->{required} or  $object->{$atr} ne EMPTY) {
 	  $attribs{$atr} = $object->{$atr}
 	}
       }
     }
   }
 
-  $xml->startTag($root_name,xmlns => PML_NS, %attribs);
+  $xml->startTag($root_name,'xmlns' => PML_NS, %attribs);
   $xml->startTag('head');
   $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
   {
@@ -923,8 +1031,10 @@ sub write {
 	  # not an URL
 	  # local paths are always relative
 	  # if you need absolute path, try file:// URL instead
-	  my ($vol,$dir) = File::Spec->splitpath(File::Spec->rel2abs($fsfile->filename));
-	  $href = File::Spec->abs2rel($href,File::Spec->catfile($vol,$dir));
+	  if (File::Spec->file_name_is_absolute($href)) {
+	    my ($vol,$dir) = File::Spec->splitpath(File::Spec->rel2abs($fsfile->filename));
+	    $href = File::Spec->abs2rel($href,File::Spec->catfile($vol,$dir));
+	  }
 	}
 	$xml->emptyTag('reffile',
 		       id => $id,
@@ -1018,7 +1128,7 @@ sub get_write_trees {
 	my $epilog = $fsfile->metaData('pml_epilog');
 	return Fslib::Seq->new(
 	  [(UNIVERSAL::isa($prolog,'Fslib::Seq') ? $prolog->elements : ()),
-	   (map { [$_->{'#name'},$_] } @{$fsfile->treeList}),
+	   (map { Fslib::Seq::Element->new($_->{'#name'},$_) } @{$fsfile->treeList}),
 	   (UNIVERSAL::isa($epilog,'Fslib::Seq') ? $epilog->elements : ())]
 	 );
       } elsif ($trees_type->{list}) {
@@ -1039,13 +1149,13 @@ sub get_childnodes {
   return $content unless ref($cont_type);
   if (ref($cont_type->{sequence}) and 
 	$cont_type->{sequence}{role} eq '#CHILDNODES') {
-    if ($content ne "") {
+    if ($content ne EMPTY) {
       _warn("Replacing non-empty value '$content' of '$what' with the #CHILDNODES sequence!");
     }
-    return Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
+    return Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
   } elsif (ref($cont_type->{list}) and 
 	     $cont_type->{list}{role} eq '#CHILDNODES') {
-    if ($content ne "") {
+    if ($content ne EMPTY) {
       _warn("Replacing non-empty value '$content' of '$what' with the #CHILDNODES list!");
     }
     return Fslib::List->new_from_ref([$object->children]);
@@ -1093,7 +1203,7 @@ sub write_object {
       } else {
 	foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
 	  my $atr = $mdecl->{-name};
-	  if ($mdecl->{required} or $object->{$atr} ne "") {
+	  if ($mdecl->{required} or $object->{$atr} ne EMPTY) {
 	    $attribs->{$atr} = $object->{$atr};
 	  }
 	}
@@ -1113,12 +1223,14 @@ sub write_object {
 	    if ($object->firstson or $mdecl->{required}) {
 	      my $children;
 	      if (ref($mtype->{sequence})) {
-		if ($object->{$member} ne "") {
+		if ($object->{$member} ne EMPTY) {
 		  _warn("Replacing non-empty value of member '$member' with the #CHILDNODES sequence!");
 		}
-		$children = Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
+		$children = Fslib::Seq->new( [map { 
+		  Fslib::Seq::Element->new($_->{'#name'},$_) 
+		  } $object->children]);
 	      } elsif (ref($mtype->{list})) {
-		if ($object->{$member} ne "") {
+		if ($object->{$member} ne EMPTY) {
 		  _warn("Replacing non-empty value of member '$member' with the #CHILDNODES list!");
 		}
 		$children = Fslib::List->new_from_ref([$object->children]);
@@ -1134,7 +1246,7 @@ sub write_object {
 	  my $data = get_write_trees($fsfile,$mdecl,$mtype);
 	  write_object($xml, $fsfile, $types,$mdecl,$member, $data);
 	} elsif ($mdecl->{role} eq '#KNIT') {
-	  if ($object->{$member} ne "") {
+	  if ($object->{$member} ne EMPTY) {
 	    # un-knit data
 #	    _debug("#KNIT.rf $member");
 	    $xml->startTag($member);
@@ -1151,7 +1263,7 @@ sub write_object {
 	    #      }
 	  }
 	} elsif (ref($mtype) and $mtype->{list} and $mtype->{list}{role} eq '#KNIT') {
-	  if ($object->{$member} ne "") {
+	  if ($object->{$member} ne EMPTY) {
 	    # un-knit list
 	    my $list = $object->{$member};
 	    # _debug("#KNIT.rf $member @$list");
@@ -1189,11 +1301,11 @@ sub write_object {
 		}
 		$xml->endTag($member);
 	      }
-	    } elsif ($list ne '') {
+	    } elsif ($list ne EMPTY) {
 	      _warn("Unexpected content of knit List '$knit_tag': $list\n");
 	    }
 	  }
-	} elsif ($object->{$member} ne "" or $mdecl->{required}) {
+	} elsif ($object->{$member} ne EMPTY or $mdecl->{required}) {
 	  write_object($xml, $fsfile, $types,$mdecl,$member,$object->{$member});
 	}
       }
@@ -1221,7 +1333,7 @@ sub write_object {
       _warn("Unexpected content of List '$what': $object\n");
     }
   } elsif (exists $type->{alt}) {
-    if ($object ne "" and ref($object) eq 'Fslib::Alt') {
+    if ($object ne EMPTY and ref($object) eq 'Fslib::Alt') {
       if (@$object == 0) {
 	# what do we do now?
       } elsif (@$object == 1) {
@@ -1255,7 +1367,7 @@ sub write_object {
 	    _warn("Text not allowed in the sequence '$what', writing it anyway\n");
 	  }
 	  $xml->characters($element->[1]);
-	} elsif ($element->[0] ne '') {
+	} elsif ($element->[0] ne EMPTY) {
 	  my $eltype = $sequence->{element}{$element->[0]};
 	  if ($eltype) {
 	    write_object($xml, $fsfile, $types,$eltype,$element->[0],$element->[1]);
@@ -1283,7 +1395,7 @@ sub write_object {
     unless ($no_attribs) {
       foreach my $attrib (values(%{$container->{attribute}})) {
 	my $atr = $attrib->{-name};
-	if ($attrib->{required} or  $object->{$atr} ne "") {
+	if ($attrib->{required} or  $object->{$atr} ne EMPTY) {
 	  $attribs{$atr} = $object->{$atr}
 	}
       }
@@ -1315,7 +1427,7 @@ sub validate_object_knit {
   my ($log,$path,$types,$type,$tag,$knit_tag,$object)=@_;
   my $ref = $object->{id};
   _debug("validate_knit_object: $path/$knit_tag, $object");
-  if ($object->{id} eq "" or ref($object->{id})) {
+  if ($object->{id} eq EMPTY or ref($object->{id})) {
     push @$log, "$path/$knit_tag/id: invalid ID: $object->{id}\n";
   }
   if ($ref =~ /^.+#.|^[^#]+$/) {
@@ -1328,7 +1440,7 @@ sub validate_object_knit {
 sub validate_object ($$$$$$) {
   my ($log, $path, $types, $type, $tag, $object)=@_;
   my $pre=$type;
-  $path.="/".$tag if $tag ne "";
+  $path.="/".$tag if $tag ne EMPTY;
   _debug("validate_object: $path, $object");
   $type = resolve_type($types,$type);
   unless (ref($type)) {
@@ -1361,7 +1473,7 @@ sub validate_object ($$$$$$) {
       push @$log, "$path: Unexpected content of a structure $struct->{name}: '$object'";
     } elsif (keys(%$object)) {
       foreach my $atr (grep {$members->{$_}{as_attribute}} keys %$members) {
-	if ($members->{$atr}{required} or $object->{$atr} ne "") {
+	if ($members->{$atr}{required} or $object->{$atr} ne EMPTY) {
 	  if (ref($object->{$atr})) {
 	    push @$log, "$path/$atr: invalid content for member declared as attribute: ".ref($object->{$atr});
 	  }
@@ -1377,17 +1489,17 @@ sub validate_object ($$$$$$) {
 	} elsif ($members->{$member}{role} eq '#KNIT') {
 	  my $knit_tag = $member;
 	  $knit_tag =~ s/\.rf$//;
-	  if ($object->{$member} ne "") {
+	  if ($object->{$member} ne EMPTY) {
 	    if (ref($object->{$member})) {
 	      push @$log, "$path/$member: invalid content for member with role #KNIT: ",ref($object->{$member});
 	    }
-	    if (ref($object->{$knit_tag}) or $object->{$knit_tag} ne "") {
+	    if (ref($object->{$knit_tag}) or $object->{$knit_tag} ne EMPTY) {
 	      push @$log, "$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member";
 	    }
 	  } else {
 	    if (ref($object->{$knit_tag})) {
 	      validate_object_knit($log,$path,$types,$members->{$member},$member,$knit_tag,$object->{$knit_tag});
-	    } elsif ($object->{$knit_tag} ne '') {
+	    } elsif ($object->{$knit_tag} ne EMPTY) {
 	      push @$log, "$path/$knit_tag: invalid value for a #KNIT member: '$object->{$knit_tag}'";
 	    }
 	  }
@@ -1396,10 +1508,10 @@ sub validate_object ($$$$$$) {
 	  # KNIT list
 	  my $knit_tag = $member;
 	  $knit_tag =~ s/\.rf$//;
-	  if ($object->{$member} ne "" and
-	      $object->{$knit_tag} ne "") {
+	  if ($object->{$member} ne EMPTY and
+	      $object->{$knit_tag} ne EMPTY) {
 	    push @$log, "$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member";
-	  } elsif ($object->{$member} ne "") {
+	  } elsif ($object->{$member} ne EMPTY) {
 	    _debug("validating as $member not $knit_tag");
 	    validate_object($log, $path, $types,$members->{$member},$member,$object->{$member});
 	  } else {
@@ -1408,11 +1520,11 @@ sub validate_object ($$$$$$) {
 	      for (my $i=1; $i<=@$list;$i++) {
 		validate_object_knit($log,$path."/$knit_tag",$types,$mtype->{list},$member,"[$i]",$list->[$i-1]);
 	      }
-	    } elsif ($list ne "") {
+	    } elsif ($list ne EMPTY) {
 	      push @$log, "$path/$knit_tag: not a list: ",ref($object->{$knit_tag});
 	    }
 	  }
-	} elsif ($object->{$member} ne "" or $members->{$member}{required}) {
+	} elsif ($object->{$member} ne EMPTY or $members->{$member}{required}) {
 	  validate_object($log, $path, $types,$members->{$member},$member,$object->{$member});
 	}
       }
@@ -1428,7 +1540,7 @@ sub validate_object ($$$$$$) {
       push @$log, "$path: unexpected content of a list: $object\n";
     }
   } elsif (exists $type->{alt}) {
-    if ($object ne "" and ref($object) eq 'Fslib::Alt') {
+    if ($object ne EMPTY and ref($object) eq 'Fslib::Alt') {
       for (my $i=1; $i<=@$object; $i++) {
 	validate_object($log, $path, $types,$type->{alt},"[$i]",$object->[$i-1]);
       }
@@ -1442,7 +1554,7 @@ sub validate_object ($$$$$$) {
       my $container = $type->{container};
       my $attributes = $container->{attribute};
       foreach my $atr (keys %$attributes) {
-	if ($attributes->{$atr}{required} or $object->{$atr} ne "") {
+	if ($attributes->{$atr}{required} or $object->{$atr} ne EMPTY) {
 	  if (ref($object->{$atr})) {
 	    push @$log, "$path/$atr: invalid content for attribute: ".ref($object->{$atr});
 	  } else {
@@ -1457,10 +1569,10 @@ sub validate_object ($$$$$$) {
 	} else {
 	  my $cont_type = resolve_type($types,$container);
 	  if (ref($cont_type) and ref($cont_type->{sequence}) and $cont_type->{sequence}{role} eq '#CHILDNODES') {
-	    if ($content ne "") {
+	    if ($content ne EMPTY) {
 	      push @$log, "$path: #NODE container containing a #CHILDNODES should have empty #content: $content";
 	    }
-	    $content = Fslib::Seq->new([map { [$_->{'#name'},$_] } $object->children]);
+	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
 	  }
 	}
       }
@@ -1515,11 +1627,17 @@ sub test {
   if (ref($f)) {
     local $_;
     1 while ($_=$f->getline() and !/\S/);
-    return 0 unless (/^\s*<\?xml\s/);
-    do {{
-      return 1 if m{xmlns=(['"])http://ufal.mff.cuni.cz/pdt/pml/\1};
-    }} while ($_=$f->getline() and (!/\S/ or /^\s*<?[^>]+?>\s*$/ or !/[>]/));
-    return m{<[^>]+xmlns=(['"])http://ufal.mff.cuni.cz/pdt/pml/\1} ? 1 : 0;
+    if ($config) {
+      # see <, assume XML
+      return 1 if (/^\s*</);
+    } else {
+      # only accept PML instances
+      return 0 unless (/^\s*<\?xml\s/);
+      do {{
+        return 1 if m{xmlns=([\'\"])http://ufal.mff.cuni.cz/pdt/pml/\1};
+      }} while ($_=$f->getline() and (!/\S/ or /^\s*<?[^>]+?>\s*$/ or !/[>]/));
+      return m{<[^>]+xmlns=([\'\"])http://ufal.mff.cuni.cz/pdt/pml/\1} ? 1 : 0;
+    }
   } else {
     my $fh = IOBackend::open_backend($f,"r");
     my $test = $fh && test($fh,$encoding);
@@ -1529,6 +1647,10 @@ sub test {
 }
 
   package MyDOMWriter;
+  use constant {
+    EMPTY => q(),
+  };
+  *_die = \&PMLBackend::_die;
   sub new {
     my ($class,%args)=@_;
     $class = ref($class) || $class;
@@ -1547,34 +1669,58 @@ sub test {
     my ($self)=@_;
     return $self->{REPLACEMENT} || $self->{ELEMENT};
   }
+  sub xmlDecl {
+    my ($self,$enc,$standalone)=@_;
+    $self->{DOM}->setEncoding($enc) if defined $enc;
+    $self->{DOM}->setStandalone($standalone) if defined $standalone;
+  }
+
   sub startTag {
     my ($self,$name,@attrs)=@_;
     if ($self->{ELEMENT}) {
-      $self->{ELEMENT} = $self->{ELEMENT}->addNewChild($self->{NS},$name);
+      $self->{ELEMENT} = $self->{ELEMENT}->addNewChild(undef,$name);
     } elsif ($self->{REPLACE}) {
-      $self->{ELEMENT} = $self->{DOM}->createElementNS($self->{NS},$name);
+      $self->{ELEMENT} = $self->{DOM}->createElement($name);
       $self->{REPLACE}->replaceNode($self->{ELEMENT});
       $self->{REPLACEMENT} = $self->{ELEMENT};
       delete $self->{REPLACE};
     } else {
-      $self->{ELEMENT} = $self->{DOM}->createElementNS($self->{NS},$name);
+      $self->{ELEMENT} = $self->{DOM}->createElement($name);
       $self->{DOM}->setDocumentElement($self->{ELEMENT});
     }
     for (my $i=0; $i<@attrs; $i+=2) {
-      $self->{ELEMENT}->setAttribute( $attrs[$i] => $attrs[$i+1] );
+      my $atr = $attrs[$i];
+      if ($atr=~/^xmlns(?:[:](.*))?/) {
+	$self->{ELEMENT}->setNamespace($attrs[$i+1],$1,0);
+      } else {
+	$self->{ELEMENT}->setAttribute( $attrs[$i] => $attrs[$i+1] );
+      }
+    }
+    my $prefix = ($name =~ m/^([^:]+):/) ? $1 : undef;
+    my $uri = $self->{ELEMENT}->lookupNamespaceURI( $prefix );
+    if ($uri ne EMPTY) {
+      $self->{ELEMENT}->setNamespace($uri,$prefix,1);
     }
     1;
   }
+  sub emptyTag {
+    my $self = shift;
+    my $name = shift;
+    $self->startTag($name,@_);
+    $self->endTag();
+  }
   sub endTag {
     my ($self,$name)=@_;
-    if ($name ne "") {
-      if ($self->{ELEMENT} and $self->{ELEMENT}->nodeName eq $name) {
+    if ($name ne EMPTY) {
+      if ($self->{ELEMENT} and $self->{ELEMENT}->localName eq $name) {
 	$self->{ELEMENT} = $self->{ELEMENT}->parentNode;
       } else {
 	_die ("Can't end ".
-	  ($self->{ELEMENT} ? '<'.$self->{ELEMENT}->nodeName.'>' : 'none').
+	  ($self->{ELEMENT} ? '<'.$self->{ELEMENT}->localName.'>' : 'none').
 	    " with </$name>");
       }
+    } else {
+      $self->{ELEMENT} = $self->{ELEMENT}->parentNode if $self->{ELEMENT};
     }
     1;
   }
