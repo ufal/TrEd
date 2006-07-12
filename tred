@@ -7085,7 +7085,7 @@ sub editAttrsDialog_schema {
   require Tk::TrEdNodeEdit;
 
   use Data::Dumper;
-  # __debug("PATH: '$attr_path'\n");
+  #__debug("PATH: '$attr_path'\n");
 
   my $base_type = ref($as_type) ? $as_type : $node->type;
   my $schema;
@@ -7201,7 +7201,8 @@ sub editAttrsDialog_schema {
 
   if ($attr_path ne "") {
     $node_type = $base_type->find($attr_path);
-    # __debug("NODETYPE: '$attr_path'\n",Dumper($base_type),"\n",Dumper($node_type),"\n");
+    #__debug("NODETYPE: '$attr_path'\n",Dumper($base_type->type_decl));
+    #__debug(Dumper($node_type),"\n");
     $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
   } else {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
@@ -7345,7 +7346,7 @@ sub editAttrsDialog_schema {
 	$val = ($attr_path eq "") ? FSNode->new : {};
 	$edit->dump_to_node($val);
 	my $log=[];
-	__debug("Validating node $val\n");
+	#__debug("Validating node $val\n");
 	my $type;
 	if ($attr_path eq "") {
 	  # This is a hack. The validation procedure
