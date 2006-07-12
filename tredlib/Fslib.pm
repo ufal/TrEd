@@ -580,7 +580,7 @@ sub set_firstson ($$) {
   $node->{$Fslib::firstson}=ref($p) ? $p : 0;
 }
 
-=item set_type(type)
+=item set_type (type)
 
 Associate FSNode object with a given Fslib::Type.
 
@@ -638,7 +638,7 @@ sub validate {
   if (!ref($type)) {
     croak "FSNode::validate: Cannot determine node data type!";
   }
-  
+
   my $schema = $type->schema;
   if (!ref($type)) {
     croak "FSNode::validate: Cannot determine schema!";
@@ -963,7 +963,7 @@ sub children {
 
 =pod
 
-=item visible_children(fsformat)
+=item visible_children (fsformat)
 
 Return a list of visible dependent nodea.
 
@@ -1002,7 +1002,7 @@ sub descendants {
   return @kin;
 }
 
-=item visible_descendants(fsformat)
+=item visible_descendants (fsformat)
 
 Return a list recursively dependent visible nodes.
 
@@ -1327,7 +1327,7 @@ sub writeTo {
 
 =pod
 
-=item sentord(), order(), value(), hide()
+=item sentord (), order(), value(), hide()
 
 Return names of special attributes declared in FS format as @W, @N,
 @V, @H respectively.
@@ -2156,7 +2156,7 @@ sub fileFormat {
 
 =pod
 
-=item changeFileFormat(string)
+=item changeFileFormat (string)
 
 Change file format indentifier.
 
@@ -3298,7 +3298,7 @@ This class implements the attribute value type 'list'.
 package Fslib::List;
 use Carp;
 
-=item new(value?,...)
+=item new(val1,val2,...)
 
 Create a new list (optionally populated with given values).
 
@@ -3355,7 +3355,7 @@ This class implements the attribute value type 'alternative'.
 package Fslib::Alt;
 use Carp;
 
-=item new(value?,...)
+=item new(value1,value2,...)
 
 Create a new alternative (optionally populated with given values).
 
@@ -3460,17 +3460,6 @@ sub members {
 
 =cut
 
-=head1 Fslib::Seq
-
-This class implements the attribute value type 'sequence'.  A sequence
-consists of items called elements. Each element is a name-value
-pair. Unlike hashes, sequences are ordered and may contain more than
-one element with a given name.
-
-=over 3
-
-=cut
-
 =head1 Fslib::Container
 
 This class implements the data type 'container'. A container consists
@@ -3491,7 +3480,7 @@ use vars qw(@ISA);
 
 @ISA=qw(Fslib::Struct);
 
-=item attributes
+=item attributes()
 
 Return (assorted) list of names of all attributes.
 
@@ -3523,7 +3512,7 @@ This is an alias for value().
 
 package Fslib::Seq;
 use Carp;
-  
+
 =item new([element_array_ref?, content_pattern?)
 
 Create a new sequence (optionally populated with elements from a given
@@ -3533,7 +3522,7 @@ stored in the object and used later for validating content (see
 validate() method below).
 
 =cut
-  
+
   sub new {
     my ($class,$array,$content_pattern) = @_;
     $array = [] unless defined($array);
@@ -3548,7 +3537,7 @@ Return a list of [ name, value ] pairs representing the sequence
 elements.
 
 =cut
-  
+
   sub elements {
     return @{$_[0]->[0]};
   }
@@ -3558,7 +3547,7 @@ elements.
 Like C<elements>, only this method returns a Fslib::List object.
 
 =cut
-  
+
   sub elements_list {
     return $_[0]->[0];
   }
@@ -3639,7 +3628,7 @@ Return the name of the element on a given position.
     return $self->[0][$index][0];
   }
 
-=item name_at(index)
+=item value_at(index)
 
 Return the value of the element on a given position.
 
@@ -3746,13 +3735,13 @@ pair.
 
 package Fslib::Seq::Element;
 use Carp;
-  
+
 =item new(name, value)
 
 Create a new sequence element.
 
 =cut
-  
+
   sub new {
     my ($class,$name, $value) = @_;
     return bless [$name,$value],$class;
@@ -3763,7 +3752,7 @@ Create a new sequence element.
 Return the name of the element.
 
 =cut
-  
+
   sub name {
     $_[0]->[0];
   }
@@ -3774,7 +3763,7 @@ Return the name of the element.
 Return the value of the element.
 
 =cut
-  
+
   sub value {
     $_[0]->[1];
   }
@@ -3784,7 +3773,7 @@ Return the value of the element.
 Set name of the element
 
 =cut
-  
+
   sub setName {
     $_[0]->[0] = $_[1];
   }
@@ -3795,7 +3784,7 @@ Set name of the element
 Set value of the element
 
 =cut
-  
+
   sub setValue {
     $_[0]->[1] = $_[1];
   }
@@ -3826,7 +3815,7 @@ use Carp;
 sub _match_revision {
   my ($self,$revision)=@_;
   my $my_revision=$self->{revision} || 0;
-  
+
   my @my_revision = split(/\./,$my_revision);
   my @revision = split(/\./,$revision);
   my $cmp;
@@ -4004,7 +3993,7 @@ sub __fmt {
 
 sub check_revision {
   my ($self,$opts)=@_;
-  
+
   my $error = $opts->{revision_error} || 'Error: wrong schema revision of %f: %e';
   if ($opts->{revision} and
 	$self->_match_revision($opts->{revision})!=0) {
@@ -4188,7 +4177,7 @@ sub node_types {
 }
 
 
-=item get_type_by_name(name)
+=item get_root_type(name)
 
 Returns a HASH structure representing the declaration of the root type.
 
