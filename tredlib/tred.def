@@ -1628,12 +1628,14 @@ Act as if the user pressed the undo button. Note that this macro also
 changes $this and $root (since undo replaces the current tree with an
 in-memory copy).
 
-Warning: Be aware of a special case when Undo is called from a hook
-indirectly invoked by a macro. In this case, changes to $this and
-$root do not propagate to the macro, which in turn ends up working
-with incorrect nodes. Thus, if calling Undo() within a hook, make sure
-to reset $this from $grp->{currentNode} and $root from $this->root
-after all calls from your macros which may possibly invoke the hook.
+WARNING: Be aware that calling Undo() from a hook may conflict with
+some macros, more specifically, with macros triggering such a hook
+(indirectly, i.e. via some API call). In a case, changes to $this and
+$root caused by Undo() do not propagate to the macro, which in turn
+ends up working with incorrect (already replaced) nodes. Thus, if
+calling Undo() within a hook, make sure to reset $this from
+$grp->{currentNode} and $root from $this->root after all calls from
+your macros which may possibly invoke the hook.
 
 =cut
 
