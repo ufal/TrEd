@@ -24,7 +24,6 @@ use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $DEBUG $config $config_fi
   - support for external xslt processors (maybe a common wrapper)
   - with LibXSLT, cache the parsed stylesheets
   - cache the transform rules from the config file
-  - allow parameters to be passed to the stylesheet  
 
 =cut
 
