@@ -579,6 +579,7 @@ sub next_sibling {
 sub add_member {
   my ($hlist,$base_path,$member,$attr_val,$attr_name,$allow_empty,$entry_opts,$required)=@_;
   my $mtype;
+
   if (!ref($member) and $member =~ /^#/) {
     $mtype = $member;
   } else {
@@ -955,17 +956,20 @@ sub dump_child {
   } elsif ($dump eq 'none') {
     # nothing to do
   } elsif ($dump eq 'structure' or $dump eq 'container') {
-    my $new_ref;
+    my $new_ref = $dump eq 'structure' ? 
+	  Fslib::Struct->new : Fslib::Container->new;
     my @children = $hlist->info(children => $path);
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
       if (@children) {
-	$new_ref = {};
 	push @$ref, $new_ref;
       }
     } else {
       if (@children) {
-	$ref->{$data->{name}} = {} unless ref($ref->{$data->{name}});
-	$new_ref = $ref->{$data->{name}};
+	if (ref($ref->{$data->{name}})) {
+	  $new_ref = $ref->{$data->{name}};
+	} else {
+	  $ref->{$data->{name}} = $new_ref;
+	}
       } else {
 	delete $ref->{$data->{name}};
       }
