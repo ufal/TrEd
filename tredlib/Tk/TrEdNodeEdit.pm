@@ -695,7 +695,7 @@ sub add_list_member {
 
 sub add_sequence_member {
   my ($hlist,$path,$mtype,$val,$list_no,$allow_empty,$entry_opts)=@_;
-  return $hlist->add_member($path."/",$mtype->{element}{$val->name},$val->value,'['.$list_no.']',$allow_empty,$entry_opts,0,$val->name);
+  return $hlist->add_member($path."/",$mtype->{sequence}{element}{$val->name},$val->value,'['.$list_no.']',$allow_empty,$entry_opts,1,$val->name);
 }
 
 
@@ -914,7 +914,7 @@ sub add_member {
       if ($attr_val) {
 	foreach my $element ($attr_val->elements) {
 	  $list_no++;
-	  $hlist->add_sequence_member($path,$mtype->{sequence},$element,$list_no);
+	  $hlist->add_sequence_member($path,$mtype,$element,$list_no);
 	}
       }
     }
@@ -1126,9 +1126,9 @@ sub dump_child {
       } else {
 	delete $ref->{$data->{name}};
       }
-      for my $child (@children) {
-	$hlist->dump_child($child,$new_ref,$preserve_empty);
-      }
+    }
+    for my $child (@children) {
+      $hlist->dump_child($child,$new_ref,$preserve_empty);
     }
   } else {
     warn "Can't dump $path as $dump. Type ",Dumper($mtype),"\n";
