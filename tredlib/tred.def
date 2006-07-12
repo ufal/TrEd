@@ -1377,10 +1377,10 @@ sub AddToAlt {
 
 =item C<AddToList(node,attr,value,value,...)>
 
-Add values to a given attribute. If C<$node-E<gt>{$attr}> is not defined or
+Add values to a given attribute. If C<$node-E<gt>attr($attr)> is not defined or
 empty, a new C<Fslib::List> containing given values is created. If
-C<$node-E<gt>{$attr}> is a C<Fslib::List> object, given values are simply added
-to it. Error is issued if C<$node-E<gt>{$attr}> is defined, non-empty, yet not
+C<$node-E<gt>attr($attr)> is a C<Fslib::List> object, given values are simply added
+to it. Error is issued if C<$node-E<gt>attr($attr)> is defined, non-empty, yet not
 a C<Fslib::List> object.
 
 =cut
@@ -1392,6 +1392,30 @@ sub AddToList {
     push @$val,@_;
   } elsif ($val eq "") {
     $val = Fslib::List->new(@_);
+    $node->set_attr($attr,$val,1);
+  } else {
+    die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$val'!\n"
+  }
+}
+
+=item C<AddToListUniq(node,attr,value,value,...)>
+
+Add values to a given attribute, unless already present among the
+current values. If C<$node-E<gt>attr($attr)> is not defined or empty,
+a new C<Fslib::List> containing given values is created. If
+C<$node-E<gt>attr($attr)> is a C<Fslib::List> object, given values are
+simply added to it. Error is issued if C<$node-E<gt>attr($attr)> is
+defined, non-empty, yet not a C<Fslib::List> object.
+
+=cut
+
+sub AddToListUniq {
+  my ($node,$attr)=(shift,shift);
+  my $val = $node->attr($attr);
+  if (IsList($val)) {
+    @$val = uniq(@$val,@_);
+  } elsif ($val eq "") {
+    $val = Fslib::List->new(uniq(@_));
     $node->set_attr($attr,$val,1);
   } else {
     die "AddToList: Attribute '$attr' contains a non-empty non-list value. Refusing to add '$val'!\n"
