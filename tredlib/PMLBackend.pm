@@ -32,6 +32,7 @@ use constant {
   LM => 'LM',
   AM => 'AM',
   PML_NS => "http://ufal.mff.cuni.cz/pdt/pml/",
+  PML_SCHEMA_NS => "http://ufal.mff.cuni.cz/pdt/pml/schema/",
   CONF_NS => "http://ufal.mff.cuni.cz/pajas/tred/conf",
   SUPPORTED_VERSIONS => " 1.1 ",
 };
@@ -151,6 +152,7 @@ sub index_fs_by_id {
 
 sub xml_parser {
   my $parser = XML::LibXML->new();
+  $parser->keep_blanks(0);
   $parser->line_numbers(1);
   $parser->load_ext_dtd(0);
   $parser->validation(0);
@@ -247,22 +249,43 @@ sub read_references {
     my ($schema) = $head->getElementsByTagNameNS(PML_NS,'schema');
     if ($schema) {
       # Encode: all filenames must(!) be bytes
-      my $schema_file = Encode::encode_utf8($schema->getAttribute('href'));
-      my %revision_opts;
-      for my $attr (qw(revision maximal_revision minimal_revision)) {
-	$revision_opts{$attr}=$schema->getAttribute($attr) if $schema->hasAttribute($attr);
+      if ($schema->hasAttribute('href')) {
+	my $schema_file = Encode::encode_utf8($schema->getAttribute('href'));
+	my %revision_opts;
+	for my $attr (qw(revision maximal_revision minimal_revision)) {
+	  $revision_opts{$attr}=$schema->getAttribute($attr) if $schema->hasAttribute($attr);
+	}
+	# store the original URL, not the resolved one!
+	$fsfile->changeMetaData('schema-url',$schema_file);
+	$fsfile->changeMetaData('schema',
+				Fslib::Schema->readFrom($schema_file,
+							{ base_url => $fsfile->filename,
+							  use_resources => 1,
+							  revision_error => 
+							    "Error: ".$fsfile->filename." requires different revision of PML schema %f: %e\n",
+							  %revision_opts,
+							}
+						       ));
+      } else {
+	my ($inline) = $head->getElementsByTagNameNS(PML_SCHEMA_NS,'pml_schema');
+	if ($inline) {
+	  my $xml = $inline->toString;
+	  $fsfile->changeMetaData('schema-url',undef);
+	  $fsfile->changeMetaData('schema-inline',$xml);
+	  $fsfile->changeMetaData('schema',
+				  Fslib::Schema->new('<?xml version="1.0"?>'.$xml,
+						     { 
+						       base_url => $fsfile->filename,
+						       use_resources => 1,
+						       filename => $fsfile->filename,
+						     }
+						    ));	
+	} else {
+	  _die("PML instance must specify a PML schema"._element_address($head));
+	}
       }
-      # store the original URL, not the resolved one!
-      $fsfile->changeMetaData('schema-url',$schema_file);
-      $fsfile->changeMetaData('schema',
-			      Fslib::Schema->readFrom($schema_file,
-						      { base_url => $fsfile->filename,
-							use_resources => 1,
-							revision_error => 
-							  "Error: ".$fsfile->filename." requires different revision of PML schema %f: %e\n",
-							%revision_opts,
-						      }
-						     ));
+    } else {
+      _die("PML instance must specify a PML schema"._element_address($head));
     }
   }
   $fsfile->changeMetaData('references',\%references);
@@ -1012,7 +1035,14 @@ sub write_data {
 
   $xml->startTag($root_name,'xmlns' => PML_NS, %attribs);
   $xml->startTag('head');
-  $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
+  my $inline = $fsfile->metaData('schema-inline');
+  if ($inline ne "") {
+    $xml->startTag('schema');
+    Element2Writer($xml,$parser->parse_string($inline)->documentElement);
+    $xml->endTag('schema');
+  } else {
+    $xml->emptyTag('schema', href => $fsfile->metaData('schema-url'));
+  }
   {
     if (ref($references) and keys(%$references)) {
       my $named = $fsfile->metaData('refnames');
@@ -1613,6 +1643,35 @@ sub validate_object ($$$$$$) {
   return (@$log == 0);
 }
 
+sub Element2Writer {
+  my ($xml,$element,@attributes) = @_;
+  push @attributes, map { $_->nodeName => $_->value } $element->attributes;
+  if ($element->hasChildNodes) {
+    $xml->startTag($element->nodeName, @attributes );
+    my $child = $element->firstChild;
+    while ($child) {
+      my $type = $child->nodeType;
+      if ($type == ELEMENT_NODE) {
+	Element2Writer($xml,$child);
+      } elsif ($type == TEXT_NODE) {
+	my $data = $child->data;
+	$xml->characters($data) if $data=~/\S/;
+      } elsif ($type == CDATA_SECTION_NODE) {
+	$xml->cdata($child->data);
+      } elsif ($type == PI_NODE) {
+	$xml->pi($child->nodeName, $child->data);
+      } elsif ($type == COMMENT_NODE) {
+	$xml->comment($child->data);
+	
+      }
+    } continue {
+      $child = $child->nextSibling;
+    };
+    $xml->endTag($element->nodeName);
+  } else {
+    $xml->emptyTag($element->nodeName, @attributes );
+  }
+}
 
 =pod
 
