@@ -66,9 +66,8 @@ strip the file-ref part of the reference.
 sub GetANodeREFs {
   my $node = $_[0] || $this;
   return $node->{'atree.rf'} if $node->{'atree.rf'} ne "";
-  return () unless ref($node->{a});
-  my $lex = $node->{a}{'lex.rf'};
-  return (($lex ne "" ? $lex : ()), ListV($node->{a}{'aux.rf'}));
+  my $lex = $node->attr('a/lex.rf');
+  return (($lex ne "" ? $lex : ()), ListV($node->attr('a/aux.rf')));
 }
 
 =item GetANodes($node?)
@@ -237,10 +236,11 @@ sub get_value_line_hook {
     push@out,([" ","space"])unless$first;
     $first=0;
     my $token = join(" ",map { $_->{token} } ListV($node->attr('m/w')));
-    if ($node->{'m'}{form} ne $token){
+    my $form = $node->attr('m/form');
+    if ($form ne $token){
       push@out,(['['.$token.']',@{$refers_to{$node->{id}}},'-over=>1','-foreground=>'.CustomColor('spell')]);
     }
-    push@out,([$node->{'m'}{form},@{$refers_to{$node->{id}}}]);
+    push@out,([$form,@{$refers_to{$node->{id}}}]);
   }
   return \@out;
 }
@@ -657,7 +657,7 @@ C<m/tag> of the referenced analytical nodes), return 1, else return 0.
 
 sub IsFiniteVerb {
   my $node = $_[0] || $this;
-  return (first { $_->{'m'}{tag}=~/^V[^sf]/ } GetANodes($node)) ? 1 : 0;
+  return (first { $_->attr('m/tag')=~/^V[^sf]/ } GetANodes($node)) ? 1 : 0;
 }#IsFiniteVerb
 
 =item IsPassive($node?)
@@ -669,8 +669,8 @@ C<m/tag> of the referenced analytical nodes), return 1, else return 0.
 
 sub IsPassive {
   my $node = $_[0] || $this;
-  my @anodes = grep { $_->{'m'}{tag} =~ /^V/ } GetANodes($node);
-  return( @anodes == 1 and $anodes[0]->{'m'}{tag} =~ /^Vs/)
+  my @anodes = grep { $_->attr('m/tag') =~ /^V/ } GetANodes($node);
+  return( @anodes == 1 and $anodes[0]->attr('m/tag') =~ /^Vs/)
 }#IsPassive
 
 =item IsInfinitive($node?)
@@ -682,7 +682,7 @@ C<m/tag> of the referenced analytical nodes), return 1, else return 0.
 
 sub IsInfinitive {
   my $node = $_[0] || $this;
-  my @anodes = grep { $_->{'m'}{tag} =~ /^V/ } GetANodes($node);
+  my @anodes = grep { $_->attr('m/tag') =~ /^V/ } GetANodes($node);
   @anodes and not(&IsFiniteVerb or &IsPassive);
 }#IsInfinitive
 
