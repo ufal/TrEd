@@ -137,10 +137,11 @@ sub get_value_line_hook {
     }
     $first=0;
     my $token = join(" ",map { $_->{token} } ListV($node->attr('m/w')));
-    if ($node->{'m'}{form} ne $token){
+    my $form = $node->attr('m/form');
+    if ($form ne $token){
       push@out,(['['.$token.']',@{$refers_to{$node->{id}}},'-over=>1','-foreground=>'.CustomColor('spell')]);
     }
-    push@out,([$node->{'m'}{form},@{$refers_to{$node->{id}}}]);
+    push@out,([$form,@{$refers_to{$node->{id}}}]);
   }
   push@out,(["\n".$tree->{eng_sentence},'-foreground=>lightblue']);
   return \@out;
