@@ -382,6 +382,9 @@ sub ImportBackends {
 package FSNode;
 use Carp;
 use strict;
+use vars qw(@ISA);
+
+@ISA=qw(Fslib::Struct);
 
 =pod
 
@@ -906,7 +909,7 @@ sub set_attr {
     } elsif (ref($val)) {
       if (@steps) {
 	if (!defined($val->{$step}) and $steps[0]!~/^\[/) {
-	  $val->{$step}={};
+	  $val->{$step}=Fslib::Struct->new;
 	}
 	$val = $val->{$step};
       } else {
@@ -3377,6 +3380,85 @@ sub values {
 
 =cut
 
+=head1 Fslib::Struct
+
+This class implements the data type 'structure'.  Structure consists
+of items called members. Each member is a name-value pair, where the
+name uniquely determines the member within the structure
+(i.e. distinct members of a structure have distinct names).
+
+=over 3
+
+=cut
+
+package Fslib::Struct;
+use Carp;
+
+=item new ({name=>value, ...},reuse?)
+
+Create a new structure (optionally initializing its members).  If
+reuse is true, the hash reference passed may be reused (reblessed)
+into the structure.
+
+=cut
+
+sub new {
+  my ($class,$hash,$reuse) = @_;
+  if (ref $hash) {
+    return $reuse ? bless $hash, $class 
+                  : bless {%$hash}, $class;
+  } else {
+    return bless {}, $class;
+  }
+}
+
+=item getMember (name)
+
+Return value of the given member.
+
+=cut
+
+sub getMember {
+  my ($self,$name) = @_;
+  return $self->{$name};
+}
+
+
+=item setMember (name,value)
+
+Set value of the given member.
+
+=cut
+
+sub setMember {
+  my ($self,$name,$value) = @_;
+  return $self->{$name}=$value;
+}
+
+=item deleteMember (name)
+
+Delete the given member (returning its last value).
+
+=cut
+
+sub deleteMember {
+  my ($self,$name) = @_;
+  return delete $self->{$name};
+}
+
+=item members
+
+Return (assorted) list of names of all members.
+
+=cut
+
+sub members {
+  return keys %{$_[0]};
+}
+
+=back
+
+=cut
 
 =head1 Fslib::Seq
 
@@ -3388,6 +3470,56 @@ one element with a given name.
 =over 3
 
 =cut
+
+=head1 Fslib::Container
+
+This class implements the data type 'container'. A container consists
+of a central value called content annotated by a set of name-value
+pairs called attributes whose values are atomic. Fslib represents the
+container class as a subclass of Fslib::Struct, where attributes are
+represented as members and the content as a member with a reserved
+name '#content'.
+
+=over 3
+
+=cut
+
+package Fslib::Container;
+use Carp;
+use strict;
+use vars qw(@ISA);
+
+@ISA=qw(Fslib::Struct);
+
+=item attributes
+
+Return (assorted) list of names of all attributes.
+
+=cut
+
+sub attributes {
+  return grep { $_ ne '#container' } keys %{$_[0]};
+}
+
+=item value
+
+Return the content value of the container.
+
+=cut
+
+sub value {
+  return $_[0]->{'#container'};
+}
+
+=item content
+
+This is an alias for value().
+
+=cut
+
+*content = \&value;
+*getAttribute = \&Fslib::Struct::getMember;
+*setAttribute = \&Fslib::Struct::setMember;
 
 package Fslib::Seq;
 use Carp;
@@ -3571,7 +3703,18 @@ Append a given name-value pair to the sequence.
 
   sub push_element {
     my ($self,$name,$value)=@_;
-    push @{$self->[0]},[$name,$value];
+    push @{$self->[0]},Fslib::Seq::Element->new($name,$value);
+  }
+
+=item push_element_obj(obj)
+
+Append a given Fslib::Seq::Element object to the sequence.
+
+=cut
+
+  sub push_element_obj {
+    my ($self,$obj)=@_;
+    push @{$self->[0]},$obj;
   }
 
 
@@ -3586,6 +3729,75 @@ Append a given name-value pair to the sequence.
   }
   sub insert_at {
     # TODO
+  }
+
+=back
+
+=cut
+
+=head1 Fslib::Seq::Element
+
+This class implements an element of a 'sequence', i.e. a name-value
+pair.
+
+=over 3
+
+=cut
+
+package Fslib::Seq::Element;
+use Carp;
+  
+=item new(name, value)
+
+Create a new sequence element.
+
+=cut
+  
+  sub new {
+    my ($class,$name, $value) = @_;
+    return bless [$name,$value],$class;
+  }
+
+=item name()
+
+Return the name of the element.
+
+=cut
+  
+  sub name {
+    $_[0]->[0];
+  }
+
+
+=item value()
+
+Return the value of the element.
+
+=cut
+  
+  sub value {
+    $_[0]->[1];
+  }
+
+=item setName(name)
+
+Set name of the element
+
+=cut
+  
+  sub setName {
+    $_[0]->[0] = $_[1];
+  }
+
+
+=item setValue(value)
+
+Set value of the element
+
+=cut
+  
+  sub setValue {
+    $_[0]->[1] = $_[1];
   }
 
 =back
