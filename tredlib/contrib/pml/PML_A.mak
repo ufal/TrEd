@@ -146,7 +146,7 @@ sub GetSentenceString {
     $node=$node->following();
   }
   return join('',map{
-    $_->{'m'}{form}.($_->attr('m/w/no_space_after')?'':' ')
+    $_->attr('m/form').($_->attr('m/w/no_space_after')?'':' ')
   } sort { $a->{ord} <=> $b->{ord} } @sent);
 }#GetSentenceString
 
@@ -283,7 +283,7 @@ sub ANodeToALexRf {
   my $refid = $t_file->metaData('refnames')->{adata};
   $t_node->set_attr('a/lex.rf',$refid."#".$a_node->{id});
   $t_node->set_attr('a/aux.rf',List(grep{ $_ ne $refid."#".$a_node->{id} }
-    uniq(ListV($t_node->{a}{'aux.rf'}))));
+    uniq(ListV($t_node->attr('a/aux.rf')))));
   my$lemma=$a_node->attr('m/lemma');
   my%specialEntity;
   %specialEntity=qw!. Period
@@ -324,8 +324,7 @@ sub ANodeToAAuxRf {
   return unless $t_node && $a_node;
   return unless ref($t_file);
   my $refid = $t_file->metaData('refnames')->{adata};
-  AddToList($t_node,'a/aux.rf',$refid.'#'.$a_node->{id});
-  @{$t_node->{a}{'aux.rf'}}=uniq(ListV($t_node->{a}{'aux.rf'}));
+  AddToListUniq($t_node,'a/aux.rf',$refid.'#'.$a_node->{id});
   delete $t_node->{a}{'lex.rf'}
     if $t_node->attr('a/lex.rf')eq$refid.'#'.$a_node->{id};
 }#ANodeToAAuxRf
@@ -393,9 +392,9 @@ sub get_status_line_hook {
            ($this->parent
             ?
             ("     m/lemma: " => [qw(label)],
-             $this->{'m'}{lemma} => [qw({m/lemma} value)],
+             $this->attr('m/lemma') => [qw({m/lemma} value)],
              "     m/tag: " => [qw(label)],
-             $this->{'m'}{tag} => [qw({m/tag} value)])
+             $this->attr('m/tag') => [qw({m/tag} value)])
             :()),
 	  ],
 
