@@ -142,10 +142,11 @@ sub ANodeToALexRf {
   $t_file ||= $grp->{FSFile}->appData('tdata');
   return unless ref($t_file);
   my $refid = $t_file->metaData('refnames')->{adata};
-  $t_node->{a}{'lex.rf'}=$refid."#".$a_node->{id};
-  @{$t_node->{a}{'aux.rf'}}=grep{ $_ ne $refid."#".$a_node->{id} }
-    uniq(ListV($t_node->{a}{'aux.rf'}));
-  my$lemma=$this->{'m'}{lemma};
+  $t_node->set_attr('a/lex.rf',$refid."#".$a_node->{id});
+  $t_node->set_attr('a/aux.rf',
+		    List(grep{ $_ ne $refid."#".$a_node->{id} }
+			 ListV($t_node->attr('a/aux.rf'))));
+  my$lemma=$this->attr('m/lemma');
   my%specialEntity;
   %specialEntity=qw!. Period
                     , Comma
@@ -179,8 +180,7 @@ sub ANodeToAAuxRf {
   $t_file ||= $grp->{FSFile}->appData('tdata');
   return unless ref($t_file);
   my $refid = $t_file->metaData('refnames')->{adata};
-  AddToList($t_node,'a/aux.rf',$refid.'#'.$a_node->{id});
-  @{$t_node->{a}{'aux.rf'}}=uniq(ListV($t_node->{a}{'aux.rf'}));
+  AddToListUniq($t_node,'a/aux.rf',$refid.'#'.$a_node->{id});
   delete $t_node->{a}{'lex.rf'}
     if $t_node->attr('a/lex.rf')eq$refid.'#'.$a_node->{id};
 }#ANodeToAAuxRf
