@@ -163,6 +163,13 @@ sub user_is_annotator {
   return $self->get_user_info($self->user())->[1];
 }
 
+sub user_can_edit {
+  my ($self)=@_;
+  return undef unless ref($self);
+  return $self->get_user_info($self->user())->[3];
+}
+
+
 sub getUserName {
   my ($self)=@_;
   return undef unless ref($self);
@@ -179,11 +186,16 @@ sub loadListOfUsers {
     my ($list)=$head->getChildElementsByTagName("list_of_users");
     if ($list) {
       foreach my $user ($list->getChildElementsByTagName("user")) {
+	my $is_annotator = ($user->getAttribute("annotator") eq "YES");
+	my $is_reviewer = ($user->getAttribute("is_reviewer") eq "YES");
+	my $can_edit =  (($is_annotator or $is_reviewer) and 
+			 ($user->getAttribute("can_edit") ne "NO"));
 	$users->{$user->getAttribute("id")} =
 	  [
 	   $user->getAttribute("name"),
-	   $user->getAttribute("annotator") eq "YES",
-	   $user->getAttribute("reviewer") eq "YES"
+	   $is_annotator,
+	   $is_reviewer,
+	   $can_edit
 	  ]
       }
     }
