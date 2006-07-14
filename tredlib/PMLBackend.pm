@@ -186,6 +186,7 @@ sub read ($$) {
       my ($in_xsl) = $transform->getChildrenByTagNameNS(CONF_NS,'in');
       next unless ($in_xsl and $in_xsl->getAttribute('type') eq 'xslt');
       my $in_xsl_href = $in_xsl->getAttribute('href');
+      _debug("Applying XSLT from $in_xsl_href");
       my $test = $transform->getAttribute('test');
       if ($in_xsl_href ne EMPTY and 
 	  $test ne EMPTY and 
@@ -198,7 +199,8 @@ sub read ($$) {
 	             $in_xsl->getChildrenByTagNameNS(CONF_NS,'param');
 	$in_xsl_href = Fslib::ResolvePath($config_file, $in_xsl_href, 1);
 	my $xslt = XML::LibXSLT->new;
-	my $in_xsl_parsed = $xslt->parse_stylesheet_file($in_xsl_href);
+	my $in_xsl_parsed = $xslt->parse_stylesheet_file($in_xsl_href)
+	  || _die("Can't locate XSL stylesheet '$in_xsl_href' declared as "._element_address($in_xsl));
 	$dom = $in_xsl_parsed->transform($dom,%params);
 	$dom_root = $dom->getDocumentElement;
 	$dom->setBaseURI($fsfile->filename) if $dom and $dom->can('setBaseURI');
@@ -267,13 +269,24 @@ sub read_references {
 							}
 						       ));
       } else {
-	my ($inline) = $head->getElementsByTagNameNS(PML_SCHEMA_NS,'pml_schema');
+	my ($inline) = $schema->getChildrenByTagNameNS(PML_SCHEMA_NS,'pml_schema');
 	if ($inline) {
-	  my $xml = $inline->toString;
+	  _debug("inline schema");
+	  # we copy inline schema to a new document so that
+	  # all namespace declarations are present in the string output
+	  my $schema = XML::LibXML::Document->new;
+	  # we cannot just adopt (move) it to the new document since
+	  # the schema document might be a result of a XSLT transformation
+          # and we would get a core-dump at de-allocation
+	  # (maybe because XSLT uses dictionaries) 
+
+	  $schema->setDocumentElement($schema->importNode($inline));
+
+	  my $xml = $schema->toString();
 	  $fsfile->changeMetaData('schema-url',undef);
 	  $fsfile->changeMetaData('schema-inline',$xml);
 	  $fsfile->changeMetaData('schema',
-				  Fslib::Schema->new('<?xml version="1.0"?>'.$xml,
+				  Fslib::Schema->new($xml,
 						     { 
 						       base_url => $fsfile->filename,
 						       use_resources => 1,
@@ -281,11 +294,11 @@ sub read_references {
 						     }
 						    ));	
 	} else {
-	  _die("PML instance must specify a PML schema"._element_address($head));
+	  _die("PML instance must specify a PML schema in "._element_address($head));
 	}
       }
     } else {
-      _die("PML instance must specify a PML schema"._element_address($head));
+      _die("PML instance must specify a PML schema in "._element_address($head));
     }
   }
   $fsfile->changeMetaData('references',\%references);
@@ -893,7 +906,7 @@ sub read_data {
 
   unless ($dom_root->namespaceURI eq PML_NS and
 	  $dom_root->localname eq $root_name) {
-    _die("Expected root element '$root_name'");
+    _die("Expected root element '$root_name', got '".$dom_root->localname."'\n".Dumper($schema));
   }
   unless (UNIVERSAL::isa($root_type,'HASH')) {
     _die("PML schema error - invalid root element declaration");
@@ -923,7 +936,6 @@ sub read_data {
 sub write {
   my ($fh,$fsfile)=@_;
   binmode $fh;
-  binmode $fh,":utf8";
 
   my $transform_id = $fsfile->metaData('pml_transform');
   if ($config and $transform_id ne EMPTY) {
@@ -949,7 +961,7 @@ sub write {
 
       my $out_xsl_parsed = $xslt->parse_stylesheet_file($out_xsl_href);
       my $result = $out_xsl_parsed->transform($dom,%params);
-      
+
       if (UNIVERSAL::can($result,'toFH')) {
 	$result->toFH($fh,1);
       } else {
@@ -960,6 +972,7 @@ sub write {
       _die("PMLBackend: Couldn't find PML transform with ID $transform_id");
     }
   } else {
+    binmode $fh,":utf8";
     my $xml =  new XML::Writer(OUTPUT => $fh,
 			       DATA_MODE => 1,
 			       DATA_INDENT => 1);
@@ -1770,7 +1783,7 @@ sub test {
   sub endTag {
     my ($self,$name)=@_;
     if ($name ne EMPTY) {
-      if ($self->{ELEMENT} and $self->{ELEMENT}->localName eq $name) {
+      if ($self->{ELEMENT} and $self->{ELEMENT}->nodeName eq $name) {
 	$self->{ELEMENT} = $self->{ELEMENT}->parentNode;
       } else {
 	_die ("Can't end ".
