@@ -65,7 +65,8 @@ sub QueryString {
   main::QueryString($grp->{framegroup},@_);
 }
 
-*QueryString = \&StringQuery;
+*StringQuery = \&QueryString;
+
 sub EditBoxQuery {
   ## draws a dialog box with one Text widget and Ok/Cancel buttons
   ## expects dialog title and default text
