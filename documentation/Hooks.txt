@@ -179,6 +179,10 @@ highlight_value_line_tag_hook node      no      invoked whenever a
                                                 return a tag to
                                                 highlight on the value line.
 
+determine_node_type_hook  node               no      invoked before tred needs to
+                                                determine node-type of a node
+                                                without one
+
 NOTE:
 Unlike other macros, hooks are expected not to modify the file. If the
 file is modified, the hook-function should set the $FileNotSaved
