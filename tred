@@ -1386,15 +1386,17 @@ sub plainErrorMessage {
   my $top;
   if (ref($grp)=~/^Tk::/) {
     $top = $grp->toplevel;
-  } elsif ($grp->{top}) {
-    $top = $grp->{top}->toplevel;
+  } elsif (ref($grp)) {
+    my $win = cast_to_win($grp);
+    $top = $win->toplevel if ref $win;
+  }
+  if (ref($top)) {
+    $top->messageBox(-icon=> 'error',
+		     -message=> $msg,
+		     -title=> 'Error', -type=> 'ok');
   } else {
     print STDERR "$msg\n";
-    return;
   }
-  $top->messageBox(-icon=> 'error',
-		   -message=> $msg,
-		   -title=> 'Error', -type=> 'ok');
 }
 
 # a simple dialog with one big text entry
@@ -2170,8 +2172,10 @@ sub saveFile {
     eval {
       IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
     };
-    my $err = "Error while renaming backup file $f~ back to $f.\n"._last_err();
-    errorMessage($win,$err,1) if $err;
+    if (_last_err()) {
+      my $err = "Error while renaming backup file $f~ back to $f.\n";
+      errorMessage($win,$err,1);
+    }
     return -1;
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
@@ -3968,11 +3972,11 @@ sub printThis {
     ($one_per_file,$range,@print_opts)=printDialog($grp);
     return unless scalar(@print_opts)>1;
     if ($print_opts[2] and (!$grp->{ttfonts} or !$grp->{ttfonts}->{$ttFont})) {
-      plainErrorMessage($grp,"You must select TrueType font for PDF!");
+      plainErrorMessage($win,"You must select TrueType font for PDF!");
       $err = 1;
     }
     if ($one_per_file and ($print_opts[3]!~/[%]\d*n/) and ($range=~/[\-,]/)) {
-      plainErrorMessage($grp,"Use %n in the output filename if you need one tree per file!");
+      plainErrorMessage($win,"Use %n in the output filename if you need one tree per file!");
       $err = 1;
     }
   }} while ($err);
@@ -4204,7 +4208,13 @@ sub onTreeChange {
 }
 
 sub onNodeChange {
-  my ($win)=@_;
+  my ($win,$change,$node)=@_;
+  if ($change =~ m/^newNode/ and fileSchema($win->{FSFile})) {
+    unless (determineNodeType($win,$node)) {
+      pruneNode($win,$node);
+      return;
+    }
+  }
   get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
   redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
 }
@@ -4678,31 +4688,33 @@ sub startMain {
   my $parent;
   my %group;
 
+  my $top;
   if ($opt_W) {
-    $group{top}=MainWindow->new(-use => $opt_W);
+    $top=MainWindow->new(-use => $opt_W);
   } else {
-    $group{top}=MainWindow->new();
+    $top=MainWindow->new();
   }
+  $group{top} = $top;
 
 #  eval {
 #    require Tk::Stderr;
-#    $group{top}->InitStderr;
+#    $top->InitStderr;
 #  } unless -t \*STDOUT;
 #  undef $@;
 
   for (qw(ROText Text Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
-    $group{top}->option('add',"\*$_.background","white");
-    $group{top}->option('add',"\*$_.foreground","black");
-    $group{top}->option('add',"\*$_.disabledBackground","lightgray");
-    $group{top}->option('add',"\*$_.disabledForeground","gray20");
+    $top->option('add',"\*$_.background","white");
+    $top->option('add',"\*$_.foreground","black");
+    $top->option('add',"\*$_.disabledBackground","lightgray");
+    $top->option('add',"\*$_.disabledForeground","gray20");
   }
   if ($TrEd::Convert::support_unicode) {
-    $group{top}->useinputmethods(1);
+    $top->useinputmethods(1);
   }
   readStyleSheets(\%group);
 
-  $group{autoSaveCallback}=$group{top}->repeat($autoSave*60000,
+  $group{autoSaveCallback}=$top->repeat($autoSave*60000,
 					       [\&autoSaveAll,\%group]) if $autoSave>0;
 
   $group{folderImage}= icon(\%group,'folder');
@@ -4714,16 +4726,16 @@ sub startMain {
   if (not $opt_G and defined($geometry)) {
     if ($geometry=~/^(.*)x(.*)\+([0-9]+)\+([0-9]+)/) {
         $geometry
-	 = "$1x$2+".min($3,$group{top}->vrootwidth-$1).
-	    "+".min($4,$group{top}->vrootheight-$2);
+	 = "$1x$2+".min($3,$top->vrootwidth-$1).
+	    "+".min($4,$top->vrootheight-$2);
     }
-    $group{top}->geometry($geometry);
+    $top->geometry($geometry);
   }
   if ($opt_W) {
 
     $geometry = "600x400";
-    $group{top}->sizefrom('program');
-    $group{top}->geometry($geometry);
+    $top->sizefrom('program');
+    $top->geometry($geometry);
   }
   prepareFonts(\%group);
   $group{treeWindows}=[];
@@ -4739,16 +4751,16 @@ sub startMain {
 
   if (-f $appIcon) {
     print STDERR "adding icon-image.\n" if $tredDebug;
-    $group{top}->iconimage($group{top}->Pixmap(-file=> "$appIcon"));
+    $top->iconimage($top->Pixmap(-file=> "$appIcon"));
     print STDERR "done.\n" if $tredDebug;
   }
 
-#  $group{top}->focusFollowsMouse;
-  addBindTags($group{top},'my');
+#  $top->focusFollowsMouse;
+  addBindTags($top,'my');
 
   print STDERR "Asking wm for exit-hook.\n" if $tredDebug;
 
-  $group{top}->
+  $top->
     protocol('WM_DELETE_WINDOW'=> 
 	     [sub { my $grp=shift;
 		    doEvalHook($grp->{focusedWindow},"exit_hook");
@@ -4762,23 +4774,39 @@ sub startMain {
 
   print STDERR "Exit hook created.\n" if $tredDebug;
 
-  $group{Balloon}=$group{top}->Balloon(-initwait=> $toolbarBalloonInitWait,
+  $group{Balloon}=$top->Balloon(-initwait=> $toolbarBalloonInitWait,
 				       -balloonposition=> 'mouse',
 				       -state=> 'balloon',
 				      );
   $group{Balloon}->Subwidget('message')->configure(-foreground=> $toolbarBalloonForeground);
   $group{Balloon}->Tk::Toplevel::configure(-background=> $toolbarBalloonBackground);
-  $group{frame}=$group{top}->Frame;
+  $group{frame}=$top->Frame;
 
   print STDERR "Creating menubar.\n" if $tredDebug;
 
+  # make old calls work
+  require Tk::Menu::Item;
+  *Tk::Menu::Item::entryconfigure = sub {
+    my ($menu,$name,%args) = @_;
+    my $m = $menu->menu;
+    $m->entryconfigure($m->index($name),%args);
+  };
+ 
 
-  $group{Menubar}=$group{top}->Frame(-relief=> $menubarRelief, -borderwidth=> 2);
-  $group{Menubar}->pack(qw/-fill x/);
-  $group{top}->Frame(qw/-relief sunken -height 2 -borderwidth 2/)->pack(qw/-fill x/);
+  $group{MenubarFrame}=$top->Frame()->pack(qw/-fill x/);
+  
+  $group{Menubar}=$group{MenubarFrame}->Menu(-type => 'menubar',
+					     -tearoff => 0,
+					     -takefocus=> 1,
+					     -relief=> $menubarRelief, -borderwidth=> 2);
+
+  $group{Menubar}->pack(qw/-fill x  -side left/);
+  $group{Menubar}->bind('Tk::Menu','<Tab>',['NextEntry',1]);
+  $group{Menubar}->bind('Tk::Menu','<<LeftTab>>',['NextEntry',-1]);
+  $top->Frame(qw/-relief sunken -height 2 -borderwidth 2/)->pack(qw/-fill x/);
   addBindTags($group{Menubar},'my');
 
-  $group{FileMenu}= $group{Menubar}->Menubutton(qw/-text File -underline 0/);
+  $group{FileMenu}= $group{Menubar}->Cascade(qw/-label ~File/);
   $group{FileMenu}->command(-label=> 'Open ...',
 			    -underline=> 0,
 			    -command=> [\&fileDialog, \%group]);
@@ -4895,9 +4923,9 @@ sub startMain {
 					    unless askSaveFiles($grp,1) == -1;
 					},\%group]);
 	
-  $group{FileMenu}->pack(qw/-side left/);
+#  $group{FileMenu}->pack(qw/-side left/);
 
-  $group{ViewMenu}= $group{Menubar}->Menubutton(qw/-text View -underline 0 -menuitems/=>
+  $group{ViewMenu}= $group{Menubar}->Cascade(qw/-label ~View -menuitems/=>
 	[
 	 [Button=> 'Previous Tree',
 	  -underline=> 0,
@@ -4968,8 +4996,9 @@ sub startMain {
 	 [Separator=> ''],
 	 [Button=> 'List of available macros ...', -underline=> 0,
 	  -command=> [\&macrolistDialog,\%group]]
-	])->pack(qw/-side left/);
-  $group{NodeMenu}= $group{Menubar}->Menubutton(qw/-text Node -underline 0 -menuitems/=>
+	]);
+  #->pack(qw/-side left/);
+  $group{NodeMenu}= $group{Menubar}->Cascade(qw/-label ~Node -menuitems/=>
 	[
 	 [Button=> 'New Node', -underline=> 0, -command=> [sub {
 					       my ($grp)=@_;
@@ -5020,29 +5049,16 @@ sub startMain {
 	 [Button=> 'Find Previous', -underline=> 5,
 	  -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1]]
 
-	])->pack(qw/-side left/);
+	]);#->pack(qw/-side left/);
   print STDERR "Creating user menu.\n" if $tredDebug;
 
 
-  $group{PostponedFileMenu}= $group{Menubar}->Menubutton(qw/-text Session -underline 0/)
-    ->pack(qw/-side left/);
+  $group{PostponedFileMenu}= $group{Menubar}->Cascade(qw/-label ~Session/);
+#    ->pack(qw/-side left/);
   updatePostponed(\%group);
 
-  $group{BookmarksFileMenu}= $group{Menubar}->Menubutton(qw/-text Bookmarks -underline 0/)
-    ->pack(qw/-side left/);
+  $group{BookmarksFileMenu}= $group{Menubar}->Cascade(qw/-label Bookmarks -underline 0/);
   updateBookmarks(\%group);
-  $group{selectedContext} =  'TredMacro' unless exists($keyBindings{ $group{selectedContext} });
-  $group{ContextsMenu}=$group{Menubar}->
-    Optionmenu(-options => [getContexts()],
-	       -textvariable=> \$group{selectedContext},
-	       -command=> [sub { my ($grp,$context) = @_;
-				 switchContext($grp->{focusedWindow}, $context);
-			       },\%group],
-	       -relief=> 'groove', #$menubarRelief,
-	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
-  $group{Balloon}->attach($group{ContextsMenu},
-			  -balloonmsg=> "macro context");
-
   my $cM=[];
   if ($createMacroMenu) {
 #     push @$cM, 
@@ -5076,8 +5092,8 @@ sub startMain {
     }
 
     $group{MacroMenu}=$group{Menubar}->
-      Menubutton(qw/-text Shortcuts -underline 2 -menuitems/=>
-		 $cM)->pack(qw/-side left/);
+      Cascade(qw/-label Sh~ortcuts -menuitems/=> #  -underline 2
+		 $cM);#->pack(qw/-side left/);
   }
   $cM=[];
 #   push @$cM,
@@ -5110,15 +5126,12 @@ sub startMain {
 #      }
   }
   $group{UserMenu}=$group{Menubar}->
-    Menubutton(qw/-text User-defined -underline 0 -menuitems/=>
-	       $cM)->pack(qw/-side left/);
-
-
-
+    Cascade(qw/-label ~User-defined -menuitems/=>
+	      $cM);#->pack(qw/-side left/);
 
   addBindTags($group{frame},'my');
 
-  $group{HelpMenu}= $group{Menubar}->Menubutton(qw/-text Help -underline 0 -menuitems/=>
+  $group{HelpMenu}= $group{Menubar}->Cascade(qw/-label ~Help -menuitems/=>
 	[
 	 [
 	  Button=> 'About',
@@ -5164,8 +5177,24 @@ sub startMain {
 	 ]
 	])->pack(qw/-side left/);
 
+  $group{selectedContext} =  'TredMacro' unless exists($keyBindings{ $group{selectedContext} });
+  $group{ContextsMenu}=$group{MenubarFrame}->
+    Optionmenu(-options => [getContexts()],
+	       -textvariable=> \$group{selectedContext},
+	       -command=> [sub { my ($grp,$context) = @_;
+				 switchContext($grp->{focusedWindow}, $context);
+			       },\%group],
+	       -relief=> 'groove', #$menubarRelief,
+	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
+  $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Context:',-underline=>5)->pack(qw/-side right/);
+
+  $group{Balloon}->attach($group{ContextsMenu},
+			  -balloonmsg=> "macro context");
+
+
+
   require Tk::Adjuster;
-  $group{vLineFrame}=$group{top}->Frame();
+  $group{vLineFrame}=$top->Frame();
   $group{valueLine}=
     $group{vLineFrame}->
       Scrolled(qw/ROText
@@ -5181,7 +5210,7 @@ sub startMain {
   if ($displayStatusLine) {
 #c		  -background white
     $group{statusLine}=
-      $group{top}->
+      $top->
 	ROText(qw(-takefocus 0
 		  -state disabled
 		  -borderwidth 2
@@ -5248,7 +5277,7 @@ sub startMain {
 			      },\%group]
 			     );
 
-  $group{vLineSeparator}=$group{top}->Adjuster();
+  $group{vLineSeparator}=$top->Adjuster();
   eval { # supported only on some platforms/version of Tk
     $group{valueLine}->configure(-foreground => $valueLineForeground,
                                  -background => $valueLineBackground);
@@ -5291,7 +5320,7 @@ sub startMain {
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=>
 			  [\&fileDialog,\%group])
-      ->pack(-side=>'left',-padx=>'1');
+      ->pack(-side=>'left');
   $group{Balloon}->attach($group{openButton},
 		 -balloonmsg=> "open file");
   addBindTags($group{openButton},'my');
@@ -5303,7 +5332,7 @@ sub startMain {
 			  -image=> $normalSavePixmap,
 			  -state => 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&saveFile,\%group])->pack(-side=>'left',-padx=>'1');
+			  -command=> [\&saveFile,\%group])->pack(-side=>'left');
 
   $group{Balloon}->attach($group{saveButton},
 			  -balloonmsg=> "save current file");
@@ -5314,11 +5343,50 @@ sub startMain {
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"reload"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&reloadFile,\%group])->pack(-side=>'left',-padx=>'1');
+			  -command=> [\&reloadFile,\%group])->pack(-side=>'left');
 
   $group{Balloon}->attach($group{reloadButton},
 			  -balloonmsg=> "reload current file");
   addBindTags($group{reloadButton},'my');
+
+
+  ###################
+
+  $group{prevFileButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Prev file",
+			  -relief=> $buttonsRelief,
+			  -image=> icon(\%group,"start"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&tiePrevFile,\%group])->pack(-side=>'left');
+  $group{Balloon}->attach($group{prevFileButton},
+			  -balloonmsg=> "visit the previous file in the file-list");
+  addBindTags($group{prevFileButton},'my');
+
+  $group{nextFileButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Next file",
+			  -relief=> $buttonsRelief,
+			  -image=> icon(\%group,"finish"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&tieNextFile,\%group])->pack(-side=>'left');
+  $group{Balloon}->attach($group{nextFileButton},
+			  -balloonmsg=> "visit the next file in the file-list");
+  addBindTags($group{nextFileButton},'my');
+
+
+  $group{printButton}=
+    $group{frame}->Button(-takefocus=>0, -text=> "Print",
+			  -relief=> $buttonsRelief,
+			  -image      => icon(\%group,"fileprint"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [sub { printThis(@_) },\%group])->pack(-side=>'left');
+  $group{Balloon}->attach($group{printButton},
+			  -balloonmsg=> "print ...");
+  addBindTags($group{printButton},'my');
+
+
+  #####################
+  $group{frame}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
   # Undo button
 
@@ -5328,7 +5396,7 @@ sub startMain {
 			  -image=> icon(\%group,"undo"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&undo,\%group])->pack(-side=>'left',-padx=>'1');
+			  -command=> [\&undo,\%group])->pack(-side=>'left');
   $group{Balloon}->attach($group{undoButton},
 			  -balloonmsg=> "undo current file");
   addBindTags($group{undoButton},'my');
@@ -5341,47 +5409,16 @@ sub startMain {
 			  -image=> icon(\%group,"redo"),
 			  -state=> 'disabled',
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&re_do,\%group])->pack(-side=>'left',-padx=>'1');
+			  -command=> [\&re_do,\%group])->pack(-side=>'left');
     
   $group{Balloon}->attach($group{redoButton},
 			  -balloonmsg=> "redo current file");
   addBindTags($group{redoButton},'my');
 
+  #####################
+  $group{frame}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
-
-  $group{prevFileButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Prev file",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"start"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&tiePrevFile,\%group])->pack(-side=>'left',
-									    -padx=>'1');
-  $group{Balloon}->attach($group{prevFileButton},
-			  -balloonmsg=> "visit the previous file in the file-list");
-  addBindTags($group{prevFileButton},'my');
-
-  $group{nextFileButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Next file",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"finish"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&tieNextFile,\%group])->pack(-side=>'left',
-									    -padx=>'1');
-  $group{Balloon}->attach($group{nextFileButton},
-			  -balloonmsg=> "visit the next file in the file-list");
-  addBindTags($group{nextFileButton},'my');
-
-
-  $group{printButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Print",
-			  -relief=> $buttonsRelief,
-			  -image      => icon(\%group,"fileprint"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub { printThis(@_) },\%group])->pack(-side=>'left',
-									    -padx=>'1');
-  $group{Balloon}->attach($group{printButton},
-			  -balloonmsg=> "print ...");
-  addBindTags($group{printButton},'my');
 
   $group{findButton}=
     $group{frame}->Button(-takefocus=>0, -text=> "Find",
@@ -5392,8 +5429,7 @@ sub startMain {
 					my ($grp,$template)=@_;
 					findNodeDialog($grp,$template)
 					  if ($grp->{focusedWindow}->{currentNode});
-				      },\%group,\%searchTemplate])->pack(-side=>'left',
-									 -padx=>'1');
+				      },\%group,\%searchTemplate])->pack(-side=>'left');
   $group{Balloon}->attach($group{findButton},
 			  -balloonmsg=> "Find node ...");
   addBindTags($group{findButton},'my');
@@ -5404,7 +5440,7 @@ sub startMain {
 			  -image      => icon(\%group,"viewmag+"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&doFindFirstTemplated,\%group,\%searchTemplate,1])
-      ->pack(-side=>'left', -padx=>'1');
+      ->pack(-side=>'left');
   $group{Balloon}->attach($group{findNextButton},
 			  -balloonmsg=> "Find next ...");
   addBindTags($group{findNextButton},'my');
@@ -5416,23 +5452,74 @@ sub startMain {
 			  -image=> icon(\%group,"viewmag-"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&doFindPrevTemplated,\%group,\%searchTemplate,1])
-      ->pack(-side=>'left', -padx=>'1');
+      ->pack(-side=>'left');
   $group{Balloon}->attach($group{findPrevButton},
 			  -balloonmsg=> "Find previous ...");
   addBindTags($group{findPrevButton},'my');
 
+  $group{frame}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
 
-  $group{frame}->Frame()->pack(-side=> 'left', -padx=>'10');
-  $group{prevButton}->pack(-side=> 'left', -padx=>'1');
-  $group{nextButton}->pack(-side=> 'left', -padx=> '1');
+  $group{prevButton}->pack(-side=> 'left');
+  $group{nextButton}->pack(-side=> 'left');
+
+  #####################
+  $group{frame}->Frame(-bd => 2, -width => 2, -relief => 'groove')
+    ->pack(-side=> 'left', -padx => '3', -fill => 'y', -pady => 3);
+
+  $group{vsplitButton}=
+    $group{frame}->Button(-takefocus=>0, 
+			  -text=> "Split View Vertically",
+			  -relief=> $buttonsRelief,
+			  -image=> icon(\%group,"view_left_right"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&splitWindow,\%group,'vert'])->pack(-side=>'left');
+  $group{Balloon}->attach($group{vsplitButton},
+			  -balloonmsg=> "split view vertically");
+
+  $group{hsplitButton}=
+    $group{frame}->Button(-takefocus=>0, 
+			  -text=> "Split View Horizontally",
+			  -relief=> $buttonsRelief,
+			  -image=> icon(\%group,"view_top_bottom"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&splitWindow,\%group,'horiz'])->pack(-side=>'left');
+
+
+  $group{Balloon}->attach($group{hsplitButton},
+			  -balloonmsg=> "split view horizontally");
+
+  $group{rmsplitButton}=
+    $group{frame}->Button(-takefocus=>0, 
+			  -text=> "Remove Current View",
+			  -relief=> $buttonsRelief,
+			  -image=> icon(\%group,"view_remove"),
+			  -borderwidth=> $buttonBorderWidth,
+			  -command=> [\&removeWindow,\%group])->pack(-side=>'left');
+  $group{Balloon}->attach($group{rmsplitButton},
+			  -balloonmsg=> "remove current view");
+
+
+  $group{tieWinddowsButton}=
+    $group{frame}->Checkbutton(-takefocus=>0,
+			      -text=> "Tie Displayed Windows",
+			      -variable=> \$group{tieWindows},
+			       -relief=> $buttonsRelief,
+			      -indicatoron => 0,
+			      -image=>icon(\%group,"lock"),
+			      -borderwidth=> $buttonBorderWidth)->pack(-side=>'left');
+  $group{Balloon}->attach($group{tieWinddowsButton},
+			  -balloonmsg=> "tie all views");
+
+  ##########################
+
 
   $group{attrButton}=
-    $group{frame}->Button(-takefocus=>0, -text=> "Attributes",
+    $group{frame}->Button(-takefocus=>0, -text=> "Edit Stylesheet",
 			  -relief=> $buttonsRelief,
 			  -image=> icon(\%group,"wizard"),
 			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [sub { editStylesheetDialog(@_) },\%group])->pack(-side=>'right',
-										    -padx=>'1');
+			  -command=> [sub { editStylesheetDialog(@_) },\%group])->pack(-side=>'right');
   $group{Balloon}->attach($group{attrButton},
 			  -balloonmsg=> "customize display patterns\nof the selected stylesheet\n(e.g. change tree appearance, labels etc.)");
 
@@ -5444,56 +5531,10 @@ sub startMain {
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
+  $group{StylesheetMenuLabel}=$group{frame}->Label(qw/-text Style: -underline 2/)->pack(qw/-side right/);
   updateStylesheetMenu(\%group);
   $group{Balloon}->attach($group{StylesheetMenu},
 			  -balloonmsg=> "stylesheet (tree appearance)");
-
-  $group{tieWinddowsButton}=
-    $group{frame}->Checkbutton(-takefocus=>0,
-			      -text=> "Tie Displayed Windows",
-			      -variable=> \$group{tieWindows},
-			       -relief=> $buttonsRelief,
-			      -indicatoron => 0,
-			      -image=>icon(\%group,"lock"),
-			      -borderwidth=> $buttonBorderWidth)->pack(-side=>'right',
-								       -padx=>'1');
-  $group{Balloon}->attach($group{tieWinddowsButton},
-			  -balloonmsg=> "tie all views");
-
-
-  $group{rmsplitButton}=
-    $group{frame}->Button(-takefocus=>0, 
-			  -text=> "Remove Current View",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"view_remove"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&removeWindow,\%group])->pack(-side=>'right',
-								     -padx=>'1');
-  $group{Balloon}->attach($group{rmsplitButton},
-			  -balloonmsg=> "remove current view");
-
-  $group{hsplitButton}=
-    $group{frame}->Button(-takefocus=>0, 
-			  -text=> "Split View Horizontally",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"view_top_bottom"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&splitWindow,\%group,'horiz'])->pack(-side=>'right',
-									    -padx=>'1');
-
-
-  $group{Balloon}->attach($group{hsplitButton},
-			  -balloonmsg=> "split view horizontally");
-  $group{vsplitButton}=
-    $group{frame}->Button(-takefocus=>0, 
-			  -text=> "Split View Vertically",
-			  -relief=> $buttonsRelief,
-			  -image=> icon(\%group,"view_left_right"),
-			  -borderwidth=> $buttonBorderWidth,
-			  -command=> [\&splitWindow,\%group,'vert'])->pack(-side=>'right',
-									   -padx=>'1');
-  $group{Balloon}->attach($group{vsplitButton},
-			  -balloonmsg=> "split view vertically");
 
 
   print STDERR "Packing widgets.\n" if $tredDebug;
@@ -5529,7 +5570,7 @@ sub startMain {
 #  $group{sLineFrame}->pack(qw/-fill x -expand yes/);
 
   print STDERR "Binding keystrokes...\n" if $tredDebug;
-  $group{Menubar}->bind('Menubutton','<Escape>', [sub { shift->Leave(); }] );
+  $group{Menubar}->bind('all', '<Escape>', [sub { shift->menu->Leave(); Tk->break; }] );
 
   foreach my $prefix ('Alt','Meta') {
     $group{frame}->
@@ -5544,15 +5585,33 @@ sub startMain {
 		# this is the same there, only vice versa.
 		my ($w,$grp,$mod)=@_;
 		my $mbar=$grp->{Menubar};
-		foreach my $child ($mbar->children) {
-		  if ($child->class eq 'Menubutton' and $child->FindMenu($w->XEvent->K)) {
-		    $child->ButtonUp() if ($^O eq "MSWin32"); 
-		    # This ButtonUp is needed for some reason under
-		    # Windows, otherwise the button remains active even
-		    # when you leave the window! Window$ suck anyway!
-		    last;
-		  }
-		}
+		$mbar->FindMenu($w->XEvent->K);
+		Tk->break;
+	      }
+	    }, \%group,uc($prefix).'+']);
+  }
+  foreach my $prefix ('Alt','Meta') {
+    $group{frame}->
+      bind('my',"<$prefix-x>"=>
+	   [sub {
+	      if (defined(evalMacro(@_))) {
+		Tk->break;
+	      } else {
+		my ($w,$grp)=@_;
+		$grp->{ContextsMenu}->Post();
+		Tk->break;
+	      }
+	    }, \%group,uc($prefix).'+']);
+  }
+  foreach my $prefix ('Alt','Meta') {
+    $group{frame}->
+      bind('my',"<$prefix-y>"=>
+	   [sub {
+	      if (defined(evalMacro(@_))) {
+		Tk->break;
+	      } else {
+		my ($w,$grp)=@_;
+		$grp->{StylesheetMenu}->Post();
 		Tk->break;
 	      }
 	    }, \%group,uc($prefix).'+']);
@@ -5577,17 +5636,17 @@ sub startMain {
     }
   }
 
-  $group{top}->bind('all','<Tab>',undef);
+  $top->bind('all','<Tab>',undef);
 
   # New Busy window bindings
   $group{frame}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
-  $group{top}->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
-  $group{top}->Tk::bind('Busy','<Any-KeyPress>',[\&Tk::Widget::_busy => 1]);
-  $group{top}->Tk::bind('Busy','<Any-KeyRelease>',[\&Tk::Widget::_busy => 0]);
-  $group{top}->Tk::bind('Busy','<Any-ButtonPress>',[\&Tk::Widget::_busy => 1]);
-  $group{top}->Tk::bind('Busy','<Any-ButtonRelease>',[\&Tk::Widget::_busy => 0]);
-  $group{top}->Tk::bind('Busy','<Any-Motion>',[\&Tk::Widget::_busy => 0]);
-  $group{top}->bind('Tk::Listbox','<KeyPress>',\&list_isearch);
+  $top->Tk::bind('Busy','<Escape>',[\&_search_busy, \%group]);
+  $top->Tk::bind('Busy','<Any-KeyPress>',[\&Tk::Widget::_busy => 1]);
+  $top->Tk::bind('Busy','<Any-KeyRelease>',[\&Tk::Widget::_busy => 0]);
+  $top->Tk::bind('Busy','<Any-ButtonPress>',[\&Tk::Widget::_busy => 1]);
+  $top->Tk::bind('Busy','<Any-ButtonRelease>',[\&Tk::Widget::_busy => 0]);
+  $top->Tk::bind('Busy','<Any-Motion>',[\&Tk::Widget::_busy => 0]);
+  $top->bind('Tk::Listbox','<KeyPress>',\&list_isearch);
 
   # setup default binding
   while (my ($key, $def) = each %default_binding) {
@@ -5601,24 +5660,24 @@ sub startMain {
   $group{printPsFile}=$psFile;
 
   print STDERR "Binding canvas destroy...\n" if $tredDebug;
-  $group{top}->bind($group{frame},
+  $top->bind($group{frame},
 		    '<Destroy>',
 		      [ sub {
 			  shift;
 			  my $grp=shift;
-			  $geometry=$group{top}->geometry();
+			  $geometry=$top->geometry();
 			  print "geometry is $geometry\n" if $tredDebug;
-			  if ($^O eq "MSWin32" and $group{top}->state() eq 'zoomed') {
+			  if ($^O eq "MSWin32" and $top->state() eq 'zoomed') {
 			    $geometry=~s/\+[-0-9]+\+[-0-9]+/+-3+-3/;
 			  }
-			  print "state is ",$group{top}->state(),"\n"  if $tredDebug;
+			  print "state is ",$top->state(),"\n"  if $tredDebug;
 			},\%group ]);
 
   print STDERR "GUI prepared.\nOpenning first file ...." if $tredDebug;
-  $group{top}->update;
-  $group{top}->Busy(-recurse=> 1);
+  $top->update;
+  $top->Busy(-recurse=> 1);
   if (doEvalHook($group{focusedWindow},"init_hook") eq 'stop') {
-    $group{top}->Unbusy;
+    $top->Unbusy;
     print STDERR "Stopped by init_hook\n";
     exit;
   }
@@ -5633,7 +5692,7 @@ sub startMain {
     }
     focusCanvas($group{treeWindows}->[0]->canvas,\%group);
   }
-  $group{top}->repeat(1000,sub {1}); # otherwise SIGINT would wait till next focus
+  $top->repeat(1000,sub {1}); # otherwise SIGINT would wait till next focus
   $SIG{PIPE}=sub {
     print STDERR "Caught signal SIGPIPE: $!\n";
   };
@@ -5657,7 +5716,7 @@ sub startMain {
       print STDERR "Caught SIGINT, closing all files\n";
       closeAllFiles(\%group);
       print STDERR "Good bye!\n";
-      $group{top}->destroy;
+      $top->destroy;
       POSIX::_exit 1;
     }
   };
@@ -5695,14 +5754,14 @@ sub startMain {
   print STDERR "done.\nStarting main loop.\n" if $tredDebug;
   # run start_hook
   if (doEvalHook($group{focusedWindow},"start_hook") eq 'stop') {
-    $group{top}->Unbusy;
+    $top->Unbusy;
     print STDERR "Stopped by start_hook\n";
     exit;
   }
 
   # Starting ------------------------------------------
-  $group{top}->Unbusy;
-  $group{top}->focus if ($^O eq 'MSWin32');
+  $top->Unbusy;
+  $top->focus if ($^O eq 'MSWin32');
   MainLoop;
 
 
@@ -5744,7 +5803,8 @@ sub startMain {
     }
   };
   chomp $conf[$#conf];
-  $group{top}=undef;
+  $top=undef;
+  $group{top} = undef;
   saveConfig(\%group,@conf);
   print STDERR "Done.\n" if $tredDebug;
 }
@@ -7052,150 +7112,164 @@ sub focusxFind {
   }
 }
 
-# sub updateAttrDialog {
-#   my ($grp) = @_;
-#   if ($grp->{updateAttrDialog} and $grp->{attrsEditor}) {
-#     $grp->{attrsEditor}->delete('all');
-#     $grp->{attrsEditor}->add_members(@{$grp->{updateAttrDialog}});
-#     $grp->{attrsEditor}->update();
-#     delete $grp->{updateAttrDialog};
-#   }
-# }
+#######
+# EXPERIMENT WITH PERSISTENT ATTR DIALOG
+sub updateAttrDialog {
+  my ($grp) = @_;
+  if ($grp->{updateAttrDialog} and $grp->{attrsEditor}) {
+    $grp->{attrsEditor}->delete('all');
+    $grp->{attrsEditor}->add_members(@{$grp->{updateAttrDialog}});
+    $grp->{attrsEditor}->update();
+    delete $grp->{updateAttrDialog};
+  }
+}
+######
+
+sub determineNodeType {
+  my ($win,$node)=@_;
+  my $type = $node->type;
+  return $type if $type;
+
+  doEvalHook($win,'determine_node_type_hook',$node);
+
+  $schema = fileSchema($win->{FSFile});
+  my $ntype;
+  my @ntypes;
+  __debug("Determining node type for $node\n");
+  if ($node->parent) {
+    # is parent's type known?
+    my $parent_type = $node->parent->type;
+    if (ref($parent_type)) {
+      # ok, find #CHILDNODES
+      $parent_decl = $parent_type->type_decl;
+      if ($parent_decl->{member}) {
+	my ($member_decl) =  
+	  map { $schema->resolve_type($_) } 
+	    grep { ref($_) and $_->{role} eq '#CHILDNODES' } values %{$parent_decl->{member}};
+	if (ref($member_decl)) {
+	  if ($member_decl->{list}) {
+	    $ntype = $schema->resolve_type($member_decl->{list});
+	    $ntype = ($ntype->{structure} || $ntype->{container});
+	    undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
+	  } elsif ($member_decl->{sequence}) {
+	    my $elements = $member_decl->{sequence}{element};
+	    @ntypes =  grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
+	      map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
+	  } else {
+	    warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
+	      Dumper($member_decl);
+	  }
+	}
+      } elsif ($parent_decl->{list} or $parent_decl->{sequence}) {
+	if ($parent_decl->{list} and $parent_decl->{list}{role} eq '#CHILDNODES') {
+	  $ntype = $schema->resolve_type($parent_decl->{list});
+	  $ntype = ($ntype->{structure} || $ntype->{container});
+	  undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
+	} elsif ($parent_decl->{sequence} and $parent_decl->{sequence}{role} eq '#CHILDNODES') {
+	  my $elements = $parent_decl->{sequence}{element};
+	  @ntypes = 
+	    grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
+	      map { [ $_->[0] => ($_->[1]{structure} || $_->[1]{container}) ] }
+		map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
+	}
+      }
+    } else {
+      # ask the user to set the type of the parent first
+      plainErrorMessage($win,"Parent node type is unknown.\nYou must assign node-type to the parent node first!");
+      return;
+    }
+  } else {
+    # find #TREES sequence representing the tree list
+    my @tree_types;
+    my $pml_trees_type = $win->{FSFile}->metaData('pml_trees_type');
+    if (ref $pml_trees_type) {
+      @tree_types = ($pml_trees_type->type_decl);
+    } else {
+      @tree_types = $schema->find_role('#TREES');
+    }
+    foreach my $tt (@tree_types) {
+      if (!UNIVERSAL::isa($tt,'HASH')) {
+	warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
+	  Dumper($member_decl);
+      } elsif ($tt->{list}) {
+	$ntype = $schema->resolve_type($tt->{list});
+	$ntype = ($ntype->{structure} || $ntype->{container});
+	undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
+      } elsif ($tt->{sequence}) {
+	my $elements = $tt->{sequence}{element};
+	@ntypes = 
+	  grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
+	    map { [ $_->[0] => ($_->[1]{structure} || $_->[1]{container}) ] }
+	      map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
+      } else {
+	warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
+	  Dumper($member_decl);
+      }
+    }
+  }
+  if ($ntype) {
+    $base_type = $schema->type($ntype);
+    $node->set_type($base_type);
+  } elsif (@ntypes == 1) {
+    $node->{'#name'} = $ntypes[0][0];
+    $base_type = $schema->type($ntypes[0][1]);
+    $node->set_type($base_type);
+  } elsif (@ntypes > 1) {
+    my $i = 1;
+    my @types = map {($i++)." ".($_->[0])} @ntypes;
+    my $selection = [$types[0]];
+    listQuery($win->toplevel,'Untyped node: select node-type','browse',
+	      \@types,$selection) || return;
+    if ($selection->[0]=~/^(\d+) /) {
+      my $type = $ntypes[$1-1];
+      $node->set_type($schema->type($type->[1]));
+      $node->{'#name'} = $type->[0];
+      $base_type=$node->type;
+    } else {
+      return;
+    }
+  } else {
+    plainErrorMessage($win,"Cannot determine node type: schema doesn't allow nodes on this level...\n");
+    return;
+  }
+  return $node->type;
+}
+
 
 sub editAttrsDialog_schema {
   my ($win,$node,$attr_path,$as_type)=@_;
   my $grp = $win->{framegroup};
-#   if ($grp->{attrsDialog}) {
-#     my $d=$grp->{attrsDialog};
-#     my $edit = $grp->{attrsEditor};
-#     my $schema = $win->{FSFile}->metaData('schema');
-#     my $node_type = $schema->find_type($attr_path);
-#     my $attr_name;
-#     $d->afterIdle([\&updateAttrDialog,$grp]) unless $grp->{updateAttrDialog};
-#     if ($attr_path) {
-#       $attr_name = $attr_path;
-#       $attr_name =~ s{.*/}{};
-#       $grp->{updateAttrDialog} = [ '',$node_type,$node->attr($attr_path), $attr_name ];
-#     } else {
-#       $grp->{updateAttrDialog} = [ '',$node_type,$node ];
-#     }
-#     return;
-#   }
 
+  
   require Tk::TrEdNodeEdit;
 
   use Data::Dumper;
   #__debug("PATH: '$attr_path'\n");
 
-  my $base_type = ref($as_type) ? $as_type : $node->type;
+  my $base_type = ref($as_type) ? $as_type : determineNodeType($win,$node);
+  return unless $base_type;
   my $schema;
   my $enabled = 1;
   my $node_type;
-  unless (ref($base_type)) {
-    # FIXME - setting new type should be strictly based on the #CHILDNODES wrapper
-    # of the parent node
-    $schema = fileSchema($win->{FSFile});
-    my $ntype;
-    my @ntypes;
-    if ($node->parent) {
-      # is parent's type known?
-      my $parent_type = $node->parent->type;
-      if (ref($parent_type)) {
-	# ok, find #CHILDNODES
-	$parent_decl = $parent_type->type_decl;
-	if ($parent_decl->{member}) {
-	  my ($member_decl) =  
-	    map { $schema->resolve_type($_) } 
-	    grep { ref($_) and $_->{role} eq '#CHILDNODES' } values %{$parent_decl->{member}};
-	  if (ref($member_decl)) {
-	    if ($member_decl->{list}) {
-	      $ntype = $schema->resolve_type($member_decl->{list});
-	      $ntype = ($ntype->{structure} || $ntype->{container});
-	      undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
-	    } elsif ($member_decl->{sequence}) {
-	      my $elements = $member_decl->{sequence}{element};
-	      @ntypes =  grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
-		map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
-	    } else {
-	      warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
-		Dumper($member_decl);
-	    }
-	  }
-	} elsif ($parent_decl->{list} or $parent_decl->{sequence}) {
-	  if ($parent_decl->{list} and $parent_decl->{list}{role} eq '#CHILDNODES') {
-	    $ntype = $schema->resolve_type($parent_decl->{list});
-	    $ntype = ($ntype->{structure} || $ntype->{container});
-	    undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
-	  } elsif ($parent_decl->{sequence} and $parent_decl->{sequence}{role} eq '#CHILDNODES') {
-	    my $elements = $parent_decl->{sequence}{element};
-	    @ntypes = 
-	    grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
-	    map { [ $_->[0] => ($_->[1]{structure} || $_->[1]{container}) ] }
-	    map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
-	  }
-	}
-      } else {
-	# ask the user to set the type of the parent first
-	plainErrorMessage($grp,"Parent node type is unknown.\nYou must edit the parent node first!");
-	return;
-      }
-    } else {
-      # find #TREES sequence representing the tree list
-      my @tree_types;
-      my $pml_trees_type = $win->{FSFile}->metaData('pml_trees_type');
-      if (ref $pml_trees_type) {
-	@tree_types = ($pml_trees_type->type_decl);
-      } else {
-	@tree_types = $schema->find_role('#TREES');
-      }
-      foreach my $tt (@tree_types) {
-	if (!UNIVERSAL::isa($tt,'HASH')) {
-	  warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
-	    		Dumper($member_decl);
-        } elsif ($tt->{list}) {
-	  $ntype = $schema->resolve_type($tt->{list});
-	  $ntype = ($ntype->{structure} || $ntype->{container});
-	  undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
-	} elsif ($tt->{sequence}) {
-	  my $elements = $tt->{sequence}{element};
-	  @ntypes = 
-	    grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
-	    map { [ $_->[0] => ($_->[1]{structure} || $_->[1]{container}) ] }
-	    map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
-	} else {
-	  warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
-	    		Dumper($member_decl);
-	}
-      }
-    }
-    if ($ntype) {
-      $base_type = $schema->type($ntype);
-      $node->set_type($base_type);
-    } elsif (@ntypes == 1) {
-      $node->{'#name'} = $ntypes[0][0];
-      $base_type = $schema->type($ntypes[0][1]);
-      $node->set_type($base_type);
-    } elsif (@ntypes > 1) {
-      my $i = 1;
-      my @types = map {($i++)." ".($_->[0])} @ntypes;
-      my $selection = [$types[0]];
-      listQuery($grp->{top},'Untyped node: select node-type','browse',
-		\@types,$selection) || return;
-      if ($selection->[0]=~/^(\d+) /) {
-	my $type = $ntypes[$1-1];
-	$node->set_type($schema->type($type->[1]));
-	$node->{'#name'} = $type->[0];
-	$base_type=$node->type;
-      } else {
-	return;
-      }
-    } else {
-      plainErrorMessage($grp,"Cannot edit node: schema doesn't allow nodes on this level...\n");
-      return;
-    }
-  } else {
-    $schema = $base_type->schema;
-  }
+  $schema = $base_type->schema;
+
+
+  #############
+  # EXPERIMENT WITH A PERSISTENT NODE EDITOR
+  # if ($grp->{attrsDialog}) {
+  #     my $d=$grp->{attrsDialog};
+  #     my $edit = $grp->{attrsEditor};
+  #     $d->afterIdle([\&updateAttrDialog,$grp]) unless $grp->{updateAttrDialog};
+  
+  #     if ($attr_path) {
+  #       $grp->{updateAttrDialog} = [ '',$node_type,FSNode::attr($node,$attr_path), $attr_name, 0, undef ];
+  #     } else {
+  #       $grp->{updateAttrDialog} = [ '',$node_type,$node ];
+  #     }
+  #     return;
+  #   }
+  #############
+
 
   $win->toplevel->Busy(-recurse=>1);
 
@@ -7210,20 +7284,25 @@ sub editAttrsDialog_schema {
   }
   my $dlg_title = ($attr_path ne "" ? "Edit Attribute '$attr_path'" : "Edit Node");
   my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
+
+  ##########
+  # EXPERIMENT WITH A PERSISTENT NODE EDITOR
+  ## non-persistent
   my $d=$win->toplevel->DialogBox(-title=> $dlg_title,
 				  -buttons=> \@buttons
 				 );
   $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
   $d->maxsize(0,int(0.9*$d->screenheight));
 
-## experiment with a persistent node editor
-#   my $d=$grp->{attrsDialog}=
-#     $grp->{top}->Toplevel(-title=> "Node attributes",-background => 'white');
-#   $d->withdraw;
-#   $d->bind('<Destroy>' => [ sub {delete $_[1]->{attrsDialog};
-# 				 delete $_[1]->{attrsEditor}; },$grp ]);
-
-
+  ##########
+  # EXPERIMENT WITH A PERSISTENT NODE EDITOR
+  ## persistent
+  #   my $d=$grp->{attrsDialog}=
+  #     $grp->{top}->Toplevel(-title=> "Node attributes",-background => 'white');
+  #   $d->withdraw;
+  #   $d->bind('<Destroy>' => [ sub {delete $_[1]->{attrsDialog};
+  # 				 delete $_[1]->{attrsEditor}; },$grp ]);
+  #########
 
   my $edit = # $grp->{attrsEditor} =
     $d->Scrolled('TrEdNodeEdit',
@@ -7248,13 +7327,30 @@ sub editAttrsDialog_schema {
     }, $win,$base_path
    ]);
   #__debug("ATTR-PATH:' $attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
+  my $is_required = 1;
   if ($attr_path ne "") {
-    $edit->add_member('',$node_type,FSNode::attr($node,$attr_path), $attr_name);
-#  } elsif (ref($node_type) and $node_type->{member}) {
-#    # 1=allow empty (don't create empty structures)
-#    $edit->add_members('',$node_type,$node,1);
+    
+    # check if we can allow empty value (member/attribute not required)
+    my $parent_type;
+    if ($base_path ne "") {
+      $parent_type = $base_type->find($base_path);	    
+      $parent_type = ref($parent_type) ? ($parent_type->{structure} || $parent_type->{container}) : undef;
+    } else {
+      $parent_type = $base_type->type_decl;
+    }
+    if (ref($parent_type)) {
+      my $members = $parent_type->{member} || $parent_type->{attribute};
+      if ($members) {
+	my $attr_decl = $members->{$attr_name};
+	if (ref($attr_decl) and !$attr_decl->{required}) {
+	  __debug("not required\n");
+	  $is_required = 0;
+	}
+      }
+    }
+    $edit->add_member('',$node_type,FSNode::attr($node,$attr_path), $attr_name, 0, undef, $is_required);
   } else {
-#    # 1=allow empty (don't create empty structures)
+    #    # 1=allow empty (don't create empty structures)
     $edit->add_members('',$node_type,$node,1);
   }
 
@@ -7321,7 +7417,8 @@ sub editAttrsDialog_schema {
   $d->bind('all','<<LeftTab>>','focusPrev');
 
   for (@buttons) {
-    $d->Subwidget("B_$_")->configure(-underline => 0);
+    my $b = $d->Subwidget("B_$_");
+    $b->configure(-underline => 0) if $b;
     $d->bind('all','<Alt-'.lc(substr($_,0,1)).'>'
 	     => [sub { $_[1]->{selected_button}=$_[2] },$d,$_ ]);
   }
@@ -7331,6 +7428,10 @@ sub editAttrsDialog_schema {
   $edit->bind('<Control-Return>',\&dlgReturn);
 
   $win->toplevel->Unbusy();
+
+  ########
+  ## EXPERIMENT WITH PERSISTENT NODE EDITOR
+  # nonpersistent:
   my $redo=1;
   my $result;
   DIALOG: while ($redo) {
@@ -7351,6 +7452,7 @@ sub editAttrsDialog_schema {
 	if ($attr_path eq "") {
 	  # This is a hack. The validation procedure
 	  # requires the wrapper type, but as we only have the inner declaration
+	  # we fake:
 	  if (ref($node_type) and $node_type->{member}) {
 	    $type = { structure => $node_type };
 	  } else {
@@ -7358,8 +7460,11 @@ sub editAttrsDialog_schema {
 	  }
 	  PMLBackend::validate_object($log,'',$schema->{type}, $type, '', $val);
 	} else {
-	  PMLBackend::validate_object($log,$attr_path,$schema->{type},
-				      $node_type, '', $val->{$attr_name});
+	  __debug("Validating: $attr_path with name $attr_name\n");
+	  unless ($val->{$attr_name} eq '' and !$is_required) {
+	    PMLBackend::validate_object($log,$attr_path,$schema->{type},
+					$node_type, '', $val->{$attr_name});
+	  }
 	}
 	if (@$log and
 	      errorDialog($win,
@@ -7370,7 +7475,7 @@ sub editAttrsDialog_schema {
 			  -buttons => ["Edit attributes","Ignore these errors"]
 			 ) !~ /Ignore/) {
 	  my ($path) = split /:/,$log->[0];
-	  $path =~ s{^/}{};
+	  $path =~ s{^\Q$base_path\E/?}{};
 	  if ($path ne "") {
 	    eval { 
 	      $edit->select_entry($path);
@@ -7405,8 +7510,11 @@ sub editAttrsDialog_schema {
     $redo = 0;
   }
   $d->destroy;
-## for persistent dialog
-##  $d->Popup;
+
+  ## EXPERIMENT WITH PERSISTENT NODE EDITOR
+  # persistent:
+  # $d->Popup;
+  #####
   return ($result=~ /OK/) ? 1 : 0;
 }
 
