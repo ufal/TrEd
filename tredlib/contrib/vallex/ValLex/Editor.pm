@@ -27,7 +27,7 @@ sub new_dialog_window {
       $bindings
      )=@_;
 
-  my $can_edit = $data->user_is_annotator() or $data->user_is_reviewer();
+  my $can_edit = $data->user_can_edit();
   my $d = $top->Toplevel(-title => "Frame editor: ".
 			 $data->getUserName($data->user())
 			);
@@ -142,7 +142,7 @@ sub show_dialog {
       $bindings
      )=@_;
 
-  my $can_edit = $data->user_is_annotator() or $data->user_is_reviewer();
+  my $can_edit = $data->user_can_edit();
 
   my $d = $top->DialogBox(-title => "Frame editor: ".
 			  $data->getUserName($data->user()),
@@ -283,8 +283,7 @@ sub create_widget {
   my $button_frame=$lexlist_frame->Frame(-takefocus => 0);
   $button_frame->pack(qw/-side top -fill x/);
 
-  if ($self->data()->user_is_annotator() or
-      $self->data()->user_is_reviewer()) {
+  if ($self->data()->user_can_edit()) {
     my $addword_button=$button_frame->Button(-text => 'Add Word',
 					     -command => [\&addword_button_pressed,
 							  $self]);
@@ -315,8 +314,7 @@ sub create_widget {
 
 
   # Buttons
-  if ($self->data()->user_is_annotator() or
-      $self->data()->user_is_reviewer()) {
+  if ($self->data()->user_can_edit()) {
     my $addframe_button=$fbutton_frame->Button(-text => 'Add',
 					       -underline => 0,
 					       -command => [\&addframe_button_pressed,$self]);
