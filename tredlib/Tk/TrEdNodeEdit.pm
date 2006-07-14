@@ -77,7 +77,8 @@ sub Populate {
     -separator => ['SELF', 'separator', 'Separator', "/"],
     -columns => ['SELF', 'columns', 'Columns', 3],
     -width => ['SELF', 'width', 'Width', 0],
-    -height => ['SELF', 'height', 'Height', 40]
+    -height => ['SELF', 'height', 'Height', 40],
+#    -takefocus => ['SELF', 'takeFocus', 'TakeFocus', 1]
 
    );
 
@@ -181,9 +182,10 @@ sub ClassInit {
 
 
   $mw->bind($class,'<Return>',\&focus_entry );
-  $mw->bind($class,'<space>', ['entry_insert',' ']);
   $mw->bind($class,'<KeyPress>', ['entry_insert',Ev('A')]);
-  for (qw(Escape Insert Delete)) {
+
+  $mw->bind($class,'<space>', ['entry_insert',' ']);
+  for (qw(Escape Insert Delete Tab)) {
     $mw->bind($class,'<'.$_.'>', 'NoOp');
   }
   for my $modif (qw(Alt Meta Control)) {
@@ -209,6 +211,9 @@ sub ClassInit {
 	   select_entry($w,$en) if $en;
 	   Tk->break;
 	 });
+
+  $mw->bind($class,'<Tab>',['MoveFocus','next']);
+  $mw->bind($class,'<<LeftTab>>',['MoveFocus','prev']);
 
   %bitmap = (
 
@@ -329,7 +334,6 @@ sub up_or_down {
   return unless $parent;
   my $other = $hlist->next_sibling($path,
 				   ($where > 0 ? 'next' : 'prev'));
-  print "Path: $path, Other $other, ",join(" ",($where>0 ? '-after' : '-before'), $other),"\n";
   return unless ($other ne "" and $other ne $path and $hlist->info('parent',$other) eq $parent);
   my $mtype =
     $hlist->info(data => $parent)->{compressed_type} ||
@@ -779,6 +783,8 @@ sub add_member {
     $e->bind('<Down>',[sub {
 		       $_[1]->focus;
 		       $_[1]->UpDown('next')},$hlist]);
+    $e->bind('<Tab>',[$hlist,'MoveFocus','next']);
+    $e->bind('<<LeftTab>>',[$hlist,'MoveFocus','prev']);
     $e->bind($e,$_,[sub { $_[1]->focus; $_[1]->select_entry($_[2]); Tk->break; },$hlist,$path])
       for qw(<Escape> <Return>);
     $e->bind($e,$_,[sub { $_[1]->focus; $_[1]->select_entry($_[2]); },$hlist,$path])
@@ -812,20 +818,26 @@ sub add_member {
       -buttonrelief => 'ridge',
       -buttonbitmap => 'combo'
      );#->pack(qw(-expand 1 -fill both));
+    $w->setSelected( $w->getSelectedValue );
+
     $w->bind('<FocusIn>',[sub {
-			    if (not defined($_[0]->{index_on_focus})) {
-			      $_[0]->{index_on_focus} = $_[0]->CurSelection;
+			    my $cw = $_[0];
+			    my $lb = $cw->Subwidget('Listbox');
+			    if (not defined($cw->{index_on_focus})) {
+			      $cw->{index_on_focus} = $cw->CurSelection;
+			      $cw->see($cw->{index_on_focus});
 			    }
 			    $_[1]->select_entry($_[2]);
 			  },$hlist,$path]);
-    $w->bind('<FocusOut>',[sub { #$_[1]->hidePopup;
+    $w->bind('<FocusOut>',[sub {
 				 $_[1]->EntryEnter;
 				 $_[1]->{index_on_focus} = undef;
-#				 $_[1]->MakeValid;
 			       },$w]);
     $w->configure(-state => $enabled ? 'normal' : 'disabled');
     for my $subw ($w->Subwidget('ED_Entry'),$w->Subwidget('Popup'),
 	 $w->Subwidget('Listbox')) {
+      $subw->bind('<Tab>',[$hlist,'MoveFocus','next']);
+      $subw->bind('<<LeftTab>>',[$hlist,'MoveFocus','prev']);
       $subw->bind($subw,"<$_>",[sub {
 				  shift;
 				  my ($w,$hlist,$path,$key)=@_;
@@ -1172,6 +1184,7 @@ sub entry_insert {
   my $path = $hlist->info('anchor');
   return unless $hlist->info('exists',$path);
   return unless $what ne '';
+
   if ($hlist->itemExists($path,1)) {
     my $mode = $hlist->getmode($path);
     if ($what eq ' ' and $mode ne 'none') {
@@ -1184,14 +1197,17 @@ sub entry_insert {
       }
       if ($w) {
 	if ($w->isa('Tk::JComboBox_0_02')) {
+	  #$w->setSelected( $w->getSelectedValue );
 	  $w->{index_on_focus} = $w->CurSelection;
+	  #$w->see($w->{index_on_focus});
+	  #what = undef if $what eq ' ';
 	  $w->showPopup unless $w->popupIsVisible;
 	  $w = $w->Subwidget('ED_Entry');
 	}
 	$w->selectionClear;
 	$w->selectionRange(0,'end');
 	$w->focus;
-	if ($what =~ /[^[:cntrl:]]/ and $w->can('Insert')) {
+	if (defined $what and $what =~ /[^[:cntrl:]]/ and $w->can('Insert')) {
 	  $w->Insert($what);
 	}
       }
@@ -1226,32 +1242,48 @@ sub entry_insert {
   return unless $cw->cget('-validate') =~ /cs-match|match/;
   my $lb = $cw->Subwidget('Listbox');
   my $index = $lb->curselection;
+  unless (defined($index)) {
+    my $str =  $cw->Subwidget('ED_Entry')->get;
+    $index = $cw->getItemIndex($str);
+  }
   $index = 0 unless defined($index);
   $cw->setSelectedIndex($index);
   $cw->hidePopup;
 };
 
 
-# *Tk::JComboBox_0_02::MakeValid = sub {
-#   my ($cw) = @_;
-#   my $mode = $cw->cget('-validate');
-#   print "MODE: $mode\n";
-#   return unless $mode=~/^(cs-match|match)$/;
-#   my $e = $cw->Subwidget('ED_Entry');
-#   my $str = $e->get();
-#   print "STR: '$str'\n";
-#   my $index = $cw->getItemIndex($str, 
-#       -mode=> ($mode eq 'match') ? 'ignorecase' : 'usecase');
-#   $index = 0 unless defined($index);
-#   print "INDEX: '$index'\n";
-#   $lb->selectionClear(0, 'end');
-#   $lb->selectionSet($index);
-#   if ($e) {
-#     $e->delete(0,'end');
-#     $e->insert(0,$lb->get('active'));
-#   }
-#   $lb->see($index);
-# };
+sub FocusChildren {
+  return ();
+}
+
+sub focusNext {
+  shift->MoveFocus('next');
+}
+
+sub focusPrev {
+  shift->MoveFocus('prev');
+}
+
+sub MoveFocus {
+  my ($w,$where) = @_; 
+  my $anchor = $w->info('anchor');
+  my $entry = defined($anchor)  ? $w->info($where => $anchor) : undef;
+  if ($entry) {
+    $w->focus;
+    $w->select_entry($entry);  
+  } else {
+    if (defined $anchor) {
+      $w->anchorClear;
+      my $call = "Tk::focus".ucfirst($where); 
+      $w->$call() ;
+    } else {
+      my ($first) = $where eq 'next' ? $w->info('children') : reverse $w->info('children');
+      $w->select_entry($first);
+    }
+  }
+  Tk->break;
+}
+
 
 
 1;
