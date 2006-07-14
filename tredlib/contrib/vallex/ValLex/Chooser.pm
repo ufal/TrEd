@@ -311,7 +311,7 @@ sub create_widget {
 # 							 ]);
 #     $choose_button->pack(qw/-padx 5 -side left/);
 #   }
-  my $can_edit = $data->user_is_annotator() or $data->user_is_reviewer();
+  my $can_edit = $data->user_can_edit();
   my $editframes_button=$fbutton_frame->Button(-text => $can_edit ? 'Edit Frames' : 'Browse Lexicon',
 					       -underline => 0,
 					       -command => [
