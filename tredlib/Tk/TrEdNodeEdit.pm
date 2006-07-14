@@ -122,6 +122,10 @@ sub Populate {
 			    )
    };
 
+  $w->{balloon}=$w->toplevel->Balloon(-initwait=> 1,
+				      -state=> 'balloon',
+				     );
+  $w->{balloon}->Tk::Toplevel::configure(-background=> '#fff3b0');
 
   my %minib = qw(
     plus plus
@@ -141,6 +145,10 @@ sub Populate {
 	     [$w,'invoke_mini_button',$minib{$_}]);
   }
 
+}
+
+sub balloon {
+  shift->{balloon};
 }
 
 sub BindResize {
@@ -283,6 +291,8 @@ sub mini_button {
   my $f = $w->Frame(-background => 'gray',
 		    -borderwidth => 1);
   my $menu_opts = delete $opts->{-menu};
+  my $balloonmsg = delete $opts->{-balloonmsg};
+
   my $b;
   if ($menu_opts) {
     $b = $f->Menubutton(
@@ -316,6 +326,16 @@ sub mini_button {
 	    },$hlist,$path])
     for qw(<Escape> <Return>);
   $b->bind('<FocusIn>',[sub { select_entry($_[1],$_[2]) },$hlist,$path]);
+  if ($balloonmsg) {
+    $b->bind('<Enter>',[sub { 
+			  my ($w,$client)=@_;
+			  $w->{'delay'} = $client->after(1000, 
+							 [sub {$w->SwitchToClient($client);}]);
+			  $w->{'client'} = $client;
+			}, $hlist->balloon] );
+    $hlist->balloon->attach($b, -balloonmsg=> $balloonmsg);
+  }
+
   return $f;
 }
 
@@ -554,6 +574,7 @@ sub add_buttons {
 			    {
 			      -background => $colors{list},
 			      -command => [$hlist,'add_to_list',$path],
+			      -balloonmsg => 'Create a new list item (Ctrl-+)',
 			     }
 			   )->pack();
       } elsif (exists $type->{sequence}) {
@@ -561,6 +582,7 @@ sub add_buttons {
 	$hlist->mini_button($f,'plus',$path,
 			   {
 			     -background => $colors{sequence},
+			     -balloonmsg => 'Create a new sequence element (Ctrl-+)',
 			     -menu => {
 			       -entries => [ map { ['command', -label => $_,
 						    -command => [$hlist,'add_to_sequence',$path,$_],
@@ -576,6 +598,7 @@ sub add_buttons {
 	$hlist->mini_button($f,'star',$path,
 			    { 
 			      -background => ($type->{alt}{-flat} ? $colors{alt_flat} : $colors{alt}),
+			      -balloonmsg => 'Add an alternative (Ctrl-*)',
 			      -command => [$hlist,'add_to_alt',$path],
 			     }
 			   )->pack(-side => 'top');
@@ -584,6 +607,7 @@ sub add_buttons {
 	$hlist->mini_button($f,'hash',$path,
 			   {
 			     -background => $colors{struct},
+			     -balloonmsg => 'Create/delete structure content (Ctrl-#)',
 			     -command => [$hlist,'toggle_structure',$path],
 			    }
 			   )->pack(-side => 'top');
@@ -609,6 +633,7 @@ sub add_buttons {
 	$hlist->mini_button($f1,'plus',$path,
 			   {
 			     -background => $colors{list},
+			     -balloonmsg => 'Insert list item (Ctrl-+)',
 			     -command =>
 			       [$hlist,'new_list_member',$path],
 			   }
@@ -617,6 +642,7 @@ sub add_buttons {
       $hlist->mini_button($f1,'minus',$path,
 			  {
 			    -background => $colors{list},
+			    -balloonmsg => 'Remove list item (Ctrl-minus)',
 			    -command =>
 			      [$hlist,'remove_list_member',$path],
 			  }
@@ -626,12 +652,14 @@ sub add_buttons {
       $hlist->mini_button($f2,'up',$path,
 			  {
 			    -background => $colors{list},
+			    -balloonmsg => 'Move item up (Ctrl-Up)',
 			    -command => [$hlist,'up_or_down',-1,$path ],
 			  }
 			 )->pack(qw(-side top));
       $hlist->mini_button($f2,'down',$path,
 			  {
 			    -background => $colors{list},
+			    -balloonmsg => 'Move item down (Ctrl-Down)',
 			    -command => [$hlist,'up_or_down',1,$path],
 			  }
 			 )->pack(qw(-side top));
@@ -645,6 +673,7 @@ sub add_buttons {
     $hlist->mini_button($f1,'plus',$path,
 			{
 			  -background => $colors{sequence},
+			  -balloonmsg => 'Insert element (Ctrl-+)',
 			  -menu => {
 			    -entries => [ map { ['command', -label => $_,
 						 -command => [$hlist,'new_sequence_member',$path,$_],
@@ -658,6 +687,7 @@ sub add_buttons {
     $hlist->mini_button($f1,'minus',$path,
 			{
 			  -background => $colors{sequence},
+			  -balloonmsg => 'Remove element (Ctrl-minus)',
 			  -command =>
 			    [$hlist,'remove_sequence_member',$path],
 			}
@@ -665,20 +695,23 @@ sub add_buttons {
     $hlist->mini_button($f2,'up',$path,
 			{
 			  -background => $colors{sequence},
+			  -balloonmsg => 'Move element up (Ctrl-Up)',
 			  -command => [$hlist,'up_or_down',-1,$path ],
 			}
 		       )->pack(qw(-side top));
     $hlist->mini_button($f2,'down',$path,
 			{
 			  -background => $colors{sequence},
+			  -balloonmsg => 'Move element down (Ctrl-Down)',
 			  -command => [$hlist,'up_or_down',1,$path],
 			}
 		       )->pack(qw(-side top));
   } elsif ($ptype and $ptype->{alt}) {
-    # add alt member buttons
+    # remove alt member button
     $hlist->mini_button($f,'cross',$path,
 			{
 			  -background => ($ptype->{alt}{-flat} ? $colors{alt_flat} : $colors{alt}),
+			  -balloonmsg => 'Remove alternative (Ctrl-x)',
 			  -command => [$hlist,'remove_alt_member',$path],
 			}
 	   )->pack(-side => 'top');
