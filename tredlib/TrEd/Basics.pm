@@ -62,7 +62,7 @@ sub gotoTree {
   return $no if ($no == $win->{treeNo});
   $win->{treeNo}=$no;
   $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-  &$on_tree_change($win,'gotoTree') if $on_tree_change;
+  &$on_tree_change($win,'gotoTree',$no) if $on_tree_change;
   return $no;
 }
 
@@ -88,7 +88,7 @@ sub newTree {
 #  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
   $win->{root}=$win->{FSFile}->new_tree($win->{treeNo});
   $win->{FSFile}->notSaved(1);
-  &$on_tree_change($win,'newTree') if $on_tree_change;
+  &$on_tree_change($win,'newTree',$win->{root}) if $on_tree_change;
   return 1;
 }
 
@@ -100,7 +100,7 @@ sub newTreeAfter {
 #  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
   $win->{root}=$win->{FSFile}->new_tree(++$win->{treeNo});
   $win->{FSFile}->notSaved(1);
-  &$on_tree_change($win,'newTreeAfter') if $on_tree_change;
+  &$on_tree_change($win,'newTreeAfter',$win->{root}) if $on_tree_change;
   return 1;
 }
 
@@ -112,14 +112,14 @@ sub pruneTree {
 #  $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
 #  splice(@{$win->{FSFile}->treeList}, $win->{treeNo}, 1);
 #  DeleteTree($win->{root});
+  my $no = $win->{treeNo};
   $win->{FSFile}->destroy_tree($win->{treeNo});
   $win->{treeNo}=max(0,min($win->{treeNo},$win->{FSFile}->lastTreeNo));
   $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
   $win->{FSFile}->notSaved(1);
-  &$on_tree_change($win,'pruneTree') if $on_tree_change;
+  &$on_tree_change($win,'pruneTree',$win->{treeNo}) if $on_tree_change;
   return 1;
 }
-
 
 sub newNode {
   ## Adds new son to current node
@@ -128,13 +128,14 @@ sub newNode {
   return unless ($win->{FSFile} and $parent);
 
   my $nd=$parent->new();
-  my $ord=$win->{FSFile}->FS->order;
   Fslib::Paste($nd,$parent,$win->{FSFile}->FS);
-  $nd->setAttribute($order,$parent->getAttribute($order));
-
+  my $order = $win->{FSFile}->FS->order;
+  if ($order) {
+    $nd->setAttribute($order,$parent->getAttribute($order));
+  }
   setCurrent($win,$nd);
   $win->{FSFile}->notSaved(1);
-  &$on_node_change($win,'newNode') if $on_node_change;
+  &$on_node_change($win,'newNode',$nd) if $on_node_change;
 
   return $nd;
 }
@@ -151,7 +152,7 @@ sub pruneNode {
   setCurrent($win,$node->parent) if ($node == $win->{currentNode});
   $t=DeleteLeaf($node);
   $win->{FSFile}->notSaved(1);
-  &$on_node_change($win,'newTree') if $on_node_change;
+  &$on_node_change($win,'newTree',$t) if $on_node_change;
   return $t;
 }
 
