@@ -1456,15 +1456,16 @@ sub saveFile {
   }
 
   $fsfile->changeAppData('refs_save',$refs_to_save);
-  my $result = $fsfile->writeFile($out);
+  my $result = eval { $fsfile->writeFile($out)  };
   $fsfile->changeAppData('refs_save',undef);
-  unless ($result) {
-    $err.="Error saving file to '$out'\n";
+  if ($@ or !$result) {
+    $err .= "Error saving file to '$out'\n";
+    $err .= $@ if $@;
     # try revert backup
     eval {
       IOBackend::rename_uri($out."~",$out) unless $out=~/^ntred:/; # if (-f $f);
     };
-    $err.="Error reverting $f from backup $f~ after saving error: $@\n" if $@;
+    $err .= "Error reverting $f from backup $f~ after saving error: $@\n" if $@;
     return ($out,$err);
   }
   $fsfile->notSaved(0);
