@@ -124,7 +124,7 @@ sub Populate {
 				      -state=> 'balloon',
 				     );
   $w->{balloon}->Tk::Toplevel::configure(-background=> '#fff3b0');
-  $w->{balloon}->allow_grab($w);
+  #$w->{balloon}->allow_grab($w) if $w->{balloon}->can('allow_grab');
 
   my %minib = qw(
     plus plus
