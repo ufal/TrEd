@@ -20,6 +20,7 @@ use strict;
 
 my @balloons;
 my $button_up = 0;
+my @grabs = undef;
 
 sub ClassInit {
     my ($class, $mw) = @_;
@@ -127,7 +128,7 @@ sub Motion {
 
     # Don't do anything if a button is down or a grab is active
     # 0x1f00 is (Button1Mask | .. | Button5Mask)
-    return if not defined $ewin or ((($s & 0x1f00) or $ewin->grabCurrent()) and not $ewin->isa('Tk::Menu'));
+    return if not defined $ewin or ($s & 0x1f00) or !grab_ok($ewin);
 
     # Find which window we are over
     my $over = $ewin->Containing($x, $y);
@@ -195,11 +196,11 @@ sub ButtonUp {
 
 # switch the balloon to a new client
 sub SwitchToClient {
-    my ($w, $client) = @_;
+    my ($w, $client,$verify) = @_;
     return unless Exists($w);
     return unless Exists($client);
     return unless $client->IS($w->{'client'});
-    return if $w->grabCurrent and not $client->isa('Tk::Menu');
+    return if !grab_ok($w,$client);
     my $command = $w->GetOption(-postcommand => $client);
     if (defined $command) {
 	# Execute the user's command and return if it returns false:
@@ -210,11 +211,12 @@ sub SwitchToClient {
 	    $w->{'clients'}{$client}{'postposition'} = [$1, $2];
 	}
     }
-    my $state = $w->GetOption(-state => $client);
+    my $state = $w->GetOption(-state => $client);    
     $w->Popup if ($state =~ /both|balloon/);
     $w->SetStatus if ($state =~ /both|status/);
     $w->{'popped'} = 1;
-    $w->{'delay'}  = $w->repeat(200, ['Verify', $w, $client]);
+    $verify ||= ['Verify', $w, $client];
+    $w->{'delay'}  = $w->repeat(200, $verify) ;
 }
 
 sub Subclient
@@ -236,7 +238,7 @@ sub Verify {
     my $deactivate = # DELETE? or move it to the isa-Menu section?:
 	             # ($over ne $client) or
 	             not $client->IS($w->{'client'})
-                     or (!$client->isa('Tk::Menu') && $w->grabCurrent);
+                     or not grab_ok($w,$client);
     if ($deactivate)
      {
       $w->Deactivate;
@@ -350,13 +352,39 @@ sub ClearStatus {
     }
 }
 
+# allow a window to be grabbed
+
+sub allowed_grab {
+  return @grabs ? $grabs[$#grabs]->{grab} : undef;
+}
+
+sub allow_grab {
+  my ($w,$client)=@_;
+  push @grabs, $w unless $w->{grab};
+  $w->{grab} = $client->toplevel;
+
+}
+
+sub grab_ok {
+  my $w = shift;
+  my $client = shift || $w;
+  my $grab = $w->grabCurrent;
+  if (!$grab or $client->isa('Tk::Menu') or $grab == allowed_grab()) {
+    return 1
+  } else {
+    return 0
+  }
+}
+
 sub destroy {
     my ($w) = @_;
+    $w->{grab} = undef;
     @balloons = grep($w != $_, @balloons);
     #$w->SUPER::destroy;
     # Above doesn't seem to work but at least I have removed it from the
     # list of balloons and maybe undef'ing the object will get rid of it.
-    undef $w;
+    @grabs=grep($w != $_, @grabs);
+    undef %$w;
 }
 
 1;
