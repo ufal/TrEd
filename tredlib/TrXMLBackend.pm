@@ -38,7 +38,6 @@ Read TEI XML file used in SDT for morphological and analytical annotation.
 sub read {
   my ($input,$fsfile) = @_;
   #my $handler = XML::SAX::Writer->new();
-  print "read\n";
   
   my $handler = XML::Handler::TrXML2FS->new(FSFile => $fsfile);
   my $p = XML::LibXML::SAX->new(Handler => $handler);
@@ -166,7 +165,7 @@ sub decode {
     eval {
       $str = XML::LibXML::decodeFromUTF8($enc,$str);
     };
-    print STDERR $@ if $@;
+    warn $@ if $@;
     return $str;
   }
 }

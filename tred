@@ -1793,12 +1793,43 @@ sub reloadFile {
   }
 }
 
+sub loadFile {
+  my ($file,$backends)=@_;
+  my @warnings;
+  my @bck = ref($backends) ? @$backends : @backends;
+  my $status = {
+    ok => 0,
+    warnings => \@warnings,
+    error => undef,
+    filename => $file,
+    backends => \@bck,
+    report => undef,
+  };
+  _clear_err();
+  local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; push @warnings,$msg; };
+  my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc,@bck);
+  if (wantarray) {
+    $status->{error} = _last_err();
+    
+    $status->{report} = "Loading file '$file':\n\n";
+    if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
+      $status->{ok} = @warnings ? -1 : 1;
+    } else {
+      $status->{report} .= "ERRORS:\n\n".$status->{error}."\n";
+    }
+    if (@warnings) {
+      $status->{report} .= join "\n", "WARNINGS:\n",@warnings;
+    }
+    return ($fsfile, $status); 
+  } else {
+    return $fsfile;
+  }
+}
+
 sub openFile {
   my ($grp_or_win,$fname,%opts)= @_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $no_err = $grp->{noOpenFileError};
-
-  undef $grp->{lastOpenError};
 
   my ($f,$goto) = parse_suffix($fname);
   print "Goto suffix is $goto\n" if defined($goto) and $tredDebug;
@@ -1901,18 +1932,21 @@ sub openFile {
   my $backends = doEvalHook($win,'get_backends_hook',@backends);
   my $fsfile;
   # Autosave file requested
+  my $status;
+
   if ($recover eq 'Yes') {
     # Open recovery file
-    _clear_err();
-    $fsfile =
-      FSFile->newFSFile($autosave,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+
+    ($fsfile,$status) = loadFile($autosave,$backends);
     initAppData($fsfile) if ref($fsfile);
-    $grp->{lastOpenError}=_last_err();
-    if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
+    if ($status->{ok}) {
       # Success
       $fsfile->changeFilename($f);
       $fsfile->notSaved(2);
       setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
+      if ($status->{ok}<0) {
+	errorMessage($win,$status->{report},'warn');
+      }
     } else {
       # Recovery failed
       my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
@@ -1921,15 +1955,13 @@ sub openFile {
 		    "Error: recovery failed",
 		    "Recovery file is corrupted ($trees trees read)!".
 		    "\nPossible problem was:",
-		    $grp->{lastOpenError},
+		    $status->{report},
 		    -buttons => ['Open the original file', 'Ignore', 'Cancel']);
       if ($answer eq 'Open the original file') {
 	closeFile($win,-no_update => 1) unless $opts{-preload};
-	_clear_err();
-	$fsfile=
-	  FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+
+	($fsfile,$status) = loadFile($f,$backends);
 	initAppData($fsfile) if ref($fsfile);
-	$grp->{lastOpenError}=_last_err();
 	setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
       } elsif ($answer eq 'Ignore') {
 	redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
@@ -1946,14 +1978,14 @@ sub openFile {
       unlink $autosave;
     }
     # Open requeseted file
-    _clear_err();
-    $fsfile= FSFile->newFSFile($f,$TrEd::Convert::inputenc,(ref($backends) ? @$backends : @backends));
+
+    ($fsfile,$status) = loadFile($f,$backends);
     initAppData($fsfile) if ref($fsfile);
     $grp->{lastOpenError}=_last_err();
     setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
   }
 
-  if ($fsfile and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
+  if ($status->{ok}) {
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
 
 
@@ -1984,18 +2016,20 @@ sub openFile {
   }
   # don't make this an else for the above if: something might have changed in
   # the above block
-  unless ($fsfile and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
+  if ($status->{ok}==0) {
     unless ($no_err) {
       my $trees=$fsfile ? $fsfile->lastTreeNo+1 : 0;
       errorDialog($win,
 		  "Error: open failed",
 		  "File '$f' is unreadable, empty, corrupted, or does not exist ($trees trees read)!".
 		  "\nPossible problem was:",
-		  $grp->{lastOpenError});
+		  $status->{report});
 
     }
     closeFile($win,-no_update => 1) unless $opts{-preload};
     removeLock(undef, $f) if $lockinfo and $lockinfo !~ /^locked/;
+  } elsif ($status->{ok}<1) {
+    errorMessage($win,$status->{report},'warn');
   }
 
   $win->{FSFile}=$fsfile unless $opts{-preload};
@@ -2104,7 +2138,7 @@ sub autoSaveAll {
     };
     unless ($ok) {
       $fsfile->changeAppData('refs_save',undef);
-      print STDERR "Error auto-saving file to '$f'\n(".conv_from_locale($!)."\n";
+      print STDERR "Error auto-saving file to '$f'\n("._last_err()."\n";
       next;
     }
     $fsfile->notSaved(2);
@@ -2163,11 +2197,16 @@ sub saveFile {
   };
   print STDERR $@;
   $win->{FSFile}->changeAppData('refs_save',$refs_to_save);
-  my $result = $win->{FSFile}->writeFile($f);
+  my $result;
+  my @warnings;
+  {
+    local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; push @warnings,$msg; };
+    $result = eval { $win->{FSFile}->writeFile($f) };
+  }
   $win->{FSFile}->changeAppData('refs_save',undef);
-  unless ($result) {
+  if (!$result) {
     $win->toplevel->Unbusy() unless $insideEval;
-    errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n".conv_from_locale($!)."\n"."Check file and directory permissions.\nSee also the console error output.",1);
+    errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"._last_err($@."\n".join("\n",'WARNINGS:',@warnings))."\n"."Check file and directory permissions.\nSee also the console error output.");
     undef $!;
     eval {
       IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
@@ -2177,6 +2216,9 @@ sub saveFile {
       errorMessage($win,$err,1);
     }
     return -1;
+  } elsif (@warnings) {
+    errorMessage($win,"Saving file to '$f':\n\n".
+		   join("\n",@warnings),'warn');
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
   $win->toplevel->Unbusy() unless $insideEval;
@@ -3234,17 +3276,30 @@ sub macrolistDialog {
   $d->bind('<Double-1>' => $callback);
 
   my $f=$topframe->Frame();
-  $f->Label(-text => "Context: ")->pack(qw/-side left/);
-  $f->Optionmenu(-options      => [getContexts()],
-		 -textvariable => \$context,
-		 -command      => [sub { my ($g,$list,$ctxt) = @_;
-					 macrolistCreateItems($g,$list,$ctxt,
-							      $grp->{macroListAnonymous},
-							      $grp->{macroListCalls});
-				       },$grp,$t],
-		 -relief       => 'groove', #$menubarRelief,
-		 -borderwidth  => 2)->pack(qw/-side left -padx 5/);
+  $f->Label(-text => "Context: ",
+	    -underline => 5,
+	   )->pack(qw/-side left/);
+  my $om = 
+    $f->Optionmenu(-options      => [getContexts()],
+		   -textvariable => \$context,
+		   -command      => [sub { my ($g,$list,$ctxt) = @_;
+					   macrolistCreateItems($g,$list,$ctxt,
+								$grp->{macroListAnonymous},
+								$grp->{macroListCalls});
+					 },$grp,$t],
+		   -relief       => 'groove', #$menubarRelief,
+		   -borderwidth  => 2);
+  $om->pack(qw/-side left -padx 5/);
 
+  $d->bind("<Alt-x>"=>
+	     [sub {
+		my ($w,$but,$val)=@_;
+		my $menu = $but->menu;
+		my $idx = eval { $menu->index($$val) } || 0;
+		$but->Post();
+		$menu->activate($idx);
+		Tk->break;
+	      },$om,\$context]);
   $f->Button(-text=> 'Export as HTML',
 	     -underline => 0,
 	     -command=> [ sub {
@@ -3340,7 +3395,15 @@ sub macrolistDialog {
 				     shift->destroy();
 				   },$d ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'right');
   $d->bind($d,'<Destroy>'=> [sub { shift; shift->{Macrolist}=undef; },$grp ]);
-  $d->bind('all','<Escape>'=> [sub { shift->toplevel->destroy(); },$d ]);
+  $d->bind('all','<Escape>'=> [sub {  
+				 if ($_[0]->isa('Tk::Menu')) {
+				   $_[0]->Leave
+				 } else {
+				   $_[1]->toplevel->destroy(); 
+				 }
+			       },$d ]);
+  $d->bind($om,'<Escape>'=> sub { shift->Leave; });
+
 
   $f->pack(qw/-side bottom -fill x/);
   $t->pack(qw/-side top -fill both -expand 1/);
@@ -5598,7 +5661,11 @@ sub startMain {
 		Tk->break;
 	      } else {
 		my ($w,$grp)=@_;
-		$grp->{ContextsMenu}->Post();
+		my $but = $grp->{ContextsMenu};
+		my $menu = $but->menu;
+		my $idx = $menu->index($grp->{selectedContext});
+		$but->Post();
+		$menu->activate($idx);
 		Tk->break;
 	      }
 	    }, \%group,uc($prefix).'+']);
@@ -5611,7 +5678,11 @@ sub startMain {
 		Tk->break;
 	      } else {
 		my ($w,$grp)=@_;
-		$grp->{StylesheetMenu}->Post();
+		my $but = $grp->{StylesheetMenu};
+		my $menu = $but->menu;
+		my $idx = $menu->index($grp->{selectedStylesheet});
+		$but->Post();
+		$menu->activate($idx);
 		Tk->break;
 	      }
 	    }, \%group,uc($prefix).'+']);

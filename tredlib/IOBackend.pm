@@ -53,7 +53,7 @@ sub set_encoding {
       print STDERR "USING PERL IO ENCODING: $encoding\n" if $Debug;
       binmode($fh,":encoding($encoding)");
     };
-    print STDERR $@ if $@;
+    warn $@ if $@;
   }
   return $fh;
 }
