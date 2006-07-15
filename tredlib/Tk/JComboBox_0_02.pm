@@ -37,7 +37,7 @@ use Carp;
 use vars qw($VERSION);
 $VERSION = "0.02";
 
-use base qw(Tk::Frame);
+use base qw(Tk::Frame Tk::Widget);
 Tk::Widget->Construct('JComboBox_0_02');
 
 my $BITMAP;

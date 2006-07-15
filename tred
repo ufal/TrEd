@@ -4269,10 +4269,10 @@ sub onCurrentChange {
     $tv->apply_stored_style_opts("EdgeTextBox",$prev);
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
     update_status_line($win);
-## experiment with persistent node editor
-#    if ($win->{framegroup}->{attrsEditor}) {
-#      editAttrsDialog_schema($win,$node)
-#    }
+    ## EXPERIMENT WITH PERSISTENT NODE EDITOR
+    #    if ($win->{framegroup}->{attrsEditor}) {
+    #      editAttrsDialog_schema($win,$node)
+    #    }
   }
 }
 
@@ -7240,6 +7240,7 @@ sub editAttrsDialog_schema {
   my ($win,$node,$attr_path,$as_type)=@_;
   my $grp = $win->{framegroup};
 
+  my $reusable = 0; # 1 for reusable dialog (which leaks even more)
   
   require Tk::TrEdNodeEdit;
 
@@ -7288,11 +7289,39 @@ sub editAttrsDialog_schema {
   ##########
   # EXPERIMENT WITH A PERSISTENT NODE EDITOR
   ## non-persistent
-  my $d=$win->toplevel->DialogBox(-title=> $dlg_title,
-				  -buttons=> \@buttons
-				 );
-  $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);
-  $d->maxsize(0,int(0.9*$d->screenheight));
+  my $d;
+  my $editor_type = ($attr_path ? 'attrs' : 'node').'Editor'.join("_",@buttons);
+  my $edit = $reusable ? $grp->{$editor_type} : undef;
+  my $h=0;
+  my $create = 0;
+
+  if ($edit) {
+    $d = $edit->toplevel;
+    $d->configure(-title => $dlg_title);
+    $h = $edit->height;
+    $edit->delete('all');
+  } else {
+    $create = 1;
+    $d = $win->toplevel->DialogBox(-title=> $dlg_title,
+			       -buttons=> \@buttons
+			      );
+    $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);    
+    $d->maxsize(0,int(0.9*$d->screenheight));
+    $edit = # $grp->{attrsEditor} =
+      $d->Scrolled('TrEdNodeEdit',
+		   -width=> 70,
+		   -height => 0,
+		   -indicator => 1,
+		   -scrollbars => 'oe'
+		  );
+    ## un-comment for reusable dialog window
+    ## (leaks even more!!)
+    if ($reusable) {
+      $grp->{$editor_type} = $edit;
+    }
+    $edit->Tk::bind('Freeze','<Map>',undef);
+    $edit->bindtags([grep { $_ ne 'Freeze'} $edit->bindtags]);
+  }
 
   ##########
   # EXPERIMENT WITH A PERSISTENT NODE EDITOR
@@ -7304,15 +7333,6 @@ sub editAttrsDialog_schema {
   # 				 delete $_[1]->{attrsEditor}; },$grp ]);
   #########
 
-  my $edit = # $grp->{attrsEditor} =
-    $d->Scrolled('TrEdNodeEdit',
-			  -width=> 70,
-			  -height => 0,
-			  -indicator => 1,
-			  -scrollbars => 'oe'
-			 );
-  $edit->Tk::bind('Freeze','<Map>',undef);
-  $edit->bindtags([grep { $_ ne 'Freeze'} $edit->bindtags]);
   $edit->set_schema($schema);
   my $attr_name = $attr_path;
   $attr_name =~ s{(.*/)}{};
@@ -7354,7 +7374,8 @@ sub editAttrsDialog_schema {
     $edit->add_members('',$node_type,$node,1);
   }
 
-  if ($attr_path eq "") {
+  my $bind_edit = $edit;
+  if ($create and $attr_path eq "") {
     my $sf = $d->Frame->pack(qw(-fill x -side bottom));
     $sf->Label(-underline => 0,
 	       -text => 'Search name:')->pack(qw(-side left));
@@ -7385,11 +7406,11 @@ sub editAttrsDialog_schema {
 	     }
 	   }
 	   return undef;
-	 },$edit]
+	 },$bind_edit]
        )->pack(qw(-side right -expand 1 -fill x));
     $d->bind('all','<Alt-s>', [$qs,'focus']);
-    $qs->bind('<Return>',[$edit,'focus_entry']);
-    $qs->bind('<Escape>',[sub { $_[1]->focus; Tk->break; },$edit]);
+    $qs->bind('<Return>',[$bind_edit,'focus_entry']);
+    $qs->bind('<Escape>',[sub { $_[1]->focus; Tk->break; },$bind_edit]);
     $edit->configure(-browsecmd =>
 		       [sub { $_[0]->delete(0,'end');
 			      $_[0]->insert(0,$_[1]);
@@ -7406,8 +7427,25 @@ sub editAttrsDialog_schema {
 #  $edit->configure( -height => 0);
 
   $edit->update;
-  $edit->pack(qw(-expand 1 -fill both));
-  $edit->BindResize;
+
+  if ($create) {
+    $edit->pack(qw(-expand 1 -fill both));
+    $edit->BindResize;
+  } else {
+    my $new_h = $edit->reqheight;
+    if ($neq_h < $h) {
+      my $g = $d->geometry;
+      $g =~ s{(\d+)x(\d+)}{$1.'x'.($2-$h+$new_h)}e;
+      $d->geometry($g);
+    }
+    $d->update;
+    $edit->update;
+#    my $g = $d->geometry;
+#    $g =~ s{(\d+)x(\d+)}{$1.'x'.($2-$h)}e;
+#    $edit->packForget;
+#    $d->geometry($g);
+    $edit->adjust_size;
+  }
 
   $edit->focus;
   if ($attr_path ne "") {
@@ -7509,7 +7547,13 @@ sub editAttrsDialog_schema {
     }
     $redo = 0;
   }
-  $d->destroy;
+  unless ($reusable) {
+    $edit->clear;
+    $d->destroy;
+  }
+  #undef $d;
+
+
 
   ## EXPERIMENT WITH PERSISTENT NODE EDITOR
   # persistent:
@@ -9799,3 +9843,13 @@ sub cleanup_tredmacro {
     print STDERR $@ if $@;
   }
 }
+
+## watch leaks
+# package Tk::Widget;
+# sub DESTROY {
+#  my $w = shift;
+#  print  "$w->DESTROY()\n";
+#  use Data::Dumper;
+#  print Dumper($w),"\n";
+#  $w->destroy if ($w->IsWidget);
+# }
