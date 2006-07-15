@@ -54,7 +54,6 @@ sub find_subwidget {
 
 sub Populate {
   my ($w, $args)=@_;
-
   $args->{-background}=$colors{bg}
     unless exists($args->{-background});
 
@@ -81,7 +80,6 @@ sub Populate {
 #    -takefocus => ['SELF', 'takeFocus', 'TakeFocus', 1]
 
    );
-
   $w->{my_itemstyles} = {
     required => $w->ItemStyle('text', -foreground=>'#0000aa',
 			      -background => 'white',
@@ -122,10 +120,11 @@ sub Populate {
 			    )
    };
 
-  $w->{balloon}=$w->toplevel->Balloon(-initwait=> 1,
+  $w->{balloon}=$w->toplevel->Balloon(-initwait=> 1000,
 				      -state=> 'balloon',
 				     );
   $w->{balloon}->Tk::Toplevel::configure(-background=> '#fff3b0');
+  $w->{balloon}->allow_grab($w);
 
   my %minib = qw(
     plus plus
@@ -140,6 +139,7 @@ sub Populate {
     KP_Divide cross
     slash cross
   );
+
   for (keys %minib) {
     $w->bind('<Control-'.$_.'>',
 	     [$w,'invoke_mini_button',$minib{$_}]);
@@ -153,6 +153,7 @@ sub balloon {
 
 sub BindResize {
   my ($w)=@_;
+
   $w->configure(
     -sizecmd =>
       [sub {
@@ -163,6 +164,7 @@ sub BindResize {
        },$w
       ]
      );
+
 }
 
 sub invoke_mini_button {
@@ -187,7 +189,6 @@ sub ClassInit {
   my ($class, $mw)=@_;
 
   $class->SUPER::ClassInit($mw);
-
 
   $mw->bind($class,'<Return>',\&focus_entry );
   $mw->bind($class,'<KeyPress>', ['entry_insert',Ev('A')]);
@@ -318,6 +319,7 @@ sub mini_button {
       %$opts
      )->pack;
   }
+
   $b->bind($b,$_,
 	   [sub {
 	      $_[1]->focus;
@@ -326,16 +328,11 @@ sub mini_button {
 	    },$hlist,$path])
     for qw(<Escape> <Return>);
   $b->bind('<FocusIn>',[sub { select_entry($_[1],$_[2]) },$hlist,$path]);
-  if ($balloonmsg) {
-    $b->bind('<Enter>',[sub { 
-			  my ($w,$client)=@_;
-			  $w->{'delay'} = $client->after(1000, 
-							 [sub {$w->SwitchToClient($client);}]);
-			  $w->{'client'} = $client;
-			}, $hlist->balloon] );
+
+  my $balloon = $hlist->balloon;
+  if ($balloon and $balloonmsg) {
     $hlist->balloon->attach($b, -balloonmsg=> $balloonmsg);
   }
-
   return $f;
 }
 
@@ -618,7 +615,6 @@ sub add_buttons {
   if ($parent ne "") {
     $ptype = (($hlist->info(data => $parent)->{compressed_type}) || $ptype)
   }
-#  return; # unless ref $ptype;
   if ($ptype and $ptype->{list}) {
     # add list member buttons
     my ($f1,$f2);
@@ -809,6 +805,7 @@ sub add_member {
 		       ())
 		      )
       ->pack(qw(-fill both -expand yes));
+
     $e->bind('<FocusIn>',[sub { $_[1]->select_entry($_[2]) },$hlist,$path]);
     $e->bind('<Up>',[sub {
 		       $_[1]->focus;
@@ -866,9 +863,11 @@ sub add_member {
 				 $_[1]->EntryEnter;
 				 $_[1]->{index_on_focus} = undef;
 			       },$w]);
+
     $w->configure(-state => $enabled ? 'normal' : 'disabled');
     for my $subw ($w->Subwidget('ED_Entry'),$w->Subwidget('Popup'),
 	 $w->Subwidget('Listbox')) {
+
       $subw->bind('<Tab>',[$hlist,'MoveFocus','next']);
       $subw->bind('<<LeftTab>>',[$hlist,'MoveFocus','prev']);
       $subw->bind($subw,"<$_>",[sub {
@@ -1317,6 +1316,9 @@ sub MoveFocus {
   Tk->break;
 }
 
-
+sub clear {
+  my $hlist = shift;
+  $hlist->balloon->Tk::Balloon::destroy if $hlist->balloon;
+}
 
 1;
