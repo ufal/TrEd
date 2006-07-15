@@ -46,12 +46,6 @@ $pmlhint=EMPTY;
 $config = undef;
 $config_file = 'pmlbackend_conf.xml';
 
-eval {
-  configure();
-};
-
-print STDERR $@ if $@;
-
 sub configure {
   return 0 unless eval { 
     require XML::LibXSLT;
@@ -92,6 +86,20 @@ sub _warn {
   chomp $msg;
   warn "PMLBackend: WARNING: $msg\n";
 }
+
+
+################### 
+#
+# INIT
+#
+
+eval {
+  configure();
+};
+
+_warn $@ if $@;
+
+###################
 
 =item open_backend (filename,mode)
 
@@ -596,16 +604,16 @@ sub read_node {
 	$value = $attr->value;
       }
       my $member = $members->{$name};
-      if ($member ne EMPTY and 
-	  $member->{as_attribute}) {
+      if ($member ne EMPTY) {
+	unless ($member->{as_attribute}) {
+	  _warn("Member '$name' not declared as attribute of "._element_address($node));
+	}
 	$hash->{$name} = $value;
 	if ($member->{role} eq "#ORDER") {
 	  $defs->{$name} = ' N' unless exists($defs->{$name});
 	} elsif ($member->{role} eq "#HIDE") {
 	  $defs->{$name} = ' H' unless exists($defs->{$name});
 	}
-      } elsif ($members->{$name}) {
-	_warn("Member '$name' not declared as attribute of "._element_address($node));
       } else {
 	unless ($name =~ /^xml(?:ns)?(?:$|:)/) {
 	  _warn("Undeclared attribute '$name' of "._element_address($node));

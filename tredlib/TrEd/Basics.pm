@@ -167,16 +167,20 @@ sub _messageBox {
   my ($top,$title,$msg,$nobug)=@_;
   my $d= $top->DialogBox(-title=> $title,
 		      -buttons=> ['OK']);
-  $d->Label(-text => "ERROR",
+
+  my $head =
+    $nobug eq 'warn' ? "Operation produced warnings - full message follows.\n" 
+      : $nobug       ? "Operation failed - full error message follows.\n" 
+      : "An error occured during a protected transaction.\n".
+	"If you believe that it was caused by a bug in TrEd, you may wish to\n".
+	"copy the error message displayed below and report it to the author.";
+
+  $d->Label(-text => $nobug eq 'warn' ? "WARNING" : "ERROR",
 	    -justify => 'left',
 	    -foreground => 'red'
 	   )
     ->pack(-pady => 5,-side => 'top', -fill => 'x');
-  $d->Label(-text => 
-	    $nobug ? "Operation failed - full error message follows.\n" :
-	      "An error occured during a protected transaction.\n".
-	      "If you believe that it was caused by a bug in TrEd, you may wish to\n".
-	      "copy the error message displayed below and report it to the author.",
+  $d->Label(-text => $head,
 	    -justify => 'left'
 	   )->pack(-pady => 10,-side => 'top', -fill => 'x');
   my $t= $d->

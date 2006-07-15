@@ -2045,20 +2045,19 @@ sub writeFile {
   my $backend=$self->backend || 'FSBackend';
   print STDERR "Writing to $filename using backend $backend\n" if $Fslib::Debug;
   my $ret;
-  eval {
-    no strict 'refs';
-    my $fh;
-    $backend->can('write') || die "Backend $backend is not loaded or does not support writing\n";
-    $backend->can('open_backend') || die "Backend $backend does not support open\n";
-    ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding)) || die "Open failed on '$filename' using backend $backend\n";
-    $ret=&{"${backend}::write"}($fh,$self) || die "Write to '$filename' failed using backend $backend\n";
-    &{"${backend}::close_backend"}($fh) || die "Closing file '$filename' failed using backend $backend\n";
-    print STDERR "Status: $ret\n" if $Fslib::Debug;
-  };
-  if ($@) {
-    print STDERR "Error: $@\n";
-    return 0;
-  }
+  #eval {
+  no strict 'refs';
+  my $fh;
+  $backend->can('write') || die "Backend $backend is not loaded or does not support writing\n";
+  $backend->can('open_backend') || die "Backend $backend does not support open\n";
+  ($fh=&{"${backend}::open_backend"}($filename,"w",$self->encoding)) || die "Open failed on '$filename' using backend $backend\n";
+  $ret=&{"${backend}::write"}($fh,$self) || die "Write to '$filename' failed using backend $backend\n";
+  &{"${backend}::close_backend"}($fh) || die "Closing file '$filename' failed using backend $backend\n";
+  #};
+  #if ($@) {
+  #  print STDERR "Error: $@\n";
+  #  return 0;
+  #}
   $self->notSaved(0) if $ret;
   return $ret;
 }
