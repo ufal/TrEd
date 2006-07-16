@@ -1000,8 +1000,8 @@ sub gotoFile {
   return 0 if doEvalHook($win,"goto_file_hook") eq 'stop';
   return 0 if ($fn>=$win->{currentFilelist}->file_count() or $fn<0);
   $win->{currentFileNo}=$fn;
-  my $result = openFile($win,filelistFullFileName($win,$fn),
-			-norecent => $no_recent, -noredraw => $no_redraw);
+  my ($fs,$status) = openFile($win,filelistFullFileName($win,$fn),
+			      -norecent => $no_recent, -noredraw => $no_redraw);
   if ($grp->{Filelist} and
 	$grp->{filelistCurrentFilelist} eq $win->{currentFilelist}) {
     my $path=filelistEntryPath($win->{currentFilelist},$fn);
@@ -1009,7 +1009,7 @@ sub gotoFile {
     $grp->{Filelist}->selectionClear();
     $grp->{Filelist}->selectionSet($path);
   }
-  return $result;
+  return $status->{ok};
 }
 
 sub filelistFullFileName {
@@ -1045,7 +1045,7 @@ sub nextOrPrevFile {
   my $result=gotoFile($win,$pos,$no_recent);
   my $quiet=0;
   my $response;
-  while (!(defined($result) and $result == 0) and $result != -1 and (!$win->{FSFile} or $win->{FSFile}->lastTreeNo<0)) {
+  while ($result==0) {
     my $trees = $win->{FSFile} ? $win->{FSFile}->lastTreeNo+1 : 0;
     unless ($quiet) {
       my $f=filelistFullFileName($win,$pos);
@@ -1054,7 +1054,6 @@ sub nextOrPrevFile {
 		    "Error: open failed",
 		    "File is unreadable, empty, corrupted, or does not exist ($trees trees read)!"
 		      ."\nPossible problem was:",
-		    'Trying to load: '.$f."\n".
 		    $grp->{lastOpenError},
 		    -buttons => ["Try next","Skip to next correct file","Cancel"]
 		   );
@@ -1794,7 +1793,8 @@ sub reloadFile {
 }
 
 sub loadFile {
-  my ($file,$backends)=@_;
+  my ($grp,$file,$backends)=@_;
+  $grp = cast_to_grp($grp);
   my @warnings;
   my @bck = ref($backends) ? @$backends : @backends;
   my $status = {
@@ -1806,21 +1806,26 @@ sub loadFile {
     report => undef,
   };
   _clear_err();
-  local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; push @warnings,$msg; };
+  local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; print STDERR $msg."\n"; push @warnings,$msg; };
   my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc,@bck);
+  $status->{error} = _last_err();
+  
+  $status->{report} = "Loading file '$file':\n\n";
+  
+  if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
+    $status->{ok} = @warnings ? -1 : 1;
+  } else {
+    $status->{ok} = 0;
+    $status->{report} .= "ERRORS:\n\n".$status->{error}."\n";
+  }
+  if (@warnings) {
+    $status->{report} .= join "\n", "WARNINGS:\n",@warnings;
+  }
+
+  $grp->{lastOpenError}=$status->{report};
+
   if (wantarray) {
-    $status->{error} = _last_err();
-    
-    $status->{report} = "Loading file '$file':\n\n";
-    if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
-      $status->{ok} = @warnings ? -1 : 1;
-    } else {
-      $status->{report} .= "ERRORS:\n\n".$status->{error}."\n";
-    }
-    if (@warnings) {
-      $status->{report} .= join "\n", "WARNINGS:\n",@warnings;
-    }
-    return ($fsfile, $status); 
+    return ($fsfile, $status);  
   } else {
     return $fsfile;
   }
@@ -1932,12 +1937,12 @@ sub openFile {
   my $backends = doEvalHook($win,'get_backends_hook',@backends);
   my $fsfile;
   # Autosave file requested
-  my $status;
+  my $status = { ok => 0 };
 
   if ($recover eq 'Yes') {
     # Open recovery file
 
-    ($fsfile,$status) = loadFile($autosave,$backends);
+    ($fsfile,$status) = loadFile($grp,$autosave,$backends);
     initAppData($fsfile) if ref($fsfile);
     if ($status->{ok}) {
       # Success
@@ -1960,7 +1965,7 @@ sub openFile {
       if ($answer eq 'Open the original file') {
 	closeFile($win,-no_update => 1) unless $opts{-preload};
 
-	($fsfile,$status) = loadFile($f,$backends);
+	($fsfile,$status) = loadFile($grp,$f,$backends);
 	initAppData($fsfile) if ref($fsfile);
 	setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
       } elsif ($answer eq 'Ignore') {
@@ -1979,15 +1984,13 @@ sub openFile {
     }
     # Open requeseted file
 
-    ($fsfile,$status) = loadFile($f,$backends);
+    ($fsfile,$status) = loadFile($grp,$f,$backends);
     initAppData($fsfile) if ref($fsfile);
-    $grp->{lastOpenError}=_last_err();
     setFSLockInfo($fsfile, $lockinfo) if $lockFiles;
   }
 
   if ($status->{ok}) {
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
-
 
     unless ($no_secondary) {
     # if backend requested another FS-file, load it
@@ -2063,7 +2066,7 @@ sub openFile {
   $win->toplevel->Unbusy() unless $insideEval;
 
   addToRecent($grp,$f);
-  return $fsfile;
+  return wantarray ? ($fsfile,$status) : $fsfile;
 }
 
 sub getNodeByNo {
