@@ -2183,7 +2183,7 @@ sub backend {
 
 =pod
 
-=item $fsfile->changeBackend(string)
+=item $fsfile->changeBackend (string)
 
 Change file backend.
 
@@ -2210,7 +2210,7 @@ sub encoding {
 
 =pod
 
-=item $fsfile->changeEncoding(string)
+=item $fsfile->changeEncoding (string)
 
 Change file character encoding (used by Perl 5.8 input/output filters).
 
@@ -2240,7 +2240,7 @@ sub userData {
 
 =pod
 
-=item $fsfile->changeUserData(value)
+=item $fsfile->changeUserData (value)
 
 Change user data associated with the file. User data are not supposed
 to be persistent and IO backends should ignore it.
@@ -2255,7 +2255,7 @@ sub changeUserData {
 
 =pod
 
-=item $fsfile->metaData(name)
+=item $fsfile->metaData (name)
 
 Return meta data stored into the object usually by IO backends. Meta
 data are supposed to be persistent, i.e. they are saved together with
@@ -2270,7 +2270,7 @@ sub metaData {
 
 =pod
 
-=item $fsfile->changeMetaData(name,value)
+=item $fsfile->changeMetaData (name,value)
 
 Change meta information (usually used by IO backends). Meta data are
 supposed to be persistent, i.e. they are saved together with the file
@@ -2284,7 +2284,7 @@ sub changeMetaData {
   return $self->[13]->{$name}=$val;
 }
 
-=item $fsfile->listMetaData(name)
+=item $fsfile->listMetaData (name)
 
 In array context, return the list of metaData keys. In scalar context
 return the hash reference where metaData are stored.
@@ -2297,7 +2297,7 @@ sub listMetaData {
   return wantarray ? keys(%{$self->[13]}) : $self->[13];
 }
 
-=item $fsfile->appData(name)
+=item $fsfile->appData (name)
 
 Return application specific information associated with the
 file. Application data are not persistent, i.e. they are not saved
@@ -2312,7 +2312,7 @@ sub appData {
 
 =pod
 
-=item $fsfile->changeAppData(name,value)
+=item $fsfile->changeAppData (name,value)
 
 Change aplication specific information associated with the
 file. Application data are not persistent, i.e. they are not saved
@@ -2326,7 +2326,7 @@ sub changeAppData {
   return $self->[14]->{$name}=$val;
 }
 
-=item $fsfile->listAppData(name)
+=item $fsfile->listAppData (name)
 
 In array context, return the list of appData keys. In scalar context
 return the hash reference where appData are stored.
@@ -2354,7 +2354,7 @@ sub FS {
 
 =pod
 
-=item $fsfile->changeFS(FSFormat_object)
+=item $fsfile->changeFS (FSFormat_object)
 
 Associate FS file with a new FSFormat object.
 
@@ -2383,7 +2383,7 @@ sub hint {
 
 =pod
 
-=item $fsfile->changeHint(string)
+=item $fsfile->changeHint (string)
 
 Change the Tred's hint pattern associated with this FSFile.
 
@@ -2434,7 +2434,7 @@ sub patterns {
 
 =pod
 
-=item $fsfile->changePatterns(list)
+=item $fsfile->changePatterns (list)
 
 Change the list of display attribute patterns associated with this FSFile.
 
@@ -2462,7 +2462,7 @@ sub tail {
 
 =pod
 
-=item $fsfile->changeTail(list)
+=item $fsfile->changeTail (list)
 
 Modify the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
@@ -3297,7 +3297,7 @@ This class implements the attribute value type 'list'.
 package Fslib::List;
 use Carp;
 
-=item Fslib::List->new(val1,val2,...)
+=item Fslib::List->new (val1,val2,...)
 
 Create a new list (optionally populated with given values).
 
@@ -3308,7 +3308,7 @@ sub new {
   return bless [@_],$class;
 }
 
-=item Fslib::List->new_from_ref(array_ref, reuse)
+=item Fslib::List->new_from_ref (array_ref, reuse)
 
 Create a new list consisting of values in a given array reference.
 Use this constructor instead of new() for large lists by reference. If
@@ -3331,7 +3331,7 @@ sub new_from_ref {
   }
 }
 
-=item $list->values()
+=item $list->values ()
 
 Retrurns a its values (i.e. the list members).
 
@@ -3354,7 +3354,7 @@ This class implements the attribute value type 'alternative'.
 package Fslib::Alt;
 use Carp;
 
-=item Fslib::Alt->new(value1,value2,...)
+=item Fslib::Alt->new (value1,value2,...)
 
 Create a new alternative (optionally populated with given values).
 
@@ -3365,7 +3365,7 @@ sub new {
   return bless [@_],$class;
 }
 
-=item $alt->values()
+=item $alt->values ()
 
 Retrurns a its values (i.e. the alternatives).
 
@@ -3498,7 +3498,7 @@ sub new {
   }
 }
 
-=item $container->attributes()
+=item $container->attributes ()
 
 Return (assorted) list of names of all attributes.
 
@@ -3531,7 +3531,7 @@ This is an alias for value().
 package Fslib::Seq;
 use Carp;
 
-=item Fslib::Seq->new([element_array_ref?, content_pattern?)
+=item Fslib::Seq->new ([element_array_ref?, content_pattern?)
 
 Create a new sequence (optionally populated with elements from a given
 array_ref).  Each element should be a [ name, value ] pair. The second
@@ -3549,7 +3549,7 @@ validate() method below).
 		 ],$class;
   }
 
-=item $seq->elements()
+=item $seq->elements ()
 
 Return a list of [ name, value ] pairs representing the sequence
 elements.
@@ -3560,7 +3560,7 @@ elements.
     return @{$_[0]->[0]};
   }
 
-=item $seq->elements_list()
+=item $seq->elements_list ()
 
 Like C<elements>, only this method returns a Fslib::List object.
 
@@ -3571,7 +3571,7 @@ Like C<elements>, only this method returns a Fslib::List object.
   }
 
 
-=item $seq->content_pattern()
+=item $seq->content_pattern ()
 
 Return the regular expression constraint stored in the sequence object (if any).
 
@@ -3581,7 +3581,7 @@ Return the regular expression constraint stored in the sequence object (if any).
     return $_[0]->[1];
   }
 
-=item $seq->set_content_pattern()
+=item $seq->set_content_pattern ()
 
 Store a regular expression constraint in the sequence object. This
 expressoin can be used later to validate sequence content (see
@@ -3594,7 +3594,7 @@ validate() method).
   }
 
 
-=item $seq->values()
+=item $seq->values ()
 
 Return a list of values of all elements of the sequence. In array
 context, the returned value is a list, in scalar context the result is
@@ -3607,7 +3607,7 @@ a Fslib::List object.
     return wantarray ? @values : Fslib::List->new_from_ref(\@values,1);
   }
 
-=item $seq->names()
+=item $seq->names ()
 
 Return a list of names of all elements of the sequence. In array
 context, the returned value is a list, in scalar context the result is
@@ -3620,7 +3620,7 @@ a Fslib::List object.
     return wantarray ? @names : Fslib::List->new_from_ref(\@names,1);
   }
 
-=item $seq->element_at(index)
+=item $seq->element_at (index)
 
 Return the element of the sequence on the position specified by a
 given index. Elements in the sequece are indexed as elements in Perl
@@ -3635,7 +3635,7 @@ should ever want to change it.
   }
 
 
-=item $seq->name_at(index)
+=item $seq->name_at (index)
 
 Return the name of the element on a given position.
 
@@ -3646,7 +3646,7 @@ Return the name of the element on a given position.
     return $self->[0][$index][0];
   }
 
-=item $seq->value_at(index)
+=item $seq->value_at (index)
 
 Return the value of the element on a given position.
 
@@ -3657,7 +3657,7 @@ Return the value of the element on a given position.
     return $self->[0][$index][1];
   }
 
-=item $seq->delegate_names(key?)
+=item $seq->delegate_names (key?)
 
 If all element values are HASH-references, then it is possible to
 store each element's name in its value under a given key (that is, to
@@ -3678,7 +3678,7 @@ values is not a HASH reference.
     }
   }
 
-=item $seq->validate(content_pattern?)
+=item $seq->validate (content_pattern?)
 
 Check that content of the sequence statisfies a constraint specified
 by means of a regular expression C<content_pattern>. If no content_pattern is
@@ -3702,7 +3702,7 @@ Returns: 1 if the content satisfies the constraint, 0 otherwise.
     return $content=~m/^$re$/x ? 1 : 0;
   }
 
-=item $seq->push_element(name, value)
+=item $seq->push_element (name, value)
 
 Append a given name-value pair to the sequence.
 
@@ -3713,7 +3713,7 @@ Append a given name-value pair to the sequence.
     push @{$self->[0]},Fslib::Seq::Element->new($name,$value);
   }
 
-=item $seq->push_element_obj(obj)
+=item $seq->push_element_obj (obj)
 
 Append a given Fslib::Seq::Element object to the sequence.
 
@@ -3754,7 +3754,7 @@ pair.
 package Fslib::Seq::Element;
 use Carp;
 
-=item Fslib::Seq::Element->new(name, value)
+=item Fslib::Seq::Element->new (name, value)
 
 Create a new sequence element.
 
@@ -3765,7 +3765,7 @@ Create a new sequence element.
     return bless [$name,$value],$class;
   }
 
-=item $el->name()
+=item $el->name ()
 
 Return the name of the element.
 
@@ -3776,7 +3776,7 @@ Return the name of the element.
   }
 
 
-=item $el->value()
+=item $el->value ()
 
 Return the value of the element.
 
@@ -3786,7 +3786,7 @@ Return the value of the element.
     $_[0]->[1];
   }
 
-=item $el->setName(name)
+=item $el->setName (name)
 
 Set name of the element
 
@@ -3797,7 +3797,7 @@ Set name of the element
   }
 
 
-=item $el->setValue(value)
+=item $el->setValue (value)
 
 Set value of the element
 
@@ -4057,7 +4057,7 @@ sub check_revision {
   }
 }
 
-=item Fslib::Schema->new(string)
+=item Fslib::Schema->new (string)
 
 Parses a given XML representation of the schema and returns a new
 C<Fslib::Schema> instance.
@@ -4148,7 +4148,7 @@ sub new {
 }
 
 
-=item Fslib::Schema->readFrom(filename,opts)
+=item Fslib::Schema->readFrom (filename,opts)
 
 Reads schema from a given XML file and returns a new C<Fslib::Schema>
 object.
@@ -4195,7 +4195,7 @@ sub readFrom {
   return $schema;
 }
 
-=item $schema->find_type_by_path(attribute-path,noresolve,decl)
+=item $schema->find_type_by_path (attribute-path,noresolve,decl)
 
 Locate a type declaration specified by C<attribute-path> starting
 from declaration C<decl>. If C<decl> is undefined, the root type
@@ -4280,7 +4280,7 @@ sub find_type_by_path {
 }
 
 
-=item $schema->find_role(role,decl)
+=item $schema->find_role (role,decl)
 
 Return attribute paths leading to those nested type declarations of
 the type declaration C<decl> whose role is C<role>. If C<decl> is not
@@ -4387,7 +4387,7 @@ sub _find_role {
   return @result;
 }
 
-=item $schema->node_type(type,role)
+=item $schema->node_type (type,role)
 
 Return a list of all type declarations with role C<#NODE>.
 
@@ -4400,7 +4400,7 @@ sub node_types {
 }
 
 
-=item $schema->get_root_type(name)
+=item $schema->get_root_type (name)
 
 Returns the declaration of the root type.
 
@@ -4411,7 +4411,7 @@ sub get_root_type {
   return $self->resolve_type($self->{root});
 }
 
-=item $schema->get_type_by_name(name)
+=item $schema->get_type_by_name (name)
 
 Returns the declaration of the given named type.
 
@@ -4423,7 +4423,7 @@ sub get_type_by_name {
 }
 
 
-=item $schema->resolve_type(decl)
+=item $schema->resolve_type (decl)
 
 If the declaration C<decl> is a type-reference, return the referred
 type declaration. Otherwise return C<decl>.
@@ -4441,7 +4441,7 @@ sub resolve_type {
   }
 }
 
-=item $schema->type(decl)
+=item $schema->type (decl)
 
 Wrap the type declaration C<decl> into a C<Fslib::Type> object and
 return the object. Both the current schema and the declaration can be
@@ -4457,7 +4457,7 @@ sub type {
 
 # emulate FSFormat->attributes to some extent
 
-=item $schema->attributes([decl...])
+=item $schema->attributes ([decl...])
 
 Return attribute paths to all atomic subtypes of given type
 declarations. If no types are given, then types with role C<#NODE>
@@ -4619,7 +4619,7 @@ This is a wrapper class for a schema type.
 
 =cut
 
-=item Fslib::Type->new(schema,type)
+=item Fslib::Type->new (schema,type)
 
 Return a new C<Fslib::Type> object containing a given type of a given
 C<Fslib::Schema>.
@@ -4631,7 +4631,7 @@ sub new {
   return bless [$schema,$type], $class;
 }
 
-=item $type->schema()
+=item $type->schema ()
 
 Retrieve the C<Fslib::Schema>.
 
@@ -4642,7 +4642,7 @@ sub schema {
   return $self->[0];
 }
 
-=item $type->type_decl()
+=item $type->type_decl ()
 
 Return the raw Perl structure which resulted from parsing the PML
 schema declaration by C<XML::Simple>.
@@ -4654,7 +4654,7 @@ sub type_decl {
   return $self->[1];
 }
 
-=item $type->members()
+=item $type->members ()
 
 If the wrapped schema type is an AVS structure type,
 return names of its members (attributes), except
@@ -4715,7 +4715,7 @@ sub members {
   }
   }
 
-=item $type->attributes()
+=item $type->attributes ()
 
 Return attribute paths leading to all atomic subtypes of the given type.
 
@@ -4726,7 +4726,7 @@ sub attributes {
   return $self->schema->attributes($self->type_decl);
 }
 
-=item $type->find(attribute-path,noresolve)
+=item $type->find (attribute-path,noresolve)
 
 Locate a type declaration specified by C<attribute-path> starting from
 the current type. If C<noresolve> is true, a possible type-reference
@@ -4746,7 +4746,7 @@ sub find {
   return $self->schema->find_type_by_path($path,$noresolve,$type);
 }
 
-=item $type->find_role(role)
+=item $type->find_role (role)
 
 Literally equivalent to C<$type->schema->find_role($role,$type->type_decl)>.
 
@@ -4821,7 +4821,7 @@ corresponding C<$Fslib::...> variables directly.
    characters removed.
 
 
-=item Next($node,[$top]), Prev($node,[$top])
+=item Next($node,[$top]), Prev ($node,[$top])
 
  Params:
 
@@ -4839,7 +4839,7 @@ corresponding C<$Fslib::...> variables directly.
    There is no need to use this function directly. You should
    use B<FSNode->>B<following> method instead.
 
-=item Cut($node)
+=item Cut ($node)
 
  Params:
 
@@ -4854,7 +4854,7 @@ corresponding C<$Fslib::...> variables directly.
    $node
 
 
-=item Fslib::Paste($node,$newparent,$fsformat)
+=item Fslib::Paste ($node,$newparent,$fsformat)
 
  Params:
 
@@ -4871,7 +4871,7 @@ corresponding C<$Fslib::...> variables directly.
 
  Returns $node
 
-=item Fslib::CloneValue($scalar)
+=item Fslib::CloneValue ($scalar)
 
  Params:
 
@@ -4886,7 +4886,7 @@ corresponding C<$Fslib::...> variables directly.
 
    a deep copy of $scalar
 
-=item C<Fslib::FindInResources($filename)>
+=item C<Fslib::FindInResources ($filename)>
 
  Params:
 
@@ -4898,7 +4898,7 @@ corresponding C<$Fslib::...> variables directly.
     resource directory, return an absolute path for the
     resource. Otherwise return filename.
 
-=item C<Fslib::ResolvePath($ref_filename,$filename,$use_resources?)>
+=item C<Fslib::ResolvePath ($ref_filename,$filename,$use_resources?)>
 
  Params:
 
@@ -4914,7 +4914,7 @@ corresponding C<$Fslib::...> variables directly.
    file can't be located in this way and use_resources is true, return
    the value of C<FindInResources(filename)>.
 
-=item Fslib::ImportBackends(@backends)
+=item Fslib::ImportBackends (@backends)
 
  Params:
 
