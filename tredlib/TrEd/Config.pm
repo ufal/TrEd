@@ -105,6 +105,8 @@ BEGIN {
   @config_file_search_list=();
 }
 
+my $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
+
 sub find_exe {
   local $_ = `/usr/bin/which $_[0] 2>/dev/null`; chomp; /\S/ ? $_ : undef
 }
@@ -348,6 +350,8 @@ sub set_config {
       }
     }
   }
+  
+  $Fslib::resourcePath .= $resourcePathSplit . tilde_expand(q(~/.tred.d));
 
   if (exists $confs->{psfontfile}) {
     $psFontFile=tilde_expand($confs->{psfontfile});
