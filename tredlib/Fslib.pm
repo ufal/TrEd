@@ -4886,7 +4886,7 @@ corresponding C<$Fslib::...> variables directly.
 
    a deep copy of $scalar
 
-=item C<Fslib::FindInResources ($filename)>
+=item Fslib::FindInResources ($filename)
 
  Params:
 
@@ -4898,7 +4898,7 @@ corresponding C<$Fslib::...> variables directly.
     resource directory, return an absolute path for the
     resource. Otherwise return filename.
 
-=item C<Fslib::ResolvePath ($ref_filename,$filename,$use_resources?)>
+=item Fslib::ResolvePath ($ref_filename,$filename,$use_resources?)
 
  Params:
 
