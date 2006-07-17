@@ -132,7 +132,8 @@ sub save {
     local *F;
     print "Saving to: ",$self->filename,"\n";
     if (defined ($self->filename) and $self->filename ne "") {
-      open F,">".$self->filename;
+      open F,">".$self->filename ||
+	warn "Couldn't save filelist to '".$self->filename."': $!\n";
     } else {
       *F=*STDOUT;
     }
