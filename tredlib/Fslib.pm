@@ -1850,57 +1850,57 @@ Initialize a FS file object. Argument description:
 
 =over 4
 
-=item $fsfile->name (scalar)
+=item name (scalar)
 
 File name
 
-=item $fsfile->file_format (scalar)
+=item file_format (scalar)
 
 File format indentifier (user-defined string). TrEd, for example, uses
 C<FS format>, C<gzipped FS format> and C<any non-specific format> strings as identifiers.
 
-=item $fsfile->FS (FSFormat)
+=item FS (FSFormat)
 
 FSFormat object associated with the file
 
-=item $fsfile->hint_pattern (scalar)
+=item hint_pattern (scalar)
 
 TrEd's hint pattern definition
 
-=item $fsfile->attribs_patterns (list reference)
+=item attribs_patterns (list reference)
 
 TrEd's display attributes pattern definition
 
-=item $fsfile->unparsed_tail (list reference)
+=item unparsed_tail (list reference)
 
 The rest of the file, which is not parsed by Fslib, i.e. Graph's embedded macros
 
-=item $fsfile->trees (list reference)
+=item trees (list reference)
 
 List of FSNode objects representing root nodes of all trees in the FSFile.
 
-=item $fsfile->save_status (scalar)
+=item save_status (scalar)
 
 File save status indicator, 0=file is saved, 1=file is not saved (TrEd uses this field).
 
-=item $fsfile->backend (scalar)
+=item backend (scalar)
 
 IO Backend used to open/save the file.
 
-=item $fsfile->encoding (scalar)
+=item encoding (scalar)
 
 IO character encoding for perl 5.8 I/O filters
 
-=item $fsfile->user_data (arbitrary scalar type)
+=item user_data (arbitrary scalar type)
 
 Reserved for the user. Content of this slot is not persistent.
 
-=item $fsfile->meta_data (hashref)
+=item meta_data (hashref)
 
 Meta data (usually used by IO Backends to store additional information
 about the file - i.e. other than encoding, trees, patterns, etc).
 
-=item $fsfile->app_data (hashref)
+=item app_data (hashref)
 
 Non-persistent application specific data associated with the file (by
 default this is an empty hash reference). Applications may store
