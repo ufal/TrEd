@@ -715,10 +715,10 @@ sub _node_ord {
   my ($node)=@_;
   my $type = $node ? $node->type : undef;
   if ($type) {
-    my @ord = $node->type->schema->find_role($node->type->type_decl(),'#ORDER');
-    return $ord[0]{-name} if (@ord and ref($ord[0]) and exists($ord[0]{-name}));
+    my $ord = $node->type->find_role('#ORDER');
+    return $ord if defined $ord;
   }
-  $grp->{FSFile}->FS->order;
+  return $grp->{FSFile}->FS->order;
 }
 
 =item C<NewRBrother(node)>
