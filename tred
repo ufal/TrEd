@@ -1009,7 +1009,7 @@ sub gotoFile {
     $grp->{Filelist}->selectionClear();
     $grp->{Filelist}->selectionSet($path);
   }
-  return $status->{ok};
+  return $status;
 }
 
 sub filelistFullFileName {
@@ -1045,7 +1045,7 @@ sub nextOrPrevFile {
   my $result=gotoFile($win,$pos,$no_recent);
   my $quiet=0;
   my $response;
-  while ($result==0) {
+  while (ref($result) and $result->{ok}==0) {
     my $trees = $win->{FSFile} ? $win->{FSFile}->lastTreeNo+1 : 0;
     unless ($quiet) {
       my $f=filelistFullFileName($win,$pos);
@@ -1064,7 +1064,7 @@ sub nextOrPrevFile {
     $result=gotoFile($win,$pos,$no_recent);
   }
   $grp->{noOpenFileError}=$op;
-  return $result;
+  return ref($result) and $result->{ok};
 }
 
 sub nextRealFile {

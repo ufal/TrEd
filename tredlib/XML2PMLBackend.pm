@@ -1,9 +1,9 @@
 package XML2PMLBackend;
 
+require PMLBackend;
+use Exporter qw(import);
 use IOBackend qw(set_encoding);
-use Exporter;
 use base qw(PMLBackend);
-
 use strict;
 use vars qw($xslt_processor $xslt_processor_opts $in_stylesheet $out_stylesheet $in_stylesheet_path $out_stylesheet_path @EXPORT_OK);
 
@@ -16,14 +16,16 @@ sub default_settings {
   $out_stylesheet_path ||= Fslib::FindInResources($out_stylesheet);
 }
 
+*read = \&PMLBackend::read;
+*write=\&PMLBackend::write;
+*close_backend=\&IOBackend::close_backend;
+
 BEGIN {
-    @EXPORT_OK = qw(&test &test_xslt_processor &xslt_commandline &default_settings
-		    &open_backend &close_backend &read &write);
+  @EXPORT_OK = qw(&test &test_xslt_processor &xslt_commandline &default_settings
+		  &open_backend &close_backend &read &write read write);
   default_settings();
   print STDERR "xslt processor $xslt_processor\n" if $Fslib::Debug;
 };
-
-
 
 sub xslt_commandline {
   my ($cmd, $stylesheet) = @_;
@@ -51,11 +53,6 @@ sub open_backend {
     die "unknown mode $mode\n";
   }
 }
-
-
-*read=\&PMLBackend::read;
-*write=\&PMLBackend::write;
-*close_backend=\&IOBackend::close_backend;
 
 sub test_xslt_processor {
   return 1 if (-x $xslt_processor);
