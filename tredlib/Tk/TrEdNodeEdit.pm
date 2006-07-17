@@ -1012,7 +1012,14 @@ sub add_member {
 sub add_members {
   my ($hlist,$base_path,$type,$node,$allow_empty)=@_;
   my ($members,$structure);
-  if ($type->{member}) {
+  if ($type->{structure}) {
+    $type = $type->{structure};
+    $members = $type->{member};
+    $structure = 1;
+  } elsif ($type->{container}) {
+    $type = $type->{container};
+    $members = $type->{attribute};
+  } elsif ($type->{member}) {
     $members = $type->{member};
     $structure = 1;
   } else {

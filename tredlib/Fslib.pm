@@ -399,7 +399,7 @@ FSNode - Simple OO interface to tree structures of Fslib.pm
 
 =pod
 
-=item new
+=item FSNode->new
 
 Create a new FSNode object. FSNode is basicly a hash reference, which
 means that you may simply acces node's attributes as C<$node->>C<{attribute}>
@@ -420,7 +420,7 @@ sub new {
 
 =pod
 
-=item initialize
+=item $node->initialize
 
 This function inicializes FSNode. It is called by the constructor new.
 
@@ -435,7 +435,7 @@ sub initialize {
   $self->{$Fslib::parent}=0;
 }
 
-=item destroy
+=item $node->destroy
 
 This function destroys a FSNode (and all its descendants). The node
 should not be attached to a tree.
@@ -456,7 +456,7 @@ sub DESTROY {
 
 =pod
 
-=item parent
+=item $node->parent
 
 Return node's parent node (C<undef> if none).
 
@@ -470,7 +470,7 @@ sub parent {
 
 =pod
 
-=item type
+=item $node->type
 
 Return node's type node (C<undef> if none).
 
@@ -482,7 +482,7 @@ sub type {
   return ref($self) ? $self->{$Fslib::type} : undef;
 }
 
-=item root
+=item $node->root
 
 Find and return the root of the node's tree.
 
@@ -500,7 +500,7 @@ sub root {
 }
 
 
-=item level
+=item $node->level
 
 Calculate node's level (root-level is 0).
 
@@ -519,7 +519,7 @@ sub level {
 
 =pod
 
-=item lbrother
+=item $node->lbrother
 
 Return node's left brother node (C<undef> if none).
 
@@ -533,7 +533,7 @@ sub lbrother {
 
 =pod
 
-=item rbrother
+=item $node->rbrother
 
 Return node's right brother node (C<undef> if none).
 
@@ -547,7 +547,7 @@ sub rbrother {
 
 =pod
 
-=item firstson
+=item $node->firstson
 
 Return node's first dependent node (C<undef> if none).
 
@@ -580,7 +580,7 @@ sub set_firstson ($$) {
   $node->{$Fslib::firstson}=ref($p) ? $p : 0;
 }
 
-=item set_type (type)
+=item $node->set_type (type)
 
 Associate FSNode object with a given Fslib::Type.
 
@@ -591,7 +591,7 @@ sub set_type ($$) {
   $node->{$Fslib::type}=$type;
 }
 
-=item set_type_by_name (schema,type-name)
+=item $node->set_type_by_name (schema,type-name)
 
 Lookup a structure or container declaration in the given Fslib::Schema
 by its type name and associate the corresponding Fslib::Type with the
@@ -615,7 +615,7 @@ sub set_type_by_name ($$$) {
   }
 }
 
-=item validate (attr-path?,log?)
+=item $node->validate (attr-path?,log?)
 
 Validates the content of the node according to the associated type and
 schema. If attr-path is non-empty, validate only attribute selected by
@@ -656,7 +656,7 @@ sub validate {
 
 =pod
 
-=item following (top?)
+=item $node->following (top?)
 
 Return the next node of the subtree in the order given by structure
 (C<undef> if none). If any descendant exists, the first one is
@@ -674,7 +674,7 @@ sub following {
 
 =pod
 
-=item following_visible (FSFormat_object,top?)
+=item $node->following_visible (FSFormat_object,top?)
 
 Return the next visible node of the subtree in the order given by
 structure (C<undef> if none). A node is considered visible if it has
@@ -697,7 +697,7 @@ sub following_visible {
 
 =pod
 
-=item following_right_or_up (top?)
+=item $node->following_right_or_up (top?)
 
 Return the next visible node of the subtree in the order given by
 structure (C<undef> if none), but not descending.
@@ -719,7 +719,7 @@ sub following_right_or_up {
 
 =pod
 
-=item previous (top?)
+=item $node->previous (top?)
 
 Return the previous node of the subtree in the order given by
 structure (C<undef> if none). The way of searching described in
@@ -734,7 +734,7 @@ sub previous {
 
 =pod
 
-=item previous_visible (FSFormat_object,top?)
+=item $node->previous_visible (FSFormat_object,top?)
 
 Return the next visible node of the subtree in the order given by
 structure (C<undef> if none). A node is considered visible if it has
@@ -757,7 +757,7 @@ sub previous_visible {
 
 =pod
 
-=item rightmost_descendant (node)
+=item $node->rightmost_descendant (node)
 
 Return the rightmost lowest descendant of the node (or
 the node itself if the node is a leaf).
@@ -782,7 +782,7 @@ sub rightmost_descendant {
 
 =pod
 
-=item leftmost_descendant (node)
+=item $node->leftmost_descendant (node)
 
 Return the leftmost lowest descendant of the node (or
 the node itself if the node is a leaf).
@@ -799,7 +799,7 @@ sub leftmost_descendant {
 
 =pod
 
-=item getAttribute (attr_name)
+=item $node->getAttribute (attr_name)
 
 Return value of the given attribute.
 
@@ -810,7 +810,7 @@ sub getAttribute {
   return $self->{$name};
 }
 
-=item attr (path)
+=item $node->attr (path)
 
 Return value of an attribute specified as a path of the form
 attr/subattr/[n]/subsubattr/[m], where [n] can be used to pick n-th
@@ -863,7 +863,7 @@ sub flat_attr {
   }
 }
 
-=item set_attr (path,value,strict?)
+=item $node->set_attr (path,value,strict?)
 
 Set value of an attribute specified by a path of the form
 attr/subattr/[n]/subsubattr/[m], where [n] can be used to pick n-th
@@ -930,7 +930,7 @@ sub set_attr {
 
 =pod
 
-=item setAttribute (name,value)
+=item $node->setAttribute (name,value)
 
 Set value of the given attribute.
 
@@ -944,7 +944,7 @@ sub setAttribute {
 
 =pod
 
-=item children
+=item $node->children
 
 Return a list of dependent nodes.
 
@@ -963,7 +963,7 @@ sub children {
 
 =pod
 
-=item visible_children (fsformat)
+=item $node->visible_children (fsformat)
 
 Return a list of visible dependent nodea.
 
@@ -985,7 +985,7 @@ sub visible_children {
 }
 
 
-=item descendants
+=item $node->descendants
 
 Return a list recursively dependent nodes.
 
@@ -1002,7 +1002,7 @@ sub descendants {
   return @kin;
 }
 
-=item visible_descendants (fsformat)
+=item $node->visible_descendants (fsformat)
 
 Return a list recursively dependent visible nodes.
 
@@ -1129,7 +1129,7 @@ $special=" _SPEC";
 
 =pod
 
-=item create (@header)
+=item FSFormat->create (@header)
 
 Create a new FS format instance object by parsing each of the parameters
 passed as one FS header line.
@@ -1145,7 +1145,7 @@ sub create {
 }
 
 
-=item new (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)
+=item FSFormat->new (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)
 
 Create a new FS format instance object and C<initialize> it with the
 optional values.
@@ -1163,7 +1163,7 @@ sub new {
 
 =pod
 
-=item clone
+=item $format->clone
 
 Duplicate FS format instance object.
 
@@ -1182,7 +1182,7 @@ sub clone {
 
 =pod
 
-=item initialize (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)
+=item $format->initialize (attributes_hash_ref?, ordered_names_list_ref?, unparsed_header?)
 
 Initialize a new FS format instance with given values. See L<"Fslib">
 for more information about attribute hash, ordered names list and unparsed headers.
@@ -1201,7 +1201,7 @@ sub initialize {
 
 =pod
 
-=item addNewAttribute (type, colour, name, list)
+=item $format->addNewAttribute (type, colour, name, list)
 
 Adds a new attribute definition to the FSFormat. Type must be one of
 the letters [KPOVNWLH], colour one of characters [A-Z0-9]. If the type
@@ -1228,7 +1228,7 @@ sub addNewAttribute {
 
 =pod
 
-=item readFrom (source,output?)
+=item $format->readFrom (source,output?)
 
 Reads FS format instance definition from given source, optionally
 echoing the unparsed input on the given output. The obligatory
@@ -1274,7 +1274,7 @@ sub readFrom {
   return 1;
 }
 
-=item toArray
+=item $format->toArray
 
 Return FS declaration as an array of FS header declarations.
 
@@ -1310,7 +1310,7 @@ sub toArray {
   return @result;
 }
 
-=item writeTo (glob_ref)
+=item $format->writeTo (glob_ref)
 
 Write FS declaration to a given file (file handle open for
 reading must be passed as a GLOB reference).
@@ -1327,7 +1327,7 @@ sub writeTo {
 
 =pod
 
-=item sentord (), order(), value(), hide()
+=item $format->sentord (), order(), value(), hide()
 
 Return names of special attributes declared in FS format as @W, @N,
 @V, @H respectively.
@@ -1357,7 +1357,7 @@ sub DESTROY {
 
 =pod
 
-=item isHidden (node)
+=item $format->isHidden (node)
 
 Return the lowest ancestor-or-self of the given node whose value of
 the FS attribute declared as @H is either C<'hide'> or 1. Return
@@ -1381,7 +1381,7 @@ sub isHidden {
 
 =pod
 
-=item defs
+=item $format->defs
 
 Return a reference to the internally stored attribute hash.
 
@@ -1394,7 +1394,7 @@ sub defs {
 
 =pod
 
-=item list
+=item $format->list
 
 Return a reference to the internally stored attribute names list.
 
@@ -1407,7 +1407,7 @@ sub list {
 
 =pod
 
-=item unparsed
+=item $format->unparsed
 
 Return a reference to the internally stored unparsed FS header. Note,
 that this header must B<not> correspond to the defs and attributes if
@@ -1423,7 +1423,7 @@ sub unparsed {
 
 =pod
 
-=item renew_specials
+=item $format->renew_specials
 
 Refresh special attribute hash.
 
@@ -1446,7 +1446,7 @@ sub findSpecialDef {
   return undef;
 }
 
-=item specials
+=item $format->specials
 
 Return a reference to a hash of attributes of special types. Keys
 of the hash are special attribute types and values are their names.
@@ -1464,7 +1464,7 @@ sub specials {
 
 =pod
 
-=item attributes
+=item $format->attributes
 
 Return a list of all attribute names (in the order given by FS
 instance declaration).
@@ -1478,7 +1478,7 @@ sub attributes {
 
 =pod
 
-=item atno (n)
+=item $format->atno (n)
 
 Return the n'th attribute name (in the order given by FS
 instance declaration).
@@ -1493,7 +1493,7 @@ sub atno {
 
 =pod
 
-=item atno (attribute_name)
+=item $format->atno (attribute_name)
 
 Return the definition string for the given attribute.
 
@@ -1506,7 +1506,7 @@ sub atdef {
 
 =pod
 
-=item count
+=item $format->count
 
 Return the number of declared attributes.
 
@@ -1519,7 +1519,7 @@ sub count {
 
 =pod
 
-=item isList (attribute_name)
+=item $format->isList (attribute_name)
 
 Return true if given attribute is assigned a list of all possible
 values.
@@ -1533,7 +1533,7 @@ sub isList {
 
 =pod
 
-=item listValues (attribute_name)
+=item $format->listValues (attribute_name)
 
 Return the list of all possible values for the given attribute.
 
@@ -1558,7 +1558,7 @@ sub listValues {
 
 =pod
 
-=item color (attribute_name)
+=item $format->color (attribute_name)
 
 Return one of C<Shadow>, C<Hilite> and C<XHilite> depending on the
 color assigned to the given attribute in the FS format instance.
@@ -1582,7 +1582,7 @@ sub color {
 
 =pod
 
-=item special (letter)
+=item $format->special (letter)
 
 Return name of a special attribute declared in FS definition with a
 given letter. See also sentord() and similar.
@@ -1597,7 +1597,7 @@ sub special {
 
 =pod
 
-=item indexOf (attribute_name)
+=item $format->indexOf (attribute_name)
 
 Return index of the given attribute (in the order given by FS
 instance declaration).
@@ -1610,7 +1610,7 @@ sub indexOf {
     ref($self) ? Fslib::Index($self->list,$arg) : undef;
 }
 
-=item exists (attribute_name)
+=item $format->exists (attribute_name)
 
 Return true if an attribute of the given name exists.
 
@@ -1627,7 +1627,7 @@ sub exists {
 
 =pod
 
-=item make_sentence (root_node,separator)
+=item $format->make_sentence (root_node,separator)
 
 Return a string containing the content of value (special) attributes
 of the nodes of the given tree, separted by separator string, sorted by
@@ -1656,7 +1656,7 @@ sub make_sentence {
 
 =pod
 
-=item clone_node
+=item $format->clone_node
 
 Create a copy of the given node.
 
@@ -1682,7 +1682,7 @@ sub clone_node {
   return $new;
 }
 
-=item clone_subtree
+=item $format->clone_subtree
 
 Create a deep copy of the given subtree.
 
@@ -1752,7 +1752,7 @@ FSFile - Simple OO interface for FS files.
 
 =pod
 
-=item new (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?,meta_data?,app_data?)
+=item FSFile->new (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?,meta_data?,app_data?)
 
 Create a new FS file object and C<initialize> it with the optional values.
 
@@ -1769,7 +1769,7 @@ sub new {
 
 =pod
 
-=item create
+=item FSFile->create
 
 Same as C<new> but accepts name => value pairs as arguments. The
 following argument names are available:
@@ -1787,7 +1787,7 @@ sub create {
 }
 
 
-=item clone ($clone_trees)
+=item $fsfile->clone ($clone_trees)
 
 Create a new FSFile object with the same file name, file format,
 FSFormat, backend, encoding, patterns, hint and tail as the current
@@ -1844,63 +1844,63 @@ sub DESTROY {
 
 =pod
 
-=item initialize (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?,meta_data?,app_data?)
+=item $fsfile->initialize (name?,file_format?,FS?,hint_pattern?,attribs_patterns?,unparsed_tail?,trees?,save_status?,backend?,encoding?,user_data?,meta_data?,app_data?)
 
 Initialize a FS file object. Argument description:
 
 =over 4
 
-=item name (scalar)
+=item $fsfile->name (scalar)
 
 File name
 
-=item file_format (scalar)
+=item $fsfile->file_format (scalar)
 
 File format indentifier (user-defined string). TrEd, for example, uses
 C<FS format>, C<gzipped FS format> and C<any non-specific format> strings as identifiers.
 
-=item FS (FSFormat)
+=item $fsfile->FS (FSFormat)
 
 FSFormat object associated with the file
 
-=item hint_pattern (scalar)
+=item $fsfile->hint_pattern (scalar)
 
 TrEd's hint pattern definition
 
-=item attribs_patterns (list reference)
+=item $fsfile->attribs_patterns (list reference)
 
 TrEd's display attributes pattern definition
 
-=item unparsed_tail (list reference)
+=item $fsfile->unparsed_tail (list reference)
 
 The rest of the file, which is not parsed by Fslib, i.e. Graph's embedded macros
 
-=item trees (list reference)
+=item $fsfile->trees (list reference)
 
 List of FSNode objects representing root nodes of all trees in the FSFile.
 
-=item save_status (scalar)
+=item $fsfile->save_status (scalar)
 
 File save status indicator, 0=file is saved, 1=file is not saved (TrEd uses this field).
 
-=item backend (scalar)
+=item $fsfile->backend (scalar)
 
 IO Backend used to open/save the file.
 
-=item encoding (scalar)
+=item $fsfile->encoding (scalar)
 
 IO character encoding for perl 5.8 I/O filters
 
-=item user_data (arbitrary scalar type)
+=item $fsfile->user_data (arbitrary scalar type)
 
 Reserved for the user. Content of this slot is not persistent.
 
-=item meta_data (hashref)
+=item $fsfile->meta_data (hashref)
 
 Meta data (usually used by IO Backends to store additional information
 about the file - i.e. other than encoding, trees, patterns, etc).
 
-=item app_data (hashref)
+=item $fsfile->app_data (hashref)
 
 Non-persistent application specific data associated with the file (by
 default this is an empty hash reference). Applications may store
@@ -1934,7 +1934,7 @@ sub initialize {
 
 =pod
 
-=item readFile (filename, [backends...])
+=item $fsfile->readFile (filename, [backends...])
 
 Read FS declaration and trees from a given file.  The first argument
 must be a file-name.  If a list of backend modules is specified,
@@ -2010,7 +2010,7 @@ sub readFile {
 
 =pod
 
-=item readFrom (glob_ref, [backends...])
+=item $fsfile->readFrom (glob_ref, [backends...])
 
 Read FS declaration and trees from a given file (file handle open for
 reading must be passed as a GLOB reference).
@@ -2030,7 +2030,7 @@ sub readFrom {
 
 =pod
 
-=item writeFile (filename)
+=item $fsfile->writeFile (filename)
 
 Write FS declaration, trees and unparsed tail to a given file. Sets
 noSaved to zero.
@@ -2063,7 +2063,7 @@ sub writeFile {
 }
 
 
-=item writeTo (glob_ref)
+=item $fsfile->writeTo (glob_ref)
 
 Write FS declaration, trees and unparsed tail to a given file (file handle open for
 reading must be passed as a GLOB reference). Sets noSaved to zero.
@@ -2088,7 +2088,7 @@ sub writeTo {
 
 =pod
 
-=item newFSFile (filename,encoding?,[backends...])
+=item $fsfile->newFSFile (filename,encoding?,[backends...])
 
 Create a new FSFile object based on the content of a given file.
 If a list of backend
@@ -2111,7 +2111,7 @@ sub newFSFile {
 
 =pod
 
-=item filename
+=item $fsfile->filename
 
 Return the FS file's file name.
 
@@ -2125,7 +2125,7 @@ sub filename {
 
 =pod
 
-=item changeFilename (new_filename)
+=item $fsfile->changeFilename (new_filename)
 
 Change the FS file's file name.
 
@@ -2140,7 +2140,7 @@ sub changeFilename {
 
 =pod
 
-=item fileFormat
+=item $fsfile->fileFormat
 
 Return file format indentifier (user-defined string). TrEd, for
 example, uses C<FS format>, C<gzipped FS format> and C<any
@@ -2155,7 +2155,7 @@ sub fileFormat {
 
 =pod
 
-=item changeFileFormat (string)
+=item $fsfile->changeFileFormat (string)
 
 Change file format indentifier.
 
@@ -2169,7 +2169,7 @@ sub changeFileFormat {
 
 =pod
 
-=item backend
+=item $fsfile->backend
 
 Return IO backend module name. The default backend is FSBackend, used
 to save files in the FS format.
@@ -2183,7 +2183,7 @@ sub backend {
 
 =pod
 
-=item changeBackend(string)
+=item $fsfile->changeBackend(string)
 
 Change file backend.
 
@@ -2197,7 +2197,7 @@ sub changeBackend {
 
 =pod
 
-=item encoding
+=item $fsfile->encoding
 
 Return file character encoding (used by Perl 5.8 input/output filters).
 
@@ -2210,7 +2210,7 @@ sub encoding {
 
 =pod
 
-=item changeEncoding(string)
+=item $fsfile->changeEncoding(string)
 
 Change file character encoding (used by Perl 5.8 input/output filters).
 
@@ -2225,7 +2225,7 @@ sub changeEncoding {
 
 =pod
 
-=item userData
+=item $fsfile->userData
 
 Return user data associated with the file (by default this is an empty
 hash reference). User data are not supposed to be persistent and IO
@@ -2240,7 +2240,7 @@ sub userData {
 
 =pod
 
-=item changeUserData(value)
+=item $fsfile->changeUserData(value)
 
 Change user data associated with the file. User data are not supposed
 to be persistent and IO backends should ignore it.
@@ -2255,7 +2255,7 @@ sub changeUserData {
 
 =pod
 
-=item metaData(name)
+=item $fsfile->metaData(name)
 
 Return meta data stored into the object usually by IO backends. Meta
 data are supposed to be persistent, i.e. they are saved together with
@@ -2270,7 +2270,7 @@ sub metaData {
 
 =pod
 
-=item changeMetaData(name,value)
+=item $fsfile->changeMetaData(name,value)
 
 Change meta information (usually used by IO backends). Meta data are
 supposed to be persistent, i.e. they are saved together with the file
@@ -2284,7 +2284,7 @@ sub changeMetaData {
   return $self->[13]->{$name}=$val;
 }
 
-=item listMetaData(name)
+=item $fsfile->listMetaData(name)
 
 In array context, return the list of metaData keys. In scalar context
 return the hash reference where metaData are stored.
@@ -2297,7 +2297,7 @@ sub listMetaData {
   return wantarray ? keys(%{$self->[13]}) : $self->[13];
 }
 
-=item appData(name)
+=item $fsfile->appData(name)
 
 Return application specific information associated with the
 file. Application data are not persistent, i.e. they are not saved
@@ -2312,7 +2312,7 @@ sub appData {
 
 =pod
 
-=item changeAppData(name,value)
+=item $fsfile->changeAppData(name,value)
 
 Change aplication specific information associated with the
 file. Application data are not persistent, i.e. they are not saved
@@ -2326,7 +2326,7 @@ sub changeAppData {
   return $self->[14]->{$name}=$val;
 }
 
-=item listAppData(name)
+=item $fsfile->listAppData(name)
 
 In array context, return the list of appData keys. In scalar context
 return the hash reference where appData are stored.
@@ -2341,7 +2341,7 @@ sub listAppData {
 
 =pod
 
-=item FS
+=item $fsfile->FS
 
 Return a reference to the associated FSFormat object.
 
@@ -2354,7 +2354,7 @@ sub FS {
 
 =pod
 
-=item changeFS(FSFormat_object)
+=item $fsfile->changeFS(FSFormat_object)
 
 Associate FS file with a new FSFormat object.
 
@@ -2369,7 +2369,7 @@ sub changeFS {
 
 =pod
 
-=item hint
+=item $fsfile->hint
 
 Return the Tred's hint pattern declared in the FSFile.
 
@@ -2383,7 +2383,7 @@ sub hint {
 
 =pod
 
-=item changeHint(string)
+=item $fsfile->changeHint(string)
 
 Change the Tred's hint pattern associated with this FSFile.
 
@@ -2398,7 +2398,7 @@ sub changeHint {
 
 =pod
 
-=item pattern_count
+=item $fsfile->pattern_count
 
 Return the number of display attribute patterns associated with this FSFile.
 
@@ -2409,7 +2409,7 @@ sub pattern_count {
   return ref($self) ? scalar(@{ $self->[4] }) : undef;
 }
 
-=item pattern (n)
+=item $fsfile->pattern (n)
 
 Return n'th the display pattern associated with this FSFile.
 
@@ -2421,7 +2421,7 @@ sub pattern {
   return ref($self) ? $self->[4]->[$index] : undef;
 }
 
-=item patterns
+=item $fsfile->patterns
 
 Return a list of display attribute patterns associated with this FSFile.
 
@@ -2434,7 +2434,7 @@ sub patterns {
 
 =pod
 
-=item changePatterns(list)
+=item $fsfile->changePatterns(list)
 
 Change the list of display attribute patterns associated with this FSFile.
 
@@ -2448,7 +2448,7 @@ sub changePatterns {
 
 =pod
 
-=item tail
+=item $fsfile->tail
 
 Return the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
@@ -2462,7 +2462,7 @@ sub tail {
 
 =pod
 
-=item changeTail(list)
+=item $fsfile->changeTail(list)
 
 Modify the unparsed tail of the FS file (i.e. Graph's embedded macros).
 
@@ -2477,7 +2477,7 @@ sub changeTail {
 
 =pod
 
-=item trees
+=item $fsfile->trees
 
 Return a list of all trees (i.e. their roots represented by FSNode objects).
 
@@ -2491,7 +2491,7 @@ sub trees {
 
 =pod
 
-=item changeTrees (list)
+=item $fsfile->changeTrees (list)
 
 Assign a new list of trees.
 
@@ -2505,7 +2505,7 @@ sub changeTrees {
 
 =pod
 
-=item treeList
+=item $fsfile->treeList
 
 Return a reference to the internal array of all trees (e.g. their
 roots represented by FSNode objects).
@@ -2520,7 +2520,7 @@ sub treeList {
 
 =pod
 
-=item tree (n)
+=item $fsfile->tree (n)
 
 Return a reference to the tree number n.
 
@@ -2535,7 +2535,7 @@ sub tree {
 
 =pod
 
-=item lastTreeNo
+=item $fsfile->lastTreeNo
 
 Return number of associated trees minus one.
 
@@ -2548,7 +2548,7 @@ sub lastTreeNo {
 
 =pod
 
-=item notSaved (value?)
+=item $fsfile->notSaved (value?)
 
 Return/assign file saving status (this is completely user-driven).
 
@@ -2562,7 +2562,7 @@ sub notSaved {
   return $self->[7];
 }
 
-=item currentTreeNo (value?)
+=item $fsfile->currentTreeNo (value?)
 
 Return/assign index of current tree (this is completely user-driven).
 
@@ -2576,7 +2576,7 @@ sub currentTreeNo {
   return $self->[8];
 }
 
-=item currentNode (value?)
+=item $fsfile->currentNode (value?)
 
 Return/assign current node (this is completely user-driven).
 
@@ -2592,7 +2592,7 @@ sub currentNode {
 
 =pod
 
-=item nodes (tree_no, prev_current, include_hidden)
+=item $fsfile->nodes (tree_no, prev_current, include_hidden)
 
 Get list of nodes for given tree. Returns two value list ($nodes,$current),
 where $nodes is a reference to a list of nodes for the tree and
@@ -2640,7 +2640,7 @@ sub nodes {
 
 =pod
 
-=item value_line (tree_no, no_tree_numbers?)
+=item $fsfile->value_line (tree_no, no_tree_numbers?)
 
 Return a sentence string for the given tree. Sentence string is a
 string of chained value attributes (FS->value) ordered according to
@@ -2659,7 +2659,7 @@ sub value_line {
     join(" ",$fsfile->value_line_list($tree_no));
 }
 
-=item value_line_list (tree_no)
+=item $fsfile->value_line_list (tree_no)
 
 Return a list of value (FS->value) attributes for the given tree
 ordered according to the FS->sentord or FS->order if FS->sentord
@@ -2716,7 +2716,7 @@ sub value_line_list {
 
 =pod
 
-=item insert_tree (root,position)
+=item $fsfile->insert_tree (root,position)
 
 Insert new tree at given position.
 
@@ -2730,7 +2730,7 @@ sub insert_tree {
 
 =pod
 
-=item set_tree (root,pos)
+=item $fsfile->set_tree (root,pos)
 
 Set tree at given position.
 
@@ -2745,7 +2745,7 @@ sub set_tree {
 
 =pod
 
-=item new_tree (position)
+=item $fsfile->new_tree (position)
 
 Create a new tree at given position and return pointer to its root.
 
@@ -2760,7 +2760,7 @@ sub new_tree {
 
 }
 
-=item delete_tree (position)
+=item $fsfile->delete_tree (position)
 
 Delete the tree at given position and return pointer to its root.
 
@@ -2772,7 +2772,7 @@ sub delete_tree {
   return $root;
 }
 
-=item destroy_tree (position)
+=item $fsfile->destroy_tree (position)
 
 Delete the tree at given position and return pointer to its root.
 
@@ -2816,7 +2816,7 @@ FSBackend - IO backend for reading/writing FS files using FSFile class.
 
 =over 4
 
-=item $emulatePML
+=item FSBackend::$emulatePML
 
 This variable controls whether a simple PML schema should be created
 for FS files (default is 1 - yes). Attribute whose name contains one
@@ -2842,7 +2842,7 @@ non-emulation mode.
 $emulatePML=1;
 
 
-=item test (filehandle | filename, encoding?)
+=item FSBackend::test (filehandle | filename, encoding?)
 
 Test if given filehandle or filename is in FSFormat. If the argument
 is a file-handle the filehandle is supposed to be open by previous
@@ -2908,7 +2908,7 @@ sub _fs2members {
   return $mbr->{structure}{member};
 }
 
-=item read (handle_ref,fsfile)
+=item FSBackend::read (handle_ref,fsfile)
 
 Read FS declaration and trees from a given file in FS format (file
 handle open for reading must be passed as a GLOB reference).
@@ -3012,7 +3012,7 @@ sub read {
 
 =pod
 
-=item write (handle_ref,$fsfile)
+=item FSBackend::write (handle_ref,$fsfile)
 
 Write FS declaration, trees and unparsed tail to a given file to a
 given file in FS format (file handle open for reading must be passed
@@ -3146,7 +3146,7 @@ sub PrintFSNode {
 
 =pod
 
-=item ParseFSTree ($fsformat,$line,$ordhash)
+=item FSBackend::ParseFSTree ($fsformat,$line,$ordhash)
 
 Parse a given string (line) in FS format and return the root of the
 resulting FS tree as an FSNode object.
@@ -3297,7 +3297,7 @@ This class implements the attribute value type 'list'.
 package Fslib::List;
 use Carp;
 
-=item new(val1,val2,...)
+=item Fslib::List->new(val1,val2,...)
 
 Create a new list (optionally populated with given values).
 
@@ -3308,7 +3308,7 @@ sub new {
   return bless [@_],$class;
 }
 
-=item new_from_ref(array_ref, reuse)
+=item Fslib::List->new_from_ref(array_ref, reuse)
 
 Create a new list consisting of values in a given array reference.
 Use this constructor instead of new() for large lists by reference. If
@@ -3331,7 +3331,7 @@ sub new_from_ref {
   }
 }
 
-=item values()
+=item $list->values()
 
 Retrurns a its values (i.e. the list members).
 
@@ -3354,7 +3354,7 @@ This class implements the attribute value type 'alternative'.
 package Fslib::Alt;
 use Carp;
 
-=item new(value1,value2,...)
+=item Fslib::Alt->new(value1,value2,...)
 
 Create a new alternative (optionally populated with given values).
 
@@ -3365,7 +3365,7 @@ sub new {
   return bless [@_],$class;
 }
 
-=item values()
+=item $alt->values()
 
 Retrurns a its values (i.e. the alternatives).
 
@@ -3393,7 +3393,7 @@ name uniquely determines the member within the structure
 package Fslib::Struct;
 use Carp;
 
-=item new ({name=>value, ...},reuse?)
+=item Fslib::Struct->new ({name=>value, ...},reuse?)
 
 Create a new structure (optionally initializing its members).  If
 reuse is true, the hash reference passed may be reused (reblessed)
@@ -3411,7 +3411,7 @@ sub new {
   }
 }
 
-=item getMember (name)
+=item $struct->getMember (name)
 
 Return value of the given member.
 
@@ -3423,7 +3423,7 @@ sub getMember {
 }
 
 
-=item setMember (name,value)
+=item $struct->setMember (name,value)
 
 Set value of the given member.
 
@@ -3434,7 +3434,7 @@ sub setMember {
   return $self->{$name}=$value;
 }
 
-=item deleteMember (name)
+=item $struct->deleteMember (name)
 
 Delete the given member (returning its last value).
 
@@ -3445,7 +3445,7 @@ sub deleteMember {
   return delete $self->{$name};
 }
 
-=item members
+=item $struct->members
 
 Return (assorted) list of names of all members.
 
@@ -3479,7 +3479,26 @@ use vars qw(@ISA);
 
 @ISA=qw(Fslib::Struct);
 
-=item attributes()
+=item Fslib::Container->new (value?, { name=>attr, ...}?,reuse?)
+
+Create a new container (optionally initializing its value and
+attributes). If reuse is true, the hash reference passed may be
+reused (reblessed) into the structure.
+
+=cut
+
+sub new {
+  my ($class,$value,$hash,$reuse) = @_;
+  if (ref $hash) {
+    $hash = {%$hash} unless ($reuse);
+    bless $hash, $class;
+    $hash->{'#content'} = $value unless !defined($value) and exists($hash->{'#content'});
+  } else {
+    return bless {}, $class;
+  }
+}
+
+=item $container->attributes()
 
 Return (assorted) list of names of all attributes.
 
@@ -3489,7 +3508,7 @@ sub attributes {
   return grep { $_ ne '#container' } keys %{$_[0]};
 }
 
-=item value
+=item $container->value
 
 Return the content value of the container.
 
@@ -3499,7 +3518,7 @@ sub value {
   return $_[0]->{'#container'};
 }
 
-=item content
+=item $container->content
 
 This is an alias for value().
 
@@ -3512,7 +3531,7 @@ This is an alias for value().
 package Fslib::Seq;
 use Carp;
 
-=item new([element_array_ref?, content_pattern?)
+=item Fslib::Seq->new([element_array_ref?, content_pattern?)
 
 Create a new sequence (optionally populated with elements from a given
 array_ref).  Each element should be a [ name, value ] pair. The second
@@ -3530,7 +3549,7 @@ validate() method below).
 		 ],$class;
   }
 
-=item elements()
+=item $seq->elements()
 
 Return a list of [ name, value ] pairs representing the sequence
 elements.
@@ -3541,7 +3560,7 @@ elements.
     return @{$_[0]->[0]};
   }
 
-=item elements_list()
+=item $seq->elements_list()
 
 Like C<elements>, only this method returns a Fslib::List object.
 
@@ -3552,7 +3571,7 @@ Like C<elements>, only this method returns a Fslib::List object.
   }
 
 
-=item content_pattern()
+=item $seq->content_pattern()
 
 Return the regular expression constraint stored in the sequence object (if any).
 
@@ -3562,7 +3581,7 @@ Return the regular expression constraint stored in the sequence object (if any).
     return $_[0]->[1];
   }
 
-=item set_content_pattern()
+=item $seq->set_content_pattern()
 
 Store a regular expression constraint in the sequence object. This
 expressoin can be used later to validate sequence content (see
@@ -3575,7 +3594,7 @@ validate() method).
   }
 
 
-=item values()
+=item $seq->values()
 
 Return a list of values of all elements of the sequence. In array
 context, the returned value is a list, in scalar context the result is
@@ -3588,7 +3607,7 @@ a Fslib::List object.
     return wantarray ? @values : Fslib::List->new_from_ref(\@values,1);
   }
 
-=item names()
+=item $seq->names()
 
 Return a list of names of all elements of the sequence. In array
 context, the returned value is a list, in scalar context the result is
@@ -3601,7 +3620,7 @@ a Fslib::List object.
     return wantarray ? @names : Fslib::List->new_from_ref(\@names,1);
   }
 
-=item element_at(index)
+=item $seq->element_at(index)
 
 Return the element of the sequence on the position specified by a
 given index. Elements in the sequece are indexed as elements in Perl
@@ -3616,7 +3635,7 @@ should ever want to change it.
   }
 
 
-=item name_at(index)
+=item $seq->name_at(index)
 
 Return the name of the element on a given position.
 
@@ -3627,7 +3646,7 @@ Return the name of the element on a given position.
     return $self->[0][$index][0];
   }
 
-=item value_at(index)
+=item $seq->value_at(index)
 
 Return the value of the element on a given position.
 
@@ -3638,7 +3657,7 @@ Return the value of the element on a given position.
     return $self->[0][$index][1];
   }
 
-=item delegate_names(key?)
+=item $seq->delegate_names(key?)
 
 If all element values are HASH-references, then it is possible to
 store each element's name in its value under a given key (that is, to
@@ -3659,7 +3678,7 @@ values is not a HASH reference.
     }
   }
 
-=item validate(content_pattern?)
+=item $seq->validate(content_pattern?)
 
 Check that content of the sequence statisfies a constraint specified
 by means of a regular expression C<content_pattern>. If no content_pattern is
@@ -3683,7 +3702,7 @@ Returns: 1 if the content satisfies the constraint, 0 otherwise.
     return $content=~m/^$re$/x ? 1 : 0;
   }
 
-=item push_element(name, value)
+=item $seq->push_element(name, value)
 
 Append a given name-value pair to the sequence.
 
@@ -3694,7 +3713,7 @@ Append a given name-value pair to the sequence.
     push @{$self->[0]},Fslib::Seq::Element->new($name,$value);
   }
 
-=item push_element_obj(obj)
+=item $seq->push_element_obj(obj)
 
 Append a given Fslib::Seq::Element object to the sequence.
 
@@ -3735,7 +3754,7 @@ pair.
 package Fslib::Seq::Element;
 use Carp;
 
-=item new(name, value)
+=item Fslib::Seq::Element->new(name, value)
 
 Create a new sequence element.
 
@@ -3746,7 +3765,7 @@ Create a new sequence element.
     return bless [$name,$value],$class;
   }
 
-=item name()
+=item $el->name()
 
 Return the name of the element.
 
@@ -3757,7 +3776,7 @@ Return the name of the element.
   }
 
 
-=item value()
+=item $el->value()
 
 Return the value of the element.
 
@@ -3767,7 +3786,7 @@ Return the value of the element.
     $_[0]->[1];
   }
 
-=item setName(name)
+=item $el->setName(name)
 
 Set name of the element
 
@@ -3778,7 +3797,7 @@ Set name of the element
   }
 
 
-=item setValue(value)
+=item $el->setValue(value)
 
 Set value of the element
 
@@ -3799,9 +3818,35 @@ Set value of the element
 
 This class implements elementary support for PML schemas. Although
 neither it's API nor implementation is stable, it is intended to fully
-replace the FSFormat class in the future. Currently it is only a
-C<XML::Simple> representation of a PML schema file. Whether this is
-favourable or not, is yet to be discovered.
+replace the FSFormat class in the future.
+
+Currently the in-memory representation of a PML schema is a data
+structure (mostly nested HASHes and ARRAYs) produced by parsing the
+PML schema in the XML format by C<XML::Simple>. 
+
+HASH structures representing parsed PML data type definitions are
+referred to as type declarations.
+
+We use attribute paths to navigate through nested and referenced type
+declarations. 
+
+Attribute path is a '/'-separated sequence of steps. A step can be one
+of the following:
+
+- a name (of a member of a structure, element of a sequence or
+attribute of a container), specifying the type declaration of the
+specified named component
+
+- the string '#content', specifying the content type declaration of a
+container
+
+- [] specifying the type declaration of a list or alt member
+
+- [NNN] where NNN is a decimal number (ignored), which is an
+equivalent of []
+
+Steps of the form [] (except when occuring at the end of an attribute
+path) may be omitted.
 
 =over 3
 
@@ -4012,7 +4057,7 @@ sub check_revision {
   }
 }
 
-=item new(string)
+=item Fslib::Schema->new(string)
 
 Parses a given XML representation of the schema and returns a new
 C<Fslib::Schema> instance.
@@ -4103,7 +4148,7 @@ sub new {
 }
 
 
-=item readFrom(filename,opts)
+=item Fslib::Schema->readFrom(filename,opts)
 
 Reads schema from a given XML file and returns a new C<Fslib::Schema>
 object.
@@ -4150,35 +4195,214 @@ sub readFrom {
   return $schema;
 }
 
-=item find_role(type,role)
+=item $schema->find_type_by_path(attribute-path,noresolve,decl)
 
-Starting from a given schema type, locate and return a (possibly deeply nested)
-subtype of a given role.
+Locate a type declaration specified by C<attribute-path> starting
+from declaration C<decl>. If C<decl> is undefined, the root type
+declaration is used. If C<noresolve> is true, a possible
+type-reference occuring in the type declaration reached by the last
+step of the attribute path will not be resolved.
+
+Attribute path is a '/'-separated sequence of member and/or element
+names which identifies a path to a certain nested sub-type in the
+nesting of structures and element sequences.
+
+=cut
+
+sub find_type_by_path {
+  my ($schema, $path, $noresolve, $type) = @_;
+  if (!$type) {
+    $type = $schema->resolve_type($schema->{root});
+  }
+  if ($path ne '') {
+    for my $step (split /\//, $path) {
+      $type = $schema->resolve_type($type);
+
+      if (ref($type)) {
+	if (exists $type->{list} or exists $type->{alt}) {
+	  $type = exists $type->{list} ? $type->{list} : $type->{alt};
+	  if ($step =~ /^\[\d*\]/) {
+	    next;
+	  } else {
+	    redo;
+	  }
+	} elsif ($type->{member}) {
+	  if (!exists $type->{member}{$step}) {
+	    my $rf_type = $type->{member}{$step.'.rf'};
+	    my $is_knit =  (ref($rf_type) and $rf_type->{role} eq '#KNIT');
+	    unless ($is_knit) {
+	      my $rf_type_resolved = $schema->resolve_type($rf_type);
+	      $is_knit = (ref($rf_type_resolved) and
+		$rf_type_resolved->{role} eq '#KNIT');
+	      unless ($is_knit) {
+		$is_knit = (ref($rf_type_resolved) and
+			    exists $rf_type_resolved->{list} and
+			    $rf_type_resolved->{list}{role} eq '#KNIT');
+	      }
+	    }
+	    if ($is_knit) {
+	      $type = $rf_type;
+	    }
+	  } else {
+	    $type = $type->{member}{$step};
+	  }
+	} elsif ($type->{attribute}) {
+	  if (!exists $type->{attribute}{$step}) {
+	    my $rf_type = $type->{attribute}{$step.'.rf'};
+	    my $is_knit =  (ref($rf_type) and $rf_type->{role} eq '#KNIT');
+	    unless ($is_knit) {
+	      my $rf_type_resolved = $schema->resolve_type($rf_type);
+	      $is_knit = (ref($rf_type_resolved) and
+		$rf_type_resolved->{role} eq '#KNIT');
+	    }
+	    if ($is_knit) {
+	      $type = $rf_type;
+	    }
+	  } else {
+	    $type = $type->{attribute}{$step};
+	  }
+	} elsif ($type->{structure}) {
+	  $type = $type->{structure}{member}{$step};
+	} elsif ($type->{sequence}) {
+	  $type = $type->{sequence}{element}{$step};
+	} elsif ($type->{container}) {
+	  $type = $type->{container}{attribute}{$step};
+	} else {
+	  return undef;
+	}
+      } else {
+#	warn "Can't follow type path '$path' (step '$step')\n";
+	return undef; # ERROR
+      }
+    }
+  }
+  return $noresolve ? $type : $schema->resolve_type($type);
+}
+
+
+=item $schema->find_role(role,decl)
+
+Return attribute paths leading to those nested type declarations of
+the type declaration C<decl> whose role is C<role>. If C<decl> is not
+specified, the root type declaration is assumed.
+
+In array context returns all such sub-type declarations. In scalar context
+returns only the first one (stopping early).
 
 =cut
 
 sub find_role {
-  my ($self,$type,$role)=@_;
-  return() unless UNIVERSAL::isa($type,'HASH');
-  return (($type->{role} eq $role ? $self->resolve_type($type) : ()),  map { $self->find_role($_,$role) } grep { UNIVERSAL::isa($_,'HASH') } values %$type);
+  my ($self, $role, $decl)=@_;
+  $decl ||= $self->{root};
+  if (UNIVERSAL::isa($decl,'HASH')) {
+    if ($decl->{member}) {
+      $decl = { structure => $decl };
+    } elsif ($decl->{attribute}) {
+      $decl = { container => $decl };
+    } elsif ($decl->{element}) {
+      $decl = { sequence => $decl };
+    }
+  }
+  my $first = not(wantarray);
+  my @res = grep { defined } $self->_find_role($decl,$role,$first,{});
+  return $first ? $res[0] : @res;
 }
 
-=item node_type(type,role)
+sub _find_role {
+  my ($self, $decl, $role, $first, $cache)=@_;
 
-Find all types with role C<#NODE>.
+  my @result = ();  
+
+  return @result unless UNIVERSAL::isa($decl,'HASH');
+
+  if ($cache->{'#RECURSE'}{ $decl }) {
+    return ()
+  }
+  local $cache->{'#RECURSE'}{ $decl } = [];
+
+  if ( $decl->{role} eq $role ) {
+    if ($first) {
+      return '';
+    } else {
+      push @result, '';
+    }
+  }
+  my $type_name = $decl->{type};
+  if ($type_name) {
+    my $cached = $cache->{ $type_name };
+    unless ($cached) {
+      $cached = $cache->{ $type_name } = [ $self->_find_role( $self->{type}{ $type_name }, $role, $first, $cache ) ];
+    }
+    return @result, @$cached;    
+  }
+  my $t;
+  if ($t = $decl->{structure}) {
+    if ( $t->{role} eq $role ) {
+      return ('') if $first;
+      push @result, '';
+    }
+    my $members = $t->{member};
+    foreach my $member (sort { $members->{$a}{'-#'} <=> $members->{$b}{'-#'} } keys %$members) {
+      my @res = map { $_ ne '' ? $member.'/'.$_ : $member }
+	$self->_find_role($members->{$member}, $role, $first, $cache);
+      return $res[0] if ($first and @res);
+      push @result,@res;
+    }
+  } elsif ($t = $decl->{container}) {
+    if ( $t->{role} eq $role ) {
+      return '' if $first;
+      push @result, '';
+    }
+    my @res =  map { $_ ne '' ? '#content/'.$_ : '#content' } $self->_find_role($t, $role, $first, $cache);
+    return $res[0] if ($first and @res);
+    my $attrs = $t->{attribute};
+    foreach my $attr (sort { $attrs->{$a}{'-#'} <=> $attrs->{$b}{'-#'} } keys %$attrs) {
+      my @res = map { $_ ne '' ? $attr.'/'.$_ : $attr }
+	$self->_find_role($attrs->{$attr}, $role, $first, $cache);
+      return $res[0] if ($first and @res);
+      push @result,@res;
+    }
+  } elsif ($t = $decl->{sequence}) {
+    if ( $t->{role} eq $role ) {
+      return '' if $first;
+      push @result, '';
+    }
+    my $elements = $t->{element};
+    foreach my $element (sort { $elements->{$a}{'-#'} <=> $elements->{$b}{'-#'} } keys %$elements) {
+      my @res = map { $_ ne '' ? $element.'/'.$_ : $element }
+	$self->_find_role($elements->{$element}, $role, $first, $cache);
+      return $res[0] if ($first and @res);
+      push @result,@res;
+    }
+  } elsif ($t = ($decl->{list} || $decl->{alt}) ) {
+    if ( $t->{role} eq $role ) {
+      return '' if $first;
+      push @result, '';
+    }
+    my @res = map { $_ ne '' ? '[]/'.$_ : '[]' } 
+      $self->_find_role($t, $role, $first, $cache);
+    return $res[0] if ($first and @res);
+    push @result,@res;    
+  }
+  return @result;
+}
+
+=item $schema->node_type(type,role)
+
+Return a list of all type declarations with role C<#NODE>.
 
 =cut
 
 sub node_types {
   my ($self) = @_;
   my @result;
-  return ($self->find_role($self->{type},'#NODE'),$self->find_role($self->{root},'#NODE'));
+  return map { $self->find_type_by_path($_) } $self->find_role('#NODE');
 }
 
 
-=item get_root_type(name)
+=item $schema->get_root_type(name)
 
-Returns a HASH structure representing the declaration of the root type.
+Returns the declaration of the root type.
 
 =cut
 
@@ -4187,10 +4411,9 @@ sub get_root_type {
   return $self->resolve_type($self->{root});
 }
 
-=item get_type_by_name(name)
+=item $schema->get_type_by_name(name)
 
-Returns a HASH structure representing the declaration of the given
-named type.
+Returns the declaration of the given named type.
 
 =cut
 
@@ -4200,10 +4423,10 @@ sub get_type_by_name {
 }
 
 
-=item resolve_type(type)
+=item $schema->resolve_type(decl)
 
-Returns type, unless it is only a type-reference in which case it
-follows the reference and returns the resulting type.
+If the declaration C<decl> is a type-reference, return the referred
+type declaration. Otherwise return C<decl>.
 
 =cut
 
@@ -4218,11 +4441,11 @@ sub resolve_type {
   }
 }
 
-=item type(type)
+=item $schema->type(decl)
 
-Wrap given schema type into a C<Fslib::Type> object and return the
-object. Both the current schema and the type can be retrieved from the
-C<Fslib::Type> object.
+Wrap the type declaration C<decl> into a C<Fslib::Type> object and
+return the object. Both the current schema and the declaration can be
+retrieved from the C<Fslib::Type> object.
 
 =cut
 
@@ -4234,12 +4457,15 @@ sub type {
 
 # emulate FSFormat->attributes to some extent
 
-=item attributes([type...])
+=item $schema->attributes([decl...])
 
-Return attribute-paths to all atomic subtypes of given types.  If no
-types are given, then types with role C<#NODE> are assumed. In a way,
-this function tries to emulate the behavior of
-C<FSFormat-E<gt>attributes>.
+Return attribute paths to all atomic subtypes of given type
+declarations. If no types are given, then types with role C<#NODE>
+are assumed. This function never descends to subtypes with role
+C<#CHILDNODES>.
+
+This function tries to emulate the behavior of
+C<FSFormat-E<gt>attributes> to some extent.
 
 =cut
 
@@ -4299,11 +4525,11 @@ sub attributes {
   return grep { !$uniq{$_} && ($uniq{$_}=1) } @result;
 }
 
-=item validate_object (object, type, log)
+=item $schema->validate_object (object, type|decl, log)
 
 Validates the data content of the given object against a specified
-type.  The type may be either the name of a named type, or a
-Fslib::Type, or a HASH with a parsed declaration.  
+type.  The type may be the name of a named type, a Fslib::Type, or a
+type declaration.
 
 An array reference may be passed as the optional 3rd argument C<log>
 to obtain a detailed report of all validation errors.
@@ -4333,15 +4559,14 @@ sub validate_object { # (path, base_type)
 }
 
 
-=item validate_field (object, attr-path, type, log)
+=item $schema->validate_field (object, attr-path, type, log)
 
 This method is similar to C<validate_object>, but in this case the
 validation is restricted to the data substructure of C<object>
 specified by the C<attr-path> argument.
 
 C<type> is the type of C<object> specified either by the name of a
-named type, or as a Fslib::Type, or as a HASH with a parsed
-declaration.
+named type, or as a Fslib::Type, or a type declaration.
 
 An array reference may be passed as the optional 3rd argument C<log>
 to obtain a detailed report of all validation errors.
@@ -4374,7 +4599,7 @@ sub validate_field {
   if (!ref($type)) {
     croak "Fslib::Schema::validate_field: Cannot determine data type for '$path'";
   }
-  PMLBackend::validate_object($log,$path,$schema->{type}, $type, '', FSNode::attr($object,$path));
+  return PMLBackend::validate_object($log,$path,$schema->{type}, $type, '', FSNode::attr($object,$path));
 }
 
 =back
@@ -4394,7 +4619,7 @@ This is a wrapper class for a schema type.
 
 =cut
 
-=item new(schema,type)
+=item Fslib::Type->new(schema,type)
 
 Return a new C<Fslib::Type> object containing a given type of a given
 C<Fslib::Schema>.
@@ -4406,7 +4631,7 @@ sub new {
   return bless [$schema,$type], $class;
 }
 
-=item schema()
+=item $type->schema()
 
 Retrieve the C<Fslib::Schema>.
 
@@ -4417,7 +4642,7 @@ sub schema {
   return $self->[0];
 }
 
-=item type_decl()
+=item $type->type_decl()
 
 Return the raw Perl structure which resulted from parsing the PML
 schema declaration by C<XML::Simple>.
@@ -4429,7 +4654,7 @@ sub type_decl {
   return $self->[1];
 }
 
-=item members()
+=item $type->members()
 
 If the wrapped schema type is an AVS structure type,
 return names of its members (attributes), except
@@ -4490,9 +4715,9 @@ sub members {
   }
   }
 
-=item attributes()
+=item $type->attributes()
 
-Return attribute-paths to all atomic subtypes of the given type.
+Return attribute paths leading to all atomic subtypes of the given type.
 
 =cut
 
@@ -4501,84 +4726,36 @@ sub attributes {
   return $self->schema->attributes($self->type_decl);
 }
 
-=item find(attribute-path)
+=item $type->find(attribute-path,noresolve)
 
-Locate a subtype specified by a given attribute-path. Attribute path
-is a /-separated sequence of member and/or element names which
-identifies a path to a certain nested sub-type in the nesting of
-structures and element sequences.
+Locate a type declaration specified by C<attribute-path> starting from
+the current type. If C<noresolve> is true, a possible type-reference
+occuring in the type declaration reached by the last step of the
+attribute path will not be resolved.
+
+Attribute path is a '/'-separated sequence of member and/or element
+names which identifies a path to a certain nested sub-type in the
+nesting of structures and element sequences.
 
 =cut
 
 sub find {
-  my ($self, $path) = @_;
+  my ($self, $path,$noresolve) = @_;
   # find node type
   my $type = $self->type_decl;
-  my $schema = $self->schema;
-  if ($path eq '') {
-    return $type;
-  } else {
-    for my $step (split /\//, $path) {
-      $type = $schema->resolve_type($type);
-      if (ref($type)) {
-	if (exists $type->{list} or exists $type->{alt}) {
-	  $type = exists $type->{list} ? $type->{list} : $type->{alt};
-	  if ($step =~ /^\[(\d+)\]/) {
-	    next;
-	  } else {
-	    redo;
-	  }
-	} elsif ($type->{member}) {
-	  if (!exists $type->{member}{$step}) {
-	    my $rf_type = $type->{member}{$step.'.rf'};
-	    my $is_knit =  (ref($rf_type) and $rf_type->{role} eq '#KNIT');
-	    unless ($is_knit) {
-	      my $rf_type_resolved = $schema->resolve_type($rf_type);
-	      $is_knit = (ref($rf_type_resolved) and
-		$rf_type_resolved->{role} eq '#KNIT');
-	      unless ($is_knit) {
-		$is_knit = (ref($rf_type_resolved) and
-			    exists $rf_type_resolved->{list} and
-			    $rf_type_resolved->{list}{role} eq '#KNIT');
-	      }
-	    }
-	    if ($is_knit) {
-	      $type = $rf_type;
-	    }
-	  } else {
-	    $type = $type->{member}{$step};
-	  }
-	} elsif ($type->{attribute}) {
-	  if (!exists $type->{attribute}{$step}) {
-	    my $rf_type = $type->{attribute}{$step.'.rf'};
-	    my $is_knit =  (ref($rf_type) and $rf_type->{role} eq '#KNIT');
-	    unless ($is_knit) {
-	      my $rf_type_resolved = $schema->resolve_type($rf_type);
-	      $is_knit = (ref($rf_type_resolved) and
-		$rf_type_resolved->{role} eq '#KNIT');
-	    }
-	    if ($is_knit) {
-	      $type = $rf_type;
-	    }
-	  } else {
-	    $type = $type->{attribute}{$step};
-	  }
-	} elsif ($type->{structure}) {
-	  $type = $type->{structure}{member}{$step};
-	} elsif ($type->{sequence}) {
-	  $type = $type->{sequence}{element}{$step};
-	} elsif ($type->{container}) {
-	  $type = $type->{container}{attribute}{$step};
-	} else {
-	  return undef;
-	}
-      } else {
-#	warn "Can't follow type path '$path' (step '$step')\n";
-	return undef; # ERROR
-      }
-    }
-    return $schema->resolve_type($type);
-  }
+  return $self->schema->find_type_by_path($path,$noresolve,$type);
+}
+
+=item $type->find_role(role)
+
+Literally equivalent to C<$type->schema->find_role($role,$type->type_decl)>.
+
+
+=cut
+
+sub find_role {
+  my ($self, $role,$first) = @_;
+  return $self->schema->find_role($role,$self->type_decl);
 }
 
 =back
@@ -4630,7 +4807,7 @@ corresponding C<$Fslib::...> variables directly.
 
 =over 4
 
-=item ReadEscapedLine (FH)
+=item Fslib::ReadEscapedLine (FH)
 
  Params:
 
@@ -4677,7 +4854,7 @@ corresponding C<$Fslib::...> variables directly.
    $node
 
 
-=item Paste($node,$newparent,$fsformat)
+=item Fslib::Paste($node,$newparent,$fsformat)
 
  Params:
 
@@ -4694,7 +4871,7 @@ corresponding C<$Fslib::...> variables directly.
 
  Returns $node
 
-=item CloneValue($scalar)
+=item Fslib::CloneValue($scalar)
 
  Params:
 
@@ -4709,7 +4886,7 @@ corresponding C<$Fslib::...> variables directly.
 
    a deep copy of $scalar
 
-=item C<FindInResources($filename)>
+=item C<Fslib::FindInResources($filename)>
 
  Params:
 
@@ -4721,7 +4898,7 @@ corresponding C<$Fslib::...> variables directly.
     resource directory, return an absolute path for the
     resource. Otherwise return filename.
 
-=item C<ResolvePath($ref_filename,$filename,$use_resources?)>
+=item C<Fslib::ResolvePath($ref_filename,$filename,$use_resources?)>
 
  Params:
 
@@ -4737,7 +4914,7 @@ corresponding C<$Fslib::...> variables directly.
    file can't be located in this way and use_resources is true, return
    the value of C<FindInResources(filename)>.
 
-=item ImportBackends(@backends)
+=item Fslib::ImportBackends(@backends)
 
  Params:
 
@@ -4751,7 +4928,7 @@ corresponding C<$Fslib::...> variables directly.
 
 =item OBSOLETED functions
 
- FirstSon($node), Parent($node), LBrother($node), RBrother($node)
+ Fslib::FirstSon($node), Fslib::Parent($node), Fslib::LBrother($node), Fslib::RBrother($node)
 
  Params:
 
