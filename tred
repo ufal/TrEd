@@ -7409,8 +7409,7 @@ sub editAttrsDialog_schema {
 
   $edit->set_schema($schema);
   my $attr_name = $attr_path;
-  $attr_name =~ s{(.*/)}{};
-  my $base_path = $1;
+  my $base_path = ($attr_name =~ s{(.*/)}{}) ? $1 : '';
 
   $edit->set_enable_callback([
     sub {
@@ -8719,7 +8718,10 @@ sub doEditAttr {
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
 
-  return editAttrsDialog_schema($win,$node,$attr,$as_type) if (ref($as_type) or ref($node->type));
+
+  return editAttrsDialog_schema($win,$node,$attr,$as_type)
+    if (ref($as_type) or ref($node->type) or
+	fileSchema($win->{FSFile}) );
 
   my ($Entry,@Eopts) = get_entry_type();
   my $newvalue;
