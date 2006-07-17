@@ -1769,12 +1769,12 @@ sub new {
 
 =pod
 
-=item FSFile->create
+=item FSFile->create({ argument => value, ... })
 
-Same as C<new> but accepts name => value pairs as arguments. The
-following argument names are available:
+Same as C<new> but accepts argument => value pairs as arguments. The
+following arguments are available:
 
-filename, format, FS, hint, patterns, tail, trees, save_status, backend
+name, format, FS, hint, patterns, tail, trees, save_status, backend
 
 See C<initialize> for more detail.
 
@@ -1782,8 +1782,8 @@ See C<initialize> for more detail.
 
 sub create {
   my $self = shift;
-  my %args=@_;
-  return $self->new(@args{qw(name format FS hint patterns tail trees save_status backend encoding user_data meta_data app_data)});
+  my $args = (@_==1 and ref($_[0])) ? $_[0] : { @_ };
+  return $self->new(@{$args}{qw(name format FS hint patterns tail trees save_status backend encoding user_data meta_data app_data)});
 }
 
 
