@@ -7259,7 +7259,7 @@ sub determineNodeType {
     if (ref $pml_trees_type) {
       @tree_types = ($pml_trees_type->type_decl);
     } else {
-      @tree_types = $schema->find_role('#TREES');
+      @tree_types = map { $schema->find_type_by_path($_) } $schema->find_role('#TREES');
     }
     foreach my $tt (@tree_types) {
       if (!UNIVERSAL::isa($tt,'HASH')) {

@@ -165,7 +165,9 @@ sub open_file {
 	$tmp = new IO::Zlib();
       } && $tmp || return undef;
       $tmp->open($file,"rb") || return undef;
-      $fh->print($_) while <$tmp>;
+      while (my $l = <$tmp>) {
+	$fh->print($l) 
+      }
       $tmp->close();
       seek($fh,0,'SEEK_SET');
     }
