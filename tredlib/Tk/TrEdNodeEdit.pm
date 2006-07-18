@@ -914,11 +914,11 @@ sub add_member {
       $hlist->add_members($path."/",$mtype->{container},$attr_val);
     }
   } elsif (exists $mtype->{list}) {
-    if ($mtype->{list}{role}  =~ m/^\#(?:CHILDNODES|TREES)$/ or 
-	$mtype->{role}  =~ m/^\#(?:CHILDNODES|TREES)$/ ) {
+    if ($mtype->{list}{role}  =~ m/^\#(CHILDNODES|TREES)$/ or 
+	$mtype->{role}  =~ m/^\#(CHILDNODES|TREES)$/ ) {
       $data->{dump} = 'none';
       $hlist->itemCreate($path,1,-itemtype => 'text',
-			 -text => 'child nodes',
+			 -text => $1,
 			 -style => $hlist->{my_itemstyles}{list});
     } else {
       $data->{dump} = 'list';
@@ -945,10 +945,10 @@ sub add_member {
   } elsif (exists $mtype->{sequence}) {
     my $list_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
-    if ($mtype->{sequence}{role} =~ m/^\#(?:CHILDNODES|TREES)$/) {
+    if ($mtype->{sequence}{role} =~ m/^\#(CHILDNODES|TREES)$/) {
       $data->{dump} = 'none';
       $hlist->itemCreate($path,1,-itemtype => 'text',
-			 -text => 'Sequence of child nodes',
+			 -text => 'Sequence of '.$1,
 			 -style => $hlist->{my_itemstyles}{sequence});
     } else {
       $data->{dump} = 'sequence';
