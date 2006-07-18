@@ -34,11 +34,8 @@ BEGIN {
 # (rel2abs is not supported in all instalations)
 use File::Spec;
 if (not File::Spec->can('rel2abs')) {
-  require TFile::Spec;
-  require TFile::Spec::Functions;
-  import TFile::Spec::Functions qw(rel2abs);
+  die "The currently installed version of the File::Spec module doesn't provide rel2abs() method. Please upgrade it!\n";
 } else {
-  require File::Spec;
   require File::Spec::Functions;
   import File::Spec::Functions qw(rel2abs);
 }
