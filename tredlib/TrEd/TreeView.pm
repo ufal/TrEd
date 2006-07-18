@@ -1325,7 +1325,6 @@ sub redraw {
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-dodrawbox",\%Opts) eq "yes"));
     $self->store_node_pinfo($node,"EdgeHasBox",$edge_has_box);
     if ($edge_has_box) {
-      ## get maximum width stored here by recalculate_positions
       $objectno++;
       my $box="edgebox_$objectno";
       my $bid=$canvas->
@@ -1367,7 +1366,7 @@ sub redraw {
 	  $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
 	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
 				!$edge_has_box,
-				\%Opts,$grp);
+				\%Opts,$grp,1);
 	  $e_i++;
 	}
       } elsif ($pat_class eq "node") {
@@ -1448,20 +1447,20 @@ sub redraw {
 
 sub draw_text_line {
   my ($self,$fsfile,$node,$i,$msg,
-      $lineHeight,$x,$y,$clear,$Opts,$grp)=@_;
-
+      $lineHeight,$x,$y,$clear,$Opts,$grp,$edge)=@_;
+  my $what = $edge ? "Edge" : "Node";
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
-  my $align=$self->get_style_opt($node,"Node","-textalign",$Opts);
+  my $align=$self->get_style_opt($node,$what,"-textalign",$Opts);
   my $textdelta;
   if ($align eq 'left') {
     $textdelta=0;
   } elsif ($align eq 'right') {
     $textdelta=
-      $self->get_node_pinfo($node,"NodeLabelWidth")-
+      $self->get_node_pinfo($node,$what."LabelWidth")-
 	$self->get_node_pinfo($node,"X[$i]");
   } elsif ($align eq 'center') {
     $textdelta=
-      ($self->get_node_pinfo($node,"NodeLabelWidth")-
+      ($self->get_node_pinfo($node,$what."LabelWidth")-
        $self->get_node_pinfo($node,"X[$i]"))/2;
   }
   
