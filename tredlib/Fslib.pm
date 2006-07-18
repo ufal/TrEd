@@ -4585,7 +4585,10 @@ sub validate_object { # (path, base_type)
   if (!ref($type)) {
     croak "Fslib::Schema::validate_object: Cannot determine data type";
   }
-  PMLBackend::validate_object($log,'',$schema->{type}, $type, '', $object);
+  my $ctxt = PMLInstance->new;
+  $ctxt->{'log'} = $log;
+  $ctxt->{schema} = $schema;
+  $ctxt->validate_object($object,$type);
   return @$log ? 0 : 1;
 }
 
@@ -4630,7 +4633,11 @@ sub validate_field {
   if (!ref($type)) {
     croak "Fslib::Schema::validate_field: Cannot determine data type for '$path'";
   }
-  return PMLBackend::validate_object($log,$path,$schema->{type}, $type, '', FSNode::attr($object,$path));
+  my $ctxt = PMLInstance->new;
+  $ctxt->{'log'} = $log;
+  $ctxt->{schema} = $schema;
+  $ctxt->validate_object(FSNode::attr($object,$path),$type,{ path => $path });
+  return @$log ? 0 : 1;
 }
 
 =back
