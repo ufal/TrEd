@@ -1999,7 +1999,8 @@ sub readFile {
     }
   }
   if ($ret == 1) {
-    print STDERR "Unknown file type (all IO backends failed): $file\n";
+    my $err = "Unknown file type (all IO backends failed): $file\n";
+    $@.="\n".$err;
   }
   if ($url ne $file and $remove_file) {
     local $!;
@@ -3545,7 +3546,7 @@ validate() method below).
     my ($class,$array,$content_pattern) = @_;
     $array = [] unless defined($array);
     return bless [Fslib::List->new_from_ref($array), # a list consisting of [name,value] pairs
-		  $content_pattern             # a content_pattern constraint
+		  $content_pattern                  # a content_pattern constraint
 		 ],$class;
   }
 
@@ -4411,6 +4412,22 @@ sub get_root_type {
   return $self->resolve_type($self->{root});
 }
 
+
+
+=item $schema->get_root_type_obj (name)
+
+Like C<get_root_type> but returns a Fslib::Type object instead of the
+type declaration.
+
+=cut
+
+sub get_root_type_obj {
+  my ($self,$name) = @_;
+  my $decl = $self->resolve_type($self->{root});
+  return $decl ? $self->type($decl) : undef;
+}
+
+
 =item $schema->get_type_by_name (name)
 
 Returns the declaration of the given named type.
@@ -4420,6 +4437,20 @@ Returns the declaration of the given named type.
 sub get_type_by_name {
   my ($self,$name) = @_;
   return $self->{type}{$name};
+}
+
+
+=item $schema->get_type_by_name_obj (name)
+
+Like C<get_type_by_name> but returns a Fslib::Type object instead of
+the type declaration.
+
+=cut
+
+sub get_type_by_name_obj {
+  my ($self,$name) = @_;
+  my $decl = $self->{type}{$name};
+  return $decl ? $self->type($decl) : undef;
 }
 
 
