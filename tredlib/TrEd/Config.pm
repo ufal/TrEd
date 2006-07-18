@@ -157,7 +157,7 @@ sub read_config {
 
   foreach $f (@_,@config_file_search_list) {
     if (defined($f) and open(F,"<$f")) {
-      print STDERR "Using resource file $f\n" unless $quiet;
+      print STDERR "Config file: $f\n" unless $quiet;
       while (<F>) {
 	parse_config_line($_,\%confs);
       }
@@ -334,9 +334,14 @@ sub set_config {
       unshift @INC,$perllib unless (grep($_ eq $perllib, @INC));
     }
   }
-  $Fslib::resourcePath=tilde_expand($confs->{resourcepath}) if (exists $confs->{resourcepath});
   $libDir=tilde_expand($confs->{libdir}) if (exists $confs->{libdir});
   unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
+
+  if (exists $confs->{resourcepath}) {
+    $Fslib::resourcePath=
+      join $resourcePathSplit,
+      map { tilde_expand($_) } split /\Q$resourcePathSplit\E/, $confs->{resourcepath};
+  }
 
   unless (defined $Fslib::resourcePath) {
     $Fslib::resourcePath=$libDir;
@@ -349,9 +354,8 @@ sub set_config {
 	$Fslib::resourcePath.="/resources";
       }
     }
+    $Fslib::resourcePath = tilde_expand(q(~/.tred.d)) . $resourcePathSplit . $Fslib::resourcePath ;
   }
-  
-  $Fslib::resourcePath .= $resourcePathSplit . tilde_expand(q(~/.tred.d));
 
   if (exists $confs->{psfontfile}) {
     $psFontFile=tilde_expand($confs->{psfontfile});
