@@ -534,6 +534,8 @@ my %default_binding = (
 
 ApplyGlobalConfig();
 
+print STDERR "Resource path: $Fslib::resourcePath\n";
+
 if ($]>=5.008) {
   eval {
     require I18N::Langinfo;
@@ -2409,10 +2411,10 @@ sub set_status_line {
   if (@oldtags) {
     $sl->tagDelete(@oldtags);
   }
-  $sl->insert('end',encode($grp->{statusLineText}),undef)
-    unless ($grp->{statusLineText} eq "");
-  $sl->insert('end'," | ",undef) if ($text);
-
+  unless ($grp->{statusLineText} eq "") {
+    $sl->insert('end',encode($grp->{statusLineText}),undef);
+    $sl->insert('end'," | ",undef) if ($text);
+  }
   if (ref($text)) {
     my ($fields,$styles)=@$text;
     my $i=0;
@@ -3292,6 +3294,7 @@ sub macrolistDialog {
 					 },$grp,$t],
 		   -relief       => 'groove', #$menubarRelief,
 		   -borderwidth  => 2);
+  $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);	  
   $om->pack(qw/-side left -padx 5/);
 
   $d->bind("<Alt-x>"=>
@@ -3385,10 +3388,9 @@ sub macrolistDialog {
 		    -underline => 0,
 	     -command=> [ sub {
 			     my ($w,$grp,$t,$ctxt)=@_;
-			     my $mac=$t->itemCget($t->info('anchor'),0,'-text');
+			     my $mac=$t->info(data => $t->info('anchor'));
 			     $w->destroy();
-			     doEvalMacro($grp->{focusedWindow},
-					 $menuBindings{$$ctxt}->{$mac}->[0]);
+			     doEvalMacro($grp->{focusedWindow},$mac);
 			   },$d,$grp,$t,\$context ])->pack(-padx=>'0.5c',-pady=>'0.2c',-side=>'left');
 
 
@@ -3446,11 +3448,12 @@ sub copyTreesDialog {
   foreach my $of (@openfiles) {
     push @items,$i++.". ".$of->filename();
   }
-  $ff->Optionmenu(
+  my $om = $ff->Optionmenu(
 		  -relief => $buttonsRelief,
 		  -options => \@items,
 		  -variable => \$destination
 		 )->pack(qw/-side left -padx 10/);
+  $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $ff->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
   my $sf= $d->Frame();
   my $re=$sf->$Entry(@Entry,
@@ -3719,6 +3722,7 @@ sub printDialog {
 			      -textvariable => \$s{psMedia}, # global variable in TrEd::Config
 			      -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef]
 			)->pack(-side=> 'left');
+  $w{psMedia}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $w{prtFmtHeight}->raise($w{psMedia});
   $w{prtFmtWidth}->raise($w{psMedia});
   $mf->Label(-text=> 'Width:',
@@ -3859,7 +3863,7 @@ sub printDialog {
 					       '200','225','240','260','300','360','600','720'],
 				  -variable => \$s{resolution}
 				 );
-
+  $w{resolution}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   my %printbuttons = ( printer => [$bf,'Send to printer',undef,8],
 		       file =>[$bf,'Print to file','eps',9],
 		       convert =>[$imf,'Convert to bitmap format (ImageMagick)','png',0]
@@ -3877,12 +3881,18 @@ sub printDialog {
 		  [\&updatePrintDialogState,$grp,\%w,\%s,$printbuttons{$_}[2]]
 		 );
   }
+  $w{printTo_convert}->pack(qw/-anchor w -side left -fill y -expand 1/);
+
+  $imf->Label(-text => "Resolution")->pack(qw/-padx 10 -side left/);
+  $imf->pack(qw/-fill x -expand yes -anchor nw/);
+  $w{resolution}->pack(qw/-padx 10 -side left/);
+
+  $w{printTo_convert}->lower($w{resolution});
+
   foreach (qw(printer file)) {
     $w{"printTo_$_"}->pack(qw/-fill y -anchor nw/);
   }
-  $w{printTo_convert}->pack(qw/-anchor w -side left -fill y -expand 1/);
-  $imf->Label(-text => "Resolution")->pack(qw/-padx 10 -side left/);
-  $imf->pack(qw/-fill x -expand yes -anchor nw/);
+
 
   $bf->Frame()->pack(qw/-pady 5/);
 
@@ -3909,7 +3919,6 @@ sub printDialog {
   $w{font_label}->pack(qw/-padx 10 -side left/);
   $w{font}->pack(qw/-padx 10 -side left/);
   $pbf->raise($w{format_EPS});
-  $w{resolution}->pack(qw/-padx 10 -side left/);
   $pbf->pack(qw/-fill x -expand yes -anchor nw/);
 
   $bf->Frame()->pack(qw/-pady 5/);
@@ -3936,6 +3945,7 @@ sub printDialog {
 		     -variable=> \$s{noRotate},
 		     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   $bf->pack(-side=> 'left');
+
   $of->pack(qw/-padx 10 -pady 10 -side top -expand yes -fill x/);
   $sf->Label(-text=> 'Page range:',
 	     -underline => 5,
@@ -4490,6 +4500,27 @@ sub newTreeView {
   my $treeView=new TrEd::TreeView($canvas,'CanvasBalloon'=> $balloon);
   $treeView->apply_options($treeViewOpts);
   return $treeView;
+}
+
+sub NavigateMenuByFirstKey {
+  my $w = shift;
+  my $char = shift;
+  return unless (defined $char);
+  $char = lc($char);
+  my $last = $w->index('last');
+  my $active = $w->index('active');
+  return if ($last eq 'none');
+  $active = 0 if $active eq 'none';
+  for my $i ( $active+1..$last, 0..$active ) {
+    my $label = eval {local $SIG{__DIE__};  $w->entrycget($i,'-label') };
+    next unless defined($label);
+    $label = lc($label);
+    if ((substr($label,0,1) eq $char) or
+	  $label =~ /^[^[:alnum:]]\Q$char\E/) {
+      $w->activate($i);
+      return;
+    }
+  }
 }
 
 sub findCanvasWindow {
@@ -5252,6 +5283,9 @@ sub startMain {
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 5/);
+  $group{ContextsMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
+
+
   $group{ContextsMenuLabel}=$group{MenubarFrame}->Label(-text=>'Context:',-underline=>5)->pack(qw/-side right/);
 
   $group{Balloon}->attach($group{ContextsMenu},
@@ -5597,6 +5631,7 @@ sub startMain {
 			       },\%group],
 	       -relief=> 'groove', #$menubarRelief,
 	       -borderwidth=> 2)->pack(qw/-side right -padx 3/);
+  $group{StylesheetMenu}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $group{StylesheetMenuLabel}=$group{frame}->Label(qw/-text Style: -underline 2/)->pack(qw/-side right/);
   updateStylesheetMenu(\%group);
   $group{Balloon}->attach($group{StylesheetMenu},
@@ -7317,6 +7352,7 @@ sub editAttrsDialog_schema {
   my $reusable = 0; # 1 for reusable dialog (which leaks even more)
   
   require Tk::TrEdNodeEdit;
+  require PMLInstance;
 
   use Data::Dumper;
   #__debug("PATH: '$attr_path'\n");
@@ -7409,6 +7445,7 @@ sub editAttrsDialog_schema {
 
   $edit->set_schema($schema);
   my $attr_name = $attr_path;
+  
   my $base_path = ($attr_name =~ s{(.*/)}{}) ? $1 : '';
 
   $edit->set_enable_callback([
@@ -7419,10 +7456,10 @@ sub editAttrsDialog_schema {
       doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
     }, $win,$base_path
    ]);
-  #__debug("ATTR-PATH:' $attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
+  #__debug("ATTR-PATH: '$attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   my $is_required = 1;
   if ($attr_path ne "") {
-    
+
     # check if we can allow empty value (member/attribute not required)
     my $parent_type;
     if ($base_path ne "") {
@@ -7554,10 +7591,12 @@ sub editAttrsDialog_schema {
 
       # validate first
       my $val = undef;
-      if (UNIVERSAL::can('PMLBackend','validate_object')) {
+      {
 	$val = ($attr_path eq "") ? FSNode->new : {};
 	$edit->dump_to_node($val);
-	my $log=[];
+	my $ctxt = PMLInstance->new;
+	$ctxt->{'schema'} = $schema;
+	my $log = $ctxt->{'log'} = [];
 	#__debug("Validating node $val\n");
 	my $type;
 	if ($attr_path eq "") {
@@ -7569,12 +7608,11 @@ sub editAttrsDialog_schema {
 	  } else {
 	    $type = { container => $node_type };
 	  }
-	  PMLBackend::validate_object($log,'',$schema->{type}, $type, '', $val);
+	  $ctxt->validate_object($val,$type);
 	} else {
-	  __debug("Validating: $attr_path with name $attr_name\n");
+	  __debug("Validating: $attr_path with name $attr_name (required $is_required)\n");
 	  unless ($val->{$attr_name} eq '' and !$is_required) {
-	    PMLBackend::validate_object($log,$attr_path,$schema->{type},
-					$node_type, '', $val->{$attr_name});
+	    $ctxt->validate_object($val->{$attr_name},$node_type,{ path => $attr_path });
 	  }
 	}
 	if (@$log and
@@ -8010,19 +8048,21 @@ B<Features:>
   C<Node-currentheight  >- set shape height for active node
   C<Node-rellevel       >- alter vertical leveling of the subtree
   C<Node-level          >- alter vertical leveling of a single node
+  C<Node-textalign      >- alignment of labels within label-box (right,left,center)
   C<Node-addbeforeskip  >- skip before: 10, 2c, 12pt, etc.
   C<Node-addafterskip   >- skip after
   C<NodeLabel-valign    >- only as rootstyle. Values: top, center, bottom.
   C<NodeLabel-halign    >- left, right, center
   C<NodeLabel-yadj      >- adjust vertical position of node labels by given amount
-  C<NodeLabel-dodrawbox >- force drawing a box around labels: yes/no
-  C<NodeLabel-nodrawbox >- force disabling a box around node label: yes/no
+  C<NodeLabel-dodrawbox >- force drawing a box around labels: (yes,no)
+  C<NodeLabel-nodrawbox >- force disabling a box around node label: (yes,no)
+  C<Edge-textalign      >- alignment of edge labels within label-box (right,left,center)
   C<EdgeLabel-yadj      >- adjust vertical position of edge labels by given amount
   C<EdgeLabel-coords    >- custom edge label position. Default: (n+p)/2,(n+p)/2
   C<EdgeLabel-halign    >- values: right, center, left
   C<EdgeLabel-valign    >- values: top, center, bottom
-  C<EdgeLabel-dodrawbox >- force drawing a box around edge labels: yes/no
-  C<EdgeLabel-nodrawbox >- force disabling a box around node label: yes/no
+  C<EdgeLabel-dodrawbox >- force drawing a box around edge labels: (yes,no)
+  C<EdgeLabel-nodrawbox >- force disabling a box around node label: (yes,no)
   C<Oval-dash           >- pattern for the outline of the node shape
   C<                    >  (oval/rectangle/polygon)
   C<Oval-activedash     >- pattern for the outline of the active node shape
@@ -8290,12 +8330,13 @@ sub findNodeDialog {
   do {
     my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
     $of->Label(-text=> 'Search method: ')->pack(qw/-side left/);
-    $of->Optionmenu(-variable=> \$grp->{templateMatchMethod},
+    my $om = $of->Optionmenu(-variable=> \$grp->{templateMatchMethod},
 		    -textvariable=> \$grp->{templateMatchMethod},
 		    -options=> ['Regular expression',
 				'Exhaustive regular expression',
 				'Wildcard pattern',
 				'Literal'])->pack(qw/-side left/);
+    $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   };
   my $of=$d->Frame()->pack(qw/-expand yes -fill x/);
   $of->Label(-text=> 'Search file-list: ')->pack(qw/-side left/);
@@ -8305,6 +8346,7 @@ sub findNodeDialog {
 			   -options=> [ [ 'Whole files' => 'all' ],
 					[ 'Particular tree' => 'tree' ],
 					[ 'Particular node' => 'node' ] ]);
+  $ot->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   my $oe = $of->Button(-text=> 'Edit');
   my $om=$of->Optionmenu(-textvariable=> \$grp->{searchFilelist},
 			 -command => [
@@ -8318,6 +8360,7 @@ sub findNodeDialog {
 			   $ot,$oe
 			  ]
 			)->pack(qw/-side left/);
+  $om->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $om->options(['[Current file only]', map { $_->name } @filelists]);
   $oe->configure(
     -command=> [ sub {
@@ -8717,7 +8760,6 @@ sub doEditAttr {
   my $grp=$win->{framegroup};
   my $result= doEvalHook($win,'do_edit_attr_hook',$attr,$node);
   return 0 if $result eq 'stop';
-
 
   return editAttrsDialog_schema($win,$node,$attr,$as_type)
     if (ref($as_type) or ref($node->type) or
@@ -9724,6 +9766,8 @@ sub prepare_undo {
   my $tree;
   eval { require Storable; };
   if ($@) {
+    return undef;
+  } elsif ( !ref($win->{root}) ) {
     return undef;
   } else {
     $tree = Storable::freeze($win->{root});
