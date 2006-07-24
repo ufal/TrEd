@@ -2541,49 +2541,59 @@ sub PrevFile {
 
 =over 4
 
-=item C<ResourcePath()>
+=item C<ResourcePaths()>
 
-Return a list of directories in a current resource path.
-
-=cut
-
-sub ResourcePath {
-  my $split = ($^O eq "MSWin32") ? ',' : ':';
-  return split /\Q${Fslib::resourcePathSplit}\E/, $Fslib::resourcePath;
-}
-
-=item C<AddToResourcePath(dirs)>
-
-Add given directories to the current resource path.
+    Return the current list of directories used to search for
+    resources.
 
 =cut
 
-sub AddToResourcePath {
-  $Fslib::resourcePath.=$Fslib::resourcePathSplit.join $Fslib::resourcePathSplit,@_;
-}
+*ResourcePaths = \&Fslib::ResourcePaths;
+# old name:
+*ResourcePath = \&Fslib::ResourcePaths;
 
-=item C<RemoveFromResourcePath(dirs)>
-
-Remove given directories from the current resource path (directory
-names must exactly match those listed in the resource path).
-
-=cut
-
-sub RemoveFromResourcePath {
-  my %x;@x{@_}=();
-  SetResourcePath(grep { !exists($x{$_}) } ResourcePath);
-}
-
-=item C<SetResourcePath(dirs)>
+=item C<SetResourcePaths(dirs)>
 
 Set given list of directories as a current resource path (discarding
 the existing values of ResourcePath).
 
 =cut
 
-sub SetResourcePath {
-  $Fslib::resourcePath=join $Fslib::resourcePathSplit,@_;
-}
+*SetResourcePaths = \&Fslib::SetResourcePaths;
+# old name
+*SetResourcePath = \&Fslib::SetResourcePaths;
+
+=item C<AddResourcePath(dirs)>
+
+Add given directories to the end of the current resource path (to be
+searched last).
+
+=cut
+
+*AddResourcePath = \&Fslib::AddResourcePath;
+# old name
+*AddToResourcePath = \&Fslib::AddResourcePath;
+
+
+=item C<AddToResourcePathAsFirst(dirs)>
+
+Add given directories to the beginning of the current resource path
+(to be searched first).
+
+=cut
+
+*AddResourcePathAsFirst = \&Fslib::AddResourcePathAsFirst;
+
+=item C<RemoveResourcePath(dir-paths)>
+
+Remove given directories from the current resource path (directory
+paths must exactly match those listed in the resource path).
+
+=cut
+
+*RemoveResourcePath = \Fslib::RemoveResourcePath;
+#old name
+*RemoveFromResourcePath = \Fslib::RemoveResourcePath;
 
 =item C<FindDirInResources(dirname)>
 
