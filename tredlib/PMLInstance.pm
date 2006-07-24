@@ -25,12 +25,17 @@ $DEBUG = 1;
  (GENERAL):
 
   - fix reading/writing trees (use the live object)
+    Postponing because:
+       1/ sequences of tree/no-tree objects are problematic
+       2/ this would break binary compatibility
 
-  - Fslib: find_role_in_data, traverse_data($node, $decl, sub($data,$decl,$decl_resolved))
+  - Fslib: 
+       find_role_in_data,
+       traverse_data($node, $decl, sub($data,$decl,$decl_resolved))
 
   - rethink type resolving in Fslib (could return a copy where only
     @type would be replaced so that all else like -name, role, etc. is
-    be preserved)
+    preserved), much like if the type was inlined
 
   - readas DOM => readas PML, where #KNITting means pointing to the same data (if possible).
     tested: breaks Undo/Redo
@@ -50,7 +55,7 @@ $DEBUG = 1;
 =cut
 
 our %EXPORT_TAGS = ( 
-  'constants' => [ qw( EMPTY LM AM PML_NS PML_SCHEMA_NS SUPPORTED_PML_VERSIONS ) ],
+  'constants' => [ qw( LM AM PML_NS PML_SCHEMA_NS SUPPORTED_PML_VERSIONS ) ],
   'diagnostics' => [ qw( _die _warn _debug ) ],
 );
 $EXPORT_TAGS{'all'} = [ @{ $EXPORT_TAGS{'constants'} }, @{ $EXPORT_TAGS{'diagnostics'} }, 
@@ -75,33 +80,83 @@ use constant {
 };
 
 #FIELDS:
-use fields qw(schema 
-	      schema-url
-	      schema-inline
-	      types
-	      dom
-	      root
-	      parser
-	      writer
-	      filename
-	      transform_id
-	      status
-	      readas-trees
-	      references
-	      refnames
-	      ref
-	      ref-index
-	      pml_trees_type
-	      trees
-	      pml_prolog
-	      pml_epilog
-	      id-hash
-	      log
-	      _id_prefix
-	      _trees_written
-	      _write_single_LM
-	      _refs_save
-	     );
+use fields qw(
+    _schema 
+    _schema-url
+    _schema-inline
+    _types
+    _dom
+    _root
+    _parser
+    _writer
+    _filename
+    _transform_id
+    _status
+    _readas-trees
+    _references
+    _refnames
+    _ref
+    _ref-index
+    _pml_trees_type
+    _trees
+    _pml_prolog
+    _pml_epilog
+    _id-hash
+    _log
+    _id_prefix
+    _trees_written
+    _write_single_LM
+    _refs_save
+   );
+
+# PML Instance File
+sub get_filename	    {  $_[0]->{'_filename'}; }
+sub set_filename	    {  $_[0]->{'_filename'} = $_[1]; }
+sub get_transform_id	    {  $_[0]->{'_transform_id'}; }
+sub set_transform_id	    {  $_[0]->{'_transform_id'} = $_[1]; }
+
+# Schema
+sub get_schema		    {  $_[0]->{'_schema'} }
+sub set_schema		    {  $_[0]->{'_schema'} = $_[1] }
+sub get_schema_url	    {  $_[0]->{'_schema-url'} }
+sub set_schema_url	    {  $_[0]->{'_schema-url'} = $_[1]; }
+
+# Data
+sub get_root		    {  $_[0]->{'_root'}; }
+sub set_root		    {  $_[0]->{'_root'} = $_[1]; }
+sub get_trees		    {  $_[0]->{'_trees'}; }
+sub set_trees		    {  $_[0]->{'_trees'} = $_[1]; }
+sub get_trees_prolog	    {  $_[0]->{'_pml_prolog'}; }
+sub set_trees_prolog	    {  $_[0]->{'_pml_prolog'} = $_[1]; }
+sub get_trees_epilog	    {  $_[0]->{'_pml_epilog'}; }
+sub set_trees_epilog	    {  $_[0]->{'_pml_epilog'} = $_[1]; }
+sub get_trees_type	    {  $_[0]->{'_pml_trees_type'}; }
+sub set_trees_type	    {  $_[0]->{'_pml_trees_type'} = $_[1]; }
+
+# References
+sub get_readas_trees	    {  $_[0]->{'_readas-trees'}; }
+sub set_readas_trees	    {  $_[0]->{'_readas-trees'} = $_[1]; }
+sub get_references	    {  $_[0]->{'_references'}; }
+sub set_references	    {  $_[0]->{'_references'} = $_[1]; }
+sub get_refnames	    {  $_[0]->{'_refnames'}; }
+sub set_refnames	    {  $_[0]->{'_refnames'} = $_[1]; }
+sub get_ref                 {  $_[0]->{'_ref'}; }
+sub set_ref                 {  $_[0]->{'_ref'} = $_[1]; }
+
+# Validation log
+sub get_log {  
+  my $log = $_[0]->{'_log'};
+  if ($log) {
+    return @$log;
+  } else {
+    return ();
+  }
+}
+sub clear_log		    {  $_[0]->{'_log'} = []; }
+# Status=1 (if parsed fine)
+sub get_status		    {  $_[0]->{'_status'}; }
+sub set_status		    {  $_[0]->{'_status'} = $_[1]; }
+
 
 use Encode;
 use XML::LibXML;
@@ -164,7 +219,7 @@ sub _warn {
 
 sub _log {
   my $ctxt = shift;
-  my $log = $ctxt->{log} ||= [];
+  my $log = $ctxt->{'_log'} ||= [];
   push @$log, join EMPTY,@_;
 }
 
@@ -180,40 +235,40 @@ sub load {
     $ctxt = PMLInstance->new;
   }
 
-  my $parser = $ctxt->{parser} ||= $opts->{parser} || PMLBackend::xml_parser();
-  $ctxt->{filename} ||= $opts->{filename};
+  my $parser = $ctxt->{'_parser'} ||= $opts->{parser} || PMLBackend::xml_parser();
+  $ctxt->{'_filename'} ||= $opts->{filename};
   if ($opts->{dom}) {
-    $ctxt->{dom} = delete $opts->{dom};
+    $ctxt->{'_dom'} = delete $opts->{dom};
   } elsif ($opts->{fh}) {
-    $ctxt->{dom} = $parser->parse_fh($opts->{fh},
-				     $ctxt->{filename});
+    $ctxt->{'_dom'} = $parser->parse_fh($opts->{fh},
+				     $ctxt->{'_filename'});
   } elsif ($opts->{string}) {
-    $ctxt->{dom} = $parser->parse_string($opts->{string},
-					 $ctxt->{filename});
+    $ctxt->{'_dom'} = $parser->parse_string($opts->{string},
+					 $ctxt->{'_filename'});
   } elsif ($opts->{filename}) {
     my $fh = PMLBackend::open_backend($opts->{filename},'r');
-    $ctxt->{dom} = $parser->parse_fh($fh,
+    $ctxt->{'_dom'} = $parser->parse_fh($fh,
 				     $opts->{filename});
     PMLBackend::close_backend($fh);
   }
-  unless ($ctxt->{dom}) {
-    _die("Reading PML instance '".$ctxt->{filename}."' to DOM failed!");
+  unless ($ctxt->{'_dom'}) {
+    _die("Reading PML instance '".$ctxt->{'_filename'}."' to DOM failed!");
   }
 
-  my $dom = $ctxt->{dom};
+  my $dom = $ctxt->{'_dom'};
   my $dom_root = $dom->getDocumentElement();
   $parser->process_xincludes($dom);
-  $dom->setBaseURI($ctxt->{filename}) if $dom->can('setBaseURI');
+  $dom->setBaseURI($ctxt->{'_filename'}) if $dom->can('setBaseURI');
   
   # check NS
   if ($dom_root->namespaceURI ne PML_NS) {
     # TRANSFORM
     my $config = $opts->{config};
-    if ($config and $config->{root}) {
-      foreach my $transform ($config->{root}{transform_map}->values) {
+    if ($config and $config->{'_root'}) {
+      foreach my $transform ($config->{'_root'}{transform_map}->values) {
 	my $id = $transform->{'id'};
 	if ($id eq EMPTY) {
-	  _warn("PMLBackend: Skipping PML transform in ".$config->{filename}." (required attribute id missing):".Dumper($transform));
+	  _warn("PMLBackend: Skipping PML transform in ".$config->{'_filename'}." (required attribute id missing):".Dumper($transform));
 	  next;
 	}
 	my ($in_xsl) = $transform->{in};
@@ -229,17 +284,17 @@ sub load {
 	    last;
 	  }
 	  _debug("Transforming to PML with XSLT '$in_xsl_href'");
-	  $ctxt->{transform_id} = $id;
+	  $ctxt->{'_transform_id'} = $id;
 	  my $params = $in_xsl->content;
 	  my %params;
 	  %params = map { $_->{'name'} => $_->value } $params->values if $params;
-	  $in_xsl_href = Fslib::ResolvePath($config->{filename}, $in_xsl_href, 1);
+	  $in_xsl_href = Fslib::ResolvePath($config->{'_filename'}, $in_xsl_href, 1);
 	  my $xslt = XML::LibXSLT->new;
 	  my $in_xsl_parsed = $xslt->parse_stylesheet_file($in_xsl_href)
 	    || _die("Can't locate XSL stylesheet '$in_xsl_href' declared as "._element_address($in_xsl));
-	  $ctxt->{dom} = $dom = $in_xsl_parsed->transform($dom,%params);
+	  $ctxt->{'_dom'} = $dom = $in_xsl_parsed->transform($dom,%params);
 	  $dom_root = $dom->getDocumentElement;
-	  $dom->setBaseURI($ctxt->{'filename'}) if $dom and $dom->can('setBaseURI');
+	  $dom->setBaseURI($ctxt->{'_filename'}) if $dom and $dom->can('setBaseURI');
 	  last;
 	}
       }
@@ -249,15 +304,15 @@ sub load {
   }
 
   $ctxt->read_header();
-  my $schema = $ctxt->{schema};
+  my $schema = $ctxt->{'_schema'};
   unless (ref($schema)) {
     _die("Instance doesn't provide PML schema: ".$dom_root->localname()." ".$dom_root->namespaceURI());
   }
   if ($schema->{version} eq EMPTY) {
-    _die("PML Schema file ".$ctxt->{'schema-url'}." does not specify version!");
+    _die("PML Schema file ".$ctxt->{'_schema-url'}." does not specify version!");
   }
   if (index(SUPPORTED_PML_VERSIONS," ".$schema->{version}." ")<0) {
-    _die("Unsupported PML Schema version ".$schema->{version}." in ".$ctxt->{'schema-url'});
+    _die("Unsupported PML Schema version ".$schema->{version}." in ".$ctxt->{'_schema-url'});
   }
   $ctxt->read_data();
 
@@ -269,7 +324,7 @@ sub load {
 # $ctxt
 sub read_header {
   my $ctxt = shift;
-  my $dom_root = $ctxt->{dom}->getDocumentElement;
+  my $dom_root = $ctxt->{'_dom'}->getDocumentElement;
 
   my %references;
   my %named_references;
@@ -282,7 +337,7 @@ sub read_header {
 	my $name = $reffile->getAttribute('name');
 	$named_references{ $name } = $id if $name;
 	# Encode: all filenames must(!) be bytes
-	$references{ $id } = Fslib::ResolvePath($ctxt->{filename},
+	$references{ $id } = Fslib::ResolvePath($ctxt->{'_filename'},
 						Encode::encode_utf8($reffile->getAttribute('href')),0);
       _debug("read_head: $id => $references{$id}");
 
@@ -298,12 +353,12 @@ sub read_header {
 	  $revision_opts{$attr}=$schema->getAttribute($attr) if $schema->hasAttribute($attr);
 	}
 	# store the original URL, not the resolved one!
-	$ctxt->{'schema-url'} = $schema_file;
-	$ctxt->{schema} = Fslib::Schema->readFrom($schema_file,
-						  { base_url => $ctxt->{filename},
+	$ctxt->{'_schema-url'} = $schema_file;
+	$ctxt->{'_schema'} = Fslib::Schema->readFrom($schema_file,
+						  { base_url => $ctxt->{'_filename'},
 						    use_resources => 1,
 						    revision_error => 
-						      "Error: ".$ctxt->{filename}." requires different revision of PML schema %f: %e\n",
+						      "Error: ".$ctxt->{'_filename'}." requires different revision of PML schema %f: %e\n",
 						    %revision_opts,
 						  }
 						 );
@@ -322,14 +377,14 @@ sub read_header {
 	  $schema->setDocumentElement($schema->importNode($inline));
 
 	  my $xml = $schema->toString();
-	  $ctxt->{'schema-url'} = undef;
-	  $ctxt->{'schema-inline'} = $xml;
-	  $ctxt->{'schema'} =
+	  $ctxt->{'_schema-url'} = undef;
+	  $ctxt->{'_schema-inline'} = $xml;
+	  $ctxt->{'_schema'} =
 		  Fslib::Schema->new($xml,
 				     { 
-				       base_url => $ctxt->{'filename'},
+				       base_url => $ctxt->{'_filename'},
 				       use_resources => 1,
-				       filename => $ctxt->{'filename'},
+				       filename => $ctxt->{'_filename'},
 				     }
 				    );	
 	} else {
@@ -340,15 +395,16 @@ sub read_header {
       _die("PML instance must specify a PML schema in "._element_address($head));
     }
   }
-  $ctxt->{'references'} = \%references;
-  $ctxt->{'refnames'} = \%named_references;
-  $ctxt->{'types'} = $ctxt->{'schema'}->{type};
+  $ctxt->{'_references'} = \%references;
+  $ctxt->{'_refnames'} = \%named_references;
+  $ctxt->{'_types'} = $ctxt->{'_schema'}->{type};
   return 1;
 }
 
 sub read_data {
   my $ctxt = shift;
 
+  $ctxt->{'_status'} = 0;
   foreach my $ref ($ctxt->get_references()) {
     if ($ref->{readas} eq 'dom') {
       $ctxt->readas_dom($ref->{id},$ref->{href});
@@ -360,13 +416,13 @@ sub read_data {
       _warn("Ignoring references with unknown readas method: '$ref->{readas}'\n");
     }
   }
-  my $schema = $ctxt->{'schema'};
+  my $schema = $ctxt->{'_schema'};
   my $root_type = $schema->{root};
   my $root_name = $schema->{root}{name};
 
   $root_type = $ctxt->resolve_type($root_type);
 
-  my $dom_root = $ctxt->{dom}->getDocumentElement;
+  my $dom_root = $ctxt->{'_dom'}->getDocumentElement;
   unless ($dom_root->namespaceURI eq PML_NS and
 	  $dom_root->localname eq $root_name) {
     _die("Expected root element '$root_name', got '".$dom_root->localname."'\n".Dumper($schema));
@@ -377,14 +433,14 @@ sub read_data {
 
   # In PML 1.1, root can either be a sequence or a structure
   if ($root_type->{structure} or $root_type->{sequence} or $root_type->{container}) {
-    $ctxt->{root} = read_node($ctxt, $dom_root, $root_type, { 
+    $ctxt->{'_root'} = read_node($ctxt, $dom_root, $root_type, { 
       # the child after <head>
       first_child => _skip_head($dom_root)
      });
   } else {
     _die("The root type must be a structure or a sequence: "._element_address($dom_root));
   }
-  $ctxt->{status} = 1;
+  $ctxt->{'_status'} = 1;
   return 1;
 }
 
@@ -392,7 +448,7 @@ sub resolve_type {
   my ($ctxt,$type)=@_;
   return $type unless ref($type);
   if ($type->{type}) {
-    my $types = $ctxt->{types} ||= $ctxt->{schema}->{type};
+    my $types = $ctxt->{'_types'} ||= $ctxt->{'_schema'}->{type};
     my $rtype = $types->{$type->{type}};
     return $rtype; # || $type->{type};
   } else {
@@ -402,13 +458,13 @@ sub resolve_type {
 
 sub get_references {
   my ($ctxt)=@_;
-  my $references = $ctxt->{schema}->{reference};
+  my $references = $ctxt->{'_schema'}->{reference};
   my @refs;
   if ($references) {
     foreach my $reference (@$references) {
-      my $refid = $ctxt->{'refnames'}->{$reference->{name}};
+      my $refid = $ctxt->{'_refnames'}->{$reference->{name}};
       if ($refid) {
-	my $href = $ctxt->{'references'}->{$refid};
+	my $href = $ctxt->{'_references'}->{$refid};
 	if ($href) {
 	  _debug("Found '$reference->{name}' as $refid# = '$href'");
 	  push @refs,{
@@ -430,8 +486,8 @@ sub get_references {
 
 sub readas_trees {
   my ($ctxt,$refid,$href)=@_;
-  $ctxt->{'readas-trees'} ||= [];
-  push @{$ctxt->{'readas-trees'}},[$refid,$href];
+  $ctxt->{'_readas-trees'} ||= [];
+  push @{$ctxt->{'_readas-trees'}},[$refid,$href];
   1;
 }
 
@@ -466,10 +522,10 @@ sub readas_pml {
   my $ref_data;
 
   my $pml = PMLInstance->load({ filename => $href });
-  $ctxt->{ref} ||= {};
-  $ctxt->{ref}->{$refid}=$pml;
-  $ctxt->{'ref-index'} ||= {};
-  weaken( $ctxt->{'ref-index'}->{$refid} = $pml->{'id-hash'} );
+  $ctxt->{'_ref'} ||= {};
+  $ctxt->{'_ref'}->{$refid}=$pml;
+  $ctxt->{'_ref-index'} ||= {};
+  weaken( $ctxt->{'_ref-index'}->{$refid} = $pml->{'id-hash'} );
   1;
 }
 
@@ -484,7 +540,7 @@ sub readas_dom {
   my $ref_fh = IOBackend::open_backend($local_file,'r');
   _die("Can't open $href for reading") unless $ref_fh;
   _debug("readas_dom: $href $ref_fh");
-  my $parser = $ctxt->{parser} || PMLBackend::xml_parser();
+  my $parser = $ctxt->{'_parser'} || PMLBackend::xml_parser();
   if ($ref_fh){
     eval {
       $ref_data = $parser->parse_fh($ref_fh, $href);
@@ -493,10 +549,10 @@ sub readas_dom {
     $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
     $parser->process_xincludes($ref_data);
     IOBackend::close_backend($ref_fh);
-    $ctxt->{ref} ||= {};
-    $ctxt->{ref}->{$refid}=$ref_data;
-    $ctxt->{'ref-index'} ||= {};
-    $ctxt->{'ref-index'}->{$refid}=_index_by_id($ref_data);
+    $ctxt->{'_ref'} ||= {};
+    $ctxt->{'_ref'}->{$refid}=$ref_data;
+    $ctxt->{'_ref-index'} ||= {};
+    $ctxt->{'_ref-index'}->{$refid}=_index_by_id($ref_data);
     if ($href ne $local_file and $remove_file) {
       local $!;
       unlink $local_file || _warn("couldn't unlink tmp file $local_file: $!\n");
@@ -513,7 +569,7 @@ sub readas_dom {
 
 sub lookup_id {
   my ($ctxt,$id)=@_;
-  my $hash = $ctxt->{'id-hash'} ||= {};
+  my $hash = $ctxt->{'_id-hash'} ||= {};
   return $hash->{ $id };
 }
 
@@ -521,7 +577,7 @@ sub hash_id {
   my ($ctxt,$id,$object) = @_;
   return if $id eq EMPTY; 
   $id = $ctxt->{'_id_prefix'} . $id;
-  my $hash = $ctxt->{'id-hash'} ||= {};
+  my $hash = $ctxt->{'_id-hash'} ||= {};
   if (ref($object)) {
     weaken( $hash->{$id} = $object );
   } else {
@@ -616,7 +672,7 @@ sub read_node {
     if ($type->{role} eq '#NODE' or $struct->{role} eq '#NODE') {
       $hash=FSNode->new();
       $childnodes_taker = $hash;
-      $hash->set_type($ctxt->{schema}->type($type->{structure}));
+      $hash->set_type($ctxt->{'_schema'}->type($type->{structure}));
     } else {
       $hash=Fslib::Struct->new();
     }
@@ -760,7 +816,7 @@ sub read_node {
     if ($type->{role} eq '#NODE' or $container->{role} eq '#NODE') {
       $hash=FSNode->new();
       $opts->{childnodes_taker} = $hash;
-      $hash->set_type($ctxt->{schema}->type($container));
+      $hash->set_type($ctxt->{'_schema'}->type($container));
     } else {
       $hash=Fslib::Container->new();
     }
@@ -924,13 +980,13 @@ sub _element_address {
 sub set_trees {
   my ($ctxt,$data,$type,$node)=@_;
   _debug("Found #TREES in "._element_address($node));
-  unless (defined $ctxt->{'pml_trees_type'}) {
-    $ctxt->{'pml_trees_type'}= $type;
+  unless (defined $ctxt->{'_pml_trees_type'}) {
+    $ctxt->{'_pml_trees_type'}= $type;
     if (UNIVERSAL::isa($data,'Fslib::List')) {
-      $ctxt->{'trees'} = $data;
+      $ctxt->{'_trees'} = $data;
       _warn("Object with role #TREES contains non-#NODE list members in "._element_address($node))
-	if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$ctxt->{trees}});
-      return undef; #$ctxt->{'trees'}
+	if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$ctxt->{'_trees'}});
+      return undef; #$ctxt->{'_trees'}
     } elsif (UNIVERSAL::isa($data,'Fslib::Seq')) {
       # in a #TREES sequence, we accept non-node elements, processing
       # the sequence in the following way:
@@ -939,9 +995,9 @@ sub set_trees {
       # - the first contiguous block of node elements is used as the tree list
       #   (and its elements are delegated)
       # - the rest of the sequence is stored as pml_epilog
-      my $prolog = $ctxt->{'pml_prolog'} ||= Fslib::Seq->new;
-      my $epilog = $ctxt->{'pml_epilog'} ||= Fslib::Seq->new;
-      my $trees  = $ctxt->{'trees'} ||= Fslib::List->new;
+      my $prolog = $ctxt->{'_pml_prolog'} ||= Fslib::Seq->new;
+      my $epilog = $ctxt->{'_pml_epilog'} ||= Fslib::Seq->new;
+      my $trees  = $ctxt->{'_trees'} ||= Fslib::List->new;
       my $phase = 0; # prolog
       foreach my $element ($data->elements) {
 	if (UNIVERSAL::isa($element->[1],'FSNode')) {
@@ -1002,8 +1058,8 @@ sub read_node_knit {
   my $ref = $node->textContent();
   if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
     my ($reffile,$idref)=($1,$2);
-    $ctxt->{'ref'} ||= {};
-    my $data = ($reffile ne EMPTY) ? $ctxt->{'ref'}->{$reffile} : $node->ownerDocument;
+    $ctxt->{'_ref'} ||= {};
+    my $data = ($reffile ne EMPTY) ? $ctxt->{'_ref'}->{$reffile} : $node->ownerDocument;
     unless (ref($data)) {
       _warn("Reference to $ref cannot be resolved - document '$reffile' not loaded\n");
       return [0,$ref];
@@ -1020,9 +1076,9 @@ sub read_node_knit {
       }
     } else {
       # DOM
-      $ctxt->{'ref-index'}||={};
+      $ctxt->{'_ref-index'}||={};
       my $refnode =
-	$ctxt->{'ref-index'}->{$reffile}{$idref} ||
+	$ctxt->{'_ref-index'}->{$reffile}{$idref} ||
 	  $data->getElementsById($idref);
       if (ref($refnode)) {
 	my $_id_prefix = $ctxt->{'_id_prefix'};
@@ -1077,10 +1133,10 @@ sub save {
 
   my $fh = $opts->{fh};
 
-  $ctxt->{filename} = $opts->{filename} if $opts->{filename};
-  my $href = $ctxt->{filename};
+  $ctxt->{'_filename'} = $opts->{filename} if $opts->{filename};
+  my $href = $ctxt->{'_filename'};
 
-  $ctxt->{_trees_written} = 0;
+  $ctxt->{'_trees_written'} = 0;
   unless ($fh) {
     if ($href ne EMPTY) {
       eval {
@@ -1106,7 +1162,7 @@ sub save {
       }
       return $res;
     } else {
-      _die("Usage: PMLBackend::write_pml($ctxt,{filename=>...,[fh => ...]})");
+      _die("Usage: $ctxt->save({filename=>...,[fh => ...]})");
     }
   }
 
@@ -1114,7 +1170,7 @@ sub save {
   $ctxt->{'_refs_save'} ||= $opts->{'refs_save'};
   _debug("Saving PML instance '$href'\n");
   binmode $fh if $fh;
-  my $transform_id = $ctxt->{'transform_id'};
+  my $transform_id = $ctxt->{'_transform_id'};
   my $config = $opts->{config};
   if ($config and $transform_id ne EMPTY) {
     my $transform = $config->lookup_id( $transform_id );
@@ -1123,7 +1179,7 @@ sub save {
       if ($out_xsl->{type} eq 'identity') {
 	_debug("Identity transformation from PML");
 	binmode $fh,":utf8";
-	$ctxt->{writer} = new XML::Writer(OUTPUT => $fh,
+	$ctxt->{'_writer'} = new XML::Writer(OUTPUT => $fh,
 					  DATA_MODE => 1,
 					  DATA_INDENT => 1);
 	$ctxt->write_data();
@@ -1136,9 +1192,9 @@ sub save {
       if ($out_xsl_href eq EMPTY) {
 	_die("PMLBackend: no output transformation defined for $transform_id");
       }
-      $ctxt->{writer} = XML::MyDOMWriter->new(DOM => XML::LibXML::Document->new);
+      $ctxt->{'_writer'} = XML::MyDOMWriter->new(DOM => XML::LibXML::Document->new);
       $ctxt->write_data();
-      my $dom = $ctxt->{writer}->end;
+      my $dom = $ctxt->{'_writer'}->end;
       my $xslt = XML::LibXSLT->new;
       my $params = $out_xsl->content;
       my %params = map { $_->{'name'} => $_->textContent 
@@ -1157,7 +1213,7 @@ sub save {
     }
   } else {
     binmode $fh,":utf8";
-    $ctxt->{writer} = new XML::Writer(OUTPUT => $fh,
+    $ctxt->{'_writer'} = new XML::Writer(OUTPUT => $fh,
 				      DATA_MODE => 1,
 				      DATA_INDENT => 1);
     $ctxt->write_data();
@@ -1169,12 +1225,12 @@ sub save {
 sub write_data {
   my $ctxt = shift;
 
-  my $schema = $ctxt->{schema};
+  my $schema = $ctxt->{'_schema'};
   unless (ref($schema)) {
     _die("Can't write - document isn't associated with a schema");
   }
 
-  $ctxt->{types} ||= $schema->{type};
+  $ctxt->{'_types'} ||= $schema->{type};
   my $root_name = $schema->{root}{name};
   my $root_type = $ctxt->resolve_type($schema->{root});
 
@@ -1187,10 +1243,10 @@ sub write_data {
     $refs_to_save = {};
   }
 
-  my $references = $ctxt->{references};
+  my $references = $ctxt->{'_references'};
 
   # update all DOM trees to be saved
-  $ctxt->{'parser'} ||= PMLBackend::xml_parser();
+  $ctxt->{'_parser'} ||= PMLBackend::xml_parser();
   foreach my $ref (@refs_to_save) {
     if ($ref->{readas} eq 'dom') {
       $ctxt->readas_dom($ref->{id},$ref->{href});
@@ -1205,7 +1261,7 @@ sub write_data {
     # other means (e.g. by user making the copy).
   }
 
-  my $xml = $ctxt->{writer};
+  my $xml = $ctxt->{'_writer'};
   $xml->xmlDecl("utf-8");
 
   # we need to collect structure/container attributes first
@@ -1213,7 +1269,7 @@ sub write_data {
   if (exists $root_type->{structure}) {
     my $struct = $root_type->{structure};
     my $members = $struct->{member};
-    my $object = $ctxt->{root};
+    my $object = $ctxt->{'_root'};
     if (ref($object)) {
       foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
 	my $atr = $mdecl->{-name};
@@ -1224,7 +1280,7 @@ sub write_data {
     }
   } elsif (exists $root_type->{container}) {
     my $container = $root_type->{container};
-    my $object = $ctxt->{root};
+    my $object = $ctxt->{'_root'};
     if (ref($object)) {
       foreach my $attrib (values(%{$container->{attribute}})) {
 	my $atr = $attrib->{-name};
@@ -1237,17 +1293,17 @@ sub write_data {
 
   $xml->startTag($root_name,'xmlns' => PML_NS, %attribs);
   $xml->startTag('head');
-  my $inline = $ctxt->{'schema-inline'};
+  my $inline = $ctxt->{'_schema-inline'};
   if ($inline ne "") {
     $xml->startTag('schema');
-    _element2writer($xml,$ctxt->{'parser'}->parse_string($inline,$ctxt->{'filename'})->documentElement);
+    _element2writer($xml,$ctxt->{'_parser'}->parse_string($inline,$ctxt->{'_filename'})->documentElement);
     $xml->endTag('schema');
   } else {
-    $xml->emptyTag('schema', href => $ctxt->{'schema-url'});
+    $xml->emptyTag('schema', href => $ctxt->{'_schema-url'});
   }
   {
     if (ref($references) and keys(%$references)) {
-      my $named = $ctxt->{'refnames'};
+      my $named = $ctxt->{'_refnames'};
       my %names = $named ? (map { $named->{$_} => $_ } keys %$named) : ();
       $xml->startTag('references');
       foreach my $id (sort keys %$references) {
@@ -1263,7 +1319,7 @@ sub write_data {
 	  # local paths are always relative
 	  # if you need absolute path, try file:// URL instead
 	  if (File::Spec->file_name_is_absolute($href)) {
-	    my ($vol,$dir) = File::Spec->splitpath(File::Spec->rel2abs($ctxt->{'filename'}));
+	    my ($vol,$dir) = File::Spec->splitpath(File::Spec->rel2abs($ctxt->{'_filename'}));
 	    $href = File::Spec->abs2rel($href,File::Spec->catfile($vol,$dir));
 	  }
 	}
@@ -1277,15 +1333,15 @@ sub write_data {
   }
   $xml->endTag('head');
 
-  $ctxt->write_object($ctxt->{root},$root_type, {no_attribs => 1});
+  $ctxt->write_object($ctxt->{'_root'},$root_type, {no_attribs => 1});
   $xml->endTag($root_name);
   $xml->end;
 
   # dump DOM trees to save
-  if (ref($ctxt->{'ref'})) {
+  if (ref($ctxt->{'_ref'})) {
     foreach my $ref (@refs_to_save) {
       if ($ref->{readas} eq 'dom') {
-	my $dom = $ctxt->{'ref'}->{$ref->{id}};
+	my $dom = $ctxt->{'_ref'}->{$ref->{id}};
 	my $href;
 	if (exists($refs_to_save->{$ref->{id}})) {
 	  $href = $refs_to_save->{$ref->{id}};
@@ -1315,7 +1371,7 @@ sub write_data {
 	  }
 	}
       } elsif ($ref->{readas} eq 'pml') {
-	my $pml = $ctxt->{'ref'}->{$ref->{id}};
+	my $pml = $ctxt->{'_ref'}->{$ref->{id}};
 	my $href;
 	if (exists($refs_to_save->{$ref->{id}})) {
 	  $href = $refs_to_save->{$ref->{id}};
@@ -1335,7 +1391,7 @@ sub write_object {
   my $tag = $opts->{tag};
   my $attribs = $opts->{attribs} || {};
   
-  my $xml = $ctxt->{'writer'};
+  my $xml = $ctxt->{'_writer'};
   my $pre=$type;
 
   unless ($opts->{no_resolve}) {
@@ -1438,7 +1494,7 @@ sub write_object {
 	    # _debug("#KNIT.rf $member @$list");
 	    if (ref($list) eq 'Fslib::List') {
 	      if (@$list == 0) {
-	      } elsif (!$ctxt->{_write_single_LM} and @$list == 1) {
+	      } elsif (!$ctxt->{'_write_single_LM'} and @$list == 1) {
 		$ctxt->write_object($list->[0],$mtype->{list},{tag =>$member, no_resolve=>1});
 	      } else {
 		$xml->startTag($member);
@@ -1457,7 +1513,7 @@ sub write_object {
 	    my $list = $object->{$knit_tag};
 	    if (ref($list) eq 'Fslib::List') {
 	      if (@$list == 0) {
-	      } elsif (!$ctxt->{_write_single_LM} and @$list == 1) {
+	      } elsif (!$ctxt->{'_write_single_LM'} and @$list == 1) {
 		$ctxt->write_object_knit($list->[0],$mtype->{list},{ tag=> $member, knit_tag => $knit_tag});
 	      } else {
 		$xml->startTag($member);
@@ -1598,7 +1654,7 @@ sub write_object_knit {
 
   my $tag = $opts->{tag};
   my $attribs = $opts->{attribs} || {};  
-  my $xml = $ctxt->{writer};
+  my $xml = $ctxt->{'_writer'};
 
   my $prefix=EMPTY;
   my $ref = $object->{id};
@@ -1614,19 +1670,19 @@ sub write_object_knit {
   $xml->endTag($tag);
 
   if ($prefix ne EMPTY) {
-    return if (UNIVERSAL::isa($ctxt->{'ref'}{$prefix},'PMLInstance'));
-    my $indeces = $ctxt->{'ref-index'};
+    return if (UNIVERSAL::isa($ctxt->{'_ref'}{$prefix},'PMLInstance'));
+    my $indeces = $ctxt->{'_ref-index'};
     if ($indeces and $indeces->{$prefix}) {
       my $knit = $indeces->{$prefix}{$ref};
       if ($knit) {
 	my $dom_writer = XML::MyDOMWriter->new(REPLACE => $knit);
 	{
-	  my $writer = $ctxt->{writer};
-	  $ctxt->{writer} = $dom_writer;
+	  my $writer = $ctxt->{'_writer'};
+	  $ctxt->{'_writer'} = $dom_writer;
 	  eval {
 	    $ctxt->write_object($object, $ctxt->resolve_type($type), { tag => $opts->{knit_tag} });
 	  };
-	  $ctxt->{writer} = $writer;
+	  $ctxt->{'_writer'} = $writer;
 	  die $@."\n" if $@;
 	}
 	my $new = $dom_writer->end;
@@ -1648,18 +1704,18 @@ sub get_write_trees {
   if ($ctxt->{'_trees_written'}) {
     return $data
   } else {
-    my $trees_type = $ctxt->{'pml_trees_type'} || $type;
+    my $trees_type = $ctxt->{'_pml_trees_type'} || $type;
     if (ref($trees_type)) {
       if ($trees_type->{sequence}) {
-	my $prolog = $ctxt->{'pml_prolog'};
-	my $epilog = $ctxt->{'pml_epilog'};
+	my $prolog = $ctxt->{'_pml_prolog'};
+	my $epilog = $ctxt->{'_pml_epilog'};
 	return Fslib::Seq->new(
 	  [(UNIVERSAL::isa($prolog,'Fslib::Seq') ? $prolog->elements : ()),
-	   (map { Fslib::Seq::Element->new($_->{'#name'},$_) } @{$ctxt->{'trees'}}),
+	   (map { Fslib::Seq::Element->new($_->{'#name'},$_) } @{$ctxt->{'_trees'}}),
 	   (UNIVERSAL::isa($epilog,'Fslib::Seq') ? $epilog->elements : ())]
 	 );
       } elsif ($trees_type->{list}) {
-	return $ctxt->{'trees'};
+	return $ctxt->{'_trees'};
       } else {
 	_warn("#TREES are neither a list nor a sequence - can't save trees.\n");
       }
@@ -1728,8 +1784,8 @@ sub _element2writer {
 
 # Usage:
 # $ctxt->validate_object($object, $type, { path => $path, tag => $tag })
-# $ctxt only requires the field $ctxt->{'schema'} (or $ctxt->{'types'})
-# log is in $ctxt->{'log'}
+# $ctxt only requires the field $ctxt->{'_schema'} (or $ctxt->{'_types'})
+# log is in $ctxt->{'_log'}
 
 sub validate_object ($$$;$) {
   my ($ctxt, $object, $type, $opts)=@_;
@@ -1916,7 +1972,7 @@ sub validate_object ($$$;$) {
   } else {
     $ctxt->_log("$path: unknown type: ".Dumper($type));
   }
-  return (ref($ctxt->{'log'}) and @{ $ctxt->{'log'} }>0) ? 0 : 1;
+  return (ref($ctxt->{'_log'}) and @{ $ctxt->{'_log'} }>0) ? 0 : 1;
 }
 
 # $ctxt $path $object $type { $tag $knit_tag }
@@ -1938,13 +1994,13 @@ sub validate_object_knit {
 sub convert_to_fsfile {
   my ($ctxt,$fsfile)=@_;
 
-  my $schema = $ctxt->{schema};
+  my $schema = $ctxt->{'_schema'};
 
   unless (ref($fsfile)) {
     $fsfile = FSFile->create({ backend => 'PMLBackend' } );
   }
 
-  $fsfile->changeFilename( $ctxt->{filename} );
+  $fsfile->changeFilename( $ctxt->{'_filename'} );
   $fsfile->changeEncoding($PMLBackend::encoding);
   $fsfile->changeTail("(1)\n");
   $fsfile->changePatterns(@PMLBackend::pmlformat);
@@ -1952,25 +2008,25 @@ sub convert_to_fsfile {
 
 
   $fsfile->changeMetaData( 'schema',         $schema                    );
-  $fsfile->changeMetaData( 'schema-url',     $ctxt->{'schema-url'}      );
-  $fsfile->changeMetaData( 'schema-inline',  $ctxt->{'schema-inline'}   );
-  $fsfile->changeMetaData( 'pml_transform',  $ctxt->{'transform_id'}    );
-  $fsfile->changeMetaData( 'references',     $ctxt->{'references'}      );
-  $fsfile->changeMetaData( 'refnames',       $ctxt->{'refnames'}        );
-  $fsfile->changeMetaData( 'fs-require',     $ctxt->{'readas-trees'}    );
+  $fsfile->changeMetaData( 'schema-url',     $ctxt->{'_schema-url'}      );
+  $fsfile->changeMetaData( 'schema-inline',  $ctxt->{'_schema-inline'}   );
+  $fsfile->changeMetaData( 'pml_transform',  $ctxt->{'_transform_id'}    );
+  $fsfile->changeMetaData( 'references',     $ctxt->{'_references'}      );
+  $fsfile->changeMetaData( 'refnames',       $ctxt->{'_refnames'}        );
+  $fsfile->changeMetaData( 'fs-require',     $ctxt->{'_readas-trees'}    );
 
-  $fsfile->changeAppData(  'ref',            $ctxt->{ref} || {}         );
-  $fsfile->changeAppData(  'ref-index',      $ctxt->{'ref-index'} || {} );
-  $fsfile->changeAppData(  'id-hash',        $ctxt->{'id-hash'}         );
+  $fsfile->changeAppData(  'ref',            $ctxt->{'_ref'} || {}         );
+#  $fsfile->changeAppData(  'ref-index',      $ctxt->{'_ref-index'} || {} );
+  $fsfile->changeAppData(  'id-hash',        $ctxt->{'_id-hash'}         );
 
-  $fsfile->changeMetaData( 'pml_root',       $ctxt->{'root'}            );
-  $fsfile->changeMetaData( 'pml_trees_type', $ctxt->{'pml_trees_type'}  );
-  $fsfile->changeMetaData( 'pml_prolog',     $ctxt->{pml_prolog}        );
-  $fsfile->changeMetaData( 'pml_epilog',     $ctxt->{pml_epilog}        );
+  $fsfile->changeMetaData( 'pml_root',       $ctxt->{'_root'}            );
+  $fsfile->changeMetaData( 'pml_trees_type', $ctxt->{'_pml_trees_type'}  );
+  $fsfile->changeMetaData( 'pml_prolog',     $ctxt->{'_pml_prolog'}        );
+  $fsfile->changeMetaData( 'pml_epilog',     $ctxt->{'_pml_epilog'}        );
 
-  $fsfile->changeTrees( @{$ctxt->{'trees'}} ) if $ctxt->{'trees'};
+  $fsfile->changeTrees( @{$ctxt->{'_trees'}} ) if $ctxt->{'_trees'};
 
-  my @nodes = $ctxt->{schema}->find_role('#NODE');
+  my @nodes = $ctxt->{'_schema'}->find_role('#NODE');
   my ($order,$hide);
   for my $path (@nodes) {
     my $decl = $schema->find_type_by_path($path,1);
@@ -1993,24 +2049,24 @@ sub convert_from_fsfile {
     $ctxt = __PACKAGE__->new();
   }
 
-  $ctxt->{'transform_id'}   = $fsfile->metaData('pml_transform');
-  $ctxt->{'filename'}       = $fsfile->filename;
-  $ctxt->{'schema'}         = $fsfile->metaData('schema');
-  $ctxt->{'root'}           = $fsfile->metaData('pml_root');
-  $ctxt->{'schema-inline'}  = $fsfile->metaData('schema-inline');
-  $ctxt->{'schema-url'}     = $fsfile->metaData('schema-url');
-  $ctxt->{'references'}     = $fsfile->metaData('references');
-  $ctxt->{'refnames'}       = $fsfile->metaData('refnames');
-  $ctxt->{'pml_trees_type'} = $fsfile->metaData('pml_trees_type');
-  $ctxt->{'pml_prolog'}     = $fsfile->metaData('pml_prolog');
-  $ctxt->{'pml_epilog'}     = $fsfile->metaData('pml_epilog');
-  $ctxt->{'trees'}          = Fslib::List->new_from_ref( $fsfile->treeList );
+  $ctxt->{'_transform_id'}   = $fsfile->metaData('pml_transform');
+  $ctxt->{'_filename'}       = $fsfile->filename;
+  $ctxt->{'_schema'}         = $fsfile->metaData('schema');
+  $ctxt->{'_root'}           = $fsfile->metaData('pml_root');
+  $ctxt->{'_schema-inline'}  = $fsfile->metaData('schema-inline');
+  $ctxt->{'_schema-url'}     = $fsfile->metaData('schema-url');
+  $ctxt->{'_references'}     = $fsfile->metaData('references');
+  $ctxt->{'_refnames'}       = $fsfile->metaData('refnames');
+  $ctxt->{'_pml_trees_type'} = $fsfile->metaData('pml_trees_type');
+  $ctxt->{'_pml_prolog'}     = $fsfile->metaData('pml_prolog');
+  $ctxt->{'_pml_epilog'}     = $fsfile->metaData('pml_epilog');
+  $ctxt->{'_trees'}          = Fslib::List->new_from_ref( $fsfile->treeList );
 
   $ctxt->{'_refs_save'}      = $fsfile->appData('refs_save');
 
-  $ctxt->{'ref'}            = $fsfile->appData('ref');
-  $ctxt->{'ref-index'}      = $fsfile->appData('ref-index');
-  $ctxt->{'id-hash'}        = $fsfile->appData('id-hash');
+  $ctxt->{'_ref'}            = $fsfile->appData('ref');
+#  $ctxt->{'_ref-index'}      = $fsfile->appData('ref-index');
+  $ctxt->{'_id-hash'}        = $fsfile->appData('id-hash');
 
   return $ctxt;
 }
@@ -2037,7 +2093,7 @@ sub convert_from_fsfile {
     $class = ref($class) || $class;
 
     unless ($args{DOM} || $args{ELEMENT} || $args{REPLACE} ) {
-      _die("Usage: $class->new(ELEMENT => XML::LibXML::Document)");
+      _die("Usage: ".__PACKAGE__."->new(ELEMENT => XML::LibXML::Document)");
     }
     if ($args{ELEMENT}) {
       $args{DOM} ||= $args{ELEMENT}->ownerDocument;
@@ -2136,37 +2192,155 @@ __END__
 
 =head1 NAME
 
-PMLInstance - Perl extension for blah blah blah
+PMLInstance - Perl extension for loading/saving PML data
 
 =head1 SYNOPSIS
 
    use PMLInstance;
-   blah blah blah
+
+   Fslib::AddToResourcePaths( "$ENV{HOME}/my_pml_schemas" );
+
+   my $pml = PMLInstance->load({ filename => 'foo.xml' });
+
+   my $schema = $pml->get_schema;
+   my $data   = $pml->get_root;
+
+   $pml->save();
 
 =head1 DESCRIPTION
 
-Stub documentation for PMLInstance, 
-created by template.el.
+blah blah blah
 
-It looks like the author of the extension was negligent
-enough to leave the stub unedited.
+TODO
 
-Blah blah blah.
+blah blah blah
 
 =head2 EXPORT
 
 None by default.
 
+The following export tags are available:
+
+=over 4
+
+=item import PMLInstance qw(:constants);
+
+Imports the following constants:
+
+=over 8
+
+=item LM - name of the "<LM>" (list-member) tag
+
+=item AM - name of the "<LM>" (alt-member) tag
+
+=item PML_NS - XML namespace URI for PML instances
+
+=item PML_SCHEMA_NS - XML namespace URI for PML schemas
+
+=item SUPPORTED_PML_VERSIONS - space-separated list of supported PML-schema version numbers
+
+=back
+
+=item import PMLInstance qw(:diagnostics);
+
+Imports internal _die, _warn, and _debug diagnostics commands.
+
+=back
+
+=item PMLInstance->new()
+
+Create a new empty PML instance object.
+
+=item PMLInstance->load( \%opts )
+
+Load PML instance from file or filehandle. Possible options are:
+
+filename, fh, string, dom, parser, config
+
+=item $pml->save( \%opts )
+
+Save PML instance to a file or file-handle. Possible options are:
+
+fh, filename, config, save_refs, write_single_LM
+
+=item convert_to_fsfile
+
+=item convert from_fsfile
+
+=item validate_object
+
+=item hash_id
+
+=item lookup_id
+
+=item  get_filename
+
+=item  set_filename
+
+=item  get_transform_id
+
+=item  set_transform_id
+
+# Schema
+=item  get_schema
+
+=item  set_schema
+
+=item  get_schema_url
+
+=item  set_schema_url
+
+# Data
+=item  get_root
+
+=item  set_root
+
+=item  get_trees
+
+=item  set_trees
+
+=item  get_trees_prolog
+
+=item  set_trees_prolog
+
+=item  get_trees_epilog
+
+=item  set_trees_epilog
+
+=item  get_trees_type
+
+=item  set_trees_type
+
+# References
+=item  get_readas_trees
+
+=item  set_readas_trees
+
+=item  get_references
+
+=item  set_references
+
+=item  get_refnames
+
+=item  set_refnames
+
+=item  get_ref
+
+=item  set_ref
+
+# Validation log
+=item  get_log  (returns a list)
+
+=item  clear_log
+# Status=1 (if parsed fine)
+=item  get_status
+
+=item  set_status
+
+
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+Documentation to Fslib and TrEd documentation.
 
 =head1 COPYRIGHT AND LICENSE
 
