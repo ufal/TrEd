@@ -29,12 +29,13 @@ $API_VERSION = "1.1";    # change when internal data structures change,
                          # in a way that may prevent old binary dumps to work properly
 
 @EXPORT = qw/&Next &Prev &DeleteTree &DeleteLeaf &Cut &ImportBackends/;
-@EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon FindInResources FindDirInResources ResolvePath &CloneValue/;
+@EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon ResourcePath FindInResources FindDirInResources ResolvePath &CloneValue AddResourcePath AddResourcePathAsFirst SetResourcePaths RemoveResourcePath /;
 
 use Carp;
 #use vars qw/$VERSION @EXPORT @EXPORT_OK $field_re $parent $firstson $lbrother/;
 
 $Debug=0;
+*DEBUG = \$Debug;
 $field_re='(?:\\\\[\\]\\,]|[^\\,\\]])*';
 
 $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
@@ -301,6 +302,35 @@ sub FindInResources {
   }
   return $filename;
 }
+
+
+sub ResourcePath {
+  return split /\Q${Fslib::resourcePathSplit}\E/, $Fslib::resourcePath;
+}
+
+sub AddResourcePath {
+  if ($resourcePath ne q{}) {
+    $resourcePath.=$resourcePathSplit;
+  }
+  $resourcePath .= join $resourcePathSplit,@_;
+}
+
+sub AddResourcePathAsFirst {
+  $resourcePath = join($resourcePathSplit,@_) .
+    ($resourcePath ne q{}) ? $resourcePathSplit.$resourcePath : q{};
+}
+
+sub RemoveResourcePath {
+  my %remove;
+  @remove{@_} = ();
+  $resourcePath = join $resourcePathSplit, grep { !exists($remove{$_}) }
+    split /\Q$resourcePathSplit\E/, $resourcePath;
+}
+
+sub SetResourcePaths {
+  $resourcePath=join $resourcePathSplit,@_;
+}
+
 
 sub ResolvePath ($$;$) {
   my ($orig, $href,$use_resources)=@_;
@@ -834,6 +864,18 @@ sub attr {
 	return undef; # ERROR
       } else {
 	$val = $val->[0]{$step};
+      }
+    } elsif (ref($val) eq 'Fslib::Seq') {
+      if ($step =~ /^\[(\d+)\]/) {
+	$val = $val->[$1-1][1]; # value
+      } elsif ($step =~ /^([^\[]+)(?:\[(\d+)\])?/) {
+	my $i = $2;
+	$val = $val->values($1);
+	if ($i ne q{}) {
+	  $val = $val->[ $i ];
+	}
+      } else {
+	return undef; # ERROR
       }
     } elsif (ref($val)) {
       $val = $val->{$step};
@@ -3595,16 +3637,22 @@ validate() method).
   }
 
 
-=item $seq->values ()
+=item $seq->values (name?)
 
-Return a list of values of all elements of the sequence. In array
-context, the returned value is a list, in scalar context the result is
-a Fslib::List object.
+If no name is given, return a list of values of all elements of the
+sequence. If a name is given, return a list consisting of values of
+elements with the given name.
+
+In array context, the returned value is a list, in scalar
+context the result is a Fslib::List object.
 
 =cut
 
   sub values {
-    my @values = map { $_->[1] } $_[0][0]->values;
+    my ($self,$name)=@_;
+    my @values = map { $_->[1] } ($name ne q{}
+				    ? grep { $_->[0] eq $name } $self->[0]->values
+				    : $self->[0]->values);
     return wantarray ? @values : Fslib::List->new_from_ref(\@values,1);
   }
 
@@ -4075,11 +4123,18 @@ sub new {
   }
   my @xml_simple_opts = (
     ForceArray=>[ 'delete', 'member', 'element', 'attribute', 'value', 'reference', 'type', 'derive', 'import', 'import_type' ],
-    KeyAttr => { "member"    => "=name",
-		 "attribute" => "=name",
-		 "element"   => "=name",
-		 "type"      => "=name",
-		},
+    KeyAttr => { "member"    => "-#name",
+		 "attribute" => "-#name",
+		 "element"   => "-#name",
+		 "type"      => "-#name",
+	       },
+# 		 "alt" => '>',
+# 		 "list" => '>',
+# 		 "sequence" => '>',
+# 		 "choice" => '>',
+# 		 "structure" => '>',
+# 		 "container" => '>',
+# 		},
     GroupTags => { "choice" => "value" },
     NSExpand=>1, 
     DefaultNS => "http://ufal.mff.cuni.cz/pdt/pml/schema/",
@@ -4466,7 +4521,16 @@ sub resolve_type {
   return $type unless ref($type);
   if ($type->{type}) {
     my $rtype = $self->{type}{$type->{type}};
-    return $rtype || $type->{type};
+    if (ref($rtype)) {      
+      my %t = %$rtype;
+      $t{role} = $type->{role} if exists $type->{role};
+      return \%t;
+    } else {
+      # couldn't resolve
+      warn "Couldn't resolve type '$type->{type}' (no such type in schema '".
+	$self->{URL}."')\n";
+      return $type->{type};
+    }
   } else {
     return $type;
   }
@@ -4586,9 +4650,10 @@ sub validate_object { # (path, base_type)
     croak "Fslib::Schema::validate_object: Cannot determine data type";
   }
   my $ctxt = PMLInstance->new;
-  $ctxt->{'log'} = $log;
-  $ctxt->{schema} = $schema;
+  $ctxt->clear_log();
+  $ctxt->set_schema( $schema );
   $ctxt->validate_object($object,$type);
+  @$log = $ctxt->get_log();
   return @$log ? 0 : 1;
 }
 
@@ -4634,9 +4699,10 @@ sub validate_field {
     croak "Fslib::Schema::validate_field: Cannot determine data type for '$path'";
   }
   my $ctxt = PMLInstance->new;
-  $ctxt->{'log'} = $log;
-  $ctxt->{schema} = $schema;
+  $ctxt->clear_log;
+  $ctxt->set_schema( $schema );
   $ctxt->validate_object(FSNode::attr($object,$path),$type,{ path => $path });
+  @$log = $ctxt->get_log;
   return @$log ? 0 : 1;
 }
 
@@ -4924,7 +4990,58 @@ corresponding C<$Fslib::...> variables directly.
 
    a deep copy of $scalar
 
-=item Fslib::FindInResources ($filename)
+=item Fslib::ResourcePaths ()
+
+ Description:
+
+    Return the current list of directories used to search for
+    resources.
+
+=item Fslib::SetResourcePaths ($path,...)
+
+ Params:
+
+   $path - a directory path
+
+ Description:
+
+    Use the specified directories (and only them) to search for
+    resources.
+
+=item Fslib::AddResourcePath ($path,...)
+
+ Params:
+
+   $path - a directory path
+
+ Description:
+
+    Add a given path(s) to the end of the list of directories searched
+    for resources.
+
+=item Fslib::AddResourcePathAsFirst ($path,...)
+
+ Params:
+
+   $path - a directory path
+
+ Description:
+
+    Add a given path(s) to beginning of the list of directories
+    searched for resources.
+
+=item Fslib::RemoveResourcePath ($path,...)
+
+ Params:
+
+   $path - a directory path
+
+ Description:
+
+    Remove the given path(s) from the list of directories searched
+    for resources.
+
+=item Fslib::FindInResourcePaths ($filename)
 
  Params:
 
@@ -4936,21 +5053,25 @@ corresponding C<$Fslib::...> variables directly.
     resource directory, return an absolute path for the
     resource. Otherwise return filename.
 
-=item Fslib::ResolvePath ($ref_filename,$filename,$use_resources?)
+=item Fslib::FindInResources ($filename)
+
+Alias for C<FindInResourcePaths($filename)>.
+
+=item Fslib::ResolvePath ($ref_filename,$filename,$search_resource_path?)
 
  Params:
 
    $ref_filename - a reference filename
    $filename     - a relative path to a file
-   $use_resources - 0 or 1
+   $search_resource_paths - 0 or 1
 
   Description:
 
    If a given filename is a relative path, try to find the file in the
    same directory as ref-filename. In case of success, return a path
    based on the directory part of ref-filename and filename.  If the
-   file can't be located in this way and use_resources is true, return
-   the value of C<FindInResources(filename)>.
+   file can't be located in this way and the C<$search_resource_paths>
+   argument is true, return the value of C<FindInResourcePaths(filename)>.
 
 =item Fslib::ImportBackends (@backends)
 
