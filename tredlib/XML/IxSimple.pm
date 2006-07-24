@@ -735,8 +735,10 @@ sub handle_options  {
         # to keyattr => { elem => [ 'attr', '+' ] } 
 
         foreach my $el (keys(%{$opt->{keyattr}})) {
-          if($opt->{keyattr}->{$el} =~ /^(=|\+|-)?(.*)$/) {
-            $opt->{keyattr}->{$el} = [ $2, ($1 ? $1 : '') ];
+          if($opt->{keyattr}->{$el} =~ /^([\#+->]+)?(.*)$/) {
+            $opt->{keyattr}->{$el} = [ $2, 
+				       ($1 ? { map { $_ => 1 } split '', $1 } : undef) 
+				      ];
             if($StrictMode  and  $dirn eq 'in') {
               next if($opt->{forcearray} == 1);
               next if(UNIVERSAL::isa($opt->{forcearray},'HASH')
@@ -1123,37 +1125,41 @@ sub array_to_hash {
     return($arrayref) unless(exists($self->{opt}->{keyattr}->{$name}));
     ($key, $flag) = @{$self->{opt}->{keyattr}->{$name}};
     for($i = 0; $i < @$arrayref; $i++)  {
-      if(UNIVERSAL::isa($arrayref->[$i],'HASH') and
-         exists($arrayref->[$i]->{$key})
-      ) {
-        $val = $arrayref->[$i]->{$key};
-        if(ref($val)) {
-          if($StrictMode) {
-            croak "<$name> element has non-scalar '$key' key attribute";
-          }
-          if($^W) {
-            carp "Warning: <$name> element has non-scalar '$key' key attribute";
-          }
-          return($arrayref);
-        }
-        $val = $self->normalise_space($val)
-          if($self->{opt}->{normalisespace} == 1);
-        $hashref->{$val} = { %{$arrayref->[$i]} };
-	if ($flag eq '-') {
-	  $hashref->{$val}->{"-$key"} = $hashref->{$val}->{$key};
-	  delete $hashref->{$val}->{$key};
-	} elsif ($flag eq '=') {
-	  $hashref->{$val}->{"-$key"} = $hashref->{$val}->{$key};
-	  $hashref->{$val}->{"-#"} = $i;
-	  delete $hashref->{$val}->{$key};
-	} elsif ($flag ne '+') {
-	  delete $hashref->{$val}->{$key};
+      if(UNIVERSAL::isa($arrayref->[$i],'HASH')) {
+	if ($key ne "") {
+	  if (exists($arrayref->[$i]->{$key})) {
+	    $val = $arrayref->[$i]->{$key};
+	    if(ref($val)) {
+	      if($StrictMode) {
+		croak "<$name> element has non-scalar '$key' key attribute";
+	      }
+	      if($^W) {
+		carp "Warning: <$name> element has non-scalar '$key' key attribute";
+	      }
+	      return($arrayref);
+	    }
+	    $val = $self->normalise_space($val)
+	      if($self->{opt}->{normalisespace} == 1);
+	    $hashref->{$val} = { %{$arrayref->[$i]} };
+	    if ($flag) {
+	      if ($flag->{'-'}) {
+		
+		$hashref->{$val}->{"-$key"} = $hashref->{$val}->{$key};
+		delete $hashref->{$val}->{$key};
+	      }
+	      if ($flag->{'+'}) {
+		delete $hashref->{$val}->{$key};
+	      }
+	      if ($flag->{'#'}) {
+		$hashref->{$val}->{"-#"} = $i;
+	      }
+	    }
+	  } else {
+	    croak "<$name> element has no '$key' key attribute" if($StrictMode);
+	    carp "Warning: <$name> element has no '$key' key attribute" if($^W);
+	    return($arrayref);
+	  }
 	}
-      }
-      else {
-        croak "<$name> element has no '$key' key attribute" if($StrictMode);
-        carp "Warning: <$name> element has no '$key' key attribute" if($^W);
-        return($arrayref);
       }
     }
   }
