@@ -7,6 +7,8 @@ use warnings;
 
 use PMLInstance qw( :all :diagnostics $DEBUG );
 
+use constant EMPTY => q{};
+
 use Carp;
 
 use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $config $config_file);
@@ -83,7 +85,7 @@ sub read ($$) {
 
   my $ctxt = PMLInstance->load({fh => $input, filename => $fsfile->filename, config => $config });
   $ctxt->convert_to_fsfile( $fsfile );
-  return $ctxt->{status};
+  return $ctxt->get_status();
 }
 
 
