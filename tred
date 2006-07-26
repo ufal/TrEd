@@ -6066,7 +6066,7 @@ sub askSaveReferences {
     my $refid = $fsfile->metaData('refnames')->{$name};
     if ($refid) {
       my $href = $fsfile->metaData('references')->{$refid};
-      if ($href and $reference->{readas} eq 'dom' and 
+      if ($href and $reference->{readas} =~ /^(dom|pml)$/ and 
 	  ref($fsfile->appData('ref')) and $fsfile->appData('ref')->{$refid}) {
 	push @refs, $href." [$refid, $name]";
       }
@@ -9759,6 +9759,66 @@ sub node_release_modif {
   } else { redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo}); }
 }
 
+#######################################################
+##
+##   a repacement for Dumper/Storable::Freeze
+##   which preserves all object references
+##
+#######################################################
+use Scalar::Util qw(blessed readonly);
+sub make_data_snapshot {
+  my ($data,$dump) = @_;
+  $dump ||= {};
+  
+  unless (ref($data)) {
+    die "non-reference: $data\n";
+  }
+  return $dump if exists $dump->{$data};
+  if (UNIVERSAL::isa($data,'SCALAR')) {
+    $dump->{$data} = [$data, readonly($$data) ? 'READONLY' : 'SCALAR', blessed($data), $$data ]
+  } elsif (UNIVERSAL::isa($data,'HASH')) {
+    $dump->{$data} = [$data, 'HASH', blessed($data), [ %$data ] ];
+    foreach my $val (values %$data) {
+      if (ref($val) and !exists($dump->{$val})) {
+	make_data_snapshot( $val, $dump );
+      }
+    }
+
+  } elsif (UNIVERSAL::isa($data,'ARRAY')) {
+    $dump->{$data} = [$data, 'ARRAY', blessed($data), [ @$data ] ];
+    foreach my $val (@$data) {
+      if (ref($val) and !exists($dump->{$val})) {
+	make_data_snapshot( $val, $dump );
+      }
+    }
+  } else {
+    $dump->{$data} = [ $data, 'OTHER', blessed($data) ];
+  }
+  return [ $data, $dump ];
+}
+
+sub restore_data_from_snapshot {
+  my $snapshot = shift;
+  my $dump = $snapshot->[1];
+  foreach my $s (values %$dump) {
+    my ($data,$type,$class,$content) = @$s;
+    if ($type eq 'SCALAR') {
+      $$data = $content
+    } elsif ($type eq 'READONLY') {
+      warn "Readonly-value changed" if $$data ne $content;
+    } elsif ($type eq 'HASH') {
+      %$data = @$content;
+    } elsif ($type eq 'ARRAY') {
+      @$data = @$content;
+    }
+    if (blessed($data) ne $class) {
+      bless $data, $class;
+    }
+  }
+  return $snapshot->[0];
+}
+###################################################
+
 sub prepare_undo {
   my ($win,$message,$phase_only)=@_;
   return unless $maxUndo;
@@ -9771,9 +9831,13 @@ sub prepare_undo {
   } elsif ( !ref($win->{root}) ) {
     return undef;
   } else {
-    $tree = Storable::freeze($win->{root});
-    return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
+    my $tree = make_data_snapshot( $win->{root} );
+    return ['Snapshot',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
   }
+#  } else {
+#    $tree = Storable::freeze($win->{root});
+#    return ['Storable',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
+#  }
 }
 
 sub save_undo {
@@ -9830,6 +9894,8 @@ sub undo {
       $fsfile->treeList->[$treeNo]=$fsfile->FS->parseFSTree($tree);
     } elsif ($type eq 'Storable') {
       $fsfile->treeList->[$treeNo]=Storable::thaw($tree);
+    } elsif ($type eq 'Snapshot') {
+      $fsfile->treeList->[$treeNo] = restore_data_from_snapshot($tree);
     }
     if ($#$stack == $stackpos) {
       if ($redo) {
