@@ -1,5 +1,5 @@
 package Assign_afun;
-
+use Carp;
 use Decompose_tag; # module for decomposing positional morphological tag
 use Special_chars; # module for substituting  special characters with sequences
 use AfunDecTree; # decision tree for assigning of the analytical function
@@ -21,8 +21,8 @@ map {$most_frequent_lemmas{$_}=1}
 #        i_ the immediately governing node
 #        d_ the node to be assigned (the dependent node)
 
-sub afun($$$$$$)  {
-
+sub afun {
+  carp("Usage: Assign_afun::afun (g_lemma,g_tag,i_lemma,i_tag,d_lemma,d_tag)") if @_!=6;
   #    print STDERR "Assign_afun: ",(join "\t",@_);
   foreach $attr (g_lemma,g_tag,i_lemma,i_tag,d_lemma,d_tag) {
     $attributes{$attr}=shift;
