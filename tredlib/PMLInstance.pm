@@ -24,22 +24,17 @@ $DEBUG = 1;
 
  (GENERAL):
 
-  - fix reading/writing trees (use the live object)
+  - improve reading/writing trees (use the live object)
     Postponing because:
        1/ sequences of tree/no-tree objects are problematic
-       2/ this would break binary compatibility
+       2/ changing this would break binary compatibility
 
-  - Fslib: 
+  - Fslib:
        find_role_in_data,
        traverse_data($node, $decl, sub($data,$decl,$decl_resolved))
 
-  - rethink type resolving in Fslib (could return a copy where only
-    @type would be replaced so that all else like -name, role, etc. is
-    preserved), much like if the type was inlined
-
   - readas DOM => readas PML, where #KNITting means pointing to the same data (if possible).
-    tested: breaks Undo/Redo
-
+    test implementation: breaks old Undo/Redo, but ok with the new "object-preserving" one
 
   (XSLT):
 
