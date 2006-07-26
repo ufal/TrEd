@@ -7595,8 +7595,8 @@ sub editAttrsDialog_schema {
 	$val = ($attr_path eq "") ? FSNode->new : {};
 	$edit->dump_to_node($val);
 	my $ctxt = PMLInstance->new;
-	$ctxt->{'schema'} = $schema;
-	my $log = $ctxt->{'log'} = [];
+	$ctxt->set_schema($schema);
+	$ctxt->clear_log();
 	#__debug("Validating node $val\n");
 	my $type;
 	if ($attr_path eq "") {
@@ -7615,6 +7615,7 @@ sub editAttrsDialog_schema {
 	    $ctxt->validate_object($val->{$attr_name},$node_type,{ path => $attr_path });
 	  }
 	}
+	my $log = $ctxt->get_log();
 	if (@$log and
 	      errorDialog($win,
 			  "Invalid attribute values",
