@@ -1039,7 +1039,7 @@ sub _set_node_children {
       return;
     }
     $son->{$Fslib::parent} = $node;
-      $son->{$Fslib::lbrother} = $prev;
+    $son->{$Fslib::lbrother} = $prev;
     $prev->{$Fslib::rbrother} = $son if $prev;
     $prev = $son;
   }
