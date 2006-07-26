@@ -142,6 +142,12 @@ sub RotateParenthesisRoot{
 #bind TectogrammaticalTree to Ctrl+R menu Display tectogrammatical tree
 #bind GotoTree to Alt+g menu Goto Tree
 
+#include "PML_A_AutoAfun.mak"
+
+#bind assign_afun_auto Ctrl+a menu Auto-assign afun to the current node
+#bind assign_all_afun_auto to Ctrl+A menu Auto-assign afun to all nodes without afun in the tree
+
+
 #bind OpenValFrameList to Ctrl+Return menu Show valency lexicon entry for the current word
 
 1;
