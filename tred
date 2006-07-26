@@ -19,7 +19,7 @@ if ($^V lt v5.8.3) {
   print STDERR '-' x 50,"\n\n";
 }
 
-use vars qw($version $about $opt_u $opt_h $opt_c
+use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
 	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z
             $libDir
@@ -39,7 +39,11 @@ use vars qw($version $about $opt_u $opt_h $opt_c
 	    $no_secondary
            );
 
-$version='$Id$';
+$svn_version='$Id$';
+$version =  $svn_version;
+$version =~ s{^\$Id:\s*\S+\s*|\s+pajas.*$}{}g;
+$version =  "1.".$version;
+
 $about=
   "Copyright (c) 2000-2006 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
@@ -78,6 +82,14 @@ sub Post
 }
 
 package main;
+
+use constant EMPTY => q{};
+
+use constant {
+  STYLESHEET_FROM_FILE  => "<From File>",
+  NEW_STYLESHEET        => "<New From Current>",
+  DELETE_STYLESHEET     => "<Delete Current>",
+};
 
 
 #use Tk::Xrm;
@@ -164,9 +176,7 @@ EOF
 $no_secondary = $opt_Y;
 
 if ($opt_v) {
-  my $ver=$version;
-  $ver=~s/\$//g;
-  print "TrEd $ver\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
+  print "TrEd $version\nPerl: $]\nPlatform: $^O\nTk: $Tk::VERSION\n\n";
   exit;
 }
 
@@ -206,7 +216,7 @@ $macroFile=undef;
 _set_encoding(\*STDERR,':utf8',"STDERR");
 _set_encoding(\*STDOUT,':utf8',"STDOUT");
 
-$stylesheetFile = $opt_S ne '' ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
+$stylesheetFile = $opt_S ne EMPTY ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
 
 ########## Config file #############
 # this must be done before readconfig is first used
@@ -356,10 +366,6 @@ require Tk::JComboBox_0_02;
 
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
-
-sub STYLESHEET_FROM_FILE { "<From File>" };
-sub NEW_STYLESHEET { "<New From Current>" };
-sub DELETE_STYLESHEET { "<Delete Current>" };
 
 
 use Exporter;
@@ -651,7 +657,7 @@ my %searchTemplate;
 			  );
 
 $opt_R && Csts2fs::setupTR();
-if ($opt_X ne "") {
+if ($opt_X ne EMPTY) {
   Csts2fs::setupSpec(split ',',$opt_X,-1);
   Fs2csts::setupSpec(split ',',$opt_X,-1);
 }
@@ -754,8 +760,8 @@ sub get_save_filename {
     my $types = ref($opts{-filetypes}) ?
       join " ",map { "*".$_ } map { @{$_->[1]} } @{$opts{-filetypes}} : "*";
     my $title = $opts{-title} || 'Open';
-    my $initialdir = $opts{-initialdir}.$TrEd::Convert::Ds || '';
-    my $initialfile = $opts{-initialfile} || '';
+    my $initialdir = $opts{-initialdir}.$TrEd::Convert::Ds || EMPTY;
+    my $initialfile = $opts{-initialfile} || EMPTY;
     $c=~s/\%t/"$title"/g;
     $c=~s/\%m/"$types"/g;
     $c=~s/\%d/"$initialdir"/g;
@@ -808,7 +814,7 @@ sub get_grp_history {
   if ($e->can('historyAdd')) {
     $grp->{"hist_$h"}=[] unless ref($grp->{"hist_$h"});
     my $v = $e->get;
-    $e->historyAdd($v) if $v ne "";
+    $e->historyAdd($v) if $v ne EMPTY;
     @{$grp->{"hist_$h"}} = $e->history();
   }
 }
@@ -859,7 +865,7 @@ sub readStyleSheets {
     if (/^stylesheet:\s*(.*)/) {
       $stylesheet = $1;
     } elsif (s/^(hint|context):\s*//) {
-      if ($grp->{stylesheets}->{$stylesheet}->{$1} ne "") {
+      if ($grp->{stylesheets}->{$stylesheet}->{$1} ne EMPTY) {
 	$grp->{stylesheets}->{$stylesheet}->{$1}.="\n".$_;
       } else {
 	$grp->{stylesheets}->{$stylesheet}->{$1}.=$_;
@@ -1181,7 +1187,7 @@ sub _clear_err {
 }
 
 sub _last_err {
-  my ($ret) = grep { $_ ne "" } ($_[0], $@, conv_from_locale($!));
+  my ($ret) = grep { $_ ne EMPTY } ($_[0], $@, conv_from_locale($!));
   return $ret;
 }
 
@@ -1247,7 +1253,7 @@ sub checkLock {
   my $current_mtime = [stat($f)]->[9];
 #  return "none" if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
   my $lockinfo = readLock($f);
-  if ($lockinfo ne "") {
+  if ($lockinfo ne EMPTY) {
     my ($user, $host, $pid) = $lockinfo =~ /^by user (.*?)@(.*?) pid (\d+)/;
     if ($fsfile and $fsfile->appData('lockinfo')) {
       my $ourlockinfo = $fsfile->appData('lockinfo');
@@ -1340,7 +1346,7 @@ sub closeFile {
     $w->{treeNo}=undef;
     delete $w->{currentNode} if (exists $w->{currentNode});
     $w->{treeView}->clear_pinfo();
-    set_value_line($w->{framegroup},"") if (isFocused($w));
+    set_value_line($w->{framegroup},EMPTY) if (isFocused($w));
   }
   if ($opts{-keep_postponed} and $fsfile) {
     print STDERR "Postponing ".$fsfile->filename()."\n"  if $tredDebug;
@@ -1683,7 +1689,7 @@ sub updateTitle {
   return unless ref($grp);
   if (defined($win->{currentFileNo}) and 
       ref($win->{FSFile})) {
-    my $filelist_info='';
+    my $filelist_info=EMPTY;
     if ($win->{currentFilelist}) {
       $filelist_info=$win->{currentFilelist}->name()."(".($win->{currentFileNo}+1)."/".
 	$win->{currentFilelist}->file_count()."): ";
@@ -1722,7 +1728,7 @@ sub newFileFromCurrent {
   get_nodes_win($win);
   doEvalHook($win,"file_opened_hook");
   switchContext($win,$opt_t,1)
-    if ($opt_t ne "" and
+    if ($opt_t ne EMPTY and
 	$win->{macroContext} ne $opt_t);
   redraw_win($win);
   centerTo($win,$win->{currentNode});
@@ -1992,7 +1998,7 @@ sub openFile {
   }
 
   if ($status->{ok}) {
-    $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
+    $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : EMPTY).$fsfile->backend);
 
     unless ($no_secondary) {
     # if backend requested another FS-file, load it
@@ -2057,7 +2063,7 @@ sub openFile {
   doEvalHook($win,"file_opened_hook") if ($fsfile and !$opts{-nohook});
   unless ($opts{-preload}) {
     switchContext($win,$opt_t,1)
-      if ($opt_t ne "" and
+      if ($opt_t ne EMPTY and
 	    $win->{macroContext} ne $opt_t);
     get_nodes_win($win,$opts{-noredraw});
     unless ($opts{-noredraw}) {
@@ -2084,7 +2090,7 @@ sub getNodeByNo {
 
 sub applyFileSuffix {
   my ($win,$goto)= @_;
-  return unless $win->{FSFile} and defined($goto) and $goto ne "";
+  return unless $win->{FSFile} and defined($goto) and $goto ne EMPTY;
   # -- smells like PDT-specific code, at least the second case
   # but we want it, dont we:)
 
@@ -2296,9 +2302,9 @@ sub get_value_line {
     if (defined($vl)) {
       if (ref($vl)) {
 	unless ($tags) {
-	  $vl = encode(join '',map { $_->[0] } @$vl);
+	  $vl = encode(join EMPTY,map { $_->[0] } @$vl);
 	} else {
-	  $vl=[ map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne "" } @$vl ];
+	  $vl=[ map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne EMPTY } @$vl ];
 	}
       } else {
 	$vl=encode($vl);
@@ -2307,7 +2313,7 @@ sub get_value_line {
       $vl=$win->{treeView}->value_line($fsfile,$no,$no_numbers,$tags,$win);
     }
   } else {
-    $vl="";
+    $vl=EMPTY;
   }
   return $vl;
 }
@@ -2319,7 +2325,7 @@ sub reverseWrapLines {
   if (ref($text)) {
     @toks = @$text;
   } else {
-    @toks = map { [$_,''] } split /\s+/, $text;
+    @toks = map { [$_,EMPTY] } split /\s+/, $text;
   }
   my @result;
   my $wd=0;
@@ -2369,7 +2375,7 @@ sub set_value_line {
 	print $@ if $@;
       }
     }
-    $vl->Subwidget('scrolled')->insert('end','',undef,
+    $vl->Subwidget('scrolled')->insert('end',EMPTY,undef,
 				       map { ($_->[0], [@$_[1..$#$_]]) } @$v);
   } else {
     $vl->Subwidget('scrolled')->insert('0.0',$v);
@@ -2411,7 +2417,7 @@ sub set_status_line {
   if (@oldtags) {
     $sl->tagDelete(@oldtags);
   }
-  unless ($grp->{statusLineText} eq "") {
+  unless ($grp->{statusLineText} eq EMPTY) {
     $sl->insert('end',encode($grp->{statusLineText}),undef);
     $sl->insert('end'," | ",undef) if ($text);
   }
@@ -2604,7 +2610,7 @@ sub switchFilelist {
     }
     my $path=filelistEntryPath($fl,$activate);
     $grp->{Filelist}->selectionClear();
-    if (defined($path) and $path ne "") {
+    if (defined($path) and $path ne EMPTY) {
       $grp->{Filelist}->anchorSet($path);
       $grp->{Filelist}->see($path);
       $grp->{Filelist}->selectionSet($path);
@@ -2645,7 +2651,7 @@ sub createFilelistBrowseEntry {
 	 if (findFilelist($text)) {
 	   switchFilelist($grp,$text);
 	 } else {
-	   return unless $text ne "";
+	   return unless $text ne EMPTY;
 	   my $d=$w->toplevel->
 	     Dialog(-text=> "File-list named $text does not exist.\n".
 		    "Do you want to create new filelist or rename current?",
@@ -2769,7 +2775,7 @@ sub removeFromFilelist {
 
 sub addNewFilelist {
   my ($grp,$fl)=@_;
-  return if not defined($fl) or $fl eq "";
+  return if not defined($fl) or $fl eq EMPTY;
   for my $l (@filelists) {
     if ($l->name eq $fl->name) {
       print STDERR "Filelist ",$fl->name," already exists, replacing!\n"
@@ -2784,7 +2790,7 @@ sub addNewFilelist {
       return;
     }
   }
-  if (not defined($fl->name) or $fl->name eq "") {
+  if (not defined($fl->name) or $fl->name eq EMPTY) {
     undef $fl;
     return;
   }
@@ -2803,7 +2809,7 @@ sub deleteFilelist {
 	     $fl->name eq 'Bookmarks');
   print "Allowed\n" if $tredDebug;
   @filelists=grep($_ ne $fl, @filelists);
-  print join "\n","Filelists:",@filelists,"" if $tredDebug;
+  print join "\n","Filelists:",@filelists,EMPTY if $tredDebug;
   print scalar(@filelists),"\n" if $tredDebug;
   $grp->{filelistCurrentFilelist}=undef;
   undef $fl;
@@ -3072,7 +3078,7 @@ sub filelistDialog {
 		-command=> [sub {
 			    my ($grp,$d)=@_;
 			    my $file=$grp->{filelistCurrentFilelist}->filename;
-			    unless (defined ($file)  and $file ne "") {
+			    unless (defined ($file)  and $file ne EMPTY) {
 			      my $initdir=dirname($file);
 			      $initdir=cwd if ($initdir eq './');
 			      $initdir=~s!${TrEd::Convert::Ds}$!!m;
@@ -3087,7 +3093,7 @@ sub filelistDialog {
 			      $d->focus;
 			      $d->raise;
 			      $file.=".fl" unless $file=~/\.fl$/;
-			      return unless (defined $file and $file ne "");
+			      return unless (defined $file and $file ne EMPTY);
 			      $grp->{filelistCurrentFilelist}->filename($file);
 			    }
 			    $grp->{filelistCurrentFilelist}->save;
@@ -3136,7 +3142,7 @@ sub filelistDialog {
 			   $d->deiconify;
 			   $d->focus;
 			   $d->raise;
-			   return unless (defined $file and $file ne "");
+			   return unless (defined $file and $file ne EMPTY);
 			   my $fl=Filelist->new(undef,$file);
 			   return unless $fl;
 			   print "Loading filelist: $file\n";
@@ -3154,7 +3160,7 @@ sub filelistDialog {
   if ($grp->{focusedWindow}->{currentFileNo}) {
     my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{focusedWindow}->{currentFileNo});
     $t->selectionClear();
-    if ($path ne "") {
+    if ($path ne EMPTY) {
       eval {
 	$t->anchorSet($path);
 	$t->selectionSet($path);
@@ -3222,9 +3228,9 @@ sub macrolistCreateItems {
   my ($grp,$t,$context,$include_anonymous,$see_macro)=@_;
   my $e;
   $t->delete('all');
-  $t->columnWidth(1,$see_macro ? q() : 0);
+  $t->columnWidth(1,$see_macro ? EMPTY : 0);
   foreach my $entry (generateSortedMacroTable($grp,$context,$include_anonymous)) {
-    $e= $t->addchild("", -data => $entry->[2]);
+    $e= $t->addchild(EMPTY, -data => $entry->[2]);
     $t->itemCreate($e, 0, -itemtype=>'text', -text=>$entry->[1]);
     $t->itemCreate($e, 1, -itemtype=>'text', -text=>$entry->[2]) if $see_macro;
     $t->itemCreate($e, 2, -itemtype=>'text', -text=> (defined($entry->[0]) ? $entry->[0] : 'ANONYMOUS'));
@@ -3262,9 +3268,9 @@ sub macrolistDialog {
 		       $grp->{macroListAnonymous},
 		       $grp->{macroListCalls});
 
-  $t->columnWidth(0,q());
+  $t->columnWidth(0,EMPTY);
   $t->columnWidth(1,0);
-  $t->columnWidth(2,q());
+  $t->columnWidth(2,EMPTY);
 
   $t->anchorSet('0');
 
@@ -3315,10 +3321,10 @@ sub macrolistDialog {
 			      print $html "<h2>TrEd Macros - $$ctxt</h2>\n";
 			      print $html "<table>\n";
 			      my $odd = 0;
-			      foreach my $child ($t->info('children','')) {
+			      foreach my $child ($t->info('children',EMPTY)) {
 				print $html "  <tr ",($odd ? 'bgcolor="#ffffff"' : 'bgcolor="#eeeeee"'),
 				  ">\n    <td>",$t->itemCget($child,0,'-text'),"</td>\n",
-				  ($grp->{macroListCalls} ? "<td>".$t->itemCget($child,1,'-text')."</td>\n" : ""),
+				  ($grp->{macroListCalls} ? "<td>".$t->itemCget($child,1,'-text')."</td>\n" : EMPTY),
 				  "<td>", $t->itemCget($child,2,'-text'),"</td>\n",
 				  "  </tr>\n";
 				$odd = !$odd;
@@ -3584,7 +3590,7 @@ sub updatePrintDialogState {
       if (exists($grp->{ttfonts}->{$initTTFont})) {
 	$s->{ttFont} = $s->{initTTFont};
       } else {
-	$s->{ttFont} = '';
+	$s->{ttFont} = EMPTY;
       }
       $w->{font}->toplevel->Unbusy();
     }
@@ -3598,8 +3604,8 @@ sub updatePrintDialogState {
   }
 
   if ($s->{psMedia} eq 'BBox') {
-    $s->{prtFmtWidth} = '';
-    $s->{prtFmtHeight} = '';
+    $s->{prtFmtWidth} = EMPTY;
+    $s->{prtFmtHeight} = EMPTY;
   } elsif ($s->{psMedia} eq 'User') {
     $s->{prtFmtWidth} = $s->{defaultPrtFmtWidth};
     $s->{prtFmtHeight} = $s->{defaultPrtFmtHeight};
@@ -3642,13 +3648,13 @@ sub printDialog {
   $s{command}=$grp->{printCommand} || 'lpr';
   $s{file}=$grp->{printPsFile};
   $s{file} =doEvalHook($win,"print_tree_filename_hook");
-  $s{file}=$win->{FSFile}->filename if $s{file} eq "";
+  $s{file}=$win->{FSFile}->filename if $s{file} eq EMPTY;
   $grp->{printFileExtension} ||= "ps";
   $s{file}=~s/\.[^.]*$/.$grp->{printFileExtension}/;
   $s{printTo}=$grp->{printToFile} || 'printer';
   $s{format}=$grp->{printFormat} || 'PS';
   $s{resolution}=$grp->{printImageMagickResolution} || 80;
-  $s{printRange}=$win->{treeNo}+1;# unless $printRange ne "";
+  $s{printRange}=$win->{treeNo}+1;# unless $printRange ne EMPTY;
   $s{printSentence}=$grp->{printSentenceInfo};
   $s{noRotate}=$grp->{printNoRotate};
   $s{printOnePerFile}=$grp->{printOnePerFile};
@@ -3664,7 +3670,7 @@ sub printDialog {
   if ($grp->{ttfonts} and exists($grp->{ttfonts}->{$ttFont})) {
     $s{ttFont} = $ttFont;
   } else {
-    $s{ttFont} = '';
+    $s{ttFont} = EMPTY;
   }
 
   # Dialog
@@ -3774,7 +3780,7 @@ sub printDialog {
     ->pack(qw/-padx 10 -side left -expand yes -fill x/);
   $d->bind('<Alt-r>',[sub{shift;shift->{file}->focus},\$w]);
   set_grp_history($grp, $w{file}, 'printFile',$e_hist);
-  if ($s{file} ne "") {
+  if ($s{file} ne EMPTY) {
     my $start = rindex($fil,"/")+1;
     my $end = rindex($fil,".");
     if ($start<$end) {
@@ -3813,7 +3819,7 @@ sub printDialog {
 					      ["All files", '*']
 					     ]
 					    );
-			 $s->{file}=$file if (defined $file and $file ne '');
+			 $s->{file}=$file if (defined $file and $file ne EMPTY);
 		       },$d,\%s])->pack(qw/-padx 10 -side left/);
 
   # TrueType font
@@ -4056,7 +4062,7 @@ sub printThis {
       $err = 1;
     }
   }} while ($err);
-  $range=$grp->{focusedWindow}->{treeNo}+1 if (!defined($range) or $range eq "");
+  $range=$grp->{focusedWindow}->{treeNo}+1 if (!defined($range) or $range eq EMPTY);
 
   my $stylesheet = $win->{stylesheet};
   my $ss = undef;
@@ -4074,9 +4080,9 @@ sub printThis {
   for my $r (@range) {
     if ($one_per_file) {
       $print_opts[3] = $filename;
-      $print_opts[3] =~ s/[%](\d*)n/sprintf("%".($1 ne "" ? '0'.int($1) : '')."d",$r)/e;
+      $print_opts[3] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : EMPTY)."d",$r)/e;
       $print_opts[5] = $command;
-      $print_opts[5] =~ s/[%](\d*)n/sprintf("%".($1 ne "" ? '0'.int($1) : '')."d",$r)/e;
+      $print_opts[5] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : EMPTY)."d",$r)/e;
     }
     TrEd::Print::print_trees($fsfile,
 			     $grp->{top},
@@ -4087,7 +4093,7 @@ sub printThis {
 			     {
 			       'PS' => $psFontFile,
 			       'AFM' => $psFontAFMFile,
-			       'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
+			       'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : EMPTY),
 			       'Size' => $psFontSize,
 			     },
 			     $prtFmtWidth,
@@ -4428,10 +4434,10 @@ sub saveFileStateUpdate {
 
 sub About {
   my ($grp)=@_;
-  my $message="";
-  my $contextinfo="";
-  my $fileinfo="";
-  my $colinf="";
+  my $message=EMPTY;
+  my $contextinfo=EMPTY;
+  my $fileinfo=EMPTY;
+  my $colinf=EMPTY;
   if ($grp->{focusedWindow}->{FSFile}) {
     $fileinfo=
       "Current file:\n".
@@ -4603,7 +4609,7 @@ sub canvasBindMouseWheelVert {
 					      unless $Tk::strictMotif; });
     $w->CanvasBind("<$modifier"."5>", sub { $_[0]->yview('scroll', 3, 'units')
 					      unless $Tk::strictMotif; });
-    if ($modifier eq "") {
+    if ($modifier eq EMPTY) {
       $w->CanvasBind("<6>", sub { $_[0]->xview('scroll', -3, 'units')
 				    unless $Tk::strictMotif; });
       $w->CanvasBind("<7>", sub { $_[0]->xview('scroll', 3, 'units')
@@ -5034,7 +5040,7 @@ sub startMain {
 	  -command=> [sub {
 			tieNextTree($_[0]);
 		      },\%group]],
-	 [Separator=> ''],
+	 [Separator=> EMPTY],
 	 [Checkbutton=> 'Stipple Inactive Views', -underline=> 17,
 	  -variable=> \$stippleInactiveWindows,
 	  -command => [\&update_treeviews,\%group]],
@@ -5073,24 +5079,24 @@ sub startMain {
 			 },\%group]],
 	 [Checkbutton=> 'Sort Attributes in Dialogs', -underline=> 1,
 	  -variable=> \$sortAttrs],
-	 [Separator=> ''],
+	 [Separator => EMPTY],
 	 [Button=> "[1] Close current view", -underline=> 1,
 	  -command=> [\&removeWindow,\%group]],
 	 [Button=> "[2] Split view horizontally", -underline=> 1,
 	  -command=> [\&splitWindow,\%group,'horiz']],
 	 [Button=> "[3] Split view vertically", -underline=> 1,
 	  -command=> [\&splitWindow,\%group,'vert']],
-	 [Separator=> ''],
+	 [Separator=> EMPTY],
 	 [Button=> 'List of sentences ...', -underline=> 8,
 	  -command=> [\&viewSentences,\%group]],
 	 [Button=> 'Select context ...', -underline=> 12,
 	  -command=> [\&selectContext,\%group]],
 	 [Button=> 'Select stylesheet ...', -underline=> 9,
 	  -command=> [\&selectStylesheet,\%group]],
-	 [Separator=> ''],
+	 [Separator=> EMPTY],
 	 [Button=> 'Edit stylesheet ...', -underline=> 0,
 	  -command=> [\&editStylesheetDialog,\%group]],
-	 [Separator=> ''],
+	 [Separator=> EMPTY],
 	 [Button=> 'List of available macros ...', -underline=> 0,
 	  -command=> [\&macrolistDialog,\%group]]
 	]);
@@ -5121,10 +5127,10 @@ sub startMain {
 						      my ($grp)=@_;
 						      pruneTree($grp->{focusedWindow});
 						    },\%group]],
-	 [Separator=> ''],
+	 [Separator=> EMPTY],
 	 [Button=> 'Copy Trees ...', -underline=> 1,
 	  -command=> [\&copyTreesDialog,\%group]],
-	 [Separator=> ''],
+	 [Separator=> EMPTY],
 	 [Button=> 'Edit Node ...',
 	  -underline=> 0,
 	  -command=> [sub {
@@ -5133,7 +5139,7 @@ sub startMain {
 					$grp->{focusedWindow}->{currentNode})
 			  if ($grp->{focusedWindow}->{currentNode});
 		      },\%group]],
-	 [Separator=> ''],
+	 [Separator=> EMPTY],
 	 [Button=> 'Find ...',
 	  -underline=> 0,
 	  -command=> [sub {
@@ -5363,7 +5369,7 @@ sub startMain {
 				} elsif ($ret ne 'stop') {
 				  my $node=$win->{root};
 				  while ($node) {
-				    if (index(join("",@tags),${node})>=0) {
+				    if (index(join(EMPTY,@tags),${node})>=0) {
 				      setCurrent($win,$node);
 				      ensureCurrentIsDisplayed($win);
 				      centerTo($win,$node);
@@ -5701,7 +5707,10 @@ sub startMain {
 		my ($w,$grp)=@_;
 		my $but = $grp->{ContextsMenu};
 		my $menu = $but->menu;
-		my $idx = $menu->index($grp->{selectedContext});
+		my $ctxt = $grp->{selectedContext};
+		Tk->break if $ctxt eq EMPTY;
+		my $idx = $menu->index($ctxt);
+		Tk->break if $idx eq "none";
 		$but->Post();
 		$menu->activate($idx);
 		Tk->break;
@@ -5718,7 +5727,10 @@ sub startMain {
 		my ($w,$grp)=@_;
 		my $but = $grp->{StylesheetMenu};
 		my $menu = $but->menu;
-		my $idx = $menu->index($grp->{selectedStylesheet});
+		my $stylesheet = $grp->{selectedStylesheet};
+		Tk->break if $stylesheet eq EMPTY;
+		my $idx = $menu->index($stylesheet);
+		Tk->break if $idx eq "none";
 		$but->Post();
 		$menu->activate($idx);
 		Tk->break;
@@ -5732,7 +5744,7 @@ sub startMain {
   $group{frame}->bind('my','<KeyPress>'=>
 			[sub {
 			   evalMacro(@_); Tk->break;
-			 }, \%group, '' ]);
+			 }, \%group, EMPTY ]);
 
   foreach (qw(Shift Control Meta Alt Control-Shift Control-Alt
               Control-Meta Alt-Shift Meta-Shift)) {
@@ -5903,7 +5915,7 @@ sub startMain {
 
     my $i=0;
     foreach (@filelists) {
-      if (ref($_) and defined($_->filename) and $_->filename ne "") {
+      if (ref($_) and defined($_->filename) and $_->filename ne EMPTY) {
 	$_->save;
 	$s=$_->filename();
 	$s=~s/\\/\\\\/g;
@@ -6033,7 +6045,7 @@ sub fileDialog {
 #  print $FSref->Show;
 
   $file= get_open_filename($grp->{top},-filetypes=> \@open_types);
-  if (defined $file and $file ne '') {
+  if (defined $file and $file ne EMPTY) {
     return openStandaloneFile($grp,$file,-justheader => $header_only);
   }
   return 0;
@@ -6047,7 +6059,7 @@ sub urlDialog {
   }
   $grp->{urlHist} = [] unless ref($grp->{urlHist});
   my $file = QueryString($grp,"Enter URL", "URL: ",$grp->{lastURL},1,$grp->{urlHist});
-  if (defined $file and $file ne '') {
+  if (defined $file and $file ne EMPTY) {
     $grp->{lastURL} = $file;
     return openStandaloneFile($grp,$file,-justheader => $header_only);
   }
@@ -6104,7 +6116,7 @@ EOF
 			 -title=> "Save As ...",
 			 -d $initdir2 ? (-initialdir=> $initdir2) : (),
 			 $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
-		       if ($file ne "") {
+		       if ($file ne EMPTY) {
 			 my $index = $l->index('active');
 
 			 my %selected = map {$_=>1} grep { $l->selectionIncludes($_) } (0 .. $l->size-1);
@@ -6177,7 +6189,7 @@ sub saveFileAs {
 				     -d $initdir ? (-initialdir=> $initdir) : (),
      				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
   my $lock_change=0;
-  if ($file ne '') {
+  if ($file ne EMPTY) {
     if ($file ne $win->{FSFile}->filename) {
       if ($lockFiles) {
 	my $lock = checkLock(undef,$file);
@@ -6208,7 +6220,7 @@ sub saveFileAs {
     if ($response ne 'Use current') {
       $win->{FSFile}->changeBackend($backend_map{lc($response)});
     }
-    $win->{FSFile}->changeFileFormat(($file=~/\.gz$/ ? "gz-compressed " : "").
+    $win->{FSFile}->changeFileFormat(($file=~/\.gz$/ ? "gz-compressed " : EMPTY).
 				     $win->{FSFile}->backend);
     updateTitle($win->{framegroup});
     if (saveFile($win,$file)==1) {
@@ -6235,7 +6247,7 @@ EOF
 	    }
 	   );
 	  if (@$selection) {
-	    my %selected = map { $_ => 1 } grep { $_ ne "" } @$selection;
+	    my %selected = map { $_ => 1 } grep { $_ ne EMPTY } @$selection;
 	    my @failed;
 	    foreach my $reff (grep { $selected{$_->filename} } @fs) {
 	      my $req = $reff->metaData('fs-require');
@@ -6429,7 +6441,7 @@ sub addTextSearchLine {
     -validatecommand =>
       [sub {
 	 my ($text,$value)=@_;
-	 return 1 if $value eq "";
+	 return 1 if $value eq EMPTY;
 	 $text->tagRemove('sel','0.0','end');
 	 my $new = $text->search(qw(-forward -exact -nocase), $value, 'insert');
 	 if ($new) {
@@ -6526,7 +6538,7 @@ sub editConfig {
   $d->bind('<Destroy>'=> [sub { shift; shift->{configDialog}=undef; },$grp ]);
   $d->bind($d,'<Escape>'=> [sub { shift; shift->destroy(); },$d]);
   if (open(F,"<$configFile")) {
-    $t->insert('0.0',join "",<F>);
+    $t->insert('0.0',join EMPTY,<F>);
     close(F);
   }
   $t->mark(qw/set insert 0.0/);
@@ -6569,7 +6581,7 @@ sub QueryString {
   my $result= ShowDialog($d,$e,$top);
   if ($result=~ /OK/) {
     if (ref($hist) and $e->can('historyAdd')) {
-      $e->historyAdd($newvalue) if $newvalue ne "";
+      $e->historyAdd($newvalue) if $newvalue ne EMPTY;
       @$hist = $e->history();
     }
     $d->destroy; undef $d;
@@ -6608,7 +6620,7 @@ sub Query {
   my $result= ShowDialog($d,$e,$w);
   if ($result=~/OK/) {
     if (ref($hist) and $e->can('historyAdd')) {
-      $e->historyAdd($newvalue) if $newvalue ne "";
+      $e->historyAdd($newvalue) if $newvalue ne EMPTY;
       @$hist = $e->history();
     }
   }
@@ -6912,7 +6924,7 @@ sub sentViewSelectNone {
 sub sentViewGetSelection {
  my ($grp,$selref)=@_;
  $selref||=$grp->{sentDialogSelection};
- my $rng='';
+ my $rng=EMPTY;
  
  if (ref($selref) eq 'ARRAY') {
    for (my $i=0;$i<=$#{$selref};$i++) {
@@ -6976,7 +6988,7 @@ sub openSimpleHtml {
 			   -title=> $title,
 			   -d $initdir ? (-initialdir=> $initdir) : (),
 			   $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
-  if (defined($file) and $file ne "") {
+  if (defined($file) and $file ne EMPTY) {
     open my $html, ">$file" ||
       errorMessage($top,"Cannot write to \"$file\"!"."\n(".conv_from_locale($!)."\nCheck file and directory permissions.\n".
 		     "\nSentences could not be saved!",1);
@@ -7088,7 +7100,7 @@ sub dumpSentView {
 		 {
 		   'PS' => $psFontFile,
 		   'AFM' => $psFontAFMFile,
-		   'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : ""),
+		   'TTF' => ($grp->{ttfonts} ? $grp->{ttfonts}->{$ttFont} : EMPTY),
 		   'Size' => $psFontSize,
 		 },
 		 0,0,0,0,0,'BBox',$treeViewOpts,$ss);
@@ -7208,7 +7220,7 @@ sub focusxFind {
   my ($w,$i,$e,$f,$atord)=@_;
   my $ev= $w->XEvent;
   my $A= $ev->A;
-  if ($A ne "") {
+  if ($A ne EMPTY) {
     my $count=scalar(@$atord);
     for (my $j=$i+1;$j<=$i+$count;$j++) {
       if (($atord->[$j % $count]) =~ /^\Q$A\E/i) {
@@ -7373,9 +7385,9 @@ sub editAttrsDialog_schema {
   #     $d->afterIdle([\&updateAttrDialog,$grp]) unless $grp->{updateAttrDialog};
   
   #     if ($attr_path) {
-  #       $grp->{updateAttrDialog} = [ '',$node_type,FSNode::attr($node,$attr_path), $attr_name, 0, undef ];
+  #       $grp->{updateAttrDialog} = [ EMPTY,$node_type,FSNode::attr($node,$attr_path), $attr_name, 0, undef ];
   #     } else {
-  #       $grp->{updateAttrDialog} = [ '',$node_type,$node ];
+  #       $grp->{updateAttrDialog} = [ EMPTY,$node_type,$node ];
   #     }
   #     return;
   #   }
@@ -7384,7 +7396,7 @@ sub editAttrsDialog_schema {
 
   $win->toplevel->Busy(-recurse=>1);
 
-  if ($attr_path ne "") {
+  if ($attr_path ne EMPTY) {
     $node_type = $base_type->find($attr_path);
     #__debug("NODETYPE: '$attr_path'\n",Dumper($base_type->type_decl));
     #__debug(Dumper($node_type),"\n");
@@ -7393,7 +7405,7 @@ sub editAttrsDialog_schema {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
     $node_type = $base_type->type_decl;
   }
-  my $dlg_title = ($attr_path ne "" ? "Edit Attribute '$attr_path'" : "Edit Node");
+  my $dlg_title = ($attr_path ne EMPTY ? "Edit Attribute '$attr_path'" : "Edit Node");
   my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
 
   ##########
@@ -7446,23 +7458,23 @@ sub editAttrsDialog_schema {
   $edit->set_schema($schema);
   my $attr_name = $attr_path;
   
-  my $base_path = ($attr_name =~ s{(.*/)}{}) ? $1 : '';
+  my $base_path = ($attr_name =~ s{(.*/)}{}) ? $1 : EMPTY;
 
   $edit->set_enable_callback([
     sub {
       my ($win,$base_path,$path)=@_;
       # __debug("enable_attr_hook: $base_path, $path\n");
-      $path = $base_path.$path if $base_path ne "";
+      $path = $base_path.$path if $base_path ne EMPTY;
       doEvalHook($win,'enable_attr_hook',$path,"normal") eq 'stop' ? 0 : 1
     }, $win,$base_path
    ]);
   #__debug("ATTR-PATH: '$attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   my $is_required = 1;
-  if ($attr_path ne "") {
+  if ($attr_path ne EMPTY) {
 
     # check if we can allow empty value (member/attribute not required)
     my $parent_type;
-    if ($base_path ne "") {
+    if ($base_path ne EMPTY) {
       $parent_type = $base_type->find($base_path);	    
       $parent_type = ref($parent_type) ? ($parent_type->{structure} || $parent_type->{container}) : undef;
     } else {
@@ -7478,14 +7490,14 @@ sub editAttrsDialog_schema {
 	}
       }
     }
-    $edit->add_member('',$node_type,FSNode::attr($node,$attr_path), $attr_name, 0, undef, $is_required);
+    $edit->add_member(EMPTY,$node_type,FSNode::attr($node,$attr_path), $attr_name, 0, undef, $is_required);
   } else {
     #    # 1=allow empty (don't create empty structures)
-    $edit->add_members('',$node_type,$node,1);
+    $edit->add_members(EMPTY,$node_type,$node,1);
   }
 
   my $bind_edit = $edit;
-  if ($create and $attr_path eq "") {
+  if ($create and $attr_path eq EMPTY) {
     my $sf = $d->Frame->pack(qw(-fill x -side bottom));
     $sf->Label(-underline => 0,
 	       -text => 'Search name:')->pack(qw(-side left));
@@ -7530,8 +7542,8 @@ sub editAttrsDialog_schema {
 
   $edit->autosetmode();
 
-  $edit->columnWidth(0,'');
-  $edit->columnWidth(1,'');
+  $edit->columnWidth(0,EMPTY);
+  $edit->columnWidth(1,EMPTY);
   $edit->columnWidth(2,'1c');
 
 #  $edit->configure( -height => 0);
@@ -7558,7 +7570,7 @@ sub editAttrsDialog_schema {
   }
 
   $edit->focus;
-  if ($attr_path ne "") {
+  if ($attr_path ne EMPTY) {
     $edit->select_entry($attr_name);
   }
   $d->bind('all','<Tab>','focusNext');
@@ -7592,14 +7604,14 @@ sub editAttrsDialog_schema {
       # validate first
       my $val = undef;
       {
-	$val = ($attr_path eq "") ? FSNode->new : {};
+	$val = ($attr_path eq EMPTY) ? FSNode->new : {};
 	$edit->dump_to_node($val);
 	my $ctxt = PMLInstance->new;
 	$ctxt->set_schema($schema);
 	$ctxt->clear_log();
 	#__debug("Validating node $val\n");
 	my $type;
-	if ($attr_path eq "") {
+	if ($attr_path eq EMPTY) {
 	  # This is a hack. The validation procedure
 	  # requires the wrapper type, but as we only have the inner declaration
 	  # we fake:
@@ -7608,10 +7620,13 @@ sub editAttrsDialog_schema {
 	  } else {
 	    $type = { container => $node_type };
 	  }
-	  $ctxt->validate_object($val,$type);
+	  $schema->validate_object( $val, $type, $log );
 	} else {
 	  __debug("Validating: $attr_path with name $attr_name (required $is_required)\n");
-	  unless ($val->{$attr_name} eq '' and !$is_required) {
+	  unless ($val->{$attr_name} eq EMPTY and !$is_required) {
+	    # go low-level
+	    my $ctxt = PMLInstance->new();
+	    $ctxt->set_schema( $schema );
 	    $ctxt->validate_object($val->{$attr_name},$node_type,{ path => $attr_path });
 	  }
 	}
@@ -7626,7 +7641,7 @@ sub editAttrsDialog_schema {
 			 ) !~ /Ignore/) {
 	  my ($path) = split /:/,$log->[0];
 	  $path =~ s{^\Q$base_path\E/?}{};
-	  if ($path ne "") {
+	  if ($path ne EMPTY) {
 	    eval { 
 	      $edit->select_entry($path);
 	      $edit->focus;
@@ -7636,7 +7651,7 @@ sub editAttrsDialog_schema {
 	  redo DIALOG;
 	}
       }
-      if ($attr_path eq "") {
+      if ($attr_path eq EMPTY) {
 	$edit->dump_to_node($node);
 	doEvalHook($win,"after_edit_node_hook",$node,1);
       } else {
@@ -7651,7 +7666,7 @@ sub editAttrsDialog_schema {
       get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
       redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
     } else {
-      if ($attr_path eq "") {
+      if ($attr_path eq EMPTY) {
 	doEvalHook($win,"after_edit_node_hook",$node,0);
       } else {
 	doEvalHook($win,"after_edit_attr_hook",$node,$attr_path,0);
@@ -7707,7 +7722,7 @@ sub editAttrsDialog {
 		      -sticky => 'we',
 		      -scrollbars=> 'oe');
   disable_scrollbar_focus($f);
-  $f->BindMouseWheelVert("","EditEntry");
+  $f->BindMouseWheelVert(EMPTY,"EditEntry");
 
   my $lwidth;
   foreach (@atord) {
@@ -7845,8 +7860,8 @@ sub splitPatterns {
   my ($text)=@_;
   my @lines = split /(\n)/,$text;
   my @result;
-  my $pattern = '';
-  my $hint = '';
+  my $pattern = EMPTY;
+  my $hint = EMPTY;
   my $context;
   while (@lines) {
     my $line = shift @lines;
@@ -7854,7 +7869,7 @@ sub splitPatterns {
       if ($pattern =~ /\S/) {
 	chomp $pattern;
 	if ($pattern=~s/^hint:\s*//) {
-	  $hint .= "\n" if $hint ne '';
+	  $hint .= "\n" if $hint ne EMPTY;
 	  $hint .= $pattern;
 	} elsif ($pattern=~s/^context:\s*//) {
 	  $context = $pattern;
@@ -7870,7 +7885,7 @@ sub splitPatterns {
   if ($pattern =~ /\S/) {
     chomp $pattern;
     if ($pattern=~s/^hint:\s*//) {
-      $hint .= "\n" if $hint ne '';
+      $hint .= "\n" if $hint ne EMPTY;
       $hint .= $pattern;
     } else {
       push @result, $pattern;
@@ -8295,7 +8310,7 @@ sub findNodeDialog {
 		      -sticky => 'we',
 		      -scrollbars=> 'oe');
   disable_scrollbar_focus($f);
-  $f->BindMouseWheelVert("","EditEntry");
+  $f->BindMouseWheelVert(EMPTY,"EditEntry");
 
   my $lwidth;
   foreach (@atord) {
@@ -8380,7 +8395,7 @@ sub findNodeDialog {
     }
     # Clear all empty rules
     foreach (keys %$template) {
-      delete $template->{$_} unless defined($template->{$_}) and $template->{$_} ne '';
+      delete $template->{$_} unless defined($template->{$_}) and $template->{$_} ne EMPTY;
     }
     if ($grp->{searchFilelist} ne '[Current file only]') {
       my $fl=findFilelist($grp->{searchFilelist});
@@ -8894,7 +8909,7 @@ sub redraw_win {
 	   $win->{currentNode},
 	   $win->{Nodes},
 	   # CHANGE THIS (this is just for printing) :
-	   (defined($vl) ? $vl : ""),
+	   (defined($vl) ? $vl : EMPTY),
 	   ($stippleInactiveWindows ?
 	      (($win == $win->{framegroup}->{focusedWindow}) ? 'hidden' : 'normal')
 		: undef),
@@ -9310,7 +9325,7 @@ sub examineBindingsDialog {
 	      pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
   my $t=$d->Label(-textvariable => \$bindings)->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
 
-  $d->bind('<KeyPress>'=> [\&examineEvent, \$bindings, $grp, '' ]);
+  $d->bind('<KeyPress>'=> [\&examineEvent, \$bindings, $grp, EMPTY ]);
 
   foreach my $prefix ('Alt','Meta') {
     $d->bind("<$prefix-KeyPress>"=> [\&examineEvent, \$bindings, $grp, uc($prefix).'+' ]);
@@ -9339,7 +9354,7 @@ sub findMacroDescription {
   if ($macro =~ /^(.*)->/) {
     my $b = $menuBindings{$1};
     my ($desc) = grep { ref($b->{$_}) and $b->{$_}[0] eq $macro } keys %$b;
-    return "$desc ($macro)" if $desc ne "";
+    return "$desc ($macro)" if $desc ne EMPTY;
   }
   return "macro $macro";
 }
@@ -9890,12 +9905,12 @@ sub undo {
     my $tree=$undo->[2];
     my $prev = $fsfile->treeList->[$treeNo];
     $prev->destroy if ref($prev);
-    if ($type eq 'FS') {
+    if ($type eq 'Snapshot') {
+      $fsfile->treeList->[$treeNo] = restore_data_from_snapshot($tree);
+    } elsif ($type eq 'FS') {
       $fsfile->treeList->[$treeNo]=$fsfile->FS->parseFSTree($tree);
     } elsif ($type eq 'Storable') {
       $fsfile->treeList->[$treeNo]=Storable::thaw($tree);
-    } elsif ($type eq 'Snapshot') {
-      $fsfile->treeList->[$treeNo] = restore_data_from_snapshot($tree);
     }
     if ($#$stack == $stackpos) {
       if ($redo) {
@@ -9973,7 +9988,7 @@ sub list_isearch {
   my ($w)=@_;
   my $e= $w->XEvent;
   my $A= $e->A;
-  if ($A ne "") {
+  if ($A ne EMPTY) {
     my @items=$w->get(0,'end');
     my $count=$w->index('end');
     my $active=$w->index('active');
