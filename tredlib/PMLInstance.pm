@@ -525,7 +525,7 @@ sub readas_pml {
   $ctxt->{'_ref'} ||= {};
   $ctxt->{'_ref'}->{$refid}=$pml;
   $ctxt->{'_ref-index'} ||= {};
-  weaken( $ctxt->{'_ref-index'}->{$refid} = $pml->{'id-hash'} );
+  weaken( $ctxt->{'_ref-index'}->{$refid} = $pml->{'_id-hash'} );
   1;
 }
 
@@ -1066,7 +1066,7 @@ sub read_node_knit {
     }
     if ($data->isa('PMLInstance')) {
       # PML
-      my $refnode = $data->{'id-hash'}{$idref};
+      my $refnode = $data->{'_id-hash'}{$idref};
       if (ref($refnode)) {
 	$refnode->{'#knit_prefix'} = $reffile;
 	return [ KNIT_OK | KNIT_WEAKEN , $refnode];
