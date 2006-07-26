@@ -369,13 +369,18 @@ text:<? $${m/w/token}eq$${m/form} ?
 
 node:<? $${afun} eq "AuxS" ? '${id}' : '${m/form}' ?>
 
-node:#{customafun}${afun}<?
+node:<?
+(($${afun} eq q{}) or
+($${afun}=~/^Apos|^Coord/ and PML_A::ExpandCoord($this)==0))
+ ? '#{customerror}!!'
+ : '#{customafun}'
+?>${afun}<?
   if ($${is_member}) {
     my $p=$this->parent;
     $p=$p->parent while $p and $p->{afun}=~/^Aux[CP]$/;
     ($p and $p->{afun}=~/^(Ap)os|(Co)ord/ ? "_#{customcoappa}\${is_member=$1$2}" : "_#{customerror}\${is_member=ERR}")
   } else { "" }
-?><? '#{customcoappa}_${is_parenthesis_root=Pa}'if$${is_parenthesis_root}?>
+?><? $${is_parenthesis_root} ? '#{customcoappa}_${is_parenthesis_root=Pa}' : '' ?>
 EOF
   }
 }
