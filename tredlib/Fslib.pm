@@ -14,6 +14,7 @@
 package Fslib;
 use strict;
 use Data::Dumper;
+use Scalar::Util qw(weaken);
 
 use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $API_VERSION $field_re $attr_name_re
             $parent $firstson $lbrother $rbrother $type
@@ -55,30 +56,14 @@ sub Parent {
   return $node->{$parent};
 }
 
-sub SetParent ($$) {
-  my ($node,$p) = @_;
-  $node->{$parent}=$p if ($node);
-}
-
 sub LBrother ($) {
   my ($node) = @_;
   return $node->{$lbrother};
 }
 
-sub SetLBrother ($$) {
-  my ($node,$p) = @_;
-  $node->{$lbrother}=$p if ($node);
-}
-
-
 sub RBrother ($) {
   my ($node) = @_;
   return $node->{$rbrother};
-}
-
-sub SetRBrother ($$) {
-  my ($node,$p) = @_;
-  $node->{$rbrother}=$p if ($node);
 }
 
 sub FirstSon ($) {
@@ -86,9 +71,38 @@ sub FirstSon ($) {
   return $node->{$firstson};
 }
 
+sub SetParent ($$) {
+  my ($node,$p) = @_;
+  return unless $node;
+  if (ref( $p )) {
+    weaken( $node->{$parent} = $p );
+  } else {
+    $node->{$parent} = 0;
+  }
+  return $p;
+}
+
+sub SetLBrother ($$) {
+  my ($node,$p) = @_;
+  return unless $node;
+  if (ref( $p )) {
+    weaken( $node->{$lbrother} = $p );
+  } else {
+    $node->{$lbrother} = 0;
+  }
+  return $p;
+}
+
+sub SetRBrother ($$) {
+  my ($node,$p) = @_;
+  return unless $node;
+  $node->{$rbrother}= ref($p) ? $p : 0;
+}
+
 sub SetFirstSon ($$) {
   my ($node,$p) = @_;
-  $node->{$firstson}=$p if ($node);
+  return unless $node;
+  $node->{$firstson}=ref($p) ? $p : 0;
 }
 
 sub Next {
@@ -129,36 +143,35 @@ sub Prev {
 sub Cut ($) {
   my ($node)=@_;
   return $node unless $node;
-
-  if ($node->{$parent} and $node==$node->{$parent}->{$firstson}) {
-    $node->{$parent}->{$firstson}=$node->{$rbrother};
+  my $p = $node->{$parent};
+  if ($p and $node==$p->{$firstson}) {
+    $p->{$firstson}=$node->{$rbrother};
   }
-  $node->{$lbrother}->{$rbrother}=$node->{$rbrother} if ($node->{$lbrother});
-  $node->{$rbrother}->{$lbrother}=$node->{$lbrother} if ($node->{$rbrother});
-
+  $node->{$lbrother}->set_rbrother($node->{$rbrother}) if ($node->{$lbrother});
+  $node->{$rbrother}->set_lbrother($node->{$lbrother}) if ($node->{$rbrother});
   $node->{$parent}=$node->{$lbrother}=$node->{$rbrother}=0;
   return $node;
 }
 
 sub Paste ($$$) {
   my ($node,$p,$fsformat)=@_;
-  my $aord=$fsformat->order;
-  my $ordnum = $node->getAttribute($aord);
+  my $aord=ref($fsformat) ? $fsformat->order : $fsformat;
+  my $ordnum = defined($aord) ? $node->getAttribute($aord) : undef;
   my $b=$p->{$firstson};
-  if ($b and $ordnum>$b->getAttribute($aord)) {
+  if ($b and defined($ordnum) and $ordnum>$b->getAttribute($aord)) {
     $b=$b->{$rbrother} while ($b->{$rbrother} and $ordnum>$b->{$rbrother}->getAttribute($aord));
     my $rb = $b->{$rbrother};
     $node->{$rbrother}=$rb;
-    $rb->{$lbrother}=$node if $rb;
+    $rb->set_lbrother( $node ) if $rb;
     $b->{$rbrother}=$node;
-    $node->{$lbrother}=$b;
+    $node->set_lbrother( $b );
   } else {
     $node->{$rbrother}=$b;
     $p->{$firstson}=$node;
     $node->{$lbrother}=0;
-    $b->{$lbrother}=$node if ($b);
+    $b->set_lbrother( $node ) if ($b);
   }
-  $node->{$parent}=$p;
+  $node->set_parent( $p );
 }
 
 sub PasteAfter ($$) {
@@ -170,10 +183,10 @@ sub PasteAfter ($$) {
 
   my $rb = $ref_node->{$rbrother};
   $node->{$rbrother}=$rb;
-  $rb->{$lbrother}=$node if $rb;
+  $rb->set_lbrother( $node ) if $rb;
   $ref_node->{$rbrother}=$node;
-  $node->{$lbrother}=$ref_node;
-  $node->{$parent}=$p;
+  $node->set_lbrother( $ref_node );
+  $node->set_parent( $p );
 }
 
 sub PasteBefore ($$) {
@@ -184,15 +197,15 @@ sub PasteBefore ($$) {
   croak("Fslib::PasteBefore: ref_node has no parent") unless $p;
 
   my $lb = $ref_node->{$lbrother};
-  $node->{$lbrother}=$lb;
+  $node->set_lbrother( $lb );
   if ($lb) {
     $lb->{$rbrother}=$node;
   } else {
     $p->{$firstson}=$node;
   }
-  $ref_node->{$lbrother}=$node;
+  $ref_node->set_lbrother( $node );
   $node->{$rbrother}=$ref_node;
-  $node->{$parent}=$p;
+  $node->set_parent( $p );
 }
 
 sub DeleteTree ($) {
@@ -215,10 +228,11 @@ sub DeleteTree ($) {
 sub DeleteLeaf ($) {
   my ($node) = @_;
   if (!$node->{$firstson}) {
-    $node->{$rbrother}->{$lbrother}=$node->{$lbrother} if ($node->{$rbrother});
+    my $lb = $node->{$lbrother};
+    $node->{$rbrother}->set_lbrother($lb) if ($node->{$rbrother});
 
-    if ($node->{$lbrother}) {
-      $node->{$lbrother}->{$rbrother}=$node->{$rbrother};
+    if ($lb) {
+      $lb->{$rbrother}=$node->{$rbrother};
     } else {
       $node->{$parent}->{$firstson}=$node->{$rbrother} if $node->{$parent};
     }
@@ -589,26 +603,11 @@ sub firstson {
   return ref($self) ? Fslib::FirstSon($self) : undef;
 }
 
+*set_parent   = \&Fslib::SetParent;
+*set_lbrother = \&Fslib::SetLBrother;
+*set_rbrother = \&Fslib::SetRBrother;
+*set_firstson = \&Fslib::SetFirstSon;
 
-sub set_parent ($$) {
-  my ($node,$p) = @_;
-  $node->{$Fslib::parent}= ref($p) ? $p : 0;
-}
-
-sub set_lbrother ($$) {
-  my ($node,$p) = @_;
-  $node->{$Fslib::lbrother}= ref($p) ? $p : 0;
-}
-
-sub set_rbrother ($$) {
-  my ($node,$p) = @_;
-  $node->{$Fslib::rbrother}= ref($p) ? $p : 0;
-}
-
-sub set_firstson ($$) {
-  my ($node,$p) = @_;
-  $node->{$Fslib::firstson}=ref($p) ? $p : 0;
-}
 
 =item $node->set_type (type)
 
@@ -3223,9 +3222,9 @@ sub ParseFSTree {
       $c = substr($l,0,1);
       $l = substr($l,1);
       if ( $c eq '(' ) { # Create son (go down)
-	$curr->{$Fslib::firstson} = ParseFSNode($fsformat,\$l,$ordhash,$emu_schema_type);
-	$curr->{$Fslib::firstson}->{$Fslib::parent}=$curr;
-	$curr=$curr->{$Fslib::firstson};
+	my $first_son = $curr->{$Fslib::firstson} = ParseFSNode($fsformat,\$l,$ordhash,$emu_schema_type);
+	$first_son->{$Fslib::parent}=$curr;
+	$curr=$first_son;
 	next;
       }
       if ( $c eq ')' ) { # Return to parent (go up)
@@ -3234,10 +3233,10 @@ sub ParseFSTree {
 	next;
       }
       if ( $c eq ',' ) { # Create right brother (go right);
-	$curr->{$Fslib::rbrother} = ParseFSNode($fsformat,\$l,$ordhash,$emu_schema_type);
-	$curr->{$Fslib::rbrother}->{$Fslib::lbrother}=$curr;
-	$curr->{$Fslib::rbrother}->{$Fslib::parent}=$curr->{$Fslib::parent};
-	$curr=$curr->{$Fslib::rbrother};
+	my $rb = $curr->{$Fslib::rbrother} = ParseFSNode($fsformat,\$l,$ordhash,$emu_schema_type);
+	$rb->set_lbrother( $curr );
+	$rb->set_parent( $curr->{$Fslib::parent} );
+	$curr=$rb;
 	next;
       }
       croak "Unexpected token... `$c'!\n$l\n";
@@ -4142,6 +4141,7 @@ sub new {
   my $new;
   eval {
     require XML::IxSimple;
+    $XML::IxSimple::PREFERRED_PARSER = 'XML::LibXML::SAX';
     $new = bless XML::IxSimple::XMLin($string,@xml_simple_opts),$class;
   };
   if ($@) {
@@ -4958,20 +4958,22 @@ corresponding C<$Fslib::...> variables directly.
    $node
 
 
-=item Fslib::Paste ($node,$newparent,$fsformat)
+=item Fslib::Paste ($node,$newparent,$fsformat_or_ord)
 
  Params:
 
-   $node      - a reference to a (cutted or new) node
-   $newparent - a reference to the new parent node
-   $fsformat  - FSFormat object
+   $node             - a reference to a (cutted or new) node
+   $newparent        - a reference to the new parent node
+   $fsformat_or_ord  - FSFormat object or name of the ordering attribute
 
  Description:
 
-   connetcs $node to $newparent and links it
-   with its new brothers, placing it to position
-   corresponding to its numerical-argument value
-   obtained via $fsformat->order.
+   attaches $node to $newparent as its new child, placing it to the
+   position among the other child nodes corresponding to a numerical
+   value obtained from the ordering attribute. If $fsformat_or_ord is
+   a FSFormat object, the $fsformat_or_ord->order method is used to
+   determine the ordering attribute. Otherwise, the string value of
+   $fsformat_or_ord is used as the name of the ordering attribute.
 
  Returns $node
 
