@@ -269,7 +269,7 @@ import TrEd::Basics;
 @backends=('FSBackend',ImportBackends(
   split(/,/,$extra_backends),
   split(/,/,$ioBackends),
-  qw(NTREDBackend StorableBackend PMLBackend AG2FS TrXMLBackend CSTS_SGML_SP_Backend TEIXMLBackend)));
+  qw(NTREDBackend StorableBackend AG2FS CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend PMLBackend)));
 
 
 # these are for macros

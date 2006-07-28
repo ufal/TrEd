@@ -642,26 +642,6 @@ if ($]>=5.008) {
 $header=\@ARheader;
 
 
-sub paste_node ($$$) {
-  my ($node,$p)=@_;
-  my $ordnum = $node->{$ord};
-  my $b=$p->{$Fslib::firstson};
-  if ($b and $ordnum>$b->{$ord}) {
-    $b=$b->{$Fslib::rbrother} while ($b->{$Fslib::rbrother} and $ordnum>$b->{$Fslib::rbrother}->{$ord});
-    $node->{$Fslib::rbrother}=$b->{$Fslib::rbrother};
-    $b->{$Fslib::rbrother}->{$Fslib::lbrother}=$node if ($b->{$Fslib::rbrother});
-    $b->{$Fslib::rbrother}=$node;
-    $node->{$Fslib::lbrother}=$b;
-  } else {
-    $node->{$Fslib::rbrother}=$b;
-    $p->{$Fslib::firstson}=$node;
-    $node->{$Fslib::lbrother}=0;
-    $b->{$Fslib::lbrother}=$node if ($b);
-  }
-  $node->{$Fslib::parent}=$p;
-}
-
-
 sub build_tree {
   my $root = shift;
 
@@ -680,12 +660,12 @@ sub build_tree {
     next unless $_;
     if ($_->{$gov} ne "" and exists($ordered{$_->{$gov}})) {
       my $parent=$ordered{$_->{$gov}};
-      paste_node($_,$parent,{ $ord => ' N'}); # paste using $ord as the numbering attribute
+      Fslib::Paste($_,$parent, $ord); # paste using $ord as the numbering attribute
     }
   }
   foreach (reverse @_) {
     if (ref($_) and ! $_->parent) {
-      paste_node($_,$root,{ $ord => ' N'}); # paste using $ord as the numbering attribute
+      Fslib::Paste($_,$root, $ord); # paste using $ord as the numbering attribute
     }
   }
   if ($fill_empty_ord) {
