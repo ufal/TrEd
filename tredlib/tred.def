@@ -608,7 +608,8 @@ the numbering attribute.
 
 sub PasteNode {
   my ($node,$p)=@_; 
-  Fslib::Paste(Cut($node),$p,$grp->{FSFile}->FS);
+  my $ord=_node_ord($node);
+  Fslib::Paste(Cut($node),$p,$ord);
   return $node;
 }
 

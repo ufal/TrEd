@@ -12,9 +12,9 @@ import Exporter qw(import);
 use strict;
 use vars qw( $DEBUG );
 
-use Scalar::Util qw(weaken isweak);
+use Scalar::Util qw(weaken);
 
-$DEBUG = 1;
+$DEBUG = 0;
 
 =for comment
 
@@ -74,7 +74,7 @@ use constant {
   KNIT_WEAKEN => 2,
 };
 
-#FIELDS:
+# FIELDS:
 use fields qw(
     _schema 
     _schema-url
@@ -1038,12 +1038,13 @@ sub _set_node_children {
       _die("non-#NODE child '".Dumper($son)."'");
       return;
     }
-    $son->{$Fslib::parent} = $node;
-    $son->{$Fslib::lbrother} = $prev;
-    $prev->{$Fslib::rbrother} = $son if $prev;
+    if ($prev) {
+      Fslib::PasteAfter($son,$prev);
+    } else {
+      Fslib::Paste($son,$node,undef);
+    }
     $prev = $son;
   }
-  $node->{$Fslib::firstson} = $list->[0];
   return 1;
 }
 

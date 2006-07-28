@@ -351,9 +351,20 @@ $TrEd::Basics::on_current_change= \&onCurrentChange;
 
 #load back-ends
 #require CSTS_SGML_SP_Backend;
-@backends=('FSBackend',ImportBackends(split(/,/,$opt_B),split(/,/,$ioBackends),
-				      qw/NTREDBackend PMLBackend CSTS_SGML_SP_Backend TrXMLBackend TEIXMLBackend StorableBackend AG2FS/
-				     ));
+@backends=(
+  'FSBackend',
+  ImportBackends(
+    split(/,/,$opt_B),
+    split(/,/,$ioBackends),
+    qw{NTREDBackend
+       CSTS_SGML_SP_Backend
+       TrXMLBackend
+       TEIXMLBackend
+       AG2FS
+       PMLBackend
+       StorableBackend
+      })
+ );
 
 require Filelist;
 
@@ -1839,6 +1850,18 @@ sub loadFile {
   }
 }
 
+sub merge_status {
+  my ($status1, $status2) = @_;
+  if ($status1->{ok}==1) {
+    $status1->{ok} = $status2->{ok};
+  } elsif ($status2->{ok} != 1) {
+    $status1->{ok} = max($status2->{ok}, $status1->{ok});
+  }
+  push @{$status1->{warnings}}, @{$status2->{warnings}};
+  $status1->{error} .= "\n".$status2->{error} if $status2->{error} ne EMPTY;
+  $status1->{report} .= "\n".$status2->{report} if $status2->{report} ne EMPTY;
+}
+
 sub openFile {
   my ($grp_or_win,$fname,%opts)= @_;
   my ($grp,$win)=grp_win($grp_or_win);
@@ -2011,8 +2034,9 @@ sub openFile {
 	for my $req (@$requires) {
 	  my $req_filename = absolutize_path($fsfile->filename,$req->[1]);
 	  print STDERR "Pre-loading dependent $req_filename ($req->[1]) as appData('ref')->{$req->[0]}\n" if $tredDebug;
-	  my $req_fs = openFile($win,$req_filename,-preload => 1);
-	  if (!(ref($req_fs) and $req_fs->lastTreeNo>=0 and $Fslib::FSError==0)) {
+	  my ($req_fs,$status2) = openFile($win,$req_filename,-preload => 1);
+	  merge_status($status,$status2);
+	  if (!$status2->{ok}) {
 	    undef $fsfile;
 	    closeFile($win, -fsfile => $req_fs, -no_update => 1);
 	    last;
