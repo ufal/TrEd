@@ -160,6 +160,7 @@ use XML::LibXML::Common qw(:w3c :encoding);
 use Data::Dumper;
 use File::Spec;
 
+require IOBackend;
 require Fslib;
 require PMLBackend;
 import PMLBackend;
@@ -205,7 +206,7 @@ sub _debug {
 sub _warn {
   my $msg = join EMPTY,@_;
   chomp $msg;
-  if ($DEBUG>0) {
+  if ($DEBUG<0) {
     Carp::cluck("PMLBackend: WARNING: $msg\n");
   } else {
     warn "PMLBackend: WARNING: $msg\n";
@@ -241,10 +242,10 @@ sub load {
     $ctxt->{'_dom'} = $parser->parse_string($opts->{string},
 					 $ctxt->{'_filename'});
   } elsif ($opts->{filename}) {
-    my $fh = PMLBackend::open_backend($opts->{filename},'r');
+    my $fh = IOBackend::open_uri($opts->{filename});
     $ctxt->{'_dom'} = $parser->parse_fh($fh,
 				     $opts->{filename});
-    PMLBackend::close_backend($fh);
+    IOBackend::close_uri($fh);
   }
   unless ($ctxt->{'_dom'}) {
     _die("Reading PML instance '".$ctxt->{'_filename'}."' to DOM failed!");
@@ -532,7 +533,7 @@ sub readas_dom {
   my $ref_data;
 
   my ($local_file,$remove_file) = IOBackend::fetch_file($href);
-  my $ref_fh = IOBackend::open_backend($local_file,'r');
+  my $ref_fh = IOBackend::open_uri($local_file);
   _die("Can't open $href for reading") unless $ref_fh;
   _debug("readas_dom: $href $ref_fh");
   my $parser = $ctxt->{'_parser'} || PMLBackend::xml_parser();
@@ -543,7 +544,7 @@ sub readas_dom {
     _die("Error parsing $href $ref_fh $local_file ($@)") if $@;
     $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
     $parser->process_xincludes($ref_data);
-    IOBackend::close_backend($ref_fh);
+    IOBackend::close_uri($ref_fh);
     $ctxt->{'_ref'} ||= {};
     $ctxt->{'_ref'}->{$refid}=$ref_data;
     $ctxt->{'_ref-index'} ||= {};
@@ -1310,7 +1311,7 @@ sub write_data {
 	} else {
 	  $href = $references->{$id};
 	}
-	if ($href !~ m(^[[:alnum:]]+//)) { 
+	unless (Fslib::_is_url($href)) { 
 	  # not an URL
 	  # local paths are always relative
 	  # if you need absolute path, try file:// URL instead
