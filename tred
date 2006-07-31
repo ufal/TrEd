@@ -1262,7 +1262,7 @@ sub checkLock {
   my ($fsfile,$f) = @_; # filename
   $f = $fsfile->filename() if ($fsfile and not defined($f));
   my $current_mtime = [stat($f)]->[9];
-#  return "none" if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
+#  return 'none' if (not $f=~s{^file://}{} and $f =~ m{^[[:alnum:]]+://});
   my $lockinfo = readLock($f);
   if ($lockinfo ne EMPTY) {
     my ($user, $host, $pid) = $lockinfo =~ /^by user (.*?)@(.*?) pid (\d+)/;
@@ -1289,12 +1289,12 @@ sub checkLock {
       } elsif ($mtime != $current_mtime) {
 	return "changed by another program"
       } else {
-	return "my"
+	return 'my'
       }
     } elsif ($pid == $$ and $user eq $userlogin and $host eq $ENV{HOSTNAME}) {
-      return "my";
+      return 'my';
     } else {
-      return "locked ".$lockinfo;
+      return 'locked '.$lockinfo;
     }
   } elsif ($fsfile and $fsfile->appData('lockinfo')) {
     my $ourlockinfo = $fsfile->appData('lockinfo');
@@ -1315,7 +1315,7 @@ sub checkLock {
       }
     }
   } else {
-    return "none";
+    return 'none';
   }
 }
 
@@ -5737,7 +5737,7 @@ sub startMain {
 		my ($w,$grp,$mod)=@_;
 		my $mbar=$grp->{Menubar};
 		$mbar->FindMenu($w->XEvent->K);
-		if ($^O eq "MSWin32") {
+		if ($^O eq 'MSWin32') {
 		  foreach my $child (grep { $_->class eq 'Menubutton' }
 				     $mbar->children) {
 		    $child->ButtonUp() 
@@ -5760,9 +5760,10 @@ sub startMain {
 		my $ctxt = $grp->{selectedContext};
 		Tk->break if $ctxt eq EMPTY;
 		my $idx = $menu->index($ctxt);
-		Tk->break if $idx eq "none";
+		Tk->break if $idx eq 'none';
 		$but->Post();
 		$menu->activate($idx);
+		$but->ButtonUp() if $^O eq 'MSWin32';
 		Tk->break;
 	      }
 	    }, \%group,uc($prefix).'+']);
@@ -5780,9 +5781,10 @@ sub startMain {
 		my $stylesheet = $grp->{selectedStylesheet};
 		Tk->break if $stylesheet eq EMPTY;
 		my $idx = $menu->index($stylesheet);
-		Tk->break if $idx eq "none";
+		Tk->break if $idx eq 'none';
 		$but->Post();
 		$menu->activate($idx);
+		$but->ButtonUp() if $^O eq 'MSWin32';
 		Tk->break;
 	      }
 	    }, \%group,uc($prefix).'+']);
@@ -6243,7 +6245,7 @@ sub saveFileAs {
     if ($file ne $win->{FSFile}->filename) {
       if ($lockFiles) {
 	my $lock = checkLock(undef,$file);
-	if ($lock eq "my") {
+	if ($lock eq 'my') {
 	  if (userQuery($win,
 			"An existing lock on the file $file indicates that it is probably used by another file-object within this process!",
 			-bitmap=> 'question',
@@ -6251,7 +6253,7 @@ sub saveFileAs {
 			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
 	    return -1;
 	  }
-	} elsif ($lock ne "none") {
+	} elsif ($lock ne 'none') {
 	  if (userQuery($win,
 			"File $f was $lock!",
 			-bitmap=> 'question',
