@@ -65,7 +65,7 @@ sub Schema {
     return $obj->type ? $obj->type->schema : undef;
   } elsif (UNIVERSAL::isa($obj,'FSFile')) {
     return $obj->metaData('schema');
-  } elsif (!defined($obj)) {
+  } elsif (!defined($obj) and defined($grp->{FSFile})) {
     return $grp->{FSFile}->metaData('schema');
   } else {
     croak("PML::Schema: Can't derive schema from $obj\n");
