@@ -345,11 +345,21 @@ sub SetResourcePaths {
   $resourcePath=join $resourcePathSplit,@_;
 }
 
+sub _strip_file_prefix {
+  if ($_[0] =~ m{^file:/}) {
+      $_[0] = IOBackend::strip_protocol($_[0]);
+      return 1;
+  } else {
+      return 0;
+  }
+}
 
 sub ResolvePath ($$;$) {
   my ($orig, $href,$use_resources)=@_;
   print STDERR "ResolvePath: '$href' base='$orig' use_resources=$use_resources\n" if $Fslib::Debug;
+  my $href_was_file_url = _strip_file_prefix($href);
   unless (_is_absolute($href)) {
+    my $orig_was_file_url = _strip_file_prefix($orig);
     if (_is_url($orig)) {
       print STDERR "ResolvePath: as URL:\n" if $Fslib::Debug;
       # for URLs, reverse the process a bit:
@@ -378,6 +388,7 @@ sub ResolvePath ($$;$) {
       print STDERR "ResolvePath: trying rel: $rel, based on: ",File::Spec->catfile($vol,$dir),"\n" 
 	if $Fslib::Debug;
       if (-f $rel) {
+	$rel = 'file://'.$rel if $orig_was_file_url;
 	print STDERR "ResolvePath: (1) result='$rel'\n" if $Fslib::Debug;
 	return $rel;
       } elsif (-f $href) {
@@ -389,6 +400,7 @@ sub ResolvePath ($$;$) {
     print STDERR "ResolvePath: (3) result='$result'\n" if $Fslib::Debug;
     return $result;
   } else {
+    $href = 'file://'.$href if $href_was_file_url;
     print STDERR "ResolvePath: (4) result='$href'\n" if $Fslib::Debug;
     return $href;
   }
@@ -1992,8 +2004,8 @@ sub readFile {
   my $ret = 1;
   return unless ref($self);
   $url =~ s/^\s*|\s*$//g;
-  my ($file,$remove_file) = IOBackend::fetch_file($url);
-
+  my ($file,$remove_file) = eval { IOBackend::fetch_file($url) };
+  return -1 if $@;
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
@@ -4240,11 +4252,11 @@ sub readFrom {
     $schema->check_revision($opts);
   } else {
     print STDERR "parsing schema $file\n" if $Fslib::Debug;
-    my $fh = eval { IOBackend::open_backend($file,'r') };
+    my $fh = eval { IOBackend::open_uri($file) };
     croak "Couldn't open PML schema file '$file'\n".$@ if (!$fh || $@);
     local $/;
     my $slurp = <$fh>;
-    IOBackend::close_backend($fh);
+    IOBackend::close_uri($fh);
     $schema = $self->new($slurp,{ %$opts, filename => $file });
     print STDERR "schema ok\n"  if $Fslib::Debug;
   }
