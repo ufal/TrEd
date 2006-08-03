@@ -164,7 +164,7 @@ require IOBackend;
 require Fslib;
 require PMLBackend;
 import PMLBackend;
-import PMLBackend qw(&_die &_warn &_debug);
+
 
 ###################################
 # CONSTRUCTOR
