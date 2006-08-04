@@ -165,7 +165,6 @@ require Fslib;
 require PMLBackend;
 import PMLBackend;
 
-
 ###################################
 # CONSTRUCTOR
 ####################################
@@ -401,7 +400,7 @@ sub read_data {
   my $ctxt = shift;
 
   $ctxt->{'_status'} = 0;
-  foreach my $ref ($ctxt->get_references()) {
+  foreach my $ref ($ctxt->get_reffiles()) {
     if ($ref->{readas} eq 'dom') {
       $ctxt->readas_dom($ref->{id},$ref->{href});
     } elsif($ref->{readas} eq 'trees') {
@@ -452,7 +451,7 @@ sub resolve_type {
   }
 }
 
-sub get_references {
+sub get_reffiles {
   my ($ctxt)=@_;
   my $references = $ctxt->{'_schema'}->{reference};
   my @refs;
@@ -672,7 +671,8 @@ sub read_node {
     if ($type->{role} eq '#NODE' or $struct->{role} eq '#NODE') {
       $hash=FSNode->new();
       $childnodes_taker = $hash;
-      $hash->set_type($ctxt->{'_schema'}->type($type->{structure}));
+      $hash->set_type($type->{structure});
+      #$ctxt->{'_schema'}->type($type->{structure}));
     } else {
       $hash=Fslib::Struct->new();
     }
@@ -801,7 +801,7 @@ sub read_node {
 	} else {
 	  my $mtype = $ctxt->resolve_type($member);
 	  if (ref($mtype) and exists($mtype->{constant})) {
-	    $hash->{$_}=$mtype->{constant};
+	    $hash->{$_}=$mtype->{constant}{value};
 	  }
 	}
       }
@@ -817,7 +817,7 @@ sub read_node {
     if ($type->{role} eq '#NODE' or $container->{role} eq '#NODE') {
       $hash=FSNode->new();
       $opts->{childnodes_taker} = $hash;
-      $hash->set_type($ctxt->{'_schema'}->type($container));
+      $hash->set_type($container); #$ctxt->{'_schema'}->type($container));
     } else {
       $hash=Fslib::Container->new();
     }
@@ -860,23 +860,22 @@ sub read_node {
     }
     my $data = $node->textContent();
     my $ok;
-    _warn("$type->{choice} at ".$node->nodeName."\n")
-      unless ref($type->{choice}) eq 'ARRAY';
-    foreach (@{$type->{choice}}) {
+    my $values = $type->{choice}{values};
+    foreach (@{$values}) {
       if ($_ eq $data) {
 	$ok = 1;
 	last;
       }
     }
     unless ($ok) {
-      _die("Invalid value '$data' for '".$node->localname."' (expected one of: ".join(',',@{$type->{choice}}).")");
+      _die("Invalid value '$data' for '".$node->localname."' (expected one of: ".join(',',@$values).")");
     }
     return $data;
   # CONSTANT ------------------------------------------------------------
   } elsif (exists $type->{constant}) {
     _debug({level => 6},"constant type\n");
     my $data = $node->textContent();
-    if ($data ne EMPTY and $data ne $type->{constant}) {
+    if ($data ne EMPTY and $data ne $type->{constant}{value}) {
       _die("Invalid value '$data' for constant '".$node->localname."' (expected $type->{constant})");
     }
     return $data;
@@ -1238,7 +1237,7 @@ sub write_data {
 
   # dump embedded DOM documents
   my $refs_to_save = $ctxt->{'_refs_save'};
-  my @refs_to_save = grep { $_->{readas} eq 'dom' or $_->{readas} eq 'pml' } $ctxt->get_references();
+  my @refs_to_save = grep { $_->{readas} eq 'dom' or $_->{readas} eq 'pml' } $ctxt->get_reffiles();
   if (ref($refs_to_save)) {
     @refs_to_save = grep { $refs_to_save->{$_->{id}} } @refs_to_save;
   } else {
@@ -1405,7 +1404,8 @@ sub write_object {
     $xml->endTag($tag) if defined($tag);
   } elsif (exists $type->{choice}) {
     my $ok;
-    foreach (@{$type->{choice}}) {
+    my $values = $type->{choice}{values};
+    foreach (@{$values}) {
       if ($_ eq $object) {
 	$ok = 1;
 	last;
@@ -1616,7 +1616,7 @@ sub write_object {
 					      attribs => \%attribs
 					     });
   } elsif (exists $type->{constant}) {
-    if ($object ne $type->{constant}) {
+    if ($object ne $type->{constant}{value}) {
       my $what = $tag || $type->{name} || $type->{'-name'};
       _warn("Invalid constant '$what', should be '$type->{constant}', got: ",$object);
     }
@@ -1834,15 +1834,18 @@ sub validate_object ($$$;$) {
 	unless $object=~/^\s*\d+\s*$/;
     } # TODO - check validity of other formats
   } elsif (exists $type->{constant}) {
-    if ($object ne $type->{constant}) {
+    if ($object ne $type->{constant}{value}) {
       $ctxt->_log("$path: invalid constant, should be '$type->{constant}', got: ",$object);
     }
   } elsif (exists $type->{choice}) {
     my $ok;
-    foreach (@{$type->{choice}}) {
-      if ($_ eq $object) {
-	$ok = 1;
-	last;
+    my $values = $type->{choice}{values};
+    if ($values) {
+      foreach (@{$values}) {
+	if ($_ eq $object) {
+	  $ok = 1;
+	  last;
+	}
       }
     }
     $ctxt->_log("$path: Invalid value: '$object'") unless ($ok);
