@@ -828,6 +828,8 @@ sub add_member {
   } elsif (exists $mtype->{choice}) {
     $data->{dump} = 'string';
     $data->{value} = $attr_val;
+    my $values = ref($mtype->{choice} eq 'ARRAY') ? $mtype->{choice} : $mtype->{choice}{values};
+    
     my $w = $hlist->JComboBox_0_02(
 
       -mode => 'editable',
@@ -840,7 +842,7 @@ sub add_member {
       -textvariable => \$data->{value},
       -background => 'gray',
 
-      -choices => (($required or ref($member) and $member->{required}) ? $mtype->{choice} : ['',@{$mtype->{choice}}]),
+      -choices => (($required or ref($member) and $member->{required}) ? $values : ['',@$values]),
       -popupbackground => 'black',
       -borderwidth => 1,
       -relief => 'flat',
@@ -893,7 +895,7 @@ sub add_member {
     $data->{dump} = 'constant';
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{constant});
     $hlist->itemCreate($path,1,-itemtype => 'text',
-		       -text => $mtype->{constant},
+		       -text => $mtype->{constant}{value},
 		       -style => $hlist->{my_itemstyles}{constant});
   } elsif ($mtype->{structure}) {
     $data->{dump} = 'structure';
@@ -1113,7 +1115,7 @@ sub dump_child {
   if ($dump eq 'string') {
     _store_data($ref,$data->{name},$data->{value},$preserve_empty);
   } elsif ($dump eq 'constant') {
-    _store_data($ref,$data->{name},$mtype->{constant},1);
+    _store_data($ref,$data->{name},$mtype->{constant}{value},1);
   } elsif ($dump eq 'list') {
     my $new_ref=Fslib::List->new;
     _store_data($ref,$data->{name},$new_ref,1);

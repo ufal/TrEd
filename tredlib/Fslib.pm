@@ -16,7 +16,8 @@ use strict;
 use Data::Dumper;
 use Scalar::Util qw(weaken);
 
-use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $API_VERSION $field_re $attr_name_re
+use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $API_VERSION %COMPATIBLE_API_VERSION
+            $field_re $attr_name_re
             $parent $firstson $lbrother $rbrother $type
             $SpecialTypes $FSError $Debug $resourcePath $resourcePathSplit);
 
@@ -26,8 +27,12 @@ use File::Spec;
 @ISA=qw(Exporter);
 $VERSION = "1.6";        # change when new functions are added etc
 
-$API_VERSION = "1.1";    # change when internal data structures change,
+$API_VERSION = "1.2";    # change when internal data structures change,
                          # in a way that may prevent old binary dumps to work properly
+
+%COMPATIBLE_API_VERSION = map { $_ => 1 } 
+  qw( 1.1 ), 
+  $API_VERSION;
 
 @EXPORT = qw/&Next &Prev &DeleteTree &DeleteLeaf &Cut &ImportBackends/;
 @EXPORT_OK = qw/$FSError &Index &SetParent &SetLBrother &SetRBrother &SetFirstSon &Paste &Parent &LBrother &RBrother &FirstSon ResourcePath FindInResources FindDirInResources ResolvePath &CloneValue AddResourcePath AddResourcePathAsFirst SetResourcePaths RemoveResourcePath /;
@@ -345,11 +350,21 @@ sub SetResourcePaths {
   $resourcePath=join $resourcePathSplit,@_;
 }
 
+sub _strip_file_prefix {
+  if ($_[0] =~ m{^file:/}) {
+      $_[0] = IOBackend::strip_protocol($_[0]);
+      return 1;
+  } else {
+      return 0;
+  }
+}
 
 sub ResolvePath ($$;$) {
   my ($orig, $href,$use_resources)=@_;
   print STDERR "ResolvePath: '$href' base='$orig' use_resources=$use_resources\n" if $Fslib::Debug;
+  my $href_was_file_url = _strip_file_prefix($href);
   unless (_is_absolute($href)) {
+    my $orig_was_file_url = _strip_file_prefix($orig);
     if (_is_url($orig)) {
       print STDERR "ResolvePath: as URL:\n" if $Fslib::Debug;
       # for URLs, reverse the process a bit:
@@ -378,6 +393,7 @@ sub ResolvePath ($$;$) {
       print STDERR "ResolvePath: trying rel: $rel, based on: ",File::Spec->catfile($vol,$dir),"\n" 
 	if $Fslib::Debug;
       if (-f $rel) {
+	$rel = 'file://'.$rel if $orig_was_file_url;
 	print STDERR "ResolvePath: (1) result='$rel'\n" if $Fslib::Debug;
 	return $rel;
       } elsif (-f $href) {
@@ -389,6 +405,7 @@ sub ResolvePath ($$;$) {
     print STDERR "ResolvePath: (3) result='$result'\n" if $Fslib::Debug;
     return $result;
   } else {
+    $href = 'file://'.$href if $href_was_file_url;
     print STDERR "ResolvePath: (4) result='$href'\n" if $Fslib::Debug;
     return $href;
   }
@@ -1707,7 +1724,7 @@ sub clone_node {
   my ($self,$node)=@_;
   my $new = FSNode->new();
   if ($node->type) {
-    foreach my $atr ($node->type->members) {
+    foreach my $atr ($node->type->get_normal_fields) {
       if (ref($node->{$atr})) {
 	$new->{$atr} = Fslib::CloneValue($node->{$atr});
       } else {
@@ -1992,8 +2009,8 @@ sub readFile {
   my $ret = 1;
   return unless ref($self);
   $url =~ s/^\s*|\s*$//g;
-  my ($file,$remove_file) = IOBackend::fetch_file($url);
-
+  my ($file,$remove_file) = eval { IOBackend::fetch_file($url) };
+  return -1 if $@;
   @_=qw/FSBackend/ unless @_;
   foreach my $backend (@_) {
     print STDERR "Trying backend $backend: " if $Fslib::Debug;
@@ -2981,7 +2998,7 @@ sub read {
       role => '#NODE',
       member => $members,
     };
-    my $schema= bless {
+    my $schema= Fslib::Schema->convert_from_hash({
       description => 'PML schema generated from FS header',
       root => { name => 'fs-data',
 		element => {
@@ -3002,7 +3019,7 @@ sub read {
 	  structure => $node_type,
 	}
       }
-    },'Fslib::Schema';
+    });
     if (defined($node_type->{member})) {
       $emu_schema_type = $schema->type($node_type);
       $fsfile->changeMetaData('schema',$schema);
@@ -3860,6 +3877,167 @@ Set value of the element
 =cut
 
 
+###############################################################3
+
+package Fslib::Type;
+use Carp;
+
+=head1 Fslib::Type
+
+This is an obsoleted wrapper class for a schema type declarations.
+
+=over 3
+
+=cut
+
+=item Fslib::Type->new (schema,type)
+
+Return a new C<Fslib::Type> object containing a given type of a given
+C<Fslib::Schema>.
+
+=cut
+
+sub new {
+  my ($class, $schema, $type)=@_;
+  return bless [$schema,$type], $class;
+}
+
+=item $type->schema ()
+
+Retrieve the C<Fslib::Schema>.
+
+=cut
+
+sub schema {
+  my ($self)=@_;
+  return $self->[0];
+}
+
+=item $type->type_decl ()
+
+Return the raw Perl structure which resulted from parsing the PML
+schema declaration by C<XML::Simple>.
+
+=cut
+
+sub type_decl {
+  my ($self)=@_;
+  return $self->[1];
+}
+
+=item $type->get_normal_fields ()
+
+For a structure type, return names of its members, for a container
+return names of its attributes plus the name '#content' referring to
+the container's content value. In both cases, eliminate fields of
+values with role C<#CHILDNODES> and strip a possible C<.rf> suffix of
+fields with role C<#KNIT>.
+
+=cut
+
+sub get_normal_fields {
+  my ($self,$path)=@_;
+  my $type = defined($path) ? $self->find($path) : $self->type_decl;
+  my $struct;
+  my $members;
+  if (ref($type)) {
+    if (exists($type->{structure})) {
+      $struct = $type->{structure};
+      $members = $struct->{member};
+    } elsif (exists($type->{container})) {
+      $struct = $type->{container};
+      $members = $struct->{attribute};
+    } elsif (exists($type->{member})) {
+      $struct = $type;
+      $members = $struct->{member};
+    } elsif (exists($type->{attribute})) {
+      $struct = $type;
+      $members = $struct->{attribute};
+    }
+  }
+  if ($struct) {
+    return 
+    map { $_->[1] }
+    sort {$a->[0] <=> $b->[0]}
+    map {
+      my $name = $_;
+      my $member = $members->{$name};
+      if (ref($member)) {
+	my $ord = $member->{'-#'};
+ 	if ($member->{role} eq '#CHILDNODES') {
+ 	  ()
+ 	} elsif ($member->{role} eq '#KNIT') {
+       	  $name=~s/\.rf$//;
+ 	  [$ord, $name];
+ 	} else {
+ 	  my $mtype = $self->schema->resolve_type($member);
+ 	  if (ref($mtype) and exists $mtype->{list} and
+ 	      $mtype->{list}{role} eq '#KNIT') {
+ 	    $name=~s/\.rf$//;
+ 	    [$ord,$name];
+ 	  } else {
+	    [$ord,$name]
+	  }
+	}
+      } else {
+ 	[0,$name]
+      }
+    } keys %$members;
+  } else {
+    return ();
+  }
+}
+
+=item $type->get_attribute_paths ()
+
+Return attribute paths leading to all atomic subtypes (recursively) of
+the given type.
+
+=cut
+
+sub get_attribute_paths {
+  my ($self)=@_;
+  return $self->schema->attributes($self->type_decl);
+}
+
+=item $type->find (attribute-path,noresolve)
+
+Locate a type declaration specified by C<attribute-path> starting from
+the current type. If C<noresolve> is true, a possible type-reference
+occuring in the type declaration reached by the last step of the
+attribute path will not be resolved.
+
+Attribute path is a '/'-separated sequence of member and/or element
+names which identifies a path to a certain nested sub-type in the
+nesting of structures and element sequences.
+
+=cut
+
+sub find {
+  my ($self, $path,$noresolve) = @_;
+  # find node type
+  my $type = $self->type_decl;
+  return $self->schema->find_type_by_path($path,$noresolve,$type);
+}
+
+=item $type->find_role (role)
+
+Literally equivalent to C<$type->schema->find_role($role,$type->type_decl)>.
+
+
+=cut
+
+sub find_role {
+  my ($self, $role,$first) = @_;
+  return $self->schema->find_role($role,$self->type_decl);
+}
+
+=back
+
+=cut
+
+1;
+
 ###########################################################
 
 =head1 Fslib::Schema
@@ -3902,6 +4080,31 @@ path) may be omitted.
 
 package Fslib::Schema;
 use Carp;
+
+sub get_url                  { return $_[0]->{URL};           }
+sub get_pml_version          { return $_[0]->{version};       }
+sub get_revision             { return $_[0]->{revision};      }
+sub get_description          { return $_[0]->{description};   }
+sub get_root_decl            { return $_[0]->{root};          }
+sub _internal_api_version    { return $_[0]->{'-api_version'} }
+sub get_root_name { 
+  my $root = $_[0]->{root}; 
+  return $root ? $root->{name} : undef; 
+}
+sub get_type_names { 
+  my $types = $_[0]->{type};
+  return $types ? keys(%$types) : ();
+}
+
+sub get_named_reference_info {
+  my ($self, $name) = @_;
+  if ($self->{reference}) {
+    return { map { %$_ } grep { $_->{name} eq $name } @{$self->{reference}} };
+  }
+}
+
+sub find_decl_by_path { die "NOT YET IMPLEMENTED" }
+sub find_named_type_uses { die "NOT YET IMPLEMENTED" }
 
 # compare schema revision number with a given revision number
 sub _match_revision {
@@ -4105,6 +4308,39 @@ sub check_revision {
   }
 }
 
+sub convert_from_hash {
+  my $class = shift;
+  my $schema_hash;
+  if (ref($class)) {
+    $schema_hash = $class;
+    $class = ref( $schema_hash );
+  } else {
+    $schema_hash = shift;
+    bless $schema_hash,$class;
+  }
+  $schema_hash->{-api_version} = '1.0';
+  my $root = $schema_hash->{root};
+  if (defined($root)) {
+    bless $root, 'Fslib::Schema::Root';
+    Fslib::Schema::Decl->convert_from_hash($root, 
+				  $schema_hash,
+				  undef  # path = '' for root
+				 );
+  }
+  my $types = $schema_hash->{type};
+  if ($types) {
+    my ($name, $decl);
+    while (($name, $decl) = each %$types) {
+      bless $decl, 'Fslib::Schema::Type';
+      Fslib::Schema::Decl->convert_from_hash($decl, 
+				    $schema_hash,
+				    '#'.$name
+				   );
+    }
+  }
+  return $schema_hash;
+}
+
 =item Fslib::Schema->new (string)
 
 Parses a given XML representation of the schema and returns a new
@@ -4142,15 +4378,17 @@ sub new {
   eval {
     require XML::IxSimple;
     $XML::IxSimple::PREFERRED_PARSER = 'XML::LibXML::SAX';
-    $new = bless XML::IxSimple::XMLin($string,@xml_simple_opts),$class;
+    $new = bless XML::IxSimple::XMLin($string,@xml_simple_opts), $class;
   };
+
   if ($@) {
     croak "Error occured when parsing PML schema ".$opts->{filename}.": $@";
   }
   $new->{URL} = $opts->{filename} || '<string>';
   $new->check_revision($opts);
 
-  $opts->{schemas} = {} unless ref($opts->{schemas});
+  
+  $opts->{schemas} = {} unless (ref($opts->{schemas}));
   my $schemas = $opts->{schemas};
 
   # apply imports
@@ -4158,9 +4396,9 @@ sub new {
   if (ref($imports)) {
     foreach my $import (@$imports) {
       if (exists($import->{type})) {
-
-	my $schema = Fslib::Schema->readFrom($import->{schema} ,
-					     { %$opts, 
+	my $schema = Fslib::Schema->readFrom($import->{schema},
+					     { %$opts,
+					       imported => 1,
 					       base_url => $new->{URL},
 					       (map {
 						 if (exists($import->{$_})) {
@@ -4169,13 +4407,14 @@ sub new {
 					       } qw(revision minimal_revision maximal_revision)),
 					       revision_error => "Error importing type '$import->{type}' from schema %f to $new->{URL} - revision mismatch: %e"
 					      });
-	$opts->{schemas}{ $schema->{URL} } = $schema;
+	$schemas->{ $schema->{URL} } = $schema;
 	my $name = $import->{type};
 	if (ref($schema->{type})) {
 	  $new->_import_type($schema,$name);
 	}
       } else {
 	my $schema = Fslib::Schema->readFrom($import->{schema} ,{ %$opts, 
+								  imported => 1,
 								  base_url => $new->{URL},
 								  (map {
 								    if (exists($import->{$_})) {
@@ -4184,7 +4423,7 @@ sub new {
 								  } qw(revision minimal_revision maximal_revision)),
 								  revision_error => "Error importing schema %f to $new->{URL} - revision mismatch: %e",
 								});
-	$opts->{schemas}{ $schema->{URL} } = $schema;
+	$schemas->{ $schema->{URL} } = $schema;
 	if (!exists($new->{root}) and $schema->{root}) {
 	  $new->{root} = Fslib::CloneValue($schema->{root});
 	}
@@ -4200,6 +4439,7 @@ sub new {
     }
   }
   $new->_derive();
+  $new->convert_from_hash() if !$opts->{imported};
   return $new;
 }
 
@@ -4240,11 +4480,11 @@ sub readFrom {
     $schema->check_revision($opts);
   } else {
     print STDERR "parsing schema $file\n" if $Fslib::Debug;
-    my $fh = eval { IOBackend::open_backend($file,'r') };
+    my $fh = eval { IOBackend::open_uri($file) };
     croak "Couldn't open PML schema file '$file'\n".$@ if (!$fh || $@);
     local $/;
     my $slurp = <$fh>;
-    IOBackend::close_backend($fh);
+    IOBackend::close_uri($fh);
     $schema = $self->new($slurp,{ %$opts, filename => $file });
     print STDERR "schema ok\n"  if $Fslib::Debug;
   }
@@ -4521,10 +4761,15 @@ sub resolve_type {
   return $type unless ref($type);
   if ($type->{type}) {
     my $rtype = $self->{type}{$type->{type}};
-    if (ref($rtype)) {      
-      my %t = %$rtype;
-      $t{role} = $type->{role} if exists $type->{role};
-      return \%t;
+    if (ref($rtype)) {
+      my $t = { %$type };
+      bless $t, ref($type);
+      #$t->{name} = $rtype->{name};
+      $t->{-path} = $rtype->{-path};
+      $t->{-decl} = $rtype->{-decl};
+      $t->{ $t->{-decl} } = $rtype->get_content_decl;
+      return $t;
+      #return \%t;
     } else {
       # couldn't resolve
       warn "Couldn't resolve type '$type->{type}' (no such type in schema '".
@@ -4545,10 +4790,13 @@ retrieved from the C<Fslib::Type> object.
 =cut
 
 sub type {
-  my ($self,$type)=@_;
-  return Fslib::Type->new($self,$type);
+  my ($self,$decl)=@_;
+  if (UNIVERSAL::isa($decl,'Fslib::Schema::Decl')) {
+    return $decl
+  } else {
+    return Fslib::Type->new($self,$decl);
+  }
 }
-
 
 # emulate FSFormat->attributes to some extent
 
@@ -4710,163 +4958,337 @@ sub validate_field {
 
 =cut
 
-###############################################################3
+########################################################################
+# PML Schema type declaration
+########################################################################
 
-package Fslib::Type;
+package Fslib::Schema::Decl;
+
+use Scalar::Util qw( weaken );
 use Carp;
+use base qw( Fslib::Type );
 
-=head1 Fslib::Type
+sub new { croak("Can't create ".__PACKAGE__) }
 
-This is a wrapper class for a schema type.
+# compatibility with old Fslib::Type
+sub type_decl { return $_[0] };
+sub schema    { return $_[0]->{-schema} }
 
-=over 3
-
-=cut
-
-=item Fslib::Type->new (schema,type)
-
-Return a new C<Fslib::Type> object containing a given type of a given
-C<Fslib::Schema>.
-
-=cut
-
-sub new {
-  my ($class, $schema, $type)=@_;
-  return bless [$schema,$type], $class;
+sub is_root { 0 }
+sub is_named_type {
+  my $parent = $_[0]->{-parent};
+  return ($parent and $parent->getDeclType eq 'type') ? 1 : 0;
 }
-
-=item $type->schema ()
-
-Retrieve the C<Fslib::Schema>.
-
-=cut
-
-sub schema {
-  my ($self)=@_;
-  return $self->[0];
-}
-
-=item $type->type_decl ()
-
-Return the raw Perl structure which resulted from parsing the PML
-schema declaration by C<XML::Simple>.
-
-=cut
-
-sub type_decl {
-  my ($self)=@_;
-  return $self->[1];
-}
-
-=item $type->members ()
-
-If the wrapped schema type is an AVS structure type,
-return names of its members (attributes), except
-for a possible member with role C<#CHILDNODES>.
-
-=cut
-
-sub members {
-  my ($self,$path)=@_;
-  my $type = defined($path) ? $self->find($path) : $self->type_decl;
-  my $struct;
-  my $members;
-  if (ref($type)) {
-    if (exists($type->{structure})) {
-      $struct = $type->{structure};
-      $members = $struct->{member};
-    } elsif (exists($type->{container})) {
-      $struct = $type->{container};
-      $members = $struct->{attribute};
-    } elsif (exists($type->{member})) {
-      $struct = $type;
-      $members = $struct->{member};
-    } elsif (exists($type->{attribute})) {
-      $struct = $type;
-      $members = $struct->{attribute};
-    }
-  }
-  if ($struct) {
-    return 
-    map { $_->[1] }
-    sort {$a->[0] <=> $b->[0]}
-    map {
-      my $name = $_;
-      my $member = $members->{$name};
-      if (ref($member)) {
-	my $ord = $member->{'-#'};
- 	if ($member->{role} eq '#CHILDNODES') {
- 	  ()
- 	} elsif ($member->{role} eq '#KNIT') {
-       	  $name=~s/\.rf$//;
- 	  [$ord, $name];
- 	} else {
- 	  my $mtype = $self->schema->resolve_type($member);
- 	  if (ref($mtype) and exists $mtype->{list} and
- 	      $mtype->{list}{role} eq '#KNIT') {
- 	    $name=~s/\.rf$//;
- 	    [$ord,$name];
- 	  } else {
-	    [$ord,$name]
-	  }
-	}
-      } else {
- 	[0,$name]
-      }
-    } keys %$members;
+sub get_base_type_name {
+  my $path = $_[0]->{-path};
+  if ($path=~m{^#([^/]+)}) {
+    return $1;
   } else {
-    return ();
+    return undef;
   }
+}
+sub get_decl_path { return $_[0]->{-path};  }
+sub get_decl_type { return undef; } # VIRTUAL
+sub get_role      { return $_[0]->{role}    }
+*get_schema = \&schema;
+sub get_parent_decl { return $_[0]->{-parent} }
+
+sub find_decl_by_path { die "NOT YET IMPLEMENTED" }
+sub traverse_decls    { die "NOT YET IMPLEMENTED" }
+
+sub convert_from_hash {
+  my ($class, $decl, $schema, $path) = @_;
+  my $sub;
+  my $decl_type;
+  if ($sub = $decl->{structure}) {
+    $decl_type = 'structure';
+    bless $sub, 'Fslib::Schema::Struct';
+    if (my $members = $sub->{member}) {
+      my ($name, $mdecl);
+      while (($name, $mdecl) = each %$members) {
+	bless $mdecl, 'Fslib::Schema::Member';
+	$class->convert_from_hash($mdecl, 
+			 $schema,
+			 $path.'/'.$name
+			);
+      }
+    }
+  } elsif ($sub = $decl->{container}) {
+    $decl_type = 'container';
+    bless $sub, 'Fslib::Schema::Container';
+    if (my $members = $sub->{attribute}) {
+      my ($name, $mdecl);
+      while (($name, $mdecl) = each %$members) {
+	bless $mdecl, 'Fslib::Schema::Attribute';
+	$class->convert_from_hash($mdecl, 
+			 $schema,
+			 $path.'/'.$name
+			);
+      }
+    }
+    $class->convert_from_hash($sub, $schema, $path.'/#content');
+  } elsif ($sub = $decl->{sequence}) {
+    $decl_type = 'sequence';
+    bless $sub, 'Fslib::Schema::Seq';
+    if (my $members = $sub->{element}) {
+      my ($name, $mdecl);
+      while (($name, $mdecl) = each %$members) {
+	bless $mdecl, 'Fslib::Schema::Element';
+	$class->convert_from_hash($mdecl, 
+			 $schema,
+			 $path.'/'.$name
+			);
+      }
+    }
+  } elsif ($sub = $decl->{list}) {
+    $decl_type = 'list';
+    bless $sub, 'Fslib::Schema::List';
+    $class->convert_from_hash($sub, $schema, $path.'/[LIST]');
+  } elsif ($sub = $decl->{alt}) {
+    $decl_type = 'alt';
+    bless $sub, 'Fslib::Schema::Alt';
+    $class->convert_from_hash($sub, $schema, $path.'/[ALT]');
+  } elsif ($sub = $decl->{choice}) {
+    $decl_type = 'choice';
+    # convert from an ARRAY to a hash
+    if (ref($sub) eq 'ARRAY') {
+      $sub = $decl->{choice} = bless { values => $sub }, 'Fslib::Schema::Choice';
+    } else {
+      bless $sub, 'Fslib::Schema::Choice';
+    }
+  } elsif ($sub = $decl->{cdata}) {
+    $decl_type = 'cdata';
+    bless $sub, 'Fslib::Schema::CDATA';
+  } elsif ($sub = $decl->{constant}) {
+    $decl_type = 'constant';
+    unless (ref($sub)) {
+      $sub = $decl->{constant} = bless { value => $sub }, 'Fslib::Schema::Constant';
+    }
+    ## this is just a scalar value
+    # bless $sub, 'Fslib::Schema::Constant';
   }
-
-=item $type->attributes ()
-
-Return attribute paths leading to all atomic subtypes of the given type.
-
-=cut
-
-sub attributes {
-  my ($self)=@_;
-  return $self->schema->attributes($self->type_decl);
+  weaken( $decl->{-schema} = $schema );
+  $decl->{-decl} = $decl_type;
+  if (UNIVERSAL::isa($sub,'HASH')) {
+    weaken( $sub->{-schema} = $schema ) unless $sub->{-schema};
+    weaken( $sub->{-parent} = $decl );
+    $sub->{-path} = $path;
+  }
+  return $decl;
 }
 
-=item $type->find (attribute-path,noresolve)
+package Fslib::Schema::Root;
+use base qw( Fslib::Schema::Decl );
+sub is_root { 1 }
+sub get_decl_type { return 'root'; }
+sub get_name { return $_[0]->{name}; }
+sub get_content_decl { return $_[0]->{ $_[0]->{-decl} }; }
 
-Locate a type declaration specified by C<attribute-path> starting from
-the current type. If C<noresolve> is true, a possible type-reference
-occuring in the type declaration reached by the last step of the
-attribute path will not be resolved.
+package Fslib::Schema::Type;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'type'; }
+sub get_name { return $_[0]->{-name}; }
+sub get_content_decl { return $_[0]->{ $_[0]->{-decl} }; }
 
-Attribute path is a '/'-separated sequence of member and/or element
-names which identifies a path to a certain nested sub-type in the
-nesting of structures and element sequences.
+package Fslib::Schema::Struct;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'structure'; }
+sub get_structure_name { return $_[0]->{name}; }
 
-=cut
-
-sub find {
-  my ($self, $path,$noresolve) = @_;
-  # find node type
-  my $type = $self->type_decl;
-  return $self->schema->find_type_by_path($path,$noresolve,$type);
+sub get_members { 
+  my $members = $_[0]->{member};
+  return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $_->{'-#'} ] } values %$members : (); 
+}
+sub get_member_names { 
+  my $members = $_[0]->{member};
+  return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $members->{$_}->{'-#'} ] } keys %$members : (); 
+}
+sub get_member_by_name {
+  my ($self, $name) = @_;
+  my $members = $_[0]->{member};
+  return $members ? $members->{$name} : undef;
+}
+sub find_members_by_type_decl {
+  my ($self, $decl) = @_;
+  return grep { $decl == $_->get_content_decl } $self->get_members;
+}
+sub find_members_by_type_name {
+  my ($self, $type_name) = @_;
+  # using directly $member->{type}
+  return grep { $type_name eq $_->{type} } $self->get_members;  
+}
+sub find_members_by_role {
+  my ($self, $role) = @_;
+  # using directly $member->{role}
+  return grep { $role eq $_->{role} } $self->get_members;  
 }
 
-=item $type->find_role (role)
+package Fslib::Schema::Container;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'container'; }
 
-Literally equivalent to C<$type->schema->find_role($role,$type->type_decl)>.
+sub get_attributes { 
+  my $members = $_[0]->{attribute};
+  return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $_->{'-#'} ] } values %$members : (); 
+}
+sub get_attribute_names { 
+  my $members = $_[0]->{attribute};
+  return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $members->{$_}->{'-#'} ] } keys %$members : (); 
+}
+sub get_attribute_by_name {
+  my ($self, $name) = @_;
+  my $members = $_[0]->{attribute};
+  return $members ? $members->{$name} : undef;
+}
+sub get_attribute_type_by_name {
+  my ($self, $name) = @_;
+  my $members = $_[0]->{attribute};
+  return undef unless $members;
+  my $attr = $members->{$name};
+  return $attr ? $attr->get_content_decl : undef;
+}
+sub get_content_decl { return $_[0]->{ $_[0]->{-decl} }; }
 
-
-=cut
-
-sub find_role {
-  my ($self, $role,$first) = @_;
-  return $self->schema->find_role($role,$self->type_decl);
+sub get_members {
+  my $self = shift;
+  return ($self->get_attributes, $self->get_content_decl);
+}
+sub get_member_by_name {
+  my ($self, $name) = @_;
+  if ($name eq '#content') {
+    return $self->get_content_decl
+  } else {
+    return $self->get_attribute_by_name($name);
+  }
+}
+sub get_member_names {
+  return ($_[0]->get_attribute_names, '#content')
+}
+sub find_attributes_by_type_decl {
+  my ($self, $decl) = @_;
+  return grep { $decl == $_->get_content_decl } $self->get_attributes;
+}
+sub find_attributes_by_type_name {
+  my ($self, $type_name) = @_;
+  # using directly $member->{type}
+  return grep { $type_name eq $_->{type} } $self->get_attributes;  
+}
+sub find_attributes_by_role {
+  my ($self, $role) = @_;
+  # using directly $member->{role}
+  return grep { $role eq $_->{role} } $self->get_attributes;  
 }
 
-=back
+package Fslib::Schema::Seq;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'sequence'; }
 
-=cut
+sub get_content_pattern {
+  return $_[0]->{content_pattern};
+}
+sub get_elements { 
+  my $members = $_[0]->{element};
+  return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $_->{'-#'} ] } values %$members : (); 
+}
+sub get_element_names { 
+  my $members = $_[0]->{element};
+  return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $members->{$_}->{'-#'} ] } keys %$members : (); 
+}
+sub get_element_by_name {
+  my ($self, $name) = @_;
+  my $members = $_[0]->{element};
+  return $members ? $members->{$name} : undef;
+}
+sub find_elements_by_type_decl {
+  my ($self, $decl) = @_;
+  return grep { $decl == $_->get_content_decl } $self->get_elements;
+}
+sub find_elements_by_type_name {
+  my ($self, $type_name) = @_;
+  # using directly $member->{type}
+  return grep { $type_name eq $_->{type} } $self->get_elements;  
+}
+sub find_elements_by_role {
+  my ($self, $role) = @_;
+  # using directly $member->{role}
+  return grep { $role eq $_->{role} } $self->get_elements;  
+}
 
-1;
+sub validate_content_pattern {
+  die "NOT YET IMPLEMENTED";
+}
+
+package Fslib::Schema::List;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'list'; }
+sub is_ordered { return $_[0]->{ordered} }
+sub get_content_decl { return $_[0]->{ $_[0]->{-decl} }; }
+
+package Fslib::Schema::Alt;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'alt'; }
+
+sub get_content_decl { return $_[0]->{ $_[0]->{-decl} }; }
+
+package Fslib::Schema::Choice;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'choice'; }
+sub get_values { return @{ $_[0]->{values} }; }
+
+sub validate_value {
+  my ($self,$string) = @_;
+  for my $val (@{ $_[0]->{values} }) {
+    return 1 if $string eq $val;
+  }
+  return 0;
+}
+
+package Fslib::Schema::CDATA;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'cdata'; }
+sub get_format { return $_[0]->{format} }
+sub validate_format {
+  my ($self,$string) = @_;
+  die "NOT YET IMPLEMENTED";
+}
+
+package Fslib::Schema::Constant;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'constant'; }
+sub get_value { return $_[0]->{value}; }
+sub get_values { my @val=($_[0]->{value}); return @val; }
+
+sub validate_value {
+  my ($self, $string) = @_;
+  return $string eq $_[0]->{value} ? 1 : 0;
+}
+
+package Fslib::Schema::Member;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'member'; }
+sub get_name { return $_[0]->{-name}; }
+sub get_content_decl { return $_[0]->{ $_[0]->{-decl} }; }
+sub is_required { return $_[0]->{required}; }
+sub is_attribute { return $_[0]->{as_attribute}; }
+*get_parent_struct = \&get_parent_decl;
+
+package Fslib::Schema::Element;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'element'; }
+sub get_name { return $_[0]->{-name}; }
+sub get_content_decl { return $_[0]->{ $_[0]->{-decl} }; }
+*get_parent_sequence = \&get_parent_decl;
+
+package Fslib::Schema::Attribute;
+use base qw( Fslib::Schema::Decl );
+sub get_decl_type { return 'attribute'; }
+sub get_name { return $_[0]->{-name}; }
+sub is_required { return $_[0]->{required}; }
+sub is_attribute { return 1; }
+sub get_content_decl { return $_[0]->{ $_[0]->{-decl} }; }
+*get_parent_container = \&get_parent_decl;
+*get_parent_struct = \&get_parent_decl; # compatibility with members
+
 
 
 ############################################################

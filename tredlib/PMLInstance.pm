@@ -160,10 +160,11 @@ use XML::LibXML::Common qw(:w3c :encoding);
 use Data::Dumper;
 use File::Spec;
 
+require IOBackend;
 require Fslib;
 require PMLBackend;
 import PMLBackend;
-import PMLBackend qw(&_die &_warn &_debug);
+
 
 ###################################
 # CONSTRUCTOR
@@ -205,7 +206,7 @@ sub _debug {
 sub _warn {
   my $msg = join EMPTY,@_;
   chomp $msg;
-  if ($DEBUG>0) {
+  if ($DEBUG<0) {
     Carp::cluck("PMLBackend: WARNING: $msg\n");
   } else {
     warn "PMLBackend: WARNING: $msg\n";
@@ -241,10 +242,10 @@ sub load {
     $ctxt->{'_dom'} = $parser->parse_string($opts->{string},
 					 $ctxt->{'_filename'});
   } elsif ($opts->{filename}) {
-    my $fh = PMLBackend::open_backend($opts->{filename},'r');
+    my $fh = IOBackend::open_uri($opts->{filename});
     $ctxt->{'_dom'} = $parser->parse_fh($fh,
 				     $opts->{filename});
-    PMLBackend::close_backend($fh);
+    IOBackend::close_uri($fh);
   }
   unless ($ctxt->{'_dom'}) {
     _die("Reading PML instance '".$ctxt->{'_filename'}."' to DOM failed!");
@@ -532,7 +533,7 @@ sub readas_dom {
   my $ref_data;
 
   my ($local_file,$remove_file) = IOBackend::fetch_file($href);
-  my $ref_fh = IOBackend::open_backend($local_file,'r');
+  my $ref_fh = IOBackend::open_uri($local_file);
   _die("Can't open $href for reading") unless $ref_fh;
   _debug("readas_dom: $href $ref_fh");
   my $parser = $ctxt->{'_parser'} || PMLBackend::xml_parser();
@@ -543,7 +544,7 @@ sub readas_dom {
     _die("Error parsing $href $ref_fh $local_file ($@)") if $@;
     $ref_data->setBaseURI($href) if $ref_data and $ref_data->can('setBaseURI');;
     $parser->process_xincludes($ref_data);
-    IOBackend::close_backend($ref_fh);
+    IOBackend::close_uri($ref_fh);
     $ctxt->{'_ref'} ||= {};
     $ctxt->{'_ref'}->{$refid}=$ref_data;
     $ctxt->{'_ref-index'} ||= {};
@@ -610,7 +611,10 @@ sub read_node {
 	  ? (map {
 	      $ctxt->read_node($_,$list_type)
 	     } _read_List($node)) 
-	  : $ctxt->read_node($node, $list_type,{ attrs => $opts->{attrs} }) 
+	  : ($node->hasChildNodes or 
+	       ($opts->{attrs} ? keys(%{$opts->{attrs}})>0 : $node->hasAttributes)) 
+	  ? $ctxt->read_node($node, $list_type,{ attrs => $opts->{attrs} }) 
+	  : () 
       ], 'Fslib::List';
     my $role = $type->{list}{role};
     my $childnodes_taker = $opts->{childnodes_taker};
@@ -628,15 +632,16 @@ sub read_node {
     my $alt_type = $ctxt->resolve_type($type->{alt});
     # alt
     my $Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
-    if (@$Alt) {
+    if (@$Alt>1) {
       return bless [
 	map {
 	  $ctxt->read_node($_,$alt_type)
 	} @$Alt,
        ], 'Fslib::Alt';
+    } elsif (@$Alt==1) {
+      return $ctxt->read_node($Alt->[0],$alt_type)
     } else {
-      my $data = $ctxt->read_node($node,$alt_type,{ attrs => $opts->{attrs} });
-      return $data;
+      return $ctxt->read_node($node,$alt_type,{ attrs => $opts->{attrs} });
     }
   # SEQUENCE ------------------------------------------------------------
   } elsif (exists $type->{sequence}) {
@@ -696,6 +701,7 @@ sub read_node {
       }
     }
 
+### guess which is fastest:-)
 #    foreach my $child ($node->findnodes('*')) {
 #    foreach my $child ($node->getChildrenByTagNameNS(PML_NS,'*')) {
 #    foreach my $child ($node->findnodes('*[namespace-uri()="'.PML_NS.'"]')) {
@@ -1132,6 +1138,7 @@ sub save {
   $ctxt->{'_filename'} = $opts->{filename} if $opts->{filename};
   my $href = $ctxt->{'_filename'};
 
+  $ctxt->{'_write_single_LM'} = $opts->{'write_single_LM'};
   $ctxt->{'_trees_written'} = 0;
   unless ($fh) {
     if ($href ne EMPTY) {
@@ -1161,8 +1168,7 @@ sub save {
       _die("Usage: $ctxt->save({filename=>...,[fh => ...]})");
     }
   }
-
-  $ctxt->{'_write_single_LM'} = $opts->{'write_single_LM'};
+  
   $ctxt->{'_refs_save'} ||= $opts->{'refs_save'};
   _debug("Saving PML instance '$href'\n");
   binmode $fh if $fh;
@@ -1219,7 +1225,7 @@ sub save {
 
 
 sub write_data {
-  my $ctxt = shift;
+  my ($ctxt) = @_;
 
   my $schema = $ctxt->{'_schema'};
   unless (ref($schema)) {
@@ -1310,7 +1316,7 @@ sub write_data {
 	} else {
 	  $href = $references->{$id};
 	}
-	if ($href !~ m(^[[:alnum:]]+//)) { 
+	unless (Fslib::_is_url($href)) { 
 	  # not an URL
 	  # local paths are always relative
 	  # if you need absolute path, try file:// URL instead
@@ -1419,7 +1425,7 @@ sub write_object {
       # what do we do now?
       my $what = $tag || $type->{name} || $type->{'-name'};
       _warn("Unexpected content of structure '$what': $object\n");
-    } elsif (keys(%$object)) {
+    } elsif (keys(%$object)+keys(%$attribs)>0) {
       # ok, non-empty structure
       if ($opts->{no_attribs}) {
 	$xml->startTag($tag) if defined($tag);
@@ -1439,11 +1445,12 @@ sub write_object {
 	grep {!$_->{as_attribute}} 
 	  sort { $a->{'-#'} <=> $b->{'-#'} }
 	  values %$members) {
+	my $is_required = $mdecl->{required};
 	my $member = $mdecl->{-name};
 	my $mtype = $ctxt->resolve_type($mdecl);
 	if ($mdecl->{role} eq '#CHILDNODES') {
 	  if (ref($object) eq 'FSNode') {
-	    if ($object->firstson or $mdecl->{required}) {
+	    if ($object->firstson or $is_required) {
 	      my $children;
 	      if (ref($mtype->{sequence})) {
 		if ($object->{$member} ne EMPTY) {
@@ -1458,14 +1465,14 @@ sub write_object {
 	      } else {
 		_warn("The member '$member' with the role #CHILDNODES is neither a list nor a sequence - ignoring it!");
 	      }
-	      $ctxt->write_object($children, $mdecl,{ tag => $member });
+	      $ctxt->write_object($children, $mdecl,{ tag => $member, no_empty => !$is_required });
 	    }
 	  } else {
 	    _warn("Found #CHILDNODES member '$member' on a non-node value: $object\n");
 	  }
 	} elsif ($mdecl->{role} eq '#TREES') {
 	  my $data = $ctxt->get_write_trees($mdecl,$mtype);
-	  $ctxt->write_object($data,$mdecl,{ tag => $member });
+	  $ctxt->write_object($data,$mdecl,{ tag => $member, no_empty => !$is_required });
 	} elsif ($mdecl->{role} eq '#KNIT') {
 	  if ($object->{$member} ne EMPTY) {
 	    # un-knit data
@@ -1488,73 +1495,39 @@ sub write_object {
 	    # un-knit list
 	    my $list = $object->{$member};
 	    # _debug("#KNIT.rf $member @$list");
-	    if (ref($list) eq 'Fslib::List') {
-	      if (@$list == 0) {
-	      } elsif (!$ctxt->{'_write_single_LM'} and @$list == 1) {
-		$ctxt->write_object($list->[0],$mtype->{list},{tag =>$member, no_resolve=>1});
-	      } else {
-		$xml->startTag($member);
-		foreach my $value (@$list) {
-		  $ctxt->write_object($value,$mtype->{list},{tag => LM, 'no_resolve' => 1});
-		}
-		$xml->endTag($member);
-	      }
-	    } else {
-	      _warn("Unexpected content of un-knit List '$member': $list\n");
-	    }
+
+	    write_list($ctxt, $list, $mtype->{list}, { tag => $member, no_resolve => 1 } );
 	  } else {
 	    # KNIT list
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
 	    my $list = $object->{$knit_tag};
-	    if (ref($list) eq 'Fslib::List') {
-	      if (@$list == 0) {
-	      } elsif (!$ctxt->{'_write_single_LM'} and @$list == 1) {
-		$ctxt->write_object_knit($list->[0],$mtype->{list},{ tag=> $member, knit_tag => $knit_tag});
-	      } else {
-		$xml->startTag($member);
-		foreach my $knit_value (@$list) {
-		  $ctxt->write_object_knit($knit_value,$mtype->{list},{ tag=> LM, knit_tag => $knit_tag });
-		}
-		$xml->endTag($member);
-	      }
-	    } elsif ($list ne EMPTY) {
-	      _warn("Unexpected content of knit List '$knit_tag': $list\n");
-	    }
+	    write_list($ctxt, $list, $mtype->{list}, { tag => $member, knit_tag => $knit_tag, no_resolve => 1 } )
 	  }
-	} elsif ($object->{$member} ne EMPTY or $mdecl->{required}) {
-	  $ctxt->write_object($object->{$member},$mdecl,{tag => $member});
+	} elsif ($object->{$member} ne EMPTY or $is_required) {
+	  $ctxt->write_object($object->{$member},$mdecl,{tag => $member, no_empty => !$is_required });
 	}
       }
       $xml->endTag($tag) if defined($tag);
+    } else {
+      # encode empty struct
+      my $etag = $opts->{empty_tag} || $tag;
+      $xml->emptyTag($etag) if defined($etag) and !$opts->{no_empty};
     }
   } elsif (exists $type->{list}) {
     my $list_type = $type->{list};
     if (ref($list_type) and $list_type->{role} eq '#TREES') {
       $object = $ctxt->get_write_trees($object,$type);
     }
-    if (ref($object) eq 'Fslib::List') {
-      if (@$object == 0) {
-	# what do we do now?
-      } elsif (@$object == 1) {
-	$ctxt->write_object($object->[0],$list_type,{ tag => $tag });
-      } else {
-	$xml->startTag($tag,%$attribs) if defined($tag);
-	foreach my $value (@$object) {
-	  $ctxt->write_object($value,$list_type,{ tag => LM });
-	}
-	$xml->endTag($tag) if defined($tag);
-      }
-    } else {
-      my $what = $tag || $type->{name} || $type->{'-name'};
-      _warn("Unexpected content of List '$what': $object\n");
-    }
+    write_list($ctxt, $object, $list_type, $opts);
   } elsif (exists $type->{alt}) {
     if ($object ne EMPTY and ref($object) eq 'Fslib::Alt') {
-      if (@$object == 0) {
-	# what do we do now?
-      } elsif (@$object == 1) {
-	$ctxt->write_object($object->[0],$type->{alt},{tag => $tag});
+      if (@$object == 0 and keys(%$attribs)==0) {
+	# encode empty alt
+	my $etag = $opts->{empty_tag} || $tag;
+	$ctxt->emptyTag($etag) if defined($etag) and !$opts->{no_empty};
+      } elsif (@$object == 1 and !$opts->{write_single_AM} and keys(%$attribs)==0) {
+	$ctxt->write_object($object->[0],$type->{alt},$opts);
       } else {
 	$xml->startTag($tag,%$attribs) if defined($tag);
 	foreach my $value (@$object) {
@@ -1563,7 +1536,13 @@ sub write_object {
 	$xml->endTag($tag) if defined($tag);
       }
     } else {
-      $ctxt->write_object($object,$type->{alt},{tag => $tag});
+      if (!$opts->{write_single_AM} and keys(%$attribs)==0) {
+	$ctxt->write_object($object,$type->{alt}, $opts);
+      } else {
+	$xml->startTag($tag,%$attribs) if defined($tag);
+	$ctxt->write_object($object,$type->{alt},{tag => AM, no_empty => 1});
+	$xml->endTag($tag) if defined($tag);
+      }
     }
   } elsif (exists $type->{sequence}) {
     my $sequence = $type->{sequence};
@@ -1611,12 +1590,14 @@ sub write_object {
       _die("Unexpected type of the container '$what': $object\n");
     }
     my $container = $type->{container};
-    my %attribs;
+    my %attribs = %$attribs;
     unless ($opts->{no_attribs}) {
-      foreach my $attrib (values(%{$container->{attribute}})) {
-	my $atr = $attrib->{-name};
-	if ($attrib->{required} or  $object->{$atr} ne EMPTY) {
-	  $attribs{$atr} = $object->{$atr}
+      if ($container->{attribute}) {
+	foreach my $attrib (values(%{$container->{attribute}})) {
+	  my $atr = $attrib->{-name};
+	  if ($attrib->{required} or  $object->{$atr} ne EMPTY) {
+	    $attribs{$atr} = $object->{$atr}
+	  }
 	}
       }
       if (%attribs and !defined($tag)) {
@@ -1628,7 +1609,12 @@ sub write_object {
 	  UNIVERSAL::isa($object,'FSNode')) {
       $content = $ctxt->get_childnodes($object,$container,$content,$what);
     }
-    $ctxt->write_object($content,$container,{ tag => $tag, attribs => {%$attribs,%attribs}});
+    $ctxt->write_object($content,$container,{ %$opts, 
+					      write_single_LM => 1,
+					      write_single_AM => 1,
+					      no_attribs => 0,
+					      attribs => \%attribs
+					     });
   } elsif (exists $type->{constant}) {
     if ($object ne $type->{constant}) {
       my $what = $tag || $type->{name} || $type->{'-name'};
@@ -1642,6 +1628,47 @@ sub write_object {
   }
   1;
 }
+
+sub write_list {
+  my ($ctxt, $object, $type, $opts) = @_;
+  $opts ||= {};
+  my $tag = $opts->{tag};
+  my $knit_tag = $opts->{knit_tag};
+  my $no_resolve = $opts->{no_resolve};
+  my $attribs = $opts->{attribs} || {};
+  my $xml = $ctxt->{'_writer'};
+  if (ref($object) eq 'Fslib::List') {
+    if (@$object == 0) {
+      # encode empty list
+      my $etag = $opts->{empty_tag} || $tag;
+      $xml->emptyTag($etag,%$attribs) if defined($etag) and not ($opts->{no_empty} and keys(%$attribs)==0);
+    } elsif (@$object == 1 and !$opts->{'write_single_LM'} and !$ctxt->{'_write_single_LM'} and keys(%$attribs)==0 and
+	     !(UNIVERSAL::isa($object->[0],'HASH') and keys(%{$object->[0]})==0)) {
+      if (defined $knit_tag) {
+	$ctxt->write_object_knit($object->[0],$type,{ tag => $tag, empty_tag => LM, knit_tag => $knit_tag });
+      } else {
+	$ctxt->write_object($object->[0],$type, { tag => $tag, empty_tag => LM,  no_resolve => $no_resolve });
+      }
+    } else {
+      $xml->startTag($tag,%$attribs) if defined($tag);
+      if (defined $knit_tag) {
+	foreach my $value (@$object) {
+	  $ctxt->write_object_knit($value,$type,{ tag => LM, knit_tag => $knit_tag });
+	}
+      } else {
+	foreach my $value (@$object) {
+	  $ctxt->write_object($value,$type,{ tag => LM, no_resolve => $no_resolve });
+	}
+      }
+      $xml->endTag($tag) if defined($tag);
+      }
+  } else {
+    my $what = $knit_tag || $tag || $type->{name} || $type->{'-name'};
+    _warn("Unexpected content of List '$what': $object\n");
+  }
+}      
+
+
 
 
 # $ctxt, $object, $type, { tag=> $tag, attribs => {}, $knit_tag => }

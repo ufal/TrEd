@@ -1071,8 +1071,7 @@ sub InitNode{
   croak("InitNode: no node specified") unless ref($node);
   my $schema = Schema($obj);
   croak("InitNode: Couldn't derive PML schema") unless (ref($schema));
-  my $type = first {$_->{name} eq 't-node' } $schema->node_types;
-  $node->set_type($schema->type($type));
+  $node->set_type_by_name($schema,'t-node.type');
   $node;
 }#InitNode
 

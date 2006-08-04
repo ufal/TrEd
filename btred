@@ -348,7 +348,8 @@ if ($file_list) {
 }
 
 if ($glob or $^O eq 'MSWin32') {
-  push @files,map glob, @ARGV;
+  my $s;
+  push @files,map glob, map { $s=$_; $s=~s{ }{\\ }g; $s }  @ARGV;
 } else {
   push @files,@ARGV;
 }
@@ -399,6 +400,12 @@ exit;
 ############################
 
 sub _msg { $_ERR->print("BTRED: ",@_); }
+sub _last_err { 
+  return "" unless $@;
+  my $err = $@;
+  $err =~ s/^\s+|\s+$//g;
+  return $err;
+}
 sub _make_uniq ($) { my %U; @{$_[0]} = grep {!exists($U{$_}) && ($U{$_}=1)} @{$_[0]} }
 sub sign_md5 ($$) {
   my ($key,$message)=@_;
@@ -1245,8 +1252,8 @@ sub preloadFiles {
     _msg "Pre-loading: $f (",$fno++,"/$filecount)\n" unless $Quiet;
     my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
     if ($fsfile->lastTreeNo<0) {
-      _msg "empty or corrupt file: $f!\n";
-      $errlog->print("ERROR: Empty or corrupt file: $f!\n") if ($errlog);
+      _msg "Error - cannot load file: $f ("._last_err().")!\n";
+      $errlog->print("ERROR: Cannot load file: $f! ($@)\n") if ($errlog);
       next;
     }
     openSecondary($grp,$fsfile);
@@ -1284,8 +1291,8 @@ sub openSecondary {
 			       $req->[0])
 	  } else {
 	    my $req_fs = FSFile->newFSFile($req_filename,$TrEd::Convert::inputenc,@backends);
+	    _msg "Error - cannot load secondary file $req_filename required by ".$fsfile->filename."! ("._last_err().")\n" if ($req_fs->lastTreeNo<0);
 	    $req_fs->changeFileFormat(($req_filename=~/\.gz$/ ? "gz-compressed " : "").$req_fs->backend);
-	    _msg "empty or corrupt secondary file $req_filename required by ".$fsfile->filename."!\n" if ($req_fs->lastTreeNo<0);
 	    $grp->{'secondary'}->{$req_filename} = $req_fs;
 	    associateSecondary($req_fs,
 			       $fsfile,
@@ -1336,7 +1343,7 @@ sub openFile {
   }
   my $return = 1;
   if ($grp->{FSFile}->lastTreeNo<0) {
-    _msg "empty or corrupt file: $f!\n" ;
+    _msg "Error - cannot load file: $f ("._last_err().")!\n" ;
     $return = 0;
   }
 

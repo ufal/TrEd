@@ -9,6 +9,7 @@ use strict;
 use Carp;
 
 use vars qw(@ISA $VERSION @EXPORT @EXPORT_OK
+            %UNLINK_ON_CLOSE
 	    $Debug
 	    $kioclient $kioclient_opts
 	    $ssh $ssh_opts
@@ -19,6 +20,8 @@ use vars qw(@ISA $VERSION @EXPORT @EXPORT_OK
 	   );
 
 $VERSION = "0.1";
+
+#$Debug=0;
 
 sub _find_exe {
   local $_ = `/usr/bin/which $_[0] 2>/dev/null`; chomp; /\S/ ? $_ : undef
@@ -78,7 +81,13 @@ sub quote_filename {
 
 sub strip_protocol {
   my ($uri)=@_;
-  $uri =~ s{^\s*(?:[[:alnum:]][[:alnum:]]+):(?://)?}{};
+  $uri =~ s{^\s*([[:alnum:]][[:alnum:]]+):(//)?}{};
+  if ($1 eq 'file' and $2 eq '//') {
+    $uri=~s{^localhost/}{/};
+    if ($^O eq 'MSWin32') {
+      $uri=~s{^/([[:alnum:]])(?:[|]/|:)}{$1:};
+    }
+  }
   return $uri;
 }
 
@@ -183,7 +192,9 @@ sub fetch_file {
   my ($uri) = @_;
   my $proto = get_protocol($uri);
   if ($proto eq 'file') {
-    return (strip_protocol($uri),0);
+    my $file = strip_protocol($uri);
+    die("File does not exist: $file\n") unless -e $file;
+    return ($file,0);
   } elsif ($proto eq 'ntred' or $proto =~ /$reject_proto/) {
     return ($uri,0);
   } else {
@@ -208,13 +219,23 @@ sub fetch_cmd {
 
 sub fetch_file_win32 {
   my ($uri,$proto)=@_;
-  my $filename=POSIX::tmpnam();
+  my ($fh,$filename) = File::Temp::tempfile("tredioXXXXXX",
+					    DIR => File::Spec->tmpdir(),
+					    SUFFIX => (_is_gzip($uri) ? ".gz" : ""),
+					    UNLINK => 0,
+					   );
+  print STDERR "Fetching URI $uri as proto $proto to $filename\n" if $Debug;
   if ($proto=~m(^https?|ftp|gopher|news) and eval { require LWP::Simple }) {
-    eval {
-      LWP::Simple::is_success(LWP::Simple::getstore($uri,$filename)) ||
-	  die "Error occured while fetching URL $uri\n";
+    my $oldfh = select $fh;
+    my $res = eval { LWP::Simple::is_success(LWP::Simple::getprint($uri)) };
+    select $oldfh;
+    close $fh;
+    if ($res) {
       return $filename,1;
-    };
+    } else {
+      warn "Error occured while fetching URL $uri $@\n";
+    }
+  } else {
     warn $@ if $@;
   }
   return $uri,0;
@@ -223,18 +244,26 @@ sub fetch_file_win32 {
 sub fetch_file_posix {
   my ($uri,$proto)=@_;
   print "IOBackend: fetching file using protocol $proto ($uri)\n" if $Debug;
-  my ($fh,$tempfile)=File::Temp::mkstemps("/tmp/tredioXXXXXX",(_is_gzip($uri) ? ".gz" : ""));
+  my ($fh,$tempfile) = File::Temp::tempfile("tredioXXXXXX",
+					    DIR => File::Spec->tmpdir(),
+					    SUFFIX => (_is_gzip($uri) ? ".gz" : ""),
+					    UNLINK => 0,
+					   );
   print "IOBackend: tempfile: $tempfile\n" if $Debug;
-
   if ($proto=~m(^https?|ftp|gopher|news) and eval { require LWP::Simple }) {
     print "IOBackend: using LWP::Simple\n" if $Debug;
-    if (LWP::Simple::is_success(LWP::Simple::getstore($uri,$tempfile))) {
+    my $oldfh = select $fh;
+    my $res = eval { LWP::Simple::is_success(LWP::Simple::getprint($uri)) };
+    select $oldfh;
+    close $fh;
+    if ($res) {
       return $tempfile,1;
     } else {
-      warn "Error occured while fetching URL $uri\n";
+      warn "Error occured while fetching URL $uri $@\n";
       return $uri,0;
-    };
+    }
   }
+  close($fh);
   if ($ssh and -x $ssh and $proto =~ /^(ssh|fish|sftp)$/) {
     print "IOBackend: using plain ssh\n" if $Debug;
     if ($uri =~ m{^\s*(?:ssh|sftp|fish):(?://)?([^-/][^/]*)(/.*)$}) {
@@ -501,6 +530,29 @@ sub close_backend {
       $tmp->close;
     }
   }
-  return 1 if UNIVERSAL::isa($fh,'IO::Zlib');
-  return ref($fh) && $fh->close();
+  my $ret;
+  if (UNIVERSAL::isa($fh,'IO::Zlib')) {
+    $ret = 1;
+  } else {
+    $ret = ref($fh) && $fh->close();
+  }
+  my $unlink = delete $UNLINK_ON_CLOSE{ $fh };
+  if ($unlink) {
+    unlink $unlink;
+  }
+  return $ret;
 }
+
+sub open_uri {
+  my $uri = shift;
+  my ($local_file, $is_temporary) = fetch_file( $uri );
+  my $fh = IOBackend::open_backend($local_file,'r');
+  if ($is_temporary and $local_file ne $uri ) {
+    if (!unlink($local_file)) {
+      $UNLINK_ON_CLOSE{ $fh } = $local_file;
+    }
+  }
+  return $fh;
+}
+
+*close_uri = \&close_backend;
