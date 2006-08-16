@@ -12,6 +12,7 @@ use Tk::ItemStyle;
 use Tk::JComboBox_0_02;
 use base qw(Tk::Derived Tk::Tree);
 use strict;
+use Carp;
 
 Construct Tk::Widget 'TrEdNodeEdit';
 
@@ -369,7 +370,7 @@ sub up_or_down {
   $hlist->delete('entry',$path);
 
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
-  if ($ptype->{list}) {
+  if ($ptype->get_decl_type eq 'list') {
     $hlist->add_list_member($parent,$mtype,$val,
 			     $list_no,0,
 			     [($where>0 ? '-after' : '-before'), $other ]
@@ -391,7 +392,7 @@ sub toggle_structure {
     # create data
     my $type = $data->{type};
     $hlist->add_members($path ne "" ? $path."/" : $path,
-			$type->{structure}||$type->{container},{});
+			$type,{});
   } else {
     my $answer = 'Delete';
     if (UNIVERSAL::can('main','userQuery')) {
@@ -544,14 +545,11 @@ sub add_buttons {
   my $mtype = $hlist->info(data => $path)->{type};
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
 
-  return unless (ref($mtype) and ($mtype->{list} or $mtype->{alt} or $mtype->{sequence} or 
-				    $mtype->{structure} or $mtype->{container}) or 
-				   ref($ptype) and ($ptype->{list} or $ptype->{alt} or $ptype->{sequence}));
-  return if ref($mtype) and (($mtype->{list} and 
-			      $mtype->{list}{role} =~ m/^\#(?:CHILDNODES|TREES)$/) or 
-			     ($mtype->{sequence} and 
-			      $mtype->{sequence}{role} =~ m/^\#(?:CHILDNODES|TREES)$/) or 
-			      $mtype->{role} =~ m/^\#(?:CHILDNODES|TREES)$/);
+  return unless (ref($mtype) and 
+		   ($mtype->get_decl_type =~ /^(list|alt|sequence|structure|container)$/ or ref($ptype) and $ptype->get_decl_type =~ /^(list|alt|sequence)$/));
+
+  return if ref($mtype) and 
+    $mtype->get_role =~ m{^\#(?:CHILDNODES|TREES)$};
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
    );
@@ -563,69 +561,70 @@ sub add_buttons {
 		    );
   my $ctype = $hlist->info(data => $path)->{compressed_type};
 
-  for my $type ($mtype, $ctype) {
-    if (ref($type)) {
-      if (exists $type->{list}) {
-	# add list buttons
-	$hlist->mini_button($f,'plus',$path,
-			    {
-			      -background => $colors{list},
-			      -command => [$hlist,'add_to_list',$path],
+  for my $decl (grep ref, $mtype, $ctype) {
+    my $decl_type = $decl->get_decl_type;
+    if ($decl_type eq 'list') {
+      # add list buttons
+      $hlist->mini_button($f,'plus',$path,
+			  {
+			    -background => $colors{list},
+			    -command => [$hlist,'add_to_list',$path],
 			      -balloonmsg => 'Create a new list item (Ctrl-+)',
-			     }
-			   )->pack();
-      } elsif (exists $type->{sequence}) {
-	# add sequence buttons
-	$hlist->mini_button($f,'plus',$path,
-			   {
-			     -background => $colors{sequence},
-			     -balloonmsg => 'Create a new sequence element (Ctrl-+)',
-			     -menu => {
-			       -entries => [ map { ['command', -label => $_,
-						    -command => [$hlist,'add_to_sequence',$path,$_],
-						   ] }
-					       sort keys %{$type->{sequence}{element}},
-					    ],
-			     }
+			  }
+			 )->pack();
+    } elsif ($decl_type eq 'sequence') {
+      # add sequence buttons
+      $hlist->mini_button($f,'plus',$path,
+			  {
+			    -background => $colors{sequence},
+			    -balloonmsg => 'Create a new sequence element (Ctrl-+)',
+			    -menu => {
+			      -entries => [ map { ['command', -label => $_,
+						   -command => [$hlist,'add_to_sequence',$path,$_],
+						  ] }
+					      sort $decl->get_element_names,
+					   ],
 			    }
-			     
-			   )->pack();
-      } elsif (exists $type->{alt}) {
-	# add alt buttons
-	$hlist->mini_button($f,'star',$path,
-			    { 
-			      -background => ($type->{alt}{-flat} ? $colors{alt_flat} : $colors{alt}),
-			      -balloonmsg => 'Add an alternative (Ctrl-*)',
-			      -command => [$hlist,'add_to_alt',$path],
+			   }
+			    
+			 )->pack();
+    } elsif ($decl_type eq 'alt') {
+      # add alt buttons
+      $hlist->mini_button($f,'star',$path,
+			  { 
+			    -background => ($decl->is_flat ? $colors{alt_flat} : $colors{alt}),
+			    -balloonmsg => 'Add an alternative (Ctrl-*)',
+			    -command => [$hlist,'add_to_alt',$path],
 			     }
-			   )->pack(-side => 'top');
-      } elsif (exists($type->{structure}) or exists($type->{container})) {
-	# add structure button
-	$hlist->mini_button($f,'hash',$path,
-			   {
-			     -background => $colors{struct},
-			     -balloonmsg => 'Create/delete structure content (Ctrl-#)',
-			     -command => [$hlist,'toggle_structure',$path],
-			    }
-			   )->pack(-side => 'top');
-      }
+			 )->pack(-side => 'top');
+    } elsif ($decl_type eq 'structure' or 
+	     $decl_type eq 'container') {
+      # add structure button
+      $hlist->mini_button($f,'hash',$path,
+			  {
+			    -background => $colors{struct},
+			    -balloonmsg => 'Create/delete structure content (Ctrl-#)',
+			    -command => [$hlist,'toggle_structure',$path],
+			  }
+			 )->pack(-side => 'top');
     }
   }
-
+  
   if ($parent ne "") {
     $ptype = (($hlist->info(data => $parent)->{compressed_type}) || $ptype)
   }
-  if ($ptype and $ptype->{list}) {
+  my $ptype_is = $ptype ? $ptype->get_decl_type : undef;
+  if ($ptype_is eq 'list') {
     # add list member buttons
     my ($f1,$f2);
-    if ($ptype->{list}{ordered}) {
+    if ($ptype->is_ordered) {
       $f2 = $f->Frame->pack(qw(-side left));
       $f1 = $f->Frame->pack(qw(-side right));
     } else {
       $f1 = $f->Frame->pack(qw(-side top));
     }
     if ($f1) {
-      if ($ptype->{list}{ordered}) {
+      if ($ptype->is_ordered) {
 	$hlist->mini_button($f1,'plus',$path,
 			   {
 			     -background => $colors{list},
@@ -660,7 +659,7 @@ sub add_buttons {
 			  }
 			 )->pack(qw(-side top));
     }
-  } elsif ($ptype and $ptype->{sequence}) {
+  } elsif ($ptype_is eq 'sequence') {
     # add sequence member buttons
     my ($f1,$f2);
     $f2 = $f->Frame->pack(qw(-side left));
@@ -674,7 +673,7 @@ sub add_buttons {
 			    -entries => [ map { ['command', -label => $_,
 						 -command => [$hlist,'new_sequence_member',$path,$_],
 						] }
-					    sort keys %{$ptype->{sequence}{element}},
+					    sort $ptype->get_element_names,
 					 ],
 			  }
 			 }
@@ -702,11 +701,11 @@ sub add_buttons {
 			  -command => [$hlist,'up_or_down',1,$path],
 			}
 		       )->pack(qw(-side top));
-  } elsif ($ptype and $ptype->{alt}) {
+  } elsif ($ptype_is eq 'alt') {
     # remove alt member button
     $hlist->mini_button($f,'cross',$path,
 			{
-			  -background => ($ptype->{alt}{-flat} ? $colors{alt_flat} : $colors{alt}),
+			  -background => ($ptype->is_flat ? $colors{alt_flat} : $colors{alt}),
 			  -balloonmsg => 'Remove alternative (Ctrl-x)',
 			  -command => [$hlist,'remove_alt_member',$path],
 			}
@@ -717,18 +716,18 @@ sub add_buttons {
 
 sub add_alt_member {
   my ($hlist,$path,$mtype,$val,$alt_no,$allow_empty,$entry_opts)=@_;
-  return $hlist->add_member($path."/",$mtype->{alt},
+  return $hlist->add_member($path."/",$mtype,
 			    $val,'['.$alt_no.']',$allow_empty,$entry_opts);
 }
 
 sub add_list_member {
   my ($hlist,$path,$mtype,$val,$list_no,$allow_empty,$entry_opts)=@_;
-  return $hlist->add_member($path."/",$mtype->{list},$val,'['.$list_no.']',$allow_empty,$entry_opts);
+  return $hlist->add_member($path."/",$mtype,$val,'['.$list_no.']',$allow_empty,$entry_opts);
 }
 
 sub add_sequence_member {
   my ($hlist,$path,$mtype,$val,$list_no,$allow_empty,$entry_opts)=@_;
-  return $hlist->add_member($path."/",$mtype->{sequence}{element}{$val->name},$val->value,'['.$list_no.']',$allow_empty,$entry_opts,1,$val->name);
+  return $hlist->add_member($path."/",$mtype->get_element_by_name($val->name),$val->value,'['.$list_no.']',$allow_empty,$entry_opts,1,$val->name);
 }
 
 
@@ -751,17 +750,21 @@ sub next_sibling {
 
 sub add_member {
   my ($hlist,$base_path,$member,$attr_val,$attr_name,$allow_empty,$entry_opts,$required,$label)=@_;
-  my $mtype;
-
+  my ($mdecl, $mdecl_type);
   $label = $attr_name if $label eq "";
   if (!ref($member) and $member =~ /^#/) {
-    $mtype = $member;
+    $mdecl = $member;
+  } elsif (ref($member)) {
+    return if $member->get_role  =~ m/^\#(?:CHILDNODES|TREES)$/;
+    $required ||= $member->is_required if
+      $member->get_decl_type =~ /^(member|attribute)/;
+    $mdecl = $member->get_content_decl || $member;
+    $mdecl_type = $mdecl->get_decl_type;
   } else {
-    $mtype = $hlist->schema->resolve_type($member);
+    croak("Unknown type object for $attr_name: $member");
   }
-  return if ref($mtype) and $mtype->{role} =~ m/^\#(?:CHILDNODES|TREES)$/;
   my $path = $base_path.$attr_name;
-  my $data = {type => $mtype,
+  my $data = {type => $mdecl,
 	      attr_name => $attr_name,
 	      name => $label,
 	     };
@@ -771,23 +774,22 @@ sub add_member {
 		       ($label =~ /^\[\d+\]$/) ? '  ' : '  '.$label,
 		     -style => 
 		       $hlist->{my_itemstyles}{
-			 ($required or ref($member) and $member->{required}) ? 'required' : 'default'
+			 $required ? 'required' : 'default'
 		       }
 		    );
   my $enabled = 1;
   if (ref($hlist->{my_enable_callback})) {
     $enabled = $hlist->enable_callback($path);
   }
-
-  if ($mtype eq '#name') {
+  $data->{dump} = $mdecl_type;
+  if ($member eq '#name') {
     $data->{dump} = 'none';
     $data->{value} = $attr_val;
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{text});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => $attr_val,
 		       -style => $hlist->{my_itemstyles}{text});
-  } elsif (!ref($mtype) or $mtype->{cdata}) {
-    $data->{dump} = 'string';
+  } elsif ($mdecl_type eq 'cdata') {
     my $w = $hlist->Frame(-background => 'white', #'gray',
 			  -borderwidth => 1
 			 );
@@ -799,10 +801,10 @@ sub add_member {
 		       -state => ($enabled ? 'normal' : 'disabled'),
 		       -foreground => 'black',
 		       -highlightcolor => 'black',
-		       ((ref($mtype) and $mtype->{format} eq 'nonNegativeInteger') ?
-		       (-validate => 'all',
-			-validatecommand => sub { $_[0]=~/^\d+$/ ? 1 : 0 }) :
-		       ())
+		       ($mdecl->get_format eq 'nonNegativeInteger' ?
+			  (-validate => 'all',
+			   -validatecommand => sub { $_[0]=~/^\d+$/ ? 1 : 0 }) :
+			   ())
 		      )
       ->pack(qw(-fill both -expand yes));
 
@@ -825,11 +827,10 @@ sub add_member {
 		       -widget => $w,
 		       -style => $hlist->{my_itemstyles}{entries}
 		      );
-  } elsif (exists $mtype->{choice}) {
-    $data->{dump} = 'string';
+  } elsif ($mdecl_type eq 'choice') {
     $data->{value} = $attr_val;
-    my $values = ref($mtype->{choice} eq 'ARRAY') ? $mtype->{choice} : $mtype->{choice}{values};
-    
+    my @values = $mdecl->get_values;
+    unshift @values, '' unless $required;
     my $w = $hlist->JComboBox_0_02(
 
       -mode => 'editable',
@@ -842,7 +843,7 @@ sub add_member {
       -textvariable => \$data->{value},
       -background => 'gray',
 
-      -choices => (($required or ref($member) and $member->{required}) ? $values : ['',@$values]),
+      -choices => \@values,
       -popupbackground => 'black',
       -borderwidth => 1,
       -relief => 'flat',
@@ -857,7 +858,8 @@ sub add_member {
 			    my $lb = $cw->Subwidget('Listbox');
 			    if (not defined($cw->{index_on_focus})) {
 			      $cw->{index_on_focus} = $cw->CurSelection;
-			      $cw->see($cw->{index_on_focus});
+			      $cw->see($cw->{index_on_focus})
+				if $cw->{index_on_focus} ne q{};
 			    }
 			    $_[1]->select_entry($_[2]);
 			  },$hlist,$path]);
@@ -891,44 +893,39 @@ sub add_member {
 		       -widget => $w,
 		       -style => $hlist->{my_itemstyles}{entries}
 		      );
-  } elsif (exists $mtype->{constant}) {
-    $data->{dump} = 'constant';
+  } elsif ($mdecl_type eq 'constant') {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{constant});
     $hlist->itemCreate($path,1,-itemtype => 'text',
-		       -text => $mtype->{constant}{value},
+		       -text => $mdecl->get_value,
 		       -style => $hlist->{my_itemstyles}{constant});
-  } elsif ($mtype->{structure}) {
-    $data->{dump} = 'structure';
+  } elsif ($mdecl_type eq 'structure') {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => 'Structure',
 		       -style => $hlist->{my_itemstyles}{struct});
     if (ref($attr_val)) {
-      $hlist->add_members($path."/",$mtype->{structure},$attr_val);
+      $hlist->add_members($path."/",$mdecl,$attr_val);
     }
-  } elsif ($mtype->{container}) {
-    $data->{dump} = 'container';
+  } elsif ($mdecl_type eq 'container') {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => 'Container',
 		       -style => $hlist->{my_itemstyles}{struct});
     if (ref($attr_val)) {
-      $hlist->add_members($path."/",$mtype->{container},$attr_val);
+      $hlist->add_members($path."/",$mdecl,$attr_val);
     }
-  } elsif (exists $mtype->{list}) {
-    if ($mtype->{list}{role}  =~ m/^\#(CHILDNODES|TREES)$/ or 
-	$mtype->{role}  =~ m/^\#(CHILDNODES|TREES)$/ ) {
+  } elsif ($mdecl_type eq 'list') {
+    if ($mdecl->get_role =~ m/^\#(CHILDNODES|TREES)$/ ) {
       $data->{dump} = 'none';
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => $1,
 			 -style => $hlist->{my_itemstyles}{list});
     } else {
-      $data->{dump} = 'list';
       my $list_no=0;
       $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 
-			   $mtype->{list}{ordered} ?
+			   $mdecl->is_ordered ?
 			     'Ordered list' : 'Unordered list',
 			 -style => $hlist->{my_itemstyles}{list});
 
@@ -936,69 +933,65 @@ sub add_member {
       if ($attr_val) {
 	foreach my $val (@{$attr_val}) {
 	  $list_no++;
-	  $hlist->add_list_member($path,$mtype,$val,$list_no);
+	  $hlist->add_list_member($path,$mdecl,$val,$list_no);
 	}
       } elsif (!$allow_empty) {
 	$list_no++;
-	$hlist->add_list_member($path,$mtype,$attr_val,$list_no);
+	$hlist->add_list_member($path,$mdecl,$attr_val,$list_no);
       }
       $data->{list_no}=$list_no;
     }
-  } elsif (exists $mtype->{sequence}) {
+  } elsif ($mdecl_type eq 'sequence') {
     my $list_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
-    if ($mtype->{sequence}{role} =~ m/^\#(CHILDNODES|TREES)$/) {
+    if ($mdecl->get_role =~ m/^\#(CHILDNODES|TREES)$/) {
       $data->{dump} = 'none';
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 'Sequence of '.$1,
 			 -style => $hlist->{my_itemstyles}{sequence});
     } else {
-      $data->{dump} = 'sequence';
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 'Sequence',
 			 -style => $hlist->{my_itemstyles}{sequence});
       if ($attr_val) {
 	foreach my $element ($attr_val->elements) {
 	  $list_no++;
-	  $hlist->add_sequence_member($path,$mtype,$element,$list_no);
+	  $hlist->add_sequence_member($path,$mdecl,$element,$list_no);
 	}
       }
     }
     $data->{list_no}=$list_no;
-  } elsif (exists $mtype->{alt}) {
+  } elsif ($mdecl_type eq 'alt') {
     my $alt_no=0;
-    $data->{dump} = 'alt';
     $hlist->itemConfigure($path,0,-style => 
-			    ($mtype->{alt}{-flat} ? $hlist->{my_itemstyles}{alt_flat} : $hlist->{my_itemstyles}{alt}));
+			    ($mdecl->is_flat ? $hlist->{my_itemstyles}{alt_flat} : $hlist->{my_itemstyles}{alt}));
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -style => 
-			 ($mtype->{alt}{-flat} ?
+			 ($mdecl->is_flat ?
 			   $hlist->{my_itemstyles}{alt_flat} :
 			     $hlist->{my_itemstyles}{alt}),
 		       -text => 
-			 $mtype->{alt}{-flat} ?
+			 $mdecl->is_flat ?
 			   'FS-Alternative' : 'Alternative');
 
     if (ref($attr_val) eq 'Fslib::Alt') {
       foreach my $val (@{$attr_val}) {
 	$alt_no++;
-	$hlist->add_alt_member($path,$mtype,$val,$alt_no);
+	$hlist->add_alt_member($path,$mdecl,$val,$alt_no);
       }
     } elsif (!ref($attr_val) and $attr_val =~ /\|/ and
-	       $mtype->{alt}{-flat}) {
+	       $mdecl->is_flat) {
       foreach my $val (split /\|/,$attr_val) {
 	$alt_no++;
-	$hlist->add_alt_member($path,$mtype,$val,$alt_no);
+	$hlist->add_alt_member($path,$mdecl,$val,$alt_no);
       }
     } elsif(!$attr_val and !$allow_empty) {
       $alt_no++;
-      $hlist->add_alt_member($path,$mtype,$attr_val,$alt_no);
+      $hlist->add_alt_member($path,$mdecl,$attr_val,$alt_no);
     } else {
       $hlist->delete('entry' => $path);
-      $path = $hlist->add_member($base_path,$mtype->{alt},
-				 $attr_val,$attr_name,0,$entry_opts,
-				 $mtype->{required}
-				);
+      $path = $hlist->add_member($base_path,$mdecl,
+				 $attr_val,$attr_name,0,$entry_opts);
       my $new_data = $hlist->info('data' => $path);
       $new_data->{compressed_type}=$new_data->{type};
       $new_data->{$_} = $data->{$_} for qw(type name text);
@@ -1013,42 +1006,42 @@ sub add_member {
 
 sub add_members {
   my ($hlist,$base_path,$type,$node,$allow_empty)=@_;
-  my ($members,$structure);
-  if ($type->{structure}) {
-    $type = $type->{structure};
-    $members = $type->{member};
-    $structure = 1;
-  } elsif ($type->{container}) {
-    $type = $type->{container};
-    $members = $type->{attribute};
-  } elsif ($type->{member}) {
-    $members = $type->{member};
-    $structure = 1;
+  my $decl_type =  $type->get_decl_type();
+  my @members;
+  if ($decl_type eq 'structure') {
+    @members = $type->get_member_names();
+  } elsif ($decl_type eq 'container') {
+    @members = $type->get_attribute_names();
   } else {
-    $members = $type->{attribute};
+    croak "Can't call add_members on a $decl_type";
   }
-  # FIXME - we should know by other means if there is a #name
-  $hlist->add_member($base_path,'#name',$node->{'#name'}, '#name') if ($node->{'#name'} ne '');
-  foreach my $attr (sort(keys %$members)) {
-    my $member = $members->{$attr};
-    my $mtype = $hlist->schema->resolve_type($member);
-    if ($structure and 
-	ref($member) and
-	($member->{role} eq '#KNIT' or
-	 ref($mtype) and $mtype->{list} and
-	 $mtype->{list}{role} eq '#KNIT')
-       ) {
+  if ($node->{'#name'} ne '') {
+    # FIXME - we should know by other means that there is a #name
+    $hlist->add_member($base_path,'#name',$node->{'#name'}, '#name');
+  }
+  foreach my $member_name (@members) {
+    my $member = $type->get_member_by_name($member_name);
+    croak "Can't locate member $member_name\n" unless $member;
+    my $mdecl = $member->get_content_decl;
+    if ($decl_type eq 'structure' and 
+	$member->get_role eq '#KNIT' or
+	$mdecl and $mdecl->get_decl_type() eq 'list'
+	and $mdecl->get_role eq '#KNIT') {
       # #KNIT PMLREF or a list of #KNIT PMLREFS
-      if (exists($node->{$attr})) {
-	$member={ cdata => {format => 'PMLREF'} };
+      if (exists($node->{$member_name})) {
+	$member=$mdecl;
       } else {
-	$attr=~s/\.rf$//;
+	$member_name=~s/\.rf$//;
       }
     }
-    $hlist->add_member($base_path,$member,($node ? $node->{$attr} : undef), $attr,$allow_empty);
+    $hlist->add_member($base_path,
+		       $member,
+		       ($node ? $node->{$member_name} : undef),
+		       $member_name,$allow_empty);
   }
-  unless ($structure) {
-    $hlist->add_member($base_path,$type,$node->{'#content'}, '#content');
+  if ($decl_type eq 'container') {
+    $hlist->add_member($base_path,$type,
+		       $node->{'#content'}, '#content');
   }
 }
 
@@ -1111,11 +1104,10 @@ sub dump_child {
 
   $mtype = $data->{type} unless defined $mtype;
 
-#  if (!ref($mtype) or $mtype->{cdata} or $mtype->{choice}) {
-  if ($dump eq 'string') {
+  if ($dump eq 'cdata' or $dump eq 'choice') {
     _store_data($ref,$data->{name},$data->{value},$preserve_empty);
   } elsif ($dump eq 'constant') {
-    _store_data($ref,$data->{name},$mtype->{constant}{value},1);
+    _store_data($ref,$data->{name},$mtype->get_value,1);
   } elsif ($dump eq 'list') {
     my $new_ref=Fslib::List->new;
     _store_data($ref,$data->{name},$new_ref,1);
@@ -1150,7 +1142,7 @@ sub dump_child {
 	}
       }
     }
-    if (ref($new_ref) and $mtype->{alt}{-flat}) {
+    if (ref($new_ref) and $mtype->is_flat) {
       _store_data($ref,$data->{name},join('|',@$new_ref),1);
     } else {
       _store_data($ref,$data->{name},$new_ref,1);
@@ -1213,6 +1205,8 @@ sub focus_entry {
 	$w->focus;
 	if ($w->isa('Tk::JComboBox_0_02')) {
 	  $w->showPopup unless $w->popupIsVisible;
+	} elsif ($w->isa('Tk::Entry')) {
+	  $w->icursor('end');
 	}
       }
     }

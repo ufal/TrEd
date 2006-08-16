@@ -1485,7 +1485,7 @@ sub write_object {
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
 	    if (ref($object->{$knit_tag})) {
-	      $ctxt->write_object_knit($object->{$knit_tag}, $mdecl,{ tag => $member, knit_tag => $knit_tag });
+	      $ctxt->write_object_knit($object->{$knit_tag}, $mdecl,{ tag => $member });
 	    }# else {
 	    #	_warn("Didn't find $knit_tag on the object! ",join(" ",%$object),"\n");
 	    #      }
@@ -1502,7 +1502,9 @@ sub write_object {
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
 	    my $list = $object->{$knit_tag};
-	    write_list($ctxt, $list, $mtype->{list}, { tag => $member, knit_tag => $knit_tag, no_resolve => 1 } )
+	    if ($list ne EMPTY) {
+	      write_list($ctxt, $list, $mtype->{list}, { tag => $member, knit => 1, no_resolve => 1 } )
+	    }
 	  }
 	} elsif ($object->{$member} ne EMPTY or $is_required) {
 	  $ctxt->write_object($object->{$member},$mdecl,{tag => $member, no_empty => !$is_required });
@@ -1633,7 +1635,7 @@ sub write_list {
   my ($ctxt, $object, $type, $opts) = @_;
   $opts ||= {};
   my $tag = $opts->{tag};
-  my $knit_tag = $opts->{knit_tag};
+  my $knit = $opts->{knit};
   my $no_resolve = $opts->{no_resolve};
   my $attribs = $opts->{attribs} || {};
   my $xml = $ctxt->{'_writer'};
@@ -1644,16 +1646,18 @@ sub write_list {
       $xml->emptyTag($etag,%$attribs) if defined($etag) and not ($opts->{no_empty} and keys(%$attribs)==0);
     } elsif (@$object == 1 and !$opts->{'write_single_LM'} and !$ctxt->{'_write_single_LM'} and keys(%$attribs)==0 and
 	     !(UNIVERSAL::isa($object->[0],'HASH') and keys(%{$object->[0]})==0)) {
-      if (defined $knit_tag) {
-	$ctxt->write_object_knit($object->[0],$type,{ tag => $tag, empty_tag => LM, knit_tag => $knit_tag });
+      if ($knit) {
+	$ctxt->write_object_knit($object->[0],$type,{ tag => $tag });
       } else {
-	$ctxt->write_object($object->[0],$type, { tag => $tag, empty_tag => LM,  no_resolve => $no_resolve });
+	$ctxt->write_object($object->[0],$type, { tag => $tag,
+						  empty_tag => LM, 
+						  no_resolve => $no_resolve });
       }
     } else {
       $xml->startTag($tag,%$attribs) if defined($tag);
-      if (defined $knit_tag) {
+      if (defined $knit) {
 	foreach my $value (@$object) {
-	  $ctxt->write_object_knit($value,$type,{ tag => LM, knit_tag => $knit_tag });
+	  $ctxt->write_object_knit($value,$type,{ tag => LM });
 	}
       } else {
 	foreach my $value (@$object) {
@@ -1663,7 +1667,7 @@ sub write_list {
       $xml->endTag($tag) if defined($tag);
       }
   } else {
-    my $what = $knit_tag || $tag || $type->{name} || $type->{'-name'};
+    my $what = $tag || $type->{name} || $type->{'-name'};
     _warn("Unexpected content of List '$what': $object\n");
   }
 }      
@@ -1694,27 +1698,31 @@ sub write_object_knit {
 
   if ($prefix ne EMPTY) {
     return if (UNIVERSAL::isa($ctxt->{'_ref'}{$prefix},'PMLInstance'));
-    my $indeces = $ctxt->{'_ref-index'};
-    if ($indeces and $indeces->{$prefix}) {
-      my $knit = $indeces->{$prefix}{$ref};
-      if ($knit) {
-	my $dom_writer = XML::MyDOMWriter->new(REPLACE => $knit);
-	{
-	  my $writer = $ctxt->{'_writer'};
-	  $ctxt->{'_writer'} = $dom_writer;
-	  eval {
-	    $ctxt->write_object($object, $ctxt->resolve_type($type), { tag => $opts->{knit_tag} });
-	  };
-	  $ctxt->{'_writer'} = $writer;
-	  die $@."\n" if $@;
+    my $refs_save = $ctxt->{'_refs_save'} || {};
+    if ( $refs_save->{$prefix} ) {
+      my $indeces = $ctxt->{'_ref-index'};
+      if ($indeces and $indeces->{$prefix}) {
+	my $knit = $indeces->{$prefix}{$ref};
+	if ($knit) {
+	  my $tag = $knit->nodeName;
+	  my $dom_writer = XML::MyDOMWriter->new(REPLACE => $knit);
+	  {
+	    my $writer = $ctxt->{'_writer'};
+	    $ctxt->{'_writer'} = $dom_writer;
+	    eval {
+	      $ctxt->write_object($object, $ctxt->resolve_type($type), { tag => $tag });
+	    };
+	    $ctxt->{'_writer'} = $writer;
+	    die $@."\n" if $@;
+	  }
+	  my $new = $dom_writer->end;
+	  $new->setAttribute('id',$ref);
+	} else {
+	  _warn("Didn't find ID $ref in $prefix - can't knit back!\n");
 	}
-	my $new = $dom_writer->end;
-	$new->setAttribute('id',$ref);
       } else {
-	_warn("Didn't find ID $ref in $prefix - can't knit back!\n");
+	_warn("Knit-file $prefix has no index - can't knit back!\n");
       }
-    } else {
-      _warn("Knit-file $prefix has no index - can't knit back!\n");
     }
   } else {
     _warn("Can't parse '$tag' href '$ref' - can't knit back!\n");
@@ -1805,217 +1813,222 @@ sub _element2writer {
 # VALIDATE
 #########################################
 
-# Usage:
-# $ctxt->validate_object($object, $type, { path => $path, tag => $tag })
-# $ctxt only requires the field $ctxt->{'_schema'} (or $ctxt->{'_types'})
-# log is in $ctxt->{'_log'}
-
 sub validate_object ($$$;$) {
   my ($ctxt, $object, $type, $opts)=@_;
-  my $pre=$type;
-
-  my ($path,$tag);
-  if (ref($opts)) {
-    $path = $opts->{path};
-    $tag = $opts->{tag};
-    $path.="/".$tag if $tag ne EMPTY;
-  }
-
-  _debug("validate_object: $path, $object, $type");
-  $type = $ctxt->resolve_type($type);
-  unless (ref($type)) {
-    $ctxt->_log("$path: Invalid type: $type");
-  }
-  if ($type->{cdata}) {
-    if (ref($object)) {
-      $ctxt->_log("$path: expected CDATA, got: ",ref($object));
-    } elsif ($type->{cdata}{format} eq 'nonNegativeInteger') {
-      $ctxt->_log("$path: CDATA value is not formatted as nonNegativeInteger: '$object'")
-	unless $object=~/^\s*\d+\s*$/;
-    } # TODO - check validity of other formats
-  } elsif (exists $type->{constant}) {
-    if ($object ne $type->{constant}{value}) {
-      $ctxt->_log("$path: invalid constant, should be '$type->{constant}', got: ",$object);
-    }
-  } elsif (exists $type->{choice}) {
-    my $ok;
-    my $values = $type->{choice}{values};
-    if ($values) {
-      foreach (@{$values}) {
-	if ($_ eq $object) {
-	  $ok = 1;
-	  last;
-	}
-      }
-    }
-    $ctxt->_log("$path: Invalid value: '$object'") unless ($ok);
-  } elsif (exists $type->{structure}) {
-    my $struct = $type->{structure};
-    my $members = $struct->{member};
-    if (!ref($object)) {
-      $ctxt->_log("$path: Unexpected content of a structure $struct->{name}: '$object'");
-    } elsif (keys(%$object)) {
-      foreach my $atr (grep {$members->{$_}{as_attribute}} keys %$members) {
-	if ($members->{$atr}{required} or $object->{$atr} ne EMPTY) {
-	  if (ref($object->{$atr})) {
-	    $ctxt->_log("$path/$atr: invalid content for member declared as attribute: ".ref($object->{$atr}));
-	  }
-	}
-      }
-      foreach my $member (grep {!$members->{$_}{as_attribute}}
-			  keys %$members) {
-	my $mtype = $ctxt->resolve_type($members->{$member});
-	if ($members->{$member}{role} eq '#CHILDNODES') {
-	  if (ref($object) ne 'FSNode') {
-	    $ctxt->_log("$path/$member: #CHILDNODES member with a non-node value:\n".Dumper($object));
-	  }
-	} elsif ($members->{$member}{role} eq '#KNIT') {
-	  my $knit_tag = $member;
-	  $knit_tag =~ s/\.rf$//;
-	  if ($object->{$member} ne EMPTY) {
-	    if (ref($object->{$member})) {
-	      $ctxt->_log("$path/$member: invalid content for member with role #KNIT: ",ref($object->{$member}));
-	    }
-	    if (ref($object->{$knit_tag}) or $object->{$knit_tag} ne EMPTY) {
-	      $ctxt->_log("$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member");
-	    }
-	  } else {
-	    if (ref($object->{$knit_tag})) {
-	      $ctxt->validate_object_knit($object->{$knit_tag},$members->{$member},
-					  { path => $path , tag => $member, tag => $knit_tag });
-	    } elsif ($object->{$knit_tag} ne EMPTY) {
-	      $ctxt->_log("$path/$knit_tag: invalid value for a #KNIT member: '$object->{$knit_tag}'");
-	    }
-	  }
-	} elsif (ref($mtype) and $mtype->{list} and
-		 $mtype->{list}{role} eq '#KNIT') {
-	  # KNIT list
-	  my $knit_tag = $member;
-	  $knit_tag =~ s/\.rf$//;
-	  if ($object->{$member} ne EMPTY and
-	      $object->{$knit_tag} ne EMPTY) {
-	    $ctxt->_log("$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member");
-	  } elsif ($object->{$member} ne EMPTY) {
-	    _debug("validating as $member not $knit_tag");
-	    $ctxt->validate_object($object->{$member},$members->{$member},
-				   { path => $path, type => $member } );
-	  } else {
-	    my $list = $object->{$knit_tag};
-	    if (ref($list) eq 'Fslib::List') {
-	      for (my $i=1; $i<=@$list;$i++) {
-		$ctxt->validate_object_knit($list->[$i-1], $mtype->{list}, 
-					    { path => $path."/$knit_tag", tag => "[$i]" });
-	      }
-	    } elsif ($list ne EMPTY) {
-	      $ctxt->_log("$path/$knit_tag: not a list: ",ref($object->{$knit_tag}));
-	    }
-	  }
-	} elsif ($object->{$member} ne EMPTY or $members->{$member}{required}) {
-	  $ctxt->validate_object($object->{$member}, $members->{$member}, 
-				 { path => $path, tag => $member } );
-	}
-      }
-    } else {
-      $ctxt->_log("$path: structure is empty");
-    }
-  } elsif (exists $type->{list}) {
-    if (ref($object) eq 'Fslib::List') {
-      for (my $i=1; $i<=@$object; $i++) {
-	$ctxt->validate_object($object->[$i-1],$type->{list},{ path=> $path, tag => "[$i]"});
-      }
-    } else {
-      $ctxt->_log("$path: unexpected content of a list: $object\n");
-    }
-  } elsif (exists $type->{alt}) {
-    if ($object ne EMPTY and ref($object) eq 'Fslib::Alt') {
-      for (my $i=1; $i<=@$object; $i++) {
-	$ctxt->validate_object($object->[$i-1],$type->{alt},{ path => $path, $tag => "[$i]"});
-      }
-    } else {
-      $ctxt->validate_object($object,$type->{alt},{path=>$path});
-    }
-  } elsif (exists $type->{container}) {
-    if (not UNIVERSAL::isa($object,'HASH')) {
-      $ctxt->_log("$path: unexpected container (should be a HASH): $object");
-    } else {
-      my $container = $type->{container};
-      my $attributes = $container->{attribute};
-      foreach my $atr (keys %$attributes) {
-	if ($attributes->{$atr}{required} or $object->{$atr} ne EMPTY) {
-	  if (ref($object->{$atr})) {
-	    $ctxt->_log("$path/$atr: invalid content for attribute: ".ref($object->{$atr}));
-	  } else {
-	    $ctxt->validate_object($object->{$atr}, $attributes->{$atr}, { path => $path, tag=>$atr });
-	  }
-	}
-      }
-      my $content = $object->{'#content'};
-      if ($container->{role} eq '#NODE') {
-	if (!UNIVERSAL::isa($object,'FSNode')) {
-	  $ctxt->_log("$path: container declared as #NODE should be a FSNode object: $object");
-	} else {
-	  my $cont_type = $ctxt->resolve_type($container);
-	  if (ref($cont_type) and ref($cont_type->{sequence}) and $cont_type->{sequence}{role} eq '#CHILDNODES') {
-	    if ($content ne EMPTY) {
-	      $ctxt->_log("$path: #NODE container containing a #CHILDNODES should have empty #content: $content");
-	    }
-	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
-	  }
-	}
-      }
-      $ctxt->validate_object($content,$container,{ path => $path, tag => '#content' });
-    }
-  } elsif (exists $type->{sequence}) {
-    if (UNIVERSAL::isa($object,'Fslib::Seq')) {
-      my $sequence=$type->{sequence};
-      foreach my $element ($object->elements) {
-	if (!(UNIVERSAL::isa($element,'ARRAY') and @$element==2)) {
-	  $ctxt->_log("$path: invalid sequence content: ",ref($element));
-	} elsif ($element->[0] eq '#TEXT') {
-	  if ($sequence->{text}) {
-	    if (ref($element->[1])) {
-	      $ctxt->_log("$path: expected CDATA, got: ",ref($element->[1]));
-	    }
-	  } else {
-	    $ctxt->_log("$path: text node not allowed here\n");
-	  }
-	} else {
-	  my $eltype = $sequence->{element}{$element->[0]};
-	  if ($eltype) {
-	    $ctxt->validate_object($element->[1],$eltype,{ path => $path, tag => $element->[0] });
-	  } else {
-	    $ctxt->_log("$path: undefined element '$element->[0]'",Dumper($type));
-	  }
-	}
-      }
-      if ($sequence->{content_pattern} and !$object->validate($sequence->{content_pattern})) {
-	$ctxt->_log("$path: sequence content (".join(",",$object->names).") does not follow the pattern ".$sequence->{content_pattern});
-      }
-    } else {
-      $ctxt->_log("$path: unexpected content of a sequence: $object\n");
-      $ctxt->_log(Dumper($type));
-    }
-  } else {
-    $ctxt->_log("$path: unknown type: ".Dumper($type));
-  }
-  return (ref($ctxt->{'_log'}) and @{ $ctxt->{'_log'} }>0) ? 0 : 1;
+  $type->validate_object($object,$opts);
 }
 
-# $ctxt $path $object $type { $tag $knit_tag }
-sub validate_object_knit {
-  my ($ctxt, $object, $type, $opts) = @_;
+# # Usage:
+# # $ctxt->validate_object($object, $type, { path => $path, tag => $tag })
+# # $ctxt only requires the field $ctxt->{'_schema'} (or $ctxt->{'_types'})
+# # log is in $ctxt->{'_log'}
 
-  my $ref = $object->{id};
-  _debug("validate_knit_object: $opts->{path}/$opts->{tag}, $object");
-  if ($object->{id} eq EMPTY or ref($object->{id})) {
-    $ctxt->_log("$opts->{path}/$opts->{tag}/id: invalid ID: $object->{id}\n");
-  }
-  if ($ref =~ /^.+#.|^[^#]+$/) {
-    $ctxt->validate_object($object, $ctxt->resolve_type($type), $opts);
-  } else {
-    $ctxt->_log("$opts->{path}/$opts->{tag}/id: invalid PMLREF '$ref'");
-  }
-}
+# sub validate_object ($$$;$) {
+#   my ($ctxt, $object, $type, $opts)=@_;
+#   my $pre=$type;
+
+#   my ($path,$tag);
+#   if (ref($opts)) {
+#     $path = $opts->{path};
+#     $tag = $opts->{tag};
+#     $path.="/".$tag if $tag ne EMPTY;
+#   }
+
+#   _debug("validate_object: $path, $object, $type");
+#   $type = $ctxt->resolve_type($type);
+#   unless (ref($type)) {
+#     $ctxt->_log("$path: Invalid type: $type");
+#   }
+#   if ($type->{cdata}) {
+#     if (ref($object)) {
+#       $ctxt->_log("$path: expected CDATA, got: ",ref($object));
+#     } elsif ($type->{cdata}{format} eq 'nonNegativeInteger') {
+#       $ctxt->_log("$path: CDATA value is not formatted as nonNegativeInteger: '$object'")
+# 	unless $object=~/^\s*\d+\s*$/;
+#     } # TODO - check validity of other formats
+#   } elsif (exists $type->{constant}) {
+#     if ($object ne $type->{constant}{value}) {
+#       $ctxt->_log("$path: invalid constant, should be '$type->{constant}', got: ",$object);
+#     }
+#   } elsif (exists $type->{choice}) {
+#     my $ok;
+#     my $values = $type->{choice}{values};
+#     if ($values) {
+#       foreach (@{$values}) {
+# 	if ($_ eq $object) {
+# 	  $ok = 1;
+# 	  last;
+# 	}
+#       }
+#     }
+#     $ctxt->_log("$path: Invalid value: '$object'") unless ($ok);
+#   } elsif (exists $type->{structure}) {
+#     my $struct = $type->{structure};
+#     my $members = $struct->{member};
+#     if (!ref($object)) {
+#       $ctxt->_log("$path: Unexpected content of a structure $struct->{name}: '$object'");
+#     } elsif (keys(%$object)) {
+#       foreach my $atr (grep {$members->{$_}{as_attribute}} keys %$members) {
+# 	if ($members->{$atr}{required} or $object->{$atr} ne EMPTY) {
+# 	  if (ref($object->{$atr})) {
+# 	    $ctxt->_log("$path/$atr: invalid content for member declared as attribute: ".ref($object->{$atr}));
+# 	  }
+# 	}
+#       }
+#       foreach my $member (grep {!$members->{$_}{as_attribute}}
+# 			  keys %$members) {
+# 	my $mtype = $ctxt->resolve_type($members->{$member});
+# 	if ($members->{$member}{role} eq '#CHILDNODES') {
+# 	  if (ref($object) ne 'FSNode') {
+# 	    $ctxt->_log("$path/$member: #CHILDNODES member with a non-node value:\n".Dumper($object));
+# 	  }
+# 	} elsif ($members->{$member}{role} eq '#KNIT') {
+# 	  my $knit_tag = $member;
+# 	  $knit_tag =~ s/\.rf$//;
+# 	  if ($object->{$member} ne EMPTY) {
+# 	    if (ref($object->{$member})) {
+# 	      $ctxt->_log("$path/$member: invalid content for member with role #KNIT: ",ref($object->{$member}));
+# 	    }
+# 	    if (ref($object->{$knit_tag}) or $object->{$knit_tag} ne EMPTY) {
+# 	      $ctxt->_log("$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member");
+# 	    }
+# 	  } else {
+# 	    if (ref($object->{$knit_tag})) {
+# 	      $ctxt->validate_object_knit($object->{$knit_tag},$members->{$member},
+# 					  { path => $path , tag => $member, tag => $knit_tag });
+# 	    } elsif ($object->{$knit_tag} ne EMPTY) {
+# 	      $ctxt->_log("$path/$knit_tag: invalid value for a #KNIT member: '$object->{$knit_tag}'");
+# 	    }
+# 	  }
+# 	} elsif (ref($mtype) and $mtype->{list} and
+# 		 $mtype->{list}{role} eq '#KNIT') {
+# 	  # KNIT list
+# 	  my $knit_tag = $member;
+# 	  $knit_tag =~ s/\.rf$//;
+# 	  if ($object->{$member} ne EMPTY and
+# 	      $object->{$knit_tag} ne EMPTY) {
+# 	    $ctxt->_log("$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member");
+# 	  } elsif ($object->{$member} ne EMPTY) {
+# 	    _debug("validating as $member not $knit_tag");
+# 	    $ctxt->validate_object($object->{$member},$members->{$member},
+# 				   { path => $path, type => $member } );
+# 	  } else {
+# 	    my $list = $object->{$knit_tag};
+# 	    if (ref($list) eq 'Fslib::List') {
+# 	      for (my $i=1; $i<=@$list;$i++) {
+# 		$ctxt->validate_object_knit($list->[$i-1], $mtype->{list}, 
+# 					    { path => $path."/$knit_tag", tag => "[$i]" });
+# 	      }
+# 	    } elsif ($list ne EMPTY) {
+# 	      $ctxt->_log("$path/$knit_tag: not a list: ",ref($object->{$knit_tag}));
+# 	    }
+# 	  }
+# 	} elsif ($object->{$member} ne EMPTY or $members->{$member}{required}) {
+# 	  $ctxt->validate_object($object->{$member}, $members->{$member}, 
+# 				 { path => $path, tag => $member } );
+# 	}
+#       }
+#     } else {
+#       $ctxt->_log("$path: structure is empty");
+#     }
+#   } elsif (exists $type->{list}) {
+#     if (ref($object) eq 'Fslib::List') {
+#       for (my $i=1; $i<=@$object; $i++) {
+# 	$ctxt->validate_object($object->[$i-1],$type->{list},{ path=> $path, tag => "[$i]"});
+#       }
+#     } else {
+#       $ctxt->_log("$path: unexpected content of a list: $object\n");
+#     }
+#   } elsif (exists $type->{alt}) {
+#     if ($object ne EMPTY and ref($object) eq 'Fslib::Alt') {
+#       for (my $i=1; $i<=@$object; $i++) {
+# 	$ctxt->validate_object($object->[$i-1],$type->{alt},{ path => $path, $tag => "[$i]"});
+#       }
+#     } else {
+#       $ctxt->validate_object($object,$type->{alt},{path=>$path});
+#     }
+#   } elsif (exists $type->{container}) {
+#     if (not UNIVERSAL::isa($object,'HASH')) {
+#       $ctxt->_log("$path: unexpected container (should be a HASH): $object");
+#     } else {
+#       my $container = $type->{container};
+#       my $attributes = $container->{attribute};
+#       foreach my $atr (keys %$attributes) {
+# 	if ($attributes->{$atr}{required} or $object->{$atr} ne EMPTY) {
+# 	  if (ref($object->{$atr})) {
+# 	    $ctxt->_log("$path/$atr: invalid content for attribute: ".ref($object->{$atr}));
+# 	  } else {
+# 	    $ctxt->validate_object($object->{$atr}, $attributes->{$atr}, { path => $path, tag=>$atr });
+# 	  }
+# 	}
+#       }
+#       my $content = $object->{'#content'};
+#       if ($container->{role} eq '#NODE') {
+# 	if (!UNIVERSAL::isa($object,'FSNode')) {
+# 	  $ctxt->_log("$path: container declared as #NODE should be a FSNode object: $object");
+# 	} else {
+# 	  my $cont_type = $ctxt->resolve_type($container);
+# 	  if (ref($cont_type) and ref($cont_type->{sequence}) and $cont_type->{sequence}{role} eq '#CHILDNODES') {
+# 	    if ($content ne EMPTY) {
+# 	      $ctxt->_log("$path: #NODE container containing a #CHILDNODES should have empty #content: $content");
+# 	    }
+# 	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
+# 	  }
+# 	}
+#       }
+#       $ctxt->validate_object($content,$container,{ path => $path, tag => '#content' });
+#     }
+#   } elsif (exists $type->{sequence}) {
+#     if (UNIVERSAL::isa($object,'Fslib::Seq')) {
+#       my $sequence=$type->{sequence};
+#       foreach my $element ($object->elements) {
+# 	if (!(UNIVERSAL::isa($element,'ARRAY') and @$element==2)) {
+# 	  $ctxt->_log("$path: invalid sequence content: ",ref($element));
+# 	} elsif ($element->[0] eq '#TEXT') {
+# 	  if ($sequence->{text}) {
+# 	    if (ref($element->[1])) {
+# 	      $ctxt->_log("$path: expected CDATA, got: ",ref($element->[1]));
+# 	    }
+# 	  } else {
+# 	    $ctxt->_log("$path: text node not allowed here\n");
+# 	  }
+# 	} else {
+# 	  my $eltype = $sequence->{element}{$element->[0]};
+# 	  if ($eltype) {
+# 	    $ctxt->validate_object($element->[1],$eltype,{ path => $path, tag => $element->[0] });
+# 	  } else {
+# 	    $ctxt->_log("$path: undefined element '$element->[0]'",Dumper($type));
+# 	  }
+# 	}
+#       }
+#       if ($sequence->{content_pattern} and !$object->validate($sequence->{content_pattern})) {
+# 	$ctxt->_log("$path: sequence content (".join(",",$object->names).") does not follow the pattern ".$sequence->{content_pattern});
+#       }
+#     } else {
+#       $ctxt->_log("$path: unexpected content of a sequence: $object\n");
+#       $ctxt->_log(Dumper($type));
+#     }
+#   } else {
+#     $ctxt->_log("$path: unknown type: ".Dumper($type));
+#   }
+#   return (ref($ctxt->{'_log'}) and @{ $ctxt->{'_log'} }>0) ? 0 : 1;
+# }
+
+# # $ctxt $path $object $type { $tag $knit_tag }
+# sub validate_object_knit {
+#   my ($ctxt, $object, $type, $opts) = @_;
+
+#   my $ref = $object->{id};
+#   _debug("validate_knit_object: $opts->{path}/$opts->{tag}, $object");
+#   if ($object->{id} eq EMPTY or ref($object->{id})) {
+#     $ctxt->_log("$opts->{path}/$opts->{tag}/id: invalid ID: $object->{id}\n");
+#   }
+#   if ($ref =~ /^.+#.|^[^#]+$/) {
+#     $ctxt->validate_object($object, $ctxt->resolve_type($type), $opts);
+#   } else {
+#     $ctxt->_log("$opts->{path}/$opts->{tag}/id: invalid PMLREF '$ref'");
+#   }
+# }
 
 sub convert_to_fsfile {
   my ($ctxt,$fsfile)=@_;
@@ -2055,12 +2068,13 @@ sub convert_to_fsfile {
   my @nodes = $ctxt->{'_schema'}->find_role('#NODE');
   my ($order,$hide);
   for my $path (@nodes) {
-    my $decl = $schema->find_type_by_path($path,1);
-    $order ||= $schema->find_role('#ORDER', $decl );
-    $hide  ||= $schema->find_role('#HIDE', $decl );
+    my $node_decl = $schema->find_type_by_path($path,1);
+    $order = $schema->find_role('#ORDER', $node_decl ) unless defined $order;
+    $hide  = $schema->find_role('#HIDE', $node_decl ) unless defined $hide;
     last if $order ne EMPTY and $hide ne EMPTY;
   }
-  
+ 
+
   my $defs = $fsfile->FS->defs;
   $defs->{$order} = ' N' if $order ne EMPTY; 
   $defs->{$hide}  = ' H' if $hide  ne EMPTY;

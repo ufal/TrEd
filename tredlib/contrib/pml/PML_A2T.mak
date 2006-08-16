@@ -129,7 +129,7 @@ sub InitTTree {
   my $t_schema = Schema($t_file);
   $t_root->{'atree.rf'} = $refid.'#'.$a_root->{id};
   my $type = first {$_->{name} eq 't-root' } $t_schema->node_types;
-  $t_root->set_type($t_schema->type($type));
+  $t_root->set_type($type);
   $t_root->{nodetype}='root';
   $t_root->{deepord}=0;
   $t_root->{id} = $a_root->{id};

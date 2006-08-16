@@ -7311,39 +7311,30 @@ sub determineNodeType {
   __debug("Determining node type for $node\n");
   if ($node->parent) {
     # is parent's type known?
-    my $parent_type = $node->parent->type;
-    if (ref($parent_type)) {
+    my $parent_decl = $node->parent->type;
+    if (ref($parent_decl)) {
       # ok, find #CHILDNODES
-      $parent_decl = $parent_type->type_decl;
-      if ($parent_decl->{member}) {
-	my ($member_decl) =  
-	  map { $schema->resolve_type($_) } 
-	    grep { ref($_) and $_->{role} eq '#CHILDNODES' } values %{$parent_decl->{member}};
-	if (ref($member_decl)) {
-	  if ($member_decl->{list}) {
-	    $ntype = $schema->resolve_type($member_decl->{list});
-	    $ntype = ($ntype->{structure} || $ntype->{container});
-	    undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
-	  } elsif ($member_decl->{sequence}) {
-	    my $elements = $member_decl->{sequence}{element};
-	    @ntypes =  grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
-	      map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
-	  } else {
-	    warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
-	      Dumper($member_decl);
-	  }
-	}
-      } elsif ($parent_decl->{list} or $parent_decl->{sequence}) {
-	if ($parent_decl->{list} and $parent_decl->{list}{role} eq '#CHILDNODES') {
-	  $ntype = $schema->resolve_type($parent_decl->{list});
-	  $ntype = ($ntype->{structure} || $ntype->{container});
-	  undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
-	} elsif ($parent_decl->{sequence} and $parent_decl->{sequence}{role} eq '#CHILDNODES') {
-	  my $elements = $parent_decl->{sequence}{element};
-	  @ntypes = 
-	    grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
-	      map { [ $_->[0] => ($_->[1]{structure} || $_->[1]{container}) ] }
-		map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
+      my $parent_decl_type = $parent_decl->get_decl_type;
+      my $member_decl;
+      if ($parent_decl_type eq 'structure') {
+	($member_decl) = map { $_->get_content_decl } 
+	  $parent_decl->find_members_by_role('#CHILDNODES');
+      } elsif ($parent_decl_type eq 'container') {
+	$member_decl = $parent_decl->get_content_decl;
+      }
+      if ($member_decl) {
+	my $member_decl_type = $member_decl->get_decl_type;
+	if ($member_decl_type eq 'list') {
+	  $ntype = $member_decl->get_content_decl;
+	  undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
+	} elsif ($member_decl_type eq 'sequence') {
+	  my $elements = 
+	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
+	    map { [ $_->get_name, $_->get_content_decl ] }
+	      $member_decl->get_elements;
+	} else {
+	  warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
+	    Dumper($member_decl);
 	}
       }
     } else {
@@ -7356,36 +7347,34 @@ sub determineNodeType {
     my @tree_types;
     my $pml_trees_type = $win->{FSFile}->metaData('pml_trees_type');
     if (ref $pml_trees_type) {
-      @tree_types = ($pml_trees_type->type_decl);
+      @tree_types = ($pml_trees_type);
     } else {
       @tree_types = map { $schema->find_type_by_path($_) } $schema->find_role('#TREES');
     }
-    foreach my $tt (@tree_types) {
-      if (!UNIVERSAL::isa($tt,'HASH')) {
+    foreach my $tt (map { $_->get_content_decl } @tree_types) {
+      if (!ref($tt)) {
 	warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
 	  Dumper($member_decl);
-      } elsif ($tt->{list}) {
-	$ntype = $schema->resolve_type($tt->{list});
-	$ntype = ($ntype->{structure} || $ntype->{container});
-	undef $ntype unless ref($ntype) and $ntype->{role} eq '#NODE';
-      } elsif ($tt->{sequence}) {
-	my $elements = $tt->{sequence}{element};
-	@ntypes = 
-	  grep { ref($_->[1]) and $_->[1]{role} eq '#NODE' }
-	    map { [ $_->[0] => ($_->[1]{structure} || $_->[1]{container}) ] }
-	      map { [ $_ => $schema->resolve_type($elements->{$_}) ] } keys %{$elements};
+      } elsif ($tt->get_decl_type eq 'list') {
+	$ntype = $tt->get_content_decl;
+	undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
+      } elsif ($tt->get_decl_type eq 'sequence') {
+	my $elements = 
+	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
+	    map { [ $_->get_name, $_->get_content_decl ] }
+	    $tt->get_elements;
       } else {
-	warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
-	  Dumper($member_decl);
+	warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
+	  Dumper($tt);
       }
     }
   }
   if ($ntype) {
-    $base_type = $schema->type($ntype);
+    $base_type = $ntype;
     $node->set_type($base_type);
   } elsif (@ntypes == 1) {
     $node->{'#name'} = $ntypes[0][0];
-    $base_type = $schema->type($ntypes[0][1]);
+    $base_type = $ntypes[0][1];
     $node->set_type($base_type);
   } elsif (@ntypes > 1) {
     my $i = 1;
@@ -7395,7 +7384,7 @@ sub determineNodeType {
 	      \@types,$selection) || return;
     if ($selection->[0]=~/^(\d+) /) {
       my $type = $ntypes[$1-1];
-      $node->set_type($schema->type($type->[1]));
+      $node->set_type($type->[1]);
       $node->{'#name'} = $type->[0];
       $base_type=$node->type;
     } else {
@@ -7450,12 +7439,13 @@ sub editAttrsDialog_schema {
 
   if ($attr_path ne EMPTY) {
     $node_type = $base_type->find($attr_path);
-    #__debug("NODETYPE: '$attr_path'\n",Dumper($base_type->type_decl));
+    die "Unknown attribute $attr_path\n" unless $node_type;
+    #__debug("NODETYPE: '$attr_path'\n",Dumper($base_type));
     #__debug(Dumper($node_type),"\n");
     $enabled = 0 if doEvalHook($win,'enable_attr_hook',$attr_path,"normal") eq 'stop';
   } else {
     $enabled= 0 if (doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop');
-    $node_type = $base_type->type_decl;
+    $node_type = $base_type;
   }
   my $dlg_title = ($attr_path ne EMPTY ? "Edit Attribute '$attr_path'" : "Edit Node");
   my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
@@ -7523,26 +7513,14 @@ sub editAttrsDialog_schema {
   #__debug("ATTR-PATH: '$attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   my $is_required = 1;
   if ($attr_path ne EMPTY) {
-
-    # check if we can allow empty value (member/attribute not required)
-    my $parent_type;
-    if ($base_path ne EMPTY) {
-      $parent_type = $base_type->find($base_path);	    
-      $parent_type = ref($parent_type) ? ($parent_type->{structure} || $parent_type->{container}) : undef;
-    } else {
-      $parent_type = $base_type->type_decl;
+    if ($node_type->get_decl_type =~ /^(?:member|attribute)$/ and
+	!$node_type->is_required) {
+      __debug("not required\n");
+      $is_required = 0;
     }
-    if (ref($parent_type)) {
-      my $members = $parent_type->{member} || $parent_type->{attribute};
-      if ($members) {
-	my $attr_decl = $members->{$attr_name};
-	if (ref($attr_decl) and !$attr_decl->{required}) {
-	  __debug("not required\n");
-	  $is_required = 0;
-	}
-      }
-    }
-    $edit->add_member(EMPTY,$node_type,FSNode::attr($node,$attr_path), $attr_name, 0, undef, $is_required);
+    $edit->add_member(EMPTY,$node_type,
+		      FSNode::attr($node,$attr_path),
+		      $attr_name, 0, undef, $is_required);
   } else {
     #    # 1=allow empty (don't create empty structures)
     $edit->add_members(EMPTY,$node_type,$node,1);
@@ -7658,40 +7636,38 @@ sub editAttrsDialog_schema {
       {
 	$val = ($attr_path eq EMPTY) ? FSNode->new : {};
 	$edit->dump_to_node($val);
-	my $ctxt = PMLInstance->new;
-	$ctxt->set_schema($schema);
-	$ctxt->clear_log();
 	#__debug("Validating node $val\n");
 	my $type;
+	my @log;
 	if ($attr_path eq EMPTY) {
 	  # This is a hack. The validation procedure
 	  # requires the wrapper type, but as we only have the inner declaration
 	  # we fake:
-	  if (ref($node_type) and $node_type->{member}) {
-	    $type = { structure => $node_type };
-	  } else {
-	    $type = { container => $node_type };
-	  }
-	  $schema->validate_object( $val, $type, $log );
+#	  if (ref($node_type) and $node_type->{member}) {
+#	    $type = { structure => $node_type };
+#	  } else {
+#	    $type = { container => $node_type };
+#	  }
+	  $node_type->validate_object( $val, { log => \@log } );
 	} else {
-	  __debug("Validating: $attr_path with name $attr_name (required $is_required)\n");
-	  unless ($val->{$attr_name} eq EMPTY and !$is_required) {
+	  __debug("Validating: attribute '$attr_path' / name '$attr_name' (required $is_required)\n");
+	  if ($val->{$attr_name} ne EMPTY or $is_required) {
 	    # go low-level
-	    my $ctxt = PMLInstance->new();
-	    $ctxt->set_schema( $schema );
-	    $ctxt->validate_object($val->{$attr_name},$node_type,{ path => $attr_path });
+	    $node_type->validate_object($val->{$attr_name},
+					{ path => $attr_path,
+					  log => \@log,
+					});
 	  }
 	}
-	my $log = $ctxt->get_log();
-	if (@$log and
+	if (@log and
 	      errorDialog($win,
 			  "Invalid attribute values",
 			"Validation of the following attributes failed.\n".
 			  "Don't save your file in this state, you may not be able to open it again.",
-			  join("\n",@$log),
+			  join("\n",@log),
 			  -buttons => ["Edit attributes","Ignore these errors"]
 			 ) !~ /Ignore/) {
-	  my ($path) = split /:/,$log->[0];
+	  my ($path) = split /:/,$log[0];
 	  $path =~ s{^\Q$base_path\E/?}{};
 	  if ($path ne EMPTY) {
 	    eval { 

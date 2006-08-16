@@ -983,7 +983,7 @@ sub startMain {
 		  # file uses a schema!
 		  my %types;
 		  foreach my $type ($schema->node_types) {
-		    $types{$type->{name}} = $type if ref($type) and $type->{name} ne "";
+		    $types{$type->get_decl_path} = $type if ref($type);
 		  }
 		  if (keys(%types)) {
 		    for (my $i=0; $i<@{$trees}; $i++) {
@@ -991,11 +991,11 @@ sub startMain {
 			# for every node in the tree change its schema type
 			my $node = $trees->[$i];
 			while ($node) {
-			  my $type;
-			  next unless ($node->type and ($type = $node->type->type_decl));
+			  my $type = $node->type;
 			  next unless $type;
-			  if (exists $types{$type->{name}}) {
-			    $node->set_type($schema->type($types{$type->{name}}));
+			  my $path = $type->get_decl_path;
+			  if (exists $types{$path}) {
+			    $node->set_type($types{$path});
 			  }
 			} continue {
 			  $node = $node->following;
@@ -1437,10 +1437,20 @@ sub saveFile {
   #unlink "$f~" if (-e "$f~" ); # silly MS OSs need this
   #rename $f, "$f~" if (-f $f);
   my $refs_to_save={};
-  _msg "Looking for resources $reffiles_to_save\n" unless $Quiet;
   if ($reffiles_to_save eq 'ALL') {
-    $refs_to_save = undef;
+    my $references = $fsfile->metaData('references');
+    if (ref($references)) {
+      foreach my $refid (keys %$references) {
+	my $href = $references->{$refid};
+	if ($refid and $href) {
+	  $refs_to_save = {} unless defined $refs_to_save;
+	  $refs_to_save->{$refid} = save_transform_filename($href);
+	  _msg "Reference with ID $refid from file '$href' will be saved as ".$refs_to_save->{$refid}."\n" unless $Quiet;
+	}
+      }
+    }
   } elsif ($fsfile->metaData('schema') and $reffiles_to_save ne 'NONE') {
+    _msg "Looking for resources $reffiles_to_save\n" unless $Quiet;
     my $refnames = $fsfile->metaData('refnames');
     my $references = $fsfile->metaData('references');
     if (ref($refnames) and ref($references)) {
