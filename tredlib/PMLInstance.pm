@@ -16,7 +16,7 @@ use Scalar::Util qw(weaken);
 
 $DEBUG = 0;
 
-=for comment
+=begin comment
 
  TODO 
 
@@ -46,6 +46,8 @@ $DEBUG = 0;
   - hash by #ID into appData('id-hash')/{'id-hash'} (knitted instances could be hashed with prefix#, 
     knitted-knitted instances with prefix1#prefix2#...)
     (this is temporary)
+
+=end comment
 
 =cut
 
@@ -897,12 +899,8 @@ sub read_node {
 }
 
 
-=item _read_List($node)
-
-If a given DOM node contains a pml:List, return a list of its members,
-otherwise return the node itself.
-
-=cut
+# If a given DOM node contains a pml:List, return a list of its members,
+# otherwise return the node itself.
 
 sub _read_List ($) {
   my ($node)=@_;
@@ -911,11 +909,6 @@ sub _read_List ($) {
   return @$List ? @$List : $node;
 }
 
-=item read_Sequence($node)
-
-=cut
-
-# $ctxt, $child, $type, $seq
 sub read_Sequence {
   my ($ctxt,$child,$type,$seq)=@_;
   $seq ||= Fslib::Seq->new();
@@ -955,12 +948,9 @@ sub read_Sequence {
   return $seq;
 }
 
-=item _read_Alt($node)
 
-If given DOM node contains a pml:Alt, return a list of its members,
-otherwise return the node itself.
-
-=cut
+# If given DOM node contains a pml:Alt, return a list of its members,
+# otherwise return the node itself.
 
 sub _read_Alt ($) {
   my ($node)=@_;
