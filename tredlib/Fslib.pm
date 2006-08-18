@@ -3570,8 +3570,8 @@ sub attributes {
     if ($decl_is == PML_STRUCTURE_DECL) {
       @members = map { [$_,$_->get_knit_name] } $type->get_members;
     } elsif ($decl_is == PML_CONTAINER_DECL) {
-      @members = (map { [ $_, $_->get_name ] } $type->get_attributes,
-		    ['#content',$type->get_content_decl]);
+      @members = ((map { [ $_, $_->get_name ] } $type->get_attributes),
+		    [$type->get_content_decl, '#content']);
     } elsif ($decl_is == PML_SEQUENCE_DECL) {
       @members = map { [ $_, $_->get_name ] } $type->get_elements;
     } else {
