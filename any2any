@@ -174,7 +174,7 @@ if ($opt_m) {
     $f=shift @$fspec;
     $fileno++;
     print STDERR "$f\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
-    $fs = FSFile->newFSFile($f,$inputenc,@backends);
+    $fs = FSFile->newFSFile($f,$inputenc,\@backends);
     if ($fs->lastTreeNo<0) {
       print STDERR "$f: empty or corrupt file!\n";
       next;
@@ -248,7 +248,7 @@ if ($opt_m) {
     }
 
     print STDERR "$f\t->\t$out\t",int(100*$fileno / $filecount),"%\t$fileno of $filecount\n";
-    $fs = FSFile->newFSFile($f,$inputenc,@backends);
+    $fs = FSFile->newFSFile($f,$inputenc,\@backends);
     if ($fs->lastTreeNo<0) {
       print STDERR "$f: empty or corrupt file!\n";
       next;

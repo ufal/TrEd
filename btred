@@ -1250,7 +1250,7 @@ sub preloadFiles {
     }
     next if exists($grp->{preloaded}->{$f});
     _msg "Pre-loading: $f (",$fno++,"/$filecount)\n" unless $Quiet;
-    my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+    my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,\@backends);
     if ($fsfile->lastTreeNo<0) {
       _msg "Error - cannot load file: $f ("._last_err().")!\n";
       $errlog->print("ERROR: Cannot load file: $f! ($@)\n") if ($errlog);
@@ -1290,7 +1290,7 @@ sub openSecondary {
 			       $fsfile,
 			       $req->[0])
 	  } else {
-	    my $req_fs = FSFile->newFSFile($req_filename,$TrEd::Convert::inputenc,@backends);
+	    my $req_fs = FSFile->newFSFile($req_filename,$TrEd::Convert::inputenc,\@backends);
 	    _msg "Error - cannot load secondary file $req_filename required by ".$fsfile->filename."! ("._last_err().")\n" if ($req_fs->lastTreeNo<0);
 	    $req_fs->changeFileFormat(($req_filename=~/\.gz$/ ? "gz-compressed " : "").$req_fs->backend);
 	    $grp->{'secondary'}->{$req_filename} = $req_fs;
@@ -1333,7 +1333,7 @@ sub openFile {
   } elsif ($opts{-justpreloaded}) {
     return 0;
   } else {
-    my $fsfile =  FSFile->newFSFile($f,$TrEd::Convert::inputenc,@backends);
+    my $fsfile =  FSFile->newFSFile($f,$TrEd::Convert::inputenc,\@backends);
     $grp->{FSFile} = $fsfile;
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));

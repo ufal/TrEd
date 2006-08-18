@@ -1815,18 +1815,19 @@ sub loadFile {
   my ($grp,$file,$backends)=@_;
   $grp = cast_to_grp($grp);
   my @warnings;
-  my @bck = ref($backends) ? @$backends : @backends;
+  my $bck = ref($backends) ? $backends : \@backends;
   my $status = {
     ok => 0,
     warnings => \@warnings,
     error => undef,
     filename => $file,
-    backends => \@bck,
+    backends => $bck,
     report => undef,
   };
   _clear_err();
   local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; print STDERR $msg."\n"; push @warnings,$msg; };
-  my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc,@bck);
+  my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc,
+				 $bck);
   $status->{error} = _last_err();
   
   $status->{report} = "Loading file '$file':\n\n";
