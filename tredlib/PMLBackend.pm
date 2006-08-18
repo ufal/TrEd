@@ -85,7 +85,11 @@ sub read ($$) {
 
   my $ctxt = PMLInstance->load({fh => $input, filename => $fsfile->filename, config => $config });
   $ctxt->convert_to_fsfile( $fsfile );
-  return $ctxt->get_status();
+  my $status = $ctxt->get_status;
+  if ($status and !defined($ctxt->get_trees)) {
+    _die("No trees found in the PMLInstance!");
+  }
+  return $status
 }
 
 

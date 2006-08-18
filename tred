@@ -373,7 +373,7 @@ require Tk::ImgButton;
 require Tk::BindMouseWheel;
 require Tk::Balloon;
 require Tk::JComboBox_0_02;
-
+require Tk::TrEdNodeEdit;
 
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
@@ -7316,18 +7316,18 @@ sub determineNodeType {
       # ok, find #CHILDNODES
       my $parent_decl_type = $parent_decl->get_decl_type;
       my $member_decl;
-      if ($parent_decl_type eq 'structure') {
+      if ($parent_decl_type == PML_STRUCTURE_DECL) {
 	($member_decl) = map { $_->get_content_decl } 
 	  $parent_decl->find_members_by_role('#CHILDNODES');
-      } elsif ($parent_decl_type eq 'container') {
+      } elsif ($parent_decl_type == PML_CONTAINER_DECL) {
 	$member_decl = $parent_decl->get_content_decl;
       }
       if ($member_decl) {
 	my $member_decl_type = $member_decl->get_decl_type;
-	if ($member_decl_type eq 'list') {
+	if ($member_decl_type == PML_LIST_DECL) {
 	  $ntype = $member_decl->get_content_decl;
 	  undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
-	} elsif ($member_decl_type eq 'sequence') {
+	} elsif ($member_decl_type == PML_SEQUENCE_DECL) {
 	  my $elements = 
 	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }
@@ -7355,10 +7355,10 @@ sub determineNodeType {
       if (!ref($tt)) {
 	warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
 	  Dumper($member_decl);
-      } elsif ($tt->get_decl_type eq 'list') {
+      } elsif ($tt->get_decl_type == PML_LIST_DECL) {
 	$ntype = $tt->get_content_decl;
 	undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
-      } elsif ($tt->get_decl_type eq 'sequence') {
+      } elsif ($tt->get_decl_type == PML_SEQUENCE_DECL) {
 	my $elements = 
 	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }
@@ -7404,9 +7404,6 @@ sub editAttrsDialog_schema {
 
   my $reusable = 0; # 1 for reusable dialog (which leaks even more)
   
-  require Tk::TrEdNodeEdit;
-  require PMLInstance;
-
   use Data::Dumper;
   #__debug("PATH: '$attr_path'\n");
 
@@ -7513,7 +7510,9 @@ sub editAttrsDialog_schema {
   #__debug("ATTR-PATH: '$attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   my $is_required = 1;
   if ($attr_path ne EMPTY) {
-    if ($node_type->get_decl_type =~ /^(?:member|attribute)$/ and
+    my $decl_type = $node_type->get_decl_type;
+    if (($decl_type == PML_MEMBER_DECL ||
+	 $decl_type == PML_ATTRIBUTE_DECL) and
 	!$node_type->is_required) {
       __debug("not required\n");
       $is_required = 0;

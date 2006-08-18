@@ -13,6 +13,7 @@ use Tk::JComboBox_0_02;
 use base qw(Tk::Derived Tk::Tree);
 use strict;
 use Carp;
+use PMLSchema qw(:constants);
 
 Construct Tk::Widget 'TrEdNodeEdit';
 
@@ -370,7 +371,7 @@ sub up_or_down {
   $hlist->delete('entry',$path);
 
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
-  if ($ptype->get_decl_type eq 'list') {
+  if ($ptype->get_decl_type == PML_LIST_DECL) {
     $hlist->add_list_member($parent,$mtype,$val,
 			     $list_no,0,
 			     [($where>0 ? '-after' : '-before'), $other ]
@@ -545,11 +546,22 @@ sub add_buttons {
   my $mtype = $hlist->info(data => $path)->{type};
   my $ptype = $parent ne "" ? $hlist->info(data => $parent)->{type} : undef;
 
-  return unless (ref($mtype) and 
-		   ($mtype->get_decl_type =~ /^(list|alt|sequence|structure|container)$/ or ref($ptype) and $ptype->get_decl_type =~ /^(list|alt|sequence)$/));
+  my $mdecl_type = ref($mtype) ? $mtype->get_decl_type : undef;
+  my $pdecl_type = ref($ptype) ? $ptype->get_decl_type : undef;
+  return unless (
+    (ref($mtype) && 
+     ($mtype->get_decl_type == PML_LIST_DECL      ||
+      $mtype->get_decl_type == PML_ALT_DECL       ||
+      $mtype->get_decl_type == PML_SEQUENCE_DECL  ||
+      $mtype->get_decl_type == PML_STRUCTURE_DECL ||
+      $mtype->get_decl_type == PML_CONTAINER_DECL))
+      or
+    (ref($ptype) && 
+     ($mtype->get_decl_type == PML_LIST_DECL      ||
+      $mtype->get_decl_type == PML_ALT_DECL       ||
+      $mtype->get_decl_type == PML_SEQUENCE_DECL)));
 
-  return if ref($mtype) and 
-    $mtype->get_role =~ m{^\#(?:CHILDNODES|TREES)$};
+  return if ref($mtype) and $mtype->get_role =~ m{^\#(?:CHILDNODES|TREES)$};
   my $f = $hlist->Frame(
     -background => $hlist->cget('-background')
    );
@@ -563,7 +575,7 @@ sub add_buttons {
 
   for my $decl (grep ref, $mtype, $ctype) {
     my $decl_type = $decl->get_decl_type;
-    if ($decl_type eq 'list') {
+    if ($decl_type == PML_LIST_DECL) {
       # add list buttons
       $hlist->mini_button($f,'plus',$path,
 			  {
@@ -572,7 +584,7 @@ sub add_buttons {
 			      -balloonmsg => 'Create a new list item (Ctrl-+)',
 			  }
 			 )->pack();
-    } elsif ($decl_type eq 'sequence') {
+    } elsif ($decl_type == PML_SEQUENCE_DECL) {
       # add sequence buttons
       $hlist->mini_button($f,'plus',$path,
 			  {
@@ -588,7 +600,7 @@ sub add_buttons {
 			   }
 			    
 			 )->pack();
-    } elsif ($decl_type eq 'alt') {
+    } elsif ($decl_type == PML_ALT_DECL) {
       # add alt buttons
       $hlist->mini_button($f,'star',$path,
 			  { 
@@ -597,8 +609,8 @@ sub add_buttons {
 			    -command => [$hlist,'add_to_alt',$path],
 			     }
 			 )->pack(-side => 'top');
-    } elsif ($decl_type eq 'structure' or 
-	     $decl_type eq 'container') {
+    } elsif ($decl_type == PML_STRUCTURE_DECL or 
+	     $decl_type == PML_CONTAINER_DECL) {
       # add structure button
       $hlist->mini_button($f,'hash',$path,
 			  {
@@ -614,7 +626,7 @@ sub add_buttons {
     $ptype = (($hlist->info(data => $parent)->{compressed_type}) || $ptype)
   }
   my $ptype_is = $ptype ? $ptype->get_decl_type : undef;
-  if ($ptype_is eq 'list') {
+  if ($ptype_is == PML_LIST_DECL) {
     # add list member buttons
     my ($f1,$f2);
     if ($ptype->is_ordered) {
@@ -659,7 +671,7 @@ sub add_buttons {
 			  }
 			 )->pack(qw(-side top));
     }
-  } elsif ($ptype_is eq 'sequence') {
+  } elsif ($ptype_is == PML_SEQUENCE_DECL) {
     # add sequence member buttons
     my ($f1,$f2);
     $f2 = $f->Frame->pack(qw(-side left));
@@ -701,7 +713,7 @@ sub add_buttons {
 			  -command => [$hlist,'up_or_down',1,$path],
 			}
 		       )->pack(qw(-side top));
-  } elsif ($ptype_is eq 'alt') {
+  } elsif ($ptype_is == PML_ALT_DECL) {
     # remove alt member button
     $hlist->mini_button($f,'cross',$path,
 			{
@@ -756,8 +768,10 @@ sub add_member {
     $mdecl = $member;
   } elsif (ref($member)) {
     return if $member->get_role  =~ m/^\#(?:CHILDNODES|TREES)$/;
+    my $member_type = $member->get_decl_type;
     $required ||= $member->is_required if
-      $member->get_decl_type =~ /^(member|attribute)/;
+      ($member_type == PML_MEMBER_DECL ||
+       $member_type == PML_ATTRIBUTE_DECL);
     $mdecl = $member->get_content_decl || $member;
     $mdecl_type = $mdecl->get_decl_type;
   } else {
@@ -783,13 +797,13 @@ sub add_member {
   }
   $data->{dump} = $mdecl_type;
   if ($member eq '#name') {
-    $data->{dump} = 'none';
+    $data->{dump} = undef;
     $data->{value} = $attr_val;
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{text});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => $attr_val,
 		       -style => $hlist->{my_itemstyles}{text});
-  } elsif ($mdecl_type eq 'cdata') {
+  } elsif ($mdecl_type == PML_CDATA_DECL) {
     my $w = $hlist->Frame(-background => 'white', #'gray',
 			  -borderwidth => 1
 			 );
@@ -797,16 +811,28 @@ sub add_member {
     my $e = $w->Entry( -background => 'white',
 		       -textvariable => \$data->{value},#$attr_val,
 		       -relief => 'flat',
-		       -borderwidth => 1,
+		       -borderwidth => 0,
 		       -state => ($enabled ? 'normal' : 'disabled'),
 		       -foreground => 'black',
-		       -highlightcolor => 'black',
-		       ($mdecl->get_format eq 'nonNegativeInteger' ?
-			  (-validate => 'all',
-			   -validatecommand => sub { $_[0]=~/^\d+$/ ? 1 : 0 }) :
-			   ())
-		      )
+		       -highlightcolor => 'black')
       ->pack(qw(-fill both -expand yes));
+    unless ($mdecl->get_format eq 'any') {
+      my $validate_cmd = sub {
+	if (($_[0] eq q{} and !$required)
+	      or $mdecl->validate_object($_[0])) {
+	  $e->configure(-background => 'white');
+	  #$e->configure(-foreground => 'black');
+	} else {
+	  $e->configure(-background => 'pink');
+	  $e->configure(-disabledforeground => 'red');
+	  #$e->configure(-foreground => 'darkred');
+	}
+	1;
+      };
+      $validate_cmd->($data->{value});
+      $e->configure(-validate => 'all',
+		    -validatecommand => $validate_cmd);
+    }
 
     $e->bind('<FocusIn>',[sub { $_[1]->select_entry($_[2]) },$hlist,$path]);
     $e->bind('<Up>',[sub {
@@ -827,7 +853,7 @@ sub add_member {
 		       -widget => $w,
 		       -style => $hlist->{my_itemstyles}{entries}
 		      );
-  } elsif ($mdecl_type eq 'choice') {
+  } elsif ($mdecl_type == PML_CHOICE_DECL) {
     $data->{value} = $attr_val;
     my @values = $mdecl->get_values;
     unshift @values, '' unless $required;
@@ -893,12 +919,12 @@ sub add_member {
 		       -widget => $w,
 		       -style => $hlist->{my_itemstyles}{entries}
 		      );
-  } elsif ($mdecl_type eq 'constant') {
+  } elsif ($mdecl_type == PML_CONSTANT_DECL) {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{constant});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => $mdecl->get_value,
 		       -style => $hlist->{my_itemstyles}{constant});
-  } elsif ($mdecl_type eq 'structure') {
+  } elsif ($mdecl_type == PML_STRUCTURE_DECL) {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => 'Structure',
@@ -906,7 +932,7 @@ sub add_member {
     if (ref($attr_val)) {
       $hlist->add_members($path."/",$mdecl,$attr_val);
     }
-  } elsif ($mdecl_type eq 'container') {
+  } elsif ($mdecl_type == PML_CONTAINER_DECL) {
     $hlist->entryconfigure($path,-style => $hlist->{my_itemstyles}{struct});
     $hlist->itemCreate($path,1,-itemtype => 'text',
 		       -text => 'Container',
@@ -914,9 +940,9 @@ sub add_member {
     if (ref($attr_val)) {
       $hlist->add_members($path."/",$mdecl,$attr_val);
     }
-  } elsif ($mdecl_type eq 'list') {
+  } elsif ($mdecl_type == PML_LIST_DECL) {
     if ($mdecl->get_role =~ m/^\#(CHILDNODES|TREES)$/ ) {
-      $data->{dump} = 'none';
+      $data->{dump} = undef;
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => $1,
 			 -style => $hlist->{my_itemstyles}{list});
@@ -941,11 +967,11 @@ sub add_member {
       }
       $data->{list_no}=$list_no;
     }
-  } elsif ($mdecl_type eq 'sequence') {
+  } elsif ($mdecl_type == PML_SEQUENCE_DECL) {
     my $list_no=0;
     $hlist->itemConfigure($path,0,-style => $hlist->{my_itemstyles}{list});
     if ($mdecl->get_role =~ m/^\#(CHILDNODES|TREES)$/) {
-      $data->{dump} = 'none';
+      $data->{dump} = undef;
       $hlist->itemCreate($path,1,-itemtype => 'text',
 			 -text => 'Sequence of '.$1,
 			 -style => $hlist->{my_itemstyles}{sequence});
@@ -961,7 +987,7 @@ sub add_member {
       }
     }
     $data->{list_no}=$list_no;
-  } elsif ($mdecl_type eq 'alt') {
+  } elsif ($mdecl_type == PML_ALT_DECL) {
     my $alt_no=0;
     $hlist->itemConfigure($path,0,-style => 
 			    ($mdecl->is_flat ? $hlist->{my_itemstyles}{alt_flat} : $hlist->{my_itemstyles}{alt}));
@@ -997,6 +1023,8 @@ sub add_member {
       $new_data->{$_} = $data->{$_} for qw(type name text);
     }
     $data->{alt_no}=$alt_no;
+  } else {
+    warn "Unknown data type: $mdecl - $mdecl_type\n";
   }
   $hlist->add_buttons($path) if $enabled;
   $hlist->setmode($path);
@@ -1008,12 +1036,12 @@ sub add_members {
   my ($hlist,$base_path,$type,$node,$allow_empty)=@_;
   my $decl_type =  $type->get_decl_type();
   my @members;
-  if ($decl_type eq 'structure') {
+  if ($decl_type == PML_STRUCTURE_DECL) {
     @members = $type->get_member_names();
-  } elsif ($decl_type eq 'container') {
+  } elsif ($decl_type == PML_CONTAINER_DECL) {
     @members = $type->get_attribute_names();
   } else {
-    croak "Can't call add_members on a $decl_type";
+    croak "Can't call add_members on a ".$type->get_decl_type_str;
   }
   if ($node->{'#name'} ne '') {
     # FIXME - we should know by other means that there is a #name
@@ -1023,9 +1051,9 @@ sub add_members {
     my $member = $type->get_member_by_name($member_name);
     croak "Can't locate member $member_name\n" unless $member;
     my $mdecl = $member->get_content_decl;
-    if ($decl_type eq 'structure' and 
+    if ($decl_type == PML_STRUCTURE_DECL and 
 	$member->get_role eq '#KNIT' or
-	$mdecl and $mdecl->get_decl_type() eq 'list'
+	$mdecl and $mdecl->get_decl_type() == PML_LIST_DECL
 	and $mdecl->get_role eq '#KNIT') {
       # #KNIT PMLREF or a list of #KNIT PMLREFS
       if (exists($node->{$member_name})) {
@@ -1039,7 +1067,7 @@ sub add_members {
 		       ($node ? $node->{$member_name} : undef),
 		       $member_name,$allow_empty);
   }
-  if ($decl_type eq 'container') {
+  if ($decl_type == PML_CONTAINER_DECL) {
     $hlist->add_member($base_path,$type,
 		       $node->{'#content'}, '#content');
   }
@@ -1103,24 +1131,25 @@ sub dump_child {
   my $dump = $data->{dump};
 
   $mtype = $data->{type} unless defined $mtype;
-
-  if ($dump eq 'cdata' or $dump eq 'choice') {
+  if (!defined($dump)) {
+    # nothing to do
+  } elsif ($dump == PML_CDATA_DECL or $dump == PML_CHOICE_DECL) {
     _store_data($ref,$data->{name},$data->{value},$preserve_empty);
-  } elsif ($dump eq 'constant') {
+  } elsif ($dump == PML_CONSTANT_DECL) {
     _store_data($ref,$data->{name},$mtype->get_value,1);
-  } elsif ($dump eq 'list') {
+  } elsif ($dump == PML_LIST_DECL) {
     my $new_ref=Fslib::List->new;
     _store_data($ref,$data->{name},$new_ref,1);
     for my $child ($hlist->info(children => $path)) {
       $hlist->dump_child($child,$new_ref,$preserve_empty);
     }
-  } elsif ($dump eq 'sequence') {
+  } elsif ($dump == PML_SEQUENCE_DECL) {
     my $new_ref=Fslib::Seq->new;
     _store_data($ref,$data->{name},$new_ref,1);
     for my $child ($hlist->info(children => $path)) {
       $hlist->dump_child($child,$new_ref,$preserve_empty);
     }
-  } elsif ($dump eq 'alt') {
+  } elsif ($dump == PML_ALT_DECL) {
     my $new_ref=Fslib::Alt->new;
     if ($data->{compressed_type}) {
       $hlist->dump_child($path,$new_ref,
@@ -1147,10 +1176,8 @@ sub dump_child {
     } else {
       _store_data($ref,$data->{name},$new_ref,1);
     }
-  } elsif ($dump eq 'none') {
-    # nothing to do
-  } elsif ($dump eq 'structure' or $dump eq 'container') {
-    my $new_ref = $dump eq 'structure' ? 
+  } elsif ($dump == PML_STRUCTURE_DECL or $dump == PML_CONTAINER_DECL) {
+    my $new_ref = $dump == PML_STRUCTURE_DECL ? 
 	  Fslib::Struct->new : Fslib::Container->new;
     my @children = $hlist->info(children => $path);
     if (ref($ref) eq 'Fslib::List' or ref($ref) eq 'Fslib::Alt') {
@@ -1176,7 +1203,7 @@ sub dump_child {
       $hlist->dump_child($child,$new_ref,$preserve_empty);
     }
   } else {
-    warn "Can't dump $path as $dump. Type ",Dumper($mtype),"\n";
+    warn "Can't dump $path as data type no. $dump. Type ",Dumper($mtype),"\n";
   }
 }
 

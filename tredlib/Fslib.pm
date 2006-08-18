@@ -12,11 +12,10 @@
 # See complete help in POD format at the end of this file
 
 package Fslib;
-use strict;
 use Data::Dumper;
 use Scalar::Util qw(weaken);
 
-require PMLSchema;
+use strict;
 
 use vars qw(@EXPORT @EXPORT_OK @ISA $VERSION $API_VERSION %COMPATIBLE_API_VERSION
             $field_re $attr_name_re
@@ -446,6 +445,7 @@ package FSNode;
 use Carp;
 use strict;
 use vars qw(@ISA);
+use PMLSchema;
 
 @ISA=qw(Fslib::Struct);
 
@@ -552,7 +552,7 @@ sub type {
   } elsif (ref($type) eq 'Fslib::Type') {
     # pushing backward compatibility forward 
     my $decl = $type->type_decl;
-    return UNIVERSAL::isa($decl,'Fslib::Schema::Decl') ? $decl : $type;
+    return UNIVERSAL::isa($decl,'PMLSchema::Decl') ? $decl : $type;
   } else {
     return $type;
   }
@@ -664,10 +664,16 @@ sub set_type_by_name ($$$) {
   my ($node,$schema,$name) = @_;
   my $type = $schema->get_type_by_name($name);
   if (ref($type)) {
-    if ($type->get_decl_type =~ /^(member|element|type|root)$/) {
+    my $decl_type = $type->get_decl_type;
+    if ($decl_type == PML_MEMBER_DECL() ||
+        $decl_type == PML_ELEMENT_DECL() ||
+        $decl_type == PML_TYPE_DECL() ||
+	$decl_type == PML_ROOT_DECL() ) {
       $type = $type->get_content_decl;
     }
-    if ($type->get_decl_type =~ /^(container|structure)$/)
+    $decl_type = $type->get_decl_type;
+    if ($decl_type == PML_CONTAINER_DECL() ||
+	$decl_type == PML_STRUCTURE_DECL()) {
       $node->set_type($type);
     } else {
       croak "FSNode::set_type_by_name: Incompatible type '$name' (neither a structure nor a container)";
@@ -1176,6 +1182,28 @@ sub getNamespace { undef }
 =back
 
 =cut
+
+############################################################
+#
+# Fslib Schema
+# =============
+#
+#
+
+=head1 Fslib::Schema
+
+Fslib::Schema - Fslib interface to PML Schema
+
+=head2 DESCRIPTION
+
+This package is going to be a successor of FSFormat. Currently it
+derives directly from C<PMLSchema> class without adding any Fslib
+specific functionality to it.
+
+See L<PMLSchema> for details.
+
+=cut
+
 
 ############################################################
 #
