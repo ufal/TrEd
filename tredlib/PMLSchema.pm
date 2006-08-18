@@ -53,15 +53,17 @@ where I<NNN> is a decimal number (ignored), which is an equivalent of []
 Steps of the form [] (except when occuring at the end of an attribute
 path) may be omitted.
 
-=head1 EXPORT
+=head2 EXPORT
 
-Constants for declaration types.
+This module exports constants for declaration types.
 
-=head1 EXPORT TAGS
+=head2 EXPORT TAGS
 
 =over 3
 
 =item :constants
+
+Export constant symbols (exported by default, too).
 
 =back
 
@@ -125,7 +127,7 @@ use constant   PML_MEMBER_DECL      => 12;
 use constant   PML_ELEMENT_DECL     => 13;
 
 
-=head2 METHODS
+=head1 METHODS
 
 =over 3
 
@@ -853,64 +855,6 @@ sub type {
   }
 }
 
-# emulate FSFormat->attributes to some extent
-
-=item $schema->attributes (decl...)
-
-This function tries to emulate the behavior of
-C<FSFormat-E<gt>attributes> to some extent.
-
-Return attribute paths to all atomic subtypes of given type
-declarations. If no type declaration objects are given, then types
-with role C<#NODE> are assumed. This function never descends to
-subtypes with role C<#CHILDNODES>.
-
-=cut
-
-sub attributes {
-  my ($self,@types) = @_;
-  # find node type
-
-  unless (@types) {
-    @types = $self->node_types;
-  }
-  my @result;
-  foreach my $type (@types) {
-    my $decl_is = $type->get_decl_type;
-    next if $type->get_role eq '#CHILDNODES';
-    if ($decl_is == PML_TYPE_DECL ||
-	$decl_is == PML_ROOT_DECL ||
-	$decl_is == PML_ATTRIBUTE_DECL ||
-	$decl_is == PML_MEMBER_DECL ||
-	$decl_is == PML_ELEMENT_DECL  ||
-	$decl_is == PML_LIST_DECL ||
-	$decl_is == PML_ALT_DECL ) {
-      $type = $type->get_content_decl;
-      redo;
-    }
-    next unless ref($type);
-    my @members;
-    if ($decl_is == PML_STRUCTURE_DECL) {
-      @members = map { [$_,$_->get_knit_name] } $type->get_members;
-    } elsif ($decl_is == PML_CONTAINER_DECL) {
-      @members = (map { [ $_, $_->get_name ] } $type->get_attributes,
-		    ['#content',$type->get_content_decl]);
-    } elsif ($decl_is == PML_SEQUENCE_DECL) {
-      @members = map { [ $_, $_->get_name ] } $type->get_elements;
-    } else {
-      push @result, qq{};
-    }
-    if (@members) {
-      for my $m (@members) {
-	my ($mdecl,$name) = @$m;
-	push @result, map { $_ eq q{} ? $name : $name."/".$_ } $self->attributes($mdecl);
-      }
-    }
-  }
-  my %uniq;
-  return grep { !$uniq{$_} && ($uniq{$_}=1) } @result;
-}
-
 =item $schema->validate_object (object, type_decl, log)
 
 Validates the data content of the given object against a specified
@@ -978,6 +922,8 @@ sub validate_field {
 
 =back
 
+=head1 CLASSES FOR TYPE DECLARATIONS
+
 =cut
 
 ########################################################################
@@ -986,11 +932,11 @@ sub validate_field {
 
 package PMLSchema::Decl;
 
-=head1 PMLSchema::Decl
+=head2 PMLSchema::Decl
 
 PMLSchema::Decl - implements PML schema type declaration
 
-=head2 DESCRIPTION
+=head3 DESCRIPTION
 
 This is an abstract class from which all specific type declaration
 classes inherit.
@@ -1001,7 +947,7 @@ use Scalar::Util qw( weaken );
 use Carp;
 use PMLSchema;
 
-=head2 METHODS
+=head3 METHODS
 
 =over 3
 
@@ -1027,7 +973,7 @@ sub schema    { return $_[0]->{-schema} }
 =item $decl->get_decl_type ()
 
 Return the type of declaration as an integer constant (see
-L<CONSTANTS>).
+L</CONSTANTS>).
 
 =item $decl->get_decl_type_str ()
 
@@ -1338,7 +1284,7 @@ sub validate_object {
 
 #########################
 
-=head1 PMLSchema::Root
+=head2 PMLSchema::Root
 
 PMLSchema::Root - implements root PML-schema declaration
 
@@ -1348,11 +1294,11 @@ package PMLSchema::Root;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -1396,15 +1342,15 @@ package PMLSchema::Type;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Type
+=head2 PMLSchema::Type
 
 PMLSchema::Type - implements named type declaration in a PML schema
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -1445,15 +1391,15 @@ package PMLSchema::Struct;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Struct
+=head2 PMLSchema::Struct
 
 PMLSchema::Struct - implements declaration of a structure.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -1629,17 +1575,17 @@ package PMLSchema::Container;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Container
+=head2 PMLSchema::Container
 
 PMLSchema::Container - implements declaration of a container.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>, but provides
 several methods which make its interface largely compatible with
 the C<PMLSchema::Schema> class.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -1792,7 +1738,7 @@ sub validate_object {
 
 =back
 
-=head2 COMPATIBILITY METHODS
+=head3 COMPATIBILITY METHODS
 
 =over 3
 
@@ -1844,15 +1790,15 @@ package PMLSchema::Seq;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Seq
+=head2 PMLSchema::Seq
 
 PMLSchema::Seq - implements declaration of a sequence.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -2022,15 +1968,15 @@ package PMLSchema::List;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::List
+=head2 PMLSchema::List
 
 PMLSchema::List - implements declaration of a list.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -2096,15 +2042,15 @@ package PMLSchema::Alt;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Alt
+=head2 PMLSchema::Alt
 
 PMLSchema::Alt - implements declaration of an alternative (alt).
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -2171,16 +2117,16 @@ package PMLSchema::Choice;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Choice
+=head2 PMLSchema::Choice
 
 PMLSchema::Choice - implements declaration of an enumerated
 type (choice).
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -2236,15 +2182,15 @@ package PMLSchema::CDATA;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::CDATA
+=head2 PMLSchema::CDATA
 
 PMLSchema::CDATA - implements cdata declaration.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -2695,15 +2641,15 @@ package PMLSchema::Constant;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Constant
+=head2 PMLSchema::Constant
 
 PMLSchema::Constant - implements constant declaration.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -2757,15 +2703,15 @@ package PMLSchema::Member;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Member
+=head2 PMLSchema::Member
 
 PMLSchema::Member - implements declaration of a member of a structure.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -2849,16 +2795,16 @@ package PMLSchema::Element;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Element
+=head2 PMLSchema::Element
 
 PMLSchema::Element - implements declaration of an element of a
 sequence.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
@@ -2900,16 +2846,16 @@ package PMLSchema::Attribute;
 use base qw( PMLSchema::Decl );
 use PMLSchema;
 
-=head1 PMLSchema::Attribute
+=head2 PMLSchema::Attribute
 
 PMLSchema::Attribute - implements declaration of an attribute
 of a container.
 
-=head2 INHERITANCE
+=head3 INHERITANCE
 
 This class inherits from C<PMLSchema::Decl>.
 
-=head2 METHODS
+=head3 METHODS
 
 See the super-class for the complete list.
 
