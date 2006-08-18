@@ -132,10 +132,18 @@ sub get_trees_type	    {  $_[0]->{'_pml_trees_type'}; }
 #sub set_trees_type	    {  $_[0]->{'_pml_trees_type'} = $_[1]; }
 
 # References
-sub get_references	    {  $_[0]->{'_references'}; }
-sub set_references	    {  $_[0]->{'_references'} = $_[1]; }
-sub get_refnames	    {  $_[0]->{'_refnames'}; }
-sub set_refnames	    {  $_[0]->{'_refnames'} = $_[1]; }
+sub get_references_hash	    {  
+  my $refs = $_[0]->{'_references'};
+  $refs = $_[0]->{'_references'} = {} unless ( $refs );
+  return $refs;
+}
+sub set_references_hash	    {  $_[0]->{'_references'} = $_[1]; }
+sub get_refname_hash	    {  
+  my $refs = $_[0]->{'_refnames'};
+  $refs = $_[0]->{'_refnames'} = {} unless ( $refs );
+  return $refs;
+}
+sub set_refname_hash	    {  $_[0]->{'_refnames'} = $_[1]; }
 sub get_ref {
   my ($self,$id)=@_;
   my $refs = $self->{'_ref'};
@@ -732,7 +740,6 @@ sub read_node {
 	    $name =~ s/\.rf$// if $ret->[0];
 	    $hash->{$name} = $ret->[1];
 	    weaken ( $hash->{$name} ) if ( ref($ret->[1]) and ($ret->[0] & KNIT_WEAKEN) );
-		
 	  } else {
 	    if (ref($member) and ($member->{list} and $member->{list}{role} eq '#KNIT')) {
 	      my $list_type = $ctxt->resolve_type($member->{list});
@@ -1032,7 +1039,6 @@ sub _set_node_children {
 
 sub read_node_knit {
   my ($ctxt,$node,$type)=@_;
-
   my $ref = $node->textContent();
   if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
     my ($reffile,$idref)=($1,$2);
@@ -1054,6 +1060,26 @@ sub read_node_knit {
       }
     } else {
       # DOM
+      my $id;
+      {
+	# find what attribute is ID
+	my $decl = $type->{structure}||$type->{container};
+	if ($decl) {
+	  $id = $decl->{'-#ID'}; # cached
+	  unless (defined $id) {
+	    my ($idM) = $decl->find_members_by_role('#ID');
+	    if ($idM) {
+	      $id = $decl->{'-#ID'} = $idM->{-name};
+	      # what follows is a hack fixing buggy PDT 2.0 schemas
+	      my $type = $ctxt->resolve_type($idM);
+	      if ($idM->{cdata} and $idM->{cdata}{format} eq 'ID') {
+		$idM->{cdata}{format} = 'PMLREF';
+	      }
+	    }
+	  }
+	}
+      } 
+
       $ctxt->{'_ref-index'}||={};
       my $refnode =
 	$ctxt->{'_ref-index'}->{$reffile}{$idref} ||
@@ -1063,8 +1089,8 @@ sub read_node_knit {
 	$ctxt->{'_id_prefix'} .= $reffile.'#';
 	my $ret = $ctxt->read_node($refnode,$type);
 	$ctxt->{'_id_prefix'} = $_id_prefix;
-	if (ref($ret) and $ret->{id}) {
-	  $ret->{id} = $reffile.'#'.$ret->{id};
+	if (defined $id and ref($ret) and $ret->{$id}) {
+	  $ret->{$id} = $reffile.'#'.$ret->{$id};
 	}
 	return [ KNIT_OK, $ret];
       } else {
@@ -1655,13 +1681,31 @@ sub write_list {
 # $ctxt, $object, $type, { tag=> $tag, attribs => {}, $knit_tag => }
 sub write_object_knit {
   my ($ctxt,$object,$type,$opts)=@_;
-
   my $tag = $opts->{tag};
   my $attribs = $opts->{attribs} || {};  
   my $xml = $ctxt->{'_writer'};
 
   my $prefix=EMPTY;
-  my $ref = $object->{id};
+
+  $type = $ctxt->resolve_type($type);
+
+  my $id;
+  # find what attribute is ID
+  my $decl = $type->{structure}||$type->{container};
+  if ($decl) {
+    $id = $decl->{'-#ID'}; # cached
+    unless (defined $id) {
+      my ($idM) = $decl->find_members_by_role('#ID');
+      if ($idM) {
+	$id = $decl->{'-#ID'} = $idM->{-name};
+      }
+    }
+  }
+  if (!defined $id) {
+    _warn("Don't know which attribute is #ID - can't knit back!\n");
+    return;
+  }
+  my $ref = $object->{$id};
   if (ref($object) and $ref !~ /#/) {
     $prefix = $object->{'#knit_prefix'};
   } elsif ($ref =~ /^(?:(.*?)\#)?(.+)/) {
@@ -1687,13 +1731,13 @@ sub write_object_knit {
 	    my $writer = $ctxt->{'_writer'};
 	    $ctxt->{'_writer'} = $dom_writer;
 	    eval {
-	      $ctxt->write_object($object, $ctxt->resolve_type($type), { tag => $tag });
+	      $ctxt->write_object($object, $type, { tag => $tag });
 	    };
 	    $ctxt->{'_writer'} = $writer;
 	    die $@."\n" if $@;
 	  }
 	  my $new = $dom_writer->end;
-	  $new->setAttribute('id',$ref);
+	  $new->setAttribute($id,$ref);
 	} else {
 	  _warn("Didn't find ID $ref in $prefix - can't knit back!\n");
 	}
@@ -1810,7 +1854,8 @@ sub convert_to_fsfile {
   $fsfile->changePatterns(@PMLBackend::pmlformat);
   $fsfile->changeHint($PMLBackend::pmlhint);
 
-
+  # rebless
+  bless $schema, 'Fslib::Schema';
   $fsfile->changeMetaData( 'schema',         $schema                    );
   $fsfile->changeMetaData( 'schema-url',     $ctxt->{'_schema-url'}      );
   $fsfile->changeMetaData( 'schema-inline',  $ctxt->{'_schema-inline'}   );
@@ -2208,19 +2253,19 @@ role '#NODE'.
 
 Return the type declaration associated with the list of trees.
 
-=item $pml->get_references ()
+=item $pml->get_references_hash ()
 
 Returns a HASHref mapping file reference IDs to URLs.
 
-=item $pml->set_references (\%map)
+=item $pml->set_references_hash (\%map)
 
 Set a given HASHref as a map between refrence IDs and URLs.
 
-=item $pml->get_refnames ()
+=item $pml->get_refname_hash ()
 
 Returns a HASHref mapping file reference names to reference IDs.
 
-=item $pml->set_refnames (\%map)
+=item $pml->set_refname_hash (\%map)
 
 Set a given HASHref as a map between refrence IDs and URLs.
 
