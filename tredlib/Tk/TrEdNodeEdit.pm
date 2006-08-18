@@ -767,12 +767,14 @@ sub add_member {
   if (!ref($member) and $member =~ /^#/) {
     $mdecl = $member;
   } elsif (ref($member)) {
-    return if $member->get_role  =~ m/^\#(?:CHILDNODES|TREES)$/;
+    my $role = $member->get_role;
+    return if $role  =~ m/^\#(?:CHILDNODES|TREES)$/;
     my $member_type = $member->get_decl_type;
     $required ||= $member->is_required if
       ($member_type == PML_MEMBER_DECL ||
        $member_type == PML_ATTRIBUTE_DECL);
-    $mdecl = $member->get_content_decl || $member;
+    $mdecl = $role eq '#KNIT' ? $member->get_type_ref_decl : $member->get_content_decl;
+    $mdecl ||= $member;
     $mdecl_type = $mdecl->get_decl_type;
   } else {
     croak("Unknown type object for $attr_name: $member");
@@ -1051,17 +1053,19 @@ sub add_members {
     my $member = $type->get_member_by_name($member_name);
     croak "Can't locate member $member_name\n" unless $member;
     my $mdecl = $member->get_content_decl;
-    if ($decl_type == PML_STRUCTURE_DECL and 
-	$member->get_role eq '#KNIT' or
-	$mdecl and $mdecl->get_decl_type() == PML_LIST_DECL
-	and $mdecl->get_role eq '#KNIT') {
-      # #KNIT PMLREF or a list of #KNIT PMLREFS
-      if (exists($node->{$member_name})) {
-	$member=$mdecl;
-      } else {
-	$member_name=~s/\.rf$//;
+    if ($decl_type == PML_STRUCTURE_DECL) {
+      # member is #KNIT PMLREF or a list of #KNIT PMLREFS
+      if ($member->get_role eq '#KNIT'
+	  or $mdecl and $mdecl->get_decl_type() == PML_LIST_DECL
+	    and $mdecl->get_role eq '#KNIT') {
+	if (exists($node->{$member_name})) {
+	  $member=$mdecl;
+	} else {
+	  $member_name=$member->get_knit_name();
+	}
       }
     }
+
     $hlist->add_member($base_path,
 		       $member,
 		       ($node ? $node->{$member_name} : undef),
