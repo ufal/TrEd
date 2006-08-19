@@ -297,11 +297,6 @@ Return PML version the schema conforms to.
 
 sub get_pml_version          { return $_[0]->{version};       }
 
-=item $schema->get_url ()
-
-Return PML version the schema conforms to.
-
-=cut
 
 =item $schema->get_revision ()
 
@@ -973,7 +968,7 @@ sub schema    { return $_[0]->{-schema} }
 =item $decl->get_decl_type ()
 
 Return the type of declaration as an integer constant (see
-L</CONSTANTS>).
+L</"CONSTANTS">).
 
 =item $decl->get_decl_type_str ()
 
@@ -1130,7 +1125,7 @@ sub traverse_decls    { die "NOT YET IMPLEMENTED" }
 =item $decl->find (attribute-path,noresolve)
 
 Locate a nested declaration specified by C<attribute-path> starting
-from the current type. See C<$schema->find_type_by_path> for details
+from the current type. See C<$schema-E<gt>find_type_by_path> for details
 about locating declarations.
 
 =cut
