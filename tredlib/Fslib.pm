@@ -4397,7 +4397,7 @@ same directory as ref-filename. In case of success, return a path
 based on the directory part of ref-filename and filename.  If the file
 can't be located in this way and the C<$search_resource_paths>
 argument is true, return the value of
-C<FindInResourcePaths(filename)>.
+C<FindInResourcePaths($filename)>.
 
 =back
 
@@ -4463,7 +4463,7 @@ obligatory and  may be omitted.  Return  zero, if $top of  root of the
 tree reached.
 
 There is no need to use this function directly. You should use
-C<FSNode-E<gt>following()> method instead.
+C<$node-E<gt>following()> method instead.
 
 =back
 
@@ -4532,10 +4532,7 @@ For this reason, it is recommended to load Fslib as:
 
 The following function symbols can be imported on demand:
 
-C<ImportBackends>, C<CloneValue>, C<ResourcePaths>,
-C<FindInResources>, C<FindDirInResources>, C<FindDirInResourcePaths>,
-C<ResolvePath>, C<AddResourcePath>, C<AddResourcePathAsFirst>,
-C<SetResourcePaths>, C<RemoveResourcePath>
+C<ImportBackends>, C<CloneValue>, C<ResourcePaths>, C<FindInResources>, C<FindDirInResources>, C<FindDirInResourcePaths>, C<ResolvePath>, C<AddResourcePath>, C<AddResourcePathAsFirst>, C<SetResourcePaths>, C<RemoveResourcePath>
 
 =head1 SEE ALSO
 
