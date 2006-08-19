@@ -1067,13 +1067,23 @@ sub read_node_knit {
 	if ($decl) {
 	  $id = $decl->{'-#ID'}; # cached
 	  unless (defined $id) {
-	    my ($idM) = $decl->find_members_by_role('#ID');
+	    my ($idM) = grep { $_->{role} eq '#ID' } $decl->get_attributes();
 	    if ($idM) {
 	      $id = $decl->{'-#ID'} = $idM->{-name};
 	      # what follows is a hack fixing buggy PDT 2.0 schemas
-	      my $type = $ctxt->resolve_type($idM);
 	      if ($idM->{cdata} and $idM->{cdata}{format} eq 'ID') {
 		$idM->{cdata}{format} = 'PMLREF';
+	      } elsif ($idM->{type}) {
+		if ($idM->{type}) {
+		  my $idType = $ctxt->resolve_type($idM);
+		  if ($idType->{cdata} and $idType->{cdata}{format} eq 'ID') {
+		    my $what = $type->{name} || $type->{-name};
+		    _warn "Trying to knit an object with type/name '$what' which has an #ID-attribute ".
+		      "'$idM->{-name}' declared as <cdata format=\"ID\"/>. ".
+		      "Note that the data-type for #ID-attributes in objects knitted as DOM should be ".
+		      "<cdata format=\"PML\"/> (Hint: redeclare with <derive> for imported types).";
+		  }
+		}
 	      }
 	    }
 	  }
@@ -1695,7 +1705,7 @@ sub write_object_knit {
   if ($decl) {
     $id = $decl->{'-#ID'}; # cached
     unless (defined $id) {
-      my ($idM) = $decl->find_members_by_role('#ID');
+      my ($idM) = grep { $_->{role} eq '#ID' } $decl->get_attributes();
       if ($idM) {
 	$id = $decl->{'-#ID'} = $idM->{-name};
       }
@@ -1830,14 +1840,14 @@ sub _element2writer {
   }
 }
 
-##########################################
-# VALIDATE
-#########################################
-
 sub validate_object ($$$;$) {
   my ($ctxt, $object, $type, $opts)=@_;
   $type->validate_object($object,$opts);
 }
+
+##########################################
+# Convert to FSFile
+#########################################
 
 sub convert_to_fsfile {
   my ($ctxt,$fsfile)=@_;
@@ -1894,6 +1904,10 @@ sub convert_to_fsfile {
 
   return $fsfile;
 }
+
+##########################################
+# Convert from FSFile
+##########################################
 
 sub convert_from_fsfile {
   my ($ctxt,$fsfile)=@_;

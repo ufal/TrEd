@@ -301,6 +301,7 @@ unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 require Fslib;
 import Fslib;
 import Fslib qw(&Index $FSError);
+import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
 
 $Fslib::resourcePath=$opt_Z if $opt_Z;
 
@@ -385,6 +386,9 @@ use Exporter;
 @EXPORT= qw($insideEval
             $libDir $stderr $stdout
             @openfiles @filelists &min &max);
+
+
+
 
 %backend_map=(
 	      fs => 'FSBackend',
@@ -5760,10 +5764,10 @@ sub startMain {
 		my $menu = $but->menu;
 		my $ctxt = $grp->{selectedContext};
 		Tk->break if $ctxt eq EMPTY;
-		my $idx = $menu->index($ctxt);
+		my $idx = eval { $menu->index($ctxt) } ;
 		Tk->break if $idx eq 'none';
 		$but->Post();
-		$menu->activate($idx);
+		eval { $menu->activate($idx) };
 		$but->ButtonUp() if $^O eq 'MSWin32';
 		Tk->break;
 	      }
@@ -5781,10 +5785,10 @@ sub startMain {
 		my $menu = $but->menu;
 		my $stylesheet = $grp->{selectedStylesheet};
 		Tk->break if $stylesheet eq EMPTY;
-		my $idx = $menu->index($stylesheet);
+		my $idx = eval { $menu->index($stylesheet) };
 		Tk->break if $idx eq 'none';
 		$but->Post();
-		$menu->activate($idx);
+		eval { $menu->activate($idx) };
 		$but->ButtonUp() if $^O eq 'MSWin32';
 		Tk->break;
 	      }
@@ -7317,24 +7321,25 @@ sub determineNodeType {
       # ok, find #CHILDNODES
       my $parent_decl_type = $parent_decl->get_decl_type;
       my $member_decl;
-      if ($parent_decl_type == PML_STRUCTURE_DECL) {
+      if ($parent_decl_type == PML_STRUCTURE_DECL()) {
 	($member_decl) = map { $_->get_content_decl } 
 	  $parent_decl->find_members_by_role('#CHILDNODES');
-      } elsif ($parent_decl_type == PML_CONTAINER_DECL) {
+      } elsif ($parent_decl_type == PML_CONTAINER_DECL()) {
 	$member_decl = $parent_decl->get_content_decl;
+	undef $member_decl unless $member_decl and $member_decl->get_role eq '#CHILDNODES';
       }
       if ($member_decl) {
 	my $member_decl_type = $member_decl->get_decl_type;
-	if ($member_decl_type == PML_LIST_DECL) {
+	if ($member_decl_type == PML_LIST_DECL()) {
 	  $ntype = $member_decl->get_content_decl;
 	  undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
-	} elsif ($member_decl_type == PML_SEQUENCE_DECL) {
+	} elsif ($member_decl_type == PML_SEQUENCE_DECL()) {
 	  my $elements = 
 	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }
 	      $member_decl->get_elements;
 	} else {
-	  warn "I'm confused - found role #CHILDNODES on something which is neither a list nor a sequence...\n".
+	  warn "I'm confused - found role #CHILDNODES on a ".$member_decl->get_decl_type_str().", which is neither a list nor a sequence...\n".
 	    Dumper($member_decl);
 	}
       }
@@ -7356,10 +7361,10 @@ sub determineNodeType {
       if (!ref($tt)) {
 	warn "I'm confused - found role #TREES on something which is neither a list nor a sequence...\n".
 	  Dumper($member_decl);
-      } elsif ($tt->get_decl_type == PML_LIST_DECL) {
+      } elsif ($tt->get_decl_type == PML_LIST_DECL()) {
 	$ntype = $tt->get_content_decl;
 	undef $ntype unless $ntype and $ntype->get_role eq '#NODE';
-      } elsif ($tt->get_decl_type == PML_SEQUENCE_DECL) {
+      } elsif ($tt->get_decl_type == PML_SEQUENCE_DECL()) {
 	my $elements = 
 	  @ntypes = grep { $_->[1]->get_role eq '#NODE' }
 	    map { [ $_->get_name, $_->get_content_decl ] }
@@ -7512,8 +7517,8 @@ sub editAttrsDialog_schema {
   my $is_required = 1;
   if ($attr_path ne EMPTY) {
     my $decl_type = $node_type->get_decl_type;
-    if (($decl_type == PML_MEMBER_DECL ||
-	 $decl_type == PML_ATTRIBUTE_DECL) and
+    if (($decl_type == PML_MEMBER_DECL() ||
+	 $decl_type == PML_ATTRIBUTE_DECL()) and
 	!$node_type->is_required) {
       __debug("not required\n");
       $is_required = 0;

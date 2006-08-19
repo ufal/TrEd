@@ -1028,6 +1028,23 @@ sub get_content_decl {
   return undef;
 }
 
+=item $decl->get_knit_content_decl ()
+
+If the data type has a role '#KNIT', return a type declaration for the
+knitted content (Note: PML 1.1.2 allows role '#KNIT' role on list,
+element, and member declarations, but element knitting is not
+currenlty implemented).
+
+=cut
+
+
+sub get_knit_content_decl {
+  my $self = shift;
+  return ($self->{role} eq '#KNIT') ?
+    $self->get_type_ref_decl 
+      : $self->get_content_decl;
+}
+
 =item $decl->get_type_ref ()
 
 If the declaration has content and the content is specified via a
@@ -1460,6 +1477,34 @@ sub get_member_by_name {
   return $members ? $members->{$name} : undef;
 }
 
+=item $decl->get_attributes ()
+
+Return a list of member declarations (C<PMLSchema::Member>) declared
+as attributes.
+
+=cut
+
+sub get_attributes { 
+  my $members = $_[0]->{member};
+  return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $_->{'-#'} ] } 
+    grep { $_->{as_attribute} } values %$members : (); 
+}
+
+=item $decl->get_attribute_names ()
+
+Return a list of names of all members of the structure declared as
+attributes.
+
+=cut
+
+sub get_attribute_names { 
+  my $members = $_[0]->{member};
+  return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $members->{$_}->{'-#'} ] } 
+    grep { $_->{as_attribute} } keys %$members : (); 
+}
+
+
+
 =item $decl->find_members_by_content_decl (decl)
 
 Lookup and return those member declarations whose content declaration
@@ -1526,29 +1571,27 @@ sub validate_object {
       my $role = $member->get_role;
       my $mtype = $member->get_content_decl;
       my $val = $object->{$name};
+      my $knit_name = $member->get_knit_name;
       if ($role eq '#CHILDNODES') {
 	if (!UNIVERSAL::isa($object,'FSNode')) {
 	  push @$log, "$path/$name: #CHILDNODES member on a non-node object:\n".Dumper($object);
 	}
-      } elsif ($name ne (my $knit_name = $member->get_knit_name)) {
-	if ($val ne q{}) {
-	  if (ref($val)) {
-	    push @$log,"$path/$name: invalid content for a member with role #KNIT: ",ref($val);
-	  }
-	}
+      } elsif ($name ne $knit_name) {
 	my $knit_val = $object->{$knit_name};
 	if ($knit_val ne q{} and $val ne q{}) {
 	  push @$log, "$path/$knit_name: both '$name' and '$knit_name' are present for a #KNIT member";
-	} elsif ($val eq q{}) {
-	  if (my $knit_mtype = $member->get_knit_content_decl) {
-	    $knit_mtype->validate_object($knit_val,
-					 { path => $path,
-					   tag => $knit_name,
-					   log => $log
-					 });
-	  } else {
-	    push @$log, "$path/$knit_name: can't determine data type of the #KNIT member";
-	  }
+	} elsif ($val ne q{}) {
+	  $knit_name = $name;
+	  $knit_val = $val;
+	}
+	if (my $knit_mtype = $member->get_knit_content_decl) {
+	  $knit_mtype->validate_object($knit_val,
+				       { path => $path,
+					 tag => $knit_name,
+					 log => $log
+					});
+	} else {
+	  push @$log, "$path/$knit_name: can't determine data type of the #KNIT member";
 	}
       } elsif ($val ne q{} or $member->is_required) {
 	$mtype->validate_object($val,
@@ -1698,7 +1741,7 @@ sub validate_object {
     my @attributes = $self->get_attributes;
     foreach my $attr (@attributes) {
       my $name = $attr->get_name;
-      my $val = $object->{$attr};
+      my $val = $object->{$name};
       my $adecl = $attr->get_content_decl;
       if ($attr->is_required or $val ne q{}) {
 	if (ref($val)) {
@@ -1934,14 +1977,16 @@ sub validate_object {
 	  push @$log, "$path: text node not allowed here\n";
 	}
       } else {
-	my $edecl = $self->get_element_by_name($element->[0]);
+	my $ename = $element->[0];
+	my $edecl = $self->get_element_by_name($ename);
+	# KNIT on elements not supported yet
 	if ($edecl) {
 	  $edecl->validate_object($element->[1],{ path => $path,
-						  tag => $element->[0],
+						  tag => $ename,
 						  log => $log,
 						});
 	} else {
-	  push @$log, "$path: undefined element '$element->[0]'";
+	  push @$log, "$path: undefined element '$ename'";
 	}
       }
       my $content_pattern = $self->get_content_pattern;
@@ -2019,7 +2064,7 @@ sub validate_object {
     $path.="/".$tag if $tag ne q{};
   }
   if (ref($object) eq 'Fslib::List') {
-    my $lm_decl = $self->get_content_decl;
+    my $lm_decl = $self->get_knit_content_decl;
     for (my $i=0; $i<@$object; $i++) {
       $lm_decl->validate_object($object->[$i],
 				{ path=> $path,
@@ -2103,7 +2148,9 @@ sub validate_object {
 				});
     }
   } else {
-    $am_decl->validate_object($object,{path=>$path,log=>$log});
+    $am_decl->validate_object($object,{path=>$path,
+				       # tag => "[1]", # TrEdNodeEdit would very much like [1] here
+				       log=>$log});
   }
   if ($opts and ref($opts->{log})) {
     push @{$opts->{log}}, @$log;
@@ -2747,11 +2794,6 @@ Return the member's name with a possible suffix '.rf' chopped-off, if
 either the member itself has a role '#KNIT' or its content is a list
 and has a role '#KNIT'. Otherwise return just the member's name.
 
-=item $decl->get_knit_content_decl ()
-
-If the member has a role '#KNIT', return a type declaration for the
-knitted content.
-
 =back
 
 =cut
@@ -2766,13 +2808,6 @@ sub is_attribute { return $_[0]->{as_attribute}; }
 
 sub validate_object {
   shift->get_content_decl->validate_object(@_);
-}
-
-sub get_knit_content_decl {
-  my $self = shift;
-  return ($self->{role} eq '#KNIT') ?
-    $self->get_type_ref_decl 
-      : $self->get_content_decl;
 }
 
 sub get_knit_name {

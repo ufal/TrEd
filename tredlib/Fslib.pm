@@ -3516,6 +3516,8 @@ sub ParseFSNode {
 package Fslib::Schema;
 use strict;
 use PMLSchema;
+@Fslib::Schema::EXPORT      =  @PMLSchema::EXPORT;
+%Fslib::Schema::EXPORT_TAGS = %PMLSchema::EXPORT_TAGS;
 use base qw(PMLSchema);
 
 =head2 Fslib::Schema
