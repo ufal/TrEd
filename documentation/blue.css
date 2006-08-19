@@ -58,3 +58,5 @@ span.deleted { text-decoration: line-through;
                background-color: #FF7F7F; }
 span.changed { background-color: #ccffcc; }
 span.off     {  }
+
+dt { font-weight: bold }
