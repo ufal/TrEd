@@ -2142,9 +2142,9 @@ options are:
     filename => $filename,  # and/or
     fh => \*FH,             # or
     string => $xml_string,  # or
-    dom => $document,       # (is a XML::LibXML::Document)
-    parser => $xml_parser,  # (is a XML::LibXML)
-    config => $cfg_pml,     # (is a PMLInstance)
+    dom => $document,       # (XML::LibXML::Document)
+    parser => $xml_parser,  # (XML::LibXML)
+    config => $cfg_pml,     # (PMLInstance)
   }
 
 where C<filename> may be used either by itself or in combination with
