@@ -915,8 +915,11 @@ sub read_Sequence {
       my $name = $child->localName;
       my $ns = $child->namespaceURI;
       my $is_pml = ($ns eq PML_NS);
-      if ($type->{element}{$name} and 
-	    ($ns eq EMPTY or $is_pml or $type->{element}{$name}{ns} eq $ns)) {
+      my $edecl = $type->{element}{$name};
+      if ($edecl and ($ns eq EMPTY or $is_pml or $edecl->{ns} eq $ns)) {
+	if ($edecl->{role} eq '#KNIT') {
+	  _warn("Knitting on elements not implemented yet, preserving PML reference"._element_address($child));
+	}
 	my $value = $ctxt->read_node($child,$ctxt->resolve_type($type->{element}{$name}));
 	$seq->push_element($name,$value);
       } else {
