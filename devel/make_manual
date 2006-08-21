@@ -1,7 +1,10 @@
 #!/bin/sh
 
-pod2xml tredlib/tred.def |xsltproc devel/pod2db.xsl - | devel/pod2db.xsh -P- > documentation/manual/tred_def.xml
-pod2xml tredlib/Fslib.pm |xsltproc devel/pod2db.xsl - | devel/pod2db.xsh -P- > documentation/manual/Fslib.xml
+for s in tred.def Fslib.pm PMLSchema.pm PMLInstance.pm; do
+  d=${s/.def/_def}
+  pod2xml tredlib/$s | xsltproc devel/pod2db.xsl - \
+   | devel/pod2db.xsh -P- > documentation/manual/${d%.*}.xml
+done
 
 cd documentation
 xsltproc --xinclude --stringparam html.stylesheet blue.css --stringparam root.filename tred manual/manual.xsl manual/tred.xml

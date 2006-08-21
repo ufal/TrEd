@@ -16,7 +16,7 @@ use Scalar::Util qw(weaken);
 
 $DEBUG = 0;
 
-=for comment
+=begin comment
 
  TODO 
 
@@ -46,6 +46,8 @@ $DEBUG = 0;
   - hash by #ID into appData('id-hash')/{'id-hash'} (knitted instances could be hashed with prefix#, 
     knitted-knitted instances with prefix1#prefix2#...)
     (this is temporary)
+
+=end comment
 
 =cut
 
@@ -111,7 +113,8 @@ sub get_transform_id	    {  $_[0]->{'_transform_id'}; }
 sub set_transform_id	    {  $_[0]->{'_transform_id'} = $_[1]; }
 
 # Schema
-sub get_schema		    {  $_[0]->{'_schema'} }
+sub schema		    {  $_[0]->{'_schema'} }
+*get_schema = \&schema;
 sub set_schema		    {  $_[0]->{'_schema'} = $_[1] }
 sub get_schema_url	    {  $_[0]->{'_schema-url'} }
 sub set_schema_url	    {  $_[0]->{'_schema-url'} = $_[1]; }
@@ -120,37 +123,42 @@ sub set_schema_url	    {  $_[0]->{'_schema-url'} = $_[1]; }
 sub get_root		    {  $_[0]->{'_root'}; }
 sub set_root		    {  $_[0]->{'_root'} = $_[1]; }
 sub get_trees		    {  $_[0]->{'_trees'}; }
-sub set_trees		    {  $_[0]->{'_trees'} = $_[1]; }
+#sub set_trees		    {  $_[0]->{'_trees'} = $_[1]; }
 sub get_trees_prolog	    {  $_[0]->{'_pml_prolog'}; }
-sub set_trees_prolog	    {  $_[0]->{'_pml_prolog'} = $_[1]; }
+#sub set_trees_prolog	    {  $_[0]->{'_pml_prolog'} = $_[1]; }
 sub get_trees_epilog	    {  $_[0]->{'_pml_epilog'}; }
-sub set_trees_epilog	    {  $_[0]->{'_pml_epilog'} = $_[1]; }
+#sub set_trees_epilog	    {  $_[0]->{'_pml_epilog'} = $_[1]; }
 sub get_trees_type	    {  $_[0]->{'_pml_trees_type'}; }
-sub set_trees_type	    {  $_[0]->{'_pml_trees_type'} = $_[1]; }
+#sub set_trees_type	    {  $_[0]->{'_pml_trees_type'} = $_[1]; }
 
 # References
-sub get_readas_trees	    {  $_[0]->{'_readas-trees'}; }
-sub set_readas_trees	    {  $_[0]->{'_readas-trees'} = $_[1]; }
-sub get_references	    {  $_[0]->{'_references'}; }
-sub set_references	    {  $_[0]->{'_references'} = $_[1]; }
-sub get_refnames	    {  $_[0]->{'_refnames'}; }
-sub set_refnames	    {  $_[0]->{'_refnames'} = $_[1]; }
-sub get_ref                 {  $_[0]->{'_ref'}; }
-sub set_ref                 {  $_[0]->{'_ref'} = $_[1]; }
-
-# Validation log
-sub get_log {  
-  my $log = $_[0]->{'_log'};
-  if ($log) {
-    return @$log;
-  } else {
-    return ();
-  }
+sub get_references_hash	    {  
+  my $refs = $_[0]->{'_references'};
+  $refs = $_[0]->{'_references'} = {} unless ( $refs );
+  return $refs;
 }
-sub clear_log		    {  $_[0]->{'_log'} = []; }
+sub set_references_hash	    {  $_[0]->{'_references'} = $_[1]; }
+sub get_refname_hash	    {  
+  my $refs = $_[0]->{'_refnames'};
+  $refs = $_[0]->{'_refnames'} = {} unless ( $refs );
+  return $refs;
+}
+sub set_refname_hash	    {  $_[0]->{'_refnames'} = $_[1]; }
+sub get_ref {
+  my ($self,$id)=@_;
+  my $refs = $self->{'_ref'};
+  return $refs ? $refs->{$id} : undef;
+}
+sub set_ref {
+  my ($self,$id,$obj)=@_;
+  my $refs = $self->{'_ref'};
+  $self->{'_ref'} = $refs = {} unless ($refs);
+  return $refs->{$id}=$obj;
+}
+
 # Status=1 (if parsed fine)
 sub get_status		    {  $_[0]->{'_status'}; }
-sub set_status		    {  $_[0]->{'_status'} = $_[1]; }
+#sub set_status		    {  $_[0]->{'_status'} = $_[1]; }
 
 
 use Encode;
@@ -164,7 +172,6 @@ require IOBackend;
 require Fslib;
 require PMLBackend;
 import PMLBackend;
-
 
 ###################################
 # CONSTRUCTOR
@@ -211,12 +218,6 @@ sub _warn {
   } else {
     warn "PMLBackend: WARNING: $msg\n";
   }
-}
-
-sub _log {
-  my $ctxt = shift;
-  my $log = $ctxt->{'_log'} ||= [];
-  push @$log, join EMPTY,@_;
 }
 
 ###################################
@@ -311,6 +312,7 @@ sub load {
     _die("Unsupported PML Schema version ".$schema->{version}." in ".$ctxt->{'_schema-url'});
   }
   $ctxt->read_data();
+  undef $ctxt->{_dom};
 
   return $ctxt;
 }
@@ -350,7 +352,7 @@ sub read_header {
 	}
 	# store the original URL, not the resolved one!
 	$ctxt->{'_schema-url'} = $schema_file;
-	$ctxt->{'_schema'} = Fslib::Schema->readFrom($schema_file,
+	$ctxt->{'_schema'} = PMLSchema->readFrom($schema_file,
 						  { base_url => $ctxt->{'_filename'},
 						    use_resources => 1,
 						    revision_error => 
@@ -376,7 +378,7 @@ sub read_header {
 	  $ctxt->{'_schema-url'} = undef;
 	  $ctxt->{'_schema-inline'} = $xml;
 	  $ctxt->{'_schema'} =
-		  Fslib::Schema->new($xml,
+		  PMLSchema->new($xml,
 				     { 
 				       base_url => $ctxt->{'_filename'},
 				       use_resources => 1,
@@ -401,11 +403,12 @@ sub read_data {
   my $ctxt = shift;
 
   $ctxt->{'_status'} = 0;
-  foreach my $ref ($ctxt->get_references()) {
+  foreach my $ref ($ctxt->get_reffiles()) {
     if ($ref->{readas} eq 'dom') {
       $ctxt->readas_dom($ref->{id},$ref->{href});
     } elsif($ref->{readas} eq 'trees') {
-      $ctxt->readas_trees($ref->{id},$ref->{href});
+      #  when translating to FSFile, 
+      #  push to fs-require [$ref->{id},$ref->{href}];
     } elsif($ref->{readas} eq 'pml') {
       $ctxt->readas_pml($ref->{id},$ref->{href});
     } else {
@@ -452,7 +455,7 @@ sub resolve_type {
   }
 }
 
-sub get_references {
+sub get_reffiles {
   my ($ctxt)=@_;
   my $references = $ctxt->{'_schema'}->{reference};
   my @refs;
@@ -478,13 +481,6 @@ sub get_references {
     }
   }
   return @refs;
-}
-
-sub readas_trees {
-  my ($ctxt,$refid,$href)=@_;
-  $ctxt->{'_readas-trees'} ||= [];
-  push @{$ctxt->{'_readas-trees'}},[$refid,$href];
-  1;
 }
 
 sub _index_by_id {
@@ -621,8 +617,8 @@ sub read_node {
     if ($role eq '#CHILDNODES' and $childnodes_taker) {
       _set_node_children($childnodes_taker, $list) if $list;
       return undef;
-    } elsif ($role eq '#TREES' and $childnodes_taker) {
-      return $ctxt->set_trees($list, $type,$node);
+    } elsif ($role eq '#TREES') {
+      return $ctxt->_set_trees($list, $type,$node);
     } else {
       return $list;
     }
@@ -655,7 +651,7 @@ sub read_node {
       }
       return undef;
     } elsif ($role eq '#TREES') {
-      return $ctxt->set_trees($seq,$type,$node);
+      return $ctxt->_set_trees($seq,$type,$node);
     } else {
       return $seq;
     }
@@ -672,7 +668,8 @@ sub read_node {
     if ($type->{role} eq '#NODE' or $struct->{role} eq '#NODE') {
       $hash=FSNode->new();
       $childnodes_taker = $hash;
-      $hash->set_type($ctxt->{'_schema'}->type($type->{structure}));
+      $hash->set_type($type->{structure});
+      #$ctxt->{'_schema'}->type($type->{structure}));
     } else {
       $hash=Fslib::Struct->new();
     }
@@ -731,10 +728,10 @@ sub read_node {
 	    } else {
 		_die("#CHILDNODES member '$name' is neither a list nor a sequence in ".
 		  _element_address($node,$child));
-	    }
+	      }
 	  } elsif (ref($member) and $role eq '#TREES') {
 	    if ($member->{list} or $member->{sequence}) {
-	      $hash->{$name} = $ctxt->set_trees($ctxt->read_node($child,$member),$member,$child);
+	      $hash->{$name} = $ctxt->_set_trees($ctxt->read_node($child,$member),$member,$child);
 	    } else {
 	      _die("#TREES member '$name' is neither a list nor a sequence in "._element_address($node,$child));
 	    }
@@ -743,7 +740,6 @@ sub read_node {
 	    $name =~ s/\.rf$// if $ret->[0];
 	    $hash->{$name} = $ret->[1];
 	    weaken ( $hash->{$name} ) if ( ref($ret->[1]) and ($ret->[0] & KNIT_WEAKEN) );
-		
 	  } else {
 	    if (ref($member) and ($member->{list} and $member->{list}{role} eq '#KNIT')) {
 	      my $list_type = $ctxt->resolve_type($member->{list});
@@ -796,12 +792,12 @@ sub read_node {
       if (!exists($hash->{$_})) {
 	my $member = $members->{$_};
 	if ($member->{required}) {
-	  _die("Missing required member '$_' of ".
+	  _warn("Missing required member '$_' of ".
 	    _element_address($node));
 	} else {
 	  my $mtype = $ctxt->resolve_type($member);
 	  if (ref($mtype) and exists($mtype->{constant})) {
-	    $hash->{$_}=$mtype->{constant};
+	    $hash->{$_}=$mtype->{constant}{value};
 	  }
 	}
       }
@@ -817,7 +813,7 @@ sub read_node {
     if ($type->{role} eq '#NODE' or $container->{role} eq '#NODE') {
       $hash=FSNode->new();
       $opts->{childnodes_taker} = $hash;
-      $hash->set_type($ctxt->{'_schema'}->type($container));
+      $hash->set_type($container); #$ctxt->{'_schema'}->type($container));
     } else {
       $hash=Fslib::Container->new();
     }
@@ -860,23 +856,22 @@ sub read_node {
     }
     my $data = $node->textContent();
     my $ok;
-    _warn("$type->{choice} at ".$node->nodeName."\n")
-      unless ref($type->{choice}) eq 'ARRAY';
-    foreach (@{$type->{choice}}) {
+    my $values = $type->{choice}{values};
+    foreach (@{$values}) {
       if ($_ eq $data) {
 	$ok = 1;
 	last;
       }
     }
     unless ($ok) {
-      _die("Invalid value '$data' for '".$node->localname."' (expected one of: ".join(',',@{$type->{choice}}).")");
+      _die("Invalid value '$data' for '".$node->localname."' (expected one of: ".join(',',@$values).")");
     }
     return $data;
   # CONSTANT ------------------------------------------------------------
   } elsif (exists $type->{constant}) {
     _debug({level => 6},"constant type\n");
     my $data = $node->textContent();
-    if ($data ne EMPTY and $data ne $type->{constant}) {
+    if ($data ne EMPTY and $data ne $type->{constant}{value}) {
       _die("Invalid value '$data' for constant '".$node->localname."' (expected $type->{constant})");
     }
     return $data;
@@ -898,12 +893,8 @@ sub read_node {
 }
 
 
-=item _read_List($node)
-
-If a given DOM node contains a pml:List, return a list of its members,
-otherwise return the node itself.
-
-=cut
+# If a given DOM node contains a pml:List, return a list of its members,
+# otherwise return the node itself.
 
 sub _read_List ($) {
   my ($node)=@_;
@@ -912,11 +903,6 @@ sub _read_List ($) {
   return @$List ? @$List : $node;
 }
 
-=item read_Sequence($node)
-
-=cut
-
-# $ctxt, $child, $type, $seq
 sub read_Sequence {
   my ($ctxt,$child,$type,$seq)=@_;
   $seq ||= Fslib::Seq->new();
@@ -956,12 +942,9 @@ sub read_Sequence {
   return $seq;
 }
 
-=item _read_Alt($node)
 
-If given DOM node contains a pml:Alt, return a list of its members,
-otherwise return the node itself.
-
-=cut
+# If given DOM node contains a pml:Alt, return a list of its members,
+# otherwise return the node itself.
 
 sub _read_Alt ($) {
   my ($node)=@_;
@@ -978,7 +961,7 @@ sub _element_address {
 }
 
 # $ctxt, $data, $type, $node
-sub set_trees {
+sub _set_trees {
   my ($ctxt,$data,$type,$node)=@_;
   _debug("Found #TREES in "._element_address($node));
   unless (defined $ctxt->{'_pml_trees_type'}) {
@@ -1056,7 +1039,6 @@ sub _set_node_children {
 
 sub read_node_knit {
   my ($ctxt,$node,$type)=@_;
-
   my $ref = $node->textContent();
   if ($ref =~ /^(?:(.*?)\#)?(.+)/) {
     my ($reffile,$idref)=($1,$2);
@@ -1078,6 +1060,36 @@ sub read_node_knit {
       }
     } else {
       # DOM
+      my $id;
+      {
+	# find what attribute is ID
+	my $decl = $type->{structure}||$type->{container};
+	if ($decl) {
+	  $id = $decl->{'-#ID'}; # cached
+	  unless (defined $id) {
+	    my ($idM) = grep { $_->{role} eq '#ID' } $decl->get_attributes();
+	    if ($idM) {
+	      $id = $decl->{'-#ID'} = $idM->{-name};
+	      # what follows is a hack fixing buggy PDT 2.0 schemas
+	      if ($idM->{cdata} and $idM->{cdata}{format} eq 'ID') {
+		$idM->{cdata}{format} = 'PMLREF';
+	      } elsif ($idM->{type}) {
+		if ($idM->{type}) {
+		  my $idType = $ctxt->resolve_type($idM);
+		  if ($idType->{cdata} and $idType->{cdata}{format} eq 'ID') {
+		    my $what = $type->{name} || $type->{-name};
+		    _warn "Trying to knit an object with type/name '$what' which has an #ID-attribute ".
+		      "'$idM->{-name}' declared as <cdata format=\"ID\"/>. ".
+		      "Note that the data-type for #ID-attributes in objects knitted as DOM should be ".
+		      "<cdata format=\"PML\"/> (Hint: redeclare with <derive> for imported types).";
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      } 
+
       $ctxt->{'_ref-index'}||={};
       my $refnode =
 	$ctxt->{'_ref-index'}->{$reffile}{$idref} ||
@@ -1087,8 +1099,8 @@ sub read_node_knit {
 	$ctxt->{'_id_prefix'} .= $reffile.'#';
 	my $ret = $ctxt->read_node($refnode,$type);
 	$ctxt->{'_id_prefix'} = $_id_prefix;
-	if (ref($ret) and $ret->{id}) {
-	  $ret->{id} = $reffile.'#'.$ret->{id};
+	if (defined $id and ref($ret) and $ret->{$id}) {
+	  $ret->{$id} = $reffile.'#'.$ret->{$id};
 	}
 	return [ KNIT_OK, $ret];
       } else {
@@ -1238,7 +1250,7 @@ sub write_data {
 
   # dump embedded DOM documents
   my $refs_to_save = $ctxt->{'_refs_save'};
-  my @refs_to_save = grep { $_->{readas} eq 'dom' or $_->{readas} eq 'pml' } $ctxt->get_references();
+  my @refs_to_save = grep { $_->{readas} eq 'dom' or $_->{readas} eq 'pml' } $ctxt->get_reffiles();
   if (ref($refs_to_save)) {
     @refs_to_save = grep { $refs_to_save->{$_->{id}} } @refs_to_save;
   } else {
@@ -1405,7 +1417,8 @@ sub write_object {
     $xml->endTag($tag) if defined($tag);
   } elsif (exists $type->{choice}) {
     my $ok;
-    foreach (@{$type->{choice}}) {
+    my $values = $type->{choice}{values};
+    foreach (@{$values}) {
       if ($_ eq $object) {
 	$ok = 1;
 	last;
@@ -1485,7 +1498,7 @@ sub write_object {
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
 	    if (ref($object->{$knit_tag})) {
-	      $ctxt->write_object_knit($object->{$knit_tag}, $mdecl,{ tag => $member, knit_tag => $knit_tag });
+	      $ctxt->write_object_knit($object->{$knit_tag}, $mdecl,{ tag => $member });
 	    }# else {
 	    #	_warn("Didn't find $knit_tag on the object! ",join(" ",%$object),"\n");
 	    #      }
@@ -1502,7 +1515,9 @@ sub write_object {
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
 	    my $list = $object->{$knit_tag};
-	    write_list($ctxt, $list, $mtype->{list}, { tag => $member, knit_tag => $knit_tag, no_resolve => 1 } )
+	    if ($list ne EMPTY) {
+	      write_list($ctxt, $list, $mtype->{list}, { tag => $member, knit => 1, no_resolve => 1 } )
+	    }
 	  }
 	} elsif ($object->{$member} ne EMPTY or $is_required) {
 	  $ctxt->write_object($object->{$member},$mdecl,{tag => $member, no_empty => !$is_required });
@@ -1616,7 +1631,7 @@ sub write_object {
 					      attribs => \%attribs
 					     });
   } elsif (exists $type->{constant}) {
-    if ($object ne $type->{constant}) {
+    if ($object ne $type->{constant}{value}) {
       my $what = $tag || $type->{name} || $type->{'-name'};
       _warn("Invalid constant '$what', should be '$type->{constant}', got: ",$object);
     }
@@ -1633,7 +1648,7 @@ sub write_list {
   my ($ctxt, $object, $type, $opts) = @_;
   $opts ||= {};
   my $tag = $opts->{tag};
-  my $knit_tag = $opts->{knit_tag};
+  my $knit = $opts->{knit};
   my $no_resolve = $opts->{no_resolve};
   my $attribs = $opts->{attribs} || {};
   my $xml = $ctxt->{'_writer'};
@@ -1644,16 +1659,18 @@ sub write_list {
       $xml->emptyTag($etag,%$attribs) if defined($etag) and not ($opts->{no_empty} and keys(%$attribs)==0);
     } elsif (@$object == 1 and !$opts->{'write_single_LM'} and !$ctxt->{'_write_single_LM'} and keys(%$attribs)==0 and
 	     !(UNIVERSAL::isa($object->[0],'HASH') and keys(%{$object->[0]})==0)) {
-      if (defined $knit_tag) {
-	$ctxt->write_object_knit($object->[0],$type,{ tag => $tag, empty_tag => LM, knit_tag => $knit_tag });
+      if ($knit) {
+	$ctxt->write_object_knit($object->[0],$type,{ tag => $tag });
       } else {
-	$ctxt->write_object($object->[0],$type, { tag => $tag, empty_tag => LM,  no_resolve => $no_resolve });
+	$ctxt->write_object($object->[0],$type, { tag => $tag,
+						  empty_tag => LM, 
+						  no_resolve => $no_resolve });
       }
     } else {
       $xml->startTag($tag,%$attribs) if defined($tag);
-      if (defined $knit_tag) {
+      if (defined $knit) {
 	foreach my $value (@$object) {
-	  $ctxt->write_object_knit($value,$type,{ tag => LM, knit_tag => $knit_tag });
+	  $ctxt->write_object_knit($value,$type,{ tag => LM });
 	}
       } else {
 	foreach my $value (@$object) {
@@ -1663,7 +1680,7 @@ sub write_list {
       $xml->endTag($tag) if defined($tag);
       }
   } else {
-    my $what = $knit_tag || $tag || $type->{name} || $type->{'-name'};
+    my $what = $tag || $type->{name} || $type->{'-name'};
     _warn("Unexpected content of List '$what': $object\n");
   }
 }      
@@ -1674,13 +1691,31 @@ sub write_list {
 # $ctxt, $object, $type, { tag=> $tag, attribs => {}, $knit_tag => }
 sub write_object_knit {
   my ($ctxt,$object,$type,$opts)=@_;
-
   my $tag = $opts->{tag};
   my $attribs = $opts->{attribs} || {};  
   my $xml = $ctxt->{'_writer'};
 
   my $prefix=EMPTY;
-  my $ref = $object->{id};
+
+  $type = $ctxt->resolve_type($type);
+
+  my $id;
+  # find what attribute is ID
+  my $decl = $type->{structure}||$type->{container};
+  if ($decl) {
+    $id = $decl->{'-#ID'}; # cached
+    unless (defined $id) {
+      my ($idM) = grep { $_->{role} eq '#ID' } $decl->get_attributes();
+      if ($idM) {
+	$id = $decl->{'-#ID'} = $idM->{-name};
+      }
+    }
+  }
+  if (!defined $id) {
+    _warn("Don't know which attribute is #ID - can't knit back!\n");
+    return;
+  }
+  my $ref = $object->{$id};
   if (ref($object) and $ref !~ /#/) {
     $prefix = $object->{'#knit_prefix'};
   } elsif ($ref =~ /^(?:(.*?)\#)?(.+)/) {
@@ -1694,27 +1729,31 @@ sub write_object_knit {
 
   if ($prefix ne EMPTY) {
     return if (UNIVERSAL::isa($ctxt->{'_ref'}{$prefix},'PMLInstance'));
-    my $indeces = $ctxt->{'_ref-index'};
-    if ($indeces and $indeces->{$prefix}) {
-      my $knit = $indeces->{$prefix}{$ref};
-      if ($knit) {
-	my $dom_writer = XML::MyDOMWriter->new(REPLACE => $knit);
-	{
-	  my $writer = $ctxt->{'_writer'};
-	  $ctxt->{'_writer'} = $dom_writer;
-	  eval {
-	    $ctxt->write_object($object, $ctxt->resolve_type($type), { tag => $opts->{knit_tag} });
-	  };
-	  $ctxt->{'_writer'} = $writer;
-	  die $@."\n" if $@;
+    my $refs_save = $ctxt->{'_refs_save'} || {};
+    if ( $refs_save->{$prefix} ) {
+      my $indeces = $ctxt->{'_ref-index'};
+      if ($indeces and $indeces->{$prefix}) {
+	my $knit = $indeces->{$prefix}{$ref};
+	if ($knit) {
+	  my $tag = $knit->nodeName;
+	  my $dom_writer = XML::MyDOMWriter->new(REPLACE => $knit);
+	  {
+	    my $writer = $ctxt->{'_writer'};
+	    $ctxt->{'_writer'} = $dom_writer;
+	    eval {
+	      $ctxt->write_object($object, $type, { tag => $tag });
+	    };
+	    $ctxt->{'_writer'} = $writer;
+	    die $@."\n" if $@;
+	  }
+	  my $new = $dom_writer->end;
+	  $new->setAttribute($id,$ref);
+	} else {
+	  _warn("Didn't find ID $ref in $prefix - can't knit back!\n");
 	}
-	my $new = $dom_writer->end;
-	$new->setAttribute('id',$ref);
       } else {
-	_warn("Didn't find ID $ref in $prefix - can't knit back!\n");
+	_warn("Knit-file $prefix has no index - can't knit back!\n");
       }
-    } else {
-      _warn("Knit-file $prefix has no index - can't knit back!\n");
     }
   } else {
     _warn("Can't parse '$tag' href '$ref' - can't knit back!\n");
@@ -1801,218 +1840,14 @@ sub _element2writer {
   }
 }
 
-##########################################
-# VALIDATE
-#########################################
-
-# Usage:
-# $ctxt->validate_object($object, $type, { path => $path, tag => $tag })
-# $ctxt only requires the field $ctxt->{'_schema'} (or $ctxt->{'_types'})
-# log is in $ctxt->{'_log'}
-
 sub validate_object ($$$;$) {
   my ($ctxt, $object, $type, $opts)=@_;
-  my $pre=$type;
-
-  my ($path,$tag);
-  if (ref($opts)) {
-    $path = $opts->{path};
-    $tag = $opts->{tag};
-    $path.="/".$tag if $tag ne EMPTY;
-  }
-
-  _debug("validate_object: $path, $object, $type");
-  $type = $ctxt->resolve_type($type);
-  unless (ref($type)) {
-    $ctxt->_log("$path: Invalid type: $type");
-  }
-  if ($type->{cdata}) {
-    if (ref($object)) {
-      $ctxt->_log("$path: expected CDATA, got: ",ref($object));
-    } elsif ($type->{cdata}{format} eq 'nonNegativeInteger') {
-      $ctxt->_log("$path: CDATA value is not formatted as nonNegativeInteger: '$object'")
-	unless $object=~/^\s*\d+\s*$/;
-    } # TODO - check validity of other formats
-  } elsif (exists $type->{constant}) {
-    if ($object ne $type->{constant}) {
-      $ctxt->_log("$path: invalid constant, should be '$type->{constant}', got: ",$object);
-    }
-  } elsif (exists $type->{choice}) {
-    my $ok;
-    foreach (@{$type->{choice}}) {
-      if ($_ eq $object) {
-	$ok = 1;
-	last;
-      }
-    }
-    $ctxt->_log("$path: Invalid value: '$object'") unless ($ok);
-  } elsif (exists $type->{structure}) {
-    my $struct = $type->{structure};
-    my $members = $struct->{member};
-    if (!ref($object)) {
-      $ctxt->_log("$path: Unexpected content of a structure $struct->{name}: '$object'");
-    } elsif (keys(%$object)) {
-      foreach my $atr (grep {$members->{$_}{as_attribute}} keys %$members) {
-	if ($members->{$atr}{required} or $object->{$atr} ne EMPTY) {
-	  if (ref($object->{$atr})) {
-	    $ctxt->_log("$path/$atr: invalid content for member declared as attribute: ".ref($object->{$atr}));
-	  }
-	}
-      }
-      foreach my $member (grep {!$members->{$_}{as_attribute}}
-			  keys %$members) {
-	my $mtype = $ctxt->resolve_type($members->{$member});
-	if ($members->{$member}{role} eq '#CHILDNODES') {
-	  if (ref($object) ne 'FSNode') {
-	    $ctxt->_log("$path/$member: #CHILDNODES member with a non-node value:\n".Dumper($object));
-	  }
-	} elsif ($members->{$member}{role} eq '#KNIT') {
-	  my $knit_tag = $member;
-	  $knit_tag =~ s/\.rf$//;
-	  if ($object->{$member} ne EMPTY) {
-	    if (ref($object->{$member})) {
-	      $ctxt->_log("$path/$member: invalid content for member with role #KNIT: ",ref($object->{$member}));
-	    }
-	    if (ref($object->{$knit_tag}) or $object->{$knit_tag} ne EMPTY) {
-	      $ctxt->_log("$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member");
-	    }
-	  } else {
-	    if (ref($object->{$knit_tag})) {
-	      $ctxt->validate_object_knit($object->{$knit_tag},$members->{$member},
-					  { path => $path , tag => $member, tag => $knit_tag });
-	    } elsif ($object->{$knit_tag} ne EMPTY) {
-	      $ctxt->_log("$path/$knit_tag: invalid value for a #KNIT member: '$object->{$knit_tag}'");
-	    }
-	  }
-	} elsif (ref($mtype) and $mtype->{list} and
-		 $mtype->{list}{role} eq '#KNIT') {
-	  # KNIT list
-	  my $knit_tag = $member;
-	  $knit_tag =~ s/\.rf$//;
-	  if ($object->{$member} ne EMPTY and
-	      $object->{$knit_tag} ne EMPTY) {
-	    $ctxt->_log("$path/$knit_tag: both '$member' and '$knit_tag' are present for a #KNIT member");
-	  } elsif ($object->{$member} ne EMPTY) {
-	    _debug("validating as $member not $knit_tag");
-	    $ctxt->validate_object($object->{$member},$members->{$member},
-				   { path => $path, type => $member } );
-	  } else {
-	    my $list = $object->{$knit_tag};
-	    if (ref($list) eq 'Fslib::List') {
-	      for (my $i=1; $i<=@$list;$i++) {
-		$ctxt->validate_object_knit($list->[$i-1], $mtype->{list}, 
-					    { path => $path."/$knit_tag", tag => "[$i]" });
-	      }
-	    } elsif ($list ne EMPTY) {
-	      $ctxt->_log("$path/$knit_tag: not a list: ",ref($object->{$knit_tag}));
-	    }
-	  }
-	} elsif ($object->{$member} ne EMPTY or $members->{$member}{required}) {
-	  $ctxt->validate_object($object->{$member}, $members->{$member}, 
-				 { path => $path, tag => $member } );
-	}
-      }
-    } else {
-      $ctxt->_log("$path: structure is empty");
-    }
-  } elsif (exists $type->{list}) {
-    if (ref($object) eq 'Fslib::List') {
-      for (my $i=1; $i<=@$object; $i++) {
-	$ctxt->validate_object($object->[$i-1],$type->{list},{ path=> $path, tag => "[$i]"});
-      }
-    } else {
-      $ctxt->_log("$path: unexpected content of a list: $object\n");
-    }
-  } elsif (exists $type->{alt}) {
-    if ($object ne EMPTY and ref($object) eq 'Fslib::Alt') {
-      for (my $i=1; $i<=@$object; $i++) {
-	$ctxt->validate_object($object->[$i-1],$type->{alt},{ path => $path, $tag => "[$i]"});
-      }
-    } else {
-      $ctxt->validate_object($object,$type->{alt},{path=>$path});
-    }
-  } elsif (exists $type->{container}) {
-    if (not UNIVERSAL::isa($object,'HASH')) {
-      $ctxt->_log("$path: unexpected container (should be a HASH): $object");
-    } else {
-      my $container = $type->{container};
-      my $attributes = $container->{attribute};
-      foreach my $atr (keys %$attributes) {
-	if ($attributes->{$atr}{required} or $object->{$atr} ne EMPTY) {
-	  if (ref($object->{$atr})) {
-	    $ctxt->_log("$path/$atr: invalid content for attribute: ".ref($object->{$atr}));
-	  } else {
-	    $ctxt->validate_object($object->{$atr}, $attributes->{$atr}, { path => $path, tag=>$atr });
-	  }
-	}
-      }
-      my $content = $object->{'#content'};
-      if ($container->{role} eq '#NODE') {
-	if (!UNIVERSAL::isa($object,'FSNode')) {
-	  $ctxt->_log("$path: container declared as #NODE should be a FSNode object: $object");
-	} else {
-	  my $cont_type = $ctxt->resolve_type($container);
-	  if (ref($cont_type) and ref($cont_type->{sequence}) and $cont_type->{sequence}{role} eq '#CHILDNODES') {
-	    if ($content ne EMPTY) {
-	      $ctxt->_log("$path: #NODE container containing a #CHILDNODES should have empty #content: $content");
-	    }
-	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
-	  }
-	}
-      }
-      $ctxt->validate_object($content,$container,{ path => $path, tag => '#content' });
-    }
-  } elsif (exists $type->{sequence}) {
-    if (UNIVERSAL::isa($object,'Fslib::Seq')) {
-      my $sequence=$type->{sequence};
-      foreach my $element ($object->elements) {
-	if (!(UNIVERSAL::isa($element,'ARRAY') and @$element==2)) {
-	  $ctxt->_log("$path: invalid sequence content: ",ref($element));
-	} elsif ($element->[0] eq '#TEXT') {
-	  if ($sequence->{text}) {
-	    if (ref($element->[1])) {
-	      $ctxt->_log("$path: expected CDATA, got: ",ref($element->[1]));
-	    }
-	  } else {
-	    $ctxt->_log("$path: text node not allowed here\n");
-	  }
-	} else {
-	  my $eltype = $sequence->{element}{$element->[0]};
-	  if ($eltype) {
-	    $ctxt->validate_object($element->[1],$eltype,{ path => $path, tag => $element->[0] });
-	  } else {
-	    $ctxt->_log("$path: undefined element '$element->[0]'",Dumper($type));
-	  }
-	}
-      }
-      if ($sequence->{content_pattern} and !$object->validate($sequence->{content_pattern})) {
-	$ctxt->_log("$path: sequence content (".join(",",$object->names).") does not follow the pattern ".$sequence->{content_pattern});
-      }
-    } else {
-      $ctxt->_log("$path: unexpected content of a sequence: $object\n");
-      $ctxt->_log(Dumper($type));
-    }
-  } else {
-    $ctxt->_log("$path: unknown type: ".Dumper($type));
-  }
-  return (ref($ctxt->{'_log'}) and @{ $ctxt->{'_log'} }>0) ? 0 : 1;
+  $type->validate_object($object,$opts);
 }
 
-# $ctxt $path $object $type { $tag $knit_tag }
-sub validate_object_knit {
-  my ($ctxt, $object, $type, $opts) = @_;
-
-  my $ref = $object->{id};
-  _debug("validate_knit_object: $opts->{path}/$opts->{tag}, $object");
-  if ($object->{id} eq EMPTY or ref($object->{id})) {
-    $ctxt->_log("$opts->{path}/$opts->{tag}/id: invalid ID: $object->{id}\n");
-  }
-  if ($ref =~ /^.+#.|^[^#]+$/) {
-    $ctxt->validate_object($object, $ctxt->resolve_type($type), $opts);
-  } else {
-    $ctxt->_log("$opts->{path}/$opts->{tag}/id: invalid PMLREF '$ref'");
-  }
-}
+##########################################
+# Convert to FSFile
+#########################################
 
 sub convert_to_fsfile {
   my ($ctxt,$fsfile)=@_;
@@ -2029,14 +1864,18 @@ sub convert_to_fsfile {
   $fsfile->changePatterns(@PMLBackend::pmlformat);
   $fsfile->changeHint($PMLBackend::pmlhint);
 
-
+  # rebless
+  bless $schema, 'Fslib::Schema';
   $fsfile->changeMetaData( 'schema',         $schema                    );
   $fsfile->changeMetaData( 'schema-url',     $ctxt->{'_schema-url'}      );
   $fsfile->changeMetaData( 'schema-inline',  $ctxt->{'_schema-inline'}   );
   $fsfile->changeMetaData( 'pml_transform',  $ctxt->{'_transform_id'}    );
   $fsfile->changeMetaData( 'references',     $ctxt->{'_references'}      );
   $fsfile->changeMetaData( 'refnames',       $ctxt->{'_refnames'}        );
-  $fsfile->changeMetaData( 'fs-require',     $ctxt->{'_readas-trees'}    );
+  $fsfile->changeMetaData( 'fs-require',
+     [ map { [$_->{id},$_->{href}] } 
+	 grep { $_->{readas} eq 'trees' } $ctxt->get_reffiles() ]
+  );
 
   $fsfile->changeAppData(  'ref',            $ctxt->{'_ref'} || {}         );
 #  $fsfile->changeAppData(  'ref-index',      $ctxt->{'_ref-index'} || {} );
@@ -2052,18 +1891,23 @@ sub convert_to_fsfile {
   my @nodes = $ctxt->{'_schema'}->find_role('#NODE');
   my ($order,$hide);
   for my $path (@nodes) {
-    my $decl = $schema->find_type_by_path($path,1);
-    $order ||= $schema->find_role('#ORDER', $decl );
-    $hide  ||= $schema->find_role('#HIDE', $decl );
+    my $node_decl = $schema->find_type_by_path($path,1);
+    $order = $schema->find_role('#ORDER', $node_decl ) unless defined $order;
+    $hide  = $schema->find_role('#HIDE', $node_decl ) unless defined $hide;
     last if $order ne EMPTY and $hide ne EMPTY;
   }
-  
+ 
+
   my $defs = $fsfile->FS->defs;
   $defs->{$order} = ' N' if $order ne EMPTY; 
   $defs->{$hide}  = ' H' if $hide  ne EMPTY;
 
   return $fsfile;
 }
+
+##########################################
+# Convert from FSFile
+##########################################
 
 sub convert_from_fsfile {
   my ($ctxt,$fsfile)=@_;
@@ -2232,13 +2076,9 @@ PMLInstance - Perl extension for loading/saving PML data
 
 =head1 DESCRIPTION
 
-blah blah blah
+This class provides a simple implementation of a PML instance.
 
-TODO
-
-blah blah blah
-
-=head2 EXPORT
+=head1 EXPORT
 
 None by default.
 
@@ -2246,124 +2086,221 @@ The following export tags are available:
 
 =over 4
 
-=item import PMLInstance qw(:constants);
+=item :constants
 
 Imports the following constants:
 
 =over 8
 
-=item LM - name of the "<LM>" (list-member) tag
+=item LM
 
-=item AM - name of the "<LM>" (alt-member) tag
+name of the "<LM>" (list-member) tag
 
-=item PML_NS - XML namespace URI for PML instances
+=item AM
 
-=item PML_SCHEMA_NS - XML namespace URI for PML schemas
+name of the "<LM>" (alt-member) tag
 
-=item SUPPORTED_PML_VERSIONS - space-separated list of supported PML-schema version numbers
+=item PML_NS
+
+XML namespace URI for PML instances
+
+=item PML_SCHEMA_NS
+
+XML namespace URI for PML schemas
+
+=item SUPPORTED_PML_VERSIONS
+
+space-separated list of supported PML-schema version numbers
 
 =back
 
-=item import PMLInstance qw(:diagnostics);
+=item :diagnostics
 
 Imports internal _die, _warn, and _debug diagnostics commands.
 
 =back
 
-=item PMLInstance->new()
+=head1 METHODS
+
+=over 3
+
+=item PMLInstance->new ()
 
 Create a new empty PML instance object.
 
-=item PMLInstance->load( \%opts )
+=item PMLInstance->load (\%opts)
 
-Load PML instance from file or filehandle. Possible options are:
+=item $pml->load (\%opts)
 
-filename, fh, string, dom, parser, config
+Read a PML instance from file, filehandle, string, or DOM.  This
+method may be used both on an existing object (in which case it
+operates on and returns this object) or as a constructor (in which
+case it creates a new PMLInstance object and returns it). Possible
+options are: 
 
-=item $pml->save( \%opts )
+  {
+    filename => $filename,  # and/or
+    fh => \*FH,             # or
+    string => $xml_string,  # or
+    dom => $document,       # (XML::LibXML::Document)
+    parser => $xml_parser,  # (XML::LibXML)
+    config => $cfg_pml,     # (PMLInstance)
+  }
+
+where C<filename> may be used either by itself or in combination with
+any of C<fh> , C<string>, or C<dom>, which are otherwise mutually
+exclusive. The C<parser> option may be used to substitute a customized
+XML::LibXML parser object. The C<config> option may be used to pass a
+PMLInstance representing a PMLBackend configuration file.
+
+
+=item $pml->get_status ()
+
+Returns 1 if the last load() was successful.
+
+=item $pml->save (\%opts)
 
 Save PML instance to a file or file-handle. Possible options are:
+C<filename, fh, config, refs_save, write_single_LM>.  If both
+C<filename> and C<fh> are specified, C<fh> is used, but the filename
+associated with the PMLInstance object is changed to C<filename>.  If
+neither is given, the filename currently associated with the
+PMLInstance object is used. The C<config> option may be used to pass a
+PMLInstance representing a PMLBackend configuration file.  The
+C<refs_save> option may be used to specify which reference files
+should be saved along with the PMLInstance and where to. The value of
+C<refs_save>, if given, should be a HASH reference mapping reference
+IDs to the target URLs (filenames). If C<refs_save> is given, only
+those references listed in the HASH are saved along with the
+PMLInstance. If C<refs_save> is undefined or not given, all references
+are saved (to their original locations). In both cases, only files
+declared as readas='dom' or readas='pml' can be saved.
 
-fh, filename, config, save_refs, write_single_LM
+=item $pml->convert_to_fsfile (fsfile)
 
-=item convert_to_fsfile
+Translates the current C<PMLInstance> object to a C<FSFile> object
+(using FSFile MetaData and AppData fields for storage of non-tree
+data). If fsfile argument is not provided, creates a new C<FSFile> object,
+otherwise operates on a given fsfile. Returns the resulting C<FSFile> object.
 
-=item convert from_fsfile
+=item $pml->convert_from_fsfile (fsfile)
 
-=item validate_object
+=item PMLInstance->convert_from_fsfile (fsfile)
 
-=item hash_id
+Translates a C<FSFile> object to a C<PMLInstance> object. Non-tree
+data are fetched from FSFile MetaData and AppData fields. If called
+on an instance, modifies and returns the instance, otherwise creates
+and returns a new instance.
 
-=item lookup_id
+=item $pml->hash_id (id,object)
 
-=item  get_filename
+Hash a given object under a given ID.
 
-=item  set_filename
+=item $pml->lookup_id (id)
 
-=item  get_transform_id
+Lookup an object by ID.
 
-=item  set_transform_id
+=item $pml->get_filename ()
 
-# Schema
-=item  get_schema
+Return the filename of the PML instance.
 
-=item  set_schema
+=item $pml->set_filename (filename)
 
-=item  get_schema_url
+Change filename of the PML instance.
 
-=item  set_schema_url
+=item $pml->get_transform_id ()
 
-# Data
-=item  get_root
+Return ID of the XSL-based transformation specification which was used
+to convert between an original non-PML format and PML (and back).
 
-=item  set_root
+=item $pml->set_transform_id (transform)
 
-=item  get_trees
+Set ID of an XSL-transformation specification which is to be used for
+conversion from PML to an external non-PML format (and back).
 
-=item  set_trees
+=item $pml->get_schema ()
 
-=item  get_trees_prolog
+Return C<PMLSchema> object associated with the PML instance.
 
-=item  set_trees_prolog
+=item $pml->set_schema (schema)
 
-=item  get_trees_epilog
+Associate a C<PMLSchema> with the PML instance (this method should
+not be used for an instance containing data).
 
-=item  set_trees_epilog
+=item $pml->get_schema_url ()
 
-=item  get_trees_type
+Return URL of the PML schema file associated with the PML instance.
 
-=item  set_trees_type
+=item $pml->set_schema_url (url)
 
-# References
-=item  get_readas_trees
+Change URL of the PML schema file associated with the PML instance.
 
-=item  set_readas_trees
+=item $pml->get_root ()
 
-=item  get_references
+Return the root data structure.
 
-=item  set_references
+=item $pml->set_root (object)
 
-=item  get_refnames
+Set the root data structure.
 
-=item  set_refnames
+=item $pml->get_trees ()
 
-=item  get_ref
+Return a C<Fslib::List> object containing data structures with role
+'#NODE' belonging in the first block (list or sequence) with role
+'#TREES' occuring in the PML instance.
 
-=item  set_ref
+=item $pml->get_trees_prolog ()
 
-# Validation log
-=item  get_log  (returns a list)
+If the PML instance consists of a sequence with role '#TREES', return a
+C<Fslib::Seq> object containing the maximal (but possibly empty)
+initial segment of this sequience consisting of elements with role
+other than '#NODE'.
 
-=item  clear_log
-# Status=1 (if parsed fine)
-=item  get_status
+=item $pml->get_trees_epilog ()
 
-=item  set_status
+If the PML instance consists of a sequence with role '#TREES', return
+a C<Fslib::Seq> object containing all elements of the sequence
+following the first maximal contiguous subsequence of elements with
+role '#NODE'.
 
+=item $pml->get_trees_type ()
+
+Return the type declaration associated with the list of trees.
+
+=item $pml->get_references_hash ()
+
+Returns a HASHref mapping file reference IDs to URLs.
+
+=item $pml->set_references_hash (\%map)
+
+Set a given HASHref as a map between refrence IDs and URLs.
+
+=item $pml->get_refname_hash ()
+
+Returns a HASHref mapping file reference names to reference IDs.
+
+=item $pml->set_refname_hash (\%map)
+
+Set a given HASHref as a map between refrence IDs and URLs.
+
+=item $pml->get_ref (id)
+
+Return a DOM or PMLInstance object representing the referenced
+resource with a given ID (applies only to resources declared as
+readas='dom' or readas='pml').
+
+=item $pml->set_ref (id,object)
+
+Use a given DOM or PMLInstance object as a resource of the current
+PMLInstance with a given ID (note that this may break knitting).
+
+=back
 
 =head1 SEE ALSO
 
-Documentation to Fslib and TrEd documentation.
+L<Fslib>, L<PMLSchema>, 
+PML spec - L<http://ufal.mff.cuni.cz/jazz/PML/doc>,
+TrEd - L<http://ufal.mff.cuni.cz/~pajas/tred>
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -2373,9 +2310,4 @@ This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.2 or,
 at your option, any later version of Perl 5 you may have available.
 
-=head1 BUGS
-
-None reported... yet.
-
 =cut
-
