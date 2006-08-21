@@ -352,11 +352,11 @@ sub RegenerateTLemma{
 
 #bind AddComment to ! menu Add Annotator's comment
 sub AddComment {
-  my $list=$this->type->schema->resolve_type($this->type->find('annot_comment/type'))->{choice};
-  my$dialog=[$list->[0]];
+  my @list=$this->type('annot_comment/type/')->get_values();
+  my$dialog=[$list[0]];
   ListQuery('Comment type',
             'browse',
-            $list,
+            \@list,
             $dialog) or return;
   my$text=QueryString('Comment text','Text:');
   return unless defined $text;

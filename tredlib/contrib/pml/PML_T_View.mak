@@ -52,6 +52,13 @@ sub pre_switch_context_hook {
 
 }
 
+=item ShowValFrames
+
+Displays valency frames for the lemma of the current node and
+highlights those assigned to that node.
+
+=cut
+
 #bind ShowValFrames to Ctrl+Return menu Show valency frames and highlight assigned
 sub ShowValFrames {
   PML_T::OpenValFrameList($this,-noadd => 1,-no_assign => 1);

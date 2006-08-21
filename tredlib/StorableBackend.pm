@@ -51,7 +51,7 @@ sub read {
   my $restore = fd_retrieve($fd);
 
   my $api_version = $restore->[6];
-  if ($api_version ne $Fslib::API_VERSION) {
+  unless ($Fslib::COMPATIBLE_API_VERSION{ $api_version }) {
     warn "Warning: the binary file ".$fs->filename." is a dump of structures created by possibly incompatible Fslib API version $api_version (the current Fslib API version is $Fslib::API_VERSION)\n";
   }
 
@@ -62,6 +62,12 @@ sub read {
   $fs->changePatterns(@{$restore->[4]});
   $fs->changeHint($restore->[5]);
   $fs->FS->renew_specials();
+
+  # place to update some internal stuff if necessary
+  my $schema = $fs->metaData('schema');
+  if (ref($schema) and !$schema->{-api_version}) {
+    $schema->convert_from_hash();
+  }
 }
 
 

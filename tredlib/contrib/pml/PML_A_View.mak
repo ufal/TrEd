@@ -22,8 +22,6 @@ sub first (&@);
 PML_A_View.mak - Miscellaneous macros for viewing the analytic layer of
 Prague Dependency Treebank (PDT) 2.0.
 
-=over 4
-
 =cut
 
 #bind TectogrammaticalTree to Ctrl+R menu Display tectogrammatical tree
@@ -59,8 +57,6 @@ sub pre_switch_context_hook {
 
 
 1;
-
-=back
 
 =cut
 
