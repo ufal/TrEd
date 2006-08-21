@@ -1,11 +1,14 @@
 #!/bin/bash
 
+# Usage: <path_to_tred>/devel/make_pod_html [target-html-dir [pod-dir]]
+
 dir=`dirname $0`
 pod2xhtml="${dir}/pod_to_xhtml"
 
 target_dir="${1:-$PWD}"
-pod_dir="$target_dir/pod"
-html_dir="$target_dir/html"
+html_dir="$target_dir"
+pod_dir="${2:-$target_dir/pod}"
+
 [ -d "$pod_dir" ] || mkdir $pod_dir || exit 1
 [ -d "$html_dir" ] || mkdir $html_dir || exit 1
 
