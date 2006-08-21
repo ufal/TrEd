@@ -2134,7 +2134,21 @@ sub validate_object {
     $path.="/".$tag if $tag ne q{};
   }
   my $am_decl = $self->get_content_decl;
-  if ($object ne q{} and ref($object) eq 'Fslib::Alt') {
+  if ($self->is_flat) {
+    # flat alternative:
+    if (ref($object)) {
+      push @$log, "$path: flat alternative is supposed to be a string: $object";      
+    } else {
+      my $i = 1;
+      foreach my $val (split /\|/,$object) {
+	$am_decl->validate_object($val,
+				  { path=> $path,
+				    tag => "[".($i++)."]",
+				    log => $log,
+				  });
+      }
+    }
+  } elsif ($object ne q{} and ref($object) eq 'Fslib::Alt') {
     for (my $i=0; $i<@$object; $i++) {
       $am_decl->validate_object($object->[$i],
 				{ path=> $path,

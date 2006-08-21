@@ -581,7 +581,7 @@ sub add_buttons {
 			  {
 			    -background => $colors{list},
 			    -command => [$hlist,'add_to_list',$path],
-			      -balloonmsg => 'Create a new list item (Ctrl-+)',
+			    -balloonmsg => 'Create a new list item (Ctrl-+)',
 			  }
 			 )->pack();
     } elsif ($decl_type == PML_SEQUENCE_DECL) {
@@ -1021,8 +1021,9 @@ sub add_member {
       $path = $hlist->add_member($base_path,$mdecl,
 				 $attr_val,$attr_name,0,$entry_opts);
       my $new_data = $hlist->info('data' => $path);
-      $new_data->{compressed_type}=$new_data->{type};
-      $new_data->{$_} = $data->{$_} for qw(type name text);
+      $new_data->{compressed_type} = $new_data->{type};
+      $new_data->{type} = $member;
+      $new_data->{$_} = $data->{$_} for qw(name text);
     }
     $data->{alt_no}=$alt_no;
   } else {
