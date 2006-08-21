@@ -321,6 +321,9 @@ Return the root type declaration.
 =cut
 
 sub get_root_decl            { return $_[0]->{root};          }
+*get_root_type = \&get_root_decl;
+*get_root_type_obj = \&get_root_decl;
+
 sub _internal_api_version    { return $_[0]->{'-api_version'} }
 
 =item $schema->get_root_name ()
@@ -332,6 +335,17 @@ Return name of the root element for PML instance.
 sub get_root_name { 
   my $root = $_[0]->{root}; 
   return $root ? $root->{name} : undef; 
+}
+
+=item $schema->get_type_decls ()
+
+Return all named-type declarations.
+
+=cut
+
+sub get_type_decls { 
+  my $types = $_[0]->{type};
+  return $types ? values(%$types) : ();
 }
 
 =item $schema->get_type_names ()
@@ -594,7 +608,7 @@ sub convert_from_hash {
     $schema_hash = shift;
     bless $schema_hash,$class;
   }
-  $schema_hash->{-api_version} = '1.0';
+  $schema_hash->{-api_version} = '1.1';
   my $root = $schema_hash->{root};
   if (defined($root)) {
     bless $root, 'PMLSchema::Root';
@@ -711,6 +725,47 @@ sub find_type_by_path {
     $decl ? ($decl->get_content_decl || $decl) : undef;
 }
 
+=item $schema->lookup_decl (\&test, [ $start_decl ])
+
+Traverse (possibly nested) declarations and return a list of those for
+which the subroutine &test returns true value. Type references are not
+resolved during the traversal.
+
+If $start_decl is given, traverse descendants of that declaration,
+otherwise traverse all declarations.
+
+=cut
+
+sub search_decl {
+  my ($self, $test, $decl) = @_;
+  croak 'usage: $schema->search_decl(\&test,[ $start_decl ])' unless ref($test) eq 'CODE';
+  if ($decl) {
+    my @results;
+    if ($test->($decl)) {
+      push @results, $decl;
+    }
+    push @results, map { $self->search_decl($test,$_) } $decl->get_child_decls;
+    return @results;
+  } else {
+    return map { $self->search_decl($test,$_) } $self->get_type_decls, $self->get_root_decl;
+  }
+}
+
+
+=item $schema->find_decl_by_role ($role,[$start_decl])
+
+Return a list of declarations with role equal to C<$role>. 
+
+If $start_decl is given, search within descendants of that
+declaration, otherwise search all declarations.
+
+=cut
+
+sub find_decl_by_role {
+  my ($self,$role, $start_decl)=@_;
+  return $self->search_decl(sub { shift->{role} eq $role }, $start_decl);
+}
+
 
 =item $schema->find_role (role,decl)
 
@@ -812,19 +867,6 @@ sub node_types {
   return map { $self->find_type_by_path($_) } $self->find_role('#NODE');
 }
 
-
-=item $schema->get_root_type ()
-
-Return the declaration of the root type (see C<PMLSchema::Root>).
-
-=cut
-
-sub get_root_type {
-  my ($self,$name) = @_;
-  return $self->{root};
-}
-
-*get_root_type_obj = \&get_root_type;
 
 =item $schema->get_type_by_name (name)
 
@@ -1022,6 +1064,29 @@ sub get_content_decl {
   }
   return undef;
 }
+
+=item $decl->get_child_decls ()
+
+For declarations with content (type, root, container, list, alt,
+attribute, member, element), return the content declaration; for a
+structure, return all its member declarations, for a container return
+its content declaration and all attribute declarations, for a sequence
+return all element declarations.
+
+This method does not resolve references to named types.
+
+=cut
+
+sub get_child_decls { 
+  my $self = shift;
+  my @ret;
+  if ($self->{-decl}) {
+    my $content = $self->{ $self->{-decl} };
+    @ret = ($content) if defined $content;
+  }
+  return @ret;
+}
+
 
 =item $decl->get_knit_content_decl ()
 
@@ -1448,6 +1513,7 @@ sub get_members {
   my $members = $_[0]->{member};
   return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $_->{'-#'} ] } values %$members : (); 
 }
+*get_child_decls = \&get_members;
 
 =item $decl->get_member_names ()
 
@@ -1791,6 +1857,7 @@ sub get_members {
   my $self = shift;
   return ($self->get_attributes, $self->get_content_decl);
 }
+*get_child_decls = \&get_members;
 
 =item $decl->get_member_by_name (name)
 
@@ -1882,6 +1949,7 @@ sub get_elements {
   my $members = $_[0]->{element};
   return $members ? map { $_->[0] } sort { $a->[1]<=> $b->[1] } map { [ $_, $_->{'-#'} ] } values %$members : (); 
 }
+*get_child_decls = \&get_elements;
 
 =item $decl->get_elements ()
 
