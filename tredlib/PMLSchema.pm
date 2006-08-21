@@ -242,12 +242,12 @@ object.
 The 2nd argument, C<opts>, is an optional hash reference with parsing
 options.  The following options are recognized:
 
-C<base_url> - base URL for referred schemas
+C<base_url> - base URL for referred schemas.
 
-C<use_resources> - if true, reffered schemas are also looked for in the $ResourcePath
+C<use_resources> - if true, reffered schemas are also looked for in L<Fslib> resource paths.
 
 C<revision>, C<minimal_revision>, C<maximal_revision> - constraint the revision
-number of the schema
+number of the schema.
 
 =cut
 
@@ -1621,7 +1621,7 @@ PMLSchema::Container - implements declaration of a container.
 
 This class inherits from C<PMLSchema::Decl>, but provides
 several methods which make its interface largely compatible with
-the C<PMLSchema::Schema> class.
+the C<PMLSchema::Struct> class.
 
 =head3 METHODS
 
@@ -2274,7 +2274,7 @@ the type declaration in the PML schema. Otherwise return 0.
 =item $decl->supported_formats
 
 Returns a list of formats for which the current implementation
-provides a reasonable validator. 
+of C<validate_object> provides a reasonable validator. 
 
 Currently all formats defined in the PML Schema specification revision
 1.1.2 are supported, namely:
