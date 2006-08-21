@@ -717,7 +717,9 @@ mentioned, the description talks about the Compact one):
 
 =over 4
 
-1. C<t_lemma> is displayed on the first line. If the node's
+=item 1.
+
+C<t_lemma> is displayed on the first line. If the node's
 C<is_parenthesis> is set to 1, the C<t_lemma> is displayed in
 CustomColor C<parenthesis> in the Compact stylesheet. If the node's
 C<sentmod> is non-empty, its value is displayed in CustomColor
@@ -725,26 +727,36 @@ C<detail> after a dot. If there is a coreference leading to a
 different sentence, the C<t_lemma> of the refered node is displayed in
 CustomColor C<coref>, too.
 
-2. Node's functor is displayed in CustomColor C<func>. If the node's
+=item 2.
+
+Node's functor is displayed in CustomColor C<func>. If the node's
 C<subfunctor> or C<is_state> are defined, they are indicated in
 CustomColor C<subfunc>. In the Full stylesheet, C<is_member> is also
 displayed as "M" in CustomColor C<coappa> and C<is_parenthesis> as "P"
 in CustomColor C<parenthesis>.
 
-3. For nodes of all types other than complex, C<nodetype> is displayed
+=item 3.
+
+For nodes of all types other than complex, C<nodetype> is displayed
 in CustomColor C<nodetype>. For complex nodes, their C<gram/sempos> is
 displayed in CustomColor C<complex>. In the Full stylesheet, all the
 non-empty values of grammatemes are listed in CustomColor C<detail>,
 and for ambiguous values the names of the attributes are displayed in
 CustomColor C<detailheader>.
 
-4. Generated nodes are displayed as squares, non-generated ones as
+=item 4.
+
+Generated nodes are displayed as squares, non-generated ones as
 ovals.
 
-5. Current node is displayed as bigger and with outline in CustomColor
+=item 5. 
+
+Current node is displayed as bigger and with outline in CustomColor
 C<current>.
 
-6. Edges from nodes to roots or from nodes with C<functor> C<PAR,
+=item 6.
+
+Edges from nodes to roots or from nodes with C<functor> C<PAR,
 PARTL, VOCAT, RHEM, CM, FPHR,> and C<PREC> to their parents are thin,
 dashed and have the CustomColor C<line_normal>. Edges from
 coordination heads with C<is_member> are thin and displayed in
@@ -758,12 +770,16 @@ are displayed with the lower half thin in CustomColor C<line_member>
 and upper half thick in CustomColor C<line_normal>. All other edges
 are displayed half-thick in CustomColor C<line_normal>.
 
-7. The attribute C<tfa> is reflected by the colour of the node.
+=item 7.
+
+The attribute C<tfa> is reflected by the colour of the node.
 CustomColors C<tfa_c, tfa_f, tfa_c>, and C<tfa_no> are used. In the
 Full stylesheet, the value is also displayed before the functor in
 C<tfa_text>.
 
-8. Attributes C<gram, is_dsp_root, is_name_of_person,> and C<quot> are
+=item 8.
+
+Attributes C<gram, is_dsp_root, is_name_of_person,> and C<quot> are
 listed in the hint box when the mouse cursor is over the node. In the
 Full stylesheet, they are diplayed at the last line in CustomColor
 C<detail> (see 3).

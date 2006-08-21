@@ -1,0 +1,36 @@
+#!/bin/bash
+
+dir=`dirname $0`
+pod2xhtml="${dir}/pod_to_xhtml"
+
+target_dir="${1:-$PWD}"
+pod_dir="$target_dir/pod"
+html_dir="$target_dir/html"
+[ -d "$pod_dir" ] || mkdir $pod_dir || exit 1
+[ -d "$html_dir" ] || mkdir $html_dir || exit 1
+
+for f in $dir/../[bn]tred \
+         $dir/../tredlib/{Fslib.pm,PMLSchema.pm,PMLInstance.pm}; do
+    n="basename ${f%.pm}"
+    n=$(basename "$n")
+    pod="$pod_dir/${n//./_}.pod"
+    podselect "$f" > "$pod"
+    podchecker "$pod"
+done
+
+{
+    pushd $dir/../tredlib/contrib/pml >/dev/null
+    pod="$pod_dir/PML_mak.pod"
+    cat {PML,PML_T,PML_T_Edit,PML_T_View,PML_A,PML_A_Edit,PML_A_View}.mak |\
+       podselect - > "$pod"
+    podchecker "$pod"
+    popd >/dev/null
+}
+
+for t in btred ntred Fslib.pm PMLSchema.pm PMLInstance.pm PML.mak; do
+    n="${t%.pm}"
+    pod="$pod_dir/${n//./_}.pod"
+    html="$html_dir/${n//./_}.html"
+    "$pod2xhtml" --css blue.css --infile "$pod" --outfile "$html" --title "$t manual"
+done
+

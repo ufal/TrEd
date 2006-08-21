@@ -952,8 +952,8 @@ attribute of the current node to a global hash variable named
 my %ValuesClipboard;
 sub CopyValues {
   undef %ValuesClipboard;
-  my @attrs = ($this->type) ? ($this->type->members) : ($grp->{FSFile}->FS->attributes);
-  foreach my $atr ($this->type->members) {
+  my @attrs = ($this->type) ? ($this->type->get_normal_fields) : ($grp->{FSFile}->FS->attributes);
+  foreach my $atr (@attrs) {
     $ValuesClipboard{$atr} = Fslib::CloneValue($this->{$atr});
   }
   delete $ValuesClipboard{_node_ord($this)}; # we do not copy this
