@@ -66,10 +66,24 @@ sub read {
   # place to update some internal stuff if necessary
   my $schema = $fs->metaData('schema');
   if (ref($schema) and !$schema->{-api_version}) {
+    # aply PMLSchema classes
     $schema->convert_from_hash();
+
+    # change format ID to PMLREF for knitted objects
+    foreach my $decl ($schema->find_decl_by_role('#KNIT')) {
+      my $knit_content = $decl->get_knit_content_decl;
+      if ($knit_content) {
+	if ($knit_content->get_decl_type_str=~/^(?:structure|container)$/) {
+	  my ($id) = $knit_content->find_members_by_role('#ID');
+	  # low level stuff
+	  if ($id and $id->{cdata} and $id->{cdata}{format} eq 'ID') {
+	    $id->{cdata}{format} = 'PMLREF';
+	  }
+	}
+      }
+    }
   }
 }
-
 
 =pod
 
