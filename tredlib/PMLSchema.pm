@@ -2596,9 +2596,9 @@ sub get_format { return $_[0]->{format} }
   $format_re{dateTime} = sub {
     my $value = shift;
     return 0 unless length $value;
-    return 0 unless$value =~ /^(.*)T(.*)$/;
+    return 0 unless $value =~ /^(.*)T(.*)$/;
     my ($date,$time)=($1,$2);
-    return _check_date($date) and _check_time($time);
+    return _check_date($date) && _check_time($time) ? 1 : 0;
   };
   $format_re{gYearMonth} = sub {
     my $value = shift;
