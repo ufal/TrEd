@@ -5948,11 +5948,14 @@ sub startMain {
   # Save configuration
   print STDERR "Saving some configuration options.\n" if $tredDebug;
   my @conf;
+  my $comment = ';; Options changed by TrEd on every close (DO NOT EDIT)';
   my $ommit="canvasheight|canvaswidth|recentfile[0-9]+|geometry|lastaction|filelist[0-9]+";
   if (open(F,"<$configFile")) {
-    @conf= grep { !/^\s*(?:$ommit)\s*=/i } <F>;
+    @conf= grep { !/^\s*(?:\Q$comment\E|(?:$ommit)\s*=)/io } <F>;
     close(F);
   }
+  pop @conf while $conf[$#conf] =~ /^\s*$/;
+  push @conf, "\n",$comment."\n";
   #  $geometry=~s/^[0-9]+x[0-9]+//;
   if ($group{lastActionBookmark}) {
     $group{lastActionBookmark}=~s/\\/\\\\/g;
@@ -5976,7 +5979,7 @@ sub startMain {
 	$_->save;
 	$s=$_->filename();
 	$s=~s/\\/\\\\/g;
-	push @conf,"filelist".$i++."\t=\t".$s."\n";
+	push @conf,"filelist".$i++."\t\t=\t".$s."\n";
       }
     }
   };
@@ -6536,9 +6539,14 @@ sub editConfig {
   my $d=$grp->{configDialog};
   $d->withdraw;
   $d->bind('<Return>'=> [\&dlgReturn,1]);
-  my $t= $d->
-    Scrolled(qw/Text -relief sunken -borderwidth 2
-		     -height 20 -scrollbars oe/);
+
+  my @text_opt = eval { require Tk::CodeText; 
+			require Tk::CodeText::TrEdConfig; 
+		      } ? qw(CodeText -syntax TrEdConfig) 
+			: qw(Text);
+  my $t= $d->Scrolled(@text_opt, 
+		      qw/-relief sunken -borderwidth 2
+			-height 20 -scrollbars oe/);
   $t->Subwidget('scrolled')->menu->delete('File');
   $t->bind('<Alt-f>'  => sub {
 	     my ($w)=@_;
@@ -6595,7 +6603,9 @@ sub editConfig {
   $d->bind('<Destroy>'=> [sub { shift; shift->{configDialog}=undef; },$grp ]);
   $d->bind($d,'<Escape>'=> [sub { shift; shift->destroy(); },$d]);
   if (open(F,"<$configFile")) {
-    $t->insert('0.0',join EMPTY,<F>);
+    my $conf = join EMPTY,<F>;
+    chomp $conf;
+    $t->insert('0.0',$conf."\n");
     close(F);
   }
   $t->mark(qw/set insert 0.0/);
