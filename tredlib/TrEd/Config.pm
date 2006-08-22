@@ -134,7 +134,7 @@ sub parse_config_line {
   local $_=shift;
   my $confs=shift;
   my $key;
-  unless (/^[;\#]/ or /^$/) {
+  unless (/^\s*[;\#]/ or /^\s*$/) {
     chomp;
     if (/^\s*([a-zA-Z_]+[a-zA-Z_0-9]*(::[a-zA-Z_]+[a-zA-Z_0-9:]*)?)\s*=\s*('(?:[^\\']|\\.)*'|"(?:[^\\"]|\\.)*"|(?:\s*(?:[^;\\\s]|\\.)+)*)/) {
       $key = $2 ? $1 : lc($1);
