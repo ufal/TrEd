@@ -1,12 +1,11 @@
 package Tk::CodeText::TrEdStylesheet;
 
 use vars qw($VERSION);
-$VERSION = '0.1'; # Initial release;
+$VERSION = '0.2';
 
 use strict;
 use warnings;
 use base('Tk::CodeText::Template');
-use List::Util qw(first);
 
 our ($block, $bblock, $nqblock, $nqqblock);
 $block  = qr/\{((?:(?> [^{}]* )|(??{ $block }))*)\}/x;
@@ -37,16 +36,17 @@ sub new {
   	bless ($self, $class);
 	$self->callbacks({
 		'Text' => \&parseText,
-		'Attribute' => \&parseAttribute,
-		'Style' => \&parseStyle,
 		'Label' => \&parseLabel,
 		'Code' => \&parseCode,
 		'String' => \&parseString,
 		'QString' => \&parseQString,
-		'CAttribute' => \&parseCAttribute,
-		'CStyle' => \&parseCStyle,
-		'Comment' => \&parseComment,
-		'Variable' => \&parseVariable,
+
+		'CStyle' => \&parseDummy,
+		'Attribute' => \&parseDummy,
+		'Style' => \&parseDummy,
+		'CAttribute' => \&parseDummy,
+		'Comment' => \&parseDummy,
+		'Variable' => \&parseDummy,
 	});
 	$self->stackPush('Label');
   	return $self;
@@ -56,16 +56,21 @@ sub parseDummy {
     my ($self, $txt) = @_;
     return $self->parserError($txt); #for debugging your later additions
 }
-#*parseLabel = \&parseDummy;
-*parseStyle = \&parseDummy;
-*parseVariable = \&parseDummy;
-*parseAttribute = \&parseDummy;
-*parseCAttribute = \&parseDummy;
-*parseCStyle = \&parseDummy;
-*parseComment = \&parseDummy;
 
+# fix a bug in Template:
+sub snippetParse {
+  my $hlt = shift;
+  my $snip = shift;
+  my $attr = shift;
+  unless (defined($snip)) { $snip = $hlt->snippet }
+  unless (defined($attr)) { $attr = $hlt->stackTop }
+  my $out = $hlt->{'out'};
+  if (length $snip) {
+    push(@$out, length($snip), $attr);
+    $hlt->snippet('');
+  }
+}
 
-use Data::Dumper;
 sub parseCode {
   my ($self, $text) = @_;
   if ($text =~ s/^([?][>])//) { #code stop
