@@ -8078,6 +8078,9 @@ B<RootStyles:>
   C<baseYPos            >- Y-coordinate of the root node
   C<nodeXSkip           >- default horizontal skip between nodes
   C<nodeYSkip           >- default vertical skip between nodes
+  C<skipHiddenParents   >- connect nodes with hidden parents to nearest displayed ancestors
+  C<skipHiddenLevels    >- display nodes with hidden parents one level below their nearest
+  C<                    >  displayed ancestors (implies C<skipHiddenParents>)
 
 B<Styles:>
   C<#{object-feature:value}>
@@ -8087,6 +8090,7 @@ B<Colors:>
   by a hex RGB string of the form #RRGGBB.
 
 B<Features:>
+  C<Node-hide           >- if non-zero, don't display the node at all
   C<Node-shape          >- oval, rectangle, polygon
   C<Node-polygon        >- relative coordinates of the poligon points
   C<Node-width          >- set shape width to the given amount
