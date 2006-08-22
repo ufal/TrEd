@@ -993,7 +993,7 @@ sub redraw {
     # only for root node if any
     foreach $style ($self->get_label_patterns($fsfile,"rootstyle")) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
-  	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+):'?(.+)'?$/) {
+  	if (/^(Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-.+?):'?(.+)'?$/) {
 	  if (exists $Opts{"$1$2"}) {
 	    push @{$Opts{"$1$2"}},$3=>$4;
 	  } else {
@@ -1012,15 +1012,21 @@ sub redraw {
 
   # styling patterns should be interpolated here for each node and
   # the results stored within node_pinfo
+  my $filter_nodes = 0;
+  my %skip_nodes;
   foreach $node (@{$nodes}) {
     my %nopts=();
     foreach $style (@style_patterns) {
       foreach ($self->interpolate_text_field($node,$style,$grp)=~/\#${block}/g) {
-	if (/^(CurrentOval|Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+):(.+)$/) {
-	  if (exists $nopts{"$1$2"}) {
-	    push @{$nopts{"$1$2"}},$3=>$4;
+	if (/^((CurrentOval|Oval|TextBox|EdgeTextBox|Line|SentenceText|SentenceLine|SentenceFileInfo|Text|TextBg|NodeLabel|EdgeLabel|Node)((?:\[[^\]]+\])*)(-[^:]+?)):(.+)$/) {
+	  if (exists $nopts{"$2$3"}) {
+	    push @{$nopts{"$2$3"}},$4=>$5;
 	  } else {
-	    $nopts{"$1$2"}=[$3=>$4];
+	    $nopts{"$2$3"}=[$4=>$5];
+	  }
+	  if ($1 eq 'Node-hide') {
+	    $skip_nodes{$node}=$5;
+	    $filter_nodes = 1;
 	  }
 	}
       }
@@ -1031,6 +1037,10 @@ sub redraw {
       $self->store_node_pinfo($node,"style-$_",$nopts{$_});
     }
   }
+  if ($filter_nodes) {
+    $nodes = [ grep { !$skip_nodes{$_} } @$nodes ];
+  }
+
   #------------------------------------------------------------
   #}
   #my $t1= new Benchmark;

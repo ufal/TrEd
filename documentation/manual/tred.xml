@@ -1246,7 +1246,7 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Insert New Tree</guimenuitem></term>
 	  <listitem>
 	    <para>Inserts a new tree <emphasis>before</emphasis> the current
-	      tree. The new tree consists of a root-node only. Initially, attributes of
+	      tree. The new tree consists of a root node only. Initially, attributes of
 	      this node are empty.</para>
 	  </listitem>
 	</varlistentry>
@@ -1254,7 +1254,7 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Insert New Tree After</guimenuitem></term>
 	  <listitem>
 	    <para>Inserts a new tree <emphasis>after</emphasis> the current
-	      tree. The new tree consists of a root-node only. Initially, attributes of
+	      tree. The new tree consists of a root node only. Initially, attributes of
 	      this node are empty.</para>
 	  </listitem>
 	</varlistentry>
@@ -1724,7 +1724,7 @@ Tk: 804.027
 	  <listitem>
 	    <para>
 	      Creates a new node as a right sibling of the active node
-	      (this command is ignored if the active node is the root-node).
+	      (this command is ignored if the active node is the root node).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -3076,7 +3076,7 @@ Tk: 804.027
 	      the default or previously selected color and styling).
 	      Plain text occuring in a 
 	      <literal moreinfo="none">style:</literal> or
-	      <literal moreinfo="none">root-style:</literal>
+	      <literal moreinfo="none">rootstyle:</literal>
 	      pattern is ignored (note however that this may change
 	      in the future versions).
 	    </para>
@@ -3104,6 +3104,20 @@ Tk: 804.027
 	  </row>
 	</thead>
 	<tbody>
+	    <row>
+	    <entry><literal moreinfo="none">Node-hide</literal></entry>
+	    <entry>
+	      <para>Nodes for which this feature is non-zero are not
+		  displayed at all. The following
+		  <literal moreinfo="none">rootstyle</literal> options
+		  control how child nodes of hidden nodes are displayed:
+		  <link linkend="skiphiddenparents"><literal
+		  moreinfo="none">SkipHiddenParents</literal></link>
+		  and <link linkend="skiphiddenlevels"><literal
+		  moreinfo="none">SkipHiddenLevels</literal></link>.
+	      </para>
+	    </entry>
+          </row>
 	  <row>
 	    <entry><literal moreinfo="none">Node-shape</literal></entry>
 	    <entry>
@@ -4399,7 +4413,8 @@ sub CreateImages {
 	  <term><literal moreinfo="none">SkipHiddenLevels</literal></term>
 	  <listitem>
 	    <para>If the <link linkend="get_nodelist_hook"><literal>get_nodelist_hook</literal></link>
-	      provides an incomplete list of nodes of the tree, there
+	      provides an incomplete list of nodes of the tree 
+	      or if some nodes are hidden using <link linkend="style-instructions"><literal>Node-hide</literal></link>, there
 	      may be nodes whose parent-node is not on the list.
 	      If this option is set to <literal>1</literal>,
 	      any such a orphan node <quote>skip levels</quote> and appears
@@ -4417,7 +4432,7 @@ sub CreateImages {
 	  <term><literal moreinfo="none">SkipHiddenParents</literal></term>
 	  <listitem>
 	    <para>If the <link linkend="get_nodelist_hook"><literal>get_nodelist_hook</literal></link>
-	      provides an incomplete list of nodes of the tree, there
+	      provides an incomplete list of nodes of the tree or if some nodes are hidden using <link linkend="style-instructions"><literal>Node-hide</literal></link>, there
 	      may be nodes whose parent-node is not on the list.
 	      If this option is set to <literal>1</literal>,
 	      then any lines that would connect such an orphan node with its parent
@@ -7693,7 +7708,7 @@ sub MakeSentence {
 		the tree is being drawn before
 		the content of a currently selected stylesheet
 		is applied and before <literal moreinfo="none">node_style_hook</literal>
-		is called. The first argument is the root-node of
+		is called. The first argument is the root node of
 		the tree and <replaceable>styles</replaceable> are
 		as in <literal moreinfo="none">node_style_hook</literal> above.
 	      </para></entry>
