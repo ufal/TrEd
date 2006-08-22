@@ -879,7 +879,7 @@ sub readStyleSheets {
     next if /^#/;
     if (/^stylesheet:\s*(.*)/) {
       $stylesheet = $1;
-    } elsif (s/^(hint|context):\s*//) {
+    } elsif (s/^(hint|context)://) {
       if ($grp->{stylesheets}->{$stylesheet}->{$1} ne EMPTY) {
 	$grp->{stylesheets}->{$stylesheet}->{$1}.="\n".$_;
       } else {
@@ -8008,8 +8008,8 @@ sub getStylesheetPatterns {
   return wantarray ? ($hint,$context,$patterns) :
     ("context: ".$context."\n".
        # fix old non-labeled hints
-       (join "\n",map {"hint: ".$_} split /\n/,$hint)."\n".
-	join("\n",@$patterns));
+       join("\n","hint: ".$hint)."\n".
+	 join("\n",@$patterns));
 }
 
 sub editStylesheetDialog {
@@ -8158,8 +8158,13 @@ EOF
   # Frame with pattenrs listbox
   my $cf= $f->Frame(qw(-takefocus 0));
 
-  my $e= $cf->Scrolled(qw/Text -scrollbars osoe -height 35
-                              -relief sunken -borderwidth 2/);
+  my @text_opt = eval { require Tk::CodeText; 
+			require Tk::CodeText::TrEdStylesheet; 
+		      } ? qw(CodeText -syntax TrEdStylesheet) 
+			: qw(Text);
+  my $e= $cf->Scrolled(@text_opt, 
+		       qw/-scrollbars osoe -height 35
+			  -relief sunken -borderwidth 2/);
   $e->Subwidget('scrolled')->menu->delete('File');
   disable_scrollbar_focus($e);
 
@@ -8217,7 +8222,8 @@ EOF
 
   {
     my $patterns=getStylesheetPatterns($win);
-    $e->insert('0.0',$patterns);
+    chomp $patterns;
+    $e->insert('0.0',$patterns."\n");
   }
   $e->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
   addTextSearchLine($cf,$e)->pack(qw(-fill x -side bottom));
