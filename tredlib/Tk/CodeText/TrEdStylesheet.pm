@@ -215,31 +215,36 @@ __END__
 
 =head1 NAME
 
-Tk::CodeText::TrEdStylesheet - a Plugin for HTML syntax highlighting
+Tk::CodeText::TrEdStylesheet - a Plugin for TrEd stylesheet syntax highlighting
 
 =head1 SYNOPSIS
 
  require Tk::CodeText::TrEdStylesheet;
  my $sh = new Tk::CodeText::TrEdStylesheet( [
-	['Text'],
-   ['Tag', -foreground => 'brown'],
-   ['Attr', -foreground => 'darkblue'],
-   ['Comment', -foreground => 'lightblue'],
-   ['Value', -foreground => 'orange'],
-   ['String', -foreground => 'red'],
-   ['SpChar', -foreground => 'magenta'],
+   ['Text', -foreground => 'brown'],
+   ['Attribute', -foreground => 'darkblue'],
+   ['Style', -foreground => 'darkgreen'],
+   ['Label', -foreground => 'black', underline => 1 ],
+   ['Code', -foreground => 'black' ],
+   ['String', -foreground => 'brown' ],
+   ['QString', -foreground => 'brown' ],
+   ['CAttribute', -foreground => 'darkblue' ],
+   ['CStyle', -foreground => 'darkgreen'],
+   ['Comment', -foreground => 'gray40' ],
+   ['Variable', -foreground => 'blue'],
+   ['Empty'],
  ]);
 
 =head1 DESCRIPTION
 
-Tk::CodeText::TrEdStylesheet is a  plugin module that provides syntax highlighting
-for TrEdStylesheet to a Tk::CodeText text widget.
+Tk::CodeText::TrEdStylesheet is a plugin module that provides syntax
+highlighting for TrEd stylesheets to a Tk::CodeText text widget.
 
 It inherits Tk::CodeText::Template. See also there.
 
 =head1 AUTHOR
 
-Hans Jeuken (haje@toneel.demon.nl)
+Petr Pajas
 
 =cut
 
@@ -248,7 +253,3 @@ Hans Jeuken (haje@toneel.demon.nl)
 Unknown
 
 =cut
-
-
-
-
