@@ -2173,6 +2173,7 @@ sub autoSaveAll {
     eval {
       $fsfile->changeAppData('refs_save',{});
       $fsfile->writeFile($f);
+      doEvalHook($win,"after_autosave_hook",$f);
       $fsfile->changeAppData('refs_save',undef);
       $ok = 1;
     };
@@ -2238,15 +2239,21 @@ sub saveFile {
   print STDERR $@;
   $win->{FSFile}->changeAppData('refs_save',$refs_to_save);
   my $result;
+  my $stop;
   my @warnings;
   {
     local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; push @warnings,$msg; };
-    $result = eval { $win->{FSFile}->writeFile($f) };
+    eval { 
+      $result = $win->{FSFile}->writeFile($f);
+    };
+    # called from within the eval so all errors and warnings
+    # are shown as warnings on the output
+    $stop = doEvalHook($win,"after_save_hook",$f);
   }
   $win->{FSFile}->changeAppData('refs_save',undef);
-  if (!$result) {
+  if (!$result or $stop eq "stop") {
     $win->toplevel->Unbusy() unless $insideEval;
-    errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"._last_err($@."\n".join("\n",'WARNINGS:',@warnings))."\n"."Check file and directory permissions.\nSee also the console error output.");
+    errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"._last_err($@."\n".(@warnings ? join("\n",'WARNINGS:',@warnings) : ''))."\n"."Check file and directory permissions.\nSee also the console error output.");
     undef $!;
     eval {
       IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
