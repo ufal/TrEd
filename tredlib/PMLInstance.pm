@@ -1202,7 +1202,7 @@ sub save {
 	_die("PMLBackend: unsupported output transformation $transform_id (only type='xslt') transformations are supported)"); 
       }
       my $out_xsl_href = $out_xsl ? $out_xsl->{'href'} : undef;
-      $out_xsl_href = Fslib::ResolvePath($PMLBackend::config->{filename}, $out_xsl_href, 1);
+      $out_xsl_href = Fslib::ResolvePath($PMLBackend::config->{_filename}, $out_xsl_href, 1);
       if ($out_xsl_href eq EMPTY) {
 	_die("PMLBackend: no output transformation defined for $transform_id");
       }

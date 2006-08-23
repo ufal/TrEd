@@ -586,19 +586,25 @@ sub add_buttons {
 			 )->pack();
     } elsif ($decl_type == PML_SEQUENCE_DECL) {
       # add sequence buttons
+      my @elements = sort $decl->get_element_names;
       $hlist->mini_button($f,'plus',$path,
 			  {
 			    -background => $colors{sequence},
 			    -balloonmsg => 'Create a new sequence element (Ctrl-+)',
-			    -menu => {
-			      -entries => [ map { ['command', -label => $_,
-						   -command => [$hlist,'add_to_sequence',$path,$_],
-						  ] }
-					      sort $decl->get_element_names,
-					   ],
-			    }
-			   }
-			    
+			    (@elements == 1 ) 
+			      ? 
+				( -command => [$hlist,'add_to_sequence',$path,$elements[0]] )
+			      :
+				(
+				  -menu => {
+				    -entries => [ map { ['command', -label => $_,
+							 -command => [$hlist,'add_to_sequence',$path,$_],
+							] }
+						    @elements
+						   ],
+				  }
+				)
+			  }
 			 )->pack();
     } elsif ($decl_type == PML_ALT_DECL) {
       # add alt buttons
