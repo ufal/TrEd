@@ -183,6 +183,15 @@ determine_node_type_hook  node               no      invoked before tred needs t
                                                 determine node-type of a node
                                                 without one
 
+after_save_hook  filename            yes   called after a file is saved 
+		                           (not autosaved). Die or warn messages
+                                           appear as warnings to the user.
+                                           May return "stop" to recover
+                                           backup.
+
+after_autosave_hook  filename       no     Called after a file is auto-saved.
+                                           Errors/warnings appear on the console.
+
 NOTE:
 Unlike other macros, hooks are expected not to modify the file. If the
 file is modified, the hook-function should set the $FileNotSaved
