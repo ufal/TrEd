@@ -39,6 +39,7 @@
   </type>
   <type name="transf_types.type">
     <choice>
+      <value>identity</value>
       <value>xslt</value>
     </choice>
   </type>
