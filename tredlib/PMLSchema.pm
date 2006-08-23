@@ -316,11 +316,25 @@ sub get_description          { return $_[0]->{description};   }
 
 =item $schema->get_root_decl ()
 
-Return the root type declaration.
+Return the root type declaration (see C<PMLSchema::Root>).
 
 =cut
 
 sub get_root_decl            { return $_[0]->{root};          }
+
+=item $schema->get_root_type ()
+
+Like $schema->get_root_decl->get_content_decl.
+
+=cut
+
+sub get_root_type {
+  my ($self,$name) = @_;
+  return $self->{root}->get_content_decl;
+}
+*get_root_type_obj = \&get_root_type;
+
+
 sub _internal_api_version    { return $_[0]->{'-api_version'} }
 
 =item $schema->get_root_name ()
@@ -813,18 +827,6 @@ sub node_types {
 }
 
 
-=item $schema->get_root_type ()
-
-Return the declaration of the root type (see C<PMLSchema::Root>).
-
-=cut
-
-sub get_root_type {
-  my ($self,$name) = @_;
-  return $self->{root};
-}
-
-*get_root_type_obj = \&get_root_type;
 
 =item $schema->get_type_by_name (name)
 
