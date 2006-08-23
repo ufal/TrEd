@@ -6542,12 +6542,22 @@ sub editConfig {
 
   my @text_opt = eval { require Tk::CodeText; 
 			require Tk::CodeText::TrEdConfig; 
-		      } ? qw(CodeText -syntax TrEdConfig) 
+		      } ? (qw(CodeText -syntax TrEdConfig -commentchar ;))
 			: qw(Text);
   my $t= $d->Scrolled(@text_opt, 
 		      qw/-relief sunken -borderwidth 2
 			-height 20 -scrollbars oe/);
-  $t->Subwidget('scrolled')->menu->delete('File');
+  my $edit = $t->Subwidget('scrolled');
+  $edit->menu->delete('File');
+  if ($text_opt[0] eq 'CodeText') {
+    my $syntax = $edit->menu->entrycget('View','-menu')->entrycget('Syntax','-menu');
+    my $last = $syntax->index('last');
+    if ($last ne 'none') {
+      $syntax->delete($_) for grep { defined and !/^(None|Perl|TrEdConfig)$/ }
+	map { eval { local $SIG{__DIE__}; $syntax->entrycget($_,'-label')} } 0..$last
+    }
+    $edit->menu->entrycget('View','-menu')->delete('Rules Editor');
+  }
   $t->bind('<Alt-f>'  => sub {
 	     my ($w)=@_;
 	     my $pop=$w->FindPopUp();
@@ -8170,12 +8180,25 @@ EOF
 
   my @text_opt = eval { require Tk::CodeText; 
 			require Tk::CodeText::TrEdStylesheet; 
-		      } ? qw(CodeText -syntax TrEdStylesheet) 
+		      } ? (qw(CodeText -syntax TrEdStylesheet), -indentchar => '  ')
 			: qw(Text);
   my $e= $cf->Scrolled(@text_opt, 
 		       qw/-scrollbars osoe -height 35
 			  -relief sunken -borderwidth 2/);
-  $e->Subwidget('scrolled')->menu->delete('File');
+  my $edit = $e->Subwidget('scrolled');
+  $edit->menu->delete('File');
+  if ($text_opt[0] eq 'CodeText') {
+    $edit->bindtags([$edit,ref($edit),$edit->toplevel,'all']);
+    $edit->bind('<Tab>', sub { shift->focusNext; Tk->break });
+    my $syntax = $edit->menu->entrycget('View','-menu')->entrycget('Syntax','-menu');
+    my $last = $syntax->index('last');
+    if ($last ne 'none') {
+      $syntax->delete($_) for grep { defined and !/^(None|Perl|TrEdStylesheet)$/ }
+	map { eval { local $SIG{__DIE__}; $syntax->entrycget($_,'-label')} } 0..$last
+    }
+    $edit->menu->entrycget('View','-menu')->delete('Rules Editor');
+  }
+
   disable_scrollbar_focus($e);
 
   my $preview_applied;
@@ -8243,13 +8266,14 @@ EOF
 
   $f->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
 
-  $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
-  $e->bind('Tk::Text','<Control-l>',[sub {shift; $e->delete('0.0','end') },$e]);
-  $e->bind('Tk::Text','<Tab>',[sub { shift->focusNext; }]);
-  $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
-  $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
-  $e->bind(ref($e->Subwidget('scrolled')),'<Control-Return>',\&dlgReturn);
-  $e->bind('<Return>',sub{ Tk->break; });
+  $d->bind('all','<Tab>',['focusNext']);
+  $e->bindtags([$e,ref($e),$e->toplevel,'all']);
+  $e->bind('<Control-l>',sub {$_[0]->delete('0.0','end'); Tk->break; });
+  $e->bind('<Tab>',sub { shift->focusNext; Tk->break });
+  $d->bind('all','<Shift-Tab>',sub { shift->focusPrev; Tk->break });
+  $d->bind('all','<Shift-ISO_Left_Tab>',sub { shift->focusPrev; Tk->break });
+  $e->bind('<Control-Return>',\&dlgReturn);
+  $e->bind('<Return>',sub{ shift->Insert("\n"); Tk->break; });
   escapeButton($d,'Cancel',1);
   $al->bind('<Double-1>'=>
 	   [sub {
