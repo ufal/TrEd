@@ -1022,9 +1022,11 @@ sub gotoFile {
   return unless $win->{currentFilelist};
   return 0 if doEvalHook($win,"goto_file_hook") eq 'stop';
   return 0 if ($fn>=$win->{currentFilelist}->file_count() or $fn<0);
-  $win->{currentFileNo}=$fn;
+  my $last_no = $win->{currentFileNo};
+  $win->{currentFileNo} = $fn;
   my ($fs,$status) = openFile($win,filelistFullFileName($win,$fn),
 			      -norecent => $no_recent, -noredraw => $no_redraw);
+  $win->{currentFileNo} = $last_no unless $status;
   if ($grp->{Filelist} and
 	$grp->{filelistCurrentFilelist} eq $win->{currentFilelist}) {
     my $path=filelistEntryPath($win->{currentFilelist},$fn);
@@ -1761,7 +1763,7 @@ sub parse_suffix {
 
 
 # openStandaloneFile should be called whenever a file is opened via
-# a non-filelist operation (such as nextFile, or gotoFile)
+# a non-filelist operation (that is other than nextFile, or gotoFile)
 
 sub openStandaloneFile {
   my ($grp_or_win,$file) = @_;
@@ -2172,10 +2174,10 @@ sub autoSaveAll {
     my $ok = 0;
     eval {
       $fsfile->changeAppData('refs_save',{});
-      $fsfile->writeFile($f);
-      doEvalHook($win,"after_autosave_hook",$f);
+      my $status = $fsfile->writeFile($f);
+      $ok = 1 unless
+	doEvalHook($win,"after_autosave_hook",$f,$status) eq 'stop';
       $fsfile->changeAppData('refs_save',undef);
-      $ok = 1;
     };
     unless ($ok) {
       $fsfile->changeAppData('refs_save',undef);
@@ -2248,10 +2250,10 @@ sub saveFile {
     };
     # called from within the eval so all errors and warnings
     # are shown as warnings on the output
-    $stop = doEvalHook($win,"after_save_hook",$f);
+    $stop = doEvalHook($win,"after_save_hook",$f,$result);
   }
   $win->{FSFile}->changeAppData('refs_save',undef);
-  if (!$result or $stop eq "stop") {
+  if (!$result or $stop eq "stop_fatal") {
     $win->toplevel->Unbusy() unless $insideEval;
     $win->{FSFile}->notSaved(1);
     saveFileStateUpdate($win);
@@ -2270,11 +2272,20 @@ sub saveFile {
 		   join("\n",@warnings),'warn');
   }
   setFSLockInfo($win->{FSFile}, setLock($f)) if $lockFiles;
-  $win->toplevel->Unbusy() unless $insideEval;
-  saveFileStateUpdate($win);
   my $autosave=autosave_filename($f);
   unlink $autosave if defined($autosave);
-  return 1;
+  $win->toplevel->Unbusy() unless $insideEval;
+  my $ret = 1;
+  if ($stop eq "stop") {
+    # SILENT STOP
+    # file is considered saved
+    $ret = -1;
+  } elsif ($stop eq "stop_nonfatal") {
+    $win->{FSFile}->notSaved(1);
+    $ret = -1;
+  }
+  saveFileStateUpdate($win);
+  return $ret;
 }
 
 sub isShown { # test if node is shown (always 1 if $showHidden)
@@ -2758,6 +2769,7 @@ sub insertToFilelist {
     }
     $_;
   } @list;
+  $position = min($position+1, $filelist->count)-1;
   print "Inserting @list to position ",$position+1,"\n" if $tredDebug;
   $filelist->add($position+1,@list);
 
@@ -9468,7 +9480,7 @@ sub doEvalMacro {
   $file_not_saved=1 if $file_not_saved eq '?';
   if ($win->{FSFile}) {
     if (get_macro_variable("forceFileSaved")) {
-      print STDERR "Macro forsly claims file saved.\n";
+      print STDERR "Macro forcedly claims file saved.\n";
       $win->{FSFile}->notSaved($file_not_saved ? 1 : 0);
       lastActionBookmark($win->{framegroup},$bookmark) if $file_not_saved;
     } else {
