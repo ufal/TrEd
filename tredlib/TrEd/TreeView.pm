@@ -1037,7 +1037,7 @@ sub redraw {
       $self->store_node_pinfo($node,"style-$_",$nopts{$_});
     }
   }
-  if ($filter_nodes) {
+  if ($filter_nodes and !$self->get_showHidden()) {
     $nodes = [ grep { !$skip_nodes{$_} } @$nodes ];
   }
 

@@ -2287,15 +2287,16 @@ Save the current FSFile.
 =cut
 
 sub Save {
-  main::saveFile($grp);
-  $forceFileSaved=!GetFileSaveStatus();
-  $FileNotSaved=0;
+  my $ret = (main::saveFile($grp) == 1);
+  $FileNotSaved=GetFileSaveStatus();
+  $forceFileSaved=!$FileNotSaved;
+  return $ret;
 }
 
 =item C<GetFileSaveStatus()>
 
-Return 1 if some file modification was noticed by TrEd untill last save
-or reload, 0 otherwise.
+Return 1 if the document was modified since last save or reload, 0
+otherwise.
 
 =cut
 
@@ -2476,7 +2477,9 @@ Save the current file and open the next file in the current file-list.
 =cut
 
 sub SaveAndNextFile {
-  Save() if GetFileSaveStatus() || $FileNotSaved;
+  if (GetFileSaveStatus() || $FileNotSaved) {
+    return unless Save();
+  }
   NextFile();
 }
 
@@ -2510,7 +2513,9 @@ file-list.
 =cut
 
 sub SaveAndPrevFile {
-  Save() if GetFileSaveStatus() || $FileNotSaved;
+  if (GetFileSaveStatus() || $FileNotSaved) {
+    return unless Save();
+  }
   PrevFile();
 }
 
