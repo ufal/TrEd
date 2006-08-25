@@ -1049,13 +1049,15 @@ Tk: 804.027
 	  <term><guimenuitem moreinfo="none">Show Hidden Nodes</guimenuitem></term>
 	  <listitem>
 	    <para>
-	      Toggle visibility the ``hidden'' subtrees of the tree.
-	      If this item is checked, subtrees of nodes makred as hidden
-	      using a special FS-attribute (see 
-	      <ulink url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format description</ulink>
-	      for details) and displayed. By default subtrees of 
-	      hidden nodes including the nodes themselves are not
-	      displayed.
+	      Toggle visibility the ``hidden'' nodes and subtrees of
+	      the tree.  If this item is checked, TrEd displays nodes
+	      that would otherwise been hidden. A node can be hidden
+	      if the stylesheet specifies a style pattern <link
+	      linkend="style-instructions"><literal>#{Node-hide:1}</literal></link>
+	      for it, or if it belongs to the subtree of a node with
+	      value <literal>hide</literal> or <literal>1</literal>
+	      in a special hiding FS-attribute (see <ulink
+	      url="http://quest.ms.mff.cuni.cz/pdt/Corpora/PDT_1.0/Doc/fs.html">FS-format description</ulink> for details).
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -7275,6 +7277,70 @@ sub MakeSentence {
 		this is not necessarily the file displayed in the
 		active view and accessible via the <literal moreinfo="none">$grp</literal> variable.
 	      </para></entry>
+	    </row>
+	    <row id="file_save_hook">
+	      <entry><literal moreinfo="none">file_save_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>output_filename</replaceable></literal></para><para>Executed before TrEd attempts to save a file.</para></entry>
+	    </row>
+	    <row id="file_close_hook">
+	      <entry><literal moreinfo="none">file_close_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Executed before TrEd attempts to close a file
+		(this hook is called even if the file remains open
+		but postponed if the close fails e.g. because
+		the file being closed is required by another open file).</para></entry>
+	    </row>
+	    <row id="after_save_hook">
+	      <entry><literal moreinfo="none">file_save_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>output_filename</replaceable></literal>, 
+		  <literal role="params" moreinfo="none"><replaceable>success</replaceable></literal>
+		</para><para>Executed after TrEd's attempt to save a file
+		  (but not after auto-saves).
+		  This hook is intended to be used e.g. for post-processing
+		  of saved files.
+		  The hook obtains the filename and a save status
+		  (which is 1 in case of success and 0 or undefined if saving failed). 
+		  Warnings or die messages produced by the hook
+		  are presented to the user as warnings.
+		  The hook may return the string <literal>"stop"</literal> to
+		  indicate that TrEd should abort further actions
+                  like opening a next file, etc. 
+		  The document is however considered to be saved.
+		  The hook may return the string <literal>"stop_nonfatal"</literal>  to indicate that TrEd should abort further actions
+                  like opening a next file, etc, 
+		  keep the output file but
+		  consider the document not saved.
+                  Finally, the hook may return the string <literal>"stop_fatal"</literal>
+		  to make TrEd revert the output file from a backup and report the save operation as failed; the document is considered not saved.
+		</para></entry>
+	    </row>
+	    <row id="after_autosave_hook">
+	      <entry><literal moreinfo="none">file_autosave_hook</literal></entry>
+	      <entry>yes</entry>
+	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>output_filename</replaceable></literal>, 
+		  <literal role="params" moreinfo="none"><replaceable>success</replaceable></literal>
+		</para><para>Executed after TrEd's attempt to auto-save a file.
+		  This hook is intended to be used e.g. for post-processing
+		  of auto-saved files.
+		  The hook obtains the filename of the auto-saved file
+		  and a save status
+		  (which is 1 in case of success and 0 or undefined if auto-saving failed). 
+		  Warnings or die messages produced by the hook
+		  appear as warnings on the standard output.
+		  The hook may return the string <literal>"stop"</literal> to
+		  indicate that TrEd should consider auto-saving failed.
+		</para>
+	      </entry>
+	    </row>
+	    <row id="file_close_hook">
+	      <entry><literal moreinfo="none">file_close_hook</literal></entry>
+	      <entry>no</entry>
+	      <entry><para>Executed before TrEd attempts to close a file
+		(this hook is called even if the file remains open
+		but postponed if the close fails e.g. because
+		the file being closed is required by another open file).</para></entry>
 	    </row>
 	    <row id="get_backends_hook">
 	      <entry><literal moreinfo="none">get_backends_hook</literal></entry>
