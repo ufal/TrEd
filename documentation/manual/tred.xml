@@ -5293,8 +5293,13 @@ sub CreateImages {
 	    <para>This option can contain a (colon-separated on UNIX,
 	      comma-separated on Windows) list of directories
 	      where <application>TrEd</application>, it's
-	      I/O backends and macros should look for additional resources
-	      they might need (such as DTDs, XML/PML schemata, XSLT stylesheets, etc.).</para>
+	      I/O backends, and macros should look for additional resources
+	      they might need (such as DTDs, XML/PML schemata, XSLT stylesheets, etc.). By default, this option is set to 
+	      <literal>resources</literal> subdirectory of the
+	      TrEd installation directory and
+	      the subdirectory <literal>.tred.d</literal>
+	      of the user's home directory.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry id="autosave">
@@ -6526,10 +6531,11 @@ sub CreateImages {
 	<para>
 	  Attribute values may not always be atomic, i.e. numbers or
 	  strings (although for most backends this is the case). They
-	  may also be AVS structures (represented as Perl hashes),
-	  lists (represented as Perl ARRAY references of the
-	  <classname>Fslib::List</classname> class) and 
-	  alternatives (represented as Perl ARRAY references of
+	  may also be AVS structures (represented as
+	  <classname>Fslib::Struct</classname> objects, which are
+	  basically just Perl hashes), lists (represented as Perl ARRAY
+	  references of the <classname>Fslib::List</classname> class)
+	  and alternatives (represented as Perl ARRAY references of
 	  the <classname>Fslib::List</classname> class). So let's
 	  suppose for a while, that the value of <literal
 	  moreinfo="none">$node-&gt;{<replaceable>attrib</replaceable>}</literal>
@@ -6568,19 +6574,18 @@ sub CreateImages {
 	  attribute-paths safely, avoiding auto-creation of Perl
 	  structures on the way. Note, that in the attribute-path,
 	  list and alternative members are indexed starting from 1.
-	  In fact, if we want to access the 1st element, we may 
+	  In fact, if we want to access the 1st element, we may
 	  completely skip the index specification and write:
 	  <programlisting>$node->attr(<replaceable>'attrib</replaceable>/<replaceable>level2-attrib</replaceable>/<replaceable>level3-attrib</replaceable>')</programlisting>
 	  Sometimes it is necessary to iterate over all list members
-	  of some attributes. The macro
-	  <literal>ListV</literal>
-	  (and its cousin macro <literal>AltV</literal> used for
-	  alternatives) can be used to produce a list of all values
-	  of a given attribute, e.g.
-	  <programlisting>foreach my $member (ListV($node->attr('<replaceable>attrib</replaceable>/<replaceable>level2-attrib</replaceable>'))) {
-  # process list member $member
-	    print $member->{<replaceable>level3-attrib</replaceable>},"\n";
-}</programlisting>
+	  of some attributes. The macro <literal>ListV</literal> (and
+	  its cousin macro <literal>AltV</literal> used for
+	  alternatives) can be used to produce a list of all values of
+	  a given attribute, e.g.  <programlisting>foreach my $member
+	  (ListV($node->attr('<replaceable>attrib</replaceable>/<replaceable>level2-attrib</replaceable>')))
+	  { # process list member $member print
+	  $member->{<replaceable>level3-attrib</replaceable>},"\n";
+	  }</programlisting>
 	</para>
 	<para>Values of attributes can be changed by pure Perl
 	assignments, e.g.
@@ -7278,21 +7283,8 @@ sub MakeSentence {
 		active view and accessible via the <literal moreinfo="none">$grp</literal> variable.
 	      </para></entry>
 	    </row>
-	    <row id="file_save_hook">
-	      <entry><literal moreinfo="none">file_save_hook</literal></entry>
-	      <entry>yes</entry>
-	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>output_filename</replaceable></literal></para><para>Executed before TrEd attempts to save a file.</para></entry>
-	    </row>
-	    <row id="file_close_hook">
-	      <entry><literal moreinfo="none">file_close_hook</literal></entry>
-	      <entry>no</entry>
-	      <entry><para>Executed before TrEd attempts to close a file
-		(this hook is called even if the file remains open
-		but postponed if the close fails e.g. because
-		the file being closed is required by another open file).</para></entry>
-	    </row>
 	    <row id="after_save_hook">
-	      <entry><literal moreinfo="none">file_save_hook</literal></entry>
+	      <entry><literal moreinfo="none">after_save_hook</literal></entry>
 	      <entry>yes</entry>
 	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>output_filename</replaceable></literal>, 
 		  <literal role="params" moreinfo="none"><replaceable>success</replaceable></literal>
@@ -7317,7 +7309,7 @@ sub MakeSentence {
 		</para></entry>
 	    </row>
 	    <row id="after_autosave_hook">
-	      <entry><literal moreinfo="none">file_autosave_hook</literal></entry>
+	      <entry><literal moreinfo="none">after_autosave_hook</literal></entry>
 	      <entry>yes</entry>
 	      <entry><para>Arguments: <literal role="params" moreinfo="none"><replaceable>output_filename</replaceable></literal>, 
 		  <literal role="params" moreinfo="none"><replaceable>success</replaceable></literal>
@@ -7333,14 +7325,6 @@ sub MakeSentence {
 		  indicate that TrEd should consider auto-saving failed.
 		</para>
 	      </entry>
-	    </row>
-	    <row id="file_close_hook">
-	      <entry><literal moreinfo="none">file_close_hook</literal></entry>
-	      <entry>no</entry>
-	      <entry><para>Executed before TrEd attempts to close a file
-		(this hook is called even if the file remains open
-		but postponed if the close fails e.g. because
-		the file being closed is required by another open file).</para></entry>
 	    </row>
 	    <row id="get_backends_hook">
 	      <entry><literal moreinfo="none">get_backends_hook</literal></entry>
@@ -8141,86 +8125,248 @@ sub SubtreeFuncAssign {
     </section>
     <section id="pmlbackend">
       <title>PMLBackend</title>
+      <section>
+	<title>Introduction</title>
       <para>
-	This backend provies partial support for a new 
-	generic XML-based format called PML (the Prague Markup
+	This backend provies  support for a generic XML-based
+	format called PML (the Prague Markup
 	Language), used for capturing rich linguistic annotation.
-	This format is the primary format of the Prague Dependency
-	Treebank 2.0. Each application of PML is described using a
+	PML is the primary data format of the Prague Dependency
+	Treebank 2.0.
+      </para>
+      <para>
+	Since all XML data can be easily transformed into PML and back
+	(usually with a few lines of XSLT), this backend also provides
+	a bridge between any other XML data format and
+	<literal>TrEd</literal>, as described below in
+	<xref linkend="pmlbackend_xslt"/>
+      </para>
+      <para>
+	Each application of PML is described using a
 	special XML file called <firstterm>PML schema</firstterm>. 
 	This schema file defines which elements and attributes
 	construe the nodes and structure of the tree, 
-	it defines value types of node attributes, etc.
+	declares value types of node attributes, etc.
       </para>
       <para>
 	Updated version of the full PML specification can be found on the
-	<ulink url="http://ufal.mff.cuni.cz/pml">PML project</ulink>
-	page. Note however that PML is an on-going project, so consider
-	it as <quote>work in progress</quote>.
+	<ulink url="http://ufal.mff.cuni.cz/jazz/PML/index_en.html">PML project</ulink>
+	page.
       </para>
       <para>
-	Because of the generic nature of PML, the
+	While PML can possibly capture all kinds of structured data, the
 	<literal>PMLBackend</literal> of <application>TrEd</application>
-	is restricted only to those applications of PML which satisfy the
+	is limited only to those applications of PML which satisfy the
 	following criteria:
 	<itemizedlist>
 	  <listitem>
-	    <para>there is exactly one PML sequence or PML element of
-	      a list type with PML role <literal>#TREES</literal> and this element appears
-	      under the root element.
+	    <para>
+	      the data contain exactly one PML sequence or PML list
+	      with the PML role <literal>#TREES</literal> consisting of
+	      data with the role <literal>#NODE</literal>.
+	      In case of a PML sequence, the
+	      <literal>#NODE</literal>-elements must form a contiguous
+	      block in the sequence, but may be preceded and/or
+	      followed by some non-<literal>#NODE</literal> elements.
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>Of all PML data types only PML structures and PML containers
+	      may bear the role <literal>#NODE</literal>.
 	    </para>
 	  </listitem>
 	  <listitem>
 	    <para>
-	      If the entity with role <literal>#TREES</literal> is a
-	      PML sequence, then all its members are elements with 
-	      role <literal>#NODE</literal>. If it is a PML element
-	      of a list type, then all members of the list
-	      are PML structures with role <literal>#NODE</literal>.
+	      A structure with the role <literal>#NODE</literal> 
+	      may have a member with the role <literal>#CHILDNODES</literal>,
+	      containing a list or sequence of structures/containers
+	      with the role <literal>#NODE</literal>.
 	    </para>
 	  </listitem>
 	  <listitem>
 	    <para>
-	      Each PML element with role <literal>#NODE</literal> 
-	      may contain a sequence of its child elements.
-	      This sequence must have PML role
-	      <literal>#CHILDNODES</literal>.
-	    </para>
-	  </listitem>
-	  <listitem>
-	    <para>
-	      Each PML structure with role <literal>#NODE</literal> 
-	      may contain a member of a list type, which constitutes the list of child-nodes.
-	      This member must have PML role <literal>#CHILDNODES</literal>.
+	      A container with
+	      the role <literal>#NODE</literal> may contain
+	      a list or sequence with the role <literal>#CHILDNODES</literal>
+	      consisting of structures/containers
+	      with the role <literal>#NODE</literal>.
 	    </para>
 	  </listitem>
 	</itemizedlist>
       </para>
+      </section>
+      <section id="pmlbackend_xslt">
+	<title>Support for non-PML XML-based formats</title>
+	<para>
+	  PML backend has its own configuration file
+	  <filename>pmlbackend_conf.xml</filename> which is looked for
+	  in the directories listed in <link
+	  linkend="resourcepath">ResourcePath</link>.  The
+	  configuration file may specify transformation rules for
+	  transparent conversion from legacy XML format to PML and
+	  back. The configuration file is a PML file and may look
+	  as on the following example:
+	</para>
+<programlisting><![CDATA[
+<?xml version="1.0"?>
+<pmlbackend xmlns="http://ufal.mff.cuni.cz/pdt/pml/">
+  <head>
+    <schema href="pmlbackend_conf_schema.xml"/>
+  </head>
+  <transform_map>
+
+    <!--
+      Transformation for Aplino XML format.
+     -->
+    <transform id="alpino" test="alpino_ds[@version='1.1']">
+      <in type="xslt" href="alpino2pml.xsl"/>
+      <out type="xslt" href="pml2alpino.xsl"/>
+    </transform>
+
+    <!--
+      Transformation for TEI P5 XML format.
+     -->
+    <transform id="tei" test="TEI.2">
+      <in type="xslt" href="tei2pml.xsl">
+        <param name="only_fLib">'foo bar'</param>
+      </in>
+      <out type="xslt" href="pml2tei.xsl"/>
+    </transform>
+
+  </transform_map>
+</pmlbackend>
+]]></programlisting>
+	<para>
+	  This example configuration file defines two XSLT-based
+	  transformations (<literal>type="xslt"</literal>, i.e. XSLT
+	  1.0, is currently the only type of transformation
+	  implemented by PMLBackend), each of which consists of a XSLT
+	  stylesheet declared in the <sgmltag>&lt;in></sgmltag> tag,
+	  used by PMLBackend to convert documents from the original
+	  XML format to PML, and a XSLT stylesheet declared in the
+	  <sgmltag>&lt;out></sgmltag> tag, used by PMLBackend to
+	  convert documents from PML back to the original XML format.
+	  Each stylesheet can take zero or more parameters
+	  specified as <literal>&lt;param
+	  name="<replaceable>parameter-name</replaceable>"><replaceable>parameter-value</replaceable>&lt;/param></literal>,
+	  where <replaceable>parameter-value</replaceable> is an XPath
+	  expression evaluated in the context of the transformed
+	  document by the XSLT processor.
+	  The transformations are further conditioned by
+	  an XPath expression in the <literal>test</literal> attribute,
+	  which selects to which documents is the transformation
+	  applicable.
+	</para>
+	<para>
+	  When PMLBackend opens an XML document and detects that this
+	  document does not belong to the PML namespace, it evaluates
+	  the XPath expression <literal>test</literal> for every
+	  transformation rule in the order in which the rules appear in the
+	  configuration file, until one of the expressions returns a true value
+	  (boolean true, non-zero number, non-empty node-set, or
+	  non-empty string) or the last expression fails.  The input
+	  stylesheet of the transformation whose test had first
+	  succeeded is used to transform the document into PML.
+	  The <literal>id</literal> of this transformation
+	  is remembered and the 
+	  output stylesheet of the same transformation
+	  is used to convert back from PML when
+	  the document is saved.
+	</para>
+	<para>
+	  We now summarize the steps necessary for adding 
+	  support for a new XML-based format to TrEd (via XSLT
+	  and PMLBackend):
+	  <itemizedlist>
+	    <listitem>
+	      <para>Write a PML schema for the resulting PML version
+		of the data so that all necessary information stored
+		in the original format is captured.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>Write a XSLT transformation from
+		the original format to a PML format described by the 
+		previously written PML schema.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>Write a XSLT transformation from
+		the PML format to the original format.
+		This is step is not necessary if one
+		only wishes to open the documents in TrEd for reading.
+	      </para>
+	    </listitem>
+	    <listitem>
+	      <para>
+		Create a <literal>pmlbackend_conf.xml</literal> in one
+		of the <link
+		linkend="resourcepath"><literal>ResourcePath</literal></link>
+		directories unless it already exists and
+		add a transformation rule to it with 
+		the input and output XSLT stylesheets and
+		an XPath test approximating documents in the format.
+		Instead of specifying the output XSLT stylesheet one may
+		also define an identity output transformation
+		which simply writes back the data in PML.
+		In that case the <literal>out</literal> tag
+		should look as follows:
+	      </para>
+	      <literallayout>&lt;out type="identity"/></literallayout>
+	    </listitem>
+	  </itemizedlist>
+	</para>
+      </section>
+      <section>
+	<title>Internal representation of PML data</title>
       <para>
-	<application>TrEd</application> represents PML data types
-	in a very natural way. PML structures are represented as AVS
-	structures, PML lists as <literal>Fslib::List</literal>
-	objects and PML alternatives as	<literal>Fslib::Alt</literal>
-	objects. Other non-atomic PML types, such as PML elements,
-	text data in mixed content, attributes, etc.,
-	are represented as AVS with the following four special members:
-	<literal>#type</literal> (type of the entity,
-	e.g. <literal>element</literal>,
-	<literal>text</literal>),
-	<literal>#name</literal> (name of the entity)
-	<literal>#ns</literal> (XML namespace),
-	<literal>#content</literal> (content of the entity).
-	Attributes of a PML element are represented as additional members
-	of the AVS representing the element.
+	This section describes how PML data types are represented in
+	<application>TrEd</application>.
+      </para>
+      <para>PML structures are represented as
+	<literal>Fslib::Struct</literal> objects,
+	and so are PML containers, whose attributes
+	and content value become members of the
+	<literal>Fslib::Struct</literal> object, the content value
+	being represented by a special member named
+	<literal>#content</literal>.  In both cases, if the role is
+	<literal>#NODE</literal>, then <literal>FSNode</literal>
+	object is used instead of <literal>Fslib::Struct</literal>.
+	PML lists are represented as <literal>Fslib::List</literal>
+	objects and PML alternatives as <literal>Fslib::Alt</literal>
+	objects. PML sequences as <literal>Fslib::Seq</literal>
+	objects and its elements as
+	<literal>Fslib::Seq::Element</literal> objects.  The only
+	exceptions are: a PML sequences with the role
+	<literal>#TREES</literal>, which is represented by the list of
+	the trees of the <literal>FSFile</literal> object and a PML
+	sequence with role <literal>#CHILDNODES</literal>, which is
+	represented by the child-nodes of the node it belongs to.
+	Elements of these sequences therefore represented by by
+	<literal>FSNode</literal> (rather than
+	<literal>Fslib::Seq::Element</literal>) objects with a
+	dedicated attribute <literal>#name</literal> carrying the
+	element's name.
       </para>
       <para>
 	If the PML schema declares a reference to an external resource
-	and this declaration bears the attribute
+	and this declaration has the attribute
 	<literal>readas="dom"</literal>, then
 	<literal>PMLBackend</literal>
-	loads the corresponding resource for the PML instance
+	loads the corresponding PML instance
 	as a DOM (Document Object Model) tree (using the Perl module
 	<literal>XML::LibXML</literal>) and attaches this DOM tree
+	to the application data section of the in-memory
+	representation of the file.
+      </para>
+      <para>
+	If the PML schema declares a reference to an external resource
+	and this declaration has the attribute
+	<literal>readas="pml"</literal>, then
+	<literal>PMLBackend</literal>
+	loads the corresponding PML instance
+	as a <literal>PMLInstance</literal>
+	object and attaches this object
 	to the application data section of the in-memory
 	representation of the file.
       </para>
@@ -8241,13 +8387,14 @@ sub SubtreeFuncAssign {
 	choose to process it.
       </para>
       <para>
-	<literal>PMLBackend</literal> also supports so-called <quote>knitting</quote>
+	<literal>PMLBackend</literal> further
+	supports so-called <quote>knitting</quote>
 	of PML instances, i.e. replacing certain type of PML
 	references with the content of the referenced entities
-	occurring in another PML instance.
+	occurring in other PML instance.
 	Conversely, when a PML instance on which this
 	<quote>knitting</quote>
-	has been applied, the (possible edited) content 
+	has been applied is saved, the (possible edited) content 
 	replaces the content of the referenced entities
 	in its original PML instance.
 	Knitting only applies to:
@@ -8265,37 +8412,46 @@ sub SubtreeFuncAssign {
 	    </para>
 	  </listitem>
 	</orderedlist>
-	If such a member is encountered, then a possible trailing
-	<literal>.rf</literal> part of its name is removed and its
-	content (one or more PML references) is replaced with the
-	corresponding entities in the referenced PML
+	If knitting applies to such a member, then a possible trailing
+	<literal>.rf</literal> part of its name is stripped and its
+	content (either a single PML reference or a list of them) is
+	replaced with the corresponding entities in the referenced PML
 	instance. It is required that all such PML references refer to
-	resources specified in the PML schema as
-	<literal>readas="dom"</literal>.
+	resources specified in the PML schema either as
+	<literal>readas="dom"</literal> (in which case Fslib
+	representation of the referred data structure is created and
+	transformed back into DOM only at save) or
+	<literal>readas="pml"</literal> (in which case, after
+	knitting, the referred and referring PML instances share the
+	knitted data structure).
       </para>
+      </section>
     </section>
     <section id="trxmlbackend">
       <title>TrXMLBackend</title>
       <para>
 	<literal>TrXMLBackend</literal> was intended as a XML
 	replacement of the FS format. Unfortunatelly, never fully
-	developed and thoroughly tested. This may still happen in the
-	future but untill then, it is not recommended for serious
-	work.
+	developed and thoroughly tested. It is obsoleted by PML and
+	therefore not recommended for any future work.
       </para>
     </section>
     <section id="teixmlbackend">
       <title>TEIXMLBackend</title>
       <para>
 	This backend reads and stores trees represented in a specific
-	subset of the TEI XML format. This format was (is?) used in
-	the <ulink url="http://nl.ijs.si/sdt/">Slovene Treebank
-	Project</ulink>.
+	subset of the TEI XML format. The format used by this backend
+	was (is?) used in the <ulink
+	url="http://nl.ijs.si/sdt/">Slovene Treebank Project</ulink>.
       </para>
     </section>
     <section>
       <title>Writing a new I/O backend</title>
       <para>
+	While for XML-based formats it is recommended to
+	use XSTL transformation to PML as described in
+	<xref linkend="pmlbackend_xslt"/>, adding support for 
+	other formats requires writing a new I/O backend.
 	An I/O backend is a Perl module defining at least the
 	following five subroutines (listed in the order in which they
 	are typically called by <application>TrEd</application>):
