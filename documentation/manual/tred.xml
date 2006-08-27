@@ -8323,7 +8323,14 @@ sub SubtreeFuncAssign {
 	This section describes how PML data types are represented in
 	<application>TrEd</application>.
       </para>
-      <para>PML structures are represented as
+      <para>
+	PML schema is represented by a <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/PMLSchema.html"><literal>PMLSchema</literal></ulink>
+	object. This object can be retrieved from the current
+	<literal>FSFile</literal> using the macro
+	  <code>MetaData('schema')</code>.
+      </para>
+      <para>
+	PML structures are represented as
 	<literal>Fslib::Struct</literal> objects,
 	and so are PML containers, whose attributes
 	and content value become members of the
@@ -8349,6 +8356,22 @@ sub SubtreeFuncAssign {
 	element's name.
       </para>
       <para>
+	The non-tree data structures contained in the root element of
+	the PML instance can be obtained either from
+	<code>MetaData('pml_root')</code>.  If the root element
+	contains a sequence with role <literal>#TREES</literal>,
+	<code>MetaData('pml_root')</code> is empty and
+	non-tree members of the sequence preceding trees are
+        stored in a sequence
+	<code>MetaData('pml_prolog')</code> while
+	non-tree members that follow all trees are stored in a sequence
+        <code>MetaData('pml_epilog')</code>.
+      </para>
+	<para>PML structures/containers that have a member or attribute
+	  with the role <literal>#ID</literal> are indexed
+	  by their IDs in a HASH <code>AppData('id-hash')</code>.
+	</para>
+      <para>
 	If the PML schema declares a reference to an external resource
 	and this declaration has the attribute
 	<literal>readas="dom"</literal>, then
@@ -8365,7 +8388,7 @@ sub SubtreeFuncAssign {
 	<literal>readas="pml"</literal>, then
 	<literal>PMLBackend</literal>
 	loads the corresponding PML instance
-	as a <literal>PMLInstance</literal>
+	as a <ulink url="http://ufal.mff.cuni.cz/~pajas/tred/PMLInstance.html"><literal>PMLInstance</literal></ulink>
 	object and attaches this object
 	to the application data section of the in-memory
 	representation of the file.
@@ -8386,9 +8409,18 @@ sub SubtreeFuncAssign {
 	user, but as it is loaded in memory, the macro may explicitly
 	choose to process it.
       </para>
+	<para>The following HASH references carry information about
+	  external resources: <code>MetaData('refnames')</code>
+	  maps reference names to reference IDs,
+	  <code>MetaData('references')</code>
+	  maps reference IDs to URLs, 
+	  and, for DOM and PMLInstance resources,
+	  <code>AppData('ref')</code> maps
+	  reference IDs to objects representing the
+	  resources in <literal>TrEd</literal>.
+      </para>
       <para>
-	<literal>PMLBackend</literal> further
-	supports so-called <quote>knitting</quote>
+	<literal>PMLBackend</literal> supports so-called <quote>knitting</quote>
 	of PML instances, i.e. replacing certain type of PML
 	references with the content of the referenced entities
 	occurring in other PML instance.
