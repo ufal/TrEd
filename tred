@@ -7482,7 +7482,7 @@ sub editAttrsDialog_schema {
   $win->toplevel->Busy(-recurse=>1);
 
   if ($attr_path ne EMPTY) {
-    $node_type = $base_type->find($attr_path);
+    $node_type = $base_type->find($attr_path,1);
     die "Unknown attribute $attr_path\n" unless $node_type;
     #__debug("NODETYPE: '$attr_path'\n",Dumper($base_type));
     #__debug(Dumper($node_type),"\n");
@@ -7557,8 +7557,10 @@ sub editAttrsDialog_schema {
   #__debug("ATTR-PATH: '$attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   my $is_required = 1;
   if ($attr_path ne EMPTY) {
+    __debug("testing requiredness for ".$node_type->get_decl_type_str."\n");
     my $decl_type = $node_type->get_decl_type;
-    if (($decl_type == PML_MEMBER_DECL() ||
+
+    if (($decl_type == PML_MEMBER_DECL() or
 	 $decl_type == PML_ATTRIBUTE_DECL()) and
 	!$node_type->is_required) {
       __debug("not required\n");
