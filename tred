@@ -7557,7 +7557,6 @@ sub editAttrsDialog_schema {
   #__debug("ATTR-PATH: '$attr_path' ",$node->attr($attr_path),"$attr_name\n", Dumper($node_type),"\n");
   my $is_required = 1;
   if ($attr_path ne EMPTY) {
-    __debug("testing requiredness for ".$node_type->get_decl_type_str."\n");
     my $decl_type = $node_type->get_decl_type;
 
     if (($decl_type == PML_MEMBER_DECL() or
