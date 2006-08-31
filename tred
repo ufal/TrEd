@@ -1080,10 +1080,10 @@ sub nextOrPrevFile {
 		    "File is unreadable, empty, corrupted, or does not exist ($trees trees read)!"
 		      ."\nPossible problem was:",
 		    $grp->{lastOpenError},
-		    -buttons => ["Try next","Skip to next correct file","Cancel"]
+		    -buttons => ["Try next","Skip broken files","Cancel"]
 		   );
       last if ($response eq "Cancel");
-      $quiet=1 if ($response eq "Skip to next correct file");
+      $quiet=1 if ($response eq "Skip broken files");
     }
     $pos+=$delta;
     $result=gotoFile($win,$pos,$no_recent);
@@ -1708,14 +1708,32 @@ sub updateTitle {
       ref($win->{FSFile})) {
     my $filelist_info=EMPTY;
     if ($win->{currentFilelist}) {
-      $filelist_info=$win->{currentFilelist}->name()."(".($win->{currentFileNo}+1)."/".
-	$win->{currentFilelist}->file_count()."): ";
+      my $current = $win->{currentFileNo}+1;
+      my $all = $win->{currentFilelist}->file_count();
+      $filelist_info=$win->{currentFilelist}->name()."($current/$all): ";
+      $grp->{prevFileButton}->configure(-state => ($current <= 1) ?
+					  'disabled' : 'normal');
+      $grp->{nextFileButton}->configure(-state => ($current >= $all) ?
+					  'disabled' : 'normal');
+    } else {
+      for my $b (qw(nextFileButton prevFileButton)) {
+	$grp->{$b}->configure(-state => 'disabled');
+      }
+    }
+    for my $b (qw(printButton reloadButton findButton
+                  findNextButton findPrevButton sentButton)) {
+      $grp->{$b}->configure(-state => 'normal');
     }
     $grp->{top}->title("$appName    ".
 		       $filelist_info.
 		       $win->{FSFile}->filename()
 		      );
   } else {
+    for my $b (qw(nextFileButton prevFileButton
+                  printButton reloadButton findButton
+                  findNextButton findPrevButton sentButton)) {
+      $grp->{$b}->configure(-state => 'disabled');
+    }
     $grp->{top}->title("$appName");
   }
 }
@@ -1873,6 +1891,7 @@ sub openFile {
   my ($grp_or_win,$fname,%opts)= @_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $no_err = $grp->{noOpenFileError};
+  my $fsfile = $win->{FSFile};
 
   my ($f,$goto) = parse_suffix($fname);
   print "Goto suffix is $goto\n" if defined($goto) and $tredDebug;
@@ -1882,7 +1901,7 @@ sub openFile {
   $win->toplevel->Busy(-recurse=> 1) unless $insideEval;
 
   # File already open in current window? Simple!
-  if ($win->{FSFile} and $win->{FSFile}->filename() eq $f) {
+  if ($fsfile and $fsfile->filename() eq $f) {
     unless ($opts{-preload}) {
       updateTitle($grp);
       applyFileSuffix($win,$goto);
@@ -1895,12 +1914,12 @@ sub openFile {
       addToRecent($grp,$f) unless $opts{-norecent};
     }
     $win->toplevel->Unbusy() unless $insideEval;
-    return $win->{FSFile};
+    return wantarray ? ($fsfile,1) : $fsfile;
   }
 
   # Shell we close current file?
   if ($opts{-preload} or !$opts{-keep}) {
-    if (fsfileDisplayingWindows($grp,$win->{FSFile})<2) {
+    if (fsfileDisplayingWindows($grp,$fsfile)<2) {
       my $answer = askSaveFile($win,1,1);
       if ($answer == -1) {
 	$win->toplevel->Unbusy() unless $insideEval;
@@ -1914,7 +1933,7 @@ sub openFile {
 
   # Search open files for requested file, resume if available
   unless ($opts{-justheader}) {
-    foreach my $of ($win->{FSFile},@openfiles) {
+    foreach my $of ($fsfile,@openfiles) {
       if (ref($of) and $of->filename() eq $f) {
 	print "Opening postponed file\n" if $tredDebug;
 	unless ($opts{-preload}) {
@@ -1930,7 +1949,7 @@ sub openFile {
 	  addToRecent($grp,$f) unless $opts{-norecent};
 	}
 	$win->toplevel->Unbusy() unless $insideEval;
-	return $of;
+	return wantarray ? ($of,1) : $of
       }
     }
   }
@@ -1973,7 +1992,6 @@ sub openFile {
   }
 
   my $backends = doEvalHook($win,'get_backends_hook',@backends);
-  my $fsfile;
   # Autosave file requested
   my $status = { ok => 0 };
 
@@ -2593,13 +2611,17 @@ sub selectFilelist {
   my ($grp_or_win,$list_name)=@_;
   my ($grp,$win)=grp_win($grp_or_win);
   my $fl = selectFilelistNoUpdate($grp_or_win,$list_name);
-  if ($win->{currentFileNo}>=$fl->file_count()) {
-    closeFile($win);
-  } else {
-    $win->{currentFileNo}--;
-    nextFile($win);
+  if ($fl) {
+    if ($win->{currentFileNo}>=$fl->file_count()) {
+      closeFile($win);
+    } else {
+      # we use nextFile instead of gotoFile so that
+      # the user can 'Skip broken files'
+      $win->{currentFileNo}--;
+      nextFile($win);
+    }
+    updateTitle($grp);
   }
-  updateTitle($grp);
 }
 
 # Find named filelist. Return undef if no such filelist exists
@@ -10041,7 +10063,7 @@ sub resetUndoStatus {
   if ($maxUndo!=0 and ref($fsfile)) {
     my $stack=$fsfile->appData('undostack');
     my $stackpos=$fsfile->appData('undo');
-    print STDERR "STATUS: $stackpos/",$#$stack+1,"\n" if $tredDebug;
+    print STDERR "UNDO_STACK: $stackpos/",$#$stack+1,"\n" if $tredDebug;
     $undostatus=(ref($stack) && (@$stack>0));
     $redostatus=($undostatus && (@$stack>$stackpos+2));
     $undostatus &&= (($stackpos>=0) && ($stackpos <= $#$stack));
