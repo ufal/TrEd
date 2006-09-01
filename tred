@@ -4787,11 +4787,6 @@ sub createCanvasBindings {
   }
 
 
-  # Double-1
-  $canvas->bind('point', '<Double-1>'=> [sub { editAttrs(@_); Tk->break; },$grp]);
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('point', "<$_-Double-1>"=> [sub {node_doubleclick_modif(@_)},$grp,$_]);
-  }
 
   # Text 1
   $canvas->bind('text', '<1>'=> [sub {node_down(@_) },$grp,0]);
@@ -4799,34 +4794,41 @@ sub createCanvasBindings {
     $canvas->bind('text', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
   }
 
-  # Text Dobule-1
-  $canvas->bind('text', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
-  foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
-  }
-
   # TextBg
   $canvas->bind('textbg', '<1>'=> [sub {node_down(@_) },$grp,0]);
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
+    $canvas->bind('textbg', "<$_-Button-1>"=> [sub {text_click_modif(@_); Tk->break; },$grp,$_]);
   }
   $canvas->bind('textbg', '<Double-1>'=> [sub { editAttr(@_); Tk->break; },$grp]);
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_)},$grp,$_]);
+    $canvas->bind('textbg', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_]);
   }
 
   # TextBg 3
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Button-3>"=> [sub {text_click_modif(@_)},$grp,$_."-3"]);
+    $canvas->bind('textbg', "<$_-Button-3>"=> [sub {text_click_modif(@_); Tk->break; },$grp,$_."-3"]);
   }
+
+  # Double-1  
+  $canvas->bind('point', "<Double-1>"=> [sub { editAttrs(@_); Tk->break; },$grp]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('point', "<$_-Double-1>"=> [sub { node_doubleclick_modif(@_); Tk->break; },$grp,$_]);
+  }
+  
+  # Text Dobule-1
+  $canvas->bind('text', "<Double-1>"=> [sub { editAttr(@_); Tk->break; },$grp]);
+  foreach (qw(Shift Control Alt Meta)) {
+    $canvas->bind('text', "<$_-Double-1>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_]);
+  }
+
   # TextBg Double-3
   foreach (qw(Shift Control Alt Meta)) {
-    $canvas->bind('textbg', "<$_-Double-3>"=> [sub {text_doubleclick_modif(@_)},$grp,$_."-3"]);
+    $canvas->bind('textbg', "<$_-Double-3>"=> [sub {text_doubleclick_modif(@_); Tk->break; },$grp,$_."-3"]);
   }
 
   # Line clicks
   for my $modif (undef,qw(Shift Control Alt Meta)) {
-    for my $clicktype ('Button','Double') {
+    for my $clicktype (qw(Button Double)) {
       for my $button (1..3) {
 	my $event = join '-',grep {defined} ($modif, $clicktype, $button);
 	$canvas->bind('line', "<$event>"=> 
@@ -8870,6 +8872,8 @@ sub line_click {
 
 sub editAttrs {
   my ($w,$grp)=@_;
+  return if $grp->{inEditAttrs};
+  local $grp->{inEditAttrs} = 1;
   my $win=findCanvasWindow($grp,$w);
   my $tv=$win->{treeView};
   my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
@@ -8879,6 +8883,8 @@ sub editAttrs {
 
 sub editAttr {
   my ($w,$grp)=@_;
+  return if $grp->{inEditAttrs};
+  local $grp->{inEditAttrs} = 1;
   my $win=findCanvasWindow($grp,$w);
   return unless($win and $win->{FSFile});
   my $tv=$win->{treeView};
