@@ -1828,6 +1828,29 @@ sub get_member_names {
   return ($self->get_attribute_names, ($self->get_content_decl ? ('#content') : ()))
 }
 
+
+=item $decl->find_members_by_content_decl (decl)
+
+Lookup and return those member (attribute or content) declarations
+whose content declaration is decl.
+
+=item $decl->find_members_by_type_name (name)
+
+Lookup and return those member (attribute or content) declarations
+whose content is specified via a reference to the named type with a
+given name.
+
+=item $decl->find_members_by_role (role)
+
+Lookup and return declarations of all members (attribute or content)
+with a given role.
+
+=cut
+
+*find_members_by_content_decl = \&PMLSchema::Struct::find_members_by_content_decl;
+*find_members_by_type_name = \&PMLSchema::Struct::find_members_by_type_name;
+*find_members_by_role = \&PMLSchema::Struct::find_members_by_role;
+
 =back
 
 =cut
