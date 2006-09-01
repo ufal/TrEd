@@ -53,6 +53,15 @@ sub CutToClipboard {
 #bind PasteFromClipboard to Shift+Insert menu Paste Subtree
 sub PasteFromClipboard {
   return unless ($this and $nodeClipboard);
+  unless ($this->test_child_type($nodeClipboard)) {
+    if (GUI()) {
+      return unless
+	QuestionQuery('Incompatible node type',"WARNING: the current node does not permit the node in clipboard ".
+			"as a child.\nThe resulting tree will be invalid.",
+		      "Don't paste","Paste anyway") eq "Paste anyway";
+    }
+    warn "PasteFromClipboard: incompatible node type - pasting anyway\n"
+  }
   PasteNode($nodeClipboard,$this);
   $this=$nodeClipboard;
   $nodeClipboard=undef;
