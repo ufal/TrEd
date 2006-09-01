@@ -784,9 +784,12 @@ sub _find_role {
       push @result,@res;
     }
   } elsif ($decl_is == PML_CONTAINER_DECL) {
-    push @result,  map { $_ ne '' ? '#content/'.$_ : '#content' } 
-      $self->_find_role($decl->get_content_decl, $role, $first, $cache);
-    return $result[0] if ($first and @result);
+    my $cdecl = $decl->get_content_decl;
+    if ($cdecl) {
+      push @result,  map { $_ ne '' ? '#content/'.$_ : '#content' } 
+	$self->_find_role($cdecl, $role, $first, $cache);
+      return $result[0] if ($first and @result);
+    }
     foreach my $attr ($decl->get_attributes) {
       my @res = map { $_ ne '' ? $attr->get_name.'/'.$_ : $attr->get_name }
 	$self->_find_role($attr, $role, $first, $cache);
@@ -1271,8 +1274,9 @@ sub get_normal_fields {
 	grep { $_->get_role ne '#CHILDNODES' }
 	  $type->get_members;
   } elsif ($decl_is == PML_CONTAINER_DECL) {
+    my $cdecl = $type->get_content_decl;
     @members = ($type->get_attributes, 
-		$type->get_role ne '#CHILDNODES' ? '#content' : ());
+		($cdecl && $type->get_role ne '#CHILDNODES') ? '#content' : ());
   }
 }
 
@@ -1750,25 +1754,28 @@ sub validate_object {
 	}
       }
     }
-    my $content = $object->{'#content'};
     my $cdecl = $self->get_content_decl;
-    if ($self->get_role eq '#NODE') {
-      if (!UNIVERSAL::isa($object,'FSNode')) {
-	push @$log,"$path: container declared as #NODE should be a FSNode object: $object";
-      } else {
-	if ($cdecl and $cdecl->get_decl_type == PML_SEQUENCE_DECL
-	      and $cdecl->get_role eq '#CHILDNODES') {
-	  if ($content ne q{}) {
-	    push @$log, "$path: #NODE container containing a #CHILDNODES should have empty #content: $content";
+    if ($cdecl) {
+      my $content = $object->{'#content'};
+      
+      if ($self->get_role eq '#NODE') {
+	if (!UNIVERSAL::isa($object,'FSNode')) {
+	  push @$log,"$path: container declared as #NODE should be a FSNode object: $object";
+	} else {
+	  if ($cdecl and $cdecl->get_decl_type == PML_SEQUENCE_DECL
+		and $cdecl->get_role eq '#CHILDNODES') {
+	    if ($content ne q{}) {
+	      push @$log, "$path: #NODE container containing a #CHILDNODES should have empty #content: $content";
+	    }
+	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
 	  }
-	  $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
 	}
       }
+      $cdecl->validate_object($content,{ path => $path,
+					 tag => '#content', 
+					 log=>$log 
+					});
     }
-    $cdecl->validate_object($content,{ path => $path,
-				       tag => '#content', 
-				       log=>$log 
-				      });
   }
   if ($opts and ref($opts->{log})) {
     push @{$opts->{log}}, @$log;
@@ -1817,7 +1824,8 @@ Return a list of all attribute names plus the string '#content'.
 =cut
 
 sub get_member_names {
-  return ($_[0]->get_attribute_names, '#content')
+  my $self = shift;
+  return ($self->get_attribute_names, ($self->get_content_decl ? ('#content') : ()))
 }
 
 =back
