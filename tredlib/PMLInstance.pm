@@ -838,7 +838,9 @@ sub read_node {
       }
     }
     # passing options as is (including live reference to $attrs)
-    $hash->{'#content'} = $ctxt->read_node($node,$container, $opts);
+    if ($container->{-decl} or $container->{type}) {
+      $hash->{'#content'} = $ctxt->read_node($node,$container, $opts);
+    }
     foreach my $atr_name (keys %$attrs) {
       unless ($atr_name =~ /^xml(?:ns)?(?:$|:)/) {
 	_warn("Undeclared attribute '$atr_name' of "._element_address($node));
@@ -1619,17 +1621,21 @@ sub write_object {
 	_warn("Internal error: too late to serialize attributes of a container in '$what'");
       }
     }
-    my $content = $object->{'#content'};
-    if ($container->{role} eq '#NODE' and 
-	  UNIVERSAL::isa($object,'FSNode')) {
-      $content = $ctxt->get_childnodes($object,$container,$content,$what);
+    if ($container->{-decl} or $container->{type}) {
+      my $content = $object->{'#content'};
+      if ($container->{role} eq '#NODE' and 
+	    UNIVERSAL::isa($object,'FSNode')) {
+	$content = $ctxt->get_childnodes($object,$container,$content,$what);
+      }
+      $ctxt->write_object($content,$container,{ %$opts, 
+						write_single_LM => 1,
+						write_single_AM => 1,
+						no_attribs => 0,
+						attribs => \%attribs
+					       });
+    } else {
+      $xml->emptyTag($tag, %attribs);
     }
-    $ctxt->write_object($content,$container,{ %$opts, 
-					      write_single_LM => 1,
-					      write_single_AM => 1,
-					      no_attribs => 0,
-					      attribs => \%attribs
-					     });
   } elsif (exists $type->{constant}) {
     if ($object ne $type->{constant}{value}) {
       my $what = $tag || $type->{name} || $type->{'-name'};
