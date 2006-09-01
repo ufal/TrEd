@@ -1078,7 +1078,7 @@ sub add_members {
 		       ($node ? $node->{$member_name} : undef),
 		       $member_name,$allow_empty);
   }
-  if ($decl_type == PML_CONTAINER_DECL) {
+  if ($decl_type == PML_CONTAINER_DECL and $type->get_content_decl) {
     $hlist->add_member($base_path,$type,
 		       $node->{'#content'}, '#content');
   }
