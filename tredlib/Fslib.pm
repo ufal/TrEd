@@ -1219,7 +1219,7 @@ numerical value obtained from the ordering attribute specified in
 C<ord-attr>. 
 
 This method does not check node types, but one can use
-C<$parent->test_child_type($node)> before using this method to verify
+C<$parent-E<gt>test_child_type($node)> before using this method to verify
 that the node is of a permitted child-type for the parent node.
 
 Returns the node itself.
@@ -1235,7 +1235,7 @@ as a closest right sibling of ref-node in the structural order of
 sibling nodes.
 
 This method does not check node types, but one can use
-C<$ref_node->parent->test_child_type($node)> before using this method
+C<$ref_node-E<gt>parent->test_child_type($node)> before using this method
 to verify that the node is of a permitted child-type for the parent
 node.
 
@@ -1252,7 +1252,7 @@ as a closest left sibling of ref-node in the structural order of
 sibling nodes.
 
 This method does not check node types, but one can use
-C<$ref_node->parent->test_child_type($node)> before using this method
+C<$ref_node-E<gt>parent->test_child_type($node)> before using this method
 to verify that the node is of a permitted child-type for the parent
 node.
 
@@ -1295,10 +1295,14 @@ sub test_child_type {
   my ($ch) = $type->find_members_by_role('#CHILDNODES');
   if ($ch) {
     my $ch_is = $ch->get_decl_type;
+    if ($ch_is == PML_MEMBER_DECL) {
+      $ch = $ch->get_content_decl;
+      $ch_is = $ch->get_decl_type;
+    }
     if ($ch_is == PML_SEQUENCE_DECL) {
       return 1 if $ch->find_elements_by_content_decl($obj);
-    } elsif ($ch_is eq 'list') { 
-      return 1 if $ch->get_content_type == $obj;
+    } elsif ($ch_is == PML_LIST_DECL) { 
+      return 1 if $ch->get_content_decl == $obj;
     }
   } else {
     return 0;

@@ -537,8 +537,12 @@ sub NPosition { print ThisAddressNTRED(@_),"\n"; }
 
 Cut given node (including its subtree) and paste it to a new
 parent. This macro is safer than PasteNode since it checks that
-new-parent isn't a descendant of node or node itself. This macro dies
-on error before any change is made.
+new-parent isn't a descendant of node or node itself. If the check
+fails, the macro dies with an error before any change is made.
+
+Note: this macro does not verify node types. Use
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+the node as a child node of the new parent.
 
 =cut
 
@@ -562,6 +566,10 @@ PasteNodeBefore since it checks that new-parent isn't a descendant of
 node or node itself. This macro dies on error before any change is
 made.
 
+Note: this macro does not verify node types. Use
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+the node as a child node of the new parent.
+
 =cut
 
 sub CutPasteBefore {
@@ -584,6 +592,10 @@ ref_node. This macro is safer than PasteNodeBefore since it checks
 that new-parent isn't a descendant of node or node itself. This macro
 dies on error before any change is made.
 
+Note: this macro does not verify node types. Use
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+the node as a child node of the new parent.
+
 =cut
 
 sub CutPasteAfter {
@@ -604,6 +616,10 @@ Paste the subtree of the node under the new-parent.  The root of the
 subtree is placed among other children of new-parent with respect to
 the numbering attribute.
 
+Note: this macro does not verify node types. Use
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+the node as a child node of the new parent.
+
 =cut
 
 sub PasteNode {
@@ -618,6 +634,10 @@ sub PasteNode {
 Cut given node (including its subtree) and paste it on ref_node's
 parent node just before ref_node.
 
+Note: this macro does not verify node types. Use
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+the node as a child node of the new parent.
+
 =cut
 
 sub PasteNodeBefore {
@@ -629,6 +649,10 @@ sub PasteNodeBefore {
 
 Cut given node (including its subtree) and paste it on ref_node's
 parent node just after ref_node.
+
+Note: this macro does not verify node types. Use
+C<$parent-E<gt>test_child_type($node)> to be sure that type declarations permit 
+the node as a child node of the new parent.
 
 =cut
 
