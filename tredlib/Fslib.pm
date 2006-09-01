@@ -1218,6 +1218,10 @@ it to the position among the other child nodes corresponding to a
 numerical value obtained from the ordering attribute specified in 
 C<ord-attr>. 
 
+This method does not check node types, but one can use
+C<$parent->test_child_type($node)> before using this method to verify
+that the node is of a permitted child-type for the parent node.
+
 Returns the node itself.
 
 =cut
@@ -1229,6 +1233,11 @@ Returns the node itself.
 Attach a new or previously disconnected node to ref-node's parent node
 as a closest right sibling of ref-node in the structural order of
 sibling nodes.
+
+This method does not check node types, but one can use
+C<$ref_node->parent->test_child_type($node)> before using this method
+to verify that the node is of a permitted child-type for the parent
+node.
 
 Returns the node itself.
 
@@ -1242,11 +1251,59 @@ Attach a new or previously disconnected node to ref-node's parent node
 as a closest left sibling of ref-node in the structural order of
 sibling nodes.
 
+This method does not check node types, but one can use
+C<$ref_node->parent->test_child_type($node)> before using this method
+to verify that the node is of a permitted child-type for the parent
+node.
+
 Returns the node itself.
 
 =cut
 
 *paste_before = \&Fslib::PasteBefore;
+
+=item $node->test_child_type ( test_node )
+
+This method can be used before a C<paste_on> or a similar operation to
+test if the node provided as an argument is of a type that is valid
+for children of the current node. More specifically, return 1 if the
+current node is not associated with a type declaration or if it has
+a #CHILDNODES member which is of a list or sequence type and the list
+or sequence can contain members of the type of C<test_node>.
+Otherwise return 0.
+
+A type-declaration object can be passed directly instead of
+C<test_node>.
+
+=cut
+
+sub test_child_type {
+  my ($self, $obj) = @_;
+  die 'Usage: $node->test_child_type($node_or_decl)' unless ref($obj);
+  my $type =  $self->type;
+  return 1 unless $type;
+  if (UNIVERSAL::isa($obj,'PMLSchema::Decl')) {
+    if ($obj->get_decl_type == PML_TYPE_DECL) {
+      # a named type decl passed, no problem
+      $obj = $obj->get_content_decl;
+    }
+  } else {
+    # assume it's a node
+    $obj = $obj->type;
+    return 0 unless $obj;
+  }
+  my ($ch) = $type->find_members_by_role('#CHILDNODES');
+  if ($ch) {
+    my $ch_is = $ch->get_decl_type;
+    if ($ch_is == PML_SEQUENCE_DECL) {
+      return 1 if $ch->find_elements_by_content_decl($obj);
+    } elsif ($ch_is eq 'list') { 
+      return 1 if $ch->get_content_type == $obj;
+    }
+  } else {
+    return 0;
+  }
+}
 
 *getRootNode = *root;
 *getParentNode = *parent;

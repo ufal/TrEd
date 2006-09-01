@@ -9840,23 +9840,32 @@ sub node_release {
       $w->itemconfigure($tv->get_node_pinfo($parent,"Oval"),
 			  nodeOptions($win,$parent));
       if (doEvalHook($win,"node_release_hook",$node,$parent,"$button") ne 'stop') {
-	while ($parent) {
-	  $p=0, last if ($node eq $parent);
-	  $parent=$parent->parent;
-	}
-	if ($p and $tv->get_obj_pinfo($p) 
-	    and $node->parent!=$tv->get_obj_pinfo($p)) {
-	  save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"));
-	  my $oldparent=$node->parent;
-	  Fslib::Paste(Cut($node),
-		       $tv->get_obj_pinfo($p),
-		       $win->{FSFile}->FS);
-	  $win->{FSFile}->notSaved(1);
-          doEvalHook($win,"node_moved_hook",$node,$oldparent);
-	  lastActionBookmark($grp);
-	  redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
-	  centerTo($win,$win->{currentNode});
-	  return;
+	
+	if ($parent->test_child_type($node) or
+	    userQuery($win,"WARNING:\n\n".
+			"The target node does not permit the dragged node ".
+			  "as a child.\nThe resulting tree will be invalid.\n\n",
+		      -bitmap=> 'question',
+		      -title => 'Incompatible node type',
+		      -buttons => ["Don't paste",'Paste anyway']) eq 'Paste anyway') {
+	  while ($parent) {
+	    $p=0, last if ($node eq $parent);
+	    $parent=$parent->parent;
+	  }
+	  if ($p and $tv->get_obj_pinfo($p) 
+		and $node->parent!=$tv->get_obj_pinfo($p)) {
+	    save_undo($win,prepare_undo($win, "Cat/Paste node with mouse"));
+	    my $oldparent=$node->parent;
+	    Fslib::Paste(Cut($node),
+			 $tv->get_obj_pinfo($p),
+			 $win->{FSFile}->FS);
+	    $win->{FSFile}->notSaved(1);
+	    doEvalHook($win,"node_moved_hook",$node,$oldparent);
+	    lastActionBookmark($grp);
+	    redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
+	    centerTo($win,$win->{currentNode});
+	    return;
+	  }
 	}
       }
     }
