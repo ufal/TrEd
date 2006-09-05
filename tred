@@ -1810,24 +1810,29 @@ sub openStandaloneFile {
 
 sub reloadFile {
   my $win=cast_to_win(shift);
-  if (ref($win->{FSFile}) and $win->{FSFile}->filename()) {
-    my $f=$win->{FSFile}->filename();
-    my @patterns=$win->{FSFile}->patterns();
-    my $hint=$win->{FSFile}->hint();
+  my $fsfile = $win->{FSFile};
+  if (ref($fsfile) and $fsfile->filename()) {
+    my $f=$fsfile->filename();
+    my @patterns=$fsfile->patterns();
+    my $hint=$fsfile->hint();
     ($f)=parse_suffix($f);
-    my $no=$win->{treeNo}+1;
-    my $nodeidx=0;
-    do {			# $node is undefined after this block
-      my $node=$win->{currentNode};
-      while ($node) { $nodeidx++; $node=$node->previous() };
-    };
-    $nodeidx--;
+    if ($fsfile->lastTreeNo >= 0) {
+      my $no=$win->{treeNo}+1;
+      my $nodeidx=0;
+      do {			# $node is undefined after this block
+	my $node=$win->{currentNode};
+	while ($node) { $nodeidx++; $node=$node->previous() };
+      };
+      $nodeidx-- if $nodeidx>=0;
+      $f = "$f##$no.$nodeidx";
+    }
     return if askSaveFile($win,0,1) == -1;
     closeFile($win,-all_windows => 1);
-    openFile($win, "$f##$no.$nodeidx", -noredraw => 1, -nohook=>1);
-    if ($win->{FSFile} and $reloadKeepsPatterns) {
-      $win->{FSFile}->changePatterns(@patterns);
-      $win->{FSFile}->changeHint($hint);
+    openFile($win, $f, -noredraw => 1, -nohook=>1);
+    $fsfile = $win->{FSFile};
+    if ($fsfile and $reloadKeepsPatterns) {
+      $fsfile->changePatterns(@patterns);
+      $fsfile->changeHint($hint);
     }
     get_nodes_win($win);
     redraw_win($win);
@@ -2261,11 +2266,13 @@ sub saveFile {
   my $result;
   my $stop;
   my @warnings;
+  my $err;
   {
     local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; push @warnings,$msg; };
     eval { 
       $result = $win->{FSFile}->writeFile($f);
     };
+    $err = $@;
     # called from within the eval so all errors and warnings
     # are shown as warnings on the output
     $stop = doEvalHook($win,"after_save_hook",$f,$result);
@@ -2275,7 +2282,7 @@ sub saveFile {
     $win->toplevel->Unbusy() unless $insideEval;
     $win->{FSFile}->notSaved(1);
     saveFileStateUpdate($win);
-    errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"._last_err($@."\n".(@warnings ? join("\n",'WARNINGS:',@warnings) : ''))."\n"."Check file and directory permissions.\nSee also the console error output.");
+    errorMessage($win,"Error while saving file to '$f'!\nI'll try to recover the original from backup.\n"._last_err($err."\n".(@warnings ? join("\n",'WARNINGS:',@warnings) : ''))."\n"."Check file and directory permissions.\nSee also the console error output.");
     undef $!;
     eval {
       IOBackend::rename_uri($f."~",$f) unless $f=~/^ntred:/; # if (-f $f);
