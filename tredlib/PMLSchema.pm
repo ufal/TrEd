@@ -1577,6 +1577,12 @@ sub validate_object {
 	if (!UNIVERSAL::isa($object,'FSNode')) {
 	  push @$log, "$path/$name: #CHILDNODES member on a non-node object:\n".Dumper($object);
 	}
+	my $list = Fslib::List->new_from_ref([$object->children],1);
+	$mtype->validate_object($list,
+				{ path => $path, 
+				  tag => $name,
+				  log => $log,
+				} );
       } elsif ($name ne $knit_name) {
 	my $knit_val = $object->{$knit_name};
 	if ($knit_val ne q{} and $val ne q{}) {
@@ -1757,7 +1763,7 @@ sub validate_object {
     my $cdecl = $self->get_content_decl;
     if ($cdecl) {
       my $content = $object->{'#content'};
-      
+      my $skip_content = 0;
       if ($self->get_role eq '#NODE') {
 	if (!UNIVERSAL::isa($object,'FSNode')) {
 	  push @$log,"$path: container declared as #NODE should be a FSNode object: $object";
@@ -1767,14 +1773,17 @@ sub validate_object {
 	    if ($content ne q{}) {
 	      push @$log, "$path: #NODE container containing a #CHILDNODES should have empty #content: $content";
 	    }
+	    #$skip_content = 1;
 	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
 	  }
 	}
       }
-      $cdecl->validate_object($content,{ path => $path,
-					 tag => '#content', 
-					 log=>$log 
-					});
+      unless ($skip_content) {
+	$cdecl->validate_object($content,{ path => $path,
+					   tag => '#content', 
+					   log=>$log 
+					  });
+      }
     }
   }
   if ($opts and ref($opts->{log})) {
@@ -1993,7 +2002,9 @@ sub validate_object {
   }
 
   if (UNIVERSAL::isa($object,'Fslib::Seq')) {
+    my $i = 0;
     foreach my $element ($object->elements) {
+      $i++;
       if (!UNIVERSAL::isa($element,'ARRAY')) {
 	push @$log, "$path: invalid sequence content: ",ref($element);
       } elsif ($element->[0] eq '#TEXT') {
@@ -2010,7 +2021,7 @@ sub validate_object {
 	# KNIT on elements not supported yet
 	if ($edecl) {
 	  $edecl->validate_object($element->[1],{ path => $path,
-						  tag => $ename,
+						  tag => "[$i]",
 						  log => $log,
 						});
 	} else {
