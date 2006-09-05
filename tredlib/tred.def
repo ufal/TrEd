@@ -1765,7 +1765,7 @@ In BTrEd print the error message on standard output.
 =cut
 
 sub ErrorMessage {
-  TrEd::Basics::errorMessage($grp,join("",@_));
+  TrEd::Basics::errorMessage($grp,join("",@_),1);
 }
 
 =item C<StandardTredFont()>
