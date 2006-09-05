@@ -288,7 +288,7 @@ sub load {
 	  $in_xsl_href = Fslib::ResolvePath($config->{'_filename'}, $in_xsl_href, 1);
 	  my $xslt = XML::LibXSLT->new;
 	  my $in_xsl_parsed = $xslt->parse_stylesheet_file($in_xsl_href)
-	    || _die("Can't locate XSL stylesheet '$in_xsl_href' declared as "._element_address($in_xsl));
+	    || _die("Cannot locate XSL stylesheet '$in_xsl_href' declared as "._element_address($in_xsl));
 	  $ctxt->{'_dom'} = $dom = $in_xsl_parsed->transform($dom,%params);
 	  $dom_root = $dom->getDocumentElement;
 	  $dom->setBaseURI($ctxt->{'_filename'}) if $dom and $dom->can('setBaseURI');
@@ -530,7 +530,7 @@ sub readas_dom {
 
   my ($local_file,$remove_file) = IOBackend::fetch_file($href);
   my $ref_fh = IOBackend::open_uri($local_file);
-  _die("Can't open $href for reading") unless $ref_fh;
+  _die("Cannot open $href for reading") unless $ref_fh;
   _debug("readas_dom: $href $ref_fh");
   my $parser = $ctxt->{'_parser'} || PMLBackend::xml_parser();
   if ($ref_fh){
@@ -594,7 +594,13 @@ sub read_node {
   if ($type->{cdata}) {
     _debug({level => 6},"CDATA type\n");
     # pre-defined atomic types
-    return $node->textContent;
+    my $data =$node->textContent;
+    my $log = [];
+    unless ($type->{cdata}->validate_object($data,{log => $log, tag=>_element_address($node)})) {
+      _warn(@$log);
+    }
+    
+    return $data;
   # LIST ------------------------------------------------------------
   } elsif (exists $type->{list}) {
     _debug({level => 6},"list type\n");
@@ -686,6 +692,12 @@ sub read_node {
       if ($member ne EMPTY) {
 	unless ($member->{as_attribute}) {
 	  _warn("Member '$name' not declared as attribute of "._element_address($node));
+	}
+	{
+	  my $log = [];
+	  unless ($member->get_content_decl->validate_object($value,{log => $log, tag=>_element_address($node)})) {
+	    _warn(@$log);
+	  }
 	}
 	$hash->{$name} = $value;
 	if ($member->{role} eq '#ID') {
@@ -827,12 +839,20 @@ sub read_node {
       }
     }
     foreach my $atr_name (keys %$attributes) {
+      my $attr_decl = $attributes->{$atr_name};
       if (exists($attrs->{$atr_name})) {
-	$hash->{$atr_name} = delete $attrs->{$atr_name};
-	if ($attributes->{$atr_name}{role} eq '#ID') {
+	my $value = delete $attrs->{$atr_name};
+	{
+	  my $log = [];
+	  unless ($attr_decl->get_content_decl->validate_object($value,{log => $log, tag=>_element_address($node)})) {
+	    _warn(@$log);
+	  }
+	}
+	$hash->{$atr_name} = $value;
+	if ($attr_decl->{role} eq '#ID') {
 	  $ctxt->hash_id($hash->{$atr_name},$hash);
 	}
-      } elsif ($attributes->{$atr_name}{required}) {
+      } elsif ($attr_decl->{required}) {
 	_die("Required attribute '$atr_name' missing in container ".
 	       _element_address($node));
       }
@@ -1243,7 +1263,7 @@ sub write_data {
 
   my $schema = $ctxt->{'_schema'};
   unless (ref($schema)) {
-    _die("Can't write - document isn't associated with a schema");
+    _die("Cannot write - document isn't associated with a schema");
   }
 
   $ctxt->{'_types'} ||= $schema->{type};
@@ -1415,6 +1435,13 @@ sub write_object {
   }
   if ($type->{cdata}) {
     $xml->startTag($tag,%$attribs) if defined($tag);
+    {
+      my $log = [];
+      unless ($type->{cdata}->validate_object($object,{log => $log, 
+						       tag=>$tag})) {
+	_warn(@$log);
+      }
+    }
     $xml->characters($object);
     $xml->endTag($tag) if defined($tag);
   } elsif (exists $type->{choice}) {
@@ -1448,11 +1475,20 @@ sub write_object {
 	foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
 	  my $atr = $mdecl->{-name};
 	  if ($mdecl->{required} or $object->{$atr} ne EMPTY) {
-	    $attribs->{$atr} = $object->{$atr};
+	    my $value = $object->{$atr};
+	    {
+	      my $log = [];
+	      unless ($mdecl->get_content_decl->validate_object($value,{log => $log, 
+									path=>$tag,
+									tag=>$atr})) {
+		_warn(@$log);
+	      }
+	    }
+	    $attribs->{$atr} = $value;
 	  }
 	}
 	if (%$attribs and !defined($tag)) {
-	  _die("Can't write structure with attributes (".join("\,",keys %$attribs).") without a tag");
+	  _die("Cannot write structure with attributes (".join("\,",keys %$attribs).") without a tag");
 	}
 	$xml->startTag($tag,%$attribs) if defined($tag);
       }
@@ -1492,8 +1528,17 @@ sub write_object {
 	  if ($object->{$member} ne EMPTY) {
 	    # un-knit data
 	    # _debug("#KNIT.rf $member");
+	    my $value = $object->{$member};
 	    $xml->startTag($member);
-	    $xml->characters($object->{$member});
+	    {
+	      my $log = [];
+	      unless ($mdecl->get_content_decl->validate_object($value,{log => $log, 
+									path=>$tag,
+									tag=>$member})) {
+		_warn(@$log);
+	      }
+	    }
+	    $xml->characters($value);
 	    $xml->endTag($member);
 	  } else {
 	    # knit data
@@ -1612,8 +1657,17 @@ sub write_object {
       if ($container->{attribute}) {
 	foreach my $attrib (values(%{$container->{attribute}})) {
 	  my $atr = $attrib->{-name};
-	  if ($attrib->{required} or  $object->{$atr} ne EMPTY) {
-	    $attribs{$atr} = $object->{$atr}
+	  if ($attrib->{required} or $object->{$atr} ne EMPTY) {
+	    my $value = $object->{$atr};
+	    {
+	      my $log = [];
+	      unless ($attrib->get_content_decl->validate_object($value,{log => $log, 
+									 path => $tag,
+									 tag=>$atr})) {
+		_warn(@$log);
+	      }
+	    }
+	    $attribs{$atr} = $value;
 	  }
 	}
       }
@@ -1645,7 +1699,8 @@ sub write_object {
     $xml->characters($object);
     $xml->endTag($tag) if defined($tag);
   } else {
-    _die("Type error: Unrecognized data type, object cannot be serialized in this context. Type declaration:\n".Dumper($type));
+    my $what = $tag || $type->{name} || $type->{'-name'};
+    _die("Type error: unrecognized data type for '$what'!\nObject cannot be serialized in this context.\nParsed type declaration follows:\n".Dumper($type));
   }
   1;
 }
@@ -1703,11 +1758,12 @@ sub write_object_knit {
 
   my $prefix=EMPTY;
 
-  $type = $ctxt->resolve_type($type);
+
+  my $rtype = $ctxt->resolve_type($type);
 
   my $id;
   # find what attribute is ID
-  my $decl = $type->{structure}||$type->{container};
+  my $decl = $rtype->{structure}||$rtype->{container};
   if ($decl) {
     $id = $decl->{'-#ID'}; # cached
     unless (defined $id) {
@@ -1718,7 +1774,7 @@ sub write_object_knit {
     }
   }
   if (!defined $id) {
-    _warn("Don't know which attribute is #ID - can't knit back!\n");
+    _warn("Don't know which attribute is #ID - cannot knit back!\n");
     return;
   }
   my $ref = $object->{$id};
@@ -1729,14 +1785,26 @@ sub write_object_knit {
     $prefix = $1;
   }
 
-  $xml->startTag($tag,$attribs?%$attribs:());
-  $xml->characters($prefix ne EMPTY ? $prefix.'#'.$ref : $ref);
-  $xml->endTag($tag);
+  {
+    $xml->startTag($tag,$attribs?%$attribs:());
+    my $value = $prefix ne EMPTY ? $prefix.'#'.$ref : $ref;
+    {
+      my $log = [];
+      unless ($type->get_content_decl->validate_object($value,{log => $log, 
+							       path=>'',
+							       tag=>$tag})) {
+	_warn(@$log);
+      }
+    }
+    $xml->characters( $value );
+    $xml->endTag($tag);
+  }
 
   if ($prefix ne EMPTY) {
     return if (UNIVERSAL::isa($ctxt->{'_ref'}{$prefix},'PMLInstance'));
     my $refs_save = $ctxt->{'_refs_save'} || {};
-    if ( $refs_save->{$prefix} ) {
+    my $rf_href = $refs_save->{$prefix};
+    if ( $rf_href ) {
       my $indeces = $ctxt->{'_ref-index'};
       if ($indeces and $indeces->{$prefix}) {
 	my $knit = $indeces->{$prefix}{$ref};
@@ -1747,7 +1815,7 @@ sub write_object_knit {
 	    my $writer = $ctxt->{'_writer'};
 	    $ctxt->{'_writer'} = $dom_writer;
 	    eval {
-	      $ctxt->write_object($object, $type, { tag => $tag });
+	      $ctxt->write_object($object, $rtype, { tag => $tag });
 	    };
 	    $ctxt->{'_writer'} = $writer;
 	    die $@."\n" if $@;
@@ -1755,14 +1823,14 @@ sub write_object_knit {
 	  my $new = $dom_writer->end;
 	  $new->setAttribute($id,$ref);
 	} else {
-	  _warn("Didn't find ID $ref in $prefix - can't knit back!\n");
+	  _warn("Didn't find ID '$ref' in '$rf_href' ('$prefix') - cannot knit back!\n");
 	}
       } else {
-	_warn("Knit-file $prefix has no index - can't knit back!\n");
+	_warn("Knit-file '$rf_href' ('$prefix') has no index - cannot knit back!\n");
       }
     }
   } else {
-    _warn("Can't parse '$tag' href '$ref' - can't knit back!\n");
+    _warn("Cannot parse '$tag' href '$ref' - cannot knit back!\n");
   }
 }
 
@@ -1785,10 +1853,10 @@ sub get_write_trees {
       } elsif ($trees_type->{list}) {
 	return $ctxt->{'_trees'};
       } else {
-	_warn("#TREES are neither a list nor a sequence - can't save trees.\n");
+	_warn("#TREES are neither a list nor a sequence - cannot save trees.\n");
       }
     } else {
-      _warn("Can't determine #TREES type - can't save trees.\n");
+      _warn("Cannot determine #TREES type - cannot save trees.\n");
     }
     $ctxt->{'_trees_written'} = 1;
   }
@@ -2025,7 +2093,7 @@ sub convert_from_fsfile {
       if ($self->{ELEMENT} and $self->{ELEMENT}->nodeName eq $name) {
 	$self->{ELEMENT} = $self->{ELEMENT}->parentNode;
       } else {
-	_die ("Can't end ".
+	_die ("Cannot end ".
 	  ($self->{ELEMENT} ? '<'.$self->{ELEMENT}->localName.'>' : 'none').
 	    " with </$name>");
       }
