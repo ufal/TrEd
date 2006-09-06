@@ -8,6 +8,7 @@
 package PML_A_View;
 
 #binding-context PML_A_View
+#include <contrib/unbind_edit/unbind_edit.mak>
 
 #encoding iso-8859-2
 

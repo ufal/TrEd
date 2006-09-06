@@ -43,7 +43,7 @@ node:<? '#{customparenthesis}' if $${is_parenthesis}
 node:<?
   ($${nodetype} eq 'root' ? '#{customnodetype}${nodetype}' :
   '#{customfunc}${functor}').
-  "#{customsubfunc}".($${subfunctor}?".\${subfunctor}":'').($${is_state}?".\${is_state=state}":'') ?>
+  "#{customsubfunc}".($${subfunctor}?".\${subfunctor}":'').($${is_state}?".\${is_state=state}":'') ?><? '#{customcoappa}_${is_member=M}'if$${is_member} ?><? '#{customparenthesis}_${is_parenthesis=P}' if$${is_parenthesis} ?>
 
 node:<? $${nodetype} ne 'complex' and $${nodetype} ne 'root'
         ? '#{customnodetype}${nodetype}'
@@ -165,6 +165,14 @@ sub enable_attr_hook {
 
 sub node_release_hook{
   &PML_T_Edit::node_release_hook;
+  my ($node,$target,$mod)=@_;
+  return if $mod || ! $target;
+  if ($target->{t_lemma} eq "#Forn") {
+    $node->{functor}='FPHR';
+    $node->{nodetype}='fphr';
+    TredMacro::Redraw_FSFile_Tree();
+    $FileChanged=1;
+  }
 }#node_release_hook
 
 sub get_status_line_hook {
@@ -172,8 +180,8 @@ sub get_status_line_hook {
   my$statusline= [
 	  # status line field definitions ( field-text => [ field-styles ] )
 	  [
-	   "     id: " => [qw(label)],
-	   $this->{id} => [qw({id} value)],
+#	   "     id: " => [qw(label)],
+#	   $this->{id} => [qw({id} value)],
 	   "     a:" => [qw(label)]
           ],
 	  # field styles
@@ -192,11 +200,14 @@ sub get_status_line_hook {
                    $this->{'atree.rf'}
                    :
                    ($this->attr('a/lex.rf'),ListV($this->attr('a/aux.rf')))){
-    push @{$statusline->[0]},
-      ($sep => [qw(label)],"$ref" => [ '{REF}','ref',$ref ]);
+    if($ref){
+      push @{$statusline->[0]},
+#        ($sep => [qw(label)],"$ref" => [ '{REF}','ref',$ref ]);
+        ($sep => [qw(label)],GetANodeByID($ref)->attr('m/form') => [ '{REF}','ref',$ref ]);
     $sep=", ";
+    }
   }
-  push @{$statusline->[0]},
+  unshift @{$statusline->[0]},
     ($this->{'val_frame.rf'} ?
      ("     frame: " => [qw(label)],
       join(",",map{_get_frame($_)}AltV($this->{'val_frame.rf'})) => [qw({FRAME} value)]
@@ -233,6 +244,7 @@ sub status_line_doubleclick_hook {
         my $aref=@_[-1];
         $aref=~s/.*?#//;
         AnalyticalTree();
+        $this=$root;
         my($node,$tree)=SearchForNodeById($aref);
         TredMacro::GotoTree($tree);
         $this=$node;
@@ -515,11 +527,17 @@ sub EditTLemma{
   $this=undef;
 }#EditTLemma
 
-#bind AddNode to Insert menu Insert New Node
-sub AddNode {
+#bind AddANode to Shift+Insert menu Insert New Node from A-layer
+sub AddANode {
   ChangingFile(0);
-  PML_T_Edit::_AddNode(1);
-}#AddNode
+  PML_T_Edit::AddAnalyticNode(1);
+}#AddANode
+
+#bind AddENode to Insert menu Insert New #-Entity Node
+sub AddENode {
+  ChangingFile(0);
+  PML_T_Edit::AddEntityNode(1);
+}#AddENode
 
 =item DeleteNodeToAux(node?)
 
@@ -537,14 +555,83 @@ sub DeleteNodeToAux{
   foreach my$child($node->children){
     CutPaste($child,$parent);
   }
-  AddToList($parent,'a/aux.rf',$node->attr('a/lex.rf'),ListV($node->attr('a/aux.rf')));
+  AddToList($parent,
+            'a/aux.rf',
+            grep { defined $_ }
+            $node->attr('a/lex.rf'),ListV($node->attr('a/aux.rf'))
+           ) if $node->attr('a/lex.rf') or $node->attr('a/aux.rf');
   DeleteLeafNode($node);
   $this=$parent unless@_;
   ChangingFile(1);
 }#DeleteNodeToAux
 
+#remove-menu Change is_parenthesis
+#bind PML_T_Edit->RotateParenthesis to ALT+p menu Change is_parenthesis
+#bind RotateParenthesisSubtree to p menu Change is_parenthesis for Subtree
+sub RotateParenthesisSubtree{
+  my $par = ! $this->{is_parenthesis};
+  foreach my $node ($this,$this->descendants) {
+    $node->{is_parenthesis} = $par;
+  }
+}#RotateParenthesisSubtree
 
+#bind AddForn to Ctrl+f menu Add #Forn.ID
+sub AddForn {
+  $this=NewNode($this);
+  $this->{functor}='ID';
+  $this->{t_lemma}='#Forn';
+  $this->{nodetype}='list';
+  $this->{is_generated}=1;
+}#AddForn
 
+#bind AddNewNode to w menu Add #NewNode.VOCAT
+sub AddNewNode {
+  $this=NewNode($this);
+  $this->{functor}='VOCAT';
+  $this->{t_lemma}='#NewNode';
+  $this->{nodetype}='qcomplex';
+  $this->{is_generated}=1;
+}#AddForn
+
+#include <contrib/unbind_edit/unbind_edit.mak>
+
+package PML_A_View;
+
+#binding-context PML_A_View
+#bind ShowTNodes to t menu Show t-nodes
+#binding-context PML_A_Edit
+#bind PML_A_View->ShowTNodes to t menu Show t-nodes
+sub ShowTNodes{
+  my $aid = $this->{id};
+  my @nodes;
+  TectogrammaticalTree();
+  TredMacro::GotoTree(0);
+  if ($root) {
+    do {{
+      $node=$root;
+      while ($node) {
+        if ( grep { s/^.*?#//;/^$aid$/ }
+             $node->attr('a/lex.rf'),ListV($node->attr('a/aux.rf')) ) {
+          push @nodes,$node;
+        }
+        $node=$node->following };
+    }} while TredMacro::NextTree()
+  }
+  if ( @nodes ) {
+    my @lemmas = map { ($_->{t_lemma})
+                         .'.'.($_->{functor}).' : '.($_->{id})} @nodes;
+    my $d = [$lemmas[0]];
+    ListQuery('Select Node',
+              'browse',
+              \@lemmas,
+              $d);
+    my $id = $d->[0];
+    $id =~ s/.* : //;
+    my ($node,$tree)=SearchForNodeById($id);
+    TredMacro::GotoTree($tree);
+    $this=$node;
+  }
+}#ShowTNodes
 
 1;
 
