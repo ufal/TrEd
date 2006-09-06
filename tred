@@ -3351,7 +3351,7 @@ sub macrolistDialog {
   $t->columnWidth(1,0);
   $t->columnWidth(2,EMPTY);
 
-  $t->anchorSet('0');
+  $t->anchorSet('0') if $t->info(exists => '0');
 
   $t->configure(-width=> 0);
   my $callback
