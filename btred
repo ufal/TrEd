@@ -1844,9 +1844,9 @@ documentation for `tred.def' is a highly recommended reading for btred
 macro coder and macros defined there in should be prefered in all
 applicable situations.
 
-As in TrEd, the following variables may be used in the macros:
+As in TrEd, the following variables can be used in macros:
 
-$this - the current node (the root of the first tree in a file at the
+h$this - the current node (the root of the first tree in a file at the
 beginning)
 
 $root - the root node of the current tree
@@ -1938,14 +1938,14 @@ C<if ($root) { do {{ CODE }} while TredMacro::NextTree() }> loop).
 
 Apply the macro code tn all nodes (you still must use --all-trees or
 -T to aplly to all trees in a file) (wrapping the code into a C<while
-($this) { CODE ; $this=$this-E<gt>following }";> loop).
+($this) { CODE ; $this=$this-E<gt>following };> loop).
 
 =item B<--all-nonhidden-nodes|-H>
 
 Apply the macro code to all nodes except the hidden ones (you still
 must use --all-trees or -T to process all trees in a file). This
 option wraps the code into a C<while ($this) { CODE ;
-$this=$this-E<gt>following_visible(FS()) }";> loop).
+$this=$this-E<gt>following_visible(FS()) };> loop).
 
 =item B<--file-encoding|-n> encoding
 
