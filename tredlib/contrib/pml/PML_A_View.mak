@@ -58,6 +58,4 @@ sub pre_switch_context_hook {
 
 1;
 
-=cut
-
 #endif PML_A_View
