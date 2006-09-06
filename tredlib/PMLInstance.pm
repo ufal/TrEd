@@ -599,8 +599,9 @@ sub read_node {
     my $data =$node->textContent;
     if ($VALIDATE_CDATA) {
       my $log = [];
-      unless ($type->{cdata}->validate_object($data,{log => $log, tag=>_element_address($node)})) {
-	_warn(@$log);
+      unless ($type->{cdata}->validate_object($data,{log => $log, 
+						     tag => $node->localname})) {
+	_warn(@$log," in element "._element_address($node));
       }
     }
     return $data;
@@ -699,8 +700,8 @@ sub read_node {
 	}
 	if ($VALIDATE_CDATA) {
 	  my $log = [];
-	  unless ($member->get_content_decl->validate_object($value,{log => $log, tag=>_element_address($node)})) {
-	    _warn(@$log);
+	  unless ($member->get_content_decl->validate_object($value,{log => $log, tag=>$name})) {
+	    _warn(@$log," in element "._element_address($node));
 	  }
 	}
 	$hash->{$name} = $value;
@@ -796,10 +797,10 @@ sub read_node {
      } elsif ((($child_nodeType == TEXT_NODE
 		or $child_nodeType == CDATA_SECTION_NODE)
 		and $child->data=~/\S/)) {
-	_warn("Ignoring text content '".$child->data."'.\n");
+	_warn("Ignoring text content '".$child->data."' in element "._element_address($child));
       } elsif ($child_nodeType == ELEMENT_NODE
-	       and $child->namespaceURI eq PML_NS) {
-	_warn("Ignoring non-PML element '".$child->nodeName."'.\n");
+		 and $child->namespaceURI ne PML_NS) {
+	_warn("Ignoring non-PML element "._element_address($child));
       }
     } continue {
       $child = $child->nextSibling;
@@ -848,8 +849,8 @@ sub read_node {
 	my $value = delete $attrs->{$atr_name};
 	if ($VALIDATE_CDATA) {
 	  my $log = [];
-	  unless ($attr_decl->get_content_decl->validate_object($value,{log => $log, tag=>_element_address($node)})) {
-	    _warn(@$log);
+	  unless ($attr_decl->get_content_decl->validate_object($value,{log => $log, tag=>$atr_name})) {
+	    _warn(@$log," in element "._element_address($node));
 	  }
 	}
 	$hash->{$atr_name} = $value;
@@ -890,7 +891,7 @@ sub read_node {
       }
     }
     unless ($ok) {
-      _die("Invalid value '$data' for '".$node->localname."' (expected one of: ".join(',',@$values).")");
+      _warn("Invalid value: '$data' (expected one of: ".join(',',@$values).") in "._element_address($node));
     }
     return $data;
   # CONSTANT ------------------------------------------------------------
@@ -898,7 +899,7 @@ sub read_node {
     _debug({level => 6},"constant type\n");
     my $data = $node->textContent();
     if ($data ne EMPTY and $data ne $type->{constant}{value}) {
-      _die("Invalid value '$data' for constant '".$node->localname."' (expected $type->{constant})");
+      _warn("Invalid value '$data' (expected constant: '$type->{constant}') in "._element_address($node));
     }
     return $data;
   # OTHER ------------------------------------------------------------
@@ -986,8 +987,9 @@ sub _read_Alt ($) {
 
 sub _element_address {
   my ($node,$line_node)=@_;
+  $node = $node->getParentNode unless $node->nodeType == ELEMENT_NODE;
   $line_node ||= $node;
-  return "'".$node->localname."' at ".$line_node->ownerDocument->URI.":".$line_node->line_number."\n";
+  return "'".$node->nodeName."' at ".$line_node->ownerDocument->URI.":".$line_node->line_number."\n";
 }
 
 # $ctxt, $data, $type, $node
