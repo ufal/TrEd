@@ -863,7 +863,7 @@ sub add_member {
 		      );
   } elsif ($mdecl_type == PML_CHOICE_DECL) {
     $data->{value} = $attr_val;
-    my @values = $mdecl->get_values;
+    my @values = sort $mdecl->get_values;
     unshift @values, '' unless $required;
     my $w = $hlist->JComboBox_0_02(
 
