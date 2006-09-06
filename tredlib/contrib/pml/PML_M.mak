@@ -56,11 +56,15 @@ features:
 
 =over 4
 
-1. sentence is displayed in C<CustomColorsentence>. If the form was
+=item 1.
+
+sentence is displayed in C<CustomColorsentence>. If the form was
 changed (e.g. because of a typo), the original form is displayed in
 C<CustomColorspell> with overstrike.
 
-2. analytical function is displayed in C<CustomColorafun>. If the
+=item 2.
+
+analytical function is displayed in C<CustomColorafun>. If the
 node's C<is_member> is set to 1, the type of the structure is
 indicated by C<Co> (coordination) or C<Ap> (apposition) in
 C<CustomColorcoappa>. For C<is_parenthesis_root>, C<Pa> is displayed
