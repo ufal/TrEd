@@ -171,13 +171,12 @@ sub read_macros {
 	      }
 	    }
 	  }
-	} elsif (/^\#[ \t]*unbind-key[ \t]([^ \t\r\n]+)?/) {
+	} elsif (/^\#[ \t]*unbind-key[ \t]+([^ \t\r\n]+)/) {
 	  my $key=$1;
 	  $key=~s/\-/+/g;	# convert ctrl-x to ctrl+x
 	  $key=~s/([^+]+[+-])/uc($1)/eg; # uppercase modifiers
-	  foreach (@contexts) {
-	    next unless exists($keyBindings{$_});
-	    delete $keyBindings{$_}{$key};
+	  foreach my $ctxt (@contexts) {
+	    $keyBindings{$ctxt}{$key} = undef; # don't delete (so that we can overrule TredMacro macros)
 	  }
 	} elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
 	  my $macro=$1;
