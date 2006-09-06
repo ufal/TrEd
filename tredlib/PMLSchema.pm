@@ -1577,12 +1577,22 @@ sub validate_object {
 	if (!UNIVERSAL::isa($object,'FSNode')) {
 	  push @$log, "$path/$name: #CHILDNODES member on a non-node object:\n".Dumper($object);
 	}
-	my $list = Fslib::List->new_from_ref([$object->children],1);
-	$mtype->validate_object($list,
-				{ path => $path, 
-				  tag => $name,
-				  log => $log,
-				} );
+	unless ($opts->{no_childnodes}) {
+	  my $content;
+	  my $mtype_is = $mtype->get_decl_type;
+	  if ($mtype_is == PML_SEQUENCE_DECL) {
+	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
+	  } elsif ($mtype == PML_LIST_DECL) {
+	    $content = Fslib::List->new_from_ref([$object->children],1);
+	  } else {
+	    push @$log, "$path: #CHILDNODES should be either a list or sequence";
+	  }
+	  $mtype->validate_object($content,
+				  { path => $path, 
+				    tag => $name,
+				    log => $log,
+				  } );
+	}
       } elsif ($name ne $knit_name) {
 	my $knit_val = $object->{$knit_name};
 	if ($knit_val ne q{} and $val ne q{}) {
@@ -1768,13 +1778,20 @@ sub validate_object {
 	if (!UNIVERSAL::isa($object,'FSNode')) {
 	  push @$log,"$path: container declared as #NODE should be a FSNode object: $object";
 	} else {
-	  if ($cdecl and $cdecl->get_decl_type == PML_SEQUENCE_DECL
-		and $cdecl->get_role eq '#CHILDNODES') {
+	  my $cdecl_is = $cdecl->get_decl_type;
+	  if ($cdecl->get_role eq '#CHILDNODES') {
 	    if ($content ne q{}) {
 	      push @$log, "$path: #NODE container containing a #CHILDNODES should have empty #content: $content";
 	    }
-	    #$skip_content = 1;
-	    $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
+	    if ($opts->{no_childnodes}) {
+	      $skip_content = 1;
+	    } elsif ($cdecl_is == PML_SEQUENCE_DECL) {
+	      $content = Fslib::Seq->new([map { Fslib::Seq::Element->new($_->{'#name'},$_) } $object->children]);
+	    } elsif ($cdecl_is == PML_LIST_DECL) {
+	      $content = Fslib::List->new_from_ref([$object->children],1);
+	    } else {
+	      push @$log, "$path: #CHILDNODES should be either a list or sequence";
+	    }
 	  }
 	}
       }
