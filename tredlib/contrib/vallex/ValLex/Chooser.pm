@@ -77,6 +77,17 @@ sub create_toplevel {
     $d->bind('<Return>', sub { $ab->flash; $ab->invoke; });
     $d->bind('<KP_Enter>', sub { $ab->flash; $ab->invoke });
     $chooser->widget()->bind('<Double-1>'=> sub { $ab->invoke });
+
+    my $clrb = $bot->Button(-text => 'Clear selection',
+			    -underline => 1,
+			    -command =>
+			      [ sub {
+				  my $f = $_[0]->focused_framelist->widget;
+				  $f->selectionClear();
+				  $f->anchorClear();
+				  #$_[0]->reusable_assign_callback; 
+				}, $chooser ]
+			     )->pack(-side => 'left',-expand => 1);
   }
   $bot->Button(-text => 'Close',
 	       -underline => 0,
