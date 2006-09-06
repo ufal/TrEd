@@ -98,7 +98,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "preload-module|M=s" => \@preload_modules,
 	    "extra-backends|B=s" => \$extra_backends,
 	    "resource-dir|Z=s" => \@resource_paths,
-	    "version|v"        => \$print_version
+	    "version|v"        => \$print_version,
 	   );
 
 $optparser->getoptions(%optmap) or $usage=1;
@@ -1288,7 +1288,7 @@ sub openSecondary {
 	      $grp->{'preloaded'}->{$req_filename};
 	    associateSecondary($grp->{'preloaded'}->{$req_filename},
 			       $fsfile,
-			       $req->[0])
+			       $req->[0]);
 	  } else {
 	    my $req_fs = FSFile->newFSFile($req_filename,$TrEd::Convert::inputenc,\@backends);
 	    _msg "Error - cannot load secondary file $req_filename required by ".$fsfile->filename."! ("._last_err().")\n" if ($req_fs->lastTreeNo<0);
@@ -1296,13 +1296,14 @@ sub openSecondary {
 	    $grp->{'secondary'}->{$req_filename} = $req_fs;
 	    associateSecondary($req_fs,
 			       $fsfile,
-			       $req->[0])
+			       $req->[0]);
+	    openSecondary($grp,$req_fs);
 	  }
 	} else {
 	  # secondary file is already loaded, just associate:
 	    associateSecondary($grp->{'secondary'}->{$req_filename},
 			       $fsfile,
-			       $req->[0])
+			       $req->[0]);
 	}
       }
     }
@@ -1311,6 +1312,7 @@ sub openSecondary {
 
 sub openFile {
   my ($grp,$f,%opts) = @_;
+
   my $goto = undef;
   my %fs=(fs => 'FS format',
 	  fgz => 'gzipped FS format',
@@ -1324,7 +1326,6 @@ sub openFile {
   }
 
   closeFile($grp);
-
   if (exists($grp->{preloaded}) and
       exists($grp->{preloaded}->{$f})) {
     $grp->{'FSFile'} = $grp->{preloaded}->{$f};
@@ -1334,6 +1335,7 @@ sub openFile {
     return 0;
   } else {
     my $fsfile =  FSFile->newFSFile($f,$TrEd::Convert::inputenc,\@backends);
+
     $grp->{FSFile} = $fsfile;
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
