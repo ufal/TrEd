@@ -37,7 +37,7 @@ a tectogrammatical tree which refers to the current analytical tree.
 sub TectogrammaticalTree {
   return unless SchemaName() =~ /^a(?:edit)?data$/;
   return unless SwitchToTFile();
-  my$arf=$PML::arf;
+  my $arf = $PML::arf;
   my $fsfile = $grp->{FSFile};
   my $id = $root->{id};
   my $this_id = $this->{id};
