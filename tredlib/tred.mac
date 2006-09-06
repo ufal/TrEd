@@ -83,7 +83,8 @@ sub EditBoxQuery {
   my $d;
   my $ed;
 
-  my ($title,$var,$hintText)=@_;
+  my ($title,$var,$hintText,$opts)=@_;
+  $opts ||={};
 
   $d=ToplevelFrame()->DialogBox(-title => $title,
 			   -buttons => ["OK","Cancel"]);
@@ -94,8 +95,13 @@ sub EditBoxQuery {
     my $t=$d->add(qw/Label -wraplength 6i -justify left -text/,$hintText);
     $t->pack(qw/-padx 0 -pady 0 -expand 0 -fill x/);
   }
-  $ed=$d->Scrolled(qw/Text -height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $main::font);
+  my @opts = (qw/-height 8 -relief sunken -scrollbars sw -borderwidth 2/,-font => $main::font);
+  if (!$opts->{-widget} or !eval { $ed=$d->Scrolled(@{$opts->{-widget}},@opts); }) {
+    $ed=$d->Scrolled('Text',@opts);
+  }
   $ed->insert('0.0',$var);
+  $ed->update;
+  eval { $ed->highlight('0.0','end') if $opts->{-highlight} };
   $ed->pack(qw/-padx 0 -pady 10 -expand yes -fill both/);
   $d->bind(ref($ed->Subwidget('scrolled')),'<Control-Return>' => sub {1;});
   $d->bind('<Return>' => sub {Tk->break;});
@@ -151,11 +157,17 @@ sub PerlSearch {
   "Press Ctrl+Enter to start search\n"
     ;
 
-  my $script = EditBoxQuery("Search: insert perl expression:",$TrEd::MacroStorage::macPerlSearchScript,$label);
+  my @text_opt = eval { require Tk::CodeText; } ? (qw(CodeText -syntax Perl)) : qw(Text);
+  my $script = EditBoxQuery("Search: insert perl expression:",$TrEd::MacroStorage::macPerlSearchScript,$label,
+			    { -widget => \@text_opt,
+			      -highlight => 1
+			    }
+			   );
   unless ($script) {
     $FileNotSaved=0;
     return;
   }
+  chomp $script; $script.="\n";
   $TrEd::MacroStorage::macPerlSearchScript=$script;
   while ($this=$this->following or NextTree()) {
     last if eval($script);
@@ -185,11 +197,16 @@ Use:
 When finished, press Ctrl+Enter to execute your script.
 EOF
 
-  my $script = EditBoxQuery("Insert perl expression:",$TrEd::MacroStorage::macPerlEvalScript,$label);
+  my @text_opt = eval { require Tk::CodeText; } ? qw(CodeText -syntax Perl) : qw(Text);
+  my $script = EditBoxQuery("Insert perl expression:",$TrEd::MacroStorage::macPerlEvalScript,$label,
+			    { -widget => \@text_opt,
+			      -highlight => 1
+			    });
   unless ($script) {
     $FileNotSaved=0;
     return;
   }
+  chomp $script; $script.="\n";
   $TrEd::MacroStorage::macPerlEvalScript=$script;
   eval("package ".CurrentContext().";\n#line 1\n".$script);
   die $@ if $@;
