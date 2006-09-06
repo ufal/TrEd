@@ -238,6 +238,64 @@ sub AddNode {
   _AddNode(0);
 }#AddNode
 
+sub AddAnalyticNode {
+  my $autotype=shift;
+  $this=NewNode($this);
+  ChangingFile(1);
+  $this->{t_lemma}='#NewNode';
+  $this->{functor}='PAR';
+  $this->{nodetype}='complex';
+  EditFunctor() || (DeleteNode() && return );
+  unless ($autotype){
+    EditNodetype()|| (DeleteNode() && return );
+  }
+  EditAttribute($this,'is_generated')|| (DeleteNode() && return );
+  $PML::desiredcontext='PML_A_Edit';
+  MarkForARf();
+}#AddAnalyticNode
+
+sub AddEntityNode {
+  my $autotype=shift;
+  my$dialog=[];
+  my%lemmas=qw/AsMuch qcomplex
+               Benef qcomplex
+               Colon coap
+               Comma coap
+               Cor qcomplex
+               Dash coap
+               EmpNoun complex
+               EmpVerb qcomplex
+               Equal qcomplex
+               Forn list
+               Gen qcomplex
+               Idph list
+               Neg atom
+               Oblfm qcomplex
+               Percnt qcomplex
+               PersPron complex
+               QCor qcomplex
+               Rcp qcomplex
+               Separ coap
+               Some qcomplex
+               Total qcomplex
+               Unsp qcomplex
+               /;
+  $lemmas{NewNode}='qcomplex'if$autotype;
+  ListQuery('T-lemma',
+            'browse',
+            [sort keys%lemmas],
+            $dialog) or return;
+  $this=NewNode($this);
+  $this->{functor}='PAR';
+  $this->{t_lemma}='#'.$dialog->[0];
+  $this->{nodetype}=$lemmas{$dialog->[0]};
+  $this->{is_generated}=1;
+  EditFunctor()|| (DeleteNode() && return );
+  unless ($autotype){
+    EditNodetype()|| (DeleteNode() && return );
+  }
+}#AddEntityNode
+
 sub _AddNode {
   my $autotype=shift;
   my $type=questionQuery('New node',
@@ -245,53 +303,9 @@ sub _AddNode {
                          ('Analytic','#-entity','Cancel'));
   return if$type eq'Cancel';
   if($type eq'Analytic'){
-    $this=NewNode($this);
-    ChangingFile(1);
-    $this->{t_lemma}='#NewNode';
-    $this->{functor}='PAR';
-    $this->{nodetype}='complex';
-    EditFunctor();
-    EditNodetype() unless $autotype;
-    ChangingFile(EditAttribute($this,'is_generated'));
-    $PML::desiredcontext='PML_A_Edit';
-    MarkForARf();
+    AddAnalyticNode($autotype);
   }else{
-    my$dialog=[];
-    my%lemmas=qw/AsMuch qcomplex
-                 Benef qcomplex
-                 Colon coap
-                 Comma coap
-                 Cor qcomplex
-                 Dash coap
-                 EmpNoun complex
-                 EmpVerb qcomplex
-                 Equal qcomplex
-                 Forn list
-                 Gen qcomplex
-                 Idph list
-                 Neg atom
-                 Oblfm qcomplex
-                 Percnt qcomplex
-                 PersPron complex
-                 QCor qcomplex
-                 Rcp qcomplex
-                 Separ coap
-                 Some qcomplex
-                 Total qcomplex
-                 Unsp qcomplex
-                /;
-    $lemmas{NewNode}='qcomplex'if$autotype;
-    ListQuery('T-lemma',
-              'browse',
-              [sort keys%lemmas],
-              $dialog) or return;
-    $this=NewNode($this);
-    $this->{functor}='PAR';
-    $this->{t_lemma}='#'.$dialog->[0];
-    $this->{nodetype}=$lemmas{$dialog->[0]};
-    $this->{is_generated}=1;
-    EditFunctor();
-    EditNodetype()unless $autotype;
+    AddEntityNode($autotype);
   }
 } #_AddNode
 
