@@ -3783,7 +3783,8 @@ Append given values to the list.
 =cut
 
 sub append_list {
-  push @{$_[0]},@{$_[1]};
+  my ($self, $list) = @_;
+  push @$self,@$list;
   return $self;
 }
 
@@ -3962,6 +3963,7 @@ occurence). Values are compared as strings.
 sub unique_values {
   die 'Usage: Fslib::List->unique_values() (wrong number of arguments!)'
     if @_!=1;
+  my $self = shift;
   my %a; 
   return grep { !($a{$_}++) } @$self;
 }
@@ -4062,8 +4064,8 @@ sub add_list {
     if @_!=2;
   my $self = shift;
   my $list = shift;
-  my %a; %a{ @$self } = ();
-  push @{$_[0]}, grep { exists($a{$_}) ? 0 : $a{$_}=1 } @$list;
+  my %a; @a{ @$self } = ();
+  push @{$_[0]}, grep { exists($a{$_}) ? 0 : ($a{$_}=1) } @$list;
   return $self;
 }
 
