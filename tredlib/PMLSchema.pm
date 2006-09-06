@@ -2741,7 +2741,7 @@ sub validate_object {
   if (ref($object)) {
     $err = "expected CDATA, got: ".ref($object);
   } elsif (!$self->check_string_format($object,$format)) {
-    $err = "CDATA value is not formatted as $format: '$object'";
+    $err = "CDATA value not formatted as $format: '$object'";
   }
   if ($err and ref($opts) and ref($opts->{log})) {
     my $path = $opts->{path};
