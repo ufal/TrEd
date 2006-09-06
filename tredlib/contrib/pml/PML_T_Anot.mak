@@ -14,6 +14,8 @@ package PML_T_Anot;
 import PML_T;
 sub first (&@);
 
+#include <contrib/unbind_edit/unbind_edit.mak>
+
 =pod
 
 =head1 PML_T_Anot
@@ -593,8 +595,6 @@ sub AddNewNode {
   $this->{is_generated}=1;
 }#AddForn
 
-#include <contrib/unbind_edit/unbind_edit.mak>
-
 package PML_A_View;
 
 #binding-context PML_A_View
@@ -625,7 +625,7 @@ sub ShowTNodes{
               'browse',
               \@lemmas,
               $d);
-    my $id = $d->[0];
+    my $id = $d->[0] || $nodes[0];
     $id =~ s/.* : //;
     my ($node,$tree)=SearchForNodeById($id);
     TredMacro::GotoTree($tree);
