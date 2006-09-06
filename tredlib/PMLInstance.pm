@@ -63,6 +63,8 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(  );
 our $VERSION = '0.01';
 
+our $VALIDATE_CDATA = 1;
+
 use constant EMPTY => qw();
 use constant   LM => 'LM';
 use constant   AM => 'AM';
@@ -595,24 +597,25 @@ sub read_node {
     _debug({level => 6},"CDATA type\n");
     # pre-defined atomic types
     my $data =$node->textContent;
-    my $log = [];
-    unless ($type->{cdata}->validate_object($data,{log => $log, tag=>_element_address($node)})) {
-      _warn(@$log);
+    if ($VALIDATE_CDATA) {
+      my $log = [];
+      unless ($type->{cdata}->validate_object($data,{log => $log, tag=>_element_address($node)})) {
+	_warn(@$log);
+      }
     }
-    
     return $data;
   # LIST ------------------------------------------------------------
   } elsif (exists $type->{list}) {
     _debug({level => 6},"list type\n");
     my $list_type = $ctxt->resolve_type($type->{list});
 
-    my $nodelist = $node->getChildrenByTagNameNS(PML_NS,LM);
+    my @nodelist = $node->getChildrenByTagNameNS(PML_NS,LM);
     my $list = bless
       [
-	@$nodelist
+	@nodelist
 	  ? (map {
 	      $ctxt->read_node($_,$list_type)
-	     } _read_List($node)) 
+	     } _read_List($node,\@nodelist)) 
 	  : ($node->hasChildNodes or 
 	       ($opts->{attrs} ? keys(%{$opts->{attrs}})>0 : $node->hasAttributes)) 
 	  ? $ctxt->read_node($node, $list_type,{ attrs => $opts->{attrs} }) 
@@ -633,15 +636,16 @@ sub read_node {
     _debug({level => 6},"alt type\n");
     my $alt_type = $ctxt->resolve_type($type->{alt});
     # alt
-    my $Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
-    if (@$Alt>1) {
+    my @Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
+    my $size = @Alt;
+    if ($size>1) {
       return bless [
 	map {
 	  $ctxt->read_node($_,$alt_type)
-	} @$Alt,
+	} @Alt,
        ], 'Fslib::Alt';
-    } elsif (@$Alt==1) {
-      return $ctxt->read_node($Alt->[0],$alt_type)
+    } elsif ($size ==1) {
+      return $ctxt->read_node($Alt[0],$alt_type)
     } else {
       return $ctxt->read_node($node,$alt_type,{ attrs => $opts->{attrs} });
     }
@@ -693,7 +697,7 @@ sub read_node {
 	unless ($member->{as_attribute}) {
 	  _warn("Member '$name' not declared as attribute of "._element_address($node));
 	}
-	{
+	if ($VALIDATE_CDATA) {
 	  my $log = [];
 	  unless ($member->get_content_decl->validate_object($value,{log => $log, tag=>_element_address($node)})) {
 	    _warn(@$log);
@@ -842,7 +846,7 @@ sub read_node {
       my $attr_decl = $attributes->{$atr_name};
       if (exists($attrs->{$atr_name})) {
 	my $value = delete $attrs->{$atr_name};
-	{
+	if ($VALIDATE_CDATA) {
 	  my $log = [];
 	  unless ($attr_decl->get_content_decl->validate_object($value,{log => $log, tag=>_element_address($node)})) {
 	    _warn(@$log);
@@ -919,10 +923,14 @@ sub read_node {
 # otherwise return the node itself.
 
 sub _read_List ($) {
-  my ($node)=@_;
+  my ($node,$node_list)=@_;
   return unless $node;
-  my $List = $node->getChildrenByTagNameNS(PML_NS,LM);
-  return @$List ? @$List : $node;
+  if ($node_list) {
+    return @$node_list ? @$node_list : $node;
+  } else {
+    my @List = $node->getChildrenByTagNameNS(PML_NS,LM);
+    return @List ? @List : $node;
+  }
 }
 
 sub read_Sequence {
@@ -971,8 +979,8 @@ sub read_Sequence {
 sub _read_Alt ($) {
   my ($node)=@_;
   return unless $node;
-  my $Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
-  return @$Alt ? @$Alt : $node;
+  my @Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
+  return @Alt ? @Alt : $node;
 }
 
 
@@ -1435,7 +1443,7 @@ sub write_object {
   }
   if ($type->{cdata}) {
     $xml->startTag($tag,%$attribs) if defined($tag);
-    {
+    if ($VALIDATE_CDATA) {
       my $log = [];
       unless ($type->{cdata}->validate_object($object,{log => $log, 
 						       tag=>$tag})) {
@@ -1476,7 +1484,7 @@ sub write_object {
 	  my $atr = $mdecl->{-name};
 	  if ($mdecl->{required} or $object->{$atr} ne EMPTY) {
 	    my $value = $object->{$atr};
-	    {
+	    if ($VALIDATE_CDATA) {
 	      my $log = [];
 	      unless ($mdecl->get_content_decl->validate_object($value,{log => $log, 
 									path=>$tag,
@@ -1530,7 +1538,7 @@ sub write_object {
 	    # _debug("#KNIT.rf $member");
 	    my $value = $object->{$member};
 	    $xml->startTag($member);
-	    {
+	    if ($VALIDATE_CDATA) {
 	      my $log = [];
 	      unless ($mdecl->get_content_decl->validate_object($value,{log => $log, 
 									path=>$tag,
@@ -1659,7 +1667,7 @@ sub write_object {
 	  my $atr = $attrib->{-name};
 	  if ($attrib->{required} or $object->{$atr} ne EMPTY) {
 	    my $value = $object->{$atr};
-	    {
+	    if ($VALIDATE_CDATA) {
 	      my $log = [];
 	      unless ($attrib->get_content_decl->validate_object($value,{log => $log, 
 									 path => $tag,
@@ -1788,7 +1796,7 @@ sub write_object_knit {
   {
     $xml->startTag($tag,$attribs?%$attribs:());
     my $value = $prefix ne EMPTY ? $prefix.'#'.$ref : $ref;
-    {
+    if ($VALIDATE_CDATA) {
       my $log = [];
       unless ($type->get_content_decl->validate_object($value,{log => $log, 
 							       path=>'',
