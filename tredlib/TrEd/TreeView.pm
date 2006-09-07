@@ -218,10 +218,10 @@ sub value_line_list {
     my $attr=$fsfile->FS->sentord();
     $attr=$fsfile->FS->order() unless (defined($attr));
     while ($node) {
-      push @sent,$node unless ($node->getAttribute($attr)>=999); # this is TR specific stuff
+      push @sent,$node unless ($node->get_member($attr)>=999); # this is TR specific stuff
       $node=$node->following();
     }
-    @sent = sort { $a->getAttribute($attr) <=> $b->getAttribute($attr) } @sent;
+    @sent = sort { $a->get_member($attr) <=> $b->get_member($attr) } @sent;
     my @vl=();
 
     foreach $node (@sent) {
