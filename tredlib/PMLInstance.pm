@@ -272,7 +272,7 @@ sub load {
 	}
 	my ($in_xsl) = $transform->{in};
 	next unless ($in_xsl and $in_xsl->{'type'} eq 'xslt');
-	my $in_xsl_href = $in_xsl->getAttribute('href');
+	my $in_xsl_href = $in_xsl->get_member('href');
 	my $test = $transform->{'test'};
 	_debug("Testing XPath '$test' for XSLT transform '$in_xsl_href'");
 	if ($in_xsl_href ne EMPTY and 
