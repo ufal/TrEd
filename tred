@@ -2322,7 +2322,7 @@ sub isShown { # test if node is shown (always 1 if $showHidden)
   return 1 if $show or not defined($hide);
 
   # traverse up until we find a hidden ancestor or reach void
-  while ($node and ($node->getAttribute($hide) ne 'hide')) {
+  while ($node and ($node->get_member($hide) ne 'hide')) {
     $node=$node->parent;
   }
   return ($node ? 0 : 1)
@@ -7848,7 +7848,7 @@ sub editAttrsDialog {
 		-anchor=> 'nw')->pack(qw/-side left/);
 
     if  ($win->{FSFile}->FS->isList($_) or
-	 $node->getAttribute($_)=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
+	 $node->get_member($_)=~/^(?:[^\|\\]|\\.)*\|/) { # readonly entry and buttons for list
       $r= $eef->Frame();
       $e{$_}= $r->Entry(-relief=> 'sunken', -takefocus=> 1,
 			 -font=> $font)->pack(qw/-expand yes -fill both -side left/);
@@ -7872,7 +7872,7 @@ sub editAttrsDialog {
 	$e{$_}->bind($e{$_},'<Return>',[sub { shift; shift->invoke; Tk->break; },$b]);
 	$e{$_}->bind($e{$_},'<Control-Return>',\&dlgReturn);
 	$e{$_}->bind($e{$_},'<Double-ButtonPress-1>',[sub { shift; shift->invoke; Tk->break; },$b]);
-      $e{$_}->insert(0,encode($node->getAttribute($_)));
+      $e{$_}->insert(0,encode($node->get_member($_)));
       $e{$_}->configure(-state=> 'disabled');
       $r->pack(qw/-side right -expand yes -fill both/);
       $height += max($b->reqheight,$e{$_}->reqheight()) if ($i<$rows);
@@ -7880,7 +7880,7 @@ sub editAttrsDialog {
       $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
 			 -font=> $font)->pack(qw/-side right -expand yes -fill both/);
       addBindTags($e{$_},"EditEntry");
-      $e{$_}->insert(0,encode($node->getAttribute($_)));
+      $e{$_}->insert(0,encode($node->get_member($_)));
       if (doEvalHook($win,'enable_attr_hook',$_,"normal") eq 'stop') {
 	$e{$_}->configure(-state=> 'disabled');
       }
@@ -7909,7 +7909,7 @@ sub editAttrsDialog {
     save_undo($win,prepare_undo($win,'Edit Node'));
     lastActionBookmark($win->{framegroup});
     foreach $a (@atord) {
-      $node->setAttribute($a,decode($e{$a}->get));
+      $node->set_member($a,decode($e{$a}->get));
     }
     doEvalHook($win,"after_edit_node_hook",$node,1);
     get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
@@ -8918,13 +8918,13 @@ sub doEditAttr {
   my ($Entry,@Eopts) = get_entry_type();
   my $newvalue;
   if ($win->{FSFile}->FS->isList($attr)) {
-    $newvalue= editListAttr($win,$node->getAttribute($attr),$attr,$grp->{top});
+    $newvalue= editListAttr($win,$node->get_member($attr),$attr,$grp->{top});
     if (defined($newvalue)) {
       $win->toplevel->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
       save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
       lastActionBookmark($grp);
-      $node->setAttribute($attr,$newvalue);
+      $node->set_member($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -8935,14 +8935,14 @@ sub doEditAttr {
     return;
   }
 
-  if ($node->getAttribute($attr)=~/^(?:[^\|\\]|\\.)*\|/) {
-    $newvalue= editAmbiguousAttr($win,$node->getAttribute($attr),$attr);
+  if ($node->get_member($attr)=~/^(?:[^\|\\]|\\.)*\|/) {
+    $newvalue= editAmbiguousAttr($win,$node->get_member($attr),$attr);
     if (defined $newvalue) {
       $grp->{top}->Busy(-recurse=> 1);
       $win->{FSFile}->notSaved(1);
       save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
       lastActionBookmark($grp);
-      $node->setAttribute($attr,$newvalue);
+      $node->set_member($attr,$newvalue);
       doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
       get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
       redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
@@ -8955,7 +8955,7 @@ sub doEditAttr {
 
   $grp->{top}->Busy(-recurse=> 1);
   my $enabled=doEvalHook($win,'enable_attr_hook',$attr,"normal") ne 'stop';
-  $newvalue=encode($node->getAttribute($attr));
+  $newvalue=encode($node->get_member($attr));
   my $d= $grp->{top}->DialogBox(-title=> ($enabled ? "Edit Node Attribute" : "Disabled Node Attribute"),
 			     -buttons=> [($enabled ? ("OK", "Cancel") : "Cancel")]);
   $d->bind('<Return>', \&dlgReturn );
@@ -8981,7 +8981,7 @@ sub doEditAttr {
     $win->{FSFile}->notSaved(1);
     save_undo($win,prepare_undo($win,"Edit Attribute '$attr'"));
     lastActionBookmark($grp);
-    $node->setAttribute($attr,decode($newvalue));
+    $node->set_member($attr,decode($newvalue));
     doEvalHook($win,"after_edit_attr_hook",$node,$attr,1);
     get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
     redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
