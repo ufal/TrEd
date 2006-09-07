@@ -976,7 +976,7 @@ attribute of the current node to a global hash variable named
 my %ValuesClipboard;
 sub CopyValues {
   undef %ValuesClipboard;
-  my @attrs = ($this->type) ? ($this->type->get_normal_fields) : ($grp->{FSFile}->FS->attributes);
+  my @attrs = Attributes($this,1);
   foreach my $atr (@attrs) {
     $ValuesClipboard{$atr} = Fslib::CloneValue($this->{$atr});
   }
@@ -2192,18 +2192,39 @@ C<$node-E<gt>{$grp-E<gt>{FSFile}-E<gt>FS-E<gt>order()}>
 sub GetOrd { return $_[0]->{_node_ord($_[0])}; }
 
 
-=item C<Attributes()>
+=item C<Attributes(node?,normal_fields?)>
 
-Return a list of names of all attributes declared in the header of the
-current FS file.
+If no node is given or the node is not associated with a type, return
+a list of names of all attributes declared in the FS-file header or
+Schema.
+
+If node is associated with a type and the 2nd attribute is undef or
+false, return list of paths to all its (possibly nested) atomic-value
+attributes.  This is equivalent to
+
+  $node->type->schema->attributes($node->type)
+
+If node is associated with a type and the 2nd attribute is true,
+return only first-level attribute names. This is equivalent to
+
+  $node->type->get_normal_fields()
 
 =cut
 
 sub Attributes {
-  if (ref($grp->{FSFile}->metaData('schema'))) {
-    return $grp->{FSFile}->metaData('schema')->attributes()
+  my ($node,$members_only) = shift;
+  if ($node and $node->type) {
+    if ($members_only) {
+      return $node->type->get_normal_fields();
+    } else {
+      return $node->type->schema->attributes($node->type);
+    }
   } else {
-    return $grp->{FSFile}->FS->attributes;
+    if (ref($grp->{FSFile}->metaData('schema'))) {
+      return $grp->{FSFile}->metaData('schema')->attributes()
+    } else {
+      return $grp->{FSFile}->FS->attributes;
+    }
   }
 }
 
