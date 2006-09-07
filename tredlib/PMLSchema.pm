@@ -1275,7 +1275,7 @@ sub get_normal_fields {
 	  $type->get_members;
   } elsif ($decl_is == PML_CONTAINER_DECL) {
     my $cdecl = $type->get_content_decl;
-    @members = ($type->get_attributes, 
+    @members = ($type->get_attribute_names, 
 		($cdecl && $type->get_role ne '#CHILDNODES') ? '#content' : ());
   }
 }
