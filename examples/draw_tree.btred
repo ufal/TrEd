@@ -1,11 +1,19 @@
+#!btred -TNe DrawTree
+# -*- cperl -*-
 
-sub DrawTree ($@){
-  my ($top,@attrs)=@_;
-  my $node=$top;
+sub DrawTree {
+  my $top = shift || $this;
+  my $only_attrs = undef;
+  if (@_) {
+    my %a;
+    @a{ @_ } = ();
+    $only_attrs=\%a;
+  }
+  my $node = $top;
   my $older;
   my $l;
   return unless $top;
-  print "(",$top->getAttribute("form"),")\n";
+  print "(",$top->get_member("form"),")\n";
   $node=$top->firstson;
   while ($node) {
     $l='';
@@ -26,7 +34,12 @@ sub DrawTree ($@){
       $l.="`-[ ";
     }
     print $l;
-    print map $node->getAttribute($_)." ",@attrs ;
+    my @attrs = Attributes($node,1);
+    print join ",",map { "$_->[0]='$_->[1]'" }
+      grep { $_->[1] ne q{} } 
+      map { [$_,$node->get_member($_)] }
+      $only_attrs ? 
+      (grep { exists $only_attrs->{$_} } @attrs) : @attrs;
     print "]\n";
     $node=$node->following($top);
   }
