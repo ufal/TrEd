@@ -1007,10 +1007,7 @@ Return value of the given attribute.
 
 =cut
 
-sub getAttribute {
-  my ($self,$name) = @_;
-  return $self->{$name};
-}
+# inherited from Fslib::Struct (compatibility)
 
 =item $node->attr (path)
 
@@ -1150,11 +1147,7 @@ Set value of the given attribute.
 
 =cut
 
-sub setAttribute {
-  my ($self,$name,$value) = @_;
-  return $self->{$name}=$value;
-}
-
+# inherited from Fslib::Struct (compatibility)
 
 =pod
 
@@ -4144,6 +4137,8 @@ sub get_member {
   return $self->{$name};
 }
 
+# compatibility
+*getAttribute = \&get_member;
 
 =item $struct->set_member ($name,$value)
 
@@ -4155,6 +4150,10 @@ sub set_member {
   my ($self,$name,$value) = @_;
   return $self->{$name}=$value;
 }
+
+# compatibility
+*setAttribute = \&set_member;
+
 
 =item $struct->delete_member ($name)
 
