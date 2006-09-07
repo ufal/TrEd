@@ -128,7 +128,7 @@ sub newNode {
   Fslib::Paste($nd,$parent,$win->{FSFile}->FS);
   my $order = $win->{FSFile}->FS->order;
   if ($order) {
-    $nd->setAttribute($order,$parent->getAttribute($order));
+    $nd->set_member($order,$parent->get_member($order));
   }
   setCurrent($win,$nd);
   $win->{FSFile}->notSaved(1);
