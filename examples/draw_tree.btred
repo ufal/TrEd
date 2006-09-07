@@ -1,4 +1,4 @@
-#!btred -TNe DrawTree
+#!btred -Te DrawTree
 # -*- cperl -*-
 
 sub DrawTree {
@@ -13,7 +13,15 @@ sub DrawTree {
   my $older;
   my $l;
   return unless $top;
-  print "(",$top->get_member("form"),")\n";
+  print "(";
+  my @attrs = Attributes($top,1);
+  print join ",",map { "$_->[0]='$_->[1]'" }
+    grep { $_->[1] ne q{} } 
+      map { [$_,$top->get_member($_)] }
+	$only_attrs ? 
+	  (grep { exists $only_attrs->{$_} } @attrs) : @attrs;
+  print ")\n";
+
   $node=$top->firstson;
   while ($node) {
     $l='';
