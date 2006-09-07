@@ -194,6 +194,8 @@ sub fetch_file {
   if ($proto eq 'file') {
     my $file = strip_protocol($uri);
     die("File does not exist: $file\n") unless -e $file;
+    die("File is not readable: $file\n") unless -r $file;
+    die("File is empty: $file\n") if -z $file;
     return ($file,0);
   } elsif ($proto eq 'ntred' or $proto =~ /$reject_proto/) {
     return ($uri,0);
