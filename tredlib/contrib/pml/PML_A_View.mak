@@ -28,13 +28,9 @@ Prague Dependency Treebank (PDT) 2.0.
 #bind TectogrammaticalTree to Ctrl+R menu Display tectogrammatical tree
 #bind GotoTree to Alt+g menu Goto Tree
 
-sub node_release_hook{
-  return 'stop';
-}#node_release_hook
-
-sub enable_attr_hook{
-  return'stop';
-}#enable_attr_hook
+sub node_release_hook     { 'stop' }
+sub enable_attr_hook      { 'stop' }
+sub enable_edit_node_hook { 'stop' }
 
 sub switch_context_hook {
   &PML_A::switch_context_hook;
