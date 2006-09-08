@@ -159,11 +159,10 @@ sub get_ttf_fonts {
       $f->{'name'}->read;
       my $fn=$f->{name}->find_name(1);
       my $fs=$f->{name}->find_name(2);
-      {
+      for ($fn, $fs){
 	# the encoding can be UTF-16 or 8bit (hopefully no other)
 	use bytes;
-	$fn = Encode::decode('iso-10646-1',$fn) if index($fn,"\x{0}")>=0;
-	$fs = Encode::decode('iso-10646-1',$fs) if index($fs,"\x{0}")>=0;
+	$_ = Encode::decode((index($_,"\x{0}")>=0) ? 'iso-10646-1' : 'iso-8859-1',$_);
       }
       $fn.=" ".$fs if $fs ne 'Regular';
       $result{$fn} = $font unless exists $result{$fn};
