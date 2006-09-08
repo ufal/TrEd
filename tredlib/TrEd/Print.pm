@@ -154,11 +154,17 @@ sub get_ttf_fonts {
       }
       my $f = PDF::API2::TTF::Font->open($font);
       next unless $f;
-      $PDF::API2::TTF::Name::utf8 = 0;
+      $PDF::API2::TTF::Name::utf8 = 0;     # 1 does not work
       $PDF::API2::TTF::GDEF::new_gdef = 1;
       $f->{'name'}->read;
-      my $fn=Encode::decode('iso-10646-1',$f->{name}->find_name(1));
-      my $fs=Encode::decode('iso-10646-1',$f->{name}->find_name(2));
+      my $fn=$f->{name}->find_name(1);
+      my $fs=$f->{name}->find_name(2);
+      {
+	# the encoding can be UTF-16 or 8bit (hopefully no other)
+	use bytes;
+	$fn = Encode::decode('iso-10646-1',$fn) if index($fn,"\x{0}")>=0;
+	$fs = Encode::decode('iso-10646-1',$fs) if index($fs,"\x{0}")>=0;
+      }
       $fn.=" ".$fs if $fs ne 'Regular';
       $result{$fn} = $font unless exists $result{$fn};
       $f->release;
