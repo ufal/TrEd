@@ -2,6 +2,7 @@ package TrEd::PSTreeView;
 use File::Spec;
 use TrEd::TreeView;
 use base qw(TrEd::TreeView);
+use Encode;
 
 sub setFontMetrics {
   my ($self,$filename,$fontsize,$fontscale)=@_;
@@ -127,27 +128,40 @@ sub _dirs {
   return $dir,@dirs;
 }
 
+sub uniq { my %a; grep { !($a{$_}++) } @_ }
 
 sub get_ttf_fonts {
+  my $opts = ref($_[0]) ? shift : {};
   my %result;
   my $ds=$TrEd::Convert::Ds;
   eval {
     require PDF::API2::TTF::Font;
-    foreach my $path (map { _dirs($_) } @_) {
+    my @files;
+    my @dirs = uniq(map { _dirs($_) } @_);
+    my $i=0;
+    foreach my $path (@dirs) {
       opendir my $dh, $path || next;
-      foreach my $font (grep { -f $_ } map { File::Spec->catfile($path,$_) } readdir($dh)) {
-	my $f = PDF::API2::TTF::Font->open($font);
-	next unless $f;
-	$PDF::API2::TTF::Name::utf8 = 1;
-	$PDF::API2::TTF::GDEF::new_gdef = 1;
-	$f->{'name'}->read;
-	my $fn=$f->{name}->find_name(1);
-	my $fs=$f->{name}->find_name(2);
-	$fn.=" ".$fs if $fs ne 'Regular';
-	$result{$fn} = $font unless exists $result{$fn};
-	$f->release;
+      if (ref $opts->{search_callback}) {
+	$opts->{search_callback}->($path,$i++,scalar(@dirs));
       }
+      push @files, grep { -f $_ } grep { /\.[to]tf$/ } map { File::Spec->catfile($path,$_) } readdir($dh);
       closedir $dh;
+    }
+    $i=0;
+    foreach my $font (@files) {
+      if (ref $opts->{callback}) {
+	$opts->{callback}->($font,$i++,scalar(@files));
+      }
+      my $f = PDF::API2::TTF::Font->open($font);
+      next unless $f;
+      $PDF::API2::TTF::Name::utf8 = 0;
+      $PDF::API2::TTF::GDEF::new_gdef = 1;
+      $f->{'name'}->read;
+      my $fn=Encode::decode('iso-10646-1',$f->{name}->find_name(1));
+      my $fs=Encode::decode('iso-10646-1',$f->{name}->find_name(2));
+      $fn.=" ".$fs if $fs ne 'Regular';
+      $result{$fn} = $font unless exists $result{$fn};
+      $f->release;
     }
   };
   print STDERR $@ if $@;
