@@ -595,6 +595,266 @@ sub AddNewNode {
   $this->{is_generated}=1;
 }#AddForn
 
+#ifndef SKIPFUNC
+#define SKIPFUNC
+
+sub AssignFunctor {
+  $this->{functor}=$_[0];
+  after_edit_attr_hook($this,'functor',$_[0]);
+}#AssignFunctor
+
+#bind FuncRSTR to r menu Assign RSTR
+sub FuncRSTR {
+  AssignFunctor('RSTR');
+}#FuncRSTR
+
+#bind FuncACT to a menu Assign ACT
+sub FuncACT {
+  AssignFunctor('ACT');
+}#FuncACT
+
+#bind FuncPAT to A menu Assign PAT
+sub FuncPAT {
+  AssignFunctor('PAT');
+}#FuncPAT
+
+#bind FuncPRED to R menu Assign PRED
+sub FuncPRED {
+  AssignFunctor('PRED');
+}#FuncPRED
+
+#bind FuncCONJ to c menu Assign CONJ
+sub FuncCONJ {
+  AssignFunctor('CONJ');
+}#FuncCONJ
+
+#bind FuncLOC to Ctrl+L menu Assign LOC
+sub FuncLOC {
+  AssignFunctor('LOC');
+}#FuncLOC
+
+#bind FuncTWHEN to T menu Assign TWHEN
+sub FuncTWHEN {
+  AssignFunctor('TWHEN');
+}#FuncTWHEN
+
+#bind FuncRHEM to Ctrl+R menu Assign RHEM
+sub FuncRHEM {
+  AssignFunctor('RHEM');
+}#FuncRHEM
+
+#bind FuncDENOM to D menu Assign DENOM
+sub FuncDENOM {
+  AssignFunctor('DENOM');
+}#FuncDENOM
+
+#bind FuncMANN to M menu Assign MANN
+sub FuncMANN {
+  AssignFunctor('MANN');
+}#FuncMANN
+
+#bind FuncEXT to E menu Assign EXT
+sub FuncEXT {
+  AssignFunctor('EXT');
+}#FuncEXT
+
+#bind FuncID to i menu Assign ID
+sub FuncID {
+  AssignFunctor('ID');
+}#FuncID
+
+#bind FuncMAT to Ctrl+M menu Assign MAT
+sub FuncMAT {
+  AssignFunctor('MAT');
+}#FuncMAT
+
+#bind FuncDIR3 to I menu Assign DIR3
+sub FuncDIR3 {
+  AssignFunctor('DIR3');
+}#FuncDIR3
+
+#bind FuncDIR1 to Ctrl+I menu Assign DIR1
+sub FuncDIR1 {
+  AssignFunctor('DIR1');
+}#FuncDIR1
+
+#bind FuncBEN to b menu Assign BEN
+sub FuncBEN {
+  AssignFunctor('BEN');
+}#FuncBEN
+
+#bind FuncFPHR to h menu Assign FPHR
+sub FuncFPHR {
+  AssignFunctor('FPHR');
+}#FuncFPHR
+
+#bind FuncPREC to C menu Assign PREC
+sub FuncPREC {
+  AssignFunctor('PREC');
+}#FuncPREC
+
+#bind FuncCRIT to Ctrl+T menu Assign CRIT
+sub FuncCRIT {
+  AssignFunctor('CRIT');
+}#FuncCRIT
+
+#bind FuncCAUS to u menu Assign CAUS
+sub FuncCAUS {
+  AssignFunctor('CAUS');
+}#FuncCAUS
+
+#bind FuncREG to Ctrl+G menu Assign REG
+sub FuncREG {
+  AssignFunctor('REG');
+}#FuncREG
+
+#bind FuncTHL to H menu Assign THL
+sub FuncTHL {
+  AssignFunctor('THL');
+}#FuncTHL
+
+#bind FuncADVS to v menu Assign ADVS
+sub FuncADVS {
+  AssignFunctor('ADVS');
+}#FuncADVS
+
+#bind FuncTHO to Ctrl+H menu Assign THO
+sub FuncTHO {
+  AssignFunctor('THO');
+}#FuncTHO
+
+#bind FuncCOMPL to o menu Assign COMPL
+sub FuncCOMPL {
+  AssignFunctor('COMPL');
+}#FuncCOMPL
+
+#bind FuncCOND to O menu Assign COND
+sub FuncCOND {
+  AssignFunctor('COND');
+}#FuncCOND
+
+#bind FuncOPER to Ctrl+O menu Assign OPER
+sub FuncOPER {
+  AssignFunctor('OPER');
+}#FuncOPER
+
+#bind FuncAUTH to U menu Assign AUTH
+sub FuncAUTH {
+  AssignFunctor('AUTH');
+}#FuncAUTH
+
+#bind FuncCSQ to q menu Assign CSQ
+sub FuncCSQ {
+  AssignFunctor('CSQ');
+}#FuncCSQ
+
+#bind FuncSUBS to Ctrl+U menu Assign SUBS
+sub FuncSUBS {
+  AssignFunctor('SUBS');
+}#FuncSUBS
+
+#bind FuncTFRWH to W menu Assign TFRWH
+sub FuncTFRWH {
+  AssignFunctor('TFRWH');
+}#FuncTFRWH
+
+#bind FuncTOWH to Ctrl+W menu Assign TOWH
+sub FuncTOWH {
+  AssignFunctor('TOWH');
+}#FuncTOWH
+
+#bind FuncDIR2 to 2 menu Assign DIR2
+sub FuncDIR2 {
+  AssignFunctor('DIR2');
+}#FuncDIR2
+
+#bind FuncVOCAT to V menu Assign VOCAT
+sub FuncVOCAT {
+  AssignFunctor('VOCAT');
+}#FuncVOCAT
+
+#bind FuncAPP to k menu Assign APP
+sub FuncAPP {
+  AssignFunctor('APP');
+}#FuncAPP
+
+#bind FuncADDR to x menu Assign ADDR
+sub FuncADDR {
+  AssignFunctor('ADDR');
+}#FuncADDR
+
+#bind FuncEFF to y menu Assign EFF
+sub FuncEFF {
+  AssignFunctor('EFF');
+}#FuncEFF
+
+#bind FuncPAR to z menu Assign PAR
+sub FuncPAR {
+  AssignFunctor('PAR');
+}#FuncPAR
+
+#bind FuncAPPS to B menu Assign APPS
+sub FuncAPPS {
+  AssignFunctor('APPS');
+}#FuncAPPS
+
+#bind FuncACMP to K menu Assign ACMP
+sub FuncACMP {
+  AssignFunctor('ACMP');
+}#FuncACMP
+
+#bind FuncAIM to Q menu Assign AIM
+sub FuncAIM {
+  AssignFunctor('AIM');
+}#FuncAIM
+
+#bind FuncMEANS to X menu Assign MEANS
+sub FuncMEANS {
+  AssignFunctor('MEANS');
+}#FuncMEANS
+
+#bind FuncCM to Y menu Assign CM
+sub FuncCM {
+  AssignFunctor('CM');
+}#FuncCM
+
+#bind FuncDIFF to Z menu Assign DIFF
+sub FuncDIFF {
+  AssignFunctor('DIFF');
+}#FuncDIFF
+
+#bind FuncCPHR to Ctrl+b menu Assign CPHR
+sub FuncCPHR {
+  AssignFunctor('CPHR');
+}#FuncCPHR
+
+#bind FuncCPR to Ctrl+k menu Assign CPR
+sub FuncCPR {
+  AssignFunctor('CPR');
+}#FuncCPR
+
+#bind FuncTSIN to Ctrl+q menu Assign TSIN
+sub FuncTSIN {
+  AssignFunctor('TSIN');
+}#FuncTSIN
+
+#bind FuncTPAR to Ctrl+x menu Assign TPAR
+sub FuncTPAR {
+  AssignFunctor('TPAR');
+}#FuncTPAR
+
+#bind FuncORIG to Ctrl+y menu Assign ORIG
+sub FuncORIG {
+  AssignFunctor('ORIG');
+}#FuncORIG
+
+#bind FuncMOD to Ctrl+z menu Assign MOD
+sub FuncMOD {
+  AssignFunctor('MOD');
+}#FuncMOD
+
+#endif
+
 package PML_A_View;
 
 #binding-context PML_A_View
