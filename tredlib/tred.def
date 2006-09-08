@@ -1918,7 +1918,7 @@ sub CenterOtherWinTo {
 }
 
 
-=item C<HiddenVisible($win?)>
+=item C<HiddenVisible(win?)>
 
 Return true if TrEd displays hidden nodes in a given window (or the
 currently focused window if called without an argument).
@@ -2090,7 +2090,7 @@ sub GetCurrentStylesheet {
   }
 }
 
-=item C<SetCurrentStylesheet($stylesheet_name)>
+=item C<SetCurrentStylesheet(stylesheet_name)>
 
 Set stylesheet for the active window.
 
@@ -2247,7 +2247,7 @@ sub CurrentContext {
   return $grp->{macroContext};
 }
 
-=item C<SwitchContext($context)>
+=item C<SwitchContext(context)>
 
 Switch to given macro context.
 
@@ -2257,7 +2257,7 @@ sub SwitchContext {
   main::switchContext($grp,shift);
 }
 
-=item C<CurrentContextForWindow($win)>
+=item C<CurrentContextForWindow(win)>
 
 Get a macro context currently selected in a given window.
 
@@ -2269,7 +2269,7 @@ sub CurrentContextForWindow {
   return $win ? $win->{macroContext} : undef;
 }
 
-=item C<SwitchContextForWindow($win,$context)>
+=item C<SwitchContextForWindow(win,context)>
 
 Switch given window to given macro context.
 
