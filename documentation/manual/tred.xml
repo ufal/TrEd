@@ -723,7 +723,7 @@ Tk: 804.027
 	</listitem>
 	<listitem>
 	  <para>
-	    Current style-sheet. It can be changed in the similar way as the
+	    Current stylesheet. It can be changed in the similar way as the
 	    context.
 	  </para>
 	</listitem>
@@ -751,6 +751,16 @@ Tk: 804.027
 	    These two buttons move view to the previous and next tree
 	    in the current file.
 	    The four buttons that follow are used for view management. 
+	  </para>
+	</listitem>
+	<listitem>
+	  <para>
+	    These buttons allow to create new views by splitting the
+	    current view vertically or horizontaly, to remove the
+	    current view, and to tie all views so that if one moves to
+	    the next/previons tree or file in the current view, the
+	    same operation is automatically performed in all other
+	    views.
 	  </para>
 	</listitem>
       </orderedlist>
@@ -1160,6 +1170,11 @@ Tk: 804.027
 		</textobject>
 	      </inlinemediaobject>.
 	    </para>
+	    <para>
+	      All or selected sentences can also be exported as a HTML
+	      page. The generated page can optionally contain images
+	      of the trees associated with the selected sentences.
+	    </para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -1220,7 +1235,7 @@ Tk: 804.027
 	      buttons (<guilabel moreinfo="none">Sort by name</guilabel> and <guilabel moreinfo="none">Sort by
 	      keyboard shortcuts</guilabel>) control the order in which
 	      macros are listed. Finally, the button <guibutton moreinfo="none">Export as HTML</guibutton>
-	      creates a handy reference from the listing in form of a a HTML document.
+	      creates a handy reference page from the listing in form of a HTML document.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -2637,11 +2652,12 @@ Tk: 804.027
       string attributes, enumerated attributes,
       constant attributes,
       lists (either <literal moreinfo="none">|</literal>-separated lists of strings used
-      by FS format files or generic ordered or unordered <literal moreinfo="none">Fslib::List</literal>
-      lists of arbitrary type and <literal moreinfo="none">Fslib::Alt</literal>
-      alternatives used by PML instances), and also for 
-      <firstterm>structured attributes</firstterm>
-      (i.e. <quote>nesting</quote> of attributes).
+      by FS format files or advanced data types used by PML instances: <literal moreinfo="none">Fslib::List</literal>
+      lists of values of an arbitrary type, <literal moreinfo="none">Fslib::Alt</literal>
+      alternatives of values, and <literal moreinfo="none">Fslib::Seq</literal> sequences of named elements), and, 
+      most importantly,  for 
+      <firstterm>hierarchical attributes</firstterm> (<literal moreinfo="none">Fslib::Struct</literal>
+      and <literal moreinfo="none">Fslib::Container</literal>).
     </para>
     <figure id="fig-new-editnode" float="0">
       <title>New Edit Node interface</title>
@@ -2659,7 +2675,7 @@ Tk: 804.027
       The leafs of the tree represent the editable
       (string or enumerated) values. Enumerated values
       can be selected from a combo-box with a search-as-you-type
-      functionality. Lists, alternatives and/or their members have additional
+      functionality. Lists, alternatives, sequences and/or their members have additional
       buttons beside their tree-entry for adding
       new members, removing members, and altering the order of members,
       as listed in <xref linkend="tab-editnode"/>.
@@ -2690,7 +2706,7 @@ Tk: 804.027
 		<keysym>+</keysym>
 	      </keycombo>
 	    </entry>
-	    <entry>add new member to the list</entry>
+	    <entry>add a new member to a list</entry>
 	  </row>
 	  <row>
 	    <entry>
@@ -2706,7 +2722,7 @@ Tk: 804.027
 		<keysym>-</keysym>
 	      </keycombo>
 	    </entry>
-	    <entry>remove current member from the list</entry>
+	    <entry>remove the current member from a list</entry>
 	  </row>
 	  <row>
 	    <entry>
@@ -2722,7 +2738,7 @@ Tk: 804.027
 		<keysym>up</keysym>
 	      </keycombo>
 	    </entry>
-	    <entry>move current member up in the list</entry>
+	    <entry>move the current member up in an ordered list</entry>
 	  </row>
 	  <row>
 	    <entry>
@@ -2738,7 +2754,7 @@ Tk: 804.027
 		<keysym>down</keysym>
 	      </keycombo>
 	    </entry>
-	    <entry>move current member down in the list</entry>
+	    <entry>move the current member down in an ordered list</entry>
 	  </row>
 	  <row>
 	    <entry>
@@ -2754,7 +2770,7 @@ Tk: 804.027
 		<keysym>*</keysym>
 	      </keycombo>
 	    </entry>
-	    <entry>add new alternative</entry>
+	    <entry>add an alternative value</entry>
 	  </row>
 	  <row>
 	    <entry>
@@ -2770,7 +2786,87 @@ Tk: 804.027
 		<keysym>/</keysym>
 	      </keycombo>
 	    </entry>
-	    <entry>remove current alternative</entry>
+	    <entry>remove the current alternative</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_hash.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_hash.eps" format="EPS" role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal moreinfo="none">#</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul" moreinfo="none">
+		<keysym>Ctrl</keysym>
+		<keysym>#</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>create/delete a structure</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_plus_blue.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_plus_blue.eps" format="EPS" role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal moreinfo="none">+</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul" moreinfo="none">
+		<keysym>Ctrl</keysym>
+		<keysym>+</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>add a new element to a sequence (a menu pops up to select name)</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_minus_blue.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_minus_blue.eps" format="EPS" role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal moreinfo="none">-</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul" moreinfo="none">
+		<keysym>Ctrl</keysym>
+		<keysym>-</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>remove the current element from a sequence</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_up_blue.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_up_blue.eps" format="EPS" role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal moreinfo="none">up</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul" moreinfo="none">
+		<keysym>Ctrl</keysym>
+		<keysym>up</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>move the current element up in a sequence</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_down_blue.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_down_blue.eps" format="EPS" role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal moreinfo="none">down</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul" moreinfo="none">
+		<keysym>Ctrl</keysym>
+		<keysym>down</keysym>
+	      </keycombo>
+	    </entry>
+	    <entry>move the current element down in a sequence</entry>
 	  </row>
 	</tbody>
       </tgroup>
@@ -3790,11 +3886,11 @@ Tk: 804.027
       <listitem>
 	<para>
 	  It is possible to print more than one tree (each tree then
-	  appears on a separate page).  To do so, a comma-separated
-	  list of tree numbers or ranges of tree numbers that
-	  correspond to the desired trees in the active file, must be
-	  entered into the <guilabel moreinfo="none">Page
-	  range</guilabel> field.  The
+	  appears either on a separate page or in a separate file).
+	  To do so, a comma-separated list of tree numbers or ranges
+	  of tree numbers that correspond to the desired trees in the
+	  active file, must be entered into the <guilabel
+	  moreinfo="none">Page range</guilabel> field.  The
 	  <inlinemediaobject><imageobject><imagedata
 	  fileref="pics/1leftarrow.png" format="PNG"
 	  role="html"/></imageobject><imageobject><imagedata
