@@ -113,13 +113,13 @@ if ($print_version) {
 
 
 ($userlogin) = (getlogin() || ($^O ne 'MSWin32') && getpwuid($<) || 'unknown');
-($userlogin =~ /\S/) || warn "Couldn\'t deterbmine user\'s login name\n";
+($userlogin =~ /\S/) || warn "Could not determine user\'s login name\n";
 
 $quiet=1 if $Quiet;
 $NO_HOOKS = 0;
 
 unless (open $_ERR, ">&STDERR") {
-  warn("Can't dup STDERR: $!");
+  warn("Cannot dup STDERR: $!");
   $_ERR=\*STDERR;
 }
 
@@ -222,12 +222,12 @@ if (defined $macro) {
 
 unless (-d $libDir) {
   print <<'EOL';
- BTrEd couldn't find a tredlib directory. You may need to point
+ BTrEd could not find a tredlib directory. You may need to point
  to its location by the TREDHOME variable or add a correct LibDir
  field to your ~/.tredrc.
 
 EOL
-    die "Error: Couldn't find lib-directory.";
+    die "Error: Could not find lib-directory.";
 }
 
 use Cwd;
@@ -342,7 +342,7 @@ if ($file_list) {
       }
       close(F);
     } else {
-      print STDERR "Warning: Can't open filelist $l: $!\n";
+      print STDERR "Warning: Cannot open filelist $l: $!\n";
     }
   }
 }
@@ -447,20 +447,20 @@ sub _copy_output {
 
 sub _revert_redirect_stdout {
   my ($old)=@_;
-  open $old, ">&STDOUT" or die "Can't dup STDOUT: $!";
+  open $old, ">&STDOUT" or die "Cannot dup STDOUT: $!";
 }
 
 sub _revert_redirect_stderr {
   my ($old)=@_;
-  open $old, ">&STDERR" or die "Can't dup STDERR: $!";
+  open $old, ">&STDERR" or die "Cannot dup STDERR: $!";
 }
 
 sub _redirect_stdout {
   my ($new_out)=@_;
   local *MOUT=*$new_out;
   my $old;
-  open $old, ">&STDOUT" or die "Can't dup STDOUT: $!";
-  open(STDOUT, "+>&MOUT") or die "Can't redirect STDOUT: $!";
+  open $old, ">&STDOUT" or die "Cannot dup STDOUT: $!";
+  open(STDOUT, "+>&MOUT") or die "Cannot redirect STDOUT: $!";
 #  $new_out->autoflush(1);
   return $old;
 }
@@ -469,8 +469,8 @@ sub _redirect_stderr {
   my ($new_out)=@_;
   local *MOUT=*$new_out;
   my $old;
-  open $old, ">&STDERR" or die "Can't dup STDERR: $!";
-  open(STDERR, "+>&MOUT") or die "Can't redirect STDERR: $!";
+  open $old, ">&STDERR" or die "Cannot dup STDERR: $!";
+  open(STDERR, "+>&MOUT") or die "Cannot redirect STDERR: $!";
   $new_out->autoflush(1);
   return $old;
 }
@@ -1893,7 +1893,7 @@ Apply Perl C<glob> function on the filename patterns given on the
 command-line.  This expands possible wild-card patterns on each of the
 filename command-line argument as the standard Unix shell /bin/csh
 would do. This can not only help in a situation where the shell used
-doesn't support wildcard expansion, but can also be used to reduce the
+does not support wildcard expansion, but can also be used to reduce the
 number of the command-line arguments passed to the process in cases
 where the argument list would after the shell-expansion exceed a
 system limit. By default, this flag is 'on' for the Windows platform
@@ -1972,7 +1972,7 @@ pull certain data from external resources and push it back (with all
 changes) to the original position in the resource when saving the
 file. This option allows to list the types of resources (in PML the
 types are the reference names listed in the PML schema) which should
-be saved. Default is C<NONE>. This type of resources doesn't include
+be saved. Default is C<NONE>. This type of resources does not include
 so called secondary files.
 
 =item B<--no-save>
@@ -1986,7 +1986,7 @@ C<$TredMacro::FileChanged> to 1).
 Run macro code in a safe compartment restricting some operations that
 could be used by a malicious code writer to explore and compromise the
 user's environment and potentially the entire system. Most notably,
-this blocks most IO operations. NO WARRANTY! If unsure, don't run the
+this blocks most IO operations. NO WARRANTY! If unsure, do not run the
 macro code at all.
 
 =item B<--csts-tree-attributes|-X> gov,ord?,hide?
@@ -2044,7 +2044,7 @@ Print only general processing information on stderr.
 
 =item B<--very-quiet|-Q>
 
-Don't print anything to stderr at all (except for fatal errors).
+Do not print anything to stderr at all (except for fatal errors).
 
 =item B<--debugging|-D>
 
@@ -2073,7 +2073,7 @@ file-name prefix/suffix processing and format apply to both the
 primary and secondary files). A secondary file is a file required by a
 (normal - primary) file to be loaded along with it; this is typical
 for files containing some form of a stand-off annotation where one
-tree is built upon another. Note however, that this doesn't include so
+tree is built upon another. Note however, that this does not include so
 called knitting - an operation where the stand-off annotation is
 handled by a IO backend and the resulting knitted file appears to
 btred as a single unit.
