@@ -4554,7 +4554,10 @@ sub newTrEdWindow {
   $win->{macroContext}= $opt_t && exists($keyBindings{$opt_t}) 
     ? $opt_t : 'TredMacro';
   $win->{stylesheet} = STYLESHEET_FROM_FILE();
-  push @{$grp->{treeWindows}}, $win;
+  $windows = $grp->{treeWindows};
+  push @$windows, $win;
+  $grp->{rmsplitButton}->configure(-state => @$windows>1 ? 'normal' : 'disabled')
+    if $grp->{rmsplitButton};
   return $win;
 }
 
@@ -4665,17 +4668,22 @@ sub splitWindow {
   get_nodes_win($twin);
   redraw_win($twin);
   focusCanvas($canvas,$grp) unless $nofocus;
+  return $twin;
 }
 
 sub removeWindow {
-  my ($grp)=@_;
-  my $win=$grp->{focusedWindow};
-  if (@{$grp->{treeWindows}}>1) {
-    @{$grp->{treeWindows}}=grep {$_ ne $win} @{$grp->{treeWindows}};
+  my ($grp,$win)=@_;
+  $win ||= $grp->{focusedWindow};
+  my $windows = $grp->{treeWindows};
+  if (@$windows > 1) {
+    @$windows=grep {$_ ne $win} @$windows;
+    $grp->{rmsplitButton}->configure(-state => 'disabled') if $grp->{rmsplitButton} and @$windows<=1;
     closeFile($win,-no_update => 1, -keep_postponed => 1);
     my $brother=$win->canvas_destroy();
-    delete $grp->{focusedWindow};
-    focusCanvas($brother,$grp);
+    if ($win == $grp->{focusedWindow}) {
+      delete $grp->{focusedWindow};
+      focusCanvas($brother,$grp);
+    }
     $win->{treeView}=undef;
     undef $win;
   }
@@ -5703,6 +5711,7 @@ sub startMain {
     $group{frame}->Button(-takefocus=>0, 
 			  -text=> "Remove Current View",
 			  -relief=> $buttonsRelief,
+			  -state => 'disabled',
 			  -image=> icon(\%group,"view_remove"),
 			  -borderwidth=> $buttonBorderWidth,
 			  -command=> [\&removeWindow,\%group])->pack(-side=>'left');
@@ -7729,7 +7738,7 @@ sub editAttrsDialog_schema {
 #	  } else {
 #	    $type = { container => $node_type };
 #	  }
-	  $node_type->validate_object( $val, { log => \@log } );
+	  $node_type->validate_object( $val, { log => \@log, no_childnodes => 1 } );
 	} else {
 	  __debug("Validating: attribute '$attr_path' / name '$attr_name' (required $is_required)\n");
 	  if ($val->{$attr_name} ne EMPTY or $is_required) {
@@ -7737,6 +7746,7 @@ sub editAttrsDialog_schema {
 	    $node_type->validate_object($val->{$attr_name},
 					{ path => $attr_path,
 					  log => \@log,
+					  no_childnodes => 1,
 					});
 	  }
 	}
@@ -9514,6 +9524,10 @@ sub doEvalMacro {
 
   my $undo=prepare_undo($win,findMacroDescription($macro));
   my $result=do_eval_macro($win,$macro);
+  my $current_win=get_macro_variable("grp");
+  if ($win != $current_win and UNIVERSAL::isa($current_win,'TrEd::Window') ) {
+    $win = $current_win;
+  }
   my $current=get_macro_variable("this");
   my $file_not_saved=get_macro_variable("FileNotSaved");
   $file_not_saved=1 if $file_not_saved eq '?';
