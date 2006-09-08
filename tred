@@ -3603,10 +3603,50 @@ sub copyTreesDialog {
 }
 
 sub initTTFonts {
-  my ($grp)=@_;
-  print STDERR "Collecting TTF fonts\n";# if $tredDebug;
-  $grp->{ttfonts}=TrEd::Print::get_ttf_fonts(map TrEd::Config::tilde_expand($_),
-					     split /,/,$ttFontPath);
+  my ($grp,$toplevel)=@_;
+  print STDERR "Collecting TTF fonts..." if $tredDebug;
+  my $opts={};
+  if ($toplevel and eval { require Tk::ProgressBar; }) {
+    my $d= $toplevel->DialogBox(-title => 'Looking for TrueType fonts...',
+				-buttons => ['Cancel']
+			       );
+    my $percent_done=0;
+    my $format = '%3d/%3d  %3d%%';
+    my $f1 = $d->Frame()->pack(-side=>'top', -padx => 5, -fill => 'x', -expand=> 1);
+    $f1->Label(-text => "Looking for TrueType fonts. This may take a moment...\n")->pack(-side => 'left');
+    my $f = $d->Frame()->pack(-side=>'top', -padx => 5, -fill => 'x', -expand=> 1);
+    $f->ProgressBar(-width => 20, -length => 300, -blocks => 1, 
+		    -colors => [0, 'darkblue'],
+		    -troughcolor => 'white',
+		    -variable => \$percent_done)->pack(-side=>'left');
+    my $cancel = 0;
+    $d->bind('<Escape>',sub{ $cancel=1 });
+    $d->Subwidget('B_Cancel')->configure( -command => sub { $cancel=1 } );
+    my $label=sprintf($format,0,0,0);
+    $f->Label(-textvariable => \$label,-width=>12)->pack(-side=>'right');
+    #$grp->{top}->Unbusy();
+    $d->Popup;
+    $d->update();
+    $opts = { callback => sub {
+		my ($font,$i,$max)=@_;
+		die "Interrupted\n" if $cancel;
+		#_quick_update($grp);
+		$d->update;
+		$percent_done = int(100* $i / $max);
+		$label=sprintf($format,$i,$max,$percent_done);
+	      },
+	      _dlg => $d,
+	    };
+  }
+  eval {
+    $grp->{ttfonts}=TrEd::Print::get_ttf_fonts($opts,
+					       map TrEd::Config::tilde_expand($_),
+					       split /,/,$ttFontPath);
+  };
+  if ($opts) {
+    $opts->{_dlg}->destroy();
+  }
+  return $grp->{ttfonts};
 }
 
 sub warnWin32PrintConvert {
@@ -3641,7 +3681,7 @@ sub warn55PrintConvert {
 
 
 sub updatePrintDialogState {
-  my ($grp,$w, $s, $extension)=@_; # widgets, state
+  my ($grp,$w, $s, $extension,$toplevel)=@_; # widgets, state
   my %t=map { $_ => 1} keys %$w; # toggle
   my @disable;
   if ($s->{printTo} eq 'printer') {
@@ -3664,7 +3704,7 @@ sub updatePrintDialogState {
     push @disable,qw(printTo_printer);
     unless ($grp->{ttfonts}) {
       $w->{font}->toplevel->Busy(-recurse => 1);
-      initTTFonts($grp);
+      initTTFonts($grp,$toplevel);
       foreach (sort {$a cmp $b} keys %{$grp->{ttfonts}}) {
 #	$w->{font}->insert('end',$_);
 	$w->{font}->addItem($_);
@@ -3697,7 +3737,7 @@ sub updatePrintDialogState {
   }
   foreach my $widget (keys %t) {
     if ($t{$widget}) {
-      print "On: $widget: $w->{$widget}\n";
+      #print "On: $widget: $w->{$widget}\n";
       eval { $w->{$widget}->configure(-state => 'normal') };
       eval { $w->{$widget}->configure(($w->{$widget}->isa('Tk::Entry') or
 				       $w->{$widget}->isa('Tk::BrowseEntry') or
@@ -3706,7 +3746,7 @@ sub updatePrintDialogState {
 				      (-background => $s->{defaultBg}) : ()
 				     ) };
     } else {
-      print "Off: $widget: $w->{$widget}\n";
+      #print "Off: $widget: $w->{$widget}\n";
       eval { $w->{$widget}->configure(-state=> 'disabled') };
       eval { $w->{$widget}->configure(($w->{$widget}->isa('Tk::Entry') or
 				       $w->{$widget}->isa('Tk::BrowseEntry') or
@@ -3715,7 +3755,7 @@ sub updatePrintDialogState {
 				      (-background => $s->{disabledBg}) : ()
 				     ) };
     }
-    print "---\n";
+    #print "---\n";
   }
 }
 
@@ -3808,7 +3848,7 @@ sub printDialog {
 			      -font => ref($font) ? $font->Clone(-size => 8) :
 			      $d->Font(-family => 'sans', -size => 8),
 			      -textvariable => \$s{psMedia}, # global variable in TrEd::Config
-			      -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef]
+			      -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef,$d]
 			)->pack(-side=> 'left');
   $w{psMedia}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   $w{prtFmtHeight}->raise($w{psMedia});
@@ -3966,7 +4006,7 @@ sub printDialog {
 		  -variable=> \$s{printTo},
 		  -relief  => 'flat',
 		  -command =>
-		  [\&updatePrintDialogState,$grp,\%w,\%s,$printbuttons{$_}[2]]
+		  [\&updatePrintDialogState,$grp,\%w,\%s,$printbuttons{$_}[2],$d]
 		 );
   }
   $w{printTo_convert}->pack(qw/-anchor w -side left -fill y -expand 1/);
@@ -3997,7 +4037,7 @@ sub printDialog {
 		  -variable=> \$s{format},
 		  -relief  => 'flat',
 		  -command =>
-		  [\&updatePrintDialogState,$grp,\%w,\%s,$fmtbuttons{$_}[2]]
+		  [\&updatePrintDialogState,$grp,\%w,\%s,$fmtbuttons{$_}[2],$d]
 		 );
   }
   foreach (qw(PS EPS)) {
@@ -4024,7 +4064,7 @@ sub printDialog {
   $w{printOnePerFile}=$bf->Checkbutton(-text=> 'one tree per file (use %n in the filename to place the tree number)',
 				       -underline => 0,
 				       -variable=> \$s{printOnePerFile},
-				       -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef],
+				       -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef,$d],
 				       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
   $w{noRotate}=
@@ -4075,7 +4115,7 @@ sub printDialog {
   $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
   $ff->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
 
-  updatePrintDialogState($grp,\%w,\%s, $grp->{printFileExtension});
+  updatePrintDialogState($grp,\%w,\%s, $grp->{printFileExtension},$d);
 #  $toFile ? $fe->focus : $ce->focus;
   _bind_buttons($d,$d);
   my $result= ShowDialog($d,$s{printTo} eq "command" ? $w{command} : $w{file},$grp->{top});
