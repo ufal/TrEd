@@ -1569,6 +1569,7 @@ sub Redraw {
   &main::setCurrent($grp,$this) if ($this);
   &main::get_nodes_win($grp);
   &main::redraw_win($grp);
+  &main::centerTo($grp,$this) if ($this);
   $main::insideEval=$ie;
 }
 
@@ -1586,6 +1587,7 @@ sub Redraw_FSFile {
   &main::setCurrent($grp,$this) if ($this);
   &main::get_nodes_fsfile($grp->{framegroup},$grp->{FSFile});
   &main::redraw_fsfile($grp->{framegroup},$grp->{FSFile});
+  &main::centerTo($grp,$this) if ($this);
   $main::insideEval=$ie;
 }
 
@@ -1603,6 +1605,7 @@ sub Redraw_FSFile_Tree {
   &main::setCurrent($grp,$this) if ($this);
   &main::get_nodes_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
   &main::redraw_fsfile_tree($grp->{framegroup},$grp->{FSFile},$grp->{treeNo});
+  &main::centerTo($grp,$this) if ($this);
   $main::insideEval=$ie;
 }
 
@@ -1619,6 +1622,7 @@ sub Redraw_All {
   &main::setCurrent($grp,$this) if ($this);
   &main::get_nodes_all($grp->{framegroup});
   &main::redraw_all($grp->{framegroup});
+  &main::centerTo($grp,$this) if ($this);
   $main::insideEval=$ie;
 }
 
@@ -1631,7 +1635,10 @@ Force TrEd to immediately redraw status line.
 sub RedrawStatusLine {
   confess "Can't call Redraw without a GUI\n" unless GUI();
   local $main::insideEval=0;
-  &main::setCurrent($grp,$this) if ($this);
+  if ($this) {
+    &main::setCurrent($grp,$this);
+    &main::centerTo($grp,$this);
+  }
   &main::updateStatusLine($grp);
 }
 
