@@ -32,7 +32,21 @@ TredMacro (F<tred.def>) - implements the public API for TrEd/bTred macros
 
 =over 4
 
+=item C<$this>
+
+Current node (i.e. the active node in TrEd and the node in turn if
+C<-N> or C<-H> flag was used in bTrEd). Assigning a different node
+from the current tree to this variable results in changing the active
+node in TrEd and continuing processing at that node in bTrEd.
+
+=item C<$root>
+
+Root of the current tree. If possible, avoid changing this variable in
+a macro, so that called macros may rely on its value too.
+
 =item C<$FileChanged> (alias C<$FileNotSaved> - still valid but obsolete)
+
+See also C<ChangingFile()>.
 
 If this variable is set to 1, TrEd/bTrEd considers the current file to
 be modified and in case of bTrEd makes the program to save it before
@@ -63,46 +77,9 @@ In TrEd, you may wish to set this variable to 0 if you wish to change
 the status of the file to C<saved> (e.g. after saving the file from
 your macro).
 
-=item C<$root>
-
-Root of the current tree. If possible, avoid changing this variable in
-your code, so that other macros you call may use it too.
-
-=item C<$this>
-
-Current node (i.e. the active node in TrEd and the node in turn if
-C<-N> or C<-H> flag was used in bTrEd). Assigning a different node
-from the current tree to this variable results in changing the active
-node in TrEd.
-
 =item C<$libDir>
 
 This variable contains a path to TrEd library directory.
-
-=item C<$grp>
-
-This variable is a hash reference which stores the fundamental piece
-of information about the current file, context etc. B<DO
-NOT CHANGE IT>. You may, however, use 
-this variable to access that information:
-
-=over 5
-
-=item C<$grp-E<gt>{FSFile}>
-
-This field stores the FSFile object of the current file.  See Fslib
-or manual to TrEd (section Accessing other trees) for more info.
-
-=item C<$grp-E<gt>{treeNo}>
-
-This field contains index of the current tree.
-
-=item C<$grp-E<gt>{macroContext}>
-
-This field contains the name of current macro context. To change
-current context use the pre-defined macro SwitchContext
-
-=back
 
 =back
 
@@ -537,7 +514,7 @@ sub NPosition { print ThisAddressNTRED(@_),"\n"; }
 
 Cut given node (including its subtree) and paste it to a new
 parent. This macro is safer than PasteNode since it checks that
-new-parent isn't a descendant of node or node itself. If the check
+new-parent is not a descendant of node or node itself. If the check
 fails, the macro dies with an error before any change is made.
 
 Note: this macro does not verify node types. Use
@@ -551,7 +528,7 @@ sub CutPaste {
   my $p = $target;
   while ($p) {
     if( $p == $cutted ) {
-      die("Can't paste node to its descendant or self at ".ThisAddress($cutted));
+      die("Can not paste node to its descendant or self at ".ThisAddress($cutted));
     }
     $p=$p->parent;
   }
@@ -562,7 +539,7 @@ sub CutPaste {
 
 Cut given node (including its subtree) nd paste it on ref_node's
 parent node just before ref_node. This macro is safer than
-PasteNodeBefore since it checks that new-parent isn't a descendant of
+PasteNodeBefore since it checks that new-parent is not a descendant of
 node or node itself. This macro dies on error before any change is
 made.
 
@@ -577,7 +554,7 @@ sub CutPasteBefore {
   my $p = $ref_node->parent;
   while ($p) {
     if( $p == $cutted ) {
-      die("Can't paste node to its descendant or self at ".ThisAddress($cutted));
+      die("Can not paste node to its descendant or self at ".ThisAddress($cutted));
     }
     $p=$p->parent;
   }
@@ -589,7 +566,7 @@ sub CutPasteBefore {
 
 Cut given node (including its subtree) and paste it on ref_node's parent node just after
 ref_node. This macro is safer than PasteNodeBefore since it checks
-that new-parent isn't a descendant of node or node itself. This macro
+that new-parent is not a descendant of node or node itself. This macro
 dies on error before any change is made.
 
 Note: this macro does not verify node types. Use
@@ -603,7 +580,7 @@ sub CutPasteAfter {
   my $p = $ref_node->parent;
   while ($p) {
     if( $p == $cutted ) {
-      die("Can't paste node to its descendant or self at ".ThisAddress($cutted));
+      die("Can not paste node to its descendant or self at ".ThisAddress($cutted));
     }
     $p=$p->parent;
   }
@@ -1034,7 +1011,7 @@ sub PlainDeleteNode {
 =item C<PlainDeleteSubtree(node)>
 
 Cut a the given node's subtree and destroy all its nodes.
-This macro doesn't recalculate ordering attributes.
+This macro does not recalculate ordering attributes.
 
 =cut
 
@@ -1305,7 +1282,7 @@ Return an identical deep copy of a given scalar. Useful for copying
 attribute values (and any value below them), including structured
 attributes, lists or alternatives.
 
-Warning: don't apply this macro to an entire FSNode since otherwise
+Warning: do not apply this macro to an entire FSNode since otherwise
 you might result with a copy of the complete tree, schema, etc.
 
 =cut
@@ -1542,7 +1519,9 @@ sub ListRegroupElements {
 
 =item C<GUI()>
 
-Return 1 if running from TrEd, i.e., GUI is available.
+Return a reference if running from TrEd, i.e., GUI is available;
+otherwise return C<undef>. If running from TrEd the returned value is
+a TrEd::Window object representing the currently focused window.
 
 =cut
 
@@ -1552,6 +1531,152 @@ sub GUI {
 }
 
 #ifdef TRED
+
+=item C<TrEdWindows()>
+
+Return a list of TrEd::Window objects representing current TrEd
+windows.
+
+=cut
+
+sub TrEdWindows {
+  return @{$grp->{framegroup}{treeWindows}};
+}
+
+=item C<CurrentWindow()>
+
+Return a TrEd::Window object representing the currently focused
+window.
+
+=cut
+
+sub CurrentWindow { return $grp }
+
+=item C<SetCurrentWindow(win)>
+
+Focus a given window.
+
+=cut
+
+sub SetCurrentWindow {
+  shift unless ref($_[0]);
+  my $win = shift || $grp;
+  if (UNIVERSAL::isa($win,'TrEd::Window')) {
+    my $tred = $grp->{framegroup};
+    unless ($win == $tred->{focusedWindow}) {
+      main::focusCanvas($win->canvas, $tred);
+    }
+    $win = $tred->{focusedWindow};
+    unless ($grp == $win) {
+      $grp = $win;
+      $this = $win->{currentNode};
+      $root = $win->{root};
+    }
+    return ($grp == $win) ? 1 : 0;
+  } else {
+    die "Usage: SetCurrentWindow(\$win) (argument is not a TrEd::Window)!"
+  }
+}
+
+=item C<SplitWindowHorizontally()>
+
+Split current window horizontally. Returns an object represening the
+newly created window.
+
+=cut
+
+sub SplitWindowHorizontally {
+  return main::splitWindow($grp->{framegroup},'horiz',1);
+}
+
+=item C<SplitWindowVertically()>
+
+Split current window horizontally. Returns an object represening the
+newly created window.
+
+=cut
+
+sub SplitWindowVertically {
+  return main::splitWindow($grp->{framegroup},'vert',1);
+}
+
+=item C<CloseWindow(win?)>
+
+Close a given window, unless it is the last window that exists.  If no
+window is given as an argument, try closing the current window.  If
+the closed window was focused, then a next sibling window gets focus.
+
+=cut
+
+sub CloseWindow {
+  shift unless ref($_[0]);
+  my $win = shift || $grp;
+  main::removeWindow($grp->{framegroup},$win);
+  SetCurrentWindow();
+  return $grp;
+}
+
+=item C<CurrentFile(win?)>
+
+Return a FSFile object representing the file currently open in a given
+TrEd window or in the currently focused window if called without
+arguments.
+
+=cut
+
+sub CurrentFile {
+  shift unless ref($_[0]);
+  my $win = shift || $grp;
+  if ($win) {
+    return $win->{FSFile};
+  }
+}
+
+=item C<CurrentNodeInOtherWindow(win)>
+
+Return the node currently active in a given window.
+
+=cut
+
+sub CurrentNodeInOtherWindow {
+  shift unless ref($_[0]);
+  my $win = shift || $grp;
+  if ($win) {
+    return $win->{currentNode};
+  }
+  return undef;
+}
+
+=item C<SetCurrentNodeInOtherWindow(win,node)>
+
+Set active node for a given window.
+
+=cut
+
+sub SetCurrentNodeInOtherWindow {
+  my ($win,$node)=@_;
+  TrEd::Basics::setCurrent($win,$node);
+}
+*SetCurrentNodeInOtherWin = \&SetCurrentNodeInOtherWindow; # compatibility alias
+
+
+
+=item C<ToplevelFrame()>
+
+Returns the Tk::Toplevel object containing the current window.
+
+=cut
+
+sub ToplevelFrame {
+  return $grp->toplevel();
+}
+
+=item C<PrintDialog(...)>
+
+See the description in the L<Printing trees> section.
+
+=cut
+
 
 =item C<Redraw()>
 
@@ -1563,7 +1688,7 @@ from a hook).
 =cut
 
 sub Redraw {
-  confess "Can't call Redraw without a GUI\n" unless GUI();
+  confess "Can not call Redraw without a GUI\n" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1581,7 +1706,7 @@ file.
 =cut
 
 sub Redraw_FSFile {
-  confess "Can't call Redraw without a GUI\n" unless GUI();
+  confess "Can not call Redraw without a GUI\n" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1599,7 +1724,7 @@ tree.
 =cut
 
 sub Redraw_FSFile_Tree {
-  confess "Can't call Redraw without a GUI\n" unless GUI();
+  confess "Can not call Redraw without a GUI\n" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1616,7 +1741,7 @@ Force TrEd to immediately redraw all windows.
 =cut
 
 sub Redraw_All {
-  confess "Can't call Redraw without a GUI\n" unless GUI();
+  confess "Can not call Redraw without a GUI\n" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1633,7 +1758,7 @@ Force TrEd to immediately redraw status line.
 =cut
 
 sub RedrawStatusLine {
-  confess "Can't call Redraw without a GUI\n" unless GUI();
+  confess "Can not call Redraw without a GUI\n" unless GUI();
   local $main::insideEval=0;
   if ($this) {
     &main::setCurrent($grp,$this);
@@ -1650,7 +1775,7 @@ Open edit attribute GUI.
 =cut
 
 sub EditAttribute {
-  confess "Can't call EditAttribute without a GUI\n" unless GUI();
+  confess "Can not call EditAttribute without a GUI\n" unless GUI();
   main::doEditAttr($grp,@_);
 }
 
@@ -1713,7 +1838,7 @@ Open the Find Node by Attributes GUI dialog.
 =cut
 
 sub Find {
-  confess "Can't call Find without a GUI\n" unless GUI();
+  confess "Can not call Find without a GUI\n" unless GUI();
   $grp->{framegroup}->{findButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
@@ -1727,7 +1852,7 @@ of the Find... menu command or FindNode macro usage.
 =cut
 
 sub FindNext {
-  confess "Can't call FindNext without a GUI\n" unless GUI();
+  confess "Can not call FindNext without a GUI\n" unless GUI();
   $grp->{framegroup}->{findNextButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
@@ -1741,27 +1866,11 @@ use of the Find... menu command or FindNode macro usage.
 =cut
 
 sub FindPrev {
-  confess "Can't call FindPrev without a GUI\n" unless GUI();
+  confess "Can not call FindPrev without a GUI\n" unless GUI();
   $grp->{framegroup}->{findPrevButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
 }
-
-=item C<ToplevelFrame()>
-
-Returns the Tk::Toplevel object containing the current window.
-
-=cut
-
-sub ToplevelFrame {
-  return $grp->toplevel();
-}
-
-=item C<PrintDialog(...)>
-
-See the description in the L<Printing trees> section.
-
-=cut
 
 
 =item C<ErrorMessage(message)>
@@ -1797,17 +1906,6 @@ sub StandardTredValueLineFont {
   return $main::vLineFont;
 }
 
-=item C<SetCurrentNodeInOtherWin(win,node)>
-
-Set active node for a given window.
-
-=cut
-
-sub SetCurrentNodeInOtherWin {
-  my ($win,$node)=@_;
-  TrEd::Basics::setCurrent($win,$node);
-}
-
 =item C<CenterOtherWinTo(win,node)>
 
 Center given window to a given node.
@@ -1820,14 +1918,17 @@ sub CenterOtherWinTo {
 }
 
 
-=item C<HiddenVisible()>
+=item C<HiddenVisible($win?)>
 
-Return true if TrEd presently displays hidden nodes.
+Return true if TrEd displays hidden nodes in a given window (or the
+currently focused window if called without an argument).
 
 =cut
 
 sub HiddenVisible {
-  return (ref($grp->{treeView}) and $grp->{treeView}->get_showHidden());
+  shift unless ref($_[0]);
+  my $win = shift || $grp;
+  return (ref($win->{treeView}) and $win->{treeView}->get_showHidden());
 }
 
 =back
@@ -1975,7 +2076,21 @@ sub Stylesheets {
   }
 }
 
-=item C<SetCurrentStylesheet()>
+=item C<GetCurrentStylesheet()>
+
+Returns name of the stylesheet currently selected for the active
+window.
+
+=cut
+
+sub GetCurrentStylesheet {
+  my $win = GUI();
+  if ($win) {
+    return $win->{stylesheet};
+  }
+}
+
+=item C<SetCurrentStylesheet($stylesheet_name)>
 
 Set stylesheet for the active window.
 
@@ -1991,18 +2106,6 @@ sub SetCurrentStylesheet {
   return -1;
 }
 
-=item C<GetCurrentStylesheet()>
-
-Returns name of the stylesheet currently selected for the active
-window.
-
-=cut
-
-sub GetCurrentStylesheet {
-  if (GUI()) {
-    return $grp->{stylesheet};
-  }
-}
 
 =item C<GetSpecialPattern(prefix)> - OBSOLETE!!
 
@@ -2021,7 +2124,7 @@ sub GetSpecialPattern {
 =item C<SetDisplayAttrs(pattern,...)> - OBSOLETE!!
 
 Setup given patterns as a stylesheet of
-the currently displayed FSFile. This doesn't include
+the currently displayed FSFile. This does not include
 a hint pattern.
 
 =cut
@@ -2134,26 +2237,6 @@ sub AddStyle {
 
 =over 4
 
-=item C<SwitchContext()>
-
-Switch to given macro context.
-
-=cut
-
-sub SwitchContext {
-  main::switchContext($grp,shift);
-}
-
-=item C<SwitchContextForWindow()>
-
-Switch given window to given macro context.
-
-=cut
-
-sub SwitchContextForWindow {
-  main::switchContext(@_);
-}
-
 =item C<CurrentContext()>
 
 Return the name of the current macro context.
@@ -2163,6 +2246,44 @@ Return the name of the current macro context.
 sub CurrentContext {
   return $grp->{macroContext};
 }
+
+=item C<SwitchContext($context)>
+
+Switch to given macro context.
+
+=cut
+
+sub SwitchContext {
+  main::switchContext($grp,shift);
+}
+
+=item C<CurrentContextForWindow($win)>
+
+Get a macro context currently selected in a given window.
+
+=cut
+
+sub CurrentContextForWindow {
+  shift unless ref($_[0]);
+  my $win = shift || GUI();
+  return $win ? $win->{macroContext} : undef;
+}
+
+=item C<SwitchContextForWindow($win,$context)>
+
+Switch given window to given macro context.
+
+=cut
+
+sub SwitchContextForWindow {
+  shift unless ref($_[0]);
+  my $win = shift || GUI();
+  if ($win) {
+    my ($ctxt,$no_redraw) = @_;
+    main::switchContext($win,$ctxt,$no_redraw);
+  }
+}
+
 
 =back
 
@@ -2317,6 +2438,12 @@ sub ChangingFile {
   $forceFileSaved=0 if ($val);
   return $FileChanged;
 }
+
+=item C<CurrentFile()>
+
+Return a FSFile object representing the currently processed file.
+
+=cut
 
 =item C<Open(filename)>
 
@@ -2674,7 +2801,7 @@ resource. Otherwise return filename.
 If a given filename is a relative path, try to find the file in the
 same directory as ref-filename. In case of success, return a path
 based on the directory part of ref-filename and filename.  If the file
-can't be located in this way and use_resources is true, return the
+cannot be located in this way and use_resources is true, return the
 value of C<FindInResources(filename)>.
 
 =cut
@@ -3223,7 +3350,7 @@ sub _import {
     } elsif ($type eq '*') {
       *{"${caller}::$k"} = \*{"${pkg}::$k"};
     } else {
-#      do { warn("Can't export symbol: $type $pkg $k") };
+#      do { warn("Can not export symbol: $type $pkg $k") };
     }
   }
 };
@@ -3273,7 +3400,7 @@ This macro requires C<XML::XPath> module to be installed.  It adjusts
 FSNode API to match XPath model based on a given function mapping.  By
 defalut, 'id' is defined to return nothing, 'pos' returns nodes
 sentence-ordering position (or tree-ordering position if sentord
-attribute isn't defined), 'attributes' returs a hashref of node's
+attribute is not defined), 'attributes' returs a hashref of node's
 attributes (actually a FSNode itself), 'name' returns "node", 'value'
 returns node's value of the special FS value attribute, and
 'children', 'parent', 'lbrother', and 'rbrother' all default to the
