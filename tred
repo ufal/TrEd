@@ -3275,12 +3275,15 @@ sub generateSortedMacroTable {
   my %macro_to_key = reverse %{ $Keys };
   my %macro_to_menu = map { $Menus->{$_}->[0] => $_ } keys %{ $Menus };
 
-  my @macroTable= map {
+  my @macroTable= 
+    grep { defined($_->[2]) }
+    map {
     my ($macro,$key) = @{ $Menus->{$_} };
     [ $_, ($Keys{$key} eq $macro ? $key : $macro_to_key{$macro}), $macro ]
   } keys %{ $Menus };
   if ($include_anonymous) {
     push @macroTable,
+      grep { defined($_->[2]) }
       map {
 	my $macro = $Keys->{$_};
 	exists($macro_to_menu{ $macro }) ? () : [ undef, $_, $macro ];
