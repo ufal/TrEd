@@ -1548,7 +1548,7 @@ Return 1 if running from TrEd, i.e., GUI is available.
 
 
 sub GUI {
-  return (ref($grp) eq 'TrEd::Window');
+  return (ref($grp) eq 'TrEd::Window') ? $grp : undef;
 }
 
 #ifdef TRED
