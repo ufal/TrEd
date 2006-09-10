@@ -863,6 +863,7 @@ package PML_A_View;
 #bind PML_A_View->ShowTNodes to t menu Show t-nodes
 sub ShowTNodes{
   my $aid = $this->{id};
+  my $num = CurrentTreeNumber();
   my @nodes;
   TectogrammaticalTree();
   TredMacro::GotoTree(0);
@@ -890,6 +891,10 @@ sub ShowTNodes{
     my ($node,$tree)=SearchForNodeById($id);
     TredMacro::GotoTree($tree);
     $this=$node;
+  }else{
+    PML_T::AnalyticalTree();
+    TredMacro::GotoTree($num+1);
+    $this=$root;
   }
 }#ShowTNodes
 
