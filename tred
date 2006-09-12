@@ -4514,10 +4514,12 @@ sub prepareFonts {
   $treeViewOpts->{font}=$font;
   prepareFont($grp,\$vLineFont,'C_vline');
   eval { # eval, in case fonts already exist
+    $grp->{top}->fontCreate(qw/C_heading -family sans -weight bold -size 11/);
+    $grp->{top}->fontCreate(qw/C_underlined -family sans -size 9/);
     $grp->{top}->fontCreate(qw/C_fixed   -family courier   -size 9/);
-    $grp->{top}->fontCreate(qw/C_default -family helvetica -size 9/);
-    $grp->{top}->fontCreate(qw/C_bold    -family helvetica -size 9 -weight bold/);
-    $grp->{top}->fontCreate(qw/C_italic  -family helvetica -size 9 -slant italic/);
+    $grp->{top}->fontCreate(qw/C_default -family sans -size 9/);
+    $grp->{top}->fontCreate(qw/C_bold    -family sans -size 9 -weight bold/);
+    $grp->{top}->fontCreate(qw/C_italic  -family sans -size 9 -slant italic/);
   };
 
 }
@@ -7984,7 +7986,7 @@ sub disable_scrollbar_focus {
 
 sub format_tred_pod {
   map {
-    if (/^([BICQ])<(.[^>]*)>/) {
+    if (/^([HUBICQ])<(.[^>]*)>/) {
       my $style;
       if ($1 eq 'B') {
 	$style = 'bold';
@@ -7992,6 +7994,10 @@ sub format_tred_pod {
 	$style = 'italic';
       } elsif ($1 eq 'C') {
 	$style = 'fixed';
+      } elsif ($1 eq 'U') {
+	$style = 'underlined';
+      } elsif ($1 eq 'H') {
+	$style = 'heading';
       } else {
 	$style = 'default';
       }
@@ -8004,11 +8010,13 @@ sub format_tred_pod {
       $l=~s/&lt;/\</g;
       $l=~s/&gt;/\>/g;
       ($l,'default')
-    }} split /([BICQ]<.[^>]*>)/,$_[0]
+    }} split /([HUBICQ]<.[^>]*>)/,$_[0]
 }
 
 sub tred_pod_add_tags {
   my ($w)=@_;
+  $w->tag(qw(configure underlined -font C_underlined -underline 1));
+  $w->tag(qw(configure heading -font C_heading));
   $w->tag(qw(configure bold -font C_bold));
   $w->tag(qw(configure fixed -font C_fixed));
   $w->tag(qw(configure default -font C_default));
@@ -8171,19 +8179,28 @@ sub editStylesheetDialog {
     ->pack(qw/-side right/);
 
   my $HELP = <<'EOF';
-B<Stylesheet quick help:>
-I<In this dialog you may edit the current display stylesheet. Stylesheets are sets of display PATTERNS (as described below) that influence the overall tree appearance as well as visual representation of individual nodes, edges and labels (including label content). Each pattern either represents one line of a label (node or edge), defines a per-node text to appear in the value line above the tree, and/or provides styling information for the node and its edges (such as node shape, color, line thickness, line style, etc.). See the User's manual for more details.>
+H<Stylesheet quick help>
+
+I<This dialog allows you to edit the current display stylesheet.>
+
+I<A stylesheet consists of PATTERNS (as described below) which influence the overall tree appearance as well as visual representation of individual nodes, edges and labels (including label content).>
+
+I<A pattern can represent one line of a label of a node or an edge, define a per-node text to appear in the text line above the tree, and/or provide styling information for the node and its edges, e.g. the shape, color, line thickness, line style, etc.>
+
+I<See the User's manual for more details.>
+
+H<Pattern syntax>
 
 B<PATTERN:> C<&lt;prefix&gt;:&lt;rules&gt;>
 
 B<Default prefixes:>
-  C<context>    - restrict stylesheet to contexts matching given regexp
-  C<node>      	- define a node label (default if no prefix given)
-  C<edge>      	- define an edge label
-  C<style>     	- define node and edge appearance (for individual nodes)
-  C<rootstyle> 	- define node and edge appearance globally
-  C<text>      	- define per-node value-line text
-  C<hint>      	- renders to text displayed in a node's tooltip
+  C<context    >- restrict stylesheet to contexts matching given regexp
+  C<node       >- define a node label (default if no prefix given)
+  C<edge       >- define an edge label
+  C<style      >- define node and edge appearance (for individual nodes)
+  C<rootstyle  >- define node and edge appearance globally
+  C<text       >- define per-node value-line text
+  C<hint       >- renders to text displayed in a node's tooltip
 
 B<Rules interpolation:>
   C<${attribute}    >- interpolates to the attribute value
@@ -8196,7 +8213,7 @@ B<Rules interpolation:>
 
   any other text - interpolates to itself
 
-B<RootStyles:>
+H<RootStyles>
   C<balance             >- draw "balanced" Penn-treebank like tree, instead of
   C<                    >  ordering nodes according to a dedicated attribute
   C<                    >  (can only be used in a rootstyle pattern)
@@ -8204,68 +8221,93 @@ B<RootStyles:>
   C<baseYPos            >- Y-coordinate of the root node
   C<nodeXSkip           >- default horizontal skip between nodes
   C<nodeYSkip           >- default vertical skip between nodes
-  C<skipHiddenParents   >- connect nodes with hidden parents to nearest displayed ancestors
+  C<skipHiddenParents   >- connect nodes with hidden parents to nearest
+  C<                    >  displayed ancestors
   C<skipHiddenLevels    >- display nodes with hidden parents one level below their nearest
   C<                    >  displayed ancestors (implies C<skipHiddenParents>)
 
-B<Styles:>
-  C<#{object-feature:value}>
+H<Styles>
 
-B<Colors:>
+B<SYNTAX:>  C<#{object-feature:value}>
+
+B<Object features> (by category)
+
+U<Hiding>
+  C<Node-hide           >- if non-zero, don't display the node at all
+  See also C<skipHiddenParents> and C<skipHiddenLevels> rootstyles.
+
+U<Shape>
+  C<Node-shape          >- oval, rectangle, polygon
+  C<Node-polygon        >- relative coordinates of the poligon points
+
+U<Colors>
   Colors can be specified either by name (such as 'red', 'lightblue', etc.), or
   by a hex RGB string of the form #RRGGBB.
 
-B<Features:>
-  C<Node-hide           >- if non-zero, don't display the node at all
-  C<Node-shape          >- oval, rectangle, polygon
-  C<Node-polygon        >- relative coordinates of the poligon points
+  C<Oval-fill           >- color to fill a node shape with
+  C<Oval-outline        >- color of the outline of node shape
+  C<CurrentOval-fill    >- color to fill the shape of an active node with
+  C<CurrentOval-outline >- color of the outline of the shape of the active node
+  C<Line-fill           >- color of the edge (see U<Edges>)
+
+  C<Oval-dash           >- pattern for the outline of the node shape
+  C<                    >  (oval/rectangle/polygon)
+  C<CurrentOval-dash    >- pattern for the outline of the active node shape
+  C<Oval-dashoffset     >- starting offset for the outline pattern
+
+U<Size>
   C<Node-width          >- set shape width to the given amount
   C<Node-height         >- set shape height to the given amount
+  C<Oval-width          >- width of the outline of a node shape
+  C<CurrentOval-width   >- width of the outline of an active node shape
   C<Node-addwidth       >- add to shape width by given amount
   C<Node-addheight      >- add to shape height by given amount
   C<Node-currentwidth   >- set shape width for active node
   C<Node-currentheight  >- set shape height for active node
-  C<Node-rellevel       >- alter vertical leveling of the subtree
-  C<Node-level          >- alter vertical leveling of a single node
-  C<Node-textalign      >- alignment of labels within label-box (right,left,center)
+
+U<Position and level>
   C<Node-addbeforeskip  >- skip before: 10, 2c, 12pt, etc.
   C<Node-addafterskip   >- skip after
-  C<NodeLabel-valign    >- only as rootstyle. Values: top, center, bottom.
-  C<NodeLabel-halign    >- left, right, center
+  C<Node-rellevel       >- alter vertical leveling of the subtree
+  C<Node-level          >- alter vertical leveling of a single node
   C<NodeLabel-yadj      >- adjust vertical position of node labels by given amount
-  C<NodeLabel-dodrawbox >- force drawing a box around labels: (yes,no)
-  C<NodeLabel-nodrawbox >- force disabling a box around node label: (yes,no)
-  C<Edge-textalign      >- alignment of edge labels within label-box (right,left,center)
   C<EdgeLabel-yadj      >- adjust vertical position of edge labels by given amount
   C<EdgeLabel-coords    >- custom edge label position. Default: (n+p)/2,(n+p)/2
+
+U<Alignment>
+  C<Node-textalign      >- alignment of labels within label-box (right,left,center)
+  C<NodeLabel-valign    >- only as rootstyle. Values: top, center, bottom.
+  C<NodeLabel-halign    >- left, right, center
+  C<Edge-textalign      >- alignment of edge labels within label-box (right,left,center)
   C<EdgeLabel-halign    >- values: right, center, left
   C<EdgeLabel-valign    >- values: top, center, bottom
-  C<EdgeLabel-dodrawbox >- force drawing a box around edge labels: (yes,no)
-  C<EdgeLabel-nodrawbox >- force disabling a box around node label: (yes,no)
-  C<Oval-dash           >- pattern for the outline of the node shape
-  C<                    >  (oval/rectangle/polygon)
-  C<Oval-activedash     >- pattern for the outline of the active node shape
-  C<Oval-dashoffset     >- starting offset for the outline pattern
-  C<Oval-fill           >- color to fill a node shape with
-  C<Oval-activefill     >- color to fill the shape of an active node with
-  C<Oval-outline        >- color of the outline of node shape
-  C<Oval-activeoutline  >- color of the outline of the shape of the active node
-  C<Oval-width          >- width of the outline of a node shape
-  C<Oval-activewidth    >- width of the outline of an active node shape
+
+U<Edges (lines)>
   C<Line-coords         >- coordinations of the edge(s) to be drawn.
   C<                    >  Default: n,n,p,p (see the documentation)
+  C<                    >  May consist of more &-separated segments.
   C<Line-arrow          >- side of an edge to put an arrow on: first, both, last
   C<Line-smooth         >- 1 if the line should be drawn as a curve, 0 otherwise.
   C<Line-tag            >- tags passed to line_click_hook (see the documentation)
-  C<Line-...            >- ...=dash, activedash, dashoffset, fill, activefill,
-  C<Line-...            >  width, activewidth
-  C<TextBox-...         >- ...=dash, activedash, dashoffset, fill, activefill,
-  C<                    >  outline, activeoutline, width, activewidth
-  C<EdgeTextBox-...     >- ditto
-  C<                    >  (similar to Oval-... described above)
-  C<Text[...]-..        >- see the documentation
-  C<TextBg[...]-..      >- ditto
+  C<Line-...            >- where C<...> is any of C<dash>, C<activedash>, C<dashoffset>,
+  C<                    >  C<fill>, C<activefill>, C<width>, and C<activewidth>
+  C<                    >  specifying visual properties of edges.
+  C<                    >  Individual values for different segments
+  C<                    >  can be provided as a &-separated list.
+  C<                    >  (see the documentation for details)
 
+U<Boxes around labels>
+  C<NodeLabel-dodrawbox >- force drawing a box around labels: (yes,no)
+  C<NodeLabel-nodrawbox >- force disabling a box around node label: (yes,no)
+  C<EdgeLabel-dodrawbox >- force drawing a box around edge labels: (yes,no)
+  C<EdgeLabel-nodrawbox >- force disabling a box around node label: (yes,no)
+  C<TextBox-...         >- where C<...> is any of C<dash>, C<activedash>,
+  C<                    >  C<dashoffset>, C<fill>, C<activefill>, C<outline>, 
+  C<                    >  C<activeoutline>, <width>, C<activewidth>
+  C<                    >  (see the documentation for details)
+  C<EdgeTextBox-...     >- ditto
+  C<Text[...]-..        >- see the documentation
+  C<TextBg[...]-..      >- see the documentation
 EOF
 
   require Tk::HelpTiptool;
@@ -8380,7 +8422,16 @@ EOF
   $d->bind('all','<Shift-ISO_Left_Tab>',sub { shift->focusPrev; Tk->break });
   $e->bind('<Control-Return>',\&dlgReturn);
   $e->bind('<Return>',sub{ shift->Insert("\n"); Tk->break; });
-  escapeButton($d,'Cancel',1);
+  $d->bind('all','<Escape>'=> [sub{ 
+				 my ($w,$dlg,$hlp)=@_;
+				 if ($hlp->isActive) {
+				   $hlp->Deactivate();
+				 } else {
+				   _escapeButton($w,$dlg,'Cancel');
+				 }
+			       },$d,$help]);
+  $d->protocol('WM_DELETE_WINDOW' => [\&_wmdeleteButton,$d]);
+  #  escapeButton($d,'Cancel',1);
   $al->bind('<Double-1>'=>
 	   [sub {
 	     $e->delete('sel.first','sel.last') 
@@ -8573,13 +8624,12 @@ sub findNodeDialog {
   $grp->{top}->Unbusy();
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result=~ /Find/) {
-    foreach $a (@atord) {
-      $template->{$a}=decode($e{$a}->get);
+    %$template = (); # cleanup template
+    foreach $t (@atord) {
+      my $val = decode($e{$t}->get);
+      $template->{$t}=$val if $val ne EMPTY;
     }
-    # Clear all empty rules
-    foreach (keys %$template) {
-      delete $template->{$_} unless defined($template->{$_}) and $template->{$_} ne EMPTY;
-    }
+
     if ($grp->{searchFilelist} ne '[Current file only]') {
       my $fl=findFilelist($grp->{searchFilelist});
       if (ref($fl) and $fl->file_count>0 ) {
