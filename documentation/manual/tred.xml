@@ -3617,7 +3617,7 @@ Tk: 804.027
 	      </para>
 	    </entry>
           </row>
-	  <row>
+	  <row id="Line-tag">
 	    <entry><literal moreinfo="none">Line-tag</literal></entry>
 	    <entry><para>Values are arbitrary strings
 		  that will be passed to <literal>line_click_hook</literal>
@@ -3663,7 +3663,7 @@ Tk: 804.027
 		  in the same order in which lines are specified in <literal>Line-coords</literal>.
 	      </para></entry>
           </row>
-	  <row>
+	  <row id="Textposition-fill">
 	    <entry><literal moreinfo="none">Text<replaceable>&lt;position&gt;</replaceable>-fill</literal></entry>
 	    <entry><para>
 		This feature may be used to set the color of a certain
@@ -3690,7 +3690,7 @@ Tk: 804.027
 		is as above.
 	      </para></entry>
           </row>
-	  <row>
+	  <row id="TextBg">
 	    <entry><literal moreinfo="none">TextBg<replaceable>&lt;position&gt;</replaceable>-<replaceable>feature</replaceable></literal></entry>
 	    <entry><para>This instruction may be used to set features
 		of an underlying rectangle of certain
@@ -3711,7 +3711,7 @@ Tk: 804.027
 		<literal moreinfo="none">activewidth</literal>.
 	      </para></entry>
           </row>
-	  <row>
+	  <row id="TextBox">
 	    <entry><literal moreinfo="none">TextBox-<replaceable>feature</replaceable></literal></entry>
 	    <entry><para>This instruction may be used to set features
 		of the frame drawn around the group of node labels.
@@ -3728,7 +3728,7 @@ Tk: 804.027
 	      </para>
 	    </entry>
           </row>
-	  <row>
+	  <row id="EdgeTextBox">
 	    <entry><literal moreinfo="none">EdgeTextBox-<replaceable>feature</replaceable></literal></entry>
 	    <entry><para>This instruction may be used to set features
 		of the frame drawn around the group of node's edge
