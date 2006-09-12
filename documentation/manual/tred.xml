@@ -5703,6 +5703,15 @@ sub CreateImages {
     <section>
       <title>Miscelaneous options</title>
       <variablelist>
+	<varlistentry id="htmlbrowser">
+	  <term><literal moreinfo="none">HTMLBrowser</literal></term>
+	  <listitem>
+	    <para>
+	      Preferred HTML browser to open TrEd User's manual with
+	      (autodetected by default).
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="libdir">
 	  <term><literal moreinfo="none">LibDir</literal></term>
 	  <listitem>
