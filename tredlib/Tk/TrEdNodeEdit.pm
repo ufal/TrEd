@@ -21,7 +21,7 @@ use Data::Dumper;
 use vars qw(%colors %bitmap);
 
 %colors = (
-  alt_flat => "#FFFF00",
+  alt_flat => "#FFDD77",
   alt => "#CDFFC3",
   list => "#FFCEA9",
   struct => "#FFFFA7",
@@ -450,31 +450,20 @@ sub add_to_alt {
 		 $hlist->add_alt_member($path,$data->{type},undef,
 					$data->{alt_no},0));
   } else {
-    my $val = Fslib::Alt->new;
+    my $val = Fslib::Alt->new();
     $hlist->dump_child($path, $val, 1);
+    $val->add('');
     my $parent = $hlist->info(parent => $path);
     my $next = $hlist->next_sibling($path);
     $hlist->delete('entry',$path);
     my $new_path =
       $hlist->add_member($parent ne '' ? $parent.'/' : '',
-		 $data->{type},
+		 $data->{compressed_type},
 		 $val,
 		 $data->{attr_name},1,$next ? [-before => $next] : undef);
-    $hlist->select_entry($new_path);
+    my @ch = $hlist->info(children => $new_path);
+    $hlist->select_entry($ch[-1]);
   }
-#   print "$hlist\n";
-#   $hlist->Tk::bind('Freeze','<Map>',undef);
-#   $hlist->bindtags([grep { $_ ne 'Freeze'} $hlist->bindtags]);
-#   if ($hlist->cget('-height')<2) {
-#     $hlist->configure(-height => 0);#$hlist->cget('-height')+3)
-#   } else {
-#     $hlist->configure(-height => $hlist->cget('-height')+2)
-#   }
-
-#  print $hlist->height,"\n";
-#  print $hlist->reqheight,"\n";
-#  $hlist->parent->parent->configure(-height => $hlist->reqheight);
-  print $hlist->cget('-height'),"\n";
 }
 
 sub remove_alt_member {
@@ -489,9 +478,9 @@ sub remove_alt_member {
     $parent = $hlist->info(parent => $path);
     $hlist->delete('entry',$path);
     my $new_path = $hlist->add_member($parent ne "" ? $parent.'/' : '',
-				      $data->{type},undef,
-			      $data->{attr_name},0,
-			      $next ? [-before => $next] : undef);
+				      $data->{member},undef,
+				      $data->{attr_name},1,
+				      $next ? [-before => $next] : undef);
     $hlist->select_entry($new_path);
   } else {
     $hlist->select_entry($path);
@@ -548,6 +537,7 @@ sub add_buttons {
 
   my $mdecl_type = ref($mtype) ? $mtype->get_decl_type : undef;
   my $pdecl_type = ref($ptype) ? $ptype->get_decl_type : undef;
+
   return unless (
     (ref($mtype) && 
      ($mtype->get_decl_type == PML_LIST_DECL      ||
@@ -557,9 +547,9 @@ sub add_buttons {
       $mtype->get_decl_type == PML_CONTAINER_DECL))
       or
     (ref($ptype) && 
-     ($mtype->get_decl_type == PML_LIST_DECL      ||
-      $mtype->get_decl_type == PML_ALT_DECL       ||
-      $mtype->get_decl_type == PML_SEQUENCE_DECL)));
+     ($ptype->get_decl_type == PML_LIST_DECL      ||
+      $ptype->get_decl_type == PML_ALT_DECL       ||
+      $ptype->get_decl_type == PML_SEQUENCE_DECL)));
 
   return if ref($mtype) and $mtype->get_role =~ m{^\#(?:CHILDNODES|TREES)$};
   my $f = $hlist->Frame(
@@ -572,6 +562,8 @@ sub add_buttons {
 		     -style => $hlist->{my_itemstyles}{buttons}
 		    );
   my $ctype = $hlist->info(data => $path)->{compressed_type};
+
+
 
   for my $decl (grep ref, $mtype, $ctype) {
     my $decl_type = $decl->get_decl_type;
@@ -629,7 +621,7 @@ sub add_buttons {
   }
   
   if ($parent ne "") {
-    $ptype = (($hlist->info(data => $parent)->{compressed_type}) || $ptype)
+    $ptype = (($hlist->info(data => $parent)->{compressed_type}) || $ptype);
   }
   my $ptype_is = $ptype ? $ptype->get_decl_type : undef;
   if ($ptype_is == PML_LIST_DECL) {
@@ -787,6 +779,7 @@ sub add_member {
   }
   my $path = $base_path.$attr_name;
   my $data = {type => $mdecl,
+	      member => $member,
 	      attr_name => $attr_name,
 	      name => $label,
 	     };
@@ -801,7 +794,8 @@ sub add_member {
 		    );
   my $enabled = 1;
   if (ref($hlist->{my_enable_callback})) {
-    $enabled = $hlist->enable_callback($path);
+    my $apath = $path; $apath=~s{/\[\d+\]}{}g;
+    $enabled = $hlist->enable_callback($apath);
   }
   $data->{dump} = $mdecl_type;
   if ($member eq '#name') {
@@ -1007,7 +1001,6 @@ sub add_member {
 		       -text => 
 			 $mdecl->is_flat ?
 			   'FS-Alternative' : 'Alternative');
-
     if (ref($attr_val) eq 'Fslib::Alt') {
       foreach my $val (@{$attr_val}) {
 	$alt_no++;
@@ -1027,9 +1020,9 @@ sub add_member {
       $path = $hlist->add_member($base_path,$mdecl,
 				 $attr_val,$attr_name,0,$entry_opts);
       my $new_data = $hlist->info('data' => $path);
-      $new_data->{compressed_type} = $new_data->{type};
-      $new_data->{type} = $member;
-      $new_data->{$_} = $data->{$_} for qw(name text);
+      $new_data->{compressed_type} = $member;
+      $new_data->{type} = $mdecl;
+      $new_data->{$_} = $data->{$_} for qw(name member text);
     }
     $data->{alt_no}=$alt_no;
   } else {
