@@ -40,10 +40,16 @@ open --string $xhtml;
 
 register-xhtml-namespace x;
 
+# minor fixes
+
+while //x:p[x:dl and not(text())] {
+  xmove node() replace .;
+}
+
 if {length $title} {
   rm /*/x:head/x:title;
-  my $t = &{ cp xsh:new-element('title') prepend /*/x:head };
-  $t += &{cp xsh:new-element('h1') prepend /*/x:body};
+  my $t := insert element x:title prepend /*/x:head;
+  $t +:= insert element x:h1 prepend /*/x:body;
   xinsert text $title into $t;
 }
 

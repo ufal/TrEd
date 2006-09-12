@@ -1,11 +1,44 @@
 #!/bin/sh
 
-for s in tred.def Fslib.pm PMLSchema.pm PMLInstance.pm; do
+if [ ! -f documentation/manual/tred.xml ]; then
+  echo "not in tred/ directory"
+  exit 1
+fi
+
+echo "Generating documentation from tred.def"
+for s in tred.def # Fslib.pm PMLSchema.pm PMLInstance.pm
+do 
   d=${s/.def/_def}
   pod2xml tredlib/$s | xsltproc devel/pod2db.xsl - \
-   | devel/pod2db.xsh -P- > documentation/manual/${d%.*}.xml
+   | devel/pod2db.xsh -q -P- > documentation/manual/${d%.*}.xml
 done
 
+DEVELDIR=`dirname $0`
+DEVELDIR="${DEVELDIR:-$PWD}"
+pushd "$DEVELDIR" >/dev/null
+DEVELDIR=`pwd -P`
+popd >/dev/null
+
+echo "Generating documentation from POD"
+"$DEVELDIR"/make_pod_html documentation
+
 cd documentation
-xsltproc --xinclude --stringparam html.stylesheet blue.css --stringparam root.filename tred manual/manual.xsl manual/tred.xml
-xsltproc -o bn-tutorial.html --xinclude --stringparam html.stylesheet blue.css manual/manual_one_page.xsl bn-tutorial.xml
+[ -d man ] || mkdir man
+for man in btred.1 ntred.1 Fslib.3 \
+           PMLSchema.3 PMLInstance.3 PML_mak.3 tred_def.3
+do
+  pod2man "pod/${man%.[13]}.pod" > "man/$man"
+done
+
+RUNXSLT="xsltproc --xinclude --stringparam html.stylesheet blue.css"
+
+echo "Generating TrEd manual"
+$RUNXSLT --stringparam root.filename tred manual/manual.xsl manual/tred.xml
+
+echo "Generating bTrEd tutorial"
+$RUNXSLT -o bn-tutorial.html manual/manual_one_page.xsl bn-tutorial.xml
+RW_MAP="$DEVELDIR"/rewrite_tred.xml rewrite -q bn-tutorial.html
+$RUNXSLT -o btred-tutorial.html manual/manual_one_page.xsl btred_tutorial.xml
+
+rm -f *.html~
+
