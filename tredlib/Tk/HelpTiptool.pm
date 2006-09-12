@@ -67,7 +67,7 @@ EOF
 			  -borderwidth => 0,
 			  -wrap => 'word',
 			  -relief => 'flat',
-			  -scrollbars => 'ow',
+			  -scrollbars => 'oe',
 			  -padx => 0,
 			  -pady => 0);
     $ml->insert('0.0',(ref($message) eq 'ARRAY' ? @$message : $message));
@@ -90,6 +90,8 @@ EOF
     $ml->Subwidget('yscrollbar')->configure(-width=>7) unless $^O eq 'MSWin32';
 
     # append to global list of balloons
+    $w->bind('all','<Escape>',['Deactivate',$w]);
+
     $w->{'popped'} = 0;
     $w->{'buttonDown'} = 0;
     $w->ConfigSpecs(-installcolormap => ['PASSIVE', 'installColormap', 'InstallColormap', 0],
@@ -135,6 +137,11 @@ sub ButtonUp {
     $button_up = 1;
 }
 
+
+sub isActive {
+  my ($w) = @_;
+  return $w->{popped};
+}
 
 sub Deactivate {
     my ($w) = @_;
