@@ -22,7 +22,7 @@ if ($^V lt v5.8.3) {
 use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $opt_t $opt_W $opt_G $opt_R $opt_X $opt_q $opt_B $opt_p
 	    $opt_n $opt_D $opt_v $opt_H $opt_I $opt_Z
-            $libDir
+            $libDir $docDir
 	    $macroFile @filelists @openfiles $treeViewOpts $opt_m
             @backends @ISA @EXPORT @open_types @save_types $opt_l $opt_s
             $stylesheetFile $opt_S
@@ -37,6 +37,7 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $normalPrevPixmap
 	    $locale_charset
 	    $no_secondary
+	    %HELP
            );
 
 $svn_version='$Id$';
@@ -90,7 +91,6 @@ use constant {
   NEW_STYLESHEET        => "<New From Current>",
   DELETE_STYLESHEET     => "<Delete Current>",
 };
-
 
 #use Tk::Xrm;
 # process the standard arguments for X resources
@@ -159,7 +159,7 @@ Other options:
 -H              Start with showing hidden nodes
 -G              Do not initially resize window to its last geomtery.
 -W <window_id>  Embed main window into the given window
--Y              Don't load secondary files
+-Y              Do not load secondary files
 -B <backends>   Comma separated list of additional backends to import
 
 Options specific to CSTS backend:
@@ -226,14 +226,14 @@ $stylesheetFile = $opt_S ne EMPTY ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
 # We *must* at least find TrEd::Config module to learn the correct libDir!!.
 unshift @INC,$libDir if (-d $libDir);
 
-do {
+{
   my $ld=$libDir;
   require TrEd::Config;
   import TrEd::Config;
   import TrEd::Config qw(&read_config &apply_config &set_default_config_file_search_list);
   $libDir=$ld;
   $TrEd::Config::quiet = $opt_q;
-};
+}
 
 $TrEd::Config::treeViewOpts={
 			     drawSentenceInfo => 0,
@@ -274,7 +274,7 @@ if (defined $opt_m) {
 
 unless (-d $libDir) {
   print <<'EOL';
- TrEd couldn't find a tredlib directory. You may need to point
+ TrEd could not find a tredlib directory. You may need to point
  to its location by the TREDHOME variable or add a correct LibDir
  field to your ~/.tredrc.
 
@@ -316,6 +316,18 @@ import TrEd::MinMax;
 sub first (&@); # prototype it for compile-time
 import TrEd::MinMax qw(first);
 
+# find documentation dir
+$docDir = first { -d $_ }
+  ("$FindBin::RealBin/documentation",
+   "$FindBin::RealBin/../doc/tred",
+   "$libDir/../doc/tred",
+   "$libDir/../documentation",
+  );
+if ($docDir ne EMPTY) {
+  $docDir = 'file://'.$docDir;
+} else {
+  $docDir = 'http://ufal.mff.cuni.cz/~pajas/tred';
+}
 
 # import encode and decode functions
 require TrEd::Convert;
@@ -350,6 +362,8 @@ $TrEd::Basics::on_tree_change= \&onTreeChange;
 $TrEd::Basics::on_node_change= \&onNodeChange;
 $TrEd::Basics::on_current_change= \&onCurrentChange;
 
+eval { require TrEd::Help; };
+
 #load back-ends
 #require CSTS_SGML_SP_Backend;
 @backends=(
@@ -375,6 +389,12 @@ require Tk::BindMouseWheel;
 require Tk::Balloon;
 require Tk::JComboBox_0_02;
 require Tk::TrEdNodeEdit;
+
+*which = eval {
+  require File::Which;
+  \&File::Which::which
+} || sub {};
+warn $@ if $@;
 
 $stdout=\*STDOUT;
 $stderr=\*STDERR;
@@ -634,7 +654,7 @@ if ($opt_l) {
       push @fl_files,\@f;
       close(F);
     } else {
-      print STDERR "Warning: Can't open filelist $l: ".conv_from_locale($!)."\n";
+      print STDERR "Warning: Cannot open filelist $l: ".conv_from_locale($!)."\n";
     }
   }
   # define filelists CmdLine-1, CmdLine-2, etc.
@@ -844,7 +864,7 @@ sub get_grp_histories {
 sub saveStyleSheets {
   my ($grp)=@_;
   open my $f, '>:utf8',$stylesheetFile || do {
-    print STDERR "can't write to stylesheet file: $stylesheetFile\n" if $debug;
+    print STDERR "cannot write to stylesheet file: $stylesheetFile\n" if $debug;
     return 0;
   };
   foreach my $stylesheet (keys (%{$grp->{stylesheets}})) {
@@ -1483,6 +1503,7 @@ sub errorDialog {
   $t->pack(qw/-side top -expand yes -fill both/);
 #  disable_scrollbar_focus($t);
   $t->BindMouseWheelVert();
+  _bind_buttons($d,$d);
   $t->insert('0.0',$msg2);
   $d->Show;
 }
@@ -1510,14 +1531,36 @@ sub _descendant_widgets {
 sub _bind_buttons {
   my ($w,$top)=@_;
   $top||=$w->toplevel;
-  foreach my $button (grep { ref($_) and $_->isa('Tk::Button') } _descendant_widgets($w)) {
+  my %bind;
+  foreach my $button (grep { ref($_) and ($_->isa('Tk::Button') or $_->isa('Tk::Label')) } _descendant_widgets($w)) {
     my $ul=$button->cget('-underline');
     if (defined($ul) and $ul>=0) {
       my $text=$button->cget('-text');
       my $key=lc(substr($text,$ul,1));
-      $key=~s/^\.$/period/;
-      $top->bind("<Alt-$key>", [sub { $_[1]->flash; $_[1]->invoke; },$button]);
+      $bind{$key}=$button;
     }
+  }
+  if ($w->isa('Tk::Dialog') or $w->isa('Tk::DialogBox')) {
+    my $bottom = $w->Subwidget('bottom');
+    foreach my $button (grep { ref($_) and $_->isa('Tk::Button') }
+			_descendant_widgets($bottom)) {
+      my $text=$button->cget('-text');
+      next if $button->cget('-underline')>=0;
+      for my $i (0..length($text)) {
+	my $key=lc(substr($text,$i,1));
+	unless (exists $bind{$key}) {
+	  $button->configure(-underline=>$i);
+	  $bind{$key}=$button;
+	  last;
+	}
+      }
+    }
+  }
+  for my $key (keys(%bind)) {
+    my $button = $bind{$key};
+    next unless $button->isa('Tk::Button');
+    $key=~s/^\.$/period/;
+    $top->bind("<Alt-$key>", [sub { $_[1]->flash; $_[1]->invoke; },$button]);
   }
 }
 
@@ -1535,6 +1578,7 @@ sub userQuery {
 
   }
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
+  _bind_buttons($d,$d);
   return $d->Show;
 }
 
@@ -2737,6 +2781,7 @@ sub createFilelistBrowseEntry {
 		    -title=> 'Create/Rename?',
 		    -buttons=> ['Create', 'Rename', 'Cancel']);
 	   $d->bind('<Return>', \&dlgReturn);
+	   _bind_buttons($d,$d);
 	   my $answer=$d->Show();
 	   if ($answer eq 'Create') {
 	     addFilelist(Filelist->new($text));
@@ -2959,7 +3004,7 @@ sub filelistDialog {
   my $filelist;
   if (!ref($win->{currentFilelist})) {
     if ($win->{FSFile}) {
-      errorMessage($win,"Can't manage file-lists while visiting a file not belonging to any file-list! ".
+      errorMessage($win,"Cannot manage file-lists while visiting a file not belonging to any file-list! ".
 		   "Please, switch to a file-list (e.g. using Session->Default) and try again.",1);
       return;
     } else {
@@ -3230,6 +3275,12 @@ sub filelistDialog {
 			   $$filelistref=$fl->name();
 			 },$grp,$d,\$filelist ])
     ->pack(@b_pack);
+
+  $botframe->Button(-text=> 'Help',
+		-underline=> 0,
+		-command=> [sub {
+			      help_topic(shift,'filelists');
+			    },$d])->pack(qw(-padx 0.1c -pady 0.2c -side left));
 
   $leftframe->pack(qw/-padx 5 -side left -fill y/);
   $midframe->pack(qw/-padx 5 -side left/);
@@ -3574,7 +3625,7 @@ sub copyTreesDialog {
 			  },$grp,$d,\$range,$source])->pack(qw/-padx 10 -side left/);
   $sf->pack(qw/-pady 10 -padx 10 -side bottom -expand yes -fill x/);
 
-
+  _bind_buttons($d,$d);
   my $result= ShowDialog($d,$re,$grp->{top});
   get_grp_history($grp, $re, 'treeRange') if ($result=~ /OK/);
   $d->destroy();
@@ -3625,6 +3676,7 @@ sub initTTFonts {
     my $label=sprintf($format,0,0,0);
     $f->Label(-textvariable => \$label,-width=>12)->pack(-side=>'right');
     #$grp->{top}->Unbusy();
+    _bind_buttons($d,$d);
     $d->Popup;
     $d->update();
     $opts = { callback => sub {
@@ -3797,10 +3849,12 @@ sub printDialog {
 
   # Dialog
   my $d= $grp->{top}->DialogBox(-title=> "Print",
-				-buttons=> ["OK", "Cancel"]);
+				-buttons=> ["OK", "Help", "Cancel"]);
   $d->resizable(0,0);
   addBindTags($d,'dialog');
   escapeButton($d,'Cancel',1);
+  $d->Subwidget('B_Help')->configure(-command =>
+				      [sub{help_topic(shift,'printing')},$d]);
   $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
@@ -3994,7 +4048,7 @@ sub printDialog {
   $w{resolution}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
   my %printbuttons = ( printer => [$bf,'Send to printer',undef,8],
 		       file =>[$bf,'Print to file','eps',9],
-		       convert =>[$imf,'Convert to bitmap format (ImageMagick)','png',0]
+		       convert =>[$imf,'Convert to bitmap format (ImageMagick)','png',11]
 		     );
 
   # print To buttons
@@ -4062,7 +4116,7 @@ sub printDialog {
 				 -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
 
   $w{printOnePerFile}=$bf->Checkbutton(-text=> 'one tree per file (use %n in the filename to place the tree number)',
-				       -underline => 0,
+				       -underline => 4,
 				       -variable=> \$s{printOnePerFile},
 				       -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef,$d],
 				       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
@@ -4079,7 +4133,7 @@ sub printDialog {
 	     -underline => 5,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
-  $d->bind('<Alt-r>',[sub{shift;shift->{printRange}->focus},\$w]);
+  $d->bind('<Alt-r>',[sub{shift;shift->{printRange}->focus},\%w]);
   $w{printRange}->pack(qw/-side left -padx 10 -fill x -expand yes/);
 
   for ($sf,$ff) {
@@ -4515,7 +4569,6 @@ sub prepareFonts {
   prepareFont($grp,\$vLineFont,'C_vline');
   eval { # eval, in case fonts already exist
     $grp->{top}->fontCreate(qw/C_heading -family sans -weight bold -size 11/);
-    $grp->{top}->fontCreate(qw/C_underlined -family sans -size 9/);
     $grp->{top}->fontCreate(qw/C_fixed   -family courier   -size 9/);
     $grp->{top}->fontCreate(qw/C_default -family sans -size 9/);
     $grp->{top}->fontCreate(qw/C_bold    -family sans -size 9 -weight bold/);
@@ -4583,10 +4636,10 @@ sub About {
   $ver=~s/\$//g;
   $grp->{top}->toplevel->
     messageBox(-icon=> 'info',
-			  -type=> 'ok',
-			  -message=>
-			  "TrEd $ver\nTk $Tk::VERSION\n\n$fileinfo$contextinfo$colinf$message\n$about\n",
-			  -title=> 'About');
+	       -type=> 'ok',
+	       -message=>
+		 "TrEd $ver\nTk $Tk::VERSION\n\n$fileinfo$contextinfo$colinf$message\n$about\n",
+	       -title=> 'About');
 }
 
 sub newTrEdWindow {
@@ -4961,11 +5014,30 @@ sub startMain {
 
   for (qw(ROText Text Entry HistEntry SimpleHistEntry
 	  Listbox HList CodeText)) {
-    $top->option('add',"\*$_.background","white");
-    $top->option('add',"\*$_.foreground","black");
-    $top->option('add',"\*$_.disabledBackground","lightgray");
-    $top->option('add',"\*$_.disabledForeground","gray20");
+    $top->optionAdd("\*$_.background","white");
+    $top->optionAdd("\*$_.foreground","black");
+    $top->optionAdd("\*$_.disabledBackground","lightgray");
+    $top->optionAdd("\*$_.disabledForeground","gray20");
   }
+  {
+    # make sure button flashes are visible
+    my $bg = $top->optionGet('Button.background','Background');
+    my $abg = $top->optionGet('Button.activeBackground','ActiveBackground');
+    my $H='[a-z0-9]{2}';
+    if (($bg eq $abg) and $abg=~/^\#($H)($H)($H)$/ogi) {
+      my ($r,$g,$b) = map hex, $1,$2,$3;
+      if ($r<223 || $g<223 || $b<223) {
+	# lighten
+	$_+=32 for $r,$g,$b;
+      } else {
+	# darken
+	$_-=32 for $r,$g,$b;
+      }
+      $abg = '#'.join '', map { sprintf('%02x',min(abs($_),255)) } $r,$g,$b;
+      $top->optionAdd('*Button.activeBackground',$abg);
+    }
+  }
+
   if ($TrEd::Convert::support_unicode) {
     $top->useinputmethods(1);
   }
@@ -5052,8 +5124,8 @@ sub startMain {
 
   $group{MenubarFrame}=$top->Frame()->pack(qw/-fill x/);
 
-  # We need to pack in an optionmenu, so we can't use menubar on windows
-  # and can't use Toplevel->configure(-menu) on other systems
+  # We need to pack in an optionmenu, so we cannot use menubar on windows
+  # and cannot use Toplevel->configure(-menu) on other systems
   if ($^O eq 'MSWin32') {
     $group{Menubar}=$group{MenubarFrame}=$group{top}->Frame(-relief=> $menubarRelief, -borderwidth=> 0);
     $group{Menubar}->pack(qw/-fill x/);
@@ -5394,6 +5466,11 @@ sub startMain {
   $group{HelpMenu}= MenubarItem($group{Menubar},
 				qw/-label ~Help -menuitems/=>
 	[
+	 [
+	  Button=> q(User's manual),
+	  -underline=> 0,
+	  -command=> [\&help_topic,\%group,'_TOC_']
+	 ],
 	 [
 	  Button=> 'About',
 	  -underline=> 0,
@@ -6436,7 +6513,7 @@ EOF
 	      }
 	    }
 	    errorMessage($win,
-			 "Couldn't find reference to the current file in the following files:\n\n".
+			 "Could not find reference to the current file in the following files:\n\n".
 			   join("\n",map { $_->filename } @fs),1) if @failed;
 	  }
 	}
@@ -6710,7 +6787,10 @@ sub editConfig {
 				 redraw_all($grp);
 			       },$grp,$t])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
-
+  $bottom->Button(-text=> "  Help  ", 
+		  -underline => 2,
+		  -command=> [sub { help_topic(shift,'configuration'); },$d])
+    ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "  Close  ", 
 		  -underline => 2,
 		  -command=> [sub { shift->destroy; },$d])
@@ -6761,6 +6841,7 @@ sub QueryString {
   $e->pack(-side=>'right');
   $d->resizable(0,0);
 #  $e->focus;
+  _bind_buttons($d,$d);
   my $result= ShowDialog($d,$e,$top);
   if ($result=~ /OK/) {
     if (ref($hist) and $e->can('historyAdd')) {
@@ -6800,6 +6881,7 @@ sub Query {
   $e->pack(-side=>'left');
   $d->resizable(0,0);
 #  $e->focus;
+  _bind_buttons($d,$d);
   my $result= ShowDialog($d,$e,$w);
   if ($result=~/OK/) {
     if (ref($hist) and $e->can('historyAdd')) {
@@ -7011,6 +7093,7 @@ sub selectValuesDialog {
  }
  $top->Unbusy();
  $l->focus;
+ _bind_buttons($d,$d);
  my $result= ShowDialog($d,$l,$lastFocus);
  if ($result=~ /OK/) {
    # Hajic wanted this (I wash my hands):
@@ -7523,7 +7606,7 @@ sub determineNodeType {
       return;
     }
   } else {
-    plainErrorMessage($win,"Cannot determine node type: schema doesn't allow nodes on this level...\n");
+    plainErrorMessage($win,"Cannot determine node type: schema does not allow nodes on this level...\n");
     return;
   }
   return $node->type;
@@ -7598,6 +7681,7 @@ sub editAttrsDialog_schema {
     $d = $win->toplevel->DialogBox(-title=> $dlg_title,
 			       -buttons=> \@buttons
 			      );
+    _bind_buttons($d,$d);
     $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);    
     $d->maxsize(0,int(0.9*$d->screenheight));
     $edit = # $grp->{attrsEditor} =
@@ -7796,7 +7880,7 @@ sub editAttrsDialog_schema {
 	      errorDialog($win,
 			  "Invalid attribute values",
 			"Validation of the following attributes failed.\n".
-			  "Don't save your file in this state, you may not be able to open it again.",
+			  "Do not save your file in this state, you may not be able to open it again.",
 			  join("\n",@log),
 			  -buttons => ["Edit attributes","Ignore these errors"]
 			 ) !~ /Ignore/) {
@@ -7874,6 +7958,7 @@ sub editAttrsDialog {
   my $d=$win->toplevel->DialogBox(-title=> "Edit Node", -width=> '10c',
 				  -buttons=> \@buttons
 				 );
+  _bind_buttons($d,$d);
   $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Control-Return>',\&dlgReturn);
   escapeButton($d,'Cancel',1);
@@ -7984,6 +8069,62 @@ sub disable_scrollbar_focus {
   $scrolled->Subwidget('yscrollbar')->configure(qw(-takefocus 0));
 }
 
+sub help_topic {
+  my ($top,$section) = @_;
+  my $file = $TrEd::Help::HELP_MAP{$section};
+  if (defined $file) {
+    open_url_in_browser($docDir.'/'.$file."#".$section);
+  } else {
+    plainErrorMessage($top,"Cannot map '$section' to a documentation page.");
+  }
+}
+
+sub open_url_in_browser {
+  my $url = shift;
+  if ( $htmlBrowser eq 'DO_NOT_RUN') {
+  } elsif ( $htmlBrowser ne EMPTY) {
+    $htmlBrowser.=" %u" unless ($htmlBrowser =~ /\%[uf]/);
+    my $cmd = $htmlBrowser;
+    $cmd =~ s/\%[fu]/'$url'/g;
+    print STDERR "$cmd\n" if $tredDebug;
+    return system $cmd.' &';
+  } elsif ($^O eq 'MSWin32') {
+    $htmlBrowser='start /W %u';
+    return open_url_in_browser($url);
+  } else {
+    if ($ENV{DESKTOP_LAUNCH} ne EMPTY) {
+      $htmlBrowser=$ENV{DESKTOP_LAUNCH};
+    } 
+    elsif (which('xdg-open') ne EMPTY) {
+      $htmlBrowser='xdg-open %u';
+    }
+    # Otherwise we emulate xdg-open
+    # detect KDE
+    elsif ($ENV{KDE_FULL_SESSION} eq "true") {
+      if (which('kde-open') ne EMPTY) {
+	$htmlBrowser='kde-open %u';
+      } else {
+	$htmlBrowser='kfmclient exec %u';
+      }
+    } # detect GNOME
+    elsif ($ENV{GNOME_DESKTOP_SESSION_ID} ne EMPTY) {
+      $htmlBrowser='gnome-open %u';
+    } # generic
+    elsif ($ENV{BROWSER} ne EMPTY) {
+      $htmlBrowser=$ENV{BROWSER};
+    }
+    elsif ($htmlBrowser = first {which($_) ne EMPTY} 
+	     qw(firefox mozilla netscape opera htmlview)) {
+      # already assigned
+    } else {
+      warn "Did not find any HTML browser.\nPlease set the 'htmlbrowser' configuration option or either of DESKTOP_LAUNCH or BROWSER environment variables.";
+      $htmlBrowser='DO_NOT_RUN';
+      return undef;
+    }
+    return open_url_in_browser($url);
+  }
+}
+
 sub format_tred_pod {
   map {
     if (/^([HUBICQ])<(.[^>]*)>/) {
@@ -8005,17 +8146,59 @@ sub format_tred_pod {
       $l=~s/&lt;/\</g;
       $l=~s/&gt;/\>/g;
       ($l,$style)
+    } elsif (/^L<(.[^>]*)>/) {
+      my $l = $1;
+      $l=~s/&lt;/\</g;
+      $l=~s/&gt;/\>/g;
+      my ($t,$sec)=split /#/,$l,2;
+      ($t,['link','#'.$sec])
     } else {
       my $l=$_;
       $l=~s/&lt;/\</g;
       $l=~s/&gt;/\>/g;
       ($l,'default')
-    }} split /([HUBICQ]<.[^>]*>)/,$_[0]
+    }} split /([HUBILCQ]<.[^>]*>)/,$_[0]
 }
 
 sub tred_pod_add_tags {
-  my ($w)=@_;
-  $w->tag(qw(configure underlined -font C_underlined -underline 1));
+  my ($grp,$w)=@_;
+  $w->tag(qw(configure link -font C_default -foreground blue));
+  $w->tag(qw(configure link_hover -underline 1));
+
+  $w->tagBind('link', '<Any-Enter>' =>
+		sub {
+		  my $w = shift;
+		  my $idx = $w->index($w->XEvent->xy);
+		  my ($start,$end) = $w->tagPrevrange('link',$idx);
+		  if ($start eq EMPTY) {
+		    ($start,$end) = $w->tagNextrange('link',$idx);
+		  }
+		  if ($start ne EMPTY) {
+		    $w->tagAdd('link_hover', $start,$end);
+		  }
+		}
+	     );
+  $w->tagBind('link_hover', '<Any-Leave>' =>
+		sub {
+		  shift->tagRemove('link_hover','0.0','end')
+		}
+	     );
+  $w->tagBind(qw(link <1>) => sub {
+		my $w = shift;
+		my $Ev = $w->XEvent;
+		my $idx = $w->index($Ev->xy);
+		if ($idx ne EMPTY) {
+		  my $sect = first {/^#/} $w->tagNames($idx);
+		  if ($sect) {
+		    $sect =~ s/^#//;
+		    $w->toplevel->Deactivate;
+		    help_topic($w,$sect);
+		  }
+	        }
+	      }
+	     );
+
+  $w->tag(qw(configure underlined -font C_default -underline 1));
   $w->tag(qw(configure heading -font C_heading));
   $w->tag(qw(configure bold -font C_bold));
   $w->tag(qw(configure fixed -font C_fixed));
@@ -8187,7 +8370,7 @@ I<A stylesheet consists of PATTERNS (as described below) which influence the ove
 
 I<A pattern can represent one line of a label of a node or an edge, define a per-node text to appear in the text line above the tree, and/or provide styling information for the node and its edges, e.g. the shape, color, line thickness, line style, etc.>
 
-I<See the User's manual for more details.>
+I<See the >L<User's manual#stylesheets>I< for more details.>
 
 H<Pattern syntax>
 
@@ -8233,7 +8416,7 @@ B<SYNTAX:>  C<#{object-feature:value}>
 B<Object features> (by category)
 
 U<Hiding>
-  C<Node-hide           >- if non-zero, don't display the node at all
+  C<Node-hide           >- if non-zero, do not display the node at all
   See also C<skipHiddenParents> and C<skipHiddenLevels> rootstyles.
 
 U<Shape>
@@ -8284,17 +8467,16 @@ U<Alignment>
 
 U<Edges (lines)>
   C<Line-coords         >- coordinations of the edge(s) to be drawn.
-  C<                    >  Default: n,n,p,p (see the documentation)
+  C<                    >  Default: n,n,p,p (see the L<documentation#Line-coords>)
   C<                    >  May consist of more &-separated segments.
   C<Line-arrow          >- side of an edge to put an arrow on: first, both, last
   C<Line-smooth         >- 1 if the line should be drawn as a curve, 0 otherwise.
-  C<Line-tag            >- tags passed to line_click_hook (see the documentation)
+  C<Line-tag            >- tags passed to line_click_hook (see the L<documentation#Line-tag>)
   C<Line-...            >- where C<...> is any of C<dash>, C<activedash>, C<dashoffset>,
   C<                    >  C<fill>, C<activefill>, C<width>, and C<activewidth>
-  C<                    >  specifying visual properties of edges.
-  C<                    >  Individual values for different segments
-  C<                    >  can be provided as a &-separated list.
-  C<                    >  (see the documentation for details)
+  C<                    >  specifying visual properties of edges. Values and
+  C<                    >  semantics are similar to those of C<Oval-...>.
+  C<                    >  Values for individual line segments are &-separated.
 
 U<Boxes around labels>
   C<NodeLabel-dodrawbox >- force drawing a box around labels: (yes,no)
@@ -8304,10 +8486,10 @@ U<Boxes around labels>
   C<TextBox-...         >- where C<...> is any of C<dash>, C<activedash>,
   C<                    >  C<dashoffset>, C<fill>, C<activefill>, C<outline>, 
   C<                    >  C<activeoutline>, <width>, C<activewidth>
-  C<                    >  (see the documentation for details)
-  C<EdgeTextBox-...     >- ditto
-  C<Text[...]-..        >- see the documentation
-  C<TextBg[...]-..      >- see the documentation
+  C<                    >  (see the L<documentation#TextBox> for details)
+  C<EdgeTextBox-...     >- similar, see the L<documentation#EdgeTextBox>
+  C<Text[...]-..        >- see the L<documentation#Textposition-fill>
+  C<TextBg[...]-..      >- see the L<documentation#TextBg>
 EOF
 
   require Tk::HelpTiptool;
@@ -8315,7 +8497,7 @@ EOF
 			     -troughcolor => '#cccc99',
 			     -message=> [format_tred_pod($HELP)]
 			    );
-  tred_pod_add_tags($help->Subwidget('text'));
+  tred_pod_add_tags($grp,$help->Subwidget('text'));
 
   $d->bind('all','<Alt-h>', sub { $help->Toggle($helplabel); });
   $helplabel->bind('<Button>', sub { $help->Toggle($helplabel); });
@@ -8622,6 +8804,7 @@ sub findNodeDialog {
   $oe->pack(qw/-side left/);
   $ot->pack(qw/-side left/);
   $grp->{top}->Unbusy();
+  _bind_buttons($d,$d);
   my $result= ShowDialog($d,($atord[0] ? $e{$atord[0]}->focus : undef),$grp->{top});
   if ($result=~ /Find/) {
     %$template = (); # cleanup template
@@ -9967,7 +10150,7 @@ sub node_release {
 			  "as a child.\nThe resulting tree will be invalid.\n\n",
 		      -bitmap=> 'question',
 		      -title => 'Incompatible node type',
-		      -buttons => ["Don't paste",'Paste anyway']) eq 'Paste anyway') {
+		      -buttons => ["Do not paste",'Paste anyway']) eq 'Paste anyway') {
 	  while ($parent) {
 	    $p=0, last if ($node eq $parent);
 	    $parent=$parent->parent;
