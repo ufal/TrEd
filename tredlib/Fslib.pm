@@ -3650,7 +3650,7 @@ sub attributes {
 	$decl_is == PML_ELEMENT_DECL  ||
 	$decl_is == PML_LIST_DECL ||
 	$decl_is == PML_ALT_DECL ) {
-      $type = $type->get_content_decl;
+      $type = $type->get_knit_content_decl;
       redo;
     }
     next unless ref($type);
@@ -3658,7 +3658,7 @@ sub attributes {
     if ($decl_is == PML_STRUCTURE_DECL) {
       @members = map { [$_,$_->get_knit_name] } $type->get_members;
     } elsif ($decl_is == PML_CONTAINER_DECL) {
-      my $cdecl = $type->get_content_decl;
+      my $cdecl = $type->get_knit_content_decl;
       @members = ((map { [ $_, $_->get_name ] } $type->get_attributes),
 		    ($cdecl ? [$cdecl, '#content'] : ()));
     } elsif ($decl_is == PML_SEQUENCE_DECL) {
