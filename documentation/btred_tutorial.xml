@@ -304,7 +304,7 @@ sub find_childless_verbs {
       </varlistentry>
 
       <varlistentry>
-        <term>$node-&gt;{<replaceable>attribute</replaceable>}</term>
+        <term>$node-&gt;attr(<replaceable>attribute</replaceable>)</term>
 
         <listitem>
           <para>Get the value of node's attribute named
@@ -313,13 +313,14 @@ sub find_childless_verbs {
       </varlistentry>
 
       <varlistentry>
-        <term>$node-&gt;{<replaceable>attribute</replaceable>} =
-        "<replaceable>value</replaceable>"</term>
+        <term>$node-&gt;set_attr(<replaceable>attribute</replaceable>},
+          <replaceable>value</replaceable>)</term>
 
         <listitem>
           <para>Set the value of node's attribute named
-          <replaceable>attribute</replaceable> to
-          "<replaceable>value</replaceable>"</para>
+            <replaceable>attribute</replaceable> to
+            <replaceable>value</replaceable>.
+	  </para>
         </listitem>
       </varlistentry>
 
