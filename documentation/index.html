@@ -63,7 +63,9 @@
     </div>
     <div class="download">
       <h2>Download</h2>
-      <h3>Windows</h3>
+      <dl>
+      <dt>Windows</dt>
+      <dd>
       <dl>
         <dt>
           <tt>
@@ -73,28 +75,32 @@
         <dd>This is an installation/upgrade package intended for Windows
 	  users. It contains ActivePerl, PerlTk, and TrEd with documentation.
           To install or
-	  upgrade, unzip the package and run <tt>setup.bat</tt>. <b>This
+	  upgrade, unzip the package and run <tt>setup.bat</tt>.
+        </dd>
+        <dd><b>This
 	    package is not intended for use with Perl provided by CygWin. If
 	    you realy wish to use CygWin Perl with TrEd, use Unix instalation
 	    below - but then you will be forced to use TrEd with CygWin
 	    XFree86. If you want a native Windows version, install ActivePerl
-	    (<tt>setup.bat</tt> will do that for you).</b></dd>
+	    (<tt>setup.bat</tt> from this package will do that for you).</b>
+        </dd>
       </dl>
-      <h3>Unix, Linux, Mac OS X</h3>
+      </dd>
+      <dt>Unix, Linux, Mac OS X</dt>
+      <dd>
       <dl>
         <dt>
           <tt>
             <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-current.tar.gz">tred-current.tar.gz</a>
           </tt>
         </dt>
-        <dd>This is the latest TrEd distribution package
-          (including documentation). It runs on all
-	  supported platforms, but is mainly intended for Linux/Unix users.
-	  Simply ungzip+untar the package and run <tt>tred/tred</tt>. First,
-	  however, make sure, that Perl and Perl-Tk are installed on your
-	  system. Since Perl has been most probably installed together with
-	  your Linux/Unix distribution, you only need the Perl-Tk library
-	  from the dependency package below.</dd>
+        <dd>This is the latest TrEd distribution package (including
+          documentation). It runs on all supported platforms, but is
+          mainly intended for Linux/Unix users.  It requires Perl
+          5.8.3 or newer and some Perl modules provided in a
+          dependency package below.  After installing all
+          dependencies, simply ungzip+untar this package and run
+          <tt>tred/tred</tt>.</dd>
         <dt>
           <tt>
             <a href="http://ufal.mff.cuni.cz/~pajas/tred/tred-dep-unix.tar.gz">tred-dep-unix.tar.gz</a>
@@ -105,6 +111,8 @@
           contained in the package automates compilation and
 	  installation of all these dependencies.
         </dd>
+      </dl>
+      </dd>
       </dl>
     </div>
     <div class="w3c_valid">
