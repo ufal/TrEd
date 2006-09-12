@@ -6,12 +6,8 @@ if [ ! -f documentation/manual/tred.xml ]; then
 fi
 
 echo "Generating documentation from tred.def"
-for s in tred.def # Fslib.pm PMLSchema.pm PMLInstance.pm
-do 
-  d=${s/.def/_def}
-  pod2xml tredlib/$s | xsltproc devel/pod2db.xsl - \
-   | devel/pod2db.xsh -q -P- > documentation/manual/${d%.*}.xml
-done
+pod2xml tredlib/tred.def | xsltproc devel/pod2db.xsl - \
+    | devel/pod2db.xsh -q -P- > documentation/manual/tred_def.xml
 
 DEVELDIR=`dirname $0`
 DEVELDIR="${DEVELDIR:-$PWD}"
@@ -35,6 +31,9 @@ RUNXSLT="xsltproc --xinclude --stringparam html.stylesheet blue.css"
 echo "Generating TrEd manual"
 $RUNXSLT --stringparam root.filename tred manual/manual.xsl manual/tred.xml
 
+echo "Generating on-line help map"
+xsh2 ../devel/make_help_map.xsh manual/tred.xml ar*.html > ../tredlib/TrEd/Help.pm
+
 echo "Generating bTrEd tutorial"
 $RUNXSLT -o bn-tutorial.html manual/manual_one_page.xsl bn-tutorial.xml
 RW_MAP="$DEVELDIR"/rewrite_tred.xml rewrite -q bn-tutorial.html
@@ -42,3 +41,4 @@ $RUNXSLT -o btred-tutorial.html manual/manual_one_page.xsl btred_tutorial.xml
 
 rm -f *.html~
 
+echo "done."
