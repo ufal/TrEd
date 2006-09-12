@@ -4058,7 +4058,7 @@ sub add_list {
   my $self = shift;
   my $list = shift;
   my %a; @a{ @$self } = ();
-  push @{$_[0]}, grep { exists($a{$_}) ? 0 : ($a{$_}=1) } @$list;
+  push @{$self}, grep { exists($a{$_}) ? 0 : ($a{$_}=1) } @$list;
   return $self;
 }
 
