@@ -121,7 +121,7 @@ for //x:code[not(ancestor::x:dt)] {
   }
 }
 
-save --file $outfile;
+save --format html --file $outfile;
 
 __END__
 
