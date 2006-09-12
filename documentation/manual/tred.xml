@@ -2612,7 +2612,9 @@ Tk: 804.027
       (see <xref linkend="fig-old-editnode"/>)
       and the <firstterm>new interface</firstterm>
       (see <xref linkend="fig-new-editnode"/>).
-    </para>    
+    </para>
+    <section id="old_editnode_interface">
+      <title>Old interface</title>
     <para>
       Displays the 
       dialog box <guilabel moreinfo="none">Edit Node</guilabel>,
@@ -2637,7 +2639,7 @@ Tk: 804.027
       labeled <guibutton moreinfo="none">...</guibutton> beside them.
     </para>
     <figure id="fig-old-editnode" float="0">
-      <title>Old Edit Node interface</title>
+      <title>The old interface</title>
       <mediaobject>
 	<imageobject>
 	  <imagedata fileref="pics/edit_node_dialog_old.png" format="PNG" role="html"/>
@@ -2647,20 +2649,33 @@ Tk: 804.027
 	</imageobject><textobject><phrase>edit node dialog</phrase></textobject>
       </mediaobject>
     </figure>
+    </section>
+    <section id="new_editnode_interface">
+      <title>New interface</title>
     <para>The new interface (now default for PML-based files
       and files in FS format) offers support for
       string attributes, enumerated attributes,
       constant attributes,
-      lists (either <literal moreinfo="none">|</literal>-separated lists of strings used
-      by FS format files or advanced data types used by PML instances: <literal moreinfo="none">Fslib::List</literal>
+      <literal moreinfo="none">Fslib::List</literal>
       lists of values of an arbitrary type, <literal moreinfo="none">Fslib::Alt</literal>
       alternatives of values, and <literal moreinfo="none">Fslib::Seq</literal> sequences of named elements), and, 
       most importantly,  for 
       <firstterm>hierarchical attributes</firstterm> (<literal moreinfo="none">Fslib::Struct</literal>
       and <literal moreinfo="none">Fslib::Container</literal>).
+      Alternatives consisting of <literal moreinfo="none">|</literal>-separated lists of strings used by FS format files are supported too.
+
     </para>
+      <para>Colors are used to visually differentiate items and buttons
+	of various data types. Specifically, required
+	attributes are listed in blue, other attributes are brown. 
+	Pale yellow background is used for
+	structures and containers, pink for lists, green for
+	alternatives, and blue for sequences.
+	Orange color is used for 
+	<literal moreinfo="none">|</literal>-separated alternatives.
+      </para>
     <figure id="fig-new-editnode" float="0">
-      <title>New Edit Node interface</title>
+      <title>The new interface</title>
       <mediaobject>
 	<imageobject>
 	  <imagedata fileref="pics/edit_node_dialog.png" format="PNG" role="html"/>
@@ -2673,7 +2688,10 @@ Tk: 804.027
     <para>In this interface, the hierarchy
       of attributes is presented as a collapsible tree.
       The leafs of the tree represent the editable
-      (string or enumerated) values. Enumerated values
+      (string or enumerated) values.
+      </para>
+      <para>
+	Enumerated values
       can be selected from a combo-box with a search-as-you-type
       functionality. Lists, alternatives, sequences and/or their members have additional
       buttons beside their tree-entry for adding
@@ -2786,7 +2804,7 @@ Tk: 804.027
 		<keysym>/</keysym>
 	      </keycombo>
 	    </entry>
-	    <entry>remove the current alternative</entry>
+	    <entry>remove the current alternative value</entry>
 	  </row>
 	  <row>
 	    <entry>
@@ -2868,10 +2886,42 @@ Tk: 804.027
 	    </entry>
 	    <entry>move the current element down in a sequence</entry>
 	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_star_orange.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_star_orange.eps" format="EPS" role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal moreinfo="none">*</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul" moreinfo="none">
+		<keysym>Ctrl</keysym>
+		<keysym>*</keysym>
+	      </keycombo>
+	    </entry>
+	      <entry>add an alternative value to a <literal>|</literal>-separated FS-alternative</entry>
+	  </row>
+	  <row>
+	    <entry>
+	      <mediaobject>
+		<imageobject><imagedata fileref="pics/edit_node_cross_orange.png" format="PNG" role="html"/></imageobject>
+		<imageobject><imagedata fileref="pics/edit_node_cross_orange.eps" format="EPS" role="latex"/></imageobject>
+		<textobject>
+		  <phrase><literal moreinfo="none">x</literal></phrase></textobject>
+	      </mediaobject>
+	    </entry>
+	    <entry><keycombo action="simul" moreinfo="none">
+		<keysym>Ctrl</keysym>
+		<keysym>/</keysym>
+	      </keycombo>
+	    </entry>
+	      <entry>remove the current value from a <literal>|</literal>-separated FS-alternative</entry>
+	  </row>
 	</tbody>
       </tgroup>
     </table>
-
+    </section>
   </section>
   <section id="stylesheets">
     <title>Customizing Tree Appearance: Stylesheets</title>

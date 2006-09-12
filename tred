@@ -5024,14 +5024,15 @@ sub startMain {
     my $bg = $top->optionGet('Button.background','Background');
     my $abg = $top->optionGet('Button.activeBackground','ActiveBackground');
     my $H='[a-z0-9]{2}';
+    my $level = 7;
     if (($bg eq $abg) and $abg=~/^\#($H)($H)($H)$/ogi) {
       my ($r,$g,$b) = map hex, $1,$2,$3;
-      if ($r<223 || $g<223 || $b<223) {
+      if (!first {$_>=255-$level} ($r,$g,$b)) {
 	# lighten
-	$_+=32 for $r,$g,$b;
+	$_+=$level for $r,$g,$b;
       } else {
 	# darken
-	$_-=32 for $r,$g,$b;
+	$_-=$level for $r,$g,$b;
       }
       $abg = '#'.join '', map { sprintf('%02x',min(abs($_),255)) } $r,$g,$b;
       $top->optionAdd('*Button.activeBackground',$abg);
@@ -7660,7 +7661,7 @@ sub editAttrsDialog_schema {
     $node_type = $base_type;
   }
   my $dlg_title = ($attr_path ne EMPTY ? "Edit Attribute '$attr_path'" : "Edit Node");
-  my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
+  my @buttons = $enabled ? ($attr_path ? qw(OK Cancel) : qw(OK Help Cancel)) : ('Cancel');
 
   ##########
   # EXPERIMENT WITH A PERSISTENT NODE EDITOR
@@ -7681,6 +7682,11 @@ sub editAttrsDialog_schema {
     $d = $win->toplevel->DialogBox(-title=> $dlg_title,
 			       -buttons=> \@buttons
 			      );
+    $d->Subwidget('B_Help')->configure(
+      -command => 
+	[sub {
+	   help_topic(shift,'new_editnode_interface');
+	 }]) if first { $_ eq 'Help' } @buttons;
     _bind_buttons($d,$d);
     $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);    
     $d->maxsize(0,int(0.9*$d->screenheight));
@@ -7953,11 +7959,16 @@ sub editAttrsDialog {
   my ($a,$b,$r);
 
   my $enabled=(doEvalHook($win,'enable_edit_node_hook',$node) eq 'stop') ? 0 : 1;
-  my @buttons = $enabled ? qw(OK Cancel) : ('Cancel');
+  my @buttons = $enabled ? qw(OK Help Cancel) : ('Cancel');
   $win->toplevel->Busy(-recurse=>1);
   my $d=$win->toplevel->DialogBox(-title=> "Edit Node", -width=> '10c',
 				  -buttons=> \@buttons
 				 );
+  $d->Subwidget('B_Help')->configure(
+    -command => 
+      [sub {
+	 help_topic(shift,'old_editnode_interface');
+       }]) if $enabled;
   _bind_buttons($d,$d);
   $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Control-Return>',\&dlgReturn);
