@@ -6,14 +6,19 @@ dir=`dirname $0`
 pod2xhtml="${dir}/pod_to_xhtml"
 
 target_dir="${1:-$PWD}"
+[ -d "$target_dir" ] || mkdir $target_dir || exit 1
+pushd "$target_dir" > /dev/null
+target_dir=`pwd -P` # get absolute path
+popd > /dev/null
+
 html_dir="$target_dir"
 pod_dir="${2:-$target_dir/pod}"
 
 [ -d "$pod_dir" ] || mkdir $pod_dir || exit 1
-[ -d "$html_dir" ] || mkdir $html_dir || exit 1
+#[ -d "$html_dir" ] || mkdir $html_dir || exit 1
 
 for f in $dir/../[bn]tred \
-         $dir/../tredlib/{Fslib.pm,PMLSchema.pm,PMLInstance.pm}; do
+         $dir/../tredlib/{Fslib.pm,PMLSchema.pm,PMLInstance.pm,tred.def}; do
     n="basename ${f%.pm}"
     n=$(basename "$n")
     pod="$pod_dir/${n//./_}.pod"
