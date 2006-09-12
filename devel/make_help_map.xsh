@@ -14,7 +14,7 @@ echo;
 echo "package TrEd::Help;";
 echo;
 echo "%HELP_MAP = (";
-echo "  '_TOC_' => 'ar01-toc.xhtml',";
+echo "  '_TOC_' => 'ar01-toc.html',";
 
 for my $f in { @ARGV } {
   for &{open --format html $f} {
