@@ -180,18 +180,31 @@ if ($opt_v) {
   exit;
 }
 
+sub fetch_from_win32_reg {
+  my ($registry,$key,$subkey)=@_;
+  my ($reg,%data);
+
+  require Win32::Registry;
+  ${"::".$registry}->Open($key,$reg);
+  if ($reg) {
+    $reg->GetValues(\%data);
+    return $data{"$subkey"}[2];
+  }
+  return undef;
+}
 
 # in Windows, if HOME not defined, use user's AppData folder instaed
 if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
-  require Win32::Registry;
-  my %shf;
-  my $ShellFolders;
-
-  my $shfolders="Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders";
-  $::HKEY_CURRENT_USER->Open($shfolders,$ShellFolders) or
-    die "Cannot read $shfolders $^E\n";
-  $ShellFolders->GetValues(\%shf);
-  $ENV{HOME}= $shf{AppData}[2];
+  my $key = q(Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders);
+  my $home = fetch_from_win32_reg
+    ('HKEY_CURRENT_USER',
+     $key,
+     'AppData');
+  if (defined($home)) {
+    $ENV{HOME}= $home;
+  } else {
+    die "Couldn't fetch $key from Win32 registry: $^E\n";
+  }
 }
 
 # Default values of $libDir used to search for macro-file (tred.mac)
@@ -3280,6 +3293,7 @@ sub filelistDialog {
 		-underline=> 0,
 		-command=> [sub {
 			      help_topic(shift,'filelists');
+			      Tk->break;
 			    },$d])->pack(qw(-padx 0.1c -pady 0.2c -side left));
 
   $leftframe->pack(qw/-padx 5 -side left -fill y/);
@@ -3854,7 +3868,10 @@ sub printDialog {
   addBindTags($d,'dialog');
   escapeButton($d,'Cancel',1);
   $d->Subwidget('B_Help')->configure(-command =>
-				      [sub{help_topic(shift,'printing')},$d]);
+				      [sub{
+					 help_topic(shift,'printing');
+					 Tk->break;
+				       },$d]);
   $d->bind('<Return>',\&dlgReturn);
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
@@ -6790,7 +6807,10 @@ sub editConfig {
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "  Help  ", 
 		  -underline => 2,
-		  -command=> [sub { help_topic(shift,'configuration'); },$d])
+		  -command=> [sub { 
+				help_topic(shift,'configuration'); 
+				Tk->break;
+			      },$d])
     ->pack(-side=> 'left', -expand=> 1,  -padx=> 1, -pady=> 1);
   $bottom->Button(-text=> "  Close  ", 
 		  -underline => 2,
@@ -7686,6 +7706,7 @@ sub editAttrsDialog_schema {
       -command => 
 	[sub {
 	   help_topic(shift,'new_editnode_interface');
+	   Tk->break;
 	 }]) if first { $_ eq 'Help' } @buttons;
     _bind_buttons($d,$d);
     $d->protocol('WM_DELETE_WINDOW' => [sub { shift->{selected_button}='Cancel'; },$d]);    
@@ -7968,6 +7989,7 @@ sub editAttrsDialog {
     -command => 
       [sub {
 	 help_topic(shift,'old_editnode_interface');
+	 Tk->break;
        }]) if $enabled;
   _bind_buttons($d,$d);
   $d->bind('<Return>',\&dlgReturn);
@@ -8094,18 +8116,38 @@ sub open_url_in_browser {
   my $url = shift;
   if ( $htmlBrowser eq 'DO_NOT_RUN') {
   } elsif ( $htmlBrowser ne EMPTY) {
-    $htmlBrowser.=" %u" unless ($htmlBrowser =~ /\%[uf]/);
+    $htmlBrowser.=" %u" unless ($htmlBrowser =~ /\%[uf1]/);
     my $cmd = $htmlBrowser;
-    $cmd =~ s/\%[fu]/'$url'/g;
+    $cmd =~ s/\%[fu1]/$url/g;
     print STDERR "$cmd\n" if $tredDebug;
-    return system $cmd.' &';
-  } elsif ($^O eq 'MSWin32') {
-    $htmlBrowser='start /W %u';
-    return open_url_in_browser($url);
+    if ($^O eq 'MSWin32') {
+      $cmd = 'start '.$cmd unless $cmd=~/^\s*start\s/;
+      return system $cmd;
+    } else {
+      return system $cmd.' &';
+    }
   } else {
-    if ($ENV{DESKTOP_LAUNCH} ne EMPTY) {
+    if ($^O eq 'MSWin32') {
+      my $browser_key = fetch_from_win32_reg('HKEY_LOCAL_MACHINE',
+					     q(SOFTWARE\Classes\.html));
+      if ($browser_key ne EMPTY) {
+ 	$htmlBrowser = fetch_from_win32_reg('HKEY_LOCAL_MACHINE',
+					    q(SOFTWARE\Classes\\).
+					    $browser_key.
+					    q(\shell\open\command));
+      }
+      if ($htmlBrowser ne EMPTY) {
+	$htmlBrowser = 'start '.$htmlBrowser 
+	  unless $htmlBrowser=~/^\s*start\s/;
+      } else {
+	warn "Could not determine default browser.\n".
+	  "Contextual help may not jump to the correct paragraph.";
+	$htmlBrowser='start %u';
+      }
+    }
+    elsif ($ENV{DESKTOP_LAUNCH} ne EMPTY) {
       $htmlBrowser=$ENV{DESKTOP_LAUNCH};
-    } 
+    }
     elsif (which('xdg-open') ne EMPTY) {
       $htmlBrowser='xdg-open %u';
     }
