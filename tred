@@ -8146,6 +8146,9 @@ sub open_url_in_browser {
 	$htmlBrowser='start "%1"';
       }
     }
+    elsif ($^O eq 'darwin') {
+      $htmlBrowser='open %u';
+    }
     elsif ($ENV{DESKTOP_LAUNCH} ne EMPTY) {
       $htmlBrowser=$ENV{DESKTOP_LAUNCH};
     }
