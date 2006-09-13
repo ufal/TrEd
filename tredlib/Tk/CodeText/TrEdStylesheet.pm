@@ -27,6 +27,8 @@ sub new {
 		  ['QString', -foreground => 'brown' ],
 		  ['CAttribute', -foreground => 'darkblue' ],
 		  ['CStyle', -foreground => 'darkgreen'],
+		  ['QAttribute', -foreground => 'darkblue' ],
+		  ['QStyle', -foreground => 'darkgreen'],
 		  ['Comment', -foreground => 'gray40' ],
 		  ['Variable', -foreground => 'blue'],
 		  ['Empty'],
@@ -41,6 +43,8 @@ sub new {
 		'String' => \&parseString,
 		'QString' => \&parseQString,
 
+		'QStyle' => \&parseDummy,
+		'QAttribute' => \&parseDummy,
 		'CStyle' => \&parseDummy,
 		'Attribute' => \&parseDummy,
 		'Style' => \&parseDummy,
@@ -170,11 +174,11 @@ sub parseQString {
     return $text;
   }
   if ($text =~ s/^(\\\$$nqqblock)//) { #attribute
-    $self->snippetParse($1, 'CAttribute');
+    $self->snippetParse($1, 'QAttribute');
     return $text;
   }
   if ($text =~ s/^(\\?\#$nqqblock)//) { #attribute
-    $self->snippetParse($1, 'CStyle');
+    $self->snippetParse($1, 'QStyle');
     return $text;
   }  
   if ($text =~ s/^([^\\]|\\.)//) {
