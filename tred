@@ -8118,7 +8118,8 @@ sub open_url_in_browser {
   } elsif ( $htmlBrowser ne EMPTY) {
     $htmlBrowser.=" %u" unless ($htmlBrowser =~ /\%[uf1]/);
     my $cmd = $htmlBrowser;
-    $cmd =~ s/\%[fu1]/$url/g;
+    $cmd =~ s/\%1/$url/g;
+    $cmd =~ s/\%[fu]\b/"$url"/g;
     print STDERR "$cmd\n" if $tredDebug;
     if ($^O eq 'MSWin32') {
       $cmd = 'start '.$cmd unless $cmd=~/^\s*start\s/;
@@ -8142,7 +8143,7 @@ sub open_url_in_browser {
       } else {
 	warn "Could not determine default browser.\n".
 	  "Contextual help may not jump to the correct paragraph.";
-	$htmlBrowser='start %u';
+	$htmlBrowser='start "%1"';
       }
     }
     elsif ($ENV{DESKTOP_LAUNCH} ne EMPTY) {
@@ -8157,7 +8158,7 @@ sub open_url_in_browser {
       if (which('kde-open') ne EMPTY) {
 	$htmlBrowser='kde-open %u';
       } else {
-	$htmlBrowser='kfmclient exec %u';
+	$htmlBrowser='kfmclient openURL %u';
       }
     } # detect GNOME
     elsif ($ENV{GNOME_DESKTOP_SESSION_ID} ne EMPTY) {
@@ -8382,6 +8383,47 @@ sub getStylesheetPatterns {
 	 join("\n",@$patterns));
 }
 
+sub _sytylesheetInsertAttr {
+  my ($e,$name,$using_this) = @_;
+  my @tags = $e->tagNames('insert');
+  
+  # work around ends of lines where no tags appear
+  # look one char back and if we are not after an end-of-code ?>, we take the tags from there
+
+  my $startline = length($e->get('insert linestart','insert'))==0 ? 1 : 0;
+  my $endline = length($e->get('insert','insert lineend'))==0 ? 1 : 0;
+  my @one_before_idx = ('insert - '.(1+$startline).' chars','insert'.($startline ? ' - 1 chars' : ''));
+  my @two_before_idx = ('insert - '.(2+$startline).' chars','insert'.($startline ? ' - 1 chars' : ''));
+  my @one_after_idx =  ('insert'.($endline ? ' + 1 chars' : ''),'insert + '.(1+$endline).' chars');
+
+  my $before = 0;
+  if (!@tags and !($e->get(@two_before_idx) eq '?>' and
+	first { $_ eq 'Code' } $e->tagNames(@one_before_idx[0]))) {
+    @tags = $e->tagNames(@one_before_idx[0]);
+  }
+    
+  my $str;
+  if ( first { /^(?:Code|CAttribute|Variable)$/ } @tags ) {
+    $str= $using_this ? q{$this->attr('}.$name.q{')} : '$${'.$name.'}';
+    if (  first { /^(?:CAttribute|Variable|QString|String)$/ } $e->tagNames(@one_before_idx[0]) ) {
+      $str = '.'.$str;
+    }
+    if (  first { /^(?:CAttribute|Variable|QString|String)$/ } $e->tagNames(@one_after_idx[0]) ) {
+      $str .= '.';
+    }
+  } elsif  ( first {/^(?:QString|QAttribute|QStyle)$/} @tags ) {
+    $str= $using_this ? q{".$this->attr('}.$name.q{')."} : '\\${'.$name.'}' ;
+  } else {
+    $str='${'.$name.'}';    
+  }
+  $e->Insert($str);    
+
+  # Insert should be equivalent to previously used
+  #  $e->delete('sel.first','sel.last') 
+  #    if ($e->tagNextrange('sel','0.0'));
+  #  $e->insert('insert',$str);
+}
+
 sub editStylesheetDialog {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
@@ -8390,7 +8432,7 @@ sub editStylesheetDialog {
   return unless $win->treeView->patterns() or $win->{FSFile};
 
   $grp->{top}->Busy(-recurse=>1);
-  my @buttons = ("OK", "Preview",
+  my @buttons = ("OK", ($win->{FSFile} ? "Preview" : ()),
 		 (($win->{FSFile} and $win->{stylesheet} ne STYLESHEET_FROM_FILE()) ? "Store to current file" : ()),
 		 "Cancel");
   my $d=$grp->{top}->
@@ -8407,7 +8449,16 @@ sub editStylesheetDialog {
     pack(qw/-padx 3 -pady 3 -side top -fill x/);
 #  $eff->Frame(qw/-height 6 -takefocus 0/)->pack();
   my $elabff=$d->Frame->pack(-in => $eff, qw/-padx 3 -pady 3 -side top -fill x/);
-  $elabff->Label(-text => "Here you can edit the current display stylesheet (press ^I to insert tab, ^L to clear)",
+
+  # will be used later
+  my @text_opt = eval { require Tk::CodeText; 
+			require Tk::CodeText::TrEdStylesheet; 
+		      } ? (qw(CodeText -syntax TrEdStylesheet), -indentchar => '  ')
+			: qw(Text);
+
+
+  $elabff->Label(-text => "Here you can edit the current display stylesheet (press ^I to insert tab, ^L to clear"
+		   .($text_opt[0] eq 'CodeText' ? ", ^Z to undo" : EMPTY).")     ",
 		 -anchor => 'nw', -justify => 'left')->pack(qw/-side left/);
   my $helplabel = $elabff->Label(-text => "Help",
 			    -underline => 0,
@@ -8561,10 +8612,7 @@ EOF
   # Frame with pattenrs listbox
   my $cf= $f->Frame(qw(-takefocus 0));
 
-  my @text_opt = eval { require Tk::CodeText; 
-			require Tk::CodeText::TrEdStylesheet; 
-		      } ? (qw(CodeText -syntax TrEdStylesheet), -indentchar => '  ')
-			: qw(Text);
+  # @text_opt defined few paragraphs above
   my $e= $cf->Scrolled(@text_opt, 
 		       qw/-scrollbars osoe -height 35
 			  -relief sunken -borderwidth 2/);
@@ -8586,36 +8634,24 @@ EOF
 
   my $preview_applied;
   # the preview command
-  $d->Subwidget('B_Preview')->configure(
-    -command => [sub {
-		   my ($win,$e,$p)=@_;
-		   $$p = 1;
-		   my ($hint,$context,$patterns)=getStylesheetPatterns($win);
-		   setStylesheetPatterns($win,$e->get('0.0','end'));
-		   update_value_line($grp);
-		   if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
-		     redraw_fsfile($grp,$win->{FSFile});
-		   } else {
-		     redraw_stylesheet($grp,$win->{stylesheet});
-		   }
-		   setStylesheetPatterns($win,[$hint,$context,$patterns]);
-		 },$win,$e,\$preview_applied]);
-
+  if ($d->Subwidget('B_Preview')) {
+    $d->Subwidget('B_Preview')->configure(
+      -command => [sub {
+		     my ($win,$e,$p)=@_;
+		     $$p = 1;
+		     my ($hint,$context,$patterns)=getStylesheetPatterns($win);
+		     setStylesheetPatterns($win,$e->get('0.0','end'));
+		     update_value_line($grp);
+		     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
+		       redraw_fsfile($grp,$win->{FSFile});
+		     } else {
+		       redraw_stylesheet($grp,$win->{stylesheet});
+		     }
+		     setStylesheetPatterns($win,[$hint,$context,$patterns]);
+		   },$win,$e,\$preview_applied]);
+  }
   # Frame with attribute selection
-  my $af= $f->Frame(qw(-takefocus 0));
-#  $af->Frame(qw/-height 15 -takefocus 0/)->pack();
-  # Attributes listbox
-  $af->Label(qw/-text Attributes -underline 0 -anchor nw -justify left/)->pack(qw/-fill both/);
-  my $al= $af->Scrolled(qw/Listbox
-                     -bg white
-                     -width 0
-                     -relief sunken
-                     -borderwidth 2 -setgrid true
-                     -scrollbars oe
-                     -exportselection 0/)->pack(qw/-pady 3 -expand yes -fill y/);
-  $d->bind('all','<Alt-a>', [$al,'focus']);
-  disable_scrollbar_focus($al);
-  $al->BindMouseWheelVert();
+  my $af;
   my @atord=();
   if ($win->{FSFile}) {
     if (fileSchema($win->{FSFile})) {
@@ -8628,13 +8664,58 @@ EOF
     @atord=sort {uc($a) cmp uc($b)} @atord
       unless (doEvalHook($win,"sort_attrs_hook",\@atord));
   }
-  $al->insert('end',@atord);
-  if (@atord) {
-    $al->activate(0);
-    $al->selectionSet(0);
-  }
 
-   $af->pack(qw/-padx 5 -side left -fill y/);
+  if (@atord) {
+    $af = $f->Frame(qw(-takefocus 0));
+    #  $af->Frame(qw/-height 15 -takefocus 0/)->pack();
+    # Attributes listbox
+    $af->Label(qw/-text Attributes -underline 0 -anchor nw -justify left/)->pack(qw/-fill both/);
+    my $al= $af->Scrolled(qw/Listbox
+			     -bg white
+			     -width 0
+			     -relief sunken
+			     -borderwidth 2 -setgrid true
+			     -scrollbars oe
+			     -exportselection 0/)->pack(qw/-pady 3 -expand yes -fill y/);
+    $d->bind('all','<Alt-a>', [$al,'focus']);
+    disable_scrollbar_focus($al);
+    $al->BindMouseWheelVert();
+    
+    $al->insert('end',@atord);
+    if (@atord) {
+      $al->activate(0);
+      $al->selectionSet(0);
+    }
+    
+    $af->pack(qw/-padx 5 -side left -fill y/) if $af;
+    $al->bind('<Double-1>'=>
+		[sub {
+		   _sytylesheetInsertAttr($e,$al->get('active'));
+		   $e->focus();
+		   Tk->break;
+		 }]
+	       );
+    $al->bind('<Shift-Double-1>'=>
+		[sub {
+		   _sytylesheetInsertAttr($e,$al->get('active'),1);
+		   $e->focus();
+		   Tk->break;
+		 }]
+	       );
+    $al->bind('<space>'=>
+		[sub {
+		   _sytylesheetInsertAttr($e,$al->get('active'));
+		   Tk->break;
+		 }]
+	       );
+    $al->bind('<Return>'=>
+		[sub {
+		   _sytylesheetInsertAttr($e,$al->get('active'));
+		   $e->focus();
+		   Tk->break;
+		 }]
+	       );
+  }
 
   {
     my $patterns=getStylesheetPatterns($win);
@@ -8667,30 +8748,6 @@ EOF
 			       },$d,$help]);
   $d->protocol('WM_DELETE_WINDOW' => [\&_wmdeleteButton,$d]);
   #  escapeButton($d,'Cancel',1);
-  $al->bind('<Double-1>'=>
-	   [sub {
-	     $e->delete('sel.first','sel.last') 
-	       if ($e->tagNextrange('sel','0.0'));
-	     $e->insert('insert','${'.$al->get('active').'}');
-	     $e->focus();
-	   }]
-	  );
-  $al->bind('<space>'=>
-	   [sub {
-	     $e->delete('sel.first','sel.last') 
-	       if ($e->tagNextrange('sel','0.0'));
-	     $e->insert('insert','${'.$al->get('active').'}');
-	   }]
-	  );
-  $al->bind('<Return>'=>
-	   [sub {
-	     $e->delete('sel.first','sel.last') 
-	       if ($e->tagNextrange('sel','0.0'));
-	     $e->insert('insert','${'.$al->get('active').'}');
-	     $e->focus();
-	     Tk->break;
-	   }]
-	  );
 
   $e->focus();
   _bind_buttons($d,$d);
