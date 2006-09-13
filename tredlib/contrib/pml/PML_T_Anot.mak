@@ -593,7 +593,7 @@ sub AddNewNode {
   $this->{t_lemma}='#NewNode';
   $this->{nodetype}='qcomplex';
   $this->{is_generated}=1;
-}#AddForn
+}#AddNewNode
 
 #ifndef SKIPFUNC
 #define SKIPFUNC
