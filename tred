@@ -1572,6 +1572,7 @@ sub _bind_buttons {
   for my $key (keys(%bind)) {
     my $button = $bind{$key};
     next unless $button->isa('Tk::Button');
+    next if $key !~ /^[a-zA-Z.]$/i;
     $key=~s/^\.$/period/;
     $top->bind("<Alt-$key>", [sub { $_[1]->flash; $_[1]->invoke; },$button]);
   }
