@@ -938,7 +938,7 @@ sub read_Sequence {
   my ($ctxt,$child,$type,$seq)=@_;
   $seq ||= Fslib::Seq->new();
   $seq->set_content_pattern($type->{content_pattern});
-  return undef unless $child;
+  return $seq unless $child;
   my $node = $child->parentNode;
   while ($child) {
     my $child_nodeType = $child->nodeType;
@@ -1476,7 +1476,7 @@ sub write_object {
     if (!ref($object)) {
       # what do we do now?
       my $what = $tag || $type->{name} || $type->{'-name'};
-      _warn("Unexpected content of structure '$what': $object\n");
+      _warn("Unexpected content of the structure '$what': $object\n");
     } elsif (keys(%$object)+keys(%$attribs)>0) {
       # ok, non-empty structure
       if ($opts->{no_attribs}) {
@@ -1651,7 +1651,7 @@ sub write_object {
 	  _warn("The sequence '$what' contains element with no name, skipping\n");
 	}
       }
-    } else {
+    } elsif(defined($object)) {
       my $what = $tag || $type->{name} || $type->{'-name'};
       _die("Unexpected content of the sequence '$what': $object\n");
     }
@@ -1752,7 +1752,7 @@ sub write_list {
       }
   } else {
     my $what = $tag || $type->{name} || $type->{'-name'};
-    _warn("Unexpected content of List '$what': $object\n");
+    _warn("Unexpected content of the list '$what': $object\n");
   }
 }      
 
