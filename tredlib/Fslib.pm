@@ -4441,7 +4441,7 @@ Returns: 1 if the content satisfies the constraint, 0 otherwise.
     $re=~s/\#/\\\#/g;
     $re=~s/,/ /g;
     $re=~s/\s+/ /g;
-    $re=~s/([^()?+*,\s]+)/(?:<$1>)/g;
+    $re=~s/([^()?+*|,\s]+)/(?:<$1>)/g;
     # warn "'$content' VERSUS /$re/\n";
     return $content=~m/^$re$/x ? 1 : 0;
   }
