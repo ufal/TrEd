@@ -161,7 +161,7 @@ sub Cut ($) {
 
 sub Paste ($$$) {
   my ($node,$p,$fsformat)=@_;
-  my $aord=ref($fsformat) ? $fsformat->order : $fsformat;
+  my $aord = ref($fsformat) ? $fsformat->order : $fsformat;
   my $ordnum = defined($aord) ? $node->getAttribute($aord) : undef;
   my $b=$p->{$firstson};
   if ($b and defined($ordnum) and $ordnum>$b->getAttribute($aord)) {
@@ -171,13 +171,15 @@ sub Paste ($$$) {
     $rb->set_lbrother( $node ) if $rb;
     $b->{$rbrother}=$node;
     $node->set_lbrother( $b );
+    $node->set_parent( $p );
   } else {
     $node->{$rbrother}=$b;
     $p->{$firstson}=$node;
     $node->{$lbrother}=0;
     $b->set_lbrother( $node ) if ($b);
+    $node->set_parent( $p );
   }
-  $node->set_parent( $p );
+  return $node;
 }
 
 sub PasteAfter ($$) {
@@ -265,7 +267,7 @@ sub Index ($$) {
   for (my $n=0;$n<=$#$ar;$n++) {
     return $n if ($ar->[$n] eq $i);
   }
-  return undef;
+  return;
 }
 
 sub ReadLine {
@@ -593,7 +595,7 @@ This function initializes FSNode. It is called by the constructor new.
 
 sub initialize {
   my ($self) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   $self->{$Fslib::firstson}=0;
   $self->{$Fslib::lbrother}=0;
   $self->{$Fslib::rbrother}=0;
@@ -614,7 +616,7 @@ sub destroy {
 
 sub DESTROY {
     my ($self) = @_;
-    return undef unless ref($self);
+    return unless ref($self);
     %{$self}=();
     return 1;
 }
@@ -647,7 +649,7 @@ from C<$node> under the attribute-path C<attr-path>.
 
 sub type {
   my ($self,$attr) = @_;
-  return undef unless ref $self;
+  return unless ref $self;
   my $type = $self->{$Fslib::type};
   if ($attr ne '') {
     return $type ? $type->find($attr,1) : undef;
@@ -886,7 +888,7 @@ no hidden ancestor. Requires FSFormat object as the first parameter.
 
 sub following_visible {
   my ($self,$fsformat,$top) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   my $node=Fslib::Next($self,$top);
   return $node unless ref($fsformat);
   my $hiding;
@@ -908,7 +910,7 @@ structure (C<undef> if none), but not descending.
 
 sub following_right_or_up {
   my ($self,$top) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
 
   my $node=$self;
   while ($node) {
@@ -946,7 +948,7 @@ no hidden ancestor. Requires FSFormat object as the first parameter.
 
 sub previous_visible {
   my ($self,$fsformat,$top) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   my $node=Fslib::Prev($self,$top);
   my $hiding;
   return $node unless ref($fsformat);
@@ -968,7 +970,7 @@ the node itself if the node is a leaf).
 
 sub rightmost_descendant {
   my ($self) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   my $node=$self;
  DIGDOWN: while ($node->firstson) {
     $node = $node->firstson;
@@ -993,7 +995,7 @@ the node itself if the node is a leaf).
 
 sub leftmost_descendant {
   my ($self) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   my $node=$self;
   $node=$node->firstson while ($node->firstson);
   return $node;
@@ -1030,7 +1032,7 @@ sub attr {
 	$val = $val->[$1-1];
       } elsif ($strict) {
 #	warn "Can't follow attribute path '$path' (step '$step')\n";
-	return undef; # ERROR
+	return; # ERROR
       } else {
 	$val = $val->[0]{$step};
       }
@@ -1044,13 +1046,13 @@ sub attr {
 	  $val = $val->[ $i ];
 	}
       } else {
-	return undef; # ERROR
+	return; # ERROR
       }
     } elsif (ref($val)) {
       $val = $val->{$step};
     } elsif (defined($val)) {
 #      warn "Can't follow attribute path '$path' (step '$step')\n";
-      return undef; # ERROR
+      return; # ERROR
     } else {
       return '';
     }
@@ -1108,7 +1110,7 @@ sub set_attr {
 	my $msg = "Can't follow attribute path '$path' (step '$step')";
 	croak $msg if ($strict==2);
 	warn $msg."\n";
-	return undef; # ERROR
+	return; # ERROR
       } else {
 	if (@steps) {
 	  $val = $val->[0]{$step};
@@ -1131,12 +1133,12 @@ sub set_attr {
       my $msg = "Can't follow attribute path '$path' (step '$step')";
       croak $msg if ($strict==2);
       warn $msg."\n";
-      return undef; # ERROR
+      return; # ERROR
     } else {
       return '';
     }
   }
-  return undef;
+  return;
 }
 
 =pod
@@ -1317,6 +1319,9 @@ sub test_child_type {
     $obj = $obj->type;
     return 0 unless $obj;
   }
+  if ($type->get_decl_type == PML_ELEMENT_DECL) {
+    $type = $type->get_content_decl;
+  }
   my ($ch) = $type->find_members_by_role('#CHILDNODES');
   if ($ch) {
     my $ch_is = $ch->get_decl_type;
@@ -1332,6 +1337,44 @@ sub test_child_type {
   } else {
     return 0;
   }
+}
+
+=item $node->get_order
+
+For a typed node return value of the ordering attribute on the node
+(i.e. the one with role #ORDER). Returns undef for untyped nodes (for
+untyped FS nodes the name of the ordering attribute can be obtained
+from the FSFormat object).
+
+=cut
+
+sub get_order {
+  my $self = $_[0];
+  my $oattr = $self->get_ordering_member_name;
+  return defined $oattr ? $self->{$oattr} : undef;
+}
+
+=item $node->get_ordering_member_name
+
+For a typed node return name of the ordering attribute on the node
+(i.e. the one with role #ORDER). Returns undef for untyped nodes (for
+untyped FS nodes the name of the ordering attribute can be obtained
+from the FSFormat object).
+
+=cut
+
+sub get_ordering_member_name {
+  my $self = $_[0];
+  my $type = $self->type;
+  return undef unless $type;
+  if ($type->get_decl_type == PML_ELEMENT_DECL) {
+    $type = $type->get_content_decl;
+  }
+  my ($omember) = $type->find_members_by_role('#ORDER');
+  if ($omember) {
+    return ($omember->get_name);
+  }
+  return undef; # we want this undef
 }
 
 *getRootNode = *root;
@@ -1535,7 +1578,7 @@ sub clone {
 
 sub DESTROY {
   my ($self) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   $self->[9]=undef;
   $self->[12]=undef;
   foreach ($self->trees) {
@@ -2058,7 +2101,7 @@ Associate FS file with a new FSFormat object.
 
 sub changeFS {
   my ($self,$val) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   $self->[2]=$val;
   return $self->[2];
 }
@@ -2253,7 +2296,7 @@ Return/assign file saving status (this is completely user-driven).
 sub notSaved {
   my ($self,$val) = @_;
 
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->[7]=$val if (defined $val);
   return $self->[7];
 }
@@ -2267,7 +2310,7 @@ Return/assign index of current tree (this is completely user-driven).
 sub currentTreeNo {
   my ($self,$val) = @_;
 
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->[8]=$val if (defined $val);
   return $self->[8];
 }
@@ -2281,7 +2324,7 @@ Return/assign current node (this is completely user-driven).
 sub currentNode {
   my ($self,$val) = @_;
 
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->[9]=$val if (defined $val);
   return $self->[9];
 }
@@ -2290,12 +2333,13 @@ sub currentNode {
 
 =item $fsfile->nodes (tree_no, prev_current, include_hidden)
 
-Get list of nodes for given tree. Returns two value list ($nodes,$current),
-where $nodes is a reference to a list of nodes for the tree and
-current is either root of the tree or the same node as prev_current if
-prev_current belongs to the tree. The list is sorted according to
-the FS->order attribute and inclusion of hidden nodes depends on the
-boolean value of include_hidden.
+Get list of nodes for given tree. Returns two value list
+($nodes,$current), where $nodes is a reference to a list of nodes for
+the tree and current is either root of the tree or the same node as
+prev_current if prev_current belongs to the tree. The list is sorted
+according to the ordering attribute (obtained from FS->order) and
+inclusion of hidden nodes depends on the boolean value of
+include_hidden.
 
 =cut
 
@@ -2322,10 +2366,12 @@ sub nodes {
     $node=$show_hidden ? $node->following() : $node->following_visible($fsfile->FS);
   }
 
-  my $ord=$fsfile->FS->order();
-  @{$nodes}=
-    sort { $a->getAttribute($ord) <=> $b->getAttribute($ord) }
-      @unsorted;
+  my $attr=$fsfile->FS->order();
+  # schwartzian transform
+  @{$nodes} = 
+    map { $_->[0] }
+    sort { $a->[1] <=> $b->[1] }
+    map { [$_, $_->get_member($attr) ] } @unsorted;
 
   # just for sure
   undef @unsorted;
@@ -2576,7 +2622,7 @@ for more information about attribute hash, ordered names list and unparsed heade
 
 sub initialize {
   my $self = $_[0];
-  return undef unless ref($self);
+  return unless ref($self);
 
   $self->[0] = ref($_[1]) ? $_[1] : { }; # attribs  (hash)
   $self->[1] = ref($_[2]) ? $_[2] : [ ]; # atord    (sorted array)
@@ -2624,7 +2670,7 @@ Argument C<output> is optional and if given, it must be a GLOB reference.
 
 sub readFrom {
   my ($self,$handle,$out) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
 
   my %result;
   my $count=0;
@@ -2719,21 +2765,28 @@ Return names of special attributes declared in FS format as @W, @N,
 
 =cut
 
-sub AUTOLOAD {
-  my ($self)=@_;
-  return undef unless ref($self);
-  my $sub = $AUTOLOAD;
-  $sub =~ s/.*:://;
-  if (exists($FSFormat::Specials{$sub})) {
-    return $self->specials->{ $FSFormat::Specials{$sub} };
-  } else {
-    return undef;
+{
+  my ($sub, $key);
+  while (($sub,$key)= each %FSFormat::Specials) {
+    eval "sub $sub { \$_[0]->specials->{$key}; }";
   }
 }
 
+# sub AUTOLOAD {
+#   my ($self)=@_;
+#   return unless ref($self);
+#   my $sub = $AUTOLOAD;
+#   $sub =~ s/.*:://;
+#   if (exists($FSFormat::Specials{$sub})) {
+#     return $self->specials->{ $FSFormat::Specials{$sub} };
+#   } else {
+#     return;
+#   }
+# }
+
 sub DESTROY {
   my ($self) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   $self->[0]=undef;
   $self->[1]=undef;
   $self->[2]=undef;
@@ -2826,9 +2879,8 @@ sub findSpecialDef {
   my $defs = $self->defs;
   foreach (keys %{$defs}) {
     return $_ if (index($defs->{$_}," $defchar")>=0);
-
   }
-  return undef;
+  return undef; # we want an explicit undef here!!
 }
 
 =item $format->specials
@@ -2840,7 +2892,7 @@ of the hash are special attribute types and values are their names.
 
 sub specials {
   my ($self) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   unless (ref($self->[0]->{$special})) {
     $self->renew_specials();
   }
@@ -2952,7 +3004,7 @@ color assigned to the given attribute in the FS format instance.
 
 sub color {
   my ($self,$arg) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
 
   if (index($self->defs->{$arg}," 1")>=0) {
     return "Shadow";
@@ -3023,7 +3075,7 @@ value of the (special) attribute sentord or (if sentord does not exist) by
 
 sub make_sentence {
   my ($self,$root,$separator)=@_;
-  return undef unless ref($self);
+  return unless ref($self);
   $separator=' ' unless defined($separator);
   my @nodes=();
   my $sentord = $self->sentord || $self->order;
@@ -3463,7 +3515,7 @@ resulting FS tree as an FSNode object.
 
 sub ParseFSTree {
   my ($fsformat,$l,$ordhash,$emu_schema_type)=@_;
-  return undef unless ref($fsformat);
+  return unless ref($fsformat);
   my $root;
   my $curr;
   my $c;
@@ -4436,7 +4488,7 @@ Returns: 1 if the content satisfies the constraint, 0 otherwise.
   sub validate {
     my ($self,$re) = @_;
     $re = $self->content_pattern if !defined($re);
-    return undef unless defined $re;
+    return unless defined $re;
     my $content = join "",map { "<$_>"} $self->names;
     $re=~s/\#/\\\#/g;
     $re=~s/,/ /g;

@@ -145,7 +145,7 @@ sub open_file_zcat {
      eval {
        require IO::Zlib;
        $fh = new IO::Zlib;
-     } || return undef;
+     } || return;
      $fh->open($file,$rw."b") || undef $fh;
    }
   } else {
@@ -163,7 +163,7 @@ sub open_file {
       $fh = File::Temp->new(UNLINK => 1);
     };
     die if $@;
-    return undef unless $fh;
+    return unless $fh;
     if ($rw eq 'w') {
       print "IOBackend: Storing ZIPTOFILE: $rw\n" if $Debug;
       ${*$fh}{'ZIPTOFILE'}=$file;
@@ -172,8 +172,8 @@ sub open_file {
       eval {
 	require IO::Zlib;
 	$tmp = new IO::Zlib();
-      } && $tmp || return undef;
-      $tmp->open($file,"rb") || return undef;
+      } && $tmp || return;
+      $tmp->open($file,"rb") || return;
       while (my $l = <$tmp>) {
 	$fh->print($l) 
       }
@@ -183,7 +183,7 @@ sub open_file {
     return $fh;
   } else {
     $fh = new IO::File();
-    $fh->open($file,$rw) || return undef;
+    $fh->open($file,$rw) || return;
   }
   return $fh;
 }
@@ -431,7 +431,7 @@ sub rename_uri_win32 {
   my $proto2 = get_protocol($uri2);
   if ($proto1 eq 'file' and $proto2 eq 'file') {
     my $uri1 = strip_protocol($uri1);
-    return undef unless -f $uri1;
+    return unless -f $uri1;
     rename $uri1, strip_protocol($uri2);
   } else {
     die "Can't rename file $uri1 to $uri2\n";
@@ -447,7 +447,7 @@ sub rename_uri_posix {
   }
   if ($proto eq 'file') {
     my $uri1 = strip_protocol($uri1);
-    return undef unless -f $uri1;
+    return unless -f $uri1;
     return rename $uri1, strip_protocol($uri2);
   }
   print "IOBackend: rename file $uri1 to $uri2 using protocol $proto\n" if $Debug;

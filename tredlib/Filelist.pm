@@ -78,7 +78,7 @@ Re-name the file-list
 
 sub rename {
   my ($self,$new_name)=@_;
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->{name}=$new_name;
 }
 
@@ -93,7 +93,7 @@ filelist is (or is to be) saved.
 
 sub filename {
   my ($self,$new_name)=@_;
-  return undef unless ref($self);
+  return unless ref($self);
   return defined($new_name) ? $self->{filename}=$new_name : $self->{filename};
 }
 
@@ -127,7 +127,7 @@ the filename method, or to standard output, if no filename is given.
 
 sub save {
   my ($self)=@_;
-  return undef unless ref($self);
+  return unless ref($self);
   do {
     local *F;
     print "Saving to: ",$self->filename,"\n";
@@ -154,7 +154,7 @@ filename method, or from the standard input, if no filename is given.
 
 sub load {
   my ($self)=@_;
-  return undef unless ref($self);
+  return unless ref($self);
   do {
     local *F;
     if (defined ($self->filename) and $self->filename ne "") {
@@ -198,7 +198,7 @@ Let given file be the current file in the file-list (completely user-driven).
 
 sub set_current {
   my ($self,$filename)=@_;
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->{current}=$filename;
 }
 
@@ -215,7 +215,7 @@ in filelist, which had brought the file name to the list
 
 sub files_ref {
   my $self = shift;
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->{files};
 }
 
@@ -229,7 +229,7 @@ Return a list of all file names in the list
 
 sub files {
   my $self = shift;
-  return undef unless ref($self);
+  return unless ref($self);
   return map { $_->[0] } @{ $self->{files} };
 }
 
@@ -243,7 +243,7 @@ Return a reference to the internal pattern list
 
 sub list_ref {
   my $self = shift;
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->{list};
 }
 
@@ -257,7 +257,7 @@ Return a list of all patterns in the file list
 
 sub list {
   my $self = shift;
-  return undef unless ref($self);
+  return unless ref($self);
   return @{$self->{list}};
 }
 
@@ -271,7 +271,7 @@ Return the total number of all files in the list
 
 sub file_count {
   my $self = shift;
-  return undef unless ref($self);
+  return unless ref($self);
   return scalar(@{$self->{files}});
 }
 
@@ -285,7 +285,7 @@ Return the number of all patterns in the list
 
 sub count {
   my $self = shift;
-  return undef unless ref($self);
+  return unless ref($self);
   return $#{$self->{list}}+1;
 }
 
@@ -300,7 +300,7 @@ list of filenames
 
 sub expand {
   my $self = shift;
-  return undef unless ref($self);
+  return unless ref($self);
   @{ $self->files_ref }=();
   foreach my $i (0..$self->count-1) {
     push @{ $self->files_ref },
@@ -325,9 +325,9 @@ Return the n'th file name in the list
 
 sub file_at {
   my ($self,$index) = @_;
-  return undef unless ref($self);
-  return undef if $self->file_count() <= $index;
-  return undef unless ref($self->files_ref->[$index]);
+  return unless ref($self);
+  return if $self->file_count() <= $index;
+  return unless ref($self->files_ref->[$index]);
   return $self->files_ref->[$index]->[0];
 }
 
@@ -342,7 +342,7 @@ return index of current file.
 
 sub position {
   my ($self,$fsfile) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   $fsfile=$self->current() unless defined($fsfile);
   my $files=$self->files_ref;
   my $fname=ref($fsfile) ? $fsfile->filename() : $fsfile;
@@ -371,7 +371,7 @@ Return the index of the pattern which has generated the n'th file
 
 sub file_pattern_index {
   my ($self,$index) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   if ($index<0) {
     return -1;
   }
@@ -388,7 +388,7 @@ Return the pattern which has generated the n'th file
 
 sub file_pattern {
   my ($self,$index) = @_;
-  return undef unless ref($self);
+  return unless ref($self);
   return $self->list_ref->[$self->file_pattern_index($index)];
 }
 
@@ -403,7 +403,7 @@ file-list
 
 sub add {
   my ($self,$position)=(shift,shift);
-  return undef unless ref($self);
+  return unless ref($self);
 
   # never add elements already present here or in files
   # and add each element once only
@@ -428,7 +428,7 @@ Remove given patterns from the list and update file-list
 
 sub remove {
   my ($self)=shift;
-  return undef unless ref($self);
+  return unless ref($self);
 
   print "Filelist.pm: removing @_\n";
 
@@ -450,7 +450,7 @@ Remove all patterns from a filelist
 
 sub clear {
   my ($self)=shift;
-  return undef unless ref($self);
+  return unless ref($self);
   @{ $self->list_ref }=();
   $self->expand();
   return 1;
@@ -467,7 +467,7 @@ Return index of a given pattern in the filelist or -1 if not found.
 
 sub find_pattern {
   my ($self,$pattern)=@_;
-  return undef unless ref($self);
+  return unless ref($self);
   for (my $i=0; $i< $self->count; $i++) {
     return $i if $self->list_ref->[$i] eq $pattern;
   }

@@ -116,7 +116,7 @@ sub EditBoxQuery {
     return $var;
   } else {
     $d->destroy();
-    return undef;
+    return;
   }
 }
 

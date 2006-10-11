@@ -52,18 +52,18 @@ sub open_backend {
   my ($filename, $mode, $encoding)=@_;
   my $fh = undef;
   my $cmd = "";
-  return undef unless $filename=~m(^ntred://(.*)$);
+  return unless $filename=~m(^ntred://(.*)$);
   $filename=$1;
   $filename=~s/@/##/;
   if ($filename) {
     if ($mode eq 'w') {
       $cmd = "| $ntred -Q --upload-file \"$filename\" ";
       print STDERR "[w $cmd]\n" if $Fslib::Debug;
-      eval { open $fh,"$cmd"; } || return undef;
+      eval { open $fh,"$cmd"; } || return;
     } else {
       $cmd = "$ntred -Q --dump-files \"$filename\" |";
       print STDERR "[r $cmd]\n" if $Fslib::Debug;
-      eval { open $fh,"$cmd"; } || return undef;
+      eval { open $fh,"$cmd"; } || return;
     }
   }
   return IOBackend::set_encoding($fh,$encoding);
