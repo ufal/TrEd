@@ -662,7 +662,7 @@ sub find_type_by_path {
       if ($decl) {
 	$decl = $decl->get_content_decl;
       } else {
-	return undef;
+	return;
       }
     } elsif ($path=~s{^/}{} or !$decl) {
       $decl = $schema->get_root_decl->get_content_decl;
@@ -690,11 +690,11 @@ sub find_type_by_path {
 	    $decl = $member;
 	  } else {
 	    $member = $decl->get_member_by_name($step.'.rf');
-	    return undef unless $member;
+	    return unless $member;
 	    if ($member->get_knit_name eq $step) {
 	      $decl = $member;
 	    } else {
-	      return undef;
+	      return;
 	    }
 	  }
 	} elsif ($decl_is == PML_CONTAINER_DECL) {
@@ -710,14 +710,14 @@ sub find_type_by_path {
 	  if ($step eq $decl->get_name or $step eq q{}) {
 	    $decl = $decl->get_content_decl;
 	  } else {
-	    return undef;
+	    return;
 	  }
 	} else {
-	  return undef;
+	  return;
 	}
       } else {
 #	warn "Can't follow type path '$path' (step '$step')\n";
-	return undef; # ERROR
+	return(undef); # ERROR
       }
     }
   }
@@ -726,7 +726,7 @@ sub find_type_by_path {
 }
 
 
-=item $schema->find_role (role,decl)
+=item $schema->find_role (role,decl,opts)
 
 Return a list of attribute paths leading to nested type declarations
 of C<decl> with role equal to C<role>. If C<decl> is not specified,
@@ -736,27 +736,36 @@ In array context return all matching nested declarations are
 returned. In scalar context only the first one is returned (with early
 stopping).
 
+The last argument C<opts> can be used to pass some flags to the
+algorithm. Currently only the flag C<no_childnodes> is available. If
+true, then the function never recurses into content declaration of
+declarations with the role #CHILDNODES.
+
 =cut
 
 sub find_role {
-  my ($self, $role, $decl)=@_;
+  my ($self, $role, $decl, $opts)=@_;
   $decl ||= $self->{root};
   my $first = not(wantarray);
-  my @res = grep { defined } $self->_find_role($decl,$role,$first,{});
+  my @res = grep { defined } $self->_find_role($decl,$role,$first,{},$opts);
   return $first ? $res[0] : @res;
 }
 
 sub _find_role {
-  my ($self, $decl, $role, $first, $cache)=@_;
+  my ($self, $decl, $role, $first, $cache, $opts)=@_;
 
   my @result = ();  
 
-  return @result unless ref $decl;
+  return () unless ref $decl;
 
   if ($cache->{'#RECURSE'}{ $decl }) {
     return ()
   }
   local $cache->{'#RECURSE'}{ $decl } = 1;
+
+  if ( ref $opts and $opts->{no_childnodes} and $decl->{role} eq '#CHILDNODES') {
+    return ();
+  }
 
   if ( $decl->{role} eq $role ) {
     if ($first) {
@@ -766,55 +775,64 @@ sub _find_role {
     }
   }
   my $type_ref = $decl->get_type_ref;
+  my $decl_is = $decl->get_decl_type;
   if ($type_ref) {
     my $cached = $cache->{ $type_ref };
     unless ($cached) {
       $cached = $cache->{ $type_ref } = [ $self->_find_role( $self->get_type_by_name($type_ref),
-							     $role, $first, $cache ) ];
+							     $role, $first, $cache, $opts ) ];
     }
-    push @result, @$cached;
+    if ($decl_is == PML_CONTAINER_DECL) {
+      push @result,  map { $_ ne '' ? '#content/'.$_ : '#content' } @$cached;
+    } elsif ($decl_is == PML_LIST_DECL ||
+	     $decl_is == PML_ALT_DECL) {
+      push @result, map { $_ ne '' ? '[]/'.$_ : '[]' } @$cached;
+    } else {
+      push @result, @$cached;
+    }
     return $result[0] if ($first and @result);
   }
-  my $decl_is = $decl->get_decl_type;
   if ($decl_is == PML_STRUCTURE_DECL) {
     foreach my $member ($decl->get_members) {
       my @res = map { $_ ne '' ? $member->get_name.'/'.$_ : $member->get_name }
-	$self->_find_role($member, $role, $first, $cache);
+	$self->_find_role($member, $role, $first, $cache, $opts);
       return $res[0] if ($first and @res);
       push @result,@res;
     }
   } elsif ($decl_is == PML_CONTAINER_DECL) {
     my $cdecl = $decl->get_content_decl;
-    if ($cdecl) {
-      push @result,  map { $_ ne '' ? '#content/'.$_ : '#content' } 
-	$self->_find_role($cdecl, $role, $first, $cache);
-      return $result[0] if ($first and @result);
-    }
     foreach my $attr ($decl->get_attributes) {
       my @res = map { $_ ne '' ? $attr->get_name.'/'.$_ : $attr->get_name }
-	$self->_find_role($attr, $role, $first, $cache);
+	$self->_find_role($attr, $role, $first, $cache, $opts);
       return $res[0] if ($first and @res);
       push @result,@res;
+    }
+    if ($cdecl) {
+      push @result,  map { $_ ne '' ? '#content/'.$_ : '#content' } 
+	$self->_find_role($cdecl, $role, $first, $cache, $opts);
+      return $result[0] if ($first and @result);
     }
   } elsif ($decl_is == PML_SEQUENCE_DECL) {
     foreach my $element ($decl->get_elements) {
       my @res = map { $_ ne '' ? $element->get_name.'/'.$_ : $element->get_name }
-	$self->_find_role($element, $role, $first, $cache);
+	$self->_find_role($element, $role, $first, $cache, $opts);
       return $res[0] if ($first and @res);
       push @result,@res;
     }
   } elsif ($decl_is == PML_LIST_DECL ||
 	   $decl_is == PML_ALT_DECL ) {
     push @result, map { $_ ne '' ? '[]/'.$_ : '[]' } 
-      $self->_find_role($decl->get_content_decl, $role, $first, $cache);
+      $self->_find_role($decl->get_content_decl, $role, $first, $cache, $opts);
   } elsif ($decl_is == PML_TYPE_DECL ||
 	   $decl_is == PML_ROOT_DECL ||
            $decl_is == PML_ATTRIBUTE_DECL ||
            $decl_is == PML_MEMBER_DECL ||
 	   $decl_is == PML_ELEMENT_DECL ) {
-    push @result, $self->_find_role($decl->get_content_decl, $role, $first, $cache);
+    push @result, $self->_find_role($decl->get_content_decl, $role, $first, $cache, $opts);
   }
-  return $first ? (@result ? $result[0] : ()) : @result;
+  my %uniq;
+  return $first ? (@result ? $result[0] : ()) 
+    : grep { !$uniq{$_} && ($uniq{$_}=1) } @result;
 }
 
 =item $schema->node_types ()
@@ -983,8 +1001,8 @@ attribute, member, element.
 
 =cut
 
-sub get_decl_type     { return undef; } # VIRTUAL
-sub get_decl_type_str { return undef; } # VIRTUAL
+sub get_decl_type     { return(undef); } # VIRTUAL
+sub get_decl_type_str { return(undef); } # VIRTUAL
 
 =item $decl->is_atomic ()
 
@@ -1025,7 +1043,7 @@ sub get_content_decl {
       croak "Declaration not associated with a schema";
     }
   }
-  return undef;
+  return(undef);
 }
 
 =item $decl->get_knit_content_decl ()
@@ -1080,7 +1098,7 @@ sub get_type_ref_decl {
 	  : undef ;
     }
   }
-  return undef;
+  return(undef);
 }
 
 =item $decl->get_base_type_name ()
@@ -1095,7 +1113,7 @@ sub get_base_type_name {
   if ($path=~m{^!([^/]+)}) {
     return $1;
   } else {
-    return undef;
+    return(undef);
   }
 }
 
@@ -1142,17 +1160,22 @@ sub find {
   return $self->schema->find_type_by_path($path,$noresolve,$type);
 }
 
-=item $decl->find_role (role)
+=item $decl->find_role (role, opts)
 
 Search declarations with a given role nested within this declaration.
 In scalar context, return the first declaration that matches, in array
 context return all such declarations.
 
+The last argument C<opts> can be used to pass some flags to the
+algorithm. Currently only the flag C<no_children> is available. If
+true, then the function never recurses into content declaration of
+declarations with the role #CHILDNODES.
+
 =cut
 
 sub find_role {
-  my ($self, $role) = @_;
-  return $self->schema->find_role($role,$self->type_decl);
+  my ($self, $role, $opts) = @_;
+  return $self->schema->find_role($role,$self->type_decl,$opts);
 }
 
 sub convert_from_hash {
@@ -1218,7 +1241,8 @@ sub convert_from_hash {
   } elsif ($sub = $decl->{cdata}) {
     $decl_type = 'cdata';
     bless $sub, 'PMLSchema::CDATA';
-  } elsif ($sub = $decl->{constant}) {
+  } elsif (exists $decl->{constant}) { # can be 0
+    $sub = $decl->{constant};
     $decl_type = 'constant';
     unless (ref($sub)) {
       $sub = $decl->{constant} = bless { value => $sub }, 'PMLSchema::Constant';
@@ -1440,7 +1464,7 @@ Return declared structure name (if any).
 sub is_atomic { 0 }
 sub get_decl_type { return PML_STRUCTURE_DECL; }
 sub get_decl_type_str { return 'structure'; }
-sub get_content_decl { return undef; }
+sub get_content_decl { return(undef); }
 sub get_structure_name { return $_[0]->{name}; }
 
 =item $decl->get_members ()
@@ -1925,7 +1949,7 @@ elements in DTD-like content-model grammar.
 sub is_atomic { 0 }
 sub get_decl_type { return PML_SEQUENCE_DECL; }
 sub get_decl_type_str { return 'sequence'; }
-sub get_content_decl { return undef; }
+sub get_content_decl { return(undef); }
 sub is_mixed { return $_[0]->{text} ? 1 : 0 }
 sub get_content_pattern {
   return $_[0]->{content_pattern};
@@ -2268,7 +2292,7 @@ Return list of possible values.
 sub is_atomic { 1 }
 sub get_decl_type { return PML_CHOICE_DECL; }
 sub get_decl_type_str { return 'choice'; }
-sub get_content_decl { return undef; }
+sub get_content_decl { return(undef); }
 sub get_values { return @{ $_[0]->{values} }; }
 
 
@@ -2355,7 +2379,7 @@ unsignedShort
 sub is_atomic { 1 }
 sub get_decl_type { return PML_CDATA_DECL; }
 sub get_decl_type_str { return 'cdata'; }
-sub get_content_decl { return undef; }
+sub get_content_decl { return(undef); }
 sub get_format { return $_[0]->{format} }
 
 {
@@ -2797,7 +2821,7 @@ compatibility with choice declarations).
 sub is_atomic { 1 }
 sub get_decl_type { return PML_CONSTANT_DECL; }
 sub get_decl_type_str { return 'constant'; }
-sub get_content_decl { return undef; }
+sub get_content_decl { return(undef); }
 sub get_value { return $_[0]->{value}; }
 sub get_values { my @val=($_[0]->{value}); return @val; }
 

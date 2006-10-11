@@ -626,7 +626,7 @@ sub read_node {
     my $childnodes_taker = $opts->{childnodes_taker};
     if ($role eq '#CHILDNODES' and $childnodes_taker) {
       _set_node_children($childnodes_taker, $list) if $list;
-      return undef;
+      return;
     } elsif ($role eq '#TREES') {
       return $ctxt->_set_trees($list, $type,$node);
     } else {
@@ -660,7 +660,7 @@ sub read_node {
       if ($seq) {
 	_set_node_children($childnodes_taker, $seq);    
       }
-      return undef;
+      return;
     } elsif ($role eq '#TREES') {
       return $ctxt->_set_trees($seq,$type,$node);
     } else {
@@ -916,14 +916,14 @@ sub read_node {
     _die("Type declaration error: cannot determine data type of ".
 	   _element_address($node)."Parsed type declaration:\n".Dumper($type));
   }
-  return undef;
+  return;
 }
 
 
 # If a given DOM node contains a pml:List, return a list of its members,
 # otherwise return the node itself.
 
-sub _read_List ($) {
+sub _read_List {
   my ($node,$node_list)=@_;
   return unless $node;
   if ($node_list) {
@@ -977,7 +977,7 @@ sub read_Sequence {
 # If given DOM node contains a pml:Alt, return a list of its members,
 # otherwise return the node itself.
 
-sub _read_Alt ($) {
+sub _read_Alt {
   my ($node)=@_;
   return unless $node;
   my @Alt = $node->getChildrenByTagNameNS(PML_NS,AM);
@@ -1002,7 +1002,7 @@ sub _set_trees {
       $ctxt->{'_trees'} = $data;
       _warn("Object with role #TREES contains non-#NODE list members in "._element_address($node))
 	if (grep {!UNIVERSAL::isa($_,'FSNode')} @{$ctxt->{'_trees'}});
-      return undef; #$ctxt->{'_trees'}
+      return; #$ctxt->{'_trees'}
     } elsif (UNIVERSAL::isa($data,'Fslib::Seq')) {
       # in a #TREES sequence, we accept non-node elements, processing
       # the sequence in the following way:
@@ -1037,7 +1037,7 @@ sub _set_trees {
 	  }
 	}
       }
-      return undef;
+      return;
     } else {
       # should be undef - empty tree list
       return $data;
@@ -1243,8 +1243,9 @@ sub save {
       my $dom = $ctxt->{'_writer'}->end;
       my $xslt = XML::LibXSLT->new;
       my $params = $out_xsl->content;
-      my %params = map { $_->{'name'} => $_->textContent 
-		       } $params->values if $params;
+      my %params;
+      %params = map { $_->{'name'} => $_->textContent } $params->values
+	  if $params;
       _debug("Transforming from PML with XSLT '$out_xsl_href'");
       my $out_xsl_parsed = $xslt->parse_stylesheet_file($out_xsl_href);
       my $result = $out_xsl_parsed->transform($dom,%params);
@@ -1924,7 +1925,7 @@ sub _element2writer {
   }
 }
 
-sub validate_object ($$$;$) {
+sub validate_object {
   my ($ctxt, $object, $type, $opts)=@_;
   $type->validate_object($object,$opts);
 }
@@ -1973,18 +1974,33 @@ sub convert_to_fsfile {
   $fsfile->changeTrees( @{$ctxt->{'_trees'}} ) if $ctxt->{'_trees'};
 
   my @nodes = $ctxt->{'_schema'}->find_role('#NODE');
-  my ($order,$hide);
+  my (@order,@hide);
   for my $path (@nodes) {
     my $node_decl = $schema->find_type_by_path($path,1);
-    $order = $schema->find_role('#ORDER', $node_decl ) unless defined $order;
-    $hide  = $schema->find_role('#HIDE', $node_decl ) unless defined $hide;
-    last if $order ne EMPTY and $hide ne EMPTY;
+    if ($node_decl->get_decl_type == PMLSchema::PML_ELEMENT_DECL) {
+      $node_decl = $node_decl->get_content_decl;
+    }
+    push @order, map { $_->get_name } $node_decl->find_members_by_role('#ORDER');
+    push @hide, map { $_->get_name } $node_decl->find_members_by_role('#HIDE' );
+    #    push @order, $node_decl->find_role('#ORDER',{no_childnodes=>1});
+    #    push @hide, $node_decl->find_role('#HIDE',{no_childnodes=>1});
+    # last if $order ne EMPTY and $hide ne EMPTY;
   }
- 
-
+  my %uniq;
+  @order = grep { !$uniq{$_} && ($uniq{$_}=1) } @order;
+  %uniq=();
+  @hide = grep { !$uniq{$_} && ($uniq{$_}=1) } @hide;
+  if (@order>1) {
+    _warn("All #ORDER members/attributes should have the same name (found {",
+	  join(',',@order),"}, using $order[0])!");
+  }
+  if (@hide>1) {
+    _warn("All #HIDE members/attributes should have the same name (found {",
+	  join(',',@hide),"} $hide[0])!");
+  }
   my $defs = $fsfile->FS->defs;
-  $defs->{$order} = ' N' if $order ne EMPTY; 
-  $defs->{$hide}  = ' H' if $hide  ne EMPTY;
+  $defs->{$order[0]} = ' N' if @order;
+  $defs->{$hide[0]}  = ' H' if @hide;
 
   return $fsfile;
 }
