@@ -217,11 +217,36 @@ sub value_line_list {
     my @sent=();
     my $attr=$fsfile->FS->sentord();
     $attr=$fsfile->FS->order() unless (defined($attr));
-    while ($node) {
-      push @sent,$node unless ($node->get_member($attr)>=999); # this is TR specific stuff
-      $node=$node->following();
+    # schwartzian transform
+    if (defined($attr)) {
+      while ($node) {
+	my $ord = $node->get_member($attr);
+	push @sent,[$node,$ord]
+	  unless ($ord>=999); # this unless is a PDT1.0 specific thing
+	$node=$node->following();
+      }
+    } else {
+      # try to get the per-node ordering
+      my %ord_attr_hash; # hash ordering attributes by type
+      while ($node) {
+	my $ord;
+	# find ordering attribute
+	my $type = $node ? $node->type : undef;
+	if ($type) {
+	  my $ord_attr = $ord_attr_hash{ $type };
+	  unless (defined($ord_attr)) {
+	    ($ord_attr) = $node->get_ordering_member_name;
+	    $ord_attr_hash{ $type } = $ord_attr;
+	  }
+	  $ord = $node->get_member($ord_attr);
+	  push @sent, [$node,$ord];
+	} else {
+	  push @sent, [$node,0];
+	}
+	$node=$node->following();
+      }
     }
-    @sent = sort { $a->get_member($attr) <=> $b->get_member($attr) } @sent;
+    @sent = map { $_->[0] } sort { $a->[1] <=> $b->[1] } @sent;
     my @vl=();
 
     foreach $node (@sent) {
