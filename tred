@@ -4656,7 +4656,8 @@ sub About {
     messageBox(-icon=> 'info',
 	       -type=> 'ok',
 	       -message=>
-		 "TrEd $ver\nTk $Tk::VERSION\n\n$fileinfo$contextinfo$colinf$message\n$about\n",
+		 "This is Tree Editor TrEd\nVersion $ver\nRunning Tk $Tk::VERSION\n\n".
+	       "\n\n$fileinfo$contextinfo$colinf$message\n$about\n",
 	       -title=> 'About');
 }
 
@@ -10391,7 +10392,7 @@ sub prepare_undo {
     return undef;
   } else {
     my $tree = make_data_snapshot( $win->{root} );
-    return ['Snapshot',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only];
+    return [$fsfile,['Snapshot',$win->{treeNo},$tree,getNodeNo($win,$win->{currentNode}),$message,$phase_only]];
   }
 #  } else {
 #    $tree = Storable::freeze($win->{root});
@@ -10402,8 +10403,15 @@ sub prepare_undo {
 sub save_undo {
   my ($win,$undo)=@_;
   return unless $maxUndo;
-  my $fsfile=$win->{FSFile};
-  return unless ref($fsfile) and $undo;
+  return unless ref $undo;
+  my $fsfile=$undo->[0];
+  $undo=$undo->[1];
+  return unless ref $fsfile and ref $undo;
+  print "Saving undo: $undo->[4] for file ".$fsfile->filename()."\n" if $tredDebug;
+
+  if ($fsfile != $win->{FSFile}) {
+    warn("Undo: window displays a different file than undo was prepared for.\n");
+  }
   initAppData($fsfile);
 
   my $stack=$fsfile->appData('undostack');
@@ -10460,7 +10468,7 @@ sub undo {
       if ($redo) {
 	pop @$stack;
       } else {
-	push @$stack, $new_undo;
+	push @$stack, $new_undo->[1];
       }
     }
     print STDERR "Undo: ",$stackpos."/$#$stack\n" if $tredDebug;
