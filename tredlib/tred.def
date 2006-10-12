@@ -1826,6 +1826,7 @@ user-visible one-line diescription of the action following SaveUndo.
 =cut
 
 sub SaveUndo {
+  $grp->{currentNode} = $this;
   main::save_undo($grp, main::prepare_undo($grp,'Macro: '.$_[0]));
 }
 

@@ -245,11 +245,12 @@ sub AddAnalyticNode {
   $this->{t_lemma}='#NewNode';
   $this->{functor}='PAR';
   $this->{nodetype}='complex';
+  $this->{is_generated}=1;
   EditFunctor() || (DeleteNode() && return );
   unless ($autotype){
     EditNodetype()|| (DeleteNode() && return );
   }
-  EditAttribute($this,'is_generated')|| (DeleteNode() && return );
+#  EditAttribute($this,'is_generated')|| (DeleteNode() && return );
   $PML::desiredcontext='PML_A_Edit';
   MarkForARf();
 }#AddAnalyticNode
