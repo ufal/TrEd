@@ -390,15 +390,17 @@ sub set_macro_variable {
   }
 }
 
+my @_saved_vars = qw(grp this root FileNotSaved forceFileSaved);
+
 sub save_ctxt {
-  return [get_macro_variable("grp"),
-	  get_macro_variable("this"),
-	  get_macro_variable("root")];
+  return [ map { get_macro_variable($_) } @_saved_vars ];
 }
-sub restore_ctxt ($) {
-  set_macro_variable("grp",$_[0][0]);
-  set_macro_variable("this",$_[0][1]);
-  set_macro_variable("root",$_[0][2]);
+sub restore_ctxt {
+  my $ctxt = shift;
+  my $i=0;
+  for my $var (@_saved_vars) {
+    set_macro_variable($var, $ctxt->[$i++]);
+  }
 }
 
 sub do_eval_macro {
