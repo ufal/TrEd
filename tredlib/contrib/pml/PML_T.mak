@@ -183,6 +183,7 @@ sub AnalyticalTree {
     } GetANodeIDs($t_node);
   $this = $a_ids->{$first};
   ChangingFile(0);
+  1;
 }
 
 sub SwitchToAFile {
