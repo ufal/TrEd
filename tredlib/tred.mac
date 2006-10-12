@@ -121,9 +121,9 @@ sub EditBoxQuery {
 }
 
 sub ListQuery {
-  my ($title,$select_mode,$vals,$selected)=@_;
+  my ($title,$select_mode,$vals,$selected,$opts)=@_;
   my $top=ToplevelFrame();
-  main::listQuery($top,$title,$select_mode,$vals,$selected);
+  main::listQuery($top,$title,$select_mode,$vals,$selected,$opts);
 }
 
 sub QuestionQuery {
