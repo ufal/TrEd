@@ -106,6 +106,7 @@ use fields qw(
     _trees_written
     _write_single_LM
     _refs_save
+    _keep_knit
    );
 
 # PML Instance File
@@ -245,10 +246,15 @@ sub load {
     $ctxt->{'_dom'} = $parser->parse_string($opts->{string},
 					 $ctxt->{'_filename'});
   } elsif ($opts->{filename}) {
-    my $fh = IOBackend::open_uri($opts->{filename});
-    $ctxt->{'_dom'} = $parser->parse_fh($fh,
-				     $opts->{filename});
-    IOBackend::close_uri($fh);
+    if ($opts->{filename} eq '-') {
+      $ctxt->{'_dom'} = $parser->parse_fh(\*STDIN,
+					  $ctxt->{'_filename'});      
+    } else {
+      my $fh = IOBackend::open_uri($opts->{filename});
+      $ctxt->{'_dom'} = $parser->parse_fh($fh,
+					  $opts->{filename});
+      IOBackend::close_uri($fh);
+    }
   }
   unless ($ctxt->{'_dom'}) {
     _die("Reading PML instance '".$ctxt->{'_filename'}."' to DOM failed!");
@@ -568,10 +574,16 @@ sub lookup_id {
 }
 
 sub hash_id {
-  my ($ctxt,$id,$object) = @_;
+  my ($ctxt,$id,$object,$check_uniq) = @_;
   return if $id eq EMPTY; 
   $id = $ctxt->{'_id_prefix'} . $id;
   my $hash = $ctxt->{'_id-hash'} ||= {};
+  if ($check_uniq) {
+    my $current = $hash->{$id};
+    if (defined $current and $current != $object) {
+      _warn("Duplicated ID '$id'");
+    }
+  }
   if (ref($object)) {
     weaken( $hash->{$id} = $object );
   } else {
@@ -706,7 +718,7 @@ sub read_node {
 	}
 	$hash->{$name} = $value;
 	if ($member->{role} eq '#ID') {
-	  $ctxt->hash_id($value,$hash);
+	  $ctxt->hash_id($value,$hash,1);
 	}
       } else {
 	unless ($name =~ /^xml(?:ns)?(?:$|:)/) {
@@ -787,7 +799,7 @@ sub read_node {
 	      $hash->{$name} = $ctxt->read_node($child,$member);
 	    }
 	    if ($role eq '#ID') {
-	      $ctxt->hash_id($hash->{$name},$hash);
+	      $ctxt->hash_id($hash->{$name},$hash,1);
 	    }
 	  }
 	} else {
@@ -855,7 +867,7 @@ sub read_node {
 	}
 	$hash->{$atr_name} = $value;
 	if ($attr_decl->{role} eq '#ID') {
-	  $ctxt->hash_id($hash->{$atr_name},$hash);
+	  $ctxt->hash_id($hash->{$atr_name},$hash,1);
 	}
       } elsif ($attr_decl->{required}) {
 	_die("Required attribute '$atr_name' missing in container ".
@@ -1182,8 +1194,11 @@ sub save {
   $ctxt->{'_filename'} = $opts->{filename} if $opts->{filename};
   my $href = $ctxt->{'_filename'};
 
+  $fh=\*STDOUT if ($href eq '-' and !$fh);
+
   $ctxt->{'_write_single_LM'} = $opts->{'write_single_LM'};
   $ctxt->{'_trees_written'} = 0;
+  $ctxt->{'_keep_knit'} = $opts->{keep_knit};
   unless ($fh) {
     if ($href ne EMPTY) {
       eval {
@@ -1555,7 +1570,9 @@ sub write_object {
 	    # knit data
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
-	    if (ref($object->{$knit_tag})) {
+	    if ($ctxt->{'_keep_knit'}) {
+	      $ctxt->write_object($object->{$knit_tag}, $mdecl,{ tag => $knit_tag,  no_empty => !$is_required });
+	    } elsif (ref($object->{$knit_tag})) {
 	      $ctxt->write_object_knit($object->{$knit_tag}, $mdecl,{ tag => $member });
 	    }# else {
 	    #	_warn("Didn't find $knit_tag on the object! ",join(" ",%$object),"\n");
@@ -1574,7 +1591,11 @@ sub write_object {
 	    $knit_tag =~ s/\.rf$//;
 	    my $list = $object->{$knit_tag};
 	    if ($list ne EMPTY) {
-	      write_list($ctxt, $list, $mtype->{list}, { tag => $member, knit => 1, no_resolve => 1 } )
+	      if ($ctxt->{'_keep_knit'}) {
+		write_list($ctxt, $list, $mtype->{list}, { tag => $knit_tag, knit => 0 } )
+	      } else {
+		write_list($ctxt, $list, $mtype->{list}, { tag => $member, knit => 1, no_resolve => 1 } )
+	      }
 	    }
 	  }
 	} elsif ($object->{$member} ne EMPTY or $is_required) {
@@ -1750,7 +1771,7 @@ sub write_list {
 	}
       }
       $xml->endTag($tag) if defined($tag);
-      }
+    }
   } else {
     my $what = $tag || $type->{name} || $type->{'-name'};
     _warn("Unexpected content of the list '$what': $object\n");
@@ -2292,9 +2313,10 @@ data are fetched from FSFile MetaData and AppData fields. If called
 on an instance, modifies and returns the instance, otherwise creates
 and returns a new instance.
 
-=item $pml->hash_id (id,object)
+=item $pml->hash_id (id,object,warn)
 
-Hash a given object under a given ID.
+Hash a given object under a given ID. If warn is true, then a warning
+is issued if the ID already wash hashed with a different object.
 
 =item $pml->lookup_id (id)
 
