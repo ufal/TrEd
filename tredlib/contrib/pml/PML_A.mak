@@ -82,6 +82,7 @@ sub TectogrammaticalTree {
     };
   }
   ChangingFile(0);
+  1;
 }
 
 sub SwitchToTFile {

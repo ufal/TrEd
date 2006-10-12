@@ -47,13 +47,30 @@ node:<?
   '#{customfunc}${functor}').
   "#{customsubfunc}".($${subfunctor}?".\${subfunctor}":'').($${is_state}?".\${is_state=state}":'') ?><? '#{customcoappa}_${is_member=M}'if$${is_member} ?><? '#{customparenthesis}_${is_parenthesis=P}' if$${is_parenthesis} ?>
 
-node:<? $${nodetype} ne 'complex' and $${nodetype} ne 'root'
-        ? '#{customnodetype}${nodetype}'
-        : ''
-     ?>#{customcomplex}<?
-        local $_=$${gram/sempos};
-        s/^sem([^.]+)(\..)?[^.]*(.*)$/$1$2$3/;
-        '${gram/sempos='.$_.'}'
+node:<? my $line;
+        if($PML_T_Anot::showANodes){
+          $line=(($this->attr('a/lex.rf')
+            ? ('#{darkgreen}'
+              .(PML_T::GetANodeByID($this->attr('a/lex.rf'))->attr('m/form')))
+            : ''
+          ).($this->attr('a/aux.rf')
+            ? ('#{darkorange}'
+              .join(',','',map{
+                  PML_T::GetANodeByID($_)->attr('m/form')
+                }ListV($this->attr('a/aux.rf'))
+              ))
+            : ''
+          ));
+        }else{
+          $line=(($${nodetype} ne 'complex' and $${nodetype} ne 'root')
+            ? '#{customnodetype}${nodetype}'
+            : '');
+          $line.='#{customcomplex}';
+          local $_=$${gram/sempos};
+          s/^sem([^.]+)(\..)?[^.]*(.*)$/$1$2$3/;
+          $line.='${gram/sempos='.$_.'}';
+        }
+        return $line;
 ?>
 
 style:#{Node-width:7}#{Node-height:7}#{Node-currentwidth:9}#{Node-currentheight:9}
@@ -595,6 +612,12 @@ sub AddNewNode {
   $this->{is_generated}=1;
 }#AddNewNode
 
+#bind ToggleANodes to Ctrl+a menu Toggle Display a-nodes 
+sub ToggleANodes {
+  $PML_T_Anot::showANodes=not $PML_T_Anot::showANodes;
+  ChangingFile(0);
+}#ToggleANodes
+
 #ifndef SKIPFUNC
 #define SKIPFUNC
 
@@ -861,41 +884,76 @@ package PML_A_View;
 #bind ShowTNodes to t menu Show t-nodes
 #binding-context PML_A_Edit
 #bind PML_A_View->ShowTNodes to t menu Show t-nodes
-sub ShowTNodes{
+sub ShowTNodes{ # TODO : spoils Undo !!!
   my $aid = $this->{id};
   my $num = CurrentTreeNumber();
   my @nodes;
-  TectogrammaticalTree();
-  TredMacro::GotoTree(0);
-  if ($root) {
-    do {{
-      $node=$root;
-      while ($node) {
-        if ( grep { s/^.*?#//;/^$aid$/ }
-             $node->attr('a/lex.rf'),ListV($node->attr('a/aux.rf')) ) {
-          push @nodes,$node;
-        }
-        $node=$node->following };
-    }} while TredMacro::NextTree()
+  ChangingFile(0);
+  TectogrammaticalTree() or return;
+  foreach my $node ( GetTrees() ){
+    while ($node) {
+      if ( grep { s/^.*?#//;/^$aid$/ }
+           $node->attr('a/lex.rf'),ListV($node->attr('a/aux.rf')) ) {
+        push @nodes,$node;
+      }
+      $node=$node->following
+    }
   }
   if ( @nodes ) {
     my @lemmas = map { ($_->{t_lemma})
                          .'.'.($_->{functor}).' : '.($_->{id})} @nodes;
-    my $d = [$lemmas[0]];
-    ListQuery('Select Node',
-              'browse',
-              \@lemmas,
-              $d);
-    my $id = $d->[0] || $nodes[0];
-    $id =~ s/.* : //;
-    my ($node,$tree)=SearchForNodeById($id);
-    TredMacro::GotoTree($tree);
-    $this=$node;
-  }else{
-    PML_T::AnalyticalTree();
-    TredMacro::GotoTree($num+1);
-    $this=$root;
+    my $d = [[]];
+    my@toBeCleared;
+    if(main::listQuery
+       ($grp->toplevel,
+        'Select Node',
+        'multiple',
+        \@lemmas,
+        $d,
+        buttons=>[{-text=>'Delete',
+                   -underline=>0,
+                   -command=>
+                   [sub{
+                      my($l)=@_;
+                      foreach my $sel(reverse $l->curselection){
+                        my$line=$l->get($sel);
+                        $line =~ s/.* : //;
+                        my($node)=SearchForNodeById($line);
+                        push @toBeCleared,$node;
+                        $l->delete($sel);
+                      }
+                    }
+                   ]}]
+       )){
+      if(@toBeCleared){
+        SetFileSaveStatus(1);
+        SaveUndo('Delete a/*.rf reference');
+        foreach my$node(@toBeCleared){
+          my $refid = CurrentFile()->metaData('refnames')->{adata};
+          if($node->attr('a/lex.rf') eq $refid.'#'.$aid){
+            delete $node->{a}{'lex.rf'};
+          }
+          @{$node->{a}{'aux.rf'}}
+            =uniq(ListSubtract
+                  ($node->{a}{'aux.rf'},
+                   List($refid.'#'.$aid)
+                  ));
+        }
+      }
+      my $id = $d->[0];
+      if($id){
+        $id =~ s/.* : //;
+        my ($node,$tree)=SearchForNodeById($id);
+        TredMacro::GotoTree($tree);
+        $this=$node;
+        return 1;
+      }
+    }
   }
+  PML_T::AnalyticalTree();
+  my ($node,$tree)=SearchForNodeById($aid);
+  TredMacro::GotoTree($tree);
+  $this=$node;
 }#ShowTNodes
 
 1;

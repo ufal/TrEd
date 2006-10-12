@@ -98,21 +98,21 @@ sub SearchForNodeById ($){
   my$found;
   my$treeNo=CurrentTreeNumber();
   my $tree = $this->root;
-  unless($found = first{ $_->{id} eq $id } $tree->descendants,$tree){
+  unless($found = first{ $_->{id} eq $id } ($tree,$tree->descendants)){
     #we have to look into another trees
     my @trees=GetTrees();
     my $maxnum=$#trees;
     my($step_l,$step_r)=($treeNo>0 ? 1 : 0, $treeNo<$maxnum ? 1 : 0);
     while($step_l!=0 or $step_r!=0){
       if($step_l){
-        if ($found=first { $_->{id} eq $id } $trees[$treeNo-$step_l]->descendants){
+        if ($found=first { $_->{id} eq $id } $trees[$treeNo-$step_l],$trees[$treeNo-$step_l]->descendants){
           $treeNo=$treeNo-$step_l;
 	  last;
         }
         $step_l=0 if ($treeNo-(++$step_l))<0;
       }
       if($step_r){
-        if ($found=first { $_->{id} eq $id } $trees[$treeNo+$step_r]->descendants){
+        if ($found=first { $_->{id} eq $id } $trees[$treeNo+$step_r],$trees[$treeNo+$step_r]->descendants){
           $treeNo=$treeNo+$step_r;
           last;
         }
@@ -120,7 +120,7 @@ sub SearchForNodeById ($){
       }
     }
   }
-  return($found,++$treeNo);
+  return($found,$treeNo+1);
 }#SearchForNodeById
 
 =item GetNodeHash($fsfile?)
