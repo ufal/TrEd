@@ -191,6 +191,7 @@ sub _ExpandCoordGetEParents { # node through
 sub GetEParents { # node through
   my ($node,$through)=@_;
   my $init_node = $node; # only used for reporting errors
+  return unless $node;
   if ($node->{is_member}) { # go to coordination head
     while ($node->{afun}!~/Coord|Apos|AuxS/ or $node->{is_member}) {
       $node=$node->parent;
@@ -206,11 +207,13 @@ sub GetEParents { # node through
     }
   }
   if (&$through($node->parent)) { # skip 'through' nodes
-    while (&$through($node->parent)) {
+    while ($node and &$through($node->parent)) {
       $node=$node->parent;
     }
   }
+  return unless $node;
   $node=$node->parent;
+  return unless $node;
   return $node if $node->{afun}!~/Coord|Apos/;
   _ExpandCoordGetEParents($node,$through);
 } # GetEParents
