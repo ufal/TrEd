@@ -674,13 +674,13 @@ sub find_type_by_path {
 	    $decl_is == PML_MEMBER_DECL ||
             $decl_is == PML_ELEMENT_DECL ||
             $decl_is == PML_TYPE_DECL ) {
-	  $decl = $decl->get_content_decl;
+	  $decl = $decl->get_knit_content_decl;
 	  next if ($step eq q{});
 	  redo;
 	}
 	if ($decl_is == PML_LIST_DECL ||
 	    $decl_is == PML_ALT_DECL ) {
-	  $decl = $decl->get_content_decl;
+	  $decl = $decl->get_knit_content_decl;
 	  next if ($step =~ /^\[\d*\]/);
 	  redo;
 	}
@@ -730,7 +730,7 @@ sub find_type_by_path {
 	      $decl_is == PML_TYPE_DECL ||
               $decl_is == PML_ROOT_DECL
 	     )
-      ? ($decl->get_content_decl) : $decl;
+      ? ($decl->get_knit_content_decl) : $decl;
 }
 
 
