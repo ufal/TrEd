@@ -53,11 +53,11 @@ if {length $title} {
   xinsert text $title into $t;
 }
 
-map { $_='Table of contents' } //*[@id='TOP']/text();
+map { 'Table of contents' } //*[@id='TOP']/text();
 
 for //@href[starts-with(.,'#quot_')] {
-  map {s/^\#quot_/\#/; s/_quot$//} .;
-  map {s/^"(.*)"$/$1/} ../text();
+  map :i {s/^\#quot_/\#/; s/_quot$//} .;
+  map :i {s/^"(.*)"$/$1/} ../text();
 }
 
 for //x:cite {
