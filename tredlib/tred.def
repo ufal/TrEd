@@ -601,7 +601,7 @@ the node as a child node of the new parent.
 
 sub PasteNode {
   my ($node,$p)=@_; 
-  my $ord=FS->order; #_node_ord($node);
+  my $ord=_node_ord($node);
   Fslib::Paste(Cut($node),$p,$ord);
   return $node;
 }
@@ -742,7 +742,7 @@ sub NewRBrother {
 
   return unless ($ref and $ref->parent);
   my $nd=FSNode->new();
-  my $ord = FS->order(); #_node_ord($ref);
+  my $ord = _node_ord($ref);
 
   if (defined $ord) {
     $nd->{$ord}=$ref->{$ord}+1;
@@ -777,7 +777,7 @@ sub NewLBrother {
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref and $ref->parent);
   my $nd=FSNode->new();
-  my $ord=FS->order(); #_node_ord($ref);
+  my $ord=_node_ord($ref);
   if (defined $ord) {
     $nd->{$ord}=$ref->{$ord};
     my $node=$ref->root;
@@ -811,7 +811,7 @@ sub NewSon {
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref);
   my $nd=FSNode->new();
-  my $ord=FS->order(); #_node_ord($ref);
+  my $ord=_node_ord($ref);
   if (defined $ord) {
     $nd->{$ord}=$ref->{$ord}+1;
       
@@ -842,7 +842,7 @@ sub NewParent {
   my $ref=ref($_[0]) ? $_[0] : $this;
   return unless ($ref);
   my $nd=FSNode->new();
-  my $ord=FS->order(); #_node_ord($ref);
+  my $ord=_node_ord($ref);
   if (defined $ord) {
     $nd->{$ord}=$ref->{$ord};
     my $node=$ref->root;
@@ -903,7 +903,7 @@ sub DeleteLeafNode {
   shift unless ref($_[0]);
   my $n = $_[0] || $this;
   return unless ($n);
-  my $ord=FS->order(); #_node_ord($n);
+  my $ord=_node_ord($n);
   my $order=$n->{$ord};
 
   my $node = $n->root;
@@ -931,7 +931,7 @@ sub DeleteSubtree {
   my $n = $_[0] || $this;
   my $top = $n->root;
   if (PlainDeleteSubtree($n)) {
-    my $ord=FS->order(); #_node_ord($top);
+    my $ord=_node_ord($top);
     if ($ord ne "") {
       my $i=0;
       for my $node (sort { $a->{$ord} <=> $b->{$ord} } $top,$top->descendants) {
@@ -1034,7 +1034,7 @@ corresponds to the order of the node in the list.
 sub NormalizeOrds {
   my ($nodesref)=@_;
 
-  my $ord=FS->order(); #_node_ord($nodesref->[0]);
+  my $ord=_node_ord($nodesref->[0]);
   for (my $i=0;$i<=$#$nodesref;$i++) {
     $nodesref->[$i]->{$ord}=$i;
   }
@@ -1052,7 +1052,7 @@ the values of the special FS numbering attribute.
 
 sub SortByOrd {
   my ($nodesref)=@_;
-  my $ord=FS->order(); #_node_ord($nodesref->[0]);
+  my $ord=_node_ord($nodesref->[0]);
   local ($a,$b);
   @$nodesref=sort { $a->{$ord} <=> $b->{$ord} } @$nodesref;
   return $nodesref;
@@ -1084,7 +1084,7 @@ special FS numbering attribute appropriately.
 sub ShiftNodeRightSkipHidden {
   my ($node)=@_;
   return unless $node;
-  my $ord=FS->order(); #_node_ord($node);
+  my $ord=_node_ord($node);
   my @all=GetNodes();
   SortByOrd(\@all);
 
@@ -1119,7 +1119,7 @@ ordering attribute of node.
 sub ShiftNodeLeftSkipHidden {
   my ($node,$min)=@_;          # min sets the minimum left...
   return unless $node;
-  my $ord=FS->order(); #_node_ord($node);     # ... boundary for Ord
+  my $ord=_node_ord($node);     # ... boundary for Ord
   my @all=GetNodes();
   SortByOrd(\@all);
 
@@ -1151,7 +1151,7 @@ appropriately.
 
 sub ShiftNodeRight {
   my ($node)=@_;
-  my $ord=FS->order(); #_node_ord($node);
+  my $ord=_node_ord($node);
   return unless $node;
   my @all=GetNodes();
   SortByOrd(\@all);
@@ -1181,7 +1181,7 @@ appropriately.
 sub ShiftNodeLeft {
   my ($node)=@_;
   return unless $node;
-  my $ord=FS->order(); #_node_ord($node);
+  my $ord=_node_ord($node);
   my @all=GetNodes();
   SortByOrd(\@all);
 
