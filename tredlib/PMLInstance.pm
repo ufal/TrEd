@@ -13,6 +13,7 @@ use strict;
 use vars qw( $DEBUG );
 
 use Scalar::Util qw(weaken);
+use PMLSchema;
 
 $DEBUG = 0;
 
@@ -1997,10 +1998,10 @@ sub convert_to_fsfile {
   my @nodes = $ctxt->{'_schema'}->find_role('#NODE');
   my (@order,@hide);
   for my $path (@nodes) {
-    my $node_decl = $schema->find_type_by_path($path,1);
-    if ($node_decl->get_decl_type == PMLSchema::PML_ELEMENT_DECL) {
-      $node_decl = $node_decl->get_content_decl;
-    }
+    my $node_decl = $schema->find_type_by_path($path);
+    #if ($node_decl->get_decl_type == PML_ELEMENT_DECL) {
+    #  $node_decl = $node_decl->get_content_decl;
+    #}
     push @order, map { $_->get_name } $node_decl->find_members_by_role('#ORDER');
     push @hide, map { $_->get_name } $node_decl->find_members_by_role('#HIDE' );
     #    push @order, $node_decl->find_role('#ORDER',{no_childnodes=>1});
@@ -2012,12 +2013,12 @@ sub convert_to_fsfile {
   %uniq=();
   @hide = grep { !$uniq{$_} && ($uniq{$_}=1) } @hide;
   if (@order>1) {
-    _warn("All #ORDER members/attributes should have the same name (found {",
-	  join(',',@order),"}, using $order[0])!");
+    _warn("FSFile only supports #ORDER members/attributes with a same name: found {",
+	  join(',',@order),"}, using $order[0]!");
   }
   if (@hide>1) {
-    _warn("All #HIDE members/attributes should have the same name (found {",
-	  join(',',@hide),"} $hide[0])!");
+    _warn("FSFile only supports #HIDE members/attributes with a same name: found {",
+	  join(',',@hide),"} $hide[0]!");
   }
   my $defs = $fsfile->FS->defs;
   $defs->{$order[0]} = ' N' if @order;
