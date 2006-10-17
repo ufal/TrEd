@@ -22,6 +22,11 @@ import Fslib;
 import Fslib qw(&Index &CloneValue &FindInResources &FindDirInResources &ResolvePath);
 import main;
 
+sub _croak {
+  my ($pkg, $file, $line) = caller(1);
+  die join('',@_).' at '.$file.' line '.$line."\n";
+}
+
 =pod
 
 =head1 TredMacro
@@ -528,7 +533,7 @@ sub CutPaste {
   my $p = $target;
   while ($p) {
     if( $p == $cutted ) {
-      die("Can not paste node to its descendant or self at ".ThisAddress($cutted));
+      _croak("Cannot paste node to its descendant or self in ".ThisAddress($cutted));
     }
     $p=$p->parent;
   }
@@ -554,7 +559,7 @@ sub CutPasteBefore {
   my $p = $ref_node->parent;
   while ($p) {
     if( $p == $cutted ) {
-      die("Can not paste node to its descendant or self at ".ThisAddress($cutted));
+      _croak("Cannot paste node to its descendant or self at ".ThisAddress($cutted));
     }
     $p=$p->parent;
   }
@@ -580,7 +585,7 @@ sub CutPasteAfter {
   my $p = $ref_node->parent;
   while ($p) {
     if( $p == $cutted ) {
-      die("Can not paste node to its descendant or self at ".ThisAddress($cutted));
+      _croak("Cannot paste node to its descendant or self at ".ThisAddress($cutted));
     }
     $p=$p->parent;
   }
@@ -1688,7 +1693,7 @@ from a hook).
 =cut
 
 sub Redraw {
-  confess "Can not call Redraw without a GUI\n" unless GUI();
+  _croak("Cannot call Redraw without a GUI\n") unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1706,7 +1711,7 @@ file.
 =cut
 
 sub Redraw_FSFile {
-  confess "Can not call Redraw without a GUI\n" unless GUI();
+  _croak("Cannot call Redraw without a GUI\n") unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1724,7 +1729,7 @@ tree.
 =cut
 
 sub Redraw_FSFile_Tree {
-  confess "Can not call Redraw without a GUI\n" unless GUI();
+  _croak "Cannot call Redraw without a GUI" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1741,7 +1746,7 @@ Force TrEd to immediately redraw all windows.
 =cut
 
 sub Redraw_All {
-  confess "Can not call Redraw without a GUI\n" unless GUI();
+  _croak "Cannot call Redraw without a GUI" unless GUI();
   my $ie=$main::insideEval;
   $main::insideEval=0;
   &main::setCurrent($grp,$this) if ($this);
@@ -1758,7 +1763,7 @@ Force TrEd to immediately redraw status line.
 =cut
 
 sub RedrawStatusLine {
-  confess "Can not call Redraw without a GUI\n" unless GUI();
+  _croak "Cannot call Redraw without a GUI" unless GUI();
   local $main::insideEval=0;
   if ($this) {
     &main::setCurrent($grp,$this);
@@ -1775,7 +1780,7 @@ Open edit attribute GUI.
 =cut
 
 sub EditAttribute {
-  confess "Can not call EditAttribute without a GUI\n" unless GUI();
+  _croak "Cannot call EditAttribute without a GUI" unless GUI();
   main::doEditAttr($grp,@_);
 }
 
@@ -1839,7 +1844,7 @@ Open the Find Node by Attributes GUI dialog.
 =cut
 
 sub Find {
-  confess "Can not call Find without a GUI\n" unless GUI();
+  _croak "Cannot call Find without a GUI" unless GUI();
   $grp->{framegroup}->{findButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
@@ -1853,7 +1858,7 @@ of the Find... menu command or FindNode macro usage.
 =cut
 
 sub FindNext {
-  confess "Can not call FindNext without a GUI\n" unless GUI();
+  _croak "Cannot call FindNext without a GUI" unless GUI();
   $grp->{framegroup}->{findNextButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
@@ -1867,7 +1872,7 @@ use of the Find... menu command or FindNode macro usage.
 =cut
 
 sub FindPrev {
-  confess "Can not call FindPrev without a GUI\n" unless GUI();
+  _croak "Cannot call FindPrev without a GUI" unless GUI();
   $grp->{framegroup}->{findPrevButton}->invoke();
   $this=$grp->{currentNode};
 #  $FileNotSaved=0 if ($FileNotSaved eq '?');;
@@ -3306,6 +3311,44 @@ sub SubStr {
 
 ##########################################
 
+=head2 Other macros
+
+=over 4
+
+=item C<quit()>
+
+This command acts just like a C<die> but without producing any error
+message at all. It can be used to immediatelly stop execution of the
+macro code and returning control to TrEd or btred (in which case btred
+starts processing the next file) but does not propagate through
+C<eval{}>, so it can also be trapped.
+
+=cut
+
+{
+  package TredMacro::Error;
+
+  # A simple class for reporting structured errors, currently only used by
+  # quit() to silently die. 
+  # In general, it can be used to pass data to the outer context.
+
+  use overload q{""} => sub{ shift->message }; 
+  sub new { my $class=shift; bless [@_], $class };
+  sub message { q{}.shift->[0] };
+  sub throw { my $self = shift; ref($self) ? die $self : die $self->new(@_) }
+
+}
+
+sub quit {
+  TredMacro::Error->throw(q{});
+}
+
+=back
+
+=cut
+
+##########################################
+
 =head2 Implementation of TredMacro::import
 
 =over 4
@@ -3351,7 +3394,7 @@ sub _import {
     } elsif ($type eq '*') {
       *{"${caller}::$k"} = \*{"${pkg}::$k"};
     } else {
-#      do { warn("Can not export symbol: $type $pkg $k") };
+#      do { warn("Cannot export symbol: $type $pkg $k") };
     }
   }
 };
