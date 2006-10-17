@@ -577,9 +577,10 @@ sub lookup_id {
 sub hash_id {
   my ($ctxt,$id,$object,$check_uniq) = @_;
   return if $id eq EMPTY; 
-  $id = $ctxt->{'_id_prefix'} . $id;
+  my $prefix = $ctxt->{'_id_prefix'};
+  $id = $prefix . $id;
   my $hash = $ctxt->{'_id-hash'} ||= {};
-  if ($check_uniq) {
+  if ($check_uniq) { # and $prefix eq ''
     my $current = $hash->{$id};
     if (defined $current and $current != $object) {
       _warn("Duplicated ID '$id'");
@@ -1105,16 +1106,16 @@ sub read_node_knit {
       }
     } else {
       # DOM
-      my $id;
+      my $id_member;
       {
 	# find what attribute is ID
 	my $decl = $type->{structure}||$type->{container};
 	if ($decl) {
-	  $id = $decl->{'-#ID'}; # cached
-	  unless (defined $id) {
+	  $id_member = $decl->{'-#ID'}; # cached
+	  unless (defined $id_member) {
 	    my ($idM) = grep { $_->{role} eq '#ID' } $decl->get_attributes();
 	    if ($idM) {
-	      $id = $decl->{'-#ID'} = $idM->{-name};
+	      $id_member = $decl->{'-#ID'} = $idM->{-name};
 	      # what follows is a hack fixing buggy PDT 2.0 schemas
 	      if ($idM->{cdata} and $idM->{cdata}{format} eq 'ID') {
 		$idM->{cdata}{format} = 'PMLREF';
@@ -1140,12 +1141,24 @@ sub read_node_knit {
 	$ctxt->{'_ref-index'}->{$reffile}{$idref} ||
 	  $data->getElementsById($idref);
       if (ref($refnode)) {
+	my ($ret);
 	my $_id_prefix = $ctxt->{'_id_prefix'};
+
+	if (defined $id_member) {
+	  print "$_id_prefix$idref\n";
+	  $ret = $ctxt->lookup_id( $_id_prefix.$reffile.'#'.$idref );
+	  if (defined $ret) {
+	    # we have already knitted this part, reuse it
+	    return [ KNIT_OK, $ret];
+	  }
+	}
+
 	$ctxt->{'_id_prefix'} .= $reffile.'#';
-	my $ret = $ctxt->read_node($refnode,$type);
+	$ret = $ctxt->read_node($refnode,$type);
 	$ctxt->{'_id_prefix'} = $_id_prefix;
-	if (defined $id and ref($ret) and $ret->{$id}) {
-	  $ret->{$id} = $reffile.'#'.$ret->{$id};
+
+	if (defined $id_member and ref($ret) and $ret->{$id_member}) {
+	  $ret->{$id_member} = $reffile.'#'.$ret->{$id_member};
 	}
 	return [ KNIT_OK, $ret];
       } else {
