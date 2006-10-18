@@ -1898,19 +1898,26 @@ sub reloadFile {
   }
 }
 
+sub _new_status {
+  my %status = (
+    ok => undef,
+    cancel => undef,
+    warnings => [],
+    error => undef,
+    filename => undef,
+    backends => undef,
+    report => undef,
+    @_
+  );
+  return \%status;
+}
+
 sub loadFile {
   my ($grp,$file,$backends)=@_;
   $grp = cast_to_grp($grp);
   my @warnings;
   my $bck = ref($backends) ? $backends : \@backends;
-  my $status = {
-    ok => 0,
-    warnings => \@warnings,
-    error => undef,
-    filename => $file,
-    backends => $bck,
-    report => undef,
-  };
+  my $status = _new_status(ok => 0, filename => $file, backends => $bck, warnings => \@warnings);
   _clear_err();
   local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; print STDERR $msg."\n"; push @warnings,$msg; };
   my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc,
@@ -1977,7 +1984,7 @@ sub openFile {
       addToRecent($grp,$f) unless $opts{-norecent};
     }
     $win->toplevel->Unbusy() unless $insideEval;
-    return wantarray ? ($fsfile,1) : $fsfile;
+    return wantarray ? ($fsfile,_new_status(ok => 1)) : $fsfile;
   }
 
   # Shell we close current file?
@@ -1986,7 +1993,7 @@ sub openFile {
       my $answer = askSaveFile($win,1,1);
       if ($answer == -1) {
 	$win->toplevel->Unbusy() unless $insideEval;
-	return undef;
+	return wantarray ? (undef,_new_status(cancel => 1)) : undef;
       }
       $opts{-keep} = $answer;
     }
@@ -2012,7 +2019,7 @@ sub openFile {
 	  addToRecent($grp,$f) unless $opts{-norecent};
 	}
 	$win->toplevel->Unbusy() unless $insideEval;
-	return wantarray ? ($of,1) : $of
+	return wantarray ? ($of,_new_status(ok=>1)) : $of
       }
     }
   }
@@ -2030,7 +2037,7 @@ sub openFile {
     if ($answer eq 'Cancel') {
       redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
       $win->toplevel->Unbusy() unless $insideEval;
-      return undef;
+      return wantarray ? (undef, _new_status(cancel=>1)) : undef;
     } elsif ($answer eq 'Steal lock') {
       $lockinfo=setLock($f)
     } else {
@@ -2090,7 +2097,7 @@ sub openFile {
       } elsif ($answer eq 'Ignore') {
 	redraw_win($win) unless ($opts{-preload} or $opts{-noredraw});
 	$win->toplevel->Unbusy() unless $insideEval;
-	return undef;
+	return wantarray ? (undef, _new_status(cancel=>1)) : undef;
       }	else {
 	closeFile($win,-no_update => 1) unless
 	  $opts{-preload} or $fsfile->lastTreeNo>=0;
