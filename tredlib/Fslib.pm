@@ -2103,6 +2103,12 @@ sub changeFS {
   my ($self,$val) = @_;
   return unless ref($self);
   $self->[2]=$val;
+  
+  my $enc = $val->special('E');
+  if ($enc) {
+    $self->changeEncoding($enc);
+    delete $val->specials->{E};
+  }
   return $self->[2];
 }
 
@@ -2682,7 +2688,15 @@ sub readFrom {
     } else {
       push @{$self->unparsed}, $_;
     }
-    if (/^\@([KPOVNWLH])([A-Z0-9])* (${Fslib::attr_name_re})(?:\|(.*))?/o) {
+    if (/^\@([KPOVNWLHE])([A-Z0-9])* (${Fslib::attr_name_re})(?:\|(.*))?/o) {
+      if ($1 eq 'E') {
+	$self->defs->{$special}->{E}=$3;
+	if (ref($handle) ne 'ARRAY') {
+	  binmode $handle;
+	  binmode $handle, ':encoding('.$3.')';
+	}
+	next;
+      }
       if (index($Fslib::SpecialTypes, $1)+1) {
 	$self->defs->{$special}->{$1}=$3;
       }
@@ -3279,9 +3293,9 @@ Return 1 on success 0 on fail.
 sub read {
   my ($fileref,$fsfile) = @_;
   return unless ref($fsfile);
-
-  $fsfile->changeFS( FSFormat->new() );
-  $fsfile->FS->readFrom($fileref) || return 0;
+  my $FS = FSFormat->new();
+  $FS->readFrom($fileref) || return 0;
+  $fsfile->changeFS( $FS );
 
   my $emu_schema_type;
   if ($emulatePML) {
@@ -3302,17 +3316,19 @@ sub read {
     my $schema= Fslib::Schema->convert_from_hash({
       description => 'PML schema generated from FS header',
       root => { name => 'fs-data',
-		element => {
-		  trees => {
-		    -name => 'trees',
-		    role => '#TREES',
-		    required => 1,
-		    list => {
-		      ordered => 1,
-		      type => 'fs-node.type'
-		    }
-		  }
-		}
+		structure => {
+		  member => {
+		    trees => {
+		      -name => 'trees',
+		      role => '#TREES',
+		      required => 1,
+		      list => {
+			ordered => 1,
+			type => 'fs-node.type'
+		       }
+		     }
+		   }
+		 }
 	      },
       type => {
 	'fs-node.type' => {
@@ -3385,6 +3401,7 @@ sub write {
   return unless ref($fsfile);
 
 #  print $fileref @{$fsfile->FS->unparsed};
+  print $fileref '@E '.$fsfile->encoding."\n";
   $fsfile->FS->writeTo($fileref);
   PrintFSFile($fileref,
 	      $fsfile->FS,
