@@ -4478,8 +4478,10 @@ sub onGetNodes {
 
 sub onTreeChange {
   my ($win)=@_;
-  get_nodes_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo},1);
-  redraw_fsfile_tree($win->{framegroup},$win->{FSFile},$win->{treeNo});
+  my $grp = $win->{framegroup};
+  get_nodes_fsfile_tree($grp,$win->{FSFile},$win->{treeNo},1);
+  update_value_line($grp);
+  redraw_fsfile_tree($grp,$win->{FSFile},$win->{treeNo});
   centerTo($win,$win->{currentNode});
 }
 
@@ -6195,7 +6197,7 @@ sub startMain {
 
 sub _do_goto_tree {
   my $win=shift;
-  update_value_line($win->{framegroup});
+  #update_value_line($win->{framegroup});
   my $no=$win->{treeNo};
   $win->{treeNo}=-1;  # this is to force getNodes & redraw
   gotoTree($win,$no);
@@ -10101,12 +10103,12 @@ sub tieNextTree {
     }
   } else {
     if ($grp->{focusedWindow}->{FSFile}) {
-      return nextTree($grp->{focusedWindow});
+      my $result = nextTree($grp->{focusedWindow});
+      return $result;
     } else {
       return 0;
     }
   }
-  return $result;
 }
 
 sub tiePrevTree {
@@ -10124,7 +10126,8 @@ sub tiePrevTree {
     }
   } else {
     if ($grp->{focusedWindow}->{FSFile}) {
-      return prevTree($grp->{focusedWindow});
+      my $result = prevTree($grp->{focusedWindow});
+      return $result;      
     } else {
       return 0;
     }
