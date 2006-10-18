@@ -1145,7 +1145,6 @@ sub read_node_knit {
 	my $_id_prefix = $ctxt->{'_id_prefix'};
 
 	if (defined $id_member) {
-	  print "$_id_prefix$idref\n";
 	  $ret = $ctxt->lookup_id( $_id_prefix.$reffile.'#'.$idref );
 	  if (defined $ret) {
 	    # we have already knitted this part, reuse it
