@@ -247,7 +247,7 @@ import Fslib qw(&Index &ImportBackends);
 $Fslib::Debug=1 if $debug;
 $Fslib::resourcePath=join($Fslib::resourcePathSplit,@resource_paths) if @resource_paths;
 
-print STDERR "Resource path: $Fslib::resourcePath\n";
+_msg("Resource path: $Fslib::resourcePath\n") unless $quiet;
 
 # import min and max functions
 require TrEd::MinMax;
