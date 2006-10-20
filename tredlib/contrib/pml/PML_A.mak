@@ -125,11 +125,29 @@ sub ExpandCoord {
   if ($node->{afun}=~/Coord|Apos/) {
     return (($keep ? $node : ()),
 	    map { ExpandCoord($_,$keep) }
-	    grep { $_->{is_member} } $node->children);
+	    grep { IsMember($_) } $node->children);
   } else {
     return ($node);
   }
 } #ExpandCoord
+
+=item IsMember($node)
+
+This is a helper function used to identify coordination or aposition
+members among child nodes of a Coord or Apos. It returns 1 if the
+given node has C<is_member>=1 or if it has C<afun>=C<AuxC> or C<AuxP>
+and a child node for which IsMember (recursively called) returns 1. If
+neither of these two conditions is met, the function returns 0.
+
+=cut
+
+sub IsMember {
+  my $node = shift;
+  return 
+    ($node->{is_member} or
+       $node->{afun}=~/^Aux[CP]/ and first { IsMember($_) } $node->children)
+      ? 1 : 0;
+}
 
 =item GetSentenceString($tree?)
 
