@@ -123,11 +123,11 @@ sub test {
       return 1 if (/^\s*</);
     } else {
       # only accept PML instances
-      return 0 unless (/^\s*<\?xml\s/);
+      # return 0 unless (/^\s*<\?xml\s/);
       do {{
-        return 1 if m{xmlns=([\'\"])http://ufal.mff.cuni.cz/pdt/pml/\1};
+        return 1 if m{xmlns(?::[[:alnum:]]+)?=([\'\"])http://ufal.mff.cuni.cz/pdt/pml/\1};
       }} while ($_=$f->getline() and (!/\S/ or /^\s*<?[^>]+?>\s*$/ or !/[>]/));
-      return m{<[^>]+xmlns=([\'\"])http://ufal.mff.cuni.cz/pdt/pml/\1} ? 1 : 0;
+      return m{<[^>]+xmlns(?::[[:alnum:]]+)?=([\'\"])http://ufal.mff.cuni.cz/pdt/pml/\1} ? 1 : 0;
     }
   } else {
     my $fh = IOBackend::open_backend($f,"r");
