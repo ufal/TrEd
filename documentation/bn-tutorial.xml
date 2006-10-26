@@ -281,7 +281,7 @@ types (see the <ulink url="rewrite:pml-markup">exhaustive list of attributes</ul
   Example: list of identifiers of tectogrammatical nodes which are
   antecedents (with respect to textual coreference) of the current node:
   
-  <programlisting>my @ids = ListV($this->attr('coref_text.rf');</programlisting>
+  <programlisting>my @ids = ListV($this->attr('coref_text.rf'));</programlisting>
   
   </para>
 
@@ -305,7 +305,7 @@ in the sample data, print its analytical function
 (<parameter>-q</parameter> is used to surpress btred progress messages):
 
 
-<programlisting>$ <command>btred</command> -TNqe 'print $this->{afun}."\n"' /net/projects/pdt/pdt20/data/sample/*.m.gz</programlisting>
+<programlisting>$ <command>btred</command> -TNqe 'print $this->{afun}."\n"' /net/projects/pdt/pdt20/data/sample/*.a.gz</programlisting>
 
 Sample from the output:
 <programlisting>
