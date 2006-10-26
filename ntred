@@ -569,6 +569,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     # ---------- reading the request ----------------
     msg "Receiving request $request_number from a client...\n";
     my $request;
+    my $md5_request;
 #     my $request_type;
 #     while (<$client>) {		#
 #       $request.=$_;
@@ -590,9 +591,11 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
       } elsif (/^\Q$control\E MD5_SIGNATURE (.*)$/) {
 	$request{SIGNATURE} = $1;
       } elsif (/^\Q$control\E STATE=(.*)/) {
+	$md5_request.=$_;
 	$state=$1;
 	$request{"STATE_".$state}.="";
       } elsif (!/^\Q$control\E/) {
+	$md5_request.=$_;
 	$request{"STATE_".$state}.=$_;
       } elsif (/\Q$control\E END_OF_REQUEST/) {
 	$state='END_OF_REQUEST';
@@ -607,7 +610,8 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 
     if ($request{REQUEST_TYPE} eq 'HUB_DISTRIBUTE') {
       @files = split /\n/,$request{STATE_FILELIST};
-      if (sign_md5($server_key,join "\n",@files) eq $request{SIGNATURE}) {
+      my $md5 = sign_md5($server_key,$md5_request);
+      if ($md5 eq $request{SIGNATURE}) {
 	shift @files; pop @files; # get rid of the controls
 	if ($olddist) {
 	  distribute_files($control,\@running,\@files,0,$server_key,$request{STATE_NO_SECONDARY});
@@ -785,7 +789,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
     $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
     $request.="$control STATE=FILELIST\n";
     my @files = get_file_list();
-    $request=join "\n", @files;
+    $request.=join "\n", @files;
   } elsif ($request_dump) {
     $request_type="DUMP";
     msg "DUMP @ARGV\n";
@@ -1515,9 +1519,13 @@ be visible from all server hosts.
 
 Send a command to the hub to distribute files given on the
 command-line or those specified using C<--filelist> of in
-~/.ntred_filelist to the servers. Note, that a file distributed to a
-server is not reloaded by the server if the server already has a file
-with the same path in memory.
+~/.ntred_filelist to the servers.
+
+Warning: Do not load files already in servers' memory, otherwise you
+may get duplicates (depending on to which server the files get
+distributed). Use C<--list-files> to see which files are already loaded.
+
+See also C<--reload-files>.
 
 =item B<--close-files>
 
