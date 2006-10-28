@@ -60,3 +60,9 @@ span.changed { background-color: #ccffcc; }
 span.off     {  }
 
 dt { font-weight: bold }
+
+.framed { 
+   background-color: #ffffcc;
+   border: dashed 1pt;
+   padding: 0 12pt 0 12pt;
+}
