@@ -76,6 +76,23 @@
 	  users. It contains ActivePerl, PerlTk, and TrEd with documentation.
           To install or
 	  upgrade, unzip the package and run <tt>setup.bat</tt>.
+
+	      <div class="framed">
+		<h4>WARNING</h4> <p>Do not use the latest ActivePerl
+		  builds 818 and 819, unless you can handle installing
+		  PPM packages by hand. The new version PPM installer
+		  introduced with these new builds seems to be
+		  <a href="http://bugs.activestate.com/show_bug.cgi?id=52628">completely broken on some setups</a>. For that reason we didn't 
+		  even attempt to update TrEd's installation script
+		  to be compatibe with the new PPM syntax.
+		  (Sorry, but if I can't run it, I can't test it!)
+		</p>
+		<p>Instead, use the version ActivePerl shipped with
+		  our package above, or use build 816 from the
+		  Older Versions section of the
+		  <a href="www.activestate.com">ActiveState website</a>.
+	      </div>
+	      
         </dd>
         <dd><b>This
 	    package is not intended for use with Perl provided by CygWin. If
