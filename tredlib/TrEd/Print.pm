@@ -96,6 +96,7 @@ sub getFontName {
 
 package TrEd::Print;
 use strict;
+
 BEGIN{
   use vars qw($bwModeNodeColor %media);
   use Exporter;
@@ -205,7 +206,8 @@ sub print_trees {
       $toEPS,			# boolean: create EPS
       $toPDF,			# boolean: create EPS
       $fil,			# output file-name
-      $snt,			# boolean: print sentence
+      $snt,			# sentence
+      $fileinfo,                # boolean: fileinfo
       $cmd,			# lpr command
       $printColors,		# boolean: produce color output
       $noRotate,                # boolean: disable tree rotation
@@ -298,7 +300,8 @@ sub print_trees {
   }
   $treeView->apply_options({
 			    lineWidth => 1,
-			    drawSentenceInfo => $snt ? 1 : 0
+			    drawSentenceInfo => $snt ? 1 : 0,
+			    drawFileInfo => $fileinfo ? 1 : 0
 			   });
   if (defined($stylesheet)) {
     $treeView->set_patterns($stylesheet->{patterns});
@@ -338,7 +341,7 @@ sub print_trees {
 	  } elsif (ref($snt) eq 'CODE') {
 	    $valtext = $snt->($fsfile,$printList[$t]-1);
 	  } else {
-	    $treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0);
 	  }
 	  $treeView->redraw($fsfile,undef,$nodes,$valtext);
 	};
