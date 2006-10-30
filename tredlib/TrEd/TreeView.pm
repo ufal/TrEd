@@ -24,7 +24,7 @@ use strict;
   currentBoxColor currentEdgeBoxColor currentNodeHeight
   currentNodeWidth customColors hiddenEdgeBoxColor edgeBoxColor
   clearTextBackground drawBoxes drawEdgeBoxes backgroundImage
-  backgroundImageX backgroundImageY drawSentenceInfo font
+  backgroundImageX backgroundImageY drawFileInfo drawSentenceInfo font
   hiddenBoxColor edgeLabelYSkip highlightAttributes showHidden
   lineArrow lineColor hiddenLineColor dashHiddenLines lineWidth
   noColor nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
@@ -1102,64 +1102,73 @@ sub redraw {
   $self->store_gen_pinfo('lastY' => 0);
 
   # draw sentence info
-  if ($self->get_drawSentenceInfo) {
-    return unless $fsfile;
-    my $currentfile=filename($fsfile->filename);
+  if ($fsfile) {
     my $fontHeight=$self->getFontHeight();
-    $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
-
-    my ($ftext,$vtext);
-    if ($valtext=~/^(.*)\/([^:]*):\s*(.*)/) {
-      $ftext="File: $currentfile, tree $1 of $2";
-      $vtext=$3;
-    } else {
-      $ftext="";
-      $vtext=$valtext;
-    }
-    $self->apply_style_opts(
-			    $canvas->
-			    createText(0,
-				       $self->{canvasHeight},
-				       -font => $self->get_font,
-				       -text => $ftext,
-				       -justify => 'left', -anchor => 'nw'),
-			    @{$Opts{SentenceText}});
-    $self->{canvasHeight}+=$fontHeight;
-    $self->{canvasWidth}=max($self->{canvasWidth},$self->getTextWidth($ftext));
-    $self->apply_style_opts(
-			    $canvas->
-			    createLine(0,$self->{canvasHeight},
-				       ($self->getTextWidth($ftext) || 0),
-				       $self->{canvasHeight}),
-			    @{$Opts{SentenceLine}});
-    $self->{canvasHeight}+=$fontHeight;
-    my $i=1;
-    my @lines=$self->wrapLines($vtext,$self->{canvasWidth});
-    @lines=reverse @lines if ($self->{reverseNodeOrder});
-    foreach (@lines) {
-      if ($self->{reverseNodeOrder}) {
-	$self->apply_style_opts(
-				$canvas->
-				createText($self->{canvasWidth},
-					   $self->{canvasHeight},
-					   -font => $self->get_font,
-					   -tags => 'vline',
-					   -text => $_,
-					   -justify => 'right',
-					   -anchor => 'ne'),
-				@{$Opts{SentenceFileInfo}});
+    if ($self->get_drawFileInfo) {
+      my $currentfile=filename($fsfile->filename);
+      my ($ftext);
+      $ftext="File: $currentfile";
+      if (@$nodes) {
+	my $r_node = $nodes->[0]->root;
+	my $which_tree = Fslib::Index($fsfile->treeList,$r_node)+1;
+	$ftext.=", tree ".$which_tree." of ".($fsfile->lastTreeNo+1);
       } else {
-	$self->apply_style_opts(
-				$canvas->
-				createText(0,$self->{canvasHeight},
-					   -font => $self->get_font,
-					   -tags => 'vline',
-					   -text => $_,
-					   -justify => 'left',
-					   -anchor => 'nw'),
-			@{$Opts{SentenceFileInfo}});
+	$ftext='';
       }
+      $self->apply_style_opts(
+	$canvas->
+	  createText(0,
+		     $self->{canvasHeight},
+		     -font => $self->get_font,
+		     -text => $ftext,
+		     -justify => 'left', -anchor => 'nw'),
+	@{$Opts{SentenceText}});
       $self->{canvasHeight}+=$fontHeight;
+      $self->{canvasWidth}=max($self->{canvasWidth},$self->getTextWidth($ftext));
+      print "Ftext: $ftext\nWidth:".$self->getTextWidth($ftext)."\n";
+      $self->apply_style_opts(
+	$canvas->
+	  createLine(0,$self->{canvasHeight},
+		     ($self->getTextWidth($ftext) || 0),
+		     $self->{canvasHeight}),
+	@{$Opts{SentenceFileInfo}});
+      $self->{canvasHeight}+=$fontHeight;
+    }
+    if ($self->get_drawSentenceInfo) {
+      if (ref($valtext) eq 'ARRAY') {
+	$valtext = join '',map {$_->[0]} @$valtext;
+      } else {
+	$valtext=~s{^(.*)/([^:]*):}{};
+      }
+      $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
+      my $i=1;
+      my @lines=$self->wrapLines($valtext,$self->{canvasWidth});
+      @lines=reverse @lines if ($self->{reverseNodeOrder});
+      foreach (@lines) {
+	if ($self->{reverseNodeOrder}) {
+	  $self->apply_style_opts(
+	    $canvas->
+	      createText($self->{canvasWidth},
+					   $self->{canvasHeight},
+			 -font => $self->get_font,
+			 -tags => 'vline',
+			 -text => $_,
+			 -justify => 'right',
+			 -anchor => 'ne'),
+	    @{$Opts{SentenceLine}});
+	} else {
+	  $self->apply_style_opts(
+	    $canvas->
+	      createText(0,$self->{canvasHeight},
+			 -font => $self->get_font,
+			 -tags => 'vline',
+			 -text => $_,
+					   -justify => 'left',
+			 -anchor => 'nw'),
+	    @{$Opts{SentenceLine}});
+	}
+	$self->{canvasHeight}+=$fontHeight;
+      }
     }
 
 #    $canvas->createRectangle(0,0, $self->{canvasWidth},$self->{canvasHeight},
