@@ -3756,6 +3756,7 @@ sub warn55PrintConvert {
 
 sub updatePrintDialogState {
   my ($grp,$w, $s, $extension,$toplevel)=@_; # widgets, state
+
   my %t=map { $_ => 1} keys %$w; # toggle
   my @disable;
   if ($s->{printTo} eq 'printer') {
@@ -3789,9 +3790,14 @@ sub updatePrintDialogState {
 	$s->{ttFont} = EMPTY;
       }
       $w->{font}->toplevel->Unbusy();
+      $w->{font}->focus;
+      eval { $w->{font}->see(0) };
     }
   }
   $t{$_}=0 for (@disable);
+  if ($extension eq '?') {
+    $extension = lc($s->{format});
+  }
   $s->{file}=~s/\.[^.]*$/.$extension/ if defined($extension) and
     not($s->{printTo} eq 'convert' and $extension =~ /^(?:pdf|e?ps)$/);
 
@@ -3830,6 +3836,67 @@ sub updatePrintDialogState {
 				     ) };
     }
     #print "---\n";
+  }
+}
+
+# make sure that editable JComboBox only contains valid values
+# Note: always get the values with GetSelected
+sub _fix_combo_box_return {
+  my $cw = shift;
+  for my $w ($cw,
+	     $cw->Subwidget('ED_Entry'),
+	     $cw->Subwidget('RO_Entry'),
+	     $cw->Subwidget('Popup')) {
+    $w->bind($w,'<Return>',
+	     [sub{
+		shift;
+		my $cw = shift;
+		if ($cw->popupIsVisible) {
+		  $cw->hidePopup;
+		} else {
+		  $cw->showPopup;
+		};
+		Tk->break;
+	      },$cw]);
+  }
+}
+sub _fix_combo_box {
+  my $cw = shift;
+  $cw->setSelected( $cw->GetSelected );
+  for my $w ($cw,
+	     $cw->Subwidget('ED_Entry'),
+	     $cw->Subwidget('RO_Entry'),
+	     $cw->Subwidget('Popup')) {
+    $w->bind('<FocusIn>',[sub {
+			    shift;
+			    my $cw = shift;
+			    my $lb = $cw->Subwidget('Listbox');
+			    if (not defined($cw->{index_on_focus})) {
+			      $cw->{index_on_focus} = $cw->CurSelection;
+			      $cw->see($cw->{index_on_focus})
+				if $cw->{index_on_focus} ne q{};
+			    }
+			  },$cw]);
+    $w->bind('<FocusOut>',[sub {
+			     shift;
+			     my $cw = shift;
+			     $cw->EntryEnter;
+			     $cw->{index_on_focus} = undef;
+			   },$cw]);
+    
+    $w->bind($w,'<Return>',
+	     [sub{
+		shift;
+		my $cw = shift;
+		if ($cw->popupIsVisible) {
+		  $cw->hidePopup;
+		  $cw->EntryEnter;
+		} else {
+		  $cw->EntryEnter;
+		  $cw->showPopup;
+		};
+		Tk->break;
+	      },$cw]);
   }
 }
 
@@ -3880,7 +3947,7 @@ sub printDialog {
 					 help_topic(shift,'printing');
 					 Tk->break;
 				       },$d]);
-  $d->bind('<Return>',\&dlgReturn);
+  $d->bind('<Return>',sub { print "DLG return $_[0]\n"; &dlgReturn; });
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   $d->bind('all','<Shift-ISO_Left_Tab>',[sub { shift->focusPrev; }]);
   $d->bind('all','<Shift-Tab>',[sub { shift->focusPrev; }]);
@@ -3903,6 +3970,7 @@ sub printDialog {
   # Page format selection
   my $mf = $d->Frame()->pack(qw/-pady 10 -padx 10 -side top -expand yes -fill x/);
   $mf->Label(-text=> 'Media:',
+	     -underline => 0,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
 
@@ -3919,19 +3987,41 @@ sub printDialog {
 				 -validatecommand => sub { shift =~ /^\s*\d*\s*$/ });
   set_grp_history($grp, $w{prtFmtWidth}, 'printFmtHeight',$e_hist);
 
+  my @jcombo_opts = (
+    -relief => 'flat',
+    -takefocus => 1,
+    -borderwidth => 0,
+    -highlightcolor => 'black',
+    -highlightbackground => 'gray',
+    -highlightthickness => 1,
+    -background => 'gray',
+    -popupbackground => 'black',
+    -borderwidth => 1,
+    -buttonrelief => 'ridge'
+   );
+
   # Page media
-  $w{psMedia}=$mf->Optionmenu(
-			      -relief => $buttonsRelief,
-			      -options => ['BBox', 'User', sort {$a cmp $b} grep !/\d+x\d+|^ISO/, 
-					   keys %TrEd::Print::media ],
-			      -font => ref($font) ? $font->Clone(-size => 8) :
-			      $d->Font(-family => 'sans', -size => 8),
-			      -textvariable => \$s{psMedia}, # global variable in TrEd::Config
-			      -command => [\&updatePrintDialogState,$grp,\%w,\%s,undef,$d]
-			)->pack(-side=> 'left');
-  $w{psMedia}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
-  $w{prtFmtHeight}->raise($w{psMedia});
+  $w{psMedia}=$mf->JComboBox_0_02(
+    -mode => 'editable',
+    -validate => 'match',
+    -listhighlight => 1,
+    -textvariable => \$s{psMedia}, # global variable in TrEd::Config
+    -choices => ['BBox', 'User', 
+		 sort {$a cmp $b} grep !/\d+x\d+|^ISO/, 
+		 keys %TrEd::Print::media ],
+    -selectcommand => [
+      sub {
+	updatePrintDialogState(@_[0..4]);
+	1;
+      },$grp,\%w,\%s,undef,$d
+     ],
+    @jcombo_opts,
+   )->pack(-side=> 'left');
+  _fix_combo_box($w{psMedia});
+  $d->bind('<Alt-m>',[sub{shift;shift->{psMedia}->focus},\%w]);
+
   $w{prtFmtWidth}->raise($w{psMedia});
+  $w{prtFmtHeight}->raise($w{psMedia});
   $mf->Label(-text=> 'Width:',
 	     -padx => 10,
 	     -anchor=> 'w',
@@ -3945,6 +4035,7 @@ sub printDialog {
 
   # Page Margins
   $mf->Label(-text=> 'X margin:',
+	     -underline => 0,
 	     -padx => 10,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
@@ -3954,8 +4045,11 @@ sub printDialog {
 			       -validate => 'key',
 			       -validatecommand => 
 			       sub { shift =~ /^\s*\d*[cimp]?\s*$/ })->pack(-side=> 'left');
+  $d->bind('<Alt-x>',[sub{shift;shift->{prtHMargin}->focus},\%w]);
+
   set_grp_history($grp, $w{prtHMargin}, 'printHMargin',$e_hist);
   $mf->Label(-text=> 'Y margin:',
+	     -underline => 0,
 	     -padx => 10,
 	     -anchor=> 'w',
 	     -justify=> 'right')->pack(-side=> 'left');
@@ -3965,6 +4059,7 @@ sub printDialog {
 			     -validate => 'key',
 			     -validatecommand => 
 			     sub { shift =~ /^\s*\d*[cimp]?\s*$/ })->pack(-side=> 'left');
+  $d->bind('<Alt-y>',[sub{shift;shift->{prtVMargin}->focus},\%w]);
   set_grp_history($grp, $w{prtVMargin}, 'printVMargin',$e_hist);
 
 
@@ -4044,36 +4139,28 @@ sub printDialog {
 # 			       );
   $w{font}=$pbf->JComboBox_0_02(
     -width => 30,
-    -relief => 'flat',
-    -textvariable => \$s{ttFont},
-    -choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()],
     -mode => 'editable',
     -validate => 'match',
-    -takefocus => 1,
-    -borderwidth => 0,
-    -highlightcolor => 'black',
-    -highlightbackground => 'gray',
-    -highlightthickness => 1,
-    -background => 'gray',
-    -popupbackground => 'black',
-    -borderwidth => 1,
-    -buttonrelief => 'ridge'
-#    -buttonbitmap => 'combo'
+    -textvariable => \$s{ttFont},
+    -choices => [$grp->{ttfonts} ? (sort {$a cmp $b} keys %{$grp->{ttfonts}}) : ()],
+    @jcombo_opts
    );
-
+  _fix_combo_box($w{font});
 
   # Bitmap Resolutions
   my $imf=$bf->Frame();
-  $w{resolution}=$imf->Optionmenu(
-				  -relief => $buttonsRelief,
-				  -options => ['50','60', '75','80','90','100','120','135','150','160','180',
-					       '200','225','240','260','300','360','600','720'],
-				  -variable => \$s{resolution}
-				 );
-  $w{resolution}->menu->bind("<KeyPress>", [\&NavigateMenuByFirstKey,Ev('K')]);
+  $w{resolution}=$imf->JComboBox_0_02(
+    -mode => 'editable',
+    -validate => 'key',
+    -validatecommand => sub { $_[0]=~/^\d*$/ },
+    -choices => ['50','60', '75','80','90','100','120','135','150','160','180',
+		 '200','225','240','260','300','360','600','720'],
+    -textvariable => \$s{resolution},
+   );
+  _fix_combo_box_return($w{resolution});
   my %printbuttons = ( printer => [$bf,'Send to printer',undef,8],
-		       file =>[$bf,'Print to file','eps',9],
-		       convert =>[$imf,'Convert to bitmap format (ImageMagick)','png',11]
+		       file =>[$bf,'Print to file','?',9],
+		       convert =>[$imf,'Convert to a bitmap format by extension (ImageMagick)','png',13]
 		     );
 
   # print To buttons
@@ -4090,9 +4177,11 @@ sub printDialog {
   }
   $w{printTo_convert}->pack(qw/-anchor w -side left -fill y -expand 1/);
 
-  $imf->Label(-text => "Resolution")->pack(qw/-padx 10 -side left/);
+  $imf->Label(-text => "Resolution", -underline => 7)->pack(qw/-padx 10 -side left/);
   $imf->pack(qw/-fill x -expand yes -anchor nw/);
   $w{resolution}->pack(qw/-padx 10 -side left/);
+
+  $d->bind('<Alt-i>',[sub{shift;shift->{resolution}->focus},\%w]);
 
   $w{printTo_convert}->lower($w{resolution});
 
@@ -4135,6 +4224,10 @@ sub printDialog {
 				   -underline => 0,
 			       -variable=> \$s{printColors},
 			       -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
+  $w{printFileInfo}=$bf->Checkbutton(-text=> 'Print filename and tree number',
+				     -underline => 8,
+				     -variable=> \$s{printFileInfo},
+				     -relief  => 'flat')->pack(-fill=> 'y',-anchor=> 'nw');
   $w{printSentence}=$bf->Checkbutton(-text=> 'Print sentence',
 				     -underline => 8,
 				 -variable=> \$s{printSentence},
@@ -4203,9 +4296,10 @@ sub printDialog {
   $grp->{printToFile}=$s{printTo};
   $grp->{printFormat}=$s{format};
   $grp->{printPsFile}=$s{file};
-  $psMedia=$s{psMedia};
+  $psMedia=$w{psMedia}->GetSelected;
   ($grp->{printFileExtension})=$s{file}=~m!\.([^.\\/]+)$!;
   $grp->{printSentenceInfo}=$s{printSentence};
+  $grp->{printFileInfo}=$s{printFileInfo};
   $grp->{printCommand}=$s{command};
   $grp->{printImageMagickResolution}=$s{resolution};
   $grp->{printNoRotate}=$s{noRotate};
@@ -4217,21 +4311,36 @@ sub printDialog {
   get_grp_histories($grp,$e_hist) if ($result =~ /OK/);
   $d->destroy;
   undef $d;
+
   if ($result=~ /OK/) {
     return () if $s{printTo} eq 'convert' and
                  warnWin32PrintConvert($win) eq 'Cancel';
     return () if $s{printTo} eq 'convert' and
                  warn55PrintConvert($win) eq 'Cancel';
-    return ($one_per_file,
-	    $s{printRange},
-	    ($s{printTo} eq 'file') ? 1 : 0,
-	    ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
-	    ($s{format} eq 'PDF') ? 1 : 0,
-	    $s{file},
-	    $s{printSentence} ? sub { get_value_line($win,$_[0],$_[1],1,0) } : undef,
-	    (($s{printTo} eq 'convert') ?
-	     "$imageMagickConvert -density $s{resolution} - ".IOBackend::quote_filename($s{file}) : $s{command}),
-	    $s{printColors},$s{noRotate});
+    return (
+      #0
+      $one_per_file,
+      #1
+      $s{printRange},
+      #2
+      ($s{printTo} eq 'file') ? 1 : 0,
+      #3
+      ($s{printTo} eq 'convert' or $s{format} eq 'EPS') ? 1 : 0,
+      #4
+      ($s{format} eq 'PDF') ? 1 : 0,
+      #5
+      $s{file},
+      #6
+      $s{printSentence} ? sub { get_value_line($win,$_[0],$_[1],1,0) } : undef,
+      #7
+      $s{printFileInfo} ? 1 : 0,
+      #8 
+      (($s{printTo} eq 'convert') ?
+	 "$imageMagickConvert -density $s{resolution} - ".IOBackend::quote_filename($s{file}) : $s{command}),
+      #9
+      $s{printColors},
+      #10
+      $s{noRotate});
   } else {
     return ();
   }
@@ -5332,13 +5441,21 @@ sub startMain {
 			 redraw_win($win);
 			 ensureCurrentIsDisplayed($win);
 		       },\%group]],
-	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
-	  -variable=> \$treeViewOpts->{highlightAttributes},
+	 [Checkbutton=> 'Clear Text Background', -underline=> 0,
+	  -variable=> \$treeViewOpts->{clearTextBackground},
 	  -command => [sub {
 			   my ($grp)=@_;
-			   $grp->{focusedWindow}->{treeView}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
+			   $grp->{focusedWindow}->{treeView}->set_clearTextBackground($treeViewOpts->{clearTextBackground});
 			   redraw_win($grp->{focusedWindow});
 			 },\%group]],
+## obsolete
+# 	 [Checkbutton=> 'Highlight Attributes', -underline=> 1,
+# 	  -variable=> \$treeViewOpts->{highlightAttributes},
+# 	  -command => [sub {
+# 			   my ($grp)=@_;
+# 			   $grp->{focusedWindow}->{treeView}->set_highlightAttributes($treeViewOpts->{highlightAttributes});
+# 			   redraw_win($grp->{focusedWindow});
+# 			 },\%group]],
 	 [Checkbutton=> 'Sort Attributes in Dialogs', -underline=> 1,
 	  -variable=> \$sortAttrs],
 	 [Separator => EMPTY],
@@ -6933,11 +7050,15 @@ sub Query {
 sub _escapeButton {
   my ($w,$d,$button)=@_;
   if ($w->toplevel == $d) {
+    $d->Subwidget('B_'.$button)->focus();
     $d->{selected_button}=$button;
   }
   Tk->break;
 }
-sub _wmdeleteButton { $_[0]->{selected_button}=$_[1] }
+sub _wmdeleteButton { 
+  $_[0]->Subwidget('B_'.$_[1])->focus();
+  $_[0]->{selected_button}=$_[1] 
+}
 sub escapeButton {
   my ($d,$button,$bind_wm)=@_;
   $d->bind('all','<Escape>'=> [\&_escapeButton,$d,$button]);

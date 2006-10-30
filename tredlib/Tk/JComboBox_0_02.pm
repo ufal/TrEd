@@ -877,5 +877,18 @@ sub CurSelection { # print STDERR "SUB: CurSelection\n";
   } 
 }
 
+# PP: get current value from the fixed list
+sub GetSelected { 
+  my $cw = shift;
+  my $sel = $cw->CurSelection;
+  my $lb = $cw->Subwidget('Listbox');
+  if (defined($sel)) {
+    $lb->get($sel);
+  } else {
+    return undef;
+  }
+}
+
+
 1;
 __END__
