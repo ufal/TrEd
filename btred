@@ -578,7 +578,7 @@ sub startMain {
 	  $request{"STATE_".$_} =~ s/[\n\r]+$//;
 	}
       }
-      ($state eq 'END_OF_REQUEST') || die "Broken request $request{REQUEST_TYPE}!\n";
+      ($state eq 'END_OF_REQUEST') || die "Broken request '$request{REQUEST_TYPE}'!\n";
       _msg "Request received from the hub: $request{REQUEST_TYPE}\n";
 
       _msg("Verifying request signature...\n");
