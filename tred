@@ -590,24 +590,8 @@ ApplyGlobalConfig();
 
 print STDERR "Resource path: $Fslib::resourcePath\n" unless $opt_q;
 
-if ($]>=5.008) {
-  eval {
-    require I18N::Langinfo;
-    $locale_charset = I18N::Langinfo::langinfo(I18N::Langinfo::CODESET());
-  };
-}
 
 sub uniq { my %a; grep { !($a{$_}++) } @_ }
-
-sub conv_from_locale {
-  my ($str)=@_;
-  if ($locale_charset and $TrEd::Convert::support_unicode) {
-    require Encode;
-    return Encode::decode($locale_charset,$str);
-  } else {
-    return $str;
-  }
-}
 
 # it seems, that under Windoze setting LC_NUMERIC back to us does not
 # work, so I recommend not to use czech locales there, unless you
@@ -647,6 +631,24 @@ use POSIX qw(locale_h);
   }
   setlocale(LC_NUMERIC,"C");
 };
+
+if ($]>=5.008) {
+  eval {
+    require I18N::Langinfo;
+    $locale_charset = I18N::Langinfo::langinfo(I18N::Langinfo::CODESET());
+  };
+}
+
+sub conv_from_locale {
+  my ($str)=@_;
+  if ($locale_charset and $TrEd::Convert::support_unicode) {
+    require Encode;
+    return Encode::decode($locale_charset,$str);
+  } else {
+    return $str;
+  }
+}
+
 
 print STDERR "Creating filelists...\n" if $tredDebug;
 {
@@ -5234,6 +5236,7 @@ sub startMain {
 		    # run user's exit_hook
 		    return if askSaveFiles($grp,1) == -1;
 		    #closeFile($grp->{focusedWindow}, -all_windows => 1);
+		    saveRuntimeConfig($grp);
 		    $grp->{top}->destroy;
 		    $grp->{top}=undef;
 		  },\%group]);
@@ -5395,8 +5398,11 @@ sub startMain {
 			    -underline=> 0,
 			    -command=> [sub {
 					  my $grp=shift;
-					  $grp->{top}->destroy
-					    unless askSaveFiles($grp,1) == -1;
+					  return 
+					    if askSaveFiles($grp,1) == -1;
+					  saveRuntimeConfig($grp);
+					  $grp->{top}->destroy;
+					  $grp->{top}=undef;
 					},\%group]);
 	
   $group{ViewMenu}= MenubarItem($group{Menubar},qw/-label ~View -menuitems/=>
@@ -6270,10 +6276,18 @@ sub startMain {
   $top->Unbusy;
   $top->focus if ($^O eq 'MSWin32');
   MainLoop;
-
+  unless ($group{top}) {
+    saveRuntimeConfig(\%group);
+  }
 
   # Finished ------------------------------------------
+  $top=undef;
+  $group{top} = undef;
+  print STDERR "Done.\n" if $tredDebug;
+}
 
+sub saveRuntimeConfig {
+  my $grp = shift;
   # Save configuration
   print STDERR "Saving some configuration options.\n" if $tredDebug;
   my @conf;
@@ -6286,9 +6300,9 @@ sub startMain {
   pop @conf while $conf[$#conf] =~ /^\s*$/;
   push @conf, "\n",$comment."\n";
   #  $geometry=~s/^[0-9]+x[0-9]+//;
-  if ($group{lastActionBookmark}) {
-    $group{lastActionBookmark}=~s/\\/\\\\/g;
-    push @conf,"LastAction\t=\t".$group{lastActionBookmark}."\n" if $group{lastActionBookmark};
+  if ($grp->{lastActionBookmark}) {
+    $grp->{lastActionBookmark}=~s/\\/\\\\/g;
+    push @conf,"LastAction\t=\t".$grp->{lastActionBookmark}."\n" if $grp->{lastActionBookmark};
   }
   do {
     my $s;
@@ -6313,10 +6327,7 @@ sub startMain {
     }
   };
   chomp $conf[$#conf];
-  $top=undef;
-  $group{top} = undef;
-  saveConfig(\%group,@conf);
-  print STDERR "Done.\n" if $tredDebug;
+  saveConfig($grp,@conf);
 }
 
 sub _do_goto_tree {
@@ -6770,7 +6781,12 @@ sub askSaveFile {
 }
 
 sub saveConfig {
- my ($grp)=shift;
+ my ($win)=shift;
+ if (ref($win)=~/^Tk::/) {
+   $top = $win->toplevel;
+ } else {
+   $top = $win->{top};
+ }
 
  if (open(F,">$configFile")) {
    print STDERR "SAVING CONFIG TO: $configFile\n";
@@ -6782,26 +6798,27 @@ sub saveConfig {
    my ($dc,$ic)=stat($configFile);
    my ($dh,$ih)=stat($trc);
    if ($configFile ne $trc and ($dc != $dh or $ic != $ih) and
-       (!defined($grp->{top}) or
-       $grp->{top}->toplevel->
-       messageBox(-icon=> 'warning',
-		  -message=> "Cannot write configuration to $configFile\n($lasterr)\n\n".
-		  "Shell I try to save it to ~/.tredrc?\n",
-		  -title=> 'Configuration cannot be saved',
-		  -type=> 'YesNo',
-		  #			  -default=> 'Yes' # problem: Windows 'yes', UNIX 'Yes'
-		 )=~ /yes/i)) {
+       ((defined($top) and
+	   $top->
+	     messageBox(-icon=> 'warning',
+			-message=> "Cannot write configuration to $configFile: $lasterr\n\n".
+			  "Shell I try to save it to ~/.tredrc?\n",
+			-title=> 'Configuration cannot be saved',
+			-type=> 'YesNo',
+			# -default=> 'Yes' # problem: Windows 'yes', UNIX 'Yes'
+		       )=~ m(yes)i) or 
+	 (!defined($top) and ! -f $trc and !defined($opt_c)))) {
      if (open(F,">".$trc)) {
        print STDERR "SAVING CONFIG TO: $trc\n";
        print F @_;
        close(F);
        $configFile=$trc;
      } else {
-       errorMessage($grp->{focusedWindow},'Cannot write to "'.$trc.'"!'."\n($lasterr)\n".
+       errorMessage($top,"Cannot write to \"$trc\": $lasterr!\n".
 		    "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
      }
    } else {
-     errorMessage($grp->{focusedWindow},"Cannot write to \"$configFile\"!"."\n($lasterr)\n".
+     errorMessage($top,"Cannot write to \"$configFile\": $lasterr!\n".
 		  "\nConfiguration could not be saved!\nCheck file and directory permissions.",1);
    }
  }
@@ -6918,7 +6935,7 @@ sub editConfig {
 	   -underline => 2,
 	   -command=> [sub {
 			  my ($grp,$d,$t)=@_;
-			  saveConfig($grp,$t->get("0.0","end"));
+			  saveConfig($d,$t->get("0.0","end"));
 			  apply_config(split(/\n/,$t->get("0.0","end")));
 			  reconfigure($grp);
 			  redraw_all($grp);
