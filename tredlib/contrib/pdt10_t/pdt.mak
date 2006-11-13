@@ -1281,7 +1281,7 @@ sub non_proj_edges {
 
 # returns a reference to a hash in which all non-projective edges are returned
 # (keys being the lower nodes concatenated with the upper nodes of non-projective edges,
-# values references to arrays containing the node, the parent and nodes in the respective gaps)
+# values references to arrays containing the node, the parent, and nodes in the respective gaps)
 
 
   my ($top,$onlyvisible,$ord,$filterNode,$returnParents,$subord,$filterGap) = @_;
@@ -1335,6 +1335,12 @@ sub non_proj_edges {
     } # foreach $parent
 
   } # foreach $node
+
+  my $node=$root; # delete auxiliary indeces in the whole tree
+  while ($node) {
+    delete $node->{'_proj_index'};
+    $node=$node->following();
+  };
 
   return \%npedges;
 

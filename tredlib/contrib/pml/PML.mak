@@ -204,58 +204,11 @@ sub NonProjEdges {
 # (keys being the lower nodes concatenated with the upper nodes of non-projective edges,
 # values references to arrays containing the node, the parent and nodes in the respective gaps)
 
+  my $top=shift;
 
-  my ($top,$ord,$filterNode,$returnParents,$subord,$filterGap) = @_;
-  $top = $root unless ref($top);
+  return undef unless ref($top);
 
-  $ord = $grp->{FSFile}->FS->order() unless defined($ord);
-  $filterNode = sub { 1 } unless defined($filterNode);
-  $returnParents = sub { return $_[0]->parent ? ($_[0]->parent) : () } unless defined $returnParents;
-  $subord = sub { my ($n,$top) = @_;
-		  while ($n->parent and $n!=$top) {$n=$n->parent};
-		  return ($n==$top) ? 1 : 0; # returns 1 if true, 0 otherwise
-		} unless defined($subord);
-  $filterGap = sub { 1 } unless defined($filterGap);
-
-  my %npedges;
-
-  # get the nodes of the subtree
-  my @subtree = sort {$a->{$ord} <=> $b->{$ord}} ($top->descendants, $top);
-
-  # just store the index in the subtree in a special attribute of each node
-  for (my $i=0; $i<=$#subtree; $i++) {$subtree[$i]->{'_proj_index'} = $i}
-
-  # now check all the edges of the subtree (but only those accepted by filterNode
-  foreach my $node (grep {&$filterNode($_)} @subtree) {
-
-    next if ($node==$top); # skip the top of the subtree
-
-    foreach my $parent (&$returnParents($node)) {
-
-      # span of the current edge
-      my ($l,$r)=($node->{'_proj_index'}, $parent->{'_proj_index'});
-
-      # set the boundaries of the interval covered by the current edge
-      if ($l > $r) { ($l,$r) = ($r,$l) };
-
-      # check all nodes covered by the edge
-      for (my $j=$l+1; $j<$r; $j++) {
-
-	my $gap=$subtree[$j]; # potential node in gap
-	# mark a non-projective edge and save the node causing the non-projectivity (ie in the gap)
-	if (not(&$subord($gap,$parent)) and &$filterGap($gap)) {
-	  my $key=scalar($node).scalar($parent);
-	  if (exists($npedges{$key})) { push @{$npedges{$key}}, $gap }
-	  else { $npedges{$key} = [$node, $parent, $gap] };
-	} # unless
-
-      } # for $j
-
-    } # foreach $parent
-
-  } # foreach $node
-
-  return \%npedges;
+  return PDT::non_proj_edges($top,0,@_);
 
 } # sub NonProjEdges
 
