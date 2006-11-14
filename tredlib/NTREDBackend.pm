@@ -123,6 +123,8 @@ sub write {
 	     [$fsfile->patterns],
 	     $fsfile->hint,
 	     $Fslib::API_VERSION
+	     # CAUTION: when adding to this list, don't forget to do the same
+	     # in btred DUMP request handler
 	    ];
   eval {
     print $fh (encode_base64(Storable::nfreeze([$dump])));

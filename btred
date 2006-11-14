@@ -895,7 +895,9 @@ sub startMain {
 			   [$fsfile->tail],
 			   $fsfile->[13],
 			   [$fsfile->patterns],
-			   $fsfile->hint];
+			   $fsfile->hint,
+			   $Fslib::API_VERSION
+			  ];
 	    }
 	    if (@dump) {
 	      eval {
