@@ -65,4 +65,8 @@ sub file_opened_hook {
     } 
 }
 
+sub file_resumed_hook {
+  &file_opened_hook;
+}
+
 #endif TRED
