@@ -190,6 +190,30 @@ sub GotoTree {
   ChangingFile(0);
 }#GotoTree
 
+=item NonProjEdges($node,$ord?,$filterNode?,$returnParents?,$subord?,$filterGap?)
+
+Returns hash-ref containing all non-projective edges in the subtree
+rooted in $node. Values of the hash are references to arrays
+containing the non-projective edges (the arrays contain the lower and
+upper nodes representing the edge, and then the nodes causing the
+non-projectivity of the edge), keys are concatenations of stringified
+references to lower and upper nodes of non-projective edges. (The
+function just wraps PDT::non_proj_edges.) Description of the arguments
+is as follows: $node specifies the root of a subtree to be checked for
+non-projective edges; $ord specifies the ordering attribute to be
+used; a subroutine accepting one argument passed as sub-ref in
+$filterNode can be used to filter the edges taken into account (by
+specifying the lower nodes of the edges); sub-ref $returnParents
+accepting one argument returns an array of upper nodes of the edges to
+be taken into account; sub-ref $subord accepting two arguments returns
+1 iff the first one is subordinated to the second one; sub-ref
+$filterGap accepting one argument can be used to filter nodes causing
+non-projectivity.  Defaults are: the default ordering attribute, all
+nodes, parent (in the technical representation), subordination in the
+technical sense, all nodes.
+
+=cut
+
 sub NonProjEdges {
 # arguments are: root of the subtree to be projectivized
 # the ordering attribute
