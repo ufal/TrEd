@@ -2885,7 +2885,10 @@ sub insertToFilelist {
     # select all files resulting from added patterns
     for (my $i=0 ; $i<$filelist->file_count ; $i++) {
       if (defined(Index(\@list,$filelist->file_pattern($i)))) {
-	$grp->{Filelist}->selectionSet(filelistEntryPath($filelist,$i));
+	my $file = filelistEntryPath($filelist,$i);
+	if ($grp->{Filelist}->info('exists',$file)) {
+	  $grp->{Filelist}->selectionSet($file);
+	}
       }
     }
   }
@@ -3093,10 +3096,14 @@ sub filelistDialog {
 		       -command=>[
 				  sub {
 				    my ($grp,$t,$l)=@_;
+				    my $anchor = $t->info('anchor');
+				    my $pos =
+				      defined($anchor) ?
+				      getFilelistLinePosition($grp->{filelistCurrentFilelist},
+							      $anchor) : 0;
 				    insertToFilelist($grp,
 						     $grp->{filelistCurrentFilelist},
-						     getFilelistLinePosition($grp->{filelistCurrentFilelist},
-									     $t->info('anchor')),
+						     $pos,
 						     $l->getSelectedFiles
 						    );
 				    updateBookmarks($grp)
