@@ -320,9 +320,10 @@ sub set_config {
     $font=$confs->{font};
     $font=~s/-\*-\*$/-$fontenc/;
   } else {
-    if ($^O=~/^MS/) { $font='family:Arial,size:10' }
-    elsif ($fontenc eq 'iso10646-1') {
-      $font='-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-iso10646-1'
+    if ($^O=~/^MS/) { 
+      $font='family:Arial,size:10';
+    } elsif ($fontenc eq 'iso10646-1') {
+      $font='-*-arial unicode ms-medium-r-normal-*-12-*-*-*-*-*-iso10646-1';
     } else {
       $font='-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-'.$fontenc;
     }
