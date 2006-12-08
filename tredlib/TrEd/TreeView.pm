@@ -1565,6 +1565,7 @@ sub draw_text_line {
   my $at_text;
   my $j=0;
   my $color=undef;
+  my @color_stack;
   foreach (grep {$_ ne ""} split(m/([#\$]${bblock})/,$msg)) {
     if (/^\$${block}$/) {
       my $c=$1;
@@ -1613,6 +1614,17 @@ sub draw_text_line {
 	  };
 	  print STDERR $@ if $@ ne "";
 	} else {
+	  # one can use also interval syntax, like:  #{red(} .... #{)red}, or #{red(} ... #{)}
+	  if ($c=~s/\($//) { 
+	    push @color_stack, [$c,$color];
+	  } elsif ($c=~s/^\)//) {
+	    if ($c eq '' or (@color_stack and $c eq $color_stack[-1][0])) {
+	      $c = pop(@color_stack)->[1];
+	    } else {
+	      warn "Stylesheet error: cannot end #{$color_stack[-1][0](} with #{$c)}\n";
+	      undef $c;
+	    }
+	  }
 	  $color=$c;
 	  $color=undef if ($color eq 'default');
 	  $color=$self->get_customColors->{$1} if ($color=~/^custom(.*)$/);
