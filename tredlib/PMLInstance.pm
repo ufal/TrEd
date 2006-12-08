@@ -79,6 +79,15 @@ use constant {
   KNIT_WEAKEN => 2,
 };
 
+# SAVE FLAGS
+use constant {
+  SAVE_DEFAULT          => 0,
+  SAVE_KEEP_KNIT        => 1,
+  SAVE_DECORATE         => 2, # decorate with type information
+  SAVE_SINGLETON_LM     => 4,
+};
+
+
 # FIELDS:
 use fields qw(
     _schema 
@@ -105,9 +114,8 @@ use fields qw(
     _log
     _id_prefix
     _trees_written
-    _write_single_LM
     _refs_save
-    _keep_knit
+    _save_flags
    );
 
 # PML Instance File
@@ -1209,9 +1217,12 @@ sub save {
 
   $fh=\*STDOUT if ($href eq '-' and !$fh);
 
-  $ctxt->{'_write_single_LM'} = $opts->{'write_single_LM'};
   $ctxt->{'_trees_written'} = 0;
-  $ctxt->{'_keep_knit'} = $opts->{keep_knit};
+  $ctxt->{'_save_flags'}  = SAVE_DEFAULT;
+  $ctxt->{'_save_flags'} |= SAVE_KEEP_KNIT     if $opts->{keep_knit};
+  $ctxt->{'_save_flags'} |= SAVE_DECORATE      if $opts->{decorate};
+  $ctxt->{'_save_flags'} |= SAVE_SINGLETON_LM  if $opts->{'write_single_LM'};
+
   unless ($fh) {
     if ($href ne EMPTY) {
       eval {
@@ -1366,7 +1377,9 @@ sub write_data {
     }
   }
 
-  $xml->startTag($root_name,'xmlns' => PML_NS, %attribs);
+  $xml->startTag($root_name,'xmlns' => PML_NS, 
+		 ($ctxt->{_save_flags} & SAVE_DECORATE ? ('xmlns:s' => PML_SCHEMA_NS) : () ),
+		 %attribs);
   $xml->startTag('head');
   my $inline = $ctxt->{'_schema-inline'};
   if ($inline ne "") {
@@ -1460,6 +1473,31 @@ sub write_data {
   1;
 }
 
+sub write_start_tag {
+  my $ctxt = shift;
+  my $type = shift;
+  my @t=();
+  if ($ctxt->{'_save_flags'} & SAVE_DECORATE) {
+    my $path  = $type->get_decl_path;
+    $path =~ s/^!//;
+    @t = ('s:type', $path);
+  }
+  $ctxt->{'_writer'}->startTag(@_,@t);
+}
+sub write_empty_tag {
+  my $ctxt = shift;
+  my $type = shift;
+  my @t=();
+  if ($ctxt->{'_save_flags'} & SAVE_DECORATE) {
+    my $path  = $type->get_decl_path;
+    $path =~ s/^!//;
+    @t = ('s:type', $path);
+  }
+  $ctxt->{'_writer'}->emptyTag(@_,@t);
+}
+
+
+
 sub write_object {
   my ($ctxt,$object,$type,$opts)=@_;
   $opts ||= {};
@@ -1473,7 +1511,7 @@ sub write_object {
     $type = $ctxt->resolve_type($type)
   }
   if ($type->{cdata}) {
-    $xml->startTag($tag,%$attribs) if defined($tag);
+    $ctxt->write_start_tag($type->{cdata},$tag,%$attribs) if defined($tag);
     if ($VALIDATE_CDATA) {
       my $log = [];
       unless ($type->{cdata}->validate_object($object,{log => $log, 
@@ -1496,7 +1534,7 @@ sub write_object {
       my $what = $tag || $type->{name} || $type->{'-name'};
       _warn("Invalid value for '$what': $object\n")
     }
-    $xml->startTag($tag,%$attribs);
+    $ctxt->write_start_tag($type->{choice},$tag,%$attribs);
     $xml->characters($object);
     $xml->endTag($tag);
   } elsif (exists $type->{structure}) {
@@ -1509,7 +1547,7 @@ sub write_object {
     } elsif (keys(%$object)+keys(%$attribs)>0) {
       # ok, non-empty structure
       if ($opts->{no_attribs}) {
-	$xml->startTag($tag) if defined($tag);
+	$ctxt->write_start_tag($struct,$tag) if defined($tag);
       } else {
 	foreach my $mdecl (grep {$_->{as_attribute}} values %$members) {
 	  my $atr = $mdecl->{-name};
@@ -1529,7 +1567,7 @@ sub write_object {
 	if (%$attribs and !defined($tag)) {
 	  _die("Cannot write structure with attributes (".join("\,",keys %$attribs).") without a tag");
 	}
-	$xml->startTag($tag,%$attribs) if defined($tag);
+	$ctxt->write_start_tag($type->{structure},$tag,%$attribs) if defined($tag);
       }
       foreach my $mdecl (
 	grep {!$_->{as_attribute}} 
@@ -1568,7 +1606,7 @@ sub write_object {
 	    # un-knit data
 	    # _debug("#KNIT.rf $member");
 	    my $value = $object->{$member};
-	    $xml->startTag($member);
+	    $ctxt->write_start_tag($mdecl->get_content_decl,$member);
 	    if ($VALIDATE_CDATA) {
 	      my $log = [];
 	      unless ($mdecl->get_content_decl->validate_object($value,{log => $log, 
@@ -1583,7 +1621,7 @@ sub write_object {
 	    # knit data
 	    my $knit_tag = $member;
 	    $knit_tag =~ s/\.rf$//;
-	    if ($ctxt->{'_keep_knit'}) {
+	    if ($ctxt->{'_save_flags'} & SAVE_KEEP_KNIT) {
 	      $ctxt->write_object($object->{$knit_tag}, $mdecl,{ tag => $knit_tag,  no_empty => !$is_required });
 	    } elsif (ref($object->{$knit_tag})) {
 	      $ctxt->write_object_knit($object->{$knit_tag}, $mdecl,{ tag => $member });
@@ -1604,7 +1642,7 @@ sub write_object {
 	    $knit_tag =~ s/\.rf$//;
 	    my $list = $object->{$knit_tag};
 	    if ($list ne EMPTY) {
-	      if ($ctxt->{'_keep_knit'}) {
+	      if ($ctxt->{'_save_flags'} & SAVE_KEEP_KNIT) {
 		write_list($ctxt, $list, $mtype->{list}, { tag => $knit_tag, knit => 0 } )
 	      } else {
 		write_list($ctxt, $list, $mtype->{list}, { tag => $member, knit => 1, no_resolve => 1 } )
@@ -1619,7 +1657,7 @@ sub write_object {
     } else {
       # encode empty struct
       my $etag = $opts->{empty_tag} || $tag;
-      $xml->emptyTag($etag) if defined($etag) and !$opts->{no_empty};
+      $ctxt->write_empty_tag($struct,$etag) if defined($etag) and !$opts->{no_empty};
     }
   } elsif (exists $type->{list}) {
     my $list_type = $type->{list};
@@ -1628,32 +1666,33 @@ sub write_object {
     }
     write_list($ctxt, $object, $list_type, $opts);
   } elsif (exists $type->{alt}) {
+    my $alt = $type->{alt};
     if ($object ne EMPTY and ref($object) eq 'Fslib::Alt') {
       if (@$object == 0 and keys(%$attribs)==0) {
 	# encode empty alt
 	my $etag = $opts->{empty_tag} || $tag;
-	$ctxt->emptyTag($etag) if defined($etag) and !$opts->{no_empty};
+	$ctxt->write_empty_tag($alt,$etag) if defined($etag) and !$opts->{no_empty};
       } elsif (@$object == 1 and !$opts->{write_single_AM} and keys(%$attribs)==0) {
-	$ctxt->write_object($object->[0],$type->{alt},$opts);
+	$ctxt->write_object($object->[0],$alt,$opts);
       } else {
-	$xml->startTag($tag,%$attribs) if defined($tag);
+	$ctxt->write_start_tag($alt,$tag,%$attribs) if defined($tag);
 	foreach my $value (@$object) {
-	  $ctxt->write_object($value,$type->{alt},{tag => AM});
+	  $ctxt->write_object($value,$alt,{tag => AM});
 	}
 	$xml->endTag($tag) if defined($tag);
       }
     } else {
       if (!$opts->{write_single_AM} and keys(%$attribs)==0) {
-	$ctxt->write_object($object,$type->{alt}, $opts);
+	$ctxt->write_object($object,$alt, $opts);
       } else {
-	$xml->startTag($tag,%$attribs) if defined($tag);
-	$ctxt->write_object($object,$type->{alt},{tag => AM, no_empty => 1});
+	$ctxt->write_start_tag($alt,$tag,%$attribs) if defined($tag);
+	$ctxt->write_object($object,$alt,{tag => AM, no_empty => 1});
 	$xml->endTag($tag) if defined($tag);
       }
     }
   } elsif (exists $type->{sequence}) {
     my $sequence = $type->{sequence};
-    $xml->startTag($tag,%$attribs) if defined($tag);
+    $ctxt->write_start_tag($sequence,$tag,%$attribs) if defined($tag);
     if ($sequence->{role} eq '#TREES') {
       $object = $ctxt->get_write_trees($object,$type);
     }
@@ -1733,14 +1772,14 @@ sub write_object {
 						attribs => \%attribs
 					       });
     } else {
-      $xml->emptyTag($tag, %attribs);
+      $ctxt->write_empty_tag($container,$tag, %attribs);
     }
   } elsif (exists $type->{constant}) {
     if ($object ne $type->{constant}{value}) {
       my $what = $tag || $type->{name} || $type->{'-name'};
       _warn("Invalid constant '$what', should be '$type->{constant}', got: ",$object);
     }
-    $xml->startTag($tag,%$attribs) if defined($tag);
+    $ctxt->write_start_tag($type->{constant},$tag,%$attribs) if defined($tag);
     $xml->characters($object);
     $xml->endTag($tag) if defined($tag);
   } else {
@@ -1762,8 +1801,10 @@ sub write_list {
     if (@$object == 0) {
       # encode empty list
       my $etag = $opts->{empty_tag} || $tag;
-      $xml->emptyTag($etag,%$attribs) if defined($etag) and not ($opts->{no_empty} and keys(%$attribs)==0);
-    } elsif (@$object == 1 and !$opts->{'write_single_LM'} and !$ctxt->{'_write_single_LM'} and keys(%$attribs)==0 and
+      $ctxt->write_empty_tag($type,$etag,%$attribs) if defined($etag) and not ($opts->{no_empty} and keys(%$attribs)==0);
+    } elsif (@$object == 1 and !$opts->{'write_single_LM'} and
+	       !($ctxt->{'_save_flags'} & SAVE_SINGLETON_LM) and 
+		 keys(%$attribs)==0 and
 	     !(UNIVERSAL::isa($object->[0],'HASH') and keys(%{$object->[0]})==0)) {
       if ($knit) {
 	$ctxt->write_object_knit($object->[0],$type,{ tag => $tag });
@@ -1773,7 +1814,7 @@ sub write_list {
 						  no_resolve => $no_resolve });
       }
     } else {
-      $xml->startTag($tag,%$attribs) if defined($tag);
+      $ctxt->write_start_tag($type,$tag,%$attribs) if defined($tag);
       if (defined $knit) {
 	foreach my $value (@$object) {
 	  $ctxt->write_object_knit($value,$type,{ tag => LM });
@@ -1831,7 +1872,7 @@ sub write_object_knit {
   }
 
   {
-    $xml->startTag($tag,$attribs?%$attribs:());
+    $ctxt->write_start_tag($type->get_content_decl,$tag,$attribs?%$attribs:());
     my $value = $prefix ne EMPTY ? $prefix.'#'.$ref : $ref;
     if ($VALIDATE_CDATA) {
       my $log = [];
