@@ -892,7 +892,7 @@ sub saveStyleSheets {
       }
       print $f map { local $_=$_; tr/\n/\013/; $_."\n" } 
 	map { /^#/ ? 'node:'.$_ : $_ } @{$_->{patterns}};
-      print $f map { "hint: ".$_."\n" } split /\n/, $_->{hint};
+      print $f map { 'hint:'.$_."\n" } split /\n/, $_->{hint};
     }
     print $f "\n\n";
   }
