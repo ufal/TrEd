@@ -26,7 +26,7 @@ use strict;
   clearTextBackground drawBoxes drawEdgeBoxes backgroundImage
   backgroundImageX backgroundImageY drawFileInfo drawSentenceInfo font
   hiddenBoxColor edgeLabelYSkip highlightAttributes showHidden
-  lineArrow lineColor hiddenLineColor dashHiddenLines lineWidth
+  lineArrow lineArrowShape lineColor lineDash hiddenLineColor dashHiddenLines lineWidth
   noColor nodeHeight nodeWidth nodeXSkip nodeYSkip edgeLabelSkipAbove
   edgeLabelSkipBelow pinfo textColor xmargin nodeOutlineColor
   nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
@@ -61,18 +61,29 @@ sub new {
   return $new;
 }
 
+{
+  no strict 'refs';
+  # generate methods
+  for my $opt (@Options) {
+    (*{"get_$opt"},*{"set_$opt"}) = do {{
+      my $o = $opt;
+      (sub { shift->{$o} },
+       sub { shift->{$o} = shift })
+     }};
+  }
+}
+
 sub AUTOLOAD {
   my $self=shift;
   return undef unless ref($self);
   my $sub = $AUTOLOAD;
   $sub =~ s/.*:://;
+  warn "Warning: $sub is not a method of TreeView\n\t";
+  warn(join("\n\t",(caller(0))[0..4])."\n");
   if ($sub=~/^get_(.*)$/) {
     return $self->{$1};
   } elsif ($sub=~/^set_(.*)$/) {
     return $self->{$1}=shift;;
-  } else {
-    warn "Warning: $sub is not a method of TreeView\n";
-    warn join "\n",(caller(0))[0..4];
   }
 }
 
@@ -111,7 +122,8 @@ sub canvas {
 sub realcanvas {
   my $self = shift;
   return undef unless ref($self);
-  return $self->{canvas}->isa("Tk::Canvas") ? $self->{canvas} : $self->{canvas}->Subwidget("scrolled");
+  return $self->{canvas}->isa("Tk::Canvas") 
+    ? $self->{canvas} : $self->{canvas}->Subwidget("scrolled");
 }
 
 
@@ -1119,6 +1131,7 @@ sub redraw {
 	$canvas->
 	  createText(0,
 		     $self->{canvasHeight},
+		     -tags => 'vline',
 		     -font => $self->get_font,
 		     -text => $ftext,
 		     -justify => 'left', -anchor => 'nw'),
