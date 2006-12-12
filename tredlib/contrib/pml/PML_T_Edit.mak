@@ -144,7 +144,7 @@ sub RememberNode{
   ChangingFile(0);
 }#RememberNode
 
-#bind TextArowToRemembered to Ctrl+space menu Make Textual Coreference Aroow to Remembered Node
+#bind TextArowToRemembered to Ctrl+space menu Make Textual Coreference Arrow to Remembered Node
 sub TextArowToRemembered{
   ChangingFile(0);
   if($PML_T_Edit::remember and $PML_T_Edit::remember->parent and $this->parent){
