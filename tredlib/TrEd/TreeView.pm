@@ -67,8 +67,8 @@ sub new {
   for my $opt (@Options) {
     (*{"get_$opt"},*{"set_$opt"}) = do {{
       my $o = $opt;
-      (sub { shift->{$o} },
-       sub { shift->{$o} = shift })
+      (sub { $_[0]->{$o} },
+       sub { $_[0]->{$o} = $_[1]; })
      }};
   }
 }
