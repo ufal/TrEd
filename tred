@@ -2607,21 +2607,9 @@ sub get_nodes_win {
   if ($win->{FSFile}) {
     $win->{treeNo}=0 if ($win->{treeNo}<0 and $win->{FSFile}->lastTreeNo>=0);
     $win->{root}=$win->{FSFile}->treeList->[$win->{treeNo}];
-    print "get_nodelist_hook\n" if $tredDebug;
-    my $l=doEvalHook($win,"get_nodelist_hook",
-		     $win->{FSFile},
-		     $win->{treeNo},
-		     $win->{currentNode},
-		     $win->{treeView}->get_showHidden());
-    if (ref($l) eq 'ARRAY' and @$l==2) {
-      print "using hook's list\n" if $tredDebug;
-      ($win->{Nodes},$win->{currentNode})=@$l;
-    } else {
-      print "using default get_node_list\n" if $tredDebug;
-      ($win->{Nodes},$win->{currentNode})= $win->{treeView}->nodes($win->{FSFile},
-								   $win->{treeNo},
-								   $win->{currentNode});
-    }
+    ($win->{Nodes},$win->{currentNode})= $win->{treeView}->nodes($win->{FSFile},
+								 $win->{treeNo},
+								 $win->{currentNode});
   } else {
     print "no nodes to get\n" if $tredDebug;
     $win->{root}=undef;
