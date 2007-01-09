@@ -504,7 +504,7 @@ sub ChooseFrame {
   }
   $top->Unbusy(-recurse=>1);
 
-  if ($opts_ref->{-no_assign} or !$ValencyLexicon->user_is_annotator or $opts_ref->{-noadd}) {
+  if ($opts_ref->{-no_assign} or !$ValencyLexicon->user_can_edit or $opts_ref->{-noadd}) {
     if (!$word) {
       ErrorMessage("The word $lemma.$pos was not found in the lexicon.\n");
       return;
