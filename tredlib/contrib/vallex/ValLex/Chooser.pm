@@ -69,8 +69,8 @@ sub create_toplevel {
   $chooser->subwidget_configure($confs) if ($confs);
   ${$chooser->subwidget('hide_obsolete')}=$$show_obsolete_ref;
   if (defined $assign_callback) {
-    my $ab = $bot->Button(-text => 'Assign',
-			  -underline => 0,
+    my $ab = $bot->Button(-text => 'Confirm',
+			  -underline => 1,
 			  -command =>
 			    [ sub { $_[0]->reusable_assign_callback; }, $chooser ]
 			 )->pack(-side => 'left',-expand => 1);
