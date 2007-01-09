@@ -445,6 +445,7 @@ in the deep-first tree ordering.
 
 sub LocateNode {
   my $node = ref($_[0]) ? $_[0] : $this;
+  return unless ref $node;
   my $tree = $node->root;
   if ($tree == $root) {
     return (FileName(),CurrentTreeNumber()+1,GetNodeIndex($node));
