@@ -1,6 +1,6 @@
 # ########################################################################## Otakar Smrz, 2004/03/05
 #
-# MorphoTrees Context for TrEd by Petr Pajas #######################################################
+# MorphoTrees Context for the TrEd Environment #####################################################
 
 # $Id$
 
@@ -8,7 +8,7 @@ package MorphoTrees;
 
 use 5.008;
 
-our $VERSION = do { my @r = q$Revision$ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 # ##################################################################################################
 #
@@ -114,8 +114,9 @@ sub get_value_line_hook {
                                       : ( $_->{'apply_m'} > 0
                                             ? ( $_, '-foreground => red' )
                                             : ( $_, '-foreground => black' ) )
+                                ) ]
 
-                            ) ] } grep { $_->{'type'} eq 'word_node' } @{$nodes} ];
+                        } grep { $_->{'type'} eq 'word_node' } @{$nodes} ];
     }
     else {
 
@@ -129,7 +130,7 @@ sub get_value_line_hook {
         $words = [ [ $para->{'id'} . " " . $para->{'input'}, '#' . $tree->{'ref'}, '-foreground => purple' ],
                    map {
                             [ " " ],
-                            [ $_->{'input'}, '#' . ( $tree->{'ref'} + $next++ ), $_ == $tree ? ( $_, '-underline => 1' ): () ],
+                            [ $_->{'input'}, '#' . ( $tree->{'ref'} + $next++ ), $_ == $tree ? ( $_, '-underline => 1' ) : () ],
 
                         } grep { $_->{'type'} eq 'entity' } @{$nodes} ];
     }
@@ -259,20 +260,6 @@ sub switch_either_context {
     ChangingFile(0);
 }
 
-#bind move_to_next_paragraph Shift+Next menu Move to Next Paragraph
-sub move_to_next_paragraph {
-
-    unless ($root->{'type'} eq 'paragraph') {
-
-        GotoTree($root->{'ref'});
-    }
-
-    GotoTree((split /[^0-9]+/, $root->{'par'})[1]);
-
-    $Redraw = 'win';
-    ChangingFile(0);
-}
-
 #bind move_to_prev_paragraph Shift+Prior menu Move to Prev Paragraph
 sub move_to_prev_paragraph {
 
@@ -282,6 +269,20 @@ sub move_to_prev_paragraph {
     }
 
     GotoTree((split /[^0-9]+/, $root->{'par'})[0]);
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_to_next_paragraph Shift+Next menu Move to Next Paragraph
+sub move_to_next_paragraph {
+
+    unless ($root->{'type'} eq 'paragraph') {
+
+        GotoTree($root->{'ref'});
+    }
+
+    GotoTree((split /[^0-9]+/, $root->{'par'})[1]);
 
     $Redraw = 'win';
     ChangingFile(0);
@@ -326,6 +327,64 @@ sub move_word_end {
         $Redraw = 'win';
     }
 
+    ChangingFile(0);
+}
+
+#bind move_next_home Ctrl+Home menu Move to First on Level
+sub move_next_home {
+
+    my $node = $this;
+    my $level = $node->level();
+
+    my $done;
+
+    do {
+
+        $done = $node if $level == $node->level();
+
+        $node = PrevVisibleNode($node);
+    }
+    while $node;
+
+    if ($done == $this and @children = grep { $_->{'hide'} ne 'hide' } $this->children()) {
+
+        $this = $children[0];
+    }
+    else {
+
+        $this = $done;
+    }
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_next_end Ctrl+End menu Move to Last on Level
+sub move_next_end {
+
+    my $node = $this;
+    my $level = $node->level();
+
+    my $done;
+
+    do {
+
+        $done = $node if $level == $node->level();
+
+        $node = NextVisibleNode($node);
+    }
+    while $node;
+
+    if ($done == $this and @children = grep { $_->{'hide'} ne 'hide' } $this->children()) {
+
+        $this = $children[-1];
+    }
+    else {
+
+        $this = $done;
+    }
+
+    $Redraw = 'none';
     ChangingFile(0);
 }
 
@@ -441,8 +500,8 @@ sub follow_apply_m_up {
 
     { do {
 
-        $node = main::NextDisplayed($grp, $node) until not $node or $node->level() == $level;
-        $done = main::PrevDisplayed($grp, $done) until not $done or $done->level() == $level;
+        $node = NextVisibleNode($node) until not $node or $node->level() == $level;
+        $done = PrevVisibleNode($done) until not $done or $done->level() == $level;
 
         if ($node) {
 
@@ -452,7 +511,7 @@ sub follow_apply_m_up {
                 last;
             }
 
-            $node = main::NextDisplayed($grp, $node);
+            $node = NextVisibleNode($node);
         }
 
         if ($done) {
@@ -463,7 +522,7 @@ sub follow_apply_m_up {
                 last;
             }
 
-            $done = main::PrevDisplayed($grp, $done);
+            $done = PrevVisibleNode($done);
         }
     }
     while $node or $done; }
@@ -496,8 +555,8 @@ sub follow_apply_m_down {
 sub follow_apply_m_right {
 
     $main::treeViewOpts->{reverseNodeOrder} ?
-        ctrl_currentLeftWholeLevel($grp) :
-        ctrl_currentRightWholeLevel($grp);
+        ctrl_currentLeftWholeLevel() :
+        ctrl_currentRightWholeLevel();
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -507,8 +566,8 @@ sub follow_apply_m_right {
 sub follow_apply_m_left {
 
     $main::treeViewOpts->{reverseNodeOrder} ?
-        ctrl_currentRightWholeLevel($grp) :
-        ctrl_currentLeftWholeLevel($grp);
+        ctrl_currentRightWholeLevel() :
+        ctrl_currentLeftWholeLevel();
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -521,7 +580,7 @@ sub ctrl_currentRightWholeLevel {    # modified copy of main::currentRightWholeL
 
     do {
 
-        $node = main::NextDisplayed($_[0], $node);
+        $node = NextVisibleNode($node);
     }
     until not $node or $level == $node->level() and $node->{'apply_m'} > 0;
 
@@ -537,7 +596,7 @@ sub ctrl_currentLeftWholeLevel {     # modified copy of main::currentLeftWholeLe
 
     do {
 
-        $node = main::PrevDisplayed($_[0], $node);
+        $node = PrevVisibleNode($node);
     }
     until not $node or $level == $node->level() and $node->{'apply_m'} > 0;
 
@@ -1293,6 +1352,26 @@ sub open_level_third {
     ChangingFile(0);
 }
 
+#bind ThisAddressClipBoard Ctrl+Return menu ThisAddress() to Clipboard
+sub ThisAddressClipBoard {
+
+    my $reply = main::userQuery($grp,
+                        "\nCopy this node's address to clipboard?\t",
+                        -bitmap=> 'question',
+                        -title => "Clipboard",
+                        -buttons => ['Yes', 'No']);
+
+    return unless $reply eq 'Yes';
+
+    my $widget = ToplevelFrame();
+
+    $widget->clipboardClear();
+    $widget->clipboardAppend(ThisAddress());
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
 # ##################################################################################################
 #
 # ##################################################################################################
@@ -1303,6 +1382,7 @@ sub open_level_third {
 =head1 NAME
 
 MorphoTrees - Context for Annotation of Morphology in the TrEd Environment
+
 
 =head1 REVISION
 
@@ -1341,11 +1421,10 @@ Perl is also designed to make the easy jobs not that easy ;)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2004-2006 by Otakar Smrz
+Copyright 2004-2007 by Otakar Smrz
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8 or,
-at your option, any later version of Perl 5 you may have available.
+it under the same terms as Perl itself.
 
 
 =cut

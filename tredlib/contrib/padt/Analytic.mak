@@ -1,6 +1,6 @@
 # ########################################################################## Otakar Smrz, 2004/03/05
 #
-# Analytic Context for TrEd by Petr Pajas ##########################################################
+# Analytic Context for the TrEd Environment ########################################################
 
 # $Id$
 
@@ -8,7 +8,7 @@ package Analytic;
 
 use 5.008;
 
-our $VERSION = do { my @r = q$Revision$ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 # ##################################################################################################
 #
@@ -116,6 +116,10 @@ sub assign_arabclause {
   EditAttribute($this,'arabclause');
 }
 
+# ##################################################################################################
+#
+# ##################################################################################################
+
 #bind thisToParent to Alt+Up menu Annotate: Current node up one level to grandparent
 sub thisToParent {
   return unless $this->parent() and $this->parent()->parent();
@@ -172,7 +176,7 @@ sub thisToEitherBrother {
   $this = $act;
 }
 
-#bind SwapNodesUp to Alt+Shift+Up menu Annotate: Current node exchanged with parent
+#bind SwapNodesUp to Ctrl+Alt+Shift+Up menu Annotate: Current node exchanged with parent
 sub SwapNodesUp {
   return unless $this;
   my $parent = $this->parent();
@@ -184,7 +188,7 @@ sub SwapNodesUp {
   $this = $parent;
 }
 
-#bind SwapNodesDown to Alt+Shift+Down menu Annotate: Current node exchanged with son if unique
+#bind SwapNodesDown to Ctrl+Alt+Shift+Down menu Annotate: Current node exchanged with son if unique
 sub SwapNodesDown {
   return unless $this;
   my @childs = $this->children();
@@ -193,6 +197,81 @@ sub SwapNodesDown {
   CutPaste($childs[0], $parent);
   CutPaste($this, $childs[0]);
   $this = $childs[0];
+}
+
+#bind thisToRoot to Alt+Shift+Up menu Annotate: Current node to the root
+sub thisToRoot {
+  return unless $this and $this->parent();
+  return unless $root;
+  CutPaste($this, $root);
+}
+
+#bind thisToPrevClauseHead to Ctrl+Alt+Right menu Annotate: Current node to preceeding clause head
+sub thisToPrevClauseHead {
+
+    return unless $this and $this->parent();
+
+    my $node = $this->parent();
+
+    do { $node = $node->previous() } while $node and not isClauseHead($node);
+
+    return unless $node;
+
+    CutPaste($this, $node);
+}
+
+#bind thisToNextClauseHead to Ctrl+Alt+Left menu Annotate: Current node to following clause head
+sub thisToNextClauseHead {
+
+    return unless $this and $this->parent();
+
+    my $node = $this->parent();
+
+    do { $node = $node->following() } until $node == $this or isClauseHead($node);
+
+    unless ($node == $this) {
+
+        CutPaste($this, $node);
+    }
+    else {
+
+        $node = $this->rightmost_descendant();
+
+        do { $node = $node->following() } while $node and not isClauseHead($node);
+
+        return unless $node;
+
+        CutPaste($this, $node);
+    }
+}
+
+#bind thisToSuperClauseHead to Ctrl+Alt+Up menu Annotate: Current node to superior clause head
+sub thisToSuperClauseHead {
+
+    return unless $this and $this->parent();
+
+    my $node = $this->parent();
+
+    do { $node = $node->parent() } while $node and not isClauseHead($node);
+
+    return unless $node;
+
+    CutPaste($this, $node);
+}
+
+#bind thisToInferClauseHead to Ctrl+Alt+Down menu Annotate: Current node to inferior clause head
+sub thisToInferClauseHead {
+
+    return unless $this and $this->parent();
+
+    my $node = $this;
+
+    do { $node = $node->following($this) } while $node and not isClauseHead($node);
+
+    return unless $node;
+
+    CutPaste($node, $this->parent());
+    CutPaste($this, $node);
 }
 
 # ##################################################################################################
@@ -264,10 +343,10 @@ sub get_value_line_hook {
 
     ($nodes, undef) = $fsfile->nodes($index, $this, 1);
 
-    $words = [ [ $nodes->[0]->{'origf'}, $nodes->[0], '-foreground => darkmagenta' ],
+    $words = [ [ $nodes->[0]->{'origf'} . " " . $nodes->[0]->{'tag'}, $nodes->[0], '-foreground => darkmagenta' ],
                map {
                         [ " " ],
-                        [ $_->{'origf'}, $_ ],
+                        [ $_->{'origf'}, $_, $_->{'tag'} ? () : '-foreground => red' ],
                }
                grep { defined $_->{'origf'} and $_->{'origf'} ne '' } @{$nodes}[1 .. $#{$nodes}] ];
 
@@ -396,49 +475,108 @@ COORDS
 #
 # ##################################################################################################
 
+sub isPredicate {
+
+    my $this = defined $_[0] ? $_[0] : $this;
+
+    return $this->{arabclause} !~ /^no-|^$/ || $this->{tag} =~ /^V/ && $this->{afun} !~ /^Aux/
+                                            || $this->{afun} =~ /^Pred[CEP]?$/;
+}
+
+sub theClauseHead ($;&) {
+
+    my $this = defined $_[0] ? $_[0] : $this;
+
+    my $code = defined $_[1] ? $_[1] : sub { return undef };
+
+    my ($return, $effect, @children, $main);
+
+    my $head = $this;
+
+    while ($head) {
+
+        $effect = $head->{afun};
+
+        if ($head->{afun} =~ /^(?:Coord|Apos)$/) {
+
+            @children = grep { $_->{parallel} =~ /^(?:Co|Ap)$/ } $head->children();
+
+            if (grep { $_->{afun} eq 'Atv' } @children) {
+
+                $effect = 'Atv';
+            }
+            elsif (grep { isPredicate($_) } @children) {
+
+                $effect = 'Pred';
+            }
+            elsif (grep { $_->{afun} eq 'Pnom'} @children) {
+
+                $effect = 'Pnom';
+            }
+        }
+
+        if ($head->{afun} =~ /^(?:Pnom|Atv)$/ or $effect =~ /^(?:Pnom|Atv)$/) {
+
+            $main = $head;                      # {Pred} <- [Pnom] = [Pnom] and there exist [Verb] <- [Verb]
+
+            if ($main->{parallel} =~ /^(?:Co|Ap)$/) {
+
+                do {
+
+                    $main = $main->parent();
+                }
+                while $main and $main->{parallel} =~ /^(?:Co|Ap)$/ and $main->{afun} =~ /^(?:Coord|Apos)$/;
+
+                $main = $head unless $main and $main->{afun} =~ /^(?:Coord|Apos)$/;
+            }
+
+            if ($main->parent() and isPredicate($main->parent())) {
+
+                return $main->parent();
+            }
+            elsif ($head->{afun} eq 'Pnom') {
+
+                return $head;
+            }
+        }
+
+        last if isPredicate($head);
+
+        if ($return = $code->($head)) {
+
+            return $return;
+        }
+
+        $head = $head->parent();
+    }
+
+    return $head;
+}
+
+sub isClauseHead {
+
+    my $this = defined $_[0] ? $_[0] : $this;
+
+    my $head = theClauseHead($this, sub { return 'stop' } );
+
+    return $this == $head;
+}
+
 sub referring_Ref {
 
     my $this = defined $_[0] ? $_[0] : $this;
 
     my $head = $this->parent();
 
-    until ( (not $head) or (#$head->{afun} =~ /^(?:Atr|Atv)$/ and
-                            ($head->{arabclause} !~ /^no-|^$/ or $head->{tag} =~ /^V/))
-                        or ($head->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/)
-                        or ($head->{afun} =~ /^(?:Coord|Apos)$/ and grep {
+    $head = theClauseHead($head, sub {                  # attributive pseudo-clause .. approximation only
 
-                            $_->{parallel} =~ /^(?:Co|Ap)$/
+            return $_[0] if $_[0]->{afun} eq 'Atr' and $_[0]->{tag} =~ /^A/
+                            and $this->level() > $_[0]->level() + 1;
+            return undef;
 
-                            and (  (#$_->{afun} =~ /^(?:Atr|Atv)$/ and
-                                    ($_->{arabclause} !~ /^no-|^$/ or $_->{tag} =~ /^V/))
-                                or ($_->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/) )
-
-                            } $head->children()) ) {
-
-        $head = $head->parent();
-        last if not defined $attr and $head->{afun} eq 'Atr';   # attributive pseudo-clause .. approximation only
-    }
+        } );
 
     if ($head) {
-
-        if ($head->{afun} eq 'Pnom') {                          # needs attention since {Pred} <- [Pnom] = [Pnom]
-
-            my $pnom = $head;
-
-            if ($pnom->{parallel} =~ /^(?:Co|Ap)$/) {
-
-                do {
-
-                    $pnom = $pnom->parent();
-                }
-                while $pnom and $pnom->{parallel} =~ /^(?:Co|Ap)$/ and $pnom->{afun} =~ /^(?:Coord|Apos)$/;
-
-                $pnom = $head unless $pnom and $pnom->{afun} =~ /^(?:Coord|Apos)$/;
-            }
-
-            $head = $pnom->parent() if $pnom->parent() and ( $pnom->parent()->{arabclause} =~ /^Pred[CEP]?$/
-                                       or $_->{tag} =~ /^V/ or $pnom->parent()->{afun} =~ /^Pred[CEP]?$/ );
-        }
 
         my $ante = $head;
 
@@ -502,13 +640,14 @@ sub edit_commentA {
     $Redraw = 'none';
     ChangingFile(0);
 
-    my $comment = $grp->{FSFile}->FS->exists('comment') ? 'comment' : $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
+    my $comment = $grp->{FSFile}->FS->exists('comment') ? 'comment' :
+                  $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
 
     unless (defined $comment) {
 
         ToplevelFrame()->messageBox (
             -icon => 'warning',
-            -message => "There is no 'comment' attribute in this file's format!\t",
+            -message => "No attribute for annotator's comment in this file",
             -title => 'Sorry',
             -type => 'OK',
         );
@@ -529,18 +668,20 @@ sub edit_commentA {
     }
 }
 
-#bind default_ar_attrs to F8 menu Annotate: Show / hide morphological tags
+#bind default_ar_attrs to F8 menu Display: Show / hide morphological tags
 sub default_ar_attrs {
 
     return unless $grp->{FSFile};
 
     my ($type, $pattern) = ('node:', '#{custom2}${tag}');
 
+    my $code = q {<? '#{custom6}${x_comment} << ' if $this->{afun} ne 'AuxS' and $this->{x_comment} ne '' ?>};
+
     my ($hint, $cntxt, $style) = GetStylesheetPatterns();
 
-    my @filter = grep { $_ !~ /^(?:\Q${type}\E\s*)?\Q${pattern}\E$/ } @{$style};
+    my @filter = grep { $_ !~ /^(?:\Q${type}\E\s*)?(?:\Q${code}\E)?\Q${pattern}\E$/ } @{$style};
 
-    SetStylesheetPatterns([ $hint, $cntxt, [ @filter, @{$style} == @filter ? $type . ' ' . $pattern : () ] ]);
+    SetStylesheetPatterns([ $hint, $cntxt, [ @filter, @{$style} == @filter ? $type . ' ' . $code . $pattern : () ] ]);
 
     ChangingFile(0);
 
@@ -641,6 +782,208 @@ sub unset_request_afun {
 #
 # ##################################################################################################
 
+use List::Util 'reduce';
+
+#bind move_word_home Home menu Move to First Word
+sub move_word_home {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = reduce { $a->{'ord'} < $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_word_end End menu Move to Last Word
+sub move_word_end {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = reduce { $a->{'ord'} > $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_deep_home Ctrl+Home menu Move to Rightmost Descendant
+sub move_deep_home {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = $this->leftmost_descendant();
+
+    $this = $this->previous_visible($fs) if $fs->isHidden($this);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_deep_end Ctrl+End menu Move to Leftmost Descendant
+sub move_deep_end {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = $this->rightmost_descendant();
+
+    $this = $this->following_visible($fs) ||
+            $this->previous_visible($fs) if $fs->isHidden($this);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_par_home Shift+Home menu Move to First Paragraph
+sub move_par_home {
+
+    GotoTree(1);
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_par_end Shift+End menu Move to Last Paragraph
+sub move_par_end {
+
+    GotoTree($grp->{FSFile}->lastTreeNo + 1);
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_to_next_paragraph Shift+Next menu Move to Next Paragraph
+sub move_to_next_paragraph {
+
+    NextTree();
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_to_prev_paragraph Shift+Prior menu Move to Prev Paragraph
+sub move_to_prev_paragraph {
+
+    PrevTree();
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_to_root Shift+Up menu Move Up to Root
+sub move_to_root {
+
+    $this = $root unless $root == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_to_fork Shift+Down menu Move Down to Fork
+sub move_to_fork {
+
+    my $node = $this;
+    my (@children);
+
+    while (@children = $node->children()) {
+
+        @children = grep { $_->{'hide'} ne 'hide' } @children;
+
+        last unless @children == 1;
+
+        $node = $children[0];
+    }
+
+    $this = $node unless $node == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind prev_clause_head Ctrl+Right menu Move to the Preceeding Clause Head
+sub prev_clause_head {
+
+    my $node = $this;
+
+    do { $this = $this->previous() } while $this and not isClauseHead($this);
+
+    $this = $node unless $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind next_clause_head Ctrl+Left menu Move to the Following Clause Head
+sub next_clause_head {
+
+    my $node = $this;
+
+    do { $this = $this->following() } while $this and not isClauseHead($this);
+
+    $this = $node unless $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind super_clause_head Ctrl+Up menu Move to the Superior Clause Head
+sub super_clause_head {
+
+    my $node = $this;
+
+    do { $this = $this->parent() } while $this and not isClauseHead($this);
+
+    $this = $node unless $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind infer_clause_head Ctrl+Down menu Move to the Inferior Clause Head
+sub infer_clause_head {
+
+    my $node = $this;
+
+    do { $this = $this->following($node) } while $this and not isClauseHead($this);
+
+    $this = $node unless $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+use File::Spec;
+use File::Copy;
+
+sub path (@) {
+
+    return File::Spec->join(@_);
+}
+
+sub escape ($) {
+
+    return $^O eq 'MSWin32' ? '"' . $_[0] . '"' : "'" . $_[0] . "'";
+}
+
+sub espace ($) {
+
+    my $name = $_[0];
+
+    $name =~ s/\\/\//g if $^O eq 'MSWin32' and $name =~ / /;
+
+    return escape $name;
+}
+
+sub expace ($) {
+
+    return '"' . "'" . $_[0] . "'" . '"'  if $^O eq 'MSWin32' and $name =~ / /;
+
+    return escape $_[0];
+}
+
 #bind synchronize_file to Ctrl+Alt+equal menu Action: Synchronize Annotations
 sub synchronize_file {
 
@@ -657,38 +1000,31 @@ sub synchronize_file {
 
     my (@file, $path, $name, $tree, $node);
 
-    $file[0] = FileName();
+    $file[0] = File::Spec->canonpath(FileName());
 
     ($name, $path, undef) = File::Basename::fileparse($file[0], '.syntax.fs');
     (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
 
-    $file[0] = $path . 'syntax/' . $name . '.syntax.fs';
-    $file[1] = $path . 'morpho/' . $name . '.morpho.fs';
+    $file[0] = path $path . 'syntax', $name . '.syntax.fs';
+    $file[1] = path $path . 'morpho', $name . '.morpho.fs';
 
-    $file[2] = $path . 'morpho/' . $name . '.syntax.fs';
-    $file[3] = $path . 'syntax/' . $name . '.syntax.fs.anno.fs';
+    $file[2] = path $path . 'morpho', $name . '.syntax.fs';
+    $file[3] = path $path . 'syntax', $name . '.syntax.fs.anno.fs';
 
     $tree = CurrentTreeNumber() + 1;
     $node = $this->{'ord'};
 
-    if ($^O eq 'MSWin32') {
+    copy $file[0], $file[3];
 
-        $_ =~ s/\//\\/g foreach @file;
+    system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/SyntaxFS.pl' ) .
+                  ' ' . ( expace $file[1] );
 
-        system 'copy ' . $file[0] . ' ' . $file[3];
+    copy $file[2], $file[0];
 
-        system 'perl -X ' . $libDir . '/contrib/padt/lib/SyntaxFS.pl ' . $file[1];
+    system 'btred -Qm ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_syntax.btred' ) .
+                    ' ' . ( espace $file[0] );
 
-        system 'copy ' . $file[2] . ' ' . $file[0];
-
-        system 'btred -Qm ' . $libDir . '/contrib/padt/lib/migrate_annotation_syntax.btred ' . $file[0];
-
-        print " ... succeeded.\n";
-    }
-    else {
-
-        print " ... failed.\n";
-    }
+    print "... succeeded.\n";
 
     main::reloadFile($grp);
 
@@ -776,3 +1112,71 @@ sub open_level_third {
 
     ChangingFile(0);
 }
+
+#bind ThisAddressClipBoard Ctrl+Return menu ThisAddress() to Clipboard
+sub ThisAddressClipBoard {
+
+    my $reply = main::userQuery($grp,
+                        "\nCopy this node's address to clipboard?\t",
+                        -bitmap=> 'question',
+                        -title => "Clipboard",
+                        -buttons => ['Yes', 'No']);
+
+    return unless $reply eq 'Yes';
+
+    my $widget = ToplevelFrame();
+
+    $widget->clipboardClear();
+    $widget->clipboardAppend(ThisAddress());
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+1;
+
+
+=head1 NAME
+
+Analytic - Context for Annotation of Analytical Syntax in the TrEd Environment
+
+
+=head1 REVISION
+
+    $Revision$       $Date$
+
+
+=head1 DESCRIPTION
+
+For reference, see the list of Analytic macros and key-bindings in the User-defined menu item in TrEd.
+
+
+=head1 SEE ALSO
+
+TrEd Tree Editor L<http://ufal.mff.cuni.cz/~pajas/tred/>
+
+Prague Arabic Dependency Treebank L<http://ufal.mff.cuni.cz/padt/online/>
+
+
+=head1 AUTHOR
+
+Otakar Smrz, L<http://ufal.mff.cuni.cz/~smrz/>
+
+    eval { 'E<lt>' . ( join '.', qw 'otakar smrz' ) . "\x40" . ( join '.', qw 'mff cuni cz' ) . 'E<gt>' }
+
+Perl is also designed to make the easy jobs not that easy ;)
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2004-2007 by Otakar Smrz
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+
+=cut
