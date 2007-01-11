@@ -9,151 +9,27 @@ package PML_A_Edit;
 
 #binding-context PML_A_Edit
 
-#encoding iso-8859-2
-
-
-import PML_A;
-sub first (&@);
-
-=pod
-
-=head1 PML_A_Edit
-
-PML_A_Edit.mak - Miscellaneous macros for editing the analytic layer of
-Prague Dependency Treebank (PDT) 2.0.
-
-=over 4
-
-=cut
-
-sub get_status_line_hook {
-  my $statusline=&PML_A::get_status_line_hook;
-  push @{$statusline->[0]},
-    ($PML::arf ?
-           ('   Changing a.lex of: ' => [qw(label)],
-            $PML::arf->{t_lemma} || $PML::arf->{id}=> [qw(status)]
-           ):()
-    );
-  push @{$statusline->[1]},("status" => [ -foreground => CustomColor('status')]);
-  return $statusline;
-}#get_status_line_hook
-
-sub status_line_doubleclick_hook {
-  # status-line field double clicked
-
-  # @_ contains a list of style names associated with the clicked
-  # field. Style names may obey arbitrary user-defined convention.
-
-  foreach (@_) {
-    if (/^\{(.*)}$/) {
-      if (main::doEditAttr($grp,$this,$1)) {
-        ChangingFile(1);
-        Redraw_FSFile();
-      }
-      last;
-    }
-  }
-}
-
-
-=item AddThisToALexRf()
-
-If called from analytical tree entered through
-C<PML_T_Edit::MarkForARf>, adds this node's C<id> to C<a/lex.rf> list
-of the marked tectogrammatical node.
-
-=cut
+#include "PML_A_Edit.inc"
 
 #bind AddThisToALexRf to Ctrl+plus menu Add This to a/lex.rf of Marked Node
 #bind AddThisToALexRf to Ctrl+KP_Add
-sub AddThisToALexRf {
-  ChangingFile(0);
-  my $tr_fs = $grp->{FSFile}->appData('tdata');
-  ANodeToALexRf($this,$PML::arf,$tr_fs);
-  $tr_fs->notSaved(1);
-}#AddThisToALexRf
-
-=item AddThisToAAuxRf()
-
-If called from analytical tree entered through
-C<PML_T_Edit::MarkForARf>, adds this node's C<id> to C<a/aux.rf> list
-of the marked tectogrammatical node.
-
-=cut
-
 #bind AddThisToAAuxRf to + menu Add This to a/aux.rf of Marked Node
-sub AddThisToAAuxRf {
-  ChangingFile(0);
-  my $tr_fs = $grp->{FSFile}->appData('tdata');
-  ANodeToAAuxRf($this,$PML::arf,$tr_fs);
-  $tr_fs->notSaved(1);
-}#AddThisToAAuxRf
-
-=item RemoveThisFromARf()
-
-If called from analytical tree entered through
-C<PML_T_Edit::MarkForARf>, remove this node's C<id> from C<a/lex.rf>
-and C<a/aux.rf> of the marked tectogrammatical node.
-
-=cut
-
 #bind RemoveThisFromARf to minus menu Remove This from a/*.rf of Marked Node
 #bind RemoveThisFromARf to KP_Subtract
-sub RemoveThisFromARf {
-  ChangingFile(0);
-  return unless $PML::arf;
-  my $tr_fs = $grp->{FSFile}->appData('tdata');
-  return 0 unless ref($tr_fs);
-  my $refid = $tr_fs->metaData('refnames')->{adata};
-  if($PML::arf->attr('a/lex.rf')eq$refid.'#'.$this->{id}){
-    delete $PML::arf->{a}{'lex.rf'};
-  }
-  @{$PML::arf->{a}{'aux.rf'}}
-    =uniq(ListSubtract($PML::arf->{a}{'aux.rf'},List($refid.'#'.$this->{id})));
-  $tr_fs->notSaved(1);
-}#RemoveThisFromARf
-
 #bind EditMLemma to L menu Edit morphological lemma
-sub EditMLemma{
-  ChangingFile(EditAttribute($this,'m/lemma'));
-}#EditMlemma
-
 #bind EditMTag to T menu Edit morphological tag
-sub EditMTag{
-  ChangingFile(EditAttribute($this,'m/tag'));
-}#EditMtag
-
 #bind EditAfun to a menu Edit afun
-sub EditAfun{
-  ChangingFile(EditAttribute($this,'afun'));
-}#EditAfun
-
 #bind RotateMember to m menu Change is_member
-sub RotateMember{
-  $this->{is_member}=!$this->{is_member};
-}#RotateMember
-
 #bind RotateParenthesisRoot to p menu Change is_parenthesis_root
-sub RotateParenthesisRoot{
-  $this->{is_parenthesis_root}=!$this->{is_parenthesis_root};
-}#RotateParenthesisRoot
-
-
 #bind TectogrammaticalTree to Ctrl+R menu Display tectogrammatical tree
 #bind GotoTree to Alt+g menu Goto Tree
+#bind OpenValFrameList to Ctrl+Return menu Show valency lexicon entry for the current word
 
 #include "PML_A_AutoAfun.mak"
-
 #bind assign_afun_auto Ctrl+a menu Auto-assign afun to the current node
 #bind assign_all_afun_auto to Ctrl+A menu Auto-assign afun to all nodes without afun in the tree
 
 
-#bind OpenValFrameList to Ctrl+Return menu Show valency lexicon entry for the current word
-
 1;
-
-=back
-
-=cut
 
 #endif PML_A_Edit
