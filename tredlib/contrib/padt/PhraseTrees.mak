@@ -1,6 +1,6 @@
 # ########################################################################## Otakar Smrz, 2005/07/13
 #
-# PhraseTrees Context for TrEd by Petr Pajas #######################################################
+# PhraseTrees Context for the TrEd Environment #####################################################
 
 # $Id$
 
@@ -8,7 +8,7 @@ package PhraseTrees;
 
 use 5.008;
 
-our $VERSION = do { my @r = q$Revision$ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 # ##################################################################################################
 #
@@ -185,7 +185,7 @@ sub referring_Ref {
 
     my $this = defined $_[0] ? $_[0] : $this;
 
-    my $head = $this->parent;
+    my $head = $this->parent();
 
     until ( (not $head) or (#$head->{afun} =~ /^(?:Atr|Atv)$/ and
                             ($head->{arabclause} !~ /^no-|^$/ or $head->{tag} =~ /^V/))
@@ -287,7 +287,8 @@ sub edit_commentA {
     $Redraw = 'none';
     ChangingFile(0);
 
-    my $comment = $grp->{FSFile}->FS->exists('other') ? 'other' : $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
+    my $comment = $grp->{FSFile}->FS->exists('other') ? 'other' :
+                  $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
 
     unless (defined $comment) {
 
@@ -477,3 +478,154 @@ sub direction_LTR {
 
     Redraw_All();
 }
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+use List::Util 'reduce';
+
+#bind move_word_home Home menu Move to First Word
+sub move_word_home {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = reduce { $a->{'ord'} < $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_word_end End menu Move to Last Word
+sub move_word_end {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = reduce { $a->{'ord'} > $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_deep_home Ctrl+Home menu Move to Rightmost Descendant
+sub move_deep_home {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = $this->leftmost_descendant();
+
+    $this = $this->previous_visible($fs) if $fs->isHidden($this);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_deep_end Ctrl+End menu Move to Leftmost Descendant
+sub move_deep_end {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = $this->rightmost_descendant();
+
+    $this = $this->following_visible($fs) ||
+            $this->previous_visible($fs) if $fs->isHidden($this);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_par_home Shift+Home menu Move to First Paragraph
+sub move_par_home {
+
+    GotoTree(1);
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_par_end Shift+End menu Move to Last Paragraph
+sub move_par_end {
+
+    GotoTree($grp->{FSFile}->lastTreeNo + 1);
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_to_root Shift+Up menu Move Up to Root
+sub move_to_root {
+
+    $this = $root unless $root == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_to_fork Shift+Down menu Move Down to Fork
+sub move_to_fork {
+
+    my $node = $this;
+    my (@children);
+
+    while (@children = $node->children()) {
+
+        @children = grep { $_->{'hide'} ne 'hide' } @children;
+
+        last unless @children == 1;
+
+        $node = $children[0];
+    }
+
+    $this = $node unless $node == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+1;
+
+
+=head1 NAME
+
+PhraseTrees - Context for Annotation of Constituency Syntax in the TrEd Environment
+
+
+=head1 REVISION
+
+    $Revision$       $Date$
+
+
+=head1 DESCRIPTION
+
+For reference, see the list of PhraseTrees macros and key-bindings in the User-defined menu item in TrEd.
+
+
+=head1 SEE ALSO
+
+TrEd Tree Editor L<http://ufal.mff.cuni.cz/~pajas/tred/>
+
+Prague Arabic Dependency Treebank L<http://ufal.mff.cuni.cz/padt/online/>
+
+
+=head1 AUTHOR
+
+Otakar Smrz, L<http://ufal.mff.cuni.cz/~smrz/>
+
+    eval { 'E<lt>' . ( join '.', qw 'otakar smrz' ) . "\x40" . ( join '.', qw 'mff cuni cz' ) . 'E<gt>' }
+
+Perl is also designed to make the easy jobs not that easy ;)
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2005-2007 by Otakar Smrz
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+
+=cut
