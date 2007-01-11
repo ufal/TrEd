@@ -1262,8 +1262,10 @@ sub nextFile {
 
 sub nextFileSkipBad {
   my ($grp)=@_;
-  my $result;
-  $result = nextFile($grp) while $result < 1;
+  my $result=0;
+  while ($result < 0) {
+    $result = nextFile($grp);
+  }
   return 0 if ($fileNo >= $#files);
   return $result ? 1 : -1;
 }
