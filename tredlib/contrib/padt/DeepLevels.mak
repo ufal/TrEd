@@ -1,6 +1,6 @@
-# ########################################################################## Otakar Smrz, 2004/03/05
+# ########################################################################## Otakar Smrz, 2006/03/29
 #
-# Analytic Context for TrEd by Petr Pajas ##########################################################
+# DeepLevels Context for the TrEd Environment ######################################################
 
 # $Id$
 
@@ -8,7 +8,7 @@ package DeepLevels;
 
 use 5.008;
 
-our $VERSION = do { my @r = q$Revision$ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 # ##################################################################################################
 #
@@ -816,7 +816,8 @@ sub edit_commentA {
     $Redraw = 'none';
     ChangingFile(0);
 
-    my $comment = $grp->{FSFile}->FS->exists('comment') ? 'comment' : $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
+    my $comment = $grp->{FSFile}->FS->exists('comment') ? 'comment' :
+                  $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
 
     unless (defined $comment) {
 
@@ -948,3 +949,336 @@ sub unset_context {
         $Redraw = 'tree';
     }
 }
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+use List::Util 'reduce';
+
+#bind move_word_home Home menu Move to First Word
+sub move_word_home {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = reduce { $a->{'ord'} < $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_word_end End menu Move to Last Word
+sub move_word_end {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = reduce { $a->{'ord'} > $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_deep_home Ctrl+Home menu Move to Rightmost Descendant
+sub move_deep_home {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = $this->leftmost_descendant();
+
+    $this = $this->previous_visible($fs) if $fs->isHidden($this);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_deep_end Ctrl+End menu Move to Leftmost Descendant
+sub move_deep_end {
+
+    my $fs = $grp->{FSFile}->FS();
+
+    $this = $this->rightmost_descendant();
+
+    $this = $this->following_visible($fs) ||
+            $this->previous_visible($fs) if $fs->isHidden($this);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_par_home Shift+Home menu Move to First Paragraph
+sub move_par_home {
+
+    GotoTree(1);
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_par_end Shift+End menu Move to Last Paragraph
+sub move_par_end {
+
+    GotoTree($grp->{FSFile}->lastTreeNo + 1);
+
+    $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind move_to_root Shift+Up menu Move Up to Root
+sub move_to_root {
+
+    $this = $root unless $root == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind move_to_fork Shift+Down menu Move Down to Fork
+sub move_to_fork {
+
+    my $node = $this;
+    my (@children);
+
+    while (@children = $node->children()) {
+
+        @children = grep { $_->{'hide'} ne 'hide' } @children;
+
+        last unless @children == 1;
+
+        $node = $children[0];
+    }
+
+    $this = $node unless $node == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+use File::Spec;
+use File::Copy;
+
+sub path (@) {
+
+    return File::Spec->join(@_);
+}
+
+sub escape ($) {
+
+    return $^O eq 'MSWin32' ? '"' . $_[0] . '"' : "'" . $_[0] . "'";
+}
+
+sub espace ($) {
+
+    my $name = $_[0];
+
+    $name =~ s/\\/\//g if $^O eq 'MSWin32' and $name =~ / /;
+
+    return escape $name;
+}
+
+sub expace ($) {
+
+    return '"' . "'" . $_[0] . "'" . '"'  if $^O eq 'MSWin32' and $name =~ / /;
+
+    return escape $_[0];
+}
+
+#bind synchronize_file to Ctrl+Alt+equal menu Action: Synchronize Annotations
+sub synchronize_file {
+
+    my $reply = main::userQuery($grp, "\nDo you wish to synchronize this file's annotations?\t",
+            -bitmap=> 'question',
+            -title => "Synchronizing",
+            -buttons => ['Yes', 'No']);
+
+    return unless $reply eq 'Yes';
+
+    print "Synchronizing ...\n";
+
+    require File::Basename;
+
+    my (@file, $path, $name, $tree, $node);
+
+    $file[0] = File::Spec->canonpath(FileName());
+
+    ($name, $path, undef) = File::Basename::fileparse($file[0], '.deeper.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = path $path . 'deeper', $name . '.deeper.fs';
+    $file[1] = path $path . 'syntax', $name . '.syntax.fs';
+
+    $file[2] = path $path . 'syntax', $name . '.deeper.fs';
+    $file[3] = path $path . 'deeper', $name . '.deeper.fs.anno.fs';
+
+    $tree = CurrentTreeNumber() + 1;
+    $node = $this->{'ord'};
+
+    copy $file[0], $file[3];
+
+    system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/DeeperFS.pl' ) .
+                  ' ' . ( expace $file[1] );
+
+    copy $file[2], $file[0];
+
+    system 'btred -Qm ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_deeper.btred' ) .
+                    ' ' . ( espace $file[0] );
+
+    print "... succeeded.\n";
+
+    main::reloadFile($grp);
+
+    GotoTree($tree);
+
+    $this = $this->following() until $this->{'ord'} == $node;
+
+    ChangingFile(0);
+}
+
+#bind open_level_first to Ctrl+Alt+1 menu Action: Edit MorphoTrees File
+sub open_level_first {
+
+    require File::Basename;
+
+    my (@file, $path, $name, $tree, $node);
+
+    $file[0] = FileName();
+
+    ($name, $path, undef) = File::Basename::fileparse($file[0], '.deeper.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = $path . 'deeper/' . $name . '.deeper.fs';
+    $file[1] = $path . 'morpho/' . $name . '.morpho.fs';
+
+    ($tree) = $root->{'x_id_ord'} =~ /^\#[0-9]+\_([0-9]+)$/;
+
+    unless ($this == $root) {
+
+        ($node) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
+    }
+    else {
+
+        $node = 0;
+    }
+
+    SwitchContext('MorphoTrees');
+
+    my $success = Open($file[1]);
+
+    ChangingFile(0);
+
+    unless ($success) {
+
+        SwitchContext('DeepLevels');
+
+        return;
+    }
+
+    GotoTree($tree);
+
+    $this = ($this->children())[$node - 1] unless $node == 0;
+}
+
+#bind open_level_second to Ctrl+Alt+2 menu Action: Edit Analytic File
+sub open_level_second {
+
+    require File::Basename;
+
+    my (@file, $path, $name, $tree, $node);
+
+    $file[0] = FileName();
+
+    ($name, $path, undef) = File::Basename::fileparse($file[0], '.deeper.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = $path . 'deeper/' . $name . '.deeper.fs';
+    $file[1] = $path . 'syntax/' . $name . '.syntax.fs';
+
+    ($tree) = $root->{'x_id_ord'} =~ /^\#[0-9]+\_([0-9]+)$/;
+    ($node) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
+
+    SwitchContext('Analytic');
+
+    Open($file[1]);
+    GotoTree($tree);
+
+    $this = ($this->children())[$node - 1];
+
+    ChangingFile(0);
+}
+
+#bind open_level_third to Ctrl+Alt+3 menu Action: Edit DeepLevels File
+sub open_level_third {
+
+    ChangingFile(0);
+}
+
+#bind ThisAddressClipBoard Ctrl+Return menu ThisAddress() to Clipboard
+sub ThisAddressClipBoard {
+
+    my $reply = main::userQuery($grp,
+                        "\nCopy this node's address to clipboard?\t",
+                        -bitmap=> 'question',
+                        -title => "Clipboard",
+                        -buttons => ['Yes', 'No']);
+
+    return unless $reply eq 'Yes';
+
+    my $widget = ToplevelFrame();
+
+    $widget->clipboardClear();
+    $widget->clipboardAppend(ThisAddress());
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
+1;
+
+
+=head1 NAME
+
+DeepLevels - Context for Annotation of Tectogrammatics and Deeper Levels in the TrEd Environment
+
+
+=head1 REVISION
+
+    $Revision$       $Date$
+
+
+=head1 DESCRIPTION
+
+For reference, see the list of DeepLevels macros and key-bindings in the User-defined menu item in TrEd.
+
+
+=head1 SEE ALSO
+
+TrEd Tree Editor L<http://ufal.mff.cuni.cz/~pajas/tred/>
+
+Prague Arabic Dependency Treebank L<http://ufal.mff.cuni.cz/padt/online/>
+
+
+=head1 AUTHOR
+
+Otakar Smrz, L<http://ufal.mff.cuni.cz/~smrz/>
+
+    eval { 'E<lt>' . ( join '.', qw 'otakar smrz' ) . "\x40" . ( join '.', qw 'mff cuni cz' ) . 'E<gt>' }
+
+Perl is also designed to make the easy jobs not that easy ;)
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2006-2007 by Otakar Smrz
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+
+=cut
