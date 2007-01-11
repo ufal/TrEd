@@ -305,8 +305,9 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 
   # --local implies we only want local servers
   if ($run_local) {
-    chomp (my $host=`/bin/hostname`);
-    @servers = grep { $_ =~ /^\s*\Q$host\E:\d+\s*$/ } @servers;
+    use Sys::Hostname;
+    chomp (my $host=hostname());
+    @servers = grep { $_ =~ /^\s*(?:localhost|\Q$host\E):\d+\s*$/ } @servers;
     @servers=($host) unless (@servers);
   }
   make_uniq(\@servers);
@@ -411,6 +412,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
       $rb=~s{/$}{};
       $btred ||= "$rb/btred";
       my $cmd = "$btred -O -P ".
+	  ($run_local ? '--server-host '.$srv->{host}.' ' : ()).
    	  ($safe_mode ? "-F " : "").
 	  ($no_secondary ? "-Y " : "").
 	  ($reffiles_to_save ne "" ? "-K $reffiles_to_save " : "").
@@ -1685,7 +1687,10 @@ connect to remote servers. Default value is `ssh -o ConnectTimeout=10'.
 Run btred servers locally. It ignores all non-local entries in the
 .ntred_serverlist (i.e. entries not matching local machine's
 hostname). There still may be more BTrEd instances, provided they use
-different ports.  In this case, SSH is not used.
+different ports. In this case, SSH is not used.
+
+Use --servers localhost:XY (where XY is port number)
+if you wish to run a single server on the loopback interface.
 
 =item B<--btred> command
 

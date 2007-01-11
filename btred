@@ -40,6 +40,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    @files $backend %bkmap $nosave @preload_modules $print_version
 	    $version $lib $extra_backends $file_list $list_options
 	    $_ERR %optmap $no_secondary $include_macro $ioBackends
+	    $locale_charset $host
 	    @resource_paths
 	   );
 
@@ -89,6 +90,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "warn-only|W" => \$warn_only,
 	    "validate-fs|V" => \$validate_fs,
 	    "allow-host|b=s" => \$allow_host,
+	    "server-host=s" => \$host,
 	    "server-port|L=i"  => \$start_server,
 	    "help|h" => \$help,
 	    "list-options" => \$list_options,
@@ -302,6 +304,23 @@ if ($TrEd::Config::useCzechLocales) {
   setlocale(LANG,"cs_CZ");
 }
 
+if ($]>=5.008) {
+  eval {
+    require I18N::Langinfo;
+    $locale_charset = I18N::Langinfo::langinfo(I18N::Langinfo::CODESET());
+  };
+}
+
+sub conv_from_locale {
+  my ($str)=@_;
+  if ($locale_charset and $TrEd::Convert::support_unicode) {
+    require Encode;
+    return Encode::decode($locale_charset,$str);
+  } else {
+    return $str;
+  }
+}
+
 # These are used only in macros and hooks!!!
 $TrEd::Macros::defines{BTRED}=1;
 set_macro_variable(root => undef,
@@ -511,7 +530,8 @@ sub startMain {
     }
 
     my $port=$start_server;
-    chomp (my $host=`/bin/hostname`); #$ENV{HOSTNAME};
+    use Sys::Hostname;
+    chomp ($host=hostname()) unless defined $host; #$ENV{HOSTNAME};
     my $server = new IO::Socket::INET (LocalHost => $host,
 				       LocalPort => $port,
 				       Proto => 'tcp',
@@ -688,7 +708,7 @@ sub startMain {
 		      $grp->{FSFile} and $grp->{FSFile}->filename =~ $regexp) {
 		    doEvalMacro($grp,"package $context;".$request{STATE_CODE});
 		  }
-		} while (!$@ and nextFile($grp) and !$@);
+		} while (!$@ and nextFileSkipBad($grp) and !$@);
 	      }
 	      $hub->print("$@\n") if $@;
 	      _msg($@) if $@; undef $@;
@@ -1177,28 +1197,35 @@ EOL
     preloadFiles($grp,\@files) if $preload; # -P : load all files into memory
 
     exit if $preload and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
-    openFile($grp,$files[$fileNo]) if $fileNo <= $#files; # goto first file
     if (@files) {
+      my $status = openFile($grp,$files[$fileNo]); # goto first file
+      my $skip_next = ($status == 0) ? 1 : 0;
       do {{
-	_msg "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $Quiet;
-	doEvalMacro($grp,"$context->_btred_eval_();");
-	STDOUT->flush();
-	STDERR->flush();
-	_msg "Done.\n" unless $quiet;
-	my ($out, $error) = saveFile($grp) if ($grp->{FSFile}->notSaved() or $save);
-        _msg($error) if defined $error;
+        if ($skip_next) {
+          _msg "Skipping: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $Quiet;
+        } else {
+          _msg "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $Quiet;
+	  doEvalMacro($grp,"$context->_btred_eval_();");
+	  STDOUT->flush();
+	  STDERR->flush();
+	  _msg "Done.\n" unless $quiet;
+	  my ($out, $error) = saveFile($grp) if ($grp->{FSFile}->notSaved() or $save);
+          _msg($error) if defined $error;
 
-        unless ($no_secondary) {
-	  foreach my $secondary (secondaryFSFiles($grp,$grp->{FSFile})) {
-	    if ($save or $secondary->notSaved()) {
-	      # TODO: we should probably go recursion here...
-	      # (secondary files of secondary files...)
-	      my ($out,$error) = saveFile($grp,$secondary);
-	      _msg("Error Saving secondary file:",$error) if defined $error;
+          unless ($no_secondary) {
+	    foreach my $secondary (secondaryFSFiles($grp,$grp->{FSFile})) {
+	      if ($save or $secondary->notSaved()) {
+	        # TODO: we should probably go recursion here...
+	        # (secondary files of secondary files...)
+	        my ($out,$error) = saveFile($grp,$secondary);
+	        _msg("Error Saving secondary file:",$error) if defined $error;
+	      }
 	    }
 	  }
-	}
-      }} while (nextFile($grp));
+        }
+        $status = nextFile($grp);
+        $skip_next = ($status < 0) ? 1 : 0;
+      }} while ($status != 0);
     } else {
       _msg "No files to process!\n" unless $Quiet;
     }
@@ -1220,8 +1247,8 @@ sub gotoFile {
   return 0 if (doEvalHook($grp,"goto_file_hook") eq 'stop');
   return 0 if ($fn>$#files or $fn<0);
   $fileNo=$fn;
-  openFile($grp,$files[$fileNo]);
-  return 1;
+  my $result = openFile($grp,$files[$fileNo]);
+  return $result ? 1 : -1;
 }
 
 
@@ -1229,16 +1256,72 @@ sub nextFile {
   my ($grp)=@_;
   return 0 if ($fileNo >= $#files);
   $fileNo++;
-  openFile($grp,$files[$fileNo]);
-  return 1;
+  my $result = openFile($grp,$files[$fileNo]);
+  return $result ? 1 : -1;
+}
+
+sub nextFileSkipBad {
+  my ($grp)=@_;
+  my $result;
+  $result = nextFile($grp) while $result < 1;
+  return 0 if ($fileNo >= $#files);
+  return $result ? 1 : -1;
 }
 
 sub prevFile {
   my ($grp)=@_;
   return 0 unless ($fileNo > 0);
   $fileNo--;
-  openFile($grp,$files[$fileNo]);
-  return 1;
+  my $result = openFile($grp,$files[$fileNo]);
+  return $result ? 1 : -1;
+}
+
+sub _clear_err {
+  undef $!; undef $@;
+}
+sub _last_err {
+  my ($ret) = grep { defined and length } ($_[0], $@, conv_from_locale($!));
+  return $ret;
+}
+sub _new_status {
+  my %status = (
+    ok => undef,
+    cancel => undef,
+    warnings => [],
+    error => undef,
+    filename => undef,
+    backends => undef,
+    report => undef,
+    @_
+  );
+  return \%status;
+}
+
+sub loadFile {
+  my ($file,$backends)=@_;
+  my @warnings;
+  my $bck = ref($backends) ? $backends : \@backends;
+  my $status = _new_status(ok => 0, filename => $file, backends => $bck, warnings => \@warnings);
+  _clear_err();
+  local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; print STDERR $msg."\n"; push @warnings,$msg; };
+  my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc, $bck);
+  $status->{error} = _last_err();
+  chomp $status->{error};
+  $status->{report} = "Loading file '$file':\n";
+  if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
+    $status->{ok} = @warnings ? -1 : 1;
+  } else {
+    $status->{ok} = 0;
+    $status->{report} .= "ERROR(s): ".$status->{error}."\n";
+  }
+  if (@warnings) {
+    $status->{report} .= "WARNING(s): ".join("\n", @warnings);
+  }
+  if (wantarray) {
+    return ($fsfile, $status);  
+  } else {
+    return $fsfile;
+  }
 }
 
 sub preloadFiles {
@@ -1252,13 +1335,14 @@ sub preloadFiles {
     }
     next if exists($grp->{preloaded}->{$f});
     _msg "Pre-loading: $f (",$fno++,"/$filecount)\n" unless $Quiet;
-    my $fsfile = FSFile->newFSFile($f,$TrEd::Convert::inputenc,\@backends);
-    if ($fsfile->lastTreeNo<0) {
-      _msg "Error - cannot load file: $f ("._last_err().")!\n";
-      $errlog->print("ERROR: Cannot load file: $f! ($@)\n") if ($errlog);
-      next;
+    my ($fsfile,$status) = loadFile($f,\@backends);
+    if ($status->{ok} != 1) {
+      _msg($status->{report});
+      $errlog->print($status->{report}) if ($errlog);
     }
-    openSecondary($grp,$fsfile);
+    next unless ($status->{ok} && 
+		 openSecondary($grp,$fsfile, $errlog));
+
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f} = $fsfile;
   }
@@ -1277,7 +1361,8 @@ sub associateSecondary {
 }
 
 sub openSecondary {
-  my ($grp,$fsfile)=@_;
+  my ($grp,$fsfile,$errlog)=@_;
+  my $return = 1;
   unless ($no_secondary) {
     my $requires = $fsfile->metaData('fs-require');
     if ($requires) {
@@ -1292,14 +1377,19 @@ sub openSecondary {
 			       $fsfile,
 			       $req->[0]);
 	  } else {
-	    my $req_fs = FSFile->newFSFile($req_filename,$TrEd::Convert::inputenc,\@backends);
-	    _msg "Error - cannot load secondary file $req_filename required by ".$fsfile->filename."! ("._last_err().")\n" if ($req_fs->lastTreeNo<0);
+	    my ($req_fs,$status) = loadFile($req_filename,$TrEd::Convert::inputenc,\@backends);
+	    unless ($status->{ok}) {
+	      _msg("Error - cannot load secondary file $req_filename required by ".$fsfile->filename.": ".
+		     $status->{report});
+	      $errlog->print($status->{report}) if ($errlog);
+	      $return = 0;
+	    }
 	    $req_fs->changeFileFormat(($req_filename=~/\.gz$/ ? "gz-compressed " : "").$req_fs->backend);
 	    $grp->{'secondary'}->{$req_filename} = $req_fs;
 	    associateSecondary($req_fs,
 			       $fsfile,
 			       $req->[0]);
-	    openSecondary($grp,$req_fs);
+	    $return &&= openSecondary($grp,$req_fs,$errlog);
 	  }
 	} else {
 	  # secondary file is already loaded, just associate:
@@ -1310,6 +1400,7 @@ sub openSecondary {
       }
     }
   }
+  return $return;
 }
 
 sub openFile {
@@ -1328,6 +1419,7 @@ sub openFile {
   }
 
   closeFile($grp);
+  my $return = 1;
   if (exists($grp->{preloaded}) and
       exists($grp->{preloaded}->{$f})) {
     $grp->{'FSFile'} = $grp->{preloaded}->{$f};
@@ -1336,19 +1428,16 @@ sub openFile {
   } elsif ($opts{-justpreloaded}) {
     return 0;
   } else {
-    my $fsfile =  FSFile->newFSFile($f,$TrEd::Convert::inputenc,\@backends);
+    my ($fsfile,$status) = loadFile($f,\@backends);
+    $return = $status->{ok} != 0;
+    _msg($status->{report}) unless $status->{ok} == 1;
 
     $grp->{FSFile} = $fsfile;
     $fsfile->changeFileFormat(($f=~/\.gz$/ ? "gz-compressed " : "").$fsfile->backend);
     $grp->{preloaded}->{$f}=$fsfile if ($fsfile and exists($grp->{preloaded}));
 
     # open files required by this one
-    openSecondary($grp,$fsfile);
-  }
-  my $return = 1;
-  if ($grp->{FSFile}->lastTreeNo<0) {
-    _msg "Error - cannot load file: $f ("._last_err().")!\n" ;
-    $return = 0;
+    $return &&= openSecondary($grp,$fsfile);
   }
 
   my $encoding=$grp->{FSFile}->encoding;
