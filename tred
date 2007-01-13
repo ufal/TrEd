@@ -1108,19 +1108,32 @@ sub nextOrPrevFile {
   while (ref($result) and $result->{ok}==0) {
     my $trees = $win->{FSFile} ? $win->{FSFile}->lastTreeNo+1 : 0;
     unless ($quiet) {
-      my $f=filelistFullFileName($win,$pos);
       $response=
 	errorDialog($win,
 		    "Error: open failed",
 		    "File is unreadable, empty, corrupted, or does not exist ($trees trees read)!"
 		      ."\nPossible problem was:",
 		    $grp->{lastOpenError},
-		    -buttons => ["Try next","Skip broken files","Cancel"]
+		    -buttons => ["Try next","Skip broken files","Remove from filelist","Cancel"]
 		   );
       last if ($response eq "Cancel");
       $quiet=1 if ($response eq "Skip broken files");
     }
-    $pos+=$delta;
+    if ($response eq 'Remove from filelist') {
+      my $f=filelistFullFileName($win,$pos);
+      removeFromFilelist($win,undef,undef,$f);
+      if ($delta>0) {
+	if ($pos>=$win->{currentFilelist}->file_count()) {
+	  $pos = $win->{currentFilelist}->file_count()-1;
+	} else {
+	  $pos += $delta-1;
+	}
+      } else {
+	$pos += $delta;
+      }
+    } else {
+      $pos += $delta;
+    }
     $result=gotoFile($win,$pos,$no_recent);
   }
   $grp->{noOpenFileError}=$op;
@@ -2885,11 +2898,16 @@ sub insertToFilelist {
 
 sub removeFromFilelist {
   my ($grp_or_win,$filelist,$position)=(shift,shift,shift);
+  unless (@_) {
+    print STDERR "removeFromFilelist: no file given\n";
+    return;
+  }
+
   my ($grp,$win)=grp_win($grp_or_win);
   $filelist=$win->{currentFilelist} if not defined($filelist);
   $position=$win->{currentFileNo} if not defined($position);
   return unless ref($filelist);
-
+  
   $filelist->remove(@_);
   if ($filelist eq $win->{currentFilelist}) {
     $win->{currentFileNo}= min($win->{currentFileNo},
