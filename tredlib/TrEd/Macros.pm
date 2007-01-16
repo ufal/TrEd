@@ -178,7 +178,7 @@ sub read_macros {
 	  foreach my $ctxt (@contexts) {
 	    $keyBindings{$ctxt}{$key} = undef; # don't delete (so that we can overrule TredMacro macros)
 	  }
-	} elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+(.+))?/) {
+	} elsif (/^\#[ \t]*bind[ \t]+(\w+(?:-\>\w+)?)[ \t]+(?:to[ \t]+)?(?:key(?:sym)?[ \t]+)?([^ \t\r\n]+)(?:[ \t]+menu[ \t]+([^\r\n]+))?/) {
 	  my $macro=$1;
 	  my $key=$2;
 	  my $menu = TrEd::Convert::encode($3);
@@ -205,20 +205,20 @@ sub read_macros {
 	      }
 	    }
 	  }
-	} elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?(.+)/) {
+	} elsif (/^\#\s*insert[ \t]+(\w*)[ \t]+(?:as[ \t]+)?(?:menu[ \t]+)?([^\r\n]+)/) {
 	  my $macro=$1;
 	  my $menu=TrEd::Convert::encode($2);
 	  foreach (@contexts) {
 	    $menuBindings{$_}={} unless exists($menuBindings{$_});
 	    $menuBindings{$_}->{$menu}=["$_"."->"."$macro",undef] if ($menu);
 	  }
-	} elsif (/^\#\s*remove-menu[ \t]+(.+)/) {
+	} elsif (/^\#\s*remove-menu[ \t]+([^\r\n]+)/) {
 	  my $menu=TrEd::Convert::encode($1);
 	  foreach (@contexts) {
 	    next unless exists($menuBindings{$_});
 	    delete $menuBindings{$_}{$menu};
 	  }
-	} elsif (/^\#\s*(if)?include\s+\<(.+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
+	} elsif (/^\#\s*(if)?include\s+\<([^\r\n]+\S)\>\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my $enc = $3;
 	  my $mf="$libDir/$2";
 	  if (-f $mf) {
@@ -229,7 +229,7 @@ sub read_macros {
 	      "Error including macros $mf\n from $file: ",
 		"file not found!\n";
 	  }
-	} elsif (/^\#\s*(if)?include\s+"(.+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
+	} elsif (/^\#\s*(if)?include\s+"([^\r\n]+\S)"\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my $enc = $3;
 	  my $pattern = $2;
 	  my @includes;
@@ -254,7 +254,7 @@ sub read_macros {
 		  "file not found!\n";
 	    }
 	  }
-	} elsif (/^\#\s*(if)?include\s+(.+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
+	} elsif (/^\#\s*(if)?include\s+([^\r\n]+?\S)\s*(?:encoding\s+(\S+)\s*)?$/) {
 	  my ($if,$f,$enc) = ($1,$2,$3);
 	  if ($f=~m%^/%) {
 	    read_macros($f,$libDir,1,$enc,@contexts);
