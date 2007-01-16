@@ -116,6 +116,7 @@ use fields qw(
     _trees_written
     _refs_save
     _save_flags
+    _pi
    );
 
 # PML Instance File
@@ -453,6 +454,11 @@ sub read_data {
       # the child after <head>
       first_child => _skip_head($dom_root)
      });
+    for my $pi ($ctxt->{'_dom'}->childNodes) {
+      if ($pi->nodeType == PI_NODE) {
+	push @{$ctxt->{'_pi'}}, [$pi->nodeName, $pi->getData ];
+      }
+    }
   } else {
     _die("The root type must be a structure or a sequence: "._element_address($dom_root));
   }
@@ -1300,8 +1306,8 @@ sub save {
   } else {
     binmode $fh,":utf8";
     $ctxt->{'_writer'} = new XML::Writer(OUTPUT => $fh,
-				      DATA_MODE => 1,
-				      DATA_INDENT => 1);
+					 DATA_MODE => 1,
+					 DATA_INDENT => 1);
     $ctxt->write_data();
   }
   return 1;
@@ -1423,6 +1429,11 @@ sub write_data {
 
   $ctxt->write_object($ctxt->{'_root'},$root_type, {no_attribs => 1});
   $xml->endTag($root_name);
+  if ($ctxt->{'_pi'}) {
+    for my $pi (@{$ctxt->{'_pi'}}) {
+      $xml->pi(@$pi);
+    }
+  }
   $xml->end;
 
   # dump DOM trees to save
@@ -2045,6 +2056,18 @@ sub convert_to_fsfile {
   $fsfile->changeMetaData( 'pml_trees_type', $ctxt->{'_pml_trees_type'}  );
   $fsfile->changeMetaData( 'pml_prolog',     $ctxt->{'_pml_prolog'}        );
   $fsfile->changeMetaData( 'pml_epilog',     $ctxt->{'_pml_epilog'}        );
+  
+  if ($ctxt->{'_pi'})  {
+    my @patterns = map { $_->[1] } grep { $_->[0] eq 'tred-pattern' } @{$ctxt->{'_pi'}};
+    my ($hint) = map { $_->[1] } grep { $_->[0] eq 'tred-hint' } @{$ctxt->{'_pi'}} ;
+    for (@patterns, $hint) {
+      s/&lt;/</g;
+      s/&gt;/>/g;
+      s/&amp;/&/g;
+    }
+    $fsfile->changePatterns( @patterns  );
+    $fsfile->changeHint( $hint );
+  }
 
   $fsfile->changeTrees( @{$ctxt->{'_trees'}} ) if $ctxt->{'_trees'};
 
@@ -2110,6 +2133,21 @@ sub convert_from_fsfile {
 #  $ctxt->{'_ref-index'}      = $fsfile->appData('ref-index');
   $ctxt->{'_id-hash'}        = $fsfile->appData('id-hash');
 
+  my $PIs = $ctxt->{'_pi'} = [];
+  for my $pattern ($fsfile->patterns) {
+    $pattern =~ s/&/&amp;/g;
+    $pattern =~ s/</&lt;/g;
+    $pattern =~ s/>/&gt;/g;
+    push @$PIs, ['tred-pattern', $pattern];
+  }
+  my $hint = $fsfile->hint;
+  if (defined $hint and length $hint) {
+    $hint =~ s/&/&amp;/g;
+    $hint =~ s/</&lt;/g;
+    $hint =~ s/>/&gt;/g;
+    push @$PIs, [ 'tred-hint', $hint ];
+  }
+  
   return $ctxt;
 }
 
