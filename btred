@@ -1262,12 +1262,11 @@ sub nextFile {
 
 sub nextFileSkipBad {
   my ($grp)=@_;
-  my $result=0;
+  my $result=-1;
   while ($result < 0) {
     $result = nextFile($grp);
   }
-  return 0 if ($fileNo >= $#files);
-  return $result ? 1 : -1;
+  return $result>0 ? 1 : 0;
 }
 
 sub prevFile {
