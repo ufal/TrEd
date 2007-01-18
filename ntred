@@ -463,7 +463,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   foreach my $srv (@running) {
     next unless $srv->{running};
     my $not_ready = 0;
-    msg "Openning connection to $srv->{fullname}\n";
+    msg "Opening connection to $srv->{fullname}\n";
     my $server;
     do {{
       $server= new IO::Socket::INET (PeerAddr => $srv->{host},
