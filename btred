@@ -835,8 +835,8 @@ sub startMain {
 	    my @f = grep { (!defined($regexp) or $_=~$regexp) and ref($grp->{preloaded}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	    $hub->print(join("\n",@f),"\n") if @f;
 	  } else {
-	    $hub->print(join("\n",grep { !defined($regexp) or $_=~$regexp } 
-			       @files),"\n");
+	    my @f = grep { !defined($regexp) or $_=~$regexp } @files;
+	    $hub->print(join("\n",@f),"\n") if @f;
 	  }
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'LIST_SECONDARY') {
@@ -848,7 +848,8 @@ sub startMain {
 	      my @f = grep { $_=~$regexp and ref($grp->{secondary}->{$_}) } split /\n/,$request{STATE_FILELIST};
 	      $hub->print(join("\n",@f),"\n") if @f;
 	    } else {
-	      $hub->print(join("\n",sort grep { !defined($regexp) or $_=~$regexp } keys %{$grp->{secondary}}),"\n");
+	      my @f = sort grep { !defined($regexp) or $_=~$regexp } keys %{$grp->{secondary}};
+	      $hub->print(join("\n",@f),"\n") if @f;
 	    }
 	  }
 	  _end_response($control,$hub);
