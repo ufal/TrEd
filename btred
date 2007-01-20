@@ -705,11 +705,9 @@ sub startMain {
 		  }
 		}
 	      } else {
-		print("STATUS: $status\n");
 		unless ($status>0) {
 		  $status = nextFileSkipBad($grp,-hook_can_stop => 1) 
 		}
-		print("STATUS2: $status\n");
 		if ($status>0) {
 		  do {{
 		    if (!defined($regexp) or 
