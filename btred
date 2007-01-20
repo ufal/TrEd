@@ -686,7 +686,7 @@ sub startMain {
 	    $hub->print("$@\n") if $@;
 	    if (!$@ and $stop ne 'stop') {
 	      _msg "RUNNING CODE: $request{STATE_CODE}\n";
-	      gotoFile($grp,0);
+	      my $status = gotoFile($grp,0, -hook_can_stop => 1);
 	      my $t0 = new Benchmark;
 	      my $regexp = $request{STATE_REGEXP_FILES};
 	      if (exists $request{STATE_FILELIST}) {
@@ -696,19 +696,30 @@ sub startMain {
 		  my $goto;
 		  $goto=$1 if $file=~s/(##?[0-9A-Z]+(?:\.[0-9]+)?)$//;
 		  if (exists $grp->{preloaded}{$file}) {
-		    openFile($grp,$file.$goto);
+		    $status = openFile($grp,$file.$goto, -hook_can_stop => 1);
 		    last if $@;
-		    doEvalMacro($grp,"package $context;".$request{STATE_CODE});
-		    last if $@;
+		    if ($status) {
+		      doEvalMacro($grp,"package $context;".$request{STATE_CODE});
+		      last if $@;
+		    }
 		  }
 		}
 	      } else {
-		do {
-		  if (!defined($regexp) or 
-		      $grp->{FSFile} and $grp->{FSFile}->filename =~ $regexp) {
-		    doEvalMacro($grp,"package $context;".$request{STATE_CODE});
-		  }
-		} while (!$@ and nextFileSkipBad($grp) and !$@);
+		print("STATUS: $status\n");
+		unless ($status>0) {
+		  $status = nextFileSkipBad($grp,-hook_can_stop => 1) 
+		}
+		print("STATUS2: $status\n");
+		if ($status>0) {
+		  do {{
+		    if (!defined($regexp) or 
+			$grp->{FSFile} and $grp->{FSFile}->filename =~ $regexp) {
+		      doEvalMacro($grp,"package $context;".$request{STATE_CODE});
+		    }
+		  }} while (!$@ and 
+			      nextFileSkipBad($grp, -hook_can_stop => 1) 
+				and !$@);
+		}
 	      }
 	      $hub->print("$@\n") if $@;
 	      _msg($@) if $@; undef $@;
@@ -1199,7 +1210,7 @@ EOL
 
     exit if $preload and doEvalHook($grp,"preload_hook") eq 'stop'; # run start_hook
     if (@files) {
-      my $status = openFile($grp,$files[$fileNo]); # goto first file
+      my $status = openFile($grp,$files[$fileNo],-hook_can_stop => 1); # goto first file
       my $skip_next = ($status == 0) ? 1 : 0;
       do {{
         if ($skip_next) {
@@ -1224,7 +1235,7 @@ EOL
 	    }
 	  }
         }
-        $status = nextFile($grp);
+        $status = nextFile($grp, -hook_can_stop => 1);
         $skip_next = ($status < 0) ? 1 : 0;
       }} while ($status != 0);
     } else {
@@ -1244,37 +1255,37 @@ sub currentFileNo {
 }
 
 sub gotoFile {
-  my ($grp,$fn)=@_;
+  my ($grp,$fn,%opts)=@_;
   return 0 if (doEvalHook($grp,"goto_file_hook") eq 'stop');
   return 0 if ($fn>$#files or $fn<0);
   $fileNo=$fn;
-  my $result = openFile($grp,$files[$fileNo]);
+  my $result = openFile($grp,$files[$fileNo],%opts);
   return $result ? 1 : -1;
 }
 
 
 sub nextFile {
-  my ($grp)=@_;
+  my ($grp,%opts)=@_;
   return 0 if ($fileNo >= $#files);
   $fileNo++;
-  my $result = openFile($grp,$files[$fileNo]);
+  my $result = openFile($grp,$files[$fileNo],%opts);
   return $result ? 1 : -1;
 }
 
 sub nextFileSkipBad {
-  my ($grp)=@_;
+  my ($grp,%opts)=@_;
   my $result=-1;
   while ($result < 0) {
-    $result = nextFile($grp);
+    $result = nextFile($grp,%opts);
   }
   return $result>0 ? 1 : 0;
 }
 
 sub prevFile {
-  my ($grp)=@_;
+  my ($grp,%opts)=@_;
   return 0 unless ($fileNo > 0);
   $fileNo--;
-  my $result = openFile($grp,$files[$fileNo]);
+  my $result = openFile($grp,$files[$fileNo],%opts);
   return $result ? 1 : -1;
 }
 
@@ -1451,7 +1462,13 @@ sub openFile {
   $grp->{treeNo}=0;
   $grp->{currentNode}=undef;
   applyFileSuffix($grp,$goto);
-  doEvalHook($grp,"file_opened_hook") unless ($opts{-justpreloaded});
+  unless ($opts{-justpreloaded}) {
+    my $hook_result = doEvalHook($grp,"file_opened_hook");
+    if ($opts{'-hook_can_stop'} and
+	  $hook_result eq 'stop') {
+      $return = 0;
+    }
+  }
   $grp->{root}=$grp->{FSFile}->treeList->[$grp->{treeNo}];
   unless (!$grp->{FSFile} || defined($grp->{currentNode})) {
     $grp->{currentNode}=$grp->{root};
