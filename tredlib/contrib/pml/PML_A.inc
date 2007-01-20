@@ -101,17 +101,70 @@ sub file_resumed_hook {
   }
 }
 
-
 #endif TRED
 
+=item GetCoordMembers($node,$no_recurse)
+
+If the given node is coordination or apposition (i.e. its C<afun> is C<Coord>
+or C<Apos>) return a list of the corresponding coordination members
+(nodes with C<is_member> flag set). Otherwise return the node itself.
+
+Unless C<$no_recurse> is true, the function is recursively applied to
+those members that are themselves C<Coord> or C<Apos>.
+
+This function differs from L<ExpandCoord> in handling coordination
+members below C<AuxP> and C<AuxC>. While this function returns the
+nodes with the C<is_member> flag (i.e. the nodes below C<AuxP> and
+C<AuxC>), L<ExpandCoord> returns the C<AuxP> and C<AuxC> nodes above
+them.
+
+=cut
+
+sub GetCoordMembers {
+  my ($node,$no_recurse)=@_;
+  return unless $node;
+  if ($node->{afun}=~/Coord|Apos/) {
+    return map { $no_recurse ? $_ : GetCoordMembers($_) }
+           map { GetMember($_) }
+	     $node->children;
+  } else {
+    return ($node);
+  }
+}
+
+=item GetMember($node)
+
+This is a helper function used to identify and reach the actual
+coordination or apposition members (carrying C<is_member> flag) from
+child nodes of a C<Coord> or C<Apos>.
+
+Given a node, return it if its C<is_member> attribute is 1.
+If its C<afun> is C<AuxC> or C<AuxP>, recurse to the child nodes.
+In all other cases return an empty list.
+
+=cut
+
+sub GetMember {
+  my $node = shift;
+  return unless $node;
+  return ($node) if $node->{is_member};
+  if ($node->{afun}=~/^Aux[CP]/) {
+    return map { (GetMember($_)) } $node->children;
+  }
+  return;
+}
 
 =item ExpandCoord($node,$keep?)
 
-If the given node is coordination or aposition (according to its
+If the given node is coordination or apposition (according to its
 Analytical function - attribute C<afun>) expand it to a list of
 coordinated nodes. Otherwise return the node itself. If the argument
-C<keep> is true, include the coordination/aposition node in the list
+C<keep> is true, include the coordination/apposition node in the list
 as well.
+
+This function differs from L<GetCoordMembers> in handling coordination
+members below C<AuxP> and C<AuxC>. Unlike the latter, it returns the
+C<AuxP> and C<AuxC> nodes above the actual coordination members.
 
 =cut
 
@@ -129,7 +182,7 @@ sub ExpandCoord {
 
 =item IsMember($node)
 
-This is a helper function used to identify coordination or aposition
+This is a helper function used to identify coordination or apposition
 members among child nodes of a Coord or Apos. It returns 1 if the
 given node has C<is_member>=1 or if it has C<afun>=C<AuxC> or C<AuxP>
 and a child node for which IsMember (recursively called) returns 1. If
