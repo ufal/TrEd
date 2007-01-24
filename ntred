@@ -458,6 +458,17 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   # ==================================================
   # Operate as a hub
   # ==================================================
+  # --------------------------------------------------------------
+  # -------------- prepare socket for clients  -------------------
+
+  msg "Reserving port $hubname:$hubport...\n";
+  my $test_socket =  new IO::Socket::INET (LocalHost => $hubname,
+					   LocalPort => $hubport,
+					   Proto => 'tcp',
+					   Listen => 0,
+					   Reuse => 1,
+					  );
+  die $! unless $test_socket;
   msg "Opening connections to servers...\n";
  SERVER:
   foreach my $srv (@running) {
@@ -542,7 +553,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   # -------------- prepare socket for clients  -------------------
 
   msg "Preparing client connection...\n";
-
+  close $test_socket;
   my $listening_socket =  new IO::Socket::INET (LocalHost => $hubname,
 						LocalPort => $hubport,
 						Proto => 'tcp',
