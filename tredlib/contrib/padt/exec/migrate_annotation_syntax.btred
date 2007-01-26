@@ -2,9 +2,9 @@
 #
 # migrate_annotation_syntax.btred ####################################################### 2004/09/19
 
-# $Id: migrate_annotation_syntax.btred,v 1.4 2006/12/27 12:44:19 smrz Exp $
+# $Id: migrate_annotation_syntax.btred 168 2007-01-04 01:34:39Z smrz $
 
-our $VERSION = do { my @r = q$Revision: 1.4 $ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { q $Revision: 168 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 
 #include <tred.mac>

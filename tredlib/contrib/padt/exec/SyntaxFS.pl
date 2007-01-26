@@ -1,12 +1,23 @@
 #!/usr/bin/perl -w ###################################################################### 2004/04/15
+
+eval 'exec /usr/bin/perl -w ###################################################################### 2004/04/15 -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
 #
 # SyntaxFS.pl ########################################################################## Otakar Smrz
 
-# $Id: SyntaxFS.pl,v 1.12 2007/01/24 22:01:39 smrz Exp $
+# $Id: SyntaxFS.pl 187 2007-01-26 13:27:14Z smrz $
 
-our $VERSION = do { q $Revision: 1.12 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+our $VERSION = do { q $Revision: 187 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
-use lib 'D:/TrEd/tredlib';
+BEGIN {
+
+    $libDir = `btred --lib`;
+
+    chomp $libDir;
+
+    eval "use lib '$libDir'";
+}
+
 use Fslib 1.6;
 
 
