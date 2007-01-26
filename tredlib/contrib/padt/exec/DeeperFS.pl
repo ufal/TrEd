@@ -1,4 +1,7 @@
 #!/usr/bin/perl -w ###################################################################### 2006/03/21
+
+eval 'exec /usr/bin/perl -w ###################################################################### 2006/03/21 -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
 #
 # DeeperFS.pl ########################################################################## Otakar Smrz
 
@@ -6,7 +9,15 @@
 
 our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
-use lib 'D:/TrEd/tredlib';
+BEGIN {
+
+    $libDir = `btred --lib`;
+
+    chomp $libDir;
+
+    eval "use lib '$libDir'";
+}
+
 use Fslib 1.6;
 
 

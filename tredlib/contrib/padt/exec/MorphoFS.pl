@@ -1,10 +1,24 @@
 #!/usr/bin/perl -w ###################################################################### 2004/03/02
+
+eval 'exec /usr/bin/perl -w ###################################################################### 2004/03/02 -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
 #
 # MorphoFS.pl ########################################################################## Otakar Smrz
 
 # $Id$
 
 our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+
+BEGIN {
+
+    $libDir = `btred --lib`;
+
+    chomp $libDir;
+
+    eval "use lib '$libDir'";
+}
+
+use Fslib 1.6;
 
 use Encode::Arabic;
 
@@ -17,8 +31,6 @@ use AraMorph 2.01;
 use lib 'D:/DevPerl/XMorph';
 use XMorph;
 
-use lib 'D:/TrEd/tredlib';
-use Fslib 1.6;
 
 sub encrypt ($) {
 
