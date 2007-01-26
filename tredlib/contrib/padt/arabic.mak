@@ -6,7 +6,7 @@
 #include "Analytic.mak"
 #include "DeepLevels.mak"
 
-#binding-context TredMacro;
+#binding-context TredMacro
 package TredMacro;
 
 sub file_opened_hook {

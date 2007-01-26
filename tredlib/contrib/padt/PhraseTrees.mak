@@ -112,69 +112,12 @@ sub node_moved_hook {
     request_auto_afun_node($_) foreach @line;
 }
 
-# root style hook
-# here used only to check if the sentence contains a node with afun=Ante
 sub root_style_hook {
 
 }
 
-# node styles to draw extra arrows
 sub node_style_hook {
 
-    my ($node, $styles) = @_;
-
-    if ($node->{'arabspec'} eq 'Ref') {
-
-        my $T = << 'TARGET';
-[!
-    return Analytic::referring_Ref($this);
-!]
-TARGET
-
-        my $coords = << "COORDS";
-n,n,
-(n + x$T) / 2 + (abs(xn - x$T) > abs(yn - y$T) ? 0 : -40),
-(n + y$T) / 2 + (abs(yn - y$T) > abs(xn - x$T) ? 0 :  40),
-x$T,y$T
-COORDS
-
-    AddStyle($styles, 'Line',
-             -coords => 'n,n,p,p&'. # coords for the default edge to parent
-                        $coords,    # coords for our line
-             -arrow => '&last',
-             -dash => '&_',
-             -width => '&1',
-             -fill => '&#C000D0',   # color
-             -smooth => '&1'        # approximate our line with a smooth curve
-            );
-  }
-
-
-  if ($node->{arabspec} eq 'Msd') {
-
-      my $T = << 'TARGET';
-[!
-    return Analytic::referring_Msd($this);
-!]
-TARGET
-
-        my $coords = << "COORDS";
-n,n,
-(n + x$T) / 2 + (abs(xn - x$T) > abs(yn - y$T) ? 0 : -40),
-(n + y$T) / 2 + (abs(yn - y$T) > abs(xn - x$T) ? 0 :  40),
-x$T,y$T
-COORDS
-
-    AddStyle($styles, 'Line',
-             -coords => 'n,n,p,p&'. # coords for the default edge to parent
-                        $coords,    # coords for our line
-             -arrow => '&last',
-             -dash => '&_',
-             -width => '&1',
-             -fill => '&#FFA000',   # color
-             -smooth => '&1'        # approximate our line with a smooth curve
-            );
-  }
 }
 
 # ##################################################################################################
@@ -183,93 +126,12 @@ COORDS
 
 sub referring_Ref {
 
-    my $this = defined $_[0] ? $_[0] : $this;
-
-    my $head = $this->parent();
-
-    until ( (not $head) or (#$head->{afun} =~ /^(?:Atr|Atv)$/ and
-                            ($head->{arabclause} !~ /^no-|^$/ or $head->{tag} =~ /^V/))
-                        or ($head->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/)
-                        or ($head->{afun} =~ /^(?:Coord|Apos)$/ and grep {
-
-                            $_->{parallel} =~ /^(?:Co|Ap)$/
-
-                            and (  (#$_->{afun} =~ /^(?:Atr|Atv)$/ and
-                                    ($_->{arabclause} !~ /^no-|^$/ or $_->{tag} =~ /^V/))
-                                or ($_->{afun} =~ /^(?:Pred[CEP]?|Pnom)$/) )
-
-                            } $head->children()) ) {
-
-        $head = $head->parent();
-        last if not defined $attr and $head->{afun} eq 'Atr';   # attributive pseudo-clause .. approximation only
-    }
-
-    if ($head) {
-
-        if ($head->{afun} eq 'Pnom') {                          # needs attention since {Pred} <- [Pnom] = [Pnom]
-
-            my $pnom = $head;
-
-            if ($pnom->{parallel} =~ /^(?:Co|Ap)$/) {
-
-                do {
-
-                    $pnom = $pnom->parent();
-                }
-                while $pnom and $pnom->{parallel} =~ /^(?:Co|Ap)$/ and $pnom->{afun} =~ /^(?:Coord|Apos)$/;
-
-                $pnom = $head unless $pnom and $pnom->{afun} =~ /^(?:Coord|Apos)$/;
-            }
-
-            $head = $pnom->parent() if $pnom->parent() and ( $pnom->parent()->{arabclause} =~ /^Pred[CEP]?$/
-                                       or $_->{tag} =~ /^V/ or $pnom->parent()->{afun} =~ /^Pred[CEP]?$/ );
-        }
-
-        my $ante = $head;
-
-        $ante = $ante->following($head) while $ante and $ante->{afun} ne 'Ante';
-
-        unless ($ante) {
-
-            $head = $head->parent() while $head->{parallel} =~ /^(?:Co|Ap)$/;
-
-            $ante = $head;
-
-            $ante = $ante->following($head) while $ante and $ante->{afun} ne 'Ante';
-        }
-
-        $ante = $ante->parent() while $ante and $ante->{parallel} =~ /^(?:Co|Ap)$/;
-
-        if ($ante) {
-
-            $this = $this->parent() while $this and $this != $ante;
-
-            return $ante if $this != $ante;
-        }
-
-        $head = $head->parent() while $head->{parallel} =~ /^(?:Co|Ap)$/;
-
-        $head = $head->parent();
-
-        return $head;
-    }
-    else {
-
-        return undef;
-    }
+    return undef;
 }
 
 sub referring_Msd {
 
-    my $this = defined $_[0] ? $_[0] : $this;
-
-    my $head = $this->parent();                                     # the token itself might feature the critical tags
-
-    $head = $head->parent() if $this->{afun} eq 'Atr';                      # constructs like <_hAfa 'a^sadda _hawfiN>
-
-    $head = $head->parent() until not $head or $head->{tag} =~ /^[VNA]/;    # the verb, governing masdar or participle
-
-    return $head;
+    return undef;
 }
 
 # ##################################################################################################
@@ -278,17 +140,16 @@ sub referring_Msd {
 
 sub enable_attr_hook {
 
-    return 'stop' unless $_[0] =~ /^(?:afun|parallel|paren|arabclause|arabfa|arabspec|comment|commentA|err1|err2)$/;
+    return 'stop' unless $_[0] =~ /^(?:afun|parallel|paren|arabclause|arabfa|arabspec|comment|err1|err2)$/;
 }
 
-#bind edit_commentA to exclam menu Edit the 'other' Field
-sub edit_commentA {
+#bind edit_comment to exclam menu Edit the 'other' Field
+sub edit_comment {
 
     $Redraw = 'none';
     ChangingFile(0);
 
-    my $comment = $grp->{FSFile}->FS->exists('other') ? 'other' :
-                  $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
+    my $comment = $grp->{FSFile}->FS->exists('other') ? 'other' : undef;
 
     unless (defined $comment) {
 
@@ -577,6 +438,26 @@ sub move_to_fork {
     }
 
     $this = $node unless $node == $this;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind ThisAddressClipBoard Ctrl+Return menu ThisAddress() to Clipboard
+sub ThisAddressClipBoard {
+
+    my $reply = main::userQuery($grp,
+                        "\nCopy this node's address to clipboard?\t",
+                        -bitmap=> 'question',
+                        -title => "Clipboard",
+                        -buttons => ['Yes', 'No']);
+
+    return unless $reply eq 'Yes';
+
+    my $widget = ToplevelFrame();
+
+    $widget->clipboardClear();
+    $widget->clipboardAppend(ThisAddress());
 
     $Redraw = 'none';
     ChangingFile(0);

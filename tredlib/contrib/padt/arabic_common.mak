@@ -1,5 +1,7 @@
 # -*- cperl -*-
 
+#include "arabic_keymod.mak"
+
 use lib "$main::libDir/contrib/padt";
 use lib "$main::libDir/contrib/padt/PADT";
 
