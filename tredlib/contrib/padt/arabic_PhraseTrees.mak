@@ -2,7 +2,7 @@
 
 #include <tred.mac>
 
-#binding-context TredMacro;
+#binding-context TredMacro
 
 package TredMacro;
 
