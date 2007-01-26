@@ -2,12 +2,12 @@
 #
 # SyntaxFS.pl ########################################################################## Otakar Smrz
 
-# $Id: SyntaxFS.pl,v 1.11 2006/07/14 10:37:23 smrz Exp $
+# $Id: SyntaxFS.pl,v 1.12 2007/01/24 22:01:39 smrz Exp $
 
-our $VERSION = do { my @r = q$Revision: 1.11 $ =~ /\d+/g; sprintf "%d." . "%02d" x $#r, @r };
+our $VERSION = do { q $Revision: 1.12 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 use lib 'D:/TrEd/tredlib';
-use Fslib 1.5;
+use Fslib 1.6;
 
 
 $decode = "utf8";
@@ -24,8 +24,8 @@ foreach $file (@ARGV) {
                     '@P form',
                     '@P afun',
                     '@O afun',
-                    '@L afun|---|Pred|PredC|PredE|PredP|Pnom|Sb|Obj|Atr|Adv|AtrAdv|AdvAtr|Coord|Ref|AtrObj|ObjAtr|AtrAtr' .
-                           '|AuxP|Apos|ExD|Atv|Ante|AuxC|AuxO|AuxE|AuxY|AuxM|AuxG|AuxK|AuxX|AuxS|Generated|NA|???',
+                    '@L afun|Pred|Pnom|PredE|PredC|PredP|Sb|Obj|Adv|Atr|Atv|ExD|Coord|Apos|Ante|AuxS' .
+                           '|AuxC|AuxP|AuxE|AuxM|AuxY|AuxG|AuxK|ObjAtr|AtrObj|AdvAtr|AtrAdv|AtrAtr|???',
                     '@P lemma',
                     '@P tag',
                     '@P origf',
@@ -71,8 +71,6 @@ foreach $file (@ARGV) {
                         'gloss: ${x_gloss}',
                         'comment: ${x_comment}',
 
-                        #'comment:  ' . q {<? '${comment}' if $this->{comment} ?>},
-
                                 ),
                 'patterns'  => [
 
@@ -80,8 +78,7 @@ foreach $file (@ARGV) {
 
                         'style:' . q {<?
 
-                                $this->{arabclause} =~ /^./ && $this->{arabclause} !~ /^no-/ ||
-                                $this->{tag} =~ /^V/ || $this->{afun} =~ /^P/ ? '#{Line-fill:gold}' : ()
+                                Analytic::isClauseHead() ? '#{Line-fill:gold}' : ''
 
                             ?>},
 
@@ -96,9 +93,9 @@ foreach $file (@ARGV) {
 
                             ?>},
 
-                        '#{custom2}${tag}',
+                        q {<? '#{custom6}${x_comment} << ' if $this->{afun} ne 'AuxS' and $this->{x_comment} ne '' ?>}
 
-                        #'#{custom2}' . q {<? $this->{afun} eq 'AuxS' ? '${form}' : '${tag}' ?>},
+                            . '#{custom2}${tag}',
 
                                 ],
                 'trees'     => [],

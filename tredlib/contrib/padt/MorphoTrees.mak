@@ -8,6 +8,8 @@ package MorphoTrees;
 
 use 5.008;
 
+use strict;
+
 our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 # ##################################################################################################
@@ -18,7 +20,13 @@ our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 import TredMacro;
 
-our ($paragraph_hide_mode, $entity_hide_mode, $level_guide_mode);
+our ($this, $root, $grp);
+
+our ($Redraw, $libDir);
+
+our ($paragraph_hide_mode, $entity_hide_mode, $level_guide_mode) = ('', '', 0);
+
+our ($dims, $fill) = (10, ' ' x 4);
 
 # ##################################################################################################
 #
@@ -37,6 +45,8 @@ sub get_nodelist_hook {
     my $tree = $fsfile->tree($index);
 
     if ($tree->{'type'} eq 'paragraph') {
+
+        $tree->{'hide'} = '' unless defined $tree->{'hide'};
 
         if ($tree->{'hide'} ne $paragraph_hide_mode) {
 
@@ -60,6 +70,8 @@ sub get_nodelist_hook {
         }
     }
     else {
+
+        $tree->{'hide'} = '' unless defined $tree->{'hide'};
 
         if ($tree->{'hide'} ne $entity_hide_mode) {
 
@@ -336,7 +348,7 @@ sub move_next_home {
     my $node = $this;
     my $level = $node->level();
 
-    my $done;
+    my ($done, @children);
 
     do {
 
@@ -365,7 +377,7 @@ sub move_next_end {
     my $node = $this;
     my $level = $node->level();
 
-    my $done;
+    my ($done, @children);
 
     do {
 
@@ -639,7 +651,7 @@ sub edit_comment {
 
         ToplevelFrame()->messageBox (
             -icon => 'warning',
-            -message => "There is no 'comment' attribute in this file's format!\t",
+            -message => "There is no 'comment' attribute in this file's format!$fill",
             -title => 'Error',
             -type => 'OK',
         );
@@ -653,7 +665,7 @@ sub edit_comment {
 
         ToplevelFrame()->messageBox (
             -icon => 'warning',
-            -message => "This node must be annotated in order to receive comments!\t",
+            -message => "This node must be annotated in order to receive comments!$fill",
             -title => 'Error',
             -type => 'OK',
         );
@@ -807,7 +819,7 @@ sub annotate_morphology {
             }
         }
     }
-    elsif (defined $level_guide_mode and $level_guide_mode > 0) {
+    elsif ($level_guide_mode > 0) {
 
         if ($level_guide_mode > 1) {
 
@@ -947,7 +959,7 @@ sub get_the_node {
 
 sub restrict {
 
-    my @restrict = split //, length $_[0] == $dim ? $_[0] : '-' x $dim;
+    my @restrict = split //, length $_[0] == $dims ? $_[0] : '-' x $dims;
     my @inherit = split //, $_[1];
 
     return join '', map { $restrict[$_] eq '-' && defined $inherit[$_] ? $inherit[$_] : $restrict[$_] } 0 .. $#restrict;
@@ -987,7 +999,7 @@ sub restrict_hide {
                 $node->{'restrict'} = '';
 
                 $node->{'inherit'} = restrict($node->parent()->{'restrict'}, $node->parent()->{'inherit'});     # might have been Shift+Escaped
-                $node->{'inherit'} = '' if $node->{'inherit'} eq '-' x $dim;
+                $node->{'inherit'} = '' if $node->{'inherit'} eq '-' x $dims;
             }
         }
     }
@@ -1004,7 +1016,7 @@ sub restrict_hide {
         else {
 
             $node->{'inherit'} = restrict($node->parent()->{'restrict'}, $node->parent()->{'inherit'});
-            $node->{'inherit'} = '' if $node->{'inherit'} eq '-' x $dim;
+            $node->{'inherit'} = '' if $node->{'inherit'} eq '-' x $dims;
         }
 
         if ($node->{'type'} eq 'token_node') {
@@ -1083,16 +1095,13 @@ sub remove_induced_restrict {
 #bind remove_inherited_restrict Shift+Escape menu Remove Inherited Restrict
 sub remove_inherited_restrict {
 
-    restrict_hide('-' x $dim, 'remove inherited');
+    restrict_hide('-' x $dims, 'remove inherited');
 }
 
 
 # ##################################################################################################
 #
 # ##################################################################################################
-
-our $dim = 10;      # dimension of Arabic morphology ^^
-
 
 #bind restrict_case_nom 1 menu Restrict Case Nominative
 sub restrict_case_nom {
@@ -1249,6 +1258,72 @@ sub restrict_feminine {
 #
 # ##################################################################################################
 
+use File::Spec;
+use File::Copy;
+
+sub path (@) {
+
+    return File::Spec->join(@_);
+}
+
+sub escape ($) {
+
+    return $^O eq 'MSWin32' ? '"' . $_[0] . '"' : "'" . $_[0] . "'";
+}
+
+sub espace ($) {
+
+    my $name = $_[0];
+
+    $name =~ s/\\/\//g if $^O eq 'MSWin32' and $name =~ / /;
+
+    return escape $name;
+}
+
+sub expace ($) {
+
+    return '"' . "'" . $_[0] . "'" . '"'  if $^O eq 'MSWin32' and $_[0] =~ / /;
+
+    return escape $_[0];
+}
+
+sub inter_with_level ($) {
+
+    require File::Basename;
+
+    my $level = $_[0];
+
+    my (@file, $path, $name);
+
+    my $thisfile = File::Spec->canonpath(FileName());
+
+    ($name, $path, undef) = File::Basename::fileparse($thisfile, '.morpho.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = path $path . 'morpho', $name . '.morpho.fs';
+    $file[1] = path $path . "$level", $name . ".$level.fs";
+
+    $file[2] = $level eq 'corpus' ? ( path $path . "$level", $name . '.morpho.fs')
+                                  : ( path $path . 'morpho', $name . ".$level.fs");
+
+    $file[3] = path $path . 'morpho', $name . '.morpho.fs.anno.fs';
+
+    unless ($file[0] eq $thisfile) {
+
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "This file's name does not fit the directory structure!$fill\n" .
+                        "Relocate it to " . ( path '..', 'morpho', $name . '.morpho.fs' ) . ".$fill",
+            -title => 'Error',
+            -type => 'OK',
+        );
+
+        return;
+    }
+
+    return $level, $name, $path, @file;
+}
+
 #bind open_level_first to Ctrl+Alt+1 menu Action: Edit MorphoTrees File
 sub open_level_first {
 
@@ -1258,17 +1333,88 @@ sub open_level_first {
 #bind open_level_second to Ctrl+Alt+2 menu Action: Edit Analytic File
 sub open_level_second {
 
-    require File::Basename;
+    ChangingFile(0);
 
-    my (@file, $path, $name, $tree, $node, @child, $hits);
+    my ($level, $name, $path, @file) = inter_with_level 'syntax';
 
-    $file[0] = FileName();
+    return unless defined $level;
 
-    ($name, $path, undef) = File::Basename::fileparse($file[0], '.morpho.fs');
-    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+    unless (-f $file[1]) {
 
-    $file[0] = $path . 'morpho/' . $name . '.morpho.fs';
-    $file[1] = $path . 'syntax/' . $name . '.syntax.fs';
+        my $reply = main::userQuery($grp,
+                        "\nThere is no " . ( path '..', "$level", $name . ".$level.fs" ) . " file.$fill" .
+                        "\nReally create a new one?$fill",
+                        -bitmap=> 'question',
+                        -title => "Creating",
+                        -buttons => ['Yes', 'No']);
+
+        return unless $reply eq 'Yes';
+
+        if (-f $file[2]) {
+
+            ToplevelFrame()->messageBox (
+                -icon => 'warning',
+                -message => "Cannot create " . ( path '..', "$level", $name . ".$level.fs" ) . "!$fill\n" .
+                            "Please remove " . ( path '..', 'morpho', $name . ".$level.fs" ) . ".$fill",
+                -title => 'Error',
+                -type => 'OK',
+            );
+
+            return;
+        }
+
+        if (GetFileSaveStatus()) {
+
+            ToplevelFrame()->messageBox (
+                -icon => 'warning',
+                -message => "The current file has been modified. Either save it, or reload it discarding the changes.$fill",
+                -title => 'Error',
+                -type => 'OK',
+            );
+
+            return;
+        }
+
+        system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/SyntaxFS.pl' ) .
+                      ' ' . ( expace $file[0] );
+
+        mkdir path $path, "$level" unless -d path $path, "$level";
+
+        move $file[2], $file[1];
+    }
+
+    switch_the_levels($file[1]);
+}
+
+#bind open_level_third to Ctrl+Alt+3 menu Action: Edit DeepLevels File
+sub open_level_third {
+
+    ChangingFile(0);
+
+    my ($level, $name, $path, @file) = inter_with_level 'deeper';
+
+    return unless defined $level;
+
+    unless (-f $file[1]) {
+
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "There is no " . ( path '..', "$level", $name . ".$level.fs" ) . " file!$fill",
+            -title => 'Error',
+            -type => 'OK',
+        );
+
+        return;
+    }
+
+    switch_the_levels($file[1]);
+}
+
+sub switch_the_levels {
+
+    my $file = $_[0];
+
+    my ($tree, $node, @child, $hits);
 
     switch_either_context() unless $root->{'type'} eq 'paragraph';
 
@@ -1297,66 +1443,32 @@ sub open_level_second {
         }
     }
 
-    SwitchContext('Analytic');
+    if (Open($file)) {
 
-    my $success = Open($file[1]);
+        GotoTree($tree);
 
-    ChangingFile(0);
+        unless ($node == 0) {
 
-    unless ($success) {
+            do {
+
+                $this = $this->following();
+
+                ($hits) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
+            }
+            until $hits == $node;
+        }
+    }
+    else {
 
         SwitchContext('MorphoTrees');
-
-        return;
     }
-
-    GotoTree($tree);
-
-    unless ($node == 0) {
-
-        do {
-
-            $this = $this->following();
-
-            ($hits) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
-        }
-        until $hits == $node;
-    }
-}
-
-#bind open_level_third to Ctrl+Alt+3 menu Action: Edit DeepLevels File
-sub open_level_third {
-
-    require File::Basename;
-
-    my (@file, $path, $name, $tree, $node);
-
-    $file[0] = FileName();
-
-    ($name, $path, undef) = File::Basename::fileparse($file[0], '.morpho.fs');
-    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
-
-    $file[0] = $path . 'morpho/' . $name . '.morpho.fs';
-    $file[1] = $path . 'deeper/' . $name . '.deeper.fs';
-
-    ($tree) = $root->{'x_id_ord'} =~ /^\#[0-9]+\_([0-9]+)$/;
-    ($node) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
-
-    SwitchContext('DeepLevels');
-
-    Open($file[1]);
-    GotoTree($tree);
-
-    $this = ($this->children())[$node - 1];
-
-    ChangingFile(0);
 }
 
 #bind ThisAddressClipBoard Ctrl+Return menu ThisAddress() to Clipboard
 sub ThisAddressClipBoard {
 
     my $reply = main::userQuery($grp,
-                        "\nCopy this node's address to clipboard?\t",
+                        "\nCopy this node's address to clipboard?$fill",
                         -bitmap=> 'question',
                         -title => "Clipboard",
                         -buttons => ['Yes', 'No']);
@@ -1376,6 +1488,8 @@ sub ThisAddressClipBoard {
 #
 # ##################################################################################################
 
+no strict;
+
 1;
 
 
@@ -1391,16 +1505,17 @@ MorphoTrees - Context for Annotation of Morphology in the TrEd Environment
 
 =head1 DESCRIPTION
 
-General description is given in L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/papers/2004-nemlar-tred.pdf> and
-L<http://ufal.mff.cuni.cz/~smrz/CSLI2006/csli-prague.pdf>.
+MorphoTrees were first introduced in L<http://ufal.mff.cuni.cz/padt/docs/2004-nemlar-tred.pdf>.
+They have re-appeared in various papers and talks, esp. in the video-recorded lecture on the Prague
+Arabic Dependency Treebank, L<http://ufal.mff.cuni.cz/padt/online/2007/01/prague-treebanking-for-everyone-video.html>.
 
-Examples of MorphoTrees include L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_fhm.gif>,
-L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AfrAd.gif>, or
-L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_AmA.gif>.
+Examples of MorphoTrees include L<http://ufal.mff.cuni.cz/padt/docs/morpho_fhm.gif>,
+L<http://ufal.mff.cuni.cz/padt/docs/morpho_AfrAd.gif>, or
+L<http://ufal.mff.cuni.cz/padt/docs/morpho_AmA.gif>.
 
-Paragraph annotation trees look like L<http://ufal.mff.cuni.cz/padt/PADT_1.0/docs/morpho_view.gif>.
+Paragraph annotation trees look like L<http://ufal.mff.cuni.cz/padt/docs/morpho_view.gif>.
 
-For reference, see the list of MorphoTrees macros and key-bindings in the User-defined menu item in TrEd.
+For further reference, see the list of MorphoTrees macros and key-bindings in the User-defined menu item in TrEd.
 
 
 =head1 SEE ALSO

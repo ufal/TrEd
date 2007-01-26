@@ -8,6 +8,8 @@ package Analytic;
 
 use 5.008;
 
+use strict;
+
 our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 # ##################################################################################################
@@ -18,7 +20,11 @@ our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 import TredMacro;
 
-our ($hooks_request_mode);
+our ($this, $root, $grp);
+
+our ($Redraw, $libDir);
+
+our ($hooks_request_mode, $fill) = (0, ' ' x 4);
 
 # ##################################################################################################
 #
@@ -29,7 +35,8 @@ sub AfunAssign {
     my $fullafun = $_[0];
     my ($afun, $parallel, $paren) = ($fullafun =~ /^([^_]*)(?:_(Ap|Co|no-parallel))?(?:_(Pa|no-paren))?/);
 
-    if ($this->{'afun'} eq 'AuxS') {
+    if ($this->{'afun'} eq 'AuxS' or
+        $this->{'afun'} eq $afun and $this->{'parallel'} eq $parallel and $this->{'paren'} eq $paren) {
 
         $Redraw = 'none';
         ChangingFile(0);
@@ -50,6 +57,24 @@ sub AfunAssign {
     }
 }
 
+#bind afun_ExD to x menu Arabic: Assign afun ExD
+sub afun_ExD { AfunAssign('ExD') }
+#bind afun_ExD_Co to Ctrl+x
+sub afun_ExD_Co { AfunAssign('ExD_Co') }
+#bind afun_ExD_Ap to X
+sub afun_ExD_Ap { AfunAssign('ExD_Ap') }
+#bind afun_ExD_Pa to Ctrl+X
+sub afun_ExD_Pa { AfunAssign('ExD_Pa') }
+
+#bind afun_AuxE to e menu Arabic: Assign afun AuxE
+sub afun_AuxE { AfunAssign('AuxE') }
+#bind afun_AuxE_Co to Ctrl+e
+sub afun_AuxE_Co { AfunAssign('AuxE_Co') }
+#bind afun_AuxE_Ap to E
+sub afun_AuxE_Ap { AfunAssign('AuxE_Ap') }
+#bind afun_AuxE_Pa to Ctrl+E
+sub afun_AuxE_Pa { AfunAssign('AuxE_Pa') }
+
 #bind afun_AuxM to m menu Arabic: Assign afun AuxM
 sub afun_AuxM { AfunAssign('AuxM') }
 #bind afun_AuxM_Co to Ctrl+m
@@ -58,24 +83,6 @@ sub afun_AuxM_Co { AfunAssign('AuxM_Co') }
 sub afun_AuxM_Ap { AfunAssign('AuxM_Ap') }
 #bind afun_AuxM_Pa to Ctrl+M
 sub afun_AuxM_Pa { AfunAssign('AuxM_Pa') }
-
-#bind afun_AuxE to f menu Arabic: Assign afun AuxE
-sub afun_AuxE { AfunAssign('AuxE') }
-#bind afun_AuxE_Co to Ctrl+f
-sub afun_AuxE_Co { AfunAssign('AuxE_Co') }
-#bind afun_AuxE_Ap to F
-sub afun_AuxE_Ap { AfunAssign('AuxE_Ap') }
-#bind afun_AuxE_Pa to Ctrl+F
-sub afun_AuxE_Pa { AfunAssign('AuxE_Pa') }
-
-#bind afun_Ref to r menu Arabic: Assign afun Ref
-sub afun_Ref { AfunAssign('Ref') }
-#bind afun_Ref_Co to Ctrl+r
-sub afun_Ref_Co { AfunAssign('Ref_Co') }
-#bind afun_Ref_Ap to R
-sub afun_Ref_Ap { AfunAssign('Ref_Ap') }
-#bind afun_Ref_Pa to Ctrl+R
-sub afun_Ref_Pa { AfunAssign('Ref_Pa') }
 
 #bind afun_Ante to t menu Arabic: Assign afun Ante
 sub afun_Ante { AfunAssign('Ante') }
@@ -88,31 +95,31 @@ sub afun_Ante_Pa { AfunAssign('Ante_Pa') }
 
 #bind assign_parallel to key 1 menu Arabic: Suffix Parallel
 sub assign_parallel {
-  $this->{parallel}||='no-parallel';
+  $this->{parallel}||='';
   EditAttribute($this,'parallel');
 }
 
 #bind assign_paren to key 2 menu Arabic: Suffix Paren
 sub assign_paren {
-  $this->{paren}||='no-paren';
+  $this->{paren}||='';
   EditAttribute($this,'paren');
 }
 
 #bind assign_arabfa to key 3 menu Arabic: Suffix ArabFa
 sub assign_arabfa {
-  $this->{arabfa}||='no-fa';
+  $this->{arabfa}||='';
   EditAttribute($this,'arabfa');
 }
 
 #bind assign_arabspec to key 4 menu Arabic: Suffix ArabSpec
 sub assign_arabspec {
-  $this->{arabspec}||='no-spec';
+  $this->{arabspec}||='';
   EditAttribute($this,'arabspec');
 }
 
 #bind assign_arabclause to key 5 menu Arabic: Suffix ArabClause
 sub assign_arabclause {
-  $this->{arabclause}||='no-clause';
+  $this->{arabclause}||='';
   EditAttribute($this,'arabclause');
 }
 
@@ -122,92 +129,181 @@ sub assign_arabclause {
 
 #bind thisToParent to Alt+Up menu Annotate: Current node up one level to grandparent
 sub thisToParent {
-  return unless $this->parent() and $this->parent()->parent();
-  my $act = $this;
-  my $p = $act->parent()->parent();
-  CutPaste($act, $p);
-  $this = $act;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this->parent() and $this->parent()->parent();
+
+    my $act = $this;
+    my $p = $act->parent()->parent();
+
+    CutPaste($act, $p);
+    $this = $act;
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToRBrother to Alt+Left menu Annotate: Current node to brother on the left
 sub thisToRBrother {
-  return unless $this->rbrother();
-  my $act = $this;
-  my $p = $this->rbrother();
-  CutPaste($act, $p);
-  $this = $act;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this->rbrother();
+
+    my $act = $this;
+    my $p = $this->rbrother();
+
+    CutPaste($act, $p);
+    $this = $act;
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToLBrother to Alt+Right menu Annotate: Current node to brother on the right
 sub thisToLBrother {
-  return unless $this->lbrother();
-  my $act = $this;
-  my $p = $this->lbrother();
-  CutPaste($act, $p);
-  $this = $act;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this->lbrother();
+
+    my $act = $this;
+    my $p = $this->lbrother();
+
+    CutPaste($act, $p);
+    $this = $act;
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToParentRBrother to Alt+Shift+Left menu Annotate: Current node to uncle on the left
 sub thisToParentRBrother {
-  return unless $this->parent() and $this->parent()->rbrother();
-  my $act = $this;
-  my $p = $this->parent()->rbrother();
-  CutPaste($act, $p);
-  $this = $act;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this->parent() and $this->parent()->rbrother();
+
+    my $act = $this;
+    my $p = $this->parent()->rbrother();
+
+    CutPaste($act, $p);
+    $this = $act;
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToParentLBrother to Alt+Shift+Right menu Annotate: Current node to uncle on the right
 sub thisToParentLBrother {
-  return unless $this->parent() and $this->parent()->lbrother();
-  my $act = $this;
-  my $p = $this->parent()->lbrother();
-  CutPaste($act, $p);
-  $this = $act;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this->parent() and $this->parent()->lbrother();
+
+    my $act = $this;
+    my $p = $this->parent()->lbrother();
+
+    CutPaste($act, $p);
+    $this = $act;
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToEitherBrother to Alt+Down menu Annotate: Current node to either side brother if unique
 sub thisToEitherBrother {
-  my $lb = $this->lbrother();
-  my $rb = $this->rbrother();
-  return unless $lb xor $rb;
-  my $act = $this;
-  my $p = $lb || $rb;
-  CutPaste($act, $p);
-  $this = $act;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    my $lb = $this->lbrother();
+    my $rb = $this->rbrother();
+
+    return unless $lb xor $rb;
+
+    my $act = $this;
+    my $p = $lb || $rb;
+
+    CutPaste($act, $p);
+    $this = $act;
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
-#bind SwapNodesUp to Ctrl+Alt+Shift+Up menu Annotate: Current node exchanged with parent
+#bind SwapNodesUp to Ctrl+Shift+Up menu Annotate: Current node exchanged with parent
 sub SwapNodesUp {
-  return unless $this;
-  my $parent = $this->parent();
-  return unless $parent;
-  my $grandParent = $parent->parent();
-  return unless $grandParent;
-  CutPaste($this, $grandParent);
-  CutPaste($parent, $this);
-  $this = $parent;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this;
+
+    my $parent = $this->parent();
+
+    return unless $parent;
+
+    my $grandParent = $parent->parent();
+
+    return unless $grandParent;
+
+    CutPaste($this, $grandParent);
+    CutPaste($parent, $this);
+    $this = $parent;
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
-#bind SwapNodesDown to Ctrl+Alt+Shift+Down menu Annotate: Current node exchanged with son if unique
+#bind SwapNodesDown to Ctrl+Shift+Down menu Annotate: Current node exchanged with son if unique
 sub SwapNodesDown {
-  return unless $this;
-  my @childs = $this->children();
-  my $parent = $this->parent();
-  return unless @childs == 1 and $parent;
-  CutPaste($childs[0], $parent);
-  CutPaste($this, $childs[0]);
-  $this = $childs[0];
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this;
+
+    my @childs = $this->children();
+    my $parent = $this->parent();
+
+    return unless @childs == 1 and $parent;
+
+    CutPaste($childs[0], $parent);
+    CutPaste($this, $childs[0]);
+    $this = $childs[0];
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToRoot to Alt+Shift+Up menu Annotate: Current node to the root
 sub thisToRoot {
-  return unless $this and $this->parent();
-  return unless $root;
-  CutPaste($this, $root);
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this and $this->parent();
+
+    return unless $root;
+
+    CutPaste($this, $root);
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToPrevClauseHead to Ctrl+Alt+Right menu Annotate: Current node to preceeding clause head
 sub thisToPrevClauseHead {
+
+    $Redraw = 'none';
+    ChangingFile(0);
 
     return unless $this and $this->parent();
 
@@ -218,10 +314,16 @@ sub thisToPrevClauseHead {
     return unless $node;
 
     CutPaste($this, $node);
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToNextClauseHead to Ctrl+Alt+Left menu Annotate: Current node to following clause head
 sub thisToNextClauseHead {
+
+    $Redraw = 'none';
+    ChangingFile(0);
 
     return unless $this and $this->parent();
 
@@ -243,10 +345,16 @@ sub thisToNextClauseHead {
 
         CutPaste($this, $node);
     }
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToSuperClauseHead to Ctrl+Alt+Up menu Annotate: Current node to superior clause head
 sub thisToSuperClauseHead {
+
+    $Redraw = 'none';
+    ChangingFile(0);
 
     return unless $this and $this->parent();
 
@@ -257,10 +365,16 @@ sub thisToSuperClauseHead {
     return unless $node;
 
     CutPaste($this, $node);
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 #bind thisToInferClauseHead to Ctrl+Alt+Down menu Annotate: Current node to inferior clause head
 sub thisToInferClauseHead {
+
+    $Redraw = 'none';
+    ChangingFile(0);
 
     return unless $this and $this->parent();
 
@@ -272,6 +386,9 @@ sub thisToInferClauseHead {
 
     CutPaste($node, $this->parent());
     CutPaste($this, $node);
+
+    $Redraw = 'tree';
+    ChangingFile(1);
 }
 
 # ##################################################################################################
@@ -284,7 +401,7 @@ sub get_auto_afun {
 
     my ($ra, $rb, $rc) = Assign_arab_afun::afun($_[0]);
 
-    print STDERR "$node->{lemma} ($ra,$rb,$rc)\n";
+    print STDERR "$this->{lemma} ($ra,$rb,$rc)\n";
 
     return $ra =~ /^\s*$/ ? '' : $ra;
 }
@@ -406,13 +523,10 @@ sub padt_auto_parse_tree {
   Arab_parser::parse_sentence($grp,$root);
 }
 
-# root style hook
-# here used only to check if the sentence contains a node with afun=Ante
 sub root_style_hook {
 
 }
 
-# node styles to draw extra arrows
 sub node_style_hook {
 
     my ($node, $styles) = @_;
@@ -425,50 +539,50 @@ sub node_style_hook {
 !]
 TARGET
 
-        my $coords = << "COORDS";
+        my $C = << "COORDS";
 n,n,
 (n + x$T) / 2 + (abs(xn - x$T) > abs(yn - y$T) ? 0 : -40),
 (n + y$T) / 2 + (abs(yn - y$T) > abs(xn - x$T) ? 0 :  40),
 x$T,y$T
 COORDS
 
-    AddStyle($styles, 'Line',
+    AddStyle($styles,   'Line',
              -coords => 'n,n,p,p&'. # coords for the default edge to parent
-                        $coords,    # coords for our line
-             -arrow => '&last',
-             -dash => '&_',
-             -width => '&1',
-             -fill => '&#C000D0',   # color
+                        $C,         # coords for our line
+             -arrow =>  '&last',
+             -dash =>   '&_',
+             -width =>  '&1',
+             -fill =>   '&#C000D0', # color
              -smooth => '&1'        # approximate our line with a smooth curve
             );
-  }
+    }
 
 
-  if ($node->{arabspec} eq 'Msd') {
+    if ($node->{arabspec} eq 'Msd') {
 
-      my $T = << 'TARGET';
+        my $T = << 'TARGET';
 [!
     return Analytic::referring_Msd($this);
 !]
 TARGET
 
-        my $coords = << "COORDS";
+        my $C = << "COORDS";
 n,n,
 (n + x$T) / 2 + (abs(xn - x$T) > abs(yn - y$T) ? 0 : -40),
 (n + y$T) / 2 + (abs(yn - y$T) > abs(xn - x$T) ? 0 :  40),
 x$T,y$T
 COORDS
 
-    AddStyle($styles, 'Line',
+    AddStyle($styles,   'Line',
              -coords => 'n,n,p,p&'. # coords for the default edge to parent
-                        $coords,    # coords for our line
-             -arrow => '&last',
-             -dash => '&_',
-             -width => '&1',
-             -fill => '&#FFA000',   # color
+                        $C,         # coords for our line
+             -arrow =>  '&last',
+             -dash =>   '&_',
+             -width =>  '&1',
+             -fill =>   '&#FFA000', # color
              -smooth => '&1'        # approximate our line with a smooth curve
             );
-  }
+    }
 }
 
 # ##################################################################################################
@@ -540,7 +654,7 @@ sub theClauseHead ($;&) {
             }
         }
 
-        last if isPredicate($head);
+        last if isPredicate($head) or $effect eq 'Pred';
 
         if ($return = $code->($head)) {
 
@@ -580,7 +694,7 @@ sub referring_Ref {
 
         my $ante = $head;
 
-        $ante = $ante->following($head) while $ante and $ante->{afun} ne 'Ante';
+        $ante = $ante->following($head) while $ante and $ante->{afun} ne 'Ante' and $ante != $this;
 
         unless ($ante) {
 
@@ -588,7 +702,7 @@ sub referring_Ref {
 
             $ante = $head;
 
-            $ante = $ante->following($head) while $ante and $ante->{afun} ne 'Ante';
+            $ante = $ante->following($head) while $ante and $ante->{afun} ne 'Ante' and $ante != $this;
         }
 
         $ante = $ante->parent() while $ante and $ante->{parallel} =~ /^(?:Co|Ap)$/;
@@ -631,17 +745,16 @@ sub referring_Msd {
 
 sub enable_attr_hook {
 
-    return 'stop' unless $_[0] =~ /^(?:afun|parallel|paren|arabclause|arabfa|arabspec|comment|commentA|err1|err2)$/;
+    return 'stop' unless $_[0] =~ /^(?:afun|parallel|paren|arabclause|arabfa|arabspec|comment|err1|err2)$/;
 }
 
-#bind edit_commentA to exclam menu Annotate: Edit annotator's comment
-sub edit_commentA {
+#bind edit_comment to exclam menu Annotate: Edit annotator's comment
+sub edit_comment {
 
     $Redraw = 'none';
     ChangingFile(0);
 
-    my $comment = $grp->{FSFile}->FS->exists('comment') ? 'comment' :
-                  $grp->{FSFile}->FS->exists('commentA') ? 'commentA' : undef;
+    my $comment = $grp->{FSFile}->FS->exists('comment') ? 'comment' : undef;
 
     unless (defined $comment) {
 
@@ -747,7 +860,7 @@ sub accept_auto_afun {
 #bind unset_afun to question menu Arabic: Unset afun to ???
 sub unset_afun {
 
-    if ($this->{'afun'} eq 'AuxS') {
+    if ($this->{'afun'} eq 'AuxS' or $this->{'afun'} eq '???') {
 
         $Redraw = 'none';
         ChangingFile(0);
@@ -951,6 +1064,38 @@ sub infer_clause_head {
     ChangingFile(0);
 }
 
+#bind next_node_lin to Ctrl+Shift+Left menu Move to the Next Word
+sub next_node_lin {
+
+    my $node = NextNodeLinear($this, 'ord');
+
+    unless (HiddenVisible()) {
+
+        $node = NextNodeLinear($node, 'ord') while $node and IsHidden($node);
+    }
+
+    $this = $node if $node;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
+#bind prev_node_lin to Ctrl+Shift+Right menu Move to the Prev Word
+sub prev_node_lin {
+
+    my $node = PrevNodeLinear($this, 'ord');
+
+    unless (HiddenVisible()) {
+
+        $node = PrevNodeLinear($node, 'ord') while $node and IsHidden($node);
+    }
+
+    $this = $node if $node;
+
+    $Redraw = 'none';
+    ChangingFile(0);
+}
+
 # ##################################################################################################
 #
 # ##################################################################################################
@@ -979,15 +1124,54 @@ sub espace ($) {
 
 sub expace ($) {
 
-    return '"' . "'" . $_[0] . "'" . '"'  if $^O eq 'MSWin32' and $name =~ / /;
+    return '"' . "'" . $_[0] . "'" . '"'  if $^O eq 'MSWin32' and $_[0] =~ / /;
 
     return escape $_[0];
+}
+
+sub inter_with_level ($) {
+
+    require File::Basename;
+
+    my $level = $_[0];
+
+    my (@file, $path, $name);
+
+    my $thisfile = File::Spec->canonpath(FileName());
+
+    ($name, $path, undef) = File::Basename::fileparse($thisfile, '.syntax.fs');
+    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+
+    $file[0] = path $path . 'syntax', $name . '.syntax.fs';
+    $file[1] = path $path . "$level", $name . ".$level.fs";
+
+    $file[2] = $level eq 'morpho' ? ( path $path . "$level", $name . '.syntax.fs')
+                                  : ( path $path . 'syntax', $name . ".$level.fs");
+
+    $file[3] = path $path . 'syntax', $name . '.syntax.fs.anno.fs';
+
+    unless ($file[0] eq $thisfile) {
+
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "This file's name does not fit the directory structure!$fill\n" .
+                        "Relocate it to " . ( path '..', 'syntax', $name . '.syntax.fs' ) . ".$fill",
+            -title => 'Error',
+            -type => 'OK',
+        );
+
+        return;
+    }
+
+    return $level, $name, $path, @file;
 }
 
 #bind synchronize_file to Ctrl+Alt+equal menu Action: Synchronize Annotations
 sub synchronize_file {
 
-    my $reply = main::userQuery($grp, "\nDo you wish to synchronize this file's annotations?\t",
+    ChangingFile(0);
+
+    my $reply = main::userQuery($grp, "\nDo you wish to synchronize this file's annotations?$fill",
             -bitmap=> 'question',
             -title => "Synchronizing",
             -buttons => ['Yes', 'No']);
@@ -996,30 +1180,59 @@ sub synchronize_file {
 
     print "Synchronizing ...\n";
 
-    require File::Basename;
+    my ($level, $name, $path, @file) = inter_with_level 'morpho';
 
-    my (@file, $path, $name, $tree, $node);
+    return unless defined $level;
 
-    $file[0] = File::Spec->canonpath(FileName());
+    unless (-f $file[1]) {
 
-    ($name, $path, undef) = File::Basename::fileparse($file[0], '.syntax.fs');
-    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "There is no " . ( path '..', "$level", $name . ".$level.fs" ) . " file.$fill\n" .
+                        "Make sure you are working with complete data!$fill",
+            -title => 'Error',
+            -type => 'OK',
+        );
 
-    $file[0] = path $path . 'syntax', $name . '.syntax.fs';
-    $file[1] = path $path . 'morpho', $name . '.morpho.fs';
+        return;
+    }
 
-    $file[2] = path $path . 'morpho', $name . '.syntax.fs';
-    $file[3] = path $path . 'syntax', $name . '.syntax.fs.anno.fs';
+    if (-f $file[2]) {
+
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "Cannot create " . ( path '..', 'syntax', $name . '.syntax.fs' ) . "!$fill\n" .
+                        "Please remove " . ( path '..', "$level", $name . '.syntax.fs' ) . ".$fill",
+            -title => 'Error',
+            -type => 'OK',
+        );
+
+        return;
+    }
+
+    if (GetFileSaveStatus()) {
+
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "The current file has been modified. Either save it, or reload it discarding the changes.$fill",
+            -title => 'Error',
+            -type => 'OK',
+        );
+
+        return;
+    }
+
+    my ($tree, $node);
 
     $tree = CurrentTreeNumber() + 1;
     $node = $this->{'ord'};
 
-    copy $file[0], $file[3];
+    move $file[0], $file[3];
 
     system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/SyntaxFS.pl' ) .
                   ' ' . ( expace $file[1] );
 
-    copy $file[2], $file[0];
+    move $file[2], $file[0];
 
     system 'btred -Qm ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_syntax.btred' ) .
                     ' ' . ( espace $file[0] );
@@ -1031,24 +1244,30 @@ sub synchronize_file {
     GotoTree($tree);
 
     $this = $this->following() until $this->{'ord'} == $node;
-
-    ChangingFile(0);
 }
 
 #bind open_level_first to Ctrl+Alt+1 menu Action: Edit MorphoTrees File
 sub open_level_first {
 
-    require File::Basename;
+    ChangingFile(0);
 
-    my (@file, $path, $name, $tree, $node);
+    my ($level, $name, $path, @file) = inter_with_level 'morpho';
 
-    $file[0] = FileName();
+    return unless defined $level;
 
-    ($name, $path, undef) = File::Basename::fileparse($file[0], '.syntax.fs');
-    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
+    unless (-f $file[1]) {
 
-    $file[0] = $path . 'syntax/' . $name . '.syntax.fs';
-    $file[1] = $path . 'morpho/' . $name . '.morpho.fs';
+        ToplevelFrame()->messageBox (
+            -icon => 'warning',
+            -message => "There is no " . ( path '..', "$level", $name . ".$level.fs" ) . " file!$fill",
+            -title => 'Error',
+            -type => 'OK',
+        );
+
+        return;
+    }
+
+    my ($tree, $node);
 
     ($tree) = $root->{'x_id_ord'} =~ /^\#[0-9]+\_([0-9]+)$/;
 
@@ -1061,22 +1280,16 @@ sub open_level_first {
         $node = 0;
     }
 
-    SwitchContext('MorphoTrees');
+    if (Open($file[1])) {
 
-    my $success = Open($file[1]);
+        GotoTree($tree);
 
-    ChangingFile(0);
-
-    unless ($success) {
+        $this = ($this->children())[$node - 1] unless $node == 0;
+    }
+    else {
 
         SwitchContext('Analytic');
-
-        return;
     }
-
-    GotoTree($tree);
-
-    $this = ($this->children())[$node - 1] unless $node == 0;
 }
 
 #bind open_level_second to Ctrl+Alt+2 menu Action: Edit Analytic File
@@ -1088,36 +1301,75 @@ sub open_level_second {
 #bind open_level_third to Ctrl+Alt+3 menu Action: Edit DeepLevels File
 sub open_level_third {
 
-    require File::Basename;
-
-    my (@file, $path, $name, $tree, $node);
-
-    $file[0] = FileName();
-
-    ($name, $path, undef) = File::Basename::fileparse($file[0], '.syntax.fs');
-    (undef, $path, undef) = File::Basename::fileparse((substr $path, 0, -1), '');
-
-    $file[0] = $path . 'syntax/' . $name . '.syntax.fs';
-    $file[1] = $path . 'deeper/' . $name . '.deeper.fs';
-
-    ($tree) = $root->{'x_id_ord'} =~ /^\#[0-9]+\_([0-9]+)$/;
-    ($node) = $this->{'x_id_ord'} =~ /^\#[0-9]+\/([0-9]+)(:?\_[0-9]+)?$/;
-
-    SwitchContext('DeepLevels');
-
-    Open($file[1]);
-    GotoTree($tree);
-
-    $this = ($this->children())[$node - 1];
-
     ChangingFile(0);
+
+    my ($level, $name, $path, @file) = inter_with_level 'deeper';
+
+    return unless defined $level;
+
+    unless (-f $file[1]) {
+
+        my $reply = main::userQuery($grp,
+                        "\nThere is no " . ( path '..', "$level", $name . ".$level.fs" ) . " file.$fill" .
+                        "\nReally create a new one?$fill",
+                        -bitmap=> 'question',
+                        -title => "Creating",
+                        -buttons => ['Yes', 'No']);
+
+        return unless $reply eq 'Yes';
+
+        if (-f $file[2]) {
+
+            ToplevelFrame()->messageBox (
+                -icon => 'warning',
+                -message => "Cannot create " . ( path '..', "$level", $name . ".$level.fs" ) . "!$fill\n" .
+                            "Please remove " . ( path '..', 'syntax', $name . ".$level.fs" ) . ".$fill",
+                -title => 'Error',
+                -type => 'OK',
+            );
+
+            return;
+        }
+
+        if (GetFileSaveStatus()) {
+
+            ToplevelFrame()->messageBox (
+                -icon => 'warning',
+                -message => "The current file has been modified. Either save it, or reload it discarding the changes.$fill",
+                -title => 'Error',
+                -type => 'OK',
+            );
+
+            return;
+        }
+
+        system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/DeeperFS.pl' ) .
+                      ' ' . ( expace $file[0] );
+
+        mkdir path $path, "$level" unless -d path $path, "$level";
+
+        move $file[2], $file[1];
+    }
+
+    my ($tree, $node) = $this->{'x_id_ord'} =~ /^\#([0-9]+)\/([0-9]+)(:?\_[0-9]+)?$/;
+
+    if (Open($file[1])) {
+
+        GotoTree($tree);
+
+        $this = $this->following() until $this->{'y_ord'} eq $node;
+    }
+    else {
+
+        SwitchContext('Analytic');
+    }
 }
 
 #bind ThisAddressClipBoard Ctrl+Return menu ThisAddress() to Clipboard
 sub ThisAddressClipBoard {
 
     my $reply = main::userQuery($grp,
-                        "\nCopy this node's address to clipboard?\t",
+                        "\nCopy this node's address to clipboard?$fill",
                         -bitmap=> 'question',
                         -title => "Clipboard",
                         -buttons => ['Yes', 'No']);
@@ -1136,6 +1388,8 @@ sub ThisAddressClipBoard {
 # ##################################################################################################
 #
 # ##################################################################################################
+
+no strict;
 
 1;
 
