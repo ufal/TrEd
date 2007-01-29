@@ -1831,7 +1831,7 @@ sub newFileFromCurrent {
   updatePostponed($grp);
 
   # add file to filelist
-  $win->{currentFileNo}= max(0,$win->{currentFileNo});
+  $win->{currentFileNo}= max2(0,$win->{currentFileNo});
   updateTitle($grp);
   get_nodes_win($win);
   doEvalHook($win,"file_opened_hook");
@@ -1965,7 +1965,7 @@ sub merge_status {
   if ($status1->{ok}==1) {
     $status1->{ok} = $status2->{ok};
   } elsif ($status2->{ok} != 1) {
-    $status1->{ok} = max($status2->{ok}, $status1->{ok});
+    $status1->{ok} = max2($status2->{ok}, $status1->{ok});
   }
   push @{$status1->{warnings}}, @{$status2->{warnings}};
   $status1->{error} .= "\n".$status2->{error} if $status2->{error} ne EMPTY;
@@ -2229,7 +2229,7 @@ sub applyFileSuffix {
   # but we want it, dont we:)
 
   if ($goto=~/^##([0-9]+)/) {
-    $win->{treeNo}=min(max(0,$1-1),$win->{FSFile}->lastTreeNo);
+    $win->{treeNo}=min(max2(0,$1-1),$win->{FSFile}->lastTreeNo);
   } elsif ($goto=~/^#([0-9]+)/) {
     for (my $i=0;$i<=$win->{FSFile}->lastTreeNo;$i++) {
       $win->{treeNo}=$i,last if ($win->{FSFile}->treeList->[$i]->{form} eq "#$1");
@@ -2679,7 +2679,7 @@ sub selectFilelistNoUpdate {
       if ref($win->{currentFilelist});
     $win->{currentFilelist}=$fl;
   }
-  $win->{currentFileNo}=max(0,$fl->position()) unless $noResetPosition;
+  $win->{currentFileNo}=max2(0,$fl->position()) unless $noResetPosition;
   return $fl;
 }
 
@@ -2753,7 +2753,7 @@ sub switchFilelist {
     feedHListWithFilelist($grp,$grp->{Filelist},$fl);
     my $activate=0;
     if (defined($fl->current)) {
-      $activate=max(0,$fl->position);
+      $activate=max2(0,$fl->position);
     }
     my $path=filelistEntryPath($fl,$activate);
     $grp->{Filelist}->selectionClear();
@@ -2875,7 +2875,7 @@ sub insertToFilelist {
   if ($grp->{Filelist} and 
       $grp->{filelistCurrentFilelist} eq $filelist) {
     feedHListWithFilelist($grp,$grp->{Filelist},$filelist);
-    $position = max(0,$filelist->position($list[0]));
+    $position = max2(0,$filelist->position($list[0]));
     my $path=filelistEntryPath($filelist,$position);
 
     $grp->{Filelist}->selectionClear();
@@ -3741,13 +3741,13 @@ sub initTTFonts {
 
 sub warnWin32PrintConvert {
   my ($win)=@_;
-  return 'Continue' if $^O ne 'Win32' or
-    $NoConvertWarning;
+  return 'Continue' if $^O ne 'MSWin32' or
+    (which('convert.exe') ne EMPTY) or $NoConvertWarning;
   userQuery($win,
-"Note, that this feature may not work properly on your system ".
-"unless some external tools, namely ImageMagick and GhostView, are ".
-"installed and configured properly.\n\n".
-"To avoid this message, add NoConvertWarning=1 to your configuration file.",
+"This feature requires ImageMagick (http://www.imagemagick.org), which ".
+"does not seem to be installed because 'convert.exe' was found in your PATH. ".
+"Press 'Continue' if you want to try anyway.\n\n".
+"To get rid of this message permanently, add NoConvertWarning=1 to your configuration file.",
 	    -title => "Warning",
 	    -buttons => ["Continue","Cancel"]);
 }
@@ -3762,9 +3762,9 @@ sub warn55PrintConvert {
 	    "Your version of ImageMagick ($version) is known to hang when converting from EPS. ".
             "We suggest that you upgrade ImageMagick to version >= 6.0 or downgrade to <= 5.4.7. ".
             "If you are sure you want to continue ".
-	    "and risk that TrEd will stop responding, press Continue.\n".
+	    "taking the risk that TrEd will stop responding, press Continue.\n".
 	    "It is strongly recommended that you Cancel the operation now.\n\n".
-	    "To avoid this message, add NoConvertWarning=1 to your configuration file.",
+	    "To get rid this message permanently, add NoConvertWarning=1 to your configuration file.",
 	    -title => "Warning",
 	    -buttons => ["Cancel","Continue anyway"]);
 }
@@ -3926,7 +3926,8 @@ sub printDialog {
   my (%w,%s); # widgets, state
   $s{command}=$grp->{printCommand} || 'lpr';
   $s{file}=$grp->{printPsFile};
-  $s{file} =doEvalHook($win,"print_tree_filename_hook");
+  $s{file} =doEvalHook($win,"print_tree_filename_hook",$win->{FSFile}->appData('tred.print.filename'));
+  $s{file}=$win->{FSFile}->appData('tred.print.filename') if $s{file} eq EMPTY;
   $s{file}=$win->{FSFile}->filename if $s{file} eq EMPTY;
   $grp->{printFileExtension} ||= "ps";
   $s{file}=~s/\.[^.]*$/.$grp->{printFileExtension}/;
@@ -4320,6 +4321,7 @@ sub printDialog {
   $grp->{printImageMagickResolution}=$s{resolution};
   $grp->{printNoRotate}=$s{noRotate};
   $grp->{printColors}=$s{printColors};
+  $win->{FSFile}->changeAppData('tred.print.filename',$s{file});
   $ttFont=$s{ttFont};
   $prtHMargin=$s{prtHMargin};
   $prtVMargin=$s{prtVMargin};
@@ -4401,14 +4403,11 @@ sub printThis {
   
   my $fsfile = $grp->{focusedWindow}->{FSFile};
   my @range = ($one_per_file ? TrEd::Print::parse_print_list($fsfile,$range) : ($range));
-  my $filename = $print_opts[3];
-  my $command = $print_opts[5];
+  my $max_num_length = $one_per_file ? max(map length, @range) : 0;
   for my $r (@range) {
     if ($one_per_file) {
-      $print_opts[3] = $filename;
-      $print_opts[3] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : EMPTY)."d",$r)/e;
-      $print_opts[5] = $command;
-      $print_opts[5] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : EMPTY)."d",$r)/e;
+      $print_opts[3] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : '0'.$max_num_length)."d",$r)/e;
+      $print_opts[6] =~ s/[%](\d*)n/sprintf("%".($1 ne EMPTY ? '0'.int($1) : '0'.$max_num_length)."d",$r)/e;
     }
     TrEd::Print::print_trees($fsfile,
 			     $grp->{top},
@@ -4736,7 +4735,7 @@ sub addBindTags {
 }
 
 sub cascadeMenus {
-  $maxMenuLines=max($maxMenuLines,3);
+  $maxMenuLines=max2($maxMenuLines,3);
   my $uM=[ @_[0..min($maxMenuLines-1,$#_)] ];
   my $uuM=$uM;
   my $i=$maxMenuLines;
@@ -6357,7 +6356,7 @@ sub onIdleNextTree {
   my ($grp,$win)=grp_win(shift);
   return unless $win->{FSFile};
   $win->toplevel->afterCancel($grp->{IdleTask}) if ($grp->{IdleTask});
-  $win->{treeNo}=max(0,min($win->{treeNo}+1,$win->{FSFile}->lastTreeNo));
+  $win->{treeNo}=max2(0,min2($win->{treeNo}+1,$win->{FSFile}->lastTreeNo));
   update_tree_pos($grp);
   #  update_value_line($grp);
   #  $grp->{valueLine}->idletasks();
@@ -8168,7 +8167,7 @@ sub editAttrsDialog {
 
   my $lwidth;
   foreach (@atord) {
-    $lwidth=max($lwidth,length($_));
+    $lwidth=max2($lwidth,length($_));
   }
   my $height=0;
 
@@ -8211,7 +8210,7 @@ sub editAttrsDialog {
       $e{$_}->insert(0,encode($node->get_member($_)));
       $e{$_}->configure(-state=> 'disabled');
       $r->pack(qw/-side right -expand yes -fill both/);
-      $height += max($b->reqheight,$e{$_}->reqheight()) if ($i<$rows);
+      $height += max2($b->reqheight,$e{$_}->reqheight()) if ($i<$rows);
     } else {
       $e{$_}= $eef->Entry(-relief=> 'sunken', -takefocus=> 1,
 			 -font=> $font)->pack(qw/-side right -expand yes -fill both/);
@@ -9006,7 +9005,7 @@ sub findNodeDialog {
 
   my $lwidth;
   foreach (@atord) {
-    $lwidth=max($lwidth,length($_));
+    $lwidth=max2($lwidth,length($_));
   }
   my $height=0;
   for (my $i=0;$i<=$#atord;$i++) {
@@ -9719,7 +9718,7 @@ sub scrollCanvasToXY {
   }
   $canvasX+=$tv->get_gen_pinfo("lastCanvasX");
   $w->xview(moveto=>
-	    max(0,min(1,($canvasX-$x+1+$w->fpixels($w->cget('-borderwidth')))
+	    max2(0,min2(1,($canvasX-$x+1+$w->fpixels($w->cget('-borderwidth')))
 		      /$tv->{canvasWidth})));
 
   # the same for Y
@@ -9750,7 +9749,7 @@ sub scrollCanvasToXY {
   }
   $canvasY+=$tv->get_gen_pinfo("lastCanvasY");
   $w->yview(moveto=>
-	    max(0,min(1,($canvasY-$y+1+$w->fpixels($w->cget('-borderwidth')))
+	    max2(0,min2(1,($canvasY-$y+1+$w->fpixels($w->cget('-borderwidth')))
 		      /$tv->{canvasHeight})));
 
 
@@ -9870,9 +9869,9 @@ sub centerToXY {
   my $shiftx=($bx-$ax)/2;
   my $shifty=($by-$ay)/2;
   eval {
-    $win->{treeView}->canvas->xview(moveto=> min(max(0,$x/$win->{treeView}->{canvasWidth}-$shiftx),1))
+    $win->{treeView}->canvas->xview(moveto=> min2(max2(0,$x/$win->{treeView}->{canvasWidth}-$shiftx),1))
       if ($win->{treeView}->{canvasWidth}-$shiftx);
-    $win->{treeView}->canvas->yview(moveto=> min(max(0,$y/$win->{treeView}->{canvasHeight}-$shifty),1))
+    $win->{treeView}->canvas->yview(moveto=> min2(max2(0,$y/$win->{treeView}->{canvasHeight}-$shifty),1))
       if ($y/$win->{treeView}->{canvasHeight}-$shifty);
   }
 }

@@ -422,7 +422,6 @@ sub print_trees {
       print STDERR "PDF done\n";
     } else {
       my $i;
-      my $printMultiple;
       my %pso;
       if ($toFile) {
 	unless (open(O,">".$fil)) {
