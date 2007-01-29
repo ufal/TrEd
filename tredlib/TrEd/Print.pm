@@ -74,11 +74,12 @@ sub getTextWidth {
   return 0 unless $self->{TTF};
   my $width=$self->{textWidthHash}->{$text};
   if (!defined($width)) {
-    if ($TrEd::Convert::support_unicode) {
-      $width= $self->{TTF}->width_utf8($text)*$self->{psFontSize};
-    } else {
+    #!! old PDF::API
+    #!! if ($TrEd::Convert::support_unicode) {
+    #!!  $width= $self->{TTF}->width_utf8($text)*$self->{psFontSize};
+    #!! } else {
       $width= $self->{TTF}->width($text)*$self->{psFontSize};
-    }
+    #!! }
     $self->{textWidthHash}->{$text}=$width;
     $self->{textWidthHashMiss}++;
   } else {
@@ -136,7 +137,7 @@ sub get_ttf_fonts {
   my %result;
   my $ds=$TrEd::Convert::Ds;
   eval {
-    require PDF::API2::TTF::Font;
+    require PDF::API2::Basic::TTF::Font;
     my @files;
     my @dirs = uniq(map { _dirs($_) } @_);
     my $i=0;
@@ -153,10 +154,10 @@ sub get_ttf_fonts {
       if (ref $opts->{callback}) {
 	$opts->{callback}->($font,$i++,scalar(@files));
       }
-      my $f = PDF::API2::TTF::Font->open($font);
+      my $f = PDF::API2::Basic::TTF::Font->open($font);
       next unless $f;
-      $PDF::API2::TTF::Name::utf8 = 0;     # 1 does not work
-      $PDF::API2::TTF::GDEF::new_gdef = 1;
+      $PDF::API2::Basic::TTF::Name::utf8 = 0;     # 1 does not work
+      $PDF::API2::Basic::TTF::GDEF::new_gdef = 1;
       $f->{'name'}->read;
       my $fn=$f->{name}->find_name(1);
       my $fs=$f->{name}->find_name(2);

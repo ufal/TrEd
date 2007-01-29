@@ -186,7 +186,7 @@ sub new {
     foreach my $fn (keys %{$opts{-fontmap}}) {
       if ($opts{-fontmap}->{$fn}->[0] =~ /tt|truetype/i) {
 	if ($unicode or $encoding eq 'utf8') {
-	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1])->unicode();
+	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1]); #!! ->unicode();
 	} else {
 	  $fontmap{$fn}=$pdf->ttfont($opts{-fontmap}->{$fn}->[1],
 				     -encode => $encoding);
@@ -212,7 +212,7 @@ sub new {
   if ($opts{-ttfont}) {
     $fontType='TT';
     if ($unicode or $encoding eq 'utf8') {
-      $font=$pdf->ttfont($opts{-ttfont})->unicode();
+      $font=$pdf->ttfont($opts{-ttfont}); #!! ->unicode();
     } else {
       $font=$pdf->ttfont($opts{-ttfont},-encode => $encoding);
     }
@@ -270,7 +270,9 @@ sub finish {
 
 sub draw_canvas {
   my ($P,$canvas,%opts)=@_;
-  my $draw = $P->{current_page}->hybrid;
+  #!! old PDF::API:
+  # my $draw = $P->{current_page}->hybrid;
+  my $draw = $P->{current_page}->gfx;
   if ($opts{-transform}) {
     $draw->transform(%{$opts{-transform}});
   }
@@ -351,11 +353,12 @@ sub draw_canvas {
 #      my $height = $fn->capheight*$fnsize/1000;
       my $width;
 
+      #!! old PDF::API2:
       if (eval "Encode::is_utf8(\$text)" and not $@) {
-	$width = $fn->width_utf8($text)*$fnsize;
+	$width = $fn->width($text)*$fnsize; #!! width_utf8
       } elsif ($P->{Unicode}) {
 	eval "\$text= Encode::decode(\$P->{Encoding},\$text);";
-	$width = $fn->width_utf8($text)*$fnsize;
+	$width = $fn->width($text)*$fnsize; #!! width_utf8
       } else {
 	$width = $fn->width($text)*$fnsize;
       }
