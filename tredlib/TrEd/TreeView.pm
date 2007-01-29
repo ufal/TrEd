@@ -64,7 +64,7 @@ sub new {
 {
   no strict 'refs';
   # generate methods
-  for my $opt (@Options) {
+  for my $opt (@Options, qw(canvasHeight canvasWidth)) {
     (*{"get_$opt"},*{"set_$opt"}) = do {{
       my $o = $opt;
       (sub { $_[0]->{$o} },
@@ -361,8 +361,9 @@ sub getFontHeight {
 }
 
 sub getTextWidth {
-  my ($self,$text)=@_;
-  return max(map { $self->canvas->fontMeasure($self->get_font,$_) } split /\n/,$text);
+  my ($self,$text,$wrap)=@_;
+  return $wrap ? max(map { $self->canvas->fontMeasure($self->get_font,$_) } split /\n/,$text) :
+    $self->canvas->fontMeasure($self->get_font,$text);
 }
 
 sub balance_xfix_node {
@@ -1137,12 +1138,12 @@ sub redraw {
 		     -justify => 'left', -anchor => 'nw'),
 	@{$Opts{SentenceText}});
       $self->{canvasHeight}+=$fontHeight;
-      $self->{canvasWidth}=max($self->{canvasWidth},$self->getTextWidth($ftext));
-      print "Ftext: $ftext\nWidth:".$self->getTextWidth($ftext)."\n";
+      my $ftw = $self->getTextWidth($ftext,1);
+      $self->{canvasWidth}=max($self->{canvasWidth},$ftw);
       $self->apply_style_opts(
 	$canvas->
 	  createLine(0,$self->{canvasHeight},
-		     ($self->getTextWidth($ftext) || 0),
+		     ($ftw || 0),
 		     $self->{canvasHeight}),
 	@{$Opts{SentenceFileInfo}});
       $self->{canvasHeight}+=$fontHeight;
