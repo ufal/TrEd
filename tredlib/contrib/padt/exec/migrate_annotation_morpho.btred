@@ -1,0 +1,80 @@
+# -*- perl -*- ############################################################# Otakar Smrz, 2004/07/17
+#
+# migrate_annotation_morpho.btred ####################################################### 2004/07/21
+
+# $Id$
+
+our $VERSION = do { q $Revision$ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+
+
+#include <tred.mac>
+#include <contrib/padt/MorphoTrees.mak>
+
+package TredMacro;
+
+use Algorithm::Diff;
+
+
+our $entities;
+our $nodes;
+
+
+sub autostart {
+
+    my $anno = FSFile->create('encoding' => "utf8");
+
+    $anno->readFile(FileName() . ".anno.fs");
+
+    $entities = [ [], [] ];
+
+    @{$entities->[0]} = grep { $_->{'type'} eq 'entity' } $grp->{FSFile}->trees();
+    @{$entities->[1]} = grep { $_->{'type'} eq 'entity' } $anno->trees();
+
+    Algorithm::Diff::traverse_sequences(@{$entities}, { 'MATCH' => \&entity_annotation }, \&entity_ident);
+
+    ChangingFile(1);
+}
+
+
+sub entity_annotation {
+
+    return if $entities->[0][$_[0]]->{'apply_m'} > 0;
+
+    $nodes = [ [ $entities->[0][$_[0]] ], [ $entities->[1][$_[1]] ] ];
+
+    migrate_annotation(0, 0);
+}
+
+
+sub entity_ident {
+
+    return $_[0]->{'input'};
+}
+
+
+sub migrate_annotation {
+
+    $this = $nodes->[0][$_[0]];
+    $root = $nodes->[0][$_[0]]->root();
+
+    if (defined $nodes->[1][$_[1]]->{'restrict'} and $nodes->[1][$_[1]]->{'restrict'} ne '') {
+
+        MorphoTrees::restrict_hide($nodes->[1][$_[1]]->{'restrict'}, $nodes->[1][$_[1]]->{'inherit'} eq '' && $nodes->[1][$_[1]]->{'type'} ne 'entity' ? 'remove inherited' : () );
+    }
+    elsif ($nodes->[1][$_[1]]->{'type'} eq 'token_node' and $nodes->[1][$_[1]]->{'apply_m'} > 0) {
+
+        MorphoTrees::annotate_morphology('click') unless $nodes->[0][$_[0]]->{'apply_m'} > 0;
+    }
+
+    $nodes->[0][$_[0]]->{'comment'} = $nodes->[1][$_[1]]->{'comment'} if $nodes->[0][$_[0]]->{'comment'} eq '';
+
+    local $nodes = [ [ $nodes->[0][$_[0]]->children() ], [ $nodes->[1][$_[1]]->children() ] ];
+
+    Algorithm::Diff::traverse_sequences(@{$nodes}, { 'MATCH' => \&migrate_annotation }, \&node_ident);
+}
+
+
+sub node_ident {
+
+    return join '|', @{$_[0]}{'form', 'tag', $_[0]->{'type'} eq 'entity' ? () : ( 'type', 'id' ) };
+}
