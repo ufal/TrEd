@@ -174,9 +174,8 @@ sub open_file {
 	$tmp = new IO::Zlib();
       } && $tmp || return;
       $tmp->open($file,"rb") || return;
-      while (my $l = <$tmp>) {
-	$fh->print($l) 
-      }
+      local $/;
+      $fh->print(<$tmp>);
       $tmp->close();
       seek($fh,0,'SEEK_SET');
     }
