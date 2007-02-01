@@ -41,7 +41,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $version $lib $extra_backends $file_list $list_options
 	    $_ERR %optmap $no_secondary $include_macro $ioBackends
 	    $locale_charset $host
-	    @resource_paths
+	    @resource_paths @define_symbols
 	   );
 
 $version='$Revision$ ';
@@ -100,6 +100,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "preload-module|M=s" => \@preload_modules,
 	    "extra-backends|B=s" => \$extra_backends,
 	    "resource-dir|Z=s" => \@resource_paths,
+	    "define-symbol|y=s" => \@define_symbols,
 	    "version|v"        => \$print_version,
 	   );
 
@@ -322,7 +323,17 @@ sub conv_from_locale {
 }
 
 # These are used only in macros and hooks!!!
-$TrEd::Macros::defines{BTRED}=1;
+TrEd::Macros::define_symbol('BTRED');
+for my $sym1 (@define_symbols) {
+  for my $sym (split /,/, $sym1) {
+    if ($sym=~/=/) {
+      TrEd::Macros::define_symbol(split(/=/,$sym,2));
+    } else {
+      TrEd::Macros::define_symbol($sym);
+    }
+  }
+}
+
 set_macro_variable(root => undef,
 		   this => undef,
 		   FileNotSaved => 0,
@@ -2172,6 +2183,13 @@ server-mode.
 =item B<--extra-backends|-B> backends
 
 Comma separated list of user-defined IO-backend modules to load.
+
+=item B<--define-symbol|-y> symbol
+
+Symbol name or a name=value pair to be used by macro-preprocessor
+(equivalent to a C<#define> instruction at the beginning of the macro
+file). Multiple definitions symbols may be separated by a comma and
+the option may be repeated.
 
 =item B<--no-secondary-files>
 
