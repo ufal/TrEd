@@ -274,6 +274,9 @@ sub set_config {
   $treeViewOpts->{textColorShadow}    =	 val_or_def($confs,"textcolorshadow",'darkgrey');
   $treeViewOpts->{textColorHilite}    =	 val_or_def($confs,"textcolorhilite",'darkgreen');
   $treeViewOpts->{textColorXHilite}   =	 val_or_def($confs,"textcolorxhilite",'darkred');
+  $treeViewOpts->{stripeColor}        =  val_or_def($confs,"stripecolor",'#eeeeff');
+  $treeViewOpts->{vertStripe}     =  val_or_def($confs,"vertstripe",0);
+  $treeViewOpts->{horizStripe}     =  val_or_def($confs,"horizstripe",1);
 
   foreach (keys %$confs) {
     if (/^customcolor(.*)$/) {
@@ -282,7 +285,7 @@ sub set_config {
       $userConf->{$1}=$confs->{$_};
     }
   }
-  
+
   $treeViewOpts->{boxColor}	       = val_or_def($confs,"boxcolor",'LightYellow');
   $treeViewOpts->{currentBoxColor}     = val_or_def($confs,"currentboxcolor",'yellow');
   $treeViewOpts->{hiddenBoxColor}      = val_or_def($confs,"hiddenboxcolor",'gray');
