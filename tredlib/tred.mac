@@ -301,7 +301,8 @@ sub FirstTree {
 #bind GotoNextNodeLin to Ctrl+greater menu Next node linearly
 sub GotoNextNodeLin {
   ChangingFile(0);
-  my $sentord=$grp->{FSFile}->FS->sentord;
+  $Redraw='none';
+  my $sentord=$grp->{FSFile}->FS->order;
   my $next=NextNodeLinear($this,$sentord);
   unless (HiddenVisible()) {
     while ($next and IsHidden($next)) {
@@ -314,7 +315,8 @@ sub GotoNextNodeLin {
 #bind GotoPrevNodeLin to Ctrl+less menu Prev node linearly
 sub GotoPrevNodeLin {
   ChangingFile(0);
-  my $sentord=$grp->{FSFile}->FS->sentord;
+  $Redraw='none';
+  my $sentord=$grp->{FSFile}->FS->order;
   my $next=PrevNodeLinear($this,$sentord);
   unless (HiddenVisible()) {
     while ($next and IsHidden($next)) {

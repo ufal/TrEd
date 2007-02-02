@@ -20,7 +20,8 @@ $bblock = qr/\{(?:(?>  [^{}]* )|(??{ $bblock }))*\}/x;
 
 use strict;
 
-@Options = qw(CanvasBalloon backgroundColor baseXPos baseYPos boxColor
+@Options = qw(CanvasBalloon backgroundColor
+  stripeColor vertStripe horizStripe baseXPos baseYPos boxColor
   currentBoxColor currentEdgeBoxColor currentNodeHeight
   currentNodeWidth customColors hiddenEdgeBoxColor edgeBoxColor
   clearTextBackground drawBoxes drawEdgeBoxes backgroundImage
@@ -31,7 +32,7 @@ use strict;
   edgeLabelSkipBelow pinfo textColor xmargin nodeOutlineColor
   nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
   textColorShadow textColorHilite textColorXHilite skipHiddenLevels skipHiddenParents
-  useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree);
+  useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree verticalTree);
 
 %DefaultNodeStyle = (
 	      Oval            =>  [],
@@ -436,6 +437,184 @@ sub balance_node {
 	     $self->get_node_pinfo($node,"After"));
 }
 
+
+sub _bno {
+  my ($nodes,$i,$last,$childs)=@_;
+  my @res;
+  for (;$i<=$last;$i++) {
+    my $node = $nodes->[$i];
+    my $kids = $childs->{ $node };
+    if ($kids) {
+      my $mid = int @$kids/2-1;
+      push @res,
+	@{ _bno($kids,0,$mid,$childs) },
+	$node,
+	@{ _bno($kids,$mid+1,$#$kids,$childs) };
+    } else {
+      push @res, $node;
+    }
+  }
+  return \@res;
+}
+
+sub balance_node_order {
+  my ($self, $nodes) = @_;
+  my %childs;
+  my @level0;
+  my $i=0;
+  foreach my $node (@$nodes) {
+    my $parent = $self->get_node_pinfo($node,"P");
+    push @{ $childs{ $parent } }, $node;
+    push @level0, $node if $self->get_node_pinfo($node,"Level")==0;
+  }
+  return _bno(\@level0,0,$#level0,\%childs);
+}
+
+sub compute_level {
+  my ($self, $node, $Opts, $skipHiddenLevels) = @_;
+  my $level = $self->get_node_pinfo($node,"Level");
+  if (defined $level) {
+    return $level;
+  }
+  $level=0;
+  my $parent=$node->parent;
+  if ($parent) {
+    my $plevel = $self->compute_level($parent, $Opts, $skipHiddenLevels);
+    if ($skipHiddenLevels) {
+      $level = $plevel;
+      if ($self->get_node_pinfo($parent,"E")) {
+	$self->store_node_pinfo($node,"P",$parent);
+	$level++;
+      } else {
+	$self->store_node_pinfo($node,"P",$self->get_node_pinfo($parent,"P"));
+      }
+      $level += $self->get_style_opt($node,"Node","-rellevel",$Opts) if $self->get_node_pinfo($node,"E");
+    } else {
+      $self->store_node_pinfo($node,"P",$parent);
+      $level = $plevel + 1 + $self->get_style_opt($node,"Node","-rellevel",$Opts);
+    }
+  }
+  $self->store_node_pinfo($node,"Level", $level);
+  return $level;
+}
+
+sub recalculate_positions_vert {
+  my ($self,$fsfile,$nodes,$Opts,$grp)=@_;
+  return unless ref($self);
+
+  my $baseXPos=$Opts->{baseXPos} || $self->get_baseXPos;
+  my $baseYPos=$Opts->{baseYPos} || $self->get_baseYPos;
+  my $level;
+
+  my $canvasWidth=0;
+  $self->{canvasHeight}=0;
+  my $node;
+  my $labelsep = 5;
+  my ($nodeWidth,$nodeHeight)=($self->get_nodeWidth,$self->get_nodeHeight);
+  my $nodeXSkip = exists($Opts->{nodeXSkip}) ? $Opts->{nodeXSkip} : $self->get_nodeXSkip;
+  my $nodeYSkip = exists($Opts->{nodeYSkip}) ? $Opts->{nodeYSkip} : $self->get_nodeYSkip;
+  my $m;
+  my ($pattern_count,$node_pattern_count,$edge_pattern_count)=(0,0,0);
+				# May change with line attached labels
+  my @patterns;
+  if ($self->patterns) {
+    @patterns= @{$self->patterns};
+  } elsif (ref($fsfile)) {
+    @patterns=$fsfile->patterns();
+  }
+  @patterns = grep { $_->[0] eq 'node' or
+		     $_->[0] eq 'edge' } map { [ $self->parse_pattern($_) ] } @patterns;
+  if (ref($fsfile)) {
+    $pattern_count=@patterns;
+    $node_pattern_count=scalar($self->get_label_patterns($fsfile,"node"));
+    $edge_pattern_count=scalar($self->get_label_patterns($fsfile,"edge"));
+  }
+
+  my $fontHeight=$self->getFontHeight();
+  my $node_label_height=2*$self->get_ymargin + $fontHeight;
+  my $levelHeight=max($nodeHeight,$node_label_height) + $nodeYSkip;
+
+  my $xpos;
+  my $ypos = $baseYPos;
+  my ($pat_style,$pat);
+
+  if (exists($Opts->{ballance})) {
+    print STDERR "Use 'balance' instead of misspelled 'ballance'!\n";
+    $Opts->{balance}=$Opts->{ballance} unless (exists($Opts->{balance}));
+  }
+  my $balance= exists($Opts->{balance}) ? 
+    $Opts->{balance} : $self->get_balanceTree;
+
+  my $skipHiddenLevels= exists($Opts->{skipHiddenLevels}) ? $Opts->{skipHiddenLevels} : $self->get_skipHiddenLevels;
+
+  my $balanceOpts = [$balance =~ /^aboveMiddleChild(Odd$|$)/ ? 1 : 0,
+		     $balance =~ /^aboveMiddleChild(Even$|$)?/ ? 1 : 0,
+		     $nodeXSkip
+		    ];
+
+  foreach $node (@{$nodes}) {
+    $self->store_node_pinfo($node,"E",1);
+  }
+  foreach $node (@{$nodes}) {
+    $self->compute_level($node,$Opts,$skipHiddenLevels);
+  }
+  if ($balance) {
+    @{$nodes} = @{$self->balance_node_order($nodes)};
+  }
+  foreach $node (@{$nodes}) {
+    $level=$self->get_node_pinfo($node,'Level')+$self->get_style_opt($node,"Node","-level",$Opts);
+
+    $xpos = $baseXPos + $level * (15+$nodeXSkip);
+    $self->store_node_pinfo($node,"XPOS", $xpos);
+    $self->store_node_pinfo($node,"YPOS", $ypos);
+    $self->store_node_pinfo($node,"NodeLabel_YPOS", $ypos-$nodeHeight);
+    $self->store_node_pinfo($node,"EdgeLabel_YPOS", $ypos-$nodeHeight);
+    my $label_xpos = $xpos + $nodeWidth + $labelsep;
+    $ypos += $levelHeight;
+    $self->{canvasHeight} += $levelHeight;
+    if (@patterns) {
+      ($pat_style,$pat)=@{$patterns[0]};
+      if ($pat_style eq 'node') {
+	$self->store_gen_pinfo("NodeLabel_XPOS[0]", $label_xpos);
+	$self->store_node_pinfo($node,"NodeLabel_XPOS", $label_xpos); # compat
+      } else {
+	$self->store_gen_pinfo("EdgeLabel_XPOS[0]", $label_xpos);
+	$self->store_node_pinfo($node,"EdgeLabel_XPOS", $label_xpos); #compat
+      }
+      $m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
+      $self->store_node_pinfo($node,"X[0]",$m);
+      $canvasWidth = max($canvasWidth, $label_xpos + $m);
+      $self->store_node_pinfo($node,"EdgeLabelWidth",$m);
+      $self->store_node_pinfo($node,"NodeLabelWidth",$m);
+      $self->store_node_pinfo($node,"After",0);
+      $self->store_node_pinfo($node,"Before",0);
+    }
+  }
+  $canvasWidth+=$labelsep;
+  $self->store_gen_pinfo("NodeLabel_XMIN",$canvasWidth);
+  my ($n_i, $e_i)=(-1,-1);
+  for (my $i=0; $i<@patterns; $i++) {
+    my $max = 0;
+    ($pat_style,$pat)=@{$patterns[$i]};
+    if ($pat_style eq 'node') { $n_i++ } else { $e_i++ }
+    next if $i==0;
+    foreach $node (@{$nodes}) {
+      $m=$self->getTextWidth( $self->prepare_text($node,$pat,$grp) );
+      $self->store_node_pinfo($node,"X[$i]",$m);
+      $max = max($max,$m);
+    }
+    if ($pat_style eq 'node') {
+      $self->store_gen_pinfo("NodeLabel_XPOS[$n_i]",$canvasWidth+$labelsep);
+    } else {
+      $self->store_gen_pinfo("EdgeLabel_XPOS[$e_i]",$canvasWidth+$labelsep);
+    }
+    $canvasWidth+=$max+$labelsep;
+  }
+  $self->store_gen_pinfo("NodeLabel_XMAX",$canvasWidth);
+  $self->{canvasWidth} = $canvasWidth+$self->get_xmargin;
+  $self->{canvasHeight} += $self->get_ymargin;
+}
+
 sub recalculate_positions {
   my ($self,$fsfile,$nodes,$Opts,$grp)=@_;
   return unless ref($self);
@@ -470,6 +649,8 @@ sub recalculate_positions {
   } elsif (ref($fsfile)) {
     @patterns=$fsfile->patterns();
   }
+  @patterns = grep { $_->[0] eq 'node' or
+		     $_->[0] eq 'edge' } map { [ $self->parse_pattern($_) ] } @patterns;
   if (ref($fsfile)) {
     $pattern_count=@patterns;
     $node_pattern_count=scalar($self->get_label_patterns($fsfile,"node"));
@@ -534,26 +715,7 @@ sub recalculate_positions {
     $self->store_node_pinfo($node,"E",1);
   }
   foreach $node (@{$nodes}) {
-    $level=0;
-    if ($skipHiddenLevels) {
-      $parent=$node->parent;
-      while ($parent) {
-	if ($self->get_node_pinfo($parent,"E")) {
-	  $level++;
-	  $level+=$self->get_style_opt($parent,"Node","-rellevel",$Opts);
-	}
-	$parent=$parent->parent;
-      }
-#      print "SKIPHIDDEN: $node->{trlemma} => level: $level\n";
-    } else {
-      $parent=$node->parent;
-      while ($parent) {
-	$level++;
-	$level+=$self->get_style_opt($parent,"Node","-rellevel",$Opts);
-	$parent=$parent->parent;
-      }
-    }
-    $level+=$self->get_style_opt($node,"Node","-rellevel",$Opts);
+    $level=$self->compute_level($node,$Opts,$skipHiddenLevels);
     $level+=$self->get_style_opt($node,"Node","-level",$Opts);
     $self->store_node_pinfo($node,"EdgeLabelHeight", $edge_label_height);
 
@@ -600,7 +762,7 @@ sub recalculate_positions {
     $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
 
     for (my $i=0;$i<$pattern_count;$i++) {
-      ($pat_style,$pat)=$self->parse_pattern($patterns[$i]);
+      ($pat_style,$pat)=@{$patterns[$i]};
       if ($pat_style eq "edge") {
 	# this does not actually make
 	# the edge label not to overwrap, but helps a little
@@ -669,7 +831,6 @@ sub recalculate_positions {
 
     $canvasWidth = max($canvasWidth,
 		       $xpos+$xSkipAfter+$nodeWidth+2*$self->get_xmargin+$baseXPos);
-    $self->store_node_pinfo($node,"Level", $level);
     push @zero_level, $node if ($level == 0);
   }
 
@@ -1005,15 +1166,15 @@ sub redraw {
   foreach (keys %DefaultNodeStyle) {
     $Opts{$_}=[@{$DefaultNodeStyle{$_}}];
   }
-  
   if (ref($fsfile)) {
-    @node_patterns=$self->get_label_patterns($fsfile,"node");
-    @edge_patterns=$self->get_label_patterns($fsfile,"edge");
-    @style_patterns=$self->get_label_patterns($fsfile,"style");
-    @patterns=($self->patterns) ? @{$self->patterns} : $fsfile->patterns();
+    @patterns = map { [ $self->parse_pattern($_) ] } ($self->patterns) ? @{$self->patterns} : $fsfile->patterns();
+    @node_patterns = map { $_->[1] } grep { $_->[0] eq 'node' } @patterns;
+    @edge_patterns = map { $_->[1] } grep { $_->[0] eq 'edge' } @patterns;
+    @style_patterns = map { $_->[1] } grep { $_->[0] eq 'style' } @patterns;
+    @patterns = grep { $_->[0] eq 'node' or $_->[0] eq 'edge' } @patterns;
   }
 
-  my $canvas = $self->canvas;
+  my $canvas = $self->realcanvas;
 
   $self->clear_pinfo();
   $self->store_gen_pinfo("Opts",\%Opts);
@@ -1076,7 +1237,10 @@ sub redraw {
     }
   }
   if ($filter_nodes and !$self->get_showHidden()) {
-    $nodes = [ grep { !$skip_nodes{$_} } @$nodes ];
+    # $nodes = [ grep { !$skip_nodes{$_} } @$nodes ];
+
+    # CAUTION: this change propagates up to the caller
+    @$nodes = grep { !$skip_nodes{$_} } @$nodes;
   }
 
   #------------------------------------------------------------
@@ -1094,7 +1258,12 @@ sub redraw {
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
-  recalculate_positions($self,$fsfile,$nodes,\%Opts,$grp);
+  my $vertical_tree = $self->set_verticalTree(exists($Opts{vertical}) ? $Opts{vertical} : 0);
+  if ($vertical_tree) {
+    recalculate_positions_vert($self,$fsfile,$nodes,\%Opts,$grp);
+  } else {
+    recalculate_positions($self,$fsfile,$nodes,\%Opts,$grp);
+  }
 
   #------------------------------------------------------------
   #}
@@ -1202,12 +1371,13 @@ sub redraw {
   my $skipHiddenParents = $skipHiddenLevels || $Opts{skipHiddenParents} || $self->get_skipHiddenParents;
 
   foreach $node (@{$nodes}) {
-    if ($skipHiddenParents) {
-      $parent = $node->parent;
-      $parent=$parent->parent while ($parent and !$self->get_node_pinfo($parent,"E"));
-    } else {
-      $parent=$node->parent;
-    }
+    $parent = $self->get_node_pinfo($node,"P");
+#     if ($skipHiddenParents) {
+#       $parent = $node->parent;
+#       $parent=$parent->parent while ($parent and !$self->get_node_pinfo($parent,"E"));
+#     } else {
+#       $parent=$node->parent;
+#     }
     use integer;
 
     ## Lines ##
@@ -1252,8 +1422,8 @@ sub redraw {
       $self->store_node_pinfo($node,"Line$lin",$line);
       $self->store_obj_pinfo($line,$node);
       $self->store_gen_pinfo('tag:'.$line,$tag[$lin]);
-      $self->realcanvas->lower($line,'all');
-      $self->realcanvas->raise($line,'line');
+      $canvas->lower($line,'all');
+      $canvas->raise($line,'line');
 
       $lin++;
    }
@@ -1349,22 +1519,51 @@ sub redraw {
       && ($valign_edge=$self->get_style_opt($node,"NodeLabel","-dodrawbox",\%Opts) eq "yes");
     $self->store_node_pinfo($node,"NodeHasBox",$node_has_box);
     ## Boxes around attributes
+    if ($vertical_tree && $self->get_horizStripe || !$vertical_tree && $self->get_vertStripe) {
+      $objectno++;
+      my $stripe = "stripe_$objectno";
+      my $stripe_id = $canvas->
+	createRectangle(
+	  $vertical_tree ?
+	    (-200,
+	     0+$self->get_node_pinfo($node,"NodeLabel_YPOS")-$self->get_ymargin,
+	     0+$self->{canvasWidth}+200,
+	     $self->get_node_pinfo($node,"NodeLabel_YPOS")+$self->get_ymargin+$lineHeight,
+	    ) :
+	    (
+	     0+$self->get_node_pinfo($node,"XPOS")-$self->get_nodeWidth,
+	     -200,
+	     0+$self->get_node_pinfo($node,"XPOS")+$self->get_nodeWidth,
+	     0+$self->{canvasHeight}+200,
+	    ),
+	   -fill => $currentNode==$node ? $self->get_stripeColor  :
+	     $self->realcanvas->cget('-background'),
+	   -outline => undef,
+	   -tags => [$stripe,'stripe']
+	);
+      $self->store_id_pinfo($stripe_id,$stripe);
+      $self->store_obj_pinfo($stripe,$node);
+      $self->store_node_pinfo($node,"Stripe",$stripe)
+    }
     if ($node_has_box) {
       ## get maximum width stored here by recalculate_positions
-      my $textWidth=$self->get_node_pinfo($node,"NodeLabelWidth");
       $objectno++;
       my $box="textbox_$objectno";
       my $bid=$canvas->
-	createRectangle($self->get_node_pinfo($node,"NodeLabel_XPOS")-
-			$self->get_xmargin,
-			$self->get_node_pinfo($node,"NodeLabel_YPOS")-
-			$self->get_ymargin,
-			$self->get_node_pinfo($node,"NodeLabel_XPOS")+
-			$textWidth+$self->get_xmargin,
-			$self->get_node_pinfo($node,"NodeLabel_YPOS")+
-			$self->get_ymargin+
-			scalar(@node_patterns)*$lineHeight,
-			-tags => ['TextBox',$box]
+	createRectangle(
+	  $vertical_tree ? (
+	    0+$self->get_gen_pinfo("NodeLabel_XMIN")-$self->get_xmargin,
+	    0+$self->get_node_pinfo($node,"NodeLabel_YPOS")-$self->get_ymargin,
+	    0+$self->get_gen_pinfo("NodeLabel_XMAX")+$self->get_xmargin,
+	    $self->get_node_pinfo($node,"NodeLabel_YPOS")+$self->get_ymargin+$lineHeight) : (
+	      0+$self->get_node_pinfo($node,"NodeLabel_XPOS")-$self->get_xmargin,
+              0+$self->get_node_pinfo($node,"NodeLabel_YPOS")-$self->get_ymargin,
+	      0+$self->get_node_pinfo($node,"NodeLabel_XPOS")+
+		$self->get_node_pinfo($node,"NodeLabelWidth")+$self->get_xmargin,
+	      0+$self->get_node_pinfo($node,"NodeLabel_YPOS")+ $self->get_ymargin+
+		scalar(@node_patterns)*$lineHeight
+	    ),
+	  -tags => ['textbox',$box]
 		       );
       $self->store_id_pinfo($bid,$box);
       $self->apply_style_opts($box,
@@ -1375,7 +1574,7 @@ sub redraw {
       $self->store_node_pinfo($node,"TextBox",$box);
       $self->store_obj_pinfo($box,$node);
     }
-    $edge_has_box=
+    $edge_has_box=!$vertical_tree &&
       scalar(@edge_patterns) && $parent &&
 	($self->get_drawEdgeBoxes &&
 	 ($valign_edge=$self->get_style_opt($node,"EdgeLabel","-nodrawbox",\%Opts) ne "yes") ||
@@ -1395,7 +1594,7 @@ sub redraw {
 			$self->get_node_pinfo($node,"EdgeLabel_YPOS")
 			+$self->get_ymargin
 			+scalar(@edge_patterns)*$lineHeight,
-			-tags => ['EdgeBox',$box]
+			-tags => ['edgebox',$box]
 		       );
       $self->store_id_pinfo($bid,$box);
       $self->apply_style_opts($box,
@@ -1414,26 +1613,39 @@ sub redraw {
     my ($e_i,$n_i)=(0,0);
     my ($pat_class,$pat);
     for (my $i=0;$i<=$#patterns;$i++) {
-
-      ($pat_class,$pat)=$self->parse_pattern($patterns[$i]);
+      ($pat_class,$pat)=@{$patterns[$i]};
       $msg=$self->interpolate_text_field($node,$pat,$grp);
       if ($pat_class eq "edge") {
-	if ($parent) {
+	if ($parent||$vertical_tree) {
 	  $msg =~ s!/!!g;		# should be done in interpolate_text_field
-	  $x=$self->get_node_pinfo($node,"EdgeLabel_XPOS");
-	  $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
+	  if ($vertical_tree) {
+	    $x= $i==0
+	      ? 0+$self->get_node_pinfo($node,"EdgeLabel_XPOS")
+	      : 0+$self->get_gen_pinfo("EdgeLabel_XPOS[$e_i]");
+	    $y=0+$self->get_node_pinfo($node,"EdgeLabel_YPOS");
+	  } else {
+	    $x=$self->get_node_pinfo($node,"EdgeLabel_XPOS");
+	    $y=$self->get_node_pinfo($node,"EdgeLabel_YPOS")+$e_i*$lineHeight;
+	  }
+	  $e_i++;
 	  $self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
 				!$edge_has_box,
 				\%Opts,$grp,1);
-	  $e_i++;
 	}
-      } elsif ($pat_class eq "node") {
-	$x=$self->get_node_pinfo($node,"NodeLabel_XPOS");
-	$y=$self->get_node_pinfo($node,"NodeLabel_YPOS")+$n_i*$lineHeight;
+      } else { # node
+	if ($vertical_tree) {
+	  $x= $i==0
+	      ? 0+$self->get_node_pinfo($node,"NodeLabel_XPOS")
+	      : 0+$self->get_gen_pinfo("NodeLabel_XPOS[$n_i]");
+	  $y=0+$self->get_node_pinfo($node,"NodeLabel_YPOS");
+	} else {
+	  $x=$self->get_node_pinfo($node,"NodeLabel_XPOS");
+	  $y=$self->get_node_pinfo($node,"NodeLabel_YPOS")+$n_i*$lineHeight;
+	}
+	$n_i++;
 	$self->draw_text_line($fsfile,$node,$i,$msg,$lineHeight,$x,$y,
 			      !$node_has_box,
 			      \%Opts,$grp);
-	$n_i++;
       }
     }
   }
@@ -1446,7 +1658,7 @@ sub redraw {
 #=pod
 
       $self->get_CanvasBalloon()->
-	attach($canvas->Subwidget('scrolled'),
+	attach($canvas,
 	       -balloonposition => 'mouse',
 	       -msg =>
 	       {
@@ -1466,6 +1678,16 @@ sub redraw {
 
     }
   }
+  eval {
+    if ($vertical_tree && defined $self->get_node_pinfo($currentNode,'Stripe')) {
+      $canvas->itemconfigure("textbg_$currentNode", -fill => undef )
+    }
+  };
+  eval { $canvas->raise('textbg','textbox') };
+  eval { $canvas->raise('textbg','edgetextbox') };
+  eval { $canvas->raise('text','textbg') };
+  eval { $canvas->raise('plaintext','textbg') };
+  eval { $canvas->lower('stripe','all') };
   if (defined $self->get_backgroundImage) {
     unless ($canvas->find('withtag','bgimage')) {
       my $img=$self->get_backgroundImage;
@@ -1479,12 +1701,9 @@ sub redraw {
       };
       print STDERR $@ ? "failed.\n" : "ok.\n";
     }
-    $self->realcanvas->lower('bgimage','all')  if ($canvas->find('withtag','bgimage'));
+    $canvas->lower('bgimage','all')  if ($canvas->find('withtag','bgimage'));
   }
-  eval { $self->realcanvas->raise('TextBg','TextBox') };
-  eval { $self->realcanvas->raise('TextBg','EdgeTextBox') };
-  eval { $self->realcanvas->raise('text','TextBg') };
-  eval { $self->realcanvas->raise('plaintext','TextBg') };
+
   undef $@;
   ## Canvas grid - for inactive TreeView ##
   ##  $canvas->createLine(0,0,$canvas->width, $canvas->height,-fill => 'green');
@@ -1521,7 +1740,7 @@ sub draw_text_line {
       ($self->get_node_pinfo($node,$what."LabelWidth")-
        $self->get_node_pinfo($node,"X[$i]"))/2;
   }
-  
+
   ## Clear background
   if ($self->get_clearTextBackground and
       $clear and $self->get_node_pinfo($node,"X[$i]")>0) {
@@ -1531,9 +1750,9 @@ sub draw_text_line {
       createRectangle($x+$textdelta,$y,
 		      $x+$textdelta+$self->get_node_pinfo($node,"X[$i]")+1,
 		      $y+$lineHeight,
-		      -fill => $self->canvas->cget('-background'),
+		      -fill => $self->realcanvas->cget('-background'),
 		      -outline => undef,
-		      -tags => [$bg,'TextBg']
+		      -tags => [$bg,'textbg',"textbg_$node"]
 		     );
     $self->store_id_pinfo($bid,$bg);
     $self->apply_style_opts($bg,

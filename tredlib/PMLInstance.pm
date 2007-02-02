@@ -244,7 +244,8 @@ sub load {
   if (!ref($ctxt)) {
     $ctxt = PMLInstance->new;
   }
-
+  local $VALIDATE_CDATA=$opts->{validate_cdata} if
+    exists $opts->{validate_cdata};
   my $parser = $ctxt->{'_parser'} ||= $opts->{parser} || PMLBackend::xml_parser();
   $ctxt->{'_filename'} ||= $opts->{filename};
   if ($opts->{dom}) {
@@ -1217,6 +1218,9 @@ sub save {
   my ($ctxt,$opts)=@_;
 
   my $fh = $opts->{fh};
+
+  local $VALIDATE_CDATA=$opts->{validate_cdata} if
+    exists $opts->{validate_cdata};
 
   $ctxt->{'_filename'} = $opts->{filename} if $opts->{filename};
   my $href = $ctxt->{'_filename'};
