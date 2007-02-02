@@ -174,7 +174,8 @@ sub open_file {
 	$tmp = new IO::Zlib();
       } && $tmp || return;
       $tmp->open($file,"rb") || return;
-      local $/;
+      local $/; # this boosts loading of .gz files almost 2x
+                # for formats like XML with many new-line chars
       $fh->print(<$tmp>);
       $tmp->close();
       seek($fh,0,'SEEK_SET');

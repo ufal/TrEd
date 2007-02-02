@@ -535,50 +535,96 @@ my %default_binding = (
     ],
   '<KeyPress-Left>'=>
     [sub {
-       $treeViewOpts->{reverseNodeOrder}
-	 ? currentRight($_[1])
-	 : currentLeft($_[1]);
+       my $grp = $_[1];
+       if (treeIsVertical($grp)) {
+	 currentUp($grp);
+       } else {
+	 treeIsReversed($grp)
+	   ? currentRight($grp)
+	   : currentLeft($grp);
+       }
        Tk->break;
      },
      'select left sibling',
     ],
   '<Shift-Left>'=>
     [sub {
-       $treeViewOpts->{reverseNodeOrder} 
-	 ? currentRightWholeLevel($_[1]) 
-	 : currentLeftWholeLevel($_[1]);
+       my $grp = $_[1];
+       treeIsReversed($grp)
+	 ? currentRightWholeLevel($grp)
+	   : currentLeftWholeLevel($grp);
        Tk->break;
      },
      'select node on the left',
     ],
   '<KeyPress-Right>'=>
     [sub {
-       $treeViewOpts->{reverseNodeOrder}
-	 ? currentLeft($_[1])
-	 : currentRight($_[1]);
+       my $grp = $_[1];
+       if (treeIsVertical($grp)) {
+	 currentDown($grp);
+       } else {
+	 treeIsReversed($grp)
+	 ? currentLeft($grp)
+	 : currentRight($grp);
+       }
        Tk->break;
      },
      'select right sibling',
     ],
   '<Shift-Right>'=>
     [sub {
-       $treeViewOpts->{reverseNodeOrder}
-	 ? currentLeftWholeLevel($_[1])
-	 : currentRightWholeLevel($_[1]);
+       my $grp = $_[1];
+       treeIsReversed($grp)
+	 ? currentLeftWholeLevel($grp)
+	   : currentRightWholeLevel($grp);
        Tk->break;
      },
      'select node on the right',
     ],
   '<KeyPress-Up>'=>
     [sub {
-       currentUp($_[1]);
+       my $grp = $_[1];
+       if (treeIsVertical($grp)) {
+	 treeIsReversed($grp)
+	   ? currentRight($grp)
+	   : currentLeft($grp);
+       } else {
+	 currentUp($grp);
+       }
+       Tk->break;
+     },
+     'select parent node',
+    ],
+  '<Shift-Up>'=>
+    [sub {
+       my $grp = $_[1];
+       treeIsReversed($grp)
+	 ? currentRightLin($grp)
+	 : currentLeftLin($grp);
        Tk->break;
      },
      'select parent node',
     ],
   '<KeyPress-Down>'=>
     [sub {
-       currentDown($_[1]);
+       my $grp = $_[1];
+       if (treeIsVertical($grp)) {
+	 treeIsReversed($grp)
+	   ? currentLeft($grp)
+   	   : currentRight($grp);
+       } else {
+	 currentDown($grp);
+       }
+       Tk->break;
+     },
+     'select first child-node',
+    ],
+  '<Shift-Down>'=>
+    [sub {
+       my $grp = $_[1];
+       treeIsReversed($grp)
+	 ? currentLeftLin($grp)
+	 : currentRightLin($grp);
        Tk->break;
      },
      'select first child-node',
@@ -2428,11 +2474,22 @@ sub HPrev { # same as Next but obey $showHidden
   return 0;
 }
 
+sub DisplayedAncestor {
+  my ($win,$node)= @_;
+  my $tv = $win->treeView;
+  $node = $node->parent;
+  while ($node and !$tv->node_is_displayed($node)) {
+    $node = $node->parent;
+  }
+  return $node;
+}
+
 sub NextDisplayed { # same as Next but obey $showHidden
   my ($win,$node,$top)= @_;
+  my $tv = $win->treeView;
   $node=Next($node,$top);
   while ($node) {
-    return $node if ($win->treeView->node_is_displayed($node));
+    return $node if ($tv->node_is_displayed($node));
     $node=Next($node,$top);
   }
   return 0;
@@ -2440,9 +2497,10 @@ sub NextDisplayed { # same as Next but obey $showHidden
 
 sub PrevDisplayed { # same as Next but obey $showHidden
   my ($win,$node,$top)= @_;
+  my $tv = $win->treeView;
   $node=Prev($node,$top);
   while ($node) {
-    return $node if ($win->treeView->node_is_displayed($node));
+    return $node if ($tv->node_is_displayed($node));
     $node=Prev($node,$top);
   }
   return 0;
@@ -4674,6 +4732,22 @@ sub onCurrentChange {
   }
   $tv->apply_stored_style_opts("CurrentOval",$node);
   unless ($prev eq $node) {
+    eval {
+      my $stripe = $tv->get_node_pinfo($node,"Stripe");
+      if (defined($stripe)) {
+	$tv->canvas->itemconfigure($stripe, -fill => $tv->get_stripeColor);
+	$tv->canvas->itemconfigure("textbg_$node", -fill => undef ) if $tv->get_verticalTree;
+      }
+    };
+    eval {
+      my $stripe = $tv->get_node_pinfo($prev,"Stripe");
+      if (defined($stripe)) {
+	my $col = $tv->realcanvas->cget('-background');
+	$tv->canvas->itemconfigure($stripe, -fill =>  $col);
+	$tv->canvas->itemconfigure("textbg_$prev", -fill => $col )
+	  if $tv->get_verticalTree;
+      }
+    };
     $tv->apply_stored_style_opts("TextBox",$prev);
     $tv->apply_stored_style_opts("EdgeTextBox",$prev);
     doEvalHook($win,"current_node_change_hook",$node,$prev) unless $insideEval;
@@ -5060,7 +5134,13 @@ sub createCanvasBindings {
   }
 
   # TextBg
-  $canvas->bind('textbg', '<1>'=> [sub {node_down(@_) },$grp,0]);
+  $canvas->bind('textbox', '<1>'=> [sub {
+				      my $w = $_[0];
+				      node_select(@_);
+				    },$grp,0]);
+  $canvas->bind('edgebox', '<1>'=> [sub {node_select(@_) },$grp,0]);
+  $canvas->bind('textbg', '<1>'=> [sub {node_select(@_) },$grp,0]);
+  $canvas->bind('stripe', '<1>'=> [sub {node_select(@_) },$grp,0]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('textbg', "<$_-Button-1>"=> [sub {text_click_modif(@_); Tk->break; },$grp,$_]);
   }
@@ -5109,7 +5189,7 @@ sub createCanvasBindings {
   
   
   # Text 1
-  $canvas->bind('text', '<1>'=> [sub {node_down(@_) },$grp,0]);
+  $canvas->bind('text', '<1>'=> [sub {node_select(@_) },$grp,0]);
   foreach (qw(Shift Control Alt Meta)) {
     $canvas->bind('text', "<$_-Button-1>"=> [sub {text_click_modif(@_)},$grp,$_]);
   }
@@ -8927,7 +9007,11 @@ EOF
   if ($result=~ /OK/) {
     setStylesheetPatterns($win,$e->get('0.0','end'));
     updateStylesheetMenu($grp);
-    saveStyleSheets($grp) unless $win->{stylesheet} eq STYLESHEET_FROM_FILE();
+    if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
+      $win->{FSFile}->notSaved(1);
+    } else {
+      saveStyleSheets($grp)
+    }
     update_value_line($grp);
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       redraw_fsfile($grp,$win->{FSFile});
@@ -9774,13 +9858,31 @@ sub ensureCurrentIsDisplayed {
   }
 }
 
+sub treeIsVertical {
+  my $grp = shift;
+  my $win=$grp->{focusedWindow};
+  return unless $win;
+  return $win->treeView->get_verticalTree;
+}
+
+sub treeIsReversed {
+  my $grp = shift;
+  my $win=$grp->{focusedWindow};
+  return unless $win;
+  return $win->treeView->get_reverseNodeOrder;
+}
+
 sub currentLeft {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
-  my $node = $win->{currentNode}->lbrother;
-  while ($node and !$win->treeView->node_is_displayed($node)) {
-    $node = $node->lbrother;
+  my $node =$win->{currentNode};
+  my $dp=DisplayedAncestor($win,$node);
+  $node = PrevDisplayed($win,$node,$dp);
+  while ($node) {
+    my $ndp = DisplayedAncestor($win,$node);
+    last if $ndp == $dp;
+    $node = $ndp;
   }
   if ($node) {
     setCurrent($win,$node);
@@ -9792,11 +9894,37 @@ sub currentRight {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
   return unless $win->{FSFile};
-  my $node = $win->{currentNode}->rbrother;
-  while ($node and !$win->treeView->node_is_displayed($node)) {
-    $node = $node->rbrother;
+  my $node =$win->{currentNode};
+  my $dp=DisplayedAncestor($win,$node);
+  $node = NextDisplayed($win,$node->rightmost_descendant,$dp);
+  if ($node and $dp == DisplayedAncestor($win,$node)) {
+    setCurrent($win,$node);
+    centerTo($win,$win->{currentNode});
   }
-  if ($node) {
+}
+
+sub currentRightLin {
+  my $grp=$_[0];
+  my $win=$grp->{focusedWindow};
+  my $tv =$win->treeView;
+  my @nodes = grep { $tv->node_is_displayed($_) } @{$win->{Nodes}};
+  my $node = $win->{currentNode};
+  my $idx = Index(\@nodes,$node);
+  if ($idx<$#nodes) {
+    $node = $nodes[$idx+1];
+    setCurrent($win,$node);
+    centerTo($win,$win->{currentNode});
+  }
+}
+sub currentLeftLin {
+  my $grp=$_[0];
+  my $win=$grp->{focusedWindow};
+  my $tv =$win->treeView;
+  my @nodes = grep { $tv->node_is_displayed($_) } @{$win->{Nodes}};
+  my $node = $win->{currentNode};
+  my $idx = Index(\@nodes,$node);
+  if ($idx>0) {
+    $node = $nodes[$idx-1];
     setCurrent($win,$node);
     centerTo($win,$win->{currentNode});
   }
@@ -9805,33 +9933,41 @@ sub currentRight {
 sub currentRightWholeLevel {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
+  my $tv = $win->treeView;
   return unless $win->{FSFile};
+  my @nodes = grep { $tv->node_is_displayed($_) } @{$win->{Nodes}};
   my $node = $win->{currentNode};
-  return unless $node;
-  my $level=$node->level;
-  do {
-    $node=NextDisplayed($win,$node);
-  } while ($node and $level!=$node->level);
-  if ($node) {
-    setCurrent($win,$node);
-    centerTo($win,$win->{currentNode});
+  my $level = $tv->get_node_pinfo($node,'Level');
+  my $idx = Index(\@nodes,$node);
+  while ($idx<$#nodes) {
+    $node = $nodes[++$idx];
+    if ($level==$tv->get_node_pinfo($node,'Level')) {
+      setCurrent($win,$node);
+      centerTo($win,$win->{currentNode});
+      return;
+    }
   }
+  return;
 }
 
 sub currentLeftWholeLevel {
   my $grp=$_[0];
   my $win=$grp->{focusedWindow};
+  my $tv = $win->treeView;
   return unless $win->{FSFile};
+  my @nodes = grep { $tv->node_is_displayed($_) } @{$win->{Nodes}};
   my $node = $win->{currentNode};
-  return unless $node;
-  my $level=$node->level;
-  do {
-    $node=PrevDisplayed($win,$node);
-  } while ($node and $level!=$node->level);
-  if ($node) {
-    setCurrent($win,$node);
-    centerTo($win,$win->{currentNode});
+  my $level = $tv->get_node_pinfo($node,'Level');
+  my $idx = Index(\@nodes,$node);
+  while ($idx>0) {
+    $node = $nodes[--$idx];
+    if ($level==$tv->get_node_pinfo($node,'Level')) {
+      setCurrent($win,$node);
+      centerTo($win,$win->{currentNode});
+      return
+    }
   }
+  return;
 }
 
 sub currentDown {
@@ -10312,6 +10448,16 @@ sub currentPrev {
   }
 }
 
+sub node_select {
+  my($w,$grp)= @_;
+  my $win=findCanvasWindow($grp,$w);
+  my $tv=$win->{treeView};
+  my $e= $w->XEvent;
+  my($x, $y)= ($e->x, $e->y);
+  my ($canvas_obj) = $tv->find_item('withtag','current');
+  my $node=$tv->get_obj_pinfo($canvas_obj);
+  setCurrent($win,$node);
+}
 
 sub node_down {
   my($w,$grp)= @_;
@@ -10319,11 +10465,12 @@ sub node_down {
   my $tv=$win->{treeView};
   my $e= $w->XEvent;
   my($x, $y)= ($e->x, $e->y);
-  my $node=$tv->get_obj_pinfo($tv->find_item('withtag','current'));
+  my ($canvas_obj) = $tv->find_item('withtag','current');
+  my $node=$tv->get_obj_pinfo($canvas_obj);
 
   setCurrent($win,$node);
   $w->dtag('selected');
-  $w->addtag('selected', 'withtag', 'current');
+  $w->addtag('selected', 'withtag', $canvas_obj);
   $w->raise('current');
   $tv->store_gen_pinfo("lastX",$x);
   $tv->store_gen_pinfo("lastY",$y);

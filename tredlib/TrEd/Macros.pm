@@ -35,6 +35,22 @@ BEGIN {
 
 use strict;
 
+sub define_symbol {
+  my ($name, $value) = @_;
+  $defines{$name}=$value;
+  return $value;
+}
+
+sub undefine_symbol {
+  my ($name) = @_;
+  return delete $defines{$name};
+}
+
+sub is_defined {
+  my ($name) = @_;
+  return exists $defines{$name};
+}
+
 sub read_macros {
   # This subroutine reads macro file. Macros are usual perl
   # subroutines and may use this program's namespace. They are also
@@ -114,7 +130,7 @@ sub read_macros {
 	my $prev = ($#conditions>0) ? $conditions[$#conditions-1] : 1;
 	if (defined($1)) {
 	  $conditions[$#conditions]= $prev &&
-	    !$conditions[$#conditions] && exists($defines{$1});
+	    !$conditions[$#conditions] && is_defined($1);
 	} else {
 	  $conditions[$#conditions]=$prev && !$conditions[$#conditions];
 	}
@@ -124,11 +140,11 @@ sub read_macros {
       }
     } elsif (/^\#ifdef\s+(\S*)/) {
       push @macros,$_;
-      push @conditions, (exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
+      push @conditions, (is_defined($1) && (!@conditions || $conditions[$#conditions]));
       $ifok = $conditions[$#conditions];
     } elsif (/^\#ifndef\s+(\S*)/) {
       push @macros,$_;
-      push @conditions, (!exists($defines{$1}) && (!@conditions || $conditions[$#conditions]));
+      push @conditions, (!is_defined($1) && (!@conditions || $conditions[$#conditions]));
       $ifok = $conditions[$#conditions];
     } else {
       if ($ifok) {
@@ -142,9 +158,9 @@ sub read_macros {
 	if (/^\#!(.*)$/) {
 	  $exec_code=$1 unless defined $exec_code; # first wins
 	} elsif (/^\#define\s+(\S*)(?:\s+(.*))?/) {
-	  $defines{$1}=$2;	# there is no use for $2 so far
+	  define_symbol($1, $2); # there is no use for $2 so far
 	} elsif (/^\#undefine\s+(\S*)/) {
-	  delete $defines{$1};
+	  undefine_symbol($1);
 	} elsif (/^\#\s*binding-context\s+(.*)/) {
 	  @contexts=(split /\s+/,$1) if $ifok;
 	} elsif (/^\#\s*key-binding-adopt\s+(.*)/) {
