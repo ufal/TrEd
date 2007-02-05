@@ -10123,13 +10123,13 @@ sub examineEvent {
   if ($eA eq $eK) {
     $key .= " [$eA]" if ($eA ne $key);
   } else {
-    $rot =  $rotated ? ' (rotated because of vertical mode)' : '';
+    $rot =  $rotated ? ' /rotated because of vertical mode/ ' : '';
     if ($eA eq $key) {
-      $key .= " [$eK$rot]";
+      $key .= " [$eK]$rot";
     } elsif ($eK eq $key) {
-      $key .= " [$eA$rot]";
+      $key .= " [$eA]$rot";
     } else {
-      $key .= " [$eA = $eK$rot]";
+      $key .= " [$eA = $eK]$rot";
     }
   }
   if ($by_event_hook) {
