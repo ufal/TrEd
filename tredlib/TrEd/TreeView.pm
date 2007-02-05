@@ -561,7 +561,8 @@ sub recalculate_positions_vert {
   if ($balance) {
     @{$nodes} = @{$self->balance_node_order($nodes)};
   }
-  foreach $node (@{$nodes}) {
+  # we reverse back to normal order in vertical mode
+  foreach $node ($self->get_reverseNodeOrder ? reverse @{$nodes} : @{$nodes}) {
     $level=$self->get_node_pinfo($node,'Level')+$self->get_style_opt($node,"Node","-level",$Opts);
 
     $xpos = $baseXPos + $level * (15+$nodeXSkip);
@@ -574,18 +575,20 @@ sub recalculate_positions_vert {
     $self->{canvasHeight} += $levelHeight;
     if (@patterns) {
       ($pat_style,$pat)=@{$patterns[0]};
+      $m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
       if ($pat_style eq 'node') {
+	$self->store_node_pinfo($node,"NodeLabelWidth",$m);
+	#$self->store_gen_pinfo("NodeLabelWidth[0]",0);
 	$self->store_gen_pinfo("NodeLabel_XPOS[0]", $label_xpos);
 	$self->store_node_pinfo($node,"NodeLabel_XPOS", $label_xpos); # compat
       } else {
+	$self->store_node_pinfo($node,"EdgeLabelWidth",$m);
+	#$self->store_gen_pinfo("NodeLabelWidth[0]",0);
 	$self->store_gen_pinfo("EdgeLabel_XPOS[0]", $label_xpos);
 	$self->store_node_pinfo($node,"EdgeLabel_XPOS", $label_xpos); #compat
       }
-      $m=$self->getTextWidth($self->prepare_text($node,$pat,$grp));
       $self->store_node_pinfo($node,"X[0]",$m);
       $canvasWidth = max($canvasWidth, $label_xpos + $m);
-      $self->store_node_pinfo($node,"EdgeLabelWidth",$m);
-      $self->store_node_pinfo($node,"NodeLabelWidth",$m);
       $self->store_node_pinfo($node,"After",0);
       $self->store_node_pinfo($node,"Before",0);
     }
@@ -593,6 +596,8 @@ sub recalculate_positions_vert {
   $canvasWidth+=$labelsep;
   $self->store_gen_pinfo("NodeLabel_XMIN",$canvasWidth);
   my ($n_i, $e_i)=(-1,-1);
+  my $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",$Opts);
+  my $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
   for (my $i=0; $i<@patterns; $i++) {
     my $max = 0;
     ($pat_style,$pat)=@{$patterns[$i]};
@@ -605,8 +610,10 @@ sub recalculate_positions_vert {
     }
     if ($pat_style eq 'node') {
       $self->store_gen_pinfo("NodeLabel_XPOS[$n_i]",$canvasWidth+$labelsep);
+      $self->store_gen_pinfo("NodeLabelWidth[$n_i]",$max);
     } else {
       $self->store_gen_pinfo("EdgeLabel_XPOS[$e_i]",$canvasWidth+$labelsep);
+      $self->store_gen_pinfo("EdgeLabelWidth[$e_i]",$max);
     }
     $canvasWidth+=$max+$labelsep;
   }
@@ -1732,15 +1739,14 @@ sub draw_text_line {
   if ($align eq 'left') {
     $textdelta=0;
   } elsif ($align eq 'right') {
-    $textdelta=
-      $self->get_node_pinfo($node,$what."LabelWidth")-
-	$self->get_node_pinfo($node,"X[$i]");
+    my $lw = $self->get_gen_pinfo($what."LabelWidth[$i]");
+    $lw = $self->get_node_pinfo($node,$what."LabelWidth") unless defined $lw;
+    $textdelta= ($lw - $self->get_node_pinfo($node,"X[$i]"));
   } elsif ($align eq 'center') {
-    $textdelta=
-      ($self->get_node_pinfo($node,$what."LabelWidth")-
-       $self->get_node_pinfo($node,"X[$i]"))/2;
+    my $lw = $self->get_gen_pinfo($what."LabelWidth[$i]");
+    $lw = $self->get_node_pinfo($node,$what."LabelWidth") unless defined $lw;
+    $textdelta= ($lw - $self->get_node_pinfo($node,"X[$i]"))/2;
   }
-
   ## Clear background
   if ($self->get_clearTextBackground and
       $clear and $self->get_node_pinfo($node,"X[$i]")>0) {

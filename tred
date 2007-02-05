@@ -37,7 +37,7 @@ use vars qw($svn_version $version $about $opt_u $opt_h $opt_c
 	    $normalPrevPixmap
 	    $locale_charset
 	    $no_secondary
-	    %HELP
+	    %HELP %vertical_key_arrow_map
            );
 
 $svn_version='$Id$';
@@ -477,6 +477,14 @@ use Exporter;
 		    ]
 	    );
 
+# rotation of keyboard bindings for verticalTree mode
+my %vertical_key_arrow_map = (
+  Left => 'Up',
+  Right => 'Down',
+  Up => 'Left',
+  Down => 'Right',
+);
+
 my %default_binding = (
   '<Tab>' => 
     [ sub { currentNext($_[1]->{focusedWindow}); 
@@ -555,7 +563,7 @@ my %default_binding = (
 	   : currentLeftWholeLevel($grp);
        Tk->break;
      },
-     'select node on the left',
+     'select previous node on the same level',
     ],
   '<KeyPress-Right>'=>
     [sub {
@@ -579,7 +587,7 @@ my %default_binding = (
 	   : currentRightWholeLevel($grp);
        Tk->break;
      },
-     'select node on the right',
+     'select next node on the same level',
     ],
   '<KeyPress-Up>'=>
     [sub {
@@ -603,7 +611,7 @@ my %default_binding = (
 	 : currentLeftLin($grp);
        Tk->break;
      },
-     'select parent node',
+     'select previous node in linear order',
     ],
   '<KeyPress-Down>'=>
     [sub {
@@ -627,7 +635,7 @@ my %default_binding = (
 	 : currentRightLin($grp);
        Tk->break;
      },
-     'select first child-node',
+     'select next node in linear order',
     ],
  );
    
@@ -10110,16 +10118,18 @@ sub doEvalHook {
 sub examineEvent {
   my $w = shift;
   my $bindings = shift;
-  my ($macro,$key,$eA,$eK,$by_event_hook) = resolveEvent($w,@_);
+  my $grp = $_[0];
+  my ($macro,$key,$eA,$eK,$by_event_hook, $rotated) = resolveEvent($w,@_);
   if ($eA eq $eK) {
     $key .= " [$eA]" if ($eA ne $key);
   } else {
+    $rot =  $rotated ? ' (rotated because of vertical mode)' : '';
     if ($eA eq $key) {
-      $key .= " [$eK]";
+      $key .= " [$eK$rot]";
     } elsif ($eK eq $key) {
-      $key .= " [$eA]";
+      $key .= " [$eA$rot]";
     } else {
-      $key .= " [$eA = $eK]";
+      $key .= " [$eA = $eK$rot]";
     }
   }
   if ($by_event_hook) {
@@ -10163,8 +10173,8 @@ sub examineBindingsDialog {
     foreach my $event (qw(KeyPress Right Left Up Down
                           Return comma period Next Prior greater less)) {
       $d->bind("<$_-$event>"=> [\&examineEvent, \$bindings, $grp, keyBind($_)."+"])
-	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress")
-      }
+	unless ("$_-$event" eq "Alt-KeyPress" or "$_-$event" eq "Meta-KeyPress");
+    }
   }
 
   my $set_bindings_func = sub { $bindings = 'builtin - '.$_[1]; Tk->break; };
@@ -10303,6 +10313,13 @@ sub resolveEvent {
   my $K= $e->K;
   my @possib=();
   my $macro=undef;
+  my $rotated = 0;
+  if (treeIsVertical($grp) and exists $vertical_key_arrow_map{$K}) {
+    print STDERR "vertical tree: translating $K to " if $keyboardDebug;
+    $K = $vertical_key_arrow_map{$K};
+    print STDERR "$K\n" if $keyboardDebug;
+    $rotated  = 1;
+  }
 
   print STDERR "Prefix: $prefix\n" if $keyboardDebug;
   $prefix=~s/SHIFT\+//g unless ($K=~/^(?:left|right|up|down|next|prior|space|backspace|insert|delete|return|pause|escape|home|end|begin|select|print|execute|undo|redo|menu|find|cancel|help|break|F[0-9]+|L[0-9]+|R[0-9]+|ISO_Left_Tab)$/i);
@@ -10321,14 +10338,14 @@ sub resolveEvent {
   if (defined($macro)) {
     if ($macro eq 'stop') {
       print STDERR "Event blocked by event_hook\n" if $macroDebug || $keyboardDebug;
-      return (undef,undef,$prefix.$A,$prefix.$K,1);
+      return (undef,undef,$prefix.$A,$prefix.$K,1,$rotated);
     } else {
       print STDERR "Event translated by event_hook to '$macro'\n" if $macroDebug || $keyboardDebug;
-      return ($macro,$key,$prefix.$A,$prefix.$K,1);
+      return ($macro,$key,$prefix.$A,$prefix.$K,1,$rotated);
     }
   } else {
     ($macro,$key)=resolveKey($grp,@possib);
-    return ($macro,$key,$prefix.$A,$prefix.$K);
+    return ($macro,$key,$prefix.$A,$prefix.$K,undef,$rotated);
   }
 }
 
