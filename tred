@@ -593,9 +593,10 @@ my %default_binding = (
     [sub {
        my $grp = $_[1];
        if (treeIsVertical($grp)) {
-	 treeIsReversed($grp)
-	   ? currentRight($grp)
-	   : currentLeft($grp);
+#	 treeIsReversed($grp)
+#	   ? currentRight($grp)
+#	   : 
+	     currentLeft($grp);
        } else {
 	 currentUp($grp);
        }
@@ -617,9 +618,10 @@ my %default_binding = (
     [sub {
        my $grp = $_[1];
        if (treeIsVertical($grp)) {
-	 treeIsReversed($grp)
-	   ? currentLeft($grp)
-   	   : currentRight($grp);
+#	 treeIsReversed($grp)
+#	   ? currentLeft($grp)
+#   	   : 
+	     currentRight($grp);
        } else {
 	 currentDown($grp);
        }
