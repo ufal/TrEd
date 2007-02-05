@@ -596,8 +596,6 @@ sub recalculate_positions_vert {
   $canvasWidth+=$labelsep;
   $self->store_gen_pinfo("NodeLabel_XMIN",$canvasWidth);
   my ($n_i, $e_i)=(-1,-1);
-  my $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",$Opts);
-  my $halign_node=$self->get_style_opt($node,"NodeLabel","-halign",$Opts);
   for (my $i=0; $i<@patterns; $i++) {
     my $max = 0;
     ($pat_style,$pat)=@{$patterns[$i]};
