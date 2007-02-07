@@ -1,14 +1,19 @@
 #!/usr/bin/perl -w ###################################################################### 2004/04/15
+
+eval 'exec /usr/bin/perl -w ###################################################################### 2004/04/15 -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
 #
 # SyntaxFS.pl ########################################################################## Otakar Smrz
 
-# $Id: SyntaxFS.pl 187 2007-01-26 13:27:14Z smrz $
+# $Id: SyntaxFS.pl 197 2007-02-05 14:12:25Z smrz $
 
-our $VERSION = do { q $Revision: 187 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+use strict;
+
+our $VERSION = do { q $Revision: 197 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 BEGIN {
 
-    $libDir = `btred --lib`;
+    our $libDir = `btred --lib`;
 
     chomp $libDir;
 
@@ -18,114 +23,56 @@ BEGIN {
 use Fslib 1.6;
 
 
-$decode = "utf8";
-$encode = "utf8";
+our $decode = "utf8";
+
+our $encode = "utf8";
+
+
+our ($source, $target, $file, $FStime);
+
+
+# ##################################################################################################
+#
+# ##################################################################################################
+
 
 @ARGV = glob join " ", @ARGV;
 
+
 foreach $file (@ARGV) {
 
-    $target = FSFile->create(
+    $FStime = gmtime;
 
-                'FS'        => FSFormat->create(
-
-                    '@P form',
-                    '@P afun',
-                    '@O afun',
-                    '@L afun|Pred|Pnom|PredE|PredC|PredP|Sb|Obj|Adv|Atr|Atv|ExD|Coord|Apos|Ante|AuxS' .
-                           '|AuxC|AuxP|AuxE|AuxM|AuxY|AuxG|AuxK|ObjAtr|AtrObj|AdvAtr|AtrAdv|AtrAtr|???',
-                    '@P lemma',
-                    '@P tag',
-                    '@P origf',
-                    '@V origf',
-                    '@N ord',
-                    '@P afunaux',
-                    '@P tagauto',
-                    '@P lemauto',
-                    '@P parallel',
-                    '@L parallel|Co|Ap|no-parallel',
-                    '@P paren',
-                    '@L paren|Pa|no-paren',
-                    '@P arabfa',
-                    '@L arabfa|Ca|Exp|Fi|no-fa',
-                    '@P arabspec',
-                    '@L arabspec|Ref|Msd|no-spec',
-                    '@P arabclause',
-                    '@L arabclause|Pred|PredC|PredE|PredP|Pnom|no-claus',
-                    '@P comment',
-                    '@P docid',
-                    '@P1 warning',
-                    '@P3 err1',
-                    '@P3 err2',
-                    '@P reserve1',
-                    '@P reserve2',
-                    '@P reserve3',
-                    '@P reserve4',
-                    '@P reserve5',
-                    '@P x_id_ord',
-                    '@P x_input',
-                    '@P x_lookup',
-                    '@P x_morph',
-                    '@P x_gloss',
-                    '@P x_comment',
-
-                                ),
-
-                'hint'      =>  ( join "\n",
-
-                        'tag:   ${tag}',
-                        'lemma: ${lemma}',
-                        'morph: ${x_morph}',
-                        'gloss: ${x_gloss}',
-                        'comment: ${x_comment}',
-
-                                ),
-                'patterns'  => [
-
-                        'svn: $' . 'Revision' . ': $ $' . 'Date' . ': $',
-
-                        'style:' . q {<?
-
-                                Analytic::isClauseHead() ? '#{Line-fill:gold}' : ''
-
-                            ?>},
-
-                        q {<? $this->{form} =~ /^./ ? '${form}' : '#{custom6}${origf}' ?>},
-
-                        q {<?
-
-                                join '#{custom1}_', ( $this->{afun} eq '???' && $this->{afunaux} ne '' ?
-                                '#{custom3}${afunaux}' : '#{custom1}${afun}' ), ( ( join '_', map {
-                                '${' . $_ . '}' } grep { $this->{$_} =~ /^./ && $this->{$_} !~ /^no-/ }
-                                qw 'parallel paren arabfa arabspec arabclause' ) || () )
-
-                            ?>},
-
-                        q {<? '#{custom6}${x_comment} << ' if $this->{afun} ne 'AuxS' and $this->{x_comment} ne '' ?>}
-
-                            . '#{custom2}${tag}',
-
-                                ],
-                'trees'     => [],
-                'backend'   => 'FSBackend',
-                'encoding'  => $encode,
-        );
+    $target = FSFile->create(define_target_format());
 
     $source = FSFile->create('encoding' => $decode);
 
     $source->readFile($file);
 
-    $tree_id = $para_id = 0;
+    process_source();
 
-    foreach $tree ($source->trees()) {
+    $file =~ s/(?:\.morpho)?\.fs$//;
+
+    $target->writeFile($file . '.syntax.fs');
+}
+
+
+sub process_source {
+
+    my ($tree_id, $para_id) = (0, 0);
+
+    my ($ord, $ent, $ref);
+
+
+    foreach my $tree ($source->trees()) {
 
         $tree_id++;
 
         next unless $tree->{'type'} eq 'paragraph';
 
-        $para = $tree;
+        my $para = $tree;
 
-        $root = $target->new_tree($para_id++);
+        my $root = $target->new_tree($para_id++);
 
         $root->{'ord'} = $ord = 0;
 
@@ -137,24 +84,24 @@ foreach $file (@ARGV) {
         $root->{'tag'} = $para->{'input'};
         $root->{'origf'} = $para->{'id'};
 
-        $root->{'comment'} = gmtime() . " [SyntaxFS.pl $VERSION]";
+        $root->{'comment'} = "$FStime [SyntaxFS.pl $VERSION]";
         $root->{'x_comment'} = $para->{'comment'};
 
-        $node = $root;
+        my $node = $root;
 
-        foreach $entity ($para->children()) {
+        foreach my $entity ($para->children()) {
 
             if (defined $entity->{'apply_m'} and $entity->{'apply_m'} > 0) {
 
                 $ent = 0;
 
-                foreach $lemma ($entity->children()) {
+                foreach my $lemma ($entity->children()) {
 
-                    foreach $form ($lemma->children()) {
+                    foreach my $form ($lemma->children()) {
 
                         $ref = ($source->tree($entity->{'ref'} - 1)->descendants())[$form->{'ref'} - 1];
 
-                        $token = FSNode->new();
+                        my $token = FSNode->new();
 
                         $token->{'ord'} = ++$ord;
 
@@ -174,7 +121,7 @@ foreach $file (@ARGV) {
 
                         $token->{'origf'} = $ref->root()->{'input'} unless $ent++;
 
-                        Fslib::Paste($token, $node, $target->FS());
+                        $token->paste_on($node, 'ord');
 
                         $node = $token;
                     }
@@ -184,7 +131,7 @@ foreach $file (@ARGV) {
 
                 $ref = $source->tree($entity->{'ref'} - 1);
 
-                $token = FSNode->new();
+                my $token = FSNode->new();
 
                 $token->{'ord'} = ++$ord;
 
@@ -204,13 +151,136 @@ foreach $file (@ARGV) {
 
                 $token->{'origf'} = $ref->root()->{'input'};
 
-                Fslib::Paste($token, $node, $target->FS());
+                $token->paste_on($node, 'ord');
 
                 $node = $token;
             }
         }
     }
-
-    $file =~ s/(?:\.morpho)?\.fs$//;
-    $target->writeFile($file . '.syntax.fs');
 }
+
+
+sub define_target_format {
+
+    return (
+
+        'FS'        => FSFormat->create(
+
+            '@P form',
+            '@P afun',
+            '@O afun',
+            '@L afun|Pred|Pnom|PredE|PredC|PredP|Sb|Obj|Adv|Atr|Atv|ExD|Coord|Apos|Ante|AuxS' .
+                   '|AuxC|AuxP|AuxE|AuxM|AuxY|AuxG|AuxK|ObjAtr|AtrObj|AdvAtr|AtrAdv|AtrAtr|???',
+            '@P lemma',
+            '@P tag',
+            '@P origf',
+            '@V origf',
+            '@N ord',
+            '@P afunaux',
+            '@P tagauto',
+            '@P lemauto',
+            '@P parallel',
+            '@L parallel|Co|Ap|no-parallel',
+            '@P paren',
+            '@L paren|Pa|no-paren',
+            '@P arabfa',
+            '@L arabfa|Ca|Exp|Fi|no-fa',
+            '@P arabspec',
+            '@L arabspec|Ref|Msd|no-spec',
+            '@P arabclause',
+            '@L arabclause|Pred|PredC|PredE|PredP|Pnom|no-claus',
+            '@P comment',
+            '@P docid',
+            '@P1 warning',
+            '@P3 err1',
+            '@P3 err2',
+
+            map {
+
+                '@P ' . $_,
+
+                } qw 'reserve1 reserve2 reserve3 reserve4 reserve5',
+                  qw 'x_id_ord x_input x_lookup x_morph x_gloss x_comment'
+
+                        ),
+
+        'hint'      =>  ( join "\n",
+
+                'tag:   ${tag}',
+                'lemma: ${lemma}',
+                'morph: ${x_morph}',
+                'gloss: ${x_gloss}',
+                'comment: ${x_comment}',
+
+                        ),
+        'patterns'  => [
+
+                'svn: $' . 'Revision' . ': $ $' . 'Date' . ': $',
+
+                'style:' . q {<?
+
+                        Analytic::isClauseHead() ? '#{Line-fill:gold}' : ''
+
+                    ?>},
+
+                q {<? $this->{form} =~ /^./ ? '${form}' : '#{custom6}${origf}' ?>},
+
+                q {<?
+
+                        join '#{custom1}_', ( $this->{afun} eq '???' && $this->{afunaux} ne '' ?
+                        '#{custom3}${afunaux}' : '#{custom1}${afun}' ), ( ( join '_', map {
+                        '${' . $_ . '}' } grep { $this->{$_} =~ /^./ && $this->{$_} !~ /^no-/ }
+                        qw 'parallel paren arabfa arabspec arabclause' ) || () )
+
+                    ?>},
+
+                q {<? '#{custom6}${x_comment} << ' if $this->{afun} ne 'AuxS' and $this->{x_comment} ne '' ?>}
+
+                    . '#{custom2}${tag}',
+
+                        ],
+        'trees'     => [],
+        'backend'   => 'FSBackend',
+        'encoding'  => $encode,
+
+    );
+}
+
+
+__END__
+
+
+=head1 NAME
+
+SyntaxFS - Generating Analytic given a list of input MorphoTrees documents
+
+
+=head1 REVISION
+
+    $Revision: 197 $       $Date: 2007-02-05 15:12:25 +0100 (Mon, 05 Feb 2007) $
+
+
+=head1 DESCRIPTION
+
+Prague Arabic Dependency Treebank
+L<http://ufal.mff.cuni.cz/padt/online/2007/01/prague-treebanking-for-everyone-video.html>
+
+
+=head1 AUTHOR
+
+Otakar Smrz, L<http://ufal.mff.cuni.cz/~smrz/>
+
+    eval { 'E<lt>' . ( join '.', qw 'otakar smrz' ) . "\x40" . ( join '.', qw 'mff cuni cz' ) . 'E<gt>' }
+
+Perl is also designed to make the easy jobs not that easy ;)
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2004-2007 by Otakar Smrz
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+
+=cut

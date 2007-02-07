@@ -558,9 +558,10 @@ my %default_binding = (
   '<Shift-Left>'=>
     [sub {
        my $grp = $_[1];
-       treeIsReversed($grp)
-	 ? currentRightWholeLevel($grp)
-	   : currentLeftWholeLevel($grp);
+#       treeIsReversed($grp)
+#	 ? currentRightWholeLevel($grp)
+#	   : 
+       currentLeftWholeLevel($grp);
        Tk->break;
      },
      'select previous node on the same level',
@@ -582,9 +583,10 @@ my %default_binding = (
   '<Shift-Right>'=>
     [sub {
        my $grp = $_[1];
-       treeIsReversed($grp)
-	 ? currentLeftWholeLevel($grp)
-	   : currentRightWholeLevel($grp);
+#       treeIsReversed($grp)
+#	 ? currentLeftWholeLevel($grp)
+#	   : 
+       currentRightWholeLevel($grp);
        Tk->break;
      },
      'select next node on the same level',
