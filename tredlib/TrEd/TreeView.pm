@@ -32,7 +32,8 @@ use strict;
   edgeLabelSkipBelow pinfo textColor xmargin nodeOutlineColor
   nodeColor hiddenNodeColor nearestNodeColor ymargin currentNodeColor
   textColorShadow textColorHilite textColorXHilite skipHiddenLevels skipHiddenParents
-  useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree verticalTree);
+  useAdditionalEdgeLabelSkip reverseNodeOrder balanceTree verticalTree displayMode labelSep
+  columnSep);
 
 %DefaultNodeStyle = (
 	      Oval            =>  [],
@@ -507,7 +508,10 @@ sub recalculate_positions_vert {
   my $canvasWidth=0;
   $self->{canvasHeight}=0;
   my $node;
-  my $labelsep = 5;
+  my $labelsep = $Opts->{'labelsep'};
+  $labelsep = $self->get_labelSep unless defined $labelsep;
+  my $columnsep = $Opts->{'columnsep'};
+  $columnsep = $self->get_columnSep unless defined $columnsep;
   my ($nodeWidth,$nodeHeight)=($self->get_nodeWidth,$self->get_nodeHeight);
   my $nodeXSkip = exists($Opts->{nodeXSkip}) ? $Opts->{nodeXSkip} : $self->get_nodeXSkip;
   my $nodeYSkip = exists($Opts->{nodeYSkip}) ? $Opts->{nodeYSkip} : $self->get_nodeYSkip;
@@ -591,7 +595,6 @@ sub recalculate_positions_vert {
       $self->store_node_pinfo($node,"Before",0);
     }
   }
-  $canvasWidth+=$labelsep;
   $self->store_gen_pinfo("NodeLabel_XMIN",$canvasWidth);
   my ($n_i, $e_i)=(-1,-1);
   for (my $i=0; $i<@patterns; $i++) {
@@ -599,19 +602,23 @@ sub recalculate_positions_vert {
     ($pat_style,$pat)=@{$patterns[$i]};
     if ($pat_style eq 'node') { $n_i++ } else { $e_i++ }
     next if $i==0;
+    my $sep = $Opts->{'columnsep['.$i.']'};
+    $sep = $columnsep unless defined $sep;
+    $canvasWidth+=$sep;
+    
     foreach $node (@{$nodes}) {
       $m=$self->getTextWidth( $self->prepare_text($node,$pat,$grp) );
       $self->store_node_pinfo($node,"X[$i]",$m);
       $max = max($max,$m);
     }
     if ($pat_style eq 'node') {
-      $self->store_gen_pinfo("NodeLabel_XPOS[$n_i]",$canvasWidth+$labelsep);
+      $self->store_gen_pinfo("NodeLabel_XPOS[$n_i]",$canvasWidth);
       $self->store_gen_pinfo("NodeLabelWidth[$n_i]",$max);
     } else {
-      $self->store_gen_pinfo("EdgeLabel_XPOS[$e_i]",$canvasWidth+$labelsep);
+      $self->store_gen_pinfo("EdgeLabel_XPOS[$e_i]",$canvasWidth);
       $self->store_gen_pinfo("EdgeLabelWidth[$e_i]",$max);
     }
-    $canvasWidth+=$max+$labelsep;
+    $canvasWidth+=$max;
   }
   $self->store_gen_pinfo("NodeLabel_XMAX",$canvasWidth);
   $self->{canvasWidth} = $canvasWidth+$self->get_xmargin;
@@ -1283,7 +1290,10 @@ sub redraw {
   #my $t0= new Benchmark;
   #for (my $i=0;$i<=50;$i++) {
   #------------------------------------------------------------
-  my $vertical_tree = $self->set_verticalTree(exists($Opts{vertical}) ? $Opts{vertical} : 0);
+  my $vertical_tree = $self->set_verticalTree(
+    $self->get_displayMode
+      ? (($self->get_displayMode+1)/2)
+      : exists($Opts{vertical}) ? $Opts{vertical} : 0 );
   if ($vertical_tree) {
     recalculate_positions_vert($self,$fsfile,$nodes,\%Opts,$grp);
   } else {
@@ -1482,7 +1492,7 @@ sub redraw {
     $self->store_obj_pinfo($oval,$node);
 
     # EdgeLabel
-    if (scalar(@edge_patterns) and $parent) {
+    if (not $vertical_tree and scalar(@edge_patterns) and $parent) {
       my $coords = $self->get_style_opt($node,"EdgeLabel","-coords",\%Opts);
       $halign_edge=$self->get_style_opt($node,"EdgeLabel","-halign",\%Opts);
       $valign_edge=$self->get_style_opt($node,"EdgeLabel","-valign",\%Opts);
@@ -1752,7 +1762,8 @@ sub draw_text_line {
       $lineHeight,$x,$y,$clear,$Opts,$grp,$edge)=@_;
   my $what = $edge ? "Edge" : "Node";
 #  $msg=~s/([\$\#]{[^}]+})/\#\#\#$1\#\#\#/g;
-  my $align=$self->get_style_opt($node,$what,"-textalign",$Opts);
+  my $align= $self->get_style_opt($node,$what,"-textalign[$i]",$Opts);
+  $align = $self->get_style_opt($node,$what,"-textalign",$Opts) unless defined $align;
   my $textdelta;
   if ($align eq 'left') {
     $textdelta=0;
