@@ -1103,8 +1103,8 @@ Tk: 804.027
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry id="view-tree-orientation">
-	  <term><guimenuitem moreinfo="none">Tree Orientation</guimenuitem></term>
+	<varlistentry id="view-display-mode">
+	  <term><guimenuitem moreinfo="none">Display mode</guimenuitem></term>
 	  <listitem>
 	    <para>
 	      In this menu you can choose between
@@ -1119,7 +1119,7 @@ Tk: 804.027
 	      linkend="vertical-mode">vertical mode</link> is forced, disregarding any current stylesheet
 	      setting.
 	      The default value is controlled by the
-	      <link linkend="forceorientation">ForceOrientation</link>
+	      <link linkend="displaymode">DisplayMode</link>
 	      configuration option.
 	    </para>
 	  </listitem>
@@ -2964,10 +2964,10 @@ Tk: 804.027
       <firstterm>vertical</firstterm>. Switching between
       these modes can be achieved
       either by
-      <link linkend="view-tree-orientation">
+      <link linkend="view-display-mode">
       <menuchoice>
 	<guimenu>View</guimenu>
-	<guisubmenu>Tree Orientation</guisubmenu>
+	<guisubmenu>Display mode</guisubmenu>
       </menuchoice></link>,
       or by using the <literal>rootstyle:</literal>
       instruction <literal>#{vertical}</literal>
@@ -4877,8 +4877,8 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
-	<varlistentry id="forceorientation">
-	  <term><literal moreinfo="none">ForceOrientation</literal></term>
+	<varlistentry id="displaymode">
+	  <term><literal moreinfo="none">DisplayMode</literal></term>
 	  <listitem>
 	    <para>If this option is set to 1, the tree will be
 	      always displayed in the <link linkend="vertical-mode">vertical mode</link>, if set to -1,
