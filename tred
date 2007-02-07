@@ -251,7 +251,7 @@ unshift @INC,$libDir if (-d $libDir);
 $TrEd::Config::treeViewOpts={
 			     drawSentenceInfo => 0,
 			     showHidden => 0,
-			     forcedOrientation => 0,
+			     displayMode => 0,
 			     customColors	 =>
 			       {0 => 'darkgreen',
 				1 => 'darkblue',
@@ -5241,7 +5241,7 @@ sub MenubarItem {
 sub _change_orientation {
   my ($grp)=@_;
   my $win=$grp->{focusedWindow};
-  $win->{treeView}->set_forcedOrientation($treeViewOpts->{forcedOrientation});
+  $win->{treeView}->set_displayMode($treeViewOpts->{displayMode});
   redraw_win($win);
   ensureCurrentIsDisplayed($win);
 }
@@ -5584,19 +5584,19 @@ sub startMain {
 	    [Radiobutton => "Default",
 	     -underline => 0,
 	     -value => 0,
-	     -variable => \$treeViewOpts->{forcedOrientation},
+	     -variable => \$treeViewOpts->{displayMode},
 	     -command => [\&_change_orientation,\%group],
 	    ],
 	    [Radiobutton => "Horizontal",
 	     -underline => 0,
 	     -value => -1,
-	     -variable => \$treeViewOpts->{forcedOrientation},
+	     -variable => \$treeViewOpts->{displayMode},
 	     -command => [\&_change_orientation,\%group],
 	    ],
 	    [Radiobutton => "Vertical",
 	     -underline => 0,
 	     -value => 1,
-	     -variable => \$treeViewOpts->{forcedOrientation},
+	     -variable => \$treeViewOpts->{displayMode},
 	     -command => [\&_change_orientation,\%group],
 	    ],
 	   ]
