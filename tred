@@ -251,6 +251,7 @@ unshift @INC,$libDir if (-d $libDir);
 $TrEd::Config::treeViewOpts={
 			     drawSentenceInfo => 0,
 			     showHidden => 0,
+			     forcedOrientation => 0,
 			     customColors	 =>
 			       {0 => 'darkgreen',
 				1 => 'darkblue',
@@ -5234,8 +5235,15 @@ sub MenubarItem {
       $opts{-text} = $label;
     }
     $menubar->Menubutton(%opts)->pack(qw/-side left/);
-;
   }
+}
+
+sub _change_orientation {
+  my ($grp)=@_;
+  my $win=$grp->{focusedWindow};
+  $win->{treeView}->set_forcedOrientation($treeViewOpts->{forcedOrientation});
+  redraw_win($win);
+  ensureCurrentIsDisplayed($win);
 }
 
 sub startMain {
@@ -5571,6 +5579,28 @@ sub startMain {
 # 			 },\%group]],
 	 [Checkbutton=> 'Sort Attributes in Dialogs', -underline=> 1,
 	  -variable=> \$sortAttrs],
+	 [Cascade=> 'Display mode', -underline=> 8,
+	  -menuitems=> [
+	    [Radiobutton => "Default",
+	     -underline => 0,
+	     -value => 0,
+	     -variable => \$treeViewOpts->{forcedOrientation},
+	     -command => [\&_change_orientation,\%group],
+	    ],
+	    [Radiobutton => "Horizontal",
+	     -underline => 0,
+	     -value => -1,
+	     -variable => \$treeViewOpts->{forcedOrientation},
+	     -command => [\&_change_orientation,\%group],
+	    ],
+	    [Radiobutton => "Vertical",
+	     -underline => 0,
+	     -value => 1,
+	     -variable => \$treeViewOpts->{forcedOrientation},
+	     -command => [\&_change_orientation,\%group],
+	    ],
+	   ]
+	 ],
 	 [Separator => EMPTY],
 	 [Button=> "[1] Close current view", -underline=> 1,
 	  -command=> [\&removeWindow,\%group]],
@@ -8763,6 +8793,7 @@ H<RootStyles>
   C<balance             >- draw "balanced" Penn-treebank like tree, instead of
   C<                    >  ordering nodes according to a dedicated attribute
   C<                    >  (can only be used in a rootstyle pattern)
+  C<vertical            >- draw the tree L<vertically#vertical-mode>
   C<baseXPos            >- X-coordinate of the root node
   C<baseYPos            >- Y-coordinate of the root node
   C<nodeXSkip           >- default horizontal skip between nodes
@@ -8771,6 +8802,9 @@ H<RootStyles>
   C<                    >  displayed ancestors
   C<skipHiddenLevels    >- display nodes with hidden parents one level below their nearest
   C<                    >  displayed ancestors (implies C<skipHiddenParents>)
+  C<labelsep            >- space between node and label in vertical mode
+  C<columnsep           >- space between columns in vertical mode
+  C<columnsep[i]        >- space before i-th column in vertical mode
 
 H<Styles>
 
@@ -8822,6 +8856,7 @@ U<Position and level>
 
 U<Alignment>
   C<Node-textalign      >- alignment of labels within label-box (right,left,center)
+  C<Node-textalign[i]   >- alignment of i-th label within label-box (right,left,center)
   C<NodeLabel-valign    >- only as rootstyle. Values: top, center, bottom.
   C<NodeLabel-halign    >- left, right, center
   C<Edge-textalign      >- alignment of edge labels within label-box (right,left,center)
