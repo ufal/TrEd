@@ -1665,6 +1665,15 @@ sub SetCurrentNodeInOtherWindow {
 }
 *SetCurrentNodeInOtherWin = \&SetCurrentNodeInOtherWindow; # compatibility alias
 
+=item C<InVerticalMode()>
+
+Return true if the tree is currently displayed in the vertical mode.
+
+=cut
+
+sub InVerticalMode {
+  return $grp->treeView->get_verticalTree;
+}
 
 
 =item C<ToplevelFrame()>
