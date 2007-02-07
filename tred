@@ -319,6 +319,7 @@ import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
 $Fslib::resourcePath=$opt_Z if $opt_Z;
 
 $tredDebug=1 if $opt_D;
+
 $TrEd::TreeView::Debug=1 if $opt_D;
 $Fslib::Debug=1 if $opt_D;
 $IOBackend::Debug=1 if $opt_D;
@@ -2526,7 +2527,8 @@ sub get_value_line {
     if (defined($vl)) {
       if (ref($vl)) {
 	unless ($tags) {
-	  $vl = encode(join EMPTY,map { $_->[0] } @$vl);
+	  # important: encode inside - required by arabic, otherwise the text gets remixed
+	  $vl = join EMPTY,map { encode($_->[0]) } @$vl;
 	} else {
 	  $vl=[ map { $_->[0]=encode($_->[0]); $_ } grep { $_->[0] ne EMPTY } @$vl ];
 	}

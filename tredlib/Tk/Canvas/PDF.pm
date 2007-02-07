@@ -280,6 +280,7 @@ sub draw_canvas {
     $draw->translate(@{$opts{-translate}});
   }
   if ($opts{-rotate}) {
+    $P->{current_page}->rotate($opts{-rotate});
     $draw->rotate($opts{-rotate});
   }
   if ($opts{-scale}) {
