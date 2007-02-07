@@ -955,9 +955,13 @@ Tk: 804.027
 	      leave the editor press the <guibutton moreinfo="none">Save and Apply</guibutton> button. To
 	      apply changes without saving them, press <guibutton moreinfo="none">Apply</guibutton>. The <guibutton moreinfo="none">Close</guibutton> button closes the
 	      editor without making any changes to the present
-	      configuration.  A search entry on the bottom of the
+	      configuration. A search entry on the bottom of the
 	      dialog window can be used for fast case-insensitive
-	      searches. When editing the configuration file, make sure
+	      searches. While searching, use <keysym>F3</keysym> key to highlight
+	      next match.
+	    </para>
+	    <para>
+	      When editing the configuration file, make sure
 	      you only define each configuration option once, since
 	      TrEd doesn't give you any warning about duplicated
 	      configuration entries. If an option occurs in the
@@ -1096,6 +1100,27 @@ Tk: 804.027
 	      order of their declaration in the file. When this option
 	      is on, sorting of attributes may be further altered by
 	      the <link linkend="sort_attrs_hook"><literal moreinfo="none">sort_attrs_hook</literal></link>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="view-tree-orientation">
+	  <term><guimenuitem moreinfo="none">Tree Orientation</guimenuitem></term>
+	  <listitem>
+	    <para>
+	      In this menu you can choose between
+	      <guimenuitem>Default</guimenuitem>,
+	      <guimenuitem>Horizontal</guimenuitem>, and
+	      <guimenuitem>Vertical</guimenuitem> display mode.
+	      If <guimenuitem>Default</guimenuitem> is selected,
+	      then the display mode is selected automatically 
+	      according to the setting of
+	      <literal>#{vertical}</literal> (which defaults to 0 - horizontal mode)
+	      stylesheet instruction. Otherwise horizonal or <link
+	      linkend="vertical-mode">vertical mode</link> is forced, disregarding any current stylesheet
+	      setting.
+	      The default value is controlled by the
+	      <link linkend="forceorientation">ForceOrientation</link>
+	      configuration option.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -2500,6 +2525,13 @@ Tk: 804.027
 	  node within the active node's level.
       </para>
       <para>
+	Use <keycombo moreinfo="none" action="simul"> <keycap moreinfo="none">Shift</keycap>
+	  <keycap moreinfo="none">up</keycap> </keycombo>/<keycombo moreinfo="none" action="simul">
+	  <keycap moreinfo="none">Shift</keycap> <keycap moreinfo="none">down</keycap> </keycombo> to
+	activate the previous or next node in the linear ordering of
+	the tree.
+      </para>
+      <para>
 	<keycap moreinfo="none">Tab</keycap> and
 	<keycombo moreinfo="none" action="simul">
 	  <keycap moreinfo="none">Shift</keycap>
@@ -2923,6 +2955,125 @@ Tk: 804.027
     </table>
     </section>
   </section>
+  <section id="vertical-mode">
+    <title>Vertical Mode</title>
+    <para>
+      TrEd supports two modes for displaying trees:
+      <firstterm>horizontal</firstterm>
+      and 
+      <firstterm>vertical</firstterm>. Switching between
+      these modes can be achieved
+      either by
+      <link linkend="view-tree-orientation">
+      <menuchoice>
+	<guimenu>View</guimenu>
+	<guisubmenu>Tree Orientation</guisubmenu>
+      </menuchoice></link>,
+      or by using the <literal>rootstyle:</literal>
+      instruction <literal>#{vertical}</literal>
+      in the <link linkend="stylesheets">stylesheet</link>.
+    </para>
+    <para>
+      In this manual, we
+      usually only refer to the default mode, which is also called
+      <firstterm>horizontal mode</firstterm>. In this mode
+      the parent nodes apear above the childnodes and the horizontal
+      position of nodes reflects the global ordering of nodes
+      or, for <link xref="balancetree">balanced</link> trees,
+      the ordering of siblings with parents placed in between them.
+      In the horizontal mode, node labels are placed below the nodes
+      and edge labels are placed on the flowline between the
+      node and its parent.
+    </para>
+    <para>
+      In the <firstterm>vertical mode</firstterm>, however, each node
+      is displayed on the left of its descendants and the global
+      ordering of the tree or siblings is reflected on the vertical
+      position of the node, the first node in the ordering being the
+      top-most.
+      In other words, if
+      displayed without labels, the tree in vertical mode would appear
+      mirrored and rotated counterclockwise by 90 degrees
+      compared to the horizontal mode.
+    </para>
+    <para>
+      The labels in vertical mode are displayed differently
+      than in the horizontal mode. The first label, either node or
+      edge, is displayed next to the node.  All other labels, again
+      node or edge, are displayed on the right of the first displayed
+      label in the order in which they are defined in the stylesheet,
+      but are aligned in a tabular way so that the horizontal position
+      of the corresponding labels is the same for all nodes.
+      Each node and its labels thus appears on a line.
+      The line corresponding to the current node
+      is highlighted (see <link
+      linkend="horizstripe">HorizStripe</link>
+      and <link linkend="stripecolor">StripeColor</link> configuration
+      options).
+    </para>
+    <para>The difference is best visible on <xref linkend="horiz-vert-mode"/>,
+      which shows a simple tree with two sibling node below the root
+      using the following stylesheet:
+      <programlisting>
+<command>style:</command> #{EdgeLabel-dodrawbox:yes}
+<command>node:</command> #{red}n-1
+<command>node:</command> n-2
+<command>edge:</command> #{blue}e-1
+<command>node:</command> n-3
+<command>edge:</command> #{blue}e-2</programlisting>
+    </para>
+    <para>
+      When the vertical mode is active, key bindings for the arrow keys
+      have a modified semantics. The <keysym>Left</keysym> key
+      behaves as <keysym>Up</keysym>,
+      the <keysym>Right</keysym> key behaves as <keysym>Down</keysym>,
+      <keysym>Up</keysym> behaves like <keysym>Left</keysym>
+      and
+      <keysym>Down</keysym> behaves like <keysym>Right</keysym>.
+      This change also applies to all
+      <link linkend="bindings">user defined combinations</link>
+      with any other modifiers,
+      but does not affect the combinations with 
+      <keysym>Shift</keysym>, so that in particular
+      <keycombo action="simul">
+	<keysym>Shift</keysym>
+	<keysym>Up</keysym>
+      </keycombo> and
+      <keycombo action="simul">
+	<keysym>Shift</keysym>
+	<keysym>Down</keysym>
+      </keycombo>
+      select the previous/next node in the linear order,
+      i.e. the node displayed on the previous/next line.
+    </para>
+    <figure id="horiz-vert-mode">
+      <title>A tree displayed first in the horizontal mode then in the vertical mode</title>
+      <mediaobject>
+	<imageobject>
+	  <imagedata fileref="pics/horiz_mode.png" format="PNG" role="html"/>
+	</imageobject>
+	<imageobject>
+	  <imagedata fileref="pics/horiz_mode.eps" format="EPS" role="latex" width="6cm"/>
+	</imageobject>
+	<imageobject>
+	  <imagedata fileref="pics/horiz_mode" format="linespecific"/>
+	</imageobject>
+	<textobject><phrase>horizontal mode</phrase></textobject>
+      </mediaobject>
+      <mediaobject>
+	<imageobject>
+	  <imagedata fileref="pics/vert_mode.png" format="PNG" role="html"/>
+	</imageobject>
+	<imageobject>
+	  <imagedata fileref="pics/vert_mode.eps" format="EPS" role="latex" width="6cm"/>
+	</imageobject>
+	<imageobject>
+	  <imagedata fileref="pics/vert_mode" format="linespecific"/>
+	</imageobject>
+	<textobject><phrase>vertontal mode</phrase></textobject>
+      </mediaobject>
+    </figure>
+  </section>
   <section id="stylesheets">
     <title>Customizing Tree Appearance: Stylesheets</title>
     <section id="stylesheets_intro">
@@ -3071,11 +3222,16 @@ Tk: 804.027
 	  <term><literal moreinfo="none">rootstyle:</literal></term>
 	  <listitem>
 	    <para>defines a pattern which behaves quite the same as a
-	    <literal moreinfo="none">style:</literal> pattern but is
-	    only interpolated once (for the root node), applies to
-	    every node of the tree, but the styling instructions
-	    defined in this pattern have lower precedence than those
-	    of <literal moreinfo="none">style:</literal> patterns.
+	      <literal moreinfo="none">style:</literal> pattern but is
+	      only interpolated once (for the root node), applies to
+	      every node of the tree, but the styling instructions
+	      defined in this pattern have lower precedence than those
+	      of <literal moreinfo="none">style:</literal> patterns.
+	      Beside the use for setting default style values for all nodes,
+	      there are some style instructions with global effect 
+	      which can only be used in the
+	      <literal>rootstyle:</literal> pattern.
+	      See <xref linkend="rootstyle-instructions"/>.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -3240,8 +3396,154 @@ Tk: 804.027
 	  </listitem>
 	</varlistentry>
     </variablelist>
+    <table id="rootstyle-instructions">
+      <title>Rootstyle instructions</title>
+	<tgroup cols="2">
+	  <colspec colnum="1" align="left"/>
+	  <colspec colnum="2" align="justify"/>
+	  <thead>
+	  <row>
+	    <entry><replaceable>name</replaceable></entry>
+	    <entry>Description</entry>
+	  </row>
+	</thead>
+	<tbody>
+	    <row>
+	    <entry><literal moreinfo="none">balance</literal></entry>
+	    <entry>
+		<para>
+		  Has the same effect as the
+		  <link xref="balancetree">BalanceTree</link>
+		  configuration option.
+		  Use <literal>#{balance}</literal> or
+		  <literal>#{balance:1}</literal> to set the option
+		  on, <literal>#{balance:0}</literal> or none
+		  to set it off.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">baseXPos</literal></entry>
+	    <entry>
+		<para>
+		  Has the same effect as the
+		  <link xref="basexpos">BaseXPos</link>
+		  configuration option.
+		  Usage: <literal>#{baseXPos:<replaceable>value</replaceable>}</literal>.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">baseYPos</literal></entry>
+	    <entry>
+		<para>
+		  Has the same effect as the
+		  <link xref="baseypos">BaseYPos</link>
+		  configuration option.
+		  Usage: <literal>#{baseYPos:<replaceable>value</replaceable>}</literal>.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">nodeXSkip</literal></entry>
+	    <entry>
+		<para>
+		  Has the same effect as the
+		  <link xref="nodexpos">NodeXSkip</link>
+		  configuration option.
+		  Usage: <literal>#{nodeXSkip:<replaceable>value</replaceable>}</literal>.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">nodeYSkip</literal></entry>
+	    <entry>
+		<para>
+		  Has the same effect as the
+		  <link xref="nodeypos">NodeYSkip</link>
+		  configuration option.
+		  Usage: <literal>#{nodeYSkip:<replaceable>value</replaceable>}</literal>.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">skipHiddenParents</literal></entry>
+	    <entry>
+		<para>
+		  Has the same effect as the
+		  <link xref="skiphiddenparents">SkipHiddenParents</link>
+		  configuration option.
+		  Usage: <literal>#{skipHiddenParents}</literal>
+		  or <literal>#{skipHiddenParents:1}</literal> to turn
+		  on, or <literal>#{skipHiddenParents:0}</literal>
+		  to turn off.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">skipHiddenLevels</literal></entry>
+	    <entry>
+		<para>
+		  Has the same effect as the
+		  <link xref="skiphiddenparents">SkipHiddenLevels</link>
+		  configuration option.
+		  Usage: <literal>#{skipHiddenLevels}</literal>
+		  or <literal>#{skipHiddenLevels:1}</literal> to turn
+		  on, or <literal>#{skipHiddenLevels:0}</literal>
+		  to turn off.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">vertical</literal></entry>
+	    <entry>
+		<para>
+		  Turns on the <link linkend="vertical-mode">vertical mode</link>.
+		  Use <literal>#{vertical}</literal> or
+		  <literal>#{vertical:1}</literal> to set the option
+		  on, <literal>#{vertical:0}</literal> or none
+		  to set it off.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">labelsep</literal></entry>
+	    <entry>
+		<para>
+		  <link linkend="vertical-mode">Vertical
+		  mode</link> only. The distance
+		  between a node and the label next to it.
+		  Usage: <literal>#{labelsep:<replaceable>integer</replaceable>}</literal>.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	    <entry><literal moreinfo="none">columnsep</literal></entry>
+	    <entry>
+		<para>
+		  <link linkend="vertical-mode">Vertical
+		  mode</link> only. The distance
+		  between two columns of labels.
+		  Usage: <literal>#{columnsep:<replaceable>integer</replaceable>}</literal>.
+		</para>
+	      </entry>
+	    </row>
+	    <row>
+	      <entry><literal moreinfo="none">columnsep[<replaceable>i</replaceable>]</literal></entry>
+	    <entry>
+		<para>
+		  <link linkend="vertical-mode">Vertical
+		  mode</link> only. The distance
+		  before the <replaceable>i</replaceable>-th column
+		  of labels. Usage: <literal>#{columnsep[<replaceable>i</replaceable>]:<literal>integer</literal>}</literal>.
+		</para>
+	      </entry>
+	    </row>
+	  </tbody>
+	</tgroup>
+      </table>
     <table id="style-instructions">
-      <title>Styling instructions</title>
+      <title>Style instructions</title>
 	<tgroup cols="2">
 	  <colspec colnum="1" align="left"/>
 	  <colspec colnum="2" align="justify"/>
@@ -3360,6 +3662,24 @@ Tk: 804.027
 		edge labels is added during
 		positioning the node.
 	      </para></entry>
+          </row>
+	  <row>
+	    <entry><literal moreinfo="none">Node-textalign</literal></entry>
+	    <entry>
+		<para>Alignment of the node labels:
+		  <literal>right</literal>,
+		  <literal>center</literal>, or 
+		  <literal>left</literal>.</para>
+	    </entry>
+          </row>
+	  <row>
+	      <entry><literal moreinfo="none">Node-textalign[<replaceable>i</replaceable>]</literal></entry>
+	    <entry>
+		<para>Alignment of the <replaceable>i</replaceable>-th
+		  node label: <literal>right</literal>,
+		  <literal>center</literal>, or 
+		  <literal>left</literal>.</para>
+	    </entry>
           </row>
 	  <row>
 	    <entry><literal moreinfo="none">NodeLabel-valign</literal></entry>
@@ -4557,6 +4877,19 @@ sub CreateImages {
 	    </para>
 	  </listitem>
 	</varlistentry>
+	<varlistentry id="forceorientation">
+	  <term><literal moreinfo="none">ForceOrientation</literal></term>
+	  <listitem>
+	    <para>If this option is set to 1, the tree will be
+	      always displayed in the <link linkend="vertical-mode">vertical mode</link>, if set to -1,
+	      the tree will be always displayed in the horizontal
+	      mode. In either case, the setting of 
+	      rootstyle <literal>#{vertical}</literal> instruction in
+	      the current stylesheet is ignored.
+	      Defaults to 0 (obey stylesheet).
+	    </para>
+	  </listitem>
+	</varlistentry>
 	<varlistentry id="skiphiddenlevels">
 	  <term><literal moreinfo="none">SkipHiddenLevels</literal></term>
 	  <listitem>
@@ -4880,6 +5213,42 @@ sub CreateImages {
 	      <guilabel moreinfo="none">Find Node by Attributes</guilabel>
 	      dialog windows. (The greater the number, the taller
 	      the dialogs).
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="vertstripe">
+	  <term><literal moreinfo="none">VertStripe</literal></term>
+	  <listitem>
+	    <para>
+	      If set to <literal>1</literal>, a vertical
+	      stripe is displayed across the screen at the position
+	      of the current node. This helps identifying the current
+	      node and its horizontal position among other nodes.
+	      This option does not apply to the <link linkend="vertical-mode">vertical mode</link>.
+	      Defaults to <literal>0</literal>.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="horizstripe">
+	  <term><literal moreinfo="none">HorizStripe</literal></term>
+	  <listitem>
+	    <para>
+	      This option only applies to the  <link linkend="vertical-mode">vertical mode</link>.
+	      If set to <literal>1</literal> (default), the line corresponding
+	      to the current node is highlighted with a horizontal stripe.
+	      This helps identifying the current node among other nodes.
+	      Set this option to <literal>0</literal> to disable the stripe.
+	    </para>
+	  </listitem>
+	</varlistentry>
+	<varlistentry id="stripecolor">
+	  <term><literal moreinfo="none">StripeColor</literal></term>
+	  <listitem>
+	    <para>
+	      The color of a stripe highlighting the current node.
+	      See <link linkend="horizstripe">HorizStripe</link> and
+	      <link linkend="vertstripe">VertStripe</link> options for
+	      more information.
 	    </para>
 	  </listitem>
 	</varlistentry>
@@ -6431,7 +6800,7 @@ sub CreateImages {
 	applications.
       </para>
     </section>
-    <section>
+    <section id="bindings">
       <title>Associating macros with menu entries and keyboard shortcuts</title>
       <para>
 	The last set of directives is used for convenient adding
