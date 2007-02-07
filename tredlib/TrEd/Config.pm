@@ -241,6 +241,8 @@ sub set_config {
 
   $treeViewOpts->{reverseNodeOrder}   =	val_or_def($confs,"reversenodeorder",
 						   $treeViewOpts->{reverseNodeOrder});
+  $treeViewOpts->{displayMode}   =	val_or_def($confs,"displaymode",
+						   $treeViewOpts->{displayMode});
 
   $treeViewOpts->{baseXPos}	      =	 val_or_def($confs,"basexpos",15);
   $treeViewOpts->{baseYPos}	      =	 val_or_def($confs,"baseypos",15);
@@ -275,6 +277,8 @@ sub set_config {
   $treeViewOpts->{textColorHilite}    =	 val_or_def($confs,"textcolorhilite",'darkgreen');
   $treeViewOpts->{textColorXHilite}   =	 val_or_def($confs,"textcolorxhilite",'darkred');
   $treeViewOpts->{stripeColor}        =  val_or_def($confs,"stripecolor",'#eeeeff');
+  $treeViewOpts->{labelSep}        =  val_or_def($confs,"labelsep",5);
+  $treeViewOpts->{columnSep}        =  val_or_def($confs,"columnsep",15);
   $treeViewOpts->{vertStripe}     =  val_or_def($confs,"vertstripe",0);
   $treeViewOpts->{horizStripe}     =  val_or_def($confs,"horizstripe",1);
 
