@@ -413,7 +413,7 @@ sub move_par_end {
     ChangingFile(0);
 }
 
-#bind move_to_root Shift+Up menu Move Up to Root
+#bind move_to_root Ctrl+Shift+Up menu Move Up to Root
 sub move_to_root {
 
     $this = $root unless $root == $this;
@@ -422,7 +422,7 @@ sub move_to_root {
     ChangingFile(0);
 }
 
-#bind move_to_fork Shift+Down menu Move Down to Fork
+#bind move_to_fork Ctrl+Shift+Down menu Move Down to Fork
 sub move_to_fork {
 
     my $node = $this;

@@ -238,7 +238,7 @@ sub thisToEitherBrother {
     ChangingFile(1);
 }
 
-#bind SwapNodesUp to Ctrl+Shift+Up menu Annotate: Current node exchanged with parent
+#bind SwapNodesUp to Alt+Shift+Down menu Annotate: Current node exchanged with parent
 sub SwapNodesUp {
 
     $Redraw = 'none';
@@ -262,7 +262,7 @@ sub SwapNodesUp {
     ChangingFile(1);
 }
 
-#bind SwapNodesDown to Ctrl+Shift+Down menu Annotate: Current node exchanged with son if unique
+##bind SwapNodesDown to Alt+Shift+Down menu Annotate: Current node exchanged with son if unique
 sub SwapNodesDown {
 
     $Redraw = 'none';
@@ -982,7 +982,7 @@ sub move_to_prev_paragraph {
     ChangingFile(0);
 }
 
-#bind move_to_root Shift+Up menu Move Up to Root
+#bind move_to_root Ctrl+Shift+Up menu Move Up to Root
 sub move_to_root {
 
     $this = $root unless $root == $this;
@@ -991,7 +991,7 @@ sub move_to_root {
     ChangingFile(0);
 }
 
-#bind move_to_fork Shift+Down menu Move Down to Fork
+#bind move_to_fork Ctrl+Shift+Down menu Move Down to Fork
 sub move_to_fork {
 
     my $node = $this;
@@ -1059,38 +1059,6 @@ sub infer_clause_head {
     do { $this = $this->following($node) } while $this and not isClauseHead($this);
 
     $this = $node unless $this;
-
-    $Redraw = 'none';
-    ChangingFile(0);
-}
-
-#bind next_node_lin to Ctrl+Shift+Left menu Move to the Next Word
-sub next_node_lin {
-
-    my $node = NextNodeLinear($this, 'ord');
-
-    unless (HiddenVisible()) {
-
-        $node = NextNodeLinear($node, 'ord') while $node and IsHidden($node);
-    }
-
-    $this = $node if $node;
-
-    $Redraw = 'none';
-    ChangingFile(0);
-}
-
-#bind prev_node_lin to Ctrl+Shift+Right menu Move to the Prev Word
-sub prev_node_lin {
-
-    my $node = PrevNodeLinear($this, 'ord');
-
-    unless (HiddenVisible()) {
-
-        $node = PrevNodeLinear($node, 'ord') while $node and IsHidden($node);
-    }
-
-    $this = $node if $node;
 
     $Redraw = 'none';
     ChangingFile(0);

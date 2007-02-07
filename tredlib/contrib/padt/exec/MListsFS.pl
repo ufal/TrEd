@@ -1,9 +1,9 @@
-#!/usr/bin/perl -w ###################################################################### 2004/03/02
+#!/usr/bin/perl -w ###################################################################### 2007/02/01
 
-eval 'exec /usr/bin/perl -w ###################################################################### 2004/03/02 -S $0 ${1+"$@"}'
+eval 'exec /usr/bin/perl -w ###################################################################### 2007/02/01 -S $0 ${1+"$@"}'
     if 0; # not running under some shell
 #
-# MorphoFS.pl ########################################################################## Otakar Smrz
+# MListsFS.pl ########################################################################## Otakar Smrz
 
 # $Id$
 
@@ -134,7 +134,7 @@ until (eof()) {
 
     $target->tree($this_par - 1)->{'par'} = join '^', (split /[^0-9]+/, $target->tree($this_par - 1)->{'par'})[0], $this_par;
 
-    $target->writeFile($file . '.morpho.fs');
+    $target->writeFile($file . '.mlists.morpho.fs');
 
     printf "%s\t%s\n", $_, $file foreach keys %MorphoMap::AraMorph_POSVector_missing;
 
@@ -349,9 +349,11 @@ sub process_text {
 
         process_node_morpho($node);
 
+        my $n = '00';
+
         foreach (@{$node->{'token_info'}}) {
 
-            push @{$node->{'partition'}{remove_diacritics(join " ", map { $_->[0] } @{$_}[1 .. @{$_} - 1])}}, $_;
+            push @{$node->{'partition'}{++$n . " " . remove_diacritics(join " ", map { $_->[0] } @{$_}[1 .. @{$_} - 1])}}, $_;
         }
 
         foreach (sort keys %{$node->{'partition'}}) {
@@ -742,7 +744,9 @@ sub define_target_format {
 
                             $this->{type} eq 'lemma_id'
 
-                                ? ( '#{purple}${gloss} #{gray}${id} #{darkmagenta}${form}' )
+                                ? ( '#{purple}' . ( length $this->{gloss} > 18
+                                                        ? ( substr $this->{gloss}, 0, 15 ) . '...'
+                                                        : '${gloss}' ) . ' #{gray}${id} #{darkmagenta}${form}' )
                                 : (
 
                                 $this->{type} =~ /^(?:entity|word_node|paragraph)$/
@@ -782,7 +786,7 @@ __END__
 
 =head1 NAME
 
-MorphoFS - Generating MorphoTrees given a list of input XML/SGML documents
+MListsFS - Generating MorphoLists given a list of input XML/SGML documents
 
 
 =head1 REVISION
