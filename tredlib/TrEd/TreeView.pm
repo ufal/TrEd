@@ -312,11 +312,9 @@ sub value_line_list {
 
 sub value_line {
   my ($self,$fsfile,$tree_no,$no_numbers,$tags,$grp)=@_;
-
   return unless $fsfile;
 
   my $prfx=($no_numbers ? "" : ($tree_no+1)."/".($fsfile->lastTreeNo+1).": ");
-
   if ($tags or $self->get_label_patterns($fsfile,"text")) {
     if ($self->{reverseNodeOrder}) {
       return [[$prfx,'prefix'],
@@ -968,25 +966,47 @@ sub wrappedLines {
 }
 
 sub wrapLines {
-  my ($self,$text,$width)=@_;
+  my ($self,$text,$width,$reverse)=@_;
   use integer;
   my @toks = split /\s+/, $text;
-  my $line=shift @toks;
-  my $wd=$self->getTextWidth($line);
-  my @lines=();
-  my $w;
-  foreach (@toks) {
-    $w=$self->getTextWidth(" $_");
-    if ($wd+$w<$width) {
-      $wd+=$w;
-      $line.=" $_";
-    } else {
-      $wd=$self->getTextWidth("$_");
-      push @lines,$line;
-      $line=$_;
+  if ($reverse) {
+      my @result;
+      my $wd=0;
+      my $w;
+      my $t=pop(@toks);
+      my @lines=();
+      while ($t) {
+	$w=$self->getTextWidth(' '.$t);
+	if (($wd+$w>=$width) && (@result>0)) {
+	  push @lines, join(' ',@result);
+	  @result=($t);
+	  $wd=$self->getTextWidth($t);
+	} else {
+	  $wd+=$w;
+	  unshift @result, $t;
+	}
+	$t=pop(@toks);
+      }
+      push @lines, join(' ',@result);
+      return \@lines;
+  } else {
+    my $line=shift @toks;
+    my $wd=$self->getTextWidth($line);
+    my @lines=();
+    my $w;
+    foreach (@toks) {
+      $w=$self->getTextWidth(" $_");
+      if ($wd+$w<$width) {
+	$wd+=$w;
+	$line.=" $_";
+      } else {
+	$wd=$self->getTextWidth("$_");
+	push @lines,$line;
+	$line=$_;
+      }
     }
+    return [@lines,$line];
   }
-  return @lines,$line;
 }
 
 
@@ -1289,8 +1309,9 @@ sub redraw {
   $self->store_gen_pinfo('lastY' => 0);
 
   # draw sentence info
-  if ($fsfile) {
+  if ($fsfile and ($self->get_drawFileInfo or $self->get_drawSentenceInfo)) {
     my $fontHeight=$self->getFontHeight();
+    $self->{canvasHeight}+=$fontHeight; # add some skip
     if ($self->get_drawFileInfo) {
       my $currentfile=filename($fsfile->filename);
       my ($ftext);
@@ -1330,9 +1351,8 @@ sub redraw {
       }
       $valtext=~s/ +([.,!:;])|(\() |(\)) /$1/g;
       my $i=1;
-      my @lines=$self->wrapLines($valtext,$self->{canvasWidth});
-      @lines=reverse @lines if ($self->{reverseNodeOrder});
-      foreach (@lines) {
+      my $lines=$self->wrapLines($valtext,$self->{canvasWidth},$self->{reverseNodeOrder});
+      foreach (@$lines) {
 	if ($self->{reverseNodeOrder}) {
 	  $self->apply_style_opts(
 	    $canvas->

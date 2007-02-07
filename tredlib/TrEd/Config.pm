@@ -505,8 +505,8 @@ sub set_config {
   $keyboardDebug	      =	val_or_def($confs,"keyboarddebug",0);
   $hookDebug		      =	val_or_def($confs,"hookdebug",0);
   $macroDebug		      =	val_or_def($confs,"macrodebug",0);
-  $tredDebug		      =	val_or_def($confs,"treddebug",0);
-  $Fslib::Debug               = val_or_def($confs,"backenddebug",0);
+  $tredDebug		      =	val_or_def($confs,"treddebug",$tredDebug);
+  $Fslib::Debug               = val_or_def($confs,"backenddebug",$Fslib::Debug);
   $defaultTemplateMatchMethod =	val_or_def($confs,"searchmethod",'Exhaustive regular expression');
   $defaultMacroListOrder      =	val_or_def($confs,"macrolistorder",'M');
   $defCWidth		      =	val_or_def($confs,"canvaswidth",'18c');
