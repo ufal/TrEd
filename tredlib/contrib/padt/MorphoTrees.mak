@@ -566,7 +566,7 @@ sub follow_apply_m_down {
 #bind follow_apply_m_right Ctrl+Right menu Follow Annotation Right
 sub follow_apply_m_right {
 
-    $main::treeViewOpts->{reverseNodeOrder} ?
+    $main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode() ?
         ctrl_currentLeftWholeLevel() :
         ctrl_currentRightWholeLevel();
 
@@ -577,7 +577,7 @@ sub follow_apply_m_right {
 #bind follow_apply_m_left Ctrl+Left menu Follow Annotation Left
 sub follow_apply_m_left {
 
-    $main::treeViewOpts->{reverseNodeOrder} ?
+    $main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode() ?
         ctrl_currentRightWholeLevel() :
         ctrl_currentLeftWholeLevel();
 
@@ -998,7 +998,7 @@ sub restrict_hide {
 
                 $node->{'restrict'} = '';
 
-                $node->{'inherit'} = restrict($node->parent()->{'restrict'}, $node->parent()->{'inherit'});     # might have been Shift+Escaped
+                $node->{'inherit'} = restrict($node->parent()->{'restrict'}, $node->parent()->{'inherit'});
                 $node->{'inherit'} = '' if $node->{'inherit'} eq '-' x $dims;
             }
         }

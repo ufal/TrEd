@@ -340,13 +340,15 @@ sub thisToRBrother {
     $Redraw = 'none';
     ChangingFile(0);
 
-    return unless $this->rbrother();
+    my $p = $main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode()
+            ? $this->rbrother() : $this->lbrother();
 
-    my $act = $this;
-    my $p = $this->rbrother();
+    return unless $p;
 
-    CutPaste($act, $p);
-    $this = $act;
+    my $c = $this;
+
+    CutPaste($c, $p);
+    $this = $c;
 
     $Redraw = 'tree';
     ChangingFile(1);
@@ -358,13 +360,15 @@ sub thisToLBrother {
     $Redraw = 'none';
     ChangingFile(0);
 
-    return unless $this->lbrother();
+    my $p = $main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode()
+            ? $this->lbrother() : $this->rbrother();
 
-    my $act = $this;
-    my $p = $this->lbrother();
+    return unless $p;
 
-    CutPaste($act, $p);
-    $this = $act;
+    my $c = $this;
+
+    CutPaste($c, $p);
+    $this = $c;
 
     $Redraw = 'tree';
     ChangingFile(1);
@@ -376,13 +380,17 @@ sub thisToParentRBrother {
     $Redraw = 'none';
     ChangingFile(0);
 
-    return unless $this->parent() and $this->parent()->rbrother();
+    return unless $this->parent();
 
-    my $act = $this;
-    my $p = $this->parent()->rbrother();
+    my $p = $main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode()
+            ? $this->parent()->rbrother() : $this->parent()->lbrother();
 
-    CutPaste($act, $p);
-    $this = $act;
+    return unless $p;
+
+    my $c = $this;
+
+    CutPaste($c, $p);
+    $this = $c;
 
     $Redraw = 'tree';
     ChangingFile(1);
@@ -394,13 +402,17 @@ sub thisToParentLBrother {
     $Redraw = 'none';
     ChangingFile(0);
 
-    return unless $this->parent() and $this->parent()->lbrother();
+    return unless $this->parent();
 
-    my $act = $this;
-    my $p = $this->parent()->lbrother();
+    my $p = $main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode()
+            ? $this->parent()->lbrother() : $this->parent()->rbrother();
 
-    CutPaste($act, $p);
-    $this = $act;
+    return unless $p;
+
+    my $c = $this;
+
+    CutPaste($c, $p);
+    $this = $c;
 
     $Redraw = 'tree';
     ChangingFile(1);
@@ -417,11 +429,11 @@ sub thisToEitherBrother {
 
     return unless $lb xor $rb;
 
-    my $act = $this;
+    my $c = $this;
     my $p = $lb || $rb;
 
-    CutPaste($act, $p);
-    $this = $act;
+    CutPaste($c, $p);
+    $this = $c;
 
     $Redraw = 'tree';
     ChangingFile(1);
@@ -488,13 +500,33 @@ sub thisToRoot {
     ChangingFile(1);
 }
 
-#bind thisToPrevClauseHead to Ctrl+Alt+Right menu Annotate: Current node to preceeding clause head
-sub thisToPrevClauseHead {
+#bind thisToLeftClauseHead to Ctrl+Alt+Right menu Annotate: Current node to preceeding clause head
+sub thisToLeftClauseHead {
 
     $Redraw = 'none';
     ChangingFile(0);
 
     return unless $this and $this->parent();
+
+    $main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode() ?
+        thisToPrevClauseHead() :
+        thisToNextClauseHead();
+}
+
+#bind thisToRightClauseHead to Ctrl+Alt+Left menu Annotate: Current node to following clause head
+sub thisToRightClauseHead {
+
+    $Redraw = 'none';
+    ChangingFile(0);
+
+    return unless $this and $this->parent();
+
+    $main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode() ?
+        thisToNextClauseHead() :
+        thisToPrevClauseHead();
+}
+
+sub thisToPrevClauseHead {
 
     my $node = $this->parent();
 
@@ -508,13 +540,7 @@ sub thisToPrevClauseHead {
     ChangingFile(1);
 }
 
-#bind thisToNextClauseHead to Ctrl+Alt+Left menu Annotate: Current node to following clause head
 sub thisToNextClauseHead {
-
-    $Redraw = 'none';
-    ChangingFile(0);
-
-    return unless $this and $this->parent();
 
     my $node = $this->parent();
 
@@ -1207,9 +1233,7 @@ use List::Util 'reduce';
 #bind move_word_home Home menu Move to First Word
 sub move_word_home {
 
-    my $fs = $grp->{FSFile}->FS();
-
-    $this = reduce { $a->{'ord'} < $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+    $this = reduce { $a->{'ord'} < $b->{'ord'} ? $a : $b } GetVisibleNodes($root);
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -1218,9 +1242,7 @@ sub move_word_home {
 #bind move_word_end End menu Move to Last Word
 sub move_word_end {
 
-    my $fs = $grp->{FSFile}->FS();
-
-    $this = reduce { $a->{'ord'} > $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+    $this = reduce { $a->{'ord'} > $b->{'ord'} ? $a : $b } GetVisibleNodes($root);
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -1229,11 +1251,9 @@ sub move_word_end {
 #bind move_deep_home Ctrl+Home menu Move to Rightmost Descendant
 sub move_deep_home {
 
-    my $fs = $grp->{FSFile}->FS();
-
     $this = $this->leftmost_descendant();
 
-    $this = $this->previous_visible($fs) if $fs->isHidden($this);
+    $this = PrevVisibleNode($this) if IsHidden($this);
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -1242,12 +1262,9 @@ sub move_deep_home {
 #bind move_deep_end Ctrl+End menu Move to Leftmost Descendant
 sub move_deep_end {
 
-    my $fs = $grp->{FSFile}->FS();
-
     $this = $this->rightmost_descendant();
 
-    $this = $this->following_visible($fs) ||
-            $this->previous_visible($fs) if $fs->isHidden($this);
+    $this = NextVisibleNode($this) || PrevVisibleNode($this) if IsHidden($this);
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -1324,7 +1341,14 @@ sub prev_clause_head {
 
     my $node = $this;
 
-    do { $this = $this->previous() } while $this and not isClauseHead($this);
+    if ($main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode()) {
+
+        do { $this = $this->previous() } while $this and not isClauseHead($this);
+    }
+    else {
+
+        do { $this = $this->following() } while $this and not isClauseHead($this);
+    }
 
     $this = $node unless $this;
 
@@ -1337,7 +1361,14 @@ sub next_clause_head {
 
     my $node = $this;
 
-    do { $this = $this->following() } while $this and not isClauseHead($this);
+    if ($main::treeViewOpts->{reverseNodeOrder} && ! InVerticalMode()) {
+
+        do { $this = $this->following() } while $this and not isClauseHead($this);
+    }
+    else {
+
+        do { $this = $this->previous() } while $this and not isClauseHead($this);
+    }
 
     $this = $node unless $this;
 
@@ -1511,12 +1542,12 @@ sub synchronize_file {
     $tree = CurrentTreeNumber() + 1;
     $node = $this->{'ord'};
 
-    copy $file[0], $file[3];
+    move $file[0], $file[3];
 
     system 'perl -X ' . ( escape $libDir . '/contrib/padt/exec/DeeperFS.pl' ) .
                   ' ' . ( expace $file[1] );
 
-    copy $file[2], $file[0];
+    move $file[2], $file[0];
 
     system 'btred -Qm ' . ( escape $libDir . '/contrib/padt/exec/migrate_annotation_deeper.btred' ) .
                     ' ' . ( espace $file[0] );
