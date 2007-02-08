@@ -253,7 +253,7 @@ sub NextVisibleNode {
   my $fs=$grp->{FSFile}->FS;
   while ($node) {
     return $node unless ($fs->isHidden($node));
-    $node=$node->following($top);
+    $node=$node->following_right_or_up($top);
   }
   return 0;
 }

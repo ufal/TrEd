@@ -903,7 +903,7 @@ sub following_visible {
 
 =item $node->following_right_or_up (top?)
 
-Return the next visible node of the subtree in the order given by
+Return the next node of the subtree in the order given by
 structure (C<undef> if none), but not descending.
 
 =cut
