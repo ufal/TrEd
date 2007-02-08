@@ -5,11 +5,11 @@ eval 'exec /usr/bin/perl -w ####################################################
 #
 # SyntaxFS.pl ########################################################################## Otakar Smrz
 
-# $Id: SyntaxFS.pl 197 2007-02-05 14:12:25Z smrz $
+# $Id: SyntaxFS.pl 201 2007-02-08 02:31:43Z smrz $
 
 use strict;
 
-our $VERSION = do { q $Revision: 197 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
+our $VERSION = do { q $Revision: 201 $ =~ /(\d+)/; sprintf "%4.2f", $1 / 100 };
 
 BEGIN {
 
@@ -194,6 +194,7 @@ sub define_target_format {
             '@P1 warning',
             '@P3 err1',
             '@P3 err2',
+            '@H hide',
 
             map {
 
@@ -257,7 +258,7 @@ SyntaxFS - Generating Analytic given a list of input MorphoTrees documents
 
 =head1 REVISION
 
-    $Revision: 197 $       $Date: 2007-02-05 15:12:25 +0100 (Mon, 05 Feb 2007) $
+    $Revision: 201 $       $Date: 2007-02-08 03:31:43 +0100 (Thu, 08 Feb 2007) $
 
 
 =head1 DESCRIPTION

@@ -24,14 +24,21 @@ use Fslib 1.6;
 
 use MorphoMap 1.9;
 
-use Encode::Arabic ':modes';
+use Encode::Arabic;
 
 
-demode 'buckwalter', 'noneplus';
+our $language = identify_language();
 
 our $decode = "utf8";
 
 our $encode = "utf8";
+
+
+our $regexQ = qr/[0-9]+(?:[\.\,\x{060C}\x{066B}\x{066C}][0-9]+)? |
+                 [\x{0660}-\x{0669}]+(?:[\.\,\x{060C}\x{066B}\x{066C}][\x{0660}-\x{0669}]+)?/x;
+
+our $regexG = qr/[\.\,\;\:\!\?\`\"\'\(\)\[\]\{\}\<\>\\\|\/\~\@\#\$\%\^\&\*\_\=\+\-\x{00AB}\x{00BB}\x{060C}\x{061B}\x{061F}]/;
+
 
 our ($target, $file, $twig, $this, $tree_lim, $node_lim, $term_lim);
 
@@ -50,28 +57,30 @@ until (eof()) {
 
                 'FS'        => FSFormat->create(
 
-                    '@P token',
+                    '@P morph',
                     '@P label',
                     '@P tag_1',
                     '@P tag_2',
                     '@P tag_3',
-                    '@P other',
+                    '@P comment',
                     '@P form',
+                    '@P origf',
                     '@P ref',
                     '@N ord',
                     '@P ord_just',
                     '@P ord_term',
+                    '@H hide',
 
                                 ),
 
                 'hint'      =>  ( join "\n",
 
-                        'token: ${token}',
+                        'morph: ${morph}',
                         'label: ${label}',
                         'tag_1: ${tag_1}',
                         'tag_2: ${tag_2}',
                         'tag_3: ${tag_3}',
-                        'other: ${other}',
+                        'comment: ${comment}',
 
                                 ),
                 'patterns'  => [
@@ -80,17 +89,24 @@ until (eof()) {
 
                         'mode:' . 'PhraseTrees',
 
-                        'style:' . q {<?
+                        'rootstyle:' . q {<?
 
-                                '#{Line-coords:n,n,n,(p+n)/2,p,p}'
+                                '#{vertical}#{Node-textalign:left}'
 
                             ?>},
 
-                        q {<? $this->{token} eq '' ? '#{custom1}${label}' : '#{custom2}${token} #{custom6}${form}' ?>},
+                        'style:' . q {<?
 
-                        '#{custom3}${tag_1}',
+                                '#{Line-coords:n,n,p,n,p,p}'
+
+                            ?>},
+
+                        q {<? $this->{morph} eq '' ? '#{custom1}${label}' : '#{custom6}${form}' ?>},
+
                         '#{custom4}${tag_2}',
                         '#{custom5}${tag_3}',
+                        '#{custom2}${morph}',
+                        '#{custom3}${tag_1}',
 
                                 ],
                 'trees'     => [],
@@ -117,6 +133,8 @@ until (eof()) {
 
         justify_order($tree);
     }
+
+    $file =~ s/\.tree$/_$language.tree/ unless $language eq '';
 
     $target->writeFile($file . '.fs') if $tree_lim > 0;
 
@@ -173,20 +191,34 @@ sub parse_twig {
         elsif ($tokens[1] eq "(") {
 
             $this->{'label'} = $tokens[0];
-            $this->{'token'} = '';
+            $this->{'morph'} = '';
         }
         elsif ($tokens[2] eq ")") {
 
             $this->{'label'} = $tokens[0];
-            $this->{'token'} = $tokens[1];
-
-            $this->{'form'} = $tokens[1] =~ /^\*(?:[A-Z0-9]+\*)?$/
-                                                ? '_'
-                                                : decode 'buckwalter', $tokens[1];
+            $this->{'morph'} = process_morph($tokens[1]);
 
             $this->{'tag_1'} = $tokens[0];
-            $this->{'tag_2'} = MorphoMap::AraMorph_POSVector($tokens[0]);
-            $this->{'tag_3'} = MorphoMap::AraMorph_PennTBSet($tokens[0]);
+
+            unless ($language eq 'English') {
+
+                if ($tokens[0] =~ /^FUT\+(IV.+)$/) {
+
+                    $this->{'tag_2'} = MorphoMap::AraMorph_POSVector($1);
+
+                    substr $this->{'tag_2'}, 4, 1, 'F';
+                }
+                else {
+
+                    $this->{'tag_2'} = MorphoMap::AraMorph_POSVector($tokens[0]);
+                }
+
+                $this->{'tag_3'} = MorphoMap::AraMorph_PennTBSet($tokens[0]);
+            }
+
+            $this->{'form'} = process_form($this->{'morph'});
+
+            $this->{'origf'} = remove_diacritics($this->{'form'});
 
             $this->{'ord_term'} = ++$term_lim;
 
@@ -202,6 +234,78 @@ sub parse_twig {
 
     return $this;
 }
+
+
+sub process_morph {
+
+    return $_[0] if $_[0] =~ /^(?:$regexQ|$regexG)+$/;
+
+    my $morph = $_[0];
+
+    $morph =~ s/-LRB-/\(/g;
+    $morph =~ s/-RRB-/\)/g;
+
+    return $morph if $language eq 'English';
+
+    $morph =~ tr[{][A];
+
+    $morph =~ s/^\~a$/ya/;
+    $morph =~ s/^\~A$/nA/;
+    $morph =~ s/^\~iy$/iy/;
+
+    return $morph;
+}
+
+
+sub process_form {
+
+    return $_[0] if $_[0] =~ /^(?:$regexQ|$regexG)+$/;
+
+    return $_[0] if $_[0] =~ /^\*(?:[A-Z0-9]+\*)?$/;
+
+    return $_[0] if $language eq 'English';
+
+    my $token = $_[0];
+
+    $token =~ s/([tknhy])\+\1/$1\~/g;
+
+    $token =~ s/\+at((?:\+[aiuFKN])?)$/\+ap$1/ unless $this->{'tag_2'} =~ /^V/;
+
+    $token =~ s/A\+a/A/g;
+
+    if ($token =~ /\+/ and $token ne '+') {
+
+        $token =~ s/\+//g;
+    }
+
+    if ($token =~ /\-/ and $token ne '-') {
+
+        $token =~ s/\-//g;
+    }
+
+    $token =~ s/\(null\)//g;
+
+    $token = decode 'buckwalter', $token;
+
+    return $token;
+}
+
+
+sub remove_diacritics {
+
+    return $_[0] if $_[0] =~ /^(?:$regexQ|$regexG)+$/;
+
+    return $_[0] if $_[0] =~ /^\*(?:[A-Z0-9]+\*)?$/;
+
+    return $_[0] if $language eq 'English';
+
+    my $text = encode 'buckwalter', shift;
+
+    $text =~ tr[aiuoFKN\~\`\_][]d;
+
+    return decode 'buckwalter', $text;
+}
+
 
 sub justify_order {
 
@@ -233,6 +337,21 @@ sub justify_order {
 
         $this->{'ord_just'} = ++$index;
     }
+}
+
+
+sub identify_language {
+
+    my $return = '';
+
+    if ($ARGV[0] eq '-L') {
+
+        $return = $ARGV[1];
+
+        splice @ARGV, 0, 2;
+    }
+
+    return $return;
 }
 
 
