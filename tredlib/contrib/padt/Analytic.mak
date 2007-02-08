@@ -456,20 +456,47 @@ sub hooks_request_mode {
 sub get_value_line_hook {
 
     my ($fsfile, $index) = @_;
-    my ($nodes, $words);
+    my ($nodes, $words, $views);
 
     ($nodes, undef) = $fsfile->nodes($index, $this, 1);
 
+    $views->{$_->{'ord'}} = $_ foreach GetVisibleNodes($root);
+
     $words = [ [ $nodes->[0]->{'origf'} . " " . $nodes->[0]->{'tag'}, $nodes->[0], '-foreground => darkmagenta' ],
                map {
-                        [ " " ],
-                        [ $_->{'origf'}, $_, $_->{'tag'} ? () : '-foreground => red' ],
-               }
-               grep { defined $_->{'origf'} and $_->{'origf'} ne '' } @{$nodes}[1 .. $#{$nodes}] ];
+
+                   show_value_line_node($views, $_, 'origf', not $_->{'tag'})
+
+               } @{$nodes}[1 .. $#{$nodes}] ];
 
     @{$words} = reverse @{$words} if $main::treeViewOpts->{reverseNodeOrder};
 
     return $words;
+}
+
+sub show_value_line_node {
+
+    my ($view, $node, $text, $warn) = @_;
+
+    if (HiddenVisible()) {
+
+        return  unless defined $node->{'origf'} and $node->{'origf'} ne '';
+
+        return  [ " " ],
+                [ $node->{$text}, $node, exists $view->{$node->{'ord'}} ? $warn ? '-foreground => red' : ()
+                                                                                : '-foreground => gray' ];
+    }
+    else {
+
+        return  [ " " ],
+                [ '.....', $view->{$node->{'ord'} - 1}, '-foreground => magenta' ]
+                                if not exists $view->{$node->{'ord'}} and exists $view->{$node->{'ord'} - 1};
+
+        return  unless exists $view->{$node->{'ord'}} and defined $node->{'origf'} and $node->{'origf'} ne '';
+
+        return  [ " " ],
+                [ $node->{$text}, $node, $warn ? '-foreground => red' : () ];
+    }
 }
 
 sub highlight_value_line_tag_hook {
@@ -797,8 +824,6 @@ sub default_ar_attrs {
     SetStylesheetPatterns([ $hint, $cntxt, [ @filter, @{$style} == @filter ? $type . ' ' . $code . $pattern : () ] ]);
 
     ChangingFile(0);
-
-    return 1;
 }
 
 #bind invoke_undo BackSpace menu Annotate: Undo recent annotation action
@@ -900,9 +925,7 @@ use List::Util 'reduce';
 #bind move_word_home Home menu Move to First Word
 sub move_word_home {
 
-    my $fs = $grp->{FSFile}->FS();
-
-    $this = reduce { $a->{'ord'} < $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+    $this = reduce { $a->{'ord'} < $b->{'ord'} ? $a : $b } GetVisibleNodes($root);
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -911,9 +934,7 @@ sub move_word_home {
 #bind move_word_end End menu Move to Last Word
 sub move_word_end {
 
-    my $fs = $grp->{FSFile}->FS();
-
-    $this = reduce { $a->{'ord'} > $b->{'ord'} ? $a : $b } $root->visible_descendants($fs);
+    $this = reduce { $a->{'ord'} > $b->{'ord'} ? $a : $b } GetVisibleNodes($root);
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -922,11 +943,9 @@ sub move_word_end {
 #bind move_deep_home Ctrl+Home menu Move to Rightmost Descendant
 sub move_deep_home {
 
-    my $fs = $grp->{FSFile}->FS();
-
     $this = $this->leftmost_descendant();
 
-    $this = $this->previous_visible($fs) if $fs->isHidden($this);
+    $this = PrevVisibleNode($this) if IsHidden($this);
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -935,12 +954,9 @@ sub move_deep_home {
 #bind move_deep_end Ctrl+End menu Move to Leftmost Descendant
 sub move_deep_end {
 
-    my $fs = $grp->{FSFile}->FS();
-
     $this = $this->rightmost_descendant();
 
-    $this = $this->following_visible($fs) ||
-            $this->previous_visible($fs) if $fs->isHidden($this);
+    $this = NextVisibleNode($this) || PrevVisibleNode($this) if IsHidden($this);
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -979,6 +995,51 @@ sub move_to_prev_paragraph {
     PrevTree();
 
     $Redraw = 'win';
+    ChangingFile(0);
+}
+
+#bind tree_hide_mode Ctrl+equal menu Toggle Children Hiding
+sub tree_hide_mode {
+
+    foreach my $node ($this->children()) {
+
+        $node->{'hide'} = $node->{'hide'} ? '' : 'hide';
+    }
+
+    ChangingFile(0);
+}
+
+#bind unhide_subtree Ctrl+plus menu Unhide Children Recursively
+sub unhide_subtree {
+
+    my $this = ref $_[0] ? $_[0] : $this;
+
+    $this->{'hide'} = '';
+
+    foreach my $node ($this->children()) {
+
+        unhide_subtree($node);
+    }
+
+    ChangingFile(0);
+}
+
+#bind hide_children Ctrl+minus menu Hide Children Subtrees
+sub hide_children {
+
+    foreach my $node ($this->children()) {
+
+        $node->{'hide'} = 'hide';
+    }
+
+    ChangingFile(0);
+}
+
+#bind hide_this Ctrl+underscore menu Hide This Subtree
+sub hide_this {
+
+    $this->{'hide'} = $this->{'hide'} ? '' : 'hide';
+
     ChangingFile(0);
 }
 

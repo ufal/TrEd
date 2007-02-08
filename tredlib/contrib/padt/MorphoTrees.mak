@@ -420,7 +420,7 @@ sub move_par_end {
     ChangingFile(0);
 }
 
-#bind tree_hide_mode Ctrl+h menu Toggle Tree Hide Mode
+#bind tree_hide_mode Ctrl+equal menu Toggle Tree Hide Mode
 sub tree_hide_mode {
 
     if ($root->{'type'} eq 'paragraph') {

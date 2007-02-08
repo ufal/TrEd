@@ -575,7 +575,9 @@ sub process_morpheme_buffer {
         $token =~ s/\-//g;
     }
 
-    $token = detransliterate($token);
+    $token =~ s/\(null\)//g;
+
+    $token = decode 'buckwalter', $token unless $token =~ /^(?:$regexQ|$regexG)$/;
 
     return [$token, $morph, $tag, $gloss, $lemma, 'f'];
 }
@@ -613,22 +615,6 @@ sub remove_diacritics_buckwalter {
     my $text = shift;
 
     $text =~ tr[aiuoFKN\~\`\_][]d;
-
-    return $text;
-}
-
-
-sub detransliterate {
-
-    return $_[0] if $_[0] =~ /^(?:$regexQ|$regexG)$/;
-
-    my $text = shift;
-
-    $text =~ s/\(null\)//g;
-
-    $text = decode 'buckwalter', $text;
-
-    $text =~ tr[\x{0671}][\x{0627}];
 
     return $text;
 }
