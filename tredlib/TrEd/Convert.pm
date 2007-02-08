@@ -13,7 +13,7 @@ use strict;
 BEGIN {
   use Exporter  ();
   use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %encodings $inputenc
-              $outputenc $lefttoright $Ds $support_unicode);
+              $outputenc $lefttoright $Ds $support_unicode $FORCE_REMIX);
   use TrEd::MinMax;
   @ISA=qw(Exporter);
   $VERSION = "0.1";
@@ -48,7 +48,8 @@ sub encode {
   no integer;
 
   if ($support_unicode) { # we've got support for UNICODE in perl5.8/Tk8004
-    if ($^O ne 'MSWin32' and (
+    if (($FORCE_REMIX or $^O ne 'MSWin32')
+	  and (
             $inputenc =~ /^utf-?8$/i or
             $inputenc eq 'iso-8859-6' or
             $inputenc eq 'windows-1256' )) {

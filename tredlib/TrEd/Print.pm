@@ -226,6 +226,7 @@ sub print_trees {
 
   return if (not defined($printRange));
 
+  local $TrEd::Convert::FORCE_REMIX = 1;
   local $TrEd::Convert::support_unicode = $TrEd::Convert::support_unicode;
   local $TrEd::Convert::lefttoright = $TrEd::Convert::lefttoright;
   # A hack to support correct Arabic rendering under Tk800
