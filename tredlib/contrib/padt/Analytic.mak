@@ -870,7 +870,7 @@ sub annotate_following {
 
     do { $this = $this->following() } while $this and $this->{'afun'} ne '???';
 
-    $this = $node unless $this->{'afun'} eq '???';
+    $this = $node unless $this and $this->{'afun'} eq '???';
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -883,7 +883,7 @@ sub annotate_previous {
 
     do { $this = $this->previous() } while $this and $this->{'afun'} ne '???';
 
-    $this = $node unless $this->{'afun'} eq '???';
+    $this = $node unless $this and $this->{'afun'} eq '???';
 
     $Redraw = 'none';
     ChangingFile(0);

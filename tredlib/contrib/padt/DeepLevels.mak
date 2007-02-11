@@ -1154,7 +1154,7 @@ sub annotate_following {
 
     do { $this = $this->following() } while $this and $this->{'func'} ne '???';
 
-    $this = $node unless $this->{'func'} eq '???';
+    $this = $node unless $this and $this->{'func'} eq '???';
 
     $Redraw = 'none';
     ChangingFile(0);
@@ -1167,7 +1167,7 @@ sub annotate_previous {
 
     do { $this = $this->previous() } while $this and $this->{'func'} ne '???';
 
-    $this = $node unless $this->{'func'} eq '???';
+    $this = $node unless $this and $this->{'func'} eq '???';
 
     $Redraw = 'none';
     ChangingFile(0);
