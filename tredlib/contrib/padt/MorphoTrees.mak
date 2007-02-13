@@ -998,8 +998,15 @@ sub restrict_hide {
 
                 $node->{'restrict'} = '';
 
-                $node->{'inherit'} = restrict($node->parent()->{'restrict'}, $node->parent()->{'inherit'});
-                $node->{'inherit'} = '' if $node->{'inherit'} eq '-' x $dims;
+                if ($node->parent()) {
+
+                    $node->{'inherit'} = restrict($node->parent()->{'restrict'}, $node->parent()->{'inherit'});
+                    $node->{'inherit'} = '' if $node->{'inherit'} eq '-' x $dims;
+                }
+                else {
+
+                    $node->{'inherit'} = '';
+                }
             }
         }
     }
