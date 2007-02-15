@@ -661,13 +661,14 @@ sub frame_chosen {
       my $real=$chooser->get_selected_element_string();
       my $ids = $chooser->data->conv->decode(join("|",map { $_->getAttribute('id') } @frames));
       my $fmt  = $win->{FSFile}->FS();
-
+      main::save_undo($win,main::prepare_undo($win,'Assign Valency Frame'));
       if (ref($opts_ref->{-assign_func})) {
 	$opts_ref->{-assign_func}->($node,$ids,TrEd::Convert::decode($real),$win->{FSFile},$grp,$chooser,$opts_ref);
       } else {
 	$node->set_attr(($opts_ref->{-frameid_attr} || $frameid_attr),$ids);
 	$node->set_attr(($opts_ref->{-framere_attr} || $framere_attr),TrEd::Convert::decode($real)) if defined($opts_ref->{-framere_attr} || $framere_attr);
       }
+      $chooser->widget->toplevel->withdraw() if $opts_ref->{-withdraw};
       $win->{framegroup}{top}->focus();
       $win->{framegroup}{top}->raise();
       $win->{FSFile}->notSaved(1);
