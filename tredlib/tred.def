@@ -3334,6 +3334,10 @@ macro code and returning control to TrEd or btred (in which case btred
 starts processing the next file) but does not propagate through
 C<eval{}>, so it can also be trapped.
 
+Note that hooks that my follow execution of the macro code (such as
+file_close_hook or exit_hook in btred) are executed as if the macro
+ended normally.
+
 =cut
 
 {

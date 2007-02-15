@@ -11,7 +11,7 @@ use constant EMPTY => q{};
 
 use Carp;
 
-use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $config $config_file);
+use vars qw(@pmlformat @pmlpatterns $pmlhint $encoding $config $config_file $allow_no_trees);
 
 
 $encoding='utf-8';
@@ -20,6 +20,7 @@ $encoding='utf-8';
 $pmlhint=EMPTY;
 $config = undef;
 $config_file = 'pmlbackend_conf.xml';
+$allow_no_trees = 0;
 
 sub configure {
   return 0 unless eval { 
@@ -86,7 +87,8 @@ sub read ($$) {
   my $ctxt = PMLInstance->load({fh => $input, filename => $fsfile->filename, config => $config });
   $ctxt->convert_to_fsfile( $fsfile );
   my $status = $ctxt->get_status;
-  if ($status and !defined($ctxt->get_trees)) {
+  if ($status and 
+      !($allow_no_trees or defined($ctxt->get_trees))) {
     _die("No trees found in the PMLInstance!");
   }
   return $status
