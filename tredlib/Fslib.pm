@@ -1704,6 +1704,11 @@ then used to read the file.
 
 Note: this function sets noSaved to zero.
 
+Return values:
+   0 - succes
+   1 - no suitable backend
+  -1 - backend failed
+ 
 =cut
 
 sub readFile {
@@ -1711,7 +1716,7 @@ sub readFile {
   my @backends = UNIVERSAL::isa($_[0],'ARRAY') ? 
     @{$_[0]} : scalar(@_) ? @_ : qw(FSBackend);
   my $ret = 1;
-  return unless ref($self);
+  croak("readFile is not a class method") unless ref($self);
   $url =~ s/^\s*|\s*$//g;
   my ($file,$remove_file) = eval { IOBackend::fetch_file($url) };
   return -1 if $@;

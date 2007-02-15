@@ -30,7 +30,7 @@ use vars qw($quiet $Quiet $debug $csts_xargs $strip_prefix $add_prefix
 	    $strip_suffix $append_suffix $output_format $config_file
 	    $initial_code $macro $code $start_context $all_trees
 	    $all_nodes $no_all_trees $no_all_nodes $glob
-	    $all_nonhidden_nodes $file_encoding
+	    $all_nonhidden_nodes $file_encoding $allow_no_trees
 	    $term_encoding $save $safe_mode $csts_tree_attrs
 	    $csts_tecto $preload $warn_only $validate_fs $allow_host
 	    $start_server $help $usage $manpage $obey_locks
@@ -101,6 +101,7 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 	    "extra-backends|B=s" => \$extra_backends,
 	    "resource-dir|Z=s" => \@resource_paths,
 	    "define-symbol|y=s" => \@define_symbols,
+	    "allow-no-trees|0" => \$allow_no_trees,
 	    "version|v"        => \$print_version,
 	   );
 
@@ -624,6 +625,8 @@ sub startMain {
 	$NO_HOOKS=1;
 	if ($request{REQUEST_TYPE} eq 'LOAD_FILES') {
 	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+	  local $allow_no_trees = $request{STATE_ALLOW_NO_TREES} ? 1: $allow_no_trees;
+
 	  my @new=split /\n/,$request{STATE_FILELIST};
 	  push @files,@new;
 
@@ -770,6 +773,7 @@ sub startMain {
 	  exit 0;
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD') {
 	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+	  local $allow_no_trees = $request{STATE_ALLOW_NO_TREES} ? 1: $allow_no_trees;
 	  my $regexp = $request{STATE_REGEXP_FILES};
 	  if (exists $request{STATE_FILELIST}) {
 	    _msg "Reloading files at client's request\n";
@@ -807,6 +811,7 @@ sub startMain {
 	  _end_response($control,$hub);
 	} elsif ($request{REQUEST_TYPE} eq 'RELOAD_CHANGED') {
 	  local $no_secondary = $request{STATE_NO_SECONDARY} ? 1 : $no_secondary;
+	  local $allow_no_trees = $request{STATE_ALLOW_NO_TREES} ? 1: $allow_no_trees;
 	  _msg "Reloading changed files at client's request\n";
 	  my @changed = grep { ref($grp->{preloaded}->{$_}) and
 				 fileOrSecondariesNotSaved($grp,$grp->{preloaded}->{$_})
@@ -1326,11 +1331,16 @@ sub loadFile {
   my $status = _new_status(ok => 0, filename => $file, backends => $bck, warnings => \@warnings);
   _clear_err();
   local $SIG{__WARN__} = sub { my $msg = shift; chomp $msg; print STDERR $msg."\n"; push @warnings,$msg; };
+
+  # a bit of a hack:
+  local $PMLBackend::allow_no_trees=1 if $allow_no_trees;
+
   my $fsfile = FSFile->newFSFile($file,$TrEd::Convert::inputenc, $bck);
   $status->{error} = _last_err();
   chomp $status->{error};
   $status->{report} = "Loading file '$file':\n";
-  if (ref($fsfile) and $fsfile->lastTreeNo>=0 and $Fslib::FSError==0) {
+  if (ref($fsfile) and ($allow_no_trees || $fsfile->lastTreeNo>=0)
+       and $Fslib::FSError==0) {
     $status->{ok} = @warnings ? -1 : 1;
   } else {
     $status->{ok} = 0;
@@ -2082,7 +2092,7 @@ Unconditionally save files after macro code was applied.  By default,
 files are saved only if the C<$FileChanged> variable has been set to 1
 within the macro code.
 
-=item B<--knit|K> ALL|NONE|name1,name2,...
+=item B<--knit|-K> ALL|NONE|name1,name2,...
 
 If a file is saved, save/update also listed types of reffiles the file
 pulled data from. For the moment, this only makes sense with the
@@ -2099,6 +2109,11 @@ so called secondary files.
 Never ever save any files (this way you may protect your files from
 being saved even if applying a macro that modifies them and sets
 C<$TredMacro::FileChanged> to 1).
+
+=item B<--allow-no-trees|-0>
+
+Allow files with no trees (normaly such files are considered broken).
+Note: the short flag is -zero.
 
 =item B<--safe-mode|-F>
 

@@ -14,7 +14,7 @@ use IO::Socket;
 use IO::Select;
 
 use vars qw($all_trees $all_nodes $no_all_trees $no_all_nodes
-	    $all_nonhidden_nodes $macro_file
+	    $all_nonhidden_nodes $macro_file $allow_no_trees
 	    $code $hubname $hubport $init $nocheck $noservers $nohub
 	    $client_key_file $verbose $srvlist $kill $ps_kill $ps_break $filelist
 	    $srvlistfile $request_quit $request_dump $request_upload
@@ -108,6 +108,7 @@ Getopt::Long::Configure ("bundling");
 	 "old-dist-method"        => \$olddist,
 	 "logdir"        => \$logdir,
 	 "keep-empty-servers|E"        => \$keep_empty_servers,
+	 "allow-no-trees|0"        => \$allow_no_trees,
 	 "max-retries=i"   => \$max_server_retries,
 	);
 GetOptions(%optmap) or $usage=1;
@@ -539,10 +540,22 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   # --------------- optimal file distribution  -------------------
   use Benchmark;
   my $t0 = Benchmark->new();
+  my $state_flags = 
+    [
+      ($no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
+      ($allow_no_trees ? ("$control STATE=ALLOW_NO_TREES",1) : ())
+    ];
+
   if ($olddist) {
-    distribute_files($control,\@running,\@files,($keep_empty_servers ? 0 : 1),$server_key);
+    distribute_files($control,\@running,\@files,($keep_empty_servers ? 0 : 1),
+		     $server_key,
+		     $state_flags,
+		    );
   } else {
-    distribute_files2($control,\@running,\@files,($keep_empty_servers ? 0 : 1),$server_key);
+    distribute_files2($control,\@running,\@files,($keep_empty_servers ? 0 : 1),
+		      $server_key,
+		      $state_flags,
+		     );
   }
   my $t1 = Benchmark->new();
   msg ("Distribution took ",Benchmark::timestr(Benchmark::timediff($t1,$t0))."\n");
@@ -628,10 +641,16 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
       my $md5 = sign_md5($server_key,$md5_request);
       if ($md5 eq $request{SIGNATURE}) {
 	#shift @files; pop @files; # get rid of the controls
+	my $state_flags = 
+	  [
+	    ($request{STATE_NO_SECONDARY} ? ("$control STATE=NO_SECONDARY",1) : ()),
+	    ($request{STATE_ALLOW_NO_TREES} ? ("$control STATE=ALLOW_NO_TREES",1) : ())
+	   ];
+
 	if ($olddist) {
-	  distribute_files($control,\@running,\@files,0,$server_key,$request{STATE_NO_SECONDARY});
+	  distribute_files($control,\@running,\@files,0,$server_key,$state_flags);
 	} else {
-	  distribute_files2($control,\@running,\@files,0,$server_key,$request{STATE_NO_SECONDARY});
+	  distribute_files2($control,\@running,\@files,0,$server_key,$state_flags);
 	}
       } else {
 	print $client "$control HUB_RESPONSE_STDERR\n";
@@ -736,6 +755,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   } elsif ($request_reload_changed) {
     $request_type="RELOAD_CHANGED";
     $request="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
+    $request.="$control STATE=ALLOW_NO_TREES\n1\n" if ($allow_no_trees);
   } elsif ($request_reload) {
     $request_type="RELOAD";
     my @files =  get_files();
@@ -744,6 +764,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
 	/(##?[0-9A-Z]+(?:\.[0-9]+)?)$/;
     }
     $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
+    $request.="$control STATE=ALLOW_NO_TREES\n1\n" if ($allow_no_trees);
     $request.="$control STATE=REGEXP_FILES\n"._enc2bytes('utf8',$regexp_files)."\n" if ($regexp_files);
     $request.="$control STATE=FILELIST\n"._enc2bytes('utf8',join "\n",@files)."\n" if ($listedfiles || @files);
   } elsif ($request_reload_macros) {
@@ -802,6 +823,7 @@ if (defined($init) || defined($kill) || defined($ps_kill) || defined($ps_break) 
   } elsif ($request_load) {
     $request_type="HUB_DISTRIBUTE";
     $request.="$control STATE=NO_SECONDARY\n1\n" if ($no_secondary);
+    $request.="$control STATE=ALLOW_NO_TREES\n1\n" if ($allow_no_trees);
     $request.="$control STATE=FILELIST\n";
     my @files = get_file_list();
     $request.=join "\n", @files;
@@ -913,7 +935,7 @@ sub _enc2bytes {
 
 # --------------- optimal file distribution  -------------------
 sub distribute_files {
-  my ($control,$servers,$files,$close_empty,$key,$request_no_secondary) = @_;
+  my ($control,$servers,$files,$close_empty,$key,$state_flags) = @_;
   my @totalfilelist=@$files;
   my %benchmark_time;
   my %number_of_procs;
@@ -945,7 +967,7 @@ sub distribute_files {
       push @servers_to_respond,$server;
       msg "Distributing ".scalar(@f)." files to $server->{fullname}\n";
       send_request($control,$server->{socket},'LOAD_FILES',$key,
-		   ($request_no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
+		   @$state_flags,
 		   "$control STATE=FILELIST", @f);
     } elsif ($close_empty) {
       msg "No files for server $server->{fullname}, closing it.\n";
@@ -966,7 +988,7 @@ sub distribute_files {
 
 
 sub distribute_files2 {
-  my ($control,$servers,$files,$close_empty,$key,$request_no_secondary) = @_;
+  my ($control,$servers,$files,$close_empty,$key,$state_flags) = @_;
   my @totalfilelist=@$files;
 
   my $files_per_request = 16;
@@ -991,7 +1013,7 @@ sub distribute_files2 {
 	"\n";
 
       send_request($control,$server->{socket},'LOAD_FILES',$key,
-		   ($request_no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
+		   @$state_flags,
 		   "$control STATE=FILELIST", @f);
 
       $select->add($server->{socket});
@@ -1032,7 +1054,7 @@ sub distribute_files2 {
 	  "(".int((100*$distributed_files)/$all_files_count)."%)".
 	  "\n";
 	send_request($control,$server->{socket},'LOAD_FILES',$key,
-		     ($request_no_secondary ? ("$control STATE=NO_SECONDARY",1) : ()),
+		     @$state_flags,
 		     "$control STATE=FILELIST", @f);
 
 
@@ -1048,7 +1070,10 @@ sub distribute_files2 {
       msg "All $all_files_count files have been successfully loaded :-)\n";
     } else {
       msg(("*"x75)."\n");
-      msg "PROBLEM: loading of some files (of $all_files_count) has failed! (Only $success confirmed as OK)\n";
+      msg "PROBLEM: servers reported errors/warnings while loading some files.\n";
+      msg "Of $all_files_count files loaded, only $success were confirmed OK.\n";
+      msg "Note that OK status is reported per-batch, not per-file, so more files may be OK.\n";
+      msg "Anyway, up to ".($all_files_count-$success)." files had problems.\n";
       msg(("*"x75)."\n");
     }
   }
@@ -1137,7 +1162,8 @@ To query the servers:
 To start remote servers and a hub:
 
   ntred -i [--servers server[,server,...]] [--serverlist server-list]
-           [--filelist file-list] [--max-servers num] [--no-secondary-files]
+           [--filelist file-list] [--max-servers num] 
+           [--allow-no-trees] [--no-secondary-files]
            [--no-server-check] [--no-server-start] [--no-hub-start]
            [--old-dist-method] [--safe-mode] [--server-debug]
            [-m|-I macro-file] [-M module] [--btred path-to-btred]
@@ -1328,6 +1354,11 @@ Don't load "secondary" files along with normal files (a file may
 require other - secondary - file to load along with it; this is
 typical for stand-off annotation where one tree is built upon
 another).
+
+=item B<--allow-no-trees|-0>
+
+Allow files with no trees (normaly such files are considered broken).
+Note: the short flag is -zero.
 
 =item B<--max-servers> number
 
@@ -1612,6 +1643,11 @@ Ignore "secondary" files even if loaded. This only affects some
 commands, such as B<--list-changed>, in which particular case is means
 that a file, whose secondary file was changed, is not reported as
 changed unless the (primary) file itself was marked as changed.
+
+=item B<--allow-no-trees|-0>
+
+Allow files with no trees (normaly such files are considered broken).
+Note: the short flag is -zero.
 
 =back
 
