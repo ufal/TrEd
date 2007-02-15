@@ -46,6 +46,7 @@ sub create_toplevel {
 
   my $d = $top->Toplevel(-title => $title);
   $d->withdraw;
+  $d->focusmodel('active');
   $d->bind('all','<Tab>',[sub { shift->focusNext; }]);
   my $top = $d->Frame();
   my $bot = $d->Frame();

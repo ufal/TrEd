@@ -1140,6 +1140,8 @@ sub OpenValFrameList {
     -vallex_file => $vallex_file,
     -lemma => $node ? $node->{t_lemma} : undef,
     -sempos => $node ? $node->attr('gram/sempos') : undef,
+    -lemma_attr => 't_lemma',
+    -sempos_attr => 'gram/sempos',
     -frameid => $rf,
     -assignfunc => sub{},
     %opts

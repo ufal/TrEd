@@ -79,6 +79,7 @@ sub ChooseValFrame {
   my $fsfile = $grp->{FSFile};
   PML_T::OpenValFrameList(
     $node,
+    -withdraw => 1,
     -assign_func => sub {
       my ($n, $ids, $dummy, $current_fsfile, $dummy, $chooser)=@_;
       if ($current_fsfile == $fsfile) {
