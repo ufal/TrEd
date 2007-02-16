@@ -9,6 +9,9 @@ use TrEd::MinMax qw(first max maxstr min minstr reduce sum);
 use base qw(main Exporter);
 use Carp;
 
+*isa = \&UNIVERSAL::isa; # this is a work-around needed for a bug in Class::Std
+
+
 use vars qw(@FORCE_EXPORT);
 BEGIN {
 @FORCE_EXPORT = qw($libDir $grp $root $this $_NoSuchTree $Redraw $stderr $stdout
