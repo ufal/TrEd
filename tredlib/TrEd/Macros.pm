@@ -457,7 +457,7 @@ sub context_can {
     no strict;
     return $safeCompartment->reval("\${'${context}::'}{'$sub'}");
   } else {
-    return $context->can($sub);
+    return UNIVERSAL::can($context,$sub);
   }
 }
 
