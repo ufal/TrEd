@@ -2725,6 +2725,16 @@ sub get_nodes_fsfile_tree {
   return;
 }
 
+sub get_nodes_stylesheet {
+  my ($grp,$stylesheet)=@_;
+  return if $insideEval;
+  foreach (stylesheetUsingWindows($grp,$stylesheet)) {
+    get_nodes_win($_);
+  }
+  return;
+}
+
+
 sub get_nodes_all {
   my ($grp)=@_;
   foreach my $w (@{ $grp->{treeWindows} }) {
@@ -8937,8 +8947,10 @@ EOF
 		     setStylesheetPatterns($win,$e->get('0.0','end'));
 		     update_value_line($grp);
 		     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
+		       get_nodes_fsfile($grp,$win->{FSFile});
 		       redraw_fsfile($grp,$win->{FSFile});
 		     } else {
+		       get_nodes_stylesheet($grp,$win->{stylesheet});
 		       redraw_stylesheet($grp,$win->{stylesheet});
 		     }
 		     setStylesheetPatterns($win,[$hint,$context,$patterns]);
