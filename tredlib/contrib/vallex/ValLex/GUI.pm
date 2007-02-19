@@ -640,12 +640,12 @@ sub frame_chosen {
     my $node = $win->{currentNode};
     #my $lemma = TrEd::Convert::encode($node->attr(($opts_ref->{-lemma_attr} || $lemma_attr))); 
     #my $pos = sempos($node->attr(($opts_ref->{-sempos_attr} || $sempos_attr)));
-    my $lemma=TrEd::Convert::encode( ($node and ref($opts_ref) and exists($opts_ref->{-lemma_attr})) 
+    my $lemma=TrEd::Convert::encode( ($node and ref($opts_ref) and defined($opts_ref->{-lemma_attr})) 
 				       ? $node->attr($opts_ref->{-lemma_attr}) 
 				       : $opts_ref->{-lemma});
     $lemma=~s/_/ /g;
     my $pos;
-    if (ref $opts_ref and exists($opts_ref->{-sempos_attr})) {
+    if (ref $opts_ref and defined($opts_ref->{-sempos_attr})) {
       $pos = sempos($node->attr($opts_ref->{-sempos_attr}));
     } elsif (ref $opts_ref and exists($opts_ref->{-pos})) {
       $pos = $opts_ref->{-pos};
