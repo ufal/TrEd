@@ -1136,9 +1136,8 @@ sub filelistFullFileName {
   my ($win, $fn)=@_;
   my $grp = cast_to_grp($win);
   return undef unless $win->{currentFilelist};
-  my $filename=$win->{currentFilelist}->file_at($fn);
-
-  return  Fslib::ResolvePath($win->{currentFilelist}->filename(),$filename);
+  my ($filename,$suffix)=parse_suffix($win->{currentFilelist}->file_at($fn));
+  return  Fslib::ResolvePath($win->{currentFilelist}->filename(),$filename).$suffix;
 }
 
 sub nextOrPrevFile {
