@@ -9,7 +9,7 @@ package PML_A_View;
 
 #binding-context PML_A_View
 
-#include <contrib/unbind_edit/unbind_edit.mak>
+#include <contrib/support/unbind_edit.inc>
 
 #include "PML_A_View.inc"
 
