@@ -3013,20 +3013,30 @@ sub removeFromFilelist {
 }
 
 sub addNewFilelist {
-  my ($grp,$fl)=@_;
+  my ($grp,$fl,$top)=@_;
   return if not defined($fl) or $fl eq EMPTY;
   for my $l (@filelists) {
     if ($l->name eq $fl->name) {
-      print STDERR "Filelist ",$fl->name," already exists, replacing!\n"
-	if $tredDebug;
+      if ($top) {
+	return $l unless
+	  userQuery($top,
+		    "Filelist named '".$fl->name."' is already loaded from\n".
+		    $l->filename."\nReplace?",
+		    -bitmap=> 'question',
+		    -title => "Replace?",
+		    -buttons => ['Replace', 'Cancel'])  eq 'Replace';
+      } elsif ($tredDebug) {
+	print STDERR "Filelist ",$fl->name," already exists, replacing!\n";
+      }
       @{ $l->list_ref }= $fl->list;
+      $l->filename($fl->filename); # set filename
       $l->expand;
       if ($grp) {
 	$grp->{filelistCurrentFilelist}=undef;
 	switchFilelist($grp,$l);
       }
       undef $fl;
-      return;
+      return $l;
     }
   }
   if (not defined($fl->name) or $fl->name eq EMPTY) {
@@ -3038,6 +3048,7 @@ sub addNewFilelist {
     switchFilelist($grp,$fl);
     updatePostponed($grp);
   }
+  return $fl;
 }
 
 sub deleteFilelist {
@@ -3390,7 +3401,7 @@ sub filelistDialog {
 			   return unless $fl;
 			   print "Loading filelist: $file\n";
 			   $fl->load();
-			   addNewFilelist($grp,$fl);
+			   addNewFilelist($grp,$fl,$d);
 			   $$filelistref=$fl->name();
 			 },$grp,$d,\$filelist ])
     ->pack(@b_pack);
