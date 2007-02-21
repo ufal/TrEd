@@ -3015,19 +3015,41 @@ sub removeFromFilelist {
 sub addNewFilelist {
   my ($grp,$fl,$top)=@_;
   return if not defined($fl) or $fl eq EMPTY;
-  for my $l (@filelists) {
-    if ($l->name eq $fl->name) {
-      if ($top) {
-	return $l unless
-	  userQuery($top,
-		    "Filelist named '".$fl->name."' is already loaded from\n".
-		    $l->filename."\nReplace?",
-		    -bitmap=> 'question',
-		    -title => "Replace?",
-		    -buttons => ['Replace', 'Cancel'])  eq 'Replace';
-      } elsif ($tredDebug) {
-	print STDERR "Filelist ",$fl->name," already exists, replacing!\n";
+  my $l;
+  my $old_name = $fl->name;
+  LOOP:
+  for my $dummy (1) {
+    ($l) = grep { $_->name eq $fl->name } @filelists;
+    last unless $l;
+    if ($top) {
+      my $answer = 
+	_is_same_file($l->filename,$fl->filename)
+	  ? userQuery($top,
+		      "Filelist '".$fl->name."' already loaded.\n",
+		      -bitmap=> 'question',
+		      -title => "Reload filelist?",
+		      -buttons => ['Reload','Cancel'])
+	  : userQuery($top,
+		      "Filelist named '".$fl->name.
+			"' is already loaded from\n".$l->filename."\n",
+		      -bitmap=> 'question',
+		      -title => "Filelist confilct",
+		      -buttons => ['Replace','Change name','Cancel']);
+      return $l if $answer eq 'Cancel';
+      if ($answer eq 'Change name') {
+	my $name = QueryString($top,"Filelist name", "Name: ",$fl->name);
+	return $l unless defined($name);
+	$fl->rename($name);
+	redo LOOP;
       }
+    } elsif ($tredDebug) {
+      print STDERR "Filelist ",$fl->name," already exists, replacing!\n";
+    }
+  }
+  if ($old_name ne $fl->name) {
+    $fl->save; # filelist renamed
+  }
+  if ($l) {
       @{ $l->list_ref }= $fl->list;
       $l->filename($fl->filename); # set filename
       $l->expand;
@@ -3037,7 +3059,6 @@ sub addNewFilelist {
       }
       undef $fl;
       return $l;
-    }
   }
   if (not defined($fl->name) or $fl->name eq EMPTY) {
     undef $fl;
@@ -3417,6 +3438,7 @@ sub filelistDialog {
   $midframe->pack(qw/-padx 5 -side left/);
   $rightframe->pack(qw/-padx 5 -side left -fill y/);
   $topframe->pack(qw/-padx 3 -pady 3 -side top -expand yes -fill both/);
+
 
   if ($grp->{focusedWindow}->{currentFileNo}) {
     my $path=filelistEntryPath($grp->{filelistCurrentFilelist},$grp->{focusedWindow}->{currentFileNo});
@@ -6937,6 +6959,14 @@ sub askSaveFile {
   }
 }
 
+sub _is_same_file {
+  my ($f1,$f2) = @_;
+  return 1 if $f1 eq $f2;
+  my ($d1,$i1)=stat($f1);
+  my ($d2,$i2)=stat($f2);
+  return ($d1==$d2 and $i1==$i2) ? 1 : 0;
+}
+
 sub saveConfig {
  my ($win)=shift;
  if (ref($win)=~/^Tk::/) {
@@ -6952,9 +6982,7 @@ sub saveConfig {
  } else {
    my $lasterr=conv_from_locale($!);
    my ($trc)=TrEd::Config::tilde_expand('~/.tredrc');
-   my ($dc,$ic)=stat($configFile);
-   my ($dh,$ih)=stat($trc);
-   if ($configFile ne $trc and ($dc != $dh or $ic != $ih) and
+   if (!_is_same_file($configFile,$trc)  and
        ((defined($top) and
 	   $top->
 	     messageBox(-icon=> 'warning',
