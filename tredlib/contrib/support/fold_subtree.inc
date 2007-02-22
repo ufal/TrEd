@@ -51,6 +51,7 @@ sub fold_subtree_toggle {
   # store the data
   FileUserData("hide",$hide);
   FileUserData("fold",$fold);
+  ChangingFile(0);
 }
 
 sub fold_subtree_unfold_all {
@@ -69,4 +70,5 @@ sub fold_subtree_unfold_all {
   # store the data
   FileUserData("hide",$hide);
   FileUserData("fold",$fold);
+  ChangingFile(0);
 }
