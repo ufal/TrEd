@@ -1199,10 +1199,10 @@ sub startMain {
     $code||="autostart()"; # this is the default macro name
     init_safe_mode($grp) if $safe;
     my $pre='';
-    $pre .= q[if ($root) { do {{ ] if ($all_trees);
-    $pre .= q[while ($this) {] if ($all_nodes or $all_nonhidden_nodes);
-    my $post.= q[$this=$this->following; ]."\n}" if ($all_nodes);
-    $post.= q[$this=$this->following_visible($grp->{FSFile}->FS); ]."\n}"
+    $pre .= q[if ($TredMacro::root) { do {{ ] if ($all_trees);
+    $pre .= q[while ($TredMacro::this) {] if ($all_nodes or $all_nonhidden_nodes);
+    my $post.= q[  $TredMacro::this = $TredMacro::this->following; ]."\n}" if ($all_nodes);
+    $post.= q[  $TredMacro::this = $TredMacro::this->following_visible($TredMacro::grp->{FSFile}->FS); ]."\n}"
       if (not $all_nodes and $all_nonhidden_nodes);
     $post.= q[ }} while TredMacro::NextTree(); }] if ($all_trees);
     my $premacro= <<EOL;
