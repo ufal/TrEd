@@ -438,37 +438,46 @@ sub GetNodeIndex {
   return $i;
 }
 
-=item C<LocateNode(node)>
+=item C<LocateNode(node?,fsfile?)>
 
 Return current filename, index of a tree (starting from 1) in the file
 to which the node belongs (0 if not found) and node's position in the tree
 in the deep-first tree ordering.
 
+If C<node> is not given, C<$this> is assumed. Should the node be from a
+different file than the current one, the second argument must specify
+the corresponding FSFile object.
+
 =cut
 
 sub LocateNode {
   my $node = ref($_[0]) ? $_[0] : $this;
+  my $fsfile = ref($_[1]) ? $_[1] : CurrentFile();
   return unless ref $node;
   my $tree = $node->root;
-  if ($tree == $root) {
+  if ($fsfile==CurrentFile() and $tree == $root) {
     return (FileName(),CurrentTreeNumber()+1,GetNodeIndex($node));
   } else {
     my $i = 1;
-    foreach my $t (GetTrees()) {
+    foreach my $t ($fsfile->trees) {
       if ($t == $tree) {
-	return (FileName(),$i,GetNodeIndex($node));
-	return FileName().'@'.$i.'##1.'.GetNodeIndex($node);
+	return ($fsfile->filename,$i,GetNodeIndex($node));
       }
       $i++;
     }
-    return (FileName(),0,GetNodeIndex($node));
+    return ($fsfile->filename,0,GetNodeIndex($node));
   }
 }
 
 =item C<ThisAddress(node?)>
 
-Return current node's address string in a form of filename#tree_no.index
+Return a given node's address string in a form of filename#tree_no.index
 (tree_no starts from 1 to reflect TrEd's UI convention).
+
+If C<node> is not given, C<$this> is assumed. Should the node be from a
+different file than the current one, the second argument must specify
+the corresponding FSFile object.
+
 
 =cut
 
@@ -478,12 +487,16 @@ sub ThisAddress {
   return $f.'##'.$i.'.'.$n;
 }
 
-=item C<ThisAddressNTRED(node?)>
+=item C<ThisAddressNTRED(node?,fsfile?)>
 
-Return current node's address string in a form of
+Return a given node's address string in a form of
 ntred://filename@tree_no#1.index (tree_no starts from 1 to reflect
 TrEd's UI convention). This address may be opened in TrEd to examine
 the tree in memory of a remote btred server.
+
+If C<node> is not given, C<$this> is assumed. Should the node be from a
+different file than the current one, the second argument must specify
+the corresponding FSFile object.
 
 =cut
 
@@ -492,7 +505,7 @@ sub ThisAddressNTRED {
   return 'ntred://'.$f.'@'.$i.'##1.'.$n;
 }
 
-=item C<FPosition(node?)>
+=item C<FPosition(node?,fsfile?)>
 
 Prints the result of C<ThisAddress> on stdout.
 
@@ -501,7 +514,7 @@ Prints the result of C<ThisAddress> on stdout.
 sub FPosition { print ThisAddress(@_),"\n"; }
 
 
-=item C<NPosition(node?)>
+=item C<NPosition(node?,fsfile?)>
 
 Prints the result of C<ThisAddressNTRED> on stdout.
 
