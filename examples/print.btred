@@ -1,0 +1,297 @@
+#!btred -e trees2pdf --no-save --allow-switch-context
+# -*- cperl -*-
+
+#define TRED
+#include <tred.mac>
+
+package TredMacro;
+use Tk;
+
+require TrEd::Utils;
+require TrEd::TreeView;
+require TrEd::Print;
+TrEd::Utils::find_win_home();
+
+my %opts = 
+    map { 
+      local $_=$_;
+      s/^--/-/;
+      $_;
+    } @ARGV;
+
+# fake GUI
+{
+  my $gui = {
+    top => MainWindow->new,
+    focusedWindow => $grp,
+  };
+  $grp->{framegroup} = $gui; 
+  
+  my $stylesheetFile = (defined($opt_S) and length($opt_S)) ? 
+    $opt_S : $ENV{HOME}."/.tred-stylesheets";
+  TrEd::Utils::readStyleSheets($gui,$stylesheetFile);
+
+  package main;
+  import TrEd::Utils qw(getStylesheetPatterns
+			setStylesheetPatterns
+			STYLESHEET_FROM_FILE);
+  sub __run_hook {
+    my $treeview = shift;
+    my $win = shift;
+    local $win->{treeView} = $treeview;
+    my $context = $win->{macroContext} || 'TredMacro';
+    TrEd::Macros::do_eval_hook($win,$context,@_);
+  }
+  sub onGetNodeStyle {
+    my ($treeview,$node,$styles,$win)=@_;
+    __run_hook($treeview,$win,"node_style_hook",$node,$styles);
+  }
+  sub onGetRootStyle {
+    my ($treeview,$node,$styles,$win)=@_;
+    __run_hook($treeview,$win,"root_style_hook",$node,$styles);
+  }
+  sub switchStylesheet {
+    my ($gui,$stylesheet)=@_;
+    my $win=$gui->{focusedWindow};
+    return unless ref($win);
+    my $prevstylesheet=$win->{stylesheet};
+    return if $prevstylesheet eq $stylesheet;
+    return 0 if __run_hook(undef,$win,"pre_switch_stylesheet_hook",
+			   $prevstylesheet,$stylesheet) eq 'stop';
+    $win->{stylesheet}=$stylesheet;
+    __run_hook(undef,$win,"switch_stylesheet_hook",$prevstylesheet,$stylesheet);
+    return 1;
+  }
+}
+
+sub GUI { $grp }
+sub ToplevelFrame { $grp->{framegroup}{top} }
+sub Redraw {}
+sub Redraw_FSFile {}
+sub Redraw_FSFile_Tree {}
+sub Redraw_All {}
+sub RedrawStatusLine {}
+
+sub trees2pdf {
+  local $TrEd::Convert::support_unicode=1;
+  local $TrEd::Print::QUIET = 1 if $opts{-quiet};
+  SetCurrentStylesheet(STYLESHEET_FROM_FILE());
+
+  file_opened_hook() if UNIVERSAL::can('TredMacro','file_opened_hook');
+  SwitchContext($opts{-context}) if defined $opts{-context};
+
+  SetCurrentStylesheet($opts{-stylesheet}) if defined $opts{-stylesheet};
+  print STDERR "Context: ",CurrentContext(),"\n" unless $opts{-quiet};
+  print STDERR "Stylesheet: ", GetCurrentStylesheet(),"\n" unless $opts{-quiet};
+
+  local $main::append_suffix = '.pdf' unless defined $main::append_suffix;
+  Print(
+    -range => '1-',
+    -toFile => 1,
+    -filename =>  main::save_transform_filename(FileName()),
+    -format => 'PDF',
+    -noRotate => 1,
+    -colors => 1,
+    ($otps{-psMedia} eq 'BBox') ?
+      (-hMargin => 0, -vMargin => 0) : (),
+    
+    %opts,
+   );
+  ChangingFile(0);
+}
+
+__END__
+
+
+=head1 print.btred
+
+Print trees according to given printing options.
+
+=head2 USAGE
+
+btred -qm print.btred [<btred-options>] -o <print-options> -- <file(s)>
+
+=head2 DESCRIPTION
+
+This script similar functionality as the Print dialog in TrEd.
+
+By default the script creates an A4 PDF file consisting of all trees
+of the current file. The filename of the resuting PDF is the name of
+the source file with the .pdf suffix added to it. 
+
+The default behavior can be changed by many options.
+
+=head2 IMPORTANT
+
+=over 3
+
+=item *
+
+The script uses Tk which on UNIX, requires that the DISPLAY
+environment variable is set and points to a running X server.
+
+=item *
+
+All options must always be given in pairs of the form
+C<--name value>.
+
+=item *
+
+On the btred command line, the print options go between -o and --.
+
+=back
+
+=head2 PRINT OPTIONS
+
+=over 3
+
+=item C<--quiet> 1|0
+
+Be more quiet.
+
+=item C<--context> context
+
+Context to use for drawing trees (node_style_hook, root_style_hook,
+and possibly other hooks are called from this context).
+
+=item C<--stylesheet> stylesheet
+
+Name of the stylesheet to use.
+
+=item C<--range> range
+
+Lists trees to be printed (e.g. C<5,-3,9-12,15-> prints trees
+5,1,2,3,9,10,11,12,15,16,...)
+
+=item C<--command> command
+
+System command to send the output to (e.g. C<lpr> to print on the
+default printer on UNIX platform).
+
+=item C<--toFile> 1|0
+
+If set to 1, the output is saved to a file specified in C<--filename>.
+
+=item C<--filename> filename
+
+Output filename (only when printing to file). This option is useful
+only when printing a single file.
+
+If converting several files, it is recommended to use btred options
+C<--strip-prefix>, C<--add-prefix>, C<--strip-suffix>, C<--add-suffix>
+which this script obeys.
+
+=item C<--format> PS|PDF|EPS|ImageMagick
+
+Target format. Default is PDF.
+
+=item C<--noRotate> 1|0
+
+If 1, disables automatic landscape rotation of trees which are wider
+than taller.
+
+=item C<--sentenceInfo> 1|0
+
+If set to 1, this command prints also the text associated with the
+tree.
+
+=item C<--imageMagickResolution> density
+
+This value is passed to the command C<convert> of the ImageMagick
+toolkit as C<--density>. It specifies the horizontal and vertical
+resolution in pixels of the image.
+
+=item C<--colors> 1|0
+
+Set to 1 for colour output. Default is 1.
+
+=item C<--hidden> 1|0
+
+Set to 1 to print hidden nodes.
+
+=item C<--psFontFile> font.pfa
+
+Specifies the PostScript font file to be used instead of the default
+one.
+
+=item C<---psFontAFMFile> font.afm
+
+Specifies the PostScript ASCII metric font file to be used instead of
+the default one.
+
+=item C<--ttFont> font.ttf
+
+Specifies the TrueType font file to be used when printing via PDF.
+
+=item C<--fontSize> size
+
+Font size.
+
+=item C<--fmtWidth> width
+
+Page width.
+
+=item  C<--fmtHeight> height
+
+Page height.
+
+=item C<--hMargin> dimension
+
+The size of the left and right horizontal margins.
+
+=item C<--vMargin> dimension
+
+The size of the top and bottom margins.
+
+=item C<--maximize> 1|0
+
+Expand small trees to fit the whole page size. (Shrinking is done
+automatically).
+
+=item C<--psMedia> media
+
+Specifies target given media size (used for PostScript and PDF).
+Possible values:
+
+User (dimensions specified in -fmtHeight and -fmtWidth), BBox
+(bounding box of the tree with only -hMargin and -vMargin added),
+Letter, LetterSmall, Legal, Statement, Tabloid, Ledger, Folio, Quarto,
+Executive, A0, A1, A2, A3, A4, A4Small, A5, A6, A7, A8, A9, A10, B0,
+B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, ISOB0, ISOB1, ISOB2, ISOB3,
+ISOB4, ISOB5, ISOB6, ISOB7, ISOB8, ISOB9, ISOB10, C0, C1, C2, C3, C4,
+C5, C6, C7, 7x9, 9x11, 9x12, 10x13, 10x14
+
+=head2 BTRED OPTIONS
+
+The following options of C<btred> can be useful:
+
+=item B<--strip-prefix|-p> regexp
+
+Remove strings matching a given regexp from the beginning of filenames
+before saving.
+
+=item B<--add-prefix|-r> prefix
+
+Prepend output filenames with a given prefix.
+
+=item B<--strip-suffix|-s> regexp
+
+Strip strings matching a given regexp from the end of filenames.
+
+=item B<--add-suffix|-a> suffix
+
+Append a given suffix to the filenames.
+
+=head1 LICENSE
+
+This software is distributed under GPL - The General Public Licence.
+Full text of the GPL can be found in the LICENSE file distributed with
+this program and also on-line at http://www.gnu.org/copyleft/gpl.html.
+
+=head1 AUTHOR
+
+Petr Pajas <pajas@matfyz.cz>
+
+Copyright 2007 Petr Pajas, All rights reserved.
+
+=back

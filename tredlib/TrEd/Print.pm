@@ -16,7 +16,6 @@ sub setFontMetrics {
     require PostScript::FontMetrics;
     $self->{psFontMetrics} = new PostScript::FontMetrics($filename);
   }
-#  print STDERR "FONT SIZE: $self->{psFontSize}, $self->{psFontMetrics}\n";
   return $self->{psFontMetrics};
 }
 
@@ -112,6 +111,11 @@ BEGIN{
 
   use TrEd::MinMax;
   import TrEd::MinMax;
+
+  use vars qw($QUIET);
+  sub _msg {
+    print STDERR @_ unless $QUIET;
+  }
 };
 #$bwModeNodeColor = 'white';
 
@@ -171,7 +175,7 @@ sub get_ttf_fonts {
       $f->release;
     }
   };
-  print STDERR $@ if $@;
+  _msg($@) if $@;
   return \%result;
 }
 
@@ -239,8 +243,6 @@ sub print_trees {
     $TrEd::Convert::support_unicode=1;
   }
 
-
-  print STDERR "Printing (TO-FILE=$toFile, PDF=$toPDF, EPS=$toEPS, FIL=$fil, CMD=$cmd, MEDIA=$Media=$prtFmtWidth x $prtFmtHeight)\n";
   my $pagewidth;
   my $pageheight;
   my $P;
@@ -259,6 +261,8 @@ sub print_trees {
       $prtFmtWidth  = $media{$Media}[0];
       $prtFmtHeight = $media{$Media}[1];
   }
+
+  _msg("Printing (TO-FILE=$toFile, PDF=$toPDF, EPS=$toEPS, FIL=$fil, CMD=$cmd, MEDIA=$Media=$prtFmtWidth x $prtFmtHeight)\n");
 
   if ($toPDF) {
     $pagewidth=$prtFmtWidth-2*$hMargin;
@@ -332,7 +336,7 @@ sub print_trees {
       for (my $t=0;$t<=$#printList;$t++) {
 	$infotext="Printing $printList[$t]";
 	$infot->idletasks() if ($infot);
-	print STDERR "$infotext\n";
+	_msg("$infotext\n");
 	$P->new_page();
 	do {
 	  $treeView->set_showHidden($show_hidden);
@@ -395,7 +399,7 @@ sub print_trees {
 	}
 ###	last; # only one page for now
       }
-      print STDERR "saving PDF to $fil\n";
+      _msg("saving PDF to $fil\n");
       if ($toFile) {
 	$P->finish(-file => $fil);
       } else {
@@ -415,12 +419,12 @@ sub print_trees {
 	  close $fh;
 	  close $out;
 	} || do {
-	  #print STDERR $@ if $@;
+	  #_msg($@) if $@;
 	  die $@."Print: aborting - failed to open pipe to '$cmd': $!\n";
 	  #return 0;
 	};
       }
-      print STDERR "PDF done\n";
+      _msg("PDF done\n");
     } else {
       my $i;
       my %pso;
@@ -438,10 +442,10 @@ sub print_trees {
       }
 
       my $psFontName=$treeView->getFontName();
-      print STDERR "Font: ",$fontSpec->{PS},"\n";
-      print STDERR "AFM: ",$fontSpec->{AFM},"\n";
-      print STDERR "Size: ",$fontSpec->{Size},"\n";
-      print STDERR "Name: ",$psFontName,"\n";
+      _msg("Font: ",$fontSpec->{PS},"\n");
+      _msg("AFM: ",$fontSpec->{AFM},"\n");
+      _msg("Size: ",$fontSpec->{Size},"\n");
+      _msg("Name: ",$psFontName,"\n");
       local $TrEd::Convert::outputenc='iso-8859-2';
       unless (open(F,"<$fontSpec->{PS}")) {
 	die "Aborting: failed to open file '$fontSpec->{PS}': $!\n";
@@ -450,7 +454,7 @@ sub print_trees {
       for (my $t=0;$t<=$#printList;$t++) {
 	$infotext="Printing $printList[$t]";
 	$infot->idletasks() if ($infot);
-	print STDERR "$infotext\n";
+	_msg("$infotext\n");
 	do {
 	  $treeView->set_showHidden($show_hidden);
 	  my ($nodes) = $treeView->nodes($fsfile,$printList[$t]-1,undef);
@@ -474,7 +478,7 @@ sub print_trees {
 	  $pagewidth=$prtFmtHeight-2*$vMargin;
 	  $pageheight=$prtFmtWidth-2*$hMargin;
 	}
-	print STDERR "Real Page : ",int($pagewidth),"x",int($pageheight),"\n";
+	_msg("Real Page : ",int($pagewidth),"x",int($pageheight),"\n");
 
 	%pso = (  -colormode => $printColors ? 'color' : 'gray',
 		  '-x'	 => 0,
@@ -489,17 +493,17 @@ sub print_trees {
 	unless ($toEPS) {
 	  if ($maximizePrintSize or $width>$pagewidth or
 	      $height>$pageheight) {
-	    print STDERR "Adjusting print size\n";
+	    _msg("Adjusting print size\n");
 	    if ($width/$pagewidth*$pageheight>$height) {
 	      $pso{-pagewidth} =
 		$pagewidth;
-	      print STDERR "Scaling by tree width,\n";
-	      print STDERR "forcing box width to $pagewidth\n";
+	      _msg("Scaling by tree width,\n");
+	      _msg("forcing box width to $pagewidth\n");
 	    } else {
 	      $pso{-pageheight} =
 		$pageheight;
-	      print STDERR "Scaling by tree height,\n";
-	      print STDERR "forcing box height to $pageheight\n";
+	      _msg("Scaling by tree height,\n");
+	      _msg("forcing box height to $pageheight\n");
 	    }
 	  }
 	}
