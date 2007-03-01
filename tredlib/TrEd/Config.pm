@@ -101,10 +101,25 @@ BEGIN {
 );
   @EXPORT_OK=qw(&tilde_expand &read_config &set_config &parse_config_line &apply_config &set_default_config_file_search_list);
 
-  use strict;
-
   @config_file_search_list=();
 }
+
+$treeViewOpts={
+  drawSentenceInfo => 0,
+  showHidden => 0,
+  displayMode => 0,
+  customColors	 =>
+    {0 => 'darkgreen',
+     1 => 'darkblue',
+     2 => 'darkmagenta',
+     3 => 'orange',
+     4 => 'black',
+     5 => 'DodgerBlue4',
+     6 => 'red',
+     7 => 'gold',
+     8 => 'cyan',
+     9 => 'midnightblue'}
+   };
 
 my $resourcePathSplit = ($^O eq "MSWin32") ? ',' : ':';
 

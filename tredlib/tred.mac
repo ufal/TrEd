@@ -353,6 +353,40 @@ sub exit_hook {
   }
 }
 
+sub node_menu_item_cget {
+  my ($item,$opt)=@_;
+  if ($grp->{framegroup}->{NodeMenu}) {
+    $grp->{framegroup}->{NodeMenu}->entrycget($_,$opt);
+  } else {
+    return;
+  }
+}
+
+sub configure_node_menu_items {
+  my ($items, $config)=@_;
+  if ($grp->{framegroup}->{NodeMenu}) {
+    foreach (@$items) {
+      $grp->{framegroup}->{NodeMenu}->entryconfigure($_,@$config);
+    }
+  }
+}
+
+sub enable_node_menu_items {
+  my $items = ref($_[0]) ? $_[0] : 
+    ["New Node","Remove Active Node","Insert New Tree",
+     "Insert New Tree After", "Remove Whole Current Tree"];
+  configure_node_menu_items($items,
+			    [-state => 'normal']);
+}
+sub disable_node_menu_items {
+  my $items = ref($_[0]) ? $_[0] : 
+    ["New Node","Remove Active Node","Insert New Tree",
+     "Insert New Tree After", "Remove Whole Current Tree"];
+  configure_node_menu_items($items,
+			    [-state => 'disabled']);
+}
+
+
 #ifinclude "contrib/contrib.mac"
 
 package TredMacro;

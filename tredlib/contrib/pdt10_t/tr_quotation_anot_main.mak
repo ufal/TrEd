@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2004-05-28 12:37:29 pajas>
+## Time-stamp: <2007-03-01 11:13:42 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -17,10 +17,7 @@ sub file_opened_hook {
 
   Quotation::initquot() if $grp->{FSFile};
 
-  foreach ("New Node","Remove Active Node","Insert New Tree",
-	   "Insert New Tree After", "Remove Whole Current Tree") {
-    $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'disabled');
-  }
+  disable_node_menu_items() if GUI();
   my $o=$grp->{framegroup}->{ContextsMenu};
   $o->options(['Quotation']);
   SwitchContext('Quotation');
