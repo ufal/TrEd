@@ -2045,7 +2045,8 @@ default path "~/.tred-stylesheets" is used.
 
 sub ReloadStylesheets {
   my ($filename) = @_;
-   main::readStyleSheets($grp->{framegroup},$filename) unless GUI();
+  $filename = $main::stylesheetFile unless defined $filename;
+  main::readStyleSheets($grp->{framegroup},$filename) unless GUI();
 }
 
 =item C<GetStylesheetPatterns(stylesheet)>
@@ -2090,10 +2091,8 @@ Returns true if stylesheet with a given name exists.
 =cut
 
 sub StylesheetExists {
-  if (GUI()) {
-    return 1 if exists ($grp->{framegroup}{stylesheets})
-      and exists ($grp->{framegroup}{stylesheets}{$_[0]})
-  }
+  return 1 if exists ($grp->{framegroup}{stylesheets})
+    and exists ($grp->{framegroup}{stylesheets}{$_[0]});
 }
 
 =item C<Stylesheets()>
@@ -2103,9 +2102,7 @@ Returns a list of TrEd's stylesheet names.
 =cut
 
 sub Stylesheets {
-  if (GUI()) {
-    return (keys(%{$grp->{framegroup}{stylesheets}}));
-  }
+  return (keys(%{$grp->{framegroup}{stylesheets}}));
 }
 
 =item C<GetCurrentStylesheet()>
@@ -2116,10 +2113,7 @@ window.
 =cut
 
 sub GetCurrentStylesheet {
-  my $win = GUI();
-  if ($win) {
-    return $win->{stylesheet};
-  }
+  return $grp->{stylesheet};
 }
 
 =item C<SetCurrentStylesheet(stylesheet_name)>
@@ -2129,11 +2123,9 @@ Set stylesheet for the active window.
 =cut
 
 sub SetCurrentStylesheet {
-  if (GUI()) {
-    if (StylesheetExists($_[0]) or $_[0] eq STYLESHEET_FROM_FILE()) {
-      $grp->{framegroup}{selectedStylesheet} = $_[0];
-      return main::switchStylesheet($grp->{framegroup},$_[0]);
-    }
+  if (StylesheetExists($_[0]) or $_[0] eq STYLESHEET_FROM_FILE()) {
+    $grp->{framegroup}{selectedStylesheet} = $_[0];
+    return main::switchStylesheet($grp->{framegroup},$_[0]);
   }
   return -1;
 }
@@ -3059,8 +3051,25 @@ automatically).
 
 =item C<-psMedia>
 
-PostScript media information used in the resulting PostScript file
-header (only when printing to PostScript).
+Specifies target given media size (used for PostScript and PDF).
+Possible values:
+
+User (dimensions specified in -fmtHeight and -fmtWidth), BBox
+(bounding box of the tree with only -hMargin and -vMargin added),
+Letter, LetterSmall, Legal, Statement, Tabloid, Ledger, Folio, Quarto,
+Executive, A0, A1, A2, A3, A4, A4Small, A5, A6, A7, A8, A9, A10, B0,
+B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, ISOB0, ISOB1, ISOB2, ISOB3,
+ISOB4, ISOB5, ISOB6, ISOB7, ISOB8, ISOB9, ISOB10, C0, C1, C2, C3, C4,
+C5, C6, C7, 7x9, 9x11, 9x12, 10x13, 10x14
+
+=item C<-stylesheet>
+
+Name of the stylesheet to use (defaults to the current stylesheet).
+
+=item C<-toplevel>
+
+Toplevel window (e.g. ToplevelFrame()) if you wish for graphical progress
+indicator.
 
 =back
 
@@ -3070,7 +3079,7 @@ sub Print {
   my (%opts)=@_;
 
   if (GUI()) {
-    my $group=$grp->{framegroup};
+    my $gui=$grp->{framegroup};
     local $main::insideEval = 0;
     local $grp->{currentNode} = $this;
     local $grp->{root} = $root;
@@ -3082,27 +3091,30 @@ sub Print {
                 -imageMagickResolution -colors)) {
       unless (exists($opts{$_})) {
 	my $o=$_; $o=~s/^-//;
-	$opts{$_} = $group->{"print".lcfirst($o)};
+	$opts{$_} = $gui->{"print".lcfirst($o)};
       }
     }
-    unless ($opts{-format} ne 'PDF' or $opts{-ttFont} or $group->{ttfonts}) {
-      main::initTTFonts($group);
+    unless ($opts{-format} ne 'PDF' or $opts{-ttFont} or $gui->{ttfonts}) {
+      $gui->{ttfonts}=TrEd::Print::get_ttf_fonts({},
+	map {TrEd::Config::tilde_expand($_)} split /,/,
+						 $TrEd::Config::ttFontPath);
     }
 
     $TrEd::TreeView::on_get_root_style = [\&main::onGetRootStyle,$grp];
     $TrEd::TreeView::on_get_node_style = [\&main::onGetNodeStyle,$grp];
 
-    my $stylesheet = $grp->{stylesheet};
+    my $stylesheet = $opts{-stylesheet} || $grp->{stylesheet};
     my $ss = undef;
     if ($stylesheet ne STYLESHEET_FROM_FILE()) {
-      $ss=$group->{stylesheets}->{$stylesheet};
+      $ss=$gui->{stylesheets}->{$stylesheet};
     }
 
     $opts{-imageMagickResolution} ||= 80;
 
     TrEd::Print::print_trees
 	($grp->{FSFile},
-	 ToplevelFrame(),
+	 $opts{-toplevel},
+	 #ToplevelFrame(),
 	 $canvas,
 	 $opts{-range},
 	 ($opts{-toFile} and $opts{-format} !~ /ImageMagick/i) ? 1 : 0,
@@ -3123,7 +3135,7 @@ sub Print {
 	  'AFM' => exists($opts{-psFontAFMFile}) ? $opts{-psFontAFMFile} :
 	  $main::psFontAFMFile,
 	  'TTF' => exists($opts{-ttFont}) ? $opts{-ttFont} :
-	  $group->{ttfonts}->{$main::ttFont},
+	  $gui->{ttfonts}->{$main::ttFont},
 	  'Size' => exists($opts{-fontSize}) ? $opts{-fontSize} :
 	  $main::psFontSize,
 	 },

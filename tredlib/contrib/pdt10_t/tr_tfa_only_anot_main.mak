@@ -1,6 +1,6 @@
 ## -*- cperl -*-
 ## author: Petr Pajas
-## Time-stamp: <2005-04-17 19:48:10 pajas>
+## Time-stamp: <2007-03-01 11:13:12 pajas>
 
 #
 # This file defines default macros for TR annotators.
@@ -25,11 +25,7 @@ sub file_opened_hook {
     TFA->default_tfa_attrs();
   }
 
-  foreach ("New Node","Remove Active Node","Insert New Tree",
-	   "Insert New Tree After", "Remove Whole Current Tree") {
-#	   "Copy Trees ...") {
-    $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'disabled');
-  }
+  disable_node_menu_items() if GUI();
   my $o=$grp->{framegroup}->{ContextsMenu};
   $o->options(['TFA']);
   SwitchContext('TFA');

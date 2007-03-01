@@ -109,20 +109,13 @@ sub switch_context_hook {
   SetCurrentStylesheet('PML_M')
     if $cur_stylesheet eq STYLESHEET_FROM_FILE() or
        $cur_stylesheet =~ /^PML_[^M](?:_|\b)/;
-  foreach ("New Node","Remove Active Node","Insert New Tree",
-	   "Insert New Tree After", "Remove Whole Current Tree") {
-    $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'disabled');
-  }
+  disable_node_menu_items() if GUI();
 }
 
 sub pre_switch_context_hook {
   my ($prev,$current)=@_;
   return if $prev eq $current;
-  foreach ("New Node","Remove Active Node","Insert New Tree",
-	   "Insert New Tree After", "Remove Whole Current Tree") {
-    $grp->{framegroup}->{NodeMenu}->entryconfigure($_,-state => 'normal');
-  }
-
+  enable_node_menu_items() if GUI();
 }
 
 =back

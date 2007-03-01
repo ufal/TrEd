@@ -46,7 +46,7 @@ $version =~ s{^\$Id:\s*\S+\s*|\s+pajas.*$}{}g;
 $version =  "1.".$version;
 
 $about=
-  "Copyright (c) 2000-2006 by Petr Pajas\n".
+  "Copyright (c) 2000-2007 by Petr Pajas\n".
   "This software is distributed under GPL - The General Public Licence\n".
   "Full text of the GPL can be found at http://www.gnu.org/copyleft/gpl.html";
 
@@ -66,6 +66,7 @@ if (defined $Tk::encodeFallback and $Tk::encodeFallback == Encode::FB_PERLQQ() a
 use Tk::Config ();
 use Tk::Wm;
 use IO;
+use constant EMPTY => q{};
 
 package Tk::Wm;
 # overwriting the original Tk::Wm::Post:
@@ -83,14 +84,6 @@ sub Post
 }
 
 package main;
-
-use constant EMPTY => q{};
-
-use constant {
-  STYLESHEET_FROM_FILE  => "<From File>",
-  NEW_STYLESHEET        => "<New From Current>",
-  DELETE_STYLESHEET     => "<Delete Current>",
-};
 
 #use Tk::Xrm;
 # process the standard arguments for X resources
@@ -180,33 +173,6 @@ if ($opt_v) {
   exit;
 }
 
-sub fetch_from_win32_reg {
-  my ($registry,$key,$subkey)=@_;
-  my ($reg,%data);
-
-  require Win32::Registry;
-  ${"::".$registry}->Open($key,$reg);
-  if ($reg) {
-    $reg->GetValues(\%data);
-    return $data{"$subkey"}[2];
-  }
-  return undef;
-}
-
-# in Windows, if HOME not defined, use user's AppData folder instaed
-if ($^O eq "MSWin32" and !exists $ENV{HOME}) {
-  my $key = q(Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders);
-  my $home = fetch_from_win32_reg
-    ('HKEY_CURRENT_USER',
-     $key,
-     'AppData');
-  if (defined($home)) {
-    $ENV{HOME}= $home;
-  } else {
-    die "Couldn't fetch $key from Win32 registry: $^E\n";
-  }
-}
-
 # Default values of $libDir used to search for macro-file (tred.mac)
 # and default-macro file (tred.def) are specified here. They may be
 # overriden by value of LibDir in tred resource file (tredrc or ~/.tredrc - see above).
@@ -229,8 +195,6 @@ $macroFile=undef;
 _set_encoding(\*STDERR,':utf8',"STDERR");
 _set_encoding(\*STDOUT,':utf8',"STDOUT");
 
-$stylesheetFile = $opt_S ne EMPTY ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
-
 ########## Config file #############
 # this must be done before readconfig is first used
 @filelists=();
@@ -240,6 +204,10 @@ $stylesheetFile = $opt_S ne EMPTY ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
 unshift @INC,$libDir if (-d $libDir);
 
 {
+  require TrEd::Utils;
+  import TrEd::Utils qw(:all);
+  find_win_home();
+
   my $ld=$libDir;
   require TrEd::Config;
   import TrEd::Config;
@@ -247,23 +215,6 @@ unshift @INC,$libDir if (-d $libDir);
   $libDir=$ld;
   $TrEd::Config::quiet = $opt_q;
 }
-
-$TrEd::Config::treeViewOpts={
-			     drawSentenceInfo => 0,
-			     showHidden => 0,
-			     displayMode => 0,
-			     customColors	 =>
-			       {0 => 'darkgreen',
-				1 => 'darkblue',
-				2 => 'darkmagenta',
-				3 => 'orange',
-				4 => 'black',
-				5 => 'DodgerBlue4',
-				6 => 'red',
-				7 => 'gold',
-				8 => 'cyan',
-				9 => 'midnightblue'}
-			    };
 
 if (defined $opt_c) {
   @TrEd::Config::config_file_search_list=($opt_c); # override any other possible config files
@@ -296,6 +247,7 @@ EOL
     die "Error: Couldn\'t find lib-directory.";
 }
 
+unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
 
 use Cwd;
 
@@ -310,12 +262,12 @@ use Tk::Pane;
 use Tk::Dialog;
 use Tk::Font;
 
-unshift @INC,$libDir unless (grep($_ eq $libDir, @INC));
-
 require Fslib;
 import Fslib;
 import Fslib qw(&Index $FSError);
 import PMLSchema qw(:constants); # too late (we'll need () after PML_.._DECL)
+
+$stylesheetFile = $opt_S ne EMPTY ? $opt_S : $ENV{HOME}."/.tred-stylesheets";
 
 $Fslib::resourcePath=$opt_Z if $opt_Z;
 
@@ -934,59 +886,6 @@ sub get_grp_histories {
   foreach my $E (@$list) {
     get_grp_history($grp,@$E);
   }
-}
-
-sub saveStyleSheets {
-  my ($grp)=@_;
-  open my $f, '>:utf8',$stylesheetFile || do {
-    print STDERR "cannot write to stylesheet file: $stylesheetFile\n" if $debug;
-    return 0;
-  };
-  foreach my $stylesheet (keys (%{$grp->{stylesheets}})) {
-    next if $stylesheet eq STYLESHEET_FROM_FILE();
-    print $f "#"x 50,"\n";
-    print $f "stylesheet: $stylesheet\n";
-    for ($grp->{stylesheets}->{$stylesheet}) {
-      if ($_->{context} =~ /\S/) {
-	print $f map { "context: ".$_."\n" } split /\n/, $_->{context};
-      }
-      print $f map { local $_=$_; tr/\n/\013/; $_."\n" } 
-	map { /^#/ ? 'node:'.$_ : $_ } @{$_->{patterns}};
-      print $f map { 'hint:'.$_."\n" } split /\n/, $_->{hint};
-    }
-    print $f "\n\n";
-  }
-  close $f;
-}
-
-sub readStyleSheets {
-  my ($grp,$filename)=@_;
-  $filename = $stylesheetFile unless defined $filename;
-  open my $f, '<:utf8',$filename || do {
-    print STDERR "no stylesheet file: $filename\n" if $debug;
-    return 0;
-  };
-  my $stylesheet="Default";
-  $grp->{stylesheets}={};
-  while (<$f>) {
-    s/\s+$//;
-    next unless /\S/;
-    next if /^#/;
-    if (/^stylesheet:\s*(.*)/) {
-      $stylesheet = $1;
-    } elsif (s/^(hint|context)://) {
-      if ($grp->{stylesheets}->{$stylesheet}->{$1} ne EMPTY) {
-	$grp->{stylesheets}->{$stylesheet}->{$1}.="\n".$_;
-      } else {
-	$grp->{stylesheets}->{$stylesheet}->{$1}.=$_;
-      }
-    } else {
-      tr/\013/\n/;
-      push @{$grp->{stylesheets}->{$stylesheet}->{patterns}},$_;
-    }
-    chomp $grp->{stylesheets}{$stylesheet}{$_} for qw(hint context);
-  }
-  close $f;
 }
 
 sub bookmarkFilelist {
@@ -4603,29 +4502,6 @@ sub applyWindowStylesheet {
   $win->{stylesheet}=$stylesheet;
 }
 
-sub updateStylesheetMenu {
-  my ($grp)=@_;
-  __debug("calling updateStylesheetMenu");
-  if (ref($grp->{StylesheetMenu})) {
-    $grp->{StylesheetMenu}->configure(-options => getStylesheetMenuList($grp));
-  }
-}
-
-sub getStylesheetMenuList {
-  my ($grp,$all)=@_;
-  my $context=$grp->{focusedWindow}->{macroContext};
-  undef $context if $context eq 'TredMacro';
-  my $match;
-  [STYLESHEET_FROM_FILE(),NEW_STYLESHEET(),DELETE_STYLESHEET(),
-   grep { 
-     if ($all or !defined($context)) { 1 } else {
-       $match = $grp->{stylesheets}{$_}{context};
-       $match = '.*' unless $match =~ /\S/;
-       $context =~ /^${match}$/x ? 1 : 0;
-     }
-   } sort keys %{$grp->{stylesheets}}];
-}
-
 sub switchStylesheet {
   my ($grp,$stylesheet)=@_;
   my $win=$grp->{focusedWindow};
@@ -5338,7 +5214,7 @@ sub startMain {
   if ($TrEd::Convert::support_unicode) {
     $top->useinputmethods(1);
   }
-  readStyleSheets(\%group);
+  readStyleSheets(\%group,$stylesheetFile);
 
   $group{autoSaveCallback}=$top->repeat($autoSave*60000,
 					       [\&autoSaveAll,\%group]) if $autoSave>0;
@@ -5547,7 +5423,7 @@ sub startMain {
   $group{FileMenu}->command(-label=>'Reload stylesheets ...',
 			    -underline=> 9,
 			    -command=> [sub {
-					  readStyleSheets($_[0]);
+					  readStyleSheets($_[0],$stylesheetFile);
 					  redraw_all($_[0]);
 					},\%group]);
   $group{FileMenu}->separator();
@@ -8597,128 +8473,6 @@ sub tred_pod_add_tags {
   $w->tag(qw(configure italic -font C_italic));
 }
 
-sub splitPatterns {
-  my ($text)=@_;
-  my @lines = split /(\n)/,$text;
-  my @result;
-  my $pattern = EMPTY;
-  my $hint = EMPTY;
-  my $context;
-  while (@lines) {
-    my $line = shift @lines;
-    if ($line=~/^([a-z]+):/) {
-      if ($pattern =~ /\S/) {
-	chomp $pattern;
-	if ($pattern=~s/^hint:\s*//) {
-	  $hint .= "\n" if $hint ne EMPTY;
-	  $hint .= $pattern;
-	} elsif ($pattern=~s/^context:\s*//) {
-	  $context = $pattern;
-	} else {
-	  push @result, $pattern;
-	}
-      }
-      $pattern = $line;
-    } else {
-      $pattern.=$line;
-    }
-  }
-  if ($pattern =~ /\S/) {
-    chomp $pattern;
-    if ($pattern=~s/^hint:\s*//) {
-      $hint .= "\n" if $hint ne EMPTY;
-      $hint .= $pattern;
-    } else {
-      push @result, $pattern;
-    }
-
-  }
-  return $hint,$context,\@result;
-}
-
-sub deleteStylesheet {
-  my ($grp,$stylesheet)=@_;
-  delete $grp->{stylesheets}->{$stylesheet};
-  updateStylesheetMenu($grp);
-  foreach my $win (stylesheetUsingWindows($grp,$stylesheet)) {
-    if ($grp->{focusedWindow} == $win) {
-      $grp->{selectedStylesheet} = STYLESHEET_FROM_FILE();
-    }
-    applyWindowStylesheet($win,STYLESHEET_FROM_FILE());
-    if ($win->{FSFile}) {
-      get_nodes_win($win);
-      redraw_win($win);
-    }
-  }
-}
-
-sub setStylesheetPatterns {
-  my ($win,$text,$stylesheet,$create)=@_;
-  my $grp = $win->{framegroup};
-  my ($hint,$context,$patterns);
-  if (ref($text)) {
-    ($hint,$context,$patterns)=@$text;
-  } else {
-    ($hint,$context,$patterns)=splitPatterns($text);
-  }
-  $stylesheet = $win->{stylesheet} unless defined $stylesheet;
-  if ($stylesheet eq STYLESHEET_FROM_FILE()) {
-    if ($win->{FSFile}) {
-      $win->{FSFile}->changeHint($hint);
-      $win->{FSFile}->changePatterns(@$patterns);
-    } else {
-      return 0;
-    }
-  } else {
-    my $s=$grp->{stylesheets}->{$stylesheet};
-    if (ref($s)) {
-      @{$s->{patterns}} = @$patterns;
-      $s->{hint} = $hint;
-      $s->{context} = $context;
-    } elsif ($create) {
-      $grp->{stylesheets}->{$stylesheet}->{patterns}=[@$patterns];
-      $grp->{stylesheets}->{$stylesheet}->{hint}=$hint;
-      $grp->{stylesheets}->{$stylesheet}->{context}=$context;
-      updateStylesheetMenu($grp);
-    } else {
-      return 0;
-    }
-  }
-  return 1;
-}
-
-sub getStylesheetPatterns {
-  my ($win,$stylesheet)=@_;
-  my ($hint,$context,$patterns);
-  $patterns = [];
-  $stylesheet = $win->{stylesheet} unless defined $stylesheet;
-  if ($stylesheet eq STYLESHEET_FROM_FILE()) {
-    if ($win->{FSFile}) {
-      $hint = $win->{FSFile}->hint();
-      $context = undef;
-      @$patterns = $win->{FSFile}->patterns()
-    } else {
-      return ();
-    }
-  } else {
-    my $s=$win->{framegroup}->{stylesheets}->{$stylesheet};
-    if (ref($s)) {
-      $hint = $s->{hint};
-      $context = $s->{context};
-      $context = '.*' unless (wantarray or $context =~ /\S/);
-      @$patterns = @{$s->{patterns}};
-    } else {
-      return ();
-    }
-  }
-  # try to fix old non-labeled patterns
-  @$patterns = map { /^([a-z]+):/ ? $_ : "node: ".$_ } @$patterns;
-  return wantarray ? ($hint,$context,$patterns) :
-    ("context: ".$context."\n".
-       # fix old non-labeled hints
-       join("\n","hint: ".$hint)."\n".
-	 join("\n",@$patterns));
-}
 
 sub _sytylesheetInsertAttr {
   my ($e,$name,$using_this) = @_;
