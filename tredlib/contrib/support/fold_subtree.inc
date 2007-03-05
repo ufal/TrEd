@@ -37,7 +37,7 @@ sub fold_subtree_toggle {
   $fold->{$this}=!$folded; # toggle
   my $node=$this->firstson;
   while ($node) {
-     $hide->{$node}=!$folded # toggle visibility
+     $hide->{$node}=!$folded; # toggle visibility
 
      if ($fold->{$node}) {
         # this is a folded subtree within our folded subtree
@@ -58,7 +58,6 @@ sub fold_subtree_unfold_all {
   my $hide = FileUserData("hide") || {};
   my $fold = FileUserData("fold") || {};
   my $folded = $fold->{$this}; # currently folded
-  return unless $folded;
 
   delete $fold->{$this};
   my $node=$this->firstson;
