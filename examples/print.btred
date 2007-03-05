@@ -84,6 +84,14 @@ sub trees2pdf {
   print STDERR "Context: ",CurrentContext(),"\n" unless $opts{-quiet};
   print STDERR "Stylesheet: ", GetCurrentStylesheet(),"\n" unless $opts{-quiet};
 
+ if ($opts{-sentenceInfo} and
+	(UNIVERSAL::can(CurrentContext(),'get_value_line_hook') or
+	 UNIVERSAL::can('TredMacro','get_value_line_hook'))) {
+   $opts{-sentenceInfo} = sub {
+     main::__run_hook(undef,$grp,"get_value_line_hook",@_);
+   }
+ }
+
   local $main::append_suffix = '.pdf' unless defined $main::append_suffix;
   Print(
     -range => '1-',
