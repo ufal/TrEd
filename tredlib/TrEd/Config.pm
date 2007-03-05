@@ -335,7 +335,7 @@ sub set_config {
   $TrEd::Convert::lefttoright = val_or_def($confs,"displaynonasciilefttoright",$TrEd::Convert::lefttoright);
 
   my $fontenc=$TrEd::Convert::outputenc
-    || ($Tk::VERSION >= 804 and "iso-10646-1")  || "iso-8859-2";
+    || ((defined($Tk::VERSION) and $Tk::VERSION < 804) ?  "iso-8859-2" : "iso-10646-1");
   $fontenc=~s/^iso-/iso/;
 
   if (exists $confs->{font}) {
@@ -388,12 +388,13 @@ sub set_config {
     $psFontFile="$libDir/".$psFontFile if (not -f $psFontFile and -f 
 					   "$libDir/".$psFontFile);
   } else {
-    if ($Tk::VERSION >= 804) {
+    if (!defined($Tk::VERSION) or $Tk::VERSION >= 804) {
       $psFontFile="$libDir/fonts/n019003l.pfa";
     } else {
       $psFontFile="$libDir/fonts/ariam___.pfa";
     }
   }
+
   $ttFont=val_or_def($confs,"ttfont","Arial");
   if (exists $confs->{ttfontpath}) {
     $ttFontPath=tilde_expand($confs->{ttfontpath});

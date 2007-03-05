@@ -464,7 +464,7 @@ sub print_trees {
 	  } elsif (ref($snt) eq 'CODE') {
 	    $valtext = $snt->($fsfile,$printList[$t]-1);
 	  } else {
-	    $treeView->value_line($fsfile,$printList[$t]-1,1,0);
+	    $valtext = $treeView->value_line($fsfile,$printList[$t]-1,1,0);
 	  }
 	  $treeView->redraw($fsfile,undef,$nodes,$valtext);
 	};

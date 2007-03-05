@@ -4522,7 +4522,7 @@ sub switchStylesheet {
       $grp->{stylesheets}->{$stylesheet}->{context}=$context;
       $grp->{stylesheets}->{$stylesheet}->{patterns}=$patterns;
       updateStylesheetMenu($grp);
-      saveStyleSheets($grp);
+      saveStyleSheets($grp,$stylesheetFile);
     }
     applyWindowStylesheet($win,$stylesheet);
     $grp->{selectedStylesheet} = $stylesheet;
@@ -4539,7 +4539,7 @@ sub switchStylesheet {
 			 -buttons => ['Yes', 'No']);
     if ($answer eq 'Yes') {
       deleteStylesheet($grp,$stylesheet);
-      saveStyleSheets($grp);
+      saveStyleSheets($grp,$stylesheetFile);
     } else {
       $grp->{selectedStylesheet} = $stylesheet;
       return 0;
@@ -8863,7 +8863,7 @@ EOF
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
       $win->{FSFile}->notSaved(1);
     } else {
-      saveStyleSheets($grp)
+      saveStyleSheets($grp,$stylesheetFile);
     }
     update_value_line($grp);
     if ($win->{stylesheet} eq STYLESHEET_FROM_FILE()) {
