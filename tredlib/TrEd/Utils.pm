@@ -50,7 +50,10 @@ sub fetch_from_win32_reg {
   my ($reg,%data);
 
   require Win32::Registry;
-  ${"::".$registry}->Open($key,$reg);
+  {
+    no strict;
+    ${"::".$registry}->Open($key,$reg);
+  }
   if ($reg) {
     $reg->GetValues(\%data);
     return $data{"$subkey"}[2];
