@@ -1858,7 +1858,11 @@ EOF
     foreach my $package ( sort { length($b)<=>length($a) } keys %packages ) {
       no strict qw(refs);
       _msg("Cleaning package $package\n");
+      my $pkg_file = $package;
+      $pkg_file =~ s{::}{/}g;
+      $pkg_file .= '.pm';
       %{$package."::"}=();
+      delete $INC{$pkg_file};
       eval("package $package; use UNIVERSAL qw(isa can);");
       _msg($@) if $@;
     }
