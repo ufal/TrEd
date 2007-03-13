@@ -108,6 +108,14 @@ my $optparser=new Getopt::Long::Parser(config => ["bundling"]);
 
 $optparser->getoptions(%optmap) or $usage=1;
 
+use constant {
+  ERROR_MACRO          =>  1,
+  ERROR_HOOK           =>  2,
+  ERROR_LOAD           =>  4,
+  ERROR_SAVE           =>  8,
+  ERROR_SAVE_SECONDARY => 16,
+};
+
 
 if ($print_version) {
   my $ver=$version;
@@ -418,9 +426,8 @@ foreach my $module (@preload_modules) {
   die $@ if $@;
 }
 
-startMain();
-
-exit;
+my $exit_code = startMain();
+exit $exit_code;
 
 ############################
 ############################
@@ -1169,6 +1176,7 @@ sub startMain {
       }
     }
   } else {
+    my $exit_code = 0;
     # ----------------------------------------
     # INTERACTIVE MODE
     # ----------------------------------------
@@ -1227,6 +1235,7 @@ EOL
       do {{
         if ($skip_next) {
           _msg "Skipping: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $Quiet;
+          $exit_code ||= ERROR_LOAD;
         } else {
           _msg "Processing: $files[$fileNo] (",$fileNo+1,"/$filecount)\n" unless $Quiet;
 	  doEvalMacro($grp,"$context->_btred_eval_();");
@@ -1234,15 +1243,20 @@ EOL
 	  STDERR->flush();
 	  _msg "Done.\n" unless $quiet;
 	  my ($out, $error) = saveFile($grp) if ($grp->{FSFile}->notSaved() or $save);
-          _msg($error) if defined $error;
-
+          if (defined $error) {
+            _msg($error);
+            $exit_code ||= ERROR_SAVE;
+          }
           unless ($no_secondary) {
 	    foreach my $secondary (secondaryFSFiles($grp,$grp->{FSFile})) {
 	      if ($save or $secondary->notSaved()) {
 	        # TODO: we should probably go recursion here...
 	        # (secondary files of secondary files...)
 	        my ($out,$error) = saveFile($grp,$secondary);
-	        _msg("Error Saving secondary file:",$error) if defined $error;
+                if (defined $error) {
+                  _msg("Error Saving secondary file:",$error);
+                  $exit_code ||= ERROR_SAVE_SECONDARY;
+                }
 	      }
 	    }
 	  }
@@ -1254,7 +1268,9 @@ EOL
       _msg "No files to process!\n" unless $Quiet;
     }
     doEvalHook($grp,"exit_hook");
+    return $exit_code;
   }
+  return 0;
 }
 
 
@@ -1719,7 +1735,7 @@ sub doEvalHook {
 		     'TredMacro::forceFileSaved' => 0);
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
   _msg "$@" if $@;
-  exit 1 if ($@ and !$warn_only and !$start_server);
+  exit ERROR_HOOK if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
     if (get_macro_variable('FileNotSaved') eq '?') {
@@ -1746,7 +1762,7 @@ sub doEvalMacro {
     forceFileSaved =>0);
 
   my $result=do_eval_macro($group,$macro);
-  exit 1 if ($@ and !$warn_only and !$start_server);
+  exit ERROR_MACRO if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
     set_macro_variable('FileNotSaved' => 0)
