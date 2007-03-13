@@ -116,6 +116,7 @@ use constant {
   ERROR_SAVE_SECONDARY => 16,
 };
 
+my $exit_code = 0;
 
 if ($print_version) {
   my $ver=$version;
@@ -426,7 +427,7 @@ foreach my $module (@preload_modules) {
   die $@ if $@;
 }
 
-my $exit_code = startMain();
+startMain();
 exit $exit_code;
 
 ############################
@@ -1176,7 +1177,6 @@ sub startMain {
       }
     }
   } else {
-    my $exit_code = 0;
     # ----------------------------------------
     # INTERACTIVE MODE
     # ----------------------------------------
@@ -1735,7 +1735,7 @@ sub doEvalHook {
 		     'TredMacro::forceFileSaved' => 0);
   my $result=do_eval_hook($group,$group->{macroContext},$hook);
   _msg "$@" if $@;
-  exit ERROR_HOOK if ($@ and !$warn_only and !$start_server);
+  exit ($exit_code|ERROR_HOOK) if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
     if (get_macro_variable('FileNotSaved') eq '?') {
@@ -1762,7 +1762,7 @@ sub doEvalMacro {
     forceFileSaved =>0);
 
   my $result=do_eval_macro($group,$macro);
-  exit ERROR_MACRO if ($@ and !$warn_only and !$start_server);
+  exit ($exit_code|ERROR_MACRO) if ($@ and !$warn_only and !$start_server);
 
   if ($group->{FSFile}) {
     set_macro_variable('FileNotSaved' => 0)
