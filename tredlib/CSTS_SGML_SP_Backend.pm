@@ -27,6 +27,7 @@ encoding.
 
 =cut
 
+my %stderr_pool;
 sub open_backend {
   my ($filename, $mode, $encoding)=@_;
   if ($mode eq 'w') {
@@ -41,7 +42,24 @@ sub open_backend {
     $cmd=~s/\%f/-/g;
     print STDERR "[r $cmd]\n"; # if $Fslib::Debug;
     no integer;
-    $fh = set_encoding(IOBackend::open_pipe($filename,'r',$cmd),$csts_encoding);
+
+    {
+      my $err = File::Temp->new(UNLINK => 1);
+      $err->autoflush(1);
+      open my $olderr, ">&", \*STDERR or die "Can't dup STDERR: $!";
+      open STDERR, ">&", $err or die "Can't dup temporary filehandle as STDERR: $!";
+      eval {
+	$fh = set_encoding(IOBackend::open_pipe($filename,'r',$cmd),$csts_encoding);
+      };
+      close(STDERR);
+      open STDERR, ">&", $olderr or die "Can't dup old STDERR: $!";
+      if ($@) {
+	close $err;
+	die $@;
+      }
+      $stderr_pool{$fh} = $err;
+      return $fh;
+    }
   } else {
     die "unknown mode $mode\n";
   }
@@ -54,6 +72,24 @@ sub open_backend {
 Close given filehandle opened by previous call to C<open_backend>
 
 =cut
+
+sub close_backend {
+  my ($fh)=@_;
+  if (exists $stderr_pool{$fh}) {
+    my $err = delete $stderr_pool{$fh};
+    seek($err,0,'SEEK_SET');
+    local $/;
+    my $warnings = <$err>;
+    close($err);
+    if (defined $warnings and length $warnings) {
+      warn $warnings;
+    }
+  }
+  unless (IOBackend::close_backend($fh)) {
+    die "$sgmls ended with error code $?\n";
+  }
+  return 1;
+}
 
 
 =pod

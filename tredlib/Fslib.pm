@@ -1738,7 +1738,7 @@ sub readFile {
 	print STDERR "calling ${backend}::open_backend\n" if $Fslib::Debug;
 	$fh = &{"${backend}::open_backend"}($file,"r",$self->encoding);
 	&{"${backend}::read"}($fh,$self);
-	&{"${backend}::close_backend"}($fh);
+	&{"${backend}::close_backend"}($fh) || warn "Close failed.\n";
       };
       if ($@) {
 	print STDERR "Error occured while reading '$file' using backend ${backend}:\n";
