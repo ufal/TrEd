@@ -15,9 +15,9 @@ pushd "$DEVELDIR" >/dev/null
 DEVELDIR=`pwd -P`
 popd >/dev/null
 
-echo "Generating documentation from POD"
 "$DEVELDIR"/make_pod_html documentation
 
+echo "Generating manpages from POD"
 cd documentation
 [ -d man ] || mkdir man
 for man in btred.1 ntred.1 Fslib.3 \
