@@ -804,11 +804,15 @@ sub read_node {
 		_warn("Knit failed on list "._element_address($child)."\n");
 		# read the whole node again as data references
 		$hash->{$name} = $ctxt->read_node($child,
-						  {
-						    # Fake type
-						    list => {cdata=>{format=>'PMLREF'}}, 
-						    ordered => $member->{list}{ordered}
-						  });
+						  PMLSchema::Decl->convert_from_hash(
+						    {
+						      # Fake type
+						      list => {cdata=>{format=>'PMLREF'}}, 
+						      ordered => $member->{list}{ordered}
+						     },
+						    $ctxt->{'_schema'},
+						    '!!fake'
+						   ));
 	      } else {
 		$name =~ s/\.rf$//;
 		my $list = $hash->{$name} = Fslib::List->new;
