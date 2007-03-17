@@ -1033,10 +1033,15 @@ sub gotoFile {
 
 sub filelistFullFileName {
   my ($win, $fn)=@_;
-  my $grp = cast_to_grp($win);
-  return undef unless $win->{currentFilelist};
-  my ($filename,$suffix)=parse_suffix($win->{currentFilelist}->file_at($fn));
-  return  Fslib::ResolvePath($win->{currentFilelist}->filename(),$filename).$suffix;
+  my $filelist = $win->{currentFilelist};
+  _filelistFullFileName($filelist,$filelist->file_at($fn));
+}
+sub _filelistFullFileName {
+  my ($filelist,$filename)=@_;
+  return unless ref $filelist;
+  my $suffix;
+  ($filename,$suffix)=parse_suffix($filename);
+  return Fslib::ResolvePath($filelist->filename(),$filename).$suffix;
 }
 
 sub nextOrPrevFile {
@@ -1806,8 +1811,11 @@ sub newFileFromCurrent {
 
 sub parse_suffix {
   my ($filename)=@_;
-  $filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$//;
-  return ($filename,$1);
+  if ($filename=~s/(##?[0-9A-Z]+(?:-?\.[0-9]+)?)$// ) {
+    return ($filename,$1);
+  } else {
+    return ($filename,undef);
+  }
 }
 
 
@@ -6599,10 +6607,9 @@ EOF
 sub saveFileAs {
   my ($win)= @_;
   my $initdir;
-  return unless $win->{FSFile};
-  my $file=$win->{FSFile}->filename;
-  my ($old_file,$old_backend,$old_format) = 
-    ($file,$win->{FSFile}->backend,$win->{FSFile}->fileFormat);
+  my $fsfile = $win->{FSFile};
+  return unless $fsfile;
+  my $file=$fsfile->filename;
 
   $initdir=dirname($file);
   $initdir=cwd if ($initdir eq './');
@@ -6629,7 +6636,7 @@ sub saveFileAs {
 
   my $filetypes;
   if ($response eq 'Use current') {
-    my ($backend) = grep { $backend_map{$_} eq $win->{FSFile}->backend} keys %backend_map;
+    my ($backend) = grep { $backend_map{$_} eq $fsfile->backend} keys %backend_map;
     if ($backend) {
       $filetypes = $save_types{$backend};
     } else {
@@ -6643,14 +6650,25 @@ sub saveFileAs {
 				     -title=> "Save As ...",
 				     -d $initdir ? (-initialdir=> $initdir) : (),
      				     $^O eq 'MSWin32' ? () : (-initialfile=> filename($file)));
+  return doSaveFileAs($win,$fsfile,$file,
+		    ($response ne 'Use current') ? $backend_map{lc($response)} : $fsfile->backend,
+		    'ask','ask'
+		   );
+}
+
+sub doSaveFileAs {
+  my ($win, $fsfile, $filename, $backend, $update_refs, $update_filelist)=@_;
+  my ($old_file,$old_backend,$old_format) = 
+    ($fsfile->filename,$fsfile->backend,$fsfile->fileFormat);
+
   my $lock_change=0;
-  if ($file ne EMPTY) {
-    if ($file ne $win->{FSFile}->filename) {
+  if ($filename ne EMPTY) {
+    if ($filename ne $fsfile->filename) {
       if ($lockFiles) {
-	my $lock = checkLock(undef,$file);
+	my $lock = checkLock(undef,$filename);
 	if ($lock eq 'my') {
 	  if (userQuery($win,
-			"An existing lock on the file $file indicates that it is probably used by another file-object within this process!",
+			"An existing lock on the file $filename indicates that it is probably used by another file-object within this process!",
 			-bitmap=> 'question',
 			-title => "Saving to a locked file?",
 			-buttons => ['Steal lock and save','Cancel']) eq 'Cancel') {
@@ -6666,81 +6684,154 @@ sub saveFileAs {
 	  }
 	}
 	$lock_change=1;
-	$win->{FSFile}->changeFilename($file);
-	setFSLockInfo($win->{FSFile}, setLock($file));
+	$fsfile->changeFilename($filename);
+	setFSLockInfo($fsfile, setLock($filename));
       } else {
-	$win->{FSFile}->changeFilename($file);
+	$fsfile->changeFilename($filename);
       }
     }
-    if ($response ne 'Use current') {
-      $win->{FSFile}->changeBackend($backend_map{lc($response)});
+    if (defined $backend) {
+      $fsfile->changeBackend($backend);
     }
-    $win->{FSFile}->changeFileFormat(($file=~/\.gz$/ ? "gz-compressed " : EMPTY).
-				     $win->{FSFile}->backend);
+    $fsfile->changeFileFormat(($filename=~/\.gz$/ ? "gz-compressed " : EMPTY).
+				     $fsfile->backend);
     updateTitle($win->{framegroup});
-    if (saveFile($win,$file)==1) {
-      removeLock($win->{FSFile},$old_file,1) if ($lock_change);
+    if (saveFile($win,$filename)==1) {
+      removeLock($fsfile,$old_file,1) if ($lock_change);
 
-      if ($file ne $old_file and 
-	  ref($win->{FSFile}->appData('fs-part-of'))) {
-	my @fs = @{$win->{FSFile}->appData('fs-part-of')};
-	if (@fs) {
-	  my $filenames = [map { $_->filename } @fs];
-	  my $selection=[@$filenames];
-	  listQuery(
-	    $win->toplevel,
-	    'Rename file also in...','multiple',
-	    $filenames,$selection,
-	    label => {
-	      -text => <<'EOF'
+      if ($filename ne $old_file and 
+	  ref($fsfile->appData('fs-part-of'))) {
+	my @fs = @{$fsfile->appData('fs-part-of')};
+	if ($update_refs eq 'all') {
+	  # all
+	  $update_refs = \@fs;
+	} elsif (UNIVERSAL::isa($update_refs,'ARRAY')) {
+	  # pre-selected FSFiles
+	} elsif ($update_refs eq 'ask') {
+	  $update_refs = [];
+	  if (@fs) {
+	    my $filenames = [map { $_->filename } @fs];
+	    my $selection=[@$filenames];
+	    listQuery(
+	      $win->toplevel,
+	      'Rename file also in...','multiple',
+	      $filenames,$selection,
+	      label => {
+		-text => <<'EOF'
 You have renamed the current file, but it is referred to by the file(s) below.
 Please select files that should update their references to the current file:
 EOF
-	     },
-	    list => {
-	      -exportselection => 0,
-	    }
-	   );
-	  if (@$selection) {
-	    my %selected = map { $_ => 1 } grep { $_ ne EMPTY } @$selection;
-	    my @failed;
-	    foreach my $reff (grep { $selected{$_->filename} } @fs) {
-	      my $req = $reff->metaData('fs-require');
-	      my $references = $reff->metaData('references');
-	      my $match;
-	      if (ref($req)) {
-		for (@$req) {
-		  if ($_->[1] eq $old_file) {
-		    if (ref($references)) {
-		      $references->{$_->[0]}=$file;
-		      $_->[1] = $file;
-		      $reff->notSaved(1);
-		    }
-		    $match = 1;
-		  }
-		}
+	      },
+	      list => {
+		-exportselection => 0,
 	      }
-	      unless ($match) {
-		push @failed,$reff;
-	      }
+	     );
+	    if (@$selection) {
+	      my %selected = map { $_ => 1 } grep { $_ ne EMPTY } @$selection;
+	      $update_refs = [grep { $selected{$_->filename} } @fs];
 	    }
-	    errorMessage($win,
-			 "Could not find reference to the current file in the following files:\n\n".
-			   join("\n",map { $_->filename } @fs),1) if @failed;
 	  }
 	}
+	my @failed;
+	foreach my $reff (@$update_refs) {
+	  my $req = $reff->metaData('fs-require');
+	  my $references = $reff->metaData('references');
+	  my $match;
+	  if (ref($req)) {
+	    for (@$req) {
+	      if ($_->[1] eq $old_file) {
+		if (ref($references)) {
+		  $references->{$_->[0]}=$filename;
+		  $_->[1] = $filename;
+		  $reff->notSaved(1);
+		}
+		$match = 1;
+	      }
+	    }
+	  }
+	  unless ($match) {
+	    push @failed,$reff;
+	  }
+	}
+	errorMessage($win,
+		     "Could not find reference to the current file in the following files:\n\n".
+		       join("\n",map { $_->filename } @fs),1) if @failed;
       }
+
+      my $filelist = $win->{currentFilelist};
+      if ($filelist and $filename ne $old_file) {
+	if (!defined $update_filelist or $update_filelist eq 'ask') {
+	  my $response = 
+	    userQuery($win,
+		      "Do you want to update the current file list (".$filelist->name.")?\n\n".
+			"This will find all occurences in the file list of:\n${old_file}\n".
+			  "and update them to point to:\n${filename}",
+		      -bitmap=> 'question',
+		      -title => 'Update file list?',
+		      -buttons => ['Yes (all references)','Only current position','No']);
+	  if ($response ne 'No') {
+	    renameFileInFilelist($filelist, $old_file, $filename, 
+				 $response =~ /^Only/ ? currentFileNo($win) : undef);
+	  }
+	} elsif ($update_filelist=~/^all$|^current$/) {
+	  renameFileInFilelist($filelist, $old_file, $filename, 
+			       ($update_filelist eq 'current') ? 
+				currentFileNo($win) : undef);
+	}
+      }
+      return 1;
     } else {
-      removeLock($win->{FSFile},$file,1) if ($lock_change);
-      $win->{FSFile}->changeFilename($old_file);
-      setFSLockInfo($win->{FSFile}, setLock($old_file)) if $lock_change;
-      $win->{FSFile}->changeBackend($old_backend);
-      $win->{FSFile}->changeFileFormat($old_format);
+      removeLock($fsfile,$filename,1) if ($lock_change);
+      $fsfile->changeFilename($old_file);
+      setFSLockInfo($fsfile, setLock($old_file)) if $lock_change;
+      $fsfile->changeBackend($old_backend);
+      $fsfile->changeFileFormat($old_format);
       updateTitle($win->{framegroup});
       return 0;
     }
   }
   return 0;
+}
+
+
+sub renameFileInFilelist {
+  my ($filelist, $old_file, $filename, $position)=@_;
+  # TRY UPDATING THE CURRENT FILELIST:
+  #  if position is undefined - update all
+  #  if defined, update only given position
+  my $pattern_list = $filelist->list_ref;
+  my $rel_name = File::Spec->abs2rel($filename, $filelist->filename);
+  # my %fixed;
+  for my $i (defined ($position) ? $position : 0..($filelist->file_count()-1)) {
+    my $fn = $filelist->file_at($i);
+    my ($f, $suffix) = parse_suffix($fn);
+    if (_is_same_file(_filelistFullFileName($filelist,$f),$old_file)) {
+      my $pattern_no = $filelist->file_pattern_index($i);
+      my $pattern = $pattern_list->[$pattern_no];
+      my $new_filename =  (Fslib::_is_absolute($f) ?
+	  $filename.$suffix : $rel_name.$suffix);
+      $filelist->files_ref->[$i][0] = $new_filename;
+      if ($pattern eq $fn) {
+	# direct filename - easy: change pattern
+	$pattern_list->[$pattern_no] = $new_filename;
+      }
+      # 	      elsif (!$fixed{$pattern_no}) {
+      # 		my $new_pattern = QueryString($win,
+      # 					      "Update filelist pattern",
+      # 					      "Pattern:",
+      # 					      $pattern,
+      # 					    undef,
+      # 					      undef,
+      # 					      "File list reference\n${f}\n".
+      # 						"is generated from a pattern. ".
+      # 					    "You can now manually update the pattern.");
+      # 		if (defined $new_pattern) {
+      # 		  $pattern_list->[$pattern_no] = $new_pattern;
+      # 		  $fixed{$pattern_no}=1;
+      # 		}
+      # 	      }
+    }
+  }
 }
 
 sub askSaveFiles {
@@ -7037,7 +7128,7 @@ sub editConfig {
 }
 
 sub QueryString {
-  my ($grp, $title, $label,$default_text, $select, $hist)=@_;
+  my ($grp, $title, $label,$default_text, $select, $hist,$before_label)=@_;
   my $top = (ref($grp) and UNIVERSAL::can($grp,'toplevel')) ? $grp->toplevel : $grp->{top};
   my $newvalue=encode($default_text);
   my $d=$top->DialogBox(-title=> $title,
@@ -7049,7 +7140,14 @@ sub QueryString {
 
   addBindTags($d,'dialog');
   my ($Entry,@Eopts) = get_entry_type();
-  my $e=$d->add($Entry,
+  my $f = $d;
+  if (defined $before_label) {
+    my $l= $d->Label(-text=> encode($before_label),
+		   -anchor=> 'ne',
+		   -justify=> 'left')->pack();
+    $f=$d->Frame->pack();
+  }
+  my $e=$f->$Entry(
 		@Eopts,
 		-relief=> 'sunken',
 		-width=> 70,
@@ -7060,7 +7158,7 @@ sub QueryString {
     $e->history($hist);
   }
   $e->selectionRange(qw(0 end)) if ($select);
-  my $l= $d->Label(-text=> encode($label),
+  my $l= $f->Label(-text=> encode($label),
 		    -anchor=> 'e',
 		    -justify=> 'right');
 

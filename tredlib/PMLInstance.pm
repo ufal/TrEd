@@ -436,17 +436,20 @@ sub read_data {
   }
   my $schema = $ctxt->{'_schema'};
   my $root_type = $schema->{root};
+  unless (ref $root_type) {
+      _die("PML schema error - schema contains no root element declaration");
+  }
   my $root_name = $schema->{root}{name};
 
   $root_type = $ctxt->resolve_type($root_type);
+  unless (UNIVERSAL::isa($root_type,'HASH')) {
+      _die("PML schema error - invalid root element declaration");
+  }
 
   my $dom_root = $ctxt->{'_dom'}->getDocumentElement;
   unless ($dom_root->namespaceURI eq PML_NS and
 	  $dom_root->localname eq $root_name) {
-    _die("Expected root element '$root_name', got '".$dom_root->localname."'\n".Dumper($schema));
-  }
-  unless (UNIVERSAL::isa($root_type,'HASH')) {
-    _die("PML schema error - invalid root element declaration");
+    _die("Expected root element '$root_name', got '".$dom_root->localname."'\n");
   }
 
   # In PML 1.1, root can either be a sequence or a structure
@@ -473,6 +476,10 @@ sub resolve_type {
   if ($type->{type}) {
     my $types = $ctxt->{'_types'} ||= $ctxt->{'_schema'}->{type};
     my $rtype = $types->{$type->{type}};
+    if (!defined($rtype)) {
+      warn "PML schema error: No declaration for type '$type->{type}' in schema '".
+	$ctxt->{'_schema'}->get_url."'\n";
+    }
     return $rtype; # || $type->{type};
   } else {
     return $type;
