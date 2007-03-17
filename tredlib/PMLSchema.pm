@@ -400,8 +400,7 @@ sub _resolve_type {
       return $rtype;
     } else {
       # couldn't resolve
-      warn "Couldn't resolve type '$type->{type}' (no such type in schema '".
-	$self->{URL}."')\n";
+      warn "No declaration for type '$type->{type}' in schema '".$self->get_url."'\n";
       return $type->{type};
     }
   } else {
@@ -431,6 +430,10 @@ sub _get_referred_types {
 	  foreach (values %{$type->{attribute}}) {
 	    $self->_get_referred_types($_,$referred);
 	  }
+	} elsif (ref $type->{element}) {
+	  foreach (values %{$type->{element}}) {
+	    $self->_get_referred_types($_,$referred);
+	  }
 	} elsif (exists $type->{list}) {
 	  $self->_get_referred_types($type->{list},$referred);
 	} elsif (exists $type->{alt}) {
@@ -457,6 +460,9 @@ sub _get_referred_types {
 # from src_schema into the current schema (self)
 sub _import_type {
   my ($self,$src_schema, $name) = @_;
+  unless (exists $src_schema->{type}{$name}) {
+    croak "Cannot import type '$name' from '$src_schema->{URL}' to '$self->{URL}': type not declared in the source schema\n";
+  }
   my $type = $src_schema->{type}{$name};
   my %referred = ($name => $type);
   $src_schema->_get_referred_types($type,\%referred);
