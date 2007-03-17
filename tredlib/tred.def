@@ -2496,6 +2496,75 @@ sub Save {
   return $ret;
 }
 
+=item C<SaveAs({ option=>value,... })>
+
+NOTE: This macro is currently only available in TrEd.
+
+Save the current FSFile under a new filename. 
+Returns 1 if the file was saved successfully.
+
+Options:
+
+=over 6
+
+=item filename
+
+The new-filename. If undefined, the usual "Save As..." dialog prompts
+the user to select the output filename.
+
+=item fsfile
+
+operate on a given fsfile rather than the current one
+
+=item backend
+
+save using a given I/O backend
+
+=item update_refs
+
+update references from other files to this file.  Values can be:
+'ask', 'all', an array of FSFile objects; all
+other values mean no update. Default is 'ask'.
+
+=item update_filelist
+
+update references from the current filelist to this file.  Values can
+be: 'ask', 'current' (update only the current position); 
+any other value means no update. Default is 'ask'.
+
+=back
+
+=cut
+
+sub SaveAs {
+  # TODO: implement in btred
+#ifdef TRED
+  my ($opts)=@_;
+  if (!ref($opts)) {
+    $opts  = { filename => $opts };
+  }
+  my $fsfile = $opts->{fsfile} || CurrentFile();
+  my $filename = $opts->{filename} || $fsfile->filename;
+  my $backend = $opts->{backend} || $fsfile->backend;
+  my $update_refs = $opts->{update_refs} || 'ask';
+  my $update_filelist = $opts->{update_filelist} || 'ask';
+
+  my $ret = (main::doSaveFileAs($grp,
+				$fsfile,
+				$filename,
+				$backend,
+				$update_refs,
+				$update_filelist
+			       ) == 1);
+  $FileNotSaved=GetFileSaveStatus();
+  $forceFileSaved=!$FileNotSaved;
+  return $ret;
+#else
+  _croak("SaveAs(): Not yet implemented!");
+#endif
+}
+
+
 =item C<GetFileSaveStatus()>
 
 Return 1 if the document was modified since last save or reload, 0
