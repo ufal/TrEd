@@ -3554,7 +3554,7 @@ C<SetupXPath(
 
 This macro requires C<XML::XPath> module to be installed.  It adjusts
 FSNode API to match XPath model based on a given function mapping.  By
-defalut, 'id' is defined to return nothing, 'pos' returns nodes
+default, 'id' is defined to return nothing, 'pos' returns nodes
 sentence-ordering position (or tree-ordering position if sentord
 attribute is not defined), 'attributes' returs a hashref of node's
 attributes (actually a FSNode itself), 'name' returns "node", 'value'
