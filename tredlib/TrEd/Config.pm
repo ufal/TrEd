@@ -259,6 +259,7 @@ sub set_config {
   $treeViewOpts->{displayMode}   =	val_or_def($confs,"displaymode",
 						   $treeViewOpts->{displayMode});
 
+  $treeViewOpts->{lineSpacing}	      =	 val_or_def($confs,"linespacing",1);
   $treeViewOpts->{baseXPos}	      =	 val_or_def($confs,"basexpos",15);
   $treeViewOpts->{baseYPos}	      =	 val_or_def($confs,"baseypos",15);
   $treeViewOpts->{nodeWidth}	      =	 val_or_def($confs,"nodewidth",7);

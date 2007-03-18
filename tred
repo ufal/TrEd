@@ -8698,6 +8698,7 @@ H<RootStyles>
   C<baseYPos            >- Y-coordinate of the root node
   C<nodeXSkip           >- default horizontal skip between nodes
   C<nodeYSkip           >- default vertical skip between nodes
+  C<lineSpacing         >- line-spacing coeficient in text labels (Default: 1)
   C<skipHiddenParents   >- connect nodes with hidden parents to nearest
   C<                    >  displayed ancestors
   C<skipHiddenLevels    >- display nodes with hidden parents one level below their nearest
